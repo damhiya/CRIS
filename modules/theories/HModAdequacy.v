@@ -32,18 +32,6 @@ Set Implicit Arguments.
 Section ADEQUACY.
   Context `{_W: CtxWD.t}.
 
-  Definition unlift_Ist {world} (Ist: Any.t -> Any.t -> iProp): world -> (Any.t * Any.t) -> Prop :=
-    fun _ '(s, t) => 
-      match (Any.split s), (Any.split t) with 
-      | Some (sts, mrs), Some (stt, mrt) =>
-        match mrs↓, mrt↓ with
-        | Some rs, Some rt =>
-          Own rs ⊢ Own rt ∗ Ist sts stt
-        | _, _ => False
-        end
-      | _, _ => False
-      end.
-
   Theorem adequacy_hmod
       (md_src md_tgt: HMod.t) Ist
       (SIM: HModPair.sim md_src md_tgt Ist)
@@ -54,7 +42,7 @@ Section ADEQUACY.
     econs; eauto. i. specialize (sim_modsem sk SKINCL SKWF). 
     des. inv sim_modsem.
     econs; swap 2 3.
-    - instantiate (1:= top2). ss.
+    - instantiate (1:= eq). eapply base.PreOrder_instance_0.
     - ss. unfold cond_to_st, handle_init_cond, assume_init. grind.
       ginit. 
       gstep. econs; eauto. i. grind. econs; eauto. i. econs; eauto. i. (* run src to the end *)
@@ -65,10 +53,20 @@ Section ADEQUACY.
       des.
       econs; eauto. instantiate (1:= p). grind. econs; eauto. { r_solve. do 2 eapply URA.wf_mon. eauto. } 
       econs; eauto. { eapply iProp_Own. eauto. }
-      econs. exists tt. instantiate (1:= unlift_Ist Ist). hss. r_solve.
-      eapply iProp_Own in H1.
-      iIntros "[H0 H1]". iFrame. iApply (H1 with "H1").
-    - admit.
+      econs. exists (ε: Σ). instantiate (1:= interp_inv Ist). hss. 
+      econs; eauto.
+      { instantiate (1:= q). r_solve. replace (q ⋅ p) with (p ⋅ q);[eauto|r_solve]. }
+      eapply iProp_Own in H1. iIntros "H". iApply (H1 with "H").
+    - eapply Forall2_apply_Forall2; eauto.
+      i. destruct a, b. inv H. econs; ss. ii. do 3 r in H1.
+        specialize (H1 x y H). inv SIMMRS. s.
+        specialize (H1 st_src st_tgt).
+        eapply hpsim_adequacy; [et|et| |r_solve;et|]; cycle 1.
+        { instantiate (1:= mr). r_solve. eauto. }
+        ginit. eapply isim_init in H1.
+        { ss. (* iunlift ibot <7= bot7. *) admit. }
+        instantiate (1:= mr). admit.
+        (* update modality diff. Can we fix isim_init? *)
   Admitted.
 
   Section HMODSEM.

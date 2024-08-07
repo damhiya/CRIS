@@ -35,7 +35,7 @@ Section PROOF.
   Context `{_M: MapRA.t}.
   Context `{@GRA.inG memRA Γ}.
 
-  Theorem correct: refines2 [HMod.to_mod (HMod.add MapI.Map (HMem (fun _ => false)))] [HMod.to_mod (HMod.add (MapA.HMap (fun _ => to_stb (MemStb ++ MapStb))) (HMem (fun _ => false))) ].
+  Theorem correct: refines2 [HMod.to_mod (HMod.add MapI.Map (HMem (fun _ => false)))] [HMod.to_mod (HMod.add (MapA.HMap (fun _ => to_stb (MemStb ++ MapStb))) (HMem (fun _ => false)))].
   Proof.
     etrans.
     {
@@ -50,3 +50,24 @@ Section PROOF.
     }
   Qed.
 End PROOF.
+
+  (* 
+    Reorganize the definitions of 'refines': 
+    - refines src tgt (Type: mod.t)
+    - refines' src tgt ctx (Type: hmod.t) := refines (to_mod (add src ctx)) (to_mod (add tgt ctx))
+    - Do we still need refines2? (getting modules as a list)
+      Something like Fixpoint add_list hd::tl := add hd (add_list tl) might be enough.
+      ( 
+        refines2 [src0; src1; ... ; ctx0; ctx1; ...] [tgt0; tgt1; ... ; ctx0; ctx1; ... ] 
+    
+        =>
+
+        Let src := add_list [src0; src1; ... ]
+        Let tgt := add_list [tgt0; tgt1; ... ]
+        Let ctx := add_list [ctx0; ctx1; ... ]
+
+        refines' src tgt ctx 
+       
+      )
+  *)
+
