@@ -53,7 +53,8 @@ Section ADEQUACY.
     inv SIM. des.
     econs; eauto. i. specialize (sim_modsem sk SKINCL SKWF). 
     des. inv sim_modsem.
-    econs; swap 1 3.
+    econs; swap 2 3.
+    - instantiate (1:= top2). ss.
     - ss. unfold cond_to_st, handle_init_cond, assume_init. grind.
       ginit. 
       gstep. econs; eauto. i. grind. econs; eauto. i. econs; eauto. i. (* run src to the end *)
@@ -67,6 +68,7 @@ Section ADEQUACY.
       econs. exists tt. instantiate (1:= unlift_Ist Ist). hss. r_solve.
       eapply iProp_Own in H1.
       iIntros "[H0 H1]". iFrame. iApply (H1 with "H1").
+    - admit.
   Admitted.
 
   Section HMODSEM.
