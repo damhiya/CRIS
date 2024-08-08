@@ -69,6 +69,91 @@ Section ADEQUACY.
         (* update modality diff. Can we fix isim_init? *)
   Admitted.
 
+End ADEQUACY.
+
+Section HPSIM.
+  Context `{Σ: GRA.t}.
+  Import HModSem.
+
+  Definition addf f1 f2 : alist gname (Any.t -> itree _ Any.t) :=
+    (List.map trans_l f1) ++ (List.map trans_r f2).
+
+  Lemma IstProdEq 
+        Ist stl str stc
+    :
+        Ist stl str
+      -∗
+        IstProd Ist IstEq (Any.pair stl stc) (Any.pair str stc).
+  Proof.
+    iIntros "H". unfold IstProd, IstEq. iExists stl, str, _, _.
+    iFrame. iPureIntro. esplits; eauto.
+  Qed.
+
+  Ltac hstep := guclo hpsimC_spec; econs; econs; eauto; econs; eauto.
+
+  (* Not necessary if you can prove isim_ctx_aux directly. *)
+  Theorem hpsim_ctx
+          fl_src fl_tgt fl_ctx Ist
+          ps pt st_src st_tgt st_ctx itr_src itr_tgt
+          fmr stl str
+          (SIM: hpsim_body fl_src fl_tgt Ist ps pt (st_src, itr_src) (st_tgt, itr_tgt) fmr)
+          (SRC: stl = Any.pair st_src st_ctx)
+          (TGT: str = Any.pair st_tgt st_ctx)
+      :
+          hpsim_body (addf fl_src fl_ctx) (addf fl_tgt fl_ctx) (IstProd Ist IstEq) 
+          ps pt (stl, translate (emb_ run_l) itr_src) (str, translate (emb_ run_l) itr_tgt) fmr.
+  Proof.
+    revert_until Σ. ginit. gcofix CIH. i.
+    remember (st_src, itr_src). remember (st_tgt, itr_tgt).
+    move SIM before Σ. revert_until SIM. punfold SIM.
+    pattern ps, pt, p, p0, fmr.
+    eapply _hpsim_tarski, SIM; i. clear SIM fmr. rename fmr0 into fmr.
+    guclo hpsim_wfC_spec. econs. i. 
+    exploit IN; i; des; eauto.
+    destruct x0; i; des; inv Heqp; try inv Heqp0.
+    - rewrite! translate_emb_ret. hstep.
+      iIntros "H". iPoseProof (RET with "H") as ">[H %]".
+      iModIntro. iSplit; eauto. iApply IstProdEq. eauto.
+    - rewrite! translate_emb_bind. rewrite! translate_emb_callE. hstep.
+      { 
+        instantiate (1:= FR). iIntros "H". iPoseProof (INV with "H") as ">[H FR]".
+        iModIntro. iFrame. iApply IstProdEq. eauto.
+      }
+      (* 
+        Property about Any.pair is not restored without Own fmr1. 
+        Find a way to relate fmr0 & fmr1 (SIM & Goal's fmr after 'Call' )
+      *)
+      i. guclo hpsim_wfC_spec. econs. i. 
+      eapply K; eauto; admit.
+    - rewrite! translate_emb_bind. rewrite! translate_emb_eventE. hstep.
+    - rewrite! translate_emb_bind. rewrite translate_emb_callE. hstep.
+      { unfold addf. apply alist_find_app. unfold trans_l. rewrite alist_find_map. unfold o_map. rewrite FUN. et. }
+      s. (* fold Ret ();;; Ret x back into translate () *) admit.
+    - rewrite! translate_emb_bind. admit.
+    - rewrite! translate_emb_tau. hstep.
+    - rewrite! translate_emb_tau. hstep.
+    - rewrite! translate_emb_bind. rewrite! translate_emb_eventE. hstep.
+    - rewrite! translate_emb_bind. rewrite! translate_emb_eventE. hstep.
+    - rewrite! translate_emb_bind. rewrite! translate_emb_eventE. hstep.
+    - rewrite! translate_emb_bind. rewrite! translate_emb_eventE. hstep.
+    - rewrite! translate_emb_bind. rewrite! translate_emb_sE. hstep. hss. des_ifs.
+    - rewrite! translate_emb_bind. rewrite! translate_emb_sE. hstep. hss. des_ifs.
+    - rewrite! translate_emb_bind. rewrite translate_emb_assume. hstep.
+    - rewrite! translate_emb_bind. rewrite translate_emb_guarantee. hstep.
+    - rewrite! translate_emb_bind. rewrite translate_emb_guarantee. hstep.
+    - rewrite! translate_emb_bind. rewrite translate_emb_assume. hstep.
+    - gstep. econs. econs. econs; eauto. econs; eauto. 
+      gbase. pclearbot. eapply CIH; eauto.
+  Admitted.
+
+
+          
+          
+
+End HPSIM.
+
+Section SIM.
+  Context `{_W: CtxWD.t}.
   Section HMODSEM.
     Import HModSem.
 
@@ -91,7 +176,8 @@ Section ADEQUACY.
           (Any.pair st_src st_ctx, translate (emb_ run_l) (i y)) (Any.pair st_tgt st_ctx, translate (emb_ run_l) (i0 y)).
     Proof.
       iIntros "H". iEval (unfold IstProd) in "H". 
-      iDestruct "H" as (? ? ? ?) "(% & H & %)". des. subst.      
+      iDestruct "H" as (? ? ? ?) "(% & H & %)". des. subst.
+      
     Admitted.
 
 
@@ -124,6 +210,7 @@ Section ADEQUACY.
         unfold IstProd, IstEq. iExists st_srcL, st_tgtL. iFrame.
         iPureIntro. esplits; eauto.
     Qed.
+  End HMODSEM.
 
   Theorem sim_ctx_hmod
         ctx md1 md2 Ist
@@ -141,7 +228,4 @@ Section ADEQUACY.
     - r. ss. unfold Sk.add. ss.
       rewrite sim_sk. et.
   Qed.
-
-  End HMODSEM.
-
-End ADEQUACY.
+End SIM.
