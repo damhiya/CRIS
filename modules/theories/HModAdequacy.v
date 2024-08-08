@@ -32,6 +32,17 @@ Set Implicit Arguments.
 Section ADEQUACY.
   Context `{_W: CtxWD.t}.
 
+  Lemma Own_upd_specify
+        r P 
+        (UPD: Own r ⊢ #=> P) 
+        (WF: URA.wf r):
+    exists r0, P r0 /\ URA.updatable r r0.
+  Proof.
+    uiprop in UPD. specialize (UPD r WF).
+    hexploit UPD; [refl|]. i. des.
+    esplits; eauto.
+  Qed.
+
   Theorem adequacy_hmod
       (md_src md_tgt: HMod.t) Ist
       (SIM: HModPair.sim md_src md_tgt Ist)
@@ -63,11 +74,14 @@ Section ADEQUACY.
         specialize (H1 st_src st_tgt).
         eapply hpsim_adequacy; [et|et| |r_solve;et|]; cycle 1.
         { instantiate (1:= mr). r_solve. eauto. }
-        ginit. eapply isim_init in H1.
-        { ss. (* iunlift ibot <7= bot7. *) admit. }
-        instantiate (1:= mr). admit.
-        (* update modality diff. Can we fix isim_init? *)
-  Admitted.
+        ginit. guclo hpsim_wfC_spec. econs. i.
+        eapply Own_upd_specify in MR; eauto. des.
+        eapply Own_Upd in MR0.
+        guclo hpsim_updateC_spec. econs. econs.
+        instantiate (1:= r0). esplits; eauto.
+        eapply iProp_Own in MR. eapply isim_init in H1; eauto.
+        ss. eapply gpaco7_mon; eauto using iunlift_ibot.
+  Qed.
 
 End ADEQUACY.
 

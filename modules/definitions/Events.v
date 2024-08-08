@@ -2,7 +2,7 @@ Require Import Coqlib AList.
 Require Export sflib.
 Require Export ITreelib.
 Require Import Any.
-Require Export BasicEvents.
+Require Export BasicEventsRed BasicEvents.
 
 Require Import IRed.
 Require Import STS.
