@@ -221,7 +221,7 @@ Section HOARE.
       Variable stb: gname -> option fspec.
 
       Definition handle_apcE_hmodE (ord_cur: ord): apcE ~> itree hmodE :=
-        fun _ '(hAPC) => HoareAPC stb ord_cur.
+        fun _ '(APC) => HoareAPC stb ord_cur.
 
       Definition handle_callE_hmodE ord_cur: callE ~> itree hmodE :=
         fun _ '(Call fn arg) => 
@@ -249,7 +249,7 @@ Section HOARE.
         vret_src <- interp_smodE_hmodE
                             ord_cur
                                (match ord_cur with
-                                | ord_pure _ => _ <- trigger hAPC;; trigger (Choose _)
+                                | ord_pure _ => _ <- trigger APC;; trigger (Choose _)
                                 | _ => body (varg_src)
                                 end);;
 
@@ -354,7 +354,7 @@ End HOARE.
 
 Module IPCNotations.
   Notation ";;; t2" :=
-    (ITree.bind (trigger hAPC) (fun _ => t2))
+    (ITree.bind (trigger APC) (fun _ => t2))
       (at level 63, t2 at next level, right associativity) : itree_scope.
   Notation "` x : t <- t1 ;;; t2" :=
     (ITree.bind t1 (fun x : t => ;;; t2))

@@ -144,7 +144,7 @@ Section EVENTS_OTHER.
   Definition hmodE := (agE +' modE).
   
   Variant apcE: Type -> Type :=
-  | hAPC: apcE unit.
+  | APC: apcE unit.
 
   Definition smodE := apcE +' hmodE.
 
