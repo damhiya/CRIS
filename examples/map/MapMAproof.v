@@ -1,4 +1,4 @@
-Require Import Events MapHeader MapM MapA SimModSem.
+Require Import Translate MapHeader MapM MapA SimModSem.
 Require Import Coqlib.
 Require Import ImpPrelude.
 Require Import Skeleton.

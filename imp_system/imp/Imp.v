@@ -7,7 +7,7 @@ Require Import Skeleton.
 Require Import PCM.
 Require Import STS Behavior.
 Require Import Any.
-Require Import ModuleInternal Mod BasicEvents.
+Require Import ModuleInternal Mod Events.
 Require Import AList.
 
 Set Implicit Arguments.

@@ -3,7 +3,7 @@ Require Import ITreelib.
 Require Import ImpPrelude.
 Require Import STS.
 Require Import Behavior.
-Require Import SMod HMod Events.
+Require Import SMod HMod Translate.
 Require Import Skeleton.
 Require Import PCM.
 Require Import STB IPM.

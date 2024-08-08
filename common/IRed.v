@@ -1,7 +1,7 @@
 Require Import Red.
 Require Import Coqlib.
 Require Import ITreelib.
-Require Import BasicEvents.
+Require Import Events.
 Require Import Any.
 
 Local Open Scope nat_scope.

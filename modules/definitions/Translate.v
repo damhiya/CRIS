@@ -2,7 +2,7 @@ Require Import Coqlib AList.
 Require Export sflib.
 Require Export ITreelib.
 Require Import Any.
-Require Export BasicEventsRed BasicEvents.
+Require Export EventsRed Events.
 
 Require Import IRed.
 Require Import STS.
@@ -322,11 +322,11 @@ Section HOARE.
     Section INIT.
       (* separate compilation path for module-state initialization. *)
       Definition assume_init {E} `{takeE -< E} (P: Prop): itree E unit := 
-        trigger (BasicEvents.take P) ;;; Ret tt.
+        trigger (Events.take P) ;;; Ret tt.
 
       Definition handle_init_cond P: stateT (Σ) (itree takeE) unit :=
       fun fr => (* skipped 'mget' from 'handle_Assume' *)
-        r <- trigger (BasicEvents.take Σ);;
+        r <- trigger (Events.take Σ);;
         assume_init (URA.wf (r ⋅ fr ));;;
         assume_init (Own r ⊢ P);;; 
         Ret (r ⋅ fr, tt).

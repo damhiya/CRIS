@@ -1,4 +1,4 @@
-Require Import MapHeader MapI MapM Events SimModSem.
+Require Import MapHeader MapI MapM Translate SimModSem.
 Require Import Coqlib.
 Require Import ImpPrelude.
 Require Import Skeleton.
@@ -17,7 +17,7 @@ From ExtLib Require Import
      Data.Map.FMapAList.
 Require Import Mem1 STB.
 
-Require Import ISim HMod BasicEvents.
+Require Import ISim HMod Events.
 Require Import Mod SimModSemFacts HModAdequacy.
 
 

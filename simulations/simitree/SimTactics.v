@@ -4,7 +4,7 @@ Require Import Behavior.
 Require Import Skeleton.
 Require Import PCM.
 Require Import Any.
-Require Import Mod Events.
+Require Import Mod Translate.
 Require Import SimModSem.
 Require Import STB.
 

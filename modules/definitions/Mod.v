@@ -8,7 +8,7 @@ Require Import Any.
 Require Import Program.
 
 Require Export ModuleInternal.
-Require Import BasicEvents.
+Require Import Events.
 
 
 Set Implicit Arguments.

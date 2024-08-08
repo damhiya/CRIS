@@ -5,7 +5,7 @@ Require Import Skeleton.
 Require Import PCM IModL.
 Require Import Any.
 Require Import STB SimModSem.
-Require Import Events.
+Require Import Translate.
 
 Require Import Relation_Definitions.
 

@@ -3,7 +3,7 @@ Require Import ITreelib.
 Require Import Any.
 Require Import STS.
 Require Import Behavior.
-Require Import BasicEvents.
+Require Import Events.
 Require Import Skeleton.
 Require Import PCM.
 Require Import Coq.Relations.Relation_Definitions.

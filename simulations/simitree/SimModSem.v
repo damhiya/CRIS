@@ -1,7 +1,7 @@
 Require Import Coqlib.
 Require Import ITreelib.
 Require Import Skeleton.
-Require Import BasicEventsRed Mod BasicEvents.
+Require Import EventsRed Mod Events.
 Require Import Behavior.
 Require Import Relation_Definitions.
 

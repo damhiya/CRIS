@@ -21,6 +21,7 @@ proof: Makefile.coq $(COQTHEORIES)
 
 Makefile.coq: Makefile $(COQTHEORIES)
 	(echo "-R lib $(COQMODULE)"; \
+         echo "-R common $(COQMODULE)"; \
          echo "-R modules $(COQMODULE)"; \
          echo "-R simulations $(COQMODULE)"; \
          echo "-R WET $(COQMODULE)"; \

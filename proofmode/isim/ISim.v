@@ -1,4 +1,3 @@
-
 Require Import Coqlib.
 Require Import STS.
 Require Import Behavior.
@@ -6,7 +5,7 @@ Require Import Mod.
 Require Import Skeleton.
 Require Import PCM IPM.
 Require Import Any.
-Require Import Events STB SimModSem.
+Require Import Translate STB SimModSem.
 
 Require Import Relation_Definitions.
 Require Import Relation_Operators.
@@ -18,7 +17,7 @@ Require Import HPSim.
 Require Import World sWorld.
 From stdpp Require Import coPset gmap.
 
-Require Import ModuleInternal HMod BasicEvents.
+Require Import ModuleInternal HMod Events.
 
 Require Export ISimCore ITactics.
 

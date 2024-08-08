@@ -11,7 +11,7 @@ Require Import PCM IPM.
 Require Import SimInitial SimModSem SimModSemFacts0 ModSemFacts SimModSemFacts.
 Require Import HPSim HPSimFacts.
 
-Require Import HMod Mod Events BasicEvents.
+Require Import HMod Mod Translate Events.
 
 Require Import ISim.
 

@@ -4,7 +4,7 @@ Require Import Skeleton.
 Require Import PCM.
 Require Import Any.
 Require Import ModuleInternal.
-Require Import BasicEvents.
+Require Import Events.
 Require Import SimSTS.
 Require Import STSNorm.
 Require Import STS Behavior.

@@ -2,7 +2,7 @@ Require Import Coqlib.
 Require Export sflib.
 Require Export ITreelib.
 Require Export AList.
-Require Import BasicEvents.
+Require Import Events.
 Require Import Skeleton.
 Require Import STS Behavior.
 Require Import Any.

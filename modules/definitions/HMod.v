@@ -6,7 +6,7 @@ Require Import Skeleton.
 Require Import Any.
 Require Export ModuleInternal.
 Require Import Mod.
-Require Import Events.
+Require Import Translate.
 Require Import PCM IPM.
 Require Import Red IRed.
 

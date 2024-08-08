@@ -2,7 +2,7 @@
 Require Import Coqlib.
 Require Import STS.
 Require Import Behavior.
-Require Import Events.
+Require Import Translate.
 Require Import Skeleton.
 Require Import PCM IPM.
 Require Import Any.
