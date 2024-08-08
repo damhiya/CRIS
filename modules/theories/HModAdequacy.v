@@ -66,7 +66,7 @@ Section ADEQUACY.
       econs; eauto. { eapply iProp_Own. eauto. }
       econs. exists (ε: Σ). instantiate (1:= interp_inv Ist). hss. 
       econs; eauto.
-      { instantiate (1:= q). r_solve. replace (q ⋅ p) with (p ⋅ q);[eauto|r_solve]. }
+      { instantiate (1:= q). r_solve. rewrite URA.add_comm. eauto. }
       eapply iProp_Own in H1. iIntros "H". iApply (H1 with "H").
     - eapply Forall2_apply_Forall2; eauto.
       i. destruct a, b. inv H. econs; ss. ii. do 3 r in H1.
@@ -80,7 +80,7 @@ Section ADEQUACY.
         guclo hpsim_updateC_spec. econs. econs.
         instantiate (1:= r0). esplits; eauto.
         eapply iProp_Own in MR. eapply isim_init in H1; eauto.
-        ss. eapply gpaco7_mon; eauto using iunlift_ibot.
+        eapply gpaco7_mon; eauto using iunlift_ibot.
   Qed.
 
 End ADEQUACY.
