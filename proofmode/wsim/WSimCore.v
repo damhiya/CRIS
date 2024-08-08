@@ -35,7 +35,7 @@ Section WSIM.
   Context `{CtxWD.t}.
 
   Variable Ist: Any.t -> Any.t -> iProp.
-  Variable fl_src fl_tgt: alist gname (Any.t -> itree hAGEs Any.t).
+  Variable fl_src fl_tgt: alist gname (Any.t -> itree hmodE Any.t).
   Let isim := isim Ist fl_src fl_tgt.
 
   Variable u: world_id.
@@ -262,7 +262,7 @@ Section WSIM.
   :
     (∀ vret, @wsim E r g R RR true true (st_src, k_src vret) (st_tgt, k_tgt vret))
   -∗
-    (wsim E r g RR ps pt (st_src, trigger (Syscall fn varg rvs) >>= k_src) (st_tgt, trigger (Syscall fn varg rvs) >>= k_tgt)).
+    (wsim E r g RR ps pt (st_src, trigger (IO fn varg rvs) >>= k_src) (st_tgt, trigger (IO fn varg rvs) >>= k_tgt)).
   Proof.
     unfold wsim. iIntros "H D".
     iApply isim_syscall. iIntros. 
@@ -583,11 +583,11 @@ Section WSIM.
 
   (**** TODO ****)
 
-  (* Definition wsim_fsem RR: relation (Any.t -> itree hAGEs Any.t) :=
+  (* Definition wsim_fsem RR: relation (Any.t -> itree hmodE Any.t) :=
     (eq ==> (fun itr_src itr_tgt => forall st_src st_tgt,
              Ist st_src st_tgt ⊢ @isim ibot ibot Any.t RR false false (st_src, itr_src) (st_tgt, itr_tgt)))%signature. *)
 
-  (* Definition wsim_fnsem RR: relation (string * (Any.t -> itree hAGEs Any.t)) := RelProd eq (wsim_fsem RR). *)
+  (* Definition wsim_fnsem RR: relation (string * (Any.t -> itree hmodE Any.t)) := RelProd eq (wsim_fsem RR). *)
 
 End WSIM.
 
@@ -599,7 +599,7 @@ Section WSIM_LEVEL_UP.
   Context `{CtxWD.t}.
   
   Variable Ist: Any.t -> Any.t -> iProp.
-  Variable fl_src fl_tgt: alist gname (Any.t -> itree hAGEs Any.t).
+  Variable fl_src fl_tgt: alist gname (Any.t -> itree hmodE Any.t).
 
   Let wsim u b := wsim Ist fl_src fl_tgt u b.
 

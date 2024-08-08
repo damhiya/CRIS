@@ -10,155 +10,155 @@ Require Import Red IRed.
 Section RED.
   (* itree reduction lemmas *)
   Section ES.
-    Lemma interp_Es_bind
+    Lemma interp_modE_bind
           A B
-          (itr: itree Es A) (ktr: A -> itree Es B)
-          (prog: callE ~> itree Es)
+          (itr: itree modE A) (ktr: A -> itree modE B)
+          (prog: callE ~> itree modE)
           st0
       :
-        interp_Es prog (v <- itr ;; ktr v) st0 =
-        '(st1, v) <- interp_Es prog (itr) st0 ;; interp_Es prog (ktr v) st1.
+        interp_modE prog (v <- itr ;; ktr v) st0 =
+        '(st1, v) <- interp_modE prog (itr) st0 ;; interp_modE prog (ktr v) st1.
 
-    Proof. unfold interp_Es, interp_sE. des_ifs. grind. Qed.
+    Proof. unfold interp_modE, interp_stateE. des_ifs. grind. Qed.
 
-    Lemma interp_Es_tau
-          (prog: callE ~> itree Es)
+    Lemma interp_modE_tau
+          (prog: callE ~> itree modE)
           A
-          (itr: itree Es A)
+          (itr: itree modE A)
           st0
       :
-        interp_Es prog (tau;; itr) st0 = tau;; interp_Es prog itr st0.
-    Proof. unfold interp_Es, interp_sE. des_ifs. grind. Qed.
+        interp_modE prog (tau;; itr) st0 = tau;; interp_modE prog itr st0.
+    Proof. unfold interp_modE, interp_stateE. des_ifs. grind. Qed.
 
-    Lemma interp_Es_ret
+    Lemma interp_modE_ret
           T
           prog st0 (v: T)
       :
-        interp_Es prog (Ret v: itree Es _) st0 = Ret (st0, v).
-    Proof. unfold interp_Es, interp_sE. des_ifs. grind. Qed.
+        interp_modE prog (Ret v: itree modE _) st0 = Ret (st0, v).
+    Proof. unfold interp_modE, interp_stateE. des_ifs. grind. Qed.
 
-    Lemma interp_Es_callE
+    Lemma interp_modE_callE
           p st0 T
-          (* (e: Es Σ) *)
+          (* (e: modE Σ) *)
           (e: callE T)
       :
-        interp_Es p (trigger e) st0 = tau;; (interp_Es p (p _ e) st0).
-    Proof. unfold interp_Es, interp_sE. des_ifs. grind. Qed.
+        interp_modE p (trigger e) st0 = tau;; (interp_modE p (p _ e) st0).
+    Proof. unfold interp_modE, interp_stateE. des_ifs. grind. Qed.
 
-    Lemma interp_Es_sE
+    Lemma interp_modE_stateE
           p st0
-          (* (e: Es Σ) *)
+          (* (e: modE Σ) *)
           T
-          (e: sE T)
+          (e: stateE T)
       :
-        interp_Es p (trigger e) st0 =
-        '(st1, r) <- handle_sE e st0;;
+        interp_modE p (trigger e) st0 =
+        '(st1, r) <- handle_stateE e st0;;
         tau;; tau;;
         Ret (st1, r).
     Proof.
-      unfold interp_Es, interp_sE. grind.
+      unfold interp_modE, interp_stateE. grind.
     Qed.
 
-    Lemma interp_Es_eventE
+    Lemma interp_modE_coreE
           p st0
           T
-          (e: eventE T)
+          (e: coreE T)
       :
-        interp_Es p (trigger e) st0 = r <- trigger e;; tau;; tau;; Ret (st0, r).
+        interp_modE p (trigger e) st0 = r <- trigger e;; tau;; tau;; Ret (st0, r).
     Proof.
-      unfold interp_Es, interp_sE. grind.
+      unfold interp_modE, interp_stateE. grind.
       unfold pure_state. grind.
     Qed.
 
-    Lemma interp_Es_triggerUB
-          (prog: callE ~> itree Es)
+    Lemma interp_modE_triggerUB
+          (prog: callE ~> itree modE)
           st0
           A
       :
-        (interp_Es prog (triggerUB) st0: itree eventE (_ * A)) = triggerUB.
+        (interp_modE prog (triggerUB) st0: itree coreE (_ * A)) = triggerUB.
     Proof.
-      unfold interp_Es, interp_sE, pure_state, triggerUB. grind.
+      unfold interp_modE, interp_stateE, pure_state, triggerUB. grind.
     Qed.
 
-    Lemma interp_Es_triggerNB
-          (prog: callE ~> itree Es)
+    Lemma interp_modE_triggerNB
+          (prog: callE ~> itree modE)
           st0
           A
       :
-        (interp_Es prog (triggerNB) st0: itree eventE (_ * A)) = triggerNB.
+        (interp_modE prog (triggerNB) st0: itree coreE (_ * A)) = triggerNB.
     Proof.
-      unfold interp_Es, interp_sE, pure_state, triggerNB. grind.
+      unfold interp_modE, interp_stateE, pure_state, triggerNB. grind.
     Qed. 
     
-    Lemma interp_Es_unwrapU
+    Lemma interp_modE_unwrapU
           prog R st0 (r: option R)
       :
-        interp_Es prog (unwrapU r) st0 = r <- unwrapU r;; Ret (st0, r).
+        interp_modE prog (unwrapU r) st0 = r <- unwrapU r;; Ret (st0, r).
     Proof.
       unfold unwrapU. des_ifs.
-      - rewrite interp_Es_ret. grind.
-      - rewrite interp_Es_triggerUB. unfold triggerUB. grind.
+      - rewrite interp_modE_ret. grind.
+      - rewrite interp_modE_triggerUB. unfold triggerUB. grind.
     Qed.
 
-    Lemma interp_Es_unwrapN
+    Lemma interp_modE_unwrapN
           prog R st0 (r: option R)
       :
-        interp_Es prog (unwrapN r) st0 = r <- unwrapN r;; Ret (st0, r).
+        interp_modE prog (unwrapN r) st0 = r <- unwrapN r;; Ret (st0, r).
     Proof.
       unfold unwrapN. des_ifs.
-      - rewrite interp_Es_ret. grind.
-      - rewrite interp_Es_triggerNB. unfold triggerNB. grind.
+      - rewrite interp_modE_ret. grind.
+      - rewrite interp_modE_triggerNB. unfold triggerNB. grind.
     Qed.
 
-    Lemma interp_Es_assume
+    Lemma interp_modE_assume
           prog st0 (P: Prop)
       :
-        interp_Es prog (assume P) st0 = assume P;;; tau;; tau;; Ret (st0, tt).
+        interp_modE prog (assume P) st0 = assume P;;; tau;; tau;; Ret (st0, tt).
     Proof.
       unfold assume.
-      repeat (try rewrite interp_Es_bind; try rewrite bind_bind). grind.
-      rewrite interp_Es_eventE.
-      repeat (try rewrite interp_Es_bind; try rewrite bind_bind). grind.
-      rewrite interp_Es_ret.
+      repeat (try rewrite interp_modE_bind; try rewrite bind_bind). grind.
+      rewrite interp_modE_coreE.
+      repeat (try rewrite interp_modE_bind; try rewrite bind_bind). grind.
+      rewrite interp_modE_ret.
       refl.
     Qed.
 
-    Lemma interp_Es_guarantee
+    Lemma interp_modE_guarantee
           prog st0 (P: Prop)
       :
-        interp_Es prog (guarantee P) st0 = guarantee P;;; tau;; tau;; Ret (st0, tt).
+        interp_modE prog (guarantee P) st0 = guarantee P;;; tau;; tau;; Ret (st0, tt).
     Proof.
       unfold guarantee.
-      repeat (try rewrite interp_Es_bind; try rewrite bind_bind). grind.
-      rewrite interp_Es_eventE.
-      repeat (try rewrite interp_Es_bind; try rewrite bind_bind). grind.
-      rewrite interp_Es_ret.
+      repeat (try rewrite interp_modE_bind; try rewrite bind_bind). grind.
+      rewrite interp_modE_coreE.
+      repeat (try rewrite interp_modE_bind; try rewrite bind_bind). grind.
+      rewrite interp_modE_ret.
       refl.
     Qed.    
 
-    Lemma interp_Es_ext
+    Lemma interp_modE_ext
           prog R (itr0 itr1: itree _ R) st0
       : 
-        itr0 = itr1 -> interp_Es prog itr0 st0 = interp_Es prog itr1 st0.
+        itr0 = itr1 -> interp_modE prog itr0 st0 = interp_modE prog itr1 st0.
     Proof. i; subst; refl. Qed.    
 
-    Global Program Instance interp_Es_rdb: red_database (mk_box (@interp_Es)) :=
+    Global Program Instance interp_modE_rdb: red_database (mk_box (@interp_modE)) :=
       mk_rdb
         1
-        (mk_box interp_Es_bind)
-        (mk_box interp_Es_tau)
-        (mk_box interp_Es_ret)
-        (mk_box interp_Es_sE)
-        (mk_box interp_Es_sE)
-        (mk_box interp_Es_callE)
-        (mk_box interp_Es_eventE)
-        (mk_box interp_Es_triggerUB)
-        (mk_box interp_Es_triggerNB)
-        (mk_box interp_Es_unwrapU)
-        (mk_box interp_Es_unwrapN)
-        (mk_box interp_Es_assume)
-        (mk_box interp_Es_guarantee)
-        (mk_box interp_Es_ext).
+        (mk_box interp_modE_bind)
+        (mk_box interp_modE_tau)
+        (mk_box interp_modE_ret)
+        (mk_box interp_modE_stateE)
+        (mk_box interp_modE_stateE)
+        (mk_box interp_modE_callE)
+        (mk_box interp_modE_coreE)
+        (mk_box interp_modE_triggerUB)
+        (mk_box interp_modE_triggerNB)
+        (mk_box interp_modE_unwrapU)
+        (mk_box interp_modE_unwrapN)
+        (mk_box interp_modE_assume)
+        (mk_box interp_modE_guarantee)
+        (mk_box interp_modE_ext).
         
   End ES.
 

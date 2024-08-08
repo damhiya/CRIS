@@ -46,8 +46,8 @@ Section HPSIM.
 
   Context `{Σ: GRA.t}.
 
-  Variable fl_src: alist gname (Any.t -> itree hAGEs Any.t).
-  Variable fl_tgt: alist gname (Any.t -> itree hAGEs Any.t).
+  Variable fl_src: alist gname (Any.t -> itree hmodE Any.t).
+  Variable fl_tgt: alist gname (Any.t -> itree hmodE Any.t).
   Variable Ist: Any.t -> Any.t -> iProp.
 
   Definition hsupd (P: Σ -> Prop) : Σ -> Prop :=
@@ -56,13 +56,13 @@ Section HPSIM.
                (Own fmr ⊢ #=> Own fmr0).
                (* forall ctx (WF: URA.wf (fmr ⋅ ctx)), URA.wf (fmr0 ⋅ ctx). *)
 
-  Definition dummy_term (with_dummy: bool) : itree hAGEs unit :=
+  Definition dummy_term (with_dummy: bool) : itree hmodE unit :=
     if with_dummy then trigger (Guarantee True) else Ret tt.
   
   Variant _hpsim' {with_dummy: bool}
-    (hpsimc: forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hAGEs R -> Any.t * itree hAGEs R -> Σ -> Prop)
-    {R} {RR: Any.t * R -> Any.t * R -> iProp} (hpsimi: bool -> bool -> Any.t * itree hAGEs R -> Any.t * itree hAGEs R -> Σ -> Prop)
-    : bool -> bool -> Any.t * itree hAGEs R -> Any.t * itree hAGEs R -> Σ -> Prop :=
+    (hpsimc: forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hmodE R -> Any.t * itree hmodE R -> Σ -> Prop)
+    {R} {RR: Any.t * R -> Any.t * R -> iProp} (hpsimi: bool -> bool -> Any.t * itree hmodE R -> Any.t * itree hmodE R -> Σ -> Prop)
+    : bool -> bool -> Any.t * itree hmodE R -> Any.t * itree hmodE R -> Σ -> Prop :=
   | hpsim_ret
       (* Note: (INV: Own fmr ⊢ #=> I st_src st_tgt) is required only for the funtion end. *)      
       (HPSIM_RET: True)
@@ -89,7 +89,7 @@ Section HPSIM.
       (K: forall vret, 
     hpsimi true true (st_src, k_src vret) (st_tgt, k_tgt vret) fmr)
     :
-    _hpsim' hpsimc hpsimi ps pt (st_src, trigger (Syscall fn varg rvs) >>= k_src) (st_tgt, trigger (Syscall fn varg rvs) >>= k_tgt) fmr
+    _hpsim' hpsimc hpsimi ps pt (st_src, trigger (IO fn varg rvs) >>= k_src) (st_tgt, trigger (IO fn varg rvs) >>= k_tgt) fmr
 
   | hpsim_inline_src
       (HPSIM_INLINE_SRC: True)
@@ -292,23 +292,23 @@ Section HPSIM.
 
   Definition hpsim_body := @hpsim Any.t hpsim_tail.
 
-  Definition hpsim_fun (i_src: itree hAGEs Any.t) (i_tgt: itree hAGEs Any.t):  Prop :=
+  Definition hpsim_fun (i_src: itree hmodE Any.t) (i_tgt: itree hmodE Any.t):  Prop :=
     forall st_src st_tgt fmr (* (WF: URA.wf fmr) *)
            (INV: Own fmr ⊢ #=>Ist st_src st_tgt),
       hpsim_body false false (st_src, i_src) (st_tgt, i_tgt) fmr.
 
-  Lemma case_itrH R (itrH: itree hAGEs R) :
+  Lemma case_itrH R (itrH: itree hmodE R) :
     (exists v, itrH = Ret v) \/
     (exists itrH', itrH = tau;; itrH') \/
     (exists P itrH', itrH = (trigger (Assume P);;; itrH')) \/
     (exists P itrH', itrH = (trigger (Guarantee P);;; itrH')) \/
     (exists R (c: callE R) ktrH', itrH = (trigger c >>= ktrH')) \/
-    (exists R (s: sE R) ktrH', itrH = (trigger s >>= ktrH')) \/
-    (exists R (e: eventE R) ktrH', itrH = (trigger e >>= ktrH')).
+    (exists R (s: stateE R) ktrH', itrH = (trigger s >>= ktrH')) \/
+    (exists R (e: coreE R) ktrH', itrH = (trigger e >>= ktrH')).
   Proof.
     ides itrH; eauto.
     right; right.
-    destruct e; [destruct h|destruct e; [|destruct s]].
+    destruct e; [destruct a|destruct m; [|destruct s]].
     - left. exists P, (k()). unfold trigger. rewrite bind_vis.
       repeat f_equal. extensionality x. destruct x. rewrite bind_ret_l. eauto.
     - right; left. exists P, (k()). unfold trigger. rewrite bind_vis.
@@ -317,7 +317,7 @@ Section HPSIM.
       repeat f_equal. extensionality x. rewrite bind_ret_l. eauto.
     - do 3 right; left. exists X, s, k. unfold trigger. rewrite bind_vis.
       repeat f_equal. extensionality x. rewrite bind_ret_l. eauto.
-    - do 4 right. exists X, e, k. unfold trigger. rewrite bind_vis.
+    - do 4 right. exists X, c, k. unfold trigger. rewrite bind_vis.
       repeat f_equal. extensionality x. rewrite bind_ret_l. eauto.
   Qed.  
 
@@ -425,7 +425,7 @@ Section HPSIM.
   Qed.
 
   Variant hpsim_flagC 
-    (r: forall (R: Type) (RR: Any.t * R -> Any.t * R -> iProp),  bool -> bool -> Any.t * itree hAGEs R -> Any.t * itree hAGEs R -> Σ -> Prop)
+    (r: forall (R: Type) (RR: Any.t * R -> Any.t * R -> iProp),  bool -> bool -> Any.t * itree hmodE R -> Any.t * itree hmodE R -> Σ -> Prop)
     R RR ps1 pt1 st_src st_tgt fmr : Prop :=
   | hpsim_flagC_intro
     ps0 pt0
@@ -464,8 +464,8 @@ Section HPSIM.
   
 
 
-  Variant hpsim_bindC (r: forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hAGEs R -> Any.t * itree hAGEs R -> Σ -> Prop):
-    forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hAGEs R -> Any.t * itree hAGEs R -> Σ -> Prop
+  Variant hpsim_bindC (r: forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hmodE R -> Any.t * itree hmodE R -> Σ -> Prop):
+    forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hmodE R -> Any.t * itree hmodE R -> Σ -> Prop
   :=
   | hpsim_bindC_intro
       ps pt Q QQ st_src st_tgt i_src i_tgt fmr
@@ -526,8 +526,8 @@ Section HPSIM.
 
 
 
-  Variant hpsim_extendC (r: forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hAGEs R -> Any.t * itree hAGEs R -> Σ -> Prop):
-    forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hAGEs R -> Any.t * itree hAGEs R -> Σ -> Prop
+  Variant hpsim_extendC (r: forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hmodE R -> Any.t * itree hmodE R -> Σ -> Prop):
+    forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hmodE R -> Any.t * itree hmodE R -> Σ -> Prop
   :=
   | hpsim_extendC_intro
       ps pt R RR sti_src sti_tgt fmr fmr'
@@ -569,8 +569,8 @@ Section HPSIM.
 
 
 
-  Variant hpsim_wfC (r: forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hAGEs R -> Any.t * itree hAGEs R -> Σ -> Prop):
-    forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hAGEs R -> Any.t * itree hAGEs R -> Σ -> Prop
+  Variant hpsim_wfC (r: forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hmodE R -> Any.t * itree hmodE R -> Σ -> Prop):
+    forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hmodE R -> Any.t * itree hmodE R -> Σ -> Prop
   :=
   | hpsim_wfC_intro
       ps pt R RR sti_src sti_tgt fmr
@@ -608,8 +608,8 @@ Section HPSIM.
 
   
 
-  Variant hpsim_updateC (r: forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hAGEs R -> Any.t * itree hAGEs R -> Σ -> Prop):
-    forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hAGEs R -> Any.t * itree hAGEs R -> Σ -> Prop
+  Variant hpsim_updateC (r: forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hmodE R -> Any.t * itree hmodE R -> Σ -> Prop):
+    forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hmodE R -> Any.t * itree hmodE R -> Σ -> Prop
   :=
   | hpsim_updateC_intro
       ps pt R RR sti_src sti_tgt fmr
@@ -647,8 +647,8 @@ Section HPSIM.
   
 
 
-  Variant hpsim_frameC (r: forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hAGEs R -> Any.t * itree hAGEs R -> Σ -> Prop):
-    forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hAGEs R -> Any.t * itree hAGEs R -> Σ -> Prop
+  Variant hpsim_frameC (r: forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hmodE R -> Any.t * itree hmodE R -> Σ -> Prop):
+    forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hmodE R -> Any.t * itree hmodE R -> Σ -> Prop
   :=
   | hpsim_frameC_intro
       ps pt R RR sti_src sti_tgt fmr fmrc (CTX: iProp)
@@ -777,10 +777,10 @@ Section HPSIM.
   Qed.
 
 
-  Definition hpsim_fsem: relation (Any.t -> itree hAGEs Any.t) :=
+  Definition hpsim_fsem: relation (Any.t -> itree hmodE Any.t) :=
     (eq ==> hpsim_fun)%signature.
   
-  Definition hpsim_fnsem: relation (string * (Any.t -> itree hAGEs Any.t)) :=
+  Definition hpsim_fnsem: relation (string * (Any.t -> itree hmodE Any.t)) :=
     RelProd eq hpsim_fsem.
 
 

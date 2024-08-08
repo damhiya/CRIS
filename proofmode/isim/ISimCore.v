@@ -32,9 +32,9 @@ Section SIM.
 
   Context `{Σ: GRA.t}.
   Variable Ist: Any.t -> Any.t -> iProp.
-  Variable fl_src fl_tgt: alist gname (Any.t -> itree hAGEs Any.t).
+  Variable fl_src fl_tgt: alist gname (Any.t -> itree hmodE Any.t).
   Let _hpsim := @_hpsim Σ fl_src fl_tgt Ist false.
-  Let rel := ∀ R : Type, (Any.t * R → Any.t * R → iProp) → bool → bool → Any.t * itree hAGEs R → Any.t * itree hAGEs R → iProp.
+  Let rel := ∀ R : Type, (Any.t * R → Any.t * R → iProp) → bool → bool → Any.t * itree hmodE R → Any.t * itree hmodE R → iProp.
 
   Variant iunlift (r: rel) R RR ps pt sti_src sti_tgt res: Prop :=
     | unlift_intro
@@ -45,7 +45,7 @@ Section SIM.
 
   Program Definition isim
           r g {R} (RR: Any.t * R-> Any.t * R -> iProp) ps pt
-          (sti_src sti_tgt : Any.t * itree hAGEs R): iProp := 
+          (sti_src sti_tgt : Any.t * itree hmodE R): iProp := 
     iProp_intro (gpaco7 (_hpsim) (cpn7 _hpsim) (iunlift r) (iunlift g) _ RR ps pt sti_src sti_tgt) _.
   Next Obligation.
     guclo hpsim_extendC_spec. econs; et.
@@ -245,7 +245,7 @@ Section SIM.
   : 
     bi_entails
       (∀ vret, @isim r g R RR true true (st_src, k_src vret) (st_tgt, k_tgt vret))
-      (isim r g RR ps pt (st_src, trigger (Syscall fn varg rvs) >>= k_src) (st_tgt, trigger (Syscall fn varg rvs) >>= k_tgt)).
+      (isim r g RR ps pt (st_src, trigger (IO fn varg rvs) >>= k_src) (st_tgt, trigger (IO fn varg rvs) >>= k_tgt)).
   Proof.
     uiprop. i. guclo hpsimC_spec. econs; esplits; eauto.
     econs; eauto. i.
@@ -713,11 +713,11 @@ Section SIM.
         eapply eq_ind; eauto. r_solve.
   Qed.
 
-  Definition isim_fsem RR: relation (Any.t -> itree hAGEs Any.t) :=
+  Definition isim_fsem RR: relation (Any.t -> itree hmodE Any.t) :=
     (eq ==> (fun itr_src itr_tgt => forall st_src st_tgt,
              Ist st_src st_tgt ⊢ @isim ibot ibot Any.t RR false false (st_src, itr_src) (st_tgt, itr_tgt)))%signature.
 
-  Definition isim_fnsem RR: relation (string * (Any.t -> itree hAGEs Any.t)) := RelProd eq (isim_fsem RR).
+  Definition isim_fnsem RR: relation (string * (Any.t -> itree hmodE Any.t)) := RelProd eq (isim_fsem RR).
     
 End SIM.
 

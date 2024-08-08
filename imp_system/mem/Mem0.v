@@ -24,8 +24,8 @@ Section PROOF.
 
   Section BODY.
     Context {Es: Type -> Type}.
-    Context `{has_sE: sE -< Es}.
-    Context `{has_eventE: eventE -< Es}.
+    Context `{has_sE: stateE -< Es}.
+    Context `{has_eventE: coreE -< Es}.
     Definition allocF: (list val) -> itree Es val :=
       fun varg =>
         mp0 <- trigger (sGet);;

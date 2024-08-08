@@ -32,12 +32,12 @@ Module ModSemFacts.
 Import ModSem.
 Section COMM.
 
-  Inductive comm_emb : IFun Es Es -> IFun Es Es -> Prop := 
+  Inductive comm_emb : IFun modE modE -> IFun modE modE -> Prop := 
     |comm_emb_1 : comm_emb emb_l emb_r
     |comm_emb_2 : comm_emb emb_r emb_l
   .
 
-  Inductive comm_ems : itree Es Any.t -> itree Es Any.t -> Prop := 
+  Inductive comm_ems : itree modE Any.t -> itree modE Any.t -> Prop := 
     | comm_ems_intro emb_l emb_r it (EMB: comm_emb emb_l emb_r) :
         comm_ems (translate emb_l it) (translate emb_r it).    
 
@@ -195,13 +195,13 @@ End COMM.
 
 Section ASSOC.
 
-  Inductive assoc_emb : IFun Es Es -> IFun Es Es -> Prop := 
+  Inductive assoc_emb : IFun modE modE -> IFun modE modE -> Prop := 
     |assoc_emb_1 : assoc_emb emb_l (emb_l >>> emb_l)
     |assoc_emb_2 : assoc_emb (emb_l >>> emb_r ) (emb_r >>> emb_l)
     |assoc_emb_3 : assoc_emb (emb_r >>> emb_r) emb_r
   .
 
-  Inductive assoc_ems : itree Es Any.t -> itree Es Any.t -> Prop := 
+  Inductive assoc_ems : itree modE Any.t -> itree modE Any.t -> Prop := 
     | assoc_ems_intro emb_l emb_r it (EMB: assoc_emb emb_l emb_r) :
         assoc_ems (translate emb_l it) (translate emb_r it).
      
@@ -534,11 +534,11 @@ End ASSOC.
 
 Section EMPTY.
 
-Inductive empty_emb : IFun Es Es -> Prop := 
+Inductive empty_emb : IFun modE modE -> Prop := 
   | empty_emb_intro : empty_emb emb_l
 .
 
-Inductive empty_ems : itree Es Any.t -> itree Es Any.t -> Prop := 
+Inductive empty_ems : itree modE Any.t -> itree modE Any.t -> Prop := 
   | empty_ems_intro emb_l it (EMB: empty_emb emb_l) :
       empty_ems it (translate emb_l it).    
 
@@ -951,7 +951,7 @@ Proof. ss. destruct xs; ss. Qed.
     rewrite Sk.add_unit_r. et.
   Qed.
 
-  Fixpoint add_mrs_list (xs: list (itree eventE Any.t)): itree eventE Any.t :=
+  Fixpoint add_mrs_list (xs: list (itree coreE Any.t)): itree coreE Any.t :=
     match xs with
     | [] => Ret tt↑
     | x::[] => x

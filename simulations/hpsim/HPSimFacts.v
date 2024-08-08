@@ -27,14 +27,14 @@ Section HPSIM_ADD_DUMMY.
 
   Context `{Σ: GRA.t}.
 
-  Variable fl_src: alist gname (Any.t -> itree hAGEs Any.t).
-  Variable fl_tgt: alist gname (Any.t -> itree hAGEs Any.t).
+  Variable fl_src: alist gname (Any.t -> itree hmodE Any.t).
+  Variable fl_tgt: alist gname (Any.t -> itree hmodE Any.t).
   Variable Ist: Any.t -> Any.t -> iProp.
 
   Local Notation _hpsim := (@_hpsim Σ fl_src fl_tgt Ist).
   Local Notation hpsim := (@hpsim Σ fl_src fl_tgt Ist).
 
-  Definition itreeH_dummy R (itr itr': itree hAGEs R) :=
+  Definition itreeH_dummy R (itr itr': itree hmodE R) :=
     exists with_dummy Q i (k: Q -> _),
       itr = (i >>= k) /\
       itr' = (x <- i;; (dummy_term with_dummy) ;;; k x).
@@ -58,8 +58,8 @@ Section HPSIM_ADD_DUMMY.
   Qed.
   Hint Resolve itreeH_dummy_dummy.
 
-  Variant hpsim_dummyC_src (r: forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hAGEs R -> Any.t * itree hAGEs R -> Σ -> Prop):
-    forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hAGEs R -> Any.t * itree hAGEs R -> Σ -> Prop
+  Variant hpsim_dummyC_src (r: forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hmodE R -> Any.t * itree hmodE R -> Σ -> Prop):
+    forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hmodE R -> Any.t * itree hmodE R -> Σ -> Prop
   :=
   | hpsim_dummyC_src_intro R RR ps pt st_src i_src i_src' st_tgt i_tgt fmr
       (SIM: r R RR ps pt (st_src, i_src) (st_tgt, i_tgt) fmr)
@@ -102,7 +102,7 @@ Section HPSIM_ADD_DUMMY.
         destruct with_dummy; grind; eauto using @_hpsim'.
         eapply hpsim_guarantee_src; try econs; eauto with imodL.
         ii. esplits; eauto. econs; eauto.
-      + replace e with (Syscall fn varg rvs). econs; eauto.
+      + replace e with (IO fn varg rvs). econs; eauto.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_src) -bind_vis.
         destruct with_dummy; grind; eauto using @_hpsim'.
@@ -156,8 +156,8 @@ Section HPSIM_ADD_DUMMY.
     eapply hpsim_dummyC_src_mon, PR; eauto with paco.
   Qed.
 
-  Variant hpsim_dummyC_tgt (r: forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hAGEs R -> Any.t * itree hAGEs R -> Σ -> Prop):
-    forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hAGEs R -> Any.t * itree hAGEs R -> Σ -> Prop
+  Variant hpsim_dummyC_tgt (r: forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hmodE R -> Any.t * itree hmodE R -> Σ -> Prop):
+    forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hmodE R -> Any.t * itree hmodE R -> Σ -> Prop
   :=
   | hpsim_dummyC_tgt_intro R RR ps pt st_src i_src st_tgt i_tgt i_tgt' fmr
       (SIM: r R RR ps pt (st_src, i_src) (st_tgt, i_tgt) fmr)
@@ -200,7 +200,7 @@ Section HPSIM_ADD_DUMMY.
         destruct with_dummy; grind; eauto using @_hpsim'.
         eapply hpsim_guarantee_tgt; try econs; eauto; imodIntroL.
         ii. esplits; eauto. econs; eauto.
-      + replace e with (Syscall fn varg rvs). econs; eauto.
+      + replace e with (IO fn varg rvs). econs; eauto.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_tgt) -bind_vis.
         destruct with_dummy; grind; eauto using @_hpsim'.
@@ -282,8 +282,8 @@ Section INTERP_RECONF.
 
   Context `{Σ: GRA.t}.
 
-  Variable fl_src: alist gname (Any.t -> itree hAGEs Any.t).
-  Variable fl_tgt: alist gname (Any.t -> itree hAGEs Any.t).
+  Variable fl_src: alist gname (Any.t -> itree hmodE Any.t).
+  Variable fl_tgt: alist gname (Any.t -> itree hmodE Any.t).
   Variable Ist: Any.t -> Any.t -> iProp.
 
   Definition hp_reconf_eq cr : relation (Any.t * Σ) :=
@@ -391,16 +391,16 @@ Section INTERP_RECONF.
     split; eauto. split; eauto.
   Qed.
 
-  Lemma trigger_hAGE_simpl R (P: iProp) (e : hAGE R):
-    (trigger (e|)%sum : itree hAGEs R) = trigger e.
+  Lemma trigger_agE_simpl R (P: iProp) (e : agE R):
+    (trigger (e|)%sum : itree hmodE R) = trigger e.
   Proof. reflexivity. Qed.
 
   Lemma trigger_callE_simpl R (P: iProp) (e : callE R):
-    (trigger (|e|)%sum : itree hAGEs R) = trigger e.
+    (trigger (|e|)%sum : itree hmodE R) = trigger e.
   Proof. reflexivity. Qed.
 
-  Lemma trigger_sE_simpl R (P: iProp) (e : sE R):
-    (trigger (|e|)%sum : itree hAGEs R) = trigger e.
+  Lemma trigger_stateE_simpl R (P: iProp) (e : stateE R):
+    (trigger (|e|)%sum : itree hmodE R) = trigger e.
   Proof. reflexivity. Qed.
 
   
@@ -448,7 +448,7 @@ Section INTERP_RECONF.
       repeat (grind; gstep; econs; i).
       gfinal. left. eapply CIH. left. s. eauto.
     - rewrite-> !interp_hp_bind, !interp_hp_triggers.
-      destruct s. unfold handle_sE_tgt, pupdate.
+      destruct s. unfold handle_stateE_tgt, pupdate.
       repeat (grind; gstep; econs; i).
       grind; apply hp_reconf_equiv_strong in RELr; repeat (rr in RELr; des; subst); cycle 1.
       { rewrite !Any.pair_split. grind.
@@ -569,8 +569,8 @@ End INTERP_RECONF.
 Section HPSIM_ADEQUACY. 
   Context `{Σ: GRA.t}.
 
-  Variable fl_src: alist gname (Any.t -> itree hAGEs Any.t).
-  Variable fl_tgt: alist gname (Any.t -> itree hAGEs Any.t).
+  Variable fl_src: alist gname (Any.t -> itree hmodE Any.t).
+  Variable fl_tgt: alist gname (Any.t -> itree hmodE Any.t).
   Variable Ist: Any.t -> Any.t -> iProp.
 
 
@@ -610,7 +610,7 @@ Section HPSIM_ADEQUACY.
 
   Lemma hpsim_adequacy:
     forall
-      (fl_src0 fl_tgt0: alist string (Any.t -> itree Es Any.t)) 
+      (fl_src0 fl_tgt0: alist string (Any.t -> itree modE Any.t)) 
       (FLS: fl_src0 = List.map (fun '(s, f) => (s, interp_hp_fun f)) fl_src)
       (FLT: fl_tgt0 = List.map (fun '(s, f) => (s, interp_hp_fun f)) fl_tgt)
       ps pt st_src st_tgt itr_src itr_tgt

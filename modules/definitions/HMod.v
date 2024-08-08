@@ -17,12 +17,12 @@ Section HMODSEM.
   Context `{Σ: GRA.t}.
 
   Record t: Type := mk {
-    fnsems : alist gname (Any.t -> itree hAGEs Any.t);
+    fnsems : alist gname (Any.t -> itree hmodE Any.t);
     initial_st : Any.t;
     initial_cond: iProp;
   }.
 
-  Definition transl (tr: (Any.t -> itree hAGEs Any.t) -> Any.t -> itree Es Any.t) (ms: t): ModSem.t := {|
+  Definition transl (tr: (Any.t -> itree hmodE Any.t) -> Any.t -> itree modE Any.t) (ms: t): ModSem.t := {|
     ModSem.fnsems := List.map (fun '(fn, bd) => (fn, tr bd)) ms.(fnsems);
     ModSem.initial_st := r <- cond_to_st ms.(initial_cond);;  Ret (Any.pair ms.(initial_st) r↑)
   |}.
@@ -34,10 +34,10 @@ Section HMODSEM.
   (**** Linking ****)
 
   (* TODO: 
-    Can 'Es' and 'hAGEs' share the 'translate' lemmas? 
+    Can 'modE' and 'hmodE' share the 'translate' lemmas? 
     (Definition of emb_ required to prove all lemmas)
   *)
-  Definition emb_ : RUN -> (forall T, hAGEs T -> hAGEs T) :=
+  Definition emb_ : RUN -> (forall T, hmodE T -> hmodE T) :=
     fun run_ch T es =>
       match es with
       | inr1 (inr1 (inl1 (SUpdate run))) => inr1 (inr1 (inl1 (SUpdate (run_ch T run))))
@@ -70,7 +70,7 @@ Section RED.
   Lemma translate_emb_bind
     A B
     run_
-    (itr: itree hAGEs A) (ktr: A -> itree hAGEs B)
+    (itr: itree hmodE A) (ktr: A -> itree hmodE B)
   :
     translate (HModSem.emb_ run_) (itr >>= ktr) = a <- (translate (HModSem.emb_ run_) itr);; (translate (HModSem.emb_ run_) (ktr a))
   .
@@ -79,7 +79,7 @@ Section RED.
   Lemma translate_emb_tau
     A
     run_
-    (itr: itree hAGEs A)
+    (itr: itree hmodE A)
   :
     translate (HModSem.emb_ run_) (tau;; itr) = tau;; (translate (HModSem.emb_ run_) itr)
   .
@@ -116,9 +116,9 @@ Section RED.
     do 2 f_equal. extensionalities. apply translate_emb_ret. 
   Qed.
 
-  Lemma translate_emb_eventE
+  Lemma translate_emb_coreE
       T run_ 
-      (e: eventE T)
+      (e: coreE T)
     :
       translate (HModSem.emb_ run_) (trigger e) = trigger e.
   Proof.
@@ -135,7 +135,7 @@ Section RED.
   .
   Proof. 
     unfold triggerUB. rewrite translate_emb_bind. f_equal.
-    { apply translate_emb_eventE. }
+    { apply translate_emb_coreE. }
     extensionalities. ss.
   Qed.
 
@@ -146,7 +146,7 @@ Section RED.
   .
   Proof.
     unfold triggerNB. rewrite translate_emb_bind. f_equal. 
-    { apply translate_emb_eventE. }
+    { apply translate_emb_coreE. }
     extensionalities. ss.
   Qed.
   
@@ -247,7 +247,7 @@ Section HMOD.
     sk: Sk.t;
   }.
 
-  Definition transl (tr: Sk.t -> (Any.t -> itree hAGEs Any.t) -> Any.t -> itree Es Any.t) (md: t): Mod.t := {|
+  Definition transl (tr: Sk.t -> (Any.t -> itree hmodE Any.t) -> Any.t -> itree modE Any.t) (md: t): Mod.t := {|
     Mod.get_modsem := fun sk => HModSem.transl (tr sk) (md.(get_modsem) sk);
     Mod.sk := md.(sk);
   |}. 
@@ -315,7 +315,7 @@ Section AUX.
     (mk_box HModSem.translate_emb_sE)
     (mk_box HModSem.translate_emb_sE)
     (mk_box HModSem.translate_emb_callE)
-    (mk_box HModSem.translate_emb_eventE)
+    (mk_box HModSem.translate_emb_coreE)
     (mk_box HModSem.translate_emb_triggerUB)
     (mk_box HModSem.translate_emb_triggerNB)
     (mk_box HModSem.translate_emb_unwrapU)

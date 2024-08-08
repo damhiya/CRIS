@@ -4,28 +4,29 @@ Require Export ITreelib.
 Require Export AList.
 Require Import Any.
 
+Require Import PCM IPM.
+
 Set Implicit Arguments.
 
 Notation gname := string (only parsing). (*** convention: not capitalized ***)
 
 Section EVENTS.
 
-  Variant eventE: Type -> Type :=
-  | Choose (X: Type): eventE X
-  | Take X: eventE X
-  | Syscall (fn: gname) (args: Any.t) (rvs: Any.t -> Prop): eventE Any.t.
- (* rvs: return value spec. TODO: Define operation semantics for rvs if required*)
+  Variant coreE : Type -> Type :=
+  | Choose (X: Type): coreE X
+  | Take X: coreE X
+  | IO (fn: gname) (args: Any.t) (rvs: Any.t -> Prop): coreE Any.t.
 
   Inductive callE: Type -> Type :=
   | Call (fn: gname) (args: Any.t) : callE Any.t.
 
-  Variant sE (V: Type): Type :=
-  | SUpdate (run : Any.t -> Any.t * V) : sE V.
+  Variant stateE (V: Type): Type :=
+  | SUpdate (run : Any.t -> Any.t * V) : stateE V.
 
-  Definition sPut x : sE unit := SUpdate (fun _ => (x, tt)).
-  Definition sGet : sE (Any.t) := SUpdate (fun x => (x, x)).
+  Definition sPut x : stateE unit := SUpdate (fun _ => (x, tt)).
+  Definition sGet : stateE (Any.t) := SUpdate (fun x => (x, x)).
 
-  Definition Es: Type -> Type := (callE +' sE +' eventE).
+  Definition modE : Type -> Type := (callE +' stateE +' coreE).
 
   (* take-only event type to define the simplest initial_st of modules *)
   Variant takeE: Type -> Type :=
@@ -37,64 +38,64 @@ Section EVENTS.
     interp_state h t s = _interp_state h (observe t) s.
   Proof. i. f. apply unfold_interp_state. Qed.  
 
-  Definition handle_sE {E}: sE ~> stateT Any.t (itree E) := 
+  Definition handle_stateE {E}: stateE ~> stateT Any.t (itree E) := 
     fun _ e glob =>
       match e with
       | SUpdate run => Ret (run glob)
       end.
       
- Definition interp_sE {E}: itree (sE +' E) ~> stateT Any.t (itree E) :=
+ Definition interp_stateE {E}: itree (stateE +' E) ~> stateT Any.t (itree E) :=
     (* State.interp_state (case_ ((fun _ e s0 => resum_itr (handle_pE e s0)): _ ~> stateT _ _) State.pure_state). *)
-    State.interp_state (case_ handle_sE pure_state).
+    State.interp_state (case_ handle_stateE pure_state).
 
-  Definition interp_Es A (prog: callE ~> itree Es) (itr0: itree Es A) (st0: Any.t): itree eventE (Any.t * _)%type :=
-    '(st1, v) <- interp_sE (interp_mrec prog itr0) st0;;
+  Definition interp_modE A (prog: callE ~> itree modE) (itr0: itree modE A) (st0: Any.t): itree coreE (Any.t * _)%type :=
+    '(st1, v) <- interp_stateE (interp_mrec prog itr0) st0;;
     Ret (st1, v).
 
-  Definition handle_takeE: takeE ~> itree eventE :=
+  Definition handle_takeE: takeE ~> itree coreE :=
     fun _ '(take X) => trigger (Take X). 
 
-  Definition interp_takeE: itree takeE ~> itree eventE :=
+  Definition interp_takeE: itree takeE ~> itree coreE :=
     interp handle_takeE.
 
   Section WRAP.
-    Definition assume {E} `{eventE -< E} (P: Prop): itree E unit := trigger (Take P) ;;; Ret tt.
-    Definition guarantee {E} `{eventE -< E} (P: Prop): itree E unit := trigger (Choose P) ;;; Ret tt.
+    Definition assume {E} `{coreE -< E} (P: Prop): itree E unit := trigger (Take P) ;;; Ret tt.
+    Definition guarantee {E} `{coreE -< E} (P: Prop): itree E unit := trigger (Choose P) ;;; Ret tt.
 
-    Definition triggerUB {E A} `{eventE -< E}: itree E A := v <- trigger (Take void);; match v: void with end.
-    Definition triggerNB {E A} `{eventE -< E}: itree E A := v <- trigger (Choose void);; match v: void with end.
+    Definition triggerUB {E A} `{coreE -< E}: itree E A := v <- trigger (Take void);; match v: void with end.
+    Definition triggerNB {E A} `{coreE -< E}: itree E A := v <- trigger (Choose void);; match v: void with end.
 
-    Definition unwrapU {E X} `{eventE -< E} (x: option X): itree E X :=
+    Definition unwrapU {E X} `{coreE -< E} (x: option X): itree E X :=
       match x with
       | Some x => Ret x
       | None => triggerUB
       end.
 
-    Definition unwrapN {E X} `{eventE -< E} (x: option X): itree E X :=
+    Definition unwrapN {E X} `{coreE -< E} (x: option X): itree E X :=
       match x with
       | Some x => Ret x
       | None => triggerNB
       end.
 
-    Definition unleftU {E X Y} `{eventE -< E} (xy: X + Y): itree E X :=
+    Definition unleftU {E X Y} `{coreE -< E} (xy: X + Y): itree E X :=
       match xy with
       | inl x => Ret x
       | inr y => triggerUB
       end.
 
-    Definition unleftN {E X Y} `{eventE -< E} (xy: X + Y): itree E X :=
+    Definition unleftN {E X Y} `{coreE -< E} (xy: X + Y): itree E X :=
       match xy with
       | inl x => Ret x
       | inr y => triggerNB
       end.
 
-    Definition unrightU {E X Y} `{eventE -< E} (xy: X + Y): itree E Y :=
+    Definition unrightU {E X Y} `{coreE -< E} (xy: X + Y): itree E Y :=
       match xy with
       | inl x => triggerUB
       | inr y => Ret y
       end.
 
-    Definition unrightN {E X Y} `{eventE -< E} (xy: X + Y): itree E Y :=
+    Definition unrightN {E X Y} `{coreE -< E} (xy: X + Y): itree E Y :=
       match xy with
       | inl x => triggerNB
       | inr y => Ret y
@@ -114,7 +115,7 @@ Notation "(ǃ)" := (unwrapN) (only parsing).
 Section EVENTSCOMMON.
 (*** casting call, fun ***)
   Context `{HasCallE: callE -< E}.
-  Context `{HasEventE: eventE -< E}.
+  Context `{HasEventE: coreE -< E}.
 
   Definition ccallN {X Y} (fn: gname) (varg: X): itree E Y := 
     vret <- trigger (Call fn (varg↑));; 
@@ -132,4 +133,22 @@ Section EVENTSCOMMON.
 
 End EVENTSCOMMON.
 
-Opaque interp_Es interp_takeE.
+Section EVENTS_OTHER.
+
+  Context `{Σ: GRA.t}.
+
+  Variant agE: Type -> Type :=
+  | Assume (P: iProp): agE unit
+  | Guarantee (P: iProp): agE unit.
+
+  Definition hmodE := (agE +' modE).
+  
+  Variant apcE: Type -> Type :=
+  | hAPC: apcE unit.
+
+  Definition smodE := apcE +' hmodE.
+
+End EVENTS_OTHER.
+
+Opaque interp_modE interp_takeE.
+

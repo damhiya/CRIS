@@ -142,14 +142,14 @@ Proof.
     
   - punfold SIM. inv SIM; (try rewrite ! bind_trigger in H4); (try rewrite ! bind_trigger in H6); clarify.
     + apply inj_pair2 in H0, H1.
-      rewrite ! translate_emb_bind, translate_emb_eventE.
+      rewrite ! translate_emb_bind, translate_emb_coreE.
       gstep. econs. i. econs. 
       gfinal. left. eapply CIH; et.
       apply sim_itree_bot_flag_up. pfold. apply K0. 
 
     + pclearbot. punfold SIM0. inv SIM0; (try rewrite ! bind_trigger in H4); (try rewrite ! bind_trigger in H6); clarify.
       apply inj_pair2 in H0, H1.
-      rewrite ! translate_emb_bind, translate_emb_eventE.
+      rewrite ! translate_emb_bind, translate_emb_coreE.
       gstep. econs. ii. econs.
       gfinal. left. eapply CIH; et.
       apply sim_itree_bot_flag_up. pfold. apply K0.
@@ -173,15 +173,15 @@ Proof.
     guclo sim_itree_indC_spec. econs; et.
   - rewrite ! translate_emb_tau. 
     guclo sim_itree_indC_spec. econs; et.    
-  - rewrite ! translate_emb_bind, translate_emb_eventE.
+  - rewrite ! translate_emb_bind, translate_emb_coreE.
     guclo sim_itree_indC_spec. econs; et.
-  - rewrite ! translate_emb_bind, translate_emb_eventE.
+  - rewrite ! translate_emb_bind, translate_emb_coreE.
     guclo sim_itree_indC_spec. econs; et.
     i. specialize (K x). des. et.
-  - rewrite ! translate_emb_bind, translate_emb_eventE.
+  - rewrite ! translate_emb_bind, translate_emb_coreE.
     guclo sim_itree_indC_spec. econs; et.
     i. specialize (K x). des. et.    
-  - rewrite ! translate_emb_bind, translate_emb_eventE.
+  - rewrite ! translate_emb_bind, translate_emb_coreE.
     guclo sim_itree_indC_spec. econs; et.
   - rewrite ! translate_emb_bind, translate_emb_sE.
     guclo sim_itree_indC_spec. econs; et.
@@ -238,14 +238,14 @@ Proof.
       specialize (K _ vret _ _ WLE H); pclearbot; apply sim_itree_bot_flag_up; apply K.
     + punfold SIM0. inv SIM0; (try rewrite ! bind_trigger in H4); (try rewrite ! bind_trigger in H6); clarify.
       * apply inj_pair2 in H0, H1.
-        rewrite ! translate_emb_bind, translate_emb_eventE.
+        rewrite ! translate_emb_bind, translate_emb_coreE.
         gstep. econs. i. econs.
         gfinal. left. eapply CIH; et.
         apply sim_itree_bot_flag_up. pfold. eapply K0.
 
       * pclearbot. punfold SIM1. inv SIM1; (try rewrite ! bind_trigger in H4); (try rewrite ! bind_trigger in H6); clarify.
         apply inj_pair2 in H0, H1.
-        rewrite ! translate_emb_bind, translate_emb_eventE.
+        rewrite ! translate_emb_bind, translate_emb_coreE.
         gstep. econs. i. econs.
         gfinal. left. eapply CIH; et.
         apply sim_itree_bot_flag_up. pfold. eapply K0.
@@ -263,15 +263,15 @@ Proof.
       guclo sim_itree_indC_spec. econs. et. 
     + rewrite ! translate_emb_tau. 
       guclo sim_itree_indC_spec. econs. et. 
-    + rewrite ! translate_emb_bind, translate_emb_eventE.
+    + rewrite ! translate_emb_bind, translate_emb_coreE.
       guclo sim_itree_indC_spec. econs. et.
-    + rewrite! translate_emb_bind, translate_emb_eventE.
+    + rewrite! translate_emb_bind, translate_emb_coreE.
       guclo sim_itree_indC_spec. econs. et.
       i. specialize (K x). des. et.
-    + rewrite! translate_emb_bind, translate_emb_eventE.
+    + rewrite! translate_emb_bind, translate_emb_coreE.
       guclo sim_itree_indC_spec. econs. et.
       i. specialize (K x). des. et.    
-    + rewrite ! translate_emb_bind, translate_emb_eventE.
+    + rewrite ! translate_emb_bind, translate_emb_coreE.
       guclo sim_itree_indC_spec. econs. et.
     + rewrite ! translate_emb_bind, translate_emb_sE.
       guclo sim_itree_indC_spec. econs; et.
@@ -365,7 +365,7 @@ Proof.
          eapply sim_itree_progress; et.
          unfold run_r. rewrite ! Any.pair_split.
          gfinal. left. destruct (run t3). ss. eapply CIH; et; rewrite ! Any.pair_split; et.
-      * (* eventE *)
+      * (* coreE *)
         gstep. destruct e'.
         -- (* Choose *)
            apply sim_itree_choose_tgt. i. eapply sim_itree_choose_src.
@@ -420,10 +420,10 @@ Section SEMPAIR.
   .
 
   Variant my_r0:
-    forall R0 R1 (RR: R0 -> R1 -> Prop), bool -> bool -> (itree eventE R0) -> (itree eventE R1) -> Prop :=
+    forall R0 R1 (RR: R0 -> R1 -> Prop), bool -> bool -> (itree coreE R0) -> (itree coreE R1) -> Prop :=
   | my_r0_intro
       w0
-      (itr_src itr_tgt: itree Es Any.t)
+      (itr_src itr_tgt: itree modE Any.t)
       st_src st_tgt o_src o_tgt
       (SIM: sim_itree wf le fl_src fl_tgt o_src o_tgt w0 (st_src, itr_src) (st_tgt, itr_tgt))
       (* (STATE: forall mn' (MN: mn <> mn'), Any.t mn' = Any.t mn') *)
@@ -431,8 +431,8 @@ Section SEMPAIR.
       my_r0 (fun '(st_src, ret_src) '(st_tgt, ret_tgt) =>
                 g_lift_rel w0 st_src st_tgt /\ ret_src = ret_tgt)
             o_src o_tgt
-            (interp_Es (ModSem.prog ms_src) (itr_src) st_src)
-            (interp_Es (ModSem.prog ms_tgt) (itr_tgt) st_tgt)
+            (interp_modE (ModSem.prog ms_src) (itr_src) st_src)
+            (interp_modE (ModSem.prog ms_tgt) (itr_tgt) st_tgt)
   .
 
   Let sim_lift: my_r0 <7= simg.
@@ -471,10 +471,10 @@ Section SEMPAIR.
       hexploit (K x_tgt). i. des. pclearbot.
       steps. gbase. eapply CIH. econs; et.
     - steps. unfold fl_src in FUN. rewrite FUN. grind.
-      rewrite <- interp_Es_bind.
+      rewrite <- interp_modE_bind.
       eapply IH; et.
     - steps. unfold fl_tgt in FUN. rewrite FUN. grind.
-      rewrite <- interp_Es_bind.
+      rewrite <- interp_modE_bind.
       eapply IH; et.
     - steps.
     - steps. 

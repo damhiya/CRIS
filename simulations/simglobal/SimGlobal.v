@@ -25,8 +25,8 @@ Section SIM.
 Section TY.
 (* Context `{R: Type}. *)
 Inductive _simg
-          (simg: forall R0 R1 (RR: R0 -> R1 -> Prop), bool -> bool -> (itree eventE R0) -> (itree eventE R1) -> Prop)
-          {R0 R1} (RR: R0 -> R1 -> Prop) (f_src f_tgt: bool): (itree eventE R0) -> (itree eventE R1) -> Prop :=
+          (simg: forall R0 R1 (RR: R0 -> R1 -> Prop), bool -> bool -> (itree coreE R0) -> (itree coreE R1) -> Prop)
+          {R0 R1} (RR: R0 -> R1 -> Prop) (f_src f_tgt: bool): (itree coreE R0) -> (itree coreE R1) -> Prop :=
 | simg_ret
     r_src r_tgt
     (SIM: RR r_src r_tgt)
@@ -36,7 +36,7 @@ Inductive _simg
     ktr_src0 ktr_tgt0 fn varg rvs
     (SIM: forall x_src x_tgt (EQ: x_src = x_tgt), simg _ _ RR true true (ktr_src0 x_src) (ktr_tgt0 x_tgt))
   :
-    _simg simg RR f_src f_tgt (trigger (Syscall fn varg rvs) >>= ktr_src0) (trigger (Syscall fn varg rvs) >>= ktr_tgt0)
+    _simg simg RR f_src f_tgt (trigger (IO fn varg rvs) >>= ktr_src0) (trigger (IO fn varg rvs) >>= ktr_tgt0)
 
 | simg_tauL
     itr_src0 itr_tgt0
@@ -86,9 +86,9 @@ Inductive _simg
     _simg simg RR f_src f_tgt itr_src itr_tgt
 .
 
-Lemma _simg_ind2 (r: forall R0 R1 (RR: R0 -> R1 -> Prop), bool -> bool -> (itree eventE R0) -> (itree eventE R1) -> Prop)
+Lemma _simg_ind2 (r: forall R0 R1 (RR: R0 -> R1 -> Prop), bool -> bool -> (itree coreE R0) -> (itree coreE R1) -> Prop)
       R0 R1 (RR: R0 -> R1 -> Prop)
-      (P: bool -> bool -> (itree eventE R0) -> (itree eventE R1) -> Prop)
+      (P: bool -> bool -> (itree coreE R0) -> (itree coreE R1) -> Prop)
       (RET: forall
           f_src f_tgt
           r_src r_tgt
@@ -98,7 +98,7 @@ Lemma _simg_ind2 (r: forall R0 R1 (RR: R0 -> R1 -> Prop), bool -> bool -> (itree
           f_src f_tgt
           ktr_src0 ktr_tgt0 fn varg rvs
           (SIM: forall x_src x_tgt (EQ: x_src = x_tgt), r _ _ RR true true (ktr_src0 x_src) (ktr_tgt0 x_tgt)),
-          P f_src f_tgt (trigger (Syscall fn varg rvs) >>= ktr_src0) (trigger (Syscall fn varg rvs) >>= ktr_tgt0))
+          P f_src f_tgt (trigger (IO fn varg rvs) >>= ktr_src0) (trigger (IO fn varg rvs) >>= ktr_tgt0))
       (TAUL: forall
           f_src f_tgt
           itr_src0 itr_tgt0
@@ -161,7 +161,7 @@ Proof.
   { eapply PROGRESS; eauto. }
 Qed.
 
-Definition simg: forall R0 R1 (RR: R0 -> R1 -> Prop), bool -> bool -> (itree eventE R0) -> (itree eventE R1) -> Prop := paco7 _simg bot7.
+Definition simg: forall R0 R1 (RR: R0 -> R1 -> Prop), bool -> bool -> (itree coreE R0) -> (itree coreE R1) -> Prop := paco7 _simg bot7.
 
 Lemma simg_mon: monotone7 _simg.
 Proof.
@@ -181,8 +181,8 @@ Hint Resolve cpn7_wcompat: paco.
 
 
 Inductive simg_indC
-          (simg: forall R0 R1 (RR: R0 -> R1 -> Prop), bool -> bool -> (itree eventE R0) -> (itree eventE R1) -> Prop)
-          {R0 R1} (RR: R0 -> R1 -> Prop) (f_src f_tgt: bool): (itree eventE R0) -> (itree eventE R1) -> Prop :=
+          (simg: forall R0 R1 (RR: R0 -> R1 -> Prop), bool -> bool -> (itree coreE R0) -> (itree coreE R1) -> Prop)
+          {R0 R1} (RR: R0 -> R1 -> Prop) (f_src f_tgt: bool): (itree coreE R0) -> (itree coreE R1) -> Prop :=
 | simg_indC_ret
     r_src r_tgt
     (SIM: RR r_src r_tgt)
@@ -192,7 +192,7 @@ Inductive simg_indC
     ktr_src0 ktr_tgt0 fn varg rvs
     (SIM: forall x_src x_tgt (EQ: x_src = x_tgt), simg _ _ RR true true (ktr_src0 x_src) (ktr_tgt0 x_tgt))
   :
-    simg_indC simg RR f_src f_tgt (trigger (Syscall fn varg rvs) >>= ktr_src0) (trigger (Syscall fn varg rvs) >>= ktr_tgt0)
+    simg_indC simg RR f_src f_tgt (trigger (IO fn varg rvs) >>= ktr_src0) (trigger (IO fn varg rvs) >>= ktr_tgt0)
 
 | simg_indC_tauL
     itr_src0 itr_tgt0
@@ -264,7 +264,7 @@ Proof.
 Qed.
 
 Lemma simg_ind R0 R1 (RR: R0 -> R1 -> Prop)
-      (P: bool -> bool -> (itree eventE R0) -> (itree eventE R1) -> Prop)
+      (P: bool -> bool -> (itree coreE R0) -> (itree coreE R1) -> Prop)
       (RET: forall
           f_src f_tgt
           r_src r_tgt
@@ -274,7 +274,7 @@ Lemma simg_ind R0 R1 (RR: R0 -> R1 -> Prop)
           f_src f_tgt
           ktr_src0 ktr_tgt0 fn varg rvs
           (SIM: forall x_src x_tgt (EQ: x_src = x_tgt), simg RR true true (ktr_src0 x_src) (ktr_tgt0 x_tgt)),
-          P f_src f_tgt (trigger (Syscall fn varg rvs) >>= ktr_src0) (trigger (Syscall fn varg rvs) >>= ktr_tgt0))
+          P f_src f_tgt (trigger (IO fn varg rvs) >>= ktr_src0) (trigger (IO fn varg rvs) >>= ktr_tgt0))
       (TAUL: forall
           f_src f_tgt
           itr_src0 itr_tgt0
@@ -344,8 +344,8 @@ Hint Unfold simg.
 Hint Resolve simg_mon: paco.
 Hint Resolve cpn7_wcompat: paco.
 
-Variant flagC (r: forall S0 S1 (SS: S0 -> S1 -> Prop), bool -> bool -> (itree eventE S0) -> (itree eventE S1) -> Prop):
-  forall S0 S1 (SS: S0 -> S1 -> Prop), bool -> bool -> (itree eventE S0) -> (itree eventE S1) -> Prop :=
+Variant flagC (r: forall S0 S1 (SS: S0 -> S1 -> Prop), bool -> bool -> (itree coreE S0) -> (itree coreE S1) -> Prop):
+  forall S0 S1 (SS: S0 -> S1 -> Prop), bool -> bool -> (itree coreE S0) -> (itree coreE S1) -> Prop :=
 | flagC_intro
     f_src0 f_src1 f_tgt0 f_tgt1 R0 R1 (RR: R0 -> R1 -> Prop) itr_src itr_tgt
     (SRC: f_src0 = true -> f_src1 = true)
@@ -446,17 +446,17 @@ Proof.
 Qed.
 
 
-Variant bindR (r s: forall S0 S1 (SS: S0 -> S1 -> Prop), bool -> bool -> (itree eventE S0) -> (itree eventE S1) -> Prop):
-  forall S0 S1 (SS: S0 -> S1 -> Prop), bool -> bool -> (itree eventE S0) -> (itree eventE S1) -> Prop :=
+Variant bindR (r s: forall S0 S1 (SS: S0 -> S1 -> Prop), bool -> bool -> (itree coreE S0) -> (itree coreE S1) -> Prop):
+  forall S0 S1 (SS: S0 -> S1 -> Prop), bool -> bool -> (itree coreE S0) -> (itree coreE S1) -> Prop :=
 | bindR_intro
     f_src f_tgt
 
     R0 R1 RR
-    (i_src: itree eventE R0) (i_tgt: itree eventE R1)
+    (i_src: itree coreE R0) (i_tgt: itree coreE R1)
     (SIM: r _ _ RR f_src f_tgt i_src i_tgt)
 
     S0 S1 SS
-    (k_src: ktree eventE R0 S0) (k_tgt: ktree eventE R1 S1)
+    (k_src: ktree coreE R0 S0) (k_tgt: ktree coreE R1 S1)
     (SIMK: forall vret_src vret_tgt (SIM: RR vret_src vret_tgt), s _ _ SS false false (k_src vret_src) (k_tgt vret_tgt))
   :
     bindR r s SS f_src f_tgt (ITree.bind i_src k_src) (ITree.bind i_tgt k_tgt)
@@ -507,7 +507,7 @@ Proof.
 Qed.
 
 Lemma self_simg:
-  forall (wf: Any.t -> Any.t -> Prop) (WF: forall x, wf x x) (itr: itree eventE Any.t), simg wf false false itr itr.
+  forall (wf: Any.t -> Any.t -> Prop) (WF: forall x, wf x x) (itr: itree coreE Any.t), simg wf false false itr itr.
 Proof.
   ginit. gcofix CIH. i. ides itr.
   { gstep. econs; eauto. }
@@ -540,8 +540,8 @@ Hint Resolve sim_indC_mon: paco.
 
 
 Variant _simg_safe
-          (simg: forall R0 R1 (RR: R0 -> R1 -> Prop), bool -> bool -> (itree eventE R0) -> (itree eventE R1) -> Prop)
-          {R0 R1} (RR: R0 -> R1 -> Prop) (f_src f_tgt: bool): (itree eventE R0) -> (itree eventE R1) -> Prop :=
+          (simg: forall R0 R1 (RR: R0 -> R1 -> Prop), bool -> bool -> (itree coreE R0) -> (itree coreE R1) -> Prop)
+          {R0 R1} (RR: R0 -> R1 -> Prop) (f_src f_tgt: bool): (itree coreE R0) -> (itree coreE R1) -> Prop :=
 | simg_safe_ret
     r_src r_tgt
     (SIM: RR r_src r_tgt)
@@ -551,7 +551,7 @@ Variant _simg_safe
     ktr_src0 ktr_tgt0 fn varg rvs
     (SIM: forall x_src x_tgt (EQ: x_src = x_tgt), simg _ _ RR true true (ktr_src0 x_src) (ktr_tgt0 x_tgt))
   :
-    _simg_safe simg RR f_src f_tgt (trigger (Syscall fn varg rvs) >>= ktr_src0) (trigger (Syscall fn varg rvs) >>= ktr_tgt0)
+    _simg_safe simg RR f_src f_tgt (trigger (IO fn varg rvs) >>= ktr_src0) (trigger (IO fn varg rvs) >>= ktr_tgt0)
 
 | simg_safe_tauL
     itr_src0 itr_tgt0

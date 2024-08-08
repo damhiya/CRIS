@@ -93,9 +93,9 @@ Section LEMMAS.
   :
     @isim Σ I fls flt r g R RR true pt (st_src, _APC stb at_most o >>= (fun x => tau;; Ret x) >>= k_src) sti_tgt
   -∗  
-    @isim _ I fls flt r g R RR ps pt (st_src, interp_hEs_hAGEs stb o (trigger hAPC) >>= k_src) sti_tgt.
+    @isim _ I fls flt r g R RR ps pt (st_src, interp_smodE_hmodE stb o (trigger hAPC) >>= k_src) sti_tgt.
   Proof.
-    unfold interp_hEs_hAGEs. rewrite! interp_trigger. grind.
+    unfold interp_smodE_hmodE. rewrite! interp_trigger. grind.
     destruct sti_tgt. unfold HoareAPC.
     iIntros "K". 
     force_l. instantiate (1:= at_most).

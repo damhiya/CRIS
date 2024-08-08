@@ -217,7 +217,7 @@ Section PROOFS.
                                                | _ => 0%Z
                                                end) eval_args in
        (if forallb intrange_64 eval_zs then Ret () else triggerUB);;;
-       v <- trigger (Syscall f eval_zs↑ top1);; v <- v↓?;; trigger (SetVar x (Vint v));;; (tau;; Ret Vundef))) le0.
+       v <- trigger (IO f eval_zs↑ top1);; v <- v↓?;; trigger (SetVar x (Vint v));;; (tau;; Ret Vundef))) le0.
   Proof. reflexivity. Qed.
 
   (* interp_imp *)
@@ -348,7 +348,7 @@ Section PROOFS.
   Lemma interp_imp_GetVar
         ge le0 x
     :
-      (interp_imp ge (trigger (GetVar x)) le0 : itree Es _) =
+      (interp_imp ge (trigger (GetVar x)) le0 : itree modE _) =
       r <- unwrapU (alist_find x le0);; tau;; tau;; Ret (le0, r).
   Proof.
     unfold interp_imp, interp_ImpState, interp_GlobEnv.
@@ -377,11 +377,11 @@ Section PROOFS.
     rewrite interp_trigger. grind.
   Qed.
 
-  Lemma interp_imp_Syscall
+  Lemma interp_imp_IO
         ge le0 f args t
     :
-      interp_imp ge (trigger (Syscall f args t)) le0 =
-      v <- trigger (Syscall f args t);; tau;; tau;; Ret (le0, v).
+      interp_imp ge (trigger (IO f args t)) le0 =
+      v <- trigger (IO f args t);; tau;; tau;; Ret (le0, v).
   Proof.
     unfold interp_imp, interp_GlobEnv, interp_ImpState.
     unfold pure_state. rewrite interp_trigger. grind.
@@ -407,7 +407,7 @@ Section PROOFS.
     unfold pure_state. grind.
   Qed.
 
-  Lemma interp_Es_ext
+  Lemma interp_modE_ext
         ge R (itr0 itr1: itree _ R) le0
     :
       itr0 = itr1 -> interp_imp ge itr0 le0 = interp_imp ge itr1 le0
@@ -746,7 +746,7 @@ Section PROOFS.
     - unfold unwrapU. grind. unfold triggerUB; grind.
   Qed.
 
-  Lemma interp_imp_Syscall_args
+  Lemma interp_imp_IO_args
         ge le0 x f args t
     :
       interp_imp ge (
@@ -760,7 +760,7 @@ Section PROOFS.
                                                | _ => 0%Z
                                                end) eval_args in
        (if forallb intrange_64 eval_zs then Ret () else triggerUB);;;
-       v <- trigger (Syscall f eval_zs↑ t);; v <- v↓?;; trigger (SetVar x (Vint v));;; (tau;; Ret Vundef))) le0
+       v <- trigger (IO f eval_zs↑ t);; v <- v↓?;; trigger (SetVar x (Vint v));;; (tau;; Ret Vundef))) le0
       =
       '(le1, vals) <- interp_imp ge (denote_exprs args) le0;;
       (if forallb (fun v : val => match v with
@@ -772,7 +772,7 @@ Section PROOFS.
                                                | _ => 0%Z
                                                end) vals in
       (if (forallb intrange_64 eval_zs) then Ret tt else triggerUB);;;
-        v <- trigger (Syscall f eval_zs↑ t);; tau;; tau;; v <- v↓?;;
+        v <- trigger (IO f eval_zs↑ t);; tau;; tau;; v <- v↓?;;
         tau;; tau;;
         tau;; Ret (alist_add x (Vint v) le1, Vundef)).
   Proof.
@@ -782,7 +782,7 @@ Section PROOFS.
     2:{ rewrite interp_imp_bind. rewrite interp_imp_triggerUB. unfold triggerUB; grind. }
     2:{ rewrite interp_imp_triggerUB_bind. unfold triggerUB; grind. }
     rewrite interp_imp_bind. rewrite interp_imp_Ret; grind.
-    rewrite interp_imp_bind. rewrite interp_imp_Syscall. grind.
+    rewrite interp_imp_bind. rewrite interp_imp_IO. grind.
     rewrite interp_imp_bind. destruct (Any.downcast x0).
     { cbn. rewrite interp_imp_Ret. grind. rewrite interp_imp_bind. rewrite interp_imp_SetVar. grind.
       rewrite interp_imp_tau; grind. apply interp_imp_Ret. }
@@ -805,7 +805,7 @@ Section PROOFS.
                                                | _ => 0%Z
                                                end) vals in
       (if (forallb intrange_64 eval_zs) then Ret tt else triggerUB);;;
-        v <- trigger (Syscall f eval_zs↑ top1);; tau;; tau;; v <- v↓?;;
+        v <- trigger (IO f eval_zs↑ top1);; tau;; tau;; v <- v↓?;;
         tau;; tau;;
         tau;; Ret (alist_add x (Vint v) le1, Vundef)).
   Proof.
@@ -814,7 +814,7 @@ Section PROOFS.
     des_ifs.
     2:{ rewrite interp_imp_triggerUB_bind. unfold triggerUB; grind. }
     rewrite interp_imp_bind; rewrite interp_imp_Ret; grind.
-    apply interp_imp_Syscall_args.
+    apply interp_imp_IO_args.
   Qed.
 
   (* eval_imp  *)

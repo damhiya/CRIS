@@ -39,13 +39,13 @@ Section SIM.
   Variable wf: world -> W -> Prop.
   Variable le: relation world.
 
-  Variable fl_src fl_tgt: alist gname (Any.t -> itree Es Any.t).
+  Variable fl_src fl_tgt: alist gname (Any.t -> itree modE Any.t).
 
 
   Variant _safe_sim_itree
-          (r g: forall (R_src R_tgt: Type) (RR: st_local -> st_local -> R_src -> R_tgt -> Prop), bool -> bool -> world -> st_local * itree Es R_src -> st_local * itree Es R_tgt -> Prop)
+          (r g: forall (R_src R_tgt: Type) (RR: st_local -> st_local -> R_src -> R_tgt -> Prop), bool -> bool -> world -> st_local * itree modE R_src -> st_local * itree modE R_tgt -> Prop)
           {R_src R_tgt} (RR: st_local -> st_local -> R_src -> R_tgt -> Prop)
-    : bool -> bool -> world -> st_local * itree Es R_src -> st_local * itree Es R_tgt -> Prop :=
+    : bool -> bool -> world -> st_local * itree modE R_src -> st_local * itree modE R_tgt -> Prop :=
   | safe_sim_itree_ret
       i_src0 i_tgt0 w0 st_src0 st_tgt0
       v_src v_tgt
@@ -69,8 +69,8 @@ Section SIM.
       (K: forall vret,
           r _ _ RR true true w0 (st_src0, k_src vret) (st_tgt0, k_tgt vret))
     :
-      _safe_sim_itree r g RR i_src0 i_tgt0 w0 (st_src0, trigger (Syscall fn varg rvs) >>= k_src)
-                      (st_tgt0, trigger (Syscall fn varg rvs) >>= k_tgt)
+      _safe_sim_itree r g RR i_src0 i_tgt0 w0 (st_src0, trigger (IO fn varg rvs) >>= k_src)
+                      (st_tgt0, trigger (IO fn varg rvs) >>= k_tgt)
 
   | safe_sim_itree_tau_src
       i_src0 i_tgt0 w0 st_src0 st_tgt0

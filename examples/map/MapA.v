@@ -37,12 +37,12 @@ Section A.
 
   (* Let Es := (hAPCE +' Es). *)
 
-  Definition initF: list val -> itree hEs val :=
+  Definition initF: list val -> itree smodE val :=
     fun varg =>
       Ret Vundef
   .
 
-  Definition setF: list val -> itree hEs val :=
+  Definition setF: list val -> itree smodE val :=
     fun varg =>
       '(k, v) <- (pargs [Tint; Tint] varg)?;;
       f <- pget;;
@@ -50,17 +50,17 @@ Section A.
       Ret Vundef
   .
 
-  Definition getF: list val -> itree hEs val :=
+  Definition getF: list val -> itree smodE val :=
     fun varg =>
       k <- (pargs [Tint] varg)?;;
       f <- pget;;
       Ret (Vint (f k))
   .
 
-  Definition set_by_userF: list val -> itree hEs val :=
+  Definition set_by_userF: list val -> itree smodE val :=
     fun varg =>
       k <- (pargs [Tint] varg)?;;
-      v <- trigger (Syscall "input" (([]: list Z)↑) (fun _ => True));; v <- v↓?;;
+      v <- trigger (IO "input" (([]: list Z)↑) (fun _ => True));; v <- v↓?;;
       ccallU "set" [Vint k; Vint v]
   .
 

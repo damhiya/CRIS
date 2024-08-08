@@ -106,7 +106,7 @@ match goal with
 (** both **)
 | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, Ret _) (_, Ret _)) ] =>
     iApply isim_ret
-| [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, trigger (Syscall _ _ _) >>= _) (_, trigger (Syscall _ _ _) >>= _)) ] =>
+| [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, trigger (IO _ _ _) >>= _) (_, trigger (IO _ _ _) >>= _)) ] =>
     iApply isim_syscall; iIntros "%"
 end.
 
@@ -123,28 +123,28 @@ Ltac step := prep; try _step; simpl; des_pairs.
 (* Try to add on red database*)
 Ltac _ired := (
   unfold fun_spec_hp, body_spec_hp;
-  try rewrite ! interp_hAGEs_bind;
-  try rewrite interp_hAGEs_tau;
-  try rewrite interp_hAGEs_ret;
-  try rewrite interp_hAGEs_call;
-  try rewrite interp_hAGEs_triggere;
-  try rewrite interp_hAGEs_assume;
-  try rewrite interp_hAGEs_guarantee;
-  try rewrite interp_hAGEs_triggerp;
-  try rewrite interp_hAGEs_triggerUB;
-  try rewrite interp_hAGEs_triggerNB;
-  try rewrite interp_hAGEs_unwrapU;
-  try rewrite interp_hAGEs_unwrapN;
-  try rewrite interp_hAGEs_Assume;
-  try rewrite interp_hAGEs_Guarantee;
-  try rewrite interp_hAGEs_ext
+  try rewrite ! interp_hmodE_bind;
+  try rewrite interp_hmodE_tau;
+  try rewrite interp_hmodE_ret;
+  try rewrite interp_hmodE_call;
+  try rewrite interp_hmodE_triggere;
+  try rewrite interp_hmodE_assume;
+  try rewrite interp_hmodE_guarantee;
+  try rewrite interp_hmodE_triggerp;
+  try rewrite interp_hmodE_triggerUB;
+  try rewrite interp_hmodE_triggerNB;
+  try rewrite interp_hmodE_unwrapU;
+  try rewrite interp_hmodE_unwrapN;
+  try rewrite interp_hmodE_Assume;
+  try rewrite interp_hmodE_Guarantee;
+  try rewrite interp_hmodE_ext
 ).
 
 Ltac _steps :=
   match goal with
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, (interp_hEs_hAGEs _ _ _) >>= _) (_, _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, (interp_smodE_hmodE _ _ _) >>= _) (_, _)) ] =>
     _ired; step
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, (interp_hEs_hAGEs _ _ _) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, (interp_smodE_hmodE _ _ _) >>= _)) ] =>
     _ired; step
   | _ => step
   end.
@@ -169,13 +169,13 @@ Ltac _st :=
     rewrite translate_emb_guarantee; step
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, (translate _ (trigger (Guarantee _))) >>= _)) ] =>
     rewrite translate_emb_guarantee; step
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, (translate _ (interp_hEs_hAGEs _ _ _)) >>= _) (_, _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, (translate _ (interp_smodE_hmodE _ _ _)) >>= _) (_, _)) ] =>
     _ired; step
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _  (_, _) (_, (translate _ (interp_hEs_hAGEs _ _ _)) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _  (_, _) (_, (translate _ (interp_smodE_hmodE _ _ _)) >>= _)) ] =>
     _ired; step
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, (interp_hEs_hAGEs _ _ _) >>= _) (_, _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, (interp_smodE_hmodE _ _ _) >>= _) (_, _)) ] =>
     _ired; step 
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, (interp_hEs_hAGEs _ _ _) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, (interp_smodE_hmodE _ _ _) >>= _)) ] =>
     _ired; step
   | _ => step
   end.

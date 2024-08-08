@@ -17,7 +17,7 @@ Section CONV.
              (state: Type)
              (step: state -> option event -> state -> Prop)
              (state_sort: state -> sort):
-    state -> itree eventE Any.t :=
+    state -> itree coreE Any.t :=
     fun st0 =>
       match (state_sort st0) with
       | STS.angelic =>
@@ -31,7 +31,7 @@ Section CONV.
       | STS.vis =>
         '(exist _ (event_sys fn args _) _) <-
         trigger (Choose {ev': event | exists st1, @step st0 (Some ev') st1 });;
-        rv <- trigger (Syscall fn args (fun rv => exists st1, (@step st0 (Some (event_sys fn args rv)) st1)));;
+        rv <- trigger (IO fn args (fun rv => exists st1, (@step st0 (Some (event_sys fn args rv)) st1)));;
         Vis (Choose {st1: state | @step st0 (Some (event_sys fn args rv)) st1 })
             (fun st1 => decompile_STS step state_sort (proj1_sig st1))
       end
@@ -57,7 +57,7 @@ Section CONV.
     | STS.vis =>
       '(exist _ (event_sys fn args _) _) <-
       trigger (Choose {ev': event | exists st1, @step st0 (Some ev') st1 });;
-      rv <- trigger (Syscall fn args (fun rv => exists st1, (@step st0 (Some (event_sys fn args rv)) st1)));;
+      rv <- trigger (IO fn args (fun rv => exists st1, (@step st0 (Some (event_sys fn args rv)) st1)));;
       Vis (Choose {st1: state | @step st0 (Some (event_sys fn args rv)) st1 })
           (fun st1 => decompile_STS step state_sort (proj1_sig st1))
     end
@@ -274,7 +274,7 @@ paco2 has 'fixed' semantics -> needs fixed semantics to do pcofix
                         | event_sys fn args _ =>
                           ` rv0 : Any.t <-
                                   trigger
-                                    (Syscall fn args
+                                    (IO fn args
                                              (fun rv0 : Any.t =>
                                                 exists st1, step st0 (Some (event_sys fn args rv0)) st1));;
                                   Vis

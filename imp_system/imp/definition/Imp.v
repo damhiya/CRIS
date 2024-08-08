@@ -141,7 +141,7 @@ Section Denote.
   Context {HasGlobVar: GlobEnv -< eff}.
   Context {HasImpState : ImpState -< eff}.
   Context {HasCall : callE -< eff}.
-  Context {HasEvent : eventE -< eff}.
+  Context {HasEvent : coreE -< eff}.
 
   (** Denotation of expressions *)
   Fixpoint denote_expr (e : expr) : itree eff val :=
@@ -232,7 +232,7 @@ Section Denote.
       (if (forallb (fun v => match v with | Vint _ => true | _ => false end) eval_args) then Ret tt else triggerUB);;;
       let eval_zs := List.map (fun v => match v with | Vint z => z | _ => 0%Z end) eval_args in
       (if (forallb intrange_64 eval_zs) then Ret tt else triggerUB);;;
-      v <- trigger (Syscall f eval_zs↑ top1);;
+      v <- trigger (IO f eval_zs↑ top1);;
       v <- v↓?;;
       trigger (SetVar x (Vint v));;; tau;; Ret Vundef
 
@@ -275,9 +275,9 @@ End Denote.
 Section Interp.
 
   Context `{Σ: GRA.t}.
-  Definition effs := GlobEnv +' ImpState +' Es.
+  Definition effs := GlobEnv +' ImpState +' modE.
 
-  Definition handle_GlobEnv {eff} `{eventE -< eff} (ge: SkEnv.t) : GlobEnv ~> (itree eff) :=
+  Definition handle_GlobEnv {eff} `{coreE -< eff} (ge: SkEnv.t) : GlobEnv ~> (itree eff) :=
     fun _ e =>
       match e with
       | GetPtr X =>
@@ -289,25 +289,25 @@ Section Interp.
         end
       end.
 
-  Definition interp_GlobEnv {eff} `{eventE -< eff} (ge: SkEnv.t) : itree (GlobEnv +' eff) ~> (itree eff) :=
+  Definition interp_GlobEnv {eff} `{coreE -< eff} (ge: SkEnv.t) : itree (GlobEnv +' eff) ~> (itree eff) :=
     interp (case_ (handle_GlobEnv ge) ((fun T e => trigger e) : eff ~> itree eff)).
 
   (** function local environment *)
   Definition lenv := alist var val.
-  Definition handle_ImpState {eff} `{eventE -< eff} : ImpState ~> stateT lenv (itree eff) :=
+  Definition handle_ImpState {eff} `{coreE -< eff} : ImpState ~> stateT lenv (itree eff) :=
     fun _ e le =>
       match e with
       | GetVar x => r <- unwrapU (alist_find x le);; Ret (le, r)
       | SetVar x v => Ret (alist_add x v le, tt)
       end.
 
-  Definition interp_ImpState {eff} `{eventE -< eff}: itree (ImpState +' eff) ~> stateT lenv (itree eff) :=
+  Definition interp_ImpState {eff} `{coreE -< eff}: itree (ImpState +' eff) ~> stateT lenv (itree eff) :=
     State.interp_state (case_ handle_ImpState pure_state).
 
   (* Definition interp_imp ge le (itr : itree effs val) := *)
   (*   interp_ImpState (interp_GlobEnv ge itr) le. *)
 
-  Definition interp_imp ge : itree effs ~> stateT lenv (itree Es) :=
+  Definition interp_imp ge : itree effs ~> stateT lenv (itree modE) :=
     fun _ itr le => interp_ImpState (interp_GlobEnv ge itr) le.
 
   Fixpoint init_lenv xs : lenv :=
@@ -338,7 +338,7 @@ Section Interp.
 
   (* 'return' is a fixed register, holding the return value of this function. *)
   (* '_' is a black hole register, holding garbage *)
-  Definition eval_imp (ge: SkEnv.t) (f: function) (args: list val) : itree Es val :=
+  Definition eval_imp (ge: SkEnv.t) (f: function) (args: list val) : itree modE val :=
     let vars := f.(fn_vars) ++ ["return"; "_"] in
     let params := f.(fn_params) in
     (if (ListDec.NoDup_dec string_dec (params ++ vars)) then Ret tt else triggerUB);;;

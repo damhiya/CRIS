@@ -37,7 +37,7 @@ Section I.
   Context `{_M: MapRA.t}.
   (* Context `{@GRA.inG MapRA0 Γ}. *)
   (* Context `{@GRA.inG MapRA1 Σ}. *)
-  Definition initF: list val -> itree hAGEs val :=
+  Definition initF: list val -> itree hmodE val :=
     fun varg =>
       `sz: Z <- (pargs [Tint] varg)?;;
       `r: val <- ccallU "alloc" [Vint sz];;
@@ -54,7 +54,7 @@ Section I.
       Ret Vundef
   .
 
-  Definition getF: list val -> itree hAGEs val :=
+  Definition getF: list val -> itree hmodE val :=
     fun varg =>
       k <- (pargs [Tint] varg)?;;
       data <- trigger sGet;; data <- data↓?;; vptr <- (vadd data (Vint (k * 8)))?;;
@@ -62,7 +62,7 @@ Section I.
       Ret (Vint r)
   .
 
-  Definition setF: list val -> itree hAGEs val :=
+  Definition setF: list val -> itree hmodE val :=
     fun varg =>
       '(k, v) <- (pargs [Tint; Tint] varg)?;;
       data <- trigger sGet;; data <- data↓?;; vptr <- (vadd data (Vint (k * 8)))?;;
@@ -70,10 +70,10 @@ Section I.
       Ret Vundef
   .
 
-  Definition set_by_userF: list val -> itree hAGEs val :=
+  Definition set_by_userF: list val -> itree hmodE val :=
     fun varg =>
       k <- (pargs [Tint] varg)?;;
-      v <- trigger (Syscall "input" (([]: list Z)↑) (fun _ => True));; v <- v↓?;;
+      v <- trigger (IO "input" (([]: list Z)↑) (fun _ => True));; v <- v↓?;;
       ccallU "set" [Vint k; Vint v]
   .
 

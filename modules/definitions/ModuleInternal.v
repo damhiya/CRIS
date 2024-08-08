@@ -31,7 +31,7 @@ End ADD.
 
 Section SEMANTICS.
   Context `{CONF: EMSConfig}.
-  Let state: Type := itree eventE Any.t.
+  Let state: Type := itree coreE Any.t.
 
   Definition state_sort (st0: state): sort :=
     match (observe st0) with
@@ -43,7 +43,7 @@ Section SEMANTICS.
       end
     | VisF (Choose X) k => demonic
     | VisF (Take X) k => angelic
-    | VisF (Syscall fn args rvs) k => STS.vis
+    | VisF (IO fn args rvs) k => STS.vis
     end.
 
   Inductive step: state -> option event -> state -> Prop :=
@@ -64,7 +64,7 @@ Section SEMANTICS.
       (SYSCALL: syscall_sem (event_sys fn args rv))
       (RETURN: rvs rv)
     :
-      step (Vis (subevent _ (Syscall fn args rvs)) k) (Some (event_sys fn args rv)) (k rv).
+      step (Vis (subevent _ (IO fn args rvs)) k) (Some (event_sys fn args rv)) (k rv).
 
   Lemma step_trigger_choose_iff X k itr e
         (STEP: step (trigger (Choose X) >>= k) e itr)
@@ -113,7 +113,7 @@ Section SEMANTICS.
   Qed.
 
   Lemma step_trigger_syscall_iff fn args rvs k e itr
-        (STEP: step (trigger (Syscall fn args rvs) >>= k) e itr)
+        (STEP: step (trigger (IO fn args rvs) >>= k) e itr)
     :
       exists rv, itr = k rv /\ e = Some (event_sys fn args rv)
                  /\ <<RV: rvs rv>> /\ <<SYS: syscall_sem (event_sys fn args rv)>>.
@@ -168,12 +168,12 @@ Section SEMANTICS.
   Lemma step_trigger_syscall fn args (rvs: Any.t -> Prop) k rv
         (RV: rvs rv) (SYS: syscall_sem (event_sys fn args rv))
     :
-      step (trigger (Syscall fn args rvs) >>= k) (Some (event_sys fn args rv)) (k rv).
+      step (trigger (IO fn args rvs) >>= k) (Some (event_sys fn args rv)) (k rv).
   Proof.
     unfold trigger. ss.
     match goal with
     | [ |- step ?itr _ _] =>
-      replace itr with (Subevent.vis (Syscall fn args rvs) k)
+      replace itr with (Subevent.vis (IO fn args rvs) k)
     end; ss.
     { econs; et. }
     { eapply itree_eta. ss. cbv. f_equal.
@@ -181,7 +181,7 @@ Section SEMANTICS.
   Qed.
 
 
-  Program Definition compile_itree: itree eventE Any.t -> semantics :=
+  Program Definition compile_itree: itree coreE Any.t -> semantics :=
     fun itr =>
       {|
         STS.state := state;

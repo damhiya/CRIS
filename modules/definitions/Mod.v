@@ -19,7 +19,7 @@ Section MODSEM.
 
   Record t: Type := mk {
     initial_st : itree takeE Any.t;
-    fnsems : alist gname (Any.t -> itree Es Any.t);
+    fnsems : alist gname (Any.t -> itree modE Any.t);
   }.
 
   Record wf (ms: t): Prop := mk_wf {
@@ -31,14 +31,14 @@ Section MODSEM.
     fnsems := [];
   |}.
 
-  Program Definition wrap_fun {E} `{eventE -< E} A R 
+  Program Definition wrap_fun {E} `{coreE -< E} A R 
         (f: ktree E A R):
     ktree E Any.t Any.t :=
     fun arg =>
           arg <- unwrapU (arg↓);;
           ret <- (f arg);; Ret (ret↑).
 
-  Fixpoint get_fnsems {E} `{eventE -< E}
+  Fixpoint get_fnsems {E} `{coreE -< E}
           (fnsems: list (gname * (ktree E Any.t Any.t)))
           (fn: gname):
     option (ktree E Any.t Any.t) :=
@@ -49,7 +49,7 @@ Section MODSEM.
     end.
 
   Section ADD.
-    Definition emb_ : RUN -> (forall T, Es T -> Es T) :=
+    Definition emb_ : RUN -> (forall T, modE T -> modE T) :=
       fun run_ch T es =>
         match es with
         | inr1 (inl1 (SUpdate run)) => inr1 (inl1 (SUpdate (run_ch T run)))
@@ -82,7 +82,7 @@ Section MODSEM.
 
     Check callE.
 
-    Definition prog: callE ~> itree Es :=
+    Definition prog: callE ~> itree modE :=
       fun _ '(Call fn args) =>
         sem <- (alist_find fn ms.(fnsems))?;;
         rv <- (sem args);;
@@ -90,12 +90,12 @@ Section MODSEM.
 
     Context `{CONF: EMSConfig}.
 
-    Definition initial_itr (P: option Prop): itree eventE Any.t :=
+    Definition initial_itr (P: option Prop): itree coreE Any.t :=
       match P with
       | None => Ret tt
       | Some P' => assume (<<WF: P'>>)
       end;;; 
-      snd <$> (interp_takeE (initial_st ms) >>= interp_Es prog (prog (Call "main" initial_arg))) .
+      snd <$> (interp_takeE (initial_st ms) >>= interp_modE prog (prog (Call "main" initial_arg))) .
 
     Definition compile P: semantics:=
       compile_itree (initial_itr P).
@@ -209,37 +209,37 @@ Section TRANSL.
   Proof. i. destruct x. ss. Qed.
   
   Lemma fun_fst_trans_l : 
-    (fun x : string * (Any.t -> itree Es Any.t) => fst (trans_l x)) = (fun x : string * (Any.t -> itree Es Any.t) => fst x).
+    (fun x : string * (Any.t -> itree modE Any.t) => fst (trans_l x)) = (fun x : string * (Any.t -> itree modE Any.t) => fst x).
   Proof.
     extensionality x. rewrite fst_trans_l. et.
   Qed.
   
   Lemma fun_fst_trans_r : 
-    (fun x : string * (Any.t -> itree Es Any.t) => fst (trans_r x)) = (fun x : string * (Any.t -> itree Es Any.t) => fst x).
+    (fun x : string * (Any.t -> itree modE Any.t) => fst (trans_r x)) = (fun x : string * (Any.t -> itree modE Any.t) => fst x).
   Proof.
     extensionality x. rewrite fst_trans_r. et.
   Qed.
   
   Lemma fun_fst_trans_l_l :
-    (fun x : string * (Any.t -> itree Es Any.t) => fst (trans_l (trans_l x))) = (fun x : string * (Any.t -> itree Es Any.t) => fst x).
+    (fun x : string * (Any.t -> itree modE Any.t) => fst (trans_l (trans_l x))) = (fun x : string * (Any.t -> itree modE Any.t) => fst x).
   Proof.
     extensionality x. rewrite ! fst_trans_l. et.
   Qed.
   
   Lemma fun_fst_trans_l_r :
-    (fun x : string * (Any.t -> itree Es Any.t) => fst (trans_l (trans_r x))) = (fun x : string * (Any.t -> itree Es Any.t) => fst x).
+    (fun x : string * (Any.t -> itree modE Any.t) => fst (trans_l (trans_r x))) = (fun x : string * (Any.t -> itree modE Any.t) => fst x).
   Proof.
     extensionality x. rewrite fst_trans_l. rewrite fst_trans_r. et.
   Qed.
   
   Lemma fun_fst_trans_r_l:
-    (fun x : string * (Any.t -> itree Es Any.t) => fst (trans_r (trans_l x))) = (fun x : string * (Any.t -> itree Es Any.t) => fst x).
+    (fun x : string * (Any.t -> itree modE Any.t) => fst (trans_r (trans_l x))) = (fun x : string * (Any.t -> itree modE Any.t) => fst x).
   Proof.
     extensionality x. rewrite fst_trans_r. rewrite fst_trans_l. et.
   Qed.
   
   Lemma fun_fst_trans_r_r:
-    (fun x : string * (Any.t -> itree Es Any.t) => fst (trans_r (trans_r x))) = (fun x : string * (Any.t -> itree Es Any.t) => fst x).
+    (fun x : string * (Any.t -> itree modE Any.t) => fst (trans_r (trans_r x))) = (fun x : string * (Any.t -> itree modE Any.t) => fst x).
   Proof.
     extensionality x. rewrite ! fst_trans_r. et.
   Qed.
@@ -248,14 +248,14 @@ End TRANSL.
 
 
 Section LEMMAS.
-  (* TODO: Generalize 'emb_' and 'Es' to cover both Mod / HMod. *)
+  (* TODO: Generalize 'emb_' and 'modE' to cover both Mod / HMod. *)
   Import ModSem.
 
 
   Lemma translate_emb_bind
     A B
     (run_: RUN)
-    (itr: itree Es A) (ktr: A -> itree Es B)
+    (itr: itree modE A) (ktr: A -> itree modE B)
   :
     translate (emb_ run_) (itr >>= ktr) = a <- (translate (emb_ run_) itr);; (translate (emb_ run_) (ktr a))
   .
@@ -264,7 +264,7 @@ Section LEMMAS.
   Lemma translate_emb_tau
     A
     run_
-    (itr: itree Es A)
+    (itr: itree modE A)
   :
     translate (emb_ run_) (tau;; itr) = tau;; (translate (emb_ run_) itr)
   .
@@ -304,10 +304,10 @@ Section LEMMAS.
     do 2 f_equal. extensionalities. apply translate_emb_ret. 
   Qed.
 
-  Lemma translate_emb_eventE
+  Lemma translate_emb_coreE
       T
       (run_: RUN) 
-      (e: eventE T)
+      (e: coreE T)
     :
       translate (emb_ run_) (trigger e) = trigger e.
   Proof.
@@ -325,7 +325,7 @@ Section LEMMAS.
   .
   Proof. 
     unfold triggerUB. rewrite translate_emb_bind. f_equal.
-    { apply translate_emb_eventE. }
+    { apply translate_emb_coreE. }
     extensionalities. ss.
   Qed.
 
@@ -336,7 +336,7 @@ Section LEMMAS.
   .
   Proof.
     unfold triggerNB. rewrite translate_emb_bind. f_equal. 
-    { apply translate_emb_eventE. }
+    { apply translate_emb_coreE. }
     extensionalities. ss.
   Qed.
   
@@ -369,7 +369,7 @@ Section LEMMAS.
   .
   Proof.
     unfold assume. rewrite translate_emb_bind.
-    rewrite translate_emb_eventE. f_equal.
+    rewrite translate_emb_coreE. f_equal.
     extensionalities.
     rewrite translate_emb_ret. et.
   Qed.
@@ -381,7 +381,7 @@ Section LEMMAS.
   .
   Proof.
     unfold guarantee. rewrite translate_emb_bind.
-    rewrite translate_emb_eventE. f_equal.
+    rewrite translate_emb_coreE. f_equal.
     extensionalities.
     rewrite translate_emb_ret. et.
   Qed.

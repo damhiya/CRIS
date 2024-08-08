@@ -23,7 +23,7 @@ Section SMODSEM.
     initial_cond: iProp;
   }.
 
-  Definition transl (tr: fspecbody -> (Any.t -> itree hAGEs Any.t)) (ms: t): HModSem.t := {|
+  Definition transl (tr: fspecbody -> (Any.t -> itree hmodE Any.t)) (ms: t): HModSem.t := {|
     HModSem.fnsems := List.map (fun '(fn, sb) => (fn, tr sb)) ms.(fnsems);
     HModSem.initial_st := ms.(initial_st);
     HModSem.initial_cond := ms.(initial_cond);
@@ -31,7 +31,7 @@ Section SMODSEM.
 
   Definition to_hmod (ms: t): HModSem.t := transl (interp_sb_hp stb) ms.
 
-  Definition main (mainpre: Any.t -> iProp) (mainbody: Any.t -> itree hEs Any.t): t := {|
+  Definition main (mainpre: Any.t -> iProp) (mainbody: Any.t -> itree smodE Any.t): t := {|
       fnsems := [("main", (mk_specbody (mk_simple (fun (_: unit) => (ord_top, mainpre, fun _ => (⌜True⌝: iProp)%I))) mainbody))];
       initial_st := tt↑;
       initial_cond := emp%I;
@@ -52,7 +52,7 @@ Section SMOD.
     sk: Sk.t;
   }.
 
-  Definition transl (tr: Sk.t -> fspecbody -> ( Any.t -> itree hAGEs Any.t)) (md: t): HMod.t := {|
+  Definition transl (tr: Sk.t -> fspecbody -> ( Any.t -> itree hmodE Any.t)) (md: t): HMod.t := {|
     HMod.get_modsem := fun sk => SModSem.transl (tr sk) (md.(get_modsem) sk);
     HMod.sk := md.(sk);
   |}.

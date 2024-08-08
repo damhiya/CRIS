@@ -139,17 +139,17 @@ Section HPSIM.
       *)
       i. guclo hpsim_wfC_spec. econs. i. 
       eapply K; eauto; admit.
-    - rewrite! translate_emb_bind. rewrite! translate_emb_eventE. hstep.
+    - rewrite! translate_emb_bind. rewrite! translate_emb_coreE. hstep.
     - rewrite! translate_emb_bind. rewrite translate_emb_callE. hstep.
       { unfold addf. apply alist_find_app. unfold trans_l. rewrite alist_find_map. unfold o_map. rewrite FUN. et. }
       s. (* fold Ret ();;; Ret x back into translate () *) admit.
     - rewrite! translate_emb_bind. admit.
     - rewrite! translate_emb_tau. hstep.
     - rewrite! translate_emb_tau. hstep.
-    - rewrite! translate_emb_bind. rewrite! translate_emb_eventE. hstep.
-    - rewrite! translate_emb_bind. rewrite! translate_emb_eventE. hstep.
-    - rewrite! translate_emb_bind. rewrite! translate_emb_eventE. hstep.
-    - rewrite! translate_emb_bind. rewrite! translate_emb_eventE. hstep.
+    - rewrite! translate_emb_bind. rewrite! translate_emb_coreE. hstep.
+    - rewrite! translate_emb_bind. rewrite! translate_emb_coreE. hstep.
+    - rewrite! translate_emb_bind. rewrite! translate_emb_coreE. hstep.
+    - rewrite! translate_emb_bind. rewrite! translate_emb_coreE. hstep.
     - rewrite! translate_emb_bind. rewrite! translate_emb_sE. hstep. hss. des_ifs.
     - rewrite! translate_emb_bind. rewrite! translate_emb_sE. hstep. hss. des_ifs.
     - rewrite! translate_emb_bind. rewrite translate_emb_assume. hstep.

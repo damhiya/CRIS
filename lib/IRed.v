@@ -289,9 +289,9 @@ Section RESUM.
   (* Context `{eventE -< E}. *)
   (* Context `{E -< F}. *)
   Context `{PRF: E -< F}.
-  Context `{eventE -< E}.
-  Let eventE_F: eventE -< F. rr. ii. eapply PRF. eapply H. eapply X. Defined.
-  Local Existing Instance eventE_F.
+  Context `{coreE -< E}.
+  Let coreE_F: coreE -< F. rr. ii. eapply PRF. eapply H. eapply X. Defined.
+  Local Existing Instance coreE_F.
 
   (* Lemma resum_itr_bind *)
   (*       (R S: Type) *)
@@ -455,30 +455,30 @@ Section TEST.
 
   Local Set Typeclasses Depth 50.
 
-  Goal forall (itr: itree (void1 +' void1 +' eventE) nat), resum_itr (tau;; itr) = tau;; resum_itr itr.
+  Goal forall (itr: itree (void1 +' void1 +' coreE) nat), resum_itr (tau;; itr) = tau;; resum_itr itr.
   Proof. i. Timeout 1 my_red_both. refl. Qed.
 
-  Goal forall (itr: itree (void1 +' eventE) nat), resum_itr (F:= void1 +' eventE +' void1) (tau;; itr) = tau;; resum_itr itr.
+  Goal forall (itr: itree (void1 +' coreE) nat), resum_itr (F:= void1 +' coreE +' void1) (tau;; itr) = tau;; resum_itr itr.
   Proof. i. Timeout 1 my_red_both. refl. Qed.
 
-  Goal forall (itr: itree (void1 +' eventE) nat) (ktr: ktree _ nat nat),
-      resum_itr (F:= void1 +' eventE +' void1) (itr >>= ktr) = resum_itr itr >>= (fun r => resum_itr (ktr r)).
+  Goal forall (itr: itree (void1 +' coreE) nat) (ktr: ktree _ nat nat),
+      resum_itr (F:= void1 +' coreE +' void1) (itr >>= ktr) = resum_itr itr >>= (fun r => resum_itr (ktr r)).
   Proof. i. Timeout 1 my_red_both. refl. Qed.
 
   Local Unset Typeclasses Depth.
   (* Print Options. *)
 
   Variable E F G H: Type -> Type.
-  Variable x: itree (eventE +' E) ~> itree (eventE +' F).
-  Variable y: itree (eventE +' F) ~> itree (eventE +' G).
-  Variable z: itree (eventE +' G) ~> itree (eventE +' H).
+  Variable x: itree (coreE +' E) ~> itree (coreE +' F).
+  Variable y: itree (coreE +' F) ~> itree (coreE +' G).
+  Variable z: itree (coreE +' G) ~> itree (coreE +' H).
 
 
 
   Hypothesis x_bind: forall R S itr (ktr: ktree _ R S), (x (itr >>= ktr)) = (r <- x itr;; x (ktr r)).
   Hypothesis x_tau: forall R (i: itree _ R), (x (tau;; i)) = tau;; (x i).
   Hypothesis x_ret: forall R (i: R), (x (Ret i)) = Ret i.
-  Hypothesis x_triggere: forall R (i: eventE R), (x (trigger i)) = (trigger i >>= (fun r => tau;; Ret r)).
+  Hypothesis x_triggere: forall R (i: coreE R), (x (trigger i)) = (trigger i >>= (fun r => tau;; Ret r)).
   Hypothesis x_UB: forall R, (x triggerUB) = (triggerUB: itree _ R).
   Hypothesis x_NB: forall R, (x triggerNB) = (triggerNB: itree _ R).
   Hypothesis x_unwrapU: forall R (i: option R), (x (unwrapU i)) = (unwrapU i).
@@ -509,7 +509,7 @@ Section TEST.
   Hypothesis y_bind: forall R S itr (ktr: ktree _ R S), (y (itr >>= ktr)) = (r <- y itr;; y (ktr r)).
   Hypothesis y_tau: forall R (i: itree _ R), (y (tau;; i)) = tau;; (y i).
   Hypothesis y_ret: forall R (i: R), (y (Ret i)) = Ret i.
-  Hypothesis y_triggere: forall R (i: eventE R), (y (trigger i)) = (trigger i >>= (fun r => tau;; Ret r)).
+  Hypothesis y_triggere: forall R (i: coreE R), (y (trigger i)) = (trigger i >>= (fun r => tau;; Ret r)).
   Hypothesis y_UB: forall R, (y triggerUB) = (triggerUB: itree _ R).
   Hypothesis y_NB: forall R, (y triggerNB) = (triggerNB: itree _ R).
   Hypothesis y_unwrapU: forall R (i: option R), (y (unwrapU i)) = (unwrapU i).
@@ -540,7 +540,7 @@ Section TEST.
   Hypothesis z_bind: forall R S itr (ktr: ktree _ R S), (z (itr >>= ktr)) = (r <- z itr;; z (ktr r)).
   Hypothesis z_tau: forall R (i: itree _ R), (z (tau;; i)) = tau;; (z i).
   Hypothesis z_ret: forall R (i: R), (z (Ret i)) = Ret i.
-  Hypothesis z_triggere: forall R (i: eventE R), (z (trigger i)) = (trigger i >>= (fun r => tau;; Ret r)).
+  Hypothesis z_triggere: forall R (i: coreE R), (z (trigger i)) = (trigger i >>= (fun r => tau;; Ret r)).
   Hypothesis z_UB: forall R, (z triggerUB) = (triggerUB: itree _ R).
   Hypothesis z_NB: forall R, (z triggerNB) = (triggerNB: itree _ R).
   Hypothesis z_unwrapU: forall R (i: option R), (z (unwrapU i)) = (unwrapU i).
@@ -602,12 +602,12 @@ Section TEST.
              Which one is better? (in terms of performance, readability, etc)? ***)
   Abort.
 
-  Variable xx: forall T, nat -> itree (eventE +' E) T -> nat -> itree (eventE +' F) T.
+  Variable xx: forall T, nat -> itree (coreE +' E) T -> nat -> itree (coreE +' F) T.
 
   Hypothesis xx_bind: forall R S i (k: ktree _ R S) p q, (xx p (i >>= k) q) = (r <- xx p i q;; xx p (k r) q).
   Hypothesis xx_tau: forall R p q (i: itree _ R), (xx p (tau;; i) q) = tau;; (xx p i q).
   Hypothesis xx_ret: forall R p q (i: R), (xx p (Ret i) q) = Ret i.
-  Hypothesis xx_triggere: forall R p q (i: eventE R), (xx p (trigger i) q) = (trigger i >>= (fun r => tau;; Ret r)).
+  Hypothesis xx_triggere: forall R p q (i: coreE R), (xx p (trigger i) q) = (trigger i >>= (fun r => tau;; Ret r)).
   Hypothesis xx_UB: forall R p q, (xx p triggerUB q) = (triggerUB: itree _ R).
   Hypothesis xx_NB: forall R p q, (xx p triggerNB q) = (triggerNB: itree _ R).
   Hypothesis xx_unwrapU: forall R p q (i: option R), (xx p (unwrapU i) q) = (unwrapU i).
@@ -651,11 +651,11 @@ End TEST.
 (* (*** Natural Transformations with Reduction lemmas ***) *)
 (* Module NTR. *)
 (*   Class t (E F: Type -> Type) := mk { *)
-(*     n:> itree (eventE +' E) ~> itree (eventE +' F); *)
+(*     n:> itree (coreE +' E) ~> itree (coreE +' F); *)
 (*     bind: forall R S i (k: ktree _ R S), (n (i >>= k)) = (r <- n i;; n (k r)); *)
 (*     tau: forall R (i: itree _ R), (n (tau;; i)) = tau;; (n i); *)
 (*     ret: forall R (i: R), (n (Ret i)) = Ret i; *)
-(*     triggere: forall R (i: eventE R), (n (trigger i)) = (trigger i >>= (fun r => tau;; Ret r)); *)
+(*     triggere: forall R (i: coreE R), (n (trigger i)) = (trigger i >>= (fun r => tau;; Ret r)); *)
 (*     UB: forall R, (n triggerUB) = (triggerUB: itree _ R); *)
 (*     NB: forall R, (n triggerNB) = (triggerNB: itree _ R); *)
 (*     unwrapU: forall R (i: option R), (n (unwrapU i)) = (unwrapU i); *)

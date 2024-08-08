@@ -50,7 +50,7 @@ Ltac st_r := let IT := fresh "__IT" in
   unfold IT; clear IT.
 
 Ltac apc_r :=
-  rewrite interp_hAGEs_hapc;
+  rewrite interp_hmodE_hapc;
   st_r; unfold HoareAPC; st_r; rewrite unfold_APC; st_r;
   match goal with [b: bool|-_] => destruct b end;
   [|unfold guarantee, triggerNB; st_r;

@@ -21,8 +21,8 @@ Require Import Red IRed.
 
 Section SIM_STRICT.
 
-  Variant _sim_strict (sim_strict: forall R, relation (Any.t * R) -> relation (Any.t * itree Es R))
-    : forall R, relation (Any.t * R) -> relation (Any.t * itree Es R)
+  Variant _sim_strict (sim_strict: forall R, relation (Any.t * R) -> relation (Any.t * itree modE R))
+    : forall R, relation (Any.t * R) -> relation (Any.t * itree modE R)
   :=
   | sim_strict_ret R RR st st' v v'
       (RET: RR (st,v) (st',v'): Prop)
@@ -44,8 +44,8 @@ Section SIM_STRICT.
           sim_strict R RR (st, k vret) (st', k' vret))
     :
     _sim_strict sim_strict R RR
-      (st, trigger (Syscall fn varg rvs) >>= k)
-      (st', trigger (Syscall fn varg rvs) >>= k')
+      (st, trigger (IO fn varg rvs) >>= k)
+      (st', trigger (IO fn varg rvs) >>= k')
   | sim_strict_tau R RR
       st st' i i'
       (K: sim_strict R RR (st, i) (st', i'))
@@ -97,7 +97,7 @@ Section SIM_STRICT.
   Proof.
     revert_until R. ginit. gcofix CIH; i.
     destruct sti as [st i]. ides i; eauto with paco.
-    gstep. destruct e; [destruct c|destruct s; [destruct s|destruct e]];
+    gstep. destruct e; [destruct c|destruct s; [destruct s|destruct c]];
       rewrite <-(bind_ret_l_eta _ k); rewrite <-bind_vis;
       econs; eauto with paco.
   Qed.
@@ -113,8 +113,8 @@ Section SIM_STRICT.
       gstep; econs; i; try edestruct K; pclearbot; eauto with paco.
   Qed.
 
-  Variant sim_strict_bindC (r: forall R, relation (Any.t*R) -> relation (Any.t * itree Es R)) :
-    forall R, relation (Any.t*R) -> relation (Any.t * itree Es R)
+  Variant sim_strict_bindC (r: forall R, relation (Any.t*R) -> relation (Any.t * itree modE R)) :
+    forall R, relation (Any.t*R) -> relation (Any.t * itree modE R)
   :=
   | sim_strict_bindC_intro R RR Q QQ st st' i i' k k'
       (HD: r R RR (st,i) (st',i'))
@@ -152,8 +152,8 @@ Section SIM_STRICT.
     apply sim_strict_bindC_wrespectful.
   Qed.
 
-  Variant sim_strict_transC (r: forall R, relation (Any.t*R) -> relation (Any.t * itree Es R)) :
-    forall R, relation (Any.t*R) -> relation (Any.t * itree Es R)
+  Variant sim_strict_transC (r: forall R, relation (Any.t*R) -> relation (Any.t * itree modE R)) :
+    forall R, relation (Any.t*R) -> relation (Any.t * itree modE R)
   :=
   | sim_strict_transC_intro R RR0 RR1 RR st st' st'' i i' i''
       (REL0: r R RR0 (st,i) (st',i'))
@@ -225,9 +225,9 @@ Section SIM_STRICT.
   Qed.
   
   Lemma sim_strict_inv_syscall R RR sti st' fn varg rvs k'
-      (EQV: sim_strict R RR sti (st', trigger (Syscall fn varg rvs) >>= k')):
+      (EQV: sim_strict R RR sti (st', trigger (IO fn varg rvs) >>= k')):
     exists st k,
-    sti = (st, trigger (Syscall fn varg rvs) >>= k) /\
+    sti = (st, trigger (IO fn varg rvs) >>= k) /\
     forall vret, sim_strict R RR (st, k vret) (st', k' vret).
   Proof.
     punfold EQV. inv EQV; grind; depdes H0 H2; eauto; itree_clarify x.
@@ -235,9 +235,9 @@ Section SIM_STRICT.
   Qed.
 
   Lemma sim_strict_inv_syscall' R RR st fn varg rvs k sti'
-      (EQV: sim_strict R RR (st, trigger (Syscall fn varg rvs) >>= k) sti'):
+      (EQV: sim_strict R RR (st, trigger (IO fn varg rvs) >>= k) sti'):
     exists st' k',
-    sti' = (st', trigger (Syscall fn varg rvs) >>= k') /\
+    sti' = (st', trigger (IO fn varg rvs) >>= k') /\
     forall vret, sim_strict R RR (st, k vret) (st', k' vret).
   Proof.
     punfold EQV. inv EQV; grind; depdes H0; eauto; itree_clarify x.
@@ -329,8 +329,8 @@ Section SIM_STRICT.
   (** **)
 
   Variant sim_strictC W
-      (r: forall S_src S_tgt (RR: Any.t -> Any.t -> S_src -> S_tgt -> Prop), bool -> bool -> W -> Any.t * itree Es S_src -> Any.t * itree Es S_tgt -> Prop):
-      forall S_src S_tgt (RR: Any.t -> Any.t -> S_src -> S_tgt -> Prop), bool -> bool -> W -> Any.t * itree Es S_src -> Any.t * itree Es S_tgt -> Prop
+      (r: forall S_src S_tgt (RR: Any.t -> Any.t -> S_src -> S_tgt -> Prop), bool -> bool -> W -> Any.t * itree modE S_src -> Any.t * itree modE S_tgt -> Prop):
+      forall S_src S_tgt (RR: Any.t -> Any.t -> S_src -> S_tgt -> Prop), bool -> bool -> W -> Any.t * itree modE S_src -> Any.t * itree modE S_tgt -> Prop
     :=
   | sim_strictC_intro RR p_src p_tgt w sti_src sti_tgt sti_src' sti_tgt'
       (SIM: r Any.t Any.t RR p_src p_tgt w sti_src' sti_tgt')
