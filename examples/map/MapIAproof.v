@@ -3,7 +3,7 @@ Require Import Coqlib.
 Require Import ImpPrelude.
 Require Import Skeleton.
 Require Import PCM IPM.
-Require Import Behavior.
+Require Import Behavior CtxRefine.
 Require Import Relation_Definitions.
 
 (*** TODO: export these in Coqlib or Universe ***)
@@ -35,16 +35,19 @@ Section PROOF.
   Context `{_M: MapRA.t}.
   Context `{@GRA.inG memRA Γ}.
 
-  Theorem correct: refines2 [HMod.to_mod (HMod.add MapI.Map (HMem (fun _ => false)))] [HMod.to_mod (HMod.add (MapA.HMap (fun _ => to_stb (MemStb ++ MapStb))) (HMem (fun _ => false)))].
+  Theorem correct:
+    ctx_refines
+      (HMod.to_mod (HMod.add MapI.Map (HMem (fun _ => false))))
+      (HMod.to_mod (HMod.add (MapA.HMap (fun _ => to_stb (MemStb ++ MapStb))) (HMem (fun _ => false)))).
   Proof.
     etrans.
     {
-      eapply adequacy_local2, adequacy_hmod, MapIMproof.sim. i.
+      eapply adequacy_local, adequacy_hmod, MapIMproof.sim. i.
       instantiate (1:= (fun _ => to_stb (MemStb ++ MapStbM))).
       ss. stb_tac. eauto.
     }
     {
-      eapply adequacy_local2, adequacy_hmod, sim_ctx_hmod, MapMAproof.sim.
+      eapply adequacy_local, adequacy_hmod, sim_ctx_hmod, MapMAproof.sim.
       { i. stb_tac. auto. }
       { i. stb_tac. auto. }
     }

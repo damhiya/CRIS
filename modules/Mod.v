@@ -31,23 +31,6 @@ Section MODSEM.
     fnsems := [];
   |}.
 
-  Program Definition wrap_fun {E} `{coreE -< E} A R 
-        (f: ktree E A R):
-    ktree E Any.t Any.t :=
-    fun arg =>
-          arg <- unwrapU (arg↓);;
-          ret <- (f arg);; Ret (ret↑).
-
-  Fixpoint get_fnsems {E} `{coreE -< E}
-          (fnsems: list (gname * (ktree E Any.t Any.t)))
-          (fn: gname):
-    option (ktree E Any.t Any.t) :=
-    match fnsems with
-    | [] => None
-    | (fn_hd, body_hd)::tl =>
-        if string_dec fn fn_hd then Some body_hd else get_fnsems tl fn
-    end.
-
   Section ADD.
     Definition emb_ : RUN -> (forall T, modE T -> modE T) :=
       fun run_ch T es =>
@@ -75,7 +58,6 @@ Section MODSEM.
     |}.
 
   End ADD.
-
 
   Section COMPILE.
     Variable ms: t.
@@ -129,7 +111,6 @@ Module Mod.
 Section MOD.
   Context `{Sk.ld}.
   Context {CONF: EMSConfig}.
-  
 
   Record t: Type := mk {
     get_modsem: Sk.t -> ModSem.t;
@@ -138,6 +119,7 @@ Section MOD.
 
   }
   .
+  
   Definition wf (md: t): Prop := (<<WF: ModSem.wf md.(enclose)>> /\ <<SK: Sk.wf (md.(sk))>>).
 
   Definition empty: t := {|
@@ -148,8 +130,7 @@ Section MOD.
   Definition compile (md: t): semantics :=
     compile_itree (ModSem.initial_itr md.(enclose) (Some (wf md))).  
 
-  Section ADD.
-   Definition add (md0 md1: t): t := {|
+  Definition add (md0 md1: t): t := {|
     get_modsem := fun sk =>
                     ModSem.add (md0.(get_modsem) sk) (md1.(get_modsem) sk);
     sk := Sk.add md0.(sk) md1.(sk);
@@ -163,32 +144,8 @@ Section MOD.
     | x::l => add x (add_list l)
     end.
 
-  End ADD.
-    
 End MOD.
 End Mod.
-
-Section REFINE.
-  Context `{Sk.ld}.
-  (* Contexts can be simplified as a single module (by module-linking) *)
-  Definition refines {CONF: EMSConfig} (md_tgt md_src: Mod.t): Prop :=
-    forall (ctx: Mod.t), Beh.of_program (Mod.compile (Mod.add md_tgt ctx)) <1=
-                              Beh.of_program (Mod.compile (Mod.add md_src ctx)).
-
-  Definition refines_strong (md_tgt md_src: Mod.t): Prop :=
-    forall {CONF: EMSConfig}, refines md_tgt md_src.
-    
-  Section CONF.
-    Context {CONF: EMSConfig}.
-
-    Definition refines_closed (md_tgt md_src: Mod.t): Prop :=
-    Beh.of_program (Mod.compile md_tgt) <1= Beh.of_program (Mod.compile md_src).
-
-    Definition refines2 (md_tgt md_src: list Mod.t): Prop :=
-      refines (Mod.add_list md_tgt) (Mod.add_list md_src).
-  End CONF.
-
-End REFINE.
 
 Global Existing Instance Sk.gdefs.
 Arguments Sk.unit: simpl never.
@@ -196,7 +153,6 @@ Arguments Sk.add: simpl never.
 Arguments Sk.wf: simpl never.
 Coercion Sk.load_skenv: Sk.t >-> SkEnv.t.
 Global Opaque Sk.load_skenv.
-
 
 (* Can this be generalized? *)
 Section TRANSL.

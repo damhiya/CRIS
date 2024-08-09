@@ -1,7 +1,7 @@
 Require Import Coqlib.
 Require Import ITreelib.
 Require Import Skeleton.
-Require Import Behavior.
+Require Import Behavior CtxRefine.
 Require Import Relation_Definitions.
 
 (*** TODO: export these in Coqlib or Universe ***)
@@ -136,7 +136,7 @@ Section ADEQUACY.
   Theorem adequacy_local_strong md_src md_tgt
           (SIM: ModR.sim md_src md_tgt)
     :
-    <<CR: (refines_strong md_tgt md_src)>>.
+    <<CR: (ctx_refines_strong md_tgt md_src)>>.
   Proof.
     ii. apply sim_ctx_mod with (ctx:=ctx) in SIM.
     pose (Mod.add md_src ctx) as mds.
@@ -150,7 +150,7 @@ Section ADEQUACY.
   Theorem adequacy_local md_src md_tgt
           (SIM: ModR.sim md_src md_tgt)
     :
-      <<CR: (refines md_tgt md_src)>>
+      <<CR: (ctx_refines md_tgt md_src)>>
   .
   Proof.
     eapply refines_strong_refines.
@@ -161,7 +161,7 @@ Section ADEQUACY.
             mds_src mds_tgt
             (FORALL: List.Forall2 ModR.sim mds_src mds_tgt)
     :
-      <<CR: refines_strong (Mod.add_list mds_tgt) (Mod.add_list mds_src)>>
+      <<CR: ctx_refines_strong (Mod.add_list mds_tgt) (Mod.add_list mds_src)>>
   .
   Proof.
     (* apply adequacy_local_strong. *)
@@ -195,10 +195,10 @@ Section ADEQUACY.
     Qed.             
           
 
-  Theorem adequacy_local2 md_src md_tgt
+  Theorem adequacy_local_singleton md_src md_tgt
           (SIM: ModR.sim md_src md_tgt)
     :
-      <<CR: (refines2 [md_tgt] [md_src])>>
+      <<CR: (ctx_refines_list [md_tgt] [md_src])>>
   .
   Proof.
     eapply refines_strong_refines.
@@ -209,7 +209,7 @@ Section ADEQUACY.
             mds_src mds_tgt
             (FORALL: List.Forall2 ModR.sim mds_src mds_tgt)
     :
-      <<CR: refines (Mod.add_list mds_tgt) (Mod.add_list mds_src)>>
+      <<CR: ctx_refines (Mod.add_list mds_tgt) (Mod.add_list mds_src)>>
   .
   Proof.
     eapply refines_strong_refines.
