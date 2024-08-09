@@ -45,9 +45,9 @@ Section ADEQUACY.
 
   Theorem adequacy_hmod
       (md_src md_tgt: HMod.t) Ist
-      (SIM: HModPair.sim md_src md_tgt Ist)
+      (SIM: HModR.sim md_src md_tgt Ist)
     :
-      ModPair.sim (HMod.to_mod md_src) (HMod.to_mod md_tgt).
+      ModR.sim (HMod.to_mod md_src) (HMod.to_mod md_tgt).
   Proof.
     inv SIM. des.
     econs; eauto. i. specialize (sim_modsem sk SKINCL SKWF). 
@@ -228,9 +228,9 @@ Section SIM.
 
   Theorem sim_ctx_hmod
         ctx md1 md2 Ist
-        (SIM: HModPair.sim md1 md2 Ist)
+        (SIM: HModR.sim md1 md2 Ist)
       :
-        HModPair.sim (HMod.add md1 ctx) (HMod.add md2 ctx) (IstProd Ist IstEq).
+        HModR.sim (HMod.add md1 ctx) (HMod.add md2 ctx) (IstProd Ist IstEq).
   Proof.
     inv SIM.
     econs; et.

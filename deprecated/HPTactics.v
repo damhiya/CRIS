@@ -337,7 +337,7 @@ Section TEST.
     |}.
 
 
-    Goal HModPair.sim (HMod.add ms0 ms1) (HMod.add mt0 mt1).
+    Goal HModR.sim (HMod.add ms0 ms1) (HMod.add mt0 mt1).
     Proof.
       econs; ss.
       ii. econs. 
@@ -392,7 +392,7 @@ Section TEST.
     Definition MultH0 := SMod.to_hmod (GlobalStb (Mult0.SMult.(SMod.sk))) o Mult0.SMult.
     Definition MultH1 := SMod.to_hmod (GlobalStb (Mult1.SMult.(SMod.sk))) o Mult1.SMult.
   
-    Lemma test_hmod : HModPair.sim MultH1 MultH0.
+    Lemma test_hmod : HModR.sim MultH1 MultH0.
     Proof.
     econs; et. i. econs; cycle 1.
     { instantiate (1:= (fun _ _ => ⌜True⌝%I)). ss. rr. uipropall. }

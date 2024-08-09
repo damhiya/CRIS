@@ -23,7 +23,7 @@ From stdpp Require Import coPset gmap.
 (************ User Tactics **************)
 Ltac sim_init := econs; eauto; ii; econs; cycle 1; [s|sim_split].
 Tactic Notation "simF_init" constr(LS) constr(LT) reference(FS) reference(FT) :=
-  unfold HModPair.sim_fun; i;
+  unfold HModR.sim_fun; i;
   rewrite// [in alist_find _ _]LS; s;
   rewrite// [in alist_find _ _]LT; s;
   unfold FS; unfold FT;

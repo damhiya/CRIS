@@ -220,7 +220,7 @@ Section MODAUX.
   Theorem adequacy_addtau
           (md: Mod.t)
     :
-      ModPair.sim (addtau_md md) md
+      ModR.sim (addtau_md md) md
   .
   Proof.
     econs; ss. i. econs.
@@ -256,7 +256,7 @@ Section MODAUX.
   Theorem adequacy_rmtau
           md
     :
-      ModPair.sim md (addtau_md md)
+      ModR.sim md (addtau_md md)
   .
   Proof.
     econs; ss. i. econs.
@@ -715,7 +715,7 @@ Section ADQ.
         umd
         (IN: In umd umds)
     :
-      ModPair.sim (SMod.to_tgt _stb (massage_md true umd)) (addtau_md umd)
+      ModR.sim (SMod.to_tgt _stb (massage_md true umd)) (addtau_md umd)
   .
   Proof.
     econs; ss.
@@ -1110,7 +1110,7 @@ Section ADQ.
 
   Lemma my_lemma3_aux md
     :
-      ModPair.sim (addtau_md md) (SMod.to_src (massage_md false md)).
+      ModR.sim (addtau_md md) (SMod.to_src (massage_md false md)).
   Proof.
     econs; ss. i.
     eapply ModSemPair.mk with (wf:=fun (_: unit) '(mp_src, mp_tgt) => mp_src = mp_tgt) (le:=top2).

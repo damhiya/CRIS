@@ -797,7 +797,7 @@ Qed.
 End ModSemPair.
 
 
-Module ModPair.
+Module ModR.
 Section SIMMOD.
    Variable (md_src md_tgt: Mod.t).
    Inductive sim: Prop := mk {
@@ -811,4 +811,4 @@ Section SIMMOD.
 
 End SIMMOD.
 
-End ModPair.
+End ModR.

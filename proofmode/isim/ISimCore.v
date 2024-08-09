@@ -750,7 +750,7 @@ Module HModSemPair.
 End HModSemPair.
 
 
-Module HModPair.
+Module HModR.
   Section SIM.
     Context `{_W: CtxWD.t}. 
     Variable (md_src md_tgt: HMod.t).
@@ -776,4 +776,4 @@ Module HModPair.
       | _, _ => False
       end.
   End SIM.
-End HModPair.
+End HModR.

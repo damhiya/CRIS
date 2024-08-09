@@ -109,7 +109,7 @@ Section SIMMODSEM.
        )%I.
 
   Lemma simF_init:
-    HModPair.sim_fun
+    HModR.sim_fun
       (HMod.add (MapM.HMap GlobalStbM) Mem) (HMod.add MapI.Map Mem)
       (IstProd Ist IstEq) "init".
   Proof.
@@ -208,7 +208,7 @@ Section SIMMODSEM.
   Qed.
 
   Lemma simF_get:
-    HModPair.sim_fun
+    HModR.sim_fun
       (HMod.add (MapM.HMap GlobalStbM) Mem) (HMod.add MapI.Map Mem)
       (IstProd Ist IstEq) "get".
   Proof.
@@ -258,7 +258,7 @@ Section SIMMODSEM.
   Qed.
 
   Lemma simF_set:
-    HModPair.sim_fun
+    HModR.sim_fun
       (HMod.add (MapM.HMap GlobalStbM) Mem) (HMod.add MapI.Map Mem)
       (IstProd Ist IstEq) "set".
   Proof.
@@ -310,7 +310,7 @@ Section SIMMODSEM.
   Qed.
 
   Lemma simF_set_by_user:
-    HModPair.sim_fun
+    HModR.sim_fun
       (HMod.add (MapM.HMap GlobalStbM) Mem) (HMod.add MapI.Map Mem)
       (IstProd Ist IstEq) "set_by_user".
   Proof.
@@ -343,7 +343,7 @@ Section SIMMODSEM.
     st. eauto.
   Qed.
   
-  Theorem sim: HModPair.sim (HMod.add (MapM.HMap GlobalStbM) Mem) (HMod.add MapI.Map Mem) (IstProd Ist IstEq).
+  Theorem sim: HModR.sim (HMod.add (MapM.HMap GlobalStbM) Mem) (HMod.add MapI.Map Mem) (IstProd Ist IstEq).
   Proof.
     sim_init.
     - iIntros "[H0 H1]". iFrame.

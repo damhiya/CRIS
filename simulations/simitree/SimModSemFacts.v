@@ -27,9 +27,9 @@ Section ADEQUACY.
 
   Lemma sim_ctx_mod
     ctx md1 md2
-    (SIM: ModPair.sim md1 md2)
+    (SIM: ModR.sim md1 md2)
   :
-    ModPair.sim (Mod.add md1 ctx) (Mod.add md2 ctx).
+    ModR.sim (Mod.add md1 ctx) (Mod.add md2 ctx).
   Proof.
     inv SIM.
     econs; et.
@@ -45,7 +45,7 @@ Section ADEQUACY.
   Lemma adequacy_mod
           md_src md_tgt
           (CONF: EMSConfig)
-          (SIM: ModPair.sim md_src md_tgt)
+          (SIM: ModR.sim md_src md_tgt)
     :
     <<REF: Beh.of_program (Mod.compile md_tgt) <1= Beh.of_program (Mod.compile md_src) >>
     .
@@ -134,7 +134,7 @@ Section ADEQUACY.
 
 
   Theorem adequacy_local_strong md_src md_tgt
-          (SIM: ModPair.sim md_src md_tgt)
+          (SIM: ModR.sim md_src md_tgt)
     :
     <<CR: (refines_strong md_tgt md_src)>>.
   Proof.
@@ -148,7 +148,7 @@ Section ADEQUACY.
   Context {CONF: EMSConfig}.
 
   Theorem adequacy_local md_src md_tgt
-          (SIM: ModPair.sim md_src md_tgt)
+          (SIM: ModR.sim md_src md_tgt)
     :
       <<CR: (refines md_tgt md_src)>>
   .
@@ -159,7 +159,7 @@ Section ADEQUACY.
 
   Corollary adequacy_local_list_strong
             mds_src mds_tgt
-            (FORALL: List.Forall2 ModPair.sim mds_src mds_tgt)
+            (FORALL: List.Forall2 ModR.sim mds_src mds_tgt)
     :
       <<CR: refines_strong (Mod.add_list mds_tgt) (Mod.add_list mds_src)>>
   .
@@ -196,7 +196,7 @@ Section ADEQUACY.
           
 
   Theorem adequacy_local2 md_src md_tgt
-          (SIM: ModPair.sim md_src md_tgt)
+          (SIM: ModR.sim md_src md_tgt)
     :
       <<CR: (refines2 [md_tgt] [md_src])>>
   .
@@ -207,7 +207,7 @@ Section ADEQUACY.
 
   Corollary adequacy_local_list
             mds_src mds_tgt
-            (FORALL: List.Forall2 ModPair.sim mds_src mds_tgt)
+            (FORALL: List.Forall2 ModR.sim mds_src mds_tgt)
     :
       <<CR: refines (Mod.add_list mds_tgt) (Mod.add_list mds_src)>>
   .

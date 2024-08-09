@@ -167,7 +167,7 @@ Section SIMMODSEM.
         (pending ∗ ∃ f sz, ⌜st_src = f↑ /\ st_tgt = (f, sz)↑⌝ ∗ black_map f ∗ unallocated sz))%I).
 
   Lemma simF_init:
-    HModPair.sim_fun
+    HModR.sim_fun
       (MapA.HMap GlobalStb) (MapM.HMap GlobalStbM) Ist "init".
   Proof.
     simF_init MapA.HMap_unfold MapM.HMap_unfold MapM.initF initF.
@@ -198,7 +198,7 @@ Section SIMMODSEM.
   Qed.
 
   Lemma simF_get:
-    HModPair.sim_fun
+    HModR.sim_fun
       (MapA.HMap GlobalStb) (MapM.HMap GlobalStbM) Ist "get".
   Proof.
     simF_init MapA.HMap_unfold MapM.HMap_unfold MapM.getF getF.
@@ -234,7 +234,7 @@ Section SIMMODSEM.
   Qed.
 
   Lemma simF_set:
-    HModPair.sim_fun
+    HModR.sim_fun
       (MapA.HMap GlobalStb) (MapM.HMap GlobalStbM) Ist "set".
   Proof.
     simF_init MapA.HMap_unfold MapM.HMap_unfold MapM.setF setF.
@@ -270,7 +270,7 @@ Section SIMMODSEM.
   Qed.
 
   Lemma simF_set_by_user:
-    HModPair.sim_fun
+    HModR.sim_fun
       (MapA.HMap GlobalStb) (MapM.HMap GlobalStbM) Ist "set_by_user".
   Proof.
     simF_init MapA.HMap_unfold MapM.HMap_unfold MapM.set_by_userF set_by_userF.
@@ -320,7 +320,7 @@ Section SIMMODSEM.
     st. eauto.
   Qed.
   
-  Theorem sim: HModPair.sim (MapA.HMap GlobalStb) (MapM.HMap GlobalStbM) Ist.
+  Theorem sim: HModR.sim (MapA.HMap GlobalStb) (MapM.HMap GlobalStbM) Ist.
   Proof.
     sim_init.
     - iIntros "(IST & P & INIT0)"; s. iSplitL "INIT0"; eauto.
