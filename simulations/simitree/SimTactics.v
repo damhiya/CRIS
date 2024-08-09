@@ -63,14 +63,14 @@ Section SIM.
       _safe_sim_itree r g RR i_src0 i_tgt0 w (st_src0, trigger (Call fn varg) >>= k_src)
                       (st_tgt0, trigger (Call fn varg) >>= k_tgt)
 
-  | safe_sim_itree_syscall
+  | safe_sim_itree_io
       i_src0 i_tgt0 w0 st_src0 st_tgt0
-      fn varg rvs k_src k_tgt
-      (K: forall vret,
+      I O fn (varg: I) k_src k_tgt
+      (K: forall (vret: O),
           r _ _ RR true true w0 (st_src0, k_src vret) (st_tgt0, k_tgt vret))
     :
-      _safe_sim_itree r g RR i_src0 i_tgt0 w0 (st_src0, trigger (IO fn varg rvs) >>= k_src)
-                      (st_tgt0, trigger (IO fn varg rvs) >>= k_tgt)
+      _safe_sim_itree r g RR i_src0 i_tgt0 w0 (st_src0, trigger (IO fn varg) >>= k_src)
+                      (st_tgt0, trigger (IO fn varg) >>= k_tgt)
 
   | safe_sim_itree_tau_src
       i_src0 i_tgt0 w0 st_src0 st_tgt0

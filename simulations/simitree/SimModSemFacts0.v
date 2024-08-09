@@ -376,7 +376,7 @@ Proof.
            eapply sim_itree_progress; et.
            gfinal. left. eapply CIH; et; rewrite ! Any.pair_split; et.
         -- (* Syscall *)
-           apply sim_itree_syscall. i. econs.
+           apply sim_itree_io. i. econs.
            gfinal. left. eapply CIH; et; rewrite ! Any.pair_split; et.
   - i. destruct H. r in H. rr in H0. 
     destruct a, b. econs; et. ss.

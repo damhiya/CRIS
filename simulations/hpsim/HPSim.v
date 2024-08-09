@@ -82,14 +82,14 @@ Section HPSIM.
           hpsimi true true (st_src0, k_src vret) (st_tgt0, k_tgt vret) fmr0)				
     :
     _hpsim' hpsimc hpsimi ps pt (st_src, trigger (Call fn varg) >>= k_src) (st_tgt, trigger (Call fn varg) >>= k_tgt) fmr
-  | hpsim_syscall
-      (HPSIM_SYSCALL: True)
+  | hpsim_io
+      (HPSIM_IO: True)
       ps pt st_src st_tgt fmr
-      fn varg rvs k_src k_tgt
-      (K: forall vret, 
+      I O fn (varg: I) k_src k_tgt
+      (K: forall (vret: O), 
     hpsimi true true (st_src, k_src vret) (st_tgt, k_tgt vret) fmr)
     :
-    _hpsim' hpsimc hpsimi ps pt (st_src, trigger (IO fn varg rvs) >>= k_src) (st_tgt, trigger (IO fn varg rvs) >>= k_tgt) fmr
+    _hpsim' hpsimc hpsimi ps pt (st_src, trigger (IO fn varg) >>= k_src) (st_tgt, trigger (IO fn varg) >>= k_tgt) fmr
 
   | hpsim_inline_src
       (HPSIM_INLINE_SRC: True)

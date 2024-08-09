@@ -7,13 +7,13 @@ Set Implicit Arguments.
 
 
 Inductive event: Type :=
-| event_sys
+| event_io
     (fn: string)
-    (args: Any.t)
-    (rv: Any.t)
+    (I: Type)
+    (O: Type)
+    (args: I)
+    (rv: O)
 .
-Parameter syscall_sem: event -> Prop.
-
 
 Inductive sort: Type :=
 | angelic

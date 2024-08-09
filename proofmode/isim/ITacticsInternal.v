@@ -1,4 +1,3 @@
-
 Require Import Coqlib.
 Require Import STS.
 Require Import Behavior.
@@ -106,8 +105,8 @@ match goal with
 (** both **)
 | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, Ret _) (_, Ret _)) ] =>
     iApply isim_ret
-| [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, trigger (IO _ _ _) >>= _) (_, trigger (IO _ _ _) >>= _)) ] =>
-    iApply isim_syscall; iIntros "%"
+| [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, trigger (IO _ _) >>= _) (_, trigger (IO _ _) >>= _)) ] =>
+    iApply isim_io; iIntros "%"
 end.
 
 Ltac des_pairs :=

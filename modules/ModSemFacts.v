@@ -122,9 +122,9 @@ Section COMM.
           eapply sim_itree_progress; et.
           gfinal. left. eapply CIH. 
         (* Syscall *)
-        * apply sim_itree_syscall. i.
+        * apply sim_itree_io. i.
           econs. gfinal. left. eapply CIH. 
-        * apply sim_itree_syscall. i.
+        * apply sim_itree_io. i.
           econs. gfinal. left. eapply CIH.
   Qed. 
 
@@ -298,11 +298,11 @@ Section ASSOC.
           eapply sim_itree_progress; et.
           gfinal. left. eapply CIH.
         (* Syscall *)
-        * apply sim_itree_syscall. i.
+        * apply sim_itree_io. i.
           econs. gfinal. left. eapply CIH. 
-        * apply sim_itree_syscall. i.
+        * apply sim_itree_io. i.
           econs. gfinal. left. eapply CIH.
-        * apply sim_itree_syscall. i.
+        * apply sim_itree_io. i.
           econs. gfinal. left. eapply CIH.
   Qed. 
 
@@ -390,11 +390,11 @@ destruct (observe itr).
       eapply sim_itree_progress; et.
       gfinal. left. eapply CIH.
     (* Syscall *)
-    * apply sim_itree_syscall. i.
+    * apply sim_itree_io. i.
       econs. gfinal. left. eapply CIH. 
-    * apply sim_itree_syscall. i.
+    * apply sim_itree_io. i.
       econs. gfinal. left. eapply CIH.
-    * apply sim_itree_syscall. i.
+    * apply sim_itree_io. i.
       econs. gfinal. left. eapply CIH.
 Qed. 
 
@@ -609,7 +609,7 @@ Proof.
         eapply sim_itree_progress; et.
         gfinal. left. eapply CIH. 
       * (* Syscall *)
-        apply sim_itree_syscall. i.
+        apply sim_itree_io. i.
         econs. gfinal. left. eapply CIH. 
 Qed.
 
@@ -667,7 +667,7 @@ Proof.
         eapply sim_itree_progress; et.
         gfinal. left. eapply CIH. 
       * (* Syscall *)
-        apply sim_itree_syscall. i.
+        apply sim_itree_io. i.
         econs. gfinal. left. eapply CIH. 
 Qed.
 

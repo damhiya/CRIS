@@ -43,7 +43,7 @@ Section SEMANTICS.
       end
     | VisF (Choose X) k => demonic
     | VisF (Take X) k => angelic
-    | VisF (IO fn args rvs) k => STS.vis
+    | VisF (IO fn args) k => STS.vis
     end.
 
   Inductive step: state -> option event -> state -> Prop :=
@@ -59,12 +59,10 @@ Section SEMANTICS.
       X k (x: X)
     :
       step (Vis (subevent _ (Take X)) k) None (k x)
-  | step_syscall
-      fn args rv (rvs: Any.t -> Prop) k
-      (SYSCALL: syscall_sem (event_sys fn args rv))
-      (RETURN: rvs rv)
+  | step_io
+      fn I O (args: I) (rv: O) k
     :
-      step (Vis (subevent _ (IO fn args rvs)) k) (Some (event_sys fn args rv)) (k rv).
+      step (Vis (subevent _ (IO fn args)) k) (Some (event_io fn args rv)) (k rv).
 
   Lemma step_trigger_choose_iff X k itr e
         (STEP: step (trigger (Choose X) >>= k) e itr)
@@ -112,11 +110,10 @@ Section SEMANTICS.
     inv STEP.
   Qed.
 
-  Lemma step_trigger_syscall_iff fn args rvs k e itr
-        (STEP: step (trigger (IO fn args rvs) >>= k) e itr)
+  Lemma step_trigger_io_iff fn I O args k e itr
+        (STEP: step (trigger (@IO I O fn args) >>= k) e itr)
     :
-      exists rv, itr = k rv /\ e = Some (event_sys fn args rv)
-                 /\ <<RV: rvs rv>> /\ <<SYS: syscall_sem (event_sys fn args rv)>>.
+      exists rv, itr = k rv /\ e = Some (event_io fn args rv).
   Proof.
     inv STEP.
     { eapply f_equal with (f:=observe) in H0. ss. }
@@ -165,15 +162,14 @@ Section SEMANTICS.
       extensionality x0. eapply itree_eta. ss. }
   Qed.
 
-  Lemma step_trigger_syscall fn args (rvs: Any.t -> Prop) k rv
-        (RV: rvs rv) (SYS: syscall_sem (event_sys fn args rv))
+  Lemma step_trigger_io I O fn (args: I) k (rv: O)
     :
-      step (trigger (IO fn args rvs) >>= k) (Some (event_sys fn args rv)) (k rv).
+      step (trigger (IO fn args) >>= k) (Some (event_io fn args rv)) (k rv).
   Proof.
     unfold trigger. ss.
     match goal with
     | [ |- step ?itr _ _] =>
-      replace itr with (Subevent.vis (IO fn args rvs) k)
+      replace itr with (Subevent.vis (IO fn args) k)
     end; ss.
     { econs; et. }
     { eapply itree_eta. ss. cbv. f_equal.
@@ -196,6 +192,3 @@ Section SEMANTICS.
   Next Obligation. inv STEP; ss. Qed.
   
 End SEMANTICS.
-
-
-

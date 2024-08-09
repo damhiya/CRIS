@@ -102,7 +102,7 @@ Section HPSIM_ADD_DUMMY.
         destruct with_dummy; grind; eauto using @_hpsim'.
         eapply hpsim_guarantee_src; try econs; eauto with imodL.
         ii. esplits; eauto. econs; eauto.
-      + replace e with (IO fn varg rvs). econs; eauto.
+      + replace e with (@IO I R0 fn varg). econs; eauto.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_src) -bind_vis.
         destruct with_dummy; grind; eauto using @_hpsim'.
@@ -200,7 +200,7 @@ Section HPSIM_ADD_DUMMY.
         destruct with_dummy; grind; eauto using @_hpsim'.
         eapply hpsim_guarantee_tgt; try econs; eauto; imodIntroL.
         ii. esplits; eauto. econs; eauto.
-      + replace e with (IO fn varg rvs). econs; eauto.
+      + replace e with (@IO I R0 fn varg). econs; eauto.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_tgt) -bind_vis.
         destruct with_dummy; grind; eauto using @_hpsim'.

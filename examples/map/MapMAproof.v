@@ -288,7 +288,7 @@ Section SIMMODSEM.
     st_r. st. hss.
 
     (* TGT: handle the precond of set *)
-    rewrite STB_setM in G0. hss. rewrite !HoareCall_parse. unfold HoareCallPre.
+    rewrite STB_setM in G. hss. rewrite !HoareCall_parse. unfold HoareCallPre.
     st_r. iDestruct "GRT" as "[[WORLD [% %]] _]". subst. hss.
 
     (* SRC: prove the precond of set *)

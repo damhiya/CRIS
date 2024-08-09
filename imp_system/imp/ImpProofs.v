@@ -217,7 +217,7 @@ Section PROOFS.
                                                | _ => 0%Z
                                                end) eval_args in
        (if forallb intrange_64 eval_zs then Ret () else triggerUB);;;
-       v <- trigger (IO f eval_zs↑ top1);; v <- v↓?;; trigger (SetVar x (Vint v));;; (tau;; Ret Vundef))) le0.
+       v <- trigger (IO f eval_zs);; trigger (SetVar x (Vint v));;; (tau;; Ret Vundef))) le0.
   Proof. reflexivity. Qed.
 
   (* interp_imp *)
@@ -378,10 +378,10 @@ Section PROOFS.
   Qed.
 
   Lemma interp_imp_IO
-        ge le0 f args t
+        ge le0 I O f (args: I)
     :
-      interp_imp ge (trigger (IO f args t)) le0 =
-      v <- trigger (IO f args t);; tau;; tau;; Ret (le0, v).
+      interp_imp ge (trigger (IO f args)) le0 =
+      v <- trigger (IO f args);; tau;; tau;; Ret (le0, (v: O)).
   Proof.
     unfold interp_imp, interp_GlobEnv, interp_ImpState.
     unfold pure_state. rewrite interp_trigger. grind.
@@ -747,7 +747,7 @@ Section PROOFS.
   Qed.
 
   Lemma interp_imp_IO_args
-        ge le0 x f args t
+        ge le0 x f args
     :
       interp_imp ge (
       ` eval_args : list val <- denote_exprs args;;
@@ -760,7 +760,7 @@ Section PROOFS.
                                                | _ => 0%Z
                                                end) eval_args in
        (if forallb intrange_64 eval_zs then Ret () else triggerUB);;;
-       v <- trigger (IO f eval_zs↑ t);; v <- v↓?;; trigger (SetVar x (Vint v));;; (tau;; Ret Vundef))) le0
+       v <- trigger (IO f eval_zs);; trigger (SetVar x (Vint v));;; (tau;; Ret Vundef))) le0
       =
       '(le1, vals) <- interp_imp ge (denote_exprs args) le0;;
       (if forallb (fun v : val => match v with
@@ -772,7 +772,7 @@ Section PROOFS.
                                                | _ => 0%Z
                                                end) vals in
       (if (forallb intrange_64 eval_zs) then Ret tt else triggerUB);;;
-        v <- trigger (IO f eval_zs↑ t);; tau;; tau;; v <- v↓?;;
+        v <- trigger (IO f eval_zs);; tau;; tau;;
         tau;; tau;;
         tau;; Ret (alist_add x (Vint v) le1, Vundef)).
   Proof.
@@ -783,10 +783,8 @@ Section PROOFS.
     2:{ rewrite interp_imp_triggerUB_bind. unfold triggerUB; grind. }
     rewrite interp_imp_bind. rewrite interp_imp_Ret; grind.
     rewrite interp_imp_bind. rewrite interp_imp_IO. grind.
-    rewrite interp_imp_bind. destruct (Any.downcast x0).
-    { cbn. rewrite interp_imp_Ret. grind. rewrite interp_imp_bind. rewrite interp_imp_SetVar. grind.
-      rewrite interp_imp_tau; grind. apply interp_imp_Ret. }
-    { cbn. rewrite interp_imp_triggerUB. unfold triggerUB. grind. }
+    rewrite interp_imp_bind. rewrite interp_imp_SetVar. grind.
+    rewrite interp_imp_tau; grind. apply interp_imp_Ret.
   Qed.
 
   Lemma interp_imp_CallSys
@@ -805,7 +803,7 @@ Section PROOFS.
                                                | _ => 0%Z
                                                end) vals in
       (if (forallb intrange_64 eval_zs) then Ret tt else triggerUB);;;
-        v <- trigger (IO f eval_zs↑ top1);; tau;; tau;; v <- v↓?;;
+        v <- trigger (IO f eval_zs);; tau;; tau;;
         tau;; tau;;
         tau;; Ret (alist_add x (Vint v) le1, Vundef)).
   Proof.

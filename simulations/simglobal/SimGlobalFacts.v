@@ -42,9 +42,9 @@ Section ADEQUACY.
       }
     }
     { gstep. eapply sim_vis; ss. i.
-      eapply step_trigger_syscall_iff in STEP. des. clarify.
+      eapply step_trigger_io_iff in STEP. des. clarify.
       esplits.
-      { eapply step_trigger_syscall; et. }
+      { eapply step_trigger_io; et. }
       { gbase. eapply CIH. hexploit SIM; et. }
     }
     { guclo sim_indC_spec. eapply sim_indC_demonic_src; ss.

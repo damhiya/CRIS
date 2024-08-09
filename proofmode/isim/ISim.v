@@ -63,7 +63,7 @@ Section LEMMAS.
       iApply isim_progress; iApply isim_base;
       match goal with [|- context[_ ?R _ _ _ (?st_src, _ _ ?itr) (?st_tgt, _)]] =>
         iApply ("CIH" $! (@existT _ (λ _, _) itr (@existT _ (λ _, _) st_src st_tgt))); eauto
-  end.
+      end.
   
   revert st_src st_tgt. apply combine_quant.
   revert itr. apply combine_quant.

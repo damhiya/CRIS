@@ -240,12 +240,12 @@ Section SIM.
     iApply "B". eauto.
   Qed.
   
-  Lemma isim_syscall
-    r g ps pt {R} RR st_src st_tgt k_src k_tgt fn varg rvs
+  Lemma isim_io
+    r g ps pt {R} RR st_src st_tgt I O k_src k_tgt fn (varg: I)
   : 
     bi_entails
-      (∀ vret, @isim r g R RR true true (st_src, k_src vret) (st_tgt, k_tgt vret))
-      (isim r g RR ps pt (st_src, trigger (IO fn varg rvs) >>= k_src) (st_tgt, trigger (IO fn varg rvs) >>= k_tgt)).
+      (∀ (vret: O), @isim r g R RR true true (st_src, k_src vret) (st_tgt, k_tgt vret))
+      (isim r g RR ps pt (st_src, trigger (IO fn varg) >>= k_src) (st_tgt, trigger (IO fn varg) >>= k_tgt)).
   Proof.
     uiprop. i. guclo hpsimC_spec. econs; esplits; eauto.
     econs; eauto. i.

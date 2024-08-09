@@ -56,14 +56,14 @@ Section SIM.
       _sim_itree sim_itree RR f_src f_tgt w (st_src, trigger (Call fn varg) >>= k_src)
                  (st_tgt, trigger (Call fn varg) >>= k_tgt)
 
-  | sim_itree_syscall
+  | sim_itree_io
       f_src f_tgt w0 st_src st_tgt
-      fn varg rvs k_src k_tgt
-      (K: forall vret,
+      I O fn (varg: I) k_src k_tgt
+      (K: forall (vret: O),
           _sim_itree sim_itree RR true true w0 (st_src, k_src vret) (st_tgt, k_tgt vret))
     :
-      _sim_itree sim_itree RR f_src f_tgt w0 (st_src, trigger (IO fn varg rvs) >>= k_src)
-                 (st_tgt, trigger (IO fn varg rvs) >>= k_tgt)
+      _sim_itree sim_itree RR f_src f_tgt w0 (st_src, trigger (IO fn varg) >>= k_src)
+                 (st_tgt, trigger (IO fn varg) >>= k_tgt)
 
   | sim_itree_inline_src
       f_src f_tgt w st_src st_tgt
@@ -193,13 +193,13 @@ Section SIM.
                 paco8 _sim_itree bot8 _ _ RR true true w (st_src0, k_src vret) (st_tgt0, k_tgt vret)),
             P f_src f_tgt w (st_src, trigger (Call fn varg) >>= k_src)
               (st_tgt, trigger (Call fn varg) >>= k_tgt))
-        (SYSCALL: forall
+        (IO: forall
             f_src f_tgt w0 st_src st_tgt
-            fn varg rvs k_src k_tgt
-            (K: forall vret,
+            I O fn (varg: I) k_src k_tgt
+            (K: forall (vret: O),
                 paco8 _sim_itree bot8 _ _ RR true true w0 (st_src, k_src vret) (st_tgt, k_tgt vret)),
-            P f_src f_tgt w0 (st_src, trigger (IO fn varg rvs) >>= k_src)
-              (st_tgt, trigger (IO fn varg rvs) >>= k_tgt))
+            P f_src f_tgt w0 (st_src, trigger (IO fn varg) >>= k_src)
+              (st_tgt, trigger (IO fn varg) >>= k_tgt))
         (INLINESRC: forall
             f_src f_tgt w0 st_src st_tgt
             f fn varg k_src i_tgt
@@ -301,14 +301,14 @@ Section SIM.
     :
       sim_itree_indC  sim_itree RR f_src f_tgt w (st_src, trigger (Call fn varg) >>= k_src)
                      (st_tgt, trigger (Call fn varg) >>= k_tgt)
-  | sim_itree_indC_syscall
+  | sim_itree_indC_io
       f_src f_tgt w0 st_src st_tgt
-      fn varg rvs k_src k_tgt
-      (K: forall vret,
+      I O fn (varg: I) k_src k_tgt
+      (K: forall (vret: O),
           sim_itree _ _ RR true true w0 (st_src, k_src vret) (st_tgt, k_tgt vret))
     :
-      sim_itree_indC  sim_itree RR f_src f_tgt w0 (st_src, trigger (IO fn varg rvs) >>= k_src)
-                     (st_tgt, trigger (IO fn varg rvs) >>= k_tgt)
+      sim_itree_indC  sim_itree RR f_src f_tgt w0 (st_src, trigger (IO fn varg) >>= k_src)
+                     (st_tgt, trigger (IO fn varg) >>= k_tgt)
 
   | sim_itree_indC_inline_src
       f_src f_tgt w0 st_src st_tgt
@@ -433,14 +433,14 @@ Section SIM.
     :
       sim_itreeC r g RR f_src f_tgt w (st_src, trigger (Call fn varg) >>= k_src)
                  (st_tgt, trigger (Call fn varg) >>= k_tgt)
-  | sim_itreeC_syscall
+  | sim_itreeC_io
       f_src f_tgt w0 st_src st_tgt
-      fn varg rvs k_src k_tgt
-      (K: forall vret,
+      I O fn (varg: I) k_src k_tgt
+      (K: forall (vret: O),
           r _ _ RR true true w0 (st_src, k_src vret) (st_tgt, k_tgt vret))
     :
-      sim_itreeC r g RR f_src f_tgt w0 (st_src, trigger (IO fn varg rvs) >>= k_src)
-                 (st_tgt, trigger (IO fn varg rvs) >>= k_tgt)
+      sim_itreeC r g RR f_src f_tgt w0 (st_src, trigger (IO fn varg) >>= k_src)
+                 (st_tgt, trigger (IO fn varg) >>= k_tgt)
 
   | sim_itreeC_inline_src
       f_src f_tgt w0 st_src st_tgt

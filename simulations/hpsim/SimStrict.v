@@ -38,14 +38,14 @@ Section SIM_STRICT.
     _sim_strict sim_strict R RR
       (st, trigger (Call fn varg) >>= k)
       (st, trigger (Call fn varg) >>= k')
-  | sim_strict_syscall R RR
-      st st' fn varg rvs k k'
-      (K: forall vret,
+  | sim_strict_io R RR
+      I O st st' fn (varg: I) k k'
+      (K: forall (vret: O),
           sim_strict R RR (st, k vret) (st', k' vret))
     :
     _sim_strict sim_strict R RR
-      (st, trigger (IO fn varg rvs) >>= k)
-      (st', trigger (IO fn varg rvs) >>= k')
+      (st, trigger (IO fn varg) >>= k)
+      (st', trigger (IO fn varg) >>= k')
   | sim_strict_tau R RR
       st st' i i'
       (K: sim_strict R RR (st, i) (st', i'))
@@ -224,21 +224,21 @@ Section SIM_STRICT.
     pclearbot. esplits; eauto.
   Qed.
   
-  Lemma sim_strict_inv_syscall R RR sti st' fn varg rvs k'
-      (EQV: sim_strict R RR sti (st', trigger (IO fn varg rvs) >>= k')):
+  Lemma sim_strict_inv_io R RR sti st' I O fn (varg: I) k'
+      (EQV: sim_strict R RR sti (st', trigger (IO fn varg) >>= k')):
     exists st k,
-    sti = (st, trigger (IO fn varg rvs) >>= k) /\
-    forall vret, sim_strict R RR (st, k vret) (st', k' vret).
+    sti = (st, trigger (IO fn varg) >>= k) /\
+    forall (vret: O), sim_strict R RR (st, k vret) (st', k' vret).
   Proof.
     punfold EQV. inv EQV; grind; depdes H0 H2; eauto; itree_clarify x.
     pclearbot. esplits; eauto.
   Qed.
 
-  Lemma sim_strict_inv_syscall' R RR st fn varg rvs k sti'
-      (EQV: sim_strict R RR (st, trigger (IO fn varg rvs) >>= k) sti'):
+  Lemma sim_strict_inv_io' R RR st I O fn (varg: I) k sti'
+      (EQV: sim_strict R RR (st, trigger (IO fn varg) >>= k) sti'):
     exists st' k',
-    sti' = (st', trigger (IO fn varg rvs) >>= k') /\
-    forall vret, sim_strict R RR (st, k vret) (st', k' vret).
+    sti' = (st', trigger (IO fn varg) >>= k') /\
+    forall (vret: O), sim_strict R RR (st, k vret) (st', k' vret).
   Proof.
     punfold EQV. inv EQV; grind; depdes H0; eauto; itree_clarify x.
     pclearbot. esplits; eauto.
@@ -355,7 +355,7 @@ Section SIM_STRICT.
       des. subst. clarify. eauto using _sim_itree.
     - apply sim_strict_inv_call in EQVSRC. apply sim_strict_inv_call' in EQVTGT.
       des. subst. clarify. eauto using _sim_itree.
-    - apply sim_strict_inv_syscall in EQVSRC. apply sim_strict_inv_syscall' in EQVTGT.
+    - apply sim_strict_inv_io in EQVSRC. apply sim_strict_inv_io' in EQVTGT.
       des. subst. eauto using _sim_itree.
     - apply sim_strict_inv_call in EQVSRC. des. subst.
       destruct sti_tgt. econs; eauto. eapply IHSIM; eauto.

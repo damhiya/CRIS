@@ -60,7 +60,7 @@ Section A.
   Definition set_by_userF: list val -> itree smodE val :=
     fun varg =>
       k <- (pargs [Tint] varg)?;;
-      v <- trigger (IO "input" (([]: list Z)↑) (fun _ => True));; v <- v↓?;;
+      v <- trigger (IO "input" ([]: list Z));;
       ccallU "set" [Vint k; Vint v]
   .
 

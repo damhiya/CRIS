@@ -15,7 +15,7 @@ Section EVENTS.
   Variant coreE : Type -> Type :=
   | Choose (X: Type): coreE X
   | Take X: coreE X
-  | IO (fn: gname) (args: Any.t) (rvs: Any.t -> Prop): coreE Any.t.
+  | IO {I: Type} {O: Type} (fn: gname) (args: I) : coreE O.
 
   Inductive callE: Type -> Type :=
   | Call (fn: gname) (args: Any.t) : callE Any.t.

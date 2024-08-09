@@ -32,11 +32,11 @@ Inductive _simg
     (SIM: RR r_src r_tgt)
   :
     _simg simg RR f_src f_tgt (Ret r_src) (Ret r_tgt)
-| simg_syscall
-    ktr_src0 ktr_tgt0 fn varg rvs
-    (SIM: forall x_src x_tgt (EQ: x_src = x_tgt), simg _ _ RR true true (ktr_src0 x_src) (ktr_tgt0 x_tgt))
+| simg_io
+    I O ktr_src0 ktr_tgt0 fn (varg: I)
+    (SIM: forall (x_src x_tgt: O) (EQ: x_src = x_tgt), simg _ _ RR true true (ktr_src0 x_src) (ktr_tgt0 x_tgt))
   :
-    _simg simg RR f_src f_tgt (trigger (IO fn varg rvs) >>= ktr_src0) (trigger (IO fn varg rvs) >>= ktr_tgt0)
+    _simg simg RR f_src f_tgt (trigger (IO fn varg) >>= ktr_src0) (trigger (IO fn varg) >>= ktr_tgt0)
 
 | simg_tauL
     itr_src0 itr_tgt0
@@ -94,11 +94,11 @@ Lemma _simg_ind2 (r: forall R0 R1 (RR: R0 -> R1 -> Prop), bool -> bool -> (itree
           r_src r_tgt
           (SIM: RR r_src r_tgt),
           P f_src f_tgt (Ret r_src) (Ret r_tgt))
-      (SYSCALL: forall
+      (IO: forall
           f_src f_tgt
-          ktr_src0 ktr_tgt0 fn varg rvs
-          (SIM: forall x_src x_tgt (EQ: x_src = x_tgt), r _ _ RR true true (ktr_src0 x_src) (ktr_tgt0 x_tgt)),
-          P f_src f_tgt (trigger (IO fn varg rvs) >>= ktr_src0) (trigger (IO fn varg rvs) >>= ktr_tgt0))
+          I O ktr_src0 ktr_tgt0 fn (varg: I)
+          (SIM: forall (x_src x_tgt:O) (EQ: x_src = x_tgt), r _ _ RR true true (ktr_src0 x_src) (ktr_tgt0 x_tgt)),
+          P f_src f_tgt (trigger (IO fn varg) >>= ktr_src0) (trigger (IO fn varg) >>= ktr_tgt0))
       (TAUL: forall
           f_src f_tgt
           itr_src0 itr_tgt0
@@ -151,7 +151,7 @@ Lemma _simg_ind2 (r: forall R0 R1 (RR: R0 -> R1 -> Prop), bool -> bool -> (itree
 Proof.
   fix IH 5. i. inv SIM.
   { eapply RET; eauto. }
-  { eapply SYSCALL; eauto. }
+  { eapply IO; eauto. }
   { eapply TAUL; eauto. }
   { eapply TAUR; eauto. }
   { eapply CHOOSEL; eauto. des. esplits; eauto. }
@@ -189,10 +189,10 @@ Inductive simg_indC
   :
     simg_indC simg RR f_src f_tgt (Ret r_src) (Ret r_tgt)
 | simg_indC_syscall
-    ktr_src0 ktr_tgt0 fn varg rvs
-    (SIM: forall x_src x_tgt (EQ: x_src = x_tgt), simg _ _ RR true true (ktr_src0 x_src) (ktr_tgt0 x_tgt))
+    I O ktr_src0 ktr_tgt0 fn (varg: I)
+    (SIM: forall (x_src x_tgt: O) (EQ: x_src = x_tgt), simg _ _ RR true true (ktr_src0 x_src) (ktr_tgt0 x_tgt))
   :
-    simg_indC simg RR f_src f_tgt (trigger (IO fn varg rvs) >>= ktr_src0) (trigger (IO fn varg rvs) >>= ktr_tgt0)
+    simg_indC simg RR f_src f_tgt (trigger (IO fn varg) >>= ktr_src0) (trigger (IO fn varg) >>= ktr_tgt0)
 
 | simg_indC_tauL
     itr_src0 itr_tgt0
@@ -270,11 +270,11 @@ Lemma simg_ind R0 R1 (RR: R0 -> R1 -> Prop)
           r_src r_tgt
           (SIM: RR r_src r_tgt),
           P f_src f_tgt (Ret r_src) (Ret r_tgt))
-      (SYSCALL: forall
+      (IO: forall
           f_src f_tgt
-          ktr_src0 ktr_tgt0 fn varg rvs
-          (SIM: forall x_src x_tgt (EQ: x_src = x_tgt), simg RR true true (ktr_src0 x_src) (ktr_tgt0 x_tgt)),
-          P f_src f_tgt (trigger (IO fn varg rvs) >>= ktr_src0) (trigger (IO fn varg rvs) >>= ktr_tgt0))
+          I O ktr_src0 ktr_tgt0 fn (varg: I)
+          (SIM: forall (x_src x_tgt: O) (EQ: x_src = x_tgt), simg RR true true (ktr_src0 x_src) (ktr_tgt0 x_tgt)),
+          P f_src f_tgt (trigger (IO fn varg) >>= ktr_src0) (trigger (IO fn varg) >>= ktr_tgt0))
       (TAUL: forall
           f_src f_tgt
           itr_src0 itr_tgt0
@@ -327,7 +327,7 @@ Lemma simg_ind R0 R1 (RR: R0 -> R1 -> Prop)
 Proof.
   i. punfold SIM. induction SIM using _simg_ind2; i; clarify.
   { eapply RET; eauto. }
-  { eapply SYSCALL; eauto. i. exploit SIM; eauto. i. des. pclearbot. eauto. }
+  { eapply IO; eauto. i. exploit SIM; eauto. i. des. pclearbot. eauto. }
   { eapply TAUL; eauto. pfold. auto. }
   { eapply TAUR; eauto. pfold. auto. }
   { eapply CHOOSEL; eauto. des. esplits; eauto. pfold. auto. }
@@ -548,10 +548,10 @@ Variant _simg_safe
   :
     _simg_safe simg RR f_src f_tgt (Ret r_src) (Ret r_tgt)
 | simg_safe_syscall
-    ktr_src0 ktr_tgt0 fn varg rvs
-    (SIM: forall x_src x_tgt (EQ: x_src = x_tgt), simg _ _ RR true true (ktr_src0 x_src) (ktr_tgt0 x_tgt))
+    I O ktr_src0 ktr_tgt0 fn (varg: I)
+    (SIM: forall (x_src x_tgt: O) (EQ: x_src = x_tgt), simg _ _ RR true true (ktr_src0 x_src) (ktr_tgt0 x_tgt))
   :
-    _simg_safe simg RR f_src f_tgt (trigger (IO fn varg rvs) >>= ktr_src0) (trigger (IO fn varg rvs) >>= ktr_tgt0)
+    _simg_safe simg RR f_src f_tgt (trigger (IO fn varg) >>= ktr_src0) (trigger (IO fn varg) >>= ktr_tgt0)
 
 | simg_safe_tauL
     itr_src0 itr_tgt0
