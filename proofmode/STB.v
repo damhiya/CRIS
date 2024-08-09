@@ -3,7 +3,7 @@ Require Import STS.
 Require Import Behavior.
 Require Import Skeleton.
 Require Import PCM IPM.
-Require Import Translate.
+Require Import Events SMod.
 
 Set Implicit Arguments.
 

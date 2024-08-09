@@ -1,13 +1,13 @@
-Require Import Coqlib.
-Require Export sflib.
-Require Export ITreelib.
-Require Export AList.
-Require Import Skeleton.
+Require Import Coqlib AList.
+Require Import sflib.
+Require Import ITreelib.
 Require Import Any.
-Require Import Mod.
-Require Import Translate.
+Require Import EventsRed Events.
+Require Import IRed.
+Require Import STS Behavior.
 Require Import PCM IPM.
-Require Import Red IRed.
+Require Import Skeleton Mod.
+Require Export HMod2Mod.
 
 Set Implicit Arguments.
 
@@ -20,15 +20,6 @@ Section HMODSEM.
     initial_st : Any.t;
     initial_cond: iProp;
   }.
-
-  Definition transl (tr: (Any.t -> itree hmodE Any.t) -> Any.t -> itree modE Any.t) (ms: t): ModSem.t := {|
-    ModSem.fnsems := List.map (fun '(fn, bd) => (fn, tr bd)) ms.(fnsems);
-    ModSem.initial_st := r <- cond_to_st ms.(initial_cond);;  Ret (Any.pair ms.(initial_st) r↑)
-  |}.
-
-  Definition to_mod (ms: t): ModSem.t := transl (interp_hp_fun) ms.
-  (* TODO: define other compilations which are required to prove WET. *)
-
 
   (**** Linking ****)
 
@@ -61,11 +52,46 @@ Section HMODSEM.
     initial_cond := (initial_cond ms1) ∗ (initial_cond ms2);
   |}.
 
-End HMODSEM.
+  Definition transl (tr: (Any.t -> itree hmodE Any.t) -> Any.t -> itree modE Any.t) (ms: t): ModSem.t := {|
+    ModSem.fnsems := List.map (fun '(fn, bd) => (fn, tr bd)) ms.(fnsems);
+    ModSem.initial_st := r <- cond_to_st ms.(initial_cond);;  Ret (Any.pair ms.(initial_st) r↑)
+  |}.
 
-Section RED.
+  Definition to_mod (ms: t): ModSem.t := transl (interp_hp_fun) ms.
+  (* TODO: define other compilations which are required to prove WET. *)
+  
+End HMODSEM.
+End HModSem.
+
+Module HMod.
+Section HMOD.
   Context `{Σ: GRA.t}.
 
+  Record t: Type := mk {
+    get_modsem: Sk.t -> HModSem.t;
+    sk: Sk.t;
+  }.
+
+  Definition add (md0 md1: t): t := {|
+    get_modsem := fun sk => HModSem.add (md0.(get_modsem) sk) (md1.(get_modsem) sk);
+    sk := Sk.add md0.(sk) md1.(sk);
+  |}.
+
+  Definition transl (tr: Sk.t -> (Any.t -> itree hmodE Any.t) -> Any.t -> itree modE Any.t) (md: t): Mod.t := {|
+    Mod.get_modsem := fun sk => HModSem.transl (tr sk) (md.(get_modsem) sk);
+    Mod.sk := md.(sk);
+  |}. 
+
+  Definition to_mod (md: t): Mod.t := transl (fun _ => interp_hp_fun) md.
+  
+    
+End HMOD.
+End HMod.
+
+Module HModRed.
+Section RED.
+  Context `{Σ: GRA.t}.
+  
   Lemma translate_emb_bind
     A B
     run_
@@ -230,36 +256,32 @@ Section RED.
     translate (HModSem.emb_ run_) itr0 = translate (HModSem.emb_ run_) itr1
   .
   Proof. subst. refl. Qed.
-  
-
 
 End RED.
+End HModRed. 
 
-End HModSem.
-
-Module HMod.
-Section HMOD.
+Section RDB.
   Context `{Σ: GRA.t}.
+  
+  Global Program Instance translate_emb_rdb: red_database (mk_box (@translate)) :=
+    mk_rdb
+    0
+    (mk_box HModRed.translate_emb_bind)
+    (mk_box HModRed.translate_emb_tau)
+    (mk_box HModRed.translate_emb_ret)
+    (mk_box HModRed.translate_emb_sE)
+    (mk_box HModRed.translate_emb_sE)
+    (mk_box HModRed.translate_emb_callE)
+    (mk_box HModRed.translate_emb_coreE)
+    (mk_box HModRed.translate_emb_triggerUB)
+    (mk_box HModRed.translate_emb_triggerNB)
+    (mk_box HModRed.translate_emb_unwrapU)
+    (mk_box HModRed.translate_emb_unwrapN)
+    (mk_box HModRed.translate_emb_assume)
+    (mk_box HModRed.translate_emb_guarantee)
+    (mk_box HModRed.translate_emb_ext).
 
-  Record t: Type := mk {
-    get_modsem: Sk.t -> HModSem.t;
-    sk: Sk.t;
-  }.
-
-  Definition transl (tr: Sk.t -> (Any.t -> itree hmodE Any.t) -> Any.t -> itree modE Any.t) (md: t): Mod.t := {|
-    Mod.get_modsem := fun sk => HModSem.transl (tr sk) (md.(get_modsem) sk);
-    Mod.sk := md.(sk);
-  |}. 
-
-  Definition to_mod (md: t): Mod.t := transl (fun _ => interp_hp_fun) md.
-
-  Definition add (md0 md1: t): t := {|
-    get_modsem := fun sk => HModSem.add (md0.(get_modsem) sk) (md1.(get_modsem) sk);
-    sk := Sk.add md0.(sk) md1.(sk);
-  |}.
-    
-End HMOD.
-End HMod.
+End RDB.
 
 Section HModRefl.
   Context `{Σ: GRA.t}.
@@ -302,25 +324,3 @@ Section HModRefl.
 End HModRefl.
 
 
-
-Section AUX.
-  Context `{Σ: GRA.t}.
-  Global Program Instance translate_emb_rdb: red_database (mk_box (@translate)) :=
-    mk_rdb
-    0
-    (mk_box HModSem.translate_emb_bind)
-    (mk_box HModSem.translate_emb_tau)
-    (mk_box HModSem.translate_emb_ret)
-    (mk_box HModSem.translate_emb_sE)
-    (mk_box HModSem.translate_emb_sE)
-    (mk_box HModSem.translate_emb_callE)
-    (mk_box HModSem.translate_emb_coreE)
-    (mk_box HModSem.translate_emb_triggerUB)
-    (mk_box HModSem.translate_emb_triggerNB)
-    (mk_box HModSem.translate_emb_unwrapU)
-    (mk_box HModSem.translate_emb_unwrapN)
-    (mk_box HModSem.translate_emb_assume)
-    (mk_box HModSem.translate_emb_guarantee)
-    (mk_box HModSem.translate_emb_ext).
-
-End AUX.

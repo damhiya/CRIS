@@ -11,7 +11,7 @@ Require Import PCM IPM.
 Require Import SimInitial SimModSem SimModSemFacts0 ModSemFacts SimModSemFacts.
 Require Import HPSim HPSimFacts.
 
-Require Import HMod Mod Translate Events.
+Require Import HMod Mod HMod2Mod Events.
 
 Require Import ISim.
 
@@ -87,7 +87,7 @@ End ADEQUACY.
 
 Section HPSIM.
   Context `{Σ: GRA.t}.
-  Import HModSem.
+  Import HModSem HModRed.
 
   Definition addf f1 f2 : alist gname (Any.t -> itree _ Any.t) :=
     (List.map trans_l f1) ++ (List.map trans_r f2).

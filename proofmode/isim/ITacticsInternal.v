@@ -1,11 +1,10 @@
-Require Import Coqlib.
+Require Import Coqlib ITreelib sflib.
 Require Import STS.
 Require Import Behavior.
-Require Import Translate.
 Require Import Skeleton.
 Require Import PCM IPM.
 Require Import Any.
-Require Import STB SimModSem.
+Require Import Events STB SimModSem.
 
 Require Import Relation_Definitions.
 Require Import Relation_Operators.
@@ -15,13 +14,9 @@ From ExtLib Require Import
 Require Import Red IRed.
 Require Import HPSim.
 Require Import World sWorld.
-Require Import ISimCore HMod.
+Require Import ISimCore HMod SMod.
 
 From stdpp Require Import coPset gmap.
-
-
-Import HModSem.
-
 
 (* TODO: 
   Divide isim/wsim? 
@@ -151,23 +146,23 @@ Ltac _steps :=
 Ltac _st :=
   match goal with
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, (translate _ (assume _)) >>= _) (_, _)) ] =>
-    prep; rewrite translate_emb_asm; iApply isim_asm_src; iIntros "%";
+    prep; rewrite HModRed.translate_emb_asm; iApply isim_asm_src; iIntros "%";
     match goal with
     | [ H: _ |- _ ] => let name := fresh "G" in rename H into name
     end
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, (translate _ (guarantee _)) >>= _)) ] =>
-    prep; rewrite translate_emb_guar; iApply isim_guar_tgt; iIntros "%";
+    prep; rewrite HModRed.translate_emb_guar; iApply isim_guar_tgt; iIntros "%";
     match goal with
     | [ H: _ |- _ ] => let name := fresh "G" in rename H into name
     end
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, (translate _ (trigger (Assume _))) >>= _) (_, _)) ] =>
-    rewrite translate_emb_assume; step
+    rewrite HModRed.translate_emb_assume; step
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, (translate _ (trigger (Assume _))) >>= _)) ] =>
-    rewrite translate_emb_assume; step
+    rewrite HModRed.translate_emb_assume; step
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, (translate _ (trigger (Guarantee _))) >>= _) (_, _)) ] =>
-    rewrite translate_emb_guarantee; step
+    rewrite HModRed.translate_emb_guarantee; step
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, (translate _ (trigger (Guarantee _))) >>= _)) ] =>
-    rewrite translate_emb_guarantee; step
+    rewrite HModRed.translate_emb_guarantee; step
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, (translate _ (interp_smodE_hmodE _ _ _)) >>= _) (_, _)) ] =>
     _ired; step
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _  (_, _) (_, (translate _ (interp_smodE_hmodE _ _ _)) >>= _)) ] =>

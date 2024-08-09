@@ -1,10 +1,10 @@
-Require Import Coqlib.
+Require Import Coqlib sflib ITreelib.
 Require Import STS.
 Require Import Behavior.
 Require Import Skeleton.
 Require Import PCM.
 Require Import Any.
-Require Import Mod Translate.
+Require Import Events Mod.
 Require Import SimModSem.
 Require Import STB.
 

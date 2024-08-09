@@ -1,5 +1,5 @@
-Require Import Coqlib.
-Require Import STS.
+Require Import Coqlib ITreelib sflib.
+Require Import Events STS.
 Require Import Behavior.
 
 Require Import Skeleton.
@@ -15,7 +15,7 @@ Require Import Red IRed.
 Require Import HPSim.
 Require Import World sWorld.
 Require Import ISimCore ITacticsInternal.
-Require Import Events Mod Translate.
+Require Import Events Mod SMod.
 
 From stdpp Require Import coPset gmap.
 

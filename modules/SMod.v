@@ -1,12 +1,12 @@
 Require Import Coqlib.
-Require Export sflib.
-Require Export ITreelib.
-Require Export AList.
+Require Import sflib.
+Require Import ITreelib.
+Require Import AList.
 Require Import Skeleton.
 Require Import Any.
-Require Import Translate.
 Require Import PCM IPM.
-Require Import HMod.
+Require Import Events HMod.
+Require Export SMod2HMod.
 
 Set Implicit Arguments.
 

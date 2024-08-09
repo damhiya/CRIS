@@ -1,9 +1,9 @@
-Require Import Translate MapHeader MapM MapA SimModSem.
-Require Import Coqlib.
+Require Import Coqlib ITreelib sflib.
+Require Import MapHeader MapM MapA SMod SimModSem.
 Require Import ImpPrelude.
 Require Import Skeleton.
 Require Import PCM IPM.
-Require Import Behavior.
+Require Import Events Behavior.
 Require Import Relation_Definitions.
 
 (*** TODO: export these in Coqlib or Universe ***)
