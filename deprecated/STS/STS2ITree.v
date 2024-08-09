@@ -1,6 +1,5 @@
 Require Import Coqlib.
 Require Import ITreelib.
-Require Import Skeleton.
 Require Import PCM.
 Require Import Any.
 Require Import ModuleInternal.
