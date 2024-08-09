@@ -15,7 +15,7 @@ From ExtLib Require Import
      Data.Map.FMapAList.
 Require Import Any.
 
-Require Import Events ModuleInternal Mod.
+Require Import Events Mod.
 Require Import SimGlobal SimGlobalFacts.
 Require Import Red IRed.
 Require Import SimModSem SimModSemFacts0.

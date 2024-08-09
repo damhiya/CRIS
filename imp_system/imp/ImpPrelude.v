@@ -7,7 +7,7 @@ Require Export sflib.
 Require Export ITreelib.
 Require Export AList.
 Require Import Skeleton.
-Require Import ModuleInternal Mod Events.
+Require Import Mod Events.
 
 Set Implicit Arguments.
 

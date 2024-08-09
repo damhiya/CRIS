@@ -3,7 +3,7 @@ Require Import ITreelib.
 Require Import Any.
 Require Import STS.
 Require Import Behavior.
-Require Import ModuleInternal Mod.
+Require Import ITree2STS Mod.
 Require Import Skeleton.
 Require Import PCM.
 Require Import Coq.Relations.Relation_Definitions.

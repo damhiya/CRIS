@@ -15,8 +15,7 @@ Require Import Red IRed.
 Require Import HPSim.
 Require Import World sWorld.
 Require Import ISimCore ITacticsInternal.
-Require Import ModuleInternal.
-Require Import Events Translate.
+Require Import Events Mod Translate.
 
 From stdpp Require Import coPset gmap.
 

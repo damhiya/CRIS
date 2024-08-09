@@ -2,7 +2,7 @@ Require Import Coqlib.
 Require Export sflib.
 Require Export ITreelib.
 Require Import STS Behavior.
-Require Import ModuleInternal Mod EventsRed Events.
+Require Import Mod EventsRed Events.
 Require Import SimGlobal SimGlobalFacts SimInitial.
 Require Import Skeleton.
 Require Import STS Behavior.

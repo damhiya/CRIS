@@ -8,25 +8,6 @@ Require Import STS Behavior.
 Require Import Any.
 Require Import Program.
 
-Section ADD.
-  Definition RUN : Type := forall V, (Any.t -> Any.t * V) -> (Any.t -> Any.t * V).
-
-  Definition run_l: RUN := 
-    fun V run st =>
-      match Any.split st with
-      | Some (a, b) => let (a', v) := run a in (Any.pair a' b, v)
-      | None => run tt↑
-      end.
-
-  Definition run_r: RUN := 
-    fun V run st =>
-      match Any.split st with
-      | Some (a, b) => let (b', v) := run b in (Any.pair a b', v)
-      | None => run tt↑
-      end.
-
-End ADD.
-
 Section SEMANTICS.
   Let state: Type := itree coreE Any.t.
 

@@ -4,7 +4,6 @@ Require Export ITreelib.
 Require Export AList.
 Require Import Skeleton.
 Require Import Any.
-Require Export ModuleInternal.
 Require Import Mod.
 Require Import Translate.
 Require Import PCM IPM.
@@ -291,8 +290,8 @@ Section HModRefl.
 
   Lemma ist_eq_run_r A (run: _ -> (_ * A)) Ist st_src st_tgt:
     IstProd Ist IstEq st_src st_tgt -∗
-      (⌜(run_r _ run st_src).2 = (run_r _ run st_tgt).2⌝ ∗
-      IstProd Ist IstEq (run_r _ run st_src).1 (run_r _ run st_tgt).1).
+      (⌜(run_r run st_src).2 = (run_r run st_tgt).2⌝ ∗
+      IstProd Ist IstEq (run_r run st_src).1 (run_r run st_tgt).1).
   Proof.
     iIntros "IST". iDestruct "IST" as (? ? ? ?) "(% & IST & %)". des; subst.
     unfold run_r. rewrite !Any.pair_split. destruct (run st_tgtR).

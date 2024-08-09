@@ -17,7 +17,7 @@ Require Import HPSim.
 Require Import World sWorld.
 From stdpp Require Import coPset gmap.
 
-Require Import ModuleInternal HMod Events.
+Require Import HMod Events.
 
 Require Export ISimCore ITactics.
 

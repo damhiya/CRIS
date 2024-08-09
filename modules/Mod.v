@@ -6,13 +6,29 @@ Require Import Skeleton.
 Require Import STS Behavior.
 Require Import Any.
 Require Import Program.
-
-Require Export ModuleInternal.
+Require Import ITree2STS.
 Require Import Events.
-
 
 Set Implicit Arguments.
 
+Section ADD.
+  Definition RUN : Type := forall V, (Any.t -> Any.t * V) -> (Any.t -> Any.t * V).
+
+  Definition run_l: RUN := 
+    fun V run st =>
+      match Any.split st with
+      | Some (a, b) => let (a', v) := run a in (Any.pair a' b, v)
+      | None => run tt↑
+      end.
+
+  Definition run_r: RUN := 
+    fun V run st =>
+      match Any.split st with
+      | Some (a, b) => let (b', v) := run b in (Any.pair a b', v)
+      | None => run tt↑
+      end.
+
+End ADD.
 
 Module ModSem.
 Section MODSEM.
@@ -67,15 +83,11 @@ Section MODSEM.
   Section COMPILE.
     Variable ms: t.
 
-    Check callE.
-
     Definition prog: callE ~> itree modE :=
       fun _ '(Call fn args) =>
         sem <- (alist_find fn ms.(fnsems))?;;
         rv <- (sem args);;
         Ret rv.  
-
-    Context `{CONF: EMSConfig}.
 
     Definition initial_itr (P: option Prop): itree coreE Any.t :=
       match P with

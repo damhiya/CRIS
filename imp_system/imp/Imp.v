@@ -6,7 +6,7 @@ Require Import ImpPrelude.
 Require Import Skeleton.
 Require Import STS Behavior.
 Require Import Any.
-Require Import ModuleInternal Mod Events.
+Require Import Mod Events.
 Require Import AList.
 
 Set Implicit Arguments.
