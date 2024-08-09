@@ -15,15 +15,12 @@ Require Import SimSTS SimGlobal.
 Set Implicit Arguments.
 
 Section ADEQUACY.
-  Context {CONFS CONFT: EMSConfig}.
-  Hypothesis (FINSAME: (@finalize CONFS) = (@finalize CONFT)).
-
   Theorem adequacy_global_itree itr_src itr_tgt
           (SIM: simg eq false false itr_src itr_tgt)
     :
-      Beh.of_program (@compile_itree CONFT itr_tgt)
+      Beh.of_program (@compile_itree itr_tgt)
       <1=
-      Beh.of_program (@compile_itree CONFS itr_src).
+      Beh.of_program (@compile_itree itr_src).
   Proof.
     unfold Beh.of_program. ss.
     remember false as o_src0 in SIM at 1.
@@ -34,12 +31,8 @@ Section ADEQUACY.
     generalize itr_src at 1 as md_src. i. ginit.
     revert o_src0 o_tgt0 itr_src itr_tgt SIM. gcofix CIH.
     i. induction SIM using simg_ind; i; clarify.
-    { gstep. destruct (finalize r_tgt) eqn:T.
-      { eapply sim_fin; ss; cbn; des_ifs; rewrite FINSAME in *; clarify. }
-      { eapply sim_angelic_src.
-        { cbn. des_ifs; rewrite FINSAME in *; clarify. }
-        i. exfalso. inv STEP.
-      }
+    { gstep.
+      eapply sim_fin; ss; cbn; des_ifs; rewrite FINSAME in *; clarify.
     }
     { gstep. eapply sim_vis; ss. i.
       eapply step_trigger_io_iff in STEP. des. clarify.
@@ -74,9 +67,9 @@ Section ADEQUACY.
     Variable md_src md_tgt: Mod.t.
     Let ms_src: ModSem.t := md_src.(Mod.enclose).
     Let ms_tgt: ModSem.t := md_tgt.(Mod.enclose).
-    Hypothesis (SIM: simg eq false false (@ModSem.initial_itr ms_src CONFS (Some (Mod.wf md_src))) (@ModSem.initial_itr ms_tgt CONFT (Some (Mod.wf md_tgt)))).
+    Hypothesis (SIM: simg eq false false (@ModSem.initial_itr ms_src (Some (Mod.wf md_src))) (@ModSem.initial_itr ms_tgt (Some (Mod.wf md_tgt)))).
 
-    Theorem adequacy_global: Beh.of_program (@Mod.compile _ CONFT md_tgt) <1= Beh.of_program (@Mod.compile _ CONFS md_src).
+    Theorem adequacy_global: Beh.of_program (@Mod.compile _ md_tgt) <1= Beh.of_program (@Mod.compile _ md_src).
     Proof.
       eapply adequacy_global_itree. eapply SIM.
     Qed.

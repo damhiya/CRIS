@@ -32,26 +32,6 @@ Next Obligation.
   repeat (decide equality).
 Defined.
 
-Global Program Instance EMSConfigImp: EMSConfig := {|
-  finalize := fun rv =>
-                match rv↓ with
-                | Some (rv) =>
-                  match rv with
-                  | Vint z =>
-                    if (0 <=? z)%Z && (z <? two_power_nat 32)%Z
-                    then Some z↑
-                    else None
-                  | _ => None
-                  end
-                | _ => None
-                end;
-  initial_arg := ([]: list val)↑;
-|}
-.
-Next Obligation. ss. Qed.
-Next Obligation. ss. Qed.
-Next Obligation. ss. Qed.
-
 Definition wordsize_64 := 64.
 Definition modulus_64 := two_power_nat wordsize_64.
 Definition modulus_64_half := (modulus_64 / 2)%Z.

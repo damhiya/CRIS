@@ -8,8 +8,6 @@ Require Import STS Behavior.
 Require Import Any.
 Require Import Program.
 
-Class EMSConfig := { finalize: Any.t -> option Any.t; initial_arg: Any.t }.
-
 Section ADD.
   Definition RUN : Type := forall V, (Any.t -> Any.t * V) -> (Any.t -> Any.t * V).
 
@@ -30,17 +28,12 @@ Section ADD.
 End ADD.
 
 Section SEMANTICS.
-  Context `{CONF: EMSConfig}.
   Let state: Type := itree coreE Any.t.
 
   Definition state_sort (st0: state): sort :=
     match (observe st0) with
     | TauF _ => demonic
-    | RetF rv =>
-      match (finalize rv) with
-      | Some rv => final rv
-      | _ => angelic
-      end
+    | RetF rv => final rv
     | VisF (Choose X) k => demonic
     | VisF (Take X) k => angelic
     | VisF (IO fn args) k => STS.vis

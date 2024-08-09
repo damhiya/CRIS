@@ -6,27 +6,21 @@ Require Import ModSemFacts.
 Section CTX_REFINE.
   Context `{Sk.ld}.
   (* Contexts can be simplified as a single module (by module-linking) *)
-  Definition ctx_refines {CONF: EMSConfig} (md_tgt md_src: Mod.t): Prop :=
+  Definition ctx_refines (md_tgt md_src: Mod.t): Prop :=
     forall (ctx: Mod.t),
       Beh.of_program (Mod.compile (Mod.add md_tgt ctx)) <1=
       Beh.of_program (Mod.compile (Mod.add md_src ctx)).
 
-  Definition ctx_refines_strong (md_tgt md_src: Mod.t): Prop :=
-    forall (CONF: EMSConfig), ctx_refines md_tgt md_src.
-
-  Definition refines_closed {CONF: EMSConfig} (md_tgt md_src: Mod.t): Prop :=
+  Definition refines_closed (md_tgt md_src: Mod.t): Prop :=
     Beh.of_program (Mod.compile md_tgt) <1= Beh.of_program (Mod.compile md_src).
 
-  Definition ctx_refines_list {CONF: EMSConfig} (md_tgt md_src: list Mod.t): Prop :=
+  Definition ctx_refines_list (md_tgt md_src: list Mod.t): Prop :=
     ctx_refines (Mod.add_list md_tgt) (Mod.add_list md_src).
 
 End CTX_REFINE.
 
 Section PROPERTIES.
   Context `{Sk.ld}.
-
-  Section CONF.
-  Context {CONF: EMSConfig}.
 
   (*** vertical composition ***)
   Global Program Instance refines_PreOrder: PreOrder ctx_refines.
@@ -41,10 +35,6 @@ Section PROPERTIES.
   Next Obligation.
     ii. eapply H0 in PR. eapply H1 in PR. eapply PR.
   Qed.
-
-  Global Program Instance refines_strong_PreOrder: PreOrder ctx_refines_strong.
-  Next Obligation. ii. ss. Qed.
-  Next Obligation. ii. eapply H1. eapply H0. ss. Qed.
 
   Global Program Instance refines_closed_PreOrder: PreOrder refines_closed.
   Next Obligation. ii; ss. Qed.
@@ -148,7 +138,6 @@ Section PROPERTIES.
     r. unfold ctx_refines_list. eapply refines_add; et.
    Qed.
 
-
    Corollary refines_list_pairwise
              (mds0_src mds0_tgt: list Mod.t)
              (FORALL: List.Forall2 (fun md_src md_tgt => ctx_refines_list [md_src] [md_tgt]) mds0_src mds0_tgt)
@@ -175,41 +164,5 @@ Section PROPERTIES.
      { ii. eapply H0. auto. }
      { ii. eapply H0. auto. }
    Qed.
-
-  Lemma refines_strong_refines: ctx_refines_strong <2= ctx_refines.
-  Proof. ii. eapply PR; et. Qed.
-   
-  End CONF.
-
-  Theorem refines_strong_add
-        (md0_src md0_tgt md1_src md1_tgt: Mod.t)
-        (SIM0: ctx_refines_strong md0_tgt md0_src)
-        (SIM1: ctx_refines_strong md1_tgt md1_src)
-    :
-      <<SIM: ctx_refines_strong (Mod.add md0_tgt md1_tgt) (Mod.add md0_src md1_src)>>
-  .
-  Proof.
-    intros CONF. eapply (@refines_add CONF); apply refines_strong_refines; et.
-  Qed.
-
-  Theorem refines_strong_proper_r
-        (mds0_src mds0_tgt: list Mod.t) (ctx: Mod.t)
-        (SIM0: ctx_refines_strong (Mod.add_list mds0_tgt) (Mod.add_list mds0_src))
-    :
-      <<SIM: ctx_refines_strong (Mod.add (Mod.add_list mds0_tgt) ctx) (Mod.add (Mod.add_list mds0_src) ctx)>>
-  .
-  Proof.
-    intros CONF. eapply (@refines_proper_r CONF); et.
-  Qed.
-
-  Theorem refines_strong_proper_l
-        (mds0_src mds0_tgt: list Mod.t) (ctx: Mod.t)
-        (SIM0: ctx_refines_strong (Mod.add_list mds0_tgt) (Mod.add_list mds0_src))
-    :
-      <<SIM: ctx_refines_strong (Mod.add ctx (Mod.add_list mds0_tgt)) (Mod.add ctx (Mod.add_list mds0_src))>>
-  .
-  Proof.
-    intros CONF. eapply (@refines_proper_l CONF); et.
-  Qed.
 
 End PROPERTIES.

@@ -4,7 +4,6 @@ Require Import Coqlib.
 Require Import ITreelib.
 Require Import ImpPrelude.
 Require Import Skeleton.
-Require Import PCM.
 Require Import STS Behavior.
 Require Import Any.
 Require Import ModuleInternal Mod Events.
@@ -136,7 +135,6 @@ Variant GlobEnv : Type -> Type :=
 
 Section Denote.
 
-  Context `{Σ: GRA.t}.
   Context {eff : Type -> Type}.
   Context {HasGlobVar: GlobEnv -< eff}.
   Context {HasImpState : ImpState -< eff}.
@@ -273,7 +271,6 @@ End Denote.
 
 Section Interp.
 
-  Context `{Σ: GRA.t}.
   Definition effs := GlobEnv +' ImpState +' modE.
 
   Definition handle_GlobEnv {eff} `{coreE -< eff} (ge: SkEnv.t) : GlobEnv ~> (itree eff) :=
@@ -360,8 +357,6 @@ End Interp.
 Module ImpMod.
 Section MODSEM.
 
-  Context `{GRA: GRA.t}.
-
   Set Typeclasses Depth 5.
   (* Instance Initial_void1 : @Initial (Type -> Type) IFun void1 := @elim_void1. (*** TODO: move to ITreelib ***) *)
 
@@ -373,7 +368,19 @@ Section MODSEM.
   Definition get_mod (m : program) : Mod.t := {|
     Mod.get_modsem := fun ge => (modsem m (Sk.load_skenv ge));
     Mod.sk := List.map (update_snd Any.upcast) m.(defs);
-  |}.
+                                             |}.
+
+  Definition init : ModSem.t :=
+    ModSem.init (
+      rv <- ccallU "main" ([]: list val);;
+      match rv with
+      | Vint z =>
+          if (0 <=? z)%Z && (z <? two_power_nat 32)%Z
+          then Ret z↑
+          else triggerUB
+      | _ => triggerUB
+      end
+    ).
 
   (* Definition modsemL (mL : programL) (ge: SkEnv.t) : ModSemL.t := {|
     ModSemL.fnsems :=

@@ -128,8 +128,6 @@ Section COMM.
           econs. gfinal. left. eapply CIH.
   Qed. 
 
-  Context {CONF: EMSConfig}.
-
   Theorem add_comm
     ms0 ms1
     (P0 P1: Prop) (IMPL: P1 -> P0)
@@ -397,9 +395,6 @@ destruct (observe itr).
     * apply sim_itree_io. i.
       econs. gfinal. left. eapply CIH.
 Qed. 
-
-Context {CONF: EMSConfig}.
-
 
 Theorem add_assoc
         ms0 ms1 ms2
@@ -672,8 +667,6 @@ Proof.
 Qed.
 
 
-Context {CONF: EMSConfig}.
-
 Theorem add_empty
       ms
       (P0 P1: Prop) (IMPL: P1 -> P0)
@@ -757,8 +750,6 @@ Import Mod.
 Section BEH.
 
 Context `{Sk.ld}.
-Context {CONF: EMSConfig}.
-
 
 Theorem add_comm
         md0 md1

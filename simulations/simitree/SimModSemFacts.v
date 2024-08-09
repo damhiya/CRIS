@@ -23,8 +23,6 @@ Require Import ModSemFacts.
 Import TAC.
 
 Section ADEQUACY.
-  (* Context {CONF: EMSConfig}. *)
-
   Lemma sim_ctx_mod
     ctx md1 md2
     (SIM: ModR.sim md1 md2)
@@ -44,7 +42,6 @@ Section ADEQUACY.
 
   Lemma adequacy_mod
           md_src md_tgt
-          (CONF: EMSConfig)
           (SIM: ModR.sim md_src md_tgt)
     :
     <<REF: Beh.of_program (Mod.compile md_tgt) <1= Beh.of_program (Mod.compile md_src) >>
@@ -133,76 +130,16 @@ Section ADEQUACY.
     Qed.
 
 
-  Theorem adequacy_local_strong md_src md_tgt
+  Theorem adequacy_local md_src md_tgt
           (SIM: ModR.sim md_src md_tgt)
     :
-    <<CR: (ctx_refines_strong md_tgt md_src)>>.
+    <<CR: (ctx_refines md_tgt md_src)>>.
   Proof.
     ii. apply sim_ctx_mod with (ctx:=ctx) in SIM.
     pose (Mod.add md_src ctx) as mds.
     pose (Mod.add md_tgt ctx) as mdt.
     fold mds. fold mdt in PR.
     apply adequacy_mod with (md_src := mds) in PR; et.
-  Qed.
-
-  Context {CONF: EMSConfig}.
-
-  Theorem adequacy_local md_src md_tgt
-          (SIM: ModR.sim md_src md_tgt)
-    :
-      <<CR: (ctx_refines md_tgt md_src)>>
-  .
-  Proof.
-    eapply refines_strong_refines.
-    eapply adequacy_local_strong; et.
-  Qed.
-
-  Corollary adequacy_local_list_strong
-            mds_src mds_tgt
-            (FORALL: List.Forall2 ModR.sim mds_src mds_tgt)
-    :
-      <<CR: ctx_refines_strong (Mod.add_list mds_tgt) (Mod.add_list mds_src)>>
-  .
-  Proof.
-    (* apply adequacy_local_strong. *)
-
-  (* Admitted. *)
-
-
-    r. induction FORALL; ss.
-    { ii. auto. }
-
-      destruct l eqn: L, l' eqn: L'.
-      - apply adequacy_local_strong; et.
-      - etrans.
-        + instantiate (1:= Mod.add x (Mod.add_list [])). apply refines_strong_add.
-          * apply adequacy_local_strong. apply H.
-          * apply IHFORALL.
-        + s. ii.
-          pose proof ModFacts.add_comm as COMM. 
-          pose proof ModFacts.add_assoc_rev as ASSOC'.
-          apply COMM. apply COMM in PR. apply ASSOC' in PR. apply ModFacts.add_empty_r in PR. et.
-      - etrans.
-        + apply adequacy_local_strong. apply H.
-        + etrans.
-          * instantiate (1:= Mod.add x (Mod.add_list [])). s. ii.
-            pose proof ModFacts.add_comm as COMM. 
-            pose proof ModFacts.add_assoc as ASSOC.
-            apply COMM. apply COMM in PR. apply ASSOC. apply ModFacts.add_empty_rev_r. apply PR.
-          * apply refines_strong_add; et. apply adequacy_local_strong.
-            econs; et. ii. rr. apply ModSemPair.self_sim.
-      - apply refines_strong_add; et. apply adequacy_local_strong. apply H.
-    Qed.             
-          
-
-  Theorem adequacy_local_singleton md_src md_tgt
-          (SIM: ModR.sim md_src md_tgt)
-    :
-      <<CR: (ctx_refines_list [md_tgt] [md_src])>>
-  .
-  Proof.
-    eapply refines_strong_refines.
-    eapply adequacy_local_list_strong. econs; ss.
   Qed.
 
   Corollary adequacy_local_list
@@ -212,8 +149,39 @@ Section ADEQUACY.
       <<CR: ctx_refines (Mod.add_list mds_tgt) (Mod.add_list mds_src)>>
   .
   Proof.
-    eapply refines_strong_refines.
-    eapply adequacy_local_list_strong; et.
+    r. induction FORALL; ss.
+
+    destruct l eqn: L, l' eqn: L'.
+    - apply adequacy_local; et.
+    - etrans.
+      + instantiate (1:= Mod.add x (Mod.add_list [])). apply refines_add.
+        * apply adequacy_local. apply H.
+        * apply IHFORALL.
+      + s. ii.
+        pose proof ModFacts.add_comm as COMM. 
+        pose proof ModFacts.add_assoc_rev as ASSOC'.
+        apply COMM. apply COMM in PR. apply ASSOC' in PR. apply ModFacts.add_empty_r in PR.
+        apply PR.
+    - etrans.
+      + apply adequacy_local. apply H.
+      + etrans.
+        * instantiate (1:= Mod.add x (Mod.add_list [])). s. ii.
+          pose proof ModFacts.add_comm as COMM. 
+          pose proof ModFacts.add_assoc as ASSOC.
+          apply COMM. apply COMM in PR. apply ASSOC. apply ModFacts.add_empty_rev_r. apply PR.
+        * apply refines_add; et. apply adequacy_local.
+          econs; et. ii. rr. apply ModSemPair.self_sim.
+    - apply refines_add; et. apply adequacy_local. apply H.
+    Qed.             
+          
+
+  Theorem adequacy_local_singleton md_src md_tgt
+          (SIM: ModR.sim md_src md_tgt)
+    :
+      <<CR: (ctx_refines_list [md_tgt] [md_src])>>
+  .
+  Proof.
+    eapply adequacy_local_list. econs; ss.
   Qed.
 
 End ADEQUACY.

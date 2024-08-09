@@ -30,12 +30,6 @@ Section SMODSEM.
 
   Definition to_hmod (ms: t): HModSem.t := transl (interp_sb_hp stb) ms.
 
-  Definition main (mainpre: Any.t -> iProp) (mainbody: Any.t -> itree smodE Any.t): t := {|
-      fnsems := [("main", (mk_specbody (mk_simple (fun (_: unit) => (ord_top, mainpre, fun _ => (⌜True⌝: iProp)%I))) mainbody))];
-      initial_st := tt↑;
-      initial_cond := emp%I;
-    |}.
-
 End SMODSEM.
 End SModSem.
 

@@ -39,8 +39,6 @@ Import TAC.
 
 Section SIMMOD.
 
-  Context {CONF: EMSConfig}.
-
   Lemma Mod_add_fnsems md0 md1 sk
     :
       (ModSem.fnsems (Mod.get_modsem (Mod.add md0 md1) sk)) =
@@ -486,10 +484,6 @@ Section SEMPAIR.
     - steps. destruct run. steps. eapply IH; eauto.
     - eapply simg_progress_flag. gbase. eapply CIH. econs; eauto.
   Qed.
-  (* Admitted. *)
-
-
-  Context `{CONF: EMSConfig}.
 
   Hypothesis INIT:
     simT (fun x y => exists w, wf w (x, y)) false false ms_src.(ModSem.initial_st) ms_tgt.(ModSem.initial_st).
@@ -506,7 +500,7 @@ Section SEMPAIR.
     (* inv INIT.  *)
     des. ginit.
     { eapply cpn7_wcompat; eauto with paco. }
-    unfold ModSem.initial_itr, assume. generalize "main" as fn. i.
+    unfold ModSem.initial_itr, assume. generalize "CCR_init" as fn. i.
     hexploit (fnsems_find_iff fn). i. des.
     { 
       esplits. guclo bindC_spec. econs.
@@ -527,7 +521,7 @@ Section SEMPAIR.
       inv SIM0.
       guclo bindC_spec. econs.
       {
-        hexploit (SIM (initial_arg) (initial_arg)); et; cycle 1. i.
+        hexploit (SIM ()↑ ()↑); et; cycle 1. i.
         gfinal. right. eapply sim_lift. econs; eauto.
       }  
       { i. destruct vret_src0, vret_tgt1. des; clarify. steps. }

@@ -31,6 +31,11 @@ Section MODSEM.
     fnsems := [];
   |}.
 
+  Definition init (body: itree modE Any.t) : t := {|
+    initial_st := Ret (tt↑);
+    fnsems := [("CCR_init", fun _ => body)];
+  |}.
+
   Section ADD.
     Definition emb_ : RUN -> (forall T, modE T -> modE T) :=
       fun run_ch T es =>
@@ -77,7 +82,7 @@ Section MODSEM.
       | None => Ret tt
       | Some P' => assume (<<WF: P'>>)
       end;;; 
-      snd <$> (interp_takeE (initial_st ms) >>= interp_modE prog (prog (Call "main" initial_arg))) .
+      snd <$> (interp_takeE (initial_st ms) >>= interp_modE prog (prog (Call "CCR_init" ()↑))) .
 
     Definition compile P: semantics:=
       compile_itree (initial_itr P).
@@ -110,13 +115,11 @@ End ModSem.
 Module Mod.
 Section MOD.
   Context `{Sk.ld}.
-  Context {CONF: EMSConfig}.
 
   Record t: Type := mk {
     get_modsem: Sk.t -> ModSem.t;
     sk: Sk.t;
     enclose: ModSem.t := (get_modsem (Sk.canon sk));
-
   }
   .
   
@@ -124,6 +127,11 @@ Section MOD.
 
   Definition empty: t := {|
     get_modsem := fun _ => ModSem.empty;
+    sk := Sk.unit;
+  |}.
+
+  Definition init (body: itree modE Any.t) : t := {|
+    get_modsem := fun _ => ModSem.init body;
     sk := Sk.unit;
   |}.
 
