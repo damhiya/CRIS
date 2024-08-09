@@ -1,7 +1,7 @@
 Require Export Coqlib sflib.
 Require Import Behavior.
 Require Import Mod Skeleton.
-Require Import ModSemFacts.
+Require Import ModFacts.
   
 Section CTX_REFINE.
   Context `{Sk.ld}.

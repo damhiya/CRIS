@@ -19,7 +19,7 @@ Require Import Events Mod.
 Require Import SimGlobal SimGlobalFacts.
 Require Import Red IRed.
 Require Import SimModSem SimModSemFacts0.
-Require Import ModSemFacts.
+Require Import ModFacts.
 Import TAC.
 
 Section ADEQUACY.

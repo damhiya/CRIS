@@ -8,7 +8,7 @@ Require Import STS.
 Require Import Behavior Skeleton.
 Require Import PCM IPM.
 
-Require Import SimInitial SimModSem SimModSemFacts0 ModSemFacts SimModSemFacts.
+Require Import SimInitial SimModSem SimModSemFacts0 ModFacts SimModSemFacts.
 Require Import HPSim HPSimFacts.
 
 Require Import HMod Mod HMod2Mod Events.
