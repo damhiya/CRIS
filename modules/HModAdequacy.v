@@ -197,9 +197,9 @@ Section SIM.
 
     Theorem isim_ctx
             ctx ms1 ms2 Ist
-            (SIM: HModSemPair.sim ms1 ms2 Ist)
+            (SIM: HModSemR.sim ms1 ms2 Ist)
         :
-            HModSemPair.sim (HModSem.add ms1 ctx) (HModSem.add ms2 ctx) (IstProd Ist IstEq).
+            HModSemR.sim (HModSem.add ms1 ctx) (HModSem.add ms2 ctx) (IstProd Ist IstEq).
     Proof.
       inv SIM. 
       econs; ss; cycle 1.

@@ -109,7 +109,7 @@ Section CANCEL.
     econs; ss. i. econs; ss.
     { instantiate (1:=fun (_ _: unit) => True). ss. }
     { instantiate (1:=fun _ '(st_src, st_tgt) => st_src = st_tgt).
-      unfold ModSemPair.fl_src, ModSemPair.fl_tgt.
+      unfold ModSemR.fl_src, ModSemR.fl_tgt.
       eapply Forall2_apply_Forall2.
       { refl. }
       i. subst. destruct b0. econs; ss. ii. subst.

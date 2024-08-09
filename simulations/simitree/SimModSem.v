@@ -755,7 +755,7 @@ Qed.
 
 
 
-Module ModSemPair.
+Module ModSemR.
 Section SIMMODSEM.
 
   Variable (ms_src ms_tgt: ModSem.t).
@@ -794,7 +794,7 @@ Proof.
   - eapply self_simT. ss.
 Qed.
 
-End ModSemPair.
+End ModSemR.
 
 
 Module ModR.
@@ -805,7 +805,7 @@ Section SIMMOD.
        forall sk
               (SKINCL: Sk.incl md_tgt.(Mod.sk) sk)
               (SKWF: Sk.wf sk),
-         <<SIM: ModSemPair.sim (md_src.(Mod.get_modsem) sk) (md_tgt.(Mod.get_modsem) sk)>>;
+         <<SIM: ModSemR.sim (md_src.(Mod.get_modsem) sk) (md_tgt.(Mod.get_modsem) sk)>>;
      sim_sk: <<SIM: md_src.(Mod.sk) = md_tgt.(Mod.sk)>>;
    }.
 

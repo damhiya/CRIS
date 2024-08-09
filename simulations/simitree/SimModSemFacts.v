@@ -170,7 +170,7 @@ Section ADEQUACY.
           pose proof ModFacts.add_assoc as ASSOC.
           apply COMM. apply COMM in PR. apply ASSOC. apply ModFacts.add_empty_rev_r. apply PR.
         * apply refines_add; et. apply adequacy_local.
-          econs; et. ii. rr. apply ModSemPair.self_sim.
+          econs; et. ii. rr. apply ModSemR.self_sim.
     - apply refines_add; et. apply adequacy_local. apply H.
     Qed.             
           

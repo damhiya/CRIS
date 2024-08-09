@@ -285,9 +285,9 @@ Qed.
 
 Theorem sim_ctx
       ctx ms1 ms2
-      (SIM: ModSemPair.sim ms1 ms2)
+      (SIM: ModSemR.sim ms1 ms2)
     :
-      ModSemPair.sim (add ms1 ctx) (add ms2 ctx)
+      ModSemR.sim (add ms1 ctx) (add ms2 ctx)
 .
 Proof.
  (* Admitted. *)

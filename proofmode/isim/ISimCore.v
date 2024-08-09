@@ -724,7 +724,7 @@ End SIM.
 Global Opaque isim.
 
 
-Module HModSemPair.
+Module HModSemR.
   Section SIM.
     Import HModSem.
     Context `{_W: CtxWD.t}. 
@@ -747,7 +747,7 @@ Module HModSemPair.
     }.     
       
   End SIM.
-End HModSemPair.
+End HModSemR.
 
 
 Module HModR.
@@ -759,7 +759,7 @@ Module HModR.
     Inductive sim: Prop := mk {
       sim_modsem:
           forall sk (SKINCL: Sk.incl md_tgt.(HMod.sk) sk) (SKWF: Sk.wf sk),
-          <<SIM: HModSemPair.sim (md_src.(HMod.get_modsem) sk) (md_tgt.(HMod.get_modsem) sk) Ist>>;
+          <<SIM: HModSemR.sim (md_src.(HMod.get_modsem) sk) (md_tgt.(HMod.get_modsem) sk) Ist>>;
       sim_sk: <<SIM: md_src.(HMod.sk) = md_tgt.(HMod.sk)>>;
     }.
 

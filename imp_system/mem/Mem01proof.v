@@ -178,7 +178,7 @@ Section SIMMODSEM.
 
   Variable csl: gname -> bool.
 
-  Theorem correct_modsem: forall sk, ModSemPair.sim (SModSem.to_tgt (to_stb [])
+  Theorem correct_modsem: forall sk, ModSemR.sim (SModSem.to_tgt (to_stb [])
                                            (Mem1.SMemSem (negb ∘ csl) sk)) (Mem0.MemSem csl sk).
   Proof.
    econstructor 1 with (wf:=wf) (le:=top2); et; swap 2 3.
