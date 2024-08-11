@@ -8,8 +8,8 @@ Require Import PCM.
 Require Import Any.
 Require Import SimSTS.
 Require Import HoareDef.
-Require Import SimModSem.
-Require Import SimModSemFacts.
+Require Import ModSim.
+Require Import ModSimFacts.
 Require Import HTactics.
 From Ordinal Require Import Ordinal Arithmetic.
 

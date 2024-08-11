@@ -6,7 +6,7 @@ Require Import Skeleton.
 Require Import PCM.
 Require Import ModSem Behavior.
 Require Import Relation_Definitions.
-Require Import ModSemFacts SimModSemFacts.
+Require Import ModSemFacts ModSimFacts.
 
 
 (*** TODO: export these in Coqlib or Universe ***)

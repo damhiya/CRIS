@@ -24,89 +24,95 @@ Set Implicit Arguments.
 
 Local Open Scope nat_scope.
 
-Lemma alist_find_fst_some:
-  forall [K : Type] {H : Dec K} [V : Type] (k : K) (l : alist K V) [v : V],
-  alist_find k l = Some v -> In k (List.map fst l).
-Proof.
-  i. apply alist_find_some in H0. eapply (in_map fst) in H0. eauto.
-Qed.
 
-Lemma alist_find_fst_none:
-  forall [K : Type] {H : Dec K} [V : Type] (k : K) (l : alist K V),
-  alist_find k l = None -> ~ In k (List.map fst l).
-Proof.
-  ii. apply (in_map_iff fst) in H1. des; subst. destruct x. ss.
-  eapply alist_find_none in H0. apply H0. eauto.
-Qed.
+Section ALIST.
 
-Lemma alist_find_fst_notin:
-  forall [K : Type] {H : Dec K} [V : Type] (k : K) (l : alist K V),
-  ~ In k (List.map fst l) -> alist_find k l = None.
-Proof.
-  ii. destruct (alist_find k l) eqn: EQ; eauto.
-  apply alist_find_fst_some in EQ. ss.
-Qed.
+  Lemma alist_find_fst_some:
+    forall [K : Type] {H : Dec K} [V : Type] (k : K) (l : alist K V) [v : V],
+    alist_find k l = Some v -> In k (List.map fst l).
+  Proof.
+    i. apply alist_find_some in H0. eapply (in_map fst) in H0. eauto.
+  Qed.
 
-Lemma alist_find_fst_in:
-  forall [K : Type] {H : Dec K} [V : Type] (k : K) (l : alist K V),
-  In k (List.map fst l) -> exists v, alist_find k l = Some v.
-Proof.
-  ii. destruct (alist_find k l) eqn: EQ; eauto.
-  apply alist_find_fst_none in EQ. ss.
-Qed.
+  Lemma alist_find_fst_none:
+    forall [K : Type] {H : Dec K} [V : Type] (k : K) (l : alist K V),
+    alist_find k l = None -> ~ In k (List.map fst l).
+  Proof.
+    ii. apply (in_map_iff fst) in H1. des; subst. destruct x. ss.
+    eapply alist_find_none in H0. apply H0. eauto.
+  Qed.
 
-Lemma nodup_eqlen_in_rev
-  X (l1 l2: list X)
-  (LEN : List.length l1 = List.length l2)
-  (NODUP: NoDup l1)
-  (MEM : forall x (IN: In x l1), In x l2)
-  :
-  forall x (IN: In x l2), In x l1.
-Proof.
-  revert_until l1. induction l1; i.
-  { destruct l2; ss. }
+  Lemma alist_find_fst_notin:
+    forall [K : Type] {H : Dec K} [V : Type] (k : K) (l : alist K V),
+    ~ In k (List.map fst l) -> alist_find k l = None.
+  Proof.
+    ii. destruct (alist_find k l) eqn: EQ; eauto.
+    apply alist_find_fst_some in EQ. ss.
+  Qed.
 
-  apply NoDup_cons_iff in NODUP.
-  hexploit (MEM a); s; eauto.
-  i. apply in_split in H. des; subst.
-  eapply in_elt_inv in IN. des; subst; eauto.
-  eapply IHl1 in IN; eauto.
-  { rewrite app_length in *. ss. nia. }
-  i. hexploit (MEM x0); s; eauto.
-  i. apply in_elt_inv in H. des; subst; eauto. ss.
-Qed.
+  Lemma alist_find_fst_in:
+    forall [K : Type] {H : Dec K} [V : Type] (k : K) (l : alist K V),
+    In k (List.map fst l) -> exists v, alist_find k l = Some v.
+  Proof.
+    ii. destruct (alist_find k l) eqn: EQ; eauto.
+    apply alist_find_fst_none in EQ. ss.
+  Qed.
 
-Lemma in_eqlen_nodup_rev
-  X (l1 l2: list X)
-  (LEN: List.length l1 = List.length l2)
-  (NODUP: NoDup l1)    
-  (MEM: forall x (IN: In x l1), In x l2)
-  :
-  NoDup l2.
-Proof.
-  revert_until l1. induction l1; i.
-  { destruct l2; ss. }
+  Lemma nodup_eqlen_in_rev
+    X (l1 l2: list X)
+    (LEN : List.length l1 = List.length l2)
+    (NODUP: NoDup l1)
+    (MEM : forall x (IN: In x l1), In x l2)
+    :
+    forall x (IN: In x l2), In x l1.
+  Proof.
+    revert_until l1. induction l1; i.
+    { destruct l2; ss. }
 
-  apply NoDup_cons_iff in NODUP.
-  hexploit (MEM a); s; eauto.
-  i. apply in_split in H. des; subst.
-  assert (MEM': forall x, In x l1 -> In x (l0 ++ l3)).
-  { i. hexploit (MEM x); ss; eauto.
-    i. apply in_elt_inv in H0. des; subst; eauto. ss.
-  }
-  clear MEM.
-  
-  hexploit (IHl1 (l0++l3)); eauto.
-  { rewrite app_length in *. ss. nia. }
-  i. eapply Permutation.Permutation_NoDup.
-  { apply Permutation.Permutation_middle. }
-  eapply NoDup_cons_iff; split; eauto.
-  ii. apply NODUP.
-  eapply nodup_eqlen_in_rev, H0; eauto.
-  rewrite app_length in *. ss. nia.
-Qed.
+    apply NoDup_cons_iff in NODUP.
+    hexploit (MEM a); s; eauto.
+    i. apply in_split in H. des; subst.
+    eapply in_elt_inv in IN. des; subst; eauto.
+    eapply IHl1 in IN; eauto.
+    { rewrite app_length in *. ss. nia. }
+    i. hexploit (MEM x0); s; eauto.
+    i. apply in_elt_inv in H. des; subst; eauto. ss.
+  Qed.
 
-Section SIM.
+  Lemma in_eqlen_nodup_rev
+    X (l1 l2: list X)
+    (LEN: List.length l1 = List.length l2)
+    (NODUP: NoDup l1)    
+    (MEM: forall x (IN: In x l1), In x l2)
+    :
+    NoDup l2.
+  Proof.
+    revert_until l1. induction l1; i.
+    { destruct l2; ss. }
+
+    apply NoDup_cons_iff in NODUP.
+    hexploit (MEM a); s; eauto.
+    i. apply in_split in H. des; subst.
+    assert (MEM': forall x, In x l1 -> In x (l0 ++ l3)).
+    { i. hexploit (MEM x); ss; eauto.
+      i. apply in_elt_inv in H0. des; subst; eauto. ss.
+    }
+    clear MEM.
+    
+    hexploit (IHl1 (l0++l3)); eauto.
+    { rewrite app_length in *. ss. nia. }
+    i. eapply Permutation.Permutation_NoDup.
+    { apply Permutation.Permutation_middle. }
+    eapply NoDup_cons_iff; split; eauto.
+    ii. apply NODUP.
+    eapply nodup_eqlen_in_rev, H0; eauto.
+    rewrite app_length in *. ss. nia.
+  Qed.
+
+End ALIST.
+
+
+Section SIM_ITREE.
   Variable world: Type.
 
   Let W: Type := (Any.t) * (Any.t).
@@ -780,50 +786,52 @@ Section SIM.
     intros. eapply wrespect8_uclo; eauto with paco. eapply lbindC_wrespectful.
   Qed.
 
-End SIM.
-
+End SIM_ITREE.
 
 Hint Resolve sim_itree_mon: paco.
 Hint Resolve cpn8_wcompat: paco.
 
-Lemma self_sim_itree:
-  forall st itr fl,
-    sim_itree (fun _ '(src, tgt) => src = tgt) top2 fl fl false false tt (st, itr) (st, itr).
-Proof.
-  ginit. gcofix CIH. i. ides itr.
-  { gstep. eapply sim_itree_ret; ss. }
-  { guclo sim_itree_indC_spec. econs.
-    guclo sim_itree_indC_spec. econs.
-    eapply sim_itree_progress_flag. gbase. auto.
-  }
-  destruct e.
-  { dependent destruction c. rewrite <- ! bind_trigger.
-    gstep.
-    eapply sim_itree_call; ss. ii. subst. econs; et.
-    eapply sim_itree_flag_down. gbase. auto.
-  }
-  destruct s.
-  { rewrite <- ! bind_trigger. resub. dependent destruction s.
+Section SIM_ITREE_PROP.
+
+  Lemma self_sim_itree:
+    forall st itr fl,
+      sim_itree (fun _ '(src, tgt) => src = tgt) top2 fl fl false false tt (st, itr) (st, itr).
+  Proof.
+    ginit. gcofix CIH. i. ides itr.
+    { gstep. eapply sim_itree_ret; ss. }
     { guclo sim_itree_indC_spec. econs.
       guclo sim_itree_indC_spec. econs.
       eapply sim_itree_progress_flag. gbase. auto.
     }
-  }
-  { rewrite <- ! bind_trigger. resub. dependent destruction c.
-    { guclo sim_itree_indC_spec. econs 9. i.
-      guclo sim_itree_indC_spec. econs. eexists.
-      eapply sim_itree_progress_flag. gbase. eauto.
+    destruct e.
+    { dependent destruction c. rewrite <- ! bind_trigger.
+      gstep.
+      eapply sim_itree_call; ss. ii. subst. econs; et.
+      eapply sim_itree_flag_down. gbase. auto.
     }
-    { guclo sim_itree_indC_spec. econs 10. i.
-      guclo sim_itree_indC_spec. econs. eexists.
-      eapply sim_itree_progress_flag. gbase. eauto.
+    destruct s.
+    { rewrite <- ! bind_trigger. resub. dependent destruction s.
+      { guclo sim_itree_indC_spec. econs.
+        guclo sim_itree_indC_spec. econs.
+        eapply sim_itree_progress_flag. gbase. auto.
+      }
     }
-    { guclo sim_itree_indC_spec. econs. i.
-      eapply sim_itree_progress_flag. gbase. auto.
+    { rewrite <- ! bind_trigger. resub. dependent destruction c.
+      { guclo sim_itree_indC_spec. econs 9. i.
+        guclo sim_itree_indC_spec. econs. eexists.
+        eapply sim_itree_progress_flag. gbase. eauto.
+      }
+      { guclo sim_itree_indC_spec. econs 10. i.
+        guclo sim_itree_indC_spec. econs. eexists.
+        eapply sim_itree_progress_flag. gbase. eauto.
+      }
+      { guclo sim_itree_indC_spec. econs. i.
+        eapply sim_itree_progress_flag. gbase. auto.
+      }
     }
-  }
-Qed.
+  Qed.
 
+End SIM_ITREE_PROP.
 
 
 (*** desiderata: (1) state-aware simulation relation !!!! ***)
@@ -833,7 +841,7 @@ Qed.
 Require Import Program.
 
 Module ModSemR.
-Section SIMMODSEM.
+Section MODSEMR.
 
   Variable (ms_src ms_tgt: ModSem.t).
   
@@ -888,7 +896,7 @@ Section SIMMODSEM.
     - eauto.
   Qed.
   
-End SIMMODSEM.
+End MODSEMR.
 
 Lemma self_sim (ms: ModSem.t):
   sim ms ms.
@@ -903,9 +911,8 @@ Qed.
 
 End ModSemR.
 
-
 Module ModR.
-Section SIMMOD.
+Section MODR.
    Variable (md_src md_tgt: Mod.t).
    Inductive sim: Prop := mk {
      sim_modsem:
@@ -916,6 +923,5 @@ Section SIMMOD.
      sim_sk: <<SIM: md_src.(Mod.sk) = md_tgt.(Mod.sk)>>;
    }.
 
-End SIMMOD.
-
+End MODR.
 End ModR.

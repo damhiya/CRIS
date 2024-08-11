@@ -1,4 +1,4 @@
-Require Import HoareDef SimModSem.
+Require Import HoareDef ModSim.
 Require Import Coqlib.
 Require Import ImpPrelude.
 Require Import Skeleton.

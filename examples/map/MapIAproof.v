@@ -1,5 +1,5 @@
 Require Import Coqlib ITreelib sflib.
-Require Import MapHeader MapI MapM MapA SimModSem MapIMproof MapMAproof.
+Require Import MapHeader MapI MapM MapA ModSim MapIMproof MapMAproof.
 Require Import ImpPrelude.
 Require Import Skeleton.
 Require Import PCM IPM.
@@ -19,7 +19,7 @@ From ExtLib Require Import
 Require Import STB.
 Require Import Mem1.
 
-Require Import SimModSemFacts ISim HMod Mod HModAdequacy.
+Require Import ModSimFacts ISim HMod Mod.
 
 Require Import sProp sWorld World SRF.
 From stdpp Require Import coPset gmap namespaces.

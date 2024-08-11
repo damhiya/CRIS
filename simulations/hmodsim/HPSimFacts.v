@@ -4,7 +4,7 @@ Require Import Behavior.
 Require Import Skeleton.
 Require Import PCM IModL.
 Require Import Any.
-Require Import STB SimModSem SimTactics.
+Require Import STB ModSim ModSimTactics.
 Require Import Events HMod HMod2Mod.
 
 Require Import Relation_Definitions.

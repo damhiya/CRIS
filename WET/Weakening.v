@@ -7,7 +7,7 @@ Require Import ModSem.
 Require Import Skeleton.
 Require Import PCM.
 Require Import HoareDef STB.
-Require Import SimModSem.
+Require Import ModSim.
 
 Require Import HTactics.
 Require Import ProofMode.
@@ -203,7 +203,7 @@ Section PROOF.
 
 End PROOF.
 
-Require Import SimModSemFacts.
+Require Import ModSimFacts.
 
 Section PROOF.
   Context `{EMSConfig}.

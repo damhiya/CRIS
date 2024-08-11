@@ -1,5 +1,5 @@
 Require Import Coqlib ITreelib sflib.
-Require Import MapHeader MapM MapA SMod SimModSem.
+Require Import MapHeader MapM MapA SMod ModSim.
 Require Import ImpPrelude.
 Require Import Skeleton.
 Require Import PCM IPM.
@@ -21,7 +21,7 @@ Require Import Mem1.
 
 
 Require Import ISim.
-Require Import HMod Mod SimModSemFacts HModAdequacy.
+Require Import HMod Mod ModSimFacts.
 
 
 Require Import sProp sWorld World SRF.

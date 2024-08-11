@@ -1,4 +1,4 @@
-Require Import HoareDef STB KnotHeader Knot0 Knot1 SimModSem SimModSemFacts.
+Require Import HoareDef STB KnotHeader Knot0 Knot1 ModSim ModSimFacts.
 Require Import Coqlib.
 Require Import ImpPrelude.
 Require Import Skeleton.

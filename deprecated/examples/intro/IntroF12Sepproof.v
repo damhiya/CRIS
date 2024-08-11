@@ -1,4 +1,4 @@
-Require Import HoareDef IntroHeader IntroF1 IntroFSep2 SimModSem SimModSemFacts.
+Require Import HoareDef IntroHeader IntroF1 IntroFSep2 ModSim ModSimFacts.
 Import Sep.
 Require Import Coqlib.
 Require Import ImpPrelude.

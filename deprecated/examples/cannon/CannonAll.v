@@ -1,6 +1,6 @@
 Require Import HoareDef STB CannonRA CannonMain0 CannonMain1 Cannon0 Cannon1.
 Require Import Cannon01proof CannonMain01proof.
-Require Import ModSemFacts SimModSemFacts.
+Require Import ModSemFacts ModSimFacts.
 Require Import Coqlib.
 Require Import ImpPrelude.
 Require Import Skeleton.

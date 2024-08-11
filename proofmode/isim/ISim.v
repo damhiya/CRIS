@@ -5,7 +5,7 @@ Require Import Mod.
 Require Import Skeleton.
 Require Import PCM IPM.
 Require Import Any.
-Require Import STB SimModSem.
+Require Import STB ModSim.
 
 Require Import Relation_Definitions.
 Require Import Relation_Operators.

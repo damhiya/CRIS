@@ -1,4 +1,4 @@
-Require Import HoareDef OpenDef STB Repeat1 Add0 Add1 SimModSem SimModSemFacts.
+Require Import HoareDef OpenDef STB Repeat1 Add0 Add1 ModSim ModSimFacts.
 Require Import Coqlib.
 Require Import ImpPrelude.
 Require Import Skeleton.

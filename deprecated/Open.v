@@ -12,7 +12,7 @@ Require Import ProofMode.
 Require Import HoareDef Hoare.
 (* Require Import OpenDef. *)
 Require Import IRed.
-Require Import SimModSem.
+Require Import ModSim.
 
 Set Implicit Arguments.
 

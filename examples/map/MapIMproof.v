@@ -1,5 +1,5 @@
 Require Import Coqlib ITreelib sflib.
-Require Import MapHeader MapI MapM SMod SimModSem.
+Require Import MapHeader MapI MapM SMod ModSim.
 Require Import ImpPrelude.
 Require Import Skeleton.
 Require Import PCM IPM.
@@ -18,7 +18,7 @@ From ExtLib Require Import
 Require Import Mem1 STB.
 
 Require Import ISim HMod Events.
-Require Import Mod SimModSemFacts HModAdequacy.
+Require Import Mod ModSimFacts.
 
 
 Require Import sProp sWorld World SRF.
@@ -362,6 +362,3 @@ Section SIMMODSEM.
 
   
 End SIMMODSEM.
-
-
-

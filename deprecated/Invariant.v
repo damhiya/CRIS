@@ -7,7 +7,7 @@ Require Import Skeleton.
 Require Import PCM.
 Require Import HoareDef.
 Require Import ProofMode.
-Require Import SimModSem.
+Require Import ModSim.
 Require Import STB.
 
 Set Implicit Arguments.

@@ -155,6 +155,6 @@ Section Example_Extract.
 
   Definition ex_prog: Mod.t := ImpMod.get_mod ex_extract.
 
-  Definition imp_ex := ModSem.initial_itr (Mod.enclose ex_prog) None.
+  Definition imp_ex := ModSem.initial_itr (Mod.enclose ex_prog) True.
 
 End Example_Extract.

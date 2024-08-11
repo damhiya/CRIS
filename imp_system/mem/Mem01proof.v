@@ -1,4 +1,4 @@
-(* Require Import Mem0 Mem1 HoareDef STB SimModSem.
+(* Require Import Mem0 Mem1 HoareDef STB ModSim.
 Require Import Coqlib.
 Require Import ImpPrelude.
 Require Import Skeleton.
@@ -17,7 +17,7 @@ From ExtLib Require Import
      Data.Map.FMapAList.
 Require Import HTactics ProofMode.
 
-Require Import SimModSemFacts.
+Require Import ModSimFacts.
 
 Set Implicit Arguments.
 
