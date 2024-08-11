@@ -16,7 +16,7 @@ From ExtLib Require Import
      Data.Map.FMapAList.
 Require Import Any.
 
-Require Import SimGlobal SimInitial.
+Require Import SimGlobal.
 Require Import Red IRed.
 
 
@@ -24,7 +24,87 @@ Set Implicit Arguments.
 
 Local Open Scope nat_scope.
 
+Lemma alist_find_fst_some:
+  forall [K : Type] {H : Dec K} [V : Type] (k : K) (l : alist K V) [v : V],
+  alist_find k l = Some v -> In k (List.map fst l).
+Proof.
+  i. apply alist_find_some in H0. eapply (in_map fst) in H0. eauto.
+Qed.
 
+Lemma alist_find_fst_none:
+  forall [K : Type] {H : Dec K} [V : Type] (k : K) (l : alist K V),
+  alist_find k l = None -> ~ In k (List.map fst l).
+Proof.
+  ii. apply (in_map_iff fst) in H1. des; subst. destruct x. ss.
+  eapply alist_find_none in H0. apply H0. eauto.
+Qed.
+
+Lemma alist_find_fst_notin:
+  forall [K : Type] {H : Dec K} [V : Type] (k : K) (l : alist K V),
+  ~ In k (List.map fst l) -> alist_find k l = None.
+Proof.
+  ii. destruct (alist_find k l) eqn: EQ; eauto.
+  apply alist_find_fst_some in EQ. ss.
+Qed.
+
+Lemma alist_find_fst_in:
+  forall [K : Type] {H : Dec K} [V : Type] (k : K) (l : alist K V),
+  In k (List.map fst l) -> exists v, alist_find k l = Some v.
+Proof.
+  ii. destruct (alist_find k l) eqn: EQ; eauto.
+  apply alist_find_fst_none in EQ. ss.
+Qed.
+
+Lemma nodup_eqlen_in_rev
+  X (l1 l2: list X)
+  (LEN : List.length l1 = List.length l2)
+  (NODUP: NoDup l1)
+  (MEM : forall x (IN: In x l1), In x l2)
+  :
+  forall x (IN: In x l2), In x l1.
+Proof.
+  revert_until l1. induction l1; i.
+  { destruct l2; ss. }
+
+  apply NoDup_cons_iff in NODUP.
+  hexploit (MEM a); s; eauto.
+  i. apply in_split in H. des; subst.
+  eapply in_elt_inv in IN. des; subst; eauto.
+  eapply IHl1 in IN; eauto.
+  { rewrite app_length in *. ss. nia. }
+  i. hexploit (MEM x0); s; eauto.
+  i. apply in_elt_inv in H. des; subst; eauto. ss.
+Qed.
+
+Lemma in_eqlen_nodup_rev
+  X (l1 l2: list X)
+  (LEN: List.length l1 = List.length l2)
+  (NODUP: NoDup l1)    
+  (MEM: forall x (IN: In x l1), In x l2)
+  :
+  NoDup l2.
+Proof.
+  revert_until l1. induction l1; i.
+  { destruct l2; ss. }
+
+  apply NoDup_cons_iff in NODUP.
+  hexploit (MEM a); s; eauto.
+  i. apply in_split in H. des; subst.
+  assert (MEM': forall x, In x l1 -> In x (l0 ++ l3)).
+  { i. hexploit (MEM x); ss; eauto.
+    i. apply in_elt_inv in H0. des; subst; eauto. ss.
+  }
+  clear MEM.
+  
+  hexploit (IHl1 (l0++l3)); eauto.
+  { rewrite app_length in *. ss. nia. }
+  i. eapply Permutation.Permutation_NoDup.
+  { apply Permutation.Permutation_middle. }
+  eapply NoDup_cons_iff; split; eauto.
+  ii. apply NODUP.
+  eapply nodup_eqlen_in_rev, H0; eauto.
+  rewrite app_length in *. ss. nia.
+Qed.
 
 Section SIM.
   Variable world: Type.
@@ -33,8 +113,6 @@ Section SIM.
   Variable wf : world -> W -> Prop.
   Variable le: relation world.
   Variable fl_src fl_tgt: alist gname (Any.t -> itree modE Any.t).
-
-
 
   Inductive _sim_itree (sim_itree: forall (R_src R_tgt: Type) (RR: Any.t -> Any.t -> R_src -> R_tgt -> Prop), bool -> bool -> world -> Any.t * itree modE R_src -> Any.t * itree modE R_tgt -> Prop)
           {R_src R_tgt} (RR: Any.t -> Any.t -> R_src -> R_tgt -> Prop)
@@ -47,13 +125,13 @@ Section SIM.
       _sim_itree sim_itree RR f_src f_tgt w0 (st_src, Ret v_src) (st_tgt, Ret v_tgt)
 
   | sim_itree_call
-      f_src f_tgt w w0 st_src st_tgt
+      f_src f_tgt w0 u0 st_src st_tgt
       fn varg k_src k_tgt
-      (WF: wf w0 (st_src, st_tgt))
-      (K: forall w1 vret st_src0 st_tgt0 (WLE: le w0 w1) (WF: wf w1 (st_src0, st_tgt0)),
-          _sim_itree sim_itree RR true true w (st_src0, k_src vret) (st_tgt0, k_tgt vret))
+      (WF: wf u0 (st_src, st_tgt))
+      (K: forall u1 vret st_src0 st_tgt0 (WLE: le u0 u1) (WF: wf u1 (st_src0, st_tgt0)),
+          _sim_itree sim_itree RR true true w0 (st_src0, k_src vret) (st_tgt0, k_tgt vret))
     :
-      _sim_itree sim_itree RR f_src f_tgt w (st_src, trigger (Call fn varg) >>= k_src)
+      _sim_itree sim_itree RR f_src f_tgt w0 (st_src, trigger (Call fn varg) >>= k_src)
                  (st_tgt, trigger (Call fn varg) >>= k_tgt)
 
   | sim_itree_io
@@ -66,21 +144,21 @@ Section SIM.
                  (st_tgt, trigger (IO fn varg) >>= k_tgt)
 
   | sim_itree_inline_src
-      f_src f_tgt w st_src st_tgt
+      f_src f_tgt w0 st_src st_tgt
       f fn varg k_src i_tgt
       (FUN: alist_find fn fl_src = Some f)
-      (K: _sim_itree sim_itree RR true f_tgt w (st_src, (f varg) >>= k_src) (st_tgt, i_tgt))
+      (K: _sim_itree sim_itree RR true f_tgt w0 (st_src, (f varg) >>= k_src) (st_tgt, i_tgt))
     :
-      _sim_itree sim_itree RR f_src f_tgt w (st_src, trigger (Call fn varg) >>= k_src)
+      _sim_itree sim_itree RR f_src f_tgt w0 (st_src, trigger (Call fn varg) >>= k_src)
                  (st_tgt, i_tgt)
 
   | sim_itree_inline_tgt
-      f_src f_tgt w st_src st_tgt
+      f_src f_tgt w0 st_src st_tgt
       f fn varg i_src k_tgt
       (FUN: alist_find fn fl_tgt = Some f)
-      (K: _sim_itree sim_itree RR f_src true w (st_src, i_src) (st_tgt, (f varg) >>= k_tgt))
+      (K: _sim_itree sim_itree RR f_src true w0 (st_src, i_src) (st_tgt, (f varg) >>= k_tgt))
     :
-      _sim_itree sim_itree RR f_src f_tgt w (st_src, i_src)
+      _sim_itree sim_itree RR f_src f_tgt w0 (st_src, i_src)
                  (st_tgt, trigger (Call fn varg) >>= k_tgt)
 
   | sim_itree_tau_src
@@ -578,14 +656,13 @@ Section SIM.
     { exploit SRC; auto. exploit TGT; auto. i. clarify. econs; eauto. }
   Qed.
 
-
   Definition sim_fsem: relation (Any.t -> itree modE Any.t) :=
     (eq ==> (fun it_src it_tgt => forall w mrs_src mrs_tgt (SIMMRS: wf w (mrs_src, mrs_tgt)),
                  sim_itree false false w (mrs_src, it_src)
                            (mrs_tgt, it_tgt)))%signature
   .
 
-  Definition sim_fnsem: relation (string * (Any.t -> itree modE Any.t)) := RelProd eq sim_fsem.
+  (* Definition sim_fnsem: relation (string * (Any.t -> itree modE Any.t)) := RelProd eq sim_fsem. *)
 
   Variant lflagC (r: forall (R_src R_tgt: Type)
     (RR: Any.t -> Any.t -> R_src -> R_tgt -> Prop), bool -> bool -> world -> Any.t * itree modE R_src -> Any.t * itree modE R_tgt -> Prop)
@@ -753,7 +830,7 @@ Qed.
 (*** (2) not whole function frame, just my function frame !!!! ***)
 (*** (3) would be great if induction tactic works !!!! (study itree case study more) ***)
 
-
+Require Import Program.
 
 Module ModSemR.
 Section SIMMODSEM.
@@ -765,33 +842,63 @@ Section SIMMODSEM.
   Let init_src := ms_src.(ModSem.initial_st).
   Let init_tgt := ms_tgt.(ModSem.initial_st).
 
-  Let W: Type := (Any.t) * (Any.t).
-  
   Inductive sim: Prop := mk {
     world: Type;
-    wf: world -> W -> Prop;
+    wf: world -> Any.t * Any.t -> Prop;
     le: world -> world -> Prop;
     le_PreOrder: PreOrder le;
-    sim_fnsems: Forall2 (sim_fnsem wf le fl_src fl_tgt) ms_src.(ModSem.fnsems) ms_tgt.(ModSem.fnsems);
-    sim_initial: simT (fun x y => exists w, wf w (x, y)) false false init_src init_tgt;
-    (* sim_initial: exists w_init,
-                 sim_itree_init wf le [] [] w_init (tt↑, resum_itr ms_src.(ModSem.init_st)) (tt↑, resum_itr ms_tgt.(ModSem.init_st)); *)
-                  (* init_st will be given as 'itree eventE Any.t', why not directly using sim_global?*)
+    sim_initial:
+      forall stS (SAT: init_src stS),
+      exists (w: world) stT, init_tgt stT /\ wf w (stS, stT);
+    sim_length:
+      List.length fl_src = List.length fl_tgt;
+    sim_miss:
+      forall fn (MISS: alist_find fn fl_src = None),
+      alist_find fn fl_tgt = None;
+    sim_fnsems:
+      forall fn fs (FIND: alist_find fn fl_src = Some fs),
+      exists ft, alist_find fn fl_tgt = Some ft /\
+                 @sim_fsem world wf le fl_src fl_tgt fs ft;
   }.
 
+  Lemma wf_sim_miss
+    world wf le
+    (WF: ModSem.wf ms_src) 
+    (sim_length: List.length fl_src = List.length fl_tgt)
+    (sim_fnsems:
+      forall fn fs (FIND: alist_find fn fl_src = Some fs),
+      exists ft, alist_find fn fl_tgt = Some ft /\
+                 @sim_fsem world wf le fl_src fl_tgt fs ft)
+    :
+    forall fn (MISS: alist_find fn fl_src = None),
+      alist_find fn fl_tgt = None.
+  Proof.
+    ii. destruct WF as [NODUP].
+    destruct (alist_find fn fl_tgt) eqn: EQ; eauto.
+    apply alist_find_fst_some in EQ. apply alist_find_fst_none in MISS.
+    exfalso. apply MISS.
+    eapply nodup_eqlen_in_rev.
+    - instantiate (1:= List.map fst fl_tgt).
+      rewrite !map_length, sim_length. eauto.
+    - eauto.
+    - i. destruct (alist_find x fl_src) eqn: AEQ; cycle 1.
+      { apply alist_find_fst_none in AEQ. ss. }
+      eapply sim_fnsems in AEQ. des.
+      apply alist_find_fst_some in AEQ. eauto.
+    - eauto.
+  Qed.
+  
 End SIMMODSEM.
 
 Lemma self_sim (ms: ModSem.t):
   sim ms ms.
 Proof.
   econs; et.
-  - instantiate (1:=fun (_ _: unit) => True). ss.
-  - instantiate (1:=(fun (_: unit) '(src, tgt) => src = tgt)). (* fun p => fst p = snd p *)
-    generalize (ModSem.fnsems ms) at 3 4.
-    induction a; ii; ss.
-    econs; et. econs; ss. ii; clarify.
-    destruct w. exploit self_sim_itree; et.
-  - eapply self_simT. ss.
+  { instantiate (1:= top2). ss. }
+  { instantiate (1:=(fun (_: unit) '(src, tgt) => src = tgt)).
+    i. exists tt. esplits; eauto. }
+  { ii. esplits; eauto.
+    ii. subst. destruct w. apply self_sim_itree. }
 Qed.
 
 End ModSemR.

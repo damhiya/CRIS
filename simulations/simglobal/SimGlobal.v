@@ -14,12 +14,6 @@ Require Import SimSTS.
 
 Set Implicit Arguments.
 
-
-
-
-
-
-
 Section SIM.
 
 Section TY.
@@ -537,7 +531,7 @@ Hint Constructors bindR: core.
 Hint Unfold bindC: core.
 Hint Constructors simg_indC: core.
 Hint Resolve sim_indC_mon: paco.
-
+Hint Resolve cpn7_wcompat: paco.
 
 Variant _simg_safe
           (simg: forall R0 R1 (RR: R0 -> R1 -> Prop), bool -> bool -> (itree coreE R0) -> (itree coreE R1) -> Prop)

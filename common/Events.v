@@ -28,10 +28,6 @@ Section EVENTS.
 
   Definition modE : Type -> Type := (callE +' stateE +' coreE).
 
-  (* take-only event type to define the simplest initial_st of modules *)
-  Variant takeE: Type -> Type :=
-  | take X: takeE X.
-
   Definition pure_state {S E}: E ~> stateT S (itree E) := fun _ e s => x <- trigger e;; Ret (s, x).
 
   Lemma unfold_interp_state: forall {E F} {S R} (h: E ~> stateT S (itree F)) (t: itree E R) (s: S),
@@ -51,12 +47,6 @@ Section EVENTS.
   Definition interp_modE A (prog: callE ~> itree modE) (itr0: itree modE A) (st0: Any.t): itree coreE (Any.t * _)%type :=
     '(st1, v) <- interp_stateE (interp_mrec prog itr0) st0;;
     Ret (st1, v).
-
-  Definition handle_takeE: takeE ~> itree coreE :=
-    fun _ '(take X) => trigger (Take X). 
-
-  Definition interp_takeE: itree takeE ~> itree coreE :=
-    interp handle_takeE.
 
   Section WRAP.
     Definition assume {E} `{coreE -< E} (P: Prop): itree E unit := trigger (Take P) ;;; Ret tt.
@@ -150,5 +140,5 @@ Section EVENTS_OTHER.
 
 End EVENTS_OTHER.
 
-Opaque interp_modE interp_takeE.
+Opaque interp_modE.
 

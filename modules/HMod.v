@@ -54,7 +54,7 @@ Section HMODSEM.
 
   Definition transl (tr: (Any.t -> itree hmodE Any.t) -> Any.t -> itree modE Any.t) (ms: t): ModSem.t := {|
     ModSem.fnsems := List.map (fun '(fn, bd) => (fn, tr bd)) ms.(fnsems);
-    ModSem.initial_st := r <- cond_to_st ms.(initial_cond);;  Ret (Any.pair ms.(initial_st) r↑)
+    ModSem.initial_st := fun st => exists r: Σ, ms.(initial_cond) r /\ st = Any.pair ms.(initial_st) r↑;
   |}.
 
   Definition to_mod (ms: t): ModSem.t := transl (interp_hp_fun) ms.
@@ -84,7 +84,6 @@ Section HMOD.
 
   Definition to_mod (md: t): Mod.t := transl (fun _ => interp_hp_fun) md.
   
-    
 End HMOD.
 End HMod.
 
@@ -322,5 +321,3 @@ Section HModRefl.
   Qed.
   
 End HModRefl.
-
-

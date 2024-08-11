@@ -34,20 +34,6 @@ Section MID.
     ))
   .
 
-  (* separate compilation path for module-state initialization. *)
-  Definition assume_init {E} `{takeE -< E} (P: Prop): itree E unit := 
-    trigger (Events.take P) ;;; Ret tt.
-
-  Definition handle_init_cond P: stateT (Σ) (itree takeE) unit :=
-  fun fr => (* skipped 'mget' from 'handle_Assume' *)
-    r <- trigger (Events.take Σ);;
-    assume_init (URA.wf (r ⋅ fr ));;;
-    assume_init (Own r ⊢ P);;; 
-    Ret (r ⋅ fr, tt).
-
-  Definition cond_to_st (P: iProp): itree takeE Σ :=
-    '(r, _) <- handle_init_cond P ε;; Ret r.        
-  
   (* mid to tgt code *)
   Definition handle_stateE_tgt: stateE ~> itree modE :=
       (fun _ e =>

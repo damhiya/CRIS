@@ -18,117 +18,10 @@ Require Import Any.
 Require Import Events Mod.
 Require Import SimGlobal SimGlobalFacts.
 Require Import Red IRed.
-Require Import SimModSem SimModSemFacts0.
-Require Import ModFacts.
-Import TAC.
+Require Import SimModSem.
+Require Export SimModSemFacts0.
 
 Section ADEQUACY.
-  Lemma sim_ctx_mod
-    ctx md1 md2
-    (SIM: ModR.sim md1 md2)
-  :
-    ModR.sim (Mod.add md1 ctx) (Mod.add md2 ctx).
-  Proof.
-    inv SIM.
-    econs; et.
-    - i. ss. hexploit (sim_modsem sk); et.
-      2: { ii. des. apply sim_ctx; et. }
-      unfold Sk.incl, Sk.add in *. i. ss.
-      apply SKINCL.
-      rewrite in_app_iff. et.
-    - r. ss. unfold Sk.add. ss.
-      rewrite sim_sk. et.
-  Qed.
-
-  Lemma adequacy_mod
-          md_src md_tgt
-          (SIM: ModR.sim md_src md_tgt)
-    :
-    <<REF: Beh.of_program (Mod.compile md_tgt) <1= Beh.of_program (Mod.compile md_src) >>
-    .
-  Proof.
-    ii. unfold Mod.compile in *.
-    destruct (classic (ModSem.wf (Mod.enclose (md_src)) /\ Sk.wf (Mod.sk md_src))).
-    2: { eapply ModSem.initial_itr_not_wf. ss. }
-    ss. des. 
-    pose (sk_tgt := (Mod.sk (md_tgt))).
-    pose (sk_src := (Mod.sk (md_src))).
-    assert (SKEQ: sk_src = sk_tgt).
-    { unfold sk_tgt, sk_src. inv SIM. et. }
-    unfold Mod.enclose in *. fold sk_src in H. inv H.
-    inv SIM. hexploit (sim_modsem (Sk.canon sk_tgt)).
-    { etrans; [|eapply Sk.sort_incl]. ss. }
-    { ss. rewrite sim_sk in H0.
-      clear - H0.
-      unfold Sk.wf in *. ss.
-      eapply Permutation.Permutation_NoDup; [|et].
-      eapply Permutation.Permutation_map.
-      eapply Sk.SkSort.sort_permutation. }
-    i. des.
-    inv H. ss.
-
-    assert (WFTGT: Mod.wf md_tgt).
-    { rr. unfold Mod.enclose. ss. fold sk_tgt. 
-      rewrite SKEQ in *. split; auto.
-      2: { rewrite <-SKEQ. unfold sk_src. et. }
-      econs.
-      match goal with
-        | H: NoDup ?l0 |- NoDup ?l1 => replace l1 with l0
-      end; auto.
-      eapply Forall2_eq. eapply Forall2_apply_Forall2; et.
-      i. destruct a, b. inv H. ss.
-    }
-
-    des.
-
-    eapply adequacy_local_aux in PR; et.
-    - i. esplits.
-      pose (ms_src := Mod.get_modsem md_src (Sk.sort (Mod.sk md_src))).
-      pose (ms_tgt := Mod.get_modsem md_tgt (Sk.sort (Mod.sk md_tgt))).
-      fold ms_src ms_tgt.
-      rewrite <- SKEQ in sim_fnsems at 1.
-      unfold sk_src, sk_tgt in sim_fnsems.
-      fold ms_src ms_tgt in sim_fnsems.
-      hexploit sim_fnsems. i.
-
-      destruct (alist_find fn (ModSem.fnsems ms_src)) eqn:SRC; destruct (alist_find fn (ModSem.fnsems ms_tgt)) eqn:TGT; et.
-      2: {
-        right.
-        eapply alist_find_some in SRC.
-        rewrite <- sim_sk in sim_fnsems.
-        (* eapply alist_find_none in TGT. *)
-        eapply Forall2_In_l with (a:= (fn, i)) in sim_fnsems; et.
-        inv sim_fnsems. inv H1.
-        inv H3. inv H1.
-        destruct x. ss. clarify.
-        apply alist_find_none with (v:=i0) in TGT. clarify. 
-      }
-      right. esplits; et.
-
-      hexploit SRC. hexploit TGT. i.
-      apply alist_find_some in H1, H2.
-
-      rewrite <- sim_sk in sim_fnsems.
-
-      eapply Forall2_In_l with (a:=(fn, i)) in sim_fnsems; et.
-      eapply Forall2_In_r with (b:=(fn, i0)) in H; et.
-      inv sim_fnsems. inv H.
-      destruct x, x1.
-      inv H3. inv H5. inv H3. ss.
-      inv H4. inv H7. inv H4. ss. clarify.
-      unfold "@@2" in H5, H6. ss.
-      (* apply NoDup_map_inv in wf_fnsems. *)
-      unfold sk_src in wf_fnsems.
-      fold ms_src in wf_fnsems.
-      rewrite <- sim_sk in H3.
-      eapply alist_find_some_iff  with (k:=s) (v:=i2) in wf_fnsems; et.
-      rewrite SRC in wf_fnsems. clarify. apply H5.
-    (* - inv sim_initial. econs. econs.
-      2: { fold sk_src sk_tgt. rewrite SKEQ. apply H. }
-      instantiate (1:= x). refl. *)
-    - unfold sk_src, sk_tgt in *. rewrite sim_sk. eapply sim_initial.
-    Qed.
-
 
   Theorem adequacy_local md_src md_tgt
           (SIM: ModR.sim md_src md_tgt)
@@ -172,7 +65,7 @@ Section ADEQUACY.
         * apply refines_add; et. apply adequacy_local.
           econs; et. ii. rr. apply ModSemR.self_sim.
     - apply refines_add; et. apply adequacy_local. apply H.
-    Qed.             
+  Qed.
           
 
   Theorem adequacy_local_singleton md_src md_tgt

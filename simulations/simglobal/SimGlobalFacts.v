@@ -67,9 +67,10 @@ Section ADEQUACY.
     Variable md_src md_tgt: Mod.t.
     Let ms_src: ModSem.t := md_src.(Mod.enclose).
     Let ms_tgt: ModSem.t := md_tgt.(Mod.enclose).
-    Hypothesis (SIM: simg eq false false (@ModSem.initial_itr ms_src (Some (Mod.wf md_src))) (@ModSem.initial_itr ms_tgt (Some (Mod.wf md_tgt)))).
+    Hypothesis (SIM: simg eq false false (@ModSem.initial_itr ms_src (Mod.wf md_src)) (@ModSem.initial_itr ms_tgt (Mod.wf md_tgt))).
 
-    Theorem adequacy_global: Beh.of_program (@Mod.compile _ md_tgt) <1= Beh.of_program (@Mod.compile _ md_src).
+    Theorem adequacy_global:
+      Beh.of_program (@Mod.compile _ md_tgt) <1= Beh.of_program (@Mod.compile _ md_src).
     Proof.
       eapply adequacy_global_itree. eapply SIM.
     Qed.

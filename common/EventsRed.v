@@ -160,43 +160,5 @@ Section RED.
         (mk_box interp_modE_ext).
         
   End ES.
-
-  Section TAKE.
-
-    Lemma interp_takeE_bind
-          A B
-          (itr: itree takeE A) (ktr: A -> itree takeE B)
-      :
-        interp_takeE (v <- itr ;; ktr v) = 
-        v <- interp_takeE itr;; interp_takeE (ktr v).
-    Proof. 
-      unfold interp_takeE. grind. 
-    Qed.
-
-    Lemma interp_takeE_ret
-          T (v: T)
-      :
-        interp_takeE (Ret v: itree takeE _) = Ret v.
-    Proof. 
-      unfold interp_takeE. grind. 
-    Qed.
-
-    Lemma interp_takeE_tau
-          T (itr: itree takeE T)
-      :
-        interp_takeE (tau;; itr) = tau;; interp_takeE itr.
-    Proof. 
-      unfold interp_takeE. grind. 
-    Qed.
-
-    Lemma interp_takeE_take
-          X (e: takeE X)
-      :
-        interp_takeE (trigger e) = (handle_takeE e) >>= (fun r => tau;; Ret r).
-    Proof.
-      unfold interp_takeE. rewrite interp_trigger. grind.
-    Qed.
-
-  End TAKE.
 End RED.
 

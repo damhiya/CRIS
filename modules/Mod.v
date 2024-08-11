@@ -34,7 +34,7 @@ Module ModSem.
 Section MODSEM.
 
   Record t: Type := mk {
-    initial_st : itree takeE Any.t;
+    initial_st : Any.t -> Prop;
     fnsems : alist gname (Any.t -> itree modE Any.t);
   }.
 
@@ -43,12 +43,12 @@ Section MODSEM.
   }.
 
   Definition empty: t := {|
-    initial_st := Ret (tt↑);
+    initial_st := fun st => st = tt↑;
     fnsems := [];
   |}.
 
   Definition init (body: itree modE Any.t) : t := {|
-    initial_st := Ret (tt↑);
+    initial_st := fun st => st = tt↑;
     fnsems := [("CCR_init", fun _ => body)];
   |}.
 
@@ -74,7 +74,9 @@ Section MODSEM.
 
     Definition add ms1 ms2: t :=
     {|
-      initial_st := st1 <- initial_st ms1;; st2 <- initial_st ms2;; Ret (Any.pair st1 st2);
+      initial_st := fun st =>
+        exists st1 st2, st = Any.pair st1 st2 /\
+        initial_st ms1 st1 /\ initial_st ms2 st2; 
       fnsems := add_fnsems ms1 ms2;
     |}.
 
@@ -89,12 +91,9 @@ Section MODSEM.
         rv <- (sem args);;
         Ret rv.  
 
-    Definition initial_itr (P: option Prop): itree coreE Any.t :=
-      match P with
-      | None => Ret tt
-      | Some P' => assume (<<WF: P'>>)
-      end;;; 
-      snd <$> (interp_takeE (initial_st ms) >>= interp_modE prog (prog (Call "CCR_init" ()↑))) .
+    Definition initial_itr (P: Prop): itree coreE Any.t :=
+      assume P;;; st <- trigger (Take Any.t);; assume (initial_st ms st);;;
+      (snd <$> interp_modE prog (prog (Call "CCR_init" ()↑)) st).
 
     Definition compile P: semantics:=
       compile_itree (initial_itr P).
@@ -103,7 +102,7 @@ Section MODSEM.
           (WF: ~ P)
           tr
       :
-        Beh.of_program (compile_itree (initial_itr (Some P))) tr.
+        Beh.of_program (compile_itree (initial_itr P)) tr.
     Proof.
       eapply Beh.ub_top. pfold. econsr; ss; et. rr. ii; ss.
       unfold initial_itr, assume in *. rewrite bind_bind in STEP.
@@ -114,7 +113,7 @@ Section MODSEM.
           (WF: ~ P)
           tr
       :
-        Beh.of_program (compile (Some P)) tr.
+        Beh.of_program (compile P) tr.
     Proof.
       eapply initial_itr_not_wf; et.
     Qed.
@@ -148,7 +147,7 @@ Section MOD.
   |}.
 
   Definition compile (md: t): semantics :=
-    compile_itree (ModSem.initial_itr md.(enclose) (Some (wf md))).  
+    compile_itree (ModSem.initial_itr md.(enclose) (wf md)).
 
   Definition add (md0 md1: t): t := {|
     get_modsem := fun sk =>
