@@ -2,7 +2,6 @@ Require Import Coqlib.
 Require Import ITreelib.
 Require Import Skeleton.
 Require Import Behavior.
-Require Import CtxRefine.
 Require Import Relation_Definitions.
 
 (*** TODO: export these in Coqlib or Universe ***)
@@ -584,16 +583,4 @@ Section ADEQUACY.
     ii. eapply adequacy_modsem, PR; eauto using ModR_sim_wf.
   Qed.
 
-  Theorem adequacy_local md_src md_tgt
-          (SIM: ModR.sim md_src md_tgt)
-    :
-    <<CR: (ctx_refines md_tgt md_src)>>.
-  Proof.
-    ii. apply sim_ctx_mod with (ctx:=ctx) in SIM.
-    pose (Mod.add md_src ctx) as mds.
-    pose (Mod.add md_tgt ctx) as mdt.
-    fold mds. fold mdt in PR.
-    apply adequacy_mod with (md_src := mds) in PR; et.
-  Qed.
-    
 End ADEQUACY.

@@ -636,3 +636,89 @@ Module AListSort (V: Typ).
 End AListSort.
 
 Notation "f ∘ g" := (fun x => (f (g x))). (*** It is already in Coqlib but Coq seems to have a bug; it gets overriden by the one in program_scope in the files that import this file ***)
+
+Section ALIST.
+
+  Lemma alist_find_fst_some:
+    forall [K : Type] {H : Dec K} [V : Type] (k : K) (l : alist K V) [v : V],
+    alist_find k l = Some v -> In k (List.map fst l).
+  Proof.
+    i. apply alist_find_some in H0. eapply (in_map fst) in H0. eauto.
+  Qed.
+
+  Lemma alist_find_fst_none:
+    forall [K : Type] {H : Dec K} [V : Type] (k : K) (l : alist K V),
+    alist_find k l = None -> ~ In k (List.map fst l).
+  Proof.
+    ii. apply (in_map_iff fst) in H1. des; subst. destruct x. ss.
+    eapply alist_find_none in H0. apply H0. eauto.
+  Qed.
+
+  Lemma alist_find_fst_notin:
+    forall [K : Type] {H : Dec K} [V : Type] (k : K) (l : alist K V),
+    ~ In k (List.map fst l) -> alist_find k l = None.
+  Proof.
+    ii. destruct (alist_find k l) eqn: EQ; eauto.
+    apply alist_find_fst_some in EQ. ss.
+  Qed.
+
+  Lemma alist_find_fst_in:
+    forall [K : Type] {H : Dec K} [V : Type] (k : K) (l : alist K V),
+    In k (List.map fst l) -> exists v, alist_find k l = Some v.
+  Proof.
+    ii. destruct (alist_find k l) eqn: EQ; eauto.
+    apply alist_find_fst_none in EQ. ss.
+  Qed.
+
+  Lemma nodup_eqlen_in_rev
+    X (l1 l2: list X)
+    (LEN : List.length l1 = List.length l2)
+    (NODUP: NoDup l1)
+    (MEM : forall x (IN: In x l1), In x l2)
+    :
+    forall x (IN: In x l2), In x l1.
+  Proof.
+    revert_until l1. induction l1; i.
+    { destruct l2; ss. }
+
+    apply NoDup_cons_iff in NODUP.
+    hexploit (MEM a); s; eauto.
+    i. apply in_split in H. des; subst.
+    eapply in_elt_inv in IN. des; subst; eauto.
+    eapply IHl1 in IN; eauto.
+    { rewrite app_length in *. ss. nia. }
+    i. hexploit (MEM x0); s; eauto.
+    i. apply in_elt_inv in H. des; subst; eauto. ss.
+  Qed.
+
+  Lemma in_eqlen_nodup_rev
+    X (l1 l2: list X)
+    (LEN: List.length l1 = List.length l2)
+    (NODUP: NoDup l1)    
+    (MEM: forall x (IN: In x l1), In x l2)
+    :
+    NoDup l2.
+  Proof.
+    revert_until l1. induction l1; i.
+    { destruct l2; ss. }
+
+    apply NoDup_cons_iff in NODUP.
+    hexploit (MEM a); s; eauto.
+    i. apply in_split in H. des; subst.
+    assert (MEM': forall x, In x l1 -> In x (l0 ++ l3)).
+    { i. hexploit (MEM x); ss; eauto.
+      i. apply in_elt_inv in H0. des; subst; eauto. ss.
+    }
+    clear MEM.
+    
+    hexploit (IHl1 (l0++l3)); eauto.
+    { rewrite app_length in *. ss. nia. }
+    i. eapply Permutation.Permutation_NoDup.
+    { apply Permutation.Permutation_middle. }
+    eapply NoDup_cons_iff; split; eauto.
+    ii. apply NODUP.
+    eapply nodup_eqlen_in_rev, H0; eauto.
+    rewrite app_length in *. ss. nia.
+  Qed.
+
+End ALIST.

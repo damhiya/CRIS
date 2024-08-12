@@ -453,7 +453,7 @@ Section CANCEL.
     Mod.sk md_mid = Mod.sk md_mid2.
   Proof. 
     unfold md_mid, md_mid2, mds_mid, mds_mid2.
-    rewrite ! ModFacts.add_list_sk. f_equal.
+    rewrite ! ModAlgebra.add_list_sk. f_equal.
     generalize mds. clear. i.  induction mds; ss.
     rewrite IHl. ss.
   Qed.
@@ -465,7 +465,7 @@ Section CANCEL.
     unfold ms_mid, ms_mid2, md_mid, md_mid2, mds_mid, mds_mid2, Mod.enclose.
     unfold md_mid, md_mid2, mds_mid, mds_mid2 in H. rewrite H.
     generalize (Mod.sk (Mod.add_list (List.map (SMod.to_mid2 stb) mds))). i.
-    rewrite ! ModFacts.add_list_initial_mrs.
+    rewrite ! ModAlgebra.add_list_initial_mrs.
     generalize mds. clear. i. 
     induction mds; et.
     destruct l; ss.
@@ -481,7 +481,7 @@ Section CANCEL.
     unfold md_mid2, md_mid, mds_mid2, mds_mid, Mod.enclose.
     unfold md_mid2, md_mid, mds_mid2, mds_mid in H. rewrite H.
     generalize (Mod.sk (Mod.add_list (List.map (SMod.to_mid2 stb) mds))). i.
-    rewrite ! ModFacts.add_list_fns. rewrite ! List.map_map. f_equal. 
+    rewrite ! ModAlgebra.add_list_fns. rewrite ! List.map_map. f_equal. 
     f_equal. extensionality sm. ss. rewrite ! List.map_map. f_equal.
     extensionality fnsb. destruct fnsb as [fn sb]. ss.
   Qed.

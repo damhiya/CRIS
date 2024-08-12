@@ -26,7 +26,6 @@ Makefile.coq: Makefile $(COQTHEORIES)
          echo "-R simulations $(COQMODULE)"; \
          echo "-R WET $(COQMODULE)"; \
          echo "-R iris_system $(COQMODULE)"; \
-         echo "-R proofmode $(COQMODULE)"; \
          echo "-R imp_system $(COQMODULE)"; \
          echo "-R examples $(COQMODULE)"; \
          echo "-R extract $(COQMODULE)"; \
