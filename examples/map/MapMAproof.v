@@ -40,21 +40,6 @@ Section SIMMODSEM.
   Section LEMMA. 
     Local Transparent unallocated map_points_to initial_map black_map pending pending0.
 
-    Lemma unallocated_alloc' sz
-      (POS: Z.to_nat sz > 0)
-      :
-      unallocated sz -∗ (map_points_to sz 0 ∗ unallocated (Z.succ sz)).
-    Proof.
-      unfold map_points_to, unallocated. iIntros "H".
-      replace (unallocated_r sz) with ((map_points_to_r sz 0) ⋅ (unallocated_r (Z.succ sz))).
-      { iDestruct "H" as "[H0 H1]". iFrame. }
-      unfold unallocated_r, map_points_to_r. ur. f_equal.
-      { ur. auto. }
-      { ur. unfold Auth.white. f_equal. ur. extensionality k.
-        ur. des_ifs; try by (exfalso; lia).
-      }
-    Qed.
-
     Lemma unallocated_alloc (sz: nat)
       :
       unallocated sz -∗ (map_points_to sz 0 ∗ unallocated (Z.pos (Pos.of_succ_nat sz))).
@@ -76,7 +61,7 @@ Section SIMMODSEM.
       induction sz.
       { ss. iIntros "H". unfold initial_map.
         replace initial_map_r with ((black_map_r (fun _ => 0%Z)) ⋅ (unallocated_r 0)).
-        { iDestruct "H" as "[H0 H1]". iFrame. }
+        { iDestruct "H" as "[H0 H1]". unfold initial_points_tos. s. iFrame. }
         { unfold initial_map_r, black_map_r, unallocated_r. ur. f_equal.
           { ur. auto. }
           { ur. f_equal. ur. extensionality k. ur. des_ifs. }
@@ -84,7 +69,9 @@ Section SIMMODSEM.
       }
       { iIntros "H". iPoseProof (IHsz with "H") as "H". ss.
         iDestruct "H" as "(B & I & U)".
-        iPoseProof (unallocated_alloc with "U") as "U". iFrame. auto.
+        iPoseProof (unallocated_alloc with "U") as "[M U]". iFrame.
+        unfold initial_points_tos. replace (S sz) with (sz + 1) by nia.
+        rewrite repeat_app. s. rewrite// big_sepL_snoc repeat_length. iFrame.
       }
     Qed.
 
