@@ -52,12 +52,17 @@ Section HMODSEM.
     initial_cond := (initial_cond ms1) ∗ (initial_cond ms2);
   |}.
 
-  Definition transl (tr: (Any.t -> itree hmodE Any.t) -> Any.t -> itree modE Any.t) (ms: t): ModSem.t := {|
+  Definition transl (tr: (Any.t -> itree hmodE Any.t) -> Any.t -> itree modE Any.t) (ms: t) (r: Σ): ModSem.t := {|
     ModSem.fnsems := List.map (fun '(fn, bd) => (fn, tr bd)) ms.(fnsems);
-    ModSem.initial_st := fun st => exists r: Σ, ms.(initial_cond) r /\ st = Any.pair ms.(initial_st) r↑;
+    ModSem.initial_st := Any.pair ms.(initial_st) r↑;
   |}.
 
-  Definition to_mod (ms: t): ModSem.t := transl (interp_hp_fun) ms.
+  (* Definition transl (tr: (Any.t -> itree hmodE Any.t) -> Any.t -> itree modE Any.t) (ms: t): ModSem.t := {|
+    ModSem.fnsems := List.map (fun '(fn, bd) => (fn, tr bd)) ms.(fnsems);
+    ModSem.initial_st := fun st => exists r: Σ, ms.(initial_cond) r /\ st = Any.pair ms.(initial_st) r↑;
+  |}. *)
+
+  Definition to_mod (ms: t) (r: Σ): ModSem.t := transl (interp_hp_fun) ms r.
   (* TODO: define other compilations which are required to prove WET. *)
   
 End HMODSEM.
@@ -77,12 +82,12 @@ Section HMOD.
     sk := Sk.add md0.(sk) md1.(sk);
   |}.
 
-  Definition transl (tr: Sk.t -> (Any.t -> itree hmodE Any.t) -> Any.t -> itree modE Any.t) (md: t): Mod.t := {|
-    Mod.get_modsem := fun sk => HModSem.transl (tr sk) (md.(get_modsem) sk);
+  Definition transl (tr: Sk.t -> (Any.t -> itree hmodE Any.t) -> Any.t -> itree modE Any.t) (md: t) (r: Σ): Mod.t := {|
+    Mod.get_modsem := fun sk => HModSem.transl (tr sk) (md.(get_modsem) sk) r;
     Mod.sk := md.(sk);
   |}. 
 
-  Definition to_mod (md: t): Mod.t := transl (fun _ => interp_hp_fun) md.
+  Definition to_mod (md: t) (r: Σ): Mod.t := transl (fun _ => interp_hp_fun) md r.
   
 End HMOD.
 End HMod.

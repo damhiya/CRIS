@@ -717,7 +717,7 @@ Section SIM.
     (eq ==> (fun itr_src itr_tgt => forall st_src st_tgt,
              Ist st_src st_tgt ⊢ @isim ibot ibot Any.t RR false false (st_src, itr_src) (st_tgt, itr_tgt)))%signature.
 
-  Definition isim_fnsem RR: relation (string * (Any.t -> itree hmodE Any.t)) := RelProd eq (isim_fsem RR).
+  (* Definition isim_fnsem RR: relation (string * (Any.t -> itree hmodE Any.t)) := RelProd eq (isim_fsem RR). *)
     
 End SIM.
 
@@ -742,10 +742,18 @@ Module HModSemR.
       fun '(st_src, v_src) '(st_tgt, v_tgt) => (Ist st_src st_tgt ∗ ⌜v_src = v_tgt⌝)%I.   
   
     Inductive sim: Prop := mk {
-      isim_fnsems: Forall2 (isim_fnsem Ist fl_src fl_tgt RR) fl_src fl_tgt;
-      isim_initial: cond_src ⊢ cond_tgt ∗ (Ist init_src init_tgt);
+      sim_initial: cond_src ⊢ cond_tgt ∗ (Ist init_src init_tgt);
+      sim_length: List.length fl_src = List.length fl_tgt;
+      sim_miss: 
+        forall fn (MISS: alist_find fn fl_src = None),
+        alist_find fn fl_tgt = None;
+      sim_fnsems:
+        forall fn fs (FIND: alist_find fn fl_src = Some fs),
+        exists ft, alist_find fn fl_tgt = Some ft /\
+                 isim_fsem Ist fl_src fl_tgt RR fs ft;      
+      (* isim_fnsems: Forall2 (isim_fnsem Ist fl_src fl_tgt RR) fl_src fl_tgt; *)
     }.     
-      
+
   End SIM.
 End HModSemR.
 

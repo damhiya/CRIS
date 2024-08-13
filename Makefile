@@ -24,7 +24,7 @@ Makefile.coq: Makefile $(COQTHEORIES)
          echo "-R common $(COQMODULE)"; \
          echo "-R modules $(COQMODULE)"; \
          echo "-R simulations $(COQMODULE)"; \
-         echo "-R WET $(COQMODULE)"; \
+         echo "-R cancellation $(COQMODULE)"; \
          echo "-R iris_system $(COQMODULE)"; \
          echo "-R imp_system $(COQMODULE)"; \
          echo "-R examples $(COQMODULE)"; \

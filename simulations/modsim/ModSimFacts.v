@@ -382,7 +382,6 @@ Proof.
   econs; et.
   { instantiate (1:= wf_lift wf0).
     unfold add. s. i. des. subst.
-    edestruct sim_initial; eauto. des.
     esplits; eauto.
   }
   { s. unfold add_fnsems.
@@ -439,8 +438,7 @@ Section SEMR.
   Variable le: world -> world -> Prop.
   Hypothesis le_PreOrder: PreOrder le.
   Hypothesis sim_initial:
-    forall stS (SAT: ModSem.initial_st ms_src stS),
-    exists w stT, ModSem.initial_st ms_tgt stT /\ wf w (stS, stT).
+    exists w, wf w (ModSem.initial_st ms_src, ModSem.initial_st ms_tgt).
   Hypothesis sim_miss : forall fn,
       alist_find fn (ModSem.fnsems ms_src) = None ->
       alist_find fn (ModSem.fnsems ms_tgt) = None.
@@ -531,7 +529,7 @@ Section SEMR.
     i. subst. ss. unfold ITree.map. grind.
 
     steps. hexploit sim_initial; eauto. i; des.
-    force. eexists. force. eexists; eauto. steps.
+    (* force. eexists. steps. *)
 
     fold fl_src fl_tgt.
     destruct (alist_find fn fl_src) eqn: EQ; cycle 1.
@@ -539,10 +537,9 @@ Section SEMR.
 
     hexploit sim_fnsems; eauto. i; des.
     fold fl_src fl_tgt in *.
-    rewrite H1. grind.
+    rewrite H0. grind.
     guclo bindC_spec. econs.
-    { gstep. econs; eauto. gfinal. right.
-      eapply sim_itree_simg. eapply H2; eauto. }
+    { gfinal. right. eapply sim_itree_simg. eapply H1; eauto. }
     i. steps.
     destruct vret_src, vret_tgt0. des; subst; eauto.
   Qed.

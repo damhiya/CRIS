@@ -34,7 +34,7 @@ Module ModSem.
 Section MODSEM.
 
   Record t: Type := mk {
-    initial_st : Any.t -> Prop;
+    initial_st : Any.t;
     fnsems : alist gname (Any.t -> itree modE Any.t);
   }.
 
@@ -43,12 +43,12 @@ Section MODSEM.
   }.
 
   Definition empty: t := {|
-    initial_st := fun st => st = tt↑;
+    initial_st := tt↑;
     fnsems := [];
   |}.
 
   Definition init (body: itree modE Any.t) : t := {|
-    initial_st := fun st => st = tt↑;
+    initial_st := tt↑;
     fnsems := [("CCR_init", fun _ => body)];
   |}.
 
@@ -74,9 +74,7 @@ Section MODSEM.
 
     Definition add ms1 ms2: t :=
     {|
-      initial_st := fun st =>
-        exists st1 st2, st = Any.pair st1 st2 /\
-        initial_st ms1 st1 /\ initial_st ms2 st2; 
+      initial_st := Any.pair (initial_st ms1) (initial_st ms2); 
       fnsems := add_fnsems ms1 ms2;
     |}.
 
@@ -92,8 +90,7 @@ Section MODSEM.
         Ret rv.  
 
     Definition initial_itr (P: Prop): itree coreE Any.t :=
-      assume P;;; st <- trigger (Take Any.t);; assume (initial_st ms st);;;
-      (snd <$> interp_modE prog (prog (Call "CCR_init" ()↑)) st).
+      assume P;;; (snd <$> interp_modE prog (prog (Call "CCR_init" ()↑)) (initial_st ms)).
 
     Definition compile P: semantics:=
       compile_itree (initial_itr P).

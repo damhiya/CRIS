@@ -1,3 +1,8 @@
+Require Export Coqlib sflib.
+Require Import Behavior.
+Require Import Mod Skeleton.
+Require Import CtxRefine.
+Require Import ModSimAlgebra.
 
 Section PROPERTIES.
   Context `{Sk.ld}.
@@ -12,7 +17,7 @@ Section PROPERTIES.
   .
   Proof. 
     ii. r in SIM0. r in SIM1. 
-    pose proof ModFacts.add_comm as COMM. 
+    pose proof ModSemAlgebra.add_comm as COMM. 
     pose proof ModFacts.add_assoc as ASSOC. 
     pose proof ModFacts.add_assoc_rev as ASSOC'. 
     r in COMM. r in ASSOC. r in ASSOC'.

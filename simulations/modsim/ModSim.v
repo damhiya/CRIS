@@ -759,8 +759,8 @@ Section MODSEMR.
   
   Let fl_src := ms_src.(ModSem.fnsems).
   Let fl_tgt := ms_tgt.(ModSem.fnsems).
-  Let init_src := ms_src.(ModSem.initial_st).
-  Let init_tgt := ms_tgt.(ModSem.initial_st).
+  Let st_src := ms_src.(ModSem.initial_st).
+  Let st_tgt := ms_tgt.(ModSem.initial_st).
 
   Inductive sim: Prop := mk {
     world: Type;
@@ -768,8 +768,7 @@ Section MODSEMR.
     le: world -> world -> Prop;
     le_PreOrder: PreOrder le;
     sim_initial:
-      forall stS (SAT: init_src stS),
-      exists (w: world) stT, init_tgt stT /\ wf w (stS, stT);
+      exists (w: world), wf w (st_src, st_tgt);
     sim_length:
       List.length fl_src = List.length fl_tgt;
     sim_miss:

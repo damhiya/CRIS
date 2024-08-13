@@ -206,7 +206,7 @@ Section EMPTY.
     econs.
     { instantiate (1:= fun (_:()) _ => True). econs; ii; subst; eauto. }
     { instantiate (1:= fun _ => empty_rev_st).
-      i. rr in SAT. des; subst. rr in SAT1; subst.
+      (* i. rr in SAT. des; subst. rr in SAT1; subst. *)
       esplits; rr; esplits; rr; eauto. exact tt.
     }
     { s. unfold add_fnsems. rewrite !app_length, !map_length. s. nia. }
@@ -325,7 +325,7 @@ Section COMM.
     econs.
     { instantiate (1:= fun (_:()) _ => True). econs; ii; subst; eauto. }
     { instantiate (1:= fun _ => comm_st).
-      i. rr in SAT. des. subst.
+      (* i. rr in SAT. des. subst. *)
       esplits; rr; esplits; eauto. exact tt.
     }
     { s. unfold add_fnsems. rewrite !app_length, !map_length. nia. }
@@ -470,10 +470,9 @@ Section ASSOC.
     econs.
     { instantiate (1:= fun (_:()) _ => True). econs; ii; subst; eauto. }
     { instantiate (1:= fun _ => assoc_st).
-      i. rr in SAT. des. subst. rr in SAT1. des; subst.
+      (* i. rr in SAT. des. subst. rr in SAT1. des; subst. *)
       esplits; eauto.
       - exact tt.
-      - rr. esplits; eauto. rr. esplits; eauto.
       - rr. esplits; eauto.
     }
     { s. unfold add_fnsems. rewrite !app_length, !map_length.
