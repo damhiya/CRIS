@@ -18,54 +18,42 @@ Set Implicit Arguments.
 Section RESOURCE.
   Context `{_W: CtxWD.t}.
 
-  Global Instance pendingRA: URA.t := URA.prod (Excl.t unit) (Auth.t (Z ==> (Excl.t Z)))%ra.
-  Context `{@GRA.inG pendingRA Γ}.
+  Global Instance mapRA: URA.t := URA.prod (Excl.t unit) (Auth.t (Z ==> (Excl.t Z)))%ra.
+  Context `{@GRA.inG mapRA Γ}.
 
-  Definition map_points_to_r (k: Z) (v: Z): pendingRA :=
+  Definition map_points_to_r (k: Z) (v: Z): mapRA :=
     (ε, Auth.white ((fun n => if Z.eq_dec n k then Excl.just v else ε): @URA.car (Z ==> (Excl.t Z))%ra)).
-
   Definition map_points_to (k: Z) (v: Z): iProp :=
     OwnM (map_points_to_r k v).
 
-  Definition pending_r: pendingRA :=
+  Definition pending_r: mapRA :=
     (Excl.just tt, ε).
-
   Definition pending: iProp :=
     OwnM pending_r.
-    
-  Fixpoint initial_points_tos (sz: nat): iProp :=
-    match sz with
-    | 0 => True%I
-    | S sz' => initial_points_tos sz' ∗ map_points_to sz' 0
-    end.
 
   Definition initial_r: (Z ==> (Excl.t Z))%ra := (fun _ => Excl.just 0%Z).
-  
-  Definition initial_map_r: pendingRA :=
+  Definition initial_map_r: mapRA :=
     (ε, (Auth.black initial_r) ⋅ (Auth.white initial_r)).
+  Definition initial_map: iProp :=
+    OwnM initial_map_r.
 
-  Definition black_map_r (f: Z -> Z): pendingRA :=
+  Definition black_map_r (f: Z -> Z): mapRA :=
     (Excl.unit, Auth.black ((fun k => Excl.just (f k)): (Z ==> (Excl.t Z))%ra)).
+  Definition black_map (f: Z -> Z): iProp :=
+    OwnM (black_map_r f).
 
-  Definition unallocated_r (sz: Z): pendingRA :=
+  Definition unallocated_r (sz: Z): mapRA :=
     (Excl.unit, Auth.white ((fun k =>
                                if (Z_gt_le_dec 0 k) then Excl.just 0%Z
                                else if (Z_gt_le_dec sz k) then Excl.unit else Excl.just 0%Z)
                              : (Z ==> (Excl.t Z))%ra)).
-
-  Definition initial_map: iProp :=
-    OwnM initial_map_r.
-
-  Definition black_map (f: Z -> Z): iProp :=
-    OwnM (black_map_r f).
-
   Definition unallocated (sz: Z): iProp :=
     OwnM (unallocated_r sz).
 
-  Definition pending0RA: URA.t := Excl.t unit.
-  Context `{@GRA.inG pending0RA Γ}. 
+  Definition map0RA: URA.t := Excl.t unit.
+  Context `{@GRA.inG map0RA Γ}. 
 
-  Definition pending0_r: pending0RA := Excl.just tt.
+  Definition pending0_r: map0RA := Excl.just tt.
 
   Definition pending0: iProp :=
     OwnM pending0_r.
@@ -77,8 +65,8 @@ End RESOURCE.
 Module MapRA.
   Class t
     `{_W: CtxWD.t}
-    `{@GRA.inG pendingRA Γ}
-    `{@GRA.inG pending0RA Γ}
+    `{@GRA.inG mapRA Γ}
+    `{@GRA.inG map0RA Γ}
     := MapRA: unit.
 
 End MapRA.
@@ -86,13 +74,16 @@ End MapRA.
 Section SPECS.
   Context `{_M: MapRA.t}.
 
+  Definition initial_points_tos (sz: nat) : iProp :=
+    ([∗ list] i↦v ∈ (repeat (0:Z) sz), map_points_to i%Z v)%I.
+  
   Definition init_spec: fspec :=
     mk_fspec_inv 0
       (fun _ _ => mk_simple (fun (sz: nat) =>
                     (ord_top,
-                      (fun varg => ( ⌜varg = ([Vint sz]: list val)↑⌝
-                                     ∗ ⌜(8 * (Z.of_nat sz) < modulus_64%Z)%Z⌝
-                                     ∗ pending)%I),
+                      (fun varg => (⌜varg = ([Vint sz]: list val)↑⌝
+                                    ∗ ⌜(8 * (Z.of_nat sz) < modulus_64%Z)%Z⌝
+                                    ∗ pending)%I),
                       (fun vret => (⌜vret = Vundef↑⌝ ∗ initial_points_tos sz)%I)))).
 
   Definition init_specM: fspec :=
