@@ -1,5 +1,5 @@
 Require Import Coqlib ITreelib sflib.
-Require Import MapHeader MapI MapM MapA ModSim MapIMproof MapMAproof.
+Require Import MapHeader MapASpec MapMSpec MapI MapM MapA ModSim MapIMproof MapMAproof.
 Require Import ImpPrelude.
 Require Import Skeleton.
 Require Import PCM IPM.
@@ -18,7 +18,8 @@ From ExtLib Require Import
 
 Require Import STB.
 Require Import Mem1.
-Require Import ISim HMod Mod ModSimFacts CtxRefineFacts.
+Require Import ISim SMod HMod Mod ModSimFacts.
+Require Import HModAdequacy HModAlgebra CtxRefineFacts.
 Require Import sProp sWorld World SRF.
 From stdpp Require Import coPset gmap namespaces.
 
@@ -30,45 +31,40 @@ Set Implicit Arguments.
 Local Open Scope nat_scope.
 
 Section PROOF.
-  Context `{_M: MapRA.t}.
+  Context `{_W: CtxWD.t}.
+  Context `{_M: MapMR.t (Γ:=Γ)}.
+  Context `{_A: MapAR.t (Γ:=Γ)}.
   Context `{@GRA.inG memRA Γ}.
+
+  Let HMapM := MapM.t (fun _ => to_stb (MapMS.Stb ++ MemStb)).
+
+  Let MapM_initial_cond := 
+    SModSem.initial_cond MapM.Sem.
 
   Theorem correct:
     ctx_refines
-      (HMod.to_mod (HMod.add MapI.Map (HMem (fun _ => false))))
-      (HMod.to_mod (HMod.add (MapA.HMap (fun _ => to_stb (MemStb ++ MapStb))) (HMem (fun _ => false)))).
+      ((HMod.add (MapA.t MapM_initial_cond (fun _ => to_stb (MapAS.Stb ++ MemStb))) (HMem (fun _ => false))))
+      ((HMod.add MapI.t (HMem (fun _ => false)))).
   Proof.
     etrans.
     {
-      eapply adequacy_local, adequacy_hmod, MapIMproof.sim. i.
-      instantiate (1:= (fun _ => to_stb (MemStb ++ MapStbM))).
-      ss. stb_tac. eauto.
+      eapply adequacy_ctx.
+      instantiate (2:= (HMod.add HMapM (HMem (λ _ : string, false)))). 
+      eapply sim_ctx_hmod. eapply MapMA.sim. 
+      (* stb_tac not working *)
+      { 
+        i. unfold to_stb, stb_incl. i.
+        rewrite alist_find_app_o. des_ifs.
+      }
+      { 
+        i. unfold to_stb, stb_incl. i.
+        rewrite alist_find_app_o. des_ifs.
+      }
     }
     {
-      eapply adequacy_local, adequacy_hmod, sim_ctx_hmod, MapMAproof.sim.
-      { i. stb_tac. auto. }
-      { i. stb_tac. auto. }
+      eapply adequacy_ctx. eapply MapIM.sim.
+      i. unfold to_stb, stb_incl. i.
+      rewrite alist_find_app_o. des_ifs.
     }
   Qed.
 End PROOF.
-
-  (* 
-    Reorganize the definitions of 'refines': 
-    - refines src tgt (Type: mod.t)
-    - refines' src tgt ctx (Type: hmod.t) := refines (to_mod (add src ctx)) (to_mod (add tgt ctx))
-    - Do we still need refines2? (getting modules as a list)
-      Something like Fixpoint add_list hd::tl := add hd (add_list tl) might be enough.
-      ( 
-        refines2 [src0; src1; ... ; ctx0; ctx1; ...] [tgt0; tgt1; ... ; ctx0; ctx1; ... ] 
-    
-        =>
-
-        Let src := add_list [src0; src1; ... ]
-        Let tgt := add_list [tgt0; tgt1; ... ]
-        Let ctx := add_list [ctx0; ctx1; ... ]
-
-        refines' src tgt ctx 
-       
-      )
-  *)
-

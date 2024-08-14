@@ -312,14 +312,23 @@ Section SIMMODSEM.
   
   Theorem sim: HModR.sim MapAMod MapMMod Ist.
   Proof.
-    sim_init.
-    - iIntros "(IST & P & INIT0)"; s. iSplitL "INIT0"; eauto.
+    econs; ss. i. econs; ss.
+    { 
+      iIntros "(IST & P & INIT0)"; s. iSplitL "INIT0"; eauto.
       iLeft. iFrame. eauto.
-    - iApply simF_init. eauto.
-    - iApply simF_get. eauto.
-    - iApply simF_set. eauto.
-    - iApply simF_set_by_user. eauto.
-    Qed.
+    }
+    { rewrite MapA.unfold. rewrite MapM.unfold. ss. i. des_ifs. }
+    rewrite MapA.unfold. rewrite MapM.unfold. ss.
+    i. des_ifs.  
+    - esplits; eauto. ii. subst. iIntros "IST". 
+      iApply simF_init. eauto.
+    - esplits; eauto. ii. subst. iIntros "IST". 
+      iApply simF_get. eauto.
+    - esplits; eauto. ii. subst. iIntros "IST". 
+      iApply simF_set. eauto.
+    - esplits; eauto. ii. subst. iIntros "IST". 
+      iApply simF_set_by_user. eauto.
+  Qed.
 
 End SIMMODSEM.
 End MapMA.

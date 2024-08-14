@@ -47,9 +47,9 @@ Section ADEQUACY.
   Theorem adequacy_hmod
       (md_src md_tgt: HMod.t) Ist
       (rs rt: Σ) 
-      (SIM: HModR.sim md_src md_tgt Ist)
       (SRC: HModSem.initial_cond (md_src.(HMod.get_modsem) md_src.(HMod.sk)) rs)
       (TGT: HModSem.initial_cond (md_tgt.(HMod.get_modsem) md_tgt.(HMod.sk)) rt)
+      (SIM: HModR.sim md_src md_tgt Ist)
     :
       ModR.sim (HMod.to_mod md_src rs) (HMod.to_mod md_tgt rt).
   Proof.
@@ -242,7 +242,7 @@ Section SIM.
           (Any.pair st_src st_ctx, translate (emb_ run_l) (i y)) (Any.pair st_tgt st_ctx, translate (emb_ run_l) (i0 y)).
     Proof.
       iIntros "H". iEval (unfold IstProd) in "H". 
-      iDestruct "H" as (? ? ? ?) "(% & H & %)". des. subst.
+      iDestruct "H" as (? ? ? ?) "(% & H & %)". des. subst. 
       
     Admitted.
 

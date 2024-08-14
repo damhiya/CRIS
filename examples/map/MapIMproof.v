@@ -342,19 +342,26 @@ Section SIMMODSEM.
   
   Theorem sim: HModR.sim MapMMod MapIMod (IstProd Ist IstEq).
   Proof.
-    sim_init.
-    - iIntros "[H0 H1]". iFrame.
+    econs; ss. i. econs; ss.
+    {
+      iIntros "[H0 H1]". iFrame.
       iExists _, _, _, _; iSplitR; eauto; iSplitL; eauto.
       iLeft; eauto.
-    - iApply simF_init. eauto.
-    - iApply simF_get. eauto.
-    - iApply simF_set. eauto.
-    - iApply simF_set_by_user. eauto.
-    - iApply isim_reflR. eauto.
-    - iApply isim_reflR. eauto.
-    - iApply isim_reflR. eauto.
-    - iApply isim_reflR. eauto.
-    - iApply isim_reflR. eauto.
+    }
+    { rewrite MapM.unfold. rewrite MapI.unfold. ss. i. des_ifs. }
+    rewrite MapM.unfold. rewrite MapI.unfold. ss.
+    i. des_ifs.
+    - esplits; eauto. ii. subst. iIntros "IST". 
+      iApply simF_init. eauto.
+    - esplits; eauto. ii. subst. iIntros "IST". 
+      iApply simF_get. eauto.
+    - esplits; eauto. ii. subst. iIntros "IST".
+      iApply simF_set. eauto. 
+    - esplits; eauto. ii. subst. iIntros "IST". 
+      iApply simF_set_by_user. eauto.
+    - unfold Mem in *. rewrite HMem_unfold in *. ss.
+      des_ifs; esplits; eauto; ii; subst; 
+      iIntros "IST"; iApply isim_reflR; eauto.
   Qed.
 
 End SIMMODSEM.
