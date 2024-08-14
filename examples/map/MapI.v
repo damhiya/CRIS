@@ -95,7 +95,7 @@ Section I.
   |}
   .
   Definition _t := Mod.
-  Definition t := Mod.
+  Definition t := _t.
   
   Lemma unfold: t = _t.
   Proof. eauto. Qed.
