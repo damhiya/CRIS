@@ -20,7 +20,6 @@ Require Import Events Mod SMod.
 From stdpp Require Import coPset gmap.
 
 (************ User Tactics **************)
-Ltac sim_init := econs; eauto; ii; econs; cycle 1; [s|sim_split].
 Tactic Notation "simF_init" constr(LS) constr(LT) reference(FS) reference(FT) :=
   unfold HModR.sim_fun; i;
   rewrite// [in alist_find _ _]LS; s;
@@ -93,6 +92,10 @@ iApply isim_progress; iApply isim_base;
 match goal with [|- context[_ ?R _ _ _ (?st_src, _ _ ?itr) (?st_tgt, _)]] =>
   iApply ("CIH" $! (@existT _ (λ _, _) itr (@existT _ (λ _, _) st_src st_tgt))); eauto
 end.
+
+(* need change *)
+Ltac sim_init := econs; eauto; ii; econs; cycle 1; [s|sim_split].
+
 
 (**** TODO ****)
 (* A tactic to handle meta variables *)

@@ -9,8 +9,16 @@ Section PROPERTIES.
   Context `{Sk.ld}.
   Context `{Σ: GRA.t}.
 
+  Theorem adequacy_ctx
+          md0 md1 Ist
+          (SIM: HModR.sim md0 md1 Ist)
+      :
+          ctx_refines md0 md1.
+  Proof. Admitted.
+
+
   (*** horizontal composition ***)
-  Theorem refines_add
+  (* Theorem refines_add
         (md0_src md0_tgt md1_src md1_tgt: HMod.t)
         (SIM0: ctx_refines md0_tgt md0_src)
         (SIM1: ctx_refines md1_tgt md1_src)
@@ -132,14 +140,14 @@ Section PROPERTIES.
      split.
      { ii. eapply H0. auto. }
      { ii. eapply H0. auto. }
-   Qed.
+   Qed. *)
 
 End PROPERTIES.
           
 
 Section ADEQUACY.
 
-  Theorem adequacy_local md_src md_tgt
+  (* Theorem adequacy_local md_src md_tgt
           (SIM: ModR.sim md_src md_tgt)
     :
     <<CR: (ctx_refines md_tgt md_src)>>.
@@ -191,7 +199,7 @@ Section ADEQUACY.
   .
   Proof.
     eapply adequacy_local_list. econs; ss.
-  Qed.
+  Qed. *)
 
 End ADEQUACY.
 
@@ -201,7 +209,7 @@ Import Mod.
 Section BEH.
 
   Context `{Sk.ld}.
-
+(* 
   Theorem add_comm
           md0 md1
     :
@@ -242,7 +250,7 @@ Section BEH.
     i. split; et. unfold enclose. ss.
     rewrite <- Sk.add_assoc.
     inv H2. inv H3. econs.
-    repeat (ss; unfold ModSem.add_fnsems in *; rewrite ! List.map_app in *; rewrite ! List.map_map in *).
+    repeat (ss; unfold ModSem.add_fnsems in *; rewrite ! List.map_app in *; rewrite ! List.map_map in * ).
     rewrite fun_fst_trans_l in *.
     rewrite fun_fst_trans_r in *.
     rewrite fun_fst_trans_l_l in *.
@@ -268,7 +276,7 @@ Section BEH.
     i. split; et. unfold enclose. ss.
     rewrite Sk.add_assoc.
     inv H2. inv H3. econs.
-    repeat (ss; unfold ModSem.add_fnsems in *; rewrite ! List.map_app in *; rewrite ! List.map_map in *).
+    repeat (ss; unfold ModSem.add_fnsems in *; rewrite ! List.map_app in *; rewrite ! List.map_map in * ).
     rewrite fun_fst_trans_l in *.
     rewrite fun_fst_trans_r in *.
     rewrite fun_fst_trans_l_l in *.
@@ -359,7 +367,7 @@ Section BEH.
   .
   Proof. 
     ii. apply add_comm. apply add_empty_rev_r. et. 
-  Qed.
+  Qed. *)
 
 
 
@@ -368,7 +376,7 @@ Section BEH.
     fold_right add empty xs
   . *)
 
-  Lemma add_list_single: forall (x: t), add_list [x] = x.
+  (* Lemma add_list_single: forall (x: t), add_list [x] = x.
   Proof. ii; cbn. refl. Qed.
 
 
@@ -396,7 +404,7 @@ Section BEH.
       | [] => Ret tt↑
       | x::[] => x
       | x::l => st1 <- x;; st2 <- (add_mrs_list l);; Ret (Any.pair st1 st2)
-      end.
+      end. *)
 
     (* Fixpoint add_mrs_list (xs: list Any.t): Any.t :=
       match xs with
