@@ -2,26 +2,28 @@ Require Export Coqlib sflib.
 Require Import Behavior.
 Require Import Mod Skeleton.
 Require Import CtxRefine.
-Require Import ModSimAlgebra.
+Require Import PCM IPM HMod ISimCore HModAdequacy.
+Require Import ModSimAlgebra ModSimFacts.
 
 Section PROPERTIES.
   Context `{Sk.ld}.
+  Context `{Σ: GRA.t}.
 
   (*** horizontal composition ***)
   Theorem refines_add
-        (md0_src md0_tgt md1_src md1_tgt: Mod.t)
+        (md0_src md0_tgt md1_src md1_tgt: HMod.t)
         (SIM0: ctx_refines md0_tgt md0_src)
         (SIM1: ctx_refines md1_tgt md1_src)
     :
-        <<SIM: ctx_refines (Mod.add md0_tgt md1_tgt) (Mod.add md0_src md1_src)>>
+        <<SIM: ctx_refines (HMod.add md0_tgt md1_tgt) (HMod.add md0_src md1_src)>>
   .
   Proof. 
     ii. r in SIM0. r in SIM1. 
     pose proof ModSemAlgebra.add_comm as COMM. 
-    pose proof ModFacts.add_assoc as ASSOC. 
-    pose proof ModFacts.add_assoc_rev as ASSOC'. 
-    r in COMM. r in ASSOC. r in ASSOC'.
-    apply ASSOC'. 
+    pose proof ModSemAlgebra.add_assoc as ASSOC. 
+    (* pose proof ModSemAlgebra.add_assoc_rev as ASSOC'.  *)
+    (* r in COMM. r in ASSOC. r in ASSOC'. *)
+    (* apply ASSOC'.  *)
     apply SIM0.
     apply ASSOC. apply COMM. apply ASSOC. apply COMM.
     apply SIM1.
@@ -37,7 +39,7 @@ Section PROPERTIES.
   .
   Proof.
     ii. r in SIM0.
-    apply ModFacts.add_assoc_rev. apply ModFacts.add_assoc in PR.
+    apply ModSemAlgebra.add_assoc_rev. apply ModSemAlgebra.add_assoc in PR.
     apply SIM0. apply PR. 
   Qed.
 
@@ -50,9 +52,9 @@ Section PROPERTIES.
 
   Proof.
     ii. r in SIM0.
-    pose proof ModFacts.add_comm as COMM.
+    pose proof ModSemAlgebra.add_comm as COMM.
     apply COMM. apply COMM in PR.
-    apply ModFacts.add_assoc. apply ModFacts.add_assoc_rev in PR.
+    apply ModSemAlgebra.add_assoc. apply ModSemAlgebra.add_assoc_rev in PR.
     apply COMM. apply COMM in PR.
     apply SIM0. apply PR.  
   Qed.
@@ -60,10 +62,10 @@ Section PROPERTIES.
   Lemma refines_close: ctx_refines <2= refines_closed.
   Proof. 
     ii. specialize (PR Mod.empty). ss.
-    pose proof ModFacts.add_empty_r as EMP.
+    pose proof ModSemAlgebra.add_empty_r as EMP.
     r in EMP.
     apply EMP with (x0 := x2) in PR.
-    2: { apply ModFacts.add_empty_rev_r. et. } 
+    2: { apply ModSemAlgebra.add_empty_rev_r. et. } 
     apply PR.
   Qed.
 
@@ -74,9 +76,9 @@ Section PROPERTIES.
   .
   Proof. 
     ii. 
-    pose proof ModFacts.add_comm as COMM. 
-    pose proof ModFacts.add_assoc as ASSOC. 
-    apply COMM. apply COMM in PR. apply ModFacts.add_empty_rev_r in PR.
+    pose proof ModSemAlgebra.add_comm as COMM. 
+    pose proof ModSemAlgebra.add_assoc as ASSOC. 
+    apply COMM. apply COMM in PR. apply ModSemAlgebra.add_empty_rev_r in PR.
     apply ASSOC. et.
   Qed.
 
@@ -87,9 +89,9 @@ Section PROPERTIES.
   .
   Proof. 
     ii. 
-    pose proof ModFacts.add_comm as COMM. 
-    pose proof ModFacts.add_assoc_rev as ASSOC'. 
-    apply COMM. apply COMM in PR. apply ASSOC' in PR. apply ModFacts.add_empty_r in PR.
+    pose proof ModSemAlgebra.add_comm as COMM. 
+    pose proof ModSemAlgebra.add_assoc_rev as ASSOC'. 
+    apply COMM. apply COMM in PR. apply ASSOC' in PR. apply ModSemAlgebra.add_empty_r in PR.
     et.
   Qed.
 
@@ -165,17 +167,17 @@ Section ADEQUACY.
         * apply adequacy_local. apply H.
         * apply IHFORALL.
       + s. ii.
-        pose proof ModFacts.add_comm as COMM. 
-        pose proof ModFacts.add_assoc_rev as ASSOC'.
-        apply COMM. apply COMM in PR. apply ASSOC' in PR. apply ModFacts.add_empty_r in PR.
+        pose proof ModSemAlgebra.add_comm as COMM. 
+        pose proof ModSemAlgebra.add_assoc_rev as ASSOC'.
+        apply COMM. apply COMM in PR. apply ASSOC' in PR. apply ModSemAlgebra.add_empty_r in PR.
         apply PR.
     - etrans.
       + apply adequacy_local. apply H.
       + etrans.
         * instantiate (1:= Mod.add x (Mod.add_list [])). s. ii.
-          pose proof ModFacts.add_comm as COMM. 
-          pose proof ModFacts.add_assoc as ASSOC.
-          apply COMM. apply COMM in PR. apply ASSOC. apply ModFacts.add_empty_rev_r. apply PR.
+          pose proof ModSemAlgebra.add_comm as COMM. 
+          pose proof ModSemAlgebra.add_assoc as ASSOC.
+          apply COMM. apply COMM in PR. apply ASSOC. apply ModSemAlgebra.add_empty_rev_r. apply PR.
         * apply refines_add; et. apply adequacy_local.
           econs; et. ii. rr. apply ModSemR.self_sim.
     - apply refines_add; et. apply adequacy_local. apply H.
