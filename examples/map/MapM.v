@@ -6,10 +6,8 @@ Require Import SMod HMod.
 Require Import Skeleton.
 Require Import PCM.
 Require Import STB IPM.
-Require Import MapHeader.
-
+Require Import MapHeader MapMSpec.
 Require Import sProp sWorld World SRF.
-
 
 Set Implicit Arguments.
 
@@ -33,14 +31,12 @@ def set_by_user(k: int) ≡
   set(k, input())
 ***)
 
+Module MapM.
 Section M.
-  Context `{_M: MapRA.t}.
-  (* Context `{@GRA.inG MapRA0 Γ}.
-  Context `{@GRA.inG CallableRA Γ}. *)
+  Context `{_W: CtxWD.t}.
+  Context `{_M: MapMR.t (Γ:=Γ)}.
 
-  (* Let Es := (hAPCE +' Es). *)
-
-  Definition initF: list val -> itree smodE val :=
+  Definition init: list val -> itree smodE val :=
     fun varg =>
       `sz: Z <- (pargs [Tint] varg)?;;
       `data: (Z -> Z) * Z <- pget;; let (f, _) := data in
@@ -48,7 +44,7 @@ Section M.
       Ret Vundef
   .
 
-  Definition getF: list val -> itree smodE val :=
+  Definition get: list val -> itree smodE val :=
     fun varg =>
       k <- (pargs [Tint] varg)?;;
       `data: (Z -> Z) * Z <- pget;; let (f, sz) := data in
@@ -56,7 +52,7 @@ Section M.
       Ret (Vint (f k))
   .
 
-  Definition setF: list val -> itree smodE val :=
+  Definition set: list val -> itree smodE val :=
     fun varg =>
       '(k, v) <- (pargs [Tint; Tint] varg)?;;
       `data: (Z -> Z) * Z <- pget;; let (f, sz) := data in
@@ -65,41 +61,41 @@ Section M.
       Ret Vundef
   .
 
-  Definition set_by_userF: list val -> itree smodE val :=
+  Definition set_by_user: list val -> itree smodE val :=
     fun varg =>
       k <- (pargs [Tint] varg)?;;
       v <- trigger (IO "input" ([]: list Z));;
-      ccallU "set" [Vint k; Vint v]
+      ccallU MapName.set [Vint k; Vint v]
   .
 
-  Definition MapSbtbM: list (string * fspecbody) :=
-    [("init", mk_specbody init_specM (cfunU initF));
-     ("get", mk_specbody get_specM (cfunU getF));
-     ("set", mk_specbody set_specM (cfunU setF));
-     ("set_by_user", mk_specbody set_by_user_specM (cfunU set_by_userF))].
+  Definition fnsems: list (string * fspecbody) :=
+    [(MapName.init, mk_specbody MapMS.init_spec (cfunU init));
+     (MapName.get, mk_specbody MapMS.get_spec (cfunU get));
+     (MapName.set, mk_specbody MapMS.set_spec (cfunU set));
+     (MapName.set_by_user, mk_specbody MapMS.set_by_user_spec (cfunU set_by_user))].
 
-  Definition SMapSem: SModSem.t := {|
-    SModSem.fnsems := MapSbtbM;
-    SModSem.initial_cond := Map0_initial_cond;
+  Definition Sem: SModSem.t := {|
+    SModSem.fnsems := fnsems;
+    SModSem.initial_cond := True%I;
     SModSem.initial_st := (fun (_: Z) => 0%Z, 0%Z)↑;
   |}
   .
 
-  Definition SMap: SMod.t := {|
-    SMod.get_modsem := fun _ => SMapSem;
-    SMod.sk := [("init", Gfun↑); ("get", Gfun↑); ("set", Gfun↑); ("set_by_user", Gfun↑)];
+  Definition Mod: SMod.t := {|
+    SMod.get_modsem := fun _ => Sem;
+    SMod.sk := MapSK.t;
   |}
   .
 
   Variable GlobalStb: Sk.t -> gname -> option fspec.
-  Definition _HMap: HMod.t := (SMod.to_hmod GlobalStb SMap).
-  Definition HMap := _HMap.
+  Definition _t: HMod.t := (SMod.to_hmod GlobalStb Mod).
+  Definition t := _t.
 
-  Lemma HMap_unfold: HMap = _HMap.
+  Lemma unfold: t = _t.
   Proof. eauto. Qed.
   
-  Global Opaque HMap.
+  Global Opaque t.
   
 End M.
-
+End MapM.
 

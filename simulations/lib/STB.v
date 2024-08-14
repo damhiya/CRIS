@@ -278,3 +278,8 @@ Ltac stb_context_incl_tac :=
     autounfold with stb; autorewrite with stb; repeat econs; ii; ss; des; ss].
 
 Ltac ors_tac := repeat ((try by (ss; left; ss)); right).
+
+Tactic Notation "unfold_stb" constr(In) reference(Stb) :=
+  erewrite In in *; [|unfold Stb; unseal "stb"; eauto].
+
+
