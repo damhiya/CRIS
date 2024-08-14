@@ -322,3 +322,4 @@ Section SIMMODSEM.
     Qed.
 
 End SIMMODSEM.
+End MapMA.
