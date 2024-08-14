@@ -87,6 +87,13 @@ Ltac take := prep; take_l; take_r.
 Ltac asm := prep; asm_l; asm_r.
 Ltac grt := prep; grt_r; grt_l.
 
+(* Need to be generalized *)
+Ltac CIH :=
+iApply isim_progress; iApply isim_base;
+match goal with [|- context[_ ?R _ _ _ (?st_src, _ _ ?itr) (?st_tgt, _)]] =>
+  iApply ("CIH" $! (@existT _ (λ _, _) itr (@existT _ (λ _, _) st_src st_tgt))); eauto
+end.
+
 (**** TODO ****)
 (* A tactic to handle meta variables *)
 (* Tactics to handle APC. (APC in src / in tgt / ord_pure 0 / ord_pure n / ....  ) *)

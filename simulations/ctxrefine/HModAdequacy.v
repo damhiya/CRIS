@@ -8,7 +8,7 @@ Require Import STS.
 Require Import Behavior Skeleton.
 Require Import PCM IPM.
 
-Require Import SimInitial ModSim ModSimFacts CtxRefineFacts.
+Require Import ModSim ModSimFacts.
 Require Import HPSim HPSimFacts.
 
 Require Import HMod Mod HMod2Mod Events.
@@ -30,7 +30,8 @@ Set Implicit Arguments.
 (* To be moved or merged to another file *)
 
 Section ADEQUACY.
-  Context `{_W: CtxWD.t}.
+  (* Context `{_W: CtxWD.t}. *)
+  Context `{Σ: GRA.t}.
 
   Lemma Own_upd_specify
         r P 
@@ -44,6 +45,56 @@ Section ADEQUACY.
   Qed.
 
   Theorem adequacy_hmod
+      (md_src md_tgt: HMod.t) Ist
+      (rs rt: Σ) 
+      (SIM: HModR.sim md_src md_tgt Ist)
+      (SRC: HModSem.initial_cond (md_src.(HMod.get_modsem) md_src.(HMod.sk)) rs)
+      (TGT: HModSem.initial_cond (md_tgt.(HMod.get_modsem) md_tgt.(HMod.sk)) rt)
+    :
+      ModR.sim (HMod.to_mod md_src rs) (HMod.to_mod md_tgt rt).
+  Proof.
+    (* inv SIM. des.
+    econs; eauto. i. specialize (sim_modsem sk SKINCL SKWF). 
+    des. inv sim_modsem.
+    econs; ss.
+    - instantiate (1:= eq). eapply base.PreOrder_instance_0.
+    - admit.
+    - rewrite! List.map_length. eauto.
+    - i. rewrite alist_find_map in MISS. unfold o_map in MISS. 
+      
+    i. 
+    - instantiate (1:= eq). eapply base.PreOrder_instance_0.
+    - ss. unfold cond_to_st, handle_init_cond, assume_init. grind.
+      ginit. 
+      gstep. econs; eauto. i. grind. econs; eauto. i. econs; eauto. i. (* run src to the end *)
+      assert (Own x ⊢ HModSem.initial_cond (HMod.get_modsem md_tgt sk) **
+      Ist (HModSem.initial_st (HMod.get_modsem md_src sk)) (HModSem.initial_st (HMod.get_modsem md_tgt sk))).
+      { iIntros "H". iApply isim_initial. iApply x1. eauto. }
+      eapply iProp_sepconj in H; cycle 1. { eapply URA.wf_mon. eauto. }
+      des.
+      econs; eauto. instantiate (1:= p). grind. econs; eauto. { r_solve. do 2 eapply URA.wf_mon. eauto. } 
+      econs; eauto. { eapply iProp_Own. eauto. }
+      econs. exists (ε: Σ). instantiate (1:= interp_inv Ist). hss. 
+      econs; eauto.
+      { instantiate (1:= q). r_solve. rewrite URA.add_comm. eauto. }
+      eapply iProp_Own in H1. iIntros "H". iApply (H1 with "H").
+    - eapply Forall2_apply_Forall2; eauto.
+      i. destruct a, b. inv H. econs; ss. ii. do 3 r in H1.
+        specialize (H1 x y H). inv SIMMRS. s.
+        specialize (H1 st_src st_tgt).
+        eapply hpsim_adequacy; [et|et| |r_solve;et|]; cycle 1.
+        { instantiate (1:= mr). r_solve. eauto. }
+        ginit. guclo hpsim_wfC_spec. econs. i.
+        eapply Own_upd_specify in MR; eauto. des.
+        eapply Own_Upd in MR0.
+        guclo hpsim_updateC_spec. econs. econs.
+        instantiate (1:= r0). esplits; eauto.
+        eapply iProp_Own in MR. eapply isim_init in H1; eauto.
+        eapply gpaco7_mon; eauto using iunlift_ibot. *)
+
+  Admitted.
+
+  (* Theorem adequacy_hmod
       (md_src md_tgt: HMod.t) Ist
       (SIM: HModR.sim md_src md_tgt Ist)
     :
@@ -81,7 +132,7 @@ Section ADEQUACY.
         instantiate (1:= r0). esplits; eauto.
         eapply iProp_Own in MR. eapply isim_init in H1; eauto.
         eapply gpaco7_mon; eauto using iunlift_ibot.
-  Qed.
+  Qed. *)
 
 End ADEQUACY.
 
@@ -167,7 +218,8 @@ Section HPSIM.
 End HPSIM.
 
 Section SIM.
-  Context `{_W: CtxWD.t}.
+  Context `{Σ: GRA.t}.
+  (* Context `{_W: CtxWD.t}. *)
   Section HMODSEM.
     Import HModSem.
 
@@ -202,28 +254,29 @@ Section SIM.
             HModSemR.sim (HModSem.add ms1 ctx) (HModSem.add ms2 ctx) (IstProd Ist IstEq).
     Proof.
       inv SIM. 
-      econs; ss; cycle 1.
+      econs; ss.
       { 
-        iIntros "[H C]". iPoseProof (isim_initial with "H") as "[H I]". iFrame.
+        iIntros "[H C]". iPoseProof (sim_initial with "H") as "[H I]". iFrame.
         unfold IstProd, IstEq. 
         iExists (initial_st ms1), (initial_st ms2).
         iFrame. iPureIntro. esplits; eauto.    
       }
-      unfold add_fnsems, trans_l, trans_r.
-      apply Forall2_app; eapply Forall2_apply_Forall2; eauto; cycle 1.
-      - instantiate (1:= eq). induction (fnsems ctx); eauto.
-      - i. subst. econs; eauto. ii; subst. 
-        destruct b. ss. eapply isim_reflR.
-      - i. destruct H. r in H. do 3 r in H0.
-        destruct a, b. econs; eauto. ss. subst. ss.
-        ii. subst. s. 
-        iIntros "H". 
-        iEval (unfold IstProd) in "H".
-        iDestruct "H" as (? ? ? ?) "(% & I & %)". des. subst.
-        iApply isim_ctx_aux; eauto.
-        unfold IstProd, IstEq. iExists st_srcL, st_tgtL. iFrame.
-        iPureIntro. esplits; eauto.
-    Qed.
+      { 
+        unfold add_fnsems. rewrite! List.app_length. rewrite! List.map_length.
+        f_equal. ss.
+      }
+      {
+        i. unfold add_fnsems in MISS. rewrite alist_find_app_o in MISS. des_ifs.
+        admit.
+      }
+      i. unfold add_fnsems in FIND. rewrite alist_find_app_o in FIND. des_ifs.
+      { (* find in ms1 *)
+        admit.
+      }
+      { (* find in ctx *)
+        admit.
+      } 
+    Admitted.
   End HMODSEM.
 
   Theorem sim_ctx_hmod
