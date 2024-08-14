@@ -28,13 +28,14 @@ Set Implicit Arguments.
 
 Local Open Scope nat_scope.
 
+Module MapIM.
 Section SIMMODSEM.
   Context `{_W: CtxWD.t}.
   Context `{_M: MapMR.t (Γ:=Γ)}.
   Context `{@GRA.inG memRA Γ}.  
   
-  Variable GlobalStbM: Sk.t -> gname -> option fspec.
-  Hypothesis MapInStb: forall sk, stb_incl (to_stb MapMS.Stb) (GlobalStbM sk).
+  Variable StbM: Sk.t -> gname -> option fspec.
+  Hypothesis MapInStb: forall sk, stb_incl (to_stb MapMS.Stb) (StbM sk).
 
   Lemma pending_unique:
     MapMS.pending -∗ MapMS.pending -∗ False%I.
@@ -108,10 +109,11 @@ Section SIMMODSEM.
             ∗ (blk, ofs) |-> (fun_to_list f (Z.to_nat sz)))
        )%I.
 
+  Local Notation MapMMod := (HMod.add (MapM.t StbM) Mem).
+  Local Notation MapIMod := (HMod.add MapI.t Mem).
+  
   Lemma simF_init:
-    HModR.sim_fun
-      (HMod.add (MapM.t GlobalStbM) Mem) (HMod.add MapI.t Mem)
-      (IstProd Ist IstEq) MapName.init.
+    HModR.sim_fun MapMMod MapIMod (IstProd Ist IstEq) MapName.init.
   Proof.
     simF_init MapM.unfold MapI.unfold MapM.init MapI.init.
 
@@ -208,9 +210,7 @@ Section SIMMODSEM.
   Qed.
 
   Lemma simF_get:
-    HModR.sim_fun
-      (HMod.add (MapM.t GlobalStbM) Mem) (HMod.add MapI.t Mem)
-      (IstProd Ist IstEq) MapName.get.
+    HModR.sim_fun MapMMod MapIMod (IstProd Ist IstEq) MapName.get.
   Proof.
     simF_init MapM.unfold MapI.unfold MapM.get MapI.get.
 
@@ -258,9 +258,7 @@ Section SIMMODSEM.
   Qed.
 
   Lemma simF_set:
-    HModR.sim_fun
-      (HMod.add (MapM.t GlobalStbM) Mem) (HMod.add MapI.t Mem)
-      (IstProd Ist IstEq) MapName.set.
+    HModR.sim_fun MapMMod MapIMod (IstProd Ist IstEq) MapName.set.
   Proof.
     simF_init MapM.unfold MapI.unfold MapM.set MapI.set.
 
@@ -310,9 +308,7 @@ Section SIMMODSEM.
   Qed.
 
   Lemma simF_set_by_user:
-    HModR.sim_fun
-      (HMod.add (MapM.t GlobalStbM) Mem) (HMod.add MapI.t Mem)
-      (IstProd Ist IstEq) MapName.set_by_user.
+    HModR.sim_fun MapMMod MapIMod (IstProd Ist IstEq) MapName.set_by_user.
   Proof.
     simF_init MapM.unfold MapI.unfold MapM.set_by_user MapI.set_by_user.
 
@@ -344,7 +340,7 @@ Section SIMMODSEM.
     st. eauto.
   Qed.
   
-  Theorem sim: HModR.sim (HMod.add (MapM.t GlobalStbM) Mem) (HMod.add MapI.t Mem) (IstProd Ist IstEq).
+  Theorem sim: HModR.sim MapMMod MapIMod (IstProd Ist IstEq).
   Proof.
     sim_init.
     - iIntros "[H0 H1]". iFrame.
@@ -361,5 +357,5 @@ Section SIMMODSEM.
     - iApply isim_reflR. eauto.
   Qed.
 
-  
 End SIMMODSEM.
+End MapIM.
