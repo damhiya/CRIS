@@ -1,5 +1,5 @@
 Require Import Coqlib ITreelib sflib.
-Require Import MapHeader MapI MapM SMod ModSim.
+Require Import MapHeader MapI MapM MapMSpec SMod ModSim.
 Require Import ImpPrelude.
 Require Import Skeleton.
 Require Import PCM IPM.
@@ -29,17 +29,17 @@ Set Implicit Arguments.
 Local Open Scope nat_scope.
 
 Section SIMMODSEM.
-  Context `{_M: MapRA.t}.
-  Context `{@GRA.inG memRA Γ}. 
-        
+  Context `{_W: CtxWD.t}.
+  Context `{_M: MapMR.t (Γ:=Γ)}.
+  Context `{@GRA.inG memRA Γ}.  
+  
   Variable GlobalStbM: Sk.t -> gname -> option fspec.
-  Hypothesis STBINCLM: forall sk, stb_incl (to_stb MemStb) (GlobalStbM sk).
-  Hypothesis STB_setM: forall sk, (GlobalStbM sk) "set" = Some set_specM.
+  Hypothesis MapInStb: forall sk, stb_incl (to_stb MapMS.Stb) (GlobalStbM sk).
 
-  Lemma pending0_unique:
-    pending0 -∗ pending0 -∗ False%I.
+  Lemma pending_unique:
+    MapMS.pending -∗ MapMS.pending -∗ False%I.
   Proof.
-    Local Transparent pending0.
+    Local Transparent MapMS.pending.
     iIntros "H0 H1". iCombine "H0 H1" as "H".
     iOwnWf "H" as WF. exfalso.
     rr in WF. ur in WF. unseal "ra". des. ur in WF. ss.
@@ -103,23 +103,23 @@ Section SIMMODSEM.
     fun st_src st_tgt =>
        ((⌜st_src = (fun (_: Z) => 0%Z, 0%Z)↑ /\ st_tgt = Vnullptr↑⌝)
         ∨
-        (pending0 ∗ ∃ blk ofs (f: Z -> Z) (sz: Z), 
+        (MapMS.pending ∗ ∃ blk ofs (f: Z -> Z) (sz: Z), 
             ⌜st_src = (f, sz)↑ /\  st_tgt = (Vptr blk ofs)↑⌝ 
             ∗ (blk, ofs) |-> (fun_to_list f (Z.to_nat sz)))
        )%I.
 
   Lemma simF_init:
     HModR.sim_fun
-      (HMod.add (MapM.HMap GlobalStbM) Mem) (HMod.add MapI.Map Mem)
-      (IstProd Ist IstEq) "init".
+      (HMod.add (MapM.t GlobalStbM) Mem) (HMod.add MapI.t Mem)
+      (IstProd Ist IstEq) MapName.init.
   Proof.
-    simF_init MapM.HMap_unfold MapI.Map_unfold initF MapI.initF.
+    simF_init MapM.unfold MapI.unfold MapM.init MapI.init.
 
     (* SRC: handle the IST of Map and the precond of init *)
     st_l. hss. iDestruct "ASM" as "(W & (%Y & %M & P0) & %X)".
     subst. hss. rename y0 into u, y1 into ℓ, x into sz.
     iDestruct "IST" as (? ? ? ?) "(%& [%|(P & _)] &%)"; des; subst; cycle 1.
-    { iExFalso. iApply (pending0_unique with "P P0"). }
+    { iExFalso. iApply (pending_unique with "P P0"). }
     hss. st_l.
 
     (* SRC: prove the postcond of init *)
@@ -209,10 +209,10 @@ Section SIMMODSEM.
 
   Lemma simF_get:
     HModR.sim_fun
-      (HMod.add (MapM.HMap GlobalStbM) Mem) (HMod.add MapI.Map Mem)
-      (IstProd Ist IstEq) "get".
+      (HMod.add (MapM.t GlobalStbM) Mem) (HMod.add MapI.t Mem)
+      (IstProd Ist IstEq) MapName.get.
   Proof.
-    simF_init MapM.HMap_unfold MapI.Map_unfold getF MapI.getF.
+    simF_init MapM.unfold MapI.unfold MapM.get MapI.get.
 
     (* SRC: handle the IST of Map and the precond of get *)
     st_l. hss. iDestruct "ASM" as "(W & % & %)".
@@ -259,10 +259,10 @@ Section SIMMODSEM.
 
   Lemma simF_set:
     HModR.sim_fun
-      (HMod.add (MapM.HMap GlobalStbM) Mem) (HMod.add MapI.Map Mem)
-      (IstProd Ist IstEq) "set".
+      (HMod.add (MapM.t GlobalStbM) Mem) (HMod.add MapI.t Mem)
+      (IstProd Ist IstEq) MapName.set.
   Proof.
-    simF_init MapM.HMap_unfold MapI.Map_unfold setF MapI.setF.
+    simF_init MapM.unfold MapI.unfold MapM.set MapI.set.
 
     (* SRC: handle the IST of Map and the precond of set *)
     st_l. hss. iDestruct "ASM" as "(W & % & %)".
@@ -311,10 +311,10 @@ Section SIMMODSEM.
 
   Lemma simF_set_by_user:
     HModR.sim_fun
-      (HMod.add (MapM.HMap GlobalStbM) Mem) (HMod.add MapI.Map Mem)
-      (IstProd Ist IstEq) "set_by_user".
+      (HMod.add (MapM.t GlobalStbM) Mem) (HMod.add MapI.t Mem)
+      (IstProd Ist IstEq) MapName.set_by_user.
   Proof.
-    simF_init MapM.HMap_unfold MapI.Map_unfold set_by_userF MapI.set_by_userF.
+    simF_init MapM.unfold MapI.unfold MapM.set_by_user MapI.set_by_user.
 
     (* SRC: handle the IST of Map and the precond of set_by_user *)
     st_l. hss. iDestruct "ASM" as "(W & % & %)".
@@ -324,7 +324,8 @@ Section SIMMODSEM.
     st_r. st. hss.
     
     (* SRC: prove the precond of set *)
-    rewrite STB_setM. st_l. unfold HoareCall.
+    unfold_stb MapInStb MapMS.Stb.
+    st_l. unfold HoareCall.
     st_l. force_l. instantiate (1:= mk_meta _ _ (_, _)).
     st_l. force_l. st_l. force_l.
     iSplitL "W". { iFrame. eauto. }
@@ -343,7 +344,7 @@ Section SIMMODSEM.
     st. eauto.
   Qed.
   
-  Theorem sim: HModR.sim (HMod.add (MapM.HMap GlobalStbM) Mem) (HMod.add MapI.Map Mem) (IstProd Ist IstEq).
+  Theorem sim: HModR.sim (HMod.add (MapM.t GlobalStbM) Mem) (HMod.add MapI.t Mem) (IstProd Ist IstEq).
   Proof.
     sim_init.
     - iIntros "[H0 H1]". iFrame.

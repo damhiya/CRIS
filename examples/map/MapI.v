@@ -31,12 +31,12 @@ def set_by_user(k: int) ≡
   set(k, input())
 ***)
 
+Module MapI.
 Section I.
   Local Open Scope string_scope.
-  Context `{_M: MapRA.t}.
-  (* Context `{@GRA.inG MapRA0 Γ}. *)
-  (* Context `{@GRA.inG MapRA1 Σ}. *)
-  Definition initF: list val -> itree hmodE val :=
+  Context `{_W: CtxWD.t}.
+  
+  Definition init: list val -> itree hmodE val :=
     fun varg =>
       `sz: Z <- (pargs [Tint] varg)?;;
       `r: val <- ccallU "alloc" [Vint sz];;
@@ -53,7 +53,7 @@ Section I.
       Ret Vundef
   .
 
-  Definition getF: list val -> itree hmodE val :=
+  Definition get: list val -> itree hmodE val :=
     fun varg =>
       k <- (pargs [Tint] varg)?;;
       data <- trigger sGet;; data <- data↓?;; vptr <- (vadd data (Vint (k * 8)))?;;
@@ -61,7 +61,7 @@ Section I.
       Ret (Vint r)
   .
 
-  Definition setF: list val -> itree hmodE val :=
+  Definition set: list val -> itree hmodE val :=
     fun varg =>
       '(k, v) <- (pargs [Tint; Tint] varg)?;;
       data <- trigger sGet;; data <- data↓?;; vptr <- (vadd data (Vint (k * 8)))?;;
@@ -69,32 +69,38 @@ Section I.
       Ret Vundef
   .
 
-  Definition set_by_userF: list val -> itree hmodE val :=
+  Definition set_by_user: list val -> itree hmodE val :=
     fun varg =>
       k <- (pargs [Tint] varg)?;;
       v <- trigger (IO "input" ([]: list Z));;
-      ccallU "set" [Vint k; Vint v]
+      ccallU MapName.set [Vint k; Vint v]
   .
 
-  Definition MapSem: HModSem.t := {|
-    HModSem.fnsems := [("init", cfunU initF); ("get", cfunU getF); ("set", cfunU setF); ("set_by_user", cfunU set_by_userF)];
-    HModSem.initial_st := Vnullptr↑;
-    HModSem.initial_cond := emp
-  |}
-  .
-
-  Definition _Map: HMod.t := {|
-    HMod.get_modsem := fun _ => MapSem;
-    HMod.sk := [("init", Gfun↑); ("get", Gfun↑); ("set", Gfun↑); ("set_by_user", Gfun↑)];
-  |}
-  .
-  Definition Map := _Map.
+  Definition fnsems :=
+    [(MapName.init, cfunU init);
+     (MapName.get, cfunU get);
+     (MapName.set, cfunU set);
+     (MapName.set_by_user, cfunU set_by_user)].
   
-  Lemma Map_unfold: Map = _Map.
+  Definition Sem: HModSem.t := {|
+    HModSem.fnsems := fnsems;
+    HModSem.initial_st := Vnullptr↑;
+    HModSem.initial_cond := True%I;
+  |}
+  .
+
+  Definition Mod: HMod.t := {|
+    HMod.get_modsem := fun _ => Sem;
+    HMod.sk := MapSK.t;
+  |}
+  .
+  Definition _t := Mod.
+  Definition t := Mod.
+  
+  Lemma unfold: t = _t.
   Proof. eauto. Qed.
 
-  Global Opaque Map.
+  Global Opaque t.
 
 End I.
-
-
+End MapI.
