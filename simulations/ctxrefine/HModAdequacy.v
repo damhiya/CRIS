@@ -186,14 +186,13 @@ Section HPSIM.
       }
       (* 
         Property about Any.pair is not restored without Own fmr1. 
-        Find a way to relate fmr0 & fmr1 (SIM & Goal's fmr after 'Call' )
       *)
       i. guclo hpsim_wfC_spec. econs. i. 
-      eapply K; eauto; admit.
+      eapply K; eauto. admit.
     - rewrite! translate_emb_bind. rewrite! translate_emb_coreE. hstep.
     - rewrite! translate_emb_bind. rewrite translate_emb_callE. hstep.
       { unfold addf. apply alist_find_app. unfold trans_l. rewrite alist_find_map. unfold o_map. rewrite FUN. et. }
-      s. (* fold Ret ();;; Ret x back into translate () *) admit.
+      s. (* put Ret ();;; Ret x back into translate () *) admit.
     - rewrite! translate_emb_bind. admit.
     - rewrite! translate_emb_tau. hstep.
     - rewrite! translate_emb_tau. hstep.
@@ -223,6 +222,23 @@ Section SIM.
   Section HMODSEM.
     Import HModSem.
 
+    Ltac cq := apply combine_quant.
+
+    Lemma any_pair_inv 
+          a0 a1 b0 b1
+          (PAIR: Any.pair a0 a1 = Any.pair b0 b1)
+        :
+           a0 = b0 /\ a1 = b1.
+    Proof.
+      destruct (Any.split (Any.pair a0 a1)) eqn:E; cycle 1.
+      { rewrite Any.pair_split in E. inv E. }
+      destruct p. hexploit E. i.
+      rewrite PAIR in H. 
+      rewrite Any.pair_split in *. inv E. inv H.
+      esplits; eauto.  
+    Qed.
+
+
     Lemma isim_ctx_aux
           s i i0 st_src st_tgt st_ctx
           y fl_src fl_tgt fl_ctx Ist
@@ -234,18 +250,24 @@ Section SIM.
       :
         IstProd Ist IstEq (Any.pair st_src st_ctx) (Any.pair st_tgt st_ctx)
         ⊢ isim (IstProd Ist IstEq)
-          (List.map trans_l fl_src ++ List.map trans_r fl_ctx)
-          (List.map trans_l fl_tgt ++ List.map trans_r fl_ctx) 
+          (addf fl_src fl_ctx) (addf fl_tgt fl_ctx) 
           ibot ibot
           (λ '(st_src0, v_src) '(st_tgt0, v_tgt), IstProd Ist IstEq st_src0 st_tgt0 ** ⌜v_src = v_tgt⌝) 
           false false 
           (Any.pair st_src st_ctx, translate (emb_ run_l) (i y)) (Any.pair st_tgt st_ctx, translate (emb_ run_l) (i0 y)).
     Proof.
-      iIntros "H". iEval (unfold IstProd) in "H". 
-      iDestruct "H" as (? ? ? ?) "(% & H & %)". des. subst. 
-      
-    Admitted.
-
+      iIntros "H". iDestruct "H" as (? ? ? ?) "(% & IST & %)".
+      des. eapply any_pair_inv in H, H1. des. subst. clear H0.
+      remember (Any.pair st_srcL st_tgtR).
+      remember (Any.pair st_tgtL st_tgtR).
+      iPoseProof (SIM with "IST") as "SIM".
+      Local Transparent isim. iStopProof. uiprop. i.
+      eapply gpaco7_mon; cycle 1.
+      { instantiate (1:= bot7). i. inv PR. }
+      { instantiate (1:= bot7). i. inv PR. }
+      gfinal. right. eapply hpsim_ctx; eauto.
+      ginit. eapply gpaco7_mon; eauto using iunlift_ibot.
+    Qed.
 
     Theorem isim_ctx
             ctx ms1 ms2 Ist
