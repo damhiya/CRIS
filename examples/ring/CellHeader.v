@@ -3,9 +3,9 @@ Require Import Events Any IPM ImpPrelude IModL Skeleton.
 
 Module CellName.
   
-Definition init (idx: nat) := "Cell.init:" +:+ IModL.nat_to_string idx.
-Definition get (idx: nat) := "Cell.get:" +:+ IModL.nat_to_string idx.
-Definition set (idx: nat) := "Cell.set:" +:+ IModL.nat_to_string idx.
+Definition init (idx: nat) := "Cell" +:+ IModL.nat_to_string idx +:+ ".init:".
+Definition get  (idx: nat) := "Cell" +:+ IModL.nat_to_string idx +:+ ".get:".
+Definition set  (idx: nat) := "Cell" +:+ IModL.nat_to_string idx +:+ ".set:".
 
 End CellName.
 

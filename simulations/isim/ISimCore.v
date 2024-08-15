@@ -772,15 +772,14 @@ Module HModR.
     }.
 
     Definition sim_fun fn : Prop :=
-      forall st_src st_tgt sk,
+      forall sk,
       let fnsems_src := HModSem.fnsems (HMod.get_modsem md_src sk) in
       let fnsems_tgt := HModSem.fnsems (HMod.get_modsem md_tgt sk) in
       match alist_find fn fnsems_src, alist_find fn fnsems_tgt with
-      | Some isrc, Some itgt => forall a: Any.t,
-        Ist st_src st_tgt -∗
-        isim Ist fnsems_src fnsems_tgt ibot ibot
-        (λ '(st_src0, v_src) '(st_tgt0, v_tgt), Ist st_src0 st_tgt0 ** ⌜v_src = v_tgt⌝)
-        false false (st_src, isrc a) (st_tgt, itgt a)
+      | Some isrc, Some itgt =>
+          isim_fsem Ist fnsems_src fnsems_tgt 
+            (λ '(st_src0, v_src) '(st_tgt0, v_tgt), Ist st_src0 st_tgt0 ** ⌜v_src = v_tgt⌝)
+            isrc itgt
       | _, _ => False
       end.
   End SIM.

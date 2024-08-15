@@ -19,13 +19,66 @@ Require Import Events Mod SMod.
 
 From stdpp Require Import coPset gmap.
 
-(************ User Tactics **************)
-Tactic Notation "simF_init" constr(LS) constr(LT) reference(FS) reference(FT) :=
+(* use this to enforce the ssr_reflect rewrite: rewrite/__ rules. *)
+Definition __ : Type := unit.
+
+Lemma string_app_inv
+  p s s'
+  (EQ: (p ++ s = p ++ s')%string)
+  :
+  (s = s')%string.
+Proof.
+  revert_until p. induction p; i; ss.
+  unfold append in EQ. depdes EQ. eauto.
+Qed.
+
+Ltac inv_string X :=
+  inv X;
+  repeat match goal with [H: (_ ++ _)%string = (_ ++ _)%string|-_] =>
+           apply string_app_inv in H
+         end; ss.
+
+Ltac alist_find_solver :=
+  match goal with [|-context[alist_find ?x]] => rewrite <-(Seal.sealing_eq "_tmp_" x) end;
+  s; unfold rel_dec, Dec_RelDec, sumbool_to_bool, dec, string_Dec;
+  des_ifs; unseal "_tmp_";
+  repeat match goal with [H: (_: string) =  _|-_] => inv_string H end;
+  repeat match goal with [H: (_: string) ≠ _|-_] => clear H end.
+
+Ltac init_simF := let name := fresh "name" in
+  match goal with [|-_ ?x ?y _ _] => rewrite /x /y end; unseal "ccr";
   unfold HModR.sim_fun; i;
-  rewrite// [in alist_find _ _]LS; s;
-  rewrite// [in alist_find _ _]LT; s;
-  unfold FS; unfold FT;
-  i; iIntros "IST"; unfold cfunU, interp_sb_hp, HoareFun, ccallU; s.
+  alist_find_solver;
+  repeat match goal with
+  | [|- context[{| fsb_body := ?x |}]] => rewrite/__ {1}/x
+  | [|- context[cfunU ?x]] => rewrite/__ {1}/x
+  end;
+  unfold interp_sb_hp, HoareFun, cfunU, ccallU; s;
+  ii; subst; iIntros "IST".
+
+Ltac init_sim :=
+  match goal with [|- HModR.sim ?x ?y _] => rewrite /x /y end; unseal "ccr";
+  econs; [|eauto];
+  i; econs; [s|eauto|i; ss; des_ifs|i; ss; des_ifs].
+
+Ltac use_simF lem :=
+  esplits; eauto;
+  assert (X:= lem); revert X;
+  match goal with [|-_ ?x ?y _ _ -> _] => rewrite /x /y end; unseal "ccr";
+  unfold HModR.sim_fun;
+  alist_find_solver.
+
+
+
+(************ User Tactics **************)
+(* Tactic Notation "simF_init" constr(LS) constr(LT) reference(FS) reference(FT) := *)
+  (* unfold HModR.sim_fun; i; *)
+  (* rewrite// [in alist_find _ _]LS; s; *)
+  (* rewrite// [in alist_find _ _]LT; s; *)
+  (* unfold FS; unfold FT; *)
+  (* i; iIntros "IST"; unfold cfunU, interp_sb_hp, HoareFun, ccallU; s. *)
+(* need change *)
+(* Ltac sim_init := econs; eauto; ii; econs; cycle 1; [s|sim_split]. *)
 
 Ltac st := repeat _st.
 
@@ -35,7 +88,7 @@ Ltac force_r := try (prep; _force_r).
 Ltac inline_l := prep; iApply isim_inline_src; [eauto|]; unfold interp_sb_hp, HoareFun.
 Ltac inline_r := prep; iApply isim_inline_tgt; [eauto|]; unfold interp_sb_hp, HoareFun.
 
-Ltac call := prep; iApply isim_call; iSplitL "IST"; [ |iIntros "% % %"; iIntrosFresh "IST"]. 
+Ltac call := prep; iApply isim_call; iSplitL "IST"; [ |iIntros "% % %"; iIntrosFresh "IST"].
 
 (* COMMENT: Should st_l, st_r be kept in here, or moved to temporary? *)
 Ltac st_l := let IT := fresh "__IT" in
@@ -93,8 +146,6 @@ match goal with [|- context[_ ?R _ _ _ (?st_src, _ _ ?itr) (?st_tgt, _)]] =>
   iApply ("CIH" $! (@existT _ (λ _, _) itr (@existT _ (λ _, _) st_src st_tgt))); eauto
 end.
 
-(* need change *)
-Ltac sim_init := econs; eauto; ii; econs; cycle 1; [s|sim_split].
 
 
 (**** TODO ****)

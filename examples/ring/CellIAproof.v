@@ -64,82 +64,43 @@ Section SIMMODSEM.
 
   Definition Ist: Any.t -> Any.t -> iProp :=
     (fun st_src st_tgt =>
-       (cell idx 0 ∗ auth idx 0)
+       ∃ v,
+       (cell idx v ∗ auth idx v)
        ∨ 
-       (pending idx ∗ ∃ v, auth idx v ∗ ⌜st_tgt = v↑⌝))%I.
+       (pending idx ∗ auth idx v ∗ ⌜st_tgt = v↑⌝))%I.
   
   Local Notation CellAMod := (CellA.t idx StbA).
   Local Notation CellIMod := (CellI.t idx).
 
-  Lemma alist_find_eq `{RelDec K} V (k: K) (v:V) l:
-    alist_find k ((k,v) :: l) = Some v.
-  Proof.
-  Admitted.
+  (* Lemma simF_init: *)
+  (*   HModR.sim_fun CellAMod CellIMod Ist (CellName.init idx). *)
+  (* Proof. *)
+  (*   init_simF. *)
 
-  Lemma alist_find_neq `{RelDec K} V (k k': K) (v:V) l
-    (NEQ: k <> k')                   
-    :
-    alist_find k ((k',v) :: l) = alist_find k l.
-  Proof.
-  Admitted.
-  
-  Lemma simF_init:
-    HModR.sim_fun CellAMod CellIMod Ist (CellName.init idx).
-  Proof.
-    (* simF_init CellA.unfold CellI.unfold CellA.init CellI.init. *)
-    unfold HModR.sim_fun; i.
-    rewrite// [in alist_find _ _]CellA.unfold. simpl HModSem.fnsems.
-    erewrite alist_find_eq.
-    rewrite// [in alist_find _ _]CellI.unfold. simpl HModSem.fnsems.
-    unfold CellI.fnsems.
-    erewrite alist_find_eq.
-    unfold CellA.init. s.
-    unfold interp_sb_hp. s.
-    unfold HoareFun. s.
-    unfold cfunU. unfold CellI.init.
-    i. iIntros "IST".
+  (*   st_l. iDestruct "ASM" as "((% & P) & %)". *)
+  (*   subst. hss. unfold Ist. *)
+  (*   iDestruct "IST" as "[(C & A) | (P' & _)]"; des; subst; cycle 1. *)
+  (*   { iExFalso. iApply (pending_unique with "P' P"). } *)
 
-    (* SRC: handle the IST of Cell and the precond of init *)
-    st_l. hss. iDestruct "ASM" as "((% & P) & %)".
-    subst. hss. unfold Ist.
-    iDestruct "IST" as "[(C & A) | (P' & _)]"; des; subst; cycle 1.
-    { iExFalso. iApply (pending_unique with "P P'"). }
+  (*   st_r. force_l. st_l. force_l. force_l. *)
+  (*   iSplitL "C". *)
+  (*   { eauto. } *)
 
-    st_r. force_l. st_l. force_l. force_l.
-    iSplitL "C".
-    { eauto. }
-
-    st.
-    iSplitL; eauto.
-    iRight. iFrame. eauto.
-  Qed.
+  (*   st. *)
+  (*   iSplitL; eauto. *)
+  (*   iRight. iFrame. eauto. *)
+  (* Qed. *)
 
   Lemma simF_get:
     HModR.sim_fun CellAMod CellIMod Ist (CellName.get idx).
   Proof.
-    (* simF_init MapA.unfold MapM.unfold MapA.get MapM.get. *)
-    unfold HModR.sim_fun; i.
-    rewrite// [in alist_find _ _]CellA.unfold. simpl HModSem.fnsems.
-    erewrite alist_find_neq; cycle 1.
-    { ii. depdes H0. }
-    erewrite alist_find_eq.
-    rewrite// [in alist_find _ _]CellI.unfold. simpl HModSem.fnsems.
-    unfold CellI.fnsems.
-    erewrite alist_find_neq; cycle 1.
-    { ii. depdes H0. }
-    erewrite alist_find_eq.
-    unfold CellA.get. s.
-    unfold interp_sb_hp. s.
-    unfold HoareFun. s.
-    unfold cfunU. unfold CellI.get.
-    i. iIntros "IST".
+    init_simF.
 
-    (* SRC: handle the IST of Map and the precond of get *)
-    st_l. hss. iDestruct "ASM" as "((% & C) & %)".
-    subst. hss. rename y into v. unfold Ist.
-    iDestruct "IST" as "[(C0 & _)|(P & IST)]".
+    st_l. iDestruct "ASM" as "((% & C) & %)".
+    subst. hss. rename y0 into v. unfold Ist.
+    iDestruct "IST" as (v')"[(C0 & _)|(P & A & %)]".
     { iExFalso. iApply (cell_unique with "C0 C"). }
-    iDestruct "IST" as (v') "(A & %)". subst. hss.
+    subst. hss.
 
     iPoseProof (cell_auth_get with "C A") as "%". subst.
 
@@ -147,38 +108,32 @@ Section SIMMODSEM.
     iSplitL "C". { eauto. }
 
     st. iSplitL; [|eauto].
-    iRight. iFrame. eauto.
+    iExists _. iRight. iFrame. eauto.
   Qed.
   
   Lemma simF_set:
     HModR.sim_fun CellAMod CellIMod Ist (CellName.set idx).
   Proof.
-    unfold HModR.sim_fun; i.
-    rewrite// [in alist_find _ _]CellA.unfold. simpl HModSem.fnsems.
-    erewrite alist_find_neq; cycle 1.
-    { ii. depdes H0. }
-    erewrite alist_find_neq; cycle 1.
-    { ii. depdes H0. }
-    erewrite alist_find_eq.
-    rewrite// [in alist_find _ _]CellI.unfold. simpl HModSem.fnsems.
-    unfold CellI.fnsems.
-    erewrite alist_find_neq; cycle 1.
-    { ii. depdes H0. }
-    erewrite alist_find_neq; cycle 1.
-    { ii. depdes H0. }
-    erewrite alist_find_eq.
-    unfold CellA.set. s.
-    unfold interp_sb_hp. s.
-    unfold HoareFun. s.
-    unfold cfunU. unfold CellI.set.
-    i. iIntros "IST".
+    init_simF.
+    
+    st_l. hss. iDestruct "ASM" as "((% & [P|C]) & %)"; subst; hss.
+    { iDestruct "IST" as (v')"[(C & A)|(P' & A & %)]"; des; subst; cycle 1.
+      { iExFalso. iApply (pending_unique with "P' P"). }
 
-    (* SRC: handle the IST of Cell and the precond of set *)
-    st_l. hss. iDestruct "ASM" as "((% & C) & %)".
-    subst. hss. rename y0 into v, y1 into v0. unfold Ist.
-    iDestruct "IST" as "[(C0 & _)|(P & IST)]".
-    { iExFalso. iApply (cell_unique with "C0 C"). }
-    iDestruct "IST" as (v') "(A & %)". subst. hss.
+      iPoseProof (cell_auth_get with "C A") as "%". subst.
+      iMod (cell_auth_set with "C A") as "(C & A)".
+
+      st_r. force_l. st_l. force_l. force_l.
+      iSplitL "C". { eauto. }
+
+      st.
+      iSplitL; eauto.
+      iExists _. iRight. iFrame. eauto.
+    }
+      
+    iDestruct "IST" as (v')"[(C' & A)|(P & A & %)]".
+    { iExFalso. iApply (cell_unique with "C' C"). }
+    subst. hss.
 
     iPoseProof (cell_auth_get with "C A") as "%". subst.
     iMod (cell_auth_set with "C A") as "(C & A)".
@@ -187,32 +142,18 @@ Section SIMMODSEM.
     iSplitL "C". { eauto. }
 
     st. iSplitL; [|eauto].
-    iRight. iFrame. eauto.
+    iExists _. iRight. iFrame. eauto.
   Qed.
-  
-  (* Theorem sim: HModR.sim CellAMod CellIMod Ist. *)
-  (* Proof. *)
-  (*   econs; ss. i. econs; ss. *)
-  (*   { *)
-  (*     iIntros "[H0 H1]". iFrame. *)
-  (*     iExists _, _, _, _; iSplitR; eauto; iSplitL; eauto. *)
-  (*     iLeft; eauto. *)
-  (*   } *)
-  (*   { rewrite CellM.unfold. rewrite CellI.unfold. ss. i. des_ifs. } *)
-  (*   rewrite CellM.unfold. rewrite CellI.unfold. ss. *)
-  (*   i. des_ifs. *)
-  (*   - esplits; eauto. ii. subst. iIntros "IST".  *)
-  (*     iApply simF_init. eauto. *)
-  (*   - esplits; eauto. ii. subst. iIntros "IST".  *)
-  (*     iApply simF_get. eauto. *)
-  (*   - esplits; eauto. ii. subst. iIntros "IST". *)
-  (*     iApply simF_set. eauto.  *)
-  (*   - esplits; eauto. ii. subst. iIntros "IST".  *)
-  (*     iApply simF_set_by_user. eauto. *)
-  (*   - unfold Mem in *. rewrite HMem_unfold in *. ss. *)
-  (*     des_ifs; esplits; eauto; ii; subst;  *)
-  (*     iIntros "IST"; iApply isim_reflR; eauto. *)
-  (* Qed. *)
+
+  Theorem sim: HModR.sim CellAMod CellIMod Ist.
+  Proof.
+    init_sim.
+    - iIntros "X". iDestruct "X" as (v) "(C & A)".
+      iSplitL ""; eauto.
+      unfold Ist. iExists _. iLeft. iFrame.
+    - use_simF simF_get.
+    - use_simF simF_set.
+  Qed.
 
 End SIMMODSEM.
 End CellIA.

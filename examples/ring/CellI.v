@@ -17,10 +17,10 @@ Section CELL_I.
 
   Variable idx : nat.
 
-  Definition init: unit -> itree hmodE unit :=
-    fun _ =>
-      trigger (sPut (0: Z)↑)
-  .
+  (* Definition init: unit -> itree hmodE unit := *)
+  (*   fun _ => *)
+  (*     trigger (sPut (0: Z)↑) *)
+  (* . *)
 
   Definition get: unit -> itree hmodE Z :=
     fun _ =>
@@ -33,10 +33,16 @@ Section CELL_I.
       trigger (sPut x↑).
 
   Definition fnsems :=
-    [(CellName.init idx, cfunU init);
-     (CellName.get idx, cfunU get);
-     (CellName.set idx, cfunU set)].
+    [(* (CellName.init idx, cfunU init); *)
+     (CellName.get idx,  cfunU get);
+     (CellName.set idx,  cfunU set)].
 
+  (* Definition fnsems := *)
+  (*   (alist_add (CellName.init idx) (cfunU init) *)
+  (*   (alist_add (CellName.get idx) (cfunU get) *)
+  (*   (alist_add (CellName.set idx) (cfunU set) *)
+  (*   []))). *)
+  
   Definition Sem: HModSem.t := {|
     HModSem.fnsems := fnsems;
     HModSem.initial_st := tt↑;
@@ -50,13 +56,7 @@ Section CELL_I.
   |}
   .
 
-  Definition _t := Mod.
-  Definition t := _t.
-
-  Lemma unfold: t = _t.
-  Proof. eauto. Qed.
-
-  Global Opaque t.
+  Definition t := Seal.sealing "ccr" Mod.
 
 End CELL_I.
 End CellI.

@@ -11,7 +11,7 @@ Require Import STB IPM.
 
 Set Implicit Arguments.
 
-Module RingI.
+Module CtrlI.
 Section I.
   Local Open Scope string_scope.
 
@@ -21,17 +21,19 @@ Section I.
 
   Definition init: unit -> itree hmodE unit :=
     fun _ =>
-      trigger (sPut (0: nat, 0: nat)↑);;;
-      ITree.iter
-      (fun i:nat =>
-         if (i <? max_size)%nat
-         then
-           `_:() <- ccallU (CellName.init i) tt;;
-           Ret (inl (i + 1))
-         else
-           Ret (inr tt))
-      0.
-
+      trigger (sPut (0: nat, 0: nat)↑);;; Ret ()
+      (* ;;; *)
+      (* ITree.iter *)
+      (* (fun i:nat => *)
+      (*    if (i <? max_size)%nat *)
+      (*    then *)
+      (*      `_:() <- ccallU (CellName.init i) tt;; *)
+      (*      Ret (inl (i + 1)) *)
+      (*    else *)
+      (*      Ret (inr tt)) *)
+      (* 0 *)
+  .
+  
   Definition get_size: unit -> itree hmodE nat :=
     fun _ =>
       st <- trigger sGet;; '(hd,tl) <- (st↓ǃ : itree _ (nat*nat)%type);;
@@ -79,14 +81,8 @@ Section I.
   |}
   .
 
-  Definition _t := Mod.
-  Definition t := _t.
-
-  Lemma unfold: t = _t.
-  Proof. eauto. Qed.
-
-  Global Opaque t.
+  Definition t := Seal.sealing "ccr" Mod.
 
 End I.
 
-End RingI.
+End CtrlI.

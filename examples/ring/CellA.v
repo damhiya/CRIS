@@ -17,19 +17,25 @@ Section CELL_A.
 
   Variable idx : nat.
 
-  Definition init : Any.t -> itree smodE Any.t := (fun _ => trigger (Choose _)).
+  (* Definition init : Any.t -> itree smodE Any.t := (fun _ => trigger (Choose _)). *)
   Definition get : Any.t -> itree smodE Any.t := (fun _ => trigger (Choose _)).
   Definition set : Any.t -> itree smodE Any.t := (fun _ => trigger (Choose _)).
   
-  Definition fnsems: list (string * fspecbody) :=
-    [(CellName.init idx, mk_specbody (CellAS.init_spec idx) init);
-     (CellName.get idx, mk_specbody (CellAS.get_spec idx) get);
-     (CellName.set idx, mk_specbody (CellAS.set_spec idx) set)].
+  Definition fnsems: alist string fspecbody :=
+    [(* (CellName.init idx, mk_specbody (CellAS.init_spec idx) init); *)
+     (CellName.get idx,  mk_specbody (CellAS.get_spec idx) get);
+     (CellName.set idx,  mk_specbody (CellAS.set_spec idx) set)].
 
+  (* Definition fnsems: alist string fspecbody := *)
+  (*   (alist_add (CellName.init idx) (mk_specbody (CellAS.init_spec idx) init) *)
+  (*   (alist_add (CellName.get idx)  (mk_specbody (CellAS.get_spec idx) get) *)
+  (*   (alist_add (CellName.set idx)  (mk_specbody (CellAS.set_spec idx) set) *)
+  (*   []))). *)
+  
   Definition Sem: SModSem.t := {|
     SModSem.fnsems := fnsems;
     SModSem.initial_st := tt↑;
-    SModSem.initial_cond := CellAS.cell idx 0 ∗ CellAS.auth idx 0;
+    SModSem.initial_cond := ∃ v, CellAS.cell idx v ∗ CellAS.auth idx v;
   |}
   .
 
@@ -40,13 +46,7 @@ Section CELL_A.
   .
 
   Variable GlobalStb: Sk.t -> gname -> option fspec.
-  Definition _t: HMod.t := SMod.to_hmod GlobalStb Mod.
-  Definition t := _t.
-
-  Lemma unfold: t = _t.
-  Proof. eauto. Qed.
-
-  Global Opaque t.
+  Definition t := Seal.sealing "ccr" (SMod.to_hmod GlobalStb Mod).
 
 End CELL_A.
 End CellA.
