@@ -2,7 +2,7 @@ Require Import Coqlib ITreelib sflib.
 Require Import MapHeader MapI MapM MapMSpec SMod ModSim.
 Require Import ImpPrelude.
 Require Import Skeleton.
-Require Import PCM IPM.
+Require Import PCM IPM IFacts.
 Require Import Events Behavior.
 Require Import Relation_Definitions.
 
@@ -48,14 +48,6 @@ Section SIMMODSEM.
   
   Definition fun_to_list (f: Z -> Z) (sz: nat) : list val :=
     map (fun i:nat => Vint (f i)) (seq 0 sz).
-
-  Lemma repeat_update {A} i n (v v' w: A):
-    <[i:=v]> (repeat v i ++ v' :: repeat w n) = repeat v (i+1) ++ repeat w n.
-  Proof.
-    replace i with (length (repeat v i) + 0) at 1; cycle 1.
-    { rewrite repeat_length. nia. }
-    rewrite ->insert_app_r, repeat_app, <-app_assoc. eauto.
-  Qed.
 
   Lemma repeat_fun_to_list (n: nat):
     repeat (Vint 0) n = fun_to_list (λ _ : Z, 0%Z) n.
