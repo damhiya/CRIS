@@ -20,7 +20,7 @@ Section RING_A.
 
   Definition init: unit -> itree smodE unit :=
     fun _ =>
-      trigger (sPut (0: nat, []:list Z)↑)
+      trigger (sPut (0: nat, []:list Z)↑);;; Ret ()
   .
 
   Definition get_size: unit -> itree smodE nat :=
@@ -67,13 +67,8 @@ Section RING_A.
   |}
   .
 
-  Definition _t: HMod.t := SMod.to_hmod (fun _ _ => None) Mod.
-  Definition t := _t.
-
-  Lemma unfold: t = _t.
-  Proof. eauto. Qed.
-
-  Global Opaque t.
+  Variable GlobalStb: Sk.t -> gname -> option fspec.
+  Definition t := Seal.sealing "ccr" (SMod.to_hmod GlobalStb Mod).
 
 End RING_A.
 End RingA.

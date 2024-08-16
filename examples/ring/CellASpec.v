@@ -38,11 +38,11 @@ Section SPEC.
 
   Global Opaque cell auth.
 
-  Definition init_spec : fspec :=
-    mk_simple (fun _: unit =>
-                 (ord_top,
-                 (fun arg => ⌜arg = tt↑⌝ ∗ pending),
-                 (fun ret => ⌜ret = tt↑⌝ ∗ cell 0)))%I.
+  (* Definition init_spec : fspec := *)
+  (*   mk_simple (fun _: unit => *)
+  (*                (ord_top, *)
+  (*                (fun arg => ⌜arg = tt↑⌝ ∗ pending), *)
+  (*                (fun ret => ⌜ret = tt↑⌝ ∗ cell 0)))%I. *)
 
   Definition get_spec : fspec :=
     mk_simple (fun v: Z =>
@@ -53,11 +53,11 @@ Section SPEC.
   Definition set_spec : fspec :=
     mk_simple (fun '(v0,v) =>
                  (ord_top,
-                 (fun arg => ⌜arg = v↑⌝ ∗ cell v0),
-                 (fun ret => ⌜ret = tt↑⌝ ∗ cell v)))%I.
+                  (fun arg => ⌜arg = v↑⌝ ∗ (pending ∨ cell v0)),
+                  (fun ret => ⌜ret = tt↑⌝ ∗ cell v)))%I.
 
   Definition Stb : alist gname fspec :=
-    Seal.sealing "stb" [(CellName.init idx, init_spec);
+    Seal.sealing "stb" [(* (CellName.init idx, init_spec); *)
                         (CellName.get idx, get_spec);
                         (CellName.set idx, set_spec)].
 

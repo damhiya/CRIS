@@ -1,11 +1,13 @@
-Require Import Coqlib ITreelib sflib.
+Require Import Coqlib ITreelib sflib HexString.
 Require Import Events Any IPM ImpPrelude IModL Skeleton.
 
 Module CellName.
+
+  Definition mk (idx: nat) (method: string) :=
+    "Cell" +:+ HexString.of_nat idx +:+ "." +:+ method.
   
-Definition init (idx: nat) := "Cell.init:" +:+ IModL.nat_to_string idx.
-Definition get (idx: nat) := "Cell.get:" +:+ IModL.nat_to_string idx.
-Definition set (idx: nat) := "Cell.set:" +:+ IModL.nat_to_string idx.
+  Definition get idx := mk idx "get".
+  Definition set idx := mk idx "set".
 
 End CellName.
 
