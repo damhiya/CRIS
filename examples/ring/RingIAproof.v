@@ -241,173 +241,173 @@ Qed.
     | S n' => List.map HModSem.trans_r (emb_rec n' fns)
     end.
   
-  (* Lemma cell_name_find max idx method *)
-  (*   (LT: idx < max) sk *)
-  (*   : *)
-  (*   alist_find (CellName.mk idx method) (List.map HModSem.trans_r *)
-  (*     (HModSem.fnsems (HMod.get_modsem (CellGroup max) sk))) *)
-  (*   = *)
-  (*   alist_find (CellName.mk idx method) (List.map HModSem.trans_r *)
-  (*     (HModSem.fnsems (HMod.get_modsem (CellA.t idx StbA) sk))). *)
-  (* Proof. *)
-  (*   revert_until max. clear -max. induction max; i. *)
-  (*   { nia. } *)
-  (*   assert (idx = max \/ idx < max) by nia. des; subst. *)
-  (*   { s. unfold HModSem.add_fnsems. rewrite List.map_app. *)
-  (*     destruct (alist_find (CellName.mk max method) *)
-  (*                 (List.map HModSem.trans_r *)
-  (*                    (HModSem.fnsems (HMod.get_modsem (CellA.t max StbA) sk)))) eqn: EQ. *)
-  (*     - eapply alist_find_app. rewrite List.map_map. *)
+  Lemma cell_name_find max idx method
+    (LT: idx < max) sk
+    :
+    alist_find (CellName.mk idx method) (List.map HModSem.trans_r
+      (HModSem.fnsems (HMod.get_modsem (CellGroup max) sk)))
+    =
+    alist_find (CellName.mk idx method) (List.map HModSem.trans_r
+      (HModSem.fnsems (HMod.get_modsem (CellA.t idx StbA) sk))).
+  Proof.
+    revert_until max. clear -max. induction max; i.
+    { nia. }
+    assert (idx = max \/ idx < max) by nia. des; subst.
+    { s. unfold HModSem.add_fnsems. rewrite List.map_app.
+      destruct (alist_find (CellName.mk max method)
+                  (List.map HModSem.trans_r
+                     (HModSem.fnsems (HMod.get_modsem (CellA.t max StbA) sk)))) eqn: EQ.
+      - eapply alist_find_app. rewrite List.map_map.
         
-  (*       Search alist_find. *)
+        Search alist_find.
 
 
 
-  (*     unfold CellA.t. unseal "ccr". *)
-  (* match goal with [|-context[alist_find ?x]] => rewrite <-(Seal.sealing_eq "_tmp_" x) end. *)
-  (* s; unfold rel_dec, Dec_RelDec, sumbool_to_bool, dec, string_Dec; *)
-  (* des_ifs; unseal "_tmp_". *)
-  (* + exfalso. inv e. *)
-  (*   apply (f_equal list_ascii_of_string) in H1. *)
-  (*   rewrite !list_ascii_of_string_app in H1. *)
-  (*   apply (f_equal (@rev _)) in H1. *)
-  (*   rewrite !rev_app_distr in H1. *)
-  (*   apply app_inv_head in H1. *)
-  (*   apply (f_equal (@rev _)) in H1. *)
-  (*   rewrite !rev_involutive in H1. *)
-  (*   apply (f_equal string_of_list_ascii) in H1. *)
-  (*   rewrite !string_of_list_ascii_of_string in H1. *)
-  (*   apply (f_equal HexString.to_nat) in H1. *)
-  (*   rewrite !HexString.to_nat_of_nat in H1. nia. *)
-  (* + exfalso. inv e. *)
-  (*   apply (f_equal list_ascii_of_string) in H1. *)
-  (*   rewrite !list_ascii_of_string_app in H1. *)
-  (*   apply (f_equal (@rev _)) in H1. *)
-  (*   rewrite !rev_app_distr in H1. ss. *)
-  (* + *)
+      unfold CellA.t. unseal "ccr".
+  match goal with [|-context[alist_find ?x]] => rewrite <-(Seal.sealing_eq "_tmp_" x) end.
+  s; unfold rel_dec, Dec_RelDec, sumbool_to_bool, dec, string_Dec;
+  des_ifs; unseal "_tmp_".
+  + exfalso. inv e.
+    apply (f_equal list_ascii_of_string) in H1.
+    rewrite !list_ascii_of_string_app in H1.
+    apply (f_equal (@rev _)) in H1.
+    rewrite !rev_app_distr in H1.
+    apply app_inv_head in H1.
+    apply (f_equal (@rev _)) in H1.
+    rewrite !rev_involutive in H1.
+    apply (f_equal string_of_list_ascii) in H1.
+    rewrite !string_of_list_ascii_of_string in H1.
+    apply (f_equal HexString.to_nat) in H1.
+    rewrite !HexString.to_nat_of_nat in H1. nia.
+  + exfalso. inv e.
+    apply (f_equal list_ascii_of_string) in H1.
+    rewrite !list_ascii_of_string_app in H1.
+    apply (f_equal (@rev _)) in H1.
+    rewrite !rev_app_distr in H1. ss.
+  +
     
 
-  (*   Search string. *)
+    Search string.
 
 
-  (*   Require Import HexString. *)
+    Require Import HexString.
 
 
-  (*   apply string_app_inv_r in H1. *)
-  (*   apply (f_equal HexString.to_nat) in H1. *)
-  (*   rewrite !HexString.to_nat_of_nat in H1. nia. *)
-
-    
-  
-  
-
-  (* apply string_app_inv in H1. *)
-  
-  (* try match goal with [H: @eq string _ _|-_] => inv_string H end. *)
-
-
-
-  
-  (* repeat match goal with [H: not (@eq string _ _)|-_] => clear H end *)
-    
-  (*   destruct idx. *)
-  (*   - *)
+    apply string_app_inv_r in H1.
+    apply (f_equal HexString.to_nat) in H1.
+    rewrite !HexString.to_nat_of_nat in H1. nia.
 
     
-  (*   - destruct max_size eqn: EQ; try nia. s. rewrite EQ. *)
-  (*     unfold CellA.t. unseal "ccr". *)
+  
+  
 
-  (* match goal with [|-context[alist_find ?x]] => rewrite <-(Seal.sealing_eq "_tmp_" x) end. *)
-  (* s; unfold rel_dec, Dec_RelDec, sumbool_to_bool, dec, string_Dec. *)
-  (* des_ifs; unseal "_tmp_". *)
+  apply string_app_inv in H1.
+  
+  try match goal with [H: @eq string _ _|-_] => inv_string H end.
+
+
+
+  
+  repeat match goal with [H: not (@eq string _ _)|-_] => clear H end
+    
+    destruct idx.
+    -
+
+    
+    - destruct max_size eqn: EQ; try nia. s. rewrite EQ.
+      unfold CellA.t. unseal "ccr".
+
+  match goal with [|-context[alist_find ?x]] => rewrite <-(Seal.sealing_eq "_tmp_" x) end.
+  s; unfold rel_dec, Dec_RelDec, sumbool_to_bool, dec, string_Dec.
+  des_ifs; unseal "_tmp_".
 
   
 
   
   
-  (* repeat match goal with [H: @eq string _ _|-_] => inv_string H end. *)
+  repeat match goal with [H: @eq string _ _|-_] => inv_string H end.
 
 
   
-  (* repeat match goal with [H: not (@eq string _ _)|-_] => clear H end. *)
+  repeat match goal with [H: not (@eq string _ _)|-_] => clear H end.
       
-  (*     alist_find_solver. *)
-      
-      
-    
-    
-  (* Qed. *)
-
-(*   Lemma simF_init: *)
-(*     HModR.sim_fun RingAMod RingIMod Ist RingName.init. *)
-(*   Proof. *)
-(*     init_simF. *)
-
-(*     st_l. iDestruct "ASM" as "%". subst. hss. *)
-(*     iDestruct "IST" as (sz q q' hd tl cell_state) "(% & CS)". des; subst. *)
-
-(*     st_r. force_l. st_l. force_l. *)
-(*     iSplitL "". { eauto. } *)
-
-(*     st. *)
-(*     iSplitL; eauto. *)
-(*     iExists 0, [], (rotate_rev tl (q++q')%list), 0, 0, cell_state. s. *)
-(*     replace (rotate_rev 0 (rotate_rev tl (q ++ q'))) with *)
-(*       (rotate_rev tl (q ++ q')) by admit. *)
-(*     iFrame. hss. *)
-(*     iPureIntro. esplits; eauto; try nia. *)
-(*     admit. *)
-(*   Admitted. *)
-
-(*   Lemma simF_dequeue: *)
-(*     HModR.sim_fun RingAMod RingIMod Ist RingName.dequeue. *)
-(*   Proof. *)
-(*     init_simF. *)
-
-(*     st_l. iDestruct "ASM" as "%". subst. hss. *)
-(*     iDestruct "IST" as (sz q q' hd tl cell_state) "(% & CS)". des; subst. *)
-(*     st_l. st_r. hss. rewrite <-H4. destruct (hd-tl) eqn: EQ; s. *)
-(*     { st. do 2 force_l. iSplitL ""; eauto. *)
-(*       st. iSplitL; eauto. unfold Ist. *)
-(*       iExists _,_,_,_,_,_. iFrame. *)
-(*       iPureIntro. esplits; eauto. nia. *)
-(*     } *)
-
-(*     st_r. *)
-(*     inline_r. *)
-(*     { unfold CtrlIMod. unseal "ccr". hide_evars. *)
-(*       alist_find_solver. show_evars. *)
+      alist_find_solver.
       
       
+    
+    
+  Qed.
 
-(*   match goal with [|-context[alist_find ?x]] => rewrite <-(Seal.sealing_eq "_tmp_" x) end. *)
-(*   s; unfold rel_dec, Dec_RelDec, sumbool_to_bool, dec, string_Dec. *)
-(*   des_ifs. unseal "_tmp_". *)
-(*   repeat match goal with [H: @eq string _ _|-_] => inv_string H end; *)
-(*   repeat match goal with [H: not (@eq string _ _)|-_] => clear H end       *)
-(*       alist_find_solver. *)
+  Lemma simF_init:
+    HModR.sim_fun RingAMod RingIMod Ist RingName.init.
+  Proof.
+    init_simF.
+
+    st_l. iDestruct "ASM" as "%". subst. hss.
+    iDestruct "IST" as (sz q q' hd tl cell_state) "(% & CS)". des; subst.
+
+    st_r. force_l. st_l. force_l.
+    iSplitL "". { eauto. }
+
+    st.
+    iSplitL; eauto.
+    iExists 0, [], (rotate_rev tl (q++q')%list), 0, 0, cell_state. s.
+    replace (rotate_rev 0 (rotate_rev tl (q ++ q'))) with
+      (rotate_rev tl (q ++ q')) by admit.
+    iFrame. hss.
+    iPureIntro. esplits; eauto; try nia.
+    admit.
+  Admitted.
+
+  Lemma simF_dequeue:
+    HModR.sim_fun RingAMod RingIMod Ist RingName.dequeue.
+  Proof.
+    init_simF.
+
+    st_l. iDestruct "ASM" as "%". subst. hss.
+    iDestruct "IST" as (sz q q' hd tl cell_state) "(% & CS)". des; subst.
+    st_l. st_r. hss. rewrite <-H4. destruct (hd-tl) eqn: EQ; s.
+    { st. do 2 force_l. iSplitL ""; eauto.
+      st. iSplitL; eauto. unfold Ist.
+      iExists _,_,_,_,_,_. iFrame.
+      iPureIntro. esplits; eauto. nia.
+    }
+
+    st_r.
+    inline_r.
+    { unfold CtrlIMod. unseal "ccr". hide_evars.
+      alist_find_solver. show_evars.
+      
+      
+
+  match goal with [|-context[alist_find ?x]] => rewrite <-(Seal.sealing_eq "_tmp_" x) end.
+  s; unfold rel_dec, Dec_RelDec, sumbool_to_bool, dec, string_Dec.
+  des_ifs. unseal "_tmp_".
+  repeat match goal with [H: @eq string _ _|-_] => inv_string H end;
+  repeat match goal with [H: not (@eq string _ _)|-_] => clear H end      
+      alist_find_solver.
 
       
-(*   Smatch goal with [|-context[alist_find ?x]] => rewrite <-(Seal.sealing_eq "_tmp_" x) end. *)
-(*   s; unfold rel_dec, Dec_RelDec, sumbool_to_bool, dec, string_Dec. *)
-(*   des_ifs; unseal "_tmp_". *)
+  Smatch goal with [|-context[alist_find ?x]] => rewrite <-(Seal.sealing_eq "_tmp_" x) end.
+  s; unfold rel_dec, Dec_RelDec, sumbool_to_bool, dec, string_Dec.
+  des_ifs; unseal "_tmp_".
   
-(*   repeat match goal with [H: @eq string _ _|-_] => inv_string H end. *)
-(*   repeat match goal with [H: @eq string _ _|-_] => inv_string H end. *)
-(*   repeat match goal with [H: @eq string _ _|-_] => inv_string H end. *)
-(*   repeat match goal with [H: @eq string _ _|-_] => inv_string H end. *)
+  repeat match goal with [H: @eq string _ _|-_] => inv_string H end.
+  repeat match goal with [H: @eq string _ _|-_] => inv_string H end.
+  repeat match goal with [H: @eq string _ _|-_] => inv_string H end.
+  repeat match goal with [H: @eq string _ _|-_] => inv_string H end.
 
   
 
   
-(*   repeat match goal with [H: (_: string) ≠ _|-_] => clear H end. *)
+  repeat match goal with [H: (_: string) ≠ _|-_] => clear H end.
 
       
 
 
     
     
-(* exfalso. *)
+exfalso.
 
 
 
@@ -416,53 +416,53 @@ Qed.
 
 
 
-(*     force_l. st_l. force_l. *)
-(*     iSplitL "". { eauto. } *)
+    force_l. st_l. force_l.
+    iSplitL "". { eauto. }
     
-(*     st_l. iDestruct "ASM" as "((% & C) & %)". *)
-(*     subst. hss. rename y0 into v. unfold Ist. *)
-(*     iDestruct "IST" as "[(C0 & _)|(P & IST)]". *)
-(*     { iExFalso. iApply (cell_unique with "C0 C"). } *)
-(*     iDestruct "IST" as (v') "(A & %)". subst. hss. *)
+    st_l. iDestruct "ASM" as "((% & C) & %)".
+    subst. hss. rename y0 into v. unfold Ist.
+    iDestruct "IST" as "[(C0 & _)|(P & IST)]".
+    { iExFalso. iApply (cell_unique with "C0 C"). }
+    iDestruct "IST" as (v') "(A & %)". subst. hss.
 
-(*     iPoseProof (cell_auth_get with "C A") as "%". subst. *)
+    iPoseProof (cell_auth_get with "C A") as "%". subst.
 
-(*     st_r. force_l. st_l. force_l. force_l. *)
-(*     iSplitL "C". { eauto. } *)
+    st_r. force_l. st_l. force_l. force_l.
+    iSplitL "C". { eauto. }
 
-(*     st. iSplitL; [|eauto]. *)
-(*     iRight. iFrame. eauto. *)
-(*   Qed. *)
+    st. iSplitL; [|eauto].
+    iRight. iFrame. eauto.
+  Qed.
   
-(*   Lemma simF_set: *)
-(*     HModR.sim_fun CellAMod CellIMod Ist (CellName.set idx). *)
-(*   Proof. *)
-(*     init_simF. *)
+  Lemma simF_set:
+    HModR.sim_fun CellAMod CellIMod Ist (CellName.set idx).
+  Proof.
+    init_simF.
     
-(*     st_l. hss. iDestruct "ASM" as "((% & C) & %)". *)
-(*     subst. hss. rename y1 into v, y2 into v0. unfold Ist. *)
-(*     iDestruct "IST" as "[(C0 & _)|(P & IST)]". *)
-(*     { iExFalso. iApply (cell_unique with "C0 C"). } *)
-(*     iDestruct "IST" as (v') "(A & %)". subst. hss. *)
+    st_l. hss. iDestruct "ASM" as "((% & C) & %)".
+    subst. hss. rename y1 into v, y2 into v0. unfold Ist.
+    iDestruct "IST" as "[(C0 & _)|(P & IST)]".
+    { iExFalso. iApply (cell_unique with "C0 C"). }
+    iDestruct "IST" as (v') "(A & %)". subst. hss.
 
-(*     iPoseProof (cell_auth_get with "C A") as "%". subst. *)
-(*     iMod (cell_auth_set with "C A") as "(C & A)". *)
+    iPoseProof (cell_auth_get with "C A") as "%". subst.
+    iMod (cell_auth_set with "C A") as "(C & A)".
     
-(*     st_r. force_l. st_l. force_l. force_l. *)
-(*     iSplitL "C". { eauto. } *)
+    st_r. force_l. st_l. force_l. force_l.
+    iSplitL "C". { eauto. }
 
-(*     st. iSplitL; [|eauto]. *)
-(*     iRight. iFrame. eauto. *)
-(*   Qed. *)
+    st. iSplitL; [|eauto].
+    iRight. iFrame. eauto.
+  Qed.
 
-(*   Theorem sim: HModR.sim CellAMod CellIMod Ist. *)
-(*   Proof. *)
-(*     init_sim. *)
-(*     - unfold Ist. eauto. *)
-(*     - use_simF simF_init. *)
-(*     - use_simF simF_get. *)
-(*     - use_simF simF_set. *)
-(*   Qed. *)
+  Theorem sim: HModR.sim CellAMod CellIMod Ist.
+  Proof.
+    init_sim.
+    - unfold Ist. eauto.
+    - use_simF simF_init.
+    - use_simF simF_get.
+    - use_simF simF_set.
+  Qed.
 
 End SIMMODSEM.
 End RingIA.
