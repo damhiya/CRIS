@@ -94,13 +94,8 @@ Section I.
     HMod.sk := MapSK.t;
   |}
   .
-  Definition _t := Mod.
-  Definition t := _t.
-  
-  Lemma unfold: t = _t.
-  Proof. eauto. Qed.
 
-  Global Opaque t.
+  Definition t := Seal.sealing "ccr" Mod.
 
 End I.
 End MapI.

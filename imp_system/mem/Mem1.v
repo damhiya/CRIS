@@ -267,13 +267,7 @@ Section PROOF.
   |}
   .
 
-  Definition _HMem: HMod.t := (SMod.to_hmod (fun _ => to_stb [])) SMem.
-  Definition HMem := _HMem.
-
-  Lemma HMem_unfold: HMem = _HMem.
-  Proof. eauto. Qed.
-  
-  Global Opaque HMem.
+  Definition HMem : HMod.t := Seal.sealing "ccr" (SMod.to_hmod (fun _ => to_stb []) SMem).
   
 End PROOF.
 Global Hint Unfold MemStb: stb.

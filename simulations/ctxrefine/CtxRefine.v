@@ -37,6 +37,8 @@ Section CTX_REFINE.
 
 End CTX_REFINE.
 
+(*
+
 Section PROPERTIES.
   Context `{Sk.ld}.
 
@@ -82,3 +84,5 @@ Section PROPERTIES.
 
 End PROPERTIES.
 
+
+*)

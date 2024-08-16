@@ -3,7 +3,7 @@ Require Import ITreelib.
 Require Import ImpPrelude.
 Require Import STS.
 Require Import Behavior.
-Require Import Mod Events.
+Require Import Mod HMod Events.
 Require Import Skeleton.
 Require Import PCM.
 
@@ -15,12 +15,11 @@ Set Typeclasses Depth 5.
 
 
 Section PROOF.
-  Let memRA: URA.t := (RA.excl Mem.t).
-  Context `{@GRA.inG memRA Σ}.
-  Let GURA: URA.t := GRA.to_URA Σ.
-  Local Existing Instance GURA.
-
-  Compute (URA.car (t:=memRA)).
+  (* Let memRA: URA.t := (RA.excl Mem.t). *)
+  (* Context `{@GRA.inG memRA Σ}. *)
+  (* Let GURA: URA.t := GRA.to_URA Σ. *)
+  (* Local Existing Instance GURA. *)
+  (* Compute (URA.car (t:=memRA)). *)
 
   Section BODY.
     Context {Es: Type -> Type}.
@@ -82,26 +81,32 @@ Section PROOF.
 
   End BODY.
 
-
+  Require Import IPM.
+  Context `{Σ: GRA.t}.
+  
+  Definition fnsems : alist string (Any.t -> itree hmodE Any.t) :=
+    [("alloc", cfunU allocF) ;
+     ("free", cfunU freeF) ;
+     ("load", cfunU loadF) ;
+     ("store", cfunU storeF) ;
+     ("cmp", cfunU cmpF)].
 
   Variable csl: gname -> bool.
-  Definition MemSem (sk: Sk.t): ModSem.t :=
+
+  Definition MemSem (sk: Sk.t): HModSem.t :=
     {|
-      ModSem.fnsems := [("alloc", cfunU allocF) ; ("free", cfunU freeF) ; ("load", cfunU loadF) ; ("store", cfunU storeF) ; ("cmp", cfunU cmpF)];
-      ModSem.initial_st := (Mem.load_mem csl sk)↑;
+      HModSem.fnsems := fnsems ;
+      HModSem.initial_st := (Mem.load_mem csl sk)↑;
+      HModSem.initial_cond := emp;
     |}
   .
 
-  Definition _Mem: Mod.t := {|
-    Mod.get_modsem := MemSem;
-    Mod.sk := Sk.unit;
+  Definition _Mem: HMod.t := {|
+    HMod.get_modsem := MemSem;
+    HMod.sk := Sk.unit;
   |}
   .
-  Definition Mem := _Mem.
 
-  Lemma Mem_unfold: Mem = _Mem.
-  Proof. eauto. Qed.
-  
-  Global Opaque Mem.
+  Definition Mem : HMod.t := Seal.sealing "ccr" _Mem.
   
 End PROOF.

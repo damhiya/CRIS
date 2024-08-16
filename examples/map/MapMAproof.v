@@ -161,11 +161,11 @@ Section SIMMODSEM.
   Lemma simF_init:
     HModR.sim_fun MapAMod MapMMod Ist MapName.init.
   Proof.
-    simF_init MapA.unfold MapM.unfold MapA.init MapM.init.
+    init_simF.
 
     (* SRC: handle the IST of Map and the precond of init *)
     st_l. hss. iDestruct "ASM" as "(W & (%Y & %M & P) & %X)".
-    subst. hss. rename y0 into u, y1 into ℓ, x into sz.
+    subst. hss. rename y1 into u, y2 into ℓ, x into sz.
     iDestruct "IST" as "[(P0 & INIT & %)|(P' & _)]"; cycle 1.
     { iExFalso. iApply (pending_unique with "P P'"). }
     des; subst.
@@ -191,11 +191,11 @@ Section SIMMODSEM.
   Lemma simF_get:
     HModR.sim_fun MapAMod MapMMod Ist MapName.get.
   Proof.
-    simF_init MapA.unfold MapM.unfold MapA.get MapM.get.
+    init_simF.
 
     (* SRC: handle the IST of Map and the precond of get *)
     st_l. hss. iDestruct "ASM" as "(WORLD & (% & MAP) & %)".
-    subst. hss. rename y0 into u, y1 into ℓ, y3 into idx, x1 into v.
+    subst. hss. rename y1 into u, y2 into ℓ, y4 into idx, x1 into v.
     iDestruct "IST" as "[(_ & INIT & _)|(P & IST)]".
     { iExFalso. iApply (initial_map_no_points_to with "INIT MAP"). }
     iDestruct "IST" as (? ?) "(% & BLACK & UNALLOC)".
@@ -226,11 +226,11 @@ Section SIMMODSEM.
   Lemma simF_set:
     HModR.sim_fun MapAMod MapMMod Ist MapName.set.
   Proof.
-    simF_init MapA.unfold MapM.unfold MapA.set MapM.set.
+    init_simF.
 
     (* SRC: handle the IST of Map and the precond of set *)
     st_l. hss. iDestruct "ASM" as "(WORLD & (% & MAP) & %)".
-    subst. hss. rename y0 into u, y1 into ℓ, y4 into idx, x3 into v, y5 into v'.
+    subst. hss. rename y1 into u, y2 into ℓ, y5 into idx, x3 into v, y6 into v'.
     iDestruct "IST" as "[(_ & INIT & _)|(P & IST)]".
     { iExFalso. iApply (initial_map_no_points_to with "INIT MAP"). }
     iDestruct "IST" as (? ?) "(% & BLACK & UNALLOC)".
@@ -261,11 +261,11 @@ Section SIMMODSEM.
   Lemma simF_set_by_user:
     HModR.sim_fun MapAMod MapMMod Ist MapName.set_by_user.
   Proof.
-    simF_init MapA.unfold MapM.unfold MapA.set_by_user MapM.set_by_user.
+    init_simF.
 
     (* SRC: handle the IST of Map and the precond of set_by_user *)
     st_l. hss. iDestruct "ASM" as "(WORLD & (% & MAP) & %)".
-    subst. hss. rename y0 into u, y1 into ℓ, y3 into idx, x1 into v.
+    subst. hss. rename y1 into u, y2 into ℓ, y4 into idx, x1 into v.
     
     (* TGT: prove the precond of set_by_user *)
     force_r. instantiate (1:= mk_meta _ _ _).
@@ -312,22 +312,13 @@ Section SIMMODSEM.
   
   Theorem sim: HModR.sim MapAMod MapMMod Ist.
   Proof.
-    econs; ss. i. econs; ss.
-    { 
-      iIntros "(IST & P & INIT0)"; s. iSplitL "INIT0"; eauto.
+    init_sim.
+    - iIntros "(IST & P & INIT0)"; s. iSplitL "INIT0"; eauto.
       iLeft. iFrame. eauto.
-    }
-    { rewrite MapA.unfold. rewrite MapM.unfold. ss. i. des_ifs. }
-    rewrite MapA.unfold. rewrite MapM.unfold. ss.
-    i. des_ifs.  
-    - esplits; eauto. ii. subst. iIntros "IST". 
-      iApply simF_init. eauto.
-    - esplits; eauto. ii. subst. iIntros "IST". 
-      iApply simF_get. eauto.
-    - esplits; eauto. ii. subst. iIntros "IST". 
-      iApply simF_set. eauto.
-    - esplits; eauto. ii. subst. iIntros "IST". 
-      iApply simF_set_by_user. eauto.
+    - use_simF simF_init.
+    - use_simF simF_get.
+    - use_simF simF_set.
+    - use_simF simF_set_by_user.
   Qed.
 
 End SIMMODSEM.

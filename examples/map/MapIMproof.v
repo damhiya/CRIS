@@ -89,9 +89,10 @@ Section SIMMODSEM.
       + rewrite ->fn_lookup_insert_ne; try nia.
         destruct (i-sz) eqn: EQ; try nia. eauto.
   Qed.
-  
-  Let Mem := HMem (fun _ => false).
 
+  Local Notation MapMMod := (HMod.add (MapM.t StbM) (HMem (fun _ => false))).
+  Local Notation MapIMod := (HMod.add MapI.t (HMem (fun _ => false))).
+  
   Definition Ist: Any.t -> Any.t -> iProp :=
     fun st_src st_tgt =>
        ((⌜st_src = (fun (_: Z) => 0%Z, 0%Z)↑ /\ st_tgt = Vnullptr↑⌝)
@@ -101,17 +102,14 @@ Section SIMMODSEM.
             ∗ (blk, ofs) |-> (fun_to_list f (Z.to_nat sz)))
        )%I.
 
-  Local Notation MapMMod := (HMod.add (MapM.t StbM) Mem).
-  Local Notation MapIMod := (HMod.add MapI.t Mem).
-  
   Lemma simF_init:
     HModR.sim_fun MapMMod MapIMod (IstProd Ist IstEq) MapName.init.
   Proof.
-    simF_init MapM.unfold MapI.unfold MapM.init MapI.init.
+    init_simF.
 
     (* SRC: handle the IST of Map and the precond of init *)
     st_l. hss. iDestruct "ASM" as "(W & (%Y & %M & P0) & %X)".
-    subst. hss. rename y0 into u, y1 into ℓ, x into sz.
+    subst. hss. rename y1 into u, y2 into ℓ, x into sz.
     iDestruct "IST" as (? ? ? ?) "(%& [%|(P & _)] &%)"; des; subst; cycle 1.
     { iExFalso. iApply (pending_unique with "P P0"). }
     hss. st_l.
@@ -121,7 +119,7 @@ Section SIMMODSEM.
     iSplitL "W". { iFrame. eauto. }
     
     (* TGT: inline alloc *)
-    inline_r. s.
+    inline_r.
 
     (* TGT: prove the precond of alloc *)
     st_r. force_r. st_r. force_r. st_r. force_r.
@@ -204,11 +202,11 @@ Section SIMMODSEM.
   Lemma simF_get:
     HModR.sim_fun MapMMod MapIMod (IstProd Ist IstEq) MapName.get.
   Proof.
-    simF_init MapM.unfold MapI.unfold MapM.get MapI.get.
+    init_simF.
 
     (* SRC: handle the IST of Map and the precond of get *)
     st_l. hss. iDestruct "ASM" as "(W & % & %)".
-    subst. hss. rename y0 into u, y1 into ℓ, y3 into idx.
+    subst. hss. rename y1 into u, y2 into ℓ, y4 into idx.
     iDestruct "IST" as (? ? ? ?) "(%& [%|(P & IST)] &%)";
       [|iDestruct "IST" as (? ? ? ?) "(% & M)"];
       des; subst; hss; st_l.
@@ -226,7 +224,7 @@ Section SIMMODSEM.
     st_r. rewrite Z_div_mult; try nia.
 
     (* TGT: inline load *)
-    inline_r. s.
+    inline_r.
 
     (* TGT: prove the precond of load *)
     st_r. force_r. instantiate (1:= (_, (ofs + _)%Z, _)).
@@ -252,11 +250,11 @@ Section SIMMODSEM.
   Lemma simF_set:
     HModR.sim_fun MapMMod MapIMod (IstProd Ist IstEq) MapName.set.
   Proof.
-    simF_init MapM.unfold MapI.unfold MapM.set MapI.set.
+    init_simF.
 
     (* SRC: handle the IST of Map and the precond of set *)
     st_l. hss. iDestruct "ASM" as "(W & % & %)".
-    subst. hss. rename y0 into u, y1 into ℓ, y4 into idx, y5 into v.
+    subst. hss. rename y1 into u, y2 into ℓ, y5 into idx, y6 into v.
     iDestruct "IST" as (? ? ? ?) "(%& [%|(P & IST)] &%)";      
       [|iDestruct "IST" as (? ? ? ?) "(% & M)"];
       des; subst; hss; st_l.
@@ -274,7 +272,7 @@ Section SIMMODSEM.
     st_r. rewrite Z_div_mult; try nia.
 
     (* TGT: inline load *)
-    inline_r. s.
+    inline_r.
 
     (* TGT: prove the precond of store *)
     st_r. force_r. instantiate (1:= (_, _, _)).
@@ -302,11 +300,11 @@ Section SIMMODSEM.
   Lemma simF_set_by_user:
     HModR.sim_fun MapMMod MapIMod (IstProd Ist IstEq) MapName.set_by_user.
   Proof.
-    simF_init MapM.unfold MapI.unfold MapM.set_by_user MapI.set_by_user.
+    init_simF.
 
     (* SRC: handle the IST of Map and the precond of set_by_user *)
     st_l. hss. iDestruct "ASM" as "(W & % & %)".
-    subst. hss. rename y0 into u, y1 into ℓ, y3 into idx.
+    subst. hss. rename y1 into u, y2 into ℓ, y4 into idx.
 
     (* process an input *)
     st_r. st. hss.
@@ -331,30 +329,21 @@ Section SIMMODSEM.
     (* prove the IST of Map *)
     st. eauto.
   Qed.
+
   
   Theorem sim: HModR.sim MapMMod MapIMod (IstProd Ist IstEq).
   Proof.
-    econs; ss. i. econs; ss.
-    {
-      iIntros "[H0 H1]". iFrame.
+    init_sim.
+    - iIntros "(_& H)". iFrame.
       iExists _, _, _, _; iSplitR; eauto; iSplitL; eauto.
       iLeft; eauto.
-    }
-    { rewrite MapM.unfold. rewrite MapI.unfold. ss. i. des_ifs. }
-    rewrite MapM.unfold. rewrite MapI.unfold. ss.
-    i. des_ifs.
-    - esplits; eauto. ii. subst. iIntros "IST". 
-      iApply simF_init. eauto.
-    - esplits; eauto. ii. subst. iIntros "IST". 
-      iApply simF_get. eauto.
-    - esplits; eauto. ii. subst. iIntros "IST".
-      iApply simF_set. eauto. 
-    - esplits; eauto. ii. subst. iIntros "IST". 
-      iApply simF_set_by_user. eauto.
-    - unfold Mem in *. rewrite HMem_unfold in *. ss.
-      des_ifs; esplits; eauto; ii; subst; 
-      iIntros "IST"; iApply isim_reflR; eauto.
+    - use_simF simF_init.
+    - use_simF simF_get.
+    - use_simF simF_set.
+    - use_simF simF_set_by_user.
+    - refl_simF.
   Qed.
 
 End SIMMODSEM.
 End MapIM.
+ 

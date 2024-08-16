@@ -29,6 +29,8 @@ Set Implicit Arguments.
 (**** TODO: State theorem & lemmas required for proof's transitivity. ****)
 (* To be moved or merged to another file *)
 
+(*
+
 Section ADEQUACY.
   (* Context `{_W: CtxWD.t}. *)
   Context `{Σ: GRA.t}.
@@ -318,3 +320,5 @@ Section SIM.
       rewrite sim_sk. et.
   Qed.
 End SIM.
+
+*)

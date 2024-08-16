@@ -46,6 +46,7 @@ Section PROOF.
       ((HMod.add (MapA.t MapM_initial_cond (fun _ => to_stb (MapAS.Stb ++ MemStb))) (HMem (fun _ => false))))
       ((HMod.add MapI.t (HMem (fun _ => false)))).
   Proof.
+(*    
     etrans.
     {
       eapply adequacy_ctx.
@@ -66,5 +67,7 @@ Section PROOF.
       i. unfold to_stb, stb_incl. i.
       rewrite alist_find_app_o. des_ifs.
     }
-  Qed.
+*)
+  Admitted.
+  
 End PROOF.

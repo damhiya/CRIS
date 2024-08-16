@@ -88,13 +88,7 @@ Section M.
   .
 
   Variable GlobalStb: Sk.t -> gname -> option fspec.
-  Definition _t: HMod.t := (SMod.to_hmod GlobalStb Mod).
-  Definition t := _t.
-
-  Lemma unfold: t = _t.
-  Proof. eauto. Qed.
-  
-  Global Opaque t.
+  Definition t := Seal.sealing "ccr" (SMod.to_hmod GlobalStb Mod).
   
 End M.
 End MapM.
