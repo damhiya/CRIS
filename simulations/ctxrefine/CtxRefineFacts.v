@@ -14,7 +14,12 @@ Section PROPERTIES.
           (SIM: HModR.sim md0 md1 Ist)
       :
           ctx_refines md0 md1.
-  Proof. Admitted.
+  Proof. 
+    econs. inv SIM.
+
+  Admitted.
+
+
 
 
   (*** horizontal composition ***)

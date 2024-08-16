@@ -49,6 +49,11 @@ Section ADEQUACY.
   Theorem adequacy_hmod
       (md_src md_tgt: HMod.t) Ist
       (rs rt: Σ) 
+      (* (WF: URA.wf rs) *)
+      (* (SRC: forall sk, 
+        HModSem.initial_cond (md_src.(HMod.get_modsem) sk) rs) *)
+      (* (TGT: forall sk,
+        HModSem.initial_cond (md_tgt.(HMod.get_modsem) sk) rt) *)
       (SRC: HModSem.initial_cond (md_src.(HMod.get_modsem) md_src.(HMod.sk)) rs)
       (TGT: HModSem.initial_cond (md_tgt.(HMod.get_modsem) md_tgt.(HMod.sk)) rt)
       (SIM: HModR.sim md_src md_tgt Ist)
@@ -56,15 +61,40 @@ Section ADEQUACY.
       ModR.sim (HMod.to_mod md_src rs) (HMod.to_mod md_tgt rt).
   Proof.
     (* inv SIM. des.
-    econs; eauto. i. specialize (sim_modsem sk SKINCL SKWF). 
+    econs; eauto. i. specialize (sim_modsem sk SKINCL SKWF).
+    specialize (SRC sk). specialize (TGT sk). 
     des. inv sim_modsem.
     econs; ss.
     - instantiate (1:= eq). eapply base.PreOrder_instance_0.
-    - admit.
+    - instantiate (1:= interp_inv Ist).
+      exists ε. econs; eauto.
+      {
+        iIntros "H". eapply iProp_Own in SRC. iPoseProof (SRC with "H") as "H".
+        iPoseProof (sim_initial with "H") as "[TGT IST]".
+        admit.
+      }
+      admit.
     - rewrite! List.map_length. eauto.
-    - i. rewrite alist_find_map in MISS. unfold o_map in MISS. 
+    - i. rewrite alist_find_map in *. unfold o_map in *. des_ifs.
+      eapply sim_miss in Heq0. clarify.
+    - i. rewrite alist_find_map in *. unfold o_map in *. des_ifs; cycle 1.
+      { eapply sim_fnsems in Heq0. des. clarify. }
+      esplits; eauto.
+      ii. subst. inv SIMMRS. eapply hpsim_adequacy; eauto; cycle 1.
+      { r_solve. eauto. }
+      { instantiate (1:= mr). r_solve. eauto. }
+      ginit. apply gpaco7_mon with (r := iunlift ibot) (rg := iunlift ibot); eauto using iunlift_ibot.
+      guclo hpsim_wfC_spec. econs. i.
+      eapply Own_upd_specify in MR; eauto. des.
+      guclo hpsim_updateC_spec. econs. econs. instantiate (1:= r0).
+      esplits; eauto using Own_Upd.
+      eapply isim_init; cycle 1. { eapply iProp_Own. eauto. }
+      hexploit sim_fnsems; eauto. i. des.
+      assert (i = ft). { rewrite Heq in H1. inv H1. eauto. }
+      subst. do 2 r in H2. hexploit (H2 y y); eauto. *)
       
-    i. 
+  
+(*     
     - instantiate (1:= eq). eapply base.PreOrder_instance_0.
     - ss. unfold cond_to_st, handle_init_cond, assume_init. grind.
       ginit. 
@@ -189,8 +219,9 @@ Section HPSIM.
       (* 
         Property about Any.pair is not restored without Own fmr1. 
       *)
-      i. guclo hpsim_wfC_spec. econs. i. 
-      eapply K; eauto. admit.
+      i. guclo hpsim_wfC_spec. econs. i.
+ 
+      eapply K; eauto; admit.
     - rewrite! translate_emb_bind. rewrite! translate_emb_coreE. hstep.
     - rewrite! translate_emb_bind. rewrite translate_emb_callE. hstep.
       { unfold addf. apply alist_find_app. unfold trans_l. rewrite alist_find_map. unfold o_map. rewrite FUN. et. }

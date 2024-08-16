@@ -294,7 +294,6 @@ Module HModAlgebra.
           }
         }
         s. ii. subst.
-        (* coinduction pattern is exactly same as isim_reflR. *)
         revert st_src st_tgt. apply combine_quant.
         generalize (i y). apply combine_quant.
         eapply isim_coind. i. destruct a as [itr [st_src st_tgt]]. s.
@@ -347,7 +346,6 @@ Module HModAlgebra.
         match goal with [|- context[_ ?R _ _ _ (?st_src, _ _ (_ ?itr)) (?st_tgt, _)]] =>
           iApply ("CIH" $! (@existT _ (λ _, _) itr (@existT _ (λ _, _) st_src st_tgt))); eauto
         end.  
-        (* coinduction pattern is exactly same as isim_reflR. *)
         revert st_src st_tgt. apply combine_quant.
         generalize (i0 y). apply combine_quant.
         eapply isim_coind. i. destruct a as [itr [st_src st_tgt]]. s.
@@ -363,41 +361,28 @@ Module HModAlgebra.
           rewrite <- EQ. CIH.
         - destruct e; rewrite! translate_emb_bind; rewrite! translate_emb_coreE; st; force_l; force_r; CIH.
       }
-      Admitted.
-      (* {
+      
+      {
         unfold trans_r in FIND. rewrite alist_find_map in FIND. unfold o_map in FIND.
         unfold trans_l in FIND. rewrite alist_find_map in FIND. unfold o_map in FIND.
-        des_ifs. exists (trans_l (trans_r (fn, i0))).2.
+        des_ifs. exists (trans_r (fn, i0)).2.
         esplits.
         { 
           rewrite alist_find_app_o. des_ifs.
           {
-            rewrite List.map_app in Heq1. rewrite alist_find_app_o in Heq1. des_ifs.
-            {
-              exfalso. eapply alist_find_fst_none in Heq. eapply Heq.
-              rewrite List.map_map. rewrite fun_fst_trans_l.
-              eapply alist_find_fst_some in Heq2. rewrite! List.map_map in Heq2.
-              rewrite fun_fst_trans_l_l in Heq2. eauto. 
-            }
-            {
-              rewrite <- Heq1. unfold trans_l. rewrite alist_find_map. unfold o_map.
-              unfold trans_r. rewrite alist_find_map. unfold o_map. des_ifs.
-            }
-          }
-          {
-            exfalso. rewrite List.map_app in Heq1. eapply alist_find_fst_none in Heq1.
-            eapply Heq1. rewrite List.map_app. eapply in_or_app. right.
-            rewrite! List.map_map. rewrite fun_fst_trans_l_r.
-            eapply alist_find_fst_some. eauto.
-          }
+            exfalso. rewrite List.map_app in Heq1. rewrite alist_find_app_o in Heq1.
+            des_ifs.
+            - eapply alist_find_fst_some in Heq3. eapply alist_find_fst_none in Heq.
+              eapply Heq. rewrite! List.map_map in *. rewrite fun_fst_trans_l.
+              rewrite fun_fst_trans_l_l in Heq3. eauto.
+            - eapply alist_find_fst_some in Heq1. eapply alist_find_fst_none in Heq0.
+              eapply Heq0. rewrite! List.map_map in *. rewrite fun_fst_trans_r_l.
+              rewrite fun_fst_trans_l_r in Heq1. eauto.     
+          } 
+          { unfold trans_r. rewrite alist_find_map. unfold o_map. des_ifs. }
         }
+
         s. ii. subst.
-        Local Ltac CIH := 
-        iApply isim_progress; iApply isim_base;
-        match goal with [|- context[_ ?R _ _ _ (?st_src, _ _ (_ ?itr)) (?st_tgt, _)]] =>
-          iApply ("CIH" $! (@existT _ (λ _, _) itr (@existT _ (λ _, _) st_src st_tgt))); eauto
-        end.  
-        (* coinduction pattern is exactly same as isim_reflR. *)
         revert st_src st_tgt. apply combine_quant.
         generalize (i0 y). apply combine_quant.
         eapply isim_coind. i. destruct a as [itr [st_src st_tgt]]. s.
@@ -405,14 +390,15 @@ Module HModAlgebra.
         assert (CASE := case_itrH _ itr); des; subst.
         - st. eauto.
         - st. CIH.
-        - st. rewrite! translate_emb_assume. st. force_r. iFrame. CIH.
-        - st. rewrite! translate_emb_guarantee. st. force_l. iFrame. CIH.
+        - st. force_r. iFrame. CIH.
+        - st. force_l. iFrame. CIH.
         - destruct c. rewrite! translate_emb_bind. st. 
           rewrite! translate_emb_callE. call; eauto. CIH.
-        - destruct s. st. iPoseProof (assoc_ist_run_1 with "IST") as "(%EQ & IST)".
+        - destruct s. st. iPoseProof (assoc_ist_run_2 with "IST") as "(%EQ & IST)".
           rewrite <- EQ. CIH.
         - destruct e; rewrite! translate_emb_bind; rewrite! translate_emb_coreE; st; force_l; force_r; CIH.
-      } *)
+      }
+    Qed.
       
   End ASSOC.
 

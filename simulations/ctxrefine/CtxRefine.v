@@ -11,6 +11,11 @@ Section REFINE.
   Definition refines_mod (md_src md_tgt: Mod.t): Prop :=
     Beh.of_program (Mod.compile md_tgt) <1= Beh.of_program (Mod.compile md_src).
 
+  (* original definition of ctx-refinement (remove if not used) *)
+  Definition ctx_refines_mod (md_src md_tgt: Mod.t): Prop :=
+    forall (ctx: Mod.t),
+      refines_mod (Mod.add md_src ctx) (Mod.add md_tgt ctx).
+
 End REFINE.
 
 Section CTX_REFINE.
