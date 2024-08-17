@@ -12,11 +12,7 @@ Module HModAlgebra.
   
   Section LEMMA.
     Context `{Σ: GRA.t}.
-
-    Record wf (ms: t): Prop := mk_wf {
-      wf_fnsems: NoDup (List.map fst ms.(fnsems));
-    }.
-
+    
     Lemma fst_trans_l : forall x, fst (trans_l x) = fst x.
     Proof. i. destruct x. ss. Qed.
   

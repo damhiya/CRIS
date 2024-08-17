@@ -7,7 +7,10 @@ Require Import IRed.
 Require Import STS Behavior.
 Require Import PCM IPM.
 Require Import Skeleton Mod.
-Require Export HMod2Mod.
+
+(************)
+(* Require Export HMod2Mod. *)
+(************)
 
 Set Implicit Arguments.
 
@@ -15,52 +18,93 @@ Module HModSem.
 Section HMODSEM.
   Context `{Σ: GRA.t}.
 
+  Definition fnsems_keys (fn: gname) (fnsems: alist gname ((list string) * (Any.t -> itree hmodE Any.t))) :=
+    match (alist_find fn fnsems) with
+    | Some (keys, body) => keys
+    | None => []
+    end.
+
   Record t: Type := mk {
-    fnsems : alist gname (Any.t -> itree hmodE Any.t);
-    initial_st : Any.t;
+    fnsems : alist gname ((list string) * (Any.t -> itree hmodE Any.t));
+    initial_st : alist string Any.t;
     initial_cond: iProp;
+    well_scoped:
+      forall fn k (IN: In k (fnsems_keys fn fnsems)), 
+          In k (List.map fst initial_st);
+  }.
+
+  Record wf (ms: t): Prop := mk_wf {
+    wf_keys: NoDup (List.map fst ms.(initial_st));
+    wf_fnsems: 
+      forall fn, (fnsems_keys fn ms.(fnsems)) ⊆ (List.map fst ms.(initial_st));
   }.
 
   (**** Linking ****)
 
-  (* TODO: 
-    Can 'modE' and 'hmodE' share the 'translate' lemmas? 
-    (Definition of emb_ required to prove all lemmas)
-  *)
-  Definition emb_ : RUN -> (forall T, hmodE T -> hmodE T) :=
-    fun run_ch T es =>
-      match es with
-      | inr1 (inr1 (inl1 (SUpdate run))) => inr1 (inr1 (inl1 (SUpdate (run_ch T run))))
-      | _ => es
-      end.
-
-  Definition emb_l := emb_ run_l.
-  Definition emb_r := emb_ run_r.
-
-  Definition trans_l '(fn, f): gname * (Any.t -> itree _ Any.t) :=
-    (fn, (fun args => translate (emb_ run_l) (f args))).
-
-  Definition trans_r '(fn, f) : gname * (Any.t -> itree _ Any.t) :=
-    (fn, (fun args => translate (emb_ run_r) (f args))).
-  
-  Definition add_fnsems ms1 ms2: alist gname (Any.t -> itree _ Any.t) :=
-    (List.map trans_l ms1.(fnsems)) ++ (List.map trans_r ms2.(fnsems)).
-  
-  Definition add ms1 ms2: t := {|
-    fnsems := add_fnsems ms1 ms2;
-    initial_st := Any.pair (initial_st ms1) (initial_st ms2);
+  Program Definition add ms1 ms2: t := {|
+    fnsems := ms1.(fnsems) ++ ms2.(fnsems);
+    initial_st := ms1.(initial_st) ++ ms2.(initial_st);
     initial_cond := (initial_cond ms1) ∗ (initial_cond ms2);
   |}.
+  Next Obligation.
+    i. unfold fnsems_keys in IN. des_ifs. 
+    rewrite alist_find_app_o in Heq. des_ifs.
+    {
+      hexploit (ms1.(well_scoped) fn k). 
+      { unfold fnsems_keys. des_ifs. }
+      i. rewrite List.map_app. eapply in_or_app. eauto.
+    }
+    {
+      hexploit (ms2.(well_scoped) fn k). 
+      { unfold fnsems_keys. des_ifs. }
+      i. rewrite List.map_app. eapply in_or_app. eauto.
+    }
+  Qed.
+
+  Fixpoint list_in (k: string) (l: list string) :=
+    match l with
+    | [] => false
+    | hd::tl => (k =? hd) || (list_in k tl)
+    end.
+
+
+  (* Consider moving into Any lib. *)
+  (* Any.encode & Any.decode *)
+  (* local states: [(k0, st0); (k1, st1); ... ] *)
+  
+  Fixpoint encode (st_list: alist string Any.t): Any.t :=
+    match st_list with
+    | [] => tt↑
+      (* Any.pair false↑ tt↑ *)
+    | hd::tl => 
+      Any.pair (Any.pair true↑ (Any.pair hd.1↑ hd.2)) (encode tl)
+    end.
+
+  (* Fixpoint decode (st: Any.t): alist string Any.t :=
+    match Any.split st with
+    | Some (hd, tl) => 
+      match Any.split hd with
+      | Some (b, kst) =>
+        match Any.downcast b with
+        | Some true => *)
+
+  (* filtering invalid Put/Gets before compile ? (or combine into compilation) *)
+  Definition wrap_stateE (keys: list string) {E}: pgE ~> itree hmodE :=
+    fun _ e =>
+      match e with
+      | SPut k v => if (list_in k keys) then trigger (SPut k v) else Ret tt
+      | SGet k => if (list_in k keys) then trigger (SGet k) else Ret tt↑
+      end.
+
+  Definition wrap_fnsems (tr: (Any.t -> itree hmodE Any.t) -> Any.t -> itree modE Any.t)
+  : (list string) * (Any.t -> itree hmodE Any.t) -> Any.t -> itree modE Any.t :=
+    fun '(keys, body) => 
+
 
   Definition transl (tr: (Any.t -> itree hmodE Any.t) -> Any.t -> itree modE Any.t) (ms: t) (r: Σ): ModSem.t := {|
     ModSem.fnsems := List.map (fun '(fn, bd) => (fn, tr bd)) ms.(fnsems);
     ModSem.initial_st := Any.pair ms.(initial_st) r↑;
   |}.
-
-  (* Definition transl (tr: (Any.t -> itree hmodE Any.t) -> Any.t -> itree modE Any.t) (ms: t): ModSem.t := {|
-    ModSem.fnsems := List.map (fun '(fn, bd) => (fn, tr bd)) ms.(fnsems);
-    ModSem.initial_st := fun st => exists r: Σ, ms.(initial_cond) r /\ st = Any.pair ms.(initial_st) r↑;
-  |}. *)
 
   Definition to_mod (ms: t) (r: Σ): ModSem.t := transl (interp_hp_fun) ms r.
   (* TODO: define other compilations which are required to prove WET. *)

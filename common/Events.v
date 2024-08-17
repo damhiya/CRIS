@@ -39,7 +39,7 @@ Section EVENTS.
       match e with
       | SUpdate run => Ret (run glob)
       end.
-      
+
  Definition interp_stateE {E}: itree (stateE +' E) ~> stateT Any.t (itree E) :=
     (* State.interp_state (case_ ((fun _ e s0 => resum_itr (handle_pE e s0)): _ ~> stateT _ _) State.pure_state). *)
     State.interp_state (case_ handle_stateE pure_state).
@@ -127,11 +127,17 @@ Section EVENTS_OTHER.
 
   Context `{Σ: GRA.t}.
 
+  Inductive pgE: Type -> Type :=
+  | SPut (k: string) (v: Any.t): pgE unit
+  | SGet (k: string): pgE Any.t.
+
   Variant agE: Type -> Type :=
   | Assume (P: iProp): agE unit
   | Guarantee (P: iProp): agE unit.
 
-  Definition hmodE := (agE +' modE).
+  Definition modE' : Type -> Type := (callE +' pgE +' coreE).
+
+  Definition hmodE := (agE +' modE').
   
   Variant apcE: Type -> Type :=
   | APC: apcE unit.
