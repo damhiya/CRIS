@@ -6,7 +6,7 @@ Require Import Mod HMod SMod Events.
 Require Import Skeleton.
 Require Import PCM.
 Require Import STB.
-Require Import IPM.
+Require Import IPM ITactics.
 
 
 Set Implicit Arguments.
@@ -243,23 +243,24 @@ Section PROOF.
     apply [("alloc", alloc_spec) ; ("free", free_spec) ; ("load", load_spec) ; ("store", store_spec) ; ("cmp", cmp_spec)].
   Defined.
 
-  Definition MemSbtb: list (gname * fspecbody) :=
-    [("alloc", mk_specbody alloc_spec (fun _ => trigger (Choose _)));
-    ("free",   mk_specbody free_spec (fun _ => trigger (Choose _)));
-    ("load",   mk_specbody load_spec (fun _ => trigger (Choose _)));
-    ("store",  mk_specbody store_spec (fun _ => trigger (Choose _)));
-    ("cmp",    mk_specbody cmp_spec (fun _ => trigger (Choose _)))
+  Definition MemSbtb: alist string (list string * fspecbody) :=
+    [("alloc", ([], mk_specbody alloc_spec (fun _ => trigger (Choose _))));
+    ("free",   ([], mk_specbody free_spec (fun _ => trigger (Choose _))));
+    ("load",   ([], mk_specbody load_spec (fun _ => trigger (Choose _))));
+    ("store",  ([], mk_specbody store_spec (fun _ => trigger (Choose _))));
+    ("cmp",    ([], mk_specbody cmp_spec (fun _ => trigger (Choose _))))
     ]
   .
 
   Variable csl: gname -> bool.
 
-  Definition SMemSem (sk: Sk.t): SModSem.t := {|
+  Program Definition SMemSem (sk: Sk.t): SModSem.t := {|
     SModSem.fnsems := MemSbtb;
     SModSem.initial_cond := initial_mem csl sk;
-    SModSem.initial_st := tt↑;
+    SModSem.initial_st := [];
   |}
   .
+  Next Obligation. prove_scope. Qed.
 
   Definition SMem: SMod.t := {|
     SMod.get_modsem := SMemSem;

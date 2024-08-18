@@ -129,11 +129,11 @@ Module Sk.
   Qed.
   Next Obligation.
   Proof.
-    cut (NoDup (map fst a)).
+    cut (List.NoDup (map fst a)).
     { i. eapply Permutation.Permutation_NoDup; [|et].
       eapply Permutation.Permutation_map.
       eapply SkSort.sort_permutation. }
-    cut (NoDup (map fst (a ++ b))).
+    cut (List.NoDup (map fst (a ++ b))).
     { i. rewrite map_app in H0.
       eapply nodup_app_l. et. }
     i. eapply Permutation.Permutation_NoDup; [|et].

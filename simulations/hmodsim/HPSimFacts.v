@@ -18,8 +18,7 @@ From ExtLib Require Import
      
 Require Import Red IRed.
 
-
-Require Import SimStrict HPSim.
+Require Import ModSimStrict HPSim.
 
  (****************************************)
 
@@ -29,8 +28,8 @@ Section HPSIM_ADD_DUMMY.
 
   Variable fl_src: alist gname (Any.t -> itree hmodE Any.t).
   Variable fl_tgt: alist gname (Any.t -> itree hmodE Any.t).
-  Variable Ist: Any.t -> Any.t -> iProp.
-
+  Variable Ist: alist string Any.t -> alist string Any.t -> iProp.
+  
   Local Notation _hpsim := (@_hpsim Σ fl_src fl_tgt Ist).
   Local Notation hpsim := (@hpsim Σ fl_src fl_tgt Ist).
 
@@ -58,8 +57,8 @@ Section HPSIM_ADD_DUMMY.
   Qed.
   Hint Resolve itreeH_dummy_dummy.
 
-  Variant hpsim_dummyC_src (r: forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hmodE R -> Any.t * itree hmodE R -> Σ -> Prop):
-    forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hmodE R -> Any.t * itree hmodE R -> Σ -> Prop
+  Variant hpsim_dummyC_src (r: forall R (RR: (alist string Any.t) * R -> (alist string Any.t) * R -> iProp), bool -> bool -> (alist string Any.t) * itree hmodE R -> (alist string Any.t) * itree hmodE R -> Σ -> Prop):
+    forall R (RR: (alist string Any.t) * R -> (alist string Any.t) * R -> iProp), bool -> bool -> (alist string Any.t) * itree hmodE R -> (alist string Any.t) * itree hmodE R -> Σ -> Prop
   :=
   | hpsim_dummyC_src_intro R RR ps pt st_src i_src i_src' st_tgt i_tgt fmr
       (SIM: r R RR ps pt (st_src, i_src) (st_tgt, i_tgt) fmr)
@@ -133,10 +132,16 @@ Section HPSIM_ADD_DUMMY.
         destruct with_dummy; grind; eauto using @_hpsim'.
         eapply hpsim_guarantee_src; eauto with imodL.
         ii. econs. ii. esplits; eauto. econs; eauto.
-      + replace s with (SUpdate run); econs; eauto.
+      + depdes s; depdes x. econs; eauto.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_src) -bind_vis.
         destruct with_dummy; grind; eauto using @_hpsim'. 
+        eapply hpsim_guarantee_src; eauto with imodL.
+        ii. econs. ii. esplits; eauto. econs; eauto.
+      + depdes s; depdes x. econs; eauto.
+    - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
+      + rewrite -x -(bind_ret_l_eta _ k_src) -bind_vis.
+        destruct with_dummy; grind; eauto using @_hpsim'.
         eapply hpsim_guarantee_src; eauto with imodL.
         ii. econs. ii. esplits; eauto. econs; eauto.
       + econs; eauto.
@@ -146,7 +151,7 @@ Section HPSIM_ADD_DUMMY.
         eapply hpsim_guarantee_src; eauto with imodL.
         ii. econs. ii. esplits; eauto. econs; eauto.
       + econs; eauto.
-    - subst. econs; eauto. econs; eauto.
+    - econs; eauto. econs; eauto.
   Qed.
 
   Lemma hpsim_dummyC_src_spec:
@@ -156,8 +161,8 @@ Section HPSIM_ADD_DUMMY.
     eapply hpsim_dummyC_src_mon, PR; eauto with paco.
   Qed.
 
-  Variant hpsim_dummyC_tgt (r: forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hmodE R -> Any.t * itree hmodE R -> Σ -> Prop):
-    forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hmodE R -> Any.t * itree hmodE R -> Σ -> Prop
+  Variant hpsim_dummyC_tgt (r: forall R (RR: (alist string Any.t) * R -> (alist string Any.t) * R -> iProp), bool -> bool -> (alist string Any.t) * itree hmodE R -> (alist string Any.t) * itree hmodE R -> Σ -> Prop):
+    forall R (RR: (alist string Any.t) * R -> (alist string Any.t) * R -> iProp), bool -> bool -> (alist string Any.t) * itree hmodE R -> (alist string Any.t) * itree hmodE R -> Σ -> Prop
   :=
   | hpsim_dummyC_tgt_intro R RR ps pt st_src i_src st_tgt i_tgt i_tgt' fmr
       (SIM: r R RR ps pt (st_src, i_src) (st_tgt, i_tgt) fmr)
@@ -231,7 +236,13 @@ Section HPSIM_ADD_DUMMY.
         destruct with_dummy; grind; eauto using @_hpsim'.
         eapply hpsim_guarantee_tgt; eauto; imodIntroL.
         ii. econs. ii. esplits; eauto. econs; eauto.
-      + replace s with (SUpdate run); econs; eauto.
+      + depdes s; depdes x. econs; eauto.
+    - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
+      + rewrite -x -(bind_ret_l_eta _ k_tgt) -bind_vis.
+        destruct with_dummy; grind; eauto using @_hpsim'.
+        eapply hpsim_guarantee_tgt; eauto; imodIntroL.
+        ii. econs. ii. esplits; eauto. econs; eauto.
+      + depdes s; depdes x. econs; eauto.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_tgt) -bind_vis.
         destruct with_dummy; grind; eauto using @_hpsim'. 
@@ -349,7 +360,7 @@ Section INTERP_RECONF.
       (str, handle_Guarantee P fr)
       (str', handle_Guarantee P fr').
   Proof.
-    ginit. unfold handle_Guarantee, guarantee, mget, mput.
+    ginit. unfold handle_Guarantee, guarantee, mget_res, mput_res.
     grind; gstep; econs; i. destruct x' as [[c0 c1] c2]. exists (c0, c1, c2⋅cr).
     grind; gstep; econs; i.
     grind; apply hp_reconf_equiv_strong in RELr; repeat (rr in RELr; des; subst).
@@ -374,7 +385,7 @@ Section INTERP_RECONF.
       (str, handle_Guarantee True fr)
       (str', handle_Guarantee True fr').
   Proof.
-    ginit. unfold handle_Guarantee, guarantee, mget, mput.
+    ginit. unfold handle_Guarantee, guarantee, mget_res, mput_res.
     grind; gstep; econs; i. destruct x' as [[c0 c1] c2]. exists (c0, c1⋅cr, c2).
     grind; gstep; econs; i.
     grind; apply hp_reconf_equiv_strong in RELr; repeat (rr in RELr; des; subst).
@@ -399,11 +410,10 @@ Section INTERP_RECONF.
     (trigger (|e|)%sum : itree hmodE R) = trigger e.
   Proof. reflexivity. Qed.
 
-  Lemma trigger_stateE_simpl R (P: iProp) (e : stateE R):
+  Lemma trigger_pgE_simpl R (P: iProp) (e : pgE R):
     (trigger (|e|)%sum : itree hmodE R) = trigger e.
   Proof. reflexivity. Qed.
 
-  
   Lemma interp_hp_reconf
     R itrH str str' (fr fr' cr: Σ)
     (RELr: hp_reconf_equiv cr (str,fr) (str',fr'))
@@ -411,7 +421,6 @@ Section INTERP_RECONF.
     sim_strict _ (hp_reconf_rel R hp_reconf_equiv cr)
       (str, interp_hp itrH fr)
       (str', interp_hp itrH fr').
-
     Proof.
     revert_until Ist. ginit. gcofix CIH; i.
     assert (CASE := case_itrH _ itrH). des; subst.
@@ -420,7 +429,7 @@ Section INTERP_RECONF.
     - rewrite-> !interp_hp_tau.
       grind; gstep; econs; i. eauto 10 with paco.
     - rewrite-> !interp_hp_bind, !interp_hp_Assume.
-      unfold handle_Assume, assume, mget, mput.
+      unfold handle_Assume, assume, mget_res, mput_res.
       grind; gstep; econs; i. exists x.
       grind; gstep; econs; i.
       grind; apply hp_reconf_equiv_strong in RELr; repeat (rr in RELr; des; subst).
@@ -448,15 +457,27 @@ Section INTERP_RECONF.
       repeat (grind; gstep; econs; i).
       gfinal. left. eapply CIH. left. s. eauto.
     - rewrite-> !interp_hp_bind, !interp_hp_triggers.
-      destruct s. unfold handle_stateE_tgt, pupdate.
-      repeat (grind; gstep; econs; i).
-      grind; apply hp_reconf_equiv_strong in RELr; repeat (rr in RELr; des; subst); cycle 1.
-      { rewrite !Any.pair_split. grind.
-        gfinal. left. eapply CIH. right. esplits; eauto. }
-      gfinal. left. eapply CIH.
-      destruct (Any.split str) as [[]|] eqn: STR.
-      { left. s. esplits; eauto. }
-      left. s. esplits; eauto.
+      destruct s. 
+      + unfold handle_pgE_tgt, mput_kv.
+        repeat (grind; gstep; econs; i).
+        grind; apply hp_reconf_equiv_strong in RELr; repeat (rr in RELr; des; subst); cycle 1.
+        { rewrite !Any.pair_split. repeat (grind; gstep; econs).
+          gfinal. left. eapply CIH. right. esplits; eauto. }
+        destruct (Any.split str) as [[]|] eqn: STR; cycle 1.
+        { s. unfold triggerUB. grind. gstep. econs. i. ss. }        
+        apply Any.split_pair in STR. des; subst.
+        repeat (grind; gstep; econs).
+        gfinal. left. eapply CIH. econs. econs; eauto.
+      + unfold handle_pgE_tgt, mget_kv.
+        repeat (grind; gstep; econs; i).
+        grind; apply hp_reconf_equiv_strong in RELr; repeat (rr in RELr; des; subst); cycle 1.
+        { rewrite !Any.pair_split. repeat (grind; gstep; econs).
+          gfinal. left. eapply CIH. right. esplits; eauto. }
+        destruct (Any.split str) as [[]|] eqn: STR; cycle 1.
+        { s. unfold triggerUB. grind. gstep. econs. i. ss. }        
+        apply Any.split_pair in STR. des; subst.
+        repeat (grind; gstep; econs).
+        gfinal. left. eapply CIH. econs. econs; eauto.
     - rewrite-> !interp_hp_bind, !interp_hp_triggere.
       destruct e.
       + grind; gstep; econs; i. eexists.
@@ -513,7 +534,7 @@ Section INTERP_RECONF.
     { gfinal. right. apply sim_strict_refl. }
     i. depdes REL. rewrite-> interp_hp_bind, interp_hp_Guarantee.
     destruct v0' as [fr' st']. unfold hp_fun_tail at 1. grind.
-    unfold handle_Guarantee, mget, mput, guarantee, sGet, sPut.
+    unfold handle_Guarantee, mget_res, mput_res, guarantee, sGet, sPut.
     grind; gstep; econs; i. destruct x' as [[c0 c1] c2]. exists (c0, ε, c1 ⋅ c2).
     grind; gstep; econs; i.
     ss. destruct (Any.split st0') eqn: ST0'; ss; cycle 1.
@@ -571,8 +592,7 @@ Section HPSIM_ADEQUACY.
 
   Variable fl_src: alist gname (Any.t -> itree hmodE Any.t).
   Variable fl_tgt: alist gname (Any.t -> itree hmodE Any.t).
-  Variable Ist: Any.t -> Any.t -> iProp.
-
+  Variable Ist: alist string Any.t -> alist string Any.t -> iProp.
 
 (******* Move ******)
   Lemma own_ctx_r a b
@@ -604,25 +624,29 @@ Section HPSIM_ADEQUACY.
       (WF: URA.wf mr_src)
       (MRS: Own mr_src ⊢ #=> Own (ctx ⋅ mr ⋅ mr_tgt))
       (MR: Own mr ⊢ #=> Ist st_src st_tgt)
+      (NODUPS: List.NoDup (List.map fst st_src))
+      (NODUPT: List.NoDup (List.map fst st_tgt))
     :
-    interp_inv ctx (Any.pair st_src mr_src↑, Any.pair st_tgt mr_tgt↑)
+    interp_inv ctx (Any.pair (alist_encode st_src) mr_src↑, Any.pair (alist_encode st_tgt) mr_tgt↑)
   .
 
   Lemma hpsim_adequacy:
     forall
-      (fl_src0 fl_tgt0: alist string (Any.t -> itree modE Any.t)) 
+      (fl_src0 fl_tgt0: alist string (Any.t -> itree modE Any.t))
       (FLS: fl_src0 = List.map (fun '(s, f) => (s, interp_hp_fun f)) fl_src)
       (FLT: fl_tgt0 = List.map (fun '(s, f) => (s, interp_hp_fun f)) fl_tgt)
       ps pt st_src st_tgt itr_src itr_tgt
+      (NODUPS: List.NoDup (List.map fst st_src))
+      (NODUPT: List.NoDup (List.map fst st_tgt))
       (ctx mr_src mr_tgt fr_src fr_tgt fmr: Σ)
       (SIM: hpsim_body fl_src fl_tgt Ist ps pt (st_src, itr_src) (st_tgt, itr_tgt) fmr)
       (WF: URA.wf (fr_src ⋅ mr_src))
       (FMR: Own (fr_src ⋅ mr_src) ⊢ #=> Own (ctx ⋅ fmr ⋅ fr_tgt ⋅ mr_tgt)),
     @sim_itree Σ interp_inv eq fl_src0 fl_tgt0 ps pt ctx
-      (Any.pair st_src mr_src↑, interp_hp_body itr_src fr_src)
-      (Any.pair st_tgt mr_tgt↑, interp_hp_body itr_tgt fr_tgt).
+      (Any.pair (alist_encode st_src) mr_src↑, interp_hp_body itr_src fr_src)
+      (Any.pair (alist_encode st_tgt) mr_tgt↑, interp_hp_body itr_tgt fr_tgt).
   Proof.
-    i. apply hpsim_add_dummy in SIM.
+    i. apply hpsim_add_dummy in SIM; cycle 1; eauto.
     revert_until FLT. ginit. gcofix CIH. i.
     remember (st_src, itr_src). remember (st_tgt, itr_tgt).
     move SIM before FLT. revert_until SIM. punfold SIM.
@@ -639,7 +663,7 @@ Section HPSIM_ADEQUACY.
     { eapply own_wf; eauto. }
     
     destruct x0; i; des.
-    - unfold interp_hp_body, hp_fun_tail, handle_Guarantee, guarantee, mget, mput.
+    - unfold interp_hp_body, hp_fun_tail, handle_Guarantee, guarantee, mget_res, mput_res.
       steps. force_l. instantiate (1 := (c0, c1, ctx ⋅ fmr0 ⋅ c)). steps.
       force_l.
       { eapply own_trans; et. rewrite <- !URA.add_assoc.
@@ -664,7 +688,7 @@ Section HPSIM_ADEQUACY.
     - unfold interp_hp_body.
       exploit iProp_sepconj_upd; eauto. i; des.
       rename rq into fr, rp into mr.
-      steps_safe. unfold handle_Guarantee, guarantee, mget, mput.
+      steps_safe. unfold handle_Guarantee, guarantee, mget_res, mput_res.
       steps_safe. rename c1 into frt, c into mrt.
       force_l. instantiate (1:= (ε, ε, c0 ⋅ ctx ⋅ fr ⋅ frt ⋅ mr ⋅ mrt)).
       assert (UPD: Own (ctx ⋅ fmr ⋅ fr_tgt ⋅ mr_tgt)
@@ -681,7 +705,7 @@ Section HPSIM_ADEQUACY.
       { etrans; eauto. r_solve. iIntros "H". iMod "H". iApply UPD. eauto. }
       steps_safe. force_l; et.
       steps_safe. eapply safe_sim_sim; econs. esplits; i.
-      { instantiate (1:= ctx ⋅ fr ⋅ frt). econs; cycle 2.
+      { instantiate (1:= ctx ⋅ fr ⋅ frt). econs; cycle 2; eauto.
         { iIntros "H". iApply x2. eauto. }
         { eapply own_wf, WF. etrans. apply FMR.
           iIntros "H". iMod "H". iApply UPD. eauto. }
@@ -693,16 +717,12 @@ Section HPSIM_ADEQUACY.
       inv WF0. eapply K with (fmr0 := fr ⋅ mr0); r_solve; et; i.
       { iIntros "[FR MR]". iSplitR "FR"; [iApply MR|iApply x3]; eauto. }
       { eapply eq_ind; eauto. do 2 f_equal. r_solve. }
-
-
-      (*** Revised up to this point ***)
     - unfold interp_hp_body. steps. eapply K; et.
       eapply own_upd_in_middle; eauto. 
-      (***** TODO: inline cases *****)
-    - exploit K; eauto; i.
+    - exploit K; cycle 3; eauto; inv Heqp; eauto.
       { eapply own_upd_in_middle; eauto. }
-      steps. rewrite-> interp_hp_body_bind, interp_hp_call.
-      unfold handle_Guarantee, mget, mput, guarantee. 
+      i. steps. rewrite-> interp_hp_body_bind, interp_hp_call.
+      unfold handle_Guarantee, mget_res, mput_res, guarantee. 
       steps. force_l. instantiate (1:= (ε, ε, fr_src ⋅ mr_src)).
       steps. force_l. { r_solve; et. }
       steps. force_l; et. steps.
@@ -715,10 +735,10 @@ Section HPSIM_ADEQUACY.
            with (` x: Any.t <- f varg;; trigger (Guarantee True);;; k_src x); grind.
         apply interp_strict_inline_src.
       + apply sim_strict_refl.
-    - exploit K; eauto; i.
+    - exploit K; cycle 3; eauto; inv Heqp0; eauto.
       { eapply own_upd_in_middle; eauto. }
-      steps. rewrite-> interp_hp_body_bind, interp_hp_call.
-      unfold handle_Guarantee, mget, mput, guarantee. 
+      i. steps. rewrite-> interp_hp_body_bind, interp_hp_call.
+      unfold handle_Guarantee, mget_res, mput_res, guarantee. 
       steps. 
       {	instantiate (1:= interp_hp_fun f).
       rewrite alist_find_map. rewrite FUN. et. }
@@ -736,9 +756,23 @@ Section HPSIM_ADEQUACY.
     - unfold interp_hp_body. steps. eapply K; et. eapply own_upd_in_middle; eauto.
     - unfold interp_hp_body. steps. force_l. steps. eapply K; et. eapply own_upd_in_middle; eauto.
     - unfold interp_hp_body. steps. force_r. steps. eapply K; et. eapply own_upd_in_middle; eauto.
-    - unfold interp_hp_body. steps. rewrite Any.pair_split. steps. rewrite RUN. eapply K; et. eapply own_upd_in_middle; eauto.
-    - unfold interp_hp_body. steps. rewrite Any.pair_split. steps. rewrite RUN. eapply K; et. eapply own_upd_in_middle; eauto.
-    - unfold interp_hp_body. steps. rewrite interp_hp_Assume. unfold handle_Assume, mget, mput.
+    - unfold interp_hp_body. steps. unfold mput_kv. steps.
+      rewrite alist_encode_decode.
+      des_ifs. eapply K; eauto.
+      + eapply alist_add_nodup. eauto.
+      + eapply own_upd_in_middle; eauto.
+    - unfold interp_hp_body. steps. unfold mput_kv. steps.
+      rewrite alist_encode_decode.
+      des_ifs. eapply K; eauto.
+      + eapply alist_add_nodup. eauto.
+      + eapply own_upd_in_middle; eauto.
+    - unfold interp_hp_body. steps. unfold mget_kv. steps.
+      rewrite alist_encode_decode.
+      des_ifs. eapply K; eauto. eapply own_upd_in_middle; eauto.
+    - unfold interp_hp_body. steps. unfold mget_kv. steps.
+      rewrite alist_encode_decode.
+      des_ifs. eapply K; eauto. eapply own_upd_in_middle; eauto.
+    - unfold interp_hp_body. steps. rewrite interp_hp_Assume. unfold handle_Assume, mget_res, mput_res.
       steps. eapply K with (fmr0 := x ⋅ fmr0); et.
       {
         iIntros "[X FMR]". iPoseProof (_ASSUME0 with "X") as "iP". 
@@ -749,7 +783,7 @@ Section HPSIM_ADEQUACY.
       replace (x ⋅ (ctx ⋅ fmr ⋅ fr_tgt ⋅ mr_tgt)) with (ctx ⋅ x ⋅ fmr ⋅ fr_tgt ⋅ mr_tgt) in FMR; r_solve.
       eapply own_upd_in_middle; eauto.
     - unfold interp_hp_body. steps.
-      rewrite interp_hp_Guarantee. unfold handle_Guarantee, guarantee, mget, mput.
+      rewrite interp_hp_Guarantee. unfold handle_Guarantee, guarantee, mget_res, mput_res.
       steps. eapply K with (fmr0 := c0 ⋅ fmr0); et.
       { iIntros "[P FMR]". iPoseProof (x0 with "P") as "P". iPoseProof (CUR with "FMR") as "FMR". iFrame. eauto. }
       eapply own_trans; et.
@@ -761,7 +795,7 @@ Section HPSIM_ADEQUACY.
     - unfold interp_hp_body. steps.
       rewrite interp_hp_Guarantee. assert (H1 := CUR).
       eapply iProp_sepconj_upd in H1; eauto. des. rename rq into fmr1.
-      unfold handle_Guarantee, guarantee, mget, mput.
+      unfold handle_Guarantee, guarantee, mget_res, mput_res.
       steps. force_l. instantiate (1:= (rp, fmr1 ⋅ fr_tgt, ctx ⋅ mr_tgt)).
       steps. force_l. 
       {
@@ -786,7 +820,7 @@ Section HPSIM_ADEQUACY.
       replace (fmr1 ⋅ fr_tgt ⋅ (ctx ⋅ mr_tgt)) with (ctx ⋅ fmr1 ⋅ fr_tgt ⋅ mr_tgt); r_solve; eauto.
     - unfold interp_hp_body. steps. rewrite interp_hp_Assume. assert (H1 := CUR). 
       eapply iProp_sepconj_upd in H1; eauto. des. rename rq into fmr1.
-      unfold handle_Assume, assume, mget, mput. 
+      unfold handle_Assume, assume, mget_res, mput_res. 
       steps. force_r. instantiate (1:= rp).
       steps. force_r.
       {

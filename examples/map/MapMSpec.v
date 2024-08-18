@@ -59,6 +59,12 @@ Section MAP.
                     (fun varg => (⌜varg = ([Vint k])↑⌝)%I),
                     (fun vret => True%I)))).  
 
+  Definition fnsems: list (string * fspecbody) :=
+    [(MapName.init, init_spec);
+     (MapName.get, get_spec);
+     (MapName.set, set_spec);
+     (MapName.set_by_user, set_by_user_spec)]
+  
   Definition Stb: alist gname fspec :=
     Seal.sealing "stb" [(MapName.init, init_spec);
                         (MapName.get, get_spec);

@@ -15,36 +15,91 @@ Section MID.
   
   Context {Σ: GRA.t}.
 
-  Definition mput E `{stateE -< E} `{coreE -< E} (mr: Σ): itree E unit :=
-    st <- trigger sGet;; '(mp, _) <- ((Any.split st)?);;
+  (* Consider moving into Any lib. *)
+  (* Any.encode & Any.decode *)
+  (* local states: [(k0, st0); (k1, st1); ... ] *)
+  
+  Fixpoint _alist_encode (st_list: alist string Any.t): Any.t :=
+    match st_list with
+    | [] => tt↑
+    | (k,v) ::tl => 
+      Any.pair (Any.pair k↑ v) (_alist_encode tl)
+    end.
+
+  Definition alist_encode st_list :=
+    Any.pair (List.length st_list)↑ (_alist_encode st_list).
+
+  Fixpoint _alist_decode (data: Any.t) (n: nat) : alist string Any.t :=
+    match n with
+    | S n' =>
+        match Any.split data with
+        | Some (kv, data') =>
+            match Any.split kv with
+            | Some (ka, v) =>
+                match ka↓ with
+                | Some k => (k,v) :: _alist_decode data' n'
+                | None => []
+                end
+            | None => []
+            end
+        | None => []
+        end
+    | 0 => []
+    end.
+
+  Definition alist_decode st :=
+    match Any.split st with
+    | Some (na, data) =>
+        match na↓ with
+        | Some n => _alist_decode data n
+        | None => []
+        end
+    | None => []
+    end.
+
+  Lemma alist_encode_decode st:
+    alist_decode (alist_encode st) = st.
+  Proof.
+    unfold alist_encode, alist_decode.
+    rewrite Any.pair_split; rewrite Any.upcast_downcast; eauto.
+    induction st; s; eauto.
+    destruct a.
+    s; rewrite !Any.pair_split; rewrite Any.upcast_downcast; eauto.
+    rewrite IHst. eauto.
+  Qed.
+
+  Definition mput_res E `{stateE -< E} `{coreE -< E} (mr: Σ): itree E Any.t :=
+    st <- trigger sGet;; '(mp, _) <- (Any.split st)?;;
     trigger (sPut (Any.pair mp mr↑))
   .
 
-  Definition mget E `{stateE -< E} `{coreE -< E}: itree E Σ :=
-    st <- trigger sGet;; '(_, mr) <- ((Any.split st)?);;
+  Definition mget_res E `{stateE -< E} `{coreE -< E}: itree E Σ :=
+    st <- trigger sGet;; '(_, mr) <- (Any.split st)?;;
     mr↓?
   .
 
-  Definition pupdate E `{stateE -< E} `{coreE -< E} {X} (run: Any.t -> Any.t * X) : itree E X :=
-    trigger (SUpdate (fun st => 
-      match (Any.split st) with
-      | Some (x, mr) => ((Any.pair (fst (run x)) mr), snd (run x))
-      | None => run tt↑
-      end
-    ))
+  Definition mput_kv E `{stateE -< E} `{coreE -< E} (k: string) (v: Any.t) : itree E Any.t :=
+    st <- trigger sGet;; '(mp, mr) <- (Any.split st)?;;
+    trigger (sPut (Any.pair (alist_encode (alist_add k v (alist_decode mp))) mr))
   .
 
-  (* mid to tgt code *)
-  Definition handle_stateE_tgt: stateE ~> itree modE :=
+  Definition mget_kv E `{stateE -< E} `{coreE -< E} (k: string) : itree E Any.t :=
+    st <- trigger sGet;; '(mp, _) <- (Any.split st)?;;
+    Ret (or_else (alist_find k (alist_decode mp)) tt↑)
+  .
+
+  (* mid to tgt code *)  
+  Definition handle_pgE_tgt : pgE ~> itree modE :=
       (fun _ e =>
          match e with
-         | SUpdate run => pupdate run
+         | SPut k v => mput_kv k v
+         | SGet k => mget_kv k
         end).
 
   Definition handle_Assume P: stateT (Σ) (itree modE) unit :=
     fun fr =>
       r <- trigger (Take Σ);;
-      mr <- mget;; 
+      mr <- mget_res;; 
       assume (URA.wf (r ⋅ fr ⋅ mr));;;
       assume(Own r ⊢ P);;; 
       Ret (r ⋅ fr, tt).
@@ -52,10 +107,10 @@ Section MID.
   Definition handle_Guarantee P: stateT (Σ) (itree modE) unit :=
     fun fr =>
       '(r, fr', mr') <- trigger (Choose (Σ * Σ * Σ));;
-      mr <- mget;;
+      mr <- mget_res;;
       guarantee(Own (fr ⋅ mr) ⊢ #=> Own (r ⋅ fr' ⋅ mr'));;;
       guarantee(Own r ⊢ P);;;
-      mput mr';;;
+      mput_res mr';;;
       Ret (fr', tt).
 
   Definition handle_agE_tgt: agE ~> stateT (Σ) (itree modE) :=
@@ -69,7 +124,7 @@ Section MID.
       interp_state 
         (case_ (bif:=sum1) (handle_agE_tgt)
         (case_ (bif:=sum1) ((fun T X fr => '(fr', _) <- (handle_Guarantee (True%I) fr);; x <- trigger X;; Ret (fr', x)): _ ~> stateT Σ (itree modE)) 
-        (case_ (bif:=sum1) ((fun T X fr => x <- handle_stateE_tgt X;; Ret (fr, x)): _ ~> stateT Σ (itree modE)) 
+        (case_ (bif:=sum1) ((fun T X fr => x <- handle_pgE_tgt X;; Ret (fr, x)): _ ~> stateT Σ (itree modE)) 
                            ((fun T X fr => x <- trigger X;; Ret (fr, x)): _ ~> stateT Σ (itree modE))))).
 
   Definition hp_fun_tail := (fun '(fr, x) => handle_Guarantee (True%I) fr ;;; Ret (x: Any.t)).
@@ -147,12 +202,12 @@ Section RED.
 
   Lemma interp_hp_triggers
         (R: Type)
-        (i: stateE R)
+        (i: pgE R)
         fmr
     :
       interp_hp (trigger i) fmr
       =
-      r <- handle_stateE_tgt i;; tau;; Ret (fmr, r).
+      r <- handle_pgE_tgt i;; tau;; Ret (fmr, r).
   Proof.
     unfold interp_hp. rewrite interp_state_trigger. cbn. grind.
   Qed.

@@ -29,9 +29,6 @@ From stdpp Require Import coPset gmap.
 (* need change *)
 (* Ltac sim_init := econs; eauto; ii; econs; cycle 1; [s|sim_split]. *)
 
-(* use this to enforce the ssr_reflect rewrite: rewrite/__ rules. *)
-Definition __ : Type := unit.
-
 Ltac unfold_hmod :=
   match goal with
   | [|-context[HMod.get_modsem ?x _]] => rewrite/__ {1}/x; progress unseal "ccr"
@@ -49,7 +46,7 @@ Ltac force_r := try (prep; _force_r).
 Ltac inline_l := prep; iApply isim_inline_src; [repeat unfold_hmod; eauto|]; unfold interp_sb_hp, HoareFun; s.
 Ltac inline_r := prep; iApply isim_inline_tgt; [repeat unfold_hmod; eauto|]; unfold interp_sb_hp, HoareFun; s.
 
-Ltac call := prep; iApply isim_call; iSplitL "IST"; [ |iIntros "% % %"; iIntrosFresh "IST"].
+Ltac call := prep; iApply isim_call; iSplitL "IST"; [ |iIntros "% % % % %"; iIntrosFresh "IST"].
 
 (* COMMENT: Should st_l, st_r be kept in here, or moved to temporary? *)
 Ltac st_l := let IT := fresh "__IT" in
@@ -62,7 +59,7 @@ Ltac st_r := let IT := fresh "__IT" in
   unfold IT; clear IT.
 
 Ltac apc_r :=
-  rewrite interp_hmodE_hapc;
+  rewrite SModRed.interp_apc;
   st_r; unfold HoareAPC; st_r; rewrite unfold_APC; st_r;
   match goal with [b: bool|-_] => destruct b end;
   [|unfold guarantee, triggerNB; st_r;
@@ -99,12 +96,16 @@ Ltac take := prep; take_l; take_r.
 Ltac asm := prep; asm_l; asm_r.
 Ltac grt := prep; grt_r; grt_l.
 
-(* Need to be generalized *)
-Ltac CIH :=
-iApply isim_progress; iApply isim_base;
-match goal with [|- context[_ ?R _ _ _ (?st_src, _ _ ?itr) (?st_tgt, _)]] =>
-  iApply ("CIH" $! (@existT _ (λ _, _) itr (@existT _ (λ _, _) st_src st_tgt))); eauto
-end.
+
+
+Ltac prove_scope :=
+  try unfold HModSem.fnsems; try unfold SModSem.fnsems; try unfold fnsems_keys;
+  s; ii; des_ifs; ss; des; ss; eauto.
+
+Ltac by_coind CIH :=
+  iApply isim_progress; iApply isim_base;
+  iSpecialize (CIH $! _); repeat instantiate (1:= existT _ _); s;
+  iApply CIH.
 
 (***
  Module-level tactics
@@ -120,21 +121,106 @@ Proof.
   unfold append in EQ. depdes EQ. eauto.
 Qed.
 
-Lemma isim_reflR `{Σ: GRA.t} R Ist fnsems_src fnsems_tgt st_src st_tgt (itr: itree _ R):
-  IstProd Ist IstEq st_src st_tgt -∗
-  isim (IstProd Ist IstEq) fnsems_src fnsems_tgt ibot ibot
-  (λ '(st_src, v_src) '(st_tgt, v_tgt), IstProd Ist IstEq st_src st_tgt ** ⌜v_src = v_tgt⌝) false false
-  (st_src, translate (HModSem.emb_ run_r) itr)
-  (st_tgt, translate (HModSem.emb_ run_r) itr).
-Proof.
-  revert st_src st_tgt. apply combine_quant.
-  revert itr. apply combine_quant.
+  (* Lemma ist_eq_run_r A (run: _ -> (_ * A)) Ist st_src st_tgt: *)
+  (*   IstProd Ist IstEq st_src st_tgt -∗ *)
+  (*     (⌜(run_r run st_src).2 = (run_r run st_tgt).2⌝ ∗ *)
+  (*     IstProd Ist IstEq (run_r run st_src).1 (run_r run st_tgt).1). *)
+  (* Proof. *)
+  (*   iIntros "IST". iDestruct "IST" as (? ? ? ?) "(% & IST & %)". des; subst. *)
+  (*   unfold run_r. rewrite !Any.pair_split. destruct (run st_tgtR). *)
+  (*   iSplitR; eauto. *)
+  (*   iExists _,_,_,_. eauto. *)
+  (* Qed. *)
 
-  eapply isim_coind. i. destruct a as [itr [st_src st_tgt]]. s.
+
+(*  
+
+Lemma isim_reflR `{Σ: GRA.t} Ist fl_src fl_tgt keys itr
+  :
+  isim_fsem fl_src fl_tgt (IstProd Ist (IstEq keys))
+  (λ '(st_src, v_src) '(st_tgt, v_tgt), ((IstProd Ist (IstEq keys)) st_src st_tgt ∗ ⌜v_src = v_tgt⌝))%I
+  (HModSem.wrap_body (keys,itr)) (HModSem.wrap_body (keys,itr)).
+Proof.
+  ii. subst. unfold HModSem.wrap_body. s.
+  generalize (itr y) as it; clear itr y.
+  revert NODD. apply combine_quant.
+  revert NODS. apply combine_quant.
+  revert st_tgt. apply combine_quant.
+  revert st_src. apply combine_quant.
+  eapply isim_coind. i. destruct a as [st_src [st_tgt [NODS [NODD it]]]]. s.
   iIntros "(#(_ & CIH) & IST)".
-  assert (CASE := case_itrH _ itr); des; subst.
-  - st. eauto.
-  - st. CIH.
+  assert (CASE := case_itrH _ it); des; subst.
+  Focus 3.
+  
+  - match goal with
+    |[|-environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, guarantee ?P >>= _) (_, _)) ]
+     => 
+
+    try rewrite HModRed.translate_wrap_bind.
+    try rewrite HModRed.
+
+
+    st. eauto.
+  - st. by_coind "CIH". eauto.
+  - st. force_r. iFrame. by_coind "CIH". iFrame.
+  - st. force_l. iFrame. by_coind "CIH". iFrame.
+  - destruct c. st. call; [iFrame|].
+    by_coind "CIH". iFrame.
+  - destruct s.
+    + assert (X:= isim_sput_src_wrapper).
+      rewrite HModRed.translate_wrap_bind.
+      iApply isim_sput_src_wrapper.
+
+
+
+      rewrite/__ !HModRed.translate_wrap_bind !HModRed.translate_wrap_putE.
+      des_ifs; cycle 1.
+      { steps. force_l. instantiate (1:= y).
+        by_coind "CIH". iFrame. }
+      steps. by_coind "CIH". unfold IstProd.
+      iDestruct "IST" as (? ? ? ?) "(% & IST & %)". des; subst.
+      iExists st_srcL, st_tgtL, (alist_add k v st_tgtR), (alist_add k v st_tgtR).
+      iFrame. unfold IstEq.
+      
+      
+      apply existsb_exists in Heq. des. apply String.eqb_eq in Heq0. subst.
+      iSplit; iPureIntro.
+      * esplits.
+        { unfold alist_add, alist_remove.
+          rewrite List.filter_app.
+          Search List.filter.
+
+
+NoDup_app_disjoint
+          Search List.NoDup.
+        
+        
+       
+
+      
+    call; eauto. by_coind "CIH". iFrame.
+
+prep; iApply isim_call; iSplitL "IST"; [ |iIntros "% % % % %"; iIntrosFresh "IST"].
+Focus 2.
+
+    
+    prep. iApply isim_call.
+    
+    
+
+    
+    
+
+    
+    instantiate (1:= existT _ _). s.
+    instantiate (1:= existT _ _).
+
+    (@existT _ (λ _, _) _)).
+
+
+
+    
+    st. CIH.
   - st. force_r. iFrame. CIH.
   - st. force_l. iFrame. CIH.
   - destruct c. st. call; eauto. CIH.
@@ -143,7 +229,7 @@ Proof.
     CIH.
   - destruct e; st; force_l; force_r; CIH.
 Qed.
-
+*)
 Ltac inv_string X :=
   inv X;
   repeat match goal with [H: @eq string (_ ++ _)%string (_ ++ _)%string|-_] =>
@@ -195,11 +281,12 @@ Ltac use_simF lem := let TMP := fresh "_tmp_" in
   end;
   alist_find_solver; eauto.
 
+(*
 Ltac refl_simF := let TMP := fresh "_tmp_" in
   repeat unfold_hmod;
   alist_find_solver; intros TMP; inv TMP; esplits; eauto;
   ii; subst; eapply isim_reflR.
-
+*)
 
 
 

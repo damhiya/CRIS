@@ -31,10 +31,11 @@ Ltac hred := try (prw _red_gen 1 1 0).
 Section SIM.
 
   Context `{Σ: GRA.t}.
-  Variable Ist: Any.t -> Any.t -> iProp.
   Variable fl_src fl_tgt: alist gname (Any.t -> itree hmodE Any.t).
+  Variable Ist: alist string Any.t -> alist string Any.t -> iProp.
+  
   Let _hpsim := @_hpsim Σ fl_src fl_tgt Ist false.
-  Let rel := ∀ R : Type, (Any.t * R → Any.t * R → iProp) → bool → bool → Any.t * itree hmodE R → Any.t * itree hmodE R → iProp.
+  Let rel := ∀ R : Type, (alist string Any.t * R → alist string Any.t * R → iProp) → bool → bool → alist string Any.t * itree hmodE R → alist string Any.t * itree hmodE R → iProp.
 
   Variant iunlift (r: rel) R RR ps pt sti_src sti_tgt res: Prop :=
     | unlift_intro
@@ -44,8 +45,8 @@ Section SIM.
   Definition ibot : rel := fun _ _ _ _ _ _ => False%I.
 
   Program Definition isim
-          r g {R} (RR: Any.t * R-> Any.t * R -> iProp) ps pt
-          (sti_src sti_tgt : Any.t * itree hmodE R): iProp := 
+          r g {R} (RR: alist string Any.t * R-> alist string Any.t * R -> iProp) ps pt
+          (sti_src sti_tgt : alist string Any.t * itree hmodE R): iProp := 
     iProp_intro (gpaco7 (_hpsim) (cpn7 _hpsim) (iunlift r) (iunlift g) _ RR ps pt sti_src sti_tgt) _.
   Next Obligation.
     guclo hpsim_extendC_spec. econs; et.
@@ -217,29 +218,54 @@ Section SIM.
     uiprop. i. guclo hpsimC_spec. econs; esplits; i; eauto.
     econs; eauto. uiprop. i. eauto using iProp_mono.
   Qed.
-  
+
+  Lemma isim_tau_src
+    r g ps pt {R} RR st_src st_tgt i_src i_tgt
+  :
+    bi_entails
+      (@isim r g R RR true pt (st_src, i_src) (st_tgt, i_tgt))
+      (@isim r g R RR ps pt (st_src, tau;; i_src) (st_tgt, i_tgt)).
+  Proof. 
+    uiprop. i. guclo hpsimC_spec. econs; esplits; eauto. econs; eauto.
+  Qed.
+
+  Lemma isim_tau_tgt
+    r g ps pt {R} RR st_src st_tgt i_src i_tgt
+  :
+    bi_entails
+      (@isim r g R RR ps true (st_src, i_src) (st_tgt, i_tgt))
+      (@isim r g R RR ps pt (st_src, i_src) (st_tgt, tau;; i_tgt)).
+  Proof. 
+    uiprop. i. guclo hpsimC_spec. econs; esplits; eauto. econs; eauto.
+  Qed.
+
   Lemma isim_call 
     r g ps pt {R} RR st_src st_tgt k_src k_tgt fn varg
   :
     bi_entails
-      ((Ist st_src st_tgt) ∗ (∀ st_src0 st_tgt0 vret, (Ist st_src0 st_tgt0) -∗ @isim r g R RR true true (st_src0, k_src vret) (st_tgt0, k_tgt vret)))
+      ((Ist st_src st_tgt) ∗
+       (∀ st_src0 st_tgt0 vret
+            (NODS: List.NoDup (List.map fst st_src0))
+            (NODD: List.NoDup (List.map fst st_tgt0)),
+          (Ist st_src0 st_tgt0) -∗ @isim r g R RR true true (st_src0, k_src vret) (st_tgt0, k_tgt vret)))
       (isim r g RR ps pt (st_src, trigger (Call fn varg) >>= k_src) (st_tgt, trigger (Call fn varg) >>= k_tgt)).
-  Proof. 
-    remember (∀ st_src0 st_tgt0 vret : Any.t, Ist st_src0 st_tgt0 -∗ isim r g RR true true (st_src0, k_src vret) (st_tgt0, k_tgt vret))%I as FR.
-    uiprop. i. des. guclo hpsimC_spec. econs; esplits; eauto.
+  Proof.
+    rr. unseal "iProp". i.
+    guclo hpsimC_spec. econs; esplits; eauto.
     econs; eauto; i; subst. 
-    { instantiate (1:= FR). subst. eapply iProp_Own in H0, H1.
-      iIntros "[A B]". iPoseProof (H0 with "A") as "A". iPoseProof (H1 with "B") as "B".
-      iFrame. eauto.
+    { eapply iProp_Own in H.
+      iIntros "OWN".
+      iPoseProof (H with "OWN") as "(IST & SIM)".
+      iFrame. iSplitL""; eauto.
     }
     guclo hpsim_updateC_spec. econs; ii; esplits; eauto.
     eapply isim_init; eauto.
     iIntros "H". iPoseProof (INV with "H") as "H". iApply isim_upd.
     iMod "H". iDestruct "H" as "[X B]".
-    iSpecialize ("B" $! st_src0 st_tgt0 vret).
+    iSpecialize ("B" $! st_src0 st_tgt0 vret NODS NODD).
     iApply "B". eauto.
   Qed.
-  
+
   Lemma isim_io
     r g ps pt {R} RR st_src st_tgt I O k_src k_tgt fn (varg: I)
   : 
@@ -253,7 +279,7 @@ Section SIM.
     eapply isim_init; eauto.
     iIntros "H". iApply (H with "H").   
   Qed.
-  
+
   Lemma isim_inline_src
     r g ps pt {R} RR st_src st_tgt k_src i_tgt f fn varg 
     (FIND: alist_find fn fl_src = Some f)
@@ -269,7 +295,7 @@ Section SIM.
     { instantiate (1:=  (`x : Any.t <- f varg;; Ret x)). grind. } 
     f_equal. extensionality x. grind.
   Qed.
-  
+
   Lemma isim_inline_tgt
     r g ps pt {R} RR st_src st_tgt i_src k_tgt f fn varg
     (FIND: alist_find fn fl_tgt = Some f)
@@ -284,26 +310,6 @@ Section SIM.
     rewrite <- bind_bind. f_equal. etrans.
     { instantiate (1:= (`x : Any.t <- f varg;; Ret x)). grind. }
     f_equal. extensionality x. grind. 
-  Qed.
-  
-  Lemma isim_tau_src
-    r g ps pt {R} RR st_src st_tgt i_src i_tgt
-  :
-    bi_entails
-      (@isim r g R RR true pt (st_src, i_src) (st_tgt, i_tgt))
-      (@isim r g R RR ps pt (st_src, tau;; i_src) (st_tgt, i_tgt)).
-  Proof. 
-    uiprop. i. guclo hpsimC_spec. econs; esplits; eauto. econs; eauto.
-  Qed.
-  
-  Lemma isim_tau_tgt
-    r g ps pt {R} RR st_src st_tgt i_src i_tgt
-  :
-    bi_entails
-      (@isim r g R RR ps true (st_src, i_src) (st_tgt, i_tgt))
-      (@isim r g R RR ps pt (st_src, i_src) (st_tgt, tau;; i_tgt)).
-  Proof. 
-    uiprop. i. guclo hpsimC_spec. econs; esplits; eauto. econs; eauto.
   Qed.
   
   Lemma isim_take_src
@@ -397,76 +403,124 @@ Section SIM.
     i. iIntros "H". unfold guarantee. rewrite bind_bind.
     iApply isim_choose_tgt. rewrite bind_ret_l. eauto.
   Qed.
-  
-  Lemma isim_supdate_src
-    X
-    r g ps pt {R} RR st_src st_tgt k_src i_tgt 
-    (run: Any.t -> Any.t * X)
-  :
-    bi_entails
-      (@isim r g R RR true pt ((run st_src).1, k_src (run st_src).2) (st_tgt, i_tgt))
-      (@isim r g R RR ps pt (st_src, trigger (SUpdate run) >>= k_src) (st_tgt, i_tgt)).
-  Proof. 
-    uiprop. i. guclo hpsimC_spec. econs; esplits; eauto. econs; eauto.
-    destruct (run st_src); eauto.
-  Qed.
-  
-  Lemma isim_supdate_tgt
-    X
-    r g ps pt {R} RR st_src st_tgt i_src k_tgt 
-    (run: Any.t -> Any.t * X)
-  :
-    bi_entails
-      (@isim r g R RR ps true (st_src, i_src) ((run st_tgt).1, k_tgt (run st_tgt).2))
-      (@isim r g R RR ps pt (st_src, i_src) (st_tgt, trigger (SUpdate run) >>= k_tgt)).
-  Proof.
-    uiprop. i. guclo hpsimC_spec. econs; esplits; eauto. econs; eauto.
-    destruct (run st_tgt); eauto.
-  Qed.
+
+  Local Notation wrap keys := (translate (HModSem.wrap keys)).
 
   Lemma isim_sput_src
-    r g ps pt {R} RR st_src st_tgt k_src i_tgt v
-  :
+    r g ps pt {R} RR  k v st_src st_tgt k_src i_tgt
+    :
     bi_entails
-      (@isim r g R RR true pt (v, k_src ()) (st_tgt, i_tgt))
-      (@isim r g R RR ps pt (st_src, trigger (sPut v) >>= k_src) (st_tgt, i_tgt)).
+      (@isim r g R RR true pt (alist_add k v st_src, k_src tt↑) (st_tgt, i_tgt))
+      (@isim r g R RR ps pt (st_src, trigger (SPut k v) >>= k_src) (st_tgt, i_tgt)).
   Proof.
-    iIntros "H". unfold sPut. iApply isim_supdate_src. eauto.
+    uiprop. i. guclo hpsimC_spec. econs; esplits; eauto. econs; eauto.
+  Qed.
+
+  Lemma isim_sput_src_wrap
+    r g ps pt {R} RR  k v st_src st_tgt k_src i_tgt keys
+    :
+    In k keys ->
+    bi_entails
+      (@isim r g R RR true pt (alist_add k v st_src, k_src tt↑) (st_tgt, i_tgt))
+      (@isim r g R RR ps pt (st_src, wrap keys (trigger (SPut k v)) >>= k_src) (st_tgt, i_tgt)).
+  Proof.
+    i. iIntros "ISIM".
+    rewrite HModWrap.transl_put.
+    des_ifs; ss.
+    - iApply isim_sput_src. iFrame.
+    - exfalso. edestruct (existsb_exists (String.eqb k) keys).
+      hexploit H1.
+      + esplits; try eassumption. apply String.eqb_refl.
+      + i. rewrite Heq in H2. ss.
   Qed.
   
   Lemma isim_sput_tgt
-    r g ps pt {R} RR st_src st_tgt i_src k_tgt v
-  :
+    r g ps pt {R} RR k v st_src st_tgt i_src k_tgt
+    :
     bi_entails
-      (@isim r g R RR ps true (st_src, i_src) (v, k_tgt ()))
-      (@isim r g R RR ps pt (st_src, i_src) (st_tgt, trigger (sPut v) >>= k_tgt)).
+      (@isim r g R RR ps true (st_src, i_src) (alist_add k v st_tgt, k_tgt tt↑))
+      (@isim r g R RR ps pt (st_src, i_src) (st_tgt, trigger (SPut k v) >>= k_tgt)).
   Proof.
-    iIntros "H". unfold sPut. iApply isim_supdate_tgt. eauto.
+    uiprop. i. guclo hpsimC_spec. econs; esplits; eauto. econs; eauto.
   Qed.
 
-  Lemma isim_sget_src
-    r g ps pt {R} RR st_src st_tgt k_src i_tgt
-  :
+  Lemma isim_sput_tgt_wrap
+    r g ps pt {R} RR k v st_src st_tgt i_src k_tgt keys
+    :
+    In k keys ->
     bi_entails
-      (@isim r g R RR true pt (st_src, k_src st_src) (st_tgt, i_tgt))
-      (@isim r g R RR ps pt (st_src, trigger sGet >>= k_src) (st_tgt, i_tgt)).
+      (@isim r g R RR ps true (st_src, i_src) (alist_add k v st_tgt, k_tgt tt↑))
+      (@isim r g R RR ps pt (st_src, i_src) (st_tgt, wrap keys (trigger (SPut k v)) >>= k_tgt)).
   Proof.
-    iIntros "H". unfold sGet. iApply isim_supdate_src. eauto.
+    i. iIntros "ISIM".
+    rewrite HModWrap.transl_put.
+    des_ifs; ss.
+    - iApply isim_sput_tgt. iFrame.
+    - exfalso. edestruct (existsb_exists (String.eqb k) keys).
+      hexploit H1.
+      + esplits; try eassumption. apply String.eqb_refl.
+      + i. rewrite Heq in H2. ss.
+  Qed.
+  
+  Lemma isim_sget_src
+    r g ps pt {R} RR k st_src st_tgt k_src i_tgt
+    :
+    bi_entails
+      (@isim r g R RR true pt (st_src, k_src (or_else (alist_find k st_src) tt↑)) (st_tgt, i_tgt))
+      (@isim r g R RR ps pt (st_src, trigger (SGet k) >>= k_src) (st_tgt, i_tgt)).
+  Proof.
+    uiprop. i. guclo hpsimC_spec. econs; esplits; eauto. econs; eauto.
+  Qed.
+
+  Lemma isim_sget_src_wrap
+    r g ps pt {R} RR k st_src st_tgt k_src i_tgt keys
+    :
+    In k keys ->
+    bi_entails
+      (@isim r g R RR true pt (st_src, k_src (or_else (alist_find k st_src) tt↑)) (st_tgt, i_tgt))
+      (@isim r g R RR ps pt (st_src, wrap keys (trigger (SGet k)) >>= k_src) (st_tgt, i_tgt)).
+  Proof.
+    i. iIntros "ISIM".
+    rewrite HModWrap.transl_get.
+    des_ifs; ss.
+    - iApply isim_sget_src. iFrame.
+    - exfalso. edestruct (existsb_exists (String.eqb k) keys).
+      hexploit H1.
+      + esplits; try eassumption. apply String.eqb_refl.
+      + i. rewrite Heq in H2. ss.
   Qed.
   
   Lemma isim_sget_tgt
-    r g ps pt {R} RR st_src st_tgt i_src k_tgt
-  :
+    r g ps pt {R} RR k st_src st_tgt i_src k_tgt
+    :
     bi_entails
-      (@isim r g R RR ps true (st_src, i_src) (st_tgt, k_tgt st_tgt))
-      (@isim r g R RR ps pt (st_src, i_src) (st_tgt, trigger sGet >>= k_tgt)).
+      (@isim r g R RR ps true (st_src, i_src) (st_tgt, k_tgt (or_else (alist_find k st_tgt) tt↑)))
+      (@isim r g R RR ps pt (st_src, i_src) (st_tgt, trigger (SGet k) >>= k_tgt)).
   Proof.
-    iIntros "H". unfold sGet. iApply isim_supdate_tgt. eauto.
+    uiprop. i. guclo hpsimC_spec. econs; esplits; eauto. econs; eauto.
+  Qed.
+
+  Lemma isim_sget_tgt_wrap
+    r g ps pt {R} RR k st_src st_tgt i_src k_tgt keys
+    :
+    In k keys ->
+    bi_entails
+      (@isim r g R RR ps true (st_src, i_src) (st_tgt, k_tgt (or_else (alist_find k st_tgt) tt↑)))
+      (@isim r g R RR ps pt (st_src, i_src) (st_tgt, wrap keys (trigger (SGet k)) >>= k_tgt)).
+  Proof.
+    i. iIntros "ISIM".
+    rewrite HModWrap.transl_get.
+    des_ifs; ss.
+    - iApply isim_sget_tgt. iFrame.
+    - exfalso. edestruct (existsb_exists (String.eqb k) keys).
+      hexploit H1.
+      + esplits; try eassumption. apply String.eqb_refl.
+      + i. rewrite Heq in H2. ss.
   Qed.
   
   Lemma isim_assume_src
     r g ps pt {R} RR iP st_src st_tgt k_src i_tgt 
-  :
+    :
     bi_entails
       (iP -∗ (@isim r g R RR true pt (st_src, k_src tt) (st_tgt, i_tgt)))
       (@isim r g R RR ps pt (st_src, trigger (Assume iP) >>= k_src) (st_tgt, i_tgt)).
@@ -487,7 +541,7 @@ Section SIM.
 
   Lemma isim_assume_tgt
     r g ps pt {R} RR iP st_src st_tgt i_src k_tgt 
-  :
+    :
     bi_entails
       (iP ∗ (@isim r g R RR ps true (st_src, i_src) (st_tgt, k_tgt tt)))
       (@isim r g R RR ps pt (st_src, i_src) (st_tgt, trigger (Assume iP) >>= k_tgt)).
@@ -505,7 +559,7 @@ Section SIM.
 
   Lemma isim_guarantee_src
     r g ps pt {R} RR iP st_src st_tgt k_src i_tgt 
-  :
+    :
     bi_entails
       (iP ∗ (@isim r g R RR true pt (st_src, k_src tt) (st_tgt, i_tgt)))
       (@isim r g R RR ps pt (st_src, trigger (Guarantee iP) >>= k_src) (st_tgt, i_tgt)).
@@ -523,7 +577,7 @@ Section SIM.
 
   Lemma isim_guarantee_tgt
     r g ps pt {R} RR iP st_src st_tgt i_src k_tgt 
-  :
+    :
     bi_entails
       (iP -∗ (@isim r g R RR ps true (st_src, i_src) (st_tgt, k_tgt tt)))
       (@isim r g R RR ps pt (st_src, i_src) (st_tgt, trigger (Guarantee iP) >>= k_tgt)).
@@ -544,7 +598,7 @@ Section SIM.
 
   Lemma isim_progress
     r g {R} RR st_src st_tgt i_src i_tgt
-  :
+    :
     bi_entails
       (@isim g g R RR false false (st_src, i_src) (st_tgt, i_tgt))
       (@isim r g R RR true true (st_src, i_src) (st_tgt, i_tgt)).
@@ -554,7 +608,7 @@ Section SIM.
 
   Lemma isim_triggerUB_src
     r g {R} RR ps pt X st_src st_tgt (k_src: X -> _) i_tgt
-  :
+    :
     bi_entails
       (⌜True⌝)
       (@isim r g R RR ps pt (st_src, triggerUB >>= k_src) (st_tgt, i_tgt)).
@@ -565,7 +619,7 @@ Section SIM.
 
   Lemma isim_triggerUB_src_trigger
     r g {R} RR ps pt st_src st_tgt i_tgt
-  :
+    :
     bi_entails
       (⌜True⌝)
       (@isim r g R RR ps pt (st_src, triggerUB) (st_tgt, i_tgt)).
@@ -576,7 +630,7 @@ Section SIM.
 
   Lemma isim_triggerNB_tgt
     r g {R} RR ps pt X st_src st_tgt i_src (k_tgt: X -> _)
-  :
+    :
     bi_entails
       (⌜True⌝)
       (@isim r g R RR ps pt (st_src, i_src) (st_tgt, triggerNB >>= k_tgt)).
@@ -587,7 +641,7 @@ Section SIM.
 
   Lemma isim_triggerNB_trigger
     r g {R} RR ps pt st_src st_tgt i_src
-  :
+    :
     bi_entails
       (⌜True⌝)
       (@isim r g R RR ps pt (st_src, i_src) (st_tgt, triggerNB)).
@@ -597,11 +651,11 @@ Section SIM.
   Qed.
 
   Lemma isim_unwrapU_src
-      r g {R} RR ps pt st_src st_tgt X (x: option X) k_src i_tgt
+    r g {R} RR ps pt st_src st_tgt X (x: option X) k_src i_tgt
     :
-      bi_entails
-        (∀ x', ⌜x = Some x'⌝ -∗ isim r g RR ps pt (st_src, k_src x') (st_tgt, i_tgt))
-        (@isim r g R RR ps pt (st_src, unwrapU x >>= k_src) (st_tgt, i_tgt)).
+    bi_entails
+      (∀ x', ⌜x = Some x'⌝ -∗ isim r g RR ps pt (st_src, k_src x') (st_tgt, i_tgt))
+      (@isim r g R RR ps pt (st_src, unwrapU x >>= k_src) (st_tgt, i_tgt)).
   Proof.
     iIntros "H". unfold unwrapU. destruct x.
     { hred_l. iApply "H". auto. }
@@ -610,7 +664,7 @@ Section SIM.
 
   Lemma isim_unwrapN_src
     r g {R} RR ps pt st_src st_tgt X (x: option X) k_src i_tgt
-  :
+    :
     bi_entails
       (∃ x', ⌜x = Some x'⌝ ∗ @isim r g R RR ps pt (st_src, k_src x') (st_tgt, i_tgt))
       (isim r g RR ps pt (st_src, unwrapN x >>= k_src) (st_tgt, i_tgt)).
@@ -621,7 +675,7 @@ Section SIM.
 
   Lemma isim_unwrapU_tgt
     r g {R} RR ps pt st_src st_tgt X (x: option X) i_src k_tgt
-  :
+    :
     bi_entails
       (∃ x', ⌜x = Some x'⌝ ∗ @isim r g R RR ps pt (st_src, i_src) (st_tgt, k_tgt x'))
       (isim r g RR ps pt (st_src, i_src) (st_tgt, unwrapU x >>= k_tgt)).
@@ -632,7 +686,7 @@ Section SIM.
 
   Lemma isim_unwrapN_tgt
     r g {R} RR ps pt st_src st_tgt X (x: option X) i_src k_tgt
-  :
+    :
     bi_entails
       (∀ x', ⌜x = Some x'⌝ -∗ @isim r g R RR ps pt (st_src, i_src) (st_tgt, k_tgt x'))
       (isim r g RR ps pt (st_src, i_src) (st_tgt, unwrapN x >>= k_tgt)).
@@ -642,7 +696,7 @@ Section SIM.
     { iApply isim_triggerNB_tgt. auto. }
   Qed.
 
-  Lemma isim_base r g R (RR: Any.t * R -> Any.t * R -> iProp)
+  Lemma isim_base r g R RR
     ps pt sti_src sti_tgt
     :
     bi_entails
@@ -655,21 +709,21 @@ Section SIM.
 
   Lemma isim_reset 
     r g {R} RR ps pt sti_src sti_tgt
-  :
+    :
     bi_entails
       (@isim r g R RR false false sti_src sti_tgt)
       (@isim r g R RR ps pt sti_src sti_tgt).
   Proof.
     uiprop. i. eapply hpsim_flag_down. eauto. 
   Qed.
-
+  
   Lemma isim_coind (r g: rel) A P RA RRA psA ptA srcA tgtA
     (COIND: forall (g0: rel) (a:A),
-      bi_entails
-        ((□ ((∀ R RR ps pt src tgt, g R RR ps pt src tgt -∗ g0 R RR ps pt src tgt) ∗
-             (∀ a, P a -∗ g0 (RA a) (RRA a) (psA a) (ptA a) (srcA a) (tgtA a)))) ∗
-         P a)
-        (@isim r g0 (RA a) (RRA a) (psA a) (ptA a) (srcA a) (tgtA a)))
+        bi_entails
+          ((□ ((∀ R RR ps pt src tgt, g R RR ps pt src tgt -∗ g0 R RR ps pt src tgt) ∗
+                  (∀ a, P a -∗ g0 (RA a) (RRA a) (psA a) (ptA a) (srcA a) (tgtA a)))) ∗
+             P a)
+          (@isim r g0 (RA a) (RRA a) (psA a) (ptA a) (srcA a) (tgtA a)))
     :
     forall (a:A),
       bi_entails
@@ -678,7 +732,7 @@ Section SIM.
   Proof.
     i. iIntros "H". iPoseProof (bupd_intro with "H") as "H". iStopProof.
     rr. autorewrite with iprop.
-    revert_until COIND. gcofix CIH. i.
+    revert a. gcofix CIH. i.
     uiprop in H0. des.
     guclo hpsim_updateC_spec. econs. ii. exists r2.
     esplits; cycle 1.
@@ -687,10 +741,10 @@ Section SIM.
     clear r1 H1 H WF.
     guclo hpsim_updateC_spec. econs; ii; esplits; eauto.
     specialize (COIND
-      (fun R RR ps pt src tgt =>
-         g R RR ps pt src tgt ∨
-         ∃ a, P a ∗ ⌜@existT Type (fun _ => _) R (RR,ps,pt,src,tgt) =
-                      existT (RA a) (RRA a,psA a,ptA a,srcA a,tgtA a)⌝)%I a).
+                  (fun R RR ps pt src tgt =>
+                     g R RR ps pt src tgt ∨
+                       ∃ a, P a ∗ ⌜@existT Type (fun _ => _) R (RR,ps,pt,src,tgt) =
+                               existT (RA a) (RRA a,psA a,ptA a,srcA a,tgtA a)⌝)%I a).
     rr in COIND. autorewrite with iprop in COIND.
     eapply gpaco7_mon. eapply COIND; eauto.
     - rr. autorewrite with iprop. exists ε, r2. r_solve.
@@ -712,13 +766,16 @@ Section SIM.
         i. apply REL0 in H1. eapply URA.wf_mon with (b:=b).
         eapply eq_ind; eauto. r_solve.
   Qed.
-
+  
   Definition isim_fsem RR: relation (Any.t -> itree hmodE Any.t) :=
-    (eq ==> (fun itr_src itr_tgt => forall st_src st_tgt,
-             Ist st_src st_tgt ⊢ @isim ibot ibot Any.t RR false false (st_src, itr_src) (st_tgt, itr_tgt)))%signature.
+    (eq ==> (fun itr_src itr_tgt =>
+               forall st_src st_tgt
+                      (NODS: List.NoDup (List.map fst st_src))
+                      (NODD: List.NoDup (List.map fst st_tgt)),
+                 Ist st_src st_tgt ⊢ @isim ibot ibot Any.t RR false false (st_src, itr_src) (st_tgt, itr_tgt)))%signature.
 
   (* Definition isim_fnsem RR: relation (string * (Any.t -> itree hmodE Any.t)) := RelProd eq (isim_fsem RR). *)
-    
+  
 End SIM.
 
 Global Opaque isim.
@@ -729,30 +786,32 @@ Module HModSemR.
     Import HModSem.
     Context `{_W: CtxWD.t}. 
     Variable (ms_src ms_tgt: HModSem.t).
-    Variable Ist: Any.t -> Any.t -> iProp.
+    Variable Ist: alist string Any.t -> alist string Any.t -> iProp.
 
-    Let fl_src := ms_src.(fnsems).
-    Let fl_tgt := ms_tgt.(fnsems).
+    Let fnsems_src := ms_src.(fnsems).
+    Let fnsems_tgt := ms_tgt.(fnsems).
     Let init_src := ms_src.(initial_st).
     Let init_tgt := ms_tgt.(initial_st).
     Let cond_src := ms_src.(initial_cond).
     Let cond_tgt := ms_tgt.(initial_cond).
-
-    Let RR {R}: Any.t * R -> Any.t * R -> iProp :=
-      fun '(st_src, v_src) '(st_tgt, v_tgt) => (Ist st_src st_tgt ∗ ⌜v_src = v_tgt⌝)%I.   
-  
-    Inductive sim: Prop := mk {
-      sim_initial: cond_src ⊢ cond_tgt ∗ (Ist init_src init_tgt);
-      sim_length: List.length fl_src = List.length fl_tgt;
-      sim_miss: 
-        forall fn (MISS: alist_find fn fl_src = None),
-        alist_find fn fl_tgt = None;
-      sim_fnsems:
-        forall fn fs (FIND: alist_find fn fl_src = Some fs),
-        exists ft, alist_find fn fl_tgt = Some ft /\
-                 isim_fsem Ist fl_src fl_tgt RR fs ft;      
-      (* isim_fnsems: Forall2 (isim_fnsem Ist fl_src fl_tgt RR) fl_src fl_tgt; *)
-    }.     
+    
+    Inductive sim: Prop :=
+      mk {
+          sim_initial: cond_src ⊢ cond_tgt ∗ (Ist init_src init_tgt);
+          sim_length: List.length fnsems_src = List.length fnsems_tgt;
+          sim_miss: 
+            forall fn (MISS: alist_find fn fnsems_src = None),
+              alist_find fn fnsems_tgt = None;
+          sim_fnsems:
+            forall fn fs (FIND: alist_find fn fnsems_src = Some fs),
+            exists ft, alist_find fn fnsems_tgt = Some ft /\
+                         isim_fsem
+                           (List.map (map_snd HModSem.wrap_body) fnsems_src)
+                           (List.map (map_snd HModSem.wrap_body) fnsems_tgt)
+                           Ist (fun '(st_src, v_src) '(st_tgt, v_tgt) => (Ist st_src st_tgt ∗ ⌜v_src = v_tgt⌝))%I
+                           (HModSem.wrap_body fs) (HModSem.wrap_body ft);
+          sim_nodup: NoDup (List.map fst init_src) -> NoDup (List.map fst init_tgt);
+        }.
 
   End SIM.
 End HModSemR.
@@ -762,25 +821,27 @@ Module HModR.
   Section SIM.
     Context `{_W: CtxWD.t}. 
     Variable (md_src md_tgt: HMod.t).
-    Variable Ist: Any.t -> Any.t -> iProp.
+    Variable Ist: alist string Any.t -> alist string Any.t -> iProp.
 
     Inductive sim: Prop := mk {
-      sim_modsem:
-          forall sk (SKINCL: Sk.incl md_tgt.(HMod.sk) sk) (SKWF: Sk.wf sk),
-          <<SIM: HModSemR.sim (md_src.(HMod.get_modsem) sk) (md_tgt.(HMod.get_modsem) sk) Ist>>;
-      sim_sk: <<SIM: md_src.(HMod.sk) = md_tgt.(HMod.sk)>>;
-    }.
+                               sim_modsem:
+                               forall sk (SKINCL: Sk.incl md_tgt.(HMod.sk) sk) (SKWF: Sk.wf sk),
+                                 <<SIM: HModSemR.sim (md_src.(HMod.get_modsem) sk) (md_tgt.(HMod.get_modsem) sk) Ist>>;
+                                          sim_sk: <<SIM: md_src.(HMod.sk) = md_tgt.(HMod.sk)>>;
+                             }.
 
     Definition sim_fun fn : Prop :=
       forall sk,
-      let fnsems_src := HModSem.fnsems (HMod.get_modsem md_src sk) in
-      let fnsems_tgt := HModSem.fnsems (HMod.get_modsem md_tgt sk) in
-      match alist_find fn fnsems_src, alist_find fn fnsems_tgt with
-      | Some isrc, Some itgt =>
-          isim_fsem Ist fnsems_src fnsems_tgt 
-            (λ '(st_src0, v_src) '(st_tgt0, v_tgt), Ist st_src0 st_tgt0 ** ⌜v_src = v_tgt⌝)
-            isrc itgt
-      | _, _ => False
-      end.
+        let fnsems_src := HModSem.fnsems (HMod.get_modsem md_src sk) in
+        let fnsems_tgt := HModSem.fnsems (HMod.get_modsem md_tgt sk) in
+        match alist_find fn fnsems_src, alist_find fn fnsems_tgt with
+        | Some fs, Some ft =>
+            isim_fsem
+              (List.map (map_snd HModSem.wrap_body) fnsems_src)
+              (List.map (map_snd HModSem.wrap_body) fnsems_tgt)
+              Ist (λ '(st_src0, v_src) '(st_tgt0, v_tgt), Ist st_src0 st_tgt0 ** ⌜v_src = v_tgt⌝)
+              (HModSem.wrap_body fs) (HModSem.wrap_body ft)
+        | _, _ => False
+        end.
   End SIM.
 End HModR.

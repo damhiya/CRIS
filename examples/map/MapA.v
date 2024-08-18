@@ -42,7 +42,7 @@ Section A.
   Definition set: list val -> itree smodE val :=
     fun varg =>
       '(k, v) <- (pargs [Tint; Tint] varg)?;;
-      f <- pget;;
+      f <- trigger (PGET "Map.");;
       _ <- pput (<[k:=v]> (f: Z->Z));;
       Ret Vundef
   .

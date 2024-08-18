@@ -18,5 +18,3 @@ Module MapSK.
      (MapName.set_by_user, Gfun↑)].
 End MapSK.
 
-Notation pget := (p0 <- trigger sGet;; p0 <- p0↓ǃ;; Ret p0) (only parsing).
-Notation pput p0 := (trigger (sPut p0↑)) (only parsing).

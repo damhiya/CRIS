@@ -1331,3 +1331,7 @@ Ltac rev_all TAC :=
          end;
   try TAC
 .
+
+(* use this to enforce the ssr_reflect rewrite: rewrite/__ rules. *)
+Definition __ : Type := unit.
+

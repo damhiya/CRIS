@@ -47,7 +47,7 @@ Section HPSIM.
 
   Variable fl_src: alist gname (Any.t -> itree hmodE Any.t).
   Variable fl_tgt: alist gname (Any.t -> itree hmodE Any.t).
-  Variable Ist: Any.t -> Any.t -> iProp.
+  Variable Ist: alist string Any.t -> alist string Any.t -> iProp.
 
   Definition hsupd (P: Σ -> Prop) : Σ -> Prop :=
     fun fmr => URA.wf fmr ->
@@ -59,9 +59,10 @@ Section HPSIM.
     if with_dummy then trigger (Guarantee True) else Ret tt.
   
   Variant _hpsim' {with_dummy: bool}
-    (hpsimc: forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hmodE R -> Any.t * itree hmodE R -> Σ -> Prop)
-    {R} {RR: Any.t * R -> Any.t * R -> iProp} (hpsimi: bool -> bool -> Any.t * itree hmodE R -> Any.t * itree hmodE R -> Σ -> Prop)
-    : bool -> bool -> Any.t * itree hmodE R -> Any.t * itree hmodE R -> Σ -> Prop :=
+    (hpsimc: forall R (RR: alist string Any.t * R -> alist string Any.t * R -> iProp), bool -> bool -> alist string Any.t * itree hmodE R -> alist string Any.t * itree hmodE R -> Σ -> Prop)
+    {R} {RR: alist string Any.t * R -> alist string Any.t * R -> iProp} (hpsimi: bool -> bool -> alist string Any.t * itree hmodE R -> alist string Any.t * itree hmodE R -> Σ -> Prop)
+    : bool -> bool -> alist string Any.t * itree hmodE R -> alist string Any.t * itree hmodE R -> Σ -> Prop :=
+    
   | hpsim_ret
       (* Note: (INV: Own fmr ⊢ #=> I st_src st_tgt) is required only for the funtion end. *)      
       (HPSIM_RET: True)
@@ -70,17 +71,20 @@ Section HPSIM.
       (RET: Own fmr ⊢ #=> RR (st_src,v_src) (st_tgt,v_tgt))
     :
     _hpsim' hpsimc hpsimi ps pt (st_src, Ret v_src) (st_tgt, Ret v_tgt) fmr
+
   | hpsim_call
       (HPSIM_CALL: True)
       ps pt st_src st_tgt fmr
       fn varg k_src k_tgt FR
       (INV: Own fmr ⊢ #=> (Ist st_src st_tgt ∗ FR))
-      (K: forall vret st_src0 st_tgt0 fmr0 
-                 (* (WF: URA.wf fmr0) *)
+      (K: forall vret st_src0 st_tgt0 fmr0
+                 (NODS: List.NoDup (List.map fst st_src0))
+                 (NODD: List.NoDup (List.map fst st_tgt0))
                  (INV: Own fmr0 ⊢ #=> (Ist st_src0 st_tgt0 ∗ FR)),
           hpsimi true true (st_src0, k_src vret) (st_tgt0, k_tgt vret) fmr0)				
     :
     _hpsim' hpsimc hpsimi ps pt (st_src, trigger (Call fn varg) >>= k_src) (st_tgt, trigger (Call fn varg) >>= k_tgt) fmr
+
   | hpsim_io
       (HPSIM_IO: True)
       ps pt st_src st_tgt fmr
@@ -156,26 +160,46 @@ Section HPSIM.
     :
     _hpsim' hpsimc hpsimi ps pt (st_src, i_src) (st_tgt, trigger (Take X) >>= k_tgt) fmr
 
-  | hpsim_supdate_src
-      (HPSIM_SUPDATE_SRC: True)
-      ps pt st_src st_tgt fmr
-      X x st_src0 k_src i_tgt
-      (run: Any.t -> Any.t * X)
-      (RUN: run st_src = (st_src0, x))
-      (K: hpsimi true pt (st_src0, k_src x) (st_tgt, i_tgt) fmr)
+  | hpsim_sput_src
+      (HPSIM_SPUT_SRC: True)
+      ps pt st_src st_src0 st_tgt fmr
+      k_src i_tgt
+      k v
+      (run: st_src0 = alist_add k v st_src)
+      (K: hpsimi true pt (st_src0, k_src tt↑) (st_tgt, i_tgt) fmr)
     :
-    _hpsim' hpsimc hpsimi ps pt (st_src, trigger (SUpdate run) >>= k_src) (st_tgt, i_tgt) fmr
+    _hpsim' hpsimc hpsimi ps pt (st_src, trigger (SPut k v) >>= k_src) (st_tgt, i_tgt) fmr
 
-  | hpsim_supdate_tgt
-      (HPSIM_SUPDATE_TGT: True)
-      ps pt st_src st_tgt fmr
-      X x st_tgt0 i_src k_tgt
-      (run: Any.t -> Any.t * X)
-      (RUN: run st_tgt = (st_tgt0, x))
-      (K: hpsimi ps true (st_src, i_src) (st_tgt0, k_tgt x) fmr)
+  | hpsim_sput_tgt
+      (HPSIM_SPUT_SRC: True)
+      ps pt st_src st_tgt st_tgt0 fmr
+      i_src k_tgt 
+      k v
+      (run: st_tgt0 = alist_add k v st_tgt)
+      (K: hpsimi ps true (st_src, i_src) (st_tgt0, k_tgt tt↑) fmr)
     :
-    _hpsim' hpsimc hpsimi ps pt (st_src, i_src) (st_tgt, trigger (SUpdate run) >>= k_tgt) fmr
+    _hpsim' hpsimc hpsimi ps pt (st_src, i_src) (st_tgt, trigger (SPut k v) >>= k_tgt) fmr
 
+  | hpsim_sget_src
+      (HPSIM_SPUT_SRC: True)
+      ps pt st_src st_tgt fmr
+      k_src i_tgt
+      k v
+      (run: v = or_else (alist_find k st_src) tt↑)
+      (K: hpsimi true pt (st_src, k_src v) (st_tgt, i_tgt) fmr)
+    :
+    _hpsim' hpsimc hpsimi ps pt (st_src, trigger (SGet k) >>= k_src) (st_tgt, i_tgt) fmr
+ 
+  | hpsim_sget_tgt
+      (HPSIM_SPUT_SRC: True)
+      ps pt st_src st_tgt fmr
+      i_src k_tgt 
+      k v
+      (run: v = or_else (alist_find k st_tgt) tt↑)
+      (K: hpsimi ps true (st_src, i_src) (st_tgt, k_tgt v) fmr)
+    :
+    _hpsim' hpsimc hpsimi ps pt (st_src, i_src) (st_tgt, trigger (SGet k) >>= k_tgt) fmr
+ 
   | hpsim_assume_src
       (HPSIM_ASSUME_SRC: True)
       ps pt st_src st_tgt fmr
@@ -286,10 +310,14 @@ Section HPSIM.
   Hint Resolve hsupd_mon _hpsim'_mon _hpsim_mon_auto: paco.
   Hint Resolve cpn7_wcompat: paco.
 
-  Definition hpsim_tail : Any.t*Any.t -> Any.t*Any.t -> iProp :=
+  Definition hpsim_tail : (alist string Any.t)*Any.t -> (alist string Any.t)*Any.t -> iProp :=
     fun '(st_src, v_src) '(st_tgt, v_tgt) => (Ist st_src st_tgt ∗ ⌜v_src = v_tgt⌝)%I.
 
-  Definition hpsim_body := @hpsim Any.t hpsim_tail.
+  Definition hpsim_body ps pt sti_src sti_tgt fmr :=
+    forall
+      (NODS: List.NoDup (List.map fst sti_src.1))
+      (NODD: List.NoDup (List.map fst sti_tgt.1)),
+    @hpsim _ hpsim_tail ps pt sti_src sti_tgt fmr.
 
   Definition hpsim_fun (i_src: itree hmodE Any.t) (i_tgt: itree hmodE Any.t):  Prop :=
     forall st_src st_tgt fmr (* (WF: URA.wf fmr) *)
@@ -302,23 +330,23 @@ Section HPSIM.
     (exists P itrH', itrH = (trigger (Assume P);;; itrH')) \/
     (exists P itrH', itrH = (trigger (Guarantee P);;; itrH')) \/
     (exists R (c: callE R) ktrH', itrH = (trigger c >>= ktrH')) \/
-    (exists R (s: stateE R) ktrH', itrH = (trigger s >>= ktrH')) \/
+    (exists R (s: pgE R) ktrH', itrH = (trigger s >>= ktrH')) \/
     (exists R (e: coreE R) ktrH', itrH = (trigger e >>= ktrH')).
   Proof.
     ides itrH; eauto.
     right; right.
-    destruct e; [destruct a|destruct m; [|destruct s]].
+    destruct e; [destruct a|destruct p; [|destruct s]].
     - left. exists P, (k()). unfold trigger. rewrite bind_vis.
       repeat f_equal. extensionality x. destruct x. rewrite bind_ret_l. eauto.
     - right; left. exists P, (k()). unfold trigger. rewrite bind_vis.
       repeat f_equal. extensionality x. destruct x. rewrite bind_ret_l. eauto.
     - do 2 right; left. exists X, c, k. unfold trigger. rewrite bind_vis.
       repeat f_equal. extensionality x. rewrite bind_ret_l. eauto.
-    - do 3 right; left. exists X, s, k. unfold trigger. rewrite bind_vis.
+    - do 3 right; left. exists X, p, k. unfold trigger. rewrite bind_vis.
       repeat f_equal. extensionality x. rewrite bind_ret_l. eauto.
     - do 4 right. exists X, c, k. unfold trigger. rewrite bind_vis.
       repeat f_equal. extensionality x. rewrite bind_ret_l. eauto.
-  Qed.  
+  Qed.
 
   Lemma hsupd_incl P
     :
@@ -424,7 +452,7 @@ Section HPSIM.
   Qed.
 
   Variant hpsim_flagC 
-    (r: forall (R: Type) (RR: Any.t * R -> Any.t * R -> iProp),  bool -> bool -> Any.t * itree hmodE R -> Any.t * itree hmodE R -> Σ -> Prop)
+    (r: forall (R: Type) (RR: (alist string Any.t) * R -> (alist string Any.t) * R -> iProp),  bool -> bool -> (alist string Any.t) * itree hmodE R -> (alist string Any.t) * itree hmodE R -> Σ -> Prop)
     R RR ps1 pt1 st_src st_tgt fmr : Prop :=
   | hpsim_flagC_intro
     ps0 pt0
@@ -458,13 +486,8 @@ Section HPSIM.
 
 
 
-
-  
-  
-
-
-  Variant hpsim_bindC (r: forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hmodE R -> Any.t * itree hmodE R -> Σ -> Prop):
-    forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hmodE R -> Any.t * itree hmodE R -> Σ -> Prop
+  Variant hpsim_bindC (r: forall R (RR: (alist string Any.t) * R -> (alist string Any.t) * R -> iProp), bool -> bool -> (alist string Any.t) * itree hmodE R -> (alist string Any.t) * itree hmodE R -> Σ -> Prop):
+    forall R (RR: (alist string Any.t) * R -> (alist string Any.t) * R -> iProp), bool -> bool -> (alist string Any.t) * itree hmodE R -> (alist string Any.t) * itree hmodE R -> Σ -> Prop
   :=
   | hpsim_bindC_intro
       ps pt Q QQ st_src st_tgt i_src i_tgt fmr
@@ -525,8 +548,8 @@ Section HPSIM.
 
 
 
-  Variant hpsim_extendC (r: forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hmodE R -> Any.t * itree hmodE R -> Σ -> Prop):
-    forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hmodE R -> Any.t * itree hmodE R -> Σ -> Prop
+  Variant hpsim_extendC (r: forall R (RR: (alist string Any.t) * R -> (alist string Any.t) * R -> iProp), bool -> bool -> (alist string Any.t) * itree hmodE R -> (alist string Any.t) * itree hmodE R -> Σ -> Prop):
+    forall R (RR: (alist string Any.t) * R -> (alist string Any.t) * R -> iProp), bool -> bool -> (alist string Any.t) * itree hmodE R -> (alist string Any.t) * itree hmodE R -> Σ -> Prop
   :=
   | hpsim_extendC_intro
       ps pt R RR sti_src sti_tgt fmr fmr'
@@ -568,8 +591,8 @@ Section HPSIM.
 
 
 
-  Variant hpsim_wfC (r: forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hmodE R -> Any.t * itree hmodE R -> Σ -> Prop):
-    forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hmodE R -> Any.t * itree hmodE R -> Σ -> Prop
+  Variant hpsim_wfC (r: forall R (RR: (alist string Any.t) * R -> (alist string Any.t) * R -> iProp), bool -> bool -> (alist string Any.t) * itree hmodE R -> (alist string Any.t) * itree hmodE R -> Σ -> Prop):
+    forall R (RR: (alist string Any.t) * R -> (alist string Any.t) * R -> iProp), bool -> bool -> (alist string Any.t) * itree hmodE R -> (alist string Any.t) * itree hmodE R -> Σ -> Prop
   :=
   | hpsim_wfC_intro
       ps pt R RR sti_src sti_tgt fmr
@@ -607,8 +630,8 @@ Section HPSIM.
 
   
 
-  Variant hpsim_updateC (r: forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hmodE R -> Any.t * itree hmodE R -> Σ -> Prop):
-    forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hmodE R -> Any.t * itree hmodE R -> Σ -> Prop
+  Variant hpsim_updateC (r: forall R (RR: (alist string Any.t) * R -> (alist string Any.t) * R -> iProp), bool -> bool -> (alist string Any.t) * itree hmodE R -> (alist string Any.t) * itree hmodE R -> Σ -> Prop):
+    forall R (RR: (alist string Any.t) * R -> (alist string Any.t) * R -> iProp), bool -> bool -> (alist string Any.t) * itree hmodE R -> (alist string Any.t) * itree hmodE R -> Σ -> Prop
   :=
   | hpsim_updateC_intro
       ps pt R RR sti_src sti_tgt fmr
@@ -646,8 +669,8 @@ Section HPSIM.
   
 
 
-  Variant hpsim_frameC (r: forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hmodE R -> Any.t * itree hmodE R -> Σ -> Prop):
-    forall R (RR: Any.t * R -> Any.t * R -> iProp), bool -> bool -> Any.t * itree hmodE R -> Any.t * itree hmodE R -> Σ -> Prop
+  Variant hpsim_frameC (r: forall R (RR: (alist string Any.t) * R -> (alist string Any.t) * R -> iProp), bool -> bool -> (alist string Any.t) * itree hmodE R -> (alist string Any.t) * itree hmodE R -> Σ -> Prop):
+    forall R (RR: (alist string Any.t) * R -> (alist string Any.t) * R -> iProp), bool -> bool -> (alist string Any.t) * itree hmodE R -> (alist string Any.t) * itree hmodE R -> Σ -> Prop
   :=
   | hpsim_frameC_intro
       ps pt R RR sti_src sti_tgt fmr fmrc (CTX: iProp)
@@ -699,7 +722,7 @@ Section HPSIM.
         exploit iProp_sepconj; eauto; i; des; subst.
         { eapply URA.wf_mon. rewrite URA.add_comm. eauto using own_wf. }
         apply iProp_Own in x5. apply iProp_Own in x6.
-        eapply K.
+        eapply K; eauto.
         { instantiate (1:= rp ⋅ p).
           iIntros "H". iDestruct "H" as "[X Y]". iSplitL "X"; eauto.
           - iApply x2. eauto.
@@ -775,14 +798,17 @@ Section HPSIM.
     eapply hpsim_frameC_mon, PR; eauto with paco.
   Qed.
 
+  
 
+
+
+  
   Definition hpsim_fsem: relation (Any.t -> itree hmodE Any.t) :=
     (eq ==> hpsim_fun)%signature.
   
   Definition hpsim_fnsem: relation (string * (Any.t -> itree hmodE Any.t)) :=
     RelProd eq hpsim_fsem.
-
-
+  
 End HPSIM.
 
 Hint Resolve _hpsim_mon: paco.
@@ -791,8 +817,6 @@ Hint Resolve cpn7_wcompat: paco.
 (**********)
 
 (* TODO: move *)
-
-
 
 
 Lemma hpsim_refl {Σ: GRA.t} fl:
@@ -815,8 +839,6 @@ Proof.
     { uipropall. exploit INV; i; des; try refl; eauto. rr in x2. uipropall.
     }
     econs; eauto with paco.
-  - depdes s; destruct (run st) eqn: EQ.
-    repeat (econs; eauto with paco).
-  - depdes e; repeat (econs; eauto with paco).
+  - depdes s; repeat (s; econs; eauto 7 using alist_add_nodup with paco).
+  - depdes e; repeat (econs; esplits; eauto with paco).
 Qed.
-

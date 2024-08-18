@@ -146,7 +146,7 @@ Section HEADER.
   Qed.
 
   Lemma incl_to_stb stb0 stb1 (INCL: List.incl stb0 stb1)
-        (NODUP: NoDup (List.map fst stb1))
+        (NODUP: List.NoDup (List.map fst stb1))
     :
       stb_incl (to_stb stb0) (to_stb stb1).
   Proof.
@@ -157,7 +157,7 @@ Section HEADER.
 
   Lemma to_stb_context_incl stbu stbk stball
         (INCL: List.incl stbk stball)
-        (NODUP: NoDup (stbu ++ (List.map fst stball)))
+        (NODUP: List.NoDup (stbu ++ (List.map fst stball)))
     :
       stb_incl (to_stb_context stbu stbk) (to_closed_stb stball).
   Proof.
@@ -235,7 +235,7 @@ Section HEADER.
   Qed.
 
   Lemma incl_to_closed_stb stb0 stb1 (INCL: List.incl stb0 stb1)
-        (NODUP: NoDup (List.map fst stb1))
+        (NODUP: List.NoDup (List.map fst stb1))
     :
       stb_incl (to_stb stb0) (to_closed_stb stb1).
   Proof.

@@ -3,9 +3,9 @@ Require Import ITreelib.
 Require Import ImpPrelude.
 Require Import STS.
 Require Import Behavior.
-Require Import Mod HMod Events.
+Require Import PMod HMod Events.
 Require Import Skeleton.
-Require Import PCM.
+Require Import PCM ITactics.
 
 Set Implicit Arguments.
 Set Typeclasses Depth 5.
@@ -22,58 +22,50 @@ Section PROOF.
   (* Compute (URA.car (t:=memRA)). *)
 
   Section BODY.
-    Context {Es: Type -> Type}.
-    Context `{has_sE: stateE -< Es}.
-    Context `{has_eventE: coreE -< Es}.
-    Definition allocF: (list val) -> itree Es val :=
+    Definition allocF: (list val) -> itree pmodE val :=
       fun varg =>
-        mp0 <- trigger (sGet);;
-        m0 <- mp0↓?;;
         `sz: Z <- (pargs [Tint] varg)?;;
+        mem <- trigger (SGet "Mem.mem");; mem <- mem↓?;;
         if (Z_le_gt_dec 0 sz && Z_lt_ge_dec (8 * sz) modulus_64)
         then (delta <- trigger (Choose _);;
-              let m0': Mem.t := Mem.mem_pad m0 delta in
-              let (blk, m1) := Mem.alloc m0' sz in
-              trigger (sPut m1↑);;;
+              let mem0: Mem.t := Mem.mem_pad mem delta in
+              let (blk, mem1) := Mem.alloc mem0 sz in
+              trigger (SPut "Mem.mem" mem1↑);;;
               Ret (Vptr blk 0))
         else triggerUB
     .
 
-    Definition freeF: list val -> itree Es val :=
+    Definition freeF: list val -> itree pmodE val :=
       fun varg =>
-        mp0 <- trigger (sGet);;
-        m0 <- mp0↓?;;
-        '(b, ofs) <- (pargs [Tptr] varg)?;;
-        m1 <- (Mem.free m0 b ofs)?;;
-        trigger (sPut m1↑);;;
+        '(b, ofs) <- (pargs [Tptr] varg)?;;        
+        mem <- trigger (SGet "Mem.mem");; mem <- mem↓?;;
+        mem1 <- (Mem.free mem b ofs)?;;
+        trigger (SPut "Mem.mem" mem1↑);;;
         Ret (Vint 0)
     .
 
-    Definition loadF: list val -> itree Es val :=
+    Definition loadF: list val -> itree pmodE val :=
       fun varg =>
-        mp0 <- trigger (sGet);;
-        m0 <- mp0↓?;;
-        '(b, ofs) <- (pargs [Tptr] varg)?;;
-        v <- (Mem.load m0 b ofs)?;;
+        '(b, ofs) <- (pargs [Tptr] varg)?;;        
+        mem <- trigger (SGet "Mem.mem");; mem <- mem↓?;;
+        v <- (Mem.load mem b ofs)?;;
         Ret v
     .
 
-    Definition storeF: list val -> itree Es val :=
+    Definition storeF: list val -> itree pmodE val :=
       fun varg =>
-        mp0 <- trigger (sGet);;
-        m0 <- mp0↓?;;
         '(b, ofs, v) <- (pargs [Tptr; Tuntyped] varg)?;;
-        m1 <- (Mem.store m0 b ofs v)?;;
-        trigger (sPut m1↑);;;
+        mem <- trigger (SGet "Mem.mem");; mem <- mem↓?;;
+        mem1 <- (Mem.store mem b ofs v)?;;
+        trigger (SPut "Mem.mem" mem1↑);;;
         Ret (Vint 0)
     .
 
-    Definition cmpF: list val -> itree Es val :=
+    Definition cmpF: list val -> itree pmodE val :=
       fun varg =>
-        mp0 <- trigger (sGet);;
-        m0 <- mp0↓?;;
-        '(v0, v1) <- (pargs [Tuntyped; Tuntyped] varg)?;;
-        b <- (vcmp m0 v0 v1)?;;
+        '(v0, v1) <- (pargs [Tuntyped; Tuntyped] varg)?;;        
+        mem <- trigger (SGet "Mem.mem");; mem <- mem↓?;;
+        b <- (vcmp mem v0 v1)?;;
         if b: bool
         then Ret (Vint 1%Z)
         else Ret (Vint 0%Z)
@@ -84,29 +76,29 @@ Section PROOF.
   Require Import IPM.
   Context `{Σ: GRA.t}.
   
-  Definition fnsems : alist string (Any.t -> itree hmodE Any.t) :=
-    [("alloc", cfunU allocF) ;
-     ("free", cfunU freeF) ;
-     ("load", cfunU loadF) ;
-     ("store", cfunU storeF) ;
-     ("cmp", cfunU cmpF)].
+  Definition fnsems : alist string (list string * (Any.t -> itree pmodE Any.t)) :=
+    [("alloc", (["Mem.mem"], cfunU allocF)) ;
+     ("free",  (["Mem.mem"], cfunU freeF)) ;
+     ("load",  (["Mem.mem"], cfunU loadF)) ;
+     ("store", (["Mem.mem"], cfunU storeF)) ;
+     ("cmp",   (["Mem.mem"], cfunU cmpF))].
 
   Variable csl: gname -> bool.
 
-  Definition MemSem (sk: Sk.t): HModSem.t :=
+  Program Definition MemSem (sk: Sk.t): PModSem.t :=
     {|
-      HModSem.fnsems := fnsems ;
-      HModSem.initial_st := (Mem.load_mem csl sk)↑;
-      HModSem.initial_cond := emp;
+      PModSem.fnsems := fnsems ;
+      PModSem.initial_st := [("Mem.mem", (Mem.load_mem csl sk)↑)];
     |}
   .
+  Next Obligation. prove_scope. Qed.
 
-  Definition _Mem: HMod.t := {|
-    HMod.get_modsem := MemSem;
-    HMod.sk := Sk.unit;
+  Definition _Mem: PMod.t := {|
+    PMod.get_modsem := MemSem;
+    PMod.sk := Sk.unit;
   |}
   .
 
-  Definition Mem : HMod.t := Seal.sealing "ccr" _Mem.
+  Definition Mem : HMod.t := Seal.sealing "ccr" (PMod.to_hmod _Mem).
   
 End PROOF.

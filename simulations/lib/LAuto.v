@@ -2,6 +2,59 @@ Require Import List.
 Import ListNotations.
 Require Import Permutation.
 
+Ltac Lauto_normalize :=
+  (repeat match goal with
+      [|-context[?x::?l]] =>
+        match l with
+        | [] => fail 1
+        | _ => change (x::l) with ([x]++l)
+        end
+    end);
+  rewrite <-!app_assoc.
+
+Ltac Lauto_prepare :=
+  match goal with
+  | [|- ?l = _] =>
+      rewrite <-(app_nil_r l);
+      change (l ++ []) with ([]++(l ++ []))
+  end;
+  Lauto_normalize.
+
+Ltac Lauto_find x :=
+  repeat match goal with
+    | [|- context[?l1 ++ ?l2 ++ [x]]] => rewrite (app_assoc l1 l2 _)
+    | [|- context[?l1 ++ ?l2 ++ [x] ++ _]] => rewrite (app_assoc l1 l2 _)
+    end.
+
+Ltac Lauto_finish :=
+  simpl.
+
+Section TEST.
+  Variable P: list nat -> Prop.
+  Variable old new: nat.
+  Hypothesis P_change: forall l l', P(l ++ [new] ++ l') -> P(l ++ [old] ++ l').
+
+  Lemma test0 (x1 x2 x3 x4 x5:nat) (l1 l2 l3 l4: list nat)
+    (SAT: P ([x1]++(x2::l1)++([x3;new]++l3)++[x4]++l4++[x5]))
+    :
+    P ([x1]++(x2::l1)++([x3;old]++l3)++[x4]++l4++[x5]).
+  Proof.
+    Lauto_normalize; simpl.
+
+    eapply eq_ind; cycle 1.
+    { symmetry.
+      Lauto_prepare.
+      Lauto_find old.
+      reflexivity.
+    }
+    apply P_change.
+    Lauto_normalize; simpl.
+    apply SAT.
+  Qed.  
+
+End TEST.
+
+(*
 Lemma perm_normalize_elmt {T} (x: T) l:
   Permutation (l++[x]) (x::l).
 Proof.
@@ -113,3 +166,4 @@ Section TEST.
   Qed.
   
 End TEST.
+*)

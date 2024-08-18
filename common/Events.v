@@ -23,8 +23,8 @@ Section EVENTS.
   Variant stateE (V: Type): Type :=
   | SUpdate (run : Any.t -> Any.t * V) : stateE V.
 
-  Definition sPut x : stateE unit := SUpdate (fun _ => (x, tt)).
-  Definition sGet : stateE (Any.t) := SUpdate (fun x => (x, x)).
+  Definition sPut x : stateE Any.t := SUpdate (fun _ => (x, tt↑)).
+  Definition sGet : stateE Any.t := SUpdate (fun x => (x, x)).
 
   Definition modE : Type -> Type := (callE +' stateE +' coreE).
 
@@ -40,7 +40,7 @@ Section EVENTS.
       | SUpdate run => Ret (run glob)
       end.
 
- Definition interp_stateE {E}: itree (stateE +' E) ~> stateT Any.t (itree E) :=
+  Definition interp_stateE {E}: itree (stateE +' E) ~> stateT Any.t (itree E) :=
     (* State.interp_state (case_ ((fun _ e s0 => resum_itr (handle_pE e s0)): _ ~> stateT _ _) State.pure_state). *)
     State.interp_state (case_ handle_stateE pure_state).
 
@@ -128,17 +128,17 @@ Section EVENTS_OTHER.
   Context `{Σ: GRA.t}.
 
   Inductive pgE: Type -> Type :=
-  | SPut (k: string) (v: Any.t): pgE unit
+  | SPut (k: string) (v: Any.t): pgE Any.t
   | SGet (k: string): pgE Any.t.
 
   Variant agE: Type -> Type :=
   | Assume (P: iProp): agE unit
   | Guarantee (P: iProp): agE unit.
 
-  Definition modE' : Type -> Type := (callE +' pgE +' coreE).
-
-  Definition hmodE := (agE +' modE').
+  Definition pmodE := callE +' pgE +' coreE.
   
+  Definition hmodE := agE +' pmodE.
+
   Variant apcE: Type -> Type :=
   | APC: apcE unit.
 

@@ -721,4 +721,17 @@ Section ALIST.
     rewrite app_length in *. ss. nia.
   Qed.
 
+  Lemma alist_add_incl {K V} `{DEC: Dec K} (k: K) (v:V) db:
+    incl (List.map fst db) (List.map fst (alist_add k v db)).
+  Proof.
+    induction db; ss.
+    destruct a. ss.
+    ii. unfold rel_dec, Dec_RelDec, sumbool_to_bool, dec.
+    destruct H; subst.
+    { des_ifs; ss; eauto. }
+    apply IHdb in H.
+    des_ifs; ss; eauto.
+    destruct H; eauto.
+  Qed.
+
 End ALIST.

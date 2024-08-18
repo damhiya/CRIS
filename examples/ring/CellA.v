@@ -5,7 +5,7 @@ Require Import Behavior.
 Require Import SMod HMod.
 Require Import Skeleton.
 Require Import PCM.
-Require Import STB IPM.
+Require Import STB IPM ITactics.
 Require Import RingHeader.
 Require Import CellHeader CellASpec.
 
@@ -17,27 +17,20 @@ Section CELL_A.
 
   Variable idx : nat.
 
-  (* Definition init : Any.t -> itree smodE Any.t := (fun _ => trigger (Choose _)). *)
   Definition get : Any.t -> itree smodE Any.t := (fun _ => trigger (Choose _)).
   Definition set : Any.t -> itree smodE Any.t := (fun _ => trigger (Choose _)).
   
-  Definition fnsems: alist string fspecbody :=
-    [(* (CellName.init idx, mk_specbody (CellAS.init_spec idx) init); *)
-     (CellName.get idx,  mk_specbody (CellAS.get_spec idx) get);
-     (CellName.set idx,  mk_specbody (CellAS.set_spec idx) set)].
+  Definition fnsems : alist string (list string * fspecbody) :=
+    [(CellName.get idx, ([], mk_specbody (CellAS.get_spec idx) get));
+     (CellName.set idx, ([], mk_specbody (CellAS.set_spec idx) set))].
 
-  (* Definition fnsems: alist string fspecbody := *)
-  (*   (alist_add (CellName.init idx) (mk_specbody (CellAS.init_spec idx) init) *)
-  (*   (alist_add (CellName.get idx)  (mk_specbody (CellAS.get_spec idx) get) *)
-  (*   (alist_add (CellName.set idx)  (mk_specbody (CellAS.set_spec idx) set) *)
-  (*   []))). *)
-  
-  Definition Sem: SModSem.t := {|
+  Program Definition Sem: SModSem.t := {|
     SModSem.fnsems := fnsems;
-    SModSem.initial_st := tt↑;
+    SModSem.initial_st := [];
     SModSem.initial_cond := ∃ v, CellAS.cell idx v ∗ CellAS.auth idx v;
   |}
   .
+  Next Obligation. prove_scope. Qed.
 
   Definition Mod: SMod.t := {|
     SMod.get_modsem := fun _ => Sem;

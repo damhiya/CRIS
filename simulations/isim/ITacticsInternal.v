@@ -66,12 +66,10 @@ match goal with
     end
 | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, tau;; _) (_, _)) ] =>
     iApply isim_tau_src
-| [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, trigger (SUpdate _) >>= _) (_, _)) ] =>
-    iApply isim_supdate_src
-| [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, trigger (sPut _) >>= _) (_, _)) ] =>
-    iApply isim_sput_src
-| [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, trigger sGet >>= _) (_, _)) ] =>
-    iApply isim_sget_src
+| [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, trigger (SPut _ _) >>= _) (_, _)) ] =>
+    iApply isim_sput_src_wrap
+| [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, trigger (SGet _) >>= _) (_, _)) ] =>
+    iApply isim_sget_src_wrap
 | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _) (_, _)) ] =>
     let name := fresh "y" in
     iApply isim_take_src; iIntros (name)
@@ -86,12 +84,10 @@ match goal with
     end
 | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, tau;; _)) ] =>
     iApply isim_tau_tgt
-| [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, trigger (SUpdate _) >>= _)) ] =>
-    iApply isim_supdate_tgt
-| [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, trigger (sPut _) >>= _)) ] =>
-    iApply isim_sput_tgt
-| [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, trigger sGet >>= _)) ] =>
-    iApply isim_sget_tgt
+| [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, trigger (SPut _ _) >>= _)) ] =>
+    iApply isim_sput_tgt_wrap
+| [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, trigger (SGet _) >>= _)) ] =>
+    iApply isim_sget_tgt_wrap
 | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, trigger (Choose _) >>= _)) ] =>
     let name := fresh "y" in
     iApply isim_choose_tgt; iIntros (name)
@@ -116,60 +112,61 @@ Ltac step := prep; try _step; simpl; des_pairs.
 
 (* Try to add on red database*)
 Ltac _ired := (
-  unfold fun_spec_hp, body_spec_hp;
-  try rewrite ! interp_hmodE_bind;
-  try rewrite interp_hmodE_tau;
-  try rewrite interp_hmodE_ret;
-  try rewrite interp_hmodE_call;
-  try rewrite interp_hmodE_triggere;
-  try rewrite interp_hmodE_assume;
-  try rewrite interp_hmodE_guarantee;
-  try rewrite interp_hmodE_triggerp;
-  try rewrite interp_hmodE_triggerUB;
-  try rewrite interp_hmodE_triggerNB;
-  try rewrite interp_hmodE_unwrapU;
-  try rewrite interp_hmodE_unwrapN;
-  try rewrite interp_hmodE_Assume;
-  try rewrite interp_hmodE_Guarantee;
-  try rewrite interp_hmodE_ext
+  (* try rewrite ! interp_hmodE_bind; *)
+  (* try rewrite interp_hmodE_tau; *)
+  (* try rewrite interp_hmodE_ret; *)
+  (* try rewrite interp_hmodE_call; *)
+  (* try rewrite interp_hmodE_triggere; *)
+  (* try rewrite interp_hmodE_assume; *)
+  (* try rewrite interp_hmodE_guarantee; *)
+  (* try rewrite interp_hmodE_triggerp; *)
+  (* try rewrite interp_hmodE_triggerUB; *)
+  (* try rewrite interp_hmodE_triggerNB; *)
+  (* try rewrite interp_hmodE_unwrapU; *)
+  (* try rewrite interp_hmodE_unwrapN; *)
+  (* try rewrite interp_hmodE_Assume; *)
+  (* try rewrite interp_hmodE_Guarantee; *)
+  (* try rewrite interp_hmodE_ext *)
+  idtac               
 ).
+
 
 Ltac _steps :=
   match goal with
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, (interp_smodE_hmodE _ _ _) >>= _) (_, _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, (interp_smod _ _ _) >>= _) (_, _)) ] =>
     _ired; step
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, (interp_smodE_hmodE _ _ _) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, (interp_smod _ _ _) >>= _)) ] =>
     _ired; step
   | _ => step
   end.
 
 Ltac _st :=
   match goal with
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, (translate _ (assume _)) >>= _) (_, _)) ] =>
-    prep; rewrite HModRed.translate_emb_asm; iApply isim_asm_src; iIntros "%";
-    match goal with
-    | [ H: _ |- _ ] => let name := fresh "G" in rename H into name
-    end
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, (translate _ (guarantee _)) >>= _)) ] =>
-    prep; rewrite HModRed.translate_emb_guar; iApply isim_guar_tgt; iIntros "%";
-    match goal with
-    | [ H: _ |- _ ] => let name := fresh "G" in rename H into name
-    end
+  (* | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, (translate _ (assume _)) >>= _) (_, _)) ] => *)
+  (*   prep; rewrite HModRed.translate_wrap_asm; iApply isim_asm_src; iIntros "%"; *)
+  (*   match goal with *)
+  (*   | [ H: _ |- _ ] => let name := fresh "G" in rename H into name *)
+  (*   end *)
+  (* | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, (translate _ (guarantee _)) >>= _)) ] => *)
+  (*   prep; rewrite HModRed.translate_wrap_guar; iApply isim_guar_tgt; iIntros "%"; *)
+  (*   match goal with *)
+  (*   | [ H: _ |- _ ] => let name := fresh "G" in rename H into name *)
+  (*   end *)
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, (translate _ (trigger (Assume _))) >>= _) (_, _)) ] =>
-    rewrite HModRed.translate_emb_assume; step
+    rewrite HModWrap.transl_Assume; step
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, (translate _ (trigger (Assume _))) >>= _)) ] =>
-    rewrite HModRed.translate_emb_assume; step
+    rewrite HModWrap.transl_Assume; step
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, (translate _ (trigger (Guarantee _))) >>= _) (_, _)) ] =>
-    rewrite HModRed.translate_emb_guarantee; step
+    rewrite HModWrap.transl_Guarantee; step
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, (translate _ (trigger (Guarantee _))) >>= _)) ] =>
-    rewrite HModRed.translate_emb_guarantee; step
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, (translate _ (interp_smodE_hmodE _ _ _)) >>= _) (_, _)) ] =>
+    rewrite HModWrap.transl_Guarantee; step
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, (translate _ (interp_smod _ _ _)) >>= _) (_, _)) ] =>
     _ired; step
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _  (_, _) (_, (translate _ (interp_smodE_hmodE _ _ _)) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _  (_, _) (_, (translate _ (interp_smod _ _ _)) >>= _)) ] =>
     _ired; step
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, (interp_smodE_hmodE _ _ _) >>= _) (_, _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, (interp_smod _ _ _) >>= _) (_, _)) ] =>
     _ired; step 
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, (interp_smodE_hmodE _ _ _) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, (interp_smod _ _ _) >>= _)) ] =>
     _ired; step
   | _ => step
   end.

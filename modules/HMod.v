@@ -7,36 +7,31 @@ Require Import IRed.
 Require Import STS Behavior.
 Require Import PCM IPM.
 Require Import Skeleton Mod.
-
-(************)
-(* Require Export HMod2Mod. *)
-(************)
+Require Export HMod2Mod.
 
 Set Implicit Arguments.
+
+Definition fnsems_keys {T} (fn: gname) (fnsems: alist gname ((list string) * T)) :=
+  match (alist_find fn fnsems) with
+  | Some (keys, body) => keys
+  | None => []
+  end.
 
 Module HModSem.
 Section HMODSEM.
   Context `{Σ: GRA.t}.
 
-  Definition fnsems_keys (fn: gname) (fnsems: alist gname ((list string) * (Any.t -> itree hmodE Any.t))) :=
-    match (alist_find fn fnsems) with
-    | Some (keys, body) => keys
-    | None => []
-    end.
-
   Record t: Type := mk {
-    fnsems : alist gname ((list string) * (Any.t -> itree hmodE Any.t));
+    fnsems : alist gname (list string * (Any.t -> itree hmodE Any.t));
     initial_st : alist string Any.t;
     initial_cond: iProp;
     well_scoped:
-      forall fn k (IN: In k (fnsems_keys fn fnsems)), 
-          In k (List.map fst initial_st);
+      forall fn, incl (fnsems_keys fn fnsems) (List.map fst initial_st);
   }.
 
   Record wf (ms: t): Prop := mk_wf {
-    wf_keys: NoDup (List.map fst ms.(initial_st));
-    wf_fnsems: 
-      forall fn, (fnsems_keys fn ms.(fnsems)) ⊆ (List.map fst ms.(initial_st));
+    wf_fns: List.NoDup (List.map fst ms.(fnsems));                                 
+    wf_keys: List.NoDup (List.map fst ms.(initial_st));
   }.
 
   (**** Linking ****)
@@ -47,68 +42,47 @@ Section HMODSEM.
     initial_cond := (initial_cond ms1) ∗ (initial_cond ms2);
   |}.
   Next Obligation.
-    i. unfold fnsems_keys in IN. des_ifs. 
+    ii. unfold fnsems_keys in H. des_ifs. 
     rewrite alist_find_app_o in Heq. des_ifs.
     {
-      hexploit (ms1.(well_scoped) fn k). 
+      hexploit (ms1.(well_scoped) fn a). 
       { unfold fnsems_keys. des_ifs. }
       i. rewrite List.map_app. eapply in_or_app. eauto.
     }
     {
-      hexploit (ms2.(well_scoped) fn k). 
+      hexploit (ms2.(well_scoped) fn a). 
       { unfold fnsems_keys. des_ifs. }
       i. rewrite List.map_app. eapply in_or_app. eauto.
     }
   Qed.
 
-  Fixpoint list_in (k: string) (l: list string) :=
-    match l with
-    | [] => false
-    | hd::tl => (k =? hd) || (list_in k tl)
-    end.
+  (**** Wrapper ****)
 
+  Definition wrap keys : forall T, hmodE T -> hmodE T :=
+    (fun T e =>
+       match e with
+       | inr1 (inr1 (inl1 (SPut k v))) =>
+           if existsb (eqb k) keys then e else inr1 (inr1 (inr1 (Choose T)))
+       | inr1 (inr1 (inl1 (SGet k))) =>
+           if existsb (eqb k) keys then e else inr1 (inr1 (inr1 (Choose T)))
+       | _ => e
+       end).
 
-  (* Consider moving into Any lib. *)
-  (* Any.encode & Any.decode *)
-  (* local states: [(k0, st0); (k1, st1); ... ] *)
+  Definition wrap_body (kb: list string * (Any.t -> itree hmodE Any.t)) :=
+    fun arg => translate (wrap kb.1) (kb.2 arg).
   
-  Fixpoint encode (st_list: alist string Any.t): Any.t :=
-    match st_list with
-    | [] => tt↑
-      (* Any.pair false↑ tt↑ *)
-    | hd::tl => 
-      Any.pair (Any.pair true↑ (Any.pair hd.1↑ hd.2)) (encode tl)
-    end.
+  Definition wrap_pgE keys : pgE ~> itree hmodE :=
+    (fun _ e =>
+       match e with
+       | SPut k v => if existsb (eqb k) keys then trigger (SPut k v) else (Ret tt↑)
+       | SGet k => if existsb (eqb k) keys then trigger (SGet k) else (Ret tt↑)
+       end).
 
-  (* Fixpoint decode (st: Any.t): alist string Any.t :=
-    match Any.split st with
-    | Some (hd, tl) => 
-      match Any.split hd with
-      | Some (b, kst) =>
-        match Any.downcast b with
-        | Some true => *)
-
-  (* filtering invalid Put/Gets before compile ? (or combine into compilation) *)
-  Definition wrap_stateE (keys: list string) {E}: pgE ~> itree hmodE :=
-    fun _ e =>
-      match e with
-      | SPut k v => if (list_in k keys) then trigger (SPut k v) else Ret tt
-      | SGet k => if (list_in k keys) then trigger (SGet k) else Ret tt↑
-      end.
-
-  Definition wrap_fnsems (tr: (Any.t -> itree hmodE Any.t) -> Any.t -> itree modE Any.t)
-  : (list string) * (Any.t -> itree hmodE Any.t) -> Any.t -> itree modE Any.t :=
-    fun '(keys, body) => 
-
-
-  Definition transl (tr: (Any.t -> itree hmodE Any.t) -> Any.t -> itree modE Any.t) (ms: t) (r: Σ): ModSem.t := {|
-    ModSem.fnsems := List.map (fun '(fn, bd) => (fn, tr bd)) ms.(fnsems);
-    ModSem.initial_st := Any.pair ms.(initial_st) r↑;
+  Definition to_mod (ms: t) (r: Σ): ModSem.t := {|
+    ModSem.fnsems := List.map (fun '(fn, kb) => (fn, interp_hp_fun (wrap_body kb))) ms.(fnsems);
+    ModSem.initial_st := Any.pair (alist_encode ms.(initial_st)) r↑;
   |}.
 
-  Definition to_mod (ms: t) (r: Σ): ModSem.t := transl (interp_hp_fun) ms r.
-  (* TODO: define other compilations which are required to prove WET. *)
-  
 End HMODSEM.
 End HModSem.
 
@@ -126,212 +100,15 @@ Section HMOD.
     sk := Sk.add md0.(sk) md1.(sk);
   |}.
 
-  Definition transl (tr: Sk.t -> (Any.t -> itree hmodE Any.t) -> Any.t -> itree modE Any.t) (md: t) (r: Σ): Mod.t := {|
-    Mod.get_modsem := fun sk => HModSem.transl (tr sk) (md.(get_modsem) sk) r;
+  Definition to_mod (md: t) (r: Σ): Mod.t := {|
+    Mod.get_modsem := fun sk => HModSem.to_mod (md.(get_modsem) sk) r;
     Mod.sk := md.(sk);
-  |}. 
-
-  Definition to_mod (md: t) (r: Σ): Mod.t := transl (fun _ => interp_hp_fun) md r.
+  |}.
   
 End HMOD.
 End HMod.
 
-Module HModRed.
-Section RED.
-  Context `{Σ: GRA.t}.
-  
-  Lemma translate_emb_bind
-    A B
-    run_
-    (itr: itree hmodE A) (ktr: A -> itree hmodE B)
-  :
-    translate (HModSem.emb_ run_) (itr >>= ktr) = a <- (translate (HModSem.emb_ run_) itr);; (translate (HModSem.emb_ run_) (ktr a))
-  .
-  Proof. rewrite (bisim_is_eq (translate_bind _ _ _)). et. Qed.
-
-  Lemma translate_emb_tau
-    A
-    run_
-    (itr: itree hmodE A)
-  :
-    translate (HModSem.emb_ run_) (tau;; itr) = tau;; (translate (HModSem.emb_ run_) itr)
-  .
-  Proof. rewrite (bisim_is_eq (translate_tau _ _)). et. Qed.
-
-  Lemma translate_emb_ret
-      A (a: A) run_
-  :
-    translate (HModSem.emb_ run_) (Ret a) = Ret a
-  .
-  Proof. rewrite (bisim_is_eq (translate_ret _ _)). et. Qed.
-
-  Lemma translate_emb_callE
-      run_ fn args
-  :
-    translate (HModSem.emb_ run_) (trigger (Call fn args)) =
-    trigger (Call fn args)
-  .
-  Proof. 
-    unfold trigger. 
-    rewrite (bisim_is_eq (translate_vis _ _ _ _)). ss. 
-    do 2 f_equal. extensionalities. apply translate_emb_ret. 
-  Qed.
-
-  Lemma translate_emb_sE
-      T run_
-      (run : Any.t -> Any.t * T)
-  :
-    translate (HModSem.emb_ run_) (trigger (SUpdate run)) = trigger (SUpdate (run_ T run))
-  .
-  Proof. 
-    unfold trigger. 
-    rewrite (bisim_is_eq (translate_vis _ _ _ _)). 
-    do 2 f_equal. extensionalities. apply translate_emb_ret. 
-  Qed.
-
-  Lemma translate_emb_coreE
-      T run_ 
-      (e: coreE T)
-    :
-      translate (HModSem.emb_ run_) (trigger e) = trigger e.
-  Proof.
-    unfold trigger.
-    rewrite (bisim_is_eq (translate_vis _ _ _ _)). ss.
-    do 2 f_equal.
-    extensionalities. rewrite translate_emb_ret. et.
-  Qed.
-
-  Lemma translate_emb_triggerUB
-    T run_
-  :
-    translate (HModSem.emb_ run_) (triggerUB: itree _ T) = triggerUB
-  .
-  Proof. 
-    unfold triggerUB. rewrite translate_emb_bind. f_equal.
-    { apply translate_emb_coreE. }
-    extensionalities. ss.
-  Qed.
-
-  Lemma translate_emb_triggerNB
-    T run_
-  :
-    translate (HModSem.emb_ run_) (triggerNB: itree _ T) = triggerNB
-  .
-  Proof.
-    unfold triggerNB. rewrite translate_emb_bind. f_equal. 
-    { apply translate_emb_coreE. }
-    extensionalities. ss.
-  Qed.
-  
-  Lemma translate_emb_unwrapU
-    R run_ (r: option R)
-  :
-    translate (HModSem.emb_ run_) (unwrapU r) = unwrapU r
-  .
-  Proof.
-    unfold unwrapU. destruct r.
-    - apply translate_emb_ret.
-    - apply translate_emb_triggerUB.
-  Qed.
-
-  Lemma translate_emb_unwrapN
-    R run_ (r: option R)
-  :
-    translate (HModSem.emb_ run_) (unwrapN r) = unwrapN r
-  .
-  Proof.
-    unfold unwrapN. destruct r.
-    - apply translate_emb_ret.
-    - apply translate_emb_triggerNB.
-  Qed.
-
-  Lemma translate_emb_assume
-    run_ P
-  :
-    translate (HModSem.emb_ run_) (trigger (Assume P)) = trigger (Assume P)
-  .
-  Proof.
-    unfold trigger.
-    rewrite (bisim_is_eq (translate_vis _ _ _ _)). ss.
-    do 2 f_equal.
-    extensionalities. rewrite translate_emb_ret. et.
-  Qed.
-
-  Lemma translate_emb_guarantee
-    run_ P
-  :
-    translate (HModSem.emb_ run_) (trigger (Guarantee P)) = trigger (Guarantee P)
-  .
-  Proof.
-    unfold trigger.
-    rewrite (bisim_is_eq (translate_vis _ _ _ _)). ss.
-    do 2 f_equal.
-    extensionalities. rewrite translate_emb_ret. et.
-  Qed.
-
-  Lemma translate_emb_asm
-    run_ P
-  :
-    translate (HModSem.emb_ run_) (assume P) = assume P
-  .
-  Proof.
-    unfold assume, trigger.
-    rewrite translate_emb_bind.
-    rewrite translate_emb_ret.
-    rewrite (bisim_is_eq (translate_vis _ _ _ _)). ss.
-    do 3 f_equal.
-    extensionalities. rewrite translate_emb_ret. et.
-  Qed.
-
-  Lemma translate_emb_guar
-    run_ P
-  :
-    translate (HModSem.emb_ run_) (guarantee P) = guarantee P
-  .
-  Proof.
-    unfold guarantee, trigger.
-    rewrite translate_emb_bind.
-    rewrite translate_emb_ret.
-    rewrite (bisim_is_eq (translate_vis _ _ _ _)). ss.
-    do 3 f_equal.
-    extensionalities. rewrite translate_emb_ret. et.
-  Qed.
-  
-  Lemma translate_emb_ext
-    T run_ (itr0 itr1: itree _ T)
-    (EQ: itr0 = itr1)
-  :
-    translate (HModSem.emb_ run_) itr0 = translate (HModSem.emb_ run_) itr1
-  .
-  Proof. subst. refl. Qed.
-
-End RED.
-End HModRed. 
-
-Section RDB.
-  Context `{Σ: GRA.t}.
-  
-  Global Program Instance translate_emb_rdb: red_database (mk_box (@translate)) :=
-    mk_rdb
-    0
-    (mk_box HModRed.translate_emb_bind)
-    (mk_box HModRed.translate_emb_tau)
-    (mk_box HModRed.translate_emb_ret)
-    (mk_box HModRed.translate_emb_sE)
-    (mk_box HModRed.translate_emb_sE)
-    (mk_box HModRed.translate_emb_callE)
-    (mk_box HModRed.translate_emb_coreE)
-    (mk_box HModRed.translate_emb_triggerUB)
-    (mk_box HModRed.translate_emb_triggerNB)
-    (mk_box HModRed.translate_emb_unwrapU)
-    (mk_box HModRed.translate_emb_unwrapN)
-    (mk_box HModRed.translate_emb_assume)
-    (mk_box HModRed.translate_emb_guarantee)
-    (mk_box HModRed.translate_emb_ext).
-
-End RDB.
-
-Section HModRefl.
+Section HModProd.
   Context `{Σ: GRA.t}.
 
   Lemma unfold_iter_eq (E : Type -> Type) (A B : Type) (f : A -> itree E (A + B)) (x : A)
@@ -350,23 +127,216 @@ Section HModRefl.
     forall a b, P a b.
   Proof. i. eapply (PR (existT a b)). Qed.
 
-  Definition IstEq: Any.t -> Any.t -> iProp :=
-    fun st_src st_tgt => ⌜ st_src = st_tgt ⌝%I.
+  Definition IstEq keys: alist string Any.t -> alist string Any.t -> iProp :=
+    fun st_src st_tgt => ⌜st_src = st_tgt ∧ incl keys (List.map fst st_src)⌝%I.
 
-  Definition IstProd (IstL IstR : Any.t -> Any.t -> iProp) : Any.t -> Any.t -> iProp :=
+  Definition IstProd (IstL IstR : alist string Any.t -> alist string Any.t -> iProp) : alist string Any.t -> alist string Any.t -> iProp :=
     fun st_src st_tgt => (∃ st_srcL st_tgtL st_srcR st_tgtR,
-      ⌜st_src = Any.pair st_srcL st_srcR /\ st_tgt = Any.pair st_tgtL st_tgtR⌝ ∗
+      ⌜st_src = st_srcL ++ st_srcR /\ st_tgt = st_tgtL ++ st_tgtR⌝ ∗
       IstL st_srcL st_tgtL ∗ IstR st_srcR st_tgtR)%I.
 
-  Lemma ist_eq_run_r A (run: _ -> (_ * A)) Ist st_src st_tgt:
-    IstProd Ist IstEq st_src st_tgt -∗
-      (⌜(run_r run st_src).2 = (run_r run st_tgt).2⌝ ∗
-      IstProd Ist IstEq (run_r run st_src).1 (run_r run st_tgt).1).
+End HModProd.
+
+
+Module HModWrap.
+Section RED.
+  Context `{Σ: GRA.t}.
+
+  Lemma transl_bind
+    A B
+    keys
+    (itr: itree hmodE A) (ktr: A -> itree hmodE B)
+    :
+    translate (HModSem.wrap keys) (itr >>= ktr) = a <- (translate (HModSem.wrap keys) itr);; (translate (HModSem.wrap keys) (ktr a))
+  .
+  Proof. rewrite (bisim_is_eq (translate_bind _ _ _)); eauto. Qed.
+
+  Lemma transl_tau
+    A
+    keys
+    (itr: itree hmodE A)
+  :
+    translate (HModSem.wrap keys) (tau;; itr) = tau;; (translate (HModSem.wrap keys) itr)
+  .
+  Proof. rewrite (bisim_is_eq (translate_tau _ _)); eauto. Qed.
+
+  Lemma transl_ret
+      A (a: A) keys
+  :
+    translate (HModSem.wrap keys) (Ret a) = Ret a
+  .
+  Proof. rewrite (bisim_is_eq (translate_ret _ _)); eauto. Qed.
+
+  Lemma transl_call
+    keys fn args
+  :
+  translate (HModSem.wrap keys) (trigger (Call fn args)) = trigger (Call fn args)
+  .
   Proof.
-    iIntros "IST". iDestruct "IST" as (? ? ? ?) "(% & IST & %)". des; subst.
-    unfold run_r. rewrite !Any.pair_split. destruct (run st_tgtR).
-    iSplitR; eauto.
-    iExists _,_,_,_. eauto.
+    unfold trigger. rewrite (bisim_is_eq (translate_vis _ _ _ _)). ss.
+    do 2 f_equal. extensionalities. rewrite transl_ret. eauto.
+  Qed.
+
+  Lemma transl_put
+    keys k v
+  :
+  translate (HModSem.wrap keys) (trigger (SPut k v)) =
+    if existsb (eqb k) keys then trigger (SPut k v) else trigger (Choose Any.t)
+  .
+  Proof.
+    unfold trigger. rewrite (bisim_is_eq (translate_vis _ _ _ _)). ss.
+    des_ifs; s; do 2 f_equal; extensionalities; rewrite transl_ret; eauto.
+  Qed.
+
+  Lemma transl_get
+    keys k
+  :
+  translate (HModSem.wrap keys) (trigger (SGet k)) =
+    if existsb (eqb k) keys then trigger (SGet k) else trigger (Choose Any.t)
+  .
+  Proof.
+    unfold trigger. rewrite (bisim_is_eq (translate_vis _ _ _ _)). ss.
+    des_ifs; s; do 2 f_equal; extensionalities; rewrite transl_ret; eauto.
   Qed.
   
-End HModRefl.
+  Lemma transl_core
+    T keys
+    (e: coreE T)
+    :
+    translate (HModSem.wrap keys) (trigger e) = trigger e.
+  Proof.
+    unfold trigger. rewrite (bisim_is_eq (translate_vis _ _ _ _)). ss.
+    des_ifs; s; do 2 f_equal; extensionalities; rewrite transl_ret; eauto.
+  Qed.
+
+  Lemma transl_Assume
+    keys P
+  :
+    translate (HModSem.wrap keys) (trigger (Assume P)) = trigger (Assume P)
+  .
+  Proof.
+    unfold trigger.
+    rewrite (bisim_is_eq (translate_vis _ _ _ _)). ss.
+    do 2 f_equal.
+    extensionalities. rewrite transl_ret. et.
+  Qed.
+
+  Lemma transl_Guarantee
+    keys P
+  :
+    translate (HModSem.wrap keys) (trigger (Guarantee P)) = trigger (Guarantee P)
+  .
+  Proof.
+    unfold trigger.
+    rewrite (bisim_is_eq (translate_vis _ _ _ _)). ss.
+    do 2 f_equal.
+    extensionalities. rewrite transl_ret. et.
+  Qed.
+  
+(*  
+  Lemma transl_triggerUB
+    T keys
+  :
+    translate (HModSem.wrap keys) (triggerUB: itree _ T) = triggerUB
+  .
+  Proof.
+    unfold triggerUB. rewrite transl_bind. f_equal.
+    { apply transl_coreE. }
+    extensionalities. ss.
+  Qed.
+
+  Lemma transl_triggerNB
+    T keys
+  :
+    translate (HModSem.wrap keys) (triggerNB: itree _ T) = triggerNB
+  .
+  Proof.
+    unfold triggerNB. rewrite transl_bind. f_equal.
+    { apply transl_coreE. }
+    extensionalities. ss.
+  Qed.
+
+  Lemma transl_unwrapU
+    R keys (r: option R)
+  :
+    translate (HModSem.wrap keys) (unwrapU r) = unwrapU r
+  .
+  Proof.
+    unfold unwrapU. destruct r.
+    - apply transl_ret.
+    - apply transl_triggerUB.
+  Qed.
+
+  Lemma transl_unwrapN
+    R keys (r: option R)
+  :
+    translate (HModSem.wrap keys) (unwrapN r) = unwrapN r
+  .
+  Proof.
+    unfold unwrapN. destruct r.
+    - apply transl_ret.
+    - apply transl_triggerNB.
+  Qed.
+
+  Lemma transl_asm
+    keys P
+  :
+    translate (HModSem.wrap keys) (assume P) = assume P
+  .
+  Proof.
+    unfold assume, trigger.
+    rewrite transl_bind.
+    rewrite transl_ret.
+    rewrite (bisim_is_eq (translate_vis _ _ _ _)). ss.
+    do 3 f_equal.
+    extensionalities. rewrite transl_ret. et.
+  Qed.
+
+  Lemma transl_guar
+    keys P
+  :
+    translate (HModSem.wrap keys) (guarantee P) = guarantee P
+  .
+  Proof.
+    unfold guarantee, trigger.
+    rewrite transl_bind.
+    rewrite transl_ret.
+    rewrite (bisim_is_eq (translate_vis _ _ _ _)). ss.
+    do 3 f_equal.
+    extensionalities. rewrite transl_ret. et.
+  Qed.
+
+  Lemma transl_ext
+    T keys (itr0 itr1: itree _ T)
+    (EQ: itr0 = itr1)
+  :
+    translate (HModSem.wrap keys) itr0 = translate (HModSem.wrap keys) itr1
+  .
+  Proof. subst. refl. Qed.
+ *)
+  
+End RED.
+End HModWrap.
+
+(* Section RDB. *)
+(*   Context `{Σ: GRA.t}. *)
+
+(*   Global Program Instance transl_rdb: red_database (mk_box (@translate)) := *)
+(*     mk_rdb *)
+(*     0 *)
+(*     (mk_box HModRed.transl_bind) *)
+(*     (mk_box HModRed.transl_tau) *)
+(*     (mk_box HModRed.transl_ret) *)
+(*     (mk_box HModRed.transl_putE) *)
+(*     (mk_box HModRed.transl_getE) *)
+(*     (mk_box HModRed.transl_callE) *)
+(*     (mk_box HModRed.transl_coreE) *)
+(*     (mk_box HModRed.transl_triggerUB) *)
+(*     (mk_box HModRed.transl_triggerNB) *)
+(*     (mk_box HModRed.transl_unwrapU) *)
+(*     (mk_box HModRed.transl_unwrapN) *)
+(*     (mk_box HModRed.transl_assume) *)
+(*     (mk_box HModRed.transl_guarantee) *)
+(*     (mk_box HModRed.transl_ext). *)
+
+(* End RDB. *)

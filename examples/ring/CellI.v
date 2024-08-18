@@ -8,6 +8,7 @@ Require Import PCM.
 Require Import STB IPM.
 Require Import RingHeader.
 Require Import CellHeader.
+Require Import ITactics.
 
 Set Implicit Arguments.
 
@@ -17,39 +18,28 @@ Section CELL_I.
 
   Variable idx : nat.
 
-  (* Definition init: unit -> itree hmodE unit := *)
-  (*   fun _ => *)
-  (*     trigger (sPut (0: Z)↑) *)
-  (* . *)
-
   Definition get: unit -> itree hmodE Z :=
     fun _ =>
-      st <- trigger sGet;; x <- st↓?;;
-      Ret x
+      cv <- trigger (SGet (CellName.mk idx "cv")) ;; cv <- cv↓?;;
+      Ret cv
   .
 
   Definition set: Z -> itree hmodE unit :=
     fun x =>
-      trigger (sPut x↑).
+      trigger (SPut (CellName.mk idx "cv") x↑);;; Ret tt.
 
   Definition fnsems :=
-    [(* (CellName.init idx, cfunU init); *)
-     (CellName.get idx,  cfunU get);
-     (CellName.set idx,  cfunU set)].
+    [(CellName.get idx, ([CellName.mk idx "cv"], cfunU get));
+     (CellName.set idx, ([CellName.mk idx "cv"], cfunU set))].
 
-  (* Definition fnsems := *)
-  (*   (alist_add (CellName.init idx) (cfunU init) *)
-  (*   (alist_add (CellName.get idx) (cfunU get) *)
-  (*   (alist_add (CellName.set idx) (cfunU set) *)
-  (*   []))). *)
-  
-  Definition Sem: HModSem.t := {|
+  Program Definition Sem: HModSem.t := {|
     HModSem.fnsems := fnsems;
-    HModSem.initial_st := tt↑;
+    HModSem.initial_st := [(CellName.mk idx "cv",tt↑)];
     HModSem.initial_cond := emp;
   |}
   .
-
+  Next Obligation. prove_scope. Qed.
+  
   Definition Mod: HMod.t := {|
     HMod.get_modsem := fun _ => Sem;
     HMod.sk := CellSK.t;

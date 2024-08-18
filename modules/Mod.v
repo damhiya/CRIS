@@ -39,7 +39,7 @@ Section MODSEM.
   }.
 
   Record wf (ms: t): Prop := mk_wf {
-    wf_fnsems: NoDup (List.map fst ms.(fnsems));
+    wf_fnsems: List.NoDup (List.map fst ms.(fnsems));
   }.
 
   Definition empty: t := {|
