@@ -127,9 +127,29 @@ Section EVENTS_OTHER.
 
   Context `{Σ: GRA.t}.
 
+  Definition key := (string * string)%type.
+
+  Global Program Instance dec_key `{Dec string}: Dec key.
+  Next Obligation.
+    intro DEC. i. destruct a0, a1.
+    destruct (DEC s s1), (DEC s0 s2); subst.
+    - left. refl.
+    - right. ii. apply n. inv H. refl.
+    - right. ii. apply n. inv H. refl.
+    - right. ii. apply n. inv H. refl.
+  Defined.
+
+  Definition sf (s: string) (f: string) := (s,f).
+
+  Definition fnsems_scopes {T} (fn: gname) (fnsems: alist gname (list string * T)) :=
+    match (alist_find fn fnsems) with
+    | Some (keys, body) => keys
+    | None => []
+    end.
+
   Inductive pgE: Type -> Type :=
-  | SPut (k: string) (v: Any.t): pgE Any.t
-  | SGet (k: string): pgE Any.t.
+  | SPut (k: key) (v: Any.t): pgE Any.t
+  | SGet (k: key): pgE Any.t.
 
   Variant agE: Type -> Type :=
   | Assume (P: iProp): agE unit

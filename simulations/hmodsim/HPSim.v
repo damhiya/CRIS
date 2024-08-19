@@ -47,7 +47,7 @@ Section HPSIM.
 
   Variable fl_src: alist gname (Any.t -> itree hmodE Any.t).
   Variable fl_tgt: alist gname (Any.t -> itree hmodE Any.t).
-  Variable Ist: alist string Any.t -> alist string Any.t -> iProp.
+  Variable Ist: alist key Any.t -> alist key Any.t -> iProp.
 
   Definition hsupd (P: Σ -> Prop) : Σ -> Prop :=
     fun fmr => URA.wf fmr ->
@@ -59,9 +59,9 @@ Section HPSIM.
     if with_dummy then trigger (Guarantee True) else Ret tt.
   
   Variant _hpsim' {with_dummy: bool}
-    (hpsimc: forall R (RR: alist string Any.t * R -> alist string Any.t * R -> iProp), bool -> bool -> alist string Any.t * itree hmodE R -> alist string Any.t * itree hmodE R -> Σ -> Prop)
-    {R} {RR: alist string Any.t * R -> alist string Any.t * R -> iProp} (hpsimi: bool -> bool -> alist string Any.t * itree hmodE R -> alist string Any.t * itree hmodE R -> Σ -> Prop)
-    : bool -> bool -> alist string Any.t * itree hmodE R -> alist string Any.t * itree hmodE R -> Σ -> Prop :=
+    (hpsimc: forall R (RR: alist key Any.t * R -> alist key Any.t * R -> iProp), bool -> bool -> alist key Any.t * itree hmodE R -> alist key Any.t * itree hmodE R -> Σ -> Prop)
+    {R} {RR: alist key Any.t * R -> alist key Any.t * R -> iProp} (hpsimi: bool -> bool -> alist key Any.t * itree hmodE R -> alist key Any.t * itree hmodE R -> Σ -> Prop)
+    : bool -> bool -> alist key Any.t * itree hmodE R -> alist key Any.t * itree hmodE R -> Σ -> Prop :=
     
   | hpsim_ret
       (* Note: (INV: Own fmr ⊢ #=> I st_src st_tgt) is required only for the funtion end. *)      
@@ -310,7 +310,7 @@ Section HPSIM.
   Hint Resolve hsupd_mon _hpsim'_mon _hpsim_mon_auto: paco.
   Hint Resolve cpn7_wcompat: paco.
 
-  Definition hpsim_tail : (alist string Any.t)*Any.t -> (alist string Any.t)*Any.t -> iProp :=
+  Definition hpsim_tail : (alist key Any.t)*Any.t -> (alist key Any.t)*Any.t -> iProp :=
     fun '(st_src, v_src) '(st_tgt, v_tgt) => (Ist st_src st_tgt ∗ ⌜v_src = v_tgt⌝)%I.
 
   Definition hpsim_body ps pt sti_src sti_tgt fmr :=
@@ -452,7 +452,7 @@ Section HPSIM.
   Qed.
 
   Variant hpsim_flagC 
-    (r: forall (R: Type) (RR: (alist string Any.t) * R -> (alist string Any.t) * R -> iProp),  bool -> bool -> (alist string Any.t) * itree hmodE R -> (alist string Any.t) * itree hmodE R -> Σ -> Prop)
+    (r: forall (R: Type) (RR: (alist key Any.t) * R -> (alist key Any.t) * R -> iProp),  bool -> bool -> (alist key Any.t) * itree hmodE R -> (alist key Any.t) * itree hmodE R -> Σ -> Prop)
     R RR ps1 pt1 st_src st_tgt fmr : Prop :=
   | hpsim_flagC_intro
     ps0 pt0
@@ -486,8 +486,8 @@ Section HPSIM.
 
 
 
-  Variant hpsim_bindC (r: forall R (RR: (alist string Any.t) * R -> (alist string Any.t) * R -> iProp), bool -> bool -> (alist string Any.t) * itree hmodE R -> (alist string Any.t) * itree hmodE R -> Σ -> Prop):
-    forall R (RR: (alist string Any.t) * R -> (alist string Any.t) * R -> iProp), bool -> bool -> (alist string Any.t) * itree hmodE R -> (alist string Any.t) * itree hmodE R -> Σ -> Prop
+  Variant hpsim_bindC (r: forall R (RR: (alist key Any.t) * R -> (alist key Any.t) * R -> iProp), bool -> bool -> (alist key Any.t) * itree hmodE R -> (alist key Any.t) * itree hmodE R -> Σ -> Prop):
+    forall R (RR: (alist key Any.t) * R -> (alist key Any.t) * R -> iProp), bool -> bool -> (alist key Any.t) * itree hmodE R -> (alist key Any.t) * itree hmodE R -> Σ -> Prop
   :=
   | hpsim_bindC_intro
       ps pt Q QQ st_src st_tgt i_src i_tgt fmr
@@ -548,8 +548,8 @@ Section HPSIM.
 
 
 
-  Variant hpsim_extendC (r: forall R (RR: (alist string Any.t) * R -> (alist string Any.t) * R -> iProp), bool -> bool -> (alist string Any.t) * itree hmodE R -> (alist string Any.t) * itree hmodE R -> Σ -> Prop):
-    forall R (RR: (alist string Any.t) * R -> (alist string Any.t) * R -> iProp), bool -> bool -> (alist string Any.t) * itree hmodE R -> (alist string Any.t) * itree hmodE R -> Σ -> Prop
+  Variant hpsim_extendC (r: forall R (RR: (alist key Any.t) * R -> (alist key Any.t) * R -> iProp), bool -> bool -> (alist key Any.t) * itree hmodE R -> (alist key Any.t) * itree hmodE R -> Σ -> Prop):
+    forall R (RR: (alist key Any.t) * R -> (alist key Any.t) * R -> iProp), bool -> bool -> (alist key Any.t) * itree hmodE R -> (alist key Any.t) * itree hmodE R -> Σ -> Prop
   :=
   | hpsim_extendC_intro
       ps pt R RR sti_src sti_tgt fmr fmr'
@@ -591,8 +591,8 @@ Section HPSIM.
 
 
 
-  Variant hpsim_wfC (r: forall R (RR: (alist string Any.t) * R -> (alist string Any.t) * R -> iProp), bool -> bool -> (alist string Any.t) * itree hmodE R -> (alist string Any.t) * itree hmodE R -> Σ -> Prop):
-    forall R (RR: (alist string Any.t) * R -> (alist string Any.t) * R -> iProp), bool -> bool -> (alist string Any.t) * itree hmodE R -> (alist string Any.t) * itree hmodE R -> Σ -> Prop
+  Variant hpsim_wfC (r: forall R (RR: (alist key Any.t) * R -> (alist key Any.t) * R -> iProp), bool -> bool -> (alist key Any.t) * itree hmodE R -> (alist key Any.t) * itree hmodE R -> Σ -> Prop):
+    forall R (RR: (alist key Any.t) * R -> (alist key Any.t) * R -> iProp), bool -> bool -> (alist key Any.t) * itree hmodE R -> (alist key Any.t) * itree hmodE R -> Σ -> Prop
   :=
   | hpsim_wfC_intro
       ps pt R RR sti_src sti_tgt fmr
@@ -630,8 +630,8 @@ Section HPSIM.
 
   
 
-  Variant hpsim_updateC (r: forall R (RR: (alist string Any.t) * R -> (alist string Any.t) * R -> iProp), bool -> bool -> (alist string Any.t) * itree hmodE R -> (alist string Any.t) * itree hmodE R -> Σ -> Prop):
-    forall R (RR: (alist string Any.t) * R -> (alist string Any.t) * R -> iProp), bool -> bool -> (alist string Any.t) * itree hmodE R -> (alist string Any.t) * itree hmodE R -> Σ -> Prop
+  Variant hpsim_updateC (r: forall R (RR: (alist key Any.t) * R -> (alist key Any.t) * R -> iProp), bool -> bool -> (alist key Any.t) * itree hmodE R -> (alist key Any.t) * itree hmodE R -> Σ -> Prop):
+    forall R (RR: (alist key Any.t) * R -> (alist key Any.t) * R -> iProp), bool -> bool -> (alist key Any.t) * itree hmodE R -> (alist key Any.t) * itree hmodE R -> Σ -> Prop
   :=
   | hpsim_updateC_intro
       ps pt R RR sti_src sti_tgt fmr
@@ -669,8 +669,8 @@ Section HPSIM.
   
 
 
-  Variant hpsim_frameC (r: forall R (RR: (alist string Any.t) * R -> (alist string Any.t) * R -> iProp), bool -> bool -> (alist string Any.t) * itree hmodE R -> (alist string Any.t) * itree hmodE R -> Σ -> Prop):
-    forall R (RR: (alist string Any.t) * R -> (alist string Any.t) * R -> iProp), bool -> bool -> (alist string Any.t) * itree hmodE R -> (alist string Any.t) * itree hmodE R -> Σ -> Prop
+  Variant hpsim_frameC (r: forall R (RR: (alist key Any.t) * R -> (alist key Any.t) * R -> iProp), bool -> bool -> (alist key Any.t) * itree hmodE R -> (alist key Any.t) * itree hmodE R -> Σ -> Prop):
+    forall R (RR: (alist key Any.t) * R -> (alist key Any.t) * R -> iProp), bool -> bool -> (alist key Any.t) * itree hmodE R -> (alist key Any.t) * itree hmodE R -> Σ -> Prop
   :=
   | hpsim_frameC_intro
       ps pt R RR sti_src sti_tgt fmr fmrc (CTX: iProp)

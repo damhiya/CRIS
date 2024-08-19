@@ -19,7 +19,7 @@ Section MID.
   (* Any.encode & Any.decode *)
   (* local states: [(k0, st0); (k1, st1); ... ] *)
   
-  Fixpoint _alist_encode (st_list: alist string Any.t): Any.t :=
+  Fixpoint _alist_encode (st_list: alist key Any.t): Any.t :=
     match st_list with
     | [] => tt↑
     | (k,v) ::tl => 
@@ -29,7 +29,7 @@ Section MID.
   Definition alist_encode st_list :=
     Any.pair (List.length st_list)↑ (_alist_encode st_list).
 
-  Fixpoint _alist_decode (data: Any.t) (n: nat) : alist string Any.t :=
+  Fixpoint _alist_decode (data: Any.t) (n: nat) : alist key Any.t :=
     match n with
     | S n' =>
         match Any.split data with
@@ -78,12 +78,12 @@ Section MID.
     mr↓?
   .
 
-  Definition mput_kv E `{stateE -< E} `{coreE -< E} (k: string) (v: Any.t) : itree E Any.t :=
+  Definition mput_kv E `{stateE -< E} `{coreE -< E} (k: key) (v: Any.t) : itree E Any.t :=
     st <- trigger sGet;; '(mp, mr) <- (Any.split st)?;;
     trigger (sPut (Any.pair (alist_encode (alist_add k v (alist_decode mp))) mr))
   .
 
-  Definition mget_kv E `{stateE -< E} `{coreE -< E} (k: string) : itree E Any.t :=
+  Definition mget_kv E `{stateE -< E} `{coreE -< E} (k: key) : itree E Any.t :=
     st <- trigger sGet;; '(mp, _) <- (Any.split st)?;;
     Ret (or_else (alist_find k (alist_decode mp)) tt↑)
   .

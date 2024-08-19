@@ -99,7 +99,7 @@ Ltac grt := prep; grt_r; grt_l.
 
 
 Ltac prove_scope :=
-  try unfold HModSem.fnsems; try unfold SModSem.fnsems; try unfold fnsems_keys;
+  try unfold HModSem.fnsems; try unfold SModSem.fnsems; try unfold fnsems_scopes;
   s; ii; des_ifs; ss; des; ss; eauto.
 
 Ltac by_coind CIH :=
@@ -111,15 +111,6 @@ Ltac by_coind CIH :=
  Module-level tactics
  ***)
 
-Lemma string_app_inv
-  p s s'
-  (EQ: (p ++ s = p ++ s')%string)
-  :
-  (s = s')%string.
-Proof.
-  revert_until p. induction p; i; ss.
-  unfold append in EQ. depdes EQ. eauto.
-Qed.
 
   (* Lemma ist_eq_run_r A (run: _ -> (_ * A)) Ist st_src st_tgt: *)
   (*   IstProd Ist IstEq st_src st_tgt -∗ *)
@@ -132,104 +123,123 @@ Qed.
   (*   iExists _,_,_,_. eauto. *)
   (* Qed. *)
 
+(*
+Section HModProd.
 
-(*  
+  Context `{Σ: GRA.t}.
 
-Lemma isim_reflR `{Σ: GRA.t} Ist fl_src fl_tgt keys itr
+  Definition IstEq: alist key Any.t -> alist key Any.t -> iProp :=
+    fun st_src st_tgt => ⌜st_src = st_tgt⌝%I.
+
+  Definition IstProd scopesL scopesR (IstL IstR : alist key Any.t -> alist key Any.t -> iProp) : alist key Any.t -> alist key Any.t -> iProp :=
+    fun st_src st_tgt =>
+      (∃ st_srcL st_tgtL st_srcR st_tgtR,
+       ⌜st_src = st_srcL ++ st_srcR /\ st_tgt = st_tgtL ++ st_tgtR /\
+       incl (List.map (fst ∘ fst) st_srcL) scopesL /\ incl (List.map (fst ∘ fst) st_srcR) scopesR⌝ ∗
+       IstL st_srcL st_tgtL ∗ IstR st_srcR st_tgtR)%I.
+
+  Lemma isim_reflR Ist fl_src fl_tgt scopesL scopesR itr
+    (DISJ: List.NoDup (scopesL ++ scopesR))
+    :
+    isim_fsem fl_src fl_tgt (IstProd scopesL scopesR Ist IstEq)
+      (λ '(st_src, v_src) '(st_tgt, v_tgt), (IstProd scopesL scopesR Ist IstEq st_src st_tgt ∗ ⌜v_src = v_tgt⌝))%I
+      (HModSem.wrap_body (scopesR,itr)) (HModSem.wrap_body (scopesR,itr)).
+  Proof.
+    ii. subst. unfold HModSem.wrap_body. s.
+    generalize (itr y) as it; clear itr y.
+    revert NODD. apply combine_quant.
+    revert NODS. apply combine_quant.
+    revert st_tgt. apply combine_quant.
+    revert st_src. apply combine_quant.
+    eapply isim_coind. i. destruct a as [st_src [st_tgt [NODS [NODD it]]]]. s.
+    iIntros "(#(_ & CIH) & IST)".
+    assert (CASE := case_itrH _ it); des; subst.
+    -
+
+
+      st. eauto.
+      - st. by_coind "CIH". eauto.
+      - st. force_r. iFrame. by_coind "CIH". iFrame.
+      - st. force_l. iFrame. by_coind "CIH". iFrame.
+      - destruct c. st. call; [iFrame|].
+        by_coind "CIH". iFrame.
+      - destruct s.
+        + assert (X:= isim_sput_src_wrapper).
+          rewrite HModRed.translate_wrap_bind.
+          iApply isim_sput_src_wrapper.
+
+
+
+          rewrite/__ !HModRed.translate_wrap_bind !HModRed.translate_wrap_putE.
+          des_ifs; cycle 1.
+          { steps. force_l. instantiate (1:= y).
+            by_coind "CIH". iFrame. }
+          steps. by_coind "CIH". unfold IstProd.
+          iDestruct "IST" as (? ? ? ?) "(% & IST & %)". des; subst.
+          iExists st_srcL, st_tgtL, (alist_add k v st_tgtR), (alist_add k v st_tgtR).
+          iFrame. unfold IstEq.
+          
+          
+          apply existsb_exists in Heq. des. apply String.eqb_eq in Heq0. subst.
+          iSplit; iPureIntro.
+          * esplits.
+            { unfold alist_add, alist_remove.
+              rewrite List.filter_app.
+              Search List.filter.
+
+
+              NoDup_app_disjoint
+                Search List.NoDup.
+              
+              
+              
+
+              
+              call; eauto. by_coind "CIH". iFrame.
+
+              prep; iApply isim_call; iSplitL "IST"; [ |iIntros "% % % % %"; iIntrosFresh "IST"].
+              Focus 2.
+
+              
+              prep. iApply isim_call.
+              
+              
+
+              
+              
+
+              
+              instantiate (1:= existT _ _). s.
+              instantiate (1:= existT _ _).
+
+              (@existT _ (λ _, _) _)).
+
+
+
+            
+            st. CIH.
+      - st. force_r. iFrame. CIH.
+      - st. force_l. iFrame. CIH.
+      - destruct c. st. call; eauto. CIH.
+      - destruct s. st.
+        iPoseProof (ist_eq_run_r with "IST") as "(%EQ & IST)". rewrite <-EQ.
+        CIH.
+      - destruct e; st; force_l; force_r; CIH.
+  Qed.
+
+End HModProd.
+ *)
+
+Lemma string_app_inv
+  p s s'
+  (EQ: (p ++ s = p ++ s')%string)
   :
-  isim_fsem fl_src fl_tgt (IstProd Ist (IstEq keys))
-  (λ '(st_src, v_src) '(st_tgt, v_tgt), ((IstProd Ist (IstEq keys)) st_src st_tgt ∗ ⌜v_src = v_tgt⌝))%I
-  (HModSem.wrap_body (keys,itr)) (HModSem.wrap_body (keys,itr)).
+  (s = s')%string.
 Proof.
-  ii. subst. unfold HModSem.wrap_body. s.
-  generalize (itr y) as it; clear itr y.
-  revert NODD. apply combine_quant.
-  revert NODS. apply combine_quant.
-  revert st_tgt. apply combine_quant.
-  revert st_src. apply combine_quant.
-  eapply isim_coind. i. destruct a as [st_src [st_tgt [NODS [NODD it]]]]. s.
-  iIntros "(#(_ & CIH) & IST)".
-  assert (CASE := case_itrH _ it); des; subst.
-  Focus 3.
-  
-  - match goal with
-    |[|-environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, guarantee ?P >>= _) (_, _)) ]
-     => 
-
-    try rewrite HModRed.translate_wrap_bind.
-    try rewrite HModRed.
-
-
-    st. eauto.
-  - st. by_coind "CIH". eauto.
-  - st. force_r. iFrame. by_coind "CIH". iFrame.
-  - st. force_l. iFrame. by_coind "CIH". iFrame.
-  - destruct c. st. call; [iFrame|].
-    by_coind "CIH". iFrame.
-  - destruct s.
-    + assert (X:= isim_sput_src_wrapper).
-      rewrite HModRed.translate_wrap_bind.
-      iApply isim_sput_src_wrapper.
-
-
-
-      rewrite/__ !HModRed.translate_wrap_bind !HModRed.translate_wrap_putE.
-      des_ifs; cycle 1.
-      { steps. force_l. instantiate (1:= y).
-        by_coind "CIH". iFrame. }
-      steps. by_coind "CIH". unfold IstProd.
-      iDestruct "IST" as (? ? ? ?) "(% & IST & %)". des; subst.
-      iExists st_srcL, st_tgtL, (alist_add k v st_tgtR), (alist_add k v st_tgtR).
-      iFrame. unfold IstEq.
-      
-      
-      apply existsb_exists in Heq. des. apply String.eqb_eq in Heq0. subst.
-      iSplit; iPureIntro.
-      * esplits.
-        { unfold alist_add, alist_remove.
-          rewrite List.filter_app.
-          Search List.filter.
-
-
-NoDup_app_disjoint
-          Search List.NoDup.
-        
-        
-       
-
-      
-    call; eauto. by_coind "CIH". iFrame.
-
-prep; iApply isim_call; iSplitL "IST"; [ |iIntros "% % % % %"; iIntrosFresh "IST"].
-Focus 2.
-
-    
-    prep. iApply isim_call.
-    
-    
-
-    
-    
-
-    
-    instantiate (1:= existT _ _). s.
-    instantiate (1:= existT _ _).
-
-    (@existT _ (λ _, _) _)).
-
-
-
-    
-    st. CIH.
-  - st. force_r. iFrame. CIH.
-  - st. force_l. iFrame. CIH.
-  - destruct c. st. call; eauto. CIH.
-  - destruct s. st.
-    iPoseProof (ist_eq_run_r with "IST") as "(%EQ & IST)". rewrite <-EQ.
-    CIH.
-  - destruct e; st; force_l; force_r; CIH.
+  revert_until p. induction p; i; ss.
+  unfold append in EQ. depdes EQ. eauto.
 Qed.
-*)
+
 Ltac inv_string X :=
   inv X;
   repeat match goal with [H: @eq string (_ ++ _)%string (_ ++ _)%string|-_] =>

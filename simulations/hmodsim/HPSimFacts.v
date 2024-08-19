@@ -28,7 +28,7 @@ Section HPSIM_ADD_DUMMY.
 
   Variable fl_src: alist gname (Any.t -> itree hmodE Any.t).
   Variable fl_tgt: alist gname (Any.t -> itree hmodE Any.t).
-  Variable Ist: alist string Any.t -> alist string Any.t -> iProp.
+  Variable Ist: alist key Any.t -> alist key Any.t -> iProp.
   
   Local Notation _hpsim := (@_hpsim Σ fl_src fl_tgt Ist).
   Local Notation hpsim := (@hpsim Σ fl_src fl_tgt Ist).
@@ -57,8 +57,8 @@ Section HPSIM_ADD_DUMMY.
   Qed.
   Hint Resolve itreeH_dummy_dummy.
 
-  Variant hpsim_dummyC_src (r: forall R (RR: (alist string Any.t) * R -> (alist string Any.t) * R -> iProp), bool -> bool -> (alist string Any.t) * itree hmodE R -> (alist string Any.t) * itree hmodE R -> Σ -> Prop):
-    forall R (RR: (alist string Any.t) * R -> (alist string Any.t) * R -> iProp), bool -> bool -> (alist string Any.t) * itree hmodE R -> (alist string Any.t) * itree hmodE R -> Σ -> Prop
+  Variant hpsim_dummyC_src (r: forall R (RR: (alist key Any.t) * R -> (alist key Any.t) * R -> iProp), bool -> bool -> (alist key Any.t) * itree hmodE R -> (alist key Any.t) * itree hmodE R -> Σ -> Prop):
+    forall R (RR: (alist key Any.t) * R -> (alist key Any.t) * R -> iProp), bool -> bool -> (alist key Any.t) * itree hmodE R -> (alist key Any.t) * itree hmodE R -> Σ -> Prop
   :=
   | hpsim_dummyC_src_intro R RR ps pt st_src i_src i_src' st_tgt i_tgt fmr
       (SIM: r R RR ps pt (st_src, i_src) (st_tgt, i_tgt) fmr)
@@ -161,8 +161,8 @@ Section HPSIM_ADD_DUMMY.
     eapply hpsim_dummyC_src_mon, PR; eauto with paco.
   Qed.
 
-  Variant hpsim_dummyC_tgt (r: forall R (RR: (alist string Any.t) * R -> (alist string Any.t) * R -> iProp), bool -> bool -> (alist string Any.t) * itree hmodE R -> (alist string Any.t) * itree hmodE R -> Σ -> Prop):
-    forall R (RR: (alist string Any.t) * R -> (alist string Any.t) * R -> iProp), bool -> bool -> (alist string Any.t) * itree hmodE R -> (alist string Any.t) * itree hmodE R -> Σ -> Prop
+  Variant hpsim_dummyC_tgt (r: forall R (RR: (alist key Any.t) * R -> (alist key Any.t) * R -> iProp), bool -> bool -> (alist key Any.t) * itree hmodE R -> (alist key Any.t) * itree hmodE R -> Σ -> Prop):
+    forall R (RR: (alist key Any.t) * R -> (alist key Any.t) * R -> iProp), bool -> bool -> (alist key Any.t) * itree hmodE R -> (alist key Any.t) * itree hmodE R -> Σ -> Prop
   :=
   | hpsim_dummyC_tgt_intro R RR ps pt st_src i_src st_tgt i_tgt i_tgt' fmr
       (SIM: r R RR ps pt (st_src, i_src) (st_tgt, i_tgt) fmr)
@@ -592,7 +592,7 @@ Section HPSIM_ADEQUACY.
 
   Variable fl_src: alist gname (Any.t -> itree hmodE Any.t).
   Variable fl_tgt: alist gname (Any.t -> itree hmodE Any.t).
-  Variable Ist: alist string Any.t -> alist string Any.t -> iProp.
+  Variable Ist: alist key Any.t -> alist key Any.t -> iProp.
 
 (******* Move ******)
   Lemma own_ctx_r a b
@@ -632,7 +632,7 @@ Section HPSIM_ADEQUACY.
 
   Lemma hpsim_adequacy:
     forall
-      (fl_src0 fl_tgt0: alist string (Any.t -> itree modE Any.t))
+      (fl_src0 fl_tgt0: alist gname (Any.t -> itree modE Any.t))
       (FLS: fl_src0 = List.map (fun '(s, f) => (s, interp_hp_fun f)) fl_src)
       (FLT: fl_tgt0 = List.map (fun '(s, f) => (s, interp_hp_fun f)) fl_tgt)
       ps pt st_src st_tgt itr_src itr_tgt

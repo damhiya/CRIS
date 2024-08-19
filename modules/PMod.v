@@ -15,11 +15,13 @@ Section PMODSEM.
   Context `{Σ: GRA.t}.
 
   Record t: Type := mk {
-    fnsems: alist gname (list string * (Any.t -> itree pmodE Any.t));
-    initial_st: alist string Any.t;
-    well_scoped:
-      forall fn k (IN: In k (fnsems_keys fn fnsems)), 
-          In k (List.map fst initial_st);
+    scopes : list string;
+    fnsems : alist gname (list string * (Any.t -> itree pmodE Any.t));
+    initial_st : alist key Any.t;
+    well_scoped_fns:
+      forall fn, incl (fnsems_scopes fn fnsems) scopes;
+    well_scoped_init:
+      incl (List.map (fst ∘ fst) initial_st) scopes;
   }.
 
   Definition transl {R} (itr: itree pmodE R) : itree hmodE R
@@ -27,17 +29,19 @@ Section PMODSEM.
     translate inr1 itr.
 
   Program Definition to_hmod (ms: t): HModSem.t := {|
+    HModSem.scopes := ms.(scopes);                                                    
     HModSem.fnsems := List.map (map_snd (λ kb, (kb.1, (λ i, transl (kb.2 i))))) ms.(fnsems);
     HModSem.initial_st := ms.(initial_st);
     HModSem.initial_cond := emp;
   |}.
   Next Obligation.
-    destruct ms. s. ii.
-    eapply well_scoped0. instantiate (1:=fn).
-    unfold fnsems_keys, map_snd in *.
+    i. destruct ms. s. ii.
+    eapply well_scoped_fns0. instantiate (1:=fn).
+    unfold fnsems_scopes, map_snd in *.
     rewrite alist_find_map in H.
     unfold o_map in *. des_ifs.
   Qed.
+  Next Obligation. i. destruct ms. s. eauto. Qed.
 
 End PMODSEM.
 End PModSem.

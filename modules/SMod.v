@@ -18,32 +18,31 @@ Section SMODSEM.
   Variable stb: gname -> option fspec.
 
   Record t: Type := mk {
+    scopes: list string;
     fnsems: alist gname (list string * fspecbody);
-    initial_st: alist string Any.t;
+    initial_st: alist key Any.t;
     initial_cond: iProp;
-    well_scoped:
-      forall fn k (IN: In k (fnsems_keys fn fnsems)), 
-          In k (List.map fst initial_st);
+    well_scoped_fns:
+      forall fn, incl (fnsems_scopes fn fnsems) scopes;
+    well_scoped_init:
+      incl (List.map (fst ∘ fst) initial_st) scopes;
   }.
 
-  Lemma transl_well_scoped (ms: t): forall fn k,
-      In k (fnsems_keys (T:=Any.t -> itree hmodE Any.t) fn
-           (List.map (λ '(fn0, kv), (fn0, (fst kv, interp_sb_hp stb (snd kv)))) (fnsems ms)))
-    → In k (List.map fst (initial_st ms)).
-  Proof.
-    destruct ms. ss. i. unfold fnsems_keys in *.
-    rewrite alist_find_map in H. specialize (well_scoped0 fn k).
-    destruct (alist_find fn fnsems0); ss.
-    destruct p; ss. eauto.
-  Qed.
-
-  Definition to_hmod (ms: t): HModSem.t := {|
+  Program Definition to_hmod (ms: t): HModSem.t := {|
+    HModSem.scopes := ms.(scopes);
     HModSem.fnsems := List.map (map_snd (λ ksb, (ksb.1, interp_sb_hp stb ksb.2))) ms.(fnsems);
     HModSem.initial_st := ms.(initial_st);
     HModSem.initial_cond := ms.(initial_cond);
-    HModSem.well_scoped := transl_well_scoped ms
   |}.
-
+  Next Obligation.
+    i. destruct ms. ss. ii. unfold fnsems_scopes in *. unfold map_snd in*.
+    rewrite alist_find_map in H. specialize (well_scoped_fns0 fn a).
+    des_ifs; ss. inv Heq. eauto.
+  Qed.
+  Next Obligation.
+    ii. destruct ms. ss. eauto.
+  Qed.
+  
 End SMODSEM.
 End SModSem.
 
