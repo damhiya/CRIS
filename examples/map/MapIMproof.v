@@ -17,7 +17,7 @@ From ExtLib Require Import
      Data.Map.FMapAList.
 Require Import MemA STB.
 
-Require Import ISim HMod Events.
+Require Import ISim HMod PMod Events.
 Require Import Mod ModSimFacts.
 
 
@@ -104,11 +104,181 @@ Section SIMMODSEM.
           ∗ (blk, ofs) |-> (fun_to_list f (Z.to_nat sz)))
        )%I.
 
+
+  (**********)
+  (* Temporary Tactic Designs *)
+
+  Require Import ITacticsInternal.
+
+  (* minimal version of 'ired' in itreelib. *)
+  Tactic Notation "ired" "in" ident(H) := 
+    repeat (try rewrite subst_bind in H; try rewrite bind_bind in H; 
+            try rewrite bind_ret_l in H; try rewrite bind_ret_r in H; 
+            try rewrite bind_tau in H; try rewrite interp_ret in H;
+            try rewrite interp_tau in H; try rewrite interp_bind in H;
+            cbn in H).
+
+  Tactic Notation "_unwrapS" ident(IT) :=
+    try rewrite! SModRed.interp_bind in IT;
+    match IT with
+    | interp_smod _ _ _ =>
+      ired in IT; rewrite SModRed.interp_bind in IT
+    | (interp_smod _ _ (trigger (Call _ _)) >>= _) =>
+      rewrite SModRed.interp_call in IT
+    | (interp_smod _ _ (trigger (SPut _ _)) >>= _) =>
+      rewrite SModRed.interp_pg in IT
+    | (interp_smod _ _ (trigger (SGet _)) >>= _) =>
+      rewrite SModRed.interp_pg in IT
+    | (interp_smod _ _ (trigger (Choose _)) >>= _) =>
+      rewrite SModRed.interp_core in IT
+    | (interp_smod _ _ (trigger (Take _)) >>= _) =>
+      rewrite SModRed.interp_core in IT   
+    | (interp_smod _ _ (trigger (IO _ _)) >>= _) =>
+      rewrite SModRed.interp_core in IT     
+    | (interp_smod _ _ (trigger (Assume _)) >>= _) =>
+      rewrite SModRed.interp_Assume in IT
+    | (interp_smod _ _ (trigger (Guarantee _)) >>= _) =>
+      rewrite SModRed.interp_Guarantee in IT
+    | _ =>
+      try rewrite SModRed.interp_tau in IT; 
+      try rewrite SModRed.interp_ret in IT; simpl in IT;
+      try rewrite! SModRed.interp_bind in IT      
+    end.
+
+  Tactic Notation "_unwrapP" ident(IT) :=
+    try rewrite! PModRed.transl_bind in IT;
+    match IT with
+    | translate _ _ =>
+      ired in IT; rewrite! PModRed.transl_bind in IT 
+    | ((translate _ (trigger (Call _ _))) >>= _) =>
+      rewrite PModRed.transl_call in IT
+    | ((translate _ (trigger (SPut _ _))) >>= _) => 
+      rewrite PModRed.transl_pg in IT
+    | ((translate _ (trigger (SGet _))) >>= _) => 
+      rewrite PModRed.transl_pg in IT
+    | ((translate _ (trigger (Choose _))) >>= _) => 
+      rewrite PModRed.transl_core in IT
+    | ((translate _ (trigger (Take _))) >>= _) => 
+      rewrite PModRed.transl_core in IT
+    | ((translate _ (trigger (IO _ _))) >>= _) => 
+      rewrite PModRed.transl_core in IT
+    | _ => 
+      try rewrite PModRed.transl_tau in IT; 
+      try rewrite PModRed.transl_ret in IT; simpl in IT;
+      try rewrite! PModRed.transl_bind in IT
+    end.
+
+  (* These '_unwrap's are missing some of patterns such as below: *)
+  (* e.g. translate _ _ => _ (Whole itree is bound in a single translate) *)
+  (* Missing patterns should be put in right places to not mess up the unwrapping order *)
+
+  Tactic Notation "_unwrap" constr(itr) :=
+    let IT := fresh "__IT" in 
+    match itr with
+    | ((translate _ (trigger (Call _ _))) >>= _) =>
+      rewrite HModWrap.transl_call
+    | ((translate _ (trigger (SPut _ _))) >>= _) => 
+      rewrite HModWrap.transl_put
+    | ((translate _ (trigger (SGet _))) >>= _) => 
+      rewrite HModWrap.transl_get
+    | ((translate _ (trigger (Choose _))) >>= _) => 
+      rewrite HModWrap.transl_core
+    | ((translate _ (trigger (Take _))) >>= _) => 
+      rewrite HModWrap.transl_core
+    | ((translate _ (trigger (IO _ _))) >>= _) => 
+      rewrite HModWrap.transl_core
+    | ((translate _ (trigger (Assume _))) >>= _) => 
+      rewrite HModWrap.transl_Assume
+    | ((translate _ (trigger (Guarantee _))) >>= _) => 
+      rewrite HModWrap.transl_Guarantee
+    | (translate _ (interp_smod _ _ (?itr0) >>= _) >>= _) =>
+      set (IT := itr0); _unwrapS IT; unfold IT; clear IT; grind
+    | ((translate _ (PModSem.transl (?itr1) >>= _)) >>= _) =>
+      set (IT := itr1); _unwrapP IT; unfold IT; clear IT; grind 
+    | _ => 
+      grind; try rewrite HModWrap.transl_tau;
+      try rewrite HModWrap.transl_ret; simpl
+    end.
+
+    
+  Ltac unwrap_l :=
+    let IT := fresh "__IT" in 
+    match goal with
+    | [|- _ (_ (_, ?itr_src) (_, ?itr_tgt))] =>
+      set (IT := itr_tgt); 
+      try rewrite! HModWrap.transl_bind; _unwrap itr_src;
+      unfold IT; clear IT
+    end.
+
+  Ltac unwrap_r :=
+    let IT := fresh "__IT" in 
+    match goal with
+    | [|- _ (_ (_, ?itr_src) (_, ?itr_tgt))] => 
+      set (IT := itr_src); 
+      try rewrite! HModWrap.transl_bind; _unwrap itr_tgt;
+      unfold IT; clear IT
+    end.    
+
+  Ltac unwrap := unwrap_l; unwrap_r.
+
+  Ltac force_l := try (unwrap_l; _force_l).
+  Ltac force_r := try (unwrap_r; _force_r).
+
+  Ltac step := repeat
+    (unwrap; try _step; simpl; des_pairs).
+
+  Ltac step_l := let IT := fresh "__IT" in
+    match goal with [|- _ (_ (_, _) (_, ?itgt))] => set (IT := itgt) end;
+    repeat (unwrap_l; try _step; simpl; des_pairs);
+    unfold IT; clear IT.
+
+  Ltac step_r := let IT := fresh "__IT" in
+    match goal with [|- _ (_ (_, ?isrc) (_, _))] => set (IT := isrc) end;
+    repeat (unwrap_r; try _step; simpl; des_pairs);
+    unfold IT; clear IT.
+
+  Ltac apc_r :=
+    rewrite SModRed.interp_apc;
+    step_r; unfold HoareAPC; step_r; rewrite unfold_APC; step_r;
+    match goal with [b: bool|-_] => destruct b end;
+    [|unfold guarantee, triggerNB; step_r;
+      match goal with [v: void|-_] => destruct v end].
+
+    
+  (**********)
+
   Lemma simF_init:
     HModR.sim_fun MapMMod MapIMod (IstProd [MapM.scope] [MemA.scope] Ist IstEq) MapName.init.
   Proof.
     init_simF.
+    unfold HModSem.wrap_body; simpl.
+    step_l. iDestruct "ASM" as "(W & (%Y & %M & P0) & %X)". subst. hss. step_l.
+    unfold cput. step_l.
 
+    let IT := fresh "__IT" in 
+    match goal with
+    | [|- _ (_ (_, ?itr_src) (_, ?itr_tgt))] => 
+      set (IT := itr_src)
+    end.
+    ired in __IT.
+    rewrite <- HModWrap.transl_bind in __IT.
+
+    match __IT with
+    | ((translate _ _) >>= _) =>
+      try rewrite! SModRed.interp_bind in __IT
+    end.
+
+    (* unwrap tactic is missing some of bind patterns
+      or handling some patterns in wrong order. *)
+
+    rewrite SModRed.interp_bind. 
+
+    step_r. hss. step_r. 
+
+    rewrite PModRed.transl_bind.
+    rewrite PModRed.transl_call.
+    unwrap_r. step_r.
+    
     (* SRC: handle the IST of Map and the precond of init *)
     st_l. hss. iDestruct "ASM" as "(W & (%Y & %M & P0) & %X)".
     subst. hss. rename y1 into u, y2 into ℓ, x into sz.
