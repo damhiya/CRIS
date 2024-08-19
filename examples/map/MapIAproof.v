@@ -17,7 +17,6 @@ From ExtLib Require Import
      Data.Map.FMapAList.
 
 Require Import STB.
-Require Import Mem1.
 Require Import ISim SMod HMod Mod ModSimFacts.
 Require Import HModAdequacy HModAlgebra CtxRefineFacts.
 Require Import sProp sWorld World SRF.

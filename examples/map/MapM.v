@@ -5,7 +5,7 @@ Require Import Behavior.
 Require Import SMod HMod.
 Require Import Skeleton.
 Require Import PCM.
-Require Import STB IPM.
+Require Import STB IPM ITactics.
 Require Import MapHeader MapMSpec.
 Require Import sProp sWorld World SRF.
 
@@ -36,28 +36,33 @@ Section M.
   Context `{_W: CtxWD.t}.
   Context `{_M: MapMR.t (Γ:=Γ)}.
 
+  Definition scope := "Map".
+  Definition v_size := scope ↯ "size".
+  Definition v_map := scope ↯ "map".
+  
   Definition init: list val -> itree smodE val :=
     fun varg =>
-      `sz: Z <- (pargs [Tint] varg)?;;
-      `data: (Z -> Z) * Z <- pget;; let (f, _) := data in
-      _ <- pput (f, sz);;
+      `size: Z <- (pargs [Tint] varg)?;;
+      cput v_size size↑;;;
       Ret Vundef
   .
-
+  
   Definition get: list val -> itree smodE val :=
     fun varg =>
       k <- (pargs [Tint] varg)?;;
-      `data: (Z -> Z) * Z <- pget;; let (f, sz) := data in
-      _ <- assume(0 <= k < sz)%Z;;
+      size <- cgetU v_size;;
+      f <- cgetU v_map;;
+      assume(0 <= k < size)%Z;;;
       Ret (Vint (f k))
   .
 
   Definition set: list val -> itree smodE val :=
     fun varg =>
       '(k, v) <- (pargs [Tint; Tint] varg)?;;
-      `data: (Z -> Z) * Z <- pget;; let (f, sz) := data in
-      assume(0 <= k < sz)%Z;;;
-      _ <- pput (<[k:=v]> f, sz);;
+      size <- cgetU v_size;;
+      f <- cgetU v_map;;
+      assume(0 <= k < size)%Z;;;
+      cput v_map (<[k:=v]> (f: Z->Z))↑;;;
       Ret Vundef
   .
 
@@ -68,18 +73,21 @@ Section M.
       ccallU MapName.set [Vint k; Vint v]
   .
 
-  Definition fnsems: list (string * fspecbody) :=
-    [(MapName.init, mk_specbody MapMS.init_spec (cfunU init));
-     (MapName.get, mk_specbody MapMS.get_spec (cfunU get));
-     (MapName.set, mk_specbody MapMS.set_spec (cfunU set));
-     (MapName.set_by_user, mk_specbody MapMS.set_by_user_spec (cfunU set_by_user))].
+  Definition fnsems :=
+    [(MapName.init, ([scope], mk_specbody MapMS.init_spec (cfunU init)));
+     (MapName.get, ([scope], mk_specbody MapMS.get_spec (cfunU get)));
+     (MapName.set, ([scope], mk_specbody MapMS.set_spec (cfunU set)));
+     (MapName.set_by_user, ([scope], mk_specbody MapMS.set_by_user_spec (cfunU set_by_user)))].
 
-  Definition Sem: SModSem.t := {|
+  Program Definition Sem: SModSem.t := {|
+    SModSem.scopes := [scope];
     SModSem.fnsems := fnsems;
     SModSem.initial_cond := True%I;
-    SModSem.initial_st := (fun (_: Z) => 0%Z, 0%Z)↑;
+    SModSem.initial_st := [(v_size,0%nat↑);
+                           (v_map,(fun (_: Z) => 0%Z, 0%Z)↑)];
   |}
   .
+  Solve All Obligations with prove_scope.
 
   Definition Mod: SMod.t := {|
     SMod.get_modsem := fun _ => Sem;
@@ -89,7 +97,7 @@ Section M.
 
   Variable GlobalStb: Sk.t -> gname -> option fspec.
   Definition t := Seal.sealing "ccr" (SMod.to_hmod GlobalStb Mod).
-  
+
 End M.
 End MapM.
 

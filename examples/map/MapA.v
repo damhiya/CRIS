@@ -5,7 +5,7 @@ Require Import Behavior.
 Require Import SMod HMod.
 Require Import Skeleton.
 Require Import PCM.
-Require Import STB IPM.
+Require Import STB IPM ITactics.
 Require Import MapHeader MapASpec MapMSpec.
 Require Import sProp sWorld World SRF.
 
@@ -33,6 +33,9 @@ Section A.
   Context `{_W: CtxWD.t}.
   Context `{_A: MapAR.t (Γ:=Γ)}.
   Context `{_M: MapMR.t (Γ:=Γ)}.
+
+  Definition scope := "Map".
+  Definition v_map := scope ↯ "map".
   
   Definition init: list val -> itree smodE val :=
     fun varg =>
@@ -42,15 +45,15 @@ Section A.
   Definition set: list val -> itree smodE val :=
     fun varg =>
       '(k, v) <- (pargs [Tint; Tint] varg)?;;
-      f <- trigger (PGET "Map.");;
-      _ <- pput (<[k:=v]> (f: Z->Z));;
+      f <- cgetU v_map;;
+      cput v_map (<[k:=v]> (f: Z->Z))↑;;;
       Ret Vundef
   .
 
   Definition get: list val -> itree smodE val :=
     fun varg =>
       k <- (pargs [Tint] varg)?;;
-      f <- pget;;
+      f <- cgetU v_map;;
       Ret (Vint (f k))
   .
 
@@ -61,20 +64,21 @@ Section A.
       ccallU MapName.set [Vint k; Vint v]
   .
 
-  Definition fnsems: list (string * fspecbody) :=
-    [(MapName.init, mk_specbody MapAS.init_spec (cfunU init));
-     (MapName.get, mk_specbody MapAS.get_spec (cfunU get));
-     (MapName.set, mk_specbody MapAS.set_spec (cfunU set));
-     (MapName.set_by_user, mk_specbody MapAS.set_by_user_spec (cfunU set_by_user))].
+  Definition fnsems :=
+    [(MapName.init, ([scope], mk_specbody MapAS.init_spec (cfunU init)));
+     (MapName.get, ([scope],mk_specbody MapAS.get_spec (cfunU get)));
+     (MapName.set, ([scope],mk_specbody MapAS.set_spec (cfunU set)));
+     (MapName.set_by_user, ([scope], mk_specbody MapAS.set_by_user_spec (cfunU set_by_user)))].
 
   Variable initial_condM: iProp.
-  
-  Definition Sem : SModSem.t := {|
+
+  Program Definition Sem : SModSem.t := {|
+    SModSem.scopes := [scope];
     SModSem.fnsems := fnsems;
     SModSem.initial_cond := (MapAS.initial_map ∗ MapMS.pending ∗ initial_condM)%I;
-    SModSem.initial_st := (fun (_: Z) => 0%Z)↑;
-  |}
-  .
+    SModSem.initial_st := [(v_map,(fun (_: Z) => 0%Z)↑)];
+  |}.
+  Solve All Obligations with prove_scope.
 
   Definition Mod : SMod.t := {|
     SMod.get_modsem := fun _ => Sem;

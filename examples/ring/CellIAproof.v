@@ -15,7 +15,7 @@ From ExtLib Require Import
      Core.RelDec
      Structures.Maps
      Data.Map.FMapAList.
-Require Import Mem1 STB.
+Require Import STB.
 
 Require Import ISim HMod Events.
 Require Import Mod ModSimFacts.

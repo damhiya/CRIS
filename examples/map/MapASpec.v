@@ -10,7 +10,7 @@ From ExtLib Require Import
      Structures.Maps
      Data.Map.FMapAList.
 Require Import ISim.
-Require Import MapHeader Mem1.
+Require Import MapHeader.
 Require Import sProp sWorld World SRF.
 From stdpp Require Import coPset gmap namespaces.
 Set Implicit Arguments.

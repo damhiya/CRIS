@@ -7,7 +7,7 @@ Require Import Skeleton.
 Require Import PCM.
 Require Import STB.
 Require Import IPM ITactics.
-
+Require Import MemHeader.
 
 Set Implicit Arguments.
 
@@ -20,8 +20,8 @@ Compute (URA.car).
 
 Local Arguments Z.of_nat: simpl nomatch.
 
-
-Section PROOF.
+Module MemA.
+Section BODY.
   Context `{@GRA.inG memRA Σ}.
 
   Definition _points_to_singleton_r (loc: mblock * Z) (v: val): _memRA := 
@@ -88,7 +88,7 @@ Section PROOF.
 (*     + rewrite Z.ltb_ge in *. lia. *)
 (* Qed. *)
 
-End PROOF.
+End BODY.
 
 Notation "loc ⤇ v" := (points_to_singleton loc v) (at level 20).
 Notation "loc |-> vs" := (points_to loc vs) (at level 20).
@@ -192,6 +192,8 @@ End POINTS_TO. *)
 Section PROOF.
   Context `{@GRA.inG memRA Σ}.
 
+  Definition scope := "Mem".
+
   Definition alloc_spec: fspec :=
     (mk_simple (fun sz => (
                     (ord_pure 0),
@@ -238,39 +240,39 @@ Section PROOF.
             (fun vret => OwnM resource ∗ ⌜vret = (if result then Vint 1 else Vint 0)↑⌝)
     )))%I.
 
-  Definition MemStb: list (gname * fspec).
-    eapply (Seal.sealing "stb").
-    apply [("alloc", alloc_spec) ; ("free", free_spec) ; ("load", load_spec) ; ("store", store_spec) ; ("cmp", cmp_spec)].
-  Defined.
-
-  Definition MemSbtb: alist string (list string * fspecbody) :=
-    [("alloc", ([], mk_specbody alloc_spec (fun _ => trigger (Choose _))));
-    ("free",   ([], mk_specbody free_spec (fun _ => trigger (Choose _))));
-    ("load",   ([], mk_specbody load_spec (fun _ => trigger (Choose _))));
-    ("store",  ([], mk_specbody store_spec (fun _ => trigger (Choose _))));
-    ("cmp",    ([], mk_specbody cmp_spec (fun _ => trigger (Choose _))))
+  Definition MemSbtb: alist gname (list string * fspecbody) :=
+    [(MemName.alloc, ([], mk_specbody alloc_spec (fun _ => trigger (Choose _))));
+     (MemName.free,  ([], mk_specbody free_spec (fun _ => trigger (Choose _))));
+     (MemName.load,  ([], mk_specbody load_spec (fun _ => trigger (Choose _))));
+     (MemName.store, ([], mk_specbody store_spec (fun _ => trigger (Choose _))));
+     (MemName.cmp,   ([], mk_specbody cmp_spec (fun _ => trigger (Choose _))))
     ]
   .
 
   Variable csl: gname -> bool.
 
-  Program Definition SMemSem (sk: Sk.t): SModSem.t := {|
+  Program Definition MemSem (sk: Sk.t): SModSem.t := {|
+    SModSem.scopes := [scope];
     SModSem.fnsems := MemSbtb;
     SModSem.initial_cond := initial_mem csl sk;
     SModSem.initial_st := [];
   |}
   .
-  Next Obligation. prove_scope. Qed.
+  Solve All Obligations with prove_scope.
 
-  Definition SMem: SMod.t := {|
-    SMod.get_modsem := SMemSem;
+  Definition Mem: SMod.t := {|
+    SMod.get_modsem := MemSem;
     SMod.sk := Sk.unit;
   |}
   .
 
-  Definition HMem : HMod.t := Seal.sealing "ccr" (SMod.to_hmod (fun _ => to_stb []) SMem).
+  Variable GlobalStb: Sk.t -> gname -> option fspec.  
+  Definition t : HMod.t := Seal.sealing "ccr" (SMod.to_hmod GlobalStb Mem).
   
 End PROOF.
-Global Hint Unfold MemStb: stb.
+End MemA.
 
-Global Opaque _points_to_singleton_r.
+Global Opaque MemA._points_to_singleton_r.
+
+Global Notation "loc ⤇ v" := (MemA.points_to_singleton loc v) (at level 20).
+Global Notation "loc |-> vs" := (MemA.points_to loc vs) (at level 20).

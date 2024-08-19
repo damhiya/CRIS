@@ -123,7 +123,6 @@ Ltac by_coind CIH :=
   (*   iExists _,_,_,_. eauto. *)
   (* Qed. *)
 
-(*
 Section HModProd.
 
   Context `{Σ: GRA.t}.
@@ -138,6 +137,7 @@ Section HModProd.
        incl (List.map (fst ∘ fst) st_srcL) scopesL /\ incl (List.map (fst ∘ fst) st_srcR) scopesR⌝ ∗
        IstL st_srcL st_tgtL ∗ IstR st_srcR st_tgtR)%I.
 
+  
   Lemma isim_reflR Ist fl_src fl_tgt scopesL scopesR itr
     (DISJ: List.NoDup (scopesL ++ scopesR))
     :
@@ -145,6 +145,7 @@ Section HModProd.
       (λ '(st_src, v_src) '(st_tgt, v_tgt), (IstProd scopesL scopesR Ist IstEq st_src st_tgt ∗ ⌜v_src = v_tgt⌝))%I
       (HModSem.wrap_body (scopesR,itr)) (HModSem.wrap_body (scopesR,itr)).
   Proof.
+(*    
     ii. subst. unfold HModSem.wrap_body. s.
     generalize (itr y) as it; clear itr y.
     revert NODD. apply combine_quant.
@@ -225,10 +226,11 @@ Section HModProd.
         iPoseProof (ist_eq_run_r with "IST") as "(%EQ & IST)". rewrite <-EQ.
         CIH.
       - destruct e; st; force_l; force_r; CIH.
-  Qed.
+*)
+    Admitted.
 
 End HModProd.
- *)
+
 
 Lemma string_app_inv
   p s s'
@@ -251,7 +253,8 @@ Ltac alist_find_solver :=
   s; unfold rel_dec, Dec_RelDec, sumbool_to_bool, dec, string_Dec;
   des_ifs; unseal "_tmp_"; ss;
   repeat match goal with [H: @eq string _ _|-_] => inv_string H end;
-  repeat match goal with [H: not (@eq string _ _)|-_] => clear H end.
+  repeat match goal with [H: not (@eq string _ _)|-_] => clear H end;
+  repeat match goal with [H: ?x = ?x|-_] => clear H end.
 
 Ltac init_simF := let TMP := fresh "_tmp_" in
   unfold HModR.sim_fun; i; s;

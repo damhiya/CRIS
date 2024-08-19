@@ -15,7 +15,7 @@ From ExtLib Require Import
      Core.RelDec
      Structures.Maps
      Data.Map.FMapAList.
-Require Import Mem1 STB.
+Require Import MemA STB.
 
 Require Import ISim HMod Events.
 Require Import Mod ModSimFacts.
@@ -90,20 +90,22 @@ Section SIMMODSEM.
         destruct (i-sz) eqn: EQ; try nia. eauto.
   Qed.
 
-  Local Notation MapMMod := (HMod.add (MapM.t StbM) (HMem (fun _ => false))).
-  Local Notation MapIMod := (HMod.add MapI.t (HMem (fun _ => false))).
+  Local Notation MapMMod := (HMod.add (MapM.t StbM) (MemA.t (fun _ => false) StbM)).
+  Local Notation MapIMod := (HMod.add MapI.t (MemA.t (fun _ => false) StbM)).
   
-  Definition Ist: Any.t -> Any.t -> iProp :=
+  Definition Ist: alist key Any.t -> alist key Any.t -> iProp :=
     fun st_src st_tgt =>
-       ((⌜st_src = (fun (_: Z) => 0%Z, 0%Z)↑ /\ st_tgt = Vnullptr↑⌝)
+      ((⌜st_src = [(MapM.v_size,0%nat↑);(MapM.v_map,(fun (_: Z) => 0%Z, 0%Z)↑)] /\
+         st_tgt = [(MapI.v_hptr,Vnullptr↑)]⌝)
         ∨
         (MapMS.pending ∗ ∃ blk ofs (f: Z -> Z) (sz: Z), 
-            ⌜st_src = (f, sz)↑ /\  st_tgt = (Vptr blk ofs)↑⌝ 
-            ∗ (blk, ofs) |-> (fun_to_list f (Z.to_nat sz)))
+         ⌜st_src = [(MapM.v_size,sz↑);(MapM.v_map,f↑)] /\
+          st_tgt = [(MapI.v_hptr,(Vptr blk ofs)↑)]⌝ 
+          ∗ (blk, ofs) |-> (fun_to_list f (Z.to_nat sz)))
        )%I.
 
   Lemma simF_init:
-    HModR.sim_fun MapMMod MapIMod (IstProd Ist IstEq) MapName.init.
+    HModR.sim_fun MapMMod MapIMod (IstProd [MapM.scope] [MemA.scope] Ist IstEq) MapName.init.
   Proof.
     init_simF.
 

@@ -49,6 +49,7 @@ Section EVENTS.
     Ret (st1, v).
 
   Section WRAP.
+
     Definition assume {E} `{coreE -< E} (P: Prop): itree E unit := trigger (Take P) ;;; Ret tt.
     Definition guarantee {E} `{coreE -< E} (P: Prop): itree E unit := trigger (Choose P) ;;; Ret tt.
 
@@ -92,36 +93,7 @@ Section EVENTS.
       end.
   End WRAP.
 
-
-
 End EVENTS.
-
-Notation "f '?'" := (unwrapU f) (at level 9, only parsing).
-Notation "f 'ǃ'" := (unwrapN f) (at level 9, only parsing).
-Notation "(?)" := (unwrapU) (only parsing).
-Notation "(ǃ)" := (unwrapN) (only parsing).
-
-
-Section EVENTSCOMMON.
-(*** casting call, fun ***)
-  Context `{HasCallE: callE -< E}.
-  Context `{HasEventE: coreE -< E}.
-
-  Definition ccallN {X Y} (fn: gname) (varg: X): itree E Y := 
-    vret <- trigger (Call fn (varg↑));; 
-    vret <- vret↓ǃ;; Ret vret
-    .
-  Definition ccallU {X Y} (fn: gname) (varg: X): itree E Y := 
-    vret <- trigger (Call fn (varg↑));;
-    vret <- vret↓?;; Ret vret
-    .
-
-  Definition cfunN {X Y} (body: X -> itree E Y): Any.t -> itree E Any.t :=
-    fun varg => varg <- varg↓ǃ;; vret <- body varg;; Ret vret↑.
-  Definition cfunU {X Y} (body: X -> itree E Y): Any.t -> itree E Any.t :=
-    fun varg => varg <- varg↓?;; vret <- body varg;; Ret vret↑. 
-
-End EVENTSCOMMON.
 
 Section EVENTS_OTHER.
 
@@ -166,5 +138,38 @@ Section EVENTS_OTHER.
 
 End EVENTS_OTHER.
 
-Opaque interp_modE.
+Notation "f '?'" := (unwrapU f) (at level 9, only parsing).
+Notation "f 'ǃ'" := (unwrapN f) (at level 9, only parsing).
+Notation "(?)" := (unwrapU) (only parsing).
+Notation "(ǃ)" := (unwrapN) (only parsing).
+Notation "s ↯ f" := (sf s f) (at level 9).
 
+Section SYNTAX.
+  Context `{Σ: GRA.t}.
+  Context `{coreE -< E}.
+  Context `{callE -< E}.
+  Context `{pgE -< E}.
+
+  Definition cfunN {X Y} (body: X -> itree E Y): Any.t -> itree E Any.t :=
+    fun varg => varg <- varg↓ǃ;; vret <- body varg;; Ret vret↑.
+  Definition cfunU {X Y} (body: X -> itree E Y): Any.t -> itree E Any.t :=
+    fun varg => varg <- varg↓?;; vret <- body varg;; Ret vret↑. 
+  
+  Definition ccallU {X Y} fn (varg: X) : itree E Y :=
+    vret <- trigger (Call fn (varg↑));; vret↓?.
+                                 
+  Definition ccallN {X Y} (fn: gname) (varg: X): itree E Y := 
+    vret <- trigger (Call fn (varg↑));; vret↓ǃ.
+                                          
+  Definition cput k v : itree E Any.t :=
+    trigger (SPut k v).
+
+  Definition cgetU {T} k : itree E T :=
+    v <- trigger (SGet k);; v↓?.
+
+  Definition cgetN {T} k : itree E T :=
+    v <- trigger (SGet k);; (v↓ǃ).
+
+End SYNTAX.
+
+Opaque interp_modE.
