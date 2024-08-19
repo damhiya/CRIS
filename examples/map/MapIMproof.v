@@ -200,10 +200,10 @@ Section SIMMODSEM.
     match itr with
     | trigger (Call _ _) =>
       rewrite HModWrap.transl_call
-    | trigger (SPut _ _) =>
+    (* | trigger (SPut _ _) =>
       rewrite HModWrap.transl_put
     | trigger (SGet _) =>
-      rewrite HModWrap.transl_get
+      rewrite HModWrap.transl_get *)
     | trigger (Choose _) => 
       rewrite HModWrap.transl_core
     | trigger (Take _) => 
@@ -275,6 +275,55 @@ Section SIMMODSEM.
   Ltac force_l := try (unwrap_l; _force_l).
   Ltac force_r := try (unwrap_r; _force_r).
 
+  Ltac _step := 
+    match goal with
+    (******* isim ******)
+    (** src **)
+    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, unwrapU ?ox >>= _) (_, _)) ] =>
+        let name := fresh "y" in
+        iApply isim_unwrapU_src; iIntros (name) "%";
+        match goal with
+        | [ H: _ |- _ ] => let name := fresh "G" in rename H into name; try rewrite name in *
+        end
+    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, tau;; _) (_, _)) ] =>
+        iApply isim_tau_src
+    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, trigger (SPut _ _) >>= _) (_, _)) ] =>
+        iApply isim_sput_src_wrap; [s;eauto|]
+    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, (translate _ (trigger (SPut _ _))) >>= _) (_, _)) ] =>
+        iApply isim_sput_src_wrap; [s;eauto|]
+    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, (translate _ (trigger (SGet _))) >>= _) (_, _)) ] =>
+        iApply isim_sget_src_wrap
+    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _) (_, _)) ] =>
+        let name := fresh "y" in
+        iApply isim_take_src; iIntros (name)
+    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _  (_, trigger (Assume _) >>= _) (_, _)) ] =>
+        iApply isim_assume_src; iIntrosFresh "ASM"
+    (** tgt **)
+    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, unwrapN ?ox >>= _)) ] =>
+        let name := fresh "y" in
+        iApply isim_unwrapN_tgt; iIntros (name) "%";
+        match goal with
+        | [ H: _ |- _ ] => let name := fresh "G" in rename H into name; try rewrite name in *
+        end
+    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, tau;; _)) ] =>
+        iApply isim_tau_tgt
+    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, (translate _ (trigger (SPut _ _))) >>= _)) ] =>
+        iApply isim_sput_tgt_wrap; [s; eauto|]
+    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, (translate _ (trigger (SGet _))) >>= _)) ] =>
+        iApply isim_sget_tgt_wrap; [s; eauto|]
+    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, trigger (Choose _) >>= _)) ] =>
+        let name := fresh "y" in
+        iApply isim_choose_tgt; iIntros (name)
+    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, trigger (Guarantee _) >>= _)) ] =>
+        iApply isim_guarantee_tgt; iIntrosFresh "GRT"  
+    (** both **)
+    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, Ret _) (_, Ret _)) ] =>
+        iApply isim_ret
+    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, trigger (IO _ _) >>= _) (_, trigger (IO _ _) >>= _)) ] =>
+        iApply isim_io; iIntros "%"
+    end.
+
+
   Ltac step := repeat
     (unwrap; try _step; simpl; des_pairs).
 
@@ -295,7 +344,14 @@ Section SIMMODSEM.
     [|unfold guarantee, triggerNB; step_r;
       match goal with [v: void|-_] => destruct v end].
 
-    
+  Lemma transl_unwrapN
+    R scopes (r: option R)
+  :
+    translate (HModSem.wrap scopes) (unwrapN r) = unwrapN r
+  .
+  Proof. Admitted.
+
+      
   (**********)
 
   Lemma simF_init:
@@ -303,37 +359,42 @@ Section SIMMODSEM.
   Proof.
     init_simF.
     unfold HModSem.wrap_body; simpl.
+
+    (* SRC: handle the IST of Map and the precond of init *)
     step_l. iDestruct "ASM" as "(W & (%Y & %M & P0) & %X)". subst. hss. step_l.
+    rename y1 into u, y2 into ℓ, x into sz.
     unfold cput. step_l.
 
-    step_r.
-    
-    (* SRC: handle the IST of Map and the precond of init *)
-    st_l. hss. iDestruct "ASM" as "(W & (%Y & %M & P0) & %X)".
-    subst. hss. rename y1 into u, y2 into ℓ, x into sz.
-    iDestruct "IST" as (? ? ? ?) "(%& [%|(P & _)] &%)"; des; subst; cycle 1.
-    { iExFalso. iApply (pending_unique with "P P0"). }
-    hss. st_l.
-
     (* SRC: prove the postcond of init *)
-    force_l. st_l. force_l.
-    iSplitL "W". { iFrame. eauto. }
-    
+    force_l. step_l. force_l. iSplitL "W".
+    { iFrame. eauto. }
+
     (* TGT: inline alloc *)
-    inline_r.
+    step_r. inline_r.
 
     (* TGT: prove the precond of alloc *)
-    st_r. force_r. st_r. force_r. st_r. force_r.
+    step_r. force_r. step_r. force_r. step_r. force_r.
     iSplitR; eauto.
-    st_r.
-    
-    (* TGT: handle the body of alloc *)
-    apc_r. hss. rename y into ord.
-    
+    step_r.
+
+    (* apc tactic *)
+    rewrite SModRed.interp_apc; step_r; unfold HoareAPC; step_r;
+    rewrite unfold_APC; step_r;
+    match goal with [b: bool|-_] => destruct b end.
+    2: {
+      unfold guarantee, triggerNB; step_r.
+      rewrite transl_unwrapN. step_r.
+      admit.
+
+    }
+
     (* TGT: handle the postcond of alloc *)
-    st_r. iDestruct "GRT" as "[GRT %]".
+    rename y into ord.
+
+    step_r. iDestruct "GRT" as "[GRT %]". 
     iDestruct "GRT" as ( ? ) "(% & POINTS)". subst.
-    st_r. hss.
+    hss. step_r.
+
 
     (* prepare and start an induction *)
     replace (repeat Vundef sz) with (repeat (Vint 0) (sz-sz) ++ repeat Vundef sz); cycle 1.
