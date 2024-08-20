@@ -104,22 +104,24 @@ Section SIMMODSEM.
           ∗ (blk, ofs) |-> (fun_to_list f (Z.to_nat sz)))
        )%I.
 
-
-  (**********)
-  (* Temporary Tactic Designs *)
-
-    
-
   (**********)
 
+
+
+  
   Lemma simF_init:
     HModR.sim_fun MapMMod MapIMod (IstProd [MapM.scope] [MemA.scope] Ist IstEq) MapName.init.
   Proof.
     init_simF; unfold HModSem.sandbox_body; simpl.
 
     (* SRC: handle the IST of Map and the precond of init *)
-    steps_l. iDestruct "ASM" as "(W & (%Y & %M & P0) & %X)". subst. hss.
-    inv G0. rename q0 into u, q1 into ℓ, x into sz.
+    steps_l. iDestruct "ASM" as "(W & (%Y & %M & P0) & %X)".
+    subst. hss. inv G0. rename q0 into u, q1 into ℓ, x into sz.
+    iDestruct "IST" as (? ? ? ?) "(%& [%|(P & IST)] &%)";
+      [|iDestruct "IST" as (? ? ? ?) "(% & M)"];
+      des; subst; cycle 1.
+    { iExFalso. iApply (pending_unique with "P P0"). }
+    hss.
 
     (* SRC: prove the postcond of init *)
     force_l. force_l. iSplitL "W".

@@ -10,7 +10,7 @@ Ltac Lauto_normalize :=
         | _ => change (x::l) with ([x]++l)
         end
     end);
-  rewrite <-!app_assoc.
+  try rewrite <-!app_assoc.
 
 Ltac Lauto_prepare :=
   match goal with
@@ -27,7 +27,7 @@ Ltac Lauto_find x :=
     end.
 
 Ltac Lauto_finish :=
-  simpl.
+  try rewrite !app_nil_r; Lauto_normalize; simpl.
 
 Section TEST.
   Variable P: list nat -> Prop.
@@ -48,7 +48,7 @@ Section TEST.
       reflexivity.
     }
     apply P_change.
-    Lauto_normalize; simpl.
+    Lauto_finish.
     apply SAT.
   Qed.  
 

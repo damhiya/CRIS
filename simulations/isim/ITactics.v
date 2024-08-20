@@ -16,6 +16,7 @@ Require Import HPSim.
 Require Import World sWorld.
 Require Import ISimCore.
 Require Import Events Mod SMod HMod PMod.
+Require Import LAuto.
 
 From stdpp Require Import coPset gmap.
 
@@ -37,20 +38,6 @@ Ltac by_coind CIH :=
   iApply isim_progress; iApply isim_base;
   iSpecialize (CIH $! _); repeat instantiate (1:= existT _ _); s;
   iApply CIH.
-
-Ltac hss :=
-  ss;
-  try (unfold run_l, run_r in *; rewrite !Any.pair_split in *; fold run_l run_r in * );
-  try (rewrite !Any.upcast_downcast in * );
-  (repeat match goal with [G: Any.downcast _ = Some _ |-_] =>
-    apply Any.downcast_upcast in G; inv G; ss
-   end);
-  (repeat match goal with [G: Any.upcast (_:?T) = Any.upcast (_:?T) |-_] =>
-    apply Any.upcast_inj in G; destruct G as [_ G]; red in G; depdes G; ss
-   end);
-  (repeat match goal with [G: Some _ = Some _ |- _] =>
-    depdes G; ss
-   end).
 
 Ltac unfold_hmod :=
   match goal with
@@ -309,10 +296,10 @@ Ltac _force_r :=
 .
 
 
-Ltac hide_itree_l := let IT := fresh "ITREE" in
-  match goal with [|- _ (_ (_, ?it) (_, _))] => set (IT := it) end.
-Ltac hide_itree_r := let IT := fresh "ITREE" in
-  match goal with [|- _ (_ (_, _) (_, ?it))] => set (IT := it) end.
+Ltac hide_itree_l := let ITL := fresh "ITREE" in
+  match goal with [|- _ (_ (_, ?itl) (_, _))] => set (IT := itl) at 1 end.
+Ltac hide_itree_r := let ITR := fresh "ITREE" in let ITL := fresh "ITREE" in
+  match goal with [|- _ (_ (_, ?itl) (_, ?itr))] => set (ITL := itl) at 1; set (ITR := itr) at 1; unfold ITL; clear ITL end.
 Ltac show_itree :=
   match goal with [IT:=_ |-_] => unfold IT; clear IT end.
 
@@ -572,7 +559,45 @@ Ltac refl_simF := let TMP := fresh "_tmp_" in
   ii; subst; eapply isim_reflR.
 *)
 
+Lemma ereplace T (x y: T):
+  x = y -> x = y.
+Proof. eauto. Qed.
 
+Lemma alist_add_nodup_insert {K} `{Dec K} {V} (l1 l2: alist K V) (k: K) (v v': V)
+  (NODUP: List.NoDup (List.map fst (l1 ++ [(k,v)] ++ l2)))
+  :
+  alist_add k v' (l1 ++ [(k,v)] ++ l2) = l1 ++ [(k,v')] ++ l2.
+Proof.
+Admitted.
+
+Ltac alist_simpl :=
+  match goal with
+  [ |- context[alist_add ?k ?v ?l]] =>
+    let TMP := fresh "_TMP" in
+    let NODUP := fresh "NODUP" in
+    match goal with [H: List.NoDup _|-_] =>
+      eassert (TMP: List.NoDup (List.map fst l)) by exact H; clear H; revert TMP
+    end;
+    erewrite (@ereplace _ l); [intros ?|Lauto_prepare;Lauto_find (k,v); reflexivity];
+    eassert (NODUP := alist_add_nodup _ k v TMP); revert NODUP;
+    rewrite !alist_add_nodup_insert; [|exact TMP]; clear TMP;
+    Lauto_finish; intros ?
+  end.
+
+Ltac hss :=
+  ss;
+  try (unfold run_l, run_r in *; rewrite !Any.pair_split in *; fold run_l run_r in * );
+  try (rewrite !Any.upcast_downcast in * );
+  (repeat match goal with [G: Any.downcast _ = Some _ |-_] =>
+    apply Any.downcast_upcast in G; inv G; ss
+   end);
+  (repeat match goal with [G: Any.upcast (_:?T) = Any.upcast (_:?T) |-_] =>
+    apply Any.upcast_inj in G; destruct G as [_ G]; red in G; depdes G; ss
+   end);
+  (repeat match goal with [G: Some _ = Some _ |- _] =>
+    depdes G; ss
+   end);
+  repeat alist_simpl.
 
 (**** TODO ****)
 (* A tactic to handle meta variables *)
