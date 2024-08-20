@@ -404,8 +404,6 @@ Section SIM.
     iApply isim_choose_tgt. rewrite bind_ret_l. eauto.
   Qed.
 
-  Local Notation wrap scopes := (translate (HModSem.wrap scopes)).
-
   Lemma isim_sput_src
     r g ps pt {R} RR  k v st_src st_tgt k_src i_tgt
     :
@@ -416,16 +414,16 @@ Section SIM.
     uiprop. i. guclo hpsimC_spec. econs; esplits; eauto. econs; eauto.
   Qed.
 
-  Lemma isim_sput_src_wrap
+  Lemma isim_sput_src_sandbox
     r g ps pt {R} RR  k v st_src st_tgt k_src i_tgt scopes
     :
     In k.1 scopes ->
     bi_entails
       (@isim r g R RR true pt (alist_add k v st_src, k_src tt↑) (st_tgt, i_tgt))
-      (@isim r g R RR ps pt (st_src, wrap scopes (trigger (SPut k v)) >>= k_src) (st_tgt, i_tgt)).
+      (@isim r g R RR ps pt (st_src, HModSem.sandbox scopes (trigger (SPut k v)) >>= k_src) (st_tgt, i_tgt)).
   Proof.
     i. iIntros "ISIM".
-    rewrite HModWrap.transl_put.
+    rewrite HModSB.transl_put.
     des_ifs; ss.
     - iApply isim_sput_src. iFrame.
     - exfalso. edestruct (existsb_exists (String.eqb k.1) scopes).
@@ -444,16 +442,16 @@ Section SIM.
     uiprop. i. guclo hpsimC_spec. econs; esplits; eauto. econs; eauto.
   Qed.
 
-  Lemma isim_sput_tgt_wrap
+  Lemma isim_sput_tgt_sandbox
     r g ps pt {R} RR k v st_src st_tgt i_src k_tgt scopes
     :
     In k.1 scopes ->
     bi_entails
       (@isim r g R RR ps true (st_src, i_src) (alist_add k v st_tgt, k_tgt tt↑))
-      (@isim r g R RR ps pt (st_src, i_src) (st_tgt, wrap scopes (trigger (SPut k v)) >>= k_tgt)).
+      (@isim r g R RR ps pt (st_src, i_src) (st_tgt, HModSem.sandbox scopes (trigger (SPut k v)) >>= k_tgt)).
   Proof.
     i. iIntros "ISIM".
-    rewrite HModWrap.transl_put.
+    rewrite HModSB.transl_put.
     des_ifs; ss.
     - iApply isim_sput_tgt. iFrame.
     - exfalso. edestruct (existsb_exists (String.eqb k.1) scopes).
@@ -472,16 +470,16 @@ Section SIM.
     uiprop. i. guclo hpsimC_spec. econs; esplits; eauto. econs; eauto.
   Qed.
 
-  Lemma isim_sget_src_wrap
+  Lemma isim_sget_src_sandbox
     r g ps pt {R} RR k st_src st_tgt k_src i_tgt scopes
     :
     In k.1 scopes ->
     bi_entails
       (@isim r g R RR true pt (st_src, k_src (or_else (alist_find k st_src) tt↑)) (st_tgt, i_tgt))
-      (@isim r g R RR ps pt (st_src, wrap scopes (trigger (SGet k)) >>= k_src) (st_tgt, i_tgt)).
+      (@isim r g R RR ps pt (st_src, HModSem.sandbox scopes (trigger (SGet k)) >>= k_src) (st_tgt, i_tgt)).
   Proof.
     i. iIntros "ISIM".
-    rewrite HModWrap.transl_get.
+    rewrite HModSB.transl_get.
     des_ifs; ss.
     - iApply isim_sget_src. iFrame.
     - exfalso. edestruct (existsb_exists (String.eqb k.1) scopes).
@@ -500,16 +498,16 @@ Section SIM.
     uiprop. i. guclo hpsimC_spec. econs; esplits; eauto. econs; eauto.
   Qed.
 
-  Lemma isim_sget_tgt_wrap
+  Lemma isim_sget_tgt_sandbox
     r g ps pt {R} RR k st_src st_tgt i_src k_tgt scopes
     :
     In k.1 scopes ->
     bi_entails
       (@isim r g R RR ps true (st_src, i_src) (st_tgt, k_tgt (or_else (alist_find k st_tgt) tt↑)))
-      (@isim r g R RR ps pt (st_src, i_src) (st_tgt, wrap scopes (trigger (SGet k)) >>= k_tgt)).
+      (@isim r g R RR ps pt (st_src, i_src) (st_tgt, HModSem.sandbox scopes (trigger (SGet k)) >>= k_tgt)).
   Proof.
     i. iIntros "ISIM".
-    rewrite HModWrap.transl_get.
+    rewrite HModSB.transl_get.
     des_ifs; ss.
     - iApply isim_sget_tgt. iFrame.
     - exfalso. edestruct (existsb_exists (String.eqb k.1) scopes).
@@ -518,7 +516,7 @@ Section SIM.
       + i. rewrite Heq in H2. ss.
   Qed.
   
-  Lemma isim_assume_src
+  Lemma isim_Assume_src
     r g ps pt {R} RR iP st_src st_tgt k_src i_tgt 
     :
     bi_entails
@@ -539,7 +537,7 @@ Section SIM.
       rewrite (URA.add_comm a b). repeat apply URA.extends_add. eauto.
   Qed.
 
-  Lemma isim_assume_tgt
+  Lemma isim_Assume_tgt
     r g ps pt {R} RR iP st_src st_tgt i_src k_tgt 
     :
     bi_entails
@@ -557,7 +555,7 @@ Section SIM.
     iIntros "H". iApply isim_upd. iStopProof; eauto.
   Qed.
 
-  Lemma isim_guarantee_src
+  Lemma isim_Guarantee_src
     r g ps pt {R} RR iP st_src st_tgt k_src i_tgt 
     :
     bi_entails
@@ -575,7 +573,7 @@ Section SIM.
     iIntros "H". iApply isim_upd. iStopProof; eauto.
   Qed.
 
-  Lemma isim_guarantee_tgt
+  Lemma isim_Guarantee_tgt
     r g ps pt {R} RR iP st_src st_tgt i_src k_tgt 
     :
     bi_entails
@@ -815,10 +813,10 @@ Module HModSemR.
             forall fn fs (FIND: alist_find fn fnsems_src = Some fs),
             exists ft, alist_find fn fnsems_tgt = Some ft /\
                          isim_fsem
-                           (List.map (map_snd HModSem.wrap_body) fnsems_src)
-                           (List.map (map_snd HModSem.wrap_body) fnsems_tgt)
+                           (List.map (map_snd HModSem.sandbox_body) fnsems_src)
+                           (List.map (map_snd HModSem.sandbox_body) fnsems_tgt)
                            Ist (fun '(st_src, v_src) '(st_tgt, v_tgt) => (Ist st_src st_tgt ∗ ⌜v_src = v_tgt⌝))%I
-                           (HModSem.wrap_body fs) (HModSem.wrap_body ft);
+                           (HModSem.sandbox_body fs) (HModSem.sandbox_body ft);
         }.
 
   End SIM.
@@ -846,10 +844,10 @@ Module HModR.
         match alist_find fn fnsems_src, alist_find fn fnsems_tgt with
         | Some fs, Some ft =>
             isim_fsem
-              (List.map (map_snd HModSem.wrap_body) fnsems_src)
-              (List.map (map_snd HModSem.wrap_body) fnsems_tgt)
+              (List.map (map_snd HModSem.sandbox_body) fnsems_src)
+              (List.map (map_snd HModSem.sandbox_body) fnsems_tgt)
               Ist (λ '(st_src0, v_src) '(st_tgt0, v_tgt), Ist st_src0 st_tgt0 ** ⌜v_src = v_tgt⌝)
-              (HModSem.wrap_body fs) (HModSem.wrap_body ft)
+              (HModSem.sandbox_body fs) (HModSem.sandbox_body ft)
         | _, _ => False
         end.
   End SIM.

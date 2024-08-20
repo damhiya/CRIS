@@ -403,7 +403,7 @@ Section WSIM.
   -∗
     (isim r g RR ps pt (st_src, trigger (Assume (wclosed u b P)) >>= k_src) (st_tgt, i_tgt)).
   Proof.
-    iIntros "H". iApply isim_assume_src. iIntros "(P & (F & W))".
+    iIntros "H". iApply isim_Assume_src. iIntros "(P & (F & W))".
     iPoseProof ("H" with "[P F]") as "H". iFrame.
     iApply "H". eauto.
   Qed.
@@ -415,7 +415,7 @@ Section WSIM.
   -∗
     (wsim ⊤ r g RR ps pt (st_src, trigger (Guarantee (wclosed u b P)) >>= k_src) (st_tgt, i_tgt)).
   Proof.
-    iIntros "(P & F & H) WD". iApply isim_guarantee_src. iFrame.
+    iIntros "(P & F & H) WD". iApply isim_Guarantee_src. iFrame.
   Qed.  
   
   Lemma wsim_assume_tgt
@@ -425,7 +425,7 @@ Section WSIM.
   -∗
     (wsim E r g RR ps pt (st_src, i_src) (st_tgt, trigger (Assume (wclosed u0 b0 P)) >>= k_tgt)).
   Proof.
-    iIntros "(P & H) WD". iApply isim_assume_tgt. iFrame.
+    iIntros "(P & H) WD". iApply isim_Assume_tgt. iFrame.
     iApply "H". eauto.
   Qed.
 
@@ -436,7 +436,7 @@ Section WSIM.
   -∗
     (wsim E r g RR ps pt (st_src, i_src) (st_tgt, trigger (Guarantee (wclosed u0 b0 P)) >>= k_tgt)).
   Proof.
-    iIntros "H WD". iApply isim_guarantee_tgt. iIntros "IP".
+    iIntros "H WD". iApply isim_Guarantee_tgt. iIntros "IP".
     iPoseProof ("H" with "IP") as "H". iApply "H". eauto.
   Qed.  
 

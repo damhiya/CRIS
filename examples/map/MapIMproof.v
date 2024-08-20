@@ -108,295 +108,40 @@ Section SIMMODSEM.
   (**********)
   (* Temporary Tactic Designs *)
 
-  Require Import ITacticsInternal.
+    
 
-  (* minimal version of 'ired' in itreelib. *)
-  Tactic Notation "ired" "in" ident(H) := 
-    repeat (try rewrite subst_bind in H; try rewrite bind_bind in H; 
-            try rewrite bind_ret_l in H; try rewrite bind_ret_r in H; 
-            try rewrite bind_tau in H; try rewrite interp_ret in H;
-            try rewrite interp_tau in H; try rewrite interp_bind in H;
-            cbn in H).
-
-  
-  (* Duplicated cases in _unwrapS, _unwrapP might be able to simplify. *)
-
-  Tactic Notation "_unwrapS" constr(itr) :=
-    match itr with
-    | interp_smod _ _ (trigger (Call _ _)) =>
-      rewrite SModRed.interp_call 
-    | (interp_smod _ _ (trigger (Call _ _)) >>= _) =>
-      rewrite SModRed.interp_call 
-    | (interp_smod _ _ (trigger (SPut _ _))) =>
-      rewrite SModRed.interp_pg       
-    | (interp_smod _ _ (trigger (SPut _ _)) >>= _) =>
-      rewrite SModRed.interp_pg 
-    | (interp_smod _ _ (trigger (SGet _))) =>
-      rewrite SModRed.interp_pg       
-    | (interp_smod _ _ (trigger (SGet _)) >>= _) =>
-      rewrite SModRed.interp_pg 
-    | (interp_smod _ _ (trigger (Choose _))) =>
-      rewrite SModRed.interp_core 
-    | (interp_smod _ _ (trigger (Choose _)) >>= _) =>
-      rewrite SModRed.interp_core
-    | (interp_smod _ _ (trigger (Take _))) =>
-      rewrite SModRed.interp_core          
-    | (interp_smod _ _ (trigger (Take _)) >>= _) =>
-      rewrite SModRed.interp_core    
-    | (interp_smod _ _ (trigger (IO _ _))) =>
-      rewrite SModRed.interp_core      
-    | (interp_smod _ _ (trigger (IO _ _)) >>= _) =>
-      rewrite SModRed.interp_core
-    | (interp_smod _ _ (trigger (Assume _))) =>
-      rewrite SModRed.interp_Assume             
-    | (interp_smod _ _ (trigger (Assume _)) >>= _) =>
-      rewrite SModRed.interp_Assume 
-    | (interp_smod _ _ (trigger (Guarantee _))) =>
-      rewrite SModRed.interp_Guarantee
-    | (interp_smod _ _ (trigger (Guarantee _)) >>= _) =>
-      rewrite SModRed.interp_Guarantee        
-    | _ =>
-      grind;
-      try rewrite SModRed.interp_tau; 
-      try rewrite SModRed.interp_ret; simpl;
-      try rewrite! SModRed.interp_bind       
-    end.
-
-  Tactic Notation "_unwrapP" constr(itr) :=
-    match itr with 
-    | ((PModSem.transl (trigger (Call _ _)))) =>
-      rewrite PModRed.transl_call 
-    | ((PModSem.transl (trigger (Call _ _))) >>= _) =>
-      rewrite PModRed.transl_call
-    | ((PModSem.transl (trigger (SPut _ _)))) => 
-      rewrite PModRed.transl_pg      
-    | ((PModSem.transl (trigger (SPut _ _))) >>= _) => 
-      rewrite PModRed.transl_pg
-    | ((PModSem.transl (trigger (SGet _)))) => 
-      rewrite PModRed.transl_pg 
-    | ((PModSem.transl (trigger (SGet _))) >>= _) => 
-      rewrite PModRed.transl_pg 
-    | ((PModSem.transl (trigger (Choose _)))) => 
-      rewrite PModRed.transl_core      
-    | ((PModSem.transl (trigger (Choose _))) >>= _) => 
-      rewrite PModRed.transl_core
-    | ((PModSem.transl (trigger (Take _)))) => 
-      rewrite PModRed.transl_core        
-    | ((PModSem.transl (trigger (Take _))) >>= _) => 
-      rewrite PModRed.transl_core
-    | ((PModSem.transl (trigger (IO _ _)))) => 
-      rewrite PModRed.transl_core       
-    | ((PModSem.transl (trigger (IO _ _))) >>= _) => 
-      rewrite PModRed.transl_core 
-    | _ => 
-      grind;
-      try rewrite PModRed.transl_tau; 
-      try rewrite PModRed.transl_ret; simpl;
-      try rewrite! PModRed.transl_bind
-    end.
-
-  (* put / get ?? *) 
-  Tactic Notation "_unwrapH" constr(itr) :=
-    match itr with
-    | trigger (Call _ _) =>
-      rewrite HModWrap.transl_call
-    (* | trigger (SPut _ _) =>
-      rewrite HModWrap.transl_put
-    | trigger (SGet _) =>
-      rewrite HModWrap.transl_get *)
-    | trigger (Choose _) => 
-      rewrite HModWrap.transl_core
-    | trigger (Take _) => 
-      rewrite HModWrap.transl_core
-    | trigger (IO _ _) => 
-      rewrite HModWrap.transl_core  
-    | trigger (Assume _) => 
-      rewrite HModWrap.transl_Assume
-    | trigger (Guarantee _) => 
-      rewrite HModWrap.transl_Guarantee    
-    | _ => 
-      grind; try rewrite! HModWrap.transl_bind;
-      try rewrite HModWrap.transl_tau;
-      try rewrite HModWrap.transl_ret; simpl
-    end.
-
-  Tactic Notation "_unwrap" constr(itr) :=
-    match itr with
-    | translate _ (?itr0) =>
-      match itr0 with
-      | interp_smod _ _ _ =>
-        _unwrapS itr0
-      | (interp_smod _ _ _) >>= _ =>
-        _unwrapS itr0
-      | (PModSem.transl _) =>
-        _unwrapP itr0
-      | (PModSem.transl _) >>= _ =>
-        _unwrapP itr0
-      | _ =>
-        _unwrapH itr0
-      end
-    | (translate _ (?itr1)) >>= _  =>
-      match itr1 with
-      | interp_smod _ _ _ =>
-        _unwrapS itr1
-      | (interp_smod _ _ _) >>= _ =>
-        _unwrapS itr1
-      | (PModSem.transl _) =>
-        _unwrapP itr1
-      | (PModSem.transl _) >>= _ =>
-        _unwrapP itr1
-      | _ => 
-        _unwrapH itr1
-      end
-    | _ =>
-      grind
-    end.
-
-  Ltac unwrap_l :=
-    let IT := fresh "__IT" in 
-    match goal with
-    | [|- _ (_ (_, ?itr_src) (_, ?itr_tgt))] =>
-      set (IT := itr_tgt); 
-      try rewrite! HModWrap.transl_bind; _unwrap itr_src;
-      unfold IT; clear IT
-    end.
-
-  Ltac unwrap_r :=
-    let IT := fresh "__IT" in 
-    match goal with
-    | [|- _ (_ (_, ?itr_src) (_, ?itr_tgt))] => 
-      set (IT := itr_src); 
-      try rewrite! HModWrap.transl_bind; _unwrap itr_tgt;
-      unfold IT; clear IT
-    end.    
-
-  Ltac unwrap := unwrap_l; unwrap_r.
-
-  Ltac force_l := try (unwrap_l; _force_l).
-  Ltac force_r := try (unwrap_r; _force_r).
-
-  Ltac _step := 
-    match goal with
-    (******* isim ******)
-    (** src **)
-    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, unwrapU ?ox >>= _) (_, _)) ] =>
-        let name := fresh "y" in
-        iApply isim_unwrapU_src; iIntros (name) "%";
-        match goal with
-        | [ H: _ |- _ ] => let name := fresh "G" in rename H into name; try rewrite name in *
-        end
-    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, tau;; _) (_, _)) ] =>
-        iApply isim_tau_src
-    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, trigger (SPut _ _) >>= _) (_, _)) ] =>
-        iApply isim_sput_src_wrap; [s;eauto|]
-    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, (translate _ (trigger (SPut _ _))) >>= _) (_, _)) ] =>
-        iApply isim_sput_src_wrap; [s;eauto|]
-    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, (translate _ (trigger (SGet _))) >>= _) (_, _)) ] =>
-        iApply isim_sget_src_wrap
-    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _) (_, _)) ] =>
-        let name := fresh "y" in
-        iApply isim_take_src; iIntros (name)
-    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _  (_, trigger (Assume _) >>= _) (_, _)) ] =>
-        iApply isim_assume_src; iIntrosFresh "ASM"
-    (** tgt **)
-    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, unwrapN ?ox >>= _)) ] =>
-        let name := fresh "y" in
-        iApply isim_unwrapN_tgt; iIntros (name) "%";
-        match goal with
-        | [ H: _ |- _ ] => let name := fresh "G" in rename H into name; try rewrite name in *
-        end
-    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, tau;; _)) ] =>
-        iApply isim_tau_tgt
-    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, (translate _ (trigger (SPut _ _))) >>= _)) ] =>
-        iApply isim_sput_tgt_wrap; [s; eauto|]
-    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, (translate _ (trigger (SGet _))) >>= _)) ] =>
-        iApply isim_sget_tgt_wrap; [s; eauto|]
-    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, trigger (Choose _) >>= _)) ] =>
-        let name := fresh "y" in
-        iApply isim_choose_tgt; iIntros (name)
-    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, trigger (Guarantee _) >>= _)) ] =>
-        iApply isim_guarantee_tgt; iIntrosFresh "GRT"  
-    (** both **)
-    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, Ret _) (_, Ret _)) ] =>
-        iApply isim_ret
-    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, trigger (IO _ _) >>= _) (_, trigger (IO _ _) >>= _)) ] =>
-        iApply isim_io; iIntros "%"
-    end.
-
-
-  Ltac step := repeat
-    (unwrap; try _step; simpl; des_pairs).
-
-  Ltac step_l := let IT := fresh "__IT" in
-    match goal with [|- _ (_ (_, _) (_, ?itgt))] => set (IT := itgt) end;
-    repeat (unwrap_l; try _step; simpl; des_pairs);
-    unfold IT; clear IT.
-
-  Ltac step_r := let IT := fresh "__IT" in
-    match goal with [|- _ (_ (_, ?isrc) (_, _))] => set (IT := isrc) end;
-    repeat (unwrap_r; try _step; simpl; des_pairs);
-    unfold IT; clear IT.
-
-  Ltac apc_r :=
-    rewrite SModRed.interp_apc;
-    step_r; unfold HoareAPC; step_r; rewrite unfold_APC; step_r;
-    match goal with [b: bool|-_] => destruct b end;
-    [|unfold guarantee, triggerNB; step_r;
-      match goal with [v: void|-_] => destruct v end].
-
-  Lemma transl_unwrapN
-    R scopes (r: option R)
-  :
-    translate (HModSem.wrap scopes) (unwrapN r) = unwrapN r
-  .
-  Proof. Admitted.
-
-      
   (**********)
 
   Lemma simF_init:
     HModR.sim_fun MapMMod MapIMod (IstProd [MapM.scope] [MemA.scope] Ist IstEq) MapName.init.
   Proof.
-    init_simF.
-    unfold HModSem.wrap_body; simpl.
+    init_simF; unfold HModSem.sandbox_body; simpl.
 
     (* SRC: handle the IST of Map and the precond of init *)
-    step_l. iDestruct "ASM" as "(W & (%Y & %M & P0) & %X)". subst. hss. step_l.
-    rename y1 into u, y2 into ℓ, x into sz.
-    unfold cput. step_l.
+    steps_l. iDestruct "ASM" as "(W & (%Y & %M & P0) & %X)". subst. hss.
+    inv G0. rename q0 into u, q1 into ℓ, x into sz.
 
     (* SRC: prove the postcond of init *)
-    force_l. step_l. force_l. iSplitL "W".
+    force_l. force_l. iSplitL "W".
     { iFrame. eauto. }
-
+    steps_r.
+    
     (* TGT: inline alloc *)
-    step_r. inline_r.
+    inline_r.
 
     (* TGT: prove the precond of alloc *)
-    step_r. force_r. step_r. force_r. step_r. force_r.
-    iSplitR; eauto.
-    step_r.
+    force_r. force_r. force_r.
+    iSplitL ""; eauto.
 
-    (* apc tactic *)
-    rewrite SModRed.interp_apc; step_r; unfold HoareAPC; step_r;
-    rewrite unfold_APC; step_r;
-    match goal with [b: bool|-_] => destruct b end.
-    2: {
-      unfold guarantee, triggerNB; step_r.
-      rewrite transl_unwrapN. step_r.
-      admit.
-
-    }
+    (* apc *)
+    apc_r.
 
     (* TGT: handle the postcond of alloc *)
-    rename y into ord.
-
-    step_r. iDestruct "GRT" as "[GRT %]". 
-    iDestruct "GRT" as ( ? ) "(% & POINTS)". subst.
-    hss. step_r.
-
+    steps_r. iDestruct "GRT" as "[GRT %]". 
+    iDestruct "GRT" as ( ? ) "(% & POINTS)". subst. hss.
 
     (* prepare and start an induction *)
+    force_r. iSplitL ""; eauto. steps_r.
     replace (repeat Vundef sz) with (repeat (Vint 0) (sz-sz) ++ repeat Vundef sz); cycle 1.
     { rewrite Nat.sub_diag. eauto. }
     rewrite// -[X in ITree.iter _ X](Z.sub_diag (sz%Z)).
@@ -609,3 +354,182 @@ Section SIMMODSEM.
 End SIMMODSEM.
 End MapIM.
  
+
+
+  (*  
+  Tactic Notation "_unwrapS" constr(itr) :=
+    match itr with
+    | (interp_smod _ _ (trigger (Choose _))) =>
+      rewrite SModRed.interp_core 
+    | (interp_smod _ _ (trigger (Choose _)) >>= _) =>
+      rewrite SModRed.interp_core
+    | (interp_smod _ _ (trigger (Take _))) =>
+      rewrite SModRed.interp_core          
+    | (interp_smod _ _ (trigger (Take _)) >>= _) =>
+      rewrite SModRed.interp_core    
+    | (interp_smod _ _ (trigger (IO _ _))) =>
+      rewrite SModRed.interp_core      
+    | (interp_smod _ _ (trigger (IO _ _)) >>= _) =>
+      rewrite SModRed.interp_core
+    | (interp_smod _ _ (trigger (Call _ _))) =>
+      rewrite SModRed.interp_call 
+    | (interp_smod _ _ (trigger (Call _ _)) >>= _) =>
+      rewrite SModRed.interp_call 
+    | (interp_smod _ _ (trigger (SPut _ _))) =>
+      rewrite SModRed.interp_pg       
+    | (interp_smod _ _ (trigger (SPut _ _)) >>= _) =>
+      rewrite SModRed.interp_pg 
+    | (interp_smod _ _ (trigger (SGet _))) =>
+      rewrite SModRed.interp_pg       
+    | (interp_smod _ _ (trigger (SGet _)) >>= _) =>
+      rewrite SModRed.interp_pg 
+    | (interp_smod _ _ (trigger (Assume _))) =>
+      rewrite SModRed.interp_Assume             
+    | (interp_smod _ _ (trigger (Assume _)) >>= _) =>
+      rewrite SModRed.interp_Assume 
+    | (interp_smod _ _ (trigger (Guarantee _))) =>
+      rewrite SModRed.interp_Guarantee
+    | (interp_smod _ _ (trigger (Guarantee _)) >>= _) =>
+      rewrite SModRed.interp_Guarantee        
+    | _ =>
+      grind;
+      try rewrite SModRed.interp_tau; 
+      try rewrite SModRed.interp_ret; simpl;
+      try rewrite! SModRed.interp_bind       
+    end.
+ *)
+
+
+  (* rewrite SModRed.interp_apc; *)
+  (* st_r; unfold HoareAPC; st_r; rewrite unfold_APC; st_r; *)
+  (* match goal with [b: bool|-_] => destruct b end; *)
+  (* [|unfold guarantee, triggerNB; st_r; *)
+  (*   match goal with [v: void|-_] => destruct v end]. *)
+
+  
+  
+  (* Tactic Notation "_unwrapS" constr(itr) := *)
+  (*   match itr with *)
+  (*   | trigger (Choose _) => *)
+  (*     rewrite SModRed.interp_core  *)
+  (*   | trigger (Take _) => *)
+  (*     rewrite SModRed.interp_core           *)
+  (*   | trigger (IO _ _) => *)
+  (*     rewrite SModRed.interp_core       *)
+  (*   | trigger (Call _ _) => *)
+  (*     rewrite SModRed.interp_call  *)
+  (*   | trigger (SPut _ _) => *)
+  (*     rewrite SModRed.interp_pg        *)
+  (*   | trigger (SGet _) => *)
+  (*     rewrite SModRed.interp_pg        *)
+  (*   | trigger (Assume _) => *)
+  (*     rewrite SModRed.interp_Assume              *)
+  (*   | trigger (Guarantee _) => *)
+  (*       rewrite SModRed.interp_Guarantee *)
+  (*   | trigger APC => *)
+  (*       rewrite SModRed.interp_apc *)
+  (*   | _ => fail *)
+  (*   end. *)
+
+  (* Tactic Notation "_unwrapP" constr(itr) := *)
+  (*   match itr with *)
+  (*   | trigger (Choose _) =>  *)
+  (*     rewrite PModRed.transl_core       *)
+  (*   | trigger (Take _) =>  *)
+  (*     rewrite PModRed.transl_core         *)
+  (*   | trigger (IO _ _) =>  *)
+  (*     rewrite PModRed.transl_core        *)
+  (*   | trigger (Call _ _) => *)
+  (*     rewrite PModRed.transl_call  *)
+  (*   | trigger (SPut _ _) =>  *)
+  (*     rewrite PModRed.transl_pg       *)
+  (*   | trigger (SGet _) =>  *)
+  (*     rewrite PModRed.transl_pg  *)
+  (*   | _ =>  *)
+  (*     grind; *)
+  (*     try rewrite PModRed.transl_tau;  *)
+  (*     try rewrite PModRed.transl_ret; simpl; *)
+  (*     try rewrite! PModRed.transl_bind *)
+  (*   end. *)
+
+
+  (* Tactic Notation "__unwrap" constr(itr) := *)
+  (*   match itr with *)
+  (*   | interp_smod _ _ ?itr1 => *)
+  (*       _unwrapS itr1 *)
+  (*   | (interp_smod _ _ ?itr1) >>= _ => *)
+  (*       _unwrapS itr1 *)
+  (*   | (PModSem.transl ?itr1) => *)
+  (*       _unwrapP itr1 *)
+  (*   | (PModSem.transl ?itr1) >>= _ => *)
+  (*       _unwrapP itr1 *)
+  (*   | (HModSem.sandbox _ ?itr1) => *)
+  (*       _unwrapSB itr1 *)
+  (*   | (HModSem.sandbox _ ?itr1) >>= _ => *)
+  (*       _unwrapSB itr1 *)
+  (*   | _=> *)
+  (*       _unwrapSB itr *)
+  (*   end. *)
+    
+
+  
+  
+  (* Tactic Notation "_unwrap" constr(itr) := *)
+  (*   match itr with *)
+  (*   | translate _ (?itr0) => __unwrap itr0 *)
+  (*   | (translate _ (?itr0)) >>= _  => __unwrap itr0 *)
+  (*   | _ => *)
+  (*     grind *)
+  (*   end. *)
+
+  (* Ltac unwrap_l := *)
+  (*   let IT := fresh "__IT" in  *)
+  (*   match goal with *)
+  (*   | [|- _ (_ (_, ?itr_src) (_, ?itr_tgt))] => *)
+  (*     set (IT := itr_tgt);  *)
+  (*     try rewrite! HModSB.transl_bind; _unwrap itr_src; *)
+  (*     unfold IT; clear IT *)
+  (*   end. *)
+
+  (* Ltac unwrap_r := *)
+  (*   let IT := fresh "__IT" in  *)
+  (*   match goal with *)
+  (*   | [|- _ (_ (_, ?itr_src) (_, ?itr_tgt))] =>  *)
+  (*     set (IT := itr_src);  *)
+  (*     try rewrite! HModSB.transl_bind; _unwrap itr_tgt; *)
+  (*     unfold IT; clear IT *)
+  (*   end.     *)
+
+  (* Ltac unwrap := unwrap_l; unwrap_r. *)
+
+  (* Ltac force_l := try (unwrap_l; _force_l). *)
+  (* Ltac force_r := try (unwrap_r; _force_r). *)
+
+
+
+  (* Ltac step := repeat *)
+  (*   (unwrap; try _step; simpl; des_pairs). *)
+
+  (* Ltac step_l := let IT := fresh "__IT" in *)
+  (*   match goal with [|- _ (_ (_, _) (_, ?itgt))] => set (IT := itgt) end; *)
+  (*   repeat (unwrap_l; try _step; simpl; des_pairs); *)
+  (*   unfold IT; clear IT. *)
+
+  (* Ltac step_r := let IT := fresh "__IT" in *)
+  (*   match goal with [|- _ (_ (_, ?isrc) (_, _))] => set (IT := isrc) end; *)
+  (*   repeat (unwrap_r; try _step; simpl; des_pairs); *)
+  (*   unfold IT; clear IT. *)
+
+  (* Ltac apc_r := *)
+  (*   rewrite SModRed.interp_apc; *)
+  (*   step_r; unfold HoareAPC; step_r; rewrite unfold_APC; step_r; *)
+  (*   match goal with [b: bool|-_] => destruct b end; *)
+  (*   [|unfold guarantee, triggerNB; step_r; *)
+  (*     match goal with [v: void|-_] => destruct v end]. *)
+
+  (* (* Lemma transl_unwrapN *) *)
+  (* (*   R scopes (r: option R) *) *)
+  (* (* : *) *)
+  (* (*   translate (HModSem.sandbox scopes) (unwrapN r) = unwrapN r *) *)
+  (* (* . *) *)
+  (* (* Proof. Admitted. *) *)

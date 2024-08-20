@@ -294,3 +294,4 @@ Proof.
                end).
 Defined.
 
+Arguments pargs: simpl never.

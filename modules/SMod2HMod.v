@@ -201,6 +201,12 @@ Section HOARE.
                (case_ (bif:=sum1) (handle_callE_hmodE ord_cur)
                 trivial_Handler))).
 
+      Definition HoareBody (ord_cur: ord) (body: Any.t -> itree smodE Any.t) (varg_src: Any.t) := 
+        match ord_cur with
+        | ord_pure _ => trigger APC;;; trigger (Choose _)
+        | _ => body (varg_src)
+        end.
+      
       Definition HoareFun
                  {X: Type}
                  (D: X -> ord)
@@ -213,12 +219,7 @@ Section HOARE.
         let ord_cur := D x in
         trigger (Assume (P x varg_src varg_tgt));;; (*** precondition ***)
 
-        vret_src <- interp_smod
-                            ord_cur
-                               (match ord_cur with
-                                | ord_pure _ => _ <- trigger APC;; trigger (Choose _)
-                                | _ => body (varg_src)
-                                end);;
+        vret_src <- interp_smod ord_cur (HoareBody ord_cur body varg_src);;
 
         vret_tgt <- trigger (Choose Any.t);;
         trigger (Guarantee (Q x vret_src vret_tgt));;; (*** postcondition ***)
@@ -375,27 +376,53 @@ Section RED.
     unfold interp_smod. rewrite interp_trigger. grind. 
   Qed.
 
-(*  
-  Lemma interp_assume
+  Lemma interp_unwrapU 
+        (R: Type)
+        (i: option R)
+        stb o
+    :
+      interp_smod stb o (@unwrapU smodE _ _ i)
+      =
+      r <- (unwrapU i);; Ret r.
+  Proof.
+    unfold interp_smod, unwrapU in *. des_ifs; grind.
+    unfold triggerUB in *. rewrite unfold_interp. grind.
+  Qed.
+
+  Lemma interp_unwrapN
+        (R: Type)
+        (i: option R)
+        stb o
+    :
+      interp_smod stb o (@unwrapN smodE _ _ i)
+      =
+      r <- (unwrapN i);; Ret r.
+  Proof.
+    unfold interp_smod, unwrapN in *. des_ifs; grind.
+    unfold triggerNB in *. rewrite unfold_interp. grind.
+  Qed.
+  
+  Lemma interp_asm
         stb o P
     : 
       interp_smod stb o (assume P)
       =
       r <- assume P;; tau;; Ret r.
   Proof.
-    unfold assume. rewrite interp_bind. rewrite interp_triggere. grind. rewrite interp_ret. refl.
+    unfold assume. rewrite interp_bind. rewrite interp_core. grind. rewrite interp_ret. refl.
   Qed. 
 
-  Lemma interp_guarantee
+  Lemma interp_guar
         stb o P
     : 
       interp_smod stb o (guarantee P)
       =
       r <- guarantee P;; tau;; Ret r.
   Proof.
-    unfold guarantee. rewrite interp_bind. rewrite interp_triggere. grind. rewrite interp_ret. refl.
+    unfold guarantee. rewrite interp_bind. rewrite interp_core. grind. rewrite interp_ret. refl.
   Qed.
 
+(*  
   Lemma interp_triggerUB
         (R: Type)
         stb o
@@ -417,33 +444,6 @@ Section RED.
   Proof.
     unfold interp_smod, triggerNB in *. rewrite unfold_interp. grind.
   Qed.
-
-  Lemma interp_unwrapU 
-        (R: Type)
-        (i: option R)
-        stb o
-    :
-      interp_smod stb o (@unwrapU smodE _ _ i)
-      =
-      r <- (unwrapU i);; Ret r.
-  Proof.
-    unfold interp_smod, unwrapU in *. des_ifs; grind.
-    eapply interp_triggerUB.
-  Qed.
-
-  Lemma interp_unwrapN
-        (R: Type)
-        (i: option R)
-        stb o
-    :
-      interp_smod stb o (@unwrapN smodE _ _ i)
-      =
-      r <- (unwrapN i);; Ret r.
-  Proof.
-    unfold interp_smod, unwrapN in *. des_ifs; grind.
-    eapply interp_triggerNB.
-  Qed.
-
 
   Lemma interp_ext
         R (itr0 itr1: itree _ R)

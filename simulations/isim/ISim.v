@@ -65,7 +65,7 @@ Section LEMMAS.
   Proof.
     unfold interp_smod. rewrite! interp_trigger. grind.
     destruct sti_tgt. unfold HoareAPC.
-    iIntros "K". 
+    iIntros "K".
     force_l. instantiate (1:= at_most).
     iApply "K".
   Qed.
@@ -81,7 +81,7 @@ Section LEMMAS.
     destruct sti_tgt.
     iIntros "K".
     rewrite unfold_APC. 
-    force_l. instantiate (1:= true). steps. eauto.
+    force_l. instantiate (1:= true). s. steps_l. iFrame.
   Qed.
   
   Lemma APC_step_clo Σ
@@ -97,11 +97,11 @@ Section LEMMAS.
     destruct sti_tgt.
     iIntros "K". prep.
     iEval (rewrite unfold_APC).
-    force_l. instantiate (1:= false). steps.
+    force_l. instantiate (1:= false). s.
     force_l. instantiate (1:= next).
-    force_l. { eauto. } steps.
-    force_l. instantiate (1:= (fn, vargs)). steps.
-    rewrite SPEC. steps. grind.
+    force_l. { eauto. }
+    force_l. instantiate (1:= (fn, vargs)). s.
+    rewrite SPEC. s. steps_l. grind.
   Qed.
 
   Lemma hcall_clo Σ
@@ -125,8 +125,7 @@ Section LEMMAS.
     force_l. instantiate (1:= varg_tgt).
     force_l. iSplitL "P"; [eauto|]. 
     call; [eauto|].
-    steps. iApply "K". iFrame.
+    steps_l. iApply "K". iFrame.
   Qed.
-
 
 End LEMMAS.

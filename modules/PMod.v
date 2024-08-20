@@ -145,8 +145,35 @@ Section RED.
     rewrite (bisim_is_eq (translate_ret _ _)). eauto.
   Qed.  
 
-(*  
-  Lemma transl_assume
+  Lemma transl_unwrapU 
+        (R: Type)
+        (i: option R)
+    :
+    PModSem.transl (@unwrapU pmodE _ _ i)
+    =
+    unwrapU i.
+  Proof.
+    rewrite /unwrapU. des_ifs.
+    - rewrite transl_ret; eauto.
+    - rewrite /triggerUB !transl_bind !transl_core.
+      f_equal; eauto. extensionalities. des_ifs.
+  Qed.
+
+  Lemma transl_unwrapN
+        (R: Type)
+        (i: option R)
+    :
+      PModSem.transl (@unwrapN pmodE _ _ i)
+      =
+      unwrapN i.
+  Proof.
+    rewrite /unwrapN. des_ifs.
+    - rewrite transl_ret; eauto.
+    - rewrite /triggerNB !transl_bind !transl_core.
+      f_equal; eauto. extensionalities. des_ifs.
+  Qed.
+
+  Lemma transl_asm
         P
     : 
       PModSem.transl (assume P)
@@ -156,7 +183,7 @@ Section RED.
     rewrite /assume !transl_bind !transl_core !transl_ret. eauto.
   Qed. 
 
-  Lemma transl_guarantee
+  Lemma transl_guar
         P
     : 
       PModSem.transl (guarantee P)
@@ -165,7 +192,8 @@ Section RED.
   Proof.
     rewrite /guarantee !transl_bind !transl_core !transl_ret. eauto.
   Qed.
-
+  
+(*  
   Lemma transl_triggerUB
         (R: Type)
     :
@@ -188,31 +216,7 @@ Section RED.
     f_equal; eauto. extensionalities. des_ifs.
   Qed.
 
-  Lemma transl_unwrapU 
-        (R: Type)
-        (i: option R)
-    :
-    PModSem.transl (@unwrapU pmodE _ _ i)
-    =
-    unwrapU i.
-  Proof.
-    rewrite /unwrapU. des_ifs.
-    - rewrite transl_ret; eauto.
-    - rewrite transl_triggerUB; eauto.
-  Qed.
 
-  Lemma transl_unwrapN
-        (R: Type)
-        (i: option R)
-    :
-      PModSem.transl (@unwrapN pmodE _ _ i)
-      =
-      unwrapN i.
-  Proof.
-    rewrite /unwrapN. des_ifs.
-    - rewrite transl_ret; eauto.
-    - rewrite transl_triggerNB; eauto.
-  Qed.
  *)
   
 End RED.

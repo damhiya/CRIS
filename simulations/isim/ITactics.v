@@ -14,8 +14,8 @@ From ExtLib Require Import
 Require Import Red IRed.
 Require Import HPSim.
 Require Import World sWorld.
-Require Import ISimCore ITacticsInternal.
-Require Import Events Mod SMod HMod.
+Require Import ISimCore.
+Require Import Events Mod SMod HMod PMod.
 
 From stdpp Require Import coPset gmap.
 
@@ -29,41 +29,14 @@ From stdpp Require Import coPset gmap.
 (* need change *)
 (* Ltac sim_init := econs; eauto; ii; econs; cycle 1; [s|sim_split]. *)
 
-Ltac unfold_hmod :=
-  match goal with
-  | [|-context[HMod.get_modsem ?x _]] => rewrite/__ {1}/x; progress unseal "ccr"
-  | [|-context[HMod.sk ?x]] => rewrite/__ {1}/x; progress unseal "ccr" end.
+Ltac prove_scope :=
+  try unfold HModSem.fnsems; try unfold SModSem.fnsems; try unfold fnsems_scopes;
+  s; ii; des_ifs; ss; des; ss; eauto.
 
-(***
-  Step-level tactics
- ***)
-
-Ltac st := repeat _st.
-
-Ltac force_l := try (prep; _force_l).
-Ltac force_r := try (prep; _force_r).
-
-Ltac inline_l := prep; iApply isim_inline_src; [repeat unfold_hmod; eauto|]; unfold interp_sb_hp, HoareFun; s.
-Ltac inline_r := prep; iApply isim_inline_tgt; [repeat unfold_hmod; eauto|]; unfold interp_sb_hp, HoareFun; s.
-
-Ltac call := prep; iApply isim_call; iSplitL "IST"; [ |iIntros "% % % % %"; iIntrosFresh "IST"].
-
-(* COMMENT: Should st_l, st_r be kept in here, or moved to temporary? *)
-Ltac st_l := let IT := fresh "__IT" in
-  match goal with [|- _ (_ (_, _) (_, ?itgt))] => set (IT := itgt) end;
-  st;
-  unfold IT; clear IT.
-Ltac st_r := let IT := fresh "__IT" in
-  match goal with [|- _ (_ (_, ?isrc) (_, _))] => set (IT := isrc) end;
-  st;
-  unfold IT; clear IT.
-
-Ltac apc_r :=
-  rewrite SModRed.interp_apc;
-  st_r; unfold HoareAPC; st_r; rewrite unfold_APC; st_r;
-  match goal with [b: bool|-_] => destruct b end;
-  [|unfold guarantee, triggerNB; st_r;
-    match goal with [v: void|-_] => destruct v end].
+Ltac by_coind CIH :=
+  iApply isim_progress; iApply isim_base;
+  iSpecialize (CIH $! _); repeat instantiate (1:= existT _ _); s;
+  iApply CIH.
 
 Ltac hss :=
   ss;
@@ -79,38 +52,335 @@ Ltac hss :=
     depdes G; ss
    end).
 
-(***** Temporary Tactics ( Not recommended in a final proof. Use only for excersize. ) *****)
-Ltac prep := cbn; ired_both.
-Ltac steps := repeat _steps.
-Ltac ired := repeat _ired.
-Ltac choose_l := iApply isim_choose_src.
-Ltac choose_r := iApply isim_choose_tgt; iIntros "%".
-Ltac take_l := iApply isim_take_src; iIntros "%".
-Ltac take_r := iApply isim_take_tgt.
-Ltac asm_l := iApply isim_assume_src; iIntrosFresh "ASM".
-Ltac asm_r := iApply isim_assume_tgt.
-Ltac grt_l := iApply isim_guarantee_src.
-Ltac grt_r := iApply isim_guarantee_tgt; iIntrosFresh "GRT".
-Ltac choose := prep; choose_r; choose_l.
-Ltac take := prep; take_l; take_r.
-Ltac asm := prep; asm_l; asm_r.
-Ltac grt := prep; grt_r; grt_l.
+Ltac unfold_hmod :=
+  match goal with
+  | [|-context[HMod.get_modsem ?x _]] => rewrite/__ {1}/x; progress unseal "ccr"
+  | [|-context[HMod.sk ?x]] => rewrite/__ {1}/x; progress unseal "ccr" end.
+
+(***
+  Step-level tactics
+ ***)
+
+Lemma isim_apc_tgt_remove `{Σ: GRA.t}
+  fl fr Ist r g {R} RR ps pt st_src st_tgt i_src k_tgt scopes stb o
+  :
+  bi_entails
+    (@isim Σ fl fr Ist r g R RR ps true (st_src, i_src) (st_tgt, k_tgt tt))
+    (isim fl fr Ist r g RR ps pt (st_src, i_src) (st_tgt,
+         HModSem.sandbox scopes (interp_smod stb o (trigger APC)) >>= k_tgt)).
+Proof.
+Admitted.
+
+Ltac iIntrosFresh H := iIntros H || iIntrosFresh (H ++ "'")%string.
+
+Ltac des_pairs :=
+  repeat match goal with
+    | [H: context[let (_, _) := ?x in _] |- _] =>
+        let n0 := fresh x in let n1 := fresh x in destruct x as [n0 n1]
+    | |- context[let (_, _) := ?x in _] =>
+        let n0 := fresh x in let n1 := fresh x in destruct x as [n0 n1]
+    end.
+
+Ltac desugar itr :=
+  match itr with
+  | HoareBody _ _ _ => rewrite/__ {1}/itr
+  | cput _ _ => rewrite/__{1}/itr
+  | cgetU _ => rewrite/__{1}/itr
+  | cgetN _ => rewrite/__{1}/itr
+  (* | assume _ => rewrite/__{1}/itr *)
+  (* | guarantee _ => rewrite/__{1}/itr *)
+  | triggerUB => rewrite/__{1}/itr
+  | triggerNB => rewrite/__{1}/itr
+  end.
+
+Ltac _unwrapSB itr :=
+  match itr with
+  | Ret _ =>
+      rewrite HModSB.transl_ret
+  | tau;; _ =>
+      rewrite HModSB.transl_tau
+  | trigger (Choose _) => 
+      rewrite HModSB.transl_core
+  | trigger (Take _) => 
+      rewrite HModSB.transl_core
+  | trigger (IO _ _) => 
+      rewrite HModSB.transl_core  
+  | trigger (Call _ _) =>
+      rewrite HModSB.transl_call
+  | trigger (SPut _ _) =>
+      idtac
+  | trigger (SGet _) =>
+      idtac
+  | trigger (Assume _) => 
+      rewrite HModSB.transl_Assume
+  | trigger (Guarantee _) => 
+      rewrite HModSB.transl_Guarantee
+  | unwrapU _ =>
+      rewrite HModSB.transl_unwrapU
+  | unwrapN _ =>
+      rewrite HModSB.transl_unwrapN
+  | assume _ =>
+      rewrite HModSB.transl_asm
+  | guarantee _ =>
+      rewrite HModSB.transl_guar
+  | interp_smod _ _ (trigger APC) =>
+      idtac
+  | _ => fail
+  end.
+
+Ltac unwrapSB :=
+  try match goal with
+  | [|-context[HModSem.sandbox _ ?itr]] => desugar itr
+  end;
+  match goal with
+  | [|-context[HModSem.sandbox _ (?itr >>= _)]] =>
+      rewrite HModSB.transl_bind; unwrapSB
+  | [|-context[HModSem.sandbox _ ?itr]] => _unwrapSB itr
+  end.
+
+Ltac _unwrapS itr :=
+  match itr with
+  | Ret _ =>
+      rewrite SModRed.interp_ret
+  | tau;; _ =>
+      rewrite SModRed.interp_tau
+  | trigger (Choose _) => 
+      rewrite SModRed.interp_core
+  | trigger (Take _) => 
+      rewrite SModRed.interp_core
+  | trigger (IO _ _) => 
+      rewrite SModRed.interp_core  
+  | trigger (Call _ _) =>
+      rewrite SModRed.interp_call
+  | trigger (SPut _ _) =>
+      rewrite SModRed.interp_pg
+  | trigger (SGet _) =>
+      rewrite SModRed.interp_pg
+  | trigger (Assume _) => 
+      rewrite SModRed.interp_Assume
+  | trigger (Guarantee _) => 
+      rewrite SModRed.interp_Guarantee
+  | unwrapU _ =>
+      rewrite SModRed.interp_unwrapU
+  | unwrapN _ =>
+      rewrite SModRed.interp_unwrapN
+  | assume _ =>
+      rewrite SModRed.interp_asm
+  | guarantee _ =>
+      rewrite SModRed.interp_guar
+  | trigger APC =>
+      idtac
+  | _ => fail
+  end.
+
+Ltac unwrapS :=
+  try match goal with
+    | [|-context[interp_smod _ _ ?itr]] => desugar itr
+  end;
+  match goal with
+  | [|-context[interp_smod _ _ (?itr >>= _)]] =>
+      rewrite SModRed.interp_bind; unwrapS
+  | [|-context[interp_smod _ _ ?itr]] => _unwrapS itr
+  end.
+
+Ltac _unwrapP itr :=
+  match itr with
+  | Ret _ =>
+      rewrite PModRed.transl_ret
+  | tau;; _ =>
+      rewrite PModRed.transl_tau
+  | trigger (Choose _) => 
+      rewrite PModRed.transl_core
+  | trigger (Take _) => 
+      rewrite PModRed.transl_core
+  | trigger (IO _ _) => 
+      rewrite PModRed.transl_core  
+  | trigger (Call _ _) =>
+      rewrite PModRed.transl_call
+  | trigger (SPut _ _) =>
+      rewrite PModRed.transl_pg
+  | trigger (SGet _) =>
+      rewrite PModRed.transl_pg
+  | unwrapU _ =>
+      rewrite PModRed.transl_unwrapU
+  | unwrapN _ =>
+      rewrite PModRed.transl_unwrapN
+  | assume _ =>
+      rewrite PModRed.transl_asm
+  | guarantee _ =>
+      rewrite PModRed.transl_guar
+  | _ => fail
+  end.
+
+Ltac unwrapP :=
+  try match goal with
+  | [|-context[PModSem.transl ?itr]] => desugar itr
+  end;
+  match goal with
+  | [|-context[PModSem.transl (?itr >>= _)]] => 
+      rewrite PModRed.transl_bind; unwrapP
+  | [|-context[PModSem.transl ?itr]] => _unwrapP itr
+  end.
+
+Ltac _step_l :=
+  match goal with
+  (******* isim ******)
+  (** src **)
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, tau;; _) (_, _)) ] =>
+      iApply isim_tau_src
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, Ret _ >>= _) (_, _)) ] =>
+      rewrite bind_ret_l
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, (HModSem.sandbox _ (trigger (SPut _ _))) >>= _) (_, _)) ] =>
+      iApply isim_sput_src_sandbox; [s;eauto|]
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, (HModSem.sandbox _ (trigger (SGet _))) >>= _) (_, _)) ] =>
+      iApply isim_sget_src_sandbox; [s;eauto|]
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _) (_, _)) ] =>
+      let name := fresh "q" in
+      iApply isim_take_src; iIntros (name)
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _  (_, trigger (Assume _) >>= _) (_, _)) ] =>
+      iApply isim_Assume_src; iIntrosFresh "ASM"
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, unwrapU ?ox >>= _) (_, _)) ] =>
+      let name := fresh "q" in
+      iApply isim_unwrapU_src; iIntros (name) "%";
+      match goal with [ H: ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite G in * end
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, assume _ >>= _) (_, _)) ] =>
+      iApply isim_asm_src
+  end.
+
+Ltac _step_r :=
+  match goal with
+  (******* isim ******)
+  (** tgt **)
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, Ret _ >>= _)) ] =>
+      rewrite bind_ret_l
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, tau;; _)) ] =>
+      iApply isim_tau_tgt
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, (HModSem.sandbox _ (trigger (SPut _ _))) >>= _)) ] =>
+      iApply isim_sput_tgt_sandbox; [s; eauto|]
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, (HModSem.sandbox _ (trigger (SGet _))) >>= _)) ] =>
+      iApply isim_sget_tgt_sandbox; [s; eauto|]
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, trigger (Choose _) >>= _)) ] =>
+      let name := fresh "q" in
+      iApply isim_choose_tgt; iIntros (name)
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, trigger (Guarantee _) >>= _)) ] =>
+      iApply isim_Guarantee_tgt; iIntrosFresh "GRT"
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, unwrapN ?ox >>= _)) ] =>
+      let name := fresh "q" in
+      iApply isim_unwrapN_tgt; iIntros (name) "%";
+      match goal with [ H: ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite G in * end
+| [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, guarantee _ >>= _)) ] =>
+      iApply isim_guar_tgt
+    end.
+
+Ltac _step :=
+  match goal with
+  (******* isim ******)
+  (** both **)
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, Ret _) (_, Ret _)) ] =>
+      iApply isim_ret
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, trigger (IO _ _) >>= _) (_, trigger (IO _ _) >>= _)) ] =>
+      iApply isim_io; iIntros "%"
+  end.
+
+Ltac _force_l :=
+  match goal with
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, trigger (Choose ?T) >>= _) (_, _)) ] =>
+      iApply isim_choose_src
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _  (_, trigger (Guarantee _) >>= _) (_, _)) ] =>
+      iApply isim_Guarantee_src
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, unwrapN _ >>= _) (_, _)) ] =>
+      iApply isim_unwrapN_src; iExists _
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, guarantee _ >>= _) (_, _)) ] =>
+      iApply isim_guar_src
+  end
+.
+
+Ltac _force_r :=
+  match goal with
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _  (_, _) (_, trigger (Take _) >>= _)) ] =>
+      iApply isim_take_tgt
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _  (_, _) (_, trigger (Assume _) >>= _)) ] =>
+      iApply isim_Assume_tgt
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, unwrapU _ >>= _)) ] =>
+      iApply isim_unwrapU_tgt; iExists _
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, assume _ >>= _)) ] =>
+      iApply isim_asm_tgt
+  end
+.
 
 
+Ltac hide_itree_l := let IT := fresh "ITREE" in
+  match goal with [|- _ (_ (_, ?it) (_, _))] => set (IT := it) end.
+Ltac hide_itree_r := let IT := fresh "ITREE" in
+  match goal with [|- _ (_ (_, _) (_, ?it))] => set (IT := it) end.
+Ltac show_itree :=
+  match goal with [IT:=_ |-_] => unfold IT; clear IT end.
 
-Ltac prove_scope :=
-  try unfold HModSem.fnsems; try unfold SModSem.fnsems; try unfold fnsems_scopes;
-  s; ii; des_ifs; ss; des; ss; eauto.
+Ltac prep :=
+  first
+    [ unwrapSB
+    | unwrapS; unwrapSB
+    | unwrapP; unwrapSB
+    | idtac];
+  try rewrite !bind_bind;
+  try rewrite !bind_tau.
 
-Ltac by_coind CIH :=
-  iApply isim_progress; iApply isim_base;
-  iSpecialize (CIH $! _); repeat instantiate (1:= existT _ _); s;
-  iApply CIH.
+Ltac step_l :=
+  hide_itree_r; prep;
+  _step_l; des_pairs; s;
+  show_itree.
+
+Ltac step_r :=
+  hide_itree_l; prep;
+  _step_r; des_pairs; s;
+  show_itree.
+
+Ltac step :=
+  hide_itree_r; prep; show_itree;
+  hide_itree_l; prep; show_itree;
+  _step; des_pairs; s.
+
+Ltac force_l :=
+  hide_itree_r; prep;
+  _force_l; s;
+  show_itree.
+  
+Ltac force_r :=
+  hide_itree_l; prep;
+  _force_r; s;
+  show_itree.
+  
+Ltac steps_l := repeat step_l.
+Ltac steps_r := repeat step_r.
+
+Ltac inline_l :=
+  hide_itree_r; prep;
+  iApply isim_inline_src; [repeat unfold_hmod; eauto|];
+  unfold interp_sb_hp, HoareFun; s;
+  show_itree.
+  
+Ltac inline_r :=
+  hide_itree_l; prep;
+  iApply isim_inline_tgt; [repeat unfold_hmod; eauto|];
+  unfold interp_sb_hp, HoareFun; s;
+  show_itree.
+
+Ltac call :=
+  hide_itree_r; prep; show_itree;
+  hide_itree_l; prep; show_itree;
+  iApply isim_call; iSplitL "IST"; [ |iIntros "% % % % %"; iIntrosFresh "IST"].
+
+Ltac apc_r :=
+  hide_itree_l; prep;
+  match goal with
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, HModSem.sandbox _ (interp_smod _ _ (trigger APC)) >>= _)) ] =>
+      iApply isim_apc_tgt_remove
+  end;
+  show_itree.
 
 (***
  Module-level tactics
  ***)
-
 
   (* Lemma ist_eq_run_r A (run: _ -> (_ * A)) Ist st_src st_tgt: *)
   (*   IstProd Ist IstEq st_src st_tgt -∗ *)
@@ -143,7 +413,7 @@ Section HModProd.
     :
     isim_fsem fl_src fl_tgt (IstProd scopesL scopesR Ist IstEq)
       (λ '(st_src, v_src) '(st_tgt, v_tgt), (IstProd scopesL scopesR Ist IstEq st_src st_tgt ∗ ⌜v_src = v_tgt⌝))%I
-      (HModSem.wrap_body (scopesR,itr)) (HModSem.wrap_body (scopesR,itr)).
+      (HModSem.sandbox_body (scopesR,itr)) (HModSem.sandbox_body (scopesR,itr)).
   Proof.
 (*    
     ii. subst. unfold HModSem.wrap_body. s.
@@ -269,7 +539,8 @@ Ltac init_simF := let TMP := fresh "_tmp_" in
   | [|- context[cfunU ?x]] => rewrite/__ {1}/x
   end;
   unfold interp_sb_hp, HoareFun, cfunU, ccallU; s;
-  ii; subst; iIntros "IST".
+  ii; subst; iIntros "IST";
+  unfold HModSem.sandbox_body; s.
 
 Ltac init_sim := let TMP := fresh "_tmp_" in
   econs; s;

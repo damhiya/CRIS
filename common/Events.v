@@ -138,10 +138,8 @@ Section EVENTS_OTHER.
 
 End EVENTS_OTHER.
 
-Notation "f '?'" := (unwrapU f) (at level 9, only parsing).
-Notation "f 'ǃ'" := (unwrapN f) (at level 9, only parsing).
-Notation "(?)" := (unwrapU) (only parsing).
-Notation "(ǃ)" := (unwrapN) (only parsing).
+Notation "f '?'" := (unwrapU f) (at level 9).
+Notation "f 'ǃ'" := (unwrapN f) (at level 9).
 Notation "s ↯ f" := (sf s f) (at level 9).
 
 Section SYNTAX.
