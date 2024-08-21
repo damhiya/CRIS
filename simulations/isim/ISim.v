@@ -123,7 +123,8 @@ Section LEMMAS.
     unfold HoareCall. prep.
     force_l. instantiate (1:= x).
     force_l. instantiate (1:= varg_tgt).
-    force_l. iSplitL "P"; [eauto|]. 
+    force_l. iSplitL "P"; [eauto|].
+
     call; [eauto|].
     steps_l. iApply "K". iFrame.
   Qed.

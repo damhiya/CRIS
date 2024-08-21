@@ -104,10 +104,10 @@ Section EVENTS_OTHER.
   Global Program Instance dec_key `{Dec string}: Dec key.
   Next Obligation.
     intro DEC. i. destruct a0, a1.
-    destruct (DEC s s1), (DEC s0 s2); subst.
-    - left. refl.
-    - right. ii. apply n. inv H. refl.
-    - right. ii. apply n. inv H. refl.
+    destruct (DEC s0 s2).
+    - subst. destruct (DEC s s1).
+      + subst. left. refl.
+      + right. ii. apply n. inv H. refl.
     - right. ii. apply n. inv H. refl.
   Defined.
 

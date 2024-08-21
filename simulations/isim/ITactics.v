@@ -74,8 +74,6 @@ Ltac desugar itr :=
   | cput _ _ => rewrite/__{1}/itr
   | cgetU _ => rewrite/__{1}/itr
   | cgetN _ => rewrite/__{1}/itr
-  (* | assume _ => rewrite/__{1}/itr *)
-  (* | guarantee _ => rewrite/__{1}/itr *)
   | triggerUB => rewrite/__{1}/itr
   | triggerNB => rewrite/__{1}/itr
   end.
@@ -138,7 +136,7 @@ Ltac _unwrapS itr :=
   | trigger (IO _ _) => 
       rewrite SModRed.interp_core  
   | trigger (Call _ _) =>
-      rewrite SModRed.interp_call
+      rewrite/__ SModRed.interp_call {1}/handle_callE_hmodE {1}/HoareCall
   | trigger (SPut _ _) =>
       rewrite SModRed.interp_pg
   | trigger (SGet _) =>
@@ -209,6 +207,12 @@ Ltac unwrapP :=
   | [|-context[PModSem.transl ?itr]] => _unwrapP itr
   end.
 
+Ltac unfold_precond_postcond term := let TM := fresh "_term" in
+  set (TM := term) at 1;
+  repeat (unfold precond in TM; simpl in TM);
+  repeat (unfold postcond in TM; simpl in TM);
+  subst TM.
+
 Ltac _step_l :=
   match goal with
   (******* isim ******)
@@ -224,14 +228,14 @@ Ltac _step_l :=
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _) (_, _)) ] =>
       let name := fresh "q" in
       iApply isim_take_src; iIntros (name)
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _  (_, trigger (Assume _) >>= _) (_, _)) ] =>
-      iApply isim_Assume_src; iIntrosFresh "ASM"
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _  (_, trigger (Assume ?P) >>= _) (_, _)) ] =>
+      unfold_precond_postcond P; iApply isim_Assume_src; iIntrosFresh "ASM"
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, unwrapU ?ox >>= _) (_, _)) ] =>
       let name := fresh "q" in
       iApply isim_unwrapU_src; iIntros (name) "%";
       match goal with [ H: ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite G in * end
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, assume _ >>= _) (_, _)) ] =>
-      iApply isim_asm_src
+      let name := fresh "asm" in iApply isim_asm_src; iIntros (name)
   end.
 
 Ltac _step_r :=
@@ -249,14 +253,14 @@ Ltac _step_r :=
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, trigger (Choose _) >>= _)) ] =>
       let name := fresh "q" in
       iApply isim_choose_tgt; iIntros (name)
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, trigger (Guarantee _) >>= _)) ] =>
-      iApply isim_Guarantee_tgt; iIntrosFresh "GRT"
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, trigger (Guarantee ?P) >>= _)) ] =>
+      unfold_precond_postcond P; iApply isim_Guarantee_tgt; iIntrosFresh "GRT"
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, unwrapN ?ox >>= _)) ] =>
       let name := fresh "q" in
       iApply isim_unwrapN_tgt; iIntros (name) "%";
       match goal with [ H: ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite G in * end
 | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, guarantee _ >>= _)) ] =>
-      iApply isim_guar_tgt
+      let name := fresh "grt" in iApply isim_guar_tgt; iIntros (name)
     end.
 
 Ltac _step :=
@@ -273,9 +277,10 @@ Ltac _force_l :=
   match goal with
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, trigger (Choose ?T) >>= _) (_, _)) ] =>
       iApply isim_choose_src
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _  (_, trigger (Guarantee _) >>= _) (_, _)) ] =>
-      iApply isim_Guarantee_src
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, unwrapN _ >>= _) (_, _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _  (_, trigger (Guarantee ?P) >>= _) (_, _)) ] =>
+      unfold_precond_postcond P; iApply isim_Guarantee_src
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, unwrapN _ >>= _) (_
+, _)) ] =>
       iApply isim_unwrapN_src; iExists _
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, guarantee _ >>= _) (_, _)) ] =>
       iApply isim_guar_src
@@ -286,8 +291,8 @@ Ltac _force_r :=
   match goal with
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _  (_, _) (_, trigger (Take _) >>= _)) ] =>
       iApply isim_take_tgt
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _  (_, _) (_, trigger (Assume _) >>= _)) ] =>
-      iApply isim_Assume_tgt
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _  (_, _) (_, trigger (Assume ?P) >>= _)) ] =>
+      unfold_precond_postcond P; iApply isim_Assume_tgt
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, unwrapU _ >>= _)) ] =>
       iApply isim_unwrapU_tgt; iExists _
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, assume _ >>= _)) ] =>
@@ -573,15 +578,18 @@ Admitted.
 Ltac alist_simpl :=
   match goal with
   [ |- context[alist_add ?k ?v ?l]] =>
-    let TMP := fresh "_TMP" in
-    let NODUP := fresh "NODUP" in
-    match goal with [H: List.NoDup _|-_] =>
-      eassert (TMP: List.NoDup (List.map fst l)) by exact H; clear H; revert TMP
-    end;
-    erewrite (@ereplace _ l); [intros ?|Lauto_prepare;Lauto_find (k,v); reflexivity];
-    eassert (NODUP := alist_add_nodup _ k v TMP); revert NODUP;
-    rewrite !alist_add_nodup_insert; [|exact TMP]; clear TMP;
-    Lauto_finish; intros ?
+    match l with
+    | context[(k,?v0)] =>
+      let TMP := fresh "_TMP" in
+      let NODUP := fresh "NODUP" in
+      match goal with [H: List.NoDup _|-_] =>
+        eassert (TMP: List.NoDup (List.map fst l)) by exact H; clear H; revert TMP
+      end;
+      erewrite (@ereplace _ l); [intros ?|Lauto_prepare; Lauto_find (k,v0); refl];
+      eassert (NODUP := alist_add_nodup _ k v TMP); revert NODUP;
+      rewrite !alist_add_nodup_insert; [|exact TMP]; clear TMP;
+      Lauto_finish; intros ?
+    end
   end.
 
 Ltac hss :=
@@ -597,7 +605,7 @@ Ltac hss :=
   (repeat match goal with [G: Some _ = Some _ |- _] =>
     depdes G; ss
    end);
-  repeat alist_simpl.
+  repeat alist_simpl; s.
 
 (**** TODO ****)
 (* A tactic to handle meta variables *)

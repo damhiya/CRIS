@@ -125,13 +125,9 @@ Module Any.
   Qed.
 End Any.
 
-(* Notation "↑ a" := (Any.upcast a) (at level 60, only parsing). *)
-(* Notation "↓ a" := (Any.downcast a) (at level 60, only parsing). *)
-(* Goal (↓↑ tt) = Some tt. rewrite Any.upcast_downcast. ss. Qed. *)
-(* Check (Any.pair ↑tt ↑tt). *)
-Notation "a ↑" := (Any.upcast a) (at level 9, only parsing).
-Notation "a ↓" := (Any.downcast a) (at level 9, only parsing).
-Notation "(↑)" := (Any.upcast) (only parsing).
-Notation "(↓)" := (Any.downcast) (only parsing).
+Notation "a ↑" := (Any.upcast a) (at level 9).
+Notation "a ↓" := (Any.downcast a) (at level 9).
+(* Notation "(↑)" := (Any.upcast) (only parsing). *)
+(* Notation "(↓)" := (Any.downcast) (only parsing). *)
 Goal (tt↑↓) = Some tt. rewrite Any.upcast_downcast. ss. Qed.
 Check (Any.pair tt↑ tt↑).

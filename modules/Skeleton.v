@@ -2,15 +2,15 @@ Require Import Coqlib.
 Require Export ZArith.
 Require Import String.
 Require Import PCM.
+Require Import Events.
 Require Export AList.
+
 
 Set Implicit Arguments.
 
 Local Open Scope nat_scope.
 
 Notation gname := string (only parsing). (*** convention: not capitalized ***)
-Notation mname := string (only parsing). (*** convention: capitalized ***)
-
 
 Fixpoint _find_idx {A} (f: A -> bool) (l: list A) (acc: nat): option (nat * A) :=
   match l with
@@ -129,11 +129,11 @@ Module Sk.
   Qed.
   Next Obligation.
   Proof.
-    cut (List.NoDup (map fst a)).
+    cut (List.NoDup (List.map fst a)).
     { i. eapply Permutation.Permutation_NoDup; [|et].
       eapply Permutation.Permutation_map.
       eapply SkSort.sort_permutation. }
-    cut (List.NoDup (map fst (a ++ b))).
+    cut (List.NoDup (List.map fst (a ++ b))).
     { i. rewrite map_app in H0.
       eapply nodup_app_l. et. }
     i. eapply Permutation.Permutation_NoDup; [|et].
