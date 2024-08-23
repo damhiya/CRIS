@@ -34,8 +34,8 @@ Section SIMMODSEM.
   Context `{_M: MapMR.t (Γ:=Γ)}.
   Context `{@GRA.inG memRA Γ}.  
   
-  Variable StbM: Sk.t -> gname -> option fspec.
-  Hypothesis MapInStb: forall sk, stb_incl (to_stb MapMS.Stb) (StbM sk).
+  Variable StbG: Sk.t -> gname -> option fspec.
+  Hypothesis MapInStb: forall sk, stb_incl MapMS.Stb (StbG sk).
 
   Lemma pending_unique:
     MapMS.pending -∗ MapMS.pending -∗ False%I.
@@ -90,8 +90,8 @@ Section SIMMODSEM.
         destruct (i-sz) eqn: EQ; try nia. eauto.
   Qed.
 
-  Local Notation MapMMod := (HMod.add (MapM.t StbM) (MemA.t (fun _ => false) StbM)).
-  Local Notation MapIMod := (HMod.add MapI.t (MemA.t (fun _ => false) StbM)).
+  Local Notation MapMMod := (HMod.add (MapM.t StbG) (MemA.t (fun _ => false) StbG)).
+  Local Notation MapIMod := (HMod.add MapI.t (MemA.t (fun _ => false) StbG)).
   
   Definition Ist: alist key Any.t -> alist key Any.t -> iProp :=
     fun st_src st_tgt =>
@@ -106,14 +106,31 @@ Section SIMMODSEM.
 
   (**********)
 
+  Ltac hss :=
+  ss;
+  try (rewrite !Any.pair_split in * );
+  try (rewrite !Any.upcast_downcast in * );
+  (repeat match goal with [G: Any.downcast _ = Some _ |-_] =>
+    apply Any.downcast_upcast in G; inv G; ss
+   end);
+  (repeat match goal with [G: Any.upcast (_:?T) = Any.upcast (_:?T) |-_] =>
+    apply Any.upcast_inj in G; destruct G as [_ G]; red in G; depdes G; ss
+   end);
+  (repeat match goal with [G: Some _ = Some _ |- _] =>
+    depdes G; ss
+     end);
+  try (rewrite !Any.pair_split in * );
+  try (rewrite !Any.upcast_downcast in * );
+  (repeat (alist_add_simpl trivial_nodup)); s.
+  
   Lemma simF_init:
     HModR.sim_fun MapMMod MapIMod (IstProd [MapM.scope] [MemA.scope] Ist IstEq)
       MapName.init.
   Proof.
-    init_simF; unfold HModSem.sandbox_body; simpl.
+    init_simF.
 
     (* SRC: handle the IST of Map and the precond of init *)
-    steps_l. iDestruct "ASM" as "(W & (%Y & %M & P0) & %X)". subst. hss. inv G0.
+    steps_l. iDestruct "ASM" as "(W & (%Y & %M & P0) & %X)". subst. hss. inv G0. 
     rename q0 into u, q1 into ℓ, x into sz.
     iDestruct "IST" as (? ? ? ?) "(%& [%|(P & IST)] &%)";
       [|iDestruct "IST" as (? ? ? ?) "(% & M)"];
@@ -134,7 +151,7 @@ Section SIMMODSEM.
     iSplitL ""; eauto.
 
     (* apc *)
-    apc_r.
+    steps_r. apc_r.
 
     (* TGT: handle the postcond of alloc *)
     steps_r. iDestruct "GRT" as "[GRT %]". 
@@ -324,223 +341,37 @@ Section SIMMODSEM.
     steps_r. step.
     
     (* SRC: prove the precond of set *)
-
-    steps_l.
-    (* TODO: fix the problem with finding a spec  *)
-    
-    unfold_stb MapInStb MapMS.Stb.
-    st_l. unfold HoareCall.
-    st_l. force_l. instantiate (1:= mk_meta _ _ (_, _)).
-    st_l. force_l. st_l. force_l.
+    steps_l. force_l. instantiate (1:= mk_meta _ _ (_, _)); s.
+    force_l. force_l.
     iSplitL "W". { iFrame. eauto. }
-    st_l.
 
     (* make a call to set *)
     call; [eauto|].
 
     (* SRC: handle the postcond of set *)
-    st_l. iDestruct "ASM" as "(W & _ & %)". subst. hss.
+    steps_l. iDestruct "ASM" as "(W & _ & %)". subst. hss. steps_r.
 
     (* SRC: prove the postcond of set_by_user *)
-    force_l. st_l. force_l. iSplitL "W". { eauto. }
+    force_l. force_l. iSplitL "W". { eauto. }
 
     (* prove the IST of Map *)
-    st. eauto.
+    step. eauto.
   Qed.
 
-  
-  Theorem sim: HModR.sim MapMMod MapIMod (IstProd Ist IstEq).
+  Theorem sim: HModR.sim MapMMod MapIMod (IstProd [MapM.scope] [MemA.scope] Ist IstEq).
   Proof.
     init_sim.
     - iIntros "(_& H)". iFrame.
-      iExists _, _, _, _; iSplitR; eauto; iSplitL; eauto.
-      iLeft; eauto.
-    - use_simF simF_init.
-    - use_simF simF_get.
-    - use_simF simF_set.
-    - use_simF simF_set_by_user.
-    - refl_simF.
+      iExists _, _, _, _. iSplitR; cycle 1.
+      + iSplitL; eauto. iLeft; eauto.
+      + instantiate (1:=[]). rewrite !app_nil_r.
+        iPureIntro. esplits; ii; ss; des; eauto.
+    - eapply simF_init; eauto.
+    - eapply simF_get; eauto.
+    - eapply simF_set; eauto.
+    - eapply simF_set_by_user; eauto.
   Qed.
 
 End SIMMODSEM.
 End MapIM.
  
-
-
-  (*  
-  Tactic Notation "_unwrapS" constr(itr) :=
-    match itr with
-    | (interp_smod _ _ (trigger (Choose _))) =>
-      rewrite SModRed.interp_core 
-    | (interp_smod _ _ (trigger (Choose _)) >>= _) =>
-      rewrite SModRed.interp_core
-    | (interp_smod _ _ (trigger (Take _))) =>
-      rewrite SModRed.interp_core          
-    | (interp_smod _ _ (trigger (Take _)) >>= _) =>
-      rewrite SModRed.interp_core    
-    | (interp_smod _ _ (trigger (IO _ _))) =>
-      rewrite SModRed.interp_core      
-    | (interp_smod _ _ (trigger (IO _ _)) >>= _) =>
-      rewrite SModRed.interp_core
-    | (interp_smod _ _ (trigger (Call _ _))) =>
-      rewrite SModRed.interp_call 
-    | (interp_smod _ _ (trigger (Call _ _)) >>= _) =>
-      rewrite SModRed.interp_call 
-    | (interp_smod _ _ (trigger (SPut _ _))) =>
-      rewrite SModRed.interp_pg       
-    | (interp_smod _ _ (trigger (SPut _ _)) >>= _) =>
-      rewrite SModRed.interp_pg 
-    | (interp_smod _ _ (trigger (SGet _))) =>
-      rewrite SModRed.interp_pg       
-    | (interp_smod _ _ (trigger (SGet _)) >>= _) =>
-      rewrite SModRed.interp_pg 
-    | (interp_smod _ _ (trigger (Assume _))) =>
-      rewrite SModRed.interp_Assume             
-    | (interp_smod _ _ (trigger (Assume _)) >>= _) =>
-      rewrite SModRed.interp_Assume 
-    | (interp_smod _ _ (trigger (Guarantee _))) =>
-      rewrite SModRed.interp_Guarantee
-    | (interp_smod _ _ (trigger (Guarantee _)) >>= _) =>
-      rewrite SModRed.interp_Guarantee        
-    | _ =>
-      grind;
-      try rewrite SModRed.interp_tau; 
-      try rewrite SModRed.interp_ret; simpl;
-      try rewrite! SModRed.interp_bind       
-    end.
- *)
-
-
-  (* rewrite SModRed.interp_apc; *)
-  (* st_r; unfold HoareAPC; st_r; rewrite unfold_APC; st_r; *)
-  (* match goal with [b: bool|-_] => destruct b end; *)
-  (* [|unfold guarantee, triggerNB; st_r; *)
-  (*   match goal with [v: void|-_] => destruct v end]. *)
-
-  
-  
-  (* Tactic Notation "_unwrapS" constr(itr) := *)
-  (*   match itr with *)
-  (*   | trigger (Choose _) => *)
-  (*     rewrite SModRed.interp_core  *)
-  (*   | trigger (Take _) => *)
-  (*     rewrite SModRed.interp_core           *)
-  (*   | trigger (IO _ _) => *)
-  (*     rewrite SModRed.interp_core       *)
-  (*   | trigger (Call _ _) => *)
-  (*     rewrite SModRed.interp_call  *)
-  (*   | trigger (SPut _ _) => *)
-  (*     rewrite SModRed.interp_pg        *)
-  (*   | trigger (SGet _) => *)
-  (*     rewrite SModRed.interp_pg        *)
-  (*   | trigger (Assume _) => *)
-  (*     rewrite SModRed.interp_Assume              *)
-  (*   | trigger (Guarantee _) => *)
-  (*       rewrite SModRed.interp_Guarantee *)
-  (*   | trigger APC => *)
-  (*       rewrite SModRed.interp_apc *)
-  (*   | _ => fail *)
-  (*   end. *)
-
-  (* Tactic Notation "_unwrapP" constr(itr) := *)
-  (*   match itr with *)
-  (*   | trigger (Choose _) =>  *)
-  (*     rewrite PModRed.transl_core       *)
-  (*   | trigger (Take _) =>  *)
-  (*     rewrite PModRed.transl_core         *)
-  (*   | trigger (IO _ _) =>  *)
-  (*     rewrite PModRed.transl_core        *)
-  (*   | trigger (Call _ _) => *)
-  (*     rewrite PModRed.transl_call  *)
-  (*   | trigger (SPut _ _) =>  *)
-  (*     rewrite PModRed.transl_pg       *)
-  (*   | trigger (SGet _) =>  *)
-  (*     rewrite PModRed.transl_pg  *)
-  (*   | _ =>  *)
-  (*     grind; *)
-  (*     try rewrite PModRed.transl_tau;  *)
-  (*     try rewrite PModRed.transl_ret; simpl; *)
-  (*     try rewrite! PModRed.transl_bind *)
-  (*   end. *)
-
-
-  (* Tactic Notation "__unwrap" constr(itr) := *)
-  (*   match itr with *)
-  (*   | interp_smod _ _ ?itr1 => *)
-  (*       _unwrapS itr1 *)
-  (*   | (interp_smod _ _ ?itr1) >>= _ => *)
-  (*       _unwrapS itr1 *)
-  (*   | (PModSem.transl ?itr1) => *)
-  (*       _unwrapP itr1 *)
-  (*   | (PModSem.transl ?itr1) >>= _ => *)
-  (*       _unwrapP itr1 *)
-  (*   | (HModSem.sandbox _ ?itr1) => *)
-  (*       _unwrapSB itr1 *)
-  (*   | (HModSem.sandbox _ ?itr1) >>= _ => *)
-  (*       _unwrapSB itr1 *)
-  (*   | _=> *)
-  (*       _unwrapSB itr *)
-  (*   end. *)
-    
-
-  
-  
-  (* Tactic Notation "_unwrap" constr(itr) := *)
-  (*   match itr with *)
-  (*   | translate _ (?itr0) => __unwrap itr0 *)
-  (*   | (translate _ (?itr0)) >>= _  => __unwrap itr0 *)
-  (*   | _ => *)
-  (*     grind *)
-  (*   end. *)
-
-  (* Ltac unwrap_l := *)
-  (*   let IT := fresh "__IT" in  *)
-  (*   match goal with *)
-  (*   | [|- _ (_ (_, ?itr_src) (_, ?itr_tgt))] => *)
-  (*     set (IT := itr_tgt);  *)
-  (*     try rewrite! HModSB.transl_bind; _unwrap itr_src; *)
-  (*     unfold IT; clear IT *)
-  (*   end. *)
-
-  (* Ltac unwrap_r := *)
-  (*   let IT := fresh "__IT" in  *)
-  (*   match goal with *)
-  (*   | [|- _ (_ (_, ?itr_src) (_, ?itr_tgt))] =>  *)
-  (*     set (IT := itr_src);  *)
-  (*     try rewrite! HModSB.transl_bind; _unwrap itr_tgt; *)
-  (*     unfold IT; clear IT *)
-  (*   end.     *)
-
-  (* Ltac unwrap := unwrap_l; unwrap_r. *)
-
-  (* Ltac force_l := try (unwrap_l; _force_l). *)
-  (* Ltac force_r := try (unwrap_r; _force_r). *)
-
-
-
-  (* Ltac step := repeat *)
-  (*   (unwrap; try _step; simpl; des_pairs). *)
-
-  (* Ltac step_l := let IT := fresh "__IT" in *)
-  (*   match goal with [|- _ (_ (_, _) (_, ?itgt))] => set (IT := itgt) end; *)
-  (*   repeat (unwrap_l; try _step; simpl; des_pairs); *)
-  (*   unfold IT; clear IT. *)
-
-  (* Ltac step_r := let IT := fresh "__IT" in *)
-  (*   match goal with [|- _ (_ (_, ?isrc) (_, _))] => set (IT := isrc) end; *)
-  (*   repeat (unwrap_r; try _step; simpl; des_pairs); *)
-  (*   unfold IT; clear IT. *)
-
-  (* Ltac apc_r := *)
-  (*   rewrite SModRed.interp_apc; *)
-  (*   step_r; unfold HoareAPC; step_r; rewrite unfold_APC; step_r; *)
-  (*   match goal with [b: bool|-_] => destruct b end; *)
-  (*   [|unfold guarantee, triggerNB; step_r; *)
-  (*     match goal with [v: void|-_] => destruct v end]. *)
-
-  (* (* Lemma transl_unwrapN *) *)
-  (* (*   R scopes (r: option R) *) *)
-  (* (* : *) *)
-  (* (*   translate (HModSem.sandbox scopes) (unwrapN r) = unwrapN r *) *)
-  (* (* . *) *)
-  (* (* Proof. Admitted. *) *)

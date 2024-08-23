@@ -32,7 +32,7 @@ Section PMODSEM.
     HModSem.scopes := ms.(scopes);                                                    
     HModSem.fnsems := List.map (map_snd (λ kb, (kb.1, (λ i, transl (kb.2 i))))) ms.(fnsems);
     HModSem.initial_st := ms.(initial_st);
-    HModSem.initial_cond := emp;
+    HModSem.initial_cond := None;
   |}.
   Next Obligation.
     i. destruct ms. s. ii.

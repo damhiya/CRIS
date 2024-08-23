@@ -132,10 +132,13 @@ Section HEADER.
     inv SPEC. econs; eauto. etrans; eauto.
   Qed.
 
-  Definition stb_incl (stb0 stb1: gname -> option fspec): Prop :=
+  Definition stb_sub (stb0 stb1: gname -> option fspec): Prop :=
     forall fn fsp (FIND: stb0 fn = Some fsp), stb1 fn = Some fsp.
 
-  Global Program Instance stb_incl_PreOrder: PreOrder stb_incl.
+  Definition stb_incl (stbl: alist gname fspec) (gstb: gname -> option fspec) : Prop :=
+    List.NoDup (List.map fst stbl) /\ stb_sub (to_stb stbl) gstb.
+
+  Global Program Instance stb_sub_PreOrder: PreOrder stb_sub.
   Next Obligation.
   Proof.
     ii. ss.
@@ -148,18 +151,18 @@ Section HEADER.
   Lemma incl_to_stb stb0 stb1 (INCL: List.incl stb0 stb1)
         (NODUP: List.NoDup (List.map fst stb1))
     :
-      stb_incl (to_stb stb0) (to_stb stb1).
+      stb_sub (to_stb stb0) (to_stb stb1).
   Proof.
     unfold to_stb. ii.
     eapply alist_find_some in FIND. eapply INCL in FIND.
     eapply alist_find_some_iff in FIND; et.
   Qed.
 
-  Lemma to_stb_context_incl stbu stbk stball
+  Lemma to_stb_context_sub stbu stbk stball
         (INCL: List.incl stbk stball)
         (NODUP: List.NoDup (stbu ++ (List.map fst stball)))
     :
-      stb_incl (to_stb_context stbu stbk) (to_closed_stb stball).
+      stb_sub (to_stb_context stbu stbk) (to_closed_stb stball).
   Proof.
     unfold to_stb_context, to_stb, to_closed_stb. ii.
     rewrite alist_find_app_o in FIND. 
@@ -187,12 +190,12 @@ Section HEADER.
     exploit H0; et. intro U; des. esplits; eauto. etrans; et.
   Qed.
 
-  Lemma stb_incl_weaker: stb_incl <2= stb_weaker.
+  Lemma stb_sub_weaker: stb_sub <2= stb_weaker.
   Proof.
     ii. eapply PR in FINDTGT. esplits; et. refl.
   Qed.
 
-  Lemma incl_stb_incl: forall stb0 stb1 (NODUP: List.NoDup (List.map fst stb1)) (INCL: incl stb0 stb1), stb_incl (to_stb stb0) (to_stb stb1).
+  Lemma incl_stb_sub: forall stb0 stb1 (NODUP: List.NoDup (List.map fst stb1)) (INCL: List.incl stb0 stb1), stb_sub (to_stb stb0) (to_stb stb1).
   Proof.
     unfold to_stb.
     ii. eapply alist_find_some in FIND.
@@ -211,12 +214,12 @@ Section HEADER.
     eapply alist_find_none in T; et. exfalso. et.
   Qed.
 
-  Lemma incl_weaker: forall stb0 stb1 (NODUP: List.NoDup (List.map fst stb1)) (INCL: incl stb0 stb1), stb_weaker (to_stb stb0) (to_stb stb1).
+  Lemma incl_weaker: forall stb0 stb1 (NODUP: List.NoDup (List.map fst stb1)) (INCL: List.incl stb0 stb1), stb_weaker (to_stb stb0) (to_stb stb1).
   Proof.
-    i. eapply stb_incl_weaker. eapply incl_stb_incl; et.
+    i. eapply stb_sub_weaker. eapply incl_stb_sub; et.
   Qed.
 
-  Lemma app_incl: forall stb0 stb1, stb_incl (to_stb stb0) (to_stb (stb0 ++ stb1)).
+  Lemma app_sub: forall stb0 stb1, stb_sub (to_stb stb0) (to_stb (stb0 ++ stb1)).
   Proof.
     unfold to_stb.
     ii. eapply alist_find_app in FIND. esplits; eauto.
@@ -224,12 +227,12 @@ Section HEADER.
 
   Lemma app_weaker: forall stb0 stb1, stb_weaker (to_stb stb0) (to_stb (stb0 ++ stb1)).
   Proof.
-    i. eapply stb_incl_weaker. eapply app_incl.
+    i. eapply stb_sub_weaker. eapply app_sub.
   Qed.
 
   Lemma to_closed_stb_weaker stb
     :
-      stb_incl (to_stb stb) (to_closed_stb stb).
+      stb_sub (to_stb stb) (to_closed_stb stb).
   Proof.
     unfold to_closed_stb, to_stb. ii. rewrite FIND. auto.
   Qed.
@@ -237,7 +240,7 @@ Section HEADER.
   Lemma incl_to_closed_stb stb0 stb1 (INCL: List.incl stb0 stb1)
         (NODUP: List.NoDup (List.map fst stb1))
     :
-      stb_incl (to_stb stb0) (to_closed_stb stb1).
+      stb_sub (to_stb stb0) (to_closed_stb stb1).
   Proof.
     unfold to_stb, to_closed_stb. ii.
     eapply alist_find_some in FIND. eapply INCL in FIND.
@@ -267,19 +270,16 @@ Section HEADER.
 End HEADER.
 
 
-Ltac stb_incl_tac :=
+Ltac stb_sub_tac :=
   i; eapply incl_to_stb;
   [ autounfold with stb; autorewrite with stb; ii; ss; des; clarify; auto|
     autounfold with stb; autorewrite with stb; repeat econs; ii; ss; des; ss].
 
-Ltac stb_context_incl_tac :=
-  i; eapply to_stb_context_incl;
+Ltac stb_context_sub_tac :=
+  i; eapply to_stb_context_sub;
   [ autounfold with stb; autorewrite with stb; ii; ss; des; clarify; auto|
     autounfold with stb; autorewrite with stb; repeat econs; ii; ss; des; ss].
 
 Ltac ors_tac := repeat ((try by (ss; left; ss)); right).
-
-Tactic Notation "unfold_stb" constr(In) reference(Stb) :=
-  erewrite In in *; [|unfold Stb; unseal "stb"; eauto].
 
 

@@ -241,11 +241,11 @@ Section PROOF.
     )))%I.
 
   Definition MemSbtb: alist gname (list string * fspecbody) :=
-    [(MemName.alloc, ([], mk_specbody alloc_spec (fun _ => trigger (Choose _))));
-     (MemName.free,  ([], mk_specbody free_spec (fun _ => trigger (Choose _))));
-     (MemName.load,  ([], mk_specbody load_spec (fun _ => trigger (Choose _))));
-     (MemName.store, ([], mk_specbody store_spec (fun _ => trigger (Choose _))));
-     (MemName.cmp,   ([], mk_specbody cmp_spec (fun _ => trigger (Choose _))))
+    [(MemName.alloc, ([], mk_specbody alloc_spec fbody_trivial));
+     (MemName.free,  ([], mk_specbody free_spec fbody_trivial));
+     (MemName.load,  ([], mk_specbody load_spec fbody_trivial));
+     (MemName.store, ([], mk_specbody store_spec fbody_trivial));
+     (MemName.cmp,   ([], mk_specbody cmp_spec fbody_trivial))
     ]
   .
 

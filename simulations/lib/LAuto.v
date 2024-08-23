@@ -27,7 +27,7 @@ Ltac Lauto_find x :=
     end.
 
 Ltac Lauto_finish :=
-  try rewrite !app_nil_r; Lauto_normalize; simpl.
+  try rewrite !app_nil_r; Lauto_normalize; simpl List.app.
 
 Section TEST.
   Variable P: list nat -> Prop.
@@ -39,7 +39,7 @@ Section TEST.
     :
     P ([x1]++(x2::l1)++([x3;old]++l3)++[x4]++l4++[x5]).
   Proof.
-    Lauto_normalize; simpl.
+    Lauto_normalize; simpl List.app.
 
     eapply eq_ind; cycle 1.
     { symmetry.

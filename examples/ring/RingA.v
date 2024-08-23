@@ -5,7 +5,7 @@ Require Import Behavior.
 Require Import SMod HMod.
 Require Import Skeleton.
 Require Import PCM.
-Require Import STB IPM.
+Require Import STB IPM ITactics.
 Require Import RingHeader RingASpec CellASpec.
 
 Set Implicit Arguments.
@@ -18,48 +18,51 @@ Section RING_A.
 
   Variable max_size : nat.
 
+  Definition scopes := ["Ring"].
+  Definition v_que := "Ring" ↯ "que".
+  
   Definition init: unit -> itree smodE unit :=
     fun _ =>
-      trigger (sPut (0: nat, []:list Z)↑);;; Ret ()
+      cput v_que ([]:list Z)
   .
 
   Definition get_size: unit -> itree smodE nat :=
     fun _ =>
-      st <- trigger sGet;; '(sz, _) <- (st↓ǃ : itree _ (nat*list Z)%type);;
-      Ret sz
+      `que: list Z <- cgetU v_que;;
+      Ret (List.length que)
   .
 
   Definition enqueue: Z -> itree smodE unit :=
     fun x =>
-      st <- trigger sGet;; '(sz, q) <- st↓ǃ ;;
-      if ((sz:nat) <? max_size)%nat
-      then trigger (sPut (sz + 1, q ++ [x])↑)
-      else trigger (@IO _ unit "error" "exceeds the maximum size")
+      `que: list Z <- cgetU v_que;;
+      if (List.length que <? max_size)%nat
+      then cput v_que (que ++ [x])
+      else trigger (@IO _ void "error" "exceeds the maximum size");;; Ret tt
   .
 
   Definition dequeue: unit -> itree smodE Z :=
     fun _ =>
-      st <- trigger sGet;; '(sz, q) <- st↓ǃ ;;
-      if ((sz:nat) >? 0)%nat
-      then match (q: list Z) with
-           | x :: q' => trigger (sPut (sz - 1, q')↑);;; Ret x
-           | _ => triggerNB
-           end
-      else trigger (@IO _ unit "error" "dequeue the empty queue");;; Ret 0%Z
+      `que: list Z <- cgetU v_que;;
+      match que with
+      | x :: que' => cput v_que que';;; Ret x
+      | _ => trigger (@IO _ void "error" "dequeue the empty queue");;; Ret 0%Z
+      end
   .
 
-  Definition fnsems: list (string * fspecbody) :=
-    [(RingName.init, mk_specbody fspec_trivial (cfunU init));
-     (RingName.get_size, mk_specbody fspec_trivial (cfunU get_size));
-     (RingName.enqueue, mk_specbody fspec_trivial (cfunU enqueue));
-     (RingName.dequeue, mk_specbody fspec_trivial (cfunU dequeue))].
+  Definition fnsems :=
+    [(RingName.init, (scopes,mk_specbody fspec_trivial (cfunU init)));
+     (RingName.get_size, (scopes,mk_specbody fspec_trivial (cfunU get_size)));
+     (RingName.enqueue, (scopes,mk_specbody fspec_trivial (cfunU enqueue)));
+     (RingName.dequeue, (scopes,mk_specbody fspec_trivial (cfunU dequeue)))].
 
-  Definition Sem: SModSem.t := {|
+  Program Definition Sem: SModSem.t := {|
+    SModSem.scopes := scopes;
     SModSem.fnsems := fnsems;
-    SModSem.initial_st := tt↑;
-    SModSem.initial_cond := ([∗ list] i↦_ ∈ (repeat tt max_size), CellAS.pending i)%I;
+    SModSem.initial_st := [(v_que,([]:list Z)↑)];
+    SModSem.initial_cond := Some ([∗ list] i↦_ ∈ (replicate max_size 0%Z), CellAS.pending i)%I;
   |}
   .
+  Solve All Obligations with prove_scope.
 
   Definition Mod: SMod.t := {|
     SMod.get_modsem := fun _ => Sem;

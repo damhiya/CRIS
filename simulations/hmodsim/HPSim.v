@@ -166,7 +166,7 @@ Section HPSIM.
       k_src i_tgt
       k v
       (run: st_src0 = alist_add k v st_src)
-      (K: hpsimi true pt (st_src0, k_src tt↑) (st_tgt, i_tgt) fmr)
+      (K: hpsimi true pt (st_src0, k_src tt) (st_tgt, i_tgt) fmr)
     :
     _hpsim' hpsimc hpsimi ps pt (st_src, trigger (SPut k v) >>= k_src) (st_tgt, i_tgt) fmr
 
@@ -176,7 +176,7 @@ Section HPSIM.
       i_src k_tgt 
       k v
       (run: st_tgt0 = alist_add k v st_tgt)
-      (K: hpsimi ps true (st_src, i_src) (st_tgt0, k_tgt tt↑) fmr)
+      (K: hpsimi ps true (st_src, i_src) (st_tgt0, k_tgt tt) fmr)
     :
     _hpsim' hpsimc hpsimi ps pt (st_src, i_src) (st_tgt, trigger (SPut k v) >>= k_tgt) fmr
 
@@ -315,6 +315,8 @@ Section HPSIM.
 
   Definition hpsim_body ps pt sti_src sti_tgt fmr :=
     forall
+      (NODFS: List.NoDup (List.map fst fl_src))
+      (NODFT: List.NoDup (List.map fst fl_tgt))
       (NODS: List.NoDup (List.map fst sti_src.1))
       (NODD: List.NoDup (List.map fst sti_tgt.1)),
     @hpsim _ hpsim_tail ps pt sti_src sti_tgt fmr.

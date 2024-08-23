@@ -44,7 +44,7 @@ Section I.
     fun varg =>
       `sz: Z <- (pargs [Tint] varg)?;;
       `hptr: val <- ccallU MemName.alloc [Vint sz];;
-      cput v_hptr hptr↑;;;
+      cput v_hptr hptr;;;
       (ITree.iter
          (fun i =>
             if (Z_lt_le_dec i sz)
@@ -91,7 +91,7 @@ Section I.
   Program Definition Sem: PModSem.t := {|
     PModSem.scopes := [scope];
     PModSem.fnsems := fnsems;
-    PModSem.initial_st := [(v_hptr,tt↑)];
+    PModSem.initial_st := [(v_hptr,Vnullptr↑)];
   |}
   .
   Solve All Obligations with prove_scope.

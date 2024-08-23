@@ -43,7 +43,7 @@ Section M.
   Definition init: list val -> itree smodE val :=
     fun varg =>
       `size: Z <- (pargs [Tint] varg)?;;
-      cput v_size size↑;;;
+      cput v_size size;;;
       Ret Vundef
   .
   
@@ -62,7 +62,7 @@ Section M.
       size <- cgetU v_size;;
       f <- cgetU v_map;;
       assume(0 <= k < size)%Z;;;
-      cput v_map (<[k:=v]> (f: Z->Z))↑;;;
+      cput v_map (<[k:=v]> (f: Z->Z));;;
       Ret Vundef
   .
 
@@ -83,8 +83,8 @@ Section M.
     SModSem.scopes := [scope];
     SModSem.fnsems := fnsems;
     SModSem.initial_cond := True%I;
-    SModSem.initial_st := [(v_size,0%nat↑);
-                           (v_map,(fun (_: Z) => 0%Z, 0%Z)↑)];
+    SModSem.initial_st := [(v_size,0%Z↑);
+                           (v_map,(fun (_: Z) => 0%Z)↑)];
   |}
   .
   Solve All Obligations with prove_scope.

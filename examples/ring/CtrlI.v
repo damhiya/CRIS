@@ -6,74 +6,74 @@ Require Import HMod.
 Require Import Skeleton.
 Require Import RingHeader.
 Require Import CellHeader.
-Require Import PCM.
+Require Import PCM ITactics.
 Require Import STB IPM.
 
 Set Implicit Arguments.
 
 Module CtrlI.
 Section I.
-  Local Open Scope string_scope.
+  Local Open Scope nat_scope.
 
   Context `{Σ: GRA.t}.
 
   Variable max_size : nat.
 
+  Definition scopes := ["Ring"].
+  Definition v_hd := "Ring" ↯ "hd".
+  Definition v_tl := "Ring" ↯ "tl".
+
   Definition init: unit -> itree hmodE unit :=
     fun _ =>
-      trigger (sPut (0: nat, 0: nat)↑);;; Ret ()
-      (* ;;; *)
-      (* ITree.iter *)
-      (* (fun i:nat => *)
-      (*    if (i <? max_size)%nat *)
-      (*    then *)
-      (*      `_:() <- ccallU (CellName.init i) tt;; *)
-      (*      Ret (inl (i + 1)) *)
-      (*    else *)
-      (*      Ret (inr tt)) *)
-      (* 0 *)
+      cput v_hd 0;;;
+      cput v_tl 0
   .
   
   Definition get_size: unit -> itree hmodE nat :=
     fun _ =>
-      st <- trigger sGet;; '(hd,tl) <- (st↓ǃ : itree _ (nat*nat)%type);;
-      Ret (hd-tl)%nat.
+      `hd: nat <- cgetU v_hd;;
+      `tl: nat <- cgetU v_tl;;
+      Ret (hd - tl).
 
   Definition enqueue: Z -> itree hmodE unit :=
     fun x =>
-      st <- trigger sGet;; '(hd,tl) <- (st↓ǃ : itree _ (nat*nat)%type);;
-      if ((hd-tl)%nat <? max_size)%nat
+      `hd: nat <- cgetU v_hd;;
+      `tl: nat <- cgetU v_tl;;
+      if (hd - tl <? max_size)
       then
         `_:() <- ccallU (CellName.set (hd mod max_size)) x;;
-        trigger (sPut (hd+1,tl)↑)
+        cput v_hd (hd+1)
       else
-        trigger (@IO _ unit "error" "exceeds the maximum size")
+        trigger (@IO _ void "error" "exceeds the maximum size");;; Ret tt
   .
-      
+
   Definition dequeue: unit -> itree hmodE Z :=
     fun _ =>
-      st <- trigger sGet;; '(hd,tl) <- (st↓ǃ : itree _ (nat*nat)%type);;
-      if ((hd-tl)%nat >? 0)%nat
-      then 
+      `hd: nat <- cgetU v_hd;;
+      `tl: nat <- cgetU v_tl;;
+      if (0 <? hd - tl)
+      then
         x <- ccallU (CellName.get (tl mod max_size)) tt;;
-        trigger (sPut (hd,tl+1)↑);;;
+        cput v_tl (tl+1);;;
         Ret x
       else      
-        trigger (@IO _ unit "error" "dequeue the empty queue");;; Ret 0%Z
+        trigger (@IO _ void "error" "dequeue the empty queue");;; Ret 0%Z
   .
 
   Definition fnsems  :=
-    [(RingName.init, cfunU init);
-     (RingName.get_size, cfunU get_size);
-     (RingName.enqueue, cfunU enqueue);
-     (RingName.dequeue, cfunU dequeue)].
+    [(RingName.init, (scopes, cfunU init));
+     (RingName.get_size, (scopes, cfunU get_size));
+     (RingName.enqueue, (scopes, cfunU enqueue));
+     (RingName.dequeue, (scopes, cfunU dequeue))].
   
-  Definition Sem: HModSem.t := {|
+  Program Definition Sem: HModSem.t := {|
+    HModSem.scopes := scopes;
     HModSem.fnsems := fnsems;
-    HModSem.initial_st := tt↑;
-    HModSem.initial_cond := emp
+    HModSem.initial_st := [(v_hd,0↑);(v_tl,0↑)];
+    HModSem.initial_cond := None
   |}
   .
+  Solve All Obligations with prove_scope.
 
   Definition Mod: HMod.t := {|
     HMod.get_modsem := fun _ => Sem;

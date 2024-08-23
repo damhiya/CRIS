@@ -75,6 +75,14 @@ Section HPSIM_ADD_DUMMY.
   .
   Proof. i. destruct PR; econs; eauto. Qed.
 
+  Lemma any_neq_unit: Any.t ≠ ()%type.
+  Proof.
+    assert (exists x y: Any.t, x ≠ y).
+    { exists (true↑), (false↑). ii. eapply f_equal in H.
+      rewrite !Any.upcast_downcast in H. inv H. }
+    ii. rewrite H0 in H. des. apply H. destruct x, y; eauto.
+  Qed.
+  
   Lemma hpsim_dummyC_src_compatible:
     compatible7 (@_hpsim true) hpsim_dummyC_src.
   Proof.
@@ -132,13 +140,17 @@ Section HPSIM_ADD_DUMMY.
         destruct with_dummy; grind; eauto using @_hpsim'.
         eapply hpsim_guarantee_src; eauto with imodL.
         ii. econs. ii. esplits; eauto. econs; eauto.
-      + depdes s; depdes x. econs; eauto.
+      + depdes s; depdes x.
+        * econs; eauto.
+        * exfalso. apply any_neq_unit; eauto.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_src) -bind_vis.
         destruct with_dummy; grind; eauto using @_hpsim'. 
         eapply hpsim_guarantee_src; eauto with imodL.
         ii. econs. ii. esplits; eauto. econs; eauto.
-      + depdes s; depdes x. econs; eauto.
+      + depdes s; depdes x.
+        * exfalso. apply any_neq_unit; eauto.
+        * econs; eauto.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_src) -bind_vis.
         destruct with_dummy; grind; eauto using @_hpsim'.
@@ -236,13 +248,17 @@ Section HPSIM_ADD_DUMMY.
         destruct with_dummy; grind; eauto using @_hpsim'.
         eapply hpsim_guarantee_tgt; eauto; imodIntroL.
         ii. econs. ii. esplits; eauto. econs; eauto.
-      + depdes s; depdes x. econs; eauto.
+      + depdes s; depdes x.
+        * econs; eauto.
+        * exfalso. apply any_neq_unit; eauto.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_tgt) -bind_vis.
         destruct with_dummy; grind; eauto using @_hpsim'.
         eapply hpsim_guarantee_tgt; eauto; imodIntroL.
         ii. econs. ii. esplits; eauto. econs; eauto.
-      + depdes s; depdes x. econs; eauto.
+      + depdes s; depdes x.
+        * exfalso. apply any_neq_unit; eauto.
+        * econs; eauto.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_tgt) -bind_vis.
         destruct with_dummy; grind; eauto using @_hpsim'. 
@@ -632,6 +648,8 @@ Section HPSIM_ADEQUACY.
 
   Lemma hpsim_adequacy:
     forall
+      (NODUPFS: List.NoDup (List.map fst fl_src))
+      (NODUPFT: List.NoDup (List.map fst fl_tgt))
       (fl_src0 fl_tgt0: alist gname (Any.t -> itree modE Any.t))
       (FLS: fl_src0 = List.map (fun '(s, f) => (s, interp_hp_fun f)) fl_src)
       (FLT: fl_tgt0 = List.map (fun '(s, f) => (s, interp_hp_fun f)) fl_tgt)

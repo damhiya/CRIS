@@ -4,7 +4,7 @@ Require Import Events STS.
 Require Import Behavior.
 Require Import HMod SMod.
 Require Import Skeleton.
-Require Import PCM IPM STB.
+Require Import PCM IPM STB ITactics.
 From ExtLib Require Import
      Core.RelDec
      Structures.Maps
@@ -38,29 +38,27 @@ Section SPEC.
 
   Global Opaque cell auth.
 
-  (* Definition init_spec : fspec := *)
-  (*   mk_simple (fun _: unit => *)
-  (*                (ord_top, *)
-  (*                (fun arg => ⌜arg = tt↑⌝ ∗ pending), *)
-  (*                (fun ret => ⌜ret = tt↑⌝ ∗ cell 0)))%I. *)
-
   Definition get_spec : fspec :=
     mk_simple (fun v: Z =>
-                 (ord_top,
+                 (ord_pure 0,
                  (fun arg => ⌜arg = tt↑⌝ ∗ cell v),
                  (fun ret => ⌜ret = v↑⌝ ∗ cell v)))%I.
 
   Definition set_spec : fspec :=
     mk_simple (fun '(v0,v) =>
-                 (ord_top,
-                  (fun arg => ⌜arg = v↑⌝ ∗ (pending ∨ cell v0)),
-                  (fun ret => ⌜ret = tt↑⌝ ∗ cell v)))%I.
+                 (ord_pure 0,
+                 (fun arg => ⌜arg = v↑⌝ ∗ (pending ∨ cell v0)),
+                 (fun ret => ⌜ret = tt↑⌝ ∗ cell v)))%I.
 
   Definition Stb : alist gname fspec :=
-    Seal.sealing "stb" [(* (CellName.init idx, init_spec); *)
-                        (CellName.get idx, get_spec);
+    Seal.sealing "ccr" [(CellName.get idx, get_spec);
                         (CellName.set idx, set_spec)].
 
+  Lemma Stb_nodup: List.NoDup (List.map fst Stb).
+  Proof.
+    unfold Stb. unseal "ccr". prove_nodup.
+  Qed.
+  
 End SPEC.
 End CellAS.
 

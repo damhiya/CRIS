@@ -3,7 +3,7 @@ Require Import Events STS.
 Require Import Behavior.
 
 Require Import Skeleton.
-Require Import PCM IPM.
+Require Import PCM IPM STB.
 Require Import Any.
 
 Require Import Relation_Definitions.
@@ -21,18 +21,29 @@ Require Import LAuto.
 From stdpp Require Import coPset gmap.
 
 (************ User Tactics **************)
-(* Tactic Notation "simF_init" constr(LS) constr(LT) reference(FS) reference(FT) := *)
-  (* unfold HModR.sim_fun; i; *)
-  (* rewrite// [in alist_find _ _]LS; s; *)
-  (* rewrite// [in alist_find _ _]LT; s; *)
-  (* unfold FS; unfold FT; *)
-  (* i; iIntros "IST"; unfold cfunU, interp_sb_hp, HoareFun, ccallU; s. *)
-(* need change *)
-(* Ltac sim_init := econs; eauto; ii; econs; cycle 1; [s|sim_split]. *)
+
+Lemma string_app_inv
+  p s s'
+  (EQ: (p ++ s = p ++ s')%string)
+  :
+  (s = s')%string.
+Proof.
+  revert_until p. induction p; i; ss.
+  unfold append in EQ. depdes EQ. eauto.
+Qed.
+
+Ltac inv_string X :=
+  inv X;
+  repeat match goal with [H: @eq string _ _|-_] =>
+           apply string_app_inv in H
+    end; ss.
 
 Ltac prove_scope :=
   try unfold HModSem.fnsems; try unfold SModSem.fnsems; try unfold fnsems_scopes;
   s; ii; des_ifs; ss; des; ss; eauto.
+
+Ltac prove_nodup :=
+  repeat (econs; [ii; ss; des; try match goal with [H: _ |- _] => inv_string H end|]); try (econs; fail).
 
 Ltac by_coind CIH :=
   iApply isim_progress; iApply isim_base;
@@ -44,19 +55,112 @@ Ltac unfold_hmod :=
   | [|-context[HMod.get_modsem ?x _]] => rewrite/__ {1}/x; progress unseal "ccr"
   | [|-context[HMod.sk ?x]] => rewrite/__ {1}/x; progress unseal "ccr" end.
 
+Lemma ereplace T (x y: T):
+  x = y -> x = y.
+Proof. eauto. Qed.
+
+Lemma alist_add_with_nodup {K} `{Dec K} {V} (l1 l2: alist K V) (k: K) (v v': V)
+  (NODUP: List.NoDup (List.map fst (l1 ++ [(k,v)] ++ l2)))
+  :
+  alist_add k v' (l1 ++ [(k,v)] ++ l2) = l1 ++ [(k,v')] ++ l2.
+Proof.
+Admitted.
+
+Ltac alist_add_simpl nodup_tac :=
+  match goal with
+  [ |- context[alist_add ?k ?v ?l]] =>
+    match l with
+    | context[(k,?v0)] =>
+      let TMP := fresh "_TMP" in
+      let NODUP := fresh "NODUP" in
+      match goal with [H: List.NoDup _|-_] =>
+        eassert (TMP: List.NoDup (List.map fst l)) by (nodup_tac H); clear H; revert TMP
+      end;
+      erewrite (@ereplace _ l); [intros ?|Lauto_prepare; Lauto_find (k,v0); refl];
+      eassert (NODUP := alist_add_nodup _ k v TMP); revert NODUP;
+      rewrite !alist_add_with_nodup; [|exact TMP]; clear TMP;
+      Lauto_finish; intros ?
+    end
+  end.
+
+Ltac trivial_nodup H :=
+  exact H.
+
+Lemma alist_find_with_nodup {K} `{Dec K} {V} (l1 l2: alist K V) (k: K) (v: V)
+  (NODUP: List.NoDup (List.map fst (l1 ++ [(k,v)] ++ l2)))
+  :
+  alist_find k (l1 ++ [(k,v)] ++ l2) = Some v.
+Proof.
+Admitted.
+
+Ltac alist_find_simpl nodup_tac :=
+  match goal with
+  [ |- context[alist_find ?k ?l]] =>
+    match l with
+    | context[(k,_)] =>
+      let TMP := fresh "_TMP" in
+      match goal with [H: List.NoDup _|-_] =>
+        eassert (TMP: List.NoDup (List.map fst l))  by (nodup_tac H);
+        revert TMP
+      end;
+      erewrite (@ereplace _ l);
+      [intros ?
+      |Lauto_normalize; try rewrite !List.map_app; simpl List.map; Lauto_prepare;
+       match goal with [|-context[(k,?v)]] => Lauto_find (k,v) end; refl];
+      rewrite !alist_find_with_nodup; [|exact TMP]; clear TMP;
+      Lauto_finish
+    end
+  end.
+  
+  (* match goal with *)
+  (* [ |- context[alist_find ?k ?l]] => *)
+  (*   match l with *)
+  (*   | context[(k,?v0)] => *)
+  (*     let TMP := fresh "_TMP" in *)
+  (*     match goal with [H: List.NoDup _|-_] => *)
+  (*       eassert (TMP: List.NoDup (List.map fst l)) by (nodup_tac H); *)
+  (*       revert TMP *)
+  (*     end; *)
+  (*     erewrite (@ereplace _ l); [intros ?|Lauto_prepare; Lauto_find (k,v0); refl]; *)
+  (*     rewrite !alist_find_with_nodup; [|exact TMP]; clear TMP; *)
+  (*     Lauto_finish *)
+  (*   end *)
+  (* end. *)
+
+Lemma map_map_compose {A B C} (f: A -> B) (g: B -> C) l:
+  List.map g (List.map f l) = List.map (g ∘ f) l.
+Proof.
+  rewrite List.map_map. refl.
+Qed.
+
+Lemma fst_map_snd {A B C} f:
+  (fst ∘ @map_snd A B C f) = fst.
+Proof.
+  extensionalities. destruct H. s. eauto.
+Qed.
+
+Ltac fnsems_nodup H :=
+  revert H; simpl HModSem.fnsems; repeat unfold_hmod; simpl List.map;
+  try rewrite !map_map_compose; try rewrite !fst_map_snd; eauto; fail.
+
+Ltac hss :=
+  ss;
+  try (rewrite !Any.pair_split in * );
+  try (rewrite !Any.upcast_downcast in * );
+  (repeat match goal with [G: Any.downcast _ = Some _ |-_] =>
+    apply Any.downcast_upcast in G; inv G; ss
+   end);
+  (repeat match goal with [G: Any.upcast (_:?T) = Any.upcast (_:?T) |-_] =>
+    apply Any.upcast_inj in G; destruct G as [_ G]; red in G; depdes G; ss
+   end);
+  (repeat match goal with [G: Some _ = Some _ |- _] =>
+    depdes G; ss
+     end);
+  repeat (alist_add_simpl trivial_nodup); s.
+
 (***
   Step-level tactics
  ***)
-
-Lemma isim_apc_tgt_remove `{Σ: GRA.t}
-  fl fr Ist r g {R} RR ps pt st_src st_tgt i_src k_tgt scopes stb o
-  :
-  bi_entails
-    (@isim Σ fl fr Ist r g R RR ps true (st_src, i_src) (st_tgt, k_tgt tt))
-    (isim fl fr Ist r g RR ps pt (st_src, i_src) (st_tgt,
-         HModSem.sandbox scopes (interp_smod stb o (trigger APC)) >>= k_tgt)).
-Proof.
-Admitted.
 
 Ltac iIntrosFresh H := iIntros H || iIntrosFresh (H ++ "'")%string.
 
@@ -71,6 +175,7 @@ Ltac des_pairs :=
 Ltac desugar itr :=
   match itr with
   | HoareBody _ _ _ => rewrite/__ {1}/itr
+  | HoareCall _ _ _ _ _ => rewrite/__ {1}/itr
   | cput _ _ => rewrite/__{1}/itr
   | cgetU _ => rewrite/__{1}/itr
   | cgetN _ => rewrite/__{1}/itr
@@ -108,21 +213,29 @@ Ltac _unwrapSB itr :=
       rewrite HModSB.transl_asm
   | guarantee _ =>
       rewrite HModSB.transl_guar
-  | interp_smod _ _ (trigger APC) =>
+  | HoareAPC _ _ =>
       idtac
   | _ => fail
   end.
 
 Ltac unwrapSB :=
   try match goal with
-  | [|-context[HModSem.sandbox _ ?itr]] => desugar itr
+  | [|-context[HModSem.sandbox _ ?itr]] => first [desugar itr|fail 2]
   end;
   match goal with
   | [|-context[HModSem.sandbox _ (?itr >>= _)]] =>
       rewrite HModSB.transl_bind; unwrapSB
-  | [|-context[HModSem.sandbox _ ?itr]] => _unwrapSB itr
+  | [|-context[HModSem.sandbox _ ?itr]] => first [_unwrapSB itr|fail 2]
   end.
 
+(* Ltac unwrapSB := *)
+(*   match goal with *)
+(*   | [|-context[HModSem.sandbox _ (?itr >>= _)]] => *)
+(*       rewrite HModSB.transl_bind; unwrapSB *)
+(*   | [|-context[HModSem.sandbox _ ?itr]] => *)
+(*       first [_unwrapSB itr | rewrite/__{1}/itr; unwrapSB] *)
+(*   end. *)
+  
 Ltac _unwrapS itr :=
   match itr with
   | Ret _ =>
@@ -136,7 +249,7 @@ Ltac _unwrapS itr :=
   | trigger (IO _ _) => 
       rewrite SModRed.interp_core  
   | trigger (Call _ _) =>
-      rewrite/__ SModRed.interp_call {1}/handle_callE_hmodE {1}/HoareCall
+      rewrite/__ SModRed.interp_call {1}/handle_callE_hmodE
   | trigger (SPut _ _) =>
       rewrite SModRed.interp_pg
   | trigger (SGet _) =>
@@ -154,19 +267,28 @@ Ltac _unwrapS itr :=
   | guarantee _ =>
       rewrite SModRed.interp_guar
   | trigger APC =>
-      idtac
+      (* idtac *)
+      rewrite/__ SModRed.interp_apc {1}/handle_apcE_hmodE
   | _ => fail
   end.
 
 Ltac unwrapS :=
   try match goal with
-    | [|-context[interp_smod _ _ ?itr]] => desugar itr
+    | [|-context[interp_smod _ _ ?itr]] => first [desugar itr|fail 2]
   end;
   match goal with
   | [|-context[interp_smod _ _ (?itr >>= _)]] =>
       rewrite SModRed.interp_bind; unwrapS
-  | [|-context[interp_smod _ _ ?itr]] => _unwrapS itr
+  | [|-context[interp_smod _ _ ?itr]] => first [_unwrapS itr|fail 2]
   end.
+
+(* Ltac unwrapS := *)
+(*   match goal with *)
+(*   | [|-context[interp_smod _ _ (?itr >>= _)]] => *)
+(*       rewrite SModRed.interp_bind; unwrapS *)
+(*   | [|-context[interp_smod _ _ ?itr]] => *)
+(*       first [_unwrapS itr | rewrite/__{1}/itr; unwrapS] *)
+(*   end. *)
 
 Ltac _unwrapP itr :=
   match itr with
@@ -199,13 +321,21 @@ Ltac _unwrapP itr :=
 
 Ltac unwrapP :=
   try match goal with
-  | [|-context[PModSem.transl ?itr]] => desugar itr
+  | [|-context[PModSem.transl ?itr]] => first [desugar itr|fail 2]
   end;
   match goal with
-  | [|-context[PModSem.transl (?itr >>= _)]] => 
+  | [|-context[PModSem.transl (?itr >>= _)]] =>
       rewrite PModRed.transl_bind; unwrapP
-  | [|-context[PModSem.transl ?itr]] => _unwrapP itr
+  | [|-context[PModSem.transl ?itr]] => first [_unwrapP itr|fail 2]
   end.
+
+(* Ltac unwrapP := *)
+(*   match goal with *)
+(*   | [|-context[PModSem.transl (?itr >>= _)]] =>  *)
+(*       rewrite PModRed.transl_bind; unwrapP *)
+(*   | [|-context[PModSem.transl ?itr]] => *)
+(*       first [_unwrapP itr | rewrite/__{1}/itr; unwrapP] *)
+(*   end. *)
 
 Ltac unfold_precond_postcond term := let TM := fresh "_term" in
   set (TM := term) at 1;
@@ -236,6 +366,8 @@ Ltac _step_l :=
       match goal with [ H: ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite G in * end
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, assume _ >>= _) (_, _)) ] =>
       let name := fresh "asm" in iApply isim_asm_src; iIntros (name)
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, HModSem.sandbox _ (HoareAPC _ _) >>= _) (_, _)) ] =>
+      idtac
   end.
 
 Ltac _step_r :=
@@ -259,9 +391,11 @@ Ltac _step_r :=
       let name := fresh "q" in
       iApply isim_unwrapN_tgt; iIntros (name) "%";
       match goal with [ H: ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite G in * end
-| [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, guarantee _ >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, guarantee _ >>= _)) ] =>
       let name := fresh "grt" in iApply isim_guar_tgt; iIntros (name)
-    end.
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, HModSem.sandbox _ (HoareAPC _ _) >>= _)) ] =>
+      idtac
+  end.
 
 Ltac _step :=
   match goal with
@@ -308,10 +442,27 @@ Ltac hide_itree_r := let ITR := fresh "ITREE" in let ITL := fresh "ITREE" in
 Ltac show_itree :=
   match goal with [IT:=_ |-_] => unfold IT; clear IT end.
 
+Ltac unfold_stb :=
+  try match goal with
+    [|-context[unwrapN (?stb ?sk ?name)]] =>
+      try match goal with
+        [H: ∀ sk, stb_incl _ (stb sk)|-_] =>
+          let RW := fresh "_RW" in let ND := fresh "_ND" in
+          destruct (H sk) as [ND RW];
+          erewrite (RW name);
+          [|revert ND; unfold to_stb;
+            match goal with [|-context[alist_find _ ?x]] => rewrite/__ /x end;
+            unseal "ccr"; i;
+            alist_find_simpl fnsems_nodup;
+            refl];
+          simpl unwrapN; clear ND RW
+      end
+  end.
+
 Ltac prep :=
   first
     [ unwrapSB
-    | unwrapS; unwrapSB
+    | unwrapS; unfold_stb; unwrapSB
     | unwrapP; unwrapSB
     | idtac];
   try rewrite !bind_bind;
@@ -342,30 +493,73 @@ Ltac force_r :=
   _force_r; s;
   show_itree.
   
-Ltac steps_l := repeat step_l.
-Ltac steps_r := repeat step_r.
+Ltac steps_l :=
+  hide_itree_r;
+  repeat (prep; _step_l; des_pairs; s);
+  show_itree.
+
+Ltac steps_r :=
+  hide_itree_l;
+  repeat (prep; _step_r; des_pairs; s);
+  show_itree.
 
 Ltac inline_l :=
   hide_itree_r; prep;
-  iApply isim_inline_src; [repeat unfold_hmod; eauto|];
+  iApply isim_inline_src;
+  [simpl HModSem.fnsems; repeat unfold_hmod; simpl List.map;
+   alist_find_simpl fnsems_nodup; eauto|];
   unfold interp_sb_hp, HoareFun; s;
   show_itree.
   
 Ltac inline_r :=
   hide_itree_l; prep;
-  iApply isim_inline_tgt; [repeat unfold_hmod; eauto|];
+  iApply isim_inline_tgt;
+  [simpl HModSem.fnsems; repeat unfold_hmod; simpl List.map;
+   alist_find_simpl fnsems_nodup; eauto|];
   unfold interp_sb_hp, HoareFun; s;
   show_itree.
+
+(* Ltac inline_l := *)
+(*   hide_itree_r; prep; *)
+(*   iApply isim_inline_src; [repeat unfold_hmod; eauto|]; *)
+(*   unfold interp_sb_hp, HoareFun; s; *)
+(*   show_itree. *)
+  
+(* Ltac inline_r := *)
+(*   hide_itree_l; prep; *)
+(*   iApply isim_inline_tgt; [repeat unfold_hmod; eauto|]; *)
+(*   unfold interp_sb_hp, HoareFun; s; *)
+(*   show_itree. *)
 
 Ltac call :=
   hide_itree_r; prep; show_itree;
   hide_itree_l; prep; show_itree;
   iApply isim_call; iSplitL "IST"; [ |iIntros "% % % % %"; iIntrosFresh "IST"].
 
+Lemma isim_apc_tgt_remove `{Σ: GRA.t}
+  fl fr Ist r g {R} RR ps pt st_src st_tgt i_src k_tgt scopes stb
+  :
+  bi_entails
+    (@isim Σ fl fr Ist r g R RR ps true (st_src, i_src) (st_tgt, k_tgt tt))
+    (isim fl fr Ist r g RR ps pt (st_src, i_src) (st_tgt,
+         HModSem.sandbox scopes (HoareAPC stb (ord_pure Ord.O)) >>= k_tgt)).
+Proof.
+  iIntros "ISIM". unfold HoareAPC.
+  steps_r. rewrite unfold_APC. steps_r.
+  des_ifs.
+  - steps_r; eauto.
+  - steps_r. hss.
+    iDestruct "GRT" as "(_ & % & _)".
+    exfalso. destruct (q7 q4).
+    + rr in H. assert (X := Ord.O_bot n).
+      eapply Ord.lt_not_le; eauto.
+    + rr in H. eauto.
+Qed.
+
 Ltac apc_r :=
   hide_itree_l; prep;
   match goal with
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, HModSem.sandbox _ (interp_smod _ _ (trigger APC)) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, (HModSem.sandbox _ (HoareAPC _ _)) >>= _)) ] =>
       iApply isim_apc_tgt_remove
   end;
   show_itree.
@@ -389,8 +583,8 @@ Section HModProd.
 
   Context `{Σ: GRA.t}.
 
-  Definition IstEq: alist key Any.t -> alist key Any.t -> iProp :=
-    fun st_src st_tgt => ⌜st_src = st_tgt⌝%I.
+  Definition IstEq: Sk.t -> alist key Any.t -> alist key Any.t -> iProp :=
+    fun _ st_src st_tgt => ⌜st_src = st_tgt⌝%I.
 
   Definition IstProd scopesL scopesR (IstL IstR : alist key Any.t -> alist key Any.t -> iProp) : alist key Any.t -> alist key Any.t -> iProp :=
     fun st_src st_tgt =>
@@ -398,14 +592,18 @@ Section HModProd.
        ⌜st_src = st_srcL ++ st_srcR /\ st_tgt = st_tgtL ++ st_tgtR /\
        incl (List.map (fst ∘ fst) st_srcL) scopesL /\ incl (List.map (fst ∘ fst) st_srcR) scopesR⌝ ∗
        IstL st_srcL st_tgtL ∗ IstR st_srcR st_tgtR)%I.
-
   
-  Lemma isim_reflR Ist fl_src fl_tgt scopesL scopesR itr
+  Definition IstProdMod scopesL scopesR (IstL IstR : Sk.t -> alist key Any.t -> alist key Any.t -> iProp) : Sk.t -> alist key Any.t -> alist key Any.t -> iProp :=
+    fun sk st_src st_tgt =>
+      IstProd (scopesL sk) (scopesR sk) (IstL sk) (IstR sk) st_src st_tgt.
+      
+  Lemma isim_reflR Ist fl_src fl_tgt scopesL scopesR scopesF itr
     (DISJ: List.NoDup (scopesL ++ scopesR))
+    (INCL: incl scopesF scopesR)
     :
-    isim_fsem fl_src fl_tgt (IstProd scopesL scopesR Ist IstEq)
-      (λ '(st_src, v_src) '(st_tgt, v_tgt), (IstProd scopesL scopesR Ist IstEq st_src st_tgt ∗ ⌜v_src = v_tgt⌝))%I
-      (HModSem.sandbox_body (scopesR,itr)) (HModSem.sandbox_body (scopesR,itr)).
+    isim_fsem fl_src fl_tgt (IstProd scopesL scopesR Ist (IstEq []))
+      (λ '(st_src, v_src) '(st_tgt, v_tgt), (IstProd scopesL scopesR Ist (IstEq []) st_src st_tgt ∗ ⌜v_src = v_tgt⌝))%I
+      (HModSem.sandbox_body (scopesF,itr)) (HModSem.sandbox_body (scopesF,itr)).
   Proof.
 (*    
     ii. subst. unfold HModSem.wrap_body. s.
@@ -493,69 +691,123 @@ Section HModProd.
 
 End HModProd.
 
+Ltac prove_sub_perm :=
+  s; repeat unfold_hmod; s; Lauto_normalize;
+  match goal with
+    [|-sub_perm ?x ?y] =>
+      match x with
+      | _ ++ _ => idtac
+      | _ => rewrite/__ /x
+      end;
+      match y with
+      | _ ++ _ => idtac
+      | _ => rewrite/__ /y
+      end
+  end;
+  Lauto_normalize;
+  match goal with
+    [|-sub_perm ?x ?y] =>
+      replace (sub_perm x y) with (sub_perm (x++[]) (y++[])) by (rewrite !app_nil_r; eauto)
+  end;
+  repeat first [eapply sub_perm_cancel_head|eapply sub_perm_remove_head];
+  eapply sub_perm_refl.
 
-Lemma string_app_inv
-  p s s'
-  (EQ: (p ++ s = p ++ s')%string)
-  :
-  (s = s')%string.
-Proof.
-  revert_until p. induction p; i; ss.
-  unfold append in EQ. depdes EQ. eauto.
-Qed.
-
-Ltac inv_string X :=
-  inv X;
-  repeat match goal with [H: @eq string (_ ++ _)%string (_ ++ _)%string|-_] =>
-           apply string_app_inv in H
-    end; ss.
-
-Ltac alist_find_solver :=
-  match goal with [|-context[alist_find ?x]] => rewrite <-(Seal.sealing_eq "_tmp_" x) end;
-  s; unfold rel_dec, Dec_RelDec, sumbool_to_bool, dec, string_Dec;
-  des_ifs; unseal "_tmp_"; ss;
-  repeat match goal with [H: @eq string _ _|-_] => inv_string H end;
-  repeat match goal with [H: not (@eq string _ _)|-_] => clear H end;
-  repeat match goal with [H: ?x = ?x|-_] => clear H end.
-
-Ltac init_simF := let TMP := fresh "_tmp_" in
-  unfold HModR.sim_fun; i; s;
-  unfold_hmod;
+Ltac init_simF :=
+  unfold HModR.sim_fun, HModSemR.sim_fun; i;
+  match goal with [H: _|-_] => revert H end;
+  s; unfold_hmod;
   match goal with [|-context[alist_find _ ?x]] =>
     set (TMP := x); unfold_hmod; unfold TMP; clear TMP
   end;
-  alist_find_solver;
+  simpl HModSem.fnsems;
+  alist_find_simpl fnsems_nodup;
+  let H := fresh "TMP" in intros H; inv H;
+  alist_find_simpl fnsems_nodup;
+  eexists; split; [eauto|];
   repeat match goal with
   | [|- context[{| fsb_body := cfunU ?x |}]] => rewrite/__ {1}/x
   | [|- context[{| fsb_body := ?x |}]] => rewrite/__ {1}/x
   | [|- context[cfunU ?x]] => rewrite/__ {1}/x
-  end;
-  unfold interp_sb_hp, HoareFun, cfunU, ccallU; s;
-  ii; subst; iIntros "IST";
-  unfold HModSem.sandbox_body; s.
+  end;                          
+  unfold interp_sb_hp, HoareFun, cfunU, ccallU, HModSem.sandbox_body; s;
+  ii; subst; iIntros "IST".
 
 Ltac init_sim := let TMP := fresh "_tmp_" in
   econs; s;
-  [econs; [repeat unfold_hmod;ss|repeat unfold_hmod;ss|
-           repeat unfold_hmod;ss; i; des_ifs|
-    s; i; des_ifs;
-    match goal with [H:_|-_] => revert H end;
-    unfold_hmod;
-    match goal with [|-context[alist_find _ ?x]] =>
-      set (TMP := x); unfold_hmod; unfold TMP; clear TMP
+  [econs;
+   [repeat unfold_hmod; ss
+   |prove_sub_perm
+   |repeat unfold_hmod; ss; try nia
+   |repeat unfold_hmod; ss; i; des_ifs; eauto
+   |ii;
+    match goal with [FIND: alist_find _ _ = Some _ |-_] =>
+      let TMP := fresh "FIND_IN" in
+      assert (TMP:=FIND);
+      revert FIND
     end;
-    alist_find_solver]
-  |repeat unfold_hmod; ss].
+    repeat (
+      match goal with [FIND: alist_find _ _ = Some _ |-_] =>
+        apply alist_find_some in FIND;
+        s in FIND; apply in_app_or in FIND
+      end; des
+    );
+    i;
+    try match goal with [IN: In _ _ |- _] =>
+      revert IN; unfold_hmod; i; simpl in IN; des; try inv IN
+      end;
+    try by (esplits;
+      [ s; simpl HModSem.fnsems; repeat unfold_hmod; 
+        alist_find_simpl fnsems_nodup; refl
+      | eapply isim_reflR; [prove_nodup|ii; ss; des; eauto]])
+   ]
+  |repeat unfold_hmod; ss; eauto].
 
-Ltac use_simF lem := let TMP := fresh "_tmp_" in
-  intros TMP; inv TMP;
-  esplits; eauto;
-  eassert (X:= lem _); revert X; s;
-  unfold_hmod;
-  match goal with [|-context[alist_find _ ?x]] =>
-    set (TMP := x); unfold_hmod; unfold TMP; clear TMP
-  end;
-  alist_find_solver; eauto.
+  (* econs; s; *)
+  (* [econs; *)
+  (*  [repeat unfold_hmod; ss *)
+  (*  |repeat unfold_hmod; ss; eauto *)
+  (*  |repeat unfold_hmod; prove_nodup *)
+  (*  |repeat unfold_hmod; ss; try nia *)
+  (*  |repeat unfold_hmod; ss; i; des_ifs; eauto *)
+  (*  |ii; *)
+  (*   match goal with [FIND: alist_find _ _ = Some _ |-_] => *)
+  (*     let TMP := fresh "FIND_IN" in *)
+  (*     assert (TMP:=FIND); *)
+  (*     revert FIND *)
+  (*   end; *)
+  (*   repeat ( *)
+  (*     match goal with [FIND: alist_find _ _ = Some _ |-_] => *)
+  (*       apply alist_find_some in FIND; *)
+  (*       s in FIND; apply in_app_or in FIND *)
+  (*     end; des *)
+  (*   ); *)
+  (*   i; *)
+  (*   try match goal with [IN: In _ _ |- _] => *)
+  (*     revert IN; unfold_hmod; i; simpl in IN; des; try inv IN *)
+  (*     end; *)
+  (*   try by (esplits; *)
+  (*     [ s; simpl HModSem.fnsems; repeat unfold_hmod;  *)
+  (*       alist_find_simpl fnsems_nodup; refl *)
+  (*     | eapply isim_reflR; [prove_nodup|ii; ss; des; eauto]]) *)
+  (*  ] *)
+  (* |repeat unfold_hmod; ss; eauto]. *)
+
+(* Ltac init_sim := let TMP := fresh "_tmp_" in *)
+(*   econs; s; *)
+(*   [econs; *)
+(*    [repeat unfold_hmod; ss *)
+(*    |repeat unfold_hmod; ss; eauto *)
+(*    |repeat unfold_hmod; prove_nodup *)
+(*    |repeat unfold_hmod; ss; try nia *)
+(*    |repeat unfold_hmod; ss; i; des_ifs; eauto *)
+(*    |ii;  *)
+(*     match goal with [FIND: alist_find _ _ = Some _ |-_] => *)
+(*       let TMP := fresh "FIND_IN" in *)
+(*       assert (TMP:=FIND); apply alist_find_some in TMP; *)
+(*       revert TMP; unfold_hmod; i; simpl in TMP; des; try inv TMP *)
+(*     end *)
+(*    ] *)
+(*   |repeat unfold_hmod; ss; eauto]. *)
 
 (*
 Ltac refl_simF := let TMP := fresh "_tmp_" in
@@ -564,48 +816,6 @@ Ltac refl_simF := let TMP := fresh "_tmp_" in
   ii; subst; eapply isim_reflR.
 *)
 
-Lemma ereplace T (x y: T):
-  x = y -> x = y.
-Proof. eauto. Qed.
-
-Lemma alist_add_nodup_insert {K} `{Dec K} {V} (l1 l2: alist K V) (k: K) (v v': V)
-  (NODUP: List.NoDup (List.map fst (l1 ++ [(k,v)] ++ l2)))
-  :
-  alist_add k v' (l1 ++ [(k,v)] ++ l2) = l1 ++ [(k,v')] ++ l2.
-Proof.
-Admitted.
-
-Ltac alist_simpl :=
-  match goal with
-  [ |- context[alist_add ?k ?v ?l]] =>
-    match l with
-    | context[(k,?v0)] =>
-      let TMP := fresh "_TMP" in
-      let NODUP := fresh "NODUP" in
-      match goal with [H: List.NoDup _|-_] =>
-        eassert (TMP: List.NoDup (List.map fst l)) by exact H; clear H; revert TMP
-      end;
-      erewrite (@ereplace _ l); [intros ?|Lauto_prepare; Lauto_find (k,v0); refl];
-      eassert (NODUP := alist_add_nodup _ k v TMP); revert NODUP;
-      rewrite !alist_add_nodup_insert; [|exact TMP]; clear TMP;
-      Lauto_finish; intros ?
-    end
-  end.
-
-Ltac hss :=
-  ss;
-  try (unfold run_l, run_r in *; rewrite !Any.pair_split in *; fold run_l run_r in * );
-  try (rewrite !Any.upcast_downcast in * );
-  (repeat match goal with [G: Any.downcast _ = Some _ |-_] =>
-    apply Any.downcast_upcast in G; inv G; ss
-   end);
-  (repeat match goal with [G: Any.upcast (_:?T) = Any.upcast (_:?T) |-_] =>
-    apply Any.upcast_inj in G; destruct G as [_ G]; red in G; depdes G; ss
-   end);
-  (repeat match goal with [G: Some _ = Some _ |- _] =>
-    depdes G; ss
-   end);
-  repeat alist_simpl; s.
 
 (**** TODO ****)
 (* A tactic to handle meta variables *)

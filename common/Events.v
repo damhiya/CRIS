@@ -23,7 +23,7 @@ Section EVENTS.
   Variant stateE (V: Type): Type :=
   | SUpdate (run : Any.t -> Any.t * V) : stateE V.
 
-  Definition sPut x : stateE Any.t := SUpdate (fun _ => (x, tt↑)).
+  Definition sPut x : stateE unit := SUpdate (fun _ => (x, tt)).
   Definition sGet : stateE Any.t := SUpdate (fun x => (x, x)).
 
   Definition modE : Type -> Type := (callE +' stateE +' coreE).
@@ -120,7 +120,7 @@ Section EVENTS_OTHER.
     end.
 
   Inductive pgE: Type -> Type :=
-  | SPut (k: key) (v: Any.t): pgE Any.t
+  | SPut (k: key) (v: Any.t): pgE unit
   | SGet (k: key): pgE Any.t.
 
   Variant agE: Type -> Type :=
@@ -159,8 +159,8 @@ Section SYNTAX.
   Definition ccallN {X Y} (fn: gname) (varg: X): itree E Y := 
     vret <- trigger (Call fn (varg↑));; vret↓ǃ.
                                           
-  Definition cput k v : itree E Any.t :=
-    trigger (SPut k v).
+  Definition cput {T} k (v:T) : itree E unit :=
+    trigger (SPut k v↑).
 
   Definition cgetU {T} k : itree E T :=
     v <- trigger (SGet k);; v↓?.

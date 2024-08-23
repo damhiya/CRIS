@@ -4,7 +4,7 @@ Require Import Events STS.
 Require Import Behavior.
 Require Import HMod SMod.
 Require Import Skeleton.
-Require Import PCM IPM STB.
+Require Import PCM IPM STB ITactics.
 From ExtLib Require Import
      Core.RelDec
      Structures.Maps
@@ -18,10 +18,16 @@ Section SPECS.
   Context `{Σ: GRA.t}.
 
   Definition Stb: alist gname fspec :=
-    Seal.sealing "stb" [(RingName.init, fspec_trivial);
+    Seal.sealing "ccr" [(RingName.init, fspec_trivial);
                         (RingName.get_size, fspec_trivial);
                         (RingName.enqueue, fspec_trivial);
                         (RingName.dequeue, fspec_trivial)].
+
+  Lemma Stb_nodup: List.NoDup (List.map fst Stb).
+  Proof.
+    unfold Stb. unseal "ccr". prove_nodup.
+  Qed.
+  
 
 End SPECS.
 

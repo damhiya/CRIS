@@ -46,7 +46,7 @@ Section A.
     fun varg =>
       '(k, v) <- (pargs [Tint; Tint] varg)?;;
       f <- cgetU v_map;;
-      cput v_map (<[k:=v]> (f: Z->Z))↑;;;
+      cput v_map (<[k:=v]> (f: Z->Z));;;
       Ret Vundef
   .
 

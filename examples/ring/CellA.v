@@ -17,20 +17,20 @@ Section CELL_A.
 
   Variable idx : nat.
 
-  Definition get : Any.t -> itree smodE Any.t := (fun _ => trigger (Choose _)).
-  Definition set : Any.t -> itree smodE Any.t := (fun _ => trigger (Choose _)).
+  Definition scopes := [CellName.mn idx].
   
   Definition fnsems : alist string (list string * fspecbody) :=
-    [(CellName.get idx, ([], mk_specbody (CellAS.get_spec idx) get));
-     (CellName.set idx, ([], mk_specbody (CellAS.set_spec idx) set))].
+    [(CellName.get idx, ([], mk_specbody (CellAS.get_spec idx) fbody_trivial));
+     (CellName.set idx, ([], mk_specbody (CellAS.set_spec idx) fbody_trivial))].
 
   Program Definition Sem: SModSem.t := {|
+    SModSem.scopes := scopes;
     SModSem.fnsems := fnsems;
     SModSem.initial_st := [];
-    SModSem.initial_cond := ∃ v, CellAS.cell idx v ∗ CellAS.auth idx v;
+    SModSem.initial_cond := Some (∃ v, CellAS.cell idx v ∗ CellAS.auth idx v)%I;
   |}
   .
-  Next Obligation. prove_scope. Qed.
+  Solve All Obligations with prove_scope.
 
   Definition Mod: SMod.t := {|
     SMod.get_modsem := fun _ => Sem;

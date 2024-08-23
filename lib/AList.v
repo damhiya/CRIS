@@ -123,7 +123,7 @@ Section ALIST.
   Qed.
 
   Lemma alist_find_some_iff K `{Dec K} V (k: K) (l: alist K V) (v: V)
-        (ND: NoDup (List.map fst l))
+        (ND: List.NoDup (List.map fst l))
         (IN: In (k, v) l)
   :
     alist_find k l = Some v.
@@ -215,7 +215,7 @@ Section ALIST.
 
   Lemma alist_find_filter K `{Dec K} V (l: alist K V) (k: K) (v: V) (f: K -> bool)
         (FIND: alist_find k (alist_filter f l) = Some v)
-        (ND: NoDup (List.map fst l))
+        (ND: List.NoDup (List.map fst l))
     :
       alist_find k l = Some v.
   Proof.
@@ -230,9 +230,9 @@ Section ALIST.
   Qed.
 
   Lemma alist_add_nodup K `{Dec K} V (l: alist K V) k v
-        (ND: NoDup (List.map fst l))
+        (ND: List.NoDup (List.map fst l))
     :
-      NoDup (List.map fst (alist_add k v l)).
+      List.NoDup (List.map fst (alist_add k v l)).
   Proof.
     revert ND. induction l; ss.
     { i. econs; et. }
@@ -285,7 +285,7 @@ Section ALIST.
   Qed.
 
   Lemma alist_permutation_find K `{Dec K} V (l0 l1: alist K V)
-        (ND: NoDup (List.map fst l0))
+        (ND: List.NoDup (List.map fst l0))
         (PERM: Permutation l0 l1)
         k
     :
@@ -608,7 +608,7 @@ Module AListSort (V: Typ).
   Qed.
 
   Lemma sort_add_comm (l0 l1: t)
-        (ND: NoDup (List.map fst (l0 ++ l1)))
+        (ND: List.NoDup (List.map fst (l0 ++ l1)))
     :
       sort (l0 ++ l1) = sort (l1 ++ l0).
   Proof.
@@ -673,7 +673,7 @@ Section ALIST.
   Lemma nodup_eqlen_in_rev
     X (l1 l2: list X)
     (LEN : List.length l1 = List.length l2)
-    (NODUP: NoDup l1)
+    (NODUP: List.NoDup l1)
     (MEM : forall x (IN: In x l1), In x l2)
     :
     forall x (IN: In x l2), In x l1.
@@ -694,7 +694,7 @@ Section ALIST.
   Lemma in_eqlen_nodup_rev
     X (l1 l2: list X)
     (LEN: List.length l1 = List.length l2)
-    (NODUP: NoDup l1)    
+    (NODUP: List.NoDup l1)    
     (MEM: forall x (IN: In x l1), In x l2)
     :
     NoDup l2.

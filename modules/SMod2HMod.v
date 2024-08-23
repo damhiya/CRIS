@@ -62,6 +62,9 @@ Section FSPEC.
     mk_fspec (meta:=unit) (fun _ => ord_top) (fun _ argh argl => (⌜argh = argl⌝: iProp)%I)
              (fun _ reth retl => (⌜reth = retl⌝: iProp)%I).
 
+  Definition fbody_trivial: Any.t -> itree smodE Any.t :=
+    fun _ => trigger (Choose _).
+  
   Record fspecbody: Type := mk_specbody {
     fsb_fspec:> fspec;
     fsb_body: Any.t -> itree smodE Any.t;

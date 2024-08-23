@@ -17,8 +17,6 @@ From ExtLib Require Import
      Data.Map.FMapAList.
 
 Require Import STB.
-Require Import.
-
 
 Require Import ISim.
 Require Import HMod Mod ModSimFacts.
@@ -143,10 +141,10 @@ Section SIMMODSEM.
   End LEMMA.
 
   Variable StbA: Sk.t -> gname -> option fspec.
-  Hypothesis MapInStbA: forall sk, stb_incl (to_stb MapAS.Stb) (StbA sk).
+  Hypothesis MapInStbA: forall sk, stb_incl MapAS.Stb (StbA sk).
 
   Variable StbM: Sk.t -> gname -> option fspec.
-  Hypothesis MapInStbM: forall sk, stb_incl (to_stb MapMS.Stb) (StbM sk).
+  Hypothesis MapInStbM: forall sk, stb_incl MapMS.Stb (StbM sk).
   
   (* TODO: Try spawn & consume a dummy world *)
   Definition Ist: Any.t -> Any.t -> iProp :=

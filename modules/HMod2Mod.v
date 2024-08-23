@@ -68,7 +68,7 @@ Section MID.
     rewrite IHst. eauto.
   Qed.
 
-  Definition mput_res E `{stateE -< E} `{coreE -< E} (mr: Σ): itree E Any.t :=
+  Definition mput_res E `{stateE -< E} `{coreE -< E} (mr: Σ): itree E unit :=
     st <- trigger sGet;; '(mp, _) <- (Any.split st)?;;
     trigger (sPut (Any.pair mp mr↑))
   .
@@ -78,7 +78,7 @@ Section MID.
     mr↓?
   .
 
-  Definition mput_kv E `{stateE -< E} `{coreE -< E} (k: key) (v: Any.t) : itree E Any.t :=
+  Definition mput_kv E `{stateE -< E} `{coreE -< E} (k: key) (v: Any.t) : itree E unit :=
     st <- trigger sGet;; '(mp, mr) <- (Any.split st)?;;
     trigger (sPut (Any.pair (alist_encode (alist_add k v (alist_decode mp))) mr))
   .

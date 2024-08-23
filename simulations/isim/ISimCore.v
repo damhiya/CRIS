@@ -408,7 +408,7 @@ Section SIM.
     r g ps pt {R} RR  k v st_src st_tgt k_src i_tgt
     :
     bi_entails
-      (@isim r g R RR true pt (alist_add k v st_src, k_src tt↑) (st_tgt, i_tgt))
+      (@isim r g R RR true pt (alist_add k v st_src, k_src tt) (st_tgt, i_tgt))
       (@isim r g R RR ps pt (st_src, trigger (SPut k v) >>= k_src) (st_tgt, i_tgt)).
   Proof.
     uiprop. i. guclo hpsimC_spec. econs; esplits; eauto. econs; eauto.
@@ -419,7 +419,7 @@ Section SIM.
     :
     In k.1 scopes ->
     bi_entails
-      (@isim r g R RR true pt (alist_add k v st_src, k_src tt↑) (st_tgt, i_tgt))
+      (@isim r g R RR true pt (alist_add k v st_src, k_src tt) (st_tgt, i_tgt))
       (@isim r g R RR ps pt (st_src, HModSem.sandbox scopes (trigger (SPut k v)) >>= k_src) (st_tgt, i_tgt)).
   Proof.
     i. iIntros "ISIM".
@@ -436,7 +436,7 @@ Section SIM.
     r g ps pt {R} RR k v st_src st_tgt i_src k_tgt
     :
     bi_entails
-      (@isim r g R RR ps true (st_src, i_src) (alist_add k v st_tgt, k_tgt tt↑))
+      (@isim r g R RR ps true (st_src, i_src) (alist_add k v st_tgt, k_tgt tt))
       (@isim r g R RR ps pt (st_src, i_src) (st_tgt, trigger (SPut k v) >>= k_tgt)).
   Proof.
     uiprop. i. guclo hpsimC_spec. econs; esplits; eauto. econs; eauto.
@@ -447,7 +447,7 @@ Section SIM.
     :
     In k.1 scopes ->
     bi_entails
-      (@isim r g R RR ps true (st_src, i_src) (alist_add k v st_tgt, k_tgt tt↑))
+      (@isim r g R RR ps true (st_src, i_src) (alist_add k v st_tgt, k_tgt tt))
       (@isim r g R RR ps pt (st_src, i_src) (st_tgt, HModSem.sandbox scopes (trigger (SPut k v)) >>= k_tgt)).
   Proof.
     i. iIntros "ISIM".
@@ -783,6 +783,104 @@ End SIM.
 
 Global Opaque isim.
 
+Definition sub_perm {A} (l1 l2: list A) : Prop :=
+  exists l0, (l0 ++ l1) ≡ₚ l2.
+
+Lemma sub_perm_incl {A} (l1 l2: list A)
+  (SP: sub_perm l1 l2)
+  :
+  incl l1 l2.
+Proof.
+  r in SP. des.
+  ii. eapply Permutation_in; eauto.
+  apply in_or_app. eauto.
+Qed.
+
+Lemma sub_perm_nodup {A} (l1 l2: list A)
+  (SP: sub_perm l1 l2)
+  (ND: List.NoDup l2)
+  :
+  List.NoDup l1.
+Proof.
+  r in SP. des.
+  eapply Permutation_NoDup in ND; cycle 1.
+  - symmetry. eauto.
+  - eapply nodup_app_r. eauto.
+Qed.
+
+Lemma sub_perm_cancel {A} (l0 l1 l1' l2 l2': list A)
+  (SP: sub_perm (l1 ++ l2) (l1' ++ l2'))
+  :
+  sub_perm (l1 ++ l0 ++ l2) (l1' ++ l0 ++ l2').
+Proof.
+  r in SP. des. exists l3.
+  do 2 rewrite Permutation_app_rot.
+  rewrite <-!app_assoc. symmetry.
+  rewrite Permutation_app_rot.
+  apply Permutation_app_head.
+  rewrite Permutation_app_comm. symmetry.
+  rewrite Permutation_app_rot. eauto.
+Qed.
+
+Lemma sub_perm_cancel_head {A} (l0 l l': list A)
+  (SP: sub_perm l l')
+  :
+  sub_perm (l0 ++ l) (l0 ++ l').
+Proof.
+  apply (sub_perm_cancel l0 [] []). eauto.
+Qed.
+
+Lemma sub_perm_cancel_tail {A} (l0 l l': list A)
+  (SP: sub_perm l l')
+  :
+  sub_perm (l ++ l0) (l' ++ l0).
+Proof.
+  assert (X:=sub_perm_cancel l0 l l' [] []).
+  rewrite !app_nil_r in *. eauto.
+Qed.
+
+Lemma sub_perm_remove {A} (l0 l1 l2: list A):
+  sub_perm (l1 ++ l2) (l1 ++ l0 ++ l2).
+Proof.
+  exists l0.
+  rewrite/__ !List.app_assoc [l0 ++ _]Permutation_app_comm.
+  eauto.
+Qed.
+
+Lemma sub_perm_remove_head {A} (l0 l: list A):
+  sub_perm l (l0 ++ l).
+Proof.
+  apply (sub_perm_remove l0 []).
+Qed.
+
+Lemma sub_perm_remove_tail {A} (l0 l: list A):
+  sub_perm l (l ++ l0).
+Proof.
+  assert (X := sub_perm_remove l0 l []).
+  rewrite !app_nil_r in *. eauto.
+Qed.
+
+Lemma sub_perm_refl {A} (l: list A):
+  sub_perm l l.
+Proof.
+  apply (sub_perm_remove_head []).
+Qed.
+
+Lemma sub_perm_trans {A} (l1 l2 l3: list A):
+  sub_perm l1 l2 -> sub_perm l2 l3 -> sub_perm l1 l3.
+Proof.
+  unfold sub_perm. i; des.
+  eexists. rewrite/__ -H0 -H.
+  rewrite app_assoc. eauto.
+Qed.
+
+Lemma sub_perm_nil {A} (l: list A):
+  sub_perm [] l.
+Proof.
+  apply (sub_perm_remove_tail l []).
+Qed.
+
+
 
 Module HModSemR.
   Section SIM.
@@ -797,26 +895,32 @@ Module HModSemR.
     Let fnsems_tgt := ms_tgt.(fnsems).
     Let init_src := ms_src.(initial_st).
     Let init_tgt := ms_tgt.(initial_st).
-    Let cond_src := ms_src.(initial_cond).
-    Let cond_tgt := ms_tgt.(initial_cond).
-    
+    Let cond_src := HModSem.to_iprop (ms_src.(initial_cond)).
+    Let cond_tgt := HModSem.to_iprop (ms_tgt.(initial_cond)).
+
+    Definition sim_fun fn : Prop :=
+      forall
+        (NODUPFS: List.NoDup (List.map fst fnsems_src))
+        (NODUPFT: List.NoDup (List.map fst fnsems_tgt))
+        fs (FIND: alist_find fn fnsems_src = Some fs),
+      exists ft, alist_find fn fnsems_tgt = Some ft /\
+                   isim_fsem
+                     (List.map (map_snd HModSem.sandbox_body) fnsems_src)
+                     (List.map (map_snd HModSem.sandbox_body) fnsems_tgt)
+                     Ist (fun '(st_src, v_src) '(st_tgt, v_tgt) => (Ist st_src st_tgt ∗ ⌜v_src = v_tgt⌝))%I
+                     (HModSem.sandbox_body fs) (HModSem.sandbox_body ft).
+
     Inductive sim: Prop :=
       mk {
           sim_initial: cond_src ⊢ cond_tgt ∗ (Ist init_src init_tgt);
-          sim_scopes: incl scopes_tgt scopes_src;
-          sim_nodup: List.NoDup scopes_src -> List.NoDup scopes_tgt;
+          sim_scopes: sub_perm scopes_tgt scopes_src; 
+          (* sim_scopes: incl scopes_tgt scopes_src; *)
+          (* sim_nodup: List.NoDup scopes_src -> List.NoDup scopes_tgt; *)
           sim_length: List.length fnsems_src = List.length fnsems_tgt;
           sim_miss: 
             forall fn (MISS: alist_find fn fnsems_src = None),
               alist_find fn fnsems_tgt = None;
-          sim_fnsems:
-            forall fn fs (FIND: alist_find fn fnsems_src = Some fs),
-            exists ft, alist_find fn fnsems_tgt = Some ft /\
-                         isim_fsem
-                           (List.map (map_snd HModSem.sandbox_body) fnsems_src)
-                           (List.map (map_snd HModSem.sandbox_body) fnsems_tgt)
-                           Ist (fun '(st_src, v_src) '(st_tgt, v_tgt) => (Ist st_src st_tgt ∗ ⌜v_src = v_tgt⌝))%I
-                           (HModSem.sandbox_body fs) (HModSem.sandbox_body ft);
+          sim_fnsems: forall fn, sim_fun fn;
         }.
 
   End SIM.
@@ -827,28 +931,19 @@ Module HModR.
   Section SIM.
     Context `{_W: CtxWD.t}. 
     Variable (md_src md_tgt: HMod.t).
-    Variable Ist: alist key Any.t -> alist key Any.t -> iProp.
+    Variable Ist: Sk.t -> alist key Any.t -> alist key Any.t -> iProp.
 
     Inductive sim: Prop :=
       mk {
           sim_modsem:
             forall sk (SKINCL: Sk.incl md_tgt.(HMod.sk) sk) (SKWF: Sk.wf sk),
-              <<SIM: HModSemR.sim (md_src.(HMod.get_modsem) sk) (md_tgt.(HMod.get_modsem) sk) Ist>>;
+              <<SIM: HModSemR.sim (md_src.(HMod.get_modsem) sk) (md_tgt.(HMod.get_modsem) sk) (Ist sk)>>;
           sim_sk: <<SIM: md_src.(HMod.sk) = md_tgt.(HMod.sk)>>;
         }.
 
     Definition sim_fun fn : Prop :=
       forall sk,
-        let fnsems_src := HModSem.fnsems (HMod.get_modsem md_src sk) in
-        let fnsems_tgt := HModSem.fnsems (HMod.get_modsem md_tgt sk) in
-        match alist_find fn fnsems_src, alist_find fn fnsems_tgt with
-        | Some fs, Some ft =>
-            isim_fsem
-              (List.map (map_snd HModSem.sandbox_body) fnsems_src)
-              (List.map (map_snd HModSem.sandbox_body) fnsems_tgt)
-              Ist (λ '(st_src0, v_src) '(st_tgt0, v_tgt), Ist st_src0 st_tgt0 ** ⌜v_src = v_tgt⌝)
-              (HModSem.sandbox_body fs) (HModSem.sandbox_body ft)
-        | _, _ => False
-        end.
+        HModSemR.sim_fun (HMod.get_modsem md_src sk) (HMod.get_modsem md_tgt sk) (Ist sk) fn.
+
   End SIM.
 End HModR.

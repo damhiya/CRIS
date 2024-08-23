@@ -60,10 +60,15 @@ Section MAP.
                     (fun vret => True%I)))).  
 
   Definition Stb: alist gname fspec :=
-    Seal.sealing "stb" [(MapName.init, init_spec);
+    Seal.sealing "ccr" [(MapName.init, init_spec);
                         (MapName.get, get_spec);
                         (MapName.set, set_spec);
                         (MapName.set_by_user, set_by_user_spec)].
+
+  Lemma Stb_nodup: List.NoDup (List.map fst Stb).
+  Proof.
+    unfold Stb. unseal "ccr". prove_nodup.
+  Qed.
 
 End MAP.
 End MapMS.
