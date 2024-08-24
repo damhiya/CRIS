@@ -27,19 +27,13 @@ Section CTX_REFINE.
     let Ps := md_src.(HMod.get_modsem) md_src.(HMod.sk) in
     let Pt := md_tgt.(HMod.get_modsem) md_tgt.(HMod.sk) in
 
-    forall rs (WF: Ps.(HModSem.wf)) (SRC: Ps.(HModSem.initial_cond) rs),
-    exists rt, Pt.(HModSem.wf) /\ Pt.(HModSem.initial_cond) rt /\
+    forall (rs: Σ) (WFR: URA.wf rs) (WFM: Ps.(HModSem.wf)) (SRC: Ps.(HModSem.initial_cond) rs),
+    exists rt, URA.wf rt /\ Pt.(HModSem.wf) /\ Pt.(HModSem.initial_cond) rt /\
     refines_mod (HMod.to_mod md_src rs) (HMod.to_mod md_tgt rt).
 
   Definition ctx_refines (md_src md_tgt: HMod.t): Prop :=
     forall (ctx: HMod.t),
     refines (HMod.add md_src ctx) (HMod.add md_tgt ctx).
-
-  (* To be moved *)
-  
-  Lemma hmod_sim_refl md:
-       HModSemR.sim md md IstEq. 
-  Proof. Admitted.
 
 End CTX_REFINE.
 

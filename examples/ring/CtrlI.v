@@ -2,7 +2,7 @@ Require Import Coqlib ITreelib sflib.
 Require Import ImpPrelude.
 Require Import Events STS.
 Require Import Behavior.
-Require Import HMod.
+Require Import HMod PMod.
 Require Import Skeleton.
 Require Import RingHeader.
 Require Import CellHeader.
@@ -23,19 +23,19 @@ Section I.
   Definition v_hd := "Ring" ↯ "hd".
   Definition v_tl := "Ring" ↯ "tl".
 
-  Definition init: unit -> itree hmodE unit :=
+  Definition init: unit -> itree pmodE unit :=
     fun _ =>
       cput v_hd 0;;;
       cput v_tl 0
   .
   
-  Definition get_size: unit -> itree hmodE nat :=
+  Definition get_size: unit -> itree pmodE nat :=
     fun _ =>
       `hd: nat <- cgetU v_hd;;
       `tl: nat <- cgetU v_tl;;
       Ret (hd - tl).
 
-  Definition enqueue: Z -> itree hmodE unit :=
+  Definition enqueue: Z -> itree pmodE unit :=
     fun x =>
       `hd: nat <- cgetU v_hd;;
       `tl: nat <- cgetU v_tl;;
@@ -47,7 +47,7 @@ Section I.
         trigger (@IO _ void "error" "exceeds the maximum size");;; Ret tt
   .
 
-  Definition dequeue: unit -> itree hmodE Z :=
+  Definition dequeue: unit -> itree pmodE Z :=
     fun _ =>
       `hd: nat <- cgetU v_hd;;
       `tl: nat <- cgetU v_tl;;
@@ -66,22 +66,21 @@ Section I.
      (RingName.enqueue, (scopes, cfunU enqueue));
      (RingName.dequeue, (scopes, cfunU dequeue))].
   
-  Program Definition Sem: HModSem.t := {|
-    HModSem.scopes := scopes;
-    HModSem.fnsems := fnsems;
-    HModSem.initial_st := [(v_hd,0↑);(v_tl,0↑)];
-    HModSem.initial_cond := None
+  Program Definition Sem: PModSem.t := {|
+    PModSem.scopes := scopes;
+    PModSem.fnsems := fnsems;
+    PModSem.initial_st := [(v_hd,0↑);(v_tl,0↑)];
   |}
   .
   Solve All Obligations with prove_scope.
 
-  Definition Mod: HMod.t := {|
-    HMod.get_modsem := fun _ => Sem;
-    HMod.sk := RingSK.t;
+  Definition Mod: PMod.t := {|
+    PMod.get_modsem := fun _ => Sem;
+    PMod.sk := RingSK.t;
   |}
   .
 
-  Definition t := Seal.sealing "ccr" Mod.
+  Definition t := Seal.sealing "ccr" (PMod.to_hmod Mod).
 
 End I.
 

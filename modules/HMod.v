@@ -7,24 +7,10 @@ Require Import IRed.
 Require Import STS Behavior.
 Require Import PCM IPM.
 Require Import Skeleton Mod.
-Require Export HMod2Mod.
 Require Import PropExtensionality.
+Require Export HMod2Mod.
 
 Set Implicit Arguments.
-
-(* TODO: move to a right place *)
-Lemma unfold_iter_eq (E : Type -> Type) (A B : Type) (f : A -> itree E (A + B)) (x : A)
-  :
-  ITree.iter f x = lr <- f x;;
-                   match lr with
-                   | inl l => tau;; ITree.iter f l
-                   | inr r => Ret r
-                   end.
-Proof.
-  eapply bisim_is_eq. eapply unfold_iter.
-Qed.
-
-
 
 Module HModSem.
 Section HMODSEM.
@@ -34,7 +20,8 @@ Section HMODSEM.
     scopes : list string;
     fnsems : alist gname (list string * (Any.t -> itree hmodE Any.t));
     initial_st : alist key Any.t;
-    initial_cond: option iProp;
+    initial_cond: iProp;
+    
     well_scoped_fns:
       forall fn, incl (fnsems_scopes fn fnsems) scopes;
     well_scoped_init:
@@ -46,36 +33,22 @@ Section HMODSEM.
     wf_scopes: List.NoDup ms.(scopes);
   }.
 
-  Definition to_iprop (P: option iProp) : iProp :=
-    match P with
-    | None => emp
-    | Some P' => P'
-    end.
-  
   (**** Linking ****)
 
   Program Definition empty : t := {|
     scopes := [];
     fnsems := [];
     initial_st := [];
-    initial_cond := None;
+    initial_cond := emp;
   |}.
   Next Obligation. ii; ss. Qed.
   Next Obligation. ii; ss. Qed.
-
-  Definition add_oiprop (oP oQ: option iProp) := Seal.sealing "ccr"
-    match oP, oQ with
-    | Some P, Some Q => Some (P ∗ Q)%I
-    | Some P, None => Some P
-    | None, Some Q => Some Q
-    | None, None => None
-    end.
 
   Program Definition add ms1 ms2: t := {|
     fnsems := ms1.(fnsems) ++ ms2.(fnsems);
     scopes := ms1.(scopes) ++ ms2.(scopes);
     initial_st := ms1.(initial_st) ++ ms2.(initial_st);
-    initial_cond := add_oiprop ms1.(initial_cond) ms2.(initial_cond);
+    initial_cond := ms1.(initial_cond) ∗ ms2.(initial_cond);
   |}.
   Next Obligation.
     ii. unfold fnsems_scopes in H. des_ifs. 
@@ -97,20 +70,6 @@ Section HMODSEM.
     destruct H; eauto.
   Qed.
 
-  Lemma add_oiprop_split (oP oQ: option iProp) :
-    to_iprop (add_oiprop oP oQ) -∗ (to_iprop oP ∗ to_iprop oQ).
-  Proof.
-    unfold add_oiprop. unseal "ccr". destruct oP, oQ; s; eauto.
-  Qed.
-  
-  Lemma add_oiprop_merge (oP oQ: option iProp) :
-    (to_iprop oP ∗ to_iprop oQ) -∗ to_iprop (add_oiprop oP oQ).
-  Proof.
-    unfold add_oiprop. unseal "ccr". destruct oP, oQ; s; eauto.
-    - iIntros "(B & _)". eauto.
-    - iIntros "(_ & B)". eauto.
-  Qed.
-  
   (**** Sandboxing ****)
 
   Definition handle_sandbox scopes : hmodE -< hmodE :=
@@ -207,23 +166,38 @@ Section PROPERTIES.
   Proof.
     destruct ms1, ms2, ms3.
     apply hmodsem_extensionality; s; try rewrite app_assoc; eauto.
-    unfold HModSem.add_oiprop. unseal "ccr".
+    (* unfold HModSem.add_oiprop. unseal "ccr". *)
     destruct initial_cond, initial_cond0, initial_cond1; ss.
-    unfold o_bind. s. rewrite iprop_sepconj_assoc. eauto.
+    (* unfold o_bind. s. *)
+    rewrite iprop_sepconj_assoc. eauto.
   Qed.
 
   Lemma hmodsem_add_empty_l ms:
     HModSem.add HModSem.empty ms = ms.
   Proof.
-    destruct ms. apply hmodsem_extensionality; s; eauto.
-    unfold HModSem.add_oiprop. unseal "ccr". des_ifs.
+    destruct ms. apply hmodsem_extensionality; s; eauto.    
+    unfold iProp, bi_car, bi_sep, Sepconj, bi_emp, Emp. unseal "iProp".
+    apply iprop'_extensionality. s.
+    extensionality r. apply propositional_extensionality.
+    split; i.
+    - des. subst. eapply iProp_mono; eauto.
+      rr. esplits; eauto. rewrite URA.add_comm. eauto.
+    - exists ε, r. esplits; eauto.
+      rewrite URA.unit_idl. eauto.
   Qed.
 
   Lemma hmodsem_add_empty_r ms:
     HModSem.add ms HModSem.empty = ms.
   Proof.
     destruct ms. apply hmodsem_extensionality; s; try rewrite app_nil_r; eauto.
-    unfold HModSem.add_oiprop. unseal "ccr". des_ifs.
+    unfold iProp, bi_car, bi_sep, Sepconj, bi_emp, Emp. unseal "iProp".
+    apply iprop'_extensionality. s.
+    extensionality r. apply propositional_extensionality.
+    split; i.
+    - des. subst. eapply iProp_mono; eauto.
+      rr. esplits; eauto.
+    - exists r, ε. esplits; eauto.
+      rewrite URA.add_comm. rewrite URA.unit_idl. eauto.
   Qed.
 
   Lemma hmod_add_assoc (md1 md2 md3: HMod.t):

@@ -37,8 +37,8 @@ Section I.
   Local Open Scope string_scope.
   Context `{_W: CtxWD.t}.
 
-  Definition scope := "Map".
-  Definition v_hptr := scope ↯ "hptr".
+  Definition scopes := ["Map"].
+  Definition v_hptr := "Map" ↯ "hptr".
   
   Definition init: list val -> itree pmodE val :=
     fun varg =>
@@ -83,13 +83,13 @@ Section I.
   .
 
   Definition fnsems :=
-    [(MapName.init, ([scope], cfunU init));
-     (MapName.get,  ([scope], cfunU get));
-     (MapName.set,  ([scope], cfunU set));
-     (MapName.set_by_user, ([scope], cfunU set_by_user))].
+    [(MapName.init, (scopes, cfunU init));
+     (MapName.get,  (scopes, cfunU get));
+     (MapName.set,  (scopes, cfunU set));
+     (MapName.set_by_user, (scopes, cfunU set_by_user))].
   
   Program Definition Sem: PModSem.t := {|
-    PModSem.scopes := [scope];
+    PModSem.scopes := scopes;
     PModSem.fnsems := fnsems;
     PModSem.initial_st := [(v_hptr,Vnullptr↑)];
   |}

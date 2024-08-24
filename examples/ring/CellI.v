@@ -2,7 +2,7 @@ Require Import Coqlib ITreelib sflib.
 Require Import ImpPrelude.
 Require Import Events STS.
 Require Import Behavior.
-Require Import SMod HMod.
+Require Import SMod HMod PMod.
 Require Import Skeleton.
 Require Import PCM.
 Require Import STB IPM.
@@ -18,35 +18,39 @@ Section CELL_I.
 
   Variable idx : nat.
 
-  Definition get: unit -> itree hmodE Z :=
+  Definition scopes := [CellName.mn idx].
+  Definition v_cv := (CellName.mn idx) ↯ "cv".
+
+  Definition get: unit -> itree pmodE Z :=
     fun _ =>
-      cv <- trigger (SGet (CellName.mk idx "cv")) ;; cv <- cv↓?;;
+      cv <- cgetU v_cv;;
       Ret cv
   .
 
-  Definition set: Z -> itree hmodE unit :=
+  Definition set: Z -> itree pmodE unit :=
     fun x =>
-      trigger (SPut (CellName.mk idx "cv") x↑);;; Ret tt.
+      cput v_cv x
+  .
 
   Definition fnsems :=
-    [(CellName.get idx, ([CellName.mk idx "cv"], cfunU get));
-     (CellName.set idx, ([CellName.mk idx "cv"], cfunU set))].
+    [(CellName.get idx, (scopes, cfunU get));
+     (CellName.set idx, (scopes, cfunU set))].
 
-  Program Definition Sem: HModSem.t := {|
-    HModSem.fnsems := fnsems;
-    HModSem.initial_st := [(CellName.mk idx "cv",tt↑)];
-    HModSem.initial_cond := emp;
+  Program Definition Sem: PModSem.t := {|
+    PModSem.scopes := scopes;
+    PModSem.fnsems := fnsems;
+    PModSem.initial_st := [(v_cv,tt↑)];
   |}
   .
-  Next Obligation. prove_scope. Qed.
+  Solve All Obligations with prove_scope.
   
-  Definition Mod: HMod.t := {|
-    HMod.get_modsem := fun _ => Sem;
-    HMod.sk := CellSK.t;
+  Definition Mod: PMod.t := {|
+    PMod.get_modsem := fun _ => Sem;
+    PMod.sk := CellSK.t;
   |}
   .
 
-  Definition t := Seal.sealing "ccr" Mod.
+  Definition t := Seal.sealing "ccr" (PMod.to_hmod Mod).
 
 End CELL_I.
 End CellI.

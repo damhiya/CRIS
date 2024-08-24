@@ -16,6 +16,7 @@ Require Import HPSim.
 Require Import World sWorld.
 Require Import ISimCore.
 Require Import Events Mod SMod HMod PMod.
+Require Import SubPerm.
 Require Import LAuto.
 
 From stdpp Require Import coPset gmap.
@@ -112,21 +113,6 @@ Ltac alist_find_simpl nodup_tac :=
     end
   end.
   
-  (* match goal with *)
-  (* [ |- context[alist_find ?k ?l]] => *)
-  (*   match l with *)
-  (*   | context[(k,?v0)] => *)
-  (*     let TMP := fresh "_TMP" in *)
-  (*     match goal with [H: List.NoDup _|-_] => *)
-  (*       eassert (TMP: List.NoDup (List.map fst l)) by (nodup_tac H); *)
-  (*       revert TMP *)
-  (*     end; *)
-  (*     erewrite (@ereplace _ l); [intros ?|Lauto_prepare; Lauto_find (k,v0); refl]; *)
-  (*     rewrite !alist_find_with_nodup; [|exact TMP]; clear TMP; *)
-  (*     Lauto_finish *)
-  (*   end *)
-  (* end. *)
-
 Lemma map_map_compose {A B C} (f: A -> B) (g: B -> C) l:
   List.map g (List.map f l) = List.map (g ∘ f) l.
 Proof.
@@ -147,15 +133,17 @@ Ltac hss :=
   ss;
   try (rewrite !Any.pair_split in * );
   try (rewrite !Any.upcast_downcast in * );
-  (repeat match goal with [G: Any.downcast _ = Some _ |-_] =>
+  repeat (match goal with [G: Any.downcast _ = Some _ |-_] =>
     apply Any.downcast_upcast in G; inv G; ss
    end);
-  (repeat match goal with [G: Any.upcast (_:?T) = Any.upcast (_:?T) |-_] =>
+  repeat (match goal with [G: Any.upcast (_:?T) = Any.upcast (_:?T) |-_] =>
     apply Any.upcast_inj in G; destruct G as [_ G]; red in G; depdes G; ss
    end);
-  (repeat match goal with [G: Some _ = Some _ |- _] =>
+  repeat (match goal with [G: Some _ = Some _ |- _] =>
     depdes G; ss
-     end);
+  end);
+  try (rewrite !Any.pair_split in * );
+  try (rewrite !Any.upcast_downcast in * );
   repeat (alist_add_simpl trivial_nodup); s.
 
 (***
@@ -228,14 +216,6 @@ Ltac unwrapSB :=
   | [|-context[HModSem.sandbox _ ?itr]] => first [_unwrapSB itr|fail 2]
   end.
 
-(* Ltac unwrapSB := *)
-(*   match goal with *)
-(*   | [|-context[HModSem.sandbox _ (?itr >>= _)]] => *)
-(*       rewrite HModSB.transl_bind; unwrapSB *)
-(*   | [|-context[HModSem.sandbox _ ?itr]] => *)
-(*       first [_unwrapSB itr | rewrite/__{1}/itr; unwrapSB] *)
-(*   end. *)
-  
 Ltac _unwrapS itr :=
   match itr with
   | Ret _ =>
@@ -282,14 +262,6 @@ Ltac unwrapS :=
   | [|-context[interp_smod _ _ ?itr]] => first [_unwrapS itr|fail 2]
   end.
 
-(* Ltac unwrapS := *)
-(*   match goal with *)
-(*   | [|-context[interp_smod _ _ (?itr >>= _)]] => *)
-(*       rewrite SModRed.interp_bind; unwrapS *)
-(*   | [|-context[interp_smod _ _ ?itr]] => *)
-(*       first [_unwrapS itr | rewrite/__{1}/itr; unwrapS] *)
-(*   end. *)
-
 Ltac _unwrapP itr :=
   match itr with
   | Ret _ =>
@@ -329,14 +301,6 @@ Ltac unwrapP :=
   | [|-context[PModSem.transl ?itr]] => first [_unwrapP itr|fail 2]
   end.
 
-(* Ltac unwrapP := *)
-(*   match goal with *)
-(*   | [|-context[PModSem.transl (?itr >>= _)]] =>  *)
-(*       rewrite PModRed.transl_bind; unwrapP *)
-(*   | [|-context[PModSem.transl ?itr]] => *)
-(*       first [_unwrapP itr | rewrite/__{1}/itr; unwrapP] *)
-(*   end. *)
-
 Ltac unfold_precond_postcond term := let TM := fresh "_term" in
   set (TM := term) at 1;
   repeat (unfold precond in TM; simpl in TM);
@@ -347,26 +311,26 @@ Ltac _step_l :=
   match goal with
   (******* isim ******)
   (** src **)
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, tau;; _) (_, _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, tau;; _) _) ] =>
       iApply isim_tau_src
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, Ret _ >>= _) (_, _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, Ret _ >>= _) _) ] =>
       rewrite bind_ret_l
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, (HModSem.sandbox _ (trigger (SPut _ _))) >>= _) (_, _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, (HModSem.sandbox _ (trigger (SPut _ _))) >>= _) _) ] =>
       iApply isim_sput_src_sandbox; [s;eauto|]
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, (HModSem.sandbox _ (trigger (SGet _))) >>= _) (_, _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, (HModSem.sandbox _ (trigger (SGet _))) >>= _) _) ] =>
       iApply isim_sget_src_sandbox; [s;eauto|]
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _) (_, _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _) _) ] =>
       let name := fresh "q" in
       iApply isim_take_src; iIntros (name)
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _  (_, trigger (Assume ?P) >>= _) (_, _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _  (_, trigger (Assume ?P) >>= _) _) ] =>
       unfold_precond_postcond P; iApply isim_Assume_src; iIntrosFresh "ASM"
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, unwrapU ?ox >>= _) (_, _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, unwrapU ?ox >>= _) _) ] =>
       let name := fresh "q" in
       iApply isim_unwrapU_src; iIntros (name) "%";
       match goal with [ H: ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite G in * end
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, assume _ >>= _) (_, _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, assume _ >>= _) _) ] =>
       let name := fresh "asm" in iApply isim_asm_src; iIntros (name)
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, HModSem.sandbox _ (HoareAPC _ _) >>= _) (_, _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, HModSem.sandbox _ (HoareAPC _ _) >>= _) _) ] =>
       idtac
   end.
 
@@ -374,26 +338,26 @@ Ltac _step_r :=
   match goal with
   (******* isim ******)
   (** tgt **)
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, Ret _ >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, Ret _ >>= _)) ] =>
       rewrite bind_ret_l
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, tau;; _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, tau;; _)) ] =>
       iApply isim_tau_tgt
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, (HModSem.sandbox _ (trigger (SPut _ _))) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, (HModSem.sandbox _ (trigger (SPut _ _))) >>= _)) ] =>
       iApply isim_sput_tgt_sandbox; [s; eauto|]
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, (HModSem.sandbox _ (trigger (SGet _))) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, (HModSem.sandbox _ (trigger (SGet _))) >>= _)) ] =>
       iApply isim_sget_tgt_sandbox; [s; eauto|]
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, trigger (Choose _) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, trigger (Choose _) >>= _)) ] =>
       let name := fresh "q" in
       iApply isim_choose_tgt; iIntros (name)
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, trigger (Guarantee ?P) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _)) ] =>
       unfold_precond_postcond P; iApply isim_Guarantee_tgt; iIntrosFresh "GRT"
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, unwrapN ?ox >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, unwrapN ?ox >>= _)) ] =>
       let name := fresh "q" in
       iApply isim_unwrapN_tgt; iIntros (name) "%";
       match goal with [ H: ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite G in * end
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, guarantee _ >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, guarantee _ >>= _)) ] =>
       let name := fresh "grt" in iApply isim_guar_tgt; iIntros (name)
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, HModSem.sandbox _ (HoareAPC _ _) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, HModSem.sandbox _ (HoareAPC _ _) >>= _)) ] =>
       idtac
   end.
 
@@ -409,36 +373,35 @@ Ltac _step :=
 
 Ltac _force_l :=
   match goal with
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, trigger (Choose ?T) >>= _) (_, _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, trigger (Choose ?T) >>= _) _) ] =>
       iApply isim_choose_src
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _  (_, trigger (Guarantee ?P) >>= _) (_, _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _) _) ] =>
       unfold_precond_postcond P; iApply isim_Guarantee_src
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, unwrapN _ >>= _) (_
-, _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, unwrapN _ >>= _) _) ] =>
       iApply isim_unwrapN_src; iExists _
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, guarantee _ >>= _) (_, _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, guarantee _ >>= _) _) ] =>
       iApply isim_guar_src
   end
 .
 
 Ltac _force_r :=
   match goal with
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _  (_, _) (_, trigger (Take _) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _)) ] =>
       iApply isim_take_tgt
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _  (_, _) (_, trigger (Assume ?P) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, trigger (Assume ?P) >>= _)) ] =>
       unfold_precond_postcond P; iApply isim_Assume_tgt
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, unwrapU _ >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, unwrapU _ >>= _)) ] =>
       iApply isim_unwrapU_tgt; iExists _
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, assume _ >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, assume _ >>= _)) ] =>
       iApply isim_asm_tgt
   end
 .
 
 
-Ltac hide_itree_l := let ITL := fresh "ITREE" in
-  match goal with [|- _ (_ (_, ?itl) (_, _))] => set (IT := itl) at 1 end.
-Ltac hide_itree_r := let ITR := fresh "ITREE" in let ITL := fresh "ITREE" in
-  match goal with [|- _ (_ (_, ?itl) (_, ?itr))] => set (ITL := itl) at 1; set (ITR := itr) at 1; unfold ITL; clear ITL end.
+Ltac hide_itree_l := let IT := fresh "ITREE" in
+  match goal with [|- _ (_ ?it _)] => set (IT := it) end; try unfold IT at 2.
+Ltac hide_itree_r := let IT := fresh "ITREE" in
+  match goal with [|- _ (_ _ ?it)] => set (IT := it) end; first [ try (unfold IT at 2; fail 1) | unfold IT at 1].
 Ltac show_itree :=
   match goal with [IT:=_ |-_] => unfold IT; clear IT end.
 
@@ -469,13 +432,13 @@ Ltac prep :=
   try rewrite !bind_tau.
 
 Ltac step_l :=
-  hide_itree_r; prep;
-  _step_l; des_pairs; s;
+  hide_itree_r;
+  prep; _step_l; try alist_find_simpl fnsems_nodup; des_pairs; s;
   show_itree.
 
 Ltac step_r :=
-  hide_itree_l; prep;
-  _step_r; des_pairs; s;
+  hide_itree_l;
+  prep; _step_r; try alist_find_simpl fnsems_nodup; des_pairs; s;
   show_itree.
 
 Ltac step :=
@@ -484,27 +447,29 @@ Ltac step :=
   _step; des_pairs; s.
 
 Ltac force_l :=
-  hide_itree_r; prep;
-  _force_l; s;
+  hide_itree_r;
+  prep; _force_l; s;
   show_itree.
   
 Ltac force_r :=
-  hide_itree_l; prep;
-  _force_r; s;
+  hide_itree_l;
+  prep; _force_r; s;
   show_itree.
   
 Ltac steps_l :=
-  hide_itree_r;
-  repeat (prep; _step_l; des_pairs; s);
-  show_itree.
-
+  repeat step_l.
+  (* hide_itree_r; *)
+  (* repeat (prep; _step_l; try alist_find_simpl fnsems_nodup; des_pairs; s); *)
+  (* show_itree. *)
 Ltac steps_r :=
-  hide_itree_l;
-  repeat (prep; _step_r; des_pairs; s);
-  show_itree.
+  repeat step_r.
+  (* hide_itree_l; *)
+  (* repeat (prep; _step_r; try alist_find_simpl fnsems_nodup; des_pairs; s); *)
+  (* show_itree. *)
 
 Ltac inline_l :=
-  hide_itree_r; prep;
+  hide_itree_r;
+  prep;
   iApply isim_inline_src;
   [simpl HModSem.fnsems; repeat unfold_hmod; simpl List.map;
    alist_find_simpl fnsems_nodup; eauto|];
@@ -512,29 +477,19 @@ Ltac inline_l :=
   show_itree.
   
 Ltac inline_r :=
-  hide_itree_l; prep;
+  hide_itree_l;
+  prep;
   iApply isim_inline_tgt;
   [simpl HModSem.fnsems; repeat unfold_hmod; simpl List.map;
    alist_find_simpl fnsems_nodup; eauto|];
   unfold interp_sb_hp, HoareFun; s;
   show_itree.
 
-(* Ltac inline_l := *)
-(*   hide_itree_r; prep; *)
-(*   iApply isim_inline_src; [repeat unfold_hmod; eauto|]; *)
-(*   unfold interp_sb_hp, HoareFun; s; *)
-(*   show_itree. *)
-  
-(* Ltac inline_r := *)
-(*   hide_itree_l; prep; *)
-(*   iApply isim_inline_tgt; [repeat unfold_hmod; eauto|]; *)
-(*   unfold interp_sb_hp, HoareFun; s; *)
-(*   show_itree. *)
-
-Ltac call :=
+Ltac call hyps :=
   hide_itree_r; prep; show_itree;
   hide_itree_l; prep; show_itree;
-  iApply isim_call; iSplitL "IST"; [ |iIntros "% % % % %"; iIntrosFresh "IST"].
+  iApply isim_call;
+  iSplitL hyps; [ |iIntros "% % % % %"; iIntrosFresh "IST"].
 
 Lemma isim_apc_tgt_remove `{Σ: GRA.t}
   fl fr Ist r g {R} RR ps pt st_src st_tgt i_src k_tgt scopes stb
@@ -556,10 +511,15 @@ Proof.
     + rr in H. eauto.
 Qed.
 
+Ltac apc_l :=
+  rewrite/__ {1}/HoareAPC; force_l; instantiate (1:= Ord.O);
+  rewrite unfold_APC; force_l; instantiate (1:=true); step_l.
+
 Ltac apc_r :=
-  hide_itree_l; prep;
+  hide_itree_l;
+  prep;
   match goal with
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, (HModSem.sandbox _ (HoareAPC _ _)) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, (HModSem.sandbox _ (HoareAPC _ _)) >>= _)) ] =>
       iApply isim_apc_tgt_remove
   end;
   show_itree.
@@ -593,9 +553,9 @@ Section HModProd.
        incl (List.map (fst ∘ fst) st_srcL) scopesL /\ incl (List.map (fst ∘ fst) st_srcR) scopesR⌝ ∗
        IstL st_srcL st_tgtL ∗ IstR st_srcR st_tgtR)%I.
   
-  Definition IstProdMod scopesL scopesR (IstL IstR : Sk.t -> alist key Any.t -> alist key Any.t -> iProp) : Sk.t -> alist key Any.t -> alist key Any.t -> iProp :=
+  Definition IstProdMod A B (IstL IstR : Sk.t -> alist key Any.t -> alist key Any.t -> iProp) : Sk.t -> alist key Any.t -> alist key Any.t -> iProp :=
     fun sk st_src st_tgt =>
-      IstProd (scopesL sk) (scopesR sk) (IstL sk) (IstR sk) st_src st_tgt.
+      IstProd (HMod.get_scopes A sk) (HMod.get_scopes B sk) (IstL sk) (IstR sk) st_src st_tgt.
       
   Lemma isim_reflR Ist fl_src fl_tgt scopesL scopesR scopesF itr
     (DISJ: List.NoDup (scopesL ++ scopesR))
@@ -689,28 +649,43 @@ Section HModProd.
 *)
     Admitted.
 
+Lemma mod_sim_refl_r A B C Ist
+  (INIT: ∀ sk,
+         HModSem.initial_cond (HMod.get_modsem A sk) -∗
+           (HModSem.initial_cond (HMod.get_modsem B sk) **
+           (IstProdMod A C Ist IstEq
+             sk                          
+             (HModSem.initial_st (HMod.get_modsem (HMod.add A C) sk))
+             (HModSem.initial_st (HMod.get_modsem (HMod.add B C) sk)))))
+  (SCOPE: ∀ sk, sub_perm (HMod.get_scopes B sk) (HMod.get_scopes A sk))
+  (LEN: ∀ sk, strings.length (HModSem.fnsems (HMod.get_modsem A sk)) =
+                   strings.length (HModSem.fnsems (HMod.get_modsem B sk)))
+  (NONE: ∀ sk fn,
+         In fn (List.map fst (HModSem.fnsems (HMod.get_modsem B sk))) →
+         In fn (List.map fst (HModSem.fnsems (HMod.get_modsem A sk))))
+  (SIM: ∀ sk fn
+        (IN: In fn (List.map fst (HModSem.fnsems (HMod.get_modsem A sk)))),
+    HModSemR.sim_fun (HMod.get_modsem (HMod.add A C) sk)
+      (HMod.get_modsem (HMod.add B C) sk)
+      (IstProdMod A C Ist IstEq sk) fn)
+  (SK: HMod.sk A = HMod.sk B)
+  :
+  HModR.sim (HMod.add A C) (HMod.add B C) (IstProdMod A C Ist IstEq).
+Proof.
+  econs; cycle 1.
+  { ss. rewrite SK. eauto. }
+  econs.
+  - s. iIntros "[H1 H2]". iFrame. iApply INIT. eauto.
+  - s. apply sub_perm_cancel_tail. eapply SCOPE.
+  - s. rewrite !app_length. rewrite LEN. eauto.
+  - s. i. rewrite map_app in *. apply in_or_app. apply in_app_or in IN.
+    des; eauto.
+  - s. i. rewrite map_app in IN. apply in_app_or in IN. des.
+    { eapply SIM; eauto. }
+    admit.
+Admitted.
+  
 End HModProd.
-
-Ltac prove_sub_perm :=
-  s; repeat unfold_hmod; s; Lauto_normalize;
-  match goal with
-    [|-sub_perm ?x ?y] =>
-      match x with
-      | _ ++ _ => idtac
-      | _ => rewrite/__ /x
-      end;
-      match y with
-      | _ ++ _ => idtac
-      | _ => rewrite/__ /y
-      end
-  end;
-  Lauto_normalize;
-  match goal with
-    [|-sub_perm ?x ?y] =>
-      replace (sub_perm x y) with (sub_perm (x++[]) (y++[])) by (rewrite !app_nil_r; eauto)
-  end;
-  repeat first [eapply sub_perm_cancel_head|eapply sub_perm_remove_head];
-  eapply sub_perm_refl.
 
 Ltac init_simF :=
   unfold HModR.sim_fun, HModSemR.sim_fun; i;
@@ -732,89 +707,35 @@ Ltac init_simF :=
   unfold interp_sb_hp, HoareFun, cfunU, ccallU, HModSem.sandbox_body; s;
   ii; subst; iIntros "IST".
 
-Ltac init_sim := let TMP := fresh "_tmp_" in
-  econs; s;
-  [econs;
-   [repeat unfold_hmod; ss
-   |prove_sub_perm
-   |repeat unfold_hmod; ss; try nia
-   |repeat unfold_hmod; ss; i; des_ifs; eauto
-   |ii;
-    match goal with [FIND: alist_find _ _ = Some _ |-_] =>
-      let TMP := fresh "FIND_IN" in
-      assert (TMP:=FIND);
-      revert FIND
-    end;
-    repeat (
-      match goal with [FIND: alist_find _ _ = Some _ |-_] =>
-        apply alist_find_some in FIND;
-        s in FIND; apply in_app_or in FIND
-      end; des
-    );
-    i;
-    try match goal with [IN: In _ _ |- _] =>
-      revert IN; unfold_hmod; i; simpl in IN; des; try inv IN
+Ltac prove_sub_perm :=
+  i; try rewrite /HMod.get_scopes; s; repeat unfold_hmod; s; Lauto_normalize;
+  match goal with
+    [|-sub_perm ?x ?y] =>
+      match x with
+      | _ ++ _ => idtac
+      | _ => rewrite/__ /x
       end;
-    try by (esplits;
-      [ s; simpl HModSem.fnsems; repeat unfold_hmod; 
-        alist_find_simpl fnsems_nodup; refl
-      | eapply isim_reflR; [prove_nodup|ii; ss; des; eauto]])
-   ]
+      match y with
+      | _ ++ _ => idtac
+      | _ => rewrite/__ /y
+      end
+  end;
+  Lauto_normalize;
+  match goal with
+    [|-sub_perm ?x ?y] =>
+      replace (sub_perm x y) with (sub_perm (x++[]) (y++[])) by (rewrite !app_nil_r; eauto)
+  end;
+  repeat first [eapply sub_perm_cancel_head|eapply sub_perm_remove_head];
+  eapply sub_perm_refl.
+
+Ltac init_sim :=
+  first [eapply mod_sim_refl_r | econs; [econs|]];
+  [i; s; repeat unfold_hmod; s
+  |try prove_sub_perm
+  |repeat unfold_hmod; ss; try nia
+  |repeat unfold_hmod; ss; des_ifs; eauto
+  |unfold_hmod; s; i; des; subst; ss
   |repeat unfold_hmod; ss; eauto].
-
-  (* econs; s; *)
-  (* [econs; *)
-  (*  [repeat unfold_hmod; ss *)
-  (*  |repeat unfold_hmod; ss; eauto *)
-  (*  |repeat unfold_hmod; prove_nodup *)
-  (*  |repeat unfold_hmod; ss; try nia *)
-  (*  |repeat unfold_hmod; ss; i; des_ifs; eauto *)
-  (*  |ii; *)
-  (*   match goal with [FIND: alist_find _ _ = Some _ |-_] => *)
-  (*     let TMP := fresh "FIND_IN" in *)
-  (*     assert (TMP:=FIND); *)
-  (*     revert FIND *)
-  (*   end; *)
-  (*   repeat ( *)
-  (*     match goal with [FIND: alist_find _ _ = Some _ |-_] => *)
-  (*       apply alist_find_some in FIND; *)
-  (*       s in FIND; apply in_app_or in FIND *)
-  (*     end; des *)
-  (*   ); *)
-  (*   i; *)
-  (*   try match goal with [IN: In _ _ |- _] => *)
-  (*     revert IN; unfold_hmod; i; simpl in IN; des; try inv IN *)
-  (*     end; *)
-  (*   try by (esplits; *)
-  (*     [ s; simpl HModSem.fnsems; repeat unfold_hmod;  *)
-  (*       alist_find_simpl fnsems_nodup; refl *)
-  (*     | eapply isim_reflR; [prove_nodup|ii; ss; des; eauto]]) *)
-  (*  ] *)
-  (* |repeat unfold_hmod; ss; eauto]. *)
-
-(* Ltac init_sim := let TMP := fresh "_tmp_" in *)
-(*   econs; s; *)
-(*   [econs; *)
-(*    [repeat unfold_hmod; ss *)
-(*    |repeat unfold_hmod; ss; eauto *)
-(*    |repeat unfold_hmod; prove_nodup *)
-(*    |repeat unfold_hmod; ss; try nia *)
-(*    |repeat unfold_hmod; ss; i; des_ifs; eauto *)
-(*    |ii;  *)
-(*     match goal with [FIND: alist_find _ _ = Some _ |-_] => *)
-(*       let TMP := fresh "FIND_IN" in *)
-(*       assert (TMP:=FIND); apply alist_find_some in TMP; *)
-(*       revert TMP; unfold_hmod; i; simpl in TMP; des; try inv TMP *)
-(*     end *)
-(*    ] *)
-(*   |repeat unfold_hmod; ss; eauto]. *)
-
-(*
-Ltac refl_simF := let TMP := fresh "_tmp_" in
-  repeat unfold_hmod;
-  alist_find_solver; intros TMP; inv TMP; esplits; eauto;
-  ii; subst; eapply isim_reflR.
-*)
 
 
 (**** TODO ****)

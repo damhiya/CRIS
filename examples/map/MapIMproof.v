@@ -34,9 +34,6 @@ Section SIMMODSEM.
   Context `{_M: MapMR.t (Γ:=Γ)}.
   Context `{@GRA.inG memRA Γ}.  
   
-  Variable StbG: Sk.t -> gname -> option fspec.
-  Hypothesis MapInStb: forall sk, stb_incl MapMS.Stb (StbG sk).
-
   Lemma pending_unique:
     MapMS.pending -∗ MapMS.pending -∗ False%I.
   Proof.
@@ -90,11 +87,8 @@ Section SIMMODSEM.
         destruct (i-sz) eqn: EQ; try nia. eauto.
   Qed.
 
-  Local Notation MapMMod := (HMod.add (MapM.t StbG) (MemA.t (fun _ => false) StbG)).
-  Local Notation MapIMod := (HMod.add MapI.t (MemA.t (fun _ => false) StbG)).
-  
-  Definition Ist: alist key Any.t -> alist key Any.t -> iProp :=
-    fun st_src st_tgt =>
+  Definition Ist: Sk.t -> alist key Any.t -> alist key Any.t -> iProp :=
+    fun _ st_src st_tgt =>
       ((⌜st_src = [(MapM.v_size,0%Z↑);(MapM.v_map,(fun (_: Z) => 0%Z)↑)] /\
          st_tgt = [(MapI.v_hptr,Vnullptr↑)]⌝)
         ∨
@@ -103,29 +97,19 @@ Section SIMMODSEM.
           st_tgt = [(MapI.v_hptr,(Vptr blk ofs)↑)]⌝ 
           ∗ (blk, ofs) |-> (fun_to_list f (Z.to_nat sz)))
        )%I.
+  
+  Variable StbG: Sk.t -> gname -> option fspec.
+  Hypothesis MapInStb: forall sk, stb_incl MapMS.Stb (StbG sk).
+
+  Local Notation MapIMod := (HMod.add MapI.t (MemA.t (const false) StbG)).
+  Local Notation MapMMod := (HMod.add (MapM.t StbG (const emp%I)) (MemA.t (const false) StbG)).
+
+  Local Notation IstFull := (IstProdMod (MapM.t StbG (const emp%I)) (MemA.t (const false) StbG) Ist IstEq).
 
   (**********)
 
-  Ltac hss :=
-  ss;
-  try (rewrite !Any.pair_split in * );
-  try (rewrite !Any.upcast_downcast in * );
-  (repeat match goal with [G: Any.downcast _ = Some _ |-_] =>
-    apply Any.downcast_upcast in G; inv G; ss
-   end);
-  (repeat match goal with [G: Any.upcast (_:?T) = Any.upcast (_:?T) |-_] =>
-    apply Any.upcast_inj in G; destruct G as [_ G]; red in G; depdes G; ss
-   end);
-  (repeat match goal with [G: Some _ = Some _ |- _] =>
-    depdes G; ss
-     end);
-  try (rewrite !Any.pair_split in * );
-  try (rewrite !Any.upcast_downcast in * );
-  (repeat (alist_add_simpl trivial_nodup)); s.
-  
   Lemma simF_init:
-    HModR.sim_fun MapMMod MapIMod (IstProd [MapM.scope] [MemA.scope] Ist IstEq)
-      MapName.init.
+    HModR.sim_fun MapMMod MapIMod IstFull MapName.init.
   Proof.
     init_simF.
 
@@ -227,8 +211,7 @@ Section SIMMODSEM.
   Qed.
 
   Lemma simF_get:
-    HModR.sim_fun MapMMod MapIMod (IstProd [MapM.scope] [MemA.scope] Ist IstEq)
-      MapName.get.
+    HModR.sim_fun MapMMod MapIMod IstFull MapName.get.
   Proof.
     init_simF.
 
@@ -277,8 +260,7 @@ Section SIMMODSEM.
   Qed.
 
   Lemma simF_set:
-    HModR.sim_fun MapMMod MapIMod (IstProd [MapM.scope] [MemA.scope] Ist IstEq)
-      MapName.set.
+    HModR.sim_fun MapMMod MapIMod IstFull MapName.set.
   Proof.
     init_simF.
 
@@ -328,8 +310,7 @@ Section SIMMODSEM.
   Qed.
 
   Lemma simF_set_by_user:
-    HModR.sim_fun MapMMod MapIMod (IstProd [MapM.scope] [MemA.scope] Ist IstEq)
-      MapName.set_by_user.
+    HModR.sim_fun MapMMod MapIMod IstFull MapName.set_by_user.
   Proof.
     init_simF.
 
@@ -346,7 +327,7 @@ Section SIMMODSEM.
     iSplitL "W". { iFrame. eauto. }
 
     (* make a call to set *)
-    call; [eauto|].
+    call "IST"; [eauto|].
 
     (* SRC: handle the postcond of set *)
     steps_l. iDestruct "ASM" as "(W & _ & %)". subst. hss. steps_r.
@@ -358,14 +339,16 @@ Section SIMMODSEM.
     step. eauto.
   Qed.
 
-  Theorem sim: HModR.sim MapMMod MapIMod (IstProd [MapM.scope] [MemA.scope] Ist IstEq).
+  Theorem sim:
+    HModR.sim MapMMod MapIMod IstFull.
   Proof.
     init_sim.
-    - iIntros "(_& H)". iFrame.
-      iExists _, _, _, _. iSplitR; cycle 1.
-      + iSplitL; eauto. iLeft; eauto.
-      + instantiate (1:=[]). rewrite !app_nil_r.
-        iPureIntro. esplits; ii; ss; des; eauto.
+    - iIntros "_". iSplitL ""; eauto.
+      repeat iExists _. iSplitL ""; cycle 1.
+      + iSplitR ""; eauto. iLeft. eauto.
+      + iPureIntro. esplits; eauto.
+        * etrans; [|eapply HModSem.well_scoped_init]; ss.
+        * etrans; [|eapply HModSem.well_scoped_init]; ss.
     - eapply simF_init; eauto.
     - eapply simF_get; eauto.
     - eapply simF_set; eauto.

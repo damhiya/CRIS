@@ -34,8 +34,8 @@ Section A.
   Context `{_A: MapAR.t (Γ:=Γ)}.
   Context `{_M: MapMR.t (Γ:=Γ)}.
 
-  Definition scope := "Map".
-  Definition v_map := scope ↯ "map".
+  Definition scopes := ["Map"].
+  Definition v_map := "Map" ↯ "map".
   
   Definition init: list val -> itree smodE val :=
     fun varg =>
@@ -65,29 +65,28 @@ Section A.
   .
 
   Definition fnsems :=
-    [(MapName.init, ([scope], mk_specbody MapAS.init_spec (cfunU init)));
-     (MapName.get, ([scope],mk_specbody MapAS.get_spec (cfunU get)));
-     (MapName.set, ([scope],mk_specbody MapAS.set_spec (cfunU set)));
-     (MapName.set_by_user, ([scope], mk_specbody MapAS.set_by_user_spec (cfunU set_by_user)))].
+    [(MapName.init, (scopes, mk_specbody MapAS.init_spec (cfunU init)));
+     (MapName.get, (scopes,mk_specbody MapAS.get_spec (cfunU get)));
+     (MapName.set, (scopes,mk_specbody MapAS.set_spec (cfunU set)));
+     (MapName.set_by_user, (scopes, mk_specbody MapAS.set_by_user_spec (cfunU set_by_user)))].
 
-  Variable initial_condM: iProp.
-
-  Program Definition Sem : SModSem.t := {|
-    SModSem.scopes := [scope];
+  Program Definition Sem (base_cond: iProp) : SModSem.t := {|
+    SModSem.scopes := scopes;
     SModSem.fnsems := fnsems;
-    SModSem.initial_cond := (MapAS.initial_map ∗ MapMS.pending ∗ initial_condM)%I;
+    SModSem.initial_cond := (MapAS.initial_map ∗ MapMS.pending ∗ base_cond)%I;
     SModSem.initial_st := [(v_map,(fun (_: Z) => 0%Z)↑)];
   |}.
   Solve All Obligations with prove_scope.
 
-  Definition Mod : SMod.t := {|
-    SMod.get_modsem := fun _ => Sem;
+  Definition Mod (base_cond: Sk.t -> iProp) : SMod.t := {|
+    SMod.get_modsem := fun sk => Sem (base_cond sk);
     SMod.sk := MapSK.t;
   |}
   .
 
   Variable GlobalStb: Sk.t -> gname -> option fspec.
-  Definition t := Seal.sealing "ccr" (SMod.to_hmod GlobalStb Mod).
+  Variable base_cond: Sk.t -> iProp.
+  Definition t := Seal.sealing "ccr" (SMod.to_hmod GlobalStb (Mod base_cond)).
 
 End A.
 End MapA.

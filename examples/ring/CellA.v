@@ -23,23 +23,24 @@ Section CELL_A.
     [(CellName.get idx, ([], mk_specbody (CellAS.get_spec idx) fbody_trivial));
      (CellName.set idx, ([], mk_specbody (CellAS.set_spec idx) fbody_trivial))].
 
-  Program Definition Sem: SModSem.t := {|
+  Program Definition Sem base_cond : SModSem.t := {|
     SModSem.scopes := scopes;
     SModSem.fnsems := fnsems;
     SModSem.initial_st := [];
-    SModSem.initial_cond := Some (∃ v, CellAS.cell idx v ∗ CellAS.auth idx v)%I;
+    SModSem.initial_cond := (∃ v, CellAS.cell idx v ∗ CellAS.auth idx v ∗ base_cond)%I;
   |}
   .
   Solve All Obligations with prove_scope.
 
-  Definition Mod: SMod.t := {|
-    SMod.get_modsem := fun _ => Sem;
+  Definition Mod base_cond : SMod.t := {|
+    SMod.get_modsem := fun sk => Sem (base_cond sk);
     SMod.sk := CellSK.t;
   |}
   .
 
   Variable GlobalStb: Sk.t -> gname -> option fspec.
-  Definition t := Seal.sealing "ccr" (SMod.to_hmod GlobalStb Mod).
+  Variable base_cond: Sk.t -> iProp.
+  Definition t := Seal.sealing "ccr" (SMod.to_hmod GlobalStb (Mod base_cond)).
 
 End CELL_A.
 End CellA.

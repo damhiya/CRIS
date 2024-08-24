@@ -580,3 +580,15 @@ Proof.
   erewrite (itree_eta_ itr1).
   f_equal. auto.
 Qed.
+
+Lemma unfold_iter_eq (E : Type -> Type) (A B : Type) (f : A -> itree E (A + B)) (x : A)
+  :
+  ITree.iter f x = lr <- f x;;
+                   match lr with
+                   | inl l => tau;; ITree.iter f l
+                   | inr r => Ret r
+                   end.
+Proof.
+  eapply bisim_is_eq. eapply unfold_iter.
+Qed.
+

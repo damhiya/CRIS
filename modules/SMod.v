@@ -21,7 +21,7 @@ Section SMODSEM.
     scopes: list string;
     fnsems: alist gname (list string * fspecbody);
     initial_st: alist key Any.t;
-    initial_cond: option iProp;
+    initial_cond: iProp;
     well_scoped_fns:
       forall fn, incl (fnsems_scopes fn fnsems) scopes;
     well_scoped_init:

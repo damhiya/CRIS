@@ -65,8 +65,7 @@ Section LEMMAS.
   Proof.
     unfold interp_smod. rewrite! interp_trigger. grind.
     destruct sti_tgt. unfold HoareAPC.
-    iIntros "K".
-    force_l. instantiate (1:= at_most).
+    iIntros "K". force_l. instantiate (1:= at_most).
     iApply "K".
   Qed.
 
@@ -125,7 +124,7 @@ Section LEMMAS.
     force_l. instantiate (1:= varg_tgt).
     force_l. iSplitL "P"; [eauto|].
 
-    call; [eauto|].
+    call "IST"; [eauto|].
     steps_l. iApply "K". iFrame.
   Qed.
 

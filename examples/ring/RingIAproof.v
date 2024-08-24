@@ -36,7 +36,7 @@ Section SIMMODSEM.
   Hypothesis RingInStb: forall sk, stb_incl RingAS.Stb (StbG sk).
   Hypothesis CellInStb: forall sk idx (LT: idx < max_size), stb_incl (CellAS.Stb idx) (StbG sk).
 
-  Local Notation CellAMod := (fun idx => CellA.t idx StbG).
+  Local Notation CellAMod := (fun idx => CellA.t idx StbG (const emp%I)).
 
   Fixpoint CellGroup start len : HMod.t :=
     match len with
@@ -44,7 +44,7 @@ Section SIMMODSEM.
     | S len' => HMod.add (CellAMod start) (CellGroup (S start) len')
     end.
 
-  Local Notation RingAMod := (HMod.add (RingA.t max_size StbG) (CellGroup 0 max_size)).
+  Local Notation RingAMod := (HMod.add (RingA.t max_size StbG (const emp%I)) (CellGroup 0 max_size)).
   Local Notation RingIMod := (HMod.add (CtrlI.t max_size) (CellGroup 0 max_size)).
 
   Lemma cellgroup_split idx start len (RANGE: start <= idx < start + len):
@@ -119,7 +119,7 @@ Section SIMMODSEM.
        ([∗ list] i↦x ∈ q', (CellAS.pending ((hd+i) mod max_size) ∨ CellAS.cell ((hd+i) mod max_size) x)))%I.
 
   Definition IstFull :=
-    IstProdMod (HMod.get_scopes (RingA.t max_size StbG)) (HMod.get_scopes (CellGroup 0 max_size)) Ist IstEq.
+    IstProdMod (RingA.t max_size StbG) (CellGroup 0 max_size) Ist IstEq.
 
   Lemma simF_init:
     HModR.sim_fun RingAMod RingIMod IstFull RingName.init.
@@ -285,86 +285,10 @@ Section SIMMODSEM.
         nia.
   Qed.
 
-Require Import LAuto.  
-
-Ltac prove_sub_perm :=
-  s; repeat unfold_hmod; s; Lauto_normalize;
-  match goal with
-    [|-sub_perm ?x ?y] =>
-      match x with
-      | _ ++ _ => idtac
-      | _ => rewrite/__ /x
-      end;
-      match y with
-      | _ ++ _ => idtac
-      | _ => rewrite/__ /y
-      end
-  end;
-  Lauto_normalize;
-  match goal with
-    [|-sub_perm ?x ?y] =>
-      replace (sub_perm x y) with (sub_perm (x++[]) (y++[])) by (rewrite !app_nil_r; eauto)
-  end;
-  repeat first [eapply sub_perm_cancel_head|eapply sub_perm_remove_head];
-  eapply sub_perm_refl.
-
-
-Lemma mod_sim_refl_r A B C Ist
-  (SK: HMod.sk A = HMod.sk B)
-  :
-  HModR.sim (HMod.add A C) (HMod.add B C) (IstProdMod (HMod.get_scopes A) (HMod.get_scopes B) Ist IstEq).
-Proof.
-  econs; cycle 1.
-  { ss. rewrite SK. eauto. }
-  econs.
-  - s.
-  
-    
-
-    
-  
-  
-Qed.  
-
-  
   Theorem sim: HModR.sim RingAMod RingIMod IstFull.
   Proof.
-
-(* Ltac init_sim := let TMP := fresh "_tmp_" in *)
-  econs; s;
-  [econs;
-   [repeat unfold_hmod; ss
-   |prove_sub_perm
-   |repeat unfold_hmod; ss; try nia
-   |repeat unfold_hmod; ss; i; des_ifs; eauto
-   |ii;
-    match goal with [FIND: alist_find _ _ = Some _ |-_] =>
-      let TMP := fresh "FIND_IN" in
-      assert (TMP:=FIND);
-      revert FIND
-    end;
-    repeat (
-      match goal with [FIND: alist_find _ _ = Some _ |-_] =>
-        apply alist_find_some in FIND;
-        s in FIND; apply in_app_or in FIND
-      end; des
-    );
-    i;
-    try match goal with [IN: In _ _ |- _] =>
-      revert IN; unfold_hmod; i; simpl in IN; des; try inv IN
-      end;
-    try by (esplits;
-      [ s; simpl HModSem.fnsems; repeat unfold_hmod; 
-        alist_find_simpl fnsems_nodup; refl
-      | eapply isim_reflR; [prove_nodup|ii; ss; des; eauto]])
-   ]
-  |repeat unfold_hmod; ss; eauto].
-
-    (* init_sim. *)
-    - iIntros "H".
-      iPoseProof (HModSem.add_oiprop_split with "H") as "(R & CG)". s.
-      iSplitL "CG".
-      { iApply HModSem.add_oiprop_merge. s. iFrame. }
+    init_sim.
+    - iIntros "R". iSplitL ""; eauto.
       repeat iExists _. iSplitL ""; cycle 1.
       + iSplitR ""; eauto. unfold Ist.
         iExists [], (replicate max_size 0%Z), 0, 0.
@@ -376,34 +300,11 @@ Qed.
           iLeft. rewrite Nat.mod_small; eauto.
           eapply lookup_replicate_1. eauto.
       + iPureIntro. esplits; ss; eauto.
-        * unfold RingA.t. unseal "ccr". ss.
-        * eapply HModSem.well_scoped_init.
-    - eapply simF_init; eauto.
-    - eapply simF_get_size; eauto.
-    - eapply simF_enqueue; eauto.
-    - eapply simF_dequeue; eauto.
-    - 
-
-      
-
-
-
-
-
-      unfold Ist. induction max_size; s.
-      + iIntros "_". iSplitL ""; eauto. unfold IstProd.
-        repeat iExists _. iSplitL ""; cycle 1.
-        * iSplitR ""; eauto.
-          iExists [], [], 0, 0. s. eauto.
-        * rewrite app_nil_r.
-          iPureIntro. esplits; ss; eauto.
-      + iIntros "H". unfold CellA.t. unseal "ccr". s.
-        
-          
-     
-    - use_simF simF_init.
-    - use_simF simF_get.
-    - use_simF simF_set.
+        apply HModSem.well_scoped_init.
+    - apply simF_init.
+    - apply simF_get_size.
+    - apply simF_enqueue.
+    - apply simF_dequeue.
   Qed.
 
 End SIMMODSEM.

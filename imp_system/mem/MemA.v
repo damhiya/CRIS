@@ -20,7 +20,6 @@ Compute (URA.car).
 
 Local Arguments Z.of_nat: simpl nomatch.
 
-Module MemA.
 Section BODY.
   Context `{@GRA.inG memRA Σ}.
 
@@ -188,11 +187,11 @@ End POINTS_TO. *)
 
 
 
-
+Module MemA.
 Section PROOF.
   Context `{@GRA.inG memRA Σ}.
 
-  Definition scope := "Mem".
+  Definition scopes := ["Mem"].
 
   Definition alloc_spec: fspec :=
     (mk_simple (fun sz => (
@@ -251,23 +250,24 @@ Section PROOF.
 
   Variable csl: gname -> bool.
 
-  Program Definition MemSem (sk: Sk.t): SModSem.t := {|
-    SModSem.scopes := [scope];
+  Program Definition Sem (sk: Sk.t) (* base_cond  *): SModSem.t := {|
+    SModSem.scopes := scopes;
     SModSem.fnsems := MemSbtb;
-    SModSem.initial_cond := initial_mem csl sk;
+    SModSem.initial_cond := initial_mem csl sk (* ∗ base_cond *);
     SModSem.initial_st := [];
   |}
   .
   Solve All Obligations with prove_scope.
 
-  Definition Mem: SMod.t := {|
-    SMod.get_modsem := MemSem;
+  Definition Mod (* base_cond *) : SMod.t := {|
+    SMod.get_modsem := fun sk => Sem sk (* (base_cond sk) *);
     SMod.sk := Sk.unit;
   |}
   .
 
-  Variable GlobalStb: Sk.t -> gname -> option fspec.  
-  Definition t : HMod.t := Seal.sealing "ccr" (SMod.to_hmod GlobalStb Mem).
+  Variable GlobalStb: Sk.t -> gname -> option fspec.
+  (* Variable base_cond: Sk.t -> iProp. *)
+  Definition t : HMod.t := Seal.sealing "ccr" (SMod.to_hmod GlobalStb (Mod (* base_cond *))).
   
 End PROOF.
 End MemA.

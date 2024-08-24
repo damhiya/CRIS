@@ -24,7 +24,7 @@ Section IPROP.
   Record iProp' :=
     iProp_intro {
         iProp_pred :> iPred;
-        iProp_mono: forall r0 r1 (WF: URA.wf r1) (LE: URA.extends r0 r1),
+        iProp_mono: forall r0 r1 (* (WF: URA.wf r1) *) (LE: URA.extends r0 r1),
           iProp_pred r0 -> iProp_pred r1;
       }.
 
@@ -36,7 +36,7 @@ Section IPROP.
     red in LE. des; subst.
     exists H, (H0 ⋅ ctx). rewrite URA.add_assoc. splits; auto.
     eapply iProp_mono; eauto.
-    { eapply URA.wf_mon. instantiate(1:=H). r_wf WF. }
+    (* { eapply URA.wf_mon. instantiate(1:=H). r_wf WF. } *)
     { exists ctx. auto. }
   Qed.
 
@@ -117,7 +117,7 @@ Section IPROP.
       (iProp_intro (fun r0 => P (URA.core r0)) _).
   Next Obligation.
     eapply iProp_mono; eauto.
-    { eapply URA.wf_core; eauto. }
+    (* { eapply URA.wf_core; eauto. } *)
     { eapply URA.extends_core; eauto. }
   Qed.
 
@@ -313,7 +313,7 @@ Section IPROP.
   Proof.
     ii. uipropall. ii. des. subst.
     eapply iProp_mono; [..|eauto].
-    { eapply URA.wf_core; eauto. }
+    (* { eapply URA.wf_core; eauto. } *)
     { eapply URA.extends_core; eauto. exists b. auto. }
   Qed.
 
