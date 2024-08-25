@@ -409,9 +409,9 @@ Ltac unfold_stb :=
   try match goal with
     [|-context[unwrapN (?stb ?sk ?name)]] =>
       try match goal with
-        [H: ∀ sk, stb_incl _ (stb sk)|-_] =>
+        [H: context[stb_incl _ (stb _)]|-_] =>
           let RW := fresh "_RW" in let ND := fresh "_ND" in
-          destruct (H sk) as [ND RW];
+          edestruct H as [ND RW];
           erewrite (RW name);
           [|revert ND; unfold to_stb;
             match goal with [|-context[alist_find _ ?x]] => rewrite/__ /x end;
