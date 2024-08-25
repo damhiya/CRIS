@@ -167,6 +167,10 @@ Notation "'do' ( X , Y ) <- A ; B" := (o_bind2 A (fun X Y => B))
  (at level 200, X ident, Y ident, A at level 100, B at level 200)
  : o_monad_scope.
 
+Notation "'do' ' X <- A ; B" := (o_bind A (fun _x => match _x with | X => B end))
+                                  (at level 200, X pattern, A at level 100, B at level 200)
+                                : o_monad_scope.
+
 Notation "'assertion' A ; B" := (if A then B else None)
   (at level 200, A at level 100, B at level 200, only parsing)
   : o_monad_scope.

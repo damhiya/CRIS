@@ -23,13 +23,22 @@ Section CTX_REFINE.
   Context `{Σ: GRA.t}.
   Context `{Sk.ld}.
 
-  Definition refines (md_src md_tgt: HMod.t): Prop :=
-    let Ps := md_src.(HMod.get_modsem) md_src.(HMod.sk) in
-    let Pt := md_tgt.(HMod.get_modsem) md_tgt.(HMod.sk) in
-
-    forall (rs: Σ) (WFR: URA.wf rs) (WFM: Ps.(HModSem.wf)) (SRC: Ps.(HModSem.initial_cond) rs),
-    exists rt, URA.wf rt /\ Pt.(HModSem.wf) /\ Pt.(HModSem.initial_cond) rt /\
-    refines_mod (HMod.to_mod md_src rs) (HMod.to_mod md_tgt rt).
+  Definition refines (md_src md_tgt: HMod.tp): Prop :=
+    let sk := md_src.1.(HMod.sk) in
+    let sk' := md_tgt.1.(HMod.sk) in
+    let ms := md_src.1.(HMod.modsem) sk in
+    let mt := md_tgt.1.(HMod.modsem) sk' in
+    
+    sk = sk'
+    /\
+    forall (SKWF: Sk.wf sk)
+      rs 
+      (WFR: URA.wf rs) (SRC: md_src.2 sk rs),
+      (WFM: HModSem.wf ms)
+    exists rt,
+      URA.wf rt /\ md_tgt.2 sk rt /\
+      HModSem.wf mt /\
+      refines_mod (HMod.to_mod md_src.1 rs) (HMod.to_mod md_tgt.1 rt).
 
   Definition ctx_refines (md_src md_tgt: HMod.t): Prop :=
     forall (ctx: HMod.t),

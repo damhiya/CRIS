@@ -789,6 +789,7 @@ Module HModSemR.
     Import HModSem.
     Context `{_W: CtxWD.t}. 
     Variable (ms_src ms_tgt: HModSem.t).
+    Variable init_cond: iProp.
     Variable Ist: alist key Any.t -> alist key Any.t -> iProp.
 
     Let scopes_src := ms_src.(scopes).
@@ -797,8 +798,6 @@ Module HModSemR.
     Let fnsems_tgt := ms_tgt.(fnsems).
     Let init_src := ms_src.(initial_st).
     Let init_tgt := ms_tgt.(initial_st).
-    Let cond_src := ms_src.(initial_cond).
-    Let cond_tgt := ms_tgt.(initial_cond).
 
     Definition sim_fun fn : Prop :=
       forall
@@ -815,7 +814,7 @@ Module HModSemR.
     Inductive sim: Prop :=
       mk {
           sim_initial:
-            cond_src ⊢ cond_tgt ∗ (Ist init_src init_tgt);
+            init_cond ⊢ Ist init_src init_tgt;
           sim_scopes:
             sub_perm scopes_tgt scopes_src; 
           sim_length:
@@ -836,19 +835,21 @@ Module HModR.
   Section SIM.
     Context `{_W: CtxWD.t}. 
     Variable (md_src md_tgt: HMod.t).
-    Variable Ist: Sk.t -> alist key Any.t -> alist key Any.t -> iProp.
+    Variable init_cond : Sk.t -> Sk.t -> iProp.
+    Variable Ist: Sk.t -> Sk.t -> alist key Any.t -> alist key Any.t -> iProp.
 
     Inductive sim: Prop :=
       mk {
           sim_modsem:
-            forall sk (SKINCL: Sk.incl md_tgt.(HMod.sk) sk) (SKWF: Sk.wf sk),
-              <<SIM: HModSemR.sim (md_src.(HMod.get_modsem) sk) (md_tgt.(HMod.get_modsem) sk) (Ist sk)>>;
-          sim_sk: <<SIM: md_src.(HMod.sk) = md_tgt.(HMod.sk)>>;
+          forall skl skr (EQV: Sk.equiv skl skr)
+                 (SKINCL: List.incl md_src.(HMod.sk) skl) (SKWF: Sk.wf skl),
+            <<SIM: HModSemR.sim (md_src.(HMod.modsem) skl) (md_tgt.(HMod.modsem) skr) (init_cond skl skr) (Ist skl skr)>>;
+          sim_sk: <<SIM: Sk.equiv md_src.(HMod.sk) md_tgt.(HMod.sk)>>;
         }.
 
     Definition sim_fun fn : Prop :=
-      forall sk,
-        HModSemR.sim_fun (HMod.get_modsem md_src sk) (HMod.get_modsem md_tgt sk) (Ist sk) fn.
+      forall skl skr,
+        HModSemR.sim_fun (HMod.modsem md_src skl) (HMod.modsem md_tgt skr) (Ist skl skr) fn.
 
   End SIM.
 End HModR.

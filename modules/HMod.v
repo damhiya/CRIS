@@ -20,7 +20,6 @@ Section HMODSEM.
     scopes : list string;
     fnsems : alist gname (list string * (Any.t -> itree hmodE Any.t));
     initial_st : alist key Any.t;
-    initial_cond: iProp;
     
     well_scoped_fns:
       forall fn, incl (fnsems_scopes fn fnsems) scopes;
@@ -39,7 +38,6 @@ Section HMODSEM.
     scopes := [];
     fnsems := [];
     initial_st := [];
-    initial_cond := emp;
   |}.
   Next Obligation. ii; ss. Qed.
   Next Obligation. ii; ss. Qed.
@@ -48,7 +46,6 @@ Section HMODSEM.
     fnsems := ms1.(fnsems) ++ ms2.(fnsems);
     scopes := ms1.(scopes) ++ ms2.(scopes);
     initial_st := ms1.(initial_st) ++ ms2.(initial_st);
-    initial_cond := ms1.(initial_cond) ∗ ms2.(initial_cond);
   |}.
   Next Obligation.
     ii. unfold fnsems_scopes in H. des_ifs. 
@@ -101,27 +98,29 @@ Section HMOD.
   Context `{Σ: GRA.t}.
 
   Record t: Type := mk {
-    get_modsem: Sk.t -> HModSem.t;
+    modsem: Sk.t -> HModSem.t;
     sk: Sk.t;
   }.
 
+  Definition tp : Type := (t * iProp)%type.
+
   Definition empty := {|
-    get_modsem := fun sk => HModSem.empty;
+    modsem := const (HModSem.empty);
     sk := []
   |}.
   
   Definition add (md0 md1: t): t := {|
-    get_modsem := fun sk => HModSem.add (md0.(get_modsem) sk) (md1.(get_modsem) sk);
+    modsem := fun sk => HModSem.add (md0.(modsem) sk) (md1.(modsem) sk);
     sk := Sk.add md0.(sk) md1.(sk);
   |}.
 
   Definition to_mod (md: t) (r: Σ): Mod.t := {|
-    Mod.get_modsem := fun sk => HModSem.to_mod (md.(get_modsem) sk) r;
+    Mod.modsem := fun sk => HModSem.to_mod (md.(modsem) sk) r;
     Mod.sk := md.(sk);
   |}.
 
   Definition get_scopes (md: t) : Sk.t -> list string :=
-    fun sk => (md.(get_modsem) sk).(HModSem.scopes).
+    fun sk => (md.(modsem) sk).(HModSem.scopes).
   
 End HMOD.
 End HMod.
@@ -150,11 +149,37 @@ Section PROPERTIES.
       rewrite URA.add_assoc. eauto.
   Qed.
 
+  Lemma iprop_add_empty_l (P: iProp):
+    (emp ∗ P)%I = P.
+  Proof.
+    unfold iProp, bi_car, bi_sep, Sepconj, bi_emp, Emp. unseal "iProp".
+    apply iprop'_extensionality. s.
+    extensionality r. apply propositional_extensionality.
+    split; i.
+    - des. subst. eapply iProp_mono; eauto.
+      rr. esplits; eauto. rewrite URA.add_comm. eauto.
+    - exists ε, r. esplits; eauto.
+      rewrite URA.unit_idl. eauto.
+  Qed.
+
+  Lemma iprop_add_empty_r (P: iProp):
+    (P ∗ emp)%I = P.
+  Proof.
+    unfold iProp, bi_car, bi_sep, Sepconj, bi_emp, Emp. unseal "iProp".
+    apply iprop'_extensionality. s.
+    extensionality r. apply propositional_extensionality.
+    split; i.
+    - des. subst. eapply iProp_mono; eauto.
+      rr. esplits; eauto.
+    - exists r, ε. esplits; eauto.
+      rewrite URA.add_comm. rewrite URA.unit_idl. eauto.
+  Qed.
+
   Lemma hmodsem_extensionality (ms1 ms2: HModSem.t)
     (SCOPE: HModSem.scopes ms1 = HModSem.scopes ms2)
     (FNSEM: HModSem.fnsems ms1 = HModSem.fnsems ms2)
     (INITS: HModSem.initial_st ms1 = HModSem.initial_st ms2)
-    (INITC: HModSem.initial_cond ms1 = HModSem.initial_cond ms2)
+    (* (INITC: HModSem.initial_cond ms1 = HModSem.initial_cond ms2) *)
     :
     ms1 = ms2.
   Proof.
@@ -166,38 +191,20 @@ Section PROPERTIES.
   Proof.
     destruct ms1, ms2, ms3.
     apply hmodsem_extensionality; s; try rewrite app_assoc; eauto.
-    (* unfold HModSem.add_oiprop. unseal "ccr". *)
-    destruct initial_cond, initial_cond0, initial_cond1; ss.
-    (* unfold o_bind. s. *)
-    rewrite iprop_sepconj_assoc. eauto.
+    (* destruct initial_cond, initial_cond0, initial_cond1; ss. *)
+    (* rewrite iprop_sepconj_assoc. eauto. *)
   Qed.
 
   Lemma hmodsem_add_empty_l ms:
     HModSem.add HModSem.empty ms = ms.
   Proof.
     destruct ms. apply hmodsem_extensionality; s; eauto.    
-    unfold iProp, bi_car, bi_sep, Sepconj, bi_emp, Emp. unseal "iProp".
-    apply iprop'_extensionality. s.
-    extensionality r. apply propositional_extensionality.
-    split; i.
-    - des. subst. eapply iProp_mono; eauto.
-      rr. esplits; eauto. rewrite URA.add_comm. eauto.
-    - exists ε, r. esplits; eauto.
-      rewrite URA.unit_idl. eauto.
   Qed.
 
   Lemma hmodsem_add_empty_r ms:
     HModSem.add ms HModSem.empty = ms.
   Proof.
     destruct ms. apply hmodsem_extensionality; s; try rewrite app_nil_r; eauto.
-    unfold iProp, bi_car, bi_sep, Sepconj, bi_emp, Emp. unseal "iProp".
-    apply iprop'_extensionality. s.
-    extensionality r. apply propositional_extensionality.
-    split; i.
-    - des. subst. eapply iProp_mono; eauto.
-      rr. esplits; eauto.
-    - exists r, ε. esplits; eauto.
-      rewrite URA.add_comm. rewrite URA.unit_idl. eauto.
   Qed.
 
   Lemma hmod_add_assoc (md1 md2 md3: HMod.t):
@@ -205,7 +212,7 @@ Section PROPERTIES.
   Proof.
     destruct md1, md2, md3. unfold HMod.add. s. f_equal.
     - extensionalities. rewrite hmodsem_add_assoc. eauto.
-    - rewrite Sk.add_assoc. eauto.
+    - unfold Sk.add. rewrite app_assoc. eauto.
   Qed.
 
   Lemma hmod_add_empty_l md:

@@ -8,8 +8,262 @@ Require Import STS Behavior.
 Require Import Any.
 Require Import Mod Events.
 Require Import AList.
+Require Import SMod2HMod.
+Require Import STB.
+Require Import Orders.
+Require Import PCM.
 
 Set Implicit Arguments.
+
+(* ========================================================================== *)
+(** ** SkEnv *)
+
+Fixpoint _find_idx {A} (f: A -> bool) (l: list A) (acc: nat): option (nat * A) :=
+  match l with
+  | [] => None
+  | hd :: tl => if (f hd) then Some (acc, hd) else _find_idx f tl (S acc)
+  end
+.
+
+Definition find_idx {A} (f: A -> bool) (l: list A): option (nat * A) := _find_idx f l 0.
+
+Lemma find_idx_red {A} (f: A -> bool) (l: list A):
+  find_idx f l =
+  match l with
+  | [] => None
+  | hd :: tl =>
+    if (f hd)
+    then Some (0%nat, hd)
+    else
+      do (n, a) <- find_idx f tl;
+      Some (S n, a)
+  end.
+Proof.
+  unfold find_idx. generalize 0. induction l; ss.
+  i. des_ifs; ss.
+  - rewrite Heq0. ss.
+  - rewrite Heq0. specialize (IHl (S n)). rewrite Heq0 in IHl. ss.
+Qed.
+
+Module AnySort.
+
+  Module AnyT <: Typ. Definition t := Any.t. End AnyT.
+
+  Module SkSort := AListSort AnyT.
+  
+  Definition sort: Sk.t -> Sk.t := SkSort.sort.
+
+  Definition sort_wf sk (WF: Sk.wf sk):
+    Sk.wf (sort sk).
+  Proof.
+    ss. eapply Permutation.Permutation_NoDup; [|apply WF].
+    eapply Permutation.Permutation_map.
+    eapply SkSort.sort_permutation.
+  Qed.
+  
+  Definition sort_equiv sk0 sk1
+    (WF: Sk.wf sk0)
+    (EQV: Sk.equiv sk0 sk1)
+    :
+    sort sk0 = sort sk1.
+  Proof.
+    eapply SkSort.permutation_sort; eauto.
+    eapply NoDupA_eq_Nodup in WF.
+    unfold SkSort._Order.eqA, StringOrder.eqA.
+    clear EQV sk1. revert WF.
+    induction sk0; i; ss.
+    - econs.
+    - inv WF. econs; eauto.
+      apply Forall_forall. i.
+      eapply Forall_forall in HD; eauto.
+      eapply in_map. eauto.
+  Qed.
+
+  Lemma sort_incl sk
+    :
+    List.incl sk (sort sk).
+  Proof.
+    ii. eapply Permutation.Permutation_in; [|apply H].
+    eapply SkSort.sort_permutation.
+  Qed.
+
+  Lemma sort_incl_rev sk
+    :
+    List.incl (sort sk) sk.
+  Proof.
+    ii. eapply Permutation.Permutation_in; [|apply H].
+    symmetry. eapply SkSort.sort_permutation.
+  Qed.
+
+End AnySort.
+
+
+Module SkEnv.
+
+  Notation mblock := nat (only parsing).
+  Notation ptrofs := Z (only parsing).
+
+  Record t: Type := mk {
+    blk2id: mblock -> option gname;
+    id2blk: gname -> option mblock;
+  }
+  .
+  
+  Definition wf (ske: t): Prop :=
+    forall id blk, ske.(id2blk) id = Some blk <-> ske.(blk2id) blk = Some id.
+
+  Definition load_skenv (sk0: Sk.t): t :=
+    let sk := AnySort.sort sk0 in
+    let n := List.length sk in
+    {|
+      SkEnv.blk2id := fun blk => do '(gn, _) <- (List.nth_error sk blk); Some gn;
+      SkEnv.id2blk := fun id => do '(blk, _) <- find_idx (fun '(id', _) => string_dec id id') sk; Some blk
+    |}
+  .
+
+  Lemma load_skenv_wf
+        sk
+        (WF: Sk.wf sk)
+    :
+      <<WF: wf (load_skenv sk)>>
+  .
+  Proof.
+    unfold load_skenv.
+    apply AnySort.sort_wf in WF. revert WF.
+    generalize (AnySort.sort sk). clear sk. intros sk WF.
+
+    r in WF.
+    rr. split; i; ss.
+    - uo; des_ifs.
+      + f_equal. ginduction sk; ss. i. inv WF.
+        rewrite find_idx_red in Heq1. des_ifs; ss.
+        { des_sumbool. subst. ss. clarify. }
+        des_sumbool. uo. des_ifs. destruct p. ss.
+        hexploit IHsk; et.
+      + exfalso. ginduction sk; ss. i. inv WF.
+        rewrite find_idx_red in Heq2. des_ifs; ss.
+        des_sumbool. uo. des_ifs. destruct p. ss.
+        hexploit IHsk; et.
+    - ginduction sk; ss.
+      { i. uo. ss. destruct blk; ss. }
+      i. destruct a. inv WF. uo. destruct blk; ss; clarify.
+      {  rewrite find_idx_red. uo. des_ifs; des_sumbool; ss. }
+      hexploit IHsk; et. i.
+      rewrite find_idx_red. uo. des_ifs; des_sumbool; ss. exfalso.
+      subst. clear - Heq1 H2. ginduction sk; ss. i.
+      rewrite find_idx_red in Heq1. des_ifs; des_sumbool; ss; et.
+      uo. des_ifs. destruct p. eapply IHsk; et.
+  Qed.
+
+  Definition incl_env (sk0: Sk.t) (skenv: t): Prop :=
+    forall gn gd (IN: List.In (gn, gd) sk0),
+    exists blk, <<FIND: skenv.(SkEnv.id2blk) gn = Some blk>>.
+
+  Lemma incl_incl_env sk0 sk1
+        (INCL: List.incl sk0 sk1)
+    :
+      incl_env sk0 (load_skenv sk1).
+  Proof.
+    assert (incl sk0 (AnySort.sort sk1)).
+    { etrans. apply INCL. apply AnySort.sort_incl. }
+    unfold load_skenv. clear INCL. revert H.
+    generalize (AnySort.sort sk1). clear sk1. intros sk1 INCL.
+
+    ii. exploit INCL; et. i. ss. uo. des_ifs; et.
+    exfalso. clear - x0 Heq0. ginduction sk1; et.
+    i. ss. rewrite find_idx_red in Heq0. des_ifs.
+    des_sumbool. uo.  des_ifs. des; clarify.
+    eapply IHsk1; et.
+  Qed.
+
+  Lemma in_env_in_sk :
+    forall sk blk symb
+      (FIND: blk2id (load_skenv sk) blk = Some symb),
+    exists def, In (symb, def) sk.
+  Proof.
+    i. cut (exists def, In (symb, def) (AnySort.sort sk)).
+    { i; des. eexists. apply AnySort.sort_incl_rev. eauto. }
+
+    ss. uo. des_ifs. eapply nth_error_In in Heq0. et.
+  Qed.
+
+  Lemma in_sk_in_env :
+    forall sk def symb
+           (IN: In (symb, def) sk),
+    exists blk, blk2id (load_skenv sk) blk = Some symb.
+  Proof.
+    i. apply AnySort.sort_incl in IN.
+    ss. uo. eapply In_nth_error in IN. des.
+    eexists. rewrite IN. et.
+  Qed.
+
+  Lemma env_range_some :
+    forall sk blk
+      (BLKRANGE : blk < Datatypes.length sk),
+      <<FOUND : exists symb, blk2id (load_skenv sk) blk = Some symb>>.
+  Proof.
+    i. erewrite Permutation.Permutation_length in BLKRANGE; cycle 1.
+    { apply AnySort.SkSort.sort_permutation. }
+    unfold load_skenv, AnySort.sort. revert BLKRANGE.
+    generalize (AnySort.SkSort.sort sk). clear sk. intros sk ?.
+
+    depgen sk. induction blk; i; ss; clarify.
+    { destruct sk; ss; clarify.
+      { lia. }
+      uo. destruct t0. exists t0. ss. }
+    destruct sk; ss; clarify.
+    { lia. }
+    apply lt_S_n in BLKRANGE. eapply IHblk; eauto.
+  Qed.
+
+  Lemma env_found_range :
+    forall sk symb blk
+      (FOUND : id2blk (load_skenv sk) symb = Some blk),
+      <<BLKRANGE : blk < Datatypes.length sk>>.
+  Proof.
+    i. erewrite Permutation.Permutation_length; cycle 1.
+    { apply AnySort.SkSort.sort_permutation. }
+    revert FOUND. unfold load_skenv, AnySort.sort.
+    generalize (AnySort.SkSort.sort sk). clear sk. intros sk ?.
+    
+    ginduction sk; i; ss; clarify.
+    uo; des_ifs. destruct p0. rewrite find_idx_red in Heq0. des_ifs.
+    { apply Nat.lt_0_succ. }
+    destruct blk.
+    { apply Nat.lt_0_succ. }
+    uo. des_ifs. destruct p. ss. clarify. apply lt_n_S. eapply IHsk; eauto.
+    instantiate (1:=symb). rewrite Heq0. ss.
+  Qed.
+  
+End SkEnv.
+
+Coercion SkEnv.load_skenv: Sk.t >-> SkEnv.t.
+Global Opaque SkEnv.load_skenv.
+
+Section FB_HAS_SPEC.
+
+  Context `{Σ: GRA.t}.
+
+  Variable skenv: SkEnv.t.
+
+  Variant fb_has_spec (stb: gname -> option fspec) (fb: mblock) (fsp: fspec): Prop :=
+  | fb_has_spec_intro
+      fn
+      (FBLOCK: skenv.(SkEnv.blk2id) fb = Some fn)
+      (SPEC: fn_has_spec stb fn fsp)
+  .
+
+  Lemma fb_has_spec_weaker (stb: gname -> option fspec) (fb: mblock) (fsp0 fsp1: fspec)
+        (SPEC: fb_has_spec stb fb fsp1)
+        (WEAK: fspec_weaker fsp0 fsp1)
+    :
+      fb_has_spec stb fb fsp0.
+  Proof.
+    inv SPEC. econs; eauto.
+    eapply fn_has_spec_weaker; eauto.
+  Qed.
+  
+End FB_HAS_SPEC.
 
 (* ========================================================================== *)
 (** ** Syntax *)
@@ -349,11 +603,9 @@ Section Interp.
 End Interp.
 
 
-
-
-
 (* ========================================================================== *)
 (**** ModSem ****)
+
 Module ImpMod.
 Section MODSEM.
 
@@ -366,9 +618,9 @@ Section MODSEM.
   |}.
 
   Definition get_mod (m : program) : Mod.t := {|
-    Mod.get_modsem := fun ge => (modsem m (Sk.load_skenv ge));
+    Mod.modsem := fun ge => (modsem m (SkEnv.load_skenv ge));
     Mod.sk := List.map (update_snd Any.upcast) m.(defs);
-                                             |}.
+  |}.
 
   Definition init : ModSem.t :=
     ModSem.init (

@@ -592,6 +592,7 @@ Module OrderSort (A: TotalOrderBool).
     eapply StronglySorted_sort.
     eapply A.leb_trans.
   Qed.
+
 End OrderSort.
 
 Module AListSort (V: Typ).
@@ -633,6 +634,24 @@ Module AListSort (V: Typ).
     { eapply sort_StronglySorted. }
     { eapply sort_StronglySorted. }
   Qed.
+
+  Lemma permutation_sort (l1 l2: t)
+    (NODUP: NoDupA _Order.eqA l1)
+    (PERM: Permutation l1 l2)
+    :
+    sort l1 = sort l2.
+  Proof.
+    eapply permutation_sorted_unique.
+    - etrans. { symmetry. apply Permuted_sort. }
+      etrans. { apply PERM. }
+      apply Permuted_sort.
+    - eapply NoDupA_permutation, NODUP.
+      + ii. symmetry. eauto.
+      + apply Permuted_sort.
+    - apply sort_StronglySorted.
+    - apply sort_StronglySorted.
+  Qed.
+  
 End AListSort.
 
 Notation "f ∘ g" := (fun x => (f (g x))). (*** It is already in Coqlib but Coq seems to have a bug; it gets overriden by the one in program_scope in the files that import this file ***)

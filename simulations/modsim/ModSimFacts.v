@@ -18,6 +18,7 @@ Require Import Any.
 Require Import Mod EventsRed Events.
 Require Import SimGlobal SimGlobalFacts ModSim.
 Require Import Red IRed.
+Require Import Permutation.
 
 Set Implicit Arguments.
 
@@ -43,8 +44,8 @@ Section SIMMOD.
 
   Lemma Mod_add_fnsems md0 md1 sk
     :
-      (ModSem.fnsems (Mod.get_modsem (Mod.add md0 md1) sk)) =
-      ModSem.add_fnsems (Mod.get_modsem md0 sk) (Mod.get_modsem md1 sk).
+      (ModSem.fnsems (Mod.modsem (Mod.add md0 md1) sk)) =
+      ModSem.add_fnsems (Mod.modsem md0 sk) (Mod.modsem md1 sk).
   Proof.
     ss.
   Qed.
@@ -101,8 +102,12 @@ Section WF.
   Proof.
     destruct WF, SIM, md_src, md_tgt. ss. des. subst.
     split; eauto.
-    eapply ModSemR_sim_wf; eauto.
-    eapply sim_modsem; eauto using Sk.sort_incl, Sk.sort_wf.
+    - ss.
+      eapply ModSemR_sim_wf; eauto.
+      unfold Mod.enclose. s.
+      eapply sim_modsem; eauto.
+      refl.
+    - ss. eapply Permutation_NoDup, H0. apply Permutation_map. eauto.
   Qed.
 
 End WF.
@@ -418,12 +423,13 @@ Lemma sim_ctx_mod
 Proof.
   inv SIM.
   econs; et; cycle 1.
-  { r. ss. unfold Sk.add. ss. rewrite sim_sk. et. }
-  
-  i. ss. hexploit (sim_modsem sk); et.
-  - unfold Sk.incl, Sk.add in *. i. ss.
-    apply SKINCL. rewrite in_app_iff. et.
-  - ii. des. apply sim_ctx; et.
+  { r. ss. unfold Sk.add. apply Permutation_app_tail. eauto. }
+  i. ss. hexploit (sim_modsem skl); et.
+  - etrans; [|apply SKINCL].
+    unfold Sk.add. apply incl_appl. refl.
+  - ii.
+
+    eapply sim_ctx; et.
 Qed.
 
 End SIMCTX.

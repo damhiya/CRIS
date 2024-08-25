@@ -32,7 +32,6 @@ Section PMODSEM.
     HModSem.scopes := ms.(scopes);                                                    
     HModSem.fnsems := List.map (map_snd (λ kb, (kb.1, (λ i, transl (kb.2 i))))) ms.(fnsems);
     HModSem.initial_st := ms.(initial_st);
-    HModSem.initial_cond := emp;
   |}.
   Next Obligation.
     i. destruct ms. s. ii.
@@ -52,12 +51,12 @@ Section PMOD.
   Context `{Σ: GRA.t}.
 
   Record t: Type := mk {
-    get_modsem: Sk.t -> PModSem.t;
+    modsem: Sk.t -> PModSem.t;
     sk: Sk.t;
   }.
 
   Definition to_hmod (md:t): HMod.t := {|
-    HMod.get_modsem := fun sk => PModSem.to_hmod (md.(get_modsem) sk);
+    HMod.modsem := fun sk => PModSem.to_hmod (md.(modsem) sk);
     HMod.sk := md.(sk);
  |}.
     

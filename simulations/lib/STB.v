@@ -248,25 +248,6 @@ Section HEADER.
     rewrite FIND. et.
   Qed.
 
-  Variable skenv: SkEnv.t.
-
-  Variant fb_has_spec (stb: gname -> option fspec) (fb: mblock) (fsp: fspec): Prop :=
-  | fb_has_spec_intro
-      fn
-      (FBLOCK: skenv.(SkEnv.blk2id) fb = Some fn)
-      (SPEC: fn_has_spec stb fn fsp)
-  .
-
-  Lemma fb_has_spec_weaker (stb: gname -> option fspec) (fb: mblock) (fsp0 fsp1: fspec)
-        (SPEC: fb_has_spec stb fb fsp1)
-        (WEAK: fspec_weaker fsp0 fsp1)
-    :
-      fb_has_spec stb fb fsp0.
-  Proof.
-    inv SPEC. econs; eauto.
-    eapply fn_has_spec_weaker; eauto.
-  Qed.
-
 End HEADER.
 
 

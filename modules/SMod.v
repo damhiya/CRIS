@@ -21,7 +21,6 @@ Section SMODSEM.
     scopes: list string;
     fnsems: alist gname (list string * fspecbody);
     initial_st: alist key Any.t;
-    initial_cond: iProp;
     well_scoped_fns:
       forall fn, incl (fnsems_scopes fn fnsems) scopes;
     well_scoped_init:
@@ -32,7 +31,6 @@ Section SMODSEM.
     HModSem.scopes := ms.(scopes);
     HModSem.fnsems := List.map (map_snd (λ ksb, (ksb.1, interp_sb_hp stb ksb.2))) ms.(fnsems);
     HModSem.initial_st := ms.(initial_st);
-    HModSem.initial_cond := ms.(initial_cond);
   |}.
   Next Obligation.
     i. destruct ms. ss. ii. unfold fnsems_scopes in *. unfold map_snd in*.
@@ -46,7 +44,6 @@ Section SMODSEM.
 End SMODSEM.
 End SModSem.
 
-
 Module SMod.
 Section SMOD.
 
@@ -54,20 +51,20 @@ Section SMOD.
   Variable stb: Sk.t -> gname -> option fspec.
 
   Record t: Type := mk {
-    get_modsem: Sk.t -> SModSem.t;
+    modsem: Sk.t -> SModSem.t;
     sk: Sk.t;
   }.
 
   Definition to_hmod (md:t): HMod.t := {|
-    HMod.get_modsem := fun sk => SModSem.to_hmod (stb sk) (md.(get_modsem) sk);
+    HMod.modsem := fun sk => SModSem.to_hmod (stb sk) (md.(modsem) sk);
     HMod.sk := md.(sk);
  |}.
     
-  Definition get_stb (mds: list t): Sk.t -> alist gname (list string * fspec) :=
-    fun sk => List.map (map_snd (map_snd fsb_fspec)) (flat_map (SModSem.fnsems ∘ (flip get_modsem sk)) mds).
+  (* Definition get_stb (mds: list t): Sk.t -> alist gname (list string * fspec) := *)
+  (*   fun sk => List.map (map_snd (map_snd fsb_fspec)) (flat_map (SModSem.fnsems ∘ (flip modsem sk)) mds). *)
 
-  Definition get_sk (mds: list t): Sk.t :=
-    Sk.sort (fold_right Sk.add Sk.unit (List.map sk mds)).
+  (* Definition get_sk (mds: list t): Sk.t := *)
+  (*   fold_right Sk.add Sk.unit (List.map sk mds). *)
 
 End SMOD.
 End SMod.

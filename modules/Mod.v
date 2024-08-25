@@ -122,33 +122,33 @@ End ModSem.
 
 Module Mod.
 Section MOD.
-  Context `{Sk.ld}.
-
   Record t: Type := mk {
-    get_modsem: Sk.t -> ModSem.t;
+    modsem: Sk.t -> ModSem.t;
     sk: Sk.t;
-    enclose: ModSem.t := (get_modsem (Sk.canon sk));
   }
   .
+
+  Definition enclose (md: t) : ModSem.t :=
+    md.(modsem) md.(sk).
   
-  Definition wf (md: t): Prop := (<<WF: ModSem.wf md.(enclose)>> /\ <<SK: Sk.wf (md.(sk))>>).
+  Definition wf (md: t): Prop :=
+    <<WF: ModSem.wf (md.(modsem) md.(sk))>> /\ <<SK: Sk.wf (md.(sk))>>.
 
   Definition empty: t := {|
-    get_modsem := fun _ => ModSem.empty;
+    modsem := fun _ => ModSem.empty;
     sk := Sk.unit;
   |}.
 
   Definition init (body: itree modE Any.t) : t := {|
-    get_modsem := fun _ => ModSem.init body;
+    modsem := fun _ => ModSem.init body;
     sk := Sk.unit;
   |}.
 
   Definition compile (md: t): semantics :=
-    compile_itree (ModSem.initial_itr md.(enclose) (wf md)).
+    compile_itree (ModSem.initial_itr (enclose md) (wf md)).
 
   Definition add (md0 md1: t): t := {|
-    get_modsem := fun sk =>
-                    ModSem.add (md0.(get_modsem) sk) (md1.(get_modsem) sk);
+    modsem := fun sk => ModSem.add (md0.(modsem) sk) (md1.(modsem) sk);
     sk := Sk.add md0.(sk) md1.(sk);
   |}
   .
@@ -163,12 +163,10 @@ Section MOD.
 End MOD.
 End Mod.
 
-Global Existing Instance Sk.gdefs.
+(* Global Existing Instance Sk.gdefs. *)
 Arguments Sk.unit: simpl never.
 Arguments Sk.add: simpl never.
 Arguments Sk.wf: simpl never.
-Coercion Sk.load_skenv: Sk.t >-> SkEnv.t.
-Global Opaque Sk.load_skenv.
 
 (* Can this be generalized? *)
 Section TRANSL.

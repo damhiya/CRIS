@@ -53,7 +53,7 @@ Ltac by_coind CIH :=
 
 Ltac unfold_hmod :=
   match goal with
-  | [|-context[HMod.get_modsem ?x _]] => rewrite/__ {1}/x; progress unseal "ccr"
+  | [|-context[HMod.modsem ?x _]] => rewrite/__ {1}/x; progress unseal "ccr"
   | [|-context[HMod.sk ?x]] => rewrite/__ {1}/x; progress unseal "ccr" end.
 
 Lemma ereplace T (x y: T):
@@ -649,33 +649,31 @@ Section HModProd.
 *)
     Admitted.
 
-Lemma mod_sim_refl_r A B C Ist
-  (INIT: ∀ sk,
-         HModSem.initial_cond (HMod.get_modsem A sk) -∗
-           (HModSem.initial_cond (HMod.get_modsem B sk) **
-           (IstProdMod A C Ist IstEq
+Lemma mod_sim_refl_r A B C init_cond Ist
+  (INIT: ∀ sk, init_cond sk -∗
+             IstProdMod A C Ist IstEq
              sk                          
-             (HModSem.initial_st (HMod.get_modsem (HMod.add A C) sk))
-             (HModSem.initial_st (HMod.get_modsem (HMod.add B C) sk)))))
+             (HModSem.initial_st (HMod.modsem (HMod.add A C) sk))
+             (HModSem.initial_st (HMod.modsem (HMod.add B C) sk)))
   (SCOPE: ∀ sk, sub_perm (HMod.get_scopes B sk) (HMod.get_scopes A sk))
-  (LEN: ∀ sk, strings.length (HModSem.fnsems (HMod.get_modsem A sk)) =
-                   strings.length (HModSem.fnsems (HMod.get_modsem B sk)))
+  (LEN: ∀ sk, strings.length (HModSem.fnsems (HMod.modsem A sk)) =
+                   strings.length (HModSem.fnsems (HMod.modsem B sk)))
   (NONE: ∀ sk fn,
-         In fn (List.map fst (HModSem.fnsems (HMod.get_modsem B sk))) →
-         In fn (List.map fst (HModSem.fnsems (HMod.get_modsem A sk))))
+         In fn (List.map fst (HModSem.fnsems (HMod.modsem B sk))) →
+         In fn (List.map fst (HModSem.fnsems (HMod.modsem A sk))))
   (SIM: ∀ sk fn
-        (IN: In fn (List.map fst (HModSem.fnsems (HMod.get_modsem A sk)))),
-    HModSemR.sim_fun (HMod.get_modsem (HMod.add A C) sk)
-      (HMod.get_modsem (HMod.add B C) sk)
+        (IN: In fn (List.map fst (HModSem.fnsems (HMod.modsem A sk)))),
+    HModSemR.sim_fun (HMod.modsem (HMod.add A C) sk)
+      (HMod.modsem (HMod.add B C) sk)
       (IstProdMod A C Ist IstEq sk) fn)
   (SK: HMod.sk A = HMod.sk B)
   :
-  HModR.sim (HMod.add A C) (HMod.add B C) (IstProdMod A C Ist IstEq).
+  HModR.sim (HMod.add A C) (HMod.add B C) init_cond (IstProdMod A C Ist IstEq).
 Proof.
   econs; cycle 1.
   { ss. rewrite SK. eauto. }
   econs.
-  - s. iIntros "[H1 H2]". iFrame. iApply INIT. eauto.
+  - apply INIT.
   - s. apply sub_perm_cancel_tail. eapply SCOPE.
   - s. rewrite !app_length. rewrite LEN. eauto.
   - s. i. rewrite map_app in *. apply in_or_app. apply in_app_or in IN.
