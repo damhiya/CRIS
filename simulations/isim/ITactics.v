@@ -651,8 +651,7 @@ Section HModProd.
 
 Lemma mod_sim_refl_r A B C init_cond Ist
   (INIT: ∀ sk, init_cond sk -∗
-             IstProdMod A C Ist IstEq
-             sk                          
+             IstProdMod A C Ist IstEq sk                          
              (HModSem.initial_st (HMod.modsem (HMod.add A C) sk))
              (HModSem.initial_st (HMod.modsem (HMod.add B C) sk)))
   (SCOPE: ∀ sk, sub_perm (HMod.get_scopes B sk) (HMod.get_scopes A sk))
@@ -671,7 +670,7 @@ Lemma mod_sim_refl_r A B C init_cond Ist
   HModR.sim (HMod.add A C) (HMod.add B C) init_cond (IstProdMod A C Ist IstEq).
 Proof.
   econs; cycle 1.
-  { ss. rewrite SK. eauto. }
+  { rr. eapply Permutation_app_tail. rewrite SK. refl. }
   econs.
   - apply INIT.
   - s. apply sub_perm_cancel_tail. eapply SCOPE.

@@ -239,7 +239,16 @@ Section PROOF.
             (fun vret => OwnM resource ∗ ⌜vret = (if result then Vint 1 else Vint 0)↑⌝)
     )))%I.
 
-  Definition MemSbtb: alist gname (list string * fspecbody) :=
+  Definition Stb: alist gname fspec :=  
+    Seal.sealing "ccr"
+      [(MemName.alloc, alloc_spec);
+       (MemName.free,  free_spec);
+       (MemName.load,  load_spec);
+       (MemName.store, store_spec);
+       (MemName.cmp,   cmp_spec)
+      ].
+
+  Definition fnsems : alist gname (list string * fspecbody ):=
     [(MemName.alloc, ([], mk_specbody alloc_spec fbody_trivial));
      (MemName.free,  ([], mk_specbody free_spec fbody_trivial));
      (MemName.load,  ([], mk_specbody load_spec fbody_trivial));
@@ -250,24 +259,25 @@ Section PROOF.
 
   Variable csl: gname -> bool.
 
-  Program Definition Sem (sk: Sk.t) (* base_cond  *): SModSem.t := {|
+  Program Definition Sem: SModSem.t := {|
     SModSem.scopes := scopes;
-    SModSem.fnsems := MemSbtb;
-    SModSem.initial_cond := initial_mem csl sk (* ∗ base_cond *);
+    SModSem.fnsems := fnsems;
     SModSem.initial_st := [];
   |}
   .
   Solve All Obligations with prove_scope.
 
-  Definition Mod (* base_cond *) : SMod.t := {|
-    SMod.get_modsem := fun sk => Sem sk (* (base_cond sk) *);
+  Definition Mod : SMod.t := {|
+    SMod.modsem := fun _ => Sem;
     SMod.sk := Sk.unit;
   |}
   .
 
+  Definition InitCond : Sk.t -> iProp :=
+    fun sk => initial_mem csl sk.
+  
   Variable GlobalStb: Sk.t -> gname -> option fspec.
-  (* Variable base_cond: Sk.t -> iProp. *)
-  Definition t : HMod.t := Seal.sealing "ccr" (SMod.to_hmod GlobalStb (Mod (* base_cond *))).
+  Definition t : HMod.t := Seal.sealing "ccr" (SMod.to_hmod GlobalStb Mod).
   
 End PROOF.
 End MemA.

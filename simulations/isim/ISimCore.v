@@ -835,21 +835,20 @@ Module HModR.
   Section SIM.
     Context `{_W: CtxWD.t}. 
     Variable (md_src md_tgt: HMod.t).
-    Variable init_cond : Sk.t -> Sk.t -> iProp.
-    Variable Ist: Sk.t -> Sk.t -> alist key Any.t -> alist key Any.t -> iProp.
+    Variable init_cond : Sk.t -> iProp.
+    Variable Ist: Sk.t -> alist key Any.t -> alist key Any.t -> iProp.
 
     Inductive sim: Prop :=
       mk {
           sim_modsem:
-          forall skl skr (EQV: Sk.equiv skl skr)
-                 (SKINCL: List.incl md_src.(HMod.sk) skl) (SKWF: Sk.wf skl),
-            <<SIM: HModSemR.sim (md_src.(HMod.modsem) skl) (md_tgt.(HMod.modsem) skr) (init_cond skl skr) (Ist skl skr)>>;
+          forall sk (SKINCL: List.incl md_tgt.(HMod.sk) sk) (SKWF: Sk.wf sk),
+            <<SIM: HModSemR.sim (md_src.(HMod.modsem) sk) (md_tgt.(HMod.modsem) sk) (init_cond sk) (Ist sk)>>;
           sim_sk: <<SIM: Sk.equiv md_src.(HMod.sk) md_tgt.(HMod.sk)>>;
         }.
 
     Definition sim_fun fn : Prop :=
-      forall skl skr,
-        HModSemR.sim_fun (HMod.modsem md_src skl) (HMod.modsem md_tgt skr) (Ist skl skr) fn.
+      forall sk,
+        HModSemR.sim_fun (HMod.modsem md_src sk) (HMod.modsem md_tgt sk) (Ist sk) fn.
 
   End SIM.
 End HModR.

@@ -45,7 +45,7 @@ Section CELL_I.
   Solve All Obligations with prove_scope.
   
   Definition Mod: PMod.t := {|
-    PMod.get_modsem := fun _ => Sem;
+    PMod.modsem := fun _ => Sem;
     PMod.sk := CellSK.t;
   |}
   .

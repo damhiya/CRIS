@@ -827,10 +827,10 @@ Section MODR.
    Variable (md_src md_tgt: Mod.t).
    Inductive sim: Prop := mk {
      sim_modsem:
-       forall skl skr (EQV: Sk.equiv skl skr)
-              (SKINCL: List.incl md_src.(Mod.sk) skl)
-              (SKWF: Sk.wf skl),
-         <<SIM: ModSemR.sim (md_src.(Mod.modsem) skl) (md_tgt.(Mod.modsem) skr)>>;
+       forall sk
+              (SKINCL: List.incl md_tgt.(Mod.sk) sk)
+              (SKWF: Sk.wf sk),
+         <<SIM: ModSemR.sim (md_src.(Mod.modsem) sk) (md_tgt.(Mod.modsem) sk)>>;
      sim_sk:
        <<SIM: Sk.equiv md_src.(Mod.sk) md_tgt.(Mod.sk)>>;
    }.

@@ -70,24 +70,24 @@ Section A.
      (MapName.set, (scopes,mk_specbody MapAS.set_spec (cfunU set)));
      (MapName.set_by_user, (scopes, mk_specbody MapAS.set_by_user_spec (cfunU set_by_user)))].
 
-  Program Definition Sem (base_cond: iProp) : SModSem.t := {|
+  Program Definition Sem : SModSem.t := {|
     SModSem.scopes := scopes;
     SModSem.fnsems := fnsems;
-    SModSem.initial_cond := (MapAS.initial_map ∗ MapMS.pending ∗ base_cond)%I;
     SModSem.initial_st := [(v_map,(fun (_: Z) => 0%Z)↑)];
   |}.
   Solve All Obligations with prove_scope.
 
-  Definition Mod (base_cond: Sk.t -> iProp) : SMod.t := {|
-    SMod.get_modsem := fun sk => Sem (base_cond sk);
+  Definition Mod : SMod.t := {|
+    SMod.modsem := fun _ => Sem;
     SMod.sk := MapSK.t;
   |}
   .
 
+  Definition InitCond : Sk.t -> iProp :=
+    fun _ => (MapAS.initial_map ∗ MapMS.pending)%I.
+  
   Variable GlobalStb: Sk.t -> gname -> option fspec.
-  Variable base_cond: Sk.t -> iProp.
-  Definition t := Seal.sealing "ccr" (SMod.to_hmod GlobalStb (Mod base_cond)).
+  Definition t := Seal.sealing "ccr" (SMod.to_hmod GlobalStb Mod).
 
 End A.
 End MapA.
-

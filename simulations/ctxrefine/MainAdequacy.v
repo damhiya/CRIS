@@ -14,7 +14,7 @@ Require Import HPSim HPSimFacts.
 Require Import HMod Mod HMod2Mod Events.
 
 Require Import ISim.
-
+Require Import CtxRefine.
 
 Require Import World sWorld.
 
@@ -28,6 +28,19 @@ Set Implicit Arguments.
 
 (**** TODO: State theorem & lemmas required for proof's transitivity. ****)
 (* To be moved or merged to another file *)
+
+Section ADEQUACY.
+
+  Context `{Σ: GRA.t}.
+
+  Theorem hmodr_adequacy (ms mt: HMod.t) IC Ist
+    (SIM: HModR.sim ms mt IC Ist)
+    :
+    ctx_refines (ms,IC) (mt, fun _ => emp%I).
+  Proof.
+  Admitted.
+
+End ADEQUACY.
 
 (*
 
@@ -170,7 +183,7 @@ End ADEQUACY.
 
 Section HPSIM.
   Context `{Σ: GRA.t}.
-  Import HModSem HModRed.
+  Import HModSem.
 
   Definition addf f1 f2 : alist gname (Any.t -> itree _ Any.t) :=
     (List.map trans_l f1) ++ (List.map trans_r f2).

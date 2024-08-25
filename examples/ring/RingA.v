@@ -55,24 +55,25 @@ Section RING_A.
      (RingName.enqueue, (scopes,mk_specbody fspec_trivial (cfunU enqueue)));
      (RingName.dequeue, (scopes,mk_specbody fspec_trivial (cfunU dequeue)))].
 
-  Program Definition Sem base_cond : SModSem.t := {|
+  Program Definition Sem : SModSem.t := {|
     SModSem.scopes := scopes;
     SModSem.fnsems := fnsems;
     SModSem.initial_st := [(v_que,([]:list Z)↑)];
-    SModSem.initial_cond := (([∗ list] i↦_ ∈ (replicate max_size 0%Z), CellAS.pending i) ∗ base_cond)%I;
   |}
   .
   Solve All Obligations with prove_scope.
 
-  Definition Mod base_cond : SMod.t := {|
-    SMod.get_modsem := fun sk => Sem (base_cond sk);
+  Definition Mod : SMod.t := {|
+    SMod.modsem := fun _ => Sem;
     SMod.sk := RingSK.t;
   |}
   .
 
+  Definition InitCond : Sk.t -> iProp :=
+    fun _ => ([∗ list] i↦_ ∈ (replicate max_size 0%Z), CellAS.pending i)%I.
+  
   Variable GlobalStb: Sk.t -> gname -> option fspec.
-  Variable base_cond: Sk.t -> iProp.
-  Definition t := Seal.sealing "ccr" (SMod.to_hmod GlobalStb (Mod base_cond)).
+  Definition t := Seal.sealing "ccr" (SMod.to_hmod GlobalStb Mod).
 
 End RING_A.
 End RingA.

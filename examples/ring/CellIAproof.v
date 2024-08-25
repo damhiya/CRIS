@@ -33,7 +33,7 @@ Section SIMMODSEM.
   Variable idx: nat.
   
   Variable StbG: Sk.t -> gname -> option fspec.
-  Hypothesis CellInStb: forall sk, stb_incl (CellAS.Stb idx) (StbG sk).
+  (* Hypothesis CellInStb: forall sk, stb_incl (CellAS.Stb idx) (StbG sk). *)
 
   Import CellAS.
 
@@ -70,7 +70,7 @@ Section SIMMODSEM.
         (⌜vany = v↑⌝ ∗ pending idx ∗ auth idx v)))%I.
 
   Local Notation CellIMod := (CellI.t idx).
-  Local Notation CellAMod := (CellA.t idx StbG (const emp%I)).
+  Local Notation CellAMod := (CellA.t idx StbG).
 
   Lemma simF_get:
     HModR.sim_fun CellAMod CellIMod Ist (CellName.get idx).
@@ -132,10 +132,10 @@ Section SIMMODSEM.
     iExists _, _. iSplitL ""; eauto. iRight. iFrame; eauto.
   Qed.
 
-  Theorem sim: HModR.sim CellAMod CellIMod Ist.
+  Theorem sim: HModR.sim CellAMod CellIMod (CellA.InitCond idx) Ist.
   Proof.
     init_sim.
-    - iIntros "H". iDestruct "H" as (v) "(C & A & E)". iFrame.
+    - iIntros "H". iDestruct "H" as (v) "(C & A)".
       repeat iExists _. iSplitL ""; eauto. iLeft. iFrame.
     - apply simF_get.
     - apply simF_set.

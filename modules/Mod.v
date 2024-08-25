@@ -89,32 +89,12 @@ Section MODSEM.
         rv <- (sem args);;
         Ret rv.  
 
-    Definition initial_itr (P: Prop): itree coreE Any.t :=
-      assume P;;; (snd <$> interp_modE prog (prog (Call "CCR_init" ()↑)) (initial_st ms)).
+    Definition initial_itr : itree coreE Any.t :=
+      (snd <$> interp_modE prog (prog (Call "CCR_init" ()↑)) (initial_st ms)).
 
-    Definition compile P: semantics:=
-      compile_itree (initial_itr P).
+    Definition compile : semantics:=
+      compile_itree (initial_itr).
 
-    Lemma initial_itr_not_wf P
-          (WF: ~ P)
-          tr
-      :
-        Beh.of_program (compile_itree (initial_itr P)) tr.
-    Proof.
-      eapply Beh.ub_top. pfold. econsr; ss; et. rr. ii; ss.
-      unfold initial_itr, assume in *. rewrite bind_bind in STEP.
-      eapply step_trigger_take_iff in STEP. des. subst. ss.
-    Qed.
-
-    Lemma compile_not_wf P
-          (WF: ~ P)
-          tr
-      :
-        Beh.of_program (compile P) tr.
-    Proof.
-      eapply initial_itr_not_wf; et.
-    Qed.
-    
   End COMPILE.
 End MODSEM.
 End ModSem.
@@ -128,11 +108,13 @@ Section MOD.
   }
   .
 
-  Definition enclose (md: t) : ModSem.t :=
-    md.(modsem) md.(sk).
+  (* Definition enclose (md: t) : ModSem.t := *)
+  (*   md.(modsem) md.(sk). *)
   
   Definition wf (md: t): Prop :=
-    <<WF: ModSem.wf (md.(modsem) md.(sk))>> /\ <<SK: Sk.wf (md.(sk))>>.
+    <<SKWF: Sk.wf md.(sk)>> /\
+    forall sk0 (EQV: Sk.equiv sk0 md.(sk)),
+    <<WF: ModSem.wf (md.(modsem) sk0)>>.
 
   Definition empty: t := {|
     modsem := fun _ => ModSem.empty;
@@ -144,8 +126,8 @@ Section MOD.
     sk := Sk.unit;
   |}.
 
-  Definition compile (md: t): semantics :=
-    compile_itree (ModSem.initial_itr (enclose md) (wf md)).
+  Definition compile (md: t) (sk: Sk.t) : semantics :=
+    ModSem.compile (md.(modsem) sk).
 
   Definition add (md0 md1: t): t := {|
     modsem := fun sk => ModSem.add (md0.(modsem) sk) (md1.(modsem) sk);

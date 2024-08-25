@@ -98,13 +98,13 @@ Section SIMMODSEM.
           ∗ (blk, ofs) |-> (fun_to_list f (Z.to_nat sz)))
        )%I.
   
-  Variable StbG: Sk.t -> gname -> option fspec.
-  Hypothesis MapInStb: forall sk, stb_incl MapMS.Stb (StbG sk).
+  Variable StbMap: Sk.t -> gname -> option fspec.
+  Hypothesis MapInStbMap: forall sk, stb_incl MapMS.Stb (StbMap sk).
+  Variable StbMem: Sk.t -> gname -> option fspec.
 
-  Local Notation MapIMod := (HMod.add MapI.t (MemA.t (const false) StbG)).
-  Local Notation MapMMod := (HMod.add (MapM.t StbG (const emp%I)) (MemA.t (const false) StbG)).
-
-  Local Notation IstFull := (IstProdMod (MapM.t StbG (const emp%I)) (MemA.t (const false) StbG) Ist IstEq).
+  Local Notation MapMMod := ((MapM.t StbMap) ★ (MemA.t StbMem)).  
+  Local Notation MapIMod := ( MapI.t         ★ (MemA.t StbMem)).
+  Local Notation IstFull := (IstProdMod (MapM.t StbMap) (MemA.t StbMem) Ist IstEq).
 
   (**********)
 
@@ -340,11 +340,10 @@ Section SIMMODSEM.
   Qed.
 
   Theorem sim:
-    HModR.sim MapMMod MapIMod IstFull.
+    HModR.sim MapMMod MapIMod MapM.InitCond IstFull.
   Proof.
     init_sim.
-    - iIntros "_". iSplitL ""; eauto.
-      repeat iExists _. iSplitL ""; cycle 1.
+    - iIntros "_". repeat iExists _. iSplitL ""; cycle 1.
       + iSplitR ""; eauto. iLeft. eauto.
       + iPureIntro. esplits; eauto.
         * etrans; [|eapply HModSem.well_scoped_init]; ss.

@@ -57,6 +57,23 @@ Module Sk.
 
   Definition equiv (sk1 sk2: t) : Prop := sk1 ≡ₚ sk2.
 
+  Lemma equiv_wf (sk1 sk2: t)
+    (EQV: equiv sk1 sk2)
+    (WF: wf sk1)
+    :
+    wf sk2.
+  Proof.
+    eapply Permutation_NoDup, WF. eapply Permutation_map. eauto.
+  Qed.
+
+  Lemma equiv_incl (sk1 sk2: t)
+    (EQV: equiv sk1 sk2)
+    :
+    List.incl sk1 sk2.
+  Proof.
+    ii. eapply Permutation_in, H. apply EQV.
+  Qed.
+  
   (* Program Definition gdefs: ld := *)
   (*   @mk (alist gname Any.t) nil (@List.app _) sort (fun sk => @List.NoDup _ (List.map fst sk)) _ _ _ _ _ _ _. *)
   (* Next Obligation. *)

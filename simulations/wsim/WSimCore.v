@@ -1,3 +1,4 @@
+(*
 Require Import Coqlib ITreelib sflib.
 Require Import STS.
 Require Import Behavior.
@@ -618,3 +619,4 @@ Section WSIM_LEVEL_UP.
 End WSIM_LEVEL_UP.
 
 Global Opaque wsim.
+*)

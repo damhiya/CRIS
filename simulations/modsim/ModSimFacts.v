@@ -100,14 +100,19 @@ Section WF.
     :
     Mod.wf md_tgt.
   Proof.
-    destruct WF, SIM, md_src, md_tgt. ss. des. subst.
-    split; eauto.
-    - ss.
-      eapply ModSemR_sim_wf; eauto.
-      unfold Mod.enclose. s.
-      eapply sim_modsem; eauto.
-      refl.
-    - ss. eapply Permutation_NoDup, H0. apply Permutation_map. eauto.
+    ii. destruct WF, SIM, md_src, md_tgt. ss; des; subst.
+    econs; ss.
+    { eapply Sk.equiv_wf; eauto. }
+    i. eapply ModSemR_sim_wf.
+    - eapply sim_modsem.
+      + eapply Sk.equiv_incl. symmetry. eauto.
+      + eapply Sk.equiv_wf, H.
+        etrans.
+        * apply sim_sk.
+        * symmetry. eauto.
+    - eapply H0. etrans.
+      + apply EQV.
+      + symmetry. eauto.
   Qed.
 
 End WF.
@@ -424,12 +429,10 @@ Proof.
   inv SIM.
   econs; et; cycle 1.
   { r. ss. unfold Sk.add. apply Permutation_app_tail. eauto. }
-  i. ss. hexploit (sim_modsem skl); et.
+  i. ss. hexploit (sim_modsem sk); et.
   - etrans; [|apply SKINCL].
     unfold Sk.add. apply incl_appl. refl.
-  - ii.
-
-    eapply sim_ctx; et.
+  - ii. eapply sim_ctx; et.
 Qed.
 
 End SIMCTX.
@@ -519,27 +522,21 @@ Section SEMR.
     - eapply simg_progress_flag. gbase. eapply CIH; eauto.
   Qed.
 
-  Lemma adequacy_local_aux (P Q: Prop)
-    (LE: Q -> P)
+  Lemma adequacy_local_aux
     :
-    (Beh.of_program (ModSem.compile ms_tgt P))
+    (Beh.of_program (ModSem.compile ms_tgt))
     <1=
-    (Beh.of_program (ModSem.compile ms_src Q)).
-  Proof. 
+    (Beh.of_program (ModSem.compile ms_src)).
+  Proof.
+    destruct sim_initial.
     eapply adequacy_global_itree; ss.
     ginit.
     unfold ModSem.initial_itr, assume. generalize "CCR_init" as fn. i.
 
-    guclo bindC_spec. econs.
-    { step. force. eexists; eauto. step. ss. }
-    i. subst. ss. unfold ITree.map. grind.
-
-    steps. hexploit sim_initial; eauto. i; des.
-    (* force. eexists. steps. *)
-
+    ss. unfold ITree.map.
     fold fl_src fl_tgt.
     destruct (alist_find fn fl_src) eqn: EQ; cycle 1.
-    { grind. unfold triggerUB. grind. steps. ss. }
+    { s. unfold triggerUB. grind. steps. ss. }
 
     hexploit sim_fnsems; eauto. i; des.
     fold fl_src fl_tgt in *.
@@ -547,7 +544,7 @@ Section SEMR.
     guclo bindC_spec. econs.
     { gfinal. right. eapply sim_itree_simg. eapply H1; eauto. }
     i. steps.
-    destruct vret_src, vret_tgt0. des; subst; eauto.
+    destruct vret_src, vret_tgt. des; subst; eauto.
   Qed.
 
 End SEMR.
@@ -555,35 +552,32 @@ End SEMR.
 Section ADEQUACY.
 
   Lemma adequacy_modsem
-    ms_src ms_tgt (Q P: Prop)
+    ms_src ms_tgt
     (SIM: ModSemR.sim ms_src ms_tgt)
     (WF : ModSem.wf ms_src)
-    (LE: Q -> P)
     :
-    <<REF: Beh.of_program (ModSem.compile ms_tgt P) <1= Beh.of_program (ModSem.compile ms_src Q) >>.
+    <<REF: Beh.of_program (ModSem.compile ms_tgt) <1= Beh.of_program (ModSem.compile ms_src) >>.
   Proof.
     ii. destruct SIM. eapply adequacy_local_aux; eauto.
   Qed.
   
   Lemma adequacy_mod
-    md_src md_tgt
+    md_src md_tgt sk
+    (WF: Mod.wf md_src)
     (SIM: ModR.sim md_src md_tgt)
+    (SK: Sk.equiv md_tgt.(Mod.sk) sk)
     :
-    <<REF: Beh.of_program (Mod.compile md_tgt) <1= Beh.of_program (Mod.compile md_src) >>
+    <<REF: Beh.of_program (Mod.compile md_tgt sk) <1= Beh.of_program (Mod.compile md_src sk) >>
     .
   Proof.
-    destruct (classic (Mod.wf md_src)) as [WF|]; cycle 1.
-    { intros x.
-      eapply adequacy_global_itree.
-      unfold ModSem.initial_itr, assume.
-      ginit. grind. gstep. econs; eauto. i. ss.
-    }
-
     assert (SIM0 := SIM).
-    destruct WF, SIM0, md_src, md_tgt. ss. des. subst.
-    apply Sk.sort_wf in H0.
-    hexploit sim_modsem; eauto using Sk.sort_incl; try reflexivity.
-    ii. eapply adequacy_modsem, PR; eauto using ModR_sim_wf.
+    destruct WF, SIM0, md_src, md_tgt. ss. des.
+    ii. eapply adequacy_modsem; eauto.
+    - eapply sim_modsem.
+      + eapply Sk.equiv_incl. eauto.
+      + eapply Sk.equiv_wf, H.
+        etrans; eauto.
+    - s. eapply H0. symmetry. etrans; eauto.
   Qed.
 
 End ADEQUACY.

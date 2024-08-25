@@ -92,7 +92,7 @@ Section MEMI.
   Solve All Obligations with prove_scope.
 
   Definition Mem: PMod.t := {|
-    PMod.get_modsem := MemSem;
+    PMod.modsem := MemSem;
     PMod.sk := Sk.unit;
   |}
   .

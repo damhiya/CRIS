@@ -2,13 +2,14 @@ Require Export Coqlib sflib Any.
 Require Import Behavior.
 Require Import Mod Skeleton Events.
 (* Require Import CtxRefine. *)
-Require Import PCM IPM HMod HPSim ISim HModAdequacy.
+Require Import PCM IPM HMod HPSim ISim MainAdequacy.
 Require Import ModSimAlgebra ModSimFacts.
 
 Set Implicit Arguments.
 
+(*
 Module HModAlgebra.
-  Import HModSem HModRed.
+  Import HModSem.
   
   Section LEMMA.
     Context `{Σ: GRA.t}.
@@ -399,7 +400,7 @@ Module HModAlgebra.
   End ASSOC.
 
 End HModAlgebra.
-
+*)
 
 (* Ltac CIH :=
 iApply isim_progress; iApply isim_base;

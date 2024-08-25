@@ -147,16 +147,14 @@ Section SIMMODSEM.
        ∨ 
        (pending ∗ black_map f ∗ unallocated sz)))%I.
 
-  Variable StbG: Sk.t -> gname -> option fspec.
-  Hypothesis MapInStbG: forall sk, stb_incl MapAS.Stb (StbG sk).
+  Variable StbH: Sk.t -> gname -> option fspec.
+  Hypothesis MapInStbH: forall sk, stb_incl MapAS.Stb (StbH sk).
 
   Variable StbL: Sk.t -> gname -> option fspec.
   Hypothesis MapInStbL: forall sk, stb_incl MapMS.Stb (StbL sk).
 
-  Variable base_cond : Sk.t -> iProp.
-
-  Local Notation MapMMod := (MapM.t StbL base_cond).
-  Local Notation MapAMod := (MapA.t StbG (fun sk => (MapMMod.(HMod.get_modsem) sk).(HModSem.initial_cond))).
+  Local Notation MapAMod := (MapA.t StbH).
+  Local Notation MapMMod := (MapM.t StbL).
   
   Lemma simF_init:
     HModR.sim_fun MapAMod MapMMod Ist MapName.init.
@@ -297,10 +295,10 @@ Section SIMMODSEM.
     step. eauto.
   Qed.
   
-  Theorem sim: HModR.sim MapAMod MapMMod Ist.
+  Theorem sim: HModR.sim MapAMod MapMMod MapA.InitCond Ist.
   Proof.
     init_sim.
-    - iIntros "(IST & P & INIT0)"; s. iSplitL "INIT0"; eauto.
+    - iIntros "(IST & P)"; s.
       iExists _, _. iSplit; eauto. iLeft. iFrame. eauto.
     - apply simF_init.
     - apply simF_get.

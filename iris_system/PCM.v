@@ -20,16 +20,16 @@ Set Implicit Arguments.
 
 
 
-Require Export String.
-Module Type SEAL.
-  Parameter sealing: string -> forall X: Type, X -> X.
-  Parameter sealing_eq: forall key X (x: X), sealing key x = x.
-End SEAL.
-Module Seal: SEAL.
-  Definition sealing (_: string) X (x: X) := x.
-  Lemma sealing_eq key X (x: X): sealing key x = x.
-  Proof. reflexivity. Qed.
-End Seal.
+(* Require Export String. *)
+(* Module Type SEAL. *)
+(*   Parameter sealing: string -> forall X: Type, X -> X. *)
+(*   Parameter sealing_eq: forall key X (x: X), sealing key x = x. *)
+(* End SEAL. *)
+(* Module Seal: SEAL. *)
+(*   Definition sealing (_: string) X (x: X) := x. *)
+(*   Lemma sealing_eq key X (x: X): sealing key x = x. *)
+(*   Proof. reflexivity. Qed. *)
+(* End Seal. *)
 
 Ltac seal_with key x :=
   replace x with (Seal.sealing key x); [|eapply Seal.sealing_eq].

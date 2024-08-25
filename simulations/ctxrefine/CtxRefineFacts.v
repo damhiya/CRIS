@@ -2,11 +2,11 @@ Require Export Coqlib sflib.
 Require Import Behavior.
 Require Import Mod Skeleton.
 Require Import CtxRefine.
-Require Import PCM IPM HMod ISimCore HModAdequacy.
+Require Import PCM IPM HMod ISimCore MainAdequacy.
 Require Import ModSimAlgebra ModSimFacts.
 
+(*
 Section PROPERTIES.
-  Context `{Sk.ld}.
   Context `{Σ: GRA.t}.
 
   Theorem adequacy_ctx
@@ -452,3 +452,4 @@ Section BEH.
 
 End BEH.
 End ModAlgebra.
+*)

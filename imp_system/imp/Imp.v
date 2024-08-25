@@ -53,15 +53,7 @@ Module AnySort.
   
   Definition sort: Sk.t -> Sk.t := SkSort.sort.
 
-  Definition sort_wf sk (WF: Sk.wf sk):
-    Sk.wf (sort sk).
-  Proof.
-    ss. eapply Permutation.Permutation_NoDup; [|apply WF].
-    eapply Permutation.Permutation_map.
-    eapply SkSort.sort_permutation.
-  Qed.
-  
-  Definition sort_equiv sk0 sk1
+  Definition equiv_sort_eq sk0 sk1
     (WF: Sk.wf sk0)
     (EQV: Sk.equiv sk0 sk1)
     :
@@ -79,20 +71,31 @@ Module AnySort.
       eapply in_map. eauto.
   Qed.
 
+  Lemma sort_equiv sk:
+    Sk.equiv sk (sort sk).
+  Proof.
+    apply SkSort.Permuted_sort.
+  Qed.
+  
+  Lemma sort_wf sk
+    (WF: Sk.wf sk):
+    Sk.wf (sort sk).
+  Proof.
+    eapply Sk.equiv_wf; eauto. apply sort_equiv.
+  Qed.
+
   Lemma sort_incl sk
     :
     List.incl sk (sort sk).
   Proof.
-    ii. eapply Permutation.Permutation_in; [|apply H].
-    eapply SkSort.sort_permutation.
+    eapply Sk.equiv_incl. apply sort_equiv.
   Qed.
 
   Lemma sort_incl_rev sk
     :
     List.incl (sort sk) sk.
   Proof.
-    ii. eapply Permutation.Permutation_in; [|apply H].
-    symmetry. eapply SkSort.sort_permutation.
+    eapply Sk.equiv_incl. symmetry. apply sort_equiv.
   Qed.
 
 End AnySort.

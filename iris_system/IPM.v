@@ -233,16 +233,19 @@ Section TEST.
   Qed.
 End TEST.
 
-Infix "⊢" := (@bi_entails iProp).
-Infix "**" := bi_sep (at level 99).
-Infix "-*" := bi_wand (at level 99, right associativity).
-Notation "#=> P" := ((@bupd (bi_car (@iProp _)) (@bi_bupd_bupd (@iProp _) (@iProp_bi_bupd _))) P) (at level 99).
-
-
-
+Infix "⊢" := (@bi_entails iProp) (only parsing).
+Infix "**" := bi_sep (at level 99, only parsing).
+Infix "-*" := bi_wand (at level 99, right associativity, only parsing).
+Notation "#=> P" := ((@bupd (bi_car (@iProp _)) (@bi_bupd_bupd (@iProp _) (@iProp_bi_bupd _))) P) (at level 99, only parsing).
 
 Section IUPD.
   Context {Σ: GRA.t}.
+
+  Variable P: iProp.
+
+  Check (P ⊢ P).
+  Check (P ** P).
+  Check (#=> P).
 
   Definition IUpd (I: iProp): iProp -> iProp :=
     fun P => (I -∗ #=> (I ∗ P))%I.
