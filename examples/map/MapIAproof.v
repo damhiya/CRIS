@@ -33,20 +33,21 @@ Section PROOF.
   Context `{_A: MapAR.t (Γ:=Γ)}.
   Context `{@GRA.inG memRA Γ}.
 
-  Theorem correct (StbG: Sk.t -> gname -> option fspec)
-    (MapInStbG: forall sk, stb_incl MapAS.Stb (StbG sk))
+  Theorem correct (StbMap StbMem: Sk.t -> gname -> option fspec)
+    (MapInStbMap: forall sk, stb_incl MapAS.Stb (StbMap sk))
     :
     ctx_refines
-      ((MapA.t StbG) ★ (MemA.t StbG), MapA.InitCond)
-      ((MapI.t)      ★ (MemA.t StbG), const(emp%I)).
+      ((MapA.t StbMap) ★ (MemA.t StbMem), MapA.InitCond ∗∗ MapM.InitCond)
+      ((MapI.t)        ★ (MemA.t StbMem), const(emp%I)).
   Proof.
     etrans; cycle 1.
-    - eapply hmodr_adequacy. eapply MapIM.sim.
+    - eapply main_adequacy. eapply MapIM.sim.
       instantiate (1:= const(to_stb MapMS.Stb)).
       i. split; try refl. unfold MapMS.Stb. unseal "ccr". prove_nodup.
-    - eapply ctx_refines_frameR.
-      eapply hmodr_adequacy.
-      eapply MapMA.sim; eauto.
+    - eapply ctxr_frameR.
+      rewrite/__ -{2}(hmod_addc_empty_l MapM.InitCond).
+      eapply ctxr_cond_frameR.
+      eapply main_adequacy. eapply MapMA.sim; eauto.
       i. split; try refl. unfold MapMS.Stb. unseal "ccr". prove_nodup.
   Qed.
 

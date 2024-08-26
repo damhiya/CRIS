@@ -127,18 +127,18 @@ Section HMOD.
 
   Definition empty_mc : modc := (empty, const(emp%I)).
 
-  Definition add_c (C C': Sk.t -> iProp) : Sk.t -> iProp :=
+  Definition addc (C C': Sk.t -> iProp) : Sk.t -> iProp :=
     (fun sk => C sk ∗ C' sk)%I.
   
   (* Definition add_mc (mc mc': modc) : modc := *)
-  (*   (add mc.1 mc'.1, add_c mc.2 mc'.2)%I. *)
+  (*   (add mc.1 mc'.1, addc mc.2 mc'.2)%I. *)
   
 End HMOD.
 End HMod.
 
 Infix "★" := HMod.add (at level 9, right associativity).
 Notation "◯" := HMod.empty (at level 9).
-Infix "∗∗" := HMod.add_c (at level 9, right associativity).
+Infix "∗∗" := HMod.addc (at level 9, right associativity).
 
 Section PROPERTIES.
   
@@ -207,75 +207,69 @@ Section PROPERTIES.
     - rewrite hmod_add_assoc. rewrite IHl. eauto.
   Qed.
   
-  (* Lemma iprop'_extensionality (P Q: iProp'): *)
-  (*   iProp_pred P = iProp_pred Q -> P = Q. *)
-  (* Proof. *)
-  (*   i. destruct P, Q. ss. revert iProp_mono iProp_mono0. *)
-  (*   rewrite H. i. f_equal. apply proof_irrelevance. *)
-  (* Qed. *)
+  Lemma iprop'_extensionality (P Q: iProp'):
+    iProp_pred P = iProp_pred Q -> P = Q.
+  Proof.
+    i. destruct P, Q. ss. revert iProp_mono iProp_mono0.
+    rewrite H. i. f_equal. apply proof_irrelevance.
+  Qed.
 
-  (* Lemma iprop_add_assoc (P Q R: iProp): *)
-  (*   ((P ∗ Q) ∗ R)%I = (P ∗ (Q ∗ R))%I. *)
-  (* Proof. *)
-  (*   unfold iProp, bi_car, bi_sep, Sepconj. unseal "iProp". *)
-  (*   apply iprop'_extensionality. s. *)
-  (*   extensionality r. apply propositional_extensionality. *)
-  (*   split; i. *)
-  (*   - des. subst. exists a0, (b0 ⋅ b). esplits; eauto. *)
-  (*     rewrite URA.add_assoc. eauto. *)
-  (*   - des. subst. exists (a ⋅ a0), b0. esplits; eauto. *)
-  (*     rewrite URA.add_assoc. eauto. *)
-  (* Qed. *)
+  Lemma iprop_add_assoc (P Q R: iProp):
+    ((P ∗ Q) ∗ R)%I = (P ∗ (Q ∗ R))%I.
+  Proof.
+    unfold iProp, bi_car, bi_sep, Sepconj. unseal "iProp".
+    apply iprop'_extensionality. s.
+    extensionality r. apply propositional_extensionality.
+    split; i.
+    - des. subst. exists a0, (b0 ⋅ b). esplits; eauto.
+      rewrite URA.add_assoc. eauto.
+    - des. subst. exists (a ⋅ a0), b0. esplits; eauto.
+      rewrite URA.add_assoc. eauto.
+  Qed.
 
-  (* Lemma iprop_add_empty_l (P: iProp): *)
-  (*   (emp ∗ P)%I = P. *)
-  (* Proof. *)
-  (*   unfold iProp, bi_car, bi_sep, Sepconj, bi_emp, Emp. unseal "iProp". *)
-  (*   apply iprop'_extensionality. s. *)
-  (*   extensionality r. apply propositional_extensionality. *)
-  (*   split; i. *)
-  (*   - des. subst. eapply iProp_mono; eauto. *)
-  (*     rr. esplits; eauto. rewrite URA.add_comm. eauto. *)
-  (*   - exists ε, r. esplits; eauto. *)
-  (*     rewrite URA.unit_idl. eauto. *)
-  (* Qed. *)
+  Lemma iprop_add_empty_l (P: iProp):
+    (emp ∗ P)%I = P.
+  Proof.
+    unfold iProp, bi_car, bi_sep, Sepconj, bi_emp, Emp. unseal "iProp".
+    apply iprop'_extensionality. s.
+    extensionality r. apply propositional_extensionality.
+    split; i.
+    - des. subst. eapply iProp_mono; eauto.
+      rr. esplits; eauto. rewrite URA.add_comm. eauto.
+    - exists ε, r. esplits; eauto.
+      rewrite URA.unit_idl. eauto.
+  Qed.
 
-  (* Lemma iprop_add_empty_r (P: iProp): *)
-  (*   (P ∗ emp)%I = P. *)
-  (* Proof. *)
-  (*   unfold iProp, bi_car, bi_sep, Sepconj, bi_emp, Emp. unseal "iProp". *)
-  (*   apply iprop'_extensionality. s. *)
-  (*   extensionality r. apply propositional_extensionality. *)
-  (*   split; i. *)
-  (*   - des. subst. eapply iProp_mono; eauto. *)
-  (*     rr. esplits; eauto. *)
-  (*   - exists r, ε. esplits; eauto. *)
-  (*     rewrite URA.add_comm. rewrite URA.unit_idl. eauto. *)
-  (* Qed. *)
+  Lemma iprop_add_empty_r (P: iProp):
+    (P ∗ emp)%I = P.
+  Proof.
+    unfold iProp, bi_car, bi_sep, Sepconj, bi_emp, Emp. unseal "iProp".
+    apply iprop'_extensionality. s.
+    extensionality r. apply propositional_extensionality.
+    split; i.
+    - des. subst. eapply iProp_mono; eauto.
+      rr. esplits; eauto.
+    - exists r, ε. esplits; eauto.
+      rewrite URA.add_comm. rewrite URA.unit_idl. eauto.
+  Qed.
 
-  (* Lemma hmod_add_mc_assoc (md1 md2 md3: HMod.modc): *)
-  (*   HMod.add_mc (HMod.add_mc md1 md2) md3 = HMod.add_mc md1 (HMod.add_mc md2 md3). *)
-  (* Proof. *)
-  (*   destruct md1, md2, md3. unfold HMod.add_mc, HMod.add_c. s. *)
-  (*   rewrite hmod_add_assoc. f_equal. *)
-  (*   extensionalities. rewrite iprop_add_assoc. refl. *)
-  (* Qed. *)
+  Lemma hmod_addc_assoc (P Q R: Sk.t -> iProp) :
+    (P ∗∗ Q) ∗∗ R = P ∗∗ Q ∗∗ R.
+  Proof.
+    extensionalities. unfold HMod.addc. rewrite iprop_add_assoc. refl.
+  Qed.
 
-  (* Lemma hmod_add_mc_empty_l (md: HMod.modc): *)
-  (*   HMod.add_mc HMod.empty_mc md = md. *)
-  (* Proof. *)
-  (*   destruct md. unfold HMod.add_mc, HMod.add_c. s. *)
-  (*   rewrite hmod_add_empty_l. *)
-  (*   f_equal. extensionalities. rewrite iprop_add_empty_l. refl. *)
-  (* Qed. *)
+  Lemma hmod_addc_empty_l (P: Sk.t -> iProp):
+    (const(emp%I)) ∗∗ P = P.
+  Proof.
+    extensionalities. unfold HMod.addc. rewrite iprop_add_empty_l. refl.
+  Qed.
 
-  (* Lemma hmod_add_mc_empty_r (md: HMod.modc): *)
-  (*   HMod.add_mc md HMod.empty_mc = md. *)
-  (* Proof. *)
-  (*   destruct md. unfold HMod.add_mc, HMod.add_c. s. *)
-  (*   rewrite hmod_add_empty_r. *)
-  (*   f_equal. extensionalities. rewrite iprop_add_empty_r. refl. *)
-  (* Qed. *)
+  Lemma hmod_addc_empty_r (P: Sk.t -> iProp):
+    P ∗∗ (const(emp%I)) = P.
+  Proof.
+    extensionalities. unfold HMod.addc. rewrite iprop_add_empty_r. refl.
+  Qed.
   
 End PROPERTIES.
 

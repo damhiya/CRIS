@@ -31,37 +31,37 @@ Section PROOF.
   Definition CellIGroup start len :=
     HMod.addL (List.map CellI.t (seq start len)).
 
-  Theorem correct max_size (StbG: Sk.t -> gname -> option fspec)
+  Theorem correct max_size (StbR StbC: Sk.t -> gname -> option fspec)
     :
     ctx_refines
-      ((RingA.t max_size  StbG) ★ (CtrlIA.CellGroup StbG 0 max_size),
+      ((RingA.t max_size  StbR) ★ (CtrlIA.CellGroup StbC 0 max_size),
        (RingA.InitCond max_size) ∗∗ (fun sk => [∗ list] i↦x ∈ seq 0 max_size, CellA.InitCond i sk))%I
-      ((CtrlI.t max_size)       ★ (CellIGroup 0 max_size)           ,
+      ((CtrlI.t max_size)       ★ (CellIGroup 0 max_size),
        const(emp%I)).
   Proof.
     etrans.
-    - eapply ctx_refines_cond_frameR.
-      eapply hmodr_adequacy.
+    - eapply ctxr_cond_frameR.
+      eapply main_adequacy.
       apply CtrlIA.sim.
-    - eapply ctx_refines_frameL.
+    - rewrite hmod_addc_empty_l.
+      eapply ctxr_frameL.
       induction max_size; i.
-      + eapply ctx_refines_cond_weaken.
-        i. iIntros "(?&?)". eauto.
+      + eapply ctxr_cond_strengthen. eauto.
       + unfold CellIGroup, CtrlIA.CellGroup.
         rewrite/__ !seq_S !map_app !hmod_addL_app.
-        etrans; [|etrans]; [|apply ctx_refines_compose_hor|]; cycle 3.
-        * eapply ctx_refines_cond_weaken.
+        etrans; [|etrans]; [|apply ctxr_compose_hor|]; cycle 3.
+        * eapply ctxr_cond_strengthen.
           i. do 2 instantiate (1:=const(emp%I)). eauto.
-        * eapply ctx_refines_cond_weaken.
-          i. unfold HMod.add_c. rewrite/__ {1}big_sepL_app.
-          iIntros "(_ & H1 & H2)". iSplitL "H1"; eauto.
+        * eapply ctxr_cond_strengthen.
+          i. unfold HMod.addc. rewrite/__ {1}big_sepL_app.
+          iIntros "(H1 & H2)". iSplitL "H1"; eauto.
         * etrans; cycle 1. { apply IHmax_size. }
-          eapply ctx_refines_cond_weaken.
-          i. unfold HMod.add_c. eauto.
+          eapply ctxr_cond_strengthen.
+          i. unfold HMod.addc. eauto.
         * s. rewrite !hmod_add_empty_r.
           etrans; cycle 1.
-          { eapply hmodr_adequacy. eapply CellIA.sim. }
-          eapply ctx_refines_cond_weaken.
+          { eapply main_adequacy. eapply CellIA.sim. }
+          eapply ctxr_cond_strengthen.
           i. rewrite/__ Nat.add_0_r seq_length. iIntros "(H &_)". eauto.
   Qed.
 

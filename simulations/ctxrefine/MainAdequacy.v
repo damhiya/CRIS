@@ -33,10 +33,10 @@ Section ADEQUACY.
 
   Context `{Σ: GRA.t}.
 
-  Theorem hmodr_adequacy (ms mt: HMod.t) IC Ist
+  Theorem main_adequacy (ms mt: HMod.t) IC Ist
     (SIM: HModR.sim ms mt IC Ist)
     :
-    ctx_refines (ms,IC) (mt, fun _ => emp%I).
+    ctx_refines (ms,IC) (mt, const(emp%I)).
   Proof.
   Admitted.
 

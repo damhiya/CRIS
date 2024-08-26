@@ -32,16 +32,17 @@ Section SIMMODSEM.
   
   Variable max_size : nat.
 
-  Variable StbG: Sk.t -> gname -> option fspec.
-  (* Hypothesis RingInStb: forall sk, stb_incl RingAS.Stb (StbG sk). *)
-  (* Hypothesis CellInStb: forall sk idx (LT: idx < max_size), stb_incl (CellAS.Stb idx) (StbG sk). *)
+  Variable StbR: Sk.t -> gname -> option fspec.
+  Variable StbC: Sk.t -> gname -> option fspec.
+  (* Hypothesis RingInStb: forall sk, stb_incl RingAS.Stb (StbR sk). *)
+  (* Hypothesis CellInStb: forall sk idx (LT: idx < max_size), stb_incl (CellAS.Stb idx) (StbR sk). *)
 
-  Local Notation CellAMod := (fun idx => CellA.t idx StbG).
+  Local Notation CellAMod := (fun idx => CellA.t idx StbC).
 
   Definition CellGroup start len : HMod.t :=
     HMod.addL (List.map CellAMod (seq start len)).
 
-  Local Notation RingAMod := ((RingA.t max_size StbG) ★ (CellGroup 0 max_size)).
+  Local Notation RingAMod := ((RingA.t max_size StbR) ★ (CellGroup 0 max_size)).
   Local Notation RingIMod := ((CtrlI.t max_size)      ★ (CellGroup 0 max_size)).
 
   Lemma cellgroup_split idx start len (RANGE: start <= idx < start + len):
@@ -116,7 +117,7 @@ Section SIMMODSEM.
        ([∗ list] i↦x ∈ q', (CellAS.pending ((hd+i) mod max_size) ∨ CellAS.cell ((hd+i) mod max_size) x)))%I.
 
   Definition IstFull :=
-    IstProdMod (RingA.t max_size StbG) (CellGroup 0 max_size) Ist IstEq.
+    IstProdMod (RingA.t max_size StbR) (CellGroup 0 max_size) Ist IstEq.
 
   Lemma simF_init:
     HModR.sim_fun RingAMod RingIMod IstFull RingName.init.

@@ -85,7 +85,7 @@ Section PROPERTIES.
     etrans; eauto.
   Qed.
 
-  Lemma ctx_refines_refines mcs mct
+  Lemma ctxr_refines mcs mct
     (REF: ctx_refines mcs mct)
     :
     refines mcs mct.
@@ -102,7 +102,7 @@ Section PROPERTIES.
 
   (*** vertical composition ***)
   
-  Global Program Instance ctx_refines_PreOrder: PreOrder ctx_refines.
+  Global Program Instance ctxr_PreOrder: PreOrder ctx_refines.
   Next Obligation.
     r. r. i. refl.
   Qed.
@@ -114,14 +114,14 @@ Section PROPERTIES.
   
   (*** commutativity ***)
   
-  Lemma ctx_refines_comm (ma mb: HMod.t) P:
+  Lemma ctxr_comm (ma mb: HMod.t) P:
     ctx_refines (HMod.add ma mb, P) (HMod.add mb ma, P).
   Proof.
   Admitted.
 
   (*** weakening for initial condition ***)
 
-  Lemma ctx_refines_cond_weaken (m: HMod.t) (P Q: Sk.t -> iProp)
+  Lemma ctxr_cond_strengthen (m: HMod.t) (P Q: Sk.t -> iProp)
     (IMPL: forall sk, P sk -∗ Q sk)
     :
     ctx_refines (m, P) (m, Q).
@@ -136,7 +136,7 @@ Section PROPERTIES.
   
   (*** frame rules ***)
 
-  Lemma ctx_refines_frameR ms Ps mt Pt mc
+  Lemma ctxr_frameR ms Ps mt Pt mc
     (REFA: ctx_refines (ms, Ps) (mt, Pt))
     :
     ctx_refines (ms ★ mc, Ps) (mt ★ mc, Pt).
@@ -145,48 +145,48 @@ Section PROPERTIES.
     rewrite !hmod_add_assoc in *. eauto.
   Qed.
 
-  Lemma ctx_refines_frameL ms Ps mt Pt mc
+  Lemma ctxr_frameL ms Ps mt Pt mc
     (REFA: ctx_refines (ms, Ps) (mt, Pt))
     :
     ctx_refines (mc ★ ms, Ps) (mc ★ mt, Pt).
   Proof.
-    etrans. { eapply ctx_refines_comm. }
-    etrans. { eapply ctx_refines_frameR. apply REFA. }
-    apply ctx_refines_comm.
+    etrans. { eapply ctxr_comm. }
+    etrans. { eapply ctxr_frameR. apply REFA. }
+    apply ctxr_comm.
   Qed.
 
   (*** frame rule for initial condition ***)
 
-  Lemma ctx_refines_cond_frameR (ms mt: HMod.t) Ps Pt Q
+  Lemma ctxr_cond_frameR (ms mt: HMod.t) Ps Pt Q
     (REF: ctx_refines (ms, Ps) (mt, Pt))
     :
     ctx_refines (ms, Ps ∗∗ Q)%I (mt, Pt ∗∗ Q)%I.
   Proof.
-    ii. specialize (REF (ctx.1, HMod.add_c Q ctx.2)).
-    destruct ctx. unfold HMod.add_c in *. ss.
+    ii. specialize (REF (ctx.1, HMod.addc Q ctx.2)).
+    destruct ctx. unfold HMod.addc in *. ss.
     destruct REF. split; eauto.
     ii. ss. des. hexploit H0; eauto.
     { iIntros "H". iPoseProof (SRC with "H") as "((? & ?) & ?)".
-      unfold HMod.add_c. iFrame. }
+      unfold HMod.addc. iFrame. }
     i; des. esplits; eauto.
     { iIntros "H". iPoseProof (H2 with "H") as "(? & (? & ?))".
-      unfold HMod.add_c. iFrame. }
+      unfold HMod.addc. iFrame. }
   Qed.
 
-  Lemma ctx_refines_cond_frameL (ms mt: HMod.t) Ps Pt Q
+  Lemma ctxr_cond_frameL (ms mt: HMod.t) Ps Pt Q
     (REF: ctx_refines (ms, Ps) (mt, Pt))
     :
     ctx_refines (ms, Q ∗∗ Ps)%I (mt, Q ∗∗ Pt)%I.
   Proof.
     etrans; [|etrans]; cycle 1.
-    { apply ctx_refines_cond_frameR with (Q:=Q) in REF. apply REF. }
-    { eapply ctx_refines_cond_weaken. i. iIntros "(H1 & H2)". iFrame. }
-    { eapply ctx_refines_cond_weaken. i. iIntros "(H1 & H2)". iFrame. }
+    { apply ctxr_cond_frameR with (Q:=Q) in REF. apply REF. }
+    { eapply ctxr_cond_strengthen. i. iIntros "(H1 & H2)". iFrame. }
+    { eapply ctxr_cond_strengthen. i. iIntros "(H1 & H2)". iFrame. }
   Qed.
   
   (*** horizontal composition ***)
 
-  Lemma ctx_refines_compose_hor msa Psa mta Pta msb Psb mtb Ptb
+  Lemma ctxr_compose_hor msa Psa mta Pta msb Psb mtb Ptb
     (REFA: ctx_refines (msa, Psa) (mta, Pta))
     (REFB: ctx_refines (msb, Psb) (mtb, Ptb))
     :
@@ -194,13 +194,13 @@ Section PROPERTIES.
                 (mta ★ mtb, Pta ∗∗ Ptb).
   Proof.
     etrans.
-    - eapply ctx_refines_frameR, ctx_refines_cond_frameR. apply REFA.
-    - eapply ctx_refines_frameL, ctx_refines_cond_frameL. apply REFB. 
+    - eapply ctxr_frameR, ctxr_cond_frameR. apply REFA.
+    - eapply ctxr_frameL, ctxr_cond_frameL. apply REFB. 
   Qed.
 
   (*** mixed composition ***)
 
-  Lemma ctx_refines_compose_mix msa Psa mta Pta msb Psb mtb Ptb mc
+  Lemma ctxr_compose_mix msa Psa mta Pta msb Psb mtb Ptb mc
     (REFA: ctx_refines (msa ★ mc, Psa) (mta ★ mc, Pta))
     (REFB: ctx_refines (msb ★ mc, Psb) (mtb ★ mc, Ptb))
     :
@@ -208,14 +208,14 @@ Section PROPERTIES.
                 (mta ★ mtb ★ mc, Pta ∗∗ Ptb).
   Proof.
     etrans.
-    { eapply ctx_refines_frameL, ctx_refines_cond_frameL. apply REFB. }
+    { eapply ctxr_frameL, ctxr_cond_frameL. apply REFB. }
     etrans.
-    { eapply ctx_refines_frameL, ctx_refines_comm. }
+    { eapply ctxr_frameL, ctxr_comm. }
     etrans.
     { rewrite <-hmod_add_assoc.
-      eapply ctx_refines_frameR, ctx_refines_cond_frameR. apply REFA. }
+      eapply ctxr_frameR, ctxr_cond_frameR. apply REFA. }
     rewrite hmod_add_assoc.
-    apply ctx_refines_frameL, ctx_refines_comm.
+    apply ctxr_frameL, ctxr_comm.
   Qed.
 
 End PROPERTIES.
