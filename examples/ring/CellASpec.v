@@ -32,11 +32,11 @@ Section SPEC.
   Definition cell_r (v: Z) : cellRA :=
     (fun n => if Nat.eq_dec n idx then Excl.just v else ε).
   Definition cell (v: Z): iProp :=
-    OwnM ((ε, Auth.white (cell_r v)) : RA).
+    Seal.sealing "ccr"
+      (OwnM ((ε, Auth.white (cell_r v)) : RA)).
   Definition auth (v: Z) : iProp :=
-    OwnM ((ε, Auth.black (cell_r v)): RA).
-
-  Global Opaque cell auth.
+    Seal.sealing "ccr"
+      (OwnM ((ε, Auth.black (cell_r v)): RA)).
 
   Definition get_spec : fspec :=
     mk_simple (fun v: Z =>
