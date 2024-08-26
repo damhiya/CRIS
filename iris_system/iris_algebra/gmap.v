@@ -1,4 +1,3 @@
-From sflib Require Import sflib.
 From stdpp Require Export list gmap.
 Require Import list cmra.
 Require Import gset.

@@ -1,4 +1,3 @@
-From sflib Require Import sflib.
 Require Import cmra Coqlib.
 From iris.prelude Require Import prelude options.
 
