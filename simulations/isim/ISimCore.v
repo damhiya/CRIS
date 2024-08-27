@@ -409,7 +409,7 @@ Section SIM.
     r g ps pt {R} RR  k v st_src st_tgt k_src i_tgt
     :
     bi_entails
-      (@isim r g R RR true pt (alist_add k v st_src, k_src tt) (st_tgt, i_tgt))
+      (@isim r g R RR true pt (alist_upd k v st_src, k_src tt) (st_tgt, i_tgt))
       (@isim r g R RR ps pt (st_src, trigger (SPut k v) >>= k_src) (st_tgt, i_tgt)).
   Proof.
     uiprop. i. guclo hpsimC_spec. econs; esplits; eauto. econs; eauto.
@@ -420,7 +420,7 @@ Section SIM.
     :
     In k.1 scopes ->
     bi_entails
-      (@isim r g R RR true pt (alist_add k v st_src, k_src tt) (st_tgt, i_tgt))
+      (@isim r g R RR true pt (alist_upd k v st_src, k_src tt) (st_tgt, i_tgt))
       (@isim r g R RR ps pt (st_src, HModSem.sandbox scopes (trigger (SPut k v)) >>= k_src) (st_tgt, i_tgt)).
   Proof.
     i. iIntros "ISIM".
@@ -437,7 +437,7 @@ Section SIM.
     r g ps pt {R} RR k v st_src st_tgt i_src k_tgt
     :
     bi_entails
-      (@isim r g R RR ps true (st_src, i_src) (alist_add k v st_tgt, k_tgt tt))
+      (@isim r g R RR ps true (st_src, i_src) (alist_upd k v st_tgt, k_tgt tt))
       (@isim r g R RR ps pt (st_src, i_src) (st_tgt, trigger (SPut k v) >>= k_tgt)).
   Proof.
     uiprop. i. guclo hpsimC_spec. econs; esplits; eauto. econs; eauto.
@@ -448,7 +448,7 @@ Section SIM.
     :
     In k.1 scopes ->
     bi_entails
-      (@isim r g R RR ps true (st_src, i_src) (alist_add k v st_tgt, k_tgt tt))
+      (@isim r g R RR ps true (st_src, i_src) (alist_upd k v st_tgt, k_tgt tt))
       (@isim r g R RR ps pt (st_src, i_src) (st_tgt, HModSem.sandbox scopes (trigger (SPut k v)) >>= k_tgt)).
   Proof.
     i. iIntros "ISIM".

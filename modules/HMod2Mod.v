@@ -80,7 +80,7 @@ Section MID.
 
   Definition mput_kv E `{stateE -< E} `{coreE -< E} (k: key) (v: Any.t) : itree E unit :=
     st <- trigger sGet;; '(mp, mr) <- (Any.split st)?;;
-    trigger (sPut (Any.pair (alist_encode (alist_add k v (alist_decode mp))) mr))
+    trigger (sPut (Any.pair (alist_encode (alist_upd k v (alist_decode mp))) mr))
   .
 
   Definition mget_kv E `{stateE -< E} `{coreE -< E} (k: key) : itree E Any.t :=

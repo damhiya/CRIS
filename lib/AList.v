@@ -753,4 +753,76 @@ Section ALIST.
     destruct H; eauto.
   Qed.
 
+  Lemma alist_find_with_nodup {K} `{Dec K} {V} (l1 l2: alist K V) (k: K) (v: V)
+    (NODUP: List.NoDup (List.map fst (l1 ++ [(k,v)] ++ l2)))
+    :
+    alist_find k (l1 ++ [(k,v)] ++ l2) = Some v.
+  Proof.
+    induction l1; ss.
+    { rewrite eq_rel_dec_correct. des_ifs. }
+    destruct a. rewrite eq_rel_dec_correct. inv NODUP. des_ifs; s.
+    { exfalso. apply H2. rewrite map_app; s. apply in_or_app. s; eauto. }
+    rewrite IHl1; eauto.
+  Qed.
+  
+  Fixpoint alist_upd [K] [R: K -> K -> Prop] {RD_K : RelDec R} [V]
+    (k: K) (v: V) (l: alist K V) : alist K V
+    :=
+    match l with
+    | [] => [(k,v)]
+    | x :: l' =>
+        if k ?[ R ] (fst x)
+        then (k,v) :: l'
+        else x :: alist_upd k v l'
+    end.
+
+  Lemma alist_upd_in_or {K V} `{DEC: Dec K} k (v: V) l kv
+    (IN: In kv (alist_upd k v l))
+    :
+    kv = (k, v) \/ In kv l.
+  Proof.
+    revert kv IN. induction l; ss; i; des; eauto.
+    rewrite eq_rel_dec_correct in IN.
+    des_ifs; ss; des; eauto.
+    apply IHl in IN. des; eauto.
+  Qed.
+        
+  Lemma alist_upd_nodup {K V} `{DEC: Dec K} k v (l: alist K V)
+    (ND: List.NoDup (List.map fst l))
+    :
+    List.NoDup (List.map fst (alist_upd k v l)).
+  Proof.
+    revert ND. induction l; ss; i; eauto using NoDup.
+    i. inv ND. spc IHl. destruct a.
+    rewrite eq_rel_dec_correct in *.
+    des_ifs; ss; eauto using NoDup.
+    econs; eauto.
+    ii. apply in_map_iff in H. des. subst.
+    apply alist_upd_in_or in H0.
+    des; subst; eauto.
+    apply H1. eapply in_map. eauto.
+  Qed.
+  
+  Lemma List_filter_none {A} (f: A -> bool) (l: list A)
+    (NOTIN: forall a, In a l -> f a = true):
+    List.filter f l = l.
+  Proof.
+    induction l; eauto.
+    s. des_ifs; cycle 1.
+    { rewrite NOTIN in Heq; ss. eauto. }
+    f_equal. eapply IHl. i. eapply NOTIN. s. eauto.
+  Qed.
+  
+  Lemma alist_upd_with_nodup {K} `{Dec K} {V} (l1 l2: alist K V) (k: K) (v v': V)
+    (NODUP: List.NoDup (List.map fst (l1 ++ [(k,v)] ++ l2)))
+    :
+    alist_upd k v' (l1 ++ [(k,v)] ++ l2) = l1 ++ [(k,v')] ++ l2.
+  Proof.
+    induction l1; ss.
+    { rewrite eq_rel_dec_correct. des_ifs. }
+    rewrite eq_rel_dec_correct. inv NODUP. des_ifs; s.
+    { exfalso. apply H2. rewrite map_app; s. apply in_or_app. s; eauto. }
+    rewrite IHl1; eauto.
+  Qed.
+
 End ALIST.

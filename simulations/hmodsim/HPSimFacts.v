@@ -777,12 +777,12 @@ Section HPSIM_ADEQUACY.
     - unfold interp_hp_body. steps. unfold mput_kv. steps.
       rewrite alist_encode_decode.
       des_ifs. eapply K; eauto.
-      + eapply alist_add_nodup. eauto.
+      + eapply alist_upd_nodup. eauto.
       + eapply own_upd_in_middle; eauto.
     - unfold interp_hp_body. steps. unfold mput_kv. steps.
       rewrite alist_encode_decode.
       des_ifs. eapply K; eauto.
-      + eapply alist_add_nodup. eauto.
+      + eapply alist_upd_nodup. eauto.
       + eapply own_upd_in_middle; eauto.
     - unfold interp_hp_body. steps. unfold mget_kv. steps.
       rewrite alist_encode_decode.

@@ -17,30 +17,6 @@ From ExtLib Require Import
      
 Require Import Red IRed.
 
-
-
-
-
-  Lemma URA_wf_extends_add `{Σ: GRA.t} (r r' c: Σ)
-    (EXT : URA.extends r r')
-    (WF : URA.wf (r' ⋅ c))
-    :
-    URA.wf (r ⋅ c).
-  Proof.
-    eapply URA.wf_extends; eauto.
-    eapply URA.extends_add. eauto.
-  Qed.
-
-  Lemma URA_extends_refl `{Σ: GRA.t} (r: Σ):
-    URA.extends r r.
-  Proof. refl. Qed.
-
-
-
-
-  
-
-
 Section HPSIM.
 
   Context `{Σ: GRA.t}.
@@ -165,7 +141,7 @@ Section HPSIM.
       ps pt st_src st_src0 st_tgt fmr
       k_src i_tgt
       k v
-      (run: st_src0 = alist_add k v st_src)
+      (run: st_src0 = alist_upd k v st_src)
       (K: hpsimi true pt (st_src0, k_src tt) (st_tgt, i_tgt) fmr)
     :
     _hpsim' hpsimc hpsimi ps pt (st_src, trigger (SPut k v) >>= k_src) (st_tgt, i_tgt) fmr
@@ -175,7 +151,7 @@ Section HPSIM.
       ps pt st_src st_tgt st_tgt0 fmr
       i_src k_tgt 
       k v
-      (run: st_tgt0 = alist_add k v st_tgt)
+      (run: st_tgt0 = alist_upd k v st_tgt)
       (K: hpsimi ps true (st_src, i_src) (st_tgt0, k_tgt tt) fmr)
     :
     _hpsim' hpsimc hpsimi ps pt (st_src, i_src) (st_tgt, trigger (SPut k v) >>= k_tgt) fmr
@@ -802,9 +778,6 @@ Section HPSIM.
 
   
 
-
-
-  
   Definition hpsim_fsem: relation (Any.t -> itree hmodE Any.t) :=
     (eq ==> hpsim_fun)%signature.
   
@@ -841,6 +814,9 @@ Proof.
     { uipropall. exploit INV; i; des; try refl; eauto. rr in x2. uipropall.
     }
     econs; eauto with paco.
-  - depdes s; repeat (s; econs; eauto 7 using alist_add_nodup with paco).
+  - depdes s; cycle 1.
+    + repeat (s; econs; eauto).
+    + do 10 (econs; eauto).
+      gbase. apply CIH; try apply alist_upd_nodup; eauto.
   - depdes e; repeat (econs; esplits; eauto with paco).
 Qed.

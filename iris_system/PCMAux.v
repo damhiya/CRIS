@@ -511,3 +511,16 @@ Section PROOF.
   Qed.
 End PROOF.
 
+Lemma URA_wf_extends_add `{Σ: GRA.t} (r r' c: Σ)
+  (EXT : URA.extends r r')
+  (WF : URA.wf (r' ⋅ c))
+  :
+  URA.wf (r ⋅ c).
+Proof.
+  eapply URA.wf_extends; eauto.
+  eapply URA.extends_add. eauto.
+Qed.
+
+Lemma URA_extends_refl `{Σ: GRA.t} (r: Σ):
+  URA.extends r r.
+Proof. refl. Qed.
