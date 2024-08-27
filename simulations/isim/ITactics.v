@@ -657,9 +657,9 @@ Lemma mod_sim_refl_r A B C init_cond Ist
   (SCOPE: ∀ sk, sub_perm (HMod.get_scopes B sk) (HMod.get_scopes A sk))
   (LEN: ∀ sk, strings.length (HModSem.fnsems (HMod.modsem A sk)) =
                    strings.length (HModSem.fnsems (HMod.modsem B sk)))
-  (NONE: ∀ sk fn,
-         In fn (List.map fst (HModSem.fnsems (HMod.modsem B sk))) →
-         In fn (List.map fst (HModSem.fnsems (HMod.modsem A sk))))
+  (* (NONE: ∀ sk fn, *)
+  (*        In fn (List.map fst (HModSem.fnsems (HMod.modsem B sk))) → *)
+  (*        In fn (List.map fst (HModSem.fnsems (HMod.modsem A sk)))) *)
   (SIM: ∀ sk fn
         (IN: In fn (List.map fst (HModSem.fnsems (HMod.modsem A sk)))),
     HModSemR.sim_fun (HMod.modsem (HMod.add A C) sk)
@@ -675,8 +675,8 @@ Proof.
   - apply INIT.
   - s. apply sub_perm_cancel_tail. eapply SCOPE.
   - s. rewrite !app_length. rewrite LEN. eauto.
-  - s. i. rewrite map_app in *. apply in_or_app. apply in_app_or in IN.
-    des; eauto.
+  (* - s. i. rewrite map_app in *. apply in_or_app. apply in_app_or in IN. *)
+  (*   des; eauto. *)
   - s. i. rewrite map_app in IN. apply in_app_or in IN. des.
     { eapply SIM; eauto. }
     admit.
@@ -730,7 +730,7 @@ Ltac init_sim :=
   [i; s; repeat unfold_hmod; s
   |try prove_sub_perm
   |repeat unfold_hmod; ss; try nia
-  |repeat unfold_hmod; ss; des_ifs; eauto
+  (* |repeat unfold_hmod; ss; des_ifs; eauto *)
   |unfold_hmod; s; i; des; subst; ss
   |repeat unfold_hmod; ss; eauto].
 
