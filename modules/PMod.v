@@ -63,6 +63,8 @@ Section PMOD.
 End PMOD.
 End PMod.
 
+Notation "↟ it" := (PModSem.transl it) (at level 60, only printing).
+
 Module PModRed.
 Section RED.
 

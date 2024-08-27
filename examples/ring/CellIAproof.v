@@ -1,5 +1,4 @@
 Require Import Coqlib ITreelib sflib.
-Require Import SMod ModSim.
 Require Import ImpPrelude.
 Require Import Skeleton.
 Require Import PCM IPM IFacts.
@@ -17,8 +16,8 @@ From ExtLib Require Import
      Data.Map.FMapAList.
 Require Import STB.
 
-Require Import ISim HMod Events.
-Require Import Mod ModSimFacts.
+Require Import ISim SMod HMod PMod Events.
+Require Import Mod ModSim ModSimFacts.
 Require Import CellHeader CellASpec CellA CellI.
 
 Set Implicit Arguments.

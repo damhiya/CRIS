@@ -2,7 +2,7 @@ Require Import Coqlib ITreelib sflib.
 Require Import MapHeader MapM MapA MapMSpec MapASpec SMod ModSim.
 Require Import ImpPrelude.
 Require Import Skeleton.
-Require Import PCM IPM.
+Require Import PCM IPM SMod.
 Require Import Events Behavior.
 Require Import Relation_Definitions.
 

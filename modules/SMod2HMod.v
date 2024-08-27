@@ -271,6 +271,9 @@ End HOARE.
 
 (* Export IPCNotations.  *)
 
+Notation "↧ it" := (interp_smod _ ord_top it) (at level 59, only printing).
+Notation "↡ o it" := (interp_smod _ o it) (at level 60, only printing).
+
 Module SModRed.
 Section RED.
 
