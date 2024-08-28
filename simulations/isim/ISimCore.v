@@ -801,6 +801,8 @@ Module HModSemR.
 
     Definition sim_fun fn : Prop :=
       forall
+        (WFS: HModSem.wf ms_src)
+        (WFT: HModSem.wf ms_tgt)
         (NODUPFS: List.NoDup (List.map fst fnsems_src))
         (NODUPFT: List.NoDup (List.map fst fnsems_tgt))
         fs (FIND: alist_find fn fnsems_src = Some fs),
@@ -808,7 +810,7 @@ Module HModSemR.
                    isim_fsem
                      (List.map (map_snd HModSem.sandbox_body) fnsems_src)
                      (List.map (map_snd HModSem.sandbox_body) fnsems_tgt)
-                     Ist (fun '(st_src, v_src) '(st_tgt, v_tgt) => (Ist st_src st_tgt ∗ ⌜v_src = v_tgt⌝))%I
+                     Ist (fun '(st_src, v_src) '(st_tgt, v_tgt) => (⌜v_src = v_tgt⌝ ∗ Ist st_src st_tgt))%I
                      (HModSem.sandbox_body fs) (HModSem.sandbox_body ft).
 
     Inductive sim: Prop :=
@@ -823,13 +825,13 @@ Module HModSemR.
           (*   forall fn (IN: In fn (List.map fst fnsems_tgt)), *)
           (*     In fn (List.map fst fnsems_src); *)
           sim_fnsems:
-            forall fn (IN: In fn (List.map fst fnsems_src)),
+          forall fn
+                 (IN: In fn (List.map fst fnsems_src)),
               sim_fun fn;
         }.
 
   End SIM.
 End HModSemR.
-
 
 Module HModR.
   Section SIM.

@@ -120,7 +120,7 @@ Section HMOD.
     Mod.sk := md.(sk);
   |}.
 
-  Definition get_scopes (md: t) : Sk.t -> list string :=
+  Definition scopes (md: t) : Sk.t -> list string :=
     fun sk => (md.(modsem) sk).(HModSem.scopes).
 
   Definition modc : Type := (t * (Sk.t -> iProp))%type.

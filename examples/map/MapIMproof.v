@@ -104,7 +104,7 @@ Section SIMMODSEM.
 
   Local Notation MapMMod := ((MapM.t StbMap) ★ (MemA.t StbMem)).  
   Local Notation MapIMod := ( MapI.t         ★ (MemA.t StbMem)).
-  Local Notation IstFull := (IstProdMod (MapM.t StbMap) (MemA.t StbMem) Ist IstEq).
+  Local Notation IstFull := (IstProd (IstSB (MapM.t StbMap) Ist) IstEq).
 
   (**********)
 
@@ -116,7 +116,8 @@ Section SIMMODSEM.
     (* SRC: handle the IST of Map and the precond of init *)
     steps_l. iDestruct "ASM" as "(W & (%Y & %M & P0) & %X)". subst. hss. inv G0. 
     rename q0 into u, q1 into ℓ, x into sz.
-    iDestruct "IST" as (? ? ? ?) "(%& [%|(P & IST)] &%)";
+    unfold IstFull. unfold IstProd0.
+    iDestruct "IST" as (? ? ? ?) "(% & (% & [%|(P & IST)]) &%)";
       [|iDestruct "IST" as (? ? ? ?) "(% & M)"];
       des; subst; cycle 1.
     { iExFalso. iApply (pending_unique with "P P0"). }
@@ -132,7 +133,7 @@ Section SIMMODSEM.
 
     (* TGT: prove the precond of alloc *)
     force_r. force_r. force_r.
-    iSplitL ""; eauto.
+    iSplit; eauto.
 
     (* apc *)
     steps_r. apc_r.
@@ -156,11 +157,10 @@ Section SIMMODSEM.
       rewrite unfold_iter_eq. des_ifs; try nia. steps_r.
       (* prove the IST of Map *)
       step. repeat (iSplit; eauto).
-      repeat iExists _. iSplitR; cycle 1.
-      - iSplitL; eauto.
-        iRight. iFrame. iExists _, _, _, _. iSplitR; eauto.
-        rewrite ->app_nil_r, Nat.sub_0_r, repeat_fun_to_list, Nat2Z.id. eauto.
-      - hss.
+      iExists [_;_], [_], _, _.
+      do 3 (iSplit; eauto).
+      iRight. iFrame. iExists _, _, _, _. iSplitR; eauto.
+      rewrite ->app_nil_r, Nat.sub_0_r, repeat_fun_to_list, Nat2Z.id. eauto.
     }
 
     (* Inductive case *)
@@ -218,7 +218,7 @@ Section SIMMODSEM.
     (* SRC: handle the IST of Map and the precond of get *)
     steps_l. iDestruct "ASM" as "(W & % & %)". subst. hss. inv G0.
     rename q0 into u, q1 into ℓ, q3 into idx, q4 into sz, q5 into f.
-    iDestruct "IST" as (? ? ? ?) "(%& [%|(P & IST)] &%)";
+    iDestruct "IST" as (? ? ? ?) "(%& (% & [%|(P & IST)]) &%)";
       [|iDestruct "IST" as (? ? ? ?) "(% & M)"];
       des; subst; hss.
     { nia. }
@@ -252,11 +252,10 @@ Section SIMMODSEM.
 
     (* prove the IST of Map *)
     step. repeat (iSplit; eauto).
-    repeat iExists _. iSplitR; cycle 1.
-    - iSplitL; eauto.
-      iRight. iFrame. iExists _, _, _, _. iSplitR; eauto.
-      iPoseProof ("M" with "GRT") as "M". iFrame.
-    - hss.
+    iExists [_;_], [_], _, _.
+    do 3 (iSplit; eauto).
+    iRight. iFrame. iExists _, _, _, _. iSplit; eauto.
+    iPoseProof ("M" with "GRT") as "M". iFrame.
   Qed.
 
   Lemma simF_set:
@@ -267,7 +266,7 @@ Section SIMMODSEM.
     (* SRC: handle the IST of Map and the precond of set *)
     steps_l. iDestruct "ASM" as "(W & % & %)". subst. hss. inv G0. 
     rename q0 into u, q1 into ℓ, q4 into idx, q3 into sz, q5 into v, q6 into f.
-    iDestruct "IST" as (? ? ? ?) "(%& [%|(P & IST)] &%)";      
+    iDestruct "IST" as (? ? ? ?) "(%& (% & [%|(P & IST)]) &%)";
       [|iDestruct "IST" as (? ? ? ?) "(% & M)"];
       des; subst; hss.
     { nia. }
@@ -301,12 +300,11 @@ Section SIMMODSEM.
 
     (* prove the IST of Map *)
     step. repeat (iSplit; eauto).
-    repeat iExists _. iSplitR; cycle 1.
-    - iSplitL; eauto.
-      iRight. iFrame. iExists _, _, _, _. iSplitR; eauto.
-      iPoseProof ("M" with "GRT") as "M".
-      rewrite ->fun_to_list_update, Z2Nat.id; try nia. iFrame.
-    - hss.
+    iExists [_;_], [_], _, _.
+    do 3 (iSplit; eauto).
+    iRight. iFrame. iExists _, _, _, _. iSplit; eauto.
+    iPoseProof ("M" with "GRT") as "M".
+    rewrite ->fun_to_list_update, Z2Nat.id; try nia. iFrame.
   Qed.
 
   Lemma simF_set_by_user:
@@ -343,11 +341,11 @@ Section SIMMODSEM.
     HModR.sim MapMMod MapIMod MapM.InitCond IstFull.
   Proof.
     init_sim.
-    - iIntros "_". repeat iExists _. iSplitL ""; cycle 1.
-      + iSplitR ""; eauto. iLeft. eauto.
-      + iPureIntro. esplits; eauto.
-        * etrans; [|eapply HModSem.well_scoped_init]; ss.
-        * etrans; [|eapply HModSem.well_scoped_init]; ss.
+    - iIntros "_". iExists _,_,[],[]. iSplit.
+      { rewrite !app_nil_r. eauto. }
+      do 2 (iSplit; eauto).
+      { iPureIntro. split; prove_scope. }
+      iLeft. eauto.
     - eapply simF_init; eauto.
     - eapply simF_get; eauto.
     - eapply simF_set; eauto.

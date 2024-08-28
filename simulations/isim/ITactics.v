@@ -71,7 +71,7 @@ Ltac alist_upd_simpl nodup_tac :=
         eassert (TMP: List.NoDup (List.map fst l)) by (nodup_tac H); clear H; revert TMP
       end;
       erewrite (@ereplace _ l); [intros ?|Lauto_prepare; Lauto_find (k,v0); refl];
-      eassert (NODUP := alist_upd_nodup _ k v TMP); revert NODUP;
+      eassert (NODUP := alist_upd_nodup k v _ TMP); revert NODUP;
       rewrite !alist_upd_with_nodup; [|exact TMP]; clear TMP;
       Lauto_finish; intros ?
     end
@@ -514,41 +514,63 @@ Ltac apc_r :=
  Module-level tactics
  ***)
 
-  (* Lemma ist_eq_run_r A (run: _ -> (_ * A)) Ist st_src st_tgt: *)
-  (*   IstProd Ist IstEq st_src st_tgt -∗ *)
-  (*     (⌜(run_r run st_src).2 = (run_r run st_tgt).2⌝ ∗ *)
-  (*     IstProd Ist IstEq (run_r run st_src).1 (run_r run st_tgt).1). *)
-  (* Proof. *)
-  (*   iIntros "IST". iDestruct "IST" as (? ? ? ?) "(% & IST & %)". des; subst. *)
-  (*   unfold run_r. rewrite !Any.pair_split. destruct (run st_tgtR). *)
-  (*   iSplitR; eauto. *)
-  (*   iExists _,_,_,_. eauto. *)
-  (* Qed. *)
+  Lemma alist_upd_head {K} `{Dec K} {V} (l1 l2: alist K V) (k: K) (v: V)
+    (NODUP: In k (List.map fst l1))
+    :
+    alist_upd k v (l1 ++ l2) = alist_upd k v l1 ++ l2.
+  Proof.
+    unfold alist_upd.
+    induction l1; ss.
+    destruct a. ss. rewrite eq_rel_dec_correct. des_ifs; s.
+    rewrite IHl1; eauto.
+    des; eauto. exfalso. eauto.
+  Qed.
+  
+  Lemma alist_upd_tail {K} `{Dec K} {V} (l1 l2: alist K V) (k: K) (v: V)
+    (NODUP: ~ In k (List.map fst l1))
+    :
+    alist_upd k v (l1 ++ l2) = l1 ++ alist_upd k v l2.
+  Proof.
+    unfold alist_upd.
+    induction l1; eauto.
+    destruct a. s. rewrite eq_rel_dec_correct. des_ifs; s.
+    - exfalso. apply NODUP. s. eauto.
+    - rewrite IHl1; eauto.
+      ii. apply NODUP. s. eauto.
+  Qed.
+  
 
 Section HModProd.
 
   Context `{Σ: GRA.t}.
 
-  Definition IstEq: Sk.t -> alist key Any.t -> alist key Any.t -> iProp :=
-    fun _ st_src st_tgt => ⌜st_src = st_tgt⌝%I.
+  Definition IstSB0 scopes (Ist: alist key Any.t -> alist key Any.t -> iProp) :=
+    fun (st_src st_tgt: alist key Any.t) =>
+      (⌜incl (List.map (fst ∘ fst) st_src) scopes /\
+        incl (List.map (fst ∘ fst) st_tgt) scopes⌝ ∗
+       Ist st_src st_tgt)%I.
 
-  Definition IstProd scopesL scopesR (IstL IstR : alist key Any.t -> alist key Any.t -> iProp) : alist key Any.t -> alist key Any.t -> iProp :=
-    fun st_src st_tgt =>
+  Definition IstSB (A: HMod.t) Ist :=
+    fun (sk: Sk.t) => IstSB0 (HMod.scopes A sk) (Ist sk).
+
+  Definition IstProd0 (IstL IstR : alist key Any.t -> alist key Any.t -> iProp) :=
+    fun (st_src st_tgt: alist key Any.t) =>
       (∃ st_srcL st_tgtL st_srcR st_tgtR,
-       ⌜st_src = st_srcL ++ st_srcR /\ st_tgt = st_tgtL ++ st_tgtR /\
-       incl (List.map (fst ∘ fst) st_srcL) scopesL /\ incl (List.map (fst ∘ fst) st_srcR) scopesR⌝ ∗
+       ⌜st_src = st_srcL ++ st_srcR /\ st_tgt = st_tgtL ++ st_tgtR⌝ ∗
        IstL st_srcL st_tgtL ∗ IstR st_srcR st_tgtR)%I.
+
+  Definition IstProd IstL IstR :=
+    fun (sk: Sk.t) => IstProd0 (IstL sk) (IstR sk).
+
+  Definition IstEq : Sk.t -> alist key Any.t -> alist key Any.t -> iProp :=
+    fun _ st_src st_tgt => ⌜st_src = st_tgt⌝%I.
   
-  Definition IstProdMod A B (IstL IstR : Sk.t -> alist key Any.t -> alist key Any.t -> iProp) : Sk.t -> alist key Any.t -> alist key Any.t -> iProp :=
-    fun sk st_src st_tgt =>
-      IstProd (HMod.get_scopes A sk) (HMod.get_scopes B sk) (IstL sk) (IstR sk) st_src st_tgt.
-      
   Lemma isim_reflR Ist fl_src fl_tgt scopesL scopesR scopesF itr
     (DISJ: List.NoDup (scopesL ++ scopesR))
     (INCL: incl scopesF scopesR)
     :
-    isim_fsem fl_src fl_tgt (IstProd scopesL scopesR Ist (IstEq []))
-      (λ '(st_src, v_src) '(st_tgt, v_tgt), (IstProd scopesL scopesR Ist (IstEq []) st_src st_tgt ∗ ⌜v_src = v_tgt⌝))%I
+    isim_fsem fl_src fl_tgt (IstProd0 (IstSB0 scopesL Ist) (IstEq []))
+      (fun '(st_src, v_src) '(st_tgt, v_tgt) => ⌜v_src = v_tgt⌝ ∗ (IstProd0 (IstSB0 scopesL Ist) (IstEq []) st_src st_tgt))%I
       (HModSem.sandbox_body (scopesF,itr)) (HModSem.sandbox_body (scopesF,itr)).
   Proof.
     ii. subst. unfold HModSem.sandbox_body. s.
@@ -570,45 +592,95 @@ Section HModProd.
         { steps_r. force_l. instantiate (1:=q). by_coind "CIH". eauto. }
         iApply isim_sput_src. iApply isim_sput_tgt.
         by_coind "CIH". iClear "CIH". unfold IstProd.
-        iDestruct "IST" as (? ? ? ?) "(% & I & %)". des; subst.
+        iDestruct "IST" as (? ? ? ?) "(% & (% & IST) & %)". des; subst.
+        apply existsb_exists in Heq. des. apply String.eqb_eq in Heq0. subst.
         iExists st_srcL, st_tgtL, (alist_upd k v st_tgtR), (alist_upd k v _).
-        iSplitR; cycle 1. 
+        iSplitR; cycle 1.
         { iFrame. eauto. }
         iPureIntro. esplits; eauto.
-    Admitted.
+        * eapply alist_upd_tail. ii. 
+          eapply NoDup_app_disjoint; try apply DISJ; eauto.
+          eapply H0. eapply in_map in H. rewrite map_map in H. apply H.
+        * eapply alist_upd_tail. ii.
+          eapply NoDup_app_disjoint; try apply DISJ; eauto.
+          apply H2. eapply in_map in H. rewrite map_map in H. apply H.
+      + rewrite/__ !HModSB.transl_bind !HModSB.transl_get. des_ifs; cycle 1.
+        { steps_r. force_l. instantiate (1:=q). by_coind "CIH". eauto. }
+        iApply isim_sget_src. iApply isim_sget_tgt.
+        apply existsb_exists in Heq. des. apply String.eqb_eq in Heq0. subst.
+        iAssert (⌜alist_find k st_src = alist_find k st_tgt⌝ ∗
+                 IstProd0 (IstSB0 scopesL Ist) (IstEq []) st_src st_tgt)%I
+          with "[IST]" as "(% & IST)".
+        { iDestruct "IST" as (? ? ? ?) "(% & (% & IST) & %)".
+          des; subst. iSplitR; cycle 1.
+          { repeat iExists _. iFrame. eauto. }
+          rewrite alist_find_app_o; des_ifs.
+          { exfalso. apply alist_find_fst_some in Heq0.
+            eapply NoDup_app_disjoint; try apply DISJ; eauto.
+            apply H0. eapply in_map in Heq0. rewrite map_map in Heq0. eauto.
+          }
+          rewrite alist_find_app_o; des_ifs.
+          exfalso. apply alist_find_fst_some in Heq1.
+          eapply NoDup_app_disjoint; try apply DISJ; eauto.
+          apply H2. eapply in_map in Heq1. rewrite map_map in Heq1. eauto.
+        }
+        rewrite H. by_coind "CIH". eauto.
+    - destruct e.
+      + steps_r. force_l. instantiate (1:=q). by_coind "CIH". eauto.
+      + steps_l. force_r. instantiate (1:=q). by_coind "CIH". eauto.
+      + step. by_coind "CIH". eauto.
+  Unshelve. all: eauto.
+  { eapply alist_upd_nodup. eauto. }
+  { eapply alist_upd_nodup. eauto. }
+  Qed.
 
-Lemma mod_sim_refl_r A B C init_cond Ist
-  (INIT: ∀ sk, init_cond sk -∗
-             IstProdMod A C Ist IstEq sk                          
-             (HModSem.initial_st (HMod.modsem (HMod.add A C) sk))
-             (HModSem.initial_st (HMod.modsem (HMod.add B C) sk)))
-  (SCOPE: ∀ sk, sub_perm (HMod.get_scopes B sk) (HMod.get_scopes A sk))
-  (LEN: ∀ sk, strings.length (HModSem.fnsems (HMod.modsem A sk)) =
-                   strings.length (HModSem.fnsems (HMod.modsem B sk)))
-  (* (NONE: ∀ sk fn, *)
-  (*        In fn (List.map fst (HModSem.fnsems (HMod.modsem B sk))) → *)
-  (*        In fn (List.map fst (HModSem.fnsems (HMod.modsem A sk)))) *)
-  (SIM: ∀ sk fn
-        (IN: In fn (List.map fst (HModSem.fnsems (HMod.modsem A sk)))),
-    HModSemR.sim_fun (HMod.modsem (HMod.add A C) sk)
-      (HMod.modsem (HMod.add B C) sk)
-      (IstProdMod A C Ist IstEq sk) fn)
-  (SK: HMod.sk A = HMod.sk B)
-  :
-  HModR.sim (HMod.add A C) (HMod.add B C) init_cond (IstProdMod A C Ist IstEq).
-Proof.
-  econs; cycle 1.
-  { rr. eapply Permutation_app_tail. rewrite SK. refl. }
-  econs.
-  - apply INIT.
-  - s. apply sub_perm_cancel_tail. eapply SCOPE.
-  - s. rewrite !app_length. rewrite LEN. eauto.
-  (* - s. i. rewrite map_app in *. apply in_or_app. apply in_app_or in IN. *)
-  (*   des; eauto. *)
-  - s. i. rewrite map_app in IN. apply in_app_or in IN. des.
-    { eapply SIM; eauto. }
-    admit.
-Admitted.
+  Lemma mod_sim_reflR A B C init_cond Ist
+    (INIT: ∀ sk, init_cond sk -∗
+                    IstProd (IstSB A Ist) IstEq sk
+                    (HModSem.initial_st (HMod.modsem (HMod.add A C) sk))
+                    (HModSem.initial_st (HMod.modsem (HMod.add B C) sk)))
+    (SCOPE: ∀ sk, sub_perm (HMod.scopes B sk) (HMod.scopes A sk))
+    (LEN: ∀ sk, List.length (HModSem.fnsems (HMod.modsem A sk)) =
+                List.length (HModSem.fnsems (HMod.modsem B sk)))
+    (* (NONE: ∀ sk fn, *)
+    (*        In fn (List.map fst (HModSem.fnsems (HMod.modsem B sk))) → *)
+    (*        In fn (List.map fst (HModSem.fnsems (HMod.modsem A sk)))) *)
+    (SIM: ∀ sk fn
+            (IN: In fn (List.map fst (HModSem.fnsems (HMod.modsem A sk)))),
+          HModSemR.sim_fun (HMod.modsem (HMod.add A C) sk) (HMod.modsem (HMod.add B C) sk)
+            (IstProd (IstSB A Ist) IstEq sk) fn)
+    (SK: HMod.sk A = HMod.sk B)
+    :
+    HModR.sim (HMod.add A C) (HMod.add B C) init_cond
+      (IstProd (IstSB A Ist) IstEq).
+  Proof.
+    econs; cycle 1.
+    { rr. eapply Permutation_app_tail. rewrite SK. refl. }
+    econs.
+    - apply INIT.
+    - s. apply sub_perm_cancel_tail. eapply SCOPE.
+    - s. rewrite !app_length. rewrite LEN. eauto.
+    (* - s. i. rewrite map_app in *. apply in_or_app. apply in_app_or in IN. *)
+    (*   des; eauto. *)
+    - s. i. rewrite map_app in IN. apply in_app_or in IN. des.
+      { eapply SIM; eauto. }
+      ii. exists fs. destruct fs as [scp f].
+      assert (FND: alist_find fn (HModSem.fnsems (HMod.modsem C sk))
+                   = Some (scp,f)).
+      { s in FIND. rewrite alist_find_app_o in FIND. des_ifs.
+        exfalso. assert (ND:= HModSem.wf_fns WFS). s in ND. rewrite map_app in ND.
+        eapply NoDup_app_disjoint; try apply ND; eauto.
+        eapply alist_find_some, (in_map fst) in Heq. eauto.
+      }
+
+      split; cycle 1.
+      { eapply isim_reflR. eauto.
+        - apply WFS.
+        - ii. eapply (HMod.modsem C sk). unfold fnsems_scopes. rewrite FND. eauto.
+      }
+      eapply alist_find_some_iff; eauto.
+      apply in_or_app. right. eapply alist_find_some. eauto.    
+Qed.
   
 End HModProd.
 
@@ -633,7 +705,7 @@ Ltac init_simF :=
   ii; subst; iIntros "IST".
 
 Ltac prove_sub_perm :=
-  i; try rewrite /HMod.get_scopes; s; repeat unfold_hmod; s; Lauto_normalize;
+  i; try rewrite /HMod.scopes; s; repeat unfold_hmod; s; Lauto_normalize;
   match goal with
     [|-sub_perm ?x ?y] =>
       match x with
@@ -654,7 +726,7 @@ Ltac prove_sub_perm :=
   eapply sub_perm_refl.
 
 Ltac init_sim :=
-  first [eapply mod_sim_refl_r | econs; [econs|]];
+  first [eapply mod_sim_reflR | econs; [econs|]];
   [i; s; repeat unfold_hmod; s
   |try prove_sub_perm
   |repeat unfold_hmod; ss; try nia
@@ -726,42 +798,5 @@ Notation "E1 '------------------------------------------------------------------
   (environments.envs_entails (Envs E1 E2 _) (bi_wand P (isim _ _ _ _ _ _ _ _ (st_src, _) (st_tgt, _))))
     (at level 50,
      format "E1 '------------------------------------------------------------------□' '//' E2 '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '-------------------------------isim-------------------------------' '//' P  '-∗'  'ISIM' ").
-
-
-(****************************************************************************************************)
-
-(* Section TEST.
-Context `{CtxWD.t}.
-
-Let Ist: Any.t -> Any.t -> iProp := fun _ _ => ⌜True⌝%I.
-Let RR: (Any.t * Any.t) -> (Any.t * Any.t) -> iProp := fun _ _ => ⌜True⌝%I.
-Variable iP: iProp.
-
-Goal ⊢ ((⌜False⌝∗iP∗iP) -∗ iP ∗ isim Ist [] [] ibot ibot RR false false (tt↑, Ret tt↑) (tt↑, Ret tt↑)).
-Proof. iIntros "(#A & B & C)". Unset Printing Notations.
-iAssert (iP -* world 1 0 ⊤) as "H". { admit. }
-iPoseProof ("H" with "B") as "B". iRevert "B". Unset Printing Notations. 
-clarify. Admitted.
-Goal ⌜False⌝%I ⊢ (isim Ist [] [] ibot ibot RR false false (tt↑, Ret tt↑) (tt↑, Ret tt↑)).
-Proof. iIntros "#H". Admitted.
-Goal ⊢ (iP -∗ isim Ist [] [] ibot ibot RR false false (tt↑, Ret tt↑) (tt↑, Ret tt↑)).
-Proof. iIntros "H". Admitted.
-Goal ⊢ (isim Ist [] [] ibot ibot RR false false (tt↑, trigger (Assume (⌜False⌝%I));;; Ret tt↑ >>= (fun r => Ret r)) (tt↑, Ret tt↑)).
-Proof. iIntros. steps. Admitted.
-
-
-
-Goal ⊢ ((⌜False⌝**iP) -∗ wsim Ist [] [] 1 0 ⊤ ibot ibot RR false false (tt↑, Ret tt↑) (tt↑, Ret tt↑)).
-Proof. iIntros "[#A B]". clarify. Qed.
-Goal ⌜False⌝%I ⊢ (wsim Ist [] [] 1 0 ⊤ ibot ibot RR false false (tt↑, Ret tt↑) (tt↑, Ret tt↑)).
-Proof. iIntros "#H". Admitted.
-Goal ⊢ (iP -∗ wsim Ist [] [] 1 0 ⊤ ibot ibot RR false false (tt↑, Ret tt↑) (tt↑, Ret tt↑)).
-Proof. iIntros "H". Admitted.
-Goal ⊢ (wsim Ist [] [] 1 0 ⊤ ibot ibot RR false false (tt↑, trigger (Assume (⌜False⌝%I));;; Ret tt↑ >>= (fun r => Ret r)) (tt↑, Ret tt↑)).
-Proof. iIntros. steps. Admitted.
-
-
-
-End TEST. *)
 
 

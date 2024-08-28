@@ -213,8 +213,8 @@ Section SIMMODSEM.
     iSplitL "WORLD MAP". { iFrame. eauto. }
 
     (* prove the IST of Map *)
-    step. iSplitL; eauto.
-    iExists _, _. iSplitL ""; eauto. iRight. iFrame.
+    step. iSplit; eauto.
+    iExists _, _. iSplit; eauto. iRight. iFrame.
   Qed.
 
   Lemma simF_set:
@@ -247,8 +247,8 @@ Section SIMMODSEM.
     iSplitL "WORLD MAP". { iFrame. eauto. }
 
     (* prove the IST of Map *)
-    step. iSplitL; eauto.
-    iExists _, _. iSplitL ""; eauto. iRight. iFrame.
+    step. iSplit; eauto.
+    iExists _, _. iSplit; eauto. iRight. iFrame.
   Qed.
 
   Lemma simF_set_by_user:

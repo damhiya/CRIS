@@ -48,7 +48,9 @@ Section SIMMODSEM.
   Lemma cell_unique v v':
     cell idx v -∗ cell idx v' -∗ False%I.
   Proof.
-    iIntros "H0 H1". iCombine "H0 H1" as "H".
+    iIntros "H0 H1". unfold cell. unseal "ccr".
+    iCombine "H0 H1" as "H". iOwnWf "H" as WF. exfalso.
+    rr in WF. unseal "ra". ur in WF. des. ur in WF0.
   Admitted.
 
   Lemma cell_auth_get v v':
@@ -89,8 +91,8 @@ Section SIMMODSEM.
     force_l. steps_l. force_l. force_l.
     iSplitL "C". { eauto. }
 
-    step. iSplitL; [|eauto].
-    iExists _, _. iSplitL ""; eauto. iRight. iFrame; eauto.
+    step. iSplit; eauto.
+    iExists _, _. iSplit; eauto. iRight. iFrame; eauto.
   Qed.
   
   Lemma simF_set:
@@ -111,8 +113,8 @@ Section SIMMODSEM.
       iSplitL "C". { eauto. }
 
       step.
-      iSplitL; eauto.
-      iExists _, _. iSplitL ""; eauto. iRight. iFrame; eauto.
+      iSplit; eauto.
+      iExists _, _. iSplit; eauto. iRight. iFrame; eauto.
     }
 
     iDestruct "IST" as (vany v0) "(% & [(C' & A)|(% & P & A)])".
@@ -127,15 +129,15 @@ Section SIMMODSEM.
     iSplitL "C". { eauto. }
 
     step.
-    iSplitL; [|eauto].
-    iExists _, _. iSplitL ""; eauto. iRight. iFrame; eauto.
+    iSplit; eauto.
+    iExists _, _. iSplit; eauto. iRight. iFrame; eauto.
   Qed.
 
   Theorem sim: HModR.sim CellAMod CellIMod (CellA.InitCond idx) Ist.
   Proof.
     init_sim.
     - iIntros "H". iDestruct "H" as (v) "(C & A)".
-      repeat iExists _. iSplitL ""; eauto. iLeft. iFrame.
+      repeat iExists _. iSplit; eauto. iLeft. iFrame.
     - apply simF_get.
     - apply simF_set.
   Qed.

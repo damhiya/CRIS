@@ -115,8 +115,7 @@ Section SIMMODSEM.
        ([∗ list] i↦x ∈ q, CellAS.cell ((tl+i) mod max_size) x) ∗
        ([∗ list] i↦x ∈ q', (CellAS.pending ((hd+i) mod max_size) ∨ CellAS.cell ((hd+i) mod max_size) x)))%I.
 
-  Definition IstFull :=
-    IstProdMod (RingA.t max_size StbR) (CellGroup 0 max_size) Ist IstEq.
+  Notation IstFull := (IstProd (IstSB (RingA.t max_size StbR) Ist) IstEq).
 
   Lemma simF_init:
     HModR.sim_fun RingAMod RingIMod IstFull RingName.init.
@@ -124,7 +123,7 @@ Section SIMMODSEM.
     init_simF.
 
     steps_l. iDestruct "ASM" as "%". subst. hss. destruct q, q1.
-    iDestruct "IST" as (? ? ? ?) "(% & IST & %)". des; subst.
+    iDestruct "IST" as (? ? ? ?) "(% & (% & IST) & %)". des; subst.
     iDestruct "IST" as (? ? ? ?) "(% & LIVE & FREE)". des; subst. hss.
 
     steps_r. hss.
@@ -133,24 +132,24 @@ Section SIMMODSEM.
 
     step.
     iSplit; eauto.
-    repeat iExists _. iSplitL ""; cycle 1.
-    - iSplit; eauto. unfold Ist.
-      iExists [], (rotate (max_size - tl mod max_size) (q++q')%list), 0, 0.
-      iSplitL "".
-      { iPureIntro. esplits; eauto. s. rewrite rotate_length. eauto. }
-      iSplitL ""; eauto.
-      subst. iApply big_sepL_rotate. iApply big_sepL_app.
-      iSplitL "LIVE".
-      + iApply (big_sepL_impl with "LIVE").
-        iModIntro. iIntros (k x) "% LIVE". iRight. s.
-        rewrite Nat.mod_mod; eauto.
-        rewrite app_length. apply lookup_lt_Some in H0. nia.
-      + iApply (big_sepL_impl with "FREE").
-        iModIntro. iIntros (k x) "% FREE". s.
-        rewrite Nat.add_assoc.
-        rewrite Nat.mod_mod; eauto.
-        rewrite app_length. apply lookup_lt_Some in H0. nia.
-    - eauto.
+    iExists [_], [_;_], st_tgtR, st_tgtR.
+    do 3 (iSplit; eauto).
+    iExists [], (rotate (max_size - tl mod max_size) (q++q')%list), 0, 0. 
+    iSplit.
+    { iPureIntro. esplits; eauto. s. rewrite rotate_length. eauto. }
+    
+    iSplit; eauto. subst.
+    iApply big_sepL_rotate. iApply big_sepL_app.
+    iSplitL "LIVE".
+    + iApply (big_sepL_impl with "LIVE").
+      iModIntro. iIntros (k x) "% LIVE". iRight. s.
+      rewrite Nat.mod_mod; eauto.
+      rewrite app_length. apply lookup_lt_Some in H0. nia.
+    + iApply (big_sepL_impl with "FREE").
+      iModIntro. iIntros (k x) "% FREE". s.
+      rewrite Nat.add_assoc.
+      rewrite Nat.mod_mod; eauto.
+      rewrite app_length. apply lookup_lt_Some in H0. nia.
   Qed.
 
   Lemma simF_get_size:
@@ -159,7 +158,7 @@ Section SIMMODSEM.
     init_simF.
 
     steps_l. iDestruct "ASM" as "%". subst. hss. destruct q, q1.
-    iDestruct "IST" as (? ? ? ?) "(% & IST & %)". des; subst.
+    iDestruct "IST" as (? ? ? ?) "(% & (% & IST) & %)". des; subst.
     iDestruct "IST" as (? ? ? ?) "(% & LIVE & FREE)". des; subst. hss.
 
     steps_r. hss. steps_r. hss. steps_r.
@@ -167,12 +166,10 @@ Section SIMMODSEM.
     iSplitL "". { eauto. }
 
     step.
-    iSplit; cycle 1.
-    { iPureIntro. f_equal. nia. }
-    repeat iExists _. iSplitL ""; cycle 1.
-    - iSplit; eauto. unfold Ist.
-      repeat iExists _. iFrame. eauto.
-    - eauto.
+    iSplit. { iPureIntro. f_equal. nia. }
+    iExists [_], [_;_], st_tgtR, st_tgtR.
+    do 3 (iSplit; eauto).
+    repeat iExists _. iFrame. eauto.
   Qed.
 
   Lemma simF_enqueue:
@@ -181,7 +178,7 @@ Section SIMMODSEM.
     init_simF.
 
     steps_l. iDestruct "ASM" as "%". subst. hss. destruct q.
-    iDestruct "IST" as (? ? ? ?) "(% & IST & %)". des; subst.
+    iDestruct "IST" as (? ? ? ?) "(% & (% & IST) & %)". des; subst.
     iDestruct "IST" as (? ? ? ?) "(% & LIVE & FREE)". des; subst. hss.
 
     steps_r. hss. steps_r. hss. steps_r.
@@ -210,22 +207,19 @@ Section SIMMODSEM.
 
     step.
     iSplit; eauto.
-    repeat iExists _. iSplitL ""; cycle 1.
-    - iSplit; eauto. unfold Ist.
-      iExists (q++[z']), q', ((tl + List.length q)+1), tl.
-      iSplitL "".
-      { iPureIntro. esplits; eauto.
-        - rewrite app_length. s. nia.
-        - rewrite !app_length. s. nia.
-      }
-      iSplitL "LIVE CELL".
-      + iApply big_sepL_app. iFrame. s. rewrite Nat.add_0_r. eauto.
-      + iApply (big_sepL_impl with "FREE").
-        iModIntro. iIntros (k x FIND) "H".
-        rewrite <-!Nat.add_assoc. eauto.
-    - iPureIntro. esplits; eauto.
-      erewrite cellgroup_split; eauto.
-      nia.
+    iExists [_], [_;_], st_tgtR, st_tgtR.
+    do 3 (iSplit; eauto).
+    iExists (q++[z']), q', ((tl + List.length q)+1), tl.
+    iSplitL "".
+    { iPureIntro. esplits; eauto.
+      - rewrite app_length. s. nia.
+      - rewrite !app_length. s. nia.
+    }
+    iSplitL "LIVE CELL".
+    + iApply big_sepL_app. iFrame. s. rewrite Nat.add_0_r. eauto.
+    + iApply (big_sepL_impl with "FREE").
+      iModIntro. iIntros (k x FIND) "H".
+      rewrite <-!Nat.add_assoc. eauto.
   Qed.
 
   Lemma simF_dequeue:
@@ -234,7 +228,7 @@ Section SIMMODSEM.
     init_simF.
 
     steps_l. iDestruct "ASM" as "%". subst. hss. destruct q.
-    iDestruct "IST" as (? ? ? ?) "(% & IST & %)". des; subst.
+    iDestruct "IST" as (? ? ? ?) "(% & (% & IST) & %)". des; subst.
     iDestruct "IST" as (? ? ? ?) "(% & LIVE & FREE)". des; subst. hss.
 
     steps_r. hss. steps_r. hss. steps_r.
@@ -261,42 +255,39 @@ Section SIMMODSEM.
 
     step.
     iSplit; eauto.
-    repeat iExists _. iSplitL ""; cycle 1.
-    - iSplit; eauto. unfold Ist.
-      iExists q, (q'++[z]), (tl + S(List.length q)), (S tl).
-      iSplitL "".
-      { iPureIntro. esplits; eauto; try nia.
-        rewrite !app_length. s. nia.
-      }
-      iSplitL "LIVE".
-      + iApply (big_sepL_impl with "LIVE").
-        iModIntro. iIntros (k x FIND) "H".
-        rewrite/__ Nat.add_succ_r. eauto.
-      + iApply big_sepL_app. iFrame. s. iSplitR ""; eauto.
-        iRight. eapply eq_ind; try iAssumption. f_equal.
-        erewrite <-mod_add_ex; eauto; try nia.
-        exists 1. nia.
-    - iPureIntro. esplits; eauto.
-      + s. repeat f_equal. nia.
-      + erewrite cellgroup_split; eauto.
-        nia.
+    iExists [_], [_;_], st_tgtR, st_tgtR.
+    do 3 (iSplit; eauto).
+    iExists q, (q'++[z]), (tl + S(List.length q)), (S tl).
+    iSplit.
+    { iPureIntro. esplits; eauto; try nia.
+      - repeat f_equal. nia.
+      - rewrite !app_length. s. nia.
+    }
+    iSplitL "LIVE".
+    + iApply (big_sepL_impl with "LIVE").
+      iModIntro. iIntros (k x FIND) "H".
+      rewrite/__ Nat.add_succ_r. eauto.
+    + iApply big_sepL_app. iFrame. s. iSplitR ""; eauto.
+      iRight. eapply eq_ind; try iAssumption. f_equal.
+      erewrite <-mod_add_ex; eauto; try nia.
+      exists 1. nia.
   Qed.
 
   Theorem sim: HModR.sim RingAMod RingIMod (RingA.InitCond max_size) IstFull.
   Proof.
     init_sim.
-    - iIntros "R". repeat iExists _. iSplitL ""; cycle 1.
-      + iSplitR ""; eauto. unfold Ist.
-        iExists [], (replicate max_size 0%Z), 0, 0.
-        iSplitL ""; eauto.
-        * iPureIntro. esplits; eauto. s. rewrite replicate_length. eauto.
-        * s. iSplitL ""; eauto.
-          iApply (big_sepL_impl with "R").
-          iModIntro. iIntros (? ? FIND) "P".
-          iLeft. rewrite Nat.mod_small; eauto.
-          eapply lookup_replicate_1. eauto.
-      + iPureIntro. esplits; ss; eauto.
-        apply HModSem.well_scoped_init.
+    - iIntros "R". iExists [_], [_;_], _, _.
+      do 3 (iSplit; eauto).
+      { iPureIntro. split; prove_scope. }
+
+      iExists [], (replicate max_size 0%Z), 0, 0.
+      iSplit.
+      { iPureIntro. esplits; eauto. s. rewrite replicate_length. eauto. }
+      s. iSplitL ""; eauto.
+      iApply (big_sepL_impl with "R").
+      iModIntro. iIntros (? ? FIND) "P".
+      iLeft. rewrite Nat.mod_small; eauto.
+      eapply lookup_replicate_1. eauto.
     - apply simF_init.
     - apply simF_get_size.
     - apply simF_enqueue.

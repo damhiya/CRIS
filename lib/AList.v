@@ -95,6 +95,20 @@ Fixpoint alist_replace (K : Type) (R : K -> K -> Prop) (RD_K : RelDec R) (V : Ty
 Definition alist_filter K `{Dec K} V (f: K -> bool) (l: alist K V) :=
   List.filter (f ∘ fst) l.
 
+Fixpoint _alist_upd [K] [R: K -> K -> Prop] {RD_K : RelDec R} [V]
+  (k: K) (v: V) (l: alist K V) : alist K V
+  :=
+  match l with
+  | [] => [(k,v)]
+  | x :: l' =>
+      if k ?[ R ] (fst x)
+      then (k,v) :: l'
+      else x :: _alist_upd k v l'
+  end.
+
+Definition alist_upd [K] [R: K -> K -> Prop] {RD_K : RelDec R} [V] :=
+  @_alist_upd K R RD_K V.
+
 Arguments alist_replace [K R] {RD_K} [V].
 Arguments alist_find [K R] {RD_K} [V].
 Arguments alist_add [K R] {RD_K} [V].
@@ -322,6 +336,7 @@ Section ALIST.
   Qed.
 End ALIST.
 
+Arguments alist_upd [K R] {RD_K} [V] : simpl never.
 
 Tactic Notation "asimpl" "in" ident(H) :=
   (try unfold alist_remove, alist_add in H); simpl in H.
@@ -765,22 +780,12 @@ Section ALIST.
     rewrite IHl1; eauto.
   Qed.
   
-  Fixpoint alist_upd [K] [R: K -> K -> Prop] {RD_K : RelDec R} [V]
-    (k: K) (v: V) (l: alist K V) : alist K V
-    :=
-    match l with
-    | [] => [(k,v)]
-    | x :: l' =>
-        if k ?[ R ] (fst x)
-        then (k,v) :: l'
-        else x :: alist_upd k v l'
-    end.
-
   Lemma alist_upd_in_or {K V} `{DEC: Dec K} k (v: V) l kv
     (IN: In kv (alist_upd k v l))
     :
     kv = (k, v) \/ In kv l.
   Proof.
+    unfold alist_upd in *.
     revert kv IN. induction l; ss; i; des; eauto.
     rewrite eq_rel_dec_correct in IN.
     des_ifs; ss; des; eauto.
@@ -792,6 +797,7 @@ Section ALIST.
     :
     List.NoDup (List.map fst (alist_upd k v l)).
   Proof.
+    unfold alist_upd in *.
     revert ND. induction l; ss; i; eauto using NoDup.
     i. inv ND. spc IHl. destruct a.
     rewrite eq_rel_dec_correct in *.
@@ -818,6 +824,7 @@ Section ALIST.
     :
     alist_upd k v' (l1 ++ [(k,v)] ++ l2) = l1 ++ [(k,v')] ++ l2.
   Proof.
+    unfold alist_upd in *.
     induction l1; ss.
     { rewrite eq_rel_dec_correct. des_ifs. }
     rewrite eq_rel_dec_correct. inv NODUP. des_ifs; s.
