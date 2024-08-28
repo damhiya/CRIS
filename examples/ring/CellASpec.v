@@ -24,19 +24,24 @@ Section SPEC.
   Global Instance RA: URA.t := URA.prod pendingRA (Auth.t cellRA).
   Context `{@GRA.inG RA Σ}.
 
-  Definition pending_r: pendingRA :=
-    (fun n => if Nat.eq_dec n idx then Excl.just tt else ε).
+  Definition pending_r: RA :=
+    ((fun n => if Nat.eq_dec n idx then Excl.just tt else ε) : pendingRA, ε).
   Definition pending: iProp :=
-    OwnM ((pending_r, ε) : RA).
+    Seal.sealing "ccr"
+      (OwnM pending_r).
 
-  Definition cell_r (v: Z) : cellRA :=
+  Definition cellraw_r (v: Z) : cellRA :=
     (fun n => if Nat.eq_dec n idx then Excl.just v else ε).
+  Definition cell_r (v: Z) : RA :=
+    (ε, Auth.white (cellraw_r v)).
   Definition cell (v: Z): iProp :=
     Seal.sealing "ccr"
-      (OwnM ((ε, Auth.white (cell_r v)) : RA)).
+      (OwnM (cell_r v)).
+  Definition auth_r (v: Z) : RA :=
+    (ε, Auth.black (cellraw_r v)).
   Definition auth (v: Z) : iProp :=
     Seal.sealing "ccr"
-      (OwnM ((ε, Auth.black (cell_r v)): RA)).
+      (OwnM (auth_r v)).
 
   Definition get_spec : fspec :=
     mk_simple (fun v: Z =>

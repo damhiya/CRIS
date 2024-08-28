@@ -39,29 +39,50 @@ Section SIMMODSEM.
   Lemma pending_unique:
     pending idx -∗ pending idx -∗ False%I.
   Proof.
-    iIntros "H0 H1". iCombine "H0 H1" as "H".
-    iOwnWf "H" as WF. exfalso.
+    unfold pending. unseal "ccr". unfold pending_r.
+    iIntros "H0 H1". iCombine "H0 H1" as "H". iOwnWf "H" as WF. exfalso.
     rr in WF. ur in WF. unseal "ra". des. ur in WF. specialize (WF idx).
-    unfold CellAS.pending_r in WF. des_ifs. apply Excl.wf in WF. ss.
+    des_ifs. apply Excl.wf in WF. ss.
   Qed.
 
   Lemma cell_unique v v':
     cell idx v -∗ cell idx v' -∗ False%I.
   Proof.
-    iIntros "H0 H1". unfold cell. unseal "ccr".
-    iCombine "H0 H1" as "H". iOwnWf "H" as WF. exfalso.
-    rr in WF. unseal "ra". ur in WF. des. ur in WF0.
-  Admitted.
+    unfold cell, auth. unseal "ccr". unfold cell_r, cellraw_r.
+    iIntros "H0 H1". iCombine "H0 H1" as "H". iOwnWf "H" as WF. exfalso.
+    rr in WF. ur in WF. unseal "ra". des. ur in WF0.
+    ur in WF0. specialize (WF0 idx). ur in WF0. des_ifs.
+  Qed.
 
   Lemma cell_auth_get v v':
     cell idx v' -∗ auth idx v -∗ ⌜v = v'⌝%I.
   Proof.
-  Admitted.
+    unfold cell, auth. unseal "ccr". unfold cell_r, auth_r, cellraw_r.
+    iIntros "H0 H1". iCombine "H0 H1" as "H".
+    iOwnWf "H" as WF. iPureIntro. rr in WF. ur in WF. unseal "ra". des.
+    rr in WF0. ur in WF0. unseal "ra". des.
+    rr in WF0. des. ur in WF0. eapply equal_f with (x:=idx) in WF0.
+    ur in WF0. des_ifs.
+  Qed.
 
   Lemma cell_auth_set v v':
     cell idx v -∗ auth idx v -∗ |==> cell idx v' ∗ auth idx v'.
   Proof.
-  Admitted.
+    unfold cell, auth. unseal "ccr".
+    iIntros "H0 H1". iCombine "H0 H1" as "H".
+    iPoseProof (OwnM_Upd with "H") as "H".
+    { instantiate (1:= (cell_r idx v') ⋅ (auth_r idx v')).
+      unfold cell_r, auth_r, cellraw_r.
+      rr. intros ctx WF. ur in WF. ur. unseal "ra". des_ifs. des. split; auto.
+      ur in WF0. ur. des_ifs. des. rr in WF0. des. split.
+      { rr. exists ctx. ur in WF0. ur. extensionality n.
+        eapply equal_f with (x:=n) in WF0. ur in WF0. ur.
+        des_ifs; rewrite ->?fn_lookup_insert, ?fn_lookup_insert_ne; eauto.
+      }
+      { ur. i. rr. ur. unseal "ra". des_ifs. }
+    }
+    iMod "H". iDestruct "H" as "[H0 H1]". iFrame. auto.
+  Qed.
 
   Definition Ist: Sk.t -> alist key Any.t -> alist key Any.t -> iProp :=
     (fun _ st_src st_tgt =>
