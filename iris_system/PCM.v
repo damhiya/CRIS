@@ -1219,7 +1219,193 @@ End Auth.
 (*** TODO: put it inside ***)
 
 
+Module OneShot.
+Section ONESHOT.
 
+Context {X: Type}.
+Inductive car: Type :=
+| white (x: X)
+| black
+| unit
+| boom
+.
+
+Let _add := fun x y => match x, y with
+                    | white a0, white a1 => if excluded_middle_informative (a0 = a1) then white a0 else boom
+                    | _, unit => x
+                    | unit, _ => y
+                    | black, _ => boom
+                    | _, black => boom
+                    | _, _ => boom end.
+
+Let _wf := fun a => a <> boom.
+Let _core := fun a => match a with
+                      | boom => boom
+                      | white a => white a
+                      | _ => unit
+                      end.
+
+Program Instance t: URA.t := {
+  URA.car := car;
+  URA._add := _add;
+  URA._wf := _wf;
+  URA.unit := unit;
+  URA.core := _core;
+}
+.
+Next Obligation. subst _add. ss. des_ifs; et. Qed.
+Next Obligation. subst _add. ss. des_ifs. Qed.
+Next Obligation. subst _add. ss. des_ifs. Qed.
+Next Obligation. subst _add. unfold _wf in *. des_ifs. Qed.
+Next Obligation. subst _core _add. unfold _wf in *. des_ifs. Qed.
+Next Obligation. subst _core. unfold _wf in *. des_ifs. Qed.
+Next Obligation.
+  subst _core _add. ss.
+  des_ifs;
+    try solve [exists unit; ss];
+      try solve [exists boom; ss].
+  eexists (white _). et.
+Qed.
+
+Theorem oneshot_degen
+        a b
+        (WF: URA.wf (t:=t) ((white a) ⋅ (white b)))
+  :
+    a = b
+.
+Proof. rewrite URA.unfold_add in WF; rewrite URA.unfold_wf in WF. ss. des_ifs. Qed.
+
+Theorem oneshot_initialized
+        a x
+        (WF: URA.wf (t:=t) (x ⋅ (white a)))
+  :
+    x = white a \/ x = unit
+.
+Proof. rewrite URA.unfold_add in WF; rewrite URA.unfold_wf in WF. ss. unfold _wf, _add in WF. des_ifs; et. Qed.
+
+Theorem oneshot_white_unupdatable
+          a0 a1
+          (NOTUNIT: a1 <> unit)
+  :
+      <<UPD:  URA.updatable (t:=t) (white a0) a1 -> a1 = white a0>>
+.
+Proof.
+  rr. unfold URA.updatable, URA.wf, URA.add in *. unseal "ra". ss. ii.
+  subst _add.  unfold _wf in *.
+  specialize (H (white a0)). ss. des_ifs; clear_tac; ss.
+  all: (exfalso; eapply H; ss).
+Qed.
+
+Theorem oneshot_black_updatable
+          a
+  :
+      <<UPD: URA.updatable black (white a)>>
+.
+Proof.
+  rr. unfold URA.updatable, URA.wf, URA.add in *. unseal "ra". ss. ii. des_ifs.
+Qed.
+
+End ONESHOT.
+End OneShot.
+
+Arguments OneShot.t: clear implicits.
+
+From stdpp Require numbers.
+
+Module Consent.
+Import numbers.
+
+Section CONSENT.
+
+Local Obligation Tactic := i; unseal "ra"; ss; des_ifs_safe.
+
+Context {X: Type}.
+
+Local Open Scope Qp.
+
+Inductive car: Type :=
+| just (q: Qp) (x: X)
+| unit
+| boom
+.
+
+Let _add := fun x y => 
+              match x, y with
+              | _, unit => x | unit, _ => y 
+              | just q0 x0, just q1 x1 => 
+                if (excluded_middle_informative (x0 = x1)) then just (q0 + q1) x0
+                else boom
+              | _, _ => boom end.
+
+Let _wf := fun a => 
+              match a with
+              | unit => True
+              | just q x => q ≤ 1
+              | boom => False
+              end.
+
+Program Instance t: URA.t := {
+  URA.car := car;
+  URA._add := _add;
+  URA._wf := _wf;
+  URA.unit := unit;
+  URA.core := fun _ => unit;
+}
+.
+
+Next Obligation. unfold _wf, _add in *. des_ifs. rewrite Qp.add_comm. et. Qed.
+Next Obligation. unfold _wf, _add in *. des_ifs. rewrite Qp.add_assoc. et. Qed.
+Next Obligation. unfold _wf, _add in *. des_ifs. Qed.
+Next Obligation. unfold _wf, _add in *. des_ifs. transitivity (q + q1); et. eapply Qp.le_add_l. Qed.
+Next Obligation. des_ifs. Qed.
+Next Obligation. exists unit. auto. Qed.
+
+Theorem updatable
+        q1 q2 a
+        (LE: q2 ≤ q1)
+  :
+    <<UPD: URA.updatable (just q1 a) (just q2 a)>>
+.
+Proof.
+  rr. unfold URA.wf, URA.add in *. unseal "ra". ss. ii. des_ifs; ss; etrans; et.
+  etrans; [|et]. apply Qp.add_le_mono_r. et.
+Qed.
+
+Theorem extends
+        q1 x a
+        (WF: URA.wf a)
+        (EXT: URA.extends (just q1 x) a)
+  :
+    <<EQ: exists q2, q1 ≤ q2 /\ a = just q2 x>>
+.
+Proof.
+  rr. rr in EXT. des; subst. unfold URA.wf, URA.add in *. unseal "ra". ss. des_ifs; ss; et.
+  esplits;[|et]. apply Qp.le_add_l.
+Qed.
+
+Theorem consent_wf
+        q a x
+        (WF: URA.wf (t:=t) (a ⋅ (just q x)))
+  :
+    (exists q', a = just q' x) \/ a = unit
+.
+Proof. rewrite URA.unfold_add in WF; rewrite URA.unfold_wf in WF. ss. unfold _wf, _add in WF. des_ifs; et. Qed.
+
+(* Theorem wf
+        a0 a1
+        (WF: URA.wf (URA.add (just a0) a1))
+  :
+    <<EQ: a1 = unit>>
+.
+Proof. rr. unfold URA.wf, URA.add in *. unseal "ra". ss. des_ifs; ss. Qed. *)
+
+
+End CONSENT.
+End Consent.
+
+Arguments Consent.t: clear implicits.
+
+Local Obligation Tactic := i; unseal "ra"; ss; des_ifs_safe.
 
 
 
