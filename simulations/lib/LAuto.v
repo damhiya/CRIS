@@ -22,8 +22,8 @@ Ltac Lauto_prepare :=
 
 Ltac Lauto_find x :=
   repeat match goal with
-    | [|- context[?l1 ++ ?l2 ++ [x]]] => rewrite (app_assoc l1 l2 _)
-    | [|- context[?l1 ++ ?l2 ++ [x] ++ _]] => rewrite (app_assoc l1 l2 _)
+    | [|- context[?l1 ++ ?l2 ++ [x]]] => pattern (l1 ++ l2 ++ [x]); rewrite (app_assoc l1 l2 _)
+    | [|- context[?l1 ++ ?l2 ++ [x] ++ ?l3]] => pattern (l1 ++ l2 ++ [x] ++ l3); rewrite (app_assoc l1 l2 _)
     end.
 
 Ltac Lauto_finish :=
