@@ -1,3 +1,5 @@
+From iris.algebra Require Import cmra.
+From CCR.base_logic Require Import base_logic.
 Require Import Coqlib AList.
 Require Import sflib.
 Require Import ITreelib.
@@ -5,24 +7,23 @@ Require Import Any.
 Require Import Events.
 Require Import IRed.
 Require Import STS Behavior.
-Require Import PCM IPM.
 Require Import Skeleton Mod.
 
 
 Set Implicit Arguments.
 
 Section MID.
-  
-  Context {Σ: GRA.t}.
+
+  Context {Σ: ucmra}.
 
   (* Consider moving into Any lib. *)
   (* Any.encode & Any.decode *)
   (* local states: [(k0, st0); (k1, st1); ... ] *)
-  
+
   Fixpoint _alist_encode (st_list: alist key Any.t): Any.t :=
     match st_list with
     | [] => tt↑
-    | (k,v) ::tl => 
+    | (k,v) ::tl =>
       Any.pair (Any.pair k↑ v) (_alist_encode tl)
     end.
 
@@ -88,7 +89,7 @@ Section MID.
     Ret (or_else (alist_find k (alist_decode mp)) tt↑)
   .
 
-  (* mid to tgt code *)  
+  (* mid to tgt code *)
   Definition handle_pgE : pgE ~> itree modE :=
       (fun _ e =>
          match e with
@@ -99,17 +100,17 @@ Section MID.
   Definition handle_Assume P: stateT (Σ) (itree modE) unit :=
     fun fr =>
       r <- trigger (Take Σ);;
-      mr <- mget_res;; 
-      assume (URA.wf (r ⋅ fr ⋅ mr));;;
-      assume(Own r ⊢ P);;; 
+      mr <- mget_res;;
+      assume (✓ (r ⋅ fr ⋅ mr));;;
+      assume(uPred_ownM r ⊢ P);;;
       Ret (r ⋅ fr, tt).
 
   Definition handle_Guarantee P: stateT (Σ) (itree modE) unit :=
     fun fr =>
       '(r, fr', mr') <- trigger (Choose (Σ * Σ * Σ));;
       mr <- mget_res;;
-      guarantee(Own (fr ⋅ mr) ⊢ #=> Own (r ⋅ fr' ⋅ mr'));;;
-      guarantee(Own r ⊢ P);;;
+      guarantee(uPred_ownM (fr ⋅ mr) ⊢ |==> uPred_ownM (r ⋅ fr' ⋅ mr'));;;
+      guarantee(uPred_ownM r ⊢ P);;;
       mput_res mr';;;
       Ret (fr', tt).
 
@@ -128,14 +129,14 @@ Section MID.
           x <- trigger e;; Ret (fr', x)
       | _ => x <- trigger e;; Ret (fr, x)
       end.
-  
-  
+
+
   Definition interp_hp : itree hmodE ~> stateT Σ (itree modE) :=
-      interp_state 
+      interp_state
         (case_ (bif:=sum1) handle_agE
         (case_ (bif:=sum1) handle_schE
-        (case_ (bif:=sum1) ((fun T e fr => '(fr', _) <- (handle_Guarantee (True%I) fr);; x <- trigger e;; Ret (fr', x)): _ ~> stateT Σ (itree modE)) 
-        (case_ (bif:=sum1) ((fun T e fr => x <- handle_pgE e;; Ret (fr, x)): _ ~> stateT Σ (itree modE)) 
+        (case_ (bif:=sum1) ((fun T e fr => '(fr', _) <- (handle_Guarantee (True%I) fr);; x <- trigger e;; Ret (fr', x)): _ ~> stateT Σ (itree modE))
+        (case_ (bif:=sum1) ((fun T e fr => x <- handle_pgE e;; Ret (fr, x)): _ ~> stateT Σ (itree modE))
                            ((fun T e fr => x <- trigger e;; Ret (fr, x)): _ ~> stateT Σ (itree modE)))))).
 
   Definition hp_fun_tail := (fun '(fr, x) => handle_Guarantee (True%I) fr ;;; Ret (x: Any.t)).
@@ -150,7 +151,7 @@ End MID.
 
 Section RED.
   (* itree reduction lemmas *)
-  Context `{Σ: GRA.t}.
+  Context `{Σ: ucmra}.
 
   Lemma interp_hp_bind
         (R S: Type)
@@ -159,7 +160,7 @@ Section RED.
     :
       interp_hp (s >>= k) fmr
       =
-      st <- interp_hp s fmr;; interp_hp (k st.2) st.1.
+      st <- interp_hp s fmr;; interp_hp (Σ:=Σ) (k st.2) st.1.
   Proof.
     unfold interp_hp in *. eapply interp_state_bind.
   Qed.
@@ -169,7 +170,7 @@ Section RED.
     :
       interp_hp_body (s >>= k) fmr
       =
-      '(fr,r) <- interp_hp s fmr;; interp_hp_body (k r) fr.
+      '(fr,r) <- interp_hp s fmr;; interp_hp_body (Σ:=Σ) (k r) fr.
   Proof.
     unfold interp_hp_body. rewrite interp_hp_bind. grind. destruct x. eauto.
   Qed.
@@ -182,7 +183,7 @@ Section RED.
     :
       interp_hp (tau;; t) fmr
       =
-      tau;; (interp_hp t fmr).
+      tau;; (interp_hp (Σ:=Σ) t fmr).
   Proof.
     unfold interp_hp in *. eapply interp_state_tau.
   Qed.
@@ -192,7 +193,7 @@ Section RED.
         (t: U)
         fmr
     :
-      interp_hp (Ret t) fmr
+      interp_hp (Σ:=Σ) (Ret t) fmr
       =
       Ret (fmr, t).
   Proof.
@@ -206,7 +207,7 @@ Section RED.
     :
       interp_hp (trigger i) fr
       =
-      '(fr', _) <- handle_Guarantee (True%I:iProp) fr;; r <- trigger i;; tau;; Ret (fr', r).
+      '(fr', _) <- handle_Guarantee (Σ:=Σ) True%I fr;; r <- trigger i;; tau;; Ret (fr', r).
   Proof.
     unfold interp_hp in *. grind.
   Qed.
@@ -241,13 +242,13 @@ Section RED.
   Proof.
     unfold interp_hp. rewrite interp_state_trigger. cbn. grind.
   Qed.
-  
+
   Lemma interp_hp_pg
         (R: Type)
         (i: pgE R)
         fmr
     :
-      interp_hp (trigger i) fmr
+      interp_hp (Σ:=Σ) (trigger i) fmr
       =
       r <- handle_pgE i;; tau;; Ret (fmr, r).
   Proof.
@@ -259,7 +260,7 @@ Section RED.
         (i: coreE R)
         fmr
     :
-      interp_hp (trigger i) fmr
+      interp_hp (Σ:=Σ) (trigger i) fmr
       =
       r <- trigger i;; tau;; Ret (fmr, r).
   Proof.
@@ -292,12 +293,12 @@ Section RED.
     cbn. grind.
   Qed.
 
-  Lemma interp_hp_unwrapU 
+  Lemma interp_hp_unwrapU
         (R: Type)
         (i: option R)
         fmr
     :
-      interp_hp (@unwrapU hmodE _ _ i) fmr
+      interp_hp (Σ:=Σ) (@unwrapU hmodE _ _ i) fmr
       =
       r <- (unwrapU i);; Ret (fmr, r).
   Proof.
@@ -317,7 +318,7 @@ Section RED.
         (i: option R)
         fmr
     :
-      interp_hp (@unwrapN hmodE _ _ i) fmr
+      interp_hp (Σ:=Σ) (@unwrapN hmodE _ _ i) fmr
       =
       r <- (unwrapN i);; Ret (fmr, r).
   Proof.
@@ -338,7 +339,7 @@ Section RED.
     :
       interp_hp (trigger (Assume P)) fmr
       =
-      x <- handle_Assume P fmr ;; tau;; Ret x.
+      x <- handle_Assume (Σ:=Σ) P fmr ;; tau;; Ret x.
   Proof.
     unfold interp_hp. rewrite interp_state_trigger. cbn. grind.
   Qed.
@@ -349,7 +350,7 @@ Section RED.
     :
       interp_hp (trigger (Guarantee P)) fmr
       =
-      x <- handle_Guarantee P fmr ;; tau;; Ret x.
+      x <- handle_Guarantee (Σ:=Σ) P fmr ;; tau;; Ret x.
   Proof.
     unfold interp_hp. rewrite interp_state_trigger. cbn. grind.
   Qed.
@@ -361,7 +362,7 @@ Section RED.
     :
       interp_hp itr0 fmr
       =
-      interp_hp itr1 fmr.
+      interp_hp (Σ:=Σ) itr1 fmr.
   Proof. subst; et. Qed.
 
   (* TODO: Same lemmas for other interps ( not defined yet. ) *)
@@ -385,6 +386,6 @@ Section RED.
       (mk_box interp_hp_Assume)
       (mk_box interp_hp_Guarantee)
       (mk_box interp_hp_ext).
-  
+
 End RED.
 

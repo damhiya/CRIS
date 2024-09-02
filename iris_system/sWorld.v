@@ -4,7 +4,7 @@ From iris Require Import bi.big_op.
 From iris Require base_logic.lib.invariants.
 Require Import Coq.Logic.ClassicalEpsilon.
 
-Require Import Coqlib PCM PCMAux IProp IPM SRF sProp World.
+Require Import Coqlib PCM IPM SRF sProp World.
 Local Notation univ_id := positive.
 Local Notation level := nat.
 
@@ -52,7 +52,7 @@ Module WD.
   Global Instance t: SRFMSem.t := interp.
 
   Context `{_W3: @SRFMSemG.inG _ _ _ t β}.
-  
+
   Definition ownI u n i (p: SRFSyn.t n) : SRFSyn.t n :=
     ⟨ _ownI u i, fun _ => p ⟩%SRF.
 
@@ -64,7 +64,7 @@ Module WD.
 
   Definition ownI_free eu {n} : SRFSyn.t n :=
     ⟨ _ownI_free eu , fun a => match a with end ⟩%SRF.
-  
+
   Definition ownE (u: univ_id) {n} (E: coPset) : SRFSyn.t n :=
     (<ownm> (OwnER u E))%SRF.
 
@@ -76,7 +76,7 @@ Module WD.
 
   Definition inv_satall u n (I : gmap positive (SRFSyn.t n)) : SRFSyn.t n :=
     ([∗ n map] i ↦ p ∈ I, (p ∗ ownD u {[i]}) ∨ ownE u {[i]})%SRF.
-  
+
   Definition wsat u n : SRFSyn.t (S n) :=
     (∃ I : τ{ST.gmapT Φ}, (⤉ ownI_auth u n I) ∗ (⤉ inv_satall u n I))%SRF.
 
@@ -84,7 +84,7 @@ Module WD.
     (<ownm> (empty_worldsR eu (fun _ => Some ⊤ : CoPset.t) : OwnERA) ∗
      <ownm> (empty_worldsR eu (fun _ => Auth.black (Some ∅ : Gset.t)) : OwnDRA) ∗
      ownI_free eu).
-  
+
   Definition free_universes {n} : SRFSyn.t n :=
     (∃ eu: τ{⇣ univ_id}, empty_worlds eu)%SRF.
 
@@ -95,7 +95,7 @@ Module WD.
     end.
 
   (* Interface for the user *)
-  
+
   Definition world u b E : SRFSyn.t b :=
     wsats u b ∗ ownE u E ∗ ownD_auth u ∗ free_universes.
 
@@ -115,7 +115,7 @@ Module WD.
 End WD.
 
 Module CtxWD.
-  
+
   Class t
     `{_C: CtxSL.t}
     `{_C: @GRA.inG OwnIRA Σ}
@@ -164,8 +164,8 @@ Module WDRed.
     SL_red. f_equal. extensionalities i p.
     SL_red. unfold WD.ownD, WD.ownE.
     SL_red_ownm. eauto.
-  Qed.    
-  
+  Qed.
+
   Lemma wsats u b:
     SRFSem.t b (WD.wsats u b) = wsats u b.
   Proof.
@@ -175,7 +175,7 @@ Module WDRed.
   Qed.
 
   (* User Interface *)
-  
+
   Lemma world u b E :
     SRFSem.t b (WD.world u b E) = world u b E.
   Proof.
@@ -198,7 +198,7 @@ Module WDRed.
     unfold WD.closed_world, closed_world. SL_red.
     rewrite ->free_worlds, world. eauto.
   Qed.
-  
+
   Lemma inv u n N p :
     SRFSem.t n (WD.inv u n N p) = inv u n N p.
   Proof.
@@ -212,7 +212,7 @@ Module WDRed.
     Local Transparent FUpd.
     unfold WD.FUpd, FUpd. SL_red. rewrite !world. eauto.
   Qed.
-  
+
   End RED.
 End WDRed.
 

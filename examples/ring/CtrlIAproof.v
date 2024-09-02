@@ -28,7 +28,7 @@ Module CtrlIA.
 Section SIMMODSEM.
   Context `{Σ: GRA.t}.
   Context `{_M: CellRA.t (Σ:=Σ)}.
-  
+
   Variable max_size : nat.
 
   Variable GI: Sk.t -> invspec.
@@ -85,7 +85,7 @@ Section SIMMODSEM.
     destruct (Nat.eq_decidable (List.length l) 0) as [|LENL].
     { destruct l; ss. }
     iIntros "H". iApply big_sepL_mod. rewrite rotate_length.
-    
+
     destruct (Nat.eq_decidable (n mod List.length l) 0) as [|LENN].
     { rewrite/__ H0 Nat.sub_0_r.
       unfold rotate. rewrite Nat.mod_same; eauto.
@@ -94,7 +94,7 @@ Section SIMMODSEM.
       rewrite Nat.add_mod; eauto. rewrite/__ H0 Nat.mod_mod; eauto.
     }
     assert (LE:= Nat.mod_upper_bound n _ LENL).
-    
+
     iApply big_sepL_app. rewrite drop_length.
     rewrite Nat.mod_small; try nia.
     iPoseProof ((big_sepL_take_drop _ l (List.length l - n mod List.length l)) with "H") as "[H1 H2]".
@@ -107,7 +107,7 @@ Section SIMMODSEM.
       rewrite/__ {1}(Nat.div_mod_eq n (List.length l)).
       exists (n / List.length l). nia.
   Qed.
-  
+
   Definition Ist: Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp :=
     (fun _ _ st_src st_tgt =>
      ∃ (q q': list Z) (hd tl: nat),
@@ -135,10 +135,10 @@ Section SIMMODSEM.
     iSplit; eauto.
     iExists [_], [_;_], st_tgtR, st_tgtR.
     do 3 (iSplit; eauto).
-    iExists [], (rotate (max_size - tl mod max_size) (q++q')%list), 0, 0. 
+    iExists [], (rotate (max_size - tl mod max_size) (q++q')%list), 0, 0.
     iSplit.
     { iPureIntro. esplits; eauto. s. rewrite rotate_length. eauto. }
-    
+
     iSplit; eauto. rewrite <-H5.
     iApply big_sepL_rotate. iApply big_sepL_app.
     iSplitL "LIVE".
@@ -189,7 +189,7 @@ Section SIMMODSEM.
     steps_l. hss.
 
     apply Nat.ltb_lt in Heq. rewrite app_length in H6.
-    assert (UBND:= Nat.mod_upper_bound (tl + List.length q) max_size). 
+    assert (UBND:= Nat.mod_upper_bound (tl + List.length q) max_size).
     rewrite (@cellgroup_split ((tl+ List.length q) mod max_size)) in *; try nia.
     inline_r.
 
@@ -237,7 +237,7 @@ Section SIMMODSEM.
     { rewrite/__ Nat.add_0_r Nat.sub_diag. s. step. ss. }
     replace (tl + S(List.length q) - tl) with (S(List.length q)) by nia. s.
     rewrite !app_length in *.
-    
+
     steps_l. hss.
     assert (UBND:= Nat.mod_upper_bound tl max_size).
     rewrite (@cellgroup_split (tl mod max_size)) in *; try nia.

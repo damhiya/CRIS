@@ -108,7 +108,7 @@ Section SIMMODSEM.
 
     iPoseProof (cell_auth_get with "C A") as "%". subst.
 
-    steps_r. hss. steps_r.    
+    steps_r. hss. steps_r.
     apc_l. steps_l.
     force_l. steps_l. force_l. force_l.
     iSplitL "C". { eauto. }
@@ -116,7 +116,7 @@ Section SIMMODSEM.
     step. iSplit; eauto.
     iExists _, _. iSplit; eauto. iRight. iFrame; eauto.
   Qed.
-  
+
   Lemma simF_set:
     HSim.sim_fun CellA CellI Ist (CellName.set idx).
   Proof.
@@ -127,7 +127,7 @@ Section SIMMODSEM.
     { iDestruct "IST" as (vany v0) "(% & [(C & A)|(% & P' & A)])"; cycle 1.
       { iExFalso. iApply (pending_unique with "P' P"). }
       des; subst. hss.
-      
+
       iMod (cell_auth_set with "C A") as "(C & A)".
 
       steps_r. hss.

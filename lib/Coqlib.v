@@ -177,11 +177,11 @@ Notation "'assertion' A ; B" := (if A then B else None)
 
 Open Scope o_monad_scope.
 
-Lemma o_bind_ignore
+(* Lemma o_bind_ignore
       X Y
       (x: option X) (y: option Y):
     (do _ <- x ; y) = assertion(x) ; y.
-Proof. des_ifs. Qed.
+Proof. des_ifs. Qed. *)
 
 Ltac subst_locals := all ltac:(fun H => is_local_definition H; subst H).
 

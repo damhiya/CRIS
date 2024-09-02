@@ -4,7 +4,7 @@ Require Export ITreelib.
 Require Export AList.
 Require Import Any.
 
-Require Import PCM IPM.
+From CCR.base_logic Require Import base_logic.
 
 Set Implicit Arguments.
 
@@ -83,7 +83,7 @@ End WRAP.
 
 Section EVENTS_OTHER.
 
-  Context `{Σ: GRA.t}.
+  Context `{Σ: ucmra}.
 
   Definition key := (string * string)%type.
 
@@ -93,8 +93,8 @@ Section EVENTS_OTHER.
     destruct (DEC s0 s2).
     - subst. destruct (DEC s s1).
       + subst. left. refl.
-      + right. ii. apply n. inv H. refl.
-    - right. ii. apply n. inv H. refl.
+      + right. ii. apply n. inv H.
+    - right. ii. apply n. inv H.
   Defined.
 
   Definition sf (s: string) (f: string) := (s,f).
@@ -104,11 +104,11 @@ Section EVENTS_OTHER.
   | SGet (k: key): pgE Any.t.
 
   Variant agE: Type -> Type :=
-  | Assume (P: iProp): agE unit
-  | Guarantee (P: iProp): agE unit.
+  | Assume (P: uPredI Σ): agE unit
+  | Guarantee (P: uPredI Σ): agE unit.
 
   Definition pmodE := schE +' callE +' pgE +' coreE.
-  
+
   Definition hmodE := agE +' pmodE.
 
   Variant apcE: Type -> Type :=
@@ -123,7 +123,6 @@ Notation "f 'ǃ'" := (unwrapN f) (at level 9).
 Notation "s ↯ f" := (sf s f) (at level 9).
 
 Section SYNTAX.
-  Context `{Σ: GRA.t}.
   Context `{coreE -< E}.
   Context `{callE -< E}.
   Context `{pgE -< E}.
@@ -131,14 +130,14 @@ Section SYNTAX.
   Definition cfunN {X Y} (body: X -> itree E Y): Any.t -> itree E Any.t :=
     fun varg => varg <- varg↓ǃ;; vret <- body varg;; Ret vret↑.
   Definition cfunU {X Y} (body: X -> itree E Y): Any.t -> itree E Any.t :=
-    fun varg => varg <- varg↓?;; vret <- body varg;; Ret vret↑. 
-  
+    fun varg => varg <- varg↓?;; vret <- body varg;; Ret vret↑.
+
   Definition ccallU {X Y} fn (varg: X) : itree E Y :=
     vret <- trigger (Call fn (varg↑));; vret↓?.
-                                 
-  Definition ccallN {X Y} (fn: gname) (varg: X): itree E Y := 
+
+  Definition ccallN {X Y} (fn: gname) (varg: X): itree E Y :=
     vret <- trigger (Call fn (varg↑));; vret↓ǃ.
-                                          
+
   Definition cput {T} k (v:T) : itree E unit :=
     trigger (SPut k v↑).
 

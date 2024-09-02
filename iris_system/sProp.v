@@ -1,31 +1,32 @@
+From iris.algebra Require Import cmra.
 From stdpp Require Import coPset gmap namespaces.
 Require Import sflib.
 From iris Require Import bi.big_op.
 From iris Require base_logic.lib.invariants.
 From Coq Require Import Program Arith.
-Require Import Coqlib PCM PCMAux IProp IPM SRF.
+Require Import Coqlib PCM IPM SRF.
 
 Module HRA.
 
   Section HRA.
-  
+
   Class t := __HRA : GRA.t.
 
   Class subG (Γ: t) (Σ: GRA.t) : Type := {
     subG_map: nat -> nat;
-    subG_prf: forall i, Σ (subG_map i) = Γ i;
+    subG_prf: forall i, (GRA.gra_map Σ) (subG_map i) = (GRA.gra_map Γ) i;
   }.
 
   Coercion subG_map: subG >-> Funclass.
 
   Context `{sub: @subG Γ Σ}.
-  
-  Global Program Instance embed (i:nat) : @GRA.inG (Γ i) Σ := {
+
+  Global Program Instance embed (i:nat) : @GRA.inG (GRA.gra_map Γ i) Σ := {
       inG_id := sub i;
     }.
   Next Obligation. i. symmetry. apply HRA.subG_prf. Qed.
-  
-  Global Program Instance in_subG `{M: URA.t} `{emb: @GRA.inG M Γ} : @GRA.inG M Σ := {
+
+  Global Program Instance in_subG `{M: ucmra} `{emb: @GRA.inG M Γ} : @GRA.inG M Σ := {
       inG_id := sub.(subG_map) emb.(GRA.inG_id);
       }.
   Next Obligation.
@@ -33,7 +34,7 @@ Module HRA.
   Qed.
 
   End HRA.
-  
+
 End HRA.
 
 Coercion HRA.subG_map: HRA.subG >-> Funclass.
@@ -78,9 +79,9 @@ Module ST.
       shp := type;
       deg := interp;
     }.
-  
+
   End TYPES.
-  
+
 End ST.
 
 Module CtxST.
@@ -109,9 +110,9 @@ Module SL.
 
   Context `{τ: GTyp.t}.
   Context `{Γ: HRA.t}.
-  
+
   Variant shape : Type :=
-    | _ownm i (r : Γ i)
+    | _ownm i (r : (GRA.gra_map Γ) i)
     | _pure (P : Prop)
     | _and
     | _or
@@ -125,7 +126,7 @@ Module SL.
     | _plainly
     | _upd
   .
-  
+
   Definition degree (s: shape) (Prev: Type) : Type :=
     match s with
     | _ownm i r => fin 0
@@ -150,33 +151,34 @@ Module SL.
 
   Context `{α: @SRFMSynG.t}.
   Context `{_C0: @HRA.subG Γ Σ}.
-  
+  Notation iProp := (iProp Σ).
+
   Global Instance domain : SRFDom.t := {
     dom := iProp;
     void := False%I;
   }.
-  
+
   Definition interp n (s: shape) : (degree s (SRFSyn.t_prev n) -> SRFSyn.t n) -> (degree s (SRFSyn.t_prev n) -> iProp) -> iProp :=
     match s with
     | _ownm i r => fun _ _ => OwnM r
-    | _pure P => fun _ _ => Pure P
-    | _and => fun _ sem => And (sem 0%fin) (sem 1%fin)
-    | _or => fun _ sem => Or (sem 0%fin) (sem 1%fin)
-    | _impl => fun _ sem => Impl (sem 0%fin) (sem 1%fin)
-    | _univ i ty => fun _ sem => Univ sem
-    | _ex   i ty => fun _ sem => Ex sem
-    | _empty => fun _ _ => Emp
-    | _sepconj => fun _ sem => Sepconj (sem 0%fin) (sem 1%fin)
-    | _wand => fun _ sem => Wand (sem 0%fin) (sem 1%fin)
-    | _persistently => fun _ sem => Persistently (sem 0%fin)
-    | _plainly => fun _ sem => IProp.Plainly (sem 0%fin)
-    | _upd => fun _ sem => Upd (sem 0%fin)
+    | _pure P => fun _ _ => ⌜P⌝%I
+    | _and => fun _ sem => ((sem 0%fin) ∧ (sem 1%fin))%I
+    | _or => fun _ sem => ((sem 0%fin) ∨ (sem 1%fin))%I
+    | _impl => fun _ sem => ((sem 0%fin) → (sem 1%fin))%I
+    | _univ i ty => fun _ sem => bi_forall sem
+    | _ex   i ty => fun _ sem => bi_exist sem
+    | _empty => fun _ _ => emp%I
+    | _sepconj => fun _ sem => ((sem 0%fin) ∗ (sem 1%fin))%I
+    | _wand => fun _ sem => ((sem 0%fin) -∗ (sem 1%fin))%I
+    | _persistently => fun _ sem => (<pers> (sem 0%fin))%I
+    | _plainly => fun _ sem => (■ (sem 0%fin))%I
+    | _upd => fun _ sem => (|==> (sem 0%fin))%I
     end.
 
   Global Instance t: SRFMSem.t := interp.
 
   Context `{@SRFMSemG.inG _ _ _ t β}.
-  
+
   Definition ownm `{IN: @GRA.inG M Γ} {n} (r: M) : SRFSyn.t n.
     destruct IN. subst.
     refine ⟨ _ownm _ r, _ ⟩%SRF.
@@ -208,7 +210,7 @@ Module SL.
     - exact p1.
     - exact p2.
   Defined.
-  
+
   Definition univ `{IN: @GPF.inG T τ} {n} (ty:T) (p: PF.deg ty (SRFSyn.t_prev n) -> SRFSyn.t n) : SRFSyn.t n.
     destruct IN. subst.
     exact ⟨ _univ _ ty, p ⟩%SRF.
@@ -223,7 +225,7 @@ Module SL.
     refine ⟨ _empty, _ ⟩%SRF.
     i. inv X.
   Defined.
-  
+
   Definition sepconj {n} (p1 p2: SRFSyn.t n) : SRFSyn.t n.
     refine ⟨ _sepconj, _ ⟩%SRF.
     i. destruct X.
@@ -237,7 +239,7 @@ Module SL.
     - exact p1.
     - exact p2.
   Defined.
-  
+
   Definition persistently {n} (p: SRFSyn.t n) : SRFSyn.t n.
     refine ⟨ _persistently, _ ⟩%SRF.
     i. inv X; [|inv H1].
@@ -272,13 +274,13 @@ Module SL.
              (f : K -> SRFSyn.t n)
     : SRFSyn.t n :=
     fold_right (fun hd tl => sepconj (f hd) tl) empty (elements I).
-  
+
   Definition sepL1
              n {A} (I : list A)
              (f : A -> SRFSyn.t n)
     : SRFSyn.t n :=
     fold_right (fun hd tl => sepconj (f hd) tl) empty I.
-  
+
   End SL.
 
 End SL.
@@ -290,7 +292,7 @@ Module CtxSL.
     `{_C: @HRA.subG Γ Σ}
     `{_C: @SRFMSemG.inG SL.domain _ α SL.t β}
     := ctxSL: unit.
-  
+
 End CtxSL.
 
 (** Notations *)
@@ -348,34 +350,35 @@ Module SLRed.
   Section RED.
 
   Context `{_C: CtxSL.t}.
-    
+  Notation interp := (SRFSem.t (Δ := @SL.domain Σ)).
+
   Lemma ownm `{@GRA.inG M Γ} n (r: M) :
-    SRFSem.t n (SL.ownm r) = OwnM r.
+    interp n (SL.ownm r) = OwnM r.
   Proof.
     depdes H. subst. unfold SL.ownm, eq_rect_r. ss.
     rewrite @SRFRed.cur. ss.
     f_equal. unfold HRA.in_subG, HRA.embed. ss.
     erewrite (UIP _ _ _ _). reflexivity.
   Qed.
-  
+
   Lemma pure n P :
-    SRFSem.t n (SL.pure P) = ⌜P⌝%I.
+    interp n (SL.pure P) = ⌜P⌝%I.
   Proof. unfold SL.pure. rewrite @SRFRed.cur. reflexivity. Qed.
 
   Lemma and n p q :
-    SRFSem.t n (SL.and p q) = (SRFSem.t n p ∧ SRFSem.t n q)%I.
+    interp n (SL.and p q) = (interp n p ∧ interp n q)%I.
   Proof. unfold SL.and. rewrite @SRFRed.cur. reflexivity. Qed.
 
   Lemma or n p q :
-    SRFSem.t n (SL.or p q) = (SRFSem.t n p ∨ SRFSem.t n q)%I.
+    interp n (SL.or p q) = (interp n p ∨ interp n q)%I.
   Proof. unfold SL.or. rewrite @SRFRed.cur. reflexivity. Qed.
 
   Lemma impl n p q :
-    SRFSem.t n (SL.impl p q) = (SRFSem.t n p → SRFSem.t n q)%I.
+    interp n (SL.impl p q) = (interp n p → interp n q)%I.
   Proof. unfold SL.impl. rewrite @SRFRed.cur. reflexivity. Qed.
 
   Lemma univ `{T:PF.t} `{@GPF.inG T τ} n (ty: T) p :
-    SRFSem.t n (SL.univ ty p) = (∀ x: (T.(PF.deg) ty (SRFSyn.t_prev n)), SRFSem.t n (p x))%I.
+    interp n (SL.univ ty p) = (∀ x: (T.(PF.deg) ty (SRFSyn.t_prev n)), interp n (p x))%I.
   Proof.
     destruct H eqn: EQ. subst.
     unfold SL.univ, eq_rect_r. ss.
@@ -383,47 +386,47 @@ Module SLRed.
   Qed.
 
   Lemma ex `{@GPF.inG T τ} n ty p :
-    SRFSem.t n (SL.ex ty p) = (∃ x, SRFSem.t n (p x))%I.
+    interp n (SL.ex ty p) = (∃ x, interp n (p x))%I.
   Proof.
     destruct H eqn: EQ. subst.
     unfold SL.ex, eq_rect_r. ss.
     rewrite @SRFRed.cur. reflexivity.
   Qed.
-  
+
   Lemma empty n :
-    SRFSem.t n SL.empty = emp%I.
+    interp n SL.empty = emp%I.
   Proof. unfold SL.empty. rewrite @SRFRed.cur. reflexivity. Qed.
-  
+
   Lemma sepconj n p q :
-    SRFSem.t n (SL.sepconj p q) = (SRFSem.t n p ∗ SRFSem.t n q)%I.
+    interp n (SL.sepconj p q) = (interp n p ∗ interp n q)%I.
   Proof. unfold SL.sepconj. rewrite @SRFRed.cur. reflexivity. Qed.
 
   Lemma wand n p q :
-    SRFSem.t n (SL.wand p q) = (SRFSem.t n p -∗ SRFSem.t n q)%I.
+    interp n (SL.wand p q) = (interp n p -∗ interp n q)%I.
   Proof. unfold SL.wand. rewrite @SRFRed.cur. reflexivity. Qed.
 
   Lemma persistently n p :
-    SRFSem.t n (SL.persistently p) = (<pers> SRFSem.t n p)%I.
+    interp n (SL.persistently p) = (<pers> interp n p)%I.
   Proof. unfold SL.persistently. rewrite @SRFRed.cur. reflexivity. Qed.
 
   Lemma plainly n p :
-    SRFSem.t n (SL.plainly p) = (IProp.Plainly (SRFSem.t n p))%I.
+    interp n (SL.plainly p) = (■ (interp n p))%I.
   Proof. unfold SL.plainly. rewrite @SRFRed.cur. reflexivity. Qed.
 
   Lemma upd n p :
-    SRFSem.t n (SL.upd p) = (#=> SRFSem.t n p)%I.
+    interp n (SL.upd p) = (#=> interp n p)%I.
   Proof. unfold SL.upd. rewrite @SRFRed.cur. reflexivity. Qed.
 
   Lemma affinely n p :
-    SRFSem.t n (SL.affinely p) = (<affine> SRFSem.t n p)%I.
+    interp n (SL.affinely p) = (<affine> interp n p)%I.
   Proof. unfold SL.affinely. rewrite ->and, empty. reflexivity. Qed.
 
   Lemma intuitionistically n p :
-    SRFSem.t n (SL.affinely (SL.persistently p)) = (□ SRFSem.t n p)%I.
+    interp n (SL.affinely (SL.persistently p)) = (□ interp n p)%I.
   Proof. rewrite ->affinely, persistently. reflexivity. Qed.
 
   Lemma sepM n K {H1 : EqDecision K} {H2 : Countable K} A I f :
-    SRFSem.t n (SL.sepM n I f (K:=K) (A:=A)) = ([∗ map] i ↦ a ∈ I, SRFSem.t n (f i a))%I.
+    interp n (SL.sepM n I f (K:=K) (A:=A)) = ([∗ map] i ↦ a ∈ I, interp n (f i a))%I.
   Proof.
     ss. unfold big_opM. rewrite seal_eq. unfold big_op.big_opM_def.
     unfold SL.sepM. simpl. remember (map_to_list I) as L.
@@ -434,7 +437,7 @@ Module SLRed.
   Qed.
 
   Lemma sepS n K {H1 : EqDecision K} {H2 : Countable K} I f :
-    SRFSem.t n (SL.sepS n I f (K:=K)) = ([∗ set] i ∈ I, SRFSem.t n (f i))%I.
+    interp n (SL.sepS n I f (K:=K)) = ([∗ set] i ∈ I, interp n (f i))%I.
   Proof.
     ss. unfold big_opS. rewrite seal_eq. unfold big_op.big_opS_def.
     unfold SL.sepS. remember (elements I) as L.
@@ -444,13 +447,13 @@ Module SLRed.
   Qed.
 
   Lemma sepL1 n A I f :
-    SRFSem.t n (SL.sepL1 n I f (A:=A)) = ([∗ list] a ∈ I, SRFSem.t n (f a))%I.
+    interp n (SL.sepL1 n I f (A:=A)) = ([∗ list] a ∈ I, interp n (f a))%I.
   Proof.
     ss. induction I; ss.
     { rewrite empty. ss. }
     rewrite sepconj. rewrite IHI. f_equal.
   Qed.
-  
+
   End RED.
 End SLRed.
 
@@ -467,7 +470,7 @@ Global Opaque SL.wand.
 Global Opaque SL.persistently.
 Global Opaque SL.plainly.
 Global Opaque SL.upd.
-  
+
 Global Opaque SRFSem.t.
 
 (* Simple sProp reduction tactics. *)

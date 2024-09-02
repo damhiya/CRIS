@@ -1,10 +1,11 @@
-From stdpp Require Import coPset gmap namespaces.
+From stdpp Require Import namespaces.
 Require Import sflib.
+From iris.algebra Require Import auth agree coPset gset functions gmap_view.
 From iris Require Import bi.big_op.
 From iris Require base_logic.lib.invariants.
 
-Require Import Coqlib PCM PCMAux IProp IPM SRF sProp.
-Require Import Coq.Logic.ClassicalEpsilon.
+Require Import Coqlib PCM IPM SRF sProp.
+(* Require Import Coq.Logic.ClassicalEpsilon. *)
 
 Local Notation univ_id := positive.
 Local Notation level := nat.
@@ -12,18 +13,18 @@ Local Notation level := nat.
 Section INDEXED_INVARIANT_SET.
 
   Context `{_W: CtxSL.t}.
-  
-  Definition InvSetRA (n : level) : URA.t :=
-    (Auth.t (positive ==> URA.agree (SRFSyn.t n)))%ra.
 
-  Definition OwnIRA : URA.t :=
-    URA.pointwise univ_id (@URA.pointwise_dep level InvSetRA).
+  Definition InvSetRA (n : level) : ucmra :=
+    gmap_viewUR positive (agreeR (leibnizO (SRFSyn.t n))).
 
-  Definition OwnERA : URA.t :=
-    URA.pointwise univ_id (CoPset.t).
-  
-  Definition OwnDRA : URA.t :=
-    URA.pointwise univ_id (Auth.t Gset.t).
+  Definition OwnIRA : ucmra :=
+    univ_id -d> (discrete_funUR InvSetRA).
+
+  Definition OwnERA : ucmra :=
+    univ_id -d> coPset_disjUR.
+
+  Definition OwnDRA : ucmra :=
+    univ_id -d> (authUR (gset_disjUR positive)).
 
 End INDEXED_INVARIANT_SET.
 
@@ -31,94 +32,79 @@ Section PCM_OWN.
 
   Context `{_W: CtxSL.t}.
   Context `{@GRA.inG OwnIRA Σ}.
-  
+
   Definition OwnIR (u: univ_id) (n : level) (i : positive) (p : SRFSyn.t n) : OwnIRA :=
-    maps_to_res u (@maps_to_res_dep level InvSetRA
-      n (Auth.white (@maps_to_res positive (URA.agree (SRFSyn.t n)) i (Some (Some p))))).
-  
+    discrete_fun_singleton u
+      (discrete_fun_singleton n
+        (gmap_view_frag i DfracDiscarded (to_agree (A:=leibnizO _) p))).
+
   Definition OwnI (u: univ_id) (n : level) (i : positive) (p : SRFSyn.t n) :=
     OwnM (OwnIR u n i p).
 
   Definition OwnI_authR (u: univ_id) (n : level) (I : gmap positive (SRFSyn.t n)) : OwnIRA :=
-    maps_to_res u (@maps_to_res_dep level _
-      n (@Auth.black (positive ==> URA.agree (SRFSyn.t n))%ra (fun i => Some <$> (I !! i)))).
+    discrete_fun_singleton u
+      (discrete_fun_singleton n
+        (gmap_view_auth (DfracOwn 1) (to_agree (A:= leibnizO _) <$> I))).
 
   Definition OwnI_auth (u: univ_id) (n: level) (I : gmap positive (SRFSyn.t n)) :=
     OwnM (OwnI_authR u n I).
 
   Context `{@GRA.inG OwnERA Γ}.
-   
+
   Definition OwnER (u: univ_id) (E: coPset) : OwnERA :=
-    @maps_to_res _ CoPset.t u (Some E).
-  
-  Definition OwnE (u: univ_id) (E: coPset) : iProp :=
+    discrete_fun_singleton u (CoPset E).
+
+  Definition OwnE (u: univ_id) (E: coPset) : iProp Σ :=
     OwnM (OwnER u E).
 
   Context `{@GRA.inG OwnDRA Γ}.
-   
+
   Definition OwnDR (u: univ_id) (D: gset positive) : OwnDRA :=
-    maps_to_res u (Auth.white (Some D: Gset.t)).
-  
+    discrete_fun_singleton u (◯ (GSet D)).
+
   Definition OwnD (u: univ_id) (D: gset positive) :=
     OwnM (OwnDR u D).
 
   Definition OwnD_authR  (u: univ_id) (D: gset positive) : OwnDRA :=
-    maps_to_res u (Auth.black (Some D : Gset.t)).
+    discrete_fun_singleton u (● (GSet D)).
 
-  Definition OwnD_auth (u: univ_id) : iProp :=
+  Definition OwnD_auth (u: univ_id) : iProp Σ :=
     (∃ D, OwnM (OwnD_authR u D))%I.
 
   Lemma OwnE_exploit u (E1 E2 : coPset) :
     OwnE u E1 ∗ OwnE u E2 ⊢ ⌜E1 ## E2⌝.
   Proof.
-    iIntros "[H1 H2]". iCombine "H1 H2" as "H". iPoseProof (OwnM_valid with "H") as "%WF".
-    iPureIntro.
-    rewrite /URA.wf /URA.add /OwnER /maps_to_res in WF. unseal "ra". ss. specialize (WF u).
-    des_ifs. rewrite /URA.wf /URA.add in WF. unseal "ra". ss; des_ifs.
+    iIntros "[H1 H2]". iCombine "H1 H2" gives %WF.
+    by rewrite discrete_fun_singleton_op discrete_fun_singleton_valid coPset_disj_valid_op in WF.
   Qed.
 
   Lemma OwnE_union u (E1 E2 : coPset) :
     OwnE u E1 ∗ OwnE u E2 ⊢ OwnE u (E1 ∪ E2).
   Proof.
-    iIntros "H". iPoseProof (OwnE_exploit with "H") as "%D".
-    iRevert "H". iApply from_sep. eapply from_sep_ownM.
-    unfold IsOp, OwnER, maps_to_res, URA.add. ss. unseal "ra".
-    extensionalities u'. des_ifs; ss; r_solve.
-    repeat (unfold URA.add; unseal "ra"; ss; des_ifs).
+  iIntros "H". iDestruct (OwnE_exploit with "H") as %D.
+  rewrite -OwnM_op discrete_fun_singleton_op coPset_disj_union //.
   Qed.
 
   Lemma OwnE_disjoint u (E1 E2 : coPset) :
     E1 ## E2 -> OwnE u (E1 ∪ E2) ⊢ OwnE u E1 ∗ OwnE u E2.
   Proof.
-    i. unfold OwnE.
-    iApply into_sep. eapply into_sep_ownM.
-    unfold IsOp, OwnER, maps_to_res, URA.add. ss. unseal "ra".
-    extensionalities u'. des_ifs; r_solve.
-    repeat (unfold URA.add; unseal "ra"; ss; des_ifs).
+    iIntros (D) "H".
+    rewrite /OwnE -OwnM_op discrete_fun_singleton_op coPset_disj_union //.
   Qed.
 
   Lemma OwnE_subset u (E1 E2 : coPset) :
     E1 ⊆ E2 -> OwnE u E2 ⊢ OwnE u E1 ∗ (OwnE u E1 -∗ OwnE u E2).
   Proof.
     iIntros (SUB) "E".
-    assert (E2 = E1 ∪ E2 ∖ E1) as EQ.
-    { eapply leibniz_equiv. eapply union_difference. ss. }
-    rewrite EQ.
+    rewrite (union_difference_L E1 E2); [|done].
     iPoseProof (OwnE_disjoint with "E") as "[E1 E2]"; [set_solver|].
     iFrame. iIntros "E1".
     iApply OwnE_union. iFrame.
   Qed.
 
-  Global Instance OwnI_persistent 
+  Global Instance OwnI_persistent
     u n i p : Persistent (OwnI u n i p).
-  Proof.
-    unfold OwnI, OwnIR.
-    remember (@maps_to_res_dep level InvSetRA n (Auth.white (@maps_to_res positive (URA.agree (SRFSyn.t n)) i (Some (Some p))))) as r.
-    unfold Persistent. iIntros "H".
-    iPoseProof (@OwnM_persistently _ _ _ _ with "H") as "#HP". iModIntro.
-    replace (maps_to_res u r) with (URA.core (maps_to_res u r)) at 2. auto.
-    subst. unfold maps_to_res_dep, maps_to_res. ss. extensionalities u' n'. des_ifs.
-  Qed.
+  Proof. apply _. Qed.
 
 End PCM_OWN.
 
@@ -128,12 +114,14 @@ Section WORLD_SATISFACTION.
   Context `{_W0: @GRA.inG OwnIRA Σ}.
   Context `{_W1: @GRA.inG OwnERA Γ}.
   Context `{_W2: @GRA.inG OwnDRA Γ}.
+  Notation iProp := (iProp Σ).
 
   Variable u : univ_id.
   Variable n : level.
+  (* FIXME: ⟦p⟧ not infeered as iProp. *)
 
-  Definition inv_satall (I : gmap positive (SRFSyn.t n)) :=
-    ([∗ map] i ↦ p ∈ I, (⟦p⟧ ∗ OwnD u {[i]}) ∨ OwnE u {[i]})%I.
+  Definition inv_satall (I : gmap positive (SRFSyn.t n)) : iProp :=
+    [∗ map] i ↦ p ∈ I, (⟦p⟧ ∗ OwnD u {[i]}) ∨ OwnE u {[i]}.
 
   Definition wsat : iProp := (∃ I, OwnI_auth u n I ∗ inv_satall I)%I.
 
@@ -151,7 +139,7 @@ Section WORLD_SATISFACTION.
               (maps_to_res u (Auth.black (Some D : Gset.t)))
               ((maps_to_res u (Auth.black (Some (D ∪ {[i]}) : Gset.t)))
                ⋅
-               (maps_to_res u (Auth.white (Some {[i]} : Gset.t))))) as UPD.
+               (maps_to_res u (◯ (Some {[i]} : Gset.t))))) as UPD.
     { rewrite !maps_to_res_add. apply maps_to_res_updatable.
       ii. ur in H. des_ifs. des. rewrite URA.unit_idl in H.
       unfold URA.extends in H. des. ur in H.
@@ -193,7 +181,7 @@ Section WORLD_SATISFACTION.
               (maps_to_res u (maps_to_res_dep n (@Auth.black (positive ==> URA.agree (SRFSyn.t n))%ra (fun i => Some <$> (I !! i)))): OwnIRA)
               ((maps_to_res u (maps_to_res_dep n (@Auth.black (positive ==> URA.agree (SRFSyn.t n))%ra (fun i => Some <$> (I' !! i)))): OwnIRA)
                ⋅
-               (maps_to_res u (maps_to_res_dep n (Auth.white (@maps_to_res _ (URA.agree (SRFSyn.t n)) i (Some (Some p))))): OwnIRA))).
+               (maps_to_res u (maps_to_res_dep n (◯ (@maps_to_res _ (URA.agree (SRFSyn.t n)) i (Some (Some p))))): OwnIRA))).
     { setoid_rewrite maps_to_res_add. setoid_rewrite maps_to_res_dep_add.
       apply maps_to_res_updatable. apply maps_to_res_dep_updatable.
       apply Auth.auth_alloc. ii. des. rewrite URA.unit_idl in FRAME. subst. split.
@@ -332,7 +320,7 @@ Section UNIVERSE.
   Lemma pos_sup_refl p:
     pos_sup p p = true.
   Proof. induction p; s; eauto. Qed.
-  
+
   Lemma pos_sup_trans p0 p1 p2
     (EXT1: pos_sup p0 p1 = true)
     (EXT2: pos_sup p1 p2 = true)
@@ -341,7 +329,7 @@ Section UNIVERSE.
   Proof.
     revert_until p0. induction p0; i; destruct p1, p2; ss; eauto.
   Qed.
-  
+
   Lemma pos_ext_0_sup_true p:
     pos_sup p (pos_ext_0 p) = true.
   Proof. induction p; s; eauto. Qed.
@@ -357,7 +345,7 @@ Section UNIVERSE.
   Lemma pos_ext_1_sup_false p:
     pos_sup (pos_ext_1 p) p = false.
   Proof. induction p; s; eauto. Qed.
-  
+
   Lemma pos_ext_0_neq p:
     p ≠ pos_ext_0 p.
   Proof. induction p; eauto; ii; depdes H; eauto. Qed.
@@ -371,7 +359,7 @@ Section UNIVERSE.
     :
     pos_sup (pos_ext_0 p) p' = false.
   Proof. revert p' SUP. induction p; i; destruct p'; ss; eauto. Qed.
-  
+
   Lemma pos_ext_1_disj p p'
     (SUP: pos_sup (pos_ext_0 p) p' = true)
     :
@@ -434,7 +422,7 @@ Section WSATS.
 
   Definition world u b E : iProp :=
     wsats u b ∗ OwnE u E ∗ OwnD_auth u ∗ free_universes.
-  
+
   Definition closed_world u b E : iProp :=
     free_worlds u b ∗ world u b E.
 
@@ -548,7 +536,7 @@ Section WSATS.
     rewrite !seq_app. s.
     iIntros "(W1 & (W2 & W3 & W4))". iFrame.
   Qed.
-  
+
   Lemma wsats_nin u (b b' : level):
     b <= b' -> wsats u b ∗ ([∗ list] n ∈ (seq b (b' - b)), wsat u n) ⊢ wsats u b'.
   Proof.
@@ -606,13 +594,13 @@ Section WSATS.
     iModIntro. iFrame. iApply "W". iFrame.
   Qed.
 
-  Lemma wsats_OwnI_alloc_ge_gen u b n (GE : b <= n) p φ  
+  Lemma wsats_OwnI_alloc_ge_gen u b n (GE : b <= n) p φ
         (INF : forall (E : level -> option (gset positive)) n,
             match E n with
             | None => True
             | Some G => (exists i, i ∉ G /\ φ i)
             end)
-    : free_worlds u b ∗ OwnD_auth u ∗ wsats u b ⊢ 
+    : free_worlds u b ∗ OwnD_auth u ∗ wsats u b ⊢
         |==> ((∃ i, ⌜φ i⌝ ∧ OwnI u n i p)
               ∗ free_worlds u (S n) ∗ OwnD_auth u ∗ (⟦p⟧ -∗ wsats u (S n))).
   Proof.
@@ -694,7 +682,7 @@ Section WSATS.
     { unfold empty_worldsR, OwnER, maps_to_res.
       exists ε. ur. extensionalities k.
       destruct (excluded_middle_informative _).
-      { subst. 
+      { subst.
         rewrite ->pos_ext_0_sup_false, pos_ext_1_sup_false, pos_sup_refl.
         r_solve.
       }
@@ -705,7 +693,7 @@ Section WSATS.
       }
       destruct (pos_sup (pos_ext_1 eu) k) eqn: SUP1.
       { erewrite pos_sup_trans; try eassumption; try apply pos_ext_1_sup_true.
-        r_solve. 
+        r_solve.
       }
       rewrite pos_sup_cases; eauto; r_solve.
       eapply Pos.eqb_neq; eauto.
@@ -721,12 +709,12 @@ Section WSATS.
       destruct (excluded_middle_informative _).
       { subst.
         rewrite ->pos_ext_0_sup_false, pos_ext_1_sup_false, pos_sup_refl.
-        r_solve. 
+        r_solve.
       }
       destruct (pos_sup (pos_ext_0 eu) k) eqn: SUP0.
       { rewrite pos_ext_1_disj; eauto.
         erewrite pos_sup_trans; try eassumption; try apply pos_ext_0_sup_true.
-        r_solve. 
+        r_solve.
         }
       destruct (pos_sup (pos_ext_1 eu) k) eqn: SUP1.
       { erewrite pos_sup_trans; try eassumption; try apply pos_ext_1_sup_true.
@@ -749,11 +737,11 @@ Section WSATS.
       destruct (pos_sup (pos_ext_0 eu) k) eqn: SUP0.
       { rewrite pos_ext_1_disj; eauto.
         erewrite pos_sup_trans; try eassumption; try apply pos_ext_0_sup_true.
-        r_solve. 
+        r_solve.
       }
       destruct (pos_sup (pos_ext_1 eu) k) eqn: SUP1.
       { erewrite pos_sup_trans; try eassumption; try apply pos_ext_1_sup_true.
-        r_solve. 
+        r_solve.
       }
       rewrite pos_sup_cases; eauto. r_solve.
     }
@@ -765,7 +753,7 @@ Section WSATS.
     unfold wsats. s. iFrame.
     iExists ∅. eauto.
   Qed.
-  
+
   Lemma closed_world_init:
     empty_worlds 1 ⊢ closed_world 1 0 ⊤.
   Proof.
@@ -891,7 +879,7 @@ Section FANCY_UPDATE.
     iPoseProof ("H" with "[A WSAT ENS D R]") as ">(A & (WSAT & ENS & D & R) & P)". iFrame.
     iModIntro. rewrite (union_difference_L _ _ HE).
     iPoseProof (OwnE_disjoint with "ENS") as "(ENS & EN)".
-    { set_solver. }    
+    { set_solver. }
     iFrame. iIntros "(A & WSAT & ENS & D & R)". iModIntro. iFrame.
     iApply OwnE_union. iFrame.
   Qed.
@@ -906,7 +894,7 @@ Section FANCY_UPDATE.
   Qed.
 
   (* Multiverse operations *)
-  
+
   Theorem FUpd_spawn_world u b A E:
     ⊢ FUpd u b A E E (∃ v, closed_world v 0 ⊤).
   Proof.
@@ -945,7 +933,7 @@ Section FANCY_UPDATE.
     - iFrame. iSplitL; [iAssumption|eauto].
     - iFrame; eauto.
   Qed.
-  
+
   Global Instance from_modal_FUpd u b A E P :
     FromModal True modality_id (FUpd u b A E E P) (FUpd u b A E E P) P.
   Proof.
@@ -1046,7 +1034,7 @@ Use [FUpd_mask_frame] and [FUpd_intro_mask]")
   (* TODO:
      Needs to register the fancy update rules for multivere operations.
   *)
-  
+
 End FANCY_UPDATE.
 
 Global Opaque FUpd.

@@ -20,7 +20,12 @@ proof: Makefile.coq $(COQTHEORIES)
 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(COQTHEORIES))
 
 Makefile.coq: Makefile $(COQTHEORIES)
-	(echo "-R lib $(COQMODULE)"; \
+	(echo "-arg -w -arg -deprecated-hint-without-locality"; \
+	 echo "-arg -w -arg -deprecated-instance-without-locality"; \
+	 echo "-arg -w -arg -ambiguous-paths"; \
+	 echo "-arg -w -arg -redundant-canonical-projection"; \
+	 echo "-arg -w -arg -cannot-define-projection"; \
+				 echo "-R lib $(COQMODULE)"; \
          echo "-R common $(COQMODULE)"; \
          echo "-R modules $(COQMODULE)"; \
          echo "-R simulations $(COQMODULE)"; \
@@ -32,17 +37,12 @@ Makefile.coq: Makefile $(COQTHEORIES)
    echo $(COQTHEORIES)) > _CoqProject
 	coq_makefile -f _CoqProject -o Makefile.coq
 
-clean:
+clean: Makefile.coq
 	$(MAKE) -f Makefile.coq clean || true
-	find . -name "*.vio" -type f -delete -not -path "./_opam/*"
-	find . -name "*.v.d" -type f -delete -not -path "./_opam/*"
-	find . -name "*.vo" -type f -delete -not -path "./_opam/*"
-	find . -name "*.vok" -type f -delete -not -path "./_opam/*"
-	find . -name "*.vos" -type f -delete -not -path "./_opam/*"
-	find . -name "*.glob" -type f -delete -not -path "./_opam/*"
-	git clean -Xf .
+	@# Make sure not to enter the `_opam` folder.
+	find [a-z]*/ \( -name "*.d" -o -name "*.vo" -o -name "*.vo[sk]" -o -name "*.aux" -o -name "*.cache" -o -name "*.glob" -o -name "*.vio" \) -print -delete || true
 	rm -f _CoqProject Makefile.coq Makefile.coq.conf #Makefile.coq-rsync Makefile.coq-rsync.conf
-
+.PHONY: clean
 
 ### copied from iris-examples by YJ
 # Install build-dependencies

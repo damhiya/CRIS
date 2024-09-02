@@ -54,7 +54,7 @@ Lemma sub_perm_cancel_tail {A} (l0 l l': list A)
   sub_perm (l ++ l0) (l' ++ l0).
 Proof.
   assert (X:=sub_perm_cancel l0 l l' [] []).
-  rewrite !app_nil_r in *. eauto.
+  rewrite !app_nil_r in X. eauto.
 Qed.
 
 Lemma sub_perm_remove {A} (l0 l1 l2: list A):
@@ -75,7 +75,7 @@ Lemma sub_perm_remove_tail {A} (l0 l: list A):
   sub_perm l (l ++ l0).
 Proof.
   assert (X := sub_perm_remove l0 l []).
-  rewrite !app_nil_r in *. eauto.
+  rewrite !app_nil_r in X. eauto.
 Qed.
 
 Lemma sub_perm_refl {A} (l: list A):

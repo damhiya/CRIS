@@ -348,7 +348,7 @@ Section RESUM.
   Proof.
     unfold resum_itr in *.
     repeat rewrite interp_trigger. grind.
-  Qed.  
+  Qed.
 
   Lemma resum_itr_triggerUB
         (R: Type)
@@ -455,7 +455,7 @@ Section TEST.
 
   Local Set Typeclasses Depth 50.
 
-  Goal forall (itr: itree (void1 +' void1 +' coreE) nat), resum_itr (tau;; itr) = tau;; resum_itr itr.
+  Goal forall (itr: itree (void1 +' void1 +' coreE) nat), resum_itr (F := void1 +' void1 +' coreE) (tau;; itr) = tau;; resum_itr itr.
   Proof. i. Timeout 1 my_red_both. refl. Qed.
 
   Goal forall (itr: itree (void1 +' coreE) nat), resum_itr (F:= void1 +' coreE +' void1) (tau;; itr) = tau;; resum_itr itr.
