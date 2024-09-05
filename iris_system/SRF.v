@@ -1,9 +1,4 @@
-From stdpp Require Import coPset gmap namespaces.
-Require Import sflib.
-From iris Require Import bi.big_op.
-From iris Require base_logic.lib.invariants.
-From Coq Require Import Program Arith.
-Require Import Coqlib PCM PCMAux IProp IPM.
+Require Import Basics Program.
 
 Local Notation level := nat.
 
@@ -103,7 +98,7 @@ Module SRFMSemG.
 
   Class inG (A: PF.t) (α: SRFMSynG.t) (B: @SRFMSem.t _ α A) (β: t) : Type := {
     inG_id: nat;
-    inG_prf: existT A B = existT (α inG_id) (β inG_id);
+    inG_prf: existT _ A B = existT _ (α inG_id) (β inG_id);
   }.
   
   End GSEM.
@@ -114,6 +109,8 @@ Module SRFSem.
 
   Section SEM.
 
+  Context `{Δ: SRFDom.t}.
+  Context `{α: SRFMSynG.t}.
   Context `{β: @SRFMSemG.t Δ α}.
 
   Fixpoint _t n : SRFSyn.t_prev n -> SRFDom.dom :=
@@ -123,7 +120,7 @@ Module SRFSem.
       fix _t_aux (syn : SRFSyn.t_prev (S m)) : SRFDom.dom :=
         match syn with
         | SRFSyn._lift p => _t m p
-        | SRFSyn._cur i op args => β i m op args (_t_aux ∘ args)
+        | SRFSyn._cur i op args => β i m op args (compose _t_aux args)
         end
     end.
 
@@ -131,8 +128,8 @@ Module SRFSem.
   
   Definition t n : SRFSyn.t n -> SRFDom.dom := t_prev (S n).
 
-  Program Definition cur `{IN: @SRFMSemG.inG _ A α B β} {n} (op: A) (args: PF.deg op (SRFSyn.t_prev n) -> SRFSyn.t n) : SRFSyn.t n.
-    destruct IN. inv inG_prf.
+  Program Definition cur `{A: PF.t} `{B: @SRFMSem.t Δ α A} `{IN: @SRFMSemG.inG _ A α B β} {n} (op: A) (args: PF.deg op (SRFSyn.t_prev n) -> SRFSyn.t n) : SRFSyn.t n.
+    destruct IN. inversion inG_prf. subst.
     exact (SRFSyn._cur inG_id op args).
   Defined.
   
@@ -144,12 +141,14 @@ Module SRFRed.
   
   Section RED.
 
+  Context `{Δ: SRFDom.t}.
+  Context `{α: SRFMSynG.t}.
   Context `{β: @SRFMSemG.t Δ α}.
 
-  Lemma cur `{IN: @SRFMSemG.inG _ A α B β} n op args :
-    SRFSem.t n (SRFSem.cur op args) = B n op args (SRFSem.t n ∘ args).
+  Lemma cur `{A: PF.t} `{B: @SRFMSem.t Δ α A} `{IN: @SRFMSemG.inG _ A α B β} n op args :
+    SRFSem.t n (SRFSem.cur op args) = B n op args (compose (SRFSem.t n) args).
   Proof.
-    destruct IN eqn: EQ. subst. depdes inG_prf. ss.
+    destruct IN eqn: EQ. subst. dependent destruction inG_prf. reflexivity.
   Qed.
 
   Lemma lift_0 t :
