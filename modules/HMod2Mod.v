@@ -2,7 +2,7 @@ Require Import Coqlib AList.
 Require Import sflib.
 Require Import ITreelib.
 Require Import Any.
-Require Import EventsRed Events.
+Require Import Events.
 Require Import IRed.
 Require Import STS Behavior.
 Require Import PCM IPM.
@@ -123,9 +123,10 @@ Section MID.
   Definition interp_hp : itree hmodE ~> stateT Σ (itree modE) :=
       interp_state 
         (case_ (bif:=sum1) (handle_agE_tgt)
-        (case_ (bif:=sum1) ((fun T X fr => '(fr', _) <- (handle_Guarantee (True%I) fr);; x <- trigger X;; Ret (fr', x)): _ ~> stateT Σ (itree modE)) 
-        (case_ (bif:=sum1) ((fun T X fr => x <- handle_pgE_tgt X;; Ret (fr, x)): _ ~> stateT Σ (itree modE)) 
-                           ((fun T X fr => x <- trigger X;; Ret (fr, x)): _ ~> stateT Σ (itree modE))))).
+        (case_ (bif:=sum1) ((fun T e fr => x <- trigger e;; Ret (fr,x)): _ ~> stateT Σ (itree modE))
+        (case_ (bif:=sum1) ((fun T e fr => '(fr', _) <- (handle_Guarantee (True%I) fr);; x <- trigger e;; Ret (fr', x)): _ ~> stateT Σ (itree modE)) 
+        (case_ (bif:=sum1) ((fun T e fr => x <- handle_pgE_tgt e;; Ret (fr, x)): _ ~> stateT Σ (itree modE)) 
+                           ((fun T e fr => x <- trigger e;; Ret (fr, x)): _ ~> stateT Σ (itree modE)))))).
 
   Definition hp_fun_tail := (fun '(fr, x) => handle_Guarantee (True%I) fr ;;; Ret (x: Any.t)).
 
@@ -200,6 +201,18 @@ Section RED.
     unfold interp_hp in *. grind.
   Qed.
 
+  Lemma interp_hp_sch
+        (R: Type)
+        (i: schE R)
+        fmr
+    :
+      interp_hp (trigger i) fmr
+      =
+      r <- trigger i;; tau;; Ret (fmr, r).
+  Proof.
+    unfold interp_hp. rewrite interp_state_trigger. cbn. grind.
+  Qed.
+  
   Lemma interp_hp_triggers
         (R: Type)
         (i: pgE R)
@@ -232,7 +245,9 @@ Section RED.
       =
       triggerUB (A:=Σ*R).
   Proof.
-    unfold interp_hp, triggerUB in *. rewrite unfold_interp_state. cbn. grind.
+    unfold interp_hp, triggerUB in *.
+    erewrite (bisimulation_is_eq _ _ (unfold_interp_state _ _ _)).
+    cbn. grind.
   Qed.
 
   Lemma interp_hp_triggerNB
@@ -243,7 +258,9 @@ Section RED.
       =
       triggerNB (A:=Σ*R).
   Proof.
-    unfold interp_hp, triggerNB in *. rewrite unfold_interp_state. cbn. grind.
+    unfold interp_hp, triggerNB in *.
+    erewrite (bisimulation_is_eq _ _ (unfold_interp_state _ _ _)).
+    cbn. grind.
   Qed.
 
   Lemma interp_hp_unwrapU 
@@ -327,8 +344,8 @@ Section RED.
       (mk_box interp_hp_tau)
       (mk_box interp_hp_ret)
       (mk_box interp_hp_call)
+      (mk_box interp_hp_sch)      
       (mk_box interp_hp_triggere)
-      (mk_box interp_hp_triggers)
       (mk_box interp_hp_triggers)
       (mk_box interp_hp_triggerUB)
       (mk_box interp_hp_triggerNB)

@@ -15,7 +15,7 @@ From ExtLib Require Import
      Data.Map.FMapAList.
 Require Import Any.
 
-Require Import Mod EventsRed Events.
+Require Import Mod2STS Mod Events.
 Require Import SimGlobal SimGlobalFacts ModSim.
 Require Import Red IRed.
 Require Import Permutation.
@@ -39,38 +39,20 @@ Module TAC.
 End TAC.
 Import TAC.
 
-
-Section SIMMOD.
-
-  Lemma Mod_add_fnsems md0 md1 sk
-    :
-      (ModSem.fnsems (Mod.modsem (Mod.add md0 md1) sk)) =
-      ModSem.add_fnsems (Mod.modsem md0 sk) (Mod.modsem md1 sk).
-  Proof.
-    ss.
-  Qed.
-
-  Lemma Mod_add_sk md0 md1
-    :
-      Mod.sk (Mod.add md0 md1) = Mod.sk md0 ++ Mod.sk md1.
-  Proof.
-    ss.
-  Qed.
-  
-End SIMMOD.
-
 Lemma itree_modE_inv R (itr: itree modE R):
   (exists r, itr = Ret r) \/
   (exists itr', itr = tau;; itr') \/
   (exists V (e: coreE V) ktr, itr = v <- trigger e;; ktr v) \/
   (exists fn args ktr, itr = v <- trigger (Call fn args);; ktr v) \/
-  (exists V run ktr, itr = v <- trigger (@SUpdate V run);; ktr v).
+  (exists V run ktr, itr = v <- trigger (@SUpdate V run);; ktr v) \/
+  (exists V (e: schE V) ktr, itr = v <- trigger e;; ktr v).
 Proof.
   ides itr; eauto.
-  right. right. destruct e as [c|[s'|e']].
+  right. right. destruct e as [s | [c|[s'|e']]].
+  - do 3 right. exists X, s, k. rewrite bind_trigger. eauto.
   - destruct c. right. left.
     esplits. rewrite bind_trigger. eauto.
-  - destruct s'. right. right.
+  - destruct s'. right. right. left.
     esplits. rewrite bind_trigger. eauto.
   - left. esplits. rewrite bind_trigger. eauto.
 Qed.
@@ -93,349 +75,7 @@ Section WF.
     apply alist_find_fst_some in EQS. eauto.
   Qed.
   
-  Lemma ModR_sim_wf
-    md_src md_tgt
-    (SIM : ModR.sim md_src md_tgt)
-    (WF : Mod.wf md_src)
-    :
-    Mod.wf md_tgt.
-  Proof.
-    ii. destruct WF, SIM, md_src, md_tgt. ss; des; subst.
-    econs; ss.
-    { eapply Sk.equiv_wf; eauto. }
-    i. eapply ModSemR_sim_wf.
-    - eapply sim_modsem.
-      + eapply Sk.equiv_incl. symmetry. eauto.
-      + eapply Sk.equiv_wf, H.
-        etrans.
-        * apply sim_sk.
-        * symmetry. eauto.
-    - eapply H0. etrans.
-      + apply EQV.
-      + symmetry. eauto.
-  Qed.
-
 End WF.
-
-
-
-
-(**** Contextual Refinement on Simulation level ****)
-Section SIMCTX.
-Import ModSem.
-
-Definition wf_lift {world} wf  :=
-  fun (w: world) '(src, tgt) => exists st1S st1T st2,
-    src = Any.pair st1S st2 /\ tgt = Any.pair st1T st2 /\
-    wf w (st1S, st1T).
-
-Definition addf f1 f2 : alist gname (Any.t -> itree _ Any.t) :=
-    (List.map trans_l f1) ++ (List.map trans_r f2).
-
-Lemma sim_ctx_aux {world}
-      w wf le
-      a b c
-      fa fb fc 
-      ol or stl str itl itr
-
-      (SRC: Any.split stl = Some (b, a))
-      (TGT: Any.split str = Some (c, a))
-
-      (SIM: sim_itree wf le fb fc ol or w (b, itl) (c, itr))
-  :
-  @sim_itree world (wf_lift wf) le (addf fb fa) (addf fc fa) ol or w
-    (stl, translate (emb_ run_l) itl) 
-    (str, translate (emb_ run_l) itr)
-.
-Proof.
-  ginit. revert_until wf.
-  gcofix CIH. i.
-  hexploit SIM. intros SIM'.
-
-  remember (b, itl) eqn:PL.
-  remember (c, itr) eqn:PR.
-  remember w eqn:Weq.
-  unfold sim_itree in SIM'.
-  rewrite Weq in SIM' at 2.
-  revert a b c stl str itl itr SRC TGT PL PR Weq SIM.
-  pattern ol, or, w, p, p0.
-  match goal with
-  | |- ?P ol or w p p0 => set P
-  end.
-  eapply (@sim_itree_ind world wf le fb fc Any.t Any.t (lift_rel wf le w0 (@eq Any.t)) P); subst P; ss; i; des; clarify.
-
-  - rr in RET. des. clarify.
-    rewrite translate_emb_ret.
-    gstep. apply sim_itree_ret.
-    econs; et. esplits; et.
-    eapply Any.split_pair in SRC, TGT. des. subst.
-    r. esplits; eauto.
-    
-  - remember (` x : _ <- trigger (Call fn varg);; k_src x). 
-    remember (` x : _ <- trigger (Call fn varg);; k_tgt x). 
-    remember (b, ` x : _ <- trigger (Call fn varg);; k_src x) eqn:PL.
-    remember (c, ` x : _ <- trigger (Call fn varg);; k_tgt x) eqn:PR.
-    remember w1 eqn:Weq.
-    hexploit SIM. intros SIM0.
-    unfold sim_itree in SIM0.
-    rewrite Weq in SIM0 at 2.
-
-    revert a b c stl str i i0 WF SRC TGT PL PR Weq SIM SIM0 Heqi Heqi0.
-    pattern ol, or, w, p, p0.
-    match goal with
-    | |- ?P ol or w p p0 => set P
-    end.
-    eapply (@sim_itree_ind world wf le fb fc Any.t Any.t (lift_rel wf le w0 (@eq Any.t)) P); subst P; ss; i; des; clarify;
-    rewrite ! translate_emb_bind, translate_emb_callE; gstep; econs;
-    try (match goal with
-    | |- wf_lift _ _ (_, _) =>  unfold wf_lift; rewrite SRC, TGT; et
-    end).
-
-    all: eapply Any.split_pair in SRC, TGT; des; subst; rr; esplits; eauto.
-    all: ii; econs; gfinal; left; ss; des; subst; eapply CIH;
-      try rewrite Any.pair_split; eauto;
-      eapply sim_itree_bot_flag_up, K; eauto.
-
-  - punfold SIM. inv SIM; (try rewrite ! bind_trigger in H4); (try rewrite ! bind_trigger in H6); clarify.
-    + apply inj_pair2 in H0, H1.
-      rewrite ! translate_emb_bind, translate_emb_coreE.
-      gstep. econs. i. econs. 
-      gfinal. left. eapply CIH; et.
-      apply sim_itree_bot_flag_up. pfold. apply K0. 
-
-    + pclearbot. punfold SIM0. inv SIM0; (try rewrite ! bind_trigger in H4); (try rewrite ! bind_trigger in H6); clarify.
-      apply inj_pair2 in H0, H1.
-      rewrite ! translate_emb_bind, translate_emb_coreE.
-      gstep. econs. ii. econs.
-      gfinal. left. eapply CIH; et.
-      apply sim_itree_bot_flag_up. pfold. apply K0.
-
-  - rewrite ! translate_emb_bind, translate_emb_callE.
-    guclo sim_itree_indC_spec.
-    econs; et.
-    { 
-      unfold addf. apply alist_find_app.
-      unfold trans_l. rewrite alist_find_map. unfold o_map.
-      rewrite FUN. et.
-    }
-    ss. rewrite <- ! translate_emb_bind.
-    eapply IH; et. 
-  - rewrite ! translate_emb_bind, translate_emb_callE.
-    guclo sim_itree_indC_spec. econs; et.
-    { unfold addf. apply alist_find_app. unfold trans_l. rewrite alist_find_map. unfold o_map. rewrite FUN. et. }
-    ss. rewrite <- ! translate_emb_bind.
-    eapply IH; et. 
-  - rewrite ! translate_emb_tau. 
-    guclo sim_itree_indC_spec. econs; et.
-  - rewrite ! translate_emb_tau. 
-    guclo sim_itree_indC_spec. econs; et.    
-  - rewrite ! translate_emb_bind, translate_emb_coreE.
-    guclo sim_itree_indC_spec. econs; et.
-  - rewrite ! translate_emb_bind, translate_emb_coreE.
-    guclo sim_itree_indC_spec. econs; et.
-    i. specialize (K x). des. et.
-  - rewrite ! translate_emb_bind, translate_emb_coreE.
-    guclo sim_itree_indC_spec. econs; et.
-    i. specialize (K x). des. et.    
-  - rewrite ! translate_emb_bind, translate_emb_coreE.
-    guclo sim_itree_indC_spec. econs; et.
-  - rewrite ! translate_emb_bind, translate_emb_sE.
-    guclo sim_itree_indC_spec. econs; et.
-    unfold run_l. rewrite SRC. des_ifs; ss. 
-    eapply IH; et. rewrite Any.pair_split; et.
-  - rewrite ! translate_emb_bind, translate_emb_sE.
-    guclo sim_itree_indC_spec. econs; et.
-    unfold run_l. rewrite TGT. des_ifs; ss. 
-    eapply IH; et. rewrite Any.pair_split; et. 
-  - remember (true) as o_src.
-    remember (true) as o_tgt.
-    rewrite Heqo_src at 2.
-    rewrite Heqo_src in SIM0 at 2.
-    rewrite Heqo_tgt in Heqo_src.
-    remember (b, itl) eqn:PL.
-    remember (c, itr) eqn:PR.
-    remember w1 eqn:Weq.
-    hexploit SIM0. intros SIM0'.
-    unfold sim_itree in SIM0'.
-    rewrite Weq in SIM0' at 2.
-
-    revert a b c stl str itl itr SRC TGT PL PR Weq Heqo_src Heqo_tgt SIM0.
-    pattern o_src, o_tgt, w1, p1, p2.
-    match goal with
-    | |- ?P o_src o_tgt w1 p1 p2 => set P
-    end.
-    eapply (@sim_itree_ind world wf le fb fc Any.t Any.t (lift_rel wf le w0 (@eq Any.t)) P); subst P; ss; i; des; clarify.
-    + rr in RET. des. clarify.
-      rewrite ! translate_emb_ret.
-      gstep. apply sim_itree_ret.
-      econs; et. esplits; et.
-      apply Any.split_pair in SRC, TGT. des; subst.
-      r. esplits; eauto.
-    + remember (` x : _ <- trigger (Call fn varg);; k_src x). 
-      remember (` x : _ <- trigger (Call fn varg);; k_tgt x). 
-      remember (b, ` x : _ <- trigger (Call fn varg);; k_src x) eqn:PL.
-      remember (c, ` x : _ <- trigger (Call fn varg);; k_tgt x) eqn:PR.
-      remember w2 eqn:Weq.
-      hexploit SIM. intros SIM''.
-      unfold sim_itree in SIM''.
-      rewrite Weq in SIM'' at 2.
-
-      revert a b c stl str i i0 WF SRC TGT PL PR Weq SIM SIM0 SIM'' Heqi Heqi0.
-      pattern ol, or, w, p, p0.
-      match goal with
-      | |- ?P ol or w p p0 => set P
-      end.
-      eapply (@sim_itree_ind world wf le fb fc Any.t Any.t (lift_rel wf le w0 (@eq Any.t)) P); subst P; ss; i; des; clarify;
-      rewrite ! translate_emb_bind, translate_emb_callE; gstep; econs; 
-      try (match goal with 
-          | |- wf_lift _ _ _ => unfold wf_lift; rewrite SRC, TGT; et
-          end
-      ).
-      all: eapply Any.split_pair in SRC, TGT; des; subst; rr; esplits; eauto.
-      all: ii; econs; gfinal; left; ss; des; subst; eapply CIH;
-        try rewrite Any.pair_split; eauto;
-        eapply sim_itree_bot_flag_up, K; eauto.
-    + punfold SIM0. inv SIM0; (try rewrite ! bind_trigger in H4); (try rewrite ! bind_trigger in H6); clarify.
-      * apply inj_pair2 in H0, H1.
-        rewrite ! translate_emb_bind, translate_emb_coreE.
-        gstep. econs. i. econs.
-        gfinal. left. eapply CIH; et.
-        apply sim_itree_bot_flag_up. pfold. eapply K0.
-
-      * pclearbot. punfold SIM1. inv SIM1; (try rewrite ! bind_trigger in H4); (try rewrite ! bind_trigger in H6); clarify.
-        apply inj_pair2 in H0, H1.
-        rewrite ! translate_emb_bind, translate_emb_coreE.
-        gstep. econs. i. econs.
-        gfinal. left. eapply CIH; et.
-        apply sim_itree_bot_flag_up. pfold. eapply K0.
-    + rewrite ! translate_emb_bind, translate_emb_callE.
-      guclo sim_itree_indC_spec. econs; et.
-      { unfold addf. apply alist_find_app. unfold trans_l. rewrite alist_find_map. unfold o_map. rewrite FUN. et. }
-      ss. rewrite <- ! translate_emb_bind.
-      eapply IH; et.
-    + rewrite ! translate_emb_bind, translate_emb_callE.
-      guclo sim_itree_indC_spec. econs; et.
-      { unfold addf. apply alist_find_app. unfold trans_l. rewrite alist_find_map. unfold o_map. rewrite FUN. et. }
-      ss. rewrite <- ! translate_emb_bind.
-      eapply IH; et.
-    + rewrite ! translate_emb_tau. 
-      guclo sim_itree_indC_spec. econs. et. 
-    + rewrite ! translate_emb_tau. 
-      guclo sim_itree_indC_spec. econs. et. 
-    + rewrite ! translate_emb_bind, translate_emb_coreE.
-      guclo sim_itree_indC_spec. econs. et.
-    + rewrite! translate_emb_bind, translate_emb_coreE.
-      guclo sim_itree_indC_spec. econs. et.
-      i. specialize (K x). des. et.
-    + rewrite! translate_emb_bind, translate_emb_coreE.
-      guclo sim_itree_indC_spec. econs. et.
-      i. specialize (K x). des. et.    
-    + rewrite ! translate_emb_bind, translate_emb_coreE.
-      guclo sim_itree_indC_spec. econs. et.
-    + rewrite ! translate_emb_bind, translate_emb_sE.
-      guclo sim_itree_indC_spec. econs; et.
-      unfold run_l. rewrite SRC. des_ifs; ss.
-      eapply IH; et. rewrite Any.pair_split. et.
-    + rewrite ! translate_emb_bind, translate_emb_sE.
-      guclo sim_itree_indC_spec. econs; et.
-      unfold run_l. rewrite TGT. des_ifs; ss.
-      eapply IH; et. rewrite Any.pair_split. et.      
-    + gstep. econs; et.
-      gfinal. left. eapply CIH; et.
-Qed.
-
-Lemma self_sim_r
-  world le wf fl fr w st1S st1T st2 i
-  (ORD: PreOrder le)
-  (WF: wf w (st1S, st1T): Prop)
-  :
-  sim_itree (@wf_lift world wf) le fl fr false false w
-    (Any.pair st1S st2, translate (emb_ run_r) i)
-    (Any.pair st1T st2, translate (emb_ run_r) i).
-Proof.
-  ginit.
-  assert (exists w1, le w w1 /\ wf w1 (st1S, st1T)).
-  { esplits; eauto. refl. }
-  des. clear WF. revert_until fr.
-  gcofix CIH. i.
-
-  assert (INV := itree_modE_inv i). des; subst.
-  - rewrite translate_emb_ret. gstep. econs.
-    r; esplits; eauto. r; esplits; eauto.
-  - rewrite translate_emb_tau. gstep. do 3 econs.
-    gbase. eauto.
-  - rewrite translate_emb_bind, translate_emb_coreE.
-    destruct e.
-    + gstep. eapply sim_itree_choose_tgt. i. econs. econs. gbase. eauto.
-    + gstep. econs. i. econs. econs. gbase. eauto.
-    + gstep. econs. i. econs. gbase. eauto.
-  - rewrite translate_emb_bind, translate_emb_callE.
-    gstep. econs.
-    { r. esplits; eauto. }
-    i. r in WF. des; subst.
-    econs. gbase. eapply CIH, WF1; eauto.
-    etrans; eauto.
-  - rewrite translate_emb_bind, translate_emb_sE.
-    gstep. econs. econs. econs. gbase.
-    unfold run_r. rewrite !Any.pair_split. grind.
-    eapply CIH, H1; eauto.
-Qed.
-
-Theorem sim_ctx
-      ctx ms1 ms2
-      (SIM: ModSemR.sim ms1 ms2)
-    :
-      ModSemR.sim (add ms1 ctx) (add ms2 ctx)
-.
-Proof.
-  inv SIM.
-  econs; et.
-  { instantiate (1:= wf_lift wf0).
-    unfold add. s. i. des. subst.
-    esplits; eauto.
-  }
-  { s. unfold add_fnsems.
-    rewrite !app_length, !map_length, sim_length. eauto.
-  }
-  { s. unfold add_fnsems, trans_l, trans_r. intros fn.
-    rewrite !alist_find_app_o, !alist_find_map. unfold o_map in *.
-    des_ifs. i. eapply sim_miss in Heq1. rewrite Heq1 in Heq2. ss.
-  }
-
-  s. unfold add_fnsems, trans_l, trans_r. i.
-  rewrite !alist_find_app_o in FIND. des_ifs.
-  - rewrite alist_find_map in Heq. unfold o_map in *. des_ifs.
-    exploit sim_fnsems; eauto. i; des.
-    eexists. split.
-    + rewrite alist_find_app_o, alist_find_map, x0. s. eauto.
-    + ii. r in SIMMRS. des; subst.
-      exploit x1; eauto. intro SIM.
-      eapply sim_ctx_aux; try rewrite Any.pair_split; eauto.
-  - rewrite alist_find_map in Heq, FIND. unfold o_map in *. des_ifs.
-    eexists. split.
-    + rewrite alist_find_app_o, alist_find_map.
-      apply sim_miss in Heq1. rewrite Heq1. s.
-      rewrite alist_find_map, Heq0. s. eauto.
-    + ii. r in SIMMRS. des; subst.
-      eapply self_sim_r; eauto.
-Qed.
-
-Lemma sim_ctx_mod
-  ctx md_src md_tgt
-  (SIM: ModR.sim md_src md_tgt)
-  :
-  ModR.sim (Mod.add md_src ctx) (Mod.add md_tgt ctx).
-Proof.
-  inv SIM.
-  econs; et; cycle 1.
-  { r. ss. unfold Sk.add. apply Permutation_app_tail. eauto. }
-  i. ss. hexploit (sim_modsem sk); et.
-  - etrans; [|apply SKINCL].
-    unfold Sk.add. apply incl_appl. refl.
-  - ii. eapply sim_ctx; et.
-Qed.
-
-End SIMCTX.
 
 Section SEMR.
   Variable ms_src: ModSem.t.
@@ -443,30 +83,48 @@ Section SEMR.
   Definition fl_src := ms_src.(ModSem.fnsems).
   Definition fl_tgt := ms_tgt.(ModSem.fnsems).
   Variable world: Type.
-  Variable wf: world -> Any.t * Any.t -> Prop.
+  Variable wf: world -> nat * Any.t * Any.t -> Prop.
   Variable le: world -> world -> Prop.
-  Hypothesis le_PreOrder: PreOrder le.
+  Hypothesis le_refl: Reflexive le.
+  Hypothesis le_trans: Transitive le.
   Hypothesis sim_initial:
-    exists w, wf w (ModSem.initial_st ms_src, ModSem.initial_st ms_tgt).
-  Hypothesis sim_miss : forall fn,
-      alist_find fn (ModSem.fnsems ms_src) = None ->
-      alist_find fn (ModSem.fnsems ms_tgt) = None.
+    exists w, wf w (1, ModSem.initial_st ms_src, ModSem.initial_st ms_tgt).
+  (* Hypothesis sim_miss : forall fn, *)
+  (*     alist_find fn (ModSem.fnsems ms_src) = None -> *)
+  (*     alist_find fn (ModSem.fnsems ms_tgt) = None. *)
   Hypothesis sim_fnsems : forall fn fs,
       alist_find fn (ModSem.fnsems ms_src) = Some fs ->
       exists ft, alist_find fn (ModSem.fnsems ms_tgt) = Some ft /\
-      sim_fsem wf le (ModSem.fnsems ms_src) (ModSem.fnsems ms_tgt) fs ft.
+      forall my_tid, sim_fsem wf le (ModSem.fnsems ms_src) (ModSem.fnsems ms_tgt) my_tid fs ft.
     
-  Variant g_lift_rel
-          (w0: world) st_src st_tgt: Prop :=
-  | g_lift_rel_intro
-      w1
-      (LE: le w0 w1)
-      (MN: wf w1 (st_src, st_tgt))
-  .
-
   Lemma sim_itree_simg
-    w0 itr_src itr_tgt st_src st_tgt o_src o_tgt
-    (SIM: sim_itree wf le fl_src fl_tgt o_src o_tgt w0 (st_src, itr_src) (st_tgt, itr_tgt))
+    w tid nths itrs_src itrs_tgt st_src st_tgt ps pt
+    (EQS: nths = List.length itrs_src)
+    (EQT: nths = List.length itrs_tgt)
+    (SIM: forall my_tid itr_src itr_tgt ps0 pt0 w0 nths0 st_src0 st_tgt0
+                 (INS: base.lookup my_tid itrs_src = Some itr_src)
+                 (INT: base.lookup my_tid itrs_tgt = Some itr_tgt)
+                 (FLAG: if Nat.eq_dec my_tid tid then ps0 = ps /\ pt0 = pt else ps0 = true /\ pt0 = true)
+                 (NTHS: my_tid < nths0)
+                 (WLE: if Nat.eq_dec my_tid tid then w0 = w else le w w0)
+                 (WF: if Nat.eq_dec my_tid tid then nths0 = nths /\ st_src0 = st_src /\ st_tgt0 = st_tgt else wf w0 (nths0, st_src0, st_tgt0))
+      ,
+      sim_itree wf le fl_src fl_tgt my_tid ps0 pt0 w0 nths0 (st_src0, itr_src) (st_tgt0, itr_tgt))
+    :
+    simg (fun '(st_src, ret_src) '(st_tgt, ret_tgt) => ret_src = ret_tgt) ps pt
+    (interp_stateE Any.t
+       (ITree.iter (handle_schE_callE (ModSem.prog ms_src)) (tid, itrs_src)) st_src)
+    (interp_stateE Any.t
+       (ITree.iter (handle_schE_callE (ModSem.prog ms_tgt)) (tid, itrs_tgt)) st_tgt).
+  Proof.
+
+    (* Revised up to here *)
+    
+  Qed.
+  
+  Lemma sim_itree_simg
+    w0 itr_src itr_tgt ths st_src st_tgt cur_tid o_src o_tgt
+    (SIM: sim_itree wf le fl_src fl_tgt cur_tid o_src o_tgt w0 ths (st_src, itr_src) (st_tgt, itr_tgt))
     :
     simg (fun '(st_src, ret_src) '(st_tgt, ret_tgt) =>
                 g_lift_rel w0 st_src st_tgt /\ ret_src = ret_tgt)
@@ -474,7 +132,7 @@ Section SEMR.
     (interp_modE (ModSem.prog ms_src) itr_src st_src)
     (interp_modE (ModSem.prog ms_tgt) itr_tgt st_tgt).
   Proof.
-    ginit. revert_until sim_initial.
+    ginit. revert_until sim_fnsems.
     gcofix CIH. i.
     unfold sim_itree in SIM.
     remember (st_src, itr_src).
@@ -482,13 +140,29 @@ Section SEMR.
     remember w0 in SIM at 2.
     revert st_src itr_src st_tgt itr_tgt Heqp Heqp0 Heqw.
     (* TODO: why induction using sim_itree_ind doesn't work? *)
-    pattern o_src, o_tgt, w, p, p0.
+    pattern o_src, o_tgt, w, ths, p, p0.
     match goal with
-    | |- ?P o_src o_tgt w p p0 => set P
+    | |- ?P o_src o_tgt w ths p p0 => set P
     end.
-    revert o_src o_tgt w p p0 SIM.
-    eapply (@sim_itree_ind world wf le fl_src fl_tgt Any.t Any.t (lift_rel wf le w0 (@eq Any.t)) P); subst P; ss; i; clarify.
-    - rr in RET. des. step. splits; auto. econs; et.
+    revert o_src o_tgt w ths p p0 SIM.
+    eapply (@sim_itree_ind world wf le fl_src fl_tgt cur_tid Any.t Any.t (final_rel wf le w0) P); subst P; ss; i; clarify.
+    - rr in RET. des. subst.
+      unfold interp_stateE. unfold interp_schE_callE.
+      rewrite !unfold_iter_eq. s.
+      
+      
+      
+      Check interp_state_ret.
+      
+      Search interp_state.
+      
+
+      
+      Search ITree.iter.
+      grind.
+      Search ITree.iter.
+
+      step. splits; auto. econs; et.
     - destruct (alist_find fn fl_src) eqn: EQ; cycle 1.
       { steps. fold fl_src fl_tgt.
         rewrite EQ. unfold unwrapU, triggerUB. grind. step. ss. }

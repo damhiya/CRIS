@@ -12,6 +12,12 @@ Require Export HMod2Mod.
 
 Set Implicit Arguments.
 
+Definition fnsems_scopes {T} (fn: gname) (fnsems: alist gname (list string * T)) :=
+  match (alist_find fn fnsems) with
+  | Some (keys, body) => keys
+  | None => []
+  end.
+
 Module HModSem.
 Section HMODSEM.
   Context `{Σ: GRA.t}.

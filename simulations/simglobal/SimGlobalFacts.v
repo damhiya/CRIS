@@ -3,7 +3,7 @@ Require Import ITreelib.
 Require Import Any.
 Require Import STS.
 Require Import Behavior.
-Require Import ITree2STS Mod.
+Require Import Mod Mod2STS.
 Require Import Skeleton.
 Require Import PCM.
 Require Import Coq.Relations.Relation_Definitions.
@@ -64,14 +64,13 @@ Section ADEQUACY.
   Qed.
 
   Section MAIN.
-    Variable md_src md_tgt: Mod.t.
-    Variable sk: Sk.t.
-    Let ms_src: ModSem.t := md_src.(Mod.modsem) sk.
-    Let ms_tgt: ModSem.t := md_tgt.(Mod.modsem) sk.
+    
+    Variable ms_src ms_tgt: ModSem.t.
+
     Hypothesis (SIM: simg eq false false (@ModSem.initial_itr ms_src) (@ModSem.initial_itr ms_tgt)).
 
     Theorem adequacy_global:
-      Beh.of_program (@Mod.compile md_tgt sk) <1= Beh.of_program (@Mod.compile md_src sk).
+      Beh.of_program (@ModSem.compile ms_tgt) <1= Beh.of_program (@ModSem.compile ms_src).
     Proof.
       eapply adequacy_global_itree. eapply SIM.
     Qed.
