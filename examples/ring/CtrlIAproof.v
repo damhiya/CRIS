@@ -31,18 +31,19 @@ Section SIMMODSEM.
   
   Variable max_size : nat.
 
+  Variable GI: Sk.t -> invspec.
   Variable StbR: Sk.t -> gname -> option fspec.
   Variable StbC: Sk.t -> gname -> option fspec.
   (* Hypothesis RingInStb: forall sk, stb_incl RingAS.Stb (StbR sk). *)
   (* Hypothesis CellInStb: forall sk idx (LT: idx < max_size), stb_incl (CellAS.Stb idx) (StbR sk). *)
 
-  Local Notation CellAMod := (fun idx => CellA.t idx StbC).
+  Local Notation CellAMod := (fun idx => CellA.t idx GI StbC).
 
   Definition CellGroup start len : HMod.t :=
     HMod.addL (List.map CellAMod (seq start len)).
 
-  Local Notation RingAMod := ((RingA.t max_size StbR) ★ (CellGroup 0 max_size)).
-  Local Notation RingIMod := ((CtrlI.t max_size)      ★ (CellGroup 0 max_size)).
+  Local Notation RingAMod := ((RingA.t max_size GI StbR) ★ (CellGroup 0 max_size)).
+  Local Notation RingIMod := ((CtrlI.t max_size)         ★ (CellGroup 0 max_size)).
 
   Lemma cellgroup_split idx start len (RANGE: start <= idx < start + len):
     CellGroup start len =
@@ -107,15 +108,15 @@ Section SIMMODSEM.
       exists (n / List.length l). nia.
   Qed.
   
-  Definition Ist: Sk.t -> alist key Any.t -> alist key Any.t -> iProp :=
-    (fun _ st_src st_tgt =>
+  Definition Ist: Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp :=
+    (fun _ _ st_src st_tgt =>
      ∃ (q q': list Z) (hd tl: nat),
        ⌜st_src = [(RingA.v_que, q↑)] /\ st_tgt = [(CtrlI.v_hd,hd↑);(CtrlI.v_tl,tl↑)] /\
        hd = (tl + List.length q)%nat /\ List.length (q ++ q') = max_size⌝ ∗
        ([∗ list] i↦x ∈ q, CellAS.cell ((tl+i) mod max_size) x) ∗
        ([∗ list] i↦x ∈ q', (CellAS.pending ((hd+i) mod max_size) ∨ CellAS.cell ((hd+i) mod max_size) x)))%I.
 
-  Notation IstFull := (IstProd (IstSB (RingA.t max_size StbR) Ist) IstEq).
+  Notation IstFull := (IstProd (IstSB (RingA.t max_size GI StbR) Ist) IstEq).
 
   Lemma simF_init:
     HModR.sim_fun RingAMod RingIMod IstFull RingName.init.
@@ -138,7 +139,7 @@ Section SIMMODSEM.
     iSplit.
     { iPureIntro. esplits; eauto. s. rewrite rotate_length. eauto. }
     
-    iSplit; eauto. subst.
+    iSplit; eauto. rewrite <-H5.
     iApply big_sepL_rotate. iApply big_sepL_app.
     iSplitL "LIVE".
     + iApply (big_sepL_impl with "LIVE").

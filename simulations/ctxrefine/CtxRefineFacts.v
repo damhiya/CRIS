@@ -3,7 +3,6 @@ Require Import Behavior.
 Require Import Mod Skeleton.
 Require Import CtxRefine.
 Require Import PCM IPM HMod ISimCore MainAdequacy.
-Require Import ModSimAlgebra ModSimFacts.
 
 (*
 Section PROPERTIES.

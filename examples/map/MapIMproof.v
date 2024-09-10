@@ -87,8 +87,8 @@ Section SIMMODSEM.
         destruct (i-sz) eqn: EQ; try nia. eauto.
   Qed.
 
-  Definition Ist: Sk.t -> alist key Any.t -> alist key Any.t -> iProp :=
-    fun _ st_src st_tgt =>
+  Definition Ist: Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp :=
+    fun _ _ st_src st_tgt =>
       ((⌜st_src = [(MapM.v_size,0%Z↑);(MapM.v_map,(fun (_: Z) => 0%Z)↑)] /\
          st_tgt = [(MapI.v_hptr,Vnullptr↑)]⌝)
         ∨
@@ -97,14 +97,15 @@ Section SIMMODSEM.
           st_tgt = [(MapI.v_hptr,(Vptr blk ofs)↑)]⌝ 
           ∗ (blk, ofs) |-> (fun_to_list f (Z.to_nat sz)))
        )%I.
-  
+
+  Variable ginv: Sk.t -> invspec.
   Variable StbMap: Sk.t -> gname -> option fspec.
   Hypothesis MapInStbMap: forall sk, stb_incl MapMS.Stb (StbMap sk).
   Variable StbMem: Sk.t -> gname -> option fspec.
 
-  Local Notation MapMMod := ((MapM.t StbMap) ★ (MemA.t StbMem)).  
-  Local Notation MapIMod := ( MapI.t         ★ (MemA.t StbMem)).
-  Local Notation IstFull := (IstProd (IstSB (MapM.t StbMap) Ist) IstEq).
+  Local Notation MapMMod := ((MapM.t ginv StbMap) ★ (MemA.t ginv StbMem)).
+  Local Notation MapIMod := ( MapI.t         ★ (MemA.t ginv StbMem)).
+  Local Notation IstFull := (IstProd (IstSB (MapM.t ginv StbMap) Ist) IstEq).
 
   (**********)
 

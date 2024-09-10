@@ -85,9 +85,10 @@ Section A.
 
   Definition InitCond : Sk.t -> iProp :=
     fun _ => (MapAS.initial_map ∗ MapMS.pending)%I.
-  
+
+  Variable ginv: Sk.t -> invspec.
   Variable GlobalStb: Sk.t -> gname -> option fspec.
-  Definition t := Seal.sealing "ccr" (SMod.to_hmod GlobalStb Mod).
+  Definition t := Seal.sealing "ccr" (SMod.to_hmod ginv GlobalStb Mod).
 
 End A.
 End MapA.

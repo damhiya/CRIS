@@ -71,9 +71,10 @@ Section RING_A.
 
   Definition InitCond : Sk.t -> iProp :=
     fun _ => ([∗ list] i↦_ ∈ (replicate max_size 0%Z), CellAS.pending i)%I.
-  
+
+  Variable GI: Sk.t -> invspec.
   Variable GlobalStb: Sk.t -> gname -> option fspec.
-  Definition t := Seal.sealing "ccr" (SMod.to_hmod GlobalStb Mod).
+  Definition t := Seal.sealing "ccr" (SMod.to_hmod GI GlobalStb Mod).
 
 End RING_A.
 End RingA.

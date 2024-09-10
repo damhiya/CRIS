@@ -39,9 +39,10 @@ Section CELL_A.
 
   Definition InitCond : Sk.t -> iProp :=
     fun _ => (∃ v, CellAS.cell idx v ∗ CellAS.auth idx v)%I.
-  
+
+  Variable GI: Sk.t -> invspec.
   Variable GlobalStb: Sk.t -> gname -> option fspec.
-  Definition t := Seal.sealing "ccr" (SMod.to_hmod GlobalStb Mod).
+  Definition t := Seal.sealing "ccr" (SMod.to_hmod GI GlobalStb Mod).
 
 End CELL_A.
 End CellA.

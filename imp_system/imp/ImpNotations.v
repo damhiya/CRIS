@@ -5,7 +5,7 @@ Require Import Skeleton.
 Require Import PCM.
 Require Import STS Behavior.
 Require Import Any.
-Require Import Mod Events.
+Require Import PMod Events.
 Require Import Imp.
 
 Set Implicit Arguments.
@@ -153,8 +153,8 @@ Section Example_Extract.
     prog_funs := [("factorial", factorial_fundef); ("main", main_fundef)];
   |}.
 
-  Definition ex_prog: Mod.t := ImpMod.get_mod ex_extract.
+  Definition ex_prog: PMod.t := ImpMod.get_mod ex_extract.
 
-  Definition imp_ex := ModSem.initial_itr (ex_prog.(Mod.modsem) ex_prog.(Mod.sk)).
+  (* Definition imp_ex := ModSem.initial_itr (ex_prog.(Mod.modsem) ex_prog.(Mod.sk)). *)
 
 End Example_Extract.

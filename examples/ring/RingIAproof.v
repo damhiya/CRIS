@@ -31,12 +31,12 @@ Section PROOF.
   Definition CellIGroup start len :=
     HMod.addL (List.map CellI.t (seq start len)).
 
-  Theorem correct max_size (StbR StbC: Sk.t -> gname -> option fspec)
+  Theorem correct max_size GI (StbR StbC: Sk.t -> gname -> option fspec)
     :
     ctx_refines
-      ((RingA.t max_size  StbR) ★ (CtrlIA.CellGroup StbC 0 max_size),
+      ((RingA.t max_size GI StbR) ★ (CtrlIA.CellGroup GI StbC 0 max_size),
        (RingA.InitCond max_size) ∗∗ (fun sk => [∗ list] i↦x ∈ seq 0 max_size, CellA.InitCond i sk))%I
-      ((CtrlI.t max_size)       ★ (CellIGroup 0 max_size),
+      ((CtrlI.t max_size)         ★ (CellIGroup 0 max_size),
        const(emp%I)).
   Proof.
     etrans.

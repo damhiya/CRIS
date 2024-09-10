@@ -6,12 +6,13 @@ Require Import ImpPrelude.
 Require Import Skeleton.
 Require Import STS Behavior.
 Require Import Any.
-Require Import Mod Events.
+Require Import PMod Events.
 Require Import AList.
 Require Import SMod2HMod.
 Require Import STB.
 Require Import Orders.
 Require Import PCM.
+Require Import ITactics.
 
 Set Implicit Arguments.
 
@@ -528,7 +529,7 @@ End Denote.
 
 Section Interp.
 
-  Definition effs := GlobEnv +' ImpState +' modE.
+  Definition effs := GlobEnv +' ImpState +' pmodE.
 
   Definition handle_GlobEnv {eff} `{coreE -< eff} (ge: SkEnv.t) : GlobEnv ~> (itree eff) :=
     fun _ e =>
@@ -555,12 +556,12 @@ Section Interp.
       end.
 
   Definition interp_ImpState {eff} `{coreE -< eff}: itree (ImpState +' eff) ~> stateT lenv (itree eff) :=
-    State.interp_state (case_ handle_ImpState pure_state).
+    State.interp_state (case_ handle_ImpState Mod2STS.pure_state).
 
   (* Definition interp_imp ge le (itr : itree effs val) := *)
   (*   interp_ImpState (interp_GlobEnv ge itr) le. *)
 
-  Definition interp_imp ge : itree effs ~> stateT lenv (itree modE) :=
+  Definition interp_imp ge : itree effs ~> stateT lenv (itree pmodE) :=
     fun _ itr le => interp_ImpState (interp_GlobEnv ge itr) le.
 
   Fixpoint init_lenv xs : lenv :=
@@ -591,7 +592,7 @@ Section Interp.
 
   (* 'return' is a fixed register, holding the return value of this function. *)
   (* '_' is a black hole register, holding garbage *)
-  Definition eval_imp (ge: SkEnv.t) (f: function) (args: list val) : itree modE val :=
+  Definition eval_imp (ge: SkEnv.t) (f: function) (args: list val) : itree pmodE val :=
     let vars := f.(fn_vars) ++ ["return"; "_"] in
     let params := f.(fn_params) in
     (if (ListDec.NoDup_dec string_dec (params ++ vars)) then Ret tt else triggerUB);;;
@@ -615,27 +616,42 @@ Section MODSEM.
   Set Typeclasses Depth 5.
   (* Instance Initial_void1 : @Initial (Type -> Type) IFun void1 := @elim_void1. (*** TODO: move to ITreelib ***) *)
 
-  Definition modsem (m : program) (ge: SkEnv.t) : ModSem.t := {|
-    ModSem.fnsems := List.map (fun '(fn, f) => (fn, cfunU (eval_imp ge f))) m.(prog_funs);
-    ModSem.initial_st := tt↑;
+  Definition to_itree (ge: SkEnv.t) : (string*_) -> (string * (list string * (Any.t -> itree pmodE Any.t)))%type :=
+    (fun '(fn, f) => (fn, ([], cfunU (eval_imp ge f)))).
+  
+  Program Definition modsem (m : program) (ge: SkEnv.t) : PModSem.t :=
+    {|PModSem.scopes := [];
+      PModSem.fnsems := List.map (to_itree ge) m.(prog_funs);
+      PModSem.initial_st := [];
   |}.
+  Solve All Obligations with prove_scope.
+  Next Obligation.
+    ii. unfold HMod.fnsems_scopes, to_itree in *.
+    rewrite alist_find_map in *.
+    destruct (alist_find fn (prog_funs m)); ss.
+  Qed.
 
-  Definition get_mod (m : program) : Mod.t := {|
-    Mod.modsem := fun ge => (modsem m (SkEnv.load_skenv ge));
-    Mod.sk := List.map (update_snd Any.upcast) m.(defs);
+  (* Definition get_mod (m : program) : Mod.t := {| *)
+  (*   Mod.modsem := fun ge => (modsem m (SkEnv.load_skenv ge)); *)
+  (*   Mod.sk := List.map (update_snd Any.upcast) m.(defs); *)
+  (* |}. *)
+
+  Definition get_mod (m : program) : PMod.t := {|
+    PMod.modsem := fun ge => (modsem m (SkEnv.load_skenv ge));
+    PMod.sk := List.map (update_snd Any.upcast) m.(defs);
   |}.
-
-  Definition init : ModSem.t :=
-    ModSem.init (
-      rv <- ccallU "main" ([]: list val);;
-      match rv with
-      | Vint z =>
-          if (0 <=? z)%Z && (z <? two_power_nat 32)%Z
-          then Ret z↑
-          else triggerUB
-      | _ => triggerUB
-      end
-    ).
+  
+  (* Definition init : PModSem.t := *)
+  (*   PModSem.init ( *)
+  (*     rv <- ccallU "main" ([]: list val);; *)
+  (*     match rv with *)
+  (*     | Vint z => *)
+  (*         if (0 <=? z)%Z && (z <? two_power_nat 32)%Z *)
+  (*         then Ret z↑ *)
+  (*         else triggerUB *)
+  (*     | _ => triggerUB *)
+  (*     end *)
+  (*   ). *)
 
   (* Definition modsemL (mL : programL) (ge: SkEnv.t) : ModSemL.t := {|
     ModSemL.fnsems :=

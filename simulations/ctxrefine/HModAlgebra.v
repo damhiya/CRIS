@@ -3,7 +3,6 @@ Require Import Behavior.
 Require Import Mod Skeleton Events.
 (* Require Import CtxRefine. *)
 Require Import PCM IPM HMod HPSim ISim MainAdequacy.
-Require Import ModSimAlgebra ModSimFacts.
 
 Set Implicit Arguments.
 

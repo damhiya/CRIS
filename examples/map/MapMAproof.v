@@ -140,21 +140,23 @@ Section SIMMODSEM.
     
   End LEMMA.
 
-  Definition Ist: Sk.t -> alist key Any.t -> alist key Any.t -> iProp :=
-    (fun _ st_src st_tgt =>
+  Definition Ist: Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp :=
+    (fun _ _ st_src st_tgt =>
        ∃ f sz, ⌜st_src = [(MapA.v_map, f↑)] ∧ st_tgt = [(MapM.v_size, sz↑);(MapM.v_map, f↑)]⌝ ∗
        ((⌜f = (fun (_: Z) => 0%Z) ∧ sz = 0%Z⌝ ∗ MapMS.pending ∗ initial_map)
        ∨ 
        (pending ∗ black_map f ∗ unallocated sz)))%I.
 
+  Variable ginvH: Sk.t -> invspec.
   Variable StbH: Sk.t -> gname -> option fspec.
   Hypothesis MapInStbH: forall sk, stb_incl MapAS.Stb (StbH sk).
 
+  Variable ginvL: Sk.t -> invspec.
   Variable StbL: Sk.t -> gname -> option fspec.
   Hypothesis MapInStbL: forall sk, stb_incl MapMS.Stb (StbL sk).
 
-  Local Notation MapAMod := (MapA.t StbH).
-  Local Notation MapMMod := (MapM.t StbL).
+  Local Notation MapAMod := (MapA.t ginvH StbH).
+  Local Notation MapMMod := (MapM.t ginvL StbL).
   
   Lemma simF_init:
     HModR.sim_fun MapAMod MapMMod Ist MapName.init.

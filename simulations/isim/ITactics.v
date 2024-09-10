@@ -254,12 +254,12 @@ Ltac _unwrapS itr :=
 
 Ltac unwrapS :=
   try match goal with
-    | [|-context[interp_smod _ _ ?itr]] => first [desugar itr|fail 2]
+    | [|-context[interp_smod _ _ _ ?itr]] => first [desugar itr|fail 2]
   end;
   match goal with
-  | [|-context[interp_smod _ _ (?itr >>= _)]] =>
+  | [|-context[interp_smod _ _ _ (?itr >>= _)]] =>
       rewrite SModRed.interp_bind; unwrapS
-  | [|-context[interp_smod _ _ ?itr]] => first [_unwrapS itr|fail 2]
+  | [|-context[interp_smod _ _ _ ?itr]] => first [_unwrapS itr|fail 2]
   end.
 
 Ltac _unwrapP itr :=
@@ -582,7 +582,7 @@ Section HModProd.
         incl (List.map (fst ∘ fst) st_tgt) scopes⌝ ∗
        Ist nths st_src st_tgt)%I.
 
-  Definition IstSB (A: HMod.t) Ist :=
+  Definition IstSB A Ist :=
     fun (sk: Sk.t) => IstSB0 (HMod.scopes A sk) (Ist sk).
 
   Definition IstProd0 (IstL IstR : nat -> alist key Any.t -> alist key Any.t -> iProp) :=
@@ -771,6 +771,7 @@ Ltac prove_sub_perm :=
 Ltac init_sim :=
   first [eapply mod_sim_reflR | econs; [econs|]];
   [i; s; repeat unfold_hmod; s
+  |eauto
   |try prove_sub_perm
   |repeat unfold_hmod; ss; try nia
   (* |repeat unfold_hmod; ss; des_ifs; eauto *)

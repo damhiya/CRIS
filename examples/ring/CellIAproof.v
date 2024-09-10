@@ -30,7 +30,8 @@ Section SIMMODSEM.
   Context `{_M: CellRA.t (Σ:=Σ)}.
 
   Variable idx: nat.
-  
+
+  Variable GI: Sk.t -> invspec.
   Variable StbG: Sk.t -> gname -> option fspec.
   (* Hypothesis CellInStb: forall sk, stb_incl (CellAS.Stb idx) (StbG sk). *)
 
@@ -84,15 +85,15 @@ Section SIMMODSEM.
     iMod "H". iDestruct "H" as "[H0 H1]". iFrame. auto.
   Qed.
 
-  Definition Ist: Sk.t -> alist key Any.t -> alist key Any.t -> iProp :=
-    (fun _ st_src st_tgt =>
+  Definition Ist: Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp :=
+    (fun _ _ st_src st_tgt =>
        ∃vany v, ⌜st_tgt = [(CellI.v_cv idx, vany)]⌝ ∗
        ((cell idx v ∗ auth idx v)
         ∨
         (⌜vany = v↑⌝ ∗ pending idx ∗ auth idx v)))%I.
 
   Local Notation CellIMod := (CellI.t idx).
-  Local Notation CellAMod := (CellA.t idx StbG).
+  Local Notation CellAMod := (CellA.t idx GI StbG).
 
   Lemma simF_get:
     HModR.sim_fun CellAMod CellIMod Ist (CellName.get idx).

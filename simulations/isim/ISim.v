@@ -56,12 +56,12 @@ Section LEMMAS.
 
   (* Try to match bind pattern *)
   Lemma APC_start_clo Σ
-    fls flt I r g ps pt {R} RR st_src k_src sti_tgt  
-    at_most o stb 
+    fls flt I my_tid r g nths ps pt {R} RR st_src k_src sti_tgt  
+    ginv stb at_most o
   :
-    @isim Σ fls flt I r g R RR true pt (st_src, _APC stb at_most o >>= (fun x => tau;; Ret x) >>= k_src) sti_tgt
+    @isim Σ fls flt I my_tid r g R RR true pt nths (st_src, _APC stb at_most o >>= (fun x => tau;; Ret x) >>= k_src) sti_tgt
   -∗  
-    @isim _ fls flt I r g R RR ps pt (st_src, interp_smod stb o (trigger APC) >>= k_src) sti_tgt.
+    @isim _ fls flt I my_tid r g R RR ps pt nths (st_src, interp_smod ginv stb o (trigger APC) >>= k_src) sti_tgt.
   Proof.
     unfold interp_smod. rewrite! interp_trigger. grind.
     destruct sti_tgt. unfold HoareAPC.
@@ -70,12 +70,12 @@ Section LEMMAS.
   Qed.
 
   Lemma APC_stop_clo Σ
-    fls flt I r g ps pt {R} RR st_src k_src sti_tgt  
-    at_most o stb
+    fls flt I my_tid r g ps pt {R} RR nths st_src k_src sti_tgt  
+    stb at_most o
   :
-    @isim Σ fls flt I r g R RR true pt (st_src, k_src tt) sti_tgt
+    @isim Σ fls flt I my_tid r g R RR true pt nths (st_src, k_src tt) sti_tgt
   -∗  
-    @isim _ fls flt I r g R RR ps pt (st_src, _APC stb at_most o >>= (fun x => (tau;; Ret x) >>= k_src)) sti_tgt.
+    @isim _ fls flt I my_tid r g R RR ps pt nths (st_src, _APC stb at_most o >>= (fun x => (tau;; Ret x) >>= k_src)) sti_tgt.
   Proof.
     destruct sti_tgt.
     iIntros "K".
@@ -84,14 +84,14 @@ Section LEMMAS.
   Qed.
   
   Lemma APC_step_clo Σ
-    fls flt I r g ps pt {R} RR st_src k_src sti_tgt  
+    fls flt I my_tid r g ps pt {R} RR nths st_src k_src sti_tgt  
     at_most o stb next fn vargs fsp
     (SPEC: stb fn = Some fsp)
     (NEXT: (next < at_most)%ord)
   :
-    @isim Σ fls flt I r g R RR true pt (st_src, HoareCall true o fsp fn vargs >>= (fun _ => _APC stb next o) >>= (fun x => tau;; Ret x) >>= k_src) sti_tgt
+    @isim Σ fls flt I my_tid r g R RR true pt nths (st_src, HoareCall true o fsp fn vargs >>= (fun _ => _APC stb next o) >>= (fun x => tau;; Ret x) >>= k_src) sti_tgt
   -∗  
-    @isim _ fls flt I r g R RR ps pt (st_src, _APC stb at_most o >>= (fun x => (tau;; Ret x) >>= k_src)) sti_tgt.
+    @isim _ fls flt I my_tid r g R RR ps pt nths (st_src, _APC stb at_most o >>= (fun x => (tau;; Ret x) >>= k_src)) sti_tgt.
   Proof.
     destruct sti_tgt.
     iIntros "K". prep.
@@ -104,19 +104,19 @@ Section LEMMAS.
   Qed.
 
   Lemma hcall_clo Σ
-    fls flt I r g ps pt {R} RR st_src st_tgt k_src k_tgt
+    fls flt I my_tid r g ps pt {R} RR nths st_src st_tgt k_src k_tgt
     fn varg_src varg_tgt o X (x: shelve__ X) (D: X -> ord) P Q
     (* PURE, ... *)
     (ORD: ord_lt (D x) o)
     (PURE: is_pure (D x))
   :
     (P x varg_src varg_tgt 
-      ∗ I st_src st_tgt 
-      ∗ (∀st_src0 st_tgt0 vret_src vret_tgt, 
-             (Q x vret_src vret_tgt ∗ I st_src0 st_tgt0) 
-          -∗ @isim Σ fls flt I r g R RR true true (st_src0, k_src vret_src) (st_tgt0, k_tgt vret_tgt)))
+      ∗ I nths st_src st_tgt 
+      ∗ (∀ nths0 st_src0 st_tgt0 vret_src vret_tgt, 
+             (Q x vret_src vret_tgt ∗ I nths0 st_src0 st_tgt0) 
+          -∗ @isim Σ fls flt I my_tid r g R RR true true nths0 (st_src0, k_src vret_src) (st_tgt0, k_tgt vret_tgt)))
   -∗  
-    @isim _ fls flt I r g R RR ps pt (st_src, HoareCall true o (mk_fspec D P Q) fn varg_src >>= k_src) (st_tgt, trigger (Call fn varg_tgt) >>= k_tgt).
+    @isim _ fls flt I my_tid r g R RR ps pt nths (st_src, HoareCall true o (mk_fspec D P Q) fn varg_src >>= k_src) (st_tgt, trigger (Call fn varg_tgt) >>= k_tgt).
   Proof.
     iIntros "(P & IST & K)".
     unfold HoareCall. prep.

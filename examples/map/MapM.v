@@ -96,9 +96,10 @@ Section M.
 
   Definition InitCond : Sk.t -> iProp :=
     fun _ => emp%I.
-  
+
+  Variable ginv: Sk.t -> invspec.
   Variable GlobalStb: Sk.t -> gname -> option fspec.
-  Definition t := Seal.sealing "ccr" (SMod.to_hmod GlobalStb Mod).
+  Definition t := Seal.sealing "ccr" (SMod.to_hmod ginv GlobalStb Mod).
 
 End M.
 End MapM.
