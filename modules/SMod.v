@@ -15,6 +15,7 @@ Module SModSem.
 Section SMODSEM.
 
   Context `{Σ: GRA.t}.
+  Variable ginv: invspec.
   Variable stb: gname -> option fspec.
 
   Record t: Type := mk {
@@ -29,7 +30,7 @@ Section SMODSEM.
 
   Program Definition to_hmod (ms: t): HModSem.t := {|
     HModSem.scopes := ms.(scopes);
-    HModSem.fnsems := List.map (map_snd (λ ksb, (ksb.1, interp_sb_hp stb ksb.2))) ms.(fnsems);
+    HModSem.fnsems := List.map (map_snd (λ ksb, (ksb.1, interp_sb_hp ginv stb ksb.2))) ms.(fnsems);
     HModSem.initial_st := ms.(initial_st);
   |}.
   Next Obligation.
@@ -48,6 +49,7 @@ Module SMod.
 Section SMOD.
 
   Context `{Σ: GRA.t}.
+  Variable ginv: Sk.t -> invspec.
   Variable stb: Sk.t -> gname -> option fspec.
 
   Record t: Type := mk {
@@ -56,7 +58,7 @@ Section SMOD.
   }.
 
   Definition to_hmod (md:t): HMod.t := {|
-    HMod.modsem := fun sk => SModSem.to_hmod (stb sk) (md.(modsem) sk);
+    HMod.modsem := fun sk => SModSem.to_hmod (ginv sk) (stb sk) (md.(modsem) sk);
     HMod.sk := md.(sk);
  |}.
     

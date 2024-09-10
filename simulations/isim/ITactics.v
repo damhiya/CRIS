@@ -150,6 +150,8 @@ Ltac desugar itr :=
   match itr with
   | HoareBody _ _ _ => rewrite/__ {1}/itr
   | HoareCall _ _ _ _ _ => rewrite/__ {1}/itr
+  | HoareSpawn _ _ _ => rewrite/__ {1}/itr
+  | HoareYield _ _ => rewrite/__ {1}/itr
   | cput _ _ => rewrite/__{1}/itr
   | cgetU _ => rewrite/__{1}/itr
   | cgetN _ => rewrite/__{1}/itr
@@ -187,6 +189,12 @@ Ltac _unwrapSB itr :=
       rewrite HModSB.transl_asm
   | guarantee _ =>
       rewrite HModSB.transl_guar
+  | trigger (Spawn _ _) =>
+      rewrite HModSB.transl_spawn
+  | trigger (Yield _) =>
+      rewrite HModSB.transl_yield
+  | trigger Tid =>
+      rewrite HModSB.transl_tid
   | HoareAPC _ _ =>
       idtac
   | _ => fail
@@ -216,6 +224,12 @@ Ltac _unwrapS itr :=
       rewrite SModRed.interp_core  
   | trigger (Call _ _) =>
       rewrite/__ SModRed.interp_call {1}/handle_callE_hmodE
+  | trigger (Spawn _ _) =>
+      rewrite/__ SModRed.interp_sch {1}/handle_schE_hmodE
+  | trigger (Yield _) =>
+      rewrite/__ SModRed.interp_sch {1}/handle_schE_hmodE
+  | trigger Tid =>
+      rewrite/__ SModRed.interp_sch {1}/handle_schE_hmodE
   | trigger (SPut _ _) =>
       rewrite SModRed.interp_pg
   | trigger (SGet _) =>
@@ -262,6 +276,12 @@ Ltac _unwrapP itr :=
       rewrite PModRed.transl_core  
   | trigger (Call _ _) =>
       rewrite PModRed.transl_call
+  | trigger (Spawn _ _) =>
+      rewrite PModRed.transl_sch
+  | trigger (Yield _) =>
+      rewrite PModRed.transl_sch
+  | trigger Tid =>
+      rewrite PModRed.transl_sch
   | trigger (SPut _ _) =>
       rewrite PModRed.transl_pg
   | trigger (SGet _) =>
@@ -297,26 +317,28 @@ Ltac _step_l :=
   match goal with
   (******* isim ******)
   (** src **)
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, tau;; _) _) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, tau;; _) _) ] =>
       iApply isim_tau_src
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, Ret _ >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, Ret _ >>= _) _) ] =>
       rewrite bind_ret_l
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, (HModSem.sandbox _ (trigger (SPut _ _))) >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, (HModSem.sandbox _ (trigger (SPut _ _))) >>= _) _) ] =>
       iApply isim_sput_src_sandbox; [s;eauto|]
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, (HModSem.sandbox _ (trigger (SGet _))) >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, (HModSem.sandbox _ (trigger (SGet _))) >>= _) _) ] =>
       iApply isim_sget_src_sandbox; [s;eauto|]
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _) _) ] =>
       let name := fresh "q" in
       iApply isim_take_src; iIntros (name)
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _  (_, trigger (Assume ?P) >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _  (_, trigger (Assume ?P) >>= _) _) ] =>
       unfold_precond_postcond P; iApply isim_Assume_src; iIntrosFresh "ASM"
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, unwrapU ?ox >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, unwrapU ?ox >>= _) _) ] =>
       let name := fresh "q" in
       iApply isim_unwrapU_src; iIntros (name) "%";
       match goal with [ H: ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite G in * end
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, assume _ >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _) _) ] =>
       let name := fresh "asm" in iApply isim_asm_src; iIntros (name)
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, HModSem.sandbox _ (HoareAPC _ _) >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger Tid >>= _) _) ] =>
+      iApply isim_tid_src
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, HModSem.sandbox _ (HoareAPC _ _) >>= _) _) ] =>
       idtac
   end.
 
@@ -324,26 +346,28 @@ Ltac _step_r :=
   match goal with
   (******* isim ******)
   (** tgt **)
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, Ret _ >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, Ret _ >>= _)) ] =>
       rewrite bind_ret_l
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, tau;; _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, tau;; _)) ] =>
       iApply isim_tau_tgt
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, (HModSem.sandbox _ (trigger (SPut _ _))) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, (HModSem.sandbox _ (trigger (SPut _ _))) >>= _)) ] =>
       iApply isim_sput_tgt_sandbox; [s; eauto|]
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, (HModSem.sandbox _ (trigger (SGet _))) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, (HModSem.sandbox _ (trigger (SGet _))) >>= _)) ] =>
       iApply isim_sget_tgt_sandbox; [s; eauto|]
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, trigger (Choose _) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose _) >>= _)) ] =>
       let name := fresh "q" in
       iApply isim_choose_tgt; iIntros (name)
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _)) ] =>
       unfold_precond_postcond P; iApply isim_Guarantee_tgt; iIntrosFresh "GRT"
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, unwrapN ?ox >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, unwrapN ?ox >>= _)) ] =>
       let name := fresh "q" in
       iApply isim_unwrapN_tgt; iIntros (name) "%";
       match goal with [ H: ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite G in * end
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, guarantee _ >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, guarantee _ >>= _)) ] =>
       let name := fresh "grt" in iApply isim_guar_tgt; iIntros (name)
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, HModSem.sandbox _ (HoareAPC _ _) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, trigger Tid >>=  _)) ] =>
+      iApply isim_tid_tgt
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, HModSem.sandbox _ (HoareAPC _ _) >>= _)) ] =>
       idtac
   end.
 
@@ -351,34 +375,36 @@ Ltac _step :=
   match goal with
   (******* isim ******)
   (** both **)
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, Ret _) (_, Ret _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, Ret _) (_, Ret _)) ] =>
       iApply isim_ret
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, trigger (IO _ _) >>= _) (_, trigger (IO _ _) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger (IO _ _) >>= _) (_, trigger (IO _ _) >>= _)) ] =>
       iApply isim_io; iIntros "%"
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger (Spawn _ _) >>= _) (_, trigger (Spawn _ _) >>= _)) ] =>
+      iApply isim_spawn
   end.
 
 Ltac _force_l :=
   match goal with
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, trigger (Choose ?T) >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose ?T) >>= _) _) ] =>
       iApply isim_choose_src
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _) _) ] =>
       unfold_precond_postcond P; iApply isim_Guarantee_src
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, unwrapN _ >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, unwrapN _ >>= _) _) ] =>
       iApply isim_unwrapN_src; iExists _
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, guarantee _ >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, guarantee _ >>= _) _) ] =>
       iApply isim_guar_src
   end
 .
 
 Ltac _force_r :=
   match goal with
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _)) ] =>
       iApply isim_take_tgt
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, trigger (Assume ?P) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Assume ?P) >>= _)) ] =>
       unfold_precond_postcond P; iApply isim_Assume_tgt
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, unwrapU _ >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, unwrapU _ >>= _)) ] =>
       iApply isim_unwrapU_tgt; iExists _
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, assume _ >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _)) ] =>
       iApply isim_asm_tgt
   end
 .
@@ -475,14 +501,20 @@ Ltac call hyps :=
   hide_itree_r; prep; show_itree;
   hide_itree_l; prep; show_itree;
   iApply isim_call;
+  iSplitL hyps; [ |iIntros "% % % % % %"; iIntrosFresh "IST"].
+
+Ltac yield hyps :=
+  hide_itree_r; prep; show_itree;
+  hide_itree_l; prep; show_itree;
+  iApply isim_yield;
   iSplitL hyps; [ |iIntros "% % % % %"; iIntrosFresh "IST"].
 
 Lemma isim_apc_tgt_remove `{Σ: GRA.t}
-  fl fr Ist r g {R} RR ps pt st_src st_tgt i_src k_tgt scopes stb
+  fl fr Ist r g {R} RR my_tid ps pt nths st_src st_tgt i_src k_tgt scopes stb
   :
   bi_entails
-    (@isim Σ fl fr Ist r g R RR ps true (st_src, i_src) (st_tgt, k_tgt tt))
-    (isim fl fr Ist r g RR ps pt (st_src, i_src) (st_tgt,
+    (@isim Σ fl fr Ist my_tid r g R RR ps true nths (st_src, i_src) (st_tgt, k_tgt tt))
+    (isim fl fr Ist my_tid r g RR ps pt nths (st_src, i_src) (st_tgt,
          HModSem.sandbox scopes (HoareAPC stb (ord_pure Ord.O)) >>= k_tgt)).
 Proof.
   iIntros "ISIM". unfold HoareAPC.
@@ -505,7 +537,7 @@ Ltac apc_r :=
   hide_itree_l;
   prep;
   match goal with
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, (HModSem.sandbox _ (HoareAPC _ _)) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, (HModSem.sandbox _ (HoareAPC _ _)) >>= _)) ] =>
       iApply isim_apc_tgt_remove
   end;
   show_itree.
@@ -544,33 +576,33 @@ Section HModProd.
 
   Context `{Σ: GRA.t}.
 
-  Definition IstSB0 scopes (Ist: alist key Any.t -> alist key Any.t -> iProp) :=
-    fun (st_src st_tgt: alist key Any.t) =>
+  Definition IstSB0 scopes (Ist: nat -> alist key Any.t -> alist key Any.t -> iProp) :=
+    fun nths (st_src st_tgt: alist key Any.t) =>
       (⌜incl (List.map (fst ∘ fst) st_src) scopes /\
         incl (List.map (fst ∘ fst) st_tgt) scopes⌝ ∗
-       Ist st_src st_tgt)%I.
+       Ist nths st_src st_tgt)%I.
 
   Definition IstSB (A: HMod.t) Ist :=
     fun (sk: Sk.t) => IstSB0 (HMod.scopes A sk) (Ist sk).
 
-  Definition IstProd0 (IstL IstR : alist key Any.t -> alist key Any.t -> iProp) :=
-    fun (st_src st_tgt: alist key Any.t) =>
+  Definition IstProd0 (IstL IstR : nat -> alist key Any.t -> alist key Any.t -> iProp) :=
+    fun nths (st_src st_tgt: alist key Any.t) =>
       (∃ st_srcL st_tgtL st_srcR st_tgtR,
        ⌜st_src = st_srcL ++ st_srcR /\ st_tgt = st_tgtL ++ st_tgtR⌝ ∗
-       IstL st_srcL st_tgtL ∗ IstR st_srcR st_tgtR)%I.
+       IstL nths st_srcL st_tgtL ∗ IstR nths st_srcR st_tgtR)%I.
 
   Definition IstProd IstL IstR :=
     fun (sk: Sk.t) => IstProd0 (IstL sk) (IstR sk).
 
-  Definition IstEq : Sk.t -> alist key Any.t -> alist key Any.t -> iProp :=
-    fun _ st_src st_tgt => ⌜st_src = st_tgt⌝%I.
+  Definition IstEq : Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp :=
+    fun _ _ st_src st_tgt => ⌜st_src = st_tgt⌝%I.
   
   Lemma isim_reflR Ist fl_src fl_tgt scopesL scopesR scopesF itr
     (DISJ: List.NoDup (scopesL ++ scopesR))
     (INCL: incl scopesF scopesR)
     :
     isim_fsem fl_src fl_tgt (IstProd0 (IstSB0 scopesL Ist) (IstEq []))
-      (fun '(st_src, v_src) '(st_tgt, v_tgt) => ⌜v_src = v_tgt⌝ ∗ (IstProd0 (IstSB0 scopesL Ist) (IstEq []) st_src st_tgt))%I
+      (fun nths '(st_src, v_src) '(st_tgt, v_tgt) => ⌜v_src = v_tgt⌝ ∗ (IstProd0 (IstSB0 scopesL Ist) (IstEq []) nths st_src st_tgt))%I
       (HModSem.sandbox_body (scopesF,itr)) (HModSem.sandbox_body (scopesF,itr)).
   Proof.
     ii. subst. unfold HModSem.sandbox_body. s.
@@ -579,13 +611,18 @@ Section HModProd.
     revert NODS. apply combine_quant.
     revert st_tgt. apply combine_quant.
     revert st_src. apply combine_quant.
-    eapply isim_coind. i. destruct a as [st_src [st_tgt [NODS [NODD it]]]]. s.
+    revert nths. apply combine_quant.
+    eapply isim_coind. i. destruct a as [nths [st_src [st_tgt [NODS [NODD it]]]]]. s.
     iIntros "(#(_ & CIH) & IST)".
     assert (CASE := case_itrH _ it); des; subst.
     - step. iFrame. eauto.
     - steps_l. steps_r. by_coind "CIH". eauto.
     - steps_l. force_r. iFrame. by_coind "CIH". eauto.
     - steps_r. force_l. iFrame. by_coind "CIH". eauto.
+    - depdes s.
+      + step. by_coind "CIH". iApply IMON; [|eauto]; nia.
+      + yield "IST"; eauto. by_coind "CIH". eauto.
+      + steps_l. steps_r. by_coind "CIH". eauto.
     - destruct c. call "IST"; eauto. by_coind "CIH". eauto.
     - depdes s.
       + rewrite/__ !HModSB.transl_bind !HModSB.transl_put. des_ifs; cycle 1.
@@ -609,7 +646,7 @@ Section HModProd.
         iApply isim_sget_src. iApply isim_sget_tgt.
         apply existsb_exists in Heq. des. apply String.eqb_eq in Heq0. subst.
         iAssert (⌜alist_find k st_src = alist_find k st_tgt⌝ ∗
-                 IstProd0 (IstSB0 scopesL Ist) (IstEq []) st_src st_tgt)%I
+                 IstProd0 (IstSB0 scopesL Ist) (IstEq []) nths st_src st_tgt)%I
           with "[IST]" as "(% & IST)".
         { iDestruct "IST" as (? ? ? ?) "(% & (% & IST) & %)".
           des; subst. iSplitR; cycle 1.
@@ -636,9 +673,11 @@ Section HModProd.
 
   Lemma mod_sim_reflR A B C init_cond Ist
     (INIT: ∀ sk, init_cond sk -∗
-                    IstProd (IstSB A Ist) IstEq sk
+                    IstProd (IstSB A Ist) IstEq sk 1
                     (HModSem.initial_st (HMod.modsem (HMod.add A C) sk))
                     (HModSem.initial_st (HMod.modsem (HMod.add B C) sk)))
+    (MON: ∀ sk nths nths' (LE: nths <= nths') st_src st_tgt,
+        Ist sk nths st_src st_tgt -∗ Ist sk nths' st_src st_tgt)
     (SCOPE: ∀ sk, sub_perm (HMod.scopes B sk) (HMod.scopes A sk))
     (LEN: ∀ sk, List.length (HModSem.fnsems (HMod.modsem A sk)) =
                 List.length (HModSem.fnsems (HMod.modsem B sk)))
@@ -658,6 +697,10 @@ Section HModProd.
     { rr. eapply Permutation_app_tail. rewrite SK. refl. }
     econs.
     - apply INIT.
+    - i. iIntros "H". iDestruct "H" as (? ? ? ?) "(% & H & H')"; des; subst.
+      do 4 (iExists _). iSplit; eauto. iFrame.
+      iDestruct "H" as "(% & H)". des; subst. iSplit; eauto.
+      iApply MON; [|eauto]; nia.
     - s. apply sub_perm_cancel_tail. eapply SCOPE.
     - s. rewrite !app_length. rewrite LEN. eauto.
     (* - s. i. rewrite map_app in *. apply in_or_app. apply in_app_or in IN. *)
@@ -760,28 +803,28 @@ Local Notation level := nat.
 (*** isim ***)
 Notation "E1 '------------------------------------------------------------------□' E2 '------------------------------------------------------------------∗' st_src st_tgt '-------------------------------isim-------------------------------'  itr_src itr_tgt"
 :=
-  (environments.envs_entails (Envs E1 E2 _) (isim _ _ _ _ _ _ _ _ (st_src, itr_src) (st_tgt, itr_tgt)))
+  (environments.envs_entails (Envs E1 E2 _) (isim _ _ _ _ _ _ _ _ _ _ (st_src, itr_src) (st_tgt, itr_tgt)))
   (* (_ _ (isim Ist _ _ _ _ _ _ _ (st_src, itr_src) (st_tgt, itr_tgt))) *)
     (at level 50,
      format "E1 '------------------------------------------------------------------□' '//' E2 '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '-------------------------------isim-------------------------------' '//' itr_src '//' '//' '//' itr_tgt '//' ").
 
 Notation "E1 '------------------------------------------------------------------□' st_src st_tgt '-------------------------------isim-------------------------------'  itr_src itr_tgt"
 :=
-  (environments.envs_entails (Envs E1 Enil _) (isim _ _ _ _ _ _ _ _ (st_src, itr_src) (st_tgt, itr_tgt)))
+  (environments.envs_entails (Envs E1 Enil _) (isim _ _ _ _ _ _ _ _ _ _ (st_src, itr_src) (st_tgt, itr_tgt)))
   (* (_ _ (isim Ist _ _ _ _ _ _ _ (st_src, itr_src) (st_tgt, itr_tgt))) *)
     (at level 50,
      format "E1 '------------------------------------------------------------------□' '//' st_src '//' st_tgt '//' '-------------------------------isim-------------------------------' '//' itr_src '//' '//' '//' itr_tgt '//' ").
 
 Notation "E2 '------------------------------------------------------------------∗' st_src st_tgt '-------------------------------isim-------------------------------'  itr_src itr_tgt"
 :=
-  (environments.envs_entails (Envs Enil E2 _) (isim _ _ _ _ _ _ _ _ (st_src, itr_src) (st_tgt, itr_tgt)))
+  (environments.envs_entails (Envs Enil E2 _) (isim _ _ _ _ _ _ _ _ _ _ (st_src, itr_src) (st_tgt, itr_tgt)))
   (* (_ _ (isim Ist _ _ _ _ _ _ _ (st_src, itr_src) (st_tgt, itr_tgt))) *)
     (at level 50,
      format "E2 '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '-------------------------------isim-------------------------------' '//' itr_src '//' '//' '//' itr_tgt '//' ").
 
 Notation "'------------------------------------------------------------------∗' st_src st_tgt '-------------------------------isim-------------------------------'  itr_src itr_tgt"
 :=
-  (environments.envs_entails (Envs Enil Enil _) (isim _ _ _ _ _ _ _ _ (st_src, itr_src) (st_tgt, itr_tgt)))
+  (environments.envs_entails (Envs Enil Enil _) (isim _ _ _ _ _ _ _ _ _ _ (st_src, itr_src) (st_tgt, itr_tgt)))
   (* (_ _ (isim Ist _ _ _ _ _ _ _ (st_src, itr_src) (st_tgt, itr_tgt))) *)
     (at level 50,
      format "'------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '-------------------------------isim-------------------------------' '//' itr_src '//' '//' '//' itr_tgt '//' ").
@@ -789,14 +832,12 @@ Notation "'------------------------------------------------------------------∗
 (* additional *) 
 Notation "E1 '------------------------------------------------------------------□' E2 '------------------------------------------------------------------∗' st_src st_tgt '-------------------------------isim-------------------------------'  P '∗' 'ISIM'"
 :=
-  (environments.envs_entails (Envs E1 E2 _) (bi_sep P (isim _ _ _ _ _ _ _ _ (st_src, _) (st_tgt, _))))
+  (environments.envs_entails (Envs E1 E2 _) (bi_sep P (isim _ _ _ _ _ _ _ _ _ _ (st_src, _) (st_tgt, _))))
     (at level 50,
      format "E1 '------------------------------------------------------------------□' '//' E2 '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '-------------------------------isim-------------------------------' '//' P  '∗'  'ISIM' ").
 
 Notation "E1 '------------------------------------------------------------------□' E2 '------------------------------------------------------------------∗' st_src st_tgt '-------------------------------isim-------------------------------'  P '-∗' 'ISIM'"
 :=
-  (environments.envs_entails (Envs E1 E2 _) (bi_wand P (isim _ _ _ _ _ _ _ _ (st_src, _) (st_tgt, _))))
+  (environments.envs_entails (Envs E1 E2 _) (bi_wand P (isim _ _ _ _ _ _ _ _ _ _ (st_src, _) (st_tgt, _))))
     (at level 50,
      format "E1 '------------------------------------------------------------------□' '//' E2 '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '-------------------------------isim-------------------------------' '//' P  '-∗'  'ISIM' ").
-
-

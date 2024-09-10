@@ -31,29 +31,26 @@ Section EXEC.
   Definition handle_schE_callE (prog: callE ~> itree modE):
     ths_state -> itree (stateE +' coreE) (ths_state + Any.t) :=
     fun '(tid, ths) =>
-      match base.lookup tid ths with
-      | None => Ret (inl (0, ths))
-      | Some itr =>
-          match observe (itr: itree modE Any.t) with
-          | RetF rv =>
-              if Nat.eq_dec tid 0 then Ret (inr rv) else Ret (inl (0, ths))
-          | TauF itr' =>
-              tau;; Ret (inl (tid, base.insert tid itr' ths))
-          | VisF (inr1 (inr1 e)) k =>
-              v <- trigger e;;
-              Ret (inl (tid, base.insert tid (k v) ths))
-          | VisF (inr1 (inl1 e)) k =>
-              Ret (inl (tid, base.insert tid (prog _ e >>= k) ths))
-          | VisF (inl1 e) k =>
-              match e in schE T return (T -> _) -> _ with
-              | Spawn fn arg => fun k =>
-                  Ret (inl (tid, (base.insert tid (k (List.length ths)) ths) ++ [prog _ (Call fn arg)]))
-              | Yield tid' => fun k =>
-                  Ret (inl (tid', base.insert tid (k tt) ths))
-              | Tid => fun k =>
-                  Ret (inl (tid, base.insert tid (k tid) ths))
-              end k
-          end
+      itr <- (base.lookup tid ths)? ;;
+      match observe (itr: itree modE Any.t) with
+      | RetF rv =>
+          if Nat.eq_dec tid 0 then Ret (inr rv) else triggerUB
+      | TauF itr' =>
+          tau;; Ret (inl (tid, base.insert tid itr' ths))
+      | VisF (inr1 (inr1 e)) k =>
+          v <- trigger e;;
+          Ret (inl (tid, base.insert tid (k v) ths))
+      | VisF (inr1 (inl1 e)) k =>
+          Ret (inl (tid, base.insert tid (x <- prog _ e;; tau;; k x) ths))
+      | VisF (inl1 e) k =>
+          match e in schE T return (T -> _) -> _ with
+          | Spawn fn arg => fun k =>
+                              Ret (inl (tid, (base.insert tid (k (List.length ths)) ths) ++ [prog _ (Call fn arg)]))
+          | Yield tid' => fun k =>
+                            Ret (inl (tid', base.insert tid (k tt) ths))
+          | Tid => fun k =>
+                     Ret (inl (tid, base.insert tid (k tid) ths))
+          end k
       end.
 
   Definition interp_schE_callE (prog: callE ~> itree modE) (itr0: itree modE Any.t)

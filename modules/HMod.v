@@ -2,7 +2,7 @@ Require Import Coqlib AList.
 Require Import sflib.
 Require Import ITreelib.
 Require Import Any.
-Require Import EventsRed Events.
+Require Import Events.
 Require Import IRed.
 Require Import STS Behavior.
 Require Import PCM IPM.
@@ -78,10 +78,10 @@ Section HMODSEM.
   Definition handle_sandbox scopes : hmodE -< hmodE :=
     (fun T e =>
        match e with
-       | inr1 (inr1 (inl1 (SPut (s,f) v))) =>
-           if existsb (eqb s) scopes then e else inr1 (inr1 (inr1 (Choose T)))
-       | inr1 (inr1 (inl1 (SGet (s,f)))) =>
-           if existsb (eqb s) scopes then e else inr1 (inr1 (inr1 (Choose T)))
+       | inr1 (inr1 (inr1 (inl1 (SPut (s,f) v)))) =>
+           if existsb (eqb s) scopes then e else inr1 (inr1 (inr1 (inr1 (Choose T))))
+       | inr1 (inr1 (inr1 (inl1 (SGet (s,f))))) =>
+           if existsb (eqb s) scopes then e else inr1 (inr1 (inr1 (inr1 (Choose T))))
        | _ => e
        end).
 
@@ -121,10 +121,10 @@ Section HMOD.
   Definition addL (ms: list t) : t :=
     foldr add empty ms.
   
-  Definition to_mod (md: t) (r: Σ): Mod.t := {|
-    Mod.modsem := fun sk => HModSem.to_mod (md.(modsem) sk) r;
-    Mod.sk := md.(sk);
-  |}.
+  (* Definition to_mod (md: t) (r: Σ): Mod.t := {| *)
+  (*   Mod.modsem := fun sk => HModSem.to_mod (md.(modsem) sk) r; *)
+  (*   Mod.sk := md.(sk); *)
+  (* |}. *)
 
   Definition scopes (md: t) : Sk.t -> list string :=
     fun sk => (md.(modsem) sk).(HModSem.scopes).
@@ -424,6 +424,42 @@ Section RED.
   .
   Proof.
     unfold guarantee. rewrite/__ transl_bind transl_core transl_ret. eauto.
+  Qed.
+
+  Lemma transl_spawn
+    scopes fn args
+  :
+  HModSem.sandbox scopes (trigger (Spawn fn args)) = trigger (Spawn fn args)
+  .
+  Proof.
+    unfold HModSem.sandbox, trigger.
+    rewrite (bisim_is_eq (translate_vis _ _ _ _)). ss.
+    do 2 f_equal. extensionalities.
+    rewrite (bisim_is_eq (translate_ret _ _)); eauto.
+  Qed.
+
+  Lemma transl_yield
+    scopes tid
+  :
+  HModSem.sandbox scopes (trigger (Yield tid)) = trigger (Yield tid)
+  .
+  Proof.
+    unfold HModSem.sandbox, trigger.
+    rewrite (bisim_is_eq (translate_vis _ _ _ _)). ss.
+    do 2 f_equal. extensionalities.
+    rewrite (bisim_is_eq (translate_ret _ _)); eauto.
+  Qed.
+
+  Lemma transl_tid
+    scopes
+  :
+  HModSem.sandbox scopes (trigger Tid) = trigger Tid
+  .
+  Proof.
+    unfold HModSem.sandbox, trigger.
+    rewrite (bisim_is_eq (translate_vis _ _ _ _)). ss.
+    do 2 f_equal. extensionalities.
+    rewrite (bisim_is_eq (translate_ret _ _)); eauto.
   Qed.
   
 (*  

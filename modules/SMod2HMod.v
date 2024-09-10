@@ -2,7 +2,7 @@ Require Import Coqlib AList.
 Require Import sflib.
 Require Import ITreelib.
 Require Import Any.
-Require Import EventsRed Events HMod.
+Require Import Events HMod.
 Require Import IRed.
 Require Import STS.
 Require Import Behavior.
@@ -43,6 +43,8 @@ End ORD.
 Section FSPEC.
   Context `{Σ: GRA.t}.
 
+  Definition invspec := nat -> iProp.
+  
   Record fspec: Type := mk_fspec {
     meta: Type;
     measure: meta -> ord;
@@ -56,7 +58,6 @@ Section FSPEC.
       measure
       (fun x arg_src arg_tgt => (∃ (aa: AA), ⌜arg_src = aa↑⌝ ∗ precond x aa arg_tgt)%I)
       (fun x ret_src ret_tgt => (∃ (ar: AR), ⌜ret_src = ar↑⌝ ∗ postcond x ar ret_tgt)%I).
-
 
   Definition fspec_trivial: fspec :=
     mk_fspec (meta:=unit) (fun _ => ord_top) (fun _ argh argl => (⌜argh = argl⌝: iProp)%I)
@@ -204,11 +205,35 @@ Section HOARE.
   Section INTERP.
     Section SPC.
       (* spc to mid *)
+      Variable ginv : invspec.
       Variable stb: gname -> option fspec.
 
       Definition handle_apcE_hmodE (ord_cur: ord): apcE ~> itree hmodE :=
         fun _ '(APC) => HoareAPC stb ord_cur.
 
+      Definition HoareSpawn (fsp: fspec) (fn: gname) (arg: Any.t) : itree hmodE nat :=
+        x <- trigger (Choose fsp.(meta));; 
+        varg <- trigger (Choose Any.t);;
+        trigger (Guarantee (fsp.(precond) x arg varg));;;
+        trigger (Spawn fn arg).
+
+      Definition HoareYield (tid: nat) : itree hmodE unit :=
+        trigger (Guarantee (ginv tid));;;
+        trigger (Yield tid);;;
+        my_tid <- trigger Tid;;
+        trigger (Assume (ginv my_tid)).
+      
+      Definition handle_schE_hmodE : schE ~> itree hmodE :=
+        fun _ e =>
+          match e in schE T return itree hmodE T with
+          | Spawn fn arg =>
+              fsp <- (stb fn)ǃ;;
+              HoareSpawn fsp fn arg
+          | Yield tid =>
+              HoareYield tid
+          | Tid => trigger Tid
+          end.
+      
       Definition handle_callE_hmodE ord_cur: callE ~> itree hmodE :=
         fun _ '(Call fn arg) => 
             fsp <- (stb fn)ǃ;;
@@ -217,8 +242,9 @@ Section HOARE.
       Definition interp_smod ord_cur: itree smodE ~> itree hmodE :=
         interp (case_ (bif:=sum1) (handle_apcE_hmodE ord_cur)
                (case_ (bif:=sum1) (trivial_Handler)
+               (case_ (bif:=sum1) (handle_schE_hmodE)
                (case_ (bif:=sum1) (handle_callE_hmodE ord_cur)
-                trivial_Handler))).
+                trivial_Handler)))).
 
       Definition HoareBody (ord_cur: ord) (body: Any.t -> itree smodE Any.t) (varg_src: Any.t) := 
         match ord_cur with
@@ -294,12 +320,12 @@ Section RED.
 
   Lemma interp_bind
         (R S: Type)
-        stb o
+        ginv stb o
         (s : itree smodE R) (k : R -> itree smodE S)
     :
-      interp_smod stb o (s >>= k)
+      interp_smod ginv stb o (s >>= k)
       =
-      st <- interp_smod stb o s;; interp_smod stb o (k st).
+      st <- interp_smod ginv stb o s;; interp_smod ginv stb o (k st).
   Proof.
     unfold interp_smod in *. grind.
   Qed.
@@ -307,11 +333,11 @@ Section RED.
   Lemma interp_tau
         (U: Type)
         (t : itree _ U)
-        stb o
+        ginv stb o
     :
-      interp_smod stb o (tau;; t)
+      interp_smod ginv stb o (tau;; t)
       =
-      tau;; (interp_smod stb o t).
+      tau;; (interp_smod ginv stb o t).
   Proof.
     unfold interp_smod in *. grind.
   Qed.
@@ -319,21 +345,33 @@ Section RED.
   Lemma interp_ret
         (U: Type)
         (t: U)
-        stb o
+        ginv stb o
     :
-      interp_smod stb o (Ret t)
+      interp_smod ginv stb o (Ret t)
       =
       Ret t.
   Proof.
     unfold interp_smod in *. grind.
   Qed.
 
+  Lemma interp_sch
+        (R: Type)
+        (i: schE R)
+        ginv stb o
+    :
+      interp_smod ginv stb o (trigger i)
+      =
+      r <- handle_schE_hmodE ginv stb i;; tau;; Ret r.
+  Proof.
+    unfold interp_smod in *. rewrite interp_trigger. grind.
+  Qed.
+  
   Lemma interp_call
         (R: Type)
         (i: callE R)
-        stb o
+        ginv stb o
     :
-      interp_smod stb o (trigger i)
+      interp_smod ginv stb o (trigger i)
       =
       r <- handle_callE_hmodE stb o i;; tau;; Ret r.
   Proof.
@@ -343,9 +381,9 @@ Section RED.
   Lemma interp_apc
         (R: Type)
         (i: apcE R)
-        stb o
+        ginv stb o
     :
-      interp_smod stb o (trigger i)
+      interp_smod ginv stb o (trigger i)
       =
       (handle_apcE_hmodE stb o i) >>= (fun r => tau;; Ret r).
   Proof.
@@ -355,9 +393,9 @@ Section RED.
   Lemma interp_pg
         (R: Type)
         (i: pgE R)
-        stb o
+        ginv stb o
     :
-      interp_smod stb o (trigger i)
+      interp_smod ginv stb o (trigger i)
       =
       r <- trigger i;; tau;; Ret r.
   Proof.
@@ -367,9 +405,9 @@ Section RED.
   Lemma interp_core
         (R: Type)
         (i: coreE R)
-        stb o
+        ginv stb o
     :
-      interp_smod stb o (trigger i)
+      interp_smod ginv stb o (trigger i)
       =
       r <- trigger i;; tau;; Ret r.
   Proof.
@@ -378,9 +416,9 @@ Section RED.
 
   Lemma interp_Assume
         P
-        stb o
+        ginv stb o
     :
-      interp_smod stb o (trigger (Assume P))
+      interp_smod ginv stb o (trigger (Assume P))
       =
       x <- trigger (Assume P) ;; tau;; Ret x.
   Proof.
@@ -389,9 +427,9 @@ Section RED.
 
   Lemma interp_Guarantee
         P
-        stb o
+        ginv stb o
     :
-      interp_smod stb o (trigger (Guarantee P))
+      interp_smod ginv stb o (trigger (Guarantee P))
       =
       x <- trigger (Guarantee P);; tau;; Ret x.
   Proof.
@@ -401,9 +439,9 @@ Section RED.
   Lemma interp_unwrapU 
         (R: Type)
         (i: option R)
-        stb o
+        ginv stb o
     :
-      interp_smod stb o (@unwrapU smodE _ _ i)
+      interp_smod ginv stb o (@unwrapU smodE _ _ i)
       =
       r <- (unwrapU i);; Ret r.
   Proof.
@@ -414,9 +452,9 @@ Section RED.
   Lemma interp_unwrapN
         (R: Type)
         (i: option R)
-        stb o
+        ginv stb o
     :
-      interp_smod stb o (@unwrapN smodE _ _ i)
+      interp_smod ginv stb o (@unwrapN smodE _ _ i)
       =
       r <- (unwrapN i);; Ret r.
   Proof.
@@ -425,9 +463,9 @@ Section RED.
   Qed.
   
   Lemma interp_asm
-        stb o P
+        ginv stb o P
     : 
-      interp_smod stb o (assume P)
+      interp_smod ginv stb o (assume P)
       =
       r <- assume P;; tau;; Ret r.
   Proof.
@@ -435,9 +473,9 @@ Section RED.
   Qed. 
 
   Lemma interp_guar
-        stb o P
+        ginv stb o P
     : 
-      interp_smod stb o (guarantee P)
+      interp_smod ginv stb o (guarantee P)
       =
       r <- guarantee P;; tau;; Ret r.
   Proof.

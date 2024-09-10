@@ -118,6 +118,20 @@ Section RED.
     rewrite (bisim_is_eq (translate_ret _ _)). eauto.
   Qed.
 
+  Lemma transl_sch
+        (R: Type)
+        (i: schE R)
+    :
+      PModSem.transl (trigger i)
+      =
+      trigger i.
+  Proof.
+    unfold PModSem.transl. unfold trigger.
+    rewrite (bisim_is_eq (translate_vis _ _ _ _)).
+    do 2 f_equal. extensionalities.
+    rewrite (bisim_is_eq (translate_ret _ _)). eauto.
+  Qed.
+  
   Lemma transl_pg
         (R: Type)
         (i: pgE R)

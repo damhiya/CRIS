@@ -12,20 +12,6 @@ Section REFINE.
     Beh.of_program (ModSem.compile ms_src)
   .
 
-  (* Definition refines_mod (md_src md_tgt: Mod.t): Prop := *)
-  (*   <<EQV: Sk.equiv md_src.(Mod.sk) md_tgt.(Mod.sk) >> *)
-  (*   /\ *)
-  (*   <<REF:              *)
-  (*     forall sk (EQV: Sk.equiv md_tgt.(Mod.sk) sk), *)
-  (*     Beh.of_program (Mod.compile md_tgt sk) <1= *)
-  (*     Beh.of_program (Mod.compile md_src sk) *)
-  (*   >>. *)
-
-  (* original definition of ctx-refinement (remove if not used) *)
-  (* Definition ctx_refines_mod (md_src md_tgt: Mod.t): Prop := *)
-  (*   forall (ctx: Mod.t), *)
-  (*   refines_mod (Mod.add md_src ctx) (Mod.add md_tgt ctx). *)
-
 End REFINE.
 
 Section CTX_REFINE.
