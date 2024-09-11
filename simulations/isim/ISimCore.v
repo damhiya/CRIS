@@ -882,9 +882,9 @@ Module HModSemR.
             sub_perm scopes_tgt scopes_src; 
           sim_length:
             List.length fnsems_src = List.length fnsems_tgt;
-          (* sim_match: *)
-          (*   forall fn (IN: In fn (List.map fst fnsems_tgt)), *)
-          (*     In fn (List.map fst fnsems_src); *)
+          sim_match:
+            forall fn (IN: In fn (List.map fst fnsems_tgt)),
+              In fn (List.map fst fnsems_src);
           sim_fnsems:
           forall fn
                  (IN: In fn (List.map fst fnsems_src)),

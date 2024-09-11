@@ -681,9 +681,9 @@ Section HModProd.
     (SCOPE: ∀ sk, sub_perm (HMod.scopes B sk) (HMod.scopes A sk))
     (LEN: ∀ sk, List.length (HModSem.fnsems (HMod.modsem A sk)) =
                 List.length (HModSem.fnsems (HMod.modsem B sk)))
-    (* (NONE: ∀ sk fn, *)
-    (*        In fn (List.map fst (HModSem.fnsems (HMod.modsem B sk))) → *)
-    (*        In fn (List.map fst (HModSem.fnsems (HMod.modsem A sk)))) *)
+    (MATCH: ∀ sk fn,
+           In fn (List.map fst (HModSem.fnsems (HMod.modsem B sk))) →
+           In fn (List.map fst (HModSem.fnsems (HMod.modsem A sk))))
     (SIM: ∀ sk fn
             (IN: In fn (List.map fst (HModSem.fnsems (HMod.modsem A sk)))),
           HModSemR.sim_fun (HMod.modsem (HMod.add A C) sk) (HMod.modsem (HMod.add B C) sk)
@@ -703,8 +703,8 @@ Section HModProd.
       iApply MON; [|eauto]; nia.
     - s. apply sub_perm_cancel_tail. eapply SCOPE.
     - s. rewrite !app_length. rewrite LEN. eauto.
-    (* - s. i. rewrite map_app in *. apply in_or_app. apply in_app_or in IN. *)
-    (*   des; eauto. *)
+    - s. i. rewrite map_app in *. apply in_or_app. apply in_app_or in IN.
+      des; eauto.
     - s. i. rewrite map_app in IN. apply in_app_or in IN. des.
       { eapply SIM; eauto. }
       ii. exists fs. destruct fs as [scp f].
@@ -774,7 +774,7 @@ Ltac init_sim :=
   |eauto
   |try prove_sub_perm
   |repeat unfold_hmod; ss; try nia
-  (* |repeat unfold_hmod; ss; des_ifs; eauto *)
+  |repeat unfold_hmod; ss; des_ifs; eauto
   |unfold_hmod; s; i; des; subst; ss
   |repeat unfold_hmod; ss; eauto].
 
