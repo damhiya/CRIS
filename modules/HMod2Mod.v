@@ -213,7 +213,7 @@ Section RED.
     unfold interp_hp. rewrite interp_state_trigger. cbn. grind.
   Qed.
   
-  Lemma interp_hp_triggers
+  Lemma interp_hp_pg
         (R: Type)
         (i: pgE R)
         fmr
@@ -225,7 +225,7 @@ Section RED.
     unfold interp_hp. rewrite interp_state_trigger. cbn. grind.
   Qed.
 
-  Lemma interp_hp_triggere
+  Lemma interp_hp_core
         (R: Type)
         (i: coreE R)
         fmr
@@ -345,8 +345,8 @@ Section RED.
       (mk_box interp_hp_ret)
       (mk_box interp_hp_call)
       (mk_box interp_hp_sch)      
-      (mk_box interp_hp_triggere)
-      (mk_box interp_hp_triggers)
+      (mk_box interp_hp_core)
+      (mk_box interp_hp_pg)
       (mk_box interp_hp_triggerUB)
       (mk_box interp_hp_triggerNB)
       (mk_box interp_hp_unwrapU)

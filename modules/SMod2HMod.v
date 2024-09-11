@@ -414,28 +414,16 @@ Section RED.
     unfold interp_smod. rewrite interp_trigger. grind.
   Qed.
 
-  Lemma interp_Assume
-        P
+  Lemma interp_ag {A} (e: agE A)
         ginv stb o
     :
-      interp_smod ginv stb o (trigger (Assume P))
+      interp_smod ginv stb o (trigger e)
       =
-      x <- trigger (Assume P) ;; tau;; Ret x.
+      x <- trigger e ;; tau;; Ret x.
   Proof.
     unfold interp_smod. rewrite interp_trigger. grind.
   Qed.
-
-  Lemma interp_Guarantee
-        P
-        ginv stb o
-    :
-      interp_smod ginv stb o (trigger (Guarantee P))
-      =
-      x <- trigger (Guarantee P);; tau;; Ret x.
-  Proof.
-    unfold interp_smod. rewrite interp_trigger. grind. 
-  Qed.
-
+  
   Lemma interp_unwrapU 
         (R: Type)
         (i: option R)

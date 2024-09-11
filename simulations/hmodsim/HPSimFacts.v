@@ -516,7 +516,7 @@ Section INTERP_RECONF.
       i. destruct v0, v0', c. repeat (rr in REL; des; subst).
       repeat (grind; gstep; econs; i).
       gfinal. left. eapply CIH. left. s. eauto.
-    - rewrite-> !interp_hp_bind, !interp_hp_triggers.
+    - rewrite-> !interp_hp_bind, !interp_hp_pg.
       destruct s. 
       + unfold handle_pgE_tgt, mput_kv.
         repeat (grind; gstep; econs; i).
@@ -538,7 +538,7 @@ Section INTERP_RECONF.
         apply Any.split_pair in STR. des; subst.
         repeat (grind; gstep; econs).
         gfinal. left. eapply CIH. econs. econs; eauto.
-    - rewrite-> !interp_hp_bind, !interp_hp_triggere.
+    - rewrite-> !interp_hp_bind, !interp_hp_core.
       destruct e.
       + grind; gstep; econs; i. eexists.
         repeat (grind; gstep; econs; i). eauto 10 with paco.

@@ -335,10 +335,10 @@ Section RED.
   .
   Proof. unfold HModSem.sandbox. rewrite (bisim_is_eq (translate_ret _ _)); eauto. Qed.
 
-  Lemma transl_call
-    scopes fn args
+  Lemma transl_call {A} (e: callE A)
+    scopes
   :
-  HModSem.sandbox scopes (trigger (Call fn args)) = trigger (Call fn args)
+  HModSem.sandbox scopes (trigger e) = trigger e
   .
   Proof.
     unfold HModSem.sandbox, trigger.
@@ -385,10 +385,10 @@ Section RED.
       rewrite (bisim_is_eq (translate_ret _ _)); eauto.
   Qed.
 
-  Lemma transl_Assume
-    scopes P
+  Lemma transl_ag {A} (e: agE A)
+    scopes
   :
-    HModSem.sandbox scopes (trigger (Assume P)) = trigger (Assume P)
+    HModSem.sandbox scopes (trigger e) = trigger e
   .
   Proof.
     unfold HModSem.sandbox, trigger.
@@ -397,10 +397,10 @@ Section RED.
     rewrite (bisim_is_eq (translate_ret _ _)); eauto.
   Qed.
 
-  Lemma transl_Guarantee
-    scopes P
+  Lemma transl_sch {A} (e: schE A)
+    scopes
   :
-    HModSem.sandbox scopes (trigger (Guarantee P)) = trigger (Guarantee P)
+  HModSem.sandbox scopes (trigger e) = trigger e
   .
   Proof.
     unfold HModSem.sandbox, trigger.
@@ -449,42 +449,6 @@ Section RED.
   .
   Proof.
     unfold guarantee. rewrite/__ transl_bind transl_core transl_ret. eauto.
-  Qed.
-
-  Lemma transl_spawn
-    scopes fn args
-  :
-  HModSem.sandbox scopes (trigger (Spawn fn args)) = trigger (Spawn fn args)
-  .
-  Proof.
-    unfold HModSem.sandbox, trigger.
-    rewrite (bisim_is_eq (translate_vis _ _ _ _)). ss.
-    do 2 f_equal. extensionalities.
-    rewrite (bisim_is_eq (translate_ret _ _)); eauto.
-  Qed.
-
-  Lemma transl_yield
-    scopes tid
-  :
-  HModSem.sandbox scopes (trigger (Yield tid)) = trigger (Yield tid)
-  .
-  Proof.
-    unfold HModSem.sandbox, trigger.
-    rewrite (bisim_is_eq (translate_vis _ _ _ _)). ss.
-    do 2 f_equal. extensionalities.
-    rewrite (bisim_is_eq (translate_ret _ _)); eauto.
-  Qed.
-
-  Lemma transl_tid
-    scopes
-  :
-  HModSem.sandbox scopes (trigger Tid) = trigger Tid
-  .
-  Proof.
-    unfold HModSem.sandbox, trigger.
-    rewrite (bisim_is_eq (translate_vis _ _ _ _)). ss.
-    do 2 f_equal. extensionalities.
-    rewrite (bisim_is_eq (translate_ret _ _)); eauto.
   Qed.
   
 (*  

@@ -178,9 +178,9 @@ Ltac _unwrapSB itr :=
   | trigger (SGet _) =>
       idtac
   | trigger (Assume _) => 
-      rewrite HModSB.transl_Assume
+      rewrite HModSB.transl_ag
   | trigger (Guarantee _) => 
-      rewrite HModSB.transl_Guarantee
+      rewrite HModSB.transl_ag
   | unwrapU _ =>
       rewrite HModSB.transl_unwrapU
   | unwrapN _ =>
@@ -190,11 +190,11 @@ Ltac _unwrapSB itr :=
   | guarantee _ =>
       rewrite HModSB.transl_guar
   | trigger (Spawn _ _) =>
-      rewrite HModSB.transl_spawn
+      rewrite HModSB.transl_sch
   | trigger (Yield _) =>
-      rewrite HModSB.transl_yield
+      rewrite HModSB.transl_sch
   | trigger Tid =>
-      rewrite HModSB.transl_tid
+      rewrite HModSB.transl_sch
   | HoareAPC _ _ =>
       idtac
   | _ => fail
@@ -235,9 +235,9 @@ Ltac _unwrapS itr :=
   | trigger (SGet _) =>
       rewrite SModRed.interp_pg
   | trigger (Assume _) => 
-      rewrite SModRed.interp_Assume
+      rewrite SModRed.interp_ag
   | trigger (Guarantee _) => 
-      rewrite SModRed.interp_Guarantee
+      rewrite SModRed.interp_ag
   | unwrapU _ =>
       rewrite SModRed.interp_unwrapU
   | unwrapN _ =>
