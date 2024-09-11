@@ -62,6 +62,7 @@ Section RING_A.
   |}
   .
   Solve All Obligations with prove_scope.
+  Next Obligation. prove_nodup. Qed.
 
   Definition Mod : SMod.t := {|
     SMod.modsem := fun _ => Sem;

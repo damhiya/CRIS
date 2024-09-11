@@ -76,6 +76,7 @@ Section A.
     SModSem.initial_st := [(v_map,(fun (_: Z) => 0%Z)↑)];
   |}.
   Solve All Obligations with prove_scope.
+  Next Obligation. prove_nodup. Qed.
 
   Definition Mod : SMod.t := {|
     SMod.modsem := fun _ => Sem;

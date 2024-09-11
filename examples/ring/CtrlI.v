@@ -73,6 +73,7 @@ Section I.
   |}
   .
   Solve All Obligations with prove_scope.
+  Next Obligation. prove_nodup. Qed.
 
   Definition Mod: PMod.t := {|
     PMod.modsem := fun _ => Sem;

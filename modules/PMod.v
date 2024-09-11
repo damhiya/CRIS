@@ -22,6 +22,8 @@ Section PMODSEM.
       forall fn, incl (fnsems_scopes fn fnsems) scopes;
     well_scoped_init:
       incl (List.map (fst ∘ fst) initial_st) scopes;
+    nodup_fns:
+      List.NoDup scopes -> List.NoDup (List.map fst initial_st);
   }.
 
   Definition transl {R} (itr: itree pmodE R) : itree hmodE R
@@ -41,6 +43,7 @@ Section PMODSEM.
     unfold o_map in *. des_ifs.
   Qed.
   Next Obligation. i. destruct ms. s. eauto. Qed.
+  Next Obligation. i. destruct ms. eauto. Qed.
 
 End PMODSEM.
 End PModSem.

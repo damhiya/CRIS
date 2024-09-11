@@ -31,6 +31,8 @@ Section HMODSEM.
       forall fn, incl (fnsems_scopes fn fnsems) scopes;
     well_scoped_init:
       incl (List.map (fst ∘ fst) initial_st) scopes;
+    nodup_fns:
+      List.NoDup scopes -> List.NoDup (List.map fst initial_st);
   }.
 
   Record wf (ms: t): Prop := mk_wf {
@@ -47,7 +49,8 @@ Section HMODSEM.
   |}.
   Next Obligation. ii; ss. Qed.
   Next Obligation. ii; ss. Qed.
-
+  Next Obligation. econs. Qed.
+  
   Program Definition add ms1 ms2: t := {|
     fnsems := ms1.(fnsems) ++ ms2.(fnsems);
     scopes := ms1.(scopes) ++ ms2.(scopes);
@@ -71,6 +74,28 @@ Section HMODSEM.
     ii. destruct ms1, ms2. ss.
     rewrite map_app in H. apply in_or_app. apply in_app_or in H.
     destruct H; eauto.
+  Qed.
+  Next Obligation.
+    ii. exploit nodup_app_l; eauto. i.
+    exploit nodup_app_r; eauto; i.
+    apply ms1 in x0. apply ms2 in x1.
+    assert (INCL1:= ms1.(well_scoped_init)).
+    assert (INCL2:= ms2.(well_scoped_init)).
+    revert_until ms2.
+    generalize (initial_st ms1) as l1.
+    generalize (initial_st ms2) as l2.
+    i. revert_until l1. induction l1; ss.
+    i. econs; cycle 1.
+    {
+      eapply IHl1; eauto.
+      { eapply NoDup_cons_iff in x0. des. eauto. }
+      { ss. ii. eapply INCL1. ss. eauto. }
+    }
+    ii. rewrite map_app in H0. eapply in_app_or in H0. des.
+    { eapply NoDup_cons_iff in x0. des. eauto. }
+    eapply NoDup_app_disjoint; eauto.
+    { eapply INCL1. s. left. eauto. }
+    { eapply INCL2. rewrite <- map_map. eapply in_map. eauto. }       
   Qed.
 
   (**** Sandboxing ****)

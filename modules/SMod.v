@@ -26,6 +26,8 @@ Section SMODSEM.
       forall fn, incl (fnsems_scopes fn fnsems) scopes;
     well_scoped_init:
       incl (List.map (fst ∘ fst) initial_st) scopes;
+    nodup_fns:
+      List.NoDup scopes -> List.NoDup (List.map fst initial_st);
   }.
 
   Program Definition to_hmod (ms: t): HModSem.t := {|
@@ -38,10 +40,9 @@ Section SMODSEM.
     rewrite alist_find_map in H. specialize (well_scoped_fns0 fn a).
     des_ifs; ss. inv Heq. eauto.
   Qed.
-  Next Obligation.
-    ii. destruct ms. ss. eauto.
-  Qed.
-  
+  Next Obligation. ii. destruct ms. ss. eauto. Qed.
+  Next Obligation. ii. destruct ms. ss. eauto. Qed.
+
 End SMODSEM.
 End SModSem.
 

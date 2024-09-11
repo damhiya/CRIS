@@ -90,7 +90,8 @@ Section MEMI.
     |}
   .
   Solve All Obligations with prove_scope.
-
+  Next Obligation. prove_nodup. Qed.
+  
   Definition Mem: PMod.t := {|
     PMod.modsem := MemSem;
     PMod.sk := Sk.unit;

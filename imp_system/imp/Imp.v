@@ -630,6 +630,7 @@ Section MODSEM.
     rewrite alist_find_map in *.
     destruct (alist_find fn (prog_funs m)); ss.
   Qed.
+  Next Obligation. prove_nodup. Qed.
 
   (* Definition get_mod (m : program) : Mod.t := {| *)
   (*   Mod.modsem := fun ge => (modsem m (SkEnv.load_skenv ge)); *)
