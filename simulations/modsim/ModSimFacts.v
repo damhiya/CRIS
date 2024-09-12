@@ -179,6 +179,7 @@ Section SEMR.
         eexists. ginit. guclo lflagC_spec. econs.
         { gfinal. right. hdes. clear K0.
           erewrite equal_f; eauto. do 3 f_equal. extensionalities. grind. }
+        { apply le_others_refl. }
         { eauto. }
         { eauto. }
       + rewrite !list.list_lookup_insert_ne in INS; try nia. inv INS.
@@ -195,6 +196,7 @@ Section SEMR.
         eexists. ginit. guclo lflagC_spec. econs.
         { gfinal. right. hdes. clear K0.
           erewrite f_equal; eauto. do 2 f_equal. extensionalities. grind. }
+        { apply le_others_refl. }
         { eauto. }
         { eauto. }
       + rewrite !list.list_lookup_insert_ne in INT; try nia. inv INT.
@@ -209,6 +211,7 @@ Section SEMR.
       + rewrite !list.list_lookup_insert in INS; try nia. inv INS.
         eexists. ginit. guclo lflagC_spec. econs.
         { gfinal. right. eapply K. }
+        { apply le_others_refl. }
         { eauto. }
         { eauto. }
       + rewrite !list.list_lookup_insert_ne in INS; try nia. inv INS.
@@ -223,6 +226,7 @@ Section SEMR.
       + rewrite !list.list_lookup_insert in INT; try nia. inv INT.
         eexists. ginit. guclo lflagC_spec. econs.
         { gfinal. right. eapply K. }
+        { apply le_others_refl. }
         { eauto. }
         { eauto. }
       + rewrite !list.list_lookup_insert_ne in INT; try nia. inv INT.
@@ -238,6 +242,7 @@ Section SEMR.
       + rewrite !list.list_lookup_insert in INS; try nia. inv INS.
         eexists. ginit. guclo lflagC_spec. econs.
         { gfinal. right. eapply K. }
+        { apply le_others_refl. }
         { eauto. }
         { eauto. }
       + rewrite !list.list_lookup_insert_ne in INS; try nia. inv INS.
@@ -253,6 +258,7 @@ Section SEMR.
       + rewrite !list.list_lookup_insert in INT; try nia. inv INT.
         eexists. ginit. guclo lflagC_spec. econs.
         { gfinal. right. eapply K. }
+        { apply le_others_refl. }
         { eauto. }
         { eauto. }
       + rewrite !list.list_lookup_insert_ne in INT; try nia. inv INT.
@@ -268,6 +274,7 @@ Section SEMR.
       + rewrite !list.list_lookup_insert in INS; try nia. inv INS.
         eexists. ginit. guclo lflagC_spec. econs.
         { gfinal. right. eapply K. }
+        { apply le_others_refl. }
         { eauto. }
         { eauto. }
       + rewrite !list.list_lookup_insert_ne in INS; try nia. inv INS.
@@ -283,6 +290,7 @@ Section SEMR.
       + rewrite !list.list_lookup_insert in INT; try nia. inv INT.
         eexists. ginit. guclo lflagC_spec. econs.
         { gfinal. right. eapply K. }
+        { apply le_others_refl. }
         { eauto. }
         { eauto. }
       + rewrite !list.list_lookup_insert_ne in INT; try nia. inv INT.
@@ -297,6 +305,7 @@ Section SEMR.
       + rewrite !list.list_lookup_insert in INS; try nia. inv INS.
         eexists. ginit. guclo lflagC_spec. econs.
         { gfinal. right. eapply K. }
+        { apply le_others_refl. }
         { eauto. }
         { eauto. }
       + rewrite !list.list_lookup_insert_ne in INS; try nia. inv INS.
@@ -311,6 +320,7 @@ Section SEMR.
       + rewrite !list.list_lookup_insert in INT; try nia. inv INT.
         eexists. ginit. guclo lflagC_spec. econs.
         { gfinal. right. eapply K. }
+        { apply le_others_refl. }
         { eauto. }
         { eauto. }
       + rewrite !list.list_lookup_insert_ne in INT; try nia. inv INT.
@@ -406,6 +416,7 @@ Section SEMR.
       + rewrite !list.list_lookup_insert in INS; try nia. inv INS.
         eexists. ginit. guclo lflagC_spec. econs.
         { gfinal. right. eapply K. }
+        { apply le_others_refl. }
         { eauto. }
         { eauto. }
       + rewrite !list.list_lookup_insert_ne in INS; try nia. inv INS.
@@ -420,6 +431,7 @@ Section SEMR.
       + rewrite !list.list_lookup_insert in INT; try nia. inv INT.
         eexists. ginit. guclo lflagC_spec. econs.
         { gfinal. right. eapply K. }
+        { apply le_others_refl. }
         { eauto. }
         { eauto. }
       + rewrite !list.list_lookup_insert_ne in INT; try nia. inv INT.

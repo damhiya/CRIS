@@ -268,6 +268,16 @@ Section SIM_ITREE.
     - etrans; try apply H2; eauto.
   Qed.
 
+  Lemma le_others_inc w1 w2 x:
+    le_others w1 w2 -> le_others (w1++[x]) (w2++[x]).
+  Proof.
+    i. rdes H. split.
+    - rewrite !app_length. nia.
+    - i. assert (i < List.length w1 \/ i >= List.length w1) by nia; des.
+      + rewrite !list.lookup_app_l; try nia. eauto.
+      + rewrite !list.lookup_app_r; try nia. f_equal. nia.
+  Qed.    
+
   Lemma sim_itree_wmon self R_src R_tgt RR w1 w2 ps pt nths src tgt
     (SIM: @_sim_itree self R_src R_tgt RR ps pt w2 nths src tgt)
     (WLE: le_others w1 w2)
@@ -337,6 +347,46 @@ Section SIM_ITREE.
     { ss. }
   Qed.
 
+  Definition sim_itreeC (r g: forall (R_src R_tgt: Type) (RR: list world -> nat -> Any.t -> Any.t -> R_src -> R_tgt -> Prop), bool -> bool -> list world -> nat -> Any.t * itree modE R_src -> Any.t * itree modE R_tgt -> Prop) {R_src R_tgt} RR :=
+    @sim_itree_def bot9 R_src R_tgt RR (r R_src R_tgt RR).
+
+  Lemma sim_itreeC_spec_aux:
+    sim_itreeC <11= gpaco9 (_sim_itree) (cpn9 _sim_itree).
+  Proof.
+    i. inv PR.
+    { gstep. econs; econs 1; eauto. }
+    { guclo sim_itree_indC_spec. econs 2; et. i. gbase. et. }
+    { guclo sim_itree_indC_spec. econs 3; et. i. gbase. et. }
+    { guclo sim_itree_indC_spec. econs 4; eauto. gbase. eauto. }
+    { guclo sim_itree_indC_spec. econs 5; eauto. gbase. eauto. }
+    { guclo sim_itree_indC_spec. econs 6; eauto. gbase. eauto. }
+    { guclo sim_itree_indC_spec. econs 7; eauto. gbase. eauto. }
+    { guclo sim_itree_indC_spec. econs 8; eauto. des. esplits; eauto. gbase. eauto. }
+    { guclo sim_itree_indC_spec. econs 9; eauto. gbase. eauto. }
+    { guclo sim_itree_indC_spec. econs 10; eauto. gbase. eauto. }
+    { guclo sim_itree_indC_spec. econs 11; eauto. des. esplits; eauto. gbase. eauto. }
+    { guclo sim_itree_indC_spec. econs 12; eauto. gbase. eauto. }
+    { guclo sim_itree_indC_spec. econs 13; eauto. gbase. eauto. }
+    { guclo sim_itree_indC_spec. econs 14; eauto. gbase. eauto. }
+    { guclo sim_itree_indC_spec. econs 15; eauto. gbase. eauto. }
+    { guclo sim_itree_indC_spec. econs 16; eauto. gbase. eauto. }
+    { guclo sim_itree_indC_spec. econs 17; eauto. gbase. eauto. }
+    { guclo sim_itree_indC_spec. econs 18; eauto. }
+  Qed.
+
+  Lemma sim_itreeC_spec r g
+    :
+      @sim_itreeC (gpaco9 (_sim_itree) (cpn9 _sim_itree) r g) (gpaco9 (_sim_itree) (cpn9 _sim_itree) g g)
+      <9=
+      gpaco9 (_sim_itree) (cpn9 _sim_itree) r g.
+  Proof.
+    i. eapply gpaco9_gpaco; [eauto with paco|].
+    eapply gpaco9_mon.
+    { eapply sim_itreeC_spec_aux. eauto. }
+    { auto. }
+    { i. eapply gupaco9_mon; eauto. }
+  Qed.
+  
   Lemma sim_itree_progress_flag R0 R1 RR w r g nths st_src st_tgt
         (SIM: gpaco9 _sim_itree (cpn9 _sim_itree) g g R0 R1 RR false false w nths st_src st_tgt)
     :
@@ -372,12 +422,13 @@ Section SIM_ITREE.
           {R_src R_tgt} (RR: list world -> nat -> Any.t -> Any.t -> R_src -> R_tgt -> Prop)
     : bool -> bool -> list world -> nat -> Any.t * itree modE R_src -> Any.t * itree modE R_tgt -> Prop :=
   | lflagC_intro
-      ps0 ps1 pt0 pt1 w nths st_src st_tgt
-      (SIM: r _ _ RR ps0 pt0 w nths st_src st_tgt)
+      ps0 ps1 pt0 pt1 w0 w1 nths st_src st_tgt
+      (SIM: r _ _ RR ps0 pt0 w0 nths st_src st_tgt)
+      (WLE: le_others w1 w0)
       (SRC: ps0 = true -> ps1 = true)
       (TGT: pt0 = true -> pt1 = true)
     :
-      lflagC r RR ps1 pt1 w nths st_src st_tgt
+      lflagC r RR ps1 pt1 w1 nths st_src st_tgt
   .
 
   Lemma lflagC_mon
@@ -395,12 +446,13 @@ Section SIM_ITREE.
     eapply wrespect9_uclo; eauto with paco.
     econs; eauto with paco. i. inv PR.
     eapply GF in SIM.
-    revert x3 x4 SRC TGT.
-    pattern ps0, pt0, x5, x6, x7, x8.
+    revert x3 x4 x5 WLE SRC TGT.
+    pattern ps0, pt0, w0, x6, x7, x8.
     eapply sim_itree_tarski, SIM.
-    i. econs. inv PR; eauto using sim_itree_def.
+    i. econs. inv PR;
+      eauto using sim_itree_def, sim_itree_wmon, le_others_refl, le_others_trans, le_others_inc.
     exploit SRC; auto. exploit TGT; auto. i. clarify.
-    econs; cycle 1; eauto using rclo9.
+    econs; cycle 1; eauto using rclo9, le_others_trans.
   Qed.
 
   Lemma sim_itree_flag_down  R0 R1 RR r g w nths st_src st_tgt ps pt
@@ -408,7 +460,7 @@ Section SIM_ITREE.
     :
       gpaco9 _sim_itree (cpn9 _sim_itree) r g R0 R1 RR ps pt w nths st_src st_tgt.
   Proof.
-    guclo lflagC_spec. econs; eauto.
+    guclo lflagC_spec. econs; eauto using le_others_refl.
   Qed.
 
   Lemma sim_itree_bot_flag_up w0 w nths st_src st_tgt ps pt
@@ -488,54 +540,6 @@ End SIM_ITREE.
 Hint Resolve sim_itree_mon: paco.
 Hint Resolve cpn9_wcompat: paco.
 
-(*
-Section SIM_ITREE_PROP.
-
-  Lemma self_sim_itree:
-    forall st itr fl,
-      sim_itree (fun _ '(src, tgt) => src = tgt) top2 fl fl false false tt (st, itr) (st, itr).
-  Proof.
-    ginit. gcofix CIH. i. ides itr.
-    { gstep. eapply sim_itree_ret; ss. }
-    { guclo sim_itree_indC_spec. econs.
-      guclo sim_itree_indC_spec. econs.
-      eapply sim_itree_progress_flag. gbase. auto.
-    }
-    destruct e.
-    { dependent destruction c. rewrite <- ! bind_trigger.
-      gstep.
-      eapply sim_itree_call; ss. ii. subst. econs; et.
-      eapply sim_itree_flag_down. gbase. auto.
-    }
-    destruct s.
-    { rewrite <- ! bind_trigger. resub. dependent destruction s.
-      { guclo sim_itree_indC_spec. econs.
-        guclo sim_itree_indC_spec. econs.
-        eapply sim_itree_progress_flag. gbase. auto.
-      }
-    }
-    { rewrite <- ! bind_trigger. resub. dependent destruction c.
-      { guclo sim_itree_indC_spec. econs 9. i.
-        guclo sim_itree_indC_spec. econs. eexists.
-        eapply sim_itree_progress_flag. gbase. eauto.
-      }
-      { guclo sim_itree_indC_spec. econs 10. i.
-        guclo sim_itree_indC_spec. econs. eexists.
-        eapply sim_itree_progress_flag. gbase. eauto.
-      }
-      { guclo sim_itree_indC_spec. econs. i.
-        eapply sim_itree_progress_flag. gbase. auto.
-      }
-    }
-  Qed.
-
-End SIM_ITREE_PROP.
-*)
-
-(*** desiderata: (1) state-aware simulation relation !!!! ***)
-(*** (2) not whole function frame, just my function frame !!!! ***)
-(*** (3) would be great if induction tactic works !!!! (study itree case study more) ***)
-
 Require Import Program.
 
 Module ModSemR.
@@ -589,16 +593,5 @@ Section MODSEMR.
   Qed.
   
 End MODSEMR.
-
-(* Lemma self_sim (ms: ModSem.t): *)
-(*   sim ms ms. *)
-(* Proof. *)
-(*   econs; et. *)
-(*   { instantiate (1:= top2). ss. } *)
-(*   { instantiate (1:=(fun (_: unit) '(src, tgt) => src = tgt)). *)
-(*     i. exists tt. esplits; eauto. } *)
-(*   { ii. esplits; eauto. *)
-(*     ii. subst. destruct w. apply self_sim_itree. } *)
-(* Qed. *)
 
 End ModSemR.

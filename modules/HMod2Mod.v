@@ -89,7 +89,7 @@ Section MID.
   .
 
   (* mid to tgt code *)  
-  Definition handle_pgE_tgt : pgE ~> itree modE :=
+  Definition handle_pgE : pgE ~> itree modE :=
       (fun _ e =>
          match e with
          | SPut k v => mput_kv k v
@@ -113,19 +113,29 @@ Section MID.
       mput_res mr';;;
       Ret (fr', tt).
 
-  Definition handle_agE_tgt: agE ~> stateT (Σ) (itree modE) :=
+  Definition handle_agE: agE ~> stateT (Σ) (itree modE) :=
     fun _ e fr =>
       match e with
       | Assume P => handle_Assume P fr
       | Guarantee P => handle_Guarantee P fr
-      end.    
+      end.
 
+  Definition handle_schE: schE ~> stateT (Σ) (itree modE) :=
+    fun _ e fr =>
+      match e with
+      | Yield _ =>
+          '(fr', _) <- handle_Guarantee (True%I) fr;;
+          x <- trigger e;; Ret (fr', x)
+      | _ => x <- trigger e;; Ret (fr, x)
+      end.
+  
+  
   Definition interp_hp : itree hmodE ~> stateT Σ (itree modE) :=
       interp_state 
-        (case_ (bif:=sum1) (handle_agE_tgt)
-        (case_ (bif:=sum1) ((fun T e fr => x <- trigger e;; Ret (fr,x)): _ ~> stateT Σ (itree modE))
+        (case_ (bif:=sum1) handle_agE
+        (case_ (bif:=sum1) handle_schE
         (case_ (bif:=sum1) ((fun T e fr => '(fr', _) <- (handle_Guarantee (True%I) fr);; x <- trigger e;; Ret (fr', x)): _ ~> stateT Σ (itree modE)) 
-        (case_ (bif:=sum1) ((fun T e fr => x <- handle_pgE_tgt e;; Ret (fr, x)): _ ~> stateT Σ (itree modE)) 
+        (case_ (bif:=sum1) ((fun T e fr => x <- handle_pgE e;; Ret (fr, x)): _ ~> stateT Σ (itree modE)) 
                            ((fun T e fr => x <- trigger e;; Ret (fr, x)): _ ~> stateT Σ (itree modE)))))).
 
   Definition hp_fun_tail := (fun '(fr, x) => handle_Guarantee (True%I) fr ;;; Ret (x: Any.t)).
@@ -201,14 +211,33 @@ Section RED.
     unfold interp_hp in *. grind.
   Qed.
 
-  Lemma interp_hp_sch
-        (R: Type)
-        (i: schE R)
+  Lemma interp_hp_spawn
+        fn arg fmr
+    :
+      interp_hp (trigger (Spawn fn arg)) fmr
+      =
+      r <- trigger (Spawn fn arg);; tau;; Ret (fmr, r).
+  Proof.
+    unfold interp_hp. rewrite interp_state_trigger. cbn. grind.
+  Qed.
+
+  Lemma interp_hp_yield
+        tid
+        fr
+    :
+      interp_hp (trigger (Yield tid)) fr
+      =
+      '(fr', _) <- handle_Guarantee (True%I:iProp) fr;; r <- trigger (Yield tid);; tau;; Ret (fr', r).
+  Proof.
+    unfold interp_hp in *. grind.
+  Qed.
+
+  Lemma interp_hp_tid
         fmr
     :
-      interp_hp (trigger i) fmr
+      interp_hp (trigger Tid) fmr
       =
-      r <- trigger i;; tau;; Ret (fmr, r).
+      r <- trigger Tid;; tau;; Ret (fmr, r).
   Proof.
     unfold interp_hp. rewrite interp_state_trigger. cbn. grind.
   Qed.
@@ -220,7 +249,7 @@ Section RED.
     :
       interp_hp (trigger i) fmr
       =
-      r <- handle_pgE_tgt i;; tau;; Ret (fmr, r).
+      r <- handle_pgE i;; tau;; Ret (fmr, r).
   Proof.
     unfold interp_hp. rewrite interp_state_trigger. cbn. grind.
   Qed.
@@ -344,7 +373,9 @@ Section RED.
       (mk_box interp_hp_tau)
       (mk_box interp_hp_ret)
       (mk_box interp_hp_call)
-      (mk_box interp_hp_sch)      
+      (* (mk_box interp_hp_spawn) *)
+      (mk_box interp_hp_yield)
+      (* (mk_box interp_hp_tid) *)
       (mk_box interp_hp_core)
       (mk_box interp_hp_pg)
       (mk_box interp_hp_triggerUB)

@@ -32,7 +32,7 @@ Section HPSIM.
                (Own fmr ⊢ #=> Own fmr0).
 
   Definition dummy_term (with_dummy: bool) : itree hmodE unit :=
-    if with_dummy then trigger (Guarantee True) else Ret tt.
+    if with_dummy then trigger (Guarantee True);;; tau;; Ret tt else Ret tt.
   
   Variant _hpsim' {with_dummy: bool}
     (hpsimc: forall R (RR: nat -> alist key Any.t * R -> alist key Any.t * R -> iProp), bool -> bool -> nat -> alist key Any.t * itree hmodE R -> alist key Any.t * itree hmodE R -> Σ -> Prop)
