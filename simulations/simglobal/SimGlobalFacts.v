@@ -15,61 +15,120 @@ Require Import SimSTS SimGlobal.
 Set Implicit Arguments.
 
 Section ADEQUACY.
-  Theorem adequacy_global_itree itr_src itr_tgt
-          (SIM: simg eq false false itr_src itr_tgt)
+
+  Theorem adequacy_global_itree ps pt itr_src itr_tgt
+          (SIM: simg eq ps pt itr_src itr_tgt)
     :
       Beh.of_program (@compile_itree itr_tgt)
       <1=
       Beh.of_program (@compile_itree itr_src).
   Proof.
     unfold Beh.of_program. ss.
-    remember false as o_src0 in SIM at 1.
-    remember false as o_tgt0 in SIM at 1. clear Heqo_src0 Heqo_tgt0.
-    i. eapply adequacy_aux; et.
-    instantiate (1:=o_tgt0). instantiate (1:=o_src0). clear x0 PR.
-    generalize itr_tgt at 1 as md_tgt.
-    generalize itr_src at 1 as md_src. i. ginit.
-    revert o_src0 o_tgt0 itr_src itr_tgt SIM. gcofix CIH.
-    i. induction SIM using simg_ind; i; clarify.
-    { gstep.
-      eapply sim_fin; ss; cbn; des_ifs; rewrite FINSAME in *; clarify.
-    }
-    { gstep. eapply sim_vis; ss. i.
-      eapply step_trigger_io_iff in STEP. des. clarify.
+    i. eapply adequacy_aux; eauto. clear x0 PR.
+    instantiate (1:= smj_leb smj_top pt).
+    instantiate (1:= smj_leb smj_top ps).
+    generalize itr_tgt at 1 as md_tgt. generalize itr_src at 1 as md_src.
+    i. ginit.
+    revert ps pt itr_src itr_tgt SIM. gcofix CIH. i.
+    
+    pattern ps, pt, itr_src, itr_tgt.
+    eapply simg_ind, SIM. i.
+    depdes PR; i; subst.
+    { gstep. eapply sim_fin; ss; cbn; des_ifs. }
+    { gstep. eapply sim_vis; try by ss. i.
+      eapply step_trigger_io_iff in STEP. des. subst. inv STEP0.
       esplits.
-      { eapply step_trigger_io; et. }
-      { gbase. eapply CIH. hexploit SIM; et. }
+      + eapply step_trigger_io; et.
+      + guclo sim_flagC_spec. econs; [gbase; eapply CIH, SIM0|..]; eauto.
     }
-    { guclo sim_indC_spec. eapply sim_indC_demonic_src; ss.
-      esplits; eauto. eapply step_tau; et.
+    { guclo sim_indC_spec. eapply sim_indC_demonic_src; try by ss.
+      esplits.
+      + eapply step_tau; et.
+      + guclo sim_flagC_spec. econs; [eapply gpaco4_mon; [eapply SIM0|..]|..]; et; ss.
     }
-    { guclo sim_indC_spec. eapply sim_indC_demonic_tgt; ss. i.
-      eapply step_tau_iff in STEP. des. clarify.
+    { guclo sim_indC_spec. eapply sim_indC_demonic_tgt; try by ss. i.
+      eapply step_tau_iff in STEP. des. subst.
+      guclo sim_flagC_spec. econs; [eapply gpaco4_mon; [eapply SIM1|..]|..]; et; ss.
     }
-    { des. guclo sim_indC_spec. eapply sim_indC_demonic_src; ss.
-      esplits; eauto. eapply step_trigger_choose; et.
+    { des. guclo sim_indC_spec. eapply sim_indC_demonic_src; try by ss.
+      esplits.
+      + eapply step_trigger_choose; et.
+      + guclo sim_flagC_spec. econs; [eapply gpaco4_mon; [eapply SIM1|..]|..]; et; ss.
     }
-    { guclo sim_indC_spec. eapply sim_indC_demonic_tgt; ss.
-      i.  eapply step_trigger_choose_iff in STEP. des. clarify.
-      hexploit (SIM x); et. i. des. esplits; eauto.
+    { guclo sim_indC_spec. eapply sim_indC_demonic_tgt; try by ss.
+      i. eapply step_trigger_choose_iff in STEP. des. subst.
+      guclo sim_flagC_spec. econs; [eapply gpaco4_mon; [eapply SIM0|..]|..]; et; ss.
     }
-    { guclo sim_indC_spec. eapply sim_indC_angelic_src; ss. i.
-      eapply step_trigger_take_iff in STEP. des. clarify.
-      hexploit (SIM x); et. i. des. esplits; et.
+    { guclo sim_indC_spec. eapply sim_indC_angelic_src; try by ss.
+      i. eapply step_trigger_take_iff in STEP. des. subst.
+      guclo sim_flagC_spec. econs; [eapply gpaco4_mon; [eapply SIM0|..]|..]; et; ss.
     }
-    { des. guclo sim_indC_spec. eapply sim_indC_angelic_tgt; ss.
-      esplits; eauto. eapply step_trigger_take; et.
+    { des. guclo sim_indC_spec. eapply sim_indC_angelic_tgt; try by ss.
+      esplits.
+      + eapply step_trigger_take; et.
+      + guclo sim_flagC_spec. econs; [eapply gpaco4_mon; [eapply SIM1|..]|..]; et; ss.
     }
-    { gstep. eapply sim_progress; eauto. gbase. auto. }
+
+    pclearbot. clear ps pt itr_src itr_tgt SIM.
+    guclo sim_flagC_spec. econs; cycle 1.
+    { instantiate (1:= smj_leb smj_mid ps1).
+      unfold smj_leb. destruct ps0, ps1; ss; destruct b, b0; ss. }
+    { instantiate (1:= smj_leb smj_mid pt1).
+      unfold smj_leb. destruct pt0, pt1; ss; destruct b, b0; ss. }
+    clear DECS DECT ps0 pt0.
+    rename ps1 into ps, pt1 into pt, SIM0 into SIM, itr_src0 into itr_src, itr_tgt0 into itr_tgt.
+
+    pattern ps, pt, itr_src, itr_tgt.
+    eapply simg_ind, SIM. i.
+    depdes PR; i; subst.
+    { gstep. eapply sim_fin; ss; cbn; des_ifs. }
+    { gstep. eapply sim_vis; try by ss. i.
+      eapply step_trigger_io_iff in STEP. des. subst. inv STEP0.
+      esplits.
+      + eapply step_trigger_io; et.
+      + guclo sim_flagC_spec. econs; [gbase; eapply CIH, SIM0|..]; eauto.
+    }
+    { guclo sim_indC_spec. eapply sim_indC_demonic_src; try by ss.
+      esplits.
+      + eapply step_tau; et.
+      + guclo sim_flagC_spec. econs; [eapply gpaco4_mon; [eapply SIM0|..]|..]; et; ss.
+    }
+    { guclo sim_indC_spec. eapply sim_indC_demonic_tgt; try by ss. i.
+      eapply step_tau_iff in STEP. des. subst.
+      guclo sim_flagC_spec. econs; [eapply gpaco4_mon; [eapply SIM1|..]|..]; et; ss.
+    }
+    { des. guclo sim_indC_spec. eapply sim_indC_demonic_src; try by ss.
+      esplits.
+      + eapply step_trigger_choose; et.
+      + guclo sim_flagC_spec. econs; [eapply gpaco4_mon; [eapply SIM1|..]|..]; et; ss.
+    }
+    { guclo sim_indC_spec. eapply sim_indC_demonic_tgt; try by ss.
+      i. eapply step_trigger_choose_iff in STEP. des. subst.
+      guclo sim_flagC_spec. econs; [eapply gpaco4_mon; [eapply SIM0|..]|..]; et; ss.
+    }
+    { guclo sim_indC_spec. eapply sim_indC_angelic_src; try by ss.
+      i. eapply step_trigger_take_iff in STEP. des. subst.
+      guclo sim_flagC_spec. econs; [eapply gpaco4_mon; [eapply SIM0|..]|..]; et; ss.
+    }
+    { des. guclo sim_indC_spec. eapply sim_indC_angelic_tgt; try by ss.
+      esplits.
+      + eapply step_trigger_take; et.
+      + guclo sim_flagC_spec. econs; [eapply gpaco4_mon; [eapply SIM1|..]|..]; et; ss.
+    }
+
+    unfold smj_leb in *.
+    gstep. eapply sim_progress.
+    - gbase. eapply CIH in SIM0.
+      destruct ps1, pt1; ss. destruct b, b0; ss.
+    - destruct ps0; ss. destruct b; ss. destruct ps1; ss. destruct b; ss.
+    - destruct pt0; ss. destruct b; ss. destruct pt1; ss. destruct b; ss.
   Qed.
 
   Section MAIN.
     
-    Variable ms_src ms_tgt: ModSem.t.
-
-    Hypothesis (SIM: simg eq false false (@ModSem.initial_itr ms_src) (@ModSem.initial_itr ms_tgt)).
-
-    Theorem adequacy_global:
+    Theorem adequacy_global (ms_src ms_tgt: ModSem.t) ps pt
+      (SIM: simg eq ps pt (@ModSem.initial_itr ms_src) (@ModSem.initial_itr ms_tgt))
+      :
       Beh.of_program (@ModSem.compile ms_tgt) <1= Beh.of_program (@ModSem.compile ms_src).
     Proof.
       eapply adequacy_global_itree. eapply SIM.

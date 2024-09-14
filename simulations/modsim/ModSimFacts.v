@@ -4,6 +4,7 @@ Require Import Skeleton.
 Require Import Behavior.
 Require Import Relation_Definitions.
 Require Import IPM.
+Require Import ModSimTactics Mod2STS.
 
 (*** TODO: export these in Coqlib or Universe ***)
 Require Import Relation_Operators.
@@ -26,19 +27,6 @@ Set Implicit Arguments.
 Local Open Scope nat_scope.
 
 (* Adequacy - Part 1. ( Divided to resolve the dependency issue. ) *)
-
-Module TAC.
-  Ltac ired_l := try (prw _red_gen 2 0).
-  Ltac ired_r := try (prw _red_gen 1 0).
-
-  Ltac ired_both := ired_l; ired_r.
-
-  Ltac step := ired_both; guclo simg_safe_spec; econs; et; i.
-  Ltac steps := (repeat step); ired_both.
-
-  Ltac force := ired_both; guclo simg_indC_spec; econs; et.
-End TAC.
-Import TAC.
 
 Lemma itree_modE_inv R (itr: itree modE R):
   (exists r, itr = Ret r) \/
@@ -78,6 +66,18 @@ Section WF.
   
 End WF.
 
+Module TAC.
+  Ltac ired_l := try (prw _red_gen 2 0).
+  Ltac ired_r := try (prw _red_gen 1 0).
+
+  Ltac ired_both := ired_l; ired_r.
+
+  Ltac step := ired_both; guclo simg_indC_spec; econs; et; i.
+  Ltac steps := (repeat step); ired_both.
+
+End TAC.
+Import TAC.
+
 Section SEMR.
   Variable ms_src: ModSem.t.
   Variable ms_tgt: ModSem.t.
@@ -89,15 +89,16 @@ Section SEMR.
     (EQS: nths = List.length itrs_src)
     (EQT: nths = List.length itrs_tgt)
     (TID: my_tid < nths)
-    (SIM: forall tid itr_src itr_tgt w0 nths0 st_src0 st_tgt0
-                 (INS: base.lookup tid itrs_src = Some itr_src)
-                 (INT: base.lookup tid itrs_tgt = Some itr_tgt)
-                 (WLE: if Nat.eq_dec tid my_tid then w0 = w else le_mine sim.(ModSemR.wle) tid w w0)
-                 (WF: if Nat.eq_dec tid my_tid then nths0 = nths /\ st_src0 = st_src /\ st_tgt0 = st_tgt else sim.(ModSemR.wf) w0 (nths0, st_src0, st_tgt0))
+    (SIM: forall tid ps0 pt0 itr_src itr_tgt w0 nths0 st_src0 st_tgt0
+            (INS: base.lookup tid itrs_src = Some itr_src)
+            (INT: base.lookup tid itrs_tgt = Some itr_tgt)
+            (FLG: if Nat.eq_dec tid my_tid then ps0 = ps /\ pt0 = pt else ps0 = true /\ pt0 = true)
+            (WLE: if Nat.eq_dec tid my_tid then w0 = w else le_mine sim.(ModSemR.wle) tid w w0)
+            (WF: if Nat.eq_dec tid my_tid then nths0 = nths /\ st_src0 = st_src /\ st_tgt0 = st_tgt else sim.(ModSemR.wf) w0 (nths0, st_src0, st_tgt0))
       ,
-      exists ww, sim_itree ms_src.(ModSem.fnsems) ms_tgt.(ModSem.fnsems) sim.(ModSemR.winit) sim.(ModSemR.wf) sim.(ModSemR.wle) tid ww true true w0 nths0 (st_src0, itr_src) (st_tgt0, itr_tgt))
+      exists ww, sim_itree ms_src.(ModSem.fnsems) ms_tgt.(ModSem.fnsems) sim.(ModSemR.winit) sim.(ModSemR.wf) sim.(ModSemR.wle) tid ww ps0 pt0 w0 nths0 (st_src0, itr_src) (st_tgt0, itr_tgt))
     :
-    simg (fun '(st_src, ret_src) '(st_tgt, ret_tgt) => ret_src = ret_tgt) ps pt
+    simg (fun '(st_src, ret_src) '(st_tgt, ret_tgt) => ret_src = ret_tgt) (Some ps) (Some pt)
     (interp_stateE Any.t
        (ITree.iter (handle_schE_callE (ModSem.prog ms_src)) (my_tid, itrs_src)) st_src)
     (interp_stateE Any.t
@@ -109,12 +110,11 @@ Section SEMR.
     { exfalso. exploit list.lookup_ge_None_1; eauto. i. nia. }
     destruct (base.lookup my_tid itrs_tgt) eqn: LKT; cycle 1.
     { exfalso. exploit list.lookup_ge_None_1; eauto. i. nia. }
-    hexploit SIM; eauto; try by des_ifs.
+    hexploit (SIM my_tid ps pt); eauto; try by des_ifs.
     i. des. revert H. rewrite <-EQS.
-    generalize true at 1 as ps0. generalize true at 1 as pt0.
     remember (st_src, i) as src. remember (st_tgt, i0) as tgt.
     i. move H before CIH. revert SIM. revert_until H.
-    pattern ps0, pt0, w, nths, src, tgt.
+    pattern ps, pt, w, nths, src, tgt.
     eapply sim_itree_ind, H. clear H. i. subst.
 
     inv PR.
@@ -125,10 +125,11 @@ Section SEMR.
       + unfold triggerUB. grind. unfold Mod2STS.pure_state. grind. steps. ss.
 
     - rewrite !unfold_iter_eq. s. rewrite/__ LKS LKT.
-      grind. gstep. do 3 (econs; eauto). gbase. eapply CIH; eauto.
+      grind. gstep. econs. do 5 (econs; eauto using smj_lt_mid_top).
+      gbase. eapply CIH; eauto.
       { rewrite !list.insert_length. eauto. }
       { rewrite !list.insert_length. eauto. }
-      i. des_ifs; des; subst; cycle 1.
+      i. guardH FLG. des_ifs; des; subst; cycle 1.
       { rewrite list.list_lookup_insert_ne in INS; try nia. inv INS.
         rewrite list.list_lookup_insert_ne in INT; try nia. inv INT.
         eapply SIM; eauto; des_ifs.
@@ -156,7 +157,7 @@ Section SEMR.
       gfinal. right. eapply K; eauto.
 
     - rewrite !unfold_iter_eq. s. rewrite/__ LKS LKT.
-      grind. unfold Mod2STS.pure_state. grind. steps. grind. steps.
+      grind. unfold Mod2STS.pure_state. grind. do 3 step. grind. do 2 step.
       eapply K;
         try rewrite list.insert_length;
         try rewrite list.list_lookup_insert; eauto; try nia.
@@ -169,7 +170,7 @@ Section SEMR.
         eapply SIM; des_ifs; eauto.
 
     - rewrite unfold_iter_eq. s. rewrite LKS.
-      grind. rewrite FUN. grind. steps.
+      grind. rewrite FUN. grind. step.
       eapply K;
         try rewrite list.insert_length;
         try rewrite list.list_lookup_insert; eauto; try nia.
@@ -186,7 +187,7 @@ Section SEMR.
         eapply SIM; eauto; des_ifs.
 
     - rewrite/__ (unfold_iter_eq _ (_, itrs_tgt)). s. rewrite LKT.
-      grind. rewrite FUN. grind. steps.
+      grind. rewrite FUN. grind. step.
       eapply K;
         try rewrite list.insert_length;
         try rewrite list.list_lookup_insert; eauto; try nia.
@@ -203,7 +204,7 @@ Section SEMR.
         eapply SIM; eauto; des_ifs.
 
     - rewrite unfold_iter_eq. s. rewrite LKS.
-      grind. steps.
+      grind. do 2 step.
       eapply K;
         try rewrite list.insert_length;
         try rewrite list.list_lookup_insert; eauto; try nia.
@@ -218,7 +219,7 @@ Section SEMR.
         eapply SIM; eauto; des_ifs.
 
     - rewrite/__ (unfold_iter_eq _ (_, itrs_tgt)). s. rewrite LKT.
-      grind. steps.
+      grind. do 2 step.
       eapply K;
         try rewrite list.insert_length;
         try rewrite list.list_lookup_insert; eauto; try nia.
@@ -234,7 +235,7 @@ Section SEMR.
 
     - rewrite unfold_iter_eq. s. rewrite LKS.
       grind. unfold Mod2STS.pure_state at 1.
-      grind. force. esplits. steps. grind. steps.
+      grind. step. esplits. step. grind. step.
       eapply K;
         try rewrite list.insert_length;
         try rewrite list.list_lookup_insert; eauto; try nia.
@@ -250,7 +251,7 @@ Section SEMR.
 
     - rewrite/__ (unfold_iter_eq _ (_, itrs_tgt)). s. rewrite LKT.
       grind. unfold Mod2STS.pure_state at 2.
-      grind. force. i. grind. steps.
+      grind. do 2 step. grind. step.
       eapply K;
         try rewrite list.insert_length;
         try rewrite list.list_lookup_insert; eauto; try nia.
@@ -266,7 +267,7 @@ Section SEMR.
 
     - rewrite unfold_iter_eq. s. rewrite LKS.
       grind. unfold Mod2STS.pure_state at 1.
-      grind. force. i. grind. steps.
+      grind. do 2 step. grind. step.
       eapply K;
         try rewrite list.insert_length;
         try rewrite list.list_lookup_insert; eauto; try nia.
@@ -282,7 +283,7 @@ Section SEMR.
 
     - rewrite/__ (unfold_iter_eq _ (_, itrs_tgt)). s. rewrite LKT.
       grind. unfold Mod2STS.pure_state at 2.
-      grind. force. esplits. steps. grind. steps.
+      grind. step. esplits. step. grind. step.
       eapply K;
         try rewrite list.insert_length;
         try rewrite list.list_lookup_insert; eauto; try nia.
@@ -297,7 +298,7 @@ Section SEMR.
         eapply SIM; eauto; des_ifs.
 
     - rewrite unfold_iter_eq. s. rewrite LKS.
-      grind. steps.
+      grind. do 2 step.
       eapply K;
         try rewrite list.insert_length;
         try rewrite list.list_lookup_insert; eauto; try nia.
@@ -312,7 +313,7 @@ Section SEMR.
         eapply SIM; eauto; des_ifs.
 
     - rewrite/__ (unfold_iter_eq _ (_, itrs_tgt)). s. rewrite LKT.
-      grind. steps.
+      grind. do 2 step.
       eapply K;
         try rewrite list.insert_length;
         try rewrite list.list_lookup_insert; eauto; try nia.
@@ -327,7 +328,8 @@ Section SEMR.
         eapply SIM; eauto; des_ifs.
 
     - rewrite !unfold_iter_eq. s. rewrite/__ LKS LKT.
-      grind. gstep. do 3 (econs; eauto). gbase. eapply CIH; eauto.
+      grind. do 2 step. gstep. econs. econs; eauto using smj_lt_mid_top.
+      gbase. eapply CIH; eauto.
       { rewrite !app_length. s. rewrite !list.insert_length. nia. }
       { rewrite !app_length. s. rewrite !list.insert_length. nia. }
       i. des_ifs; des; subst.
@@ -370,15 +372,15 @@ Section SEMR.
           eapply FIND0; eauto.
 
     - rewrite !unfold_iter_eq. s. rewrite/__ LKS LKT.
-      grind. gstep. do 2 (econs; eauto).
+      grind. do 2 step. gstep. econs. econs; eauto using smj_lt_mid_top.
       assert (DEC: tid < List.length itrs_src \/ tid >= List.length itrs_src) by nia.
       des; cycle 1.
       { rewrite unfold_iter_eq. s.
         rewrite list.lookup_ge_None_2; try (rewrite list.insert_length; nia).
         s. grind. unfold triggerUB. grind. unfold Mod2STS.pure_state. grind.
-        econs; eauto. ss. }
+        step. ss. }
 
-      econs; eauto. gbase. eapply CIH; eauto.
+      gbase. eapply CIH; eauto.
       { rewrite !list.insert_length. nia. }
       { rewrite !list.insert_length. nia. }
 
@@ -408,7 +410,7 @@ Section SEMR.
       }
 
     - rewrite unfold_iter_eq. s. rewrite LKS.
-      grind. steps.
+      grind. step.
       eapply K;
         try rewrite list.insert_length;
         try rewrite list.list_lookup_insert; eauto; try nia.
@@ -423,7 +425,7 @@ Section SEMR.
         eapply SIM; eauto; des_ifs.
 
     - rewrite/__ (unfold_iter_eq _ (_, itrs_tgt)). s. rewrite LKT.
-      grind. steps.
+      grind. step.
       eapply K;
         try rewrite list.insert_length;
         try rewrite list.list_lookup_insert; eauto; try nia.
@@ -437,82 +439,18 @@ Section SEMR.
       + rewrite !list.list_lookup_insert_ne in INT; try nia. inv INT.
         eapply SIM; eauto; des_ifs.
 
-    - admit.
-  Admitted.
+    - gstep. econs. econs; cycle 1.
+      { instantiate (1:= Some false). ss. }
+      { instantiate (1:= Some false). ss. }
 
-  (* Lemma sim_itree_simg *)
-  (*   w0 itr_src itr_tgt ths st_src st_tgt cur_tid o_src o_tgt *)
-  (*   (SIM: sim_itree wf le fl_src fl_tgt cur_tid o_src o_tgt w0 ths (st_src, itr_src) (st_tgt, itr_tgt)) *)
-  (*   : *)
-  (*   simg (fun '(st_src, ret_src) '(st_tgt, ret_tgt) => *)
-  (*               g_lift_rel w0 st_src st_tgt /\ ret_src = ret_tgt) *)
-  (*   o_src o_tgt *)
-  (*   (interp_modE (ModSem.prog ms_src) itr_src st_src) *)
-  (*   (interp_modE (ModSem.prog ms_tgt) itr_tgt st_tgt). *)
-  (* Proof. *)
-  (*   ginit. revert_until sim_fnsems. *)
-  (*   gcofix CIH. i. *)
-  (*   unfold sim_itree in SIM. *)
-  (*   remember (st_src, itr_src). *)
-  (*   remember (st_tgt, itr_tgt). *)
-  (*   remember w0 in SIM at 2. *)
-  (*   revert st_src itr_src st_tgt itr_tgt Heqp Heqp0 Heqw. *)
-  (*   (* TODO: why induction using sim_itree_ind doesn't work? *) *)
-  (*   pattern o_src, o_tgt, w, ths, p, p0. *)
-  (*   match goal with *)
-  (*   | |- ?P o_src o_tgt w ths p p0 => set P *)
-  (*   end. *)
-  (*   revert o_src o_tgt w ths p p0 SIM. *)
-  (*   eapply (@sim_itree_ind world wf le fl_src fl_tgt cur_tid Any.t Any.t (final_rel wf le w0) P); subst P; ss; i; clarify. *)
-  (*   - rr in RET. des. subst. *)
-  (*     unfold interp_stateE. unfold interp_schE_callE. *)
-  (*     rewrite !unfold_iter_eq. s. *)
-      
-      
-      
-  (*     Check interp_state_ret. *)
-      
-  (*     Search interp_state. *)
-      
+      gbase. eapply CIH; eauto.
+      i. des_ifs; cycle 1; des; subst.
+      { eapply SIM; eauto; des_ifs; eauto. }
 
-      
-  (*     Search ITree.iter. *)
-  (*     grind. *)
-  (*     Search ITree.iter. *)
-
-  (*     step. splits; auto. econs; et. *)
-  (*   - destruct (alist_find fn fl_src) eqn: EQ; cycle 1. *)
-  (*     { steps. fold fl_src fl_tgt. *)
-  (*       rewrite EQ. unfold unwrapU, triggerUB. grind. step. ss. } *)
-  (*     hexploit sim_fnsems; eauto. i; des. *)
-  (*     hexploit (H0 (varg) (varg)); et. i. *)
-  (*     steps. fold fl_src fl_tgt in *. rewrite EQ, H. unfold unwrapU. steps. *)
-  (*     apply simg_progress_flag. *)
-  (*     guclo bindC_spec. econs. *)
-  (*     { gbase. eapply CIH; et. } *)
-  (*     i. ss. destruct vret_src, vret_tgt. des; clarify. inv SIM. *)
-  (*     hexploit K; et. i. steps. *)
-  (*     gbase. eapply CIH; et.  *)
-  (*     eapply sim_itree_bot_flag_up. et.            *)
-  (*   - step. i. subst. apply simg_progress_flag. *)
-  (*     hexploit (K x_tgt). i. des. pclearbot. *)
-  (*     steps. gbase. eapply CIH; et. *)
-  (*   - steps. unfold fl_src in FUN. rewrite FUN. grind. *)
-  (*     rewrite <- interp_modE_bind. *)
-  (*     eapply IH; et. *)
-  (*   - steps. unfold fl_tgt in FUN. rewrite FUN. grind. *)
-  (*     rewrite <- interp_modE_bind. *)
-  (*     eapply IH; et. *)
-  (*   - steps. *)
-  (*   - steps.  *)
-  (*   - des. force. exists x. steps. eapply IH; eauto.  *)
-  (*   - steps. i. hexploit K. i. des. steps. eapply IH; eauto. *)
-  (*   - steps. i. hexploit K. i. des. steps. eapply IH; eauto. *)
-  (*   - des. force. exists x. steps. eapply IH; eauto. *)
-  (*   - steps. destruct run. steps. eapply IH; eauto. *)
-  (*   - steps. destruct run. steps. eapply IH; eauto. *)
-  (*   - eapply simg_progress_flag. gbase. eapply CIH; eauto. *)
-  (* Qed. *)
+      eexists. ginit. guclo lflagC_spec.
+      econs; try eassumption; eauto with paco.
+  Unshelve. all: exact smj_bot.
+  Qed.
 
   Lemma adequacy_local_aux
     :
@@ -520,25 +458,29 @@ Section SEMR.
     <1=
     (Beh.of_program (ModSem.compile ms_src)).
   Proof.
-    (* destruct sim_initial. *)
-    (* eapply adequacy_global_itree; ss. *)
-    (* ginit. *)
-    (* unfold ModSem.initial_itr, assume. generalize "CCR_init" as fn. i. *)
+    eapply adequacy_global_itree; ss.
+    ginit.
+    unfold ModSem.initial_itr, assume. generalize "CCR_init" as fn. i.
 
-    (* ss. unfold ITree.map. *)
-    (* fold fl_src fl_tgt. *)
-    (* destruct (alist_find fn fl_src) eqn: EQ; cycle 1. *)
-    (* { s. unfold triggerUB. grind. steps. ss. } *)
+    ss. unfold ITree.map.
+    destruct (alist_find fn (ModSem.fnsems ms_src)) eqn: EQ; cycle 1.
+    { s. unfold interp_modE, interp_stateE, triggerUB, interp_schE_callE. grind.
+      rewrite unfold_iter_eq. s. unfold Mod2STS.pure_state. grind. step. ss. }
 
-    (* hexploit sim_fnsems; eauto. i; des. *)
-    (* fold fl_src fl_tgt in *. *)
-    (* rewrite H0. grind. *)
-    (* guclo bindC_spec. econs. *)
-    (* { gfinal. right. eapply sim_itree_simg. eapply H1; eauto. } *)
-    (* i. steps. *)
-    (* destruct vret_src, vret_tgt. des; subst; eauto. *)
-  Admitted.
-
+    hexploit (ModSemR.sim_fnsems sim); eauto. i; des. rr in H0. grind.
+    guclo bindC_spec. econs.
+    - edestruct (ModSemR.sim_initial sim).
+      gfinal. right. eapply sim_itree_simg; eauto.
+      i. des_ifs.
+      + des; subst. ss. inv INS. inv INT.
+        eexists. r. rewrite H. s. grind. eapply H0; eauto.
+      + exfalso. exploit lookup_lt_is_Some_1; eauto.
+        s. nia.
+    - i. steps.
+      destruct vret_src, vret_tgt. des; subst; eauto.
+  Unshelve. all: exact smj_bot.
+  Qed.
+  
 End SEMR.
 
 Section ADEQUACY.
@@ -548,29 +490,11 @@ Section ADEQUACY.
     (SIM: ModSemR.sim ms_src ms_tgt)
     (WF : ModSem.wf ms_src)
     :
-    <<REF: Beh.of_program (ModSem.compile ms_tgt) <1= Beh.of_program (ModSem.compile ms_src) >>.
+    Beh.of_program (ModSem.compile ms_tgt)
+    <1=
+    Beh.of_program (ModSem.compile ms_src).
   Proof.
-    ii. destruct SIM. eapply adequacy_local_aux; eauto.
-    econs; eauto.
+    ii. eapply adequacy_local_aux; eauto.
   Qed.
   
-  (* Lemma adequacy_mod *)
-  (*   md_src md_tgt sk *)
-  (*   (WF: Mod.wf md_src) *)
-  (*   (SIM: ModR.sim md_src md_tgt) *)
-  (*   (SK: Sk.equiv md_tgt.(Mod.sk) sk) *)
-  (*   : *)
-  (*   <<REF: Beh.of_program (Mod.compile md_tgt sk) <1= Beh.of_program (Mod.compile md_src sk) >> *)
-  (*   . *)
-  (* Proof. *)
-  (*   assert (SIM0 := SIM). *)
-  (*   destruct WF, SIM0, md_src, md_tgt. ss. des. *)
-  (*   ii. eapply adequacy_modsem; eauto. *)
-  (*   - eapply sim_modsem. *)
-  (*     + eapply Sk.equiv_incl. eauto. *)
-  (*     + eapply Sk.equiv_wf, H. *)
-  (*       etrans; eauto. *)
-  (*   - s. eapply H0. symmetry. etrans; eauto. *)
-  (* Qed. *)
-
 End ADEQUACY.
