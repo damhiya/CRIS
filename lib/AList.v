@@ -877,4 +877,32 @@ Section ALIST.
     s. f_equal. eauto.
   Qed.
 
+  Lemma alist_upd_not_tail {K} `{Dec K} {V} (l1 l2: alist K V) (k: K) (v: V)
+    (NODUP: ~ In k (List.map fst l2))
+    :
+    alist_upd k v (l1 ++ l2) = alist_upd k v l1 ++ l2.
+  Proof.
+    unfold alist_upd.
+    induction l1; ss; cycle 1.
+    {
+      destruct a. ss. rewrite eq_rel_dec_correct. des_ifs; s.
+      rewrite IHl1; eauto.
+    }
+    induction l2; ss.
+    destruct a. ss. rewrite eq_rel_dec_correct. des_ifs; s.
+    { exfalso. eapply not_or_and in NODUP. des. ss. }
+    rewrite IHl2; eauto.
+  Qed.
+
+  Lemma alist_upd_not_in {K V} `{Dec K} (k: K) (v: V) l
+        (NOTIN: ~ In k (map fst l))
+      :
+        alist_upd k v l = l.
+  Proof.
+    induction l; ss. eapply not_or_and in NOTIN. des.
+    unfold alist_upd. ss. des_ifs.
+    { rewrite eq_rel_dec_correct in Heq. des_ifs. }
+    f_equal. eauto.
+  Qed.
+  
 End ALIST.

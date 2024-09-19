@@ -17,7 +17,7 @@ From ExtLib Require Import
 
 Require Import STB.
 Require Import ISim SMod HMod Mod ModSimFacts.
-Require Import MainAdequacy CtxRefine.
+Require Import MainAdequacy CtxRefine CtxRefineFacts.
 
 Set Implicit Arguments.
 

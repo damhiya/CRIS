@@ -29,6 +29,15 @@ Section AUX.
 
   Context `{Σ: GRA.t}.
 
+  Lemma alist_upd_fst_in {V} a (k: key) (v: V) l
+    (IN: In a (map (fst <*> fst) l))
+    :
+    In a (map (fst <*> fst) (alist_upd k v l)).
+  Proof.
+    unfold alist_upd in *.
+    induction l; ss; i; rewrite eq_rel_dec_correct; des_ifs; ss; des; eauto.
+  Qed.
+  
   Lemma sandbox_well_scoped {A}
         scopes0 scopes1 (itr: itree hmodE A) 
         (SCP: incl scopes0 scopes1)
@@ -149,43 +158,6 @@ Section AUX.
     rewrite! bind_trigger in SB. inv SB.
     eapply inj_pair2, equal_f in H0. eauto.
   Qed.    
-
-  Lemma alist_upd_fst_in {V} a (k: key) (v: V) l
-    (IN: In a (map (fst <*> fst) l))
-    :
-    In a (map (fst <*> fst) (alist_upd k v l)).
-  Proof.
-    unfold alist_upd in *.
-    induction l; ss; i; rewrite eq_rel_dec_correct; des_ifs; ss; des; eauto.
-  Qed.
-
-  Lemma alist_upd_not_tail {K} `{Dec K} {V} (l1 l2: alist K V) (k: K) (v: V)
-    (NODUP: ¬In k (List.map fst l2))
-    :
-    alist_upd k v (l1 ++ l2) = alist_upd k v l1 ++ l2.
-  Proof.
-    unfold alist_upd.
-    induction l1; ss; cycle 1.
-    {
-      destruct a. ss. rewrite eq_rel_dec_correct. des_ifs; s.
-      rewrite IHl1; eauto.
-    }
-    induction l2; ss.
-    destruct a. ss. rewrite eq_rel_dec_correct. des_ifs; s.
-    { exfalso. eapply not_or_and in NODUP. des. ss. }
-    rewrite IHl2; eauto.
-  Qed.
-
-  Lemma alist_upd_not_in {K V} `{Dec K} (k: K) (v: V) l
-        (NOTIN: ¬ In k (map fst l))
-      :
-        alist_upd k v l = l.
-  Proof.
-    induction l; ss. eapply not_or_and in NOTIN. des.
-    unfold alist_upd. ss. des_ifs.
-    { rewrite eq_rel_dec_correct in Heq. des_ifs. }
-    f_equal. eauto.
-  Qed.
 
   Lemma alist_upd_not_exists
         k v st scopes
@@ -745,7 +717,7 @@ Section COMM.
     fun _ l0 l1 => ⌜l0 ≡ₚ l1⌝%I.  
   
   Lemma alist_upd_perm {K V} l0 l1 `{Dec K} (k: K) (v: V)
-        (ND: NoDup (map fst l0))
+        (ND: List.NoDup (map fst l0))
         (PERM: l0 ≡ₚ l1)
       :
         alist_upd k v l0 ≡ₚ alist_upd k v l1.
@@ -756,7 +728,7 @@ Section COMM.
       eapply H0. eapply Permutation_in; cycle 1; eauto.
       eapply Permutation_map. symmetry. eauto.
     }
-    assert (NoDup (map fst l1)).
+    assert (List.NoDup (map fst l1)).
     { 
       eapply Permutation_NoDup; cycle 1; eauto. 
       eapply Permutation_map. eauto.
@@ -792,7 +764,7 @@ Section COMM.
 
   Lemma alist_find_comm {K V} `{Dec K}
         (l0 l1: list (K*V)) fn f
-        (NODUP: NoDup (map fst (l0 ++ l1)))
+        (NODUP: List.NoDup (map fst (l0 ++ l1)))
         (FIND: alist_find fn (l0 ++ l1) = Some f)
       :
         alist_find fn (l1 ++ l0) = Some f.
@@ -884,27 +856,6 @@ Section COMM.
     Unshelve. all: eauto. 
     { eapply alist_upd_nodup. eauto. }
     { eapply alist_upd_nodup. eauto. }
-  Qed.
-
-  Lemma ctxr_cond_emp_l (m0 m1: HMod.t) P
-    (REF: ctx_refines (m0, (fun _ => emp)%I ∗∗ P) (m1, (fun _ => emp)%I ∗∗ P))
-  :
-    ctx_refines (m0, P) (m1, P).
-  Proof.
-    ii. specialize (REF ctx). destruct ctx. ss.
-    rr in REF. des. rr. esplits; eauto. i.
-    hexploit REF0; eauto; ss.
-    { iIntros "H". iPoseProof (SRC with "H") as "[H0 H1]". iFrame. }
-    i. des.
-    esplits; eauto.
-    iIntros "H". iPoseProof (H0 with "H") as "[[_ H0] H1]". iFrame.
-  Qed.
-  
-  Theorem ctxr_comm (ma mb: HMod.t) P:
-    ctx_refines (HMod.add ma mb, P) (HMod.add mb ma, P).
-  Proof.
-    eapply ctxr_cond_emp_l, ctxr_cond_frameR.
-    eapply main_adequacy. eapply hmod_add_comm.
   Qed.
 
 End COMM.

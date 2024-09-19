@@ -3,7 +3,7 @@ Require Import MapHeader MapASpec MapMSpec MapI MapM MapA ModSim MapIMproof MapM
 Require Import ImpPrelude.
 Require Import Skeleton.
 Require Import PCM IPM.
-Require Import Events Behavior CtxRefine.
+Require Import Events Behavior CtxRefine CtxRefineFacts.
 Require Import Relation_Definitions.
 
 (*** TODO: export these in Coqlib or Universe ***)
