@@ -412,7 +412,10 @@ Section SIM_ITREE.
   Qed.
 
   Definition sim_fsem: relation (Any.t -> itree modE Any.t) :=
-    (eq ==> (fun it_src it_tgt => forall w nths mrs_src mrs_tgt (SIMMRS: wf w (nths, mrs_src, mrs_tgt)),
+    (eq ==> (fun it_src it_tgt =>
+               forall w nths mrs_src mrs_tgt
+                      (TID: my_tid < List.length w)
+                      (SIMMRS: wf w (nths, mrs_src, mrs_tgt)),
                  sim_itree w false false w nths (mrs_src, it_src)
                            (mrs_tgt, it_tgt)))%signature
   .
@@ -542,7 +545,7 @@ Hint Resolve cpn9_wcompat: paco.
 
 Require Import Program.
 
-Module ModSemR.
+Module MSim.
 Section MODSEMR.
 
   Variable (ms_src ms_tgt: ModSem.t).
@@ -552,7 +555,7 @@ Section MODSEMR.
   Let st_src := ms_src.(ModSem.initial_st).
   Let st_tgt := ms_tgt.(ModSem.initial_st).
 
-  Inductive sim: Type := mk {
+  Inductive t: Type := mk {
     world: Type;
     winit: world;
     wf: list world -> nat * Any.t * Any.t -> Prop;
@@ -571,7 +574,7 @@ Section MODSEMR.
         forall my_tid, sim_fsem fl_src fl_tgt winit wf wle my_tid fs ft;
   }.
 
-  Lemma wf_sim_miss (SIM: sim)
+  Lemma wf_sim_miss (SIM: t)
     (WF: ModSem.wf ms_src)
     :
     forall fn (MISS: alist_find fn fl_src = None),
@@ -594,4 +597,4 @@ Section MODSEMR.
   
 End MODSEMR.
 
-End ModSemR.
+End MSim.

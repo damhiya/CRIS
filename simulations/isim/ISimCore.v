@@ -14,7 +14,6 @@ From ExtLib Require Import
      Data.Map.FMapAList.
 Require Import Red IRed.
 Require Import HPSim.
-Require Import World sWorld.
 Require Import Red IRed.
 Require Import SubPerm.
 
@@ -833,19 +832,22 @@ End SIM.
 
 Global Opaque isim.
 
-Definition isim_fsem `{Σ: GRA.t} fl_src fl_tgt Ist RR: relation (Any.t -> itree hmodE Any.t) :=
+Definition isim_fsem `{Σ: GRA.t} fl_src fl_tgt Ist: relation (Any.t -> itree hmodE Any.t) :=
   (eq ==> (fun itr_src itr_tgt =>
              forall my_tid nths st_src st_tgt
                     (IMON: forall nths nths' (LE: nths <= nths') st_src st_tgt,
                         Ist nths st_src st_tgt -∗ Ist nths' st_src st_tgt)
                     (NODS: List.NoDup (List.map fst st_src))
                     (NODD: List.NoDup (List.map fst st_tgt)),
-               Ist nths st_src st_tgt ⊢ @isim Σ fl_src fl_tgt Ist my_tid ibot ibot Any.t RR false false nths (st_src, itr_src) (st_tgt, itr_tgt)))%signature.
+               Ist nths st_src st_tgt ⊢
+                 @isim Σ fl_src fl_tgt Ist my_tid ibot ibot Any.t
+                 (fun nths '(st_src, v_src) '(st_tgt, v_tgt) => (⌜v_src = v_tgt⌝ ∗ Ist nths st_src st_tgt))%I
+                 false false nths (st_src, itr_src) (st_tgt, itr_tgt)))%signature.
 
-Module HModSemR.
+Module HSSim.
   Section SIM.
     Import HModSem.
-    Context `{_W: CtxWD.t}. 
+    Context `{Σ: GRA.t}.
     Variable (ms_src ms_tgt: HModSem.t).
     Variable init_cond: iProp.
     Variable Ist: nat -> alist key Any.t -> alist key Any.t -> iProp.
@@ -868,10 +870,10 @@ Module HModSemR.
                    isim_fsem
                      (List.map (map_snd HModSem.sandbox_body) fnsems_src)
                      (List.map (map_snd HModSem.sandbox_body) fnsems_tgt)
-                     Ist (fun nths '(st_src, v_src) '(st_tgt, v_tgt) => (⌜v_src = v_tgt⌝ ∗ Ist nths st_src st_tgt))%I
+                     Ist
                      (HModSem.sandbox_body fs) (HModSem.sandbox_body ft).
 
-    Inductive sim: Prop :=
+    Inductive t: Prop :=
       mk {
           sim_initial:
             init_cond ⊢ Ist 1 init_src init_tgt;
@@ -883,8 +885,8 @@ Module HModSemR.
           sim_length:
             List.length fnsems_src = List.length fnsems_tgt;
           sim_match:
-            forall fn (IN: In fn (List.map fst fnsems_tgt)),
-              In fn (List.map fst fnsems_src);
+            forall fn (IN: In fn (List.map fst fnsems_src)),
+              In fn (List.map fst fnsems_tgt);
           sim_fnsems:
           forall fn
                  (IN: In fn (List.map fst fnsems_src)),
@@ -892,26 +894,26 @@ Module HModSemR.
         }.
 
   End SIM.
-End HModSemR.
+End HSSim.
 
-Module HModR.
+Module HSim.
   Section SIM.
-    Context `{_W: CtxWD.t}. 
+    Context `{Σ: GRA.t}.
     Variable (md_src md_tgt: HMod.t).
     Variable init_cond : Sk.t -> iProp.
     Variable Ist: Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp.
 
-    Inductive sim: Prop :=
+    Inductive t: Prop :=
       mk {
           sim_modsem:
           forall sk (SKINCL: List.incl md_tgt.(HMod.sk) sk) (SKWF: Sk.wf sk),
-            <<SIM: HModSemR.sim (md_src.(HMod.modsem) sk) (md_tgt.(HMod.modsem) sk) (init_cond sk) (Ist sk)>>;
+            <<SIM: HSSim.t (md_src.(HMod.modsem) sk) (md_tgt.(HMod.modsem) sk) (init_cond sk) (Ist sk)>>;
           sim_sk: <<SIM: Sk.equiv md_src.(HMod.sk) md_tgt.(HMod.sk)>>;
         }.
 
     Definition sim_fun fn : Prop :=
       forall sk,
-        HModSemR.sim_fun (HMod.modsem md_src sk) (HMod.modsem md_tgt sk) (Ist sk) fn.
+        HSSim.sim_fun (HMod.modsem md_src sk) (HMod.modsem md_tgt sk) (Ist sk) fn.
 
   End SIM.
-End HModR.
+End HSim.

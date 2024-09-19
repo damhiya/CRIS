@@ -21,7 +21,7 @@ Section PMODSEM.
     well_scoped_fns:
       forall fn, incl (fnsems_scopes fn fnsems) scopes;
     well_scoped_init:
-      incl (List.map (fst ∘ fst) initial_st) scopes;
+      incl (state_scopes initial_st) scopes;
     nodup_fns:
       List.NoDup scopes -> List.NoDup (List.map fst initial_st);
   }.

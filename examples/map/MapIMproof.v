@@ -17,9 +17,8 @@ From ExtLib Require Import
      Data.Map.FMapAList.
 Require Import MemA STB.
 
-Require Import ISim HMod PMod Events.
+Require Import ISim HMod PMod Events ITactics.
 Require Import Mod ModSimFacts.
-
 
 Require Import sProp sWorld World SRF.
 From stdpp Require Import coPset gmap namespaces.
@@ -103,14 +102,16 @@ Section SIMMODSEM.
   Hypothesis MapInStbMap: forall sk, stb_incl MapMS.Stb (StbMap sk).
   Variable StbMem: Sk.t -> gname -> option fspec.
 
-  Local Notation MapMMod := ((MapM.t ginv StbMap) ★ (MemA.t ginv StbMem)).
-  Local Notation MapIMod := ( MapI.t         ★ (MemA.t ginv StbMem)).
-  Local Notation IstFull := (IstProd (IstSB (MapM.t ginv StbMap) Ist) IstEq).
+  Local Notation MemA := (MemA.t ginv StbMem).
+  Local Notation MapM := (MapM.t ginv StbMap).
+  Local Notation MapMMod := (MapM ★ MemA).
+  Local Notation MapIMod := (MapI.t ★ MemA).
+  Local Notation IstFull := (IstProd (IstSB MapM Ist) IstEq).
 
   (**********)
 
   Lemma simF_init:
-    HModR.sim_fun MapMMod MapIMod IstFull MapName.init.
+    HSim.sim_fun MapMMod MapIMod IstFull MapName.init.
   Proof.
     init_simF.
 
@@ -118,11 +119,10 @@ Section SIMMODSEM.
     steps_l. iDestruct "ASM" as "(W & (%Y & %M & P0) & %X)". subst. hss. inv G0. 
     rename q0 into u, q1 into ℓ, x into sz.
     unfold IstFull. unfold IstProd0.
-    iDestruct "IST" as (? ? ? ?) "(% & (% & [%|(P & IST)]) &%)";
-      [|iDestruct "IST" as (? ? ? ?) "(% & M)"];
+    iDestruct "IST" as (? ? ? ?) "(%& (% & [%|(P & IST)]) &%)";    
+      [|iDestruct "IST" as (? ? ? ?) "M"];
       des; subst; cycle 1.
     { iExFalso. iApply (pending_unique with "P P0"). }
-    hss.
 
     (* SRC: prove the postcond of init *)
     force_l. force_l. iSplitL "W".
@@ -212,14 +212,14 @@ Section SIMMODSEM.
   Qed.
 
   Lemma simF_get:
-    HModR.sim_fun MapMMod MapIMod IstFull MapName.get.
+    HSim.sim_fun MapMMod MapIMod IstFull MapName.get.
   Proof.
     init_simF.
 
     (* SRC: handle the IST of Map and the precond of get *)
     steps_l. iDestruct "ASM" as "(W & % & %)". subst. hss. inv G0.
     rename q0 into u, q1 into ℓ, q3 into idx, q4 into sz, q5 into f.
-    iDestruct "IST" as (? ? ? ?) "(%& (% & [%|(P & IST)]) &%)";
+    iDestruct "IST" as (? ? ? ?) "(%& (% & [%|(P & IST)]) &%)";    
       [|iDestruct "IST" as (? ? ? ?) "(% & M)"];
       des; subst; hss.
     { nia. }
@@ -260,14 +260,14 @@ Section SIMMODSEM.
   Qed.
 
   Lemma simF_set:
-    HModR.sim_fun MapMMod MapIMod IstFull MapName.set.
+    HSim.sim_fun MapMMod MapIMod IstFull MapName.set.
   Proof.
     init_simF.
 
     (* SRC: handle the IST of Map and the precond of set *)
     steps_l. iDestruct "ASM" as "(W & % & %)". subst. hss. inv G0. 
     rename q0 into u, q1 into ℓ, q4 into idx, q3 into sz, q5 into v, q6 into f.
-    iDestruct "IST" as (? ? ? ?) "(%& (% & [%|(P & IST)]) &%)";
+    iDestruct "IST" as (? ? ? ?) "(%& (% & [%|(P & IST)]) &%)";    
       [|iDestruct "IST" as (? ? ? ?) "(% & M)"];
       des; subst; hss.
     { nia. }
@@ -309,7 +309,7 @@ Section SIMMODSEM.
   Qed.
 
   Lemma simF_set_by_user:
-    HModR.sim_fun MapMMod MapIMod IstFull MapName.set_by_user.
+    HSim.sim_fun MapMMod MapIMod IstFull MapName.set_by_user.
   Proof.
     init_simF.
 
@@ -339,14 +339,14 @@ Section SIMMODSEM.
   Qed.
 
   Theorem sim:
-    HModR.sim MapMMod MapIMod MapM.InitCond IstFull.
+    HSim.t MapMMod MapIMod MapM.InitCond IstFull.
   Proof.
     init_sim.
     - iIntros "_". iExists _,_,[],[]. iSplit.
       { rewrite !app_nil_r. eauto. }
-      do 2 (iSplit; eauto).
-      { iPureIntro. split; prove_scope. }
-      iLeft. eauto.
+      iSplit; [iSplit|]; eauto.
+      + iPureIntro. split; prove_scope.
+      + iLeft. eauto.
     - eapply simF_init; eauto.
     - eapply simF_get; eauto.
     - eapply simF_set; eauto.
@@ -355,4 +355,4 @@ Section SIMMODSEM.
 
 End SIMMODSEM.
 End MapIM.
- 
+

@@ -785,7 +785,6 @@ Section HPSIM_ADEQUACY.
   Variant interp_inv: list Σ -> nat * Any.t * Any.t -> Prop :=
   | interp_inv_intro
       (ctx: list Σ) (mr_src mr_tgt: Σ) nths st_src st_tgt mr
-      (* (LEN: List.length ctx = nths) *)
       (WF: URA.wf mr_src)
       (MRS: Own mr_src ⊢ #=> Own (ctx_sem ctx ⋅ mr ⋅ mr_tgt))
       (MR: Own mr ⊢ #=> Ist nths st_src st_tgt)
@@ -794,7 +793,7 @@ Section HPSIM_ADEQUACY.
     :
     interp_inv ctx (nths, Any.pair (alist_encode st_src) mr_src↑, Any.pair (alist_encode st_tgt) mr_tgt↑)
   .
-  
+
   Lemma hpsim_adequacy:
     forall
       (NODUPFS: List.NoDup (List.map fst fl_src))
@@ -807,7 +806,7 @@ Section HPSIM_ADEQUACY.
       (NODUPT: List.NoDup (List.map fst st_tgt))
       (ctx0 ctx: list Σ) (mr_src mr_tgt fr_src fr_tgt fmr: Σ)
       (CTXLE: @le_mine Σ eq my_tid ctx0 ctx)
-      (NTHS: my_tid < List.length ctx0)
+      (TID: my_tid < List.length ctx0)
       (SIM: hpsim_body fl_src fl_tgt Ist my_tid ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr)
       (WF: URA.wf (fr_src ⋅ mr_src))
       (FMR: Own (fr_src ⋅ mr_src) ⊢ #=> Own ((ctx_sem ctx) ⋅ fmr ⋅ fr_tgt ⋅ mr_tgt)),
@@ -847,10 +846,10 @@ Section HPSIM_ADEQUACY.
       unfold hpsim_tail in RET.
       esplits; et; cycle 1.
       { eapply own_pure; eauto.
-        iIntros "H". iPoseProof (RET with "H") as "[_ EQ]".
+        iIntros "H". iPoseProof (RET with "H") as "[EQ _]".
         iApply Upd_Pure.  eauto. }
       econs; et; cycle 1.
-      { iIntros "H". iPoseProof (RET with "H") as "[H _]". et. }
+      { iIntros "H". iPoseProof (RET with "H") as "[_ H]". et. }
       eapply own_wf, WF. eapply own_trans; et. rewrite <- !URA.add_assoc.
       iIntros "[CTX [FMR TGT]]". iPoseProof (x with "TGT") as "C".
       iMod "C" as "[[C0 C1] C]". iSplitL "CTX"; eauto. iSplitL "FMR"; eauto.
@@ -902,7 +901,7 @@ Section HPSIM_ADEQUACY.
         unfold ctx_add, ctx_set.
         rewrite list.insert_length. eauto.
       }
-                              
+      
       do 2 step. grind.
       inv WF0. eapply K with (fmr0 := fr ⋅ mr0); r_solve; et; i.
       { iIntros "[FR MR]". iSplitR "FR"; [iApply MR|iApply x3]; eauto. }
@@ -1039,7 +1038,7 @@ Section HPSIM_ADEQUACY.
     - unfold interp_hp_body. steps. rewrite !interp_hp_spawn. do 3 step. grind.
       eapply K; et.
       + eapply le_mine_trans; [ii; subst; eauto|..]; eauto.
-        ii. esplits; eauto. rewrite lookup_app_l; eauto using le_mine_in.
+        ii. esplits; eauto. rewrite lookup_app_l; eauto using lookup_lt_is_Some_1.
       + iIntros "H". iMod (FMR with "H") as "H".
         unfold ctx_sem. rewrite foldr_app. s. r_solve.
         iDestruct "H" as "(((CTX & FMR) & FR) & MR)".

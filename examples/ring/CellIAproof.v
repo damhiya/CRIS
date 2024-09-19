@@ -16,7 +16,7 @@ From ExtLib Require Import
      Data.Map.FMapAList.
 Require Import STB.
 
-Require Import ISim SMod HMod PMod Events.
+Require Import ISim ITactics SMod HMod PMod Events.
 Require Import Mod ModSim ModSimFacts.
 Require Import CellHeader CellASpec CellA CellI.
 
@@ -92,11 +92,11 @@ Section SIMMODSEM.
         ∨
         (⌜vany = v↑⌝ ∗ pending idx ∗ auth idx v)))%I.
 
-  Local Notation CellIMod := (CellI.t idx).
-  Local Notation CellAMod := (CellA.t idx GI StbG).
+  Local Notation CellI := (CellI.t idx).
+  Local Notation CellA := (CellA.t idx GI StbG).
 
   Lemma simF_get:
-    HModR.sim_fun CellAMod CellIMod Ist (CellName.get idx).
+    HSim.sim_fun CellA CellI Ist (CellName.get idx).
   Proof.
     init_simF.
 
@@ -118,7 +118,7 @@ Section SIMMODSEM.
   Qed.
   
   Lemma simF_set:
-    HModR.sim_fun CellAMod CellIMod Ist (CellName.set idx).
+    HSim.sim_fun CellA CellI Ist (CellName.set idx).
   Proof.
     init_simF.
 
@@ -155,7 +155,7 @@ Section SIMMODSEM.
     iExists _, _. iSplit; eauto. iRight. iFrame; eauto.
   Qed.
 
-  Theorem sim: HModR.sim CellAMod CellIMod (CellA.InitCond idx) Ist.
+  Theorem sim: HSim.t CellA CellI (CellA.InitCond idx) Ist.
   Proof.
     init_sim.
     - iIntros "H". iDestruct "H" as (v) "(C & A)".

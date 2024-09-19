@@ -110,7 +110,7 @@ Fixpoint _alist_upd [K] [R: K -> K -> Prop] {RD_K : RelDec R} [V]
   (k: K) (v: V) (l: alist K V) : alist K V
   :=
   match l with
-  | [] => [(k,v)]
+  | [] => []
   | x :: l' =>
       if k ?[ R ] (fst x)
       then (k,v) :: l'
@@ -841,6 +841,40 @@ Section ALIST.
     rewrite eq_rel_dec_correct. inv NODUP. des_ifs; s.
     { exfalso. apply H2. rewrite map_app; s. apply in_or_app. s; eauto. }
     rewrite IHl1; eauto.
+  Qed.
+
+  Lemma alist_upd_head {K} `{Dec K} {V} (l1 l2: alist K V) (k: K) (v: V)
+    (NODUP: In k (List.map fst l1))
+    :
+    alist_upd k v (l1 ++ l2) = alist_upd k v l1 ++ l2.
+  Proof.
+    unfold alist_upd.
+    induction l1; ss.
+    destruct a. ss. rewrite eq_rel_dec_correct. des_ifs; s.
+    rewrite IHl1; eauto.
+    des; eauto. exfalso. eauto.
+  Qed.
+  
+  Lemma alist_upd_tail {K} `{Dec K} {V} (l1 l2: alist K V) (k: K) (v: V)
+    (NODUP: ~ In k (List.map fst l1))
+    :
+    alist_upd k v (l1 ++ l2) = l1 ++ alist_upd k v l2.
+  Proof.
+    unfold alist_upd.
+    induction l1; eauto.
+    destruct a. s. rewrite eq_rel_dec_correct. des_ifs; s.
+    - exfalso. apply NODUP. s. eauto.
+    - rewrite IHl1; eauto.
+      ii. apply NODUP. s. eauto.
+  Qed.
+  
+  Lemma alist_upd_keys {K} `{Dec K} {V} (k: K) (v: V) (l: alist K V):
+    List.map fst (alist_upd k v l) = List.map fst l.
+  Proof.
+    i. induction l; ss.
+    unfold alist_upd, _alist_upd. des_ifs.
+    { rewrite eq_rel_dec_correct in Heq. des_ifs. }
+    s. f_equal. eauto.
   Qed.
 
 End ALIST.

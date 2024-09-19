@@ -323,7 +323,7 @@ Section HPSIM.
   Hint Resolve cpn8_wcompat: paco.
 
   Definition hpsim_tail : nat -> (alist key Any.t)*Any.t -> (alist key Any.t)*Any.t -> iProp :=
-    fun nths '(st_src, v_src) '(st_tgt, v_tgt) => (Ist nths st_src st_tgt ∗ ⌜v_src = v_tgt⌝)%I.
+    fun nths '(st_src, v_src) '(st_tgt, v_tgt) => (⌜v_src = v_tgt⌝ ∗ Ist nths st_src st_tgt)%I.
 
   Definition hpsim_body ps pt nths sti_src sti_tgt fmr :=
     forall
@@ -845,43 +845,3 @@ End HPSIM.
 
 Hint Resolve _hpsim_mon: paco.
 Hint Resolve cpn8_wcompat: paco.
-
-(**********)
-
-(* TODO: move *)
-
-
-Lemma hpsim_refl {Σ: GRA.t} fl my_tid:
-  forall nths src tgt fmr (EQST: Own fmr ⊢ #=> ⌜src = tgt⌝%I),
-  hpsim_body fl fl (fun _ src tgt => ⌜src = tgt⌝%I) my_tid false false nths src tgt fmr.
-Proof.
-  ginit. gcofix CIH. i.
-  guclo hpsim_updateC_spec. econs. econs. split; eauto.
-  assert (src = tgt); subst.
-  { eapply own_pure; eauto.
-    iIntros "H". iApply Upd_Pure. iApply EQST. eauto. }
-
-  destruct tgt as [st itr].
-  gstep. econs. econs. assert (CASE := case_itrH _ itr); des; subst;
-    try by repeat (econs; eauto with paco).
-  - esplits; eauto. depdes s; try by repeat (econs; eauto with paco).
-    econs; eauto.
-    { instantiate (1:= Own fmr). iIntros "H". iFrame. eauto. }
-    i. do 2 econs; esplits; eauto.
-    assert (st_src0 = st_tgt0); subst.
-    { uipropall. exploit INV; i; des; try refl; eauto. rr in x2. uipropall.
-    }
-    econs; eauto with paco.
-  - esplits; eauto. destruct c; econs; eauto.
-    { instantiate (1:= Own fmr). iIntros "H". iFrame. eauto. }
-    i. do 2 econs; esplits; eauto.
-    assert (st_src0 = st_tgt0); subst.
-    { uipropall. exploit INV; i; des; try refl; eauto. rr in x2. uipropall.
-    }
-    econs; eauto with paco.
-  - depdes s; cycle 1.
-    + repeat (s; econs; eauto).
-    + do 10 (econs; eauto).
-      gbase. apply CIH; try apply alist_upd_nodup; eauto.
-  - depdes e; repeat (econs; esplits; eauto with paco).
-Qed.

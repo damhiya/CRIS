@@ -18,9 +18,8 @@ From ExtLib Require Import
 
 Require Import STB.
 
-Require Import ISim.
+Require Import ISim ITactics.
 Require Import HMod Mod ModSimFacts.
-
 
 Require Import sProp sWorld World SRF.
 From stdpp Require Import coPset gmap namespaces.
@@ -155,11 +154,11 @@ Section SIMMODSEM.
   Variable StbL: Sk.t -> gname -> option fspec.
   Hypothesis MapInStbL: forall sk, stb_incl MapMS.Stb (StbL sk).
 
-  Local Notation MapAMod := (MapA.t ginvH StbH).
-  Local Notation MapMMod := (MapM.t ginvL StbL).
+  Local Notation MapA := (MapA.t ginvH StbH).
+  Local Notation MapM := (MapM.t ginvL StbL).
   
   Lemma simF_init:
-    HModR.sim_fun MapAMod MapMMod Ist MapName.init.
+    HSim.sim_fun MapA MapM Ist MapName.init.
   Proof.
     init_simF.
 
@@ -187,7 +186,7 @@ Section SIMMODSEM.
   Qed.
 
   Lemma simF_get:
-    HModR.sim_fun MapAMod MapMMod Ist MapName.get.
+    HSim.sim_fun MapA MapM Ist MapName.get.
   Proof.
     init_simF.
 
@@ -220,7 +219,7 @@ Section SIMMODSEM.
   Qed.
 
   Lemma simF_set:
-    HModR.sim_fun MapAMod MapMMod Ist MapName.set.
+    HSim.sim_fun MapA MapM Ist MapName.set.
   Proof.
     init_simF.
 
@@ -254,7 +253,7 @@ Section SIMMODSEM.
   Qed.
 
   Lemma simF_set_by_user:
-    HModR.sim_fun MapAMod MapMMod Ist MapName.set_by_user.
+    HSim.sim_fun MapA MapM Ist MapName.set_by_user.
   Proof.
     init_simF.
 
@@ -297,7 +296,7 @@ Section SIMMODSEM.
     step. eauto.
   Qed.
   
-  Theorem sim: HModR.sim MapAMod MapMMod MapA.InitCond Ist.
+  Theorem sim: HSim.t MapA MapM MapA.InitCond Ist.
   Proof.
     init_sim.
     - iIntros "(IST & P)"; s.

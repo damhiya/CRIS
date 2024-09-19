@@ -28,15 +28,15 @@ Section PROOF.
   Context `{Σ: GRA.t}.
   Context `{_M: CellRA.t (Σ:=Σ)}.
 
-  Definition CellIGroup start len :=
+  Definition CellIG start len :=
     HMod.addL (List.map CellI.t (seq start len)).
 
   Theorem correct max_size GI (StbR StbC: Sk.t -> gname -> option fspec)
     :
     ctx_refines
-      ((RingA.t max_size GI StbR) ★ (CtrlIA.CellGroup GI StbC 0 max_size),
+      ((RingA.t max_size GI StbR) ★ (CtrlIA.CellG GI StbC 0 max_size),
        (RingA.InitCond max_size) ∗∗ (fun sk => [∗ list] i↦x ∈ seq 0 max_size, CellA.InitCond i sk))%I
-      ((CtrlI.t max_size)         ★ (CellIGroup 0 max_size),
+      ((CtrlI.t max_size)         ★ (CellIG 0 max_size),
        const(emp%I)).
   Proof.
     etrans.
@@ -47,7 +47,7 @@ Section PROOF.
       eapply ctxr_frameL.
       induction max_size; i.
       + eapply ctxr_cond_strengthen. eauto.
-      + unfold CellIGroup, CtrlIA.CellGroup.
+      + unfold CellIG, CtrlIA.CellG.
         rewrite/__ !seq_S !map_app !hmod_addL_app.
         etrans; [|etrans]; [|apply ctxr_compose_hor|]; cycle 3.
         * eapply ctxr_cond_strengthen.

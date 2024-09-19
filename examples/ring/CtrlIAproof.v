@@ -16,7 +16,7 @@ From ExtLib Require Import
      Data.Map.FMapAList.
 Require Import STB.
 
-Require Import ISim HMod PMod SMod Events.
+Require Import ISim ITactics HMod PMod SMod Events.
 Require Import Mod ModSimFacts.
 Require Import CellHeader CellASpec CellA RingHeader RingA RingASpec CtrlI.
 
@@ -37,20 +37,20 @@ Section SIMMODSEM.
   (* Hypothesis RingInStb: forall sk, stb_incl RingAS.Stb (StbR sk). *)
   (* Hypothesis CellInStb: forall sk idx (LT: idx < max_size), stb_incl (CellAS.Stb idx) (StbR sk). *)
 
-  Local Notation CellAMod := (fun idx => CellA.t idx GI StbC).
+  Local Notation CellA := (fun idx => CellA.t idx GI StbC).
 
-  Definition CellGroup start len : HMod.t :=
-    HMod.addL (List.map CellAMod (seq start len)).
+  Definition CellG start len : HMod.t :=
+    HMod.addL (List.map CellA (seq start len)).
 
-  Local Notation RingAMod := ((RingA.t max_size GI StbR) ★ (CellGroup 0 max_size)).
-  Local Notation RingIMod := ((CtrlI.t max_size)         ★ (CellGroup 0 max_size)).
+  Local Notation RingA := ((RingA.t max_size GI StbR) ★ (CellG 0 max_size)).
+  Local Notation RingI := ((CtrlI.t max_size)         ★ (CellG 0 max_size)).
 
   Lemma cellgroup_split idx start len (RANGE: start <= idx < start + len):
-    CellGroup start len =
-      (CellGroup start (idx-start)) ★ (CellAMod idx) ★
-        (CellGroup (S idx) (start + len - idx - 1)).
+    CellG start len =
+      (CellG start (idx-start)) ★ (CellA idx) ★
+        (CellG (S idx) (start + len - idx - 1)).
   Proof.
-    unfold CellGroup.
+    unfold CellG.
     assert (EQ: seq start len =
                 seq start (idx-start) ++ seq idx (S (start + len - idx - 1))).
     { etrans; [|etrans]; cycle 1.
@@ -119,7 +119,7 @@ Section SIMMODSEM.
   Notation IstFull := (IstProd (IstSB (RingA.t max_size GI StbR) Ist) IstEq).
 
   Lemma simF_init:
-    HModR.sim_fun RingAMod RingIMod IstFull RingName.init.
+    HSim.sim_fun RingA RingI IstFull RingName.init.
   Proof.
     init_simF.
 
@@ -154,7 +154,7 @@ Section SIMMODSEM.
   Qed.
 
   Lemma simF_get_size:
-    HModR.sim_fun RingAMod RingIMod IstFull RingName.get_size.
+    HSim.sim_fun RingA RingI IstFull RingName.get_size.
   Proof.
     init_simF.
 
@@ -174,7 +174,7 @@ Section SIMMODSEM.
   Qed.
 
   Lemma simF_enqueue:
-    HModR.sim_fun RingAMod RingIMod IstFull RingName.enqueue.
+    HSim.sim_fun RingA RingI IstFull RingName.enqueue.
   Proof.
     init_simF.
 
@@ -224,7 +224,7 @@ Section SIMMODSEM.
   Qed.
 
   Lemma simF_dequeue:
-    HModR.sim_fun RingAMod RingIMod IstFull RingName.dequeue.
+    HSim.sim_fun RingA RingI IstFull RingName.dequeue.
   Proof.
     init_simF.
 
@@ -274,17 +274,16 @@ Section SIMMODSEM.
       exists 1. nia.
   Qed.
 
-  Theorem sim: HModR.sim RingAMod RingIMod (RingA.InitCond max_size) IstFull.
+  Theorem sim: HSim.t RingA RingI (RingA.InitCond max_size) IstFull.
   Proof.
     init_sim.
     - iIntros "R". iExists [_], [_;_], _, _.
-      do 3 (iSplit; eauto).
-      { iPureIntro. split; prove_scope. }
-
+      do 2 (iSplit; eauto).
+      iSplitR. { iPureIntro. esplits; s; prove_scope. }
       iExists [], (replicate max_size 0%Z), 0, 0.
-      iSplit.
-      { iPureIntro. esplits; eauto. s. rewrite replicate_length. eauto. }
-      s. iSplitL ""; eauto.
+      s. iSplitR; eauto.
+      { iPureIntro. esplits; s; eauto using replicate_length. }
+      iSplit; eauto.
       iApply (big_sepL_impl with "R").
       iModIntro. iIntros (? ? FIND) "P".
       iLeft. rewrite Nat.mod_small; eauto.

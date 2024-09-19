@@ -46,26 +46,6 @@ Proof.
   - left. esplits. rewrite bind_trigger. eauto.
 Qed.
 
-Section WF.
-  
-  Lemma ModSemR_sim_wf
-    ms_src ms_tgt
-    (SIM : ModSemR.sim ms_src ms_tgt)
-    (WF : ModSem.wf ms_src)
-    :
-    ModSem.wf ms_tgt.
-  Proof.
-    destruct SIM, WF. econs.
-    eapply in_eqlen_nodup_rev; try apply wf_fnsems.
-    { rewrite !map_length. eauto. }
-    i. destruct (alist_find x (ModSem.fnsems ms_src)) eqn: EQS; cycle 1.
-    { apply alist_find_fst_none in EQS. ss. }
-    apply sim_fnsems in EQS. des; subst.
-    apply alist_find_fst_some in EQS. eauto.
-  Qed.
-  
-End WF.
-
 Module TAC.
   Ltac ired_l := try (prw _red_gen 2 0).
   Ltac ired_r := try (prw _red_gen 1 0).
@@ -81,7 +61,7 @@ Import TAC.
 Section SEMR.
   Variable ms_src: ModSem.t.
   Variable ms_tgt: ModSem.t.
-  Hypothesis sim: ModSemR.sim ms_src ms_tgt.
+  Hypothesis sim: MSim.t ms_src ms_tgt.
   Hypothesis WFS: ModSem.wf ms_src.
   
   Lemma sim_itree_simg
@@ -89,14 +69,17 @@ Section SEMR.
     (EQS: nths = List.length itrs_src)
     (EQT: nths = List.length itrs_tgt)
     (TID: my_tid < nths)
+    (WLEN: nths = List.length w)
     (SIM: forall tid ps0 pt0 itr_src itr_tgt w0 nths0 st_src0 st_tgt0
             (INS: base.lookup tid itrs_src = Some itr_src)
             (INT: base.lookup tid itrs_tgt = Some itr_tgt)
+            (TID: tid < nths0)
+            (WLEN: nths0 = List.length w0)
             (FLG: if Nat.eq_dec tid my_tid then ps0 = ps /\ pt0 = pt else ps0 = true /\ pt0 = true)
-            (WLE: if Nat.eq_dec tid my_tid then w0 = w else le_mine sim.(ModSemR.wle) tid w w0)
-            (WF: if Nat.eq_dec tid my_tid then nths0 = nths /\ st_src0 = st_src /\ st_tgt0 = st_tgt else sim.(ModSemR.wf) w0 (nths0, st_src0, st_tgt0))
+            (WLE: if Nat.eq_dec tid my_tid then w0 = w else le_mine sim.(MSim.wle) tid w w0)
+            (WF: if Nat.eq_dec tid my_tid then nths0 = nths /\ st_src0 = st_src /\ st_tgt0 = st_tgt else sim.(MSim.wf) w0 (nths0, st_src0, st_tgt0))
       ,
-      exists ww, sim_itree ms_src.(ModSem.fnsems) ms_tgt.(ModSem.fnsems) sim.(ModSemR.winit) sim.(ModSemR.wf) sim.(ModSemR.wle) tid ww ps0 pt0 w0 nths0 (st_src0, itr_src) (st_tgt0, itr_tgt))
+      exists ww, sim_itree ms_src.(ModSem.fnsems) ms_tgt.(ModSem.fnsems) sim.(MSim.winit) sim.(MSim.wf) sim.(MSim.wle) tid ww ps0 pt0 w0 nths0 (st_src0, itr_src) (st_tgt0, itr_tgt))
     :
     simg (fun '(st_src, ret_src) '(st_tgt, ret_tgt) => ret_src = ret_tgt) (Some ps) (Some pt)
     (interp_stateE Any.t
@@ -111,9 +94,9 @@ Section SEMR.
     destruct (base.lookup my_tid itrs_tgt) eqn: LKT; cycle 1.
     { exfalso. exploit list.lookup_ge_None_1; eauto. i. nia. }
     hexploit (SIM my_tid ps pt); eauto; try by des_ifs.
-    i. des. revert H. rewrite <-EQS.
+    i. des.
     remember (st_src, i) as src. remember (st_tgt, i0) as tgt.
-    i. move H before CIH. revert SIM. revert_until H.
+    move H before CIH. revert SIM. revert_until H.
     pattern ps, pt, w, nths, src, tgt.
     eapply sim_itree_ind, H. clear H. i. subst.
 
@@ -126,9 +109,11 @@ Section SEMR.
 
     - rewrite !unfold_iter_eq. s. rewrite/__ LKS LKT.
       grind. gstep. econs. do 5 (econs; eauto using smj_lt_mid_top).
-      gbase. eapply CIH; eauto.
+      gbase. eapply (CIH w1); eauto.
       { rewrite !list.insert_length. eauto. }
       { rewrite !list.insert_length. eauto. }
+      { rewrite !list.insert_length. inv WLE. nia. }
+
       i. guardH FLG. des_ifs; des; subst; cycle 1.
       { rewrite list.list_lookup_insert_ne in INS; try nia. inv INS.
         rewrite list.list_lookup_insert_ne in INT; try nia. inv INT.
@@ -138,17 +123,17 @@ Section SEMR.
         esplits; eauto. apply sim.
       }
 
-      rewrite !list.insert_length.      
       rewrite !list.list_lookup_insert in INS; try nia. inv INS.
       rewrite !list.list_lookup_insert in INT; try nia. inv INT.
       esplits. ginit. rewrite <-!bind_bind.
       guclo lbindC_spec. econs.
       { destruct (alist_find fn (ModSem.fnsems ms_src)) eqn: FIND; cycle 1.
-        - eapply ModSemR.wf_sim_miss in FIND; eauto. rewrite FIND.
+        - eapply MSim.wf_sim_miss in FIND; eauto. rewrite FIND.
           grind. unfold triggerUB. grind.
           gstep. econs. econs. i. ss.
         - eapply sim in FIND. des. rewrite FIND. grind.
           eapply sim_itree_flag_down. gfinal. right.
+          rewrite WF0. rewrite list.insert_length.
           eapply FIND0; eauto.
       }
 
@@ -164,7 +149,7 @@ Section SEMR.
       i. des_ifs; des; subst.
       + rewrite !list.list_lookup_insert in INS; try nia. inv INS.
         rewrite !list.list_lookup_insert in INT; try nia. inv INT.
-        eexists. eapply K.
+        eexists. rewrite WF. eapply K.
       + rewrite list.list_lookup_insert_ne in INS; try nia. inv INS.
         rewrite list.list_lookup_insert_ne in INT; try nia. inv INT.
         eapply SIM; des_ifs; eauto.
@@ -178,7 +163,7 @@ Section SEMR.
       i. des_ifs; des; subst.
       + rewrite !list.list_lookup_insert in INS; try nia. inv INS.
         eexists. ginit. guclo lflagC_spec. econs.
-        { gfinal. right. hdes. clear K0.
+        { gfinal. right. rewrite WF.
           erewrite equal_f; eauto. do 3 f_equal. extensionalities. grind. }
         { apply le_others_refl. }
         { eauto. }
@@ -195,7 +180,7 @@ Section SEMR.
       i. des_ifs; des; subst.
       + rewrite !list.list_lookup_insert in INT; try nia. inv INT.
         eexists. ginit. guclo lflagC_spec. econs.
-        { gfinal. right. hdes. clear K0.
+        { gfinal. right. rewrite WF.
           erewrite f_equal; eauto. do 2 f_equal. extensionalities. grind. }
         { apply le_others_refl. }
         { eauto. }
@@ -210,7 +195,7 @@ Section SEMR.
         try rewrite list.list_lookup_insert; eauto; try nia.
       i. des_ifs; des; subst.
       + rewrite !list.list_lookup_insert in INS; try nia. inv INS.
-        eexists. ginit. guclo lflagC_spec. econs.
+        eexists. rewrite WF. ginit. guclo lflagC_spec. econs.
         { gfinal. right. eapply K. }
         { apply le_others_refl. }
         { eauto. }
@@ -225,7 +210,7 @@ Section SEMR.
         try rewrite list.list_lookup_insert; eauto; try nia.
       i. des_ifs; des; subst.
       + rewrite !list.list_lookup_insert in INT; try nia. inv INT.
-        eexists. ginit. guclo lflagC_spec. econs.
+        eexists. rewrite WF. ginit. guclo lflagC_spec. econs.
         { gfinal. right. eapply K. }
         { apply le_others_refl. }
         { eauto. }
@@ -241,7 +226,7 @@ Section SEMR.
         try rewrite list.list_lookup_insert; eauto; try nia.
       i. des_ifs; des; subst.
       + rewrite !list.list_lookup_insert in INS; try nia. inv INS.
-        eexists. ginit. guclo lflagC_spec. econs.
+        eexists. rewrite WF. ginit. guclo lflagC_spec. econs.
         { gfinal. right. eapply K. }
         { apply le_others_refl. }
         { eauto. }
@@ -257,7 +242,7 @@ Section SEMR.
         try rewrite list.list_lookup_insert; eauto; try nia.
       i. des_ifs; des; subst.
       + rewrite !list.list_lookup_insert in INT; try nia. inv INT.
-        eexists. ginit. guclo lflagC_spec. econs.
+        eexists. rewrite WF. ginit. guclo lflagC_spec. econs.
         { gfinal. right. eapply K. }
         { apply le_others_refl. }
         { eauto. }
@@ -273,7 +258,7 @@ Section SEMR.
         try rewrite list.list_lookup_insert; eauto; try nia.
       i. des_ifs; des; subst.
       + rewrite !list.list_lookup_insert in INS; try nia. inv INS.
-        eexists. ginit. guclo lflagC_spec. econs.
+        eexists. rewrite WF. ginit. guclo lflagC_spec. econs.
         { gfinal. right. eapply K. }
         { apply le_others_refl. }
         { eauto. }
@@ -289,7 +274,7 @@ Section SEMR.
         try rewrite list.list_lookup_insert; eauto; try nia.
       i. des_ifs; des; subst.
       + rewrite !list.list_lookup_insert in INT; try nia. inv INT.
-        eexists. ginit. guclo lflagC_spec. econs.
+        eexists. rewrite WF. ginit. guclo lflagC_spec. econs.
         { gfinal. right. eapply K. }
         { apply le_others_refl. }
         { eauto. }
@@ -304,7 +289,7 @@ Section SEMR.
         try rewrite list.list_lookup_insert; eauto; try nia.
       i. des_ifs; des; subst.
       + rewrite !list.list_lookup_insert in INS; try nia. inv INS.
-        eexists. ginit. guclo lflagC_spec. econs.
+        eexists. rewrite WF. ginit. guclo lflagC_spec. econs.
         { gfinal. right. eapply K. }
         { apply le_others_refl. }
         { eauto. }
@@ -319,7 +304,7 @@ Section SEMR.
         try rewrite list.list_lookup_insert; eauto; try nia.
       i. des_ifs; des; subst.
       + rewrite !list.list_lookup_insert in INT; try nia. inv INT.
-        eexists. ginit. guclo lflagC_spec. econs.
+        eexists. rewrite WF. ginit. guclo lflagC_spec. econs.
         { gfinal. right. eapply K. }
         { apply le_others_refl. }
         { eauto. }
@@ -329,9 +314,11 @@ Section SEMR.
 
     - rewrite !unfold_iter_eq. s. rewrite/__ LKS LKT.
       grind. do 2 step. gstep. econs. econs; eauto using smj_lt_mid_top.
-      gbase. eapply CIH; eauto.
+      gbase. eapply CIH.
+      { rewrite !app_length. s. rewrite !list.insert_length. eauto. }
       { rewrite !app_length. s. rewrite !list.insert_length. nia. }
-      { rewrite !app_length. s. rewrite !list.insert_length. nia. }
+      { nia. }
+      { instantiate (1:=(x2 ++ [MSim.winit sim])). rewrite app_length. s. nia. }
       i. des_ifs; des; subst.
       + rewrite lookup_app_l in INS; cycle 1.
         { rewrite list.insert_length. nia. }
@@ -339,8 +326,7 @@ Section SEMR.
         rewrite lookup_app_l in INT; cycle 1.
         { rewrite list.insert_length. nia. }
         rewrite !list.list_lookup_insert in INT; try nia. inv INT.
-        rewrite app_length. s. rewrite list.insert_length.
-        eexists. rewrite Nat.add_comm. s. rewrite !EQT in *. eapply K.
+        eexists. rewrite/__ WF Nat.add_comm. s. rewrite !EQT in *. eapply K.
       + assert (DEC: tid < List.length itrs_tgt \/ tid = List.length itrs_tgt).
         { apply lookup_lt_Some in INS. rewrite app_length in INS. ss.
           rewrite list.insert_length in INS. nia. }
@@ -364,7 +350,7 @@ Section SEMR.
         
         esplits.
         destruct (alist_find fn (ModSem.fnsems ms_src)) eqn: FIND; cycle 1.
-        * eapply ModSemR.wf_sim_miss in FIND; eauto. rewrite FIND.
+        * eapply MSim.wf_sim_miss in FIND; eauto. rewrite FIND.
           grind. unfold triggerUB. grind.
           pstep. econs. econs. i. ss.
         * eapply sim in FIND. des. rewrite FIND. grind.
@@ -380,22 +366,23 @@ Section SEMR.
         s. grind. unfold triggerUB. grind. unfold Mod2STS.pure_state. grind.
         step. ss. }
 
-      gbase. eapply CIH; eauto.
+      gbase. eapply (CIH w1); eauto.
       { rewrite !list.insert_length. nia. }
       { rewrite !list.insert_length. nia. }
+      { rewrite !list.insert_length. inv WLE. nia. }
 
       i. des_ifs; des; subst.
       { assert (DEC': tid = my_tid \/ tid ≠ my_tid) by nia; des; subst.
         - rewrite !list.list_lookup_insert in INS; try nia. inv INS.
           rewrite !list.list_lookup_insert in INT; try nia. inv INT.
-          rewrite list.insert_length. eexists. eapply K; eauto.
+          rewrite/__ WF0 list.insert_length. eexists. eapply K; eauto.
           apply le_mine_refl. apply sim.
         - rewrite list.list_lookup_insert_ne in INS; try nia.
           rewrite list.list_lookup_insert_ne in INT; try nia.
           eapply SIM; eauto; des_ifs; eauto.
           + ii. red in WLE. des. rewrite <-WLE0. rewrite IN.
             esplits; eauto. apply sim. eauto.
-          + rewrite list.insert_length. eauto.
+          + rewrite/__ WF0 list.insert_length. eauto.
       }
       { assert (DEC': tid0 = my_tid \/ tid0 ≠ my_tid) by nia; des; subst.
         - rewrite !list.list_lookup_insert in INS; try nia. inv INS.
@@ -416,7 +403,7 @@ Section SEMR.
         try rewrite list.list_lookup_insert; eauto; try nia.
       i. des_ifs; des; subst.
       + rewrite !list.list_lookup_insert in INS; try nia. inv INS.
-        eexists. ginit. guclo lflagC_spec. econs.
+        eexists. rewrite WF. ginit. guclo lflagC_spec. econs.
         { gfinal. right. eapply K. }
         { apply le_others_refl. }
         { eauto. }
@@ -431,7 +418,7 @@ Section SEMR.
         try rewrite list.list_lookup_insert; eauto; try nia.
       i. des_ifs; des; subst.
       + rewrite !list.list_lookup_insert in INT; try nia. inv INT.
-        eexists. ginit. guclo lflagC_spec. econs.
+        eexists. rewrite WF. ginit. guclo lflagC_spec. econs.
         { gfinal. right. eapply K. }
         { apply le_others_refl. }
         { eauto. }
@@ -447,8 +434,9 @@ Section SEMR.
       i. des_ifs; cycle 1; des; subst.
       { eapply SIM; eauto; des_ifs; eauto. }
 
-      eexists. ginit. guclo lflagC_spec.
+      eexists. rewrite WF. ginit. guclo lflagC_spec.
       econs; try eassumption; eauto with paco.
+      
   Unshelve. all: exact smj_bot.
   Qed.
 
@@ -467,10 +455,11 @@ Section SEMR.
     { s. unfold interp_modE, interp_stateE, triggerUB, interp_schE_callE. grind.
       rewrite unfold_iter_eq. s. unfold Mod2STS.pure_state. grind. step. ss. }
 
-    hexploit (ModSemR.sim_fnsems sim); eauto. i; des. rr in H0. grind.
+    hexploit (MSim.sim_fnsems sim); eauto. i; des. rr in H0. grind.
     guclo bindC_spec. econs.
-    - edestruct (ModSemR.sim_initial sim).
+    - edestruct (MSim.sim_initial sim).
       gfinal. right. eapply sim_itree_simg; eauto.
+      { instantiate (1:= [_]). s. eauto. }
       i. des_ifs.
       + des; subst. ss. inv INS. inv INT.
         eexists. r. rewrite H. s. grind. eapply H0; eauto.
@@ -487,7 +476,7 @@ Section ADEQUACY.
 
   Lemma adequacy_modsem
     ms_src ms_tgt
-    (SIM: ModSemR.sim ms_src ms_tgt)
+    (SIM: MSim.t ms_src ms_tgt)
     (WF : ModSem.wf ms_src)
     :
     Beh.of_program (ModSem.compile ms_tgt)

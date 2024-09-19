@@ -18,6 +18,9 @@ Definition fnsems_scopes {T} (fn: gname) (fnsems: alist gname (list string * T))
   | None => []
   end.
 
+Definition state_scopes (st: alist key Any.t) :=
+  (List.map (fst ∘ fst) st).
+
 Module HModSem.
 Section HMODSEM.
   Context `{Σ: GRA.t}.
@@ -30,7 +33,7 @@ Section HMODSEM.
     well_scoped_fns:
       forall fn, incl (fnsems_scopes fn fnsems) scopes;
     well_scoped_init:
-      incl (List.map (fst ∘ fst) initial_st) scopes;
+      incl (state_scopes initial_st) scopes;
     nodup_fns:
       List.NoDup scopes -> List.NoDup (List.map fst initial_st);
   }.
@@ -71,7 +74,7 @@ Section HMODSEM.
     }
   Qed.
   Next Obligation.
-    ii. destruct ms1, ms2. ss.
+    unfold state_scopes. ii. destruct ms1, ms2. ss.
     rewrite map_app in H. apply in_or_app. apply in_app_or in H.
     destruct H; eauto.
   Qed.
@@ -81,7 +84,7 @@ Section HMODSEM.
     apply ms1 in x0. apply ms2 in x1.
     assert (INCL1:= ms1.(well_scoped_init)).
     assert (INCL2:= ms2.(well_scoped_init)).
-    revert_until ms2.
+    revert_until ms2. unfold state_scopes.
     generalize (initial_st ms1) as l1.
     generalize (initial_st ms2) as l2.
     i. revert_until l1. induction l1; ss.
