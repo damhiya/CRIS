@@ -42,7 +42,6 @@ Section SIMMODSEM.
 
   Variable ginv: Sk.t -> invspec.
   Variable StbCannon: Sk.t -> gname -> option fspec.
-  Hypothesis CannonInStbCannon: forall sk, stb_incl CannonAS.Stb (StbCannon sk).
   
   Local Notation CannonAMod := (CannonA.t ginv StbCannon).
   Local Notation CannonIMod := (CannonI.t).
@@ -85,7 +84,6 @@ Section PROOF.
   Context `{_A: CannonAR.t (Γ:=Γ)}.
 
   Theorem correct gi StbCannon
-    (CannonInStbCannon: forall sk, stb_incl CannonAS.Stb (StbCannon sk))
     :
     ctx_refines
       (CannonA.t gi StbCannon, CannonA.InitCond)
