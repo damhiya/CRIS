@@ -1,0 +1,92 @@
+Require Import Coqlib ITreelib sflib.
+Require Import CannonHeader CannonI CannonA CannonASpec SMod ModSim.
+Require Import CannonMainI CannonMainA CannonMainASpec.
+Require Import ImpPrelude.
+Require Import Skeleton.
+Require Import PCM IPM IFacts.
+Require Import Events Behavior.
+Require Import Relation_Definitions.
+
+(*** TODO: export these in Coqlib or Universe ***)
+Require Import Relation_Operators.
+Require Import RelationPairs.
+From ITree Require Import
+     Events.MapDefault.
+From ExtLib Require Import
+     Core.RelDec
+     Structures.Maps
+     Data.Map.FMapAList.
+Require Import STB.
+
+Require Import ISim HMod PMod Events ITactics.
+Require Import Mod ModSimFacts.
+
+
+Require Import sProp sWorld World SRF.
+From stdpp Require Import coPset gmap namespaces.
+
+Require Import MainAdequacy CtxRefine.
+
+Set Implicit Arguments.
+
+Local Open Scope nat_scope.
+
+Module CannonMainIA.
+Section SIMMODSEM.
+  Context `{_W: CtxWD.t}.
+  Context `{_A: CannonAR.t (Γ:=Γ)}.
+
+  Definition Ist: Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp :=
+    fun _ _ _ _ => (True)%I.
+
+  Variable ginv: Sk.t -> invspec.
+  Variable StbMain: Sk.t -> gname -> option fspec.
+  Hypothesis CannonInStbMain: forall sk, stb_incl CannonAS.Stb (StbMain sk).
+  
+  Local Notation MainAMod := (MainA.t 1 ginv StbMain).
+  Local Notation MainIMod := (MainI.t 1).
+  
+  (*************)
+
+  Lemma simF_main:
+    HSim.sim_fun MainAMod MainIMod Ist MainName.main.
+  Proof.
+    init_simF.
+
+    steps_l. iDestruct "ASM" as "((%Y & B) & %Q)". subst. hss.
+    steps_r. unfold ccallU. steps_l.
+    unfold HoareCall. force_l. instantiate (1:=()). force_l.
+    force_l. iSplitL "B"; et.
+    call "IST"; et. steps_l. iDestruct "ASM" as "[% %]"; des; subst. hss.
+    steps_r. step. steps_l. steps_r. force_l. force_l. iSplitR; et.
+    step. iFrame; et.
+  Qed.
+
+  Theorem sim:
+    HSim.t MainAMod MainIMod MainA.InitCond Ist.
+  Proof.
+    init_sim.
+    - iIntros "IC". et.
+    - apply simF_main.
+  Qed.
+
+End SIMMODSEM.
+
+Section PROOF.
+
+  Context `{_W: CtxWD.t}.
+  Context `{_A: CannonAR.t (Γ:=Γ)}.
+
+  Theorem correct gi StbMain
+    (CannonInStbMain: forall sk, stb_incl CannonAS.Stb (StbMain sk))
+    :
+    ctx_refines
+      ((MainA.t 1 gi StbMain), (MainA.InitCond))
+      ((MainI.t 1), const(emp%I)).
+  Proof.
+    eapply main_adequacy.
+    apply sim; et.
+  Qed.
+
+End PROOF.
+End CannonMainIA.
