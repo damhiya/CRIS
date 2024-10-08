@@ -176,7 +176,7 @@ Section SIMMODSEM.
     steps_r. iDestruct "GRT" as "(CW & _ & %Y)". subst. hss.
     
     (* SRC: prove the postcond of init *)
-    force_l. force_l.
+    force_l. steps_l. force_l. force_l.
     iPoseProof (initial_map_initialize with "INIT") as "(BLACK & INIT & UNALLOC)".
     iSplitL "CW INIT". { iFrame. eauto. }
     
@@ -194,7 +194,8 @@ Section SIMMODSEM.
     steps_l. iDestruct "ASM" as "(WORLD & (% & MAP) & %)".
     iDestruct "IST" as (f sz) "(% & [(% & P0 & INIT)|(P' & B & U)])".
     { iExFalso. iApply (initial_map_no_points_to with "INIT MAP"). }
-    des. subst. hss. rename q0 into u, q1 into ℓ, q3 into idx, x1 into v.
+    des. subst. hss. steps_l.
+    rename q0 into u, q1 into ℓ, x0 into idx, x1 into v.
 
     (* TGT: prove the precond of get *)
     force_r. instantiate (1:= mk_meta _ _ _). force_r. force_r. hss.
@@ -209,7 +210,7 @@ Section SIMMODSEM.
     steps_r. iDestruct "GRT" as "(WORLD & _ & %)". subst.
 
     (* SRC: prove the postcond of get *)
-    force_l. force_l.
+    steps_l. force_l. force_l.
     iPoseProof (black_map_get with "B MAP") as "%". subst.
     iSplitL "WORLD MAP". { iFrame. eauto. }
 
@@ -227,8 +228,8 @@ Section SIMMODSEM.
     steps_l. iDestruct "ASM" as "(WORLD & (% & MAP) & %)".
     iDestruct "IST" as (f sz) "(% & [(% & P0 & INIT)|(P' & B & U)])".
     { iExFalso. iApply (initial_map_no_points_to with "INIT MAP"). }
-    des. subst. hss.
-    rename q0 into u, q1 into ℓ, q4 into idx, x3 into v, q5 into v'.
+    des. subst. hss.  steps_l.
+    rename q0 into u, q1 into ℓ, x2 into idx, x3 into v, x1 into v'.
 
     (* TGT: prove the precond of set *)
     force_r. instantiate (1:= mk_meta _ _ (_,_)). force_r. force_r. hss.
@@ -244,7 +245,7 @@ Section SIMMODSEM.
     
     (* SRC: prove the postcond of set *)
     iPoseProof (black_map_set with "B MAP") as ">(B & MAP)".
-    force_l. force_l.
+    steps_l. force_l. force_l.
     iSplitL "WORLD MAP". { iFrame. eauto. }
 
     (* prove the IST of Map *)
@@ -259,7 +260,8 @@ Section SIMMODSEM.
 
     (* SRC: handle the IST of Map and the precond of set_by_user *)
     steps_l. iDestruct "ASM" as "(WORLD & (% & MAP) & %)".
-    subst. hss. inv G0. rename q0 into u, q1 into ℓ, q3 into idx, x1 into v.
+    subst. hss. steps_l.
+    rename q0 into u, q1 into ℓ, x0 into idx, x1 into v.
     
     (* TGT: prove the precond of set_by_user *)
     force_r. instantiate (1:= mk_meta _ _ _). force_r. force_r. hss.
@@ -282,7 +284,7 @@ Section SIMMODSEM.
     steps_l. iDestruct "ASM" as "(WORLD & (% & MAP) & %)". subst. hss.
 
     (* TGT: prove the postcond of set *)
-    force_r. force_r.
+    steps_l. force_r. force_r.
     iSplitL "WORLD". { iFrame. eauto. }
 
     (* TGT: handle the postcond of set_by_user *)

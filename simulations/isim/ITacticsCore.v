@@ -556,10 +556,12 @@ Ltac init_simF :=
   eexists; split; [eauto|];
   repeat match goal with
   | [|- context[{| fsb_body := cfunU ?x |}]] => rewrite/__ {1}/x
+  | [|- context[{| fsb_body := cfunN ?x |}]] => rewrite/__ {1}/x
   | [|- context[{| fsb_body := ?x |}]] => rewrite/__ {1}/x
   | [|- context[cfunU ?x]] => rewrite/__ {1}/x
+  | [|- context[cfunN ?x]] => rewrite/__ {1}/x
   end;                          
-  unfold interp_sb_hp, HoareFun, cfunU, ccallU, HModSem.sandbox_body; s;
+  unfold interp_sb_hp, HoareFun, cfunU, cfunN, ccallU, ccallN, HModSem.sandbox_body; s;
   ii; subst; iIntros "IST".
 
 Ltac prove_sub_perm :=

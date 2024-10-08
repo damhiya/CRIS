@@ -11,64 +11,31 @@ Require Import sProp sWorld World SRF.
 
 Set Implicit Arguments.
 
-
-(*** module A Map
-private map := (fun k => 0)
-
-def init(sz: int) ≡
-  skip
-
-def get(k: int): int ≡
-  return map[k]
-
-def set(k: int, v: int) ≡
-  map := map[k ← v]
-
-def set_by_user(k: int) ≡
-  set(k, input())
-***)
-
-Module MapA.
-Section A.
+Module MapAA.
+Section AA.
   Context `{_W: CtxWD.t}.
   Context `{_A: MapAR.t (Γ:=Γ)}.
   Context `{_M: MapMR.t (Γ:=Γ)}.
 
   Definition scopes := ["Map"].
-  Definition v_map := "Map" ↯ "map".
   
-  Definition set: list val -> itree smodE val :=
-    fun varg =>
-      '(k, v) <- (pargs [Tint; Tint] varg)ǃ;;
-      f <- cgetN v_map;;
-      cput v_map (<[k:=v]> (f: Z->Z));;;
-      Ret Vundef
-  .
-
-  Definition get: list val -> itree smodE val :=
-    fun varg =>
-      k <- (pargs [Tint] varg)ǃ;;
-      f <- cgetN v_map;;
-      Ret (Vint (f k))
-  .
-
   Definition set_by_user: list val -> itree smodE val :=
     fun varg =>
-      k <- (pargs [Tint] varg)ǃ;;
+      k <- (pargs [Tint] varg)?;;
       v <- trigger (IO "input" ([]: list Z));;
-      ccallN MapName.set [Vint k; Vint v]
+      ccallU MapName.set [Vint k; Vint v]
   .
 
   Definition fnsems :=
     [(MapName.init, (scopes, mk_specbody MapAS.init_spec fbody_trivial));
-     (MapName.get, (scopes,mk_specbody MapAS.get_spec (cfunN get)));
-     (MapName.set, (scopes,mk_specbody MapAS.set_spec (cfunN set)));
-     (MapName.set_by_user, (scopes, mk_specbody MapAS.set_by_user_spec (cfunN set_by_user)))].
+     (MapName.get, (scopes,mk_specbody MapAS.get_spec fbody_trivial));
+     (MapName.set, (scopes,mk_specbody MapAS.set_spec fbody_trivial));
+     (MapName.set_by_user, (scopes, mk_specbody MapAS.set_by_user_spec (cfunU set_by_user)))].
 
   Program Definition Sem : SModSem.t := {|
     SModSem.scopes := scopes;
     SModSem.fnsems := fnsems;
-    SModSem.initial_st := [(v_map,(fun (_: Z) => 0%Z)↑)];
+    SModSem.initial_st := [];
   |}.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
@@ -80,11 +47,11 @@ Section A.
   .
 
   Definition InitCond : Sk.t -> iProp :=
-    fun _ => (MapAS.initial_map ∗ MapMS.pending)%I.
+    fun _ => emp%I.
 
   Variable ginv: Sk.t -> invspec.
   Variable GlobalStb: Sk.t -> gname -> option fspec.
   Definition t := Seal.sealing "ccr" (SMod.to_hmod ginv GlobalStb Mod).
 
-End A.
-End MapA.
+End AA.
+End MapAA.
