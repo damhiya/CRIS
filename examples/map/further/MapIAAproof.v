@@ -1,5 +1,5 @@
 Require Import Coqlib ITreelib sflib.
-Require Import MapHeader MapASpec MapMSpec MapI MapM MapA MapAA ModSim MapIMproof MapMAproof MapAAAproof MemA.
+Require Import MapHeader MapASpec MapMSpec MapI MapM MapA MapAA ModSim MapIAproof MapAAAproof MemA.
 Require Import ImpPrelude.
 Require Import Skeleton.
 Require Import PCM IPM.
@@ -26,7 +26,7 @@ Set Implicit Arguments.
 
 Local Open Scope nat_scope.
 
-Module MapIA.
+Module MapIAA.
 Section PROOF.
   Context `{_W: CtxWD.t}.
   Context `{_M: MapMR.t (Γ:=Γ)}.
@@ -41,22 +41,16 @@ Section PROOF.
       ((MapI.t)            ★ (MemA.t gi StbMem), const(emp%I)).
   Proof.
     etrans; cycle 1.
-    { eapply main_adequacy. eapply MapIM.sim.
-      instantiate (1:= const(to_stb MapMS.Stb)).
-      i. split; try refl. unfold MapMS.Stb. unseal "ccr". prove_nodup. }
+    { eapply MapIA.correct; eauto. }
     etrans; cycle 1.
-    { eapply ctxr_frameR.
-      rewrite <-(hmod_addc_empty_l MapM.InitCond).
-      eapply ctxr_cond_frameR.
-      eapply main_adequacy. eapply MapMA.sim; eauto.
-      i. split; try refl. unfold MapMS.Stb. unseal "ccr". prove_nodup. }
     { eapply ctxr_frameR.
       rewrite <-(hmod_addc_empty_l (_ ∗∗ _)).
       eapply ctxr_cond_frameR.
       eapply main_adequacy. eapply MapAAA.sim; eauto.
     }
-  Unshelve. eauto.
+    eapply ctxr_cond_strengthen.
+    i. iIntros "(X & Y)". iFrame.
   Qed.
 
 End PROOF.
-End MapIA.
+End MapIAA.
