@@ -140,6 +140,8 @@ Ltac iIntrosFresh H := iIntros H || iIntrosFresh (H ++ "'")%string.
 
 Ltac des_pairs :=
   repeat match goal with
+    | [H: context[let () := ?x in _] |- _] => destruct x
+    | |- context[let () := ?x in _] => destruct x
     | [H: context[let (_, _) := ?x in _] |- _] =>
         let n0 := fresh x in let n1 := fresh x in destruct x as [n0 n1]
     | |- context[let (_, _) := ?x in _] =>
@@ -523,7 +525,7 @@ Proof.
   - steps_r; eauto.
   - steps_r. hss.
     iDestruct "GRT" as "(_ & % & _)".
-    exfalso. destruct (q7 q4).
+    exfalso. destruct (measure q2).
     + rr in H. assert (X := Ord.O_bot n).
       eapply Ord.lt_not_le; eauto.
     + rr in H. eauto.

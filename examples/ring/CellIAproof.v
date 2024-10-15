@@ -123,7 +123,7 @@ Section SIMMODSEM.
     init_simF.
 
     steps_l. iDestruct "ASM" as "((% & [P|C]) & %)";
-      subst; hss; rename q0 into v, q1 into v'; unfold Ist.
+      subst; hss; rename z into v, z0 into v'; unfold Ist.
     { iDestruct "IST" as (vany v0) "(% & [(C & A)|(% & P' & A)])"; cycle 1.
       { iExFalso. iApply (pending_unique with "P' P"). }
       des; subst. hss.

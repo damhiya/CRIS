@@ -117,7 +117,7 @@ Section SIMMODSEM.
 
     (* SRC: handle the IST of Map and the precond of init *)
     steps_l. iDestruct "ASM" as "(W & (%Y & %M & P0) & %X)". subst. hss. inv G0. 
-    rename q0 into u, q1 into ℓ, x into sz.
+    rename n into ℓ, x into sz.
     unfold IstFull. unfold IstProd0.
     iDestruct "IST" as (? ? ? ?) "(%& (% & [%|(P & IST)]) &%)";    
       [|iDestruct "IST" as (? ? ? ?) "M"];
@@ -218,7 +218,7 @@ Section SIMMODSEM.
 
     (* SRC: handle the IST of Map and the precond of get *)
     steps_l. iDestruct "ASM" as "(W & % & %)". subst. hss. inv G0.
-    rename q0 into u, q1 into ℓ, q3 into idx, q4 into sz, q5 into f.
+    rename n into ℓ, q1 into idx, q2 into sz, q3 into f.
     iDestruct "IST" as (? ? ? ?) "(%& (% & [%|(P & IST)]) &%)";    
       [|iDestruct "IST" as (? ? ? ?) "(% & M)"];
       des; subst; hss.
@@ -266,7 +266,7 @@ Section SIMMODSEM.
 
     (* SRC: handle the IST of Map and the precond of set *)
     steps_l. iDestruct "ASM" as "(W & % & %)". subst. hss. inv G0. 
-    rename q0 into u, q1 into ℓ, q4 into idx, q3 into sz, q5 into v, q6 into f.
+    rename n into ℓ, z1 into idx, z2 into sz, q1 into v, q2 into f.
     iDestruct "IST" as (? ? ? ?) "(%& (% & [%|(P & IST)]) &%)";    
       [|iDestruct "IST" as (? ? ? ?) "(% & M)"];
       des; subst; hss.
@@ -315,7 +315,7 @@ Section SIMMODSEM.
 
     (* SRC: handle the IST of Map and the precond of set_by_user *)
     steps_l. iDestruct "ASM" as "(W & % & %)". subst. hss. inv G0.
-    rename q0 into u, q1 into ℓ, q3 into idx.
+    rename n into ℓ, q1 into idx.
 
     (* process an input *)
     steps_r. step.

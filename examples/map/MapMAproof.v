@@ -166,7 +166,7 @@ Section SIMMODSEM.
     steps_l. iDestruct "ASM" as "(W & (%Y & %M & P) & %X)".
     iDestruct "IST" as (f sz) "(% & [(% & P0 & INIT)|(P' & B & U)])"; cycle 1.
     { iExFalso. iApply (pending_unique with "P P'"). }
-    des; subst. hss. rename q0 into u, q1 into ℓ, x into sz'.
+    des; subst. hss. rename n into ℓ, x into sz'.
     
     (* TGT: prove the precond of init *)
     force_r. instantiate (1:= mk_meta _ _ _). force_r. force_r. hss.
@@ -195,7 +195,7 @@ Section SIMMODSEM.
     iDestruct "IST" as (f sz) "(% & [(% & P0 & INIT)|(P' & B & U)])".
     { iExFalso. iApply (initial_map_no_points_to with "INIT MAP"). }
     des. subst. hss. steps_l.
-    rename q0 into u, q1 into ℓ, x0 into idx, x1 into v.
+    rename n into ℓ, z into idx, z0 into v.
 
     (* TGT: prove the precond of get *)
     force_r. instantiate (1:= mk_meta _ _ _). force_r. force_r. hss.
@@ -229,7 +229,7 @@ Section SIMMODSEM.
     iDestruct "IST" as (f sz) "(% & [(% & P0 & INIT)|(P' & B & U)])".
     { iExFalso. iApply (initial_map_no_points_to with "INIT MAP"). }
     des. subst. hss.  steps_l.
-    rename q0 into u, q1 into ℓ, x2 into idx, x3 into v, x1 into v'.
+    rename n into ℓ, z0 into idx, z into v, z1 into v'.
 
     (* TGT: prove the precond of set *)
     force_r. instantiate (1:= mk_meta _ _ (_,_)). force_r. force_r. hss.
@@ -261,7 +261,7 @@ Section SIMMODSEM.
     (* SRC: handle the IST of Map and the precond of set_by_user *)
     steps_l. iDestruct "ASM" as "(WORLD & (% & MAP) & %)".
     subst. hss. steps_l.
-    rename q0 into u, q1 into ℓ, x0 into idx, x1 into v.
+    rename n into ℓ, z into idx, z0 into v.
     
     (* TGT: prove the precond of set_by_user *)
     force_r. instantiate (1:= mk_meta _ _ _). force_r. force_r. hss.

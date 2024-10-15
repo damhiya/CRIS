@@ -201,7 +201,7 @@ Section SIMMODSEM.
     iSplitL "Q".
     { iFrame. eauto. }
 
-    steps_r. apc_r. steps_r.  rename q1 into z'.
+    steps_r. apc_r. steps_r. rename q1 into z'.
     iDestruct "GRT" as "((% & CELL) & %)". subst. hss.
     steps_r. hss. force_l. force_l.
     iSplitL ""; eauto.
