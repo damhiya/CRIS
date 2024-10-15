@@ -1,11 +1,8 @@
 From sflib Require Import sflib.
 From iris.algebra Require Import proofmode_classes.
 From iris.proofmode Require Export proofmode.
-
-From CCR.base_logic Require Import bi derived.
-
+From CCR.base_logic Require Export base_logic.
 From CCR Require Import PCM.
-
 From iris.prelude Require Import options.
 
 Arguments Z.of_nat: simpl nomatch.
@@ -29,26 +26,28 @@ End uPredI.
 (* uPredI_affine is added so that IPM can also resolve pure predicates with evars. *)
 Global Hint Immediate uPredI_affine : core.
 
+(* TODO : 1) refactor GRA.t
+          2) move iProp and own to a separate file *)
 Section iProp.
-Context `{Σ: GRA.t}.
-Definition iProp := uPredI Σ.
+  Context `{Σ: GRA.t}.
+  Definition iProp := uPredI Σ.
 
-Local Definition Own_def (a: Σ) : iProp := uPred_ownM a.
-Local Definition Own_aux : seal (@Own_def). Proof. by eexists. Qed.
-Definition Own := Own_aux.(unseal).
-Definition Own_eq : @Own = @Own_def := Own_aux.(seal_eq).
+  Local Definition Own_def (a: Σ) : iProp := uPred_ownM a.
+  Local Definition Own_aux : seal (@Own_def). Proof. by eexists. Qed.
+  Definition Own := Own_aux.(unseal).
+  Definition Own_eq : @Own = @Own_def := Own_aux.(seal_eq).
 
-Definition OwnM {M : ucmra} `{!GRA.inG M Σ} (a : M) : iProp := Own (GRA.embed a).
+  Definition OwnM {M : ucmra} `{!GRA.inG M Σ} (a : M) : iProp := Own (GRA.embed a).
 
-Global Instance iProp_bi_bupd : BiBUpd iProp := uPred_bi_bupd Σ.
+  Global Instance iProp_bi_bupd : BiBUpd iProp := uPred_bi_bupd Σ.
 
-Definition from_upred (P : uPred Σ) : iProp := P.
-Definition to_upred (P : iProp) : uPred Σ := P.
+  Definition from_upred (P : uPred Σ) : iProp := P.
+  Definition to_upred (P : iProp) : uPred Σ := P.
 
 End iProp.
 Global Arguments iProp : clear implicits.
 
-Arguments OwnM: simpl never.
+Arguments OwnM : simpl never.
 
 Local Ltac unseal := rewrite ?Own_eq /Own_def.
 
@@ -69,7 +68,7 @@ Section TEST.
   Qed.
 End TEST.
 
-Notation "#=> P" := (|==> P)%I (at level 99).
+(* Notation "#=> P" := (|==> P)%I (at level 99). *)
 
 #[export] Hint Unfold bi_entails bi_sep bi_and bi_or bi_wand bupd bi_bupd_bupd: iprop.
 
@@ -196,50 +195,15 @@ End class_instances.
 
 Section ILEMMAS.
   Context `{Σ: GRA.t}.
-  (* Notation iProp := (iProp Σ). *)
-
-  (* Lemma from_semantic (a: Σ) (P: iProp') (SAT: P a)
-    :
-      Own a ⊢ #=> P.
-  Proof.
-    uipropall. ss. i. exists r. split; [done|].
-    eapply iProp_mono; [| |exact SAT]; done.
-  Qed.
-
-  Lemma to_semantic (a: Σ) (P: iProp') (SAT: Own a ⊢ P) (WF: ✓ a)
-    :
-      P a.
-  Proof. uipropall. eapply SAT; eauto. Qed. *)
-
-  (* Lemma Upd_Pure P
-    :
-      #=> (⌜P⌝ : iProp) ⊢ ⌜P⌝.
-  Proof. iIntros. iModIntro.
-    rr. uipropall. i. rr. uipropall.
-    hexploit (H ε).
-    { by rewrite right_id. }
-    i. des. rr in H1. uipropall.
-  Qed. *)
-
-  Lemma Own_Upd_set
-        (r1: Σ) B
-        (UPD: r1 ~~>: B)
-    :
-      (Own r1) ⊢ (#=> (∃ b, ⌜B b⌝ ∧ (Own b)))
-  .
-  Proof. unseal. by apply: uPred.bupd_ownM_updateP. Qed.
 
   Lemma Own_Upd
         (r1 r2: Σ)
         (UPD: r1 ~~> r2)
     :
-      (Own r1) ⊢ (#=> (Own r2))
+      (Own r1) ⊢ (|==> (Own r2))
   .
   Proof.
-    intros. iIntros "?".
-    iMod (Own_Upd_set _ (r2 =.) with "[$]") as (a'') "[-> $]".
-    { by apply cmra_update_updateP. }
-    done.
+    unseal; iIntros "Hr1"; iPoseProof (uPred.bupd_ownM_update with "Hr1") as "Hr2"; eauto.
   Qed.
 
   Lemma Own_extends
@@ -262,25 +226,11 @@ Section ILEMMAS.
   Lemma OwnM_unit {M : ucmra} `{@GRA.inG M Σ} : ⊢ OwnM ε.
   Proof. rewrite /OwnM GRA.embed_unit. apply Own_unit. Qed.
 
-  Lemma OwnM_Upd_set `{M: ucmra} `{IN: @GRA.inG M Σ}
-        (r1: M) B
-        (UPD: r1 ~~>: B)
-    :
-      (OwnM r1) ⊢ (#=> (∃ b, ⌜B b⌝ ∧ (OwnM b)))
-  .
-  Proof.
-    iIntros "H".
-    iMod (Own_Upd_set with "H") as (b) "[%Hm H1]".
-    { apply GRA.embed_updatable_set, UPD. }
-    destruct Hm as [m [? ?]]. subst.
-    iModIntro. iExists m. iFrame. ss.
-  Qed.
-
   Lemma OwnM_Upd `{M: ucmra} `{@GRA.inG M Σ}
         (r1 r2: M)
         (UPD: r1 ~~> r2)
     :
-      (OwnM r1) ⊢ (#=> (OwnM r2))
+      (OwnM r1) ⊢ (|==> (OwnM r2))
   .
   Proof. apply Own_Upd, GRA.embed_updatable, UPD. Qed.
 
@@ -293,6 +243,7 @@ Section ILEMMAS.
   Proof. revert EXT. move=> [c ->]. by rewrite OwnM_op bi.sep_elim_l. Qed.
 End ILEMMAS.
 
+(* TODO : Move this to tactics *)
 Ltac iOwnWf' H :=
   iPoseProof (OwnM_valid with H) as "%".
 

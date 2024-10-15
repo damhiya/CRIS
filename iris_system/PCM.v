@@ -1,14 +1,11 @@
 Require Export ZArith.
-(* Require Export Znumtheory. *)
 Require Import String.
 Require Import ClassicalChoice ChoiceFacts.
 Require Import Coq.Classes.RelationClasses.
 Require Import Lia.
 Require Import Program.
-(* From stdpp Require coPset gmap. *)
 Require Import Coqlib.
 Require Import Axioms.
-(* Require Import cmra excl updates. *)
 From CCR Require Import ucmra_list.
 From iris.algebra Require Import cmra updates functions.
 

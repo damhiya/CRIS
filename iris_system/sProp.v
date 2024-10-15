@@ -4,7 +4,7 @@ Require Import sflib.
 From iris Require Import bi.big_op.
 From iris Require base_logic.lib.invariants.
 From Coq Require Import Program Arith.
-Require Import Coqlib PCM IPM SRF.
+Require Export Coqlib PCM IPM SRF.
 
 Module HRA.
 
@@ -414,7 +414,7 @@ Module SLRed.
   Proof. unfold SL.plainly. rewrite @SRFRed.cur. reflexivity. Qed.
 
   Lemma upd n p :
-    interp n (SL.upd p) = (#=> interp n p)%I.
+    interp n (SL.upd p) = (|==> interp n p)%I.
   Proof. unfold SL.upd. rewrite @SRFRed.cur. reflexivity. Qed.
 
   Lemma affinely n p :

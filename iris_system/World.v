@@ -2,10 +2,9 @@ From stdpp Require Import namespaces.
 Require Import sflib.
 From iris.algebra Require Import auth agree coPset gset functions gmap_view.
 From iris Require Import bi.big_op.
-From iris Require base_logic.lib.invariants.
+(* From iris Require base_logic.lib.invariants. *)
 
-Require Import Coqlib PCM IPM SRF sProp.
-(* Require Import Coq.Logic.ClassicalEpsilon. *)
+Require Import Coqlib PCM IPM sProp.
 
 Local Notation univ_id := positive.
 Local Notation level := nat.
@@ -33,6 +32,7 @@ Section PCM_OWN.
   Context `{_W: CtxSL.t}.
   Context `{@GRA.inG OwnIRA Σ}.
 
+  (* Owns invariant *)
   Definition OwnIR (u: univ_id) (n : level) (i : positive) (p : SRFSyn.t n) : OwnIRA :=
     discrete_fun_singleton u
       (discrete_fun_singleton n
@@ -81,8 +81,8 @@ Section PCM_OWN.
   Lemma OwnE_union u (E1 E2 : coPset) :
     OwnE u E1 ∗ OwnE u E2 ⊢ OwnE u (E1 ∪ E2).
   Proof.
-  iIntros "H". iDestruct (OwnE_exploit with "H") as %D.
-  rewrite -OwnM_op discrete_fun_singleton_op coPset_disj_union //.
+    iIntros "H". iDestruct (OwnE_exploit with "H") as %D.
+    rewrite -OwnM_op discrete_fun_singleton_op coPset_disj_union //.
   Qed.
 
   Lemma OwnE_disjoint u (E1 E2 : coPset) :
@@ -120,6 +120,10 @@ Section WORLD_SATISFACTION.
   Variable n : level.
   (* FIXME: ⟦p⟧ not infeered as iProp. *)
 
+  Variable p : SRFSyn.t n.
+  Print Instances SRFDom.t.
+  Check (@SRFDom.dom SL.domain).
+  Check (⟦p⟧ : SRFDom.dom).
   Definition inv_satall (I : gmap positive (SRFSyn.t n)) : iProp :=
     [∗ map] i ↦ p ∈ I, (⟦p⟧ ∗ OwnD u {[i]}) ∨ OwnE u {[i]}.
 

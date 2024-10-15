@@ -99,7 +99,8 @@ Canonical Structure uPredI (M : ucmra) : bi :=
      bi_bi_persistently_mixin := uPred_bi_persistently_mixin M |}.
 
 (* [BiInternalEqMixin] is fundamentally only supported by step-indexed [bi]s.
-  We can probably get away with it since everything is a discrete cmra, but not sure how to make iris happy with it.
+   We can probably get away with it since everything is a discrete cmra,
+   but not sure how to make iris happy with it.
 *)
 (* Lemma uPred_internal_eq_mixin M : BiInternalEqMixin (uPredI M) (@uPred_internal_eq M).
 Proof.
@@ -183,7 +184,6 @@ Global Instance uPred_bi_bupd_plainly M : BiBUpdPlainly (uPredI M).
 Proof. exact: bupd_plainly. Qed.
 
 (** Re-state/export lemmas about Iris-specific primitive connectives (own, valid) *)
-
 Module uPred.
 
 Section restate.
@@ -213,9 +213,9 @@ Section restate.
   Proof. exact: uPred_primitive.ownM_unit. Qed.
   (* Lemma later_ownM a : ▷ uPred_ownM a ⊢ ∃ b, uPred_ownM b ∧ ▷ (a ≡ b).
   Proof. exact: uPred_primitive.later_ownM. Qed. *)
-  Lemma bupd_ownM_updateP x `{CmraDiscrete M} (Φ : M → Prop) :
-    x ~~>: Φ → uPred_ownM x ⊢ |==> ∃ y, ⌜Φ y⌝ ∧ uPred_ownM y.
-  Proof. exact: uPred_primitive.bupd_ownM_updateP. Qed.
+  Lemma bupd_ownM_update x y `{CmraDiscrete M} :
+    x ~~> y → uPred_ownM x ⊢ |==> uPred_ownM y.
+  Proof. exact: uPred_primitive.bupd_ownM_update. Qed.
 
   (** This is really just a special case of an entailment
   between two [siProp], but we do not have the infrastructure

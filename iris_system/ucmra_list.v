@@ -70,27 +70,6 @@ Section Elts.
     - apply IHl. now apply Nat.succ_le_mono.
   Qed.
 
-  (* Fixpoint nth_ok (n:nat) (l:ucmra_list) (default:ucmra) {struct l} : bool :=
-    match n, l with
-      | O, x :: l' => true
-      | O, [] => false
-      | S m, [] => false
-      | S m, x :: t => nth_ok m t default
-    end. *)
-
-  (* Fixpoint nth_error (l:ucmra_list) (n:nat) {struct n} : option ucmra :=
-    match n, l with
-      | O, x :: _ => Some x
-      | S n, _ :: l => nth_error l n
-      | _, _ => None
-    end. *)
-
-  (* Definition nth_default (default:ucmra) (l:ucmra_list) (n:nat) : ucmra :=
-    match nth_error l n with
-      | Some x => x
-      | None => default
-    end. *)
-
 End Elts.
 End UList.
 

@@ -49,12 +49,6 @@ Section derived.
   Lemma discrete_valid {A : cmra} (a : A) : ✓ a ⊣⊢ ⌜✓ a⌝.
   Proof. apply discrete_valid. Qed.
 
-  Lemma bupd_ownM_update `{!CmraDiscrete M} x y : x ~~> y → uPred_ownM x ⊢ |==> uPred_ownM y.
-  Proof.
-    intros; rewrite (bupd_ownM_updateP _ (y =.)); last by apply cmra_update_updateP.
-    by apply bupd_mono, exist_elim=> y'; apply pure_elim_l=> ->.
-  Qed.
-
   (** Timeless instances *)
   Global Instance upred_timeless (P : uPredI M) : Timeless P.
   Proof.

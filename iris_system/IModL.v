@@ -1,4 +1,8 @@
-Require Import Coqlib.
+(* TODO : This file seems like a small iris proofmode.
+   Find a way to integrate the usages of this file to proofmodes. *)
+(* Note : codes until start_ipm_proof are useless codes - move below codes to separate file
+   (or maybe remove them) *)
+(* Require Import Coqlib.
 Require Import STS.
 Require Import Behavior.
 Require Import PCM.
@@ -322,4 +326,4 @@ Ltac itree_clarify H :=
   revert H; grind; try unfold trigger in H; try rewrite !bind_vis in H; try depdes H; grind_ret.
 
 
-
+ *)
