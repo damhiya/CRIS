@@ -51,7 +51,6 @@ Section HPSIM_ADD_DUMMY.
   Qed.
   Hint Resolve itreeH_dummy_refl.
 
-
   Lemma itreeH_dummy_dummy with_dummy Q R i (k: Q -> _):
     itreeH_dummy R (i >>= k) (x <- i;; (dummy_term with_dummy);;; k x).
   Proof.
@@ -100,26 +99,22 @@ Section HPSIM_ADD_DUMMY.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       rewrite <-x; destruct with_dummy; grind; econs; eauto with imodL.
       econs. ii. esplits; eauto. econs; eauto with imodL.
-      i. econs. econs. esplits; eauto. econs; eauto with imodL.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_src) -bind_vis.
         destruct with_dummy; grind; eauto using @_hpsim'.
         eapply hpsim_guarantee_src; try econs; eauto with imodL. ii; esplits; eauto.
-        eapply hpsim_tau_src; eauto. econs; ii; esplits; eauto.
-        econs; eauto.
+        econs; eauto.        
       + replace c with (Call fn varg). econs; eauto.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_src) -bind_vis.
         destruct with_dummy; grind; eauto using @_hpsim'.
         eapply hpsim_guarantee_src; try econs; eauto with imodL. ii. esplits; eauto.
-        eapply hpsim_tau_src; eauto. econs; ii; esplits; eauto.
         econs; eauto.
       + replace e with (@IO I R0 fn varg). econs; eauto.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_src) -bind_vis.
         destruct with_dummy; grind; eauto using @_hpsim'.
         eapply hpsim_guarantee_src; try econs; eauto with imodL. ii. esplits; eauto.
-        eapply hpsim_tau_src; eauto. econs; ii; esplits; eauto.
         econs; eauto.
       + replace c with (Call fn varg). econs; eauto. eapply K; eauto.
         eexists with_dummy, _, (x<-f varg;; trigger (Guarantee True);;; tau;; ktrH' x), k.
@@ -127,28 +122,24 @@ Section HPSIM_ADD_DUMMY.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x. destruct with_dummy; grind; eauto using @_hpsim'.
         eapply hpsim_guarantee_src; eauto with imodL. ii. econs. ii. esplits; eauto.
-        eapply hpsim_tau_src; eauto. econs; ii; esplits; eauto.
         econs; eauto.
       + econs; eauto.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_src) -bind_vis.
         destruct with_dummy; grind; eauto using @_hpsim'.
         eapply hpsim_guarantee_src; eauto with imodL. ii. econs. ii. esplits; eauto.
-        eapply hpsim_tau_src; eauto. econs; ii; esplits; eauto.
         econs; eauto.
       + replace e with (Take R0); econs; eauto.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_src) -bind_vis.
         destruct with_dummy; grind; eauto using @_hpsim'.
         eapply hpsim_guarantee_src; eauto with imodL. ii. econs. ii. esplits; eauto.
-        eapply hpsim_tau_src; eauto. econs; ii; esplits; eauto.
         econs; eauto.
       + replace e with (Choose R0); eauto. econs; eauto.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_src) -bind_vis.
         destruct with_dummy; grind; eauto using @_hpsim'.
         eapply hpsim_guarantee_src; eauto with imodL. ii. econs. ii. esplits; eauto.
-        eapply hpsim_tau_src; eauto. econs; ii; esplits; eauto.
         econs; eauto.
       + depdes s; depdes x.
         * econs; eauto.
@@ -157,7 +148,6 @@ Section HPSIM_ADD_DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_src) -bind_vis.
         destruct with_dummy; grind; eauto using @_hpsim'.
         eapply hpsim_guarantee_src; eauto with imodL. ii. econs. ii. esplits; eauto.
-        eapply hpsim_tau_src; eauto. econs; ii; esplits; eauto.
         econs; eauto.
       + depdes s; depdes x.
         * exfalso. apply any_neq_unit; eauto.
@@ -166,35 +156,30 @@ Section HPSIM_ADD_DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_src) -bind_vis.
         destruct with_dummy; grind; eauto using @_hpsim'.
         eapply hpsim_guarantee_src; eauto with imodL. ii. econs. ii. esplits; eauto.
-        eapply hpsim_tau_src; eauto. econs; ii; esplits; eauto.
         econs; eauto.
       + econs; eauto.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_src) -bind_vis.
         destruct with_dummy; grind; eauto using @_hpsim'.
         eapply hpsim_guarantee_src; eauto with imodL. ii. econs. ii. esplits; eauto.
-        eapply hpsim_tau_src; eauto. econs; ii; esplits; eauto.
         econs; eauto.
       + econs; eauto.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_src) -bind_vis.
         destruct with_dummy; grind; eauto using @_hpsim'.
         eapply hpsim_guarantee_src; try econs; eauto with imodL. ii. esplits; eauto.
-        eapply hpsim_tau_src; eauto. econs; ii; esplits; eauto.
         econs; eauto.
       + replace s with (Spawn fn arg). econs; eauto.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_src) -bind_vis.
         destruct with_dummy; grind; eauto using @_hpsim'.
         eapply hpsim_guarantee_src; try econs; eauto with imodL. ii; esplits; eauto.
-        eapply hpsim_tau_src; eauto. econs; ii; esplits; eauto.
         econs; eauto.
       + replace s with (Yield tid). econs; eauto.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_src) -bind_vis.
         destruct with_dummy; grind; eauto using @_hpsim'.
         eapply hpsim_guarantee_src; try econs; eauto with imodL. ii; esplits; eauto.
-        eapply hpsim_tau_src; eauto. econs; ii; esplits; eauto.
         econs; eauto.
       + replace s with Tid. econs; eauto.
     - econs; eauto. econs; eauto.
@@ -240,26 +225,22 @@ Section HPSIM_ADD_DUMMY.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       rewrite <-x; destruct with_dummy; grind; econs; eauto; imodIntroL.
       econs. ii. esplits; eauto. econs; eauto with imodL.
-      i. econs. ii. esplits; eauto. econs; eauto; imodIntroL.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_tgt) -bind_vis.
         destruct with_dummy; grind; eauto using @_hpsim'.
         eapply hpsim_guarantee_tgt; try econs; eauto; imodIntroL. ii; esplits; eauto.
-        eapply hpsim_tau_tgt; eauto. econs; ii; esplits; eauto.
         econs; eauto.
       + replace c with (Call fn varg). econs; eauto.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_tgt) -bind_vis.
         destruct with_dummy; grind; eauto using @_hpsim'.
         eapply hpsim_guarantee_tgt; try econs; eauto; imodIntroL. ii. esplits; eauto.
-        eapply hpsim_tau_tgt; eauto. econs; ii; esplits; eauto.
         econs; eauto.
       + replace e with (@IO I R0 fn varg). econs; eauto.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_tgt) -bind_vis.
         destruct with_dummy; grind; eauto using @_hpsim'.
         eapply hpsim_guarantee_tgt; try econs; eauto; imodIntroL. ii. esplits; eauto.
-        eapply hpsim_tau_tgt; eauto. econs; ii; esplits; eauto.
         econs; eauto.
       + replace c with (Call fn varg). econs; eauto. eapply K; eauto.
         eexists with_dummy, _, (x<-f varg;; trigger (Guarantee True);;; tau;; ktrH' x), k.
@@ -267,28 +248,24 @@ Section HPSIM_ADD_DUMMY.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x. destruct with_dummy; grind; eauto using @_hpsim'.
         eapply hpsim_guarantee_tgt; eauto; imodIntroL. ii. econs. ii. esplits; eauto.
-        eapply hpsim_tau_tgt; eauto. econs; ii; esplits; eauto.
         econs; eauto.
       + econs; eauto.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_tgt) -bind_vis.
         destruct with_dummy; grind; eauto using @_hpsim'.
         eapply hpsim_guarantee_tgt; eauto; imodIntroL. ii. econs. ii. esplits; eauto.
-        eapply hpsim_tau_tgt; eauto. econs; ii; esplits; eauto.
         econs; eauto.
       + replace e with (Choose R0); econs; eauto.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_tgt) -bind_vis.
         destruct with_dummy; grind; eauto using @_hpsim'.
         eapply hpsim_guarantee_tgt; eauto; imodIntroL. ii. econs. ii. esplits; eauto.
-        eapply hpsim_tau_tgt; eauto. econs; ii; esplits; eauto.
         econs; eauto.
       + replace e with (Take R0); eauto. econs; eauto.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_tgt) -bind_vis.
         destruct with_dummy; grind; eauto using @_hpsim'.
         eapply hpsim_guarantee_tgt; eauto; imodIntroL. ii. econs. ii. esplits; eauto.
-        eapply hpsim_tau_tgt; eauto. econs; ii; esplits; eauto.
         econs; eauto.
       + depdes s; depdes x.
         * econs; eauto.
@@ -297,7 +274,6 @@ Section HPSIM_ADD_DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_tgt) -bind_vis.
         destruct with_dummy; grind; eauto using @_hpsim'.
         eapply hpsim_guarantee_tgt; eauto; imodIntroL. ii. econs. ii. esplits; eauto.
-        eapply hpsim_tau_tgt; eauto. econs; ii; esplits; eauto.
         econs; eauto.
       + depdes s; depdes x.
         * exfalso. apply any_neq_unit; eauto.
@@ -306,35 +282,30 @@ Section HPSIM_ADD_DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_tgt) -bind_vis.
         destruct with_dummy; grind; eauto using @_hpsim'.
         eapply hpsim_guarantee_tgt; eauto; imodIntroL. ii. econs. ii. esplits; eauto.
-        eapply hpsim_tau_tgt; eauto. econs; ii; esplits; eauto.
         econs; eauto.
       + econs; eauto.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_tgt) -bind_vis.
         destruct with_dummy; grind; eauto using @_hpsim'.
         eapply hpsim_guarantee_tgt; eauto; imodIntroL. ii. econs. ii. esplits; eauto.
-        eapply hpsim_tau_tgt; eauto. econs; ii; esplits; eauto.
         econs; eauto.
       + econs; eauto.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_tgt) -bind_vis.
         destruct with_dummy; grind; eauto using @_hpsim'.
         eapply hpsim_guarantee_tgt; try econs; eauto; imodIntroL. ii. esplits; eauto.
-        eapply hpsim_tau_tgt; eauto. econs; ii; esplits; eauto.
         econs; eauto.
       + replace s with (Spawn fn arg). econs; eauto.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_tgt) -bind_vis.
         destruct with_dummy; grind; eauto using @_hpsim'.
         eapply hpsim_guarantee_tgt; try econs; eauto; imodIntroL. ii. esplits; eauto.
-        eapply hpsim_tau_tgt; eauto. econs; ii; esplits; eauto.
         econs; eauto.
       + replace s with (Yield tid). econs; eauto.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_tgt) -bind_vis.
         destruct with_dummy; grind; eauto using @_hpsim'.
         eapply hpsim_guarantee_tgt; try econs; eauto; imodIntroL. ii. esplits; eauto.
-        eapply hpsim_tau_tgt; eauto. econs; ii; esplits; eauto.
         econs; eauto.
       + replace s with Tid. econs; eauto.
     - subst. econs; eauto. econs; eauto.
@@ -357,9 +328,9 @@ Section HPSIM_ADD_DUMMY.
       try (by gstep; econs; econs; eauto 7 using @_hpsim' with paco);
       guclo hpsimC_spec; econs; ii; esplits; eauto using @_hpsim' with paco.
     - econs; eauto. guclo hpsim_dummyC_src_spec. econs; eauto.
-      exists true. esplits; eauto. grind.
+      eexists true, _, (f varg), (fun x => tau;; k_src x). split; grind.
     - econs; eauto. guclo hpsim_dummyC_tgt_spec. econs; eauto.
-      exists true. esplits; eauto. grind.
+      eexists true, _, (f varg), (fun x => tau;; k_tgt x). split; grind.
   Qed.
 
   Corollary hpsim_add_dummy:

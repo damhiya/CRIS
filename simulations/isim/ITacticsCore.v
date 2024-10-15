@@ -436,12 +436,19 @@ Ltac unfold_stb :=
       end
   end.
 
-Ltac prep :=
+Ltac _prep :=
   first
     [ unwrapSB
     | unwrapS; unfold_stb; unwrapSB
     | unwrapP; unwrapSB
-    | idtac];
+    | idtac].
+
+Ltac prep :=
+  try rewrite !bind_bind;
+  try match goal with
+      | [|-context[(_, HModSem.sandbox _ _)]] => _prep
+      | [|-context[(_, HModSem.sandbox _ _ >>= _)]] => _prep
+      end;
   try rewrite !bind_bind;
   try rewrite !bind_tau.
 
@@ -645,5 +652,3 @@ Notation "E1 '------------------------------------------------------------------
   (environments.envs_entails (Envs E1 E2 _) (bi_wand P (isim _ _ _ _ _ _ _ _ _ _ (st_src, _) (st_tgt, _))))
     (at level 50,
      format "E1 '------------------------------------------------------------------□' '//' E2 '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '-------------------------------isim-------------------------------' '//' P  '-∗'  'ISIM' ").
-
-

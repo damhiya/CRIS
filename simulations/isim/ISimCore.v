@@ -286,15 +286,13 @@ Section SIM.
     (FIND: alist_find fn fl_src = Some f)
   :
   bi_entails
-    (@isim r g R RR true pt nths (st_src, (f varg) >>= k_src) (st_tgt, i_tgt))
+    (@isim r g R RR true pt nths (st_src, x <- f varg;; tau;; k_src x) (st_tgt, i_tgt))
     (@isim r g R RR ps pt nths (st_src, trigger (Call fn varg) >>= k_src) (st_tgt, i_tgt)).
   Proof.
     uiprop. i. guclo hpsimC_spec. econs; esplits; eauto. econs; eauto. grind.
-    pattern (` r1 : Any.t <- f varg;; ` x : Any.t <- (Ret ();;; Ret r1);; k_src x).
-    replace (` r1 : Any.t <- f varg;; ` x : Any.t <- (Ret ();;; Ret r1);; k_src x) with (f varg >>= k_src); grind.
-    rewrite <- bind_bind. f_equal. etrans.
-    { instantiate (1:=  (`x : Any.t <- f varg;; Ret x)). grind. } 
-    f_equal. extensionality x. grind.
+    pattern (r1 <- f varg;; x <- (Ret ();;; tau;; Ret r1);; k_src x).
+    eapply eq_ind; eauto.
+    repeat f_equal. extensionalities. grind.
   Qed.
 
   Lemma isim_inline_tgt
@@ -302,15 +300,13 @@ Section SIM.
     (FIND: alist_find fn fl_tgt = Some f)
   :
     bi_entails
-      (@isim r g R RR ps true nths (st_src, i_src) (st_tgt, (f varg) >>= k_tgt))
+      (@isim r g R RR ps true nths (st_src, i_src) (st_tgt, x <- f varg;; tau;; k_tgt x))
       (@isim r g R RR ps pt nths (st_src, i_src) (st_tgt, trigger (Call fn varg) >>= k_tgt)).
   Proof. 
     uiprop. i. guclo hpsimC_spec. econs; esplits; eauto. econs; eauto. grind.
-    pattern (` r1 : Any.t <- f varg;; ` x : Any.t <- (Ret ();;; Ret r1);; k_tgt x).
-    replace (` r1 : Any.t <- f varg;; ` x : Any.t <- (Ret ();;; Ret r1);; k_tgt x) with (f varg >>= k_tgt); grind.
-    rewrite <- bind_bind. f_equal. etrans.
-    { instantiate (1:= (`x : Any.t <- f varg;; Ret x)). grind. }
-    f_equal. extensionality x. grind. 
+    pattern (r1 <- f varg;; x <- (Ret ();;; tau;; Ret r1);; k_tgt x).
+    eapply eq_ind; eauto.
+    repeat f_equal. extensionalities. grind.
   Qed.
   
   Lemma isim_take_src
