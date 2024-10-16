@@ -128,10 +128,11 @@ Proof.
 Qed.
 
 Module GRA.
-  Record t: Type := GRA__INTERNAL {
-    gra_map :> nat → ucmra;
+  Class t: Type := GRA__INTERNAL {
+    gra_map : nat → ucmra;
     gra_discrete : ∀ i, CmraDiscrete (gra_map i);
   }.
+  Coercion gra_map : t >-> Funclass.
   Local Existing Instance gra_discrete.
 
   Class inG (RA: ucmra) (Σ: t) := InG {
