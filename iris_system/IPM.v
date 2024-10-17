@@ -134,12 +134,12 @@ Section class_instances.
     (OwnM (a1 ⋅ a2)) ⊣⊢ (OwnM a1 ∗ OwnM a2).
   Proof. by rewrite /OwnM -GRA.embed_add Own_op. Qed.
 
-  Global Instance OwnM_ne `{GRA.inG M Σ} : NonExpansive (@OwnM Σ M _).
+  Global Instance OwnM_ne `{@GRA.inG M Σ} : NonExpansive (@OwnM Σ M _).
   Proof. solve_proper. Qed.
   Global Instance OwnM_proper (M: ucmra) `{@GRA.inG M Σ} :
     Proper ((≡) ==> (⊣⊢)) (@OwnM Σ M _) := ne_proper _.
 
-  Global Instance OwnM_core_persistent `{GRA.inG M Σ} (a : M) :
+  Global Instance OwnM_core_persistent `{@GRA.inG M Σ} (a : M) :
     CoreId a → Persistent (OwnM a).
   Proof.
     rewrite /OwnM => CORE. apply Own_core_persistent.

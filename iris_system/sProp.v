@@ -14,14 +14,14 @@ Module HRA.
 
   Class subG (Γ: t) (Σ: GRA.t) : Type := {
     subG_map: nat -> nat;
-    subG_prf: forall i, (GRA.gra_map Σ) (subG_map i) = (GRA.gra_map Γ) i;
+    subG_prf: forall i, (@GRA.gra_map Σ) (subG_map i) = (@GRA.gra_map Γ) i;
   }.
 
   Coercion subG_map: subG >-> Funclass.
 
   Context `{sub: @subG Γ Σ}.
 
-  Global Program Instance embed (i:nat) : @GRA.inG (GRA.gra_map Γ i) Σ := {
+  Global Program Instance embed (i:nat) : @GRA.inG (@GRA.gra_map Γ i) Σ := {
       inG_id := sub i;
     }.
   Next Obligation. i. symmetry. apply HRA.subG_prf. Qed.
@@ -112,7 +112,7 @@ Module SL.
   Context `{Γ: HRA.t}.
 
   Variant shape : Type :=
-    | _ownm i (r : (GRA.gra_map Γ) i)
+    | _ownm i (r : (@GRA.gra_map Γ) i)
     | _pure (P : Prop)
     | _and
     | _or
