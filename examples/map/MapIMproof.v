@@ -135,8 +135,7 @@ Section SIMMODSEM.
     iSplit; eauto.
 
     (* TGT: handle the postcond of alloc *)
-    steps_r. apc_r. steps_r.
-    iDestruct "GRT" as "[GRT %]". 
+    steps_r. iDestruct "GRT" as "[GRT %]". 
     iDestruct "GRT" as (?) "(% & POINTS)". subst. hss.
 
     (* prepare and start an induction *)
@@ -190,8 +189,7 @@ Section SIMMODSEM.
       }
 
       (* TGT: handle the postcond of store *)
-      steps_r. apc_r. steps_r.
-      iDestruct "GRT" as "((GRT & %) & %)". subst.
+      steps_r. iDestruct "GRT" as "((GRT & %) & %)". subst.
       iSpecialize ("CTN" $! (Vint 0)). iPoseProof ("CTN" with "GRT") as "PTS".
       rewrite ->!Zpos_P_of_succ_nat, <-!Nat2Z.inj_succ.
       replace (sz - S n + 1)%Z with (sz - n)%Z by nia.
@@ -238,8 +236,7 @@ Section SIMMODSEM.
     iSplitL "IP"; eauto.
     
     (* TGT: handle the postcond of load *)
-    steps_r. apc_r. steps_r.
-    iDestruct "GRT" as "[[GRT %] %]". subst. hss. steps_r.
+    steps_r. iDestruct "GRT" as "[[GRT %] %]". subst. hss. steps_r.
 
     (* prove the IST of Map *)
     step. repeat (iSplit; eauto).
@@ -283,8 +280,7 @@ Section SIMMODSEM.
     iSplitL "IP". { eauto. }
 
     (* TGT: handle the postcond of load *)
-    steps_r. apc_r. steps_r.
-    iDestruct "GRT" as "[[GRT %] %]". subst. hss. steps_r.
+    steps_r. iDestruct "GRT" as "[[GRT %] %]". subst. hss. steps_r.
 
     (* prove the IST of Map *)
     step. repeat (iSplit; eauto).

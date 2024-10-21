@@ -44,16 +44,14 @@ Section SPEC.
       (OwnM (auth_r v)).
 
   Definition get_spec : fspec :=
-    mk_simple (fun v: Z =>
-                 (ord_pure 0,
-                 (fun arg => ⌜arg = tt↑⌝ ∗ cell v),
-                 (fun ret => ⌜ret = v↑⌝ ∗ cell v)))%I.
+    fspec_simple (fun v: Z =>
+     ((fun arg => ⌜arg = tt↑⌝ ∗ cell v),
+      (fun ret => ⌜ret = v↑⌝ ∗ cell v)))%I.
 
   Definition set_spec : fspec :=
-    mk_simple (fun '(v0,v) =>
-                 (ord_pure 0,
-                 (fun arg => ⌜arg = v↑⌝ ∗ (pending ∨ cell v0)),
-                 (fun ret => ⌜ret = tt↑⌝ ∗ cell v)))%I.
+    fspec_simple (fun '(v0,v) =>
+     ((fun arg => ⌜arg = v↑⌝ ∗ (pending ∨ cell v0)),
+      (fun ret => ⌜ret = tt↑⌝ ∗ cell v)))%I.
 
   Definition Stb : alist gname fspec :=
     Seal.sealing "ccr" [(CellName.get idx, get_spec);

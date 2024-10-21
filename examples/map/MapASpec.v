@@ -55,29 +55,25 @@ Section MAP.
     ([∗ list] i↦v ∈ (repeat (0:Z) sz), points_to i%Z v)%I.
   
   Definition init_spec: fspec :=
-    mk_simple (fun (sz: nat) =>
-     (ord_top,
-      (fun varg => ⌜varg = ([Vint sz]: list val)↑
+    fspec_simple (fun (sz: nat) =>
+     ((fun varg => ⌜varg = ([Vint sz]: list val)↑
                     ∧ (8 * (Z.of_nat sz) < modulus_64%Z)%Z⌝
                    ∗ pending)%I,
       (fun vret => ⌜vret = Vundef↑⌝ ∗ initial_points_tos sz)%I)).
 
   Definition get_spec: fspec :=
-    mk_simple (fun '(k, v) =>
-     (ord_top,
-      (fun varg => ⌜varg = ([Vint k])↑⌝ ∗ points_to k v)%I,
+    fspec_simple (fun '(k, v) =>
+     ((fun varg => ⌜varg = ([Vint k])↑⌝ ∗ points_to k v)%I,
       (fun vret => ⌜vret = (Vint v)↑⌝ ∗ points_to k v)%I)).
 
   Definition set_spec: fspec :=
-    mk_simple (fun '(k, w, v) =>
-     (ord_top,
-      (fun varg => ⌜varg = ([Vint k; Vint v])↑⌝ ∗ points_to k w)%I,
+    fspec_simple (fun '(k, w, v) =>
+     ((fun varg => ⌜varg = ([Vint k; Vint v])↑⌝ ∗ points_to k w)%I,
       (fun vret => ⌜vret = Vundef↑⌝ ∗ points_to k v)%I)).
 
   Definition set_by_user_spec: fspec :=
-    mk_simple (fun '(k, w) =>
-     (ord_top,
-      (fun varg => ⌜varg = ([Vint k])↑⌝ ∗ points_to k w)%I,
+    fspec_simple (fun '(k, w) =>
+     ((fun varg => ⌜varg = ([Vint k])↑⌝ ∗ points_to k w)%I,
       (fun vret => ⌜vret = Vundef↑⌝ ∗ ∃ v, points_to k v)%I)).
   
   Definition Stb: alist gname fspec :=

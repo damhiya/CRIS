@@ -7,11 +7,6 @@ Require Import Events SMod.
 
 Set Implicit Arguments.
 
-
-Notation mblock := nat (only parsing).
-Notation ptrofs := Z (only parsing).
-
-
 Create HintDb stb.
 Hint Rewrite (Seal.sealing_eq "stb"): stb.
 
@@ -59,27 +54,6 @@ Ltac stb_tac :=
     autounfold with stb in H; autorewrite with stb in H; simpl in H
   end.
 
-
-
-Definition ord_weaker (next cur: ord): Prop :=
-  match next, cur with
-  | ord_pure next, ord_pure cur => (next <= cur)%ord
-  (* | _, ord_top => True *)
-  | ord_top, ord_top => True
-  | _, _ => False
-  end
-.
-
-Global Program Instance ord_weaker_PreOrder: PreOrder ord_weaker.
-Next Obligation.
-  ii. destruct x; ss. refl.
-Qed.
-Next Obligation.
-  ii. destruct x, y, z; ss. etrans; et.
-Qed.
-
-
-
 Section HEADER.
 
   Context `{Σ: GRA.t}.
@@ -87,7 +61,6 @@ Section HEADER.
   Definition fspec_weaker (fsp_src fsp_tgt: fspec): Prop :=
     forall x_src,
     exists x_tgt,
-      (<<MEASURE: ord_weaker (fsp_tgt.(measure) x_tgt) (fsp_src.(measure) x_src)>>) ∧
       (<<PRE: forall arg_src arg_tgt,
           (fsp_src.(precond) x_src arg_src arg_tgt) ⊢ #=> (fsp_tgt.(precond) x_tgt arg_src arg_tgt)>>) ∧
       (<<POST: forall ret_src ret_tgt,
@@ -98,7 +71,6 @@ Section HEADER.
   Next Obligation.
   Proof.
     ii. exists x_src. esplits; ii.
-    { refl. }
     { iStartProof. iIntros "H". iApply "H". }
     { iStartProof. iIntros "H". iApply "H". }
   Qed.
@@ -106,7 +78,6 @@ Section HEADER.
   Proof.
     ii. hexploit (H x_src). i. des.
     hexploit (H0 x_tgt). i. des. esplits; ii.
-    { etrans; et. }
     { iStartProof. iIntros "H".
       iApply bupd_idemp. iApply PRE0.
       iApply bupd_idemp. iApply PRE. iApply "H". }

@@ -111,10 +111,7 @@ Section EVENTS_OTHER.
   
   Definition hmodE := agE +' pmodE.
 
-  Variant apcE: Type -> Type :=
-  | APC: apcE unit.
-
-  Definition smodE := apcE +' hmodE.
+  Definition smodE := hmodE.
 
 End EVENTS_OTHER.
 

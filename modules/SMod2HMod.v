@@ -7,8 +7,7 @@ Require Import IRed.
 Require Import STS.
 Require Import Behavior.
 Require Import PCM IPM.
-
-From Ordinal Require Export Ordinal Arithmetic Inaccessible.
+Require Import World sWorld.
 
 From ExtLib Require Import
      Core.RelDec
@@ -17,29 +16,6 @@ From ExtLib Require Import
 
 Set Implicit Arguments.
 
-Section ORD.
-  Inductive ord: Type :=
-  | ord_pure (n: Ord.t)
-  | ord_top
-  .
-
-  Definition is_pure (o: ord): bool := match o with | ord_pure _ => true | _ => false end.
-  
-  Definition ord_lt (next cur: ord): Prop :=
-    match next, cur with
-    | ord_pure next, ord_pure cur => (next < cur)%ord
-    | _, ord_top => True
-    | _, _ => False
-    end.
-
-  Definition ord_eval (tbr: bool) (o: ord): Prop :=
-    match tbr with
-    | true => is_pure o
-    | false => o = ord_top
-    end.
-
-End ORD.
-
 Section FSPEC.
   Context `{Σ: GRA.t}.
 
@@ -47,47 +23,56 @@ Section FSPEC.
   
   Record fspec: Type := mk_fspec {
     meta: Type;
-    measure: meta -> ord;
-    precond: meta -> Any.t -> Any.t -> iProp; (*** meta-variable -> new logical arg -> current logical arg -> resource arg -> Prop ***)
-    postcond: meta -> Any.t -> Any.t -> iProp; (*** meta-variable -> new logical ret -> current logical ret -> resource ret -> Prop ***)
+    precond: meta -> Any.t -> Any.t -> iProp; (*** meta-variable -> new logical arg -> current logical arg -> iProp ***)
+    postcond: meta -> Any.t -> Any.t -> iProp; (*** meta-variable -> new logical ret -> current logical ret -> iProp ***)
   }.
 
-  Definition mk (X AA AR: Type) (measure: X -> ord) (precond: X -> AA -> Any.t -> iProp) (postcond: X -> AR -> Any.t -> iProp) :=
-    @mk_fspec
-      X
-      measure
-      (fun x arg_src arg_tgt => (∃ (aa: AA), ⌜arg_src = aa↑⌝ ∗ precond x aa arg_tgt)%I)
-      (fun x ret_src ret_tgt => (∃ (ar: AR), ⌜ret_src = ar↑⌝ ∗ postcond x ar ret_tgt)%I).
-
-  Definition fspec_trivial: fspec :=
-    mk_fspec (meta:=unit) (fun _ => ord_top) (fun _ argh argl => (⌜argh = argl⌝: iProp)%I)
-             (fun _ reth retl => (⌜reth = retl⌝: iProp)%I).
-
-  Definition fbody_trivial: Any.t -> itree smodE Any.t :=
-    fun _ => trigger (Choose _).
-  
   Record fspecbody: Type := mk_specbody {
     fsb_fspec:> fspec;
     fsb_body: Any.t -> itree smodE Any.t;
   }
   .
+  
+  Definition fspec_trivial: fspec :=
+    mk_fspec (meta:=unit)
+             (fun _ argh argl => (⌜argh = argl⌝: iProp)%I)
+             (fun _ reth retl => (⌜reth = retl⌝: iProp)%I).
 
-  Definition mk_simple {X: Type} (DPQ: X -> ord * (Any.t -> iProp) * (Any.t -> iProp)): fspec :=
-    mk_fspec (fst ∘ fst ∘ DPQ)
-             (fun x y a => (((snd ∘ fst ∘ DPQ) x a: iProp) ∗ ⌜y = a⌝)%I)
+  Definition fbody_trivial: Any.t -> itree smodE Any.t :=
+    fun _ => trigger (Choose _).
+
+  Definition fspec_virtual (M VA VR: Type) (precond: M -> VA -> Any.t -> iProp) (postcond: M -> VR -> Any.t -> iProp) :=
+    mk_fspec (meta:=M)
+      (fun x varg arg => (∃ va: VA, ⌜varg = va↑⌝ ∗ precond x va arg)%I)
+      (fun x vret ret => (∃ vr: VR, ⌜vret = vr↑⌝ ∗ postcond x vr ret)%I).
+
+  Definition fspec_simple {X: Type} (DPQ: X -> (Any.t -> iProp) * (Any.t -> iProp)): fspec :=
+    mk_fspec (fun x y a => (((fst ∘ DPQ) x a: iProp) ∗ ⌜y = a⌝)%I)
              (fun x z a => (((snd ∘ DPQ) x a: iProp) ∗ ⌜z = a⌝)%I)
   .
 
   Definition app_DPQ {X0} {X1}
-    (DPQ0: X0 -> ord * (Any.t -> iProp) * (Any.t -> iProp))
-    (DPQ1: X1 -> ord * (Any.t -> iProp) * (Any.t -> iProp))
+    (DPQ0: X0 -> (Any.t -> iProp) * (Any.t -> iProp))
+    (DPQ1: X1 -> (Any.t -> iProp) * (Any.t -> iProp))
   :
-    (X0 + X1) -> ord * (Any.t -> iProp) * (Any.t -> iProp) :=
+    (X0 + X1) -> (Any.t -> iProp) * (Any.t -> iProp) :=
     fun meta =>
       match meta with
       | inl meta0 => DPQ0 meta0
       | inr meta1 => DPQ1 meta1
       end.
+
+  Context `{_W: CtxWD.t (Σ:=Σ)}.
+
+  Variant meta_inv {X: positive -> nat -> Type} : Type :=
+  | mk_meta (u: positive) (n: nat) (x: X u n).  
+
+  Definition fspec_inv (k: nat) (fsp: positive -> nat -> fspec): fspec :=
+    mk_fspec (meta := @meta_inv (fun u n => (fsp u n).(meta)))
+      (fun '(mk_meta u n x) varg arg =>
+         closed_world u (k+n) ⊤ ∗ (fsp u n).(precond) x varg arg)%I
+      (fun '(mk_meta u n x) vret ret =>
+         closed_world u (k+n) ⊤ ∗ (fsp u n).(postcond) x vret ret)%I.
   
 End FSPEC.
 
@@ -96,222 +81,90 @@ Notation "DPQ0 @ DPQ1" := (app_DPQ DPQ0 DPQ1) (at level 60, right associativity)
 Arguments precond: simpl never.
 Arguments postcond: simpl never.
 
-Section APC.
+Section HOARE.
+
   Context `{Σ: GRA.t}.
-  
-  Definition HoareCall (tbr: bool) (ord_cur: ord) (fsp: fspec): gname -> Any.t -> (itree hmodE) Any.t 
+
+  Variable ginv : invspec.
+  Variable stb: gname -> option fspec.
+
+  Definition HoareCall (fsp: fspec): gname -> Any.t -> (itree hmodE) Any.t 
     := 
-    fun fn varg_src =>
+    fun fn varg =>
       x <- trigger (Choose fsp.(meta));; 
 
       (*** precondition ***)
-      varg_tgt <- trigger (Choose Any.t);;
-      let ord_next := fsp.(measure) x in
-      trigger (Guarantee ((fsp.(precond) x varg_src varg_tgt) ∗ ⌜ord_lt ord_next ord_cur⌝%I ∗ (⌜ord_eval tbr ord_next⌝%I)));;;
+      arg <- trigger (Choose Any.t);;
+      trigger (Guarantee (fsp.(precond) x varg arg));;;
 
       (*** call ***)
-      vret_tgt <- trigger (Call fn varg_tgt);; 
+      ret <- trigger (Call fn arg);;
 
       (*** postcondition ***)
-      vret_src <- trigger (Take Any.t);;
-      trigger (Assume (fsp.(postcond) x vret_src vret_tgt));;;
+      vret <- trigger (Take Any.t);;
+      trigger (Assume (fsp.(postcond) x vret ret));;;
 
-      Ret vret_src.  
+      Ret vret.  
 
-  Definition HoareCallPre
-        (tbr: bool)
-        (ord_cur: ord)
-        (fsp: fspec): gname -> Any.t -> (itree hmodE) _ :=
-  fun fn varg_src =>
-
+  Definition HoareSpawn (fsp: fspec) (fn: gname) (arg: Any.t) : itree hmodE nat :=
     x <- trigger (Choose fsp.(meta));; 
+    varg <- trigger (Choose Any.t);;
+    trigger (Guarantee (fsp.(precond) x arg varg));;;
+    trigger (Spawn fn arg).
 
-  (*** precondition ***)
-    varg_tgt <- trigger (Choose Any.t);;
-    let ord_next := fsp.(measure) x in
-    trigger (Guarantee ((fsp.(precond) x varg_src varg_tgt) ∗ ⌜ord_lt ord_next ord_cur⌝%I ∗ (⌜ord_eval tbr ord_next⌝%I)));;;
-    Ret (x, varg_tgt).
-
-  Definition HoareCallPost
-        (tbr: bool) (ord_cur: ord) (fsp: fspec) vret_tgt x : (itree hmodE) Any.t :=
-    vret_src <- trigger (Take Any.t);;
-    trigger (Assume (fsp.(postcond) x vret_src vret_tgt));;;
-    Ret vret_src.
-
-  Lemma HoareCall_parse
-        (tbr: bool)
-        (ord_cur: ord)
-        (fsp: fspec)
-        (fn: gname)
-        (varg_src: Any.t)
-    :
-      HoareCall tbr ord_cur fsp fn varg_src =
-      '(x, varg_tgt) <- HoareCallPre tbr ord_cur fsp fn varg_src;;
-      vret_tgt <- trigger (Call fn varg_tgt);;
-      HoareCallPost tbr ord_cur fsp vret_tgt x.
-  Proof.
-    unfold HoareCall, HoareCallPre, HoareCallPost. grind.
-  Qed.
-
-  Variable stb: gname -> option fspec.
-
-  Program Fixpoint _APC (at_most: Ord.t) {wf Ord.lt at_most} : ord -> itree hmodE unit :=
-    fun ord_cur => 
-      break <- trigger (Choose _);;
-      if break: bool then Ret tt
-      else
-        n <- trigger (Choose Ord.t);;
-        trigger (Choose (n < at_most)%ord);;;
-        '(fn, varg) <- trigger (Choose _);;
+  Definition HoareYield (tid: nat) : itree hmodE unit :=
+    trigger (Guarantee (ginv tid));;;
+    trigger (Yield tid);;;
+    my_tid <- trigger Tid;;
+    trigger (Assume (ginv my_tid)).
+  
+  Definition handle_schE_hmodE : schE ~> itree hmodE :=
+    fun _ e =>
+      match e in schE T return itree hmodE T with
+      | Spawn fn arg =>
+          fsp <- (stb fn)!;;
+          HoareSpawn fsp fn arg
+      | Yield tid =>
+          HoareYield tid
+      | Tid => trigger Tid
+      end.
+  
+  Definition handle_callE_hmodE: callE ~> itree hmodE :=
+    fun _ '(Call fn varg) => 
         fsp <- (stb fn)!;;
-        _ <- HoareCall true ord_cur fsp fn varg;;
-        (_APC n) _ ord_cur.
-  Next Obligation. i. auto. Qed.
-  Next Obligation. eapply Ord.lt_well_founded. Qed.
+        HoareCall fsp fn varg.
 
-  Definition HoareAPC (ord_cur: ord): itree hmodE unit :=
-    at_most <- trigger (Choose _);;
-    _APC at_most ord_cur.
+  Definition interp_smod R (it : itree smodE R) : itree hmodE R :=
+    interp (case_ (bif:=sum1) trivial_Handler
+           (case_ (bif:=sum1) handle_schE_hmodE
+           (case_ (bif:=sum1) handle_callE_hmodE
+            trivial_Handler))) it.
 
-  Lemma unfold_APC: forall at_most ord_cur, 
-    _APC at_most ord_cur 
-    = 
-    break <- trigger (Choose _);;
-    if break: bool then Ret tt
-    else
-      n <- trigger (Choose Ord.t);;
-      guarantee (n < at_most)%ord;;;
-      '(fn, varg) <- trigger (Choose _);;
-      fsp <- (stb fn)!;;
-      _ <- HoareCall true ord_cur fsp fn varg;;
-      (_APC n) ord_cur.
-  Proof.
-    i. unfold _APC. rewrite Fix_eq; eauto.
-    { repeat f_equal. extensionality break. destruct break; ss.
-      repeat f_equal. extensionality n.
-      unfold guarantee. rewrite bind_bind.
-      repeat f_equal. extensionality p.
-      rewrite bind_ret_l. repeat f_equal. extensionality x. destruct x. auto. }
-    { i. replace g with f; auto. extensionality o. eapply H. }
-  Qed.
+  Definition HoareFun {X: Type}
+    (P: X -> Any.t -> Any.t -> iProp)
+    (Q: X -> Any.t -> Any.t -> iProp)
+    (body: Any.t -> itree smodE Any.t): Any.t -> itree hmodE Any.t
+    :=
+    fun arg =>
+      x <- trigger (Take X);;
 
-  Global Opaque _APC.
+      varg <- trigger (Take _);;
+      trigger (Assume (P x varg arg));;; (*** precondition ***)
 
-End APC.
+      vret <- interp_smod (body varg);;
 
-Section HOARE.
-  Context `{Σ: GRA.t}.
+      ret <- trigger (Choose Any.t);;
+      trigger (Guarantee (Q x vret ret));;; (*** postcondition ***)
+
+      Ret ret.
   
-  Section INTERP.
-    Section SPC.
-      (* spc to mid *)
-      Variable ginv : invspec.
-      Variable stb: gname -> option fspec.
-
-      Definition handle_apcE_hmodE (ord_cur: ord): apcE ~> itree hmodE :=
-        fun _ '(APC) => HoareAPC stb ord_cur.
-
-      Definition HoareSpawn (fsp: fspec) (fn: gname) (arg: Any.t) : itree hmodE nat :=
-        x <- trigger (Choose fsp.(meta));; 
-        varg <- trigger (Choose Any.t);;
-        trigger (Guarantee (fsp.(precond) x arg varg));;;
-        trigger (Spawn fn arg).
-
-      Definition HoareYield (tid: nat) : itree hmodE unit :=
-        trigger (Guarantee (ginv tid));;;
-        trigger (Yield tid);;;
-        my_tid <- trigger Tid;;
-        trigger (Assume (ginv my_tid)).
-      
-      Definition handle_schE_hmodE : schE ~> itree hmodE :=
-        fun _ e =>
-          match e in schE T return itree hmodE T with
-          | Spawn fn arg =>
-              fsp <- (stb fn)!;;
-              HoareSpawn fsp fn arg
-          | Yield tid =>
-              HoareYield tid
-          | Tid => trigger Tid
-          end.
-      
-      Definition handle_callE_hmodE ord_cur: callE ~> itree hmodE :=
-        fun _ '(Call fn arg) => 
-            fsp <- (stb fn)!;;
-            HoareCall false ord_cur fsp fn arg.
-
-      Definition interp_smod ord_cur: itree smodE ~> itree hmodE :=
-        interp (case_ (bif:=sum1) (handle_apcE_hmodE ord_cur)
-               (case_ (bif:=sum1) (trivial_Handler)
-               (case_ (bif:=sum1) (handle_schE_hmodE)
-               (case_ (bif:=sum1) (handle_callE_hmodE ord_cur)
-                trivial_Handler)))).
-
-      Definition HoareBody (ord_cur: ord) (body: Any.t -> itree smodE Any.t) (varg_src: Any.t) := 
-        match ord_cur with
-        | ord_pure _ => trigger APC;;; trigger (Choose _)
-        | _ => body (varg_src)
-        end.
-      
-      Definition HoareFun
-                 {X: Type}
-                 (D: X -> ord)
-                 (P: X -> Any.t -> Any.t -> iProp)
-                 (Q: X -> Any.t -> Any.t -> iProp)
-                 (body: Any.t -> itree smodE Any.t): Any.t -> itree hmodE Any.t := fun varg_tgt =>
-        x <- trigger (Take X);;
-
-        varg_src <- trigger (Take _);;
-        let ord_cur := D x in
-        trigger (Assume (P x varg_src varg_tgt));;; (*** precondition ***)
-
-        vret_src <- interp_smod ord_cur (HoareBody ord_cur body varg_src);;
-
-        vret_tgt <- trigger (Choose Any.t);;
-        trigger (Guarantee (Q x vret_src vret_tgt));;; (*** postcondition ***)
-
-        Ret vret_tgt.
-
-      Definition interp_sb_hp (sb: fspecbody): (Any.t -> itree hmodE Any.t) :=
-        let fs: fspec := sb.(fsb_fspec) in
-        (HoareFun (fs.(measure)) (fs.(precond)) (fs.(postcond)) (sb.(fsb_body))).
-
-    End SPC.
-    
-    (* Section LIFT.
-      (* Lifting tgt module to mid level. Not sure about the usage. *)
-      Definition interp_modE_hmodE: itree modE ~> itree hmodE :=
-        interp trivial_Handler.
-      
-      Definition lift_modE_fun (f: Any.t -> itree modE Any.t): Any.t -> itree hmodE Any.t :=
-        fun x => interp_modE_hmodE (f x).
-  
-      Definition prog_unit: callE ~> itree modE :=
-        fun _ '(Call _ _) => Ret tt↑.
-    End LIFT. *)
-
-  End INTERP.
+  Definition interp_sb_hp (sb: fspecbody): (Any.t -> itree hmodE Any.t) :=
+    let fs: fspec := sb.(fsb_fspec) in
+    HoareFun fs.(precond) fs.(postcond) sb.(fsb_body).
 
 End HOARE.
 
-(* Module IPCNotations. *)
-  (* Notation ";;; t2" := *)
-  (*   (ITree.bind (trigger APC) (fun _ => t2)) *)
-  (*     (at level 63, t2 at next level, right associativity) : itree_scope. *)
-  (* Notation "` x : t <- t1 ;;; t2" := *)
-  (*   (ITree.bind t1 (fun x : t => ;;; t2)) *)
-  (*     (at level 62, t at next level, t1 at next level, x ident, right associativity) : itree_scope. *)
-  (* Notation "x <- t1 ;;; t2" := *)
-  (*   (ITree.bind t1 (fun x => ;;; t2)) *)
-  (*     (at level 62, t1 at next level, right associativity) : itree_scope. *)
-  (* Notation "' p <- t1 ;;; t2" := *)
-  (*   (ITree.bind t1 (fun x_ => match x_ with p => ;;; t2 end)) *)
-  (*     (at level 62, t1 at next level, p pattern, right associativity) : itree_scope. *)
-(* End IPCNotations. *)
-
-(* Export IPCNotations.  *)
-
-Notation "↧ it" := (interp_smod _ _ ord_top it) (at level 59, only printing).
-Notation "↡ o it" := (interp_smod _ _ o it) (at level 60, only printing).
+Notation "↧ it" := (interp_smod _ _ it) (at level 59, only printing).
 
 Module SModRed.
 Section RED.
@@ -320,12 +173,12 @@ Section RED.
 
   Lemma interp_bind
         (R S: Type)
-        ginv stb o
+        ginv stb
         (s : itree smodE R) (k : R -> itree smodE S)
     :
-      interp_smod ginv stb o (s >>= k)
+      interp_smod ginv stb (s >>= k)
       =
-      st <- interp_smod ginv stb o s;; interp_smod ginv stb o (k st).
+      st <- interp_smod ginv stb s;; interp_smod ginv stb (k st).
   Proof.
     unfold interp_smod in *. grind.
   Qed.
@@ -333,11 +186,11 @@ Section RED.
   Lemma interp_tau
         (U: Type)
         (t : itree _ U)
-        ginv stb o
+        ginv stb
     :
-      interp_smod ginv stb o (tau;; t)
+      interp_smod ginv stb (tau;; t)
       =
-      tau;; (interp_smod ginv stb o t).
+      tau;; (interp_smod ginv stb t).
   Proof.
     unfold interp_smod in *. grind.
   Qed.
@@ -345,9 +198,9 @@ Section RED.
   Lemma interp_ret
         (U: Type)
         (t: U)
-        ginv stb o
+        ginv stb
     :
-      interp_smod ginv stb o (Ret t)
+      interp_smod ginv stb (Ret t)
       =
       Ret t.
   Proof.
@@ -357,9 +210,9 @@ Section RED.
   Lemma interp_sch
         (R: Type)
         (i: schE R)
-        ginv stb o
+        ginv stb
     :
-      interp_smod ginv stb o (trigger i)
+      interp_smod ginv stb (trigger i)
       =
       r <- handle_schE_hmodE ginv stb i;; tau;; Ret r.
   Proof.
@@ -369,33 +222,21 @@ Section RED.
   Lemma interp_call
         (R: Type)
         (i: callE R)
-        ginv stb o
+        ginv stb
     :
-      interp_smod ginv stb o (trigger i)
+      interp_smod ginv stb (trigger i)
       =
-      r <- handle_callE_hmodE stb o i;; tau;; Ret r.
+      r <- handle_callE_hmodE stb i;; tau;; Ret r.
   Proof.
     unfold interp_smod in *. rewrite interp_trigger. grind.
-  Qed.
-
-  Lemma interp_apc
-        (R: Type)
-        (i: apcE R)
-        ginv stb o
-    :
-      interp_smod ginv stb o (trigger i)
-      =
-      (handle_apcE_hmodE stb o i) >>= (fun r => tau;; Ret r).
-  Proof.
-    unfold interp_smod. rewrite interp_trigger. grind.
   Qed.
 
   Lemma interp_pg
         (R: Type)
         (i: pgE R)
-        ginv stb o
+        ginv stb
     :
-      interp_smod ginv stb o (trigger i)
+      interp_smod ginv stb (trigger i)
       =
       r <- trigger i;; tau;; Ret r.
   Proof.
@@ -405,9 +246,9 @@ Section RED.
   Lemma interp_core
         (R: Type)
         (i: coreE R)
-        ginv stb o
+        ginv stb
     :
-      interp_smod ginv stb o (trigger i)
+      interp_smod ginv stb (trigger i)
       =
       r <- trigger i;; tau;; Ret r.
   Proof.
@@ -415,9 +256,9 @@ Section RED.
   Qed.
 
   Lemma interp_ag {A} (e: agE A)
-        ginv stb o
+        ginv stb
     :
-      interp_smod ginv stb o (trigger e)
+      interp_smod ginv stb (trigger e)
       =
       x <- trigger e ;; tau;; Ret x.
   Proof.
@@ -427,9 +268,9 @@ Section RED.
   Lemma interp_unwrapU 
         (R: Type)
         (i: option R)
-        ginv stb o
+        ginv stb
     :
-      interp_smod ginv stb o (@unwrapU smodE _ _ i)
+      interp_smod ginv stb (@unwrapU smodE _ _ i)
       =
       r <- (unwrapU i);; Ret r.
   Proof.
@@ -440,9 +281,9 @@ Section RED.
   Lemma interp_unwrapN
         (R: Type)
         (i: option R)
-        ginv stb o
+        ginv stb
     :
-      interp_smod ginv stb o (@unwrapN smodE _ _ i)
+      interp_smod ginv stb (@unwrapN smodE _ _ i)
       =
       r <- (unwrapN i);; Ret r.
   Proof.
@@ -451,9 +292,9 @@ Section RED.
   Qed.
   
   Lemma interp_asm
-        ginv stb o P
+        ginv stb P
     : 
-      interp_smod ginv stb o (assume P)
+      interp_smod ginv stb (assume P)
       =
       r <- assume P;; tau;; Ret r.
   Proof.
@@ -461,9 +302,9 @@ Section RED.
   Qed. 
 
   Lemma interp_guar
-        ginv stb o P
+        ginv stb P
     : 
-      interp_smod ginv stb o (guarantee P)
+      interp_smod ginv stb (guarantee P)
       =
       r <- guarantee P;; tau;; Ret r.
   Proof.
@@ -473,9 +314,9 @@ Section RED.
 (*  
   Lemma interp_triggerUB
         (R: Type)
-        stb o
+        stb
     :
-      interp_smod stb o (triggerUB)
+      interp_smod stb (triggerUB)
       =
       triggerUB (A:=R).
   Proof.
@@ -484,9 +325,9 @@ Section RED.
 
   Lemma interp_triggerNB
         (R: Type)
-        stb o
+        stb
     :
-      interp_smod stb o (triggerNB)
+      interp_smod stb (triggerNB)
       =
       triggerNB (A:=R).
   Proof.
@@ -496,11 +337,11 @@ Section RED.
   Lemma interp_ext
         R (itr0 itr1: itree _ R)
         (EQ: itr0 = itr1)
-        stb o
+        stb
     :
-      interp_smod stb o itr0
+      interp_smod stb itr0
       =
-      interp_smod stb o itr1.
+      interp_smod stb itr1.
   Proof. subst; et. Qed.
 *)
   

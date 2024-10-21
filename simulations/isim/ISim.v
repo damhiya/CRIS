@@ -24,97 +24,26 @@ Require Export ISimCore ITacticsCore.
 
 Set Implicit Arguments.
 
-Section SPEC.
-  Context `{_W: CtxWD.t}.
-
-  Inductive meta_inv {X: positive -> nat -> Type} : Type :=
-  | mk_meta (u: positive) (n: nat) (x: X u n).  
-
-  Definition mk_fspec_inv (k: nat) (fsp: positive -> nat -> fspec): fspec :=
-    @mk_fspec
-      Σ
-      (@meta_inv (fun u n => (fsp u n).(meta)))
-      (fun '(mk_meta u n x) => (fsp u n).(measure) x)
-      (fun '(mk_meta u n x) varg_src varg_tgt =>
-         closed_world u (k+n) ⊤ ∗ (fsp u n).(precond) x varg_src varg_tgt)%I
-      (fun '(mk_meta u n x) vret_src vret_tgt =>
-         closed_world u (k+n) ⊤ ∗ (fsp u n).(postcond) x vret_src vret_tgt)%I.
-
-End SPEC.
-
-
 Section LEMMAS.
 
-(***** Move and rename: APC & HoareCall LEMMAS *****)
-
-  (* Try to match bind pattern *)
-  Lemma APC_start_clo Σ
-    fls flt I my_tid r g nths ps pt {R} RR st_src k_src sti_tgt  
-    ginv stb at_most o
-  :
-    @isim Σ fls flt I my_tid r g R RR true pt nths (st_src, _APC stb at_most o >>= (fun x => tau;; Ret x) >>= k_src) sti_tgt
-  -∗  
-    @isim _ fls flt I my_tid r g R RR ps pt nths (st_src, interp_smod ginv stb o (trigger APC) >>= k_src) sti_tgt.
-  Proof.
-    unfold interp_smod. rewrite! interp_trigger. grind.
-    destruct sti_tgt. unfold HoareAPC.
-    iIntros "K". force_l at_most.
-    iApply "K".
-  Qed.
-
-  Lemma APC_stop_clo Σ
-    fls flt I my_tid r g ps pt {R} RR nths st_src k_src sti_tgt  
-    stb at_most o
-  :
-    @isim Σ fls flt I my_tid r g R RR true pt nths (st_src, k_src tt) sti_tgt
-  -∗  
-    @isim _ fls flt I my_tid r g R RR ps pt nths (st_src, _APC stb at_most o >>= (fun x => (tau;; Ret x) >>= k_src)) sti_tgt.
-  Proof.
-    destruct sti_tgt.
-    iIntros "K".
-    rewrite unfold_APC. 
-    force_l true. s. steps_l. iFrame.
-  Qed.
-  
-  Lemma APC_step_clo Σ
-    fls flt I my_tid r g ps pt {R} RR nths st_src k_src sti_tgt  
-    at_most o stb next fn vargs fsp
-    (SPEC: stb fn = Some fsp)
-    (NEXT: (next < at_most)%ord)
-  :
-    @isim Σ fls flt I my_tid r g R RR true pt nths (st_src, HoareCall true o fsp fn vargs >>= (fun _ => _APC stb next o) >>= (fun x => tau;; Ret x) >>= k_src) sti_tgt
-  -∗  
-    @isim _ fls flt I my_tid r g R RR ps pt nths (st_src, _APC stb at_most o >>= (fun x => (tau;; Ret x) >>= k_src)) sti_tgt.
-  Proof.
-    destruct sti_tgt.
-    iIntros "K". prep.
-    iEval (rewrite unfold_APC).
-    force_l false. s.
-    force_l next.
-    force_l. { eauto. }
-    force_l (fn, vargs). s.
-    rewrite SPEC. s. steps_l. grind.
-  Qed.
+(***** Move and rename: HoareCall LEMMAS *****)
 
   Lemma hcall_clo Σ
     fls flt I my_tid r g ps pt {R} RR nths st_src st_tgt k_src k_tgt
-    fn varg_src varg_tgt o X (x: shelve__ X) (D: X -> ord) P Q
-    (* PURE, ... *)
-    (ORD: ord_lt (D x) o)
-    (PURE: is_pure (D x))
+    fn varg arg X (x: shelve__ X) P Q
   :
-    (P x varg_src varg_tgt 
+    (P x varg arg 
       ∗ I nths st_src st_tgt 
-      ∗ (∀ nths0 st_src0 st_tgt0 vret_src vret_tgt, 
-             (Q x vret_src vret_tgt ∗ I nths0 st_src0 st_tgt0) 
-          -∗ @isim Σ fls flt I my_tid r g R RR true true nths0 (st_src0, k_src vret_src) (st_tgt0, k_tgt vret_tgt)))
+      ∗ (∀ nths0 st_src0 st_tgt0 vret ret, 
+             (Q x vret ret ∗ I nths0 st_src0 st_tgt0) 
+          -∗ @isim Σ fls flt I my_tid r g R RR true true nths0 (st_src0, k_src vret) (st_tgt0, k_tgt ret)))
   -∗  
-    @isim _ fls flt I my_tid r g R RR ps pt nths (st_src, HoareCall true o (mk_fspec D P Q) fn varg_src >>= k_src) (st_tgt, trigger (Call fn varg_tgt) >>= k_tgt).
+    @isim _ fls flt I my_tid r g R RR ps pt nths (st_src, HoareCall (mk_fspec P Q) fn varg >>= k_src) (st_tgt, trigger (Call fn arg) >>= k_tgt).
   Proof.
     iIntros "(P & IST & K)".
     unfold HoareCall. prep.
     force_l x.
-    force_l varg_tgt.
+    force_l arg.
     forces_l. iSplitL "P"; [eauto|].
 
     call "IST"; [eauto|].

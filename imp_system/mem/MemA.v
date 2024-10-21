@@ -194,40 +194,35 @@ Section PROOF.
   Definition scopes := ["Mem"].
 
   Definition alloc_spec: fspec :=
-    (mk_simple (fun sz => (
-                    (ord_pure 0),
+    (fspec_simple (fun sz => (
                     (fun varg => (⌜varg = [Vint (Z.of_nat sz)]↑ /\ (8 * (Z.of_nat sz) < modulus_64)%Z⌝: iProp)),
                     (fun vret => (∃ b, (⌜vret = (Vptr b 0)↑⌝)
                                          ∗ (b, 0%Z) |-> (List.repeat Vundef sz)): iProp)
     )))%I.
 
   Definition free_spec: fspec :=
-    (mk_simple (fun '(b, ofs) => (
-                    (ord_pure 0),
+    (fspec_simple (fun '(b, ofs) => (
                     (fun varg => (∃ v, (⌜varg = [Vptr b ofs]↑⌝) ∗ (b, ofs) ⤇ v)),
                     (fun vret => ⌜vret = (Vint 0)↑⌝)
     )))%I.
 
   Definition load_spec: fspec :=
-    (mk_simple (fun '(b, ofs, v) => (
-                    (ord_pure 0),
+    (fspec_simple (fun '(b, ofs, v) => (
                     (fun varg => (⌜varg = [Vptr b ofs]↑⌝) ∗ (b, ofs) ⤇ v),
                     (fun vret => (b, ofs) ⤇ v ∗ ⌜vret = v↑⌝)
     )))%I.
 
   Definition store_spec: fspec :=
-    (mk_simple
+    (fspec_simple
        (fun '(b, ofs, v_new) => (
-            (ord_pure 0),
             (fun varg => (∃ v_old, (⌜varg = [Vptr b ofs ; v_new]↑⌝) ∗ (b, ofs) ⤇ v_old)),
             (fun vret => (b, ofs) ⤇ v_new ∗ ⌜vret = (Vint 0)↑⌝)
     )))%I.
 
   (* Is this the best way to define cmp? (points_to is not resource anymore)*)
   Definition cmp_spec: fspec :=
-    (mk_simple
+    (fspec_simple
        (fun '(result, resource) => (
-            (ord_pure 0),
             (fun varg =>
                ((∃ b ofs v, ⌜varg = [Vptr b ofs; Vnullptr]↑⌝ ∗ (OwnM resource -* ((b, ofs) |-> [v])) ∗ ⌜result = false⌝) ∨
                 (∃ b ofs v, ⌜varg = [Vnullptr; Vptr b ofs]↑⌝ ∗(OwnM resource -* ((b, ofs) |-> [v])) ∗ ⌜result = false⌝) ∨
