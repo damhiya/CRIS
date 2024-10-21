@@ -239,3 +239,41 @@ Section RED.
   
 End RED.
 End PModRed.
+
+Module PMWrap.
+
+  Definition handler (fns: list string) : Handler callE pmodE :=
+    fun _ e =>
+      match e with
+      | Call fn args =>
+          if existsb (eqb fn) fns
+          then trigger (Call fn args)
+          else triggerUB
+      end.
+
+  Definition body (fns: list string) (code: Any.t -> itree pmodE Any.t) :
+    Any.t -> itree pmodE Any.t
+    :=
+    fun x => interp
+      (case_ (bif:=sum1) trivial_Handler
+      (case_ (bif:=sum1) (handler fns)
+      (case_ (bif:=sum1) trivial_Handler
+         trivial_Handler))) (code x).
+
+  Program Definition pmodsem fns (m: PModSem.t) : PModSem.t :=
+    {|PModSem.scopes := m.(PModSem.scopes)
+    ; PModSem.fnsems := List.map (map_snd (map_snd (body fns))) m.(PModSem.fnsems)
+    ; PModSem.initial_st := m.(PModSem.initial_st)
+    |}.
+  Next Obligation.
+    ii. eapply (m.(PModSem.well_scoped_fns) fn). unfold fnsems_scopes in *.
+    rewrite !alist_find_map_snd in H. des_ifs; eauto.
+  Qed.
+  Next Obligation. ii. eapply (m.(PModSem.well_scoped_init)). eauto. Qed.
+  Next Obligation. ii. eapply (m.(PModSem.nodup_fns)). eauto. Qed.
+
+  Definition pmod fns (m: PMod.t) : PMod.t :=
+    {|PMod.modsem := fun sk => pmodsem fns (m.(PMod.modsem) sk)
+    ; PMod.sk := m.(PMod.sk) |}.
+
+End PMWrap.
