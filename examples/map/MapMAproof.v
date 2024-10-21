@@ -169,14 +169,14 @@ Section SIMMODSEM.
     des; subst. hss. rename n into ℓ, x into sz'.
     
     (* TGT: prove the precond of init *)
-    force_r. instantiate (1:= mk_meta _ _ _). force_r. force_r. hss.
+    force_r (mk_meta _ _ _). forces_r. hss.
     iSplitL "P0 W". { iFrame. eauto. }
 
     (* TGT: handle the postcond of init *)
     steps_r. iDestruct "GRT" as "(CW & _ & %Y)". subst. hss.
     
     (* SRC: prove the postcond of init *)
-    force_l. steps_l. force_l. force_l.
+    forces_l. steps_l. forces_l.
     iPoseProof (initial_map_initialize with "INIT") as "(BLACK & INIT & UNALLOC)".
     iSplitL "CW INIT". { iFrame. eauto. }
     
@@ -198,19 +198,19 @@ Section SIMMODSEM.
     rename n into ℓ, z into idx, z0 into v.
 
     (* TGT: prove the precond of get *)
-    force_r. instantiate (1:= mk_meta _ _ _). force_r. force_r. hss.
+    force_r (mk_meta _ _ _). forces_r. hss.
     iSplitL "WORLD". { iFrame. eauto. }
 
     (* TGT: handle the body of get *)
     steps_r. hss. steps_r. hss. steps_r.
     iPoseProof (unallocated_range with "U MAP") as "%".
-    force_r; eauto.
+    forces_r; eauto.
 
     (* TGT: handle the postcond of get *)
     steps_r. iDestruct "GRT" as "(WORLD & _ & %)". subst.
 
     (* SRC: prove the postcond of get *)
-    steps_l. force_l. force_l.
+    steps_l. forces_l.
     iPoseProof (black_map_get with "B MAP") as "%". subst.
     iSplitL "WORLD MAP". { iFrame. eauto. }
 
@@ -232,21 +232,20 @@ Section SIMMODSEM.
     rename n into ℓ, z0 into idx, z into v, z1 into v'.
 
     (* TGT: prove the precond of set *)
-    force_r. instantiate (1:= mk_meta _ _ (_,_)). force_r. force_r. hss.
+    force_r (mk_meta _ _ (_,_)). forces_r. hss.
     iSplitL "WORLD". { iFrame. eauto. }
 
     (* TGT: handle the body of set *)
     steps_r. hss. steps_r. hss. steps_r.
     iPoseProof (unallocated_range with "U MAP") as "%".
-    force_r; eauto.
+    forces_r; eauto.
 
     (* TGT: handle the postcond of set *)
     steps_r. iDestruct "GRT" as "(WORLD & _ & %)". subst. hss.
     
     (* SRC: prove the postcond of set *)
     iPoseProof (black_map_set with "B MAP") as ">(B & MAP)".
-    steps_l. force_l. force_l.
-    iSplitL "WORLD MAP". { iFrame. eauto. }
+    steps_l. forces_l. iSplitL "WORLD MAP". { iFrame. eauto. }
 
     (* prove the IST of Map *)
     step. iSplit; eauto.
@@ -264,7 +263,7 @@ Section SIMMODSEM.
     rename n into ℓ, z into idx, z0 into v.
     
     (* TGT: prove the precond of set_by_user *)
-    force_r. instantiate (1:= mk_meta _ _ _). force_r. force_r. hss.
+    force_r (mk_meta _ _ _). forces_r. hss.
     iSplitL "WORLD". { iFrame. eauto. }
 
     (* process an input *)
@@ -274,7 +273,7 @@ Section SIMMODSEM.
     steps_r. iDestruct "GRT" as "[[WORLD [% %]] _]". subst. hss.
     
     (* SRC: prove the precond of set *)
-    steps_l. force_l. instantiate (1:= mk_meta _ _ (_,_,_)). force_l. force_l.
+    steps_l. force_l (mk_meta _ _ (_,_,_)). forces_l.
     iSplitL "WORLD MAP". { iFrame. eauto. }
 
     (* make a call to set *)
@@ -284,15 +283,13 @@ Section SIMMODSEM.
     steps_l. iDestruct "ASM" as "(WORLD & (% & MAP) & %)". subst. hss.
 
     (* TGT: prove the postcond of set *)
-    steps_l. force_r. force_r.
-    iSplitL "WORLD". { iFrame. eauto. }
+    steps_l. forces_r. iSplitL "WORLD". { iFrame. eauto. }
 
     (* TGT: handle the postcond of set_by_user *)
     steps_r. hss. steps_r. iDestruct "GRT" as "(WORLD & _ & %)". subst.
     
     (* SRC: prove the postcond of set_by_user *)
-    force_l. force_l.
-    iSplitL "MAP WORLD". { iFrame. eauto. }
+    forces_l. iSplitL "MAP WORLD". { iFrame. eauto. }
 
     (* prove the IST of Map *)
     step. eauto.

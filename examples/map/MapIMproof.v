@@ -125,7 +125,7 @@ Section SIMMODSEM.
     { iExFalso. iApply (pending_unique with "P P0"). }
 
     (* SRC: prove the postcond of init *)
-    force_l. force_l. iSplitL "W".
+    forces_l. iSplitL "W".
     { iFrame. eauto. }
     steps_r.
     
@@ -133,7 +133,7 @@ Section SIMMODSEM.
     inline_r.
 
     (* TGT: prove the precond of alloc *)
-    force_r. force_r. force_r.
+    forces_r.
     iSplit; eauto.
 
     (* apc *)
@@ -177,9 +177,9 @@ Section SIMMODSEM.
       inline_r.
 
       (* TGT: prove the precond of store *)
-      force_r. instantiate (1:= (_, (sz - S n)%Z, _)).
-      force_r. instantiate (3:= [Vptr _ (sz - (S n))%Z; _]↑).
-      force_r.
+      force_r (_, (sz - S n)%Z, _).
+      force_r ([Vptr _ (sz - (S n))%Z; _]↑).
+      forces_r.
       iPoseProof (big_sepL_insert_acc with "PTS") as "(PT & CTN)".
       { instantiate (2:= (sz - (S n))).
         rewrite lookup_app_r; rewrite repeat_length; try nia.
@@ -225,8 +225,7 @@ Section SIMMODSEM.
     { nia. }
 
     (* SRC: prove the postcond of get *)
-    force_l. force_l.
-    iSplitL "W". { eauto. }
+    forces_l. iSplitL "W". { eauto. }
 
     (* TGT: compute the input to load *)
     steps_r. hss. steps_r.
@@ -238,8 +237,7 @@ Section SIMMODSEM.
     inline_r.
 
     (* TGT: prove the precond of load *)
-    force_r. instantiate (1:= (_, (ofs + _)%Z, _)).
-    force_r. force_r.
+    force_r (_, (ofs + _)%Z, _). forces_r.
     iPoseProof (big_sepL_lookup_acc with "M") as "(IP & M)".
     { apply fun_to_list_lookup with (i:=Z.to_nat idx). nia. }
     rewrite Z2Nat.id; try nia.
@@ -273,8 +271,7 @@ Section SIMMODSEM.
     { nia. }
 
     (* SRC: prove the postcond of set *)
-    force_l. force_l.
-    iSplitL "W". { eauto. }
+    forces_l. iSplitL "W". { eauto. }
 
     (* TGT: compute the input to store *)
     steps_r. hss. steps_r.
@@ -287,7 +284,7 @@ Section SIMMODSEM.
     inline_r.
 
     (* TGT: prove the precond of store *)
-    force_r. instantiate (1:= (_, _, _)). force_r. force_r.
+    force_r (_, _, _). forces_r.
     iPoseProof (big_sepL_insert_acc with "M") as "(IP & M)".
     { apply fun_to_list_lookup with (i:=Z.to_nat idx). nia. }
     rewrite Z2Nat.id; try nia.
@@ -321,8 +318,7 @@ Section SIMMODSEM.
     steps_r. step.
     
     (* SRC: prove the precond of set *)
-    steps_l. force_l. instantiate (1:= mk_meta _ _ (_, _)); s.
-    force_l. force_l.
+    steps_l. force_l (mk_meta _ _ (_, _)); s. forces_l.
     iSplitL "W". { iFrame. eauto. }
 
     (* make a call to set *)
@@ -332,7 +328,7 @@ Section SIMMODSEM.
     steps_l. iDestruct "ASM" as "(W & _ & %)". subst. hss. steps_r.
 
     (* SRC: prove the postcond of set_by_user *)
-    force_l. force_l. iSplitL "W". { eauto. }
+    forces_l. iSplitL "W". { eauto. }
 
     (* prove the IST of Map *)
     step. eauto.

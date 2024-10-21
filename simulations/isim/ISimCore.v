@@ -322,23 +322,25 @@ Section SIM.
   Qed.
 
   Lemma isim_take_tgt
-    X x r g ps pt {R} RR nths st_src st_tgt i_src k_tgt 
+    X r g ps pt {R} RR nths st_src st_tgt i_src k_tgt 
   :
     bi_entails
-      (@isim r g R RR ps true nths (st_src, i_src) (st_tgt, k_tgt x))
+      (∃ x, @isim r g R RR ps true nths (st_src, i_src) (st_tgt, k_tgt x))
       (@isim r g R RR ps pt nths (st_src, i_src) (st_tgt, trigger (Take X) >>= k_tgt)).
-  Proof. 
-    uiprop. i. guclo hpsimC_spec. econs; esplits; eauto. econs; eauto.
+  Proof.
+    uiprop. i. rr in H. revert H. uiprop. i; des.    
+    guclo hpsimC_spec. econs; esplits; eauto. econs; eauto.
   Qed.
   
   Lemma isim_choose_src
-    X x r g ps pt {R} RR nths st_src st_tgt k_src i_tgt
+    X r g ps pt {R} RR nths st_src st_tgt k_src i_tgt
   :
     bi_entails
-      (@isim r g R RR true pt nths (st_src, k_src x) (st_tgt, i_tgt))
+      (∃ x, @isim r g R RR true pt nths (st_src, k_src x) (st_tgt, i_tgt))
       (@isim r g R RR ps pt nths (st_src, trigger (Choose X) >>= k_src) (st_tgt, i_tgt)).
   Proof. 
-    uiprop. i. guclo hpsimC_spec. econs; esplits; eauto. econs; eauto.
+    uiprop. i. rr in H. revert H. uiprop. i; des.
+    guclo hpsimC_spec. econs; esplits; eauto. econs; eauto.
   Qed.
 
   Lemma isim_choose_tgt

@@ -457,36 +457,45 @@ Ltac step_l :=
   prep; _step_l; try alist_find_simpl fnsems_nodup; des_pairs; s;
   show_itree.
 
+Ltac steps_l := repeat step_l.
+
 Ltac step_r :=
   hide_itree_l;
   prep; _step_r; try alist_find_simpl fnsems_nodup; des_pairs; s;
   show_itree.
+
+Ltac steps_r := repeat step_r.
 
 Ltac step :=
   hide_itree_r; prep; show_itree;
   hide_itree_l; prep; show_itree;
   _step; des_pairs; s.
 
-Ltac force_l :=
+Ltac force_l_core :=
   hide_itree_r;
   prep; _force_l; s;
   show_itree.
-  
-Ltac force_r :=
+
+Tactic Notation "force_l" :=
+  force_l_core; try (iExists _).
+
+Tactic Notation "force_l" uconstr(p) :=
+  force_l_core; iExists p.
+
+Ltac forces_l := repeat force_l.
+
+Ltac force_r_core :=
   hide_itree_l;
   prep; _force_r; s;
   show_itree.
+
+Tactic Notation "force_r" :=
+  force_r_core; try (iExists _).
   
-Ltac steps_l :=
-  repeat step_l.
-  (* hide_itree_r; *)
-  (* repeat (prep; _step_l; try alist_find_simpl fnsems_nodup; des_pairs; s); *)
-  (* show_itree. *)
-Ltac steps_r :=
-  repeat step_r.
-  (* hide_itree_l; *)
-  (* repeat (prep; _step_r; try alist_find_simpl fnsems_nodup; des_pairs; s); *)
-  (* show_itree. *)
+Tactic Notation "force_r" uconstr(p) :=
+  force_r_core; iExists p.
+
+Ltac forces_r := repeat force_r.
 
 Ltac inline_l :=
   hide_itree_r;
