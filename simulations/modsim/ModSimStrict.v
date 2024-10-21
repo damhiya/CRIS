@@ -413,25 +413,25 @@ Section SIM_STRICT.
   
   (** **)
 
-  Variant sim_strictC W
-      (r: forall S_src S_tgt (RR: list W -> nat -> Any.t -> Any.t -> S_src -> S_tgt -> Prop), bool -> bool -> list W -> nat -> Any.t * itree modE S_src -> Any.t * itree modE S_tgt -> Prop):
-      forall S_src S_tgt (RR: list W -> nat -> Any.t -> Any.t -> S_src -> S_tgt -> Prop), bool -> bool -> list W -> nat -> Any.t * itree modE S_src -> Any.t * itree modE S_tgt -> Prop
+  Variant sim_strictC world
+      (r: forall S_src S_tgt (RR: list world -> nat -> Any.t -> Any.t -> S_src -> S_tgt -> Prop), bool -> bool -> list world -> nat -> Any.t * itree modE S_src -> Any.t * itree modE S_tgt -> Prop):
+      forall S_src S_tgt (RR: list world -> nat -> Any.t -> Any.t -> S_src -> S_tgt -> Prop), bool -> bool -> list world -> nat -> Any.t * itree modE S_src -> Any.t * itree modE S_tgt -> Prop
     :=
   | sim_strictC_intro RR p_src p_tgt w nths sti_src sti_tgt sti_src' sti_tgt'
       (SIM: r Any.t Any.t RR p_src p_tgt w nths sti_src' sti_tgt')
       (EQVSRC: sim_strict Any.t (fun _ => eq) nths sti_src sti_src')
       (EQVTGT: sim_strict Any.t (fun _ => eq) nths sti_tgt' sti_tgt)
-    : sim_strictC W r Any.t Any.t RR p_src p_tgt w nths sti_src sti_tgt
+    : sim_strictC world r Any.t Any.t RR p_src p_tgt w nths sti_src sti_tgt
   .
 
-  Lemma sim_strictC_mon W r1 r2
+  Lemma sim_strictC_mon world r1 r2
     (LEr: r1 <9= r2)
     :
-    sim_strictC W r1 <9= sim_strictC W r2.
+    sim_strictC world r1 <9= sim_strictC world r2.
   Proof. ii. destruct PR. econs; et. Qed.
 
-  Lemma sim_strictC_compatible: forall W wi wf le fl_src fl_tgt, 
-      compatible9 (@_sim_itree fl_src fl_tgt W wi wf le my_tid) (sim_strictC W).
+  Lemma sim_strictC_compatible: forall world wi wf le fl_src fl_tgt, 
+      compatible9 (@_sim_itree fl_src fl_tgt world wi wf le my_tid) (sim_strictC world).
   Proof.
     econs; i; eauto using sim_strictC_mon. depdes PR.
     move SIM before RR. revert_until SIM.
@@ -483,8 +483,8 @@ Section SIM_STRICT.
     - destruct sti_src, sti_tgt. do 2 (econs; eauto). do 2 (econs; eauto).
   Qed.
 
-  Lemma sim_strictC_spec: forall fl_src fl_tgt W wi wf le,
-      sim_strictC W <10= gupaco9 (@_sim_itree fl_src fl_tgt W wi wf le my_tid) (cpn9 (@_sim_itree fl_src fl_tgt W wi wf le my_tid)).
+  Lemma sim_strictC_spec: forall fl_src fl_tgt world wi wf le,
+      sim_strictC world <10= gupaco9 (@_sim_itree fl_src fl_tgt world wi wf le my_tid) (cpn9 (@_sim_itree fl_src fl_tgt world wi wf le my_tid)).
   Proof.
     intros. gclo. econs; eauto using sim_strictC_compatible.
     eapply sim_strictC_mon, PR; eauto with paco.

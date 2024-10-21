@@ -30,8 +30,7 @@ Section SIM_ITREE.
   
   Variable world: Type.
   Variable winit : world.
-  Let W: Type := nat * (Any.t) * (Any.t).
-  Variable wf : list world -> W -> Prop.
+  Variable wf : list world -> nat * (Any.t) * (Any.t) -> Prop.
   Variable wle: relation world.
   Variable my_tid : nat.
 
