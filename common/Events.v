@@ -119,7 +119,7 @@ Section EVENTS_OTHER.
 End EVENTS_OTHER.
 
 Notation "f '?'" := (unwrapU f) (at level 9).
-Notation "f 'ǃ'" := (unwrapN f) (at level 9).
+Notation "f '!'" := (unwrapN f) (at level 9).
 Notation "s ↯ f" := (sf s f) (at level 9).
 
 Section SYNTAX.
@@ -129,7 +129,7 @@ Section SYNTAX.
   Context `{pgE -< E}.
 
   Definition cfunN {X Y} (body: X -> itree E Y): Any.t -> itree E Any.t :=
-    fun varg => varg <- varg↓ǃ;; vret <- body varg;; Ret vret↑.
+    fun varg => varg <- varg↓!;; vret <- body varg;; Ret vret↑.
   Definition cfunU {X Y} (body: X -> itree E Y): Any.t -> itree E Any.t :=
     fun varg => varg <- varg↓?;; vret <- body varg;; Ret vret↑. 
   
@@ -137,7 +137,7 @@ Section SYNTAX.
     vret <- trigger (Call fn (varg↑));; vret↓?.
                                  
   Definition ccallN {X Y} (fn: gname) (varg: X): itree E Y := 
-    vret <- trigger (Call fn (varg↑));; vret↓ǃ.
+    vret <- trigger (Call fn (varg↑));; vret↓!.
                                           
   Definition cput {T} k (v:T) : itree E unit :=
     trigger (SPut k v↑).
@@ -146,6 +146,6 @@ Section SYNTAX.
     v <- trigger (SGet k);; v↓?.
 
   Definition cgetN {T} k : itree E T :=
-    v <- trigger (SGet k);; (v↓ǃ).
+    v <- trigger (SGet k);; (v↓!).
 
 End SYNTAX.

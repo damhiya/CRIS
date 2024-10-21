@@ -39,7 +39,7 @@ Section A.
   
   Definition set: list val -> itree smodE val :=
     fun varg =>
-      '(k, v) <- (pargs [Tint; Tint] varg)ǃ;;
+      '(k, v) <- (pargs [Tint; Tint] varg)!;;
       f <- cgetN v_map;;
       cput v_map (<[k:=v]> (f: Z->Z));;;
       Ret Vundef
@@ -47,14 +47,14 @@ Section A.
 
   Definition get: list val -> itree smodE val :=
     fun varg =>
-      k <- (pargs [Tint] varg)ǃ;;
+      k <- (pargs [Tint] varg)!;;
       f <- cgetN v_map;;
       Ret (Vint (f k))
   .
 
   Definition set_by_user: list val -> itree smodE val :=
     fun varg =>
-      k <- (pargs [Tint] varg)ǃ;;
+      k <- (pargs [Tint] varg)!;;
       v <- trigger (IO "input" ([]: list Z));;
       ccallN MapName.set [Vint k; Vint v]
   .

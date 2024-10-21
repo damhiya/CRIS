@@ -163,7 +163,7 @@ Section APC.
         n <- trigger (Choose Ord.t);;
         trigger (Choose (n < at_most)%ord);;;
         '(fn, varg) <- trigger (Choose _);;
-        fsp <- (stb fn)ǃ;;
+        fsp <- (stb fn)!;;
         _ <- HoareCall true ord_cur fsp fn varg;;
         (_APC n) _ ord_cur.
   Next Obligation. i. auto. Qed.
@@ -182,7 +182,7 @@ Section APC.
       n <- trigger (Choose Ord.t);;
       guarantee (n < at_most)%ord;;;
       '(fn, varg) <- trigger (Choose _);;
-      fsp <- (stb fn)ǃ;;
+      fsp <- (stb fn)!;;
       _ <- HoareCall true ord_cur fsp fn varg;;
       (_APC n) ord_cur.
   Proof.
@@ -227,7 +227,7 @@ Section HOARE.
         fun _ e =>
           match e in schE T return itree hmodE T with
           | Spawn fn arg =>
-              fsp <- (stb fn)ǃ;;
+              fsp <- (stb fn)!;;
               HoareSpawn fsp fn arg
           | Yield tid =>
               HoareYield tid
@@ -236,7 +236,7 @@ Section HOARE.
       
       Definition handle_callE_hmodE ord_cur: callE ~> itree hmodE :=
         fun _ '(Call fn arg) => 
-            fsp <- (stb fn)ǃ;;
+            fsp <- (stb fn)!;;
             HoareCall false ord_cur fsp fn arg.
 
       Definition interp_smod ord_cur: itree smodE ~> itree hmodE :=
