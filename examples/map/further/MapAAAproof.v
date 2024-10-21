@@ -53,7 +53,7 @@ Section PROOF.
     HSim.sim_fun MapAA MapA Ist MapName.init.
   Proof.
     init_simF.
-    steps_l. force_r (mk_meta _ _ _). forces_r. iFrame.
+    steps_l. forces_r. iFrame.
     steps_r. forces_l. steps_l. forces_l. iFrame.
     step. eauto.
   Qed.
@@ -62,7 +62,7 @@ Section PROOF.
     HSim.sim_fun MapAA MapA Ist MapName.get.
   Proof.
     init_simF.
-    steps_l. force_r (mk_meta _ _ (_,_)). forces_r. iFrame.
+    steps_l. force_r (_,_). forces_r. iFrame.
     steps_r. forces_l. steps_l. forces_l. iFrame.
     step. eauto.
   Qed.
@@ -71,7 +71,7 @@ Section PROOF.
     HSim.sim_fun MapAA MapA Ist MapName.set.
   Proof.
     init_simF.
-    steps_l. force_r (mk_meta _ _ (_,_,_)). forces_r. iFrame.
+    steps_l. force_r (_,_,_). forces_r. iFrame.
     steps_r. forces_l. steps_l. forces_l. iFrame.
     step. eauto.
   Qed.
@@ -80,15 +80,15 @@ Section PROOF.
     HSim.sim_fun MapAA MapA Ist MapName.set_by_user.
   Proof.
     init_simF.
-    steps_l. force_r (mk_meta _ _ (_,_)). forces_r. iFrame.
-
+    steps_l. force_r (_,_). forces_r. iFrame.
+    
     steps_r. step.
     
     steps_r. steps_l.
-    iDestruct "GRT" as "((WORLD & (% & PT) & %) & _ & %)". subst. hss.
+    iDestruct "GRT" as "(((% & PT) & %) & %)". subst. hss.
     rewrite G0 in G2. hss.
     
-    force_l (mk_meta _ _ (_,_,_)). forces_l. iFrame. iSplit; eauto.
+    force_l (_,_,_). forces_l. iFrame. iSplit; eauto.
     
     call ""; eauto.
 

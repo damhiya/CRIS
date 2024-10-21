@@ -116,17 +116,15 @@ Section SIMMODSEM.
     init_simF.
 
     (* SRC: handle the IST of Map and the precond of init *)
-    steps_l. iDestruct "ASM" as "(W & (%Y & %M & P0) & %X)". subst. hss. inv G0. 
-    rename n into ℓ, x into sz.
-    unfold IstFull. unfold IstProd0.
+    steps_l. iDestruct "ASM" as "((% & P0) & %)". des. subst. hss. inv G0. 
     iDestruct "IST" as (? ? ? ?) "(%& (% & [%|(P & IST)]) &%)";    
       [|iDestruct "IST" as (? ? ? ?) "M"];
       des; subst; cycle 1.
     { iExFalso. iApply (pending_unique with "P P0"). }
-
+    rename q into sz.
+    
     (* SRC: prove the postcond of init *)
-    forces_l. iSplitL "W".
-    { iFrame. eauto. }
+    forces_l. iSplitL ""; eauto.
     steps_r.
     
     (* TGT: inline alloc *)
@@ -136,12 +134,10 @@ Section SIMMODSEM.
     forces_r.
     iSplit; eauto.
 
-    (* apc *)
-    steps_r. apc_r.
-
     (* TGT: handle the postcond of alloc *)
-    steps_r. iDestruct "GRT" as "[GRT %]". 
-    iDestruct "GRT" as ( ? ) "(% & POINTS)". subst. hss.
+    steps_r. apc_r. steps_r.
+    iDestruct "GRT" as "[GRT %]". 
+    iDestruct "GRT" as (?) "(% & POINTS)". subst. hss.
 
     (* prepare and start an induction *)
     steps_r. hss.
@@ -193,11 +189,9 @@ Section SIMMODSEM.
         iPureIntro. do 3 f_equal. rewrite Z.div_mul; nia.
       }
 
-      (* TGT: handle the body of store *)
-      apc_r.
-
       (* TGT: handle the postcond of store *)
-      steps_r. iDestruct "GRT" as "[[GRT %] %]". subst.
+      steps_r. apc_r. steps_r.
+      iDestruct "GRT" as "((GRT & %) & %)". subst.
       iSpecialize ("CTN" $! (Vint 0)). iPoseProof ("CTN" with "GRT") as "PTS".
       rewrite ->!Zpos_P_of_succ_nat, <-!Nat2Z.inj_succ.
       replace (sz - S n + 1)%Z with (sz - n)%Z by nia.
@@ -217,15 +211,15 @@ Section SIMMODSEM.
     init_simF.
 
     (* SRC: handle the IST of Map and the precond of get *)
-    steps_l. iDestruct "ASM" as "(W & % & %)". subst. hss. inv G0.
-    rename n into ℓ, q1 into idx, q2 into sz, q3 into f.
+    steps_l. iDestruct "ASM" as "(% & %)". subst. hss. inv G0.
     iDestruct "IST" as (? ? ? ?) "(%& (% & [%|(P & IST)]) &%)";    
       [|iDestruct "IST" as (? ? ? ?) "(% & M)"];
       des; subst; hss.
     { nia. }
-
+    rename q2 into idx.
+    
     (* SRC: prove the postcond of get *)
-    forces_l. iSplitL "W". { eauto. }
+    forces_l. iSplitL "". { eauto. }
 
     (* TGT: compute the input to load *)
     steps_r. hss. steps_r.
@@ -243,11 +237,9 @@ Section SIMMODSEM.
     rewrite Z2Nat.id; try nia.
     iSplitL "IP"; eauto.
     
-    (* TGT: handle the body of load *)
-    apc_r.
-
     (* TGT: handle the postcond of load *)
-    steps_r. iDestruct "GRT" as "[[GRT %] %]". subst. hss. steps_r.
+    steps_r. apc_r. steps_r.
+    iDestruct "GRT" as "[[GRT %] %]". subst. hss. steps_r.
 
     (* prove the IST of Map *)
     step. repeat (iSplit; eauto).
@@ -263,15 +255,15 @@ Section SIMMODSEM.
     init_simF.
 
     (* SRC: handle the IST of Map and the precond of set *)
-    steps_l. iDestruct "ASM" as "(W & % & %)". subst. hss. inv G0. 
-    rename n into ℓ, z1 into idx, z2 into sz, q1 into v, q2 into f.
+    steps_l. iDestruct "ASM" as "(% & %)". subst. hss. inv G0. 
     iDestruct "IST" as (? ? ? ?) "(%& (% & [%|(P & IST)]) &%)";    
       [|iDestruct "IST" as (? ? ? ?) "(% & M)"];
       des; subst; hss.
     { nia. }
+    rename z1 into idx, z2 into v.
 
     (* SRC: prove the postcond of set *)
-    forces_l. iSplitL "W". { eauto. }
+    forces_l. iSplitL "". { eauto. }
 
     (* TGT: compute the input to store *)
     steps_r. hss. steps_r.
@@ -290,11 +282,9 @@ Section SIMMODSEM.
     rewrite Z2Nat.id; try nia.
     iSplitL "IP". { eauto. }
 
-    (* TGT: handle the body of store *)
-    apc_r.
-    
     (* TGT: handle the postcond of load *)
-    steps_r. iDestruct "GRT" as "[[GRT %] %]". subst. hss. steps_r.
+    steps_r. apc_r. steps_r.
+    iDestruct "GRT" as "[[GRT %] %]". subst. hss. steps_r.
 
     (* prove the IST of Map *)
     step. repeat (iSplit; eauto).
@@ -311,24 +301,24 @@ Section SIMMODSEM.
     init_simF.
 
     (* SRC: handle the IST of Map and the precond of set_by_user *)
-    steps_l. iDestruct "ASM" as "(W & % & %)". subst. hss. inv G0.
-    rename n into ℓ, q1 into idx.
+    steps_l. iDestruct "ASM" as "(% & %)". subst. hss. inv G0. hss.
+    rename q2 into k.
 
     (* process an input *)
     steps_r. step.
     
     (* SRC: prove the precond of set *)
-    steps_l. force_l (mk_meta _ _ (_, _)); s. forces_l.
-    iSplitL "W". { iFrame. eauto. }
+    steps_l. force_l (_,_); s. forces_l.
+    iSplitL "". { iFrame. eauto. }
 
     (* make a call to set *)
     call "IST"; [eauto|].
 
     (* SRC: handle the postcond of set *)
-    steps_l. iDestruct "ASM" as "(W & _ & %)". subst. hss. steps_r.
+    steps_l. iDestruct "ASM" as "(_ & %)". subst. hss. steps_r.
 
     (* SRC: prove the postcond of set_by_user *)
-    forces_l. iSplitL "W". { eauto. }
+    forces_l. iSplitL "". { eauto. }
 
     (* prove the IST of Map *)
     step. eauto.
