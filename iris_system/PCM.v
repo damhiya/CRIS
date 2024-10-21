@@ -138,8 +138,7 @@ Module GRA.
   Class inG (RA: ucmra) (Σ: t) := InG {
     inG_id: nat;
     inG_prf: RA = Σ inG_id;
-  }
-  .
+  }.
 
   Program Definition of_list (RAs: ucmra_list) : t :=
     {| gra_map := λ n, (UList.nth n RAs (optionUR Empty_setR)) |}.

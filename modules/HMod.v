@@ -1,4 +1,3 @@
-From iris.algebra Require Import cmra.
 From CCR.base_logic Require Import base_logic.
 Require Import Coqlib AList.
 Require Import sflib.
@@ -10,6 +9,8 @@ Require Import STS Behavior.
 Require Import Skeleton Mod.
 Require Import PropExtensionality.
 Require Export HMod2Mod.
+
+Require Import PCM. (* TODO : remove this when gra refactored *)
 
 Set Implicit Arguments.
 
@@ -24,19 +25,19 @@ Definition state_scopes (st: alist key Any.t) :=
 
 Module HModSem.
 Section HMODSEM.
-  Context `{Σ: ucmra}.
-  Notation hmodE := (hmodE (Σ:=Σ)) (only parsing).
+  Context `{Σ: GRA.t}.
+  (* Notation hmodE := (hmodE (Σ:=Σ)) (only parsing). *)
 
   Record t: Type := mk {
     scopes : list string;
     fnsems : alist gname (list string * (Any.t -> itree hmodE Any.t));
     initial_st : alist key Any.t;
 
-    well_scoped_fns:
+    well_scoped_fns :
       forall fn, incl (fnsems_scopes fn fnsems) scopes;
-    well_scoped_init:
+    well_scoped_init :
       incl (state_scopes initial_st) scopes;
-    nodup_fns:
+    nodup_fns :
       List.NoDup scopes -> List.NoDup (List.map fst initial_st);
   }.
 

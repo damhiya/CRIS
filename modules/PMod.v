@@ -26,8 +26,7 @@ Section PMODSEM.
       List.NoDup scopes -> List.NoDup (List.map fst initial_st);
   }.
 
-  Definition transl {R} (itr: itree pmodE R) : itree hmodE R
-    :=
+  Definition transl {R} (itr: itree pmodE R) : itree hmodE R :=
     translate inr1 itr.
 
   Program Definition to_hmod (ms: t): HModSem.t := {|

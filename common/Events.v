@@ -5,6 +5,7 @@ Require Export AList.
 Require Import Any.
 
 From CCR.base_logic Require Import base_logic.
+Require Import PCM IPM. (* TODO : delete this dependency after gra mod *)
 
 Set Implicit Arguments.
 
@@ -26,8 +27,7 @@ Section EVENTS.
   Variant schE: Type -> Type :=
   | Spawn (fn: gname) (args: Any.t): schE nat
   | Yield (tid: nat) : schE unit
-  | Tid : schE nat
-  .
+  | Tid : schE nat.
 
   Definition sPut x : stateE unit := SUpdate (fun _ => (x, tt)).
   Definition sGet : stateE Any.t := SUpdate (fun x => (x, x)).
@@ -83,7 +83,8 @@ End WRAP.
 
 Section EVENTS_OTHER.
 
-  Context `{Σ: ucmra}.
+  Context {Σ: GRA.t}.
+  Notation iProp := (iProp Σ).
 
   Definition key := (string * string)%type.
 
@@ -104,8 +105,8 @@ Section EVENTS_OTHER.
   | SGet (k: key): pgE Any.t.
 
   Variant agE: Type -> Type :=
-  | Assume (P: uPredI Σ): agE unit
-  | Guarantee (P: uPredI Σ): agE unit.
+  | Assume (P : iProp): agE unit
+  | Guarantee (P : iProp): agE unit.
 
   Definition pmodE := schE +' callE +' pgE +' coreE.
 
@@ -123,6 +124,7 @@ Notation "f 'ǃ'" := (unwrapN f) (at level 9).
 Notation "s ↯ f" := (sf s f) (at level 9).
 
 Section SYNTAX.
+
   Context `{coreE -< E}.
   Context `{callE -< E}.
   Context `{pgE -< E}.

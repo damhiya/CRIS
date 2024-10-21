@@ -743,8 +743,8 @@ Ltac align_opt :=
     match goal with
     (* remove trivial things *)
     | H: Some ?x = Some ?y |- _ => rewrite some_injective in H
-    | H: Some _ = None |- _ => by (inversion H)
-    | H: None = Some _ |- _ => by (inversion H)
+    | H: Some _ = None |- _ => sfby (inversion H)
+    | H: None = Some _ |- _ => sfby (inversion H)
     | H: None = None |- _ => clear H
     (* align *)
     | H: Some _ = ?x |- _ => symmetry in H
@@ -884,7 +884,7 @@ Lemma firstn_S
       (le (Datatypes.length l) n /\ firstn (n + 1) l = firstn n l)
     \/ (lt n (Datatypes.length l) /\ exists x, firstn (n + 1) l = (firstn n l) ++ [x]).
 Proof.
-  ginduction l; i; try by (left; do 2 rewrite firstn_nil; split; ss; lia). destruct n.
+  ginduction l; i; try sfby (left; do 2 rewrite firstn_nil; split; ss; lia). destruct n.
   { right. ss. split; try lia. eauto. }
   specialize (IHl n). ss. des.
   - left. split; try lia. rewrite IHl0. ss.

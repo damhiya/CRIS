@@ -1,7 +1,6 @@
-From iris.algebra Require Import cmra.
 From CCR.base_logic Require Import base_logic.
+Require Import IPM PCM. (* TODO : Remove dependency on this *)
 Require Import Coqlib AList.
-Require Import sflib.
 Require Import ITreelib.
 Require Import Any.
 Require Import Events.
@@ -9,18 +8,17 @@ Require Import IRed.
 Require Import STS Behavior.
 Require Import Skeleton Mod.
 
-
 Set Implicit Arguments.
 
 Section MID.
 
-  Context {Σ: ucmra}.
+  Context {Σ : GRA.t}.
+  Notation iProp := (iProp Σ).
 
   (* Consider moving into Any lib. *)
   (* Any.encode & Any.decode *)
   (* local states: [(k0, st0); (k1, st1); ... ] *)
-
-  Fixpoint _alist_encode (st_list: alist key Any.t): Any.t :=
+  Fixpoint _alist_encode (st_list : alist key Any.t) : Any.t :=
     match st_list with
     | [] => tt↑
     | (k,v) ::tl =>
@@ -30,7 +28,7 @@ Section MID.
   Definition alist_encode st_list :=
     Any.pair (List.length st_list)↑ (_alist_encode st_list).
 
-  Fixpoint _alist_decode (data: Any.t) (n: nat) : alist key Any.t :=
+  Fixpoint _alist_decode (data : Any.t) (n : nat) : alist key Any.t :=
     match n with
     | S n' =>
         match Any.split data with
@@ -58,7 +56,7 @@ Section MID.
     | None => []
     end.
 
-  Lemma alist_encode_decode st:
+  Lemma alist_encode_decode st :
     alist_decode (alist_encode st) = st.
   Proof.
     unfold alist_encode, alist_decode.
@@ -69,238 +67,163 @@ Section MID.
     rewrite IHst. eauto.
   Qed.
 
-  Definition mput_res E `{stateE -< E} `{coreE -< E} (mr: Σ): itree E unit :=
+  Definition mput_res `{stateE -< E} `{coreE -< E} (mr : Σ) : itree E unit :=
     st <- trigger sGet;; '(mp, _) <- (Any.split st)?;;
-    trigger (sPut (Any.pair mp mr↑))
-  .
+    trigger (sPut (Any.pair mp mr↑)).
 
-  Definition mget_res E `{stateE -< E} `{coreE -< E}: itree E Σ :=
+  Definition mget_res `{stateE -< E} `{coreE -< E} : itree E Σ :=
     st <- trigger sGet;; '(_, mr) <- (Any.split st)?;;
-    mr↓?
-  .
+    mr↓?.
 
-  Definition mput_kv E `{stateE -< E} `{coreE -< E} (k: key) (v: Any.t) : itree E unit :=
+  Definition mput_kv `{stateE -< E} `{coreE -< E} (k : key) (v : Any.t) : itree E unit :=
     st <- trigger sGet;; '(mp, mr) <- (Any.split st)?;;
-    trigger (sPut (Any.pair (alist_encode (alist_upd k v (alist_decode mp))) mr))
-  .
+    trigger (sPut (Any.pair (alist_encode (alist_upd k v (alist_decode mp))) mr)).
 
-  Definition mget_kv E `{stateE -< E} `{coreE -< E} (k: key) : itree E Any.t :=
+  Definition mget_kv `{stateE -< E} `{coreE -< E} (k: key) : itree E Any.t :=
     st <- trigger sGet;; '(mp, _) <- (Any.split st)?;;
-    Ret (or_else (alist_find k (alist_decode mp)) tt↑)
-  .
+    Ret (or_else (alist_find k (alist_decode mp)) tt↑).
 
   (* mid to tgt code *)
   Definition handle_pgE : pgE ~> itree modE :=
-      (fun _ e =>
-         match e with
-         | SPut k v => mput_kv k v
-         | SGet k => mget_kv k
-        end).
+    fun _ e =>
+      match e with
+      | SPut k v => mput_kv k v
+      | SGet k => mget_kv k
+      end.
 
-  Definition handle_Assume P: stateT (Σ) (itree modE) unit :=
+  Definition handle_Assume P : stateT Σ (itree modE) unit :=
     fun fr =>
       r <- trigger (Take Σ);;
       mr <- mget_res;;
       assume (✓ (r ⋅ fr ⋅ mr));;;
-      assume(uPred_ownM r ⊢ P);;;
+      assume (Own r ⊢ P);;;
       Ret (r ⋅ fr, tt).
 
-  Definition handle_Guarantee P: stateT (Σ) (itree modE) unit :=
+  Definition handle_Guarantee P : stateT Σ (itree modE) unit :=
     fun fr =>
       '(r, fr', mr') <- trigger (Choose (Σ * Σ * Σ));;
       mr <- mget_res;;
-      guarantee(uPred_ownM (fr ⋅ mr) ⊢ |==> uPred_ownM (r ⋅ fr' ⋅ mr'));;;
-      guarantee(uPred_ownM r ⊢ P);;;
+      guarantee (fr ⋅ mr ~~> r ⋅ fr' ⋅ mr');;;
+      guarantee (Own r ⊢ P);;;
       mput_res mr';;;
       Ret (fr', tt).
 
-  Definition handle_agE: agE ~> stateT (Σ) (itree modE) :=
+  Definition handle_agE : agE ~> stateT Σ (itree modE) :=
     fun _ e fr =>
       match e with
       | Assume P => handle_Assume P fr
       | Guarantee P => handle_Guarantee P fr
       end.
 
-  Definition handle_schE: schE ~> stateT (Σ) (itree modE) :=
-    fun _ e fr =>
-      match e with
+  Definition handle_schE : schE ~> stateT Σ (itree modE) :=
+    fun T0 e fr =>
+      match e in (schE _) return (itree modE (Σ * T0)) with
       | Yield _ =>
           '(fr', _) <- handle_Guarantee (True%I) fr;;
           x <- trigger e;; Ret (fr', x)
       | _ => x <- trigger e;; Ret (fr, x)
       end.
 
-
-  Definition interp_hp : itree hmodE ~> stateT Σ (itree modE) :=
-      interp_state
-        (case_ (bif:=sum1) handle_agE
-        (case_ (bif:=sum1) handle_schE
-        (case_ (bif:=sum1) ((fun T e fr => '(fr', _) <- (handle_Guarantee (True%I) fr);; x <- trigger e;; Ret (fr', x)): _ ~> stateT Σ (itree modE))
-        (case_ (bif:=sum1) ((fun T e fr => x <- handle_pgE e;; Ret (fr, x)): _ ~> stateT Σ (itree modE))
-                           ((fun T e fr => x <- trigger e;; Ret (fr, x)): _ ~> stateT Σ (itree modE)))))).
+  Definition interp_hp : itree hmodE ~> stateT Σ (itree modE).
+  Proof.
+    eapply interp_state. intros T E. destruct E.
+    { exact (handle_agE a). }
+    destruct p.
+    { exact (handle_schE s). }
+    destruct s.
+    { intros fr. eapply ITree.bind.
+      { eapply (handle_Guarantee (True%I) fr). }
+      { intros [fr' _]. eapply ITree.bind.
+        { exact (trigger c). }
+        { intros r; exact (Ret (fr', r)). }
+      }
+    }
+    destruct s.
+    { intros r. eapply ITree.bind.
+      { exact (handle_pgE p). }
+      { intros t; exact (Ret (r, t)). }
+    }
+    { intros fr. eapply ITree.bind.
+      { eapply (trigger (inr1 (inr1 (inr1 c)))). }
+      { intros t; exact (Ret (fr, t)). }
+    }
+  Defined.
 
   Definition hp_fun_tail := (fun '(fr, x) => handle_Guarantee (True%I) fr ;;; Ret (x: Any.t)).
 
-  Definition interp_hp_body (i: itree hmodE Any.t) (fr: Σ) : itree modE Any.t :=
+  Definition interp_hp_body (i : itree hmodE Any.t) (fr: Σ) : itree modE Any.t :=
     interp_hp i fr >>= hp_fun_tail.
 
-  Definition interp_hp_fun (f: Any.t -> itree hmodE Any.t) : Any.t -> itree modE Any.t :=
+  Definition interp_hp_fun (f : Any.t -> itree hmodE Any.t) : Any.t -> itree modE Any.t :=
     fun x => interp_hp_body (f x) ε.
 
 End MID.
 
 Section RED.
   (* itree reduction lemmas *)
-  Context `{Σ: ucmra}.
+  Context `{Σ: GRA.t}.
+  Notation iProp := (iProp Σ).
 
-  Lemma interp_hp_bind
-        (R S: Type)
-        (s : itree hmodE R) (k : R -> itree hmodE S)
-        fmr
-    :
-      interp_hp (s >>= k) fmr
-      =
-      st <- interp_hp s fmr;; interp_hp (Σ:=Σ) (k st.2) st.1.
-  Proof.
-    unfold interp_hp in *. eapply interp_state_bind.
-  Qed.
+  Lemma interp_hp_bind (R S: Type)
+        (s : itree hmodE R) (k : R -> itree hmodE S)fmr :
+    interp_hp (s >>= k) fmr = st <- interp_hp s fmr;; interp_hp (Σ:=Σ) (k st.2) st.1.
+  Proof. unfold interp_hp in *. eapply interp_state_bind. Qed.
 
-  Lemma interp_hp_body_bind
-        R (s : itree hmodE R) (k : R -> itree hmodE Any.t) fmr
-    :
-      interp_hp_body (s >>= k) fmr
-      =
-      '(fr,r) <- interp_hp s fmr;; interp_hp_body (Σ:=Σ) (k r) fr.
-  Proof.
-    unfold interp_hp_body. rewrite interp_hp_bind. grind. destruct x. eauto.
-  Qed.
+  Lemma interp_hp_body_bind R (s : itree hmodE R) (k : R -> itree hmodE Any.t) fmr :
+    interp_hp_body (s >>= k) fmr = '(fr,r) <- interp_hp s fmr;; interp_hp_body (Σ:=Σ) (k r) fr.
+  Proof. unfold interp_hp_body. rewrite interp_hp_bind. grind. destruct x. eauto. Qed.
 
+  Lemma interp_hp_tau (U : Type) (t : itree _ U) fmr :
+    interp_hp (tau;; t) fmr = tau;; (interp_hp (Σ:=Σ) t fmr).
+  Proof. unfold interp_hp in *. eapply interp_state_tau. Qed.
 
-  Lemma interp_hp_tau
-        (U: Type)
-        (t : itree _ U)
-        fmr
-    :
-      interp_hp (tau;; t) fmr
-      =
-      tau;; (interp_hp (Σ:=Σ) t fmr).
-  Proof.
-    unfold interp_hp in *. eapply interp_state_tau.
-  Qed.
+  Lemma interp_hp_ret (U : Type) (t : U) fmr :
+    interp_hp (Σ:=Σ) (Ret t) fmr = Ret (fmr, t).
+  Proof. unfold interp_hp in *. eapply interp_state_ret. Qed.
 
-  Lemma interp_hp_ret
-        (U: Type)
-        (t: U)
-        fmr
-    :
-      interp_hp (Σ:=Σ) (Ret t) fmr
-      =
-      Ret (fmr, t).
-  Proof.
-    unfold interp_hp in *. eapply interp_state_ret.
-  Qed.
+  Lemma interp_hp_call (R: Type) (i: callE R) fr :
+    interp_hp (trigger i) fr = '(fr', _) <- handle_Guarantee (Σ:=Σ) True%I fr;; r <- trigger i;; tau;; Ret (fr', r).
+  Proof. unfold interp_hp in *. grind. Qed.
 
-  Lemma interp_hp_call
-        (R: Type)
-        (i: callE R)
-        fr
-    :
-      interp_hp (trigger i) fr
-      =
-      '(fr', _) <- handle_Guarantee (Σ:=Σ) True%I fr;; r <- trigger i;; tau;; Ret (fr', r).
-  Proof.
-    unfold interp_hp in *. grind.
-  Qed.
+  Lemma interp_hp_spawn fn arg fmr :
+    interp_hp (trigger (Spawn fn arg)) fmr = r <- trigger (Spawn fn arg);; tau;; Ret (fmr, r).
+  Proof. unfold interp_hp. rewrite interp_state_trigger. cbn. grind. Qed.
 
-  Lemma interp_hp_spawn
-        fn arg fmr
-    :
-      interp_hp (trigger (Spawn fn arg)) fmr
-      =
-      r <- trigger (Spawn fn arg);; tau;; Ret (fmr, r).
-  Proof.
-    unfold interp_hp. rewrite interp_state_trigger. cbn. grind.
-  Qed.
+  Lemma interp_hp_yield tid fr :
+    interp_hp (trigger (Yield tid)) fr
+    = '(fr', _) <- handle_Guarantee (True%I:iProp) fr;; r <- trigger (Yield tid);; tau;; Ret (fr', r).
+  Proof. unfold interp_hp in *. grind. Qed.
 
-  Lemma interp_hp_yield
-        tid
-        fr
-    :
-      interp_hp (trigger (Yield tid)) fr
-      =
-      '(fr', _) <- handle_Guarantee (True%I:iProp) fr;; r <- trigger (Yield tid);; tau;; Ret (fr', r).
-  Proof.
-    unfold interp_hp in *. grind.
-  Qed.
+  Lemma interp_hp_tid fmr :
+    interp_hp (trigger Tid) fmr = r <- trigger Tid;; tau;; Ret (fmr, r).
+  Proof. unfold interp_hp. rewrite interp_state_trigger. cbn. grind. Qed.
 
-  Lemma interp_hp_tid
-        fmr
-    :
-      interp_hp (trigger Tid) fmr
-      =
-      r <- trigger Tid;; tau;; Ret (fmr, r).
-  Proof.
-    unfold interp_hp. rewrite interp_state_trigger. cbn. grind.
-  Qed.
+  Lemma interp_hp_pg (R: Type) (i: pgE R) fmr :
+    interp_hp (Σ:=Σ) (trigger i) fmr = r <- handle_pgE i;; tau;; Ret (fmr, r).
+  Proof. unfold interp_hp. rewrite interp_state_trigger. cbn. grind. Qed.
 
-  Lemma interp_hp_pg
-        (R: Type)
-        (i: pgE R)
-        fmr
-    :
-      interp_hp (Σ:=Σ) (trigger i) fmr
-      =
-      r <- handle_pgE i;; tau;; Ret (fmr, r).
-  Proof.
-    unfold interp_hp. rewrite interp_state_trigger. cbn. grind.
-  Qed.
+  Lemma interp_hp_core (R: Type) (i: coreE R) fmr :
+    interp_hp (Σ:=Σ) (trigger i) fmr = r <- trigger i;; tau;; Ret (fmr, r).
+  Proof. rewrite /interp_hp /pure_state interp_state_trigger; cbn. unfold trigger. grind. Qed.
 
-  Lemma interp_hp_core
-        (R: Type)
-        (i: coreE R)
-        fmr
-    :
-      interp_hp (Σ:=Σ) (trigger i) fmr
-      =
-      r <- trigger i;; tau;; Ret (fmr, r).
-  Proof.
-    unfold interp_hp. rewrite interp_state_trigger. cbn. grind.
-  Qed.
-
-  Lemma interp_hp_triggerUB
-        (R: Type)
-        fmr
-    :
-      interp_hp (triggerUB) fmr
-      =
-      triggerUB (A:=Σ*R).
+  Lemma interp_hp_triggerUB (R: Type) fmr :
+    interp_hp (triggerUB) fmr = triggerUB (A:=Σ*R).
   Proof.
     unfold interp_hp, triggerUB in *.
     erewrite (bisimulation_is_eq _ _ (unfold_interp_state _ _ _)).
     cbn. grind.
   Qed.
 
-  Lemma interp_hp_triggerNB
-        (R: Type)
-        fmr
-    :
-      interp_hp (triggerNB) fmr
-      =
-      triggerNB (A:=Σ*R).
+  Lemma interp_hp_triggerNB (R: Type) fmr :
+    interp_hp (triggerNB) fmr = triggerNB (A:=Σ*R).
   Proof.
     unfold interp_hp, triggerNB in *.
     erewrite (bisimulation_is_eq _ _ (unfold_interp_state _ _ _)).
     cbn. grind.
   Qed.
 
-  Lemma interp_hp_unwrapU
-        (R: Type)
-        (i: option R)
-        fmr
-    :
-      interp_hp (Σ:=Σ) (@unwrapU hmodE _ _ i) fmr
-      =
-      r <- (unwrapU i);; Ret (fmr, r).
+  Lemma interp_hp_unwrapU (R: Type) (i: option R) fmr :
+    interp_hp (Σ:=Σ) (@unwrapU hmodE _ _ i) fmr = r <- (unwrapU i);; Ret (fmr, r).
   Proof.
     unfold interp_hp, unwrapU in *. des_ifs.
     { etrans.
@@ -313,14 +236,8 @@ Section RED.
     }
   Qed.
 
-  Lemma interp_hp_unwrapN
-        (R: Type)
-        (i: option R)
-        fmr
-    :
-      interp_hp (Σ:=Σ) (@unwrapN hmodE _ _ i) fmr
-      =
-      r <- (unwrapN i);; Ret (fmr, r).
+  Lemma interp_hp_unwrapN (R: Type) (i: option R) fmr :
+    interp_hp (Σ:=Σ) (@unwrapN hmodE _ _ i) fmr = r <- (unwrapN i);; Ret (fmr, r).
   Proof.
     unfold interp_hp, unwrapN in *. des_ifs.
     { etrans.
@@ -333,36 +250,16 @@ Section RED.
     }
   Qed.
 
-  Lemma interp_hp_Assume
-        P
-        fmr
-    :
-      interp_hp (trigger (Assume P)) fmr
-      =
-      x <- handle_Assume (Σ:=Σ) P fmr ;; tau;; Ret x.
-  Proof.
-    unfold interp_hp. rewrite interp_state_trigger. cbn. grind.
-  Qed.
+  Lemma interp_hp_Assume P fmr :
+    interp_hp (trigger (Assume P)) fmr = x <- handle_Assume (Σ:=Σ) P fmr ;; tau;; Ret x.
+  Proof. unfold interp_hp. rewrite interp_state_trigger. cbn. grind. Qed.
 
-  Lemma interp_hp_Guarantee
-        P
-        fmr
-    :
-      interp_hp (trigger (Guarantee P)) fmr
-      =
-      x <- handle_Guarantee (Σ:=Σ) P fmr ;; tau;; Ret x.
-  Proof.
-    unfold interp_hp. rewrite interp_state_trigger. cbn. grind.
-  Qed.
+  Lemma interp_hp_Guarantee P fmr :
+    interp_hp (trigger (Guarantee P)) fmr = x <- handle_Guarantee (Σ:=Σ) P fmr ;; tau;; Ret x.
+  Proof. unfold interp_hp. rewrite interp_state_trigger. cbn. grind. Qed.
 
-  Lemma interp_hp_ext
-        R (itr0 itr1: itree _ R)
-        (EQ: itr0 = itr1)
-        fmr
-    :
-      interp_hp itr0 fmr
-      =
-      interp_hp (Σ:=Σ) itr1 fmr.
+  Lemma interp_hp_ext R (itr0 itr1: itree _ R) (EQ: itr0 = itr1) fmr :
+    interp_hp itr0 fmr = interp_hp (Σ:=Σ) itr1 fmr.
   Proof. subst; et. Qed.
 
   (* TODO: Same lemmas for other interps ( not defined yet. ) *)

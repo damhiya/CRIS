@@ -79,8 +79,8 @@ Ltac edone := try eassumption; trivial; hnf; intros;
          try eassumption; sflib__basic_done
     | match goal with H : ~ _ |- _ => solve [case H; trivial] end].
 
-Tactic Notation "by"  tactic(tac) := (tac; done).
-Tactic Notation "eby" tactic(tac) := (tac; edone).
+Tactic Notation "sfby"  tactic(tac) := (tac; done).
+Tactic Notation "esfby" tactic(tac) := (tac; edone).
 
 Ltac sflib__complaining_inj f H :=
   let X := fresh in
@@ -801,7 +801,7 @@ Ltac show_evars := repeat (match goal with [ H := @_Evar_sflib_ _ _ |- _ ] => un
 Ltac revert1 := match goal with [H: _|-_] => revert H end.
 
 Lemma eqimpl: forall P Q : Prop, P = Q -> P -> Q.
-Proof. by i; subst; auto. Qed.
+Proof. sfby i; subst; auto. Qed.
 
 Ltac ginduction H :=
   move H at top; revert_until H; induction H.
@@ -926,26 +926,26 @@ Ltac ren H :=
 (** Automation using econstructor.
     What it does is clear from the definition below. *)
 Tactic Notation "econsby" tactic(tac) :=
-  first [econstructor  1; (by tac)
-        |econstructor  2; (by tac)
-        |econstructor  3; (by tac)
-        |econstructor  4; (by tac)
-        |econstructor  5; (by tac)
-        |econstructor  6; (by tac)
-        |econstructor  7; (by tac)
-        |econstructor  8; (by tac)
-        |econstructor  9; (by tac)
-        |econstructor 10; (by tac)
-        |econstructor 11; (by tac)
-        |econstructor 12; (by tac)
-        |econstructor 13; (by tac)
-        |econstructor 14; (by tac)
-        |econstructor 15; (by tac)
-        |econstructor 16; (by tac)
-        |econstructor 17; (by tac)
-        |econstructor 18; (by tac)
-        |econstructor 19; (by tac)
-        |econstructor 20; (by tac)
+  first [econstructor  1; (sfby tac)
+        |econstructor  2; (sfby tac)
+        |econstructor  3; (sfby tac)
+        |econstructor  4; (sfby tac)
+        |econstructor  5; (sfby tac)
+        |econstructor  6; (sfby tac)
+        |econstructor  7; (sfby tac)
+        |econstructor  8; (sfby tac)
+        |econstructor  9; (sfby tac)
+        |econstructor 10; (sfby tac)
+        |econstructor 11; (sfby tac)
+        |econstructor 12; (sfby tac)
+        |econstructor 13; (sfby tac)
+        |econstructor 14; (sfby tac)
+        |econstructor 15; (sfby tac)
+        |econstructor 16; (sfby tac)
+        |econstructor 17; (sfby tac)
+        |econstructor 18; (sfby tac)
+        |econstructor 19; (sfby tac)
+        |econstructor 20; (sfby tac)
   ].
 
 

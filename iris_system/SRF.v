@@ -1,12 +1,13 @@
+(* TODO : make SRFSyn.t rewriting more flexible by using setoids *)
 Require Import Basics Program.
 
 Local Notation level := nat.
 
 Module PF.
-  
+
   Class t: Type := {
-    shp: Type;
-    deg: shp -> forall (Prev:Type), Type;
+    shp : Type;
+    deg : shp -> forall (Prev:Type), Type;
   }.
 
 End PF.
@@ -14,7 +15,7 @@ End PF.
 Coercion PF.shp: PF.t >-> Sortclass.
 
 Module GPF.
-  
+
   Class t: Type := __GATOM: nat -> PF.t.
 
   Class inG (F: PF.t) (GF: t) : Type := {
@@ -25,7 +26,7 @@ Module GPF.
 End GPF.
 
 Module SRFMSynG.
-  
+
   Class t: Type := __GATM: GPF.t.
 
 End SRFMSynG.
@@ -34,31 +35,30 @@ Module SRFSyn.
 
   Section SYNTAX.
 
-  Context `{α: SRFMSynG.t}.
+    Context `{α: SRFMSynG.t}.
 
-  Inductive term {Prev: Type} : Type :=
-  | _lift (p: Prev) : term
-  | _cur i (op: α i) (args: PF.deg op Prev -> term)
-  .
+    Inductive term {Prev : Type} : Type :=
+    | _lift (p : Prev) : term
+    | _cur i (op : α i) (args: PF.deg op Prev -> term).
 
-  Fixpoint _t (n : level) : Type :=
-    match n with
-    | O => Empty_set
-    | S m => term (Prev:=_t m) 
-    end.
+    Fixpoint _t (n : level) : Type :=
+      match n with
+      | O => Empty_set
+      | S m => term (Prev:=_t m) 
+      end.
 
-  Definition t_prev (n: level) : Type := _t n.
-  
-  Definition t (n : level) : Type := t_prev (S n).
+    Definition t_prev (n : level) : Type := _t n.
+    
+    Definition t (n : level) : Type := t_prev (S n).
 
-  Definition lift {n} (p: t n) : t (S n) := _lift p.
-  
-  Fixpoint liftn k {n} (p: t n) : t (k+n) :=
-    match k return t (k+n) with
-    | 0 => p
-    | S k' => lift (liftn k' p)
-    end.
-  
+    Definition lift {n} (p : t n) : t (S n) := _lift p.
+    
+    Fixpoint liftn k {n} (p : t n) : t (k+n) :=
+      match k return t (k+n) with
+      | 0 => p
+      | S k' => lift (liftn k' p)
+      end.
+    
   End SYNTAX.
 
 End SRFSyn.
@@ -66,9 +66,9 @@ End SRFSyn.
 Module SRFDom.
 
   Class t : Type := {
-      dom: Type;
-      void: dom;
-    }.
+    dom: Type;
+    void: dom;
+  }.
 
 End SRFDom.
 
@@ -81,11 +81,14 @@ Module SRFMSem.
   Context `{A: PF.t}.
 
   Class t : Type := 
-    sem: forall n (op: A) (args: PF.deg op (SRFSyn.t_prev n) -> SRFSyn.t n) (Args: PF.deg op (SRFSyn.t_prev n) -> SRFDom.dom), SRFDom.dom
-  .
+    sem :
+      forall n (op: A)
+          (args: PF.deg op (SRFSyn.t_prev n) -> SRFSyn.t n)
+          (Args: PF.deg op (SRFSyn.t_prev n) -> SRFDom.dom),
+        SRFDom.dom.
 
   End SEM.
-  
+
 End SRFMSem.
 
 Module SRFMSemG.
@@ -100,7 +103,7 @@ Module SRFMSemG.
     inG_id: nat;
     inG_prf: existT _ A B = existT _ (α inG_id) (β inG_id);
   }.
-  
+
   End GSEM.
 
 End SRFMSemG.
@@ -128,7 +131,9 @@ Module SRFSem.
   
   Definition t n : SRFSyn.t n -> SRFDom.dom := t_prev (S n).
 
-  Program Definition cur `{A: PF.t} `{B: @SRFMSem.t Δ α A} `{IN: @SRFMSemG.inG _ A α B β} {n} (op: A) (args: PF.deg op (SRFSyn.t_prev n) -> SRFSyn.t n) : SRFSyn.t n.
+  Program Definition cur `{A: PF.t} `{B: @SRFMSem.t Δ α A} `{IN: @SRFMSemG.inG _ A α B β} {n}
+      (op: A) (args: PF.deg op (SRFSyn.t_prev n) -> SRFSyn.t n) : SRFSyn.t n.
+  Proof.
     destruct IN. inversion inG_prf. subst.
     exact (SRFSyn._cur inG_id op args).
   Defined.

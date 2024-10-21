@@ -3,7 +3,6 @@ Require Import sflib.
 From iris.algebra Require Import ofe auth agree coPset gset gmap_view.
 From CCR.algebra Require Import functions.
 From iris Require Import bi.big_op.
-(* From iris Require base_logic.lib.invariants. *)
 
 Require Import Coqlib PCM IPM sProp.
 
@@ -340,16 +339,9 @@ Section WSATS.
     ∗ OwnM (empty_universesR eu (λ _, (λ n, gmap_view_auth (DfracOwn 1) ∅) : discrete_funUR InvSetRA)).
   Definition free_universes := (∃ eu, empty_universes eu)%I.
 
-  (* TODO : replace this with existing library *)
-  (* Fixpoint countdown (n: nat) : list nat :=
-    match n with 0 => [] | S n' => n' :: countdown n' end. *)
   Definition wsats u b : iProp := ([∗ list] n ∈ (seq 0 b), wsat u n)%I.
-
-  (* Definition free_worlds u b : iProp := free_worlds u b. *)
-
   Definition used_worlds u b E : iProp :=
     wsats u b ∗ OwnE u E ∗ OwnD_auth u ∗ free_universes.
-
   Definition closed_universe u b E : iProp :=
     used_worlds u b E ∗ free_worlds u b.
 

@@ -36,83 +36,70 @@ Definition smj_le m1 m2 :=
 Hint Unfold smj_le.
 
 Lemma smj_ltb_trans m1 m2 m3
-  (LT1: smj_ltb m1 m2)
-  (LT2: smj_ltb m2 m3)
-  :
+    (LT1: smj_ltb m1 m2)
+    (LT2: smj_ltb m2 m3) :
   smj_ltb m1 m3.
 Proof. destruct m1, m2, m3; ss; des_ifs. Qed.
 
-Lemma smj_lt_mid_top:
+Lemma smj_lt_mid_top :
   smj_ltb smj_mid smj_top.
 Proof. ss. Qed.
 
-Lemma smj_le_bot m:
+Lemma smj_le_bot m :
   smj_le smj_bot m.
-Proof.
-  destruct m as [[] | ]; ss; eauto.
-Qed.
+Proof. destruct m as [[] | ]; ss; eauto. Qed.
 
 Variant simg_def
-  (simg: forall R0 R1 (RR: R0 -> R1 -> Prop), smj -> smj -> (itree coreE R0) -> (itree coreE R1) -> Prop)
-  {R0 R1} (RR: R0 -> R1 -> Prop)           
-  (self:  smj -> smj -> (itree coreE R0) -> (itree coreE R1) -> Prop):
-  smj -> smj -> (itree coreE R0) -> (itree coreE R1) -> Prop :=
+    (simg: forall R0 R1 (RR: R0 -> R1 -> Prop), smj -> smj -> (itree coreE R0) -> (itree coreE R1) -> Prop)
+    {R0 R1} (RR: R0 -> R1 -> Prop)           
+    (self:  smj -> smj -> (itree coreE R0) -> (itree coreE R1) -> Prop)
+    : smj -> smj -> (itree coreE R0) -> (itree coreE R1) -> Prop :=
 
-| simg_ret ps pt
-  r_src r_tgt
-  (SIM: RR r_src r_tgt)
-:
-simg_def simg RR self ps pt (Ret r_src) (Ret r_tgt)
+  | simg_ret ps pt r_src r_tgt
+      (SIM: RR r_src r_tgt)
+  : simg_def simg RR self ps pt (Ret r_src) (Ret r_tgt)
 
-| simg_io ps pt ps0 pt0
-  I O ktr_src0 ktr_tgt0 fn (varg: I)
-  (SIM: forall (x_src x_tgt: O) (EQ: x_src = x_tgt), self ps0 pt0 (ktr_src0 x_src) (ktr_tgt0 x_tgt))
-:
-simg_def simg RR self ps pt (trigger (IO fn varg) >>= ktr_src0) (trigger (IO fn varg) >>= ktr_tgt0)
+  | simg_io ps pt ps0 pt0
+      I O ktr_src0 ktr_tgt0 fn (varg: I)
+      (SIM: forall (x_src x_tgt: O) (EQ: x_src = x_tgt), self ps0 pt0 (ktr_src0 x_src) (ktr_tgt0 x_tgt))
+  : simg_def simg RR self ps pt (trigger (IO fn varg) >>= ktr_src0) (trigger (IO fn varg) >>= ktr_tgt0)
 
-| simg_tauL ps pt ps0
-  itr_src0 itr_tgt0
-  (SIM: self ps0 pt itr_src0 itr_tgt0)
-:
-simg_def simg RR self ps pt (tau;; itr_src0) (itr_tgt0)
+  | simg_tauL ps pt ps0
+      itr_src0 itr_tgt0
+      (SIM: self ps0 pt itr_src0 itr_tgt0)
+  : simg_def simg RR self ps pt (tau;; itr_src0) (itr_tgt0)
 
-| simg_tauR ps pt pt0
-  itr_src0 itr_tgt0
-  (SIM: self ps pt0 itr_src0 itr_tgt0)
-:
-simg_def simg RR self ps pt (itr_src0) (tau;; itr_tgt0)
+  | simg_tauR ps pt pt0
+      itr_src0 itr_tgt0
+      (SIM: self ps pt0 itr_src0 itr_tgt0)
+  : simg_def simg RR self ps pt (itr_src0) (tau;; itr_tgt0)
 
-| simg_chooseL ps pt ps0
-  X ktr_src0 itr_tgt0
-  (SIM: exists x, self ps0 pt (ktr_src0 x) itr_tgt0)
-:
-simg_def simg RR self ps pt (trigger (Choose X) >>= ktr_src0) (itr_tgt0)
+  | simg_chooseL ps pt ps0
+      X ktr_src0 itr_tgt0
+      (SIM: exists x, self ps0 pt (ktr_src0 x) itr_tgt0)
+  : simg_def simg RR self ps pt (trigger (Choose X) >>= ktr_src0) (itr_tgt0)
 
-| simg_chooseR ps pt pt0
-  X itr_src0 ktr_tgt0
-  (SIM: forall x, self ps pt0 itr_src0 (ktr_tgt0 x))
-:
-simg_def simg RR self ps pt (itr_src0) (trigger (Choose X) >>= ktr_tgt0)
+  | simg_chooseR ps pt pt0
+      X itr_src0 ktr_tgt0
+      (SIM: forall x, self ps pt0 itr_src0 (ktr_tgt0 x))
+  : simg_def simg RR self ps pt (itr_src0) (trigger (Choose X) >>= ktr_tgt0)
 
-| simg_takeL ps pt ps0
-  X ktr_src0 itr_tgt0
-  (SIM: forall x, self ps0 pt (ktr_src0 x) itr_tgt0)
-:
-  simg_def simg RR self ps pt (trigger (Take X) >>= ktr_src0) (itr_tgt0)
+  | simg_takeL ps pt ps0
+      X ktr_src0 itr_tgt0
+      (SIM: forall x, self ps0 pt (ktr_src0 x) itr_tgt0)
+  : simg_def simg RR self ps pt (trigger (Take X) >>= ktr_src0) (itr_tgt0)
 
-| simg_takeR ps pt pt0
-  X itr_src0 ktr_tgt0
-  (SIM: exists x, self ps pt0 itr_src0 (ktr_tgt0 x))
-:
-  simg_def simg RR self ps pt (itr_src0) (trigger (Take X) >>= ktr_tgt0)
+  | simg_takeR ps pt pt0
+      X itr_src0 ktr_tgt0
+      (SIM: exists x, self ps pt0 itr_src0 (ktr_tgt0 x))
+  : simg_def simg RR self ps pt (itr_src0) (trigger (Take X) >>= ktr_tgt0)
 
-| simg_progress ps pt ps0 pt0
-  itr_src itr_tgt
-  (SIM: simg _ _ RR ps0 pt0 itr_src itr_tgt)
-  (DECS: smj_ltb ps0 ps)
-  (DECT: smj_ltb pt0 pt)
-:
-simg_def simg RR self ps pt itr_src itr_tgt
+  | simg_progress ps pt ps0 pt0
+      itr_src itr_tgt
+      (SIM: simg _ _ RR ps0 pt0 itr_src itr_tgt)
+      (DECS: smj_ltb ps0 ps)
+      (DECT: smj_ltb pt0 pt)
+  : simg_def simg RR self ps pt itr_src itr_tgt
 .
 
 Lemma simg_def_mon simg simg' R_src R_tgt RR P P'

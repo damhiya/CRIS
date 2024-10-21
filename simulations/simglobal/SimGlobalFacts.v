@@ -35,35 +35,35 @@ Section ADEQUACY.
     eapply simg_ind, SIM. i.
     depdes PR; i; subst.
     { gstep. econs. eapply sim_fin; ss; cbn; des_ifs. }
-    { gstep. econs. eapply sim_vis; try by ss. i.
+    { gstep. econs. eapply sim_vis; try sfby ss. i.
       eapply step_trigger_io_iff in STEP. des. subst. inv STEP0.
       esplits.
       + eapply step_trigger_io; et.
       + guclo sim_flagC_spec. econs; [gbase; eapply CIH, SIM0|..]; eauto.
     }
-    { guclo sim_indC_spec. eapply sim_demonic_src; try by ss.
+    { guclo sim_indC_spec. eapply sim_demonic_src; try sfby ss.
       esplits.
       + eapply step_tau; et.
       + guclo sim_flagC_spec. econs; [eapply gpaco4_mon; [eapply SIM0|..]|..]; et; ss.
     }
-    { guclo sim_indC_spec. eapply sim_demonic_tgt; try by ss. i.
+    { guclo sim_indC_spec. eapply sim_demonic_tgt; try sfby ss. i.
       eapply step_tau_iff in STEP. des. subst.
       guclo sim_flagC_spec. econs; [eapply gpaco4_mon; [eapply SIM1|..]|..]; et; ss.
     }
-    { des. guclo sim_indC_spec. eapply sim_demonic_src; try by ss.
+    { des. guclo sim_indC_spec. eapply sim_demonic_src; try sfby ss.
       esplits.
       + eapply step_trigger_choose; et.
       + guclo sim_flagC_spec. econs; [eapply gpaco4_mon; [eapply SIM1|..]|..]; et; ss.
     }
-    { guclo sim_indC_spec. eapply sim_demonic_tgt; try by ss.
+    { guclo sim_indC_spec. eapply sim_demonic_tgt; try sfby ss.
       i. eapply step_trigger_choose_iff in STEP. des. subst.
       guclo sim_flagC_spec. econs; [eapply gpaco4_mon; [eapply SIM0|..]|..]; et; ss.
     }
-    { guclo sim_indC_spec. eapply sim_angelic_src; try by ss.
+    { guclo sim_indC_spec. eapply sim_angelic_src; try sfby ss.
       i. eapply step_trigger_take_iff in STEP. des. subst.
       guclo sim_flagC_spec. econs; [eapply gpaco4_mon; [eapply SIM0|..]|..]; et; ss.
     }
-    { des. guclo sim_indC_spec. eapply sim_angelic_tgt; try by ss.
+    { des. guclo sim_indC_spec. eapply sim_angelic_tgt; try sfby ss.
       esplits.
       + eapply step_trigger_take; et.
       + guclo sim_flagC_spec. econs; [eapply gpaco4_mon; [eapply SIM1|..]|..]; et; ss.
@@ -82,35 +82,35 @@ Section ADEQUACY.
     eapply simg_ind, SIM. i.
     depdes PR; i; subst.
     { gstep. econs. eapply sim_fin; ss; cbn; des_ifs. }
-    { gstep. econs. eapply sim_vis; try by ss. i.
+    { gstep. econs. eapply sim_vis; try sfby ss. i.
       eapply step_trigger_io_iff in STEP. des. subst. inv STEP0.
       esplits.
       + eapply step_trigger_io; et.
       + guclo sim_flagC_spec. econs; [gbase; eapply CIH, SIM0|..]; eauto.
     }
-    { guclo sim_indC_spec. eapply sim_demonic_src; try by ss.
+    { guclo sim_indC_spec. eapply sim_demonic_src; try sfby ss.
       esplits.
       + eapply step_tau; et.
       + guclo sim_flagC_spec. econs; [eapply gpaco4_mon; [eapply SIM0|..]|..]; et; ss.
     }
-    { guclo sim_indC_spec. eapply sim_demonic_tgt; try by ss. i.
+    { guclo sim_indC_spec. eapply sim_demonic_tgt; try sfby ss. i.
       eapply step_tau_iff in STEP. des. subst.
       guclo sim_flagC_spec. econs; [eapply gpaco4_mon; [eapply SIM1|..]|..]; et; ss.
     }
-    { des. guclo sim_indC_spec. eapply sim_demonic_src; try by ss.
+    { des. guclo sim_indC_spec. eapply sim_demonic_src; try sfby ss.
       esplits.
       + eapply step_trigger_choose; et.
       + guclo sim_flagC_spec. econs; [eapply gpaco4_mon; [eapply SIM1|..]|..]; et; ss.
     }
-    { guclo sim_indC_spec. eapply sim_demonic_tgt; try by ss.
+    { guclo sim_indC_spec. eapply sim_demonic_tgt; try sfby ss.
       i. eapply step_trigger_choose_iff in STEP. des. subst.
       guclo sim_flagC_spec. econs; [eapply gpaco4_mon; [eapply SIM0|..]|..]; et; ss.
     }
-    { guclo sim_indC_spec. eapply sim_angelic_src; try by ss.
+    { guclo sim_indC_spec. eapply sim_angelic_src; try sfby ss.
       i. eapply step_trigger_take_iff in STEP. des. subst.
       guclo sim_flagC_spec. econs; [eapply gpaco4_mon; [eapply SIM0|..]|..]; et; ss.
     }
-    { des. guclo sim_indC_spec. eapply sim_angelic_tgt; try by ss.
+    { des. guclo sim_indC_spec. eapply sim_angelic_tgt; try sfby ss.
       esplits.
       + eapply step_trigger_take; et.
       + guclo sim_flagC_spec. econs; [eapply gpaco4_mon; [eapply SIM1|..]|..]; et; ss.

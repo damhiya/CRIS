@@ -47,7 +47,6 @@ End GTyp.
 
 
 (** Types **)
-
 Module ST.
 
   Section TYPES.
@@ -86,8 +85,8 @@ End ST.
 
 Module CtxST.
 
-  Class t `{τ: GTyp.t}
-    `{_C: @GPF.inG ST.t τ}
+  Class t `{τ : GTyp.t}
+    `{_C : @GPF.inG ST.t τ}
     := ctxSL: unit.
 
 End CtxST.
@@ -147,7 +146,7 @@ Module SL.
   Global Instance syntax: PF.t := {
       shp := shape;
       deg := degree;
-    }.
+  }.
 
   Context `{α: @SRFMSynG.t}.
   Context `{_C0: @HRA.subG Γ Σ}.
@@ -158,7 +157,8 @@ Module SL.
     void := False%I;
   }.
 
-  Definition interp n (s: shape) : (degree s (SRFSyn.t_prev n) -> SRFSyn.t n) -> (degree s (SRFSyn.t_prev n) -> iProp) -> iProp :=
+  Definition interp n (s: shape)
+      : (degree s (SRFSyn.t_prev n) -> SRFSyn.t n) -> (degree s (SRFSyn.t_prev n) -> iProp) -> iProp :=
     match s with
     | _ownm i r => fun _ _ => OwnM r
     | _pure P => fun _ _ => ⌜P⌝%I
@@ -268,11 +268,10 @@ Module SL.
     : SRFSyn.t n :=
     fold_right (fun hd tl => sepconj (uncurry f hd) tl) empty (map_to_list I).
 
-  Definition sepS
-             n {K} {H1 : EqDecision K} {H2 : Countable K}
-             (I : @gset K H1 H2)
-             (f : K -> SRFSyn.t n)
-    : SRFSyn.t n :=
+  Definition sepS n {K} {H1 : EqDecision K} {H2 : Countable K}
+      (I : @gset K H1 H2)
+      (f : K -> SRFSyn.t n)
+      : SRFSyn.t n :=
     fold_right (fun hd tl => sepconj (f hd) tl) empty (elements I).
 
   Definition sepL1
@@ -475,42 +474,42 @@ Global Opaque SRFSem.t.
 
 (* Simple sProp reduction tactics. *)
 Ltac SL_red := repeat (try rewrite ! @SLRed.sepconj;
-                       try rewrite ! @SLRed.and;
-                       try rewrite ! @SLRed.or;
-                       try rewrite ! @SLRed.impl;
-                       try rewrite ! @SLRed.wand;
-                       try rewrite ! @SLRed.pure;
-                       try rewrite ! @SLRed.univ;
-                       try rewrite ! @SLRed.ex;
-                       try rewrite ! @SLRed.empty;
-                       try rewrite ! @SLRed.persistently;
-                       try rewrite ! @SLRed.plainly;
-                       try rewrite ! @SLRed.upd;
-                       try rewrite ! @SLRed.affinely;
-                       try rewrite ! @SLRed.intuitionistically;
-                       try rewrite ! @SLRed.sepM;
-                       try rewrite ! @SLRed.sepS;
-                       try rewrite ! @SLRed.sepL1
-                 ).
+                      try rewrite ! @SLRed.and;
+                      try rewrite ! @SLRed.or;
+                      try rewrite ! @SLRed.impl;
+                      try rewrite ! @SLRed.wand;
+                      try rewrite ! @SLRed.pure;
+                      try rewrite ! @SLRed.univ;
+                      try rewrite ! @SLRed.ex;
+                      try rewrite ! @SLRed.empty;
+                      try rewrite ! @SLRed.persistently;
+                      try rewrite ! @SLRed.plainly;
+                      try rewrite ! @SLRed.upd;
+                      try rewrite ! @SLRed.affinely;
+                      try rewrite ! @SLRed.intuitionistically;
+                      try rewrite ! @SLRed.sepM;
+                      try rewrite ! @SLRed.sepS;
+                      try rewrite ! @SLRed.sepL1
+                      ).
 
 Ltac SL_red_all := repeat (try rewrite ! @SLRed.sepconj in *;
-                           try rewrite ! @SLRed.and in *;
-                           try rewrite ! @SLRed.or in *;
-                           try rewrite ! @SLRed.impl in *;
-                           try rewrite ! @SLRed.wand in *;
-                           try rewrite ! @SLRed.pure in *;
-                           try rewrite ! @SLRed.univ in *;
-                           try rewrite ! @SLRed.ex in *;
-                           try rewrite ! @SLRed.empty in *;
-                           try rewrite ! @SLRed.persistently in *;
-                           try rewrite ! @SLRed.plainly in *;
-                           try rewrite ! @SLRed.upd in *;
-                           try rewrite ! @SLRed.affinely in *;
-                           try rewrite ! @SLRed.intuitionistically in *;
-                           try rewrite ! @SLRed.sepM in *;
-                           try rewrite ! @SLRed.sepS in *;
-                           try rewrite ! @SLRed.sepL1 in *
-                     ).
+                          try rewrite ! @SLRed.and in *;
+                          try rewrite ! @SLRed.or in *;
+                          try rewrite ! @SLRed.impl in *;
+                          try rewrite ! @SLRed.wand in *;
+                          try rewrite ! @SLRed.pure in *;
+                          try rewrite ! @SLRed.univ in *;
+                          try rewrite ! @SLRed.ex in *;
+                          try rewrite ! @SLRed.empty in *;
+                          try rewrite ! @SLRed.persistently in *;
+                          try rewrite ! @SLRed.plainly in *;
+                          try rewrite ! @SLRed.upd in *;
+                          try rewrite ! @SLRed.affinely in *;
+                          try rewrite ! @SLRed.intuitionistically in *;
+                          try rewrite ! @SLRed.sepM in *;
+                          try rewrite ! @SLRed.sepS in *;
+                          try rewrite ! @SLRed.sepL1 in *
+                          ).
 
 Ltac SL_red_ownm := try rewrite ! @SLRed.ownm.
 Ltac SL_red_ownm_all := try rewrite ! @SLRed.ownm in *.
