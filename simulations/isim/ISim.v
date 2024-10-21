@@ -40,14 +40,6 @@ Section SPEC.
       (fun '(mk_meta u n x) vret_src vret_tgt =>
          closed_world u (k+n) ⊤ ∗ (fsp u n).(postcond) x vret_src vret_tgt)%I.
 
-  Definition fspec_trivial: fspec :=
-    @mk_fspec 
-      _
-      (@meta_inv (fun _ _ => unit)) 
-      (fun _ => ord_top) 
-      (fun _ argh argl => (⌜argh = argl⌝: iProp)%I)
-      (fun _ reth retl => (⌜reth = retl⌝: iProp)%I).
-
 End SPEC.
 
 
