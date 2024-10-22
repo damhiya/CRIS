@@ -109,8 +109,9 @@ Section HOARE.
   Definition HoareSpawn (fsp: fspec) (fn: gname) (arg: Any.t) : itree hmodE nat :=
     x <- trigger (Choose fsp.(meta));; 
     varg <- trigger (Choose Any.t);;
-    trigger (Guarantee (fsp.(precond) x arg varg));;;
-    trigger (Spawn fn arg).
+    tid <- trigger (Spawn fn arg);;
+    trigger (Guarantee (ginv tid -∗ fsp.(precond) x arg varg));;;
+    Ret tid.
 
   Definition HoareYield (tid: nat) : itree hmodE unit :=
     trigger (Guarantee (ginv tid));;;
