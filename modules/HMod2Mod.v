@@ -129,12 +129,16 @@ Section MID.
       | _ => x <- trigger e;; Ret (fr, x)
       end.
   
-  
+  Definition handle_callE: callE ~> stateT (Σ) (itree modE) :=
+    fun T e fr =>
+      '(fr', _) <- handle_Guarantee (True%I) fr;;
+      x <- trigger e;; Ret (fr', x).
+
   Definition interp_hp : itree hmodE ~> stateT Σ (itree modE) :=
       interp_state 
         (case_ (bif:=sum1) handle_agE
         (case_ (bif:=sum1) handle_schE
-        (case_ (bif:=sum1) ((fun T e fr => '(fr', _) <- (handle_Guarantee (True%I) fr);; x <- trigger e;; Ret (fr', x)): _ ~> stateT Σ (itree modE)) 
+        (case_ (bif:=sum1) handle_callE
         (case_ (bif:=sum1) ((fun T e fr => x <- handle_pgE e;; Ret (fr, x)): _ ~> stateT Σ (itree modE)) 
                            ((fun T e fr => x <- trigger e;; Ret (fr, x)): _ ~> stateT Σ (itree modE)))))).
 
@@ -208,7 +212,7 @@ Section RED.
       =
       '(fr', _) <- handle_Guarantee (True%I:iProp) fr;; r <- trigger i;; tau;; Ret (fr', r).
   Proof.
-    unfold interp_hp in *. grind.
+    unfold interp_hp, handle_callE in *. grind.
   Qed.
 
   Lemma interp_hp_spawn
