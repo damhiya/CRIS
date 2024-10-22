@@ -108,7 +108,6 @@ Section SIMMODSEM.
     iPoseProof (cell_auth_get with "C A") as "%". subst.
 
     steps_r. hss. steps_r.    
-    apc_l. steps_l.
     forces_l. steps_l. forces_l.
     iSplitL "C". { eauto. }
 
@@ -130,7 +129,6 @@ Section SIMMODSEM.
       iMod (cell_auth_set with "C A") as "(C & A)".
 
       steps_r. hss.
-      apc_l. steps_l.
       forces_l. steps_l. forces_l.
       iSplitL "C". { eauto. }
 
@@ -147,7 +145,6 @@ Section SIMMODSEM.
     iMod (cell_auth_set with "C A") as "(C & A)".
 
     steps_r. hss.
-    apc_l. steps_l.
     forces_l. steps_l. forces_l.
     iSplitL "C". { eauto. }
 

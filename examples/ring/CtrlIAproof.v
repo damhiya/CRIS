@@ -199,7 +199,6 @@ Section SIMMODSEM.
     iSplitL "Q".
     { iFrame. eauto. }
 
-    steps_r. apc_r.
     steps_r. iDestruct "GRT" as "((% & CELL) & %)". subst. hss.
     steps_r. hss. forces_l.
     iSplitL ""; eauto.
@@ -246,7 +245,6 @@ Section SIMMODSEM.
     rewrite !Nat.add_0_r in *.
     iSplitL "Q". { iFrame. eauto. }
 
-    steps_r. apc_r.
     steps_r. iDestruct "GRT" as "((% & CELL) & %)". subst. hss.
     steps_r. hss. forces_l.
     iSplitL ""; eauto.

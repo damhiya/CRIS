@@ -30,29 +30,25 @@ Section MAP.
   Global Opaque pending.
 
   Definition init_spec: fspec :=
-    mk_simple (fun (sz: nat) =>
-      (ord_top,
-       (fun varg => (⌜varg = ([Vint sz]: list val)↑
+    fspec_simple (fun (sz: nat) =>
+      ((fun varg => (⌜varg = ([Vint sz]: list val)↑
                       ∧ (8 * (Z.of_nat sz) < modulus_64%Z)%Z⌝
                      ∗ pending)%I),
        (fun vret => True%I))).
 
   Definition get_spec: fspec := 
-    mk_simple (fun k =>
-     (ord_top,
-      (fun varg => (⌜varg = ([Vint k])↑⌝)%I),
+    fspec_simple (fun k =>
+     ((fun varg => (⌜varg = ([Vint k])↑⌝)%I),
       (fun vret => True%I))).  
 
   Definition set_spec: fspec :=
-    mk_simple (fun '(k, v) =>
-     (ord_top,
-      (fun varg => (⌜varg = ([Vint k; Vint v])↑⌝)%I),
+    fspec_simple (fun '(k, v) =>
+     ((fun varg => (⌜varg = ([Vint k; Vint v])↑⌝)%I),
       (fun vret => True%I))).
 
   Definition set_by_user_spec: fspec := 
-    mk_simple (fun k =>
-     (ord_top,
-      (fun varg => (⌜varg = ([Vint k])↑⌝)%I),
+    fspec_simple (fun k =>
+     ((fun varg => (⌜varg = ([Vint k])↑⌝)%I),
       (fun vret => True%I))).  
 
   Definition Stb: alist gname fspec :=

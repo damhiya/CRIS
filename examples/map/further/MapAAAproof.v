@@ -85,7 +85,7 @@ Section PROOF.
     steps_r. step.
     
     steps_r. steps_l.
-    iDestruct "GRT" as "(((% & PT) & %) & %)". subst. hss.
+    iDestruct "GRT" as "((% & PT) & %)". subst. hss.    
     rewrite G0 in G2. hss.
     
     force_l (_,_,_). forces_l. iFrame. iSplit; eauto.

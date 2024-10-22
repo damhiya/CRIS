@@ -150,8 +150,8 @@ Ltac des_pairs :=
 
 Ltac desugar itr :=
   match itr with
-  | HoareBody _ _ _ => rewrite/__ {1}/itr
-  | HoareCall _ _ _ _ _ => rewrite/__ {1}/itr
+  | fbody_trivial _ => rewrite/__ {1}/itr
+  | HoareCall _ _ _ => rewrite/__ {1}/itr
   | HoareSpawn _ _ _ => rewrite/__ {1}/itr
   | HoareYield _ _ => rewrite/__ {1}/itr
   | cput _ _ => rewrite/__{1}/itr
@@ -197,8 +197,6 @@ Ltac _unwrapSB itr :=
       rewrite HModSB.transl_sch
   | trigger Tid =>
       rewrite HModSB.transl_sch
-  | HoareAPC _ _ =>
-      idtac
   | _ => fail
   end.
 
@@ -248,20 +246,17 @@ Ltac _unwrapS itr :=
       rewrite SModRed.interp_asm
   | guarantee _ =>
       rewrite SModRed.interp_guar
-  | trigger APC =>
-      (* idtac *)
-      rewrite/__ SModRed.interp_apc {1}/handle_apcE_hmodE
   | _ => fail
   end.
 
 Ltac unwrapS :=
   try match goal with
-    | [|-context[interp_smod _ _ _ ?itr]] => first [desugar itr|fail 2]
+    | [|-context[interp_smod _ _ ?itr]] => first [desugar itr|fail 2]
   end;
   match goal with
-  | [|-context[interp_smod _ _ _ (?itr >>= _)]] =>
+  | [|-context[interp_smod _ _ (?itr >>= _)]] =>
       rewrite SModRed.interp_bind; unwrapS
-  | [|-context[interp_smod _ _ _ ?itr]] => first [_unwrapS itr|fail 2]
+  | [|-context[interp_smod _ _ ?itr]] => first [_unwrapS itr|fail 2]
   end.
 
 Ltac _unwrapP itr :=
@@ -340,8 +335,6 @@ Ltac _step_l :=
       let name := fresh "asm" in iApply isim_asm_src; iIntros (name)
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger Tid >>= _) _) ] =>
       iApply isim_tid_src
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, HModSem.sandbox _ (HoareAPC _ _) >>= _) _) ] =>
-      idtac
   end.
 
 Ltac _step_r :=
@@ -369,8 +362,6 @@ Ltac _step_r :=
       let name := fresh "grt" in iApply isim_guar_tgt; iIntros (name)
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, trigger Tid >>=  _)) ] =>
       iApply isim_tid_tgt
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, HModSem.sandbox _ (HoareAPC _ _) >>= _)) ] =>
-      idtac
   end.
 
 Ltac _step :=
@@ -527,39 +518,6 @@ Ltac yield hyps :=
   iApply isim_yield;
   iSplitL hyps; [ |iIntros "% % % % %"; iIntrosFresh "IST"].
 
-Lemma isim_apc_tgt_remove `{Σ: GRA.t}
-  fl fr Ist r g {R} RR my_tid ps pt nths st_src st_tgt i_src k_tgt scopes stb
-  :
-  bi_entails
-    (@isim Σ fl fr Ist my_tid r g R RR ps true nths (st_src, i_src) (st_tgt, k_tgt tt))
-    (isim fl fr Ist my_tid r g RR ps pt nths (st_src, i_src) (st_tgt,
-         HModSem.sandbox scopes (HoareAPC stb (ord_pure Ord.O)) >>= k_tgt)).
-Proof.
-  iIntros "ISIM". unfold HoareAPC.
-  steps_r. rewrite unfold_APC. steps_r.
-  des_ifs.
-  - steps_r; eauto.
-  - steps_r. hss.
-    iDestruct "GRT" as "(_ & % & _)".
-    exfalso. destruct (measure q2).
-    + rr in H. assert (X := Ord.O_bot n).
-      eapply Ord.lt_not_le; eauto.
-    + rr in H. eauto.
-Qed.
-
-Ltac apc_l :=
-  rewrite/__ {1}/HoareAPC; force_l; instantiate (1:= Ord.O);
-  rewrite unfold_APC; force_l; instantiate (1:=true); step_l.
-
-Ltac apc_r :=
-  hide_itree_l;
-  prep;
-  match goal with
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, (HModSem.sandbox _ (HoareAPC _ _)) >>= _)) ] =>
-      iApply isim_apc_tgt_remove
-  end;
-  show_itree.
-
 Ltac init_simF :=
   unfold HSim.sim_fun, HSSim.sim_fun; i;
   match goal with [H: _|-_] => revert H end;
@@ -605,7 +563,6 @@ Ltac prove_sub_perm :=
 
 (**** TODO ****)
 (* A tactic to handle meta variables *)
-(* Tactics to handle APC. (APC in src / in tgt / ord_pure 0 / ord_pure n / ....  ) *)
 
 (************ User Notations **************)
 
