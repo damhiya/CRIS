@@ -31,8 +31,8 @@ Section HPSIM.
                exists fmr0, P fmr0 /\
                (Own fmr ⊢ #=> Own fmr0).
 
-  Definition dummy_term (with_dummy : bool) : itree hmodE unit :=
-    if with_dummy then trigger (Guarantee True);;; tau;; Ret tt else Ret tt.
+  Definition dummy_term (with_dummy: bool) : itree hmodE unit :=
+    if with_dummy then trigger (Guarantee True) else Ret tt.
   
   Variant _hpsim' {with_dummy : bool}
     (hpsimc : forall R (RR : nat -> alist key Any.t * R -> alist key Any.t * R -> iProp), bool -> bool -> nat -> alist key Any.t * itree hmodE R -> alist key Any.t * itree hmodE R -> Σ -> Prop)
@@ -73,8 +73,8 @@ Section HPSIM.
       (HPSIM_INLINE_SRC : True)
       ps pt nths st_src st_tgt fmr
       fn f varg k_src i_tgt
-      (FUN : alist_find fn fl_src = Some f)
-      (K : hpsimi true pt nths (st_src, f varg >>= (fun x => dummy_term with_dummy;;; Ret x) >>= k_src) (st_tgt, i_tgt) fmr)
+      (FUN: alist_find fn fl_src = Some f)
+      (K: hpsimi true pt nths (st_src, f varg >>= (fun x => dummy_term with_dummy;;; tau;; Ret x) >>= k_src) (st_tgt, i_tgt) fmr)
     :
     _hpsim' hpsimc hpsimi ps pt nths (st_src, trigger (Call fn varg) >>= k_src) (st_tgt, i_tgt) fmr
 
@@ -82,8 +82,8 @@ Section HPSIM.
       (HPSIM_INLINE_TGT : True)
       ps pt nths st_src st_tgt fmr
       fn f varg i_src k_tgt
-      (FUN : alist_find fn fl_tgt = Some f)
-      (K : hpsimi ps true nths (st_src, i_src) (st_tgt, f varg >>= (fun x => dummy_term with_dummy;;; Ret x) >>= k_tgt) fmr)
+      (FUN: alist_find fn fl_tgt = Some f)
+      (K: hpsimi ps true nths (st_src, i_src) (st_tgt, f varg >>= (fun x => dummy_term with_dummy;;; tau;; Ret x) >>= k_tgt) fmr)
     :
     _hpsim' hpsimc hpsimi ps pt nths (st_src, i_src) (st_tgt, trigger (Call fn varg) >>= k_tgt) fmr
 

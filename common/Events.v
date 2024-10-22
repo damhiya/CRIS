@@ -120,7 +120,7 @@ Section EVENTS_OTHER.
 End EVENTS_OTHER.
 
 Notation "f '?'" := (unwrapU f) (at level 9).
-Notation "f 'ǃ'" := (unwrapN f) (at level 9).
+Notation "f '!'" := (unwrapN f) (at level 9).
 Notation "s ↯ f" := (sf s f) (at level 9).
 
 Section SYNTAX.
@@ -147,6 +147,6 @@ Section SYNTAX.
     v <- trigger (SGet k);; v↓?.
 
   Definition cgetN {T} k : itree E T :=
-    v <- trigger (SGet k);; (v↓ǃ).
+    v <- trigger (SGet k);; (v↓!).
 
 End SYNTAX.

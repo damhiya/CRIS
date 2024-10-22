@@ -40,14 +40,6 @@ Section SPEC.
       (fun '(mk_meta u n x) vret_src vret_tgt =>
          closed_world u (k+n) ⊤ ∗ (fsp u n).(postcond) x vret_src vret_tgt)%I.
 
-  Definition fspec_trivial : fspec :=
-    @mk_fspec 
-      _
-      (@meta_inv (fun _ _ => unit)) 
-      (fun _ => ord_top) 
-      (fun _ argh argl => (⌜argh = argl⌝ : iProp)%I)
-      (fun _ reth retl => (⌜reth = retl⌝ : iProp)%I).
-
 End SPEC.
 
 
@@ -66,7 +58,7 @@ Section LEMMAS.
   Proof.
     unfold interp_smod. rewrite! interp_trigger. grind.
     destruct sti_tgt. unfold HoareAPC.
-    iIntros "K". force_l. instantiate (1:= at_most).
+    iIntros "K". force_l at_most.
     iApply "K".
   Qed.
 
@@ -81,7 +73,7 @@ Section LEMMAS.
     destruct sti_tgt.
     iIntros "K".
     rewrite unfold_APC. 
-    force_l. instantiate (1:= true). s. steps_l. iFrame.
+    force_l true. s. steps_l. iFrame.
   Qed.
   
   Lemma APC_step_clo Σ
@@ -97,10 +89,10 @@ Section LEMMAS.
     destruct sti_tgt.
     iIntros "K". prep.
     iEval (rewrite unfold_APC).
-    force_l. instantiate (1:= false). s.
-    force_l. instantiate (1:= next).
+    force_l false. s.
+    force_l next.
     force_l. { eauto. }
-    force_l. instantiate (1:= (fn, vargs)). s.
+    force_l (fn, vargs). s.
     rewrite SPEC. s. steps_l. grind.
   Qed.
 
@@ -121,9 +113,9 @@ Section LEMMAS.
   Proof.
     iIntros "(P & IST & K)".
     unfold HoareCall. prep.
-    force_l. instantiate (1:= x).
-    force_l. instantiate (1:= varg_tgt).
-    force_l. iSplitL "P"; [eauto|].
+    force_l x.
+    force_l varg_tgt.
+    forces_l. iSplitL "P"; [eauto|].
 
     call "IST"; [eauto|].
     steps_l. iApply "K". iFrame.
@@ -189,8 +181,8 @@ Section HModProd.
     assert (CASE := case_itrH _ it); des; subst.
     - step. iFrame. eauto.
     - steps_l. steps_r. by_coind "CIH". eauto.
-    - steps_l. force_r. iFrame. by_coind "CIH". eauto.
-    - steps_r. force_l. iFrame. by_coind "CIH". eauto.
+    - steps_l. forces_r. iFrame. by_coind "CIH". eauto.
+    - steps_r. forces_l. iFrame. by_coind "CIH". eauto.
     - depdes s.
       + step. by_coind "CIH". iApply IMON; [|eauto]; nia.
       + yield "IST"; eauto. by_coind "CIH". eauto.
@@ -198,7 +190,7 @@ Section HModProd.
     - destruct c. call "IST"; eauto. by_coind "CIH". eauto.
     - depdes s.
       + rewrite/__ !HModSB.transl_bind !HModSB.transl_put. des_ifs; cycle 1.
-        { steps_r. force_l. instantiate (1:=q). by_coind "CIH". eauto. }
+        { steps_r. force_l q. by_coind "CIH". eauto. }
         iApply isim_sput_src. iApply isim_sput_tgt.
         by_coind "CIH". iClear "CIH". unfold IstProd.
         iDestruct "IST" as (? ? ? ?) "(% & (% & IST) & EQR)". des; subst.
@@ -214,7 +206,7 @@ Section HModProd.
           eapply NoDup_app_disjoint; try apply DISJ; eauto.
           apply H1. eapply in_map in H. rewrite map_map in H. apply H.
       + rewrite/__ !HModSB.transl_bind !HModSB.transl_get. des_ifs; cycle 1.
-        { steps_r. force_l. instantiate (1:=q). by_coind "CIH". eauto. }
+        { steps_r. force_l q. by_coind "CIH". eauto. }
         iApply isim_sget_src. iApply isim_sget_tgt.
         apply existsb_exists in Heq. des. apply String.eqb_eq in Heq0. subst.
         iAssert (⌜alist_find k st_src = alist_find k st_tgt⌝ ∗
@@ -236,8 +228,8 @@ Section HModProd.
         }
         rewrite H. by_coind "CIH". eauto.
     - destruct e.
-      + steps_r. force_l. instantiate (1:=q). by_coind "CIH". eauto.
-      + steps_l. force_r. instantiate (1:=q). by_coind "CIH". eauto.
+      + steps_r. force_l q. by_coind "CIH". eauto.
+      + steps_l. force_r q. by_coind "CIH". eauto.
       + step. by_coind "CIH". eauto.
   Unshelve. all : eauto.
   { eapply alist_upd_nodup. eauto. }

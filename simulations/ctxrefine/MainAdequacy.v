@@ -356,7 +356,7 @@ Section AUX.
       unfold HModSem.sandbox_body.
       rewrite sandbox_well_scoped; eauto.
       f_equal. extensionalities.
-      rewrite/__ !HModSB.transl_bind !HModSB.transl_ret.
+      rewrite/__ !HModSB.transl_bind !HModSB.transl_ret !HModSB.transl_tau !HModSB.transl_ret.
       f_equal. extensionalities. eapply inv_sandbox_call; eauto. 
 
     - hstep. { rewrite alist_find_app_o. rewrite FUN. eauto. }
@@ -369,7 +369,7 @@ Section AUX.
       unfold HModSem.sandbox_body.
       rewrite sandbox_well_scoped; eauto.
       f_equal. extensionalities.
-      rewrite/__ !HModSB.transl_bind !HModSB.transl_ret.
+      rewrite/__ !HModSB.transl_bind !HModSB.transl_ret !HModSB.transl_tau !HModSB.transl_ret.
       f_equal. extensionalities. eapply inv_sandbox_call; eauto. 
     - hstep. eapply K; try refl; eauto using inv_sandbox_tau.
     - hstep. eapply K; try refl; eauto using inv_sandbox_tau.

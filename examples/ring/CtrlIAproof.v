@@ -128,8 +128,7 @@ Section SIMMODSEM.
     iDestruct "IST" as (? ? ? ?) "(% & LIVE & FREE)". des; subst. hss.
 
     steps_r. hss.
-    force_l. force_l.
-    iSplitL "". { eauto. }
+    forces_l. iSplitL "". { eauto. }
 
     step.
     iSplit; eauto.
@@ -163,8 +162,7 @@ Section SIMMODSEM.
     iDestruct "IST" as (? ? ? ?) "(% & LIVE & FREE)". des; subst. hss.
 
     steps_r. hss. steps_r. hss. steps_r.
-    force_l. force_l.
-    iSplitL "". { eauto. }
+    forces_l. iSplitL "". { eauto. }
 
     step.
     iSplit. { iPureIntro. f_equal. nia. }
@@ -195,22 +193,22 @@ Section SIMMODSEM.
 
     steps_r.
     destruct q'; [ss; nia|].
-    force_r. instantiate (1:= (_,_)). force_r. force_r.
+    force_r (_,_). forces_r.
     iDestruct "FREE" as "(Q & FREE)".
     rewrite !Nat.add_0_r in *.
     iSplitL "Q".
     { iFrame. eauto. }
 
-    steps_r. apc_r. steps_r.  rename q1 into z'.
-    iDestruct "GRT" as "((% & CELL) & %)". subst. hss.
-    steps_r. hss. force_l. force_l.
+    steps_r. apc_r.
+    steps_r. iDestruct "GRT" as "((% & CELL) & %)". subst. hss.
+    steps_r. hss. forces_l.
     iSplitL ""; eauto.
 
     step.
     iSplit; eauto.
     iExists [_], [_;_], st_tgtR, st_tgtR.
     do 3 (iSplit; eauto).
-    iExists (q++[z']), q', ((tl + List.length q)+1), tl.
+    iExists (q++[q1]), q', ((tl + List.length q)+1), tl.
     iSplitL "".
     { iPureIntro. esplits; eauto.
       - rewrite app_length. s. nia.
@@ -244,14 +242,13 @@ Section SIMMODSEM.
 
     inline_r.
 
-    force_r. force_r. force_r.
-    iDestruct "LIVE" as "(Q & LIVE)".
+    forces_r. iDestruct "LIVE" as "(Q & LIVE)".
     rewrite !Nat.add_0_r in *.
     iSplitL "Q". { iFrame. eauto. }
 
-    steps_r. apc_r. steps_r.
-    iDestruct "GRT" as "((% & CELL) & %)". subst. hss.
-    steps_r. hss. force_l. force_l.
+    steps_r. apc_r.
+    steps_r. iDestruct "GRT" as "((% & CELL) & %)". subst. hss.
+    steps_r. hss. forces_l.
     iSplitL ""; eauto.
 
     step.

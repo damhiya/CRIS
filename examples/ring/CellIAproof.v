@@ -100,17 +100,16 @@ Section SIMMODSEM.
   Proof.
     init_simF.
 
-    steps_l. iDestruct "ASM" as "((% & C) & %)".
-    subst. hss. rename q into v. unfold Ist.
+    steps_l. iDestruct "ASM" as "((% & C) & %)". subst. hss.
     iDestruct "IST" as (vany v0) "(% & [(C' & A)|(% & P & A)])".
     { iExFalso. iApply (cell_unique with "C' C"). }
-    subst. hss.
+    subst. hss. rename q into v.
 
     iPoseProof (cell_auth_get with "C A") as "%". subst.
 
     steps_r. hss. steps_r.
     apc_l. steps_l.
-    force_l. steps_l. force_l. force_l.
+    forces_l. steps_l. forces_l.
     iSplitL "C". { eauto. }
 
     step. iSplit; eauto.
@@ -123,7 +122,7 @@ Section SIMMODSEM.
     init_simF.
 
     steps_l. iDestruct "ASM" as "((% & [P|C]) & %)";
-      subst; hss; rename q0 into v, q1 into v'; unfold Ist.
+      subst; hss; rename z into v, z0 into v'; unfold Ist.
     { iDestruct "IST" as (vany v0) "(% & [(C & A)|(% & P' & A)])"; cycle 1.
       { iExFalso. iApply (pending_unique with "P' P"). }
       des; subst. hss.
@@ -131,7 +130,8 @@ Section SIMMODSEM.
       iMod (cell_auth_set with "C A") as "(C & A)".
 
       steps_r. hss.
-      apc_l. steps_l. force_l. steps_l. force_l. force_l.
+      apc_l. steps_l.
+      forces_l. steps_l. forces_l.
       iSplitL "C". { eauto. }
 
       step.
@@ -147,7 +147,8 @@ Section SIMMODSEM.
     iMod (cell_auth_set with "C A") as "(C & A)".
 
     steps_r. hss.
-    apc_l. steps_l. force_l. steps_l. force_l. force_l.
+    apc_l. steps_l.
+    forces_l. steps_l. forces_l.
     iSplitL "C". { eauto. }
 
     step.

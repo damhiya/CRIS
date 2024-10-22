@@ -140,7 +140,9 @@ Ltac iIntrosFresh H := iIntros H || iIntrosFresh (H ++ "'")%string.
 
 Ltac des_pairs :=
   repeat match goal with
-    | [H : context[let (_, _) := ?x in _] |- _] =>
+    | [H: context[let () := ?x in _] |- _] => destruct x
+    | |- context[let () := ?x in _] => destruct x
+    | [H: context[let (_, _) := ?x in _] |- _] =>
         let n0 := fresh x in let n1 := fresh x in destruct x as [n0 n1]
     | |- context[let (_, _) := ?x in _] =>
         let n0 := fresh x in let n1 := fresh x in destruct x as [n0 n1]
@@ -434,12 +436,19 @@ Ltac unfold_stb :=
       end
   end.
 
-Ltac prep :=
+Ltac _prep :=
   first
     [ unwrapSB
     | unwrapS; unfold_stb; unwrapSB
     | unwrapP; unwrapSB
-    | idtac];
+    | idtac].
+
+Ltac prep :=
+  try rewrite !bind_bind;
+  try match goal with
+      | [|-context[(_, HModSem.sandbox _ _)]] => _prep
+      | [|-context[(_, HModSem.sandbox _ _ >>= _)]] => _prep
+      end;
   try rewrite !bind_bind;
   try rewrite !bind_tau.
 
@@ -448,36 +457,45 @@ Ltac step_l :=
   prep; _step_l; try alist_find_simpl fnsems_nodup; des_pairs; s;
   show_itree.
 
+Ltac steps_l := repeat step_l.
+
 Ltac step_r :=
   hide_itree_l;
   prep; _step_r; try alist_find_simpl fnsems_nodup; des_pairs; s;
   show_itree.
+
+Ltac steps_r := repeat step_r.
 
 Ltac step :=
   hide_itree_r; prep; show_itree;
   hide_itree_l; prep; show_itree;
   _step; des_pairs; s.
 
-Ltac force_l :=
+Ltac force_l_core :=
   hide_itree_r;
   prep; _force_l; s;
   show_itree.
-  
-Ltac force_r :=
+
+Tactic Notation "force_l" :=
+  force_l_core; try (iExists _).
+
+Tactic Notation "force_l" uconstr(p) :=
+  force_l_core; iExists p.
+
+Ltac forces_l := repeat force_l.
+
+Ltac force_r_core :=
   hide_itree_l;
   prep; _force_r; s;
   show_itree.
+
+Tactic Notation "force_r" :=
+  force_r_core; try (iExists _).
   
-Ltac steps_l :=
-  repeat step_l.
-  (* hide_itree_r; *)
-  (* repeat (prep; _step_l; try alist_find_simpl fnsems_nodup; des_pairs; s); *)
-  (* show_itree. *)
-Ltac steps_r :=
-  repeat step_r.
-  (* hide_itree_l; *)
-  (* repeat (prep; _step_r; try alist_find_simpl fnsems_nodup; des_pairs; s); *)
-  (* show_itree. *)
+Tactic Notation "force_r" uconstr(p) :=
+  force_r_core; iExists p.
+
+Ltac forces_r := repeat force_r.
 
 Ltac inline_l :=
   hide_itree_r;
@@ -523,7 +541,7 @@ Proof.
   - steps_r; eauto.
   - steps_r. hss.
     iDestruct "GRT" as "(_ & % & _)".
-    exfalso. destruct (q7 q4).
+    exfalso. destruct (measure q2).
     + rr in H. assert (X := Ord.O_bot n).
       eapply Ord.lt_not_le; eauto.
     + rr in H. eauto.
@@ -643,5 +661,3 @@ Notation "E1 '------------------------------------------------------------------
   (environments.envs_entails (Envs E1 E2 _) (bi_wand P (isim _ _ _ _ _ _ _ _ _ _ (st_src, _) (st_tgt, _))))
     (at level 50,
      format "E1 '------------------------------------------------------------------□' '//' E2 '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '-------------------------------isim-------------------------------' '//' P  '-∗'  'ISIM' ").
-
-

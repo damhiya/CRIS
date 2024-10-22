@@ -53,14 +53,13 @@ Module ModSem.
       fnsems := [("CCR_init", fun _ => body)];
     |}.
 
-    Section COMPILE.
-    
-      Variable ms : t.
+  Section COMPILE.
+    Variable ms: t.
 
-      Definition prog : callE ~> itree modE :=
-        fun _ '(Call fn args) =>
-          sem <- (alist_find fn ms.(fnsems))?;;
-          sem args.
+    Definition prog: callE ~> itree modE :=
+      fun _ '(Call fn args) =>
+        sem <- (alist_find fn ms.(fnsems))!;;
+        sem args.
 
       Definition initial_itr : itree coreE Any.t :=
         snd <$> interp_modE prog (prog (Call "CCR_init" ()↑)) (initial_st ms).
