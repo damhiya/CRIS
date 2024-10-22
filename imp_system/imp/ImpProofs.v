@@ -15,7 +15,7 @@ Set Implicit Arguments.
 (** ** Rewriting Leamms *)
 Section PROOFS.
 
-  Context `{Σ: GRA.t}.
+  Context `{Σ : GRA.t}.
 
   (* expr *)
   Lemma denote_expr_Var
@@ -114,7 +114,7 @@ Section PROOFS.
       interp_imp ge (denote_stmt (If i t e)) le0 =
       interp_imp ge (v <- denote_expr i ;;
                      (if (wf_val v) then Ret tt else triggerUB);;;
-                     `b: bool <- (is_true v)? ;; tau;;
+                     `b : bool <- (is_true v)? ;; tau;;
                      if b then (denote_stmt t) else (denote_stmt e)) le0.
   Proof. reflexivity. Qed.
 
@@ -223,7 +223,7 @@ Section PROOFS.
   (* interp_imp *)
 
   Lemma interp_imp_bind
-        T R (itr: itree _ T) (ktr: T -> itree _ R) ge le0
+        T R (itr : itree _ T) (ktr : T -> itree _ R) ge le0
     :
       interp_imp ge (v <- itr ;; ktr v) le0 =
       '(le1, v) <- interp_imp ge itr le0;;
@@ -234,7 +234,7 @@ Section PROOFS.
   Qed.
 
   Lemma interp_imp_tau
-        T (itr: itree _ T) ge le0
+        T (itr : itree _ T) ge le0
     :
       interp_imp ge (tau;; itr) le0 =
       tau;; interp_imp ge itr le0.
@@ -244,7 +244,7 @@ Section PROOFS.
   Qed.
 
   Lemma interp_imp_Ret
-        T ge le0 (v: T)
+        T ge le0 (v : T)
     :
       interp_imp ge (Ret v) le0 = Ret (le0, v).
   Proof.
@@ -262,7 +262,7 @@ Section PROOFS.
   Qed.
 
   Lemma interp_imp_triggerUB_bind
-        U T ge le0 (ktr: U -> itree _ T)
+        U T ge le0 (ktr : U -> itree _ T)
     :
       (interp_imp ge (x <- triggerUB;; ktr x) le0 : itree _ (lenv *T)) = triggerUB.
   Proof.
@@ -280,7 +280,7 @@ Section PROOFS.
   Qed.
 
   Lemma interp_imp_triggerNB_bind
-        U T ge le0 (ktr: U -> itree _ T)
+        U T ge le0 (ktr : U -> itree _ T)
     :
       (interp_imp ge (x <- triggerNB;; ktr x) le0 : itree _ (lenv * T)) = triggerNB.
   Proof.
@@ -366,7 +366,7 @@ Section PROOFS.
   Qed.
 
   Lemma interp_imp_ccallU
-        ge le0 f (args: list val)
+        ge le0 f (args : list val)
     :
       (interp_imp ge (ccallU f args) le0 : itree _ (_ * val)) =
       v <- trigger (Call f (args↑));; tau;; tau;; v <- (v↓)?;; Ret (le0, v).
@@ -378,10 +378,10 @@ Section PROOFS.
   Qed.
 
   Lemma interp_imp_IO
-        ge le0 I O f (args: I)
+        ge le0 I O f (args : I)
     :
       interp_imp ge (trigger (IO f args)) le0 =
-      v <- trigger (IO f args);; tau;; tau;; Ret (le0, (v: O)).
+      v <- trigger (IO f args);; tau;; tau;; Ret (le0, (v : O)).
   Proof.
     unfold interp_imp, interp_GlobEnv, interp_ImpState.
     unfold Mod2STS.pure_state. rewrite interp_trigger. grind.
@@ -408,7 +408,7 @@ Section PROOFS.
   Qed.
 
   Lemma interp_modE_ext
-        ge R (itr0 itr1: itree _ R) le0
+        ge R (itr0 itr1 : itree _ R) le0
     :
       itr0 = itr1 -> interp_imp ge itr0 le0 = interp_imp ge itr1 le0
   .
@@ -452,7 +452,7 @@ Section PROOFS.
     2:{ rewrite interp_imp_triggerUB. unfold triggerUB; grind. }
     rewrite interp_imp_Ret. grind.
     des_ifs; try apply interp_imp_triggerUB.
-    1,2: apply interp_imp_Ret.
+    1,2 : apply interp_imp_Ret.
   Qed.
 
   Lemma interp_imp_expr_Lt
@@ -474,7 +474,7 @@ Section PROOFS.
     2:{ rewrite interp_imp_triggerUB. unfold triggerUB; grind. }
     rewrite interp_imp_Ret. grind.
     des_ifs; try apply interp_imp_triggerUB.
-    1,2: apply interp_imp_Ret.
+    1,2 : apply interp_imp_Ret.
   Qed.
 
   Lemma interp_imp_expr_Plus
@@ -561,7 +561,7 @@ Section PROOFS.
       interp_imp ge (denote_stmt (If i t e)) le0 =
       '(le1, v) <- interp_imp ge (denote_expr i) le0 ;;
       (if (wf_val v) then Ret tt else triggerUB);;;
-          `b: bool <- (is_true v)? ;; tau;;
+          `b : bool <- (is_true v)? ;; tau;;
               if b
               then interp_imp ge (denote_stmt t) le1
               else interp_imp ge (denote_stmt e) le1.
@@ -570,7 +570,7 @@ Section PROOFS.
     des_ifs.
     2:{ rewrite interp_imp_bind. rewrite interp_imp_triggerUB. unfold triggerUB. grind. }
     destruct (is_true v); grind; des_ifs.
-    1,2: rewrite interp_imp_tau; grind.
+    1,2 : rewrite interp_imp_tau; grind.
     rewrite interp_imp_triggerUB_bind. unfold triggerUB. grind.
   Qed.
 
@@ -735,7 +735,7 @@ Section PROOFS.
   .
   Proof.
     rewrite denote_stmt_CallPtr. des_ifs.
-    2,3,4,5,6,7: rewrite interp_imp_triggerUB_bind; unfold triggerUB; grind.
+    2,3,4,5,6,7 : rewrite interp_imp_triggerUB_bind; unfold triggerUB; grind.
     rewrite interp_imp_bind. rewrite interp_imp_Ret. grind.
     rewrite interp_imp_bind. grind.
     rewrite interp_imp_bind. rewrite interp_imp_GetName.

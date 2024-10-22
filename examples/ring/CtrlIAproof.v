@@ -5,7 +5,7 @@ Require Import PCM IPM IFacts.
 Require Import Events Behavior.
 Require Import Relation_Definitions.
 
-(*** TODO: export these in Coqlib or Universe ***)
+(*** TODO : export these in Coqlib or Universe ***)
 Require Import Relation_Operators.
 Require Import RelationPairs.
 From ITree Require Import
@@ -26,16 +26,16 @@ Local Open Scope nat_scope.
 
 Module CtrlIA.
 Section SIMMODSEM.
-  Context `{Σ: GRA.t}.
-  Context `{_M: CellRA.t (Σ:=Σ)}.
+  Context `{Σ : GRA.t}.
+  Context `{_M : CellRA.t (Σ:=Σ)}.
 
   Variable max_size : nat.
 
-  Variable GI: Sk.t -> invspec.
-  Variable StbR: Sk.t -> gname -> option fspec.
-  Variable StbC: Sk.t -> gname -> option fspec.
-  (* Hypothesis RingInStb: forall sk, stb_incl RingAS.Stb (StbR sk). *)
-  (* Hypothesis CellInStb: forall sk idx (LT: idx < max_size), stb_incl (CellAS.Stb idx) (StbR sk). *)
+  Variable GI : Sk.t -> invspec.
+  Variable StbR : Sk.t -> gname -> option fspec.
+  Variable StbC : Sk.t -> gname -> option fspec.
+  (* Hypothesis RingInStb : forall sk, stb_incl RingAS.Stb (StbR sk). *)
+  (* Hypothesis CellInStb : forall sk idx (LT : idx < max_size), stb_incl (CellAS.Stb idx) (StbR sk). *)
 
   Local Notation CellA := (fun idx => CellA.t idx GI StbC).
 
@@ -45,13 +45,13 @@ Section SIMMODSEM.
   Local Notation RingA := ((RingA.t max_size GI StbR) ★ (CellG 0 max_size)).
   Local Notation RingI := ((CtrlI.t max_size)         ★ (CellG 0 max_size)).
 
-  Lemma cellgroup_split idx start len (RANGE: start <= idx < start + len):
+  Lemma cellgroup_split idx start len (RANGE : start <= idx < start + len):
     CellG start len =
       (CellG start (idx-start)) ★ (CellA idx) ★
         (CellG (S idx) (start + len - idx - 1)).
   Proof.
     unfold CellG.
-    assert (EQ: seq start len =
+    assert (EQ : seq start len =
                 seq start (idx-start) ++ seq idx (S (start + len - idx - 1))).
     { etrans; [|etrans]; cycle 1.
       - apply (seq_app (idx-start) (start + len - idx) start).
@@ -61,7 +61,7 @@ Section SIMMODSEM.
     rewrite/__ EQ map_app hmod_addL_app. eauto.
   Qed.
 
-  Lemma big_sepL_mod {T} (Φ: nat -> T -> iProp) (l: list T):
+  Lemma big_sepL_mod {T} (Φ : nat -> T -> iProp) (l : list T):
     ([∗ list] i↦x ∈ l, Φ (i mod List.length l) x) -∗
     ([∗ list] i↦x ∈ l, Φ i x).
   Proof.
@@ -72,13 +72,13 @@ Section SIMMODSEM.
     eauto using Nat.mod_small.
   Qed.
 
-  Lemma mod_add_ex (a b c: nat)
-    (NEQ: c ≠ 0)
-    (EX: exists x, a = b + x * c):
+  Lemma mod_add_ex (a b c : nat)
+    (NEQ : c ≠ 0)
+    (EX : exists x, a = b + x * c):
     a mod c = b mod c.
   Proof. destruct EX. subst. eapply Nat.mod_add; eauto. Qed.
 
-  Lemma big_sepL_rotate {T} (Φ: nat -> T -> iProp) n (l: list T):
+  Lemma big_sepL_rotate {T} (Φ : nat -> T -> iProp) n (l : list T):
     ([∗ list] i↦x ∈ l, Φ ((n+i) mod List.length l) x) -∗
     ([∗ list] i↦x ∈ rotate (List.length l - n mod List.length l) l, Φ i x).
   Proof.
@@ -108,9 +108,9 @@ Section SIMMODSEM.
       exists (n / List.length l). nia.
   Qed.
 
-  Definition Ist: Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp :=
+  Definition Ist : Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp :=
     (fun _ _ st_src st_tgt =>
-     ∃ (q q': list Z) (hd tl: nat),
+     ∃ (q q' : list Z) (hd tl : nat),
        ⌜st_src = [(RingA.v_que, q↑)] /\ st_tgt = [(CtrlI.v_hd,hd↑);(CtrlI.v_tl,tl↑)] /\
        hd = (tl + List.length q)%nat /\ List.length (q ++ q') = max_size⌝ ∗
        ([∗ list] i↦x ∈ q, CellAS.cell ((tl+i) mod max_size) x) ∗
@@ -274,7 +274,7 @@ Section SIMMODSEM.
       exists 1. nia.
   Qed.
 
-  Theorem sim: HSim.t RingA RingI (RingA.InitCond max_size) IstFull.
+  Theorem sim : HSim.t RingA RingI (RingA.InitCond max_size) IstFull.
   Proof.
     init_sim.
     - iIntros "R". iExists [_], [_;_], _, _.

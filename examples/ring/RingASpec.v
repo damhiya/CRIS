@@ -15,15 +15,15 @@ Set Implicit Arguments.
 
 Module RingAS.
 Section SPECS.
-  Context `{Σ: GRA.t}.
+  Context `{Σ : GRA.t}.
 
-  Definition Stb: alist gname fspec :=
+  Definition Stb : alist gname fspec :=
     Seal.sealing "ccr" [(RingName.init, fspec_trivial);
                         (RingName.get_size, fspec_trivial);
                         (RingName.enqueue, fspec_trivial);
                         (RingName.dequeue, fspec_trivial)].
 
-  Lemma Stb_nodup: List.NoDup (List.map fst Stb).
+  Lemma Stb_nodup : List.NoDup (List.map fst Stb).
   Proof.
     unfold Stb. unseal "ccr". prove_nodup.
   Qed.
@@ -31,13 +31,13 @@ Section SPECS.
 
 End SPECS.
 
-Global Hint Unfold Stb: stb.
+Global Hint Unfold Stb : stb.
 
 End RingAS.
 
 Module RingRA.
   Class t
-    `{Σ: GRA.t}
-    := RingRA: unit.
+    `{Σ : GRA.t}
+    := RingRA : unit.
 End RingRA.
 

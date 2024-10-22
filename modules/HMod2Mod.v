@@ -17,7 +17,7 @@ Section MID.
 
   (* Consider moving into Any lib. *)
   (* Any.encode & Any.decode *)
-  (* local states: [(k0, st0); (k1, st1); ... ] *)
+  (* local states : [(k0, st0); (k1, st1); ... ] *)
   Fixpoint _alist_encode (st_list : alist key Any.t) : Any.t :=
     match st_list with
     | [] => tt↑
@@ -79,7 +79,7 @@ Section MID.
     st <- trigger sGet;; '(mp, mr) <- (Any.split st)?;;
     trigger (sPut (Any.pair (alist_encode (alist_upd k v (alist_decode mp))) mr)).
 
-  Definition mget_kv `{stateE -< E} `{coreE -< E} (k: key) : itree E Any.t :=
+  Definition mget_kv `{stateE -< E} `{coreE -< E} (k : key) : itree E Any.t :=
     st <- trigger sGet;; '(mp, _) <- (Any.split st)?;;
     Ret (or_else (alist_find k (alist_decode mp)) tt↑).
 
@@ -149,9 +149,9 @@ Section MID.
     }
   Defined.
 
-  Definition hp_fun_tail := (fun '(fr, x) => handle_Guarantee (True%I) fr ;;; Ret (x: Any.t)).
+  Definition hp_fun_tail := (fun '(fr, x) => handle_Guarantee (True%I) fr ;;; Ret (x : Any.t)).
 
-  Definition interp_hp_body (i : itree hmodE Any.t) (fr: Σ) : itree modE Any.t :=
+  Definition interp_hp_body (i : itree hmodE Any.t) (fr : Σ) : itree modE Any.t :=
     interp_hp i fr >>= hp_fun_tail.
 
   Definition interp_hp_fun (f : Any.t -> itree hmodE Any.t) : Any.t -> itree modE Any.t :=
@@ -161,10 +161,10 @@ End MID.
 
 Section RED.
   (* itree reduction lemmas *)
-  Context `{Σ: GRA.t}.
+  Context `{Σ : GRA.t}.
   Notation iProp := (iProp Σ).
 
-  Lemma interp_hp_bind (R S: Type)
+  Lemma interp_hp_bind (R S : Type)
         (s : itree hmodE R) (k : R -> itree hmodE S)fmr :
     interp_hp (s >>= k) fmr = st <- interp_hp s fmr;; interp_hp (Σ:=Σ) (k st.2) st.1.
   Proof. unfold interp_hp in *. eapply interp_state_bind. Qed.
@@ -181,7 +181,7 @@ Section RED.
     interp_hp (Σ:=Σ) (Ret t) fmr = Ret (fmr, t).
   Proof. unfold interp_hp in *. eapply interp_state_ret. Qed.
 
-  Lemma interp_hp_call (R: Type) (i: callE R) fr :
+  Lemma interp_hp_call (R : Type) (i : callE R) fr :
     interp_hp (trigger i) fr = '(fr', _) <- handle_Guarantee (Σ:=Σ) True%I fr;; r <- trigger i;; tau;; Ret (fr', r).
   Proof. unfold interp_hp in *. grind. Qed.
 
@@ -198,15 +198,15 @@ Section RED.
     interp_hp (trigger Tid) fmr = r <- trigger Tid;; tau;; Ret (fmr, r).
   Proof. unfold interp_hp. rewrite interp_state_trigger. cbn. grind. Qed.
 
-  Lemma interp_hp_pg (R: Type) (i: pgE R) fmr :
+  Lemma interp_hp_pg (R : Type) (i : pgE R) fmr :
     interp_hp (Σ:=Σ) (trigger i) fmr = r <- handle_pgE i;; tau;; Ret (fmr, r).
   Proof. unfold interp_hp. rewrite interp_state_trigger. cbn. grind. Qed.
 
-  Lemma interp_hp_core (R: Type) (i: coreE R) fmr :
+  Lemma interp_hp_core (R : Type) (i : coreE R) fmr :
     interp_hp (Σ:=Σ) (trigger i) fmr = r <- trigger i;; tau;; Ret (fmr, r).
   Proof. rewrite /interp_hp /pure_state interp_state_trigger; cbn. unfold trigger. grind. Qed.
 
-  Lemma interp_hp_triggerUB (R: Type) fmr :
+  Lemma interp_hp_triggerUB (R : Type) fmr :
     interp_hp (triggerUB) fmr = triggerUB (A:=Σ*R).
   Proof.
     unfold interp_hp, triggerUB in *.
@@ -214,7 +214,7 @@ Section RED.
     cbn. grind.
   Qed.
 
-  Lemma interp_hp_triggerNB (R: Type) fmr :
+  Lemma interp_hp_triggerNB (R : Type) fmr :
     interp_hp (triggerNB) fmr = triggerNB (A:=Σ*R).
   Proof.
     unfold interp_hp, triggerNB in *.
@@ -222,7 +222,7 @@ Section RED.
     cbn. grind.
   Qed.
 
-  Lemma interp_hp_unwrapU (R: Type) (i: option R) fmr :
+  Lemma interp_hp_unwrapU (R : Type) (i : option R) fmr :
     interp_hp (Σ:=Σ) (@unwrapU hmodE _ _ i) fmr = r <- (unwrapU i);; Ret (fmr, r).
   Proof.
     unfold interp_hp, unwrapU in *. des_ifs.
@@ -236,7 +236,7 @@ Section RED.
     }
   Qed.
 
-  Lemma interp_hp_unwrapN (R: Type) (i: option R) fmr :
+  Lemma interp_hp_unwrapN (R : Type) (i : option R) fmr :
     interp_hp (Σ:=Σ) (@unwrapN hmodE _ _ i) fmr = r <- (unwrapN i);; Ret (fmr, r).
   Proof.
     unfold interp_hp, unwrapN in *. des_ifs.
@@ -258,13 +258,13 @@ Section RED.
     interp_hp (trigger (Guarantee P)) fmr = x <- handle_Guarantee (Σ:=Σ) P fmr ;; tau;; Ret x.
   Proof. unfold interp_hp. rewrite interp_state_trigger. cbn. grind. Qed.
 
-  Lemma interp_hp_ext R (itr0 itr1: itree _ R) (EQ: itr0 = itr1) fmr :
+  Lemma interp_hp_ext R (itr0 itr1 : itree _ R) (EQ : itr0 = itr1) fmr :
     interp_hp itr0 fmr = interp_hp (Σ:=Σ) itr1 fmr.
   Proof. subst; et. Qed.
 
-  (* TODO: Same lemmas for other interps ( not defined yet. ) *)
+  (* TODO : Same lemmas for other interps ( not defined yet. ) *)
 
-  Global Program Instance interp_hp_rdb: red_database (mk_box (@interp_hp)) :=
+  Global Program Instance interp_hp_rdb : red_database (mk_box (@interp_hp)) :=
     mk_rdb
       1
       (mk_box interp_hp_bind)

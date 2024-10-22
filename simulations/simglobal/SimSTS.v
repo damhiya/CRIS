@@ -6,29 +6,29 @@ Set Implicit Arguments.
 
 Section BEHAVES.
 
-  Variable L: semantics.
+  Variable L : semantics.
 
   Theorem of_state_ind2 :
-    forall (P: _ -> _ -> Prop),
+    forall (P : _ -> _ -> Prop),
       (forall st0 retv, state_sort L st0 = final retv -> P st0 (Tr.done retv)) ->
       (forall st0, Beh.state_spin L st0 -> P st0 Tr.spin) ->
       (forall st0, P st0 Tr.nb) ->
 
       (forall st0 st1 ev evs
-              (SRT: state_sort L st0 = vis)
-              (STEP: _.(step) st0 (Some ev) st1)
-              (TL: Beh.of_state L st1 evs)
+              (SRT : state_sort L st0 = vis)
+              (STEP : _.(step) st0 (Some ev) st1)
+              (TL : Beh.of_state L st1 evs)
         ,
           P st0 (Tr.cons ev evs)) ->
       (forall st0 evs
-              (SRT: state_sort L st0 = demonic)
-              (STEP: Beh.union L st0
+              (SRT : state_sort L st0 = demonic)
+              (STEP : Beh.union L st0
                        (fun e st1 =>
-                          <<HD: e = None >> /\ <<TL: Beh.of_state L st1 evs >> /\ <<IH: P st1 evs>>)), P st0 evs) ->
+                          <<HD : e = None >> /\ <<TL : Beh.of_state L st1 evs >> /\ <<IH : P st1 evs>>)), P st0 evs) ->
       (forall st0 evs
-              (SRT: state_sort L st0 = angelic)
-              (STEP: Beh.inter L st0
-                       (fun e st1 => <<HD: e = None >> /\ <<TL: Beh.of_state L st1 evs >> /\ <<IH: P st1 evs>>)),
+              (SRT : state_sort L st0 = angelic)
+              (STEP : Beh.inter L st0
+                       (fun e st1 => <<HD : e = None >> /\ <<TL : Beh.of_state L st1 evs >> /\ <<IH : P st1 evs>>)),
           P st0 evs) ->
       forall s t, Beh.of_state L s t -> P s t.
   Proof.
@@ -46,15 +46,15 @@ Section BEHAVES.
     }
   Qed.
 
-  Variant of_state_indC (of_state: L.(state) -> Tr.t -> Prop): L.(state) -> Tr.t -> Prop :=
+  Variant of_state_indC (of_state : L.(state) -> Tr.t -> Prop) : L.(state) -> Tr.t -> Prop :=
     | of_state_indC_final
         st0 retv
-        (FINAL: L.(state_sort) st0 = final retv)
+        (FINAL : L.(state_sort) st0 = final retv)
       :
       of_state_indC of_state st0 (Tr.done retv)
     | of_state_indC_spin
         st0
-        (SPIN: Beh.state_spin L st0)
+        (SPIN : Beh.state_spin L st0)
       :
       of_state_indC of_state st0 (Tr.spin)
     | of_state_indC_nb
@@ -63,23 +63,23 @@ Section BEHAVES.
       of_state_indC of_state st0 (Tr.nb)
     | of_state_indC_vis
         st0 st1 ev evs
-        (SRT: L.(state_sort) st0 = vis)
-        (STEP: _.(step) st0 (Some ev) st1)
-        (TL: of_state st1 evs)
+        (SRT : L.(state_sort) st0 = vis)
+        (STEP : _.(step) st0 (Some ev) st1)
+        (TL : of_state st1 evs)
       :
       of_state_indC of_state st0 (Tr.cons ev evs)
     | of_state_indC_demonic
         st0
         evs
-        (SRT: L.(state_sort) st0 = demonic)
-        (STEP: Beh.union L st0 (fun e st1 => (<<HD: e = None>>) /\ (<<TL: of_state st1 evs>>)))
+        (SRT : L.(state_sort) st0 = demonic)
+        (STEP : Beh.union L st0 (fun e st1 => (<<HD : e = None>>) /\ (<<TL : of_state st1 evs>>)))
       :
       of_state_indC of_state st0 evs
     | of_state_indC_angelic
         st0
         evs
-        (SRT: L.(state_sort) st0 = angelic)
-        (STEP: Beh.inter L st0 (fun e st1 => (<<HD: e = None>>) /\ (<<TL: of_state st1 evs>>)))
+        (SRT : L.(state_sort) st0 = angelic)
+        (STEP : Beh.inter L st0 (fun e st1 => (<<HD : e = None>>) /\ (<<TL : of_state st1 evs>>)))
       :
       of_state_indC of_state st0 evs
   .
@@ -95,7 +95,7 @@ Section BEHAVES.
     - econs 5; eauto. unfold Beh.union in *. des. esplits; eauto.
     - econs 6; eauto. ii. exploit STEP; eauto. i. des. splits; auto.
   Qed.
-  Hint Resolve of_state_indC_mon: paco.
+  Hint Resolve of_state_indC_mon : paco.
 
   Lemma of_state_indC_spec:
     of_state_indC <3= gupaco2 (Beh._of_state L) (cpn2 (Beh._of_state L)).
@@ -119,9 +119,9 @@ End BEHAVES.
 
 Lemma spin_nofinal
       L st0
-      (SPIN: Beh.state_spin L st0)
+      (SPIN : Beh.state_spin L st0)
   :
-    forall retv, <<NOFIN: L.(state_sort) st0 <> final retv>>
+    forall retv, <<NOFIN : L.(state_sort) st0 <> final retv>>
 .
 Proof.
   punfold SPIN. inv SPIN; ii; rewrite H in *; ss.
@@ -129,9 +129,9 @@ Qed.
 
 Lemma spin_novis
       L st0
-      (SPIN: Beh.state_spin L st0)
+      (SPIN : Beh.state_spin L st0)
   :
-    <<NOFIN: L.(state_sort) st0 <> vis>>
+    <<NOFIN : L.(state_sort) st0 <> vis>>
 .
 Proof.
   punfold SPIN. inv SPIN; ii; rewrite H in *; ss.
@@ -139,11 +139,11 @@ Qed.
 
 Lemma spin_astep
       L st0 ev st1
-      (SRT: L.(state_sort) st0 = angelic)
-      (STEP: _.(step) st0 ev st1)
-      (SPIN: Beh.state_spin _ st0)
+      (SRT : L.(state_sort) st0 = angelic)
+      (STEP : _.(step) st0 ev st1)
+      (SPIN : Beh.state_spin _ st0)
   :
-    <<SPIN: Beh.state_spin _ st1>>
+    <<SPIN : Beh.state_spin _ st1>>
 .
 Proof.
   exploit wf_angelic; et. i; clarify.
@@ -153,69 +153,69 @@ Qed.
 
 Section SIM.
 
-  Variable L0 L1: semantics.
+  Variable L0 L1 : semantics.
 
-  Variant sim_def (sim: bool -> bool -> L0.(state) -> L1.(state) -> Prop)
-    (self: bool -> bool -> L0.(state) -> L1.(state) -> Prop)
-    (ps0: bool) (pt0: bool) (st_src0: L0.(state)) (st_tgt0: L1.(state)): Prop :=
+  Variant sim_def (sim : bool -> bool -> L0.(state) -> L1.(state) -> Prop)
+    (self : bool -> bool -> L0.(state) -> L1.(state) -> Prop)
+    (ps0 : bool) (pt0 : bool) (st_src0 : L0.(state)) (st_tgt0 : L1.(state)) : Prop :=
   | sim_fin
       retv
-      (SRT: _.(state_sort) st_src0 = final retv)
-      (SRT: _.(state_sort) st_tgt0 = final retv)
+      (SRT : _.(state_sort) st_src0 = final retv)
+      (SRT : _.(state_sort) st_tgt0 = final retv)
 
   | sim_vis
-      (SRT: _.(state_sort) st_src0 = vis)
-      (SRT: _.(state_sort) st_tgt0 = vis)
-      (SIM: forall ev st_tgt1
-          (STEP: _.(step) st_tgt0 (Some ev) st_tgt1)
+      (SRT : _.(state_sort) st_src0 = vis)
+      (SRT : _.(state_sort) st_tgt0 = vis)
+      (SIM : forall ev st_tgt1
+          (STEP : _.(step) st_tgt0 (Some ev) st_tgt1)
           ,
-          exists st_src1 (STEP: _.(step) st_src0 (Some ev) st_src1),
-            <<SIM: sim true true st_src1 st_tgt1>>)
+          exists st_src1 (STEP : _.(step) st_src0 (Some ev) st_src1),
+            <<SIM : sim true true st_src1 st_tgt1>>)
 
   | sim_vis_stuck_tgt
-      (SRT: _.(state_sort) st_tgt0 = vis)
-      (STUCK: forall ev st_tgt1, not (_.(step) st_tgt0 (Some ev) st_tgt1))
+      (SRT : _.(state_sort) st_tgt0 = vis)
+      (STUCK : forall ev st_tgt1, not (_.(step) st_tgt0 (Some ev) st_tgt1))
 
   | sim_demonic_src
-      (SRT: _.(state_sort) st_src0 = demonic)
-      (SIM: exists st_src1
-                   (STEP: _.(step) st_src0 None st_src1)
+      (SRT : _.(state_sort) st_src0 = demonic)
+      (SIM : exists st_src1
+                   (STEP : _.(step) st_src0 None st_src1)
         ,
-          <<SIM: self true pt0 st_src1 st_tgt0>>)
+          <<SIM : self true pt0 st_src1 st_tgt0>>)
 
   | sim_demonic_tgt
-      (SRT: _.(state_sort) st_tgt0 = demonic)
-      (SIM: forall st_tgt1
-                   (STEP: _.(step) st_tgt0 None st_tgt1)
+      (SRT : _.(state_sort) st_tgt0 = demonic)
+      (SIM : forall st_tgt1
+                   (STEP : _.(step) st_tgt0 None st_tgt1)
         ,
-          <<SIM: self ps0 true st_src0 st_tgt1>>)
+          <<SIM : self ps0 true st_src0 st_tgt1>>)
 
   | sim_angelic_src
-      (SRT: _.(state_sort) st_src0 = angelic)
-      (SIM: forall st_src1
-          (STEP: _.(step) st_src0 None st_src1)
+      (SRT : _.(state_sort) st_src0 = angelic)
+      (SIM : forall st_src1
+          (STEP : _.(step) st_src0 None st_src1)
         ,
-          <<SIM: self true pt0 st_src1 st_tgt0>>)
+          <<SIM : self true pt0 st_src1 st_tgt0>>)
 
   | sim_angelic_tgt
-      (SRT: _.(state_sort) st_tgt0 = angelic)
-      (SIM: exists st_tgt1
-          (STEP: _.(step) st_tgt0 None st_tgt1)
+      (SRT : _.(state_sort) st_tgt0 = angelic)
+      (SIM : exists st_tgt1
+          (STEP : _.(step) st_tgt0 None st_tgt1)
         ,
-          <<SIM: self ps0 true st_src0 st_tgt1>>)
+          <<SIM : self ps0 true st_src0 st_tgt1>>)
 
   | sim_progress
-      (SIM: sim false false st_src0 st_tgt0)
-      (SRC: ps0 = true)
-      (TGT: pt0 = true)
+      (SIM : sim false false st_src0 st_tgt0)
+      (SRC : ps0 = true)
+      (TGT : pt0 = true)
   .
 
   Inductive _sim sim ps pt st_src st_tgt : Prop :=
-    _sim_intro (SIM: sim_def sim (_sim sim) ps pt st_src st_tgt)
+    _sim_intro (SIM : sim_def sim (_sim sim) ps pt st_src st_tgt)
   .
 
-  Lemma sim_ind sim (P: bool -> bool -> L0.(state) -> L1.(state) -> Prop)
-    (SIM: sim_def sim (_sim sim /4\ P) <4= P)
+  Lemma sim_ind sim (P : bool -> bool -> L0.(state) -> L1.(state) -> Prop)
+    (SIM : sim_def sim (_sim sim /4\ P) <4= P)
     :
     _sim sim <4= P.
   Proof.
@@ -230,7 +230,7 @@ Section SIM.
     - eapply SIM. econs 8; eauto 7.
   Qed.
 
-  Lemma sim_mon: monotone4 _sim.
+  Lemma sim_mon : monotone4 _sim.
   Proof.
     ii. revert x0 x1 x2 x3 IN. eapply sim_ind. i.
     inv PR; clarify; econs.
@@ -244,16 +244,16 @@ Section SIM.
     { econs 8; eauto. }
   Qed.
 
-  Definition sim: _ -> _ -> _ -> _ -> Prop := paco4 _sim bot4.
+  Definition sim : _ -> _ -> _ -> _ -> Prop := paco4 _sim bot4.
 
   Hint Constructors _sim.
   Hint Unfold sim.
-  Hint Resolve sim_mon: paco.
-  Hint Resolve cpn4_wcompat: paco.
+  Hint Resolve sim_mon : paco.
+  Hint Resolve cpn4_wcompat : paco.
 
   Definition sim_indC sim := sim_def sim sim.
   
-  Lemma sim_indC_mon: monotone4 sim_indC.
+  Lemma sim_indC_mon : monotone4 sim_indC.
   Proof.
     ii. inv IN; eauto.
     { econs 1; eauto. }
@@ -265,7 +265,7 @@ Section SIM.
     { econs 7; eauto. des. esplits; eauto. }
     { econs 8; eauto. }
   Qed.
-  Hint Resolve sim_indC_mon: paco.
+  Hint Resolve sim_indC_mon : paco.
 
   Lemma sim_indC_spec:
     sim_indC <5= gupaco4 _sim (cpn4 _sim).
@@ -291,20 +291,20 @@ Section SIM.
     { econs 8; eauto. eapply rclo4_base. auto. }
   Qed.
 
-  Variant sim_flagC (sim: bool -> bool -> L0.(state) -> L1.(state) -> Prop)
-          (ps1: bool) (pt1: bool) (st_src: L0.(state)) (st_tgt: L1.(state)): Prop :=
+  Variant sim_flagC (sim : bool -> bool -> L0.(state) -> L1.(state) -> Prop)
+          (ps1 : bool) (pt1 : bool) (st_src : L0.(state)) (st_tgt : L1.(state)) : Prop :=
   | sim_flagC_intro
       ps0 pt0
-      (SIM: sim ps0 pt0 st_src st_tgt)
-      (SRC: ps0 = true -> ps1 = true)
-      (TGT: pt0 = true -> pt1 = true)
+      (SIM : sim ps0 pt0 st_src st_tgt)
+      (SRC : ps0 = true -> ps1 = true)
+      (TGT : pt0 = true -> pt1 = true)
   .
 
-  Lemma sim_flagC_mon: monotone4 sim_flagC.
+  Lemma sim_flagC_mon : monotone4 sim_flagC.
   Proof.
     ii. inv IN; eauto. econs; eauto.
   Qed.
-  Hint Resolve sim_flagC_mon: paco.
+  Hint Resolve sim_flagC_mon : paco.
 
   Lemma sim_flagC_spec:
     sim_flagC <5= gupaco4 _sim (cpn4 _sim).
@@ -327,27 +327,27 @@ Section SIM.
 
   Lemma sim_flag_mon:
     forall f_src0 f_tgt0 f_src1 f_tgt1 st_src st_tgt
-           (SIM: sim f_src0 f_tgt0 st_src st_tgt)
-           (SRC: f_src0 = true -> f_src1 = true)
-           (TGT: f_tgt0 = true -> f_tgt1 = true),
+           (SIM : sim f_src0 f_tgt0 st_src st_tgt)
+           (SRC : f_src0 = true -> f_src1 = true)
+           (TGT : f_tgt0 = true -> f_tgt1 = true),
       sim f_src1 f_tgt1 st_src st_tgt.
   Proof.
     ginit. i. guclo sim_flagC_spec. econs; eauto.
     gfinal. right. eauto.
   Qed.
 
-  Record simulation: Prop := mk_simulation {
-    sim_init: <<SIM: sim false false L0.(initial_state) L1.(initial_state)>>;
+  Record simulation : Prop := mk_simulation {
+    sim_init : <<SIM : sim false false L0.(initial_state) L1.(initial_state)>>;
   }
   .
 
   Ltac pc H := rr in H; desH H; ss.
   Lemma adequacy_spin
         ps0 pt0 st_src0 st_tgt0
-        (SIM: sim ps0 pt0 st_src0 st_tgt0)
-        (SPIN: Beh.state_spin L1 st_tgt0)
+        (SIM : sim ps0 pt0 st_src0 st_tgt0)
+        (SPIN : Beh.state_spin L1 st_tgt0)
     :
-      <<SPIN: Beh.state_spin L0 st_src0>>
+      <<SPIN : Beh.state_spin L0 st_src0>>
   .
   Proof.
     ginit.
@@ -400,9 +400,9 @@ Section SIM.
 
   Lemma adequacy_aux
         ps0 pt0 st_src0 st_tgt0
-        (SIM: sim ps0 pt0 st_src0 st_tgt0)
+        (SIM : sim ps0 pt0 st_src0 st_tgt0)
     :
-      <<IMPR: Beh.improves (Beh.of_state L0 st_src0) (Beh.of_state L1 st_tgt0)>>
+      <<IMPR : Beh.improves (Beh.of_state L0 st_src0) (Beh.of_state L1 st_tgt0)>>
   .
   Proof.
     ginit.
@@ -518,9 +518,9 @@ Section SIM.
   Qed.
 
   Theorem adequacy
-          (SIM: simulation)
+          (SIM : simulation)
     :
-      <<IMPR: Beh.improves (Beh.of_program L0) (Beh.of_program L1)>>
+      <<IMPR : Beh.improves (Beh.of_program L0) (Beh.of_program L1)>>
   .
   Proof.
     inv SIM. des.
@@ -530,5 +530,5 @@ Section SIM.
 End SIM.
 Hint Constructors _sim.
 Hint Unfold sim.
-Hint Resolve sim_mon: paco.
-Hint Resolve cpn4_wcompat: paco.
+Hint Resolve sim_mon : paco.
+Hint Resolve cpn4_wcompat : paco.

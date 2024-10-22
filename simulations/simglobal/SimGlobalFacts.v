@@ -17,7 +17,7 @@ Set Implicit Arguments.
 Section ADEQUACY.
 
   Theorem adequacy_global_itree ps pt itr_src itr_tgt
-          (SIM: simg eq ps pt itr_src itr_tgt)
+          (SIM : simg eq ps pt itr_src itr_tgt)
     :
       Beh.of_program (@compile_itree itr_tgt)
       <1=
@@ -126,8 +126,8 @@ Section ADEQUACY.
 
   Section MAIN.
     
-    Theorem adequacy_global (ms_src ms_tgt: ModSem.t) ps pt
-      (SIM: simg eq ps pt (@ModSem.initial_itr ms_src) (@ModSem.initial_itr ms_tgt))
+    Theorem adequacy_global (ms_src ms_tgt : ModSem.t) ps pt
+      (SIM : simg eq ps pt (@ModSem.initial_itr ms_src) (@ModSem.initial_itr ms_tgt))
       :
       Beh.of_program (@ModSem.compile ms_tgt) <1= Beh.of_program (@ModSem.compile ms_src).
     Proof.

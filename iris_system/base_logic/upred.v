@@ -88,14 +88,14 @@ The result [(Q1' ∗ Q2') (A,A)] follows from [(A,ε) ⋅ (ε,A) = (A,A)].
 (a) Proof of [Q1' (A,ε) 1].
     We have [P (A,B) 1], and thus [Q1' r1 1] and [Q2' r2 1] for some
     [r1 ⋅ r2 = (A,B)]. There are four possible decompositions [r1 ⋅ r2]:
-    - [(ε,ε) ⋅ (A,B)]: This would give us [Q1' (ε,ε) 1], from which we
+    - [(ε,ε) ⋅ (A,B)] : This would give us [Q1' (ε,ε) 1], from which we
       obtain (through down-closure and the equality [Q1 ≡{0}≡ Q1'] above) that
       [Q1 (ε,ε) 0]. However, we know that's false.
-    - [(A,B) ⋅ (ε,ε)]: Can be excluded for similar reasons
+    - [(A,B) ⋅ (ε,ε)] : Can be excluded for similar reasons
       (the second resource must not be ε in the 2nd component).
-    - [(ε,B) ⋅ (A,ε)]: Can be excluded for similar reasons
+    - [(ε,B) ⋅ (A,ε)] : Can be excluded for similar reasons
       (the first resource must not be ε in the 1st component).
-    - [(A,ε) ⋅ (ε,B)]: This gives us the desired [Q1' (A,ε) 1].
+    - [(A,ε) ⋅ (ε,B)] : This gives us the desired [Q1' (A,ε) 1].
 
 (b) Proof of [Q2' (ε,A) 1].
     We have [P (B,A) 1], and thus [Q1' r1 1] and [Q2' r2 1] for some
@@ -120,7 +120,7 @@ Local Coercion uPred_holds : uPred >-> Funclass.
 Bind Scope bi_scope with uPred.
 Global Arguments uPred_holds {_} _ _ : simpl never.
 Add Printing Constructor uPred.
-Global Instance: Params (@uPred_holds) 2 := {}.
+Global Instance : Params (@uPred_holds) 2 := {}.
 
 Section cofe.
   Context {M : ucmra}.
@@ -176,7 +176,7 @@ Proof.
 Qed.
 
 (* Equivalence to the definition of uPred in the appendix. *)
-(* Lemma uPred_alt {M : ucmra} (P: nat → M → Prop) :
+(* Lemma uPred_alt {M : ucmra} (P : nat → M → Prop) :
   (∀ n1 n2 x1 x2, P n1 x1 → x1 ≼{n1} x2 → n2 ≤ n1 → P n2 x2) ↔
   ( (∀ x n1 n2, n2 ≤ n1 → P n1 x → P n2 x) (* Pointwise down-closed *)
   ∧ (∀ n x1 x2, x1 ≡{n}≡ x2 → ∀ m, m ≤ n → P m x1 ↔ P m x2) (* Non-expansive *)
@@ -204,7 +204,7 @@ Proof.
   intros x1 x2 Hx; split=> y ?.
   split; apply Hx; auto using cmra_morphism_valid.
 Qed.
-Lemma uPred_map_id {M : ucmra} (P : uPred M): uPred_map cid P ≡ P.
+Lemma uPred_map_id {M : ucmra} (P : uPred M) : uPred_map cid P ≡ P.
 Proof. by split=> x ?. Qed.
 Lemma uPred_map_compose {M1 M2 M3 : ucmra} (f : M1 -n> M2) (g : M2 -n> M3)
     `{!CmraMorphism f, !CmraMorphism g} (P : uPred M3):
@@ -478,7 +478,7 @@ Module uPred_primitive.
     Proof.
       split.
       - intros HPQ; split; split=> x; apply HPQ.
-      - intros [??]. exact: entails_anti_sym.
+      - intros [??]. exact : entails_anti_sym.
     Qed.
     Lemma entails_lim (cP cQ : chain (uPredO M)) :
       (∀ n, cP n ⊢ cQ n) → compl cP ⊢ compl cQ.
@@ -639,7 +639,7 @@ Module uPred_primitive.
     Lemma impl_elim_l' P Q R : (P ⊢ Q → R) → P ∧ Q ⊢ R.
     Proof. unseal; intros HP ; split=> x ? [??]; apply HP with x; auto. Qed.
 
-    Lemma forall_intro {A} P (Ψ : A → uPred M): (∀ a, P ⊢ Ψ a) → P ⊢ ∀ a, Ψ a.
+    Lemma forall_intro {A} P (Ψ : A → uPred M) : (∀ a, P ⊢ Ψ a) → P ⊢ ∀ a, Ψ a.
     Proof. unseal; intros HPΨ; split=> x ?? a; by apply HPΨ. Qed.
     Lemma forall_elim {A} {Ψ : A → uPred M} a : (∀ a, Ψ a) ⊢ Ψ a.
     Proof. unseal; split=> x ? HP; apply HP. Qed.
@@ -836,7 +836,7 @@ Module uPred_primitive.
     Lemma bupd_trans P : (|==> |==> P) ⊢ |==> P.
     Proof.
       unseal. split; intros x Hx [x' Hx'].
-      move: (Hx'); intros Hx''; specialize (Hx'' (core x));
+      move : (Hx'); intros Hx''; specialize (Hx'' (core x));
         destruct Hx'' as [_ [x'' Hx'']]; first by rewrite cmra_core_r.
       exists x''; intros yf; specialize (Hx' yf); intros [??]%Hx'.
       specialize (Hx'' yf); apply Hx'' in H; done.

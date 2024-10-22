@@ -7,13 +7,13 @@ Require Import ModSim MainAdequacy CtxRefine.
 Section PROPERTIES.
 
   (*** refines_modsem ***)
-  Global Program Instance refines_modsem_PreOrder: PreOrder refines_modsem.
+  Global Program Instance refines_modsem_PreOrder : PreOrder refines_modsem.
   Next Obligation. ii. ss. Qed.
   Next Obligation. ii. eapply H. eapply H0. ss. Qed.
 
-  Context `{Σ: GRA.t}.
+  Context `{Σ : GRA.t}.
 
-  Global Program Instance refines_PreOrder: PreOrder refines.
+  Global Program Instance refines_PreOrder : PreOrder refines.
   Next Obligation.
     split.
     { rr. refl. }
@@ -34,7 +34,7 @@ Section PROPERTIES.
   Qed.
 
   Lemma ctxr_refines mcs mct
-    (REF: ctx_refines mcs mct)
+    (REF : ctx_refines mcs mct)
     :
     refines mcs mct.
   Proof.
@@ -50,7 +50,7 @@ Section PROPERTIES.
 
   (*** vertical composition ***)
   
-  Global Program Instance ctxr_PreOrder: PreOrder ctx_refines.
+  Global Program Instance ctxr_PreOrder : PreOrder ctx_refines.
   Next Obligation.
     r. r. i. refl.
   Qed.
@@ -62,8 +62,8 @@ Section PROPERTIES.
   
   (*** weakening for initial condition ***)
 
-  Lemma ctxr_cond_strengthen (m: HMod.t) (P Q: Sk.t -> iProp)
-    (IMPL: forall sk, P sk -∗ Q sk)
+  Lemma ctxr_cond_strengthen (m : HMod.t) (P Q : Sk.t -> iProp)
+    (IMPL : forall sk, P sk -∗ Q sk)
     :
     ctx_refines (m, P) (m, Q).
   Proof.
@@ -77,8 +77,8 @@ Section PROPERTIES.
 
   (*** frame rule for initial condition ***)
 
-  Lemma ctxr_cond_frameR (ms mt: HMod.t) Ps Pt Q
-    (REF: ctx_refines (ms, Ps) (mt, Pt))
+  Lemma ctxr_cond_frameR (ms mt : HMod.t) Ps Pt Q
+    (REF : ctx_refines (ms, Ps) (mt, Pt))
     :
     ctx_refines (ms, Ps ∗∗ Q)%I (mt, Pt ∗∗ Q)%I.
   Proof.
@@ -93,8 +93,8 @@ Section PROPERTIES.
       unfold HMod.addc. iFrame. }
   Qed.
 
-  Lemma ctxr_cond_frameL (ms mt: HMod.t) Ps Pt Q
-    (REF: ctx_refines (ms, Ps) (mt, Pt))
+  Lemma ctxr_cond_frameL (ms mt : HMod.t) Ps Pt Q
+    (REF : ctx_refines (ms, Ps) (mt, Pt))
     :
     ctx_refines (ms, Q ∗∗ Ps)%I (mt, Q ∗∗ Pt)%I.
   Proof.
@@ -106,7 +106,7 @@ Section PROPERTIES.
   
   (*** commutativity ***)
 
-  Theorem ctxr_comm (ma mb: HMod.t) P:
+  Theorem ctxr_comm (ma mb : HMod.t) P:
     ctx_refines (HMod.add ma mb, P) (HMod.add mb ma, P).
   Proof.
     etrans.
@@ -119,7 +119,7 @@ Section PROPERTIES.
   (*** frame rules ***)
 
   Lemma ctxr_frameR ms Ps mt Pt mc
-    (REFA: ctx_refines (ms, Ps) (mt, Pt))
+    (REFA : ctx_refines (ms, Ps) (mt, Pt))
     :
     ctx_refines (ms ★ mc, Ps) (mt ★ mc, Pt).
   Proof.
@@ -128,7 +128,7 @@ Section PROPERTIES.
   Qed.
 
   Lemma ctxr_frameL ms Ps mt Pt mc
-    (REFA: ctx_refines (ms, Ps) (mt, Pt))
+    (REFA : ctx_refines (ms, Ps) (mt, Pt))
     :
     ctx_refines (mc ★ ms, Ps) (mc ★ mt, Pt).
   Proof.
@@ -140,8 +140,8 @@ Section PROPERTIES.
   (*** horizontal composition ***)
 
   Lemma ctxr_compose_hor msa Psa mta Pta msb Psb mtb Ptb
-    (REFA: ctx_refines (msa, Psa) (mta, Pta))
-    (REFB: ctx_refines (msb, Psb) (mtb, Ptb))
+    (REFA : ctx_refines (msa, Psa) (mta, Pta))
+    (REFB : ctx_refines (msb, Psb) (mtb, Ptb))
     :
     ctx_refines (msa ★ msb, Psa ∗∗ Psb)
                 (mta ★ mtb, Pta ∗∗ Ptb).
@@ -154,8 +154,8 @@ Section PROPERTIES.
   (*** mixed composition ***)
 
   Lemma ctxr_compose_mix msa Psa mta Pta msb Psb mtb Ptb mc
-    (REFA: ctx_refines (msa ★ mc, Psa) (mta ★ mc, Pta))
-    (REFB: ctx_refines (msb ★ mc, Psb) (mtb ★ mc, Ptb))
+    (REFA : ctx_refines (msa ★ mc, Psa) (mta ★ mc, Pta))
+    (REFB : ctx_refines (msb ★ mc, Psb) (mtb ★ mc, Ptb))
     :
     ctx_refines (msa ★ msb ★ mc, Psa ∗∗ Psb)
                 (mta ★ mtb ★ mc, Pta ∗∗ Ptb).

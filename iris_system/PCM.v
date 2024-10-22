@@ -24,13 +24,13 @@ Ltac unseal x :=
   | string => repeat rewrite (@Seal.sealing_eq x) in *; try clear x
   | _ => repeat rewrite (@Seal.sealing_eq _ _ x) in *;
          repeat match goal with
-                | [ H: string |- _ ] => try clear H
+                | [ H : string |- _ ] => try clear H
                 end
   end
 .
 
 
-(* TODO: Auxillary discrete_fun lemmas. Move to somewhere else. *)
+(* TODO : Auxillary discrete_fun lemmas. Move to somewhere else. *)
 Section discrete_fun.
   (** Depends on axiom of dependent choice.  *)
 
@@ -50,7 +50,7 @@ Section discrete_fun.
       A (Ms : A → ucmra)
       (f : discrete_fun Ms)
       (P : ∀ (a : A), (Ms a) → Prop)
-      (UPD: ∀ a, (f a) ~~>: (P a))
+      (UPD : ∀ a, (f a) ~~>: (P a))
     :
     f ~~>: λ f', ∀ a, P a (f' a).
   Proof.
@@ -67,11 +67,11 @@ Section discrete_fun.
     f ⋅ g = λ a, f a ⋅ g a.
   Proof. done. Qed.
 
-  (* TODO: Upstreamed. Remove after Iris bump *)
+  (* TODO : Upstreamed. Remove after Iris bump *)
   Lemma discrete_fun_update
       A (Ms : A → ucmra)
       (f0 f1 : discrete_fun Ms)
-      (UPD: ∀ a, (f0 a) ~~> (f1 a))
+      (UPD : ∀ a, (f0 a) ~~> (f1 a))
     :
     f0 ~~> f1.
   Proof.
@@ -80,7 +80,7 @@ Section discrete_fun.
     naive_solver.
   Qed.
 
-  (* TODO: Upstreamed. Remove after Iris bump *)
+  (* TODO : Upstreamed. Remove after Iris bump *)
   Lemma discrete_fun_singleton_valid
     {A : Type} `{Heqdec : !EqDecision A} {B : A → ucmra}
     x (y : B x) :
@@ -90,7 +90,7 @@ Section discrete_fun.
     by setoid_rewrite discrete_fun_singleton_validN.
   Qed.
 
-  (* TODO: Upstreamed. Remove after Iris bump *)
+  (* TODO : Upstreamed. Remove after Iris bump *)
   Lemma discrete_fun_singleton_unit
     {A : Type} `{Heqdec : !EqDecision A} {B : A → ucmra}
     x :
@@ -128,23 +128,23 @@ Proof.
 Qed.
 
 Module GRA.
-  Class t: Type := GRA__INTERNAL {
+  Class t : Type := GRA__INTERNAL {
     gra_map : nat → ucmra;
     gra_discrete : ∀ i, CmraDiscrete (gra_map i);
   }.
   Coercion gra_map : t >-> Funclass.
   Local Existing Instance gra_discrete.
 
-  Class inG (RA: ucmra) (Σ: t) := InG {
-    inG_id: nat;
-    inG_prf: RA = Σ inG_id;
+  Class inG (RA : ucmra) (Σ : t) := InG {
+    inG_id : nat;
+    inG_prf : RA = Σ inG_id;
   }.
 
-  Program Definition of_list (RAs: ucmra_list) : t :=
+  Program Definition of_list (RAs : ucmra_list) : t :=
     {| gra_map := λ n, (UList.nth n RAs (optionUR Empty_setR)) |}.
   Next Obligation. induction RAs; destruct i; apply _. Qed.
 
-  Definition to_URA (Σ: t) : ucmra := discrete_funUR Σ.
+  Definition to_URA (Σ : t) : ucmra := discrete_funUR Σ.
 
   Coercion to_URA : t >-> ucmra.
 
@@ -154,10 +154,10 @@ Module GRA.
   Global Instance inG_cmra_discrete `{!inG A Σ} : CmraDiscrete A.
   Proof. erewrite inG_prf. apply _. Qed.
 
-  (* a: cmra_car =ty= RAs inG_id =ty= RAs n *)
-  Definition embed `{!inG A Σ} (a: A) : Σ :=
+  (* a : cmra_car =ty= RAs inG_id =ty= RAs n *)
+  Definition embed `{!inG A Σ} (a : A) : Σ :=
     discrete_fun_singleton inG_id (cmra_transport (f_equal _ inG_prf) a).
-  Local Instance: Params (@embed) 3 := {}.
+  Local Instance : Params (@embed) 3 := {}.
 
 Section lemmas.
   Context `{!inG A Σ}.
@@ -165,17 +165,17 @@ Section lemmas.
 
   Lemma embed_wf
         a
-        (WF: ✓ embed a)
+        (WF : ✓ embed a)
     :
-      <<WF: ✓ a>>
+      <<WF : ✓ a>>
   .
   Proof. by rewrite /embed discrete_fun_singleton_valid cmra_transport_valid in WF. Qed.
 
   Lemma wf_embed
         a
-        (WF: ✓ a)
+        (WF : ✓ a)
     :
-      <<WF: ✓ embed a >>
+      <<WF : ✓ embed a >>
   .
   Proof. by rewrite /NW /embed discrete_fun_singleton_valid cmra_transport_valid. Qed.
 
@@ -192,9 +192,9 @@ Section lemmas.
 
   Lemma embed_updatable_set
         a P
-        (UPD: a ~~>: P)
+        (UPD : a ~~>: P)
     :
-      <<UPD: embed a ~~>: λ b, ∃ a', b = embed a' ∧ P a' >>
+      <<UPD : embed a ~~>: λ b, ∃ a', b = embed a' ∧ P a' >>
   .
   Proof.
     eapply discrete_fun_singleton_updateP.
@@ -204,9 +204,9 @@ Section lemmas.
 
   Lemma embed_updatable
         a0 a1
-        (UPD: a0 ~~> a1)
+        (UPD : a0 ~~> a1)
     :
-      <<UPD: embed a0 ~~> embed a1 >>
+      <<UPD : embed a0 ~~> embed a1 >>
   .
   Proof.
     eapply cmra_update_updateP, cmra_updateP_weaken.
@@ -217,7 +217,7 @@ Section lemmas.
   Lemma embed_core a : embed (core a) ≡ core (embed a).
   Proof. by rewrite /embed discrete_fun_singleton_core cmra_transport_core. Qed.
 
-  (* Note: NOT a general lemma for [cmra_transport]. Tailed for the proof pattern
+  (* Note : NOT a general lemma for [cmra_transport]. Tailed for the proof pattern
     of [GRA]. I.e., upstreaming this to iris doesn't make sense. *)
   Local Lemma cmra_transport_unit {B C : ucmra} (H : B = C) : cmra_transport (f_equal _ H) ε = ε.
   Proof. by destruct H. Qed.
@@ -227,24 +227,24 @@ Section lemmas.
 End lemmas.
 
   Section GETSET.
-    Variable ra: ucmra.
-    Variable gra: t.
+    Variable ra : ucmra.
+    Variable gra : t.
     Context `{!inG ra gra}.
 
     Section GETSET.
-    Variable get: cmra_car ra.
-    Variable set: (cmra_car ra) -> unit.
+    Variable get : cmra_car ra.
+    Variable set : (cmra_car ra) -> unit.
 
     (* own & update can be lifted *)
     (* can we write spec in terms of own & update, not get & set? *)
     (* how about add / sub? *)
-    Program Definition get_lifted: cmra_car gra :=
+    Program Definition get_lifted : cmra_car gra :=
       discrete_fun_singleton inG_id _.
     Next Obligation.
       apply (cmra_transport (f_equal _ inG_prf) get).
     Defined.
 
-    (* Program Definition set_lifted: cmra_car construction gra -> unit := *)
+    (* Program Definition set_lifted : cmra_car construction gra -> unit := *)
     (*   fun n => if Nat.eq_dec n inG_id then _ else URA.unit. *)
     (* Next Obligation. *)
     (*   apply (ra_transport inG_prf get). *)
@@ -252,9 +252,9 @@ End lemmas.
     End GETSET.
 
     Section HANDLER.
-    Variable handler: cmra_car ra -> cmra_car ra.
+    Variable handler : cmra_car ra -> cmra_car ra.
     Local Obligation Tactic := idtac.
-    Program Definition handler_lifted: cmra_car gra -> cmra_car gra :=
+    Program Definition handler_lifted : cmra_car gra -> cmra_car gra :=
       fun st0 => fun n => if Nat.eq_dec n inG_id then _ else st0 n
     .
     Next Obligation.
@@ -266,21 +266,21 @@ End lemmas.
 
   End GETSET.
 
-  Fixpoint point_wise_wf (Ml: ucmra_list) (x: of_list Ml) (n: nat) :=
+  Fixpoint point_wise_wf (Ml : ucmra_list) (x : of_list Ml) (n : nat) :=
   match n with
   | O => True
   | S n' => ✓ (x n') ∧ point_wise_wf x n'
   end.
 
-  Definition point_wise_wf_lift (Ml: ucmra_list) (x: of_list Ml)
-             (POINT: point_wise_wf x (UList.length Ml))
+  Definition point_wise_wf_lift (Ml : ucmra_list) (x : of_list Ml)
+             (POINT : point_wise_wf x (UList.length Ml))
     :
       ✓ x.
   Proof.
     intro i. unfold of_list in *.
-    assert (WF: ∀ (n m: nat)
-                       (POINT: point_wise_wf x n)
-                       (LT: (m < n)%nat),
+    assert (WF : ∀ (n m : nat)
+                       (POINT : point_wise_wf x n)
+                       (LT : (m < n)%nat),
                ✓ (x m)).
     { induction n.
       { i. inv LT. }
@@ -291,14 +291,14 @@ End lemmas.
     { eapply WF; eauto. }
   Qed.
 End GRA.
-Coercion GRA.to_URA: GRA.t >-> ucmra.
+Coercion GRA.to_URA : GRA.t >-> ucmra.
 
 Global Opaque GRA.to_URA.
-(* Definition ε `{Σ: GRA.t}: Σ := URA.unit. *)
+(* Definition ε `{Σ : GRA.t} : Σ := URA.unit. *)
 
 (***
-Choose: non-det
-Take: angelic non-det
+Choose : non-det
+Take : angelic non-det
 (*** empty choose : NB ***)
 (*** empty take : UB ***)
 x <- Choose X ;; guarantee (P x) ;; k x   (~=) x <- Choose { X | P x } ;; k x
@@ -314,7 +314,7 @@ x0 <- Choose X ;; x1 <- Take X ;; guarantee (P x0) ;; assume (P x1) ;; k1 x1 ;; 
 x <- Choose X ;; guarantee (P x) ;; assume (P x) ;; k1 x ;; k0 x
 (<=)
 x <- Choose X ;; guarantee (P x) ;; k1 x ;; k0 x
-Goal forall X Y (k: X -> Y),
+Goal forall X Y (k : X -> Y),
     x <- trigger (EChoose X) ;; Ret (k x) =
     y <- trigger (EChoose {y | exists x, y = k x}) ;; Ret (proj1_sig y)
 .

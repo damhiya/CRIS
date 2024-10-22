@@ -37,7 +37,7 @@ Module WD.
         deg := degree;
       }.
 
-    Definition interp n (s: shape)
+    Definition interp n (s : shape)
         : (degree s (SRFSyn.t_prev n) → SRFSyn.t n) → (degree s (SRFSyn.t_prev n) → iProp) → iProp :=
       match s with
       | _OwnI u i => fun syn _ =>
@@ -52,22 +52,22 @@ Module WD.
 
     Global Instance t : SRFMSem.t := interp.
 
-    Context `{_W3: @SRFMSemG.inG _ _ _ t β}.
+    Context `{_W3 : @SRFMSemG.inG _ _ _ t β}.
 
-    Definition OwnI u n i (p: SRFSyn.t n) : SRFSyn.t n :=
+    Definition OwnI u n i (p : SRFSyn.t n) : SRFSyn.t n :=
       ⟨ _OwnI u i, fun _ => p ⟩%SRF.
-    Definition OwnI_auth u n (I: gmap positive (SRFSyn.t n)) : SRFSyn.t n :=
+    Definition OwnI_auth u n (I : gmap positive (SRFSyn.t n)) : SRFSyn.t n :=
       ⟨ _OwnI_auth u (elements (dom I)), fun i => or_else (I !! i) emp⟩%SRF.
     Definition free_worlds u b : SRFSyn.t b :=
       ⟨ _free_worlds u b, fun e => match e with end ⟩%SRF.
     Definition empty_universes eu {n} : SRFSyn.t n :=
       ⟨ _empty_universes eu , fun a => match a with end ⟩%SRF.
 
-    Definition OwnE (u: univ_id) {n} (E: coPset) : SRFSyn.t n :=
+    Definition OwnE (u : univ_id) {n} (E : coPset) : SRFSyn.t n :=
       (<ownm> (OwnER u E))%SRF.
-    Definition OwnD (u: univ_id) {n} (D: gset positive) : SRFSyn.t n :=
+    Definition OwnD (u : univ_id) {n} (D : gset positive) : SRFSyn.t n :=
       (<ownm> (OwnDR u D))%SRF.
-    Definition ownD_auth (u: univ_id) {n} : SRFSyn.t n :=
+    Definition ownD_auth (u : univ_id) {n} : SRFSyn.t n :=
       (∃ D : τ{⇣gset positive}, <ownm> (OwnD_authR u D))%SRF.
 
     Definition inv_satall u n (I : gmap positive (SRFSyn.t n)) : SRFSyn.t n :=
@@ -75,12 +75,12 @@ Module WD.
     Definition wsat u n : SRFSyn.t (S n) :=
       (∃ I : τ{ST.gmapT Φ}, (⤉ OwnI_auth u n I) ∗ (⤉ inv_satall u n I))%SRF.
 
-    (* Definition empty_worlds (eu: univ_id) {n} : SRFSyn.t n := *)
+    (* Definition empty_worlds (eu : univ_id) {n} : SRFSyn.t n := *)
       (* (<ownm> (empty_worldsR eu (fun _ => Some ⊤ : CoPset.t) : OwnERA) ∗ *)
       (* <ownm> (empty_worldsR eu (fun _ => Auth.black (Some ∅ : Gset.t)) : OwnDRA) ∗ *)
       (* ownI_free eu). *)
     Definition free_universes {n} : SRFSyn.t n :=
-      (∃ eu: τ{⇣ univ_id}, empty_universes eu)%SRF.
+      (∃ eu : τ{⇣ univ_id}, empty_universes eu)%SRF.
     Fixpoint wsats u b : SRFSyn.t b :=
       match b with
       | 0 => emp%SRF
@@ -93,7 +93,7 @@ Module WD.
     Definition closed_universe u b E : SRFSyn.t b :=
       used_worlds u b E ∗ free_worlds u b.
     Definition inv u (n : level) (N : namespace) p :=
-      (∃ i: τ{⇣positive}, ⌜i ∈ (↑N : coPset)⌝ ∧ OwnI u n i p)%SRF.
+      (∃ i : τ{⇣positive}, ⌜i ∈ (↑N : coPset)⌝ ∧ OwnI u n i p)%SRF.
     Definition FUpd u b (A : SRFSyn.t b) (E1 E2 : coPset) (P : SRFSyn.t b) : SRFSyn.t b :=
       A ∗ used_worlds u b E1 -∗ |==> (A ∗ used_worlds u b E2 ∗ P).
 
@@ -104,12 +104,12 @@ End WD.
 Module CtxWD.
 
   Class t
-    `{_C: CtxSL.t}
-    `{_C: @GRA.inG OwnIRA Σ}
-    `{_C: @GRA.inG OwnERA Γ}
-    `{_C: @GRA.inG OwnDRA Γ}
-    `{_C: @SRFMSemG.inG _ _ _ WD.t β}
-    := ctxWD: unit.
+    `{_C : CtxSL.t}
+    `{_C : @GRA.inG OwnIRA Σ}
+    `{_C : @GRA.inG OwnERA Γ}
+    `{_C : @GRA.inG OwnDRA Γ}
+    `{_C : @SRFMSemG.inG _ _ _ WD.t β}
+    := ctxWD : unit.
 
 End CtxWD.
 
@@ -117,7 +117,7 @@ Module WDRed.
 
   Section RED.
 
-    Context `{_C: CtxWD.t}.
+    Context `{_C : CtxWD.t}.
 
     Lemma OwnI_auth u n I  :
       SRFSem.t n (WD.OwnI_auth u n I) = OwnI_auth u n I.
@@ -125,7 +125,7 @@ Module WDRed.
       rewrite /WD.OwnI_auth. SRF_red_all. ss.
       rewrite /OwnI_auth /OwnI_authR; do 5 f_equal.
       apply map_eq; intros i.
-      destruct (I !! i) eqn: EI; rewrite EI.
+      destruct (I !! i) eqn : EI; rewrite EI.
       { rewrite -elem_of_list_to_map.
         rewrite elem_of_list_fmap; exists i; rewrite EI; ss; split; eauto;
           by rewrite elem_of_elements elem_of_dom; rewrite EI.

@@ -12,37 +12,37 @@ Set Implicit Arguments.
 
 Module RingA.
 Section RING_A.
-  Context `{Σ: GRA.t}.
-  Context `{_R: RingRA.t (Σ:=Σ)}.  
-  Context `{_C: CellRA.t (Σ:=Σ)}.  
+  Context `{Σ : GRA.t}.
+  Context `{_R : RingRA.t (Σ:=Σ)}.  
+  Context `{_C : CellRA.t (Σ:=Σ)}.  
 
   Variable max_size : nat.
 
   Definition scopes := ["Ring"].
   Definition v_que := "Ring" ↯ "que".
   
-  Definition init: unit -> itree smodE unit :=
+  Definition init : unit -> itree smodE unit :=
     fun _ =>
       cput v_que ([]:list Z)
   .
 
-  Definition get_size: unit -> itree smodE nat :=
+  Definition get_size : unit -> itree smodE nat :=
     fun _ =>
-      `que: list Z <- cgetU v_que;;
+      `que : list Z <- cgetU v_que;;
       Ret (List.length que)
   .
 
-  Definition enqueue: Z -> itree smodE unit :=
+  Definition enqueue : Z -> itree smodE unit :=
     fun x =>
-      `que: list Z <- cgetU v_que;;
+      `que : list Z <- cgetU v_que;;
       if (List.length que <? max_size)%nat
       then cput v_que (que ++ [x])
       else trigger (@IO _ void "error" "exceeds the maximum size");;; Ret tt
   .
 
-  Definition dequeue: unit -> itree smodE Z :=
+  Definition dequeue : unit -> itree smodE Z :=
     fun _ =>
-      `que: list Z <- cgetU v_que;;
+      `que : list Z <- cgetU v_que;;
       match que with
       | x :: que' => cput v_que que';;; Ret x
       | _ => trigger (@IO _ void "error" "dequeue the empty queue");;; Ret 0%Z
@@ -73,8 +73,8 @@ Section RING_A.
   Definition InitCond : Sk.t -> iProp :=
     fun _ => ([∗ list] i↦_ ∈ (replicate max_size 0%Z), CellAS.pending i)%I.
 
-  Variable GI: Sk.t -> invspec.
-  Variable GlobalStb: Sk.t -> gname -> option fspec.
+  Variable GI : Sk.t -> invspec.
+  Variable GlobalStb : Sk.t -> gname -> option fspec.
   Definition t := Seal.sealing "ccr" (SMod.to_hmod GI GlobalStb Mod).
 
 End RING_A.

@@ -19,16 +19,16 @@ Set Implicit Arguments.
 (* ========================================================================== *)
 (** ** SkEnv *)
 
-Fixpoint _find_idx {A} (f: A -> bool) (l: list A) (acc: nat): option (nat * A) :=
+Fixpoint _find_idx {A} (f : A -> bool) (l : list A) (acc : nat) : option (nat * A) :=
   match l with
   | [] => None
   | hd :: tl => if (f hd) then Some (acc, hd) else _find_idx f tl (S acc)
   end
 .
 
-Definition find_idx {A} (f: A -> bool) (l: list A): option (nat * A) := _find_idx f l 0.
+Definition find_idx {A} (f : A -> bool) (l : list A) : option (nat * A) := _find_idx f l 0.
 
-Lemma find_idx_red {A} (f: A -> bool) (l: list A):
+Lemma find_idx_red {A} (f : A -> bool) (l : list A):
   find_idx f l =
   match l with
   | [] => None
@@ -52,11 +52,11 @@ Module AnySort.
 
   Module SkSort := AListSort AnyT.
   
-  Definition sort: Sk.t -> Sk.t := SkSort.sort.
+  Definition sort : Sk.t -> Sk.t := SkSort.sort.
 
   Definition equiv_sort_eq sk0 sk1
-    (WF: Sk.wf sk0)
-    (EQV: Sk.equiv sk0 sk1)
+    (WF : Sk.wf sk0)
+    (EQV : Sk.equiv sk0 sk1)
     :
     sort sk0 = sort sk1.
   Proof.
@@ -79,7 +79,7 @@ Module AnySort.
   Qed.
   
   Lemma sort_wf sk
-    (WF: Sk.wf sk):
+    (WF : Sk.wf sk):
     Sk.wf (sort sk).
   Proof.
     eapply Sk.equiv_wf; eauto. apply sort_equiv.
@@ -107,16 +107,16 @@ Module SkEnv.
   Notation mblock := nat (only parsing).
   Notation ptrofs := Z (only parsing).
 
-  Record t: Type := mk {
-    blk2id: mblock -> option gname;
-    id2blk: gname -> option mblock;
+  Record t : Type := mk {
+    blk2id : mblock -> option gname;
+    id2blk : gname -> option mblock;
   }
   .
   
-  Definition wf (ske: t): Prop :=
+  Definition wf (ske : t) : Prop :=
     forall id blk, ske.(id2blk) id = Some blk <-> ske.(blk2id) blk = Some id.
 
-  Definition load_skenv (sk0: Sk.t): t :=
+  Definition load_skenv (sk0 : Sk.t) : t :=
     let sk := AnySort.sort sk0 in
     let n := List.length sk in
     {|
@@ -127,9 +127,9 @@ Module SkEnv.
 
   Lemma load_skenv_wf
         sk
-        (WF: Sk.wf sk)
+        (WF : Sk.wf sk)
     :
-      <<WF: wf (load_skenv sk)>>
+      <<WF : wf (load_skenv sk)>>
   .
   Proof.
     unfold load_skenv.
@@ -159,12 +159,12 @@ Module SkEnv.
       uo. des_ifs. destruct p. eapply IHsk; et.
   Qed.
 
-  Definition incl_env (sk0: Sk.t) (skenv: t): Prop :=
-    forall gn gd (IN: List.In (gn, gd) sk0),
-    exists blk, <<FIND: skenv.(SkEnv.id2blk) gn = Some blk>>.
+  Definition incl_env (sk0 : Sk.t) (skenv : t) : Prop :=
+    forall gn gd (IN : List.In (gn, gd) sk0),
+    exists blk, <<FIND : skenv.(SkEnv.id2blk) gn = Some blk>>.
 
   Lemma incl_incl_env sk0 sk1
-        (INCL: List.incl sk0 sk1)
+        (INCL : List.incl sk0 sk1)
     :
       incl_env sk0 (load_skenv sk1).
   Proof.
@@ -182,7 +182,7 @@ Module SkEnv.
 
   Lemma in_env_in_sk :
     forall sk blk symb
-      (FIND: blk2id (load_skenv sk) blk = Some symb),
+      (FIND : blk2id (load_skenv sk) blk = Some symb),
     exists def, In (symb, def) sk.
   Proof.
     i. cut (exists def, In (symb, def) (AnySort.sort sk)).
@@ -193,7 +193,7 @@ Module SkEnv.
 
   Lemma in_sk_in_env :
     forall sk def symb
-           (IN: In (symb, def) sk),
+           (IN : In (symb, def) sk),
     exists blk, blk2id (load_skenv sk) blk = Some symb.
   Proof.
     i. apply AnySort.sort_incl in IN.
@@ -241,25 +241,25 @@ Module SkEnv.
   
 End SkEnv.
 
-Coercion SkEnv.load_skenv: Sk.t >-> SkEnv.t.
+Coercion SkEnv.load_skenv : Sk.t >-> SkEnv.t.
 Global Opaque SkEnv.load_skenv.
 
 Section FB_HAS_SPEC.
 
-  Context `{Σ: GRA.t}.
+  Context `{Σ : GRA.t}.
 
-  Variable skenv: SkEnv.t.
+  Variable skenv : SkEnv.t.
 
-  Variant fb_has_spec (stb: gname -> option fspec) (fb: mblock) (fsp: fspec): Prop :=
+  Variant fb_has_spec (stb : gname -> option fspec) (fb : mblock) (fsp : fspec) : Prop :=
   | fb_has_spec_intro
       fn
-      (FBLOCK: skenv.(SkEnv.blk2id) fb = Some fn)
-      (SPEC: fn_has_spec stb fn fsp)
+      (FBLOCK : skenv.(SkEnv.blk2id) fb = Some fn)
+      (SPEC : fn_has_spec stb fn fsp)
   .
 
-  Lemma fb_has_spec_weaker (stb: gname -> option fspec) (fb: mblock) (fsp0 fsp1: fspec)
-        (SPEC: fb_has_spec stb fb fsp1)
-        (WEAK: fspec_weaker fsp0 fsp1)
+  Lemma fb_has_spec_weaker (stb : gname -> option fspec) (fb : mblock) (fsp0 fsp1 : fspec)
+        (SPEC : fb_has_spec stb fb fsp1)
+        (WEAK : fspec_weaker fsp0 fsp1)
     :
       fb_has_spec stb fb fsp0.
   Proof.
@@ -272,7 +272,7 @@ End FB_HAS_SPEC.
 (* ========================================================================== *)
 (** ** Syntax *)
 
-(** Imp manipulates a countable set of variables represented as [string]s: *)
+(** Imp manipulates a countable set of variables represented as [string]s : *)
 Definition var : Set := string.
 
 (** Expressions are made of variables, constant literals, and arithmetic operations. *)
@@ -388,13 +388,13 @@ Variant ImpState : Type -> Type :=
 
 (** Get pointer to a global variable/function *)
 Variant GlobEnv : Type -> Type :=
-| GetPtr (x: gname) : GlobEnv val
-| GetName (p: val) : GlobEnv gname.
+| GetPtr (x : gname) : GlobEnv val
+| GetName (p : val) : GlobEnv gname.
 
 Section Denote.
 
   Context {eff : Type -> Type}.
-  Context {HasGlobVar: GlobEnv -< eff}.
+  Context {HasGlobVar : GlobEnv -< eff}.
   Context {HasImpState : ImpState -< eff}.
   Context {HasCall : callE -< eff}.
   Context {HasEvent : coreE -< eff}.
@@ -465,7 +465,7 @@ Section Denote.
     | If i t e =>
       v <- denote_expr i;;
       (if (wf_val v) then Ret tt else triggerUB);;;
-      `b: bool <- (is_true v)?;; tau;;
+      `b : bool <- (is_true v)?;; tau;;
       if b then (denote_stmt t) else (denote_stmt e)
 
     | CallFun x f args =>
@@ -499,7 +499,7 @@ Section Denote.
       trigger (SetVar x v);;; tau;; Ret Vundef
     | Free pe =>
       p <- denote_expr pe;;
-      `_: val <- ccallU "free" [p];; tau;; Ret Vundef
+      `_ : val <- ccallU "free" [p];; tau;; Ret Vundef
     | Load x pe =>
       p <- denote_expr pe;;
       (if (wf_val p) then Ret tt else triggerUB);;;
@@ -531,7 +531,7 @@ Section Interp.
 
   Definition effs := GlobEnv +' ImpState +' pmodE.
 
-  Definition handle_GlobEnv {eff} `{coreE -< eff} (ge: SkEnv.t) : GlobEnv ~> (itree eff) :=
+  Definition handle_GlobEnv {eff} `{coreE -< eff} (ge : SkEnv.t) : GlobEnv ~> (itree eff) :=
     fun _ e =>
       match e with
       | GetPtr X =>
@@ -543,7 +543,7 @@ Section Interp.
         end
       end.
 
-  Definition interp_GlobEnv {eff} `{coreE -< eff} (ge: SkEnv.t) : itree (GlobEnv +' eff) ~> (itree eff) :=
+  Definition interp_GlobEnv {eff} `{coreE -< eff} (ge : SkEnv.t) : itree (GlobEnv +' eff) ~> (itree eff) :=
     interp (case_ (handle_GlobEnv ge) ((fun T e => trigger e) : eff ~> itree eff)).
 
   (** function local environment *)
@@ -555,7 +555,7 @@ Section Interp.
       | SetVar x v => Ret (alist_add x v le, tt)
       end.
 
-  Definition interp_ImpState {eff} `{coreE -< eff}: itree (ImpState +' eff) ~> stateT lenv (itree eff) :=
+  Definition interp_ImpState {eff} `{coreE -< eff} : itree (ImpState +' eff) ~> stateT lenv (itree eff) :=
     State.interp_state (case_ handle_ImpState Mod2STS.pure_state).
 
   (* Definition interp_imp ge le (itr : itree effs val) := *)
@@ -571,7 +571,7 @@ Section Interp.
     end
   .
 
-  Fixpoint init_args params args (acc: lenv) : option lenv :=
+  Fixpoint init_args params args (acc : lenv) : option lenv :=
     match params, args with
     | [], [] => Some acc
     | x :: part, v :: argt =>
@@ -582,8 +582,8 @@ Section Interp.
 
   Lemma init_args_prop :
     forall params args acc le
-      (INITSOME: init_args params args acc = Some le),
-      <<INITLEN: List.length params = List.length args>>.
+      (INITSOME : init_args params args acc = Some le),
+      <<INITLEN : List.length params = List.length args>>.
   Proof.
     induction params; i; ss; clarify.
     { destruct args; ss; clarify. }
@@ -592,7 +592,7 @@ Section Interp.
 
   (* 'return' is a fixed register, holding the return value of this function. *)
   (* '_' is a black hole register, holding garbage *)
-  Definition eval_imp (ge: SkEnv.t) (f: function) (args: list val) : itree pmodE val :=
+  Definition eval_imp (ge : SkEnv.t) (f : function) (args : list val) : itree pmodE val :=
     let vars := f.(fn_vars) ++ ["return"; "_"] in
     let params := f.(fn_params) in
     (if (ListDec.NoDup_dec string_dec (params ++ vars)) then Ret tt else triggerUB);;;
@@ -614,12 +614,12 @@ Module ImpMod.
 Section MODSEM.
 
   Set Typeclasses Depth 5.
-  (* Instance Initial_void1 : @Initial (Type -> Type) IFun void1 := @elim_void1. (*** TODO: move to ITreelib ***) *)
+  (* Instance Initial_void1 : @Initial (Type -> Type) IFun void1 := @elim_void1. (*** TODO : move to ITreelib ***) *)
 
-  Definition to_itree (ge: SkEnv.t) : (string*_) -> (string * (list string * (Any.t -> itree pmodE Any.t)))%type :=
+  Definition to_itree (ge : SkEnv.t) : (string*_) -> (string * (list string * (Any.t -> itree pmodE Any.t)))%type :=
     (fun '(fn, f) => (fn, ([], cfunU (eval_imp ge f)))).
   
-  Program Definition modsem (m : program) (ge: SkEnv.t) : PModSem.t :=
+  Program Definition modsem (m : program) (ge : SkEnv.t) : PModSem.t :=
     {|PModSem.scopes := [];
       PModSem.fnsems := List.map (to_itree ge) m.(prog_funs);
       PModSem.initial_st := [];
@@ -644,7 +644,7 @@ Section MODSEM.
   
   (* Definition init : PModSem.t := *)
   (*   PModSem.init ( *)
-  (*     rv <- ccallU "main" ([]: list val);; *)
+  (*     rv <- ccallU "main" ([] : list val);; *)
   (*     match rv with *)
   (*     | Vint z => *)
   (*         if (0 <=? z)%Z && (z <? two_power_nat 32)%Z *)
@@ -654,7 +654,7 @@ Section MODSEM.
   (*     end *)
   (*   ). *)
 
-  (* Definition modsemL (mL : programL) (ge: SkEnv.t) : ModSemL.t := {|
+  (* Definition modsemL (mL : programL) (ge : SkEnv.t) : ModSemL.t := {|
     ModSemL.fnsems :=
       List.map (fun '(mn, (fn, f)) => (fn, fun a => transl_all mn (cfunU (eval_imp ge f) a))) mL.(prog_funsL);
     ModSemL.initial_mrs :=

@@ -6,7 +6,7 @@ Require Import PCM IPM SMod.
 Require Import Events Behavior.
 Require Import Relation_Definitions.
 
-(*** TODO: export these in Coqlib or Universe ***)
+(*** TODO : export these in Coqlib or Universe ***)
 Require Import Relation_Operators.
 Require Import RelationPairs.
 From ITree Require Import
@@ -30,16 +30,16 @@ Local Open Scope nat_scope.
 
 Module MapMA.
 Section SIMMODSEM.
-  Context `{_W: CtxWD.t}.
-  Context `{_M: MapMR.t (Γ:=Γ)}.
-  Context `{_A: MapAR.t (Γ:=Γ)}.
+  Context `{_W : CtxWD.t}.
+  Context `{_M : MapMR.t (Γ:=Γ)}.
+  Context `{_A : MapAR.t (Γ:=Γ)}.
 
   Import MapAS.
   
   Section LEMMA. 
     Local Transparent unallocated points_to initial_map black_map pending MapMS.pending.
 
-    Lemma unallocated_alloc (sz: nat)
+    Lemma unallocated_alloc (sz : nat)
       :
       unallocated sz -∗ (points_to sz 0 ∗ unallocated (Z.pos (Pos.of_succ_nat sz))).
     Proof.
@@ -139,20 +139,20 @@ Section SIMMODSEM.
     
   End LEMMA.
 
-  Definition Ist: Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp :=
+  Definition Ist : Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp :=
     (fun _ _ st_src st_tgt =>
        ∃ f sz, ⌜st_src = [(MapA.v_map, f↑)] ∧ st_tgt = [(MapM.v_size, sz↑);(MapM.v_map, f↑)]⌝ ∗
-       ((⌜f = (fun (_: Z) => 0%Z) ∧ sz = 0%Z⌝ ∗ MapMS.pending ∗ initial_map)
+       ((⌜f = (fun (_ : Z) => 0%Z) ∧ sz = 0%Z⌝ ∗ MapMS.pending ∗ initial_map)
        ∨ 
        (pending ∗ black_map f ∗ unallocated sz)))%I.
 
-  Variable ginvH: Sk.t -> invspec.
-  Variable StbH: Sk.t -> gname -> option fspec.
-  Hypothesis MapInStbH: forall sk, stb_incl MapAS.Stb (StbH sk).
+  Variable ginvH : Sk.t -> invspec.
+  Variable StbH : Sk.t -> gname -> option fspec.
+  Hypothesis MapInStbH : forall sk, stb_incl MapAS.Stb (StbH sk).
 
-  Variable ginvL: Sk.t -> invspec.
-  Variable StbL: Sk.t -> gname -> option fspec.
-  Hypothesis MapInStbL: forall sk, stb_incl MapMS.Stb (StbL sk).
+  Variable ginvL : Sk.t -> invspec.
+  Variable StbL : Sk.t -> gname -> option fspec.
+  Hypothesis MapInStbL : forall sk, stb_incl MapMS.Stb (StbL sk).
 
   Local Notation MapA := (MapA.t ginvH StbH).
   Local Notation MapM := (MapM.t ginvL StbL).
@@ -162,20 +162,20 @@ Section SIMMODSEM.
   Proof.
     init_simF.
 
-    (* SRC: handle the IST of Map and the precond of init *)
+    (* SRC : handle the IST of Map and the precond of init *)
     steps_l. iDestruct "ASM" as "(W & (%Y & %M & P) & %X)".
     iDestruct "IST" as (f sz) "(% & [(% & P0 & INIT)|(P' & B & U)])"; cycle 1.
     { iExFalso. iApply (pending_unique with "P P'"). }
     des; subst. hss. rename q0 into u, q1 into ℓ, x into sz'.
     
-    (* TGT: prove the precond of init *)
+    (* TGT : prove the precond of init *)
     force_r. instantiate (1:= mk_meta _ _ _). force_r. force_r. hss.
     iSplitL "P0 W". { iFrame. eauto. }
 
-    (* TGT: handle the postcond of init *)
+    (* TGT : handle the postcond of init *)
     steps_r. iDestruct "GRT" as "(CW & _ & %Y)". subst. hss.
     
-    (* SRC: prove the postcond of init *)
+    (* SRC : prove the postcond of init *)
     force_l. steps_l. force_l. force_l.
     iPoseProof (initial_map_initialize with "INIT") as "(BLACK & INIT & UNALLOC)".
     iSplitL "CW INIT". { iFrame. eauto. }
@@ -190,26 +190,26 @@ Section SIMMODSEM.
   Proof.
     init_simF.
 
-    (* SRC: handle the IST of Map and the precond of get *)
+    (* SRC : handle the IST of Map and the precond of get *)
     steps_l. iDestruct "ASM" as "(WORLD & (% & MAP) & %)".
     iDestruct "IST" as (f sz) "(% & [(% & P0 & INIT)|(P' & B & U)])".
     { iExFalso. iApply (initial_map_no_points_to with "INIT MAP"). }
     des. subst. hss. steps_l.
     rename q0 into u, q1 into ℓ, x0 into idx, x1 into v.
 
-    (* TGT: prove the precond of get *)
+    (* TGT : prove the precond of get *)
     force_r. instantiate (1:= mk_meta _ _ _). force_r. force_r. hss.
     iSplitL "WORLD". { iFrame. eauto. }
 
-    (* TGT: handle the body of get *)
+    (* TGT : handle the body of get *)
     steps_r. hss. steps_r. hss. steps_r.
     iPoseProof (unallocated_range with "U MAP") as "%".
     force_r; eauto.
 
-    (* TGT: handle the postcond of get *)
+    (* TGT : handle the postcond of get *)
     steps_r. iDestruct "GRT" as "(WORLD & _ & %)". subst.
 
-    (* SRC: prove the postcond of get *)
+    (* SRC : prove the postcond of get *)
     steps_l. force_l. force_l.
     iPoseProof (black_map_get with "B MAP") as "%". subst.
     iSplitL "WORLD MAP". { iFrame. eauto. }
@@ -224,26 +224,26 @@ Section SIMMODSEM.
   Proof.
     init_simF.
 
-    (* SRC: handle the IST of Map and the precond of set *)
+    (* SRC : handle the IST of Map and the precond of set *)
     steps_l. iDestruct "ASM" as "(WORLD & (% & MAP) & %)".
     iDestruct "IST" as (f sz) "(% & [(% & P0 & INIT)|(P' & B & U)])".
     { iExFalso. iApply (initial_map_no_points_to with "INIT MAP"). }
     des. subst. hss.  steps_l.
     rename q0 into u, q1 into ℓ, x2 into idx, x3 into v, x1 into v'.
 
-    (* TGT: prove the precond of set *)
+    (* TGT : prove the precond of set *)
     force_r. instantiate (1:= mk_meta _ _ (_,_)). force_r. force_r. hss.
     iSplitL "WORLD". { iFrame. eauto. }
 
-    (* TGT: handle the body of set *)
+    (* TGT : handle the body of set *)
     steps_r. hss. steps_r. hss. steps_r.
     iPoseProof (unallocated_range with "U MAP") as "%".
     force_r; eauto.
 
-    (* TGT: handle the postcond of set *)
+    (* TGT : handle the postcond of set *)
     steps_r. iDestruct "GRT" as "(WORLD & _ & %)". subst. hss.
     
-    (* SRC: prove the postcond of set *)
+    (* SRC : prove the postcond of set *)
     iPoseProof (black_map_set with "B MAP") as ">(B & MAP)".
     steps_l. force_l. force_l.
     iSplitL "WORLD MAP". { iFrame. eauto. }
@@ -258,39 +258,39 @@ Section SIMMODSEM.
   Proof.
     init_simF.
 
-    (* SRC: handle the IST of Map and the precond of set_by_user *)
+    (* SRC : handle the IST of Map and the precond of set_by_user *)
     steps_l. iDestruct "ASM" as "(WORLD & (% & MAP) & %)".
     subst. hss. steps_l.
     rename q0 into u, q1 into ℓ, x0 into idx, x1 into v.
     
-    (* TGT: prove the precond of set_by_user *)
+    (* TGT : prove the precond of set_by_user *)
     force_r. instantiate (1:= mk_meta _ _ _). force_r. force_r. hss.
     iSplitL "WORLD". { iFrame. eauto. }
 
     (* process an input *)
     steps_r. step.
 
-    (* TGT: handle the precond of set *)
+    (* TGT : handle the precond of set *)
     steps_r. iDestruct "GRT" as "[[WORLD [% %]] _]". subst. hss.
     
-    (* SRC: prove the precond of set *)
+    (* SRC : prove the precond of set *)
     steps_l. force_l. instantiate (1:= mk_meta _ _ (_,_,_)). force_l. force_l.
     iSplitL "WORLD MAP". { iFrame. eauto. }
 
     (* make a call to set *)
     call "IST". { eauto. }
 
-    (* SRC: handle the postcond of set *)
+    (* SRC : handle the postcond of set *)
     steps_l. iDestruct "ASM" as "(WORLD & (% & MAP) & %)". subst. hss.
 
-    (* TGT: prove the postcond of set *)
+    (* TGT : prove the postcond of set *)
     steps_l. force_r. force_r.
     iSplitL "WORLD". { iFrame. eauto. }
 
-    (* TGT: handle the postcond of set_by_user *)
+    (* TGT : handle the postcond of set_by_user *)
     steps_r. hss. steps_r. iDestruct "GRT" as "(WORLD & _ & %)". subst.
     
-    (* SRC: prove the postcond of set_by_user *)
+    (* SRC : prove the postcond of set_by_user *)
     force_l. force_l.
     iSplitL "MAP WORLD". { iFrame. eauto. }
 
@@ -298,7 +298,7 @@ Section SIMMODSEM.
     step. eauto.
   Qed.
   
-  Theorem sim: HSim.t MapA MapM MapA.InitCond Ist.
+  Theorem sim : HSim.t MapA MapM MapA.InitCond Ist.
   Proof.
     init_sim.
     - iIntros "(IST & P)"; s.

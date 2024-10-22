@@ -13,29 +13,29 @@ Set Typeclasses Depth 5.
 
 Module MemI.
 Section MEMI.  
-  (* Let memRA: URA.t := (RA.excl Mem.t). *)
+  (* Let memRA : URA.t := (RA.excl Mem.t). *)
   (* Context `{@GRA.inG memRA Σ}. *)
-  (* Let GURA: URA.t := GRA.to_URA Σ. *)
+  (* Let GURA : URA.t := GRA.to_URA Σ. *)
   (* Local Existing Instance GURA. *)
   (* Compute (URA.car (t:=memRA)). *)
 
   Definition scope := "Mem".
   Definition v_mem := scope ↯ "mem".
 
-  Definition alloc: (list val) -> itree pmodE val :=
+  Definition alloc : (list val) -> itree pmodE val :=
     fun varg =>
-      `sz: Z <- (pargs [Tint] varg)?;;
+      `sz : Z <- (pargs [Tint] varg)?;;
       mem <- trigger (SGet v_mem);; mem <- mem↓?;;
       if (Z_le_gt_dec 0 sz && Z_lt_ge_dec (8 * sz) modulus_64)
       then (delta <- trigger (Choose _);;
-            let mem0: Mem.t := Mem.mem_pad mem delta in
+            let mem0 : Mem.t := Mem.mem_pad mem delta in
             let (blk, mem1) := Mem.alloc mem0 sz in
             trigger (SPut v_mem mem1↑);;;
             Ret (Vptr blk 0))
       else triggerUB
   .
 
-  Definition free: list val -> itree pmodE val :=
+  Definition free : list val -> itree pmodE val :=
     fun varg =>
       '(b, ofs) <- (pargs [Tptr] varg)?;;        
       mem <- trigger (SGet v_mem);; mem <- mem↓?;;
@@ -44,7 +44,7 @@ Section MEMI.
       Ret (Vint 0)
   .
 
-  Definition load: list val -> itree pmodE val :=
+  Definition load : list val -> itree pmodE val :=
     fun varg =>
       '(b, ofs) <- (pargs [Tptr] varg)?;;        
       mem <- trigger (SGet v_mem);; mem <- mem↓?;;
@@ -52,7 +52,7 @@ Section MEMI.
       Ret v
   .
 
-  Definition store: list val -> itree pmodE val :=
+  Definition store : list val -> itree pmodE val :=
     fun varg =>
       '(b, ofs, v) <- (pargs [Tptr; Tuntyped] varg)?;;
       mem <- trigger (SGet v_mem);; mem <- mem↓?;;
@@ -61,17 +61,17 @@ Section MEMI.
       Ret (Vint 0)
   .
 
-  Definition cmp: list val -> itree pmodE val :=
+  Definition cmp : list val -> itree pmodE val :=
     fun varg =>
       '(v0, v1) <- (pargs [Tuntyped; Tuntyped] varg)?;;        
       mem <- trigger (SGet v_mem);; mem <- mem↓?;;
       b <- (vcmp mem v0 v1)?;;
-      if b: bool
+      if b : bool
       then Ret (Vint 1%Z)
       else Ret (Vint 0%Z)
   .
 
-  Context `{Σ: GRA.t}.
+  Context `{Σ : GRA.t}.
   
   Definition fnsems : alist string (list string * (Any.t -> itree pmodE Any.t)) :=
     [(MemName.alloc, ([scope], cfunU alloc)) ;
@@ -80,9 +80,9 @@ Section MEMI.
      (MemName.store, ([scope], cfunU store)) ;
      (MemName.cmp,   ([scope], cfunU cmp))].
 
-  Variable csl: gname -> bool.
+  Variable csl : gname -> bool.
 
-  Program Definition MemSem (sk: Sk.t): PModSem.t :=
+  Program Definition MemSem (sk : Sk.t) : PModSem.t :=
     {|
       PModSem.scopes := [scope];
       PModSem.fnsems := fnsems ;
@@ -92,7 +92,7 @@ Section MEMI.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
   
-  Definition Mem: PMod.t := {|
+  Definition Mem : PMod.t := {|
     PMod.modsem := MemSem;
     PMod.sk := Sk.unit;
   |}

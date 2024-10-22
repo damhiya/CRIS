@@ -18,16 +18,16 @@ Notation ptrofs := Z (only parsing).
 
 Inductive gdef :=
 | Gfun
-| Gvar (gv: Z)
+| Gvar (gv : Z)
 .
 
-Inductive val: Type :=
-| Vint (n: Z): val
-| Vptr (blk: mblock) (ofs: ptrofs): val
+Inductive val : Type :=
+| Vint (n : Z) : val
+| Vptr (blk : mblock) (ofs : ptrofs) : val
 | Vundef
 .
 
-Global Program Instance val_dec: Dec val.
+Global Program Instance val_dec : Dec val.
 Next Obligation.
   repeat (decide equality).
 Defined.
@@ -63,7 +63,7 @@ Definition Vnullptr := Vint 0.
 Definition scale_int (n : Z) : option Z :=
   if (Zdivide_dec 8 n) then Some (Z.div n 8) else None.
 
-Definition vadd (x y: val): option val :=
+Definition vadd (x y : val) : option val :=
   match x, y with
   | Vint n, Vint m => Some (Vint (Z.add n m))
   | Vptr blk ofs, Vint n =>
@@ -74,7 +74,7 @@ Definition vadd (x y: val): option val :=
   end
 .
 
-Definition vsub (x y: val): option val :=
+Definition vsub (x y : val) : option val :=
   match x, y with
   | Vint n, Vint m => Some (Vint (Z.sub n m))
   | Vptr blk ofs, Vint n =>
@@ -85,7 +85,7 @@ Definition vsub (x y: val): option val :=
   end
 .
 
-Definition vmul (x y: val): option val :=
+Definition vmul (x y : val) : option val :=
   match x, y with
   | Vint n, Vint m => Some (Vint (Z.mul n m))
   | _, _ => None
@@ -100,20 +100,20 @@ Definition vmul (x y: val): option val :=
 
 Module Mem.
 
-  (* Definition t: Type := mblock -> option (Z -> val). *)
-  Record t: Type := mk {
-    cnts: mblock -> Z -> option val;
-    nb: mblock;
-    (*** Q: wf conditions like nextmblock_noaccess ? ***)
-    (*** A: Unlike in CompCert, the memory object will not float in various places in the program.
+  (* Definition t : Type := mblock -> option (Z -> val). *)
+  Record t : Type := mk {
+    cnts : mblock -> Z -> option val;
+    nb : mblock;
+    (*** Q : wf conditions like nextmblock_noaccess ? ***)
+    (*** A : Unlike in CompCert, the memory object will not float in various places in the program.
             It suffices to state wf only inside Mem module. (probably by utilizing URA.wf)
      ***)
   }
   .
 
-  Definition wf (m0: t): Prop := forall blk ofs (LT: (blk < m0.(nb))%nat), m0.(cnts) blk ofs = None.
+  Definition wf (m0 : t) : Prop := forall blk ofs (LT : (blk < m0.(nb))%nat), m0.(cnts) blk ofs = None.
 
-  Definition alloc (m0: Mem.t) (sz: Z): (mblock * Mem.t) :=
+  Definition alloc (m0 : Mem.t) (sz : Z) : (mblock * Mem.t) :=
     ((m0.(nb)),
      Mem.mk (update (m0.(cnts)) (m0.(nb))
                     (fun ofs => if (0 <=? ofs)%Z && (ofs <? sz)%Z then Some (Vundef) else None))
@@ -122,35 +122,35 @@ Module Mem.
   .
 
   Opaque Z.ltb Z.leb Z.mul Z.eq_dec Nat.eq_dec.
-  (* Definition empty: t := mk (update (fun _ _ => None) 0 (fun ofs => if dec ofs 0%Z then Some Vundef else None)) 0. *)
-  Definition empty: t := mk (fun _ _ => None) 0.
-  (* Let empty2: t := Eval compute in *)
+  (* Definition empty : t := mk (update (fun _ _ => None) 0 (fun ofs => if dec ofs 0%Z then Some Vundef else None)) 0. *)
+  Definition empty : t := mk (fun _ _ => None) 0.
+  (* Let empty2 : t := Eval compute in *)
   (*   let m0 := mk (fun _ _ => None) 0 in *)
   (*   let (_, m1) := alloc m0 1%Z in *)
   (*   m1 *)
   (* . *)
   (*** shoul allocated with Vundef, not 0 ***)
 
-  (*** TODO: Unlike CompCert, this "free" function does not take offset.
+  (*** TODO : Unlike CompCert, this "free" function does not take offset.
        In order to support this, we need more sophisticated RA. it would be interesting.
    ***)
-  (* Definition free (m0: Mem.t) (b: mblock): option (Mem.t) := *)
+  (* Definition free (m0 : Mem.t) (b : mblock) : option (Mem.t) := *)
   (*   match m0.(cnts) b ofs0 with *)
   (*   | Some _ => Some (Mem.mk (update m0.(cnts) b (fun _ => None)) m0.(nb)) *)
   (*   | _ => None *)
   (*   end *)
   (* . *)
 
-  Definition free (m0: Mem.t) (b: mblock) (ofs: Z): option (Mem.t) :=
+  Definition free (m0 : Mem.t) (b : mblock) (ofs : Z) : option (Mem.t) :=
     match m0.(cnts) b ofs with
     | Some _ => Some (Mem.mk (update m0.(cnts) b (update (m0.(cnts) b) ofs None)) m0.(nb))
     | _ => None
     end
   .
 
-  Definition load (m0: Mem.t) (b: mblock) (ofs: Z): option val := m0.(cnts) b ofs.
+  Definition load (m0 : Mem.t) (b : mblock) (ofs : Z) : option val := m0.(cnts) b ofs.
 
-  Definition store (m0: Mem.t) (b: mblock) (ofs: Z) (v: val): option Mem.t :=
+  Definition store (m0 : Mem.t) (b : mblock) (ofs : Z) (v : val) : option Mem.t :=
     match m0.(cnts) b ofs with
     | Some _ => Some (Mem.mk (fun _b _ofs => if (dec b _b) && (dec ofs _ofs)
                                              then Some v
@@ -159,12 +159,12 @@ Module Mem.
     end
   .
 
-  Definition valid_ptr (m0: Mem.t) (b: mblock) (ofs: ptrofs): bool := is_some (m0.(cnts) b ofs).
+  Definition valid_ptr (m0 : Mem.t) (b : mblock) (ofs : ptrofs) : bool := is_some (m0.(cnts) b ofs).
 
-(*** NOTE: Probably we can support comparison between nullptr and 0 ***)
-(*** NOTE: Unlike CompCert, we don't support comparison with weak_valid_ptr (for simplicity) ***)
+(*** NOTE : Probably we can support comparison between nullptr and 0 ***)
+(*** NOTE : Unlike CompCert, we don't support comparison with weak_valid_ptr (for simplicity) ***)
 
-  Definition load_mem (csl: gname -> bool) (sk: Sk.t): Mem.t :=
+  Definition load_mem (csl : gname -> bool) (sk : Sk.t) : Mem.t :=
     Mem.mk
       (fun blk ofs =>
          do '(g, gd) <- (List.nth_error sk blk);
@@ -176,25 +176,25 @@ Module Mem.
            if (dec ofs 0%Z) then Some (Vint gv) else None
           | _ => None
          end)
-      (*** TODO: This simplified model doesn't allow function pointer comparsion.
+      (*** TODO : This simplified model doesn't allow function pointer comparsion.
            To be more faithful, we need to migrate the notion of "permission" from CompCert.
            CompCert expresses it with "nonempty" permission.
        ***)
-      (*** TODO: When doing so, I would like to extend val with "Vfid (id: gname)" case.
+      (*** TODO : When doing so, I would like to extend val with "Vfid (id : gname)" case.
            That way, I might be able to support more higher-order features (overriding, newly allocating function)
        ***)
       (List.length sk)
   .
 
-  Definition mem_pad (m0: Mem.t) (delta: nat): Mem.t :=
+  Definition mem_pad (m0 : Mem.t) (delta : nat) : Mem.t :=
     Mem.mk m0.(Mem.cnts) (m0.(Mem.nb) + delta)
   .
 
 End Mem.
 
-Definition vcmp (m0: Mem.t) (x y: val): option bool :=
+Definition vcmp (m0 : Mem.t) (x y : val) : option bool :=
   match x, y with
-  | Vint x, Vint y => Some (dec x y: bool)
+  | Vint x, Vint y => Some (dec x y : bool)
   | Vptr x xofs, Vptr y yofs =>
     if Mem.valid_ptr m0 x xofs && Mem.valid_ptr m0 y yofs
     then Some (dec x y && dec xofs yofs)
@@ -212,32 +212,32 @@ Definition vcmp (m0: Mem.t) (x y: val): option bool :=
   (* | _, Vundef => None *)
   end.
 
-Definition unptr (v: val): option (mblock * ptrofs) :=
+Definition unptr (v : val) : option (mblock * ptrofs) :=
   match v with
   | Vptr b ofs => Some (b, ofs)
   | _ => None
   end.
 
-Definition unint (v: val): option Z :=
+Definition unint (v : val) : option Z :=
   match v with
   | Vint x => Some x
   | _ => None
   end.
 
-Definition unbool (v: val): option bool :=
+Definition unbool (v : val) : option bool :=
   match v with
   | Vint x => Some (if (dec x 0%Z) then false else true)
   | _ => None
   end.
 
-Definition unblk (v: val): option mblock :=
+Definition unblk (v : val) : option mblock :=
   match v with
   | Vptr b ofs =>
     if (Z.eq_dec ofs 0) then Some b else None
   | _ => None
   end.
 
-Variant val_type: Set :=
+Variant val_type : Set :=
 | Tint
 | Tbool
 | Tptr
@@ -245,7 +245,7 @@ Variant val_type: Set :=
 | Tuntyped
 .
 
-Definition val_type_sem (t: val_type): Set :=
+Definition val_type_sem (t : val_type) : Set :=
   match t with
   | Tint => Z
   | Tbool => bool
@@ -254,14 +254,14 @@ Definition val_type_sem (t: val_type): Set :=
   | Tuptyped => val
   end.
 
-Fixpoint val_types_sem (ts: list val_type): Set :=
+Fixpoint val_types_sem (ts : list val_type) : Set :=
   match ts with
   | [] => unit
   | [hd] => val_type_sem hd
   | hd::tl => val_type_sem hd * val_types_sem tl
   end.
 
-Definition parg (t: val_type) (v: val): option (val_type_sem t) :=
+Definition parg (t : val_type) (v : val) : option (val_type_sem t) :=
   match t with
   | Tint => unint v
   | Tbool => unbool v
@@ -270,8 +270,8 @@ Definition parg (t: val_type) (v: val): option (val_type_sem t) :=
   | Tuntyped => Some v
   end.
 
-Definition pargs (ts: list val_type):
-  forall (vs: list val), option (val_types_sem ts).
+Definition pargs (ts : list val_type):
+  forall (vs : list val), option (val_types_sem ts).
 Proof.
   induction ts as [|thd ttl].
   - intros [|]; simpl.
@@ -294,4 +294,4 @@ Proof.
                end).
 Defined.
 
-Arguments pargs: simpl never.
+Arguments pargs : simpl never.

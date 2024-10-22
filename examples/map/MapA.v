@@ -15,47 +15,47 @@ Set Implicit Arguments.
 (*** module A Map
 private map := (fun k => 0)
 
-def init(sz: int) ≡
+def init(sz : int) ≡
   skip
 
-def get(k: int): int ≡
+def get(k : int) : int ≡
   return map[k]
 
-def set(k: int, v: int) ≡
+def set(k : int, v : int) ≡
   map := map[k ← v]
 
-def set_by_user(k: int) ≡
+def set_by_user(k : int) ≡
   set(k, input())
 ***)
 
 Module MapA.
 Section A.
-  Context `{_W: CtxWD.t}.
-  Context `{_A: MapAR.t (Γ:=Γ)}.
-  Context `{_M: MapMR.t (Γ:=Γ)}.
+  Context `{_W : CtxWD.t}.
+  Context `{_A : MapAR.t (Γ:=Γ)}.
+  Context `{_M : MapMR.t (Γ:=Γ)}.
 
   Definition scopes := ["Map"].
   Definition v_map := "Map" ↯ "map".
   
-  Definition set: list val -> itree smodE val :=
+  Definition set : list val -> itree smodE val :=
     fun varg =>
       '(k, v) <- (pargs [Tint; Tint] varg)ǃ;;
       f <- cgetN v_map;;
-      cput v_map (<[k:=v]> (f: Z->Z));;;
+      cput v_map (<[k:=v]> (f : Z->Z));;;
       Ret Vundef
   .
 
-  Definition get: list val -> itree smodE val :=
+  Definition get : list val -> itree smodE val :=
     fun varg =>
       k <- (pargs [Tint] varg)ǃ;;
       f <- cgetN v_map;;
       Ret (Vint (f k))
   .
 
-  Definition set_by_user: list val -> itree smodE val :=
+  Definition set_by_user : list val -> itree smodE val :=
     fun varg =>
       k <- (pargs [Tint] varg)ǃ;;
-      v <- trigger (IO "input" ([]: list Z));;
+      v <- trigger (IO "input" ([] : list Z));;
       ccallN MapName.set [Vint k; Vint v]
   .
 
@@ -68,7 +68,7 @@ Section A.
   Program Definition Sem : SModSem.t := {|
     SModSem.scopes := scopes;
     SModSem.fnsems := fnsems;
-    SModSem.initial_st := [(v_map,(fun (_: Z) => 0%Z)↑)];
+    SModSem.initial_st := [(v_map,(fun (_ : Z) => 0%Z)↑)];
   |}.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
@@ -82,8 +82,8 @@ Section A.
   Definition InitCond : Sk.t -> iProp :=
     fun _ => (MapAS.initial_map ∗ MapMS.pending)%I.
 
-  Variable ginv: Sk.t -> invspec.
-  Variable GlobalStb: Sk.t -> gname -> option fspec.
+  Variable ginv : Sk.t -> invspec.
+  Variable GlobalStb : Sk.t -> gname -> option fspec.
   Definition t := Seal.sealing "ccr" (SMod.to_hmod ginv GlobalStb Mod).
 
 End A.

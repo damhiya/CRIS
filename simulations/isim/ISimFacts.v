@@ -11,11 +11,11 @@ Require Import ModSim HPSimFacts ISimCore.
 
 Section HSSIM_ADEQUACY.
 
-  Context `{Σ: GRA.t}.
+  Context `{Σ : GRA.t}.
 
   Lemma hssim_wf ms mt cond Ist
-    (SIM: HSSim.t ms mt cond Ist)
-    (WF: HModSem.wf ms)
+    (SIM : HSSim.t ms mt cond Ist)
+    (WF : HModSem.wf ms)
     :
     HModSem.wf mt.
   Proof.
@@ -28,9 +28,9 @@ Section HSSIM_ADEQUACY.
   Qed.
 
   Lemma hssim_match ms mt cond Ist fn
-    (SIM: HSSim.t ms mt cond Ist)
-    (WF: List.NoDup (List.map fst (HModSem.fnsems ms)))
-    (IN: In fn (List.map fst (HModSem.fnsems mt)))
+    (SIM : HSSim.t ms mt cond Ist)
+    (WF : List.NoDup (List.map fst (HModSem.fnsems ms)))
+    (IN : In fn (List.map fst (HModSem.fnsems mt)))
     :
     In fn (List.map fst (HModSem.fnsems ms)).
   Proof.
@@ -41,14 +41,14 @@ Section HSSIM_ADEQUACY.
   Qed.
   
   Lemma hssim_adequacy
-    (ms mt: HModSem.t) (p q: Σ)
-    (IC: iProp) Ist
+    (ms mt : HModSem.t) (p q : Σ)
+    (IC : iProp) Ist
 
-    (WF: URA.wf (p ⋅ q))
-    (COND: IC p)
-    (WFS: HModSem.wf ms)
-    (WFT: HModSem.wf mt)
-    (SIM: HSSim.t ms mt IC Ist)
+    (WF : URA.wf (p ⋅ q))
+    (COND : IC p)
+    (WFS : HModSem.wf ms)
+    (WFT : HModSem.wf mt)
+    (SIM : HSSim.t ms mt IC Ist)
     :
     MSim.t (HModSem.to_mod ms (p ⋅ q)) (HModSem.to_mod mt q).
   Proof.

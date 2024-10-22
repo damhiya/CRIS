@@ -17,55 +17,55 @@ Set Implicit Arguments.
 
 Module MapMS.
 Section MAP.
-  Context `{_W: CtxWD.t}.
+  Context `{_W : CtxWD.t}.
 
-  Definition RA: URA.t := Excl.t unit.
+  Definition RA : URA.t := Excl.t unit.
   Context `{@GRA.inG RA Γ}. 
 
-  Definition pending_r: RA := Excl.just tt.
+  Definition pending_r : RA := Excl.just tt.
 
-  Definition pending: iProp :=
+  Definition pending : iProp :=
     OwnM pending_r.
 
   Global Opaque pending.
 
-  Definition init_spec: fspec :=
+  Definition init_spec : fspec :=
     mk_fspec_inv 0
-      (fun _ _ => mk_simple (fun (sz: nat) =>
+      (fun _ _ => mk_simple (fun (sz : nat) =>
                     (ord_top,
-                      (fun varg => (⌜varg = ([Vint sz]: list val)↑⌝
+                      (fun varg => (⌜varg = ([Vint sz] : list val)↑⌝
                                      ∗ ⌜(8 * (Z.of_nat sz) < modulus_64%Z)%Z⌝
                                      ∗ pending)%I),
                       (fun vret => True%I)))).
 
-  Definition get_spec: fspec := 
+  Definition get_spec : fspec := 
     mk_fspec_inv 0
     (fun _ _ => mk_simple (fun k =>
                   (ord_top,
                     (fun varg => (⌜varg = ([Vint k])↑⌝)%I),
                     (fun vret => True%I)))).  
 
-  Definition set_spec: fspec :=
+  Definition set_spec : fspec :=
     mk_fspec_inv 0
     (fun _ _ => mk_simple (fun '(k, v) =>
                   (ord_top,
                     (fun varg => (⌜varg = ([Vint k; Vint v])↑⌝)%I),
                     (fun vret => True%I)))).  
 
-  Definition set_by_user_spec: fspec := 
+  Definition set_by_user_spec : fspec := 
     mk_fspec_inv 0
     (fun _ _ => mk_simple (fun k =>
                   (ord_top,
                     (fun varg => (⌜varg = ([Vint k])↑⌝)%I),
                     (fun vret => True%I)))).  
 
-  Definition Stb: alist gname fspec :=
+  Definition Stb : alist gname fspec :=
     Seal.sealing "ccr" [(MapName.init, init_spec);
                         (MapName.get, get_spec);
                         (MapName.set, set_spec);
                         (MapName.set_by_user, set_by_user_spec)].
 
-  Lemma Stb_nodup: List.NoDup (List.map fst Stb).
+  Lemma Stb_nodup : List.NoDup (List.map fst Stb).
   Proof.
     unfold Stb. unseal "ccr". prove_nodup.
   Qed.
@@ -76,7 +76,7 @@ End MapMS.
 Module MapMR.
   Class t
     `{@GRA.inG MapMS.RA Γ}
-    := MapRA: unit.
+    := MapRA : unit.
 
 End MapMR.
 

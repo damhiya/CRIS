@@ -12,9 +12,9 @@ Set Implicit Arguments.
 Module PModSem.
 Section PMODSEM.
 
-  Context `{Σ: GRA.t}.
+  Context `{Σ : GRA.t}.
 
-  Record t: Type := mk {
+  Record t : Type := mk {
     scopes : list string;
     fnsems : alist gname (list string * (Any.t -> itree pmodE Any.t));
     initial_st : alist key Any.t;
@@ -26,10 +26,10 @@ Section PMODSEM.
       List.NoDup scopes -> List.NoDup (List.map fst initial_st);
   }.
 
-  Definition transl {R} (itr: itree pmodE R) : itree hmodE R :=
+  Definition transl {R} (itr : itree pmodE R) : itree hmodE R :=
     translate inr1 itr.
 
-  Program Definition to_hmod (ms: t): HModSem.t := {|
+  Program Definition to_hmod (ms : t) : HModSem.t := {|
     HModSem.scopes := ms.(scopes);                                                    
     HModSem.fnsems := List.map (map_snd (λ kb, (kb.1, (λ i, transl (kb.2 i))))) ms.(fnsems);
     HModSem.initial_st := ms.(initial_st);
@@ -50,14 +50,14 @@ End PModSem.
 Module PMod.
 Section PMOD.
 
-  Context `{Σ: GRA.t}.
+  Context `{Σ : GRA.t}.
 
-  Record t: Type := mk {
-    modsem: Sk.t -> PModSem.t;
-    sk: Sk.t;
+  Record t : Type := mk {
+    modsem : Sk.t -> PModSem.t;
+    sk : Sk.t;
   }.
 
-  Definition to_hmod (md:t): HMod.t := {|
+  Definition to_hmod (md:t) : HMod.t := {|
     HMod.modsem := fun sk => PModSem.to_hmod (md.(modsem) sk);
     HMod.sk := md.(sk);
  |}.
@@ -70,11 +70,11 @@ Notation "↟ it" := (PModSem.transl it) (at level 60, only printing).
 Module PModRed.
 Section RED.
 
-  Context `{Σ: GRA.t}.
+  Context `{Σ : GRA.t}.
 
 (* itree reduction *)
   Lemma transl_bind
-        (R S: Type)
+        (R S : Type)
         (s : itree pmodE R) (k : R -> itree pmodE S)
     :
     PModSem.transl (s >>= k)
@@ -85,7 +85,7 @@ Section RED.
   Qed.
 
   Lemma transl_tau
-        (U: Type)
+        (U : Type)
         (t : itree _ U)
     :
       PModSem.transl (tau;; t)
@@ -96,8 +96,8 @@ Section RED.
   Qed.
 
   Lemma transl_ret
-        (U: Type)
-        (t: U)
+        (U : Type)
+        (t : U)
     :
       PModSem.transl (Ret t)
       =
@@ -107,8 +107,8 @@ Section RED.
   Qed.
 
   Lemma transl_call
-        (R: Type)
-        (i: callE R)
+        (R : Type)
+        (i : callE R)
     :
       PModSem.transl (trigger i)
       =
@@ -121,8 +121,8 @@ Section RED.
   Qed.
 
   Lemma transl_sch
-        (R: Type)
-        (i: schE R)
+        (R : Type)
+        (i : schE R)
     :
       PModSem.transl (trigger i)
       =
@@ -135,8 +135,8 @@ Section RED.
   Qed.
   
   Lemma transl_pg
-        (R: Type)
-        (i: pgE R)
+        (R : Type)
+        (i : pgE R)
     :
       PModSem.transl (trigger i)
       =
@@ -149,8 +149,8 @@ Section RED.
   Qed.
 
   Lemma transl_core
-        (R: Type)
-        (i: coreE R)
+        (R : Type)
+        (i : coreE R)
     :
       PModSem.transl (trigger i)
       =
@@ -163,8 +163,8 @@ Section RED.
   Qed.  
 
   Lemma transl_unwrapU 
-        (R: Type)
-        (i: option R)
+        (R : Type)
+        (i : option R)
     :
     PModSem.transl (@unwrapU pmodE _ _ i)
     =
@@ -177,8 +177,8 @@ Section RED.
   Qed.
 
   Lemma transl_unwrapN
-        (R: Type)
-        (i: option R)
+        (R : Type)
+        (i : option R)
     :
       PModSem.transl (@unwrapN pmodE _ _ i)
       =
@@ -212,7 +212,7 @@ Section RED.
   
 (*  
   Lemma transl_triggerUB
-        (R: Type)
+        (R : Type)
     :
       PModSem.transl (triggerUB)
       =
@@ -223,7 +223,7 @@ Section RED.
   Qed.  
 
   Lemma transl_triggerNB
-        (R: Type)
+        (R : Type)
     :
     PModSem.transl (triggerNB)
     =

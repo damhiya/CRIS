@@ -25,18 +25,18 @@ Require Import ModSimStrict HPSim.
 
 Section HPSIM_ADD_DUMMY.
 
-  Context `{Σ: GRA.t}.
+  Context `{Σ : GRA.t}.
 
-  Variable fl_src: alist gname (Any.t -> itree hmodE Any.t).
-  Variable fl_tgt: alist gname (Any.t -> itree hmodE Any.t).
-  Variable Ist: nat -> alist key Any.t -> alist key Any.t -> iProp.
-  Variable my_tid: nat.
+  Variable fl_src : alist gname (Any.t -> itree hmodE Any.t).
+  Variable fl_tgt : alist gname (Any.t -> itree hmodE Any.t).
+  Variable Ist : nat -> alist key Any.t -> alist key Any.t -> iProp.
+  Variable my_tid : nat.
   
   Local Notation _hpsim := (@_hpsim Σ fl_src fl_tgt Ist my_tid).
   Local Notation hpsim := (@hpsim Σ fl_src fl_tgt Ist my_tid).
 
-  Definition itreeH_dummy R (itr itr': itree hmodE R) :=
-    exists with_dummy Q i (k: Q -> _),
+  Definition itreeH_dummy R (itr itr' : itree hmodE R) :=
+    exists with_dummy Q i (k : Q -> _),
       itr = (i >>= k) /\
       itr' = (x <- i;; (dummy_term with_dummy) ;;; k x).
   Hint Unfold itreeH_dummy.
@@ -52,34 +52,34 @@ Section HPSIM_ADD_DUMMY.
   Hint Resolve itreeH_dummy_refl.
 
 
-  Lemma itreeH_dummy_dummy with_dummy Q R i (k: Q -> _):
+  Lemma itreeH_dummy_dummy with_dummy Q R i (k : Q -> _):
     itreeH_dummy R (i >>= k) (x <- i;; (dummy_term with_dummy);;; k x).
   Proof.
     r; esplits; eauto.
   Qed.
   Hint Resolve itreeH_dummy_dummy.
 
-  Variant hpsim_dummyC_src (r: forall R (RR: nat -> (alist key Any.t) * R -> (alist key Any.t) * R -> iProp), bool -> bool -> nat -> (alist key Any.t) * itree hmodE R -> (alist key Any.t) * itree hmodE R -> Σ -> Prop):
-    forall R (RR: nat -> (alist key Any.t) * R -> (alist key Any.t) * R -> iProp), bool -> bool -> nat -> (alist key Any.t) * itree hmodE R -> (alist key Any.t) * itree hmodE R -> Σ -> Prop
+  Variant hpsim_dummyC_src (r : forall R (RR : nat -> (alist key Any.t) * R -> (alist key Any.t) * R -> iProp), bool -> bool -> nat -> (alist key Any.t) * itree hmodE R -> (alist key Any.t) * itree hmodE R -> Σ -> Prop):
+    forall R (RR : nat -> (alist key Any.t) * R -> (alist key Any.t) * R -> iProp), bool -> bool -> nat -> (alist key Any.t) * itree hmodE R -> (alist key Any.t) * itree hmodE R -> Σ -> Prop
   :=
   | hpsim_dummyC_src_intro R RR ps pt nths st_src i_src i_src' st_tgt i_tgt fmr
-      (SIM: r R RR ps pt nths (st_src, i_src) (st_tgt, i_tgt) fmr)
-      (DUMMY: itreeH_dummy R i_src i_src')
+      (SIM : r R RR ps pt nths (st_src, i_src) (st_tgt, i_tgt) fmr)
+      (DUMMY : itreeH_dummy R i_src i_src')
     :
     hpsim_dummyC_src r R RR ps pt nths (st_src, i_src') (st_tgt, i_tgt) fmr
   .
   
   Lemma hpsim_dummyC_src_mon
         r1 r2
-        (LEr: r1 <8= r2)
+        (LEr : r1 <8= r2)
     :
     hpsim_dummyC_src r1 <8= hpsim_dummyC_src r2
   .
   Proof. i. destruct PR; econs; eauto. Qed.
 
-  Lemma any_neq_unit: Any.t ≠ ()%type.
+  Lemma any_neq_unit : Any.t ≠ ()%type.
   Proof.
-    assert (exists x y: Any.t, x ≠ y).
+    assert (exists x y : Any.t, x ≠ y).
     { exists (true↑), (false↑). ii. eapply f_equal in H.
       rewrite !Any.upcast_downcast in H. inv H. }
     ii. rewrite H0 in H. des. apply H. destruct x, y; eauto.
@@ -207,19 +207,19 @@ Section HPSIM_ADD_DUMMY.
     eapply hpsim_dummyC_src_mon, PR; eauto with paco.
   Qed.
 
-  Variant hpsim_dummyC_tgt (r: forall R (RR: nat -> (alist key Any.t) * R -> (alist key Any.t) * R -> iProp), bool -> bool -> nat -> (alist key Any.t) * itree hmodE R -> (alist key Any.t) * itree hmodE R -> Σ -> Prop):
-    forall R (RR: nat -> (alist key Any.t) * R -> (alist key Any.t) * R -> iProp), bool -> bool -> nat -> (alist key Any.t) * itree hmodE R -> (alist key Any.t) * itree hmodE R -> Σ -> Prop
+  Variant hpsim_dummyC_tgt (r : forall R (RR : nat -> (alist key Any.t) * R -> (alist key Any.t) * R -> iProp), bool -> bool -> nat -> (alist key Any.t) * itree hmodE R -> (alist key Any.t) * itree hmodE R -> Σ -> Prop):
+    forall R (RR : nat -> (alist key Any.t) * R -> (alist key Any.t) * R -> iProp), bool -> bool -> nat -> (alist key Any.t) * itree hmodE R -> (alist key Any.t) * itree hmodE R -> Σ -> Prop
   :=
   | hpsim_dummyC_tgt_intro R RR ps pt nths st_src i_src st_tgt i_tgt i_tgt' fmr
-      (SIM: r R RR ps pt nths (st_src, i_src) (st_tgt, i_tgt) fmr)
-      (DUMMY: itreeH_dummy R i_tgt i_tgt')
+      (SIM : r R RR ps pt nths (st_src, i_src) (st_tgt, i_tgt) fmr)
+      (DUMMY : itreeH_dummy R i_tgt i_tgt')
     :
     hpsim_dummyC_tgt r R RR ps pt nths (st_src, i_src) (st_tgt, i_tgt') fmr
   .
   
   Lemma hpsim_dummyC_tgt_mon
         r1 r2
-        (LEr: r1 <8= r2)
+        (LEr : r1 <8= r2)
     :
     hpsim_dummyC_tgt r1 <8= hpsim_dummyC_tgt r2
   .
@@ -370,42 +370,42 @@ End HPSIM_ADD_DUMMY.
 
 Section INTERP_RECONF.
 
-  Context `{Σ: GRA.t}.
+  Context `{Σ : GRA.t}.
 
-  Variable fl_src: alist gname (Any.t -> itree hmodE Any.t).
-  Variable fl_tgt: alist gname (Any.t -> itree hmodE Any.t).
-  Variable Ist: Any.t -> Any.t -> iProp.
-  Variable my_tid: nat.
+  Variable fl_src : alist gname (Any.t -> itree hmodE Any.t).
+  Variable fl_tgt : alist gname (Any.t -> itree hmodE Any.t).
+  Variable Ist : Any.t -> Any.t -> iProp.
+  Variable my_tid : nat.
 
   Definition hp_reconf_eq cr : relation (Any.t * Σ) :=
     fun '(str,fr) '(str',fr') =>
-      <<RELr: Own fr ⊢ #=> Own (fr' ⋅ cr)>> /\      
-      <<STR: str' = str>>.
+      <<RELr : Own fr ⊢ #=> Own (fr' ⋅ cr)>> /\      
+      <<STR : str' = str>>.
   
   Definition hp_reconf_equiv cr : relation (Any.t * Σ) :=
     fun '(str,fr) '(str',fr') =>
       hp_reconf_eq cr (str,fr) (str',fr')
       \/
-      (exists st (mr mr': Σ),
-       <<RELr: Own (fr ⋅ mr) ⊢ #=> Own (fr' ⋅ mr' ⋅ cr)>> /\
-       <<STR: str = Any.pair st mr↑>> /\
-       <<STR': str' = Any.pair st mr'↑>>).
+      (exists st (mr mr' : Σ),
+       <<RELr : Own (fr ⋅ mr) ⊢ #=> Own (fr' ⋅ mr' ⋅ cr)>> /\
+       <<STR : str = Any.pair st mr↑>> /\
+       <<STR' : str' = Any.pair st mr'↑>>).
 
-  Definition hp_reconf_rel R (eqv: Σ -> _) cr : relation (Any.t * (Σ * R)) :=
+  Definition hp_reconf_rel R (eqv : Σ -> _) cr : relation (Any.t * (Σ * R)) :=
     fun '(str,(fr,x)) '(str',(fr',x')) =>
       eqv cr (str,fr) (str',fr') /\ x = x'.
 
   Lemma hp_reconf_equiv_strong
-    cr str str' (fr fr': Σ)
-    (EQV: hp_reconf_equiv cr (str,fr) (str',fr'))
+    cr str str' (fr fr' : Σ)
+    (EQV : hp_reconf_equiv cr (str,fr) (str',fr'))
     :
     (hp_reconf_eq cr (str,fr) (str',fr') /\
-     <<FAIL: ~ exists st (mr:Σ), str = Any.pair st mr↑>>)
+     <<FAIL : ~ exists st (mr:Σ), str = Any.pair st mr↑>>)
     \/
-    (exists st (mr mr': Σ),
-     <<RELr: Own (fr ⋅ mr) ⊢ #=> Own (fr' ⋅ mr' ⋅ cr)>> /\
-     <<STR: str = Any.pair st mr↑>> /\
-     <<STR': str' = Any.pair st mr'↑>>).
+    (exists st (mr mr' : Σ),
+     <<RELr : Own (fr ⋅ mr) ⊢ #=> Own (fr' ⋅ mr' ⋅ cr)>> /\
+     <<STR : str = Any.pair st mr↑>> /\
+     <<STR' : str' = Any.pair st mr'↑>>).
   Proof.
     ss. des; subst; [|right]; esplits; eauto.
     destruct (classic (exists stx (mrx:Σ), str = Any.pair stx mrx↑)); eauto.
@@ -416,7 +416,7 @@ Section INTERP_RECONF.
   
   Lemma hp_reconf_fail
     r R RR nths str i i'
-    (FAIL: ~ exists st (mr:Σ), str = Any.pair st mr↑)
+    (FAIL : ~ exists st (mr:Σ), str = Any.pair st mr↑)
     :
     paco5 (_sim_strict my_tid) r R RR nths
       (str, p <- unwrapU (Any.split str);;
@@ -433,8 +433,8 @@ Section INTERP_RECONF.
   Qed.
 
   Lemma handle_Guarantee_reconf
-    P nths str str' (fr fr' cr: Σ)
-    (RELr: hp_reconf_equiv cr (str,fr) (str',fr'))
+    P nths str str' (fr fr' cr : Σ)
+    (RELr : hp_reconf_equiv cr (str,fr) (str',fr'))
     :
     sim_strict my_tid _ (fun _ => hp_reconf_rel _ hp_reconf_equiv cr) nths
       (str, handle_Guarantee P fr)
@@ -458,8 +458,8 @@ Section INTERP_RECONF.
   Qed.
 
   Lemma handle_Guarantee_reconf_true
-    nths str str' (fr fr' cr: Σ)
-    (RELr: hp_reconf_equiv cr (str,fr) (str',fr'))
+    nths str str' (fr fr' cr : Σ)
+    (RELr : hp_reconf_equiv cr (str,fr) (str',fr'))
     :
     sim_strict my_tid _ (fun _ => hp_reconf_rel _ hp_reconf_eq cr) nths
       (str, handle_Guarantee True fr)
@@ -482,25 +482,25 @@ Section INTERP_RECONF.
     split; eauto. split; eauto.
   Qed.
 
-  Lemma trigger_agE_simpl R (P: iProp) (e : agE R):
+  Lemma trigger_agE_simpl R (P : iProp) (e : agE R):
     (trigger (e|)%sum : itree hmodE R) = trigger e.
   Proof. reflexivity. Qed.
 
-  Lemma trigger_schE_simpl R (P: iProp) (e : schE R):
+  Lemma trigger_schE_simpl R (P : iProp) (e : schE R):
     (trigger (|e|)%sum : itree hmodE R) = trigger e.
   Proof. reflexivity. Qed.
   
-  Lemma trigger_callE_simpl R (P: iProp) (e : callE R):
+  Lemma trigger_callE_simpl R (P : iProp) (e : callE R):
     (trigger (|e|)%sum : itree hmodE R) = trigger e.
   Proof. reflexivity. Qed.
 
-  Lemma trigger_pgE_simpl R (P: iProp) (e : pgE R):
+  Lemma trigger_pgE_simpl R (P : iProp) (e : pgE R):
     (trigger (|e|)%sum : itree hmodE R) = trigger e.
   Proof. reflexivity. Qed.
 
   Lemma interp_hp_reconf
-    R itrH nths str str' (fr fr' cr: Σ)
-    (RELr: hp_reconf_equiv cr (str,fr) (str',fr'))
+    R itrH nths str str' (fr fr' cr : Σ)
+    (RELr : hp_reconf_equiv cr (str,fr) (str',fr'))
     :
     sim_strict my_tid _ (fun _ => hp_reconf_rel R hp_reconf_equiv cr) nths
       (str, interp_hp itrH fr)
@@ -562,7 +562,7 @@ Section INTERP_RECONF.
         grind; apply hp_reconf_equiv_strong in RELr; repeat (rr in RELr; des; subst); cycle 1.
         { rewrite !Any.pair_split. repeat (grind; gstep; econs).
           gfinal. left. eapply CIH. right. esplits; eauto. }
-        destruct (Any.split str) as [[]|] eqn: STR; cycle 1.
+        destruct (Any.split str) as [[]|] eqn : STR; cycle 1.
         { s. unfold triggerUB. grind. gstep. econs. i. ss. }
         apply Any.split_pair in STR. des; subst.
         repeat (grind; gstep; econs).
@@ -572,7 +572,7 @@ Section INTERP_RECONF.
         grind; apply hp_reconf_equiv_strong in RELr; repeat (rr in RELr; des; subst); cycle 1.
         { rewrite !Any.pair_split. repeat (grind; gstep; econs).
           gfinal. left. eapply CIH. right. esplits; eauto. }
-        destruct (Any.split str) as [[]|] eqn: STR; cycle 1.
+        destruct (Any.split str) as [[]|] eqn : STR; cycle 1.
         { s. unfold triggerUB. grind. gstep. econs. i. ss. }
         apply Any.split_pair in STR. des; subst.
         repeat (grind; gstep; econs).
@@ -587,8 +587,8 @@ Section INTERP_RECONF.
   Qed.
 
   Lemma hp_fun_tail_reconf
-    nths str str' (fr fr' cr: Σ) x
-    (RELr: hp_reconf_equiv cr (str,fr) (str',fr'))
+    nths str str' (fr fr' cr : Σ) x
+    (RELr : hp_reconf_equiv cr (str,fr) (str',fr'))
     :
     sim_strict my_tid _ (fun _ => eq) nths
       (str, hp_fun_tail (fr,x))
@@ -601,8 +601,8 @@ Section INTERP_RECONF.
   Qed.
 
   Lemma interp_hp_body_reconf
-    itrH nths str str' (fr fr' cr: Σ)
-    (RELr: hp_reconf_equiv cr (str,fr) (str',fr'))
+    itrH nths str str' (fr fr' cr : Σ)
+    (RELr : hp_reconf_equiv cr (str,fr) (str',fr'))
     :
     sim_strict my_tid _ (fun _ => eq) nths
       (str, interp_hp_body itrH fr)
@@ -618,7 +618,7 @@ Section INTERP_RECONF.
   Qed.
 
   Lemma interp_strict_inline_src
-    nths itrH ktrH st (fr mr: Σ)
+    nths itrH ktrH st (fr mr : Σ)
     :
     sim_strict my_tid Any.t (fun _ => eq) nths
       (Any.pair st (fr ⋅ mr)↑, x <- interp_hp_body itrH ε;; tau;; '(rr,rv) <- (tau;; Ret (ε,x));; interp_hp_body (ktrH rv) rr)
@@ -636,9 +636,9 @@ Section INTERP_RECONF.
     unfold handle_Guarantee, mget_res, mput_res, guarantee, sGet, sPut.
     grind; gstep; econs; i. destruct x' as [[c0 c1] c2]. exists (c0, ε, c1 ⋅ c2).
     grind; gstep; econs; i.
-    ss. destruct (Any.split st0') eqn: ST0'; ss; cycle 1.
+    ss. destruct (Any.split st0') eqn : ST0'; ss; cycle 1.
     { unfold triggerUB. grind; gstep; econs. i. inv x. }
-    grind. destruct (Any.downcast t0) eqn: T0; ss; cycle 1.
+    grind. destruct (Any.downcast t0) eqn : T0; ss; cycle 1.
     { unfold triggerUB. grind; gstep; econs. i. inv x. }
     apply Any.split_pair in ST0'. rr in ST0'. subst.
     apply Any.downcast_upcast in T0. rr in T0. subst.
@@ -652,8 +652,8 @@ Section INTERP_RECONF.
   Qed.
 
   Lemma interp_strict_inline_tgt
-    nths itrH ktrH st (fr mr fr' mr': Σ)
-    (RELr: Own (fr ⋅ mr) ⊢ #=> Own (fr' ⋅ mr'))
+    nths itrH ktrH st (fr mr fr' mr' : Σ)
+    (RELr : Own (fr ⋅ mr) ⊢ #=> Own (fr' ⋅ mr'))
     :
     sim_strict my_tid Any.t (fun _ => eq) nths
       (Any.pair st mr↑, interp_hp_body (x <- itrH;; trigger (Guarantee True) ;;; tau;; ktrH x) fr)
@@ -687,16 +687,16 @@ End INTERP_RECONF.
 
   
 Section HPSIM_ADEQUACY. 
-  Context `{Σ: GRA.t}.
+  Context `{Σ : GRA.t}.
 
-  Variable fl_src: alist gname (Any.t -> itree hmodE Any.t).
-  Variable fl_tgt: alist gname (Any.t -> itree hmodE Any.t).
-  Variable Ist: nat -> alist key Any.t -> alist key Any.t -> iProp.
-  Variable my_tid: nat.
+  Variable fl_src : alist gname (Any.t -> itree hmodE Any.t).
+  Variable fl_tgt : alist gname (Any.t -> itree hmodE Any.t).
+  Variable Ist : nat -> alist key Any.t -> alist key Any.t -> iProp.
+  Variable my_tid : nat.
 
 (******* Move ******)
   Lemma own_ctx_r a b
-      (OWN: Own a ⊢ #=> Own b)
+      (OWN : Own a ⊢ #=> Own b)
     :
       forall ctx, Own (a ⋅ ctx) ⊢ #=> Own (b ⋅ ctx)
   .
@@ -708,8 +708,8 @@ Section HPSIM_ADEQUACY.
 
   (*** Used only in hpsim_adequacy. ***)
   Lemma own_upd_in_middle fr_src mr_src fr_tgt mr_tgt ctx fmr fmr0
-    (UPD: Own (fr_src ⋅ mr_src) ⊢ #=> Own (ctx ⋅ fmr ⋅ fr_tgt ⋅ mr_tgt))
-    (FMR: Own fmr ⊢ #=> Own fmr0)
+    (UPD : Own (fr_src ⋅ mr_src) ⊢ #=> Own (ctx ⋅ fmr ⋅ fr_tgt ⋅ mr_tgt))
+    (FMR : Own fmr ⊢ #=> Own fmr0)
   :
     Own (fr_src ⋅ mr_src) ⊢ #=> Own (ctx ⋅ fmr0 ⋅ fr_tgt ⋅ mr_tgt).
   Proof.
@@ -718,17 +718,17 @@ Section HPSIM_ADEQUACY.
     iModIntro. iSplitR "MRT"; eauto. iSplitR "FRT"; eauto. iSplitR "FMR"; eauto.
   Qed.
 
-  Definition ctx_sem (ctx: list Σ) : Σ :=
+  Definition ctx_sem (ctx : list Σ) : Σ :=
     foldr URA.add ε ctx.
 
-  Definition ctx_set (ctx: list Σ) (r: Σ) : list Σ :=
+  Definition ctx_set (ctx : list Σ) (r : Σ) : list Σ :=
     <[my_tid := r]> ctx.
   
-  Definition ctx_add (ctx: list Σ) (r: Σ) : list Σ :=
+  Definition ctx_add (ctx : list Σ) (r : Σ) : list Σ :=
     ctx_set ctx ((or_else (ctx !! my_tid) ε) ⋅ r).
 
   Lemma ctx_set_sem ctx r r'
-    (IN: my_tid < List.length ctx):
+    (IN : my_tid < List.length ctx):
     ctx_sem (ctx_set ctx (r ⋅ r')) = ctx_sem (ctx_set ctx r) ⋅ r'.
   Proof.
     unfold ctx_set. revert my_tid r r' IN.
@@ -738,7 +738,7 @@ Section HPSIM_ADEQUACY.
   Qed.
   
   Lemma ctx_add_sem ctx r
-    (IN: my_tid < List.length ctx):
+    (IN : my_tid < List.length ctx):
     ctx_sem (ctx_add ctx r) = ctx_sem ctx ⋅ r.
   Proof.
     unfold ctx_add, ctx_set. revert my_tid r IN.
@@ -747,9 +747,9 @@ Section HPSIM_ADEQUACY.
     eapply IHctx; try nia.
   Qed.
 
-  Lemma le_mine_in (ctx0 ctx: list Σ)
-    (CTXLE: le_mine eq my_tid ctx0 ctx)
-    (IN: my_tid < List.length ctx0)
+  Lemma le_mine_in (ctx0 ctx : list Σ)
+    (CTXLE : le_mine eq my_tid ctx0 ctx)
+    (IN : my_tid < List.length ctx0)
     :
     my_tid < List.length ctx.
   Proof.
@@ -767,9 +767,9 @@ Section HPSIM_ADEQUACY.
     - i. rewrite list_lookup_insert_ne; eauto.
   Qed.
 
-  Lemma ctx_le_mine_sem (w0 w1: list Σ)
-    (IN: my_tid < List.length w0)
-    (LE: le_mine eq my_tid w0 w1)
+  Lemma ctx_le_mine_sem (w0 w1 : list Σ)
+    (IN : my_tid < List.length w0)
+    (LE : le_mine eq my_tid w0 w1)
     :
     ctx_sem w1 = ctx_sem (ctx_set w1 (or_else (w0 !! my_tid) ε)).
   Proof.
@@ -782,34 +782,34 @@ Section HPSIM_ADEQUACY.
     - erewrite IHw1; eauto. nia.
   Qed.
 
-  Variant interp_inv: list Σ -> nat * Any.t * Any.t -> Prop :=
+  Variant interp_inv : list Σ -> nat * Any.t * Any.t -> Prop :=
   | interp_inv_intro
-      (ctx: list Σ) (mr_src mr_tgt: Σ) nths st_src st_tgt mr
-      (WF: URA.wf mr_src)
-      (MRS: Own mr_src ⊢ #=> Own (ctx_sem ctx ⋅ mr ⋅ mr_tgt))
-      (MR: Own mr ⊢ #=> Ist nths st_src st_tgt)
-      (NODUPS: List.NoDup (List.map fst st_src))
-      (NODUPT: List.NoDup (List.map fst st_tgt))
+      (ctx : list Σ) (mr_src mr_tgt : Σ) nths st_src st_tgt mr
+      (WF : URA.wf mr_src)
+      (MRS : Own mr_src ⊢ #=> Own (ctx_sem ctx ⋅ mr ⋅ mr_tgt))
+      (MR : Own mr ⊢ #=> Ist nths st_src st_tgt)
+      (NODUPS : List.NoDup (List.map fst st_src))
+      (NODUPT : List.NoDup (List.map fst st_tgt))
     :
     interp_inv ctx (nths, Any.pair (alist_encode st_src) mr_src↑, Any.pair (alist_encode st_tgt) mr_tgt↑)
   .
 
   Lemma hpsim_adequacy:
     forall
-      (NODUPFS: List.NoDup (List.map fst fl_src))
-      (NODUPFT: List.NoDup (List.map fst fl_tgt))
-      (fl_src0 fl_tgt0: alist gname (Any.t -> itree modE Any.t))
-      (FLS: fl_src0 = List.map (fun '(s, f) => (s, interp_hp_fun f)) fl_src)
-      (FLT: fl_tgt0 = List.map (fun '(s, f) => (s, interp_hp_fun f)) fl_tgt)
+      (NODUPFS : List.NoDup (List.map fst fl_src))
+      (NODUPFT : List.NoDup (List.map fst fl_tgt))
+      (fl_src0 fl_tgt0 : alist gname (Any.t -> itree modE Any.t))
+      (FLS : fl_src0 = List.map (fun '(s, f) => (s, interp_hp_fun f)) fl_src)
+      (FLT : fl_tgt0 = List.map (fun '(s, f) => (s, interp_hp_fun f)) fl_tgt)
       ps pt nths st_src st_tgt itr_src itr_tgt
-      (NODUPS: List.NoDup (List.map fst st_src))
-      (NODUPT: List.NoDup (List.map fst st_tgt))
-      (ctx0 ctx: list Σ) (mr_src mr_tgt fr_src fr_tgt fmr: Σ)
-      (CTXLE: @le_mine Σ eq my_tid ctx0 ctx)
-      (TID: my_tid < List.length ctx0)
-      (SIM: hpsim_body fl_src fl_tgt Ist my_tid ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr)
-      (WF: URA.wf (fr_src ⋅ mr_src))
-      (FMR: Own (fr_src ⋅ mr_src) ⊢ #=> Own ((ctx_sem ctx) ⋅ fmr ⋅ fr_tgt ⋅ mr_tgt)),
+      (NODUPS : List.NoDup (List.map fst st_src))
+      (NODUPT : List.NoDup (List.map fst st_tgt))
+      (ctx0 ctx : list Σ) (mr_src mr_tgt fr_src fr_tgt fmr : Σ)
+      (CTXLE : @le_mine Σ eq my_tid ctx0 ctx)
+      (TID : my_tid < List.length ctx0)
+      (SIM : hpsim_body fl_src fl_tgt Ist my_tid ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr)
+      (WF : URA.wf (fr_src ⋅ mr_src))
+      (FMR : Own (fr_src ⋅ mr_src) ⊢ #=> Own ((ctx_sem ctx) ⋅ fmr ⋅ fr_tgt ⋅ mr_tgt)),
     @sim_itree fl_src0 fl_tgt0 Σ ε interp_inv eq my_tid ctx0 ps pt ctx nths
       (Any.pair (alist_encode st_src) mr_src↑, interp_hp_body itr_src fr_src)
       (Any.pair (alist_encode st_tgt) mr_tgt↑, interp_hp_body itr_tgt fr_tgt).
@@ -861,7 +861,7 @@ Section HPSIM_ADEQUACY.
       hide Choose 1. hide Call 2. steps. unhide.
       rename c1 into frt, c into mrt.
       force_l. instantiate (1:= (ε, ε, c0 ⋅ (ctx_sem ctx) ⋅ fr ⋅ frt ⋅ mr ⋅ mrt)).
-      assert (UPD: Own ((ctx_sem ctx) ⋅ fmr ⋅ fr_tgt ⋅ mr_tgt)
+      assert (UPD : Own ((ctx_sem ctx) ⋅ fmr ⋅ fr_tgt ⋅ mr_tgt)
                     ⊢ #=> Own (c0 ⋅ (ctx_sem ctx) ⋅ fr ⋅ frt ⋅ mr ⋅ mrt)).
       { rewrite <-!URA.add_assoc.
         iIntros "[CTX [FMR TGT]]".
@@ -893,9 +893,9 @@ Section HPSIM_ADEQUACY.
       guclo lflagC_spec. econs; try instantiate (1:=ctx_set w1 (or_else (ctx !! my_tid) ε)); eauto; cycle 1.
       { apply ctx_set_le_others. }
 
-      assert (LT0: my_tid < strings.length ctx).
+      assert (LT0 : my_tid < strings.length ctx).
       { eauto using le_mine_in. }
-      assert (LT: my_tid < strings.length w1).
+      assert (LT : my_tid < strings.length w1).
       {
         eapply le_mine_in; eauto.
         unfold ctx_add, ctx_set.
@@ -1052,7 +1052,7 @@ Section HPSIM_ADEQUACY.
       hide Choose 1. hide Yield 2. steps. unhide.
       rename c1 into frt, c into mrt.
       force_l. instantiate (1:= (ε, ε, c0 ⋅ (ctx_sem ctx) ⋅ fr ⋅ frt ⋅ mr ⋅ mrt)).
-      assert (UPD: Own ((ctx_sem ctx) ⋅ fmr ⋅ fr_tgt ⋅ mr_tgt)
+      assert (UPD : Own ((ctx_sem ctx) ⋅ fmr ⋅ fr_tgt ⋅ mr_tgt)
                     ⊢ #=> Own (c0 ⋅ (ctx_sem ctx) ⋅ fr ⋅ frt ⋅ mr ⋅ mrt)).
       { rewrite <-!URA.add_assoc.
         iIntros "[CTX [FMR TGT]]".
@@ -1084,9 +1084,9 @@ Section HPSIM_ADEQUACY.
       guclo lflagC_spec. econs; try instantiate (1:=ctx_set w1 (or_else (ctx !! my_tid) ε)); eauto; cycle 1.
       { apply ctx_set_le_others. }
 
-      assert (LT0: my_tid < strings.length ctx).
+      assert (LT0 : my_tid < strings.length ctx).
       { eauto using le_mine_in. }
-      assert (LT: my_tid < strings.length w1).
+      assert (LT : my_tid < strings.length w1).
       {
         eapply le_mine_in; eauto.
         unfold ctx_add, ctx_set.

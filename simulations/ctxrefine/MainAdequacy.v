@@ -27,10 +27,10 @@ Set Implicit Arguments.
 
 Section AUX.
 
-  Context `{Σ: GRA.t}.
+  Context `{Σ : GRA.t}.
 
-  Lemma alist_upd_fst_in {V} a (k: key) (v: V) l
-    (IN: In a (map (fst <*> fst) l))
+  Lemma alist_upd_fst_in {V} a (k : key) (v : V) l
+    (IN : In a (map (fst <*> fst) l))
     :
     In a (map (fst <*> fst) (alist_upd k v l)).
   Proof.
@@ -39,8 +39,8 @@ Section AUX.
   Qed.
   
   Lemma sandbox_well_scoped {A}
-        scopes0 scopes1 (itr: itree hmodE A) 
-        (SCP: incl scopes0 scopes1)
+        scopes0 scopes1 (itr : itree hmodE A) 
+        (SCP : incl scopes0 scopes1)
     :
       HModSem.sandbox scopes1 (HModSem.sandbox scopes0 itr) = HModSem.sandbox scopes0 itr.
   Proof.
@@ -98,8 +98,8 @@ Section AUX.
   Qed.
 
   Lemma inv_sandbox_tau {X}
-        scp (itr: itree hmodE X)
-        (SB: HModSem.sandbox scp (tau;; itr) = tau;; itr)
+        scp (itr : itree hmodE X)
+        (SB : HModSem.sandbox scp (tau;; itr) = tau;; itr)
       :
         HModSem.sandbox scp itr = itr.
   Proof.
@@ -108,8 +108,8 @@ Section AUX.
   Qed.
 
   Lemma inv_sandbox_core {X Y}
-        x scp (ktr: X -> itree hmodE Y) (c: coreE X)
-        (SB: HModSem.sandbox scp (trigger c >>= ktr) = trigger c >>= ktr)
+        x scp (ktr : X -> itree hmodE Y) (c : coreE X)
+        (SB : HModSem.sandbox scp (trigger c >>= ktr) = trigger c >>= ktr)
       :
         HModSem.sandbox scp (ktr x) = ktr x.
   Proof.
@@ -119,8 +119,8 @@ Section AUX.
   Qed.
 
   Lemma inv_sandbox_call {X Y}
-        x scp (ktr: X -> itree hmodE Y) (c: callE X)
-        (SB: HModSem.sandbox scp (trigger c >>= ktr) = trigger c >>= ktr)
+        x scp (ktr : X -> itree hmodE Y) (c : callE X)
+        (SB : HModSem.sandbox scp (trigger c >>= ktr) = trigger c >>= ktr)
       :
         HModSem.sandbox scp (ktr x) = ktr x.
   Proof.
@@ -131,8 +131,8 @@ Section AUX.
   Qed.
 
   Lemma inv_sandbox_pg {X Y}
-        x scp (ktr: X -> itree hmodE Y) (pg: pgE X)
-        (SB: HModSem.sandbox scp (trigger pg >>= ktr) = trigger pg >>= ktr)
+        x scp (ktr : X -> itree hmodE Y) (pg : pgE X)
+        (SB : HModSem.sandbox scp (trigger pg >>= ktr) = trigger pg >>= ktr)
       :
         HModSem.sandbox scp (ktr x) = ktr x.
   Proof.
@@ -149,8 +149,8 @@ Section AUX.
     }
   Qed.
   Lemma inv_sandbox_ag {X}
-        scp (ktr: unit -> itree hmodE X) (ag: agE unit)
-        (SB: HModSem.sandbox scp (trigger ag >>= ktr) = trigger ag >>= ktr)
+        scp (ktr : unit -> itree hmodE X) (ag : agE unit)
+        (SB : HModSem.sandbox scp (trigger ag >>= ktr) = trigger ag >>= ktr)
       :
         HModSem.sandbox scp (ktr tt) = ktr tt.
   Proof.
@@ -161,8 +161,8 @@ Section AUX.
 
   Lemma alist_upd_not_exists
         k v st scopes
-        (NOTEXT: existsb (String.eqb k.1) scopes = false)
-        (INSCP: incl (state_scopes st) scopes) 
+        (NOTEXT : existsb (String.eqb k.1) scopes = false)
+        (INSCP : incl (state_scopes st) scopes) 
       :
         alist_upd k v st = st.
   Proof.
@@ -176,8 +176,8 @@ Section AUX.
 
   Lemma alist_find_existsb
         st scopes k v 
-        (INSCP: incl (state_scopes st) scopes) 
-        (FIND: alist_find k st = Some v)
+        (INSCP : incl (state_scopes st) scopes) 
+        (FIND : alist_find k st = Some v)
       :
         existsb (String.eqb k.1) scopes = true.
   Proof.
@@ -189,8 +189,8 @@ Section AUX.
 
   Lemma alist_find_not_exists
         st scopes k
-        (INSCP: incl (state_scopes st) scopes) 
-        (NOTEXT: existsb (String.eqb k.1) scopes = false)
+        (INSCP : incl (state_scopes st) scopes) 
+        (NOTEXT : existsb (String.eqb k.1) scopes = false)
       :
         alist_find k st = None.
   Proof.
@@ -203,11 +203,11 @@ Section AUX.
   Qed.
 
   Lemma alist_find_exists_l
-        st ctx scopeS scopeC (k: key)
-        (DISJ: NoDup (scopeS ++ scopeC))
-        (INS: incl (state_scopes st) scopeS)
-        (INC: incl (state_scopes ctx) scopeC)
-        (EXT: existsb (String.eqb k.1) scopeS = true)
+        st ctx scopeS scopeC (k : key)
+        (DISJ : NoDup (scopeS ++ scopeC))
+        (INS : incl (state_scopes st) scopeS)
+        (INC : incl (state_scopes ctx) scopeC)
+        (EXT : existsb (String.eqb k.1) scopeS = true)
       :
         alist_find k (st ++ ctx) = alist_find k st.
   Proof.
@@ -220,14 +220,14 @@ Section AUX.
     eapply String.eqb_eq in EXT0. subst. eauto.
   Qed.
 
-  Lemma wf_eq_solve (a b: Σ) :
+  Lemma wf_eq_solve (a b : Σ) :
     URA.wf a -> a = b -> URA.wf b.
   Proof.
     i. rewrite <- H0. eauto.
   Qed.
 
   Lemma wf_inv_l ms0 ms1
-        (WF: HModSem.wf (HModSem.add ms0 ms1))
+        (WF : HModSem.wf (HModSem.add ms0 ms1))
       :
         HModSem.wf ms0.
   Proof.
@@ -236,7 +236,7 @@ Section AUX.
   Qed.
 
   Lemma sk_equiv_ctx sk0 sk1 ctx
-    (EQV: Sk.equiv sk0 sk1)
+    (EQV : Sk.equiv sk0 sk1)
   :
     Sk.equiv (Sk.add sk0 ctx) (Sk.add sk1 ctx).
   Proof.
@@ -247,26 +247,26 @@ End AUX.
 
 
 Section AUX.
-  Context `{Σ: GRA.t}.
+  Context `{Σ : GRA.t}.
 
   Ltac hstep := guclo hpsimC_spec; econs; econs; eauto; econs; eauto.
 
   Lemma hpsim_ctx
     fnsems_src fnsems_tgt fl_src fl_tgt fl_ctx Ist my_tid
     scopes scopeC
-    (FLS: fl_src = (List.map (map_snd HModSem.sandbox_body) fnsems_src))
-    (FLT: fl_tgt = (List.map (map_snd HModSem.sandbox_body) fnsems_tgt))
-    (WS: ∀ (fn: gname) p (IN: alist_find fn fnsems_src = Some p), incl p.1 scopes)
-    (WT: ∀ (fn: gname) p (IN: alist_find fn fnsems_tgt = Some p), incl p.1 scopes)
-    (DISJ: List.NoDup (scopes ++ scopeC))
+    (FLS : fl_src = (List.map (map_snd HModSem.sandbox_body) fnsems_src))
+    (FLT : fl_tgt = (List.map (map_snd HModSem.sandbox_body) fnsems_tgt))
+    (WS : ∀ (fn : gname) p (IN : alist_find fn fnsems_src = Some p), incl p.1 scopes)
+    (WT : ∀ (fn : gname) p (IN : alist_find fn fnsems_tgt = Some p), incl p.1 scopes)
+    (DISJ : List.NoDup (scopes ++ scopeC))
 
     ps pt nths st_src st_tgt st_ctx itr_src itr_tgt fmr
-    (SCPS: incl (state_scopes st_src) scopes)
-    (SCPT: incl (state_scopes st_tgt) scopes)
-    (SCPC: incl (state_scopes st_ctx) scopeC)
-    (ITRS: HModSem.sandbox scopes itr_src = itr_src)
-    (ITRT: HModSem.sandbox scopes itr_tgt = itr_tgt)
-    (SIM: hpsim_body fl_src fl_tgt Ist my_tid ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr)
+    (SCPS : incl (state_scopes st_src) scopes)
+    (SCPT : incl (state_scopes st_tgt) scopes)
+    (SCPC : incl (state_scopes st_ctx) scopeC)
+    (ITRS : HModSem.sandbox scopes itr_src = itr_src)
+    (ITRT : HModSem.sandbox scopes itr_tgt = itr_tgt)
+    (SIM : hpsim_body fl_src fl_tgt Ist my_tid ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr)
     :
     hpsim_body (fl_src ++ fl_ctx) (fl_tgt ++ fl_ctx) 
     (IstProd0 (IstSB0 scopes Ist) (IstSB0 scopeC IstEq0)) my_tid
@@ -380,7 +380,7 @@ Section AUX.
     - assert (H1:= ITRS).
       rewrite /__ -ITRS HModSB.transl_bind HModSB.transl_put. des_ifs.
       + hstep.
-        assert (UPD: alist_upd k v (st_src ++ st_ctx) = alist_upd k v st_src ++ st_ctx).
+        assert (UPD : alist_upd k v (st_src ++ st_ctx) = alist_upd k v st_src ++ st_ctx).
         { 
           move SCPS at bottom. move SCPC at bottom. 
           eapply existsb_exists in Heq. des. eapply String.eqb_eq in Heq0.
@@ -406,7 +406,7 @@ Section AUX.
     - assert (H1:=ITRT).
       rewrite/__ -ITRT HModSB.transl_bind HModSB.transl_put. des_ifs.
       + hstep.
-        assert (UPD: alist_upd k v (st_tgt ++ st_ctx) = alist_upd k v st_tgt ++ st_ctx).
+        assert (UPD : alist_upd k v (st_tgt ++ st_ctx) = alist_upd k v st_tgt ++ st_ctx).
         {
           move SCPS at bottom. move SCPC at bottom. 
           eapply existsb_exists in Heq. des. eapply String.eqb_eq in Heq0.
@@ -529,16 +529,16 @@ Section AUX.
 
   Lemma isim_ctx
     fs ft ms mt ctx Ist fn
-    (WFS: HModSem.wf (HModSem.add ms ctx))
-    (WFT: HModSem.wf (HModSem.add mt ctx))
-    (FINDS: alist_find fn (HModSem.fnsems ms) = Some fs)
-    (FINDT: alist_find fn (HModSem.fnsems mt) = Some ft)
-    (SCOPES: sub_perm (HModSem.scopes mt) (HModSem.scopes ms))
-    (NODUPFS: NoDup (map fst (HModSem.fnsems ms ++ HModSem.fnsems ctx)))
-    (NODUPFT: NoDup (map fst (HModSem.fnsems mt ++ HModSem.fnsems ctx)))
-    (IMON: ∀ nths0 nths', nths0 <= nths' → ∀ st_src st_tgt,
+    (WFS : HModSem.wf (HModSem.add ms ctx))
+    (WFT : HModSem.wf (HModSem.add mt ctx))
+    (FINDS : alist_find fn (HModSem.fnsems ms) = Some fs)
+    (FINDT : alist_find fn (HModSem.fnsems mt) = Some ft)
+    (SCOPES : sub_perm (HModSem.scopes mt) (HModSem.scopes ms))
+    (NODUPFS : NoDup (map fst (HModSem.fnsems ms ++ HModSem.fnsems ctx)))
+    (NODUPFT : NoDup (map fst (HModSem.fnsems mt ++ HModSem.fnsems ctx)))
+    (IMON : ∀ nths0 nths', nths0 <= nths' → ∀ st_src st_tgt,
            Ist nths0 st_src st_tgt -∗ Ist nths' st_src st_tgt)
-    (SIM: isim_fsem
+    (SIM : isim_fsem
        (map (map_snd HModSem.sandbox_body) (HModSem.fnsems ms))
        (map (map_snd HModSem.sandbox_body) (HModSem.fnsems mt))
        Ist
@@ -565,7 +565,7 @@ Section AUX.
     uiprop. i.
     gfinal. right. eapply paco8_mon_bot; eauto.
     rewrite! List.map_app.
-    assert (EQ: (λ x, (map_snd HModSem.sandbox_body x).1) = @fst string _).
+    assert (EQ : (λ x, (map_snd HModSem.sandbox_body x).1) = @fst string _).
     { extensionalities. destruct H2. eauto. }
     eapply hpsim_ctx; eauto; ss; cycle 6.
     { rewrite/__ -map_app map_map EQ. eauto. }
@@ -595,8 +595,8 @@ Section AUX.
     ginit. i. eapply gpaco8_mon; eauto using iunlift_ibot.
   Qed.
 
-  Lemma hmod_sim_ctx (ms mt ctx: HMod.t) IC Ist
-    (SIM: HSim.t ms mt IC Ist)
+  Lemma hmod_sim_ctx (ms mt ctx : HMod.t) IC Ist
+    (SIM : HSim.t ms mt IC Ist)
     :
     HSim.t (ms ★ ctx) (mt ★ ctx) IC 
       (fun sk => IstProd0 (IstSB0 (HMod.modsem ms sk).(HModSem.scopes) (Ist sk))
@@ -674,10 +674,10 @@ End AUX.
 
 Section ADEQUACY.
 
-  Context `{Σ: GRA.t}.
+  Context `{Σ : GRA.t}.
 
-  Theorem main_adequacy (ms mt: HMod.t) IC Ist
-    (SIM: HSim.t ms mt IC Ist)
+  Theorem main_adequacy (ms mt : HMod.t) IC Ist
+    (SIM : HSim.t ms mt IC Ist)
     :
     ctx_refines (ms,IC) (mt, const(emp%I)).
   Proof.
@@ -711,14 +711,14 @@ End ADEQUACY.
 
 Section COMM.
 
-  Context `{Σ: GRA.t}.
+  Context `{Σ : GRA.t}.
 
-  Definition perm_Ist: nat -> alist key Any.t -> alist key Any.t -> iProp :=
+  Definition perm_Ist : nat -> alist key Any.t -> alist key Any.t -> iProp :=
     fun _ l0 l1 => ⌜l0 ≡ₚ l1⌝%I.  
   
-  Lemma alist_upd_perm {K V} l0 l1 `{Dec K} (k: K) (v: V)
-        (ND: List.NoDup (map fst l0))
-        (PERM: l0 ≡ₚ l1)
+  Lemma alist_upd_perm {K V} l0 l1 `{Dec K} (k : K) (v : V)
+        (ND : List.NoDup (map fst l0))
+        (PERM : l0 ≡ₚ l1)
       :
         alist_upd k v l0 ≡ₚ alist_upd k v l1.
   Proof.
@@ -745,9 +745,9 @@ Section COMM.
     Unshelve. eauto.
   Qed.
 
-  Lemma alist_permutation_find K `{Dec K} V (l0 l1: alist K V)
-        (ND: List.NoDup (List.map fst l0))
-        (PERM: Permutation l0 l1)
+  Lemma alist_permutation_find K `{Dec K} V (l0 l1 : alist K V)
+        (ND : List.NoDup (List.map fst l0))
+        (PERM : Permutation l0 l1)
         k
     :
       alist_find k l0 = alist_find k l1.
@@ -763,9 +763,9 @@ Section COMM.
   Qed.
 
   Lemma alist_find_comm {K V} `{Dec K}
-        (l0 l1: list (K*V)) fn f
-        (NODUP: List.NoDup (map fst (l0 ++ l1)))
-        (FIND: alist_find fn (l0 ++ l1) = Some f)
+        (l0 l1 : list (K*V)) fn f
+        (NODUP : List.NoDup (map fst (l0 ++ l1)))
+        (FIND : alist_find fn (l0 ++ l1) = Some f)
       :
         alist_find fn (l1 ++ l0) = Some f.
   Proof.
@@ -853,7 +853,7 @@ Section COMM.
       + steps_r. force_l. instantiate (1:= q). by_coind "CIH". eauto. 
       + steps_l. force_r. instantiate (1:= q). by_coind "CIH". eauto. 
       + step. by_coind "CIH". eauto. 
-    Unshelve. all: eauto. 
+    Unshelve. all : eauto. 
     { eapply alist_upd_nodup. eauto. }
     { eapply alist_upd_nodup. eauto. }
   Qed.

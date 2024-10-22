@@ -12,21 +12,21 @@ Module HRA.
 
   Class t := __HRA : GRA.t.
 
-  Class subG (Γ: t) (Σ: GRA.t) : Type := {
-    subG_map: nat -> nat;
-    subG_prf: forall i, (@GRA.gra_map Σ) (subG_map i) = (@GRA.gra_map Γ) i;
+  Class subG (Γ : t) (Σ : GRA.t) : Type := {
+    subG_map : nat -> nat;
+    subG_prf : forall i, (@GRA.gra_map Σ) (subG_map i) = (@GRA.gra_map Γ) i;
   }.
 
-  Coercion subG_map: subG >-> Funclass.
+  Coercion subG_map : subG >-> Funclass.
 
-  Context `{sub: @subG Γ Σ}.
+  Context `{sub : @subG Γ Σ}.
 
   Global Program Instance embed (i:nat) : @GRA.inG (@GRA.gra_map Γ i) Σ := {
       inG_id := sub i;
     }.
   Next Obligation. i. symmetry. apply HRA.subG_prf. Qed.
 
-  Global Program Instance in_subG `{M: ucmra} `{emb: @GRA.inG M Γ} : @GRA.inG M Σ := {
+  Global Program Instance in_subG `{M : ucmra} `{emb : @GRA.inG M Γ} : @GRA.inG M Σ := {
       inG_id := sub.(subG_map) emb.(GRA.inG_id);
       }.
   Next Obligation.
@@ -37,11 +37,11 @@ Module HRA.
 
 End HRA.
 
-Coercion HRA.subG_map: HRA.subG >-> Funclass.
+Coercion HRA.subG_map : HRA.subG >-> Funclass.
 
 Module GTyp.
 
-  Class t: Type := __GTYP : GPF.t.
+  Class t : Type := __GTYP : GPF.t.
 
 End GTyp.
 
@@ -87,7 +87,7 @@ Module CtxST.
 
   Class t `{τ : GTyp.t}
     `{_C : @GPF.inG ST.t τ}
-    := ctxSL: unit.
+    := ctxSL : unit.
 
 End CtxST.
 
@@ -107,8 +107,8 @@ Module SL.
 
   Section SL.
 
-  Context `{τ: GTyp.t}.
-  Context `{Γ: HRA.t}.
+  Context `{τ : GTyp.t}.
+  Context `{Γ : HRA.t}.
 
   Variant shape : Type :=
     | _ownm i (r : (@GRA.gra_map Γ) i)
@@ -126,7 +126,7 @@ Module SL.
     | _upd
   .
 
-  Definition degree (s: shape) (Prev: Type) : Type :=
+  Definition degree (s : shape) (Prev : Type) : Type :=
     match s with
     | _ownm i r => fin 0
     | _pure P => fin 0
@@ -143,13 +143,13 @@ Module SL.
     | _upd => fin 1
     end.
 
-  Global Instance syntax: PF.t := {
+  Global Instance syntax : PF.t := {
       shp := shape;
       deg := degree;
   }.
 
-  Context `{α: @SRFMSynG.t}.
-  Context `{_C0: @HRA.subG Γ Σ}.
+  Context `{α : @SRFMSynG.t}.
+  Context `{_C0 : @HRA.subG Γ Σ}.
   Notation iProp := (iProp Σ).
 
   Global Instance domain : SRFDom.t := {
@@ -157,7 +157,7 @@ Module SL.
     void := False%I;
   }.
 
-  Definition interp n (s: shape)
+  Definition interp n (s : shape)
       : (degree s (SRFSyn.t_prev n) -> SRFSyn.t n) -> (degree s (SRFSyn.t_prev n) -> iProp) -> iProp :=
     match s with
     | _ownm i r => fun _ _ => OwnM r
@@ -175,48 +175,48 @@ Module SL.
     | _upd => fun _ sem => (|==> (sem 0%fin))%I
     end.
 
-  Global Instance t: SRFMSem.t := interp.
+  Global Instance t : SRFMSem.t := interp.
 
   Context `{@SRFMSemG.inG _ _ _ t β}.
 
-  Definition ownm `{IN: @GRA.inG M Γ} {n} (r: M) : SRFSyn.t n.
+  Definition ownm `{IN : @GRA.inG M Γ} {n} (r : M) : SRFSyn.t n.
     destruct IN. subst.
     refine ⟨ _ownm _ r, _ ⟩%SRF.
     i. inv X.
   Defined.
 
-  Definition pure {n} (P: Prop) : SRFSyn.t n.
+  Definition pure {n} (P : Prop) : SRFSyn.t n.
     refine ⟨ _pure P, _ ⟩%SRF.
     i. inv X.
   Defined.
 
-  Definition and {n} (p1 p2: SRFSyn.t n) : SRFSyn.t n.
+  Definition and {n} (p1 p2 : SRFSyn.t n) : SRFSyn.t n.
     refine ⟨ _and, _ ⟩%SRF.
     i. destruct X.
     - exact p1.
     - exact p2.
   Defined.
 
-  Definition or {n} (p1 p2: SRFSyn.t n) : SRFSyn.t n.
+  Definition or {n} (p1 p2 : SRFSyn.t n) : SRFSyn.t n.
     refine ⟨ _or, _ ⟩%SRF.
     i. destruct X.
     - exact p1.
     - exact p2.
   Defined.
 
-  Definition impl {n} (p1 p2: SRFSyn.t n) : SRFSyn.t n.
+  Definition impl {n} (p1 p2 : SRFSyn.t n) : SRFSyn.t n.
     refine ⟨ _impl, _ ⟩%SRF.
     i. destruct X.
     - exact p1.
     - exact p2.
   Defined.
 
-  Definition univ `{IN: @GPF.inG T τ} {n} (ty:T) (p: PF.deg ty (SRFSyn.t_prev n) -> SRFSyn.t n) : SRFSyn.t n.
+  Definition univ `{IN : @GPF.inG T τ} {n} (ty:T) (p : PF.deg ty (SRFSyn.t_prev n) -> SRFSyn.t n) : SRFSyn.t n.
     destruct IN. subst.
     exact ⟨ _univ _ ty, p ⟩%SRF.
   Defined.
 
-  Definition ex `{IN: @GPF.inG T τ} {n} (ty: T) (p: PF.deg ty (SRFSyn.t_prev n) -> SRFSyn.t n) : SRFSyn.t n.
+  Definition ex `{IN : @GPF.inG T τ} {n} (ty : T) (p : PF.deg ty (SRFSyn.t_prev n) -> SRFSyn.t n) : SRFSyn.t n.
     destruct IN. subst.
     exact ⟨ _ex _ ty, p ⟩%SRF.
   Defined.
@@ -226,33 +226,33 @@ Module SL.
     i. inv X.
   Defined.
 
-  Definition sepconj {n} (p1 p2: SRFSyn.t n) : SRFSyn.t n.
+  Definition sepconj {n} (p1 p2 : SRFSyn.t n) : SRFSyn.t n.
     refine ⟨ _sepconj, _ ⟩%SRF.
     i. destruct X.
     - exact p1.
     - exact p2.
   Defined.
 
-  Definition wand {n} (p1 p2: SRFSyn.t n) : SRFSyn.t n.
+  Definition wand {n} (p1 p2 : SRFSyn.t n) : SRFSyn.t n.
     refine ⟨ _wand, _ ⟩%SRF.
     i. destruct X.
     - exact p1.
     - exact p2.
   Defined.
 
-  Definition persistently {n} (p: SRFSyn.t n) : SRFSyn.t n.
+  Definition persistently {n} (p : SRFSyn.t n) : SRFSyn.t n.
     refine ⟨ _persistently, _ ⟩%SRF.
     i. inv X; [|inv H1].
     exact p.
   Defined.
 
-  Definition plainly {n} (p: SRFSyn.t n) : SRFSyn.t n.
+  Definition plainly {n} (p : SRFSyn.t n) : SRFSyn.t n.
     refine ⟨ _plainly, _ ⟩%SRF.
     i. inv X; [|inv H1].
     exact p.
   Defined.
 
-  Definition upd {n} (p: SRFSyn.t n) : SRFSyn.t n.
+  Definition upd {n} (p : SRFSyn.t n) : SRFSyn.t n.
     refine ⟨ _upd, _ ⟩%SRF.
     i. inv X; [|inv H1].
     exact p.
@@ -286,11 +286,11 @@ End SL.
 
 Module CtxSL.
 
-  Class t `{Γ: HRA.t} `{Σ: GRA.t} `{α: SRFMSynG.t} `{β: @SRFMSemG.t SL.domain α}
-    `{_C: CtxST.t}
-    `{_C: @HRA.subG Γ Σ}
-    `{_C: @SRFMSemG.inG SL.domain _ α SL.t β}
-    := ctxSL: unit.
+  Class t `{Γ : HRA.t} `{Σ : GRA.t} `{α : SRFMSynG.t} `{β : @SRFMSemG.t SL.domain α}
+    `{_C : CtxST.t}
+    `{_C : @HRA.subG Γ Σ}
+    `{_C : @SRFMSemG.inG SL.domain _ α SL.t β}
+    := ctxSL : unit.
 
 End CtxSL.
 
@@ -348,10 +348,10 @@ Module SLRed.
 
   Section RED.
 
-  Context `{_C: CtxSL.t}.
+  Context `{_C : CtxSL.t}.
   Notation interp := (SRFSem.t (Δ := @SL.domain Σ)).
 
-  Lemma ownm `{@GRA.inG M Γ} n (r: M) :
+  Lemma ownm `{@GRA.inG M Γ} n (r : M) :
     interp n (SL.ownm r) = OwnM r.
   Proof.
     depdes H. subst. unfold SL.ownm, eq_rect_r. ss.
@@ -376,10 +376,10 @@ Module SLRed.
     interp n (SL.impl p q) = (interp n p → interp n q)%I.
   Proof. unfold SL.impl. rewrite @SRFRed.cur. reflexivity. Qed.
 
-  Lemma univ `{T:PF.t} `{@GPF.inG T τ} n (ty: T) p :
-    interp n (SL.univ ty p) = (∀ x: (T.(PF.deg) ty (SRFSyn.t_prev n)), interp n (p x))%I.
+  Lemma univ `{T:PF.t} `{@GPF.inG T τ} n (ty : T) p :
+    interp n (SL.univ ty p) = (∀ x : (T.(PF.deg) ty (SRFSyn.t_prev n)), interp n (p x))%I.
   Proof.
-    destruct H eqn: EQ. subst.
+    destruct H eqn : EQ. subst.
     unfold SL.univ, eq_rect_r. ss.
     rewrite @SRFRed.cur. reflexivity.
   Qed.
@@ -387,7 +387,7 @@ Module SLRed.
   Lemma ex `{@GPF.inG T τ} n ty p :
     interp n (SL.ex ty p) = (∃ x, interp n (p x))%I.
   Proof.
-    destruct H eqn: EQ. subst.
+    destruct H eqn : EQ. subst.
     unfold SL.ex, eq_rect_r. ss.
     rewrite @SRFRed.cur. reflexivity.
   Qed.

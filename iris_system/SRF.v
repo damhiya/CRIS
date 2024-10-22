@@ -5,29 +5,29 @@ Local Notation level := nat.
 
 Module PF.
 
-  Class t: Type := {
+  Class t : Type := {
     shp : Type;
     deg : shp -> forall (Prev:Type), Type;
   }.
 
 End PF.
 
-Coercion PF.shp: PF.t >-> Sortclass.
+Coercion PF.shp : PF.t >-> Sortclass.
 
 Module GPF.
 
-  Class t: Type := __GATOM: nat -> PF.t.
+  Class t : Type := __GATOM : nat -> PF.t.
 
-  Class inG (F: PF.t) (GF: t) : Type := {
-    inG_id: nat;
-    inG_prf: F = GF inG_id;
+  Class inG (F : PF.t) (GF : t) : Type := {
+    inG_id : nat;
+    inG_prf : F = GF inG_id;
   }.
 
 End GPF.
 
 Module SRFMSynG.
 
-  Class t: Type := __GATM: GPF.t.
+  Class t : Type := __GATM : GPF.t.
 
 End SRFMSynG.
 
@@ -35,11 +35,11 @@ Module SRFSyn.
 
   Section SYNTAX.
 
-    Context `{α: SRFMSynG.t}.
+    Context `{α : SRFMSynG.t}.
 
     Inductive term {Prev : Type} : Type :=
     | _lift (p : Prev) : term
-    | _cur i (op : α i) (args: PF.deg op Prev -> term).
+    | _cur i (op : α i) (args : PF.deg op Prev -> term).
 
     Fixpoint _t (n : level) : Type :=
       match n with
@@ -66,8 +66,8 @@ End SRFSyn.
 Module SRFDom.
 
   Class t : Type := {
-    dom: Type;
-    void: dom;
+    dom : Type;
+    void : dom;
   }.
 
 End SRFDom.
@@ -76,15 +76,15 @@ Module SRFMSem.
 
   Section SEM.
 
-  Context `{Δ: SRFDom.t}.
-  Context `{α: SRFMSynG.t}.
-  Context `{A: PF.t}.
+  Context `{Δ : SRFDom.t}.
+  Context `{α : SRFMSynG.t}.
+  Context `{A : PF.t}.
 
   Class t : Type := 
     sem :
-      forall n (op: A)
-          (args: PF.deg op (SRFSyn.t_prev n) -> SRFSyn.t n)
-          (Args: PF.deg op (SRFSyn.t_prev n) -> SRFDom.dom),
+      forall n (op : A)
+          (args : PF.deg op (SRFSyn.t_prev n) -> SRFSyn.t n)
+          (Args : PF.deg op (SRFSyn.t_prev n) -> SRFDom.dom),
         SRFDom.dom.
 
   End SEM.
@@ -95,13 +95,13 @@ Module SRFMSemG.
 
   Section GSEM.
 
-  Context `{Δ: SRFDom.t}.
+  Context `{Δ : SRFDom.t}.
 
-  Class t `{α: SRFMSynG.t}: Type := gsem : forall i, SRFMSem.t (A:= α i).
+  Class t `{α : SRFMSynG.t} : Type := gsem : forall i, SRFMSem.t (A:= α i).
 
-  Class inG (A: PF.t) (α: SRFMSynG.t) (B: @SRFMSem.t _ α A) (β: t) : Type := {
-    inG_id: nat;
-    inG_prf: existT _ A B = existT _ (α inG_id) (β inG_id);
+  Class inG (A : PF.t) (α : SRFMSynG.t) (B : @SRFMSem.t _ α A) (β : t) : Type := {
+    inG_id : nat;
+    inG_prf : existT _ A B = existT _ (α inG_id) (β inG_id);
   }.
 
   End GSEM.
@@ -112,9 +112,9 @@ Module SRFSem.
 
   Section SEM.
 
-  Context `{Δ: SRFDom.t}.
-  Context `{α: SRFMSynG.t}.
-  Context `{β: @SRFMSemG.t Δ α}.
+  Context `{Δ : SRFDom.t}.
+  Context `{α : SRFMSynG.t}.
+  Context `{β : @SRFMSemG.t Δ α}.
 
   Fixpoint _t n : SRFSyn.t_prev n -> SRFDom.dom :=
     match n with
@@ -131,8 +131,8 @@ Module SRFSem.
   
   Definition t n : SRFSyn.t n -> SRFDom.dom := t_prev (S n).
 
-  Program Definition cur `{A: PF.t} `{B: @SRFMSem.t Δ α A} `{IN: @SRFMSemG.inG _ A α B β} {n}
-      (op: A) (args: PF.deg op (SRFSyn.t_prev n) -> SRFSyn.t n) : SRFSyn.t n.
+  Program Definition cur `{A : PF.t} `{B : @SRFMSem.t Δ α A} `{IN : @SRFMSemG.inG _ A α B β} {n}
+      (op : A) (args : PF.deg op (SRFSyn.t_prev n) -> SRFSyn.t n) : SRFSyn.t n.
   Proof.
     destruct IN. inversion inG_prf. subst.
     exact (SRFSyn._cur inG_id op args).
@@ -146,21 +146,21 @@ Module SRFRed.
   
   Section RED.
 
-  Context `{Δ: SRFDom.t}.
-  Context `{α: SRFMSynG.t}.
-  Context `{β: @SRFMSemG.t Δ α}.
+  Context `{Δ : SRFDom.t}.
+  Context `{α : SRFMSynG.t}.
+  Context `{β : @SRFMSemG.t Δ α}.
 
-  Lemma cur `{A: PF.t} `{B: @SRFMSem.t Δ α A} `{IN: @SRFMSemG.inG _ A α B β} n op args :
+  Lemma cur `{A : PF.t} `{B : @SRFMSem.t Δ α A} `{IN : @SRFMSemG.inG _ A α B β} n op args :
     SRFSem.t n (SRFSem.cur op args) = B n op args (compose (SRFSem.t n) args).
   Proof.
-    destruct IN eqn: EQ. subst. dependent destruction inG_prf. reflexivity.
+    destruct IN eqn : EQ. subst. dependent destruction inG_prf. reflexivity.
   Qed.
 
   Lemma lift_0 t :
     SRFSem.t_prev 1 (SRFSyn._lift t) = SRFDom.void.
   Proof. reflexivity. Qed.
 
-  Lemma lift n (t: SRFSyn.t n) :
+  Lemma lift n (t : SRFSyn.t n) :
     SRFSem.t (S n) (SRFSyn.lift t) = SRFSem.t n t.
   Proof. reflexivity. Qed.
 

@@ -15,7 +15,7 @@ Module CtrlI.
 Section I.
   Local Open Scope nat_scope.
 
-  Context `{Σ: GRA.t}.
+  Context `{Σ : GRA.t}.
 
   Variable max_size : nat.
 
@@ -23,22 +23,22 @@ Section I.
   Definition v_hd := "Ring" ↯ "hd".
   Definition v_tl := "Ring" ↯ "tl".
 
-  Definition init: unit -> itree pmodE unit :=
+  Definition init : unit -> itree pmodE unit :=
     fun _ =>
       cput v_hd 0;;;
       cput v_tl 0
   .
   
-  Definition get_size: unit -> itree pmodE nat :=
+  Definition get_size : unit -> itree pmodE nat :=
     fun _ =>
-      `hd: nat <- cgetU v_hd;;
-      `tl: nat <- cgetU v_tl;;
+      `hd : nat <- cgetU v_hd;;
+      `tl : nat <- cgetU v_tl;;
       Ret (hd - tl).
 
-  Definition enqueue: Z -> itree pmodE unit :=
+  Definition enqueue : Z -> itree pmodE unit :=
     fun x =>
-      `hd: nat <- cgetU v_hd;;
-      `tl: nat <- cgetU v_tl;;
+      `hd : nat <- cgetU v_hd;;
+      `tl : nat <- cgetU v_tl;;
       if (hd - tl <? max_size)
       then
         `_:() <- ccallU (CellName.set (hd mod max_size)) x;;
@@ -47,10 +47,10 @@ Section I.
         trigger (@IO _ void "error" "exceeds the maximum size");;; Ret tt
   .
 
-  Definition dequeue: unit -> itree pmodE Z :=
+  Definition dequeue : unit -> itree pmodE Z :=
     fun _ =>
-      `hd: nat <- cgetU v_hd;;
-      `tl: nat <- cgetU v_tl;;
+      `hd : nat <- cgetU v_hd;;
+      `tl : nat <- cgetU v_tl;;
       if (0 <? hd - tl)
       then
         x <- ccallU (CellName.get (tl mod max_size)) tt;;
@@ -66,7 +66,7 @@ Section I.
      (RingName.enqueue, (scopes, cfunU enqueue));
      (RingName.dequeue, (scopes, cfunU dequeue))].
   
-  Program Definition Sem: PModSem.t := {|
+  Program Definition Sem : PModSem.t := {|
     PModSem.scopes := scopes;
     PModSem.fnsems := fnsems;
     PModSem.initial_st := [(v_hd,0↑);(v_tl,0↑)];
@@ -75,7 +75,7 @@ Section I.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition Mod: PMod.t := {|
+  Definition Mod : PMod.t := {|
     PMod.modsem := fun _ => Sem;
     PMod.sk := RingSK.t;
   |}

@@ -54,9 +54,9 @@ Export ITreeNotations2.
 
 
 
-Lemma eq_is_bisim: forall E R (t1 t2 : itree E R), t1 = t2 -> t1 ≅ t2.
+Lemma eq_is_bisim : forall E R (t1 t2 : itree E R), t1 = t2 -> t1 ≅ t2.
 Proof. ii. clarify. reflexivity. Qed.
-Lemma bisim_is_eq: forall E R (t1 t2 : itree E R), t1 ≅ t2 -> t1 = t2.
+Lemma bisim_is_eq : forall E R (t1 t2 : itree E R), t1 ≅ t2 -> t1 = t2.
 Proof. ii. eapply bisimulation_is_eq; eauto. Qed.
 
 
@@ -77,7 +77,7 @@ Notation "tau;; t2" := (Tau t2)
 (*** COPIED FROM MASTER BRANCH. REMOVE LATER ***)
 (*** COPIED FROM MASTER BRANCH. REMOVE LATER ***)
 (*** COPIED FROM MASTER BRANCH. REMOVE LATER ***)
-Lemma eutt_eq_bind : forall E R U (t1 t2: itree E U) (k1 k2: U -> itree E R), t1 ≈ t2 -> (forall u, k1 u ≈ k2 u) -> ITree.bind t1 k1 ≈ ITree.bind t2 k2.
+Lemma eutt_eq_bind : forall E R U (t1 t2 : itree E U) (k1 k2 : U -> itree E R), t1 ≈ t2 -> (forall u, k1 u ≈ k2 u) -> ITree.bind t1 k1 ≈ ITree.bind t2 k2.
 Proof.
   intros.
   eapply eutt_clo_bind with (UU := Logic.eq); [eauto |].
@@ -93,16 +93,16 @@ Hint Rewrite @bind_tau : itree.
 (* Tactic Notation "irw" "in" ident(H) := repeat (autorewrite with itree in H; cbn in H). *)
 (* Tactic Notation "irw" := repeat (autorewrite with itree; cbn). *)
 
-(*** TODO: IDK why but (1) ?UNUSNED is needed (2) "fold" tactic does not work. WHY????? ***)
+(*** TODO : IDK why but (1) ?UNUSNED is needed (2) "fold" tactic does not work. WHY????? ***)
 Ltac fold_eutt :=
   repeat multimatch goal with
-         | [ H: eqit eq true true ?A ?B |- ?UNUSED ] =>
+         | [ H : eqit eq true true ?A ?B |- ?UNUSED ] =>
            let name := fresh "tmp" in
-           assert(tmp: eutt eq A B) by apply H; clear H; rename tmp into H
+           assert(tmp : eutt eq A B) by apply H; clear H; rename tmp into H
          end
 .
 
-Lemma map_vis {E R1 R2 X} (e: E X) (k: X -> itree E R1) (f: R1 -> R2) :
+Lemma map_vis {E R1 R2 X} (e : E X) (k : X -> itree E R1) (f : R1 -> R2) :
   (* (f <$> (Vis e k)) ≅ Vis e (fun x => f <$> (k x)). *)
   ITree.map f (Vis e k) = Vis e (fun x => f <$> (k x)).
 Proof.
@@ -115,7 +115,7 @@ Qed.
 
 
 
-(*** TODO: move to SIRCommon ***)
+(*** TODO : move to SIRCommon ***)
 Lemma unfold_interp_mrec :
 forall (D E : Type -> Type) (ctx : forall T : Type, D T -> itree (D +' E) T)
   (R : Type) (t : itree (D +' E) R), interp_mrec ctx t = _interp_mrec ctx (observe t).
@@ -145,13 +145,13 @@ Proof.
   i. f. eapply bind_tau.
 Qed.
 
-Lemma bind_vis: forall (E : Type -> Type) (R U V : Type) (e : E V) (ek : V -> itree E U) (k : U -> itree E R),
+Lemma bind_vis : forall (E : Type -> Type) (R U V : Type) (e : E V) (ek : V -> itree E U) (k : U -> itree E R),
   ` x : _ <- Vis e ek;; k x = Vis e (fun x : V => ` x : _ <- ek x;; k x).
 Proof.
   i. f. eapply bind_vis.
 Qed.
 
-Lemma bind_trigger: forall (E : Type -> Type) (R U : Type) (e : E U) (k : U -> itree E R),
+Lemma bind_trigger : forall (E : Type -> Type) (R U : Type) (e : E U) (k : U -> itree E R),
     ` x : _ <- ITree.trigger e;; k x = Vis e (fun x : U => k x).
 Proof. i. f. eapply bind_trigger. Qed.
 
@@ -235,14 +235,14 @@ Lemma interp_tau:
 .
 Proof. i. f. apply interp_tau. Qed.
 
-(*** Original name: interp_state_trigger_eqit ***)
+(*** Original name : interp_state_trigger_eqit ***)
 Lemma interp_state_trigger:
   forall (E F : Type -> Type) (R S : Type) (e : E R) (f : forall T : Type, E T -> stateT S (itree F) T) (s : S),
     interp_state f (ITree.trigger e) s = ` x : S * R <- f R e s;; (tau;; Ret x)
 .
 Proof. i. f. apply interp_state_trigger_eqit. Qed.
 
-(*** TODO: interp_trigger_eqit does not exist. report to itree people? ***)
+(*** TODO : interp_trigger_eqit does not exist. report to itree people? ***)
 Lemma interp_trigger:
   forall (E F : Type -> Type) (R : Type) (e : E R) (f : E ~> itree F),
     interp f (ITree.trigger e) = x <- f R e;; tau;; Ret x
@@ -264,10 +264,10 @@ Proof.
   unfold resum, ReSum_id, id_, Id_IFun. rewrite bind_ret_r. ss.
 Qed.
 
-(*** TODO: I don't want "F" here, but it is technically needed. Report it to itree people? ***)
+(*** TODO : I don't want "F" here, but it is technically needed. Report it to itree people? ***)
 Lemma interp_mrec_miss:
-  (* forall (D E F: Type -> Type) `{F -< E} (ctx : forall T : Type, D T -> itree (D +' E) T) (U : Type) (a : F U), *)
-  forall (D E F: Type -> Type) `{F -< E} (ctx : forall T : Type, D T -> itree (D +' E) T) (U : Type) (a : F U),
+  (* forall (D E F : Type -> Type) `{F -< E} (ctx : forall T : Type, D T -> itree (D +' E) T) (U : Type) (a : F U), *)
+  forall (D E F : Type -> Type) `{F -< E} (ctx : forall T : Type, D T -> itree (D +' E) T) (U : Type) (a : F U),
     interp_mrec ctx (trigger a) = x <- (trigger a);; tau;; Ret x
 (* (trigger a) >>= tauK *)
 .
@@ -282,7 +282,7 @@ Lemma interp_mrec_tau
       D E
       (ctx : forall T : Type, D T -> itree (D +' E) T)
       U
-      (itr: itree (D +' E) U)
+      (itr : itree (D +' E) U)
   :
     interp_mrec ctx (tau;; itr) = (tau;; interp_mrec ctx itr)
 .
@@ -292,7 +292,7 @@ Lemma interp_mrec_ret
       D E
       (ctx : forall T : Type, D T -> itree (D +' E) T)
       U
-      (u: U)
+      (u : U)
   :
     interp_mrec ctx (Ret u) = Ret u
 .
@@ -303,7 +303,7 @@ Lemma interp_interp:
     interp g (interp f t) = interp (fun (T : Type) (e : (fun H : Type => E H) T) => interp g (f T e)) t.
 Proof. i. f. apply interp_interp. Qed.
 
-Lemma subst_bind: forall E T U (k: T -> itree E U) i, ITree.subst k i = ITree.bind i k.
+Lemma subst_bind : forall E T U (k : T -> itree E U) i, ITree.subst k i = ITree.bind i k.
 Proof. i. refl. Qed.
 
 Ltac iby3 TAC :=
@@ -362,8 +362,8 @@ Ltac grind := repeat (ired; match goal with
                             | _ => idtac
                             end; ii; des_ifs_safe).
 (*** simple regression tests ***)
-Goal forall E R (itr: itree E R), (tau;; tau;; tau;; itr) = (tau;; tau;; itr). i. grind. Abort.
-Goal forall E X Y (itr: itree E X) (ktr: X -> itree E Y), ((x <- itr;; tau;; tau;; Ret x) >>= ktr) = ((x <- itr;; tau;; Ret x) >>= ktr).
+Goal forall E R (itr : itree E R), (tau;; tau;; tau;; itr) = (tau;; tau;; itr). i. grind. Abort.
+Goal forall E X Y (itr : itree E X) (ktr : X -> itree E Y), ((x <- itr;; tau;; tau;; Ret x) >>= ktr) = ((x <- itr;; tau;; Ret x) >>= ktr).
   i. progress grind. (*** it should progress ***)
 Abort.
 
@@ -373,7 +373,7 @@ Abort.
 
 
 
-Definition update K V map `{Map K V map}: K -> (V -> V) -> map -> option map :=
+Definition update K V map `{Map K V map} : K -> (V -> V) -> map -> option map :=
   fun k f m => do v <- Maps.lookup k m ; Some (Maps.add k (f v) m)
 .
 
@@ -392,10 +392,10 @@ Hint Unfold update.
 
 
 
-Inductive taus E R: itree E R -> nat -> Prop :=
+Inductive taus E R : itree E R -> nat -> Prop :=
 | taus_tau
     itr0 n
-    (TL: taus itr0 n)
+    (TL : taus itr0 n)
   :
     taus (Tau itr0) (1 + n)
 | taus_ret
@@ -403,7 +403,7 @@ Inductive taus E R: itree E R -> nat -> Prop :=
   :
     taus (Ret r) 0
 | taus_vis
-    X (e: E X) k
+    X (e : E X) k
   :
     taus (Vis e k) 0
 .
@@ -420,7 +420,7 @@ Qed.
 Lemma spin_no_ret
       E R
       r
-      (SIM: @ITree.spin E R ≈ Ret r)
+      (SIM : @ITree.spin E R ≈ Ret r)
   :
     False
 .
@@ -433,8 +433,8 @@ Qed.
 
 Lemma spin_no_vis
       E R
-      X (e: E X) k
-      (SIM: @ITree.spin E R ≈ Vis e k)
+      X (e : E X) k
+      (SIM : @ITree.spin E R ≈ Vis e k)
   :
     False
 .
@@ -451,10 +451,10 @@ Qed.
 
 Theorem diverge_spin
         E R
-        (itr: itree E R)
-        (DIVERGE: forall m, ~taus itr m)
+        (itr : itree E R)
+        (DIVERGE : forall m, ~taus itr m)
   :
-    <<SPIN: itr = ITree.spin>>
+    <<SPIN : itr = ITree.spin>>
 .
 Proof.
   r. f.
@@ -471,10 +471,10 @@ Qed.
 
 Theorem spin_diverge
         E R
-        (itr: itree E R)
-        (SPIN: itr = ITree.spin)
+        (itr : itree E R)
+        (SPIN : itr = ITree.spin)
   :
-    <<DIVERGE: forall m, ~taus itr m>>
+    <<DIVERGE : forall m, ~taus itr m>>
 .
 Proof.
   ii. clarify.
@@ -489,10 +489,10 @@ Qed.
 
 Theorem case_analysis
         E R
-        (itr: itree E R)
+        (itr : itree E R)
   :
-    (<<CONVERGE: exists (m: nat), taus itr m>>)
-    \/ (<<DIVERGE: itr = ITree.spin>>)
+    (<<CONVERGE : exists (m : nat), taus itr m>>)
+    \/ (<<DIVERGE : itr = ITree.spin>>)
 .
 Proof.
   destruct (classic (exists m, taus itr m)); et.
@@ -505,11 +505,11 @@ Qed.
 
 Theorem spin_spin
         E R
-        (i_src i_tgt: itree E R)
-        (SPIN: i_src = ITree.spin)
-        (SIM: i_src ≈ i_tgt)
+        (i_src i_tgt : itree E R)
+        (SPIN : i_src = ITree.spin)
+        (SIM : i_src ≈ i_tgt)
   :
-    <<SPIN: i_tgt = ITree.spin>>
+    <<SPIN : i_tgt = ITree.spin>>
 .
 Proof.
   clarify.
@@ -525,15 +525,15 @@ Proof.
   gbase. eapply CIH. rewrite tau_eutt in SIM. ss.
 Qed.
 
-Definition resum_itr E F `{E -< F}: itree E ~> itree F := fun _ itr => interp (fun _ e => trigger e) itr.
+Definition resum_itr E F `{E -< F} : itree E ~> itree F := fun _ itr => interp (fun _ e => trigger e) itr.
 
-Definition tauK {E R}: R -> itree E R := fun r => tau;; Ret r.
+Definition tauK {E R} : R -> itree E R := fun r => tau;; Ret r.
 Hint Unfold tauK.
 
-Definition idK {E R}: R -> itree E R := fun r => Ret r.
+Definition idK {E R} : R -> itree E R := fun r => Ret r.
 Hint Unfold idK.
 
-Lemma idK_spec E R (i0: itree E R): i0 = i0 >>= idK. Proof. unfold idK. irw. refl. Qed.
+Lemma idK_spec E R (i0 : itree E R) : i0 = i0 >>= idK. Proof. unfold idK. irw. refl. Qed.
 
 
 
@@ -568,11 +568,11 @@ Ltac resub :=
            replace (ITree.trigger (@subevent _ F prf _ (resum a b e))) with (ITree.trigger (@subevent _ F _ _ e)) by refl
          end.
 
-Definition resum_ktr A E F `{E -< F}: ktree E A ~> ktree F A := fun _ ktr a => resum_itr (ktr a).
-Definition trivial_Handler `{E -< F}: Handler E F := fun T X => trigger X.
+Definition resum_ktr A E F `{E -< F} : ktree E A ~> ktree F A := fun _ ktr a => resum_itr (ktr a).
+Definition trivial_Handler `{E -< F} : Handler E F := fun T X => trigger X.
 
-Lemma observe_eta E R (itr0 itr1: itree E R)
-      (EQ: _observe itr0 = _observe itr1)
+Lemma observe_eta E R (itr0 itr1 : itree E R)
+      (EQ : _observe itr0 = _observe itr1)
   :
     itr0 = itr1.
 Proof.

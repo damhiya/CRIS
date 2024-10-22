@@ -5,7 +5,7 @@ From ExtLib Require Import
      Structures.Maps
      Data.Map.FMapAList.
 
-Lemma repeat_update {A} i n (v v' w: A):
+Lemma repeat_update {A} i n (v v' w : A):
   <[i:=v]> (repeat v i ++ v' :: repeat w n) = repeat v (i+1) ++ repeat w n.
 Proof.
   replace i with (List.length (repeat v i) + 0) at 1; cycle 1.

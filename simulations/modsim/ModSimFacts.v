@@ -6,7 +6,7 @@ Require Import Relation_Definitions.
 Require Import IPM.
 Require Import ModSimTactics Mod2STS.
 
-(*** TODO: export these in Coqlib or Universe ***)
+(*** TODO : export these in Coqlib or Universe ***)
 Require Import Relation_Operators.
 Require Import RelationPairs.
 From ITree Require Import
@@ -28,13 +28,13 @@ Local Open Scope nat_scope.
 
 (* Adequacy - Part 1. ( Divided to resolve the dependency issue. ) *)
 
-Lemma itree_modE_inv R (itr: itree modE R):
+Lemma itree_modE_inv R (itr : itree modE R):
   (exists r, itr = Ret r) \/
   (exists itr', itr = tau;; itr') \/
-  (exists V (e: coreE V) ktr, itr = v <- trigger e;; ktr v) \/
+  (exists V (e : coreE V) ktr, itr = v <- trigger e;; ktr v) \/
   (exists fn args ktr, itr = v <- trigger (Call fn args);; ktr v) \/
   (exists V run ktr, itr = v <- trigger (@SUpdate V run);; ktr v) \/
-  (exists V (e: schE V) ktr, itr = v <- trigger e;; ktr v).
+  (exists V (e : schE V) ktr, itr = v <- trigger e;; ktr v).
 Proof.
   ides itr; eauto.
   right. right. destruct e as [s | [c|[s'|e']]].
@@ -59,25 +59,25 @@ End TAC.
 Import TAC.
 
 Section SEMR.
-  Variable ms_src: ModSem.t.
-  Variable ms_tgt: ModSem.t.
-  Hypothesis sim: MSim.t ms_src ms_tgt.
-  Hypothesis WFS: ModSem.wf ms_src.
+  Variable ms_src : ModSem.t.
+  Variable ms_tgt : ModSem.t.
+  Hypothesis sim : MSim.t ms_src ms_tgt.
+  Hypothesis WFS : ModSem.wf ms_src.
   
   Lemma sim_itree_simg
     w my_tid ps pt nths itrs_src itrs_tgt st_src st_tgt
-    (EQS: nths = List.length itrs_src)
-    (EQT: nths = List.length itrs_tgt)
-    (TID: my_tid < nths)
-    (WLEN: nths = List.length w)
-    (SIM: forall tid ps0 pt0 itr_src itr_tgt w0 nths0 st_src0 st_tgt0
-            (INS: base.lookup tid itrs_src = Some itr_src)
-            (INT: base.lookup tid itrs_tgt = Some itr_tgt)
-            (TID: tid < nths0)
-            (WLEN: nths0 = List.length w0)
-            (FLG: if Nat.eq_dec tid my_tid then ps0 = ps /\ pt0 = pt else ps0 = true /\ pt0 = true)
-            (WLE: if Nat.eq_dec tid my_tid then w0 = w else le_mine sim.(MSim.wle) tid w w0)
-            (WF: if Nat.eq_dec tid my_tid then nths0 = nths /\ st_src0 = st_src /\ st_tgt0 = st_tgt else sim.(MSim.wf) w0 (nths0, st_src0, st_tgt0))
+    (EQS : nths = List.length itrs_src)
+    (EQT : nths = List.length itrs_tgt)
+    (TID : my_tid < nths)
+    (WLEN : nths = List.length w)
+    (SIM : forall tid ps0 pt0 itr_src itr_tgt w0 nths0 st_src0 st_tgt0
+            (INS : base.lookup tid itrs_src = Some itr_src)
+            (INT : base.lookup tid itrs_tgt = Some itr_tgt)
+            (TID : tid < nths0)
+            (WLEN : nths0 = List.length w0)
+            (FLG : if Nat.eq_dec tid my_tid then ps0 = ps /\ pt0 = pt else ps0 = true /\ pt0 = true)
+            (WLE : if Nat.eq_dec tid my_tid then w0 = w else le_mine sim.(MSim.wle) tid w w0)
+            (WF : if Nat.eq_dec tid my_tid then nths0 = nths /\ st_src0 = st_src /\ st_tgt0 = st_tgt else sim.(MSim.wf) w0 (nths0, st_src0, st_tgt0))
       ,
       exists ww, sim_itree ms_src.(ModSem.fnsems) ms_tgt.(ModSem.fnsems) sim.(MSim.winit) sim.(MSim.wf) sim.(MSim.wle) tid ww ps0 pt0 w0 nths0 (st_src0, itr_src) (st_tgt0, itr_tgt))
     :
@@ -89,9 +89,9 @@ Section SEMR.
   Proof.
     unfold interp_stateE.
     ginit. revert_until WFS. gcofix CIH. i.
-    destruct (base.lookup my_tid itrs_src) eqn: LKS; cycle 1.
+    destruct (base.lookup my_tid itrs_src) eqn : LKS; cycle 1.
     { exfalso. exploit list.lookup_ge_None_1; eauto. i. nia. }
-    destruct (base.lookup my_tid itrs_tgt) eqn: LKT; cycle 1.
+    destruct (base.lookup my_tid itrs_tgt) eqn : LKT; cycle 1.
     { exfalso. exploit list.lookup_ge_None_1; eauto. i. nia. }
     hexploit (SIM my_tid ps pt); eauto; try by des_ifs.
     i. des.
@@ -127,7 +127,7 @@ Section SEMR.
       rewrite !list.list_lookup_insert in INT; try nia. inv INT.
       esplits. ginit. rewrite <-!bind_bind.
       guclo lbindC_spec. econs.
-      { destruct (alist_find fn (ModSem.fnsems ms_src)) eqn: FIND; cycle 1.
+      { destruct (alist_find fn (ModSem.fnsems ms_src)) eqn : FIND; cycle 1.
         - eapply MSim.wf_sim_miss in FIND; eauto. rewrite FIND.
           grind. unfold triggerUB. grind.
           gstep. econs. econs. i. ss.
@@ -327,7 +327,7 @@ Section SEMR.
         { rewrite list.insert_length. nia. }
         rewrite !list.list_lookup_insert in INT; try nia. inv INT.
         eexists. rewrite/__ WF Nat.add_comm. s. rewrite !EQT in *. eapply K.
-      + assert (DEC: tid < List.length itrs_tgt \/ tid = List.length itrs_tgt).
+      + assert (DEC : tid < List.length itrs_tgt \/ tid = List.length itrs_tgt).
         { apply lookup_lt_Some in INS. rewrite app_length in INS. ss.
           rewrite list.insert_length in INS. nia. }
         des.
@@ -349,7 +349,7 @@ Section SEMR.
         inv INT.
         
         esplits.
-        destruct (alist_find fn (ModSem.fnsems ms_src)) eqn: FIND; cycle 1.
+        destruct (alist_find fn (ModSem.fnsems ms_src)) eqn : FIND; cycle 1.
         * eapply MSim.wf_sim_miss in FIND; eauto. rewrite FIND.
           grind. unfold triggerUB. grind.
           pstep. econs. econs. i. ss.
@@ -359,7 +359,7 @@ Section SEMR.
 
     - rewrite !unfold_iter_eq. s. rewrite/__ LKS LKT.
       grind. do 2 step. gstep. econs. econs; eauto using smj_lt_mid_top.
-      assert (DEC: tid < List.length itrs_src \/ tid >= List.length itrs_src) by nia.
+      assert (DEC : tid < List.length itrs_src \/ tid >= List.length itrs_src) by nia.
       des; cycle 1.
       { rewrite unfold_iter_eq. s.
         rewrite list.lookup_ge_None_2; try (rewrite list.insert_length; nia).
@@ -372,7 +372,7 @@ Section SEMR.
       { rewrite !list.insert_length. inv WLE. nia. }
 
       i. des_ifs; des; subst.
-      { assert (DEC': tid = my_tid \/ tid ≠ my_tid) by nia; des; subst.
+      { assert (DEC' : tid = my_tid \/ tid ≠ my_tid) by nia; des; subst.
         - rewrite !list.list_lookup_insert in INS; try nia. inv INS.
           rewrite !list.list_lookup_insert in INT; try nia. inv INT.
           rewrite/__ WF0 list.insert_length. eexists. eapply K; eauto.
@@ -384,7 +384,7 @@ Section SEMR.
             esplits; eauto. apply sim. eauto.
           + rewrite/__ WF0 list.insert_length. eauto.
       }
-      { assert (DEC': tid0 = my_tid \/ tid0 ≠ my_tid) by nia; des; subst.
+      { assert (DEC' : tid0 = my_tid \/ tid0 ≠ my_tid) by nia; des; subst.
         - rewrite !list.list_lookup_insert in INS; try nia. inv INS.
           rewrite !list.list_lookup_insert in INT; try nia. inv INT.
           eexists. eapply K; eauto.
@@ -437,7 +437,7 @@ Section SEMR.
       eexists. rewrite WF. ginit. guclo lflagC_spec.
       econs; try eassumption; eauto with paco.
       
-  Unshelve. all: exact smj_bot.
+  Unshelve. all : exact smj_bot.
   Qed.
 
   Lemma adequacy_local_aux
@@ -451,7 +451,7 @@ Section SEMR.
     unfold ModSem.initial_itr, assume. generalize "CCR_init" as fn. i.
 
     ss. unfold ITree.map.
-    destruct (alist_find fn (ModSem.fnsems ms_src)) eqn: EQ; cycle 1.
+    destruct (alist_find fn (ModSem.fnsems ms_src)) eqn : EQ; cycle 1.
     { s. unfold interp_modE, interp_stateE, triggerUB, interp_schE_callE. grind.
       rewrite unfold_iter_eq. s. unfold Mod2STS.pure_state. grind. step. ss. }
 
@@ -467,7 +467,7 @@ Section SEMR.
         s. nia.
     - i. steps.
       destruct vret_src, vret_tgt. des; subst; eauto.
-  Unshelve. all: exact smj_bot.
+  Unshelve. all : exact smj_bot.
   Qed.
   
 End SEMR.
@@ -476,7 +476,7 @@ Section ADEQUACY.
 
   Lemma adequacy_modsem
     ms_src ms_tgt
-    (SIM: MSim.t ms_src ms_tgt)
+    (SIM : MSim.t ms_src ms_tgt)
     (WF : ModSem.wf ms_src)
     :
     Beh.of_program (ModSem.compile ms_tgt)

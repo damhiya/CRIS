@@ -35,26 +35,26 @@ Section WSIM.
 
   Context `{CtxWD.t}.
 
-  Variable Ist: Any.t -> Any.t -> iProp.
-  Variable fl_src fl_tgt: alist gname (Any.t -> itree hmodE Any.t).
+  Variable Ist : Any.t -> Any.t -> iProp.
+  Variable fl_src fl_tgt : alist gname (Any.t -> itree hmodE Any.t).
   Let isim := isim Ist fl_src fl_tgt.
 
-  Variable u: world_id.
-  Variable b: level.
+  Variable u : world_id.
+  Variable b : level.
 
   Definition wsim (E : coPset) 
-    r g {R} (RR: Any.t * R -> Any.t * R -> iProp) ps pt src tgt
+    r g {R} (RR : Any.t * R -> Any.t * R -> iProp) ps pt src tgt
   :=
     (world u b E -∗ isim r g RR ps pt src tgt)%I.
 
-  Definition wclosed u b (P: iProp) : iProp := P ∗ closed_world u b ⊤.
+  Definition wclosed u b (P : iProp) : iProp := P ∗ closed_world u b ⊤.
 
   (***** wsim lemmas ****)
 
   Lemma wsim_discard 
         E0 E1 r g {R} RR
         ps pt sti_src sti_tgt
-        (TOP: E0 ⊆ E1)
+        (TOP : E0 ⊆ E1)
     :
       (@wsim E0 r g R RR ps pt sti_src sti_tgt)
     -∗
@@ -69,7 +69,7 @@ Section WSIM.
 
   Lemma wsim_upd
     E r g {R} ps pt sti_src sti_tgt
-    (RR: Any.t * R -> Any.t * R -> iProp)
+    (RR : Any.t * R -> Any.t * R -> iProp)
   :
     (#=> (wsim E r g RR ps pt sti_src sti_tgt))
   -∗
@@ -81,7 +81,7 @@ Section WSIM.
   Qed.
 
   
-  (* Comment: Update modality diff??: RR -∗#=> RR' in fairness *)
+  (* Comment : Update modality diff?? : RR -∗#=> RR' in fairness *)
   Lemma wsim_wand 
     E r g {R} RR0 RR1 ps pt sti_src sti_tgt
   :
@@ -102,7 +102,7 @@ Section WSIM.
 
   Lemma wsim_mono 
     E r g {R} RR0 RR1 ps pt sti_src sti_tgt
-    (MONO: forall st_src r_src st_tgt r_tgt,
+    (MONO : forall st_src r_src st_tgt r_tgt,
               (RR0 (st_src, r_src) (st_tgt, r_tgt))
             -∗
               ((RR1 (st_src, r_src) (st_tgt, r_tgt))))
@@ -158,8 +158,8 @@ Section WSIM.
 
   Lemma wsim_FUpd_weaken 
     r g {R} RR ps pt sti_src sti_tgt
-    (E0 E1: coPset)
-    (SUB: E0 ⊆ E1)
+    (E0 E1 : coPset)
+    (SUB : E0 ⊆ E1)
   :
     (FUpd u b emp E0 E0 (@wsim E1 r g R RR ps pt sti_src sti_tgt))
   -∗
@@ -171,7 +171,7 @@ Section WSIM.
 
   Global Instance wsim_elim_FUpd_gen
          r g {R} RR
-         (E0 E1 E2: coPset)
+         (E0 E1 E2 : coPset)
          ps pt sti_src sti_tgt p
          P
     :
@@ -187,7 +187,7 @@ Section WSIM.
   Qed.
 
   Global Instance wsim_elim_FUpd_eq
-         (E1 E2: coPset) r g {R} RR
+         (E1 E2 : coPset) r g {R} RR
          ps pt sti_src sti_tgt p
          P
     :
@@ -237,7 +237,7 @@ Section WSIM.
 
   Lemma wsim_ret
     r g {R} ps pt st_src st_tgt v_src v_tgt
-    (RR: Any.t * R -> Any.t * R -> iProp)
+    (RR : Any.t * R -> Any.t * R -> iProp)
   :
     (RR (st_src, v_src) (st_tgt, v_tgt))
   -∗
@@ -259,9 +259,9 @@ Section WSIM.
   Qed.  
 
   Lemma wsim_io
-    E r g {R} RR ps pt st_src st_tgt I O k_src k_tgt fn (varg: I)
+    E r g {R} RR ps pt st_src st_tgt I O k_src k_tgt fn (varg : I)
   :
-    (∀ (vret: O), @wsim E r g R RR true true (st_src, k_src vret) (st_tgt, k_tgt vret))
+    (∀ (vret : O), @wsim E r g R RR true true (st_src, k_src vret) (st_tgt, k_tgt vret))
   -∗
     (wsim E r g RR ps pt (st_src, trigger (IO fn varg) >>= k_src) (st_tgt, trigger (IO fn varg) >>= k_tgt)).
   Proof.
@@ -272,7 +272,7 @@ Section WSIM.
 
   Lemma wsim_inline_src
     E r g ps pt {R} RR st_src st_tgt k_src i_tgt f fn varg 
-    (FIND: alist_find fn fl_src = Some f)
+    (FIND : alist_find fn fl_src = Some f)
   :
   bi_entails
     (@wsim E r g R RR true pt (st_src, (f varg) >>= k_src) (st_tgt, i_tgt))
@@ -285,7 +285,7 @@ Section WSIM.
   
   Lemma wsim_inline_tgt
     E r g ps pt {R} RR st_src st_tgt i_src k_tgt f fn varg
-    (FIND: alist_find fn fl_tgt = Some f)
+    (FIND : alist_find fn fl_tgt = Some f)
   :
     bi_entails
       (@wsim E r g R RR ps true (st_src, i_src) (st_tgt, (f varg) >>= k_tgt))
@@ -371,8 +371,8 @@ Section WSIM.
   
   Lemma wsim_supdate_src
     E X r g {R} RR ps pt st_src st_tgt k_src i_tgt
-    (run: Any.t -> Any.t * X)
-    (* (RUN: run st_src = (st_src0, x)) *)
+    (run : Any.t -> Any.t * X)
+    (* (RUN : run st_src = (st_src0, x)) *)
   :
     (@wsim E r g R RR true pt ((run st_src).1, k_src (run st_src).2) (st_tgt, i_tgt))
   -∗
@@ -385,8 +385,8 @@ Section WSIM.
 
   Lemma wsim_supdate_tgt
     E X r g {R} RR ps pt st_src st_tgt i_src k_tgt
-    (run: Any.t -> Any.t * X)
-    (* (RUN: run st_src = (st_src0, x)) *)
+    (run : Any.t -> Any.t * X)
+    (* (RUN : run st_src = (st_src0, x)) *)
   :
     (@wsim E r g R RR ps true (st_src, i_src) ((run st_tgt).1, k_tgt (run st_tgt).2))
   -∗
@@ -452,7 +452,7 @@ Section WSIM.
     iApply isim_progress. iApply "H". eauto.
   Qed.
 
-  Lemma wsim_base E r g R (RR: Any.t * R -> Any.t * R -> iProp)
+  Lemma wsim_base E r g R (RR : Any.t * R -> Any.t * R -> iProp)
     ps pt sti_src sti_tgt
     :
     bi_entails
@@ -473,7 +473,7 @@ Section WSIM.
   Qed.
 
   Lemma wsim_coind E r g A P RA RRA psA ptA srcA tgtA
-    (COIND: forall g0 (a:A),
+    (COIND : forall g0 (a:A),
       bi_entails
         ((□ ((∀ R RR ps pt src tgt, g R RR ps pt src tgt -∗ g0 R RR ps pt src tgt) ∗
              (∀ a, P a ∗ world u b E -∗ g0 (RA a) (RRA a) (psA a) (ptA a) (srcA a) (tgtA a)))) ∗
@@ -493,7 +493,7 @@ Section WSIM.
   (********)
 
   Lemma wsim_triggerUB_src
-    E r g {R} RR ps pt X st_src st_tgt (k_src: X -> _) i_tgt
+    E r g {R} RR ps pt X st_src st_tgt (k_src : X -> _) i_tgt
   :
     bi_entails
       (⌜True⌝)
@@ -515,7 +515,7 @@ Section WSIM.
   Qed.
 
   Lemma wsim_triggerNB_tgt
-    E r g {R} RR ps pt X st_src st_tgt i_src (k_tgt: X -> _)
+    E r g {R} RR ps pt X st_src st_tgt i_src (k_tgt : X -> _)
   :
     bi_entails
       (⌜True⌝)
@@ -537,7 +537,7 @@ Section WSIM.
   Qed.
 
   Lemma wsim_unwrapU_src
-      E r g {R} RR ps pt st_src st_tgt X (x: option X) k_src i_tgt
+      E r g {R} RR ps pt st_src st_tgt X (x : option X) k_src i_tgt
     :
       bi_entails
         (∀ x', ⌜x = Some x'⌝ -∗ wsim E r g RR ps pt (st_src, k_src x') (st_tgt, i_tgt))
@@ -549,7 +549,7 @@ Section WSIM.
   Qed.
 
   Lemma wsim_unwrapN_src
-    E r g {R} RR ps pt st_src st_tgt X (x: option X) k_src i_tgt
+    E r g {R} RR ps pt st_src st_tgt X (x : option X) k_src i_tgt
   :
     bi_entails
       (∃ x', ⌜x = Some x'⌝ ∗ @wsim E r g R RR ps pt (st_src, k_src x') (st_tgt, i_tgt))
@@ -560,7 +560,7 @@ Section WSIM.
   Qed.
 
   Lemma wsim_unwrapU_tgt
-    E r g {R} RR ps pt st_src st_tgt X (x: option X) i_src k_tgt
+    E r g {R} RR ps pt st_src st_tgt X (x : option X) i_src k_tgt
   :
     bi_entails
       (∃ x', ⌜x = Some x'⌝ ∗ @wsim E r g R RR ps pt (st_src, i_src) (st_tgt, k_tgt x'))
@@ -571,7 +571,7 @@ Section WSIM.
   Qed.
 
   Lemma wsim_unwrapN_tgt
-    E r g {R} RR ps pt st_src st_tgt X (x: option X) i_src k_tgt
+    E r g {R} RR ps pt st_src st_tgt X (x : option X) i_src k_tgt
   :
     bi_entails
       (∀ x', ⌜x = Some x'⌝ -∗ @wsim E r g R RR ps pt (st_src, i_src) (st_tgt, k_tgt x'))
@@ -584,11 +584,11 @@ Section WSIM.
 
   (**** TODO ****)
 
-  (* Definition wsim_fsem RR: relation (Any.t -> itree hmodE Any.t) :=
+  (* Definition wsim_fsem RR : relation (Any.t -> itree hmodE Any.t) :=
     (eq ==> (fun itr_src itr_tgt => forall st_src st_tgt,
              Ist st_src st_tgt ⊢ @isim ibot ibot Any.t RR false false (st_src, itr_src) (st_tgt, itr_tgt)))%signature. *)
 
-  (* Definition wsim_fnsem RR: relation (string * (Any.t -> itree hmodE Any.t)) := RelProd eq (wsim_fsem RR). *)
+  (* Definition wsim_fnsem RR : relation (string * (Any.t -> itree hmodE Any.t)) := RelProd eq (wsim_fsem RR). *)
 
 End WSIM.
 
@@ -599,13 +599,13 @@ Section WSIM_LEVEL_UP.
 
   Context `{CtxWD.t}.
   
-  Variable Ist: Any.t -> Any.t -> iProp.
-  Variable fl_src fl_tgt: alist gname (Any.t -> itree hmodE Any.t).
+  Variable Ist : Any.t -> Any.t -> iProp.
+  Variable fl_src fl_tgt : alist gname (Any.t -> itree hmodE Any.t).
 
   Let wsim u b := wsim Ist fl_src fl_tgt u b.
 
   Lemma wsim_level_up u b b' E r g R RR ps pt src tgt
-      (LE: b <= b'):
+      (LE : b <= b'):
     (free_worlds u b' -∗ @wsim u b' E r g R RR ps pt src tgt)
     -∗
     (free_worlds u b -∗ @wsim u b E r g R RR ps pt src tgt).

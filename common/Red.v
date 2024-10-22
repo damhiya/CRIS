@@ -1,5 +1,5 @@
 (* Control Flag *)
-Variant _flag: Set :=
+Variant _flag : Set :=
 | _break
 | _continue
 | _fail
@@ -8,15 +8,15 @@ Variant _flag: Set :=
 (* Internals *)
 Lemma _equal_f (A B : Type) (f g : A -> B)
       x
-      (EQ: f = g)
+      (EQ : f = g)
   :
     f x = g x.
 Proof.
   subst. apply eq_refl.
 Qed.
 
-Lemma _einit (P Q: Prop)
-      (EQ: P = Q)
+Lemma _einit (P Q : Prop)
+      (EQ : P = Q)
   :
     Q -> P.
 Proof.
@@ -36,7 +36,7 @@ Ltac __prw red_tac success :=
          etransitivity;
          [red_tac f|
           match goal with
-          | [f0:= ?f1: _flag|- _] =>
+          | [f0:= ?f1 : _flag|- _] =>
             match f1 with
             | _continue => subst f; __prw red_tac true
             | _break => subst f; reflexivity
@@ -86,22 +86,22 @@ Ltac rrw X _f := ltac:(fun f => instantiate (f:=_f); eapply X; fail).
 Module TUTORIAL.
   Section FOO.
     (* Variables *)
-    Variable A B C: Type.
-    Variable a b c d: A.
-    Variable x y z: B.
-    Variable p q: C.
+    Variable A B C : Type.
+    Variable a b c d : A.
+    Variable x y z : B.
+    Variable p q : C.
 
-    Variable sim: A -> (nat * B) * C -> nat -> Prop.
+    Variable sim : A -> (nat * B) * C -> nat -> Prop.
 
-    (* First Step: Prove Reduction Lemmas *)
-    Hypothesis foo_red0: a = b.
-    Hypothesis foo_red1: b = c.
-    Hypothesis foo_red2: c = d.
-    Hypothesis foo_red3: x = y.
-    Hypothesis foo_red4: y = z.
-    Hypothesis foo_red5: p = q.
+    (* First Step : Prove Reduction Lemmas *)
+    Hypothesis foo_red0 : a = b.
+    Hypothesis foo_red1 : b = c.
+    Hypothesis foo_red2 : c = d.
+    Hypothesis foo_red3 : x = y.
+    Hypothesis foo_red4 : y = z.
+    Hypothesis foo_red5 : p = q.
 
-    (* Second Step: Define Reduction Strategy (= red_tac) *)
+    (* Second Step : Define Reduction Strategy (= red_tac) *)
     Ltac red_A f := (* f is a flag indicating continue/break/fail. Must set f before return *)
       ((instantiate (f:=_continue); apply foo_red0; fail) ||
        (instantiate (f:=_break); apply foo_red1; fail) ||
@@ -135,7 +135,7 @@ Module TUTORIAL.
       (instantiate (f:=_break); apply foo_red5; fail).
 
     (* Done. Let's use it! *)
-    Lemma foo: forall (n: nat) (H: sim c ((n, z), q) n),
+    Lemma foo : forall (n : nat) (H : sim c ((n, z), q) n),
         sim a ((n, x), p) n.
     Proof.
       intros n H.

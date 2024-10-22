@@ -19,7 +19,7 @@ Section derived.
   Notation "P ⊣⊢ Q" := (equiv (A:=uPredI M) P%I Q%I).
 
   (** Propers *)
-  Global Instance ownM_proper: Proper ((≡) ==> (⊣⊢)) (@uPred_ownM M) := ownM_proper.
+  Global Instance ownM_proper : Proper ((≡) ==> (⊣⊢)) (@uPred_ownM M) := ownM_proper.
   Global Instance cmra_valid_proper {A : cmra} :
     Proper ((≡) ==> (⊣⊢)) (@uPred_cmra_valid M A) := cmra_valid_proper.
 
@@ -108,7 +108,7 @@ Section derived.
     rewrite -later_equivI internal_eq_entails in Hf. apply Hf. by f_contractive.
   Qed. *)
 
-  (** Soundness statement for our modalities: facts derived under modalities in
+  (** Soundness statement for our modalities : facts derived under modalities in
   the empty context also without the modalities.
   For basic updates, soundness only holds for plain propositions. *)
   Lemma bupd_soundness P `{!Plain P} : (⊢ |==> P) → ⊢ P.
@@ -137,7 +137,7 @@ Section derived.
     (⊢ denote_modalities ms P) → ⊢ P.
   Proof.
     intros H. apply (laterN_soundness _ (length ms)).
-    move: H. apply bi_emp_valid_mono.
+    move : H. apply bi_emp_valid_mono.
     induction ms as [|m ms IH]; first done; simpl.
     destruct m; simpl; rewrite IH.
     - rewrite -later_intro. apply bupd_elim. apply _.
@@ -146,7 +146,7 @@ Section derived.
     - rewrite -later_intro plainly_elim. done.
   Qed.
 
-  (** Consistency: one cannot deive [False] in the logic, not even under
+  (** Consistency : one cannot deive [False] in the logic, not even under
   modalities. Again this is just for demonstration and probably not practically
   useful. *)
   Corollary consistency : ¬ ⊢@{uPredI M} False.

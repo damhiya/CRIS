@@ -13,27 +13,27 @@ Set Implicit Arguments.
 
 
 
-Let _memRA: URA.t := (mblock ==> Z ==> (Excl.t val))%ra.
+Let _memRA : URA.t := (mblock ==> Z ==> (Excl.t val))%ra.
 Compute (URA.car (t:=_memRA)).
-Instance memRA: URA.t := Auth.t _memRA.
+Instance memRA : URA.t := Auth.t _memRA.
 Compute (URA.car).
 
-Local Arguments Z.of_nat: simpl nomatch.
+Local Arguments Z.of_nat : simpl nomatch.
 
 Section BODY.
   Context `{@GRA.inG memRA Σ}.
 
-  Definition _points_to_singleton_r (loc: mblock * Z) (v: val): _memRA := 
+  Definition _points_to_singleton_r (loc : mblock * Z) (v : val) : _memRA := 
     fun b ofs => if (dec loc.1 b) && (dec loc.2 ofs) then Some v else ε.
 
-  Definition points_to_singleton_r (loc: mblock * Z) (v: val): memRA := Auth.white (_points_to_singleton_r loc v).
+  Definition points_to_singleton_r (loc : mblock * Z) (v : val) : memRA := Auth.white (_points_to_singleton_r loc v).
 
-  Definition points_to_singleton (loc: mblock * Z) (v: val): iProp := OwnM (points_to_singleton_r loc v).
+  Definition points_to_singleton (loc : mblock * Z) (v : val) : iProp := OwnM (points_to_singleton_r loc v).
 
-  Definition points_to: (mblock * Z) -> list val -> iProp :=
+  Definition points_to : (mblock * Z) -> list val -> iProp :=
     fun '(blk, ofs) vs => ([∗ list] i↦v ∈ vs, points_to_singleton (blk, ofs + i)%Z v)%I.
 
-  (* Definition points_to (loc: mblock * Z) (vs: list val): iProp := [∗ list] i↦v ∈ vs, points_to_singleton (loc.1, loc.2 + i)%Z v. *)
+  (* Definition points_to (loc : mblock * Z) (vs : list val) : iProp := [∗ list] i↦v ∈ vs, points_to_singleton (loc.1, loc.2 + i)%Z v. *)
 
   Lemma points_to_split
         blk ofs hd tl
@@ -45,7 +45,7 @@ Section BODY.
     extensionalities. do 2 f_equal. nia.
   Qed. 
 
-  Definition _initial_mem_r (csl: gname -> bool) (sk: Sk.t): _memRA :=
+  Definition _initial_mem_r (csl : gname -> bool) (sk : Sk.t) : _memRA :=
     fun blk ofs =>
       match List.nth_error sk blk with
       | Some (g, gd) =>
@@ -57,10 +57,10 @@ Section BODY.
       | _ => ε
       end.
 
-  Definition initial_mem_r (csl: gname -> bool) (sk: Sk.t): memRA :=
+  Definition initial_mem_r (csl : gname -> bool) (sk : Sk.t) : memRA :=
     Auth.black (_initial_mem_r csl sk).
  
-  Definition initial_mem (csl: gname -> bool) (sk: Sk.t): iProp :=
+  Definition initial_mem (csl : gname -> bool) (sk : Sk.t) : iProp :=
     OwnM (initial_mem_r csl sk).
 
 
@@ -95,7 +95,7 @@ Notation "loc |-> vs" := (points_to loc vs) (at level 20).
 Section AUX.
   Context `{@GRA.inG memRA Σ}.
 
-  Lemma points_to_nil ptr: ptr |-> [] = emp%I.
+  Lemma points_to_nil ptr : ptr |-> [] = emp%I.
   Proof. destruct ptr. ss. Qed.
   
   Lemma points_to_disj
@@ -110,32 +110,32 @@ Section AUX.
     specialize (WF0 blk ofs). des_ifs; bsimpl; des; des_sumbool; zsimpl; ss; try lia.
   Qed.
 
-  Fixpoint is_list (ll: val) (xs: list val): iProp :=
+  Fixpoint is_list (ll : val) (xs : list val) : iProp :=
     match xs with
-    | [] => (⌜ll = Vnullptr⌝: iProp)%I
+    | [] => (⌜ll = Vnullptr⌝ : iProp)%I
     | xhd :: xtl =>
       (∃ lhd ltl, ⌜ll = Vptr lhd 0⌝ ∗ ((lhd,0%Z) |-> [xhd; ltl])
-                             ∗ is_list ltl xtl: iProp)%I
+                             ∗ is_list ltl xtl : iProp)%I
     end
   .
 
-  Lemma unfold_is_list: forall ll xs,
+  Lemma unfold_is_list : forall ll xs,
       is_list ll xs =
       match xs with
-      | [] => (⌜ll = Vnullptr⌝: iProp)%I
+      | [] => (⌜ll = Vnullptr⌝ : iProp)%I
       | xhd :: xtl =>
         (∃ lhd ltl, ⌜ll = Vptr lhd 0⌝ ∗ ((lhd,0%Z) |-> [xhd; ltl])
-                               ∗ is_list ltl xtl: iProp)%I
+                               ∗ is_list ltl xtl : iProp)%I
       end
   .
   Proof.
     i. destruct xs; auto.
   Qed.
 
-  Lemma unfold_is_list_cons: forall ll xhd xtl,
+  Lemma unfold_is_list_cons : forall ll xhd xtl,
       is_list ll (xhd :: xtl) =
       (∃ lhd ltl, ⌜ll = Vptr lhd 0⌝ ∗ ((lhd,0%Z) |-> [xhd; ltl])
-                             ∗ is_list ltl xtl: iProp)%I.
+                             ∗ is_list ltl xtl : iProp)%I.
   Proof.
     i. eapply unfold_is_list.
   Qed.
@@ -193,29 +193,29 @@ Section PROOF.
 
   Definition scopes := ["Mem"].
 
-  Definition alloc_spec: fspec :=
+  Definition alloc_spec : fspec :=
     (mk_simple (fun sz => (
                     (ord_pure 0),
-                    (fun varg => (⌜varg = [Vint (Z.of_nat sz)]↑ /\ (8 * (Z.of_nat sz) < modulus_64)%Z⌝: iProp)),
+                    (fun varg => (⌜varg = [Vint (Z.of_nat sz)]↑ /\ (8 * (Z.of_nat sz) < modulus_64)%Z⌝ : iProp)),
                     (fun vret => (∃ b, (⌜vret = (Vptr b 0)↑⌝)
-                                         ∗ (b, 0%Z) |-> (List.repeat Vundef sz)): iProp)
+                                         ∗ (b, 0%Z) |-> (List.repeat Vundef sz)) : iProp)
     )))%I.
 
-  Definition free_spec: fspec :=
+  Definition free_spec : fspec :=
     (mk_simple (fun '(b, ofs) => (
                     (ord_pure 0),
                     (fun varg => (∃ v, (⌜varg = [Vptr b ofs]↑⌝) ∗ (b, ofs) ⤇ v)),
                     (fun vret => ⌜vret = (Vint 0)↑⌝)
     )))%I.
 
-  Definition load_spec: fspec :=
+  Definition load_spec : fspec :=
     (mk_simple (fun '(b, ofs, v) => (
                     (ord_pure 0),
                     (fun varg => (⌜varg = [Vptr b ofs]↑⌝) ∗ (b, ofs) ⤇ v),
                     (fun vret => (b, ofs) ⤇ v ∗ ⌜vret = v↑⌝)
     )))%I.
 
-  Definition store_spec: fspec :=
+  Definition store_spec : fspec :=
     (mk_simple
        (fun '(b, ofs, v_new) => (
             (ord_pure 0),
@@ -224,7 +224,7 @@ Section PROOF.
     )))%I.
 
   (* Is this the best way to define cmp? (points_to is not resource anymore)*)
-  Definition cmp_spec: fspec :=
+  Definition cmp_spec : fspec :=
     (mk_simple
        (fun '(result, resource) => (
             (ord_pure 0),
@@ -239,7 +239,7 @@ Section PROOF.
             (fun vret => OwnM resource ∗ ⌜vret = (if result then Vint 1 else Vint 0)↑⌝)
     )))%I.
 
-  Definition Stb: alist gname fspec :=  
+  Definition Stb : alist gname fspec :=  
     Seal.sealing "ccr"
       [(MemName.alloc, alloc_spec);
        (MemName.free,  free_spec);
@@ -257,9 +257,9 @@ Section PROOF.
     ]
   .
 
-  Variable csl: gname -> bool.
+  Variable csl : gname -> bool.
 
-  Program Definition Sem: SModSem.t := {|
+  Program Definition Sem : SModSem.t := {|
     SModSem.scopes := scopes;
     SModSem.fnsems := fnsems;
     SModSem.initial_st := [];
@@ -277,8 +277,8 @@ Section PROOF.
   Definition InitCond : Sk.t -> iProp :=
     fun sk => initial_mem csl sk.
 
-  Variable ginv: Sk.t -> invspec.
-  Variable GlobalStb: Sk.t -> gname -> option fspec.
+  Variable ginv : Sk.t -> invspec.
+  Variable GlobalStb : Sk.t -> gname -> option fspec.
   Definition t : HMod.t := Seal.sealing "ccr" (SMod.to_hmod ginv GlobalStb Mod).
   
 End PROOF.

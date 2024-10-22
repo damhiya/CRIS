@@ -23,7 +23,7 @@ From stdpp Require Import coPset gmap.
 
 
 
-(* TODO: 
+(* TODO : 
   Divide isim/wsim? 
   ITactics & ITacticsAux
   Choose/Take/Assume/Guarantee
@@ -57,7 +57,7 @@ Ltac _force_l :=
       (* let name := fresh "y" in *)
       (* iApply isim_unwrapN_src; iIntros (name) "%"; *)
       (* match goal with *)
-      (* | [ H: _ |- _ ] => let name := fresh "G" in rename H into name; try rewrite name in * *)
+      (* | [ H : _ |- _ ] => let name := fresh "G" in rename H into name; try rewrite name in * *)
       (* end *)
   end
 .
@@ -93,7 +93,7 @@ match goal with
     let name := fresh "y" in
     iApply isim_unwrapU_src; iIntros (name) "%";
     match goal with
-    | [ H: _ |- _ ] => let name := fresh "G" in rename H into name; try rewrite name in *
+    | [ H : _ |- _ ] => let name := fresh "G" in rename H into name; try rewrite name in *
     end
 | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, tau;; _) (_, _)) ] =>
     iApply isim_tau_src
@@ -113,7 +113,7 @@ match goal with
     let name := fresh "y" in
     iApply isim_unwrapN_tgt; iIntros (name) "%";
     match goal with
-    | [ H: _ |- _ ] => let name := fresh "G" in rename H into name; try rewrite name in *
+    | [ H : _ |- _ ] => let name := fresh "G" in rename H into name; try rewrite name in *
     end
 | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, tau;; _)) ] =>
     iApply isim_tau_tgt
@@ -140,12 +140,12 @@ match goal with
     let name := fresh "y" in
     iApply wsim_unwrapU_src; iIntros (name) "%";
     match goal with
-    | [ H: _ |- _ ] => let name := fresh "G" in rename H into name; try rewrite name in *
+    | [ H : _ |- _ ] => let name := fresh "G" in rename H into name; try rewrite name in *
     end
 | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, assume ?P >>= _) (_, _)) ] =>
     unfold assume; prep; iApply wsim_take_src; iIntros "%";
     match goal with
-    | [ H: _ |- _ ] => let name := fresh "G" in rename H into name
+    | [ H : _ |- _ ] => let name := fresh "G" in rename H into name
     end
 | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, tau;; _) (_, _)) ] =>
     iApply wsim_tau_src
@@ -161,12 +161,12 @@ match goal with
     let name := fresh "y" in
     iApply wsim_unwrapN_tgt; iIntros (name) "%";
     match goal with
-    | [ H: _ |- _ ] => let name := fresh "G" in rename H into name; try rewrite name in *
+    | [ H : _ |- _ ] => let name := fresh "G" in rename H into name; try rewrite name in *
     end
 | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, _) (_, guarantee ?P >>= _)) ] =>
     unfold guarantee; prep; iApply wsim_choose_tgt; iIntros "%";
     match goal with
-    | [ H: _ |- _ ] => let name := fresh "G" in rename H into name
+    | [ H : _ |- _ ] => let name := fresh "G" in rename H into name
     end
 | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, _) (_, tau;; _)) ] =>
     iApply wsim_tau_tgt
@@ -211,7 +211,7 @@ Ltac _inline_r :=
 
 Ltac des_pairs :=
   repeat match goal with
-         | [H: context[let (_, _) := ?x in _] |- _] =>
+         | [H : context[let (_, _) := ?x in _] |- _] =>
              let n0 := fresh x in let n1 := fresh x in destruct x as [n0 n1]
          | |- context[let (_, _) := ?x in _] =>
              let n0 := fresh x in let n1 := fresh x in destruct x as [n0 n1]
@@ -261,12 +261,12 @@ Ltac _st :=
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, (translate _ (assume _)) >>= _) (_, _)) ] =>
     prep; rewrite translate_emb_asm; iApply isim_asm_src; iIntros "%";
     match goal with
-    | [ H: _ |- _ ] => let name := fresh "G" in rename H into name
+    | [ H : _ |- _ ] => let name := fresh "G" in rename H into name
     end
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, _) (_, (translate _ (guarantee _)) >>= _)) ] =>
     prep; rewrite translate_emb_guar; iApply isim_guar_tgt; iIntros "%";
     match goal with
-    | [ H: _ |- _ ] => let name := fresh "G" in rename H into name
+    | [ H : _ |- _ ] => let name := fresh "G" in rename H into name
     end
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ (_, (translate _ (trigger (Assume _))) >>= _) (_, _)) ] =>
     rewrite translate_emb_assume; step

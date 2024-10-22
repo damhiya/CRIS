@@ -5,18 +5,18 @@ From CCR.base_logic Require Export base_logic.
 From CCR Require Import PCM.
 From iris.prelude Require Import options.
 
-Arguments Z.of_nat: simpl nomatch.
+Arguments Z.of_nat : simpl nomatch.
 
 Section uPredI.
   (** extra BI instances *)
 
-  Global Instance uPredI_absorbing {M : ucmra} (P: uPredI M): Absorbing P.
+  Global Instance uPredI_absorbing {M : ucmra} (P : uPredI M) : Absorbing P.
   Proof. apply _. Qed.
 
-  Global Instance uPredI_affine {M : ucmra} (P: uPredI M): Affine P.
+  Global Instance uPredI_affine {M : ucmra} (P : uPredI M) : Affine P.
   Proof. apply _. Qed.
 
-  Global Instance uPredI_except_0 {M : ucmra} (P: uPredI M): IsExcept0 P.
+  Global Instance uPredI_except_0 {M : ucmra} (P : uPredI M) : IsExcept0 P.
   Proof.
     rewrite /IsExcept0 /bi_except_0. uPred.unseal.
     split=> x WFn. intros [|]; done.
@@ -29,10 +29,10 @@ Global Hint Immediate uPredI_affine : core.
 (* TODO : 1) refactor GRA.t
           2) move iProp and own to a separate file *)
 Section iProp.
-  Context `{Σ: GRA.t}.
+  Context `{Σ : GRA.t}.
   Definition iProp := uPredI Σ.
 
-  Local Definition Own_def (a: Σ) : iProp := uPred_ownM a.
+  Local Definition Own_def (a : Σ) : iProp := uPred_ownM a.
   Local Definition Own_aux : seal (@Own_def). Proof. by eexists. Qed.
   Definition Own := Own_aux.(unseal).
   Definition Own_eq : @Own = @Own_def := Own_aux.(seal_eq).
@@ -52,16 +52,16 @@ Arguments OwnM : simpl never.
 Local Ltac unseal := rewrite ?Own_eq /Own_def.
 
 Section TEST.
-  Context {Σ: GRA.t}.
+  Context {Σ : GRA.t}.
   Notation iProp := (iProp Σ).
 
-  Goal forall (P Q R: iProp) (PQ: P -∗ Q) (QR: Q -∗ R), P -∗ R.
+  Goal forall (P Q R : iProp) (PQ : P -∗ Q) (QR : Q -∗ R), P -∗ R.
   Proof.
     iIntros (P Q R PQ QR) "H".
     iApply QR. iApply PQ. iApply "H".
   Qed.
 
-  Goal forall (P Q: iProp), ((bupd P) ∗ Q) -∗ (bupd Q).
+  Goal forall (P Q : iProp), ((bupd P) ∗ Q) -∗ (bupd Q).
   Proof.
     i. iStartProof.
     iIntros "[Hxs Hys]". iMod "Hxs". iApply "Hys".
@@ -70,10 +70,10 @@ End TEST.
 
 (* Notation "#=> P" := (|==> P)%I (at level 99). *)
 
-#[export] Hint Unfold bi_entails bi_sep bi_and bi_or bi_wand bupd bi_bupd_bupd: iprop.
+#[export] Hint Unfold bi_entails bi_sep bi_and bi_or bi_wand bupd bi_bupd_bupd : iprop.
 
 Section class_instances.
-  Context `{Σ: GRA.t}.
+  Context `{Σ : GRA.t}.
   Notation iProp := (iProp Σ).
 
   Global Instance Own_ne : NonExpansive (@Own Σ).
@@ -84,7 +84,7 @@ Section class_instances.
   Global Instance Own_core_persistent a : CoreId a →  Persistent (@Own Σ a).
   Proof. rewrite !Own_eq /Own_def; apply _. Qed.
 
-  Lemma Own_op (a1 a2: Σ) :
+  Lemma Own_op (a1 a2 : Σ) :
     (Own (a1 ⋅ a2)) ⊣⊢ (Own a1 ∗ Own a2).
   Proof. unseal. by rewrite uPred.ownM_op. Qed.
 
@@ -108,19 +108,19 @@ Section class_instances.
     FromSep (Own a) (Own b1) (Own b2).
   Proof. intros. by rewrite /FromSep -Own_op -is_op. Qed.
 
-  (* TODO: Improve this instance with generic own simplification machinery
+  (* TODO : Improve this instance with generic own simplification machinery
   once https://gitlab.mpi-sws.org/iris/iris/-/issues/460 is fixed *)
   (* Cost > 50 to give priority to [combine_sep_as_fractional]. *)
   Global Instance combine_sep_as_own (a b1 b2 : Σ) :
     IsOp a b1 b2 → CombineSepAs (Own b1) (Own b2) (Own a) | 60.
   Proof. intros. by rewrite /CombineSepAs -Own_op -is_op. Qed.
-  (* TODO: Improve this instance with generic own validity simplification
+  (* TODO : Improve this instance with generic own validity simplification
   machinery once https://gitlab.mpi-sws.org/iris/iris/-/issues/460 is fixed *)
   Global Instance combine_sep_gives_own (b1 b2 : Σ) :
     CombineSepGives (Own b1) (Own b2) (⌜✓ (b1 ⋅ b2)⌝).
   Proof.
     intros. rewrite /CombineSepGives -Own_op Own_valid.
-    by apply: bi.persistently_intro.
+    by apply : bi.persistently_intro.
   Qed.
   Global Instance from_and_own_persistent (a b1 b2 : Σ) :
     IsOp a b1 b2 → TCOr (CoreId b1) (CoreId b2) →
@@ -130,13 +130,13 @@ Section class_instances.
     destruct Hb; by rewrite bi.persistent_and_sep.
   Qed.
 
-  Lemma OwnM_op (M: ucmra) `{@GRA.inG M Σ} (a1 a2: M) :
+  Lemma OwnM_op (M : ucmra) `{@GRA.inG M Σ} (a1 a2 : M) :
     (OwnM (a1 ⋅ a2)) ⊣⊢ (OwnM a1 ∗ OwnM a2).
   Proof. by rewrite /OwnM -GRA.embed_add Own_op. Qed.
 
   Global Instance OwnM_ne `{@GRA.inG M Σ} : NonExpansive (@OwnM Σ M _).
   Proof. solve_proper. Qed.
-  Global Instance OwnM_proper (M: ucmra) `{@GRA.inG M Σ} :
+  Global Instance OwnM_proper (M : ucmra) `{@GRA.inG M Σ} :
     Proper ((≡) ==> (⊣⊢)) (@OwnM Σ M _) := ne_proper _.
 
   Global Instance OwnM_core_persistent `{@GRA.inG M Σ} (a : M) :
@@ -146,7 +146,7 @@ Section class_instances.
     rewrite core_id_total -GRA.embed_core core_id_core //.
   Qed.
 
-  Lemma OwnM_valid (M: ucmra) `{@GRA.inG M Σ} (m: M):
+  Lemma OwnM_valid (M : ucmra) `{@GRA.inG M Σ} (m : M):
     OwnM m ⊢ ⌜✓ m⌝.
   Proof.
     iIntros "H". iDestruct (Own_valid with "H") as %WF.
@@ -154,34 +154,34 @@ Section class_instances.
   Qed.
 
 
-  Global Instance into_sep_ownM (M: ucmra) `{@GRA.inG M Σ} (a b1 b2 : M) :
+  Global Instance into_sep_ownM (M : ucmra) `{@GRA.inG M Σ} (a b1 b2 : M) :
     IsOp a b1 b2 → IntoSep (OwnM a) (OwnM b1) (OwnM b2).
   Proof. intros. by rewrite /IntoSep (is_op a) OwnM_op. Qed.
 
-  Global Instance into_and_ownM (M: ucmra) `{@GRA.inG M Σ} p (a b1 b2 : M) :
+  Global Instance into_and_ownM (M : ucmra) `{@GRA.inG M Σ} p (a b1 b2 : M) :
     IsOp a b1 b2 → IntoAnd p (OwnM a) (OwnM b1) (OwnM b2).
   Proof. intros. by rewrite /IntoAnd (is_op a) OwnM_op bi.sep_and. Qed.
 
-  Global Instance from_sep_ownM (M: ucmra) `{@GRA.inG M Σ} (a b1 b2 : M) :
+  Global Instance from_sep_ownM (M : ucmra) `{@GRA.inG M Σ} (a b1 b2 : M) :
     IsOp a b1 b2 →
     FromSep (OwnM a) (OwnM b1) (OwnM b2).
   Proof. intros. by rewrite /FromSep -OwnM_op -is_op. Qed.
 
-  (* TODO: Improve this instance with generic own simplification machinery
+  (* TODO : Improve this instance with generic own simplification machinery
   once https://gitlab.mpi-sws.org/iris/iris/-/issues/460 is fixed *)
   (* Cost > 50 to give priority to [combine_sep_as_fractional]. *)
-  Global Instance combine_sep_as_ownM (M: ucmra) `{@GRA.inG M Σ} (a b1 b2 : M) :
+  Global Instance combine_sep_as_ownM (M : ucmra) `{@GRA.inG M Σ} (a b1 b2 : M) :
     IsOp a b1 b2 → CombineSepAs (OwnM b1) (OwnM b2) (OwnM a) | 60.
   Proof. intros. by rewrite /CombineSepAs -OwnM_op -is_op. Qed.
-  (* TODO: Improve this instance with generic own validity simplification
+  (* TODO : Improve this instance with generic own validity simplification
   machinery once https://gitlab.mpi-sws.org/iris/iris/-/issues/460 is fixed *)
-  Global Instance combine_sep_gives_ownM (M: ucmra) `{@GRA.inG M Σ} (b1 b2 : M) :
+  Global Instance combine_sep_gives_ownM (M : ucmra) `{@GRA.inG M Σ} (b1 b2 : M) :
     CombineSepGives (OwnM b1) (OwnM b2) (⌜✓ (b1 ⋅ b2)⌝).
   Proof.
     intros. rewrite /CombineSepGives -OwnM_op OwnM_valid.
-    by apply: bi.persistently_intro.
+    by apply : bi.persistently_intro.
   Qed.
-  Global Instance from_and_ownM_persistent (M: ucmra) `{@GRA.inG M Σ} (a b1 b2 : M) :
+  Global Instance from_and_ownM_persistent (M : ucmra) `{@GRA.inG M Σ} (a b1 b2 : M) :
     IsOp a b1 b2 → TCOr (CoreId b1) (CoreId b2) →
     FromAnd (OwnM a) (OwnM b1) (OwnM b2).
   Proof.
@@ -194,11 +194,11 @@ End class_instances.
 
 
 Section ILEMMAS.
-  Context `{Σ: GRA.t}.
+  Context `{Σ : GRA.t}.
 
   Lemma Own_Upd
-        (r1 r2: Σ)
-        (UPD: r1 ~~> r2)
+        (r1 r2 : Σ)
+        (UPD : r1 ~~> r2)
     :
       (Own r1) ⊢ (|==> (Own r2))
   .
@@ -207,8 +207,8 @@ Section ILEMMAS.
   Qed.
 
   Lemma Own_extends
-        (a b: Σ)
-        (EXT: a ≼ b)
+        (a b : Σ)
+        (EXT : a ≼ b)
     :
       Own b ⊢ Own a
   .
@@ -226,17 +226,17 @@ Section ILEMMAS.
   Lemma OwnM_unit {M : ucmra} `{@GRA.inG M Σ} : ⊢ OwnM ε.
   Proof. rewrite /OwnM GRA.embed_unit. apply Own_unit. Qed.
 
-  Lemma OwnM_Upd `{M: ucmra} `{@GRA.inG M Σ}
-        (r1 r2: M)
-        (UPD: r1 ~~> r2)
+  Lemma OwnM_Upd `{M : ucmra} `{@GRA.inG M Σ}
+        (r1 r2 : M)
+        (UPD : r1 ~~> r2)
     :
       (OwnM r1) ⊢ (|==> (OwnM r2))
   .
   Proof. apply Own_Upd, GRA.embed_updatable, UPD. Qed.
 
-  Lemma OwnM_extends `{M: ucmra} `{@GRA.inG M Σ}
-        {a b: M}
-        (EXT: a ≼ b)
+  Lemma OwnM_extends `{M : ucmra} `{@GRA.inG M Σ}
+        {a b : M}
+        (EXT : a ≼ b)
     :
       OwnM b ⊢ OwnM a
   .
@@ -253,6 +253,6 @@ Tactic Notation "iOwnWf" constr(H) :=
 Tactic Notation "iOwnWf" constr(H) "as" ident(WF) :=
   iOwnWf' H;
   match goal with
-  | H0: @valid _ _ _ |- _ => rename H0 into WF
+  | H0 : @valid _ _ _ |- _ => rename H0 into WF
   end
 .
