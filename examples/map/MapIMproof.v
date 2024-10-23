@@ -131,7 +131,7 @@ Section SIMMODSEM.
     inline_r.
 
     (* TGT: prove the precond of alloc *)
-    forces_r.
+    step_r. forces_r.
     iSplit; eauto.
 
     (* TGT: handle the postcond of alloc *)
@@ -172,7 +172,7 @@ Section SIMMODSEM.
       inline_r.
 
       (* TGT: prove the precond of store *)
-      force_r (_, (sz - S n)%Z, _).
+      step_r. force_r (_, (sz - S n)%Z, _).
       force_r ([Vptr _ (sz - (S n))%Z; _]↑).
       forces_r.
       iPoseProof (big_sepL_insert_acc with "PTS") as "(PT & CTN)".
@@ -229,7 +229,7 @@ Section SIMMODSEM.
     inline_r.
 
     (* TGT: prove the precond of load *)
-    force_r (_, (ofs + _)%Z, _). forces_r.
+    step_r. force_r (_, (ofs + _)%Z, _). forces_r.
     iPoseProof (big_sepL_lookup_acc with "M") as "(IP & M)".
     { apply fun_to_list_lookup with (i:=Z.to_nat idx). nia. }
     rewrite Z2Nat.id; try nia.
@@ -273,7 +273,7 @@ Section SIMMODSEM.
     inline_r.
 
     (* TGT: prove the precond of store *)
-    force_r (_, _, _). forces_r.
+    step_r. force_r (_, _, _). forces_r.
     iPoseProof (big_sepL_insert_acc with "M") as "(IP & M)".
     { apply fun_to_list_lookup with (i:=Z.to_nat idx). nia. }
     rewrite Z2Nat.id; try nia.

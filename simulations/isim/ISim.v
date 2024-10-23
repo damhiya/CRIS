@@ -32,16 +32,16 @@ Section LEMMAS.
     fls flt I my_tid r g ps pt {R} RR nths st_src st_tgt k_src k_tgt
     fn varg arg X (x: shelve__ X) P Q
   :
-    (P x varg arg 
+    (P my_tid x varg arg 
       ∗ I nths st_src st_tgt 
       ∗ (∀ nths0 st_src0 st_tgt0 vret ret, 
-             (Q x vret ret ∗ I nths0 st_src0 st_tgt0) 
+             (Q my_tid x vret ret ∗ I nths0 st_src0 st_tgt0) 
           -∗ @isim Σ fls flt I my_tid r g R RR true true nths0 (st_src0, k_src vret) (st_tgt0, k_tgt ret)))
   -∗  
     @isim _ fls flt I my_tid r g R RR ps pt nths (st_src, HoareCall (mk_fspec P Q) fn varg >>= k_src) (st_tgt, trigger (Call fn arg) >>= k_tgt).
   Proof.
     iIntros "(P & IST & K)".
-    unfold HoareCall. prep.
+    unfold HoareCall. prep. steps_l.
     force_l x.
     force_l arg.
     forces_l. iSplitL "P"; [eauto|].

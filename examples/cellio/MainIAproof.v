@@ -53,7 +53,7 @@ Section SIMMODSEM.
     steps_l. iDestruct "ASM" as "%". subst.
 
     inline_r.
-    forces_r. iSplitL ""; eauto.
+    step_r. forces_r. iSplitL ""; eauto.
     unfold CellioA.set.
     forces_r. steps_r. forces_r. iSplitL "ASM'"; eauto.
 
@@ -67,7 +67,7 @@ Section SIMMODSEM.
 
     steps_l. iDestruct "ASM" as "%". subst. hss.
     steps_r. inline_r.
-    forces_r. iSplitL ""; eauto.
+    step_r. forces_r. iSplitL ""; eauto.
     unfold CellioA.get.
     forces_r. steps_r. forces_r.
     iSplitL "GRT"; eauto.

@@ -241,7 +241,7 @@ Section SIMMODSEM.
 
     inline_r.
 
-    forces_r. iDestruct "LIVE" as "(Q & LIVE)".
+    step_r. forces_r. iDestruct "LIVE" as "(Q & LIVE)".
     rewrite !Nat.add_0_r in *.
     iSplitL "Q". { iFrame. eauto. }
 
