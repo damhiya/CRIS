@@ -213,9 +213,11 @@ Section restate.
   Proof. exact : uPred_primitive.ownM_unit. Qed.
   (* Lemma later_ownM a : ▷ uPred_ownM a ⊢ ∃ b, uPred_ownM b ∧ ▷ (a ≡ b).
   Proof. exact : uPred_primitive.later_ownM. Qed. *)
-  Lemma bupd_ownM_update x y `{CmraDiscrete M} :
+  Lemma bupd_ownM_update x y :
     x ~~> y → uPred_ownM x ⊢ |==> uPred_ownM y.
   Proof. exact : uPred_primitive.bupd_ownM_update. Qed.
+  Lemma bupd_ownM_update_2 x y (UPD : uPred_ownM x ⊢ |==> uPred_ownM y) (VAL : ✓ x) : ✓ y.
+  Proof. exact : uPred_primitive.bupd_ownM_update_2. Qed.
 
   (** This is really just a special case of an entailment
   between two [siProp], but we do not have the infrastructure

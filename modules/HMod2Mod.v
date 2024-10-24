@@ -164,8 +164,7 @@ Section RED.
   Context `{Σ : GRA.t}.
   Notation iProp := (iProp Σ).
 
-  Lemma interp_hp_bind (R S : Type)
-        (s : itree hmodE R) (k : R -> itree hmodE S)fmr :
+  Lemma interp_hp_bind (R S : Type) (s : itree hmodE R) (k : R -> itree hmodE S) fmr :
     interp_hp (s >>= k) fmr = st <- interp_hp s fmr;; interp_hp (Σ:=Σ) (k st.2) st.1.
   Proof. unfold interp_hp in *. eapply interp_state_bind. Qed.
 

@@ -679,7 +679,7 @@ Section ADEQUACY.
   Theorem main_adequacy (ms mt : HMod.t) IC Ist
     (SIM : HSim.t ms mt IC Ist)
     :
-    ctx_refines (ms,IC) (mt, const(emp%I)).
+    ctx_refines (ms, IC) (mt, const(emp%I)).
   Proof.
     ii. s. split.
     { s. eapply sk_equiv_ctx. apply SIM. }

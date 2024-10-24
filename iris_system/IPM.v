@@ -95,6 +95,13 @@ Section class_instances.
     iEval (rewrite uPred.discrete_valid) in "V". iFrame "V".
   Qed.
 
+  Lemma Own_wand_valid (a1 a2 : Σ) (WAND : Own a1 ⊢ |==> Own a2) (VALID : ✓ a1) :
+     ✓ a2.
+  Proof.
+    eapply uPred.bupd_ownM_update_2; last by exact VALID.
+    move: WAND; unseal; eauto.
+  Qed.
+
   Global Instance into_sep_own (a b1 b2 : Σ) :
     IsOp a b1 b2 → IntoSep (Own a) (Own b1) (Own b2).
   Proof. intros. by rewrite /IntoSep (is_op a) Own_op. Qed.

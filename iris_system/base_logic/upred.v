@@ -878,12 +878,24 @@ Module uPred_primitive.
     Proof. unseal; split=> - x /= ? Hax; eauto. Qed.
 
     Lemma bupd_ownM_update x y :
-    x ~~> y → uPred_ownM x ⊢ |==> uPred_ownM y.
+      x ~~> y → uPred_ownM x ⊢ |==> uPred_ownM y.
     Proof.
       unseal=> Hup; split=> x' Hwf [x'' ->]; exists (y ⋅ x''); intros yf ?; split; last by exists x''; eauto.
       rewrite cmra_valid_validN; intros n; specialize (Hup n (Some (x'' ⋅ yf))).
       rewrite cmra_valid_validN in H; simpl in Hup.
       specialize (H n); rewrite -assoc in H; eapply Hup in H; rewrite -assoc; eauto.
+    Qed.
+    (* Note : delete this lemma after updating own and GRAs
+       Explanation : deriving cmra-level facts from logic inferences would only use pure_soundness,
+       but this is impossible for now due to ownM restrictions *)
+    Lemma bupd_ownM_update_2 x y (UPD : uPred_ownM x ⊢ |==> uPred_ownM y) (VAL : ✓ x) :
+      ✓ y.
+    Proof.
+      move: UPD; unseal; rewrite /uPred_ownM_def /uPred_bupd_def=> /= UPD. inversion UPD.
+      specialize (uPred_in_entails0 x VAL). simpl in *.
+      destruct uPred_in_entails0; first by reflexivity.
+      specialize (H ε); rewrite ? right_id in H; eapply cmra_valid_included; last by apply H.
+      by apply H.
     Qed.
 
     (** Valid *)

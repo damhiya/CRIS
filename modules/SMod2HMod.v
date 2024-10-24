@@ -120,7 +120,7 @@ Section APC.
     fun fn varg_src =>
       x <- trigger (Choose fsp.(meta));; 
 
-    (*** precondition ***)
+      (*** precondition ***)
       varg_tgt <- trigger (Choose Any.t);;
       let ord_next := fsp.(measure) x in
       trigger (Guarantee ((fsp.(precond) x varg_src varg_tgt) ∗ ⌜ord_lt ord_next ord_cur⌝%I ∗ (⌜ord_eval tbr ord_next⌝%I)));;;
@@ -193,7 +193,8 @@ End APC.
 
 Section HOARE.
   Context `{Σ : GRA.t}.
-  
+  Notation iProp := (iProp Σ).
+
   Section INTERP.
     Section SPC.
       (* spc to mid *)
@@ -250,19 +251,20 @@ Section HOARE.
                  (D : X -> ord)
                  (P : X -> Any.t -> Any.t -> iProp)
                  (Q : X -> Any.t -> Any.t -> iProp)
-                 (body : Any.t -> itree smodE Any.t) : Any.t -> itree hmodE Any.t := fun varg_tgt =>
-        x <- trigger (Take X);;
+                 (body : Any.t -> itree smodE Any.t) : Any.t -> itree hmodE Any.t :=
+        fun varg_tgt =>
+          x <- trigger (Take X);;
 
-        varg_src <- trigger (Take _);;
-        let ord_cur := D x in
-        trigger (Assume (P x varg_src varg_tgt));;; (*** precondition ***)
+          varg_src <- trigger (Take _);;
+          let ord_cur := D x in
+          trigger (Assume (P x varg_src varg_tgt));;; (*** precondition ***)
 
-        vret_src <- interp_smod ord_cur (HoareBody ord_cur body varg_src);;
+          vret_src <- interp_smod ord_cur (HoareBody ord_cur body varg_src);;
 
-        vret_tgt <- trigger (Choose Any.t);;
-        trigger (Guarantee (Q x vret_src vret_tgt));;; (*** postcondition ***)
+          vret_tgt <- trigger (Choose Any.t);;
+          trigger (Guarantee (Q x vret_src vret_tgt));;; (*** postcondition ***)
 
-        Ret vret_tgt.
+          Ret vret_tgt.
 
       Definition interp_sb_hp (sb : fspecbody) : (Any.t -> itree hmodE Any.t) :=
         let fs : fspec := sb.(fsb_fspec) in

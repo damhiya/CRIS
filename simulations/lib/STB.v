@@ -64,7 +64,6 @@ Ltac stb_tac :=
 Definition ord_weaker (next cur : ord) : Prop :=
   match next, cur with
   | ord_pure next, ord_pure cur => (next <= cur)%ord
-  (* | _, ord_top => True *)
   | ord_top, ord_top => True
   | _, _ => False
   end
@@ -78,21 +77,17 @@ Next Obligation.
   ii. destruct x, y, z; ss. etrans; et.
 Qed.
 
-
-
 Section HEADER.
 
   Context `{Σ : GRA.t}.
-  
+
   Definition fspec_weaker (fsp_src fsp_tgt : fspec) : Prop :=
-    forall x_src,
-    exists x_tgt,
-      (<<MEASURE : ord_weaker (fsp_tgt.(measure) x_tgt) (fsp_src.(measure) x_src)>>) ∧
-      (<<PRE : forall arg_src arg_tgt,
-          (fsp_src.(precond) x_src arg_src arg_tgt) ⊢ #=> (fsp_tgt.(precond) x_tgt arg_src arg_tgt)>>) ∧
-      (<<POST : forall ret_src ret_tgt,
-          (fsp_tgt.(postcond) x_tgt ret_src ret_tgt) ⊢ #=> (fsp_src.(postcond) x_src ret_src ret_tgt)>>)
-  .
+    ∀ x_src, ∃ x_tgt,
+      (<<MEASURE : ord_weaker (fsp_tgt.(measure) x_tgt) (fsp_src.(measure) x_src)>>)
+      ∧ (<<PRE : ∀ arg_src arg_tgt,
+          (fsp_src.(precond) x_src arg_src arg_tgt) ⊢ |==> (fsp_tgt.(precond) x_tgt arg_src arg_tgt)>>)
+      ∧ (<<POST : ∀ ret_src ret_tgt,
+          (fsp_tgt.(postcond) x_tgt ret_src ret_tgt) ⊢ |==> (fsp_src.(postcond) x_src ret_src ret_tgt)>>).
 
   Global Program Instance fspec_weaker_PreOrder : PreOrder fspec_weaker.
   Next Obligation.
@@ -116,41 +111,31 @@ Section HEADER.
   Qed.
 
   Variant fn_has_spec (stb : gname -> option fspec) (fn : gname) (fsp : fspec) : Prop :=
-  | fn_has_spec_intro
-      fsp1
+  | fn_has_spec_intro fsp1
       (FIND : stb fn = Some fsp1)
-      (WEAK : fspec_weaker fsp fsp1)
-  .
+      (WEAK : fspec_weaker fsp fsp1).
   Hint Constructors fn_has_spec : core.
 
   Lemma fn_has_spec_weaker (stb : gname -> option fspec) (fn : gname) (fsp0 fsp1 : fspec)
-        (SPEC : fn_has_spec stb fn fsp1)
-        (WEAK : fspec_weaker fsp0 fsp1)
-    :
-      fn_has_spec stb fn fsp0.
-  Proof.
-    inv SPEC. econs; eauto. etrans; eauto.
-  Qed.
+      (SPEC : fn_has_spec stb fn fsp1)
+      (WEAK : fspec_weaker fsp0 fsp1) :
+    fn_has_spec stb fn fsp0.
+  Proof. inv SPEC. econs; eauto. etrans; eauto. Qed.
 
   Definition stb_sub (stb0 stb1 : gname -> option fspec) : Prop :=
-    forall fn fsp (FIND : stb0 fn = Some fsp), stb1 fn = Some fsp.
+    ∀ fn fsp (FIND : stb0 fn = Some fsp), stb1 fn = Some fsp.
 
   Definition stb_incl (stbl : alist gname fspec) (gstb : gname -> option fspec) : Prop :=
-    List.NoDup (List.map fst stbl) /\ stb_sub (to_stb stbl) gstb.
+    List.NoDup (List.map fst stbl) ∧ stb_sub (to_stb stbl) gstb.
 
   Global Program Instance stb_sub_PreOrder : PreOrder stb_sub.
   Next Obligation.
-  Proof.
-    ii. ss.
-  Qed.
+  Proof. ii. ss. Qed.
   Next Obligation.
-  Proof.
-    ii. eapply H0, H, FIND.
-  Qed.
+  Proof. ii. eapply H0, H, FIND. Qed.
 
   Lemma incl_to_stb stb0 stb1 (INCL : List.incl stb0 stb1)
-        (NODUP : List.NoDup (List.map fst stb1))
-    :
+        (NODUP : List.NoDup (List.map fst stb1)) :
       stb_sub (to_stb stb0) (to_stb stb1).
   Proof.
     unfold to_stb. ii.
@@ -159,10 +144,9 @@ Section HEADER.
   Qed.
 
   Lemma to_stb_context_sub stbu stbk stball
-        (INCL : List.incl stbk stball)
-        (NODUP : List.NoDup (stbu ++ (List.map fst stball)))
-    :
-      stb_sub (to_stb_context stbu stbk) (to_closed_stb stball).
+      (INCL : List.incl stbk stball)
+      (NODUP : List.NoDup (stbu ++ (List.map fst stball))) :
+    stb_sub (to_stb_context stbu stbk) (to_closed_stb stball).
   Proof.
     unfold to_stb_context, to_stb, to_closed_stb. ii.
     rewrite alist_find_app_o in FIND. 
@@ -174,14 +158,12 @@ Section HEADER.
     { eapply alist_find_some in FIND. eapply INCL in FIND.
       eapply alist_find_some_iff in FIND; et.
       rewrite FIND; et. eapply nodup_app_r; et. }
+    Unshelve. exact string_Dec.
   Qed.
 
   Definition stb_weaker (stb0 stb1 : gname -> option fspec) : Prop :=
-    forall fn fsp0 (FINDTGT : stb0 fn = Some fsp0),
-    exists fsp1,
-      (<<FINDSRC : stb1 fn = Some fsp1>>) /\
-      (<<WEAKER : fspec_weaker fsp0 fsp1>>)
-  .
+    ∀ fn fsp0 (FINDTGT : stb0 fn = Some fsp0),
+      ∃ fsp1, (<<FINDSRC : stb1 fn = Some fsp1>>) ∧ (<<WEAKER : fspec_weaker fsp0 fsp1>>).
 
   Global Program Instance stb_weaker_PreOrder : PreOrder stb_weaker.
   Next Obligation. ii. esplits; eauto. refl. Qed.
@@ -195,7 +177,9 @@ Section HEADER.
     ii. eapply PR in FINDTGT. esplits; et. refl.
   Qed.
 
-  Lemma incl_stb_sub : forall stb0 stb1 (NODUP : List.NoDup (List.map fst stb1)) (INCL : List.incl stb0 stb1), stb_sub (to_stb stb0) (to_stb stb1).
+  Lemma incl_stb_sub :
+    ∀ stb0 stb1 (NODUP : List.NoDup (List.map fst stb1)) (INCL : List.incl stb0 stb1),
+      stb_sub (to_stb stb0) (to_stb stb1).
   Proof.
     unfold to_stb.
     ii. eapply alist_find_some in FIND.
@@ -214,38 +198,28 @@ Section HEADER.
     eapply alist_find_none in T; et. exfalso. et.
   Qed.
 
-  Lemma incl_weaker : forall stb0 stb1 (NODUP : List.NoDup (List.map fst stb1)) (INCL : List.incl stb0 stb1), stb_weaker (to_stb stb0) (to_stb stb1).
-  Proof.
-    i. eapply stb_sub_weaker. eapply incl_stb_sub; et.
-  Qed.
+  Lemma incl_weaker :
+    ∀ stb0 stb1 (NODUP : List.NoDup (List.map fst stb1)) (INCL : List.incl stb0 stb1),
+      stb_weaker (to_stb stb0) (to_stb stb1).
+  Proof. i. eapply stb_sub_weaker. eapply incl_stb_sub; et. Qed.
 
-  Lemma app_sub : forall stb0 stb1, stb_sub (to_stb stb0) (to_stb (stb0 ++ stb1)).
-  Proof.
-    unfold to_stb.
-    ii. eapply alist_find_app in FIND. esplits; eauto.
-  Qed.
+  Lemma app_sub : ∀ stb0 stb1, stb_sub (to_stb stb0) (to_stb (stb0 ++ stb1)).
+  Proof. unfold to_stb. ii. eapply alist_find_app in FIND. esplits; eauto. Qed.
 
-  Lemma app_weaker : forall stb0 stb1, stb_weaker (to_stb stb0) (to_stb (stb0 ++ stb1)).
-  Proof.
-    i. eapply stb_sub_weaker. eapply app_sub.
-  Qed.
+  Lemma app_weaker : ∀ stb0 stb1, stb_weaker (to_stb stb0) (to_stb (stb0 ++ stb1)).
+  Proof. i. eapply stb_sub_weaker. eapply app_sub. Qed.
 
-  Lemma to_closed_stb_weaker stb
-    :
-      stb_sub (to_stb stb) (to_closed_stb stb).
-  Proof.
-    unfold to_closed_stb, to_stb. ii. rewrite FIND. auto.
-  Qed.
+  Lemma to_closed_stb_weaker stb : stb_sub (to_stb stb) (to_closed_stb stb).
+  Proof. unfold to_closed_stb, to_stb. ii. rewrite FIND. auto. Qed.
 
-  Lemma incl_to_closed_stb stb0 stb1 (INCL : List.incl stb0 stb1)
-        (NODUP : List.NoDup (List.map fst stb1))
-    :
-      stb_sub (to_stb stb0) (to_closed_stb stb1).
+  Lemma incl_to_closed_stb stb0 stb1 (INCL : List.incl stb0 stb1) (NODUP : List.NoDup (List.map fst stb1)) :
+    stb_sub (to_stb stb0) (to_closed_stb stb1).
   Proof.
     unfold to_stb, to_closed_stb. ii.
     eapply alist_find_some in FIND. eapply INCL in FIND.
     eapply alist_find_some_iff in FIND; et.
     rewrite FIND. et.
+  Unshelve. exact string_Dec.
   Qed.
 
 End HEADER.
@@ -262,5 +236,3 @@ Ltac stb_context_sub_tac :=
     autounfold with stb; autorewrite with stb; repeat econs; ii; ss; des; ss].
 
 Ltac ors_tac := repeat ((try by (ss; left; ss)); right).
-
-
