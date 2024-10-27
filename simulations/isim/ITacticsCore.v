@@ -437,6 +437,13 @@ Ltac _prep :=
 Ltac prep :=
   try rewrite !bind_bind;
   try match goal with
+  | [|-context[interp_smod _ _ (?f ?arg)]] =>
+    match type of arg with Any.t => rewrite/__ {1}/f end
+  | [|-context[PModSem.transl (?f ?arg)]] =>
+    match type of arg with Any.t => rewrite/__ {1}/f end
+  end;
+  unfold ccallU, ccallN;
+  try match goal with
       | [|-context[(_, HModSem.sandbox _ _)]] => _prep
       | [|-context[(_, HModSem.sandbox _ _ >>= _)]] => _prep
       end;
@@ -534,10 +541,11 @@ Ltac init_simF :=
   | [|- context[{| fsb_body := cfunU ?x |}]] => rewrite/__ {1}/x
   | [|- context[{| fsb_body := cfunN ?x |}]] => rewrite/__ {1}/x
   | [|- context[{| fsb_body := ?x |}]] => rewrite/__ {1}/x
+  | [|- context[PModSem.transl (?x _)]] => unfold x
   | [|- context[cfunU ?x]] => rewrite/__ {1}/x
   | [|- context[cfunN ?x]] => rewrite/__ {1}/x
   end;                          
-  unfold interp_sb_hp, HoareFun, cfunU, cfunN, ccallU, ccallN, HModSem.sandbox_body; s;
+  unfold interp_sb_hp, HoareFun, cfunU, cfunN, HModSem.sandbox_body; s;
   ii; subst; iIntros "IST".
 
 Ltac prove_sub_perm :=

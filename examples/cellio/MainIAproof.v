@@ -48,13 +48,12 @@ Section SIMMODSEM.
   Lemma simF_main:
     HSim.sim_fun (MainA ★ CellioA) (MainI.t ★ CellioA) IstFull MainName.main.
   Proof.
-    init_simF. unfold MainI.main, ccallU.
+    init_simF.
 
     steps_l. iDestruct "ASM" as "%". subst.
 
     inline_r.
     step_r. forces_r. iSplitL ""; eauto.
-    unfold CellioA.set.
     forces_r. steps_r. forces_r. iSplitL "ASM'"; eauto.
 
     steps_r. step.
@@ -68,7 +67,6 @@ Section SIMMODSEM.
     steps_l. iDestruct "ASM" as "%". subst. hss.
     steps_r. inline_r.
     step_r. forces_r. iSplitL ""; eauto.
-    unfold CellioA.get.
     forces_r. steps_r. forces_r.
     iSplitL "GRT"; eauto.
 
