@@ -79,13 +79,21 @@ Section MID.
   .
 
   Definition mput_kv E `{stateE -< E} `{coreE -< E} (k: key) (v: Any.t) : itree E unit :=
-    st <- trigger sGet;; '(mp, mr) <- (Any.split st)?;;
-    trigger (sPut (Any.pair (alist_encode (alist_upd k v (alist_decode mp))) mr))
+    st <- trigger sGet;;
+    or_else (
+        do '(mp, mr) <- Any.split st;
+        Some (trigger (sPut (Any.pair (alist_encode (alist_upd k v (alist_decode mp))) mr)))
+      )
+      (Ret tt)
   .
 
   Definition mget_kv E `{stateE -< E} `{coreE -< E} (k: key) : itree E Any.t :=
-    st <- trigger sGet;; '(mp, _) <- (Any.split st)?;;
-    Ret (or_else (alist_find k (alist_decode mp)) tt↑)
+    st <- trigger sGet;;
+    or_else (
+        do '(mp, _) <- Any.split st;
+        Some (Ret (or_else (alist_find k (alist_decode mp)) tt↑))
+      )
+      (Ret tt↑)
   .
 
   (* mid to tgt code *)  
