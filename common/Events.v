@@ -111,8 +111,6 @@ Section EVENTS_OTHER.
   
   Definition hmodE := agE +' pmodE.
 
-  Definition smodE := hmodE.
-
 End EVENTS_OTHER.
 
 Notation "f '?'" := (unwrapU f) (at level 9).

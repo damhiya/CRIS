@@ -21,18 +21,18 @@ Section RING_A.
   Definition scopes := ["Ring"].
   Definition v_que := "Ring" ↯ "que".
   
-  Definition init: unit -> itree smodE unit :=
+  Definition init: unit -> itree hmodE unit :=
     fun _ =>
       cput v_que ([]:list Z)
   .
 
-  Definition get_size: unit -> itree smodE nat :=
+  Definition get_size: unit -> itree hmodE nat :=
     fun _ =>
       `que: list Z <- cgetU v_que;;
       Ret (List.length que)
   .
 
-  Definition enqueue: Z -> itree smodE unit :=
+  Definition enqueue: Z -> itree hmodE unit :=
     fun x =>
       `que: list Z <- cgetU v_que;;
       if (List.length que <? max_size)%nat
@@ -40,7 +40,7 @@ Section RING_A.
       else trigger (@IO _ void "error" "exceeds the maximum size");;; Ret tt
   .
 
-  Definition dequeue: unit -> itree smodE Z :=
+  Definition dequeue: unit -> itree hmodE Z :=
     fun _ =>
       `que: list Z <- cgetU v_que;;
       match que with
