@@ -63,25 +63,12 @@ Section SIM.
     II nths (st_src, v_src) (st_tgt, v_tgt) -∗
     isim r g RR ps pt nths (st_src, kt_src v_src) (st_tgt, kt_tgt v_tgt).
 
-  Definition ksimH
-    r g {I R}
-    (IIH: (nat -> alist key Any.t * I-> alist key Any.t * I -> iProp) -> iProp)
-    (RRH: (nat -> alist key Any.t * R-> alist key Any.t * R -> iProp) -> iProp)
-    ps pt kt_src kt_tgt : iProp
-    :=
-    ∀ RR, RRH RR -∗ ∃ II, IIH II ∗ ksim r g II RR ps pt kt_src kt_tgt.
-
   Definition cimply {I}
     (II JJ: nat -> alist key Any.t * I-> alist key Any.t * I -> iProp) : iProp
     :=
     ∀ nths st_src v_src st_tgt v_tgt,
     II nths (st_src,v_src) (st_tgt,v_tgt) -∗
     JJ nths (st_src,v_src) (st_tgt,v_tgt).
-
-  Definition cimplyH {I}
-    (IIH JJH: (nat -> alist key Any.t * I-> alist key Any.t * I -> iProp) -> iProp) : iProp
-    :=
-    ∀ JJ, JJH JJ -∗ ∃ II, IIH II ∗ cimply II JJ.
   
   Definition cwpre
     r g {I R}
@@ -91,14 +78,6 @@ Section SIM.
     := 
     fun nths '(st_src,v_src) '(st_tgt,v_tgt) =>
       isim r g RR ps pt nths (st_src, kt_src v_src) (st_tgt, kt_tgt v_tgt).
-  
-  Definition cwpreH r g {I R}
-    (RRH: (nat -> alist key Any.t * R-> alist key Any.t * R -> iProp) -> iProp)
-    ps pt (kt_src kt_tgt: I -> itree hmodE R) :
-    (nat -> alist key Any.t * I-> alist key Any.t * I -> iProp) -> iProp
-    :=
-    fun IH =>
-      (∃ RR, RRH RR ∗ cimply (cwpre r g RR ps pt kt_src kt_tgt) IH)%I.
 
   Lemma cimply_refl {I} II:
     ⊢ @cimply I II II.
@@ -113,25 +92,6 @@ Section SIM.
     iApply "SIMJ". iApply "SIMI". iFrame.
   Qed.
 
-  Lemma cimplyH_refl {I} IIH:
-    ⊢ @cimplyH I IIH IIH.
-  Proof.
-    iIntros (II) "IIH". iExists II. iFrame. iApply cimply_refl.
-  Qed.
-  
-  Lemma cimplyH_trans {I} IIH JJH KKH:
-    ⊢ @cimplyH I IIH JJH ∗ cimplyH JJH KKH -∗ cimplyH IIH KKH.
-  Proof.
-    iIntros "(IMP1 & IMP2)". iIntros (KK) "KK".
-    iSpecialize ("IMP2" with "KK").
-    iDestruct "IMP2" as (JJ) "(JJ & IMP2)".
-    iSpecialize ("IMP1" with "JJ").
-    iDestruct "IMP1" as (II) "(II & IMP1)".
-    iExists II. iFrame.
-    iApply cimply_trans.
-    iSplitL "IMP1"; eauto.
-  Qed.
-  
   Lemma cwpre_sound
     r g {I R} RR ps pt kt_src kt_tgt
     :      
@@ -152,90 +112,6 @@ Section SIM.
     iApply "SIM". iFrame.
   Qed.
 
-  Lemma cwpreH_sound
-    r g I R RRH ps pt kt_src kt_tgt
-    :
-    ⊢ @ksimH r g I R (cwpreH r g RRH ps pt kt_src kt_tgt) RRH ps pt kt_src kt_tgt.
-  Proof.
-    iIntros (?) "RR". iExists (cwpre r g RR ps pt kt_src kt_tgt).
-    iSplitL "RR".
-    - iExists RR. iFrame.
-      iIntros (? ? ? ? ?). eauto.
-    - iApply cwpre_sound.
-  Qed.
-  
-  Lemma cwpreH_weakest
-    r g I R RRH ps pt kt_src kt_tgt IIH
-    :
-    @ksimH r g I R IIH RRH ps pt kt_src kt_tgt -∗
-    cimplyH IIH (cwpreH r g RRH ps pt kt_src kt_tgt).
-  Proof.
-    iIntros "SIM". iIntros (?) "PRE".
-    iDestruct "PRE" as (?) "(RR & IMP)".
-    iSpecialize ("SIM" with "RR").
-    iDestruct "SIM" as (?) "(II & SIM)".
-    iExists II. iFrame.
-    iIntros (? ? ? ? ?) "II".
-    iSpecialize ("SIM" with "II").
-    iApply "IMP".
-    iFrame.
-  Qed.
-
-  (* Definition isim_iff {I} II JJ : iProp := *)
-  (*   @cimply I II JJ ∗ cimply JJ II. *)
-  
-  (* Definition cwpreH' r g {I R} *)
-  (*   (RRH: (nat -> alist key Any.t * R-> alist key Any.t * R -> iProp) -> iProp) *)
-  (*   ps pt (kt_src kt_tgt: I -> itree hmodE R) : *)
-  (*   (nat -> alist key Any.t * I-> alist key Any.t * I -> iProp) -> iProp *)
-  (*   := *)
-  (*   fun IH => *)
-  (*     (∃ RR, RRH RR ∗ isim_iff (cwpre r g RR ps pt kt_src kt_tgt) IH)%I. *)
-
-  (* Lemma cwpreH'_sound *)
-  (*   r g I R RRH ps pt kt_src kt_tgt *)
-  (*   : *)
-  (*   ⊢ @ksimH r g I R (cwpreH' r g RRH ps pt kt_src kt_tgt) RRH ps pt kt_src kt_tgt. *)
-  (* Proof. *)
-  (*   iIntros (?) "RR". iExists (cwpre r g RR ps pt kt_src kt_tgt). *)
-  (*   iSplitL "RR". *)
-  (*   - iExists RR. iFrame. iSplitL "". *)
-  (*     + iIntros (? ? ? ? ?). eauto. *)
-  (*     + iIntros (? ? ? ? ?). eauto. *)
-  (*   - iApply cwpre_sound. *)
-  (* Qed. *)
-  
-  (* Lemma cwpreH'_cwpreH r g I R RRH ps pt kt_src kt_tgt *)
-  (*   : *)
-  (*   ⊢ *)
-  (*   cimplyH *)
-  (*   (@cwpreH' r g I R RRH ps pt kt_src kt_tgt) *)
-  (*   (cwpreH r g RRH ps pt kt_src kt_tgt). *)
-  (* Proof. *)
-  (*   iIntros "". *)
-  (*   iApply cimplyH_trans. *)
-  (*   iSplitL "". *)
-  (*   - iApply cimplyH_refl. *)
-  (*   - iApply cwpreH_weakest. *)
-  (*     iApply cwpreH'_sound. *)
-  (* Qed. *)
-
-  (* Lemma cwpreH_cwpreH' r g I R RRH ps pt kt_src kt_tgt *)
-  (*   : *)
-  (*   ⊢ *)
-  (*   cimplyH *)
-  (*   (@cwpreH r g I R RRH ps pt kt_src kt_tgt) *)
-  (*   (cwpreH' r g RRH ps pt kt_src kt_tgt). *)
-  (* Proof. *)
-  (*   iIntros (?) "PRE". *)
-  (*   iExists JJ. iSplitR ""; cycle 1. *)
-  (*   { iApply cimply_refl. } *)
-  (*   iDestruct "PRE" as (?) "(RR & IF & FI)". *)
-  (*   iExists RR. iFrame. *)
-  (* Qed. *)
-  
-
-  
 (***** isim lemmas *****)
 
   Lemma iunlift_ibot:
@@ -422,35 +298,6 @@ Section SIM.
     iApply "SIM2". eauto.
   Qed.
   
-  Lemma ksimH_bind_aux
-    r g ps pt {I T R} IIH TTH RRH j_src j_tgt k_src k_tgt
-    :
-
-    (@ksimH r g I T IIH TTH ps pt j_src j_tgt ∗ ksimH r g TTH RRH false false k_src k_tgt)
-    ⊢
-    @ksimH r g I R IIH RRH ps pt (fun x => j_src x >>= k_src) (fun x => j_tgt x >>= k_tgt).
-  Proof.
-    iIntros "(SIM1 & SIM2)".
-    iIntros (RR) "RRH".
-    iSpecialize ("SIM2" with "RRH").
-    iDestruct "SIM2" as (TT) "(TTH & SIM2)".
-    iSpecialize ("SIM1" with "TTH").
-    iDestruct "SIM1" as (II) "(IIH & SIM1)".
-    iExists II. iFrame.
-    iApply ksim_bind_aux. iFrame.
-  Qed.
-
-  Lemma ksimH_bind
-    r g ps pt {I T R} IIH TTH RRH j_src j_tgt k_src k_tgt
-    :
-
-    (@ksimH r g I T IIH TTH ps pt j_src j_tgt ∗ ksimH r g TTH RRH false false k_src k_tgt)
-    ⊢
-    @ksimH r g I R IIH RRH ps pt (fun x => j_src x >>= k_src) (fun x => j_tgt x >>= k_tgt).
-  Proof.
-  Qed.
-  
-
   (* Simulation rules *)
   Lemma isim_ret
     r g ps pt {R} RR nths st_src st_tgt v_src v_tgt
@@ -1076,7 +923,131 @@ Section SIM.
 
 End SIM.
 
+Section HYPER.
 
+  Context `{Σ: GRA.t}.
+  Variable fl_src fl_tgt: alist gname (Any.t -> itree hmodE Any.t).
+  Variable Ist: nat -> alist key Any.t -> alist key Any.t -> iProp.
+  Variable my_tid: nat.
+  
+  Definition ksimH
+    r g {I R}
+    (IIH: (nat -> alist key Any.t * I-> alist key Any.t * I -> iProp) -> iProp)
+    (RRH: (nat -> alist key Any.t * R-> alist key Any.t * R -> iProp) -> iProp)
+    ps pt kt_src kt_tgt : iProp
+    :=
+    ∀ RR, RRH RR -∗ ∃ II, IIH II ∗ ksim fl_src fl_tgt Ist my_tid r g II RR ps pt kt_src kt_tgt.
+
+  Definition cimplyH {I}
+    (IIH JJH: (nat -> alist key Any.t * I-> alist key Any.t * I -> iProp) -> iProp) : iProp
+    :=
+    ∀ JJ, JJH JJ -∗ ∃ II, IIH II ∗ cimply II JJ.
+  
+  Definition cwpreH r g {I R}
+    (RRH: (nat -> alist key Any.t * R-> alist key Any.t * R -> iProp) -> iProp)
+    ps pt (kt_src kt_tgt: I -> itree hmodE R) :
+    (nat -> alist key Any.t * I-> alist key Any.t * I -> iProp) -> iProp
+    :=
+    fun IH =>
+      (∃ RR, RRH RR ∗
+       cimply (cwpre fl_src fl_tgt Ist my_tid r g RR ps pt kt_src kt_tgt) IH)%I.
+
+  Lemma cimplyH_refl {I} IIH:
+    ⊢ @cimplyH I IIH IIH.
+  Proof.
+    iIntros (II) "IIH". iExists II. iFrame. iApply cimply_refl.
+  Qed.
+  
+  Lemma cimplyH_trans {I} IIH JJH KKH:
+    ⊢ @cimplyH I IIH JJH ∗ cimplyH JJH KKH -∗ cimplyH IIH KKH.
+  Proof.
+    iIntros "(IMP1 & IMP2)". iIntros (KK) "KK".
+    iSpecialize ("IMP2" with "KK").
+    iDestruct "IMP2" as (JJ) "(JJ & IMP2)".
+    iSpecialize ("IMP1" with "JJ").
+    iDestruct "IMP1" as (II) "(II & IMP1)".
+    iExists II. iFrame.
+    iApply cimply_trans.
+    iSplitL "IMP1"; eauto.
+  Qed.
+
+  Lemma cimplyH_strengthen {I} IIH JJH:
+    ⊢ (∀ II, JJH II -∗ IIH II) -∗ @cimplyH I IIH JJH.
+  Proof.
+    iIntros "SUB". iIntros (?) "JJ".
+    iExists JJ. iSpecialize ("SUB" with "JJ"). iFrame.
+    iApply cimply_refl.
+  Qed.
+
+  Lemma cwpreH_sound
+    r g I R RRH ps pt kt_src kt_tgt
+    :
+    ⊢ @ksimH r g I R (cwpreH r g RRH ps pt kt_src kt_tgt) RRH ps pt kt_src kt_tgt.
+  Proof.
+    iIntros (?) "RR".
+    iExists (cwpre _ _ _ _ r g RR ps pt kt_src kt_tgt).
+    iSplitL "RR".
+    - iExists RR. iFrame.
+      iIntros (? ? ? ? ?). eauto.
+    - iApply cwpre_sound.
+  Qed.
+  
+  Lemma cwpreH_weakest
+    r g I R RRH ps pt kt_src kt_tgt IIH
+    :
+    @ksimH r g I R IIH RRH ps pt kt_src kt_tgt -∗
+    cimplyH IIH (cwpreH r g RRH ps pt kt_src kt_tgt).
+  Proof.
+    iIntros "SIM". iIntros (?) "PRE".
+    iDestruct "PRE" as (?) "(RR & IMP)".
+    iSpecialize ("SIM" with "RR").
+    iDestruct "SIM" as (?) "(II & SIM)".
+    iExists II. iFrame.
+    iIntros (? ? ? ? ?) "II".
+    iSpecialize ("SIM" with "II").
+    iApply "IMP".
+    iFrame.
+  Qed.
+
+  Lemma ksimH_bind_aux
+    r g ps pt {I T R} IIH TTH RRH j_src j_tgt k_src k_tgt
+    :
+
+    (@ksimH r g I T IIH TTH ps pt j_src j_tgt ∗ ksimH r g TTH RRH false false k_src k_tgt)
+    ⊢
+    @ksimH r g I R IIH RRH ps pt (fun x => j_src x >>= k_src) (fun x => j_tgt x >>= k_tgt).
+  Proof.
+    iIntros "(SIM1 & SIM2)".
+    iIntros (RR) "RRH".
+    iSpecialize ("SIM2" with "RRH").
+    iDestruct "SIM2" as (TT) "(TTH & SIM2)".
+    iSpecialize ("SIM1" with "TTH").
+    iDestruct "SIM1" as (II) "(IIH & SIM1)".
+    iExists II. iFrame.
+    iApply ksim_bind_aux. iFrame.
+  Qed.
+
+  Lemma ksimH_bind
+    r g ps pt {I T R} IIH RRH j_src j_tgt k_src k_tgt
+    :
+
+    (@ksimH r g I T IIH (cwpreH r g RRH false false k_src k_tgt) ps pt j_src j_tgt)
+    ⊢
+    @ksimH r g I R IIH RRH ps pt (fun x => j_src x >>= k_src) (fun x => j_tgt x >>= k_tgt).
+  Proof.
+    iIntros "SIM".
+    iApply ksimH_bind_aux.
+    iSplitL "SIM".
+    - iIntros (?) "RR". iSpecialize ("SIM" with "RR").
+      iDestruct "SIM" as (II) "SIM".
+      iExists II. iFrame.
+    - iIntros (?) "RR". iExists _.
+      iSplitL "RR".
+      + iExists RR. iFrame. iApply cimply_refl.
+      + iIntros (? ? ? ? ?) "SIM". eauto.
+  Qed.
+
+End HYPER.
 
 Global Opaque isim.
 
@@ -1165,3 +1136,4 @@ Module HSim.
 
   End SIM.
 End HSim.
+
