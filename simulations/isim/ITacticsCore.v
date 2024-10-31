@@ -48,7 +48,8 @@ Ltac prove_nodup :=
 
 Ltac by_coind CIH :=
   iApply isim_progress; iApply isim_base;
-  iSpecialize (CIH $! _); repeat instantiate (1:= existT _ _); s;
+  iSpecialize (CIH $! _);
+  repeat first[instantiate (1:= (_,_))|instantiate (1:= existT _ _)]; s;
   iApply CIH.
 
 Ltac unfold_hmod :=
@@ -115,8 +116,16 @@ Ltac fnsems_nodup H :=
   revert H; simpl HModSem.fnsems; repeat unfold_hmod; simpl List.map;
   try rewrite !map_map_compose; try rewrite !fst_map_snd; eauto; fail.
 
+Ltac hss_des :=
+  ss; des_safe; subst;
+  repeat match goal with
+    | [v: () |- _] => destruct v
+    | [H: (_,_) = (_,_) |- _] => inv H
+    end;
+  ss.
+
 Ltac hss :=
-  ss;
+  hss_des;
   try (rewrite !Any.pair_split in * );
   try (rewrite !Any.upcast_downcast in * );
   repeat (match goal with [G: Any.downcast _ = Some _ |-_] =>
@@ -130,7 +139,8 @@ Ltac hss :=
   end);
   try (rewrite !Any.pair_split in * );
   try (rewrite !Any.upcast_downcast in * );
-  repeat (alist_upd_simpl trivial_nodup); s.
+  repeat (alist_upd_simpl trivial_nodup);
+  hss_des.
 
 (***
   Step-level tactics

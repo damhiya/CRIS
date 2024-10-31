@@ -821,7 +821,12 @@ Section SIM.
         eapply eq_ind; eauto. r_solve.
   Qed.
 
-  Lemma combine_quant A (B: A -> Type) (P: forall a (b: B a), Prop)
+  Lemma combine_quant A B (P: forall (a: A) (b: B), Prop)
+      (PR: forall (ab: A * B), P ab.1 ab.2):
+    forall a b, P a b.
+  Proof. i. eapply (PR (a, b)). Qed.
+
+  Lemma combine_quant_dep A (B: A -> Type) (P: forall a (b: B a), Prop)
       (PR: forall (ab: sigT B), P (projT1 ab) (projT2 ab)):
     forall a b, P a b.
   Proof. i. eapply (PR (existT a b)). Qed.

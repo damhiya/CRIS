@@ -123,7 +123,7 @@ Section SIMMODSEM.
   Proof.
     init_simF.
 
-    steps_l. iDestruct "ASM" as "%". subst. hss. destruct q, q1.
+    steps_l. iDestruct "ASM" as "%". subst. hss.
     iDestruct "IST" as (? ? ? ?) "(% & (% & IST) & %)". des; subst.
     iDestruct "IST" as (? ? ? ?) "(% & LIVE & FREE)". des; subst. hss.
 
@@ -157,7 +157,7 @@ Section SIMMODSEM.
   Proof.
     init_simF.
 
-    steps_l. iDestruct "ASM" as "%". subst. hss. destruct q, q1.
+    steps_l. iDestruct "ASM" as "%". subst. hss.
     iDestruct "IST" as (? ? ? ?) "(% & (% & IST) & %)". des; subst.
     iDestruct "IST" as (? ? ? ?) "(% & LIVE & FREE)". des; subst. hss.
 
@@ -176,7 +176,7 @@ Section SIMMODSEM.
   Proof.
     init_simF.
 
-    steps_l. iDestruct "ASM" as "%". subst. hss. destruct q.
+    steps_l. iDestruct "ASM" as "%". subst. hss.
     iDestruct "IST" as (? ? ? ?) "(% & (% & IST) & %)". des; subst.
     iDestruct "IST" as (? ? ? ?) "(% & LIVE & FREE)". des; subst. hss.
 
@@ -225,7 +225,7 @@ Section SIMMODSEM.
   Proof.
     init_simF.
 
-    steps_l. iDestruct "ASM" as "%". subst. hss. destruct q.
+    steps_l. iDestruct "ASM" as "%". subst. hss.
     iDestruct "IST" as (? ? ? ?) "(% & (% & IST) & %)". des; subst.
     iDestruct "IST" as (? ? ? ?) "(% & LIVE & FREE)". des; subst. hss.
 

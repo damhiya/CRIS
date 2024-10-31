@@ -119,7 +119,7 @@ Section SIMMODSEM.
     steps_l. iDestruct "ASM" as "((% & P0) & %)". des. subst. hss. inv G0. 
     iDestruct "IST" as (? ? ? ?) "(%& (% & [%|(P & IST)]) &%)";    
       [|iDestruct "IST" as (? ? ? ?) "M"];
-      des; subst; cycle 1.
+      hss; cycle 1.
     { iExFalso. iApply (pending_unique with "P P0"). }
     rename q into sz.
     
