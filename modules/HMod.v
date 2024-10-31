@@ -174,7 +174,7 @@ Infix "★" := HMod.add (at level 9, right associativity).
 Notation "◯" := HMod.empty (at level 9).
 Infix "∗∗" := HMod.addc (at level 9, right associativity).
 
-Notation "߷ it" := (HModSem.sandbox _ it) (at level 60, only printing).
+Notation "░ it" := (HModSem.sandbox _ it) (at level 60, only printing).
 
 Section PROPERTIES.
   
