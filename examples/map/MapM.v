@@ -40,14 +40,14 @@ Section M.
   Definition v_size := "Map" ↯ "size".
   Definition v_map := "Map" ↯ "map".
   
-  Definition init: list val -> itree smodE val :=
+  Definition init: list val -> itree hmodE val :=
     fun varg =>
       `size: Z <- (pargs [Tint] varg)?;;
       cput v_size size;;;
       Ret Vundef
   .
   
-  Definition get: list val -> itree smodE val :=
+  Definition get: list val -> itree hmodE val :=
     fun varg =>
       k <- (pargs [Tint] varg)?;;
       size <- cgetU v_size;;
@@ -56,7 +56,7 @@ Section M.
       Ret (Vint (f k))
   .
 
-  Definition set: list val -> itree smodE val :=
+  Definition set: list val -> itree hmodE val :=
     fun varg =>
       '(k, v) <- (pargs [Tint; Tint] varg)?;;
       size <- cgetU v_size;;
@@ -66,7 +66,7 @@ Section M.
       Ret Vundef
   .
 
-  Definition set_by_user: list val -> itree smodE val :=
+  Definition set_by_user: list val -> itree hmodE val :=
     fun varg =>
       k <- (pargs [Tint] varg)?;;
       v <- trigger (IO "input" ([]: list Z));;

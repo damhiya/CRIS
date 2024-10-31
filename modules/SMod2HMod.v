@@ -31,7 +31,7 @@ Section FSPEC.
 
   Record fspecbody: Type := mk_specbody {
     fsb_fspec:> fspec;
-    fsb_body: Any.t -> itree smodE Any.t;
+    fsb_body: Any.t -> itree hmodE Any.t;
   }
   .
   
@@ -40,7 +40,7 @@ Section FSPEC.
              (fun _ _ argh argl => (⌜argh = argl⌝: iProp)%I)
              (fun _ _ reth retl => (⌜reth = retl⌝: iProp)%I).
 
-  Definition fbody_trivial: Any.t -> itree smodE Any.t :=
+  Definition fbody_trivial: Any.t -> itree hmodE Any.t :=
     fun _ => trigger (Choose _).
 
   Definition fspec_virtual (M VA VR: Type) (precond: nat -> M -> VA -> Any.t -> iProp) (postcond: nat -> M -> VR -> Any.t -> iProp) :=
@@ -157,7 +157,7 @@ Section HOARE.
         fsp <- (stb fn)!;;
         HoareCall fsp fn varg.
 
-  Definition interp_smod R (it : itree smodE R) : itree hmodE R :=
+  Definition interp_smod R (it : itree hmodE R) : itree hmodE R :=
     interp (case_ (bif:=sum1) trivial_Handler
            (case_ (bif:=sum1) handle_schE_hmodE
            (case_ (bif:=sum1) handle_callE_hmodE
@@ -166,7 +166,7 @@ Section HOARE.
   Definition HoareFun {X: Type}
     (P: nat -> X -> Any.t -> Any.t -> iProp)
     (Q: nat -> X -> Any.t -> Any.t -> iProp)
-    (body: Any.t -> itree smodE Any.t): Any.t -> itree hmodE Any.t
+    (body: Any.t -> itree hmodE Any.t): Any.t -> itree hmodE Any.t
     :=
     fun arg =>
       my_tid <- trigger Tid;;
@@ -198,7 +198,7 @@ Section RED.
   Lemma interp_bind
         (R S: Type)
         ginv stb
-        (s : itree smodE R) (k : R -> itree smodE S)
+        (s : itree hmodE R) (k : R -> itree hmodE S)
     :
       interp_smod ginv stb (s >>= k)
       =
@@ -294,7 +294,7 @@ Section RED.
         (i: option R)
         ginv stb
     :
-      interp_smod ginv stb (@unwrapU smodE _ _ i)
+      interp_smod ginv stb (@unwrapU hmodE _ _ i)
       =
       r <- (unwrapU i);; Ret r.
   Proof.
@@ -307,7 +307,7 @@ Section RED.
         (i: option R)
         ginv stb
     :
-      interp_smod ginv stb (@unwrapN smodE _ _ i)
+      interp_smod ginv stb (@unwrapN hmodE _ _ i)
       =
       r <- (unwrapN i);; Ret r.
   Proof.

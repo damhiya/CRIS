@@ -37,7 +37,7 @@ Section A.
   Definition scopes := ["Map"].
   Definition v_map := "Map" ↯ "map".
   
-  Definition set: list val -> itree smodE val :=
+  Definition set: list val -> itree hmodE val :=
     fun varg =>
       '(k, v) <- (pargs [Tint; Tint] varg)!;;
       f <- cgetN v_map;;
@@ -45,14 +45,14 @@ Section A.
       Ret Vundef
   .
 
-  Definition get: list val -> itree smodE val :=
+  Definition get: list val -> itree hmodE val :=
     fun varg =>
       k <- (pargs [Tint] varg)!;;
       f <- cgetN v_map;;
       Ret (Vint (f k))
   .
 
-  Definition set_by_user: list val -> itree smodE val :=
+  Definition set_by_user: list val -> itree hmodE val :=
     fun varg =>
       k <- (pargs [Tint] varg)!;;
       v <- trigger (IO "input" ([]: list Z));;

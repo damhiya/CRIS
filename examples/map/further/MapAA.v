@@ -19,7 +19,7 @@ Section AA.
 
   Definition scopes := ["Map"].
   
-  Definition set_by_user: list val -> itree smodE val :=
+  Definition set_by_user: list val -> itree hmodE val :=
     fun varg =>
       k <- (pargs [Tint] varg)?;;
       v <- trigger (IO "input" ([]: list Z));;
