@@ -115,10 +115,11 @@ Inductive _simg simg {R0 R1} RR ps pt isrc itgt : Prop :=
 | _simg_intro (SIM : @simg_def simg R0 R1 RR (_simg simg RR) ps pt isrc itgt)
 .
 
-Lemma simg_tarski (simg : forall R0 R1 (RR : R0 -> R1 -> Prop), smj -> smj -> (itree coreE R0) -> (itree coreE R1) -> Prop)
+Lemma simg_tarski
+    (simg : forall R0 R1 (RR : R0 -> R1 -> Prop), smj -> smj -> (itree coreE R0) -> (itree coreE R1) -> Prop)
     R0 R1 (RR : R0 -> R1 -> Prop)
     (P : smj -> smj -> (itree coreE R0) -> (itree coreE R1) -> Prop)
-  (SIM : simg_def simg RR P <4= P)
+    (SIM : simg_def simg RR P <4= P)
   :
   _simg simg RR <4= P.
 Proof.
@@ -138,7 +139,7 @@ Hint Resolve cpn7_wcompat : paco.
 Lemma simg_ind
     R0 R1 (RR : R0 -> R1 -> Prop)
     (P : smj -> smj -> (itree coreE R0) -> (itree coreE R1) -> Prop)
-  (SIM : simg_def simg RR (simg RR /4\ P) <4= P)
+    (SIM : simg_def simg RR (simg RR /4\ P) <4= P)
   :
   simg RR <4= P.
 Proof.

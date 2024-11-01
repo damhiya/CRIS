@@ -198,7 +198,7 @@ Section SIM_ITREE.
     :
     sim_itree_def sim_itree RR self ps pt w nths (st_src, i_src)
       (st_tgt, trigger Tid >>= k_tgt)
-      
+
   | sim_itree_progress
       w w0 nths st_src st_tgt 
       i_src i_tgt

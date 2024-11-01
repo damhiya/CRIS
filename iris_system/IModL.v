@@ -77,7 +77,7 @@ Section ILIST.
 
   Lemma iPropL_clear (Hn : string) (l : iPropL)
     :
-      from_iPropL l -∗ #=> from_iPropL (alist_remove Hn l).
+      from_iPropL l -∗ |==> from_iPropL (alist_remove Hn l).
   Proof.
     induction l; ss.
     { iIntros "H". iModIntro. iFrame. }
@@ -92,7 +92,7 @@ Section ILIST.
   Lemma iPropL_find_remove (Hn : string) (l : iPropL) P
         (FIND : alist_find Hn l = Some P)
     :
-      from_iPropL l -∗ #=> (P ∗ from_iPropL (alist_remove Hn l)).
+      from_iPropL l -∗ |==> (P ∗ from_iPropL (alist_remove Hn l)).
   Proof.
     revert P FIND. induction l; ss. i.
     destruct a. iIntros "[H0 H1]".
@@ -106,7 +106,7 @@ Section ILIST.
   Lemma iPropL_one Hn (l : iPropL) (P : iProp)
         (FIND : alist_find Hn l = Some P)
     :
-      from_iPropL l -∗ #=> P.
+      from_iPropL l -∗ |==> P.
   Proof.
     iIntros "H". iPoseProof (iPropL_find_remove with "H") as "> [H0 H1]"; et.
   Qed.
@@ -120,9 +120,9 @@ Section ILIST.
 
   Lemma iPropL_uentail Hn (l : iPropL) (P0 P1 : iProp)
         (FIND : alist_find Hn l = Some P0)
-        (ENTAIL : P0 -∗ #=> P1)
+        (ENTAIL : P0 -∗ |==> P1)
     :
-      from_iPropL l -∗ #=> from_iPropL (alist_add Hn P1 l).
+      from_iPropL l -∗ |==> from_iPropL (alist_add Hn P1 l).
   Proof.
     revert P0 P1 FIND ENTAIL. induction l; ss. i.
     destruct a. iIntros "[H0 H1]".
@@ -138,24 +138,24 @@ Section ILIST.
         (FIND : alist_find Hn l = Some P0)
         (ENTAIL : P0 -∗ P1)
     :
-      from_iPropL l -∗ #=> from_iPropL (alist_add Hn P1 l).
+      from_iPropL l -∗ |==> from_iPropL (alist_add Hn P1 l).
   Proof.
     eapply iPropL_uentail; et. iIntros "H".
     iPoseProof (ENTAIL with "H") as "H". iModIntro. iFrame.
   Qed.
 
   Lemma iPropL_upd Hn (l : iPropL) (P : iProp)
-        (FIND : alist_find Hn l = Some (#=> P))
+        (FIND : alist_find Hn l = Some (|==> P))
     :
-      from_iPropL l -∗ #=> from_iPropL (alist_add Hn P l).
+      from_iPropL l -∗ |==> from_iPropL (alist_add Hn P l).
   Proof.
-    hexploit (@iPropL_uentail Hn l (#=> P) P); et.
+    hexploit (@iPropL_uentail Hn l (|==> P) P); et.
   Qed.
 
   Lemma iPropL_destruct_ex Hn (l : iPropL) A (P : A -> iProp)
         (FIND : alist_find Hn l = Some (∃ (a : A), P a)%I)
     :
-      from_iPropL l -∗ ∃ (a : A), #=> from_iPropL (alist_add Hn (P a) l).
+      from_iPropL l -∗ ∃ (a : A), |==> from_iPropL (alist_add Hn (P a) l).
   Proof.
     revert FIND. induction l; ss. i.
     destruct a. iIntros "[H0 H1]".
@@ -170,7 +170,7 @@ Section ILIST.
   Lemma iPropL_destruct_or Hn (l : iPropL) (P0 P1 : iProp)
         (FIND : alist_find Hn l = Some (P0 ∨ P1)%I)
     :
-      from_iPropL l -∗ (#=> from_iPropL (alist_add Hn P0 l)) ∨ #=> from_iPropL (alist_add Hn P1 l).
+      from_iPropL l -∗ (|==> from_iPropL (alist_add Hn P0 l)) ∨ |==> from_iPropL (alist_add Hn P1 l).
   Proof.
     revert FIND. induction l; ss. i.
     destruct a. iIntros "[H0 H1]".
@@ -188,7 +188,7 @@ Section ILIST.
 
   Lemma iPropL_add (Hn : string) (l : iPropL) P
     :
-      P ∗ from_iPropL l -∗ #=> (from_iPropL (alist_add Hn P l)).
+      P ∗ from_iPropL l -∗ |==> (from_iPropL (alist_add Hn P l)).
   Proof.
     unfold alist_add. ss. iIntros "[H0 H1]".
     iFrame. iApply iPropL_clear. iFrame.
@@ -197,7 +197,7 @@ Section ILIST.
   Lemma iPropL_destruct_sep Hn_old Hn_new0 Hn_new1 (l : iPropL) (P0 P1 : iProp)
         (FIND : alist_find Hn_old l = Some (P0 ∗ P1)%I)
     :
-      from_iPropL l -∗ #=> from_iPropL (alist_add Hn_new1 P1 (alist_add Hn_new0 P0 (alist_remove Hn_old l))).
+      from_iPropL l -∗ |==> from_iPropL (alist_add Hn_new1 P1 (alist_add Hn_new0 P0 (alist_remove Hn_old l))).
   Proof.
     iIntros "H".
     iPoseProof (iPropL_find_remove with "H") as "> [H0 H1]"; et.
@@ -231,7 +231,7 @@ Section ILIST.
   Lemma iPropL_assert (Hns : list string) (Hn_new : string) (l : iPropL) (P : iProp)
         (FIND : from_iPropL (fst (alist_pops Hns l)) -∗ P)
     :
-      from_iPropL l -∗ #=> from_iPropL (alist_add Hn_new P (snd (alist_pops Hns l))).
+      from_iPropL l -∗ |==> from_iPropL (alist_add Hn_new P (snd (alist_pops Hns l))).
   Proof.
     iIntros "H". iPoseProof (iPropL_alist_pops with "H") as "[H0 H1]".
     iPoseProof (FIND with "H0") as "H0".
@@ -270,43 +270,45 @@ Ltac start_ipm_proof :=
     let pat := (eval simpl in (get_ipm_pat l)) in
     simpl; iIntros pat
   | _ => try unfold from_iPropL
-  end.
+  end. *)
+Require Import ITreelib.
+Require Import Coqlib.
+Require Export IPM PCM.
 
 Section IMOD.
-
 
   Lemma bind_ret_l_eta A {E R} (k : A -> itree E R):
     (λ x : A, x0 <- Ret x;; k x0) = k.
   Proof. extensionality x. grind. Qed.
 
   Lemma imod_trans `{Σ : GRA.t} (P Q R : iProp Σ) :
-    (P ⊢ #=> Q) -> (Q ⊢ #=> R) -> (P ⊢ #=> R).
+    (P ⊢ |==> Q) -> (Q ⊢ |==> R) -> (P ⊢ |==> R).
   Proof.
     etransitivity; eauto.
     iIntros ">Q". by iApply H0.
   Qed.
 
   Lemma imod_elim_trueL `{Σ : GRA.t} (P Q : iProp Σ) :
-    (P ⊢ #=> Q) -> (P ⊢ #=> (True ∗ Q)).
+    (P ⊢ |==> Q) -> (P ⊢ |==> (True ∗ Q)).
   Proof.
     i. iIntros "H". iSplitR; eauto. iStopProof. eauto.
   Qed.
 
   Lemma imod_intro_trueL `{Σ : GRA.t} (P Q : iProp Σ) :
-    (P ⊢ #=> (True ∗ Q)) -> (P ⊢ #=> Q).
+    (P ⊢ |==> (True ∗ Q)) -> (P ⊢ |==> Q).
   Proof.
     i. iIntros "H". iPoseProof (H with "H") as "H".
     iMod "H". iDestruct "H" as "[X Y]". eauto.
   Qed.
 
   Lemma imod_elim_trueR `{Σ : GRA.t} (P Q : iProp Σ) :
-    (P ⊢ #=> Q) -> (P ⊢ #=> (Q ∗ True)).
+    (P ⊢ |==> Q) -> (P ⊢ |==> (Q ∗ True)).
   Proof.
     i. iIntros "H". iSplitL; eauto. iStopProof. eauto.
   Qed.
 
   Lemma imod_intro_trueR `{Σ : GRA.t} (P Q : iProp Σ) :
-    (P ⊢ #=> (Q ∗ True)) -> (P ⊢ #=> Q).
+    (P ⊢ |==> (Q ∗ True)) -> (P ⊢ |==> Q).
   Proof.
     i. iIntros "H". iPoseProof (H with "H") as "H".
     iMod "H". iDestruct "H" as "[X Y]". eauto.
@@ -316,14 +318,15 @@ End IMOD.
 Create HintDb imodL.
 Hint Resolve imod_trans imod_elim_trueL : imodL.
 
-
 Ltac imodIntroL :=
-  i; repeat match goal with [H : (_ ⊢ #=> (True ∗ _)) |- _ ] => apply imod_intro_trueL in H end; eauto with imodL.
+  i; repeat match goal with [H : (_ ⊢ |==> (True ∗ _)) |- _ ] => apply imod_intro_trueL in H end; eauto with imodL.
 
-Ltac grind_ret := try rewrite !bind_ret_l_eta in *; subst.
+Ltac grind_ret H := try rewrite !bind_ret_l_eta in H; subst.
+Ltac grind_ret_gen :=
+  repeat (match goal with
+  [H : _ |- _] => try rewrite !bind_ret_l_eta in H
+  end).
 
 Ltac itree_clarify H :=
-  revert H; grind; try unfold trigger in H; try rewrite !bind_vis in H; try depdes H; grind_ret.
-
-
- *)
+  revert H; grind; try unfold trigger in H; try rewrite !bind_vis in H; try depdes H;
+    grind_ret_gen; try rewrite !bind_ret_l_eta; subst.

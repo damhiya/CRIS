@@ -18,8 +18,6 @@ Require Import Red IRed.
 Require Import SubPerm.
 
 From stdpp Require Import coPset gmap.
-(* Require Import FancyUpdate. *)
-
 
 Set Implicit Arguments.
 
@@ -27,62 +25,55 @@ Ltac hred_l := try (prw _red_gen 1 2 1 0).
 Ltac hred_r := try (prw _red_gen 1 1 1 0).
 Ltac hred := try (prw _red_gen 1 1 0).
 
-
 Section SIM.
 
   Context `{Σ : GRA.t}.
-  Variable fl_src fl_tgt : alist gname (Any.t -> itree hmodE Any.t).
-  Variable Ist : nat -> alist key Any.t -> alist key Any.t -> iProp.
+  Notation iProp := (iProp Σ).
+  Variable fl_src fl_tgt : alist gname (Any.t → itree hmodE Any.t).
+  Variable Ist : nat → alist key Any.t → alist key Any.t → iProp.
   Variable my_tid : nat.
 
   Let _hpsim := @_hpsim Σ fl_src fl_tgt Ist my_tid false.
-  Let rel := ∀ R : Type, (nat -> alist key Any.t * R → alist key Any.t * R → iProp) → bool → bool → nat -> alist key Any.t * itree hmodE R → alist key Any.t * itree hmodE R → iProp.
+  Let rel := ∀ R : Type, (nat → alist key Any.t * R → alist key Any.t * R → iProp) → bool → bool → nat → alist key Any.t * itree hmodE R → alist key Any.t * itree hmodE R → iProp.
 
   Variant iunlift (r : rel) R RR ps pt nths sti_src sti_tgt res : Prop :=
     | unlift_intro
-        (WF : URA.wf res)
+        (WF : ✓ res)
         (REL : Own res ⊢ |==> r R RR ps pt nths sti_src sti_tgt).
 
   Definition ibot : rel := fun _ _ _ _ _ _ _ => False%I.
 
   Program Definition isim
-          r g {R} (RR : nat -> alist key Any.t * R-> alist key Any.t * R -> iProp) ps pt
+          r g {R} (RR : nat → alist key Any.t * R → alist key Any.t * R → iProp) ps pt
           nths (sti_src sti_tgt : alist key Any.t * itree hmodE R) : iProp := 
-    iProp_intro (gpaco8 (_hpsim) (cpn8 _hpsim) (iunlift r) (iunlift g) _ RR ps pt nths sti_src sti_tgt) _.
-  Next Obligation.
-    guclo hpsim_extendC_spec. econs; et.
-  Qed.
+    UPred Σ (gpaco8 (_hpsim) (cpn8 _hpsim) (iunlift r) (iunlift g) _ RR ps pt nths sti_src sti_tgt) _.
+  Next Obligation. guclo hpsim_extendC_spec. econs; et. Defined.
 
-(***** isim lemmas *****)
-
+  (***** isim lemmas *****)
   Lemma iunlift_ibot:
     iunlift ibot <8= bot8.
   Proof.
-    unfold ibot. i. destruct PR.
-    eapply Own_iProp in REL; eauto.
-    rr in REL. uiprop in REL. des.
-    rr in REL. uiprop in REL. eauto.
+    rewrite /ibot; i; inv PR.
+    assert (CON : Own x7 ⊢ False).
+    { iIntros "H". iPoseProof (REL with "H") as "F". iMod "F". done. }
+    eapply Own_pure_soundness in CON; eauto.
   Qed.
 
   Lemma isim_init
       r g ps pt {R} RR nths st_src st_tgt i_src i_tgt iP fmr
-      (ENTAIL : bi_entails
-                iP
-                (@isim r g R RR ps pt nths (st_src, i_src) (st_tgt, i_tgt)))
-      (CUR : Own fmr ⊢ iP)
-    :
-      gpaco8 _hpsim (cpn8 _hpsim) (iunlift r) (iunlift g) R RR ps pt nths (st_src, i_src) (st_tgt, i_tgt) fmr.
+      (ENTAIL : iP ⊢ (@isim r g R RR ps pt nths (st_src, i_src) (st_tgt, i_tgt)))
+      (CUR : Own fmr ⊢ iP) :
+    gpaco8 _hpsim (cpn8 _hpsim) (iunlift r) (iunlift g) R RR ps pt nths (st_src, i_src) (st_tgt, i_tgt) fmr.
   Proof.
-    guclo hpsim_updateC_spec. econs; ii; esplits; eauto.
-    uiprop in ENTAIL. exploit ENTAIL; eauto using Own_iProp.
+    guclo hpsim_updateC_spec. econs; ii; esplits; eauto; first reflexivity.
+    assert (SIM : Own fmr ⊢ isim r g RR ps pt nths (st_src, i_src) (st_tgt, i_tgt)).
+    { etrans; eauto. }
+    hexploit (Own_general_soundness fmr); eauto.
   Qed.
 
   Lemma iunlift_mon r0 r1
-    (MON : forall R RR ps pt nths sti_src sti_tgt,
-            bi_entails
-              (@r0 R RR ps pt nths sti_src sti_tgt)
-              (#=> @r1 R RR ps pt nths sti_src sti_tgt))
-  :
+      (MON : ∀ R RR ps pt nths sti_src sti_tgt,
+        @r0 R RR ps pt nths sti_src sti_tgt ⊢ |==> @r1 R RR ps pt nths sti_src sti_tgt) :
     iunlift r0 <8= iunlift r1.
   Proof.
     i. destruct PR. econs; eauto.
@@ -91,42 +82,30 @@ Section SIM.
   Qed.
 
   Lemma isim_mono_knowledge 
-    r0 g0 r1 g1 {R} RR ps pt nths sti_src sti_tgt
-    (MON0 : forall R RR ps pt nths sti_src sti_tgt,
-            bi_entails
-              (@r0 R RR ps pt nths sti_src sti_tgt)
-              (#=> @r1 R RR ps pt nths sti_src sti_tgt))
-    (MON1 : forall R RR ps pt nths sti_src sti_tgt,
-            bi_entails
-              (@g0 R RR ps pt nths sti_src sti_tgt)
-              (#=> @g1 R RR ps pt nths sti_src sti_tgt))
-    :
-    bi_entails
-      (@isim r0 g0 R RR ps pt nths sti_src sti_tgt)
-      (@isim r1 g1 R RR ps pt nths sti_src sti_tgt).
+      r0 g0 r1 g1 {R} RR ps pt nths sti_src sti_tgt
+      (MON0 : ∀ R RR ps pt nths sti_src sti_tgt,
+        @r0 R RR ps pt nths sti_src sti_tgt ⊢ |==> @r1 R RR ps pt nths sti_src sti_tgt)
+      (MON1 : ∀ R RR ps pt nths sti_src sti_tgt,
+        @g0 R RR ps pt nths sti_src sti_tgt ⊢ |==> @g1 R RR ps pt nths sti_src sti_tgt) :
+    @isim r0 g0 R RR ps pt nths sti_src sti_tgt ⊢ @isim r1 g1 R RR ps pt nths sti_src sti_tgt.
   Proof.
-    uiprop. i. 
-    eapply gpaco8_mon; eauto using iunlift_mon.
+    split; intros x wfx SIM.
+    eapply gpaco8_mon; first eapply SIM; eauto using iunlift_mon.
   Qed.
 
-  Lemma isim_upd
-      r g ps pt {R} RR nths sti_src sti_tgt
-    :
-      bi_entails
-        (#=> (@isim r g R RR ps pt nths sti_src sti_tgt))
-        (isim r g RR ps pt nths sti_src sti_tgt).
+  Lemma isim_upd r g ps pt {R} RR nths sti_src sti_tgt :
+    ( |==> @isim r g R RR ps pt nths sti_src sti_tgt) ⊢ @isim r g R RR ps pt nths sti_src sti_tgt.
   Proof.
-    uiprop. i. des. guclo hpsim_updateC_spec. econs. ii.
-    esplits; eauto. eapply Own_Upd; eauto.
+    uPred.unseal; split; intros x wfx SIM; destruct SIM as [x' SIM].
+    guclo hpsim_updateC_spec; econs; intros ?; exists x'; split.
+    { rewrite cmra_discrete_total_update; intros z wfxz; specialize (SIM z wfxz); by eapply SIM. }
+    { by apply (SIM ε); rewrite right_id; done. }
   Qed.
 
-  Global Instance isim_elim_upd
-    r g {R} RR ps pt nths sti_src sti_tgt
-    P p
-  :
-    ElimModal True p false (#=> P) P 
-    (@isim r g R RR ps pt nths sti_src sti_tgt) 
-    (isim r g RR ps pt nths sti_src sti_tgt).
+  Global Instance isim_elim_upd r g {R} RR ps pt nths sti_src sti_tgt P p :
+    ElimModal True p false ( |==> P)%I P
+      (@isim r g R RR ps pt nths sti_src sti_tgt) 
+      (isim r g RR ps pt nths sti_src sti_tgt).
   Proof.
     unfold ElimModal. rewrite bi.intuitionistically_if_elim.
     i. iIntros "[H0 H1]".
@@ -136,73 +115,66 @@ Section SIM.
 
   (* GIL : Deleted the following because it is subsumed by [isim_wand]. *)
   (* Restored to use in wsim_bind_top *)
-  Lemma isim_mono
-    r g ps pt {R} RR0 RR1 nths sti_src sti_tgt
-    (MONO : forall nths st_src st_tgt ret_src ret_tgt,
-            (bi_entails (RR0 nths (st_src, ret_src) (st_tgt, ret_tgt)) (RR1 nths (st_src, ret_src) (st_tgt, ret_tgt))))
-    :
-      bi_entails
-        (@isim r g R RR0 ps pt nths sti_src sti_tgt)
-        (@isim r g R RR1 ps pt nths sti_src sti_tgt).
+  Lemma isim_mono r g ps pt {R} RR0 RR1 nths sti_src sti_tgt
+      (MONO : ∀ nths st_src st_tgt ret_src ret_tgt,
+        RR0 nths (st_src, ret_src) (st_tgt, ret_tgt) ⊢ RR1 nths (st_src, ret_src) (st_tgt, ret_tgt)) :
+    @isim r g R RR0 ps pt nths sti_src sti_tgt ⊢ @isim r g R RR1 ps pt nths sti_src sti_tgt.
   Proof.
-    uiprop. i. destruct sti_src, sti_tgt.
-    rewrite <-(bind_ret_r i). rewrite <-(bind_ret_r i0).
-    guclo hpsim_bindC_spec. econs; eauto.
-    i. gstep. econs. ii. esplits; eauto. econs; eauto.
-    iIntros "H". iApply MONO. iStopProof. eauto.
+    split; intros x wfx H0; destruct sti_src, sti_tgt.
+    rewrite <-(bind_ret_r i); rewrite <-(bind_ret_r i0).
+    guclo hpsim_bindC_spec; econs; first apply H0.
+    ii; gstep; econs; ii; esplits; eauto; first by reflexivity.
+    econs; eauto.
+    iIntros "H"; iMod (RET with "H") as "H"; iModIntro; iApply MONO; done.
   Qed.
 
-  (* Try RR` -∗#=> RR *)
-  Lemma isim_wand
-        r g ps pt {R} RR RR' nths sti_src sti_tgt        
-    :
-      bi_entails
-        ((∀ nths0 st_src ret_src st_tgt ret_tgt,
-            ((RR' nths0 (st_src, ret_src) (st_tgt, ret_tgt)) -∗ (RR nths0 (st_src, ret_src) (st_tgt, ret_tgt)))) ∗ (@isim r g R RR' ps pt nths sti_src sti_tgt))
-        (isim r g RR ps pt nths sti_src sti_tgt).
+  (* Try RR` -∗|==> RR *)
+  Lemma isim_wand r g ps pt {R} RR RR' nths sti_src sti_tgt :
+    (∀ nths0 st_src ret_src st_tgt ret_tgt,
+        ((RR' nths0 (st_src, ret_src) (st_tgt, ret_tgt)) -∗ (RR nths0 (st_src, ret_src) (st_tgt, ret_tgt))))
+    ∗ (@isim r g R RR' ps pt nths sti_src sti_tgt)
+    ⊢ isim r g RR ps pt nths sti_src sti_tgt.
   Proof.
-    rr. rewrite Seal.sealing_eq. i.
-    guclo hpsim_frameC_spec.
-    apply iProp_Own in H. eapply iProp_sepconj in H; des; eauto. subst.
-    apply iProp_Own in H0.
-    econs; cycle 1.
-    { iIntros "[P Q]". iSplitL "Q". eauto.
-      iPoseProof (H0 with "P") as "P". eauto.
+    uPred.unseal; split; intros x wfx H; destruct H as [x1 [x2 [-> [HRR SIM]]]].
+    destruct sti_src as [st_src i_src]; destruct sti_tgt as [st_tgt i_tgt].
+    rewrite <-(bind_ret_r i_src); rewrite <-(bind_ret_r i_tgt).
+    guclo hpsim_frameC_spec; econs; cycle 1.
+    { iIntros "H"; iDestruct "H" as "[H1 H2]"; iModIntro; iSplitL "H2"; iFrame; last by iApply "H1". }
+    guclo hpsim_bindC_spec; econs; eauto; first by exact SIM.
+    intros; gstep; econs; ii; esplits; eauto; first by reflexivity.
+    econs; eauto.
+    { iIntros "H1"; iPoseProof (RET with "H1") as "> HRR"; iModIntro; iIntros "H1".
+      iRevert "HRR"; iStopProof; uPred.unseal; split; intros x' wfx'.
+      rewrite ?Own_eq /IPM.Own_def; uPred.unseal; intros [x'' ->].
+      eapply uPred_mono; last by eapply cmra_included_l.
+      eapply HRR.
     }
-    
-    destruct sti_src, sti_tgt.
-    rewrite <-(bind_ret_r i). rewrite <-(bind_ret_r i0).
-    guclo hpsim_bindC_spec. econs; eauto.
-    { apply H1. }
-    i. gstep. econs. ii. esplits; eauto. econs; eauto.
-    iIntros "H". iPoseProof (RET with "H") as "H". iMod "H".
-    iModIntro. iIntros "Y". iApply "Y". eauto.
   Qed.
 
-  Lemma isim_frame 
-    r g {R} RR ps pt nths sti_src sti_tgt
-    P
-  :
-    bi_entails
-      (P ∗ @isim r g R RR ps pt nths sti_src sti_tgt)
-      (isim r g (fun nths0 str_src str_tgt => P ∗ RR nths0 str_src str_tgt) ps pt nths sti_src sti_tgt)%I.
-  Proof.
-    iIntros "[H0 H1]". iApply isim_wand. iFrame. eauto.
-  Qed.
+  Lemma isim_frame r g {R} RR ps pt nths sti_src sti_tgt P :
+    P ∗ @isim r g R RR ps pt nths sti_src sti_tgt
+    ⊢ isim r g (fun nths0 str_src str_tgt => P ∗ RR nths0 str_src str_tgt) ps pt nths sti_src sti_tgt.
+  Proof. iIntros "[H0 H1]". iApply isim_wand. iFrame. eauto. Qed.
 
-  Lemma isim_bind 
-    r g ps pt {R S} RR nths st_src st_tgt i_src i_tgt k_src k_tgt        
-  :
-    bi_entails
-    (@isim r g S
-          (fun nths0 '(st_src, ret_src) '(st_tgt, ret_tgt) =>
-              (@isim r g R RR false false nths0 (st_src, k_src ret_src) (st_tgt, k_tgt ret_tgt))%I)
-          ps pt nths (st_src, i_src) (st_tgt, i_tgt))
-        (isim r g RR ps pt nths (st_src, i_src >>= k_src) (st_tgt, i_tgt >>= k_tgt)).
+  Lemma isim_bind r g ps pt {R S} RR nths st_src st_tgt i_src i_tgt k_src k_tgt :
+    @isim r g S
+      (fun nths0 '(st_src, ret_src) '(st_tgt, ret_tgt) =>
+          (@isim r g R RR false false nths0 (st_src, k_src ret_src) (st_tgt, k_tgt ret_tgt))%I)
+      ps pt nths (st_src, i_src) (st_tgt, i_tgt)
+    ⊢ (isim r g RR ps pt nths (st_src, i_src >>= k_src) (st_tgt, i_tgt >>= k_tgt)).
   Proof.
-    uiprop. i.
-    guclo hpsim_bindC_spec. econs; eauto.
-    i. guclo hpsim_updateC_spec. econs.
+    rewrite /isim; split; intros x wfx BINDSIM.
+    guclo hpsim_bindC_spec; econs; eauto; ii.
+    guclo hpsim_updateC_spec; econs; intros wf0.
+    destruct RET as [RET]; specialize (RET fmr0 wf0); exploit RET; first by uPred.unseal; ss.
+    intros K. esplits; cycle 1.
+    eapply K.
+    uPred.unseal.
+    intros IMPL. destruct IMPL.
+    ii.
+    rewrite ?Own_eq /IPM.Own_def; uPred.unseal.  intros. destruct x1.
+    specialize (Own_general_soundness RET).
+    intros wf0.
     uiprop in RET. ii. exploit RET; eauto; try refl.
     i; des. esplits; eauto. eapply Own_Upd; eauto.
   Qed.

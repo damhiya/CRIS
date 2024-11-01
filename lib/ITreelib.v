@@ -333,7 +333,10 @@ Ltac iby1 TAC :=
 (* Ltac grind :=  f; repeat (f_equiv; ii; des_ifs_safe); f. *)
 
 Ltac ired := repeat (try rewrite subst_bind;
-                     try rewrite bind_bind; try rewrite bind_ret_l; try rewrite bind_ret_r; try rewrite bind_tau;
+                     try rewrite bind_bind;
+                     try rewrite bind_ret_l;
+                     try rewrite bind_ret_r;
+                     try rewrite bind_tau;
                      (* try rewrite interp_vis; *)
                      try rewrite interp_ret;
                      try rewrite interp_tau;

@@ -218,7 +218,13 @@ Section restate.
   Proof. exact : uPred_primitive.bupd_ownM_update. Qed.
   Lemma bupd_ownM_update_2 x y (UPD : uPred_ownM x ⊢ |==> uPred_ownM y) (VAL : ✓ x) : ✓ y.
   Proof. exact : uPred_primitive.bupd_ownM_update_2. Qed.
-
+  Lemma bupd_ownM_update_3 x P Q (UPD : uPred_ownM x ⊢ |==> P ∗ Q) (VALID : ✓ x) :
+    ∃ y z, (uPred_ownM x ⊢ |==> uPred_ownM y ∗ uPred_ownM z) ∧ (uPred_ownM y ⊢ P) ∧ (uPred_ownM z ⊢ Q).
+  Proof. exact : uPred_primitive.bupd_ownM_update_3. Qed.
+  Lemma ownM_pure_soundness x φ (VALID : ✓ x) (DERIV : uPred_ownM x ⊢ ⌜ φ ⌝) : φ.
+  Proof. exact : uPred_primitive.ownM_pure_soundness. Qed.
+  Lemma ownM_general_soundness x P (VALID : ✓ x) (DERIV : uPred_ownM x ⊢ P) : uPred_holds P x.
+  Proof. exact : uPred_primitive.ownM_general_soundness. Qed.
   (** This is really just a special case of an entailment
   between two [siProp], but we do not have the infrastructure
   to express the more general case. This temporary proof rule will

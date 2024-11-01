@@ -12,7 +12,7 @@ Require Import RelationPairs.
 
 From ExtLib Require Import
      Data.Map.FMapAList.
-     
+
 Require Import Red IRed.
 
 Section HPSIM.
@@ -25,10 +25,10 @@ Section HPSIM.
   Variable Ist : nat -> alist key Any.t -> alist key Any.t -> iProp.
   Variable my_tid : nat.
 
-  (* Note : iProp-style definition of hsupd incurs universe inconsistency problem when defining _hpsim.
-     would a workaround be possible if simulation relation itself is defined inside the logic? *)
+  (* Note : iProp-style definition of hsupd incurs positivity problem when defining _hpsim. *)
   Definition hsupd (P : Σ -> Prop) : Σ -> Prop :=
-    λ fmr, ✓ fmr → ∃ fmr0, fmr ~~> fmr0 ∧ P fmr0.
+    λ fmr, ✓ fmr → ∃ fmr0, P fmr0 ∧ (Own fmr ⊢ |==> Own fmr0).
+    (* λ fmr, Own fmr ⊢ ∃ fmr0, |==> ⌜P fmr0⌝. *)
 
   Definition dummy_term (with_dummy: bool) : itree hmodE unit :=
     if with_dummy then trigger (Guarantee True) else Ret tt.
@@ -44,7 +44,7 @@ Section HPSIM.
       (HPSIM_RET : True)
       ps pt nths st_src st_tgt fmr
       v_src v_tgt
-      (RET : Own fmr ==∗ RR nths (st_src,v_src) (st_tgt,v_tgt))
+      (RET : Own fmr ⊢ |==> RR nths (st_src,v_src) (st_tgt,v_tgt))
     :
     _hpsim' hpsimc hpsimi ps pt nths (st_src, Ret v_src) (st_tgt, Ret v_tgt) fmr
 
@@ -52,11 +52,11 @@ Section HPSIM.
       (HPSIM_CALL : True)
       ps pt nths st_src st_tgt fmr
       fn varg k_src k_tgt FR
-      (INV : Own fmr ==∗ (Ist nths st_src st_tgt ∗ FR))
+      (INV : Own fmr ⊢ |==> (Ist nths st_src st_tgt ∗ FR))
       (K : ∀ vret nths0 st_src0 st_tgt0 fmr0
             (NODS : List.NoDup (List.map fst st_src0))
             (NODD : List.NoDup (List.map fst st_tgt0))
-            (INV : Own fmr0 ==∗ (Ist nths0 st_src0 st_tgt0 ∗ FR)),
+            (INV : Own fmr0 ⊢ |==> (Ist nths0 st_src0 st_tgt0 ∗ FR)),
         hpsimi true true nths0 (st_src0, k_src vret) (st_tgt0, k_tgt vret) fmr0)
     :
     _hpsim' hpsimc hpsimi ps pt nths (st_src, trigger (Call fn varg) >>= k_src) (st_tgt, trigger (Call fn varg) >>= k_tgt) fmr
@@ -179,8 +179,8 @@ Section HPSIM.
       (HPSIM_ASSUME_SRC : True)
       ps pt nths st_src st_tgt fmr
       iP k_src i_tgt FMR
-      (CUR : Own fmr ==∗ FMR)
-      (K : ∀ fmr0 (NEW : Own fmr0 ==∗ (iP ∗ FMR)),
+      (CUR : Own fmr ⊢ |==> FMR)
+      (K : ∀ fmr0 (NEW : Own fmr0 ⊢ |==> (iP ∗ FMR)),
           hpsimi true pt nths (st_src, k_src tt) (st_tgt, i_tgt) fmr0)
     :
     _hpsim' hpsimc hpsimi ps pt nths (st_src, trigger (Assume iP) >>= k_src) (st_tgt, i_tgt) fmr
@@ -189,8 +189,8 @@ Section HPSIM.
       (HPSIM_GUARANTEE_TGT : True)
       ps pt nths st_src st_tgt fmr
       iP i_src k_tgt FMR
-      (CUR : Own fmr ==∗ FMR)
-      (K : ∀ fmr0 (NEW : Own fmr0 ==∗ (iP ∗ FMR)),
+      (CUR : Own fmr ⊢ |==> FMR)
+      (K : ∀ fmr0 (NEW : Own fmr0 ⊢ |==> (iP ∗ FMR)),
           hpsimi ps true nths (st_src, i_src) (st_tgt, k_tgt tt) fmr0)
     :
     _hpsim' hpsimc hpsimi ps pt nths (st_src, i_src) (st_tgt, trigger (Guarantee iP) >>= k_tgt) fmr
@@ -199,8 +199,8 @@ Section HPSIM.
       (HPSIM_GUARANTEE_SRC : True)
       ps pt nths st_src st_tgt fmr
       iP k_src i_tgt FMR
-      (CUR : Own fmr ==∗ (iP ∗ FMR))
-      (K : ∀ fmr0 (NEW : Own fmr0 ==∗ FMR),
+      (CUR : Own fmr ⊢ |==> (iP ∗ FMR))
+      (K : ∀ fmr0 (NEW : Own fmr0 ⊢ |==> FMR),
           hpsimi true pt nths (st_src, k_src tt) (st_tgt, i_tgt) fmr0)
     :
     _hpsim' hpsimc hpsimi ps pt nths (st_src, trigger (Guarantee iP) >>= k_src) (st_tgt, i_tgt) fmr
@@ -209,8 +209,8 @@ Section HPSIM.
       (HPSIM_ASSUME_TGT : True)
       ps pt nths st_src st_tgt fmr
       iP i_src k_tgt FMR
-      (CUR : Own fmr ==∗ (iP ∗ FMR))
-      (K : ∀ fmr0 (NEW : Own fmr0 ==∗ FMR),
+      (CUR : Own fmr ⊢ |==> (iP ∗ FMR))
+      (K : ∀ fmr0 (NEW : Own fmr0 ⊢ |==> FMR),
           hpsimi ps true nths (st_src, i_src) (st_tgt, k_tgt tt) fmr0)
     :
     _hpsim' hpsimc hpsimi ps pt nths (st_src, i_src) (st_tgt, trigger (Assume iP) >>= k_tgt) fmr
@@ -227,11 +227,11 @@ Section HPSIM.
       (HPSIM_YIELD : True)
       ps pt nths st_src st_tgt fmr
       tid k_src k_tgt FR
-      (INV : Own fmr ==∗ (Ist nths st_src st_tgt ∗ FR))
+      (INV : Own fmr ⊢ |==> (Ist nths st_src st_tgt ∗ FR))
       (K : ∀ nths0 st_src0 st_tgt0 fmr0
           (NODS : List.NoDup (List.map fst st_src0))
           (NODD : List.NoDup (List.map fst st_tgt0))
-          (INV : Own fmr0 ==∗ (Ist nths0 st_src0 st_tgt0 ∗ FR)),
+          (INV : Own fmr0 ⊢ |==> (Ist nths0 st_src0 st_tgt0 ∗ FR)),
         hpsimi true true nths0 (st_src0, k_src tt) (st_tgt0, k_tgt tt) fmr0)				
     :
     _hpsim' hpsimc hpsimi ps pt nths (st_src, trigger (Yield tid) >>= k_src) (st_tgt, trigger (Yield tid) >>= k_tgt) fmr
@@ -275,8 +275,8 @@ Section HPSIM.
   Proof.
     fix self 7. i.
     destruct PR. apply FIX. intros wf. specialize (IN wf); des.
-    exists fmr0; split; first by eauto.
-    destruct IN0; try by esplits; eauto using @_hpsim' with paco.
+    exists fmr0; split; eauto.
+    destruct IN; try by esplits; eauto using @_hpsim' with paco.
   Qed.
 
   Lemma hsupd_mon P Q r (IN : hsupd P r) (LE : P <1= Q) : hsupd Q r.
@@ -320,7 +320,7 @@ Section HPSIM.
     @hpsim _ hpsim_tail ps pt nths sti_src sti_tgt fmr.
 
   Definition hpsim_fun (i_src : itree hmodE Any.t) (i_tgt : itree hmodE Any.t) :  Prop :=
-    ∀ nths st_src st_tgt fmr (INV : Own fmr ==∗ Ist nths st_src st_tgt),
+    ∀ nths st_src st_tgt fmr (INV : Own fmr ⊢ |==> Ist nths st_src st_tgt),
       hpsim_body false false nths (st_src, i_src) (st_tgt, i_tgt) fmr.
 
   Lemma case_itrH R (itrH : itree hmodE R) :
@@ -352,22 +352,24 @@ Section HPSIM.
 
   Lemma hsupd_incl P : P <1= hsupd P.
   Proof.
-    ii; esplits; eauto. reflexivity.
+    ii; esplits; eauto.
   Qed.
   
   Lemma hsupd_merge P r (REL : hsupd (hsupd P) r) : hsupd P r.
   Proof.
     intros wf; specialize (REL wf); destruct REL as [r1 [??]].
-    move: (H); rewrite cmra_discrete_update; intros H'; hexploit (H' (Some ε)); ss; rewrite right_id; eauto.
-    intros wf1; specialize (H0 wf1); destruct H0 as [r2 [Hr1 Hr2]]; exists r2; split; eauto. etrans; eauto.
+    hexploit Own_wand_valid; eauto.
+    intros wf1; hexploit (H wf1); intros [fmr0 [??]]; exists fmr0; esplits; eauto.
+    iIntros "R"; iPoseProof (H0 with "R") as "> R1"; iApply H2; done.
   Qed.
 
   Lemma hsupd_update P r r' (IN : hsupd P r) (UPD : r' ~~> r) :
     hsupd P r'.
   Proof.
     dup UPD; rewrite cmra_discrete_update in UPD; specialize (UPD (Some ε)); ss; rewrite ?right_id in UPD.
-    intros wfr'; hexploit (IN (UPD wfr')); i; des; eexists; split; last by eauto.
-    by etrans; eauto.
+    intros wfr'; hexploit (IN (UPD wfr')); i; des; eexists; split; eauto.
+    iIntros "H"; iPoseProof (Own_Upd with "H") as "> H"; first eauto.
+    iApply H0; done.
   Qed.
 
   Lemma hsupd_extends P r r' (IN : hsupd P r) (UPD : r ≼ r') :
@@ -387,7 +389,7 @@ Section HPSIM.
     move SIM before r. revert_until SIM.
     pattern ps, pt, nths, st_src, st_tgt, fmr.
     eapply _hpsim_tarski, SIM. i. econs.
-    ii. specialize (IN H). des. destruct IN0;
+    ii. specialize (IN H). des. destruct IN;
       try by esplits; eauto; try by econs; esplits; eauto.
     hexploit LES; eauto; i. hexploit LET; eauto; i.
     destruct ps', pt'; try discriminate. 
@@ -409,7 +411,7 @@ Section HPSIM.
       (SIM : gpaco8 (@_hpsim with_dummy) (cpn8 (@_hpsim with_dummy)) g g R RR false false nths st_src st_tgt fmr) :
     gpaco8 (@_hpsim with_dummy) (cpn8 (@_hpsim with_dummy)) r g R RR true true nths st_src st_tgt fmr.
   Proof.
-    gstep. econs. r; esplits; eauto. reflexivity.
+    gstep. econs. r; esplits; eauto.
   Qed.
 
   Definition hpsimC with_dummy hpsim R RR ps pt nths sti_src sti_tgt fmr :=
@@ -418,10 +420,10 @@ Section HPSIM.
   Lemma hpsimC_mon with_dummy : monotone8 (@hpsimC with_dummy).
   Proof.
     ii. specialize (IN H). des.
-    destruct IN0; econs; esplits; eauto; try by esplits; eauto.
+    destruct IN; econs; esplits; eauto; try by esplits; eauto.
   Qed.
 
-  Lemma hpsimC_spec with_dummy:
+  Lemma hpsimC_spec with_dummy :
     (@hpsimC with_dummy) <9= gupaco8 (@_hpsim with_dummy) (cpn8 (@_hpsim with_dummy)).
   Proof.
     eapply wrespect8_uclo; eauto with paco.
@@ -474,7 +476,7 @@ Section HPSIM.
 
       R RR k_src k_tgt
       (SIMK : ∀ nths0 st_src0 st_tgt0 vret_src vret_tgt fmr0
-          (RET : Own fmr0 ==∗ QQ nths0 (st_src0, vret_src) (st_tgt0, vret_tgt)),
+          (RET : Own fmr0 ⊢ |==> QQ nths0 (st_src0, vret_src) (st_tgt0, vret_tgt)),
         r R RR false false nths0 (st_src0, k_src vret_src) (st_tgt0, k_tgt vret_tgt) fmr0)
     :
     hpsim_bindC r R RR ps pt nths (st_src, i_src >>= k_src) (st_tgt, i_tgt >>= k_tgt) fmr
@@ -497,9 +499,9 @@ Section HPSIM.
     move SIM before GF. revert_until SIM.
     pattern ps, pt, nths, sti_src, sti_tgt, fmr.
     eapply _hpsim_tarski, SIM. econs. apply hsupd_merge.
-    econs; esplits; eauto. reflexivity.
+    econs; esplits; eauto.
     specialize (IN H); des.
-    depdes IN0; grind;
+    depdes IN; grind;
       try (by rr; i; esplits; eauto with paco);
       try (by do 2 (econs; esplits; eauto with paco);
               repeat rewrite <-bind_bind;
@@ -510,6 +512,7 @@ Section HPSIM.
 
     destruct x0. eapply hsupd_update in IN; eauto.
     eapply _hpsim_mon_auto; eauto using rclo8.
+    eapply Own_bupd_update; eauto.
   Qed.
 
   Lemma hpsim_bindC_spec with_dummy:
@@ -518,11 +521,6 @@ Section HPSIM.
     intros. eapply wrespect8_uclo; eauto with paco.
     apply hpsim_bindC_wrespectful.
   Qed.
-
-
-
-
-
 
 
   Variant hpsim_extendC
@@ -646,7 +644,7 @@ Section HPSIM.
   | hpsim_frameC_intro
       ps pt nths R RR sti_src sti_tgt fmr fmrc (CTX : iProp)
       (SIM : r R (fun n s t => CTX -∗ RR n s t)%I ps pt nths sti_src sti_tgt fmr)
-      (UPD : Own fmrc ==∗ (Own fmr ∗ CTX))
+      (UPD : Own fmrc ⊢ |==> (Own fmr ∗ CTX))
      :
     hpsim_frameC r R RR ps pt nths sti_src sti_tgt fmrc
   .
@@ -668,117 +666,77 @@ Section HPSIM.
     destruct PR. move SIM before r. revert_until SIM.
     pattern ps, pt, nths, sti_src, sti_tgt, fmr.
     eapply _hpsim_tarski, SIM. i. econs.
-    econs; esplits; eauto. reflexivity.
+    econs; esplits; eauto.
     exploit IN.
     { eapply Own_wand_valid; last by eauto. iIntros "O"; iMod (UPD with "O") as "[O1 O2]"; done. }
     i. des.
-    assert (Own fmrc ==∗ (Own fmr1 ∗ CTX)).
+    assert (Own fmrc ⊢ |==> (Own fmr1 ∗ CTX)).
     { iIntros "H". iPoseProof (UPD with "H") as "H". iMod "H" as "[F C]".
-      iFrame. iApply Own_Upd; eauto. }
+      iFrame. iApply Own_Upd; eauto.
+      by eapply Own_bupd_update; eauto.
+    }
 
-    depdes x1; grind; try by econs; eauto.
+    depdes x0; grind; try by econs; eauto.
     - econs; eauto.
       iIntros "H". iPoseProof (UPD with "H") as "H". iMod "H" as "[HO HC]".
-      iPoseProof (Own_Upd with "HO") as "HO". eauto. iMod "HO".
-      iPoseProof (RET with "HO") as "HO". iMod "HO".
-      iApply "HO". eauto.
+      iPoseProof (Own_Upd with "HO") as "HO".
+      { eapply Own_bupd_update; eauto. }
+      iMod "HO". iPoseProof (RET with "HO") as "HO". iMod "HO". iApply "HO". eauto.
     - econs; eauto.
       + instantiate (1:= (FR ∗ CTX)%I).
         iIntros "H". iPoseProof (UPD with "H") as "H". iMod "H" as "[H HCTX]".
-        iFrame. iPoseProof (Own_Upd with "H") as "H"; eauto. iMod "H".
-        iPoseProof (INV with "H") as "H". eauto.
-      + i. econs. apply hsupd_merge. ii. esplits; eauto. reflexivity.
-        exploit iProp_sepconj_upd; eauto. i; des.
-        exploit iProp_sepconj; eauto; i; des; subst.
-        { eapply URA.wf_mon. rewrite URA.add_comm. eauto using own_wf. }
-        apply iProp_Own in x5. apply iProp_Own in x6.
-        eapply K; eauto.
-        { instantiate (1:= rp ⋅ p).
-          iIntros "H". iDestruct "H" as "[X Y]". iSplitL "X"; eauto.
-          - iApply x2. eauto.
-          - iApply x5. eauto.
-        }
-        { iIntros "H".
-          iPoseProof (x0 with "H") as "H". iMod "H" as "[Hr [Hp Hq]]".
-          iSplitR "Hq". 
-          { iSplitR "Hp"; eauto. }
-          { iApply x6. eauto. }
-        }
-    - econs; eauto. i.
-      econs. apply hsupd_merge. ii. esplits; eauto.
-      exploit iProp_sepconj_upd; eauto. i; des.
-      exploit iProp_sepconj; eauto; i; des; subst.
-      { eapply URA.wf_mon. rewrite URA.add_comm. eauto using own_wf. }
-      apply iProp_Own in x5. apply iProp_Own in x6.
-      eapply K.
-      { instantiate (1:= rp ⋅ fmr1).
-        iIntros "H". iDestruct "H" as "[X Y]". iSplitL "X"; eauto.
-        - iApply x2. eauto.
-        - iApply CUR. eauto.
-      }
-      { iIntros "H".
-        iPoseProof (x0 with "H") as "H". iMod "H" as "[Hr [Hp Hq]]".
-        iSplitR "Hq". 
-        { iSplitR "Hp"; eauto. iApply x5; eauto. }
-        { iApply x6. eauto. }
-      }
-    - econs; eauto. i.
-      econs. apply hsupd_merge. ii. esplits; eauto.
-      exploit iProp_sepconj_upd; eauto. i; des.
-      exploit iProp_sepconj; eauto; i; des; subst.
-      { eapply URA.wf_mon. rewrite URA.add_comm. eauto using own_wf. }
-      apply iProp_Own in x5. apply iProp_Own in x6.
-      eapply K.
-      { instantiate (1:= rp ⋅ fmr1).
-        iIntros "H". iDestruct "H" as "[X Y]". iSplitL "X"; eauto.
-        - iApply x2. eauto.
-        - iApply CUR. eauto.
-      }
-      { iIntros "H".
-        iPoseProof (x0 with "H") as "H". iMod "H" as "[Hr [Hp Hq]]".
-        iSplitR "Hq". 
-        { iSplitR "Hp"; eauto. iApply x5; eauto. }
-        { iApply x6. eauto. }
-      }
-    - econs; eauto.
-      { instantiate (1:= (FMR ∗ CTX)%I).
-        iIntros "H". iPoseProof (H0 with "H") as "H". iMod "H" as "[F C]".
-        iFrame. iStopProof; eauto. }
-      i. eapply iProp_sepconj_upd in NEW. des.
-      eapply K; eauto.
-      { iIntros "H". iApply NEW0. eauto. }
-      { iIntros "H". iPoseProof (NEW with "H") as "H". iMod "H" as "[HP HQ]".
-        iFrame. iApply NEW1. eauto. }
-    - econs; eauto.
-      { instantiate (1:= (FMR ∗ CTX)%I).
-        iIntros "H". iPoseProof (H0 with "H") as "H". iMod "H" as "[F C]".
-        iFrame. iStopProof; eauto. }
-      i. eapply iProp_sepconj_upd in NEW. des.
-      eapply K; eauto.
-      { iIntros "H". iApply NEW0. eauto. }
-      { iIntros "H". iPoseProof (NEW with "H") as "H". iMod "H" as "[HP HQ]".
-        iFrame. iApply NEW1. eauto. }
-    - econs; eauto.
-      + instantiate (1:= (FR ∗ CTX)%I).
-        iIntros "H". iPoseProof (UPD with "H") as "H". iMod "H" as "[H HCTX]".
-        iFrame. iPoseProof (x1 with "H") as "H". iMod "H".
-        iPoseProof (INV with "H") as "H". eauto.
+        iFrame. iPoseProof (Own_Upd with "H") as "H"; eauto.
+        { eapply Own_bupd_update; eauto. }
+        iMod "H". iPoseProof (INV with "H") as "H". eauto.
       + i. econs. apply hsupd_merge. ii. esplits; eauto.
-        exploit iProp_sepconj_upd; eauto. i; des.
-        exploit iProp_sepconj; eauto; i; des; subst.
-        { eapply URA.wf_mon. rewrite URA.add_comm. eauto using own_wf. }
-        apply iProp_Own in x5. apply iProp_Own in x6.
-        eapply K; eauto.
-        { instantiate (1:= rp ⋅ p).
-          iIntros "H". iDestruct "H" as "[X Y]". iSplitL "X"; eauto.
-          - iApply x2. eauto.
-          - iApply x5. eauto.
-        }
-        { iIntros "H".
-          iPoseProof (x0 with "H") as "H". iMod "H" as "[Hr [Hp Hq]]".
-          iSplitR "Hq". 
-          { iSplitR "Hp"; eauto. }
-          { iApply x6. eauto. }
+        rewrite assoc in INV0. hexploit (Own_bupd_split fmr2); eauto; i; des.
+        eapply (K _ _ _ _ a1); eauto.
+        { iIntros "?"; iApply H3; iFrame; done. }
+        { iIntros "H"; iPoseProof (H2 with "H") as "> [H1 H2]"; iModIntro; iFrame. iApply H4; done. }
+    - econs; eauto. i.
+      econs. apply hsupd_merge. ii. esplits; eauto.
+      rewrite assoc in NEW; hexploit (Own_bupd_split fmr2); eauto; i; des.
+      eapply (K a1); eauto.
+      { iIntros "H1"; iPoseProof (H3 with "H1") as "[P H1]". iMod (CUR with "H1") as "?"; iModIntro; iFrame. }
+      { iIntros "H2"; iPoseProof (H2 with "H2") as "> [H1 H2]"; iPoseProof (H4 with "H2") as "?"; iModIntro; iFrame. }
+    - econs; eauto. i.
+      econs. apply hsupd_merge. ii. esplits; eauto.
+      rewrite assoc in NEW; hexploit (Own_bupd_split fmr2); eauto; i; des.
+      eapply (K a1); eauto.
+      { iIntros "H1"; iPoseProof (H3 with "H1") as "[P H1]". iMod (CUR with "H1") as "?"; iModIntro; iFrame. }
+      { iIntros "H2"; iPoseProof (H2 with "H2") as "> [H1 H2]"; iPoseProof (H4 with "H2") as "?"; iModIntro; iFrame. }
+    - econs; eauto.
+      { instantiate (1:= (FMR ∗ CTX)%I).
+        iIntros "H". iPoseProof (H0 with "H") as "H". iMod "H" as "[F C]".
+        iFrame. iStopProof; eauto. }
+      i. econs. apply hsupd_merge. ii. esplits; eauto.
+      hexploit (Own_bupd_split fmr2); eauto; i; des.
+      eapply (K a1); eauto.
+      { iIntros "H". iModIntro; iApply H3; done. }
+      { iIntros "H". iPoseProof (H2 with "H") as "H". iMod "H" as "[HP HQ]".
+        iFrame. iModIntro; iApply H4; done.
+      }
+    - econs; eauto.
+      { instantiate (1:= (FMR ∗ CTX)%I).
+        iIntros "H". iPoseProof (H0 with "H") as "H". iMod "H" as "[F C]".
+        iFrame. iStopProof; eauto. }
+      i. econs. apply hsupd_merge. ii. esplits; eauto.
+      hexploit (Own_bupd_split fmr2); eauto; i; des.
+      eapply (K a1); eauto.
+      { iIntros "H". iModIntro; iApply H3; done. }
+      { iIntros "H". iPoseProof (H2 with "H") as "H". iMod "H" as "[HP HQ]".
+        iFrame. iModIntro; iApply H4; done.
+      }
+    - econs; eauto.
+      + instantiate (1:= (FR ∗ CTX)%I).
+        iIntros "C"; iPoseProof (H0 with "C") as "> [H1 CTX]"; iPoseProof (INV with "H1") as ">?".
+        iModIntro; iFrame; done.
+      + i. econs. apply hsupd_merge. ii. esplits; eauto.
+        rewrite assoc in INV0. exploit (Own_bupd_split fmr2); eauto; i; des.
+        eapply (K _ _ _ a1); eauto.
+        { iIntros "H2"; iModIntro; iApply x2; done. }
+        { iIntros "H2"; iPoseProof (x0 with "H2") as "> [H1 H2]"; iPoseProof (x3 with "H2") as "?".
+          iModIntro; iFrame.
         }
     - eauto using hpsim_frameC with paco.
   Qed.

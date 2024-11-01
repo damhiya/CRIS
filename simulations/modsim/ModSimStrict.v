@@ -203,7 +203,7 @@ Section SIM_STRICT.
     destruct PR. apply GF in REL0. apply GF in REL1.
     inv REL0; grind; depdes H4 H0; try itree_clarify x;
       inv REL1; grind; depdes H4 H0; try itree_clarify x;
-        econs; i; eauto using sim_strict_transC, rclo5.
+        econs; i; eauto using sim_strict_transC, rclo5 with itree.
     - destruct (K0 x'), (K x). eauto using sim_strict_transC, rclo5.
     - destruct (K x), (K0 x0). eauto using sim_strict_transC, rclo5.
   Qed.

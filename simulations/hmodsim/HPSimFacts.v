@@ -20,12 +20,70 @@ From ExtLib Require Import
 Require Import Red IRed.
 
 Require Import ModSimStrict HPSim.
+From iris.algebra Require Import big_op.
 
  (****************************************)
+
+Section AUX.
+  Lemma bind_ret_l_eta A {E R} (k : A -> itree E R) :
+    (λ x : A, x0 <- Ret x;; k x0) = k.
+  Proof. extensionality x. grind. Qed.
+
+  Lemma imod_trans `{Σ : GRA.t} (P Q R : iProp Σ) :
+    (P ⊢ |==> Q) -> (Q ⊢ |==> R) -> (P ⊢ |==> R).
+  Proof.
+    etransitivity; eauto.
+    iIntros ">Q". by iApply H0.
+  Qed.
+
+  Lemma imod_elim_trueL `{Σ : GRA.t} (P Q : iProp Σ) :
+    (P ⊢ |==> Q) -> (P ⊢ |==> (True ∗ Q)).
+  Proof.
+    i. iIntros "H". iSplitR; eauto. iStopProof. eauto.
+  Qed.
+
+  Lemma imod_intro_trueL `{Σ : GRA.t} (P Q : iProp Σ) :
+    (P ⊢ |==> (True ∗ Q)) -> (P ⊢ |==> Q).
+  Proof.
+    i. iIntros "H". iPoseProof (H with "H") as "H".
+    iMod "H". iDestruct "H" as "[X Y]". eauto.
+  Qed.
+
+  Lemma imod_elim_trueR `{Σ : GRA.t} (P Q : iProp Σ) :
+    (P ⊢ |==> Q) -> (P ⊢ |==> (Q ∗ True)).
+  Proof.
+    i. iIntros "H". iSplitL; eauto. iStopProof. eauto.
+  Qed.
+
+  Lemma imod_intro_trueR `{Σ : GRA.t} (P Q : iProp Σ) :
+    (P ⊢ |==> (Q ∗ True)) -> (P ⊢ |==> Q).
+  Proof.
+    i. iIntros "H". iPoseProof (H with "H") as "H".
+    iMod "H". iDestruct "H" as "[X Y]". eauto.
+  Qed.
+End AUX.
+
+Create HintDb imodL.
+Hint Resolve imod_trans imod_elim_trueL : imodL.
+
+Ltac imodIntroL :=
+  i; repeat match goal with [H : (_ ⊢ |==> (True ∗ _)) |- _ ] => apply imod_intro_trueL in H end; eauto with imodL.
+
+Ltac rewrite_bind_ret_l_eta :=
+  match goal with
+  | [ H : context[ (fun x : ?A => x0 <- Ret x;; ?k x0) ] |- _ ] =>
+      try rewrite !bind_ret_l_eta in H; subst
+  end.
+
+Ltac itree_clarify H :=
+  revert H; grind; try unfold trigger in H; try rewrite !bind_vis in H; try depdes H;
+    repeat rewrite_bind_ret_l_eta; try rewrite !bind_ret_l_eta; subst.
+
 
 Section HPSIM_ADD_DUMMY.
 
   Context `{Σ : GRA.t}.
+  Notation iProp := (iProp Σ).
 
   Variable fl_src : alist gname (Any.t -> itree hmodE Any.t).
   Variable fl_tgt : alist gname (Any.t -> itree hmodE Any.t).
@@ -39,7 +97,7 @@ Section HPSIM_ADD_DUMMY.
     exists with_dummy Q i (k : Q -> _),
       itr = (i >>= k) /\
       itr' = (x <- i;; (dummy_term with_dummy) ;;; k x).
-  Hint Unfold itreeH_dummy.
+  Hint Unfold itreeH_dummy : dummy.
             
   Lemma itreeH_dummy_refl R i:
     itreeH_dummy R i i.
@@ -49,38 +107,31 @@ Section HPSIM_ADD_DUMMY.
     rewrite -{1}[i](bind_ret_r i). f_equal.
     extensionality x. grind.
   Qed.
-  Hint Resolve itreeH_dummy_refl.
+  Hint Resolve itreeH_dummy_refl : dummy.
 
   Lemma itreeH_dummy_dummy with_dummy Q R i (k : Q -> _):
     itreeH_dummy R (i >>= k) (x <- i;; (dummy_term with_dummy);;; k x).
-  Proof.
-    r; esplits; eauto.
-  Qed.
-  Hint Resolve itreeH_dummy_dummy.
+  Proof. r; esplits; eauto. Qed.
+  Hint Resolve itreeH_dummy_dummy : dummy.
 
   Variant hpsim_dummyC_src (r : forall R (RR : nat -> (alist key Any.t) * R -> (alist key Any.t) * R -> iProp), bool -> bool -> nat -> (alist key Any.t) * itree hmodE R -> (alist key Any.t) * itree hmodE R -> Σ -> Prop):
     forall R (RR : nat -> (alist key Any.t) * R -> (alist key Any.t) * R -> iProp), bool -> bool -> nat -> (alist key Any.t) * itree hmodE R -> (alist key Any.t) * itree hmodE R -> Σ -> Prop
   :=
   | hpsim_dummyC_src_intro R RR ps pt nths st_src i_src i_src' st_tgt i_tgt fmr
       (SIM : r R RR ps pt nths (st_src, i_src) (st_tgt, i_tgt) fmr)
-      (DUMMY : itreeH_dummy R i_src i_src')
-    :
-    hpsim_dummyC_src r R RR ps pt nths (st_src, i_src') (st_tgt, i_tgt) fmr
-  .
+      (DUMMY : itreeH_dummy R i_src i_src') :
+    hpsim_dummyC_src r R RR ps pt nths (st_src, i_src') (st_tgt, i_tgt) fmr.
   
-  Lemma hpsim_dummyC_src_mon
-        r1 r2
-        (LEr : r1 <8= r2)
-    :
-    hpsim_dummyC_src r1 <8= hpsim_dummyC_src r2
-  .
-  Proof. i. destruct PR; econs; eauto. Qed.
+  Lemma hpsim_dummyC_src_mon r1 r2
+      (LEr : r1 <8= r2) :
+    hpsim_dummyC_src r1 <8= hpsim_dummyC_src r2 .
+  Proof. by i; destruct PR; econs; eauto. Qed.
 
   Lemma any_neq_unit : Any.t ≠ ()%type.
   Proof.
     assert (exists x y : Any.t, x ≠ y).
     { exists (true↑), (false↑). ii. eapply f_equal in H.
-      rewrite !Any.upcast_downcast in H. inv H. }
+      erewrite !Any.upcast_downcast in H. inv H. }
     ii. rewrite H0 in H. des. apply H. destruct x, y; eauto.
   Qed.
   
@@ -92,97 +143,97 @@ Section HPSIM_ADD_DUMMY.
     remember (st_tgt, i_tgt) as sti_tgt.
     move SIM before RR. revert_until SIM.
     pattern ps, pt, nths, sti_src, sti_tgt, fmr.
-    eapply _hpsim_tarski, SIM. i. econs. ii.
-    specialize (IN H). r in DUMMY. des. esplits; eauto.
+    eapply _hpsim_tarski, SIM. i.
+    econs; intros wf; specialize (IN wf). r in DUMMY. des. esplits; eauto. clear dependent fmr0.
     destruct IN; i; depdes Heqsti_src Heqsti_tgt;
-      esplits; grind; eauto; try by econs; eauto 10.
+      esplits; grind; eauto; try by econs; eauto 10 with dummy.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       rewrite <-x; destruct with_dummy; grind; econs; eauto with imodL.
       econs. ii. esplits; eauto. econs; eauto with imodL.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_src) -bind_vis.
-        destruct with_dummy; grind; eauto using @_hpsim'.
-        eapply hpsim_guarantee_src; try econs; eauto with imodL. ii; esplits; eauto.
-        econs; eauto.        
-      + replace c with (Call fn varg). econs; eauto.
+        destruct with_dummy; grind; eauto using @_hpsim' with dummy.
+        eapply hpsim_guarantee_src; eauto with imodL.
+        ii; econs; eauto. ii; esplits; eauto. econs; eauto with dummy.
+      + replace c with (Call fn varg). econs; eauto with dummy.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_src) -bind_vis.
-        destruct with_dummy; grind; eauto using @_hpsim'.
-        eapply hpsim_guarantee_src; try econs; eauto with imodL. ii. esplits; eauto.
-        econs; eauto.
-      + replace e with (@IO I R0 fn varg). econs; eauto.
+        destruct with_dummy; grind; eauto using @_hpsim' with dummy.
+        eapply hpsim_guarantee_src; eauto with imodL.
+        ii; econs; eauto. ii; esplits; eauto. econs; eauto with dummy.
+      + replace e with (@IO I R0 fn varg). econs; eauto with dummy.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_src) -bind_vis.
-        destruct with_dummy; grind; eauto using @_hpsim'.
-        eapply hpsim_guarantee_src; try econs; eauto with imodL. ii. esplits; eauto.
-        econs; eauto.
-      + replace c with (Call fn varg). econs; eauto. eapply K; eauto.
+        destruct with_dummy; grind; eauto using @_hpsim' with dummy.
+        eapply hpsim_guarantee_src; eauto with imodL.
+        ii; econs; eauto. ii; esplits; eauto. econs; eauto with dummy.
+      + replace c with (Call fn varg). econs; eauto. eapply K; eauto with dummy.
         eexists with_dummy, _, (x<-f varg;; trigger (Guarantee True);;; tau;; ktrH' x), k.
         esplits; grind.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
-      + rewrite -x. destruct with_dummy; grind; eauto using @_hpsim'.
+      + rewrite -x. destruct with_dummy; grind; eauto using @_hpsim' with dummy.
         eapply hpsim_guarantee_src; eauto with imodL. ii. econs. ii. esplits; eauto.
-        econs; eauto.
-      + econs; eauto.
+        econs; eauto with dummy.
+      + econs; eauto with dummy.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_src) -bind_vis.
-        destruct with_dummy; grind; eauto using @_hpsim'.
+        destruct with_dummy; grind; eauto using @_hpsim' with dummy.
         eapply hpsim_guarantee_src; eauto with imodL. ii. econs. ii. esplits; eauto.
-        econs; eauto.
-      + replace e with (Take R0); econs; eauto.
+        econs; eauto with dummy.
+      + replace e with (Take R0); econs; eauto with dummy.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_src) -bind_vis.
-        destruct with_dummy; grind; eauto using @_hpsim'.
+        destruct with_dummy; grind; eauto using @_hpsim' with dummy.
         eapply hpsim_guarantee_src; eauto with imodL. ii. econs. ii. esplits; eauto.
-        econs; eauto.
-      + replace e with (Choose R0); eauto. econs; eauto.
+        econs; eauto with dummy.
+      + replace e with (Choose R0); eauto. econs; eauto with dummy.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_src) -bind_vis.
-        destruct with_dummy; grind; eauto using @_hpsim'.
+        destruct with_dummy; grind; eauto using @_hpsim' with dummy.
         eapply hpsim_guarantee_src; eauto with imodL. ii. econs. ii. esplits; eauto.
-        econs; eauto.
+        econs; eauto with dummy.
       + depdes s; depdes x.
-        * econs; eauto.
-        * exfalso. apply any_neq_unit; eauto.
+        * econs; eauto with dummy.
+        * exfalso. apply any_neq_unit; eauto with dummy.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_src) -bind_vis.
-        destruct with_dummy; grind; eauto using @_hpsim'.
+        destruct with_dummy; grind; eauto using @_hpsim' with dummy.
         eapply hpsim_guarantee_src; eauto with imodL. ii. econs. ii. esplits; eauto.
-        econs; eauto.
+        econs; eauto with dummy.
       + depdes s; depdes x.
         * exfalso. apply any_neq_unit; eauto.
-        * econs; eauto.
+        * econs; eauto with dummy.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_src) -bind_vis.
-        destruct with_dummy; grind; eauto using @_hpsim'.
+        destruct with_dummy; grind; eauto using @_hpsim' with dummy.
         eapply hpsim_guarantee_src; eauto with imodL. ii. econs. ii. esplits; eauto.
-        econs; eauto.
-      + econs; eauto.
+        econs; eauto with dummy.
+      + econs; eauto with dummy.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_src) -bind_vis.
-        destruct with_dummy; grind; eauto using @_hpsim'.
+        destruct with_dummy; grind; eauto using @_hpsim' with dummy.
         eapply hpsim_guarantee_src; eauto with imodL. ii. econs. ii. esplits; eauto.
-        econs; eauto.
-      + econs; eauto.
+        econs; eauto with dummy.
+      + econs; eauto with dummy.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_src) -bind_vis.
-        destruct with_dummy; grind; eauto using @_hpsim'.
-        eapply hpsim_guarantee_src; try econs; eauto with imodL. ii. esplits; eauto.
-        econs; eauto.
-      + replace s with (Spawn fn arg). econs; eauto.
+        destruct with_dummy; grind; eauto using @_hpsim' with dummy.
+        eapply hpsim_guarantee_src; eauto with imodL.
+        ii; econs; eauto. ii; esplits; eauto. econs; eauto with dummy.
+      + replace s with (Spawn fn arg). econs; eauto with dummy.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_src) -bind_vis.
-        destruct with_dummy; grind; eauto using @_hpsim'.
-        eapply hpsim_guarantee_src; try econs; eauto with imodL. ii; esplits; eauto.
-        econs; eauto.
-      + replace s with (Yield tid). econs; eauto.
+        destruct with_dummy; grind; eauto using @_hpsim' with dummy.
+        eapply hpsim_guarantee_src; eauto with imodL.
+        ii; econs; eauto. ii; esplits; eauto. econs; eauto with dummy.
+      + replace s with (Yield tid). econs; eauto with dummy.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_src) -bind_vis.
-        destruct with_dummy; grind; eauto using @_hpsim'.
-        eapply hpsim_guarantee_src; try econs; eauto with imodL. ii; esplits; eauto.
-        econs; eauto.
-      + replace s with Tid. econs; eauto.
-    - econs; eauto. econs; eauto.
+        destruct with_dummy; grind; eauto using @_hpsim' with dummy.
+        eapply hpsim_guarantee_src; eauto with imodL.
+        ii; econs; eauto. ii; esplits; eauto. econs; eauto with dummy.
+      + replace s with Tid. econs; eauto with dummy.
+    - econs; eauto. econs; eauto with dummy.
   Qed.
 
   Lemma hpsim_dummyC_src_spec:
@@ -219,96 +270,96 @@ Section HPSIM_ADD_DUMMY.
     move SIM before RR. revert_until SIM.
     pattern ps, pt, nths, sti_src, sti_tgt, fmr.
     eapply _hpsim_tarski, SIM. i. econs. ii.
-    specialize (IN H). r in DUMMY. des. esplits; eauto.
+    specialize (IN H). r in DUMMY. des. esplits; eauto .
     destruct IN; i; depdes Heqsti_src Heqsti_tgt;
-      esplits; grind; eauto; try by econs; eauto 10.
+      esplits; grind; eauto; try by econs; eauto 10 with dummy.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       rewrite <-x; destruct with_dummy; grind; econs; eauto; imodIntroL.
       econs. ii. esplits; eauto. econs; eauto with imodL.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_tgt) -bind_vis.
-        destruct with_dummy; grind; eauto using @_hpsim'.
-        eapply hpsim_guarantee_tgt; try econs; eauto; imodIntroL. ii; esplits; eauto.
-        econs; eauto.
-      + replace c with (Call fn varg). econs; eauto.
+        destruct with_dummy; grind; eauto using @_hpsim' with dummy.
+        eapply hpsim_guarantee_tgt; eauto; imodIntroL.
+        econs; ii; esplits; eauto; econs; eauto with dummy.
+      + replace c with (Call fn varg). econs; eauto with dummy.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_tgt) -bind_vis.
-        destruct with_dummy; grind; eauto using @_hpsim'.
-        eapply hpsim_guarantee_tgt; try econs; eauto; imodIntroL. ii. esplits; eauto.
-        econs; eauto.
-      + replace e with (@IO I R0 fn varg). econs; eauto.
+        destruct with_dummy; grind; eauto using @_hpsim' with dummy.
+        eapply hpsim_guarantee_tgt; eauto; imodIntroL.
+        econs; ii; esplits; eauto; econs; eauto with dummy.
+      + replace e with (@IO I R0 fn varg). econs; eauto with dummy.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_tgt) -bind_vis.
-        destruct with_dummy; grind; eauto using @_hpsim'.
-        eapply hpsim_guarantee_tgt; try econs; eauto; imodIntroL. ii. esplits; eauto.
-        econs; eauto.
-      + replace c with (Call fn varg). econs; eauto. eapply K; eauto.
+        destruct with_dummy; grind; eauto using @_hpsim' with dummy.
+        eapply hpsim_guarantee_tgt; eauto; imodIntroL. ii.
+        econs; ii; esplits; eauto; econs; eauto with dummy.
+      + replace c with (Call fn varg). econs; eauto. eapply K; eauto with dummy.
         eexists with_dummy, _, (x<-f varg;; trigger (Guarantee True);;; tau;; ktrH' x), k.
         esplits; grind.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
-      + rewrite -x. destruct with_dummy; grind; eauto using @_hpsim'.
+      + rewrite -x. destruct with_dummy; grind; eauto using @_hpsim' with dummy.
         eapply hpsim_guarantee_tgt; eauto; imodIntroL. ii. econs. ii. esplits; eauto.
-        econs; eauto.
-      + econs; eauto.
+        econs; eauto with dummy.
+      + econs; eauto with dummy.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_tgt) -bind_vis.
-        destruct with_dummy; grind; eauto using @_hpsim'.
+        destruct with_dummy; grind; eauto using @_hpsim' with dummy.
         eapply hpsim_guarantee_tgt; eauto; imodIntroL. ii. econs. ii. esplits; eauto.
-        econs; eauto.
-      + replace e with (Choose R0); econs; eauto.
+        econs; eauto with dummy.
+      + replace e with (Choose R0); econs; eauto with dummy.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_tgt) -bind_vis.
-        destruct with_dummy; grind; eauto using @_hpsim'.
+        destruct with_dummy; grind; eauto using @_hpsim' with dummy.
         eapply hpsim_guarantee_tgt; eauto; imodIntroL. ii. econs. ii. esplits; eauto.
-        econs; eauto.
-      + replace e with (Take R0); eauto. econs; eauto.
+        econs; eauto with dummy.
+      + replace e with (Take R0); eauto. econs; eauto with dummy.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_tgt) -bind_vis.
-        destruct with_dummy; grind; eauto using @_hpsim'.
+        destruct with_dummy; grind; eauto using @_hpsim' with dummy.
         eapply hpsim_guarantee_tgt; eauto; imodIntroL. ii. econs. ii. esplits; eauto.
-        econs; eauto.
+        econs; eauto with dummy.
       + depdes s; depdes x.
-        * econs; eauto.
+        * econs; eauto with dummy.
         * exfalso. apply any_neq_unit; eauto.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_tgt) -bind_vis.
-        destruct with_dummy; grind; eauto using @_hpsim'.
+        destruct with_dummy; grind; eauto using @_hpsim' with dummy.
         eapply hpsim_guarantee_tgt; eauto; imodIntroL. ii. econs. ii. esplits; eauto.
-        econs; eauto.
+        econs; eauto with dummy.
       + depdes s; depdes x.
         * exfalso. apply any_neq_unit; eauto.
-        * econs; eauto.
+        * econs; eauto with dummy.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_tgt) -bind_vis.
-        destruct with_dummy; grind; eauto using @_hpsim'.
+        destruct with_dummy; grind; eauto using @_hpsim' with dummy.
         eapply hpsim_guarantee_tgt; eauto; imodIntroL. ii. econs. ii. esplits; eauto.
-        econs; eauto.
-      + econs; eauto.
+        econs; eauto with dummy.
+      + econs; eauto with dummy.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_tgt) -bind_vis.
-        destruct with_dummy; grind; eauto using @_hpsim'.
+        destruct with_dummy; grind; eauto using @_hpsim' with dummy.
         eapply hpsim_guarantee_tgt; eauto; imodIntroL. ii. econs. ii. esplits; eauto.
-        econs; eauto.
-      + econs; eauto.
+        econs; eauto with dummy.
+      + econs; eauto with dummy.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_tgt) -bind_vis.
-        destruct with_dummy; grind; eauto using @_hpsim'.
-        eapply hpsim_guarantee_tgt; try econs; eauto; imodIntroL. ii. esplits; eauto.
-        econs; eauto.
-      + replace s with (Spawn fn arg). econs; eauto.
+        destruct with_dummy; grind; eauto using @_hpsim' with dummy.
+        eapply hpsim_guarantee_tgt; eauto; imodIntroL.
+        econs; ii; esplits; eauto; econs; eauto with dummy.
+      + replace s with (Spawn fn arg). econs; eauto with dummy.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_tgt) -bind_vis.
-        destruct with_dummy; grind; eauto using @_hpsim'.
-        eapply hpsim_guarantee_tgt; try econs; eauto; imodIntroL. ii. esplits; eauto.
-        econs; eauto.
-      + replace s with (Yield tid). econs; eauto.
+        destruct with_dummy; grind; eauto using @_hpsim' with dummy.
+        eapply hpsim_guarantee_tgt; eauto; imodIntroL.
+        econs; ii; esplits; eauto; econs; eauto with dummy.
+      + replace s with (Yield tid). econs; eauto with dummy.
     - assert (CASE:= case_itrH _ i); des; subst; itree_clarify DUMMY.
       + rewrite -x -(bind_ret_l_eta _ k_tgt) -bind_vis.
-        destruct with_dummy; grind; eauto using @_hpsim'.
-        eapply hpsim_guarantee_tgt; try econs; eauto; imodIntroL. ii. esplits; eauto.
-        econs; eauto.
-      + replace s with Tid. econs; eauto.
-    - subst. econs; eauto. econs; eauto.
+        destruct with_dummy; grind; eauto using @_hpsim' with dummy.
+        eapply hpsim_guarantee_tgt; eauto; imodIntroL.
+        econs; ii; esplits; eauto; econs; eauto with dummy.
+      + replace s with Tid. econs; eauto with dummy.
+    - subst. econs; eauto. econs; eauto with dummy.
   Qed.
 
   Lemma hpsim_dummyC_tgt_spec:
@@ -342,6 +393,7 @@ End HPSIM_ADD_DUMMY.
 Section INTERP_RECONF.
 
   Context `{Σ : GRA.t}.
+  Notation iProp := (iProp Σ).
 
   Variable fl_src : alist gname (Any.t -> itree hmodE Any.t).
   Variable fl_tgt : alist gname (Any.t -> itree hmodE Any.t).
@@ -350,7 +402,7 @@ Section INTERP_RECONF.
 
   Definition hp_reconf_eq cr : relation (Any.t * Σ) :=
     fun '(str,fr) '(str',fr') =>
-      <<RELr : Own fr ⊢ #=> Own (fr' ⋅ cr)>> /\      
+      <<RELr : Own fr ⊢ |==> Own (fr' ⋅ cr)>> /\      
       <<STR : str' = str>>.
   
   Definition hp_reconf_equiv cr : relation (Any.t * Σ) :=
@@ -358,7 +410,7 @@ Section INTERP_RECONF.
       hp_reconf_eq cr (str,fr) (str',fr')
       \/
       (exists st (mr mr' : Σ),
-       <<RELr : Own (fr ⋅ mr) ⊢ #=> Own (fr' ⋅ mr' ⋅ cr)>> /\
+       <<RELr : Own (fr ⋅ mr) ⊢ |==> Own (fr' ⋅ mr' ⋅ cr)>> /\
        <<STR : str = Any.pair st mr↑>> /\
        <<STR' : str' = Any.pair st mr'↑>>).
 
@@ -366,29 +418,25 @@ Section INTERP_RECONF.
     fun '(str,(fr,x)) '(str',(fr',x')) =>
       eqv cr (str,fr) (str',fr') /\ x = x'.
 
-  Lemma hp_reconf_equiv_strong
-    cr str str' (fr fr' : Σ)
-    (EQV : hp_reconf_equiv cr (str,fr) (str',fr'))
-    :
-    (hp_reconf_eq cr (str,fr) (str',fr') /\
-     <<FAIL : ~ exists st (mr:Σ), str = Any.pair st mr↑>>)
-    \/
-    (exists st (mr mr' : Σ),
-     <<RELr : Own (fr ⋅ mr) ⊢ #=> Own (fr' ⋅ mr' ⋅ cr)>> /\
+  Lemma hp_reconf_equiv_strong cr str str' (fr fr' : Σ)
+      (EQV : hp_reconf_equiv cr (str,fr) (str',fr')) :
+    (hp_reconf_eq cr (str,fr) (str',fr') ∧
+     <<FAIL : ~ exists st (mr : Σ), str = Any.pair st mr↑>>)
+    ∨
+    (∃ st (mr mr' : Σ),
+     <<RELr : Own (fr ⋅ mr) ⊢ |==> Own (fr' ⋅ mr' ⋅ cr)>> /\
      <<STR : str = Any.pair st mr↑>> /\
      <<STR' : str' = Any.pair st mr'↑>>).
   Proof.
     ss. des; subst; [|right]; esplits; eauto.
-    destruct (classic (exists stx (mrx:Σ), str = Any.pair stx mrx↑)); eauto.
+    destruct (classic (exists stx (mrx : Σ), str = Any.pair stx mrx↑)); eauto.
     des. subst. right. esplits; eauto.
-    eapply own_ctx with (ctx := mrx) in RELr. revert RELr. r_solve. i.
-    rewrite-> URA.add_comm, (URA.add_comm fr' mrx). eauto.
+    iIntros "[FR MR]"; iPoseProof (RELr with "FR") as "> [FR CR]"; iModIntro.
+    iSplitR "CR"; iFrame. iSplitL "FR"; iFrame.
   Qed.
   
-  Lemma hp_reconf_fail
-    r R RR nths str i i'
-    (FAIL : ~ exists st (mr:Σ), str = Any.pair st mr↑)
-    :
+  Lemma hp_reconf_fail r R RR nths str i i'
+      (FAIL : ~ exists st (mr:Σ), str = Any.pair st mr↑) :
     paco5 (_sim_strict my_tid) r R RR nths
       (str, p <- unwrapU (Any.split str);;
             mr <- (let '(st,_mr) := p in unwrapU (@Any.downcast Σ _mr));; i mr)
@@ -403,10 +451,8 @@ Section INTERP_RECONF.
     exfalso. eapply FAIL. des; subst. eauto.
   Qed.
 
-  Lemma handle_Guarantee_reconf
-    P nths str str' (fr fr' cr : Σ)
-    (RELr : hp_reconf_equiv cr (str,fr) (str',fr'))
-    :
+  Lemma handle_Guarantee_reconf P nths str str' (fr fr' cr : Σ)
+      (RELr : hp_reconf_equiv cr (str,fr) (str',fr')) :
     sim_strict my_tid _ (fun _ => hp_reconf_rel _ hp_reconf_equiv cr) nths
       (str, handle_Guarantee P fr)
       (str', handle_Guarantee P fr').
@@ -418,20 +464,19 @@ Section INTERP_RECONF.
     { gfinal. right. apply hp_reconf_fail. eauto. }
     rewrite !Any.pair_split. grind. rewrite !Any.upcast_downcast.
     grind; gstep; econs; i. eexists.
-    { r_solve. iIntros "H". iPoseProof (RELr0 with "H") as "H". iMod "H".
-      iDestruct "H" as "[X Y]". iSplitL "X"; eauto.
-      iPoseProof (x' with "X") as "X". eauto. }
-    grind; gstep; econs; i. eexists. { eauto. }
+    { r_solve. etrans; first by apply Own_bupd_update; eauto.
+      by apply cmra_update_op; eauto.
+    }
+    grind; gstep; econs; i. eexists; eauto.
     grind; gstep; econs; i. grind. rewrite !Any.pair_split.
     repeat (grind; gstep; econs; i).
     split; eauto. right. esplits; eauto.
     r_solve. eauto.
   Qed.
 
-  Lemma handle_Guarantee_reconf_true
-    nths str str' (fr fr' cr : Σ)
-    (RELr : hp_reconf_equiv cr (str,fr) (str',fr'))
-    :
+  (* REMOVE : We can get everything out of the module resource *)
+  Lemma handle_Guarantee_reconf_true nths str str' (fr fr' cr : Σ)
+      (RELr : hp_reconf_equiv cr (str,fr) (str',fr')) :
     sim_strict my_tid _ (fun _ => hp_reconf_rel _ hp_reconf_eq cr) nths
       (str, handle_Guarantee True fr)
       (str', handle_Guarantee True fr').
@@ -443,10 +488,10 @@ Section INTERP_RECONF.
     { gfinal. right. apply hp_reconf_fail. eauto. }
     rewrite !Any.pair_split. grind. rewrite !Any.upcast_downcast.
     grind; gstep; econs; i. eexists.
-    { r_solve. iIntros "H". iPoseProof (RELr0 with "H") as "H". iMod "H".
-      iDestruct "H" as "[X Y]".
-      rewrite -URA.add_assoc (URA.add_comm cr c2) URA.add_assoc.
-      iSplitL "X"; eauto. iPoseProof (x' with "X") as "X". eauto. }
+    { r_solve; etrans; first by apply Own_bupd_update; eauto.
+      etrans; first apply cmra_update_op; [eauto|reflexivity|].
+      by rewrite -assoc (comm _ c2) assoc; reflexivity.
+    }
     grind; gstep; econs; i. eexists. { eauto. }
     grind; gstep; econs; i. grind. rewrite !Any.pair_split.
     repeat (grind; gstep; econs; i).
@@ -494,13 +539,16 @@ Section INTERP_RECONF.
       { gfinal. right. apply hp_reconf_fail. eauto. }
       rewrite !Any.pair_split. grind. rewrite !Any.upcast_downcast.
       grind; gstep; econs; i. eexists.
-      { eapply own_ctx with (ctx := x) in RELr0. rewrite !URA.add_assoc in RELr0.
-        eapply own_wf in RELr0; eauto. eapply URA.wf_mon; eauto. }
-      grind; gstep; econs; i. eexists. { eauto. }
+      { hexploit (Own_bupd_update _ _ RELr0); rewrite cmra_discrete_total_update; intros upd.
+        specialize (upd x); rewrite -assoc comm in x0; apply upd in x0.
+        rewrite comm ?assoc in x0; eauto using cmra_valid_op_l.
+      }
+      grind; gstep; econs; i. eexists; eauto.
       grind; gstep; econs; i.
       gfinal. left. eapply CIH. right. esplits; eauto.
-      { eapply own_ctx with (ctx := x) in RELr0.
-        rewrite !URA.add_assoc in RELr0. eauto using own_wf. }
+      { iIntros "[[X F] M]"; iPoseProof (RELr0 with "[F M]") as "> ?"; first iSplitL "F"; iFrame.
+        iModIntro; rewrite -!assoc; iSplitL "X"; iFrame.
+      }
     - rewrite-> !interp_hp_bind, !interp_hp_Guarantee. grind.
       guclo sim_strict_bindC_spec. econs.
       { gfinal. right. eapply paco5_mon_bot; eauto.
@@ -622,10 +670,8 @@ Section INTERP_RECONF.
     right. esplits; eauto. r_solve. eauto.
   Qed.
 
-  Lemma interp_strict_inline_tgt
-    nths itrH ktrH st (fr mr fr' mr' : Σ)
-    (RELr : Own (fr ⋅ mr) ⊢ #=> Own (fr' ⋅ mr'))
-    :
+  Lemma interp_strict_inline_tgt nths itrH ktrH st (fr mr fr' mr' : Σ)
+      (RELr : Own (fr ⋅ mr) ⊢ |==> Own (fr' ⋅ mr')) :
     sim_strict my_tid Any.t (fun _ => eq) nths
       (Any.pair st mr↑, interp_hp_body (x <- itrH;; trigger (Guarantee True) ;;; tau;; ktrH x) fr)
       (Any.pair st mr'↑, x <- interp_hp_body itrH ε;; tau;; '(rr,rv) <- (tau;; Ret (fr',x));; interp_hp_body (ktrH rv) rr).
@@ -633,8 +679,8 @@ Section INTERP_RECONF.
     ginit. unfold interp_hp_body. rewrite-> !interp_hp_bind. grind.
     guclo sim_strict_bindC_spec. econs.
     { gfinal. right. eapply interp_hp_reconf with (cr:=fr').
-      right. esplits; eauto. r_solve.
-      rewrite (URA.add_comm mr' fr'). eauto. }
+      right. esplits; eauto. r_solve. etrans; first eauto; last rewrite comm; done.
+    }
     i. rewrite-> !interp_hp_bind, interp_hp_Guarantee. unfold hp_fun_tail. grind.
     guclo sim_strict_bindC_spec. econs.
     { gfinal. right. eapply handle_Guarantee_reconf_true.
@@ -643,9 +689,10 @@ Section INTERP_RECONF.
     i. grind; gstep; econs; i. rewrite interp_hp_tau. grind. gstep. econs; i.
     destruct v0. rr in REL; des; subst. simpl. destruct v1, v0'.
     guclo sim_strict_bindC_spec. econs.
-    { gfinal. right.  eapply interp_hp_reconf with (cr:=c2).
+    { gfinal. right. s. eapply interp_hp_reconf.
       s in REL0; des; subst. left. s. esplits; eauto.
-      rewrite URA.add_comm. eauto. }
+      rewrite comm; eauto.
+    }
     i. grind. guclo sim_strict_bindC_spec. econs.
     { gfinal. right. eapply handle_Guarantee_reconf_true.
       r in REL1. des; subst. eauto. }
@@ -655,10 +702,9 @@ Section INTERP_RECONF.
 
 End INTERP_RECONF.
 
-
-  
 Section HPSIM_ADEQUACY. 
   Context `{Σ : GRA.t}.
+  Notation iProp := (iProp Σ).
 
   Variable fl_src : alist gname (Any.t -> itree hmodE Any.t).
   Variable fl_tgt : alist gname (Any.t -> itree hmodE Any.t).
@@ -666,10 +712,10 @@ Section HPSIM_ADEQUACY.
   Variable my_tid : nat.
 
 (******* Move ******)
-  Lemma own_ctx_r a b
-      (OWN : Own a ⊢ #=> Own b)
+  (* Lemma own_ctx_r a b
+      (OWN : Own a ⊢ |==> Own b)
     :
-      forall ctx, Own (a ⋅ ctx) ⊢ #=> Own (b ⋅ ctx)
+      forall ctx, Own (a ⋅ ctx) ⊢ |==> Own (b ⋅ ctx)
   .
   Proof.
     i. iIntros "[H H0]".
@@ -679,18 +725,18 @@ Section HPSIM_ADEQUACY.
 
   (*** Used only in hpsim_adequacy. ***)
   Lemma own_upd_in_middle fr_src mr_src fr_tgt mr_tgt ctx fmr fmr0
-    (UPD : Own (fr_src ⋅ mr_src) ⊢ #=> Own (ctx ⋅ fmr ⋅ fr_tgt ⋅ mr_tgt))
-    (FMR : Own fmr ⊢ #=> Own fmr0)
+    (UPD : Own (fr_src ⋅ mr_src) ⊢ |==> Own (ctx ⋅ fmr ⋅ fr_tgt ⋅ mr_tgt))
+    (FMR : Own fmr ⊢ |==> Own fmr0)
   :
-    Own (fr_src ⋅ mr_src) ⊢ #=> Own (ctx ⋅ fmr0 ⋅ fr_tgt ⋅ mr_tgt).
+    Own (fr_src ⋅ mr_src) ⊢ |==> Own (ctx ⋅ fmr0 ⋅ fr_tgt ⋅ mr_tgt).
   Proof.
     eapply own_trans; eauto. 
     iIntros "[[[CTX FMR] FRT] MRT]". iPoseProof (FMR with "FMR") as "FMR". iMod "FMR".
     iModIntro. iSplitR "MRT"; eauto. iSplitR "FRT"; eauto. iSplitR "FMR"; eauto.
-  Qed.
+  Qed. *)
 
   Definition ctx_sem (ctx : list Σ) : Σ :=
-    foldr URA.add ε ctx.
+    [^(⋅) list] r ∈ ctx, r.
 
   Definition ctx_set (ctx : list Σ) (r : Σ) : list Σ :=
     <[my_tid := r]> ctx.
@@ -700,22 +746,24 @@ Section HPSIM_ADEQUACY.
 
   Lemma ctx_set_sem ctx r r'
     (IN : my_tid < List.length ctx):
-    ctx_sem (ctx_set ctx (r ⋅ r')) = ctx_sem (ctx_set ctx r) ⋅ r'.
+    ctx_sem (ctx_set ctx (r ⋅ r')) ≡ ctx_sem (ctx_set ctx r) ⋅ r'.
   Proof.
     unfold ctx_set. revert my_tid r r' IN.
     induction ctx; i; ss; try nia.
-    destruct my_tid; s; r_solve.
-    eapply IHctx; try nia.
+    destruct my_tid; s.
+    { rewrite /ctx_sem; rewrite !big_opL_cons. rewrite -assoc (comm _ r') assoc; done. }
+    { move: IHctx; rewrite /ctx_sem !big_opL_cons => IHctx; rewrite IHctx; last by lia.
+      by rewrite assoc. }
+    (* eapply IHctx; try nia. *)
   Qed.
   
   Lemma ctx_add_sem ctx r
     (IN : my_tid < List.length ctx):
-    ctx_sem (ctx_add ctx r) = ctx_sem ctx ⋅ r.
+    ctx_sem (ctx_add ctx r) ≡ ctx_sem ctx ⋅ r.
   Proof.
-    unfold ctx_add, ctx_set. revert my_tid r IN.
-    induction ctx; i; ss; try nia.
-    destruct my_tid; s; r_solve.
-    eapply IHctx; try nia.
+    destruct (ctx !! my_tid) eqn:emy; cycle 1.
+    { hexploit (lookup_lt_is_Some_2 ctx); eauto; rewrite emy; ss; intros []; clarify. }
+    { by rewrite /ctx_add; rewrite emy; ss; rewrite ctx_set_sem //= /ctx_set list_insert_id; ss. }
   Qed.
 
   Lemma le_mine_in (ctx0 ctx : list Σ)
@@ -756,9 +804,9 @@ Section HPSIM_ADEQUACY.
   Variant interp_inv : list Σ -> nat * Any.t * Any.t -> Prop :=
   | interp_inv_intro
       (ctx : list Σ) (mr_src mr_tgt : Σ) nths st_src st_tgt mr
-      (WF : URA.wf mr_src)
-      (MRS : Own mr_src ⊢ #=> Own (ctx_sem ctx ⋅ mr ⋅ mr_tgt))
-      (MR : Own mr ⊢ #=> Ist nths st_src st_tgt)
+      (WF : ✓ mr_src)
+      (MRS : Own mr_src ⊢ |==> Own (ctx_sem ctx ⋅ mr ⋅ mr_tgt))
+      (MR : Own mr ⊢ |==> Ist nths st_src st_tgt)
       (NODUPS : List.NoDup (List.map fst st_src))
       (NODUPT : List.NoDup (List.map fst st_tgt))
     :
@@ -779,8 +827,8 @@ Section HPSIM_ADEQUACY.
       (CTXLE : @le_mine Σ eq my_tid ctx0 ctx)
       (TID : my_tid < List.length ctx0)
       (SIM : hpsim_body fl_src fl_tgt Ist my_tid ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr)
-      (WF : URA.wf (fr_src ⋅ mr_src))
-      (FMR : Own (fr_src ⋅ mr_src) ⊢ #=> Own ((ctx_sem ctx) ⋅ fmr ⋅ fr_tgt ⋅ mr_tgt)),
+      (WF : ✓ (fr_src ⋅ mr_src))
+      (FMR : Own (fr_src ⋅ mr_src) ⊢ |==> Own ((ctx_sem ctx) ⋅ fmr ⋅ fr_tgt ⋅ mr_tgt)),
     @sim_itree fl_src0 fl_tgt0 Σ ε interp_inv eq my_tid ctx0 ps pt ctx nths
       (Any.pair (alist_encode st_src) mr_src↑, interp_hp_body itr_src fr_src)
       (Any.pair (alist_encode st_tgt) mr_tgt↑, interp_hp_body itr_tgt fr_tgt).
@@ -791,15 +839,13 @@ Section HPSIM_ADEQUACY.
     move SIM before FLT. revert_until SIM. punfold SIM.
     pattern ps, pt, nths, p, p0, fmr.
     eapply _hpsim_tarski, SIM; i. clear SIM fmr. rename fmr0 into fmr.
-    exploit IN; i; des.
-    { eapply own_wf in FMR; eauto. rewrite (URA.add_comm _ fmr) in FMR.
-      repeat eapply URA.wf_mon in FMR. eauto. }
-    assert (URA.wf fmr).
-    { eapply own_wf, WF.
-      eapply own_trans; et. rewrite <- !URA.add_assoc.
-      iIntros "[_ [FMR _]]". eauto. }
-    assert (URA.wf fmr0).
-    { eapply own_wf; eauto. }
+    assert (wf : ✓ fmr).
+    { hexploit Own_wand_valid; eauto; intros wf. do 2 apply cmra_valid_op_l in wf.
+      by apply cmra_valid_op_r in wf.
+    }
+    exploit IN; i; des; eauto.
+    assert (wf0 : ✓ fmr0).
+    { by eapply Own_wand_valid. }
 
     destruct x0; i; des.
     - unfold interp_hp_body, hp_fun_tail, handle_Guarantee, guarantee, mget_res, mput_res.
@@ -833,7 +879,7 @@ Section HPSIM_ADEQUACY.
       rename c1 into frt, c into mrt.
       force_l. instantiate (1:= (ε, ε, c0 ⋅ (ctx_sem ctx) ⋅ fr ⋅ frt ⋅ mr ⋅ mrt)).
       assert (UPD : Own ((ctx_sem ctx) ⋅ fmr ⋅ fr_tgt ⋅ mr_tgt)
-                    ⊢ #=> Own (c0 ⋅ (ctx_sem ctx) ⋅ fr ⋅ frt ⋅ mr ⋅ mrt)).
+                    ⊢ |==> Own (c0 ⋅ (ctx_sem ctx) ⋅ fr ⋅ frt ⋅ mr ⋅ mrt)).
       { rewrite <-!URA.add_assoc.
         iIntros "[CTX [FMR TGT]]".
         iPoseProof (x with "TGT") as "TGT". iMod "TGT".
@@ -1024,7 +1070,7 @@ Section HPSIM_ADEQUACY.
       rename c1 into frt, c into mrt.
       force_l. instantiate (1:= (ε, ε, c0 ⋅ (ctx_sem ctx) ⋅ fr ⋅ frt ⋅ mr ⋅ mrt)).
       assert (UPD : Own ((ctx_sem ctx) ⋅ fmr ⋅ fr_tgt ⋅ mr_tgt)
-                    ⊢ #=> Own (c0 ⋅ (ctx_sem ctx) ⋅ fr ⋅ frt ⋅ mr ⋅ mrt)).
+                    ⊢ |==> Own (c0 ⋅ (ctx_sem ctx) ⋅ fr ⋅ frt ⋅ mr ⋅ mrt)).
       { rewrite <-!URA.add_assoc.
         iIntros "[CTX [FMR TGT]]".
         iPoseProof (x with "TGT") as "TGT". iMod "TGT".

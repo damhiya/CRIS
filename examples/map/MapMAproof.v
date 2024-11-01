@@ -18,8 +18,8 @@ From ExtLib Require Import
 
 Require Import STB.
 
-Require Import ISim ITactics.
-Require Import HMod Mod ModSimFacts.
+(* Require Import ISim ITactics.
+Require Import HMod Mod ModSimFacts. *)
 
 Require Import sProp sWorld World SRF.
 From stdpp Require Import coPset gmap namespaces.
@@ -31,6 +31,8 @@ Local Open Scope nat_scope.
 Module MapMA.
 Section SIMMODSEM.
   Context `{_W : CtxWD.t}.
+
+  
   Context `{_M : MapMR.t (Γ:=Γ)}.
   Context `{_A : MapAR.t (Γ:=Γ)}.
 

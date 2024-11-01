@@ -101,7 +101,7 @@ Section SEMR.
     eapply sim_itree_ind, H. clear H. i. subst.
 
     inv PR.
-    
+
     - rewrite !unfold_iter_eq. s. rewrite/__ LKS LKT.
       grind. des_ifs.
       + grind. steps. rr in RET. des; subst; eauto.
@@ -326,7 +326,7 @@ Section SEMR.
         rewrite lookup_app_l in INT; cycle 1.
         { rewrite list.insert_length. nia. }
         rewrite !list.list_lookup_insert in INT; try nia. inv INT.
-        eexists. rewrite/__ WF Nat.add_comm. s. rewrite !EQT in *. eapply K.
+        eexists. rewrite/__ WF Nat.add_comm. s. move: K; rewrite !EQT; intros K; eapply K.
       + assert (DEC : tid < List.length itrs_tgt \/ tid = List.length itrs_tgt).
         { apply lookup_lt_Some in INS. rewrite app_length in INS. ss.
           rewrite list.insert_length in INS. nia. }
@@ -465,7 +465,7 @@ Section SEMR.
       gfinal. right. eapply sim_itree_simg; eauto.
       { instantiate (1:= [_]). s. eauto. }
       i. des_ifs.
-      + des; subst. ss. inv INS. inv INT.
+      + des; subst. ss. inv INS.
         eexists. r. rewrite H. s. grind. eapply H0; eauto.
       + exfalso. exploit lookup_lt_is_Some_1; eauto.
         s. nia.

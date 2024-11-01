@@ -897,7 +897,29 @@ Module uPred_primitive.
       specialize (H ε); rewrite ? right_id in H; eapply cmra_valid_included; last by apply H.
       by apply H.
     Qed.
-
+    Lemma bupd_ownM_update_3 x P Q (UPD : uPred_ownM x ⊢ |==> P ∗ Q) (VALID : ✓ x) :
+      ∃ y z, (uPred_ownM x ⊢ |==> uPred_ownM y ∗ uPred_ownM z) ∧ (uPred_ownM y ⊢ P) ∧ (uPred_ownM z ⊢ Q).
+    Proof.
+      move: UPD; unseal=> UPD.
+      destruct UPD as [UPD]; specialize (UPD x VALID).
+      destruct UPD as [x' UPD]; simpl; first by reflexivity.
+      destruct (UPD ε) as [wf SEP]; first by rewrite right_id; done.
+      destruct SEP as [x1 [x2 [HP HQ]]]; exists x1, x2; split.
+      { split; intros x0 wf0 [x'' ->]. exists (x' ⋅ x''); intros fr wfr; split.
+        { rewrite -assoc; eapply UPD; rewrite assoc; done. }
+        { rewrite HP -assoc. exists x1, (x2 ⋅ x''); split=> /=; done. }
+      }
+      destruct HQ; repeat split; intros x0 wf0 [x3 ->]; eapply uPred_mono; eauto.
+    Qed.
+    Lemma ownM_pure_soundness x φ (VALID : ✓ x) (DERIV : uPred_ownM x ⊢ ⌜φ⌝) : φ.
+    Proof.
+      destruct DERIV as [DERIV]; move: DERIV; unseal; apply; eauto.
+    Qed.
+    Lemma ownM_general_soundness x P (VALID : ✓ x) (DERIV : uPred_ownM x ⊢ P) : P x.
+    Proof.
+      destruct DERIV as [DERIV]; move: DERIV; unseal; apply; eauto.
+    Qed.
+    
     (** Valid *)
     Lemma ownM_valid (a : M) : uPred_ownM a ⊢ ✓ a.
     Proof.

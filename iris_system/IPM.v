@@ -61,7 +61,7 @@ Section TEST.
     iApply QR. iApply PQ. iApply "H".
   Qed.
 
-  Goal forall (P Q : iProp), ((bupd P) ∗ Q) -∗ (bupd Q).
+  Goal forall (P Q : iProp), ((|==> P) ∗ Q) -∗ (|==> Q).
   Proof.
     i. iStartProof.
     iIntros "[Hxs Hys]". iMod "Hxs". iApply "Hys".
@@ -81,8 +81,14 @@ Section class_instances.
   Global Instance Own_proper :
     Proper ((≡) ==> (⊣⊢)) (@Own Σ) := ne_proper _.
 
-  Global Instance Own_core_persistent a : CoreId a →  Persistent (@Own Σ a).
+  Global Instance Own_core_persistent a : CoreId a → Persistent (@Own Σ a).
   Proof. rewrite !Own_eq /Own_def; apply _. Qed.
+
+  Lemma Own_Upd r1 r2 (UPD : r1 ~~> r2) :
+    Own r1 ⊢ |==> Own r2.
+  Proof.
+    unseal; iIntros "Hr1"; iPoseProof (uPred.bupd_ownM_update with "Hr1") as "Hr2"; eauto.
+  Qed.
 
   Lemma Own_op (a1 a2 : Σ) :
     (Own (a1 ⋅ a2)) ⊣⊢ (Own a1 ∗ Own a2).
@@ -96,11 +102,39 @@ Section class_instances.
   Qed.
 
   Lemma Own_wand_valid (a1 a2 : Σ) (WAND : Own a1 ⊢ |==> Own a2) (VALID : ✓ a1) :
-     ✓ a2.
+    ✓ a2.
   Proof.
     eapply uPred.bupd_ownM_update_2; last by exact VALID.
     move: WAND; unseal; eauto.
   Qed.
+
+  Lemma Own_bupd_split a P Q (IMPL : Own a ⊢ |==> P ∗ Q) (VALID : ✓ a):
+    ∃ a1 a2, (Own a ⊢ |==> Own a1 ∗ Own a2) ∧ (Own a1 ⊢ P) ∧ (Own a2 ⊢ Q).
+  Proof.
+    hexploit (@uPred.bupd_ownM_update_3 Σ); eauto.
+    { move: IMPL; unseal; done. }
+    intros [y [z [UPD [HP HQ]]]]; exists y, z; split; unseal; [done|split; done].
+  Qed.
+
+  Lemma Own_bupd_update r1 r2 (UPD : Own r1 ⊢ |==> Own r2) :
+    r1 ~~> r2.
+  Proof.
+    move: UPD; unseal; uPred.unseal; intros UPD.
+    rewrite cmra_discrete_total_update; intros z wf.
+    destruct UPD as [UPD]; exploit (UPD r1); ss.
+    { eauto using cmra_valid_op_l. }
+    { exists ε; rewrite right_id //. }
+    { intros [x' H]; exploit (H z) => //=.
+      intros [wfx'z r2x']; destruct r2x' as [x Hx']; rewrite Hx' in wfx'z.
+      rewrite comm assoc in wfx'z; eapply cmra_valid_op_l in wfx'z; rewrite comm //.
+    }
+  Qed.
+
+  Lemma Own_pure_soundness x P (VALID : ✓ x) (DERIV : Own x ⊢ ⌜P⌝) : P.
+  Proof. move: DERIV; unseal => DERIV. eapply uPred.ownM_pure_soundness; eauto. Qed.
+
+  Lemma Own_general_soundness x P (VALID : ✓ x) (DERIV : Own x ⊢ P) : uPred_holds P x.
+  Proof. move: DERIV; unseal=> DERIV; eapply uPred.ownM_general_soundness; eauto. Qed.
 
   Global Instance into_sep_own (a b1 b2 : Σ) :
     IsOp a b1 b2 → IntoSep (Own a) (Own b1) (Own b2).
@@ -203,15 +237,6 @@ End class_instances.
 Section ILEMMAS.
   Context `{Σ : GRA.t}.
 
-  Lemma Own_Upd
-        (r1 r2 : Σ)
-        (UPD : r1 ~~> r2)
-    :
-      (Own r1) ⊢ (|==> (Own r2))
-  .
-  Proof.
-    unseal; iIntros "Hr1"; iPoseProof (uPred.bupd_ownM_update with "Hr1") as "Hr2"; eauto.
-  Qed.
 
   Lemma Own_extends
         (a b : Σ)
