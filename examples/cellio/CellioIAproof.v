@@ -79,7 +79,7 @@ Module CellioIA.
   Lemma simF_set:
     HSim.sim_fun CellioA CellioI Ist CellioName.set.
   Proof.
-    init_simF. unfold CellioI.set.
+    init_simF.
 
     steps_l. iDestruct "ASM" as "%"; subst.
     iDestruct "IST" as (v) "(% & AUTH)". subst.
@@ -103,7 +103,7 @@ Module CellioIA.
   Lemma simF_get:
     HSim.sim_fun CellioA CellioI Ist CellioName.get.
   Proof.
-    init_simF. unfold CellioI.get.
+    init_simF.
 
     steps_l. iDestruct "ASM" as "%"; subst.
     iDestruct "IST" as (v) "(% & AUTH)". subst.

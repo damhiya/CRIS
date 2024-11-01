@@ -16,7 +16,7 @@ Section MainA.
 
   Definition scopes := [MainName.mn].
 
-  Definition main: Any.t -> itree smodE Any.t :=
+  Definition main: Any.t -> itree hmodE Any.t :=
     fun _ =>
       trigger (Assume (CellioR.cell 0));;;
       i <- trigger (@IO _ Z "Input" tt);;

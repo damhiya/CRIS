@@ -171,7 +171,7 @@ Section SIMMODSEM.
     des; subst. hss. rename q into sz.
     
     (* TGT: prove the precond of init *)
-    forces_r. iSplitL "P0". { iFrame. eauto. }
+    step_r. forces_r. iSplitL "P0". { iFrame. eauto. }
 
     (* TGT: handle the postcond of init *)
     hss. steps_r. iDestruct "GRT" as "(_ & %)". subst. hss.
@@ -199,7 +199,7 @@ Section SIMMODSEM.
     rename z into idx, z0 into v.
 
     (* TGT: prove the precond of get *)
-    forces_r. hss. iSplitL "". { iFrame. eauto. }
+    step_r. forces_r. hss. iSplitL "". { iFrame. eauto. }
 
     (* TGT : handle the body of get *)
     steps_r. hss. steps_r. hss. steps_r.
@@ -232,7 +232,7 @@ Section SIMMODSEM.
     rename z0 into idx, z1 into v, z into v'.
 
     (* TGT: prove the precond of set *)
-    force_r (_,_). forces_r. hss.
+    step_r. force_r (_,_). forces_r. hss.
     iSplitL "". { iFrame. eauto. }
 
     (* TGT : handle the body of set *)
@@ -263,7 +263,7 @@ Section SIMMODSEM.
     rename z into idx, z0 into v.
     
     (* TGT: prove the precond of set_by_user *)
-    forces_r. hss. iSplitL "". { iFrame. eauto. }
+    step_r. forces_r. hss. iSplitL "". { iFrame. eauto. }
 
     (* process an input *)
     steps_r. step.

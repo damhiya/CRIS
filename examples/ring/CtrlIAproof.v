@@ -123,7 +123,7 @@ Section SIMMODSEM.
   Proof.
     init_simF.
 
-    steps_l. iDestruct "ASM" as "%". subst. hss. destruct q, q1.
+    steps_l. iDestruct "ASM" as "%". subst. hss.
     iDestruct "IST" as (? ? ? ?) "(% & (% & IST) & %)". des; subst.
     iDestruct "IST" as (? ? ? ?) "(% & LIVE & FREE)". des; subst. hss.
 
@@ -157,7 +157,7 @@ Section SIMMODSEM.
   Proof.
     init_simF.
 
-    steps_l. iDestruct "ASM" as "%". subst. hss. destruct q, q1.
+    steps_l. iDestruct "ASM" as "%". subst. hss.
     iDestruct "IST" as (? ? ? ?) "(% & (% & IST) & %)". des; subst.
     iDestruct "IST" as (? ? ? ?) "(% & LIVE & FREE)". des; subst. hss.
 
@@ -176,7 +176,7 @@ Section SIMMODSEM.
   Proof.
     init_simF.
 
-    steps_l. iDestruct "ASM" as "%". subst. hss. destruct q.
+    steps_l. iDestruct "ASM" as "%". subst. hss.
     iDestruct "IST" as (? ? ? ?) "(% & (% & IST) & %)". des; subst.
     iDestruct "IST" as (? ? ? ?) "(% & LIVE & FREE)". des; subst. hss.
 
@@ -199,7 +199,6 @@ Section SIMMODSEM.
     iSplitL "Q".
     { iFrame. eauto. }
 
-    steps_r. apc_r.
     steps_r. iDestruct "GRT" as "((% & CELL) & %)". subst. hss.
     steps_r. hss. forces_l.
     iSplitL ""; eauto.
@@ -226,7 +225,7 @@ Section SIMMODSEM.
   Proof.
     init_simF.
 
-    steps_l. iDestruct "ASM" as "%". subst. hss. destruct q.
+    steps_l. iDestruct "ASM" as "%". subst. hss.
     iDestruct "IST" as (? ? ? ?) "(% & (% & IST) & %)". des; subst.
     iDestruct "IST" as (? ? ? ?) "(% & LIVE & FREE)". des; subst. hss.
 
@@ -242,11 +241,10 @@ Section SIMMODSEM.
 
     inline_r.
 
-    forces_r. iDestruct "LIVE" as "(Q & LIVE)".
+    step_r. forces_r. iDestruct "LIVE" as "(Q & LIVE)".
     rewrite !Nat.add_0_r in *.
     iSplitL "Q". { iFrame. eauto. }
 
-    steps_r. apc_r.
     steps_r. iDestruct "GRT" as "((% & CELL) & %)". subst. hss.
     steps_r. hss. forces_l.
     iSplitL ""; eauto.

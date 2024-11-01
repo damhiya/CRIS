@@ -581,18 +581,19 @@ Section INTERP_RECONF.
         grind; apply hp_reconf_equiv_strong in RELr; repeat (rr in RELr; des; subst); cycle 1.
         { rewrite !Any.pair_split. repeat (grind; gstep; econs).
           gfinal. left. eapply CIH. right. esplits; eauto. }
-        destruct (Any.split str) as [[]|] eqn : STR; cycle 1.
-        { s. unfold triggerUB. grind. gstep. econs. i. ss. }
+        destruct (Any.split str) as [[]|] eqn: STR; cycle 1.
+        { s. grind. gstep. econs. gbase. eapply CIH. econs. econs; eauto. }
         apply Any.split_pair in STR. des; subst.
         repeat (grind; gstep; econs).
         gfinal. left. eapply CIH. econs. econs; eauto.
       + unfold handle_pgE, mget_kv.
         repeat (grind; gstep; econs; i).
         grind; apply hp_reconf_equiv_strong in RELr; repeat (rr in RELr; des; subst); cycle 1.
-        { rewrite !Any.pair_split. repeat (grind; gstep; econs).
-          gfinal. left. eapply CIH. right. esplits; eauto. }
-        destruct (Any.split str) as [[]|] eqn : STR; cycle 1.
-        { s. unfold triggerUB. grind. gstep. econs. i. ss. }
+        { rewrite !Any.pair_split. grind.
+          gstep; econs. gbase. eapply CIH. right. esplits; eauto.
+        }
+        destruct (Any.split str) as [[]|] eqn: STR; cycle 1.
+        { s. grind. gstep. econs. gbase. eapply CIH. econs. econs; eauto. }
         apply Any.split_pair in STR. des; subst.
         repeat (grind; gstep; econs).
         gfinal. left. eapply CIH. econs. econs; eauto.
@@ -975,21 +976,21 @@ Section HPSIM_ADEQUACY.
     - unfold interp_hp_body. steps. eapply K; et. eapply own_upd_in_middle; eauto.
     - unfold interp_hp_body. steps. eapply K; et. eapply own_upd_in_middle; eauto.
     - unfold interp_hp_body. steps. unfold mput_kv. steps.
-      rewrite alist_encode_decode.
-      des_ifs. eapply K; eauto.
+      rewrite !Any.pair_split. s. rewrite alist_encode_decode. steps.
+      eapply K; eauto.
       + eapply alist_upd_nodup. eauto.
       + eapply own_upd_in_middle; eauto.
     - unfold interp_hp_body. steps. unfold mput_kv. steps.
-      rewrite alist_encode_decode.
-      des_ifs. eapply K; eauto.
+      rewrite !Any.pair_split. s. rewrite alist_encode_decode. steps.
+      eapply K; eauto.
       + eapply alist_upd_nodup. eauto.
       + eapply own_upd_in_middle; eauto.
     - unfold interp_hp_body. steps. unfold mget_kv. steps.
-      rewrite alist_encode_decode.
-      des_ifs. eapply K; eauto. eapply own_upd_in_middle; eauto.
+      rewrite !Any.pair_split. s. rewrite alist_encode_decode. steps.
+      eapply K; eauto. eapply own_upd_in_middle; eauto.
     - unfold interp_hp_body. steps. unfold mget_kv. steps.
-      rewrite alist_encode_decode.
-      des_ifs. eapply K; eauto. eapply own_upd_in_middle; eauto.
+      rewrite !Any.pair_split. s. rewrite alist_encode_decode. steps.
+      eapply K; eauto. eapply own_upd_in_middle; eauto.
     - unfold interp_hp_body. steps. rewrite interp_hp_Assume. unfold handle_Assume, mget_res, mput_res.
       steps. eapply K with (fmr0 := x ⋅ fmr0); et.
       {

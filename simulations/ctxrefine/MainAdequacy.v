@@ -817,8 +817,8 @@ Section COMM.
     generalize (i y) as it. clear FIND i y.
     revert NODD. apply combine_quant.
     revert NODS. apply combine_quant.
-    revert st_tgt. apply combine_quant.
-    revert st_src. apply combine_quant.
+    revert st_tgt. apply combine_quant_dep.
+    revert st_src. apply combine_quant_dep.
     revert nths. apply combine_quant.
     eapply isim_coind. i.
     destruct a as [nths [st_src [st_tgt [NODS [NODD it]]]]]. s.

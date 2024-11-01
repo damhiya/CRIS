@@ -75,13 +75,23 @@ Section MID.
     st <- trigger sGet;; '(_, mr) <- (Any.split st)?;;
     mr↓?.
 
-  Definition mput_kv `{stateE -< E} `{coreE -< E} (k : key) (v : Any.t) : itree E unit :=
-    st <- trigger sGet;; '(mp, mr) <- (Any.split st)?;;
-    trigger (sPut (Any.pair (alist_encode (alist_upd k v (alist_decode mp))) mr)).
+  Definition mput_kv E `{stateE -< E} `{coreE -< E} (k: key) (v: Any.t) : itree E unit :=
+    st <- trigger sGet;;
+    or_else (
+        do '(mp, mr) <- Any.split st;
+        Some (trigger (sPut (Any.pair (alist_encode (alist_upd k v (alist_decode mp))) mr)))
+      )
+      (Ret tt)
+  .
 
-  Definition mget_kv `{stateE -< E} `{coreE -< E} (k : key) : itree E Any.t :=
-    st <- trigger sGet;; '(mp, _) <- (Any.split st)?;;
-    Ret (or_else (alist_find k (alist_decode mp)) tt↑).
+  Definition mget_kv E `{stateE -< E} `{coreE -< E} (k: key) : itree E Any.t :=
+    st <- trigger sGet;;
+    or_else (
+        do '(mp, _) <- Any.split st;
+        Some (Ret (or_else (alist_find k (alist_decode mp)) tt↑))
+      )
+      (Ret tt↑)
+  .
 
   (* mid to tgt code *)
   Definition handle_pgE : pgE ~> itree modE :=
@@ -123,31 +133,19 @@ Section MID.
           x <- trigger e;; Ret (fr', x)
       | _ => x <- trigger e;; Ret (fr, x)
       end.
+  
+  Definition handle_callE: callE ~> stateT (Σ) (itree modE) :=
+    fun T e fr =>
+      '(fr', _) <- handle_Guarantee (True%I) fr;;
+      x <- trigger e;; Ret (fr', x).
 
-  Definition interp_hp : itree hmodE ~> stateT Σ (itree modE).
-  Proof.
-    eapply interp_state. intros T E. destruct E.
-    { exact (handle_agE a). }
-    destruct p.
-    { exact (handle_schE s). }
-    destruct s.
-    { intros fr. eapply ITree.bind.
-      { eapply (handle_Guarantee (True%I) fr). }
-      { intros [fr' _]. eapply ITree.bind.
-        { exact (trigger c). }
-        { intros r; exact (Ret (fr', r)). }
-      }
-    }
-    destruct s.
-    { intros r. eapply ITree.bind.
-      { exact (handle_pgE p). }
-      { intros t; exact (Ret (r, t)). }
-    }
-    { intros fr. eapply ITree.bind.
-      { eapply (trigger (inr1 (inr1 (inr1 c)))). }
-      { intros t; exact (Ret (fr, t)). }
-    }
-  Defined.
+  Definition interp_hp : itree hmodE ~> stateT Σ (itree modE) :=
+      interp_state 
+        (case_ (bif:=sum1) handle_agE
+        (case_ (bif:=sum1) handle_schE
+        (case_ (bif:=sum1) handle_callE
+        (case_ (bif:=sum1) ((fun T e fr => x <- handle_pgE e;; Ret (fr, x)): _ ~> stateT Σ (itree modE)) 
+                           ((fun T e fr => x <- trigger e;; Ret (fr, x)): _ ~> stateT Σ (itree modE)))))).
 
   Definition hp_fun_tail := (fun '(fr, x) => handle_Guarantee (True%I) fr ;;; Ret (x : Any.t)).
 
@@ -180,9 +178,17 @@ Section RED.
     interp_hp (Σ:=Σ) (Ret t) fmr = Ret (fmr, t).
   Proof. unfold interp_hp in *. eapply interp_state_ret. Qed.
 
-  Lemma interp_hp_call (R : Type) (i : callE R) fr :
-    interp_hp (trigger i) fr = '(fr', _) <- handle_Guarantee (Σ:=Σ) True%I fr;; r <- trigger i;; tau;; Ret (fr', r).
-  Proof. unfold interp_hp in *. grind. Qed.
+  Lemma interp_hp_call
+        (R: Type)
+        (i: callE R)
+        fr
+    :
+      interp_hp (trigger i) fr
+      =
+      '(fr', _) <- handle_Guarantee (True%I:iProp) fr;; r <- trigger i;; tau;; Ret (fr', r).
+  Proof.
+    unfold interp_hp, handle_callE in *. grind.
+  Qed.
 
   Lemma interp_hp_spawn fn arg fmr :
     interp_hp (trigger (Spawn fn arg)) fmr = r <- trigger (Spawn fn arg);; tau;; Ret (fmr, r).

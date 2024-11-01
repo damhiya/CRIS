@@ -49,7 +49,67 @@ Section SIM.
     UPred Σ (gpaco8 (_hpsim) (cpn8 _hpsim) (iunlift r) (iunlift g) _ RR ps pt nths sti_src sti_tgt) _.
   Next Obligation. guclo hpsim_extendC_spec. econs; et. Defined.
 
-  (***** isim lemmas *****)
+  Definition ksim
+    r g {I R}
+    (II: nat -> alist key Any.t * I-> alist key Any.t * I -> iProp)
+    (RR: nat -> alist key Any.t * R-> alist key Any.t * R -> iProp)
+    ps pt (kt_src kt_tgt : I -> itree hmodE R): iProp
+    := 
+    ∀ nths st_src v_src st_tgt v_tgt,
+    II nths (st_src, v_src) (st_tgt, v_tgt) -∗
+    isim r g RR ps pt nths (st_src, kt_src v_src) (st_tgt, kt_tgt v_tgt).
+
+  Definition cimply {I}
+    (II JJ: nat -> alist key Any.t * I-> alist key Any.t * I -> iProp) : iProp
+    :=
+    ∀ nths st_src v_src st_tgt v_tgt,
+    II nths (st_src,v_src) (st_tgt,v_tgt) -∗
+    JJ nths (st_src,v_src) (st_tgt,v_tgt).
+  
+  Definition cwpre
+    r g {I R}
+    (RR: nat -> alist key Any.t * R-> alist key Any.t * R -> iProp)
+    ps pt (kt_src kt_tgt : I -> itree hmodE R) :
+    nat -> alist key Any.t * I-> alist key Any.t * I -> iProp
+    := 
+    fun nths '(st_src,v_src) '(st_tgt,v_tgt) =>
+      isim r g RR ps pt nths (st_src, kt_src v_src) (st_tgt, kt_tgt v_tgt).
+
+  Lemma cimply_refl {I} II:
+    ⊢ @cimply I II II.
+  Proof.
+    iIntros (? ? ? ? ?). eauto.
+  Qed.
+  
+  Lemma cimply_trans {I} II JJ KK:
+    ⊢ @cimply I II JJ ∗ cimply JJ KK -∗ cimply II KK.
+  Proof.
+    iIntros "(SIMI & SIMJ)". iIntros (? ? ? ? ?) "II".
+    iApply "SIMJ". iApply "SIMI". iFrame.
+  Qed.
+
+  Lemma cwpre_sound
+    r g {I R} RR ps pt kt_src kt_tgt
+    :      
+    ⊢ @ksim r g I R (cwpre r g RR ps pt kt_src kt_tgt) RR ps pt kt_src kt_tgt.
+  Proof.
+    iIntros (? ? ? ? ?) "WPRE". iApply "WPRE".
+  Qed.
+
+  Lemma cwpre_weakest
+    r g {I R}
+    (RR: nat -> alist key Any.t * R-> alist key Any.t * R -> iProp)
+    ps pt (kt_src kt_tgt : I -> itree hmodE R) II
+    :
+    @ksim r g I R II RR ps pt kt_src kt_tgt -∗
+    cimply II (cwpre r g RR ps pt kt_src kt_tgt).
+  Proof.
+    iIntros "SIM". iIntros (? ? ? ? ?) "II".
+    iApply "SIM". iFrame.
+  Qed.
+
+(***** isim lemmas *****)
+
   Lemma iunlift_ibot:
     iunlift ibot <8= bot8.
   Proof.
@@ -156,12 +216,14 @@ Section SIM.
     ⊢ isim r g (fun nths0 str_src str_tgt => P ∗ RR nths0 str_src str_tgt) ps pt nths sti_src sti_tgt.
   Proof. iIntros "[H0 H1]". iApply isim_wand. iFrame. eauto. Qed.
 
-  Lemma isim_bind r g ps pt {R S} RR nths st_src st_tgt i_src i_tgt k_src k_tgt :
-    @isim r g S
-      (fun nths0 '(st_src, ret_src) '(st_tgt, ret_tgt) =>
-          (@isim r g R RR false false nths0 (st_src, k_src ret_src) (st_tgt, k_tgt ret_tgt))%I)
-      ps pt nths (st_src, i_src) (st_tgt, i_tgt)
-    ⊢ (isim r g RR ps pt nths (st_src, i_src >>= k_src) (st_tgt, i_tgt >>= k_tgt)).
+  Lemma isim_bind 
+    r g ps pt {S R} RR nths st_src st_tgt i_src i_tgt k_src k_tgt        
+  :
+    bi_entails
+    (@isim r g S
+          (@cwpre r g S R RR false false k_src k_tgt)
+          ps pt nths (st_src, i_src) (st_tgt, i_tgt))
+        (isim r g RR ps pt nths (st_src, i_src >>= k_src) (st_tgt, i_tgt >>= k_tgt)).
   Proof.
     rewrite /isim; split; intros x wfx BINDSIM.
     guclo hpsim_bindC_spec; econs; eauto; ii.
@@ -179,7 +241,39 @@ Section SIM.
     i; des. esplits; eauto. eapply Own_Upd; eauto.
   Qed.
 
+  Lemma ksim_bind
+    r g ps pt {I T R} II RR j_src j_tgt k_src k_tgt
+    :
 
+    @ksim r g I T II (cwpre r g RR false false k_src k_tgt) ps pt j_src j_tgt
+    ⊢
+    @ksim r g I R II RR ps pt (fun x => j_src x >>= k_src) (fun x => j_tgt x >>= k_tgt).
+  Proof.
+    iIntros "SIM".
+    iIntros (? ? ? ? ?) "II".
+    iApply isim_bind.
+    iApply "SIM". eauto.
+  Qed.
+
+  Lemma ksim_bind_aux
+    r g ps pt {I T R} II TT RR j_src j_tgt k_src k_tgt
+    :
+
+    @ksim r g I T II TT ps pt j_src j_tgt ∗ ksim r g TT RR false false k_src k_tgt
+    ⊢
+    @ksim r g I R II RR ps pt (fun x => j_src x >>= k_src) (fun x => j_tgt x >>= k_tgt).
+  Proof.
+    iIntros "(SIM1 & SIM2)".
+    iApply ksim_bind.
+    iIntros (? ? ? ? ?) "II".
+    iSpecialize ("SIM1" with "II").
+    iApply isim_wand.
+    iSplitR "SIM1"; cycle 1.
+    { iApply "SIM1". }
+    iIntros (? ? ? ? ?) "TT".
+    iApply "SIM2". eauto.
+  Qed.
+  
   (* Simulation rules *)
   Lemma isim_ret
     r g ps pt {R} RR nths st_src st_tgt v_src v_tgt
@@ -793,75 +887,205 @@ Section SIM.
         eapply eq_ind; eauto. r_solve.
   Qed.
 
-  Lemma combine_quant A (B : A -> Type) (P : forall a (b : B a), Prop)
-      (PR : forall (ab : sigT B), P (projT1 ab) (projT2 ab)):
+  Lemma combine_quant A B (P: forall (a: A) (b: B), Prop)
+      (PR: forall (ab: A * B), P ab.1 ab.2):
+    forall a b, P a b.
+  Proof. i. eapply (PR (a, b)). Qed.
+
+  Lemma combine_quant_dep A (B: A -> Type) (P: forall a (b: B a), Prop)
+      (PR: forall (ab: sigT B), P (projT1 ab) (projT2 ab)):
     forall a b, P a b.
   Proof. i. eapply (PR (existT a b)). Qed.
 
 End SIM.
 
+Section HYPER.
+
+  Context `{Σ: GRA.t}.
+  Variable fl_src fl_tgt: alist gname (Any.t -> itree hmodE Any.t).
+  Variable Ist: (nat -> alist key Any.t -> alist key Any.t -> iProp) -> iProp.
+  Variable my_tid: nat.
+  
+  Definition ksimH
+    r g {I R}
+    (IIH: (nat -> alist key Any.t * I-> alist key Any.t * I -> iProp) -> iProp)
+    (RRH: (nat -> alist key Any.t * R-> alist key Any.t * R -> iProp) -> iProp)
+    ps pt kt_src kt_tgt : iProp
+    :=
+    ∀ RR, RRH RR -∗ ∃ II, IIH II ∗ ksim fl_src fl_tgt Ist my_tid r g II RR ps pt kt_src kt_tgt.
+
+  Definition cimplyH {I}
+    (IIH JJH: (nat -> alist key Any.t * I-> alist key Any.t * I -> iProp) -> iProp) : iProp
+    :=
+    ∀ JJ, JJH JJ -∗ ∃ II, IIH II ∗ cimply II JJ.
+  
+  Definition cwpreH r g {I R}
+    (RRH: (nat -> alist key Any.t * R-> alist key Any.t * R -> iProp) -> iProp)
+    ps pt (kt_src kt_tgt: I -> itree hmodE R) :
+    (nat -> alist key Any.t * I-> alist key Any.t * I -> iProp) -> iProp
+    :=
+    fun IH =>
+      (∃ RR, RRH RR ∗
+       cimply (cwpre fl_src fl_tgt Ist my_tid r g RR ps pt kt_src kt_tgt) IH)%I.
+
+  Lemma cimplyH_refl {I} IIH:
+    ⊢ @cimplyH I IIH IIH.
+  Proof.
+    iIntros (II) "IIH". iExists II. iFrame. iApply cimply_refl.
+  Qed.
+  
+  Lemma cimplyH_trans {I} IIH JJH KKH:
+    ⊢ @cimplyH I IIH JJH ∗ cimplyH JJH KKH -∗ cimplyH IIH KKH.
+  Proof.
+    iIntros "(IMP1 & IMP2)". iIntros (KK) "KK".
+    iSpecialize ("IMP2" with "KK").
+    iDestruct "IMP2" as (JJ) "(JJ & IMP2)".
+    iSpecialize ("IMP1" with "JJ").
+    iDestruct "IMP1" as (II) "(II & IMP1)".
+    iExists II. iFrame.
+    iApply cimply_trans.
+    iSplitL "IMP1"; eauto.
+  Qed.
+
+  Lemma cimplyH_strengthen {I} IIH JJH:
+    ⊢ (∀ II, JJH II -∗ IIH II) -∗ @cimplyH I IIH JJH.
+  Proof.
+    iIntros "SUB". iIntros (?) "JJ".
+    iExists JJ. iSpecialize ("SUB" with "JJ"). iFrame.
+    iApply cimply_refl.
+  Qed.
+
+  Lemma cwpreH_sound
+    r g I R RRH ps pt kt_src kt_tgt
+    :
+    ⊢ @ksimH r g I R (cwpreH r g RRH ps pt kt_src kt_tgt) RRH ps pt kt_src kt_tgt.
+  Proof.
+    iIntros (?) "RR".
+    iExists (cwpre _ _ _ _ r g RR ps pt kt_src kt_tgt).
+    iSplitL "RR".
+    - iExists RR. iFrame.
+      iIntros (? ? ? ? ?). eauto.
+    - iApply cwpre_sound.
+  Qed.
+  
+  Lemma cwpreH_weakest
+    r g I R RRH ps pt kt_src kt_tgt IIH
+    :
+    @ksimH r g I R IIH RRH ps pt kt_src kt_tgt -∗
+    cimplyH IIH (cwpreH r g RRH ps pt kt_src kt_tgt).
+  Proof.
+    iIntros "SIM". iIntros (?) "PRE".
+    iDestruct "PRE" as (?) "(RR & IMP)".
+    iSpecialize ("SIM" with "RR").
+    iDestruct "SIM" as (?) "(II & SIM)".
+    iExists II. iFrame.
+    iIntros (? ? ? ? ?) "II".
+    iSpecialize ("SIM" with "II").
+    iApply "IMP".
+    iFrame.
+  Qed.
+
+  Lemma ksimH_bind_aux
+    r g ps pt {I T R} IIH TTH RRH j_src j_tgt k_src k_tgt
+    :
+
+    (@ksimH r g I T IIH TTH ps pt j_src j_tgt ∗ ksimH r g TTH RRH false false k_src k_tgt)
+    ⊢
+    @ksimH r g I R IIH RRH ps pt (fun x => j_src x >>= k_src) (fun x => j_tgt x >>= k_tgt).
+  Proof.
+    iIntros "(SIM1 & SIM2)".
+    iIntros (RR) "RRH".
+    iSpecialize ("SIM2" with "RRH").
+    iDestruct "SIM2" as (TT) "(TTH & SIM2)".
+    iSpecialize ("SIM1" with "TTH").
+    iDestruct "SIM1" as (II) "(IIH & SIM1)".
+    iExists II. iFrame.
+    iApply ksim_bind_aux. iFrame.
+  Qed.
+
+  Lemma ksimH_bind
+    r g ps pt {I T R} IIH RRH j_src j_tgt k_src k_tgt
+    :
+
+    (@ksimH r g I T IIH (cwpreH r g RRH false false k_src k_tgt) ps pt j_src j_tgt)
+    ⊢
+    @ksimH r g I R IIH RRH ps pt (fun x => j_src x >>= k_src) (fun x => j_tgt x >>= k_tgt).
+  Proof.
+    iIntros "SIM".
+    iApply ksimH_bind_aux.
+    iSplitL "SIM".
+    - iIntros (?) "RR". iSpecialize ("SIM" with "RR").
+      iDestruct "SIM" as (II) "SIM".
+      iExists II. iFrame.
+    - iIntros (?) "RR". iExists _.
+      iSplitL "RR".
+      + iExists RR. iFrame. iApply cimply_refl.
+      + iIntros (? ? ? ? ?) "SIM". eauto.
+  Qed.
+
+End HYPER.
+
 Global Opaque isim.
 
-Definition isim_fsem `{Σ : GRA.t} fl_src fl_tgt Ist : relation (Any.t -> itree hmodE Any.t) :=
-  (eq ==> (fun itr_src itr_tgt =>
-             forall my_tid nths st_src st_tgt
-                    (IMON : forall nths nths' (LE : nths <= nths') st_src st_tgt,
-                        Ist nths st_src st_tgt -∗ Ist nths' st_src st_tgt)
-                    (NODS : List.NoDup (List.map fst st_src))
-                    (NODD : List.NoDup (List.map fst st_tgt)),
-               Ist nths st_src st_tgt ⊢
-                 @isim Σ fl_src fl_tgt Ist my_tid ibot ibot Any.t
-                 (fun nths '(st_src, v_src) '(st_tgt, v_tgt) => (⌜v_src = v_tgt⌝ ∗ Ist nths st_src st_tgt))%I
-                 false false nths (st_src, itr_src) (st_tgt, itr_tgt)))%signature.
+  Definition ksimH_fsem `{Σ: GRA.t} fl_src fl_tgt Ist: relation (Any.t -> itree hmodE Any.t) :=
+    fun ktr_src ktr_tgt =>
+    forall my_tid
+      (IMON: forall nths nths' (LE: nths <= nths') st_src st_tgt,
+             Ist nths st_src st_tgt -∗ Ist nths' st_src st_tgt),
+    ⊢ @ksimH Σ fl_src fl_tgt Ist my_tid ibot ibot Any.t Any.t
+      (fun nths '(st_src, v_src) '(st_tgt, v_tgt) => ⌜v_src = v_tgt ∧ List.NoDup (List.map fst st_src) ∧ List.NoDup (List.map fst st_tgt)⌝ ∗ Ist nths st_src st_tgt)%I
+      (fun nths '(st_src, v_src) '(st_tgt, v_tgt) => ⌜v_src = v_tgt⌝ ∗ Ist nths st_src st_tgt)%I
+      false false ktr_src ktr_tgt.
 
 Module HSSim.
   Section SIM.
-    Import HModSem.
-    Context `{Σ : GRA.t}.
-    Variable (ms_src ms_tgt : HModSem.t).
-    Variable init_cond : iProp.
-    Variable Ist : nat -> alist key Any.t -> alist key Any.t -> iProp.
+  Import HModSem.
+  Context `{Σ: GRA.t}.
+  Variable (ms_src ms_tgt: HModSem.t).
+  Variable init_cond: iProp.
+  Variable Ist: (nat -> alist key Any.t -> alist key Any.t -> iProp) -> iProp.
 
-    Let scopes_src := ms_src.(scopes).
-    Let scopes_tgt := ms_tgt.(scopes).
-    Let fnsems_src := ms_src.(fnsems).
-    Let fnsems_tgt := ms_tgt.(fnsems).
-    Let init_src := ms_src.(initial_st).
-    Let init_tgt := ms_tgt.(initial_st).
+  Let scopes_src := ms_src.(scopes).
+  Let scopes_tgt := ms_tgt.(scopes).
+  Let fnsems_src := ms_src.(fnsems).
+  Let fnsems_tgt := ms_tgt.(fnsems).
+  Let init_src := ms_src.(initial_st).
+  Let init_tgt := ms_tgt.(initial_st).
 
-    Definition sim_fun fn : Prop :=
-      forall
-        (WFS : HModSem.wf ms_src)
-        (WFT : HModSem.wf ms_tgt)
-        (NODUPFS : List.NoDup (List.map fst fnsems_src))
-        (NODUPFT : List.NoDup (List.map fst fnsems_tgt))
-        fs (FIND : alist_find fn fnsems_src = Some fs),
-      exists ft, alist_find fn fnsems_tgt = Some ft /\
-                   isim_fsem
-                     (List.map (map_snd HModSem.sandbox_body) fnsems_src)
-                     (List.map (map_snd HModSem.sandbox_body) fnsems_tgt)
-                     Ist
-                     (HModSem.sandbox_body fs) (HModSem.sandbox_body ft).
+  Definition sim_fun fn : Prop :=
+    forall
+      (WFS: HModSem.wf ms_src)
+      (WFT: HModSem.wf ms_tgt)
+      (NODUPFS: List.NoDup (List.map fst fnsems_src))
+      (NODUPFT: List.NoDup (List.map fst fnsems_tgt))
+      fs (FIND: alist_find fn fnsems_src = Some fs),
+    exists ft,
+      alist_find fn fnsems_tgt = Some ft /\
+      ksimH_fsem
+        (List.map (map_snd HModSem.sandbox_body) fnsems_src)
+        (List.map (map_snd HModSem.sandbox_body) fnsems_tgt)
+        Ist
+        (HModSem.sandbox_body fs) (HModSem.sandbox_body ft).
 
-    Inductive t : Prop :=
-      mk {
-          sim_initial:
-            init_cond ⊢ Ist 1 init_src init_tgt;
-          sim_mon:
-          forall nths nths' (LE : nths <= nths') st_src st_tgt,
-            Ist nths st_src st_tgt -∗ Ist nths' st_src st_tgt;
-          sim_scopes:
-            sub_perm scopes_tgt scopes_src; 
-          sim_length:
-            List.length fnsems_src = List.length fnsems_tgt;
-          sim_match:
-            forall fn (IN : In fn (List.map fst fnsems_src)),
-              In fn (List.map fst fnsems_tgt);
-          sim_fnsems:
-          forall fn
-                 (IN : In fn (List.map fst fnsems_src)),
-              sim_fun fn;
-        }.
+  Inductive t: Prop :=
+    mk {
+        sim_initial:
+          init_cond ⊢ Ist 1 init_src init_tgt;
+        sim_mon:
+        forall nths nths' (LE: nths <= nths') st_src st_tgt,
+          Ist nths st_src st_tgt -∗ Ist nths' st_src st_tgt;
+        sim_scopes:
+          sub_perm scopes_tgt scopes_src; 
+        sim_length:
+          List.length fnsems_src = List.length fnsems_tgt;
+        sim_match:
+          forall fn (IN: In fn (List.map fst fnsems_src)),
+            In fn (List.map fst fnsems_tgt);
+        sim_fnsems:
+        forall fn
+               (IN: In fn (List.map fst fnsems_src)),
+            sim_fun fn;
+      }.
 
   End SIM.
 End HSSim.
@@ -887,3 +1111,4 @@ Module HSim.
 
   End SIM.
 End HSim.
+

@@ -119,7 +119,7 @@ Section SIMMODSEM.
     steps_l. iDestruct "ASM" as "((% & P0) & %)". des. subst. hss. inv G0. 
     iDestruct "IST" as (? ? ? ?) "(%& (% & [%|(P & IST)]) &%)";    
       [|iDestruct "IST" as (? ? ? ?) "M"];
-      des; subst; cycle 1.
+      hss; cycle 1.
     { iExFalso. iApply (pending_unique with "P P0"). }
     rename q into sz.
     
@@ -131,12 +131,11 @@ Section SIMMODSEM.
     inline_r.
 
     (* TGT: prove the precond of alloc *)
-    forces_r.
+    step_r. forces_r.
     iSplit; eauto.
 
     (* TGT: handle the postcond of alloc *)
-    steps_r. apc_r. steps_r.
-    iDestruct "GRT" as "[GRT %]". 
+    steps_r. iDestruct "GRT" as "[GRT %]". 
     iDestruct "GRT" as (?) "(% & POINTS)". subst. hss.
 
     (* prepare and start an induction *)
@@ -173,7 +172,7 @@ Section SIMMODSEM.
       inline_r.
 
       (* TGT: prove the precond of store *)
-      force_r (_, (sz - S n)%Z, _).
+      step_r. force_r (_, (sz - S n)%Z, _).
       force_r ([Vptr _ (sz - (S n))%Z; _]↑).
       forces_r.
       iPoseProof (big_sepL_insert_acc with "PTS") as "(PT & CTN)".
@@ -190,8 +189,7 @@ Section SIMMODSEM.
       }
 
       (* TGT: handle the postcond of store *)
-      steps_r. apc_r. steps_r.
-      iDestruct "GRT" as "((GRT & %) & %)". subst.
+      steps_r. iDestruct "GRT" as "((GRT & %) & %)". subst.
       iSpecialize ("CTN" $! (Vint 0)). iPoseProof ("CTN" with "GRT") as "PTS".
       rewrite ->!Zpos_P_of_succ_nat, <-!Nat2Z.inj_succ.
       replace (sz - S n + 1)%Z with (sz - n)%Z by nia.
@@ -231,15 +229,14 @@ Section SIMMODSEM.
     inline_r.
 
     (* TGT: prove the precond of load *)
-    force_r (_, (ofs + _)%Z, _). forces_r.
+    step_r. force_r (_, (ofs + _)%Z, _). forces_r.
     iPoseProof (big_sepL_lookup_acc with "M") as "(IP & M)".
     { apply fun_to_list_lookup with (i:=Z.to_nat idx). nia. }
     rewrite Z2Nat.id; try nia.
     iSplitL "IP"; eauto.
     
     (* TGT: handle the postcond of load *)
-    steps_r. apc_r. steps_r.
-    iDestruct "GRT" as "[[GRT %] %]". subst. hss. steps_r.
+    steps_r. iDestruct "GRT" as "[[GRT %] %]". subst. hss. steps_r.
 
     (* prove the IST of Map *)
     step. repeat (iSplit; eauto).
@@ -276,15 +273,14 @@ Section SIMMODSEM.
     inline_r.
 
     (* TGT: prove the precond of store *)
-    force_r (_, _, _). forces_r.
+    step_r. force_r (_, _, _). forces_r.
     iPoseProof (big_sepL_insert_acc with "M") as "(IP & M)".
     { apply fun_to_list_lookup with (i:=Z.to_nat idx). nia. }
     rewrite Z2Nat.id; try nia.
     iSplitL "IP". { eauto. }
 
     (* TGT: handle the postcond of load *)
-    steps_r. apc_r. steps_r.
-    iDestruct "GRT" as "[[GRT %] %]". subst. hss. steps_r.
+    steps_r. iDestruct "GRT" as "[[GRT %] %]". subst. hss. steps_r.
 
     (* prove the IST of Map *)
     step. repeat (iSplit; eauto).

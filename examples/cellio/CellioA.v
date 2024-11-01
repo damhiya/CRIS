@@ -48,7 +48,7 @@ Section CellioA.
 
   Definition scopes := [CellioName.mn].
 
-  Definition set: Any.t -> itree smodE Any.t :=
+  Definition set: Any.t -> itree hmodE Any.t :=
     fun _ =>
       x <- trigger (Take Z);;
       trigger (Assume (CellioR.cell x));;;
@@ -57,7 +57,7 @@ Section CellioA.
       Ret tt↑
   .
   
-  Definition get: Any.t -> itree smodE Any.t :=
+  Definition get: Any.t -> itree hmodE Any.t :=
     fun _ =>
       x <- trigger (Take Z);;
       trigger (Assume (CellioR.cell x));;;
