@@ -351,7 +351,6 @@ Section SIM.
   .
   Proof.
     ginit.
-    { i. eapply cpn1_wcompat; eauto. eapply Beh.state_spin_mon. }
     revert ps0 pt0 st_src0 st_tgt0 SIM SPIN. gcofix CIH.
     intros ? ? ? ? SIM. punfold SIM. pattern ps0, pt0, st_src0, st_tgt0.
     eapply sim_ind, SIM. i. inv PR; clarify.
@@ -406,7 +405,6 @@ Section SIM.
   .
   Proof.
     ginit.
-    { i. eapply cpn2_wcompat; eauto. eapply Beh.of_state_mon. }
     revert pt0 ps0 st_src0 st_tgt0 SIM. gcofix CIH.
     i. rename x2 into tr.
     revert ps0 pt0 st_src0 SIM.

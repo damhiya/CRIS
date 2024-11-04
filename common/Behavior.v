@@ -4,10 +4,6 @@ Require Import Any.
 
 Set Implicit Arguments.
 
-
-
-
-
 Module Tr.
   CoInductive t: Type :=
   | done (retv: Any.t)
@@ -85,8 +81,7 @@ Qed.
 Hint Constructors _state_spin.
 Hint Unfold state_spin.
 Hint Resolve state_spin_mon: paco.
-
-
+Hint Resolve cpn1_wcompat: paco.
 
 Inductive _of_state (of_state: L.(state) -> Tr.t -> Prop): L.(state) -> Tr.t -> Prop :=
 | sb_final
@@ -181,6 +176,7 @@ Qed.
 Hint Constructors _of_state.
 Hint Unfold of_state.
 Hint Resolve of_state_mon: paco.
+Hint Resolve cpn1_wcompat: paco.
 
 Definition of_program: Tr.t -> Prop := of_state L.(initial_state).
 
@@ -379,6 +375,8 @@ Hint Unfold Beh.improves.
 Hint Constructors Beh._state_spin.
 Hint Unfold Beh.state_spin.
 Hint Resolve Beh.state_spin_mon: paco.
+Hint Resolve cpn1_wcompat: paco.
+Hint Resolve cpn2_wcompat: paco.
 Hint Constructors Beh._of_state.
 Hint Unfold Beh.of_state.
 Hint Resolve Beh.of_state_mon: paco.
