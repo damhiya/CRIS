@@ -94,7 +94,7 @@ Abort.
 
 (*** TODO : move to better place or use dedicated name (like ired_box) ***)
 Variant Box : Type :=
-| mk_box : forall (A:Type), A -> Box
+| mk_box : forall (A : Type), A -> Box
 .
 
 Class red_database (interp : Box) := mk_rdb {
