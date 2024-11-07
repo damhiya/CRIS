@@ -49,9 +49,9 @@ Module WD.
         OwnM (empty_worldsR eu (fun _ => (fun n => @Auth.black (_ ==> URA.agree (SRFSyn.t n))%ra (fun _ => None)) : URA.pointwise_dep _) : OwnIRA)
     end.
 
-  Global Instance t: SRFMSem.t := interp.
+  Global Instance t: SRFIntpM.t := interp.
 
-  Context `{_W3: @SRFMSemG.inG _ _ _ t β}.
+  Context `{_W3: @SRFIntp.inG _ _ _ t β}.
   
   Definition ownI u n i (p: SRFSyn.t n) : SRFSyn.t n :=
     ⟨ _ownI u i, fun _ => p ⟩%SRF.
@@ -119,7 +119,7 @@ Module CtxWD.
   Class t
     `{_C: CtxSL.t}
     `{_C: @GRA.inG OwnIRA Σ}
-    `{_C: @SRFMSemG.inG _ _ _ WD.t β}
+    `{_C: @SRFIntp.inG _ _ _ WD.t β}
     `{_C: @GRA.inG OwnERA Γ}
     `{_C: @GRA.inG OwnDRA Γ}
     := ctxWD: unit.
