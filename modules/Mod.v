@@ -47,11 +47,6 @@ Section MODSEM.
     fnsems := [];
   |}.
 
-  Definition init (body: itree modE Any.t) : t := {|
-    initial_st := tt↑;
-    fnsems := [("CCR_init", fun _ => body)];
-  |}.
-
   Section COMPILE.
     Variable ms: t.
 
