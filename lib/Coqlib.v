@@ -289,7 +289,8 @@ Ltac clear_until_bar :=
                                end).
 
 Goal True -> True -> False.
-  intro. bar. intro. clear_until H0. clear_until H. Undo 2. clear_until_bar. clear_tac.
+  (* Seems to crash in vscoq - commented out *)
+  (* intro. bar. intro. clear_until H0. clear_until H. Undo 2. clear_until_bar. clear_tac. *)
 Abort.
 
 
@@ -1451,12 +1452,12 @@ Ltac seal_with key x :=
   replace x with (Seal.sealing key x); [|eapply Seal.sealing_eq].
 Ltac seal x :=
   let key := fresh "key" in
-  assert (key:= "_deafult_");
+  assert (key:= "_default_");
   seal_with key x.
 Ltac unseal x :=
   match (type of x) with
-  | string => repeat rewrite (@Seal.sealing_eq x) in *; try clear x
-  | _ => repeat rewrite (@Seal.sealing_eq _ _ x) in *;
+  | string => repeat rewrite (@Seal.sealing_eq x); try clear x
+  | _ => repeat rewrite (@Seal.sealing_eq _ _ x);
          repeat match goal with
                 | [ H : string |- _ ] => try clear H
                 end

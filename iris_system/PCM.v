@@ -21,8 +21,8 @@ Ltac seal x :=
   seal_with key x.
 Ltac unseal x :=
   match (type of x) with
-  | string => repeat rewrite (@Seal.sealing_eq x) in *; try clear x
-  | _ => repeat rewrite (@Seal.sealing_eq _ _ x) in *;
+  | string => repeat rewrite (@Seal.sealing_eq x); try clear x
+  | _ => repeat rewrite (@Seal.sealing_eq _ _ x);
          repeat match goal with
                 | [ H : string |- _ ] => try clear H
                 end

@@ -17,116 +17,103 @@ Require Import Red IRed.
 
 Section HPSIM.
 
-  Context `{Σ: GRA.t}.
+  Context `{Σ : GRA.t}.
+  Notation iProp := (iProp Σ).
 
-  Definition state_rel := nat -> alist key Any.t -> alist key Any.t -> iProp.
-  
-  Variable fl_src: alist gname (Any.t -> itree hmodE Any.t).
-  Variable fl_tgt: alist gname (Any.t -> itree hmodE Any.t).
-  Variable Ist: state_rel -> iProp.
-  Variable my_tid: nat.
+  Variable fl_src : alist gname (Any.t -> itree hmodE Any.t).
+  Variable fl_tgt : alist gname (Any.t -> itree hmodE Any.t).
+  Variable Ist : nat -> alist key Any.t -> alist key Any.t -> iProp.
+  Variable my_tid : nat.
+
+  (* Note : iProp-style definition of hsupd incurs positivity problem when defining _hpsim. *)
+  Definition hsupd (P : Σ -> Prop) : Σ -> Prop :=
+    λ fmr, ✓ fmr → ∃ fmr0, P fmr0 ∧ (Own fmr ⊢ |==> Own fmr0).
+    (* λ fmr, Own fmr ⊢ ∃ fmr0, |==> ⌜P fmr0⌝. *)
 
   Definition dummy_term (with_dummy: bool) : itree hmodE unit :=
     if with_dummy then trigger (Guarantee True) else Ret tt.
+  
+  Variant _hpsim' {with_dummy : bool}
+    (hpsimc : ∀ R (RR : nat -> alist key Any.t * R -> alist key Any.t * R -> iProp),
+        bool -> bool -> nat -> alist key Any.t * itree hmodE R -> alist key Any.t * itree hmodE R -> Σ -> Prop)
+    {R} {RR : nat -> alist key Any.t * R -> alist key Any.t * R -> iProp}
+    (hpsimi : bool -> bool -> nat -> alist key Any.t * itree hmodE R -> alist key Any.t * itree hmodE R -> Σ -> Prop)
+    : bool -> bool -> nat -> alist key Any.t * itree hmodE R -> alist key Any.t * itree hmodE R -> Σ -> Prop :=
 
-  Variant _hpsim' {with_dummy: bool}
-    (hpsimc: state_rel -> bool -> bool -> nat -> alist key Any.t * itree hmodE Any.t -> alist key Any.t * itree hmodE Any.t -> Σ -> Prop)
-    (hpsimi: state_rel -> bool -> bool -> nat -> alist key Any.t * itree hmodE Any.t -> alist key Any.t * itree hmodE Any.t -> Σ -> Prop)
-    : state_rel -> bool -> bool -> nat -> alist key Any.t * itree hmodE Any.t -> alist key Any.t * itree hmodE Any.t -> Σ -> Prop :=
-    
   | hpsim_ret
-      (HPSIM_RET: True)
-      RR fmr ps pt nths st_src st_tgt v
-      (ICOND: Own fmr -∗ #=> (
-         RR nths st_src st_tgt
-      ))
+      (HPSIM_RET : True)
+      ps pt nths st_src st_tgt fmr
+      v_src v_tgt
+      (RET : Own fmr ⊢ |==> RR nths (st_src,v_src) (st_tgt,v_tgt))
     :
-    _hpsim' hpsimc hpsimi RR ps pt nths (st_src, Ret v) (st_tgt, Ret v) fmr
+    _hpsim' hpsimc hpsimi ps pt nths (st_src, Ret v_src) (st_tgt, Ret v_tgt) fmr
 
   | hpsim_call
-      (HPSIM_CALL: True)
-      (hpsimiI: _ -> _ -> _ -> _ -> _ -> _ -> iProp) (ISIM: hpsimiI <7= hpsimi)
-      RR fmr ps pt nths st_src st_tgt fn varg k_src k_tgt
-      (ICOND: Own fmr -∗ #=> (
-         RR nths st_src st_tgt
-         ∗
-         ∀ RR0, Ist RR0 -∗
-         ∃ II0, Ist II0 ∗
-         ∀ nths0 st_src0 st_tgt0 vret,
-         (⌜List.NoDup (List.map fst st_src0) ∧
-           List.NoDup (List.map fst st_tgt0)⌝ ∗
-          II0 nths0 st_src0 st_tgt0)
-          -∗
-          hpsimiI RR0 true true nths0 (st_src0, k_src vret) (st_tgt0, k_tgt vret)
-      ))
+      (HPSIM_CALL : True)
+      ps pt nths st_src st_tgt fmr
+      fn varg k_src k_tgt FR
+      (INV : Own fmr ⊢ |==> (Ist nths st_src st_tgt ∗ FR))
+      (K : ∀ vret nths0 st_src0 st_tgt0 fmr0
+            (NODS : List.NoDup (List.map fst st_src0))
+            (NODD : List.NoDup (List.map fst st_tgt0))
+            (INV : Own fmr0 ⊢ |==> (Ist nths0 st_src0 st_tgt0 ∗ FR)),
+        hpsimi true true nths0 (st_src0, k_src vret) (st_tgt0, k_tgt vret) fmr0)
     :
-    _hpsim' hpsimc hpsimi RR ps pt nths (st_src, trigger (Call fn varg) >>= k_src) (st_tgt, trigger (Call fn varg) >>= k_tgt) fmr
+    _hpsim' hpsimc hpsimi ps pt nths (st_src, trigger (Call fn varg) >>= k_src) (st_tgt, trigger (Call fn varg) >>= k_tgt) fmr
 
   | hpsim_io
-      (HPSIM_IO: True)
-      (hpsimiI: _ -> _ -> _ -> _ -> _ -> _ -> iProp) (ISIM: hpsimiI <7= hpsimi)
-      RR fmr ps pt nths st_src st_tgt I O fn (varg: I) k_src k_tgt
-      (ICOND: Own fmr -∗ #=> (
-         ∀ (vret: O), hpsimiI RR true true nths (st_src, k_src vret) (st_tgt, k_tgt vret)
-      ))
+      (HPSIM_IO : True)
+      ps pt nths st_src st_tgt fmr
+      I O fn (varg : I) k_src k_tgt
+      (K : ∀ (vret : O), hpsimi true true nths (st_src, k_src vret) (st_tgt, k_tgt vret) fmr)
     :
-    _hpsim' hpsimc hpsimi RR ps pt nths (st_src, trigger (IO fn varg) >>= k_src) (st_tgt, trigger (IO fn varg) >>= k_tgt) fmr
+    _hpsim' hpsimc hpsimi ps pt nths (st_src, trigger (IO fn varg) >>= k_src) (st_tgt, trigger (IO fn varg) >>= k_tgt) fmr
 
   | hpsim_inline_src
-      (HPSIM_INLINE_SRC: True)
-      (hpsimiI: _ -> _ -> _ -> _ -> _ -> _ -> iProp) (ISIM: hpsimiI <7= hpsimi)
-      RR fmr ps pt nths st_src st_tgt fn f varg k_src i_tgt
-      (FUN: alist_find fn fl_src = Some f)
-      (ICOND: Own fmr -∗ #=> (
-         hpsimiI RR true pt nths (st_src, f varg >>= (fun x => dummy_term with_dummy;;; tau;; Ret x) >>= k_src) (st_tgt, i_tgt)
-      ))
+      (HPSIM_INLINE_SRC : True)
+      ps pt nths st_src st_tgt fmr
+      fn f varg k_src i_tgt
+      (FUN : alist_find fn fl_src = Some f)
+      (K : hpsimi true pt nths (st_src, f varg >>= (fun x => dummy_term with_dummy;;; tau;; Ret x) >>= k_src) (st_tgt, i_tgt) fmr)
     :
-    _hpsim' hpsimc hpsimi RR ps pt nths (st_src, trigger (Call fn varg) >>= k_src) (st_tgt, i_tgt) fmr
+    _hpsim' hpsimc hpsimi ps pt nths (st_src, trigger (Call fn varg) >>= k_src) (st_tgt, i_tgt) fmr
 
   | hpsim_inline_tgt
-      (HPSIM_INLINE_TGT: True)
-      (hpsimiI: _ -> _ -> _ -> _ -> _ -> _ -> iProp) (ISIM: hpsimiI <7= hpsimi)
-      RR fmr ps pt nths st_src st_tgt fn f varg i_src k_tgt
-      (FUN: alist_find fn fl_tgt = Some f)
-      (ICOND: Own fmr -∗ #=> (
-         hpsimiI RR ps true nths (st_src, i_src) (st_tgt, f varg >>= (fun x => dummy_term with_dummy;;; tau;; Ret x) >>= k_tgt)
-      ))
+      (HPSIM_INLINE_TGT : True)
+      ps pt nths st_src st_tgt fmr
+      fn f varg i_src k_tgt
+      (FUN : alist_find fn fl_tgt = Some f)
+      (K : hpsimi ps true nths (st_src, i_src) (st_tgt, f varg >>= (fun x => dummy_term with_dummy;;; tau;; Ret x) >>= k_tgt) fmr)
     :
-    _hpsim' hpsimc hpsimi RR ps pt nths (st_src, i_src) (st_tgt, trigger (Call fn varg) >>= k_tgt) fmr
+    _hpsim' hpsimc hpsimi ps pt nths (st_src, i_src) (st_tgt, trigger (Call fn varg) >>= k_tgt) fmr
 
   | hpsim_tau_src
-      (HPSIM_TAU_SRC: True)
-      (hpsimiI: _ -> _ -> _ -> _ -> _ -> _ -> iProp) (ISIM: hpsimiI <7= hpsimi)
-      RR fmr ps pt nths st_src st_tgt i_src i_tgt
-      (ICOND: Own fmr -∗ #=> (
-         hpsimiI RR true pt nths (st_src, i_src) (st_tgt, i_tgt)
-      ))
+      (HPSIM_TAU_SRC : True)
+      ps pt nths st_src st_tgt fmr
+      i_src i_tgt
+      (K : hpsimi true pt nths (st_src, i_src) (st_tgt, i_tgt) fmr)
     :
-    _hpsim' hpsimc hpsimi RR ps pt nths (st_src, tau;; i_src) (st_tgt, i_tgt) fmr
+    _hpsim' hpsimc hpsimi ps pt nths (st_src, tau;; i_src) (st_tgt, i_tgt) fmr
 
   | hpsim_tau_tgt
-      (HPSIM_TAU_TGT: True)
-      (hpsimiI: _ -> _ -> _ -> _ -> _ -> _ -> iProp) (ISIM: hpsimiI <7= hpsimi)
-      RR fmr ps pt nths st_src st_tgt i_src i_tgt
-      (ICOND: Own fmr -∗ #=> (
-         hpsimiI RR ps true nths (st_src, i_src) (st_tgt, i_tgt)
-      ))
+      (HPSIM_TAU_TGT : True)
+      ps pt nths st_src st_tgt fmr
+      i_src i_tgt
+      (K : hpsimi ps true nths (st_src, i_src) (st_tgt, i_tgt) fmr)
     :
-    _hpsim' hpsimc hpsimi RR ps pt nths (st_src, i_src) (st_tgt, tau;; i_tgt) fmr
+    _hpsim' hpsimc hpsimi ps pt nths (st_src, i_src) (st_tgt, tau;; i_tgt) fmr
 
   | hpsim_take_src
-      (HPSIM_TAKE_SRC: True)
-      (hpsimiI: _ -> _ -> _ -> _ -> _ -> _ -> iProp) (ISIM: hpsimiI <7= hpsimi)
-      RR fmr ps pt nths st_src st_tgt fmr
+      (HPSIM_TAKE_SRC : True)
+      ps pt nths st_src st_tgt fmr
       X k_src i_tgt
       (K : ∀ (x : X), hpsimi true pt nths (st_src, k_src x) (st_tgt, i_tgt) fmr)
     :
-    _hpsim' hpsimc hpsimi RR ps pt nths (st_src, trigger (Take X) >>= k_src) (st_tgt, i_tgt) fmr
-.            
+    _hpsim' hpsimc hpsimi ps pt nths (st_src, trigger (Take X) >>= k_src) (st_tgt, i_tgt) fmr
+            
   | hpsim_choose_tgt
-      (HPSIM_CHOOSE_TGT: True)
-      (hpsimiI: _ -> _ -> _ -> _ -> _ -> _ -> iProp) (ISIM: hpsimiI <7= hpsimi)
-      RR fmr ps pt nths st_src st_tgt fmr
+      (HPSIM_CHOOSE_TGT : True)
+      ps pt nths st_src st_tgt fmr
       X i_src k_tgt
       (K : ∀ (x : X), hpsimi ps true nths (st_src, i_src) (st_tgt, k_tgt x) fmr)
     :
@@ -141,18 +128,16 @@ Section HPSIM.
     _hpsim' hpsimc hpsimi ps pt nths (st_src, trigger (Choose X) >>= k_src) (st_tgt, i_tgt) fmr
 
   | hpsim_take_tgt
-      (HPSIM_TAKE_TGT: True)
-      (hpsimiI: _ -> _ -> _ -> _ -> _ -> _ -> iProp) (ISIM: hpsimiI <7= hpsimi)
-      RR fmr      ps pt nths st_src st_tgt fmr
+      (HPSIM_TAKE_TGT : True)
+      ps pt nths st_src st_tgt fmr
       X x i_src k_tgt
       (K : hpsimi ps true nths (st_src, i_src) (st_tgt, k_tgt x) fmr)
     :
     _hpsim' hpsimc hpsimi ps pt nths (st_src, i_src) (st_tgt, trigger (Take X) >>= k_tgt) fmr
 
   | hpsim_sput_src
-      (HPSIM_SPUT_SRC: True)
-      (hpsimiI: _ -> _ -> _ -> _ -> _ -> _ -> iProp) (ISIM: hpsimiI <7= hpsimi)
-      RR fmr      ps pt nths st_src st_src0 st_tgt fmr
+      (HPSIM_SPUT_SRC : True)
+      ps pt nths st_src st_src0 st_tgt fmr
       k_src i_tgt
       k v
       (run : st_src0 = alist_upd k v st_src)
@@ -161,9 +146,8 @@ Section HPSIM.
     _hpsim' hpsimc hpsimi ps pt nths (st_src, trigger (SPut k v) >>= k_src) (st_tgt, i_tgt) fmr
 
   | hpsim_sput_tgt
-      (HPSIM_SPUT_SRC: True)
-      (hpsimiI: _ -> _ -> _ -> _ -> _ -> _ -> iProp) (ISIM: hpsimiI <7= hpsimi)
-      RR fmr      ps pt nths st_src st_tgt st_tgt0 fmr
+      (HPSIM_SPUT_SRC : True)
+      ps pt nths st_src st_tgt st_tgt0 fmr
       i_src k_tgt 
       k v
       (run : st_tgt0 = alist_upd k v st_tgt)
@@ -172,9 +156,8 @@ Section HPSIM.
     _hpsim' hpsimc hpsimi ps pt nths (st_src, i_src) (st_tgt, trigger (SPut k v) >>= k_tgt) fmr
 
   | hpsim_sget_src
-      (HPSIM_SPUT_SRC: True)
-      (hpsimiI: _ -> _ -> _ -> _ -> _ -> _ -> iProp) (ISIM: hpsimiI <7= hpsimi)
-      RR fmr      ps pt nths st_src st_tgt fmr
+      (HPSIM_SPUT_SRC : True)
+      ps pt nths st_src st_tgt fmr
       k_src i_tgt
       k v
       (run : v = or_else (alist_find k st_src) tt↑)
@@ -183,9 +166,8 @@ Section HPSIM.
     _hpsim' hpsimc hpsimi ps pt nths (st_src, trigger (SGet k) >>= k_src) (st_tgt, i_tgt) fmr
  
   | hpsim_sget_tgt
-      (HPSIM_SPUT_SRC: True)
-      (hpsimiI: _ -> _ -> _ -> _ -> _ -> _ -> iProp) (ISIM: hpsimiI <7= hpsimi)
-      RR fmr      ps pt nths st_src st_tgt fmr
+      (HPSIM_SPUT_SRC : True)
+      ps pt nths st_src st_tgt fmr
       i_src k_tgt 
       k v
       (run : v = or_else (alist_find k st_tgt) tt↑)
@@ -194,9 +176,8 @@ Section HPSIM.
     _hpsim' hpsimc hpsimi ps pt nths (st_src, i_src) (st_tgt, trigger (SGet k) >>= k_tgt) fmr
  
   | hpsim_assume_src
-      (HPSIM_ASSUME_SRC: True)
-      (hpsimiI: _ -> _ -> _ -> _ -> _ -> _ -> iProp) (ISIM: hpsimiI <7= hpsimi)
-      RR fmr      ps pt nths st_src st_tgt fmr
+      (HPSIM_ASSUME_SRC : True)
+      ps pt nths st_src st_tgt fmr
       iP k_src i_tgt FMR
       (CUR : Own fmr ⊢ |==> FMR)
       (K : ∀ fmr0 (NEW : Own fmr0 ⊢ |==> (iP ∗ FMR)),
@@ -205,9 +186,8 @@ Section HPSIM.
     _hpsim' hpsimc hpsimi ps pt nths (st_src, trigger (Assume iP) >>= k_src) (st_tgt, i_tgt) fmr
 
   | hpsim_guarantee_tgt
-      (HPSIM_GUARANTEE_TGT: True)
-      (hpsimiI: _ -> _ -> _ -> _ -> _ -> _ -> iProp) (ISIM: hpsimiI <7= hpsimi)
-      RR fmr      ps pt nths st_src st_tgt fmr
+      (HPSIM_GUARANTEE_TGT : True)
+      ps pt nths st_src st_tgt fmr
       iP i_src k_tgt FMR
       (CUR : Own fmr ⊢ |==> FMR)
       (K : ∀ fmr0 (NEW : Own fmr0 ⊢ |==> (iP ∗ FMR)),
@@ -216,9 +196,8 @@ Section HPSIM.
     _hpsim' hpsimc hpsimi ps pt nths (st_src, i_src) (st_tgt, trigger (Guarantee iP) >>= k_tgt) fmr
             
   | hpsim_guarantee_src
-      (HPSIM_GUARANTEE_SRC: True)
-      (hpsimiI: _ -> _ -> _ -> _ -> _ -> _ -> iProp) (ISIM: hpsimiI <7= hpsimi)
-      RR fmr      ps pt nths st_src st_tgt fmr
+      (HPSIM_GUARANTEE_SRC : True)
+      ps pt nths st_src st_tgt fmr
       iP k_src i_tgt FMR
       (CUR : Own fmr ⊢ |==> (iP ∗ FMR))
       (K : ∀ fmr0 (NEW : Own fmr0 ⊢ |==> FMR),
@@ -227,9 +206,8 @@ Section HPSIM.
     _hpsim' hpsimc hpsimi ps pt nths (st_src, trigger (Guarantee iP) >>= k_src) (st_tgt, i_tgt) fmr
 
   | hpsim_assume_tgt
-      (HPSIM_ASSUME_TGT: True)
-      (hpsimiI: _ -> _ -> _ -> _ -> _ -> _ -> iProp) (ISIM: hpsimiI <7= hpsimi)
-      RR fmr      ps pt nths st_src st_tgt fmr
+      (HPSIM_ASSUME_TGT : True)
+      ps pt nths st_src st_tgt fmr
       iP i_src k_tgt FMR
       (CUR : Own fmr ⊢ |==> (iP ∗ FMR))
       (K : ∀ fmr0 (NEW : Own fmr0 ⊢ |==> FMR),
@@ -238,18 +216,16 @@ Section HPSIM.
     _hpsim' hpsimc hpsimi ps pt nths (st_src, i_src) (st_tgt, trigger (Assume iP) >>= k_tgt) fmr
 
   | hpsim_spawn
-      (HPSIM_SPAWN: True)
-      (hpsimiI: _ -> _ -> _ -> _ -> _ -> _ -> iProp) (ISIM: hpsimiI <7= hpsimi)
-      RR fmr      ps pt nths st_src st_tgt fmr
+      (HPSIM_SPAWN : True)
+      ps pt nths st_src st_tgt fmr
       fn arg k_src k_tgt
       (K : hpsimi true true (S nths) (st_src, k_src nths) (st_tgt, k_tgt nths) fmr)
     :
     _hpsim' hpsimc hpsimi ps pt nths (st_src, trigger (Spawn fn arg) >>= k_src) (st_tgt, trigger (Spawn fn arg) >>= k_tgt) fmr
 
   | hpsim_yield
-      (HPSIM_YIELD: True)
-      (hpsimiI: _ -> _ -> _ -> _ -> _ -> _ -> iProp) (ISIM: hpsimiI <7= hpsimi)
-      RR fmr      ps pt nths st_src st_tgt fmr
+      (HPSIM_YIELD : True)
+      ps pt nths st_src st_tgt fmr
       tid k_src k_tgt FR
       (INV : Own fmr ⊢ |==> (Ist nths st_src st_tgt ∗ FR))
       (K : ∀ nths0 st_src0 st_tgt0 fmr0
@@ -261,18 +237,16 @@ Section HPSIM.
     _hpsim' hpsimc hpsimi ps pt nths (st_src, trigger (Yield tid) >>= k_src) (st_tgt, trigger (Yield tid) >>= k_tgt) fmr
         
   | hpsim_tid_src
-      (HPSIM_TID_SRC: True)
-      (hpsimiI: _ -> _ -> _ -> _ -> _ -> _ -> iProp) (ISIM: hpsimiI <7= hpsimi)
-      RR fmr      ps pt nths st_src st_tgt fmr
+      (HPSIM_TID_SRC : True)
+      ps pt nths st_src st_tgt fmr
       k_src i_tgt
       (K : hpsimi true pt nths (st_src, k_src my_tid) (st_tgt, i_tgt) fmr)
     :
     _hpsim' hpsimc hpsimi ps pt nths (st_src, trigger Tid >>= k_src) (st_tgt, i_tgt) fmr
 
   | hpsim_tid_tgt
-      (HPSIM_TID_TGT: True)
-      (hpsimiI: _ -> _ -> _ -> _ -> _ -> _ -> iProp) (ISIM: hpsimiI <7= hpsimi)
-      RR fmr      ps pt nths st_src st_tgt fmr
+      (HPSIM_TID_TGT : True)
+      ps pt nths st_src st_tgt fmr
       i_src k_tgt
       (K : hpsimi ps true nths (st_src, i_src) (st_tgt, k_tgt my_tid) fmr)
     :
@@ -287,24 +261,10 @@ Section HPSIM.
   .
   Arguments _hpsim' {with_dummy} hpsimc {R} RR hpsimi.
 
+  Inductive _hpsim {with_dummy} hpsim R RR ps pt nths sti_src sti_tgt fmr : Prop :=
+  | hpsim_intro
+      (IN : hsupd (@_hpsim' with_dummy hpsim R RR (@_hpsim with_dummy hpsim R RR) ps pt nths sti_src sti_tgt) fmr).
 
-  Definition hsupd (P: Σ -> Prop) : Σ -> Prop :=
-    fun fmr => URA.wf fmr ->
-               exists fmr0, P fmr0 /\
-               (Own fmr ⊢ #=> Own fmr0).
-
-  Inductive _hpsim {with_dummy} hpsim R RR ps pt nths sti_src sti_tgt fmr : Prop
-    :=
-  | hpsim_intro (IN: hsupd (@_hpsim' with_dummy hpsim R RR (@_hpsim with_dummy hpsim R RR) ps pt nths sti_src sti_tgt) fmr) 
-  .
-
-  Inductive _hpsim {with_dummy} hpsim RR ps pt nths sti_src sti_tgt fmr : Prop
-    :=
-  | hpsim_intro (IN: hsupd (@_hpsim' with_dummy hpsim (@_hpsim with_dummy hpsim) RR ps pt nths sti_src sti_tgt) fmr) 
-  .
-    
-
-    
   Definition hpsim {R} RR := paco8 (@_hpsim false) bot8 R RR.
 
   Lemma _hpsim_tarski with_dummy hpsim R RR rel
@@ -359,7 +319,7 @@ Section HPSIM.
       (NODD : List.NoDup (List.map fst sti_tgt.1)),
     @hpsim _ hpsim_tail ps pt nths sti_src sti_tgt fmr.
 
-  Definition hpsim_fun (i_src : itree hmodE Any.t) (i_tgt : itree hmodE Any.t) :  Prop :=
+  Definition hpsim_fun (i_src : itree hmodE Any.t) (i_tgt : itree hmodE Any.t) : Prop :=
     ∀ nths st_src st_tgt fmr (INV : Own fmr ⊢ |==> Ist nths st_src st_tgt),
       hpsim_body false false nths (st_src, i_src) (st_tgt, i_tgt) fmr.
 

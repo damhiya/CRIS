@@ -62,9 +62,9 @@ Section HEADER.
     forall tid x_src,
     exists x_tgt,
       (<<PRE: forall arg_src arg_tgt,
-          (fsp_src.(precond) tid x_src arg_src arg_tgt) ⊢ #=> (fsp_tgt.(precond) tid x_tgt arg_src arg_tgt)>>) ∧
+          (fsp_src.(precond) tid x_src arg_src arg_tgt) ==∗ (fsp_tgt.(precond) tid x_tgt arg_src arg_tgt)>>) ∧
       (<<POST: forall ret_src ret_tgt,
-          (fsp_tgt.(postcond) tid x_tgt ret_src ret_tgt) ⊢ #=> (fsp_src.(postcond) tid x_src ret_src ret_tgt)>>)
+          (fsp_tgt.(postcond) tid x_tgt ret_src ret_tgt) ==∗ (fsp_src.(postcond) tid x_src ret_src ret_tgt)>>)
   .
 
   Global Program Instance fspec_weaker_PreOrder : PreOrder fspec_weaker.

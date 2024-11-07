@@ -113,7 +113,7 @@ Section MID.
     fun fr =>
       '(r, fr', mr') <- trigger (Choose (Σ * Σ * Σ));;
       mr <- mget_res;;
-      guarantee (fr ⋅ mr ~~> r ⋅ fr' ⋅ mr');;;
+      guarantee (Own (fr ⋅ mr) ==∗ Own (r ⋅ fr' ⋅ mr'));;;
       guarantee (Own r ⊢ P);;;
       mput_res mr';;;
       Ret (fr', tt).
@@ -133,19 +133,31 @@ Section MID.
           x <- trigger e;; Ret (fr', x)
       | _ => x <- trigger e;; Ret (fr, x)
       end.
-  
-  Definition handle_callE: callE ~> stateT (Σ) (itree modE) :=
-    fun T e fr =>
-      '(fr', _) <- handle_Guarantee (True%I) fr;;
-      x <- trigger e;; Ret (fr', x).
 
-  Definition interp_hp : itree hmodE ~> stateT Σ (itree modE) :=
-      interp_state 
-        (case_ (bif:=sum1) handle_agE
-        (case_ (bif:=sum1) handle_schE
-        (case_ (bif:=sum1) handle_callE
-        (case_ (bif:=sum1) ((fun T e fr => x <- handle_pgE e;; Ret (fr, x)): _ ~> stateT Σ (itree modE)) 
-                           ((fun T e fr => x <- trigger e;; Ret (fr, x)): _ ~> stateT Σ (itree modE)))))).
+  Definition interp_hp : itree hmodE ~> stateT Σ (itree modE).
+  Proof.
+    eapply interp_state. intros T E. destruct E.
+    { exact (handle_agE a). }
+    destruct p.
+    { exact (handle_schE s). }
+    destruct s.
+    { intros fr. eapply ITree.bind.
+      { eapply (handle_Guarantee (True%I) fr). }
+      { intros [fr' _]. eapply ITree.bind.
+        { exact (trigger c). }
+        { intros r; exact (Ret (fr', r)). }
+      }
+    }
+    destruct s.
+    { intros r. eapply ITree.bind.
+      { exact (handle_pgE p). }
+      { intros t; exact (Ret (r, t)). }
+    }
+    { intros fr. eapply ITree.bind.
+      { eapply (trigger (inr1 (inr1 (inr1 c)))). }
+      { intros t; exact (Ret (fr, t)). }
+    }
+  Defined.
 
   Definition hp_fun_tail := (fun '(fr, x) => handle_Guarantee (True%I) fr ;;; Ret (x : Any.t)).
 
@@ -187,7 +199,7 @@ Section RED.
       =
       '(fr', _) <- handle_Guarantee (True%I:iProp) fr;; r <- trigger i;; tau;; Ret (fr', r).
   Proof.
-    unfold interp_hp, handle_callE in *. grind.
+    unfold interp_hp. grind.
   Qed.
 
   Lemma interp_hp_spawn fn arg fmr :

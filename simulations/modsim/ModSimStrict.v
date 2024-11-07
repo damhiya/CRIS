@@ -411,7 +411,6 @@ Section SIM_STRICT.
     esplits; eauto.
   Qed.
   
-  (** **)
 
   Variant sim_strictC world
       (r: forall S_src S_tgt (RR: list world -> nat -> Any.t -> Any.t -> S_src -> S_tgt -> Prop), bool -> bool -> list world -> nat -> Any.t * itree modE S_src -> Any.t * itree modE S_tgt -> Prop):

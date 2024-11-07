@@ -92,9 +92,9 @@ Section FSPEC.
   Definition fspec_inv (k: nat) (fsp: positive -> nat -> fspec): fspec :=
     mk_fspec (meta := @meta_inv (fun u n => (fsp u n).(meta)))
       (fun tid '(mk_meta u n x) varg arg =>
-         closed_world u (k+n) ⊤ ∗ (fsp u n).(precond) tid x varg arg)%I
+         closed_universe u (k+n) ⊤ ∗ (fsp u n).(precond) tid x varg arg)%I
       (fun tid '(mk_meta u n x) vret ret =>
-         closed_world u (k+n) ⊤ ∗ (fsp u n).(postcond) tid x vret ret)%I.
+         closed_universe u (k+n) ⊤ ∗ (fsp u n).(postcond) tid x vret ret)%I.
   
 End FSPEC.
 
@@ -106,6 +106,7 @@ Arguments postcond : simpl never.
 Section HOARE.
 
   Context `{Σ: GRA.t}.
+  Notation iProp := (iProp Σ).
 
   Variable ginv : invspec.
   Variable stb: gname -> option fspec.
