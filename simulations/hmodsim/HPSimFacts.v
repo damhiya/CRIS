@@ -840,18 +840,8 @@ Section HPSIM_ADEQUACY.
     { by eapply Own_wand_valid. }
 
     destruct x0; i; des.
-    - clarify. rewrite !interp_hp_ret. step.
-      (* hide Choose 1. steps. unhide.
-      force_l. instantiate (1 := (u0, u1, (ctx_sem ctx) ⋅ fmr0 ⋅ u)).
-      hide Choose 1. step. unhide.
-      force_l.
-      { iIntros "H"; iMod (FMR with "H") as "[[[A B] C] D]".
-        iMod (x1 with "B") as "B"; iMod (x with "[C D]") as "[[U0 U1] U]"; first iSplitL "C"; iFrame.
-        iModIntro. iSplitL "U0 U1"; first iSplitL "U0"; iFrame.
-        iSplitR "U"; last iFrame; iSplitR "B"; iFrame.
-      }
-      steps. econs; eauto.
-      unfold hpsim_tail in RET. *)
+    - clarify. step. eapply _einit. apply f_equal. [apply _equal_f|]. _prw ltac:(idtac) ltac:(__prw _red_gen false) 2 1 0. eapply _einit.
+      { apply _equal_f. apply _equal. } prw _red_gen 2 1 0. rewrite !interp_hp_ret. step.
       econs; eauto.
       esplits; et; cycle 1.
       { eapply Own_pure_soundness; eauto.
@@ -860,10 +850,6 @@ Section HPSIM_ADEQUACY.
       }
       econs; et; cycle 1.
       { iIntros "H". iMod (x1 with "H") as "H"; iPoseProof (RET with "H") as "[_ H]"; ss. }
-      (* eapply (Own_wand_valid (fr_src ⋅ mr_src)); eauto.
-      iIntros "H"; iMod (FMR with "H") as "[[[A B] C] D]"; iCombine "C" "D" as "C".
-      iMod (x1 with "B") as "B"; iMod (x with "C") as "[_ U]".
-      iModIntro; iSplitR "U"; iFrame; iSplitL "A"; iFrame. *)
     - clarify. repeat rewrite !interp_hp_bind !interp_hp_call.
       hexploit (Own_bupd_split fmr0); eauto; intros [ist [frame [UPD [Hist Hframe]]]].
       grind.
@@ -896,17 +882,17 @@ Section HPSIM_ADEQUACY.
       rewrite -ctx_set_sem; cycle 1.
       { eapply le_mine_in; eauto; rewrite insert_length; eauto using le_mine_in. }
       rewrite /ctx_add /ctx_set list_lookup_insert; eauto using le_mine_in.
-    - clarify. do 4 step. grind. rewrite ?interp_hp_bind ?interp_hp_core; grind. step. grind; do 2 step.
-      eapply K; eauto.
+    - clarify. do 4 step. grind. rewrite ?interp_hp_bind ?interp_hp_core; grind. step.
+      grind; do 2 step. eapply K; eauto.
     - clarify; rewrite ?interp_hp_bind ?interp_hp_call.
       step; eauto.
       { instantiate (1:= interp_hp_fun f). rewrite alist_find_map. rewrite FUN. et. }
 
-      (* TODO : start here if needed *)
       exploit (K _ _ st_src st_tgt _ _ _ _ _ _ mr_src mr_tgt); eauto.
-      clear K; intros K.
+      clear K CIH; intros K.
       repeat rewrite ?bind_bind ?interp_hp_bind /dummy_term in K; rewrite /interp_hp_fun.
-      move: K; grind.
+
+
       guclo sim_strictC_spec. econs; eauto using sim_strict_refl.
       ginit. grind. guclo sim_strict_bindC_spec; econs; eauto.
       { gfinal; right; eapply sim_strict_refl. }
