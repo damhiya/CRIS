@@ -114,38 +114,13 @@ Section MID.
     guarantee (Own mr ==∗ P ∗ Own mr');;;
     mput_res mr'.
 
-  (* Definition handle_Assume P : stateT Σ (itree modE) unit :=
-    fun fr =>
-      r <- trigger (Take Σ);;
-      mr <- mget_res;;
-      assume (✓ (r ⋅ fr ⋅ mr));;;
-      assume (Own r ⊢ P);;;
-      Ret (r ⋅ fr, tt). *)
-
-  (* Definition handle_Guarantee P : stateT Σ (itree modE) unit :=
-    fun fr =>
-      '(r, fr', mr') <- trigger (Choose (Σ * Σ * Σ));;
-      mr <- mget_res;;
-      guarantee (Own (fr ⋅ mr) ==∗ Own (r ⋅ fr' ⋅ mr'));;;
-      guarantee (Own r ⊢ P);;;
-      mput_res mr';;;
-      Ret (fr', tt). *)
-
   Definition handle_agE : agE ~> itree modE :=
-    fun _ e =>
+    λ _ e,
       match e with
       | Assume P => handle_Assume P
       | Guarantee P => handle_Guarantee P
       end.
 
-  (* Definition handle_schE : schE ~> stateT Σ (itree modE) :=
-    fun T0 e fr =>
-      match e in (schE _) return (itree modE (Σ * T0)) with
-      | Yield _ =>
-          '(fr', _) <- handle_Guarantee (True%I) fr;;
-          x <- trigger e;; Ret (fr', x)
-      | _ => x <- trigger e;; Ret (fr, x)
-      end. *)
   Definition interp_hp : itree hmodE ~> itree modE.
   Proof.
     intros T; eapply interp; intros Te e.
@@ -157,38 +132,8 @@ Section MID.
     { exact (trigger (inr1 (inr1 (inr1 c)))). }
   Defined.
 
-  (* Definition interp_hp : itree hmodE ~> stateT Σ (itree modE).
-  Proof.
-    eapply interp_state. intros T E. destruct E.
-    { exact (handle_agE a). }
-    destruct p.
-    { exact (handle_schE s). }
-    destruct s.
-    { intros fr. eapply ITree.bind.
-      { eapply (handle_Guarantee (True%I) fr). }
-      { intros [fr' _]. eapply ITree.bind.
-        { exact (trigger c). }
-        { intros r; exact (Ret (fr', r)). }
-      }
-    }
-    destruct s.
-    { intros r. eapply ITree.bind.
-      { exact (handle_pgE p). }
-      { intros t; exact (Ret (r, t)). }
-    }
-    { intros fr. eapply ITree.bind.
-      { eapply (trigger (inr1 (inr1 (inr1 c)))). }
-      { intros t; exact (Ret (fr, t)). }
-    }
-  Defined. *)
-
-  (* Definition hp_fun_tail := (fun '(fr, x) => handle_Guarantee (True%I) fr ;;; Ret (x : Any.t)). *)
-
-  (* Definition interp_hp_body (i : itree hmodE Any.t) (fr : Σ) : itree modE Any.t :=
-    interp_hp i fr >>= hp_fun_tail. *)
-
   Definition interp_hp_fun (f : Any.t -> itree hmodE Any.t) : Any.t -> itree modE Any.t :=
-    fun x => interp_hp (f x).
+    λ x, interp_hp (f x).
 
 End MID.
 
@@ -277,7 +222,7 @@ Section RED.
 
   Global Program Instance interp_hp_rdb : red_database (mk_box (@interp_hp)) :=
     mk_rdb
-      1
+      0
       (mk_box interp_hp_bind)
       (mk_box interp_hp_tau)
       (mk_box interp_hp_ret)

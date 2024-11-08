@@ -191,13 +191,16 @@ Ltac __red_interp f term :=
   (* idtac "__red_interp"; *)
   (* idtac term; *)
   let my_interp := get_head2 term in
-  (* idtac itr; *)
+  (* idtac "interpretation : "; *)
+  (* idtac my_interp; *)
   let tc := fresh "_TC_" in
   unshelve evar (tc : @red_database (mk_box (my_interp))); [typeclasses eauto|];
   let name := fresh "TMP" in
   let _nth := constr:(rdb_pos tc) in
   let nth := (eval simpl in _nth) in
   let itr := get_nth term nth in
+  (* idtac "itr : "; *)
+  (* idtac itr; *)
   lazymatch itr with
   | ?i0 >>= ?k0 =>
     (* idtac "bind"; *)
@@ -252,9 +255,13 @@ Ltac _red_interp f :=
   lazymatch goal with
   | [ |- ?term >>= _ = _ ] =>
     (* idtac "_red_interp_bind"; *)
+    (* idtac "head term : "; *)
+    (* idtac term; *)
     apply bind_ext; __red_interp f term
   | [ |- ?term = _] =>
     (* idtac "_red_interp_term"; *)
+    (* idtac "lhs term : "; *)
+    (* idtac term; *)
     __red_interp f term
   end
 .

@@ -33,7 +33,7 @@ Section SIM.
   Variable Ist : nat → alist key Any.t → alist key Any.t → iProp.
   Variable my_tid : nat.
 
-  Let _hpsim := @_hpsim Σ fl_src fl_tgt Ist my_tid false.
+  Let _hpsim := _hpsim fl_src fl_tgt Ist my_tid.
   Let rel := ∀ R : Type, (nat → alist key Any.t * R → alist key Any.t * R → iProp) → bool → bool → nat → alist key Any.t * itree hmodE R → alist key Any.t * itree hmodE R → iProp.
 
   Variant iunlift (r : rel) R RR ps pt nths sti_src sti_tgt res : Prop :=
@@ -65,7 +65,7 @@ Section SIM.
       (CUR : Own fmr ⊢ iP) :
     gpaco8 _hpsim (cpn8 _hpsim) (iunlift r) (iunlift g) R RR ps pt nths (st_src, i_src) (st_tgt, i_tgt) fmr.
   Proof.
-    guclo hpsim_updateC_spec. econs; ii; esplits; eauto; first reflexivity.
+    guclo hpsim_wfC_spec; econs; ii; esplits; eauto.
     assert (SIM : Own fmr ⊢ isim r g RR ps pt nths (st_src, i_src) (st_tgt, i_tgt)).
     { etrans; eauto. }
     hexploit (Own_general_soundness fmr); eauto.
@@ -98,8 +98,8 @@ Section SIM.
   Proof.
     uPred.unseal; split; intros x wfx SIM; destruct SIM as [x' SIM].
     guclo hpsim_updateC_spec; econs; intros ?; exists x'; split.
-    { rewrite cmra_discrete_total_update; intros z wfxz; specialize (SIM z wfxz); by eapply SIM. }
     { by apply (SIM ε); rewrite right_id; done. }
+    { rewrite cmra_discrete_total_update; intros z wfxz; specialize (SIM z wfxz); by eapply SIM. }
   Qed.
 
   Global Instance isim_elim_upd r g {R} RR ps pt nths sti_src sti_tgt P p :
