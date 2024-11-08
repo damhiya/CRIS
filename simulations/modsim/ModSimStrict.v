@@ -480,6 +480,12 @@ Section SIM_STRICT.
       destruct sti_tgt. do 2 (econs; eauto).
     - apply sim_strict_inv_tid' in EQVTGT. des. subst.
       destruct sti_src. do 2 (econs; eauto).
+    - apply sim_strict_inv_call' in EQVTGT. des. subst.
+      destruct sti_src. econs; eauto. econs 18; eauto.
+      eapply K; eauto. 
+      ginit. unfold triggerNB. grind. guclo sim_strict_bindC_spec. econs.
+      + gfinal. right. eapply sim_strict_refl.
+      + i. destruct v0'.
     - destruct sti_src, sti_tgt. do 2 (econs; eauto). do 2 (econs; eauto).
   Qed.
 

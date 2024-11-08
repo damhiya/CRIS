@@ -426,6 +426,25 @@ Section SEMR.
       + rewrite !list.list_lookup_insert_ne in INT; try nia. inv INT.
         eapply SIM; eauto; des_ifs.
 
+    - rewrite/__ (unfold_iter_eq _ (_, itrs_tgt)). s. rewrite LKT.
+      grind. rewrite FUN. grind. step.
+      eapply K;
+        try rewrite list.insert_length;
+        try rewrite list.list_lookup_insert; eauto; try nia.
+      { do 2 f_equal. unfold triggerNB. grind. }
+      i. des_ifs; des; subst.
+      + rewrite !list.list_lookup_insert in INT; try nia. inv INT.
+        eexists. ginit. guclo lflagC_spec. econs.
+        { gfinal. right. rewrite WF.
+          erewrite equal_f; eauto. do 2 f_equal. unfold triggerNB. grind.
+          ginit. eapply sim_itree_indC_spec. econs. i. inv x. 
+        }
+        { apply le_others_refl. }
+        { eauto. }
+        { eauto. }
+      + rewrite !list.list_lookup_insert_ne in INT; try nia. inv INT.
+        eapply SIM; eauto; des_ifs.
+
     - gstep. econs. econs; cycle 1.
       { instantiate (1:= Some false). ss. }
       { instantiate (1:= Some false). ss. }
@@ -437,7 +456,7 @@ Section SEMR.
       eexists. rewrite WF. ginit. guclo lflagC_spec.
       econs; try eassumption; eauto with paco.
       
-  Unshelve. all: exact smj_bot.
+  Unshelve. all: try exact smj_bot. eauto.
   Qed.
 
   Lemma adequacy_local_aux

@@ -13,8 +13,8 @@ Section HSSIM_ADEQUACY.
 
   Context `{Σ: GRA.t}.
 
-  Lemma hssim_wf ms mt cond Ist
-    (SIM: HSSim.t ms mt cond Ist)
+  Lemma hssim_wf ms mt cond Ist is_closed
+    (SIM: HSSim.t is_closed ms mt cond Ist)
     (WF: HModSem.wf ms)
     :
     HModSem.wf mt.
@@ -27,8 +27,8 @@ Section HSSIM_ADEQUACY.
     - eapply sub_perm_nodup; eauto. apply WF.
   Qed.
 
-  Lemma hssim_match ms mt cond Ist fn
-    (SIM: HSSim.t ms mt cond Ist)
+  Lemma hssim_match ms mt cond Ist is_closed fn
+    (SIM: HSSim.t is_closed ms mt cond Ist)
     (WF: List.NoDup (List.map fst (HModSem.fnsems ms)))
     (IN: In fn (List.map fst (HModSem.fnsems mt)))
     :
@@ -48,7 +48,7 @@ Section HSSIM_ADEQUACY.
     (COND: IC p)
     (WFS: HModSem.wf ms)
     (WFT: HModSem.wf mt)
-    (SIM: HSSim.t ms mt IC Ist)
+    (SIM: HSSim.t true ms mt IC Ist)
     :
     MSim.t (HModSem.to_mod ms (p ⋅ q)) (HModSem.to_mod mt q).
   Proof.
