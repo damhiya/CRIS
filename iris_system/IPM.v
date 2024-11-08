@@ -1,4 +1,4 @@
-From sflib Require Import sflib.
+Require Import sflib.
 From iris.algebra Require Import proofmode_classes.
 From iris.proofmode Require Export proofmode.
 From CCR.base_logic Require Export base_logic.
