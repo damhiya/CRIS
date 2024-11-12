@@ -8,8 +8,6 @@ Module Tr.
   CoInductive t: Type :=
   | done (retv: Any.t)
   | spin
-  | ub
-  | nb
   | cons (hd: event) (tl: t)
   .
   Infix "##" := cons (at level 60, right associativity).
@@ -34,15 +32,6 @@ Module Tr.
   .
 
 End Tr.
-
-
-
-
-
-
-
-
-
 
 
 Module Beh.
@@ -94,10 +83,6 @@ Inductive _of_state (of_state: L.(state) -> Tr.t -> Prop): L.(state) -> Tr.t -> 
     (SPIN: state_spin st0)
   :
     _of_state of_state st0 (Tr.spin)
-| sb_nb
-    st0
-  :
-    _of_state of_state st0 (Tr.nb)
 | sb_vis
     st0 st1 ev evs
     (SRT: L.(state_sort) st0 = vis)
@@ -127,7 +112,7 @@ Theorem of_state_ind :
 forall (r P: _ -> _ -> Prop),
 (forall st0 retv, state_sort L st0 = final retv -> P st0 (Tr.done retv)) ->
 (forall st0, state_spin st0 -> P st0 Tr.spin) ->
-(forall st0, P st0 Tr.nb) ->
+(* (forall st0, P st0 Tr.nb) -> *)
 
 (forall st0 st1 ev evs
  (SRT: state_sort L st0 = vis)
@@ -148,18 +133,10 @@ forall (r P: _ -> _ -> Prop),
  P st0 evs) ->
 forall s t, _of_state r s t -> P s t.
 Proof.
-  (* fix IH 11. i. *)
-  (* inv H5; eauto. *)
-  (* - eapply H3; eauto. rr in STEP. des; clarify. *)
-  (*   + esplits; eauto. rr. esplits; eauto. left. esplits; eauto. eapply IH; eauto. Guarded. *)
-  (*   + esplits; eauto. rr. esplits; eauto. right. esplits; eauto. *)
-  (* - eapply H4; eauto. ii. exploit STEP; eauto. i; des; clarify. *)
-  (*   + esplits; eauto. left. esplits; eauto. eapply IH; eauto. *)
-  (*   + esplits; eauto. right. esplits; eauto. *)
-  fix IH 11. i.
-  inv H5; eauto.
-  - eapply H3; eauto. rr in STEP. des; clarify. esplits; eauto. rr. esplits; eauto. eapply IH; eauto.
-  - eapply H4; eauto. ii. exploit STEP; eauto. i; des; clarify. esplits; eauto. eapply IH; eauto.
+  fix IH 10. i.
+  inv H4; eauto.
+  - eapply H2; eauto. rr in STEP. des; clarify. esplits; eauto. rr. esplits; eauto. eapply IH; eauto.
+  - eapply H3; eauto. ii. exploit STEP; eauto. i; des; clarify. esplits; eauto. eapply IH; eauto.
 Qed.
 
 Lemma of_state_mon: monotone2 _of_state.
@@ -168,9 +145,8 @@ Proof.
   - econs 1; et.
   - econs 2; et.
   - econs 3; et.
-  - econs 4; et.
-  - econs 5; et. rr in STEP. des; clarify. rr. esplits; et.
-  - econs 6; et. ii. exploit STEP; eauto. i; des; clarify.
+  - econs 4; et. rr in STEP. des; clarify. rr. esplits; et.
+  - econs 5; et. ii. exploit STEP; eauto. i; des; clarify.
 Qed.
 
 Hint Constructors _of_state.
@@ -186,84 +162,6 @@ Definition of_program: Tr.t -> Prop := of_state L.(initial_state).
 (**********************************************************)
 (*********************** properties ***********************)
 (**********************************************************)
-
-Lemma prefix_closed_state
-      st0 pre bh
-      (BEH: of_state st0 bh)
-      (PRE: Tr.prefix pre bh)
-  :
-    <<NB: of_state st0 (Tr.app pre Tr.nb)>>
-.
-Proof.
-  revert_until L. pcofix CIH. i. punfold BEH. rr in PRE. des; subst.
-  destruct pre; ss; clarify.
-  { pfold. econs; eauto. }
-
-  remember (Tr.cons e (Tr.app pre tl)) as tmp. revert Heqtmp.
-  induction BEH using of_state_ind; ii; ss; clarify.
-  - pclearbot. pfold. econs; eauto. right. eapply CIH; et. rr; et.
-  - pfold. econs 5; eauto. rr in STEP. des; clarify. rr. esplits; eauto.
-    exploit IH; et. intro A. punfold A.
-  - pfold. econs 6; eauto. ii. exploit STEP; eauto. clear STEP. i; des; clarify. esplits; eauto.
-    exploit IH; et. intro A. punfold A.
-Qed.
-
-Theorem prefix_closed
-      pre bh
-      (BEH: of_program bh)
-      (PRE: Tr.prefix pre bh)
-  :
-    <<NB: of_program (Tr.app pre Tr.nb)>>
-.
-Proof.
-  eapply prefix_closed_state; eauto.
-Qed.
-
-Lemma postfix_closed_state
-      st0 pre
-      (UB: of_state st0 (Tr.app pre Tr.ub))
-  :
-    forall beh, of_state st0 (Tr.app pre beh)
-.
-Proof.
-  revert_until L. pcofix CIH. pfold. i. punfold UB.
-  remember (Tr.app pre Tr.ub) as tmp. revert Heqtmp.
-  induction UB using of_state_ind; ii; ss; clarify; try (by destruct pre; ss).
-  - destruct pre; ss. clarify. econs 4; eauto. pclearbot. right. eauto.
-  - rr in STEP. des. clarify. econs; eauto. rr. esplits; eauto.
-  - econs 6; eauto. ii. exploit STEP; eauto. i; des; clarify. esplits; eauto.
-Qed.
-
-Theorem postfix_closed
-      pre
-      (BEH: of_program (Tr.app pre Tr.ub))
-  :
-    <<UB: forall bh, of_program (Tr.app pre bh)>>
-.
-Proof.
-  ii. eapply postfix_closed_state; eauto.
-Qed.
-
-Lemma nb_bottom
-      st0
-  :
-    <<NB: of_state st0 Tr.nb>>
-.
-Proof. pfold. econs; et. Qed.
-
-Lemma ub_top
-      st0
-      (UB: of_state st0 Tr.ub)
-  :
-    forall beh, of_state st0 beh
-.
-Proof.
-  revert_until L. pfold. i. punfold UB.
-  remember Tr.ub as tmp. revert Heqtmp.
-  induction UB using of_state_ind; ii; ss; clarify.
-  - rr in STEP. des. clarify. econs; eauto. rr. esplits; eauto.
-  - econs 6; eauto. ii. exploit STEP; eauto. i; des; clarify. esplits; eauto.
-Qed.
 
 Lemma _beh_astep
       r tr st0 ev st1
@@ -310,7 +208,7 @@ Lemma _beh_dstep
 .
 Proof.
   exploit wf_demonic; et. i; clarify.
-  pfold. econs 5; et. rr. esplits; et. punfold BEH.
+  pfold. econs 4; et. rr. esplits; et. punfold BEH.
 Qed.
 
 Lemma beh_dstep
@@ -342,7 +240,7 @@ Lemma dstep_clo_spec: dstep_clo <3= gupaco2 (_of_state) (cpn2 _of_state).
 Proof.
   intros. eapply prespect2_uclo; eauto with paco. econs.
   { eapply dstep_clo_mon. }
-  i. inv PR0. pfold. econs 5; et.
+  i. inv PR0. pfold. econs 4; et.
   exploit wf_demonic; et. i; clarify.
   red. esplits; et. eapply of_state_mon; et.
 Qed.
@@ -363,7 +261,7 @@ Lemma astep_clo_spec: astep_clo <3= gupaco2 (_of_state) (cpn2 _of_state).
 Proof.
   intros. eapply prespect2_uclo; eauto with paco. econs.
   { eapply astep_clo_mon. }
-  i. inv PR0. pfold. econs 6; et. ii.
+  i. inv PR0. pfold. econs 5; et. ii.
   exploit wf_angelic; et. i; clarify.
   red. esplits; et. eapply of_state_mon; et.
 Qed.

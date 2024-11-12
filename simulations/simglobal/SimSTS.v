@@ -12,7 +12,6 @@ Section BEHAVES.
     forall (P: _ -> _ -> Prop),
       (forall st0 retv, state_sort L st0 = final retv -> P st0 (Tr.done retv)) ->
       (forall st0, Beh.state_spin L st0 -> P st0 Tr.spin) ->
-      (forall st0, P st0 Tr.nb) ->
 
       (forall st0 st1 ev evs
               (SRT: state_sort L st0 = vis)
@@ -33,15 +32,15 @@ Section BEHAVES.
       forall s t, Beh.of_state L s t -> P s t.
   Proof.
     i. eapply Beh.of_state_ind; eauto.
-    { i. eapply H3; eauto.
+    { i. eapply H2; eauto.
       unfold Beh.union in *. des. esplits; eauto.
       pfold. eapply Beh.of_state_mon; eauto.
     }
-    { i. eapply H4; eauto. ii. exploit STEP; eauto.
+    { i. eapply H3; eauto. ii. exploit STEP; eauto.
       i. des. esplits; eauto.
       pfold. eapply Beh.of_state_mon; eauto.
     }
-    { punfold H5. eapply Beh.of_state_mon; eauto.
+    { punfold H4. eapply Beh.of_state_mon; eauto.
       i. pclearbot. auto.
     }
   Qed.
@@ -57,10 +56,6 @@ Section BEHAVES.
         (SPIN: Beh.state_spin L st0)
       :
       of_state_indC of_state st0 (Tr.spin)
-    | of_state_indC_nb
-        st0
-      :
-      of_state_indC of_state st0 (Tr.nb)
     | of_state_indC_vis
         st0 st1 ev evs
         (SRT: L.(state_sort) st0 = vis)
@@ -91,9 +86,8 @@ Section BEHAVES.
     - econs 1; eauto.
     - econs 2; eauto.
     - econs 3; eauto.
-    - econs 4; eauto.
-    - econs 5; eauto. unfold Beh.union in *. des. esplits; eauto.
-    - econs 6; eauto. ii. exploit STEP; eauto. i. des. splits; auto.
+    - econs 4; eauto. unfold Beh.union in *. des. esplits; eauto.
+    - econs 5; eauto. ii. exploit STEP; eauto. i. des. splits; auto.
   Qed.
   Hint Resolve of_state_indC_mon: paco.
 
@@ -105,12 +99,11 @@ Section BEHAVES.
     ii. inv PR.
     { econs 1; eauto. }
     { econs 2; eauto. }
-    { econs 3; eauto. }
-    { econs 4; eauto. eapply rclo2_base. auto. }
-    { econs 5; eauto. unfold Beh.union in *. des. esplits; eauto.
+    { econs 3; eauto. eapply rclo2_base. auto. }
+    { econs 4; eauto. unfold Beh.union in *. des. esplits; eauto.
       eapply Beh.of_state_mon; eauto. i. eapply rclo2_base. auto.
     }
-    { econs 6; eauto. ii. exploit STEP; eauto. i. des. splits; auto.
+    { econs 5; eauto. ii. exploit STEP; eauto. i. des. splits; auto.
       eapply Beh.of_state_mon; eauto. i. eapply rclo2_base. auto.
     }
   Qed.
@@ -417,9 +410,9 @@ Section SIM.
       + rewrite SRT in *. clarify.
       + rewrite SRT0 in *. clarify.
       + des. exploit SIM0; eauto. i; des; ss.
-        guclo of_state_indC_spec. econs 5; eauto. red. esplits; eauto.
+        guclo of_state_indC_spec. econs 4; eauto. red. esplits; eauto.
       + rewrite SRT in *. clarify.
-      + guclo of_state_indC_spec. econs 6; eauto. ii.
+      + guclo of_state_indC_spec. econs 5; eauto. ii.
         exploit wf_angelic; et. i; clarify.
         exploit SIM0; eauto. i. des. splits; auto.
       + rewrite SRT in *. clarify.
@@ -430,29 +423,27 @@ Section SIM.
         pattern ps1, pt1, x2, x3.
         eapply sim_ind, SIM. i. inv PR; try rewrite SRT in *; clarify.
         * gstep. econs; eauto.
-        * des. guclo of_state_indC_spec. econs 5; eauto.
+        * des. guclo of_state_indC_spec. econs 4; eauto.
           red. esplits; eauto.
-        * guclo of_state_indC_spec. econs 6; eauto. ii.
+        * guclo of_state_indC_spec. econs 5; eauto. ii.
           exploit wf_angelic; et. i; clarify.
           exploit SIM0; eauto. i. des. esplits; eauto.
     - (** spin **)
       exploit adequacy_spin; eauto. i.
       gstep. econs. et.
-    - (** nb **)
-      gstep. econs; eauto.
     - (** cons **)
       move SIM before CIH. revert_until SIM.
       punfold SIM. pattern ps0, pt0, st_src0, st_tgt0.
       eapply sim_ind, SIM. i. inv PR; i; try rewrite SRT in *; clarify.
       + (** vv **)
         specialize (SIM0 ev st1). apply SIM0 in STEP; clear SIM; des.
-        gstep. econs 4; eauto. pc SIM. gbase. eapply CIH; eauto.
+        gstep. econs 3; eauto. pc SIM. gbase. eapply CIH; eauto.
       + (** vis stuck **)
         apply STUCK in STEP. clarify.
       + (** d_ **)
-        des. guclo of_state_indC_spec. econs 5; eauto. red. esplits; eauto.
+        des. guclo of_state_indC_spec. econs 4; eauto. red. esplits; eauto.
       + (** a_ **)
-        guclo of_state_indC_spec. econs 6; eauto. ii.
+        guclo of_state_indC_spec. econs 5; eauto. ii.
         exploit wf_angelic; et. i; clarify.
         exploit SIM0; eauto. i. des. esplits; eauto.
       + (** progress **)
@@ -463,11 +454,11 @@ Section SIM.
         pattern ps1, pt1, x2, x3. eapply sim_ind, SIM. i.
         inv PR; try rewrite SRT in *; clarify.
         * exploit SIM0; eauto. i. des. pclearbot.
-          gstep. econs 4; eauto. gbase. eauto.
+          gstep. econs 3; eauto. gbase. eauto.
         * exfalso. eapply STUCK; eauto.
         * des. exploit SIM0; eauto. i.
-          guclo of_state_indC_spec. econs 5; eauto. red. esplits; eauto.
-        * guclo of_state_indC_spec. econs 6; eauto. ii.
+          guclo of_state_indC_spec. econs 4; eauto. red. esplits; eauto.
+        * guclo of_state_indC_spec. econs 5; eauto. ii.
           exploit wf_angelic; et. i; clarify.
           exploit SIM0; eauto. i. des. esplits; eauto.
     - (** demonic **)
@@ -475,9 +466,9 @@ Section SIM.
       move SIM before CIH. revert_until SIM.
       pattern ps0, pt0, st_src0, st_tgt0.
       eapply sim_ind, SIM. i. inv PR; try rewrite SRT in *; clarify.
-      + des. guclo of_state_indC_spec. econs 5; eauto. red. esplits; eauto.
+      + des. guclo of_state_indC_spec. econs 4; eauto. red. esplits; eauto.
       + hexploit SIM0; eauto. i. des. eapply IH; eauto.
-      + guclo of_state_indC_spec. econs 6; eauto. ii.
+      + guclo of_state_indC_spec. econs 5; eauto. ii.
         exploit wf_angelic; et. i; clarify.
         exploit SIM0; eauto. i. des. esplits; eauto.
       + clear SIM. rename SIM0 into SIM.
@@ -487,9 +478,9 @@ Section SIM.
         pclearbot. punfold SIM. pattern ps1, pt1, x2, x3.
         eapply sim_ind, SIM. i. inv PR; try rewrite SRT in *; clarify.
         * des. exploit SIM0; eauto. i.
-          guclo of_state_indC_spec. econs 5; eauto. red. esplits; eauto.
+          guclo of_state_indC_spec. econs 4; eauto. red. esplits; eauto.
         * exploit SIM0; eauto. i. des. eapply IH; eauto.
-        * guclo of_state_indC_spec. econs 6; eauto. ii.
+        * guclo of_state_indC_spec. econs 5; eauto. ii.
           exploit wf_angelic; et. i; clarify.
           exploit SIM0; eauto. i. des. esplits; eauto.
     - (** angelic **)
@@ -497,8 +488,8 @@ Section SIM.
       move SIM before CIH. revert_until SIM.
       punfold SIM. pattern ps0, pt0, st_src0, st_tgt0.
       eapply sim_ind, SIM. i. inv PR; try rewrite SRT in *; clarify.
-      + des. guclo of_state_indC_spec. econs 5; eauto. red. esplits; eauto.
-      + guclo of_state_indC_spec. econs 6; eauto. ii.
+      + des. guclo of_state_indC_spec. econs 4; eauto. red. esplits; eauto.
+      + guclo of_state_indC_spec. econs 5; eauto. ii.
         exploit wf_angelic; et. i; clarify.
         exploit SIM0; eauto. i. des. esplits; eauto.
       + des. exploit STEP; eauto. i. des. esplits; eauto.
@@ -508,8 +499,8 @@ Section SIM.
         clear FLAGSRC. revert FLAGTGT SRT STEP.
         pclearbot. punfold SIM. pattern ps1, pt1, x2, x3.
         eapply sim_ind, SIM. i. inv PR; try rewrite SRT in *; clarify.
-        * des. guclo of_state_indC_spec. econs 5; eauto. red. esplits; eauto.
-        * guclo of_state_indC_spec. econs 6; eauto. ii.
+        * des. guclo of_state_indC_spec. econs 4; eauto. red. esplits; eauto.
+        * guclo of_state_indC_spec. econs 5; eauto. ii.
           exploit wf_angelic; try apply SRT0; et. i; clarify.
           exploit SIM0; eauto. i. des. esplits; eauto.
         * des. exploit STEP; eauto. i. des. esplits; eauto.
