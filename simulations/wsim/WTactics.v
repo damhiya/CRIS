@@ -52,7 +52,7 @@ Ltac apc_r :=
   st_r; unfold HoareAPC; st_r; rewrite unfold_APC; st_r;
   match goal with [b: bool|-_] => destruct b end;
   [|unfold guarantee, triggerNB; st_r;
-    match goal with [v: void|-_] => destruct v end].
+    match goal with [v: False|-_] => destruct v end].
 
 Ltac hss :=
   ss;

@@ -41,8 +41,8 @@ Section WRAP.
   Definition assume {E} `{coreE -< E} (P: Prop): itree E unit := trigger (Take P) ;;; Ret tt.
   Definition guarantee {E} `{coreE -< E} (P: Prop): itree E unit := trigger (Choose P) ;;; Ret tt.
 
-  Definition triggerUB {E A} `{coreE -< E}: itree E A := v <- trigger (Take void);; match v: void with end.
-  Definition triggerNB {E A} `{coreE -< E}: itree E A := v <- trigger (Choose void);; match v: void with end.
+  Definition triggerUB {E A} `{coreE -< E}: itree E A := v <- trigger (Take False);; match v: False with end.
+  Definition triggerNB {E A} `{coreE -< E}: itree E A := v <- trigger (Choose False);; match v: False with end.
 
   Definition unwrapU {E X} `{coreE -< E} (x: option X): itree E X :=
     match x with

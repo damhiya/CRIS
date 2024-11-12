@@ -272,46 +272,46 @@ Ltac unwrapS :=
 Ltac _unwrapP itr :=
   match itr with
   | Ret _ =>
-      rewrite PModRed.transl_ret
+      rewrite PModRed.interp_ret
   | tau;; _ =>
-      rewrite PModRed.transl_tau
+      rewrite PModRed.interp_tau
   | trigger (Choose _) => 
-      rewrite PModRed.transl_core
+      rewrite PModRed.interp_choose
   | trigger (Take _) => 
-      rewrite PModRed.transl_core
+      rewrite PModRed.interp_take
   | trigger (IO _ _) => 
-      rewrite PModRed.transl_core  
+      rewrite PModRed.interp_io
   | trigger (Call _ _) =>
-      rewrite PModRed.transl_call
+      rewrite PModRed.interp_call
   | trigger (Spawn _ _) =>
-      rewrite PModRed.transl_sch
+      rewrite PModRed.interp_sch
   | trigger (Yield _) =>
-      rewrite PModRed.transl_sch
+      rewrite PModRed.interp_sch
   | trigger Tid =>
-      rewrite PModRed.transl_sch
+      rewrite PModRed.interp_sch
   | trigger (SPut _ _) =>
-      rewrite PModRed.transl_pg
+      rewrite PModRed.interp_pg
   | trigger (SGet _) =>
-      rewrite PModRed.transl_pg
+      rewrite PModRed.interp_pg
   | unwrapU _ =>
-      rewrite PModRed.transl_unwrapU
+      rewrite PModRed.interp_unwrapU
   | unwrapN _ =>
-      rewrite PModRed.transl_unwrapN
+      rewrite PModRed.interp_unwrapN
   | assume _ =>
-      rewrite PModRed.transl_asm
+      rewrite PModRed.interp_asm
   | guarantee _ =>
-      rewrite PModRed.transl_guar
+      rewrite PModRed.interp_guar
   | _ => fail
   end.
 
 Ltac unwrapP :=
   try match goal with
-  | [|-context[PModSem.transl ?itr]] => first [desugar itr|fail 2]
+  | [|-context[PModSem.interp ?itr]] => first [desugar itr|fail 2]
   end;
   match goal with
-  | [|-context[PModSem.transl (?itr >>= _)]] =>
-      rewrite PModRed.transl_bind; unwrapP
-  | [|-context[PModSem.transl ?itr]] => first [_unwrapP itr|fail 2]
+  | [|-context[PModSem.interp (?itr >>= _)]] =>
+      rewrite PModRed.interp_bind; unwrapP
+  | [|-context[PModSem.interp ?itr]] => first [_unwrapP itr|fail 2]
   end.
 
 Ltac unfold_precond_postcond term := let TM := fresh "_term" in
@@ -465,7 +465,7 @@ Ltac prep :=
   try match goal with
   | [|-context[interp_smod _ _ (?f ?arg)]] =>
     match type of arg with Any.t => rewrite/__ {1}/f end
-  | [|-context[PModSem.transl (?f ?arg)]] =>
+  | [|-context[PModSem.interp (?f ?arg)]] =>
     match type of arg with Any.t => rewrite/__ {1}/f end
   end;
   unfold ccallU, ccallN;
@@ -567,7 +567,7 @@ Ltac init_simF :=
   | [|- context[{| fsb_body := cfunU ?x |}]] => rewrite/__ {1}/x
   | [|- context[{| fsb_body := cfunN ?x |}]] => rewrite/__ {1}/x
   | [|- context[{| fsb_body := ?x |}]] => rewrite/__ {1}/x
-  | [|- context[PModSem.transl (?x _)]] => unfold x
+  | [|- context[PModSem.interp (?x _)]] => unfold x
   | [|- context[cfunU ?x]] => rewrite/__ {1}/x
   | [|- context[cfunN ?x]] => rewrite/__ {1}/x
   end;                          
