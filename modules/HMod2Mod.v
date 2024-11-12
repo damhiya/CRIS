@@ -142,13 +142,16 @@ Section MID.
       '(fr', _) <- handle_Guarantee (True%I) fr;;
       x <- trigger e;; Ret (fr', x).
 
+  Definition lift_handler {E} (hdl: E ~> itree modE) : (E ~> stateT Σ (itree modE)) :=
+    (fun T e fr => x <- hdl _ e;; Ret (fr, x)).
+
   Definition interp_hp : itree hmodE ~> stateT Σ (itree modE) :=
       interp_state 
         (case_ (bif:=sum1) handle_agE
         (case_ (bif:=sum1) handle_schE
         (case_ (bif:=sum1) handle_callE
-        (case_ (bif:=sum1) ((fun T e fr => x <- handle_pgE e;; Ret (fr, x)): _ ~> stateT Σ (itree modE)) 
-                           ((fun T e fr => x <- trigger e;; Ret (fr, x)): _ ~> stateT Σ (itree modE)))))).
+        (case_ (bif:=sum1) (lift_handler handle_pgE)
+                           (lift_handler (fun T e => trigger e)))))).
 
   Definition hp_fun_tail := (fun '(fr, x) => handle_Guarantee (True%I) fr ;;; Ret (x: Any.t)).
 
@@ -173,7 +176,7 @@ Section RED.
       =
       st <- interp_hp s fmr;; interp_hp (k st.2) st.1.
   Proof.
-    unfold interp_hp in *. eapply interp_state_bind.
+    unfold interp_hp, lift_handler in *. eapply interp_state_bind.
   Qed.
 
   Lemma interp_hp_body_bind
@@ -196,7 +199,7 @@ Section RED.
       =
       tau;; (interp_hp t fmr).
   Proof.
-    unfold interp_hp in *. eapply interp_state_tau.
+    unfold interp_hp, lift_handler in *. eapply interp_state_tau.
   Qed.
 
   Lemma interp_hp_ret
@@ -208,7 +211,7 @@ Section RED.
       =
       Ret (fmr, t).
   Proof.
-    unfold interp_hp in *. eapply interp_state_ret.
+    unfold interp_hp, lift_handler in *. eapply interp_state_ret.
   Qed.
 
   Lemma interp_hp_call
@@ -220,7 +223,7 @@ Section RED.
       =
       '(fr', _) <- handle_Guarantee (True%I:iProp) fr;; r <- trigger i;; tau;; Ret (fr', r).
   Proof.
-    unfold interp_hp, handle_callE in *. grind.
+    unfold interp_hp, lift_handler, handle_callE in *. grind.
   Qed.
 
   Lemma interp_hp_spawn
@@ -230,7 +233,7 @@ Section RED.
       =
       r <- trigger (Spawn fn arg);; tau;; Ret (fmr, r).
   Proof.
-    unfold interp_hp. rewrite interp_state_trigger. cbn. grind.
+    unfold interp_hp, lift_handler. rewrite interp_state_trigger. cbn. grind.
   Qed.
 
   Lemma interp_hp_yield
@@ -241,7 +244,7 @@ Section RED.
       =
       '(fr', _) <- handle_Guarantee (True%I:iProp) fr;; r <- trigger (Yield tid);; tau;; Ret (fr', r).
   Proof.
-    unfold interp_hp in *. grind.
+    unfold interp_hp, lift_handler in *. grind.
   Qed.
 
   Lemma interp_hp_tid
@@ -251,7 +254,7 @@ Section RED.
       =
       r <- trigger Tid;; tau;; Ret (fmr, r).
   Proof.
-    unfold interp_hp. rewrite interp_state_trigger. cbn. grind.
+    unfold interp_hp, lift_handler. rewrite interp_state_trigger. cbn. grind.
   Qed.
   
   Lemma interp_hp_pg
@@ -263,7 +266,7 @@ Section RED.
       =
       r <- handle_pgE i;; tau;; Ret (fmr, r).
   Proof.
-    unfold interp_hp. rewrite interp_state_trigger. cbn. grind.
+    unfold interp_hp, lift_handler. rewrite interp_state_trigger. cbn. grind.
   Qed.
 
   Lemma interp_hp_core
@@ -275,7 +278,7 @@ Section RED.
       =
       r <- trigger i;; tau;; Ret (fmr, r).
   Proof.
-    unfold interp_hp. rewrite interp_state_trigger. cbn. grind.
+    unfold interp_hp, lift_handler. rewrite interp_state_trigger. cbn. grind.
   Qed.
 
   Lemma interp_hp_triggerUB
@@ -286,7 +289,7 @@ Section RED.
       =
       triggerUB (A:=Σ*R).
   Proof.
-    unfold interp_hp, triggerUB in *.
+    unfold interp_hp, lift_handler, triggerUB in *.
     erewrite (bisimulation_is_eq _ _ (unfold_interp_state _ _ _)).
     cbn. grind.
   Qed.
@@ -299,7 +302,7 @@ Section RED.
       =
       triggerNB (A:=Σ*R).
   Proof.
-    unfold interp_hp, triggerNB in *.
+    unfold interp_hp, lift_handler, triggerNB in *.
     erewrite (bisimulation_is_eq _ _ (unfold_interp_state _ _ _)).
     cbn. grind.
   Qed.
@@ -313,7 +316,7 @@ Section RED.
       =
       r <- (unwrapU i);; Ret (fmr, r).
   Proof.
-    unfold interp_hp, unwrapU in *. des_ifs.
+    unfold interp_hp, lift_handler, unwrapU in *. des_ifs.
     { etrans.
       { eapply interp_hp_ret. }
       { grind. }
@@ -333,7 +336,7 @@ Section RED.
       =
       r <- (unwrapN i);; Ret (fmr, r).
   Proof.
-    unfold interp_hp, unwrapN in *. des_ifs.
+    unfold interp_hp, lift_handler, unwrapN in *. des_ifs.
     { etrans.
       { eapply interp_hp_ret. }
       { grind. }
@@ -352,7 +355,7 @@ Section RED.
       =
       x <- handle_Assume P fmr ;; tau;; Ret x.
   Proof.
-    unfold interp_hp. rewrite interp_state_trigger. cbn. grind.
+    unfold interp_hp, lift_handler. rewrite interp_state_trigger. cbn. grind.
   Qed.
 
   Lemma interp_hp_Guarantee
@@ -363,7 +366,7 @@ Section RED.
       =
       x <- handle_Guarantee P fmr ;; tau;; Ret x.
   Proof.
-    unfold interp_hp. rewrite interp_state_trigger. cbn. grind.
+    unfold interp_hp, lift_handler. rewrite interp_state_trigger. cbn. grind.
   Qed.
 
   Lemma interp_hp_ext
