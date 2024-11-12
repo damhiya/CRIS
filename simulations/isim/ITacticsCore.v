@@ -131,7 +131,7 @@ Ltac hss :=
   repeat (match goal with [G : Any.downcast _ = Some _ |-_] =>
     apply Any.downcast_upcast in G; inv G; ss
    end);
-  repeat (match goal with [G : Any.upcast (_:?T) = Any.upcast (_:?T) |-_] =>
+  repeat (match goal with [G : Any.upcast _ = Any.upcast _ |-_] =>
     apply Any.upcast_inj in G; destruct G as [_ G]; red in G; depdes G; ss
    end);
   repeat (match goal with [G : Some _ = Some _ |- _] =>

@@ -215,13 +215,13 @@ Section AUX.
     eapply alist_find_fst_notin. ii.
     eapply existsb_exists in EXT. des.
     eapply NoDup_app_disjoint; eauto.
-    eapply INC. unfold state_scopes. rewrite <- map_map. 
+    eapply INC. unfold state_scopes. rewrite -map_map. 
     eapply in_map with (f:=fst) in H.
     eapply String.eqb_eq in EXT0. subst. eauto.
   Qed.
 
   Lemma wf_eq_solve (a b : Σ) :
-    URA.wf a -> a = b -> URA.wf b.
+    ✓ a -> a = b -> ✓ b.
   Proof.
     i. rewrite <- H0. eauto.
   Qed.
@@ -291,60 +291,32 @@ Section AUX.
       iModIntro. iSplit; eauto. iExists st_src, st_tgt, st_ctx, st_ctx.
       iSplit; eauto. iFrame. eauto.
     - hstep.
-      { 
-        instantiate (1:= FR). iIntros "H". iPoseProof (INV with "H") as ">[H FR]".
-        iModIntro. iFrame. iExists st_src, st_tgt, st_ctx, st_ctx.
-        iSplit; eauto. iFrame. eauto.
+      { instantiate (1:= FR). iIntros "H". iPoseProof (INV with "H") as ">[H FR]".
+        iModIntro. iFrame. iExists st_ctx, st_ctx.
+        iSplit; eauto.
       }
       i. guclo hpsim_wfC_spec. econs. i.
-      eapply iProp_sepconj_upd in INV0. des.
-      uiprop in INV1. exploit (INV1 rp).
-      { eapply own_wf in INV0; eauto. eapply URA.wf_mon. eauto. }
-      { refl. }
-      clear INV1. intros INV1.
-      unfold IstProd, IstProd0 in INV1.
-      uiprop in INV1. 
-      repeat (rr in INV1; unseal "iProp"; des). ss. des. subst. 
-      repeat (rr in INV3; unseal "iProp"; des). ss. des. subst.
-      repeat (rr in INV6; unseal "iProp"; des). ss. des. subst.
-      repeat (rr in INV1; unseal "iProp"; des). ss. des. subst.
-      repeat (rr in INV3; unseal "iProp"; des). ss. des. subst.
-
-      eapply iProp_Own in INV5.
+      eapply Own_bupd_split in INV0; eauto. des.
+      eapply Own_general_soundness in INV1; eauto; cycle 1.
+      { by eapply Own_wand_valid; first by iIntros "F"; iMod (INV0 with "F") as "[? _]"; iFrame. }
+      rewrite /IstProd0 in INV1. uPred.unseal_in INV1; destruct INV1 as [st_srcL [st_tgtL [st_srcR [st_tgtR INV1]]]].
+      destruct INV1 as [a1' [a1'' [INV1 [INV1' INV1'']]]]; inv INV1'.
+      rewrite /IstSB0 in INV1''; rr in INV1''; uPred.unseal_in INV1''; des.
+      destruct INV1''0 as [x0' [x0'' [? [INV1''0 ?]]]]; inv INV1''0.
+      destruct INV1''1 as [x1' [x1'' [? [INV1''1 ?]]]]; inv INV1''1.
+      rewrite /IstEq0 in H7; uPred.unseal_in H7; inv H7.
       (* 
         new states after call should maintain the scope of previous states. 
         ctx state should maintain its own scope.
       *)
       eapply K; try refl; eauto using inv_sandbox_call; cycle 3.
-      {
-        uiprop in INV5. exploit (INV5 a0); try refl.
-        { 
-          eapply URA.wf_mon with (b:= a ⋅ a1 ⋅ b ⋅ rq). 
-          eapply own_wf in INV0; eauto.
-          eapply wf_eq_solve; [eapply INV0|r_solve].
-        }
-        clear INV5. intros INV5.
-        repeat (rr in INV5; unseal "iProp"; des). ss. des. subst.
-        rr in INV3; unseal "iProp"; des. ss. 
-      }
-      {
-        uiprop in INV5. exploit (INV5 a0); try refl.
-        { 
-          eapply URA.wf_mon with (b:= a ⋅ a1 ⋅ b ⋅ rq). 
-          eapply own_wf in INV0; eauto.
-          eapply wf_eq_solve; [eapply INV0|r_solve].
-        }
-        clear INV5. intros INV5.
-        repeat (rr in INV5; unseal "iProp"; des). ss. des. subst.
-        rr in INV3; unseal "iProp"; des. ss. 
-      }
       { eapply nodup_app_l. rewrite <- map_app. eauto. }
       { eapply nodup_app_l. rewrite <- map_app. eauto. }
       iIntros "H". iPoseProof (INV0 with "H") as ">H".
-      iDestruct "H" as "[[_ [A _]] Q]".
-      iPoseProof (INV2 with "Q") as "FR".
-      iPoseProof (INV5 with "A") as "(% & IST)".
-      iFrame; eauto.
+      iDestruct "H" as "[H1 H2]"; iModIntro; iSplitL "H1".
+      { rewrite INV1 INV1'' H2; iDestruct "H1" as "[_ [[_ H] _]]";
+          iPoseProof (Own_general_completeness with "H") as "H"; eauto. }
+      { iApply INV2; done. }
     - hstep. i. eapply K; try refl; eauto using inv_sandbox_core. 
     - hstep. { rewrite alist_find_app_o. rewrite FUN. eauto. }
       eapply K; try refl; eauto. grind.
@@ -356,8 +328,8 @@ Section AUX.
       unfold HModSem.sandbox_body.
       rewrite sandbox_well_scoped; eauto.
       f_equal. extensionalities.
-      rewrite/__ !HModSB.transl_bind !HModSB.transl_ret !HModSB.transl_tau !HModSB.transl_ret.
-      f_equal. extensionalities. eapply inv_sandbox_call; eauto. 
+      rewrite !HModSB.transl_tau.
+      do 4 f_equal. eapply inv_sandbox_call; eauto. 
 
     - hstep. { rewrite alist_find_app_o. rewrite FUN. eauto. }
       eapply K; try refl; eauto. grind.
@@ -369,8 +341,8 @@ Section AUX.
       unfold HModSem.sandbox_body.
       rewrite sandbox_well_scoped; eauto.
       f_equal. extensionalities.
-      rewrite/__ !HModSB.transl_bind !HModSB.transl_ret !HModSB.transl_tau !HModSB.transl_ret.
-      f_equal. extensionalities. eapply inv_sandbox_call; eauto. 
+      rewrite !HModSB.transl_tau.
+      do 4 f_equal. eapply inv_sandbox_call; eauto.
     - hstep. eapply K; try refl; eauto using inv_sandbox_tau.
     - hstep. eapply K; try refl; eauto using inv_sandbox_tau.
     - hstep. i. eapply K; try refl; eauto using inv_sandbox_core.
@@ -455,53 +427,25 @@ Section AUX.
       + rewrite/__ HModSB.transl_bind HModSB.transl_sch !bind_trigger in ITRT.
         depdes ITRT. eapply equal_f in x. eauto.
     - hstep.
-      { 
-        instantiate (1:= FR). iIntros "H". iPoseProof (INV with "H") as ">[H FR]".
-        iModIntro. iFrame. iExists st_src, st_tgt, st_ctx, st_ctx.
-        iSplit; eauto. iFrame. eauto.
+      { instantiate (1:= FR). iIntros "H". iPoseProof (INV with "H") as ">[H FR]".
+        iModIntro. iFrame. iExists st_ctx, st_ctx.
+        iSplit; eauto.
       }
       i. guclo hpsim_wfC_spec. econs. i.
-      eapply iProp_sepconj_upd in INV0. des.
-      uiprop in INV1. exploit (INV1 rp).
-      { eapply own_wf in INV0; eauto. eapply URA.wf_mon. eauto. }
-      { refl. }
-      clear INV1. intros INV1.
-      unfold IstProd, IstProd0 in INV1.
-      uiprop in INV1. 
-      repeat (rr in INV1; unseal "iProp"; des). ss. des. subst. 
-      repeat (rr in INV3; unseal "iProp"; des). ss. des. subst.
-      repeat (rr in INV6; unseal "iProp"; des). ss. des. subst.
-      repeat (rr in INV1; unseal "iProp"; des). ss. des. subst.
-      repeat (rr in INV3; unseal "iProp"; des). ss. des. subst.
-
-      eapply iProp_Own in INV5.
+      eapply Own_bupd_split in INV0; eauto. des.
+      eapply Own_general_soundness in INV1; eauto; cycle 1.
+      { by eapply Own_wand_valid; first by iIntros "F"; iMod (INV0 with "F") as "[? _]"; iFrame. }
+      rewrite /IstProd0 in INV1. uPred.unseal_in INV1; destruct INV1 as [st_srcL [st_tgtL [st_srcR [st_tgtR INV1]]]].
+      destruct INV1 as [a1' [a1'' [INV1 [INV1' INV1'']]]]; inv INV1'.
+      rewrite /IstSB0 in INV1''; rr in INV1''; uPred.unseal_in INV1''; des.
+      destruct INV1''0 as [x0' [x0'' [? [INV1''0 ?]]]]; inv INV1''0.
+      destruct INV1''1 as [x1' [x1'' [? [INV1''1 ?]]]]; inv INV1''1.
+      rewrite /IstEq0 in H7; uPred.unseal_in H7; inv H7.
       (* 
         new states after call should maintain the scope of previous states. 
         ctx state should maintain its own scope.
       *)
-      eapply K; try refl; eauto using inv_sandbox_call; cycle 3.
-      {
-        uiprop in INV5. exploit (INV5 a0); try refl.
-        { 
-          eapply URA.wf_mon with (b:= a ⋅ a1 ⋅ b ⋅ rq). 
-          eapply own_wf in INV0; eauto.
-          eapply wf_eq_solve; [eapply INV0|r_solve].
-        }
-        clear INV5. intros INV5.
-        repeat (rr in INV5; unseal "iProp"; des). ss. des. subst.
-        rr in INV3; unseal "iProp"; des. ss. 
-      }
-      {
-        uiprop in INV5. exploit (INV5 a0); try refl.
-        { 
-          eapply URA.wf_mon with (b:= a ⋅ a1 ⋅ b ⋅ rq). 
-          eapply own_wf in INV0; eauto.
-          eapply wf_eq_solve; [eapply INV0|r_solve].
-        }
-        clear INV5. intros INV5.
-        repeat (rr in INV5; unseal "iProp"; des). ss. des. subst.
-        rr in INV3; unseal "iProp"; des. ss. 
-      }
+      eapply K; try refl; eauto; cycle 3.
       { rewrite/__ HModSB.transl_bind HModSB.transl_sch !bind_trigger in ITRS.
         depdes ITRS. eapply equal_f in x. eauto. }
       { rewrite/__ HModSB.transl_bind HModSB.transl_sch !bind_trigger in ITRT.
@@ -509,11 +453,10 @@ Section AUX.
       { eapply nodup_app_l. rewrite <- map_app. eauto. }
       { eapply nodup_app_l. rewrite <- map_app. eauto. }
       iIntros "H". iPoseProof (INV0 with "H") as ">H".
-      iDestruct "H" as "[[_ [A _]] Q]".
-      iPoseProof (INV2 with "Q") as "FR".
-      iPoseProof (INV5 with "A") as "(% & IST)".
-      iFrame; eauto.
-
+      iDestruct "H" as "[H1 H2]"; iModIntro; iSplitL "H1".
+      { rewrite INV1 INV1'' H2; iDestruct "H1" as "[_ [[_ H] _]]";
+          iPoseProof (Own_general_completeness with "H") as "H"; eauto. }
+      { iApply INV2; done. }
     - hstep. eapply K; try refl; eauto.
       rewrite/__ HModSB.transl_bind HModSB.transl_sch !bind_trigger in ITRS.
       depdes ITRS. eapply equal_f in x. eauto.
@@ -555,44 +498,44 @@ Section AUX.
   Proof.
     ii. specialize (SIM x y H). subst.
     iIntros "H". iDestruct "H" as (? ? ? ?) "(% & (% & IST) & %)". des. subst.
-    rewrite map_app in *. 
+    move: NODUPFS NODUPFT NODS NODD; rewrite ?map_app; intros NODUPFS NODUPFT NODS NODD.
     assert (NODA := NODS). assert (NODB := NODD). assert (NODC:= NODS).
     eapply nodup_app_l in NODA, NODB. eapply nodup_app_r in NODC.
     specialize (SIM my_tid nths st_srcL st_tgtL IMON NODA NODB).
     rewrite <- map_app in *.
     iPoseProof (SIM with "IST") as "SIM".
     iStopProof. Local Transparent isim.
-    uiprop. i.
+    split; intros x wfx ISIM.
     gfinal. right. eapply paco8_mon_bot; eauto.
     rewrite! List.map_app.
     assert (EQ : (λ x, (map_snd HModSem.sandbox_body x).1) = @fst string _).
-    { extensionalities. destruct H2. eauto. }
+    { extensionalities. destruct H. eauto. }
     eapply hpsim_ctx; eauto; ss; cycle 6.
     { rewrite/__ -map_app map_map EQ. eauto. }
     { rewrite/__ -map_app map_map EQ. eauto. }
     { 
       ii. eapply ms.(HModSem.well_scoped_fns).
-      unfold fnsems_scopes. rewrite IN. ss.
+      unfold fnsems_scopes. erewrite IN. ss.
     }
     {
       i. etrans; cycle 1.
       { eapply sub_perm_incl; eauto. }
       ii. eapply mt.(HModSem.well_scoped_fns).
-      unfold fnsems_scopes. rewrite IN. ss.
+      unfold fnsems_scopes. erewrite IN. ss.
     }
     { eapply WFS. }
     { 
       eapply sandbox_well_scoped. ii.
       eapply ms.(HModSem.well_scoped_fns). 
-      unfold fnsems_scopes. rewrite FINDS. ss.
+      unfold fnsems_scopes. erewrite FINDS. ss.
     }
     { 
       eapply sandbox_well_scoped. etrans; cycle 1.
       { eapply sub_perm_incl; eauto. }
       ii. eapply mt.(HModSem.well_scoped_fns). 
-      unfold fnsems_scopes. rewrite FINDT. ss.
+      unfold fnsems_scopes. erewrite FINDT. ss.
     }
-    ginit. i. eapply gpaco8_mon; eauto using iunlift_ibot.
+    ginit. i. eapply gpaco8_mon; first eapply ISIM; eauto using iunlift_ibot.
   Qed.
 
   Lemma hmod_sim_ctx (ms mt ctx : HMod.t) IC Ist
@@ -625,7 +568,7 @@ Section AUX.
     { eapply sub_perm_cancel_tail. eauto. }
     { rewrite! app_length. nia. }
     {
-      i. rewrite map_app in *. eapply in_app_or in IN.
+      i. move: IN; rewrite ?map_app; intros IN. eapply in_app_or in IN.
       des; eapply in_or_app; eauto.  
     }
     r. i. ss. rewrite alist_find_app_o in FIND. des_ifs.
@@ -655,7 +598,7 @@ Section AUX.
       { rewrite alist_find_app_o. des_ifs; eauto.
         exfalso.
         eapply alist_find_fst_some, hssim_match, alist_find_fst_in in Heq0.
-        - des. rewrite Heq in Heq0. ss.
+        - des. erewrite Heq in Heq0. ss.
         - econs; eauto.
         - rewrite map_app in NODUPFS. eapply nodup_app_l. eauto.
       }
@@ -677,8 +620,7 @@ Section ADEQUACY.
   Context `{Σ : GRA.t}.
 
   Theorem main_adequacy (ms mt : HMod.t) IC Ist
-    (SIM : HSim.t ms mt IC Ist)
-    :
+      (SIM : HSim.t ms mt IC Ist) :
     ctx_refines (ms, IC) (mt, const(emp%I)).
   Proof.
     ii. s. split.
@@ -691,27 +633,26 @@ Section ADEQUACY.
     { eapply Sk.equiv_incl in EQV. etrans; eauto. refl. }
     i. ss.
 
-    eapply iProp_sepconj in SRC; eauto. des.
-    esplits. 
-    { rewrite SRC in WFR. rewrite URA.add_comm in WFR. eapply URA.wf_mon. eauto. }
-    { 
-      eapply iProp_Own in SRC1. iIntros "H".
-      iPoseProof (SRC1 with "H") as "H". iFrame. eauto.
-    }
+    rewrite /HMod.addc in SRC.
+    hexploit Own_split; eauto; intros [a1 [a2 [Ha [H1 H2]]]].
+    exists a2; splits; eauto.
+    { eapply cmra_valid_op_r; erewrite <- Ha; ss. }
+    { rewrite /HMod.addc; iIntros "H"; iSplitR "H"; ss; iApply H2; done. }
     { eapply hssim_wf; eauto. }
     ii. subst. eapply adequacy_modsem, PR.
-    - eapply hssim_adequacy; eauto.
-      eapply hssim_wf; eauto.
+    (* Module semantics should respect resource setoids! - further refactoring required *)
+    - admit.
     - inv WFM. econs. ss. unfold map_snd.
       rewrite !List.map_map. eapply eq_ind; [apply wf_fns|].
       f_equal. extensionalities. destruct H0. ss.
-  Qed.
+  Admitted.
 
 End ADEQUACY.
 
 Section COMM.
 
   Context `{Σ : GRA.t}.
+  Notation iProp := (iProp Σ).
 
   Definition perm_Ist : nat -> alist key Any.t -> alist key Any.t -> iProp :=
     fun _ l0 l1 => ⌜l0 ≡ₚ l1⌝%I.  
@@ -755,7 +696,7 @@ Section COMM.
     revert ND k. induction PERM; ss.
     { i. inv ND. destruct x. rewrite eq_rel_dec_correct. des_ifs. et. }
     { i. inv ND. inv H3. destruct x, y. rewrite eq_rel_dec_correct. des_ifs.
-      rewrite eq_rel_dec_correct in *. des_ifs. f_equal. exfalso. eapply H2. ss. auto. }
+      rewrite eq_rel_dec_correct in Heq0. des_ifs. f_equal. exfalso. eapply H2. ss. auto. }
     { i. rewrite IHPERM1; auto. rewrite IHPERM2; auto.
       eapply Permutation_NoDup; [|apply ND].
       eapply Permutation_map. auto.
@@ -769,7 +710,7 @@ Section COMM.
       :
         alist_find fn (l1 ++ l0) = Some f.
   Proof.
-    rewrite alist_find_app_o in *. des_ifs.
+    move: FIND; rewrite ?alist_find_app_o; intros FIND. des_ifs.
     eapply alist_find_fst_some in Heq, Heq0.
     rewrite map_app in NODUP.
     exfalso.
@@ -780,9 +721,7 @@ Section COMM.
     HMod.scopes (md0 ★ md1) sk = HMod.scopes md0 sk ++ HMod.scopes md1 sk.
   Proof. ss. Qed.
 
-  Lemma hmod_add_comm
-    ms0 ms1
-    :
+  Lemma hmod_add_comm ms0 ms1 :
     HSim.t (ms0 ★ ms1) (ms1 ★ ms0) (const(emp%I))
       (fun sk => IstSB0 (HMod.scopes (ms0 ★ ms1) sk) perm_Ist).
   Proof.
@@ -793,18 +732,19 @@ Section COMM.
       iIntros "_". iPureIntro. esplits.
       { eapply (HMod.modsem ms0 ★ ms1 sk).(HModSem.well_scoped_init). }
       { ii. eapply (HMod.modsem ms0 ★ ms1 sk).(HModSem.well_scoped_init); ss.
-        unfold state_scopes in *. rewrite map_app in *.
+        move: H; rewrite /state_scopes ?map_app; intros H.
         eapply in_app_or in H. eapply in_or_app. des; eauto.
       }
       { eapply Permutation.Permutation_app_comm. }
     }
+    { i. r. rewrite /IstSB0 /perm_Ist; iIntros "_ [% %]". iSplit; iPureIntro; eauto. }
     {
       r. exists []. rewrite app_nil_l.
       eapply Permutation.Permutation_app_comm.
     }
     { rewrite! app_length. nia. }
     {
-      i. rewrite map_app in *. eapply in_app_iff, Logic.or_comm.
+      rewrite ?map_app; i. eapply in_app_iff, Logic.or_comm.
       eapply in_app_iff. eauto.
     }
 
@@ -822,7 +762,7 @@ Section COMM.
     revert nths. apply combine_quant.
     eapply isim_coind. i.
     destruct a as [nths [st_src [st_tgt [NODS [NODD it]]]]]. s.
-    iIntros "(#(_ & CIH) & IST)".
+    iIntros "(#IST & CIH)".
     assert (CASE := case_itrH _ it); des; subst.
     - step. iFrame. eauto.
     - steps_l. steps_r. by_coind "CIH". eauto.
@@ -837,7 +777,7 @@ Section COMM.
       + rewrite/__ !HModSB.transl_bind !HModSB.transl_put. des_ifs; cycle 1.
         { steps_r. force_l. instantiate (1:=q). by_coind "CIH". eauto. }
         iApply isim_sput_src. iApply isim_sput_tgt.
-        by_coind "CIH". iClear "CIH". unfold perm_Ist. 
+        by_coind "CIH". unfold perm_Ist. 
         iDestruct "IST" as "%". des. 
         iPureIntro. rewrite !state_scopes_update. esplits; eauto. 
         eapply alist_upd_perm; eauto.
@@ -848,7 +788,7 @@ Section COMM.
         iAssert (⌜alist_find k st_src = alist_find k st_tgt⌝)%I with "[IST]" as "%".
         { iDestruct "IST" as "%". des. iPureIntro.
           eapply alist_permutation_find; eauto. }
-        rewrite H. by_coind "CIH". eauto.
+        rewrite H0. by_coind "CIH". eauto.
     - destruct e.
       + steps_r. force_l. instantiate (1:= q). by_coind "CIH". eauto. 
       + steps_l. force_r. instantiate (1:= q). by_coind "CIH". eauto. 

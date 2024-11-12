@@ -27,7 +27,7 @@ Module HModSem.
 Section HMODSEM.
   Context `{Σ : GRA.t}.
   (* Notation hmodE := (hmodE (Σ:=Σ)) (only parsing). *)
-
+  
   Set Printing Universes.
 
   Record t : Type := mk {
@@ -128,6 +128,9 @@ Section HMODSEM.
     ModSem.fnsems := List.map (map_snd (interp_hp_fun ∘ sandbox_body)) ms.(fnsems);
     ModSem.initial_st := Any.pair (alist_encode ms.(initial_st)) r↑;
   |}.
+  (* Local Instance: Params to_mod 1 := {}.
+  Global Instance to_mod_proper ms :
+    Proper ((≡) ==> (⊣⊢)) (to_mod ms) := ne_proper _. *)
 
 End HMODSEM.
 End HModSem.

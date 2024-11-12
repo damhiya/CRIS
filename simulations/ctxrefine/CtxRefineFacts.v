@@ -12,6 +12,7 @@ Section PROPERTIES.
   Next Obligation. ii. eapply H. eapply H0. ss. Qed.
 
   Context `{Σ : GRA.t}.
+  Notation iProp := (iProp Σ).
 
   Global Program Instance refines_PreOrder : PreOrder refines.
   Next Obligation.
@@ -124,7 +125,7 @@ Section PROPERTIES.
     ctx_refines (ms ★ mc, Ps) (mt ★ mc, Pt).
   Proof.
     ii. specialize (REFA (HMod.add mc ctx.1, ctx.2)). ss.
-    rewrite !hmod_add_assoc in *. eauto.
+    move: REFA; rewrite !hmod_add_assoc; eauto.
   Qed.
 
   Lemma ctxr_frameL ms Ps mt Pt mc

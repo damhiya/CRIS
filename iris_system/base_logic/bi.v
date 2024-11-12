@@ -310,4 +310,7 @@ End restate.
 (** A tactic for rewriting with the above lemmas. Unfolds [uPred] goals that use
 the BI layer. This is used by [base_logic.algebra] and [base_logic.bupd_alt]. *)
 Ltac unseal := rewrite !uPred_unseal /=.
+Ltac unseal_in H := rewrite !uPred_unseal /= in H.
+Ltac unseal_once := rewrite uPred_unseal /=.
+Ltac unseal_once_in H := rewrite uPred_unseal /= in H.
 End uPred.

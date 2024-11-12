@@ -9,8 +9,7 @@ Section REFINE.
 
   Definition refines_modsem (ms_src ms_tgt : ModSem.t) : Prop :=
     Beh.of_program (ModSem.compile ms_tgt) <1=
-    Beh.of_program (ModSem.compile ms_src)
-  .
+    Beh.of_program (ModSem.compile ms_src).
 
 End REFINE.
 
@@ -26,10 +25,10 @@ Section CTX_REFINE.
     <<REF:
       forall sk (EQV : Sk.equiv mt.(HMod.sk) sk) (SKWF : Sk.wf sk)
         rs
-        (WFR : URA.wf rs) (SRC : Own rs ⊢ Ps sk) 
+        (WFR : ✓ rs) (SRC : Own rs ⊢ Ps sk) 
         (WFM : HModSem.wf (ms.(HMod.modsem) sk)),
       exists rt,
-        URA.wf rt /\ (Own rt ⊢ Pt sk)%I /\
+        ✓ rt /\ (Own rt ⊢ Pt sk)%I /\
         HModSem.wf (mt.(HMod.modsem) sk) /\
         refines_modsem
           (HModSem.to_mod (ms.(HMod.modsem) sk) rs)

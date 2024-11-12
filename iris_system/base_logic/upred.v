@@ -10,102 +10,6 @@ Local Hint Extern 1 (_ ≼ _) => etrans; [eassumption|] : core.
 Local Hint Extern 1 (_ ≼ _) => etrans; [|eassumption] : core.
 Local Hint Extern 10 (_ ≤ _) => lia : core.
 
-(** The basic definition of the uPred type, its metric and functor laws.
-    You probably do not want to import this file. Instead, import
-    base_logic.base_logic; that will also give you all the primitive
-    and many derived laws for the logic. *)
-
-(** A good way of understanding this definition of the uPred OFE is to
-   consider the OFE uPred0 of monotonous SProp predicates. That is,
-   uPred0 is the OFE of non-expansive functions from M to SProp that
-   are monotonous with respect to CMRA inclusion. This notion of
-   monotonicity has to be stated in the SProp logic. Together with the
-   usual closedness property of SProp, this gives exactly uPred_mono.
-
-   Then, we quotient uPred0 *in the siProp logic* with respect to
-   equivalence on valid elements of M. That is, we quotient with
-   respect to the following *siProp* equivalence relation:
-     P1 ≡ P2 := ∀ x, ✓ x → (P1(x) ↔ P2(x))       (1)
-   When seen from the ambiant logic, obtaining this quotient requires
-   definig both a custom Equiv and Dist.
-
-
-   It is worth noting that this equivalence relation admits canonical
-   representatives. More precisely, one can show that every
-   equivalence class contains exactly one element P0 such that:
-     ∀ x, (✓ x → P0(x)) → P0(x)                 (2)
-   (Again, this assertion has to be understood in siProp). Intuitively,
-   this says that P0 trivially holds whenever the resource is invalid.
-   Starting from any element P, one can find this canonical
-   representative by choosing:
-     P0(x) := ✓ x → P(x)                        (3)
-
-   Hence, as an alternative definition of uPred, we could use the set
-   of canonical representatives (i.e., the subtype of monotonous
-   siProp predicates that verify (2)). This alternative definition would
-   save us from using a quotient. However, the definitions of the various
-   connectives would get more complicated, because we have to make sure
-   they all verify (2), which sometimes requires some adjustments. We
-   would moreover need to prove one more property for every logical
-   connective.
- *)
-
-(** Note that, somewhat curiously, [uPred M] is *not* in general a Camera,
-   at least not if all propositions are considered "valid" Camera elements.
-   It fails to satisfy the extension axiom. Here is the counterexample:
-
-We use [M := (option Ex {A,B})^2] -- so we have pairs
-whose components are ε, A or B.
-
-Let
-[[
-  P r n := (ownM (A,A) ∧ ▷ False) ∨ ownM (A,B) ∨ ownM (B,A) ∨ ownM (B,B)
-         ↔ r = (A,A) ∧ n = 0 ∨
-           r = (A,B) ∨
-           r = (B,A) ∨
-           r = (B,B)
- Q1 r n := ownM (A, ε) ∨ ownM (B, ε)
-         ↔ (A, ε) ≼ r ∨ (B, ε) ≼ r
-           ("Left component is not ε")
- Q2 r n := ownM (ε, A) ∨ ownM (ε, B)
-         ↔ (ε, A) ≼ r ∨ (ε, B) ≼ r
-           ("Right component is not ε")
-]]
-These are all sufficiently closed and non-expansive and whatnot.
-We have [P ≡{0}≡ Q1 * Q2]. So assume extension holds, then we get Q1', Q2'
-such that
-[[
-  P ≡ Q1' ∗ Q2'
- Q1 ≡{0}≡ Q1'
- Q2 ≡{0}≡ Q2'
-]]
-Now comes the contradiction:
-We know that [P (A,A) 1] does *not* hold, but I am going to show that
-[(Q1' ∗ Q2') (A,A) 1] holds, which would be a contraction.
-To this end, I will show (a) [Q1' (A,ε) 1] and (b) [Q2' (ε,A) 1].
-The result [(Q1' ∗ Q2') (A,A)] follows from [(A,ε) ⋅ (ε,A) = (A,A)].
-
-(a) Proof of [Q1' (A,ε) 1].
-    We have [P (A,B) 1], and thus [Q1' r1 1] and [Q2' r2 1] for some
-    [r1 ⋅ r2 = (A,B)]. There are four possible decompositions [r1 ⋅ r2]:
-    - [(ε,ε) ⋅ (A,B)] : This would give us [Q1' (ε,ε) 1], from which we
-      obtain (through down-closure and the equality [Q1 ≡{0}≡ Q1'] above) that
-      [Q1 (ε,ε) 0]. However, we know that's false.
-    - [(A,B) ⋅ (ε,ε)] : Can be excluded for similar reasons
-      (the second resource must not be ε in the 2nd component).
-    - [(ε,B) ⋅ (A,ε)] : Can be excluded for similar reasons
-      (the first resource must not be ε in the 1st component).
-    - [(A,ε) ⋅ (ε,B)] : This gives us the desired [Q1' (A,ε) 1].
-
-(b) Proof of [Q2' (ε,A) 1].
-    We have [P (B,A) 1], and thus [Q1' r1 1] and [Q2' r2 1] for some
-    [r1 ⋅ r2 = (B,A)]. There are again four possible decompositions,
-    and like above we can exclude three of them. This leaves us with
-    [(B,ε) ⋅ (ε,A)] and thus [Q2' (ε,A) 1].
-
-This completes the proof.
-
-*)
 
 Record uPred (M : ucmra) : Type := UPred {
   uPred_holds : M → Prop;
@@ -885,9 +789,8 @@ Module uPred_primitive.
       rewrite cmra_valid_validN in H; simpl in Hup.
       specialize (H n); rewrite -assoc in H; eapply Hup in H; rewrite -assoc; eauto.
     Qed.
-    (* Note : delete this lemma after updating own and GRAs
-       Explanation : deriving cmra-level facts from logic inferences would only use pure_soundness,
-       but this is impossible for now due to ownM restrictions *)
+    (* Note : there are few lemmas newly created in CRIS that breaks the abstraction of logic,
+      and this seems inevitable unless the simulation relation itself is defined inside the logic. *)
     Lemma bupd_ownM_update_2 x y (UPD : uPred_ownM x ⊢ |==> uPred_ownM y) (VAL : ✓ x) :
       ✓ y.
     Proof.

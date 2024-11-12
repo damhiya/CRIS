@@ -1,4 +1,4 @@
-Require Import sflib.
+Require Import Coqlib.
 From iris.algebra Require Import proofmode_classes.
 From iris.proofmode Require Export proofmode.
 From CCR.base_logic Require Export base_logic.
@@ -39,14 +39,13 @@ Section iProp.
 
   Definition OwnM {M : ucmra} `{!GRA.inG M Σ} (a : M) : iProp := Own (GRA.embed a).
 
-  Global Instance iProp_bi_bupd : BiBUpd iProp := uPred_bi_bupd Σ.
+  (* Global Instance iProp_bi_bupd : BiBUpd iProp := uPred_bi_bupd Σ. *)
 
   Definition from_upred (P : uPred Σ) : iProp := P.
   Definition to_upred (P : iProp) : uPred Σ := P.
 
 End iProp.
 Global Arguments iProp : clear implicits.
-
 Arguments OwnM : simpl never.
 
 Local Ltac unseal := rewrite ?Own_eq /Own_def.
@@ -67,10 +66,6 @@ Section TEST.
     iIntros "[Hxs Hys]". iMod "Hxs". iApply "Hys".
   Qed.
 End TEST.
-
-(* Notation "#=> P" := (|==> P)%I (at level 99). *)
-
-#[export] Hint Unfold bi_entails bi_sep bi_and bi_or bi_wand bupd bi_bupd_bupd : iprop.
 
 Section class_instances.
   Context `{Σ : GRA.t}.
@@ -108,12 +103,21 @@ Section class_instances.
     move: WAND; unseal; eauto.
   Qed.
 
-  Lemma Own_bupd_split a P Q (IMPL : Own a ⊢ |==> P ∗ Q) (VALID : ✓ a):
+  Lemma Own_bupd_split a P Q (IMPL : Own a ⊢ |==> P ∗ Q) (VALID : ✓ a) :
     ∃ a1 a2, (Own a ⊢ |==> Own a1 ∗ Own a2) ∧ (Own a1 ⊢ P) ∧ (Own a2 ⊢ Q).
   Proof.
     hexploit (@uPred.bupd_ownM_update_3 Σ); eauto.
     { move: IMPL; unseal; done. }
     intros [y [z [UPD [HP HQ]]]]; exists y, z; split; unseal; [done|split; done].
+  Qed.
+
+  Lemma Own_split a P Q (IMPL : Own a ⊢ P ∗ Q) (VALID : ✓ a) :
+    ∃ a1 a2, a ≡ a1 ⋅ a2 ∧ (Own a1 ⊢ P) ∧ (Own a2 ⊢ Q).
+  Proof.
+    uPred.unseal_in IMPL; apply IMPL in VALID;
+      last (rewrite IPM.Own_eq /IPM.Own_def; uPred.unseal; exists ε; eauto; rewrite right_id //=).
+    destruct VALID as [a1 [a2 [Ha VALID]]]; des; exists a1, a2; split; eauto; split; econs; intros x wfx Own;
+      rewrite IPM.Own_eq /IPM.Own_def in Own; uPred.unseal_in Own; destruct Own as [? ->]; eauto using uPred_mono.
   Qed.
 
   Lemma Own_bupd_update r1 r2 (UPD : Own r1 ⊢ |==> Own r2) :
@@ -135,6 +139,9 @@ Section class_instances.
 
   Lemma Own_general_soundness x P (VALID : ✓ x) (DERIV : Own x ⊢ P) : uPred_holds P x.
   Proof. move: DERIV; unseal=> DERIV; eapply uPred.ownM_general_soundness; eauto. Qed.
+
+  Lemma Own_general_completeness x P (HOLDS : uPred_holds P x) : Own x ⊢ P.
+  Proof. split; unseal; uPred.unseal; i; eapply uPred_mono; eauto. Qed.
 
   Global Instance into_sep_own (a b1 b2 : Σ) :
     IsOp a b1 b2 → IntoSep (Own a) (Own b1) (Own b2).
