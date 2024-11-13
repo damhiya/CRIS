@@ -6,7 +6,7 @@ Require Import Skeleton.
 Require Import Behavior.
 Require Import Any.
 Require Import Program.
-Require Import Mod2STS.
+Require Import Mod2ITree.
 Require Import Events.
 
 Set Implicit Arguments.

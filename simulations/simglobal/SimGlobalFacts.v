@@ -2,7 +2,7 @@ Require Import Coqlib.
 Require Import ITreelib.
 Require Import Any.
 Require Import Behavior.
-Require Import Mod Mod2STS.
+Require Import Mod Mod2ITree.
 Require Import Skeleton.
 Require Import PCM.
 Require Import Coq.Relations.Relation_Definitions.
