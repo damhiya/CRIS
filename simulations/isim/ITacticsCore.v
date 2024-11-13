@@ -539,17 +539,23 @@ Ltac inline_r := let marker := fresh "MARKER" in
   unfold interp_sb_hp, HoareFun; s;
   show_itree marker.
 
+Ltac move_nodup :=
+  repeat match goal with [H: List.NoDup _ |- _ ] => guardH H; move H at top end;
+  unguard.
+
 Ltac call hyps := let marker := fresh "MARKER" in
   hide_itree_r marker; prep; show_itree marker;
   hide_itree_l marker; prep; show_itree marker;
   iApply isim_call;
-  iSplitL hyps; [ |iIntros "% % % % % %"; iIntrosFresh "IST"].
+  iSplitL hyps; [ |iIntros "% % % % % %"; iIntrosFresh "IST"];
+  move_nodup.
 
 Ltac yield hyps := let marker := fresh "MARKER" in
   hide_itree_r marker; prep; show_itree marker;
   hide_itree_l marker; prep; show_itree marker;
   iApply isim_yield;
-  iSplitL hyps; [ |iIntros "% % % % %"; iIntrosFresh "IST"].
+  iSplitL hyps; [ |iIntros "% % % % %"; iIntrosFresh "IST"];
+  move_nodup.
 
 Ltac init_simF :=
   unfold HSim.sim_fun, HSSim.sim_fun; i;
@@ -572,7 +578,8 @@ Ltac init_simF :=
   | [|- context[cfunN ?x]] => rewrite/__ {1}/x
   end;                          
   unfold interp_sb_hp, HoareFun, cfunU, cfunN, HModSem.sandbox_body; s;
-  ii; subst; iIntros "IST".
+  ii; subst; iIntros "IST";
+  move_nodup.
 
 Ltac prove_sub_perm :=
   i; try rewrite /HMod.scopes; s; repeat unfold_hmod; s; Lauto_normalize;
