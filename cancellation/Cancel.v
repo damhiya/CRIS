@@ -211,6 +211,56 @@ End HIRed.
 Section CANCEL.
   Context `{Σ: GRA.t}.
 
+  Lemma wrap_elimI_well_scoped
+      ms fn sb
+      (FIND: alist_find fn ms.(HModSem.fnsems) = Some sb)
+    :
+    HModSem.sandbox_body (wrap_elimI ms sb)
+    = 
+    interp_hpI_fun (prog ms) (HModSem.sandbox_body sb).
+  Proof.
+    extensionality args. 
+    unfold wrap_elimI, interp_hpI_fbody. s.
+    unfold HModSem.sandbox_body, interp_hpI_fun. destruct sb. s.
+    assert(SCP := ms.(HModSem.well_scoped_fns)).
+    specialize (SCP fn). rewrite/fnsems_scopes FIND in SCP.
+    
+    (* remember (HModSem.scopes ms) as scopeS. i. *)
+    rename l into scopeT. 
+    apply bisim_is_eq. move scopeT at bottom.
+    eapply (@gpaco2_init _ _ _ _ (eqitC eq false false)); eauto with paco.
+    generalize (i args) as itr. clear FIND fn i args.
+    revert_until ms. gcofix CIH. i.
+    ides itr.
+    - rewrite/__ !HModSB.transl_ret HIRed.ret HModSB.transl_ret. gstep. econs. refl.
+    - rewrite/__ !HModSB.transl_tau HIRed.tau !HModSB.transl_tau. 
+      gstep. econs. gstep. econs. gbase. eauto.
+    - rewrite/__ -bind_trigger !HModSB.transl_bind.
+      destruct e.
+      {
+        assert ((@ITree.trigger (@hmodE Σ) X (inl1 a)) = trigger a) by grind. 
+        rewrite/__ H !HModSB.transl_ag HIRed.bind_ag HModSB.transl_bind HModSB.transl_ag !bind_trigger.
+        gstep. econs. i. r.
+        rewrite/__ HModSB.transl_tau. gstep. econs. gbase. eauto.
+      }
+      destruct p.
+      {
+        assert ((@ITree.trigger (@hmodE Σ) X (inr1 (inl1 s))) = trigger s) by grind.
+        rewrite/__ H !HModSB.transl_sch HIRed.bind_sch HModSB.transl_bind HModSB.transl_sch !bind_trigger.
+        gstep. econs. i. r.
+        rewrite/__ HModSB.transl_tau. gstep. econs. gbase. eauto.
+      }
+      destruct s.
+      {
+        assert ((@ITree.trigger (@hmodE Σ) X (inr1 (inr1 (inl1 c)))) = trigger c) by grind.
+        destruct c.
+        rewrite/__ H !HModSB.transl_call HIRed.call. ired.
+        rewrite/__ HModSB.transl_tau. gstep. econs.
+        admit.
+      }  
+  Admitted.
+
+
   Definition bindRR {R} Ist P : nat -> alist key Any.t * R-> alist key Any.t * R -> iProp :=
     fun nths '(st0, ret0) '(st1, ret1) => (⌜ret0 = ret1⌝ ∗ Ist nths st0 st1 ∗ P)%I.
 
@@ -250,6 +300,7 @@ Section CANCEL.
     Local Transparent isim.
     remember (λ (nths0 : nat) '(sts, vs) '(stt, vt), ⌜vs = vt⌝ ∗ Ist nths0 sts stt)%I.
     uiprop. i. des. subst. rename H1 into SIM. 
+    
     unfold bindRR.
     
   Admitted.

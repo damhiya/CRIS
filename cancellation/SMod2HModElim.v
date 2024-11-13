@@ -17,26 +17,6 @@ Set Implicit Arguments.
 (******* Rename each section into proper name  *******)
 
 
-Section CANCEL.
-  Context `{Σ: GRA.t}.
-  Variable ginv: invspec.
-  Variable stb: gname -> option fspec.
-
-  Section ELIM.
-    (* Interp- every event by trivial_Handler gives eliminated itree *)
-    Definition interp_smod_elim: itree smodE ~> itree hmodE :=
-      interp ((case_ (bif:=sum1) (trivial_Handler)
-             (case_ (bif:=sum1) (trivial_Handler)
-             (case_ (bif:=sum1) (trivial_Handler)
-              trivial_Handler)))).
-
-    Definition interp_sb_hp_elim (body: Any.t -> itree smodE Any.t): Any.t -> itree hmodE Any.t :=
-      (@interp_smod_elim _) ∘ body.
-
-  End ELIM.
-
-End CANCEL.
-
 Module SModSemElim.
 Section ELIM.
   Import SModSem.
@@ -44,9 +24,9 @@ Section ELIM.
   Variable ginv: invspec.
   Variable stb: gname -> option fspec.
 
-  Program Definition to_hmod interp_elim (ms: t): HModSem.t := {|
+  Program Definition to_elim (ms: t): HModSem.t := {|
     HModSem.scopes := ms.(scopes);
-    HModSem.fnsems := List.map (map_snd (λ ksb, (ksb.1, interp_elim ksb.2))) (ms.(fnsems));
+    HModSem.fnsems := List.map (map_snd (λ ksb, (ksb.1, fsb_body ksb.2))) (ms.(fnsems));
     HModSem.initial_st := ms.(initial_st);
   |}.
   Next Obligation.
@@ -56,8 +36,6 @@ Section ELIM.
   Qed.
   Next Obligation. ii. destruct ms. ss. eauto. Qed.
   Next Obligation. ii. destruct ms. ss. eauto. Qed.
-
-  Definition to_elim ms := to_hmod ((interp_sb_hp_elim) ∘ fsb_body) ms.
 
 End ELIM.
 End SModSemElim.
@@ -69,47 +47,35 @@ Section ELIM.
   Variable ginv: Sk.t -> invspec.
   Variable stb: Sk.t -> gname -> option fspec.
 
-  Definition to_hmod transl (md: t) := {|
-    HMod.modsem := fun sk => (transl sk) (md.(modsem) sk);
+  Definition to_elim (md: t) := {|
+    HMod.modsem := fun sk => SModSemElim.to_elim (md.(modsem) sk);
     HMod.sk := md.(sk);
   |}.
-
-  Definition to_elim md := to_hmod (fun sk => SModSemElim.to_elim) md.
 
 End ELIM.
 End SModElim.
 
-Section LEMMA.
+
+(* 
+Section CANCEL.
   Context `{Σ: GRA.t}.
+  Variable ginv: invspec.
+  Variable stb: gname -> option fspec.
 
-  Lemma case_itrS R (itrS: itree smodE R) :
-    (exists v, itrS = Ret v) \/
-    (exists itrS', itrS = tau;; itrS') \/
-    (exists P itrS', itrS = (trigger (Assume P);;; itrS')) \/
-    (exists P itrS', itrS = (trigger (Guarantee P);;; itrS')) \/
-    (exists R (s: schE R) ktrS', itrS = (trigger s >>= ktrS')) \/
-    (exists R (c: callE R) ktrS', itrS = (trigger c >>= ktrS')) \/
-    (exists R (s: pgE R) ktrS', itrS = (trigger s >>= ktrS')) \/
-    (exists R (e: coreE R) ktrS', itrS = (trigger e >>= ktrS')).
-  Proof.
-    ides itrS; eauto.
-    right; right.
-    destruct e; [destruct a|destruct p; [|destruct s; [|destruct s]]].
-    - left. exists P, (k()). unfold trigger. rewrite bind_vis.
-      repeat f_equal. extensionality x. destruct x. rewrite bind_ret_l. eauto.
-    - right; left. exists P, (k()). unfold trigger. rewrite bind_vis.
-      repeat f_equal. extensionality x. destruct x. rewrite bind_ret_l. eauto.
-    - do 2 right; left. exists X, s, k. unfold trigger. rewrite bind_vis.
-      repeat f_equal. extensionality x. rewrite bind_ret_l. eauto.
-    - do 3 right; left. exists X, c, k. unfold trigger. rewrite bind_vis.
-      repeat f_equal. extensionality x. rewrite bind_ret_l. eauto.
-    - do 4 right; left. exists X, p, k. unfold trigger. rewrite bind_vis.
-      repeat f_equal. extensionality x. rewrite bind_ret_l. eauto.
-    - do 5 right. exists X, c, k. unfold trigger. rewrite bind_vis.
-      repeat f_equal. extensionality x. rewrite bind_ret_l. eauto.
-  Qed.
+  Section ELIM.
+    (* Interp- every event by trivial_Handler gives eliminated itree *)
+    Definition interp_smod_elim: itree hmodE ~> itree hmodE :=
+      interp ((case_ (bif:=sum1) (trivial_Handler)
+             (case_ (bif:=sum1) (trivial_Handler)
+             (case_ (bif:=sum1) (trivial_Handler)
+              trivial_Handler)))).
 
-End LEMMA.
+    Definition interp_sb_hp_elim (body: Any.t -> itree hmodE Any.t): Any.t -> itree hmodE Any.t :=
+      (@interp_smod_elim _) ∘ body.
+
+  End ELIM.
+
+End CANCEL.
 
 Module ElimRed.
 Section RED.
@@ -118,7 +84,7 @@ Section RED.
 
   Lemma interp_bind
         (R S: Type)
-        (s : itree smodE R) (k : R -> itree smodE S)
+        (s : itree hmodE R) (k : R -> itree hmodE S)
     :
       interp_smod_elim (s >>= k)
       =
@@ -210,7 +176,7 @@ Section RED.
         (i: option R)
         
     :
-      interp_smod_elim (@unwrapU smodE _ _ i)
+      interp_smod_elim (@unwrapU hmodE _ _ i)
       =
       r <- (unwrapU i);; Ret r.
   Proof.
@@ -223,7 +189,7 @@ Section RED.
         (i: option R)
         
     :
-      interp_smod_elim (@unwrapN smodE _ _ i)
+      interp_smod_elim (@unwrapN hmodE _ _ i)
       =
       r <- (unwrapN i);; Ret r.
   Proof.
@@ -252,4 +218,4 @@ Section RED.
   Qed.
 
 End RED.
-End ElimRed.
+End ElimRed. *)

@@ -2,7 +2,6 @@ Require Import Coqlib.
 Require Import STS.
 Require Import Behavior.
 Require Import AList.
-Require Import SMod HMod Mod Events.
 Require Import SMod2HMod SMod2HModElim Mod2STS.
 Require Import Skeleton.
 Require Import PCM IPM.
@@ -11,9 +10,87 @@ Require Export STB.
 Require Import ModSim ISim HPSim.
 Require Import CtxRefine CtxRefineFacts MainAdequacy ClosedAdequacy.
 Require Import SimGlobal SimGlobalFacts.
-(* Require Import CancelAPC. *)
+Require Import Cancel.
+Require Import SMod HMod Mod Events.
 
 Set Implicit Arguments.
+
+
+Module StRed.
+Section RED.
+
+  Lemma interp_bind
+        A B
+        (itr: itree (stateE +' coreE) A)
+        (ktr: A -> itree (stateE +' coreE) B)
+        st0
+    :
+      interp_stateE B (v <- itr ;; ktr v) st0 =
+      '(st1, v) <- interp_stateE A (itr) st0 ;; interp_stateE B (ktr v) st1.
+  Proof.
+    unfold interp_stateE. grind. destruct x. grind.
+  Qed.
+
+  Lemma interp_tau
+        A (itr: itree (stateE +' coreE) A)
+        st0 
+    :
+      interp_stateE _ (tau;; itr) st0 = tau;; interp_stateE _ itr st0
+  .
+  Proof. 
+    unfold interp_stateE. grind. 
+  Qed.
+
+  Lemma interp_st
+        E st0 T e
+    :
+      @interp_stateE E T (trigger e) st0 =
+      '(st1, r) <- handle_stateE _ e st0;;
+      tau;; Ret (st1, r).
+  Proof.
+    unfold interp_stateE. grind. destruct x. grind.
+  Qed.
+
+  Lemma interp_ret
+        E A st0 v
+    :
+      @interp_stateE E A (Ret v) st0 = Ret (st0, v)
+  .
+  Proof. 
+    unfold interp_stateE. grind.
+  Qed.
+  
+  Lemma interp_core
+        st0 T
+        (e: coreE T)
+    :
+      @interp_stateE (coreE) _ (trigger e) st0 = r <- trigger e;; tau;; Ret (st0, r)
+  .
+  Proof.
+    unfold interp_stateE. grind.
+    unfold Mod2STS.pure_state. grind.
+  Qed.
+
+  Lemma interp_UB
+        st0 A
+    :
+      (@interp_stateE (stateE +' coreE) A (triggerUB) st0) = triggerUB
+  .
+  Proof.
+    unfold interp_stateE, Mod2STS.pure_state, triggerUB. grind.
+  Qed.
+  
+  Lemma interp_NB
+        st0 A
+    :
+      (@interp_stateE (stateE +' coreE) A (triggerNB) st0) = triggerNB
+  .
+  Proof.
+    unfold interp_stateE, Mod2STS.pure_state, triggerNB. grind.
+  Qed.  
+
+End RED.
+End StRed.
 
 Section CANCEL.
   Context `{Σ: GRA.t}.
@@ -59,8 +136,8 @@ Section CANCEL.
     eapply STBCOMPLETE in H. ss. rewrite SOME in H. inv H. ss.
   Qed.
 
-  Let md_elim: HMod.t := SModElim.to_elim md. 
-  Let md_tgt: HMod.t := SMod.to_hmod ginv stb md.
+  Let md_elim: HMod.t := HModAux.to_elimI (SModElim.to_elim md). 
+  Let md_tgt: HMod.t := HModAux.to_elimI (SMod.to_hmod ginv stb md).
   
   Let ms_elim: HModSem.t := HMod.modsem md_elim (md_elim.(HMod.sk)).
   Let ms_tgt: HModSem.t := HMod.modsem md_tgt (md_tgt.(HMod.sk)).
@@ -124,7 +201,7 @@ Section CANCEL.
       (NOC: ~ Nat.eq_dec tid cid)
       (FR: Own fr ⊢ (ginv sk0 tid) -∗ fsp.(precond) tid m varg arg)
       (SRC: src = 
-        (interp_hp (HModSem.sandbox scopes (interp_smod_elim (fbody varg))) ε)
+        (interp_hp (HModSem.sandbox scopes (fbody varg)) ε)
         >>= hp_fun_tail)
       (TGT: tgt =
         (interp_hp
@@ -200,7 +277,7 @@ Section CANCEL.
 
   (* Lemma fsb_meta_eq fsp fbody:
     meta  *)
-  Lemma interp_st
+  (* Lemma interp_st
         E st0 T e
     :
       @interp_stateE E T (trigger e) st0 =
@@ -218,8 +295,11 @@ Section CANCEL.
   Proof. 
     unfold interp_stateE. grind.
   Qed.
+ *)
 
 
+
+  
   Ltac hide_l := let IT := fresh "ITREE" in
     match goal with 
       | [|- simg _ _ _ ?it _] => set (IT := it) 
@@ -242,10 +322,9 @@ Section CANCEL.
   Ltac _asm := rewrite/__ HModSB.transl_bind HModSB.transl_ag interp_hp_bind interp_hp_Assume/handle_Assume /mget_res; prep.
   Ltac _grt := rewrite/__ HModSB.transl_bind HModSB.transl_ag interp_hp_bind interp_hp_Assume/handle_Guarantee /mget_res; prep.
   (* Ltac _sget := rewrite/sGet !StRed.interp_bind [interp_stateE Any.t _ _]interp_st/handle_stateE.  *)
-  Ltac __supd := rewrite/sPut /sGet !StRed.interp_bind [interp_stateE _ _ _]interp_st/handle_stateE. 
+  Ltac __supd := rewrite/sPut /sGet !StRed.interp_bind [interp_stateE _ _ _]StRed.interp_st/handle_stateE. 
   Ltac _supd := __supd; grind; try rewrite list_insert_insert; _tau; st; st; hss; grind; hss; grind.
   Ltac _ub := rewrite/triggerUB !StRed.interp_bind StRed.interp_core; st; i; ss.
-
 
   Inductive Forall3i X Y Z (R: nat -> X -> Y -> Z -> Prop): nat -> list X -> list Y -> list Z -> Prop :=
   | Forall3i_nil i: Forall3i R i [] [] []
@@ -350,743 +429,14 @@ Section CANCEL.
              (cid, tgts))
         (Any.pair st (rs ⋅ mr)↑);; Ret x.2).
   Proof.
-    gcofix CIH. i.
-    exploit Forall3i_nth; eauto. i. des.
-    rename x into fr, y into src, z into tgt.
-    depdes x3.
-    { exfalso. apply NOC. s. destruct Nat.eq_dec; eauto. nia. }
-    hexploit REL. i. eapply Forall3i_len in H. des.
-    assert (cid < List.length srcs). { rewrite <- H. eauto. }
-    assert (cid < List.length tgts). { rewrite <- H0. eauto. }
-
-    rewrite !unfold_iter_eq. unfold handle_schE_callE at 1 3.
-    rewrite/__ x1 x2. subst. s. grind.
-    
-    depdes ELIM.
-    { grind.
-    }
-    {
-    }
-    {
-    }
-    {
-    }
-
-    
-    
-    
-    
-    
-    assert (CASE := case_itrS itr). des. 
-
-    { admit. }
-    { admit. }
-    { admit. }
-    { admit. }
-
-    
-
-    (* RET *)
-    (* {
-      subst.
-      destruct (Nat.eq_dec cid 0); cycle 1.
-      {
-        (* eapply list_lookup_insert in H1.
-
-        hide_r. grind. _core. st.
-        exists (ε, ε, ε). st. grind.
-        _tau. st. rewrite unfold_iter_eq. 
-        unfold mget_res, sGet at 1. 
-        grind. rewrite/__ H1. grind. _supd.
-        _iter. rewrite/__ list_insert_insert H1. grind.
-        _core. st. eexists. st. grind. _tau. st.
-        _iter. rewrite/__ list_insert_insert H1. grind.
-        _core. st. eexists. st. grind. _tau. st. 
-        unfold mget_res, mput_res, guarantee.
-        _iter. rewrite/__ list_insert_insert H1. grind. _supd.
-        _iter. rewrite/__ list_insert_insert H1. grind. _supd.
-        _iter. rewrite/__ list_insert_insert H1. grind. _ub. *)
-        admit.
-      }
-      subst cid. grind.
-      hide_r. (* execute src *)
-      eapply list_lookup_insert in H1.
-      _core. st. exists (ε, ε, ε). st. grind. _tau. st.
-      _iter. rewrite/__ H1. grind. _supd.
-      _iter. rewrite/__ list_insert_insert H1. grind.
-      _core. st. eexists. st. grind. _tau. st.
-      _iter. rewrite/__ list_insert_insert H1. grind.
-      _core. st. eexists. st. grind. _tau. st.
-      _iter. rewrite/__ list_insert_insert H1. grind. _supd.
-      _iter. rewrite/__ list_insert_insert H1. grind. _supd.
-      _iter. rewrite/__ list_insert_insert H1. grind.
-      rewrite/__ interp_ret. grind.
-      (* src end *)
-      hide_l.
-      reveal ITREE. (* execute tgt*)
-      _core. st. i. st. grind. _tau. st.
-      _iter. rewrite list_lookup_insert;[|apply H2].
-      grind. _tau. st. st. 
-      _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H2].
-      grind. _core. st. i. st. grind.
-      _tau. st. 
-      _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H2]. grind. _supd.
-      _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H2]. grind. 
-      _core. st. i. st. grind. _tau. st.
-      _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H2]. grind. 
-      _core. st. i. st. grind. _tau. st.
-      _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H2]. grind. _supd.
-      _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H2]. grind. _supd.
-      _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H2]. grind. 
-      _tau. st. st.
-      _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H2]. grind. 
-      _core. st. i. st. grind. _tau. st.
-      _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H2]. grind. _supd.
-      _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H2]. grind. 
-      _core. st. i. st. grind. _tau. st. 
-      _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H2]. grind. 
-      _core. st. i. st. grind. _tau. st. 
-      _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H2]. grind. _supd. 
-      _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H2]. grind. _supd. 
-      _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H2]. grind. 
-      rewrite/__ interp_ret. grind.
-      reveal ITREE0.
-      st.
-
-
-      (* eapply list_lookup_insert in H2. *)
-
-      (* rewrite H2. grind.  *)
-
-      admit.
-
-      (* (<<RET: forall ret_src ret_tgt r
-      (WFR: URA.wf r)
-      (POST: main_fsp.(postcond) None x ret_src ret_tgt r),
-ret_src = ret_tgt>>) *)
-    } *)
-
-    (* TAU - Proved *)
-    (* {
-      subst.
-      (* hexploit REL. i. eapply Forall3i_len in H. des.
-      assert (cid < List.length srcs). { rewrite <- H. eauto. }
-      assert (cid < List.length tgts). { rewrite <- H0. eauto. } *)
-      (* eapply list_lookup_insert in H1, H2. *)
-
-      hide_r. grind. _tau. st. st. hide_l.
-      reveal ITREE.
-      grind. _tau. st. st.
-      
-      (* gstep. econs. grind. econs 4. econs. econs. *)
-    
-      reveal ITREE0.
-      instantiate (1:= smj_top).
-      instantiate (1:= smj_top).
-      gstep. econs. econs; cycle 1.
-      { unfold smj_ltb. instantiate (1:= smj_bot). ss. }
-      { unfold smj_ltb. instantiate (1:= smj_bot). ss. }
-      gbase. eapply CIH; eauto.
-      move REL at bottom.
-
-      eapply Forall3i_forall.
-      {
-        i. destruct (Nat.eq_dec k cid).
-        {
-          subst k. rewrite list_lookup_insert in LKY; [|apply H1].
-          rewrite list_lookup_insert in LKZ; [|apply H2].
-          depdes LKY. econs 2.
-          {
-            instantiate (1:= itrS'). 
-            generalize (interp_smod_elim itrS') as itrS''. i.
-            unfold HModSem.sandbox. instantiate (1:= scopes).
-            generalize (translate (HModSem.handle_sandbox scopes) itrS'') as itrS'''.
-            i. f_equal.
-          }
-          {
-            unfold HModSem.sandbox. 
-            destruct (Nat.eq_dec (0 + cid) cid); try nia.
-            grind.
-          }
-        }
-        eapply Forall3i_nth in REL; cycle 1.
-        { eapply lookup_lt_is_Some. econs. eauto. }
-        des. assert (cid ≠ k) by nia.
-        rewrite (list_lookup_insert_ne srcs cid k _ H3) in LKY.
-        rewrite (list_lookup_insert_ne tgts cid k _ H3) in LKZ.
-        rewrite LKX in REL. 
-        rewrite LKY in REL0. 
-        rewrite LKZ in REL1.
-        depdes REL REL0 REL1. apply REL2. 
-      }
-      { rewrite/__ H insert_length. ss. }
-      { rewrite/__ H0 insert_length. ss. }
-    } *)
-
-    (* ASM *)
-    (* {
-      subst.
-      (* execute src *)
-      hide_r. grind. _core. st. i. st. grind. _tau. st.
-      _iter. rewrite/__ list_lookup_insert;[|apply H1]. grind. _supd.
-      _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H1]. grind.
-      _core. st. i. st. rewrite !bind_ret_l. _tau. st.
-      _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H1]. grind.
-      _core. st. i. st. grind. _tau. st.
-      _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H1]. grind.
-      _tau. st. st.
-      _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H1]. grind.
-      _tau. st. st.
-      _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H1]. grind.
-      reveal ITREE. hide_l. move ITREE at top.
-      grind. _core. st. exists x. st. grind. _tau. st.
-      _iter. rewrite/__ list_lookup_insert;[|apply H2]. grind. _supd.
-      _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H2]. grind.
-      _core. st. (* WF???? *)
-
-    } *)
-
-    (* GRT *)
-    (* {
-      subst.
-      (* execute tgt *)
-      hide_l. grind. _core. st. i. st. grind. _tau. st.
-      _iter. rewrite/__ list_lookup_insert;[|apply H2]. grind. _supd.
-      _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H2]. grind.
-      _core. st. i. st. rewrite !bind_ret_l. _tau. st.
-      _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H2]. grind.
-      _core. st. i. st. grind. _tau. st.
-      _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H2]. grind. _supd.
-      _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H2]. grind. _supd.
-      _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H2]. grind.
-      _tau. st. st.
-      _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H2]. grind.
-      _tau. st. st.
-
-      reveal ITREE. hide_r. move ITREE at top.
-      grind. _core. st. exists (c0, c1, c). st. grind. _tau. st.
-      _iter. rewrite/__ list_lookup_insert;[|apply H1]. grind. _supd.
-      _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H1]. grind.
-      _core. st. (* WF???? *)
-
-    } *)
-
-    (* SCH *)
-    { admit. }
-
-    (* CALL *)
-    (* { admit. } *)
-    {
-      subst. depdes c.
-      hide_l.
-      rewrite/__ !SModRed.interp_bind SModRed.interp_call. s.
-      destruct (stb sk0 fn) eqn:STBFN; s; cycle 1.
-      {
-        rewrite/triggerNB !HModSB.transl_bind HModSB.transl_core !interp_hp_bind interp_hp_core. grind.
-        _core. st. i. ss.
-      }
-      grind. _core. st. i. rename x into m0. st. grind. _tau. st.
-      _iter. rewrite/__ list_lookup_insert;[|apply H2]. grind.
-      rewrite list_insert_insert. _tau. st. st.
-      _iter. rewrite/__ list_lookup_insert;[|apply H2]. grind.
-      (* precond *)
-      _core. st. intro arg. st. grind.
-      rewrite list_insert_insert. _tau. st.
-      _iter. rewrite/__ list_lookup_insert;[|apply H2]. grind.
-      rewrite list_insert_insert. _tau. st. st.
-      _iter. rewrite/__ list_lookup_insert;[|apply H2]. grind.
-      _core. st. i. st. grind. 
-      rewrite list_insert_insert. _tau. st. 
-      _iter. rewrite/__ list_lookup_insert;[|apply H2]. grind. _supd.
-      _iter. rewrite/__ list_lookup_insert;[|apply H2]. grind.
-      _core. st. intro RECONF. st. grind. 
-      rewrite list_insert_insert. _tau. st.
-      _iter. rewrite/__ list_lookup_insert;[|apply H2]. grind.
-      _core. st. intros PRECOND. st. grind. 
-      rewrite list_insert_insert. _tau. st.
-      _iter. rewrite/__ list_lookup_insert;[|apply H2]. grind. _supd.
-      _iter. rewrite/__ list_lookup_insert;[|apply H2]. grind. _supd.
-      _iter. rewrite/__ list_lookup_insert;[|apply H2]. grind.
-      rewrite list_insert_insert. _tau. st. st.
-      (* call - tgt *)
-      _iter. rewrite/__ list_lookup_insert;[|apply H2]. grind.
-      _core. st. i. st. grind. 
-      rewrite list_insert_insert. _tau. st.
-      _iter. rewrite/__ list_lookup_insert;[|apply H2]. grind. _supd.
-      _iter. rewrite/__ list_lookup_insert;[|apply H2]. grind.
-      _core. st. intros RECONF0. st. grind. 
-      rewrite list_insert_insert. _tau. st.
-      _iter. rewrite/__ list_lookup_insert;[|apply H2]. grind.
-      _core. st. i. st. grind.
-      rewrite list_insert_insert. _tau. st.
-      _iter. rewrite/__ list_lookup_insert;[|apply H2]. grind. _supd.
-      _iter. rewrite/__ list_lookup_insert;[|apply H2]. grind. _supd.
-      _iter. rewrite/__ list_lookup_insert;[|apply H2]. grind.
-      rewrite list_insert_insert. _tau. st. 
-      _iter. rewrite/__ list_lookup_insert;[|apply H2]. grind.
-      exploit (stb_in_alist_find SKINCL SKWF). { apply STBFN. }
-      i. des.
-      assert (FINDT: alist_find fn
-      (List.map (map_snd (interp_hp_fun ∘ HModSem.sandbox_body))
-         (List.map (map_snd (λ ksb : list string * fspecbody, (ksb.1, interp_sb_hp (ginv sk0) (stb sk0) ksb.2)))
-            (SModSem.fnsems (SMod.modsem md sk0))))
-      =
-      Some (
-        (interp_hp_fun ∘ HModSem.sandbox_body) (l, interp_sb_hp (ginv sk0) (stb sk0) {| fsb_fspec := f; fsb_body := fbody |})
-      )).
-      { rewrite/__ !alist_find_map_snd /o_map x4. ss. }
-      (* function body inlined (tgt) *)
-      rewrite FINDT. grind. 
-      _core. st. exists m0. st. grind. rewrite list_insert_insert.
-      _iter. rewrite/__ list_lookup_insert;[|apply H2]. grind. 
-      rewrite list_insert_insert. _tau. do 3 st.
-      _iter. rewrite/__ list_lookup_insert;[|apply H2]. grind. 
-      _core. st. exists args. st. grind. 
-      rewrite list_insert_insert. _tau. st.
-      _iter. rewrite/__ list_lookup_insert;[|apply H2]. grind. 
-      rewrite list_insert_insert. _tau. st. st.
-      _iter. rewrite/__ list_lookup_insert;[|apply H2]. grind. 
-      _core. st. exists c0. st. grind. 
-      rewrite list_insert_insert. _tau. st.
-      _iter. rewrite/__ list_lookup_insert;[|apply H2]. grind. _supd.
-      _iter. rewrite/__ list_lookup_insert;[|apply H2]. grind. 
-      _core. st. assert (URA.wf (c0 ⋅ ε ⋅ c2)). { admit. } exists H3. st. grind. 
-      rewrite list_insert_insert. _tau. st.
-      _iter. rewrite/__ list_lookup_insert;[|apply H2]. grind. 
-      _core. st. exists PRECOND. st. grind. 
-      rewrite list_insert_insert. _tau. st.
-      _iter. rewrite/__ list_lookup_insert;[|apply H2]. grind. 
-      rewrite list_insert_insert. _tau. st. st.
-
-      (* call - src *)
-      reveal ITREE. hide_r. move ITREE at top.
-      rewrite/__ ElimRed.interp_bind ElimRed.interp_call !HModSB.transl_bind HModSB.transl_call.
-      rewrite/__ !interp_hp_bind interp_hp_call. grind.
-      _core. st. exists (ε, ε, rs). st. grind. _tau. st.
-      _iter. rewrite/__ list_lookup_insert;[|apply H1]. grind. _supd.
-      _iter. rewrite/__ list_lookup_insert;[|apply H1]. grind.
-      assert (Own (ε ⋅ rs) ⊢|==> Own (ε ⋅ ε ⋅ rs)). { r_solve; eauto. }
-      _core. st. exists H4. st. grind. 
-      rewrite list_insert_insert. _tau. st.
-      _iter. rewrite/__ list_lookup_insert;[|apply H1]. grind.
-      _core. st. assert (Own ε ⊢ True) by eauto. exists H5. st. grind.
-      rewrite list_insert_insert. _tau. st.
-      _iter. rewrite/__ list_lookup_insert;[|apply H1]. grind. _supd.
-      _iter. rewrite/__ list_lookup_insert;[|apply H1]. grind. _supd.
-      _iter. rewrite/__ list_lookup_insert;[|apply H1]. grind.
-      rewrite list_insert_insert. _tau. st.
-      assert (FINDS: alist_find fn
-      (List.map (map_snd (interp_hp_fun ∘ HModSem.sandbox_body))
-         (List.map (map_snd (λ ksb : list string * fspecbody, (ksb.1, interp_sb_hp_elim (fsb_body ksb.2))))
-            (SModSem.fnsems (SMod.modsem md sk0))))
-      =
-      Some (
-        (interp_hp_fun ∘ HModSem.sandbox_body) (l, interp_sb_hp_elim fbody)
-      )).
-      { rewrite/__ !alist_find_map_snd /o_map x4. ss. }
-      rewrite FINDS. grind. 
-      unfold interp_hp_fun, interp_hp_body, HModSem.sandbox_body, interp_sb_hp_elim. 
-      grind.
-
-      reveal ITREE.
-      
-      gstep. econs. econs; cycle 1.
-      { unfold smj_ltb. instantiate (1:= smj_bot). ss. }
-      { unfold smj_ltb. instantiate (1:= smj_bot). ss. }
-      gbase. eapply CIH; eauto.
-      move REL at bottom.
-
-    }
-
-
-
-    (* PG - Proved *)
-    { admit. }
-    (* { 
-      subst. depdes s.
-      (* sPut *)
-      { 
-        hide_r. move ITREE at top. 
-        grind.
-        rewrite/__ ElimRed.interp_bind ElimRed.interp_pg !HModSB.transl_bind  HModSB.transl_put.
-        destruct (existsb (String.eqb k.1) scopes) eqn:SCP; cycle 1.
-        {
-          (* key not exists *)
-          grind. _core. st. exists tt. st. grind. _tau. st.
-          _iter. rewrite/__ list_lookup_insert;[|apply H1]. grind.
-          _tau. st. st.
-          _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H1]. grind.
-          _tau. st. st.
-          reveal ITREE. hide_l. move ITREE at top. grind.
-          rewrite/__ !SModRed.interp_bind SModRed.interp_pg !HModSB.transl_bind HModSB.transl_put.
-          rewrite SCP. grind.
-          _core. st. i. st. grind. _tau. st.
-          _iter. rewrite/__ list_lookup_insert;[|apply H2]. grind.
-          _tau. st. st.
-          _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H2]. grind.
-          _tau. st. st.
-          
-          reveal ITREE.
-          gstep. econs. econs; cycle 1.
-          { unfold smj_ltb. instantiate (1:= smj_bot). ss. }
-          { unfold smj_ltb. instantiate (1:= smj_bot). ss. }
-          gbase. eapply CIH; eauto.
-          move REL at bottom.
-    
-          eapply Forall3i_forall; cycle 1.
-          { rewrite/__ H !insert_length. ss. }
-          { rewrite/__ H0 !insert_length. ss. }
-
-
-          i. destruct (Nat.eq_dec k0 cid).
-          {
-            subst k0. rewrite/__ list_insert_insert list_lookup_insert in LKY; [|apply H1].
-            rewrite/__ list_insert_insert list_lookup_insert in LKZ; [|apply H2].
-            depdes LKY LKZ. econs 2.
-            { grind. }
-            { 
-              destruct (Nat.eq_dec (0 + cid) cid); try nia.
-              destruct x.
-              instantiate (1:= m). grind.
-              f_equal. rewrite/__ HModSB.transl_bind.
-              grind.
-            }
-          }
-          eapply Forall3i_nth in REL; cycle 1.
-          { eapply lookup_lt_is_Some. econs. eauto. }
-          des. assert (cid ≠ k0) by nia.
-          rewrite/__ list_insert_insert (list_lookup_insert_ne srcs cid k0 _ H3) in LKY.
-          rewrite/__ list_insert_insert (list_lookup_insert_ne tgts cid k0 _ H3) in LKZ.
-          rewrite LKX in REL. 
-          rewrite LKY in REL0. 
-          rewrite LKZ in REL1.
-          depdes REL REL0 REL1. apply REL2.
-        }
-
-        grind. _supd. 
-        _iter. rewrite/__ list_lookup_insert;[|apply H1]. grind. _supd.
-        _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H1]. grind.
-        _tau. st. st.
-        _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H1]. grind.
-        _tau. st. st.
-        reveal ITREE. hide_l. move ITREE at top.
-        grind. 
-        rewrite/__ !SModRed.interp_bind SModRed.interp_pg !HModSB.transl_bind HModSB.transl_put SCP.
-        grind. _supd.
-        _iter. rewrite/__ list_lookup_insert;[|apply H2]. grind. _supd.
-        _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H2]. grind.
-        _tau. st. st.
-        _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H2]. grind.
-        _tau. st. st.
-
-        reveal ITREE.
-        instantiate (1:= smj_top).
-        instantiate (1:= smj_top).
-        gstep. econs. econs; cycle 1.
-        { unfold smj_ltb. instantiate (1:= smj_bot). ss. }
-        { unfold smj_ltb. instantiate (1:= smj_bot). ss. }
-        gbase. eapply CIH; eauto.
-        move REL at bottom.
-  
-        eapply Forall3i_forall; cycle 1.
-        { rewrite/__ H !insert_length. ss. }
-        { rewrite/__ H0 !insert_length. ss. }
-
-
-        i. destruct (Nat.eq_dec k0 cid).
-        {
-          subst k0. rewrite/__ list_insert_insert list_lookup_insert in LKY; [|apply H1].
-          rewrite/__ list_insert_insert list_lookup_insert in LKZ; [|apply H2].
-          depdes LKY LKZ. econs 2.
-          { grind. }
-          { 
-            destruct (Nat.eq_dec (0 + cid) cid); try nia.
-            instantiate (1:= m). grind.
-            f_equal. rewrite/__ HModSB.transl_bind. grind.
-          }
-        }
-        eapply Forall3i_nth in REL; cycle 1.
-        { eapply lookup_lt_is_Some. econs. eauto. }
-        des. assert (cid ≠ k0) by nia.
-        rewrite/__ list_insert_insert (list_lookup_insert_ne srcs cid k0 _ H3) in LKY.
-        rewrite/__ list_insert_insert (list_lookup_insert_ne tgts cid k0 _ H3) in LKZ.
-        rewrite LKX in REL. 
-        rewrite LKY in REL0. 
-        rewrite LKZ in REL1.
-        depdes REL REL0 REL1. apply REL2.
-      }
-
-      (* sGet *)
-      { 
-        hide_l. move ITREE at top. 
-        grind.
-        rewrite/__ !SModRed.interp_bind SModRed.interp_pg !HModSB.transl_bind HModSB.transl_get.
-        destruct (existsb (String.eqb k.1) scopes) eqn:SCP; cycle 1.
-        {
-          (* key not exists *)
-          grind. _core. st. i. st. grind. _tau. st.
-          _iter. rewrite/__ list_lookup_insert;[|apply H2]. grind.
-          _tau. st. st.
-          _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H2]. grind.
-          _tau. st. st.
-          reveal ITREE. hide_r. move ITREE at top. grind.
-          rewrite/__ ElimRed.interp_bind ElimRed.interp_pg !HModSB.transl_bind  HModSB.transl_get.
-          rewrite SCP. grind.
-          _core. st. exists x. st. grind. _tau. st.
-          _iter. rewrite/__ list_lookup_insert;[|apply H1]. grind.
-          _tau. st. st.
-          _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H1]. grind.
-          _tau. st. st.
-          
-          reveal ITREE.
-          instantiate (1:= smj_top).
-          instantiate (1:= smj_top).
-          gstep. econs. econs; cycle 1.
-          { unfold smj_ltb. instantiate (1:= smj_bot). ss. }
-          { unfold smj_ltb. instantiate (1:= smj_bot). ss. }
-          gbase. eapply CIH; eauto.
-          move REL at bottom.
-    
-          eapply Forall3i_forall; cycle 1.
-          { rewrite/__ H !insert_length. ss. }
-          { rewrite/__ H0 !insert_length. ss. }
-
-
-          i. destruct (Nat.eq_dec k0 cid).
-          {
-            subst k0. rewrite/__ list_insert_insert list_lookup_insert in LKY; [|apply H1].
-            rewrite/__ list_insert_insert list_lookup_insert in LKZ; [|apply H2].
-            depdes LKY LKZ. econs 2.
-            { grind. }
-            { 
-              destruct (Nat.eq_dec (0 + cid) cid); try nia.
-              instantiate (1:= m). grind.
-              f_equal. rewrite/__ HModSB.transl_bind.
-              grind.
-            }
-          }
-          eapply Forall3i_nth in REL; cycle 1.
-          { eapply lookup_lt_is_Some. econs. eauto. }
-          des. assert (cid ≠ k0) by nia.
-          rewrite/__ list_insert_insert (list_lookup_insert_ne srcs cid k0 _ H3) in LKY.
-          rewrite/__ list_insert_insert (list_lookup_insert_ne tgts cid k0 _ H3) in LKZ.
-          rewrite LKX in REL. 
-          rewrite LKY in REL0. 
-          rewrite LKZ in REL1.
-          depdes REL REL0 REL1. apply REL2.
-        }
-
-        grind. _supd. 
-        _iter. rewrite/__ list_lookup_insert;[|apply H2]. grind. 
-        _tau. st. st.
-        _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H2]. grind.
-        _tau. st. st. grind.
-        reveal ITREE. hide_r. move ITREE at top.
-        grind. 
-        rewrite/__ ElimRed.interp_bind ElimRed.interp_pg !HModSB.transl_bind HModSB.transl_get SCP.
-        grind. _supd.
-        _iter. rewrite/__ list_lookup_insert;[|apply H1]. grind.
-        _tau. st. st.
-        _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H1]. grind.
-        _tau. st. st. grind.
-
-        reveal ITREE.
-        instantiate (1:= smj_top).
-        instantiate (1:= smj_top).
-        gstep. econs. econs; cycle 1.
-        { unfold smj_ltb. instantiate (1:= smj_bot). ss. }
-        { unfold smj_ltb. instantiate (1:= smj_bot). ss. }
-        gbase. eapply CIH; eauto.
-        move REL at bottom.
-  
-        eapply Forall3i_forall; cycle 1.
-        { rewrite/__ H !insert_length. ss. }
-        { rewrite/__ H0 !insert_length. ss. }
-
-
-        i. destruct (Nat.eq_dec k0 cid).
-        {
-          subst k0. rewrite/__ list_insert_insert list_lookup_insert in LKY; [|apply H1].
-          rewrite/__ list_insert_insert list_lookup_insert in LKZ; [|apply H2].
-          depdes LKY LKZ. econs 2.
-          { grind. }
-          { 
-            destruct (Nat.eq_dec (0 + cid) cid); try nia.
-            instantiate (1:= m). grind.
-            f_equal. rewrite/__ HModSB.transl_bind. grind.
-          }
-        }
-        eapply Forall3i_nth in REL; cycle 1.
-        { eapply lookup_lt_is_Some. econs. eauto. }
-        des. assert (cid ≠ k0) by nia.
-        rewrite/__ list_insert_insert (list_lookup_insert_ne srcs cid k0 _ H3) in LKY.
-        rewrite/__ list_insert_insert (list_lookup_insert_ne tgts cid k0 _ H3) in LKZ.
-        rewrite LKX in REL. 
-        rewrite LKY in REL0. 
-        rewrite LKZ in REL1.
-        depdes REL REL0 REL1. apply REL2.
-      }
-    } *)
-
-    (* CORE - Proved *)
-    { admit. }
-    (* {
-      subst.
-      rewrite/__ ElimRed.interp_bind ElimRed.interp_core !HModSB.transl_bind  HModSB.transl_core.
-      rewrite/__ SModRed.interp_bind SModRed.interp_core !HModSB.transl_bind  HModSB.transl_core.
-      depdes e0.
-      {
-        hide_l. grind.
-        _core. st. i. st. grind. _tau. st.
-        _iter. rewrite/__ list_lookup_insert;[|apply H2]. grind.
-        _tau. st. st. 
-        _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H2]. grind.   
-        _tau. st. st. 
-        reveal ITREE. hide_r. grind.
-        _core. st. exists x. st. grind. _tau. st.
-        _iter. rewrite/__ list_lookup_insert;[|apply H1]. grind.
-        _tau. st. st. 
-        _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H1]. grind.   
-        _tau. st. st.    
-        reveal ITREE.
-        instantiate (1:= smj_top).
-        instantiate (1:= smj_top).
-        gstep. econs. econs; cycle 1.
-        { unfold smj_ltb. instantiate (1:= smj_bot). ss. }
-        { unfold smj_ltb. instantiate (1:= smj_bot). ss. }
-        gbase. eapply CIH; eauto.
-        move REL at bottom.
-        eapply Forall3i_forall; cycle 1.
-        { rewrite/__ H !insert_length. ss. }
-        { rewrite/__ H0 !insert_length. ss. }
-        i. destruct (Nat.eq_dec k cid).
-        {
-          subst k. rewrite/__ list_insert_insert list_lookup_insert in LKY; [|apply H1].
-          rewrite/__ list_insert_insert list_lookup_insert in LKZ; [|apply H2].
-          depdes LKY LKZ. econs 2.
-          { grind. }
-          { 
-            destruct (Nat.eq_dec (0 + cid) cid); try nia.
-            instantiate (1:= m). grind.
-            f_equal. rewrite/__ HModSB.transl_bind. grind.
-          }
-        }
-        eapply Forall3i_nth in REL; cycle 1.
-        { eapply lookup_lt_is_Some. econs. eauto. }
-        des. assert (cid ≠ k) by nia.
-        rewrite/__ list_insert_insert (list_lookup_insert_ne srcs cid k _ H3) in LKY.
-        rewrite/__ list_insert_insert (list_lookup_insert_ne tgts cid k _ H3) in LKZ.
-        rewrite LKX in REL. 
-        rewrite LKY in REL0. 
-        rewrite LKZ in REL1.
-        depdes REL REL0 REL1. apply REL2.
-      }
-      {
-        hide_r. grind.
-        _core. st. i. st. grind. _tau. st.
-        _iter. rewrite/__ list_lookup_insert;[|apply H1]. grind.
-        _tau. st. st. 
-        _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H1]. grind.   
-        _tau. st. st. 
-        reveal ITREE. hide_l. grind.
-        _core. st. exists x. st. grind. _tau. st.
-        _iter. rewrite/__ list_lookup_insert;[|apply H2]. grind.
-        _tau. st. st. 
-        _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H2]. grind.   
-        _tau. st. st.    
-        reveal ITREE.
-        instantiate (1:= smj_top).
-        instantiate (1:= smj_top).
-        gstep. econs. econs; cycle 1.
-        { unfold smj_ltb. instantiate (1:= smj_bot). ss. }
-        { unfold smj_ltb. instantiate (1:= smj_bot). ss. }
-        gbase. eapply CIH; eauto.
-        move REL at bottom.
-        eapply Forall3i_forall; cycle 1.
-        { rewrite/__ H !insert_length. ss. }
-        { rewrite/__ H0 !insert_length. ss. }
-        i. destruct (Nat.eq_dec k cid).
-        {
-          subst k. rewrite/__ list_insert_insert list_lookup_insert in LKY; [|apply H1].
-          rewrite/__ list_insert_insert list_lookup_insert in LKZ; [|apply H2].
-          depdes LKY LKZ. econs 2.
-          { grind. }
-          { 
-            destruct (Nat.eq_dec (0 + cid) cid); try nia.
-            instantiate (1:= m). grind.
-            f_equal. rewrite/__ HModSB.transl_bind. grind.
-          }
-        }
-        eapply Forall3i_nth in REL; cycle 1.
-        { eapply lookup_lt_is_Some. econs. eauto. }
-        des. assert (cid ≠ k) by nia.
-        rewrite/__ list_insert_insert (list_lookup_insert_ne srcs cid k _ H3) in LKY.
-        rewrite/__ list_insert_insert (list_lookup_insert_ne tgts cid k _ H3) in LKZ.
-        rewrite LKX in REL. 
-        rewrite LKY in REL0. 
-        rewrite LKZ in REL1.
-        depdes REL REL0 REL1. apply REL2.
-      }
-      {
-        grind. _core. _core. st. i. subst.
-        st. st. grind.
-        _tau. st. st.
-        hide_l.
-        _iter. rewrite/__ list_lookup_insert;[|apply H2]. grind.
-        _tau. st. st. 
-        _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H2]. grind.   
-        _tau. st. st. 
-        reveal ITREE. hide_r. grind.
-        _iter. rewrite/__ list_lookup_insert;[|apply H1]. grind.
-        _tau. st. st. 
-        _iter. rewrite/__ list_insert_insert list_lookup_insert;[|apply H1]. grind.   
-        _tau. st. st.
-        reveal ITREE.
-        instantiate (1:= smj_top).
-        instantiate (1:= smj_top).
-        gstep. econs. econs; cycle 1.
-        { unfold smj_ltb. instantiate (1:= smj_bot). ss. }
-        { unfold smj_ltb. instantiate (1:= smj_bot). ss. }
-        gbase. eapply CIH; eauto.
-        move REL at bottom.
-        eapply Forall3i_forall; cycle 1.
-        { rewrite/__ H !insert_length. ss. }
-        { rewrite/__ H0 !insert_length. ss. }
-        i. destruct (Nat.eq_dec k cid).
-        {
-          subst k. rewrite/__ list_insert_insert list_lookup_insert in LKY; [|apply H1].
-          rewrite/__ list_insert_insert list_lookup_insert in LKZ; [|apply H2].
-          depdes LKY LKZ. econs 2.
-          { instantiate (1:= (ktrS' x_tgt)). grind. }
-          { 
-            destruct (Nat.eq_dec (0 + cid) cid); try nia.
-            instantiate (1:= m). grind.
-            f_equal. rewrite/__ HModSB.transl_bind. grind.
-          }
-        }
-        eapply Forall3i_nth in REL; cycle 1.
-        { eapply lookup_lt_is_Some. econs. eauto. }
-        des. assert (cid ≠ k) by nia.
-        rewrite/__ list_insert_insert (list_lookup_insert_ne srcs cid k _ H3) in LKY.
-        rewrite/__ list_insert_insert (list_lookup_insert_ne tgts cid k _ H3) in LKZ.
-        rewrite LKX in REL. 
-        rewrite LKY in REL0. 
-        rewrite LKZ in REL1.
-        depdes REL REL0 REL1. apply REL2.
-      }
-    } *)
-
-
   Admitted.
-
-  
 
   Theorem cancellation P 
     (COND: forall sk0 (EQV: Sk.equiv sk sk0) (SKWF: Sk.wf sk0), 
       exists fsp m rt,
         (stb sk0 "CCR_init" = Some fsp) /\
         (URA.wf rt) /\ 
-        (Own rt ⊢ (P sk0) ∗ (fsp.(precond) m tt↑ tt↑))
+        (Own rt ⊢ (P sk0) ∗ (fsp.(precond) 0 m tt↑ tt↑))
     )
   :
     refines (md_elim, const(emp%I)) (md_tgt, P).
@@ -1117,8 +467,14 @@ ret_src = ret_tgt>>) *)
       ginit. guclo simg_indC_spec. econs. i. ss.
     }
     rewrite/__ !alist_find_map/o_map E. s.
-    destruct p0. unfold HModSem.sandbox_body, interp_hp_fun. s.
-    unfold interp_sb_hp_elim, interp_sb_hp, interp_hp_body.
+    destruct p0. s.
+    erewrite !wrap_elimI_well_scoped; cycle 1. 
+    { admit. }
+    { admit. }
+    ired.
+
+    unfold HModSem.sandbox_body, interp_hp_fun. s.
+    unfold interp_hpI_fun, interp_sb_hp, interp_hp_body. s.
     unfold interp_modE, interp_schE_callE. grind.
     unfold HoareFun.
     _coreH. hide_l. _iter. _core.
