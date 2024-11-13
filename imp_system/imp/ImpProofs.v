@@ -3,7 +3,7 @@ Require Import ITreelib.
 Require Import ImpPrelude.
 Require Import Skeleton.
 Require Import PCM.
-Require Import STS Behavior.
+Require Import Behavior.
 Require Import Any.
 Require Import Mod Events.
 Require Import Imp.

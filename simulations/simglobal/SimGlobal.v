@@ -1,7 +1,6 @@
 Require Import Coqlib.
 Require Import ITreelib.
 Require Import Any.
-Require Import STS.
 Require Import Behavior.
 Require Import Events.
 Require Import Skeleton.
@@ -9,7 +8,6 @@ Require Import PCM.
 Require Import Coq.Relations.Relation_Definitions.
 Require Import Relation_Operators.
 Require Import RelationPairs.
-Require Import SimSTS.
 
 Set Implicit Arguments.
 
@@ -295,5 +293,5 @@ Hint Resolve flagC_mon: paco.
 Hint Constructors bindR: core.
 Hint Unfold bindC: core.
 Hint Unfold simg_indC: core.
-Hint Resolve sim_indC_mon: paco.
+Hint Resolve simg_indC_mon: paco.
 Hint Resolve cpn7_wcompat: paco.

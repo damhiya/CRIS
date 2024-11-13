@@ -1,5 +1,5 @@
 Require Import Coqlib ITreelib sflib.
-Require Import Events STS.
+Require Import Events.
 Require Import Behavior.
 
 Require Import Skeleton.

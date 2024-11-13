@@ -1,6 +1,4 @@
 Require Import Coqlib.
-Require Import STS.
-Require Import Behavior.
 Require Import PCM.
 Require Import Any.
 Require Import ITreelib.

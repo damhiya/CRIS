@@ -4,7 +4,7 @@ Require Import ITreelib.
 Require Import Any.
 Require Import Events.
 Require Import IRed.
-Require Import STS Behavior.
+Require Import Behavior.
 Require Import PCM IPM.
 Require Import Skeleton Mod.
 Require Import PropExtensionality.

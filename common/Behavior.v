@@ -1,20 +1,29 @@
 Require Import Coqlib.
-Require Import STS.
+Require Import String.
 Require Import Any.
+Require Import ITreelib.
+Require Import Events.
+Require Import IModL.
 
 Set Implicit Arguments.
+
+Inductive obsE: Type -> Type :=
+| obs_io
+    (fn: string)
+    (I: Type)
+    (O: Type)
+    (args: I)
+    (rv: O)
+ : obsE unit.
 
 Module Tr.
   CoInductive t: Type :=
   | done (retv: Any.t)
   | spin
-  | cons (hd: event) (tl: t)
+  | cons (hd: obsE unit) (tl: t)
   .
-  Infix "##" := cons (at level 60, right associativity).
-  (*** past -------------> future ***)
-  (*** a ## b ## c ## spin / done ***)
 
-  Fixpoint app (pre: list event) (bh: t): t :=
+  Fixpoint app (pre: list (obsE unit)) (bh: t): t :=
     match pre with
     | [] => bh
     | hd :: tl => cons hd (app tl bh)
@@ -27,7 +36,7 @@ Module Tr.
   .
   Proof. reflexivity. Qed.
 
-  Definition prefix (pre: list event) (bh: t): Prop :=
+  Definition prefix (pre: list (obsE unit)) (bh: t): Prop :=
     exists tl, <<APP: app pre tl = bh>>
   .
 
@@ -41,21 +50,20 @@ Definition improves (src tgt: t): Prop := tgt <1= src.
 
 Section BEHAVES.
 
-Variable L: semantics.
+Local Notation L := (itree coreE Any.t).
 
-Definition union (st0: L.(state)) (P: (option event) -> L.(state) -> Prop) :=
-  exists ev st1, <<STEP: L.(step) st0 ev st1>> /\ <<UNION: P ev st1>>.
-Definition inter (st0: L.(state)) (P: (option event) -> L.(state) -> Prop) :=
-  forall ev st1 (STEP: L.(step) st0 ev st1), <<INTER: P ev st1>>.
+Variant _state_spin (state_spin: L -> Prop) : L -> Prop :=
+  | state_spin_tau t
+      (SPIN: state_spin t)
+    : _state_spin state_spin (tau;; t)
 
-Inductive _state_spin (state_spin: L.(state) -> Prop)
-  (st0: L.(state)): Prop :=
-| state_spin_angelic
-    (SRT: L.(state_sort) st0 = angelic)
-    (STEP: forall ev st1 (STEP: L.(step) st0 ev st1), <<TL: state_spin st1>>)
-| state_spin_demonic
-    (SRT: L.(state_sort) st0 = demonic)
-    (STEP: exists ev st1 (STEP: L.(step) st0 ev st1), <<TL: state_spin st1>>)
+  | state_spin_choose X k
+      (SPIN: exists x, state_spin (k x))
+    : _state_spin state_spin (x <- trigger (Choose X);; k x)
+                  
+  | state_spin_take X k
+      (SPIN: forall x, state_spin (k x))
+    : _state_spin state_spin (x <- trigger (Take X);; k x)
 .
 
 Definition state_spin: _ -> Prop := paco1 _state_spin bot1.
@@ -63,8 +71,7 @@ Definition state_spin: _ -> Prop := paco1 _state_spin bot1.
 Lemma state_spin_mon: monotone1 _state_spin.
 Proof.
   ii. inv IN; try (by econs; eauto).
-  - econs 1; et. ii. exploit STEP; et.
-  - des. econs 2; et. esplits; et.
+  des. econs; et.
 Qed.
 
 Hint Constructors _state_spin.
@@ -72,198 +79,78 @@ Hint Unfold state_spin.
 Hint Resolve state_spin_mon: paco.
 Hint Resolve cpn1_wcompat: paco.
 
-Inductive _of_state (of_state: L.(state) -> Tr.t -> Prop): L.(state) -> Tr.t -> Prop :=
+Variant _of_itreeF (coself self: L -> Tr.t -> Prop) : L -> Tr.t -> Prop :=
 | sb_final
-    st0 retv
-    (FINAL: L.(state_sort) st0 = final retv)
-  :
-    _of_state of_state st0 (Tr.done retv)
+    retv
+  : _of_itreeF coself self (Ret retv) (Tr.done retv)
+            
 | sb_spin
-    st0
-    (SPIN: state_spin st0)
+    t
+    (SPIN: state_spin t)
+  : _of_itreeF coself self t (Tr.spin)
+
+| sb_tau
+    t evs
+    (STEP: self t evs)
   :
-    _of_state of_state st0 (Tr.spin)
+  _of_itreeF coself self (tau;; t) evs
+
 | sb_vis
-    st0 st1 ev evs
-    (SRT: L.(state_sort) st0 = vis)
-    (STEP: _.(step) st0 (Some ev) st1)
-    (TL: of_state st1 evs)
+    I O fn args r evs k
+    (TL: coself (k r) evs)
   :
-    _of_state of_state st0 (Tr.cons ev evs)
-| sb_demonic
-    st0
-    evs
-    (SRT: L.(state_sort) st0 = demonic)
-    (STEP: union st0 (fun e st1 => (<<HD: e = None>>) /\ (<<TL: _of_state of_state st1 evs>>)))
+  _of_itreeF coself self (r <- trigger (@IO I O fn args);; k r) (Tr.cons (obs_io fn args r) evs)
+
+| sb_choose
+    X k evs
+    (STEP: exists x, self (k x) evs)
   :
-    _of_state of_state st0 evs
-| sb_angelic
-    st0
-    evs
-    (SRT: L.(state_sort) st0 = angelic)
-    (STEP: inter st0 (fun e st1 => (<<HD: e = None>>) /\ (<<TL: _of_state of_state st1 evs>>)))
+  _of_itreeF coself self (x <- trigger (Choose X);; k x) evs
+
+| sb_take
+    X k evs
+    (STEP: forall x, self (k x) evs)
   :
-    _of_state of_state st0 evs
+  _of_itreeF coself self (x <- trigger (Take X);; k x) evs
 .
 
-Definition of_state: _ -> _ -> Prop := paco2 _of_state bot2.
+Inductive _of_itree coself t evs : Prop :=
+| _of_itree_intro (REL: _of_itreeF coself (_of_itree coself) t evs)
+.
 
-Theorem of_state_ind :
-forall (r P: _ -> _ -> Prop),
-(forall st0 retv, state_sort L st0 = final retv -> P st0 (Tr.done retv)) ->
-(forall st0, state_spin st0 -> P st0 Tr.spin) ->
-(* (forall st0, P st0 Tr.nb) -> *)
+Definition of_itree: _ -> _ -> Prop := paco2 _of_itree bot2.
 
-(forall st0 st1 ev evs
- (SRT: state_sort L st0 = vis)
- (STEP: _.(step) st0 (Some ev) st1)
- (TL: r st1 evs)
-  ,
-    P st0 (Tr.cons ev evs)) ->
-(forall st0 evs
- (SRT: state_sort L st0 = demonic)
- (STEP: union st0
-   (fun e st1 =>
-    <<HD: e = None >> /\ <<TL: _of_state r st1 evs >> /\ <<IH: P st1 evs>>)), P st0 evs) ->
-(forall st0 evs
-        (* (IH: forall st1 (STEP: L.(step) st0 None st1), P st1 evs) *)
- (SRT: state_sort L st0 = angelic)
- (STEP: inter st0
-   (fun e st1 => <<HD: e = None >> /\ <<TL: _of_state r st1 evs >> /\ <<IH: P st1 evs>>)),
- P st0 evs) ->
-forall s t, _of_state r s t -> P s t.
+Theorem of_itree_tarski coself rel
+  (FIX: _of_itreeF coself rel <2= rel)
+  :
+  _of_itree coself <2= rel.
 Proof.
-  fix IH 10. i.
-  inv H4; eauto.
-  - eapply H2; eauto. rr in STEP. des; clarify. esplits; eauto. rr. esplits; eauto. eapply IH; eauto.
-  - eapply H3; eauto. ii. exploit STEP; eauto. i; des; clarify. esplits; eauto. eapply IH; eauto.
+  fix IH 3.
+  i. destruct PR.
+  destruct REL; apply FIX; econs; des; esplits; try apply IH; try eassumption.
+  apply STEP.
 Qed.
 
-Lemma of_state_mon: monotone2 _of_state.
+Lemma of_itree_mon: monotone2 _of_itree.
 Proof.
-  ii. induction IN using of_state_ind; eauto.
-  - econs 1; et.
-  - econs 2; et.
-  - econs 3; et.
-  - econs 4; et. rr in STEP. des; clarify. rr. esplits; et.
-  - econs 5; et. ii. exploit STEP; eauto. i; des; clarify.
+  ii. eapply of_itree_tarski, IN.
+  i. destruct PR; eauto using _of_itree, _of_itreeF.
 Qed.
 
-Hint Constructors _of_state.
-Hint Unfold of_state.
-Hint Resolve of_state_mon: paco.
+Hint Constructors _of_itree.
+Hint Unfold of_itree.
+Hint Resolve of_itree_mon: paco.
 Hint Resolve cpn1_wcompat: paco.
 
-Definition of_program: Tr.t -> Prop := of_state L.(initial_state).
-
-
-
-
-(**********************************************************)
-(*********************** properties ***********************)
-(**********************************************************)
-
-Lemma _beh_astep
-      r tr st0 ev st1
-      (SRT: L.(state_sort) st0 = angelic)
-      (STEP: _.(step) st0 ev st1)
-      (BEH: paco2 _of_state r st0 tr)
+Lemma of_itree_ind
+  (P: itree coreE Any.t -> Tr.t -> Prop)
+  (SIM: _of_itreeF of_itree (of_itree /2\ P) <2= P)
   :
-    <<BEH: paco2 _of_state r st1 tr>>
-.
+  of_itree <2= P.
 Proof.
-  exploit wf_angelic; et. i; clarify.
-  revert_until L.
-  pcofix CIH; i.
-  punfold BEH.
-  {
-    generalize dependent st1.
-    induction BEH using of_state_ind; et; try rewrite SRT in *; ii; ss.
-    - punfold H. inv H; rewrite SRT in *; ss.
-      exploit STEP0; et. i; des. pclearbot. et.
-    - rr in STEP. exploit STEP; et. i; des.
-      pfold. eapply of_state_mon; et. ii; ss. eapply upaco2_mon; et.
-  }
-Qed.
-
-Lemma beh_astep
-      tr st0 ev st1
-      (SRT: L.(state_sort) st0 = angelic)
-      (STEP: _.(step) st0 ev st1)
-      (BEH: of_state st0 tr)
-  :
-    <<BEH: of_state st1 tr>>
-.
-Proof.
-  eapply _beh_astep; et.
-Qed.
-
-Lemma _beh_dstep
-      r tr st0 ev st1
-      (SRT: L.(state_sort) st0 = demonic)
-      (STEP: _.(step) st0 ev st1)
-      (BEH: paco2 _of_state r st1 tr)
-  :
-    <<BEH: paco2 _of_state r st0 tr>>
-.
-Proof.
-  exploit wf_demonic; et. i; clarify.
-  pfold. econs 4; et. rr. esplits; et. punfold BEH.
-Qed.
-
-Lemma beh_dstep
-      tr st0 ev st1
-      (SRT: L.(state_sort) st0 = demonic)
-      (STEP: _.(step) st0 ev st1)
-      (BEH: of_state st1 tr)
-  :
-    <<BEH: of_state st0 tr>>
-.
-Proof.
-  eapply _beh_dstep; et.
-Qed.
-
-Variant dstep_clo (r: L.(state) -> Tr.t -> Prop): L.(state) -> Tr.t -> Prop :=
-| dstep_clo_intro
-    st0 tr st1 ev
-    (SRT: L.(state_sort) st0 = demonic)
-    (STEP: _.(step) st0 ev st1)
-    (STEP: r st1 tr)
-  :
-    dstep_clo r st0 tr
-.
-
-Lemma dstep_clo_mon: monotone2 dstep_clo.
-Proof. ii. inv IN. econs; et. Qed.
-
-Lemma dstep_clo_spec: dstep_clo <3= gupaco2 (_of_state) (cpn2 _of_state).
-Proof.
-  intros. eapply prespect2_uclo; eauto with paco. econs.
-  { eapply dstep_clo_mon. }
-  i. inv PR0. pfold. econs 4; et.
-  exploit wf_demonic; et. i; clarify.
-  red. esplits; et. eapply of_state_mon; et.
-Qed.
-
-Variant astep_clo (r: L.(state) -> Tr.t -> Prop): L.(state) -> Tr.t -> Prop :=
-| astep_clo_intro
-    st0 tr
-    (SRT: L.(state_sort) st0 = angelic)
-    (STEP: forall st1, _.(step) st0 None st1 -> r st1 tr)
-  :
-    astep_clo r st0 tr
-.
-
-Lemma astep_clo_mon: monotone2 astep_clo.
-Proof. ii. inv IN. econs; et. Qed.
-
-Lemma astep_clo_spec: astep_clo <3= gupaco2 (_of_state) (cpn2 _of_state).
-Proof.
-  intros. eapply prespect2_uclo; eauto with paco. econs.
-  { eapply astep_clo_mon. }
-  i. inv PR0. pfold. econs 5; et. ii.
-  exploit wf_angelic; et. i; clarify.
-  red. esplits; et. eapply of_state_mon; et.
+  i. punfold PR. revert x0 x1 PR.
+  fix IH 3. i.
+  destruct PR, REL; try by eapply SIM; pclearbot; des; econs; esplits; eauto.
 Qed.
 
 End BEHAVES.
@@ -275,6 +162,6 @@ Hint Unfold Beh.state_spin.
 Hint Resolve Beh.state_spin_mon: paco.
 Hint Resolve cpn1_wcompat: paco.
 Hint Resolve cpn2_wcompat: paco.
-Hint Constructors Beh._of_state.
-Hint Unfold Beh.of_state.
-Hint Resolve Beh.of_state_mon: paco.
+Hint Constructors Beh._of_itree.
+Hint Unfold Beh.of_itree.
+Hint Resolve Beh.of_itree_mon: paco.

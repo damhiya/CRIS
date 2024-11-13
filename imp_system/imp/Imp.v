@@ -4,7 +4,7 @@ Require Import Coqlib.
 Require Import ITreelib.
 Require Import ImpPrelude.
 Require Import Skeleton.
-Require Import STS Behavior.
+Require Import Behavior.
 Require Import Any.
 Require Import PMod Events.
 Require Import AList.

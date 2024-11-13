@@ -4,7 +4,6 @@ Require Import ITreelib.
 Require Import Any.
 Require Import Events HMod.
 Require Import IRed.
-Require Import STS.
 Require Import Behavior.
 Require Import PCM IPM.
 Require Import World sWorld.

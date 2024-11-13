@@ -442,13 +442,13 @@ Section SEMR.
 
   Lemma adequacy_local_aux
     :
-    (Beh.of_program (ModSem.compile ms_tgt))
+    (Beh.of_itree (ModSem.compile ms_tgt))
     <1=
-    (Beh.of_program (ModSem.compile ms_src)).
+    (Beh.of_itree (ModSem.compile ms_src)).
   Proof.
     eapply adequacy_global_itree; ss.
     ginit.
-    unfold ModSem.initial_itr, assume. generalize "CCR_init" as fn. i.
+    unfold ModSem.compile, assume. generalize "CCR_init" as fn. i.
 
     ss. unfold ITree.map.
     destruct (alist_find fn (ModSem.fnsems ms_src)) eqn: EQ; cycle 1.
@@ -483,9 +483,9 @@ Section ADEQUACY.
     (SIM: MSim.t ms_src ms_tgt)
     (WF : ModSem.wf ms_src)
     :
-    Beh.of_program (ModSem.compile ms_tgt)
+    Beh.of_itree (ModSem.compile ms_tgt)
     <1=
-    Beh.of_program (ModSem.compile ms_src).
+    Beh.of_itree (ModSem.compile ms_src).
   Proof.
     ii. eapply adequacy_local_aux; eauto.
   Qed.

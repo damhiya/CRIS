@@ -3,7 +3,7 @@ Require Import sflib.
 Require Import ITreelib.
 Require Import AList.
 Require Import Skeleton.
-Require Import STS Behavior.
+Require Import Behavior.
 Require Import Any.
 Require Import Program.
 Require Import Mod2STS.
@@ -55,11 +55,8 @@ Section MODSEM.
         sem <- (alist_find fn ms.(fnsems))!;;
         sem args.
 
-    Definition initial_itr : itree coreE Any.t :=
+    Definition compile : itree coreE Any.t :=
       snd <$> interp_modE prog (prog (Call "CCR_init" ()↑)) (initial_st ms).
-
-    Definition compile : semantics:=
-      compile_itree (initial_itr).
 
   End COMPILE.
 End MODSEM.
