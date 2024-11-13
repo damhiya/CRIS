@@ -252,12 +252,12 @@ Section SIMMODSEM.
     init_simF.
 
     (* SRC: handle the IST of Map and the precond of set *)
-    steps_l. iDestruct "ASM" as "(% & %)". subst. hss. inv G0. 
+    steps_l. iDestruct "ASM" as "(% & %)". hss. inv G0. 
     iDestruct "IST" as (? ? ? ?) "(%& (% & [%|(P & IST)]) &%)";    
       [|iDestruct "IST" as (? ? ? ?) "(% & M)"];
       des; subst; hss.
     { nia. }
-    rename z1 into idx, z2 into v.
+    rename q4 into idx, q5 into v.
 
     (* SRC: prove the postcond of set *)
     forces_l. iSplitL "". { eauto. }

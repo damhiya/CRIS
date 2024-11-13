@@ -81,6 +81,10 @@ Ltac alist_upd_simpl nodup_tac :=
 Ltac trivial_nodup H :=
   exact H.
 
+Ltac move_nodup :=
+  repeat match goal with [H: List.NoDup _ |- _ ] => guardH H; move H at top end;
+  unguard.
+
 Ltac alist_find_simpl nodup_tac :=
   match goal with
   [ |- context[alist_find ?k ?l]] =>
@@ -140,7 +144,8 @@ Ltac hss :=
   try (rewrite !Any.pair_split in * );
   try (rewrite !Any.upcast_downcast in * );
   repeat (alist_upd_simpl trivial_nodup);
-  hss_des.
+  hss_des;
+  move_nodup.
 
 (***
   Step-level tactics
@@ -149,14 +154,26 @@ Ltac hss :=
 Ltac iIntrosFresh H := iIntros H || iIntrosFresh (H ++ "'")%string.
 
 Ltac des_pairs :=
-  repeat match goal with
-    | [H: context[let () := ?x in _] |- _] => destruct x
-    | |- context[let () := ?x in _] => destruct x
-    | [H: context[let (_, _) := ?x in _] |- _] =>
-        let n0 := fresh x in let n1 := fresh x in destruct x as [n0 n1]
-    | |- context[let (_, _) := ?x in _] =>
-        let n0 := fresh x in let n1 := fresh x in destruct x as [n0 n1]
-    end.
+  (repeat
+    match goal with
+    | [H: context[let () := ?x in _] |- _] =>
+        match type of x with
+        | () => destruct x
+        | (_ * _)%type =>
+            let n0 := fresh "q" in let n1 := fresh "q" in
+            let EQ := fresh "EQq" in
+            destruct x as [n0 n1] eqn: EQ
+        end
+    | |- context[let () := ?x in _] =>
+        match type of x with
+        | () => destruct x
+        | (_ * _)%type =>
+            let n0 := fresh "q" in let n1 := fresh "q" in
+            let EQ := fresh "EQq" in
+            destruct x as [n0 n1] eqn: EQ
+        end
+    end);
+   subst.
 
 Ltac desugar itr :=
   match itr with
@@ -432,9 +449,12 @@ Ltac hide_itree_r marker :=
   match goal with [|- _ (_ (_, ?it) _)] => try unfold it end.
 
 Ltac show_itree marker :=
-  revert_until marker; clear marker;
-  let ITREE := fresh "ITREE" in
-  repeat (intros ?ITREE; unfold ITREE; clear ITREE); i.
+  repeat match goal with
+      [H: _ |- _] =>
+        try match H with marker => fail 3 end;
+        first [unfold H; clear H | revert H]
+    end;
+  clear marker; i.
 
 Ltac unfold_stb :=
   try match goal with
@@ -478,14 +498,14 @@ Ltac prep :=
 
 Ltac step_l := let marker := fresh "MARKER" in
   hide_itree_r marker;
-  prep; _step_l; try alist_find_simpl fnsems_nodup; des_pairs; s;
+  prep; _step_l; try alist_find_simpl fnsems_nodup; s; des_pairs; s;
   show_itree marker.
 
 Ltac steps_l := repeat step_l.
 
 Ltac step_r := let marker := fresh "MARKER" in
   hide_itree_l marker;
-  prep; _step_r; try alist_find_simpl fnsems_nodup; des_pairs; s;
+  prep; _step_r; try alist_find_simpl fnsems_nodup; s; des_pairs; s;
   show_itree marker.
 
 Ltac steps_r := repeat step_r.
@@ -493,7 +513,7 @@ Ltac steps_r := repeat step_r.
 Ltac step := let marker := fresh "MARKER" in
   hide_itree_r marker; prep; show_itree marker;
   hide_itree_l marker; prep; show_itree marker;
-  _step; des_pairs; s.
+  _step; s; des_pairs; s.
 
 Ltac force_l_core := let marker := fresh "MARKER" in
   hide_itree_r marker;
@@ -538,10 +558,6 @@ Ltac inline_r := let marker := fresh "MARKER" in
    alist_find_simpl fnsems_nodup; eauto|];
   unfold interp_sb_hp, HoareFun; s;
   show_itree marker.
-
-Ltac move_nodup :=
-  repeat match goal with [H: List.NoDup _ |- _ ] => guardH H; move H at top end;
-  unguard.
 
 Ltac call hyps := let marker := fresh "MARKER" in
   hide_itree_r marker; prep; show_itree marker;

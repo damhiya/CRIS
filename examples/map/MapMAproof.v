@@ -194,7 +194,7 @@ Section SIMMODSEM.
     iDestruct "IST" as (f sz) "(% & [(% & P0 & INIT)|(P' & B & U)])".
     { iExFalso. iApply (initial_map_no_points_to with "INIT MAP"). }
     des. subst. hss. steps_l.
-    rename z into idx, z0 into v.
+    rename q1 into idx, q2 into v.
 
     (* TGT: prove the precond of get *)
     step_r. forces_r. hss. iSplitL "". { iFrame. eauto. }
@@ -227,7 +227,7 @@ Section SIMMODSEM.
     iDestruct "IST" as (f sz) "(% & [(% & P0 & INIT)|(P' & B & U)])".
     { iExFalso. iApply (initial_map_no_points_to with "INIT MAP"). }
     des. subst. hss. steps_l.
-    rename z0 into idx, z1 into v, z into v'.
+    rename q2 into idx, q3 into v, q4 into v'.
 
     (* TGT: prove the precond of set *)
     step_r. force_r (_,_). forces_r. hss.
@@ -258,7 +258,7 @@ Section SIMMODSEM.
     (* SRC: handle the IST of Map and the precond of set_by_user *)
     steps_l. iDestruct "ASM" as "((% & MAP) & %)".
     subst. hss. steps_l.
-    rename z into idx, z0 into v.
+    rename q1 into idx, q2 into v.
     
     (* TGT: prove the precond of set_by_user *)
     step_r. forces_r. hss. iSplitL "". { iFrame. eauto. }
