@@ -254,15 +254,42 @@ Section CANCEL.
       {
         assert ((@ITree.trigger (@hmodE Σ) X (inr1 (inr1 (inl1 c)))) = trigger c) by grind.
         destruct c.
-        rewrite/__ H !HModSB.transl_call HIRed.call. ired.
-        rewrite/__ HModSB.transl_tau. gstep. econs.
+        rewrite/__ H !HModSB.transl_call HIRed.call HModSB.transl_tau. s.
+        destruct (alist_find fn (HModSem.fnsems ms)) eqn: FIND.
+        { 
+          ired. rewrite/__ !HIRed.bind !HModSB.transl_bind -!bind_tau.
+          guclo eqit_clo_bind. econs.
+          { 
+            eapply (@gpaco2_init _ _ _ _ (eqitC eq false false)); eauto with paco.
+            admit.
+              
+          }
+          admit.
+        }
         admit.
       }  
   Admitted.
 
 
-  Definition bindRR {R} Ist P : nat -> alist key Any.t * R-> alist key Any.t * R -> iProp :=
-    fun nths '(st0, ret0) '(st1, ret1) => (⌜ret0 = ret1⌝ ∗ Ist nths st0 st1 ∗ P)%I.
+  Definition bindRR {R} RR P : nat -> alist key Any.t * R-> alist key Any.t * R -> iProp :=
+    fun nths '(st0, ret0) '(st1, ret1) => (P ∗ RR nths (st0, ret0) (st1, ret1))%I.
+
+  Definition IstRR {R} Ist : nat -> alist key Any.t * R-> alist key Any.t * R -> iProp :=
+    fun nths '(st0, ret0) '(st1, ret1) => (⌜ret0 = ret1⌝ ∗ Ist nths st0 st1)%I.
+
+  Lemma isim_RR_frame
+      fls flt my_tid is_closed r g nths
+      {R} Ist (P: iProp)
+      ps pt sti_src sti_tgt
+    :
+      (P ∗ @isim _ fls flt Ist my_tid is_closed r g R 
+            (fun nths '(sts, vs) '(stt, vt) => ⌜vs = vt⌝ ∗ Ist nths sts stt)%I
+            ps pt nths sti_src sti_tgt)  
+      ⊢ isim fls flt Ist my_tid is_closed r g 
+         (bindRR (IstRR Ist) P) ps pt nths sti_src sti_tgt.
+  Proof.
+    iIntros "[H0 H1]". iApply isim_wand. iFrame. eauto.
+  Qed.
 
   Definition progI fl : callE ~> itree hmodE :=
     fun _ '(Call fn args) =>
@@ -285,26 +312,6 @@ Section CANCEL.
   Proof.
     rewrite/interp_hpI iter_bind_I. refl.
   Qed.
-
-  Lemma isim_RR_frame
-      fls flt my_tid is_closed r g nths
-      {R} Ist (P: iProp)
-      ps pt sti_src sti_tgt
-    :
-      (P ∗ @isim _ fls flt Ist my_tid is_closed r g R 
-            (fun nths '(sts, vs) '(stt, vt) => ⌜vs = vt⌝ ∗ Ist nths sts stt)%I
-            ps pt nths sti_src sti_tgt)  
-      ⊢ isim fls flt Ist my_tid is_closed r g 
-         (bindRR Ist P) ps pt nths sti_src sti_tgt.
-  Proof.
-    Local Transparent isim.
-    remember (λ (nths0 : nat) '(sts, vs) '(stt, vt), ⌜vs = vt⌝ ∗ Ist nths0 sts stt)%I.
-    uiprop. i. des. subst. rename H1 into SIM. 
-    
-    unfold bindRR.
-    
-  Admitted.
-
 
   Lemma cancelI
       fl my_tid nths
@@ -345,20 +352,19 @@ Section CANCEL.
       { iApply isim_call_none; ss. unfold triggerNB. steps_r. ss. }
       iApply isim_inline_tgt; eauto.
       s. ired. rewrite/__ bind_I.
-      remember (
-        ∀ a : nat * (bool * (bool * (alist key Any.t * (alist key Any.t * itree hmodE Any.t)))),
-          IstEq0 a.1 a.2.2.2.1 a.2.2.2.2.1 -∗
-          g0 Any.t (λ (nths0 : nat) '(st_src0, v_src) '(st_tgt0, v_tgt), ⌜v_src = v_tgt⌝ ∗ IstEq0 nths0 st_src0 st_tgt0) a.2.1 a.2.2.1 a.1
-            (a.2.2.2.1, interp_hpI (progI fl) a.2.2.2.2.2) (a.2.2.2.2.1, a.2.2.2.2.2)
-      )%I.
+      iStopProof.
+      match goal with
+      | [|-context[(□ ?P)%I]] => remember (□P)%I
+      end.
+      rewrite Heqb. iIntros "[#CIH Ist]". 
       iApply isim_bind; cycle 1.
       {
-        instantiate (1:= (fun nths '(st_src, v_src) '(st_tgt, v_tgt) => (⌜v_src = v_tgt⌝ ∗ IstEq0 nths st_src st_tgt ∗ □b)%I)).
-        iApply isim_RR_frame. iSplitR; eauto.
-        rewrite Heqb. by_coind "CIH". eauto.
+        instantiate (1:= bindRR (IstRR IstEq0) b). 
+        iApply isim_RR_frame. rewrite Heqb.  
+        iSplitR; eauto. by_coind "CIH". eauto.  
       }
-      i. iIntros "(% & IST & #CIH)". des. subst.
-      rewrite HIRed.tau. steps_l. steps_r. ired.
+      i. rewrite Heqb. iIntros "(#CIH & % & IST)". des. subst.
+      rewrite/__ HIRed.tau. steps_l. steps_r. ired.
       by_coind "CIH". auto.
     - iDestruct "Ist" as "%". depdes s.
       + rewrite/__ HIRed.bind_pg. iApply isim_sput_src. iApply isim_sput_tgt. steps_l.
@@ -447,7 +453,6 @@ Section CANCEL.
     ii. subst. destruct ft.
     assert(SCP := (HMod.modsem md sk0).(HModSem.well_scoped_fns)).
     specialize (SCP fn). rewrite/fnsems_scopes Heq in SCP.
-    remember (HModSem.scopes (HMod.modsem md sk0)) as scopeS. i.
     rename l into scopeT. 
     unfold HModSem.sandbox_body, interp_hpI_fun. s.
     generalize false at 1 as ps.
@@ -457,14 +462,12 @@ Section CANCEL.
     revert st_src. apply combine_quant_dep.
     revert SCP. apply combine_quant.
     revert scopeT. apply combine_quant_dep.
-    revert HeqscopeS. apply combine_quant.
-    revert scopeS. apply combine_quant_dep.
     revert pt. apply combine_quant.
     revert ps. apply combine_quant.
     revert nths. apply combine_quant.
     eapply isim_coind. i.
 
-    destruct a as [nths [ps [pt [scopeS [HeqscopeS [scopeT [SCP [st_src [st_tgt it]]]]]]]]]. s.
+    destruct a as [nths [ps [pt [scopeT [SCP [st_src [st_tgt it]]]]]]]. s.
     iIntros "(#(_ & CIH) & Ist)".
     
     assert (CASE := case_itrH _ it); des; subst.
@@ -495,11 +498,11 @@ Section CANCEL.
       rewrite Heqb. iIntros "[#CIH Ist]". 
       iApply isim_bind; cycle 1.
       {
-        instantiate (1:= bindRR IstEq0 b). 
+        instantiate (1:= bindRR (IstRR IstEq0) b). 
         iApply isim_RR_frame. rewrite Heqb.  
         iSplitR; eauto. by_coind "CIH". eauto.  
       }
-      i. rewrite Heqb. iIntros "(% & IST & #CIH)". des. subst.
+      i. rewrite Heqb. iIntros "(#CIH & % & IST)". des. subst.
       rewrite/__ HIRed.tau. steps_l. steps_r. ired.
       by_coind "CIH". auto.
     - depdes s.
@@ -564,14 +567,13 @@ Section CANCEL.
     revert st_src. apply combine_quant_dep.
     revert SCP. apply combine_quant.
     revert scopeT. apply combine_quant_dep.
-    revert HeqscopeS. apply combine_quant.
-    revert scopeS. apply combine_quant_dep.
     revert pt. apply combine_quant.
     revert ps. apply combine_quant.
     revert nths. apply combine_quant.
     eapply isim_coind. i.
 
-    destruct a as [nths [ps [pt [scopeS [HeqscopeS [scopeT [SCP [st_src [st_tgt it]]]]]]]]]. s.
+    destruct a as [nths [ps [pt [scopeT [SCP [st_src [st_tgt it]]]]]]]. s.
+
     iIntros "(#(_ & CIH) & Ist)".
     
     assert (CASE := case_itrH _ it); des; subst.
@@ -598,11 +600,11 @@ Section CANCEL.
       rewrite Heqb. iIntros "[#CIH Ist]". 
       iApply isim_bind; cycle 1.
       {
-        instantiate (1:= bindRR IstEq0 b). 
+        instantiate (1:= bindRR (IstRR IstEq0) b). 
         iApply isim_RR_frame. rewrite Heqb.  
         iSplitR; eauto. by_coind "CIH". eauto.  
       }
-      i. rewrite Heqb. iIntros "(% & IST & #CIH)". des. subst.
+      i. rewrite Heqb. iIntros "(#CIH & % & IST)". des. subst.
       rewrite/__ HIRed.tau. steps_l. steps_r. ired.
       by_coind "CIH". auto.
     - depdes s.
