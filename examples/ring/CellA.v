@@ -1,6 +1,6 @@
 Require Import Coqlib ITreelib sflib.
 Require Import ImpPrelude.
-Require Import Events STS.
+Require Import Events.
 Require Import Behavior.
 Require Import SMod HMod.
 Require Import Skeleton.

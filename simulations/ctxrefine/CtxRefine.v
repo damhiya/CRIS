@@ -7,9 +7,10 @@ Require Import ModSim.
 
 Section REFINE.
 
-  Definition refines_modsem (ms_src ms_tgt : ModSem.t) : Prop :=
-    Beh.of_program (ModSem.compile ms_tgt) <1=
-    Beh.of_program (ModSem.compile ms_src).
+  Definition refines_modsem (ms_src ms_tgt: ModSem.t): Prop :=
+    Beh.of_itree (ModSem.compile ms_tgt) <1=
+    Beh.of_itree (ModSem.compile ms_src)
+  .
 
 End REFINE.
 

@@ -3,10 +3,10 @@ Require Import sflib.
 Require Import ITreelib.
 Require Import AList.
 Require Import Skeleton.
-Require Import STS Behavior.
+Require Import Behavior.
 Require Import Any.
 Require Import Program.
-Require Import Mod2STS.
+Require Import Mod2ITree.
 Require Import Events.
 
 Set Implicit Arguments.
@@ -43,15 +43,10 @@ Module ModSem.
       wf_fnsems : List.NoDup (List.map fst ms.(fnsems));
     }.
 
-    Definition empty : t := {|
-      initial_st := tt↑;
-      fnsems := [];
-    |}.
-
-    Definition init (body : itree modE Any.t) : t := {|
-      initial_st := tt↑;
-      fnsems := [("CCR_init", fun _ => body)];
-    |}.
+  Definition empty: t := {|
+    initial_st := tt↑;
+    fnsems := [];
+  |}.
 
   Section COMPILE.
     Variable ms: t.
@@ -61,12 +56,9 @@ Module ModSem.
         sem <- (alist_find fn ms.(fnsems))!;;
         sem args.
 
-      Definition initial_itr : itree coreE Any.t :=
-        snd <$> interp_modE prog (prog (Call "CCR_init" ()↑)) (initial_st ms).
+    Definition compile : itree coreE Any.t :=
+      snd <$> interp_modE prog (prog (Call "CCR_init" ()↑)) (initial_st ms).
 
-      Definition compile : semantics:=
-        compile_itree (initial_itr).
-
-    End COMPILE.
-  End MODSEM.
+  End COMPILE.
+End MODSEM.
 End ModSem.

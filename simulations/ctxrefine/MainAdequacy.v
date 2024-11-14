@@ -4,7 +4,6 @@ Require Export ITreelib.
 Require Import Any.
 
 Require Import IRed.
-Require Import STS.
 Require Import Behavior Skeleton.
 Require Import PCM IPM.
 

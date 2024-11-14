@@ -4,7 +4,7 @@ Require Import Skeleton.
 Require Import Behavior.
 Require Import Relation_Definitions.
 Require Import IPM.
-Require Import ModSimTactics Mod2STS.
+Require Import ModSimTactics Mod2ITree.
 
 (*** TODO : export these in Coqlib or Universe ***)
 Require Import Relation_Operators.
@@ -17,7 +17,7 @@ From ExtLib Require Import
      Data.Map.FMapAList.
 Require Import Any.
 
-Require Import Mod2STS Mod Events.
+Require Import Mod2ITree Mod Events.
 Require Import SimGlobal SimGlobalFacts ModSim.
 Require Import Red IRed.
 Require Import Permutation.
@@ -105,7 +105,7 @@ Section SEMR.
     - rewrite !unfold_iter_eq. s. rewrite/__ LKS LKT.
       grind. des_ifs.
       + grind. steps. rr in RET. des; subst; eauto.
-      + unfold triggerUB. grind. unfold Mod2STS.pure_state. grind. steps. ss.
+      + unfold triggerUB. grind. unfold Mod2ITree.pure_state. grind. steps. ss.
 
     - rewrite !unfold_iter_eq. s. rewrite/__ LKS LKT.
       grind. gstep. econs. do 5 (econs; eauto using smj_lt_mid_top).
@@ -142,7 +142,7 @@ Section SEMR.
       gfinal. right. eapply K; eauto.
 
     - rewrite !unfold_iter_eq. s. rewrite/__ LKS LKT.
-      grind. unfold Mod2STS.pure_state. grind. do 3 step. grind. do 2 step.
+      grind. unfold Mod2ITree.pure_state. grind. do 3 step. grind. do 2 step.
       eapply K;
         try rewrite list.insert_length;
         try rewrite list.list_lookup_insert; eauto; try nia.
@@ -219,7 +219,7 @@ Section SEMR.
         eapply SIM; eauto; des_ifs.
 
     - rewrite unfold_iter_eq. s. rewrite LKS.
-      grind. unfold Mod2STS.pure_state at 1.
+      grind. unfold Mod2ITree.pure_state at 1.
       grind. step. esplits. step. grind. step.
       eapply K;
         try rewrite list.insert_length;
@@ -235,7 +235,7 @@ Section SEMR.
         eapply SIM; eauto; des_ifs.
 
     - rewrite/__ (unfold_iter_eq _ (_, itrs_tgt)). s. rewrite LKT.
-      grind. unfold Mod2STS.pure_state at 2.
+      grind. unfold Mod2ITree.pure_state at 2.
       grind. do 2 step. grind. step.
       eapply K;
         try rewrite list.insert_length;
@@ -251,7 +251,7 @@ Section SEMR.
         eapply SIM; eauto; des_ifs.
 
     - rewrite unfold_iter_eq. s. rewrite LKS.
-      grind. unfold Mod2STS.pure_state at 1.
+      grind. unfold Mod2ITree.pure_state at 1.
       grind. do 2 step. grind. step.
       eapply K;
         try rewrite list.insert_length;
@@ -267,7 +267,7 @@ Section SEMR.
         eapply SIM; eauto; des_ifs.
 
     - rewrite/__ (unfold_iter_eq _ (_, itrs_tgt)). s. rewrite LKT.
-      grind. unfold Mod2STS.pure_state at 2.
+      grind. unfold Mod2ITree.pure_state at 2.
       grind. step. esplits. step. grind. step.
       eapply K;
         try rewrite list.insert_length;
@@ -363,7 +363,7 @@ Section SEMR.
       des; cycle 1.
       { rewrite unfold_iter_eq. s.
         rewrite list.lookup_ge_None_2; try (rewrite list.insert_length; nia).
-        s. grind. unfold triggerUB. grind. unfold Mod2STS.pure_state. grind.
+        s. grind. unfold triggerUB. grind. unfold Mod2ITree.pure_state. grind.
         step. ss. }
 
       gbase. eapply (CIH w1); eauto.
@@ -442,20 +442,20 @@ Section SEMR.
 
   Lemma adequacy_local_aux
     :
-    (Beh.of_program (ModSem.compile ms_tgt))
+    (Beh.of_itree (ModSem.compile ms_tgt))
     <1=
-    (Beh.of_program (ModSem.compile ms_src)).
+    (Beh.of_itree (ModSem.compile ms_src)).
   Proof.
     eapply adequacy_global_itree; ss.
     ginit.
-    unfold ModSem.initial_itr, assume. generalize "CCR_init" as fn. i.
+    unfold ModSem.compile, assume. generalize "CCR_init" as fn. i.
 
     ss. unfold ITree.map.
     destruct (alist_find fn (ModSem.fnsems ms_src)) eqn: EQ; cycle 1.
     { s. eapply MSim.wf_sim_miss in EQ; eauto. rewrite EQ. s.
       unfold interp_modE, interp_stateE, interp_schE_callE.
       rewrite/__ [ITree.iter (_ (ModSem.prog ms_tgt)) _]unfold_iter_eq. grind.
-      ired_both; guclo simg_indC_spec. unfold Mod2STS.pure_state. grind.
+      ired_both; guclo simg_indC_spec. unfold Mod2ITree.pure_state. grind.
       eapply simg_chooseR. ss.
     }
 
@@ -483,9 +483,9 @@ Section ADEQUACY.
     (SIM : MSim.t ms_src ms_tgt)
     (WF : ModSem.wf ms_src)
     :
-    Beh.of_program (ModSem.compile ms_tgt)
+    Beh.of_itree (ModSem.compile ms_tgt)
     <1=
-    Beh.of_program (ModSem.compile ms_src).
+    Beh.of_itree (ModSem.compile ms_src).
   Proof.
     ii. eapply adequacy_local_aux; eauto.
   Qed.

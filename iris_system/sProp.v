@@ -39,14 +39,17 @@ End HRA.
 
 Coercion HRA.subG_map : HRA.subG >-> Funclass.
 
-Module GTyp.
+(* Note that the types in a group has the type PF.t *)
 
-  Class t : Type := __GTYP : GPF.t.
+(* The types in all groups *)
+Module Typ.
 
-End GTyp.
+  Class t: Type := __TYP : GPF.t.
 
+End Typ.
 
-(** Types **)
+(** Types for Separation Logic **)
+
 Module ST.
 
   Section TYPES.
@@ -85,9 +88,9 @@ End ST.
 
 Module CtxST.
 
-  Class t `{τ : GTyp.t}
-    `{_C : @GPF.inG ST.t τ}
-    := ctxSL : unit.
+  Class t `{τ: Typ.t}
+    `{_C: @GPF.inG ST.t τ}
+    := ctxSL: unit.
 
 End CtxST.
 
@@ -103,21 +106,23 @@ Infix "+" := (ST.sumT) : SRF_scope.
 Notation "'τ{' t ',' n '}'" := (@PF.deg ST.t t (SRFSyn.t_prev n)) : SRF_scope.
 Notation "'τ{' t '}'" := (@PF.deg ST.t t (SRFSyn.t_prev _)) : SRF_scope.
 
+(* Separation Logic *)
+
 Module SL.
 
   Section SL.
 
-  Context `{τ : GTyp.t}.
-  Context `{Γ : HRA.t}.
-
+  Context `{τ: Typ.t}.
+  Context `{Γ: HRA.t}.
+  
   Variant shape : Type :=
     | _ownm i (r : (@GRA.gra_map Γ) i)
     | _pure (P : Prop)
     | _and
     | _or
     | _impl
-    | _univ i (ty : τ i)
-    | _ex   i (ty : τ i)
+    | _univ i (ty : (τ i).(PF.shp))
+    | _ex   i (ty : (τ i).(PF.shp))
     | _empty
     | _sepconj
     | _wand
@@ -133,8 +138,8 @@ Module SL.
     | _and => fin 2
     | _or => fin 2
     | _impl => fin 2
-    | _univ i ty => PF.deg ty Prev
-    | _ex   i ty => PF.deg ty Prev
+    | _univ i ty => (τ i).(PF.deg) ty Prev
+    | _ex   i ty => (τ i).(PF.deg) ty Prev
     | _empty => fin 0
     | _sepconj => fin 2
     | _wand => fin 2
@@ -148,13 +153,11 @@ Module SL.
       deg := degree;
   }.
 
-  Context `{α : @SRFMSynG.t}.
-  Context `{_C0 : @HRA.subG Γ Σ}.
-  Notation iProp := (iProp Σ).
-
+  Context `{α: @SRFCons.t}.
+  Context `{_C0: @HRA.subG Γ Σ}.
+  
   Global Instance domain : SRFDom.t := {
     dom := iProp;
-    void := False%I;
   }.
 
   Definition interp n (s : shape)
@@ -175,11 +178,11 @@ Module SL.
     | _upd => fun _ sem => (|==> (sem 0%fin))%I
     end.
 
-  Global Instance t : SRFMSem.t := interp.
+  Global Instance t: SRFIntpM.t := interp.
 
-  Context `{@SRFMSemG.inG _ _ _ t β}.
-
-  Definition ownm `{IN : @GRA.inG M Γ} {n} (r : M) : SRFSyn.t n.
+  Context `{@SRFIntp.inG _ _ _ t β}.
+  
+  Definition ownm `{IN: @GRA.inG M Γ} {n} (r: M) : SRFSyn.t n.
     destruct IN. subst.
     refine ⟨ _ownm _ r, _ ⟩%SRF.
     i. inv X.
@@ -210,13 +213,13 @@ Module SL.
     - exact p1.
     - exact p2.
   Defined.
-
-  Definition univ `{IN : @GPF.inG T τ} {n} (ty:T) (p : PF.deg ty (SRFSyn.t_prev n) -> SRFSyn.t n) : SRFSyn.t n.
+  
+  Definition univ `{IN: @GPF.inG T τ} {n} (ty: T.(PF.shp)) (p: T.(PF.deg) ty (SRFSyn.t_prev n) -> SRFSyn.t n) : SRFSyn.t n.
     destruct IN. subst.
     exact ⟨ _univ _ ty, p ⟩%SRF.
   Defined.
 
-  Definition ex `{IN : @GPF.inG T τ} {n} (ty : T) (p : PF.deg ty (SRFSyn.t_prev n) -> SRFSyn.t n) : SRFSyn.t n.
+  Definition ex `{IN: @GPF.inG T τ} {n} (ty: T.(PF.shp)) (p: T.(PF.deg) ty (SRFSyn.t_prev n) -> SRFSyn.t n) : SRFSyn.t n.
     destruct IN. subst.
     exact ⟨ _ex _ ty, p ⟩%SRF.
   Defined.
@@ -286,12 +289,12 @@ End SL.
 
 Module CtxSL.
 
-  Class t `{Γ : HRA.t} `{Σ : GRA.t} `{α : SRFMSynG.t} `{β : @SRFMSemG.t SL.domain α}
-    `{_C : CtxST.t}
-    `{_C : @HRA.subG Γ Σ}
-    `{_C : @SRFMSemG.inG SL.domain _ α SL.t β}
-    := ctxSL : unit.
-
+  Class t `{Γ: HRA.t} `{Σ: GRA.t} `{α: SRFCons.t} `{β: @SRFIntp.t SL.domain α}
+    `{_C: CtxST.t}
+    `{_C: @HRA.subG Γ Σ}
+    `{_C: @SRFIntp.inG SL.domain _ α SL.t β}
+    := ctxSL: unit.
+  
 End CtxSL.
 
 (** Notations *)
@@ -376,8 +379,8 @@ Module SLRed.
     interp n (SL.impl p q) = (interp n p → interp n q)%I.
   Proof. unfold SL.impl. rewrite @SRFRed.cur. reflexivity. Qed.
 
-  Lemma univ `{T:PF.t} `{@GPF.inG T τ} n (ty : T) p :
-    interp n (SL.univ ty p) = (∀ x : (T.(PF.deg) ty (SRFSyn.t_prev n)), interp n (p x))%I.
+  Lemma univ `{T:PF.t} `{@GPF.inG T τ} n (ty: T.(PF.shp)) p :
+    SRFSem.t n (SL.univ ty p) = (∀ x: (T.(PF.deg) ty (SRFSyn.t_prev n)), SRFSem.t n (p x))%I.
   Proof.
     destruct H eqn : EQ. subst.
     unfold SL.univ, eq_rect_r. ss.

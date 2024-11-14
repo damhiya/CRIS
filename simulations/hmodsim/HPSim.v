@@ -1,5 +1,4 @@
-Require Import Coqlib ITreelib.
-Require Import STS.
+Require Import Coqlib sflib ITreelib.
 Require Import Behavior.
 Require Import Skeleton.
 Require Import PCM IPM.

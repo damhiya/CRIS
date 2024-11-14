@@ -1,5 +1,4 @@
 Require Import Coqlib sflib ITreelib.
-Require Import STS.
 Require Import Behavior.
 Require Import Skeleton.
 Require Import PCM IModL.

@@ -308,7 +308,7 @@ Section SIMMODSEM.
     iSplitL "". { iFrame. eauto. }
 
     (* make a call to set *)
-    call "IST"; [eauto|].
+    steps_r. call "IST"; [eauto|].
 
     (* SRC: handle the postcond of set *)
     steps_l. iDestruct "ASM" as "(_ & %)". subst. hss. steps_r.
@@ -317,7 +317,7 @@ Section SIMMODSEM.
     forces_l. iSplitL "". { eauto. }
 
     (* prove the IST of Map *)
-    step. eauto.
+    hss. steps_r. step. eauto.
   Qed.
 
   Theorem sim:

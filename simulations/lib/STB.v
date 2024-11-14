@@ -1,5 +1,4 @@
 Require Import Coqlib AList.
-Require Import STS.
 Require Import Behavior.
 Require Import Skeleton.
 Require Import PCM IPM.

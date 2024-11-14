@@ -4,7 +4,7 @@ Require Import Coqlib.
 Require Import ITreelib.
 Require Import ImpPrelude.
 Require Import Skeleton.
-Require Import STS Behavior.
+Require Import Behavior.
 Require Import Any.
 Require Import PMod Events.
 Require Import AList.
@@ -555,8 +555,8 @@ Section Interp.
       | SetVar x v => Ret (alist_add x v le, tt)
       end.
 
-  Definition interp_ImpState {eff} `{coreE -< eff} : itree (ImpState +' eff) ~> stateT lenv (itree eff) :=
-    State.interp_state (case_ handle_ImpState Mod2STS.pure_state).
+  Definition interp_ImpState {eff} `{coreE -< eff}: itree (ImpState +' eff) ~> stateT lenv (itree eff) :=
+    State.interp_state (case_ handle_ImpState Mod2ITree.pure_state).
 
   (* Definition interp_imp ge le (itr : itree effs val) := *)
   (*   interp_ImpState (interp_GlobEnv ge itr) le. *)
