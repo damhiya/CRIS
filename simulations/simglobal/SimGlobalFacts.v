@@ -127,6 +127,12 @@ Section ADEQUACY.
     destruct b; ss. destruct ps0; ss.
   Qed.
 
+  Local Ltac auto_simg SIM0 SIM1 x x0 x1 :=
+    try itree_clarify x;
+    try by des; hdes; eauto; pstep; do 2 econs; i; eauto 7;
+           first [exploit SIM1|exploit SIM0]; eauto;
+           i; esplits; first [punfold x1|punfold x0]; eauto.
+
   Lemma simg_adequacy_ret_aux
     pt' retv
     (PRE: ∀ ps pt itr_src
@@ -143,10 +149,7 @@ Section ADEQUACY.
     revert LE EQ. pattern ps, pt, itr_src, itr_tgt.
     eapply simg_ind, SIM. clear - PRE.
     intros ps pt itr_src itr_tgt SIM LE EQ. subst.
-    depdes SIM; try itree_clarify x;
-      try by des; hdes; eauto; pstep; do 2 econs; i; eauto 7;
-             first [exploit SIM1|exploit SIM0]; eauto;
-             i; esplits; first [punfold x1|punfold x0]; eauto.
+    depdes SIM; auto_simg SIM0 SIM1 x x0 x1.
     eapply PRE; eauto.
     destruct LE; subst; eauto using smj_ltb_trans.
   Qed.
@@ -181,10 +184,7 @@ Section ADEQUACY.
     revert LE EQ. pattern ps, pt, itr_src, itr_tgt'.
     eapply simg_ind, SIM. clear - STEP PRE.
     intros ps pt itr_src itr_tgt' SIM LE EQ. subst.
-    depdes SIM; try itree_clarify x;
-      try by des; hdes; eauto; pstep; do 2 econs; i; eauto 7;
-             first [exploit SIM1|exploit SIM0]; eauto;
-             i; esplits; first [punfold x1|punfold x0]; eauto.
+    depdes SIM; auto_simg SIM0 SIM1 x x0 x1.
     eapply PRE; eauto.
     destruct LE; subst; eauto using smj_ltb_trans.
   Qed.
@@ -224,10 +224,7 @@ Section ADEQUACY.
     revert LE EQ. pattern ps, pt, itr_src, itr_tgt.
     eapply simg_ind, SIM. clear - CIH BEH PRE.
     intros ps pt itr_src itr_tgt SIM LE EQ. subst.
-    depdes SIM; try itree_clarify x;
-      try by des; hdes; eauto; pstep; do 2 econs; i; eauto 7;
-             first [exploit SIM1|exploit SIM0]; eauto;
-             i; esplits; first [punfold x1|punfold x0]; eauto.
+    depdes SIM; auto_simg SIM0 SIM1 x x0 x1.
     eapply PRE; eauto.
     destruct LE; subst; eauto using smj_ltb_trans.
   Qed.
@@ -268,10 +265,7 @@ Section ADEQUACY.
     revert LE EQ. pattern ps, pt, itr_src, itr_tgt.
     eapply simg_ind, SIM. clear - STEP BEH PRE.
     intros ps pt itr_src itr_tgt SIM LE EQ. subst.
-    depdes SIM; try itree_clarify x;
-      try by des; hdes; eauto; pstep; do 2 econs; i; eauto 7;
-             first [exploit SIM1|exploit SIM0]; eauto;
-             i; esplits; first [punfold x1|punfold x0]; eauto.
+    depdes SIM; auto_simg SIM0 SIM1 x x0 x1.
     eapply PRE; eauto.
     destruct LE; subst; eauto using smj_ltb_trans.
   Qed.
@@ -312,10 +306,7 @@ Section ADEQUACY.
     revert LE EQ. pattern ps, pt, itr_src, itr_tgt.
     eapply simg_ind, SIM. clear - STEP BEH PRE.
     intros ps pt itr_src itr_tgt SIM LE EQ. subst.
-    depdes SIM; try itree_clarify x;
-      try by des; hdes; eauto; pstep; do 2 econs; i; eauto 7;
-             first [exploit SIM1|exploit SIM0]; eauto;
-             i; esplits; first [punfold x1|punfold x0]; eauto.
+    depdes SIM; auto_simg SIM0 SIM1 x x0 x1.
     eapply PRE; eauto.
     destruct LE; subst; eauto using smj_ltb_trans.
   Qed.

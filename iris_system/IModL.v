@@ -3,7 +3,6 @@
 (* Note : codes until start_ipm_proof are useless codes - move below codes to separate file
    (or maybe remove them) *)
 (* Require Import Coqlib.
-Require Import STS.
 Require Import Behavior.
 Require Import PCM.
 Require Import Any.

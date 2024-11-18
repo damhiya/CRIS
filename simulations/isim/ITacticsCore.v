@@ -26,7 +26,7 @@ From iris.prelude Require Import prelude.
 
 Lemma string_app_inv
   p s s'
-  (EQ : (p ++ s = p ++ s')%string)
+  (EQ: (p ++ s = p ++ s')%string)
   :
   (s = s')%string.
 Proof.
@@ -36,7 +36,7 @@ Qed.
 
 Ltac inv_string X :=
   inv X;
-  repeat match goal with [H : @eq string _ _|-_] =>
+  repeat match goal with [H: @eq string _ _|-_] =>
            apply string_app_inv in H
     end; ss.
 
@@ -45,7 +45,7 @@ Ltac prove_scope :=
   s; ii; des_ifs; ss; des; ss; eauto.
 
 Ltac prove_nodup :=
-  repeat (econs; [ii; ss; des; try match goal with [H : _ |- _] => inv_string H end|]); try (econs; fail).
+  repeat (econs; [ii; ss; des; try match goal with [H: _ |- _] => inv_string H end|]); try (econs; fail).
 
 Ltac by_coind CIH :=
   iApply isim_progress; iApply isim_base;
@@ -58,7 +58,7 @@ Ltac unfold_hmod :=
   | [|-context[HMod.modsem ?x _]] => rewrite/__ {1}/x; progress unseal "ccr"
   | [|-context[HMod.sk ?x]] => rewrite/__ {1}/x; progress unseal "ccr" end.
 
-Lemma ereplace T (x y : T):
+Lemma ereplace T (x y: T):
   x = y -> x = y.
 Proof. eauto. Qed.
 
@@ -69,8 +69,8 @@ Ltac alist_upd_simpl nodup_tac :=
     | context[(k,?v0)] =>
       let TMP := fresh "_TMP" in
       let NODUP := fresh "NODUP" in
-      match goal with [H : List.NoDup _|-_] =>
-        eassert (TMP : List.NoDup (List.map fst l)) by (nodup_tac H); clear H; revert TMP
+      match goal with [H: List.NoDup _|-_] =>
+        eassert (TMP: List.NoDup (List.map fst l)) by (nodup_tac H); clear H; revert TMP
       end;
       erewrite (@ereplace _ l); [intros ?|Lauto_prepare; Lauto_find (k,v0); refl];
       eassert (NODUP := alist_upd_nodup k v _ TMP); revert NODUP;
@@ -82,14 +82,18 @@ Ltac alist_upd_simpl nodup_tac :=
 Ltac trivial_nodup H :=
   exact H.
 
+Ltac move_nodup :=
+  repeat match goal with [H: List.NoDup _ |- _ ] => guardH H; move H at top end;
+  unguard.
+
 Ltac alist_find_simpl nodup_tac :=
   match goal with
   [ |- context[alist_find ?k ?l]] =>
     match l with
     | context[(k,_)] =>
       let TMP := fresh "_TMP" in
-      match goal with [H : List.NoDup _|-_] =>
-        eassert (TMP : List.NoDup (List.map fst l))  by (nodup_tac H);
+      match goal with [H: List.NoDup _|-_] =>
+        eassert (TMP: List.NoDup (List.map fst l))  by (nodup_tac H);
         revert TMP
       end;
       erewrite (@ereplace _ l);
@@ -101,7 +105,7 @@ Ltac alist_find_simpl nodup_tac :=
     end
   end.
   
-Lemma map_map_compose {A B C} (f : A -> B) (g : B -> C) l:
+Lemma map_map_compose {A B C} (f: A -> B) (g: B -> C) l:
   List.map g (List.map f l) = List.map (g ∘ f) l.
 Proof.
   rewrite List.map_map. refl.
@@ -129,19 +133,20 @@ Ltac hss :=
   hss_des;
   try (rewrite -> !Any.pair_split in * );
   try (rewrite -> !Any.upcast_downcast in * );
-  repeat (match goal with [G : Any.downcast _ = Some _ |-_] =>
+  repeat (match goal with [G: Any.downcast _ = Some _ |-_] =>
     apply Any.downcast_upcast in G; inv G; ss
    end);
-  repeat (match goal with [G : Any.upcast _ = Any.upcast _ |-_] =>
+  repeat (match goal with [G: Any.upcast _ = Any.upcast _ |-_] =>
     apply Any.upcast_inj in G; destruct G as [_ G]; red in G; depdes G; ss
    end);
-  repeat (match goal with [G : Some _ = Some _ |- _] =>
+  repeat (match goal with [G: Some _ = Some _ |- _] =>
     depdes G; ss
   end);
   try (rewrite -> !Any.pair_split in * );
   try (rewrite -> !Any.upcast_downcast in * );
   repeat (alist_upd_simpl trivial_nodup);
-  hss_des.
+  hss_des;
+  move_nodup.
 
 (***
   Step-level tactics
@@ -150,14 +155,26 @@ Ltac hss :=
 Ltac iIntrosFresh H := iIntros H || iIntrosFresh (H ++ "'")%string.
 
 Ltac des_pairs :=
-  repeat match goal with
-    | [H: context[let () := ?x in _] |- _] => destruct x
-    | |- context[let () := ?x in _] => destruct x
-    | [H: context[let (_, _) := ?x in _] |- _] =>
-        let n0 := fresh x in let n1 := fresh x in destruct x as [n0 n1]
-    | |- context[let (_, _) := ?x in _] =>
-        let n0 := fresh x in let n1 := fresh x in destruct x as [n0 n1]
-    end.
+  (repeat
+    match goal with
+    | [H: context[let () := ?x in _] |- _] =>
+        match type of x with
+        | () => destruct x
+        | (_ * _)%type =>
+            let n0 := fresh "q" in let n1 := fresh "q" in
+            let EQ := fresh "EQq" in
+            destruct x as [n0 n1] eqn: EQ
+        end
+    | |- context[let () := ?x in _] =>
+        match type of x with
+        | () => destruct x
+        | (_ * _)%type =>
+            let n0 := fresh "q" in let n1 := fresh "q" in
+            let EQ := fresh "EQq" in
+            destruct x as [n0 n1] eqn: EQ
+        end
+    end);
+   subst.
 
 Ltac desugar itr :=
   match itr with
@@ -341,7 +358,7 @@ Ltac _step_l :=
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, unwrapU ?ox >>= _) _) ] =>
       let name := fresh "q" in
       iApply isim_unwrapU_src; iIntros (name) "%";
-      match goal with [ H : ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite -> G in * end
+      match goal with [ H: ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite -> G in * end
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _) _) ] =>
       let name := fresh "asm" in iApply isim_asm_src; iIntros (name)
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger Tid >>= _) _) ] =>
@@ -368,7 +385,7 @@ Ltac _step_r :=
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, unwrapN ?ox >>= _)) ] =>
       let name := fresh "q" in
       iApply isim_unwrapN_tgt; iIntros (name) "%";
-      match goal with [ H : ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite -> G in * end
+      match goal with [ H: ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite -> G in * end
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, guarantee _ >>= _)) ] =>
       let name := fresh "grt" in iApply isim_guar_tgt; iIntros (name)
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, trigger Tid >>=  _)) ] =>
@@ -433,15 +450,18 @@ Ltac hide_itree_r marker :=
   match goal with [|- _ (_ (_, ?it) _)] => try unfold it end.
 
 Ltac show_itree marker :=
-  revert_until marker; clear marker;
-  let ITREE := fresh "ITREE" in
-  repeat (intros ?ITREE; unfold ITREE; clear ITREE); i.
+  repeat match goal with
+      [H: _ |- _] =>
+        try match H with marker => fail 3 end;
+        first [unfold H; clear H | revert H]
+    end;
+  clear marker; i.
 
 Ltac unfold_stb :=
   try match goal with
     [|-context[unwrapN (?stb ?sk ?name)]] =>
       try match goal with
-        [H : context[stb_incl _ (stb _)]|-_] =>
+        [H: context[stb_incl _ (stb _)]|-_] =>
           let RW := fresh "_RW" in let ND := fresh "_ND" in
           edestruct H as [ND RW];
           erewrite (RW name);
@@ -479,14 +499,14 @@ Ltac prep :=
 
 Ltac step_l := let marker := fresh "MARKER" in
   hide_itree_r marker;
-  prep; _step_l; try alist_find_simpl fnsems_nodup; des_pairs; s;
+  prep; _step_l; try alist_find_simpl fnsems_nodup; s; des_pairs; s;
   show_itree marker.
 
 Ltac steps_l := repeat step_l.
 
 Ltac step_r := let marker := fresh "MARKER" in
   hide_itree_l marker;
-  prep; _step_r; try alist_find_simpl fnsems_nodup; des_pairs; s;
+  prep; _step_r; try alist_find_simpl fnsems_nodup; s; des_pairs; s;
   show_itree marker.
 
 Ltac steps_r := repeat step_r.
@@ -494,7 +514,7 @@ Ltac steps_r := repeat step_r.
 Ltac step := let marker := fresh "MARKER" in
   hide_itree_r marker; prep; show_itree marker;
   hide_itree_l marker; prep; show_itree marker;
-  _step; des_pairs; s.
+  _step; s; des_pairs; s.
 
 Ltac force_l_core := let marker := fresh "MARKER" in
   hide_itree_r marker;
@@ -544,17 +564,19 @@ Ltac call hyps := let marker := fresh "MARKER" in
   hide_itree_r marker; prep; show_itree marker;
   hide_itree_l marker; prep; show_itree marker;
   iApply isim_call;
-  iSplitL hyps; [ | iIntros "% % % % % %"; iIntrosFresh "IST"].
+  iSplitL hyps; [ |iIntros "% % % % % %"; iIntrosFresh "IST"];
+  move_nodup.
 
 Ltac yield hyps := let marker := fresh "MARKER" in
   hide_itree_r marker; prep; show_itree marker;
   hide_itree_l marker; prep; show_itree marker;
   iApply isim_yield;
-  iSplitL hyps; [ |iIntros "% % % % %"; iIntrosFresh "IST"].
+  iSplitL hyps; [ |iIntros "% % % % %"; iIntrosFresh "IST"];
+  move_nodup.
 
 Ltac init_simF :=
   unfold HSim.sim_fun, HSSim.sim_fun; i;
-  match goal with [H : _|-_] => revert H end;
+  match goal with [H: _|-_] => revert H end;
   s; unfold_hmod;
   match goal with [|-context[alist_find _ ?x]] =>
     set (TMP := x); unfold_hmod; unfold TMP; clear TMP
@@ -573,7 +595,8 @@ Ltac init_simF :=
   | [|- context[cfunN ?x]] => rewrite/__ {1}/x
   end;                          
   unfold interp_sb_hp, HoareFun, cfunU, cfunN, HModSem.sandbox_body; s;
-  ii; subst; iIntros "IST".
+  ii; subst; iIntros "IST";
+  move_nodup.
 
 Ltac prove_sub_perm :=
   i; try rewrite /HMod.scopes; s; repeat unfold_hmod; s; Lauto_normalize;
@@ -610,7 +633,7 @@ Global Arguments Esnoc {_} _%proof_scope _%string _%I.
 Local Notation world_id := positive.
 Local Notation level := nat.
 
-(*** TODO : 
+(*** TODO: 
           What else should be displayed? 
           Simplify (hide) k-trees
 

@@ -1,6 +1,5 @@
 (* 
 Require Import Coqlib.
-Require Import STS.
 Require Import Behavior.
 Require Import ModSem.
 Require Import Skeleton.

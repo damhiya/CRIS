@@ -7,7 +7,7 @@ Require Import Events.
 Require Import IRed.
 Require Import Behavior.
 Require Import PCM IPM.
-Require Import STS Behavior.
+Require Import Behavior.
 Require Import Skeleton Mod.
 
 Set Implicit Arguments.

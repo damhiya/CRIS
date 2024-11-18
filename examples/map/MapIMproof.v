@@ -194,7 +194,7 @@ Module MapIM. Section MapIM.
     iDestruct "IST" as (? ? ? ?) "(%& (% & [%|(P & IST)]) &%)";    
       [|iDestruct "IST" as (? ? ? ?) "(% & M)"];
       des; subst; hss.
-    { des_ifs; ss. hss. nia. }
+    { nia. }
     rename q2 into idx.
     
     (* SRC: prove the postcond of get *)
@@ -236,8 +236,8 @@ Module MapIM. Section MapIM.
     iDestruct "IST" as (? ? ? ?) "(%& (% & [%|(P & IST)]) &%)";    
       [|iDestruct "IST" as (? ? ? ?) "(% & M)"];
       des; subst; hss.
-    { des_ifs; hss. nia. }
-    rename z1 into idx, z2 into v.
+    { nia. }
+    rename q4 into idx, q5 into v.
 
     (* SRC: prove the postcond of set *)
     forces_l. iSplitL "". { eauto. }

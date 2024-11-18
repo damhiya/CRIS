@@ -86,7 +86,7 @@ Module MapMA. Section MapMA.
     iDestruct "IST" as (f sz) "(% & [(% & P0 & INIT)|(P' & B & U)])".
     { iExFalso. iApply (initial_map_points_to with "INIT MAP"). }
     des. subst. hss. steps_l.
-    rename z into idx, z0 into v.
+    rename q1 into idx, q2 into v.
 
     (* TGT: prove the precond of get *)
     step_r. forces_r. hss. iSplit. { iFrame. eauto. }
@@ -119,7 +119,7 @@ Module MapMA. Section MapMA.
     iDestruct "IST" as (f sz) "(% & [(% & P0 & INIT)|(P' & B & U)])".
     { iExFalso. iApply (initial_map_points_to with "INIT MAP"). }
     des; subst. hss. steps_l. hss. steps_l.
-    rename z0 into idx, z1 into v, z into v'.
+    rename q2 into v', q3 into idx, q4 into v. hss.
 
     (* TGT: prove the precond of set *)
     step_r. force_r (idx,v'). forces_r. iSplitR; first eauto.
@@ -149,7 +149,7 @@ Module MapMA. Section MapMA.
     (* SRC: handle the IST of Map and the precond of set_by_user *)
     steps_l. iDestruct "ASM" as "((% & MAP) & %)".
     subst. hss. steps_l.
-    rename z into idx, z0 into v.
+    rename q1 into idx, q2 into v.
     
     (* TGT: prove the precond of set_by_user *)
     step_r. forces_r. hss. iSplitR. { eauto. }
@@ -194,4 +194,5 @@ Module MapMA. Section MapMA.
     - apply simF_set.
     - apply simF_set_by_user.
   Qed.
+
 End MapMA. End MapMA.

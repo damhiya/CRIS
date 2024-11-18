@@ -19,7 +19,7 @@ From ExtLib Require Import
 
 Require Import Red IRed.
 
-Require Import ModSimStrict HPSim.
+Require Import HPSim.
 From iris.algebra Require Import big_op.
 
 Section HPSIM_ADEQUACY. 
@@ -199,29 +199,28 @@ Section HPSIM_ADEQUACY.
       rewrite /ctx_add /ctx_set list_lookup_insert; eauto using le_mine_in.
     - clarify. do 3 step; prep. eapply K; eauto.
     - clarify. step; eauto.
-      { instantiate (1:= interp_hp_fun f). rewrite alist_find_map. rewrite FUN. et. }
+      { instantiate (1:= interp_hp_fun f). rewrite alist_find_map FUN. et. }
 
       rewrite /interp_hp_fun.
       exploit (K _ _ st_src st_tgt _ _ _ _ _ _ mr_src mr_tgt); eauto.
       clear K CIH; intros K.
 
-      guclo sim_strictC_spec. econs; eauto using sim_strict_refl.
-      ginit. prep. guclo sim_strict_bindC_spec; econs; eauto.
-      { gfinal; right; eapply sim_strict_refl. }
-      i. do 2 (prep; gstep; econs; eauto); prep.
-      inv REL; gfinal; right; eapply sim_strict_refl.
+      match goal with [|- _ ?t _] => pattern t end.
+      eapply eq_ind; eauto.
+      rewrite interp_hp_bind.
+      repeat f_equal. extensionalities x.
+      grind. rewrite !interp_hp_tau. eauto.
     - clarify. step; eauto.
-      { instantiate (1:= interp_hp_fun f). rewrite alist_find_map. rewrite FUN. et. }
+      { instantiate (1:= interp_hp_fun f). rewrite alist_find_map FUN. et. }
 
       rewrite /interp_hp_fun.
       exploit (K _ _ st_src st_tgt _ _ _ _ _ _ mr_src mr_tgt); eauto.
       clear K CIH; intros K.
 
-      guclo sim_strictC_spec. econs; eauto using sim_strict_refl.
-      ginit. prep. guclo sim_strict_bindC_spec; econs; eauto.
-      { gfinal; right; eapply sim_strict_refl. }
-      i. do 2 (prep; gstep; econs; eauto); prep.
-      inv REL; gfinal; right; eapply sim_strict_refl.
+      eapply eq_ind; eauto.
+      rewrite interp_hp_bind.
+      repeat f_equal. extensionalities x.
+      grind. rewrite !interp_hp_tau. eauto.
     - clarify; steps; eapply K; eauto.
     - clarify; steps; eapply K; eauto.
     - clarify; steps; eapply K; eauto.
