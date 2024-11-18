@@ -2,7 +2,7 @@ Require Import Coqlib.
 From iris.algebra Require Import proofmode_classes.
 From iris.proofmode Require Export proofmode.
 From CCR.base_logic Require Export base_logic.
-From CCR Require Import PCM.
+From CCR Require Export PCM.
 From iris.prelude Require Import options.
 
 Arguments Z.of_nat : simpl nomatch.

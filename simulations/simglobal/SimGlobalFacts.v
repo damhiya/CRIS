@@ -4,12 +4,11 @@ Require Import Any.
 Require Import Behavior.
 Require Import Mod Mod2ITree.
 Require Import Skeleton.
-Require Import PCM.
+Require Import PCM IPM.
 Require Import Coq.Relations.Relation_Definitions.
 Require Import Relation_Operators.
 Require Import RelationPairs.
 Require Import SimGlobal.
-Require Import IModL.
 Require Import Events.
 
 Set Implicit Arguments.

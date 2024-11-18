@@ -1,7 +1,7 @@
 Require Import Coqlib ITreelib sflib.
 Require Import Behavior.
 Require Import Skeleton.
-Require Import PCM IModL.
+Require Import PCM IPM.
 Require Import Any.
 Require Import STB ModSim.
 Require Import Events HMod HMod2Mod.
