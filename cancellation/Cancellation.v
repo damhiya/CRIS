@@ -136,153 +136,6 @@ Section CANCEL.
     eapply STBCOMPLETE in H. ss. rewrite SOME in H. inv H. ss.
   Qed.
 
-  Let md_elim: HMod.t := HModAux.to_elimI (SModElim.to_elim md). 
-  Let md_tgt: HMod.t := HModAux.to_elimI (SMod.to_hmod ginv stb md).
-  
-  Let ms_elim: HModSem.t := HMod.modsem md_elim (md_elim.(HMod.sk)).
-  Let ms_tgt: HModSem.t := HMod.modsem md_tgt (md_tgt.(HMod.sk)).
-
-  (* Sk.t lemmas *)
-  (* sk0: list (string * Any.t) *)
-  (* SKINCL: incl (SMod.sk md) sk0 *)
-  (* SKWF: Sk.wf sk0 *)
-
-  Definition hmod_elim_head X P : Any.t -> itree hmodE ((nat * X * nat * X) * Any.t)
-    :=
-    fun varg =>               
-      my_tid <- trigger Tid;;
-      x <- trigger (Choose X);; 
-      arg <- trigger (Choose Any.t);;
-      trigger (Guarantee (P my_tid x varg arg));;;
-      my_tid' <- trigger Tid;;
-      x' <- trigger (Take X);;
-      varg' <- trigger (Take _);;
-      trigger (Assume (P my_tid' x' varg' arg));;;
-      Ret ((my_tid, x, my_tid', x'), varg').
-
-  Definition hmod_elim_tail X Q : (nat * X * nat * X) -> Any.t -> itree hmodE Any.t
-    :=
-    fun '(my_tid, x, my_tid', x') vret' =>
-      ret <- trigger (Choose Any.t);;
-      trigger (Guarantee (Q my_tid' x' vret' ret));;;
-      vret <- trigger (Take Any.t);;
-      trigger (Assume (Q my_tid x vret ret));;;
-      Ret vret.
-      
-
-  (*** use interp_hpI ***) 
-  Inductive hmod_elim_rel: itree hmodE Any.t -> itree hmodE Any.t -> Prop
-    :=
-  | hmod_elim_rel_base v
-    :
-    hmod_elim_rel (Ret v) (Ret v)
-
-  | hmod_elim_rel_add itr ktrS ktrT
-      (ITR: forall (v: Any.t), hmod_elim_rel (ktrS v) (ktrT v))
-    :
-    hmod_elim_rel (itr >>= ktrS) (itr >>= ktrT)
-
-  | hmod_elim_rel_head X P v src tgt ktrS ktrT
-      (KTR: forall m v, hmod_elim_rel (ktrS v) (ktrT (m,v)))
-      (EQS: src = ktrS v)
-      (EQT: tgt = (@hmod_elim_head X P v) >>= ktrT)
-    :
-    hmod_elim_rel src tgt
-                  
-  | hmod_elim_rel_tail X Q m v src tgt ktrS ktrT
-      (KTR: forall v, hmod_elim_rel (ktrS v) (ktrT v))
-      (EQS: src = ktrS v)
-      (EQT: tgt = (@hmod_elim_tail X Q m v) >>= ktrT)
-    :
-    hmod_elim_rel src tgt
-  .
-
-  (*** use interp_hpI ***) 
-  Variant thread_rel sk0 (cid tid: nat) (fr: Σ) src tgt : Prop :=
-  | thread_rel_init scopes fsp fbody m varg arg
-      (NOC: ~ Nat.eq_dec tid cid)
-      (FR: Own fr ⊢ (ginv sk0 tid) -∗ fsp.(precond) tid m varg arg)
-      (SRC: src = 
-        (interp_hp (HModSem.sandbox scopes (fbody varg)) ε)
-        >>= hp_fun_tail)
-      (TGT: tgt =
-        (interp_hp
-             (HModSem.sandbox scopes (HoareFun (ginv sk0) (stb sk0)
-                  fsp.(precond) fsp.(postcond) fbody arg)) ε) 
-        >>= hp_fun_tail)
-  | thread_rel_body (Q: Any.t -> Any.t -> iProp) itrS itrT
-      (ELIM: hmod_elim_rel itrS itrT)
-      (SRC: src = (interp_hp itrS ε) >>= hp_fun_tail)
-      (TGT: tgt =
-        (interp_hp
-         ((if Nat.eq_dec tid cid then Ret tt else trigger (Assume (ginv sk0 tid)));;;
-           vret <- itrT;; 
-           ret <- trigger (Choose Any.t);;
-           trigger (Guarantee (Q vret ret));;;
-           Ret ret) fr)
-        >>= hp_fun_tail)
-  .
-
-(*
-thread_rel sk0 0 0 q
-  (` x : _ <- interp_hp (ITree.iter (Cancel.handle_callE (prog (SModSemElim.to_elim (SMod.modsem md sk0)))) (░ fsb_body () ↑)) ε;; hp_fun_tail x)
-  (` x : Σ * Any.t <-
-   Basics.iter
-     (λ si : Σ * itree (λ H0 : Type, hmodE H0) Any.t,
-        ` si' : Σ * (itree (λ H0 : Type, hmodE H0) Any.t + Any.t) <-
-        match observe si.2 with
-        | RetF r => λ s : Σ, Ret (s, inr r)
-        | TauF t => λ s : Σ, Ret (s, inl t)
-        | @VisF _ _ _ X e k =>
-            ITree.map (λ sa : Σ * X, (sa.1, inl (k sa.2)))
-            ∘ case_ handle_agE
-                (case_ handle_schE
-                   (case_ handle_callE
-                      (case_ (λ (T : Type) (e0 : pgE T) (fr : Σ), ` x : T <- handle_pgE e0;; Ret (fr, x))
-                         (λ (T : Type) (e0 : coreE T) (fr : Σ), ` x : T <- trigger e0;; Ret (fr, x))))) X e
-        end si.1;; Ret match si'.2 with
-                       | inl i' => inl (si'.1, i')
-                       | inr r => inr (si'.1, r)
-                       end)
-     (q ⋅ ε,
-     ITree.iter (Cancel.handle_callE (prog (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0))))
-       (translate (HModSem.handle_sandbox l)
-          (` vret : Any.t <- ↧ fsb_body () ↑;;
-           ` ret : Any.t <- trigger (Choose Any.t);; trigger (Guarantee (postcond fsb_fspec 0 m vret ret));;; Ret ret)));; 
-   hp_fun_tail x)
-*)
-
-
-  (*** ***) 
-  (* Variant thread_rel sk0 (cid tid: nat) (fr: Σ) src tgt : Prop := *)
-  (* | thread_rel_init scopes fsp fbody m varg arg *)
-  (*     (NOC: ~ Nat.eq_dec tid cid) *)
-  (*     (FR: Own fr ⊢ (ginv sk0 tid) -∗ fsp.(precond) tid m varg arg) *)
-  (*     (SRC: src =  *)
-  (*       (interp_hp (HModSem.sandbox scopes (interp_smod_elim (fbody varg))) ε) *)
-  (*       >>= hp_fun_tail) *)
-  (*     (TGT: tgt = *)
-  (*       (interp_hp *)
-  (*            (HModSem.sandbox scopes (HoareFun (ginv sk0) (stb sk0) *)
-  (*                 fsp.(precond) fsp.(postcond) fbody arg)) ε)  *)
-  (*       >>= hp_fun_tail) *)
-  (* | thread_rel_body scopes fsp m itr *)
-  (*     (SRC: src = *)
-  (*       (interp_hp (HModSem.sandbox scopes (interp_smod_elim itr)) ε) *)
-  (*       >>= hp_fun_tail) *)
-  (*     (TGT: tgt = *)
-  (*       (interp_hp *)
-  (*         (HModSem.sandbox scopes  *)
-  (*           (  *)
-  (*             (if Nat.eq_dec tid cid then Ret tt  *)
-  (*             else trigger (Assume (ginv sk0 tid)) );;; *)
-  (*             vret <- interp_smod (ginv sk0) (stb sk0) itr;;  *)
-  (*             ret <- trigger (Choose Any.t);; *)
-  (*             trigger (Guarantee (fsp.(postcond) tid m vret ret));;; *)
-  (*             Ret ret)) fr) *)
-  (*       >>= hp_fun_tail) *)
-  (* . *)
-
   Lemma fsb_find_spec fn l fsp fbody sk0
     (SKINCL: incl sk sk0) 
     (SKWF: Sk.wf sk0) 
@@ -306,7 +159,489 @@ thread_rel sk0 0 0 q
     eapply fsb_find_spec, STBCOMPLETE in FIND. ss.
     rewrite FIND in STB. inv STB. ss. 
   Qed.
+
+  Let md_elim: HMod.t := HModAux.to_elimI (SModElim.to_elim md). 
+  Let md_tgt: HMod.t := HModAux.to_elimI (SMod.to_hmod ginv stb md).
   
+  Let ms_elim: HModSem.t := HMod.modsem md_elim (md_elim.(HMod.sk)).
+  Let ms_tgt: HModSem.t := HMod.modsem md_tgt (md_tgt.(HMod.sk)).
+
+  (* Sk.t lemmas *)
+  (* sk0: list (string * Any.t) *)
+  (* SKINCL: incl (SMod.sk md) sk0 *)
+  (* SKWF: Sk.wf sk0 *)
+
+  Definition hmod_elim_head X P : Any.t -> itree hmodE ((nat * X * nat * X) * Any.t)
+    :=
+    fun varg =>
+      my_tid <- trigger Tid;; tau;;
+      x <- trigger (Choose X);; tau;;
+      arg <- trigger (Choose Any.t);; tau;;
+      trigger (Guarantee (P my_tid x varg arg));;; tau;; tau;;
+      my_tid' <- trigger Tid;; tau;;
+      x' <- trigger (Take X);; tau;;
+      varg' <- trigger (Take _);; tau;;
+      trigger (Assume (P my_tid' x' varg' arg));;; tau;;
+      Ret ((my_tid, x, my_tid', x'), varg').
+
+  Definition hmod_elim_tail X Q : (nat * X * nat * X) -> Any.t -> itree hmodE Any.t
+    :=
+    fun '(my_tid, x, my_tid', x') vret' =>
+      ret <- trigger (Choose Any.t);; tau;;
+      trigger (Guarantee (Q my_tid' x' vret' ret));;; tau;; tau;; tau;;
+      vret <- trigger (Take Any.t);; tau;;
+      trigger (Assume (Q my_tid x vret ret));;; tau;;
+      Ret vret.
+      
+
+  (*** use interp_hpI ***) 
+  Variant elim_rel_def
+    (relc: bool -> itree hmodE Any.t -> itree hmodE Any.t -> Prop)
+    (reli: bool -> itree hmodE Any.t -> itree hmodE Any.t -> Prop)
+    : bool -> itree hmodE Any.t -> itree hmodE Any.t -> Prop
+  :=
+  | elim_rel_base v p
+    :
+    elim_rel_def relc reli p (Ret v) (Ret v)
+
+  | elim_rel_tau_src p itrS itrT
+      (ITR: reli true itrS itrT)
+    :
+    elim_rel_def relc reli p (tau;; itrS) (itrT)
+
+  | elim_rel_tau_tgt p itrS itrT
+      (ITR: reli true itrS itrT)
+    :
+    elim_rel_def relc reli p (itrS) (tau;; itrT)
+
+  | elim_rel_add {R} p itr ktrS ktrT
+      (KTR: forall (v: R), reli true (ktrS v) (ktrT v))
+    :
+    elim_rel_def relc reli p (itr >>= ktrS) (itr >>= ktrT)
+
+  | elim_rel_head X P p v src tgt ktrS ktrT
+      (KTR: forall m v, reli true (ktrS v) (ktrT (m,v)))
+      (EQS: src = ktrS v)
+      (EQT: tgt = (@hmod_elim_head X P v) >>= ktrT)
+    :
+    elim_rel_def relc reli p src tgt
+                  
+  | elim_rel_tail X Q m v p src tgt ktrS ktrT
+      (KTR: forall v, reli true (ktrS v) (ktrT v))
+      (EQS: src = ktrS v)
+      (EQT: tgt = (@hmod_elim_tail X Q m v) >>= ktrT)
+    :
+    elim_rel_def relc reli p src tgt
+
+  | elim_rel_def_NB
+      p src tgt itrS ktrT
+      (EQS: src = itrS)
+      (EQT: tgt = trigger (Choose void) >>= ktrT)
+    :
+    elim_rel_def relc reli p src tgt
+
+   | elim_rel_spawn
+      sk0 p src tgt f fn args ktrS ktrT
+      (SKINCL: incl sk sk0)
+      (SKWF: Sk.wf sk0)
+      (STB: stb sk0 fn = Some f)
+      (KTR: forall x, reli true (ktrS x) (ktrT x))
+      (EQS: src =  trigger (Spawn fn args) >>= ktrS)
+      (EQT: tgt = HoareSpawn (ginv sk0) f fn args >>= ktrT)
+    :
+    elim_rel_def relc reli p src tgt
+
+  | elim_rel_yield
+      sk0 tid p src tgt ktrS ktrT
+      (SKINCL: incl sk sk0)
+      (SKWF: Sk.wf sk0)
+      (KTR: forall x, reli true (ktrS x) (ktrT x))
+      (EQS: src = trigger (Yield tid) >>= ktrS)
+      (EQT: tgt = HoareYield (ginv sk0) tid >>= ktrT)
+    :
+    elim_rel_def relc reli p src tgt
+
+  | elim_rel_progress
+      src tgt
+      (REL: relc false src tgt)
+    :
+    elim_rel_def relc reli true src tgt 
+  .
+
+  Inductive _elim_rel relc p src tgt: Prop :=
+  | _elim_rel_intro (SAT: @elim_rel_def relc (_elim_rel relc) p src tgt).
+
+  Definition elim_rel := paco3 (_elim_rel) bot3.
+
+  (* TODO: elim_rel bindC *)
+
+  Lemma elim_rel_def_mon relc relc' P P'
+    (RELC: relc <3= relc')
+    (RELI: P <3= P')
+  :
+  elim_rel_def relc P <3= elim_rel_def relc' P'.
+  Proof.
+    i. destruct PR; eauto using elim_rel_def.
+  Qed.
+
+  Lemma elim_rel_tarski elim_rel P
+    (REL: @elim_rel_def elim_rel P <3= P)
+    :
+    _elim_rel elim_rel <3= P.
+  Proof.
+    fix IH 4. i. destruct PR. eapply REL.
+    eapply elim_rel_def_mon; eauto.
+  Qed. 
+
+  Lemma elim_rel_mon: monotone2 _elim_rel.
+  Proof.
+    ii. eapply elim_rel_tarski; eauto.
+    econs; inv PR.
+    - econs; eauto.
+    - econs 2; eauto.
+    - econs 3; eauto.
+    - econs 4; eauto.
+    - econs 5; eauto.
+    - econs 6; eauto.
+    - econs 7; eauto.
+    - econs 8; eauto.
+    - econs 9; eauto.
+  Qed.
+
+  Hint Resolve elim_rel_def_mon: paco.
+  Hint Resolve cpn2_wcompat: paco.
+  Hint Resolve elim_rel_mon: paco.
+
+  Definition elim_rel_indC elim_rel :=
+    @elim_rel_def elim_rel.
+  
+  Lemma elim_rel_indC_mon: monotone2 elim_rel_indC.
+  Proof.
+    ii. unfold elim_rel_indC in *.
+    inv IN; des; eauto using elim_rel_def.
+  Qed.
+
+  Lemma elim_rel_indC_spec:
+    elim_rel_indC <3= gupaco2 _elim_rel (cpn2 _elim_rel).
+  Proof.
+    eapply wrespect2_uclo; eauto with paco.
+    econs; eauto with paco. i.
+    inv PR; econs; eauto 7 using elim_rel_def, elim_rel_mon, rclo2.
+  Qed.
+
+  Variant elim_rel_bindC 
+    (r: itree hmodE Any.t -> itree hmodE Any.t -> Prop)
+    : itree hmodE Any.t -> itree hmodE Any.t -> Prop
+    :=
+  | elim_rel_bindC_intro
+      i_src i_tgt
+      (REL: r i_src i_tgt)
+
+      k_src k_tgt
+      (RELK: ∀v_src v_tgt, r (k_src v_src) (k_tgt v_tgt))
+    :
+    elim_rel_bindC r (i_src >>= k_src) (i_tgt >>= k_tgt)
+  .
+
+  Lemma elim_rel_bindC_mon
+        r1 r2 
+        (LEr: r1 <2= r2)
+    :
+    elim_rel_bindC r1 <2= elim_rel_bindC r2
+  .
+  Proof.
+    ii. destruct PR; econs; eauto.
+  Qed.
+
+  Lemma elim_rel_bindC_wrespectful:
+    wrespectful2 (_elim_rel) elim_rel_bindC.
+  Proof.
+    econs; eauto using elim_rel_bindC_mon. i.
+    destruct PR. apply GF in REL.
+    econs. 
+    remember i_src in REL. remember i_tgt in REL.
+    move REL before GF. revert_until REL.
+    pattern i, i0.
+    eapply elim_rel_tarski, REL. i.
+    inv PR; grind; eauto 7 using elim_rel_mon, elim_rel_def, rclo2.
+    - econs. econs. eauto using rclo2. 
+    - grind. econs. econs. econs. 
+  
+
+ 
+
+  (*** use interp_hpI ***) 
+  Variant thread_rel sk0 (cid tid: nat) (fr: Σ) src tgt : Prop :=
+  | thread_rel_init scopes fsp fbody m varg arg
+      (NOC: ~ Nat.eq_dec tid cid)
+      (FR: Own fr ⊢ (ginv sk0 tid) -∗ fsp.(precond) tid m varg arg)
+      (SRC: src = 
+        (interp_hp (HModSem.sandbox scopes (fbody varg)) ε)
+        >>= hp_fun_tail)
+      (TGT: tgt =
+        (interp_hp
+             (HModSem.sandbox scopes (HoareFun (ginv sk0) (stb sk0)
+                  fsp.(precond) fsp.(postcond) fbody arg)) ε) 
+        >>= hp_fun_tail)
+  | thread_rel_body (Q: Any.t -> Any.t -> iProp) itrS itrT
+      (ELIM: @elim_rel itrS itrT)
+      (SRC: src = (interp_hp itrS ε) >>= hp_fun_tail)
+      (TGT: tgt =
+        (interp_hp
+            ((if Nat.eq_dec tid cid then Ret tt else trigger (Assume (ginv sk0 tid)));;;
+              vret <- itrT;; 
+              (interp_hpI (prog (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0)))
+                ( ret <- trigger (Choose Any.t);;
+                  trigger (Guarantee (Q vret ret));;;
+                  Ret ret))) fr)
+        >>= hp_fun_tail)
+  .
+
+  Lemma HoareSpawn_sandbox
+      scopes ginv' f fn args
+    :
+    HModSem.sandbox scopes (HoareSpawn ginv' f fn args) = HoareSpawn ginv' f fn args.
+  Proof.
+    unfold HoareSpawn.
+    rewrite/__ HModSB.transl_bind HModSB.transl_core. f_equal. extensionalities.
+    rewrite/__ HModSB.transl_bind HModSB.transl_core. f_equal. extensionalities.
+    rewrite/__ HModSB.transl_bind HModSB.transl_sch. f_equal. extensionalities.
+    rewrite/__ HModSB.transl_bind HModSB.transl_ag. f_equal. extensionalities.
+    rewrite HModSB.transl_ret. ss.
+  Qed. 
+
+  Lemma HoareSpawn_hpI
+      prog ginv' f fn args ktr
+    :
+    interp_hpI prog (HoareSpawn ginv' f fn args >>= ktr)
+    =
+    x <- HoareSpawn ginv' f fn args;; interp_hpI prog (ktr x).
+  Proof. Admitted. 
+
+  Lemma HoareYield_sandbox
+      scopes ginv' tid
+    :
+    HModSem.sandbox scopes (HoareYield ginv' tid) = HoareYield ginv' tid.
+  Proof.
+    unfold HoareYield.
+    rewrite/__ HModSB.transl_bind HModSB.transl_ag. f_equal. extensionalities.
+    rewrite/__ HModSB.transl_bind HModSB.transl_sch. f_equal. extensionalities.
+    rewrite/__ HModSB.transl_bind HModSB.transl_sch. f_equal. extensionalities.
+    rewrite HModSB.transl_ag. ss.
+  Qed. 
+
+  Lemma HoareYield_hpI
+      prog ginv' tid ktr
+    :
+    interp_hpI prog (HoareYield ginv' tid >>= ktr)
+    =
+    x <- HoareYield ginv' tid;; interp_hpI prog (ktr x).
+  Proof. Admitted. 
+
+
+  Lemma HoareCall_inline_aux
+      sk0 scopes fn varg scp fsp fbody 
+      (FIND: alist_find fn (SModSem.fnsems (SMod.modsem md sk0)) = Some (scp, {|fsb_fspec := fsp; fsb_body := fbody|}))
+    :
+    interp_hpI (prog (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0))) (HModSem.sandbox scopes (HoareCall fsp fn varg))
+    =
+    (* head *)
+    my_tid <- trigger Tid;; tau;;
+    m <- trigger (Choose (meta fsp));; tau;;
+    arg <- trigger (Choose Any.t);; tau;;
+    trigger (Guarantee (precond fsp my_tid m varg arg));;; tau;; tau;;
+    my_tid' <- trigger Tid;; tau;;
+    m' <- trigger (Take (meta fsp));; tau;;
+    varg' <- trigger (Take Any.t);; tau;;
+    trigger (Assume (precond fsp my_tid' m' varg' arg));;; tau;; 
+    (* body *)
+    vret' <- interp_hpI (prog (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0))) 
+                       (HModSem.sandbox scp (interp_smod (ginv sk0) (stb sk0) (fbody varg')));;
+    (* tail *)
+    ret <- trigger (Choose Any.t);; tau;;
+    trigger (Guarantee (postcond fsp my_tid' m' vret' ret));;; tau;; tau;; tau;;
+    vret <- trigger (Take Any.t);; tau;;
+    trigger (Assume (postcond fsp my_tid m vret ret));;; tau;;
+    Ret vret.
+  Proof.
+    unfold HoareCall.
+    (* head *)
+    rewrite/__ HModSB.transl_bind HModSB.transl_sch HIRed.bind_sch. 
+    f_equal. extensionality my_tid. do 2 f_equal.
+    rewrite/__ HModSB.transl_bind HModSB.transl_core HIRed.bind_core.
+    f_equal. extensionality m. do 2 f_equal.
+    rewrite/__ HModSB.transl_bind HModSB.transl_core HIRed.bind_core.
+    f_equal. extensionality arg. do 2 f_equal.
+    rewrite/__ HModSB.transl_bind HModSB.transl_ag HIRed.bind_ag.
+    f_equal. extensionalities. do 2 f_equal.
+    rewrite/__ HModSB.transl_bind HModSB.transl_call HIRed.call.
+    do 2 f_equal. ired.
+    rewrite/__ alist_find_map_snd FIND. ired.
+    unfold HModSem.sandbox_body, interp_sb_hp, HoareFun. s.
+    rewrite/__ HModSB.transl_bind HModSB.transl_sch. ired. rewrite HIRed.bind_sch.
+    f_equal. extensionality my_tid'. do 2 f_equal.
+    rewrite/__ HModSB.transl_bind HModSB.transl_core. ired. rewrite HIRed.bind_core.
+    f_equal. extensionality m'. do 2 f_equal.
+    rewrite/__ HModSB.transl_bind HModSB.transl_core. ired. rewrite HIRed.bind_core.
+    f_equal. extensionality varg'. do 2 f_equal.
+    rewrite/__ HModSB.transl_bind HModSB.transl_ag. ired. rewrite HIRed.bind_ag.
+    f_equal. extensionalities. do 2 f_equal. 
+    (* body *)
+    rewrite HModSB.transl_bind. ired. rewrite HIRed.bind.
+    f_equal. extensionality vret'.
+    rewrite/__ HModSB.transl_bind HModSB.transl_core. ired. rewrite HIRed.bind_core.
+    f_equal. extensionality ret. do 2 f_equal. 
+    rewrite/__ HModSB.transl_bind HModSB.transl_ag. ired. rewrite HIRed.bind_ag.
+    f_equal. extensionalities. do 2 f_equal.
+    rewrite HModSB.transl_ret. ired. rewrite HIRed.tau.
+    do 4 f_equal.
+    rewrite/__ HModSB.transl_bind HModSB.transl_core. ired. rewrite HIRed.bind_core.
+    f_equal. extensionality vret. do 2 f_equal.
+    rewrite/__ HModSB.transl_bind HModSB.transl_ag. ired. rewrite HIRed.bind_ag.
+    f_equal. extensionalities. do 2 f_equal.
+    rewrite/__ HModSB.transl_ret HIRed.ret. ss.
+  Qed.
+
+  Lemma HoareCall_inline
+      sk0 scopes fn varg scp fsp fbody 
+      (FIND: alist_find fn (SModSem.fnsems (SMod.modsem md sk0)) = Some (scp, {|fsb_fspec := fsp; fsb_body := fbody|}))
+    :
+    interp_hpI (prog (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0))) (HModSem.sandbox scopes (HoareCall fsp fn varg))
+    =
+    (* head *)
+    '((my_tid, x, my_tid', x'), varg') <- (@hmod_elim_head (meta fsp) (precond fsp) varg);;
+    (* body *)
+    vret' <- interp_hpI (prog (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0))) 
+                       (HModSem.sandbox scp (interp_smod (ginv sk0) (stb sk0) (fbody varg')));;
+    (* tail *)
+    @hmod_elim_tail (meta fsp) (postcond fsp) (my_tid, x, my_tid', x') vret'. 
+  Proof.
+    erewrite HoareCall_inline_aux; eauto.
+    unfold hmod_elim_head, hmod_elim_tail. ired. 
+    repeat (f_equal; extensionalities; ired; repeat f_equal). 
+  Qed.
+
+  Lemma elim_rel_refl
+      sk0 scopes itr
+      (SKINCL: incl sk sk0)
+      (SKWF: Sk.wf sk0)
+    :
+    @elim_rel
+      (interp_hpI (prog (SModSemElim.to_elim (SMod.modsem md sk0))) 
+          (HModSem.sandbox scopes itr))
+      (interp_hpI (prog (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0))) 
+          (HModSem.sandbox scopes (interp_smod (ginv sk0) (stb sk0) itr))).
+  Proof.
+    unfold elim_rel.
+    ginit. revert itr. gcofix CIH. i.
+    assert (CASE:= case_itrH _ itr). des; subst.
+    - rewrite/__ SModRed.interp_ret HModSB.transl_ret !HIRed.ret.
+      gstep. econs. econs; eauto.
+    - rewrite/__ SModRed.interp_tau !HModSB.transl_tau !HIRed.tau.
+      do 4 (gstep; econs; econs). gbase. eapply CIH.
+    - rewrite/__ SModRed.interp_bind SModRed.interp_ag !HModSB.transl_bind HModSB.transl_ag. ired.
+      rewrite/__ !HIRed.bind_ag. do 3 (gstep; econs; econs; i). 
+      rewrite/__ HModSB.transl_tau HModSB.transl_ret. ired. 
+      rewrite HIRed.tau. do 2 (gstep; econs; econs).
+      gbase. eapply CIH.
+    - rewrite/__ SModRed.interp_bind SModRed.interp_ag !HModSB.transl_bind HModSB.transl_ag. ired.
+      rewrite/__ !HIRed.bind_ag. do 3 (gstep; econs; econs; i). 
+      rewrite/__ HModSB.transl_tau HModSB.transl_ret. ired. 
+      rewrite HIRed.tau. do 2 (gstep; econs; econs).
+      gbase. eapply CIH.
+    - rewrite/__ SModRed.interp_bind SModRed.interp_sch !HModSB.transl_bind HModSB.transl_sch. ired.
+      unfold handle_schE_hmodE. depdes s.
+      + destruct (stb sk0 fn) eqn:STB; ired; cycle 1.
+        { 
+          unfold triggerNB. ired. 
+          rewrite/__ HModSB.transl_bind HModSB.transl_core. ired. 
+          rewrite HIRed.bind_core. gstep. econs. econs 7; ss.
+        }
+        rewrite/__ HoareSpawn_sandbox HoareSpawn_hpI HIRed.bind_sch.
+        gstep. econs. econs 8; eauto. i. s. gstep. econs. econs. 
+        rewrite/__ HModSB.transl_tau HModSB.transl_ret. ired. 
+        rewrite HIRed.tau. do 2 (gstep; econs; econs).
+        gbase. eapply CIH.
+      + rewrite/__ HoareYield_sandbox HoareYield_hpI HIRed.bind_sch.
+        gstep. econs. econs 9; eauto. i. s.
+        rewrite/__ HModSB.transl_tau HModSB.transl_ret. ired. 
+        rewrite HIRed.tau. do 3 (gstep; econs; econs).
+        gbase. eapply CIH.
+      + rewrite/__ HModSB.transl_sch !HIRed.bind_sch.
+        do 3 (gstep; econs; econs; i).
+        rewrite/__ HModSB.transl_tau HModSB.transl_ret. ired.
+        rewrite HIRed.tau. do 2 (gstep; econs; econs).
+        gbase. eapply CIH.
+    - rewrite/__ SModRed.interp_bind SModRed.interp_call.
+      unfold handle_callE_hmodE. depdes c. 
+      destruct (stb sk0 fn) eqn: STB; ired; cycle 1.
+      { 
+        unfold triggerNB. 
+        rewrite/__ !HModSB.transl_bind HModSB.transl_core. ired. 
+        rewrite HIRed.bind_core. gstep. econs. econs 7; ss.
+      }
+      do 2 rewrite HModSB.transl_bind. 
+      rewrite/__ HModSB.transl_call HIRed.call HIRed.bind.
+      gstep. econs. econs. s.
+      assert (FIND := stb_in_alist_find).
+      specialize (FIND sk0 fn f SKINCL SKWF STB). des.
+      destruct (alist_find fn (List.map (map_snd (λ ksb : list string * fspecbody, (ksb.1, fsb_body ksb.2))) (SModSem.fnsems (SMod.modsem md sk0)))) eqn: FINDS; cycle 1.
+      { exfalso. rewrite/__ alist_find_map_snd FIND in FINDS. clarify.  }
+      ired. destruct p. rewrite/__ alist_find_map_snd FIND in FINDS. s in FINDS. inv FINDS.
+      unfold HModSem.sandbox_body. s. rewrite HIRed.bind. erewrite HoareCall_inline; eauto.
+      gstep. econs. econs; swap 1 3.
+      { rewrite bind_bind. f_equal. extensionalities. refl. }
+      { instantiate (1:= fun args => _). refl. }
+      i. s. grind. generalize (i v). i. clear FIND i v. 
+      revert_until CIH. gcofix CIH. i.
+      gstep. econs. econs 10; cycle 1.
+      {
+        i. gstep. econs. econs 6; swap 1 3.
+        { 
+          unfold hmod_elim_tail. 
+          instantiate (1:= fun x => tau;; tau;; 
+                            interp_hpI (prog (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0)))
+                            (HModSem.sandbox scopes (interp_smod (ginv sk0) (stb sk0) (ktrH' x)))).
+          instantiate (1:= v0).
+          instantiate (1:= postcond f).
+          instantiate (1:= (n0, m, n, m0)).
+          grind. rewrite/__ HModSB.transl_tau HIRed.tau. refl.
+        }
+        { instantiate (1:= fun x => _). refl. }
+        i. s. rewrite HIRed.tau. do 4 (gstep; econs; econs). ired.
+        gbase. eapply CIH1, CIH.
+      }
+
+
+
+  (* Inductive hmod_elim_rel: itree hmodE Any.t -> itree hmodE Any.t -> Prop
+    :=
+  | hmod_elim_rel_base v
+    :
+    hmod_elim_rel (Ret v) (Ret v)
+
+  | hmod_elim_rel_add itr ktrS ktrT
+      (ITR: forall (v: Any.t), hmod_elim_rel (ktrS v) (ktrT v))
+    :
+    hmod_elim_rel (itr >>= ktrS) (itr >>= ktrT)
+
+  | hmod_elim_rel_head X P v src tgt ktrS ktrT
+      (KTR: forall m v, hmod_elim_rel (ktrS v) (ktrT (m,v)))
+      (EQS: src = ktrS v)
+      (EQT: tgt = (@hmod_elim_head X P v) >>= ktrT)
+    :
+    hmod_elim_rel src tgt
+                  
+  | hmod_elim_rel_tail X Q m v src tgt ktrS ktrT
+      (KTR: forall v, hmod_elim_rel (ktrS v) (ktrT v))
+      (EQS: src = ktrS v)
+      (EQT: tgt = (@hmod_elim_tail X Q m v) >>= ktrT)
+    :
+    hmod_elim_rel src tgt
+  . *)
+
+
+
   Ltac hide_l := let IT := fresh "ITREE" in
     match goal with 
       | [|- simg _ _ _ ?it _] => set (IT := it) 
@@ -619,34 +954,6 @@ thread_rel sk0 0 0 q
     unfold HModSem.sandbox_body, interp_hp_fun. s.
     unfold interp_hpI_fun, interp_sb_hp, interp_hp_body. s.
     unfold HoareFun.
-(* 
-    set (interp_hpI _ _) at 2. eassert (i = _).
-    {
-      unfold i.
-      set (HModSem.sandbox _ _). eassert (i0 = _).
-      {
-        unfold i0. 
-        rewrite/__ HModSB.transl_bind HModSB.transl_sch.
-        instantiate (1 := ITree.bind _ _).
-        f_equal. extensionalities. 
-        instantiate (1:= fun H => ITree.bind _ (_ H)). s.
-        rewrite/__ HModSB.transl_bind HModSB.transl_core. f_equal. extensionalities.
-        instantiate (1:= fun H H0 => ITree.bind _ (_ H H0)). s.
-        rewrite/__ HModSB.transl_bind HModSB.transl_core. f_equal. extensionalities.
-        instantiate (1:= fun H H0 H1 => ITree.bind _ (_ H H0 H1)). s.
-        rewrite/__ HModSB.transl_bind HModSB.transl_ag. f_equal. extensionalities.
-        instantiate (1:= fun H H0 H1 H2 => _). s. refl.
-      }
-      rewrite H. clear H.
-      rewrite/__ HIRed.bind_sch. ired.
-
-      
-      f_equal.
-
-    } 
-*)
-
-
     
     unfold interp_modE, interp_schE_callE. 
     (* _coreH. *)
@@ -655,12 +962,19 @@ thread_rel sk0 0 0 q
     pose proof (stb_find_fsb SKINCL SKWF COND E). subst.
     hide_l.
     ginit.
-    rewrite/__ HModSB.transl_bind HModSB.transl_sch HIRed.bind_sch interp_hp_bind.
-    _iter. _tau. st. _iter. _tau. st. st. _iter. _tau. st. st.
+    rewrite/__ !HModSB.transl_bind HModSB.transl_sch HIRed.bind_sch interp_hp_bind. s.
+    rewrite interp_hp_tid. ired.
+    _iter. _tau. st. _iter. _tau. st. st.
+    rewrite interp_hp_tau. _iter. _tau. st. st.
+    rewrite/__ HModSB.transl_bind HModSB.transl_core HIRed.bind_core interp_hp_bind interp_hp_core. ired.
     _iter. _core. st. exists m. st. ired. 
-    _tau. st. _iter. _tau. st. st. _iter. _tau. st. st. 
+    _tau. st. _iter. _tau. st. st.
+    rewrite interp_hp_tau. _iter. _tau. st. st.
+    rewrite/__ HModSB.transl_bind HModSB.transl_core HIRed.bind_core interp_hp_bind interp_hp_core. ired.
     _iter. _core. st. exists (tt↑). st. ired.
-    _iter. _tau. st. st. st. _iter. _tau. st. st. 
+    _iter. _tau. st. st. st.
+    rewrite interp_hp_tau. _iter. _tau. st. st.
+    rewrite/__ HModSB.transl_bind HModSB.transl_ag HIRed.bind_ag interp_hp_bind interp_hp_Assume. ired.
     _iter. _core. st. exists q. st. ired. _tau. st. 
     _iter. _sget. ired. _tau. st. st.
     hss. ired. hss. ired.
@@ -670,10 +984,9 @@ thread_rel sk0 0 0 q
     exists H. ired. _tau. st. st. 
     _iter. _core. st.
     eapply iProp_Own in COND4. exists COND4. ired.
-    _iter. _tau. do 4 st. _iter. _tau. st. st.
-    Search MonadIter.
+    _iter. _tau. do 4 st.
+    rewrite interp_hp_tau. _iter. _tau. st. st.
     
-
     (* CCR_main's precond all executed. *)
     reveal ITREE. 
     eapply cancel_aux; eauto.
@@ -682,12 +995,20 @@ thread_rel sk0 0 0 q
     econs; eauto using Forall3i.
     econs 2; s; eauto; cycle 1. 
     {
+      rewrite/__ HModSB.transl_bind HIRed.bind. 
       instantiate (1:= postcond fsb_fspec 0 m).
-      f_equal. 
-      Search Basics.iter.
-    
-    
-    rewrite unfold_iter_eq.  }
+      instantiate (1:= interp_hpI _ (HModSem.sandbox l (interp_smod (ginv sk0) (stb sk0) (fsb_body tt↑)))).
+      ired. repeat f_equal; [|r_solve]. 
+      extensionalities.
+      rewrite/__ HModSB.transl_bind HModSB.transl_core. do 2 f_equal.
+      extensionalities.
+      rewrite/__ HModSB.transl_bind HModSB.transl_ag. f_equal.
+      extensionalities.
+      rewrite HModSB.transl_ret. ss.
+    }
+
+    econs.
+ 
     grind. repeat f_equal. r_solve.
     Unshelve. all: eapply smj_top.
   Admitted.
