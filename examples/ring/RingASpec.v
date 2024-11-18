@@ -1,4 +1,4 @@
-Require Import Coqlib ITreelib sflib.
+(* Require Import Coqlib ITreelib sflib.
 Require Import ImpPrelude.
 Require Import Events.
 Require Import Behavior.
@@ -40,4 +40,4 @@ Module RingRA.
     `{Σ : GRA.t}
     := RingRA : unit.
 End RingRA.
-
+ *)

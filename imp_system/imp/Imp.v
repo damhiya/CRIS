@@ -499,7 +499,7 @@ Section Denote.
       trigger (SetVar x v);;; tau;; Ret Vundef
     | Free pe =>
       p <- denote_expr pe;;
-      `_ : val <- ccallU "free" [p];; tau;; Ret Vundef
+      `t : val <- ccallU "free" [p];; tau;; Ret Vundef
     | Load x pe =>
       p <- denote_expr pe;;
       (if (wf_val p) then Ret tt else triggerUB);;;
@@ -509,7 +509,7 @@ Section Denote.
       p <- denote_expr pe;;
       (if (wf_val p) then Ret tt else triggerUB);;;
       v <- denote_expr ve;;
-      `_:val <- ccallU "store" [p; v];; tau;; Ret Vundef
+      `t:val <- ccallU "store" [p; v];; tau;; Ret Vundef
     | Cmp x ae be =>
       a <- denote_expr ae;; b <- denote_expr be;;
       (if (wf_val a && wf_val b) then Ret tt else triggerUB);;;
@@ -544,7 +544,7 @@ Section Interp.
       end.
 
   Definition interp_GlobEnv {eff} `{coreE -< eff} (ge : SkEnv.t) : itree (GlobEnv +' eff) ~> (itree eff) :=
-    interp (case_ (handle_GlobEnv ge) ((fun T e => trigger e) : eff ~> itree eff)).
+    interp (case_ (handle_GlobEnv ge) trivial_Handler).
 
   (** function local environment *)
   Definition lenv := alist var val.

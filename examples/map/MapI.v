@@ -9,8 +9,6 @@ Require Import PCM.
 Require Import STB IPM ITactics.
 Require Import MemHeader.
 
-
-Require Import sProp sWorld World SRF.
 From stdpp Require Import coPset gmap namespaces.
 
 Set Implicit Arguments.
@@ -32,16 +30,15 @@ def set_by_user(k : int) ≡
   set(k, input())
 ***)
 
-Module MapI.
-Section I.
+Module MapI. Section MapI.
   Local Open Scope string_scope.
-  Context `{_W : CtxWD.t}.
+  Context `{Σ : GRA.t}.
 
   Definition scopes := ["Map"].
   Definition v_hptr := "Map" ↯ "hptr".
   
   Definition init : list val -> itree pmodE val :=
-    fun varg =>
+    λ varg,
       `sz : Z <- (pargs [Tint] varg)?;;
       `hptr : val <- ccallU MemName.alloc [Vint sz];;
       cput v_hptr hptr;;;
@@ -50,37 +47,33 @@ Section I.
             if (Z_lt_le_dec i sz)
             then
               vptr <- (vadd hptr (Vint (i * 8)))?;;
-              `_ : val <- ccallU MemName.store [vptr; Vint 0];;
+              `u : val <- ccallU MemName.store [vptr; Vint 0];;
               Ret (inl (i + 1)%Z)
             else
               Ret (inr tt)) 0%Z);;;
-      Ret Vundef
-  .
+      Ret Vundef.
 
   Definition get : list val -> itree pmodE val :=
-    fun varg =>
+    λ varg,
       k <- (pargs [Tint] varg)?;;
       hptr <- cgetU v_hptr;;
       vptr <- (vadd hptr (Vint (k * 8)))?;;
       `r : val <- ccallU MemName.load [vptr];; r <- (unint r)?;;
-      Ret (Vint r)
-  .
+      Ret (Vint r).
 
   Definition set : list val -> itree pmodE val :=
-    fun varg =>
+    λ varg,
       '(k, v) <- (pargs [Tint; Tint] varg)?;;
       hptr <- cgetU v_hptr;; 
       vptr <- (vadd hptr (Vint (k * 8)))?;;
-      `_ : val <- ccallU MemName.store [vptr; Vint v];;
-      Ret Vundef
-  .
+      `u : val <- ccallU MemName.store [vptr; Vint v];;
+      Ret Vundef.
 
   Definition set_by_user : list val -> itree pmodE val :=
-    fun varg =>
+    λ varg,
       k <- (pargs [Tint] varg)?;;
-      v <- trigger (IO "input" ([] : list Z));;
-      ccallU MapName.set [Vint k; Vint v]
-  .
+      v <- trigger (IO "input" ());;
+      ccallU MapName.set [Vint k; Vint v].
 
   Definition fnsems :=
     [(MapName.init, (scopes, cfunU init));
@@ -91,19 +84,15 @@ Section I.
   Program Definition Sem : PModSem.t := {|
     PModSem.scopes := scopes;
     PModSem.fnsems := fnsems;
-    PModSem.initial_st := [(v_hptr,Vnullptr↑)];
-  |}
-  .
+    PModSem.initial_st := [(v_hptr, Vnullptr↑)];
+  |}.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
   Definition Mod : PMod.t := {|
     PMod.modsem := fun _ => Sem;
     PMod.sk := MapSK.t;
-  |}
-  .
+  |}.
 
   Definition t : HMod.t := Seal.sealing "ccr" (PMod.to_hmod Mod).
-
-End I.
-End MapI.
+End MapI. End MapI.

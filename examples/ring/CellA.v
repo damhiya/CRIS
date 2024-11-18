@@ -1,4 +1,4 @@
-Require Import Coqlib ITreelib sflib.
+(* Require Import Coqlib ITreelib sflib.
 Require Import ImpPrelude.
 Require Import Events.
 Require Import Behavior.
@@ -46,4 +46,4 @@ Section CELL_A.
   Definition t := Seal.sealing "ccr" (SMod.to_hmod GI GlobalStb Mod).
 
 End CELL_A.
-End CellA.
+End CellA. *)

@@ -1,4 +1,4 @@
-Require Import Coqlib ITreelib sflib.
+(* Require Import Coqlib ITreelib sflib.
 Require Import ImpPrelude.
 Require Import Events.
 Require Import Behavior.
@@ -29,4 +29,4 @@ Section FooAS.
 
 End FooAS.
 End FooAS.
-
+ *)

@@ -20,6 +20,7 @@ Require Import SubPerm.
 Require Import LAuto.
 
 From stdpp Require Import coPset gmap.
+From iris.prelude Require Import prelude.
 
 (************ User Tactics **************)
 
@@ -126,8 +127,8 @@ Ltac hss_des :=
 
 Ltac hss :=
   hss_des;
-  try (rewrite !Any.pair_split in * );
-  try (rewrite !Any.upcast_downcast in * );
+  try (rewrite -> !Any.pair_split in * );
+  try (rewrite -> !Any.upcast_downcast in * );
   repeat (match goal with [G : Any.downcast _ = Some _ |-_] =>
     apply Any.downcast_upcast in G; inv G; ss
    end);
@@ -137,8 +138,8 @@ Ltac hss :=
   repeat (match goal with [G : Some _ = Some _ |- _] =>
     depdes G; ss
   end);
-  try (rewrite !Any.pair_split in * );
-  try (rewrite !Any.upcast_downcast in * );
+  try (rewrite -> !Any.pair_split in * );
+  try (rewrite -> !Any.upcast_downcast in * );
   repeat (alist_upd_simpl trivial_nodup);
   hss_des.
 
@@ -340,7 +341,7 @@ Ltac _step_l :=
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, unwrapU ?ox >>= _) _) ] =>
       let name := fresh "q" in
       iApply isim_unwrapU_src; iIntros (name) "%";
-      match goal with [ H : ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite G in * end
+      match goal with [ H : ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite -> G in * end
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _) _) ] =>
       let name := fresh "asm" in iApply isim_asm_src; iIntros (name)
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger Tid >>= _) _) ] =>
@@ -367,7 +368,7 @@ Ltac _step_r :=
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, unwrapN ?ox >>= _)) ] =>
       let name := fresh "q" in
       iApply isim_unwrapN_tgt; iIntros (name) "%";
-      match goal with [ H : ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite G in * end
+      match goal with [ H : ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite -> G in * end
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, guarantee _ >>= _)) ] =>
       let name := fresh "grt" in iApply isim_guar_tgt; iIntros (name)
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, trigger Tid >>=  _)) ] =>
@@ -543,7 +544,7 @@ Ltac call hyps := let marker := fresh "MARKER" in
   hide_itree_r marker; prep; show_itree marker;
   hide_itree_l marker; prep; show_itree marker;
   iApply isim_call;
-  iSplitL hyps; [ |iIntros "% % % % % %"; iIntrosFresh "IST"].
+  iSplitL hyps; [ | iIntros "% % % % % %"; iIntrosFresh "IST"].
 
 Ltac yield hyps := let marker := fresh "MARKER" in
   hide_itree_r marker; prep; show_itree marker;

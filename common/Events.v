@@ -79,6 +79,7 @@ Section WRAP.
     | inl x => triggerNB
     | inr y => Ret y
     end.
+
 End WRAP.
 
 Section EVENTS_OTHER.

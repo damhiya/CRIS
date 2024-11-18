@@ -270,7 +270,7 @@ Definition parg (t : val_type) (v : val) : option (val_type_sem t) :=
   | Tuntyped => Some v
   end.
 
-Definition pargs (ts : list val_type):
+Definition pargs (ts : list val_type) :
   forall (vs : list val), option (val_types_sem ts).
 Proof.
   induction ts as [|thd ttl].

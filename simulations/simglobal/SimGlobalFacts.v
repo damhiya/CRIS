@@ -342,7 +342,7 @@ Section ADEQUACY.
     Beh.of_itree itr_tgt <1= Beh.of_itree itr_src.
   Proof.
     revert_until ps. revert ps. pcofix CIH.
-    i. rename x2 into tr. revert ps pt itr_src SIM.
+    i. rename x0 into tr. revert ps pt itr_src SIM.
     pattern itr_tgt, tr. eapply Beh.of_itree_ind, PR. clear -CIH. i.
     depdes PR; des; hdes.
     - eapply paco2_mon; try eapply simg_adequacy_ret; eauto; ss.

@@ -139,7 +139,7 @@ Section PROOFS.
     :
       interp_imp ge (denote_stmt (Free pe)) le0 =
       interp_imp ge (p <- denote_expr pe;;
-      `_:val <- ccallU "free" [p];; tau;; Ret Vundef) le0.
+      `t : val <- ccallU "free" [p];; tau;; Ret Vundef) le0.
   Proof. reflexivity. Qed.
 
   Lemma denote_stmt_Load
@@ -161,7 +161,7 @@ Section PROOFS.
                    ` p : val <- denote_expr pe;;
                          (if wf_val p then Ret tt else triggerUB);;;
                           ` v : val <- denote_expr ve;;
-                              `_:val <- ccallU "store" [p; v];; tau;; Ret Vundef
+                              `t : val <- ccallU "store" [p; v];; tau;; Ret Vundef
                           ) le0.
   Proof. reflexivity. Qed.
 
@@ -255,9 +255,9 @@ Section PROOFS.
   Lemma interp_imp_triggerUB
         T ge le0
     :
-      (interp_imp ge (triggerUB) le0 : itree _ (lenv *T)) = triggerUB.
+      (interp_imp ge (triggerUB) le0 : itree _ (lenv * T)) = triggerUB.
   Proof.
-    unfold interp_imp, interp_ImpState, interp_GlobEnv, Mod2ITree.pure_state, triggerUB.
+    unfold interp_imp, interp_ImpState, interp_GlobEnv, Mod2ITree.pure_state, triggerUB, trivial_Handler.
     grind. rewrite interp_trigger. grind.
   Qed.
 
@@ -266,7 +266,7 @@ Section PROOFS.
     :
       (interp_imp ge (x <- triggerUB;; ktr x) le0 : itree _ (lenv *T)) = triggerUB.
   Proof.
-    unfold interp_imp, interp_ImpState, interp_GlobEnv, Mod2ITree.pure_state, triggerUB.
+    unfold interp_imp, interp_ImpState, interp_GlobEnv, Mod2ITree.pure_state, triggerUB, trivial_Handler.
     grind. rewrite interp_trigger. grind.
   Qed.
 
@@ -275,7 +275,7 @@ Section PROOFS.
     :
       (interp_imp ge (triggerNB) le0 : itree _ (lenv * T)) = triggerNB.
   Proof.
-    unfold interp_imp, interp_ImpState, interp_GlobEnv, Mod2ITree.pure_state, triggerNB.
+    unfold interp_imp, interp_ImpState, interp_GlobEnv, Mod2ITree.pure_state, triggerNB, trivial_Handler.
     grind. rewrite interp_trigger. grind.
   Qed.
 
@@ -284,7 +284,7 @@ Section PROOFS.
     :
       (interp_imp ge (x <- triggerNB;; ktr x) le0 : itree _ (lenv * T)) = triggerNB.
   Proof.
-    unfold interp_imp, interp_ImpState, interp_GlobEnv, Mod2ITree.pure_state, triggerNB.
+    unfold interp_imp, interp_ImpState, interp_GlobEnv, Mod2ITree.pure_state, triggerNB, trivial_Handler.
     grind. rewrite interp_trigger. grind.
   Qed.
 
@@ -351,7 +351,7 @@ Section PROOFS.
       (interp_imp ge (trigger (GetVar x)) le0 : itree pmodE _) =
       r <- unwrapU (alist_find x le0);; tau;; tau;; Ret (le0, r).
   Proof.
-    unfold interp_imp, interp_ImpState, interp_GlobEnv.
+    unfold interp_imp, interp_ImpState, interp_GlobEnv, trivial_Handler.
     rewrite interp_trigger. grind.
   Qed.
 
@@ -361,7 +361,7 @@ Section PROOFS.
       interp_imp ge (trigger (SetVar x v)) le0 =
       tau;; tau;; Ret (alist_add x v le0, ()).
   Proof.
-    unfold interp_imp, interp_GlobEnv, interp_ImpState.
+    unfold interp_imp, interp_GlobEnv, interp_ImpState, trivial_Handler.
     rewrite interp_trigger. grind.
   Qed.
 
@@ -371,7 +371,7 @@ Section PROOFS.
       (interp_imp ge (ccallU f args) le0 : itree _ (_ * val)) =
       v <- trigger (Call f (args↑));; tau;; tau;; v <- (v↓)?;; Ret (le0, v).
   Proof.
-    unfold interp_imp, interp_GlobEnv, interp_ImpState, ccallU. grind.
+    unfold interp_imp, interp_GlobEnv, interp_ImpState, ccallU, trivial_Handler. grind.
     unfold Mod2ITree.pure_state. rewrite interp_trigger. grind.
     unfold unwrapU. des_ifs; grind. unfold triggerUB. grind.
     rewrite interp_trigger. grind.
@@ -383,7 +383,7 @@ Section PROOFS.
       interp_imp ge (trigger (IO f args)) le0 =
       v <- trigger (IO f args);; tau;; tau;; Ret (le0, (v : O)).
   Proof.
-    unfold interp_imp, interp_GlobEnv, interp_ImpState.
+    unfold interp_imp, interp_GlobEnv, interp_ImpState, trivial_Handler.
     unfold Mod2ITree.pure_state. rewrite interp_trigger. grind.
   Qed.
 
@@ -392,7 +392,7 @@ Section PROOFS.
     :
       interp_imp ge (assume p) le0 = assume p;;; tau;; tau;; Ret (le0, ()).
   Proof.
-    unfold interp_imp, interp_GlobEnv, interp_ImpState.
+    unfold interp_imp, interp_GlobEnv, interp_ImpState, trivial_Handler.
     unfold assume. grind. rewrite interp_trigger. grind.
     unfold Mod2ITree.pure_state. grind.
   Qed.
@@ -402,7 +402,7 @@ Section PROOFS.
     :
       interp_imp ge (guarantee p) le0 = guarantee p;;; tau;; tau;; Ret (le0, ()).
   Proof.
-    unfold interp_imp, interp_GlobEnv, interp_ImpState.
+    unfold interp_imp, interp_GlobEnv, interp_ImpState, trivial_Handler.
     unfold guarantee. grind. rewrite interp_trigger. grind.
     unfold Mod2ITree.pure_state. grind.
   Qed.

@@ -627,7 +627,7 @@ Section ADEQUACY.
 
     destruct ctx as [ctx cond].
     assert (SIMC := SIM).
-    ii. eapply hmod_sim_ctx with (ctx := ctx) in SIMC.
+    ii. ss. eapply hmod_sim_ctx with (ctx := ctx) in SIMC.
     hexploit (HSim.sim_modsem SIMC); eauto.
     { eapply Sk.equiv_incl in EQV. etrans; eauto. refl. }
     i. ss.
@@ -641,6 +641,8 @@ Section ADEQUACY.
     ii. subst. eapply adequacy_modsem, PR.
     (* Module semantics should respect resource setoids! - further refactoring required *)
     - admit.
+    (* - eapply hssim_adequacy; eauto.
+      eapply hssim_wf; eauto. *)
     - inv WFM. econs. ss. unfold map_snd.
       rewrite !List.map_map. eapply eq_ind; [apply wf_fns|].
       f_equal. extensionalities. destruct H0. ss.

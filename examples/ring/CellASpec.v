@@ -1,4 +1,4 @@
-Require Import Coqlib ITreelib sflib.
+(* Require Import Coqlib ITreelib sflib.
 Require Import ImpPrelude.
 Require Import Events.
 Require Import Behavior.
@@ -72,4 +72,4 @@ Module CellRA.
     `{Σ : GRA.t}
     `{@GRA.inG CellAS.RA Σ}
     := CellRA : unit.
-End CellRA.
+End CellRA. *)

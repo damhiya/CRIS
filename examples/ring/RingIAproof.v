@@ -1,4 +1,4 @@
-Require Import Coqlib ITreelib sflib.
+(* Require Import Coqlib ITreelib sflib.
 Require Import RingHeader CellHeader RingASpec CellASpec RingA CtrlI CellA CellI CtrlIAproof CellIAproof.
 Require Import Skeleton.
 Require Import PCM IPM.
@@ -66,4 +66,4 @@ Section PROOF.
   Qed.
 
 End PROOF.
-End RingIA.
+End RingIA. *)

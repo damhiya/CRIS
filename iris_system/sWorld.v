@@ -50,9 +50,9 @@ Module WD.
           empty_universes eu
       end.
 
-    Global Instance t : SRFMSem.t := interp.
+    Global Instance t: SRFIntpM.t := interp.
 
-    Context `{_W3 : @SRFMSemG.inG _ _ _ t β}.
+    Context `{_W3 : @SRFIntp.inG _ _ _ t β}.
 
     Definition OwnI u n i (p : SRFSyn.t n) : SRFSyn.t n :=
       ⟨ _OwnI u i, fun _ => p ⟩%SRF.
@@ -108,7 +108,7 @@ Module CtxWD.
     `{_C : @GRA.inG OwnIRA Σ}
     `{_C : @GRA.inG OwnERA Γ}
     `{_C : @GRA.inG OwnDRA Γ}
-    `{_C : @SRFMSemG.inG _ _ _ WD.t β}
+    `{_C : @SRFIntp.inG _ _ _ WD.t β}
     := ctxWD : unit.
 
 End CtxWD.

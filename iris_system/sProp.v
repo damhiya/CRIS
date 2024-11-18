@@ -156,6 +156,7 @@ Module SL.
   Context `{α: @SRFCons.t}.
   Context `{_C0: @HRA.subG Γ Σ}.
   
+  Local Notation iProp := (iProp Σ).
   Global Instance domain : SRFDom.t := {
     dom := iProp;
   }.

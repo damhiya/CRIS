@@ -27,8 +27,8 @@ Section PMODSEM.
   }.
 
   Definition handle_core: coreE ~> itree hmodE :=
-    fun _ e =>
-      match e with
+    fun T e =>
+      match e return itree hmodE T with
       | Take X => if excluded_middle_informative (∃ P: Prop, X = P)
                   then trigger e
                   else triggerUB

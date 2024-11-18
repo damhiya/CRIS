@@ -1,4 +1,4 @@
-Require Import Coqlib ITreelib sflib.
+(* Require Import Coqlib ITreelib sflib.
 Require Import Events Any IPM ImpPrelude IModL Skeleton.
 
 Module RingName.
@@ -12,4 +12,4 @@ End RingName.
 
 Module RingSK.
   Definition t : Sk.t := [].
-End RingSK.
+End RingSK. *)
