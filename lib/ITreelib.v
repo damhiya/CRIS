@@ -595,3 +595,16 @@ Proof.
   eapply bisim_is_eq. eapply unfold_iter.
 Qed.
 
+Lemma bind_ret_l_eta A {E R} (k : A -> itree E R):
+  (fun x : A => x0 <- Ret x;; k x0) = k.
+Proof. extensionality x. grind. Qed.
+
+Ltac grind_ret H := try rewrite !bind_ret_l_eta in H; subst.
+Ltac grind_ret_gen :=
+  repeat (match goal with
+  [H : _ |- _] => try rewrite !bind_ret_l_eta in H
+  end).
+
+Ltac itree_clarify H :=
+  revert H; grind; try unfold trigger in H; try rewrite !bind_vis in H; try depdes H;
+    grind_ret_gen; try rewrite !bind_ret_l_eta; subst.
