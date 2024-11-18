@@ -98,7 +98,7 @@ Module MapIM. Section MapIM.
     init_simF.
 
     (* SRC: handle the IST of Map and the precond of init *)
-    steps_l. iDestruct "ASM" as "((% & P0) & %)". des. subst. hss. inv G1.
+    steps_l. iDestruct "ASM" as "((% & P0) & %)". des. hss. inv G1.
     iDestruct "IST" as (????) "(%& (% & [%|(P & IST)]) &%)";    
       [|iDestruct "IST" as (????) "M"];
       hss; cycle 1.
@@ -118,7 +118,7 @@ Module MapIM. Section MapIM.
 
     (* TGT: handle the postcond of alloc *)
     steps_r. iDestruct "GRT" as "[GRT %]". 
-    iDestruct "GRT" as (?) "(% & POINTS)". subst. hss.
+    iDestruct "GRT" as (?) "(% & POINTS)". hss.
 
     (* prepare and start an induction *)
     steps_r. hss.
@@ -190,10 +190,10 @@ Module MapIM. Section MapIM.
     init_simF.
 
     (* SRC: handle the IST of Map and the precond of get *)
-    steps_l. iDestruct "ASM" as "(% & %)". subst. hss. inv G1.
+    steps_l. iDestruct "ASM" as "(% & %)". hss. inv G1.
     iDestruct "IST" as (? ? ? ?) "(%& (% & [%|(P & IST)]) &%)";    
       [|iDestruct "IST" as (? ? ? ?) "(% & M)"];
-      des; subst; hss.
+      des; hss.
     { nia. }
     rename q2 into idx.
     
@@ -217,7 +217,7 @@ Module MapIM. Section MapIM.
     iSplitL "IP"; eauto.
     
     (* TGT: handle the postcond of load *)
-    steps_r. iDestruct "GRT" as "[[GRT %] %]". subst. hss. steps_r.
+    steps_r. iDestruct "GRT" as "[[GRT %] %]". hss. steps_r.
 
     (* prove the IST of Map *)
     step. repeat (iSplit; eauto).
@@ -232,10 +232,10 @@ Module MapIM. Section MapIM.
     init_simF.
 
     (* SRC: handle the IST of Map and the precond of set *)
-    steps_l. iDestruct "ASM" as "(% & %)". subst. hss. inv G1. 
+    steps_l. iDestruct "ASM" as "(% & %)". hss. inv G1. 
     iDestruct "IST" as (? ? ? ?) "(%& (% & [%|(P & IST)]) &%)";    
       [|iDestruct "IST" as (? ? ? ?) "(% & M)"];
-      des; subst; hss.
+      des; hss.
     { nia. }
     rename q4 into idx, q5 into v.
 
@@ -260,7 +260,7 @@ Module MapIM. Section MapIM.
     iSplitL "IP". { eauto. }
 
     (* TGT: handle the postcond of load *)
-    steps_r. iDestruct "GRT" as "[[GRT %] %]". subst. hss. steps_r.
+    steps_r. iDestruct "GRT" as "[[GRT %] %]". hss. steps_r.
 
     (* prove the IST of Map *)
     step. repeat (iSplit; eauto).
@@ -276,7 +276,7 @@ Module MapIM. Section MapIM.
     init_simF.
 
     (* SRC: handle the IST of Map and the precond of set_by_user *)
-    steps_l. iDestruct "ASM" as "(% & %)". subst. hss. inv G1. hss.
+    steps_l. iDestruct "ASM" as "(% & %)". hss. inv G1. hss.
     rename q2 into k.
 
     (* process an input *)
@@ -290,7 +290,7 @@ Module MapIM. Section MapIM.
     steps_r. call "IST"; [eauto|]. iModIntro.
 
     (* SRC: handle the postcond of set *)
-    steps_l. iDestruct "ASM" as "(_ & %)". subst. hss. steps_r.
+    steps_l. iDestruct "ASM" as "(_ & %)". hss. steps_r.
 
     (* SRC: prove the postcond of set_by_user *)
     forces_l. iSplitL "". { eauto. }
