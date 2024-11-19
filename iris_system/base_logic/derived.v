@@ -1,6 +1,6 @@
 From iris.algebra Require Import frac.
 From iris.bi Require Export bi.
-From CCR.base_logic Require Export bi.
+From CRIS.base_logic Require Export bi.
 From iris.prelude Require Import options.
 Import bi.bi base_logic.bi.uPred.
 

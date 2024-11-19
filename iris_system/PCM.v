@@ -6,7 +6,7 @@ Require Import Lia.
 Require Import Program.
 Require Import Coqlib.
 Require Import Axioms.
-From CCR Require Import ucmra_list.
+From CRIS Require Import ucmra_list.
 From iris.algebra Require Import cmra updates functions.
 
 From iris.prelude Require Import prelude options.
