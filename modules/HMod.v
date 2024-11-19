@@ -1,46 +1,52 @@
+From CCR.base_logic Require Import base_logic.
 Require Import Coqlib AList.
 Require Import sflib.
 Require Import ITreelib.
 Require Import Any.
 Require Import Events.
 Require Import IRed.
-Require Import STS Behavior.
+Require Import Behavior.
 Require Import PCM IPM.
 Require Import Skeleton Mod.
 Require Import PropExtensionality.
 Require Export HMod2Mod.
 
-Set Implicit Arguments.
+Require Import PCM IPM. (* TODO : remove this when gra refactored *)
 
-Definition fnsems_scopes {T} (fn: gname) (fnsems: alist gname (list string * T)) :=
+Set Implicit Arguments.
+(* TODO : lift modules to ofes after asking about the well-formedness *)
+Definition fnsems_scopes {T} (fn : gname) (fnsems : alist gname (list string * T)) :=
   match (alist_find fn fnsems) with
   | Some (keys, body) => keys
   | None => []
   end.
 
-Definition state_scopes (st: alist key Any.t) :=
+Definition state_scopes (st : alist key Any.t) :=
   (List.map (fst ∘ fst) st).
 
 Module HModSem.
 Section HMODSEM.
-  Context `{Σ: GRA.t}.
+  Context `{Σ : GRA.t}.
+  (* Notation hmodE := (hmodE (Σ:=Σ)) (only parsing). *)
+  
+  Set Printing Universes.
 
-  Record t: Type := mk {
+  Record t : Type := mk {
     scopes : list string;
     fnsems : alist gname (list string * (Any.t -> itree hmodE Any.t));
     initial_st : alist key Any.t;
-    
-    well_scoped_fns:
+
+    well_scoped_fns :
       forall fn, incl (fnsems_scopes fn fnsems) scopes;
-    well_scoped_init:
+    well_scoped_init :
       incl (state_scopes initial_st) scopes;
-    nodup_fns:
+    nodup_fns :
       List.NoDup scopes -> List.NoDup (List.map fst initial_st);
   }.
 
-  Record wf (ms: t): Prop := mk_wf {
-    wf_fns: List.NoDup (List.map fst ms.(fnsems));
-    wf_scopes: List.NoDup ms.(scopes);
+  Record wf (ms : t) : Prop := mk_wf {
+    wf_fns : List.NoDup (List.map fst ms.(fnsems));
+    wf_scopes : List.NoDup ms.(scopes);
   }.
 
   (**** Linking ****)
@@ -53,22 +59,22 @@ Section HMODSEM.
   Next Obligation. ii; ss. Qed.
   Next Obligation. ii; ss. Qed.
   Next Obligation. econs. Qed.
-  
-  Program Definition add ms1 ms2: t := {|
+
+  Program Definition add ms1 ms2 : t := {|
     fnsems := ms1.(fnsems) ++ ms2.(fnsems);
     scopes := ms1.(scopes) ++ ms2.(scopes);
     initial_st := ms1.(initial_st) ++ ms2.(initial_st);
   |}.
   Next Obligation.
-    ii. unfold fnsems_scopes in H. des_ifs. 
+    ii. unfold fnsems_scopes in H. des_ifs.
     rewrite alist_find_app_o in Heq. des_ifs.
     {
-      hexploit (ms1.(well_scoped_fns) fn a). 
+      hexploit (ms1.(well_scoped_fns) fn a).
       { unfold fnsems_scopes. des_ifs. }
       i. eapply in_or_app. eauto.
     }
     {
-      hexploit (ms2.(well_scoped_fns) fn a). 
+      hexploit (ms2.(well_scoped_fns) fn a).
       { unfold fnsems_scopes. des_ifs. }
       i. eapply in_or_app. eauto.
     }
@@ -98,7 +104,7 @@ Section HMODSEM.
     { eapply NoDup_cons_iff in x0. des. eauto. }
     eapply NoDup_app_disjoint; eauto.
     { eapply INCL1. s. left. eauto. }
-    { eapply INCL2. rewrite <- map_map. eapply in_map. eauto. }       
+    { eapply INCL2. rewrite - List.map_map. eapply in_map. eauto. }
   Qed.
 
   (**** Sandboxing ****)
@@ -107,66 +113,82 @@ Section HMODSEM.
     (fun T e =>
        match e with
        | inr1 (inr1 (inr1 (inl1 (SPut (s,f) v)))) =>
-           if existsb (eqb s) scopes then e else inr1 (inr1 (inr1 (inr1 (Choose T))))
+           if existsb (String.eqb s) scopes then e else inr1 (inr1 (inr1 (inr1 (Choose T))))
        | inr1 (inr1 (inr1 (inl1 (SGet (s,f))))) =>
-           if existsb (eqb s) scopes then e else inr1 (inr1 (inr1 (inr1 (Choose T))))
+           if existsb (String.eqb s) scopes then e else inr1 (inr1 (inr1 (inr1 (Choose T))))
        | _ => e
        end).
 
-  Definition sandbox {T} scopes (itr: itree hmodE T) :=
+  Definition sandbox {T} scopes (itr : itree hmodE T) :=
     translate (handle_sandbox scopes) itr.
 
-  Definition sandbox_body (kb: list string * (Any.t -> itree hmodE Any.t)) :=
+  Definition sandbox_body (kb : list string * (Any.t -> itree hmodE Any.t)) :=
     fun arg => sandbox kb.1 (kb.2 arg).
-  
-  Definition to_mod (ms: t) (r: Σ): ModSem.t := {|
+
+  Definition to_mod (ms : t) (r : Σ) : ModSem.t := {|
     ModSem.fnsems := List.map (map_snd (interp_hp_fun ∘ sandbox_body)) ms.(fnsems);
     ModSem.initial_st := Any.pair (alist_encode ms.(initial_st)) r↑;
   |}.
+  (* Local Instance: Params to_mod 1 := {}.
+  Global Instance to_mod_proper ms :
+    Proper ((≡) ==> (⊣⊢)) (to_mod ms) := ne_proper _. *)
 
 End HMODSEM.
 End HModSem.
 
 Module HMod.
 Section HMOD.
-  Context `{Σ: GRA.t}.
+  Context `{Σ : GRA.t}.
+  Notation iProp := (iProp Σ).
 
-  Record t: Type := mk {
-    modsem: Sk.t -> HModSem.t;
-    sk: Sk.t;
+  Record t : Type := mk {
+    modsem : Sk.t -> HModSem.t;
+    sk : Sk.t;
   }.
 
   Definition empty := {|
     modsem := const (HModSem.empty);
     sk := []
   |}.
-  
-  Definition add (md0 md1: t): t := {|
+
+  Definition add (md0 md1 : t) : t := {|
     modsem := fun sk => HModSem.add (md0.(modsem) sk) (md1.(modsem) sk);
     sk := Sk.add md0.(sk) md1.(sk);
   |}.
 
-  Definition addL (ms: list t) : t :=
+  Definition addL (ms : list t) : t :=
     foldr add empty ms.
-  
-  (* Definition to_mod (md: t) (r: Σ): Mod.t := {| *)
+
+  (* Definition to_mod (md : t) (r : Σ) : Mod.t := {| *)
   (*   Mod.modsem := fun sk => HModSem.to_mod (md.(modsem) sk) r; *)
   (*   Mod.sk := md.(sk); *)
   (* |}. *)
 
-  Definition scopes (md: t) : Sk.t -> list string :=
+  Definition scopes (md : t) : Sk.t -> list string :=
     fun sk => (md.(modsem) sk).(HModSem.scopes).
 
+  (* TODO : add a type of SK.t -> iProp and TC instances of equivalence *)
   Definition modc : Type := (t * (Sk.t -> iProp))%type.
+  Local Instance modc_equiv : Equiv modc :=
+    (λ m1 m2, m1.1 = m2.1 ∧ ∀ sk, m1.2 sk ≡ m2.2 sk).
+  Local Instance modc_equiv_equiv : Equivalence modc_equiv.
+  Proof.
+    split; ss; ii.
+    { inv H; split; clarify. i; rewrite H1; ss. }
+    { inv H; inv H0; split; clarify; ss.
+      { rewrite H1 H; ss. }
+      { i; rewrite H2 H3; ss. }
+    }
+  Qed.
 
   Definition empty_mc : modc := (empty, const(emp%I)).
 
-  Definition addc (C C': Sk.t -> iProp) : Sk.t -> iProp :=
+  Definition addc (C C' : Sk.t -> iProp) : Sk.t -> iProp :=
     (fun sk => C sk ∗ C' sk)%I.
-  
-  (* Definition add_mc (mc mc': modc) : modc := *)
+
+  (* Definition add_mc (mc mc' : modc) : modc := *)
   (*   (add mc.1 mc'.1, addc mc.2 mc'.2)%I. *)
-  
+
 End HMOD.
 End HMod.
 
@@ -177,21 +199,22 @@ Infix "∗∗" := HMod.addc (at level 9, right associativity).
 Notation "░ it" := (HModSem.sandbox _ it) (at level 60, only printing).
 
 Section PROPERTIES.
-  
-  Context `{Σ: GRA.t}.
 
-  Lemma hmodsem_extensionality (ms1 ms2: HModSem.t)
-    (SCOPE: HModSem.scopes ms1 = HModSem.scopes ms2)
-    (FNSEM: HModSem.fnsems ms1 = HModSem.fnsems ms2)
-    (INITS: HModSem.initial_st ms1 = HModSem.initial_st ms2)
-    (* (INITC: HModSem.initial_cond ms1 = HModSem.initial_cond ms2) *)
+  Context `{Σ : GRA.t}.
+  Notation iProp := (iProp Σ).
+
+  Lemma hmodsem_extensionality (ms1 ms2 : HModSem.t)
+    (SCOPE : HModSem.scopes ms1 = HModSem.scopes ms2)
+    (FNSEM : HModSem.fnsems ms1 = HModSem.fnsems ms2)
+    (INITS : HModSem.initial_st ms1 = HModSem.initial_st ms2)
+    (* (INITC : HModSem.initial_cond ms1 = HModSem.initial_cond ms2) *)
     :
     ms1 = ms2.
   Proof.
     destruct ms1, ms2; ss. subst. f_equal; apply proof_irrelevance.
   Qed.
-  
-  Lemma hmodsem_add_assoc (ms1 ms2 ms3: HModSem.t):
+
+  Lemma hmodsem_add_assoc (ms1 ms2 ms3 : HModSem.t):
     HModSem.add (HModSem.add ms1 ms2) ms3 = HModSem.add ms1 (HModSem.add ms2 ms3).
   Proof.
     destruct ms1, ms2, ms3.
@@ -203,7 +226,7 @@ Section PROPERTIES.
   Lemma hmodsem_add_empty_l ms:
     HModSem.add HModSem.empty ms = ms.
   Proof.
-    destruct ms. apply hmodsem_extensionality; s; eauto.    
+    destruct ms. apply hmodsem_extensionality; s; eauto.
   Qed.
 
   Lemma hmodsem_add_empty_r ms:
@@ -212,7 +235,7 @@ Section PROPERTIES.
     destruct ms. apply hmodsem_extensionality; s; try rewrite app_nil_r; eauto.
   Qed.
 
-  Lemma hmod_add_assoc (md1 md2 md3: HMod.t):
+  Lemma hmod_add_assoc (md1 md2 md3 : HMod.t):
     (md1 ★ md2) ★ md3 = md1 ★ md2 ★ md3.
   Proof.
     destruct md1, md2, md3. unfold HMod.add. s. f_equal.
@@ -242,15 +265,15 @@ Section PROPERTIES.
     - rewrite hmod_add_empty_l. eauto.
     - rewrite hmod_add_assoc. rewrite IHl. eauto.
   Qed.
-  
-  Lemma iprop'_extensionality (P Q: iProp'):
+
+  (* Lemma iprop'_extensionality (P Q : iProp'):
     iProp_pred P = iProp_pred Q -> P = Q.
   Proof.
     i. destruct P, Q. ss. revert iProp_mono iProp_mono0.
     rewrite H. i. f_equal. apply proof_irrelevance.
   Qed.
 
-  Lemma iprop_add_assoc (P Q R: iProp):
+  Lemma iprop_add_assoc (P Q R : iProp):
     ((P ∗ Q) ∗ R)%I = (P ∗ (Q ∗ R))%I.
   Proof.
     unfold iProp, bi_car, bi_sep, Sepconj. unseal "iProp".
@@ -263,7 +286,7 @@ Section PROPERTIES.
       rewrite URA.add_assoc. eauto.
   Qed.
 
-  Lemma iprop_add_empty_l (P: iProp):
+  Lemma iprop_add_empty_l (P : iProp):
     (emp ∗ P)%I = P.
   Proof.
     unfold iProp, bi_car, bi_sep, Sepconj, bi_emp, Emp. unseal "iProp".
@@ -276,7 +299,7 @@ Section PROPERTIES.
       rewrite URA.unit_idl. eauto.
   Qed.
 
-  Lemma iprop_add_empty_r (P: iProp):
+  Lemma iprop_add_empty_r (P : iProp):
     (P ∗ emp)%I = P.
   Proof.
     unfold iProp, bi_car, bi_sep, Sepconj, bi_emp, Emp. unseal "iProp".
@@ -287,36 +310,39 @@ Section PROPERTIES.
       rr. esplits; eauto.
     - exists r, ε. esplits; eauto.
       rewrite URA.add_comm. rewrite URA.unit_idl. eauto.
-  Qed.
+  Qed. *)
 
-  Lemma hmod_addc_assoc (P Q R: Sk.t -> iProp) :
+  (* Lemma hmod_addc_assoc (P Q R : Sk.t -> iProp) :
     (P ∗∗ Q) ∗∗ R = P ∗∗ Q ∗∗ R.
   Proof.
-    extensionalities. unfold HMod.addc. rewrite iprop_add_assoc. refl.
+    extensionalities. unfold HMod.addc.
+    (* Set Printing All. *)
+    rewrite /IPM.iProp /uPredI /bi_sep /uPred_sep.
+    Local Transparent upred.uPred_sep_aux. uPred_primitive.unseal.
   Qed.
 
-  Lemma hmod_addc_empty_l (P: Sk.t -> iProp):
+  Lemma hmod_addc_empty_l (P : Sk.t -> iProp):
     (const(emp%I)) ∗∗ P = P.
   Proof.
     extensionalities. unfold HMod.addc. rewrite iprop_add_empty_l. refl.
   Qed.
 
-  Lemma hmod_addc_empty_r (P: Sk.t -> iProp):
+  Lemma hmod_addc_empty_r (P : Sk.t -> iProp):
     P ∗∗ (const(emp%I)) = P.
   Proof.
     extensionalities. unfold HMod.addc. rewrite iprop_add_empty_r. refl.
-  Qed.
-  
+  Qed. *)
+
 End PROPERTIES.
 
 Module HModSB.
 Section RED.
-  Context `{Σ: GRA.t}.
+  Context `{Σ : GRA.t}.
 
   Lemma transl_bind
     A B
     scopes
-    (itr: itree hmodE A) (ktr: A -> itree hmodE B)
+    (itr : itree hmodE A) (ktr : A -> itree hmodE B)
     :
     HModSem.sandbox scopes (itr >>= ktr) = a <- (HModSem.sandbox scopes itr);; (HModSem.sandbox scopes (ktr a))
   .
@@ -325,20 +351,20 @@ Section RED.
   Lemma transl_tau
     A
     scopes
-    (itr: itree hmodE A)
+    (itr : itree hmodE A)
   :
     HModSem.sandbox scopes (tau;; itr) = tau;; (HModSem.sandbox scopes itr)
   .
   Proof. unfold HModSem.sandbox. rewrite (bisim_is_eq (translate_tau _ _)); eauto. Qed.
 
   Lemma transl_ret
-      A (a: A) scopes
+      A (a : A) scopes
   :
     HModSem.sandbox scopes (Ret a) = Ret a
   .
   Proof. unfold HModSem.sandbox. rewrite (bisim_is_eq (translate_ret _ _)); eauto. Qed.
 
-  Lemma transl_call {A} (e: callE A)
+  Lemma transl_call {A} (e : callE A)
     scopes
   :
   HModSem.sandbox scopes (trigger e) = trigger e
@@ -354,7 +380,7 @@ Section RED.
     scopes k v
   :
   HModSem.sandbox scopes (trigger (SPut k v)) =
-    if existsb (eqb k.1) scopes then trigger (SPut k v) else trigger (Choose _)
+    if existsb (String.eqb k.1) scopes then trigger (SPut k v) else trigger (Choose _)
   .
   Proof.
     unfold HModSem.sandbox, trigger. destruct k. s.
@@ -367,7 +393,7 @@ Section RED.
     scopes k
   :
   HModSem.sandbox scopes (trigger (SGet k)) =
-    if existsb (eqb k.1) scopes then trigger (SGet k) else trigger (Choose Any.t)
+    if existsb (String.eqb k.1) scopes then trigger (SGet k) else trigger (Choose Any.t)
   .
   Proof.
     unfold HModSem.sandbox, trigger. destruct k. s.
@@ -375,10 +401,10 @@ Section RED.
     des_ifs; s; do 2 f_equal; extensionalities;
       rewrite (bisim_is_eq (translate_ret _ _)); eauto.
   Qed.
-  
+
   Lemma transl_core
     T scopes
-    (e: coreE T)
+    (e : coreE T)
     :
     HModSem.sandbox scopes (trigger e) = trigger e.
   Proof.
@@ -388,7 +414,7 @@ Section RED.
       rewrite (bisim_is_eq (translate_ret _ _)); eauto.
   Qed.
 
-  Lemma transl_ag {A} (e: agE A)
+  Lemma transl_ag {A} (e : agE A)
     scopes
   :
     HModSem.sandbox scopes (trigger e) = trigger e
@@ -400,7 +426,7 @@ Section RED.
     rewrite (bisim_is_eq (translate_ret _ _)); eauto.
   Qed.
 
-  Lemma transl_sch {A} (e: schE A)
+  Lemma transl_sch {A} (e : schE A)
     scopes
   :
   HModSem.sandbox scopes (trigger e) = trigger e
@@ -413,7 +439,7 @@ Section RED.
   Qed.
 
   Lemma transl_unwrapU
-    R scopes (r: option R)
+    R scopes (r : option R)
   :
     HModSem.sandbox scopes (unwrapU r) = unwrapU r
   .
@@ -425,7 +451,7 @@ Section RED.
   Qed.
 
   Lemma transl_unwrapN
-    R scopes (r: option R)
+    R scopes (r : option R)
   :
     HModSem.sandbox scopes (unwrapN r) = unwrapN r
   .
@@ -453,12 +479,12 @@ Section RED.
   Proof.
     unfold guarantee. rewrite/__ transl_bind transl_core transl_ret. eauto.
   Qed.
-  
-(*  
+
+(*
   Lemma transl_triggerUB
     T scopes
   :
-    HModSem.sandbox scopes (triggerUB: itree _ T) = triggerUB
+    HModSem.sandbox scopes (triggerUB : itree _ T) = triggerUB
   .
   Proof.
     unfold triggerUB. rewrite transl_bind. f_equal.
@@ -469,7 +495,7 @@ Section RED.
   Lemma transl_triggerNB
     T scopes
   :
-    HModSem.sandbox scopes (triggerNB: itree _ T) = triggerNB
+    HModSem.sandbox scopes (triggerNB : itree _ T) = triggerNB
   .
   Proof.
     unfold triggerNB. rewrite transl_bind. f_equal.
@@ -478,21 +504,21 @@ Section RED.
   Qed.
 
   Lemma transl_ext
-    T scopes (itr0 itr1: itree _ T)
-    (EQ: itr0 = itr1)
+    T scopes (itr0 itr1 : itree _ T)
+    (EQ : itr0 = itr1)
   :
     HModSem.sandbox scopes itr0 = HModSem.sandbox scopes itr1
   .
   Proof. subst. refl. Qed.
  *)
-  
+
 End RED.
 End HModSB.
 
 (* Section RDB. *)
-(*   Context `{Σ: GRA.t}. *)
+(*   Context `{Σ : GRA.t}. *)
 
-(*   Global Program Instance transl_rdb: red_database (mk_box (@translate)) := *)
+(*   Global Program Instance transl_rdb : red_database (mk_box (@translate)) := *)
 (*     mk_rdb *)
 (*     0 *)
 (*     (mk_box HModRed.transl_bind) *)

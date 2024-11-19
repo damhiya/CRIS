@@ -11,7 +11,8 @@ Require Import ModSim HPSimFacts ISimCore.
 
 Section HSSIM_ADEQUACY.
 
-  Context `{Σ: GRA.t}.
+  Context `{Σ : GRA.t}.
+  Notation iProp := (iProp Σ).
 
   Lemma hssim_wf ms mt cond Ist is_closed
     (SIM: HSSim.t is_closed ms mt cond Ist)
@@ -21,7 +22,7 @@ Section HSSIM_ADEQUACY.
   Proof.
     inv SIM. econs.
     - eapply in_eqlen_nodup_rev with (l1:= map fst _).
-      + rewrite map_length. rewrite sim_length. rewrite map_length. eauto.
+      + rewrite ?map_length. rewrite -sim_length. eauto.
       + apply WF.
       + eauto.
     - eapply sub_perm_nodup; eauto. apply WF.
@@ -40,16 +41,12 @@ Section HSSIM_ADEQUACY.
     - i. eapply SIM. eauto.
   Qed.
   
-  Lemma hssim_adequacy
-    (ms mt: HModSem.t) (p q: Σ)
-    (IC: iProp) Ist
-
-    (WF: URA.wf (p ⋅ q))
-    (COND: IC p)
-    (WFS: HModSem.wf ms)
-    (WFT: HModSem.wf mt)
-    (SIM: HSSim.t true ms mt IC Ist)
-    :
+  Lemma hssim_adequacy (ms mt : HModSem.t) (p q : Σ) (IC : iProp) Ist
+      (WF : ✓ (p ⋅ q))
+      (COND : Own p ⊢ IC)
+      (WFS : HModSem.wf ms)
+      (WFT : HModSem.wf mt)
+      (SIM : HSSim.t true ms mt IC Ist) :
     MSim.t (HModSem.to_mod ms (p ⋅ q)) (HModSem.to_mod mt q).
   Proof.
     inv SIM.
@@ -58,25 +55,20 @@ Section HSSIM_ADEQUACY.
     - instantiate (1:= interp_inv Ist).
       inv WF0. econs; eauto.
       iIntros "H". iMod (MR with "H") as "H". iModIntro.
-      iStopProof. eauto.
+      iApply sim_mon; eauto.
     - instantiate (1:= ε).
       inv WF0. econs; eauto.
       iIntros "H". iMod (MRS with "H") as "H". iModIntro.
-      unfold ctx_sem. rewrite foldr_app. s. r_solve. eauto.
-    - eexists ε. econs; eauto.
-      { instantiate (1:= p). s. r_solve. eauto. }
-      {
-        iIntros "H". iModIntro.
-        eapply iProp_Own in COND. iApply sim_initial.
-        iApply COND. eauto.
-      }
+      unfold ctx_sem. rewrite big_opL_app. s. rewrite ?right_id; eauto.
+    - exists ε. econs; eauto.
+      { instantiate (1:= p). rewrite /ctx_sem /= ?left_id; eauto. }
+      { iIntros "P"; iModIntro; iApply sim_initial; iApply COND; done. }
       { eapply ms.(HModSem.nodup_fns). eapply WFS. }
       { eapply mt.(HModSem.nodup_fns). eapply WFT. }
     - rewrite! map_length. eauto.
-    - rewrite alist_find_map_snd in *. unfold o_map in *. des_ifs; cycle 1.
+    - move: FIND; rewrite ?alist_find_map_snd /o_map; intros FIND; des_ifs; cycle 1.
       { exfalso.
-        eapply alist_find_fst_some, sim_match, alist_find_fst_in in Heq0.
-        des. rewrite Heq in Heq0. ss.
+        by eapply alist_find_fst_some, sim_match, alist_find_fst_in in Heq0; des; rewrite Heq in Heq0; ss.
       }
       esplits; eauto.
       exploit sim_fnsems; eauto using alist_find_fst_some.
@@ -86,14 +78,14 @@ Section HSSIM_ADEQUACY.
       ii. des; subst.
       rewrite Heq in x0. inv x0. inv SIMMRS.
       eapply hpsim_adequacy; eauto; cycle 5.
-      { ginit. i.
+      { ginit; cycle 2; i.
         eapply gpaco8_mon with (r:= iunlift ibot) (rg:= iunlift ibot); eauto using iunlift_ibot.
         eapply isim_init; eauto.
         iIntros "H". iApply isim_upd. iPoseProof (MR with "H") as ">H".
         iModIntro. iApply x1; eauto.
+        { eapply HPSim._hpsim_mon. }
+        { eapply cpn8_wcompat, HPSim._hpsim_mon. }
       }
-      { r_solve; eauto. }
-      { r_solve; eauto. }
       { inv WFS. rewrite List.map_map.
         eapply eq_ind; [apply wf_fns|].
         f_equal. extensionalities. destruct H; eauto.

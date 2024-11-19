@@ -31,32 +31,32 @@ Import TAC.
 
 Section PROOF.
 
-  Context `{Σ: GRA.t}.
+  Context `{Σ : GRA.t}.
 
-  Let W: Type := (Any.t) * (Any.t).
+  Let W : Type := (Any.t) * (Any.t).
 
 
-  Variable stb_src stb_tgt: gname -> option fspec.
+  Variable stb_src stb_tgt : gname -> option fspec.
   Hypothesis stb_stronger:
-    forall fn fsp_tgt (FINDTGT: stb_tgt fn = Some (fsp_tgt)),
+    forall fn fsp_tgt (FINDTGT : stb_tgt fn = Some (fsp_tgt)),
     exists fsp_src,
-      (<<FINDSRC: stb_src fn = Some (fsp_src)>>) /\
-      (<<WEAKER: fspec_weaker fsp_tgt fsp_src>>)
+      (<<FINDSRC : stb_src fn = Some (fsp_src)>>) /\
+      (<<WEAKER : fspec_weaker fsp_tgt fsp_src>>)
   .
 
-  Let wf: unit -> W -> Prop :=
+  Let wf : unit -> W -> Prop :=
     fun _ '(st_src, st_tgt) =>
-      exists mp (mr: Σ),
+      exists mp (mr : Σ),
         st_src = Any.pair mp mr↑ /\
         st_tgt = Any.pair mp mr↑.
 
   Lemma weakening_itree fl fr
     :
       forall
-        R mp (mr: Σ) ord_cur_src ord_cur_tgt (ORD: ord_weaker ord_cur_tgt ord_cur_src)  ctx itr,
+        R mp (mr : Σ) ord_cur_src ord_cur_tgt (ORD : ord_weaker ord_cur_tgt ord_cur_src)  ctx itr,
         paco8 (_sim_itree wf top2 fl fr) bot8 (Σ * R)%type (Σ * R)%type
               (fun st_src st_tgt vret_src vret_tgt =>
-                 exists mp (mr: Σ) ctx vret,
+                 exists mp (mr : Σ) ctx vret,
                    st_src = Any.pair mp mr↑ /\
                    st_tgt = Any.pair mp mr↑ /\
                    vret_src = (ctx, vret) /\
@@ -76,8 +76,8 @@ Section PROOF.
 
       steps_safe. specialize (WEAKER x ). des.
       assert (exists rarg_src,
-                 (<<PRE: precond fsp_src x_tgt varg_src x0 rarg_src>>) /\
-                 (<<VALID: URA.wf (rarg_src ⋅ c1 ⋅ ctx ⋅ c)>>)
+                 (<<PRE : precond fsp_src x_tgt varg_src x0 rarg_src>>) /\
+                 (<<VALID : URA.wf (rarg_src ⋅ c1 ⋅ ctx ⋅ c)>>)
              ).
       { hexploit PRE. i. uipropall. hexploit (H c0); et.
         { eapply URA.wf_mon. instantiate (1:=c1 ⋅ ctx ⋅ c). r_wf _GUARANTEE. }
@@ -108,8 +108,8 @@ Section PROOF.
       steps. rewrite Any.upcast_downcast in *. sym in _UNWRAPU0. clarify.
 
       assert (exists rret_tgt,
-                 (<<POSTTGT: postcond f x x1 vret rret_tgt>>) /\
-                 (<<VALIDTGT: URA.wf (rret_tgt ⋅ c1 ⋅ c3 ⋅ mr0)>>)
+                 (<<POSTTGT : postcond f x x1 vret rret_tgt>>) /\
+                 (<<VALIDTGT : URA.wf (rret_tgt ⋅ c1 ⋅ c3 ⋅ mr0)>>)
              ).
       { hexploit POST. i. uipropall. hexploit (H c2); et.
         { eapply URA.wf_mon. instantiate (1:=c1 ⋅ c3 ⋅ mr0). r_wf _ASSUME. }
@@ -135,15 +135,15 @@ Section PROOF.
         gbase. eapply CIH; ss. }
       { steps. deflag. gbase. eapply CIH; ss. }
     }
-    Unshelve. all: ss. all: try exact 0.
+    Unshelve. all : ss. all : try exact 0.
   Qed.
 
-  Variable fsp_src fsp_tgt: fspec.
-  Hypothesis fsp_weaker: fspec_weaker fsp_src fsp_tgt.
+  Variable fsp_src fsp_tgt : fspec.
+  Hypothesis fsp_weaker : fspec_weaker fsp_src fsp_tgt.
 
-  Variable body: Any.t -> itree hEs Any.t.
+  Variable body : Any.t -> itree hEs Any.t.
 
-  Lemma weakening_fn arg mrs_src mrs_tgt fl fr (WF: wf tt (mrs_src, mrs_tgt)):
+  Lemma weakening_fn arg mrs_src mrs_tgt fl fr (WF : wf tt (mrs_src, mrs_tgt)):
     sim_itree wf top2 fl fr false false tt
               (mrs_src, fun_to_tgt stb_src (mk_specbody fsp_src body) arg)
               (mrs_tgt, fun_to_tgt stb_tgt (mk_specbody fsp_tgt body) arg).
@@ -156,8 +156,8 @@ Section PROOF.
     ginit. steps.
     hexploit (fsp_weaker x). i. des.
     assert (exists rarg_tgt,
-               (<<PRETGT: precond fsp_tgt x_tgt x0 varg_tgt rarg_tgt>>) /\
-               (<<VALIDTGT: URA.wf (rarg_tgt ⋅ c0 ⋅ mr)>>)).
+               (<<PRETGT : precond fsp_tgt x_tgt x0 varg_tgt rarg_tgt>>) /\
+               (<<VALIDTGT : URA.wf (rarg_tgt ⋅ c0 ⋅ mr)>>)).
     { hexploit PRE; et. i. uipropall. hexploit (H c); et.
       { eapply URA.wf_mon. instantiate (1:=c0 ⋅ mr). r_wf _ASSUME. }
       { instantiate (1:=c0 ⋅ mr). r_wf _ASSUME. }
@@ -176,8 +176,8 @@ Section PROOF.
     }
     i. ss. des; clarify. steps.
     assert (exists rret_src,
-               (<<POSTSRC: postcond fsp_src x vret x1 rret_src>>) /\
-               (<<VALIDSRC: URA.wf (rret_src ⋅ ctx  ⋅ c1)>>)
+               (<<POSTSRC : postcond fsp_src x vret x1 rret_src>>) /\
+               (<<VALIDSRC : URA.wf (rret_src ⋅ ctx  ⋅ c1)>>)
            ).
     { hexploit POST; et. i. uipropall. hexploit (H c2); et.
       { eapply URA.wf_mon. instantiate (1:=(ctx ⋅ c1 ⋅ c3)). r_wf _GUARANTEE. }
@@ -190,7 +190,7 @@ Section PROOF.
     steps. force_l; et. exists x1.
     steps. force_l; et.
     steps. red. esplits; et. red. esplits; et.
-    Unshelve. all: ss. all: try exact 0.
+    Unshelve. all : ss. all : try exact 0.
   Qed.
 
   Lemma weakening_fsem fl fr :
@@ -207,12 +207,12 @@ Require Import ModSimFacts.
 
 Section PROOF.
   Context `{EMSConfig}.
-  Context `{Σ: GRA.t}.
+  Context `{Σ : GRA.t}.
 
   Theorem adequacy_weaken
           stb0 stb1
           md
-          (WEAK: forall sk, stb_weaker (stb0 sk) (stb1 sk))
+          (WEAK : forall sk, stb_weaker (stb0 sk) (stb1 sk))
     :
       refines (SMod.to_tgt stb0 md) (SMod.to_tgt stb1 md)
   .

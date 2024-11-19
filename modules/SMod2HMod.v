@@ -4,7 +4,6 @@ Require Import ITreelib.
 Require Import Any.
 Require Import Events HMod.
 Require Import IRed.
-Require Import STS.
 Require Import Behavior.
 Require Import PCM IPM.
 Require Import World sWorld.
@@ -17,7 +16,8 @@ From ExtLib Require Import
 Set Implicit Arguments.
 
 Section FSPEC.
-  Context `{Σ: GRA.t}.
+  Context `{Σ : GRA.t}.
+  Notation iProp := (iProp Σ).
 
   Definition invspec := nat -> iProp.
   
@@ -91,20 +91,21 @@ Section FSPEC.
   Definition fspec_inv (k: nat) (fsp: positive -> nat -> fspec): fspec :=
     mk_fspec (meta := @meta_inv (fun u n => (fsp u n).(meta)))
       (fun tid '(mk_meta u n x) varg arg =>
-         closed_world u (k+n) ⊤ ∗ (fsp u n).(precond) tid x varg arg)%I
+         closed_universe u (k+n) ⊤ ∗ (fsp u n).(precond) tid x varg arg)%I
       (fun tid '(mk_meta u n x) vret ret =>
-         closed_world u (k+n) ⊤ ∗ (fsp u n).(postcond) tid x vret ret)%I.
+         closed_universe u (k+n) ⊤ ∗ (fsp u n).(postcond) tid x vret ret)%I.
   
 End FSPEC.
 
 Notation "DPQ0 @ DPQ1" := (app_DPQ DPQ0 DPQ1) (at level 60, right associativity).
 
-Arguments precond: simpl never.
-Arguments postcond: simpl never.
+Arguments precond : simpl never.
+Arguments postcond : simpl never.
 
 Section HOARE.
 
   Context `{Σ: GRA.t}.
+  Notation iProp := (iProp Σ).
 
   Variable ginv : invspec.
   Variable stb: gname -> option fspec.
@@ -193,7 +194,7 @@ Notation "↧ it" := (interp_smod _ _ it) (at level 59, only printing).
 Module SModRed.
 Section RED.
 
-  Context `{Σ: GRA.t}.
+  Context `{Σ : GRA.t}.
 
   Lemma interp_bind
         (R S: Type)
@@ -208,7 +209,7 @@ Section RED.
   Qed.
 
   Lemma interp_tau
-        (U: Type)
+        (U : Type)
         (t : itree _ U)
         ginv stb
     :
@@ -373,7 +374,7 @@ End RED.
 End SModRed.
 
 (*
-Global Program Instance interp_rdb `{Σ: GRA.t}: red_database (mk_box (@interp_smod)) :=
+Global Program Instance interp_rdb `{Σ : GRA.t} : red_database (mk_box (@interp_smod)) :=
   mk_rdb
     1
     (mk_box SModRed.interp_bind)

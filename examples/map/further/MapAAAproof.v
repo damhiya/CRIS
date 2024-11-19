@@ -1,4 +1,4 @@
-Require Import Coqlib ITreelib sflib.
+(* Require Import Coqlib ITreelib sflib.
 Require Import MapHeader MapAA MapA MapASpec SMod ModSim.
 Require Import ImpPrelude.
 Require Import Skeleton.
@@ -6,7 +6,7 @@ Require Import PCM IPM SMod.
 Require Import Events Behavior.
 Require Import Relation_Definitions.
 
-(*** TODO: export these in Coqlib or Universe ***)
+(*** TODO : export these in Coqlib or Universe ***)
 Require Import Relation_Operators.
 Require Import RelationPairs.
 From ITree Require Import
@@ -30,21 +30,21 @@ Local Open Scope nat_scope.
 
 Module MapAAA.
 Section PROOF.
-  Context `{_W: CtxWD.t}.
-  Context `{_A: MapAR.t (Γ:=Γ)}.
+  Context `{_W : CtxWD.t}.
+  Context `{_A : MapAR.t (Γ:=Γ)}.
 
   Import MapAS.
   
-  Definition Ist: Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp :=
+  Definition Ist : Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp :=
     (fun _ _ st_src st_tgt => True%I).
 
-  Variable ginvH: Sk.t -> invspec.
-  Variable StbH: Sk.t -> gname -> option fspec.
-  Hypothesis MapInStbH: forall sk, stb_incl MapAS.Stb (StbH sk).
+  Variable ginvH : Sk.t -> invspec.
+  Variable StbH : Sk.t -> gname -> option fspec.
+  Hypothesis MapInStbH : forall sk, stb_incl MapAS.Stb (StbH sk).
 
-  Variable ginvL: Sk.t -> invspec.
-  Variable StbL: Sk.t -> gname -> option fspec.
-  Hypothesis MapInStbL: forall sk, stb_incl MapAS.Stb (StbL sk).
+  Variable ginvL : Sk.t -> invspec.
+  Variable StbL : Sk.t -> gname -> option fspec.
+  Hypothesis MapInStbL : forall sk, stb_incl MapAS.Stb (StbL sk).
 
   Local Notation MapAA := (MapAA.t ginvH StbH).
   Local Notation MapA := (MapA.t ginvL StbL).
@@ -85,7 +85,7 @@ Section PROOF.
     steps_r. step.
     
     steps_r. steps_l.
-    iDestruct "GRT" as "((% & PT) & %)". subst. hss.    
+    iDestruct "GRT" as "((% & PT) & %)". hss.    
     
     force_l (_,_,_). forces_l. iFrame. iSplit; eauto.
     
@@ -97,7 +97,7 @@ Section PROOF.
     step. eauto.
   Qed.
   
-  Theorem sim: HSim.t MapAA MapA MapAA.InitCond Ist.
+  Theorem sim : HSim.t MapAA MapA MapAA.InitCond Ist.
   Proof.
     init_sim.
     - eauto.
@@ -108,4 +108,4 @@ Section PROOF.
   Qed.
 
 End PROOF.
-End MapAAA.
+End MapAAA. *)

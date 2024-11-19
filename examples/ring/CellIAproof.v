@@ -1,11 +1,11 @@
-Require Import Coqlib ITreelib sflib.
+(* Require Import Coqlib ITreelib sflib.
 Require Import ImpPrelude.
 Require Import Skeleton.
 Require Import PCM IPM IFacts.
 Require Import Events Behavior.
 Require Import Relation_Definitions.
 
-(*** TODO: export these in Coqlib or Universe ***)
+(*** TODO : export these in Coqlib or Universe ***)
 Require Import Relation_Operators.
 Require Import RelationPairs.
 From ITree Require Import
@@ -26,14 +26,14 @@ Local Open Scope nat_scope.
 
 Module CellIA.
 Section SIMMODSEM.
-  Context `{Σ: GRA.t}.
-  Context `{_M: CellRA.t (Σ:=Σ)}.
+  Context `{Σ : GRA.t}.
+  Context `{_M : CellRA.t (Σ:=Σ)}.
 
-  Variable idx: nat.
+  Variable idx : nat.
 
-  Variable GI: Sk.t -> invspec.
-  Variable StbG: Sk.t -> gname -> option fspec.
-  (* Hypothesis CellInStb: forall sk, stb_incl (CellAS.Stb idx) (StbG sk). *)
+  Variable GI : Sk.t -> invspec.
+  Variable StbG : Sk.t -> gname -> option fspec.
+  (* Hypothesis CellInStb : forall sk, stb_incl (CellAS.Stb idx) (StbG sk). *)
 
   Import CellAS.
 
@@ -85,7 +85,7 @@ Section SIMMODSEM.
     iMod "H". iDestruct "H" as "[H0 H1]". iFrame. auto.
   Qed.
 
-  Definition Ist: Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp :=
+  Definition Ist : Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp :=
     (fun _ _ st_src st_tgt =>
        ∃vany v, ⌜st_tgt = [(CellI.v_cv idx, vany)]⌝ ∗
        ((cell idx v ∗ auth idx v)
@@ -114,18 +114,18 @@ Section SIMMODSEM.
     step. iSplit; eauto.
     iExists _, _. iSplit; eauto. iRight. iFrame; eauto.
   Qed.
-  
+
   Lemma simF_set:
     HSim.sim_fun CellA CellI Ist (CellName.set idx).
   Proof.
     init_simF.
 
     steps_l. iDestruct "ASM" as "((% & [P|C]) & %)";
-      subst; hss; rename z into v, z0 into v'; unfold Ist.
+      subst; hss; rename q1 into v, q2 into v'; unfold Ist.
     { iDestruct "IST" as (vany v0) "(% & [(C & A)|(% & P' & A)])"; cycle 1.
       { iExFalso. iApply (pending_unique with "P' P"). }
       des; subst. hss.
-      
+
       iMod (cell_auth_set with "C A") as "(C & A)".
 
       steps_r. hss.
@@ -153,7 +153,7 @@ Section SIMMODSEM.
     iExists _, _. iSplit; eauto. iRight. iFrame; eauto.
   Qed.
 
-  Theorem sim: HSim.t CellA CellI (CellA.InitCond idx) Ist.
+  Theorem sim : HSim.t CellA CellI (CellA.InitCond idx) Ist.
   Proof.
     init_sim.
     - iIntros "H". iDestruct "H" as (v) "(C & A)".
@@ -163,4 +163,4 @@ Section SIMMODSEM.
   Qed.
 
 End SIMMODSEM.
-End CellIA.
+End CellIA. *)

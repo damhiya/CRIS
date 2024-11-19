@@ -1,31 +1,32 @@
+From iris.algebra Require Import cmra.
 From stdpp Require Import coPset gmap namespaces.
 Require Import sflib.
 From iris Require Import bi.big_op.
 From iris Require base_logic.lib.invariants.
 From Coq Require Import Program Arith.
-Require Import Coqlib PCM PCMAux IProp IPM SRF.
+Require Export Coqlib PCM IPM SRF.
 
 Module HRA.
 
   Section HRA.
-  
+
   Class t := __HRA : GRA.t.
 
-  Class subG (Γ: t) (Σ: GRA.t) : Type := {
-    subG_map: nat -> nat;
-    subG_prf: forall i, Σ (subG_map i) = Γ i;
+  Class subG (Γ : t) (Σ : GRA.t) : Type := {
+    subG_map : nat -> nat;
+    subG_prf : forall i, (@GRA.gra_map Σ) (subG_map i) = (@GRA.gra_map Γ) i;
   }.
 
-  Coercion subG_map: subG >-> Funclass.
+  Coercion subG_map : subG >-> Funclass.
 
-  Context `{sub: @subG Γ Σ}.
-  
-  Global Program Instance embed (i:nat) : @GRA.inG (Γ i) Σ := {
+  Context `{sub : @subG Γ Σ}.
+
+  Global Program Instance embed (i:nat) : @GRA.inG (@GRA.gra_map Γ i) Σ := {
       inG_id := sub i;
     }.
   Next Obligation. i. symmetry. apply HRA.subG_prf. Qed.
-  
-  Global Program Instance in_subG `{M: URA.t} `{emb: @GRA.inG M Γ} : @GRA.inG M Σ := {
+
+  Global Program Instance in_subG `{M : ucmra} `{emb : @GRA.inG M Γ} : @GRA.inG M Σ := {
       inG_id := sub.(subG_map) emb.(GRA.inG_id);
       }.
   Next Obligation.
@@ -33,10 +34,10 @@ Module HRA.
   Qed.
 
   End HRA.
-  
+
 End HRA.
 
-Coercion HRA.subG_map: HRA.subG >-> Funclass.
+Coercion HRA.subG_map : HRA.subG >-> Funclass.
 
 (* Note that the types in a group has the type PF.t *)
 
@@ -80,9 +81,9 @@ Module ST.
       shp := type;
       deg := interp;
     }.
-  
+
   End TYPES.
-  
+
 End ST.
 
 Module CtxST.
@@ -115,7 +116,7 @@ Module SL.
   Context `{Γ: HRA.t}.
   
   Variant shape : Type :=
-    | _ownm i (r : Γ i)
+    | _ownm i (r : (@GRA.gra_map Γ) i)
     | _pure (P : Prop)
     | _and
     | _or
@@ -129,8 +130,8 @@ Module SL.
     | _plainly
     | _upd
   .
-  
-  Definition degree (s: shape) (Prev: Type) : Type :=
+
+  Definition degree (s : shape) (Prev : Type) : Type :=
     match s with
     | _ownm i r => fin 0
     | _pure P => fin 0
@@ -147,33 +148,35 @@ Module SL.
     | _upd => fin 1
     end.
 
-  Global Instance syntax: PF.t := {
+  Global Instance syntax : PF.t := {
       shp := shape;
       deg := degree;
-    }.
+  }.
 
   Context `{α: @SRFCons.t}.
   Context `{_C0: @HRA.subG Γ Σ}.
   
+  Local Notation iProp := (iProp Σ).
   Global Instance domain : SRFDom.t := {
     dom := iProp;
   }.
-  
-  Definition interp n (s: shape) : (degree s (SRFSyn.t_prev n) -> SRFSyn.t n) -> (degree s (SRFSyn.t_prev n) -> iProp) -> iProp :=
+
+  Definition interp n (s : shape)
+      : (degree s (SRFSyn.t_prev n) -> SRFSyn.t n) -> (degree s (SRFSyn.t_prev n) -> iProp) -> iProp :=
     match s with
     | _ownm i r => fun _ _ => OwnM r
-    | _pure P => fun _ _ => Pure P
-    | _and => fun _ sem => And (sem 0%fin) (sem 1%fin)
-    | _or => fun _ sem => Or (sem 0%fin) (sem 1%fin)
-    | _impl => fun _ sem => Impl (sem 0%fin) (sem 1%fin)
-    | _univ i ty => fun _ sem => Univ sem
-    | _ex   i ty => fun _ sem => Ex sem
-    | _empty => fun _ _ => Emp
-    | _sepconj => fun _ sem => Sepconj (sem 0%fin) (sem 1%fin)
-    | _wand => fun _ sem => Wand (sem 0%fin) (sem 1%fin)
-    | _persistently => fun _ sem => Persistently (sem 0%fin)
-    | _plainly => fun _ sem => IProp.Plainly (sem 0%fin)
-    | _upd => fun _ sem => Upd (sem 0%fin)
+    | _pure P => fun _ _ => ⌜P⌝%I
+    | _and => fun _ sem => ((sem 0%fin) ∧ (sem 1%fin))%I
+    | _or => fun _ sem => ((sem 0%fin) ∨ (sem 1%fin))%I
+    | _impl => fun _ sem => ((sem 0%fin) → (sem 1%fin))%I
+    | _univ i ty => fun _ sem => bi_forall sem
+    | _ex   i ty => fun _ sem => bi_exist sem
+    | _empty => fun _ _ => emp%I
+    | _sepconj => fun _ sem => ((sem 0%fin) ∗ (sem 1%fin))%I
+    | _wand => fun _ sem => ((sem 0%fin) -∗ (sem 1%fin))%I
+    | _persistently => fun _ sem => (<pers> (sem 0%fin))%I
+    | _plainly => fun _ sem => (■ (sem 0%fin))%I
+    | _upd => fun _ sem => (|==> (sem 0%fin))%I
     end.
 
   Global Instance t: SRFIntpM.t := interp.
@@ -186,26 +189,26 @@ Module SL.
     i. inv X.
   Defined.
 
-  Definition pure {n} (P: Prop) : SRFSyn.t n.
+  Definition pure {n} (P : Prop) : SRFSyn.t n.
     refine ⟨ _pure P, _ ⟩%SRF.
     i. inv X.
   Defined.
 
-  Definition and {n} (p1 p2: SRFSyn.t n) : SRFSyn.t n.
+  Definition and {n} (p1 p2 : SRFSyn.t n) : SRFSyn.t n.
     refine ⟨ _and, _ ⟩%SRF.
     i. destruct X.
     - exact p1.
     - exact p2.
   Defined.
 
-  Definition or {n} (p1 p2: SRFSyn.t n) : SRFSyn.t n.
+  Definition or {n} (p1 p2 : SRFSyn.t n) : SRFSyn.t n.
     refine ⟨ _or, _ ⟩%SRF.
     i. destruct X.
     - exact p1.
     - exact p2.
   Defined.
 
-  Definition impl {n} (p1 p2: SRFSyn.t n) : SRFSyn.t n.
+  Definition impl {n} (p1 p2 : SRFSyn.t n) : SRFSyn.t n.
     refine ⟨ _impl, _ ⟩%SRF.
     i. destruct X.
     - exact p1.
@@ -226,34 +229,34 @@ Module SL.
     refine ⟨ _empty, _ ⟩%SRF.
     i. inv X.
   Defined.
-  
-  Definition sepconj {n} (p1 p2: SRFSyn.t n) : SRFSyn.t n.
+
+  Definition sepconj {n} (p1 p2 : SRFSyn.t n) : SRFSyn.t n.
     refine ⟨ _sepconj, _ ⟩%SRF.
     i. destruct X.
     - exact p1.
     - exact p2.
   Defined.
 
-  Definition wand {n} (p1 p2: SRFSyn.t n) : SRFSyn.t n.
+  Definition wand {n} (p1 p2 : SRFSyn.t n) : SRFSyn.t n.
     refine ⟨ _wand, _ ⟩%SRF.
     i. destruct X.
     - exact p1.
     - exact p2.
   Defined.
-  
-  Definition persistently {n} (p: SRFSyn.t n) : SRFSyn.t n.
+
+  Definition persistently {n} (p : SRFSyn.t n) : SRFSyn.t n.
     refine ⟨ _persistently, _ ⟩%SRF.
     i. inv X; [|inv H1].
     exact p.
   Defined.
 
-  Definition plainly {n} (p: SRFSyn.t n) : SRFSyn.t n.
+  Definition plainly {n} (p : SRFSyn.t n) : SRFSyn.t n.
     refine ⟨ _plainly, _ ⟩%SRF.
     i. inv X; [|inv H1].
     exact p.
   Defined.
 
-  Definition upd {n} (p: SRFSyn.t n) : SRFSyn.t n.
+  Definition upd {n} (p : SRFSyn.t n) : SRFSyn.t n.
     refine ⟨ _upd, _ ⟩%SRF.
     i. inv X; [|inv H1].
     exact p.
@@ -269,19 +272,18 @@ Module SL.
     : SRFSyn.t n :=
     fold_right (fun hd tl => sepconj (uncurry f hd) tl) empty (map_to_list I).
 
-  Definition sepS
-             n {K} {H1 : EqDecision K} {H2 : Countable K}
-             (I : @gset K H1 H2)
-             (f : K -> SRFSyn.t n)
-    : SRFSyn.t n :=
+  Definition sepS n {K} {H1 : EqDecision K} {H2 : Countable K}
+      (I : @gset K H1 H2)
+      (f : K -> SRFSyn.t n)
+      : SRFSyn.t n :=
     fold_right (fun hd tl => sepconj (f hd) tl) empty (elements I).
-  
+
   Definition sepL1
              n {A} (I : list A)
              (f : A -> SRFSyn.t n)
     : SRFSyn.t n :=
     fold_right (fun hd tl => sepconj (f hd) tl) empty I.
-  
+
   End SL.
 
 End SL.
@@ -350,83 +352,84 @@ Module SLRed.
 
   Section RED.
 
-  Context `{_C: CtxSL.t}.
-    
-  Lemma ownm `{@GRA.inG M Γ} n (r: M) :
-    SRFSem.t n (SL.ownm r) = OwnM r.
+  Context `{_C : CtxSL.t}.
+  Notation interp := (SRFSem.t (Δ := @SL.domain Σ)).
+
+  Lemma ownm `{@GRA.inG M Γ} n (r : M) :
+    interp n (SL.ownm r) = OwnM r.
   Proof.
     depdes H. subst. unfold SL.ownm, eq_rect_r. ss.
     rewrite @SRFRed.cur. ss.
     f_equal. unfold HRA.in_subG, HRA.embed. ss.
     erewrite (UIP _ _ _ _). reflexivity.
   Qed.
-  
+
   Lemma pure n P :
-    SRFSem.t n (SL.pure P) = ⌜P⌝%I.
+    interp n (SL.pure P) = ⌜P⌝%I.
   Proof. unfold SL.pure. rewrite @SRFRed.cur. reflexivity. Qed.
 
   Lemma and n p q :
-    SRFSem.t n (SL.and p q) = (SRFSem.t n p ∧ SRFSem.t n q)%I.
+    interp n (SL.and p q) = (interp n p ∧ interp n q)%I.
   Proof. unfold SL.and. rewrite @SRFRed.cur. reflexivity. Qed.
 
   Lemma or n p q :
-    SRFSem.t n (SL.or p q) = (SRFSem.t n p ∨ SRFSem.t n q)%I.
+    interp n (SL.or p q) = (interp n p ∨ interp n q)%I.
   Proof. unfold SL.or. rewrite @SRFRed.cur. reflexivity. Qed.
 
   Lemma impl n p q :
-    SRFSem.t n (SL.impl p q) = (SRFSem.t n p → SRFSem.t n q)%I.
+    interp n (SL.impl p q) = (interp n p → interp n q)%I.
   Proof. unfold SL.impl. rewrite @SRFRed.cur. reflexivity. Qed.
 
   Lemma univ `{T:PF.t} `{@GPF.inG T τ} n (ty: T.(PF.shp)) p :
     SRFSem.t n (SL.univ ty p) = (∀ x: (T.(PF.deg) ty (SRFSyn.t_prev n)), SRFSem.t n (p x))%I.
   Proof.
-    destruct H eqn: EQ. subst.
+    destruct H eqn : EQ. subst.
     unfold SL.univ, eq_rect_r. ss.
     rewrite @SRFRed.cur. reflexivity.
   Qed.
 
   Lemma ex `{@GPF.inG T τ} n ty p :
-    SRFSem.t n (SL.ex ty p) = (∃ x, SRFSem.t n (p x))%I.
+    interp n (SL.ex ty p) = (∃ x, interp n (p x))%I.
   Proof.
-    destruct H eqn: EQ. subst.
+    destruct H eqn : EQ. subst.
     unfold SL.ex, eq_rect_r. ss.
     rewrite @SRFRed.cur. reflexivity.
   Qed.
-  
+
   Lemma empty n :
-    SRFSem.t n SL.empty = emp%I.
+    interp n SL.empty = emp%I.
   Proof. unfold SL.empty. rewrite @SRFRed.cur. reflexivity. Qed.
-  
+
   Lemma sepconj n p q :
-    SRFSem.t n (SL.sepconj p q) = (SRFSem.t n p ∗ SRFSem.t n q)%I.
+    interp n (SL.sepconj p q) = (interp n p ∗ interp n q)%I.
   Proof. unfold SL.sepconj. rewrite @SRFRed.cur. reflexivity. Qed.
 
   Lemma wand n p q :
-    SRFSem.t n (SL.wand p q) = (SRFSem.t n p -∗ SRFSem.t n q)%I.
+    interp n (SL.wand p q) = (interp n p -∗ interp n q)%I.
   Proof. unfold SL.wand. rewrite @SRFRed.cur. reflexivity. Qed.
 
   Lemma persistently n p :
-    SRFSem.t n (SL.persistently p) = (<pers> SRFSem.t n p)%I.
+    interp n (SL.persistently p) = (<pers> interp n p)%I.
   Proof. unfold SL.persistently. rewrite @SRFRed.cur. reflexivity. Qed.
 
   Lemma plainly n p :
-    SRFSem.t n (SL.plainly p) = (IProp.Plainly (SRFSem.t n p))%I.
+    interp n (SL.plainly p) = (■ (interp n p))%I.
   Proof. unfold SL.plainly. rewrite @SRFRed.cur. reflexivity. Qed.
 
   Lemma upd n p :
-    SRFSem.t n (SL.upd p) = (#=> SRFSem.t n p)%I.
+    interp n (SL.upd p) = (|==> interp n p)%I.
   Proof. unfold SL.upd. rewrite @SRFRed.cur. reflexivity. Qed.
 
   Lemma affinely n p :
-    SRFSem.t n (SL.affinely p) = (<affine> SRFSem.t n p)%I.
+    interp n (SL.affinely p) = (<affine> interp n p)%I.
   Proof. unfold SL.affinely. rewrite ->and, empty. reflexivity. Qed.
 
   Lemma intuitionistically n p :
-    SRFSem.t n (SL.affinely (SL.persistently p)) = (□ SRFSem.t n p)%I.
+    interp n (SL.affinely (SL.persistently p)) = (□ interp n p)%I.
   Proof. rewrite ->affinely, persistently. reflexivity. Qed.
 
   Lemma sepM n K {H1 : EqDecision K} {H2 : Countable K} A I f :
-    SRFSem.t n (SL.sepM n I f (K:=K) (A:=A)) = ([∗ map] i ↦ a ∈ I, SRFSem.t n (f i a))%I.
+    interp n (SL.sepM n I f (K:=K) (A:=A)) = ([∗ map] i ↦ a ∈ I, interp n (f i a))%I.
   Proof.
     ss. unfold big_opM. rewrite seal_eq. unfold big_op.big_opM_def.
     unfold SL.sepM. simpl. remember (map_to_list I) as L.
@@ -437,7 +440,7 @@ Module SLRed.
   Qed.
 
   Lemma sepS n K {H1 : EqDecision K} {H2 : Countable K} I f :
-    SRFSem.t n (SL.sepS n I f (K:=K)) = ([∗ set] i ∈ I, SRFSem.t n (f i))%I.
+    interp n (SL.sepS n I f (K:=K)) = ([∗ set] i ∈ I, interp n (f i))%I.
   Proof.
     ss. unfold big_opS. rewrite seal_eq. unfold big_op.big_opS_def.
     unfold SL.sepS. remember (elements I) as L.
@@ -447,13 +450,13 @@ Module SLRed.
   Qed.
 
   Lemma sepL1 n A I f :
-    SRFSem.t n (SL.sepL1 n I f (A:=A)) = ([∗ list] a ∈ I, SRFSem.t n (f a))%I.
+    interp n (SL.sepL1 n I f (A:=A)) = ([∗ list] a ∈ I, interp n (f a))%I.
   Proof.
     ss. induction I; ss.
     { rewrite empty. ss. }
     rewrite sepconj. rewrite IHI. f_equal.
   Qed.
-  
+
   End RED.
 End SLRed.
 
@@ -470,47 +473,47 @@ Global Opaque SL.wand.
 Global Opaque SL.persistently.
 Global Opaque SL.plainly.
 Global Opaque SL.upd.
-  
+
 Global Opaque SRFSem.t.
 
 (* Simple sProp reduction tactics. *)
 Ltac SL_red := repeat (try rewrite ! @SLRed.sepconj;
-                       try rewrite ! @SLRed.and;
-                       try rewrite ! @SLRed.or;
-                       try rewrite ! @SLRed.impl;
-                       try rewrite ! @SLRed.wand;
-                       try rewrite ! @SLRed.pure;
-                       try rewrite ! @SLRed.univ;
-                       try rewrite ! @SLRed.ex;
-                       try rewrite ! @SLRed.empty;
-                       try rewrite ! @SLRed.persistently;
-                       try rewrite ! @SLRed.plainly;
-                       try rewrite ! @SLRed.upd;
-                       try rewrite ! @SLRed.affinely;
-                       try rewrite ! @SLRed.intuitionistically;
-                       try rewrite ! @SLRed.sepM;
-                       try rewrite ! @SLRed.sepS;
-                       try rewrite ! @SLRed.sepL1
-                 ).
+                      try rewrite ! @SLRed.and;
+                      try rewrite ! @SLRed.or;
+                      try rewrite ! @SLRed.impl;
+                      try rewrite ! @SLRed.wand;
+                      try rewrite ! @SLRed.pure;
+                      try rewrite ! @SLRed.univ;
+                      try rewrite ! @SLRed.ex;
+                      try rewrite ! @SLRed.empty;
+                      try rewrite ! @SLRed.persistently;
+                      try rewrite ! @SLRed.plainly;
+                      try rewrite ! @SLRed.upd;
+                      try rewrite ! @SLRed.affinely;
+                      try rewrite ! @SLRed.intuitionistically;
+                      try rewrite ! @SLRed.sepM;
+                      try rewrite ! @SLRed.sepS;
+                      try rewrite ! @SLRed.sepL1
+                      ).
 
 Ltac SL_red_all := repeat (try rewrite ! @SLRed.sepconj in *;
-                           try rewrite ! @SLRed.and in *;
-                           try rewrite ! @SLRed.or in *;
-                           try rewrite ! @SLRed.impl in *;
-                           try rewrite ! @SLRed.wand in *;
-                           try rewrite ! @SLRed.pure in *;
-                           try rewrite ! @SLRed.univ in *;
-                           try rewrite ! @SLRed.ex in *;
-                           try rewrite ! @SLRed.empty in *;
-                           try rewrite ! @SLRed.persistently in *;
-                           try rewrite ! @SLRed.plainly in *;
-                           try rewrite ! @SLRed.upd in *;
-                           try rewrite ! @SLRed.affinely in *;
-                           try rewrite ! @SLRed.intuitionistically in *;
-                           try rewrite ! @SLRed.sepM in *;
-                           try rewrite ! @SLRed.sepS in *;
-                           try rewrite ! @SLRed.sepL1 in *
-                     ).
+                          try rewrite ! @SLRed.and in *;
+                          try rewrite ! @SLRed.or in *;
+                          try rewrite ! @SLRed.impl in *;
+                          try rewrite ! @SLRed.wand in *;
+                          try rewrite ! @SLRed.pure in *;
+                          try rewrite ! @SLRed.univ in *;
+                          try rewrite ! @SLRed.ex in *;
+                          try rewrite ! @SLRed.empty in *;
+                          try rewrite ! @SLRed.persistently in *;
+                          try rewrite ! @SLRed.plainly in *;
+                          try rewrite ! @SLRed.upd in *;
+                          try rewrite ! @SLRed.affinely in *;
+                          try rewrite ! @SLRed.intuitionistically in *;
+                          try rewrite ! @SLRed.sepM in *;
+                          try rewrite ! @SLRed.sepS in *;
+                          try rewrite ! @SLRed.sepL1 in *
+                          ).
 
 Ltac SL_red_ownm := try rewrite ! @SLRed.ownm.
 Ltac SL_red_ownm_all := try rewrite ! @SLRed.ownm in *.

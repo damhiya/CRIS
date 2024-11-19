@@ -1,3 +1,4 @@
+(* TODO : make SRFSyn.t rewriting more flexible by using setoids *)
 Require Import Basics Program.
 
 Local Notation level := nat.
@@ -11,22 +12,22 @@ Local Notation level := nat.
 (* Polynomial Functor *)
 
 Module PF.
-  
-  Class t: Type := {
-    shp: Type;
-    deg: shp -> forall (Prev:Type), Type;
+
+  Class t : Type := {
+    shp : Type;
+    deg : shp -> forall (Prev:Type), Type;
   }.
 
 End PF.
 
 (* Global Polynomial Functor *)
 Module GPF.
-  
-  Class t: Type := __GATOM: nat -> PF.t.
 
-  Class inG (F: PF.t) (GF: t) : Type := {
-    inG_id: nat;
-    inG_prf: F = GF inG_id;
+  Class t : Type := __GATOM : nat -> PF.t.
+
+  Class inG (F : PF.t) (GF : t) : Type := {
+    inG_id : nat;
+    inG_prf : F = GF inG_id;
   }.
 
 End GPF.
@@ -59,24 +60,24 @@ Module SRFSyn.
   | _cur i (op: (α i).(PF.shp)) (args: (α i).(PF.deg) op Prev -> term)
   .
 
-  Fixpoint _t (n : level) : Type :=
-    match n with
-    | O => Empty_set
-    | S m => term (Prev:=_t m) 
-    end.
+    Fixpoint _t (n : level) : Type :=
+      match n with
+      | O => Empty_set
+      | S m => term (Prev:=_t m) 
+      end.
 
-  Definition t_prev (n: level) : Type := _t n.
-  
-  Definition t (n : level) : Type := t_prev (S n).
+    Definition t_prev (n : level) : Type := _t n.
+    
+    Definition t (n : level) : Type := t_prev (S n).
 
-  Definition lift {n} (p: t n) : t (S n) := _lift p.
-  
-  Fixpoint liftn k {n} (p: t n) : t (k+n) :=
-    match k return t (k+n) with
-    | 0 => p
-    | S k' => lift (liftn k' p)
-    end.
-  
+    Definition lift {n} (p : t n) : t (S n) := _lift p.
+    
+    Fixpoint liftn k {n} (p : t n) : t (k+n) :=
+      match k return t (k+n) with
+      | 0 => p
+      | S k' => lift (liftn k' p)
+      end.
+    
   End SYNTAX.
 
 End SRFSyn.
@@ -116,7 +117,7 @@ Module SRFIntp.
 
   Section GSEM.
 
-  Context `{Δ: SRFDom.t}.
+  Context `{Δ : SRFDom.t}.
 
   Class t `{α: SRFCons.t}: Type :=
     gsem : forall i, @SRFIntpM.t Δ α (α i).
@@ -177,14 +178,14 @@ Module SRFRed.
   Lemma cur `{A: PF.t} `{B: @SRFIntpM.t Δ α A} `{IN: @SRFIntp.inG Δ A α B β} n op args:
     SRFSem.t n (SRFSem.cur op args) = B n op args (compose (SRFSem.t n) args).
   Proof.
-    destruct IN eqn: EQ. subst. dependent destruction inG_prf. reflexivity.
+    destruct IN eqn : EQ. subst. dependent destruction inG_prf. reflexivity.
   Qed.
 
   Lemma lift_0 t d:
     SRFSem.t_prev 1 (SRFSyn._lift t) = d.
   Proof. destruct t. Qed.
 
-  Lemma lift n (t: SRFSyn.t n) :
+  Lemma lift n (t : SRFSyn.t n) :
     SRFSem.t (S n) (SRFSyn.lift t) = SRFSem.t n t.
   Proof. reflexivity. Qed.
 

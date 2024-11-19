@@ -17,4 +17,3 @@ Module MapSK.
      (MapName.set, Gfun↑);
      (MapName.set_by_user, Gfun↑)].
 End MapSK.
-

@@ -1,5 +1,5 @@
-Require Import Coqlib ITreelib sflib.
-Require Import Events Any IPM ImpPrelude IModL Skeleton.
+(* Require Import Coqlib ITreelib sflib.
+Require Import Events Any IPM ImpPrelude Skeleton.
 
 Module RingName.
   
@@ -12,4 +12,4 @@ End RingName.
 
 Module RingSK.
   Definition t : Sk.t := [].
-End RingSK.
+End RingSK. *)

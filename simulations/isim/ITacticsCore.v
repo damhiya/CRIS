@@ -1,5 +1,5 @@
 Require Import Coqlib ITreelib sflib.
-Require Import Events STS.
+Require Import Events.
 Require Import Behavior.
 
 Require Import Skeleton.
@@ -20,6 +20,7 @@ Require Import SubPerm.
 Require Import LAuto.
 
 From stdpp Require Import coPset gmap.
+From iris.prelude Require Import prelude.
 
 (************ User Tactics **************)
 
@@ -81,6 +82,11 @@ Ltac alist_upd_simpl nodup_tac :=
 Ltac trivial_nodup H :=
   exact H.
 
+Ltac move_nodup :=
+  (repeat match goal with [H: List.NoDup _ |- _ ] => guardH H; move H at top end);
+  (repeat match goal with [H: incl _ (HMod.scopes _ _) |- _] => guardH H; move H at top end);
+  unguard.
+
 Ltac alist_find_simpl nodup_tac :=
   match goal with
   [ |- context[alist_find ?k ?l]] =>
@@ -126,21 +132,22 @@ Ltac hss_des :=
 
 Ltac hss :=
   hss_des;
-  try (rewrite !Any.pair_split in * );
-  try (rewrite !Any.upcast_downcast in * );
+  try (rewrite -> !Any.pair_split in * );
+  try (rewrite -> !Any.upcast_downcast in * );
   repeat (match goal with [G: Any.downcast _ = Some _ |-_] =>
     apply Any.downcast_upcast in G; inv G; ss
    end);
-  repeat (match goal with [G: Any.upcast (_:?T) = Any.upcast (_:?T) |-_] =>
+  repeat (match goal with [G: Any.upcast _ = Any.upcast _ |-_] =>
     apply Any.upcast_inj in G; destruct G as [_ G]; red in G; depdes G; ss
    end);
   repeat (match goal with [G: Some _ = Some _ |- _] =>
     depdes G; ss
   end);
-  try (rewrite !Any.pair_split in * );
-  try (rewrite !Any.upcast_downcast in * );
+  try (rewrite -> !Any.pair_split in * );
+  try (rewrite -> !Any.upcast_downcast in * );
   repeat (alist_upd_simpl trivial_nodup);
-  hss_des.
+  hss_des;
+  move_nodup.
 
 (***
   Step-level tactics
@@ -149,14 +156,26 @@ Ltac hss :=
 Ltac iIntrosFresh H := iIntros H || iIntrosFresh (H ++ "'")%string.
 
 Ltac des_pairs :=
-  repeat match goal with
-    | [H: context[let () := ?x in _] |- _] => destruct x
-    | |- context[let () := ?x in _] => destruct x
-    | [H: context[let (_, _) := ?x in _] |- _] =>
-        let n0 := fresh x in let n1 := fresh x in destruct x as [n0 n1]
-    | |- context[let (_, _) := ?x in _] =>
-        let n0 := fresh x in let n1 := fresh x in destruct x as [n0 n1]
-    end.
+  (repeat
+    match goal with
+    | [H: context[let () := ?x in _] |- _] =>
+        match type of x with
+        | () => destruct x
+        | (_ * _)%type =>
+            let n0 := fresh "q" in let n1 := fresh "q" in
+            let EQ := fresh "EQq" in
+            destruct x as [n0 n1] eqn: EQ
+        end
+    | |- context[let () := ?x in _] =>
+        match type of x with
+        | () => destruct x
+        | (_ * _)%type =>
+            let n0 := fresh "q" in let n1 := fresh "q" in
+            let EQ := fresh "EQq" in
+            destruct x as [n0 n1] eqn: EQ
+        end
+    end);
+   subst.
 
 Ltac desugar itr :=
   match itr with
@@ -272,46 +291,46 @@ Ltac unwrapS :=
 Ltac _unwrapP itr :=
   match itr with
   | Ret _ =>
-      rewrite PModRed.transl_ret
+      rewrite PModRed.interp_ret
   | tau;; _ =>
-      rewrite PModRed.transl_tau
+      rewrite PModRed.interp_tau
   | trigger (Choose _) => 
-      rewrite PModRed.transl_core
+      rewrite PModRed.interp_choose
   | trigger (Take _) => 
-      rewrite PModRed.transl_core
+      rewrite PModRed.interp_take
   | trigger (IO _ _) => 
-      rewrite PModRed.transl_core  
+      rewrite PModRed.interp_io
   | trigger (Call _ _) =>
-      rewrite PModRed.transl_call
+      rewrite PModRed.interp_call
   | trigger (Spawn _ _) =>
-      rewrite PModRed.transl_sch
+      rewrite PModRed.interp_sch
   | trigger (Yield _) =>
-      rewrite PModRed.transl_sch
+      rewrite PModRed.interp_sch
   | trigger Tid =>
-      rewrite PModRed.transl_sch
+      rewrite PModRed.interp_sch
   | trigger (SPut _ _) =>
-      rewrite PModRed.transl_pg
+      rewrite PModRed.interp_pg
   | trigger (SGet _) =>
-      rewrite PModRed.transl_pg
+      rewrite PModRed.interp_pg
   | unwrapU _ =>
-      rewrite PModRed.transl_unwrapU
+      rewrite PModRed.interp_unwrapU
   | unwrapN _ =>
-      rewrite PModRed.transl_unwrapN
+      rewrite PModRed.interp_unwrapN
   | assume _ =>
-      rewrite PModRed.transl_asm
+      rewrite PModRed.interp_asm
   | guarantee _ =>
-      rewrite PModRed.transl_guar
+      rewrite PModRed.interp_guar
   | _ => fail
   end.
 
 Ltac unwrapP :=
   try match goal with
-  | [|-context[PModSem.transl ?itr]] => first [desugar itr|fail 2]
+  | [|-context[PModSem.interp ?itr]] => first [desugar itr|fail 2]
   end;
   match goal with
-  | [|-context[PModSem.transl (?itr >>= _)]] =>
-      rewrite PModRed.transl_bind; unwrapP
-  | [|-context[PModSem.transl ?itr]] => first [_unwrapP itr|fail 2]
+  | [|-context[PModSem.interp (?itr >>= _)]] =>
+      rewrite PModRed.interp_bind; unwrapP
+  | [|-context[PModSem.interp ?itr]] => first [_unwrapP itr|fail 2]
   end.
 
 Ltac unfold_precond_postcond term := let TM := fresh "_term" in
@@ -340,8 +359,8 @@ Ltac _step_l :=
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, unwrapU ?ox >>= _) _) ] =>
       let name := fresh "q" in
       iApply isim_unwrapU_src; iIntros (name) "%";
-      match goal with [ H: ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite G in * end
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _) _) ] =>
+      match goal with [ H: ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite -> G in * end
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _) _) ] =>
       let name := fresh "asm" in iApply isim_asm_src; iIntros (name)
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, trigger Tid >>= _) _) ] =>
       iApply isim_tid_src
@@ -367,8 +386,8 @@ Ltac _step_r :=
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ _ (_, unwrapN ?ox >>= _)) ] =>
       let name := fresh "q" in
       iApply isim_unwrapN_tgt; iIntros (name) "%";
-      match goal with [ H: ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite G in * end
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ _ (_, guarantee _ >>= _)) ] =>
+      match goal with [ H: ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite -> G in * end
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, guarantee _ >>= _)) ] =>
       let name := fresh "grt" in iApply isim_guar_tgt; iIntros (name)
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger Tid >>=  _)) ] =>
       iApply isim_tid_tgt
@@ -412,13 +431,32 @@ Ltac _force_r :=
   end
 .
 
+Ltac hide_itree_all marker :=
+  assert (marker: True) by exact I;
+  repeat (
+      let IT := fresh "ITREE" in
+      match goal with
+      | [|- context[?f ?arg]] =>
+          match type of (f arg) with
+          | itree _ _ => set (IT := f arg) at 1
+          end
+      end ).
 
-Ltac hide_itree_l := let IT := fresh "ITREE" in
-  match goal with [|- _ (_ ?it _)] => set (IT := it) end; try unfold IT at 2.
-Ltac hide_itree_r := let IT := fresh "ITREE" in
-  match goal with [|- _ (_ _ ?it)] => set (IT := it) end; first [ try (unfold IT at 2; fail 1) | unfold IT at 1].
-Ltac show_itree :=
-  match goal with [IT:=_ |-_] => unfold IT; clear IT end.
+Ltac hide_itree_l marker :=
+  hide_itree_all marker;
+  match goal with [|- _ (_ _ (_, ?it))] => try unfold it end.
+
+Ltac hide_itree_r marker :=
+  hide_itree_all marker;
+  match goal with [|- _ (_ (_, ?it) _)] => try unfold it end.
+
+Ltac show_itree marker :=
+  repeat match goal with
+      [H: _ |- _] =>
+        try match H with marker => fail 3 end;
+        first [unfold H; clear H | revert H]
+    end;
+  clear marker; i.
 
 Ltac unfold_stb :=
   try match goal with
@@ -449,7 +487,7 @@ Ltac prep :=
   try match goal with
   | [|-context[interp_smod _ _ (?f ?arg)]] =>
     match type of arg with Any.t => rewrite/__ {1}/f end
-  | [|-context[PModSem.transl (?f ?arg)]] =>
+  | [|-context[PModSem.interp (?f ?arg)]] =>
     match type of arg with Any.t => rewrite/__ {1}/f end
   end;
   unfold ccallU, ccallN;
@@ -460,29 +498,29 @@ Ltac prep :=
   try rewrite !bind_bind;
   try rewrite !bind_tau.
 
-Ltac step_l :=
-  hide_itree_r;
-  prep; _step_l; try alist_find_simpl fnsems_nodup; des_pairs; s;
-  show_itree.
+Ltac step_l := let marker := fresh "MARKER" in
+  hide_itree_r marker;
+  prep; _step_l; try alist_find_simpl fnsems_nodup; s; des_pairs; s;
+  show_itree marker.
 
 Ltac steps_l := repeat step_l.
 
-Ltac step_r :=
-  hide_itree_l;
-  prep; _step_r; try alist_find_simpl fnsems_nodup; des_pairs; s;
-  show_itree.
+Ltac step_r := let marker := fresh "MARKER" in
+  hide_itree_l marker;
+  prep; _step_r; try alist_find_simpl fnsems_nodup; s; des_pairs; s;
+  show_itree marker.
 
 Ltac steps_r := repeat step_r.
 
-Ltac step :=
-  hide_itree_r; prep; show_itree;
-  hide_itree_l; prep; show_itree;
-  _step; des_pairs; s.
+Ltac step := let marker := fresh "MARKER" in
+  hide_itree_r marker; prep; show_itree marker;
+  hide_itree_l marker; prep; show_itree marker;
+  _step; s; des_pairs; s.
 
-Ltac force_l_core :=
-  hide_itree_r;
+Ltac force_l_core := let marker := fresh "MARKER" in
+  hide_itree_r marker;
   prep; _force_l; s;
-  show_itree.
+  show_itree marker.
 
 Tactic Notation "force_l" :=
   force_l_core; try (iExists _).
@@ -492,10 +530,10 @@ Tactic Notation "force_l" uconstr(p) :=
 
 Ltac forces_l := repeat force_l.
 
-Ltac force_r_core :=
-  hide_itree_l;
+Ltac force_r_core := let marker := fresh "MARKER" in
+  hide_itree_l marker;
   prep; _force_r; s;
-  show_itree.
+  show_itree marker.
 
 Tactic Notation "force_r" :=
   force_r_core; try (iExists _).
@@ -505,35 +543,37 @@ Tactic Notation "force_r" uconstr(p) :=
 
 Ltac forces_r := repeat force_r.
 
-Ltac inline_l :=
-  hide_itree_r;
+Ltac inline_l := let marker := fresh "MARKER" in
+  hide_itree_r marker;
   prep;
   iApply isim_inline_src;
   [simpl HModSem.fnsems; repeat unfold_hmod; simpl List.map;
    alist_find_simpl fnsems_nodup; eauto|];
   unfold interp_sb_hp, HoareFun; s;
-  show_itree.
+  show_itree marker.
   
-Ltac inline_r :=
-  hide_itree_l;
+Ltac inline_r := let marker := fresh "MARKER" in
+  hide_itree_l marker;
   prep;
   iApply isim_inline_tgt;
   [simpl HModSem.fnsems; repeat unfold_hmod; simpl List.map;
    alist_find_simpl fnsems_nodup; eauto|];
   unfold interp_sb_hp, HoareFun; s;
-  show_itree.
+  show_itree marker.
 
-Ltac call hyps :=
-  hide_itree_r; prep; show_itree;
-  hide_itree_l; prep; show_itree;
+Ltac call hyps := let marker := fresh "MARKER" in
+  hide_itree_r marker; prep; show_itree marker;
+  hide_itree_l marker; prep; show_itree marker;
   iApply isim_call;
-  iSplitL hyps; [ |iIntros "% % % % % %"; iIntrosFresh "IST"].
+  iSplitL hyps; [ |iIntros "% % % % % %"; iIntrosFresh "IST"];
+  move_nodup.
 
-Ltac yield hyps :=
-  hide_itree_r; prep; show_itree;
-  hide_itree_l; prep; show_itree;
+Ltac yield hyps := let marker := fresh "MARKER" in
+  hide_itree_r marker; prep; show_itree marker;
+  hide_itree_l marker; prep; show_itree marker;
   iApply isim_yield;
-  iSplitL hyps; [ |iIntros "% % % % %"; iIntrosFresh "IST"].
+  iSplitL hyps; [ |iIntros "% % % % %"; iIntrosFresh "IST"];
+  move_nodup.
 
 Ltac init_simF :=
   unfold HSim.sim_fun, HSSim.sim_fun; i;
@@ -551,12 +591,13 @@ Ltac init_simF :=
   | [|- context[{| fsb_body := cfunU ?x |}]] => rewrite/__ {1}/x
   | [|- context[{| fsb_body := cfunN ?x |}]] => rewrite/__ {1}/x
   | [|- context[{| fsb_body := ?x |}]] => rewrite/__ {1}/x
-  | [|- context[PModSem.transl (?x _)]] => unfold x
+  | [|- context[PModSem.interp (?x _)]] => unfold x
   | [|- context[cfunU ?x]] => rewrite/__ {1}/x
   | [|- context[cfunN ?x]] => rewrite/__ {1}/x
   end;                          
   unfold interp_sb_hp, HoareFun, cfunU, cfunN, HModSem.sandbox_body; s;
-  ii; subst; iIntros "IST".
+  ii; subst; iIntros "IST";
+  move_nodup.
 
 Ltac prove_sub_perm :=
   i; try rewrite /HMod.scopes; s; repeat unfold_hmod; s; Lauto_normalize;

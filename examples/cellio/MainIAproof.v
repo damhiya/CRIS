@@ -1,4 +1,4 @@
-Require Import Coqlib ITreelib sflib.
+(* Require Import Coqlib ITreelib sflib.
 Require Import ImpPrelude.
 Require Import Skeleton.
 Require Import PCM IPM IFacts.
@@ -65,7 +65,7 @@ Section SIMMODSEM.
     call "IST"; eauto.
 
     steps_l. iDestruct "ASM" as "%". subst. hss.
-    steps_r. inline_r.
+    steps_r. hss. steps_r. inline_r.
     step_r. forces_r. iSplitL ""; eauto.
     forces_r. steps_r. forces_r.
     iSplitL "GRT"; eauto.
@@ -76,7 +76,7 @@ Section SIMMODSEM.
     steps_l. forces_l.
     iSplitL ""; eauto.
 
-    step. iFrame. eauto.
+    steps_r. step. iFrame. eauto.
 
   Unshelve. all:eauto.
   Qed.
@@ -91,4 +91,4 @@ Section SIMMODSEM.
   Qed.
 
 End SIMMODSEM.
-End MainIM.
+End MainIM. *)

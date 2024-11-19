@@ -1,11 +1,11 @@
-Require Import Coqlib ITreelib sflib.
+(* Require Import Coqlib ITreelib sflib.
 Require Import RingHeader CellHeader RingASpec CellASpec RingA CtrlI CellA CellI CtrlIAproof CellIAproof.
 Require Import Skeleton.
 Require Import PCM IPM.
 Require Import Events Behavior.
 Require Import Relation_Definitions.
 
-(*** TODO: export these in Coqlib or Universe ***)
+(*** TODO : export these in Coqlib or Universe ***)
 Require Import Relation_Operators.
 Require Import RelationPairs.
 From ITree Require Import
@@ -25,13 +25,13 @@ Local Open Scope nat_scope.
 
 Module RingIA.
 Section PROOF.
-  Context `{Σ: GRA.t}.
-  Context `{_M: CellRA.t (Σ:=Σ)}.
+  Context `{Σ : GRA.t}.
+  Context `{_M : CellRA.t (Σ:=Σ)}.
 
   Definition CellIG start len :=
     HMod.addL (List.map CellI.t (seq start len)).
 
-  Theorem correct max_size GI (StbR StbC: Sk.t -> gname -> option fspec)
+  Theorem correct max_size GI (StbR StbC : Sk.t -> gname -> option fspec)
     :
     ctx_refines
       ((RingA.t max_size GI StbR) ★ (CtrlIA.CellG GI StbC 0 max_size),
@@ -66,4 +66,4 @@ Section PROOF.
   Qed.
 
 End PROOF.
-End RingIA.
+End RingIA. *)

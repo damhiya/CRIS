@@ -1,6 +1,6 @@
-Require Import Coqlib ITreelib sflib.
+(* Require Import Coqlib ITreelib sflib.
 Require Import ImpPrelude.
-Require Import Events STS.
+Require Import Events.
 Require Import Behavior.
 Require Import SMod HMod.
 Require Import Skeleton.
@@ -13,16 +13,16 @@ Set Implicit Arguments.
 
 Module MapAA.
 Section AA.
-  Context `{_W: CtxWD.t}.
-  Context `{_A: MapAR.t (Γ:=Γ)}.
-  Context `{_M: MapMR.t (Γ:=Γ)}.
+  Context `{_W : CtxWD.t}.
+  Context `{_A : MapAR.t (Γ:=Γ)}.
+  Context `{_M : MapMR.t (Γ:=Γ)}.
 
   Definition scopes := ["Map"].
   
-  Definition set_by_user: list val -> itree hmodE val :=
+  Definition set_by_user : list val -> itree smodE val :=
     fun varg =>
       k <- (pargs [Tint] varg)?;;
-      v <- trigger (IO "input" ([]: list Z));;
+      v <- trigger (IO "input" ([] : list Z));;
       ccallU MapName.set [Vint k; Vint v]
   .
 
@@ -49,9 +49,9 @@ Section AA.
   Definition InitCond : Sk.t -> iProp :=
     fun _ => emp%I.
 
-  Variable ginv: Sk.t -> invspec.
-  Variable GlobalStb: Sk.t -> gname -> option fspec.
+  Variable ginv : Sk.t -> invspec.
+  Variable GlobalStb : Sk.t -> gname -> option fspec.
   Definition t := Seal.sealing "ccr" (SMod.to_hmod ginv GlobalStb Mod).
 
 End AA.
-End MapAA.
+End MapAA. *)

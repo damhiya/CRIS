@@ -1,6 +1,6 @@
-Require Import Coqlib ITreelib sflib.
+(* Require Import Coqlib ITreelib sflib.
 Require Import ImpPrelude.
-Require Import Events STS.
+Require Import Events.
 Require Import Behavior.
 Require Import SMod HMod.
 Require Import Skeleton.
@@ -13,7 +13,7 @@ Set Implicit Arguments.
 
 Module CellA.
 Section CELL_A.
-  Context `{_W: CellRA.t}.  
+  Context `{_W : CellRA.t}.  
 
   Variable idx : nat.
 
@@ -41,9 +41,9 @@ Section CELL_A.
   Definition InitCond : Sk.t -> iProp :=
     fun _ => (∃ v, CellAS.cell idx v ∗ CellAS.auth idx v)%I.
 
-  Variable GI: Sk.t -> invspec.
-  Variable GlobalStb: Sk.t -> gname -> option fspec.
+  Variable GI : Sk.t -> invspec.
+  Variable GlobalStb : Sk.t -> gname -> option fspec.
   Definition t := Seal.sealing "ccr" (SMod.to_hmod GI GlobalStb Mod).
 
 End CELL_A.
-End CellA.
+End CellA. *)

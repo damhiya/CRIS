@@ -1,5 +1,4 @@
 (* Require Import Coqlib.
-Require Import STS.
 Require Import Behavior.
 Require Import ModSem.
 Require Import Skeleton.
@@ -50,22 +49,22 @@ Ltac call := prep; _call; iSplitL "IST"; [ |iIntros "% % %"; iIntrosFresh "IST"]
 Ltac apc_r :=
   rewrite interp_hAGEs_hapc;
   st_r; unfold HoareAPC; st_r; rewrite unfold_APC; st_r;
-  match goal with [b: bool|-_] => destruct b end;
+  match goal with [b : bool|-_] => destruct b end;
   [|unfold guarantee, triggerNB; st_r;
-    match goal with [v: void|-_] => destruct v end].
+    match goal with [v : void|-_] => destruct v end].
 
 Ltac hss :=
   ss;
   try (unfold ModSem.run_l; rewrite !Any.pair_split; fold ModSem.run_l);
   try (unfold ModSem.run_r; rewrite !Any.pair_split; fold ModSem.run_r);
   try (rewrite !Any.upcast_downcast in * );
-  (repeat match goal with [G: Any.downcast _ = Some _ |-_] =>
+  (repeat match goal with [G : Any.downcast _ = Some _ |-_] =>
     apply Any.downcast_upcast in G; inv G; ss
    end);
-  (repeat match goal with [G: Any.upcast (_:?T) = Any.upcast (_:?T) |-_] =>
+  (repeat match goal with [G : Any.upcast (_:?T) = Any.upcast (_:?T) |-_] =>
     apply Any.upcast_inj in G; destruct G as [_ G]; red in G; depdes G; ss
    end);
-  (repeat match goal with [G: Some _ = Some _ |- _] =>
+  (repeat match goal with [G : Some _ = Some _ |- _] =>
     depdes G; ss
    end).
 
@@ -105,7 +104,7 @@ Global Arguments Esnoc {_} _%proof_scope _%string _%I.
 Local Notation world_id := positive.
 Local Notation level := nat.
 
-(*** TODO: 
+(*** TODO : 
           What else should be displayed? 
           Simplify (hide) k-trees
 

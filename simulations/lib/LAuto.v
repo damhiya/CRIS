@@ -30,12 +30,12 @@ Ltac Lauto_finish :=
   try rewrite !app_nil_r; Lauto_normalize; simpl List.app.
 
 Section TEST.
-  Variable P: list nat -> Prop.
-  Variable old new: nat.
-  Hypothesis P_change: forall l l', P(l ++ [new] ++ l') -> P(l ++ [old] ++ l').
+  Variable P : list nat -> Prop.
+  Variable old new : nat.
+  Hypothesis P_change : forall l l', P(l ++ [new] ++ l') -> P(l ++ [old] ++ l').
 
-  Lemma test0 (x1 x2 x3 x4 x5:nat) (l1 l2 l3 l4: list nat)
-    (SAT: P ([x1]++(x2::l1)++([x3;new]++l3)++[x4]++l4++[x5]))
+  Lemma test0 (x1 x2 x3 x4 x5:nat) (l1 l2 l3 l4 : list nat)
+    (SAT : P ([x1]++(x2::l1)++([x3;new]++l3)++[x4]++l4++[x5]))
     :
     P ([x1]++(x2::l1)++([x3;old]++l3)++[x4]++l4++[x5]).
   Proof.
@@ -55,14 +55,14 @@ Section TEST.
 End TEST.
 
 (*
-Lemma perm_normalize_elmt {T} (x: T) l:
+Lemma perm_normalize_elmt {T} (x : T) l:
   Permutation (l++[x]) (x::l).
 Proof.
   induction l; eauto.
   simpl. rewrite IHl. eauto using Permutation.
 Qed.
 
-Lemma perm_rotate {T} (x: T) l:
+Lemma perm_rotate {T} (x : T) l:
   Permutation (x::l) (l ++ [x]).
 Proof.
   induction l; eauto.
@@ -101,10 +101,10 @@ Ltac perm_rotate_rev :=
   perm_to_singleton;
   rewrite !app_assoc, <-perm_rotate.
 
-Lemma _perm_counter_intro: forall n:nat, n = n.
+Lemma _perm_counter_intro : forall n:nat, n = n.
 Proof. eauto. Qed.
 
-Lemma _perm_counter_dec: forall n, S n = S n -> n = n.
+Lemma _perm_counter_dec : forall n, S n = S n -> n = n.
 Proof. eauto. Qed.
 
 Ltac perm_move_start := let counter := fresh "_COUNTER" in
@@ -130,14 +130,14 @@ Ltac perm_move_finish :=
 
 
 Section TEST.
-  Variable P: list nat -> Prop.
-  Hypothesis P_perm: forall l1 l2, Permutation l2 l1 -> P l1 -> P l2.
+  Variable P : list nat -> Prop.
+  Hypothesis P_perm : forall l1 l2, Permutation l2 l1 -> P l1 -> P l2.
   
-  Variable old new: nat.
-  Hypothesis P_change: forall l, P(new :: l) -> P(old :: l).
+  Variable old new : nat.
+  Hypothesis P_change : forall l, P(new :: l) -> P(old :: l).
 
-  Lemma test (x1 x2 x3 x4 x5:nat) (l1 l2 l3 l4: list nat)
-    (SAT: P ([x1]++(x2::l1)++([x3;new]++l3)++[x4]++l4++[x5]))
+  Lemma test (x1 x2 x3 x4 x5:nat) (l1 l2 l3 l4 : list nat)
+    (SAT : P ([x1]++(x2::l1)++([x3;new]++l3)++[x4]++l4++[x5]))
     :
     P ([x1]++(x2::l1)++([x3;old]++l3)++[x4]++l4++[x5]).
   Proof.

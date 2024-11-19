@@ -13,19 +13,19 @@ Require Import Coqlib.
 Set Implicit Arguments.
 
 
-Global Opaque string_dec.
+(* Global Opaque string_dec. *)
 
 (************ temporary buffer before putting it in Coqlib ***********)
 (************ temporary buffer before putting it in Coqlib ***********)
 (************ temporary buffer before putting it in Coqlib ***********)
 
-Class Dec (A: Type) := dec: forall (a0 a1: A), { a0 = a1 } + { a0 <> a1 }.
+Class Dec (A : Type) := dec : forall (a0 a1 : A), { a0 = a1 } + { a0 <> a1 }.
 
-Global Program Instance positive_Dec: Dec positive. Next Obligation. decide equality. Defined.
-Global Program Instance string_Dec: Dec String.string. Next Obligation. apply String.string_dec. Defined.
-Global Program Instance nat_Dec: Dec nat. Next Obligation. apply Nat.eq_dec. Defined.
-Global Program Instance Z_Dec: Dec Z. Next Obligation. apply Z.eq_dec. Defined.
-Global Program Instance option_Dec A `{Dec A}: Dec (option A).
+Global Program Instance positive_Dec : Dec positive. Next Obligation. decide equality. Defined.
+Global Program Instance string_Dec : Dec String.string. Next Obligation. apply String.string_dec. Defined.
+Global Program Instance nat_Dec : Dec nat. Next Obligation. apply Nat.eq_dec. Defined.
+Global Program Instance Z_Dec : Dec Z. Next Obligation. apply Z.eq_dec. Defined.
+Global Program Instance option_Dec A `{Dec A} : Dec (option A).
 Next Obligation.
 Proof.
   i. destruct a0, a1.
@@ -37,7 +37,7 @@ Proof.
   - left. refl.
 Defined.
 
-Definition update K `{Dec K} V (f: K -> V) (k: K) (v: V): K -> V :=
+Definition update K `{Dec K} V (f : K -> V) (k : K) (v : V) : K -> V :=
   fun _k => if dec k _k then v else f _k.
 
 (************ temporary buffer before putting it in Coqlib ***********)
@@ -45,7 +45,7 @@ Definition update K `{Dec K} V (f: K -> V) (k: K) (v: V): K -> V :=
 (************ temporary buffer before putting it in Coqlib ***********)
 
 
-Global Instance function_Map `{Dec K} V: (Map K V (K -> option V)) :=
+Global Instance function_Map `{Dec K} V : (Map K V (K -> option V)) :=
   Build_Map
     (fun _ => None)
     (fun k0 v m => fun k1 => if dec k0 k1 then Some v else m k1)
@@ -57,10 +57,10 @@ Global Instance function_Map `{Dec K} V: (Map K V (K -> option V)) :=
                            end).
 
 
-Global Instance Dec_RelDec K `{Dec K}: @RelDec K eq :=
+Global Instance Dec_RelDec K `{Dec K} : @RelDec K eq :=
   { rel_dec := dec }.
 
-Global Instance Dec_RelDec_Correct K `{Dec K}: RelDec_Correct Dec_RelDec.
+Global Instance Dec_RelDec_Correct K `{Dec K} : RelDec_Correct Dec_RelDec.
 Proof.
   unfold Dec_RelDec. ss.
   econs. ii. ss. unfold Dec_RelDec. split; ii.
@@ -69,7 +69,7 @@ Proof.
 Qed.
 
 Fixpoint alist_pop (K : Type) (R : K -> K -> Prop) (RD_K : RelDec R) (V : Type)
-         (k : K) (m : alist K V): option (V * alist K V) :=
+         (k : K) (m : alist K V) : option (V * alist K V) :=
   match m with
   | [] => None
   | (k', v) :: ms =>
@@ -82,7 +82,7 @@ Fixpoint alist_pop (K : Type) (R : K -> K -> Prop) (RD_K : RelDec R) (V : Type)
   end.
 
 Fixpoint alist_pops (K : Type) (R : K -> K -> Prop) (RD_K : RelDec R) (V : Type)
-         (k : list K) (m : alist K V): alist K V * alist K V :=
+         (k : list K) (m : alist K V) : alist K V * alist K V :=
   match k with
   | [] => ([], m)
   | khd::ktl =>
@@ -94,7 +94,7 @@ Fixpoint alist_pops (K : Type) (R : K -> K -> Prop) (RD_K : RelDec R) (V : Type)
   end.
 
 Fixpoint alist_replace (K : Type) (R : K -> K -> Prop) (RD_K : RelDec R) (V : Type)
-         (k : K) (v: V) (m : alist K V): alist K V :=
+         (k : K) (v : V) (m : alist K V) : alist K V :=
   match m with
   | [] => []
   | (k', v') :: ms =>
@@ -103,11 +103,11 @@ Fixpoint alist_replace (K : Type) (R : K -> K -> Prop) (RD_K : RelDec R) (V : Ty
     else (k', v') :: alist_replace _ k v ms
   end.
 
-Definition alist_filter K `{Dec K} V (f: K -> bool) (l: alist K V) :=
+Definition alist_filter K `{Dec K} V (f : K -> bool) (l : alist K V) :=
   List.filter (f ∘ fst) l.
 
-Fixpoint _alist_upd [K] [R: K -> K -> Prop] {RD_K : RelDec R} [V]
-  (k: K) (v: V) (l: alist K V) : alist K V
+Fixpoint _alist_upd [K] [R : K -> K -> Prop] {RD_K : RelDec R} [V]
+  (k : K) (v : V) (l : alist K V) : alist K V
   :=
   match l with
   | [] => []
@@ -117,7 +117,7 @@ Fixpoint _alist_upd [K] [R: K -> K -> Prop] {RD_K : RelDec R} [V]
       else x :: _alist_upd k v l'
   end.
 
-Definition alist_upd [K] [R: K -> K -> Prop] {RD_K : RelDec R} [V] :=
+Definition alist_upd [K] [R : K -> K -> Prop] {RD_K : RelDec R} [V] :=
   @_alist_upd K R RD_K V.
 
 Arguments alist_replace [K R] {RD_K} [V].
@@ -127,7 +127,7 @@ Arguments alist_pop [K R] {RD_K} [V].
 Arguments alist_pops [K R] {RD_K} [V].
 Arguments alist_remove [K R] {RD_K} [V].
 
-Lemma eq_rel_dec_correct T `{DEC: Dec T}
+Lemma eq_rel_dec_correct T `{DEC : Dec T}
       x0 x1
   :
     x0 ?[eq] x1 = if (DEC x0 x1) then true else false.
@@ -138,8 +138,8 @@ Qed.
 Require Import List Setoid Permutation Sorted Orders.
 
 Section ALIST.
-  Lemma alist_find_some K `{Dec K} V (k: K) (l: alist K V) (v: V)
-        (FIND: alist_find k l = Some v)
+  Lemma alist_find_some K `{Dec K} V (k : K) (l : alist K V) (v : V)
+        (FIND : alist_find k l = Some v)
   :
     In (k, v) l.
   Proof.
@@ -147,9 +147,9 @@ Section ALIST.
     i. destruct a. ss. rewrite eq_rel_dec_correct in *. des_ifs; auto.
   Qed.
 
-  Lemma alist_find_some_iff K `{Dec K} V (k: K) (l: alist K V) (v: V)
-        (ND: List.NoDup (List.map fst l))
-        (IN: In (k, v) l)
+  Lemma alist_find_some_iff K `{Dec K} V (k : K) (l : alist K V) (v : V)
+        (ND : List.NoDup (List.map fst l))
+        (IN : In (k, v) l)
   :
     alist_find k l = Some v.
   Proof.
@@ -160,8 +160,8 @@ Section ALIST.
       exfalso. eapply (List.in_map fst) in IN. et. }
   Qed.
 
-  Lemma alist_find_none K `{Dec K} V (k: K) (l: alist K V)
-        (FIND: alist_find k l = None)
+  Lemma alist_find_none K `{Dec K} V (k : K) (l : alist K V)
+        (FIND : alist_find k l = None)
         v
     :
       ~ In (k, v) l.
@@ -171,8 +171,8 @@ Section ALIST.
     ii. des; clarify. eapply IHl; et.
   Qed.
 
-  Lemma alist_find_app K `{Dec K} V (k: K) (l0 l1: alist K V) (v: V)
-        (FIND: alist_find k l0 = Some v)
+  Lemma alist_find_app K `{Dec K} V (k : K) (l0 l1 : alist K V) (v : V)
+        (FIND : alist_find k l0 = Some v)
     :
       alist_find k (l0 ++ l1) = Some v.
   Proof.
@@ -180,7 +180,7 @@ Section ALIST.
     i. destruct a. ss. rewrite eq_rel_dec_correct in *. des_ifs; auto.
   Qed.
 
-  Lemma alist_find_map K `{Dec K} V0 V1 (f: V0 -> V1) (k: K) (l: alist K V0)
+  Lemma alist_find_map K `{Dec K} V0 V1 (f : V0 -> V1) (k : K) (l : alist K V0)
     :
       alist_find k (List.map (fun '(k, v) => (k, f v)) l) = o_map (alist_find k l) f.
   Proof.
@@ -188,7 +188,7 @@ Section ALIST.
     des_ifs.
   Qed.
 
-  Lemma alist_find_find_some K `{Dec K} V (k: K) (l: alist K V) v
+  Lemma alist_find_find_some K `{Dec K} V (k : K) (l : alist K V) v
     :
       alist_find k l = Some v <-> find (fun '(k2, _) => rel_dec k k2) l = Some (k, v).
   Proof.
@@ -196,21 +196,21 @@ Section ALIST.
     split; i; clarify.
   Qed.
 
-  Lemma alist_find_find_none K `{Dec K} V (k: K) (l: alist K V)
+  Lemma alist_find_find_none K `{Dec K} V (k : K) (l : alist K V)
     :
       alist_find k l = None <-> find (fun '(k2, _) => rel_dec k k2) l = None.
   Proof.
     induction l; ss. destruct a. rewrite eq_rel_dec_correct in *. des_ifs.
   Qed.
 
-  Lemma alist_add_find_eq K `{Dec K} V (k: K) (l: alist K V) (v: V)
+  Lemma alist_add_find_eq K `{Dec K} V (k : K) (l : alist K V) (v : V)
     :
       alist_find k (alist_add k v l) = Some v.
   Proof.
     ss. rewrite eq_rel_dec_correct. des_ifs.
   Qed.
 
-  Lemma alist_remove_find_eq K `{Dec K} V (k: K) (l: alist K V)
+  Lemma alist_remove_find_eq K `{Dec K} V (k : K) (l : alist K V)
     :
       alist_find k (alist_remove k l) = None.
   Proof.
@@ -218,8 +218,8 @@ Section ALIST.
     ss. destruct a. ss. rewrite eq_rel_dec_correct. des_ifs.
   Qed.
 
-  Lemma alist_remove_find_neq K `{Dec K} V (k0 k1: K) (l: alist K V)
-        (NEQ: k0 <> k1)
+  Lemma alist_remove_find_neq K `{Dec K} V (k0 k1 : K) (l : alist K V)
+        (NEQ : k0 <> k1)
     :
       alist_find k0 (alist_remove k1 l) = alist_find k0 l.
   Proof.
@@ -229,8 +229,8 @@ Section ALIST.
     { ss. rewrite eq_rel_dec_correct. des_ifs. }
   Qed.
 
-  Lemma alist_add_find_neq K `{Dec K} V (k0 k1: K) (l: alist K V) (v: V)
-        (NEQ: k0 <> k1)
+  Lemma alist_add_find_neq K `{Dec K} V (k0 k1 : K) (l : alist K V) (v : V)
+        (NEQ : k0 <> k1)
     :
       alist_find k0 (alist_add k1 v l) = alist_find k0 l.
   Proof.
@@ -238,9 +238,9 @@ Section ALIST.
     eapply alist_remove_find_neq; auto.
   Qed.
 
-  Lemma alist_find_filter K `{Dec K} V (l: alist K V) (k: K) (v: V) (f: K -> bool)
-        (FIND: alist_find k (alist_filter f l) = Some v)
-        (ND: List.NoDup (List.map fst l))
+  Lemma alist_find_filter K `{Dec K} V (l : alist K V) (k : K) (v : V) (f : K -> bool)
+        (FIND : alist_find k (alist_filter f l) = Some v)
+        (ND : List.NoDup (List.map fst l))
     :
       alist_find k l = Some v.
   Proof.
@@ -254,8 +254,8 @@ Section ALIST.
     - eapply IHl; et.
   Qed.
 
-  Lemma alist_add_nodup K `{Dec K} V (l: alist K V) k v
-        (ND: List.NoDup (List.map fst l))
+  Lemma alist_add_nodup K `{Dec K} V (l : alist K V) k v
+        (ND : List.NoDup (List.map fst l))
     :
       List.NoDup (List.map fst (alist_add k v l)).
   Proof.
@@ -272,7 +272,7 @@ Section ALIST.
       eapply filter_In in H1. des; auto. }
   Qed.
 
-  Lemma alist_remove_filter K `{Dec K} V (l: alist K V) k f
+  Lemma alist_remove_filter K `{Dec K} V (l : alist K V) k f
     :
       alist_filter f (alist_remove k l) =
       alist_remove k (alist_filter f l).
@@ -284,8 +284,8 @@ Section ALIST.
     { rewrite eq_rel_dec_correct. des_ifs. }
   Qed.
 
-  Lemma alist_add_filter K `{Dec K} V (l: alist K V) k v f
-        (IN: f k = true)
+  Lemma alist_add_filter K `{Dec K} V (l : alist K V) k v f
+        (IN : f k = true)
     :
       alist_filter f (alist_add k v l) =
       alist_add k v (alist_filter f l).
@@ -294,8 +294,8 @@ Section ALIST.
     f_equal. eapply alist_remove_filter.
   Qed.
 
-  Lemma alist_add_other_filter K `{Dec K} V f (l: alist K V) k v
-        (NIN: f k = false)
+  Lemma alist_add_other_filter K `{Dec K} V f (l : alist K V) k v
+        (NIN : f k = false)
     :
       alist_filter f (alist_add k v l) =
       alist_filter f l.
@@ -309,9 +309,9 @@ Section ALIST.
     }
   Qed.
 
-  Lemma alist_permutation_find K `{Dec K} V (l0 l1: alist K V)
-        (ND: List.NoDup (List.map fst l0))
-        (PERM: Permutation l0 l1)
+  Lemma alist_permutation_find K `{Dec K} V (l0 l1 : alist K V)
+        (ND : List.NoDup (List.map fst l0))
+        (PERM : Permutation l0 l1)
         k
     :
       alist_find k l0 = alist_find k l1.
@@ -326,7 +326,7 @@ Section ALIST.
     }
   Qed.
 
-  Lemma alist_find_app_o K `{Dec K} V k (l0 l1: alist K V)
+  Lemma alist_find_app_o K `{Dec K} V k (l0 l1 : alist K V)
     :
       alist_find k (l0 ++ l1) =
       match (alist_find k l0) with
@@ -337,7 +337,7 @@ Section ALIST.
     induction l0; ss. destruct a. rewrite eq_rel_dec_correct. des_ifs.
   Qed.
 
-  Lemma alist_find_map_snd K R `{RD_K: @RelDec K R} A B (f: A -> B) (l: alist K A) k
+  Lemma alist_find_map_snd K R `{RD_K : @RelDec K R} A B (f : A -> B) (l : alist K A) k
     :
       alist_find k (map (map_snd f) l)
       =
@@ -372,12 +372,12 @@ Module Type TotalOrderBool <: TotalTransitiveLeBool'.
   Parameter eqb_eq : forall x y : t, eqA x y <-> leb x y = true /\ leb y x.
 End TotalOrderBool.
 
-Definition ascii_le (c0 c1: Ascii.ascii): bool :=
+Definition ascii_le (c0 c1 : Ascii.ascii) : bool :=
   (Ascii.nat_of_ascii c0 <=? Ascii.nat_of_ascii c1)%nat.
 
 Lemma ascii_le_antisym c0 c1
-      (EQ0: ascii_le c0 c1 = true)
-      (EQ1: ascii_le c1 c0 = true)
+      (EQ0 : ascii_le c0 c1 = true)
+      (EQ1 : ascii_le c1 c0 = true)
   :
     c0 = c1.
 Proof.
@@ -388,7 +388,7 @@ Proof.
   rewrite <- (Ascii.ascii_nat_embedding c1). f_equal. lia.
 Qed.
 
-Fixpoint string_le (s0 s1: string): bool :=
+Fixpoint string_le (s0 s1 : string) : bool :=
   match s0, s1 with
   | EmptyString, _ => true
   | _, EmptyString => false
@@ -399,8 +399,8 @@ Fixpoint string_le (s0 s1: string): bool :=
   end.
 
 Lemma string_le_antisym s0 s1
-      (EQ0: string_le s0 s1 = true)
-      (EQ1: string_le s1 s0 = true)
+      (EQ0 : string_le s0 s1 = true)
+      (EQ1 : string_le s1 s0 = true)
   :
     s0 = s1.
 Proof.
@@ -437,7 +437,7 @@ Module AsciiOrder <: TotalOrderBool.
     eapply leb_correct. auto. etrans; et.
   Qed.
 
-  Definition eqA: t -> t -> Prop := eq.
+  Definition eqA : t -> t -> Prop := eq.
 
   Lemma eqb_eq : forall x y : t, eqA x y <-> leb x y = true /\ leb y x.
   Proof.
@@ -476,7 +476,7 @@ Module StringOrder <: TotalOrderBool.
     { eapply AsciiOrder.leb_trans; et. }
   Qed.
 
-  Definition eqA: t -> t -> Prop := eq.
+  Definition eqA : t -> t -> Prop := eq.
 
   Lemma eqb_eq : forall x y : t, eqA x y <-> leb x y = true /\ leb y x.
   Proof.
@@ -486,16 +486,16 @@ Module StringOrder <: TotalOrderBool.
   Qed.
 End StringOrder.
 
-Module ProdFstOrder (A: TotalOrderBool) (B: Typ) <: TotalOrderBool.
+Module ProdFstOrder (A : TotalOrderBool) (B : Typ) <: TotalOrderBool.
   Definition t := (A.t * B.t)%type.
-  Definition leb := fun (x y: t) => A.leb (fst x) (fst y).
+  Definition leb := fun (x y : t) => A.leb (fst x) (fst y).
   Lemma leb_total : forall x y : t, leb x y = true \/ leb y x = true.
   Proof. i. eapply A.leb_total. Qed.
 
   Lemma leb_trans : Transitive leb.
   Proof. ii. eapply A.leb_trans; et. Qed.
 
-  Definition eqA (x y: t) := A.eqA (fst x) (fst y).
+  Definition eqA (x y : t) := A.eqA (fst x) (fst y).
 
   Lemma eqb_eq : forall x y : t, eqA x y <-> leb x y = true /\ leb y x.
   Proof.
@@ -510,17 +510,17 @@ End ProdFstOrder.
 Require Import Sorting.Mergesort.
 Require Import Sorting.Sorted.
 
-Inductive NoDupA A (eqA: A -> A -> Prop) : list A -> Prop :=
+Inductive NoDupA A (eqA : A -> A -> Prop) : list A -> Prop :=
 | NoDupA_nil : NoDupA eqA []
 | NoDupA_cons
     x l
-    (HD: Forall (fun a => ~ eqA x a) l)
-    (TL: NoDupA eqA l)
+    (HD : Forall (fun a => ~ eqA x a) l)
+    (TL : NoDupA eqA l)
   :
     NoDupA eqA (x :: l)
 .
 
-Lemma NoDupA_eq_Nodup A (l: list A)
+Lemma NoDupA_eq_Nodup A (l : list A)
   :
     NoDupA eq l <-> NoDup l.
 Proof.
@@ -538,10 +538,10 @@ Proof.
 Qed.
 
 Lemma NoDupA_permutation A eqA
-      (SYMM: Symmetric eqA)
-      (l0 l1: list A)
-      (PERM: Permutation l0 l1)
-      (NODUP: NoDupA eqA l0)
+      (SYMM : Symmetric eqA)
+      (l0 l1 : list A)
+      (PERM : Permutation l0 l1)
+      (NODUP : NoDupA eqA l0)
   :
     NoDupA eqA l1.
 Proof.
@@ -553,9 +553,9 @@ Proof.
 Qed.
 
 Lemma NoDupA_impl A eqA eqA'
-      (IMPL: eqA' <2= eqA)
-      (l: list A)
-      (NODUP: NoDupA eqA l)
+      (IMPL : eqA' <2= eqA)
+      (l : list A)
+      (NODUP : NoDupA eqA l)
   :
     NoDupA eqA' l.
 Proof.
@@ -565,14 +565,14 @@ Proof.
     ii. eapply H; et. }
 Qed.
 
-Module OrderSort (A: TotalOrderBool).
+Module OrderSort (A : TotalOrderBool).
   Include (Sort A).
 
-  Lemma permutation_sorted_unique (l0 l1: list A.t)
-        (PERM: Permutation l0 l1)
-        (NODUP: NoDupA A.eqA l0)
-        (SORTED0: StronglySorted A.leb l0)
-        (SORTED1: StronglySorted A.leb l1)
+  Lemma permutation_sorted_unique (l0 l1 : list A.t)
+        (PERM : Permutation l0 l1)
+        (NODUP : NoDupA A.eqA l0)
+        (SORTED0 : StronglySorted A.leb l0)
+        (SORTED1 : StronglySorted A.leb l1)
     :
       l0 = l1.
   Proof.
@@ -599,7 +599,7 @@ Module OrderSort (A: TotalOrderBool).
       { left; refl. }
       intro U.
       ss. des; clarify.
-      assert(EQ: A.eqA t t0).
+      assert(EQ : A.eqA t t0).
       {
         inv SORTED0. inv SORTED1.
         rewrite Forall_forall in *.
@@ -611,7 +611,7 @@ Module OrderSort (A: TotalOrderBool).
       rewrite Forall_forall in *. exploit HD; et.
   Qed.
 
-  Lemma sort_StronglySorted (l: list A.t)
+  Lemma sort_StronglySorted (l : list A.t)
     :
       StronglySorted A.leb (sort l).
   Proof.
@@ -621,21 +621,21 @@ Module OrderSort (A: TotalOrderBool).
 
 End OrderSort.
 
-Module AListSort (V: Typ).
+Module AListSort (V : Typ).
   Module _Order := ProdFstOrder StringOrder V.
   Include (OrderSort _Order).
 
   Definition t := alist string V.t.
 
-  Lemma sort_permutation (l: t)
+  Lemma sort_permutation (l : t)
     :
       Permutation l (sort l).
   Proof.
     eapply Permuted_sort.
   Qed.
 
-  Lemma sort_add_comm (l0 l1: t)
-        (ND: List.NoDup (List.map fst (l0 ++ l1)))
+  Lemma sort_add_comm (l0 l1 : t)
+        (ND : List.NoDup (List.map fst (l0 ++ l1)))
     :
       sort (l0 ++ l1) = sort (l1 ++ l0).
   Proof.
@@ -661,9 +661,9 @@ Module AListSort (V: Typ).
     { eapply sort_StronglySorted. }
   Qed.
 
-  Lemma permutation_sort (l1 l2: t)
-    (NODUP: NoDupA _Order.eqA l1)
-    (PERM: Permutation l1 l2)
+  Lemma permutation_sort (l1 l2 : t)
+    (NODUP : NoDupA _Order.eqA l1)
+    (PERM : Permutation l1 l2)
     :
     sort l1 = sort l2.
   Proof.
@@ -703,7 +703,7 @@ Section ALIST.
     forall [K : Type] {H : Dec K} [V : Type] (k : K) (l : alist K V),
     ~ In k (List.map fst l) -> alist_find k l = None.
   Proof.
-    ii. destruct (alist_find k l) eqn: EQ; eauto.
+    ii. destruct (alist_find k l) eqn : EQ; eauto.
     apply alist_find_fst_some in EQ. ss.
   Qed.
 
@@ -711,17 +711,17 @@ Section ALIST.
     forall [K : Type] {H : Dec K} [V : Type] (k : K) (l : alist K V),
     In k (List.map fst l) -> exists v, alist_find k l = Some v.
   Proof.
-    ii. destruct (alist_find k l) eqn: EQ; eauto.
+    ii. destruct (alist_find k l) eqn : EQ; eauto.
     apply alist_find_fst_none in EQ. ss.
   Qed.
 
   Lemma nodup_eqlen_in_rev
-    X (l1 l2: list X)
+    X (l1 l2 : list X)
     (LEN : List.length l1 = List.length l2)
-    (NODUP: List.NoDup l1)
-    (MEM : forall x (IN: In x l1), In x l2)
+    (NODUP : List.NoDup l1)
+    (MEM : forall x (IN : In x l1), In x l2)
     :
-    forall x (IN: In x l2), In x l1.
+    forall x (IN : In x l2), In x l1.
   Proof.
     revert_until l1. induction l1; i.
     { destruct l2; ss. }
@@ -737,10 +737,10 @@ Section ALIST.
   Qed.
 
   Lemma in_eqlen_nodup_rev
-    X (l1 l2: list X)
-    (LEN: List.length l1 = List.length l2)
-    (NODUP: List.NoDup l1)    
-    (MEM: forall x (IN: In x l1), In x l2)
+    X (l1 l2 : list X)
+    (LEN : List.length l1 = List.length l2)
+    (NODUP : List.NoDup l1)    
+    (MEM : forall x (IN : In x l1), In x l2)
     :
     NoDup l2.
   Proof.
@@ -750,7 +750,7 @@ Section ALIST.
     apply NoDup_cons_iff in NODUP.
     hexploit (MEM a); s; eauto.
     i. apply in_split in H. des; subst.
-    assert (MEM': forall x, In x l1 -> In x (l0 ++ l3)).
+    assert (MEM' : forall x, In x l1 -> In x (l0 ++ l3)).
     { i. hexploit (MEM x); ss; eauto.
       i. apply in_elt_inv in H0. des; subst; eauto. ss.
     }
@@ -766,7 +766,7 @@ Section ALIST.
     rewrite app_length in *. ss. nia.
   Qed.
 
-  Lemma alist_add_incl {K V} `{DEC: Dec K} (k: K) (v:V) db:
+  Lemma alist_add_incl {K V} `{DEC : Dec K} (k : K) (v:V) db:
     incl (List.map fst db) (List.map fst (alist_add k v db)).
   Proof.
     induction db; ss.
@@ -779,8 +779,8 @@ Section ALIST.
     destruct H; eauto.
   Qed.
 
-  Lemma alist_find_with_nodup {K} `{Dec K} {V} (l1 l2: alist K V) (k: K) (v: V)
-    (NODUP: List.NoDup (List.map fst (l1 ++ [(k,v)] ++ l2)))
+  Lemma alist_find_with_nodup {K} `{Dec K} {V} (l1 l2 : alist K V) (k : K) (v : V)
+    (NODUP : List.NoDup (List.map fst (l1 ++ [(k,v)] ++ l2)))
     :
     alist_find k (l1 ++ [(k,v)] ++ l2) = Some v.
   Proof.
@@ -791,8 +791,8 @@ Section ALIST.
     rewrite IHl1; eauto.
   Qed.
   
-  Lemma alist_upd_in_or {K V} `{DEC: Dec K} k (v: V) l kv
-    (IN: In kv (alist_upd k v l))
+  Lemma alist_upd_in_or {K V} `{DEC : Dec K} k (v : V) l kv
+    (IN : In kv (alist_upd k v l))
     :
     kv = (k, v) \/ In kv l.
   Proof.
@@ -803,8 +803,8 @@ Section ALIST.
     apply IHl in IN. des; eauto.
   Qed.
         
-  Lemma alist_upd_nodup {K V} `{DEC: Dec K} k v (l: alist K V)
-    (ND: List.NoDup (List.map fst l))
+  Lemma alist_upd_nodup {K V} `{DEC : Dec K} k v (l : alist K V)
+    (ND : List.NoDup (List.map fst l))
     :
     List.NoDup (List.map fst (alist_upd k v l)).
   Proof.
@@ -820,8 +820,8 @@ Section ALIST.
     apply H1. eapply in_map. eauto.
   Qed.
   
-  Lemma List_filter_none {A} (f: A -> bool) (l: list A)
-    (NOTIN: forall a, In a l -> f a = true):
+  Lemma List_filter_none {A} (f : A -> bool) (l : list A)
+    (NOTIN : forall a, In a l -> f a = true):
     List.filter f l = l.
   Proof.
     induction l; eauto.
@@ -830,8 +830,8 @@ Section ALIST.
     f_equal. eapply IHl. i. eapply NOTIN. s. eauto.
   Qed.
   
-  Lemma alist_upd_with_nodup {K} `{Dec K} {V} (l1 l2: alist K V) (k: K) (v v': V)
-    (NODUP: List.NoDup (List.map fst (l1 ++ [(k,v)] ++ l2)))
+  Lemma alist_upd_with_nodup {K} `{Dec K} {V} (l1 l2 : alist K V) (k : K) (v v' : V)
+    (NODUP : List.NoDup (List.map fst (l1 ++ [(k,v)] ++ l2)))
     :
     alist_upd k v' (l1 ++ [(k,v)] ++ l2) = l1 ++ [(k,v')] ++ l2.
   Proof.
@@ -843,8 +843,8 @@ Section ALIST.
     rewrite IHl1; eauto.
   Qed.
 
-  Lemma alist_upd_head {K} `{Dec K} {V} (l1 l2: alist K V) (k: K) (v: V)
-    (NODUP: In k (List.map fst l1))
+  Lemma alist_upd_head {K} `{Dec K} {V} (l1 l2 : alist K V) (k : K) (v : V)
+    (NODUP : In k (List.map fst l1))
     :
     alist_upd k v (l1 ++ l2) = alist_upd k v l1 ++ l2.
   Proof.
@@ -855,8 +855,8 @@ Section ALIST.
     des; eauto. exfalso. eauto.
   Qed.
   
-  Lemma alist_upd_tail {K} `{Dec K} {V} (l1 l2: alist K V) (k: K) (v: V)
-    (NODUP: ~ In k (List.map fst l1))
+  Lemma alist_upd_tail {K} `{Dec K} {V} (l1 l2 : alist K V) (k : K) (v : V)
+    (NODUP : ~ In k (List.map fst l1))
     :
     alist_upd k v (l1 ++ l2) = l1 ++ alist_upd k v l2.
   Proof.
@@ -868,7 +868,7 @@ Section ALIST.
       ii. apply NODUP. s. eauto.
   Qed.
   
-  Lemma alist_upd_keys {K} `{Dec K} {V} (k: K) (v: V) (l: alist K V):
+  Lemma alist_upd_keys {K} `{Dec K} {V} (k : K) (v : V) (l : alist K V):
     List.map fst (alist_upd k v l) = List.map fst l.
   Proof.
     i. induction l; ss.
@@ -877,8 +877,8 @@ Section ALIST.
     s. f_equal. eauto.
   Qed.
 
-  Lemma alist_upd_not_tail {K} `{Dec K} {V} (l1 l2: alist K V) (k: K) (v: V)
-    (NODUP: ~ In k (List.map fst l2))
+  Lemma alist_upd_not_tail {K} `{Dec K} {V} (l1 l2 : alist K V) (k : K) (v : V)
+    (NODUP : ~ In k (List.map fst l2))
     :
     alist_upd k v (l1 ++ l2) = alist_upd k v l1 ++ l2.
   Proof.
@@ -894,8 +894,8 @@ Section ALIST.
     rewrite IHl2; eauto.
   Qed.
 
-  Lemma alist_upd_not_in {K V} `{Dec K} (k: K) (v: V) l
-        (NOTIN: ~ In k (map fst l))
+  Lemma alist_upd_not_in {K V} `{Dec K} (k : K) (v : V) l
+        (NOTIN : ~ In k (map fst l))
       :
         alist_upd k v l = l.
   Proof.

@@ -57,10 +57,10 @@ Ltac f_equal := mf_equal.
 
 Module REWRITETEST.
   Section TEST.
-    Variable x y: nat.
-    Hypothesis XY: x = y.
+    Variable x y : nat.
+    Hypothesis XY : x = y.
 
-    Goal forall (a b c: nat) (EQ0: a = b) (EQ1: a = c) (EQ2: c = b) (EQ3: x = y),
+    Goal forall (a b c : nat) (EQ0 : a = b) (EQ1 : a = c) (EQ2 : c = b) (EQ3 : x = y),
         a + b + y = c + c + x.
     Proof.
       (* intros. *)
@@ -95,6 +95,6 @@ End REWRITETEST.
 Require Import Basics.
 Notation "f ∘ g" := (fun x => (f (g x))).
 
-Typeclasses Opaque flip.
+#[export] Typeclasses Opaque flip.
 
 Require Export List.
