@@ -194,14 +194,21 @@ Section CANCEL.
       Ret vret.
       
 
+  Definition elimEq {X Y} (x: X) (y: X + (Y * X)) :=
+    match y with
+    | inl x' => x = x'
+    | inr (_, x') => x = x'
+    end.
+
   (*** use interp_hpI ***) 
   Variant elim_rel_def
-    (relc: forall R0 R1, bool -> itree hmodE R0 -> itree hmodE R1 -> Prop)
-    {R0 R1}
-    (reli: bool -> itree hmodE R0 -> itree hmodE R1 -> Prop)
-    : bool -> itree hmodE R0 -> itree hmodE R1 -> Prop
+    (relc: forall X Y, bool -> itree hmodE X -> itree hmodE (X + (Y * X)) -> Prop)
+    {X Y}
+    (reli: bool -> itree hmodE X -> itree hmodE (X + (Y * X)) -> Prop)
+    : bool -> itree hmodE X -> itree hmodE (X + (Y * X)) -> Prop
   :=
   | elim_rel_base v0 v1 p
+    (EQ: elimEq v0 v1)
     :
     elim_rel_def relc reli p (Ret v0) (Ret v1)
 
@@ -221,14 +228,14 @@ Section CANCEL.
     elim_rel_def relc reli p (itr >>= ktrS) (itr >>= ktrT)
 
   | elim_rel_head X P p v src tgt ktrS ktrT
-      (KTR: forall m v0, reli true (ktrS v) (ktrT (m, v0)))
+      (KTR: forall m, reli true (ktrS v) (ktrT (m, v)))
       (EQS: src = ktrS v)
       (EQT: tgt = (@hmod_elim_head X P v) >>= ktrT)
     :
     elim_rel_def relc reli p src tgt
                   
   | elim_rel_tail X Q m v p src tgt ktrS ktrT
-      (KTR: forall v0, reli true (ktrS v) (ktrT v0))
+      (KTR: reli true (ktrS v) (ktrT v))
       (EQS: src = ktrS v)
       (EQT: tgt = (@hmod_elim_tail X Q m v) >>= ktrT)
     :
@@ -264,37 +271,64 @@ Section CANCEL.
 
   | elim_rel_progress
       src tgt
-      (REL: relc R0 R1 false src tgt)
+      (REL: relc X Y false src tgt)
     :
     elim_rel_def relc reli true src tgt 
   .
+  
+  Inductive _elim_rel relc {X Y} p src tgt: Prop :=
+  | _elim_rel_intro (SAT: @elim_rel_def relc X Y (_elim_rel relc) p src tgt).
 
-  Inductive _elim_rel relc {R0 R1} p src tgt: Prop :=
-  | _elim_rel_intro (SAT: @elim_rel_def relc R0 R1 (_elim_rel relc) p src tgt).
-
-  Definition elim_rel: forall R0 R1, bool -> itree hmodE R0 -> itree hmodE R1 -> Prop :=
+  Definition elim_rel: forall X Y, bool -> itree hmodE X -> itree hmodE (X + (Y * X)) -> Prop :=
      paco5 _elim_rel bot5.
+
+  Variant thread_rel sk0 (cid tid: nat) (fr: Σ) src tgt : Prop :=
+  | thread_rel_init scopes fsp fbody m varg arg
+      (NOC: ~ Nat.eq_dec tid cid)
+      (FR: Own fr ⊢ (ginv sk0 tid) -∗ fsp.(precond) tid m varg arg)
+      (SRC: src = 
+        (interp_hp (HModSem.sandbox scopes (fbody varg)) ε)
+        >>= hp_fun_tail)
+      (TGT: tgt =
+        (interp_hp
+             (HModSem.sandbox scopes (HoareFun (ginv sk0) (stb sk0)
+                  fsp.(precond) fsp.(postcond) fbody arg)) ε) 
+        >>= hp_fun_tail)
+  | thread_rel_body X (Q: (Any.t + (X * Any.t)%type) -> Any.t -> iProp) p itrS itrT
+      (ELIM: @elim_rel _ _ p itrS itrT)
+      (SRC: src = (interp_hp itrS ε) >>= hp_fun_tail)
+      (TGT: tgt =
+        (interp_hp
+            ((if Nat.eq_dec tid cid then Ret tt else trigger (Assume (ginv sk0 tid)));;;
+              vret <- itrT;; 
+              (interp_hpI (prog (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0)))
+                ( ret <- trigger (Choose Any.t);;
+                  trigger (Guarantee (Q vret ret));;;
+                  Ret ret))) fr)
+        >>= hp_fun_tail)
+  .
 
   (* TODO: elim_rel bindC *)
 
-  Lemma elim_rel_def_mon relc relc' R0 R1 P P'
+  Lemma elim_rel_def_mon relc relc' X Y P P'
     (RELC: relc <5= relc')
     (RELI: P <3= P')
   :
-  @elim_rel_def relc R0 R1 P <3= elim_rel_def relc' P'.
+  @elim_rel_def relc X Y P <3= elim_rel_def relc' P'.
   Proof.
     i. destruct PR; eauto using @elim_rel_def.
   Qed.
 
   Lemma elim_rel_tarski elim_rel 
-      R0 R1
+      X Y
       P
-      (REL: @elim_rel_def elim_rel R0 R1 P <3= P)
+      (REL: @elim_rel_def elim_rel X Y P <3= P)
     :
     _elim_rel elim_rel <3= P.
   Proof.
     fix IH 4. i. inv PR. 
     inv SAT; eapply REL; try (econs; i; eapply IH; eauto).
+    - econs; eauto.
     - econs; try refl. i. eapply IH. eauto.
     - econs 6; eauto. 
     - econs 7; eauto. 
@@ -323,13 +357,13 @@ Section CANCEL.
   Hint Resolve _elim_rel_mon: paco.
   Hint Resolve elim_rel_def_mon: paco.
 
-  Definition elim_rel_indC elim_rel {R0 R1} :=
-    @elim_rel_def bot5 R0 R1 (elim_rel R0 R1).
+  Definition elim_rel_indC elim_rel {X Y} :=
+    @elim_rel_def bot5 X Y (elim_rel X Y).
   
   Lemma elim_rel_indC_mon: monotone5 elim_rel_indC.
   Proof.
     ii. inv IN. 
-    - econs.
+    - econs. eauto.
     - econs. eauto.
     - econs. eauto.
     - econs. eauto.
@@ -360,16 +394,16 @@ Section CANCEL.
     - ss.
   Qed.
 
-  Lemma _elim_rel_flag_mon R0 R1 r (p p': bool) src tgt
-    (REL: @_elim_rel r R0 R1 p src tgt)
+  Lemma _elim_rel_flag_mon X Y r (p p': bool) src tgt
+    (REL: @_elim_rel r X Y p src tgt)
     (LE: p -> p')
     :
-    @_elim_rel r R0 R1 p' src tgt.
+    @_elim_rel r X Y p' src tgt.
   Proof.
     move REL before r. revert_until REL.
     pattern p, src, tgt. eapply elim_rel_tarski, REL.
     i. econs. inv PR.
-    - econs.
+    - econs. eauto.
     - econs; eauto.
     - econs; eauto.
     - econs; eauto.
@@ -382,8 +416,8 @@ Section CANCEL.
       econs 10; eauto.
   Qed.
 
-  Lemma elim_rel_flag_mon R0 R1 (p p': bool) src tgt
-      (REL: @elim_rel R0 R1 p src tgt)
+  Lemma elim_rel_flag_mon X Y (p p': bool) src tgt
+      (REL: @elim_rel X Y p src tgt)
       (LE: p -> p')
     :
     elim_rel p' src tgt.
@@ -394,11 +428,11 @@ Section CANCEL.
   Qed. 
 
   Variant elim_rel_flagC
-    (r: forall R0 R1, bool -> itree hmodE R0 -> itree hmodE R1 -> Prop)
-    R0 R1 p src tgt : Prop := 
+    (r: forall X Y, bool -> itree hmodE X -> itree hmodE (X + (Y * X)) -> Prop)
+    X Y p src tgt : Prop := 
   | elim_rel_flagC_intro
     p0
-    (REL: r R0 R1 p0 src tgt)
+    (REL: r X Y p0 src tgt)
     (FLAG: p0 = true -> p = true)
   .
 
@@ -421,15 +455,15 @@ Section CANCEL.
   Qed. 
 
   Variant elim_rel_bindC
-    (r: forall R0 R1, bool -> itree hmodE R0 -> itree hmodE R1 -> Prop)
-    : forall R0 R1, bool -> itree hmodE R0 -> itree hmodE R1 -> Prop
+    (r: forall X Y, bool -> itree hmodE X -> itree hmodE (X + (Y * X)) -> Prop)
+    : forall X Y, bool -> itree hmodE X -> itree hmodE (X + (Y * X)) -> Prop
     :=
   | elim_rel_bindC_intro
       Q0 Q1 p i_src i_tgt
       (REL: r Q0 Q1 p i_src i_tgt)
 
-      R0 R1 k_src k_tgt
-      (RELK: ∀vs vt, r R0 R1 false (k_src vs) (k_tgt vt))
+      X Y k_src k_tgt
+      (RELK: ∀vs vt (EQ: elimEq vs vt), r X Y false (k_src vs) (k_tgt vt))
     :
     elim_rel_bindC r p (i_src >>= k_src) (i_tgt >>= k_tgt)
   .
@@ -480,32 +514,6 @@ Section CANCEL.
     i. eapply wrespect5_uclo; eauto with paco. eapply elim_rel_bindC_wrespectful.
   Qed.
 
-  (*** use interp_hpI ***) 
-  Variant thread_rel sk0 (cid tid: nat) (fr: Σ) src tgt : Prop :=
-  | thread_rel_init scopes fsp fbody m varg arg
-      (NOC: ~ Nat.eq_dec tid cid)
-      (FR: Own fr ⊢ (ginv sk0 tid) -∗ fsp.(precond) tid m varg arg)
-      (SRC: src = 
-        (interp_hp (HModSem.sandbox scopes (fbody varg)) ε)
-        >>= hp_fun_tail)
-      (TGT: tgt =
-        (interp_hp
-             (HModSem.sandbox scopes (HoareFun (ginv sk0) (stb sk0)
-                  fsp.(precond) fsp.(postcond) fbody arg)) ε) 
-        >>= hp_fun_tail)
-  | thread_rel_body (Q: Any.t -> Any.t -> iProp) p itrS itrT
-      (ELIM: @elim_rel _ _ p itrS itrT)
-      (SRC: src = (interp_hp itrS ε) >>= hp_fun_tail)
-      (TGT: tgt =
-        (interp_hp
-            ((if Nat.eq_dec tid cid then Ret tt else trigger (Assume (ginv sk0 tid)));;;
-              vret <- itrT;; 
-              (interp_hpI (prog (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0)))
-                ( ret <- trigger (Choose Any.t);;
-                  trigger (Guarantee (Q vret ret));;;
-                  Ret ret))) fr)
-        >>= hp_fun_tail)
-  .
 
   Lemma HoareSpawn_sandbox
       scopes ginv' f fn args
@@ -657,6 +665,9 @@ Section CANCEL.
     erewrite HoareCall_inline; eauto. unfold elim_head_body. grind.
   Qed.
 
+  Lemma add_dummy_ret R (itr: itree hmodE R):
+    itr = itr >>= (fun x => Ret x).
+  Proof. grind. Qed.
 
   Lemma elim_rel_refl
       sk0 scopes p itr
@@ -670,20 +681,28 @@ Section CANCEL.
           (HModSem.sandbox scopes (interp_smod (ginv sk0) (stb sk0) itr))).
   Proof. 
     unfold elim_rel.
-    ginit. revert p itr. gcofix CIH. i.
+    ginit.
+    (* remember (interp_hpI (prog (SModSemElim.to_elim (SMod.modsem md sk0))) _). *)
+    (* rewrite add_dummy_ret. *)
+    (* remember (interp_hpI (prog (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0))) _). *)
+    (* assert (i0 = i0 >>= (fun x => Ret x)) by grind. *)
+    (* rewrite/__ Heqi0 in H. *)
+    (* move p at bottom. move itr at bottom. revert_until SKWF.  *)
+    revert p itr scopes.
+    gcofix CIH. i.
     assert (CASE:= case_itrH _ itr). des; subst.
     - rewrite/__ SModRed.interp_ret HModSB.transl_ret !HIRed.ret.
       gstep. econs. econs; eauto.
     - rewrite/__ SModRed.interp_tau !HModSB.transl_tau !HIRed.tau.
-      gstep. do 9 econs. econs 10. gbase. eapply CIH.
+      gstep. do 9 econs. econs 10. gbase. eapply CIH; eauto.
     - rewrite/__ SModRed.interp_bind SModRed.interp_ag !HModSB.transl_bind HModSB.transl_ag. ired.
       rewrite/__ !HIRed.bind_ag. gstep. do 6 econs.  
       rewrite/__ HModSB.transl_tau HModSB.transl_ret. ired. 
-      rewrite HIRed.tau. do 5 econs. econs 10. gbase. eapply CIH.
+      rewrite HIRed.tau. do 5 econs. econs 10. gbase. eapply CIH; eauto.
     - rewrite/__ SModRed.interp_bind SModRed.interp_ag !HModSB.transl_bind HModSB.transl_ag. ired.
       rewrite/__ !HIRed.bind_ag. gstep. do 6 econs. 
       rewrite/__ HModSB.transl_tau HModSB.transl_ret. ired. 
-      rewrite HIRed.tau. do 5 econs. econs 10. gbase. eapply CIH.
+      rewrite HIRed.tau. do 5 econs. econs 10. gbase. eapply CIH; eauto.
     - rewrite/__ SModRed.interp_bind SModRed.interp_sch !HModSB.transl_bind HModSB.transl_sch. ired.
       unfold handle_schE_hmodE. depdes s.
       + destruct (stb sk0 fn) eqn:STB; ired; cycle 1.
@@ -695,15 +714,15 @@ Section CANCEL.
         rewrite/__ HoareSpawn_sandbox HoareSpawn_hpI HIRed.bind_sch.
         gstep. econs. econs 8; eauto. i. s. econs. econs. 
         rewrite/__ HModSB.transl_tau HModSB.transl_ret. ired. 
-        rewrite HIRed.tau. do 5 econs. econs 10. gbase. eapply CIH.
+        rewrite HIRed.tau. do 5 econs. econs 10. gbase. eapply CIH; eauto.
       + rewrite/__ HoareYield_sandbox HoareYield_hpI HIRed.bind_sch.
         gstep. econs. econs 9; eauto. i. s.
         rewrite/__ HModSB.transl_tau HModSB.transl_ret. ired. 
-        rewrite HIRed.tau. do 7 econs. econs 10. gbase. eapply CIH.
+        rewrite HIRed.tau. do 7 econs. econs 10. gbase. eapply CIH; eauto.
       + rewrite/__ HModSB.transl_sch !HIRed.bind_sch.
         gstep. do 6 econs.
         rewrite/__ HModSB.transl_tau HModSB.transl_ret. ired.
-        rewrite HIRed.tau. do 5 econs. econs 10. gbase. eapply CIH.
+        rewrite HIRed.tau. do 5 econs. econs 10. gbase. eapply CIH; eauto.
     - rewrite/__ SModRed.interp_bind SModRed.interp_call.
       unfold handle_callE_hmodE. depdes c. 
       destruct (stb sk0 fn) eqn: STB; ired; cycle 1.
@@ -722,78 +741,24 @@ Section CANCEL.
       ired. destruct p0. rewrite/__ alist_find_map_snd FIND in FINDS. s in FINDS. inv FINDS.
       unfold HModSem.sandbox_body. s. rewrite HIRed.bind. 
       erewrite HoareCall_inline2; eauto. 
-      rewrite bind_bind.
-      set (fun r0 : prod (prod (prod (prod nat (meta f)) nat) (meta f)) Any.t =>
-      ITree.bind
-        (let
-         'pair y vret' := r0 in
-          let
-          'pair y0 x' := y in
-           let
-           'pair y1 my_tid' := y0 in
-            let
-            'pair my_tid x := y1 in
-             hmod_elim_tail (postcond f) (pair (pair (pair my_tid x) my_tid') x') vret')
-        (fun x : Any.t =>
-         interp_hpI (prog (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0)))
-           (HModSem.sandbox scopes
-              (ITree.bind {| _observe := TauF {| _observe := RetF x |} |}
-                 (fun x0 : Any.t => interp_smod (ginv sk0) (stb sk0) (ktrH' x0)))))).
-      eassert (i0 = _).
+      rewrite bind_bind. guclo elim_rel_bindC_spec. econs.
       {
-        unfold i0.
-         instantiate (1:= fun _ => _).
-        extensionalities.
-      Unset Printing Notations.
-        replace 
-        (ITree.bind
-     (let
-      'pair y vret' := H in
-       let
-       'pair y0 x' := y in
-        let
-        'pair y1 my_tid' := y0 in
-         let
-         'pair my_tid x := y1 in
-          hmod_elim_tail (postcond f) (pair (pair (pair my_tid x) my_tid') x') vret')
-     (fun x : Any.t =>
-      interp_hpI (prog (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0)))
-        (HModSem.sandbox scopes
-           (ITree.bind {| _observe := TauF {| _observe := RetF x |} |}
-              (fun x0 : Any.t => interp_smod (ginv sk0) (stb sk0) (ktrH' x0))))))
-
-              with
- 
-     (
-      interp_hpI (prog (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0)))
-        (ITree.bind 
-        
-        (let
-      'pair y vret' := H in
-       let
-       'pair y0 x' := y in
-        let
-        'pair y1 my_tid' := y0 in
-         let
-         'pair my_tid x := y1 in
-          hmod_elim_tail (postcond f) (pair (pair (pair my_tid x) my_tid') x') vret')
-
-          (
-            fun x : Any.t =>
-            (HModSem.sandbox scopes
-            (ITree.bind {| _observe := TauF {| _observe := RetF x |} |}
-               (fun x0 : Any.t => interp_smod (ginv sk0) (stb sk0) (ktrH' x0)))
-          )
-        ))); cycle 1. { admit. }
-        refl.
+        unfold elim_head_body. guclo elim_rel_indC_spec. econs 5; swap 1 3.
+        { f_equal. instantiate (1:= fun _ => _). refl. }
+        { instantiate (1:= fun _ => _). refl. }
+        grind. rewrite/__ [interp_hpI _ _]add_dummy_ret. 
+        guclo elim_rel_bindC_spec. econs.
+        { gstep. econs. econs 10. gbase. eapply CIH; ss. }
+        i. gstep. econs. econs.
       }
-      rewrite H.
+      i. guclo elim_rel_indC_spec.
+      destruct vt, p0, p0, p0.
+      econs 6; swap 1 3.
+      { f_equal. refl. }
+      { refl. }
+      i. ired. rewrite/__ HModSB.transl_tau !HIRed.tau. 
+      gstep. do 9 econs. econs 10. gbase. eauto.
 
-      (* Unset Printing Notations. *)
-      (* rewrite/__ -[]bind_bind *)
-      (* ired. *)
-      
-      guclo elim_rel_bindC_spec. econs; cycle 1.
       (* {  *)
         (* i. ired. rewrite/__ HModSB.transl_tau !HIRed.tau. *)
         (* gstep. do 9 econs. econs 10. gbase. eapply CIH.  *)
