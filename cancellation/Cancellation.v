@@ -195,14 +195,15 @@ Section CANCEL.
       
 
   (*** use interp_hpI ***) 
-  Variant elim_rel_def {R0 R1}
-    (relc: bool -> itree hmodE Any.t -> itree hmodE Any.t -> Prop)
-    (reli: bool -> itree hmodE Any.t -> itree hmodE Any.t -> Prop)
-    : bool -> itree hmodE Any.t -> itree hmodE Any.t -> Prop
+  Variant elim_rel_def
+    (relc: forall R0 R1, bool -> itree hmodE R0 -> itree hmodE R1 -> Prop)
+    {R0 R1}
+    (reli: bool -> itree hmodE R0 -> itree hmodE R1 -> Prop)
+    : bool -> itree hmodE R0 -> itree hmodE R1 -> Prop
   :=
-  | elim_rel_base v p
+  | elim_rel_base v0 v1 p
     :
-    elim_rel_def relc reli p (Ret v) (Ret v)
+    elim_rel_def relc reli p (Ret v0) (Ret v1)
 
   | elim_rel_tau_src p itrS itrT
       (ITR: reli true itrS itrT)
@@ -263,29 +264,32 @@ Section CANCEL.
 
   | elim_rel_progress
       src tgt
-      (REL: relc false src tgt)
+      (REL: relc R0 R1 false src tgt)
     :
     elim_rel_def relc reli true src tgt 
   .
 
-  Inductive _elim_rel relc p src tgt: Prop :=
-  | _elim_rel_intro (SAT: @elim_rel_def relc (_elim_rel relc) p src tgt).
+  Inductive _elim_rel relc {R0 R1} p src tgt: Prop :=
+  | _elim_rel_intro (SAT: @elim_rel_def relc R0 R1 (_elim_rel relc) p src tgt).
 
-  Definition elim_rel := paco3 (_elim_rel) bot3.
+  Definition elim_rel: forall R0 R1, bool -> itree hmodE R0 -> itree hmodE R1 -> Prop :=
+     paco5 _elim_rel bot5.
 
   (* TODO: elim_rel bindC *)
 
-  Lemma elim_rel_def_mon relc relc' P P'
-    (RELC: relc <3= relc')
+  Lemma elim_rel_def_mon relc relc' R0 R1 P P'
+    (RELC: relc <5= relc')
     (RELI: P <3= P')
   :
-  elim_rel_def relc P <3= elim_rel_def relc' P'.
+  @elim_rel_def relc R0 R1 P <3= elim_rel_def relc' P'.
   Proof.
-    i. destruct PR; eauto using elim_rel_def.
+    i. destruct PR; eauto using @elim_rel_def.
   Qed.
 
-  Lemma elim_rel_tarski elim_rel P
-    (REL: @elim_rel_def elim_rel P <3= P)
+  Lemma elim_rel_tarski elim_rel 
+      R0 R1
+      P
+      (REL: @elim_rel_def elim_rel R0 R1 P <3= P)
     :
     _elim_rel elim_rel <3= P.
   Proof.
@@ -299,7 +303,7 @@ Section CANCEL.
     - econs 10; eauto.  
   Qed. 
 
-  Lemma _elim_rel_mon: monotone3 _elim_rel.
+  Lemma _elim_rel_mon : monotone5 _elim_rel.
   Proof.
     ii. eapply elim_rel_tarski; eauto.
     econs; inv PR.
@@ -315,22 +319,14 @@ Section CANCEL.
     - econs 10; eauto.
   Qed.
 
-  Lemma _elim_rel_mon_auto r r' p src tgt
-    (REL: @_elim_rel r p src tgt)
-    (LEr: r <3= r')
-    :
-    @_elim_rel r' p src tgt.
-  Proof. eapply _elim_rel_mon; eauto. Qed.
-
   Hint Resolve cpn3_wcompat: paco.
   Hint Resolve _elim_rel_mon: paco.
   Hint Resolve elim_rel_def_mon: paco.
-  Hint Resolve _elim_rel_mon_auto: paco.
 
-  Definition elim_rel_indC elim_rel :=
-    @elim_rel_def bot3 elim_rel.
+  Definition elim_rel_indC elim_rel {R0 R1} :=
+    @elim_rel_def bot5 R0 R1 (elim_rel R0 R1).
   
-  Lemma elim_rel_indC_mon: monotone3 elim_rel_indC.
+  Lemma elim_rel_indC_mon: monotone5 elim_rel_indC.
   Proof.
     ii. inv IN. 
     - econs.
@@ -348,9 +344,9 @@ Section CANCEL.
   Hint Resolve elim_rel_indC_mon: paco.
 
   Lemma elim_rel_indC_spec:
-    elim_rel_indC <4= gupaco3 _elim_rel (cpn3 _elim_rel).
+    elim_rel_indC <6= gupaco5 _elim_rel (cpn5 _elim_rel).
   Proof.
-    eapply wrespect3_uclo; eauto with paco.
+    eapply wrespect5_uclo; eauto with paco.
     econs; eauto with paco. i. inv PR; econs.
     - econs; eauto.
     - econs; eauto. eapply _elim_rel_mon; eauto. i. econs; eauto.
@@ -364,11 +360,11 @@ Section CANCEL.
     - ss.
   Qed.
 
-  Lemma _elim_rel_flag_mon r (p p': bool) src tgt
-    (REL: @_elim_rel r p src tgt)
+  Lemma _elim_rel_flag_mon R0 R1 r (p p': bool) src tgt
+    (REL: @_elim_rel r R0 R1 p src tgt)
     (LE: p -> p')
     :
-    @_elim_rel r p' src tgt.
+    @_elim_rel r R0 R1 p' src tgt.
   Proof.
     move REL before r. revert_until REL.
     pattern p, src, tgt. eapply elim_rel_tarski, REL.
@@ -386,28 +382,28 @@ Section CANCEL.
       econs 10; eauto.
   Qed.
 
-  Lemma elim_rel_flag_mon (p p': bool) src tgt
-      (REL: @elim_rel p src tgt)
+  Lemma elim_rel_flag_mon R0 R1 (p p': bool) src tgt
+      (REL: @elim_rel R0 R1 p src tgt)
       (LE: p -> p')
     :
-    @elim_rel p' src tgt.
+    elim_rel p' src tgt.
   Proof.
     move REL before ms_tgt. revert_until REL. pcofix CIH. i.
     pstep. eapply _elim_rel_flag_mon; eauto.
-    eapply paco3_mon_bot in REL; eauto. punfold REL.
+    eapply paco5_mon_bot in REL; eauto. punfold REL.
   Qed. 
 
   Variant elim_rel_flagC
-    (r: bool -> itree hmodE Any.t -> itree hmodE Any.t -> Prop)
-    p src tgt : Prop := 
+    (r: forall R0 R1, bool -> itree hmodE R0 -> itree hmodE R1 -> Prop)
+    R0 R1 p src tgt : Prop := 
   | elim_rel_flagC_intro
     p0
-    (REL: r p0 src tgt)
+    (REL: r R0 R1 p0 src tgt)
     (FLAG: p0 = true -> p = true)
   .
 
-  Lemma elim_rel_flagC_mon r1 r2 (LE: r1 <3= r2) :
-    @elim_rel_flagC r1 <3= @elim_rel_flagC r2.
+  Lemma elim_rel_flagC_mon r1 r2 (LE: r1 <5= r2) :
+    elim_rel_flagC r1 <5= elim_rel_flagC r2.
   Proof.
     ii. destruct PR; econs; eauto.
   Qed.
@@ -415,41 +411,41 @@ Section CANCEL.
   Hint Resolve elim_rel_flagC_mon.
 
   Lemma elim_rel_flagC_spec:
-    elim_rel_flagC <4= gupaco3 _elim_rel (cpn3 _elim_rel).
+    elim_rel_flagC <6= gupaco5 _elim_rel (cpn5 _elim_rel).
   Proof.
-    eapply wrespect3_uclo; eauto with paco.
+    eapply wrespect5_uclo; eauto with paco.
     econs; eauto with paco. i. inv PR.
     eapply _elim_rel_flag_mon; eauto.
     eapply _elim_rel_mon. 2: { i. econs. eauto. }
     eapply GF; eauto.
   Qed. 
 
-  Variant elim_rel_bindC 
-    (r: bool -> itree hmodE Any.t -> itree hmodE Any.t -> Prop)
-    : bool -> itree hmodE Any.t -> itree hmodE Any.t -> Prop
+  Variant elim_rel_bindC
+    (r: forall R0 R1, bool -> itree hmodE R0 -> itree hmodE R1 -> Prop)
+    : forall R0 R1, bool -> itree hmodE R0 -> itree hmodE R1 -> Prop
     :=
   | elim_rel_bindC_intro
-      p i_src i_tgt
-      (REL: r p i_src i_tgt)
+      Q0 Q1 p i_src i_tgt
+      (REL: r Q0 Q1 p i_src i_tgt)
 
-      k_src k_tgt
-      (RELK: ∀vs vt, r false (k_src vs) (k_tgt vt))
+      R0 R1 k_src k_tgt
+      (RELK: ∀vs vt, r R0 R1 false (k_src vs) (k_tgt vt))
     :
     elim_rel_bindC r p (i_src >>= k_src) (i_tgt >>= k_tgt)
   .
 
   Lemma elim_rel_bindC_mon
         r1 r2 
-        (LEr: r1 <3= r2)
+        (LEr: r1 <5= r2)
     :
-    elim_rel_bindC r1 <3= elim_rel_bindC r2
+    elim_rel_bindC r1 <5= elim_rel_bindC r2
   .
   Proof.
     ii. destruct PR; econs; eauto.
   Qed.
 
   Lemma elim_rel_bindC_wrespectful:
-    wrespectful3 (_elim_rel) elim_rel_bindC.
+    wrespectful5 _elim_rel elim_rel_bindC.
   Proof.
     econs; eauto using elim_rel_bindC_mon. i.
     destruct PR. apply GF in REL.
@@ -479,9 +475,9 @@ Section CANCEL.
   Qed.
 
   Lemma elim_rel_bindC_spec:
-    elim_rel_bindC <4= gupaco3 _elim_rel (cpn3 _elim_rel).
+    elim_rel_bindC <6= gupaco5 _elim_rel (cpn5 _elim_rel).
   Proof.
-    i. eapply wrespect3_uclo; eauto with paco. eapply elim_rel_bindC_wrespectful.
+    i. eapply wrespect5_uclo; eauto with paco. eapply elim_rel_bindC_wrespectful.
   Qed.
 
   (*** use interp_hpI ***) 
@@ -498,7 +494,7 @@ Section CANCEL.
                   fsp.(precond) fsp.(postcond) fbody arg)) ε) 
         >>= hp_fun_tail)
   | thread_rel_body (Q: Any.t -> Any.t -> iProp) p itrS itrT
-      (ELIM: @elim_rel p itrS itrT)
+      (ELIM: @elim_rel _ _ p itrS itrT)
       (SRC: src = (interp_hp itrS ε) >>= hp_fun_tail)
       (TGT: tgt =
         (interp_hp
@@ -667,12 +663,12 @@ Section CANCEL.
       (SKINCL: incl sk sk0)
       (SKWF: Sk.wf sk0)
     :
-    @elim_rel p
+    @elim_rel _ _ p
       (interp_hpI (prog (SModSemElim.to_elim (SMod.modsem md sk0))) 
           (HModSem.sandbox scopes itr))
       (interp_hpI (prog (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0))) 
           (HModSem.sandbox scopes (interp_smod (ginv sk0) (stb sk0) itr))).
-  Proof.
+  Proof. 
     unfold elim_rel.
     ginit. revert p itr. gcofix CIH. i.
     assert (CASE:= case_itrH _ itr). des; subst.
@@ -791,6 +787,7 @@ Section CANCEL.
         ))); cycle 1. { admit. }
         refl.
       }
+      rewrite H.
 
       (* Unset Printing Notations. *)
       (* rewrite/__ -[]bind_bind *)
