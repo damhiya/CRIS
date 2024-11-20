@@ -203,12 +203,11 @@ Section SIM_ITREE.
       ps pt w nths st_src st_tgt
       fn varg i_src k_tgt
       (FUN: alist_find fn fl_tgt = None)
-      (K: self ps true w nths (st_src, i_src) (st_tgt, triggerNB >>= k_tgt))
+      (K: self ps true w nths (st_src, i_src) (st_tgt, x <- triggerNB;; tau;; k_tgt x))
     :
     sim_itree_def sim_itree RR self ps pt w nths
       (st_src, i_src)
       (st_tgt, trigger (Call fn varg) >>= k_tgt)
-
 
   | sim_itree_progress
       w w0 nths st_src st_tgt 
@@ -536,7 +535,11 @@ Section SIM_ITREE.
     eapply sim_itree_tarski, SIM.
     i. inv PR; clarify; grind; try econs. 
     18: { econs 18; eauto. exploit K; et. i.  
-          rewrite !bind_bind in *. eauto.
+          rewrite !bind_bind in *. 
+          replace (fun x => tau;; ` x9 : R_tgt <- k_tgt0 x;; k_tgt x9)
+          with (fun r => ` x : R_tgt <- (tau;; k_tgt0 r);; k_tgt x); cycle 1.
+          { extensionalities. grind. }
+          eauto.
     }
     all: try (econs; eauto).
     - exploit SIMK; eauto. i.

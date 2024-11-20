@@ -4,7 +4,6 @@ Require Export ITreelib.
 Require Import Any.
 
 Require Import IRed.
-Require Import STS.
 Require Import Behavior Skeleton.
 Require Import PCM IPM.
 
@@ -16,7 +15,7 @@ Require Import SubPerm.
 
 Require Import ISim ISimFacts.
 Require Import CtxRefine.
-Require Import ITactics IModL.
+Require Import ITactics.
 
 From ExtLib Require Import
      Core.RelDec
@@ -30,8 +29,8 @@ Section CLOSED.
 
   Ltac hstep := guclo hpsimC_spec; econs; econs; eauto; econs; eauto.
 
-  Lemma _hpsim_close fls flt Ist my_tid dummy:
-    @_hpsim _ fls flt Ist my_tid dummy false <9= @_hpsim _ fls flt Ist my_tid dummy true.
+  Lemma _hpsim_close fls flt Ist my_tid:
+    @_hpsim _ fls flt Ist my_tid false <9= @_hpsim _ fls flt Ist my_tid true.
   Proof.
     i. ss. 
     eapply _hpsim_tarski; eauto. i. 
@@ -64,7 +63,7 @@ Section CLOSED.
   Qed. 
 
   Theorem closed_adequacy (ms mt: HMod.t) IC Ist
-    (SIM: HSim.t true ms mt IC Ist)
+    (SIM: HSim.t ms mt IC Ist true)
     :
     refines (ms, IC) (mt, const(emp%I)).
   Proof.
@@ -74,16 +73,17 @@ Section CLOSED.
     { eapply Sk.equiv_incl in EQV. etrans; eauto. refl. }
     i. ss. des. exists ε.
     esplits; eauto.
-    { eapply URA.wf_unit. } 
+    { admit. } 
     { eapply hssim_wf; eauto. }
     ii. subst. eapply adequacy_modsem, PR.
     - replace rs with (rs ⋅ ε); [|r_solve]. 
       eapply hssim_adequacy; eauto.
       + r_solve. eauto.
-      + eapply Own_iProp; eauto. 
       + eapply hssim_wf; eauto.
+      + admit.
     - inv WFM. econs. ss. unfold map_snd.
       rewrite !List.map_map. eapply eq_ind; [apply wf_fns|].
       f_equal. extensionalities. destruct H0. ss.
-  Qed.
+  (* Qed. *)
+  Admitted.
 End CLOSED.

@@ -265,7 +265,7 @@ Section AUX.
     (SCPC : incl (state_scopes st_ctx) scopeC)
     (ITRS : HModSem.sandbox scopes itr_src = itr_src)
     (ITRT : HModSem.sandbox scopes itr_tgt = itr_tgt)
-    (SIM : hpsim_body fl_src fl_tgt Ist my_tid ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr)
+    (SIM : hpsim_body fl_src fl_tgt Ist my_tid false ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr)
     :
     hpsim_body (fl_src ++ fl_ctx) (fl_tgt ++ fl_ctx) 
     (IstProd0 (IstSB0 scopes Ist) (IstSB0 scopeC IstEq0)) my_tid is_closed
@@ -463,14 +463,13 @@ Section AUX.
     - hstep. eapply K; try refl; eauto.
       rewrite/__ HModSB.transl_bind HModSB.transl_sch !bind_trigger in ITRT.
       depdes ITRT. eapply equal_f in x. eauto.
-    - clarify.
     - gstep. econs. econs. econs; eauto. econs; eauto. 
       gbase. pclearbot. eapply CIH; try refl; eauto.
       ii. eauto.
   Qed.
 
   Lemma isim_ctx
-    fs ft ms mt ctx Ist fn
+    fs ft ms mt ctx Ist fn is_closed
     (WFS : HModSem.wf (HModSem.add ms ctx))
     (WFT : HModSem.wf (HModSem.add mt ctx))
     (FINDS : alist_find fn (HModSem.fnsems ms) = Some fs)
@@ -537,12 +536,12 @@ Section AUX.
     ginit. i. eapply gpaco8_mon; first eapply ISIM; eauto using iunlift_ibot.
   Qed.
 
-  Lemma hmod_sim_ctx (ms mt ctx : HMod.t) IC Ist
-    (SIM : HSim.t ms mt IC Ist)
+  Lemma hmod_sim_ctx (ms mt ctx : HMod.t) IC Ist is_closed
+    (SIM : HSim.t ms mt IC Ist false)
     :
-    HSim.t is_closed (ms ★ ctx) (mt ★ ctx) IC 
+    HSim.t (ms ★ ctx) (mt ★ ctx) IC 
       (fun sk => IstProd0 (IstSB0 (HMod.modsem ms sk).(HModSem.scopes) (Ist sk))
-                          (IstSB0 (HMod.modsem ctx sk).(HModSem.scopes) IstEq0)).
+                          (IstSB0 (HMod.modsem ctx sk).(HModSem.scopes) IstEq0)) is_closed.
   Proof.
     inv SIM.
     econs; cycle 1.
@@ -619,7 +618,7 @@ Section ADEQUACY.
   Context `{Σ : GRA.t}.
 
   Theorem main_adequacy (ms mt : HMod.t) IC Ist
-      (SIM : HSim.t ms mt IC Ist) :
+      (SIM : HSim.t ms mt IC Ist false) :
     ctx_refines (ms, IC) (mt, const(emp%I)).
   Proof.
     ii. s. split.
@@ -722,9 +721,9 @@ Section COMM.
     HMod.scopes (md0 ★ md1) sk = HMod.scopes md0 sk ++ HMod.scopes md1 sk.
   Proof. ss. Qed.
 
-  Lemma hmod_add_comm ms0 ms1 :
+  Lemma hmod_add_comm ms0 ms1 is_closed:
     HSim.t (ms0 ★ ms1) (ms1 ★ ms0) (const(emp%I))
-      (fun sk => IstSB0 (HMod.scopes (ms0 ★ ms1) sk) perm_Ist).
+      (fun sk => IstSB0 (HMod.scopes (ms0 ★ ms1) sk) perm_Ist) is_closed.
   Proof.
     econs; cycle 1.
     { rr. eapply Permutation_app_comm. }

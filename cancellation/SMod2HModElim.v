@@ -1,7 +1,6 @@
 Require Import Coqlib.
 Require Import sflib.
 Require Import ITreelib.
-Require Import STS.
 Require Import AList.
 Require Import Behavior.
 Require Import Events SMod HMod Mod.

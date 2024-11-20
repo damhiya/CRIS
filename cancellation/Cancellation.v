@@ -1,8 +1,7 @@
 Require Import Coqlib.
-Require Import STS.
 Require Import Behavior.
 Require Import AList.
-Require Import SMod2HMod SMod2HModElim Mod2STS.
+Require Import SMod2HMod SMod2HModElim.
 Require Import Skeleton.
 Require Import PCM IPM.
 Require Import Any.

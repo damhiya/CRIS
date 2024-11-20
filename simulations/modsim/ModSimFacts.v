@@ -429,7 +429,7 @@ Section SEMR.
     - rewrite/__ (unfold_iter_eq _ (_, itrs_tgt)). s. rewrite LKT.
       grind. rewrite FUN. grind. step.
       eapply K;
-        try rewrite list.insert_length;
+        try rewrite length_insert;
         try rewrite list.list_lookup_insert; eauto; try nia.
       { do 2 f_equal. unfold triggerNB. grind. }
       i. des_ifs; des; subst.
@@ -456,7 +456,7 @@ Section SEMR.
       eexists. rewrite WF. ginit. guclo lflagC_spec.
       econs; try eassumption; eauto with paco.
       
-  Unshelve. all : exact smj_bot.
+  Unshelve. all : try exact smj_bot. eauto.
   Qed.
 
   Lemma adequacy_local_aux

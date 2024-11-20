@@ -15,7 +15,7 @@ Section HSSIM_ADEQUACY.
   Notation iProp := (iProp Σ).
 
   Lemma hssim_wf ms mt cond Ist is_closed
-    (SIM: HSSim.t is_closed ms mt cond Ist)
+    (SIM: HSSim.t ms mt cond Ist is_closed)
     (WF: HModSem.wf ms)
     :
     HModSem.wf mt.
@@ -29,7 +29,7 @@ Section HSSIM_ADEQUACY.
   Qed.
 
   Lemma hssim_match ms mt cond Ist is_closed fn
-    (SIM: HSSim.t is_closed ms mt cond Ist)
+    (SIM: HSSim.t ms mt cond Ist is_closed)
     (WF: List.NoDup (List.map fst (HModSem.fnsems ms)))
     (IN: In fn (List.map fst (HModSem.fnsems mt)))
     :
@@ -46,7 +46,7 @@ Section HSSIM_ADEQUACY.
       (COND : Own p ⊢ IC)
       (WFS : HModSem.wf ms)
       (WFT : HModSem.wf mt)
-      (SIM : HSSim.t true ms mt IC Ist) :
+      (SIM : HSSim.t ms mt IC Ist true) :
     MSim.t (HModSem.to_mod ms (p ⋅ q)) (HModSem.to_mod mt q).
   Proof.
     inv SIM.
@@ -78,6 +78,7 @@ Section HSSIM_ADEQUACY.
       ii. des; subst.
       rewrite Heq in x0. inv x0. inv SIMMRS.
       eapply hpsim_adequacy; eauto; cycle 5.
+      { apply le_mine_refl. ii; eauto. }
       { ginit; cycle 2; i.
         eapply gpaco8_mon with (r:= iunlift ibot) (rg:= iunlift ibot); eauto using iunlift_ibot.
         eapply isim_init; eauto.
@@ -86,6 +87,7 @@ Section HSSIM_ADEQUACY.
         { eapply HPSim._hpsim_mon. }
         { eapply cpn8_wcompat, HPSim._hpsim_mon. }
       }
+      { exact true. }
       { inv WFS. rewrite List.map_map.
         eapply eq_ind; [apply wf_fns|].
         f_equal. extensionalities. destruct H; eauto.
@@ -96,7 +98,6 @@ Section HSSIM_ADEQUACY.
       }
       { rewrite List.map_map. f_equal. extensionalities. destruct H. eauto. }
       { rewrite List.map_map. f_equal. extensionalities. destruct H. eauto. }
-      { apply le_mine_refl. ii; eauto. }
   Qed.
   
 End HSSIM_ADEQUACY.

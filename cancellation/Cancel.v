@@ -1,7 +1,6 @@
 Require Import Coqlib.
 Require Import sflib.
 Require Import ITreelib.
-Require Import STS.
 Require Import AList.
 Require Import Behavior.
 Require Import SMod2HMod HMod2Mod.
@@ -9,7 +8,7 @@ Require Import Skeleton.
 Require Import PCM IPM.
 Require Import Any.
 Require Export STB.
-Require Import HPSim ISim ISimClosed.
+Require Import HPSim ISim.
 Require Import ModSimFacts.
 Require Import MainAdequacy CtxRefine CtxRefineFacts ClosedAdequacy.
 Require Import Events SMod HMod Mod.
