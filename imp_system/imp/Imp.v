@@ -217,7 +217,7 @@ Module SkEnv.
       uo. destruct t0. exists t0. ss. }
     destruct sk; ss; clarify.
     { lia. }
-    apply lt_S_n in BLKRANGE. eapply IHblk; eauto.
+    apply PeanoNat.lt_S_n in BLKRANGE. eapply IHblk; eauto.
   Qed.
 
   Lemma env_found_range :
@@ -235,7 +235,7 @@ Module SkEnv.
     { apply Nat.lt_0_succ. }
     destruct blk.
     { apply Nat.lt_0_succ. }
-    uo. des_ifs. destruct p. ss. clarify. apply lt_n_S. eapply IHsk; eauto.
+    uo. des_ifs. destruct p. ss. clarify. eapply (Nat.succ_lt_mono n). eapply IHsk; eauto.
     instantiate (1:=symb). rewrite Heq0. ss.
   Qed.
   

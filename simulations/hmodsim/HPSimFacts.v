@@ -91,7 +91,7 @@ Section HPSIM_ADEQUACY.
     le_others my_tid ctx (ctx_set ctx r).
   Proof.
     unfold ctx_set. r; esplits.
-    - rewrite list.insert_length. eauto.
+    - rewrite length_insert. eauto.
     - i. rewrite list_lookup_insert_ne; eauto.
   Qed.
 
@@ -187,15 +187,15 @@ Section HPSIM_ADEQUACY.
       { eapply le_mine_trans; first by ii; subst.
         { apply CTXLE. }
         { ii; esplits; eauto; rewrite IN /ctx_set list_lookup_insert; ss; eauto.
-          eapply le_mine_in; eauto; rewrite /ctx_add /ctx_set insert_length; eauto using le_mine_in.
+          eapply le_mine_in; eauto; rewrite /ctx_add /ctx_set length_insert; eauto using le_mine_in.
         }
       }
       iIntros "H"; iMod (MRS with "H") as "[[CTX FMR] MRT]"; iSplitR "MRT"; last done.
       rewrite assoc; iSplitR "FMR"; last done.
       erewrite (ctx_le_mine_sem (ctx_add ctx frame) w1); eauto using le_mine_in; cycle 1.
-      { rewrite /ctx_add insert_length; eauto using le_mine_in. }
+      { rewrite /ctx_add length_insert; eauto using le_mine_in. }
       rewrite -ctx_set_sem; cycle 1.
-      { eapply le_mine_in; eauto; rewrite insert_length; eauto using le_mine_in. }
+      { eapply le_mine_in; eauto; rewrite length_insert; eauto using le_mine_in. }
       rewrite /ctx_add /ctx_set list_lookup_insert; eauto using le_mine_in.
     - clarify. do 3 step; prep. eapply K; eauto.
     - clarify. step; eauto.
@@ -327,15 +327,15 @@ Section HPSIM_ADEQUACY.
       { eapply le_mine_trans; first by ii; subst.
         { apply CTXLE. }
         { ii; esplits; eauto; rewrite IN /ctx_set list_lookup_insert; ss; eauto.
-          eapply le_mine_in; eauto; rewrite /ctx_add /ctx_set insert_length; eauto using le_mine_in.
+          eapply le_mine_in; eauto; rewrite /ctx_add /ctx_set length_insert; eauto using le_mine_in.
         }
       }
       iIntros "H"; iMod (MRS with "H") as "[[CTX FMR] MRT]"; iSplitR "MRT"; last done.
       rewrite assoc; iSplitR "FMR"; last done.
       erewrite (ctx_le_mine_sem (ctx_add ctx frame) w1); eauto using le_mine_in; cycle 1.
-      { rewrite /ctx_add insert_length; eauto using le_mine_in. }
+      { rewrite /ctx_add length_insert; eauto using le_mine_in. }
       rewrite -ctx_set_sem; cycle 1.
-      { eapply le_mine_in; eauto; rewrite insert_length; eauto using le_mine_in. }
+      { eapply le_mine_in; eauto; rewrite length_insert; eauto using le_mine_in. }
       rewrite /ctx_add /ctx_set list_lookup_insert; eauto using le_mine_in.
     - clarify; steps; rewrite interp_hp_tid /=; steps; eapply K; eauto.
     - clarify; steps; rewrite interp_hp_tid /=; steps; eapply K; eauto.
@@ -347,5 +347,4 @@ Section HPSIM_ADEQUACY.
       }
       by apply le_others_refl.
   Qed.
-
 End HPSIM_ADEQUACY.

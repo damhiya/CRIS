@@ -66,6 +66,14 @@ Proof.
       destruct (i-sz) eqn : EQ; try nia. eauto.
 Qed.
 
+Lemma repeat_update {A} i n (v v' w : A):
+  <[i:=v]> (repeat v i ++ v' :: repeat w n) = repeat v (i+1) ++ repeat w n.
+Proof.
+  replace i with (List.length (repeat v i) + 0) at 1; cycle 1.
+  { rewrite repeat_length. nia. }
+  rewrite ->insert_app_r, repeat_app, <-app_assoc. eauto.
+Qed.
+
 (* Simulation proof *)
 Module MapIM. Section MapIM.
   Import MapMS.
