@@ -1,5 +1,4 @@
 Require Import Coqlib.
-From Ordinal Require Import Ordinal.
 
 Set Implicit Arguments.
 
