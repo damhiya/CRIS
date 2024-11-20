@@ -166,7 +166,7 @@ Section SIM.
     guclo hpsim_updateC_spec; econs; intros wf0.
     destruct RET as [RET]; specialize (RET fmr0 wf0); exploit RET.
     { rewrite Own_eq /IPM.Own_def; uPred.unseal; rr; exists ε; rewrite right_id; ss. }
-    intros UPD. uPred.unseal_in UPD; rewrite /CCR.base_logic.upred.uPred_bupd_def /uPred_holds in UPD.
+    intros UPD. uPred.unseal_in UPD; rewrite /CRIS.base_logic.upred.uPred_bupd_def /uPred_holds in UPD.
     destruct UPD as [fmr1 UPD]; exists fmr1; split.
     { eapply (UPD ε); rewrite ?right_id; eauto. }
     { eapply Own_Upd; rewrite cmra_discrete_total_update; intros z wfz; eapply UPD; eauto. }

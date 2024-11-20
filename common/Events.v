@@ -4,7 +4,7 @@ Require Export ITreelib.
 Require Export AList.
 Require Import Any.
 
-From CCR.base_logic Require Import base_logic.
+From CRIS.base_logic Require Import base_logic.
 Require Import PCM IPM. (* TODO : delete this dependency after gra mod *)
 
 Set Implicit Arguments.

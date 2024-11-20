@@ -1,4 +1,4 @@
-From CCR.base_logic Require Import base_logic.
+From CRIS.base_logic Require Import base_logic.
 Require Import Coqlib AList.
 Require Import sflib.
 Require Import ITreelib.

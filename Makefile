@@ -1,4 +1,4 @@
-COQMODULE    := CCR
+COQMODULE    := CRIS
 COQTHEORIES  := $(shell find . -not -path "./deprecated/*" -not -path "./_opam/*" -iname '*.v')
 
 .PHONY: all proof proof-quick graph
@@ -44,7 +44,6 @@ clean: Makefile.coq
 	rm -f _CoqProject Makefile.coq Makefile.coq.conf #Makefile.coq-rsync Makefile.coq-rsync.conf
 .PHONY: clean
 
-### copied from iris-examples by YJ
 # Install build-dependencies
 OPAMFILES=$(wildcard *.opam)
 BUILDDEPFILES=$(addsuffix -builddep.opam, $(addprefix builddep/,$(basename $(OPAMFILES))))

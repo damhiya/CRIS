@@ -1,7 +1,7 @@
 (* Require Import Coqlib ITreelib sflib.
 Require Import ImpPrelude.
 Require Import Skeleton.
-Require Import PCM IPM IFacts.
+Require Import IPM.
 Require Import Events Behavior.
 Require Import Relation_Definitions.
 

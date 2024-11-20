@@ -34,7 +34,7 @@ Section cofe.
   Local Instance uPred_equiv : Equiv (uPred M) := uPred_equiv'.
   Inductive uPred_dist' (P Q : uPred M) : Prop :=
     { uPred_in_dist : ∀ x, ✓ x → P x ↔ Q x }.
-  Local Instance uPred_dist : Dist (uPred M) :=λ n, uPred_dist'.
+  Local Instance uPred_dist : Dist (uPred M) := λ n, uPred_dist'.
   Definition uPred_ofe_mixin : OfeMixin (uPred M).
   Proof.
     split.

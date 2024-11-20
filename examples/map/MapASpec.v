@@ -79,15 +79,17 @@ Module MapAS. Section MapAS.
   Proof.
     rewrite /initial_map /points_to /initial_fun; unseal "MapAS".
     iIntros "[I1 I2] PT"; iCombine "I2" "PT" as "I" gives %FALSE.
-    rewrite -pair_op pair_valid /= -auth_frag_op auth_frag_valid discrete_fun_op in FALSE.
-    destruct FALSE as [_ FALSE]. specialize (FALSE k); ss; rewrite discrete_fun_lookup_singleton //= in FALSE.
+    rewrite -pair_op pair_valid /= -auth_frag_op auth_frag_valid in FALSE.
+    destruct FALSE as [_ FALSE]. specialize (FALSE k); ss.
+    rewrite discrete_fun_lookup_op discrete_fun_lookup_singleton //= in FALSE.
   Qed.
   Lemma auth_unallocated_points_to sz k v : auth_unallocated sz -∗ points_to k v -∗ ⌜(0 <= k < sz)%Z⌝.
   Proof.
     rewrite /auth_unallocated /points_to; unseal "MapAS".
     iIntros "I PT"; iCombine "I" "PT" as "I" gives %wf.
-    rewrite -pair_op pair_valid /= -auth_frag_op auth_frag_valid discrete_fun_op in wf.
-    destruct wf as [_ wf]. specialize (wf k); ss; rewrite discrete_fun_lookup_singleton //= in wf.
+    rewrite -pair_op pair_valid /= -auth_frag_op auth_frag_valid in wf.
+    destruct wf as [_ wf]. specialize (wf k); ss.
+    rewrite discrete_fun_lookup_op discrete_fun_lookup_singleton //= in wf.
     des_ifs; ss. iPureIntro; lia.
   Qed.
   Lemma auth_allocated_get f k v : auth_allocated f -∗ points_to k v -∗ ⌜f k = v⌝.

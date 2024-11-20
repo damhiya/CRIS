@@ -1,4 +1,4 @@
-From CCR.base_logic Require Import base_logic.
+From CRIS.base_logic Require Import base_logic.
 Require Import IPM PCM. (* TODO : Remove dependency on this *)
 Require Import Coqlib AList.
 Require Import ITreelib.
