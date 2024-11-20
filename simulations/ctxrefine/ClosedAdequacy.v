@@ -67,23 +67,23 @@ Section CLOSED.
     :
     refines (ms, IC) (mt, const(emp%I)).
   Proof.
-    split.
+    (* split.
     { s. apply SIM. }
     ii. hexploit (HSim.sim_modsem SIM); eauto.
     { eapply Sk.equiv_incl in EQV. etrans; eauto. refl. }
     i. ss. des. exists ε.
     esplits; eauto.
-    { admit. } 
+    { eapply ucmra_unit_valid. } 
     { eapply hssim_wf; eauto. }
     ii. subst. eapply adequacy_modsem, PR.
     - replace rs with (rs ⋅ ε); [|r_solve]. 
       eapply hssim_adequacy; eauto.
       + r_solve. eauto.
       + eapply hssim_wf; eauto.
-      + admit.
+      + rewrite right_id. admit.
     - inv WFM. econs. ss. unfold map_snd.
       rewrite !List.map_map. eapply eq_ind; [apply wf_fns|].
-      f_equal. extensionalities. destruct H0. ss.
+      f_equal. extensionalities. destruct H0. ss. *)
   (* Qed. *)
   Admitted.
 End CLOSED.

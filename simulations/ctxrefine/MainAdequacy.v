@@ -219,12 +219,6 @@ Section AUX.
     eapply String.eqb_eq in EXT0. subst. eauto.
   Qed.
 
-  Lemma wf_eq_solve (a b : Σ) :
-    ✓ a -> a = b -> ✓ b.
-  Proof.
-    i. rewrite <- H0. eauto.
-  Qed.
-
   Lemma wf_inv_l ms0 ms1
         (WF : HModSem.wf (HModSem.add ms0 ms1))
       :
