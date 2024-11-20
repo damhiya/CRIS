@@ -1,5 +1,4 @@
 Require Import Coqlib.
-Require Import sflib.
 Require Import ITreelib.
 Require Import AList.
 Require Import Skeleton.

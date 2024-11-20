@@ -83,7 +83,7 @@ Definition is_some {X} (x : option X) : bool :=
 
 Definition is_none {X} := negb <*> (@is_some X).
 
-Hint Unfold is_some is_none.
+Hint Unfold is_some is_none : core.
 
 
 Notation "x $" := ((proj1_sig x)) (at level 50, no associativity (* , only parsing *)).
@@ -95,7 +95,7 @@ Notation top4 := (fun _ _ _ _ => True).
 Notation top5 := (fun _ _ _ _ _ => True).
 Notation top6 := (fun _ _ _ _ _ _ => True).
 
-Hint Unfold Basics.compose.
+Hint Unfold Basics.compose : core.
 
 
 (* Note : not clos_refl_trans. That is not well-founded.. *)
@@ -147,7 +147,7 @@ Definition o_join A (a : option (option A)) : option A :=
   end.
 
 Definition o_bind A B (oa : option A) (f : A -> option B) : option B := o_join (o_map oa f).
-Hint Unfold o_map o_join o_bind.
+Hint Unfold o_map o_join o_bind : core.
 
 Definition curry2 A B C (f : A -> B -> C) : (A * B) -> C := fun ab => f (fst ab) (snd ab).
 
@@ -185,7 +185,7 @@ Proof. des_ifs. Qed. *)
 
 Ltac subst_locals := all ltac:(fun H => is_local_definition H; subst H).
 
-Hint Unfold flip.
+Hint Unfold flip : core.
 
 Notation "p -1 q" := (p /1\ ~1 q) (at level 50).
 Notation "p -2 q" := (p /2\ ~2 q) (at level 50).

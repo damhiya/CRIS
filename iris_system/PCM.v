@@ -30,103 +30,6 @@ Ltac unseal x :=
 .
 
 
-(* TODO : Auxillary discrete_fun lemmas. Move to somewhere else. *)
-Section discrete_fun.
-  (** Depends on axiom of dependent choice.  *)
-
-  Lemma discrete_fun_included_spec_2
-      A (Ms : A -> ucmra)
-      (f0 f1 : discrete_fun Ms)
-      (EXT : ∀ a, (f0 a) ≼ (f1 a))
-    :
-    f0 ≼ f1.
-  Proof.
-    hexploit (dependent_functional_choice _ (λ a z, f1 a ≡ (f0 a) ⋅ z)).
-    { i. specialize (EXT x). r in EXT. des. eauto. }
-    intros H. des. exists f. naive_solver.
-  Qed.
-
-  Lemma discrete_fun_updateP
-      A (Ms : A → ucmra)
-      (f : discrete_fun Ms)
-      (P : ∀ (a : A), (Ms a) → Prop)
-      (UPD : ∀ a, (f a) ~~>: (P a))
-    :
-    f ~~>: λ f', ∀ a, P a (f' a).
-  Proof.
-    setoid_rewrite cmra_total_updateP in UPD.
-    apply cmra_total_updateP => n z Hfy.
-    hexploit (dependent_functional_choice _ (λ a y, P a y ∧ ✓{n} (y ⋅ z a))).
-    { naive_solver. }
-    ii. naive_solver.
-  Qed.
-
-  (** Axiom-free, can be upstreamed. *)
-
-  Lemma discrete_fun_op {A} {B : A → ucmra} (f g : discrete_fun B) :
-    f ⋅ g = λ a, f a ⋅ g a.
-  Proof. done. Qed.
-
-  (* TODO : Upstreamed. Remove after Iris bump *)
-  Lemma discrete_fun_update
-      A (Ms : A → ucmra)
-      (f0 f1 : discrete_fun Ms)
-      (UPD : ∀ a, (f0 a) ~~> (f1 a))
-    :
-    f0 ~~> f1.
-  Proof.
-    setoid_rewrite cmra_total_update in UPD.
-    apply cmra_total_update => n z Hf0z k.
-    naive_solver.
-  Qed.
-
-  (* TODO : Upstreamed. Remove after Iris bump *)
-  Lemma discrete_fun_singleton_valid
-    {A : Type} `{Heqdec : !EqDecision A} {B : A → ucmra}
-    x (y : B x) :
-    ✓ discrete_fun_singleton x y ↔ ✓ y.
-  Proof.
-    rewrite !cmra_valid_validN.
-    by setoid_rewrite discrete_fun_singleton_validN.
-  Qed.
-
-  (* TODO : Upstreamed. Remove after Iris bump *)
-  Lemma discrete_fun_singleton_unit
-    {A : Type} `{Heqdec : !EqDecision A} {B : A → ucmra}
-    x :
-    (discrete_fun_singleton x ε : discrete_fun B) ≡ ε.
-  Proof.
-    intros y. destruct (decide (x = y)) as [->|];
-    by rewrite ?discrete_fun_lookup_singleton
-      ?discrete_fun_lookup_singleton_ne.
-  Qed.
-
-End discrete_fun.
-
-
-(** [discrete_fun_singleton] with excluded middle built-in *)
-(*  It may be tempting to just create a [Global Instance A_eq_decision : EqDecision A] using
-    excluded middle. However that would create two instance of
-    [EqDecision] for decidable types causing all kinds of
-    weird inference failures.
-*)
-Local Lemma A_eq_decision {A} : EqDecision A.
-Proof. intros ??. apply excluded_middle_informative. Qed.
-Notation maps_to_res := (@discrete_fun_singleton _ (@A_eq_decision _) _).
-
-
-Lemma maps_to_res_eq {A} {B : A → ucmra} :
-  maps_to_res =
-    λ a (m : B a) a',
-      match excluded_middle_informative (a = a') with
-      | left H => eq_rect a B m a' H
-      | in_right => ε
-      end.
-Proof.
-  extensionalities a m a'; des_ifs;
-  rewrite ?discrete_fun_lookup_singleton ?discrete_fun_lookup_singleton_ne //.
-Qed.
-
 Module GRA.
   Class t : Type := GRA__INTERNAL {
     gra_map : nat → ucmra;
@@ -294,33 +197,6 @@ End GRA.
 Coercion GRA.to_URA : GRA.t >-> ucmra.
 
 Global Opaque GRA.to_URA.
-(* Definition ε `{Σ : GRA.t} : Σ := URA.unit. *)
-
-(***
-Choose : non-det
-Take : angelic non-det
-(*** empty choose : NB ***)
-(*** empty take : UB ***)
-x <- Choose X ;; guarantee (P x) ;; k x   (~=) x <- Choose { X | P x } ;; k x
-x <- Take X   ;; assume (P x)    ;; k x   (~=) x <- Take { X | P x }   ;; k x
-guarantee P ;; assume P ;; k              (~=) guarantee P ;; k
-x <- Take X ;; pure ;; k x                (>=) pure ;; x <- Take X ;; k x
-pure ;; x <- Choose X ;; k x              (>=) x <- Choose X ;; pure ;; k x
-______________caller______________    _________________callee_________________   _caller_
-x0 <- Choose X ;; guarantee (P x0) ;; (x1 <- Take X ;; assume (P x1) ;; k1 x1) ;; k0 x0
-(<=)
-x0 <- Choose X ;; x1 <- Take X ;; guarantee (P x0) ;; assume (P x1) ;; k1 x1 ;; k0 x0
-(<=)
-x <- Choose X ;; guarantee (P x) ;; assume (P x) ;; k1 x ;; k0 x
-(<=)
-x <- Choose X ;; guarantee (P x) ;; k1 x ;; k0 x
-Goal forall X Y (k : X -> Y),
-    x <- trigger (EChoose X) ;; Ret (k x) =
-    y <- trigger (EChoose {y | exists x, y = k x}) ;; Ret (proj1_sig y)
-.
-Abort.
-***)
-
 
 (* Find the left-most element in a chain of [op]s. *)
 Ltac r_first rs :=
