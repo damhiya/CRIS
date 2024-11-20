@@ -155,46 +155,28 @@ Section SIM.
     ⊢ isim r g (fun nths0 str_src str_tgt => P ∗ RR nths0 str_src str_tgt) ps pt nths sti_src sti_tgt.
   Proof. iIntros "[H0 H1]". iApply isim_wand. iFrame. eauto. Qed.
 
-  Lemma isim_bind 
-    r g ps pt {R Q} RR QQ nths st_src st_tgt i_src i_tgt k_src k_tgt 
-    (CONT: ∀ nths0 st_src0 ret_src st_tgt0 ret_tgt, 
-      QQ nths0 (st_src0, ret_src) (st_tgt0, ret_tgt)
-      -∗ isim r g RR false false nths0 (st_src0, k_src ret_src) (st_tgt0, k_tgt ret_tgt))
-  :
-    (@isim r g Q QQ ps pt nths (st_src, i_src) (st_tgt, i_tgt))
+  Lemma isim_bind r g ps pt {R Q} RR QQ nths st_src st_tgt i_src i_tgt k_src k_tgt :
+    @isim r g Q QQ ps pt nths (st_src, i_src) (st_tgt, i_tgt)
+    ∗ (∀ nths0 st_src0 ret_src st_tgt0 ret_tgt,
+        QQ nths0 (st_src0, ret_src) (st_tgt0, ret_tgt)
+        -∗ isim r g RR false false nths0 (st_src0, k_src ret_src) (st_tgt0, k_tgt ret_tgt))%I
     ⊢ (@isim r g R RR ps pt nths (st_src, i_src >>= k_src) (st_tgt, i_tgt >>= k_tgt)).
   Proof.
-    (* uiprop. i. des. subst.
-    guclo hpsim_bindC_spec. econs; eauto. i.
-    guclo hpsim_wfC_spec. econs. i.
-    specialize (CONT nths0 st_src0 vret_src st_tgt0 vret_tgt).
-    rr in RET. uiprop in RET. specialize (RET fmr0 H0 (ltac:(refl))). des.
-    assert (H2: URA.wf r1). 
-    { eapply URA.wf_mon with (b:=ε), RET0. r_solve; eauto. }
-    rr in CONT. uiprop in CONT. specialize (CONT r1 H2 RET).
-    guclo hpsim_updateC_spec. econs. econs. esplits; eauto.
-    eapply Own_Upd. eauto. *)
-  (* Qed. *)
-  Admitted.
-
-
-  (* Lemma isim_bind r g ps pt {R S} RR nths st_src st_tgt i_src i_tgt k_src k_tgt :
-    @isim r g S
-      (fun nths0 '(st_src, ret_src) '(st_tgt, ret_tgt) =>
-          (@isim r g R RR false false nths0 (st_src, k_src ret_src) (st_tgt, k_tgt ret_tgt))%I)
-      ps pt nths (st_src, i_src) (st_tgt, i_tgt)
-    ⊢ (isim r g RR ps pt nths (st_src, i_src >>= k_src) (st_tgt, i_tgt >>= k_tgt)).
-  Proof.
-    rewrite /isim; split; intros x wfx BINDSIM; rr; rr in BINDSIM.
+    rewrite {3}/isim; split; intros x wfx BINDSIM; r.
+    uPred.unseal_once_in BINDSIM; destruct BINDSIM as [x1 [x2 [Heq [RET BINDSIM]]]].
+    eapply Own_general_completeness in RET, BINDSIM.
     guclo hpsim_bindC_spec; econs; eauto; ii.
-    guclo hpsim_updateC_spec; econs; intros wf0.
-    destruct RET as [RET]; specialize (RET fmr0 wf0); exploit RET.
-    { rewrite Own_eq /IPM.Own_def; uPred.unseal; rr; exists ε; rewrite right_id; ss. }
-    intros UPD. uPred.unseal_in UPD; rewrite /CRIS.base_logic.upred.uPred_bupd_def /uPred_holds in UPD.
-    destruct UPD as [fmr1 UPD]; exists fmr1; split.
-    { eapply (UPD ε); rewrite ?right_id; eauto. }
-    { eapply Own_Upd; rewrite cmra_discrete_total_update; intros z wfz; eapply UPD; eauto. }
-  Qed. *)
+    { instantiate (1:=(λ n ss st, Own x2 ∗ QQ n ss st)%I).
+      eapply isim_init; last by iIntros "H"; iExact "H".
+      { rewrite Heq; iIntros "[H1 H2]"; iApply isim_wand; iSplitL "H2".
+        { iIntros (?????) "QQ"; iSplitL "H2"; iFrame. done. }
+        { iApply RET; done. }
+      }
+    }
+    eapply isim_init; last by iIntros "H"; iExact "H".
+    iIntros "FMR"; iMod (RET0 with "FMR") as "[H2 QQ]".
+    iApply (BINDSIM with "H2"); iFrame.
+  Qed.
 
   (* Simulation rules *)
   Lemma isim_ret r g ps pt {R} RR nths st_src st_tgt v_src v_tgt :
@@ -624,7 +606,7 @@ Section SIM.
   Lemma isim_coind (r g : rel) A P RA RRA psA ptA nthsA srcA tgtA
       (COIND : ∀ (g0 : rel) (a : A),
         (∀ R RR ps pt nths0 src tgt, g R RR ps pt nths0 src tgt -∗ g0 R RR ps pt nths0 src tgt)
-        → (P a ∗ (∀ a, P a -∗ g0 (RA a) (RRA a) (psA a) (ptA a) (nthsA a) (srcA a) (tgtA a))
+        → (P a ∗ (□ ∀ a, P a -∗ g0 (RA a) (RRA a) (psA a) (ptA a) (nthsA a) (srcA a) (tgtA a))
           ⊢ @isim r g0 (RA a) (RRA a) (psA a) (ptA a) (nthsA a) (srcA a) (tgtA a))) :
     ∀ (a : A), P a ⊢ @isim r g (RA a) (RRA a) (psA a) (ptA a) (nthsA a) (srcA a) (tgtA a).
   Proof.
@@ -652,7 +634,7 @@ Section SIM.
         { specialize (Px ε); rewrite ?right_id in Px; hexploit (Px); eauto; i; des;
             iPoseProof (Own_general_completeness with "X") as "X"; eauto.
         }
-        iIntros (?) "P"; rewrite /g'; iRight; iExists a0; iSplitL "P"; iFrame.
+        iModIntro. iIntros (?) "P"; rewrite /g'; iRight; iExists a0; iSplitL "P"; iFrame.
         iPureIntro; eauto.
       }
     }
