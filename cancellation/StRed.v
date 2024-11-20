@@ -5,8 +5,26 @@ Require Import Mod2ITree Events.
 
 Module StRed.
 Section RED.
+  Lemma ret
+        E A st0 v
+    :
+      @interp_stateE E A (Ret v) st0 = Ret (st0, v)
+  .
+  Proof. 
+    unfold interp_stateE. grind.
+  Qed.
+  
+  Lemma tau
+        A (itr: itree (stateE +' coreE) A)
+        st0 
+    :
+      interp_stateE _ (tau;; itr) st0 = tau;; interp_stateE _ itr st0
+  .
+  Proof. 
+    unfold interp_stateE. grind. 
+  Qed.
 
-  Lemma interp_bind
+  Lemma bind
         A B
         (itr: itree (stateE +' coreE) A)
         (ktr: A -> itree (stateE +' coreE) B)
@@ -17,18 +35,8 @@ Section RED.
   Proof.
     unfold interp_stateE. grind. destruct x. grind.
   Qed.
-
-  Lemma interp_tau
-        A (itr: itree (stateE +' coreE) A)
-        st0 
-    :
-      interp_stateE _ (tau;; itr) st0 = tau;; interp_stateE _ itr st0
-  .
-  Proof. 
-    unfold interp_stateE. grind. 
-  Qed.
-
-  Lemma interp_st
+  
+  Lemma state
         E st0 T e
     :
       @interp_stateE E T (trigger e) st0 =
@@ -38,16 +46,7 @@ Section RED.
     unfold interp_stateE. grind. destruct x. grind.
   Qed.
 
-  Lemma interp_ret
-        E A st0 v
-    :
-      @interp_stateE E A (Ret v) st0 = Ret (st0, v)
-  .
-  Proof. 
-    unfold interp_stateE. grind.
-  Qed.
-  
-  Lemma interp_core
+  Lemma core
         st0 T
         (e: coreE T)
     :
@@ -58,7 +57,7 @@ Section RED.
     unfold Mod2ITree.pure_state. grind.
   Qed.
 
-  Lemma interp_UB
+  Lemma triggerUB
         st0 A
     :
       (@interp_stateE (stateE +' coreE) A (triggerUB) st0) = triggerUB
@@ -67,7 +66,7 @@ Section RED.
     unfold interp_stateE, Mod2ITree.pure_state, triggerUB. grind.
   Qed.
   
-  Lemma interp_NB
+  Lemma triggerNB
         st0 A
     :
       (@interp_stateE (stateE +' coreE) A (triggerNB) st0) = triggerNB
