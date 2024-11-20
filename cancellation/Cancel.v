@@ -209,6 +209,7 @@ End HIRed.
 
 Section CANCEL.
   Context `{Σ: GRA.t}.
+  Notation iProp := (iProp Σ).
 
   Lemma wrap_elimI_well_scoped
       ms fn sb
@@ -331,7 +332,7 @@ Section CANCEL.
     eapply isim_coind. i.
 
     destruct a as [nths [ps [pt [st_src [st_tgt it]]]]]. s.
-    iIntros "(#(_ & CIH) & Ist)".
+    iIntros "(#IST & CIH)".
     
     assert (CASE := case_itrH _ it); des; subst.
     - rewrite/__ HIRed.ret. step. eauto.
@@ -342,7 +343,8 @@ Section CANCEL.
       steps_r. force_l. iFrame. steps_l. by_coind "CIH". eauto.
     - rewrite/__ HIRed.bind_sch. depdes s.
       + step. steps_l. by_coind "CIH". auto.
-      + iApply isim_yield. iFrame. iIntros (? ? ? ? ?) "IST".
+      + iApply isim_yield. iSplitR; eauto. 
+        iIntros (? ? ? ? ?) "IST0".
         steps_l. by_coind "CIH". auto.
       + steps_l. steps_r. by_coind "CIH". auto.
     - destruct c. rewrite/__ HIRed.call. steps_l. 
@@ -355,7 +357,7 @@ Section CANCEL.
       match goal with
       | [|-context[(□ ?P)%I]] => remember (□P)%I
       end.
-      rewrite Heqb. iIntros "[#CIH Ist]". 
+      rewrite Heqb. iIntros "[#IST CIH]". 
       iApply isim_bind; cycle 1.
       {
         instantiate (1:= bindRR (IstRR IstEq0) b). 
