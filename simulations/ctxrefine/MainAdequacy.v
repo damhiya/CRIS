@@ -616,7 +616,7 @@ End AUX.
 
 Section ADEQUACY.
 
-  Context `{Σ : GRA.t}.
+  Context {Σ : GRA.t}.
 
   Theorem main_adequacy (ms mt : HMod.t) IC Ist
       (SIM : HSim.t ms mt IC Ist) :
@@ -640,13 +640,13 @@ Section ADEQUACY.
     { eapply hssim_wf; eauto. }
     ii. subst. eapply adequacy_modsem, PR.
     (* Module semantics should respect resource setoids! - further refactoring required *)
-    - admit.
-    (* - eapply hssim_adequacy; eauto.
-      eapply hssim_wf; eauto. *)
+    - eapply (hssim_adequacy _ _ rs a1 a2); eauto.
+      { rewrite Ha; iIntros "[H1 H2]"; iFrame. }
+      { eapply hssim_wf; eauto. }
     - inv WFM. econs. ss. unfold map_snd.
       rewrite !List.map_map. eapply eq_ind; [apply wf_fns|].
       f_equal. extensionalities. destruct H0. ss.
-  Admitted.
+  Qed.
 
 End ADEQUACY.
 
