@@ -79,7 +79,7 @@ Section HSSIM_ADEQUACY.
       rewrite Heq in x0. inv x0. inv SIMMRS.
       eapply hpsim_adequacy; eauto; cycle 5.
       { ginit; cycle 2; i.
-        eapply gpaco8_mon with (r:= iunlift ibot) (rg:= iunlift ibot); eauto using iunlift_ibot.
+        eapply gpaco8_mon with (r := iunlift ibot) (rg:= iunlift ibot); eauto using iunlift_ibot.
         eapply isim_init; eauto.
         iIntros "H". iApply isim_upd. iPoseProof (MR with "H") as ">H".
         iModIntro. iApply x1; eauto.

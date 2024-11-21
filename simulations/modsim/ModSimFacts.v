@@ -6,17 +6,7 @@ Require Import Relation_Definitions.
 Require Import IPM.
 Require Import ModSimTactics Mod2ITree.
 
-(*** TODO : export these in Coqlib or Universe ***)
-Require Import Relation_Operators.
-Require Import RelationPairs.
-From ITree Require Import
-     Events.MapDefault.
-From ExtLib Require Import
-     Core.RelDec
-     Structures.Maps
-     Data.Map.FMapAList.
 Require Import Any.
-
 Require Import Mod2ITree Mod Events.
 Require Import SimGlobal SimGlobalFacts ModSim.
 Require Import Red IRed.
@@ -27,8 +17,7 @@ Set Implicit Arguments.
 Local Open Scope nat_scope.
 
 (* Adequacy - Part 1. ( Divided to resolve the dependency issue. ) *)
-
-Lemma itree_modE_inv R (itr : itree modE R):
+Lemma itree_modE_inv R (itr : itree modE R) :
   (exists r, itr = Ret r) \/
   (exists itr', itr = tau;; itr') \/
   (exists V (e : coreE V) ktr, itr = v <- trigger e;; ktr v) \/

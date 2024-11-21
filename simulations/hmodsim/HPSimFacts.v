@@ -1,24 +1,18 @@
-Require Import Coqlib ITreelib sflib.
+Require Import Coqlib ITreelib.
 Require Import Behavior.
 Require Import Skeleton.
-Require Import PCM IPM.
+Require Import IPM.
 Require Import Any.
 Require Import STB ModSim.
 Require Import Events HMod HMod2Mod.
 Require Import ModSimTactics.
 
 Require Import Relation_Definitions.
-
 Require Import Relation_Operators.
-
 Require Import RelationPairs.
 Require Import RelationClasses.
 
-From ExtLib Require Import
-     Data.Map.FMapAList.
-
 Require Import Red IRed.
-
 Require Import HPSim.
 From iris.algebra Require Import big_op.
 
@@ -33,9 +27,8 @@ Section HPSIM_ADEQUACY.
 
   (*** Used only in hpsim_adequacy. ***)
   Lemma own_upd_in_middle mr_src mr_tgt ctx fmr fmr0
-    (UPD : Own mr_src ⊢ |==> Own (ctx ⋅ fmr ⋅ mr_tgt))
-    (FMR : Own fmr ⊢ |==> Own fmr0)
-  :
+      (UPD : Own mr_src ⊢ |==> Own (ctx ⋅ fmr ⋅ mr_tgt))
+      (FMR : Own fmr ⊢ |==> Own fmr0) :
     Own mr_src ⊢ |==> Own (ctx ⋅ fmr0 ⋅ mr_tgt).
   Proof.
     etrans; eauto. iIntros "> [[CTX FMR] MRT]".
@@ -53,8 +46,7 @@ Section HPSIM_ADEQUACY.
   Definition ctx_add (ctx : list Σ) (r : Σ) : list Σ :=
     ctx_set ctx ((or_else (ctx !! my_tid) ε) ⋅ r).
 
-  Lemma ctx_set_sem ctx r r'
-    (IN : my_tid < List.length ctx):
+  Lemma ctx_set_sem ctx r r' (IN : my_tid < List.length ctx) :
     ctx_sem (ctx_set ctx (r ⋅ r')) ≡ ctx_sem (ctx_set ctx r) ⋅ r'.
   Proof.
     unfold ctx_set. revert my_tid r r' IN.
@@ -63,11 +55,9 @@ Section HPSIM_ADEQUACY.
     { rewrite /ctx_sem; rewrite !big_opL_cons. rewrite -assoc (comm _ r') assoc; done. }
     { move: IHctx; rewrite /ctx_sem !big_opL_cons => IHctx; rewrite IHctx; last by lia.
       by rewrite assoc. }
-    (* eapply IHctx; try nia. *)
   Qed.
   
-  Lemma ctx_add_sem ctx r
-    (IN : my_tid < List.length ctx):
+  Lemma ctx_add_sem ctx r (IN : my_tid < List.length ctx) :
     ctx_sem (ctx_add ctx r) ≡ ctx_sem ctx ⋅ r.
   Proof.
     destruct (ctx !! my_tid) eqn:emy; cycle 1.
@@ -76,9 +66,8 @@ Section HPSIM_ADEQUACY.
   Qed.
 
   Lemma le_mine_in (ctx0 ctx : list Σ)
-    (CTXLE : le_mine eq my_tid ctx0 ctx)
-    (IN : my_tid < List.length ctx0)
-    :
+      (CTXLE : le_mine eq my_tid ctx0 ctx)
+      (IN : my_tid < List.length ctx0) :
     my_tid < List.length ctx.
   Proof.
     unfold le_mine in *.
@@ -116,13 +105,11 @@ Section HPSIM_ADEQUACY.
       (MRS : Own mr_src ⊢ |==> Own (ctx_sem ctx ⋅ mr ⋅ mr_tgt))
       (MR : Own mr ⊢ |==> Ist nths st_src st_tgt)
       (NODUPS : List.NoDup (List.map fst st_src))
-      (NODUPT : List.NoDup (List.map fst st_tgt))
-    :
-    interp_inv ctx (nths, Any.pair (alist_encode st_src) mr_src↑, Any.pair (alist_encode st_tgt) mr_tgt↑)
-  .
+      (NODUPT : List.NoDup (List.map fst st_tgt)) :
+    interp_inv ctx (nths, Any.pair (alist_encode st_src) mr_src↑, Any.pair (alist_encode st_tgt) mr_tgt↑).
 
-  Lemma hpsim_adequacy:
-    ∀ (NODUPFS : List.NoDup (List.map fst fl_src))
+  Lemma hpsim_adequacy
+      (NODUPFS : List.NoDup (List.map fst fl_src))
       (NODUPFT : List.NoDup (List.map fst fl_tgt))
       (fl_src0 fl_tgt0 : alist gname (Any.t -> itree modE Any.t))
       (FLS : fl_src0 = List.map (fun '(s, f) => (s, interp_hp_fun f)) fl_src)
@@ -135,13 +122,12 @@ Section HPSIM_ADEQUACY.
       (TID : my_tid < List.length ctx0)
       (SIM : hpsim_body fl_src fl_tgt Ist my_tid ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr)
       (WF : ✓ mr_src)
-      (FMR : Own mr_src ⊢ |==> Own ((ctx_sem ctx) ⋅ fmr ⋅ mr_tgt)),
+      (FMR : Own mr_src ⊢ |==> Own ((ctx_sem ctx) ⋅ fmr ⋅ mr_tgt)) :
     @sim_itree fl_src0 fl_tgt0 Σ ε interp_inv eq my_tid ctx0 ps pt ctx nths
       (Any.pair (alist_encode st_src) mr_src↑, interp_hp itr_src)
       (Any.pair (alist_encode st_tgt) mr_tgt↑, interp_hp itr_tgt).
   Proof.
-    i. exploit SIM; eauto; clear SIM; intros SIM.
-    (* apply hpsim_add_dummy in SIM; cycle 1; eauto. *)
+    exploit SIM; eauto; clear SIM; intros SIM.
     revert_until FLT. ginit. gcofix CIH. i.
     remember (st_src, itr_src). remember (st_tgt, itr_tgt).
     move SIM before FLT. revert_until SIM. punfold SIM.
@@ -207,9 +193,9 @@ Section HPSIM_ADEQUACY.
 
       match goal with [|- _ ?t _] => pattern t end.
       eapply eq_ind; eauto.
-      rewrite interp_hp_bind.
+      rewrite ?interp_hp_bind bind_bind.
       repeat f_equal. extensionalities x.
-      grind. rewrite !interp_hp_tau. eauto.
+      grind. rewrite !interp_hp_tau ?bind_tau. repeat f_equal. rewrite interp_hp_ret; grind.
     - clarify. step; eauto.
       { instantiate (1:= interp_hp_fun f). rewrite alist_find_map FUN. et. }
 
@@ -218,9 +204,9 @@ Section HPSIM_ADEQUACY.
       clear K CIH; intros K.
 
       eapply eq_ind; eauto.
-      rewrite interp_hp_bind.
+      rewrite ?interp_hp_bind bind_bind.
       repeat f_equal. extensionalities x.
-      grind. rewrite !interp_hp_tau. eauto.
+      grind. rewrite !interp_hp_tau ?bind_tau. repeat f_equal. rewrite interp_hp_ret; grind.
     - clarify; steps; eapply K; eauto.
     - clarify; steps; eapply K; eauto.
     - clarify; steps; eapply K; eauto.
