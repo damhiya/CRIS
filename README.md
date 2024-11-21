@@ -1,7 +1,7 @@
 # Conditional Contextual Refinement
 
 ## Build
-Requirement: opam (>=2.0.0), Coq 8.15.0
+Requirement: opam (>=2.0.0), Coq 8.20.0
 - Install dependencies with opam
 ```
 ./configure
