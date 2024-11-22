@@ -1,8 +1,7 @@
-(* Require Import Coqlib ITreelib sflib HexString.
-Require Import Events Any IPM ImpPrelude Skeleton.
+Require Import Coqlib ITreelib.
+Require Import Any IPM Skeleton.
 
 Module CellioName.
-
   Definition mn := "Cellio".
     
   Definition fn (method: string) :=
@@ -10,9 +9,8 @@ Module CellioName.
   
   Definition set := fn "set".
   Definition get := fn "get".
-
 End CellioName.
 
 Module CellioSK.
   Definition t : Sk.t := [].
-End CellioSK. *)
+End CellioSK.
