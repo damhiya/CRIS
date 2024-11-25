@@ -28,6 +28,7 @@ Module CellioA. Section CellioA.
       trigger (Assume (CellioA.cell x));;;
       trigger (Guarantee (CellioA.cell x));;;
       Ret x↑.
+
   Class G Σ := { #[local] RA_inG :: GRA.inG (excl_authR ZO) Σ }.
 
   Context `{!G Σ}.
