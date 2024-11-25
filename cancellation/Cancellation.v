@@ -176,6 +176,15 @@ Section CANCEL.
     i. rewrite <- H0. eauto.
   Qed.
 
+  (* Lemma Own_bupd_split_l r b P (IMPL : Own r ⊢ |==> P ∗ Own b) (VALID : ✓ r) :
+    ∃ a, (Own r ⊢ |==> Own a ∗ Own b) ∧ (Own a ⊢ P).
+  Proof.
+    hexploit (@uPred.bupd_ownM_update_3 Σ); eauto.
+    { move: IMPL; unseal; done. }
+    intros [y [z [UPD [HP HQ]]]]; exists y, z; split; unseal; [done|split; done].
+  Qed. *)
+
+
 
   Lemma cancel_aux sk0 (SKINCL: incl sk sk0) (SKWF: Sk.wf sk0):
     ∀ rs frs fr_sum mr res_sum srcs tgts ps pt cid st
@@ -185,8 +194,9 @@ Section CANCEL.
        (WF: ✓ rs)       
        (LEN: cid < List.length frs)
        (FR: fr_sum ≡ (foldl (fun r1 r2 => r1 ⋅ r2) ε frs))
-       (RES: res_sum ≡ rs ⋅ mr ⋅ fr_sum)
-       (WF: ✓ (rs ⋅ mr ⋅ fr_sum))
+       (RES: rs ⋅ mr ⋅ fr_sum ≼ res_sum)
+       (WF: ✓ res_sum)
+       (* (WF: ✓ (rs ⋅ mr ⋅ fr_sum)) *)
        (* (RET: ∀fsp m vret ret (MAIN: stb sk0 "CCR_init" = Some fsp), (fsp.(postcond) 0 m vret ret -∗ ⌜vret = ret⌝)) *)
        (REL: Forall3i (thread_rel sk0 cid) 0 frs srcs tgts),
        gpaco7 _simg (cpn7 _simg) bot7 bot7 Any.t Any.t eq ps pt
@@ -229,7 +239,7 @@ Section CANCEL.
     (* do 2 rewrite unfold_iter_eq. unfold handle_schE_callE at 1 3. *)
     rewrite/__ x1 x2. s. grind.
 
-    move ELIM before CIH. revert_until ELIM.
+    move ELIM before CIH. clear REL. revert_until ELIM.
     punfold ELIM. 
     pattern p, itrS, itrT. eapply elim_rel_tarski, ELIM. i.
     clear ELIM. 
@@ -249,7 +259,7 @@ Section CANCEL.
       admit.
     - (* tau src*)
       (* subst. ired. _tau. st. st. *)
-      (* iterL. eapply ITR; eauto; cycle 1. *)
+      (* iterL. eapply ITR; eauto. *)
       (* { rewrite list_lookup_insert; eauto. } *)
       (* { rewrite length_insert; nia. } *)
       (* { rewrite length_insert; nia. } *)
@@ -257,7 +267,7 @@ Section CANCEL.
 
     - (* tau tgt *)
       (* subst. ired. _tau. st. st. *)
-      (* iterL. eapply ITR; eauto; cycle 1. *)
+      (* iterL. eapply ITR; eauto. *)
       (* { ired. rewrite list_lookup_insert; eauto. } *)
       (* { rewrite length_insert; nia. } *)
       (* { rewrite length_insert; nia. } *)
@@ -271,34 +281,35 @@ Section CANCEL.
         (* * rewrite x5. grind. *)
       (* + *)
       admit.
+
     - (* head *)
-      (* subst. ired. hide_l. tau 1. *)
-      (* iterT 2. iterL. _coreA. ls.  *)
-      (* iterT 2. iterL. _coreA. ls. *)
-      (* iterT 2. iterL. _supd.  *)
-      (* iterL. _coreA. iterL. _coreA. ls. *)
-      (* iterL. _supd. iterL. _supd. *)
-      (* iterT 3. iterL. ls. tau 1. *)
-      (* iterT 2. iterL. _coreE x. ls. *)
-      (* iterT 2. iterL. _coreE v. ls. *)
-      (* iterT 2. *)
-      (* hexploit (Own_bupd_split res_sum); eauto. *)
+      subst. ired. hide_l. tau 1.
+      iterT 2. iterL. _coreA. ls. 
+      iterT 2. iterL. _coreA. ls.
+      iterT 2. iterL. _supd. 
+      iterL. _coreA. iterL. _coreA. ls.
+      iterL. _supd. iterL. _supd.
+      iterT 3. iterL. ls. tau 1.
+      iterT 2. iterL. _coreE x. ls.
+      iterT 2. iterL. _coreE v. ls.
+      iterT 2.
+      hexploit (Own_bupd_split res_sum); eauto.
       (* { eapply valid_solve_eq; [eauto|r_solve; eauto]. } *)
-      (* i. des. *)
-      (* iterL. _coreE a1. ls. *)
-      (* iterL. _supd. *)
-      (* assert (✓ (a1 ⋅ x1)). { admit. } *)
-      (* iterL. _coreE H6. ls. *)
-      (* iterL. _coreE H4. ls. *)
-      (* iterL. _supd. iterL. _supd. *)
-      (* iterT 2. *)
-      (* iterL. remember (cid, x, cid, x) as m. *)
-      (* ired. reveal ITREE. *)
-      (* eapply KTR; eauto; swap 2 5. *)
-      (* { admit. } *)
-      (* { rewrite length_insert. auto. } *)
-      (* { rewrite list_lookup_insert; grind. } *)
-      (* { rewrite length_insert. auto. } *)
+      i. des.
+      iterL. _coreE a1. ls.
+      iterL. _supd.
+      assert (✓ (a1 ⋅ x1)). { admit. }
+      iterL. _coreE H6. ls.
+      iterL. _coreE H4. ls.
+      iterL. _supd. iterL. _supd.
+      iterT 2.
+      iterL. remember (cid, x, cid, x) as m.
+      ired. reveal ITREE.
+      eapply KTR; eauto.
+      { move RES at bottom. admit. }
+      { rewrite list_lookup_insert; grind. }
+      { rewrite length_insert. auto. }
+      { rewrite length_insert. auto. }
       admit.
     - (* tail *)
       (* subst. ired. hide_l. destruct m, p1, p1. ired. *)
@@ -321,10 +332,10 @@ Section CANCEL.
       (* iterL. _coreE H7. ls. *)
       (* iterL. _supd. iterL. _supd. *)
       (* iterT 2. iterL. *)
-      (* eapply KTR; eauto; swap 2 5. *)
+      (* eapply KTR; eauto. *)
       (* { admit. } *)
-      (* { rewrite length_insert. auto. } *)
       (* { rewrite list_lookup_insert; grind. } *)
+      (* { rewrite length_insert. auto. } *)
       (* { rewrite length_insert. auto. } *)
       admit.
     - subst. ired. hide_l. _coreA. (* NB *)
@@ -359,14 +370,13 @@ Section CANCEL.
       hexploit (Own_bupd_split res_sum); eauto.
       { eapply valid_solve_eq; [eauto|r_solve; eauto]. }
       i. des.
-      eapply KTR; auto; swap 4 11.
+      eapply KTR; auto.
       { 
-        instantiate (1:= frs ++ [a1]).
+        instantiate (1:= frs ++ [ε]).
         rewrite length_app. nia.
       }
       { admit. }
       { admit. }
-      { rewrite length_insert. nia. }
       { rewrite lookup_app_l; [eauto|nia]. }
       { 
         rewrite list_lookup_insert; eauto.  
@@ -376,7 +386,8 @@ Section CANCEL.
       { rewrite/__ length_insert !length_app. s. nia. }
       { rewrite/__ length_insert !length_app. s. nia. }
       { rewrite/__ length_insert !length_app. s. nia. }
-      all: admit.
+      { rewrite length_insert. nia. }
+      admit.
     - (* yield *)
       subst. ired. hide_r. tau 1. 
       destruct (classic (cid = tid)).
