@@ -77,7 +77,11 @@ Section REL.
     :
     elim_rel_def relc RR reli p (itrS) (tau;; itrT)
 
-  | elim_rel_add {R} p itr ktrS ktrT
+  | elim_rel_add {R} p itr ktrS ktrT 
+      (* itr shouldn't have 'Call' events. But how? 
+         idea 1. Define event type without CallE
+         idea 2. Manually add a relation for each event type as SimStrict before.
+      *)
       (KTR: forall (v: R), reli true (ktrS v) (ktrT v))
     :
     elim_rel_def relc RR reli p (itr >>= ktrS) (itr >>= ktrT)
