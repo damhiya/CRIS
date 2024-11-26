@@ -2,14 +2,14 @@ Require Import Coqlib ITreelib.
 Require Import MapHeader MapASpec MapMSpec MapI ModSim MapIMproof MapMAproof MemA.
 Require Import ImpPrelude.
 Require Import Skeleton.
-Require Import IPM.
+Require Import IPM sWorld.
 
 Require Import STB.
 Require Import ISim SMod HMod.
 Require Import MainAdequacy CtxRefine CtxRefineFacts.
 
 Module MapIA. Section MapIA.
-  Context `{!MapAS.G Σ, !MapMS.G Σ, !memG Σ}.
+  Context `{!Inv.t Σ Γ α β τ, !MapAS.G Γ, !MapMS.G Γ, !memG Γ}.
 
   Theorem correct gi (StbMap StbMem : Sk.t → gname → option fspec)
       (MapInStbMap : ∀ sk, stb_incl MapAS.Stb (StbMap sk)) :

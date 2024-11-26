@@ -4,7 +4,7 @@ Require Import Events.
 Require Import Behavior.
 Require Import HMod SMod.
 Require Import Skeleton.
-Require Import PCM IPM STB.
+Require Import IPM STB sProp sWorld.
 From ExtLib Require Import
      Core.RelDec
      Structures.Maps
@@ -17,11 +17,10 @@ Set Implicit Arguments.
 
 Module MapAS. Section MapAS.
   (* Resource algebra for MapM ⊆ MapA *)
-  Class G Σ := { #[local] RA_inG :: GRA.inG (prodUR
+  Class G (Γ : HRA.t) := { #[local] RA_inG :: GRA.inG (prodUR
     (optionUR (exclR unitO))
-    (authUR (Z -d> optionUR (exclR ZO)))) Σ }.
-
-  Context `{!G Σ, !MapMS.G Σ}.
+    (authUR (Z -d> optionUR (exclR ZO)))) Γ }.
+  Context `{!Inv.t Σ Γ α β τ, !G Γ, !MapMS.G Γ}.
   Import MapA.
   Notation iProp := (iProp Σ).
 

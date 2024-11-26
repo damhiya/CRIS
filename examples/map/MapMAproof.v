@@ -2,20 +2,9 @@ Require Import Coqlib ITreelib.
 Require Import MapHeader MapM MapA MapMSpec MapASpec SMod ModSim.
 Require Import ImpPrelude.
 Require Import Skeleton.
-Require Import PCM IPM HMod SMod.
+Require Import PCM IPM HMod SMod sWorld.
 Require Import Events Behavior.
 Require Import Relation_Definitions.
-
-(*** TODO : export these in Coqlib or Universe ***)
-Require Import Relation_Operators.
-Require Import RelationPairs.
-From ITree Require Import
-     Events.MapDefault.
-From ExtLib Require Import
-     Core.RelDec
-     Structures.Maps
-     Data.Map.FMapAList.
-
 Require Import STB.
 
 Require Import ISim ITactics.
@@ -27,18 +16,19 @@ Local Open Scope nat_scope.
 
 Module MapMA. Section MapMA.
   Import MapAS.
-  Context `{!G Σ, !MapMS.G Σ}.
+  Context `{!Inv.t Σ Γ α β τ, !G Γ, !MapMS.G Γ}.
   Notation iProp := (iProp Σ).
 
   Definition Ist : Sk.t → nat → alist key Any.t → alist key Any.t → iProp :=
     (λ _ _ st_src st_tgt,
-      ∃ f sz, ⌜st_src = [(MapA.v_map, f↑)] ∧ st_tgt = [(MapM.v_size, sz↑); (MapM.v_map, f↑)]⌝
-      ∗ (⌜f = (λ _ : Z, 0%Z) ∧ sz = 0%Z⌝
-          ∗ MapMS.pending
-          ∗ initial_map
-        ∨ pending
-          ∗ auth_allocated f
-          ∗ auth_unallocated sz))%I.
+      ∃ f sz,
+        ⌜st_src = [(MapA.v_map, f↑)] ∧ st_tgt = [(MapM.v_size, sz↑); (MapM.v_map, f↑)]⌝
+        ∗ (⌜f = (λ _ : Z, 0%Z) ∧ sz = 0%Z⌝
+            ∗ MapMS.pending
+            ∗ initial_map
+          ∨ pending
+            ∗ auth_allocated f
+            ∗ auth_unallocated sz))%I.
 
   Variable ginvH : Sk.t → invspec.
   Variable StbH : Sk.t → gname → option fspec.

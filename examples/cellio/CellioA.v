@@ -1,4 +1,4 @@
-Require Import Coqlib ITreelib.
+(* Require Import Coqlib ITreelib.
 Require Import ImpPrelude.
 Require Import Events.
 (* Require Import Behavior. *)
@@ -68,4 +68,4 @@ Module CellioA. Section CellioA.
   Variable GI: Sk.t -> invspec.
   Variable GlobalStb: Sk.t -> gname -> option fspec.
   Definition t := Seal.sealing "CRIS" (SMod.to_hmod GI GlobalStb Mod).
-End CellioA. End CellioA.
+End CellioA. End CellioA. *)

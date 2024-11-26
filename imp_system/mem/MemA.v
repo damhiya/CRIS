@@ -20,7 +20,6 @@ Local Arguments Z.of_nat : simpl nomatch.
 Section BODY.
   Context `{!Inv.t Σ Γ α β τ, !memG Γ}.
   Notation iProp := (iProp Σ).
-  Lemma test : false. Admitted.
 
   Definition mem_points_to_singleton_r (loc : mblock * Z) (v : val) : memRA :=
     ◯ (discrete_fun_singleton loc.1 (discrete_fun_singleton loc.2 (Some (Excl v)))).
