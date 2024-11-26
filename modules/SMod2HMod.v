@@ -83,7 +83,7 @@ Section FSPEC.
     postcond := fun tid '(existT i meta_i) => (nth i fspecs fspec_false).(postcond) tid meta_i 
   |}.
 
-  Context `{_W: CtxWD.t (Σ:=Σ)}.
+  Context `{Inv.t (Σ:=Σ)}.
 
   Variant meta_inv {X: positive -> nat -> Type} : Type :=
   | mk_meta (u: positive) (n: nat) (x: X u n).  
