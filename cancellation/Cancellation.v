@@ -272,14 +272,48 @@ Section CANCEL.
       (* { rewrite length_insert; nia. } *)
       (* { rewrite length_insert; nia. } *)
       admit.
-
-    - (* add itr *)
-      (* subst. ired. do 2 rewrite interp_hp_bind observe_bind. ired. *)
-      (* assert (CASE:= case_itrH _ itr). des; subst. *)
-      (* + rewrite interp_hp_ret. ired. eapply KTR; eauto. *)
-        (* * rewrite x4. grind. *)
-        (* * rewrite x5. grind. *)
-      (* + *)
+    
+    - (* Assume *)
+      (* subst. ired. hide_r. _coreA.
+      iterL. _supd. 
+      iterL. _coreA. iterL. _coreA.
+      iterL. _supd. iterL. _supd.
+      iterT 1.
+      reveal ITREE. hide_l. _coreE x.
+      iterL. _supd. iterL.
+      assert (✓ (x ⋅ res_sum)).
+      { admit. (* does not hold. *)} *)
+      admit.
+    - (* Guarantee *)
+      (* subst. ired. hide_l. _supd.
+      iterL. _coreA. iterL. _coreA.
+      iterL. _supd. iterL. _supd.
+      iterT 1.
+      reveal ITREE. hide_r. _supd.
+      iterL. _coreE x. iterL. 
+      assert (Own rs ==∗ P ∗ Own x).
+      { admit. (* does not hold *) }
+      _coreE x0. *)
+      admit.
+    - (* pgE *)
+      (* subst. ired.  
+      rewrite !interp_hp_bind !interp_hp_pg /handle_pgE. destruct e.
+      + (* Put *)
+        unfold mput_kv. hide_l. ired. _supd.
+        iterL. _supd. iterT 1. iterL.
+        reveal ITREE. hide_r. ired. _supd.
+        iterL. _supd. iterT 1. iterL.
+        reveal ITREE. 
+        
+        remember () as v'. 
+        remember  (alist_encode (alist_upd k v (alist_decode st))) as st'.
+        ired. 
+        eapply KTR. *)
+      admit.
+    - (* corE *)
+      admit.
+    - ired. hide_l. tau 1. iterT 1. iterL. reveal ITREE. hide_r.
+      tau 1. iterT 1. iterL. reveal ITREE. 
       admit.
 
     - (* head *)
@@ -339,52 +373,52 @@ Section CANCEL.
       admit.
     - subst. ired. hide_l. _coreA. (* NB *)
     - (* spawn *)
-      (* subst. ired. hide_l. _coreA. *)
-      (* iterT 2. iterL. _coreA. ls. *)
-      (* iterT 2. iterL. tau 1. ls.  *)
-      (* rewrite !length_insert.  *)
-      (* rewrite <- insert_app_l; eauto. *)
-      (* assert (cid < *)
-      (* base.length *)
-        (* (tgts ++ *)
-         (* [` sem : (Any.t → itree modE Any.t) <- *)
-          (* (alist_find fn *)
-             (* (List.map (map_snd (interp_hp_fun <*> HModSem.sandbox_body)) *)
-                (* (List.map (map_snd (wrap_elimI (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0)))) *)
-                   (* (List.map (map_snd (λ ksb : list string * fspecbody, (ksb.1, interp_sb_hp (ginv sk0) (stb sk0) ksb.2))) *)
-                      (* (SModSem.fnsems (SMod.modsem md sk0)))))) !;; sem args])). *)
-      (* { rewrite length_app. nia. } *)
-      (* iterT 2. iterL. _supd. *)
-      (* iterL. _coreA. ls. iterL. _coreA. ls. *)
-      (* iterL. _supd. iterL. _supd. *)
-      (* iterT 2. iterL.  *)
-      (* reveal ITREE. hide_r. tau 1. *)
-      (* rewrite <- insert_app_l; eauto. *)
-      (* iterL; cycle 1. { rewrite length_app. nia. } *)
-      (* tau 2. ls. *)
-      (* iterL; cycle 1. { rewrite length_app. nia. } *)
-      (* reveal ITREE. *)
-      (* assert (base.length srcs = base.length tgts) by nia. *)
-      (* rewrite !H4.  *)
-      (* hexploit (Own_bupd_split res_sum); eauto. *)
-      (* i. des. *)
-      (* eapply KTR; auto. *)
-      (* {  *)
-        (* instantiate (1:= frs ++ [ε]). *)
-        (* rewrite length_app. nia. *)
-      (* } *)
-      (* { admit. } *)
-      (* { admit. } *)
-      (* { rewrite lookup_app_l; [eauto|nia]. } *)
-      (* {  *)
-        (* rewrite list_lookup_insert; eauto.   *)
-        (* rewrite length_app. nia. *)
-      (* } *)
-      (* { rewrite list_lookup_insert; grind. } *)
-      (* { rewrite/__ length_insert !length_app. s. nia. } *)
-      (* { rewrite/__ length_insert !length_app. s. nia. } *)
-      (* { rewrite/__ length_insert !length_app. s. nia. } *)
-      (* { rewrite length_insert. nia. } *)
+      subst. ired. hide_l. _coreA.
+      iterT 2. iterL. _coreA. ls.
+      iterT 2. iterL. tau 1. ls. 
+      rewrite !length_insert. 
+      rewrite <- insert_app_l; eauto.
+      assert (cid <
+      base.length
+        (tgts ++
+         [` sem : (Any.t → itree modE Any.t) <-
+          (alist_find fn
+             (List.map (map_snd (interp_hp_fun <*> HModSem.sandbox_body))
+                (List.map (map_snd (wrap_elimI (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0))))
+                   (List.map (map_snd (λ ksb : list string * fspecbody, (ksb.1, interp_sb_hp (ginv sk0) (stb sk0) ksb.2)))
+                      (SModSem.fnsems (SMod.modsem md sk0)))))) !;; sem args])).
+      { rewrite length_app. nia. }
+      iterT 2. iterL. _supd.
+      iterL. _coreA. ls. iterL. _coreA. ls.
+      iterL. _supd. iterL. _supd.
+      iterT 2. iterL. 
+      reveal ITREE. hide_r. tau 1.
+      rewrite <- insert_app_l; eauto.
+      iterL; cycle 1. { rewrite length_app. nia. }
+      tau 2. ls.
+      iterL; cycle 1. { rewrite length_app. nia. }
+      reveal ITREE.
+      assert (base.length srcs = base.length tgts) by nia.
+      rewrite !H4. 
+      hexploit (Own_bupd_split res_sum); eauto.
+      i. des.
+      eapply KTR; auto.
+      { 
+        instantiate (1:= frs ++ [ε]).
+        rewrite length_app. nia.
+      }
+      { admit. }
+      { admit. }
+      { rewrite lookup_app_l; [eauto|nia]. }
+      { 
+        rewrite list_lookup_insert; eauto.  
+        rewrite length_app. nia.
+      }
+      { rewrite list_lookup_insert; grind. }
+      { rewrite/__ length_insert !length_app. s. nia. }
+      { rewrite/__ length_insert !length_app. s. nia. }
+      { rewrite/__ length_insert !length_app. s. nia. }
+      { rewrite length_insert. nia. }
       admit.
     - (* yield *)
       (* subst. ired. hide_r. tau 1.  *)
