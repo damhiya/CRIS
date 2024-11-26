@@ -224,8 +224,8 @@ Section CANCEL.
               (cid, tgts))
          (Any.pair st res_sum↑);; Ret x.2).
   Proof.
-    gcofix CIH. i.
-    exploit Forall3i_nth; eauto. i. des.
+    (* gcofix CIH.  *)
+    i. exploit Forall3i_nth; eauto. i. des.
     rename x into fr, y into src, z into tgt.
     depdes x3.
     { exfalso. apply NOC. s. destruct Nat.eq_dec; eauto. nia. }
@@ -233,17 +233,22 @@ Section CANCEL.
     assert (cid < List.length srcs). { rewrite <- H. eauto. }
     assert (cid < List.length tgts). { rewrite <- H0. eauto. }
 
+    clear REL.
+
+    revert_until SKWF. gcofix CIH. i.
+
     (* hide_r. _iter. rewrite x1. ired. *)
     _iter. _iter.
 
     (* do 2 rewrite unfold_iter_eq. unfold handle_schE_callE at 1 3. *)
-    rewrite/__ x1 x2. s. grind.
+    rewrite x7 x8. s. grind.
 
-    move ELIM before CIH. move REL at top. revert_until ELIM.
+    move ELIM before CIH. revert_until ELIM.
     punfold ELIM. 
     pattern p, itrS, itrT. eapply elim_rel_tarski, ELIM. i.
     clear ELIM. 
     depdes PR.
+
     - (* ret *)
       (* subst. ired. des_ifs; cycle 1. *)
       (* { unfold triggerUB. ired. rewrite/__ StRed.bind StRed.core. st. i. inv x. } *)
@@ -296,26 +301,46 @@ Section CANCEL.
       _coreE x0. *)
       admit.
     - (* pgE *)
-      (* subst. ired.  
-      rewrite !interp_hp_bind !interp_hp_pg /handle_pgE. destruct e.
-      + (* Put *)
-        unfold mput_kv. hide_l. ired. _supd.
-        iterL. _supd. iterT 1. iterL.
-        reveal ITREE. hide_r. ired. _supd.
-        iterL. _supd. iterT 1. iterL.
-        reveal ITREE. 
-        
-        remember () as v'. 
-        remember  (alist_encode (alist_upd k v (alist_decode st))) as st'.
-        ired. 
-        eapply KTR. *)
+      (* subst. ired.   *)
+      (* rewrite !interp_hp_bind !interp_hp_pg /handle_pgE. destruct e. *)
+      (* + unfold mput_kv. hide_l. ired. _supd. *)
+        (* iterL. _supd. iterT 1. iterL. *)
+        (* reveal ITREE. hide_r. ired. _supd. *)
+        (* iterL. _supd. iterT 1. iterL. *)
+        (* reveal ITREE.  *)
+        (* eapply KTR; try rewrite length_insert; try rewrite list_lookup_insert; eauto. *)
+        (* grind. *)
+      (* + unfold mget_kv. hide_l. ired. _supd. iterT 1. iterL. *)
+        (* reveal ITREE. hide_r. ired. _supd. iterT 1. iterL. *)
+        (* reveal ITREE. *)
+        (* eapply KTR; try rewrite length_insert; try rewrite list_lookup_insert; eauto. *)
+        (* grind. *)
       admit.
     - (* corE *)
+      (* depdes e; ired. *)
+      (* + hide_l. _coreA. iterT 1. iterL.  *)
+        (* reveal ITREE. hide_r. _coreE x. iterT 1. iterL. *)
+        (* reveal ITREE. *)
+        (* eapply KTR; try rewrite length_insert; try rewrite list_lookup_insert; eauto. *)
+        (* grind.  *)
+      (* + hide_r. _coreA. iterT 1. iterL.  *)
+        (* reveal ITREE. hide_l. _coreE x. iterT 1. iterL. *)
+        (* reveal ITREE. *)
+        (* eapply KTR; try rewrite length_insert; try rewrite list_lookup_insert; eauto. *)
+        (* grind.  *)
+      (* + hide_r. _core. reveal ITREE. hide_l. _core. reveal ITREE. *)
+        (* st. i. subst. st. st. ired.  *)
+        (* hide_l. tau 1. iterT 1. iterL. reveal ITREE.  *)
+        (* hide_r. tau 1. iterT 1. iterL. reveal ITREE.  *)
+        (* eapply KTR; try rewrite length_insert; try rewrite list_lookup_insert; eauto. *)
+        (* grind. *)
       admit.
-    - ired. hide_l. tau 1. iterT 1. iterL. reveal ITREE. hide_r.
-      tau 1. iterT 1. iterL. reveal ITREE. 
+    - (* Tid *)
+      (* ired. hide_l. tau 1. iterT 1. iterL. reveal ITREE.  *)
+      (* hide_r. tau 1. iterT 1. iterL. reveal ITREE. *)
+      (* eapply KTR; try rewrite length_insert; try rewrite list_lookup_insert; eauto. *)
+      (* grind. *)
       admit.
-
     - (* head *)
       (* subst. ired. hide_l. tau 1. *)
       (* iterT 2. iterL. _coreA. ls.  *)
@@ -373,7 +398,7 @@ Section CANCEL.
       admit.
     - subst. ired. hide_l. _coreA. (* NB *)
     - (* spawn *)
-      subst. ired. hide_l. _coreA.
+      (* subst. ired. hide_l. _coreA.
       iterT 2. iterL. _coreA. ls.
       iterT 2. iterL. tau 1. ls. 
       rewrite !length_insert. 
@@ -418,7 +443,7 @@ Section CANCEL.
       { rewrite/__ length_insert !length_app. s. nia. }
       { rewrite/__ length_insert !length_app. s. nia. }
       { rewrite/__ length_insert !length_app. s. nia. }
-      { rewrite length_insert. nia. }
+      { rewrite length_insert. nia. } *)
       admit.
     - (* yield *)
       (* subst. ired. hide_r. tau 1.  *)
