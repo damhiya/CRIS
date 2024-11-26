@@ -77,10 +77,15 @@ Section REL.
     :
     elim_rel_def relc RR reli p (itrS) (tau;; itrT)
 
-  | elim_rel_ag p (e: agE unit) ktrS ktrT
+  | elim_rel_asm P p ktrS ktrT
       (KTR: reli true (ktrS tt) (ktrT tt))
     :
-    elim_rel_def relc RR reli p (trigger e >>= ktrS) (trigger e >>= ktrT)
+    elim_rel_def relc RR reli p (trigger (Assume P) >>= ktrS) (trigger (Assume P) >>= ktrT)
+
+  | elim_rel_grt P p ktrS ktrT
+      (KTR: reli true (ktrS tt) (ktrT tt))
+    :
+    elim_rel_def relc RR reli p (trigger (Guarantee P) >>= ktrS) (trigger (Guarantee P) >>= ktrT)
 
   | elim_rel_pg {R} p (e: pgE R) ktrS ktrT
       (KTR: forall (v: R), reli true (ktrS v) (ktrT v))
@@ -172,11 +177,11 @@ Section REL.
     inv SAT; eapply REL; try (econs; i; eapply IH; eauto).
     - econs; eauto.
     - econs; try refl. i. eapply IH. eauto.
-    - econs 9; eauto. 
     - econs 10; eauto. 
     - econs 11; eauto.
     - econs 12; eauto.
     - econs 13; eauto.  
+    - econs 14; eauto.  
   Qed. 
 
   Lemma _elim_rel_mon : monotone6 _elim_rel.
@@ -196,6 +201,7 @@ Section REL.
     - econs 11; eauto.
     - econs 12; eauto.
     - econs 13; eauto.
+    - econs 14; eauto.  
   Qed.
 
   Hint Resolve cpn6_wcompat: paco.
@@ -221,6 +227,7 @@ Section REL.
     - econs 11; eauto.
     - econs 12; eauto.
     - econs 13; eauto.
+    - econs 14; eauto.  
   Qed.
 
   Hint Resolve elim_rel_indC_mon: paco.
@@ -239,9 +246,10 @@ Section REL.
     - econs 7; eauto. i. eapply _elim_rel_mon; eauto. i. econs; eauto.
     - econs 8; eauto. i. eapply _elim_rel_mon; eauto. i. econs; eauto.
     - econs 9; eauto. i. eapply _elim_rel_mon; eauto. i. econs; eauto.
-    - econs 10; eauto. 
-    - econs 11; eauto. i. eapply _elim_rel_mon; eauto. i. econs; eauto.
+    - econs 10; eauto. i. eapply _elim_rel_mon; eauto. i. econs; eauto.
+    - econs 11; eauto. 
     - econs 12; eauto. i. eapply _elim_rel_mon; eauto. i. econs; eauto.
+    - econs 13; eauto. i. eapply _elim_rel_mon; eauto. i. econs; eauto.
     - ss.
   Qed.
 
@@ -266,8 +274,9 @@ Section REL.
     - econs 10; eauto.
     - econs 11; eauto.
     - econs 12; eauto.
+    - econs 13; eauto.
     - hexploit LE; eauto. i. destruct p'; try discriminate.
-      econs 13; eauto.
+      econs 14; eauto.
   Qed.
 
   Lemma elim_rel_flag_mon X Y RR (p p': bool) src tgt
@@ -352,16 +361,17 @@ Section REL.
     - econs. econs. eauto.
     - econs. econs. eauto.
     - econs. econs. eauto.
-    - econs. econs 8; eauto; cycle 1.
-      { instantiate (1 := fun _v => _). refl.  }
-      s; eauto.
+    - econs. econs. eauto.
     - econs. econs 9; eauto; cycle 1.
       { instantiate (1 := fun _v => _). refl.  }
       s; eauto.
-    - econs. econs 10; eauto. 
-    - econs. econs 11; eauto. i. s. eauto. 
-    - econs. econs 12; eauto. i. s. eauto.
-    - econs. econs 13; eauto. 
+    - econs. econs 10; eauto; cycle 1.
+      { instantiate (1 := fun _v => _). refl.  }
+      s; eauto.
+    - econs. econs 11; eauto. 
+    - econs. econs 12; eauto. i. s. eauto. 
+    - econs. econs 13; eauto. i. s. eauto.
+    - econs. econs 14; eauto. 
       econs 2; eauto. econs; i; econs; eauto.
   Qed.
 
@@ -602,42 +612,42 @@ Section CANCEL.
     - rewrite/__ SModRed.interp_ret HModSB.transl_ret !HIRed.ret.
       gstep. econs. econs; eauto.
     - rewrite/__ SModRed.interp_tau !HModSB.transl_tau !HIRed.tau.
-      gstep. do 9 econs. econs 13. gbase. eapply CIH; eauto.
+      gstep. do 9 econs. econs 14. gbase. eapply CIH; eauto.
     - rewrite/__ SModRed.interp_bind SModRed.interp_ag !HModSB.transl_bind HModSB.transl_ag. ired.
       rewrite/__ !HIRed.bind_ag. gstep. do 6 econs.  
       rewrite/__ HModSB.transl_tau HModSB.transl_ret. ired. 
-      rewrite HIRed.tau. do 5 econs. econs 13. gbase. eapply CIH; eauto.
+      rewrite HIRed.tau. do 5 econs. econs 14. gbase. eapply CIH; eauto.
     - rewrite/__ SModRed.interp_bind SModRed.interp_ag !HModSB.transl_bind HModSB.transl_ag. ired.
       rewrite/__ !HIRed.bind_ag. gstep. do 6 econs. 
       rewrite/__ HModSB.transl_tau HModSB.transl_ret. ired. 
-      rewrite HIRed.tau. do 5 econs. econs 13. gbase. eapply CIH; eauto.
+      rewrite HIRed.tau. do 5 econs. econs 14. gbase. eapply CIH; eauto.
     - rewrite/__ SModRed.interp_bind SModRed.interp_sch !HModSB.transl_bind HModSB.transl_sch. ired.
       unfold handle_schE_hmodE. depdes s.
       + destruct (stb sk0 fn) eqn:STB; ired; cycle 1.
         { 
           unfold triggerNB. ired. 
           rewrite/__ HModSB.transl_bind HModSB.transl_core. ired. 
-          rewrite HIRed.bind_core. gstep. econs. econs 10; ss.
+          rewrite HIRed.bind_core. gstep. econs. econs 11; ss.
         }
         rewrite/__ HoareSpawn_sandbox HoareSpawn_hpI HIRed.bind_sch.
-        gstep. econs. econs 11; eauto. i. s. econs. econs. 
+        gstep. econs. econs 12; eauto. i. s. econs. econs. 
         rewrite/__ HModSB.transl_tau HModSB.transl_ret. ired. 
-        rewrite HIRed.tau. do 5 econs. econs 13. gbase. eapply CIH; eauto.
+        rewrite HIRed.tau. do 5 econs. econs 14. gbase. eapply CIH; eauto.
       + rewrite/__ HoareYield_sandbox HoareYield_hpI HIRed.bind_sch.
-        gstep. econs. econs 12; eauto. i. s.
+        gstep. econs. econs 13; eauto. i. s.
         rewrite/__ HModSB.transl_tau HModSB.transl_ret. ired. 
-        rewrite HIRed.tau. do 9 econs. econs 13. gbase. eapply CIH; eauto.
+        rewrite HIRed.tau. do 9 econs. econs 14. gbase. eapply CIH; eauto.
       + rewrite/__ HModSB.transl_sch !HIRed.bind_sch.
         gstep. do 6 econs.
         rewrite/__ HModSB.transl_tau HModSB.transl_ret. ired.
-        rewrite HIRed.tau. do 5 econs. econs 13. gbase. eapply CIH; eauto.
+        rewrite HIRed.tau. do 5 econs. econs 14. gbase. eapply CIH; eauto.
     - rewrite/__ SModRed.interp_bind SModRed.interp_call.
       unfold handle_callE_hmodE. depdes c. 
       destruct (stb sk0 fn) eqn: STB; ired; cycle 1.
       { 
         unfold triggerNB. 
         rewrite/__ !HModSB.transl_bind HModSB.transl_core. ired. 
-        rewrite HIRed.bind_core. gstep. econs. econs 10; ss.
+        rewrite HIRed.bind_core. gstep. econs. econs 11; ss.
       }
       do 2 rewrite HModSB.transl_bind. 
       rewrite/__ HModSB.transl_call HIRed.call HIRed.bind.
@@ -652,42 +662,42 @@ Section CANCEL.
       rewrite bind_bind. guclo elim_rel_bindC_spec. econs.
       {
         instantiate (1:= fun vs vt => vs = vt.2).
-        unfold elim_head_body. guclo elim_rel_indC_spec. econs 8; swap 1 3.
+        unfold elim_head_body. guclo elim_rel_indC_spec. econs 9; swap 1 3.
         { f_equal. }
         { instantiate (1:= fun _ => _). refl. }
         grind. rewrite/__ [inline_hp _ _]add_dummy_ret. 
         guclo elim_rel_bindC_spec. econs.
-        { gstep. econs. econs 13. gbase. eapply CIH; ss. }
+        { gstep. econs. econs 14. gbase. eapply CIH; ss. }
         i. gstep. econs. econs. ss.
       }
       i. guclo elim_rel_indC_spec.
       destruct vt, p0, p0, p0. (* Should have "vs = t" in here, lost in bindC *)
-      econs 9; swap 1 3.
+      econs 10; swap 1 3.
       { f_equal. }
       { refl. }
       i. ired. rewrite/__ HModSB.transl_tau !HIRed.tau. 
-      gstep. do 9 econs. econs 13. gbase. ss. subst. eapply CIH; eauto.
+      gstep. do 9 econs. econs 14. gbase. ss. subst. eapply CIH; eauto.
     - depdes s.
       + rewrite/__ SModRed.interp_bind SModRed.interp_pg !HModSB.transl_bind HModSB.transl_put. ired.
         des_ifs.
         * rewrite/__ !HIRed.bind_pg. gstep. do 6 econs.  
           rewrite/__ HModSB.transl_tau HModSB.transl_ret. ired. 
-          rewrite HIRed.tau. do 5 econs. econs 13. gbase. eapply CIH; eauto.
+          rewrite HIRed.tau. do 5 econs. econs 14. gbase. eapply CIH; eauto.
         * rewrite/__ !HIRed.bind_core. gstep. do 6 econs.  
           rewrite/__ HModSB.transl_tau HModSB.transl_ret. ired. 
-          rewrite HIRed.tau. do 5 econs. econs 13. gbase. eapply CIH; eauto.
+          rewrite HIRed.tau. do 5 econs. econs 14. gbase. eapply CIH; eauto.
       + rewrite/__ SModRed.interp_bind SModRed.interp_pg !HModSB.transl_bind HModSB.transl_get. ired.
         des_ifs.
         * rewrite/__ !HIRed.bind_pg. gstep. do 6 econs.  
           rewrite/__ HModSB.transl_tau HModSB.transl_ret. ired. 
-          rewrite HIRed.tau. do 5 econs. econs 13. gbase. eapply CIH; eauto.
+          rewrite HIRed.tau. do 5 econs. econs 14. gbase. eapply CIH; eauto.
         * rewrite/__ !HIRed.bind_core. gstep. do 6 econs.  
           rewrite/__ HModSB.transl_tau HModSB.transl_ret. ired. 
-          rewrite HIRed.tau. do 5 econs. econs 13. gbase. eapply CIH; eauto.
+          rewrite HIRed.tau. do 5 econs. econs 14. gbase. eapply CIH; eauto.
     - rewrite/__ SModRed.interp_bind SModRed.interp_core !HModSB.transl_bind HModSB.transl_core. ired.
       rewrite/__ !HIRed.bind_core. gstep. do 6 econs.  
       rewrite/__ HModSB.transl_tau HModSB.transl_ret. ired. 
-      rewrite HIRed.tau. do 5 econs. econs 13. gbase. eapply CIH; eauto.
+      rewrite HIRed.tau. do 5 econs. econs 14. gbase. eapply CIH; eauto.
   Qed.
 
 End CANCEL.
