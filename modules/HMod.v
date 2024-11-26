@@ -123,7 +123,7 @@ Module HModSem. Section HModSem.
 End HModSem. End HModSem.
 
 Module HMod. Section HMod.
-  Context `{Σ : GRA.t}.
+  Context {Σ : GRA.t}.
   Notation iProp := (iProp Σ).
 
   Record t : Type := mk {
@@ -137,7 +137,7 @@ Module HMod. Section HMod.
   |}.
 
   Definition add (md0 md1 : t) : t := {|
-    modsem := fun sk => HModSem.add (md0.(modsem) sk) (md1.(modsem) sk);
+    modsem := λ sk, HModSem.add (md0.(modsem) sk) (md1.(modsem) sk);
     sk := Sk.add md0.(sk) md1.(sk);
   |}.
 
@@ -147,7 +147,6 @@ Module HMod. Section HMod.
   Definition scopes (md : t) : Sk.t → list string :=
     λ sk, (md.(modsem) sk).(HModSem.scopes).
 
-  (* TODO : add a type of SK.t → iProp and TC instances of equivalence *)
   Definition modc : Type := (t * (Sk.t → iProp))%type.
   Global Instance modc_equiv : Equiv modc := λ m1 m2, m1.1 = m2.1 ∧ ∀ sk, m1.2 sk ≡ m2.2 sk.
   Global Instance modc_equiv_equiv : Equivalence modc_equiv.

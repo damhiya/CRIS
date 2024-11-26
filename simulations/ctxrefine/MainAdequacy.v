@@ -597,7 +597,6 @@ Section ADEQUACY.
     { rewrite /HMod.addc; iIntros "H"; iSplitR "H"; ss; iApply H2; done. }
     { eapply hssim_wf; eauto. }
     ii. subst. eapply adequacy_modsem, PR.
-    (* Module semantics should respect resource setoids! - further refactoring required *)
     - eapply (hssim_adequacy _ _ rs a1 a2); eauto.
       { rewrite Ha; iIntros "[H1 H2]"; iFrame. }
       { eapply hssim_wf; eauto. }
