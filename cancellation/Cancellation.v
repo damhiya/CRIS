@@ -61,7 +61,7 @@ Section CANCEL.
 
   Ltac reveal ITR := unfold ITR; clear ITR.
 
-  Ltac st := prep; guclo simg_indC_spec; econs; try instantiate (1:= smj_top).
+  Ltac st := prep; guclo simg_indC_spec; econs; try instantiate (1:= Some True).
   Ltac _iter := rewrite unfold_iter_eq; ired.
   Ltac _iterI := rewrite/__ [ITree.iter (handle_callE _) _]unfold_iter_eq; ired.
   Ltac _tau := rewrite/__ !StRed.tau.
@@ -142,8 +142,8 @@ Section CANCEL.
       (SRC: src = interp_hp (HModSem.sandbox scopes (fbody varg)))
       (TGT: tgt = interp_hp (HModSem.sandbox scopes (HoareFun (ginv sk0) (stb sk0)
                     fsp.(precond) fsp.(postcond) fbody arg)))
-  | thread_rel_body (Q: Any.t -> Any.t -> iProp) p itrS itrT
-      (ELIM: elim_rel ginv stb md _ _ eq p itrS itrT)
+  | thread_rel_body (Q: Any.t -> Any.t -> iProp) ps pt itrS itrT
+      (ELIM: elim_rel ginv stb md _ _ eq ps pt itrS itrT)
       (SRC: src = interp_hp itrS)
       (TGT: tgt =
         (interp_hp
@@ -187,7 +187,7 @@ Section CANCEL.
 
 
   Lemma cancel_aux sk0 (SKINCL: incl sk sk0) (SKWF: Sk.wf sk0):
-    ∀ rs frs fr_sum mr res_sum srcs tgts ps pt cid st
+    ∀ rs frs fr_sum mr res_sum srcs tgts cid st
        (* progS progT
        (PRS: progS = ModSem.prog (HModSem.to_mod (SModSemAux.to_hmod (SMod.modsem md sk0)) rs))
        (PRT: progT = ModSem.prog (HModSem.to_mod (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0)) (rs ⋅ mr))) *)
@@ -199,7 +199,7 @@ Section CANCEL.
        (* (WF: ✓ (rs ⋅ mr ⋅ fr_sum)) *)
        (* (RET: ∀fsp m vret ret (MAIN: stb sk0 "CCR_init" = Some fsp), (fsp.(postcond) 0 m vret ret -∗ ⌜vret = ret⌝)) *)
        (REL: Forall3i (thread_rel sk0 cid) 0 frs srcs tgts),
-       gpaco7 _simg (cpn7 _simg) bot7 bot7 Any.t Any.t eq ps pt
+       exists ps pt, gpaco7 _simg (cpn7 _simg) bot7 bot7 Any.t Any.t eq ps pt
        (x <-
          interp_stateE Any.t
            (ITree.iter
@@ -233,21 +233,24 @@ Section CANCEL.
     assert (cid < List.length srcs). { rewrite <- H. eauto. }
     assert (cid < List.length tgts). { rewrite <- H0. eauto. }
 
-    clear REL.
+    clear REL. exists (Some ps), (Some pt).
+
+    _iter. _iter. rewrite x1 x2. grind.
 
     revert_until SKWF. gcofix CIH. i.
 
-    (* hide_r. _iter. rewrite x1. ired. *)
-    _iter. _iter.
+    (* _iter. _iter. rewrite x7 x8. grind. *)
 
-    (* do 2 rewrite unfold_iter_eq. unfold handle_schE_callE at 1 3. *)
-    rewrite x7 x8. s. grind.
 
     move ELIM before CIH. revert_until ELIM.
     punfold ELIM. 
-    pattern p, itrS, itrT. eapply elim_rel_tarski, ELIM. i.
+    pattern ps, pt, itrS, itrT. eapply elim_rel_tarski, ELIM. i.
     clear ELIM. 
     depdes PR.
+
+    13: {
+      
+    }
 
     - (* ret *)
       (* subst. ired. des_ifs; cycle 1. *)
@@ -502,14 +505,12 @@ Section CANCEL.
 
       admit.
 
-    - subst. ired. 
+    - (* progress*)
+      subst. ired. pclearbot. 
       gstep. econs. econs; cycle 1.
-      { instantiate (1:= smj_bot). ss. }
-      { instantiate (1:= smj_bot). ss. }
-    
-    pclearbot.
-      admit.
-
+      { instantiate (1:= Some false). ss. }
+      { instantiate (1:= Some false). ss. }
+      gbase. eapply CIH; eauto.
   Admitted.
 (* 
   Ltac hss_des :=
@@ -652,6 +653,17 @@ Section CANCEL.
     eapply fsb_find_spec, STBCOMPLETE in FIND; ss.
     rewrite FIND in STB. inv STB. ss. 
   Qed.
+
+  (* Theorem cancellation Ps Pt
+    (COND: forall sk0 (EQV: Sk.equiv sk sk0) (SKWF: Sk.wf sk0), 
+      exists fsp m rt,
+        (stb sk0 "CCR_init" = Some fsp) /\
+        (forall rs (WF: ✓ rs) (SRC: Own rs ⊢ (Ps sk0)), ✓ (rs ⋅ rt)) /\ 
+        (Own rt ⊢ (Pt sk0) ∗ (fsp.(precond) 0 m tt↑ tt↑)) /\
+        (∀ m vret ret, (fsp.(postcond) 0 m vret ret) -∗ ⌜vret = ret⌝)
+    )
+  : *)
+
 
   Theorem cancellation Ps Pt
     (COND: forall sk0 (EQV: Sk.equiv sk sk0) (SKWF: Sk.wf sk0), 
