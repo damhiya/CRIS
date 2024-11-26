@@ -56,112 +56,112 @@ Section REL.
     trigger (Assume (ginv' my_tid)).
 
   Variant elim_rel_def
-    (relc: forall X Y (RR: X -> Y -> Prop), bool -> itree hmodE X -> itree hmodE Y -> Prop)
+    (relc: forall X Y (RR: X -> Y -> Prop), bool -> bool -> itree hmodE X -> itree hmodE Y -> Prop)
     {X Y}
     (RR: X -> Y -> Prop)
-    (reli: bool -> itree hmodE X -> itree hmodE Y -> Prop)
-    : bool -> itree hmodE X -> itree hmodE Y -> Prop
+    (reli: bool -> bool -> itree hmodE X -> itree hmodE Y -> Prop)
+    : bool -> bool -> itree hmodE X -> itree hmodE Y -> Prop
   :=
-  | elim_rel_base v0 v1 p
+  | elim_rel_base v0 v1 ps pt
     (RET: RR v0 v1)
     :
-    elim_rel_def relc RR reli p (Ret v0) (Ret v1)
+    elim_rel_def relc RR reli ps pt (Ret v0) (Ret v1)
 
-  | elim_rel_tau_src p itrS itrT
-      (ITR: reli true itrS itrT)
+  | elim_rel_tau_src ps pt itrS itrT
+      (ITR: reli true pt itrS itrT)
     :
-    elim_rel_def relc RR reli p (tau;; itrS) (itrT)
+    elim_rel_def relc RR reli ps pt (tau;; itrS) (itrT)
 
-  | elim_rel_tau_tgt p itrS itrT
-      (ITR: reli true itrS itrT)
+  | elim_rel_tau_tgt ps pt itrS itrT
+      (ITR: reli ps true itrS itrT)
     :
-    elim_rel_def relc RR reli p (itrS) (tau;; itrT)
+    elim_rel_def relc RR reli ps pt (itrS) (tau;; itrT)
 
-  | elim_rel_asm P p ktrS ktrT
-      (KTR: reli true (ktrS tt) (ktrT tt))
+  | elim_rel_asm P ps pt ktrS ktrT
+      (KTR: reli true true (ktrS tt) (ktrT tt))
     :
-    elim_rel_def relc RR reli p (trigger (Assume P) >>= ktrS) (trigger (Assume P) >>= ktrT)
+    elim_rel_def relc RR reli ps pt (trigger (Assume P) >>= ktrS) (trigger (Assume P) >>= ktrT)
 
-  | elim_rel_grt P p ktrS ktrT
-      (KTR: reli true (ktrS tt) (ktrT tt))
+  | elim_rel_grt P ps pt ktrS ktrT
+      (KTR: reli true true (ktrS tt) (ktrT tt))
     :
-    elim_rel_def relc RR reli p (trigger (Guarantee P) >>= ktrS) (trigger (Guarantee P) >>= ktrT)
+    elim_rel_def relc RR reli ps pt (trigger (Guarantee P) >>= ktrS) (trigger (Guarantee P) >>= ktrT)
 
-  | elim_rel_pg {R} p (e: pgE R) ktrS ktrT
-      (KTR: forall (v: R), reli true (ktrS v) (ktrT v))
+  | elim_rel_pg {R} ps pt (e: pgE R) ktrS ktrT
+      (KTR: forall (v: R), reli true true (ktrS v) (ktrT v))
     :
-    elim_rel_def relc RR reli p (trigger e >>= ktrS) (trigger e >>= ktrT)
+    elim_rel_def relc RR reli ps pt (trigger e >>= ktrS) (trigger e >>= ktrT)
   
-  | elim_rel_core {R} p (e: coreE R) ktrS ktrT
-      (KTR: forall (v: R), reli true (ktrS v) (ktrT v))
+  | elim_rel_core {R} ps pt (e: coreE R) ktrS ktrT
+      (KTR: forall (v: R), reli true true (ktrS v) (ktrT v))
     :
-    elim_rel_def relc RR reli p (trigger e >>= ktrS) (trigger e >>= ktrT)
+    elim_rel_def relc RR reli ps pt (trigger e >>= ktrS) (trigger e >>= ktrT)
 
-  | elim_rel_tid p ktrS ktrT
-      (KTR: forall (tid: nat), reli true (ktrS tid) (ktrT tid))
+  | elim_rel_tid ps pt ktrS ktrT
+      (KTR: forall (tid: nat), reli true true (ktrS tid) (ktrT tid))
     :
-    elim_rel_def relc RR reli p (trigger Tid >>= ktrS) (trigger Tid >>= ktrT)
+    elim_rel_def relc RR reli ps pt (trigger Tid >>= ktrS) (trigger Tid >>= ktrT)
 
-  | elim_rel_head X P p v src tgt ktrS ktrT
-      (KTR: forall m, reli true (ktrS v) (ktrT (m, v)))
+  | elim_rel_head X P ps pt v src tgt ktrS ktrT
+      (KTR: forall m, reli true true (ktrS v) (ktrT (m, v)))
       (EQS: src = ktrS v)
       (EQT: tgt = (@hmod_elim_head X P v) >>= ktrT)
     :
-    elim_rel_def relc RR reli p src tgt
+    elim_rel_def relc RR reli ps pt src tgt
                   
-  | elim_rel_tail X Q m v p src tgt ktrS ktrT
-      (KTR: reli true (ktrS v) (ktrT v))
+  | elim_rel_tail X Q m v ps pt src tgt ktrS ktrT
+      (KTR: reli true true (ktrS v) (ktrT v))
       (EQS: src = ktrS v)
       (EQT: tgt = (@hmod_elim_tail X Q m v) >>= ktrT)
     :
-    elim_rel_def relc RR reli p src tgt
+    elim_rel_def relc RR reli ps pt src tgt
 
   | elim_rel_NB
-      p src tgt itrS ktrT
+      ps pt src tgt itrS ktrT
       (EQS: src = itrS)
       (EQT: tgt = trigger (Choose False) >>= ktrT)
     :
-    elim_rel_def relc RR reli p src tgt
+    elim_rel_def relc RR reli ps pt src tgt
 
    | elim_rel_spawn
-      sk0 p src tgt f fn args ktrS ktrT
+      sk0 ps pt src tgt f fn args ktrS ktrT
       (SKINCL: incl sk sk0)
       (SKWF: Sk.wf sk0)
       (STB: stb sk0 fn = Some f)
-      (KTR: forall x, reli true (ktrS x) (ktrT x))
+      (KTR: forall x, reli true true (ktrS x) (ktrT x))
       (EQS: src =  trigger (Spawn fn args) >>= ktrS)
       (EQT: tgt = HoareSpawnE (ginv sk0) f fn args >>= ktrT)
     :
-    elim_rel_def relc RR reli p src tgt
+    elim_rel_def relc RR reli ps pt src tgt
 
   | elim_rel_yield
-      sk0 tid p src tgt ktrS ktrT
+      sk0 tid ps pt src tgt ktrS ktrT
       (SKINCL: incl sk sk0)
       (SKWF: Sk.wf sk0)
-      (KTR: forall x, reli true (ktrS x) (ktrT x))
+      (KTR: forall x, reli true true (ktrS x) (ktrT x))
       (EQS: src = trigger (Yield tid) >>= ktrS)
       (EQT: tgt = HoareYieldE (ginv sk0) tid >>= ktrT)
     :
-    elim_rel_def relc RR reli p src tgt
+    elim_rel_def relc RR reli ps pt src tgt
 
   | elim_rel_progress
       src tgt
-      (REL: relc X Y RR false src tgt)
+      (REL: relc X Y RR false false src tgt)
     :
-    elim_rel_def relc RR reli true src tgt 
+    elim_rel_def relc RR reli true true src tgt 
   .
   
-  Inductive _elim_rel relc {X Y} RR p src tgt: Prop :=
-  | _elim_rel_intro (SAT: @elim_rel_def relc X Y RR (_elim_rel relc RR) p src tgt).
+  Inductive _elim_rel relc {X Y} RR ps pt src tgt: Prop :=
+  | _elim_rel_intro (SAT: @elim_rel_def relc X Y RR (_elim_rel relc RR) ps pt src tgt).
 
-  Definition elim_rel: forall X Y (RR: X -> Y -> Prop),  bool -> itree hmodE X -> itree hmodE Y -> Prop :=
-     paco6 _elim_rel bot6.
+  Definition elim_rel: forall X Y (RR: X -> Y -> Prop),  bool -> bool -> itree hmodE X -> itree hmodE Y -> Prop :=
+     paco7 _elim_rel bot7.
 
   Lemma elim_rel_def_mon relc relc' X Y RR P P'
-    (RELC: relc <6= relc')
-    (RELI: P <3= P')
+    (RELC: relc <7= relc')
+    (RELI: P <4= P')
   :
-  @elim_rel_def relc X Y RR P <3= elim_rel_def relc' RR P'.
+  @elim_rel_def relc X Y RR P <4= elim_rel_def relc' RR P'.
   Proof.
     i. destruct PR; eauto using @elim_rel_def.
   Qed.
@@ -169,11 +169,11 @@ Section REL.
   Lemma elim_rel_tarski elim_rel 
       X Y RR
       P
-      (REL: @elim_rel_def elim_rel X Y RR P <3= P)
+      (REL: @elim_rel_def elim_rel X Y RR P <4= P)
     :
-    _elim_rel elim_rel RR <3= P.
+    _elim_rel elim_rel RR <4= P.
   Proof.
-    fix IH 4. i. inv PR. 
+    fix IH 5. i. inv PR. 
     inv SAT; eapply REL; try (econs; i; eapply IH; eauto).
     - econs; eauto.
     - econs; try refl. i. eapply IH. eauto.
@@ -184,7 +184,7 @@ Section REL.
     - econs 14; eauto.  
   Qed. 
 
-  Lemma _elim_rel_mon : monotone6 _elim_rel.
+  Lemma _elim_rel_mon : monotone7 _elim_rel.
   Proof.
     ii. eapply elim_rel_tarski; eauto.
     econs; inv PR.
@@ -204,14 +204,14 @@ Section REL.
     - econs 14; eauto.  
   Qed.
 
-  Hint Resolve cpn6_wcompat: paco.
+  Hint Resolve cpn7_wcompat: paco.
   Hint Resolve _elim_rel_mon: paco.
   Hint Resolve elim_rel_def_mon: paco.
 
   Definition elim_rel_indC elim_rel {X Y} RR :=
-    @elim_rel_def bot6 X Y RR (elim_rel X Y RR).
+    @elim_rel_def bot7 X Y RR (elim_rel X Y RR).
   
-  Lemma elim_rel_indC_mon: monotone6 elim_rel_indC.
+  Lemma elim_rel_indC_mon: monotone7 elim_rel_indC.
   Proof.
     ii. inv IN. 
     - econs. eauto.
@@ -233,9 +233,9 @@ Section REL.
   Hint Resolve elim_rel_indC_mon: paco.
 
   Lemma elim_rel_indC_spec:
-    elim_rel_indC <7= gupaco6 _elim_rel (cpn6 _elim_rel).
+    elim_rel_indC <8= gupaco7 _elim_rel (cpn7 _elim_rel).
   Proof.
-    eapply wrespect6_uclo; eauto with paco.
+    eapply wrespect7_uclo; eauto with paco.
     econs; eauto with paco. i. inv PR; econs.
     - econs; eauto.
     - econs; eauto. eapply _elim_rel_mon; eauto. i. econs; eauto.
@@ -253,14 +253,15 @@ Section REL.
     - ss.
   Qed.
 
-  Lemma _elim_rel_flag_mon X Y RR r (p p': bool) src tgt
-    (REL: @_elim_rel r X Y RR p src tgt)
-    (LE: p -> p')
+  Lemma _elim_rel_flag_mon X Y RR r (ps pt ps' pt': bool) src tgt
+    (REL: @_elim_rel r X Y RR ps pt src tgt)
+    (LES: ps -> ps')
+    (LET: pt -> pt')
     :
-    @_elim_rel r X Y RR p' src tgt.
+    @_elim_rel r X Y RR ps' pt' src tgt.
   Proof.
     move REL before r. revert_until REL.
-    pattern p, src, tgt. eapply elim_rel_tarski, REL.
+    pattern ps, pt, src, tgt. eapply elim_rel_tarski, REL.
     i. econs. inv PR.
     - econs. eauto.
     - econs; eauto.
@@ -275,32 +276,35 @@ Section REL.
     - econs 11; eauto.
     - econs 12; eauto.
     - econs 13; eauto.
-    - hexploit LE; eauto. i. destruct p'; try discriminate.
+    - hexploit LES; eauto. i. hexploit LET; eauto. i.  
+      destruct ps', pt'; try discriminate.
       econs 14; eauto.
   Qed.
 
-  Lemma elim_rel_flag_mon X Y RR (p p': bool) src tgt
-      (REL: @elim_rel X Y RR p src tgt)
-      (LE: p -> p')
+  Lemma elim_rel_flag_mon X Y RR (ps pt ps' pt': bool) src tgt
+      (REL: @elim_rel X Y RR ps pt src tgt)
+      (LES: ps -> ps')
+      (LET: pt -> pt')
     :
-    elim_rel X Y RR p' src tgt.
+    elim_rel X Y RR ps' pt' src tgt.
   Proof.
     move REL before Y. revert_until REL. pcofix CIH. i.
     pstep. eapply _elim_rel_flag_mon; eauto.
-    eapply paco6_mon_bot in REL; eauto. punfold REL.
+    eapply paco7_mon_bot in REL; eauto. punfold REL.
   Qed. 
 
   Variant elim_rel_flagC
-    (r: forall X Y (RR: X -> Y -> Prop) , bool -> itree hmodE X -> itree hmodE Y -> Prop)
-    X Y RR p src tgt : Prop := 
+    (r: forall X Y (RR: X -> Y -> Prop) , bool -> bool -> itree hmodE X -> itree hmodE Y -> Prop)
+    X Y RR ps pt src tgt : Prop := 
   | elim_rel_flagC_intro
-    p0
-    (REL: r X Y RR p0 src tgt)
-    (FLAG: p0 = true -> p = true)
+    ps0 pt0
+    (REL: r X Y RR ps0 pt0 src tgt)
+    (SRC: ps0 = true -> ps = true)
+    (TGT: pt0 = true -> pt = true)
   .
 
-  Lemma elim_rel_flagC_mon r1 r2 (LE: r1 <6= r2) :
-    elim_rel_flagC r1 <6= elim_rel_flagC r2.
+  Lemma elim_rel_flagC_mon r1 r2 (LE: r1 <7= r2) :
+    elim_rel_flagC r1 <7= elim_rel_flagC r2.
   Proof.
     ii. destruct PR; econs; eauto.
   Qed.
@@ -308,9 +312,9 @@ Section REL.
   Hint Resolve elim_rel_flagC_mon.
 
   Lemma elim_rel_flagC_spec:
-    elim_rel_flagC <7= gupaco6 _elim_rel (cpn6 _elim_rel).
+    elim_rel_flagC <8= gupaco7 _elim_rel (cpn7 _elim_rel).
   Proof.
-    eapply wrespect6_uclo; eauto with paco.
+    eapply wrespect7_uclo; eauto with paco.
     econs; eauto with paco. i. inv PR.
     eapply _elim_rel_flag_mon; eauto.
     eapply _elim_rel_mon. 2: { i. econs. eauto. }
@@ -318,43 +322,42 @@ Section REL.
   Qed. 
 
   Variant elim_rel_bindC
-    (r: forall X Y (RR: X -> Y -> Prop), bool -> itree hmodE X -> itree hmodE Y -> Prop)
-    : forall X Y (RR: X -> Y -> Prop), bool -> itree hmodE X -> itree hmodE Y -> Prop
+    (r: forall X Y (RR: X -> Y -> Prop), bool -> bool -> itree hmodE X -> itree hmodE Y -> Prop)
+    : forall X Y (RR: X -> Y -> Prop), bool -> bool -> itree hmodE X -> itree hmodE Y -> Prop
     :=
   | elim_rel_bindC_intro
-      Q0 Q1 QQ p i_src i_tgt
-      (REL: r Q0 Q1 QQ p i_src i_tgt)
+      Q0 Q1 QQ ps pt i_src i_tgt
+      (REL: r Q0 Q1 QQ ps pt i_src i_tgt)
 
       X Y RR k_src k_tgt
-      (RELK: ∀vs vt (EQ: QQ vs vt), r X Y RR false (k_src vs) (k_tgt vt))
+      (RELK: ∀vs vt (EQ: QQ vs vt), r X Y RR false false (k_src vs) (k_tgt vt))
     :
-    elim_rel_bindC r X Y RR p (i_src >>= k_src) (i_tgt >>= k_tgt)
+    elim_rel_bindC r X Y RR ps pt (i_src >>= k_src) (i_tgt >>= k_tgt)
   .
 
   Lemma elim_rel_bindC_mon
         r1 r2 
-        (LEr: r1 <6= r2)
+        (LEr: r1 <7= r2)
     :
-    elim_rel_bindC r1 <6= elim_rel_bindC r2
+    elim_rel_bindC r1 <7= elim_rel_bindC r2
   .
   Proof.
     ii. destruct PR; econs; eauto.
   Qed.
 
   Lemma elim_rel_bindC_wrespectful:
-    wrespectful6 _elim_rel elim_rel_bindC.
+    wrespectful7 _elim_rel elim_rel_bindC.
   Proof.
     econs; eauto using elim_rel_bindC_mon. i.
     destruct PR. apply GF in REL.
     move REL before GF. revert_until REL.
-    pattern p, i_src, i_tgt.
+    pattern ps, pt, i_src, i_tgt.
     eapply elim_rel_tarski, REL. i. 
     inv PR; grind. 
     (* eauto 7 using elim_rel_mon, elim_rel_def, rclo3. *)
     - eapply _elim_rel_mon; cycle 1.
       { i. econs. eauto. }
-      eapply _elim_rel_flag_mon; eauto.
-      discriminate.
+      eapply _elim_rel_flag_mon; eauto; discriminate.
     - econs. econs. eauto.
     - econs. econs. eauto.
     - econs. econs. eauto.
@@ -376,14 +379,14 @@ Section REL.
   Qed.
 
   Lemma elim_rel_bindC_spec:
-    elim_rel_bindC <7= gupaco6 _elim_rel (cpn6 _elim_rel).
+    elim_rel_bindC <8= gupaco7 _elim_rel (cpn7 _elim_rel).
   Proof.
-    i. eapply wrespect6_uclo; eauto with paco. eapply elim_rel_bindC_wrespectful.
+    i. eapply wrespect7_uclo; eauto with paco. eapply elim_rel_bindC_wrespectful.
   Qed.
 
 End REL.
 
-Hint Resolve cpn6_wcompat: paco.
+Hint Resolve cpn7_wcompat: paco.
 Hint Resolve _elim_rel_mon: paco.
 
 
@@ -596,18 +599,18 @@ Section CANCEL.
   Proof. grind. Qed.
 
   Lemma elim_rel_refl
-      sk0 scopes p itr
+      sk0 scopes ps pt itr
       (SKINCL: incl sk sk0)
       (SKWF: Sk.wf sk0)
     :
-    elim_rel ginv stb md _ _ eq p
+    elim_rel ginv stb md _ _ eq ps pt
       (inline_hp (prog (SModSemAux.to_hmod (SMod.modsem md sk0))) 
           (HModSem.sandbox scopes itr))
       (inline_hp (prog (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0))) 
           (HModSem.sandbox scopes (interp_smod (ginv sk0) (stb sk0) itr))).
   Proof. 
     unfold elim_rel.
-    ginit. revert p itr scopes. gcofix CIH. i.
+    ginit. revert ps pt itr scopes. gcofix CIH. i.
     assert (CASE:= case_itrH _ itr). des; subst.
     - rewrite/__ SModRed.interp_ret HModSB.transl_ret !HIRed.ret.
       gstep. econs. econs; eauto.
@@ -656,7 +659,7 @@ Section CANCEL.
       specialize (FIND sk0 fn f SKINCL SKWF STB). des.
       destruct (alist_find fn (List.map (map_snd (λ ksb : list string * fspecbody, (ksb.1, fsb_body ksb.2))) (SModSem.fnsems (SMod.modsem md sk0)))) eqn: FINDS; cycle 1.
       { exfalso. rewrite/__ alist_find_map_snd FIND in FINDS. clarify.  }
-      ired. destruct p0. rewrite/__ alist_find_map_snd FIND in FINDS. s in FINDS. inv FINDS.
+      ired. destruct p. rewrite/__ alist_find_map_snd FIND in FINDS. s in FINDS. inv FINDS.
       unfold HModSem.sandbox_body. s. rewrite HIRed.bind. 
       erewrite HoareCall_inline2; eauto. 
       rewrite bind_bind. guclo elim_rel_bindC_spec. econs.
@@ -671,7 +674,7 @@ Section CANCEL.
         i. gstep. econs. econs. ss.
       }
       i. guclo elim_rel_indC_spec.
-      destruct vt, p0, p0, p0. (* Should have "vs = t" in here, lost in bindC *)
+      destruct vt, p, p, p. (* Should have "vs = t" in here, lost in bindC *)
       econs 10; swap 1 3.
       { f_equal. }
       { refl. }
