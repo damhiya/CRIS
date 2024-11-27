@@ -26,27 +26,27 @@ Section REL.
       my_tid <- trigger Tid;; tau;;
       x <- trigger (Choose X);; tau;;
       arg <- trigger (Choose Any.t);; tau;;
-      trigger (Guarantee (P my_tid x varg arg));;; tau;; tau;;
+      trigger (Guarantee (P X my_tid x varg arg));;; tau;; tau;;
       my_tid' <- trigger Tid;; tau;;
       x' <- trigger (Take X);; tau;;
       varg' <- trigger (Take _);; tau;;
-      trigger (Assume (P my_tid' x' varg' arg));;; tau;;
+      trigger (Assume (P X my_tid' x' varg' arg));;; tau;;
       Ret ((my_tid, x, my_tid', x'), varg').
 
   Definition hmod_elim_tail X Q : (nat * X * nat * X) -> Any.t -> itree hmodE Any.t
     :=
     fun '(my_tid, x, my_tid', x') vret' =>
       ret <- trigger (Choose Any.t);; tau;;
-      trigger (Guarantee (Q my_tid' x' vret' ret));;; tau;; tau;; tau;;
+      trigger (Guarantee (Q X my_tid' x' vret' ret));;; tau;; tau;; tau;;
       vret <- trigger (Take Any.t);; tau;;
-      trigger (Assume (Q my_tid x vret ret));;; tau;;
+      trigger (Assume (Q X my_tid x vret ret));;; tau;;
       Ret vret.
       
-  Definition HoareSpawnE ginv' (fsp: fspec) (fn: gname) (arg: Any.t) : itree hmodE nat :=
+  Definition HoareSpawnE ginv' (fsp: fspec) (fn: gname) (varg: Any.t) : itree hmodE nat :=
     x <- trigger (Choose fsp.(meta));; tau;;
-    varg <- trigger (Choose Any.t);; tau;;
+    arg <- trigger (Choose Any.t);; tau;;
     tid <- trigger (Spawn fn arg);; tau;;
-    trigger (Guarantee (ginv' tid -∗ fsp.(precond) tid x arg varg));;; tau;;
+    trigger (Guarantee (ginv' tid -∗ fsp.(precond) tid x varg arg));;; tau;;
     Ret tid.
 
   Definition HoareYieldE ginv' (tid: nat) : itree hmodE unit :=
@@ -55,8 +55,290 @@ Section REL.
     my_tid <- trigger Tid;; tau;;
     trigger (Assume (ginv' my_tid)).
 
-  Variant elim_rel_def
-    (relc: forall X Y (RR: X -> Y -> Prop), bool -> bool -> itree hmodE X -> itree hmodE Y -> Prop)
+
+  Variant elim_rel_def {sk0 A}
+    (self: list (nat * nat * {X: Type & (X * X)%type}) -> itree hmodE A -> itree hmodE A -> Prop)
+    : list (nat * nat * {X: Type & (X * X)%type}) -> itree hmodE A -> itree hmodE A -> Prop
+  :=
+  | elim_rel_NB l itrS ktrT
+    :
+    elim_rel_def self l itrS (trigger (Choose False) >>= ktrT)
+
+  | elim_rel_base v1 v2
+    :
+    elim_rel_def self [] (Ret v1) (Ret v2)
+
+  | elim_rel_tau l itrS itrT
+      (ITR: self l itrS itrT)
+    :
+    elim_rel_def self l (tau;; itrS) (tau;; itrT)
+
+  | elim_rel_core {R} l scp (e: coreE R) ktrS ktrT
+      (KTR: forall (v: R), self l (ktrS v) (ktrT v))
+    :
+    elim_rel_def self l (trigger e >>= ktrS) ((a <- trigger e;; HModSem.sandbox scp (tau;; Ret a)) >>= ktrT)
+
+  | elim_rel_pg {R} l scp (e: pgE R) ktrS ktrT
+      (KTR: forall (v: R), self l (ktrS v) (ktrT v))
+    :
+    elim_rel_def self l (trigger e >>= ktrS) ((a <- trigger e;; HModSem.sandbox scp (tau;; Ret a)) >>= ktrT)
+
+  | elim_rel_asm P l scp ktrS ktrT
+      (KTR: self l (ktrS tt) (ktrT tt))
+    :
+    elim_rel_def self l (trigger (Assume P) >>= ktrS) ((a <- trigger (Assume P);; HModSem.sandbox scp (tau;; Ret a)) >>= ktrT)
+
+  | elim_rel_grt P l scp ktrS ktrT
+      (KTR: self l (ktrS tt) (ktrT tt))
+    :
+    elim_rel_def self l (trigger (Guarantee P) >>= ktrS) ((a <- trigger (Guarantee P);; HModSem.sandbox scp (tau;; Ret a)) >>= ktrT)
+  
+  | elim_rel_tid l scp ktrS ktrT
+      (KTR: forall (tid: nat), self l (ktrS tid) (ktrT tid))
+    :
+    elim_rel_def self l (trigger Tid >>= ktrS) ((a <- trigger Tid;; HModSem.sandbox scp (tau;; Ret a)) >>= ktrT)
+
+  | elim_rel_head X P l varg ktrS ktrT
+     (KTR: forall tid tid' m m' varg, 
+            self ((tid, tid', existT X (m, m'))::l) (ktrS varg) (ktrT (tid, m, tid', m', varg)))
+   :
+   elim_rel_def self l (ktrS varg) ( '(tid, m, tid', m', varg') <- @hmod_elim_head X P varg;; ktrT (tid, m, tid', m', varg')) 
+  
+  | elim_rel_tail X Q l tid m tid' m' vret ktrS ktrT
+      (KTR: forall vret, self l (ktrS vret) (ktrT vret))
+    :
+    elim_rel_def self ((tid, tid', existT X (m, m'))::l)
+        (ktrS vret) 
+        (vret' <- (@hmod_elim_tail X Q (tid, m, tid', m') vret);; (tau;; tau;; ktrT vret'))
+
+  | elim_rel_spawn l f fn args ktrS ktrT
+      (STB: stb sk0 fn = Some f)
+      (KTR: forall x, self l (ktrS x) (ktrT x))
+    :
+    elim_rel_def self l (trigger (Spawn fn args) >>= ktrS)
+                        (x <- HoareSpawnE (ginv sk0) f fn args;; (tau;; ktrT x))
+
+  | elim_rel_yield tid l ktrS ktrT
+      (KTR: forall x, self l (ktrS x) (ktrT x))
+    :
+    elim_rel_def self l (trigger (Yield tid) >>= ktrS)
+                        (x <- HoareYieldE (ginv sk0) tid;; (tau;; ktrT x))
+  .
+
+  Definition elim_rel {sk0 A} :=
+    paco3 (@elim_rel_def sk0 A) bot3.
+
+  Definition thread_local_rel {sk0} itrS itrT : Prop :=
+    @elim_rel sk0 Any.t [] itrS itrT.
+
+  Variant elim_rel_bindC {A}
+    (r: list (nat * nat * {X: Type & (X * X)%type}) -> itree hmodE A -> itree hmodE A -> Prop)
+    : list (nat * nat * {X: Type & (X * X)%type}) -> itree hmodE A -> itree hmodE A -> Prop
+    :=
+  | elim_rel_bindC_intro
+      itrS itrT
+      (REL: r [] itrS itrT)
+
+      l ktrS ktrT
+      (RELK: ∀vs vt, r l (ktrS vs) (ktrT vt))
+    :
+    elim_rel_bindC r l (itrS >>= ktrS) (itrT >>= ktrT)
+  .
+
+  Lemma elim_rel_bindC_mon {A}
+        r1 r2 
+        (LEr: r1 <3= r2)
+    :
+    @elim_rel_bindC A r1 <3= elim_rel_bindC r2
+  .
+  Proof.
+    ii. destruct PR; econs; eauto.
+  Qed.
+
+  Lemma elim_rel_bindC_wrespectful {sk0 A}:
+    wrespectful3 (@elim_rel_def sk0 A) elim_rel_bindC.
+  Proof.
+    econs; eauto using elim_rel_bindC_mon. i.
+    destruct PR. apply GF in REL.
+    move REL before GF. revert_until REL.
+    pattern itrS, itrT. inv REL.
+    - i. 
+
+    - eapply _elim_rel_mon; cycle 1.
+      { i. econs. eauto. }
+      eapply _elim_rel_flag_mon; eauto; discriminate.
+    - econs. econs. eauto.
+    - econs. econs. eauto.
+
+
+(* 
+  Variant elim_rel_def {sk0 A} 
+    (self: forall I, (I -> itree hmodE A) -> (I -> list (nat * nat * {X: Type & (X * X)%type}) -> itree hmodE A) -> Prop)
+    : forall I, (I -> itree hmodE A) -> (I -> list (nat * nat * {X: Type & (X * X)%type}) -> itree hmodE A) -> Prop
+  :=
+  | elim_rel_NB I ktrS ktrT
+    :
+    elim_rel_def self I ktrS (fun i l => trigger (Choose False) >>= (ktrT i l))
+  
+  | elim_rel_base I r 
+    :
+    elim_rel_def self I (fun i => Ret (r i)) (fun i _ => Ret (r i))
+    
+  | elim_rel_tau I ktrS ktrT
+      (KTR: self I ktrS ktrT)
+    :
+    elim_rel_def self _ (fun i => tau;; ktrS i) (fun i l => tau;; (ktrT i l))
+  
+  | elim_rel_core {I R} (e: I -> coreE R) ktrS ktrT
+      (KTR: self _ ktrS ktrT)
+    :
+    elim_rel_def self _ (fun i => a <- trigger (e i);; ktrS (i, a)) (fun i l => a <- trigger (e i);; tau;; ktrT (i, a) l)
+  
+  | elim_rel_pg {I R} (e: I -> pgE R) ktrS ktrT
+      (KTR: self _ ktrS ktrT)
+    :
+    elim_rel_def self I (fun i => a <- trigger (e i);; ktrS (i, a)) (fun i l => a <- trigger (e i);; tau;; ktrT (i, a) l)
+  
+  | elim_rel_asm I P ktrS ktrT
+      (KTR: self _ ktrS ktrT)
+    :
+    elim_rel_def self I (fun i => a <- trigger (Assume (P i));; ktrS (i, a)) (fun i l => a <- trigger (Assume (P i));; tau;; ktrT (i, a) l)
+  
+  | elim_rel_grt I P ktrS ktrT
+      (KTR: self _ ktrS ktrT)
+    :
+    elim_rel_def self I (fun i => a <- trigger (Guarantee (P i));; ktrS (i, a)) (fun i l => a <- trigger (Guarantee (P i));; tau;; ktrT (i, a) l)
+  
+  | elim_rel_tid I ktrS ktrT
+      (KTR: self _ ktrS ktrT)
+    :
+    elim_rel_def self I (fun i => a <- trigger Tid;; ktrS (i, a)) (fun i l => a <- trigger Tid;; tau;; ktrT (i, a) l)
+  
+  | elim_rel_spawn I fn args ktrS ktrT ktrT'
+      (* (SKINCL: incl sk sk0) *)
+      (* (SKWF: Sk.wf sk0) *)
+      (* (STB: stb sk0 fn = Some f) *)
+      (KTR: self _ ktrS ktrT)
+    :
+    elim_rel_def self I (fun i => a <- trigger (Spawn (fn i) (args i));; ktrS (i, a)) 
+    (fun i l => 
+      match (stb sk0 (fn i)) with
+      | None => a <- trigger (Choose False);; ktrT' (i, a) l
+      | Some f => a <- HoareSpawnE (ginv sk0) f (fn i) (args i);; tau;; ktrT (i, a) l
+      end)
+
+  | elim_rel_yield I tid ktrS ktrT
+      (* (SKINCL: incl sk sk0) *)
+      (* (SKWF: Sk.wf sk0) *)
+      (KTR: self _ ktrS ktrT)
+    :
+    elim_rel_def self I (fun i => a <- trigger (Yield (tid i));; ktrS (i, a)) (fun i l => a <- HoareYieldE (ginv sk0) (tid i);; tau;; ktrT (i, a) l)
+
+  | elim_rel_head X P ktrS ktrT
+     (KTR: self _ ktrS ktrT)
+   :
+   elim_rel_def self Any.t (fun varg => ktrS varg) (fun varg l => '(tid, m, tid', m', varg') <- @hmod_elim_head X P varg;; ktrT varg' ((tid, tid', existT X (m, m'))::l))
+  
+  | elim_rel_tail Q a ktrS ktrT
+      (KTR: self _ ktrS ktrT)
+    :
+    elim_rel_def self Any.t (fun vret => ktrS vret) 
+    (fun vret l => 
+      match l with
+      | [] => trigger (Choose False);;; Ret a
+      | (tid, tid', existT X (m, m'))::tl => vret' <- @hmod_elim_tail X Q (tid, m, tid', m') vret;; tau;; tau;; ktrT vret' tl
+      end)
+  . *)
+
+    (* Variant elim_rel_def {sk0 A}
+    (self: itree hmodE A -> (list (nat * nat * {X: Type & (X * X)%type}) -> itree hmodE A) -> Prop)
+    : itree hmodE A -> (list (nat * nat * {X: Type & (X * X)%type}) -> itree hmodE A) -> Prop
+  :=
+  | elim_rel_NB itrS ktrT
+    :
+    elim_rel_def self itrS (fun l => trigger (Choose False) >>= (ktrT l))
+  
+  | elim_rel_base v
+    :
+    elim_rel_def self (Ret v) (fun _ => Ret v)
+
+  | elim_rel_tau itrS ktrT
+      (KTR: self itrS ktrT)
+    :
+    elim_rel_def self (tau;; itrS) (fun l => tau;; (ktrT l))
+  
+  | elim_rel_core {R} (e: coreE R) ktrS ktrT
+      (KTR: forall (v: R), self (ktrS v) (ktrT v))
+    :
+    elim_rel_def self (trigger e >>= ktrS) (fun l => a <- trigger e;; tau;; ktrT a l)
+  
+  | elim_rel_pg {R} (e: pgE R) ktrS ktrT
+      (KTR: forall (v: R), self (ktrS v) (ktrT v))
+    :
+    elim_rel_def self (trigger e >>= ktrS) (fun l => a <- trigger e;; tau;; ktrT a l)
+
+  | elim_rel_asm P ktrS ktrT
+      (KTR: self (ktrS tt) (ktrT tt))
+    :
+    elim_rel_def self (trigger (Assume P) >>= ktrS) (fun l => a <- trigger (Assume P);; tau;; ktrT a l)
+
+  | elim_rel_grt P ktrS ktrT
+      (KTR: self (ktrS tt) (ktrT tt))
+    :
+    elim_rel_def self (trigger (Guarantee P) >>= ktrS) (fun l => a <- trigger (Guarantee P);; tau;; ktrT a l)
+  
+  | elim_rel_tid ktrS ktrT
+      (KTR: forall (tid: nat), self (ktrS tid) (ktrT tid))
+    :
+    elim_rel_def self (trigger Tid >>= ktrS) (fun l => a <- trigger Tid;; tau;; ktrT a l)
+
+  | elim_rel_spawn f fn args ktrS ktrT
+      (STB: stb sk0 fn = Some f)
+      (KTR: forall x, self (ktrS x) (ktrT x))
+    :
+    elim_rel_def self (trigger (Spawn fn args) >>= ktrS) 
+    (fun l => x <- HoareSpawnE (ginv sk0) f fn args;; tau;; ktrT x l)
+
+  | elim_rel_yield tid ktrS ktrT
+      (KTR: forall x, self (ktrS x) (ktrT x))
+    :
+    elim_rel_def self (trigger (Yield tid) >>= ktrS) 
+    (fun l => x <- HoareYieldE (ginv sk0) tid;; tau;; ktrT x l)
+
+  | elim_rel_head X P varg ktrS ktrT
+     (KTR: forall varg, self (ktrS varg) (fun l => ktrT varg l))
+   :
+   elim_rel_def self (ktrS varg) 
+   (fun l => '(tid, m, tid', m', varg') <- 
+      @hmod_elim_head X P varg;; ktrT varg' ((tid, tid', existT X (m, m'))::l))
+  
+  | elim_rel_tail Q vret ktrS ktrT ktrT0 X x
+      (KTR: forall vret, self (ktrS vret) (ktrT vret))
+    :
+    elim_rel_def self (ktrS vret) 
+    (fun l => 
+      match l with
+      | [] => vret' <- @hmod_elim_tail X Q x vret;; tau;; tau;; ktrT0 vret' l
+      | (tid, tid', existT X (m, m'))::tl => vret' <- @hmod_elim_tail X Q (tid, m, tid', m') vret;; tau;; tau;; ktrT vret' tl
+      end)
+  .
+
+  Definition elim_rel {sk0 A} :=
+    paco2 (@elim_rel_def sk0 A) bot2.
+
+  Definition thread_local_rel {sk0} itrS itrT : Prop :=
+    @elim_rel sk0 Any.t itrS 
+    (fun l => 
+      match l with 
+      | [] => itrT
+      | hd::tl => trigger (Choose False);;; Ret tt↑
+      end).   *)
+
+   
+  
+  
+  (* Variant elim_rel_def
+    (self: forall X Y (RR: X -> Y -> Prop), bool -> bool -> itree hmodE X -> itree hmodE Y -> Prop)
     {X Y}
     (RR: X -> Y -> Prop)
     (reli: bool -> bool -> itree hmodE X -> itree hmodE Y -> Prop)
@@ -65,63 +347,63 @@ Section REL.
   | elim_rel_base v0 v1 ps pt
     (RET: RR v0 v1)
     :
-    elim_rel_def relc RR reli ps pt (Ret v0) (Ret v1)
+    elim_rel_def self RR reli ps pt (Ret v0) (Ret v1)
 
   | elim_rel_tau_src ps pt itrS itrT
       (ITR: reli true pt itrS itrT)
     :
-    elim_rel_def relc RR reli ps pt (tau;; itrS) (itrT)
+    elim_rel_def self RR reli ps pt (tau;; itrS) (itrT)
 
   | elim_rel_tau_tgt ps pt itrS itrT
       (ITR: reli ps true itrS itrT)
     :
-    elim_rel_def relc RR reli ps pt (itrS) (tau;; itrT)
+    elim_rel_def self RR reli ps pt (itrS) (tau;; itrT)
 
   | elim_rel_asm P ps pt ktrS ktrT
       (KTR: reli true true (ktrS tt) (ktrT tt))
     :
-    elim_rel_def relc RR reli ps pt (trigger (Assume P) >>= ktrS) (trigger (Assume P) >>= ktrT)
+    elim_rel_def self RR reli ps pt (trigger (Assume P) >>= ktrS) (trigger (Assume P) >>= ktrT)
 
   | elim_rel_grt P ps pt ktrS ktrT
       (KTR: reli true true (ktrS tt) (ktrT tt))
     :
-    elim_rel_def relc RR reli ps pt (trigger (Guarantee P) >>= ktrS) (trigger (Guarantee P) >>= ktrT)
+    elim_rel_def self RR reli ps pt (trigger (Guarantee P) >>= ktrS) (trigger (Guarantee P) >>= ktrT)
 
   | elim_rel_pg {R} ps pt (e: pgE R) ktrS ktrT
       (KTR: forall (v: R), reli true true (ktrS v) (ktrT v))
     :
-    elim_rel_def relc RR reli ps pt (trigger e >>= ktrS) (trigger e >>= ktrT)
+    elim_rel_def self RR reli ps pt (trigger e >>= ktrS) (trigger e >>= ktrT)
   
   | elim_rel_core {R} ps pt (e: coreE R) ktrS ktrT
       (KTR: forall (v: R), reli true true (ktrS v) (ktrT v))
     :
-    elim_rel_def relc RR reli ps pt (trigger e >>= ktrS) (trigger e >>= ktrT)
+    elim_rel_def self RR reli ps pt (trigger e >>= ktrS) (trigger e >>= ktrT)
 
   | elim_rel_tid ps pt ktrS ktrT
       (KTR: forall (tid: nat), reli true true (ktrS tid) (ktrT tid))
     :
-    elim_rel_def relc RR reli ps pt (trigger Tid >>= ktrS) (trigger Tid >>= ktrT)
+    elim_rel_def self RR reli ps pt (trigger Tid >>= ktrS) (trigger Tid >>= ktrT)
 
   | elim_rel_head X P ps pt v src tgt ktrS ktrT
       (KTR: forall m, reli true true (ktrS v) (ktrT (m, v)))
       (EQS: src = ktrS v)
       (EQT: tgt = (@hmod_elim_head X P v) >>= ktrT)
     :
-    elim_rel_def relc RR reli ps pt src tgt
+    elim_rel_def self RR reli ps pt src tgt
                   
   | elim_rel_tail X Q m v ps pt src tgt ktrS ktrT
       (KTR: reli true true (ktrS v) (ktrT v))
       (EQS: src = ktrS v)
       (EQT: tgt = (@hmod_elim_tail X Q m v) >>= ktrT)
     :
-    elim_rel_def relc RR reli ps pt src tgt
+    elim_rel_def self RR reli ps pt src tgt
 
   | elim_rel_NB
       ps pt src tgt itrS ktrT
       (EQS: src = itrS)
       (EQT: tgt = trigger (Choose False) >>= ktrT)
     :
-    elim_rel_def relc RR reli ps pt src tgt
+    elim_rel_def self RR reli ps pt src tgt
 
    | elim_rel_spawn
       sk0 ps pt src tgt f fn args ktrS ktrT
@@ -132,7 +414,7 @@ Section REL.
       (EQS: src =  trigger (Spawn fn args) >>= ktrS)
       (EQT: tgt = HoareSpawnE (ginv sk0) f fn args >>= ktrT)
     :
-    elim_rel_def relc RR reli ps pt src tgt
+    elim_rel_def self RR reli ps pt src tgt
 
   | elim_rel_yield
       sk0 tid ps pt src tgt ktrS ktrT
@@ -142,26 +424,26 @@ Section REL.
       (EQS: src = trigger (Yield tid) >>= ktrS)
       (EQT: tgt = HoareYieldE (ginv sk0) tid >>= ktrT)
     :
-    elim_rel_def relc RR reli ps pt src tgt
+    elim_rel_def self RR reli ps pt src tgt
 
   | elim_rel_progress
       src tgt
-      (REL: relc X Y RR false false src tgt)
+      (REL: self X Y RR false false src tgt)
     :
-    elim_rel_def relc RR reli true true src tgt 
-  .
+    elim_rel_def self RR reli true true src tgt 
+  . *)
   
-  Inductive _elim_rel relc {X Y} RR ps pt src tgt: Prop :=
-  | _elim_rel_intro (SAT: @elim_rel_def relc X Y RR (_elim_rel relc RR) ps pt src tgt).
+  Inductive _elim_rel self {X Y} RR ps pt src tgt: Prop :=
+  | _elim_rel_intro (SAT: @elim_rel_def self X Y RR (_elim_rel self RR) ps pt src tgt).
 
   Definition elim_rel: forall X Y (RR: X -> Y -> Prop),  bool -> bool -> itree hmodE X -> itree hmodE Y -> Prop :=
      paco7 _elim_rel bot7.
 
-  Lemma elim_rel_def_mon relc relc' X Y RR P P'
-    (RELC: relc <7= relc')
+  Lemma elim_rel_def_mon self self' X Y RR P P'
+    (self: self <7= self')
     (RELI: P <4= P')
   :
-  @elim_rel_def relc X Y RR P <4= elim_rel_def relc' RR P'.
+  @elim_rel_def self X Y RR P <4= elim_rel_def self' RR P'.
   Proof.
     i. destruct PR; eauto using @elim_rel_def.
   Qed.
@@ -674,7 +956,17 @@ Section CANCEL.
         i. gstep. econs. econs. ss.
       }
       i. guclo elim_rel_indC_spec.
-      destruct vt, p, p, p. (* Should have "vs = t" in here, lost in bindC *)
+      destruct vt, p, p, p.
+      
+      set (hmod_elim_tail _ _ _ _ >>= _).
+      eassert (i0 = hmod_elim_tail _ _ _ _ >>= (fun _ => tau;; tau;; _)).
+      {
+        unfold i0. f_equal. extensionalities.
+        ired. rewrite HModSB.transl_tau HIRed.tau.
+        f_equal.
+      } 
+      rewrite H. 
+      (* Should have "vs = t" in here, lost in bindC *)
       econs 10; swap 1 3.
       { f_equal. }
       { refl. }
