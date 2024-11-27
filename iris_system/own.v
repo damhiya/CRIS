@@ -1,6 +1,7 @@
 From iris.algebra Require Import proofmode_classes functions gmap.
 From iris.proofmode Require Export proofmode.
 From CRIS.base_logic Require Export base_logic.
+Require Import index.
 Require Export iprop.
 Import uPred.
 
