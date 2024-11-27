@@ -1,13 +1,10 @@
-Require Import Coqlib sflib ITreelib.
+Require Import Coqlib ITreelib.
 Require Import AList SubPerm.
-Require Import PCM IPM.
+Require Import IPM.
 Require Import Mod HMod.
 
-From ExtLib Require Import
-     Data.Map.FMapAList.
-
-Require Import ModSim HPSimFacts ISimCore.
-
+Require Import ModSim HPSimFacts.
+Require Export ISimCore.
 
 Section HSSIM_ADEQUACY.
 

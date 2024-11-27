@@ -1,8 +1,8 @@
-Require Export Coqlib sflib Any.
+Require Export Coqlib Any.
 Require Import Behavior.
-Require Import Mod Skeleton ModSimFacts.
-Require Import PCM IPM HMod ISimCore ISimFacts.
-Require Import ModSim.
+Require Import ModSimFacts.
+Require Import IPM HMod ISimFacts.
+Require Import ModSim Skeleton.
 
 Definition refines_modsem (ms_src ms_tgt: ModSem.t) : Prop :=
   Beh.of_itree (ModSem.compile ms_tgt) <1=

@@ -31,16 +31,15 @@ Section ADD.
 End ADD.
 
 Module ModSem.
-  Section MODSEM.
 
-    Record t : Type := mk {
-      initial_st : Any.t;
-      fnsems : alist gname (Any.t -> itree modE Any.t);
-    }.
+  Record t : Type := mk {
+    initial_st : Any.t;
+    fnsems : alist gname (Any.t -> itree modE Any.t);
+  }.
 
-    Record wf (ms : t) : Prop := mk_wf {
-      wf_fnsems : List.NoDup (List.map fst ms.(fnsems));
-    }.
+  Record wf (ms : t) : Prop := mk_wf {
+    wf_fnsems : List.NoDup (List.map fst ms.(fnsems));
+  }.
 
   Definition empty: t := {|
     initial_st := tt↑;
@@ -48,6 +47,7 @@ Module ModSem.
   |}.
 
   Section COMPILE.
+
     Variable ms: t.
 
     Definition prog: callE ~> itree modE :=
@@ -59,5 +59,4 @@ Module ModSem.
       snd <$> interp_modE prog (prog (Call "CCR_init" ()↑)) (initial_st ms).
 
   End COMPILE.
-End MODSEM.
 End ModSem.

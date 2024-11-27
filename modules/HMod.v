@@ -1,14 +1,12 @@
-From CRIS.base_logic Require Import base_logic.
-
 Require Import Coqlib AList ITreelib.
 Require Import Any.
 Require Import Events.
 Require Import IRed.
 Require Import Behavior.
 Require Import IPM.
-Require Import Skeleton Mod.
+Require Import Skeleton.
 Require Import PropExtensionality.
-Require Export HMod2Mod.
+Require Export Mod HMod2Mod.
 
 Set Implicit Arguments.
 
