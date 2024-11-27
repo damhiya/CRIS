@@ -3,8 +3,8 @@
 requirement that every resource algebras contained in it should be discrete
 since CRIS is a framework with no step-indexing. Refer to explanation of
 resource management of iris for further information. *)
-From iris.algebra Require Import cmra updates functions gmap.
-From CRIS.base_logic Require Import base_logic.
+From iris.algebra Require Import cmra updates functions gmap_view.
+From CRIS.base_logic Require Export base_logic.
 
 (** * Discrete unital resource algebras (internal use only) *)
 Record DRA := DRA_mk {
@@ -24,7 +24,8 @@ Canonical Structure gnameO := leibnizO gname.
 
 Definition gid (Σ : GRA) := fin (GRA_len Σ).
 
-Definition GRAUR (Σ : GRA) : ucmra := discrete_funUR (λ i, gmapUR gname (GRA_lookup Σ i)).
+Definition GRAUR (Σ : GRA) : ucmra :=
+  discrete_funUR (λ i, gmapUR gname (gmap_viewUR gname (GRA_lookup Σ i))).
 Global Coercion GRAUR : GRA >-> ucmra.
 
 Global Instance GRA_discrete {Σ : GRA} : CmraDiscrete Σ.
