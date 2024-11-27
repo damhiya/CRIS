@@ -40,6 +40,20 @@ Section upred.
           apply bi.True_intro.
     Qed.
   End gmap_cmra.
+
+  Section csum_cmra.
+  Context {A B : cmra}.
+  Implicit Types a : A.
+  Implicit Types b : B.
+
+  Lemma csum_validI (x : csum A B) :
+    ✓ x ⊣⊢ match x with
+                      | Cinl a => ✓ a
+                      | Cinr b => ✓ b
+                      | CsumBot => False
+                      end.
+  Proof. uPred.unseal. by destruct x. Qed.
+End csum_cmra.
 End upred.
 
 

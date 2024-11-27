@@ -1,6 +1,7 @@
 From iris.algebra Require Import proofmode_classes functions gmap.
 From iris.proofmode Require Export proofmode.
 From CRIS.base_logic Require Export base_logic.
+From CRIS.lib Require Import allocs.
 Require Import index.
 Require Export iprop.
 Import uPred.
@@ -26,16 +27,28 @@ Global Hint Immediate uPredI_affine : core. *)
 
 (* TODO : 1) refactor GRA.t
           2) move iProp and own to a separate file *)
-Local Definition iRes_singleton {A Σ} {i : inG A Σ} (γ : gname) (a : A) : Σ :=
-  discrete_fun_singleton (inG_id i) {[ γ := (cmra_transport (f_equal _  inG_prf) a) ]}.
-Global Instance: Params (@iRes_singleton) 4 := {}.
+Local Definition iRes_singleton {A Σ} {i : inG A Σ} {υ : mod_index} (γ : gname) (a : A) : Σ :=
+  discrete_fun_singleton (inG_id i)
+    {[ υ.(mod_index_elem) := allocs_frag γ (cmra_transport (f_equal _  inG_prf) a) ]}.
+Local Definition iRes_auth A {Σ} {i : inG A Σ} {υ : mod_index} (γ : gname) : Σ :=
+  discrete_fun_singleton (inG_id i)
+    {[ υ.(mod_index_elem) := allocs_auth (GRA_lookup Σ (inG_id i)) γ ]}.
+Global Instance: Params (@iRes_singleton) 6 := {}.
 
 (** * Definitions of resource ownership with ghost locations. *)
-Local Definition own_def `{!inG A Σ} (γ : gname) (a : A) : iProp := uPred_ownM (iRes_singleton γ a).
+Local Definition own_def `{!inG A Σ} {υ : mod_index} (γ : gname) (a : A) : iProp :=
+  uPred_ownM (iRes_singleton γ a).
 Local Definition own_aux : seal (@own_def). Proof. by eexists. Qed.
 Definition own := own_aux.(unseal).
 Local Definition own_eq : @own = @own_def := own_aux.(seal_eq).
-Global Arguments own {_ _ _} γ a.
+Global Arguments own {_ _ _ _} γ a.
+
+Local Definition own_gen_def A `{i : !inG A Σ} {υ : mod_index} : iProp :=
+  ∃ γ, uPred_ownM (iRes_auth A γ).
+Local Definition own_gen_aux : seal (@own_gen_def). Proof. by eexists. Qed.
+Definition own_gen := own_gen_aux.(unseal).
+Local Definition own_gen_eq : @own_gen = @own_gen_def := own_gen_aux.(seal_eq).
+Global Arguments own_gen _ {_ _ _}.
 
 (** * Definitions of resource ownership - for metatheoretical results only *)
 Local Definition Own_def {Σ : GRA} (a : Σ) : iProp := uPred_ownM a.
@@ -45,39 +58,43 @@ Local Definition Own_eq : @Own = @Own_def := Own_aux.(seal_eq).
 Global Arguments Own {Σ} a.
 
 Section properties.
-  Context `{i : !inG A Σ}.
+  Context `{i : !inG A Σ} {υ : mod_index}.
   Implicit Types a : A.
 
-  Local Instance iRes_singleton_ne γ : NonExpansive (@iRes_singleton A Σ _ γ).
-  Proof. by intros ????; apply discrete_fun_singleton_ne, singleton_ne, cmra_transport_ne. Qed.
+  Local Instance iRes_singleton_ne γ : NonExpansive (@iRes_singleton A Σ _ υ γ).
+  Proof.
+    by intros ????;
+      apply discrete_fun_singleton_ne, singleton_ne, allocs_frag_ne, cmra_transport_ne.
+  Qed.
   Local Instance iRes_singleton_proper γ :
-    Proper ((≡) ==> (≡)) (@iRes_singleton A Σ _ γ) := ne_proper _.
+    Proper ((≡) ==> (≡)) (@iRes_singleton A Σ _ υ γ) := ne_proper _.
   Local Lemma iRes_singleton_op γ a1 a2 :
     iRes_singleton γ (a1 ⋅ a2) ≡ iRes_singleton γ a1 ⋅ iRes_singleton γ a2.
   Proof.
     rewrite /iRes_singleton discrete_fun_singleton_op singleton_op cmra_transport_op.
-    f_equiv. apply: singletonM_proper. done.
+    f_equiv. apply: singletonM_proper; rewrite allocs_frag_op; done.
   Qed.
   Local Lemma iRes_singleton_validI γ a : ✓ (iRes_singleton γ a) ⊢@{@iProp Σ} ✓ a.
   Proof.
-    rewrite /iRes_singleton.
+    rewrite /iRes_singleton /allocs_frag.
     rewrite discrete_fun_validI (forall_elim (inG_id i)) discrete_fun_lookup_singleton.
-    rewrite singleton_validI.
+    rewrite singleton_validI discrete_fun_validI (forall_elim γ) discrete_fun_lookup_singleton.
+    rewrite option_validI csum_validI.
     trans (✓ cmra_transport (f_equal _ inG_prf) a : @iProp Σ)%I; last by destruct inG_prf.
     done.
   Qed.
 
   (** ** Properties of [own] *)
-  Global Instance own_ne γ : NonExpansive (@own A Σ _ γ).
+  Global Instance own_ne γ : NonExpansive (@own A Σ _ υ γ).
   Proof. rewrite !own_eq; solve_proper. Qed.
-  Global Instance own_proper γ : Proper ((≡) ==> (⊣⊢)) (@own A Σ _ γ) := ne_proper _.
+  Global Instance own_proper γ : Proper ((≡) ==> (⊣⊢)) (@own A Σ _ υ γ) := ne_proper _.
 
   Lemma own_op γ a1 a2 : own γ (a1 ⋅ a2) ⊣⊢ own γ a1 ∗ own γ a2.
   Proof. by rewrite !own_eq -ownM_op -iRes_singleton_op. Qed.
   Lemma own_mono γ a1 a2 : a2 ≼ a1 → own γ a1 ⊢ own γ a2.
   Proof. move=> [c ->]. by rewrite own_op sep_elim_l. Qed.
 
-  Global Instance own_mono' γ : Proper (flip (≼) ==> (⊢)) (@own A Σ _ γ).
+  Global Instance own_mono' γ : Proper (flip (≼) ==> (⊢)) (@own A Σ _ υ γ).
   Proof. intros a1 a2. apply own_mono. Qed.
 
   Lemma own_valid γ a : own γ a ⊢ ✓ a.
@@ -96,6 +113,12 @@ Section properties.
   Global Instance own_core_persistent γ a : CoreId a → Persistent (own γ a).
   Proof. rewrite !own_eq /own_def; apply _. Qed.
 
+  Lemma own_alloc a : ✓ a → own_gen A ⊢ |==> own_gen A ∗ ∃ γ, own γ a.
+  Proof.
+    intros Ha.
+    rewrite -(bupd_mono (∃ m, ⌜∃ γ, m = iRes_singleton γ a⌝ ∧ uPred_ownM m ∗ own_gen A)%I).
+    { rewrite own_gen_eq. apply bupd_ownM_update. }  
+    ; iIntros "GEN". eapply (own_alloc_dep (λ _, a)); eauto. Qed.
 (* TODO : Stuck here *)
 (** ** Allocation *)
 (* Lemma own_alloc_strong_dep (f : gname → A) (P : gname → Prop) :
@@ -139,8 +162,6 @@ Proof. intros HP Ha. eapply (own_alloc_strong_dep (λ _, a)); eauto. Qed.
 Lemma own_alloc_cofinite a (G : gset gname) :
   ✓ a → ⊢ |==> ∃ γ, ⌜γ ∉ G⌝ ∗ own γ a.
 Proof. intros Ha. eapply (own_alloc_cofinite_dep (λ _, a)); eauto. Qed.
-Lemma own_alloc a : ✓ a → ⊢ |==> ∃ γ, own γ a.
-Proof. intros Ha. eapply (own_alloc_dep (λ _, a)); eauto. Qed.
 
 (** ** Frame preserving updates *)
 Lemma own_updateP P γ a : a ~~>: P → own γ a ⊢ |==> ∃ a', ⌜P a'⌝ ∗ own γ a'.
