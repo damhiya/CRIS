@@ -131,6 +131,14 @@ Section REL.
   Definition thread_local_rel {sk0} itrS itrT : Prop :=
     @elim_rel sk0 Any.t [] itrS itrT.
 
+  Lemma elim_rel_def_mon {sk0 A} r1 r2
+    (REL: r1 <3= r2)
+  :
+  @elim_rel_def sk0 A r1 <3= @elim_rel_def sk0 A r2.
+  Proof.
+    i. destruct PR; eauto using @elim_rel_def.
+  Qed.
+
   Variant elim_rel_bindC {A}
     (r: list (nat * nat * {X: Type & (X * X)%type}) -> itree hmodE A -> itree hmodE A -> Prop)
     : list (nat * nat * {X: Type & (X * X)%type}) -> itree hmodE A -> itree hmodE A -> Prop
@@ -158,17 +166,29 @@ Section REL.
   Lemma elim_rel_bindC_wrespectful {sk0 A}:
     wrespectful3 (@elim_rel_def sk0 A) elim_rel_bindC.
   Proof.
-    econs; eauto using elim_rel_bindC_mon. i.
-    destruct PR. apply GF in REL.
-    move REL before GF. revert_until REL.
-    pattern itrS, itrT. inv REL.
-    - i. 
 
-    - eapply _elim_rel_mon; cycle 1.
+
+
+
+
+
+
+
+
+
+
+
+
+    (* econs; eauto using elim_rel_bindC_mon. i.
+    destruct PR. apply GF in REL.
+    revert_until REL.
+    pattern itrS, itrT. inv REL.
+    - grind. econs.
+    - grind. eapply elim_rel_def_mon.
       { i. econs. eauto. }
-      eapply _elim_rel_flag_mon; eauto; discriminate.
-    - econs. econs. eauto.
-    - econs. econs. eauto.
+      eapply GF; eauto.
+    - grind. econs. econs. *)
+
 
 
 (* 
