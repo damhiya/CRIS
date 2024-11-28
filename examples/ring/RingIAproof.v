@@ -1,5 +1,8 @@
 (* Require Import Coqlib ITreelib sflib.
-Require Import RingHeader CellHeader RingASpec CellASpec RingA CtrlI CellA CellI CtrlIAproof CellIAproof.
+Require Import RingHeader CellHeader 
+  RingASpec CellASpec 
+  RingA CtrlI CellA CellI 
+  CtrlIAproof CellIAproof.
 Require Import Skeleton.
 Require Import PCM IPM.
 Require Import Events Behavior.
@@ -25,8 +28,8 @@ Local Open Scope nat_scope.
 
 Module RingIA.
 Section PROOF.
-  Context `{Σ : GRA.t}.
-  Context `{_M : CellRA.t (Σ:=Σ)}.
+  Context `{!Inv.t Σ Γ α β τ, !CellAS.G Γ}.
+  Notation iProp := (iProp Σ).
 
   Definition CellIG start len :=
     HMod.addL (List.map CellI.t (seq start len)).

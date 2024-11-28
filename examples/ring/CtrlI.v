@@ -1,18 +1,16 @@
-(* Require Import Coqlib ITreelib sflib.
+Require Import Coqlib ITreelib sflib.
 Require Import ImpPrelude.
 Require Import Events.
 Require Import Behavior.
 Require Import HMod PMod.
 Require Import Skeleton.
-Require Import RingHeader.
-Require Import CellHeader.
-Require Import PCM ITactics.
-Require Import STB IPM.
+Require Import PCM.
+Require Import STB IPM ITactics.
+Require Import RingHeader CellHeader.
 
 Set Implicit Arguments.
 
-Module CtrlI.
-Section I.
+Module CtrlI. Section CtrlI.
   Local Open Scope nat_scope.
 
   Context `{Σ : GRA.t}.
@@ -24,31 +22,32 @@ Section I.
   Definition v_tl := "Ring" ↯ "tl".
 
   Definition init : unit -> itree pmodE unit :=
-    fun _ =>
+    λ _,
       cput v_hd 0;;;
       cput v_tl 0
   .
   
   Definition get_size : unit -> itree pmodE nat :=
-    fun _ =>
+    λ _,
       `hd : nat <- cgetU v_hd;;
       `tl : nat <- cgetU v_tl;;
-      Ret (hd - tl).
+      Ret (hd - tl)
+  .
 
   Definition enqueue : Z -> itree pmodE unit :=
-    fun x =>
+    λ x,
       `hd : nat <- cgetU v_hd;;
       `tl : nat <- cgetU v_tl;;
       if (hd - tl <? max_size)
       then
-        `_:() <- ccallU (CellName.set (hd mod max_size)) x;;
+        `u: () <- ccallU (CellName.set (hd mod max_size)) x;;
         cput v_hd (hd+1)
       else
         trigger (@IO _ void "error" "exceeds the maximum size");;; Ret tt
   .
 
   Definition dequeue : unit -> itree pmodE Z :=
-    fun _ =>
+    λ _,
       `hd : nat <- cgetU v_hd;;
       `tl : nat <- cgetU v_tl;;
       if (0 <? hd - tl)
@@ -56,7 +55,7 @@ Section I.
         x <- ccallU (CellName.get (tl mod max_size)) tt;;
         cput v_tl (tl+1);;;
         Ret x
-      else      
+      else
         trigger (@IO _ void "error" "dequeue the empty queue");;; Ret 0%Z
   .
 
@@ -76,13 +75,11 @@ Section I.
   Next Obligation. prove_nodup. Qed.
 
   Definition Mod : PMod.t := {|
-    PMod.modsem := fun _ => Sem;
+    PMod.modsem := λ _, Sem;
     PMod.sk := RingSK.t;
   |}
   .
 
-  Definition t := Seal.sealing "ccr" (PMod.to_hmod Mod).
+  Definition t := Seal.sealing "CtrlI" (PMod.to_hmod Mod).
 
-End I.
-
-End CtrlI. *)
+End CtrlI. End CtrlI.

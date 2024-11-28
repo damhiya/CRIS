@@ -1,4 +1,5 @@
-(* Require Import Coqlib ITreelib sflib.
+(*
+Require Import Coqlib ITreelib sflib.
 Require Import ImpPrelude.
 Require Import Skeleton.
 Require Import IPM.
@@ -15,9 +16,11 @@ From ExtLib Require Import
      Structures.Maps
      Data.Map.FMapAList.
 Require Import STB.
+Require Import IPM STB sProp sWorld.
 
 Require Import ISim ITactics SMod HMod PMod Events.
 Require Import Mod ModSim ModSimFacts.
+Require Import sProp sWorld.
 Require Import CellHeader CellASpec CellA CellI.
 
 Set Implicit Arguments.
@@ -26,37 +29,34 @@ Local Open Scope nat_scope.
 
 Module CellIA.
 Section SIMMODSEM.
-  Context `{Σ : GRA.t}.
-  Context `{_M : CellRA.t (Σ:=Σ)}.
+  Context `{!Inv.t Σ Γ α β τ, !CellAS.G Γ}.
+  Notation iProp := (iProp Σ).
 
   Variable idx : nat.
 
   Variable GI : Sk.t -> invspec.
   Variable StbG : Sk.t -> gname -> option fspec.
-  (* Hypothesis CellInStb : forall sk, stb_incl (CellAS.Stb idx) (StbG sk). *)
 
   Import CellAS.
 
-  Lemma pending_unique:
-    pending idx -∗ pending idx -∗ False%I.
+  Lemma pending_unique : pending idx -∗ pending idx -∗ False.
   Proof.
-    unfold pending. unseal "ccr". unfold pending_r.
-    iIntros "H0 H1". iCombine "H0 H1" as "H". iOwnWf "H" as WF. exfalso.
-    rr in WF. ur in WF. unseal "ra". des. ur in WF. specialize (WF idx).
-    des_ifs. apply Excl.wf in WF. ss.
+    rewrite /pending /pending_r; unseal "CellAS".
+    iIntros "P P'"; iCombine "P P'" as "P" gives %FALSE; rewrite -pair_op pair_valid in FALSE; des; ss.
+    rr in FALSE; specialize (FALSE idx); des_ifs.
   Qed.
 
   Lemma cell_unique v v':
-    cell idx v -∗ cell idx v' -∗ False%I.
+    cell idx v -∗ cell idx v' -∗ False.
   Proof.
-    unfold cell, auth. unseal "ccr". unfold cell_r, cellraw_r.
-    iIntros "H0 H1". iCombine "H0 H1" as "H". iOwnWf "H" as WF. exfalso.
-    rr in WF. ur in WF. unseal "ra". des. ur in WF0.
-    ur in WF0. specialize (WF0 idx). ur in WF0. des_ifs.
+    rewrite /cell /auth /cell_r /cellraw_r; unseal "CellAS".
+    iIntros "P P'"; iCombine "P P'" as "P" gives %FALSE; rewrite -pair_op pair_valid in FALSE; des; ss.
+    rr in FALSE0; specialize ()
+    .
   Qed.
 
   Lemma cell_auth_get v v':
-    cell idx v' -∗ auth idx v -∗ ⌜v = v'⌝%I.
+    cell idx v' -∗ auth idx v -∗ ⌜v = v'⌝.
   Proof.
     unfold cell, auth. unseal "ccr". unfold cell_r, auth_r, cellraw_r.
     iIntros "H0 H1". iCombine "H0 H1" as "H".

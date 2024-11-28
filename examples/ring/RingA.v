@@ -1,38 +1,38 @@
-(* Require Import Coqlib ITreelib sflib.
+Require Import Coqlib ITreelib sflib.
 Require Import ImpPrelude.
 Require Import Events.
 Require Import Behavior.
 Require Import SMod HMod.
 Require Import Skeleton.
-Require Import PCM.
-Require Import STB IPM ITactics.
+Require Import PCM STB sProp sWorld.
+Require Import IPM ITactics.
 Require Import RingHeader RingASpec CellASpec.
+From stdpp Require Import coPset gmap namespaces.
+From iris.algebra Require Import auth excl functions.
 
 Set Implicit Arguments.
 
-Module RingA.
-Section RING_A.
-  Context `{Σ : GRA.t}.
-  Context `{_R : RingRA.t (Σ:=Σ)}.  
-  Context `{_C : CellRA.t (Σ:=Σ)}.  
+Module RingA. Section RingA.
+  Context `{!Inv.t Σ Γ α β τ, !CellAS.G Γ}.
+  Notation iProp := (iProp Σ).
 
   Variable max_size : nat.
 
   Definition scopes := ["Ring"].
   Definition v_que := "Ring" ↯ "que".
   
-  Definition init : unit -> itree smodE unit :=
-    fun _ =>
+  Definition init : unit -> itree hmodE unit :=
+    λ _,
       cput v_que ([]:list Z)
   .
 
-  Definition get_size : unit -> itree smodE nat :=
-    fun _ =>
+  Definition get_size : unit -> itree hmodE nat :=
+    λ _,
       `que : list Z <- cgetU v_que;;
       Ret (List.length que)
   .
 
-  Definition enqueue : Z -> itree smodE unit :=
+  Definition enqueue : Z -> itree hmodE unit :=
     fun x =>
       `que : list Z <- cgetU v_que;;
       if (List.length que <? max_size)%nat
@@ -40,7 +40,7 @@ Section RING_A.
       else trigger (@IO _ void "error" "exceeds the maximum size");;; Ret tt
   .
 
-  Definition dequeue : unit -> itree smodE Z :=
+  Definition dequeue : unit -> itree hmodE Z :=
     fun _ =>
       `que : list Z <- cgetU v_que;;
       match que with
@@ -75,7 +75,6 @@ Section RING_A.
 
   Variable GI : Sk.t -> invspec.
   Variable GlobalStb : Sk.t -> gname -> option fspec.
-  Definition t := Seal.sealing "ccr" (SMod.to_hmod GI GlobalStb Mod).
+  Definition t := Seal.sealing "RingA" (SMod.to_hmod GI GlobalStb Mod).
 
-End RING_A.
-End RingA. *)
+End RingA. End RingA.

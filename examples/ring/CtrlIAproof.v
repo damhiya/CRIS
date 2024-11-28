@@ -24,7 +24,7 @@ Set Implicit Arguments.
 
 Local Open Scope nat_scope.
 
-Module CtrlIA.
+Module CtrlIA. 
 Section SIMMODSEM.
   Context `{Σ : GRA.t}.
   Context `{_M : CellRA.t (Σ:=Σ)}.
