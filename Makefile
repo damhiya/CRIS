@@ -14,7 +14,7 @@ graph:
 # 	$(MAKE) -f Makefile.coq quick
 
 proof-quick: Makefile.coq $(COQTHEORIES)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vio,$(COQTHEORIES))
+	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(COQTHEORIES))
 
 proof: Makefile.coq $(COQTHEORIES)
 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(COQTHEORIES))
@@ -40,7 +40,7 @@ Makefile.coq: Makefile $(COQTHEORIES)
 clean: Makefile.coq
 	$(MAKE) -f Makefile.coq clean || true
 	@# Make sure not to enter the `_opam` folder.
-	find [a-z]*/ \( -name "*.d" -o -name "*.vo" -o -name "*.vo[sk]" -o -name "*.aux" -o -name "*.cache" -o -name "*.glob" -o -name "*.vio" \) -print -delete || true
+	find [a-z]*/ \( -name "*.d" -o -name "*.vo" -o -name "*.vo[sk]" -o -name "*.aux" -o -name "*.cache" -o -name "*.glob" -o -name "*.vos" \) -print -delete || true
 	rm -f _CoqProject Makefile.coq Makefile.coq.conf #Makefile.coq-rsync Makefile.coq-rsync.conf
 .PHONY: clean
 
