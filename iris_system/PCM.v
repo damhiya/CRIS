@@ -32,13 +32,13 @@ Ltac unseal x :=
 
 Module GRA.
   Class t : Type := GRA__INTERNAL {
-    gra_map : nat → ucmra;
+    gra_map : nat → cmra;
     gra_discrete : ∀ i, CmraDiscrete (gra_map i);
   }.
   Coercion gra_map : t >-> Funclass.
   Local Existing Instance gra_discrete.
 
-  Class inG (RA : ucmra) (Σ : t) := InG {
+  Class inG (RA : cmra) (Σ : t) := InG {
     inG_id : nat;
     inG_prf : RA = Σ inG_id;
   }.
@@ -47,8 +47,7 @@ Module GRA.
     {| gra_map := λ n, (UList.nth n RAs (optionUR Empty_setR)) |}.
   Next Obligation. induction RAs; destruct i; apply _. Qed.
 
-  Definition to_URA (Σ : t) : ucmra := discrete_funUR Σ.
-
+  Definition to_URA (Σ : t) : ucmra := discrete_funUR (λ idx, optionUR (Σ idx)).
   Coercion to_URA : t >-> ucmra.
 
   Global Instance GRA_discrete `{Σ : t} : CmraDiscrete Σ.
@@ -57,79 +56,88 @@ Module GRA.
   Global Instance inG_cmra_discrete `{!inG A Σ} : CmraDiscrete A.
   Proof. erewrite inG_prf. apply _. Qed.
 
+  Global Instance inG_cmra_cmraTotal `{IN : !inG A Σ, !CmraTotal A} :
+    CmraTotal (Σ (IN.(inG_id))).
+  Proof.
+    by intros x; destruct (IN.(inG_prf)).
+  Qed.
+
   (* a : cmra_car =ty= RAs inG_id =ty= RAs n *)
   Definition embed `{!inG A Σ} (a : A) : Σ :=
-    discrete_fun_singleton inG_id (cmra_transport (f_equal _ inG_prf) a).
+    discrete_fun_singleton inG_id (Some (cmra_transport inG_prf a)).
   Local Instance : Params (@embed) 3 := {}.
 
-Section lemmas.
-  Context `{!inG A Σ}.
-  Implicit Types a : A.
+  Section lemmas.
+    Context `{!inG A Σ}.
+    Implicit Types a : A.
 
-  Lemma embed_wf
-        a
-        (WF : ✓ embed a)
-    :
-      <<WF : ✓ a>>
-  .
-  Proof. by rewrite /embed discrete_fun_singleton_valid cmra_transport_valid in WF. Qed.
-
-  Lemma wf_embed
-        a
-        (WF : ✓ a)
-    :
-      <<WF : ✓ embed a >>
-  .
-  Proof. by rewrite /NW /embed discrete_fun_singleton_valid cmra_transport_valid. Qed.
-
-  Global Instance embed_ne : NonExpansive (@embed A Σ _).
-  Proof. by intros ????; apply discrete_fun_singleton_ne, cmra_transport_ne. Qed.
-  Global Instance embed_proper : Proper ((≡) ==> (≡)) (@embed A Σ _) := ne_proper _.
-
-  Lemma embed_add
-        a0 a1
-    :
-      embed a0 ⋅ embed a1 ≡ embed (a0 ⋅ a1)
+    Lemma embed_wf
+          a
+          (WF : ✓ embed a)
+      :
+        <<WF : ✓ a>>
     .
-  Proof. by rewrite /embed discrete_fun_singleton_op cmra_transport_op. Qed.
+    Proof.
+      by rewrite /embed discrete_fun_singleton_valid Some_valid cmra_transport_valid in WF.
+    Qed.
 
-  Lemma embed_updatable_set
-        a P
-        (UPD : a ~~>: P)
-    :
-      <<UPD : embed a ~~>: λ b, ∃ a', b = embed a' ∧ P a' >>
-  .
-  Proof.
-    eapply discrete_fun_singleton_updateP.
-    { eapply cmra_transport_updateP', UPD. }
-    ii. ss. des. subst. eauto.
-  Qed.
+    Lemma wf_embed
+          a
+          (WF : ✓ a)
+      :
+        <<WF : ✓ embed a >>
+    .
+    Proof. by rewrite /NW /embed discrete_fun_singleton_valid Some_valid cmra_transport_valid. Qed.
 
-  Lemma embed_updatable
-        a0 a1
-        (UPD : a0 ~~> a1)
-    :
-      <<UPD : embed a0 ~~> embed a1 >>
-  .
-  Proof.
-    eapply cmra_update_updateP, cmra_updateP_weaken.
-    - apply embed_updatable_set, cmra_update_updateP, UPD.
-    - ii. ss. des. subst. done.
-  Qed.
+    Global Instance embed_ne : NonExpansive (@embed A Σ _).
+    Proof. by intros ????; apply discrete_fun_singleton_ne, Some_ne, cmra_transport_ne. Qed.
+    Global Instance embed_proper : Proper ((≡) ==> (≡)) (@embed A Σ _) := ne_proper _.
 
-  Lemma embed_core a : embed (core a) ≡ core (embed a).
-  Proof. by rewrite /embed discrete_fun_singleton_core cmra_transport_core. Qed.
+    Lemma embed_add
+          a0 a1
+      :
+        embed a0 ⋅ embed a1 ≡ embed (a0 ⋅ a1)
+      .
+    Proof. by rewrite /embed discrete_fun_singleton_op cmra_transport_op. Qed.
 
-  (* Note : NOT a general lemma for [cmra_transport]. Tailed for the proof pattern
-    of [GRA]. I.e., upstreaming this to iris doesn't make sense. *)
-  Local Lemma cmra_transport_unit {B C : ucmra} (H : B = C) : cmra_transport (f_equal _ H) ε = ε.
-  Proof. by destruct H. Qed.
-  Lemma embed_unit : embed ε ≡ ε.
-  Proof. by rewrite /embed cmra_transport_unit discrete_fun_singleton_unit. Qed.
+    Lemma embed_updatable_set
+          a P
+          (UPD : a ~~>: P)
+      :
+        <<UPD : embed a ~~>: λ b, ∃ a', b = embed a' ∧ P a' >>
+    .
+    Proof.
+      eapply discrete_fun_singleton_updateP.
+      { eapply option_updateP', cmra_transport_updateP', UPD. }
+      ii. rewrite /from_option in H. des_ifs. des. subst. eauto.
+    Qed.
 
-End lemmas.
+    Lemma embed_updatable
+          a0 a1
+          (UPD : a0 ~~> a1)
+      :
+        <<UPD : embed a0 ~~> embed a1 >>
+    .
+    Proof.
+      eapply cmra_update_updateP, cmra_updateP_weaken.
+      - apply embed_updatable_set, cmra_update_updateP, UPD.
+      - ii. ss. des. subst. done.
+    Qed.
 
-  Section GETSET.
+    (* TODO : revise lemmas below *)
+    Lemma embed_core `{CmraTotal A} a : embed (core a) ≡ core (embed a).
+    Proof. by rewrite /embed discrete_fun_singleton_core cmra_transport_core Some_core. Qed.
+
+    (* Note : NOT a general lemma for [cmra_transport]. Tailed for the proof pattern
+      of [GRA]. I.e., upstreaming this to iris doesn't make sense. *)
+    (* Local Lemma cmra_transport_unit {B C : ucmra} (H : B = C) : cmra_transport (f_equal _ H) ε = ε.
+    Proof. by destruct H. Qed.
+    Lemma embed_unit : embed ε ≡ ε.
+    Proof. Set Printing All. rewrite /embed cmra_transport_unit. Search discrefusi ε. Qed. *)
+
+  End lemmas.
+
+  (* Section GETSET.
     Variable ra : ucmra.
     Variable gra : t.
     Context `{!inG ra gra}.
@@ -192,7 +200,7 @@ End lemmas.
     destruct (le_lt_dec (UList.length Ml) i).
     { generalize (x i). simpl. rewrite UList.nth_overflow; auto. intros []; done. }
     { eapply WF; eauto. }
-  Qed.
+  Qed. *)
 End GRA.
 Coercion GRA.to_URA : GRA.t >-> ucmra.
 
@@ -244,7 +252,7 @@ Ltac r_solve_included :=
 (* [✓ a], [H : ✓ b] where [a ≼ b] syntactically. *)
 Ltac r_wf H := eapply cmra_valid_included; [exact H|]; r_solve_included.
 
-Ltac g_wf_tac :=
+(* Ltac g_wf_tac :=
   cbn; rewrite !right_id !left_id;
   apply GRA.point_wise_wf_lift; ss; splits; repeat rewrite !discrete_fun_lookup_op; unfold GRA.embed; ss;
   repeat rewrite !right_id; repeat rewrite !left_id; try apply ucmra_unit_valid.
@@ -259,4 +267,4 @@ Tactic Notation "unfold_prod" hyp(H) :=
   rewrite pair_valid in H;
   simpl in H;
   let H1 := fresh H in
-  destruct H as [H H1].
+  destruct H as [H H1]. *)

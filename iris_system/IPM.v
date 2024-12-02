@@ -37,9 +37,7 @@ Section iProp.
   Definition Own := Own_aux.(unseal).
   Definition Own_eq : @Own = @Own_def := Own_aux.(seal_eq).
 
-  Definition OwnM {M : ucmra} `{!GRA.inG M Σ} (a : M) : iProp := Own (GRA.embed a).
-
-  (* Global Instance iProp_bi_bupd : BiBUpd iProp := uPred_bi_bupd Σ. *)
+  Definition OwnM {M : cmra} `{!GRA.inG M Σ} (a : M) : iProp := Own (GRA.embed a).
 
   Definition from_upred (P : uPred Σ) : iProp := P.
   Definition to_upred (P : iProp) : uPred Σ := P.
@@ -178,23 +176,24 @@ Section class_instances.
     destruct Hb; by rewrite bi.persistent_and_sep.
   Qed.
 
-  Lemma OwnM_op (M : ucmra) `{@GRA.inG M Σ} (a1 a2 : M) :
+  Lemma OwnM_op (M : cmra) `{@GRA.inG M Σ} (a1 a2 : M) :
     (OwnM (a1 ⋅ a2)) ⊣⊢ (OwnM a1 ∗ OwnM a2).
   Proof. by rewrite /OwnM -GRA.embed_add Own_op. Qed.
 
   Global Instance OwnM_ne `{@GRA.inG M Σ} : NonExpansive (@OwnM Σ M _).
   Proof. solve_proper. Qed.
-  Global Instance OwnM_proper (M : ucmra) `{@GRA.inG M Σ} :
+  Global Instance OwnM_proper (M : cmra) `{@GRA.inG M Σ} :
     Proper ((≡) ==> (⊣⊢)) (@OwnM Σ M _) := ne_proper _.
 
   Global Instance OwnM_core_persistent `{@GRA.inG M Σ} (a : M) :
     CoreId a → Persistent (OwnM a).
   Proof.
     rewrite /OwnM => CORE. apply Own_core_persistent.
-    rewrite core_id_total -GRA.embed_core core_id_core //.
+    rewrite core_id_total /GRA.embed functions.discrete_fun_singleton_core.
+    f_equiv. rewrite /core /= -(core_id (cmra_transport GRA.inG_prf a)) //.
   Qed.
 
-  Lemma OwnM_valid (M : ucmra) `{@GRA.inG M Σ} (m : M):
+  Lemma OwnM_valid (M : cmra) `{@GRA.inG M Σ} (m : M):
     OwnM m ⊢ ⌜✓ m⌝.
   Proof.
     iIntros "H". iDestruct (Own_valid with "H") as %WF.
@@ -202,15 +201,15 @@ Section class_instances.
   Qed.
 
 
-  Global Instance into_sep_ownM (M : ucmra) `{@GRA.inG M Σ} (a b1 b2 : M) :
+  Global Instance into_sep_ownM (M : cmra) `{@GRA.inG M Σ} (a b1 b2 : M) :
     IsOp a b1 b2 → IntoSep (OwnM a) (OwnM b1) (OwnM b2).
   Proof. intros. by rewrite /IntoSep (is_op a) OwnM_op. Qed.
 
-  Global Instance into_and_ownM (M : ucmra) `{@GRA.inG M Σ} p (a b1 b2 : M) :
+  Global Instance into_and_ownM (M : cmra) `{@GRA.inG M Σ} p (a b1 b2 : M) :
     IsOp a b1 b2 → IntoAnd p (OwnM a) (OwnM b1) (OwnM b2).
   Proof. intros. by rewrite /IntoAnd (is_op a) OwnM_op bi.sep_and. Qed.
 
-  Global Instance from_sep_ownM (M : ucmra) `{@GRA.inG M Σ} (a b1 b2 : M) :
+  Global Instance from_sep_ownM (M : cmra) `{@GRA.inG M Σ} (a b1 b2 : M) :
     IsOp a b1 b2 →
     FromSep (OwnM a) (OwnM b1) (OwnM b2).
   Proof. intros. by rewrite /FromSep -OwnM_op -is_op. Qed.
@@ -218,18 +217,18 @@ Section class_instances.
   (* TODO : Improve this instance with generic own simplification machinery
   once https://gitlab.mpi-sws.org/iris/iris/-/issues/460 is fixed *)
   (* Cost > 50 to give priority to [combine_sep_as_fractional]. *)
-  Global Instance combine_sep_as_ownM (M : ucmra) `{@GRA.inG M Σ} (a b1 b2 : M) :
+  Global Instance combine_sep_as_ownM (M : cmra) `{@GRA.inG M Σ} (a b1 b2 : M) :
     IsOp a b1 b2 → CombineSepAs (OwnM b1) (OwnM b2) (OwnM a) | 60.
   Proof. intros. by rewrite /CombineSepAs -OwnM_op -is_op. Qed.
   (* TODO : Improve this instance with generic own validity simplification
   machinery once https://gitlab.mpi-sws.org/iris/iris/-/issues/460 is fixed *)
-  Global Instance combine_sep_gives_ownM (M : ucmra) `{@GRA.inG M Σ} (b1 b2 : M) :
+  Global Instance combine_sep_gives_ownM (M : cmra) `{@GRA.inG M Σ} (b1 b2 : M) :
     CombineSepGives (OwnM b1) (OwnM b2) (⌜✓ (b1 ⋅ b2)⌝).
   Proof.
     intros. rewrite /CombineSepGives -OwnM_op OwnM_valid.
     by apply : bi.persistently_intro.
   Qed.
-  Global Instance from_and_ownM_persistent (M : ucmra) `{@GRA.inG M Σ} (a b1 b2 : M) :
+  Global Instance from_and_ownM_persistent (M : cmra) `{@GRA.inG M Σ} (a b1 b2 : M) :
     IsOp a b1 b2 → TCOr (CoreId b1) (CoreId b2) →
     FromAnd (OwnM a) (OwnM b1) (OwnM b2).
   Proof.
@@ -262,10 +261,10 @@ Section ILEMMAS.
   Lemma Own_unit : ⊢ Own (Σ:=Σ) ε.
   Proof. unseal. rewrite /bi_emp_valid. apply (uPred.ownM_unit emp). Qed.
 
-  Lemma OwnM_unit {M : ucmra} `{@GRA.inG M Σ} : ⊢ OwnM ε.
-  Proof. rewrite /OwnM GRA.embed_unit. apply Own_unit. Qed.
+  (* Lemma OwnM_unit {M : ucmra} `{@GRA.inG M Σ} : ⊢ OwnM ε.
+  Proof. rewrite /OwnM. apply Own_unit. Qed. *)
 
-  Lemma OwnM_Upd `{M : ucmra} `{@GRA.inG M Σ}
+  Lemma OwnM_Upd `{M : cmra} `{@GRA.inG M Σ}
         (r1 r2 : M)
         (UPD : r1 ~~> r2)
     :
@@ -273,7 +272,7 @@ Section ILEMMAS.
   .
   Proof. apply Own_Upd, GRA.embed_updatable, UPD. Qed.
 
-  Lemma OwnM_extends `{M : ucmra} `{@GRA.inG M Σ}
+  Lemma OwnM_extends `{M : cmra} `{@GRA.inG M Σ}
         {a b : M}
         (EXT : a ≼ b)
     :
