@@ -98,11 +98,12 @@ Section REL.
     :
     elim_rel_def self l (trigger Tid >>= ktrS) (a <- trigger Tid;; (tau;; tau;; ktrT a))
 
-  | elim_rel_head X P l varg ktrS ktrT
+  | elim_rel_head X P l varg src ktrS ktrT
+     (SRC: src = ktrS varg)
      (KTR: forall tid tid' m m' varg, 
             self ((tid, tid', existT X (m, m'))::l) (ktrS varg) (ktrT (tid, m, tid', m', varg)))
    :
-   elim_rel_def self l (tau;; ktrS varg) (@hmod_elim_head X P varg >>= ktrT) 
+   elim_rel_def self l (tau;; src) (@hmod_elim_head X P varg >>= ktrT) 
    (* elim_rel_def self l (tau;; ktrS varg) ('(tid, m, tid', m', varg') <- @hmod_elim_head X P varg;; ktrT (tid, m, tid', m', varg'))  *)
   
   | elim_rel_tail X Q l tid m tid' m' vret src ktrS ktrT
@@ -110,8 +111,8 @@ Section REL.
       (KTR: forall vret, self l (ktrS vret) (ktrT vret))
     :
     elim_rel_def self ((tid, tid', existT X (m, m'))::l)
-        src 
-        (@hmod_elim_tail X Q (tid, m, tid', m') vret >>= ktrT)
+        (tau;; src) 
+        (x <- @hmod_elim_tail X Q (tid, m, tid', m') vret;; tau;; ktrT x)
         (* (vret' <- (@hmod_elim_tail X Q (tid, m, tid', m') vret);; (tau;; tau;; ktrT vret')) *)
 
   | elim_rel_spawn l f fn args ktrS ktrT
@@ -385,6 +386,16 @@ Section CANCEL.
     itr = itr >>= (fun x => Ret x).
   Proof. grind. Qed.
 
+  Ltac set_l := let IT := fresh "ITREE" in
+    match goal with  
+      | [|- gpaco3 _ _ _ _ _ ?it _] => set (IT := it)
+      end; try unfold IT at 2.
+
+  Ltac set_r := let IT := fresh "ITREE" in
+    match goal with  
+      | [|- gpaco3 _ _ _ _ _ _ ?it] => set (IT := it)
+      end; try unfold IT at 2.
+
   Lemma elim_rel_refl
       sk0 scopes itr
       (SKINCL: incl sk sk0)
@@ -470,7 +481,30 @@ Section CANCEL.
       destruct (alist_find fn (List.map (map_snd (λ ksb : list string * fspecbody, (ksb.1, fsb_body ksb.2))) (SModSem.fnsems (SMod.modsem md sk0)))) eqn: FINDS; cycle 1.
       { exfalso. rewrite/__ alist_find_map_snd FIND in FINDS. clarify.  }
       ired. rewrite FINDS. destruct p. rewrite/__ alist_find_map_snd FIND in FINDS. s in FINDS. inv FINDS. 
-      ired. unfold HModSem.sandbox_body. s. rewrite HIRed.bind.
+      ired. unfold HModSem.sandbox_body. s. 
+      set_l. 
+      eassert (ITREE = tau;; x <- (a <- inline_hp _ (HModSem.sandbox l0 (i args));; tau;; Ret a);; tau;; _).
+      {
+        unfold ITREE. do 2 f_equal. 
+        instantiate (2:= prog (SModSemAux.to_hmod (SMod.modsem md sk0))).
+        ired. f_equal.  
+        extensionalities. rewrite HIRed.tau. ired.
+        do 4 f_equal.
+      }
+      set_r.
+      eassert (ITREE0 = x <- (a <- inline_hp _ _;; tau;; Ret a);; tau;; _ x).
+      {
+        instantiate (2:= HModSem.sandbox scopes (HoareCall f fn args)).
+        instantiate (2:= prog (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0))).
+        rewrite /ITREE0 !HIRed.bind. ired. f_equal.
+        extensionalities. ired. rewrite HModSB.transl_tau HIRed.tau.
+        repeat f_equal. 
+        instantiate (1:= fun x => inline_hp (prog (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0))) 
+        (HModSem.sandbox scopes (interp_smod (ginv sk0) (stb sk0) (ktrH' x)))).
+        s. refl.
+      }
+      rewrite H H0. clear ITREE ITREE0 H H0.
+
       rewrite -bind_tau. guclo elim_rel_bindC_spec. econs.
       {
         erewrite HoareCall_inline; eauto.
@@ -480,18 +514,22 @@ Section CANCEL.
           refl.
         }
         remember (λ x : Any.t, inline_hp (prog (SModSemAux.to_hmod (SMod.modsem md sk0))) (HModSem.sandbox l0 (i x))).
-        rewrite H. gstep. econs. i. rewrite [i1 varg]add_dummy_ret.
+        rewrite H. clear i0 H.
+        ired. gstep. econs. 
+        { instantiate (1:= fun args => a <- i1 args;; tau;; Ret a). s. refl. }
+        i. ired. 
+        (* rewrite [i1 varg]add_dummy_ret. *)
         guclo elim_rel_bindC_spec. econs.
         { rewrite Heqi1. eauto with paco. }
-        i. rewrite [hmod_elim_tail _ _ _ _]add_dummy_ret.
-
+        i.
+        set_r. eassert (ITREE = a <- hmod_elim_tail (meta f) (postcond f) (tid, m, tid', m') v;; (tau;; Ret a)).
+        { unfold ITREE, hmod_elim_tail. refl. }
+        rewrite H.
         gstep. econs.
         { instantiate (1:= fun x => Ret x). refl. }
         i. s. gstep. econs.
       }
-
-      i. ired. rewrite HModSB.transl_tau !HIRed.tau.
-      gstep. econs. gstep. econs. eauto with paco.
+      i. gstep. econs. eauto with paco.
 
     - depdes s.
       + rewrite/__ SModRed.interp_bind SModRed.interp_pg !HModSB.transl_bind HModSB.transl_put. ired.
