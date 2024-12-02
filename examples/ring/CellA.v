@@ -32,16 +32,16 @@ Module CellA. Section CellA.
   Next Obligation. prove_nodup. Qed.
 
   Definition Mod : SMod.t := {|
-    SMod.modsem := fun _ => Sem;
+    SMod.modsem := λ _, Sem;
     SMod.sk := CellSK.t;
   |}
   .
 
   Definition InitCond : Sk.t -> iProp :=
-    fun _ => (∃ v, CellAS.cell idx v ∗ CellAS.auth idx v)%I.
+    λ _, (∃ v, CellAS.cell idx v ∗ CellAS.auth idx v)%I.
 
-  Variable GI : Sk.t -> invspec.
+  Variable ginv : Sk.t -> invspec.
   Variable GlobalStb : Sk.t -> gname -> option fspec.
-  Definition t := Seal.sealing "CRIS" (SMod.to_hmod GI GlobalStb Mod).
+  Definition t := Seal.sealing "ccr" (SMod.to_hmod ginv GlobalStb Mod).
 
 End CellA. End CellA.

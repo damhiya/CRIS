@@ -59,7 +59,7 @@ Module CtrlI. Section CtrlI.
         trigger (@IO _ void "error" "dequeue the empty queue");;; Ret 0%Z
   .
 
-  Definition fnsems  :=
+  Definition fnsems :=
     [(RingName.init, (scopes, cfunU init));
      (RingName.get_size, (scopes, cfunU get_size));
      (RingName.enqueue, (scopes, cfunU enqueue));
@@ -80,6 +80,6 @@ Module CtrlI. Section CtrlI.
   |}
   .
 
-  Definition t := Seal.sealing "CtrlI" (PMod.to_hmod Mod).
+  Definition t := Seal.sealing "ccr" (PMod.to_hmod Mod).
 
 End CtrlI. End CtrlI.

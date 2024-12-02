@@ -1,22 +1,12 @@
-(* Require Import Coqlib ITreelib sflib.
+Require Import Coqlib ITreelib sflib.
 Require Import RingHeader CellHeader 
   RingASpec CellASpec 
   RingA CtrlI CellA CellI 
   CtrlIAproof CellIAproof.
 Require Import Skeleton.
-Require Import PCM IPM.
+Require Import PCM IPM sWorld.
 Require Import Events Behavior.
 Require Import Relation_Definitions.
-
-(*** TODO : export these in Coqlib or Universe ***)
-Require Import Relation_Operators.
-Require Import RelationPairs.
-From ITree Require Import
-     Events.MapDefault.
-From ExtLib Require Import
-     Core.RelDec
-     Structures.Maps
-     Data.Map.FMapAList.
 
 Require Import STB.
 Require Import ISim SMod HMod Mod ModSimFacts.
@@ -26,20 +16,19 @@ Set Implicit Arguments.
 
 Local Open Scope nat_scope.
 
-Module RingIA.
-Section PROOF.
+Module RingIA. Section RingIA.
   Context `{!Inv.t Σ Γ α β τ, !CellAS.G Γ}.
   Notation iProp := (iProp Σ).
 
   Definition CellIG start len :=
     HMod.addL (List.map CellI.t (seq start len)).
 
-  Theorem correct max_size GI (StbR StbC : Sk.t -> gname -> option fspec)
+  Theorem correct max_size ginv (StbR StbC : Sk.t -> gname -> option fspec)
     :
     ctx_refines
-      ((RingA.t max_size GI StbR) ★ (CtrlIA.CellG GI StbC 0 max_size),
+      ((RingA.t max_size ginv StbR) ★ (CtrlIA.CellG ginv StbC 0 max_size),
        (RingA.InitCond max_size) ∗∗ (fun sk => [∗ list] i↦x ∈ seq 0 max_size, CellA.InitCond i sk))%I
-      ((CtrlI.t max_size)         ★ (CellIG 0 max_size),
+      ((CtrlI.t max_size)           ★ (CellIG 0 max_size),
        const(emp%I)).
   Proof.
     etrans.
@@ -68,5 +57,4 @@ Section PROOF.
           i. rewrite/__ Nat.add_0_r seq_length. iIntros "(H &_)". eauto.
   Qed.
 
-End PROOF.
-End RingIA. *)
+End RingIA. End RingIA.

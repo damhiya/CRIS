@@ -33,7 +33,7 @@ Module RingA. Section RingA.
   .
 
   Definition enqueue : Z -> itree hmodE unit :=
-    fun x =>
+    λ x,
       `que : list Z <- cgetU v_que;;
       if (List.length que <? max_size)%nat
       then cput v_que (que ++ [x])
@@ -41,7 +41,7 @@ Module RingA. Section RingA.
   .
 
   Definition dequeue : unit -> itree hmodE Z :=
-    fun _ =>
+    λ _, 
       `que : list Z <- cgetU v_que;;
       match que with
       | x :: que' => cput v_que que';;; Ret x
@@ -65,7 +65,7 @@ Module RingA. Section RingA.
   Next Obligation. prove_nodup. Qed.
 
   Definition Mod : SMod.t := {|
-    SMod.modsem := fun _ => Sem;
+    SMod.modsem := λ _, Sem;
     SMod.sk := RingSK.t;
   |}
   .
@@ -73,8 +73,8 @@ Module RingA. Section RingA.
   Definition InitCond : Sk.t -> iProp :=
     fun _ => ([∗ list] i↦_ ∈ (replicate max_size 0%Z), CellAS.pending i)%I.
 
-  Variable GI : Sk.t -> invspec.
+  Variable ginv : Sk.t -> invspec.
   Variable GlobalStb : Sk.t -> gname -> option fspec.
-  Definition t := Seal.sealing "RingA" (SMod.to_hmod GI GlobalStb Mod).
+  Definition t := Seal.sealing "ccr" (SMod.to_hmod ginv GlobalStb Mod).
 
 End RingA. End RingA.
