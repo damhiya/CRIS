@@ -84,6 +84,54 @@ Section CANCEL.
   Ltac _coreA := _core; st; i; st; grind; _tau; st.
   Ltac _coreE x := _core; st; exists x; st; grind; _tau; st.
 
+  Inductive Forall2i X Y (R: nat -> X -> Y -> Prop): nat -> list X -> list Y -> Prop :=
+  | Forall2i_nil i: Forall2i R i [] []
+  | Forall2i_cons
+      i x y xs ys
+      (REL: R i x y)
+      (TAIL: Forall2i R (S i) xs ys):
+      Forall2i R i (x :: xs) (y :: ys).
+
+  Lemma Forall2i_len 
+    X Y (R: nat -> X -> Y -> Prop) i xs ys
+    (REL: Forall2i R i xs ys)
+  :
+    List.length xs = List.length ys.
+  Proof.
+    induction REL; s; eauto.
+  Qed.
+
+  Lemma Forall2i_nth
+    X Y (R: nat -> X -> Y -> Prop) (i k: nat) 
+    (xs: list X) (ys: list Y)
+    (REL: Forall2i R i xs ys)
+    (NTH: k < List.length xs)
+  :
+    ∃ x y,
+    xs !! k = Some x /\
+    ys !! k = Some y /\
+    R (i + k) x y.
+  Proof.
+    revert k NTH.
+    induction REL; s; i; eauto.
+    - nia.
+    - destruct k; s.
+      + replace (i + 0) with i by nia. eauto 7.
+      + replace (i + S k) with (S i + k) by nia.
+      eapply IHREL; nia.
+  Qed.
+
+  Lemma Forall2i_forall:
+      ∀ X Y (R: nat -> X -> Y -> Prop) i xs ys
+        (RELS: forall k x y
+                (LKX: xs !! k = Some x)
+                (LKY: ys !! k = Some y),
+              R (i + k) x y)
+        (EQLEN1: List.length xs = List.length ys)
+        ,
+      @Forall2i X Y R i xs ys. 
+  Proof. Admitted.
+
   Inductive Forall3i X Y Z (R: nat -> X -> Y -> Z -> Prop): nat -> list X -> list Y -> list Z -> Prop :=
   | Forall3i_nil i: Forall3i R i [] [] []
   | Forall3i_cons
@@ -144,11 +192,11 @@ Section CANCEL.
       valid_stack ((n, n, existT X (x, x))::tl)
     .
 
-  Definition yield_head sk0: itree hmodE _ :=
+  Definition yield_pre sk0: itree hmodE _ :=
       tau;; tau;; r <- trigger Tid;; x <- (tau;; trigger (Assume (ginv sk0 r)));; tau;; Ret ().
 
   (* no more fr? *)
-  Variant thread_rel sk0 (cid tid: nat) (fr: Σ) src tgt : Prop :=
+  (* Variant thread_rel sk0 (cid tid: nat) (fr: Σ) src tgt : Prop :=
   | thread_rel_init scopes fsp fbody m varg arg
       (NOC: tid ≠ cid)
       (* (NOC: ~ Nat.eq_dec tid cid) *)
@@ -162,7 +210,31 @@ Section CANCEL.
       (SRC: src = interp_hp itrS)
       (TGT: tgt =
         (interp_hp
-            ((if Nat.eq_dec tid cid then Ret tt else yield_head sk0);;;
+            ((if Nat.eq_dec tid cid then Ret tt else yield_pre sk0);;;
+            (* ((if Nat.eq_dec tid cid then Ret tt else trigger (Assume (ginv sk0 tid)));;; *)
+              vret <- itrT;; 
+              (inline_hp (prog (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0)))
+                ( ret <- trigger (Choose Any.t);;
+                  trigger (Guarantee (Q vret ret));;;
+                  Ret ret)))))
+  . *)
+
+  Variant thread_rel sk0 (cid tid: nat) src tgt : Prop :=
+  | thread_rel_init scopes fsp fbody fr m varg arg
+      (NOC: tid ≠ cid)
+      (* (NOC: ~ Nat.eq_dec tid cid) *)
+      (FR: Own fr ⊢ (ginv sk0 tid) -∗ fsp.(precond) tid m varg arg)
+      (SRC: src = interp_hp (HModSem.sandbox scopes (fbody varg)))
+      (TGT: tgt = interp_hp (HModSem.sandbox scopes (HoareFun (ginv sk0) (stb sk0)
+                    fsp.(precond) fsp.(postcond) fbody arg)))
+  | thread_rel_body (Q: Any.t -> Any.t -> iProp) l itrS itrT
+      (* Q should give vret = ret if cid = 0. (return of main function)*)
+      (STACK: valid_stack l)
+      (REL: @elim_rel _ ginv stb sk0 _ l itrS itrT)
+      (SRC: src = interp_hp itrS)
+      (TGT: tgt =
+        (interp_hp
+            ((if Nat.eq_dec tid cid then Ret tt else yield_pre sk0);;;
             (* ((if Nat.eq_dec tid cid then Ret tt else trigger (Assume (ginv sk0 tid)));;; *)
               vret <- itrT;; 
               (inline_hp (prog (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0)))
@@ -170,20 +242,31 @@ Section CANCEL.
                   trigger (Guarantee (Q vret ret));;;
                   Ret ret)))))
   .
+
  
-(*  <[cid:=tau;; interp_hp
-                 (tau;; ` r : nat <- trigger Tid;;
-                        ` x : () <- (tau;; trigger (Assume (ginv sk0 r)));; *)
-
-
-  (* Lemma wf_fold_lookup cid (mr fr: Σ) frs
-        (LEN: cid < strings.length frs)
-        (WF: URA.wf (mr ⋅ foldl (λ r1 r2 : Σ, r1 ⋅ r2) ε frs))
-        (LK: frs !! cid = Some fr)
-      :
-        URA.wf (mr ⋅ fr).
-  Proof. Admitted.
-  *)
+  (* H6: Own a1 ⊢ ginv sk0 (base.length tgts) -∗ precond f (base.length tgts) x args x0
+  H7: Own a2 ⊢ Own x1
+  k: nat
+  x3: Σ
+  y, z: itree modE Any.t
+  NEQ: cid ≠ k
+  LKX: (frs ++ [ε]) !! k = Some x3
+  LKY:
+    (srcs ++
+     [` sem : (Any.t → itree modE Any.t) <-
+      (alist_find fn
+         (List.map (map_snd (interp_hp_fun <*> HModSem.sandbox_body))
+            (List.map (map_snd (wrap_elimI (SModSemAux.to_hmod (SMod.modsem md sk0))))
+               (List.map (map_snd (λ ksb : list string * fspecbody, (ksb.1, fsb_body ksb.2))) (SModSem.fnsems (SMod.modsem md sk0)))))) !;; sem args]) !! k = 
+    Some y
+  LKZ:
+    (tgts ++
+     [` sem : (Any.t → itree modE Any.t) <-
+      (alist_find fn
+         (List.map (map_snd (interp_hp_fun <*> HModSem.sandbox_body))
+            (List.map (map_snd (wrap_elimI (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0))))
+               (List.map (map_snd (λ ksb : list string * fspecbody, (ksb.1, interp_sb_hp (ginv sk0) (stb sk0) ksb.2))) (SModSem.fnsems (SMod.modsem md sk0)))))) !;; 
+      sem x0]) !! k = Some z *)
 
   Lemma valid_solve (a b c: Σ) :
     ✓ a -> a ≡  b ⋅ c -> ✓ b.
@@ -197,29 +280,36 @@ Section CANCEL.
     i. rewrite <- H0. eauto.
   Qed.
 
-  (* Lemma Own_bupd_split_l r b P (IMPL : Own r ⊢ |==> P ∗ Own b) (VALID : ✓ r) :
-    ∃ a, (Own r ⊢ |==> Own a ∗ Own b) ∧ (Own a ⊢ P).
+  Lemma valid_extends (r a b: Σ):
+    b ≼ a -> ✓(r ⋅ a) -> ✓ (r ⋅ b).
   Proof.
-    hexploit (@uPred.bupd_ownM_update_3 Σ); eauto.
-    { move: IMPL; unseal; done. }
-    intros [y [z [UPD [HP HQ]]]]; exists y, z; split; unseal; [done|split; done].
-  Qed. *)
+    i. apply cmra_mono_l with (z:=r) in H.
+    eapply cmra_valid_included; eauto.
+  Qed.
 
+  Lemma Own_bupd_valid (r a b: Σ):
+    (Own r ⊢|==> Own a ∗ Own b) -> ✓ r -> ✓ (a ⋅ b).
+  Proof.
+    i. eapply Own_wand_valid with (a1 := r); eauto.
+    iIntros "H". iApply Own_op. iStopProof. eauto.
+  Qed.
 
+  Lemma extends_Own
+        (a b : Σ)
+        (OWN: Own b ⊢ Own a) 
+    :
+      a ≼ b.
+  Proof. Admitted.
 
   Lemma cancel_aux sk0 (SKINCL: incl sk sk0) (SKWF: Sk.wf sk0):
-    ∀ rs frs fr_sum mr res_sum srcs tgts cid st ps pt
-       (* progS progT
-       (PRS: progS = ModSem.prog (HModSem.to_mod (SModSemAux.to_hmod (SMod.modsem md sk0)) rs))
-       (PRT: progT = ModSem.prog (HModSem.to_mod (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0)) (rs ⋅ mr))) *)
+    ∀ rs rt srcs tgts cid st ps pt
        (WF: ✓ rs)       
-       (LEN: cid < List.length frs)
-       (FR: fr_sum ≡ (foldl (fun r1 r2 => r1 ⋅ r2) ε frs))
-       (RES: rs ⋅ mr ⋅ fr_sum ≼ res_sum)
-       (WF: ✓ res_sum)
-       (* (WF: ✓ (rs ⋅ mr ⋅ fr_sum)) *)
+       (LEN: cid < List.length srcs)
        (* (RET: ∀fsp m vret ret (MAIN: stb sk0 "CCR_init" = Some fsp), (fsp.(postcond) 0 m vret ret -∗ ⌜vret = ret⌝)) *)
-       (REL: Forall3i (thread_rel sk0 cid) 0 frs srcs tgts),
+       (REL: Forall2i (thread_rel sk0 cid) 0 srcs tgts)
+       (EQUIV: rt ≼  rs )
+       (* (REL: Forall3i (thread_rel sk0 cid) 0 frs srcs tgts) *)
+       ,
        gpaco7 _simg (cpn7 _simg) bot7 bot7 Any.t Any.t eq ps pt
        (x <-
          interp_stateE Any.t
@@ -241,37 +331,33 @@ Section CANCEL.
                     (HModSem.to_mod
                        (HModSemAux.inline
                          (SModSem.to_hmod (ginv sk0) 
-                            (stb sk0) (SMod.modsem md sk0))) (rs ⋅ mr)))) 
+                            (stb sk0) (SMod.modsem md sk0))) rs))) 
               (cid, tgts))
-         (Any.pair st res_sum↑);; Ret x.2).
+         (Any.pair st rt↑);; Ret x.2).
   Proof.
     (* gcofix CIH.  *)
-    i. exploit Forall3i_nth; eauto. i. des.
+    i. exploit Forall2i_nth; eauto. i. des.
+    rename x into src, y into tgt.
+    depdes x2; [nia|].
+    hexploit REL. i. eapply Forall2i_len in H. des.
+    assert (cid < List.length tgts). { rewrite <- H. eauto. }
 
-    rename x into fr, y into src, z into tgt.
-    depdes x3; [nia|].
-    (* { exfalso. apply NOC. nia. s. destruct Nat.eq_dec; eauto. nia. } *)
-    hexploit REL. i. eapply Forall3i_len in H. des.
-    assert (cid < List.length srcs). { rewrite <- H. eauto. }
-    assert (cid < List.length tgts). { rewrite <- H0. eauto. }
-
-    assert (RELS: forall k x y z (NEQ: cid ≠ k)
-                    (LKX: frs !! k = Some x)
-                    (LKY: srcs !! k = Some y)
-                    (LKZ: tgts !! k = Some z),
-                      thread_rel sk0 cid k x y z). { admit. }
+    assert (RELS: forall k x y (NEQ: cid ≠ k)
+                    (LKX: srcs !! k = Some x)
+                    (LKY: tgts !! k = Some y),
+                    (* (LKZ: tgts !! k = Some z), *)
+                      thread_rel sk0 cid k x y). 
+    { admit. }
 
     (* Need to keep some information about other threads before remove REL. *)
     clear REL. rename REL0 into REL. unfold elim_rel in REL.
- 
-    (* _iter. _iter. rewrite x1 x2. grind. *)
 
+    generalize rs at 1 3. i. move rs0 at top.
     revert_until SKWF. gcofix CIH. i.
 
+    assert (✓ rt). { eapply cmra_valid_included; eauto. } 
     _iter. _iter. rewrite x7 x8. grind.
 
-
-    (* move REL before CIH. revert_until REL. *)
     punfold REL. 
     pattern itrS, itrT. depdes REL.
     - ired. hide_l. _coreA.
@@ -293,7 +379,7 @@ Section CANCEL.
       (* ired. _tau. do 4 st. prb.
       gbase. pclearbot. 
       eapply CIH; eauto; try (rewrite length_insert; nia); try (rewrite list_lookup_insert; grind). *)
-      (* i. rewrite !list_lookup_insert_ne in LKY, LKZ; eauto. *)
+      (* i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto. *)
       admit.
 
     - (* core *)
@@ -302,16 +388,19 @@ Section CANCEL.
         reveal ITREE. hide_r. _coreE x. iterT 1.
         reveal ITREE. prb. gbase. pclearbot.
         eapply CIH; eauto; try (rewrite length_insert; nia); try (rewrite list_lookup_insert; grind).
+        i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto.
       + hide_r. _coreA. iterT 1.
         reveal ITREE. hide_l. _coreE x. iterT 3. 
         reveal ITREE. prb. gbase. pclearbot.
         eapply CIH; eauto; try (rewrite length_insert; nia); try (rewrite list_lookup_insert; grind).
+        i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto.
       + hide_l. _core. reveal ITREE. hide_r. _core. reveal ITREE. st. i. subst. 
         hide_l. st. ired. tau 1. iterT 3.
         reveal ITREE. hide_r. st. ired. tau 1. iterT 1.
         reveal ITREE. prb. gbase. pclearbot.
-        eapply CIH; eauto; try (rewrite length_insert; nia); try (rewrite list_lookup_insert; grind). *)
-        admit.
+        eapply CIH; eauto; try (rewrite length_insert; nia); try (rewrite list_lookup_insert; grind).
+        i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto. *)
+      admit.
     - (* put/get *)
       (* ired. depdes e0.
       + hide_l. grind. _supd. iterL. _supd. iterT 3.
@@ -319,11 +408,13 @@ Section CANCEL.
         grind. _supd. iterL. _supd. iterT 1.
         reveal ITREE. prb. gbase. pclearbot.
         eapply CIH; eauto; try (rewrite length_insert; nia); try (rewrite list_lookup_insert; grind).
+        i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto.
       + hide_l. grind. _supd. iterT 3.
         reveal ITREE. hide_r.
         grind. _supd. iterT 1.
         reveal ITREE. prb. gbase. pclearbot.
-        eapply CIH; eauto; try (rewrite length_insert; nia); try (rewrite list_lookup_insert; grind). *)
+        eapply CIH; eauto; try (rewrite length_insert; nia); try (rewrite list_lookup_insert; grind).
+        i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto. *)
       admit.
     - (* Assume *)
       (* ired. hide_r. _coreA.
@@ -332,26 +423,45 @@ Section CANCEL.
       iterL. _supd. iterL. _supd.
       iterT 1.
       reveal ITREE. hide_l. _coreE x.
-      iterL. _supd. iterL.
-      assert (✓ (x ⋅ res_sum)).
-      { admit. (* does not hold. *)} *)
+      assert (✓ (x ⋅ rt)). { eapply valid_extends; eauto. }
+      iterL. _supd. iterL. _coreE H. ls.
+      iterL. _coreE x1. ls. 
+      iterL. _supd. iterL. _supd.
+      iterT 3.
+      reveal ITREE. prb. gbase. pclearbot.
+      eapply CIH; eauto; try (rewrite !length_insert; nia); try (rewrite list_lookup_insert; grind).
+      { eapply cmra_mono_l; eauto. }
+      i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto. *)
       admit.
     - (* Guarantee *)
       (* ired. hide_l. _supd.
       iterL. _coreA. iterL. _coreA.
-      iterL. _supd. iterL. _supd.
-      iterT 1.
+      iterL. _supd. iterL. _supd. iterT 3.
       reveal ITREE. hide_r. _supd.
-      iterL. _coreE x. iterL. 
       assert (Own rs ==∗ P ∗ Own x).
-      { admit. (* does not hold *) }
-       *)
+      {
+        iIntros "H". iApply x0. iStopProof.
+        eapply Own_extends; eauto.
+      }
+      iterL. _coreE x. iterL. _coreE H.
+      iterL. _supd. iterL. _supd. iterT 1.
+      reveal ITREE. prb. gbase. pclearbot.
+      eapply CIH; eauto; try (rewrite !length_insert; nia); try (rewrite list_lookup_insert; grind).
+      { 
+        hexploit Own_bupd_split; eauto. i. des.
+        eapply Own_bupd_valid in H2; eauto.
+        eapply Own_pure_soundness with (x:=a2).
+        { eapply cmra_valid_op_r, Own_wand_valid; eauto. }
+        iIntros "H". iApply Own_valid. iStopProof. eauto.
+      }
+      i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto. *)
       admit.
     - (* Tid *)
       (* ired. hide_l. tau 1. iterT 3. 
       reveal ITREE. hide_r. tau 1. iterT 1. 
       reveal ITREE. prb. gbase. pclearbot.
-      eapply CIH; eauto; try (rewrite length_insert; eauto); try (rewrite list_lookup_insert; grind). *)
+      eapply CIH; eauto; try (rewrite length_insert; eauto); try (rewrite list_lookup_insert; grind).
+      i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto. *)
       admit.
     - (* head *)
       (* ired. hide_r. tau 2.
@@ -365,20 +475,26 @@ Section CANCEL.
       iterT 2. iterL. _coreE x. ls.
       iterT 2. iterL. _coreE varg. ls.
       iterT 2.
-      hexploit (Own_bupd_split res_sum); eauto.
+      hexploit (Own_bupd_split rt); eauto.
       i. des.
       iterL. _coreE a1. ls.
       iterL. _supd.
-      assert (✓ (a1 ⋅ x1)). { admit. }
-      iterL. _coreE H6. ls.
-      iterL. _coreE H4. ls.
+      assert (✓ (a1 ⋅ x1)). 
+      { 
+        eapply Own_bupd_valid in H2; eauto. 
+        eapply valid_extends with (a := a2); eauto.
+        eapply extends_Own; eauto.
+      }
+      iterL. _coreE H5. ls.
+      iterL. _coreE H3. ls.
       iterL. _supd. iterL. _supd.
       iterT 2. 
       reveal ITREE. prb. gbase. pclearbot.
-      eapply CIH with (l:= _ :: l); eauto; try (rewrite length_insert; nia); 
+      eapply CIH with (l:= _ :: l); eauto; try (rewrite !length_insert; nia); 
       try (eapply KTR); try (rewrite list_lookup_insert; grind).
       { admit. }
-      econs; eauto. *)
+      { econs; eauto. }
+      i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto. *)
       admit.
     - (* tail *)
       (* ired. hide_r. tau 2. 
@@ -390,20 +506,25 @@ Section CANCEL.
       iterT 4.
       iterL. _coreE vret.
       iterT 2.
-      hexploit (Own_bupd_split res_sum); eauto.
-      (* { eapply valid_solve_eq; [eauto|r_solve; eauto]. } *)
+      hexploit (Own_bupd_split rt); eauto.
       i. des.
-      inv STACK. eapply inj_pair2 in H10, H11. subst x3 m'. rename tid' into tid.
+      inv STACK. eapply inj_pair2 in H9, H10. subst x3 m'. rename tid' into tid.
       iterL. _coreE a1. ls.
       iterL. _supd.
-      assert (✓ (a1 ⋅ x0)). { admit. }
-      iterL. _coreE H6. ls.
-      (* assert (Own a1 ⊢ Q0 tid m vret x). { admit. } *)
-      iterL. _coreE H4. ls.
+      assert (✓ (a1 ⋅ x0)). 
+      { 
+        eapply Own_bupd_valid in H2; eauto. 
+        eapply valid_extends with (a := a2); eauto.
+        eapply extends_Own; eauto.
+      }
+      iterL. _coreE H5. ls.
+      iterL. _coreE H3. ls.
       iterL. _supd. iterL. _supd.
       iterT 3. 
       reveal ITREE. prb. gbase. pclearbot. 
-      eapply CIH; eauto; try (rewrite length_insert; nia); try (rewrite list_lookup_insert; grind). *)
+      eapply CIH; eauto; try (rewrite !length_insert; nia); try (rewrite list_lookup_insert; grind).
+      { admit. }
+      i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto. *)
       admit.
     - (* spawn *)
       (* ired. hide_l. _coreA.
@@ -431,23 +552,21 @@ Section CANCEL.
       tau 2. ls.
       reveal ITREE.
       assert (base.length srcs = base.length tgts) by nia.
-      rewrite !H4. 
-      hexploit (Own_bupd_split res_sum); eauto.
+      rewrite !H2. 
+      hexploit (Own_bupd_split rt); eauto.
       i. des. prb. gbase. pclearbot.
-      eapply CIH with (frs := frs ++ [ε]); eauto. 
-      { rewrite length_app. nia. }
+      eapply CIH; eauto; try (rewrite !length_insert !length_app; s; nia).
       { admit. }
-      { admit. }
-      { rewrite lookup_app_l; [eauto|nia]. }
       { 
         rewrite list_lookup_insert; eauto.  
         rewrite length_app. nia.
       }
       { rewrite list_lookup_insert; grind. }
-      { rewrite/__ length_insert !length_app. s. nia. }
-      { rewrite/__ length_insert !length_app. s. nia. }
-      { rewrite/__ length_insert !length_app. s. nia. }
-      { rewrite length_insert. nia. } *)
+      i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto. *)
+      (*
+        k < cid -> RELS.
+        k > cid (new thread) -> thread_rel case 1. (* modify the definition *)
+      *)
       admit.
     - (* yield *)
       ired. hide_r. tau 1. 
@@ -459,33 +578,46 @@ Section CANCEL.
         iterT 2. iterL. tau 1. ls. _iter.  
         rewrite list_lookup_insert; [|eauto]. ired. ls.
         tau 2. iterT 1. iterL. tau 1. ls.
-        hexploit (Own_bupd_split res_sum); eauto.  
-        i. des.
+        hexploit (Own_bupd_split rt); eauto. i. des.
         iterT 2. iterL. _coreE a1. iterL. _supd.
-        assert (✓ (a1 ⋅ x)). { admit. }
-        iterL. _coreE H6. ls.
-        iterL. _coreE H4. ls.
+        assert (✓ (a1 ⋅ x)). 
+        { 
+          eapply Own_bupd_valid in H2; eauto. 
+          eapply valid_extends with (a := a2); eauto.
+          eapply extends_Own; eauto.
+        }
+        iterL. _coreE H5. ls.
+        iterL. _coreE H3. ls.
         iterL. _supd. iterL. _supd.
         iterT 3. 
         reveal ITREE. prb. gbase. pclearbot. 
-        eapply CIH; eauto; try (rewrite length_insert; eauto); try (rewrite list_lookup_insert; grind). *)
+        eapply CIH; eauto; try (rewrite !length_insert; eauto); try (rewrite list_lookup_insert; grind).
+        { admit. }
+        i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto. *)
         admit.
       }
-
       reveal ITREE. hide_l. _supd.
       iterL. _coreA. ls.
       iterL. _coreA. ls.
-      hexploit (Own_bupd_split res_sum); eauto.  
-      i. des.
+      hexploit (Own_bupd_split rt); eauto. i. des.
       iterL. _supd. iterL. _supd.
       iterT 2. iterL. ls. tau 1.
       reveal ITREE. 
       destruct (classic (tid < base.length srcs)); cycle 1.
       {
-        eapply Nat.le_ngt in H7. eapply lookup_ge_None_2 in H7.
-        _iter. rewrite list_lookup_insert_ne; [|et]. rewrite H7.
+        eapply Nat.le_ngt, lookup_ge_None_2 in H6.
+        _iter. rewrite list_lookup_insert_ne; [|et]. rewrite H6.
         s. unfold triggerUB. ired. _coreA.
       } 
+      exploit lookup_lt_is_Some_2; eauto. i. inv x2.
+      exploit (lookup_lt_is_Some_2 tgts tid); [nia|]. i. inv x3.
+      hexploit RELS; eauto. i. inv H9.
+      {  
+        prm. gbase. pclearbot. 
+        eapply CIH; eauto; try (rewrite length_insert; eauto); try (rewrite list_lookup_insert; grind); try nia.
+
+      }
+
       prm. gbase. pclearbot.
       eapply CIH; eauto; try (rewrite length_insert; eauto); try (rewrite list_lookup_insert; grind); try nia.
       { admit. }
@@ -508,7 +640,7 @@ Section CANCEL.
           instantiate (1:= Q).
           instantiate (1:= (tau;; ktrT tt)).
           inv LKZ. des_ifs. rewrite -interp_hp_tau. 
-          unfold yield_head. grind. repeat f_equal.
+          unfold yield_pre. grind. repeat f_equal.
           extensionalities. ired. repeat f_equal.
           extensionalities. destruct H9. grind.
         }
@@ -524,123 +656,6 @@ Section CANCEL.
       admit.
 
   Admitted.
-(* 
-  Ltac hss_des :=
-    ss; des_safe; subst;
-    repeat match goal with
-      | [v: () |- _] => destruct v
-      | [H: (_,_) = (_,_) |- _] => inv H
-      end;
-    ss.
-  
-  Ltac hss :=
-    hss_des;
-    try (rewrite -> !Any.pair_split in * );
-    try (rewrite -> !Any.upcast_downcast in * );
-    repeat (match goal with [G: Any.downcast _ = Some _ |-_] =>
-      apply Any.downcast_upcast in G; inv G; ss
-     end);
-    repeat (match goal with [G: Any.upcast _ = Any.upcast _ |-_] =>
-      apply Any.upcast_inj in G; destruct G as [_ G]; red in G; depdes G; ss
-     end);
-    repeat (match goal with [G: Some _ = Some _ |- _] =>
-      depdes G; ss
-    end);
-    try (rewrite -> !Any.pair_split in * );
-    try (rewrite -> !Any.upcast_downcast in * );
-    repeat (alist_upd_simpl trivial_nodup);
-    hss_des;
-    move_nodup. *)
-  
-
-    (* { *)
-      (* hide_r. grind.  *)
-      (* _core. st. exists (ε, ε, rs). st. ired. _tau. st. *)
-      (* iterL. _supd. *)
-      (* iterL. _core. st. assert (Own (ε ⋅ rs) -∗ |==> Own (ε ⋅ ε ⋅ rs)) by (r_solve; eauto). *)
-      (* exists H3. st. ired. _tau. st. rewrite list_insert_insert. *)
-      (* iterL. _core. st. assert (Own ε -∗ True) by auto.  *)
-      (* exists H4. st. ired. rewrite list_insert_insert. _tau. st. *)
-      (* iterL. _supd. iterL. _supd. iterL.   *)
-      (* destruct (Nat.eq_dec cid 0); [|_ub]. ired. *)
-      (* rewrite/__ StRed.ret. ired. *)
-(*  *)
-      (* reveal ITREE. ired. *)
-      (* _coreA. *)
-      (* iterL. rewrite list_insert_insert. _tau. st. st. *)
-      (* iterL. _coreA. rewrite list_insert_insert.  *)
-      (* iterL. _supd. iterL. _coreA. rewrite list_insert_insert. *)
-      (* iterL. _coreA. rewrite list_insert_insert.  *)
-      (* iterL. _supd. iterL. _supd. iterL. _tau. st. st. rewrite list_insert_insert. *)
-      (* iterL. _coreA. rewrite list_insert_insert. *)
-      (* iterL. _supd. iterL. _coreA. rewrite list_insert_insert. *)
-      (* iterL. _coreA. rewrite list_insert_insert.  *)
-      (* iterL. _supd. iterL. _supd. iterL. *)
-      (* rewrite/__ StRed.ret. grind. *)
-      (* Q v x -> v = x *)
-      (* admit. *)
-    (* } *)
-    (* {  *)
-      (* grind. *)
-      (* assert (CASE := case_itrH _ itr). des.  *)
-      (* { admit. } *)
-      (* { admit. } *)
-      (* { admit. } *)
-      (* { admit. } *)
-      (* { admit. } *)
-      (* {  *)
-        (* subst. depdes c.  *)
-        (* hide_l.  *)
-        (*  *)
-        (* grind. _coreA. *)
-        (* iterL. _supd. iterL. _coreA. rewrite list_insert_insert.  *)
-        (* iterL. _coreA. rewrite list_insert_insert. *)
-        (* iterL. _supd. iterL. _supd. *)
-        (* iterL. rewrite list_insert_insert. _tau. st. *)
-(*  *)
-        (* assert (FINDT: alist_find fn *)
-        (* (List.map (map_snd (interp_hp_fun ∘ HModSem.sandbox_body)) *)
-           (* (List.map (map_snd (λ ksb : list string * fspecbody, (ksb.1, interp_sb_hp (ginv sk0) (stb sk0) ksb.2))) *)
-              (* (SModSem.fnsems (SMod.modsem md sk0)))) *)
-        (* = *)
-        (* Some ( *)
-          (* (interp_hp_fun ∘ HModSem.sandbox_body) (l, interp_sb_hp (ginv sk0) (stb sk0) {| fsb_fspec := f; fsb_body := fbody |}) *)
-        (* )). *)
-        (* { rewrite/__ !alist_find_map_snd /o_map x4. ss. } *)
-(*  *)
-        (* admit. *)
-      (* } *)
-      (* admit. *)
-    (* } *)
-    (* { *)
-      (* grind. *)
-      (* hide_l. _tau. st. depdes Heq. eapply inj_pair2 in x. subst. ired. *)
-      (* iterL. rewrite list_insert_insert. _tau. st. st. *)
-      (* iterL. _coreA. rewrite list_insert_insert.  *)
-      (* iterL. rewrite list_insert_insert. _tau. st. st.  *)
-      (* iterL. _coreA. rewrite list_insert_insert. *)
-      (* iterL. rewrite list_insert_insert. _tau. st. st.  *)
-      (* iterL. _coreA. rewrite list_insert_insert.  *)
-      (* iterL. _supd. iterL. _coreA. rewrite list_insert_insert. *)
-      (* iterL. _coreA. rewrite list_insert_insert.  *)
-      (* iterL. _supd. iterL. _supd. iterL. rewrite list_insert_insert. _tau. st. st. *)
-      (* iterL. rewrite list_insert_insert. _tau. st. *)
-      (* iterL. rewrite list_insert_insert. _tau. st. st. *)
-      (* iterL. _coreE x. rewrite list_insert_insert. *)
-      (* iterL. rewrite list_insert_insert. _tau. st. st. *)
-      (* iterL. _coreE v. rewrite list_insert_insert. *)
-      (* iterL. rewrite list_insert_insert. _tau. st. st. *)
-      (* iterL. _coreE c0. rewrite list_insert_insert. *)
-      (* iterL. _supd. iterL.  *)
-      (* assert (WFC: URA.wf (c0 ⋅ c1 ⋅ c)). { admit. }  *)
-      (* _coreE WFC. rewrite list_insert_insert. *)
-      (* iterL. _coreE x5. rewrite list_insert_insert. *)
-      (* iterL. rewrite list_insert_insert. _tau. st. st. *)
-      (* admit. *)
-    (* } *)
-    (* { admit. } *)
-
-  (* Admitted. *)
 
   Lemma fsb_find_spec fn l fsp fbody (sk0: Sk.t)
     (SKINCL: incl sk sk0) 
@@ -677,27 +692,26 @@ Section CANCEL.
   : *)
 
 
-  Theorem cancellation Ps Pt
+  Theorem cancellation P
     (COND: forall sk0 (EQV: Sk.equiv sk sk0) (SKWF: Sk.wf sk0), 
-      exists fsp m rt,
+      exists fsp m,
         (stb sk0 "CCR_init" = Some fsp) /\
-        (forall rs (WF: ✓ rs) (SRC: Own rs ⊢ (Ps sk0)), ✓ (rs ⋅ rt)) /\ 
-        (Own rt ⊢ (Pt sk0) ∗ (fsp.(precond) 0 m tt↑ tt↑)) /\
+        (Own ε ⊢ (fsp.(precond) 0 m tt↑ tt↑)) /\
         (∀ m vret ret, (fsp.(postcond) 0 m vret ret) -∗ ⌜vret = ret⌝)
     )
   :
-    refines (md_src, Ps) (md_tgt, Pt).
+    refines (md_src, P) (md_tgt, P).
   Proof.
     econs. { s. r. refl. }
     ii. ss. specialize (COND sk0 EQV SKWF). des.
     (* resoure *)
-    specialize (COND0 rs WFR SRC).
-    eapply Own_split in COND1; cycle 1. 
-    { eapply cmra_valid_op_r. eauto. }
-    des. subst.
-    exists (rs ⋅ a1). esplits; eauto.
-    { eapply (@valid_solve (rs ⋅ rt) _ a2); r_solve; eauto. } 
-    { iIntros "[_ P]". iStopProof. eauto. }
+    (* specialize (COND0 rs WFR SRC). *)
+    (* eapply Own_split in COND1; cycle 1.  *)
+    (* { eapply cmra_valid_op_r. eauto. } *)
+    (* des. subst. *)
+    exists rs. esplits; eauto.
+    (* { eapply (@valid_solve (rs ⋅ rt) _ _); r_solve; eauto. }  *)
+    (* { iIntros "[P _]". iStopProof. eauto. } *)
     {
       inv WFM. econs; eauto.
       rewrite/SModSem.to_hmod !map_map_compose !fst_map_snd.
@@ -719,7 +733,7 @@ Section CANCEL.
       { inv V. }
       depdes c; inv V. resub.
       rewrite/__ [interp_stateE _ _ _]StRed.core. grind.
-      ginit. guclo simg_indC_spec. econs. i. ss.
+      ginit. st. i. ss.
     }
     rewrite/__ !alist_find_map/o_map E. s. 
     erewrite !wrap_elimI_well_scoped; cycle 1.
@@ -750,44 +764,37 @@ Section CANCEL.
     _iter. _tau. st. st. st.
     rewrite interp_hp_tau. _iter. _tau. st. st.
     rewrite/__ HModSB.transl_bind HModSB.transl_ag HIRed.bind_ag interp_hp_bind interp_hp_Assume. ired.
-    _iter. _core. st. exists a2. st. ired. _tau. st. 
+    _iter. _core. st. exists ε. st. ired. _tau. st. 
     _iter. _sget. ired. _tau. st. st.
     hss. ired. hss. ired.
     _iter. _core. st.
-    assert (✓ (a2 ⋅ (rs ⋅ a1))). 
-    { 
-      eapply (@valid_solve _ _ ε COND0). r_solve.
-      setoid_rewrite COND1. r_solve.
-    }
+    assert (✓ (ε ⋅ rs)). 
+    { admit. }
+    (* { eapply (@valid_solve_eq _ _ COND0). r_solve. } *)
     exists H. ired. _tau. st. st. 
-    _iter. _core. st. exists COND4. ired.
+    _iter. _core. st. exists COND0. ired.
     _iter. _tau. st. st. _supd. _iter. _supd.
     _iter. _tau. st. st. rewrite interp_hp_tau. _iter. _tau. st. st.
     
     (* CCR_main's precond all executed. *)
     reveal ITREE. 
     eapply cancel_aux; eauto.
-    { instantiate (1:= [a2]). ss. }
-    { s. r_solve. }
+    (* { instantiate (1:= [a2]). ss. } *)
+    (* { s. r_solve. admit. } *)
     (* { eapply (valid_solve_eq H). r_solve. } *)
-    econs; eauto using Forall3i.
-    econs 2; s; eauto; cycle 1. 
-    {
-      rewrite/__ HModSB.transl_bind HIRed.bind. 
-      instantiate (1:= postcond fsb_fspec 0 m).
-      instantiate (1:= inline_hp _ (HModSem.sandbox l (interp_smod (ginv sk0) (stb sk0) (fsb_body tt↑)))).
-      ired. repeat f_equal. 
+    econs; eauto using Forall2i.
+    econs 2; s; eauto; cycle 2.
+    { 
+      rewrite bind_ret_l HModSB.transl_bind HIRed.bind. 
+      repeat f_equal. extensionalities.
+      rewrite HModSB.transl_bind HModSB.transl_core. do 2 f_equal.
       extensionalities.
-      rewrite/__ HModSB.transl_bind HModSB.transl_core. do 2 f_equal.
-      extensionalities.
-      rewrite/__ HModSB.transl_bind HModSB.transl_ag. f_equal.
+      rewrite HModSB.transl_bind HModSB.transl_ag. do 2 f_equal.
       extensionalities.
       rewrite HModSB.transl_ret. ss.
-    }
+    } 
+    { instantiate (1:= []). econs. }
     eapply elim_rel_refl; eauto.
-    Unshelve. 
-      { eapply smj_top. }
-      { apply true. } 
   Qed.
   
   (*** Final Theorem ***)
