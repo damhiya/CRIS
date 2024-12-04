@@ -220,11 +220,9 @@ Section CANCEL.
   . *)
 
   Variant thread_rel sk0 (cid tid: nat) src tgt : Prop :=
-  | thread_rel_init scopes fsp fbody m varg arg
+  | thread_rel_init scopes fsp fbody fr m varg arg
       (NOC: tid ≠ cid)
-      (FR: ∀mr mr' (MR: Own mr ==∗ (ginv sk0 tid ∗ Own mr')),
-              ∃ fr, (✓ (fr ⋅ mr)) /\
-                     (Own fr ⊢ (ginv sk0 tid) -∗ fsp.(precond) tid m varg arg))
+      (FR: Own fr ⊢ (ginv sk0 tid) -∗ fsp.(precond) tid m varg arg)
       (SRC: src = interp_hp (HModSem.sandbox scopes (fbody varg)))
       (TGT: tgt = interp_hp (HModSem.sandbox scopes (HoareFun (ginv sk0) (stb sk0)
                     fsp.(precond) fsp.(postcond) fbody arg)))
@@ -232,10 +230,10 @@ Section CANCEL.
       (* Q should give vret = ret if cid = 0. (return of main function)*)
       (STACK: valid_stack l)
       (REL: @elim_rel _ ginv stb sk0 _ l itrS itrT)
-      (SRC: src = interp_hp itrS)
+      (SRC: src = tau;; interp_hp itrS)
       (TGT: tgt =
         (interp_hp
-            ((if Nat.eq_dec tid cid then Ret tt else yield_post sk0);;;
+            ((if Nat.eq_dec tid cid then Ret tt else yield_post sk0);;; tau;;
             (* ((if Nat.eq_dec tid cid then Ret tt else trigger (Assume (ginv sk0 tid)));;; *)
               vret <- itrT;; 
               (inline_hp (prog (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0)))
