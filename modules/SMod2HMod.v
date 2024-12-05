@@ -133,7 +133,7 @@ Section HOARE.
     x <- trigger (Choose fsp.(meta));; 
     arg <- trigger (Choose Any.t);;
     tid <- trigger (Spawn fn arg);;
-    trigger (Guarantee (ginv tid -∗ fsp.(precond) tid x varg arg));;;
+    trigger (Guarantee (□(ginv tid -∗ fsp.(precond) tid x varg arg)));;;
     Ret tid.
 
   Definition HoareYield (tid: nat) : itree hmodE unit :=
