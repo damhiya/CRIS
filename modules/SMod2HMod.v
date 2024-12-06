@@ -58,17 +58,6 @@ Section FSPEC.
              (fun tid x z a => (((snd ∘ DPQ tid) x a: iProp) ∗ ⌜z = a⌝)%I)
   .
 
-  Definition app_DPQ {X0} {X1}
-    (DPQ0: nat -> X0 -> (Any.t -> iProp) * (Any.t -> iProp))
-    (DPQ1: nat -> X1 -> (Any.t -> iProp) * (Any.t -> iProp))
-  :
-    nat -> (X0 + X1) -> (Any.t -> iProp) * (Any.t -> iProp) :=
-    fun tid meta =>
-      match meta with
-      | inl meta0 => DPQ0 tid meta0
-      | inr meta1 => DPQ1 tid meta1
-      end.
-
   Definition fspec_false : fspec :=
   {| 
     meta := Empty_set;
@@ -96,8 +85,6 @@ Section FSPEC.
          closed_universe u (k+n) ⊤ ∗ (fsp u n).(postcond) tid x vret ret)%I.
   
 End FSPEC.
-
-Notation "DPQ0 @ DPQ1" := (app_DPQ DPQ0 DPQ1) (at level 60, right associativity).
 
 Arguments precond : simpl never.
 Arguments postcond : simpl never.
@@ -129,18 +116,19 @@ Section HOARE.
 
       Ret vret.
 
-  Definition HoareSpawn (fsp: fspec) (fn: gname) (varg: Any.t) : itree hmodE nat :=
-    x <- trigger (Choose fsp.(meta));; 
-    arg <- trigger (Choose Any.t);;
-    tid <- trigger (Spawn fn arg);;
-    trigger (Guarantee (ginv tid -∗ fsp.(precond) tid x varg arg));;;
-    Ret tid.
-
   Definition HoareYield (tid: nat) : itree hmodE unit :=
     trigger (Guarantee (ginv tid));;;
     trigger (Yield tid);;;
     my_tid <- trigger Tid;;
     trigger (Assume (ginv my_tid)).
+
+  Definition HoareSpawn (fsp: fspec) (fn: gname) (varg: Any.t) : itree hmodE nat :=
+    x <- trigger (Choose fsp.(meta));; 
+    arg <- trigger (Choose Any.t);;
+    tid <- trigger (Spawn fn arg);;
+    trigger (Guarantee (ginv tid -∗ fsp.(precond) tid x varg arg));;;
+    HoareYield tid;;;
+    Ret tid.
   
   Definition handle_schE_hmodE : schE ~> itree hmodE :=
     fun _ e =>
