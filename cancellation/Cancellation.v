@@ -232,12 +232,12 @@ Section CANCEL.
   . *)
 
   Variant thread_rel sk0 (cid tid: nat) src tgt : Prop :=
-  | thread_rel_init scopes fsp fbody fr m varg arg
+  (* | thread_rel_init scopes fsp fbody fr m varg arg
       (NOC: tid ≠ cid)
       (FR: Own fr ⊢ (ginv sk0 tid) -∗ fsp.(precond) tid m varg arg)
       (SRC: src = interp_hp (HModSem.sandbox scopes (fbody varg)))
       (TGT: tgt = interp_hp (HModSem.sandbox scopes (HoareFun (ginv sk0) (stb sk0)
-                    fsp.(precond) fsp.(postcond) fbody arg)))
+                    fsp.(precond) fsp.(postcond) fbody arg))) *)
   | thread_rel_body X (meta: X) (Q: nat -> X -> Any.t -> Any.t -> iProp) l itrS itrT
       (* Q should give vret = ret if cid = 0. (return of main function)*)
       (STACK: valid_stack l)
@@ -347,7 +347,8 @@ Section CANCEL.
     (* gcofix CIH.  *)
     i. exploit Forall2i_nth; eauto. i. des.
     rename x into src, y into tgt.
-    depdes x2; [nia|].
+    depdes x2.
+    (* depdes x2; [nia|]. *)
     hexploit REL. i. eapply Forall2i_len in H. des.
     assert (cid < List.length tgts). { rewrite <- H. eauto. }
 
@@ -544,7 +545,7 @@ Section CANCEL.
       i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto. *)
       admit.
     - (* spawn *)
-      (* ired. hide_l. _coreA.
+      ired. hide_l. iterL. _coreA.
       iterT 2. iterL. _coreA. ls.
       iterT 2. iterL. tau 1. ls. 
       rewrite !length_insert. 
@@ -562,8 +563,35 @@ Section CANCEL.
       iterT 2. iterL. _supd.
       iterL. _coreA. ls. iterL. _coreA. ls.
       iterL. _supd. iterL. _supd.
-      iterT 3.
-      reveal ITREE. hide_r. tau 1. 
+      (* iterT 2. iterL. _supd. 
+      iterL. _coreA. ls. iterL. _coreA. ls.
+      iterL. _supd. iterL. _supd.
+      iterT 2. iterL. tau 1. ls. *)
+       (* tau 1. *)
+      
+      reveal ITREE. hide_r. rewrite interp_hp_bind interp_hp_spawn. 
+      ired. iterL. tau 1. ls.
+      rewrite -insert_app_l; [|nia].
+      rewrite length_insert.
+      reveal ITREE. prb. gbase. 
+      eapply CIH; try (rewrite !length_insert !length_app; s; nia); eauto.
+      { admit. }
+      {
+        rewrite list_lookup_insert; eauto.
+        rewrite length_app; nia. 
+      }
+      {
+        
+      }
+
+
+      iterL; [|rewrite length_app; nia]. tau 2. ls.
+      assert (base.length srcs = base.length tgts) by nia.
+      reveal ITREE. 
+      
+      prb. gbase. eapply CIH.
+
+      tau 1. 
       rewrite <- insert_app_l; eauto.
       iterL; cycle 1. { rewrite length_app. nia. }
       tau 2. ls.
@@ -579,11 +607,8 @@ Section CANCEL.
         rewrite length_app. nia.
       }
       { rewrite list_lookup_insert; grind. }
-      i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto. *)
-      (*
-        k < cid -> RELS.
-        k > cid (new thread) -> thread_rel case 1. (* modify the definition *)
-      *)
+      i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto.
+
       admit.
     - (* yield *)
       ired. hide_r. iterL. tau 1. ls.
@@ -600,7 +625,7 @@ Section CANCEL.
       }
       destruct (classic (cid = tid)).
       {
-        (* subst tid.
+        subst tid.
         iterT 2. iterL. tau 1. iterT 2.
         iterL. _coreE a1. iterL. _supd.
         iterL. _coreE H5. ls.
@@ -610,40 +635,28 @@ Section CANCEL.
         (* iterL. iterL.  *)
         prb. gbase. pclearbot. 
         eapply CIH; try (rewrite !length_insert; eauto); try (rewrite list_lookup_insert; grind); eauto.
-        { admit. }
-        { rewrite length_insert. nia. }
+        {
+          iIntros "H". 
+          iPoseProof (UPD with "H") as ">H".
+          iPoseProof (H2 with "H") as ">[H0 H1]".
+          iModIntro. iSplitL "H0"; eauto.
+          iApply H4; eauto.
+        }
         { grind. }
-        i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto. *)
-        admit.
+        i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto.
       }
       destruct (classic (tid < base.length srcs)); cycle 1.
       {
-        (* reveal ITREE. 
-        hide_r. eapply Nat.le_ngt, lookup_ge_None_2 in H3.
-        _iter. rewrite list_lookup_insert_ne; [|et]. rewrite H3.
-        s. unfold triggerUB. ired. _coreA. *)
-        admit.
+        reveal ITREE. 
+        hide_r. eapply Nat.le_ngt, lookup_ge_None_2 in H7.
+        _iter. rewrite list_lookup_insert_ne; [|et]. rewrite H7.
+        s. unfold triggerUB. ired. _coreA.
       } 
       exploit lookup_lt_is_Some_2; eauto. i. inv x2.
       exploit (lookup_lt_is_Some_2 tgts tid); [nia|]. i. inv x3.
       assert (tid < base.length tgts) by nia.
       hexploit RELS; eauto. i. 
       depdes H11.
-      {
-        (* new thread *)
-        subst. rename x into mr'.
-        erewrite <- list_lookup_insert_ne in H8; eauto.
-        erewrite <- list_lookup_insert_ne in H9; eauto.
-        _iter. rewrite H9. ired. tau 1.
-        iterT 1. iterL. _coreE m. ls. 
-        iterT 1. iterL. _coreE varg. ls.
-        iterT 1. iterL. _coreE (a1 ⋅ fr). ls. iterL. _supd.
-        (* 
-        Own fr ⊢ ginv -∗ precond 
-          -> ginv ⊢ precond ?
-        *)
-      admit.
-      }
       (* another yield *)
       destruct (Nat.eq_dec tid cid); try nia.
       subst. _iter.  
@@ -673,14 +686,14 @@ Section CANCEL.
       i. destruct (classic (cid = k)); cycle 1.
       {
         rewrite !list_lookup_insert_ne in LKX, LKY; eauto.
-        hexploit RELS; eauto. i. depdes H12; [econs|econs 2]; eauto.
+        hexploit RELS; eauto. i. depdes H12; econs; eauto.
         rewrite TGT. des_ifs.
       }
       subst k.
       rewrite list_lookup_insert_ne in LKY; eauto.
       rewrite list_lookup_insert in LKX; eauto.
       rewrite list_lookup_insert in LKY; eauto.
-      inv LKX. econs 2; try refl; grind; eauto.
+      inv LKX. econs; try refl; try instantiate (1:= Q); grind; eauto.
       unfold yield_post. rewrite -interp_hp_tau.
       repeat f_equal. ired. repeat f_equal.
       extensionalities. ired. repeat f_equal.
