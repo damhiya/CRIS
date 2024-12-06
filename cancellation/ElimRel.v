@@ -64,9 +64,9 @@ Section REL.
     :
     elim_rel_def self l itrS (trigger (Choose False) >>= ktrT)
 
-  | elim_rel_base v1 v2
+  | elim_rel_base v
     :
-    elim_rel_def self [] (Ret v1) (Ret v2)
+    elim_rel_def self [] (Ret v) (Ret v)
 
   | elim_rel_tau l itrS itrT
       (ITR: self l itrS itrT)

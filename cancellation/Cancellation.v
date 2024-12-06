@@ -121,7 +121,7 @@ Section CANCEL.
       eapply IHREL; nia.
   Qed.
 
-  Lemma Forall2i_forall:
+  (* Lemma Forall2i_forall:
       ∀ X Y (R: nat -> X -> Y -> Prop) i xs ys
         (RELS: forall k x y
                 (LKX: xs !! k = Some x)
@@ -130,9 +130,21 @@ Section CANCEL.
         (EQLEN1: List.length xs = List.length ys)
         ,
       @Forall2i X Y R i xs ys. 
-  Proof. Admitted.
+  Proof. Admitted. *)
 
-  Inductive Forall3i X Y Z (R: nat -> X -> Y -> Z -> Prop): nat -> list X -> list Y -> list Z -> Prop :=
+  Lemma Forall2i_forall
+      X Y (R: nat -> X -> Y -> Prop) i xs ys
+      (REL: Forall2i R i xs ys)
+    :
+    ∀k x y (LKX: xs !! k = Some x) (LKY: ys !! k = Some y), R (i + k) x y.
+  Proof.
+    i. hexploit (lookup_lt_Some _ _ _ LKX).
+    i. hexploit Forall2i_nth; eauto.
+    i. des. rewrite LKX in H0. rewrite LKY in H1.
+    inv H0. eauto.
+  Qed.
+
+  (* Inductive Forall3i X Y Z (R: nat -> X -> Y -> Z -> Prop): nat -> list X -> list Y -> list Z -> Prop :=
   | Forall3i_nil i: Forall3i R i [] [] []
   | Forall3i_cons
       i x y z xs ys zs
@@ -182,7 +194,7 @@ Section CANCEL.
         (EQLEN2: List.length xs = List.length zs)
         ,
       @Forall3i X Y Z R i xs ys zs. 
-  Proof. Admitted.
+  Proof. Admitted. *)
 
   Inductive valid_stack: list (nat * nat * {X: Type & (X * X)%type}) -> Prop
     :=
@@ -226,9 +238,10 @@ Section CANCEL.
       (SRC: src = interp_hp (HModSem.sandbox scopes (fbody varg)))
       (TGT: tgt = interp_hp (HModSem.sandbox scopes (HoareFun (ginv sk0) (stb sk0)
                     fsp.(precond) fsp.(postcond) fbody arg)))
-  | thread_rel_body (Q: Any.t -> Any.t -> iProp) l itrS itrT
+  | thread_rel_body X (meta: X) (Q: nat -> X -> Any.t -> Any.t -> iProp) l itrS itrT
       (* Q should give vret = ret if cid = 0. (return of main function)*)
       (STACK: valid_stack l)
+      (RET: ∀tid meta vret ret, tid = 0 -> Q tid meta vret ret ⊢ ⌜vret = ret⌝)
       (REL: @elim_rel _ ginv stb sk0 _ l itrS itrT)
       (SRC: src = tau;; interp_hp itrS)
       (TGT: tgt =
@@ -238,7 +251,7 @@ Section CANCEL.
               vret <- itrT;; 
               (inline_hp (prog (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0)))
                 ( ret <- trigger (Choose Any.t);;
-                  trigger (Guarantee (Q vret ret));;;
+                  trigger (Guarantee (Q tid meta vret ret));;;
                   Ret ret))))) 
   .
 
@@ -343,7 +356,7 @@ Section CANCEL.
                     (LKY: tgts !! k = Some y),
                     (* (LKZ: tgts !! k = Some z), *)
                       thread_rel sk0 cid k x y). 
-    { admit. }
+    { i. eapply Forall2i_forall in REL; eauto. }
 
     (* Need to keep some information about other threads before remove REL. *)
     clear REL. rename REL0 into REL. unfold elim_rel in REL.
@@ -357,24 +370,28 @@ Section CANCEL.
 
     tau 4.
 
-    assert (✓ rt). { eapply cmra_valid_included; eauto. admit. } 
+    assert (✓ rt). { eapply Own_wand_valid with (a1:=rs); eauto. } 
     (* _iter. _iter. rewrite x7 x8. grind. *)
 
-    punfold REL. 
+    punfold REL.  
     pattern itrS, itrT. depdes REL.
     - ired. hide_l. iterL. _coreA.
     - (* ret *)
-      (* ired. des_ifs; cycle 1.
+      (* ired. hide_r. iterL. des_ifs; cycle 1.
       { unfold triggerUB. ired. _coreA. }
-      ired. _core. st. i. st. ired. _tau. st. 
-      iterL. _tau. st. st. iterL. _tau. st. st. ls. 
-      iterL. _supd.
-      iterL. _core. st. i. st. ired. _tau. st.
-      iterL. _core. st. i. st. ired. _tau. st.
-      iterL. _supd. iterL. _supd.
-      iterL. _tau. st. st. iterL. _tau. st. st.
-      iterL. rewrite !StRed.ret. ired. st. *)
-      (* Q should give v1 = x *)
+      ired. reveal ITREE.
+      iterL. _coreA. ls. iterT 2. 
+      iterL. _supd. iterL. _coreA. ls.
+      iterL. _coreA. ls. iterL. _supd. iterL. _supd.
+      iterT 2. iterL. rewrite !StRed.ret. ired. st.
+      hexploit Own_bupd_split; eauto. i. des.
+      specialize (RET 0 meta v x e).
+      eapply Own_pure_soundness with (x := a1).
+      {
+        eapply Own_bupd_valid in H2; eauto.
+        eapply cmra_valid_op_l; eauto.
+      }
+      etrans; eauto. *)
       admit. 
 
     - (* tau *)
@@ -635,7 +652,7 @@ Section CANCEL.
              ` x1 : () <- (tau;; trigger (Assume (ginv sk0 r0)));;
              ` x2 : Any.t <- (tau;; tau;; ktrT x1);;
              inline_hp (prog (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0)))
-               (` ret : Any.t <- trigger (Choose Any.t);; trigger (Guarantee (Q x2 ret));;; Ret ret))]> tgts !! tid)
+               (` ret : Any.t <- trigger (Choose Any.t);; trigger (Guarantee (Q  cid meta x2 ret));;; Ret ret))]> tgts !! tid)
       with (tgts !! tid) by (rewrite list_lookup_insert_ne; eauto).
       rewrite H9. ired. tau 2.
       iterT 1. iterL. tau 1. iterT 2.
@@ -644,7 +661,7 @@ Section CANCEL.
       iterL. _supd. iterL. _supd. iterT 2.
       erewrite <- list_lookup_insert_ne in H8; eauto. 
       reveal ITREE. prb. gbase. pclearbot. 
-      eapply CIH; try (rewrite !length_insert; eauto); try (rewrite list_lookup_insert; grind); eauto.
+      eapply CIH with (Q:=Q0); try (rewrite !length_insert; eauto); try (rewrite list_lookup_insert; grind); eauto.
       { 
         iIntros "H". iApply Own_op.
         iPoseProof (UPD with "H") as ">H". 
