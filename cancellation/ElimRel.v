@@ -42,19 +42,19 @@ Section REL.
       trigger (Assume (Q my_tid x vret ret));;; tau;;
       Ret vret.
       
-  Definition HoareSpawnE ginv' (fsp: fspec) (fn: gname) (varg: Any.t) : itree hmodE nat :=
-    x <- trigger (Choose fsp.(meta));; tau;;
-    arg <- trigger (Choose Any.t);; tau;;
-    tid <- trigger (Spawn fn arg);; tau;;
-    trigger (Guarantee (ginv' tid -∗ fsp.(precond) tid x varg arg));;; tau;;
-    Ret tid.
-
   Definition HoareYieldE ginv' (tid: nat) : itree hmodE unit :=
     trigger (Guarantee (ginv' tid));;; tau;;
     trigger (Yield tid);;; tau;;
     my_tid <- trigger Tid;; tau;;
     trigger (Assume (ginv' my_tid)).
 
+  Definition HoareSpawnE ginv' (fsp: fspec) (fn: gname) (varg: Any.t) : itree hmodE nat :=
+    x <- trigger (Choose fsp.(meta));; tau;;
+    arg <- trigger (Choose Any.t);; tau;;
+    tid <- trigger (Spawn fn arg);; tau;;
+    trigger (Guarantee (ginv' tid -∗ fsp.(precond) tid x varg arg));;; tau;;
+    HoareYieldE ginv' tid;;; tau;;
+    Ret tid.
 
   Variant elim_rel_def {sk0 A}
     (self: list (nat * nat * {X: Type & (X * X)%type}) -> itree hmodE A -> itree hmodE A -> Prop)
@@ -221,33 +221,6 @@ Section CANCEL.
     eapply STBCOMPLETE in H. ss. rewrite SOME in H. inv H. ss.
   Qed.
 
-  Lemma HoareSpawn_sandbox
-      scopes ginv' f fn args
-    :
-    HModSem.sandbox scopes (HoareSpawn ginv' f fn args) = HoareSpawn ginv' f fn args.
-  Proof.
-    unfold HoareSpawn.
-    rewrite/__ HModSB.transl_bind HModSB.transl_core. f_equal. extensionalities.
-    rewrite/__ HModSB.transl_bind HModSB.transl_core. f_equal. extensionalities.
-    rewrite/__ HModSB.transl_bind HModSB.transl_sch. f_equal. extensionalities.
-    rewrite/__ HModSB.transl_bind HModSB.transl_ag. f_equal. extensionalities.
-    rewrite HModSB.transl_ret. ss.
-  Qed. 
-
-  Lemma HoareSpawn_hpI
-      prog ginv' f fn args ktr
-    :
-    inline_hp prog (HoareSpawn ginv' f fn args >>= ktr)
-    =
-    x <- HoareSpawnE ginv' f fn args;; inline_hp prog (ktr x).
-  Proof.
-    unfold HoareSpawn, HoareSpawnE. ired.
-    rewrite HIRed.bind_core. f_equal. extensionalities. ired. do 2 f_equal.
-    rewrite HIRed.bind_core. f_equal. extensionalities. ired. do 2 f_equal.
-    rewrite HIRed.bind_sch. f_equal. extensionalities. ired. do 2 f_equal.
-    rewrite HIRed.bind_ag. f_equal.
-  Qed.
-  
   Lemma HoareYield_sandbox
       scopes ginv' tid
     :
@@ -272,6 +245,35 @@ Section CANCEL.
     rewrite HIRed.bind_sch. f_equal. extensionalities. ired. do 2 f_equal.
     rewrite HIRed.bind_sch. f_equal. extensionalities. ired. do 2 f_equal.
     rewrite HIRed.bind_ag. f_equal.
+  Qed.
+
+  Lemma HoareSpawn_sandbox
+      scopes ginv' f fn args
+    :
+    HModSem.sandbox scopes (HoareSpawn ginv' f fn args) = HoareSpawn ginv' f fn args.
+  Proof.
+    unfold HoareSpawn.
+    rewrite HModSB.transl_bind HModSB.transl_core. f_equal. extensionalities.
+    rewrite HModSB.transl_bind HModSB.transl_core. f_equal. extensionalities.
+    rewrite HModSB.transl_bind HModSB.transl_sch. f_equal. extensionalities.
+    rewrite HModSB.transl_bind HModSB.transl_ag. f_equal. extensionalities.
+    rewrite HModSB.transl_bind HoareYield_sandbox. f_equal. extensionalities.
+    rewrite HModSB.transl_ret. ss.
+  Qed. 
+
+  Lemma HoareSpawn_hpI
+      prog ginv' f fn args ktr
+    :
+    inline_hp prog (HoareSpawn ginv' f fn args >>= ktr)
+    =
+    x <- HoareSpawnE ginv' f fn args;; inline_hp prog (ktr x).
+  Proof.
+    unfold HoareSpawn, HoareSpawnE. ired.
+    rewrite HIRed.bind_core. f_equal. extensionalities. ired. do 2 f_equal.
+    rewrite HIRed.bind_core. f_equal. extensionalities. ired. do 2 f_equal.
+    rewrite HIRed.bind_sch. f_equal. extensionalities. ired. do 2 f_equal.
+    rewrite HIRed.bind_ag. f_equal. extensionalities. ired. do 2 f_equal.
+    rewrite HoareYield_hpI. f_equal. 
   Qed.
 
   Lemma HoareCall_inline_aux
@@ -444,7 +446,8 @@ Section CANCEL.
         set (HoareSpawnE _ _ _ _ >>= _). eassert (i = _).
         {
           unfold i. instantiate (1:= ITree.bind _ (fun _ => tau;; _)).
-          f_equal. extensionalities.
+          f_equal. 
+          extensionalities.
           rewrite HModSB.transl_tau HModSB.transl_ret. ired. 
           rewrite HIRed.tau. f_equal.
         }

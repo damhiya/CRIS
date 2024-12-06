@@ -129,18 +129,19 @@ Section HOARE.
 
       Ret vret.
 
-  Definition HoareSpawn (fsp: fspec) (fn: gname) (varg: Any.t) : itree hmodE nat :=
-    x <- trigger (Choose fsp.(meta));; 
-    arg <- trigger (Choose Any.t);;
-    tid <- trigger (Spawn fn arg);;
-    trigger (Guarantee (ginv tid -∗ fsp.(precond) tid x varg arg));;;
-    Ret tid.
-
   Definition HoareYield (tid: nat) : itree hmodE unit :=
     trigger (Guarantee (ginv tid));;;
     trigger (Yield tid);;;
     my_tid <- trigger Tid;;
     trigger (Assume (ginv my_tid)).
+
+  Definition HoareSpawn (fsp: fspec) (fn: gname) (varg: Any.t) : itree hmodE nat :=
+    x <- trigger (Choose fsp.(meta));; 
+    arg <- trigger (Choose Any.t);;
+    tid <- trigger (Spawn fn arg);;
+    trigger (Guarantee (ginv tid -∗ fsp.(precond) tid x varg arg));;;
+    HoareYield tid;;;
+    Ret tid.
   
   Definition handle_schE_hmodE : schE ~> itree hmodE :=
     fun _ e =>
