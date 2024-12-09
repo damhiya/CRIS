@@ -13,12 +13,12 @@ Set Implicit Arguments.
 
 Module MainI.
 Section MainI.
-  Context `{Σ: GRA.t}.  
+  Context `{Σ: GRA.t}.
 
   Definition scopes := [MainName.mn].
 
   Definition main: Any.t -> itree pmodE Any.t :=
-    fun _ =>
+    λ _,
       ccallU (Y:=unit) CellioName.set tt;;;
       ccallU (Y:=unit) FooName.foo tt;;;
       x <- ccallU (Y:=Z) CellioName.get tt;;
@@ -39,7 +39,7 @@ Section MainI.
   Next Obligation. prove_nodup. Qed.
   
   Definition Mod: PMod.t := {|
-    PMod.modsem := fun _ => Sem;
+    PMod.modsem := λ _, Sem;
     PMod.sk := MainSK.t;
   |}
   .
