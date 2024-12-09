@@ -1,11 +1,9 @@
 (* Require Import Coqlib ITreelib.
 Require Import ImpPrelude.
 Require Import Events.
-(* Require Import Behavior. *)
 Require Import SMod HMod.
 Require Import Skeleton.
 Require Import STB IPM ITactics.
-Require Import RingHeader.
 Require Import CellioHeader.
 
 From iris.algebra Require Import excl_auth.
@@ -14,6 +12,7 @@ Set Implicit Arguments.
 
 Module CellioA. Section CellioA.
   Context {Σ : GRA.t}.
+
   Definition set: Any.t -> itree hmodE Any.t :=
     λ _,
       x <- trigger (Take Z);;
@@ -29,17 +28,15 @@ Module CellioA. Section CellioA.
       trigger (Guarantee (CellioA.cell x));;;
       Ret x↑.
 
-  Class G Σ := { #[local] RA_inG :: GRA.inG (excl_authR ZO) Σ }.
-
-  Context `{!G Σ}.
+  Class G Σ := { #[local] RA_inG :: GRA.inG (excl_authR ZO) Σ}.
   Local Notation iProp := (iProp Σ).
 
   Definition auth (v : Z) : iProp :=
-    Seal.sealing "CRIS"
+    Seal.sealing "ccr"
       (OwnM (●E v)).
 
   Definition cell (v : Z) : iProp :=
-    Seal.sealing "CRIS"
+    Seal.sealing "ccr"
       OwnM (◯E v).
 
   Definition scopes := [CellioName.mn].
@@ -67,5 +64,5 @@ Module CellioA. Section CellioA.
 
   Variable GI: Sk.t -> invspec.
   Variable GlobalStb: Sk.t -> gname -> option fspec.
-  Definition t := Seal.sealing "CRIS" (SMod.to_hmod GI GlobalStb Mod).
-End CellioA. End CellioA. *)
+  Definition t := Seal.sealing "ccr" (SMod.to_hmod GI GlobalStb Mod).
+   End CellioA. End CellioA. *)

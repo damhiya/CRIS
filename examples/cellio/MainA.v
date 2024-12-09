@@ -10,14 +10,13 @@ Require Import CellioA CellioHeader MainHeader FooHeader.
 
 Set Implicit Arguments.
 
-Module MainA.
-Section MainA.
-  Context `{_W: CellioRA.t}.  
+Module MainA. Section MainA.
+  Context `{_W: CellioRA.t}.
 
   Definition scopes := [MainName.mn].
 
   Definition main: Any.t -> itree hmodE Any.t :=
-    fun _ =>
+    λ _,
       trigger (Assume (CellioR.cell 0));;;
       i <- trigger (@IO _ Z "Input" tt);;
       ccallU (Y:=unit) FooName.foo tt;;;
@@ -44,11 +43,10 @@ Section MainA.
   .
 
   Definition InitCond : Sk.t -> iProp :=
-    fun _ => emp%I.
+    λ _, emp%I.
 
   Variable GI: Sk.t -> invspec.
   Variable GlobalStb: Sk.t -> gname -> option fspec.
   Definition t := Seal.sealing "ccr" (SMod.to_hmod GI GlobalStb Mod).
 
-End MainA.
-End MainA. *)
+   End MainA. End MainA. *)
