@@ -1,23 +1,25 @@
-(* Require Import Coqlib ITreelib sflib.
+Require Import Coqlib ITreelib sflib.
 Require Import ImpPrelude.
 Require Import Events.
 Require Import Behavior.
 Require Import SMod HMod.
 Require Import Skeleton.
 Require Import PCM.
-Require Import STB IPM ITactics.
+Require Import STB IPM sProp sWorld ITactics.
 Require Import CellioA CellioHeader MainHeader FooHeader.
 
 Set Implicit Arguments.
 
 Module MainA. Section MainA.
-  Context `{_W: CellioRA.t}.
+  Import CellioA.
+  Context `{!Inv.t Σ Γ α β τ, !G Γ, !CellioA.G Γ}.
+  Notation iProp := (iProp Σ).
 
   Definition scopes := [MainName.mn].
 
   Definition main: Any.t -> itree hmodE Any.t :=
     λ _,
-      trigger (Assume (CellioR.cell 0));;;
+      trigger (Assume (CellioA.cell 0));;;
       i <- trigger (@IO _ Z "Input" tt);;
       ccallU (Y:=unit) FooName.foo tt;;;
       trigger (@IO _ unit "Print" i);;;
@@ -49,4 +51,4 @@ Module MainA. Section MainA.
   Variable GlobalStb: Sk.t -> gname -> option fspec.
   Definition t := Seal.sealing "ccr" (SMod.to_hmod GI GlobalStb Mod).
 
-   End MainA. End MainA. *)
+End MainA. End MainA.

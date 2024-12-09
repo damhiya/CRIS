@@ -1,17 +1,45 @@
-(* Require Import Coqlib ITreelib.
+Require Import Coqlib ITreelib sflib.
 Require Import ImpPrelude.
 Require Import Events.
-Require Import SMod HMod.
+Require Import HMod SMod.
 Require Import Skeleton.
-Require Import STB IPM ITactics.
+Require Import IPM STB sProp sWorld.
 Require Import CellioHeader.
+Require Import ITactics.
 
 From iris.algebra Require Import excl_auth.
 
 Set Implicit Arguments.
 
 Module CellioA. Section CellioA.
-  Context {Σ : GRA.t}.
+  Class G (Γ : HRA.t) := { #[local] RA_inG :: GRA.inG (excl_authR ZO) Γ}.
+  Context `{!Inv.t Σ Γ α β τ, !G Γ}.
+  Local Notation iProp := (iProp Σ).
+
+  Definition auth (v : Z) : iProp :=
+    Seal.sealing "CellioA"
+      (OwnM (●E v)).
+
+  Definition cell (v : Z) : iProp :=
+    Seal.sealing "CellioA"
+      OwnM (◯E v).
+
+  Lemma cell_auth_get v v':
+    cell v' -∗ auth v -∗ ⌜v = v'⌝.
+  Proof.
+    rewrite /cell /auth; unseal "CellioA". 
+    iIntros "P P'"; iCombine "P P'" as "P" gives %wf.
+    by apply excl_auth_agree in wf.
+  Qed.
+
+  Lemma cell_auth_set v v':
+    cell v -∗ auth v -∗ |==> cell v' ∗ auth v'.
+  Proof.
+    rewrite /cell /auth; unseal "CellioA".
+    iIntros "C AU". iCombine "C AU" as "H".
+    iMod (OwnM_Upd with "H") as "[C AU]"; last by (iModIntro; iSplitL "AU"). 
+    rewrite comm; apply excl_auth_update.
+  Qed.
 
   Definition set: Any.t -> itree hmodE Any.t :=
     λ _,
@@ -28,19 +56,7 @@ Module CellioA. Section CellioA.
       trigger (Guarantee (CellioA.cell x));;;
       Ret x↑.
 
-  Class G Σ := { #[local] RA_inG :: GRA.inG (excl_authR ZO) Σ}.
-  Local Notation iProp := (iProp Σ).
-
-  Definition auth (v : Z) : iProp :=
-    Seal.sealing "ccr"
-      (OwnM (●E v)).
-
-  Definition cell (v : Z) : iProp :=
-    Seal.sealing "ccr"
-      OwnM (◯E v).
-
   Definition scopes := [CellioName.mn].
-
   
   Definition fnsems : alist string (list string * fspecbody) :=
     [(CellioName.set, (scopes, mk_specbody fspec_trivial set));
@@ -62,7 +78,7 @@ Module CellioA. Section CellioA.
   Definition InitCond : Sk.t -> iProp :=
     λ _, CellioA.auth 0.
 
-  Variable GI: Sk.t -> invspec.
+  Variable ginv: Sk.t -> invspec.
   Variable GlobalStb: Sk.t -> gname -> option fspec.
-  Definition t := Seal.sealing "ccr" (SMod.to_hmod GI GlobalStb Mod).
-   End CellioA. End CellioA. *)
+  Definition t := Seal.sealing "ccr" (SMod.to_hmod ginv GlobalStb Mod).
+End CellioA. End CellioA.
