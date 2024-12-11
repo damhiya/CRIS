@@ -88,3 +88,151 @@ Section AUX.
 End AUX.
 End SModAux.
 
+
+Module SAuxRed.
+Section RED.
+
+  Context `{Σ : GRA.t}.
+
+  Lemma bind
+        (R S: Type)
+        
+        (s : itree hmodE R) (k : R -> itree hmodE S)
+    :
+      interp_smod_aux (s >>= k)
+      =
+      st <- interp_smod_aux s;; interp_smod_aux (k st).
+  Proof.
+    unfold interp_smod_aux in *. grind.
+  Qed.
+
+  Lemma tau
+        (U : Type)
+        (t : itree _ U)
+        
+    :
+      interp_smod_aux (tau;; t)
+      =
+      tau;; (interp_smod_aux t).
+  Proof.
+    unfold interp_smod_aux in *. grind.
+  Qed.
+
+  Lemma ret
+        (U: Type)
+        (t: U)
+        
+    :
+      interp_smod_aux (Ret t)
+      =
+      Ret t.
+  Proof.
+    unfold interp_smod_aux in *. grind.
+  Qed.
+
+  Lemma sch
+        (R: Type)
+        (i: schE R)
+        
+    :
+      interp_smod_aux (trigger i)
+      =
+      r <- handle_schE_hmodE_aux i;; tau;; Ret r.
+  Proof.
+    unfold interp_smod_aux in *. rewrite interp_trigger. grind.
+  Qed.
+  
+  Lemma call
+        (R: Type)
+        (i: callE R)
+        
+    :
+      interp_smod_aux (trigger i)
+      =
+      r <- trigger i;; tau;; Ret r.
+  Proof.
+    unfold interp_smod_aux in *. rewrite interp_trigger. grind.
+  Qed.
+
+  Lemma pg
+        (R: Type)
+        (i: pgE R)
+        
+    :
+      interp_smod_aux (trigger i)
+      =
+      r <- trigger i;; tau;; Ret r.
+  Proof.
+    unfold interp_smod_aux. rewrite interp_trigger. grind.
+  Qed.
+
+  Lemma core
+        (R: Type)
+        (i: coreE R)
+        
+    :
+      interp_smod_aux (trigger i)
+      =
+      r <- trigger i;; tau;; Ret r.
+  Proof.
+    unfold interp_smod_aux. rewrite interp_trigger. grind.
+  Qed.
+
+  Lemma ag {A} (e: agE A)
+        
+    :
+      interp_smod_aux (trigger e)
+      =
+      x <- trigger e ;; tau;; Ret x.
+  Proof.
+    unfold interp_smod_aux. rewrite interp_trigger. grind.
+  Qed.
+  
+  Lemma unwrapU 
+        (R: Type)
+        (i: option R)
+        
+    :
+      interp_smod_aux (@unwrapU hmodE _ _ i)
+      =
+      r <- (unwrapU i);; Ret r.
+  Proof.
+    unfold interp_smod_aux, unwrapU in *. des_ifs; grind.
+    unfold triggerUB in *. rewrite unfold_interp. grind.
+  Qed.
+
+  Lemma unwrapN
+        (R: Type)
+        (i: option R)
+        
+    :
+      interp_smod_aux (@unwrapN hmodE _ _ i)
+      =
+      r <- (unwrapN i);; Ret r.
+  Proof.
+    unfold interp_smod_aux, unwrapN in *. des_ifs; grind.
+    unfold triggerNB in *. rewrite unfold_interp. grind.
+  Qed.
+  
+  Lemma asm
+        P
+    : 
+      interp_smod_aux (assume P)
+      =
+      r <- assume P;; tau;; Ret r.
+  Proof.
+    unfold assume. rewrite bind. rewrite core. grind. rewrite ret. refl.
+  Qed. 
+
+  Lemma grt
+        P
+    : 
+      interp_smod_aux (guarantee P)
+      =
+      r <- guarantee P;; tau;; Ret r.
+  Proof.
+    unfold guarantee. rewrite bind. rewrite core. grind. rewrite ret. refl.
+  Qed.
+
+End RED.
+End SAuxRed.

@@ -205,7 +205,7 @@ Section CANCEL.
     .
 
   Definition yield_post sk0: itree hmodE _ :=
-      tau;; tau;; r <- trigger Tid;; x <- (tau;; trigger (Assume (ginv sk0 r)));; tau;; Ret ().
+      tau;; tau;; r <- trigger Tid;; x <- (tau;; trigger (Assume (ginv sk0 r)));; Ret ().
 
   (* no more fr? *)
   (* Variant thread_rel sk0 (cid tid: nat) (fr: Σ) src tgt : Prop :=
@@ -232,21 +232,31 @@ Section CANCEL.
   . *)
 
   Variant thread_rel sk0 (cid tid: nat) src tgt : Prop :=
-  (* | thread_rel_init scopes fsp fbody fr m varg arg
+  (* | thread_rel_init scopes scopes' fsp fbody fr m varg arg
       (NOC: tid ≠ cid)
       (FR: Own fr ⊢ (ginv sk0 tid) -∗ fsp.(precond) tid m varg arg)
-      (SRC: src = interp_hp (HModSem.sandbox scopes (fbody varg)))
-      (TGT: tgt = interp_hp (HModSem.sandbox scopes (HoareFun (ginv sk0) (stb sk0)
-                    fsp.(precond) fsp.(postcond) fbody arg))) *)
+      (SRC: src = 
+        interp_hp 
+          (HModSem.sandbox scopes 
+            (inline_hp (prog (SModSemAux.to_hmod (SMod.modsem md sk0)))
+              (HModSem.sandbox scopes' (interp_smod_aux (fbody varg))))))
+      (TGT: tgt = 
+        interp_hp 
+          (HModSem.sandbox scopes 
+            (inline_hp (prog (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0)))
+              (HModSem.sandbox scopes' (HoareFun (ginv sk0) (stb sk0) fsp.(precond) fsp.(postcond) fbody arg))))) *)
+
   | thread_rel_body X (meta: X) (Q: nat -> X -> Any.t -> Any.t -> iProp) l itrS itrT
       (* Q should give vret = ret if cid = 0. (return of main function)*)
       (STACK: valid_stack l)
-      (RET: ∀tid meta vret ret, tid = 0 -> Q tid meta vret ret ⊢ ⌜vret = ret⌝)
+      (RET: ∀X (postcond: nat -> X -> Any.t -> Any.t -> iProp) tid meta vret ret, 
+            tid = 0 -> postcond tid meta vret ret ⊢ ⌜vret = ret⌝)
       (REL: @elim_rel _ ginv stb sk0 _ l itrS itrT)
-      (SRC: src = tau;; interp_hp itrS)
+      (SRC: src = 
+          ((if Nat.eq_dec tid cid then Ret tt else tau;; Ret tt);;; interp_hp itrS))
       (TGT: tgt =
         (interp_hp
-            ((if Nat.eq_dec tid cid then Ret tt else yield_post sk0);;; tau;;
+            ((if Nat.eq_dec tid cid then Ret tt else yield_post sk0);;;
             (* ((if Nat.eq_dec tid cid then Ret tt else trigger (Assume (ginv sk0 tid)));;; *)
               vret <- itrT;; 
               (inline_hp (prog (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0)))
@@ -312,6 +322,12 @@ Section CANCEL.
       a ≼ b.
   Proof. Admitted.
 
+  Lemma list_lookup_length {X} (x: X) l:
+    (l ++ [x]) !! (base.length l) = Some x.
+  Proof.
+    eapply lookup_snoc_Some; right; eauto.
+  Qed. 
+
   Lemma cancel_aux rs0 rt0 sk0 (SKINCL: incl sk sk0) (SKWF: Sk.wf sk0):
     ∀ rs rt srcs tgts cid st ps pt
        (WF: ✓ rs)       
@@ -348,7 +364,6 @@ Section CANCEL.
     i. exploit Forall2i_nth; eauto. i. des.
     rename x into src, y into tgt.
     depdes x2.
-    (* depdes x2; [nia|]. *)
     hexploit REL. i. eapply Forall2i_len in H. des.
     assert (cid < List.length tgts). { rewrite <- H. eauto. }
 
@@ -359,130 +374,123 @@ Section CANCEL.
                       thread_rel sk0 cid k x y). 
     { i. eapply Forall2i_forall in REL; eauto. }
 
-    (* Need to keep some information about other threads before remove REL. *)
     clear REL. rename REL0 into REL. unfold elim_rel in REL.
-    
-    (* _iter. _iter. rewrite x0 x1. grind. clear x0 x1 e. *)
 
     revert_until SKWF. s. gcofix CIH. i.
 
     _iter. _iter. rewrite x7 x8. subst. ired.
     destruct (Nat.eq_dec cid cid); ss. grind.
 
-    tau 4.
-
     assert (✓ rt). { eapply Own_wand_valid with (a1:=rs); eauto. } 
-    (* _iter. _iter. rewrite x7 x8. grind. *)
 
     punfold REL.  
     pattern itrS, itrT. depdes REL.
-    - ired. hide_l. iterL. _coreA.
+    - ired. hide_l. _coreA.
     - (* ret *)
-      (* ired. hide_r. iterL. des_ifs; cycle 1.
+      ired. hide_r. des_ifs; cycle 1.
       { unfold triggerUB. ired. _coreA. }
       ired. reveal ITREE.
-      iterL. _coreA. ls. iterT 2. 
+      _coreA. iterT 2. 
       iterL. _supd. iterL. _coreA. ls.
       iterL. _coreA. ls. iterL. _supd. iterL. _supd.
       iterT 2. iterL. rewrite !StRed.ret. ired. st.
       hexploit Own_bupd_split; eauto. i. des.
-      specialize (RET 0 meta v x e).
+      specialize (RET _ Q 0 meta v x e).
       eapply Own_pure_soundness with (x := a1).
       {
         eapply Own_bupd_valid in H2; eauto.
         eapply cmra_valid_op_l; eauto.
       }
-      etrans; eauto. *)
-      admit. 
-
+      etrans; eauto.
     - (* tau *)
-      (* ired. prb. gbase. pclearbot. 
+      ired. tau 4. prb. gbase. pclearbot. 
       eapply CIH; eauto; try (rewrite !length_insert; nia); try (rewrite list_lookup_insert; grind).
-      { rewrite interp_hp_tau. refl. }
-      i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto. *)
-      admit.
+      i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto.
     - (* core *)
-      (* ired. depdes e0.
-      + hide_l. _coreA. iterT 3.
+      ired. depdes e0.
+      + hide_l. _coreA. iterT 1.
         reveal ITREE. hide_r. _coreE x. iterT 1.
         reveal ITREE. prb. gbase. pclearbot.
-        eapply CIH; eauto; try (rewrite length_insert; nia); try (rewrite list_lookup_insert; grind).
+        eapply CIH; eauto; try (rewrite !length_insert; nia); try (rewrite list_lookup_insert; grind).
         i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto.
       + hide_r. _coreA. iterT 1.
-        reveal ITREE. hide_l. _coreE x. iterT 3. 
+        reveal ITREE. hide_l. _coreE x. iterT 1. 
         reveal ITREE. prb. gbase. pclearbot.
-        eapply CIH; eauto; try (rewrite length_insert; nia); try (rewrite list_lookup_insert; grind).
+        eapply CIH; eauto; try (rewrite !length_insert; nia); try (rewrite list_lookup_insert; grind).
         i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto.
       + hide_l. _core. reveal ITREE. hide_r. _core. reveal ITREE. st. i. subst. 
-        hide_l. st. ired. tau 1. iterT 3.
+        hide_l. st. ired. tau 1. iterT 1.
         reveal ITREE. hide_r. st. ired. tau 1. iterT 1.
         reveal ITREE. prb. gbase. pclearbot.
-        eapply CIH; eauto; try (rewrite length_insert; nia); try (rewrite list_lookup_insert; grind).
-        i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto. *)
-      admit.
+        eapply CIH; eauto; try (rewrite !length_insert; nia); try (rewrite list_lookup_insert; grind).
+        i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto.
     - (* put/get *)
-      (* ired. depdes e0.
-      + hide_l. grind. _supd. iterL. _supd. iterT 3.
+      ired. depdes e0.
+      + hide_l. grind. _supd. iterL. _supd. iterT 1.
         reveal ITREE. hide_r. 
         grind. _supd. iterL. _supd. iterT 1.
         reveal ITREE. prb. gbase. pclearbot.
-        eapply CIH; eauto; try (rewrite length_insert; nia); try (rewrite list_lookup_insert; grind).
+        eapply CIH; eauto; try (rewrite !length_insert; nia); try (rewrite list_lookup_insert; grind).
         i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto.
-      + hide_l. grind. _supd. iterT 3.
+      + hide_l. grind. _supd. iterT 1.
         reveal ITREE. hide_r.
         grind. _supd. iterT 1.
         reveal ITREE. prb. gbase. pclearbot.
-        eapply CIH; eauto; try (rewrite length_insert; nia); try (rewrite list_lookup_insert; grind).
-        i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto. *)
-      admit.
+        eapply CIH; eauto; try (rewrite !length_insert; nia); try (rewrite list_lookup_insert; grind).
+        i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto.
     - (* Assume *)
-      (* ired. hide_r. 
-      iterL. _coreA. iterL. _supd. 
+      ired. hide_r. 
+      _coreA. iterL. _supd. 
       iterL. _coreA. iterL. _coreA.
-      iterL. _supd. iterL. _supd.
-      reveal ITREE. hide_l. iterL. _coreE x.
-      assert (✓ (x ⋅ rt)). { admit. }
+      iterL. _supd. iterL. _supd. iterT 1.
+      reveal ITREE. hide_l. _coreE x.
+      assert (UPD': Own(x ⋅ rs) ==∗ Own (x ⋅ rt)).
+      { iIntros "[H0 H1]". iSplitL "H0"; eauto.
+        iApply UPD; eauto.
+      }
+      assert (✓ (x ⋅ rt)). 
+      { 
+        hexploit Own_bupd_valid; eauto.
+        iIntros "H". iPoseProof (UPD' with "H") as ">[H0 H1]".
+        iModIntro. iFrame.
+      }
       iterL. _supd. iterL. _coreE H2. ls.
       iterL. _coreE x1. ls. 
       iterL. _supd. iterL. _supd.
-      iterT 2.
+      iterT 1.
       reveal ITREE. prb. gbase. pclearbot.
       eapply CIH; eauto; try (rewrite !length_insert; nia); try (rewrite list_lookup_insert; grind).
-      { admit. }
-      i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto. *)
-      admit.
+      i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto.
     - (* Guarantee *)
-      (* ired. hide_l. _supd.
+      ired. hide_l. _supd.
       iterL. _coreA. iterL. _coreA.
-      iterL. _supd. iterL. _supd. iterT 3.
+      iterL. _supd. iterL. _supd. iterT 1.
       reveal ITREE. hide_r. _supd.
       assert (Own rs ==∗ P ∗ Own x).
       {
-        iIntros "H". iApply x0. iStopProof.
-        eapply Own_extends; eauto.
+        iIntros "H". iPoseProof (UPD with "H") as ">H". 
+        iApply x0; eauto.
       }
-      iterL. _coreE x. iterL. _coreE H.
+      iterL. _coreE x. iterL. _coreE H2.
       iterL. _supd. iterL. _supd. iterT 1.
       reveal ITREE. prb. gbase. pclearbot.
       eapply CIH; eauto; try (rewrite !length_insert; nia); try (rewrite list_lookup_insert; grind).
       { 
         hexploit Own_bupd_split; eauto. i. des.
-        eapply Own_bupd_valid in H2; eauto.
+        eapply Own_bupd_valid in H3; eauto.
         eapply Own_pure_soundness with (x:=a2).
         { eapply cmra_valid_op_r, Own_wand_valid; eauto. }
         iIntros "H". iApply Own_valid. iStopProof. eauto.
       }
-      i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto. *)
-      admit.
+      i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto.
     - (* Tid *)
-      (* ired. hide_l. tau 1. iterT 3. 
+      ired. hide_l. tau 1. iterT 1. 
       reveal ITREE. hide_r. tau 1. iterT 1. 
       reveal ITREE. prb. gbase. pclearbot.
-      eapply CIH; eauto; try (rewrite length_insert; eauto); try (rewrite list_lookup_insert; grind).
-      i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto. *)
-      admit.
+      eapply CIH; eauto; try (rewrite !length_insert; eauto); try (rewrite list_lookup_insert; grind).
+      i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto.
     - (* head *)
-      (* ired. hide_r. tau 2.
+      ired. hide_r. tau 2.
       reveal ITREE. hide_l. tau 1.
       iterT 2. iterL. _coreA. ls.
       iterT 2. iterL. _coreA. ls.
@@ -510,12 +518,16 @@ Section CANCEL.
       reveal ITREE. prb. gbase. pclearbot.
       eapply CIH with (l:= _ :: l); eauto; try (rewrite !length_insert; nia); 
       try (eapply KTR); try (rewrite list_lookup_insert; grind).
-      { admit. }
+      {  
+        iIntros "H". iPoseProof (UPD with "H") as ">H".
+        iPoseProof (H2 with "H") as ">[H0 H1]".
+        iPoseProof (H4 with "H1") as "H1".
+        iModIntro. rewrite Own_op. iFrame.
+      }
       { econs; eauto. }
-      i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto. *)
-      admit.
+      i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto.
     - (* tail *)
-      (* ired. hide_r. tau 2. 
+      ired. hide_r. tau 2. iterT 2. 
       reveal ITREE. hide_l. _coreA.
       iterT 2. iterL. _supd.
       iterL. _coreA. ls.
@@ -541,11 +553,15 @@ Section CANCEL.
       iterT 3. 
       reveal ITREE. prb. gbase. pclearbot. 
       eapply CIH; eauto; try (rewrite !length_insert; nia); try (rewrite list_lookup_insert; grind).
-      { admit. }
-      i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto. *)
-      admit.
+      {  
+        iIntros "H". iPoseProof (UPD with "H") as ">H".
+        iPoseProof (H2 with "H") as ">[H0 H1]".
+        iPoseProof (H4 with "H1") as "H1".
+        iModIntro. rewrite Own_op. iFrame.
+      }
+      i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto.
     - (* spawn *)
-      ired. hide_l. iterL. _coreA.
+      ired. hide_l. _coreA.
       iterT 2. iterL. _coreA. ls.
       iterT 2. iterL. tau 1. ls. 
       rewrite !length_insert. 
@@ -563,57 +579,144 @@ Section CANCEL.
       iterT 2. iterL. _supd.
       iterL. _coreA. ls. iterL. _coreA. ls.
       iterL. _supd. iterL. _supd.
-      (* iterT 2. iterL. _supd. 
+      iterT 2. iterL. _supd. 
       iterL. _coreA. ls. iterL. _coreA. ls.
       iterL. _supd. iterL. _supd.
-      iterT 2. iterL. tau 1. ls. *)
+      iterT 2. iterL. tau 1. ls.
        (* tau 1. *)
       
-      reveal ITREE. hide_r. rewrite interp_hp_bind interp_hp_spawn. 
-      ired. iterL. tau 1. ls.
-      rewrite -insert_app_l; [|nia].
-      rewrite length_insert.
-      reveal ITREE. prb. gbase. 
-      eapply CIH; try (rewrite !length_insert !length_app; s; nia); eauto.
-      { admit. }
+      reveal ITREE. hide_r. tau 1. 
+      (* unfold Spawn_CancelE. ired. *)
+      rewrite -insert_app_l; eauto. 
+      assert (cid <
+      base.length
+        (srcs ++
+         [` sem : (Any.t → itree modE Any.t) <-
+          (alist_find fn
+             (List.map (map_snd (interp_hp_fun <*> HModSem.sandbox_body))
+                (List.map (map_snd (wrap_elimI (SModSemAux.to_hmod (SMod.modsem md sk0))))
+                   (List.map (map_snd (λ ksb : list string * fspecbody, (ksb.1, interp_sb_hp_aux ksb.2))) (SModSem.fnsems (SMod.modsem md sk0)))))) !;; 
+          sem args])).
+      { rewrite length_app. nia. }
+
+      iterT 2.
+      
+      iterL. tau 1. ls. 
+      hexploit stb_in_alist_find; eauto. i. des.
+      reveal ITREE. 
+      rewrite !alist_find_map_snd !H4. s.
+      erewrite wrap_elimI_well_scoped; cycle 1.
+      {
+        instantiate (1:= fn).
+        s. unfold interp_sb_hp_aux. s.
+        rewrite alist_find_map_snd H4. ss.
+      }
+      erewrite wrap_elimI_well_scoped; cycle 1.
+      {
+        instantiate (1:= fn).
+        s. unfold interp_sb_hp. s.
+        rewrite alist_find_map_snd H4. ss.
+      }
+      ired.
+      unfold interp_hp_fun, inline_hp_fun, HModSem.sandbox_body. s. 
+      unfold interp_sb_hp, interp_sb_hp_aux. s.
+      hide_l. _iter.
+      rewrite list_lookup_insert_ne; try nia. 
+      rewrite list_lookup_length. ired. tau 1.
+      assert (forall x, base.length tgts < base.length (tgts ++ [x])). { i. rewrite length_app. s. nia. }
+      hexploit (Own_bupd_split rt); eauto. i. des.
+      hexploit (Own_bupd_split x1); eauto. 
+      { 
+        hexploit Own_bupd_valid; eauto. i. 
+        eapply extends_Own in H8.
+        eapply valid_extends with (b := x1) in H9; eauto.
+        eapply cmra_valid_op_r. eauto.
+      }  
+      i. des.
+      iterT 2. iterL. _coreE x. ls.
+      iterT 2. iterL. _coreE args. ls.
+      iterT 2. iterL. _coreE (a0 ⋅ a1). ls. iterL. _supd. 
+
+      assert (UPD': Own rs ==∗ Own (a0 ⋅ a1 ⋅ x3)). 
+      {  
+        iIntros "H". iPoseProof (UPD with "H") as ">H".
+        iPoseProof (H6 with "H") as ">[H0 H1]".
+        iPoseProof (H8 with "H1") as "H1".
+        iPoseProof (H9 with "H1") as ">[H1 H2]".
+        iPoseProof (H11 with "H2") as "H2".
+        iModIntro. rewrite !Own_op. iFrame.
+      }
+      assert (✓(a0 ⋅ a1 ⋅ x3)). 
+      { eapply Own_wand_valid with (a1 := rs); eauto. }
+      iterL. _coreE H12. ls. 
+      assert (Own (a0 ⋅ a1) ⊢ precond f (base.length tgts) x args x0).
+      {
+        iIntros "[H0 H1]".  
+        iPoseProof (H10 with "H0") as "H0".
+        iPoseProof (H7 with "H1") as "H1".
+        iApply "H1". eauto.
+      } 
+      iterL. _coreE H13. ls.
+      iterL. _supd. iterL. _supd.
+      iterT 2.
+      reveal ITREE. prb. gbase. pclearbot. rewrite H0.
+      eapply CIH; try (rewrite !length_insert !length_app; s; nia); swap 7 9.
+      { auto. }
+      { auto. }
+      {
+        rewrite list_lookup_insert_ne; try nia. 
+        rewrite -H0 list_lookup_length. f_equal.
+      }
       {
         rewrite list_lookup_insert; eauto.
-        rewrite length_app; nia. 
+        rewrite length_insert length_app. s. nia. 
       }
+      { instantiate (1:= []). econs. }
+      all: try eauto.
       {
-        
+        des_ifs. rewrite bind_ret_l. f_equal.
+        rewrite (bisim_is_eq (translate_bind _ _ _)).
+        instantiate (1:= x). instantiate (1:= postcond f).
+        instantiate (1:= inline_hp (prog (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0))) 
+                         (HModSem.sandbox l0 (interp_smod (ginv sk0) (stb sk0) (fbody args)))).
+        rewrite -HIRed.bind. 
+        repeat f_equal. extensionalities.
+        match goal with [|-(?itr = _)] => set itr end.
+        eassert (i = HModSem.sandbox l0 _). { unfold i. f_equal. }
+        rewrite H15 HModSB.transl_bind HModSB.transl_core. 
+        f_equal. extensionalities.
+        rewrite HModSB.transl_bind HModSB.transl_ag.
+        f_equal. extensionalities.
+        rewrite HModSB.transl_ret. eauto.
       }
-
-
-      iterL; [|rewrite length_app; nia]. tau 2. ls.
-      assert (base.length srcs = base.length tgts) by nia.
-      reveal ITREE. 
-      
-      prb. gbase. eapply CIH.
-
-      tau 1. 
-      rewrite <- insert_app_l; eauto.
-      iterL; cycle 1. { rewrite length_app. nia. }
-      tau 2. ls.
-      reveal ITREE.
-      assert (base.length srcs = base.length tgts) by nia.
-      rewrite !H3. 
-      hexploit (Own_bupd_split rt); eauto.
-      i. des. prb. gbase. pclearbot.
-      eapply CIH; eauto; try (rewrite !length_insert !length_app; s; nia).
-      { admit. }
-      { 
-        rewrite list_lookup_insert; eauto.  
-        rewrite length_app. nia.
+      { grind. }
+      { eapply elim_rel_refl; eauto. } 
+      i. rewrite list_lookup_insert_ne in LKY; eauto.
+      destruct (Nat.eq_dec cid k).
+      {
+        subst k. rewrite list_lookup_insert in LKX; cycle 1.
+        { rewrite length_app. s. nia. }
+        rewrite list_lookup_insert in LKY; cycle 1.
+        { rewrite length_app. s. nia. }
+        inv LKX. econs; eauto; cycle 1.
+        { destruct (Nat.eq_dec cid (base.length tgts)); try nia. grind. }
+        {
+          destruct (Nat.eq_dec cid (base.length tgts)); try nia.
+          instantiate (1:= meta). instantiate (1:= Q).
+          instantiate (1:= ktrT (base.length tgts)).
+          unfold yield_post. ired. rewrite -interp_hp_tau. 
+          repeat f_equal. extensionalities. grind.
+        }
+        eapply KTR.
       }
-      { rewrite list_lookup_insert; grind. }
-      i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto.
-
-      admit.
+      rewrite !list_lookup_insert_ne in LKX, LKY; try nia.
+      eapply lookup_snoc_Some in LKX, LKY. des; try nia.
+      specialize (RELS k x5 y n LKX0 LKY0).
+      inv RELS. econs; eauto; des_ifs.
     - (* yield *)
-      ired. hide_r. iterL. tau 1. ls.
+      ired. hide_r. tau 1.
       reveal ITREE. hide_l.
-      iterL. _supd. iterL. _coreA. ls. iterL. _coreA. ls.
+      _supd. iterL. _coreA. ls. iterL. _coreA. ls.
       iterL. _supd. iterL. _supd.
       iterT 2. iterL. tau 1. ls.  
       hexploit (Own_bupd_split rt); eauto. i. des.
@@ -623,18 +726,19 @@ Section CANCEL.
         eapply valid_extends with (a := a2); eauto.
         eapply extends_Own; eauto.
       }
-      destruct (classic (cid = tid)).
+      destruct (Nat.eq_dec cid tid).
       {
         subst tid.
         iterT 2. iterL. tau 1. iterT 2.
         iterL. _coreE a1. iterL. _supd.
         iterL. _coreE H5. ls.
         iterL. _coreE H3. ls.
-        iterL. _supd. iterL. _supd. iterT 2.
-        reveal ITREE. hide_r. reveal ITREE.
+        iterL. _supd. iterL. _supd. 
+        iterT 1.
+        reveal ITREE. hide_r. iterT 1. reveal ITREE.
         (* iterL. iterL.  *)
         prb. gbase. pclearbot. 
-        eapply CIH; try (rewrite !length_insert; eauto); try (rewrite list_lookup_insert; grind); eauto.
+        eapply CIH; try (rewrite !length_insert; eauto); try (rewrite list_lookup_insert; grind); eauto; grind.
         {
           iIntros "H". 
           iPoseProof (UPD with "H") as ">H".
@@ -642,64 +746,75 @@ Section CANCEL.
           iModIntro. iSplitL "H0"; eauto.
           iApply H4; eauto.
         }
-        { grind. }
         i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto.
       }
       destruct (classic (tid < base.length srcs)); cycle 1.
       {
         reveal ITREE. 
-        hide_r. eapply Nat.le_ngt, lookup_ge_None_2 in H7.
-        _iter. rewrite list_lookup_insert_ne; [|et]. rewrite H7.
+        hide_r. eapply Nat.le_ngt, lookup_ge_None_2 in H6.
+        _iter. rewrite list_lookup_insert_ne; [|et]. rewrite H6.
         s. unfold triggerUB. ired. _coreA.
       } 
       exploit lookup_lt_is_Some_2; eauto. i. inv x2.
       exploit (lookup_lt_is_Some_2 tgts tid); [nia|]. i. inv x3.
       assert (tid < base.length tgts) by nia.
       hexploit RELS; eauto. i. 
-      depdes H11.
+      depdes H10.
       (* another yield *)
       destruct (Nat.eq_dec tid cid); try nia.
       subst. _iter.  
       replace (<[cid:=tau;; interp_hp
       (tau;; ` r0 : nat <- trigger Tid;;
              ` x1 : () <- (tau;; trigger (Assume (ginv sk0 r0)));;
-             ` x2 : Any.t <- (tau;; tau;; ktrT x1);;
+             ` x2 : Any.t <- ktrT x1;;
              inline_hp (prog (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0)))
                (` ret : Any.t <- trigger (Choose Any.t);; trigger (Guarantee (Q  cid meta x2 ret));;; Ret ret))]> tgts !! tid)
       with (tgts !! tid) by (rewrite list_lookup_insert_ne; eauto).
-      rewrite H9. ired. tau 2.
-      iterT 1. iterL. tau 1. iterT 2.
+      rewrite H8. ired. tau 2.
+      iterT 1. iterL. tau 1. ls. iterT 2. 
       iterL. _coreE a1. ls. iterL. _supd.
       iterL. _coreE H5. ls. iterL. _coreE H3. ls.
-      iterL. _supd. iterL. _supd. iterT 2.
-      erewrite <- list_lookup_insert_ne in H8; eauto. 
+      iterL. _supd. iterL. _supd. 
       reveal ITREE. prb. gbase. pclearbot. 
-      eapply CIH with (Q:=Q0); try (rewrite !length_insert; eauto); try (rewrite list_lookup_insert; grind); eauto.
+      eapply CIH with (Q:=Q0); try (rewrite !length_insert; eauto); try (rewrite list_lookup_insert; grind); swap 1 7.
+      { 
+        instantiate (1:= tau;; itrT). instantiate (1:= tau;; itrS).
+        pstep. econs. eauto.
+      }
+      all: eauto.
       { 
         iIntros "H". iApply Own_op.
         iPoseProof (UPD with "H") as ">H". 
         iPoseProof (H2 with "H") as ">[H0 H1]".
         iModIntro. iFrame. iApply H4. eauto. 
       }
+      {
+        des_ifs. grind. rewrite list_lookup_insert_ne; eauto.
+        rewrite H7 interp_hp_tau. grind. 
+      }
       { rewrite length_insert. nia. }
-      { des_ifs. grind. }
-      i. destruct (classic (cid = k)); cycle 1.
+      { des_ifs. rewrite -interp_hp_tau. grind. }
+      i. destruct (Nat.eq_dec cid k); cycle 1.
       {
         rewrite !list_lookup_insert_ne in LKX, LKY; eauto.
-        hexploit RELS; eauto. i. depdes H12; econs; eauto.
+        hexploit RELS; eauto. i. depdes H10; econs; eauto.
+        { rewrite SRC. des_ifs. }
+        instantiate (1:=meta1). instantiate (1:= Q1).
         rewrite TGT. des_ifs.
       }
       subst k.
       rewrite list_lookup_insert_ne in LKY; eauto.
       rewrite list_lookup_insert in LKX; eauto.
       rewrite list_lookup_insert in LKY; eauto.
-      inv LKX. econs; try refl; try instantiate (1:= Q); grind; eauto.
-      unfold yield_post. rewrite -interp_hp_tau.
-      repeat f_equal. ired. repeat f_equal.
+      inv LKX. econs; try refl; grind; eauto.
+      rewrite/yield_post -interp_hp_tau.
+      instantiate (1:= meta). instantiate (1:= Q).
+      repeat f_equal. ired. repeat f_equal. 
       extensionalities. ired. repeat f_equal.
       extensionalities. ired. repeat f_equal.
-      destruct H12. eauto.
-  Admitted.
+      destruct H11. eauto.
+      Unshelve. eauto.
+  Qed.
 
   Lemma fsb_find_spec fn l fsp fbody (sk0: Sk.t)
     (SKINCL: incl sk sk0) 
