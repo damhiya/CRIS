@@ -209,12 +209,9 @@ Section CANCEL.
 
   Variant thread_rel sk0 (cid tid: nat) src tgt : Prop :=
   | thread_rel_body X (meta: X) (Q: nat -> X -> Any.t -> Any.t -> iProp) l itrS itrT
-      (* Q should give vret = ret if cid = 0. (return of main function)*)
       (STACK: valid_stack l)
       (RET: ∀vret ret, 
             tid = 0 -> Q tid meta vret ret ⊢ ⌜vret = ret⌝)
-      (* (RET: ∀X (postcond: nat -> X -> Any.t -> Any.t -> iProp) tid meta vret ret, 
-            tid = 0 -> postcond tid meta vret ret ⊢ ⌜vret = ret⌝) *)
       (REL: @elim_rel _ ginv stb sk0 _ l itrS itrT)
       (SRC: src = 
           ((if Nat.eq_dec tid cid then Ret tt else tau;; Ret tt);;; interp_hp itrS))
@@ -254,12 +251,12 @@ Section CANCEL.
     iIntros "H". iApply Own_op. iStopProof. eauto.
   Qed.
 
-  Lemma extends_Own
+  (* Lemma extends_Own
         (a b : Σ)
         (OWN: Own b ⊢ Own a) 
     :
       a ≼ b.
-  Proof. Admitted.
+  Proof. Admitted. *)
 
   Lemma list_lookup_length {X} (x: X) l:
     (l ++ [x]) !! (base.length l) = Some x.
@@ -441,7 +438,7 @@ Section CANCEL.
       { 
         eapply Own_bupd_valid in H2; eauto. 
         eapply valid_extends with (a := a2); eauto.
-        eapply extends_Own; eauto.
+        eapply ; eauto.
       }
       iterL. _coreE H5. ls.
       iterL. _coreE H3. ls.
@@ -473,24 +470,21 @@ Section CANCEL.
       inv STACK. eapply inj_pair2 in H9, H10. subst x3 m'. rename tid' into tid.
       iterL. _coreE a1. ls.
       iterL. _supd.
-      assert (✓ (a1 ⋅ x0)). 
-      { 
-        eapply Own_bupd_valid in H2; eauto. 
-        eapply valid_extends with (a := a2); eauto.
-        eapply extends_Own; eauto.
-      }
-      iterL. _coreE H5. ls.
-      iterL. _coreE H3. ls.
-      iterL. _supd. iterL. _supd.
-      iterT 3. 
-      reveal ITREE. prb. gbase. pclearbot. 
-      eapply CIH; eauto; try (rewrite !length_insert; nia); try (rewrite list_lookup_insert; grind).
+      assert (UPD': Own rs ==∗ Own (a1 ⋅ x0)). 
       {  
         iIntros "H". iPoseProof (UPD with "H") as ">H".
         iPoseProof (H2 with "H") as ">[H0 H1]".
         iPoseProof (H4 with "H1") as "H1".
         iModIntro. rewrite Own_op. iFrame.
       }
+      assert (✓ (a1 ⋅ x0)). 
+      { eapply Own_wand_valid with (a1 := rs); eauto. }
+      iterL. _coreE H5. ls.
+      iterL. _coreE H3. ls.
+      iterL. _supd. iterL. _supd.
+      iterT 3. 
+      reveal ITREE. prb. gbase. pclearbot. 
+      eapply CIH; eauto; try (rewrite !length_insert; nia); try (rewrite list_lookup_insert; grind).
       i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto.
     - (* spawn *)
       ired. hide_l. _coreA.
@@ -558,11 +552,14 @@ Section CANCEL.
       assert (forall x, base.length tgts < base.length (tgts ++ [x])). { i. rewrite length_app. s. nia. }
       hexploit (Own_bupd_split rt); eauto. i. des.
       hexploit (Own_bupd_split x1); eauto. 
-      { 
-        hexploit Own_bupd_valid; eauto. i. 
-        eapply extends_Own in H8.
-        eapply valid_extends with (b := x1) in H9; eauto.
-        eapply cmra_valid_op_r. eauto.
+      {
+        hexploit (Own_wand_valid rt (a1 ⋅ x1)); eauto.
+        {
+          iIntros "H". iPoseProof (H6 with "H") as ">[H0 H1]".
+          iPoseProof (H8 with "H1") as "H1". 
+          iModIntro. rewrite Own_op. iFrame.
+        }
+        i. eapply cmra_valid_op_r. eauto. 
       }  
       i. des.
       iterT 2. iterL. _coreE x. ls.
@@ -651,12 +648,15 @@ Section CANCEL.
       iterL. _supd. iterL. _supd.
       iterT 2. iterL. tau 1. ls.  
       hexploit (Own_bupd_split rt); eauto. i. des.
-      assert (✓ (a1 ⋅ x)). 
-      { 
-        eapply Own_bupd_valid in H2; eauto. 
-        eapply valid_extends with (a := a2); eauto.
-        eapply extends_Own; eauto.
+      assert (UPD': Own rs ==∗ Own (a1 ⋅ x)). 
+      {
+        iIntros "H". iPoseProof (UPD with "H") as ">H".
+        iPoseProof (H2 with "H") as ">[H0 H1]".
+        iModIntro. iSplitL "H0"; eauto.
+        iApply H4; eauto.
       }
+      assert (✓ (a1 ⋅ x)). 
+      { eapply Own_wand_valid with (a1 := rs); eauto. } 
       destruct (Nat.eq_dec cid tid).
       {
         subst tid.
@@ -670,13 +670,6 @@ Section CANCEL.
         (* iterL. iterL.  *)
         prb. gbase. pclearbot. 
         eapply CIH; try (rewrite !length_insert; eauto); try (rewrite list_lookup_insert; grind); eauto; grind.
-        {
-          iIntros "H". 
-          iPoseProof (UPD with "H") as ">H".
-          iPoseProof (H2 with "H") as ">[H0 H1]".
-          iModIntro. iSplitL "H0"; eauto.
-          iApply H4; eauto.
-        }
         i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto.
       }
       destruct (classic (tid < base.length srcs)); cycle 1.
