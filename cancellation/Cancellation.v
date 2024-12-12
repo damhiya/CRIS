@@ -207,87 +207,26 @@ Section CANCEL.
   Definition yield_post sk0: itree hmodE _ :=
       tau;; tau;; r <- trigger Tid;; x <- (tau;; trigger (Assume (ginv sk0 r)));; Ret ().
 
-  (* no more fr? *)
-  (* Variant thread_rel sk0 (cid tid: nat) (fr: Σ) src tgt : Prop :=
-  | thread_rel_init scopes fsp fbody m varg arg
-      (NOC: tid ≠ cid)
-      (* (NOC: ~ Nat.eq_dec tid cid) *)
-      (FR: Own fr ⊢ (ginv sk0 tid) -∗ fsp.(precond) tid m varg arg)
-      (SRC: src = interp_hp (HModSem.sandbox scopes (fbody varg)))
-      (TGT: tgt = interp_hp (HModSem.sandbox scopes (HoareFun (ginv sk0) (stb sk0)
-                    fsp.(precond) fsp.(postcond) fbody arg)))
-  | thread_rel_body (Q: Any.t -> Any.t -> iProp) l itrS itrT
-      (STACK: valid_stack l)
-      (REL: @elim_rel _ ginv stb sk0 _ l itrS itrT)
-      (SRC: src = interp_hp itrS)
-      (TGT: tgt =
-        (interp_hp
-            ((if Nat.eq_dec tid cid then Ret tt else yield_post sk0);;;
-            (* ((if Nat.eq_dec tid cid then Ret tt else trigger (Assume (ginv sk0 tid)));;; *)
-              vret <- itrT;; 
-              (inline_hp (prog (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0)))
-                ( ret <- trigger (Choose Any.t);;
-                  trigger (Guarantee (Q vret ret));;;
-                  Ret ret)))))
-  . *)
-
   Variant thread_rel sk0 (cid tid: nat) src tgt : Prop :=
-  (* | thread_rel_init scopes scopes' fsp fbody fr m varg arg
-      (NOC: tid ≠ cid)
-      (FR: Own fr ⊢ (ginv sk0 tid) -∗ fsp.(precond) tid m varg arg)
-      (SRC: src = 
-        interp_hp 
-          (HModSem.sandbox scopes 
-            (inline_hp (prog (SModSemAux.to_hmod (SMod.modsem md sk0)))
-              (HModSem.sandbox scopes' (interp_smod_aux (fbody varg))))))
-      (TGT: tgt = 
-        interp_hp 
-          (HModSem.sandbox scopes 
-            (inline_hp (prog (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0)))
-              (HModSem.sandbox scopes' (HoareFun (ginv sk0) (stb sk0) fsp.(precond) fsp.(postcond) fbody arg))))) *)
-
   | thread_rel_body X (meta: X) (Q: nat -> X -> Any.t -> Any.t -> iProp) l itrS itrT
       (* Q should give vret = ret if cid = 0. (return of main function)*)
       (STACK: valid_stack l)
-      (RET: ∀X (postcond: nat -> X -> Any.t -> Any.t -> iProp) tid meta vret ret, 
-            tid = 0 -> postcond tid meta vret ret ⊢ ⌜vret = ret⌝)
+      (RET: ∀vret ret, 
+            tid = 0 -> Q tid meta vret ret ⊢ ⌜vret = ret⌝)
+      (* (RET: ∀X (postcond: nat -> X -> Any.t -> Any.t -> iProp) tid meta vret ret, 
+            tid = 0 -> postcond tid meta vret ret ⊢ ⌜vret = ret⌝) *)
       (REL: @elim_rel _ ginv stb sk0 _ l itrS itrT)
       (SRC: src = 
           ((if Nat.eq_dec tid cid then Ret tt else tau;; Ret tt);;; interp_hp itrS))
       (TGT: tgt =
         (interp_hp
             ((if Nat.eq_dec tid cid then Ret tt else yield_post sk0);;;
-            (* ((if Nat.eq_dec tid cid then Ret tt else trigger (Assume (ginv sk0 tid)));;; *)
               vret <- itrT;; 
               (inline_hp (prog (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0)))
-                ( ret <- trigger (Choose Any.t);;
+                (ret <- trigger (Choose Any.t);;
                   trigger (Guarantee (Q tid meta vret ret));;;
                   Ret ret))))) 
   .
-
-  (* H6: Own a1 ⊢ ginv sk0 (base.length tgts) -∗ precond f (base.length tgts) x args x0
-  H7: Own a2 ⊢ Own x1
-  k: nat
-  x3: Σ
-  y, z: itree modE Any.t
-  NEQ: cid ≠ k
-  LKX: (frs ++ [ε]) !! k = Some x3
-  LKY:
-    (srcs ++
-     [` sem : (Any.t → itree modE Any.t) <-
-      (alist_find fn
-         (List.map (map_snd (interp_hp_fun <*> HModSem.sandbox_body))
-            (List.map (map_snd (wrap_elimI (SModSemAux.to_hmod (SMod.modsem md sk0))))
-               (List.map (map_snd (λ ksb : list string * fspecbody, (ksb.1, fsb_body ksb.2))) (SModSem.fnsems (SMod.modsem md sk0)))))) !;; sem args]) !! k = 
-    Some y
-  LKZ:
-    (tgts ++
-     [` sem : (Any.t → itree modE Any.t) <-
-      (alist_find fn
-         (List.map (map_snd (interp_hp_fun <*> HModSem.sandbox_body))
-            (List.map (map_snd (wrap_elimI (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0))))
-               (List.map (map_snd (λ ksb : list string * fspecbody, (ksb.1, interp_sb_hp (ginv sk0) (stb sk0) ksb.2))) (SModSem.fnsems (SMod.modsem md sk0)))))) !;; 
-      sem x0]) !! k = Some z *)
 
   Lemma valid_solve (a b c: Σ) :
     ✓ a -> a ≡  b ⋅ c -> ✓ b.
@@ -340,7 +279,6 @@ Section CANCEL.
          interp_stateE Any.t
            (ITree.iter
               (handle_schE_callE
-                 (* (progS sk0 rs)) *)
                  (ModSem.prog
                     (HModSem.to_mod
                        (HModSemAux.inline
@@ -351,7 +289,6 @@ Section CANCEL.
          interp_stateE Any.t
            (ITree.iter
               (handle_schE_callE
-                (* (progT sk0 (rs ⋅ mr))) *)
                  (ModSem.prog
                     (HModSem.to_mod
                        (HModSemAux.inline
@@ -366,26 +303,20 @@ Section CANCEL.
     depdes x2.
     hexploit REL. i. eapply Forall2i_len in H. des.
     assert (cid < List.length tgts). { rewrite <- H. eauto. }
-
     assert (RELS: forall k x y (NEQ: cid ≠ k)
                     (LKX: srcs !! k = Some x)
                     (LKY: tgts !! k = Some y),
-                    (* (LKZ: tgts !! k = Some z), *)
                       thread_rel sk0 cid k x y). 
     { i. eapply Forall2i_forall in REL; eauto. }
-
     clear REL. rename REL0 into REL. unfold elim_rel in REL.
-
     revert_until SKWF. s. gcofix CIH. i.
-
     _iter. _iter. rewrite x7 x8. subst. ired.
     destruct (Nat.eq_dec cid cid); ss. grind.
-
     assert (✓ rt). { eapply Own_wand_valid with (a1:=rs); eauto. } 
-
     punfold REL.  
     pattern itrS, itrT. depdes REL.
-    - ired. hide_l. _coreA.
+    - (* NB *)
+      ired. hide_l. _coreA.
     - (* ret *)
       ired. hide_r. des_ifs; cycle 1.
       { unfold triggerUB. ired. _coreA. }
@@ -395,7 +326,8 @@ Section CANCEL.
       iterL. _coreA. ls. iterL. _supd. iterL. _supd.
       iterT 2. iterL. rewrite !StRed.ret. ired. st.
       hexploit Own_bupd_split; eauto. i. des.
-      specialize (RET _ Q 0 meta v x e).
+      specialize (RET v x e).
+      (* specialize (RET _ Q 0 meta v x e). *)
       eapply Own_pure_soundness with (x := a1).
       {
         eapply Own_bupd_valid in H2; eauto.
@@ -672,13 +604,13 @@ Section CANCEL.
         rewrite length_insert length_app. s. nia. 
       }
       { instantiate (1:= []). econs. }
-      all: try eauto.
+      { i. nia. }
       {
-        des_ifs. rewrite bind_ret_l. f_equal.
-        rewrite (bisim_is_eq (translate_bind _ _ _)).
         instantiate (1:= x). instantiate (1:= postcond f).
         instantiate (1:= inline_hp (prog (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0))) 
-                         (HModSem.sandbox l0 (interp_smod (ginv sk0) (stb sk0) (fbody args)))).
+                         (HModSem.sandbox l0 (interp_smod (ginv sk0) (stb sk0) (fbody args)))).        
+        des_ifs. rewrite bind_ret_l. f_equal.
+        rewrite (bisim_is_eq (translate_bind _ _ _)).
         rewrite -HIRed.bind. 
         repeat f_equal. extensionalities.
         match goal with [|-(?itr = _)] => set itr end.
@@ -702,7 +634,6 @@ Section CANCEL.
         { destruct (Nat.eq_dec cid (base.length tgts)); try nia. grind. }
         {
           destruct (Nat.eq_dec cid (base.length tgts)); try nia.
-          instantiate (1:= meta). instantiate (1:= Q).
           instantiate (1:= ktrT (base.length tgts)).
           unfold yield_post. ired. rewrite -interp_hp_tau. 
           repeat f_equal. extensionalities. grind.
@@ -799,7 +730,6 @@ Section CANCEL.
         rewrite !list_lookup_insert_ne in LKX, LKY; eauto.
         hexploit RELS; eauto. i. depdes H10; econs; eauto.
         { rewrite SRC. des_ifs. }
-        instantiate (1:=meta1). instantiate (1:= Q1).
         rewrite TGT. des_ifs.
       }
       subst k.
@@ -808,7 +738,6 @@ Section CANCEL.
       rewrite list_lookup_insert in LKY; eauto.
       inv LKX. econs; try refl; grind; eauto.
       rewrite/yield_post -interp_hp_tau.
-      instantiate (1:= meta). instantiate (1:= Q).
       repeat f_equal. ired. repeat f_equal. 
       extensionalities. ired. repeat f_equal.
       extensionalities. ired. repeat f_equal.
@@ -839,16 +768,6 @@ Section CANCEL.
     eapply fsb_find_spec, STBCOMPLETE in FIND; ss.
     rewrite FIND in STB. inv STB. ss. 
   Qed.
-
-  (* Theorem cancellation P P
-    (COND: forall sk0 (EQV: Sk.equiv sk sk0) (SKWF: Sk.wf sk0), 
-      exists fsp m rt,
-        (stb sk0 "CCR_init" = Some fsp) /\
-        (forall rs (WF: ✓ rs) (SRC: Own rs ⊢ (P sk0)), ✓ (rs ⋅ rt)) /\ 
-        (Own rt ⊢ (P sk0) ∗ (fsp.(precond) 0 m tt↑ tt↑)) /\
-        (∀ m vret ret, (fsp.(postcond) 0 m vret ret) -∗ ⌜vret = ret⌝)
-    )
-  : *)
 
   Theorem cancellation 
       P sk0 mr fsp meta r
@@ -914,7 +833,6 @@ Section CANCEL.
     _iter. _sget. ired. _tau. st. st.
     hss. ired. hss. ired.
     _iter. _core. st.
-    (* { eapply (@valid_solve_eq _ _ COND0). r_solve. } *)
     exists VALID. ired. _tau. st. st. 
     _iter. _core. st. exists PRE. ired.
     _iter. _tau. st. st. _supd. _iter. _supd.
@@ -923,22 +841,18 @@ Section CANCEL.
     (* CCR_main's precond all executed. *)
     reveal ITREE. 
     eapply cancel_aux; eauto.
-    (* { instantiate (1:= [a2]). ss. } *)
-    (* { s. r_solve. admit. } *)
-    (* { eapply (valid_solve_eq H). r_solve. } *)
     econs; eauto using Forall2i.
-    econs 2; s; eauto; cycle 2.
-    { 
-      rewrite bind_ret_l HModSB.transl_bind HIRed.bind. 
-      repeat f_equal. extensionalities.
-      rewrite HModSB.transl_bind HModSB.transl_core. do 2 f_equal.
-      extensionalities.
-      rewrite HModSB.transl_bind HModSB.transl_ag. do 2 f_equal.
-      extensionalities.
-      rewrite HModSB.transl_ret. ss.
-    } 
-    { instantiate (1:= []). econs. }
-    eapply elim_rel_refl; eauto.
+    econs; s; eauto; try rewrite bind_ret_l; ss.
+    { econs. }
+    { i. specialize (POST meta vret ret). auto. }
+    { eapply elim_rel_refl; eauto. }
+    rewrite HModSB.transl_bind HIRed.bind. 
+    repeat f_equal. extensionalities.
+    rewrite HModSB.transl_bind HModSB.transl_core. do 2 f_equal.
+    extensionalities.
+    rewrite HModSB.transl_bind HModSB.transl_ag. do 2 f_equal.
+    extensionalities.
+    rewrite HModSB.transl_ret. ss.
   Qed.
   
   (*** Final Theorem ***)
