@@ -434,12 +434,15 @@ Section CANCEL.
       i. des.
       iterL. _coreE a1. ls.
       iterL. _supd.
-      assert (✓ (a1 ⋅ x1)). 
-      { 
-        eapply Own_bupd_valid in H2; eauto. 
-        eapply valid_extends with (a := a2); eauto.
-        eapply ; eauto.
+      assert (UPD': Own rs ==∗ Own (a1 ⋅ x1)).
+      {  
+        iIntros "H". iPoseProof (UPD with "H") as ">H".
+        iPoseProof (H2 with "H") as ">[H0 H1]".
+        iPoseProof (H4 with "H1") as "H1".
+        iModIntro. rewrite Own_op. iFrame.
       }
+      assert (✓ (a1 ⋅ x1)). 
+      { eapply Own_wand_valid with (a1 := rs); eauto. } 
       iterL. _coreE H5. ls.
       iterL. _coreE H3. ls.
       iterL. _supd. iterL. _supd.
@@ -447,12 +450,6 @@ Section CANCEL.
       reveal ITREE. prb. gbase. pclearbot.
       eapply CIH with (l:= _ :: l); eauto; try (rewrite !length_insert; nia); 
       try (eapply KTR); try (rewrite list_lookup_insert; grind).
-      {  
-        iIntros "H". iPoseProof (UPD with "H") as ">H".
-        iPoseProof (H2 with "H") as ">[H0 H1]".
-        iPoseProof (H4 with "H1") as "H1".
-        iModIntro. rewrite Own_op. iFrame.
-      }
       { econs; eauto. }
       i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto.
     - (* tail *)
@@ -706,12 +703,6 @@ Section CANCEL.
         pstep. econs. eauto.
       }
       all: eauto.
-      { 
-        iIntros "H". iApply Own_op.
-        iPoseProof (UPD with "H") as ">H". 
-        iPoseProof (H2 with "H") as ">[H0 H1]".
-        iModIntro. iFrame. iApply H4. eauto. 
-      }
       {
         des_ifs. grind. rewrite list_lookup_insert_ne; eauto.
         rewrite H7 interp_hp_tau. grind. 
