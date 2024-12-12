@@ -203,7 +203,46 @@ Section ADEQUACY.
     destruct b; ss. destruct pt0; ss.
   Qed.
 
-  Lemma simg_adequacy_io_aux
+  Lemma simg_adequacy_hang_aux
+    pt' r I O fn args k
+    (CIH: ∀ ps pt itr_src itr_tgt
+             (SIM: simg eq ps pt itr_src itr_tgt),
+        Beh.of_itree itr_tgt <1= r itr_src)
+    (PRE: ∀ ps pt itr_src
+             (LE: smj_ltb pt pt')
+             (SIM: simg eq ps pt itr_src (r <- trigger (@IO I O fn args);; k r)),
+        paco2 Beh._of_itree r itr_src (Tr.hang (obs_out fn args)))
+    ps pt itr_src 
+    (LE: smj_le pt pt')
+    (SIM: simg eq ps pt itr_src (r <- trigger (@IO I O fn args);; k r))
+    :
+    paco2 Beh._of_itree r itr_src (Tr.hang (obs_out fn args)).
+  Proof.
+    remember (r <- trigger (@IO I O fn args);; k r) as itr_tgt eqn: EQ in SIM.
+    revert LE EQ. pattern ps, pt, itr_src, itr_tgt.
+    eapply simg_ind, SIM. clear - CIH PRE.
+    intros ps pt itr_src itr_tgt SIM LE EQ. subst.
+    depdes SIM; auto_simg SIM0 SIM1 x x0 x1.
+    eapply PRE; eauto.
+    destruct LE; subst; eauto using smj_ltb_trans.
+  Qed.
+  
+  Lemma simg_adequacy_hang
+    r I O fn args k
+    (CIH: ∀ ps pt itr_src itr_tgt
+             (SIM: simg eq ps pt itr_src itr_tgt),
+        Beh.of_itree itr_tgt <1= r itr_src)
+    ps pt itr_src 
+    (SIM: simg eq ps pt itr_src (r <- trigger (@IO I O fn args);; k r))
+    :
+    paco2 Beh._of_itree r itr_src (Tr.hang (obs_out fn args)).
+  Proof.
+    do 3 (eapply simg_adequacy_hang_aux; try (by left; refl); eauto; i).
+    exfalso. destruct pt2; ss. destruct b, pt1; ss.
+    destruct b; ss. destruct pt0; ss.
+  Qed.
+  
+  Lemma simg_adequacy_interact_aux
     pt' r I O fn args (retv: O) k tr
     (CIH: ∀ ps pt itr_src itr_tgt
              (SIM: simg eq ps pt itr_src itr_tgt),
@@ -212,12 +251,12 @@ Section ADEQUACY.
     (PRE: ∀ ps pt itr_src
              (LE: smj_ltb pt pt')
              (SIM: simg eq ps pt itr_src (r <- trigger (@IO I O fn args);; k r)),
-        paco2 Beh._of_itree r itr_src (Tr.cons (obs_io fn args retv) tr))
+        paco2 Beh._of_itree r itr_src (Tr.interact (obs_io fn args retv) tr))
     ps pt itr_src 
     (LE: smj_le pt pt')
     (SIM: simg eq ps pt itr_src (r <- trigger (@IO I O fn args);; k r))
     :
-    paco2 Beh._of_itree r itr_src (Tr.cons (obs_io fn args retv) tr).
+    paco2 Beh._of_itree r itr_src (Tr.interact (obs_io fn args retv) tr).
   Proof.
     remember (r <- trigger (@IO I O fn args);; k r) as itr_tgt eqn: EQ in SIM.
     revert LE EQ. pattern ps, pt, itr_src, itr_tgt.
@@ -228,7 +267,7 @@ Section ADEQUACY.
     destruct LE; subst; eauto using smj_ltb_trans.
   Qed.
   
-  Lemma simg_adequacy_io
+  Lemma simg_adequacy_interact
     r I O fn args (retv: O) k tr
     (CIH: ∀ ps pt itr_src itr_tgt
              (SIM: simg eq ps pt itr_src itr_tgt),
@@ -237,9 +276,9 @@ Section ADEQUACY.
     (SIM: simg eq ps pt itr_src (r <- trigger (@IO I O fn args);; k r))
     (BEH: Beh.of_itree (k retv) tr)
     :
-    paco2 Beh._of_itree r itr_src (Tr.cons (obs_io fn args retv) tr).
+    paco2 Beh._of_itree r itr_src (Tr.interact (obs_io fn args retv) tr).
   Proof.
-    do 3 (eapply simg_adequacy_io_aux; try (by left; refl); eauto; i).
+    do 3 (eapply simg_adequacy_interact_aux; try (by left; refl); eauto; i).
     exfalso. destruct pt2; ss. destruct b, pt1; ss.
     destruct b; ss. destruct pt0; ss.
   Qed.
@@ -338,7 +377,8 @@ Section ADEQUACY.
     - eapply paco2_mon; try eapply simg_adequacy_ret; eauto; ss.
     - eapply paco2_mon; try eapply simg_adequacy_spin; eauto; ss.
     - eapply paco2_mon; try eapply simg_adequacy_tau; eauto; ss.
-    - eapply paco2_mon; try eapply simg_adequacy_io; eauto; ss.
+    - eapply paco2_mon; try eapply simg_adequacy_hang; eauto; ss.
+    - eapply paco2_mon; try eapply simg_adequacy_interact; eauto; ss.
     - eapply paco2_mon; try eapply simg_adequacy_choose; eauto; ss.
     - eapply paco2_mon; try eapply simg_adequacy_take; eauto; ss.
   Qed.

@@ -6,32 +6,30 @@ Require Import Events.
 
 Set Implicit Arguments.
 
-Inductive obsE: Type -> Type :=
+Inductive outinE: Type :=
 | obs_io
     (fn : string)
     (I : Type)
     (O : Type)
     (args : I)
     (rv : O)
- : obsE unit.
+ : outinE.
+
+Inductive outE: Type :=
+| obs_out
+    (fn : string)
+    (I : Type)
+    (args : I)
+ : outE.
 
 Module Tr.
   CoInductive t: Type :=
   | done (retv : Any.t)
   | spin
-  | cons (hd : obsE unit) (tl: t).
+  | hang (e: outE)
+  | interact (hd : outinE) (tl: t)
+  .
 
-  Fixpoint app (pre : list (obsE unit)) (bh: t): t :=
-    match pre with
-    | [] => bh
-    | hd :: tl => cons hd (app tl bh)
-    end.
-
-  Lemma fold_app s pre tl : Tr.cons s (Tr.app pre tl) = Tr.app (s :: pre) tl.
-  Proof. reflexivity. Qed.
-
-  Definition prefix (pre : list (obsE unit)) (bh : t): Prop :=
-    exists tl, <<APP: app pre tl = bh>>.
 End Tr.
 
 
@@ -85,11 +83,16 @@ Section BEHAVES.
     :
     _of_itreeF coself self (tau;; t) evs
 
-  | sb_vis
+  | sb_hang
+      I O fn args k
+    :
+    _of_itreeF coself self (r <- trigger (@IO I O fn args);; k r) (Tr.hang (obs_out fn args))
+
+  | sb_interact
       I O fn args r evs k
       (TL: coself (k r) evs)
     :
-    _of_itreeF coself self (r <- trigger (@IO I O fn args);; k r) (Tr.cons (obs_io fn args r) evs)
+    _of_itreeF coself self (r <- trigger (@IO I O fn args);; k r) (Tr.interact (obs_io fn args r) evs)
 
   | sb_choose
       X k evs
