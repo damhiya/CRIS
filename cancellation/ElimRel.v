@@ -109,7 +109,6 @@ Section REL.
             self ((tid, tid', existT X (m, m'))::l) (ktrS varg) (ktrT (tid, m, tid', m', varg)))
    :
    elim_rel_def self l (tau;; src) (@hmod_elim_head X P varg >>= ktrT) 
-   (* elim_rel_def self l (tau;; ktrS varg) ('(tid, m, tid', m', varg') <- @hmod_elim_head X P varg;; ktrT (tid, m, tid', m', varg'))  *)
   
   | elim_rel_tail X Q l tid m tid' m' vret src ktrS ktrT
       (SRC: src = ktrS vret)
@@ -118,7 +117,6 @@ Section REL.
     elim_rel_def self ((tid, tid', existT X (m, m'))::l)
         (tau;; tau;; tau;; src) 
         (x <- @hmod_elim_tail X Q (tid, m, tid', m') vret;; tau;; ktrT x)
-        (* (vret' <- (@hmod_elim_tail X Q (tid, m, tid', m') vret);; (tau;; tau;; ktrT vret')) *)
 
   | elim_rel_spawn l f fn args ktrS ktrT
       (STB: stb sk0 fn = Some f)
@@ -148,34 +146,48 @@ Section REL.
     i. destruct PR; eauto using @elim_rel_def.
   Qed.
 
+  Hint Resolve cpn3_wcompat: paco.
+  Hint Resolve elim_rel_def_mon: paco.
+  
   Variant elim_rel_bindC {A}
     (r: list (nat * nat * {X: Type & (X * X)%type}) -> itree hmodE A -> itree hmodE A -> Prop)
     : list (nat * nat * {X: Type & (X * X)%type}) -> itree hmodE A -> itree hmodE A -> Prop
     :=
   | elim_rel_bindC_intro
-      itrS itrT
-      (REL: r [] itrS itrT)
-
-      l ktrS ktrT
-      (RELK: ∀v, r l (ktrS v) (ktrT v))
-      (* (RELK: ∀vs vt, r l (ktrS vs) (ktrT vt)) *)
+      l1 l2 itrS itrT ktrS ktrT
+      (REL: r l1 itrS itrT)
+      (RELK: ∀v, r l2 (ktrS v) (ktrT v))
     :
-    elim_rel_bindC r l (itrS >>= ktrS) (itrT >>= ktrT)
+    elim_rel_bindC r (l1++l2) (itrS >>= ktrS) (itrT >>= ktrT)
   .
 
-  Lemma elim_rel_bindC_mon {A}
-        r1 r2 
-        (LEr: r1 <3= r2)
-    :
-    @elim_rel_bindC A r1 <3= elim_rel_bindC r2
-  .
+  Lemma elim_rel_bindC_mon {A}:
+    monotone3 (@elim_rel_bindC A).
   Proof.
-    ii. destruct PR; econs; eauto.
+    ii. destruct IN; econs; eauto.
   Qed.
 
   Lemma elim_rel_bindC_spec {sk0 A}:
     elim_rel_bindC <4= gupaco3 (@elim_rel_def sk0 A) (cpn3 (@elim_rel_def sk0 A)).
-  Proof. Admitted.
+  Proof.
+    Local Opaque hmod_elim_tail.
+    eapply wrespect3_uclo; eauto with paco.
+    econs; [apply elim_rel_bindC_mon|].
+    i. inv PR. apply GF in REL.
+    inv REL; grind; eauto 7 using rclo3, elim_rel_def, elim_rel_bindC with paco.
+    - econs.
+      { instantiate (1:= fun varg => x <- ktrS0 varg;; ktrS x). eauto. }
+      i. econs 2; cycle 1.
+      + rewrite app_comm_cons. econs; [apply KTR|]; eauto.
+      + eauto using rclo3.
+    - eapply eq_ind.
+      + eapply elim_rel_tail.
+        { instantiate (2:= fun vret => x <- ktrS0 vret;; ktrS x). eauto. }
+        i. s. econs 2; cycle 1.
+        * econs; [apply KTR|]; eauto.
+        * eauto using rclo3.
+      + f_equal. extensionalities. grind.
+  Qed.
 
 End REL.
 
@@ -517,7 +529,8 @@ Section CANCEL.
       }
       rewrite H H0. clear ITREE ITREE0 H H0.
 
-      rewrite -bind_tau. guclo elim_rel_bindC_spec. econs.
+      rewrite -bind_tau. guclo elim_rel_bindC_spec.    
+      eapply elim_rel_bindC_intro with (l1 := []).
       {
         erewrite HoareCall_inline; eauto.
         rewrite HModSB.transl_bind HIRed.bind.
@@ -534,7 +547,8 @@ Section CANCEL.
         }
         i. ired. 
         (* rewrite [i1 varg]add_dummy_ret. *)
-        guclo elim_rel_bindC_spec. econs.
+        guclo elim_rel_bindC_spec.
+        eapply elim_rel_bindC_intro with (l1 := []).
         { rewrite Heqi0. unfold interp_sb_hp_aux. s. eauto with paco. }
         i.
         set_r. eassert (ITREE = a <- hmod_elim_tail (meta f) (postcond f) (tid, m, tid', m') v;; (tau;; Ret a)).
