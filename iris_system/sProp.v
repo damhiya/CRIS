@@ -26,11 +26,11 @@ Module HRA.
     }.
   Next Obligation. i. symmetry. apply HRA.subG_prf. Qed.
 
-  Global Program Instance in_subG `{M : ucmra} `{emb : @GRA.inG M Γ} : @GRA.inG M Σ := {
+  Global Program Instance in_subG `{M : cmra} `{emb : @GRA.inG M Γ} : @GRA.inG M Σ := {
       inG_id := sub.(subG_map) emb.(GRA.inG_id);
-      }.
+  }.
   Next Obligation.
-    i. destruct emb. subst. destruct sub. ss.
+    i. destruct emb. destruct sub. ss. rewrite subG_prf0. ss.
   Qed.
 
   End HRA.

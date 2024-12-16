@@ -175,8 +175,9 @@ Section HModProd.
     (MATCH : ∀ sk fn,
            In fn (List.map fst (HModSem.fnsems (HMod.modsem A sk))) →
            In fn (List.map fst (HModSem.fnsems (HMod.modsem B sk))))
-    (SIM : ∀ sk fn
-            (IN : In fn (List.map fst (HModSem.fnsems (HMod.modsem A sk)))),
+    (SIM : ∀ fn sk
+            (IN : In fn (List.map fst (HModSem.fnsems (HMod.modsem A sk))))
+            (SKINCL : List.incl (HMod.sk (HMod.add B C)) sk) (SKWF : Sk.wf sk),
           HSSim.sim_fun (HMod.modsem (HMod.add A C) sk) (HMod.modsem (HMod.add B C) sk)
             (IstProd (IstSB A Ist) IstEq sk) fn)
     (SK : HMod.sk A = HMod.sk B)

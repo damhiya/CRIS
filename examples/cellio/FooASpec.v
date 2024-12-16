@@ -1,14 +1,10 @@
-(* Require Import Coqlib ITreelib sflib.
+Require Import Coqlib ITreelib sflib.
 Require Import ImpPrelude.
 Require Import Events.
 Require Import Behavior.
 Require Import HMod SMod.
 Require Import Skeleton.
 Require Import PCM IPM STB.
-From ExtLib Require Import
-     Core.RelDec
-     Structures.Maps
-     Data.Map.FMapAList.
 Require Import ISim.
 Require Import FooHeader.
 Require Import sProp sWorld World SRF.
@@ -27,6 +23,4 @@ Section FooAS.
     unfold Stb. unseal "ccr". prove_nodup.
   Qed.
 
-End FooAS.
-End FooAS.
- *)
+End FooAS. End FooAS.

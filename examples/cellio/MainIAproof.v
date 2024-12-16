@@ -1,19 +1,9 @@
-(* Require Import Coqlib ITreelib sflib.
+Require Import Coqlib ITreelib sflib.
 Require Import ImpPrelude.
 Require Import Skeleton.
 Require Import IPM.
 Require Import Events Behavior.
 Require Import Relation_Definitions.
-
-(*** TODO: export these in Coqlib or Universe ***)
-Require Import Relation_Operators.
-Require Import RelationPairs.
-From ITree Require Import
-     Events.MapDefault.
-From ExtLib Require Import
-     Core.RelDec
-     Structures.Maps
-     Data.Map.FMapAList.
 Require Import STB.
 Require Import ISim HMod PMod Events ITactics.
 Require Import SMod2HMod Mod ModSimFacts.
@@ -28,22 +18,21 @@ Set Implicit Arguments.
 
 Local Open Scope nat_scope.
 
-Module MainIM.
-Section SIMMODSEM.
-  Context `{_M: CellioRA.t}.
-  
+Module MainIM. Section MainIM.
+  Import CellioA.
+  Context `{!Inv.t Σ Γ α β τ, !G Γ, !CellioA.G Γ}.
+  Notation iProp := (iProp Σ).
+
   Definition Ist: Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp :=
-    fun _ _ st_src st_tgt => emp%I.
+    λ _ _ st_src st_tgt, emp%I.
 
   Variable ginv: Sk.t -> invspec.
   Variable Stb: Sk.t -> gname -> option fspec.
-  Hypothesis FooInStbMap: forall sk, stb_incl FooAS.Stb (Stb sk).  
+  Hypothesis FooInStbMap: forall sk, stb_incl FooAS.Stb (Stb sk).
 
   Local Notation CellioA := (CellioA.t ginv Stb).
   Local Notation MainA := (MainA.t ginv Stb).
   Local Notation IstFull := (IstProd (IstSB MainA Ist) IstEq).
-
-  (**********)
 
   Lemma simF_main:
     HSim.sim_fun (MainA ★ CellioA) (MainI.t ★ CellioA) IstFull MainName.main.
@@ -62,7 +51,7 @@ Section SIMMODSEM.
     steps_r. forces_l.
     iSplitL ""; eauto.
 
-    call "IST"; eauto.
+    call "IST"; [eauto|]. iModIntro.
 
     steps_l. iDestruct "ASM" as "%". subst. hss.
     steps_r. hss. steps_r. inline_r.
@@ -78,7 +67,7 @@ Section SIMMODSEM.
 
     steps_r. step. iFrame. eauto.
 
-  Unshelve. all:eauto.
+    Unshelve. all:(exact ()).
   Qed.
 
   Theorem sim:
@@ -90,5 +79,4 @@ Section SIMMODSEM.
     - eapply simF_main; eauto.
   Qed.
 
-End SIMMODSEM.
-End MainIM. *)
+End MainIM. End MainIM.

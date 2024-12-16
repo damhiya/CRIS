@@ -1,8 +1,8 @@
-(* Require Import Coqlib ITreelib sflib.
+Require Import Coqlib ITreelib sflib.
 Require Import ImpPrelude.
 Require Import Events.
 Require Import Behavior.
-Require Import SMod HMod PMod.
+Require Import HMod PMod.
 Require Import Skeleton.
 Require Import PCM.
 Require Import STB IPM.
@@ -12,9 +12,8 @@ Require Import ITactics.
 
 Set Implicit Arguments.
 
-Module CellI.
-Section CELL_I.
-  Context `{Σ : GRA.t}.  
+Module CellI. Section CellI.
+  Context `{Σ : GRA.t}.
 
   Variable idx : nat.
 
@@ -22,15 +21,14 @@ Section CELL_I.
   Definition v_cv := (CellName.mn idx) ↯ "cv".
 
   Definition get : unit -> itree pmodE Z :=
-    fun _ =>
+    λ _,
       cv <- cgetU v_cv;;
-      Ret cv
-  .
+      Ret cv.
 
   Definition set : Z -> itree pmodE unit :=
-    fun x =>
-      cput v_cv x
-  .
+    λ x,
+      cput v_cv x;;;
+      Ret ().
 
   Definition fnsems :=
     [(CellName.get idx, (scopes, cfunU get));
@@ -46,12 +44,11 @@ Section CELL_I.
   Next Obligation. prove_nodup. Qed.
   
   Definition Mod : PMod.t := {|
-    PMod.modsem := fun _ => Sem;
+    PMod.modsem := λ _, Sem;
     PMod.sk := CellSK.t;
   |}
   .
 
   Definition t := Seal.sealing "ccr" (PMod.to_hmod Mod).
 
-End CELL_I.
-End CellI. *)
+End CellI. End CellI.

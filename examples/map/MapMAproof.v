@@ -179,10 +179,10 @@ Module MapMA. Section MapMA.
     init_sim.
     - iIntros "(IST & P)"; s.
       iExists _, _. iSplit; eauto. iLeft. iFrame. eauto.
-    - apply simF_init.
-    - apply simF_get.
-    - apply simF_set.
-    - apply simF_set_by_user.
+    - apply simF_init; eauto.
+    - apply simF_get; eauto.
+    - apply simF_set; eauto.
+    - apply simF_set_by_user; eauto.
   Qed.
 
 End MapMA. End MapMA.

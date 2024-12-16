@@ -1,4 +1,4 @@
-(* Require Import Coqlib ITreelib.
+Require Import Coqlib ITreelib.
 Require Import ImpPrelude.
 Require Import Events.
 Require Import Behavior.
@@ -46,4 +46,4 @@ Module CellioI. Section CellioI.
   |}.
 
   Definition t := Seal.sealing "ccr" (PMod.to_hmod Mod).
-End CellioI. End CellioI. *)
+End CellioI. End CellioI.
