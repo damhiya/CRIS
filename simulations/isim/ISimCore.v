@@ -723,5 +723,6 @@ Module HSim. Section HSim.
         }.
 
     Definition sim_fun fn : Prop :=
-      ∀ sk, HSSim.sim_fun (HMod.modsem md_src sk) (HMod.modsem md_tgt sk) (Ist sk) fn.
+      ∀ sk (SKINCL : List.incl md_tgt.(HMod.sk) sk) (SKWF : Sk.wf sk), 
+        HSSim.sim_fun (HMod.modsem md_src sk) (HMod.modsem md_tgt sk) (Ist sk) fn.
 End HSim. End HSim.

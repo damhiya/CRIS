@@ -277,10 +277,10 @@ Module CtrlIA. Section CtrlIA.
       iModIntro. iIntros (? ? FIND) "P".
       iLeft. rewrite Nat.mod_small; eauto.
       eapply lookup_replicate_1. eauto.
-    - apply simF_init.
-    - apply simF_get_size.
-    - apply simF_enqueue.
-    - apply simF_dequeue.
+    - apply simF_init; eauto.
+    - apply simF_get_size; eauto.
+    - apply simF_enqueue; eauto.
+    - apply simF_dequeue; eauto.
   Qed.
 
 End CtrlIA. End CtrlIA.

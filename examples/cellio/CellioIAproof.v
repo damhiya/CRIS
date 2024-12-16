@@ -75,8 +75,8 @@ Module CellioIA. Section CellioIA.
   Proof.
     init_sim.
     - iIntros "H". iExists _. iFrame. eauto.
-    - apply simF_set.
-    - apply simF_get.
+    - apply simF_set; eauto.
+    - apply simF_get; eauto.
   Qed.
 
 End CellioIA. End CellioIA.

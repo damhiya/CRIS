@@ -99,8 +99,8 @@ Module CellIA. Section CellIA.
     init_sim.
     - iIntros "H". iDestruct "H" as (v) "(C & A)".
       repeat iExists _. iSplit; eauto. iLeft. iFrame.
-    - apply simF_get.
-    - apply simF_set.
+    - apply simF_get; eauto.
+    - apply simF_set; eauto.
   Qed.
 
 End CellIA. End CellIA.
