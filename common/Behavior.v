@@ -25,6 +25,7 @@ Inductive outE: Type :=
 Module Tr.
   CoInductive t: Type :=
   | done (retv : Any.t)
+  | abort
   | spin
   | hang (e: outE)
   | interact (hd : outinE) (tl: t)
@@ -71,6 +72,11 @@ Section BEHAVES.
   | sb_final
       retv
     : _of_itreeF coself self (Ret retv) (Tr.done retv)
+
+  | sb_abort
+      t
+    :
+    _of_itreeF coself self t Tr.abort
 
   | sb_spin
       t

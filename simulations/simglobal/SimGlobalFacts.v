@@ -375,6 +375,7 @@ Section ADEQUACY.
     pattern itr_tgt, tr. eapply Beh.of_itree_ind, PR. clear -CIH. i.
     depdes PR; des; hdes.
     - eapply paco2_mon; try eapply simg_adequacy_ret; eauto; ss.
+    - pstep. econs. econs.
     - eapply paco2_mon; try eapply simg_adequacy_spin; eauto; ss.
     - eapply paco2_mon; try eapply simg_adequacy_tau; eauto; ss.
     - eapply paco2_mon; try eapply simg_adequacy_hang; eauto; ss.
