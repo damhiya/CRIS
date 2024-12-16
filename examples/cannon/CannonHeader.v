@@ -1,5 +1,5 @@
 Require Import Coqlib ITreelib sflib.
-Require Import Events Any IPM ImpPrelude IModL Skeleton.
+Require Import Events Any IPM ImpPrelude Skeleton.
 
 Module CannonName.
 

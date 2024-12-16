@@ -1,6 +1,6 @@
 Require Import Coqlib ITreelib sflib.
 Require Import ImpPrelude.
-Require Import Events STS.
+Require Import Events.
 Require Import Behavior.
 Require Import HMod PMod.
 Require Import Skeleton.
@@ -18,7 +18,7 @@ Set Implicit Arguments.
 Module CannonI.
 Section I.
   Local Open Scope string_scope.
-  Context `{_W: CtxWD.t}.
+  Context `{!Inv.t Σ Γ α β τ}.
 
   Definition scopes := ["Cannon"].
   Definition v_lv := "Cannon" ↯ "lv". (* local variable *)

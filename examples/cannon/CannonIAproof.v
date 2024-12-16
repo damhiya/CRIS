@@ -2,7 +2,7 @@ Require Import Coqlib ITreelib sflib.
 Require Import CannonHeader CannonI CannonA CannonASpec SMod ModSim.
 Require Import ImpPrelude.
 Require Import Skeleton.
-Require Import PCM IPM IFacts.
+Require Import PCM IPM.
 Require Import Events Behavior.
 Require Import Relation_Definitions.
 
@@ -31,14 +31,15 @@ Local Open Scope nat_scope.
 
 Module CannonIA.
 Section SIMMODSEM.
-  Context `{_W: CtxWD.t}.
-  Context `{_A: CannonAR.t (Γ:=Γ)}.
+  Import CannonAS.
+  Context `{!Inv.t Σ Γ α β τ, !G Γ}.
+  Local Notation iProp := (iProp Σ).
 
   Definition Ist: Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp :=
     fun _ _ st_src st_tgt =>
       ((⌜st_src = [(CannonA.v_lv, 1%Z↑)] /\ st_tgt = [(CannonI.v_lv, 1%Z↑)]⌝
         ∗
-        (OwnM (CannonAS.Ready) ∨ OwnM (CannonAS.Fired))))%I.
+        (Ready ∨ Fired)))%I.
 
   Variable ginv: Sk.t -> invspec.
   Variable StbCannon: Sk.t -> gname -> option fspec.
@@ -58,8 +59,8 @@ Section SIMMODSEM.
 
     (* already fired *)
     2:{
-      iExFalso. iCombine "F B" as "Boom". iOwnWf "Boom".
-      ur in H2. des. red in H2. des. ur in H2. des_ifs.
+      iExFalso. iCombine "B F" as "Boom".
+      iApply (FiredBall with "Boom").
     }
 
     steps_r. force_r. iSplitR.
@@ -80,8 +81,8 @@ Section SIMMODSEM.
 End SIMMODSEM.
 
 Section PROOF.
-  Context `{_W: CtxWD.t}.
-  Context `{_A: CannonAR.t (Γ:=Γ)}.
+  Import CannonAS.
+  Context `{!Inv.t Σ Γ α β τ, !G Γ}.
 
   Theorem correct gi StbCannon
     :

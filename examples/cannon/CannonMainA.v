@@ -1,6 +1,6 @@
 Require Import Coqlib ITreelib sflib.
 Require Import ImpPrelude.
-Require Import Events STS.
+Require Import Events.
 Require Import Behavior.
 Require Import SMod HMod.
 Require Import Skeleton.
@@ -13,14 +13,15 @@ Set Implicit Arguments.
 
 Module MainA.
 Section A.
-  Context `{_W: CtxWD.t}.
-  Context `{_A: MainAR.t (Γ:=Γ)}.
+  Import CannonAS.
+  Context `{!Inv.t Σ Γ α β τ, !G Γ}.
+  Local Notation iProp := (iProp Σ).
 
   Variable num_fire: nat.
 
   Definition scopes := ["Main"].
 
-  Fixpoint main_repeat (n: nat): itree smodE unit :=
+  Fixpoint main_repeat (n: nat): itree hmodE unit :=
   match n with
   | 0 =>
     Ret tt
@@ -30,7 +31,7 @@ Section A.
     main_repeat n'
   end.
 
-  Definition main: list val -> itree smodE unit :=
+  Definition main: list val -> itree hmodE unit :=
     fun _ =>
       main_repeat num_fire
   .
@@ -54,7 +55,7 @@ Section A.
   |}.
 
   Definition InitCond : Sk.t -> iProp :=
-    fun _ => (OwnM CannonAS.Ready)%I.
+    fun _ => Ready%I.
 
   Variable ginv: Sk.t -> invspec.
   Variable GlobalStb: Sk.t -> gname -> option fspec.

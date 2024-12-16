@@ -1,6 +1,6 @@
 Require Import Coqlib ITreelib sflib.
 Require Import ImpPrelude.
-Require Import Events STS.
+Require Import Events.
 Require Import Behavior.
 Require Import HMod SMod.
 Require Import Skeleton.
@@ -17,14 +17,13 @@ Set Implicit Arguments.
 
 Module CannonMainAS.
 Section Main.
-  Context `{_W: CtxWD.t}.
-  Context `{_A: CannonAR.t (Γ:=Γ)}.
+  Import CannonAS.
+  Context `{!Inv.t Σ Γ α β τ, !G Γ}.
 
   Definition main_spec: fspec :=
-      mk_simple (fun (_: unit) =>
-          (ord_top,
-            (fun varg => (⌜varg = ([]: list val)↑⌝ ∗ (OwnM (CannonAS.Ball)))%I),
-            (fun vret => (⌜vret = tt↑⌝)%I))).
+    fspec_simple (fun (_: unit) =>
+        ((fun varg => (⌜varg = ([]: list val)↑⌝ ∗ Ball)%I),
+        (fun vret => (⌜vret = tt↑⌝)%I))).
 
   Definition Stb: alist gname fspec :=
     Seal.sealing "ccr" [(MainName.main, main_spec)].
@@ -36,10 +35,3 @@ Section Main.
 
 End Main.
 End CannonMainAS.
-
-Module MainAR.
-  Class t
-    `{@GRA.inG CannonAS.RA Γ}
-    := CannonMainARes: unit.
-
-End MainAR.

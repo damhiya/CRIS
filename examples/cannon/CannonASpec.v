@@ -1,6 +1,6 @@
 Require Import Coqlib ITreelib sflib.
 Require Import ImpPrelude.
-Require Import Events STS.
+Require Import Events.
 Require Import Behavior.
 Require Import HMod SMod.
 Require Import Skeleton.
@@ -13,40 +13,54 @@ Require Import ISim.
 Require Import CannonHeader.
 Require Import sProp sWorld World SRF.
 From stdpp Require Import coPset gmap namespaces.
+
+From iris.algebra Require Import excl_auth.
+
 Set Implicit Arguments.
 
 Module CannonAS.
 Section Cannon.
-  Context `{_W: CtxWD.t}.
+  Class G (Γ: HRA.t) := { #[local] RA_inG :: GRA.inG (excl_authR unitO) Γ }.
+  Context `{!Inv.t Σ Γ α β τ, !G Γ}.
+  Local Notation iProp := (iProp Σ).
 
-  Global Instance RA: URA.t := Auth.t (Excl.t unit).
-  Context `{@GRA.inG RA Γ}.
+  Definition Ready: iProp := 
+    Seal.sealing "CannonA" 
+      (OwnM (●E tt)).
+  Definition Ball: iProp :=
+    Seal.sealing "CannonA"
+      (OwnM (◯E tt)).
+  Definition Fired: iProp :=
+    Seal.sealing "CannonA"
+      (OwnM ((●E tt) ⋅ (◯E tt))).
 
-  Definition Ready: RA := Auth.black (M:=(Excl.t _)) (Some tt).
-  Definition Ball: RA := Auth.white (M:=(Excl.t _)) (Some tt).
-  Definition Fired: RA := Auth.excl (M:=(Excl.t _)) (Some tt) (Some tt).
-
-  Lemma ReadyBall: Ready ⋅ Ball = Fired.
-  Proof. ur. rewrite URA.unit_idl. ss. Qed.
-
-  Lemma FiredReady: ~ URA.wf (Fired ⋅ Ready).
-  Proof. ur. ss. Qed.
-
-  Lemma FiredBall: ~ URA.wf (Fired ⋅ Ball).
-  Proof. ur. ii. des. ur in H0. red in H0. des. ur in H0. des_ifs. Qed.
-
-  Lemma BallReady_wf: URA.wf (Ball ⋅ Ready).
+  Lemma ReadyBall: 
+    Ready ∗ Ball ⊢ Fired.
   Proof.
-    ur. split.
-    { eexists. rewrite ! URA.unit_id. ss. }
-    { ur. ss. }
+    rewrite /Ready /Ball /Fired. unseal "CannonA".
+    iIntros "[B W]". iSplitL "B"; iFrame.
+  Qed.
+
+  Lemma FiredReady: 
+    Ready ∗ Fired ⊢ False.
+  Proof. 
+    rewrite /Ready /Fired. unseal "CannonA".
+    iIntros "[B0 [B1 W]]". iCombine "B0 B1" as "X".
+    iOwnWf "X" as X. rewrite excl_auth_auth_op_valid // in X.
+  Qed.
+
+  Lemma FiredBall: 
+    Ball ∗ Fired ⊢ False.
+  Proof.
+    rewrite /Ball /Fired. unseal "CannonA".
+    iIntros "[W0 [B W1]]". iCombine "W0 W1" as "X".
+    iOwnWf "X" as X. rewrite excl_auth_frag_op_valid // in X.
   Qed.
 
   Definition fire_spec: fspec :=
-      mk_simple (fun (_: unit) =>
-          (ord_top,
-            (fun varg => (⌜varg = ([]: list val)↑⌝ ∗ (OwnM (Ball)))%I),
-            (fun vret => (⌜vret = (1: Z)%Z↑⌝)%I))).
+    fspec_simple (fun (_: unit) =>
+        ((fun varg => (⌜varg = ([]: list val)↑⌝ ∗ Ball)%I),
+        (fun vret => (⌜vret = (1: Z)%Z↑⌝)%I))).
 
   Definition Stb: alist gname fspec :=
     Seal.sealing "ccr" [(CannonName.fire, fire_spec)].
@@ -58,10 +72,3 @@ Section Cannon.
 
 End Cannon.
 End CannonAS.
-
-Module CannonAR.
-  Class t
-    `{@GRA.inG CannonAS.RA Γ}
-    := CannonARes: unit.
-
-End CannonAR.

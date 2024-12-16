@@ -3,7 +3,7 @@ Require Import CannonHeader CannonI CannonA CannonASpec SMod ModSim.
 Require Import CannonMainI CannonMainA CannonMainASpec.
 Require Import ImpPrelude.
 Require Import Skeleton.
-Require Import PCM IPM IFacts.
+Require Import PCM IPM.
 Require Import Events Behavior.
 Require Import Relation_Definitions.
 
@@ -33,9 +33,10 @@ Local Open Scope nat_scope.
 
 Module CannonMainIA.
 Section SIMMODSEM.
-  Context `{_W: CtxWD.t}.
-  Context `{_A: CannonAR.t (Γ:=Γ)}.
-
+  Import CannonAS.
+  Context `{!Inv.t Σ Γ α β τ, !G Γ}.
+  Local Notation iProp := (iProp Σ).
+  
   Definition Ist: Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp :=
     fun _ _ _ _ => (True)%I.
 
@@ -57,8 +58,8 @@ Section SIMMODSEM.
     steps_r. unfold ccallU. steps_l.
     unfold HoareCall. force_l. instantiate (1:=()). force_l.
     force_l. iSplitL "B"; et.
-    call "IST"; et. steps_l. iDestruct "ASM" as "[% %]"; des; subst. hss.
-    steps_r. step. steps_l. steps_r. force_l. force_l. iSplitR; et.
+    call "IST"; et. iModIntro. steps_l. iDestruct "ASM" as "[% %]"; des; subst. hss.
+    steps_r. hss. steps_r. step. steps_l. steps_r. force_l. force_l. iSplitR; et.
     step. iFrame; et.
   Qed.
 
@@ -74,8 +75,8 @@ End SIMMODSEM.
 
 Section PROOF.
 
-  Context `{_W: CtxWD.t}.
-  Context `{_A: CannonAR.t (Γ:=Γ)}.
+  Import CannonAS.
+  Context `{!Inv.t Σ Γ α β τ, !G Γ}.
 
   Theorem correct gi StbMain
     (CannonInStbMain: forall sk, stb_incl CannonAS.Stb (StbMain sk))
