@@ -1,5 +1,4 @@
-Require Import Coqlib sflib ITreelib.
-Require Import STS.
+Require Import Coqlib ITreelib.
 Require Import Behavior.
 Require Import Skeleton.
 Require Import PCM.
@@ -17,8 +16,8 @@ Require Import Red IRed.
 
 Set Implicit Arguments.
 
-#[export] Hint Resolve sim_itree_mon: paco.
-#[export] Hint Resolve cpn8_wcompat: paco.
+#[export] Hint Resolve sim_itree_mon : paco.
+#[export] Hint Resolve cpn8_wcompat : paco.
 
 
 
@@ -52,7 +51,7 @@ Ltac _force_l :=
     let name := fresh "_GUARANTEE" in
     destruct (classic P) as [name|name]; [ired_both; apply sim_itreeC_spec; eapply sim_itree_choose_src; [exists name]|contradict name]; cycle 1
 
-   (* TODO: handle interp_hCallE_tgt better and remove this case *)
+   (* TODO : handle interp_hCallE_tgt better and remove this case *)
   | [ |- (gpaco9 (_sim_itree _ _ _ _ _ _) _ _ _ _ _ _ _ _ _ _ (_, ITree.bind (interp _ (guarantee ?P )) _) (_, _)) ] =>
     let tvar := fresh "tmp" in
     let thyp := fresh "TMP" in
@@ -127,7 +126,7 @@ Ltac _step :=
     (* eapply safe_sim_sim; econs; i *)
   end;
   match goal with
-  | [ |- exists (_: unit), _ ] => esplits; [eauto|..]; i
+  | [ |- exists (_ : unit), _ ] => esplits; [eauto|..]; i
   | [ |- exists _, _ ] => fail 1
   | _ => idtac
   end
@@ -142,7 +141,7 @@ Ltac force_r := _force_r.
 
 Tactic Notation "hide" constr(tm) integer(occ) :=
   let tmp := fresh "tmp" in let TMP := fresh "TMP" in
-  set (xxx := tm) at occ; remember xxx as tmp eqn: TMP;
+  set (xxx := tm) at occ; remember xxx as tmp eqn : TMP;
   unfold xxx in *; clear xxx; guardH TMP.
 Ltac unhide :=
   unguard; subst.

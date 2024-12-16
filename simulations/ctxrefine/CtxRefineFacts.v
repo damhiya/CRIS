@@ -1,19 +1,18 @@
 Require Export Coqlib sflib Any.
 Require Import Behavior.
 Require Import Mod Skeleton ModSimFacts.
-Require Import PCM IPM HMod ISimCore ISimFacts.
+Require Import IPM HMod ISimCore ISimFacts.
 Require Import ModSim MainAdequacy CtxRefine.
 
-Section PROPERTIES.
+Section CtxRefineFacts.
+  Context `{Σ : GRA.t}.
+  Notation iProp := (iProp Σ).
 
-  (*** refines_modsem ***)
-  Global Program Instance refines_modsem_PreOrder: PreOrder refines_modsem.
+  Global Program Instance refines_modsem_PreOrder : PreOrder refines_modsem.
   Next Obligation. ii. ss. Qed.
   Next Obligation. ii. eapply H. eapply H0. ss. Qed.
 
-  Context `{Σ: GRA.t}.
-
-  Global Program Instance refines_PreOrder: PreOrder refines.
+  Global Program Instance refines_PreOrder : PreOrder refines.
   Next Obligation.
     split.
     { rr. refl. }
@@ -23,19 +22,39 @@ Section PROPERTIES.
     split.
     { rr. etrans. apply H. apply H0. }
     ii. destruct H, H0. des.
-    hexploit (H1 sk).
-    { etrans; eauto. } { eauto. } { eauto. } { eauto. } { eauto. }
+    hexploit (H1 sk); eauto.
+    { etrans; eauto. }
     i. des.
-    hexploit (H2 sk).
-    { etrans; eauto. refl. } { eauto. } { eauto. } { eauto. } { eauto. }
+    hexploit (H2 sk); eauto.
     i; des.
     exists rt0. esplits; eauto.
     etrans; eauto.
   Qed.
 
-  Lemma ctxr_refines mcs mct
-    (REF: ctx_refines mcs mct)
-    :
+  (*** vertical composition ***)
+  Global Program Instance ctx_refines_PreOrder : PreOrder ctx_refines.
+  Next Obligation. r. r. i. refl. Qed.
+  Next Obligation.
+    r. r. i. etrans.
+    - apply H.
+    - apply H0.
+  Qed.
+
+  Global Program Instance ctx_refines_Proper : Proper ((≡) ==> (≡) ==> iff) (@ctx_refines Σ).
+  Next Obligation.
+    intros ms1 ms2 mseq mt1 mt2 mteq; split; intros CTXR;
+      destruct ms1, ms2, mt1, mt2; inv mseq; inv mteq; ss; clarify; econs; ss;
+      specialize (CTXR ctx); inv CTXR; ss;
+      intros sk rs skequiv wfsk wfrs rsimpl wfmod; hexploit (H1 sk rs); eauto.
+    { iIntros "H"; iPoseProof (rsimpl with "H") as "[H1 H2]"; iSplitL "H1"; eauto; iApply H0; ss. }
+    { i; des; esplits; eauto; iIntros "H"; iPoseProof (H4 with "H") as "[H1 H2]";
+        iSplitL "H1"; eauto; iApply H2; ss. }
+    { iIntros "H"; iPoseProof (rsimpl with "H") as "[H1 H2]"; iSplitL "H1"; eauto; iApply H0; ss. }
+    { i; des; esplits; eauto; iIntros "H"; iPoseProof (H4 with "H") as "[H1 H2]";
+        iSplitL "H1"; eauto; iApply H2; ss. }
+  Qed.
+
+  Lemma ctxr_refines mcs mct (REF : ctx_refines mcs mct) :
     refines mcs mct.
   Proof.
     i. specialize (REF HMod.empty_mc).
@@ -48,23 +67,8 @@ Section PROPERTIES.
     iIntros "H". iPoseProof (H2 with "H") as "(? & _)". eauto.
   Qed.
 
-  (*** vertical composition ***)
-  
-  Global Program Instance ctxr_PreOrder: PreOrder ctx_refines.
-  Next Obligation.
-    r. r. i. refl.
-  Qed.
-  Next Obligation.
-    r. r. i. etrans.
-    - apply H.
-    - apply H0.
-  Qed.
-  
   (*** weakening for initial condition ***)
-
-  Lemma ctxr_cond_strengthen (m: HMod.t) (P Q: Sk.t -> iProp)
-    (IMPL: forall sk, P sk -∗ Q sk)
-    :
+  Lemma ctxr_cond_strengthen (m : HMod.t) (P Q : Sk.t → iProp) (IMPL : ∀ sk, P sk -∗ Q sk) :
     ctx_refines (m, P) (m, Q).
   Proof.
     split.
@@ -76,10 +80,7 @@ Section PROPERTIES.
   Qed.
 
   (*** frame rule for initial condition ***)
-
-  Lemma ctxr_cond_frameR (ms mt: HMod.t) Ps Pt Q
-    (REF: ctx_refines (ms, Ps) (mt, Pt))
-    :
+  Lemma ctxr_cond_frameR (ms mt : HMod.t) Ps Pt Q (REF : ctx_refines (ms, Ps) (mt, Pt)) :
     ctx_refines (ms, Ps ∗∗ Q)%I (mt, Pt ∗∗ Q)%I.
   Proof.
     ii. specialize (REF (ctx.1, HMod.addc Q ctx.2)).
@@ -93,9 +94,7 @@ Section PROPERTIES.
       unfold HMod.addc. iFrame. }
   Qed.
 
-  Lemma ctxr_cond_frameL (ms mt: HMod.t) Ps Pt Q
-    (REF: ctx_refines (ms, Ps) (mt, Pt))
-    :
+  Lemma ctxr_cond_frameL (ms mt : HMod.t) Ps Pt Q (REF : ctx_refines (ms, Ps) (mt, Pt)) :
     ctx_refines (ms, Q ∗∗ Ps)%I (mt, Q ∗∗ Pt)%I.
   Proof.
     etrans; [|etrans]; cycle 1.
@@ -105,8 +104,7 @@ Section PROPERTIES.
   Qed.
   
   (*** commutativity ***)
-
-  Theorem ctxr_comm (ma mb: HMod.t) P:
+  Theorem ctxr_comm (ma mb : HMod.t) P:
     ctx_refines (HMod.add ma mb, P) (HMod.add mb ma, P).
   Proof.
     etrans.
@@ -117,19 +115,14 @@ Section PROPERTIES.
   Qed.
 
   (*** frame rules ***)
-
-  Lemma ctxr_frameR ms Ps mt Pt mc
-    (REFA: ctx_refines (ms, Ps) (mt, Pt))
-    :
+  Lemma ctxr_frameR ms Ps mt Pt mc (REFA : ctx_refines (ms, Ps) (mt, Pt)) :
     ctx_refines (ms ★ mc, Ps) (mt ★ mc, Pt).
   Proof.
     ii. specialize (REFA (HMod.add mc ctx.1, ctx.2)). ss.
-    rewrite !hmod_add_assoc in *. eauto.
+    move: REFA; rewrite !hmod_add_assoc; eauto.
   Qed.
 
-  Lemma ctxr_frameL ms Ps mt Pt mc
-    (REFA: ctx_refines (ms, Ps) (mt, Pt))
-    :
+  Lemma ctxr_frameL ms Ps mt Pt mc (REFA : ctx_refines (ms, Ps) (mt, Pt)) :
     ctx_refines (mc ★ ms, Ps) (mc ★ mt, Pt).
   Proof.
     etrans. { eapply ctxr_comm. }
@@ -138,11 +131,9 @@ Section PROPERTIES.
   Qed.
 
   (*** horizontal composition ***)
-
   Lemma ctxr_compose_hor msa Psa mta Pta msb Psb mtb Ptb
-    (REFA: ctx_refines (msa, Psa) (mta, Pta))
-    (REFB: ctx_refines (msb, Psb) (mtb, Ptb))
-    :
+      (REFA : ctx_refines (msa, Psa) (mta, Pta))
+      (REFB : ctx_refines (msb, Psb) (mtb, Ptb)) :
     ctx_refines (msa ★ msb, Psa ∗∗ Psb)
                 (mta ★ mtb, Pta ∗∗ Ptb).
   Proof.
@@ -152,11 +143,9 @@ Section PROPERTIES.
   Qed.
 
   (*** mixed composition ***)
-
   Lemma ctxr_compose_mix msa Psa mta Pta msb Psb mtb Ptb mc
-    (REFA: ctx_refines (msa ★ mc, Psa) (mta ★ mc, Pta))
-    (REFB: ctx_refines (msb ★ mc, Psb) (mtb ★ mc, Ptb))
-    :
+      (REFA : ctx_refines (msa ★ mc, Psa) (mta ★ mc, Pta))
+      (REFB : ctx_refines (msb ★ mc, Psb) (mtb ★ mc, Ptb)) :
     ctx_refines (msa ★ msb ★ mc, Psa ∗∗ Psb)
                 (mta ★ mtb ★ mc, Pta ∗∗ Ptb).
   Proof.
@@ -170,5 +159,4 @@ Section PROPERTIES.
     rewrite hmod_add_assoc.
     apply ctxr_frameL, ctxr_comm.
   Qed.
-
-End PROPERTIES.
+End CtxRefineFacts.

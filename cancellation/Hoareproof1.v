@@ -47,16 +47,16 @@ Set Implicit Arguments.
 
 
 
-Inductive opair: Type := mk_opair { ofst: Ord.t; osnd: Ord.t }.
-(* Definition opair_lt: opair -> opair -> Prop := fun '(mk_opair x0 x1) '(mk_opair y0 y1) => (x0 < y0)%ord \/ (x0 == y0 /\ x1 < y1)%ord. *)
-Inductive opair_lt: opair -> opair -> Prop :=
+Inductive opair : Type := mk_opair { ofst : Ord.t; osnd : Ord.t }.
+(* Definition opair_lt : opair -> opair -> Prop := fun '(mk_opair x0 x1) '(mk_opair y0 y1) => (x0 < y0)%ord \/ (x0 == y0 /\ x1 < y1)%ord. *)
+Inductive opair_lt : opair -> opair -> Prop :=
 | intro_opair_lt
     x0 x1 y0 y1
-    (LT: (x0 < y0)%ord \/ (x0 == y0 /\ x1 < y1)%ord)
+    (LT : (x0 < y0)%ord \/ (x0 == y0 /\ x1 < y1)%ord)
   :
     opair_lt (mk_opair x0 x1) (mk_opair y0 y1)
 .
-Theorem wf_opair_lt: well_founded opair_lt.
+Theorem wf_opair_lt : well_founded opair_lt.
 Proof.
   ii. destruct a.
   revert osnd0. pattern ofst0. eapply well_founded_ind. { eapply Ord.lt_well_founded. } clear ofst0. intros ? IH0.
@@ -88,38 +88,38 @@ Section CANCEL.
 
 
 
-  Context `{Σ: GRA.t}.
+  Context `{Σ : GRA.t}.
 
-  Variable mds: list SMod.t.
+  Variable mds : list SMod.t.
 
-  Let sk: Sk.t := Sk.sort (fold_right Sk.add Sk.unit (List.map SMod.sk mds)).
-  (* Let skenv: SkEnv.t := Sk.load_skenv sk. *)
-  Let mss: list SModSem.t := (List.map ((flip SMod.get_modsem) sk) mds).
-  Let sbtb: list (gname * fspecbody) := (List.flat_map (SModSem.fnsems) mss).
-  Let _stb: list (gname * fspec) := List.map (fun '(fn, fs) => (fn, fs.(fsb_fspec))) sbtb.
+  Let sk : Sk.t := Sk.sort (fold_right Sk.add Sk.unit (List.map SMod.sk mds)).
+  (* Let skenv : SkEnv.t := Sk.load_skenv sk. *)
+  Let mss : list SModSem.t := (List.map ((flip SMod.get_modsem) sk) mds).
+  Let sbtb : list (gname * fspecbody) := (List.flat_map (SModSem.fnsems) mss).
+  Let _stb : list (gname * fspec) := List.map (fun '(fn, fs) => (fn, fs.(fsb_fspec))) sbtb.
   
-  Variable stb: gname -> option fspec.
+  Variable stb : gname -> option fspec.
   Hypothesis STBCOMPLETE:
-    forall fn fsp (FIND: alist_find fn _stb = Some fsp), stb fn = Some fsp.
+    forall fn fsp (FIND : alist_find fn _stb = Some fsp), stb fn = Some fsp.
   Hypothesis STBSOUND:
-    forall fn (FIND: alist_find fn _stb = None),
-      (<<NONE: stb fn = None>>) \/ (exists fsp, <<FIND: stb fn = Some fsp>> /\ <<TRIVIAL: forall x, fsp.(measure) x = ord_top>>).
+    forall fn (FIND : alist_find fn _stb = None),
+      (<<NONE : stb fn = None>>) \/ (exists fsp, <<FIND : stb fn = Some fsp>> /\ <<TRIVIAL : forall x, fsp.(measure) x = ord_top>>).
 
-  Let mds_mid2: list Mod.t := List.map (SMod.to_mid2 stb) mds.
-  Let mds_mid: list Mod.t := List.map (SMod.to_mid stb) mds.
+  Let mds_mid2 : list Mod.t := List.map (SMod.to_mid2 stb) mds.
+  Let mds_mid : list Mod.t := List.map (SMod.to_mid stb) mds.
 
-  Let md_mid2: Mod.t := Mod.add_list mds_mid2.
-  Let md_mid: Mod.t := Mod.add_list mds_mid.
+  Let md_mid2 : Mod.t := Mod.add_list mds_mid2.
+  Let md_mid : Mod.t := Mod.add_list mds_mid.
 
 
 
-  Let W: Type := p_state.
-  (* Let wf: Ord.t -> W -> W -> Prop := top3. *)
+  Let W : Type := p_state.
+  (* Let wf : Ord.t -> W -> W -> Prop := top3. *)
 
   Opaque interp_Es.
 
-  Let ms_mid2: ModSem.t := Mod.enclose md_mid2.
-  Let ms_mid: ModSem.t := Mod.enclose md_mid.
+  Let ms_mid2 : ModSem.t := Mod.enclose md_mid2.
+  Let ms_mid : ModSem.t := Mod.enclose md_mid.
 
   Let p_mid2 := ModSem.prog ms_mid2.
   Let p_mid := ModSem.prog ms_mid.
@@ -174,16 +174,16 @@ Section CANCEL.
 
   Lemma stb_find_iff_aux fn
     :
-      ((<<NONE: alist_find fn _stb = None>>) /\
-       (<<FINDSRC: alist_find fn (fnsems ms_mid2) = None>>) /\
-       (<<FINDMID: alist_find fn (fnsems ms_mid) = None>>)) \/
+      ((<<NONE : alist_find fn _stb = None>>) /\
+       (<<FINDSRC : alist_find fn (fnsems ms_mid2) = None>>) /\
+       (<<FINDMID : alist_find fn (fnsems ms_mid) = None>>)) \/
 
-      (exists (f: fspecbody) (run_: RUN),
-              (* (emb: forall T, Es T -> Es T), *)
-          (<<SOME: alist_find fn _stb = Some (f: fspec)>>) /\
-          (<<FINDSRC: alist_find fn (fnsems ms_mid2) =
+      (exists (f : fspecbody) (run_ : RUN),
+              (* (emb : forall T, Es T -> Es T), *)
+          (<<SOME : alist_find fn _stb = Some (f : fspec)>>) /\
+          (<<FINDSRC : alist_find fn (fnsems ms_mid2) =
                       Some ((translate (emb_ run_)  (T:=Any.t)) ∘ fun_to_mid2 (fsb_body f))>>) /\
-          (<<FINDMID: alist_find fn (fnsems ms_mid) =
+          (<<FINDMID : alist_find fn (fnsems ms_mid) =
                       Some ((translate (emb_ run_) (T:=Any.t)) ∘ fun_to_mid stb (fsb_body f))>>)).
   Proof.
     unfold ms_mid2, ms_mid, md_mid, md_mid2, mds_mid, mds_mid2, SMod.to_mid2, SMod.to_mid.
@@ -193,7 +193,7 @@ Section CANCEL.
 
 
     rewrite ! alist_find_app_o. erewrite ! SMod.red_do_ret2. uo. 
-    destruct (alist_find fn (SModSem.fnsems (SMod.get_modsem a sk))) eqn: AFIND.
+    destruct (alist_find fn (SModSem.fnsems (SMod.get_modsem a sk))) eqn : AFIND.
     { 
       right. destruct mds0.
       { 
@@ -240,15 +240,15 @@ Section CANCEL.
 
   Lemma stb_find_iff fn
     :
-      ((<<NONE: stb fn = None>> \/ (exists fsp, <<FIND: stb fn = Some fsp>> /\ <<TRIVIAL: forall x, fsp.(measure) x = ord_top>>)) /\
-       (<<FINDSRC: alist_find fn (fnsems ms_mid2) = None>>) /\
-       (<<FINDMID: alist_find fn (fnsems ms_mid) = None>>)) \/
+      ((<<NONE : stb fn = None>> \/ (exists fsp, <<FIND : stb fn = Some fsp>> /\ <<TRIVIAL : forall x, fsp.(measure) x = ord_top>>)) /\
+       (<<FINDSRC : alist_find fn (fnsems ms_mid2) = None>>) /\
+       (<<FINDMID : alist_find fn (fnsems ms_mid) = None>>)) \/
 
-      (exists (f: fspecbody) (run_: RUN),
-          (<<STB: stb fn = Some (f: fspec)>>) /\
-          (<<FINDSRC: alist_find fn (fnsems ms_mid2) =
+      (exists (f : fspecbody) (run_ : RUN),
+          (<<STB : stb fn = Some (f : fspec)>>) /\
+          (<<FINDSRC : alist_find fn (fnsems ms_mid2) =
                       Some ((translate (emb_ run_) (T:=Any.t)) ∘ fun_to_mid2 (fsb_body f))>>) /\
-          (<<FINDMID: alist_find fn (fnsems ms_mid) =
+          (<<FINDMID : alist_find fn (fnsems ms_mid) =
                       Some ((translate (emb_ run_) (T:=Any.t)) ∘ fun_to_mid stb (fsb_body f))>>)).
   Proof.
     hexploit (stb_find_iff_aux fn). i. des.
@@ -314,7 +314,7 @@ Section CANCEL.
     forall at_most o0
            st_src0 st_tgt0 run_
     ,
-      simg (fun (st_src1: p_state * unit) '(st_tgt1, x) => st_tgt1 = st_tgt0)
+      simg (fun (st_src1 : p_state * unit) '(st_tgt1, x) => st_tgt1 = st_tgt0)
            false false (Ret (st_src0, tt))
            (interp_Es p_mid (translate (emb_ run_) (interp_hCallE_mid stb (ord_pure o0) (_APC at_most))) st_tgt0)
   .
@@ -352,7 +352,7 @@ Section CANCEL.
   Let adequacy_type_aux_APC:
     forall o0 st_src0 st_tgt0 run_
     ,
-      simg (fun (st_src1: p_state * unit) '(st_tgt1, _) => st_tgt1 = st_tgt0)
+      simg (fun (st_src1 : p_state * unit) '(st_tgt1, _) => st_tgt1 = st_tgt0)
            false false (Ret (st_src0, tt))
            (interp_Es p_mid (translate (emb_ run_) (interp_hCallE_mid stb (ord_pure o0) APC)) st_tgt0)
   .
@@ -364,16 +364,16 @@ Section CANCEL.
     eapply simg_flag_down.
     gfinal. right.
     eapply adequacy_type_aux__APC.
-    Unshelve. all: try exact 0.
+    Unshelve. all : try exact 0.
   Qed.
 
-  Lemma idK_spec2: forall E A B (a: A) (itr: itree E B), itr = Ret a >>= fun _ => itr. Proof. { i. ired. ss. } Qed.
+  Lemma idK_spec2 : forall E A B (a : A) (itr : itree E B), itr = Ret a >>= fun _ => itr. Proof. { i. ired. ss. } Qed.
 
   Let adequacy_type_aux:
     forall
       o0 run_
-      A (body: itree _ A) st_src0 st_tgt0
-      (SIM: st_tgt0 = st_src0)
+      A (body : itree _ A) st_src0 st_tgt0
+      (SIM : st_tgt0 = st_src0)
     ,
       simg eq
            false false
@@ -443,7 +443,7 @@ Section CANCEL.
       i. subst. tstep.
       eapply simg_progress_flag. gbase. eapply CIH. ss.
     }
-    Unshelve. all: ss.
+    Unshelve. all : ss.
   Qed.
 
 
@@ -486,8 +486,8 @@ Section CANCEL.
     extensionality fnsb. destruct fnsb as [fn sb]. ss.
   Qed.
 
-  Context `{CONF: EMSConfig}.
-  Definition midConf: EMSConfig := {| finalize := finalize; initial_arg := Any.pair ord_top↑ initial_arg |}.
+  Context `{CONF : EMSConfig}.
+  Definition midConf : EMSConfig := {| finalize := finalize; initial_arg := Any.pair ord_top↑ initial_arg |}.
   Theorem adequacy_type_m2m:
     Beh.of_program (@Mod.compile _ midConf md_mid) <1=
     Beh.of_program (Mod.compile md_mid2).

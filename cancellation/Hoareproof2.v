@@ -35,39 +35,39 @@ Section CANCEL.
 
 
 
-  Context `{Σ: GRA.t}.
+  Context `{Σ : GRA.t}.
 
-  Variable mds: list SMod.t.
-
-
-  Let sk: Sk.t := Sk.sort (fold_right Sk.add Sk.unit (List.map SMod.sk mds)).
-  (* Let skenv: SkEnv.t := Sk.load_skenv sk. *)
-  Let mss: list SModSem.t := (List.map ((flip SMod.get_modsem) sk) mds).
-  Let sbtb: list (gname * fspecbody) := (List.flat_map (SModSem.fnsems) mss).
-  Let _stb: list (gname * fspec) := List.map (fun '(fn, fs) => (fn, fs.(fsb_fspec))) sbtb.
+  Variable mds : list SMod.t.
 
 
-  Variable stb: gname -> option fspec.
+  Let sk : Sk.t := Sk.sort (fold_right Sk.add Sk.unit (List.map SMod.sk mds)).
+  (* Let skenv : SkEnv.t := Sk.load_skenv sk. *)
+  Let mss : list SModSem.t := (List.map ((flip SMod.get_modsem) sk) mds).
+  Let sbtb : list (gname * fspecbody) := (List.flat_map (SModSem.fnsems) mss).
+  Let _stb : list (gname * fspec) := List.map (fun '(fn, fs) => (fn, fs.(fsb_fspec))) sbtb.
+
+
+  Variable stb : gname -> option fspec.
   Hypothesis STBCOMPLETE:
-    forall fn fsp (FIND: alist_find fn _stb = Some fsp), stb fn = Some fsp.
+    forall fn fsp (FIND : alist_find fn _stb = Some fsp), stb fn = Some fsp.
   Hypothesis STBSOUND:
-    forall fn (FIND: alist_find fn _stb = None),
-      (<<NONE: stb fn = None>>) \/ (exists fsp, <<FIND: stb fn = Some fsp>> /\ <<TRIVIAL: forall x, fsp.(measure) x = ord_top>>).
+    forall fn (FIND : alist_find fn _stb = None),
+      (<<NONE : stb fn = None>>) \/ (exists fsp, <<FIND : stb fn = Some fsp>> /\ <<TRIVIAL : forall x, fsp.(measure) x = ord_top>>).
 
-  Let mds_src: list Mod.t := List.map (SMod.to_src) mds.
-  Let mds_mid2: list Mod.t := List.map (SMod.to_mid2 stb) mds.
+  Let mds_src : list Mod.t := List.map (SMod.to_src) mds.
+  Let mds_mid2 : list Mod.t := List.map (SMod.to_mid2 stb) mds.
 
-  Let md_src: Mod.t := Mod.add_list mds_src.
-  Let md_mid2:  Mod.t := Mod.add_list mds_mid2.
+  Let md_src : Mod.t := Mod.add_list mds_src.
+  Let md_mid2 :  Mod.t := Mod.add_list mds_mid2.
 
 
 
-  Let W: Type := p_state.
+  Let W : Type := p_state.
 
   Opaque interp_Es.
 
-  Let ms_src: ModSem.t := Mod.enclose md_src.
-  Let ms_mid2: ModSem.t := Mod.enclose md_mid2.
+  Let ms_src : ModSem.t := Mod.enclose md_src.
+  Let ms_mid2 : ModSem.t := Mod.enclose md_mid2.
 
   Let p_src := ModSem.prog ms_src.
   Let p_mid2 := ModSem.prog ms_mid2.
@@ -75,9 +75,9 @@ Section CANCEL.
   Require Import IRed.
 
 
-  Lemma my_lemma__APC o (w: unit) st fl fr
+  Lemma my_lemma__APC o (w : unit) st fl fr
     :
-      paco8 (_sim_itree (fun (_: unit) '(st_src, st_tgt) => st_src = st_tgt) top2 fl fr) bot8 unit unit
+      paco8 (_sim_itree (fun (_ : unit) '(st_src, st_tgt) => st_src = st_tgt) top2 fl fr) bot8 unit unit
             (fun st_src st_tgt _ _ => st_src = st_tgt)
             false false w
             (st, Ret tt)
@@ -92,9 +92,9 @@ Section CANCEL.
     eapply IH; auto.
   Qed.
 
-  Lemma idK_spec2: forall E A B (a: A) (itr: itree E B), itr = Ret a >>= fun _ => itr. Proof. { i. ired. ss. } Qed.
+  Lemma idK_spec2 : forall E A B (a : A) (itr : itree E B), itr = Ret a >>= fun _ => itr. Proof. { i. ired. ss. } Qed.
 
-  Context {CONF: EMSConfig}.
+  Context {CONF : EMSConfig}.
   Theorem adequacy_type_m2s:
     Beh.of_program (Mod.compile md_mid2) <1=
     Beh.of_program (Mod.compile md_src).
@@ -107,7 +107,7 @@ Section CANCEL.
     { refl. }
     i. subst.
     econs; ss. i. econs; ss.
-    { instantiate (1:=fun (_ _: unit) => True). ss. }
+    { instantiate (1:=fun (_ _ : unit) => True). ss. }
     { instantiate (1:=fun _ '(st_src, st_tgt) => st_src = st_tgt).
       unfold ModSemR.fl_src, ModSemR.fl_tgt.
       eapply Forall2_apply_Forall2.
@@ -154,7 +154,7 @@ Section CANCEL.
       }
     }
     { exists tt. ss. }
-    Unshelve. all: ss.
+    Unshelve. all : ss.
   Qed.
 
 End CANCEL. *)

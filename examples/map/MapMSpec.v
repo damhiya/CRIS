@@ -1,6 +1,6 @@
 Require Import Coqlib ITreelib sflib.
 Require Import ImpPrelude.
-Require Import Events STS.
+Require Import Events.
 Require Import Behavior.
 Require Import HMod SMod.
 Require Import Skeleton.
@@ -13,70 +13,86 @@ Require Import ISim.
 Require Import MapHeader.
 Require Import sProp sWorld World SRF.
 From stdpp Require Import coPset gmap namespaces.
+
+Require Export MapM.
+From iris.algebra Require Import excl.
+
 Set Implicit Arguments.
 
-Module MapMS.
-Section MAP.
-  Context `{_W: CtxWD.t}.
+Module MapMS. Section MapMS.
+  (* Resource algebra for MapI ⊆ MapM *)
+  Class G (Γ : HRA.t) := { #[global] RA_inG :: GRA.inG (optionUR (exclR unitO)) Γ }.
+  
+  Import MapM.
+  Context `{!Inv.t Σ Γ α β τ, !G Γ}.
+  Notation iProp := (iProp Σ).
 
-  Definition RA: URA.t := Excl.t unit.
-  Context `{@GRA.inG RA Γ}. 
-
-  Definition pending_r: RA := Excl.just tt.
-
-  Definition pending: iProp :=
-    OwnM pending_r.
-
-  Global Opaque pending.
-
-  Definition init_spec: fspec :=
-    mk_fspec_inv 0
-      (fun _ _ => mk_simple (fun (sz: nat) =>
-                    (ord_top,
-                      (fun varg => (⌜varg = ([Vint sz]: list val)↑⌝
-                                     ∗ ⌜(8 * (Z.of_nat sz) < modulus_64%Z)%Z⌝
-                                     ∗ pending)%I),
-                      (fun vret => True%I)))).
-
-  Definition get_spec: fspec := 
-    mk_fspec_inv 0
-    (fun _ _ => mk_simple (fun k =>
-                  (ord_top,
-                    (fun varg => (⌜varg = ([Vint k])↑⌝)%I),
-                    (fun vret => True%I)))).  
-
-  Definition set_spec: fspec :=
-    mk_fspec_inv 0
-    (fun _ _ => mk_simple (fun '(k, v) =>
-                  (ord_top,
-                    (fun varg => (⌜varg = ([Vint k; Vint v])↑⌝)%I),
-                    (fun vret => True%I)))).  
-
-  Definition set_by_user_spec: fspec := 
-    mk_fspec_inv 0
-    (fun _ _ => mk_simple (fun k =>
-                  (ord_top,
-                    (fun varg => (⌜varg = ([Vint k])↑⌝)%I),
-                    (fun vret => True%I)))).  
-
-  Definition Stb: alist gname fspec :=
-    Seal.sealing "ccr" [(MapName.init, init_spec);
-                        (MapName.get, get_spec);
-                        (MapName.set, set_spec);
-                        (MapName.set_by_user, set_by_user_spec)].
-
-  Lemma Stb_nodup: List.NoDup (List.map fst Stb).
+  Definition pending : iProp := Seal.sealing "MapMS" OwnM (Some (Excl ())).
+  Lemma pending_unique : pending -∗ pending -∗ False.
   Proof.
-    unfold Stb. unseal "ccr". prove_nodup.
-  Qed.
+    rewrite /pending; unseal "MapMS".
+    iIntros "P1 P2"; iCombine "P1 P2" as "P" gives %CONT; ss.
+  Qed. 
+  (* Global Opaque pending. *)
 
-End MAP.
-End MapMS.
+  Definition init_spec : fspec :=
+    fspec_simple
+      (λ (sz : nat),
+        (λ varg, ⌜varg = [Vint sz]↑ ∧ (8 * sz < modulus_64)%Z⌝ ∗ pending,
+          λ vret, emp))%I.
 
-Module MapMR.
-  Class t
-    `{@GRA.inG MapMS.RA Γ}
-    := MapRA: unit.
+  Definition get_spec : fspec := 
+    fspec_simple
+      (λ k,
+        (λ varg, ⌜varg = [Vint k]↑⌝,
+          λ vret, emp))%I.
 
-End MapMR.
+  Definition set_spec : fspec :=
+    fspec_simple
+      (λ '(k, v),
+        (λ varg, ⌜varg = ([Vint k; Vint v])↑⌝,
+          λ vret, emp))%I.
 
+  Definition set_by_user_spec : fspec := 
+    fspec_simple
+      (λ k,
+        (λ varg, ⌜varg = [Vint k]↑⌝,
+          λ vret, emp))%I.
+
+  Definition Stb : alist gname fspec :=
+    Seal.sealing "ccr"
+      [(MapName.init, init_spec);
+       (MapName.get, get_spec);
+       (MapName.set, set_spec);
+       (MapName.set_by_user, set_by_user_spec)].
+
+  Lemma Stb_nodup : List.NoDup (List.map fst Stb).
+  Proof. by rewrite /Stb; unseal "ccr"; prove_nodup. Qed.
+
+  Definition fnsems :=
+    [(MapName.init, (scopes, mk_specbody MapMS.init_spec (cfunU init)));
+     (MapName.get, (scopes, mk_specbody MapMS.get_spec (cfunU get)));
+     (MapName.set, (scopes, mk_specbody MapMS.set_spec (cfunU set)));
+     (MapName.set_by_user, (scopes, mk_specbody MapMS.set_by_user_spec (cfunU set_by_user)))].
+
+  Program Definition Sem : SModSem.t := {|
+    SModSem.scopes := scopes;
+    SModSem.fnsems := fnsems;
+    SModSem.initial_st := [(v_size, 0%Z↑);
+                           (v_map,  (λ (_ : Z), 0%Z)↑)];
+  |}.
+  Solve All Obligations with prove_scope.
+  Next Obligation. prove_nodup. Qed.
+
+  Definition Mod : SMod.t := {|
+    SMod.modsem := λ _, Sem;
+    SMod.sk := MapSK.t;
+  |}.
+
+  Definition InitCond : Sk.t → iProp :=
+    λ _, emp%I.
+
+  Variable ginv : Sk.t → invspec.
+  Variable GlobalStb : Sk.t → gname → option fspec.
+  Definition t := Seal.sealing "ccr" (SMod.to_hmod ginv GlobalStb Mod).
+End MapMS. End MapMS.

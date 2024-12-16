@@ -6,7 +6,7 @@ Require Import PCM.
 Require Import ModSem Behavior.
 Require Import Relation_Definitions.
 
-(*** TODO: export these in Coqlib or Universe ***)
+(*** TODO : export these in Coqlib or Universe ***)
 Require Import Relation_Operators.
 Require Import RelationPairs.
 From ITree Require Import
@@ -26,7 +26,7 @@ Local Open Scope nat_scope.
 
 
 (*** black + delta --> new_black ***)
-Definition add_delta_to_black `{M: URA.t} (b: Auth.t M) (w: Auth.t _): Auth.t _ :=
+Definition add_delta_to_black `{M : URA.t} (b : Auth.t M) (w : Auth.t _) : Auth.t _ :=
   match b, w with
   | Auth.excl e _, Auth.frag f1 => Auth.excl (e ⋅ f1) URA.unit
   | _, _ => Auth.boom
@@ -35,10 +35,10 @@ Definition add_delta_to_black `{M: URA.t} (b: Auth.t M) (w: Auth.t _): Auth.t _ 
 
 
 
-(*** TODO: move to Coqlib ***)
+(*** TODO : move to Coqlib ***)
 Lemma repeat_nth_some
-      X (x: X) sz ofs
-      (IN: ofs < sz)
+      X (x : X) sz ofs
+      (IN : ofs < sz)
   :
     nth_error (repeat x sz) ofs = Some x
 .
@@ -49,8 +49,8 @@ Proof.
 Qed.
 
 Lemma repeat_nth_none
-      X (x: X) sz ofs
-      (IN: ~(ofs < sz))
+      X (x : X) sz ofs
+      (IN : ~(ofs < sz))
   :
     nth_error (repeat x sz) ofs = None
 .
@@ -61,7 +61,7 @@ Proof.
 Qed.
 
 Lemma repeat_nth
-      X (x: X) sz ofs
+      X (x : X) sz ofs
   :
     nth_error (repeat x sz) ofs = if (ofs <? sz) then Some x else None
 .
@@ -75,13 +75,13 @@ Qed.
 
 Ltac Ztac := all_once_fast ltac:(fun H => first[apply Z.leb_le in H|apply Z.ltb_lt in H|apply Z.leb_gt in H|apply Z.ltb_ge in H|idtac]).
 
-Lemma _points_to_hit: forall b ofs v, (_points_to (b, ofs) [v] b ofs) = (Some v).
+Lemma _points_to_hit : forall b ofs v, (_points_to (b, ofs) [v] b ofs) = (Some v).
 Proof. i. rewrite unfold_points_to. ss. des_ifs; bsimpl; des; des_sumbool; subst; Ztac; try lia. rewrite Z.sub_diag. ss. Qed.
 
-Lemma _points_to_miss: forall b ofs b' ofs' (MISS: b <> b' \/ ofs <> ofs') v, (_points_to (b, ofs) [v] b' ofs') = ε.
+Lemma _points_to_miss : forall b ofs b' ofs' (MISS : b <> b' \/ ofs <> ofs') v, (_points_to (b, ofs) [v] b' ofs') = ε.
 Proof. i. rewrite unfold_points_to. ss. des_ifs; bsimpl; des; des_sumbool; subst; Ztac; try lia. Qed.
 
-Lemma _points_to_disj: forall b0 ofs0 v0 b1 ofs1 v1,
+Lemma _points_to_disj : forall b0 ofs0 v0 b1 ofs1 v1,
     URA.wf (_points_to (b0, ofs0) [v0] ⋅ _points_to (b1, ofs1) [v1]) -> b0 <> b1 \/ ofs0 <> ofs1.
 Proof.
   ii. do 2 ur in H. specialize (H b0 ofs0). rewrite _points_to_hit in H.
@@ -89,15 +89,15 @@ Proof.
   assert(ofs0 = ofs1) by lia. subst. rewrite Z.sub_diag in *. ss.
 Qed.
 
-Lemma dec_true: forall X `{Dec X} (x0 x1: X), x0 = x1 -> ((dec x0 x1): bool) = true.
+Lemma dec_true : forall X `{Dec X} (x0 x1 : X), x0 = x1 -> ((dec x0 x1) : bool) = true.
 Proof. ii. subst. unfold dec. destruct H; ss. Qed.
 
-Lemma dec_false: forall X `{Dec X} (x0 x1: X), x0 <> x1 -> ((dec x0 x1): bool) = false.
+Lemma dec_false : forall X `{Dec X} (x0 x1 : X), x0 <> x1 -> ((dec x0 x1) : bool) = false.
 Proof. ii. subst. unfold dec. destruct H; ss. Qed.
 (* Lemma local_update_same *)
-(*       `{M: URA.t} *)
+(*       `{M : URA.t} *)
 (*       x0 y0 x1 y1 *)
-(*       (SAME: x0 ⋅ y0 = x1 ⋅ y1) *)
+(*       (SAME : x0 ⋅ y0 = x1 ⋅ y1) *)
 (*   : *)
 (*     URA.local_update x0 y0 x1 y1 *)
 (* . *)
@@ -109,48 +109,48 @@ Proof. ii. subst. unfold dec. destruct H; ss. Qed.
 
 Section SIMMODSEM.
 
-  Context `{Σ: GRA.t}.
+  Context `{Σ : GRA.t}.
   Context `{@GRA.inG Mem1.memRA Σ}.
 
   (* Eval compute in (@RA.car (RA.excl Mem.t)). *)
   Eval compute in (@URA.car Mem1._memRA).
-  Inductive sim_loc: URA.car (t:=(Excl.t _)) -> option val -> Prop :=
-  | sim_loc_present v: sim_loc (Some v) (Some v)
-  | sim_loc_absent: sim_loc ε None
+  Inductive sim_loc : URA.car (t:=(Excl.t _)) -> option val -> Prop :=
+  | sim_loc_present v : sim_loc (Some v) (Some v)
+  | sim_loc_absent : sim_loc ε None
   .
-  Hint Constructors sim_loc: core.
+  Hint Constructors sim_loc : core.
 
-  Let W: Type := Any.t * Any.t.
-  (* Let wf: W -> Prop := *)
+  Let W : Type := Any.t * Any.t.
+  (* Let wf : W -> Prop := *)
   (*   @mk_wf *)
   (*     _ *)
   (*     Mem.t *)
-  (*     (fun mem_tgt _ mp_tgt => (∃ mem_src, (OwnM ((Auth.black mem_src): URA.car (t:=Mem1.memRA))) *)
+  (*     (fun mem_tgt _ mp_tgt => (∃ mem_src, (OwnM ((Auth.black mem_src) : URA.car (t:=Mem1.memRA))) *)
   (*                                            ** *)
   (*                                            (⌜forall b ofs, sim_loc ((mem_tgt.(Mem.cnts)) b ofs) (mem_src b ofs)⌝) *)
   (*                                            ** *)
-  (*                                            (⌜mp_tgt = mem_tgt↑ /\ forall b ofs v, mem_tgt.(Mem.cnts) b ofs = Some v -> <<NB: b < mem_tgt.(Mem.nb)>>⌝) *)
+  (*                                            (⌜mp_tgt = mem_tgt↑ /\ forall b ofs v, mem_tgt.(Mem.cnts) b ofs = Some v -> <<NB : b < mem_tgt.(Mem.nb)>>⌝) *)
   (*                              )%I) *)
   (*     top4 *)
   (* . *)
 
-  Definition mem_wf (m0: Mem.t): Prop :=
-    forall b ofs v, m0.(Mem.cnts) b ofs = Some v -> <<NB: b < m0.(Mem.nb)>>
+  Definition mem_wf (m0 : Mem.t) : Prop :=
+    forall b ofs v, m0.(Mem.cnts) b ofs = Some v -> <<NB : b < m0.(Mem.nb)>>
   .
 
-  Let wf: _ -> W -> Prop :=
+  Let wf : _ -> W -> Prop :=
     @mk_wf
       _ unit
       (fun _ _ _mem_tgt0 =>
-         (∃ (mem_tgt0: Mem.t) (memk_src0: URA.car (t:=Mem1._memRA)),
-             (⌜(<<TGT: _mem_tgt0 = mem_tgt0↑>>) /\
-              (<<SIM: forall b ofs, sim_loc (memk_src0 b ofs) (mem_tgt0.(Mem.cnts) b ofs)>>) /\
-              (<<WFTGT: mem_wf mem_tgt0>>)⌝) ∧ (*** TODO: put it inside Mem.t? ***)
-             (OwnM ((Auth.black memk_src0): URA.car (t:=Mem1.memRA)))
+         (∃ (mem_tgt0 : Mem.t) (memk_src0 : URA.car (t:=Mem1._memRA)),
+             (⌜(<<TGT : _mem_tgt0 = mem_tgt0↑>>) /\
+              (<<SIM : forall b ofs, sim_loc (memk_src0 b ofs) (mem_tgt0.(Mem.cnts) b ofs)>>) /\
+              (<<WFTGT : mem_wf mem_tgt0>>)⌝) ∧ (*** TODO : put it inside Mem.t? ***)
+             (OwnM ((Auth.black memk_src0) : URA.car (t:=Mem1.memRA)))
          )%I)
   .
 
-  Hint Resolve sim_itree_mon: paco.
+  Hint Resolve sim_itree_mon : paco.
 
   Opaque URA.unit.
 
@@ -158,7 +158,7 @@ Section SIMMODSEM.
     let tmp := fresh "_tmp_" in
 
     match goal with
-    | H: context[OwnM (Auth.black ?x)] |- _ =>
+    | H : context[OwnM (Auth.black ?x)] |- _ =>
       rename x into tmp; let name := fresh "memk_src0" in rename tmp into name
     end;
 
@@ -176,9 +176,9 @@ Section SIMMODSEM.
     end
   .
 
-  Variable csl: gname -> bool.
+  Variable csl : gname -> bool.
 
-  Theorem correct_modsem: forall sk, ModSemR.sim (SModSem.to_tgt (to_stb [])
+  Theorem correct_modsem : forall sk, ModSemR.sim (SModSem.to_tgt (to_stb [])
                                            (Mem1.SMemSem (negb ∘ csl) sk)) (Mem0.MemSem csl sk).
   Proof.
    econstructor 1 with (wf:=wf) (le:=top2); et; swap 2 3.
@@ -250,15 +250,15 @@ Section SIMMODSEM.
         renamer. rename n into b. rename z into ofs.
         rename a into v. rename WF into SIMWF.
         mCombine "INV" "A". mOwnWf "INV".
-        assert(HIT: memk_src0 b ofs = (Some v)).
+        assert(HIT : memk_src0 b ofs = (Some v)).
         { clear - WF.
           dup WF. eapply Auth.auth_included in WF. des. eapply pw_extends in WF. eapply pw_extends in WF.
           spc WF. rewrite _points_to_hit in WF.
           eapply Excl.extends in WF; ss. do 2 eapply lookup_wf. eapply Auth.black_wf. eapply URA.wf_mon; et.
         }
         set (memk_src1 := fun _b _ofs => if dec _b b && dec _ofs ofs
-                                         then (ε: URA.car (t:=Excl.t _)) else memk_src0 _b _ofs).
-        assert(WF': URA.wf (memk_src1: URA.car (t:=Mem1._memRA))).
+                                         then (ε : URA.car (t:=Excl.t _)) else memk_src0 _b _ofs).
+        assert(WF' : URA.wf (memk_src1 : URA.car (t:=Mem1._memRA))).
         { clear - WF. unfold memk_src1. do 2 ur. ii. eapply URA.wf_mon in WF. ur in WF. des.
           des_ifs; et.
           - rp; [eapply URA.wf_unit|ss].
@@ -324,7 +324,7 @@ Section SIMMODSEM.
         renamer. rename n into b. rename z into ofs.
         rename WF into SIMWF.
         mCombine "INV" "A". mOwnWf "INV".
-        assert(T: memk_src0 b ofs = (Some v)).
+        assert(T : memk_src0 b ofs = (Some v)).
         { clear - WF.
           dup WF.
           eapply Auth.auth_included in WF. des.
@@ -352,7 +352,7 @@ Section SIMMODSEM.
         rename a into v0. rename WF into SIMWF.
         steps.
         mCombine "INV" "A". mOwnWf "INV".
-        assert(T: memk_src0 b ofs = (Some v0)).
+        assert(T : memk_src0 b ofs = (Some v0)).
         { clear - WF.
           dup WF.
           eapply Auth.auth_included in WF. des.
@@ -361,8 +361,8 @@ Section SIMMODSEM.
           eapply Excl.extends in WF; ss. do 2 eapply lookup_wf. eapply Auth.black_wf. eapply URA.wf_mon; et.
         }
         hexploit SIM; et. intro U. rewrite T in U. inv U; ss. unfold Mem.store. des_ifs. steps.
-        set (memk_src1 := fun _b _ofs => if dec _b b && dec _ofs ofs then (Some v1: URA.car (t:=Excl.t _)) else memk_src0 _b _ofs).
-        assert(WF': URA.wf (memk_src1: URA.car (t:=Mem1._memRA))).
+        set (memk_src1 := fun _b _ofs => if dec _b b && dec _ofs ofs then (Some v1 : URA.car (t:=Excl.t _)) else memk_src0 _b _ofs).
+        assert(WF' : URA.wf (memk_src1 : URA.car (t:=Mem1._memRA))).
         { clear - WF. unfold memk_src1. do 2 ur. ii. eapply URA.wf_mon in WF. ur in WF. des.
           des_ifs; et.
           - bsimpl; des; des_sumbool; subst. ur; ss.
@@ -407,7 +407,7 @@ Section SIMMODSEM.
         steps. unhide_k. steps. astart 0. astop.
         renamer.
         rename b into result. rename c into resource. rename WF into SIMWF.
-        assert (VALIDPTR: forall b ofs v (WF: URA.wf ((Auth.black (memk_src0: URA.car (t:=Mem1._memRA))) ⋅ ((b, ofs) |-> [v]))),
+        assert (VALIDPTR : forall b ofs v (WF : URA.wf ((Auth.black (memk_src0 : URA.car (t:=Mem1._memRA))) ⋅ ((b, ofs) |-> [v]))),
                    Mem.valid_ptr mem_tgt0 b ofs = true).
         { clear - SIM. i. cut (memk_src0 b ofs = Some v).
           - i. unfold Mem.valid_ptr.
@@ -420,7 +420,7 @@ Section SIMMODSEM.
             eapply Excl.extends in WF; ss. do 2 eapply lookup_wf. eapply Auth.black_wf. eapply URA.wf_mon; et.
         }
         steps.
-        mCombine "INV" "A". mOwnWf "INV". Fail mDesOwn "INV". (*** TODO: BUG!! FIXME ***)
+        mCombine "INV" "A". mOwnWf "INV". Fail mDesOwn "INV". (*** TODO : BUG!! FIXME ***)
 
         mDesOr "PRE".
         { mDesAll; subst. rewrite Any.upcast_downcast in *. clarify. steps.
@@ -458,15 +458,15 @@ Section SIMMODSEM.
       }
     }
   Unshelve.
-    all: ss. all: try exact 0.
+    all : ss. all : try exact 0.
   Qed.
 
-  Theorem correct: refines (Mem0.Mem csl) (Mem1.Mem (negb ∘ csl)).
+  Theorem correct : refines (Mem0.Mem csl) (Mem1.Mem (negb ∘ csl)).
   Proof.
     eapply adequacy_local. econs; ss; et. i. eapply correct_modsem.
   Qed.
 
-  (* Theorem correct: refines2 [Mem0.Mem csl] [Mem1.Mem (negb ∘ csl)].
+  (* Theorem correct : refines2 [Mem0.Mem csl] [Mem1.Mem (negb ∘ csl)].
   Proof.
     eapply adequacy_local2. econs; ss; et. i. eapply correct_modsem.
   Qed. *)

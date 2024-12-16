@@ -3,7 +3,7 @@ Require Import ITreelib.
 Require Import ImpPrelude.
 Require Import Skeleton.
 Require Import PCM.
-Require Import STS Behavior.
+Require Import Behavior.
 Require Import Any.
 Require Import PMod Events.
 Require Import Imp.
@@ -16,12 +16,12 @@ Set Implicit Arguments.
 Module ImpNotations.
 
   (** A few notations for convenience.  *)
-  Definition Var_coerce: string -> expr := Var.
-  Definition Lit_coerce: Z -> expr := Lit.
-  Definition Vint_coerce: Z -> val := Vint.
-  Coercion Var_coerce: string >-> expr.
-  Coercion Lit_coerce: Z >-> expr.
-  Coercion Vint_coerce: Z >-> val.
+  Definition Var_coerce : string -> expr := Var.
+  Definition Lit_coerce : Z -> expr := Lit.
+  Definition Vint_coerce : Z -> val := Vint.
+  Coercion Var_coerce : string >-> expr.
+  Coercion Lit_coerce : Z >-> expr.
+  Coercion Vint_coerce : Z >-> val.
 
   Declare Scope expr_scope.
   Bind Scope expr_scope with expr.
@@ -39,14 +39,14 @@ Module ImpNotations.
      a function returns a value through 'return' register. *)
 
   Notation "x '=#' e" :=
-    (Assign x e) (at level 60, e at level 50): stmt_scope.
+    (Assign x e) (at level 60, e at level 50) : stmt_scope.
 
   Notation "a ';#' b" :=
     (Seq a b)
       (at level 100, right associativity,
        format
          "'[v' a  ';#' '/' '[' b ']' ']'"
-      ): stmt_scope.
+      ) : stmt_scope.
 
   Notation "'if#' i 'then#' t 'else#' e 'fi#'" :=
     (If i t e)
@@ -56,54 +56,54 @@ Module ImpNotations.
          "'[v ' 'if#'  i '/' '[' 'then#'  t  ']' '/' '[' 'else#'  e ']' '/' 'fi#' ']'").
 
   Notation "'skip#'" :=
-    (Skip) (at level 100): stmt_scope.
+    (Skip) (at level 100) : stmt_scope.
 
   Notation "'return#' e" :=
-    (Assign "return" e) (at level 60, e at level 50): stmt_scope.
+    (Assign "return" e) (at level 60, e at level 50) : stmt_scope.
  
   (* Different methods for function calls, '_' name is a garbage register *)
   Notation "x '=@' f args" :=
     (CallFun x f args)
-      (at level 60, f at level 9): stmt_scope.
+      (at level 60, f at level 9) : stmt_scope.
 
   Notation "'@' f args" :=
     (CallFun "_" f args)
-      (at level 60, f at level 9): stmt_scope.
+      (at level 60, f at level 9) : stmt_scope.
 
   Notation "x '=@*' fp args" :=
     (CallPtr x fp args)
-      (at level 60, fp at level 9): stmt_scope.
+      (at level 60, fp at level 9) : stmt_scope.
 
   Notation "'@*' fp args" :=
     (CallPtr "_" fp args)
-      (at level 60, fp at level 9): stmt_scope.
+      (at level 60, fp at level 9) : stmt_scope.
 
   Notation "x '=@!' f args" :=
     (CallSys x f args)
-      (at level 60, f at level 9): stmt_scope.
+      (at level 60, f at level 9) : stmt_scope.
 
   Notation "'@!' f args" :=
     (CallSys "_" f args)
-      (at level 60, f at level 9): stmt_scope.
+      (at level 60, f at level 9) : stmt_scope.
 
   (* interaction with the memory module *)
   Notation "x '=#&' X" :=
-    (AddrOf x X) (at level 60): stmt_scope.
+    (AddrOf x X) (at level 60) : stmt_scope.
 
   Notation "x '=#' 'malloc#' s" :=
-    (Malloc x s) (at level 60): stmt_scope.
+    (Malloc x s) (at level 60) : stmt_scope.
 
   Notation "'free#' p" :=
-    (Free p) (at level 60): stmt_scope.
+    (Free p) (at level 60) : stmt_scope.
 
   Notation "x '=#*' p" :=
-    (Load x p) (at level 60): stmt_scope.
+    (Load x p) (at level 60) : stmt_scope.
 
   Notation " p '*=#' v" :=
-    (Store p v) (at level 60): stmt_scope.
+    (Store p v) (at level 60) : stmt_scope.
 
   Notation "x '=#' '(' a '==' b ')'" :=
-    (Cmp x a b) (at level 60): stmt_scope.
+    (Cmp x a b) (at level 60) : stmt_scope.
 
 End ImpNotations.
 
@@ -112,9 +112,9 @@ End ImpNotations.
 Section Example_Extract.
 
   Import ImpNotations.
-  (* Let Σ: GRA.t := fun _ => of_RA.t RA.empty. *)
+  (* Let Σ : GRA.t := fun _ => of_RA.t RA.empty. *)
   (* Local Existing Instance Σ. *)
-  Context `{Σ: GRA.t}.
+  Context `{Σ : GRA.t}.
 
   Local Open Scope expr_scope.
   Local Open Scope stmt_scope.
@@ -136,8 +136,8 @@ Section Example_Extract.
 
   Definition main : stmt :=
     "in" =@! "scanf" [] ;#
-    "result" =@ "factorial" ["in": expr] ;#
-    @! "printf" ["in": expr] ;#
+    "result" =@ "factorial" ["in" : expr] ;#
+    @! "printf" ["in" : expr] ;#
     return# "result".
 
   Definition main_fundef : function := {|
@@ -153,7 +153,7 @@ Section Example_Extract.
     prog_funs := [("factorial", factorial_fundef); ("main", main_fundef)];
   |}.
 
-  Definition ex_prog: PMod.t := ImpMod.get_mod ex_extract.
+  Definition ex_prog : PMod.t := ImpMod.get_mod ex_extract.
 
   (* Definition imp_ex := ModSem.initial_itr (ex_prog.(Mod.modsem) ex_prog.(Mod.sk)). *)
 

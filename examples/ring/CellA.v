@@ -1,19 +1,18 @@
 Require Import Coqlib ITreelib sflib.
 Require Import ImpPrelude.
-Require Import Events STS.
+Require Import Events.
 Require Import Behavior.
 Require Import SMod HMod.
 Require Import Skeleton.
-Require Import PCM.
-Require Import STB IPM ITactics.
-Require Import RingHeader.
-Require Import CellHeader CellASpec.
+Require Import PCM STB sProp sWorld.
+Require Import IPM ITactics.
+Require Import RingHeader CellHeader CellASpec.
 
 Set Implicit Arguments.
 
-Module CellA.
-Section CELL_A.
-  Context `{_W: CellRA.t}.  
+Module CellA. Section CellA.
+  Context `{!Inv.t Σ Γ α β τ, !CellAS.G Γ}.
+  Notation iProp := (iProp Σ).
 
   Variable idx : nat.
 
@@ -22,7 +21,7 @@ Section CELL_A.
   Definition fnsems : alist string (list string * fspecbody) :=
     [(CellName.get idx, ([], mk_specbody (CellAS.get_spec idx) fbody_trivial));
      (CellName.set idx, ([], mk_specbody (CellAS.set_spec idx) fbody_trivial))].
-
+ 
   Program Definition Sem : SModSem.t := {|
     SModSem.scopes := scopes;
     SModSem.fnsems := fnsems;
@@ -33,17 +32,16 @@ Section CELL_A.
   Next Obligation. prove_nodup. Qed.
 
   Definition Mod : SMod.t := {|
-    SMod.modsem := fun _ => Sem;
+    SMod.modsem := λ _, Sem;
     SMod.sk := CellSK.t;
   |}
   .
 
   Definition InitCond : Sk.t -> iProp :=
-    fun _ => (∃ v, CellAS.cell idx v ∗ CellAS.auth idx v)%I.
+    λ _, (∃ v, CellAS.cell idx v ∗ CellAS.auth idx v)%I.
 
-  Variable GI: Sk.t -> invspec.
-  Variable GlobalStb: Sk.t -> gname -> option fspec.
-  Definition t := Seal.sealing "ccr" (SMod.to_hmod GI GlobalStb Mod).
+  Variable ginv : Sk.t -> invspec.
+  Variable GlobalStb : Sk.t -> gname -> option fspec.
+  Definition t := Seal.sealing "ccr" (SMod.to_hmod ginv GlobalStb Mod).
 
-End CELL_A.
-End CellA.
+End CellA. End CellA.

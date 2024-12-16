@@ -12,9 +12,9 @@ Set Implicit Arguments.
 Module PModSem.
 Section PMODSEM.
 
-  Context `{Σ: GRA.t}.
+  Context `{Σ : GRA.t}.
 
-  Record t: Type := mk {
+  Record t : Type := mk {
     scopes : list string;
     fnsems : alist gname (list string * (Any.t -> itree pmodE Any.t));
     initial_st : alist key Any.t;
@@ -26,13 +26,27 @@ Section PMODSEM.
       List.NoDup scopes -> List.NoDup (List.map fst initial_st);
   }.
 
-  Definition transl {R} (itr: itree pmodE R) : itree hmodE R
-    :=
-    translate inr1 itr.
+  Definition handle_core: coreE ~> itree hmodE :=
+    fun T e =>
+      match e return itree hmodE T with
+      | Take X => if excluded_middle_informative (∃ P: Prop, X = P)
+                  then trigger e
+                  else triggerUB
+      | _ => trigger e
+      end.
 
-  Program Definition to_hmod (ms: t): HModSem.t := {|
+  Definition interp {R} (itr: itree pmodE R) : itree hmodE R
+    :=
+    interp
+      (case_ (bif:=sum1) trivial_Handler
+      (case_ (bif:=sum1) trivial_Handler
+      (case_ (bif:=sum1) trivial_Handler
+         handle_core)))
+      itr.
+
+  Program Definition to_hmod (ms : t) : HModSem.t := {|
     HModSem.scopes := ms.(scopes);                                                    
-    HModSem.fnsems := List.map (map_snd (λ kb, (kb.1, (λ i, transl (kb.2 i))))) ms.(fnsems);
+    HModSem.fnsems := List.map (map_snd (λ kb, (kb.1, (λ i, interp (kb.2 i))))) ms.(fnsems);
     HModSem.initial_st := ms.(initial_st);
   |}.
   Next Obligation.
@@ -51,14 +65,14 @@ End PModSem.
 Module PMod.
 Section PMOD.
 
-  Context `{Σ: GRA.t}.
+  Context `{Σ : GRA.t}.
 
-  Record t: Type := mk {
-    modsem: Sk.t -> PModSem.t;
-    sk: Sk.t;
+  Record t : Type := mk {
+    modsem : Sk.t -> PModSem.t;
+    sk : Sk.t;
   }.
 
-  Definition to_hmod (md:t): HMod.t := {|
+  Definition to_hmod (md:t) : HMod.t := {|
     HMod.modsem := fun sk => PModSem.to_hmod (md.(modsem) sk);
     HMod.sk := md.(sk);
  |}.
@@ -66,176 +80,197 @@ Section PMOD.
 End PMOD.
 End PMod.
 
-Notation "↟ it" := (PModSem.transl it) (at level 60, only printing).
+Notation "↥ it" := (PModSem.interp it) (at level 60, only printing).
 
 Module PModRed.
 Section RED.
 
-  Context `{Σ: GRA.t}.
+  Context `{Σ : GRA.t}.
 
 (* itree reduction *)
-  Lemma transl_bind
+  Lemma interp_bind
         (R S: Type)
         (s : itree pmodE R) (k : R -> itree pmodE S)
     :
-    PModSem.transl (s >>= k)
+    PModSem.interp (s >>= k)
     =
-    st <- PModSem.transl s;; PModSem.transl (k st).
+    st <- PModSem.interp s;; PModSem.interp (k st).
   Proof.
-    unfold PModSem.transl. rewrite (bisim_is_eq (translate_bind _ _ _)). eauto.
+    unfold PModSem.interp. grind.
   Qed.
 
-  Lemma transl_tau
+  Lemma interp_tau
         (U: Type)
         (t : itree _ U)
     :
-      PModSem.transl (tau;; t)
+      PModSem.interp (tau;; t)
       =
-      tau;; (PModSem.transl t).
+      tau;; (PModSem.interp t).
   Proof.
-    unfold PModSem.transl. rewrite (bisim_is_eq (translate_tau _ _)). eauto.
+    unfold PModSem.interp. grind.
   Qed.
 
-  Lemma transl_ret
+  Lemma interp_ret
         (U: Type)
         (t: U)
     :
-      PModSem.transl (Ret t)
+      PModSem.interp (Ret t)
       =
       Ret t.
   Proof.
-    unfold PModSem.transl. rewrite (bisim_is_eq (translate_ret _ _)). eauto.
+    unfold PModSem.interp. grind.
   Qed.
 
-  Lemma transl_call
+  Lemma interp_call
         (R: Type)
         (i: callE R)
     :
-      PModSem.transl (trigger i)
+      PModSem.interp (trigger i)
       =
-      trigger i.
+      r <- trigger i;; tau;; Ret r.
   Proof.
-    unfold PModSem.transl. unfold trigger.
-    rewrite (bisim_is_eq (translate_vis _ _ _ _)).
-    do 2 f_equal. extensionalities.
-    rewrite (bisim_is_eq (translate_ret _ _)). eauto.
+    unfold PModSem.interp. rewrite interp_trigger. grind.
   Qed.
 
-  Lemma transl_sch
+  Lemma interp_sch
         (R: Type)
         (i: schE R)
     :
-      PModSem.transl (trigger i)
+      PModSem.interp (trigger i)
       =
-      trigger i.
+      r <- trigger i;; tau;; Ret r.
   Proof.
-    unfold PModSem.transl. unfold trigger.
-    rewrite (bisim_is_eq (translate_vis _ _ _ _)).
-    do 2 f_equal. extensionalities.
-    rewrite (bisim_is_eq (translate_ret _ _)). eauto.
+    unfold PModSem.interp. rewrite interp_trigger. grind.
   Qed.
   
-  Lemma transl_pg
+  Lemma interp_pg
         (R: Type)
         (i: pgE R)
     :
-      PModSem.transl (trigger i)
+      PModSem.interp (trigger i)
       =
-      trigger i.
+      r <- trigger i;; tau;; Ret r.
   Proof.
-    unfold PModSem.transl. unfold trigger.
-    rewrite (bisim_is_eq (translate_vis _ _ _ _)).
-    do 2 f_equal. extensionalities.
-    rewrite (bisim_is_eq (translate_ret _ _)). eauto.
+    unfold PModSem.interp. rewrite interp_trigger. grind.
   Qed.
 
-  Lemma transl_core
-        (R: Type)
-        (i: coreE R)
+  Lemma interp_take
+        (P: Prop)
     :
-      PModSem.transl (trigger i)
+      PModSem.interp (trigger (Take P))
       =
-      trigger i.
+      r <- trigger (Take P);; tau;; Ret r.
   Proof.
-    unfold PModSem.transl. unfold trigger.
-    rewrite (bisim_is_eq (translate_vis _ _ _ _)).
-    do 2 f_equal. extensionalities.
-    rewrite (bisim_is_eq (translate_ret _ _)). eauto.
-  Qed.  
+    unfold PModSem.interp, PModSem.handle_core.
+    rewrite interp_trigger. grind.
+    exfalso. eauto.
+  Qed.
+  
+  Lemma interp_choose
+        (X: Type)
+    :
+      PModSem.interp (trigger (Choose X))
+      =
+      r <- trigger (Choose X);; tau;; Ret r.
+  Proof.
+    unfold PModSem.interp, PModSem.handle_core.
+    rewrite interp_trigger. grind.
+  Qed.
 
-  Lemma transl_unwrapU 
+  Lemma interp_io
+        I O fn args
+    :
+      PModSem.interp (trigger (@IO I O fn args))
+      =
+      r <- trigger (IO fn args);; tau;; Ret r.
+  Proof.
+    unfold PModSem.interp, PModSem.handle_core.
+    rewrite interp_trigger. grind.
+  Qed.
+  
+  Lemma interp_unwrapU 
         (R: Type)
         (i: option R)
     :
-    PModSem.transl (@unwrapU pmodE _ _ i)
+    PModSem.interp (@unwrapU pmodE _ _ i)
     =
     unwrapU i.
   Proof.
     rewrite /unwrapU. des_ifs.
-    - rewrite transl_ret; eauto.
-    - rewrite /triggerUB !transl_bind !transl_core.
-      f_equal; eauto. extensionalities. des_ifs.
+    - rewrite interp_ret; eauto.
+    - rewrite /triggerUB !interp_bind !interp_take. grind.
   Qed.
 
-  Lemma transl_unwrapN
+  Lemma interp_unwrapN
         (R: Type)
         (i: option R)
     :
-      PModSem.transl (@unwrapN pmodE _ _ i)
+      PModSem.interp (@unwrapN pmodE _ _ i)
       =
       unwrapN i.
   Proof.
     rewrite /unwrapN. des_ifs.
-    - rewrite transl_ret; eauto.
-    - rewrite /triggerNB !transl_bind !transl_core.
-      f_equal; eauto. extensionalities. des_ifs.
+    - rewrite interp_ret; eauto.
+    - rewrite /triggerNB !interp_bind !interp_choose. grind.
   Qed.
 
-  Lemma transl_asm
+  Lemma interp_asm
         P
     : 
-      PModSem.transl (assume P)
+      PModSem.interp (assume P)
       =
-      assume P.
+      assume P;;; tau;; Ret ().
   Proof.
-    rewrite /assume !transl_bind !transl_core !transl_ret. eauto.
+    rewrite /assume !interp_bind !interp_take !interp_ret. grind.
   Qed. 
 
-  Lemma transl_guar
+  Lemma interp_guar
         P
     : 
-      PModSem.transl (guarantee P)
+      PModSem.interp (guarantee P)
       =
-      guarantee P.
+      guarantee P;;; tau;; Ret ().
   Proof.
-    rewrite /guarantee !transl_bind !transl_core !transl_ret. eauto.
+    rewrite /guarantee !interp_bind !interp_choose !interp_ret. grind.
   Qed.
-  
-(*  
-  Lemma transl_triggerUB
-        (R: Type)
-    :
-      PModSem.transl (triggerUB)
-      =
-      triggerUB (A:=R).
-  Proof.
-    rewrite /triggerUB !transl_bind !transl_core.
-    f_equal; eauto. extensionalities. des_ifs.
-  Qed.  
-
-  Lemma transl_triggerNB
-        (R: Type)
-    :
-    PModSem.transl (triggerNB)
-    =
-    triggerNB (A:=R).
-  Proof.
-    rewrite /triggerNB !transl_bind !transl_core.
-    f_equal; eauto. extensionalities. des_ifs.
-  Qed.
-
-
- *)
   
 End RED.
 End PModRed.
+
+Module PMWrap.
+
+  Definition handler (fns: list string) : Handler callE pmodE :=
+    fun _ e =>
+      match e with
+      | Call fn args =>
+          if existsb (eqb fn) fns
+          then trigger (Call fn args)
+          else triggerUB
+      end.
+
+  Definition body (fns: list string) (code: Any.t -> itree pmodE Any.t) :
+    Any.t -> itree pmodE Any.t
+    :=
+    fun x => interp
+      (case_ (bif:=sum1) trivial_Handler
+      (case_ (bif:=sum1) (handler fns)
+      (case_ (bif:=sum1) trivial_Handler
+         trivial_Handler))) (code x).
+
+  Program Definition pmodsem fns (m: PModSem.t) : PModSem.t :=
+    {|PModSem.scopes := m.(PModSem.scopes)
+    ; PModSem.fnsems := List.map (map_snd (map_snd (body fns))) m.(PModSem.fnsems)
+    ; PModSem.initial_st := m.(PModSem.initial_st)
+    |}.
+  Next Obligation.
+    ii. eapply (m.(PModSem.well_scoped_fns) fn). unfold fnsems_scopes in *.
+    rewrite !alist_find_map_snd in H. des_ifs; eauto.
+  Qed.
+  Next Obligation. ii. eapply (m.(PModSem.well_scoped_init)). eauto. Qed.
+  Next Obligation. ii. eapply (m.(PModSem.nodup_fns)). eauto. Qed.
+
+  Definition pmod fns (m: PMod.t) : PMod.t :=
+    {|PMod.modsem := fun sk => pmodsem fns (m.(PMod.modsem) sk)
+    ; PMod.sk := m.(PMod.sk) |}.
+
+End PMWrap.
