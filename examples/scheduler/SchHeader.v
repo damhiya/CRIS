@@ -3,8 +3,6 @@ Require Import Events Any IPM ImpPrelude Skeleton.
 From stdpp Require Import gmap.
 Require Import HMod SMod World sWorld SRF PCM.
 
-From Ordinal Require Export Ordinal Arithmetic Inaccessible.
-
 Module SchName.
 
 Definition _spawn := "Sch._spawn".
