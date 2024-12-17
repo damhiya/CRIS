@@ -435,7 +435,7 @@ Section SEMR.
   Proof.
     eapply adequacy_global_itree; ss.
     ginit.
-    unfold ModSem.compile, assume. generalize "CCR_init" as fn. i.
+    unfold ModSem.compile, assume. generalize ModSem.init_fun as fn. i.
 
     ss. unfold ITree.map.
     destruct (alist_find fn (ModSem.fnsems ms_tgt)) eqn: EQ; cycle 1.
