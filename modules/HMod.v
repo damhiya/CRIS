@@ -327,7 +327,7 @@ Module HModSB. Section HModSB.
   Proof.
     unfold unwrapU. destruct r.
     - apply transl_ret.
-    - unfold triggerUB. rewrite/__ !transl_bind !transl_core.
+    - unfold triggerUB. rewrite !transl_bind !transl_core.
       f_equal. extensionalities. ss.
   Qed.
 
@@ -336,14 +336,14 @@ Module HModSB. Section HModSB.
   Proof.
     unfold unwrapN. destruct r.
     - apply transl_ret.
-    - unfold triggerNB. rewrite/__ !transl_bind !transl_core.
+    - unfold triggerNB. rewrite !transl_bind !transl_core.
       f_equal. extensionalities. ss.
   Qed.
 
   Lemma transl_asm scopes P :
     HModSem.sandbox scopes (assume P) = assume P.
   Proof.
-    unfold assume. rewrite/__ transl_bind transl_core transl_ret. eauto.
+    unfold assume. rewrite transl_bind transl_core transl_ret. eauto.
   Qed.
 
   Lemma transl_guar scopes P :

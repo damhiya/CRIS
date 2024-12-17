@@ -40,12 +40,12 @@ Module RingIA. Section RingIA.
       induction max_size; i.
       + eapply ctxr_cond_strengthen. eauto.
       + unfold CellIG, CtrlIA.CellG.
-        rewrite/__ !seq_S !map_app !hmod_addL_app.
+        rewrite !seq_S !map_app !hmod_addL_app.
         etrans; [|etrans]; [|apply ctxr_compose_hor|]; cycle 3.
         * eapply ctxr_cond_strengthen.
           i. do 2 instantiate (1:=const(emp%I)). eauto.
         * eapply ctxr_cond_strengthen.
-          i. unfold HMod.addc. rewrite/__ {1}big_sepL_app.
+          i. unfold HMod.addc. rewrite {1}big_sepL_app.
           iIntros "(H1 & H2)". iSplitL "H1"; eauto.
         * etrans; cycle 1. { apply IHmax_size. }
           eapply ctxr_cond_strengthen.
@@ -54,7 +54,7 @@ Module RingIA. Section RingIA.
           etrans; cycle 1.
           { eapply main_adequacy. eapply CellIA.sim. }
           eapply ctxr_cond_strengthen.
-          i. rewrite/__ Nat.add_0_r seq_length. iIntros "(H &_)". eauto.
+          i. rewrite Nat.add_0_r seq_length. iIntros "(H &_)". eauto.
   Qed.
 
 End RingIA. End RingIA.

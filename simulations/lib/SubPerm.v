@@ -68,7 +68,7 @@ Lemma sub_perm_remove {A} (l0 l1 l2 : list A):
   sub_perm (l1 ++ l2) (l1 ++ l0 ++ l2).
 Proof.
   exists l0.
-  rewrite/__ !List.app_assoc [l0 ++ _]Permutation_app_comm.
+  rewrite !List.app_assoc [l0 ++ _]Permutation_app_comm.
   eauto.
 Qed.
 
@@ -95,7 +95,7 @@ Lemma sub_perm_trans {A} (l1 l2 l3 : list A):
   sub_perm l1 l2 -> sub_perm l2 l3 -> sub_perm l1 l3.
 Proof.
   unfold sub_perm. i; des.
-  eexists. rewrite/__ -H0 -H.
+  eexists. rewrite -H0 -H.
   rewrite app_assoc. eauto.
 Qed.
 
