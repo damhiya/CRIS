@@ -14,6 +14,13 @@ Proof.
   apply in_or_app. eauto.
 Qed.
 
+Lemma sub_perm_comm {A} (l1 l2 : list A)
+  :
+  sub_perm (l1 ++ l2) (l2 ++ l1).
+Proof.
+  unfold sub_perm. exists []. s. rewrite Permutation_app_comm. refl.
+Qed.
+
 Lemma sub_perm_nodup {A} (l1 l2 : list A)
   (SP : sub_perm l1 l2)
   (ND : List.NoDup l2)

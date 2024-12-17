@@ -605,11 +605,11 @@ Ltac prove_sub_perm :=
     [|-sub_perm ?x ?y] =>
       match x with
       | _ ++ _ => idtac
-      | _ => rewrite/__ /x
+      | _ => try rewrite /x
       end;
       match y with
       | _ ++ _ => idtac
-      | _ => rewrite/__ /y
+      | _ => try rewrite /y
       end
   end;
   Lauto_normalize;

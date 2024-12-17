@@ -680,8 +680,8 @@ Module HSSim. Section HSSim.
         (WFT : HModSem.wf ms_tgt)
         (NODUPFS : List.NoDup (List.map fst fnsems_src))
         (NODUPFT : List.NoDup (List.map fst fnsems_tgt))
-        fs (FIND : alist_find fn fnsems_src = Some fs),
-      ∃ ft, alist_find fn fnsems_tgt = Some ft /\
+        ft (FIND : alist_find fn fnsems_tgt = Some ft),
+      ∃ fs, alist_find fn fnsems_src = Some fs /\
                    isim_fsem
                      (List.map (map_snd HModSem.sandbox_body) fnsems_src)
                      (List.map (map_snd HModSem.sandbox_body) fnsems_tgt)
@@ -696,13 +696,10 @@ Module HSSim. Section HSSim.
           Ist nths st_src st_tgt -∗ Ist nths' st_src st_tgt;
       sim_scopes :
         sub_perm scopes_tgt scopes_src;
-      sim_length :
-        List.length fnsems_src = List.length fnsems_tgt;
       sim_match :
-        ∀ fn (IN : In fn (List.map fst fnsems_src)),
-          In fn (List.map fst fnsems_tgt);
+        sub_perm (List.map fst fnsems_tgt) (List.map fst fnsems_src);
       sim_fnsems :
-        ∀ fn (IN : In fn (List.map fst fnsems_src)),
+        ∀ fn (IN : In fn (List.map fst fnsems_tgt)),
           sim_fun fn;
     }.
 End HSSim. End HSSim.

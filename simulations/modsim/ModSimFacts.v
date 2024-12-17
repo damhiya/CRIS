@@ -116,9 +116,8 @@ Section SEMR.
       rewrite !list.list_lookup_insert in INT; try nia. inv INT.
       esplits. ginit. rewrite <-!bind_bind.
       guclo lbindC_spec. econs.
-      { destruct (alist_find fn (ModSem.fnsems ms_src)) eqn : FIND; cycle 1.
-        - eapply MSim.wf_sim_miss in FIND; eauto. rewrite FIND.
-          grind. unfold triggerNB. grind.
+      { destruct (alist_find fn (ModSem.fnsems ms_tgt)) eqn : FIND; cycle 1.
+        - grind. unfold triggerNB. grind.
           gstep. econs. eapply sim_itree_choose_tgt. i. ss.
         - eapply sim in FIND. des. rewrite FIND. grind.
           eapply sim_itree_flag_down. gfinal. right.
@@ -338,9 +337,8 @@ Section SEMR.
         inv INT.
         
         esplits.
-        destruct (alist_find fn (ModSem.fnsems ms_src)) eqn : FIND; cycle 1.
-        * eapply MSim.wf_sim_miss in FIND; eauto. rewrite FIND.
-          grind. unfold triggerNB. grind.
+        destruct (alist_find fn (ModSem.fnsems ms_tgt)) eqn : FIND; cycle 1.
+        * grind. unfold triggerNB. grind.
           pstep. econs. eapply sim_itree_choose_tgt. i. ss.
         * eapply sim in FIND. des. rewrite FIND. grind.
           ginit. eapply sim_itree_flag_down. gfinal. right.
@@ -440,9 +438,8 @@ Section SEMR.
     unfold ModSem.compile, assume. generalize "CCR_init" as fn. i.
 
     ss. unfold ITree.map.
-    destruct (alist_find fn (ModSem.fnsems ms_src)) eqn: EQ; cycle 1.
-    { s. eapply MSim.wf_sim_miss in EQ; eauto. rewrite EQ. s.
-      unfold interp_modE, interp_stateE, interp_schE_callE.
+    destruct (alist_find fn (ModSem.fnsems ms_tgt)) eqn: EQ; cycle 1.
+    { s. unfold interp_modE, interp_stateE, interp_schE_callE.
       rewrite/__ [ITree.iter (_ (ModSem.prog ms_tgt)) _]unfold_iter_eq. grind.
       ired_both; guclo simg_indC_spec. unfold Mod2ITree.pure_state. grind.
       eapply simg_chooseR. ss.
