@@ -25,8 +25,7 @@ Canonical Structure gnameO := leibnizO gname.
 
 Definition gid (Σ : GRA) := fin (GRA_len Σ).
 
-Definition GRAUR (Σ : GRA) : ucmra :=
-  discrete_funUR (λ i, gmapUR gname (allocsUR (GRA_lookup Σ i))).
+Definition GRAUR (Σ : GRA) : ucmra := discrete_funUR (λ i, allocsUR (GRA_lookup Σ i)).
 Global Coercion GRAUR : GRA >-> ucmra.
 
 Global Instance GRA_discrete {Σ : GRA} : CmraDiscrete Σ.

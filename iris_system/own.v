@@ -1,8 +1,8 @@
-From iris.algebra Require Import proofmode_classes functions gmap.
+From iris.algebra Require Import proofmode_classes functions.
 From iris.proofmode Require Export proofmode.
 From CRIS.base_logic Require Export base_logic.
 From CRIS.lib Require Import allocs.
-Require Import index.
+Require Import Level.
 Require Export iprop.
 Import uPred.
 
@@ -27,28 +27,26 @@ Global Hint Immediate uPredI_affine : core. *)
 
 (* TODO : 1) refactor GRA.t
           2) move iProp and own to a separate file *)
-Local Definition iRes_singleton {A Σ} {i : inG A Σ} {υ : mod_index} (γ : gname) (a : A) : Σ :=
-  discrete_fun_singleton (inG_id i)
-    {[ υ.(mod_index_elem) := allocs_frag γ (cmra_transport (f_equal _  inG_prf) a) ]}.
-Local Definition iRes_auth A {Σ} {i : inG A Σ} {υ : mod_index} (γ : gname) : Σ :=
-  discrete_fun_singleton (inG_id i)
-    {[ υ.(mod_index_elem) := allocs_auth (GRA_lookup Σ (inG_id i)) γ ]}.
-Global Instance: Params (@iRes_singleton) 6 := {}.
+Local Definition iRes_singleton `{i : inG A Σ} (γ : gname) (a : A) : Σ :=
+  discrete_fun_singleton (inG_id i) (allocs_frag γ (cmra_transport (f_equal _  inG_prf) a)).
+Global Instance: Params (@iRes_singleton) 4 := {}.
 
 (** * Definitions of resource ownership with ghost locations. *)
-Local Definition own_def `{!inG A Σ} {υ : mod_index} (γ : gname) (a : A) : iProp :=
-  uPred_ownM (iRes_singleton γ a).
+Local Definition own_def `{!inG A Σ} (γ : gname) (a : A) : iProp := uPred_ownM (iRes_singleton γ a).
 Local Definition own_aux : seal (@own_def). Proof. by eexists. Qed.
 Definition own := own_aux.(unseal).
 Local Definition own_eq : @own = @own_def := own_aux.(seal_eq).
-Global Arguments own {_ _ _ _} γ a.
+Global Arguments own {_ _ _} γ a.
 
-Local Definition own_gen_def A `{i : !inG A Σ} {υ : mod_index} : iProp :=
-  ∃ γ, uPred_ownM (iRes_auth A γ).
-Local Definition own_gen_aux : seal (@own_gen_def). Proof. by eexists. Qed.
-Definition own_gen := own_gen_aux.(unseal).
-Local Definition own_gen_eq : @own_gen = @own_gen_def := own_gen_aux.(seal_eq).
-Global Arguments own_gen _ {_ _ _}.
+Local Program Definition own_admin_def Σ {υ : mod_level} : iProp :=
+  ∃ (a : positive), uPred_ownM
+    ((λ i, @allocs_auth (GRA_lookup Σ i)
+      (λ b, (∃ c, b = 2 ^ υ * 3 ^ c ∧ a <= c)%positive)%type _) : GRAUR Σ).
+Next Obligation.
+Local Definition own_admin_aux : seal (@own_admin_def). Proof. by eexists. Qed.
+Definition own_admin := own_admin_aux.(unseal).
+Local Definition own_admin_eq : @own_admin = @own_admin_def := own_admin_aux.(seal_eq).
+Global Arguments own_admin {_ _}.
 
 (** * Definitions of resource ownership - for metatheoretical results only *)
 Local Definition Own_def {Σ : GRA} (a : Σ) : iProp := uPred_ownM a.
@@ -58,7 +56,7 @@ Local Definition Own_eq : @Own = @Own_def := Own_aux.(seal_eq).
 Global Arguments Own {Σ} a.
 
 Section properties.
-  Context `{i : !inG A Σ} {υ : mod_index}.
+  Context `{i : !inG A Σ} {υ : mod_level}.
   Implicit Types a : A.
 
   Local Instance iRes_singleton_ne γ : NonExpansive (@iRes_singleton A Σ _ υ γ).
@@ -113,12 +111,12 @@ Section properties.
   Global Instance own_core_persistent γ a : CoreId a → Persistent (own γ a).
   Proof. rewrite !own_eq /own_def; apply _. Qed.
 
-  Lemma own_alloc a : ✓ a → own_gen A ⊢ |==> own_gen A ∗ ∃ γ, own γ a.
-  Proof.
-    intros Ha.
-    rewrite -(bupd_mono (∃ m, ⌜∃ γ, m = iRes_singleton γ a⌝ ∧ uPred_ownM m ∗ own_gen A)%I).
-    { rewrite own_gen_eq. apply bupd_ownM_update. }  
-    ; iIntros "GEN". eapply (own_alloc_dep (λ _, a)); eauto. Qed.
+  (* Lemma own_alloc a : ✓ a → own_gen A ⊢ |==> own_gen A ∗ ∃ γ, own γ a. *)
+  (* Proof. *)
+    (* intros Ha. *)
+    (* rewrite -(bupd_mono (∃ m, ⌜∃ γ, m = iRes_singleton γ a⌝ ∧ uPred_ownM m ∗ own_gen A)%I). *)
+    (* { rewrite own_gen_eq. apply bupd_ownM_update. }   *)
+    (* ; iIntros "GEN". eapply (own_alloc_dep (λ _, a)); eauto. Qed. *)
 (* TODO : Stuck here *)
 (** ** Allocation *)
 (* Lemma own_alloc_strong_dep (f : gname → A) (P : gname → Prop) :
