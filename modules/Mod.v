@@ -50,13 +50,15 @@ Module ModSem.
 
     Variable ms: t.
 
+    Definition init_fun := "CRIS_init".
+
     Definition prog: callE ~> itree modE :=
       fun _ '(Call fn args) =>
         sem <- (alist_find fn ms.(fnsems))!;;
         sem args.
 
     Definition compile : itree coreE Any.t :=
-      snd <$> interp_modE prog (prog (Call "CCR_init" ()↑)) (initial_st ms).
+      snd <$> interp_modE prog (prog (Call init_fun ()↑)) (initial_st ms).
 
   End COMPILE.
 End ModSem.

@@ -523,11 +523,7 @@ Section AUX.
       repeat iExists _. iFrame. iPureIntro. esplits; eauto.
     }
     { eapply sub_perm_cancel_tail. eauto. }
-    { rewrite! app_length. nia. }
-    {
-      i. move: IN; rewrite ?map_app; intros IN. eapply in_app_or in IN.
-      des; eapply in_or_app; eauto.  
-    }
+    { rewrite ?map_app. eapply sub_perm_cancel_tail. eauto. }
     r. i. ss. rewrite alist_find_app_o in FIND. des_ifs.
     {
       (* find in src/tgt module *)
@@ -551,14 +547,14 @@ Section AUX.
       eapply isim_ctx; eauto.
     } 
     {
-      destruct fs as [scp itr]. esplits; ss.
-      { rewrite alist_find_app_o. des_ifs; eauto.
-        exfalso.
-        eapply alist_find_fst_some, hssim_match, alist_find_fst_in in Heq0.
-        - des. erewrite Heq in Heq0. ss.
-        - econs; eauto.
-        - rewrite map_app in NODUPFS. eapply nodup_app_l. eauto.
+      exists ft. esplits; ss.
+      { rewrite alist_find_app_o. des_ifs. exfalso.
+        eapply alist_find_some in FIND, Heq0.
+        eapply in_map with (f:=fst) in FIND, Heq0.
+        rewrite map_app in NODUPFS.
+        eapply NoDup_app_disjoint; eauto.
       }
+      destruct ft as [scp itr].
       inv WFS. eapply isim_reflR; ss; i; eauto.
       - replace scp with (fnsems_scopes fn (HMod.modsem ctx sk).(HModSem.fnsems)).
         { eapply (HMod.modsem ctx sk).(HModSem.well_scoped_fns). }
@@ -696,22 +692,15 @@ Section COMM.
       { eapply Permutation.Permutation_app_comm. }
     }
     { i. r. rewrite /IstSB0 /perm_Ist; iIntros "_ [% %]". iSplit; iPureIntro; eauto. }
-    {
-      r. exists []. rewrite app_nil_l.
-      eapply Permutation.Permutation_app_comm.
-    }
-    { rewrite! app_length. nia. }
-    {
-      rewrite ?map_app; i. eapply in_app_iff, Logic.or_comm.
-      eapply in_app_iff. eauto.
-    }
+    { apply sub_perm_comm. }
+    { rewrite ?map_app; i. apply sub_perm_comm. }
 
     ii. eapply alist_find_comm in FIND; cycle 1. 
     { inv WFT; ss. }
     esplits; eauto.
 
     (* simulation *)
-    ii. subst. destruct fs. unfold HModSem.sandbox_body. s.
+    ii. subst. destruct ft. unfold HModSem.sandbox_body. s.
     generalize (i y) as it. clear FIND i y.
     revert NODD. apply combine_quant.
     revert NODS. apply combine_quant.

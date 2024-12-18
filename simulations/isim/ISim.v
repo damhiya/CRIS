@@ -115,7 +115,7 @@ Section HModProd.
       + steps_l. steps_r. by_coind "CIH". eauto.
     - destruct c. call "IST"; eauto. by_coind "CIH". eauto.
     - depdes s.
-      + rewrite/__ !HModSB.transl_bind !HModSB.transl_put. des_ifs; cycle 1.
+      + rewrite !HModSB.transl_bind !HModSB.transl_put. des_ifs; cycle 1.
         { steps_r. force_l q. by_coind "CIH". eauto. }
         iApply isim_sput_src. iApply isim_sput_tgt.
         by_coind "CIH". unfold IstProd.
@@ -131,7 +131,7 @@ Section HModProd.
         * eapply alist_upd_tail. ii.
           eapply NoDup_app_disjoint; try apply DISJ; eauto.
           apply H1. eapply in_map in H. rewrite map_map in H. apply H.
-      + rewrite/__ !HModSB.transl_bind !HModSB.transl_get. des_ifs; cycle 1.
+      + rewrite !HModSB.transl_bind !HModSB.transl_get. des_ifs; cycle 1.
         { steps_r. force_l q. by_coind "CIH". eauto. }
         iApply isim_sget_src. iApply isim_sget_tgt.
         apply existsb_exists in Heq. des. apply String.eqb_eq in Heq0. subst.
@@ -170,14 +170,11 @@ Section HModProd.
     (MON : ∀ sk nths nths' (LE : nths <= nths') st_src st_tgt,
         Ist sk nths st_src st_tgt -∗ Ist sk nths' st_src st_tgt)
     (SCOPE : ∀ sk, sub_perm (HMod.scopes B sk) (HMod.scopes A sk))
-    (LEN : ∀ sk, List.length (HModSem.fnsems (HMod.modsem A sk)) =
-                List.length (HModSem.fnsems (HMod.modsem B sk)))
-    (MATCH : ∀ sk fn,
-           In fn (List.map fst (HModSem.fnsems (HMod.modsem A sk))) →
-           In fn (List.map fst (HModSem.fnsems (HMod.modsem B sk))))
+    (MATCH : ∀ sk,
+           sub_perm (List.map fst (HModSem.fnsems (HMod.modsem B sk))) (List.map fst (HModSem.fnsems (HMod.modsem A sk))))
     (SIM : ∀ fn sk
-            (IN : In fn (List.map fst (HModSem.fnsems (HMod.modsem A sk))))
-            (SKINCL : List.incl (HMod.sk (HMod.add B C)) sk) (SKWF : Sk.wf sk),
+            (IN : In fn (List.map fst (HModSem.fnsems (HMod.modsem B sk))))
+            (SKINCL : List.incl (HMod.sk (HMod.add B C)) sk) (SKWF : Sk.wf sk), 
           HSSim.sim_fun (HMod.modsem (HMod.add A C) sk) (HMod.modsem (HMod.add B C) sk)
             (IstProd (IstSB A Ist) IstEq sk) fn)
     (SK : HMod.sk A = HMod.sk B)
@@ -192,16 +189,14 @@ Section HModProd.
       do 4 (iExists _). do 2 (iSplit; eauto). iSplitR; eauto.
       iApply MON; [|eauto]; nia.
     - s. apply sub_perm_cancel_tail. eapply SCOPE.
-    - s. rewrite !app_length. rewrite LEN. eauto.
-    - s. i. move: IN. rewrite ?map_app. intros IN. apply in_or_app. apply in_app_or in IN.
-      des; eauto.
+    - s. rewrite ?map_app. apply sub_perm_cancel_tail. eauto.
     - s. i. rewrite map_app in IN. apply in_app_or in IN. des.
       { eapply SIM; eauto. }
-      ii. exists fs. destruct fs as [scp f].
+      ii. exists ft. destruct ft as [scp f].
       assert (FND : alist_find fn (HModSem.fnsems (HMod.modsem C sk))
                    = Some (scp,f)).
       { s in FIND. rewrite alist_find_app_o in FIND. des_ifs.
-        exfalso. assert (ND:= HModSem.wf_fns WFS). s in ND. rewrite map_app in ND.
+        exfalso. assert (ND:= HModSem.wf_fns WFT). s in ND. rewrite map_app in ND.
         eapply NoDup_app_disjoint; try apply ND; eauto.
         eapply alist_find_some, (in_map fst) in Heq. eauto.
       }
