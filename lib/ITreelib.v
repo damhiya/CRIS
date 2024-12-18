@@ -1,31 +1,19 @@
-From ITree Require Export ITree Subevent.
-
 From ITree Require Export
      ITree
+     Subevent
      ITreeFacts
      Events.MapDefault
      Events.State
      Events.StateFacts
-     EqAxiom
-.
+     EqAxiom.
+
 From ExtLib Require Export
-     (* Data.String *)
-     (* Structures.Monad *)
-     (* Structures.Traversable *)
-     (* Structures.Foldable *)
-     (* Structures.Reducible *)
-     (* OptionMonad *)
      Functor FunctorLaws
-     Structures.Maps
-     (* Data.List *)
-.
+     Structures.Maps.
 Require Import Coqlib.
 
 Export SumNotations.
-(* Export ITreeNotations. *)
 Export Monads.
-(* Export MonadNotation. *)
-(* Export FunctorNotation. *)
 Export CatNotations.
 Open Scope cat_scope.
 Open Scope monad_scope.
@@ -33,33 +21,27 @@ Open Scope itree_scope.
 
 Set Implicit Arguments.
 
-
-Module ITreeNotations2.
-Notation "t1 >>= k2" := (ITree.bind t1 k2)
-  (at level 58, left associativity) : itree_scope.
-Notation "x <- t1 ;; t2" := (ITree.bind t1 (fun x => t2))
-  (at level 62, t1 at next level, right associativity) : itree_scope.
-Notation "` x : t <- t1 ;; t2" := (ITree.bind t1 (fun x : t => t2))
-  (at level 62, t at next level, t1 at next level, x ident, right associativity) : itree_scope.
-Notation "t1 ;;; t2" := (ITree.bind t1 (fun _ => t2))
-  (at level 62, right associativity) : itree_scope.
-Notation "' p <- t1 ;; t2" :=
-  (ITree.bind t1 (fun x_ => match x_ with p => t2 end))
-  (at level 62, t1 at next level, p pattern, right associativity) : itree_scope.
-Infix ">=>" := ITree.cat (at level 62, right associativity) : itree_scope.
-Notation "f <$> x" := (@fmap _ _ _ _ f x) (at level 61, left associativity).
-End ITreeNotations2.
-
-Export ITreeNotations2.
-
-
+Module ITreeNotations.
+  Notation "t1 >>= k2" := (ITree.bind t1 k2)
+    (at level 58, left associativity) : itree_scope.
+  Notation "x <- t1 ;; t2" := (ITree.bind t1 (fun x => t2))
+    (at level 62, t1 at next level, right associativity) : itree_scope.
+  Notation "` x : t <- t1 ;; t2" := (ITree.bind t1 (fun x : t => t2))
+    (at level 62, t at next level, t1 at next level, x ident, right associativity) : itree_scope.
+  Notation "t1 ;;; t2" := (ITree.bind t1 (fun _ => t2))
+    (at level 62, right associativity) : itree_scope.
+  Notation "' p <- t1 ;; t2" :=
+    (ITree.bind t1 (fun x_ => match x_ with p => t2 end))
+    (at level 62, t1 at next level, p pattern, right associativity) : itree_scope.
+  Infix ">=>" := ITree.cat (at level 62, right associativity) : itree_scope.
+  Notation "f <$> x" := (@fmap _ _ _ _ f x) (at level 61, left associativity).
+End ITreeNotations.
+Export ITreeNotations.
 
 Lemma eq_is_bisim : forall E R (t1 t2 : itree E R), t1 = t2 -> t1 ≅ t2.
 Proof. ii. clarify. reflexivity. Qed.
 Lemma bisim_is_eq : forall E R (t1 t2 : itree E R), t1 ≅ t2 -> t1 = t2.
 Proof. ii. eapply bisimulation_is_eq; eauto. Qed.
-
-
 
 Ltac f := first [eapply bisim_is_eq|eapply eq_is_bisim].
 Tactic Notation "f" "in" hyp(H) := first [eapply bisim_is_eq in H|eapply eq_is_bisim in H].
@@ -72,26 +54,11 @@ Ltac csc := clarify; simpl_depind; clarify.
 Notation "tau;; t2" := (Tau t2)
   (at level 200, right associativity) : itree_scope.
 
-
-
-(*** COPIED FROM MASTER BRANCH. REMOVE LATER ***)
-(*** COPIED FROM MASTER BRANCH. REMOVE LATER ***)
-(*** COPIED FROM MASTER BRANCH. REMOVE LATER ***)
-Lemma eutt_eq_bind : forall E R U (t1 t2 : itree E U) (k1 k2 : U -> itree E R), t1 ≈ t2 -> (forall u, k1 u ≈ k2 u) -> ITree.bind t1 k1 ≈ ITree.bind t2 k2.
-Proof.
-  intros.
-  eapply eutt_clo_bind with (UU := Logic.eq); [eauto |].
-  intros ? ? ->. apply H0.
-Qed.
 Ltac f_equiv := first [eapply eutt_eq_bind|eapply eqit_VisF|Morphisms.f_equiv].
-(* eapply eqit_bind'| *)
 
 Hint Rewrite @bind_trigger : itree.
 Hint Rewrite @tau_eutt : itree.
 Hint Rewrite @bind_tau : itree.
-
-(* Tactic Notation "irw" "in" ident(H) := repeat (autorewrite with itree in H; cbn in H). *)
-(* Tactic Notation "irw" := repeat (autorewrite with itree; cbn). *)
 
 (*** TODO : IDK why but (1) ?UNUSNED is needed (2) "fold" tactic does not work. WHY????? ***)
 Ltac fold_eutt :=
@@ -103,7 +70,6 @@ Ltac fold_eutt :=
 .
 
 Lemma map_vis {E R1 R2 X} (e : E X) (k : X -> itree E R1) (f : R1 -> R2) :
-  (* (f <$> (Vis e k)) ≅ Vis e (fun x => f <$> (k x)). *)
   ITree.map f (Vis e k) = Vis e (fun x => f <$> (k x)).
 Proof.
   f.
@@ -371,14 +337,8 @@ Goal forall E X Y (itr : itree E X) (ktr : X -> itree E Y), ((x <- itr;; tau;; t
 Abort.
 
 
-
-
-
-
-
 Definition update K V map `{Map K V map} : K -> (V -> V) -> map -> option map :=
-  fun k f m => do v <- Maps.lookup k m ; Some (Maps.add k (f v) m)
-.
+  fun k f m => do v <- Maps.lookup k m ; Some (Maps.add k (f v) m).
 
 Lemma unfold_update
       K V map `{Map K V map}
@@ -537,16 +497,6 @@ Definition idK {E R} : R -> itree E R := fun r => Ret r.
 Hint Unfold idK.
 
 Lemma idK_spec E R (i0 : itree E R) : i0 = i0 >>= idK. Proof. unfold idK. irw. refl. Qed.
-
-
-
-
-
-
-(* (* Notation Checking *) *)
-(* From iris.bi Require Import derived_connectives updates internal_eq plainly. *)
-(* From iris.base_logic Require Import upred. *)
-(* From iris.prelude Require Import options. *)
 
 Ltac resub :=
   repeat multimatch goal with

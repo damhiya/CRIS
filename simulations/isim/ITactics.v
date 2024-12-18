@@ -33,7 +33,6 @@ Ltac init_sim :=
   [i; s; repeat unfold_hmod; s
   |eauto
   |try prove_sub_perm
-  |repeat unfold_hmod; ss; try nia
-  |repeat unfold_hmod; ss; des_ifs; eauto
+  |try prove_sub_perm
   |unfold_hmod; s; i; des; subst; ss
   |repeat unfold_hmod; ss; eauto].

@@ -589,11 +589,9 @@ Section MODSEMR.
     wf_winit : forall w n st_src st_tgt (WF : wf w (n,st_src,st_tgt)), wf (w++[winit]) (n,st_src,st_tgt);
     sim_initial:
       exists w, wf [w] (1, st_src, st_tgt);
-    sim_length:
-      List.length fl_src = List.length fl_tgt;
     sim_fnsems:
-      forall fn fs (FIND : alist_find fn fl_src = Some fs),
-      exists ft, alist_find fn fl_tgt = Some ft /\
+      forall fn ft (FIND : alist_find fn fl_tgt = Some ft),
+      exists fs, alist_find fn fl_src = Some fs /\
         forall my_tid, sim_fsem fl_src fl_tgt winit wf wle my_tid fs ft;
   }.
 
@@ -603,19 +601,8 @@ Section MODSEMR.
     forall fn (MISS : alist_find fn fl_src = None),
       alist_find fn fl_tgt = None.
   Proof.
-    ii. destruct WF as [NODUP].
-    destruct (alist_find fn fl_tgt) eqn : EQ; eauto.
-    apply alist_find_fst_some in EQ. apply alist_find_fst_none in MISS.
-    exfalso. apply MISS.
-    eapply nodup_eqlen_in_rev.
-    - instantiate (1:= List.map fst fl_tgt).
-      rewrite !map_length, SIM.(sim_length); eauto.
-    - eauto.
-    - i. destruct (alist_find x fl_src) eqn : AEQ; cycle 1.
-      { apply alist_find_fst_none in AEQ. ss. }
-      eapply SIM.(sim_fnsems) in AEQ. des.
-      apply alist_find_fst_some in AEQ. eauto.
-    - eauto.
+    i. destruct (alist_find fn fl_tgt) eqn: EQ; eauto.
+    apply SIM in EQ. des. rewrite MISS in EQ. ss.
   Qed.
   
 End MODSEMR.

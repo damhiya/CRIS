@@ -77,37 +77,6 @@ Section derived.
     split; [split|]; try apply _; [apply ownM_op | apply ownM_unit'].
   Qed.
 
-
-  (** Derive [NonExpansive]/[Contractive] from an internal statement *)
-  (* Lemma ne_internal_eq {A B : ofe} (f : A → B) :
-    NonExpansive f ↔ ∀ x1 x2, x1 ≡ x2 ⊢ f x1 ≡ f x2.
-  Proof.
-    split; [apply f_equivI|].
-    intros Hf n x1 x2. by eapply internal_eq_entails.
-  Qed. *)
-
-  (* Lemma ne_2_internal_eq {A B C : ofe} (f : A → B → C) :
-    NonExpansive2 f ↔ ∀ x1 x2 y1 y2, x1 ≡ x2 ∧ y1 ≡ y2 ⊢ f x1 y1 ≡ f x2 y2.
-  Proof.
-    split.
-    - intros Hf x1 x2 y1 y2.
-      change ((x1,y1).1 ≡ (x2,y2).1 ∧ (x1,y1).2 ≡ (x2,y2).2
-        ⊢ uncurry f (x1,y1) ≡ uncurry f (x2,y2)).
-      rewrite -prod_equivI. apply ne_internal_eq. solve_proper.
-    - intros Hf n x1 x2 Hx y1 y2 Hy.
-      change (uncurry f (x1,y1) ≡{n}≡ uncurry f (x2,y2)).
-      apply ne_internal_eq; [|done].
-      intros [??] [??]. rewrite prod_equivI. apply Hf.
-  Qed. *)
-
-  (* Lemma contractive_internal_eq {A B : ofe} (f : A → B) :
-    Contractive f ↔ ∀ x1 x2, ▷ (x1 ≡ x2) ⊢ f x1 ≡ f x2.
-  Proof.
-    split; [apply f_equivI_contractive|].
-    intros Hf n x1 x2 Hx. specialize (Hf x1 x2).
-    rewrite -later_equivI internal_eq_entails in Hf. apply Hf. by f_contractive.
-  Qed. *)
-
   (** Soundness statement for our modalities : facts derived under modalities in
   the empty context also without the modalities.
   For basic updates, soundness only holds for plain propositions. *)

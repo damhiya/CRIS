@@ -26,11 +26,11 @@ Module HRA.
     }.
   Next Obligation. i. symmetry. apply HRA.subG_prf. Qed.
 
-  Global Program Instance in_subG `{M : ucmra} `{emb : @GRA.inG M Γ} : @GRA.inG M Σ := {
+  Global Program Instance in_subG `{M : cmra} `{emb : @GRA.inG M Γ} : @GRA.inG M Σ := {
       inG_id := sub.(subG_map) emb.(GRA.inG_id);
-      }.
+  }.
   Next Obligation.
-    i. destruct emb. subst. destruct sub. ss.
+    i. destruct emb. destruct sub. ss. rewrite subG_prf0. ss.
   Qed.
 
   End HRA.
@@ -88,9 +88,9 @@ End ST.
 
 Module CtxST.
 
-  Class t `{τ: Typ.t}
-    `{_C: @GPF.inG ST.t τ}
-    := ctxSL: unit.
+  Class t (τ : Typ.t) := { #[global] inG :: @GPF.inG ST.t τ }.
+    (* `{_C: @GPF.inG ST.t τ} *)
+    (* := ctxSL: unit. *)
 
 End CtxST.
 
@@ -290,11 +290,15 @@ End SL.
 
 Module CtxSL.
 
-  Class t `{Γ: HRA.t} `{Σ: GRA.t} `{α: SRFCons.t} `{β: @SRFIntp.t SL.domain α}
+  Class t Σ Γ α β τ :=
+    { #[global] subG :: HRA.subG Γ Σ;
+      #[global] typG :: CtxST.t τ;
+      #[global] intpG :: @SRFIntp.inG SL.domain SL.syntax α SL.t β }.
+    (* `{α: SRFCons.t} `{β: @SRFIntp.t SL.domain α}
     `{_C: CtxST.t}
-    `{_C: @HRA.subG Γ Σ}
+    `{_C: !HRA.subG Γ Σ}
     `{_C: @SRFIntp.inG SL.domain _ α SL.t β}
-    := ctxSL: unit.
+    := ctxSL: unit. *)
   
 End CtxSL.
 
@@ -352,13 +356,13 @@ Module SLRed.
 
   Section RED.
 
-  Context `{_C : CtxSL.t}.
+  Context `{!CtxSL.t Σ Γ α β τ}.
   Notation interp := (SRFSem.t (Δ := @SL.domain Σ)).
 
   Lemma ownm `{@GRA.inG M Γ} n (r : M) :
     interp n (SL.ownm r) = OwnM r.
   Proof.
-    depdes H. subst. unfold SL.ownm, eq_rect_r. ss.
+    depdes H0. subst. unfold SL.ownm, eq_rect_r. ss.
     rewrite @SRFRed.cur. ss.
     f_equal. unfold HRA.in_subG, HRA.embed. ss.
     erewrite (UIP _ _ _ _). reflexivity.
@@ -383,7 +387,7 @@ Module SLRed.
   Lemma univ `{T:PF.t} `{@GPF.inG T τ} n (ty: T.(PF.shp)) p :
     SRFSem.t n (SL.univ ty p) = (∀ x: (T.(PF.deg) ty (SRFSyn.t_prev n)), SRFSem.t n (p x))%I.
   Proof.
-    destruct H eqn : EQ. subst.
+    destruct H0 eqn : EQ. subst.
     unfold SL.univ, eq_rect_r. ss.
     rewrite @SRFRed.cur. reflexivity.
   Qed.
@@ -391,7 +395,7 @@ Module SLRed.
   Lemma ex `{@GPF.inG T τ} n ty p :
     interp n (SL.ex ty p) = (∃ x, interp n (p x))%I.
   Proof.
-    destruct H eqn : EQ. subst.
+    destruct H0 eqn : EQ. subst.
     unfold SL.ex, eq_rect_r. ss.
     rewrite @SRFRed.cur. reflexivity.
   Qed.

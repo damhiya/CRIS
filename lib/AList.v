@@ -1,18 +1,11 @@
-Require Export ZArith.
 Require Export String.
-
 From ExtLib Require Export
      Core.RelDec
      Structures.Maps
      Data.Map.FMapAList.
-
-Require Import sflib.
 Require Import Coqlib.
 
-
 Set Implicit Arguments.
-
-
 (* Global Opaque string_dec. *)
 
 (************ temporary buffer before putting it in Coqlib ***********)
@@ -731,7 +724,7 @@ Section ALIST.
     i. apply in_split in H. des; subst.
     eapply in_elt_inv in IN. des; subst; eauto.
     eapply IHl1 in IN; eauto.
-    { rewrite app_length in *. ss. nia. }
+    { rewrite length_app in *. ss. nia. }
     i. hexploit (MEM x0); s; eauto.
     i. apply in_elt_inv in H. des; subst; eauto. ss.
   Qed.
@@ -757,13 +750,13 @@ Section ALIST.
     clear MEM.
     
     hexploit (IHl1 (l0++l3)); eauto.
-    { rewrite app_length in *. ss. nia. }
+    { rewrite length_app in *. ss. nia. }
     i. eapply Permutation.Permutation_NoDup.
     { apply Permutation.Permutation_middle. }
     eapply NoDup_cons_iff; split; eauto.
     ii. apply NODUP.
     eapply nodup_eqlen_in_rev, H0; eauto.
-    rewrite app_length in *. ss. nia.
+    rewrite length_app in *. ss. nia.
   Qed.
 
   Lemma alist_add_incl {K V} `{DEC : Dec K} (k : K) (v:V) db:

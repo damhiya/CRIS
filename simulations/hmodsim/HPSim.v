@@ -25,19 +25,16 @@ Section HPSIM.
   Variable my_tid : nat.
   Variable is_closed: bool.
 
-  (* Note : iProp-style definition of hsupd incurs positivity problem when defining _hpsim. *)
+  (* Note : iProp-style definition of hsupd (λ fmr, Own fmr ⊢ ∃ fmr0, |==> ⌜P fmr0⌝)
+      incurs positivity problem when defining _hpsim. *)
   Definition hsupd (P : Σ → Prop) : Σ → Prop :=
     λ fmr, ✓ fmr → ∃ fmr0, P fmr0 ∧ (Own fmr ⊢ |==> Own fmr0).
-    (* λ fmr, Own fmr ⊢ ∃ fmr0, |==> ⌜P fmr0⌝. *)
 
-  (* Definition dummy_term (with_dummy: bool) : itree hmodE unit :=
-    if with_dummy then trigger (Guarantee True) else Ret tt. *)
-  
   Variant _hpsim'
-    (hpsimc : ∀ R (RR : nat → alist key Any.t * R → alist key Any.t * R → iProp),
-        bool → bool → nat → alist key Any.t * itree hmodE R → alist key Any.t * itree hmodE R → Σ → Prop)
-    {R} {RR : nat → alist key Any.t * R → alist key Any.t * R → iProp}
-    (hpsimi : bool → bool → nat → alist key Any.t * itree hmodE R → alist key Any.t * itree hmodE R → Σ → Prop)
+      (hpsimc : ∀ R (RR : nat → alist key Any.t * R → alist key Any.t * R → iProp),
+          bool → bool → nat → alist key Any.t * itree hmodE R → alist key Any.t * itree hmodE R → Σ → Prop)
+      {R} {RR : nat → alist key Any.t * R → alist key Any.t * R → iProp}
+      (hpsimi : bool → bool → nat → alist key Any.t * itree hmodE R → alist key Any.t * itree hmodE R → Σ → Prop)
     : bool → bool → nat → alist key Any.t * itree hmodE R → alist key Any.t * itree hmodE R → Σ → Prop :=
 
   | hpsim_ret
@@ -74,7 +71,7 @@ Section HPSIM.
       ps pt nths st_src st_tgt fmr
       fn f varg k_src i_tgt
       (FUN : alist_find fn fl_src = Some f)
-      (K : hpsimi true pt nths (st_src, f varg >>= (λ ret, tau;; tau;; k_src ret)) (st_tgt, i_tgt) fmr)
+      (K : hpsimi true pt nths (st_src, f varg >>= (λ ret, tau;; tau;; Ret ret) >>= k_src) (st_tgt, i_tgt) fmr)
     :
     _hpsim' hpsimc hpsimi ps pt nths (st_src, trigger (Call fn varg) >>= k_src) (st_tgt, i_tgt) fmr
 
@@ -83,7 +80,7 @@ Section HPSIM.
       ps pt nths st_src st_tgt fmr
       fn f varg i_src k_tgt
       (FUN : alist_find fn fl_tgt = Some f)
-      (K : hpsimi ps true nths (st_src, i_src) (st_tgt, f varg >>= (λ ret, tau;; tau;; k_tgt ret)) fmr)
+      (K : hpsimi ps true nths (st_src, i_src) (st_tgt, f varg >>= (λ ret, tau;; tau;; Ret ret) >>= k_tgt) fmr)
     :
     _hpsim' hpsimc hpsimi ps pt nths (st_src, i_src) (st_tgt, trigger (Call fn varg) >>= k_tgt) fmr
 
@@ -232,7 +229,7 @@ Section HPSIM.
           (NODS : List.NoDup (List.map fst st_src0))
           (NODD : List.NoDup (List.map fst st_tgt0))
           (INV : Own fmr0 ⊢ |==> (Ist nths0 st_src0 st_tgt0 ∗ FR)),
-        hpsimi true true nths0 (st_src0, k_src tt) (st_tgt0, k_tgt tt) fmr0)				
+        hpsimi true true nths0 (st_src0, k_src tt) (st_tgt0, k_tgt tt) fmr0)
     :
     _hpsim' hpsimc hpsimi ps pt nths (st_src, trigger (Yield tid) >>= k_src) (st_tgt, trigger (Yield tid) >>= k_tgt) fmr
         
@@ -390,14 +387,14 @@ Section HPSIM.
     hsupd P r'.
   Proof. eapply hsupd_update; eauto; eapply cmra_update_included; eauto. Qed.
 
-  Lemma hsupd_wf P r (IN : ✓ r -> hsupd P r) :
+  Lemma hsupd_wf P r (IN : ✓ r → hsupd P r) :
     hsupd P r.
   Proof. intros wf; hexploit (IN wf wf); i; des; clarify; esplits; eauto. Qed.
 
   Lemma _hpsim_flag_mon r R RR (ps pt ps' pt' : bool) nths st_src st_tgt fmr
       (SIM : _hpsim r R RR ps pt nths st_src st_tgt fmr)
-      (LES : ps -> ps')
-      (LET : pt -> pt') :
+      (LES : ps → ps')
+      (LET : pt → pt') :
     _hpsim r R RR ps' pt' nths st_src st_tgt fmr.
   Proof.
     move SIM before r. revert_until SIM.
@@ -412,8 +409,8 @@ Section HPSIM.
 
   Lemma hpsim_flag_mon R RR (ps pt ps' pt' : bool) nths st_src st_tgt fmr
       (SIM : @hpsim R RR ps pt nths st_src st_tgt fmr)
-      (LES : ps -> ps')
-      (LET : pt -> pt') :
+      (LES : ps → ps')
+      (LET : pt → pt') :
     hpsim RR ps' pt' nths st_src st_tgt fmr.
   Proof.
     move SIM before RR. revert_until SIM. pcofix CIH. i.
@@ -446,13 +443,13 @@ Section HPSIM.
   Qed.
 
   Variant hpsim_flagC 
-      (r : ∀ (R : Type) (RR : nat -> (alist key Any.t) * R -> (alist key Any.t) * R -> iProp),
-        bool -> bool -> nat -> (alist key Any.t) * itree hmodE R -> (alist key Any.t) * itree hmodE R -> Σ -> Prop)
+      (r : ∀ (R : Type) (RR : nat → (alist key Any.t) * R → (alist key Any.t) * R → iProp),
+        bool → bool → nat → (alist key Any.t) * itree hmodE R → (alist key Any.t) * itree hmodE R → Σ → Prop)
       R RR ps1 pt1 nths st_src st_tgt fmr : Prop :=
   | hpsim_flagC_intro ps0 pt0
     (SIM : r R RR ps0 pt0 nths st_src st_tgt fmr)
-    (SRC : ps0 = true -> ps1 = true)
-    (TGT : pt0 = true -> pt1 = true).
+    (SRC : ps0 = true → ps1 = true)
+    (TGT : pt0 = true → pt1 = true).
 
   Lemma hpsim_flagC_mon r1 r2 (LE : r1 <8= r2) :
     hpsim_flagC r1 <8= hpsim_flagC r2.
@@ -475,9 +472,10 @@ Section HPSIM.
   Qed.
 
   Variant hpsim_bindC
-      (r : ∀ R (RR : nat -> (alist key Any.t) * R -> (alist key Any.t) * R -> iProp), bool -> bool -> nat -> (alist key Any.t) * itree hmodE R -> (alist key Any.t) * itree hmodE R -> Σ -> Prop) :
-    ∀ R (RR : nat -> (alist key Any.t) * R -> (alist key Any.t) * R -> iProp),
-      bool -> bool -> nat -> (alist key Any.t) * itree hmodE R -> (alist key Any.t) * itree hmodE R -> Σ -> Prop :=
+      (r : ∀ R (RR : nat → (alist key Any.t) * R → (alist key Any.t) * R → iProp),
+        bool → bool → nat → (alist key Any.t) * itree hmodE R → (alist key Any.t) * itree hmodE R → Σ → Prop)
+    : ∀ R (RR : nat → (alist key Any.t) * R → (alist key Any.t) * R → iProp),
+        bool → bool → nat → (alist key Any.t) * itree hmodE R → (alist key Any.t) * itree hmodE R → Σ → Prop :=
   | hpsim_bindC_intro
       ps pt nths Q QQ st_src st_tgt i_src i_tgt fmr
       (SIM : r Q QQ ps pt nths (st_src, i_src) (st_tgt, i_tgt) fmr)
@@ -491,30 +489,29 @@ Section HPSIM.
   Lemma hpsim_bindC_mon r1 r2 (LEr : r1 <8= r2) : hpsim_bindC r1 <8= hpsim_bindC r2.
   Proof. ii. destruct PR; econs; et. Qed.
 
+  (* Local Hint Resolve Own_wand_valid : core. *)
   Lemma hpsim_bindC_wrespectful : wrespectful8 _hpsim hpsim_bindC.
   Proof.
-    (* econs; eauto using hpsim_bindC_mon; i. *)
-    (* destruct PR. apply GF in SIM. *)
-    (* remember (st_src, i_src) as sti_src. remember (st_tgt, i_tgt) as sti_tgt. *)
-    (* move SIM before GF. revert_until SIM. *)
-    (* pattern ps, pt, nths, sti_src, sti_tgt, fmr. *)
-    (* eapply _hpsim_tarski, SIM. econs. apply hsupd_merge. *)
-    (* econs; esplits; eauto. *)
-    (* specialize (IN H); des. *)
-    (* depdes IN; grind; *)
-      (* try (by rr; i; esplits; eauto with paco);  *)
-      (* try (by do 2 (econs; esplits; eauto with paco); *)
-              (* repeat rewrite <-bind_bind; *)
-              (* eauto 10 using rclo8, hpsim_bindC). *)
-(*  *)
-    (* exploit SIMK; eauto. *)
-    (* i. apply GF in x0. eapply (_hpsim_flag_mon _ _ _ _ _ _ ps0 pt0) in x0; try by i; clarify. *)
-(*  *)
-    (* destruct x0. eapply hsupd_update in IN; eauto. *)
-    (* eapply _hpsim_mon_auto; eauto using rclo8. *)
-    (* eapply Own_bupd_update; eauto. *)
-  (* Qed. *)
-  Admitted.
+    econs; eauto using hpsim_bindC_mon; i.
+    destruct PR. apply GF in SIM.
+    remember (st_src, i_src) as sti_src. remember (st_tgt, i_tgt) as sti_tgt.
+    move SIM before GF. revert_until SIM.
+    pattern ps, pt, nths, sti_src, sti_tgt, fmr.
+    eapply _hpsim_tarski, SIM. econs. apply hsupd_merge.
+    econs; esplits; eauto.
+    specialize (IN H); des.
+    depdes IN; grind;
+      try (by rr; i; esplits; eauto with paco);
+      try (by do 2 (econs; esplits; eauto with paco);
+              repeat rewrite <-bind_bind;
+              eauto 10 using rclo8, hpsim_bindC).
+    { exploit SIMK; eauto.
+      i. apply GF in x0. eapply (_hpsim_flag_mon _ _ _ _  _ ps0 pt0) in x0; try by i; clarify.
+      destruct x0. eapply hsupd_update in IN; eauto.
+      eapply _hpsim_mon_auto; eauto using rclo8.
+      eapply Own_bupd_update; eauto.
+    }  
+  Qed.
 
   Lemma hpsim_bindC_spec : hpsim_bindC <9= gupaco8 _hpsim (cpn8 _hpsim).
   Proof.
@@ -524,8 +521,8 @@ Section HPSIM.
 
 
   Variant hpsim_extendC
-    (r : ∀ R (RR : nat -> (alist key Any.t) * R -> (alist key Any.t) * R -> iProp), bool -> bool -> nat -> (alist key Any.t) * itree hmodE R -> (alist key Any.t) * itree hmodE R -> Σ -> Prop) :
-    ∀ R (RR : nat -> (alist key Any.t) * R -> (alist key Any.t) * R -> iProp), bool -> bool -> nat -> (alist key Any.t) * itree hmodE R -> (alist key Any.t) * itree hmodE R -> Σ -> Prop :=
+    (r : ∀ R (RR : nat → (alist key Any.t) * R → (alist key Any.t) * R → iProp), bool → bool → nat → (alist key Any.t) * itree hmodE R → (alist key Any.t) * itree hmodE R → Σ → Prop) :
+    ∀ R (RR : nat → (alist key Any.t) * R → (alist key Any.t) * R → iProp), bool → bool → nat → (alist key Any.t) * itree hmodE R → (alist key Any.t) * itree hmodE R → Σ → Prop :=
   | hpsim_extendC_intro
       ps pt nths R RR sti_src sti_tgt fmr fmr'
       (SIM : r R RR ps pt nths sti_src sti_tgt fmr)
@@ -552,11 +549,11 @@ Section HPSIM.
   Qed.
 
 
-  Variant hpsim_wfC (r : ∀ R (RR : nat -> (alist key Any.t) * R -> (alist key Any.t) * R -> iProp), bool -> bool -> nat -> (alist key Any.t) * itree hmodE R -> (alist key Any.t) * itree hmodE R -> Σ -> Prop):
-    ∀ R (RR : nat -> (alist key Any.t) * R -> (alist key Any.t) * R -> iProp), bool -> bool -> nat -> (alist key Any.t) * itree hmodE R -> (alist key Any.t) * itree hmodE R -> Σ -> Prop :=
+  Variant hpsim_wfC (r : ∀ R (RR : nat → (alist key Any.t) * R → (alist key Any.t) * R → iProp), bool → bool → nat → (alist key Any.t) * itree hmodE R → (alist key Any.t) * itree hmodE R → Σ → Prop):
+    ∀ R (RR : nat → (alist key Any.t) * R → (alist key Any.t) * R → iProp), bool → bool → nat → (alist key Any.t) * itree hmodE R → (alist key Any.t) * itree hmodE R → Σ → Prop :=
   | hpsim_wfC_intro
       ps pt nths R RR sti_src sti_tgt fmr
-      (SIM : ✓ fmr -> r R RR ps pt nths sti_src sti_tgt fmr) :
+      (SIM : ✓ fmr → r R RR ps pt nths sti_src sti_tgt fmr) :
     hpsim_wfC r R RR ps pt nths sti_src sti_tgt fmr.
 
   Lemma hpsim_wfC_mon r1 r2 (LEr : r1 <8= r2) : hpsim_wfC r1 <8= hpsim_wfC r2 .
@@ -576,8 +573,8 @@ Section HPSIM.
   Qed.
   
 
-  Variant hpsim_updateC (r : ∀ R (RR : nat -> (alist key Any.t) * R -> (alist key Any.t) * R -> iProp), bool -> bool -> nat -> (alist key Any.t) * itree hmodE R -> (alist key Any.t) * itree hmodE R -> Σ -> Prop):
-    ∀ R (RR : nat -> (alist key Any.t) * R -> (alist key Any.t) * R -> iProp), bool -> bool -> nat -> (alist key Any.t) * itree hmodE R -> (alist key Any.t) * itree hmodE R -> Σ -> Prop :=
+  Variant hpsim_updateC (r : ∀ R (RR : nat → (alist key Any.t) * R → (alist key Any.t) * R → iProp), bool → bool → nat → (alist key Any.t) * itree hmodE R → (alist key Any.t) * itree hmodE R → Σ → Prop):
+    ∀ R (RR : nat → (alist key Any.t) * R → (alist key Any.t) * R → iProp), bool → bool → nat → (alist key Any.t) * itree hmodE R → (alist key Any.t) * itree hmodE R → Σ → Prop :=
   | hpsim_updateC_intro
       ps pt nths R RR sti_src sti_tgt fmr
       (SIM : hsupd (r R RR ps pt nths sti_src sti_tgt) fmr) :
@@ -603,8 +600,8 @@ Section HPSIM.
   
 
   Variant hpsim_frameC
-      (r : ∀ R (RR : nat -> (alist key Any.t) * R -> (alist key Any.t) * R -> iProp), bool -> bool -> nat -> (alist key Any.t) * itree hmodE R -> (alist key Any.t) * itree hmodE R -> Σ -> Prop) :
-    ∀ R (RR : nat -> (alist key Any.t) * R -> (alist key Any.t) * R -> iProp), bool -> bool -> nat -> (alist key Any.t) * itree hmodE R -> (alist key Any.t) * itree hmodE R -> Σ -> Prop :=
+      (r : ∀ R (RR : nat → (alist key Any.t) * R → (alist key Any.t) * R → iProp), bool → bool → nat → (alist key Any.t) * itree hmodE R → (alist key Any.t) * itree hmodE R → Σ → Prop) :
+    ∀ R (RR : nat → (alist key Any.t) * R → (alist key Any.t) * R → iProp), bool → bool → nat → (alist key Any.t) * itree hmodE R → (alist key Any.t) * itree hmodE R → Σ → Prop :=
   | hpsim_frameC_intro
       ps pt nths R RR sti_src sti_tgt fmr fmrc (CTX : iProp)
       (SIM : r R (fun n s t => CTX -∗ RR n s t)%I ps pt nths sti_src sti_tgt fmr)
@@ -702,10 +699,10 @@ Section HPSIM.
   Qed.
 
   (* TODO : currently not used. Maybe these need to be in the adequacy *)
-  (* Definition hpsim_fsem : relation (Any.t -> itree hmodE Any.t) :=
+  (* Definition hpsim_fsem : relation (Any.t → itree hmodE Any.t) :=
     (eq ==> hpsim_fun)%signature.
 
-  Definition hpsim_fnsem : relation (string * (Any.t -> itree hmodE Any.t)) :=
+  Definition hpsim_fnsem : relation (string * (Any.t → itree hmodE Any.t)) :=
     RelProd eq hpsim_fsem. *)
 
 End HPSIM.

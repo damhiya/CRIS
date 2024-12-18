@@ -1,69 +1,62 @@
-(* Require Import Coqlib ITreelib sflib.
+Require Import Coqlib ITreelib sflib.
 Require Import ImpPrelude.
 Require Import Events.
-Require Import Behavior.
-Require Import SMod HMod.
+Require Import HMod SMod.
 Require Import Skeleton.
-Require Import PCM.
-Require Import STB IPM ITactics.
-Require Import RingHeader.
+Require Import IPM STB sProp sWorld.
 Require Import CellioHeader.
+Require Import ITactics.
+
+From iris.algebra Require Import excl_auth.
 
 Set Implicit Arguments.
 
-Module CellioR.
-Section CellioR.
-  Context `{Σ: GRA.t}.
+Module CellioA. Section CellioA.
+  Class G (Γ : HRA.t) := { #[local] RA_inG :: GRA.inG (excl_authR ZO) Γ}.
+  Context `{!Inv.t Σ Γ α β τ, !G Γ}.
+  Local Notation iProp := (iProp Σ).
 
-  Definition cellRA: URA.t := (Excl.t Z)%ra.
-  Global Instance RA: URA.t := (Auth.t cellRA).
-  Context `{@GRA.inG RA Σ}.
+  Definition auth (v : Z) : iProp :=
+    Seal.sealing "CellioA"
+      (OwnM (●E v)).
 
-  Definition cellraw_r (v: Z) : cellRA :=
-    (Excl.just v).
-  Definition cell_r (v: Z) : RA :=
-    (Auth.white (cellraw_r v)).
-  Definition cell (v: Z): iProp :=
-    Seal.sealing "ccr"
-      (OwnM (cell_r v)).
-  Definition auth_r (v: Z) : RA :=
-    Auth.black (cellraw_r v).
-  Definition auth (v: Z) : iProp :=
-    Seal.sealing "ccr"
-      (OwnM (auth_r v)).
+  Definition cell (v : Z) : iProp :=
+    Seal.sealing "CellioA"
+      OwnM (◯E v).
 
-End CellioR.
-End CellioR.
+  Lemma cell_auth_get v v':
+    cell v' -∗ auth v -∗ ⌜v = v'⌝.
+  Proof.
+    rewrite /cell /auth; unseal "CellioA". 
+    iIntros "P P'"; iCombine "P P'" as "P" gives %wf.
+    by apply excl_auth_agree in wf.
+  Qed.
 
-Module CellioRA.
-  Class t
-    `{Σ: GRA.t}
-    `{@GRA.inG CellioR.RA Σ}
-    := CellioRA: unit.
-End CellioRA.
-
-Module CellioA.
-Section CellioA.
-  Context `{_W: CellioRA.t}.  
-
-  Definition scopes := [CellioName.mn].
+  Lemma cell_auth_set v v':
+    cell v -∗ auth v -∗ |==> cell v' ∗ auth v'.
+  Proof.
+    rewrite /cell /auth; unseal "CellioA".
+    iIntros "C AU". iCombine "C AU" as "H".
+    iMod (OwnM_Upd with "H") as "[C AU]"; last by (iModIntro; iSplitL "AU"). 
+    rewrite comm; apply excl_auth_update.
+  Qed.
 
   Definition set: Any.t -> itree hmodE Any.t :=
-    fun _ =>
+    λ _,
       x <- trigger (Take Z);;
-      trigger (Assume (CellioR.cell x));;;
+      trigger (Assume (CellioA.cell x));;;
       i <- trigger (@IO _ Z "Input" tt);;
-      trigger (Guarantee (CellioR.cell i));;;
-      Ret tt↑
-  .
+      trigger (Guarantee (CellioA.cell i));;;
+      Ret tt↑.
   
   Definition get: Any.t -> itree hmodE Any.t :=
-    fun _ =>
+    λ _,
       x <- trigger (Take Z);;
-      trigger (Assume (CellioR.cell x));;;
-      trigger (Guarantee (CellioR.cell x));;;
-      Ret x↑
-  .
+      trigger (Assume (CellioA.cell x));;;
+      trigger (Guarantee (CellioA.cell x));;;
+      Ret x↑.
+
+  Definition scopes := [CellioName.mn].
   
   Definition fnsems : alist string (list string * fspecbody) :=
     [(CellioName.set, (scopes, mk_specbody fspec_trivial set));
@@ -73,23 +66,19 @@ Section CellioA.
     SModSem.scopes := scopes;
     SModSem.fnsems := fnsems;
     SModSem.initial_st := [];
-  |}
-  .
+  |}.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
   Definition Mod : SMod.t := {|
-    SMod.modsem := fun _ => Sem;
+    SMod.modsem := λ _, Sem;
     SMod.sk := CellioSK.t;
-  |}
-  .
+  |}.
 
   Definition InitCond : Sk.t -> iProp :=
-    fun _ => (CellioR.auth 0)%I.
+    λ _, CellioA.auth 0.
 
-  Variable GI: Sk.t -> invspec.
+  Variable ginv: Sk.t -> invspec.
   Variable GlobalStb: Sk.t -> gname -> option fspec.
-  Definition t := Seal.sealing "ccr" (SMod.to_hmod GI GlobalStb Mod).
-
-End CellioA.
-End CellioA. *)
+  Definition t := Seal.sealing "ccr" (SMod.to_hmod ginv GlobalStb Mod).
+End CellioA. End CellioA.

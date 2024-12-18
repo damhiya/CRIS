@@ -1,11 +1,11 @@
 Require Import Coqlib.
-Require Export sflib.
 Require Export ITreelib.
 Require Export AList.
 Require Import Any.
 
 From CRIS.base_logic Require Import base_logic.
-Require Import PCM IPM. (* TODO : delete this dependency after gra mod *)
+Require Import IPM.
+(* TODO : delete this dependency after gra mod *)
 
 Set Implicit Arguments.
 

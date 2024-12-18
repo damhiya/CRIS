@@ -1,19 +1,9 @@
 Require Import Coqlib ITreelib.
 Require Import ImpPrelude.
 Require Import Skeleton.
-Require Import IPM.
+Require Import IPM sWorld.
 Require Import Events Behavior.
 Require Import Relation_Definitions.
-
-(*** TODO : export these in Coqlib or Universe ***)
-Require Import Relation_Operators.
-Require Import RelationPairs.
-From ITree Require Import
-     Events.MapDefault.
-From ExtLib Require Import
-     Core.RelDec
-     Structures.Maps
-     Data.Map.FMapAList.
 
 Require Import MapHeader MapI MapMSpec SMod ModSim.
 Require Import MemA STB.
@@ -77,7 +67,7 @@ Qed.
 (* Simulation proof *)
 Module MapIM. Section MapIM.
   Import MapMS.
-  Context `{!MapMS.G Σ, !memG Σ}.
+  Context `{!Inv.t Σ Γ α β τ, !G Γ, !memG Γ}.
   Notation iProp := (iProp Σ).
 
   Definition Ist : Sk.t → nat → alist key Any.t → alist key Any.t → iProp :=
@@ -106,7 +96,7 @@ Module MapIM. Section MapIM.
     init_simF.
 
     (* SRC: handle the IST of Map and the precond of init *)
-    steps_l. iDestruct "ASM" as "((% & P0) & %)". des. hss. inv G1.
+    steps_l. iDestruct "ASM" as "((% & P0) & %)". des. hss. inv G2.
     iDestruct "IST" as (????) "(%& (% & [%|(P & IST)]) &%)";    
       [|iDestruct "IST" as (????) "M"];
       hss; cycle 1.
@@ -198,8 +188,8 @@ Module MapIM. Section MapIM.
     init_simF.
 
     (* SRC: handle the IST of Map and the precond of get *)
-    steps_l. iDestruct "ASM" as "(% & %)". hss. inv G1.
-    iDestruct "IST" as (? ? ? ?) "(%& (% & [%|(P & IST)]) &%)";    
+    steps_l. iDestruct "ASM" as "(% & %)". hss. inv G2.
+    iDestruct "IST" as (? ? ? ?) "(%& (% & [%|(P & IST)]) &%)";
       [|iDestruct "IST" as (? ? ? ?) "(% & M)"];
       des; hss.
     { nia. }
@@ -240,8 +230,8 @@ Module MapIM. Section MapIM.
     init_simF.
 
     (* SRC: handle the IST of Map and the precond of set *)
-    steps_l. iDestruct "ASM" as "(% & %)". hss. inv G1. 
-    iDestruct "IST" as (? ? ? ?) "(%& (% & [%|(P & IST)]) &%)";    
+    steps_l. iDestruct "ASM" as "(% & %)". hss. inv G2.
+    iDestruct "IST" as (? ? ? ?) "(%& (% & [%|(P & IST)]) &%)";
       [|iDestruct "IST" as (? ? ? ?) "(% & M)"];
       des; hss.
     { nia. }
@@ -284,7 +274,7 @@ Module MapIM. Section MapIM.
     init_simF.
 
     (* SRC: handle the IST of Map and the precond of set_by_user *)
-    steps_l. iDestruct "ASM" as "(% & %)". hss. inv G1. hss.
+    steps_l. iDestruct "ASM" as "(% & %)". hss. inv G2. hss.
     rename q2 into k.
 
     (* process an input *)

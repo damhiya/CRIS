@@ -11,7 +11,7 @@ Module WD.
 
   Section WD.
 
-    Context `{_W : CtxSL.t}.
+    Context `{!CtxSL.t Σ Γ α β τ}.
     Context `{_W0 : @GRA.inG OwnIRA Σ}.
     Context `{_W1 : @GRA.inG OwnERA Γ}.
     Context `{_W2 : @GRA.inG OwnDRA Γ}.
@@ -52,7 +52,7 @@ Module WD.
 
     Global Instance t: SRFIntpM.t := interp.
 
-    Context `{_W3 : @SRFIntp.inG _ _ _ t β}.
+    Context `{_W3 : @SRFIntp.inG SL.domain syntax α t β}.
 
     Definition OwnI u n i (p : SRFSyn.t n) : SRFSyn.t n :=
       ⟨ _OwnI u i, fun _ => p ⟩%SRF.
@@ -101,23 +101,23 @@ Module WD.
 
 End WD.
 
-Module CtxWD.
+Module Inv.
 
-  Class t
-    `{_C : CtxSL.t}
-    `{_C : @GRA.inG OwnIRA Σ}
-    `{_C : @GRA.inG OwnERA Γ}
-    `{_C : @GRA.inG OwnDRA Γ}
-    `{_C : @SRFIntp.inG _ _ _ WD.t β}
-    := ctxWD : unit.
+  Class t Σ Γ α β τ :=
+    { #[global] ctxSL :: CtxSL.t Σ Γ α β τ;
+      #[global] IinG :: @GRA.inG OwnIRA Σ;
+      #[global] EinG :: @GRA.inG OwnERA Γ;
+      #[global] DinG :: @GRA.inG OwnDRA Γ;
+      #[global] IntpG :: @SRFIntp.inG SL.domain WD.syntax α WD.t β
+    }.
 
-End CtxWD.
+End Inv.
 
 Module WDRed.
 
   Section RED.
 
-    Context `{_C : CtxWD.t}.
+    Context `{_C : Inv.t}.
 
     Lemma OwnI_auth u n I  :
       SRFSem.t n (WD.OwnI_auth u n I) = OwnI_auth u n I.

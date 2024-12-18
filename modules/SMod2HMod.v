@@ -58,17 +58,6 @@ Section FSPEC.
              (fun tid x z a => (((snd ∘ DPQ tid) x a: iProp) ∗ ⌜z = a⌝)%I)
   .
 
-  Definition app_DPQ {X0} {X1}
-    (DPQ0: nat -> X0 -> (Any.t -> iProp) * (Any.t -> iProp))
-    (DPQ1: nat -> X1 -> (Any.t -> iProp) * (Any.t -> iProp))
-  :
-    nat -> (X0 + X1) -> (Any.t -> iProp) * (Any.t -> iProp) :=
-    fun tid meta =>
-      match meta with
-      | inl meta0 => DPQ0 tid meta0
-      | inr meta1 => DPQ1 tid meta1
-      end.
-
   Definition fspec_false : fspec :=
   {| 
     meta := Empty_set;
@@ -83,7 +72,7 @@ Section FSPEC.
     postcond := fun tid '(existT i meta_i) => (nth i fspecs fspec_false).(postcond) tid meta_i 
   |}.
 
-  Context `{_W: CtxWD.t (Σ:=Σ)}.
+  Context `{Inv.t (Σ:=Σ)}.
 
   Variant meta_inv {X: positive -> nat -> Type} : Type :=
   | mk_meta (u: positive) (n: nat) (x: X u n).  
@@ -96,8 +85,6 @@ Section FSPEC.
          closed_universe u (k+n) ⊤ ∗ (fsp u n).(postcond) tid x vret ret)%I.
   
 End FSPEC.
-
-Notation "DPQ0 @ DPQ1" := (app_DPQ DPQ0 DPQ1) (at level 60, right associativity).
 
 Arguments precond : simpl never.
 Arguments postcond : simpl never.

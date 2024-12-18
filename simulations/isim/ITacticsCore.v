@@ -55,8 +55,8 @@ Ltac by_coind CIH :=
 
 Ltac unfold_hmod :=
   match goal with
-  | [|-context[HMod.modsem ?x _]] => rewrite/__ {1}/x; progress unseal "ccr"
-  | [|-context[HMod.sk ?x]] => rewrite/__ {1}/x; progress unseal "ccr" end.
+  | [|-context[HMod.modsem ?x _]] => rewrite {1}/x; progress unseal "ccr"
+  | [|-context[HMod.sk ?x]] => rewrite {1}/x; progress unseal "ccr" end.
 
 Lemma ereplace T (x y: T):
   x = y -> x = y.
@@ -179,15 +179,15 @@ Ltac des_pairs :=
 
 Ltac desugar itr :=
   match itr with
-  | fbody_trivial _ => rewrite/__ {1}/itr
-  | HoareCall _ _ _ => rewrite/__ {1}/itr
-  | HoareSpawn _ _ _ => rewrite/__ {1}/itr
-  | HoareYield _ _ => rewrite/__ {1}/itr
-  | cput _ _ => rewrite/__{1}/itr
-  | cgetU _ => rewrite/__{1}/itr
-  | cgetN _ => rewrite/__{1}/itr
-  | triggerUB => rewrite/__{1}/itr
-  | triggerNB => rewrite/__{1}/itr
+  | fbody_trivial _ => rewrite {1}/itr
+  | HoareCall _ _ _ => rewrite {1}/itr
+  | HoareSpawn _ _ _ => rewrite {1}/itr
+  | HoareYield _ _ => rewrite {1}/itr
+  | cput _ _ => rewrite{1}/itr
+  | cgetU _ => rewrite{1}/itr
+  | cgetN _ => rewrite{1}/itr
+  | triggerUB => rewrite{1}/itr
+  | triggerNB => rewrite{1}/itr
   end.
 
 Ltac _unwrapSB itr :=
@@ -252,13 +252,13 @@ Ltac _unwrapS itr :=
   | trigger (IO _ _) => 
       rewrite SModRed.interp_core  
   | trigger (Call _ _) =>
-      rewrite/__ SModRed.interp_call {1}/handle_callE_hmodE
+      rewrite SModRed.interp_call {1}/handle_callE_hmodE
   | trigger (Spawn _ _) =>
-      rewrite/__ SModRed.interp_sch {1}/handle_schE_hmodE
+      rewrite SModRed.interp_sch {1}/handle_schE_hmodE
   | trigger (Yield _) =>
-      rewrite/__ SModRed.interp_sch {1}/handle_schE_hmodE
+      rewrite SModRed.interp_sch {1}/handle_schE_hmodE
   | trigger Tid =>
-      rewrite/__ SModRed.interp_sch {1}/handle_schE_hmodE
+      rewrite SModRed.interp_sch {1}/handle_schE_hmodE
   | trigger (SPut _ _) =>
       rewrite SModRed.interp_pg
   | trigger (SGet _) =>
@@ -467,7 +467,7 @@ Ltac unfold_stb :=
           edestruct H as [ND RW];
           erewrite (RW name);
           [|revert ND; unfold to_stb;
-            match goal with [|-context[alist_find _ ?x]] => rewrite/__ /x end;
+            match goal with [|-context[alist_find _ ?x]] => rewrite /x end;
             unseal "ccr"; i;
             alist_find_simpl fnsems_nodup;
             refl];
@@ -486,9 +486,9 @@ Ltac prep :=
   try rewrite !bind_bind;
   try match goal with
   | [|-context[interp_smod _ _ (?f ?arg)]] =>
-    match type of arg with Any.t => rewrite/__ {1}/f end
+    match type of arg with Any.t => rewrite {1}/f end
   | [|-context[PModSem.interp (?f ?arg)]] =>
-    match type of arg with Any.t => rewrite/__ {1}/f end
+    match type of arg with Any.t => rewrite {1}/f end
   end;
   unfold ccallU, ccallN;
   try match goal with
@@ -588,12 +588,12 @@ Ltac init_simF :=
   alist_find_simpl fnsems_nodup;
   eexists; split; [eauto|];
   repeat match goal with
-  | [|- context[{| fsb_body := cfunU ?x |}]] => rewrite/__ {1}/x
-  | [|- context[{| fsb_body := cfunN ?x |}]] => rewrite/__ {1}/x
-  | [|- context[{| fsb_body := ?x |}]] => rewrite/__ {1}/x
+  | [|- context[{| fsb_body := cfunU ?x |}]] => rewrite {1}/x
+  | [|- context[{| fsb_body := cfunN ?x |}]] => rewrite {1}/x
+  | [|- context[{| fsb_body := ?x |}]] => rewrite {1}/x
   | [|- context[PModSem.interp (?x _)]] => unfold x
-  | [|- context[cfunU ?x]] => rewrite/__ {1}/x
-  | [|- context[cfunN ?x]] => rewrite/__ {1}/x
+  | [|- context[cfunU ?x]] => rewrite {1}/x
+  | [|- context[cfunN ?x]] => rewrite {1}/x
   end;                          
   unfold interp_sb_hp, HoareFun, cfunU, cfunN, HModSem.sandbox_body; s;
   ii; subst; iIntros "IST";
@@ -605,11 +605,11 @@ Ltac prove_sub_perm :=
     [|-sub_perm ?x ?y] =>
       match x with
       | _ ++ _ => idtac
-      | _ => rewrite/__ /x
+      | _ => try rewrite /x
       end;
       match y with
       | _ ++ _ => idtac
-      | _ => rewrite/__ /y
+      | _ => try rewrite /y
       end
   end;
   Lauto_normalize;
