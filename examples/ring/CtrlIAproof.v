@@ -111,7 +111,7 @@ Module CtrlIA. Section CtrlIA.
   Notation IstFull := (IstProd (IstSB (RingA.t max_size ginv StbR) Ist) IstEq).
 
   Lemma simF_init:
-    HSim.sim_fun RingAMod RingIMod IstFull RingName.init.
+    HSim.sim_fun RingAMod RingIMod IstFull false RingName.init.
   Proof.
     init_simF.
 
@@ -143,7 +143,7 @@ Module CtrlIA. Section CtrlIA.
   Qed.
 
   Lemma simF_get_size:
-    HSim.sim_fun RingAMod RingIMod IstFull RingName.get_size.
+    HSim.sim_fun RingAMod RingIMod IstFull false RingName.get_size.
   Proof.
     init_simF.
 
@@ -162,7 +162,7 @@ Module CtrlIA. Section CtrlIA.
   Qed.
 
   Lemma simF_enqueue:
-    HSim.sim_fun RingAMod RingIMod IstFull RingName.enqueue.
+    HSim.sim_fun RingAMod RingIMod IstFull false RingName.enqueue.
   Proof.
     init_simF.
 
@@ -214,7 +214,7 @@ Module CtrlIA. Section CtrlIA.
   Qed.
 
   Lemma simF_dequeue:
-    HSim.sim_fun RingAMod RingIMod IstFull RingName.dequeue.
+    HSim.sim_fun RingAMod RingIMod IstFull false RingName.dequeue.
   Proof.
     init_simF.
 
@@ -263,7 +263,7 @@ Module CtrlIA. Section CtrlIA.
       exists 1. nia.
   Qed.
 
-  Theorem sim : HSim.t RingAMod RingIMod (RingA.InitCond max_size) IstFull.
+  Theorem sim : HSim.t RingAMod RingIMod (RingA.InitCond max_size) IstFull false.
   Proof.
     init_sim.
     - iIntros "R". iExists [_], [_;_], _, _.

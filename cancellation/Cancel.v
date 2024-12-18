@@ -41,32 +41,32 @@ Section CANCEL.
     generalize (i args) as itr. clear FIND fn i args.
     revert_until ms. gcofix CIH. i.
     ides itr.
-    - rewrite/__ !HModSB.transl_ret HIRed.ret HModSB.transl_ret. gstep. econs. refl.
-    - rewrite/__ !HModSB.transl_tau HIRed.tau !HModSB.transl_tau. 
+    - rewrite !HModSB.transl_ret HIRed.ret HModSB.transl_ret. gstep. econs. refl.
+    - rewrite !HModSB.transl_tau HIRed.tau !HModSB.transl_tau. 
       gstep. econs. gstep. econs. gbase. eauto.
-    - rewrite/__ -bind_trigger !HModSB.transl_bind.
+    - rewrite -bind_trigger !HModSB.transl_bind.
       destruct e.
       {
         assert ((@ITree.trigger (@hmodE Σ) X (inl1 a)) = trigger a) by grind. 
-        rewrite/__ H !HModSB.transl_ag HIRed.bind_ag HModSB.transl_bind HModSB.transl_ag !bind_trigger.
+        rewrite H !HModSB.transl_ag HIRed.bind_ag HModSB.transl_bind HModSB.transl_ag !bind_trigger.
         gstep. econs. i. r.
-        rewrite/__ HModSB.transl_tau. gstep. econs. gbase. eauto.
+        rewrite HModSB.transl_tau. gstep. econs. gbase. eauto.
       }
       destruct p.
       {
         assert ((@ITree.trigger (@hmodE Σ) X (inr1 (inl1 s))) = trigger s) by grind.
-        rewrite/__ H !HModSB.transl_sch HIRed.bind_sch HModSB.transl_bind HModSB.transl_sch !bind_trigger.
+        rewrite H !HModSB.transl_sch HIRed.bind_sch HModSB.transl_bind HModSB.transl_sch !bind_trigger.
         gstep. econs. i. r.
-        rewrite/__ HModSB.transl_tau. gstep. econs. gbase. eauto.
+        rewrite HModSB.transl_tau. gstep. econs. gbase. eauto.
       }
       destruct s.
       {
         assert ((@ITree.trigger (@hmodE Σ) X (inr1 (inr1 (inl1 c)))) = trigger c) by grind.
         destruct c.
-        rewrite/__ H !HModSB.transl_call HIRed.call HModSB.transl_tau. s.
+        rewrite H !HModSB.transl_call HIRed.call HModSB.transl_tau. s.
         destruct (alist_find fn (HModSem.fnsems ms)) eqn: FIND.
         { 
-          ired. rewrite/__ !HIRed.bind !HModSB.transl_bind -!bind_tau.
+          ired. rewrite !HIRed.bind !HModSB.transl_bind -!bind_tau.
           guclo eqit_clo_bind. econs.
           { 
             eapply (@gpaco2_init _ _ _ _ (eqitC eq false false)); eauto with paco.
@@ -144,24 +144,24 @@ Section CANCEL.
     iIntros "(#IST & CIH)".
     
     assert (CASE := case_itrH _ it); des; subst.
-    - rewrite/__ HIRed.ret. step. eauto.
-    - rewrite/__ HIRed.tau. steps_l. steps_r. by_coind "CIH". eauto.
-    - rewrite/__ HIRed.bind_ag. 
+    - rewrite HIRed.ret. step. eauto.
+    - rewrite HIRed.tau. steps_l. steps_r. by_coind "CIH". eauto.
+    - rewrite HIRed.bind_ag. 
       steps_l. force_r. iFrame. by_coind "CIH". eauto.
-    - rewrite/__ HIRed.bind_ag. 
+    - rewrite HIRed.bind_ag. 
       steps_r. force_l. iFrame. steps_l. by_coind "CIH". eauto.
-    - rewrite/__ HIRed.bind_sch. depdes s.
+    - rewrite HIRed.bind_sch. depdes s.
       + step. steps_l. by_coind "CIH". auto.
       + iApply isim_yield. iSplitR; eauto. 
         iIntros (? ? ? ? ?) "IST0".
         steps_l. by_coind "CIH". auto.
       + steps_l. steps_r. by_coind "CIH". auto.
-    - destruct c. rewrite/__ HIRed.call. steps_l. 
+    - destruct c. rewrite HIRed.call. steps_l. 
 
       destruct (alist_find fn fl) eqn:FIND; cycle 1.
       { iApply isim_call_none; ss. unfold triggerNB. steps_r. ss. }
       iApply isim_inline_tgt; eauto.
-      s. ired. rewrite/__ bind_I.
+      s. ired. rewrite bind_I.
       iStopProof.
       match goal with
       | [|-context[(□ ?P)%I]] => remember (□P)%I
@@ -174,12 +174,12 @@ Section CANCEL.
         iSplitR; eauto. by_coind "CIH". eauto.  
       }
       i. rewrite Heqb. iIntros "(#CIH & % & IST)". des. subst.
-      rewrite/__ HIRed.tau. steps_l. steps_r. ired.
+      rewrite HIRed.tau. steps_l. steps_r. ired.
       by_coind "CIH". auto.
     - iDestruct "Ist" as "%". depdes s.
-      + rewrite/__ HIRed.bind_pg. iApply isim_sput_src. iApply isim_sput_tgt. steps_l.
+      + rewrite HIRed.bind_pg. iApply isim_sput_src. iApply isim_sput_tgt. steps_l.
         by_coind "CIH". iPureIntro. subst. eauto.
-      + rewrite/__ HIRed.bind_pg. iApply isim_sget_src. iApply isim_sget_tgt. steps_l.
+      + rewrite HIRed.bind_pg. iApply isim_sget_src. iApply isim_sget_tgt. steps_l.
         subst. unfold or_else. des_ifs; by_coind "CIH"; eauto.
     - rewrite HIRed.bind_core. depdes e.
       + steps_r. force_l. steps_l.
@@ -209,11 +209,11 @@ Section CANCEL.
     econs; ss; try refl; eauto.
     { unfold SubPerm.sub_perm. exists []. s. refl. }
     { rewrite map_length. ss. }
-    { i. rewrite/__ map_map_compose fst_map_snd in IN. ss. }
+    { i. rewrite map_map_compose fst_map_snd in IN. ss. }
     ii. hexploit FIND. i. destruct fs.
 
     unfold HModSemAux.inline in H. s in H.
-    rewrite/__ alist_find_map_snd /o_map in H. des_ifs.
+    rewrite alist_find_map_snd /o_map in H. des_ifs.
     rename p into ft. exists ft.
     esplits; eauto.
     ii. subst. destruct ft.
@@ -237,26 +237,26 @@ Section CANCEL.
     iIntros "(#(_ & CIH) & Ist)".
     
     assert (CASE := case_itrH _ it); des; subst.
-    - rewrite/__ HModSB.transl_ret HIRed.ret. step. eauto.
-    - rewrite/__ HModSB.transl_tau HIRed.tau. steps_l. steps_r. by_coind "CIH". eauto.
-    - rewrite/__ HModSB.transl_bind HModSB.transl_ag HIRed.bind_ag. steps_l. force_r. iFrame. by_coind "CIH". eauto.
-    - rewrite/__ HModSB.transl_bind HModSB.transl_ag HIRed.bind_ag. steps_r. force_l. iFrame. steps_l. by_coind "CIH". eauto.
-    - rewrite/__ HModSB.transl_bind HModSB.transl_sch HIRed.bind_sch. depdes s.
+    - rewrite HModSB.transl_ret HIRed.ret. step. eauto.
+    - rewrite HModSB.transl_tau HIRed.tau. steps_l. steps_r. by_coind "CIH". eauto.
+    - rewrite HModSB.transl_bind HModSB.transl_ag HIRed.bind_ag. steps_l. force_r. iFrame. by_coind "CIH". eauto.
+    - rewrite HModSB.transl_bind HModSB.transl_ag HIRed.bind_ag. steps_r. force_l. iFrame. steps_l. by_coind "CIH". eauto.
+    - rewrite HModSB.transl_bind HModSB.transl_sch HIRed.bind_sch. depdes s.
       + step. steps_l. by_coind "CIH". auto.
-      + rewrite/__ !HModSB.transl_bind !HModSB.transl_sch.
+      + rewrite !HModSB.transl_bind !HModSB.transl_sch.
         iApply isim_yield. iFrame. iIntros (? ? ? ? ?) "IST".
         steps_l. by_coind "CIH". auto.
       + steps_l. steps_r. by_coind "CIH". auto.
-    - destruct c. rewrite/__ HModSB.transl_bind HModSB.transl_call HIRed.call. steps_l. 
+    - destruct c. rewrite HModSB.transl_bind HModSB.transl_call HIRed.call. steps_l. 
       destruct (alist_find fn (HModSem.fnsems (HMod.modsem md sk0))) eqn:FIND; cycle 1.
       { 
         iApply isim_call_none; ss.
-        { rewrite/__ alist_find_map_snd FIND. ss. }
+        { rewrite alist_find_map_snd FIND. ss. }
         unfold triggerNB. steps_r. ss.
       }
       destruct p. iApply isim_inline_tgt.
-      { rewrite/__ alist_find_map_snd FIND. ss. }
-      s. ired. rewrite/__ HIRed.bind HModSB.transl_bind.
+      { rewrite alist_find_map_snd FIND. ss. }
+      s. ired. rewrite HIRed.bind HModSB.transl_bind.
       iStopProof.
       match goal with
       | [|-context[(□ ?P)%I]] => remember (□P)%I
@@ -269,12 +269,12 @@ Section CANCEL.
         iSplitR; eauto. by_coind "CIH". eauto.  
       }
       i. rewrite Heqb. iIntros "(#CIH & % & IST)". des. subst.
-      rewrite/__ HIRed.tau. steps_l. steps_r. ired.
+      rewrite HIRed.tau. steps_l. steps_r. ired.
       by_coind "CIH". auto.
     - depdes s.
-      + rewrite/__ !HModSB.transl_bind !HModSB.transl_put. des_ifs; cycle 1. 
+      + rewrite !HModSB.transl_bind !HModSB.transl_put. des_ifs; cycle 1. 
         { steps_r. rewrite HIRed.bind_core. force_l. steps_l. instantiate (1:= q). by_coind "CIH". eauto. }
-        rewrite/__ HIRed.bind_pg HModSB.transl_bind HModSB.transl_put. des_ifs; cycle 1.
+        rewrite HIRed.bind_pg HModSB.transl_bind HModSB.transl_put. des_ifs; cycle 1.
         { 
           exfalso. eapply existsb_exists in Heq. des. 
           eapply SCP in Heq. assert (XEQ:= existsb_exists). hdes.
@@ -282,9 +282,9 @@ Section CANCEL.
         } 
         iApply isim_sput_src. iApply isim_sput_tgt.
         steps_l. by_coind "CIH". iDestruct "Ist" as "%". subst. eauto.
-      + rewrite/__ !HModSB.transl_bind !HModSB.transl_get. des_ifs; cycle 1.
+      + rewrite !HModSB.transl_bind !HModSB.transl_get. des_ifs; cycle 1.
         { steps_r. rewrite HIRed.bind_core. force_l. steps_l. instantiate (1:= q). by_coind "CIH". eauto. }
-        rewrite/__ HIRed.bind_pg HModSB.transl_bind HModSB.transl_get. des_ifs; cycle 1.
+        rewrite HIRed.bind_pg HModSB.transl_bind HModSB.transl_get. des_ifs; cycle 1.
         { 
           exfalso. eapply existsb_exists in Heq. des. 
           eapply SCP in Heq. assert (XEQ:= existsb_exists). hdes.
@@ -293,7 +293,7 @@ Section CANCEL.
         iApply isim_sget_src. iApply isim_sget_tgt.
         steps_l. iDestruct "Ist" as "%". subst. 
         by_coind "CIH". eauto.
-    - rewrite/__ HModSB.transl_bind HModSB.transl_core HIRed.bind_core. depdes e.
+    - rewrite HModSB.transl_bind HModSB.transl_core HIRed.bind_core. depdes e.
       + steps_r. force_l. steps_l.
         instantiate (1:= q). by_coind "CIH". eauto.
       + steps_l. force_r. instantiate (1:= q).
@@ -317,10 +317,10 @@ Section CANCEL.
     econs; ss; try refl.
     { iIntros "_". iPureIntro. ss. }
     { rewrite map_length. ss. }
-    { i. rewrite/__ map_map_compose fst_map_snd. ss. }
+    { i. rewrite map_map_compose fst_map_snd. ss. }
     ii. exists (wrap_elimI (HMod.modsem md sk0) fs).
     esplits.
-    { rewrite/__ alist_find_map_snd /o_map. des_ifs. }
+    { rewrite alist_find_map_snd /o_map. des_ifs. }
     ii. subst. destruct fs.
     assert(SCP := (HMod.modsem md sk0).(HModSem.well_scoped_fns)).
     specialize (SCP fn). rewrite/fnsems_scopes FIND in SCP.
@@ -344,22 +344,22 @@ Section CANCEL.
     iIntros "(#(_ & CIH) & Ist)".
     
     assert (CASE := case_itrH _ it); des; subst.
-    - rewrite/__ HModSB.transl_ret HIRed.ret. step. eauto.
-    - rewrite/__ HModSB.transl_tau HIRed.tau. steps_l. steps_r. by_coind "CIH". eauto.
-    - rewrite/__ HModSB.transl_bind HModSB.transl_ag HIRed.bind_ag. steps_l. force_r. iFrame. steps_r. by_coind "CIH". eauto.
-    - rewrite/__ HModSB.transl_bind HModSB.transl_ag HIRed.bind_ag. steps_r. force_l. iFrame. by_coind "CIH". eauto.
-    - rewrite/__ HModSB.transl_bind HModSB.transl_sch HIRed.bind_sch. depdes s.
+    - rewrite HModSB.transl_ret HIRed.ret. step. eauto.
+    - rewrite HModSB.transl_tau HIRed.tau. steps_l. steps_r. by_coind "CIH". eauto.
+    - rewrite HModSB.transl_bind HModSB.transl_ag HIRed.bind_ag. steps_l. force_r. iFrame. steps_r. by_coind "CIH". eauto.
+    - rewrite HModSB.transl_bind HModSB.transl_ag HIRed.bind_ag. steps_r. force_l. iFrame. by_coind "CIH". eauto.
+    - rewrite HModSB.transl_bind HModSB.transl_sch HIRed.bind_sch. depdes s.
       + step. steps_r. by_coind "CIH". auto.
-      + rewrite/__ !HModSB.transl_bind !HModSB.transl_sch.
+      + rewrite !HModSB.transl_bind !HModSB.transl_sch.
         iApply isim_yield. iFrame. iIntros (? ? ? ? ?) "IST".
         steps_r. by_coind "CIH". auto.
       + steps_l. steps_r. by_coind "CIH". auto.
-    - destruct c. rewrite/__ HModSB.transl_bind HModSB.transl_call HIRed.call. steps_r. 
+    - destruct c. rewrite HModSB.transl_bind HModSB.transl_call HIRed.call. steps_r. 
       destruct (alist_find fn (HModSem.fnsems (HMod.modsem md sk0))) eqn:FIND; cycle 1.
       { s. unfold triggerNB. ired. rewrite HIRed.bind_core. steps_r. ss. }
       destruct p. iApply isim_inline_src.
-      { rewrite/__ alist_find_map_snd FIND. ss. }
-      s. ired. rewrite/__ HIRed.bind HModSB.transl_bind.
+      { rewrite alist_find_map_snd FIND. ss. }
+      s. ired. rewrite HIRed.bind HModSB.transl_bind.
       iStopProof.
       match goal with
       | [|-context[(□ ?P)%I]] => remember (□P)%I
@@ -372,12 +372,12 @@ Section CANCEL.
         iSplitR; eauto. by_coind "CIH". eauto.  
       }
       i. rewrite Heqb. iIntros "(#CIH & % & IST)". des. subst.
-      rewrite/__ HIRed.tau. steps_l. steps_r. ired.
+      rewrite HIRed.tau. steps_l. steps_r. ired.
       by_coind "CIH". auto.
     - depdes s.
-      + rewrite/__ !HModSB.transl_bind !HModSB.transl_put. des_ifs; cycle 1. 
+      + rewrite !HModSB.transl_bind !HModSB.transl_put. des_ifs; cycle 1. 
         { rewrite HIRed.bind_core. steps_r. force_l. instantiate (1:= q). by_coind "CIH". eauto. }
-        rewrite/__ HIRed.bind_pg HModSB.transl_bind HModSB.transl_put. des_ifs; cycle 1.
+        rewrite HIRed.bind_pg HModSB.transl_bind HModSB.transl_put. des_ifs; cycle 1.
         { 
           exfalso. eapply existsb_exists in Heq. des. 
           eapply SCP in Heq. assert (XEQ:= existsb_exists). hdes.
@@ -385,9 +385,9 @@ Section CANCEL.
         } 
         iApply isim_sput_src. iApply isim_sput_tgt.
         steps_r. by_coind "CIH". iDestruct "Ist" as "%". subst. eauto.
-      + rewrite/__ !HModSB.transl_bind !HModSB.transl_get. des_ifs; cycle 1.
+      + rewrite !HModSB.transl_bind !HModSB.transl_get. des_ifs; cycle 1.
         { rewrite HIRed.bind_core. steps_r. force_l. instantiate (1:= q). by_coind "CIH". eauto. }
-        rewrite/__ HIRed.bind_pg HModSB.transl_bind HModSB.transl_get. des_ifs; cycle 1.
+        rewrite HIRed.bind_pg HModSB.transl_bind HModSB.transl_get. des_ifs; cycle 1.
         { 
           exfalso. eapply existsb_exists in Heq. des. 
           eapply SCP in Heq. assert (XEQ:= existsb_exists). hdes.
@@ -396,7 +396,7 @@ Section CANCEL.
         iApply isim_sget_src. iApply isim_sget_tgt.
         steps_r. iDestruct "Ist" as "%". subst. 
         by_coind "CIH". eauto.
-    - rewrite/__ HModSB.transl_bind HModSB.transl_core HIRed.bind_core. depdes e.
+    - rewrite HModSB.transl_bind HModSB.transl_core HIRed.bind_core. depdes e.
       + steps_r. force_l. instantiate (1:= q). by_coind "CIH". eauto.
       + steps_l. force_r. steps_r. instantiate (1:= q). by_coind "CIH". auto.
       + step. steps_r. by_coind "CIH". auto.

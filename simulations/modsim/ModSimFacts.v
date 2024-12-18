@@ -413,7 +413,7 @@ Section SEMR.
       + rewrite !list.list_lookup_insert_ne in INT; try nia. inv INT.
         eapply SIM; eauto; des_ifs.
 
-    - rewrite/__ (unfold_iter_eq _ (_, itrs_tgt)). s. rewrite LKT.
+    - rewrite (unfold_iter_eq _ (_, itrs_tgt)). s. rewrite LKT.
       grind. rewrite FUN. grind. step.
       eapply K;
         try rewrite length_insert;

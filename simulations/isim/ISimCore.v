@@ -737,5 +737,4 @@ Module HSim. Section HSim.
       forall sk,
         HSSim.sim_fun (HMod.modsem md_src sk) (HMod.modsem md_tgt sk) (Ist sk) is_closed fn.
 
-  End SIM.
-End HSim.
+End HSim. End HSim.

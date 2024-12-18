@@ -121,7 +121,7 @@ Module HIRed.
       eapply (@gpaco2_init _ _ _ _ (eqitC eq false false)); eauto with paco.
       revert i k. gcofix CIH. i.
       ides i.
-      - grind. rewrite/__ [_ _ (Ret _)]unfold_iter_eq. grind.
+      - grind. rewrite [_ _ (Ret _)]unfold_iter_eq. grind.
         gfinal. right. eapply paco2_mon_bot; eauto.
         apply Reflexive_eqit. auto.
       - grind. rewrite! unfold_iter_eq. grind.

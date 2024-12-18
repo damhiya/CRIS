@@ -42,7 +42,7 @@ Section HSSIM_ADEQUACY.
       (WFS : HModSem.wf ms)
       (WFT : HModSem.wf mt)
       (SIM : HSSim.t ms mt IC Ist true) :
-    MSim.t (HModSem.to_mod ms (p ⋅ q)) (HModSem.to_mod mt q).
+    MSim.t (HModSem.to_mod ms rs) (HModSem.to_mod mt rt).
   Proof.
     inv SIM.
     econs; i; ss.
@@ -93,7 +93,6 @@ Section HSSIM_ADEQUACY.
       }
       { rewrite List.map_map. f_equal. extensionalities. destruct H. eauto. }
       { rewrite List.map_map. f_equal. extensionalities. destruct H. eauto. }
-      { apply le_mine_refl. ii; eauto. }
   Unshelve. apply string_Dec.
   Qed.
   

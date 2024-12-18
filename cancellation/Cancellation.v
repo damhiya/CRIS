@@ -65,19 +65,19 @@ Section CANCEL.
   Ltac prb := gstep; econs; econs; try instantiate (1:= smj_bot); try instantiate (1:= smj_bot); eauto.  
   Ltac prm := gstep; econs; econs; try instantiate (1:= smj_mid); try instantiate (1:= smj_mid); eauto.  
   Ltac _iter := rewrite unfold_iter_eq; ired.
-  Ltac _iterI := rewrite/__ [ITree.iter (handle_callE _) _]unfold_iter_eq; ired.
-  Ltac _tau := rewrite/__ !StRed.tau.
-  Ltac _core := rewrite/__ StRed.bind StRed.core; prep.
-  Ltac _coreH := rewrite/__ HModSB.transl_bind HModSB.transl_core interp_hp_bind interp_hp_core; prep.
-  Ltac _asm := rewrite/__ HModSB.transl_bind HModSB.transl_ag interp_hp_bind interp_hp_Assume/handle_Assume /mget_res; prep.
-  Ltac _grt := rewrite/__ HModSB.transl_bind HModSB.transl_ag interp_hp_bind interp_hp_Assume/handle_Guarantee /mget_res; prep.
+  Ltac _iterI := rewrite [ITree.iter (handle_callE _) _]unfold_iter_eq; ired.
+  Ltac _tau := rewrite !StRed.tau.
+  Ltac _core := rewrite StRed.bind StRed.core; prep.
+  Ltac _coreH := rewrite HModSB.transl_bind HModSB.transl_core interp_hp_bind interp_hp_core; prep.
+  Ltac _asm := rewrite HModSB.transl_bind HModSB.transl_ag interp_hp_bind interp_hp_Assume/handle_Assume /mget_res; prep.
+  Ltac _grt := rewrite HModSB.transl_bind HModSB.transl_ag interp_hp_bind interp_hp_Assume/handle_Guarantee /mget_res; prep.
   Ltac _sget := rewrite/sGet !StRed.bind [interp_stateE Any.t _ _]StRed.state/handle_stateE. 
   (* Ltac __supd := rewrite/sPut /sGet !StRed.bind [interp_stateE _ _ _]StRed.state/handle_stateE.  *)
   Ltac ls := rewrite !list_insert_insert.
-  Ltac __supd := rewrite/__ !StRed.bind StRed.state. 
+  Ltac __supd := rewrite !StRed.bind StRed.state. 
   Ltac _supd := __supd; grind; try ls; _tau; st; st; try (rewrite Any.pair_split; ired); try (rewrite Any.upcast_downcast; ired).
   Ltac _ub := rewrite/triggerUB !StRed.bind StRed.core; st; i; ss.
-  Ltac iterL := _iter; rewrite/__ list_lookup_insert;[|try rewrite !length_insert; auto]; ired.
+  Ltac iterL := _iter; rewrite list_lookup_insert;[|try rewrite !length_insert; auto]; ired.
 
   Tactic Notation "tau" integer(n) := _tau; do n st.
   Tactic Notation "iterT" integer(n) := do n (iterL; ls; tau 2).
@@ -737,7 +737,7 @@ Section CANCEL.
     alist_find fn (_stb SKINCL SKWF) = Some (l, fsp).
   Proof.
     unfold sbtb, _stb.
-    rewrite/__ alist_find_map_snd/o_map FIND. ss.
+    rewrite alist_find_map_snd/o_map FIND. ss.
   Qed. 
 
   Lemma stb_find_fsb fn fsp l fspec fbody (sk0: Sk.t)
@@ -757,7 +757,7 @@ Section CANCEL.
       P sk0 mr fsp meta r
       (EQV: Sk.equiv sk sk0) (SKWF: Sk.wf sk0)
       (WF: HModSem.wf (md_src.(HMod.modsem) sk0))
-      (STB: stb sk0 "CCR_init" = Some fsp)
+      (STB: stb sk0 "CRIS_init" = Some fsp)
       (VALID: ✓ (r ⋅ mr))
       (PRE: Own r ⊢ fsp.(precond) 0 meta tt↑ tt↑)
       (SAT: Own mr ⊢ P sk0)
@@ -772,22 +772,22 @@ Section CANCEL.
     instantiate (1:= smj_top).
     unfold ModSem.compile. s. unfold ITree.map.
     (* remember (alist_encode (SModSem.initial_st (SMod.modsem md sk0))) as st. *)
-    destruct (alist_find "CCR_init" (SModSem.fnsems (SMod.modsem md sk0))) eqn:E; cycle 1.
+    destruct (alist_find "CRIS_init" (SModSem.fnsems (SMod.modsem md sk0))) eqn:E; cycle 1.
     {
-      rewrite/__ !alist_find_map/o_map E. s.
+      rewrite !alist_find_map/o_map E. s.
       unfold interp_modE at 2.
       rewrite/interp_schE_callE unfold_iter_eq /handle_schE_callE.
-      grind. rewrite/__ StRed.bind. grind.
+      grind. rewrite StRed.bind. grind.
       destruct (resum IFun False (Choose False)) eqn:V.
       { inv V. }
       depdes c; inv V. resub.
-      rewrite/__ [interp_stateE _ _ _]StRed.core. grind.
+      rewrite [interp_stateE _ _ _]StRed.core. grind.
       ginit. st. i. ss.
     }
-    rewrite/__ !alist_find_map/o_map E. s. 
+    rewrite !alist_find_map/o_map E. s. 
     erewrite !wrap_elimI_well_scoped; cycle 1.
-    { unfold SModSem.to_hmod. s. rewrite alist_find_map_snd. instantiate (1:= "CCR_init"). rewrite E. ss. }
-    { unfold SModSemAux.to_hmod. s. rewrite alist_find_map_snd. instantiate (1:= "CCR_init"). rewrite E. ss. }
+    { unfold SModSem.to_hmod. s. rewrite alist_find_map_snd. instantiate (1:= "CRIS_init"). rewrite E. ss. }
+    { unfold SModSemAux.to_hmod. s. rewrite alist_find_map_snd. instantiate (1:= "CRIS_init"). rewrite E. ss. }
     ired. destruct p. s.
     unfold HModSem.sandbox_body, interp_hp_fun. s.
     unfold inline_hp_fun, interp_sb_hp. s.
@@ -800,19 +800,19 @@ Section CANCEL.
     pose proof (stb_find_fsb SKINCL SKWF STB E). subst.
     hide_l.
     ginit.
-    rewrite/__ !HModSB.transl_bind HModSB.transl_sch HIRed.bind_sch interp_hp_bind. s.
+    rewrite !HModSB.transl_bind HModSB.transl_sch HIRed.bind_sch interp_hp_bind. s.
     rewrite interp_hp_tid. ired.
     _iter. _tau. st. _iter. _tau. st. st.
     rewrite interp_hp_tau. _iter. _tau. st. st.
-    rewrite/__ HModSB.transl_bind HModSB.transl_core HIRed.bind_core interp_hp_bind interp_hp_core. ired.
+    rewrite HModSB.transl_bind HModSB.transl_core HIRed.bind_core interp_hp_bind interp_hp_core. ired.
     _iter. _core. st. exists meta. st. ired. 
     _tau. st. _iter. _tau. st. st.
     rewrite interp_hp_tau. _iter. _tau. st. st.
-    rewrite/__ HModSB.transl_bind HModSB.transl_core HIRed.bind_core interp_hp_bind interp_hp_core. ired.
+    rewrite HModSB.transl_bind HModSB.transl_core HIRed.bind_core interp_hp_bind interp_hp_core. ired.
     _iter. _core. st. exists (tt↑). st. ired.
     _iter. _tau. st. st. st.
     rewrite interp_hp_tau. _iter. _tau. st. st.
-    rewrite/__ HModSB.transl_bind HModSB.transl_ag HIRed.bind_ag interp_hp_bind interp_hp_Assume. ired.
+    rewrite HModSB.transl_bind HModSB.transl_ag HIRed.bind_ag interp_hp_bind interp_hp_Assume. ired.
     _iter. _core. st. exists r. st. ired. _tau. st. 
     _iter. _sget. ired. _tau. st. st.
     hss. ired. hss. ired.
@@ -822,7 +822,7 @@ Section CANCEL.
     _iter. _tau. st. st. _supd. _iter. _supd.
     _iter. _tau. st. st. rewrite interp_hp_tau. _iter. _tau. st. st.
     
-    (* CCR_main's precond all executed. *)
+    (* CRIS_init's precond all executed. *)
     reveal ITREE. 
     eapply cancel_aux; eauto.
     econs; eauto using Forall2i.

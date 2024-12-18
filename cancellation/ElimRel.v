@@ -231,7 +231,7 @@ Section CANCEL.
     destruct (alist_find fn (_stb sk0 SKINCL SKWF)) eqn: FIND; cycle 1.
     { eapply STBSOUND in FIND. des. clarify. }
     unfold _stb, sbtb, ms in FIND.
-    rewrite/__ alist_find_map_snd/o_map in FIND. des_ifs.
+    rewrite alist_find_map_snd/o_map in FIND. des_ifs.
     destruct p0, f. exists l, fsb_body. repeat f_equal.
     assert (alist_find fn (_stb sk0 SKINCL SKWF) = Some (l, fsb_fspec)).
     { rewrite/_stb alist_find_map_snd /o_map /sbtb /ms Heq. ss. }
@@ -244,9 +244,9 @@ Section CANCEL.
     HModSem.sandbox scopes (HoareYield ginv' tid) = HoareYield ginv' tid.
   Proof.
     unfold HoareYield.
-    rewrite/__ HModSB.transl_bind HModSB.transl_ag. f_equal. extensionalities.
-    rewrite/__ HModSB.transl_bind HModSB.transl_sch. f_equal. extensionalities.
-    rewrite/__ HModSB.transl_bind HModSB.transl_sch. f_equal. extensionalities.
+    rewrite HModSB.transl_bind HModSB.transl_ag. f_equal. extensionalities.
+    rewrite HModSB.transl_bind HModSB.transl_sch. f_equal. extensionalities.
+    rewrite HModSB.transl_bind HModSB.transl_sch. f_equal. extensionalities.
     rewrite HModSB.transl_ag. ss.
   Qed. 
 
@@ -343,40 +343,40 @@ Section CANCEL.
   Proof.
     unfold HoareCall.
     (* head *)
-    rewrite/__ HModSB.transl_bind HModSB.transl_sch HIRed.bind_sch. 
+    rewrite HModSB.transl_bind HModSB.transl_sch HIRed.bind_sch. 
     f_equal. extensionality my_tid. do 2 f_equal.
-    rewrite/__ HModSB.transl_bind HModSB.transl_core HIRed.bind_core.
+    rewrite HModSB.transl_bind HModSB.transl_core HIRed.bind_core.
     f_equal. extensionality m. do 2 f_equal.
-    rewrite/__ HModSB.transl_bind HModSB.transl_core HIRed.bind_core.
+    rewrite HModSB.transl_bind HModSB.transl_core HIRed.bind_core.
     f_equal. extensionality arg. do 2 f_equal.
-    rewrite/__ HModSB.transl_bind HModSB.transl_ag HIRed.bind_ag.
+    rewrite HModSB.transl_bind HModSB.transl_ag HIRed.bind_ag.
     f_equal. extensionalities. do 2 f_equal.
-    rewrite/__ HModSB.transl_bind HModSB.transl_call HIRed.call.
+    rewrite HModSB.transl_bind HModSB.transl_call HIRed.call.
     do 2 f_equal. ired.
-    rewrite/__ alist_find_map_snd FIND. ired.
+    rewrite alist_find_map_snd FIND. ired.
     unfold HModSem.sandbox_body, interp_sb_hp, HoareFun. s.
-    rewrite/__ HModSB.transl_bind HModSB.transl_sch. ired. rewrite HIRed.bind_sch.
+    rewrite HModSB.transl_bind HModSB.transl_sch. ired. rewrite HIRed.bind_sch.
     f_equal. extensionality my_tid'. do 2 f_equal.
-    rewrite/__ HModSB.transl_bind HModSB.transl_core. ired. rewrite HIRed.bind_core.
+    rewrite HModSB.transl_bind HModSB.transl_core. ired. rewrite HIRed.bind_core.
     f_equal. extensionality m'. do 2 f_equal.
-    rewrite/__ HModSB.transl_bind HModSB.transl_core. ired. rewrite HIRed.bind_core.
+    rewrite HModSB.transl_bind HModSB.transl_core. ired. rewrite HIRed.bind_core.
     f_equal. extensionality varg'. do 2 f_equal.
-    rewrite/__ HModSB.transl_bind HModSB.transl_ag. ired. rewrite HIRed.bind_ag.
+    rewrite HModSB.transl_bind HModSB.transl_ag. ired. rewrite HIRed.bind_ag.
     f_equal. extensionalities. do 2 f_equal. 
     (* body *)
     rewrite HModSB.transl_bind. ired. rewrite HIRed.bind.
     f_equal. extensionality vret'.
-    rewrite/__ HModSB.transl_bind HModSB.transl_core. ired. rewrite HIRed.bind_core.
+    rewrite HModSB.transl_bind HModSB.transl_core. ired. rewrite HIRed.bind_core.
     f_equal. extensionality ret. do 2 f_equal. 
-    rewrite/__ HModSB.transl_bind HModSB.transl_ag. ired. rewrite HIRed.bind_ag.
+    rewrite HModSB.transl_bind HModSB.transl_ag. ired. rewrite HIRed.bind_ag.
     f_equal. extensionalities. do 2 f_equal.
     rewrite HModSB.transl_ret. ired. rewrite HIRed.tau.
     do 4 f_equal.
-    rewrite/__ HModSB.transl_bind HModSB.transl_core. ired. rewrite HIRed.bind_core.
+    rewrite HModSB.transl_bind HModSB.transl_core. ired. rewrite HIRed.bind_core.
     f_equal. extensionality vret. do 2 f_equal.
-    rewrite/__ HModSB.transl_bind HModSB.transl_ag. ired. rewrite HIRed.bind_ag.
+    rewrite HModSB.transl_bind HModSB.transl_ag. ired. rewrite HIRed.bind_ag.
     f_equal. extensionalities. do 2 f_equal.
-    rewrite/__ HModSB.transl_ret HIRed.ret. ss.
+    rewrite HModSB.transl_ret HIRed.ret. ss.
   Qed.
 
   Lemma HoareCall_inline
@@ -492,7 +492,7 @@ Section CANCEL.
       destruct (stb sk0 fn) eqn: STB; ired; cycle 1.
       { 
         unfold triggerNB. 
-        rewrite/__ !HModSB.transl_bind HModSB.transl_core. ired. 
+        rewrite !HModSB.transl_bind HModSB.transl_core. ired. 
         rewrite HIRed.bind_core. gstep. econs.
       }
       do 2 rewrite HModSB.transl_bind. 
@@ -501,7 +501,7 @@ Section CANCEL.
       assert (FIND := stb_in_alist_find).
       specialize (FIND sk0 fn f SKINCL SKWF STB). des.
       destruct (alist_find fn (List.map (map_snd (λ ksb : list string * fspecbody, (ksb.1, interp_sb_hp_aux ksb.2))) (SModSem.fnsems (SMod.modsem md sk0)))) eqn: FINDS; cycle 1.
-      { exfalso. rewrite/__ alist_find_map_snd FIND in FINDS. clarify.  }
+      { exfalso. rewrite alist_find_map_snd FIND in FINDS. clarify.  }
       ired. rewrite FINDS. destruct p. rewrite alist_find_map_snd FIND in FINDS. s in FINDS. inv FINDS. 
       ired. unfold HModSem.sandbox_body. s. 
       set_l. 

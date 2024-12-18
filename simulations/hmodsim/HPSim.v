@@ -510,7 +510,10 @@ Section HPSIM.
       destruct x0. eapply hsupd_update in IN; eauto.
       eapply _hpsim_mon_auto; eauto using rclo8.
       eapply Own_bupd_update; eauto.
-    }  
+    }
+    esplits; eauto. econs 24; eauto.
+    unfold triggerNB. ired. econs. econs. esplits; eauto.
+    econs; eauto. i. ss.  
   Qed.
 
   Lemma hpsim_bindC_spec : hpsim_bindC <9= gupaco8 _hpsim (cpn8 _hpsim).

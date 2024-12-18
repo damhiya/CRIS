@@ -35,7 +35,7 @@ Module MainIM. Section MainIM.
   Local Notation IstFull := (IstProd (IstSB MainA Ist) IstEq).
 
   Lemma simF_main:
-    HSim.sim_fun (MainA ★ CellioA) (MainI.t ★ CellioA) IstFull MainName.main.
+    HSim.sim_fun (MainA ★ CellioA) (MainI.t ★ CellioA) IstFull false MainName.main.
   Proof.
     init_simF.
 
@@ -71,7 +71,7 @@ Module MainIM. Section MainIM.
   Qed.
 
   Theorem sim:
-    HSim.t (MainA ★ CellioA) (MainI.t ★ CellioA) (const emp%I) IstFull.
+    HSim.t (MainA ★ CellioA) (MainI.t ★ CellioA) (const emp%I) IstFull false.
   Proof.
     init_sim.
     - iIntros "_". repeat iExists []. iSplit; eauto.
