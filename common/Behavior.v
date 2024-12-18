@@ -63,8 +63,8 @@ Section BEHAVES.
     des. econs; et.
   Qed.
 
-  Hint Constructors _state_spin.
-  Hint Unfold state_spin.
+  Hint Constructors _state_spin : core.
+  Hint Unfold state_spin : core.
   Hint Resolve state_spin_mon: paco.
   Hint Resolve cpn1_wcompat: paco.
 
@@ -136,8 +136,8 @@ Section BEHAVES.
     i. destruct PR; eauto using _of_itree, _of_itreeF.
   Qed.
 
-  Hint Constructors _of_itree.
-  Hint Unfold of_itree.
+  Hint Constructors _of_itree : core.
+  Hint Unfold of_itree : core.
   Hint Resolve of_itree_mon: paco.
   Hint Resolve cpn1_wcompat: paco.
 
@@ -155,12 +155,12 @@ Section BEHAVES.
 End BEHAVES.
 
 End Beh.
-Hint Unfold Beh.improves.
-Hint Constructors Beh._state_spin.
-Hint Unfold Beh.state_spin.
+Hint Unfold Beh.improves: core.
+Hint Constructors Beh._state_spin: core.
+Hint Unfold Beh.state_spin: core.
 Hint Resolve Beh.state_spin_mon: paco.
 Hint Resolve cpn1_wcompat: paco.
 Hint Resolve cpn2_wcompat: paco.
-Hint Constructors Beh._of_itree.
-Hint Unfold Beh.of_itree.
+Hint Constructors Beh._of_itree: core.
+Hint Unfold Beh.of_itree: core.
 Hint Resolve Beh.of_itree_mon: paco.

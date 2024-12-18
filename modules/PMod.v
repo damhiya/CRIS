@@ -1,11 +1,6 @@
-Require Import Coqlib.
-Require Import sflib.
-Require Import ITreelib.
-Require Import AList.
-Require Import Skeleton.
-Require Import Any.
-Require Import PCM IPM.
-Require Import Events HMod.
+Require Import Common.
+
+Require Import Skeleton HMod.
 
 Set Implicit Arguments.
 

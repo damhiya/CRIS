@@ -1,18 +1,7 @@
 (** * The Imp language  *)
+Require Import CRIS.
 
-Require Import Coqlib.
-Require Import ITreelib.
 Require Import ImpPrelude.
-Require Import Skeleton.
-Require Import Behavior.
-Require Import Any.
-Require Import PMod Events.
-Require Import AList.
-Require Import SMod2HMod.
-Require Import STB.
-Require Import Orders.
-Require Import PCM.
-Require Import ITactics.
 
 Set Implicit Arguments.
 
@@ -69,7 +58,7 @@ Module AnySort.
     - inv WF. econs; eauto.
       apply Forall_forall. i.
       eapply Forall_forall in HD; eauto.
-      eapply in_map. eauto.
+      eapply elem_of_list_In, in_map, elem_of_list_In. eauto.
   Qed.
 
   Lemma sort_equiv sk:
@@ -198,7 +187,7 @@ Module SkEnv.
   Proof.
     i. apply AnySort.sort_incl in IN.
     ss. uo. eapply In_nth_error in IN. des.
-    eexists. rewrite IN. et.
+    eexists. rewrite ->IN. et.
   Qed.
 
   Lemma env_range_some :
@@ -465,7 +454,7 @@ Section Denote.
     | If i t e =>
       v <- denote_expr i;;
       (if (wf_val v) then Ret tt else triggerUB);;;
-      `b : bool <- (is_true v)?;; tau;;
+      'b : bool <- (is_true v)?;; tau;;
       if b then (denote_stmt t) else (denote_stmt e)
 
     | CallFun x f args =>
@@ -499,7 +488,7 @@ Section Denote.
       trigger (SetVar x v);;; tau;; Ret Vundef
     | Free pe =>
       p <- denote_expr pe;;
-      `t : val <- ccallU "free" [p];; tau;; Ret Vundef
+      't : val <- ccallU "free" [p];; tau;; Ret Vundef
     | Load x pe =>
       p <- denote_expr pe;;
       (if (wf_val p) then Ret tt else triggerUB);;;
@@ -509,7 +498,7 @@ Section Denote.
       p <- denote_expr pe;;
       (if (wf_val p) then Ret tt else triggerUB);;;
       v <- denote_expr ve;;
-      `t:val <- ccallU "store" [p; v];; tau;; Ret Vundef
+      't:val <- ccallU "store" [p; v];; tau;; Ret Vundef
     | Cmp x ae be =>
       a <- denote_expr ae;; b <- denote_expr be;;
       (if (wf_val a && wf_val b) then Ret tt else triggerUB);;;
@@ -598,7 +587,7 @@ Section Interp.
     (if (ListDec.NoDup_dec string_dec (params ++ vars)) then Ret tt else triggerUB);;;
     match (init_args params args (init_lenv vars)) with
     | Some iargs =>
-      '(_, retv) <- (interp_imp ge (tau;; (denote_stmt f.(fn_body));;; retv <- (denote_expr (Var "return")) ;; Ret retv)
+      '(_, retv) :_ <- (interp_imp ge (tau;; (denote_stmt f.(fn_body));;; retv <- (denote_expr (Var "return")) ;; Ret retv)
                                iargs);; Ret retv
     | None => triggerUB
     end
@@ -627,7 +616,7 @@ Section MODSEM.
   Solve All Obligations with prove_scope.
   Next Obligation.
     ii. unfold HMod.fnsems_scopes, to_itree in *.
-    rewrite alist_find_map in *.
+    rewrite ->alist_find_map in *.
     destruct (alist_find fn (prog_funs m)); ss.
   Qed.
   Next Obligation. prove_nodup. Qed.

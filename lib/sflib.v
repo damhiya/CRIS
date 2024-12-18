@@ -16,14 +16,11 @@ Require Import Bool List Arith ZArith String Program.
 
 Set Implicit Arguments.
 
-Hint Unfold not iff id.
+Hint Unfold not iff id : core.
 
 Export ListNotations.
 
 (* Notation "~ x" := (forall (FH : x), False) : type_scope. *)
-
-(* Function composition *)
-Notation "f <*> g" := (compose f g) (at level 49, left associativity).
 
 (* ************************************************************************** *)
 (** * Coersion of [bool] into [Prop] *)
@@ -45,7 +42,7 @@ Proof. intros []; (reflexivity || discriminate). Qed.
 Lemma sflib__andb_split : forall {b1 b2}, b1 && b2 -> b1 /\ b2.
 Proof. intros [] []; try discriminate; auto. Qed.
 
-Hint Resolve sflib__true_is_true sflib__not_false_is_true.
+Hint Resolve sflib__true_is_true sflib__not_false_is_true : core.
 
 (* ************************************************************************** *)
 (** * Basic automation tactics *)
@@ -177,13 +174,13 @@ Ltac autos   := clarsimp; auto with sflib.
 Definition  NW A (P : () -> A) : A := P ().
 
 Notation "<< x : t >>" := (NW (fun x => (t):Prop)) (at level 80, x name, no associativity).
-Notation "<< t >>" := (NW (fun _ => t)) (at level 79, no associativity, only printing).
-Notation "<< t >>" := (NW (fun _ => (t):Prop)) (at level 79, no associativity, only printing).
+(* Notation "<< t >>" := (NW (fun _ => t)) (at level 79, no associativity, only printing). *)
+(* Notation "<< t >>" := (NW (fun _ => (t):Prop)) (at level 79, no associativity, only printing). *)
 
 Ltac unnw := unfold NW in *.
 Ltac rednw := red; unnw.
 
-Hint Unfold NW.
+Hint Unfold NW : core.
 
 Ltac get_concl := lazymatch goal with [ |- ?G ] => G end.
 

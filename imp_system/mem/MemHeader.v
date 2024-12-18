@@ -1,3 +1,5 @@
+Require Import CRIS.
+
 Require Export ImpPrelude.
 
 Module MemName.

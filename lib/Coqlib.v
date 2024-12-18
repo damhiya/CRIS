@@ -81,12 +81,9 @@ Definition is_some {X} (x : option X) : bool :=
   | _ => false
   end.
 
-Definition is_none {X} := negb <*> (@is_some X).
+Definition is_none {X} := negb ∘ (@is_some X).
 
 Hint Unfold is_some is_none : core.
-
-
-Notation "x $" := ((proj1_sig x)) (at level 50, no associativity (* , only parsing *)).
 
 Notation top1 := (fun _ => True).
 Notation top2 := (fun _ _ => True).
@@ -158,10 +155,11 @@ o_join (o_map oab (curry2 f)).
 
 (* Copied from Errors.v *)
 
+Declare Scope o_monad_scope.
+
 Notation "'do' X <- A ; B" := (o_bind A (fun X => B))
  (at level 200, X ident, A at level 100, B at level 200)
  : o_monad_scope.
-
 
 Notation "'do' ( X , Y ) <- A ; B" := (o_bind2 A (fun X Y => B))
  (at level 200, X ident, Y ident, A at level 100, B at level 200)
@@ -214,10 +212,6 @@ Ltac dsplit_r := eapply dependent_split_right.
 Ltac dsplit_l := eapply dependent_split_left.
 Ltac dsplits :=
   repeat (let NAME := fresh "SPLITHINT" in try (dsplit_r; [|intro NAME])).
-
-Locate des_sumbool.
-
-
 
 Definition sumbool_to_bool {P Q : Prop} (a : {P} + {Q}) : bool := if a then true else false.
 
@@ -288,10 +282,10 @@ Ltac clear_until_bar :=
                                | _ => clear id'; clear_until_bar
                                end).
 
-Goal True -> True -> False.
+(* Goal True -> True -> False. *)
   (* Seems to crash in vscoq - commented out *)
   (* intro. bar. intro. clear_until H0. clear_until H. Undo 2. clear_until_bar. clear_tac. *)
-Abort.
+(* Abort. *)
 
 
 
@@ -313,6 +307,7 @@ Ltac all_once_fast TAC :=
   intro; on_last_hyp ltac:(fun H => clear H);
   clear name.
 
+(*
 Goal forall (a b c d e : bool) f,
     (negb true = false) -> (* IT SHOULD NOT RUN INF LOOP *)
     (negb false = true) ->
@@ -327,6 +322,7 @@ Goal forall (a b c d e : bool) f,
 Proof.
   i. revert H9. all_once_fast ltac:(fun H => try apply negb_true_iff in H).
 Abort.
+*)
 
 Ltac spc H :=
   let TAC := ss; eauto in
@@ -430,11 +426,13 @@ Ltac spcN n H :=
   | _ => fail 1 "Nothing to specialize!"
   end.
 
+(*
 Goal let my_nat := nat in
      let my_f := my_nat -> Prop in
      forall (f : my_f) (g : nat -> Prop) (x : nat) (y : my_nat), False.
   i. spc f. spc g.
 Abort.
+*)
 
 Lemma map_ext_strong
       X Y (f g : X -> Y) xs
@@ -457,7 +455,7 @@ Ltac apply_all_once LEMMA :=  all_once_fast ltac:(fun H => try apply LEMMA in H)
 
 Lemma find_map
       X Y (f : Y -> bool) (x2y : X -> Y) xs:
-    find f (map x2y xs) = o_map (find (f <*> x2y) xs) x2y.
+    find f (map x2y xs) = o_map (find (f ∘ x2y) xs) x2y.
 Proof. u. ginduction xs; ii; ss. des_ifs; ss. Qed.
 
 Ltac revert_until_bar :=
@@ -481,7 +479,7 @@ Ltac congr := congruence.
 Notation rtc := (clos_refl_trans_1n _). (* reflexive transitive closure *)
 Notation rc := (clos_refl _). (* reflexive transitive closure *)
 Notation tc := (clos_trans _). (* transitive closure *)
-Hint Immediate rt1n_refl rt1n_trans t_step.
+Hint Immediate rt1n_refl rt1n_trans t_step : core.
 
 Program Instance rtc_PreOrder A (R:A -> A -> Prop) : PreOrder (rtc R).
 Next Obligation.
@@ -542,6 +540,7 @@ Tactic Notation "hexpl" constr(H) := hexpl_aux H H.
 (* Tactic Notation "hexpl" constr(H) tactic(TAC) := hexpl_aux H TAC. *)
 Tactic Notation "hexpl" constr(H) ident(NAME) := hexpl_aux H NAME.
 
+(*
 (* 0 goal *)
 Goal forall (mytt : unit) (H : unit -> False), False.
   i. hexpl H.
@@ -560,6 +559,7 @@ Abort.
 Goal forall (mytt : unit) (HH : unit -> (True -> True /\ True)), False.
   i. hexpl HH ABC. hexpl HH.
 Abort.
+ *)
 
 Hint Extern 997 => lia : lia.
 
@@ -597,7 +597,7 @@ Ltac simpl_bool := unfold Datatypes.is_true in *; unfold is_true in *; autorewri
 Ltac bsimpl := simpl_bool.
 
 Definition range (lo hi : Z) : Z -> Prop := fun x => lo <= x < hi. (* TODO : Use Notation instead *)
-Hint Unfold range.
+Hint Unfold range : core.
 
 Ltac sym := symmetry.
 Tactic Notation "sym" "in" hyp(H) := symmetry in H.
@@ -618,7 +618,7 @@ Lemma rev_nil
       (NIL : rev xs = []):
     xs = [].
 Proof.
-  generalize (f_equal (@length _) NIL). i. ss. destruct xs; ss. rewrite app_length in *. ss. lia.
+  generalize (f_equal (@length _) NIL). i. ss. destruct xs; ss. rewrite length_app in *. ss. lia.
 Qed.
 
 Fixpoint last_opt X (xs : list X) : option X :=
@@ -681,25 +681,25 @@ Require Import Program.
 Lemma f_equal_h
       X1 X2 Y1 Y2 (f1 : X1 -> Y1) (f2 : X2 -> Y2) x1 x2
       (TYPX : X1 = X2)
-      (FUNC : f1 ~= f2)
-      (ARG : x1 ~= x2)
+      (FUNC : JMeq f1 f2)
+      (ARG : JMeq x1 x2)
       (TYPY : Y1 = Y2) : (* Do we need this? *)
-    f1 x1 ~= f2 x2.
+    JMeq (f1 x1) (f2 x2).
 Proof. subst. eapply JMeq_eq in FUNC. subst. ss. Qed.
 
 Lemma f_equal_hr
       X1 X2 Y (f1 : X1 -> Y) (f2 : X2 -> Y) x1 x2
-      (FUNC : f1 ~= f2)
+      (FUNC : JMeq f1 f2)
       (TYP : X1 = X2)
-      (ARG : x1 ~= x2):
+      (ARG : JMeq x1 x2):
     f1 x1 = f2 x2.
 Proof. eapply JMeq_eq. eapply f_equal_h; eauto. Qed.
 
 Lemma f_equal_rh
       X Y1 Y2 (f1 : X -> Y1) (f2 : X -> Y2) x
-      (FUNC : f1 ~= f2)
+      (FUNC : JMeq f1 f2)
       (TYP : Y1 = Y2):
-    f1 x ~= f2 x.
+    JMeq (f1 x) (f2 x).
 Proof. eapply f_equal_h; eauto. Qed.
 
 Lemma cons_app
@@ -728,7 +728,7 @@ Proof. induction la; econs; ss. Qed.
 
 Lemma f_hequal A (B : A -> Type) (f : forall a, B a)
       a1 a2 (EQ : a1 = a2):
-    f a1 ~= f a2.
+    JMeq (f a1) (f a2).
 Proof. destruct EQ. econs. Qed.
 
 Ltac uo := unfold o_bind, o_bind2, o_map, o_join in *.
@@ -875,10 +875,7 @@ Let put_dummy_arg22 A B DUMMY C : (A -> B -> C) -> (A -> B -> DUMMY -> C) :=
   fun f => (flip2 (flip (fun _ => f))).
 
 End FLIPS.
-Hint Unfold flip2 flip3 flip4.
-
-Definition DUMMY_PROP := True.
-Hint Unfold DUMMY_PROP.
+Hint Unfold flip2 flip3 flip4 : core.
 
 Lemma firstn_S
       (A : Type) (l : list A) n:

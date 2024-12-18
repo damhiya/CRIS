@@ -1,20 +1,7 @@
-Require Import Coqlib ITreelib.
-Require Import Behavior.
-Require Import Skeleton.
-Require Import IPM.
-Require Import Any.
-Require Import STB ModSim.
-Require Import Events HMod HMod2Mod.
-Require Import ModSimTactics.
+Require Import Common.
 
-Require Import Relation_Definitions.
-Require Import Relation_Operators.
-Require Import RelationPairs.
-Require Import RelationClasses.
-
-Require Import Red IRed.
-Require Import HPSim.
-From iris.algebra Require Import big_op.
+Require Import HMod.
+Require Import HPSim ModSim ModSimTactics.
 
 Section HPSIM_ADEQUACY. 
   Context `{Σ : GRA.t}.

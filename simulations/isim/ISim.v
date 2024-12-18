@@ -1,23 +1,7 @@
-Require Import Coqlib ITreelib sflib.
-Require Import Events Behavior.
-Require Import Mod.
-Require Import Skeleton.
-Require Import PCM IPM.
-Require Import Any.
-Require Import STB ModSim.
+Require Import Common.
 
-Require Import Relation_Definitions.
-Require Import Relation_Operators.
-Require Import RelationPairs.
-From ExtLib Require Import
-     Data.Map.FMapAList.
-Require Import Red IRed.
+Require Import Skeleton HMod SMod.
 Require Import HPSim.
-Require Import World sWorld.
-From stdpp Require Import coPset gmap.
-
-Require Import HMod SMod.
-Require Import SubPerm.
 
 Require Export ISimCore ITacticsCore.
 
@@ -127,10 +111,10 @@ Section HModProd.
         iPureIntro. esplits; eauto.
         * eapply alist_upd_tail. ii. 
           eapply NoDup_app_disjoint; try apply DISJ; eauto.
-          eapply H0. eapply in_map in H. rewrite map_map in H. apply H.
+          eapply H0. eapply in_map in H. rewrite List.map_map in H. apply H.
         * eapply alist_upd_tail. ii.
           eapply NoDup_app_disjoint; try apply DISJ; eauto.
-          apply H1. eapply in_map in H. rewrite map_map in H. apply H.
+          apply H1. eapply in_map in H. rewrite List.map_map in H. apply H.
       + rewrite !HModSB.transl_bind !HModSB.transl_get. des_ifs; cycle 1.
         { steps_r. force_l q. by_coind "CIH". eauto. }
         iApply isim_sget_src. iApply isim_sget_tgt.
@@ -145,12 +129,12 @@ Section HModProd.
           rewrite alist_find_app_o; des_ifs.
           { exfalso. apply alist_find_fst_some in Heq0.
             eapply NoDup_app_disjoint; try apply DISJ; eauto.
-            apply H0. eapply in_map in Heq0. rewrite map_map in Heq0. eauto.
+            apply H0. eapply in_map in Heq0. rewrite List.map_map in Heq0. eauto.
           }
           rewrite alist_find_app_o; des_ifs.
           exfalso. apply alist_find_fst_some in Heq1.
           eapply NoDup_app_disjoint; try apply DISJ; eauto.
-          apply H1. eapply in_map in Heq1. rewrite map_map in Heq1. eauto.
+          apply H1. eapply in_map in Heq1. rewrite List.map_map in Heq1. eauto.
         }
         rewrite H. by_coind "CIH". eauto.
     - destruct e.

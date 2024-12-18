@@ -1,16 +1,7 @@
-(* Simulation rules for the user *)
-Require Import Coqlib ITreelib.
-Require Import Behavior.
-Require Import Mod HMod.
-Require Import Skeleton.
-Require Import IPM.
-Require Import Any.
-Require Import Events STB ModSim HPSim.
+Require Import Common.
 
-Require Import Red IRed.
-Require Import SubPerm.
-
-From stdpp Require Import coPset gmap.
+Require Import Skeleton HMod.
+Require Import HPSim.
 
 Set Implicit Arguments.
 

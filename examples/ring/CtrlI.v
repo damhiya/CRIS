@@ -1,11 +1,6 @@
-Require Import Coqlib ITreelib sflib.
+Require Import CRIS.
+
 Require Import ImpPrelude.
-Require Import Events.
-Require Import Behavior.
-Require Import HMod PMod.
-Require Import Skeleton.
-Require Import PCM.
-Require Import STB IPM ITactics.
 Require Import RingHeader CellHeader.
 
 Set Implicit Arguments.
@@ -29,18 +24,18 @@ Module CtrlI. Section CtrlI.
   
   Definition get_size : unit -> itree pmodE nat :=
     λ _,
-      `hd : nat <- cgetU v_hd;;
-      `tl : nat <- cgetU v_tl;;
+      'hd : nat <- cgetU v_hd;;
+      'tl : nat <- cgetU v_tl;;
       Ret (hd - tl)
   .
 
   Definition enqueue : Z -> itree pmodE unit :=
     λ x,
-      `hd : nat <- cgetU v_hd;;
-      `tl : nat <- cgetU v_tl;;
+      'hd : nat <- cgetU v_hd;;
+      'tl : nat <- cgetU v_tl;;
       if (hd - tl <? max_size)
       then
-        `u: () <- ccallU (CellName.set (hd mod max_size)) x;;
+        'u: () <- ccallU (CellName.set (hd mod max_size)) x;;
         cput v_hd (hd+1)
       else
         trigger (@IO _ void "error" "exceeds the maximum size");;; Ret tt
@@ -48,8 +43,8 @@ Module CtrlI. Section CtrlI.
 
   Definition dequeue : unit -> itree pmodE Z :=
     λ _,
-      `hd : nat <- cgetU v_hd;;
-      `tl : nat <- cgetU v_tl;;
+      'hd : nat <- cgetU v_hd;;
+      'tl : nat <- cgetU v_tl;;
       if (0 <? hd - tl)
       then
         x <- ccallU (CellName.get (tl mod max_size)) tt;;

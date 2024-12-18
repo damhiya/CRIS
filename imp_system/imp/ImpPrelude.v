@@ -1,13 +1,4 @@
-Require Import Coqlib.
-Require Export ZArith.
-Require Export String.
-Require Export Any.
-Require Export Axioms.
-Require Export sflib.
-Require Export ITreelib.
-Require Export AList.
-Require Import Skeleton.
-Require Import Mod Events.
+Require Import CRIS.
 
 Set Implicit Arguments.
 
@@ -251,7 +242,7 @@ Definition val_type_sem (t : val_type) : Set :=
   | Tbool => bool
   | Tptr => (mblock * ptrofs)
   | Tblk => mblock
-  | Tuptyped => val
+  | Tuntyped => val
   end.
 
 Fixpoint val_types_sem (ts : list val_type) : Set :=

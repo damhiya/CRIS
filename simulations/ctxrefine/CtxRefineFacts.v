@@ -1,8 +1,8 @@
-Require Export Coqlib sflib Any.
-Require Import Behavior.
-Require Import Mod Skeleton ModSimFacts.
-Require Import IPM HMod ISimCore ISimFacts.
-Require Import ModSim MainAdequacy CtxRefine.
+Require Import Common.
+
+Require Import Skeleton Mod HMod.
+Require Import ModSim ModSimFacts ISimCore ISimFacts.
+Require Import CtxRefine MainAdequacy.
 
 Section CtxRefineFacts.
   Context `{Σ : GRA.t}.

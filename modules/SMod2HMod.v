@@ -1,17 +1,6 @@
-Require Import Coqlib AList.
-Require Import sflib.
-Require Import ITreelib.
-Require Import Any.
-Require Import Events HMod.
-Require Import IRed.
-Require Import Behavior.
-Require Import PCM IPM.
-Require Import World sWorld.
+Require Import Common.
 
-From ExtLib Require Import
-     Core.RelDec
-     Structures.Maps
-     Data.Map.FMapAList.
+Require Import HMod.
 
 Set Implicit Arguments.
 

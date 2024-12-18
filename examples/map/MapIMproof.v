@@ -1,15 +1,7 @@
-Require Import Coqlib ITreelib.
-Require Import ImpPrelude.
-Require Import Skeleton.
-Require Import IPM sWorld.
-Require Import Events Behavior.
-Require Import Relation_Definitions.
+Require Import CRIS.
 
-Require Import MapHeader MapI MapMSpec SMod ModSim.
-Require Import MemA STB.
-
-Require Import ISim HMod PMod Events ITactics.
-Require Import Mod ModSimFacts.
+Require Import MemA.
+Require Import MapHeader MapI MapM MapMSpec.
 
 Set Implicit Arguments.
 
@@ -42,11 +34,11 @@ Proof.
   assert (CASE : i < sz \/ i >= sz) by nia.
   des.
   - rewrite insert_app_l; cycle 1.
-    { rewrite map_length seq_length. nia. }
+    { rewrite length_map length_seq. nia. }
     rewrite IHsz. s. do 3 f_equal.
     rewrite fn_lookup_insert_ne; eauto. nia.
   - assert (Iadd : List.length (List.map (λ i0 : nat, Vint (f i0)) (seq 0 sz)) + (i - sz) = i).
-    { rewrite map_length seq_length. nia. }
+    { rewrite length_map length_seq. nia. }
     s. rewrite -IHsz -{1 2}Iadd -{4}(app_nil_r (seq 0 sz)) map_app. 
     rewrite !insert_app_r -app_assoc. f_equal. s.
     assert (CASE' : i = sz \/ i > sz) by nia.

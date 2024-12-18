@@ -1,18 +1,7 @@
-Require Import Coqlib ITreelib sflib.
-Require Import ImpPrelude.
-Require Import Events.
-Require Import Behavior.
-Require Import HMod SMod.
-Require Import Skeleton.
-Require Import IPM STB sProp sWorld.
-From ExtLib Require Import
-     Core.RelDec
-     Structures.Maps
-     Data.Map.FMapAList.
-Require Import ISim.
+Require Import CRIS.
+
 Require Import MapHeader MapA MapMSpec.
-From stdpp Require Import coPset gmap namespaces.
-From iris.algebra Require Import auth excl functions.
+
 Set Implicit Arguments.
 
 Module MapAS. Section MapAS.
