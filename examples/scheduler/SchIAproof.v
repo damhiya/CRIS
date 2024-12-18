@@ -186,7 +186,7 @@ Section SIMMODSEM.
   (*************)
 
   Lemma simF__spawn:
-    HSim.sim_fun SchAMod SchIMod Ist false SchName._spawn.
+    HSim.sim_fun SchAMod SchIMod Ist SchName._spawn.
   Proof.
     init_simF.
 
@@ -327,7 +327,7 @@ Section SIMMODSEM.
   Qed.
 
   Lemma simF_spawn:
-    HSim.sim_fun SchAMod SchIMod Ist false SchName.spawn.
+    HSim.sim_fun SchAMod SchIMod Ist SchName.spawn.
   Proof.
     init_simF.
 
@@ -380,7 +380,7 @@ Section SIMMODSEM.
   Qed.
 
   Lemma simF_yield:
-    HSim.sim_fun SchAMod SchIMod Ist false SchName.yield.
+    HSim.sim_fun SchAMod SchIMod Ist SchName.yield.
   Proof.
     init_simF.
 
@@ -402,7 +402,7 @@ Section SIMMODSEM.
   Qed.
 
   Lemma simF_join:
-    HSim.sim_fun SchAMod SchIMod Ist false SchName.join.
+    HSim.sim_fun SchAMod SchIMod Ist SchName.join.
   Proof.
     init_simF.
 
@@ -492,7 +492,7 @@ Section SIMMODSEM.
   Qed.
 
   Theorem sim:
-    HSim.t SchAMod SchIMod SchA.InitCond Ist false.
+    HSim.t SchAMod SchIMod SchA.InitCond Ist.
   Proof.
     init_sim.
     - rewrite /SchA.InitCond /initial_threads. unseal "SchA".

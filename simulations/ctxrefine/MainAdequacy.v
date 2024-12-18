@@ -496,9 +496,9 @@ Section AUX.
   Qed.
 
   Lemma hmod_sim_ctx (ms mt ctx : HMod.t) IC Ist is_closed
-    (SIM : HSim.t ms mt IC Ist false)
+    (SIM : HSim.t ms mt IC Ist)
     :
-    HSim.t (ms ★ ctx) (mt ★ ctx) IC 
+    HSim._t (ms ★ ctx) (mt ★ ctx) IC 
       (fun sk => IstProd0 (IstSB0 (HMod.modsem ms sk).(HModSem.scopes) (Ist sk))
                           (IstSB0 (HMod.modsem ctx sk).(HModSem.scopes) IstEq0)) is_closed.
   Proof.
@@ -573,7 +573,7 @@ Section ADEQUACY.
   Context {Σ : GRA.t}.
 
   Theorem main_adequacy (ms mt : HMod.t) IC Ist
-      (SIM : HSim.t ms mt IC Ist false) :
+      (SIM : HSim.t ms mt IC Ist) :
     ctx_refines (ms, IC) (mt, const(emp%I)).
   Proof.
     ii. s. split.
@@ -676,7 +676,7 @@ Section COMM.
   Proof. ss. Qed.
 
   Lemma hmod_add_comm ms0 ms1 is_closed:
-    HSim.t (ms0 ★ ms1) (ms1 ★ ms0) (const(emp%I))
+    HSim._t (ms0 ★ ms1) (ms1 ★ ms0) (const(emp%I))
       (fun sk => IstSB0 (HMod.scopes (ms0 ★ ms1) sk) perm_Ist) is_closed.
   Proof.
     econs; cycle 1.

@@ -723,9 +723,9 @@ Module HSim. Section HSim.
     Variable (md_src md_tgt : HMod.t).
     Variable init_cond : Sk.t -> iProp.
     Variable Ist : Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp.
-    Variable is_closed: bool.
+    (* Variable is_closed: bool. *)
 
-    Inductive t : Prop :=
+    Inductive _t is_closed : Prop :=
       mk {
           sim_modsem:
           forall sk (SKINCL : List.incl md_tgt.(HMod.sk) sk) (SKWF : Sk.wf sk),
@@ -733,8 +733,12 @@ Module HSim. Section HSim.
           sim_sk : <<SIM : Sk.equiv md_src.(HMod.sk) md_tgt.(HMod.sk)>>;
         }.
 
-    Definition sim_fun fn : Prop :=
+    Definition t := _t false.
+
+    Definition _sim_fun is_closed fn : Prop :=
       forall sk,
         HSSim.sim_fun (HMod.modsem md_src sk) (HMod.modsem md_tgt sk) (Ist sk) is_closed fn.
+    
+    Definition sim_fun fn := _sim_fun false fn.
 
 End HSim. End HSim.

@@ -179,7 +179,7 @@ Section HModProd.
             (IstProd (IstSB A Ist) IstEq sk) is_closed fn)
     (SK : HMod.sk A = HMod.sk B)
     :
-    HSim.t (HMod.add A C) (HMod.add B C) init_cond (IstProd (IstSB A Ist) IstEq) is_closed.
+    HSim._t (HMod.add A C) (HMod.add B C) init_cond (IstProd (IstSB A Ist) IstEq) is_closed.
   Proof.
     econs; cycle 1.
     { rr. eapply Permutation_app_tail. rewrite SK. refl. }

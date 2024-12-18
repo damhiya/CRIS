@@ -576,7 +576,7 @@ Ltac yield hyps := let marker := fresh "MARKER" in
   move_nodup.
 
 Ltac init_simF :=
-  unfold HSim.sim_fun, HSSim.sim_fun; i;
+  unfold HSim.sim_fun, HSim._sim_fun, HSSim.sim_fun; i;
   match goal with [H: _|-_] => revert H end;
   s; unfold_hmod;
   match goal with [|-context[alist_find _ ?x]] =>

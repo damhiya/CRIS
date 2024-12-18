@@ -63,11 +63,11 @@ Section CLOSED.
   Qed. 
 
   Theorem closed_adequacy (ms mt: HMod.t) IC Ist
-    (SIM: HSim.t ms mt IC Ist true)
+    (SIM: HSim._t ms mt IC Ist true)
     :
     refines (ms, IC) (mt, const(emp%I)).
   Proof.
-    (* split.
+    split.
     { s. apply SIM. }
     ii. hexploit (HSim.sim_modsem SIM); eauto.
     { eapply Sk.equiv_incl in EQV. etrans; eauto. refl. }
@@ -76,14 +76,11 @@ Section CLOSED.
     { eapply ucmra_unit_valid. } 
     { eapply hssim_wf; eauto. }
     ii. subst. eapply adequacy_modsem, PR.
-    - replace rs with (rs ⋅ ε); [|r_solve]. 
-      eapply hssim_adequacy; eauto.
-      + r_solve. eauto.
+    - eapply hssim_adequacy; eauto.
+      + iIntros "H". iFrame. iStopProof. eapply Own_unit.
       + eapply hssim_wf; eauto.
-      + rewrite right_id. admit.
     - inv WFM. econs. ss. unfold map_snd.
       rewrite !List.map_map. eapply eq_ind; [apply wf_fns|].
-      f_equal. extensionalities. destruct H0. ss. *)
-  (* Qed. *)
-  Admitted.
+      f_equal. extensionalities. destruct H0. ss.
+  Qed.
 End CLOSED.
