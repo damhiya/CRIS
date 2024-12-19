@@ -294,7 +294,6 @@ Section CANCEL.
               (cid, tgts))
          (Any.pair st rt↑);; Ret x.2).
   Proof. 
-    (* gcofix CIH.  *)
     i. exploit Forall2i_nth; eauto. i. des.
     rename x into src, y into tgt.
     depdes x2.
