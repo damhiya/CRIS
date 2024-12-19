@@ -41,11 +41,14 @@ Section CANCEL.
       fn (FIND: alist_find fn (_stb SKINCL SKWF) = None),
       (<<NONE: stb sk0 fn = None>>).
 
-  Let md_src: HMod.t := HModAux.inline (SModAux.to_hmod md). 
-  Let md_tgt: HMod.t := HModAux.inline (SMod.to_hmod ginv stb md).
+  Let md_src: HMod.t := SModAux.to_hmod md.
+  Let md_tgt: HMod.t := SMod.to_hmod ginv stb md.
+
+  (* Let md_src_inline: HMod.t := HModAux.inline md_src.  *)
+  (* Let md_tgt_inline: HMod.t := HModAux.inline md_tgt. *)
   
-  Let ms_src: HModSem.t := HMod.modsem md_src (md_src.(HMod.sk)).
-  Let ms_tgt: HModSem.t := HMod.modsem md_tgt (md_tgt.(HMod.sk)).
+  (* Let ms_src: HModSem.t := HMod.modsem md_src_inline (md_src_inline.(HMod.sk)). *)
+  (* Let ms_tgt: HModSem.t := HMod.modsem md_tgt_inline (md_tgt_inline.(HMod.sk)). *)
 
   Ltac hide_l := let IT := fresh "ITREE" in
     match goal with 
@@ -121,17 +124,6 @@ Section CANCEL.
       eapply IHREL; nia.
   Qed.
 
-  (* Lemma Forall2i_forall:
-      ∀ X Y (R: nat -> X -> Y -> Prop) i xs ys
-        (RELS: forall k x y
-                (LKX: xs !! k = Some x)
-                (LKY: ys !! k = Some y),
-              R (i + k) x y)
-        (EQLEN1: List.length xs = List.length ys)
-        ,
-      @Forall2i X Y R i xs ys. 
-  Proof. Admitted. *)
-
   Lemma Forall2i_forall
       X Y (R: nat -> X -> Y -> Prop) i xs ys
       (REL: Forall2i R i xs ys)
@@ -143,58 +135,6 @@ Section CANCEL.
     i. des. rewrite LKX in H0. rewrite LKY in H1.
     inv H0. eauto.
   Qed.
-
-  (* Inductive Forall3i X Y Z (R: nat -> X -> Y -> Z -> Prop): nat -> list X -> list Y -> list Z -> Prop :=
-  | Forall3i_nil i: Forall3i R i [] [] []
-  | Forall3i_cons
-      i x y z xs ys zs
-      (REL: R i x y z)
-      (TAIL: Forall3i R (S i) xs ys zs):
-      Forall3i R i (x :: xs) (y :: ys) (z :: zs).
-
-  Lemma Forall3i_len 
-    X Y Z (R: nat -> X -> Y -> Z -> Prop) i xs ys zs
-    (REL: Forall3i R i xs ys zs)
-  :
-    List.length xs = List.length ys /\ List.length xs = List.length zs.
-  Proof.
-    induction REL; s; eauto.
-    des. esplits; eauto.
-  Qed.
-
-  Lemma Forall3i_nth
-    X Y Z (R: nat -> X -> Y -> Z -> Prop) (i k: nat) 
-    (xs: list X) (ys: list Y) (zs: list Z)
-    (REL: Forall3i R i xs ys zs)
-    (NTH: k < List.length xs)
-  :
-    ∃ x y z,
-    xs !! k = Some x /\
-    ys !! k = Some y /\
-    zs !! k = Some z /\
-    R (i + k) x y z.
-  Proof.
-    revert k NTH.
-    induction REL; s; i; eauto.
-    - nia.
-    - destruct k; s.
-      + replace (i + 0) with i by nia. eauto 7.
-      + replace (i + S k) with (S i + k) by nia.
-      eapply IHREL; nia.
-  Qed.
-  
-  Lemma Forall3i_forall:
-      ∀ X Y Z (R: nat -> X -> Y -> Z -> Prop) i xs ys zs
-        (RELS: forall k x y z 
-                (LKX: xs !! k = Some x)
-                (LKY: ys !! k = Some y)
-                (LKZ: zs !! k = Some z),
-              R (i + k) x y z)
-        (EQLEN1: List.length xs = List.length ys)
-        (EQLEN2: List.length xs = List.length zs)
-        ,
-      @Forall3i X Y Z R i xs ys zs. 
-  Proof. Admitted. *)
 
   Inductive valid_stack: list (nat * nat * {X: Type & (X * X)%type}) -> Prop
     :=
@@ -231,11 +171,11 @@ Section CANCEL.
     i. eapply cmra_valid_op_l. setoid_rewrite <- H0. eauto.
   Qed.
 
-  Lemma valid_solve_eq (a b : Σ) :
+  (* Lemma valid_solve_eq (a b : Σ) :
     ✓ a -> a ≡ b -> ✓ b.
   Proof.
     i. rewrite <- H0. eauto.
-  Qed.
+  Qed. *)
 
   Lemma valid_extends (r a b: Σ):
     b ≼ a -> ✓(r ⋅ a) -> ✓ (r ⋅ b).
@@ -250,13 +190,6 @@ Section CANCEL.
     i. eapply Own_wand_valid with (a1 := r); eauto.
     iIntros "H". iApply Own_op. iStopProof. eauto.
   Qed.
-
-  (* Lemma extends_Own
-        (a b : Σ)
-        (OWN: Own b ⊢ Own a) 
-    :
-      a ≼ b.
-  Proof. Admitted. *)
 
   Lemma list_lookup_length {X} (x: X) l:
     (l ++ [x]) !! (base.length l) = Some x.
@@ -293,7 +226,7 @@ Section CANCEL.
                             (stb sk0) (SMod.modsem md sk0))) rt0))) 
               (cid, tgts))
          (Any.pair st rt↑);; Ret x.2).
-  Proof. 
+  Proof.
     i. exploit Forall2i_nth; eauto. i. des.
     rename x into src, y into tgt.
     depdes x2.
@@ -752,25 +685,25 @@ Section CANCEL.
     rewrite FIND in STB. inv STB. ss. 
   Qed.
 
-  Theorem cancellation 
-      P sk0 mr fsp meta r
+  Lemma cancel_main 
+      P sk0 fsp meta rs rt r
       (EQV: Sk.equiv sk sk0) (SKWF: Sk.wf sk0)
       (WF: HModSem.wf (md_src.(HMod.modsem) sk0))
       (STB: stb sk0 "CRIS_init" = Some fsp)
-      (VALID: ✓ (r ⋅ mr))
+      (VALID: ✓ rs)
+      (EQUIV: rs ≡ r ⋅ rt)
       (PRE: Own r ⊢ fsp.(precond) 0 meta tt↑ tt↑)
-      (SAT: Own mr ⊢ P sk0)
+      (SAT: Own rt ⊢ P sk0)
       (POST: ∀ m vret ret, (fsp.(postcond) 0 m vret ret) -∗ ⌜vret = ret⌝)
     :  
       refines_modsem
-        (HModSem.to_mod (md_src.(HMod.modsem) sk0) (r ⋅ mr))
-        (HModSem.to_mod (md_tgt.(HMod.modsem) sk0) mr).
+        (HModSem.to_mod ((HModAux.inline md_src).(HMod.modsem) sk0) rs)
+        (HModSem.to_mod ((HModAux.inline md_tgt).(HMod.modsem) sk0) rt).
   Proof.
     r. eapply adequacy_global_itree.
     instantiate (1:= smj_top).
     instantiate (1:= smj_top).
     unfold ModSem.compile. s. unfold ITree.map.
-    (* remember (alist_encode (SModSem.initial_st (SMod.modsem md sk0))) as st. *)
     destruct (alist_find "CRIS_init" (SModSem.fnsems (SMod.modsem md sk0))) eqn:E; cycle 1.
     {
       rewrite !alist_find_map/o_map E. s.
@@ -793,7 +726,6 @@ Section CANCEL.
     unfold HoareFun.
     
     unfold interp_modE, interp_schE_callE. 
-    (* _coreH. *)
     destruct f.
     assert (SKINCL: incl sk sk0). { eapply Sk.equiv_incl. eauto. }
     pose proof (stb_find_fsb SKINCL SKWF STB E). subst.
@@ -816,14 +748,16 @@ Section CANCEL.
     _iter. _sget. ired. _tau. st. st.
     hss. ired. hss. ired.
     _iter. _core. st.
-    exists VALID. ired. _tau. st. st. 
+    assert (V: ✓(r ⋅ rt)). { eapply valid_solve_eq; eauto. }
+    exists V. ired. _tau. st. st. 
     _iter. _core. st. exists PRE. ired.
     _iter. _tau. st. st. _supd. _iter. _supd.
     _iter. _tau. st. st. rewrite interp_hp_tau. _iter. _tau. st. st.
     
     (* CRIS_init's precond all executed. *)
     reveal ITREE. 
-    eapply cancel_aux; eauto.
+    eapply cancel_aux; eauto; cycle 1.
+    { eapply Own_equiv in EQUIV. iIntros "H". iModIntro. iApply EQUIV. eauto. }
     econs; eauto using Forall2i.
     econs; s; eauto; try rewrite bind_ret_l; ss.
     { econs. }
@@ -839,8 +773,33 @@ Section CANCEL.
   Qed.
   
   (*** Final Theorem ***)
-  (* Theorem cancellation P: *)
-    (* refines (md_src, (fun _ => emp)%I) (md_tgt, P). *)
-  (* Proof. Admitted. *)
-
+  Theorem cancellation P fsp meta
+      (STB: ∀sk0 (EQV: Sk.equiv sk sk0) (SKWF: Sk.wf sk0), stb sk0 "CRIS_init" = Some fsp)
+      (POST: ∀sk0 (EQV: Sk.equiv sk sk0) (SKWF: Sk.wf sk0) m vret ret, 
+                (fsp.(postcond) 0 m vret ret) -∗ ⌜vret = ret⌝)
+    :
+    refines (md_src, P ∗∗ (fun _ => fsp.(precond) 0 meta tt↑ tt↑)) (md_tgt, P).
+  Proof. 
+    etrans.
+    { eapply cancel_call_rev. }
+    etrans; cycle 1.
+    { eapply cancel_call. }
+    r. esplits; ss.
+    ii. eapply Own_split in SRC; eauto. des.
+    exists a1. esplits; eauto.
+    { eapply cmra_valid_op_l, valid_solve_eq; eauto. }
+    {
+      inv WFM. econs; eauto. 
+      s. rewrite !map_map_compose !fst_map_snd.
+      rewrite !map_map_compose !fst_map_snd in wf_fns. eauto.
+    }
+    eapply cancel_main; eauto.
+    { 
+      inv WFM. econs; eauto.
+      rewrite !map_map_compose !fst_map_snd in wf_fns. 
+      rewrite !map_map_compose !fst_map_snd; eauto. 
+    }
+    etrans; eauto. r_solve.
+  Qed.
+    
 End CANCEL.

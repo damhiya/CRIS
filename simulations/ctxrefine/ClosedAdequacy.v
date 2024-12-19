@@ -62,25 +62,63 @@ Section CLOSED.
       i. eapply _hpsim_close. eauto.
   Qed. 
 
-  Theorem closed_adequacy (ms mt: HMod.t) IC Ist
+  Lemma valid_solve_eq (a b : Σ) :
+    ✓ a -> a ≡ b -> ✓ b.
+  Proof.
+    i. rewrite <- H0. eauto.
+  Qed.
+
+  Lemma Own_equiv (a b : Σ):
+    a ≡ b -> Own a ⊢ Own b.
+  Proof.
+    i. eapply Own_extends, Some_included_total, Some_included_refl.
+    symmetry. eauto.
+  Qed.
+
+  Theorem closed_adequacy (ms mt: HMod.t) IC Ist P
     (SIM: HSim._t ms mt IC Ist true)
     :
-    refines (ms, IC) (mt, const(emp%I)).
+    refines (ms, IC ∗∗ P) (mt, P).
   Proof.
     split.
     { s. apply SIM. }
     ii. hexploit (HSim.sim_modsem SIM); eauto.
     { eapply Sk.equiv_incl in EQV. etrans; eauto. refl. }
-    i. ss. des. exists ε.
+    eapply Own_split in SRC; eauto. des.
+    i. ss. des. exists a2.
     esplits; eauto.
-    { eapply ucmra_unit_valid. } 
+    { eapply cmra_valid_op_r. eapply valid_solve_eq; eauto.  }
     { eapply hssim_wf; eauto. }
     ii. subst. eapply adequacy_modsem, PR.
-    - eapply hssim_adequacy; eauto.
-      + iIntros "H". iFrame. iStopProof. eapply Own_unit.
+    - eapply hssim_adequacy; try eapply SRC0; eauto.
+      + rewrite -Own_op. eapply Own_equiv. 
+        etrans; eauto. r_solve.
       + eapply hssim_wf; eauto.
     - inv WFM. econs. ss. unfold map_snd.
       rewrite !List.map_map. eapply eq_ind; [apply wf_fns|].
       f_equal. extensionalities. destruct H0. ss.
   Qed.
+
+  Theorem closed_adequacy2 (ms mt: HMod.t) P
+    (SIM: HSim._t ms mt (const(emp%I)) IstEq true)
+    :
+    refines (ms, P) (mt, P).
+  Proof.
+    split.
+    { s. apply SIM. }
+    ii. hexploit (HSim.sim_modsem SIM); eauto.
+    { eapply Sk.equiv_incl in EQV. etrans; eauto. refl. }
+    i. ss. des. exists rs.
+    esplits; eauto.
+    { eapply hssim_wf; eauto. }
+    ii. subst. eapply adequacy_modsem, PR.
+    - eapply hssim_adequacy; auto.
+      + iIntros "H". iFrame. iApply Own_unit. 
+      + eapply hssim_wf; eauto.
+      + inv H. econs; eauto. iIntros "_". iApply sim_initial; eauto.
+    - inv WFM. econs. ss. unfold map_snd.
+      rewrite !List.map_map. eapply eq_ind; [apply wf_fns|].
+      f_equal. extensionalities. destruct H0. ss.
+  Qed.
+
 End CLOSED.

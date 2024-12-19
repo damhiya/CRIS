@@ -179,12 +179,12 @@ Section CANCEL.
 
   Let sk: Sk.t := HMod.sk md.
 
-  Lemma cancel_call
+  Lemma cancel_call P
   :
-    refines (HModAux.inline md, const(emp%I)) (md, const(emp%I)).
+    refines (HModAux.inline md, P) (md, P).
+    (* refines (HModAux.inline md, const(emp%I)) (md, const(emp%I)). *)
   Proof.
-    eapply closed_adequacy.
-    instantiate (1:= IstEq).
+    eapply closed_adequacy2.
     econs; ss. i. r.
     econs; ss; try refl; eauto.
     { exists []. s. refl. }
@@ -285,12 +285,11 @@ Section CANCEL.
     }
   Qed.
 
-  Lemma cancel_call_rev
+  Lemma cancel_call_rev P
   :
-    refines (md, const(emp%I)) (HModAux.inline md, const(emp%I)).
+    refines (md, P) (HModAux.inline md, P).
   Proof. 
-    eapply closed_adequacy.
-    instantiate (1:= IstEq).
+    eapply closed_adequacy2.
     econs; ss. i. r.
     econs; ss; try refl; eauto.
     { exists []. s. refl. }
