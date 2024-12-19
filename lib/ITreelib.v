@@ -61,7 +61,7 @@ Hint Rewrite @bind_tau : itree.
 
 (*** TODO : IDK why but (1) ?UNUSNED is needed (2) "fold" tactic does not work. WHY????? ***)
 Ltac fold_eutt :=
-  repeat multimatch goal with
+  hrepeat do 1 multimatch goal with
          | [ H : eqit eq true true ?A ?B |- ?UNUSED ] =>
            let name := fresh "tmp" in
            assert(tmp : eutt eq A B) by apply H; clear H; rename tmp into H
@@ -297,38 +297,53 @@ Ltac iby1 TAC :=
 
 (* Ltac grind :=  f; repeat (f_equiv; ii; des_ifs_safe); f. *)
 
-Ltac ired := repeat (try rewrite subst_bind;
-                     try rewrite bind_bind;
-                     try rewrite bind_ret_l;
-                     try rewrite bind_ret_r;
-                     try rewrite bind_tau;
-                     (* try rewrite interp_vis; *)
-                     try rewrite interp_ret;
-                     try rewrite interp_tau;
-                     (* try rewrite interp_trigger *)
-                     try rewrite interp_bind;
+Ltac ired1 :=
+  first
+    [ rewrite subst_bind
+    | rewrite bind_bind
+    | rewrite bind_ret_l
+    | rewrite bind_ret_r
+    | rewrite bind_tau
+    (* | rewrite interp_vis *)
+    | rewrite interp_ret
+    | rewrite interp_tau
+    (* | rewrite interp_trigger *)
+    | rewrite interp_bind
 
-                     try rewrite interp_mrec_hit;
-                     try rewrite interp_mrec_miss;
-                     try rewrite interp_mrec_bind;
-                     try rewrite interp_mrec_tau;
-                     try rewrite interp_mrec_ret;
+    | rewrite interp_mrec_hit
+    | rewrite interp_mrec_miss
+    | rewrite interp_mrec_bind
+    | rewrite interp_mrec_tau
+    | rewrite interp_mrec_ret
 
-                     try rewrite interp_state_trigger;
-                     try rewrite interp_state_bind;
-                     try rewrite interp_state_tau;
-                     try rewrite interp_state_ret;
-                     cbn
-                    ).
+    | rewrite interp_state_trigger
+    | rewrite interp_state_bind
+    | rewrite interp_state_tau
+    | rewrite interp_state_ret
+    | fail];
+   cbn.
+
+Ltac ired := cbn; hrepeat do 1 ired1.
+
 (* first [eapply eqit_VisF|f_equiv] *)
 (* Ltac grind := repeat (ired; f; repeat (f_equiv; match goal with [ |- context[going] ] => fail | _ => idtac end; ii; des_ifs_safe); f). *)
 (* Ltac grind := repeat (ired; f; repeat (Morphisms.f_equiv; ii; des_ifs_safe); f). *)
-Ltac grind := repeat (ired; match goal with
-                            (* | [ |- tau;; ?a = tau;; ?b ] => do 2 f_equal *)
-                            | [ |- (go (TauF ?a)) = (go (TauF ?b)) ] => do 2 f_equal
-                            | [ |- (_ <- _ ;; _) = (_ <- _ ;; _) ] => Morphisms.f_equiv; apply func_ext_dep; i
-                            | _ => idtac
-                            end; ii; des_ifs_safe).
+
+
+Ltac grind_simplify :=
+  cbn;
+  (hrepeat do 1 (
+      match goal with
+      (* | [ |- tau;; ?a = tau;; ?b ] => do 2 f_equal *)
+      | [ |- (go (TauF ?a)) = (go (TauF ?b)) ] => do 2 f_equal
+      | [ |- (_ <- _ ;; _) = (_ <- _ ;; _) ] => Morphisms.f_equiv; apply func_ext_dep; i
+      end; ii));
+  ii; des_ifs_safe.
+
+Ltac grind :=
+  grind_simplify;
+  hrepeat do 1 ((hrepeat_or_fail do 1 ired1); grind_simplify);
+  des_ifs_safe.
 
 (*** simple regression tests ***)
 (*
@@ -500,7 +515,7 @@ Hint Unfold idK : core.
 Lemma idK_spec E R (i0 : itree E R) : i0 = i0 >>= idK. Proof. unfold idK. irw. refl. Qed.
 
 Ltac resub :=
-  repeat multimatch goal with
+  hrepeat do 1 multimatch goal with
          | |- context[@ITree.trigger ?E ?R ?e] =>
            match e with
            | subevent _ _ => idtac
@@ -552,8 +567,8 @@ Proof. extensionality x. grind. Qed.
 
 Ltac grind_ret H := try rewrite !bind_ret_l_eta in H; subst.
 Ltac grind_ret_gen :=
-  repeat (match goal with
-  [H : _ |- _] => try rewrite !bind_ret_l_eta in H
+  hrepeat do 1 (match goal with
+  [H : _ |- _] => rewrite !bind_ret_l_eta in H
   end).
 
 Ltac itree_clarify H :=

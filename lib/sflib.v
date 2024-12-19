@@ -16,6 +16,112 @@ Require Import Bool List Arith ZArith String Program.
 
 Set Implicit Arguments.
 
+Tactic Notation "hrepeat_or_fail" tactic(tac) :=
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+  tryif tac then (
+      fail 10
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else idtac
+  ) else fail
+.
+
+Tactic Notation "hrepeat" tactic(tac) := try (hrepeat_or_fail tac).
+
 Hint Unfold not iff id : core.
 
 Export ListNotations.
@@ -90,7 +196,7 @@ Ltac sflib__complaining_inj f H :=
 
 Ltac sflib__clarify1 :=
   try subst;
-  repeat match goal with
+  (repeat match goal with
   | [H : is_true (andb _ _) |- _] => case (sflib__andb_split H); clear H; intros ? H
   | [H : is_true (negb ?x) |- _] => rewrite (sflib__negb_rewrite H) in *
   | [H : is_true ?x        |- _] => rewrite H in *
@@ -103,13 +209,13 @@ Ltac sflib__clarify1 :=
   | [H : ?f _ _ _ _ _     = ?f _ _ _ _ _     |- _] => sflib__complaining_inj f H
   | [H : ?f _ _ _ _ _ _   = ?f _ _ _ _ _ _   |- _] => sflib__complaining_inj f H
   | [H : ?f _ _ _ _ _ _ _ = ?f _ _ _ _ _ _ _ |- _] => sflib__complaining_inj f H
-  end; try done.
+  end); try done.
 
 (** Perform injections & discriminations on all hypotheses *)
 
 Ltac clarify :=
   sflib__clarify1;
-  repeat match goal with
+  hrepeat do 1 match goal with
     | H1 : ?x = Some _, H2 : ?x = None   |- _ => rewrite H2 in H1; sflib__clarify1
     | H1 : ?x = Some _, H2 : ?x = Some _ |- _ => rewrite H2 in H1; sflib__clarify1
   end.
@@ -211,10 +317,10 @@ Ltac des1 :=
       | match q with | NW _ => red in y' | _ => idtac end]
   end.
 
-Ltac des := repeat des1.
+Ltac des := hrepeat do 1 des1.
 
 Ltac desc :=
-  repeat match goal with
+  hrepeat do 1 match goal with
     | H : exists x, NW (fun y => _) |- _ =>
       let x' := fresh x in let y' := fresh y in destruct H as [x' y']; red in y'
     | H : exists x, ?p |- _ =>
@@ -257,8 +363,8 @@ Ltac nbdes1 :=
     (*   | match q with | NW _ => red in y' | _ => idtac end] *)
   end.
 
-Ltac nbdes := repeat nbdes1.
-Ltac rrnbdes H := move H at bottom; repeat red in H; nbdes.
+Ltac nbdes := hrepeat do 1 nbdes1.
+Ltac rrnbdes H := move H at bottom; (hrepeat do 1 red in H); nbdes.
 
 Ltac forall_split :=
   let H := fresh "__forall_split__" in first [intro; forall_split; match goal with [H:_|-_] => revert H end | split].
@@ -280,12 +386,12 @@ Ltac hdesHi H P x y :=
     try (try (match goal with [Def := ?G : _ |- _] =>
               match Def with P1 =>
               match goal with [_ : G |- _] => fail 4 end end end);
-         assert (x : P1) by (unfold P1; repeat (let x := fresh "__xhj__" in intro x; specialize (H x)); apply H));
+         assert (x : P1) by (unfold P1; (hrepeat do 1 (let x := fresh "__xhj__" in intro x; specialize (H x))); apply H));
     try unfold P1 in x; try clear P1;
     try (try (match goal with [Def := ?G : _ |- _] =>
               match Def with P2 =>
               match goal with [_ : G |- _] => fail 4 end end end);
-         assert (y : P2) by (unfold P2; repeat (let x := fresh "__xhj__" in intro x; specialize (H x)); apply H));
+         assert (y : P2) by (unfold P2; (hrepeat do 1 (let x := fresh "__xhj__" in intro x; specialize (H x))); apply H));
     try unfold P2 in y; try clear P2;
     fold (_HID_ P) in H;
     try clear H.
@@ -331,7 +437,7 @@ Ltac hdesF P :=
   end.
 
 Ltac hdes :=
-  repeat match goal with | H : ?P |- _ => hdesF (fun _ : unit => P); hdesHP H P end;
+  (hrepeat do 1 match goal with | H : ?P |- _ => hdesF (fun _ : unit => P)); hdesHP H P end;
   unfold _HID_ in *.
 *)
 
@@ -366,12 +472,12 @@ Ltac check_hyp H := match H with _ => idtac end.
 Ltac check_equal H1 H2 := match H1 with H2 => idtac end.
 
 Ltac hdes :=
-  repeat match goal with | H : ?P |- _ => hdesF P; hdesHP H P end;
+  (hrepeat do 1 match goal with | H : ?P |- _ => hdesF P; hdesHP H P end);
   unfold _HID_ in *.
 Ltac rdes H := red in H; des.
-Ltac rrdes H := move H at bottom; repeat red in H; des.
+Ltac rrdes H := move H at bottom; (hrepeat do 1 red in H); des.
 Ltac rhdes H := red in H; hdes.
-Ltac rrhdes H := check_hyp H; repeat red in H; hdes.
+Ltac rrhdes H := check_hyp H; (hrepeat do 1 red in H); hdes.
 
 Tactic Notation "rrdes" ident(a) :=
   (rrdes a).
@@ -401,7 +507,7 @@ Ltac des_ifH H :=
 (* TODO tactics such as these should always do clean at the end to remove junk like [H : x = x] *)
 Ltac des_ifs :=
  clarify;
-  repeat
+ hrepeat do 1
     match goal with
       | |- context[match ?x with _ => _ end] =>
         match (type of x) with
@@ -666,7 +772,7 @@ Arguments __GUARD__ A a : simpl never.
 Tactic Notation "guard" constr(t) "in" hyp(H) := fold (__guard__ t) in H.
 Tactic Notation "guardH" hyp(H) := let t := type of H in guard t in H.
 Tactic Notation "guard" :=
-  repeat match goal with [H : ?P |- _] =>
+  hrepeat do 1 match goal with [H : ?P |- _] =>
     try (match P with __guard__ _ => fail 2 end); guardH H
   end.
 Tactic Notation "sguard" constr(t) "in" hyp(H) := fold (__GUARD__ t) in H.
@@ -680,12 +786,12 @@ Ltac desH H := guard; unguardH H; des; unguard.
 
 Ltac splits :=
   intros; unfold NW;
-  repeat match goal with
+  hrepeat do 1 match goal with
   | [ |- _ /\ _ ] => split
   end.
 Ltac esplits :=
   intros; unfold NW;
-  repeat match goal with
+  hrepeat do 1 match goal with
   | [ |- @ex _ _ ] => eexists
   | [ |- _ /\ _ ] => split
   | [ |- @sig _ _ ] => eexists
@@ -704,7 +810,7 @@ Proof. intros; hdes; eauto. Qed.
 (* extensionalities *)
 
 Tactic Notation "extensionalities" :=
-  repeat let x := fresh in extensionality x.
+  hrepeat do 1 let x := fresh in extensionality x.
 Tactic Notation "extensionalities" ident(a) :=
   (extensionality a).
 Tactic Notation "extensionalities" ident(a) ident(b) :=
@@ -724,7 +830,7 @@ Tactic Notation "extensionalities" ident(a) ident(b) ident(c) ident(d) ident(e) 
 Tactic Notation "econs" := econstructor.
 Tactic Notation "econs" int_or_var(x) := econstructor x.
 Tactic Notation "i" := intros.
-Tactic Notation "ii" := repeat intro.
+Tactic Notation "ii" := hrepeat do 1 intro.
 Tactic Notation "s" := simpl.
 Tactic Notation "s" ident(a) := simpl a.
 Tactic Notation "s" constr(t) := simpl t.
@@ -732,8 +838,8 @@ Tactic Notation "s" "in" hyp(H) := simpl in H.
 Tactic Notation "ss" := simpls.
 Tactic Notation "r" := red.
 Tactic Notation "r" "in" hyp(H) := red in H.
-Tactic Notation "rr" := repeat red.
-Tactic Notation "rr" "in" hyp(H) := repeat red in H.
+Tactic Notation "rr" := hrepeat do 1 red.
+Tactic Notation "rr" "in" hyp(H) := hrepeat do 1 red in H.
 
 (* running a tactic selectively on subgoals *)
 
@@ -779,7 +885,7 @@ Tactic Notation "patout" constr(z) "in" hyp(a) :=
   pattern z in a; match goal with [a:=?f z|-_] => unfold a; clear a; set (a:=f) end.
 
 Ltac clear_upto H :=
-  repeat (match goal with [Hcrr : _ |- _ ] => first [ check_equal Hcrr H; fail 2
+  hrepeat do 1 (match goal with [Hcrr : _ |- _ ] => first [ check_equal Hcrr H; fail 2
  | clear Hcrr ] end).
 
 Definition _Evar_sflib_ (A:Type) (x:A) := x.
@@ -790,9 +896,9 @@ Definition _Evar_sflib_ (A:Type) (x:A) := x.
     set (QQ := X) in *; fold (_Evar_sflib_ X) in QQ; clear H
   end. *)
 
-(* Ltac hide_evars := repeat (hide_evar 1). *)
+(* Ltac hide_evars := hrepeat do 1 (hide_evar 1). *)
 
-Ltac show_evars := repeat (match goal with [ H := @_Evar_sflib_ _ _ |- _ ] => unfold
+Ltac show_evars := hrepeat do 1 (match goal with [ H := @_Evar_sflib_ _ _ |- _ ] => unfold
  _Evar_sflib_ in H; unfold H in *; clear H end).
 
 Ltac revert1 := match goal with [H : _|-_] => revert H end.
@@ -819,7 +925,7 @@ Ltac special H :=
 Ltac ex x := eapply (ex_intro _ (x _)).
 
 Ltac inst_pairs :=
-  repeat first
+  hrepeat do 1 first
     [instantiate (9 := (_, _))
     |instantiate (8 := (_, _))
     |instantiate (7 := (_, _))
@@ -860,13 +966,13 @@ Ltac simpl_proj :=
   (* ; Hdo (fun H => repeat first [rewrite !simpl_fst in H | rewrite !simpl_snd in H]). *)
 
 Ltac clean :=
-  repeat match goal with
+  (hrepeat do 1 match goal with
     | H : True |- _
       => clear H
     | H : ?x = ?y |- _
       => try (has_evar x; fail 2); try (has_evar y; fail 2);
          change x with y in H; clear H
-  end
+  end)
   ; simpl_proj.
   (* without the evar check, clean removes equations such as the following:
      X : length (getVal ?28711 ?28712 ?28713 ?28714) = S n *)
@@ -1007,7 +1113,7 @@ Ltac has_inside_strict A B :=
 .
 
 Ltac is_inside_others_body TARGET :=
-  tryif (repeat multimatch goal with
+  tryif (hrepeat do 1 multimatch goal with
                 | [ |- context[?f ?x] ] =>
                   (* idtac f; idtac x; *)
                   tryif (has_inside_strict x TARGET)
@@ -1102,9 +1208,9 @@ Ltac rpapply H :=
 
 (* it may run infinite loop *)
 Ltac all TAC :=
-  repeat multimatch goal with
+  (hrepeat do 1 multimatch goal with
          | H : _ |- _ => TAC H
-         end;
+         end);
   try TAC
 .
 
@@ -1113,7 +1219,7 @@ Ltac fold_in x H := fold x in H; fold x.
 Ltac fold_all x := all ltac:(fold_in x).
 
 Ltac clears x :=
-  repeat match goal with
+  hrepeat do 1 match goal with
          | H : context[x] |- _ => clear H
          | |- context[x] => fail 2 "It appears in the goal!"
          end
@@ -1139,7 +1245,7 @@ Ltac is_local_definition X :=
 .
 Ltac negate TAC := tryif TAC then fail else idtac.
 Ltac clear_unused :=
-  repeat multimatch goal with
+  hrepeat do 1 multimatch goal with
          | [H : ?T |- _] =>
            negate ltac:(is_local_definition H);
            match (type of T) with
@@ -1156,7 +1262,7 @@ Abort.
 
 (* TODO : Currently I use "is_local_definition" filter, but it may replaced with checking if it is Prop *)
 Ltac clear_tautology :=
-  repeat multimatch goal with
+  hrepeat do 1 multimatch goal with
          | [H : ?A = ?B, H2 : ?B = ?A |- _] => clear H2
          (* | [H : True |- _] => clear H *) (* clear_universal_truth takes care of this now *)
          | [H : ?X, H2 : ?X |- _] =>
@@ -1168,7 +1274,7 @@ Ltac clear_tautology :=
 
 Ltac clear_reducible_truth :=
   let smart_tac := ss in
-  repeat multimatch goal with
+  hrepeat do 1 multimatch goal with
          | [H : ?P |- _ ] =>
            match (type of P) with
            | Prop =>
@@ -1184,7 +1290,7 @@ Ltac clear_reducible_truth :=
 
 Ltac clear_universal_truth :=
   let smart_tac := ss in
-  repeat multimatch goal with
+  hrepeat do 1 multimatch goal with
          | [H : ?P |- _ ] =>
            match (type of P) with
            | Prop =>
@@ -1202,7 +1308,7 @@ Ltac clear_tac := repeat (clear_unused; clear_tautology; clear_universal_truth).
 
 Ltac des_ifs_safe_aux TAC :=
   TAC;
-  repeat
+  hrepeat do 1
     multimatch goal with
     | |- context[match ?x with _ => _ end] =>
       match (type of x) with
@@ -1240,7 +1346,7 @@ Ltac simpl_bool := unfold Datatypes.is_true; unfold is_true;  autorewrite with s
 
 Ltac des_safe_aux TAC :=
   TAC;
-  repeat (des1; TAC; [])
+  hrepeat do 1 (des1; TAC; [])
 .
 
 Tactic Notation "des_safe" := des_safe_aux clarify.
@@ -1286,7 +1392,7 @@ Tactic Notation "gen" ident(X1) ident(X2) ident(X3) ident(X4) ident(X5)
 
 Ltac exists_prop PROP :=
   tryif
-    (repeat multimatch goal with
+    (hrepeat do 1 multimatch goal with
             | [H : PROP |- _ ] => (* idtac "Found!"; idtac H; *) fail 2
             end)
   then fail
@@ -1294,7 +1400,7 @@ Ltac exists_prop PROP :=
 .
 
 Ltac propagate_eq :=
-  repeat (multimatch goal with
+  hrepeat_or_fail do 1 (multimatch goal with
           | [H1 : ?A = ?B, H2 : ?B = ?C |- _ ] =>
             tryif (check_equal A C)
             then fail
@@ -1319,12 +1425,12 @@ Ltac propagate_eq :=
 (* get equality's transitive closure *)
 (* TODO : it checks equality too naive way; "(0, 1).fst != 0" here. *)
 Ltac eq_closure_tac :=
-  repeat (propagate_eq; clarify); clear_tac
+  (hrepeat do 1 (propagate_eq; clarify)); clear_tac
 .
 
 Ltac rev_all TAC :=
-  repeat multimatch reverse goal with
+  (hrepeat do 1 multimatch reverse goal with
          | H : _ |- _ => TAC H
-         end;
+         end);
   try TAC
 .

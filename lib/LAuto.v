@@ -1,15 +1,15 @@
-Require Import List.
+Require Import sflib List.
 Import ListNotations.
 Require Import Permutation.
 
 Ltac Lauto_normalize :=
-  (repeat match goal with
+  (hrepeat do 1 (match goal with
       [|-context[?x::?l]] =>
         match l with
         | [] => fail 1
         | _ => change (x::l) with ([x]++l)
         end
-    end);
+    end));
   try rewrite <-!app_assoc.
 
 Ltac Lauto_prepare :=
@@ -21,7 +21,7 @@ Ltac Lauto_prepare :=
   Lauto_normalize.
 
 Ltac Lauto_find x :=
-  repeat match goal with
+  hrepeat do 1 match goal with
     | [|- context[?l1 ++ ?l2 ++ [x]]] => pattern (l1 ++ l2 ++ [x]); rewrite (app_assoc l1 l2 _)
     | [|- context[?l1 ++ ?l2 ++ [x] ++ ?l3]] => pattern (l1 ++ l2 ++ [x] ++ l3); rewrite (app_assoc l1 l2 _)
     end.
@@ -70,7 +70,7 @@ Proof.
 Qed.
 
 Ltac perm_to_singleton :=
-  repeat match goal with
+  hrepeat do 1 match goal with
       [|-context[?x::?l]] =>
         match l with
         | [] => fail 1
