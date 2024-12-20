@@ -1,13 +1,7 @@
-From CRIS.base_logic Require Import base_logic.
-
-Require Import Coqlib AList ITreelib.
-Require Import Any.
-Require Import Events.
-Require Import IRed.
-Require Import Behavior.
-Require Import IPM.
-Require Import Skeleton Mod.
+Require Import Common.
 Require Import PropExtensionality.
+
+Require Import Skeleton Mod.
 Require Export HMod2Mod.
 
 Set Implicit Arguments.
@@ -166,7 +160,7 @@ Module HMod. Section HMod.
 End HMod. End HMod.
 
 Infix "★" := HMod.add (at level 9, right associativity).
-Notation "◯" := HMod.empty (at level 9).
+Notation "⌽" := HMod.empty (at level 9).
 Infix "∗∗" := HMod.addc (at level 9, right associativity).
 
 Notation "░ it" := (HModSem.sandbox _ it) (at level 60, only printing).
@@ -204,12 +198,12 @@ Section HModProperties.
     - unfold Sk.add. rewrite app_assoc. eauto.
   Qed.
 
-  Lemma hmod_add_empty_l (md : HMod.t) : ◯ ★ md = md.
+  Lemma hmod_add_empty_l (md : HMod.t) : ⌽ ★ md = md.
   Proof.
     destruct md. unfold HMod.add. s. f_equal. extensionalities. apply hmodsem_add_empty_l.
   Qed.
 
-  Lemma hmod_add_empty_r (md : HMod.t) : md ★ ◯ = md.
+  Lemma hmod_add_empty_r (md : HMod.t) : md ★ ⌽ = md.
   Proof.
     destruct md. unfold HMod.add. s. f_equal.
     - extensionalities. apply hmodsem_add_empty_r.

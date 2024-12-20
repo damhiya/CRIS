@@ -1,24 +1,7 @@
-Require Import Coqlib.
-Require Import ITreelib.
-Require Import Skeleton.
-Require Import Mod Events.
-Require Import Behavior.
-Require Import Relation_Definitions.
+Require Import Common.
 
-(*** TODO : export these in Coqlib or Universe ***)
-Require Import Relation_Operators.
-Require Import RelationPairs.
-From ITree Require Import
-     Events.MapDefault.
-From ExtLib Require Import
-     Core.RelDec
-     Structures.Maps
-     Data.Map.FMapAList.
-Require Import Any.
-
+Require Import Skeleton Mod.
 Require Import SimGlobal.
-Require Import Red IRed.
-
 
 Set Implicit Arguments.
 
@@ -252,12 +235,11 @@ Section SIM_ITREE.
   Proof.
     ii. eapply sim_itree_tarski; eauto.
     econs; inv PR. 
-    18: { econs 18; eauto. }
-    all: econs; eauto.
+    all: eauto using sim_itree_def.
   Qed.
 
-  Hint Constructors _sim_itree.
-  Hint Unfold sim_itree.
+  Hint Constructors _sim_itree: core.
+  Hint Unfold sim_itree: core.
   Hint Resolve sim_itree_mon : paco.
   Hint Resolve cpn9_wcompat : paco.
 
@@ -283,7 +265,7 @@ Section SIM_ITREE.
     le_others w1 w2 -> le_others (w1++[x]) (w2++[x]).
   Proof.
     i. rdes H. split.
-    - rewrite !app_length. nia.
+    - rewrite !length_app. nia.
     - i. assert (i < List.length w1 \/ i >= List.length w1) by nia; des.
       + rewrite !list.lookup_app_l; try nia. eauto.
       + rewrite !list.lookup_app_r; try nia. f_equal. nia.
@@ -301,11 +283,11 @@ Section SIM_ITREE.
     i. econs. inv PR; eauto using sim_itree_def, le_others_refl, le_others_trans.
     econs. eapply K.
     destruct WLE. split.
-    { rewrite !app_length. s. nia. }
+    { rewrite !length_app. s. nia. }
     i. assert (CASE : i < List.length w1 \/ i = List.length w1 \/ i > List.length w1) by nia. des.
     - rewrite !list.lookup_app_l; try nia. eauto.
     - rewrite !(list.list_lookup_middle _ [] winit); try nia. eauto.
-    - rewrite !list.lookup_ge_None_2; eauto; rewrite app_length; s; try nia.
+    - rewrite !list.lookup_ge_None_2; eauto; rewrite length_app; s; try nia.
   Qed.
 
   Lemma sim_itree_ind
@@ -490,8 +472,7 @@ Section SIM_ITREE.
     i. revert ps pt. pattern b, b0, w, nths, st_src, st_tgt.
     eapply sim_itree_ind, SIM. i.
     inv PR; ss; i; clarify.
-    18: { guclo sim_itree_indC_spec. hdes. econs 18; eauto. }
-    all: try (guclo sim_itree_indC_spec; hdes; econs; eauto).
+    all: try (by guclo sim_itree_indC_spec; hdes; econs; eauto).
     eapply sim_itree_flag_down. gfinal. right.
     eapply paco9_mon.
     - punfold SIM0. pstep. eapply sim_itree_wmon; eauto using le_others_refl.
@@ -534,26 +515,25 @@ Section SIM_ITREE.
     pattern x3, x4, x5, x6, p, p0.
     eapply sim_itree_tarski, SIM.
     i. inv PR; clarify; grind; try econs. 
-    18: { econs 18; eauto. exploit K; et. i.  
-          rewrite !bind_bind in *. 
-          replace (fun x => tau;; ` x9 : R_tgt <- k_tgt0 x;; k_tgt x9)
-          with (fun r => ` x : R_tgt <- (tau;; k_tgt0 r);; k_tgt x); cycle 1.
-          { extensionalities. grind. }
-          eauto.
-    }
-    all: try (econs; eauto).
+    all: try by econs; eauto.
     - exploit SIMK; eauto. i.
       eapply sim_itree_flag_mon with (ps0 := false) (pt0 := false); ss.
       eapply sim_itree_mon.
       + eapply sim_itree_wmon; eauto.
       + eauto using rclo9.
-    - exploit K; et. i. rewrite !bind_bind in *.
+    - econs; eauto.
+      exploit K; et. i. rewrite ->!bind_bind in *.
       erewrite equal_f; eauto. do 3 eapply f_equal.
       extensionalities. rewrite bind_tau. eauto.
-    - exploit K; et. i. rewrite ! bind_bind in *.
+    - econs; eauto.
+      exploit K; et. i. rewrite ->!bind_bind in *.
       erewrite f_equal; eauto. do 2 eapply f_equal.
       extensionalities. rewrite bind_tau. eauto.
-    - eapply rclo9_clo_base. eauto.
+    - eapply sim_itree_call_none; eauto.
+      exploit K; et. i. rewrite ->!bind_bind in *.
+      eapply eq_ind; eauto. do 2 f_equal.
+      extensionalities. grind.
+    - econs; eauto. eapply rclo9_clo_base. eauto.
   Qed.
 
   Lemma lbindC_spec : lbindC <10= gupaco9 (_sim_itree) (cpn9 (_sim_itree)).

@@ -1,14 +1,7 @@
-Require Export AList.
-Require Import Coqlib.
-From stdpp Require Import list.
+Require Import Common.
+
 Set Implicit Arguments.
-
 Local Open Scope nat_scope.
-
-Notation gname := string (only parsing). (*** convention : not capitalized ***)
-
-Require Import Orders.
-Require Import Any.
 
 Module Sk.
   Definition t := alist gname Any.t.

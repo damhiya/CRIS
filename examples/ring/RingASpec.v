@@ -1,14 +1,6 @@
-Require Import Coqlib ITreelib sflib.
+Require Import CRIS.
+
 Require Import ImpPrelude.
-Require Import Events.
-Require Import Behavior.
-Require Import HMod SMod.
-Require Import Skeleton.
-Require Import PCM IPM STB ITactics.
-From ExtLib Require Import
-     Core.RelDec
-     Structures.Maps
-     Data.Map.FMapAList.
 Require Import RingHeader.
 
 Set Implicit Arguments.

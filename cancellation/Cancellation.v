@@ -424,7 +424,7 @@ Section CANCEL.
       assert (cid <
       base.length
         (tgts ++
-         [` sem : (Any.t → itree modE Any.t) <-
+         [' sem : (Any.t → itree modE Any.t) <-
           (alist_find fn
              (List.map (map_snd (interp_hp_fun <*> HModSem.sandbox_body))
                 (List.map (map_snd (wrap_elimI (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0))))
@@ -446,7 +446,7 @@ Section CANCEL.
       assert (cid <
       base.length
         (srcs ++
-         [` sem : (Any.t → itree modE Any.t) <-
+         [' sem : (Any.t → itree modE Any.t) <-
           (alist_find fn
              (List.map (map_snd (interp_hp_fun <*> HModSem.sandbox_body))
                 (List.map (map_snd (wrap_elimI (SModSemAux.to_hmod (SMod.modsem md sk0))))
@@ -617,11 +617,11 @@ Section CANCEL.
       destruct (Nat.eq_dec tid cid); try nia.
       subst. _iter.  
       replace (<[cid:=tau;; interp_hp
-      (tau;; ` r0 : nat <- trigger Tid;;
-             ` x1 : () <- (tau;; trigger (Assume (ginv sk0 r0)));;
-             ` x2 : Any.t <- ktrT x1;;
+      (tau;; ' r0 : nat <- trigger Tid;;
+             ' x1 : () <- (tau;; trigger (Assume (ginv sk0 r0)));;
+             ' x2 : Any.t <- ktrT x1;;
              inline_hp (prog (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0)))
-               (` ret : Any.t <- trigger (Choose Any.t);; trigger (Guarantee (Q  cid meta x2 ret));;; Ret ret))]> tgts !! tid)
+               (' ret : Any.t <- trigger (Choose Any.t);; trigger (Guarantee (Q  cid meta x2 ret));;; Ret ret))]> tgts !! tid)
       with (tgts !! tid) by (rewrite list_lookup_insert_ne; eauto).
       rewrite H8. ired. tau 2.
       iterT 1. iterL. tau 1. ls. iterT 2. 

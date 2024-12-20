@@ -1,13 +1,6 @@
-Require Import Coqlib.
-Require Export sflib.
-Require Export ITreelib.
-Require Export AList.
-Require Import Events.
+Require Import Common.
+
 Require Import Skeleton.
-Require Import Behavior.
-Require Import Any.
-Require Import Program.
-Require Import Red IRed.
 
 Section EXEC.
 

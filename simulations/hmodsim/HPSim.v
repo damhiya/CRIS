@@ -1,18 +1,6 @@
-Require Import Coqlib sflib ITreelib.
-Require Import Behavior.
-Require Import Skeleton.
-Require Import PCM IPM.
-Require Import Any.
-Require Import Events STB ModSim.
+Require Import Common.
 
-Require Import Relation_Definitions.
-Require Import Relation_Operators.
-Require Import RelationPairs.
-
-From ExtLib Require Import
-     Data.Map.FMapAList.
-
-Require Import Red IRed.
+Require Import ModSim.
 
 Section HPSIM.
 
@@ -297,8 +285,7 @@ Section HPSIM.
     @_hpsim' r' R RR s' ps pt nths sti_src sti_tgt fmr.
   Proof. 
     ii. destruct REL.
-    24: { econs 24; eauto. }
-    all: des; esplits; eauto; econs; esplits; eauto. 
+    all: des; esplits; eauto using _hpsim'.
   Qed.
   
   Lemma _hpsim_mon : monotone8 _hpsim.
@@ -505,15 +492,14 @@ Section HPSIM.
       try (by do 2 (econs; esplits; eauto with paco);
               repeat rewrite <-bind_bind;
               eauto 10 using rclo8, hpsim_bindC).
-    { exploit SIMK; eauto.
+    - exploit SIMK; eauto.
       i. apply GF in x0. eapply (_hpsim_flag_mon _ _ _ _  _ ps0 pt0) in x0; try by i; clarify.
       destruct x0. eapply hsupd_update in IN; eauto.
       eapply _hpsim_mon_auto; eauto using rclo8.
       eapply Own_bupd_update; eauto.
-    }
-    esplits; eauto. econs 24; eauto.
-    unfold triggerNB. ired. econs. econs. esplits; eauto.
-    econs; eauto. i. ss.  
+    - esplits; eauto. eapply hpsim_call_none; eauto.
+      unfold triggerNB. ired. econs. econs. esplits; eauto.
+      econs; eauto. i. ss.  
   Qed.
 
   Lemma hpsim_bindC_spec : hpsim_bindC <9= gupaco8 _hpsim (cpn8 _hpsim).

@@ -1,11 +1,6 @@
-Require Import Coqlib ITreelib sflib.
+Require Import CRIS.
+
 Require Import ImpPrelude.
-Require Import Events.
-Require Import Behavior.
-Require Import SMod HMod.
-Require Import Skeleton.
-Require Import PCM STB sProp sWorld.
-Require Import IPM ITactics.
 Require Import RingHeader CellHeader CellASpec.
 
 Set Implicit Arguments.

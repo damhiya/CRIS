@@ -31,7 +31,7 @@ Section RED.
         st0
     :
       interp_stateE B (v <- itr ;; ktr v) st0 =
-      '(st1, v) <- interp_stateE A (itr) st0 ;; interp_stateE B (ktr v) st1.
+      '(st1, v):_ <- interp_stateE A (itr) st0 ;; interp_stateE B (ktr v) st1.
   Proof.
     unfold interp_stateE. grind. destruct x. grind.
   Qed.
@@ -40,7 +40,7 @@ Section RED.
         E st0 T e
     :
       @interp_stateE E T (trigger e) st0 =
-      '(st1, r) <- handle_stateE _ e st0;;
+      '(st1, r):_ <- handle_stateE _ e st0;;
       tau;; Ret (st1, r).
   Proof.
     unfold interp_stateE. grind. destruct x. grind.

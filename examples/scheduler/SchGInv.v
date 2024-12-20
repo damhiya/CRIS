@@ -1,18 +1,4 @@
-Require Import sflib.
-Require Import Coqlib ITreelib sflib.
-Require Import HMod SMod.
-Require Import Skeleton.
-Require Import PCM IPM STB.
-
-Require Import ISim.
-
-From iris Require Import bi.big_op.
-From iris Require base_logic.lib.invariants.
-
-Require Import sProp sWorld World SRF.
-From stdpp Require Import coPset gmap namespaces.
-
-Require Import Coq.Logic.ClassicalEpsilon.
+Require Import CRIS.
 
 Set Implicit Arguments.
 
@@ -46,10 +32,10 @@ Section AUX.
     inv u lv0 ns p ∗ closed_universe u lv1 ⊤
     -∗ ( |==> ⟦ p ⟧ ∗ closed_universe u lv1 (⊤ ∖↑ns) ∗ close_inv u lv1 ns p).
   Proof.
-    Local Transparent FUpd.
+    Local Transparent World.FUpd.
     iIntros "[#INV W]".
     iPoseProof (FUpd_open with "[INV]") as "F"; et.
-    unfold FUpd. iPoseProof ("F" with "[W]") as "FU".
+    unfold World.FUpd. iPoseProof ("F" with "[W]") as "FU".
     { iDestruct "W" as "[U FW]". iFrame. iApply "FW". }
     iMod "FU". iDestruct "FU" as "(FW & W & P & FU)". iFrame.
     iModIntro. iIntros "P CW". iPoseProof ("FU" with "[P]") as "P"; et.
@@ -64,7 +50,6 @@ Section AUX.
     ⟦ p ⟧ ∗ closed_universe u lv1 (⊤∖↑ns) ∗ @close_inv u lv1 lv0 ns p
     -∗ ( |==> closed_universe u lv1 ⊤).
   Proof.
-    Local Transparent FUpd.
     iIntros "(INV & W & CLOSE)".
     unfold close_inv. iPoseProof ("CLOSE" with "[INV]") as "INV"; et.
     iPoseProof ("INV" with "[W]") as "W"; et.

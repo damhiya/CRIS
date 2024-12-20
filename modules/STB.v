@@ -1,8 +1,5 @@
-Require Import Coqlib AList.
-Require Import Behavior.
-Require Import Skeleton.
-Require Import PCM IPM.
-Require Import Events SMod.
+Require Import Common.
+Require Import Skeleton SMod.
 
 Set Implicit Arguments.
 

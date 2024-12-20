@@ -1,12 +1,6 @@
-Require Import Coqlib.
-Require Import ITreelib.
-Require Import ImpPrelude.
-Require Import Skeleton.
-Require Import PCM.
-Require Import Behavior.
-Require Import Any.
-Require Import PMod Events.
-Require Import Imp.
+Require Import CRIS.
+
+Require Import ImpPrelude Imp.
 
 Set Implicit Arguments.
 

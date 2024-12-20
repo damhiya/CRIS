@@ -1,26 +1,8 @@
-Require Import Coqlib ITreelib sflib.
-Require Import Events.
-Require Import Behavior.
-
-Require Import Skeleton.
-Require Import PCM IPM STB.
-Require Import Any.
-
-Require Import Relation_Definitions.
-Require Import Relation_Operators.
-Require Import RelationPairs.
-From ExtLib Require Import
-     Data.Map.FMapAList.
-Require Import Red IRed.
-Require Import HPSim.
-Require Import World sWorld.
-Require Import ISimCore.
-Require Import Events Mod SMod HMod PMod.
-Require Import SubPerm.
+Require Import Common.
 Require Import LAuto.
 
-From stdpp Require Import coPset gmap.
-From iris.prelude Require Import prelude.
+Require Import Skeleton STB Mod SMod HMod PMod.
+Require Import HPSim ISimCore.
 
 (************ User Tactics **************)
 
@@ -36,21 +18,23 @@ Qed.
 
 Ltac inv_string X :=
   inv X;
-  repeat match goal with [H: @eq string _ _|-_] =>
+  (hrepeat do 1 match goal with [H: @eq string _ _|-_] =>
            apply string_app_inv in H
-    end; ss.
+     end);
+  ss.
 
 Ltac prove_scope :=
   try unfold HModSem.fnsems; try unfold SModSem.fnsems; try unfold fnsems_scopes;
   s; ii; des_ifs; ss; des; ss; eauto.
 
 Ltac prove_nodup :=
-  repeat (econs; [ii; ss; des; try match goal with [H: _ |- _] => inv_string H end|]); try (econs; fail).
+  (hrepeat do 1 (econs; [ii; ss; des; try match goal with [H: _ |- _] => inv_string H end|]));
+  try (econs; fail).
 
 Ltac by_coind CIH :=
   iApply isim_progress; iApply isim_base;
   iSpecialize (CIH $! _);
-  repeat first[instantiate (1:= (_,_))|instantiate (1:= existT _ _)]; s;
+  (hrepeat do 1 first[instantiate (1:= (_,_))|instantiate (1:= existT _ _)]); s;
   iApply CIH.
 
 Ltac unfold_hmod :=
@@ -83,8 +67,8 @@ Ltac trivial_nodup H :=
   exact H.
 
 Ltac move_nodup :=
-  (repeat match goal with [H: List.NoDup _ |- _ ] => guardH H; move H at top end);
-  (repeat match goal with [H: incl _ (HMod.scopes _ _) |- _] => guardH H; move H at top end);
+  (hrepeat do 1 match goal with [H: List.NoDup _ |- _ ] => guardH H; move H at top end);
+  (hrepeat do 1 match goal with [H: incl _ (HMod.scopes _ _) |- _] => guardH H; move H at top end);
   unguard.
 
 Ltac alist_find_simpl nodup_tac :=
@@ -119,33 +103,33 @@ Proof.
 Qed.
 
 Ltac fnsems_nodup H :=
-  revert H; simpl HModSem.fnsems; repeat unfold_hmod; simpl List.map;
+  revert H; simpl HModSem.fnsems; (hrepeat do 1 unfold_hmod); simpl List.map;
   try rewrite !map_map_compose; try rewrite !fst_map_snd; eauto; fail.
 
 Ltac hss_des :=
   ss; des_safe; subst;
-  repeat match goal with
+  (hrepeat do 1 match goal with
     | [v: () |- _] => destruct v
     | [H: (_,_) = (_,_) |- _] => inv H
-    end;
+    end);
   ss.
 
 Ltac hss :=
   hss_des;
   try (rewrite -> !Any.pair_split in * );
   try (rewrite -> !Any.upcast_downcast in * );
-  repeat (match goal with [G: Any.downcast _ = Some _ |-_] =>
+  (hrepeat do 1 match goal with [G: Any.downcast _ = Some _ |-_] =>
     apply Any.downcast_upcast in G; inv G; ss
    end);
-  repeat (match goal with [G: Any.upcast _ = Any.upcast _ |-_] =>
+  (hrepeat do 1 match goal with [G: Any.upcast _ = Any.upcast _ |-_] =>
     apply Any.upcast_inj in G; destruct G as [_ G]; red in G; depdes G; ss
    end);
-  repeat (match goal with [G: Some _ = Some _ |- _] =>
+  (hrepeat do 1 match goal with [G: Some _ = Some _ |- _] =>
     depdes G; ss
   end);
   try (rewrite -> !Any.pair_split in * );
   try (rewrite -> !Any.upcast_downcast in * );
-  repeat (alist_upd_simpl trivial_nodup);
+  (hrepeat do 1 (alist_upd_simpl trivial_nodup));
   hss_des;
   move_nodup.
 
@@ -156,7 +140,7 @@ Ltac hss :=
 Ltac iIntrosFresh H := iIntros H || iIntrosFresh (H ++ "'")%string.
 
 Ltac des_pairs :=
-  (repeat
+  (hrepeat do 1
     match goal with
     | [H: context[let () := ?x in _] |- _] =>
         match type of x with
@@ -333,10 +317,14 @@ Ltac unwrapP :=
   | [|-context[PModSem.interp ?itr]] => first [_unwrapP itr|fail 2]
   end.
 
+Ltac has_precond_in TM :=
+  match goal with [H := ?P |- _] => match H with TM => match P with context[precond] => idtac end end end.
+Ltac has_postcond_in TM :=
+  match goal with [H := ?P |- _] => match H with TM => match P with context[postcond] => idtac end end end.
 Ltac unfold_precond_postcond term := let TM := fresh "_term" in
   set (TM := term) at 1;
-  repeat (unfold precond in TM; simpl in TM);
-  repeat (unfold postcond in TM; simpl in TM);
+  (hrepeat do 1 (has_precond_in TM; unfold precond in TM; simpl in TM));
+  (hrepeat do 1 (has_postcond_in TM; unfold postcond in TM; simpl in TM));
   subst TM.
 
 Ltac _step_l :=
@@ -433,7 +421,7 @@ Ltac _force_r :=
 
 Ltac hide_itree_all marker :=
   assert (marker: True) by exact I;
-  repeat (
+  hrepeat do 1 (
       let IT := fresh "ITREE" in
       match goal with
       | [|- context[?f ?arg]] =>
@@ -451,11 +439,11 @@ Ltac hide_itree_r marker :=
   match goal with [|- _ (_ (_, ?it) _)] => try unfold it end.
 
 Ltac show_itree marker :=
-  repeat match goal with
+  (hrepeat do 1 match goal with
       [H: _ |- _] =>
         try match H with marker => fail 3 end;
         first [unfold H; clear H | revert H]
-    end;
+    end);
   clear marker; i.
 
 Ltac unfold_stb :=
@@ -503,14 +491,14 @@ Ltac step_l := let marker := fresh "MARKER" in
   prep; _step_l; try alist_find_simpl fnsems_nodup; s; des_pairs; s;
   show_itree marker.
 
-Ltac steps_l := repeat step_l.
+Ltac steps_l := hrepeat do 1 step_l.
 
 Ltac step_r := let marker := fresh "MARKER" in
   hide_itree_l marker;
   prep; _step_r; try alist_find_simpl fnsems_nodup; s; des_pairs; s;
   show_itree marker.
 
-Ltac steps_r := repeat step_r.
+Ltac steps_r := hrepeat do 1 step_r.
 
 Ltac step := let marker := fresh "MARKER" in
   hide_itree_r marker; prep; show_itree marker;
@@ -528,7 +516,7 @@ Tactic Notation "force_l" :=
 Tactic Notation "force_l" uconstr(p) :=
   force_l_core; iExists p.
 
-Ltac forces_l := repeat force_l.
+Ltac forces_l := hrepeat do 1 force_l.
 
 Ltac force_r_core := let marker := fresh "MARKER" in
   hide_itree_l marker;
@@ -541,13 +529,13 @@ Tactic Notation "force_r" :=
 Tactic Notation "force_r" uconstr(p) :=
   force_r_core; iExists p.
 
-Ltac forces_r := repeat force_r.
+Ltac forces_r := hrepeat do 1 force_r.
 
 Ltac inline_l := let marker := fresh "MARKER" in
   hide_itree_r marker;
   prep;
   iApply isim_inline_src;
-  [simpl HModSem.fnsems; repeat unfold_hmod; simpl List.map;
+  [simpl HModSem.fnsems; (hrepeat do 1 unfold_hmod); simpl List.map;
    alist_find_simpl fnsems_nodup; eauto|];
   unfold interp_sb_hp, HoareFun; s;
   show_itree marker.
@@ -556,7 +544,7 @@ Ltac inline_r := let marker := fresh "MARKER" in
   hide_itree_l marker;
   prep;
   iApply isim_inline_tgt;
-  [simpl HModSem.fnsems; repeat unfold_hmod; simpl List.map;
+  [simpl HModSem.fnsems; (hrepeat do 1 unfold_hmod); simpl List.map;
    alist_find_simpl fnsems_nodup; eauto|];
   unfold interp_sb_hp, HoareFun; s;
   show_itree marker.
@@ -587,20 +575,20 @@ Ltac init_simF :=
   let H := fresh "TMP" in intros H; inv H;
   alist_find_simpl fnsems_nodup;
   eexists; split; [eauto|];
-  repeat match goal with
+  (hrepeat do 1 match goal with
   | [|- context[{| fsb_body := cfunU ?x |}]] => rewrite {1}/x
   | [|- context[{| fsb_body := cfunN ?x |}]] => rewrite {1}/x
   | [|- context[{| fsb_body := ?x |}]] => rewrite {1}/x
   | [|- context[PModSem.interp (?x _)]] => unfold x
   | [|- context[cfunU ?x]] => rewrite {1}/x
   | [|- context[cfunN ?x]] => rewrite {1}/x
-  end;                          
+  end);
   unfold interp_sb_hp, HoareFun, cfunU, cfunN, HModSem.sandbox_body; s;
   ii; subst; iIntros "IST";
   move_nodup.
 
 Ltac prove_sub_perm :=
-  i; try rewrite /HMod.scopes; s; repeat unfold_hmod; s; Lauto_normalize;
+  i; try rewrite /HMod.scopes; s; (hrepeat do 1 unfold_hmod); s; Lauto_normalize;
   match goal with
     [|-sub_perm ?x ?y] =>
       match x with
@@ -617,7 +605,7 @@ Ltac prove_sub_perm :=
     [|-sub_perm ?x ?y] =>
       replace (sub_perm x y) with (sub_perm (x++[]) (y++[])) by (rewrite !app_nil_r; eauto)
   end;
-  repeat first [eapply sub_perm_cancel_head|eapply sub_perm_remove_head];
+  (hrepeat do 1 first [eapply sub_perm_cancel_head|eapply sub_perm_remove_head]);
   eapply sub_perm_refl.
 
 (**** TODO ****)
@@ -627,9 +615,9 @@ Ltac prove_sub_perm :=
 
 From iris.proofmode Require Import coq_tactics environments.
 
-Global Arguments Envs _ _%proof_scope _%proof_scope _.
+Global Arguments Envs _ _%_proof_scope _%_proof_scope _.
 Global Arguments Enil {_}.
-Global Arguments Esnoc {_} _%proof_scope _%string _%I.
+Global Arguments Esnoc {_} _%_proof_scope _%_string _%_I.
 
 Local Notation world_id := positive.
 Local Notation level := nat.
@@ -641,39 +629,39 @@ Local Notation level := nat.
 ***)
 
 (*** isim ***)
-Notation "E1 '------------------------------------------------------------------□' E2 '------------------------------------------------------------------∗' st_src st_tgt '-------------------------------isim-------------------------------'  itr_src itr_tgt"
+Notation "E1 '------------------------------------------------------------------□' E2 '------------------------------------------------------------------∗' st_src st_tgt '-------------------------------isim-------------------------------' itr_src itr_tgt"
 :=
   (environments.envs_entails (Envs E1 E2 _) (isim _ _ _ _ _ _ _ _ _ _ _ (st_src, itr_src) (st_tgt, itr_tgt)))
-    (at level 50,
+    (at level 50, only printing,
      format "E1 '------------------------------------------------------------------□' '//' E2 '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '-------------------------------isim-------------------------------' '//' itr_src '//' '//' '//' itr_tgt '//' ").
 
-Notation "E1 '------------------------------------------------------------------□' st_src st_tgt '-------------------------------isim-------------------------------'  itr_src itr_tgt"
+Notation "E1 '------------------------------------------------------------------□' st_src st_tgt '-------------------------------isim-------------------------------' itr_src itr_tgt"
 :=
   (environments.envs_entails (Envs E1 Enil _) (isim _ _ _ _ _ _ _ _ _ _ _ (st_src, itr_src) (st_tgt, itr_tgt)))
-    (at level 50,
+    (at level 50, only printing,
      format "E1 '------------------------------------------------------------------□' '//' st_src '//' st_tgt '//' '-------------------------------isim-------------------------------' '//' itr_src '//' '//' '//' itr_tgt '//' ").
 
-Notation "E2 '------------------------------------------------------------------∗' st_src st_tgt '-------------------------------isim-------------------------------'  itr_src itr_tgt"
+Notation "E2 '------------------------------------------------------------------∗' st_src st_tgt '-------------------------------isim-------------------------------' itr_src itr_tgt"
 :=
   (environments.envs_entails (Envs Enil E2 _) (isim _ _ _ _ _ _ _ _ _ _ _ (st_src, itr_src) (st_tgt, itr_tgt)))
-    (at level 50,
+    (at level 50, only printing,
      format "E2 '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '-------------------------------isim-------------------------------' '//' itr_src '//' '//' '//' itr_tgt '//' ").
 
-Notation "'------------------------------------------------------------------∗' st_src st_tgt '-------------------------------isim-------------------------------'  itr_src itr_tgt"
+Notation "'------------------------------------------------------------------∗' st_src st_tgt '-------------------------------isim-------------------------------' itr_src itr_tgt"
 :=
   (environments.envs_entails (Envs Enil Enil _) (isim _ _ _ _ _ _ _ _ _ _ _ (st_src, itr_src) (st_tgt, itr_tgt)))
-    (at level 50,
+    (at level 50, only printing,
      format "'------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '-------------------------------isim-------------------------------' '//' itr_src '//' '//' '//' itr_tgt '//' ").
 
 (* additional *) 
-Notation "E1 '------------------------------------------------------------------□' E2 '------------------------------------------------------------------∗' st_src st_tgt '-------------------------------isim-------------------------------'  P '∗' 'ISIM'"
+Notation "E1 '------------------------------------------------------------------□' E2 '------------------------------------------------------------------∗' st_src st_tgt '-------------------------------isim-------------------------------' P '∗' 'ISIM'"
 :=
   (environments.envs_entails (Envs E1 E2 _) (bi_sep P (isim _ _ _ _ _ _ _ _ _ _ _ (st_src, _) (st_tgt, _))))
-    (at level 50,
+    (at level 50, only printing,
      format "E1 '------------------------------------------------------------------□' '//' E2 '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '-------------------------------isim-------------------------------' '//' P  '∗'  'ISIM' ").
 
-Notation "E1 '------------------------------------------------------------------□' E2 '------------------------------------------------------------------∗' st_src st_tgt '-------------------------------isim-------------------------------'  P '-∗' 'ISIM'"
+Notation "E1 '------------------------------------------------------------------□' E2 '------------------------------------------------------------------∗' st_src st_tgt '-------------------------------isim-------------------------------' P '-∗' 'ISIM'"
 :=
   (environments.envs_entails (Envs E1 E2 _) (bi_wand P (isim _ _ _ _ _ _ _ _ _ _ _ (st_src, _) (st_tgt, _))))
-    (at level 50,
+    (at level 50, only printing,
      format "E1 '------------------------------------------------------------------□' '//' E2 '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '-------------------------------isim-------------------------------' '//' P  '-∗'  'ISIM' ").

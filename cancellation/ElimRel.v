@@ -386,7 +386,7 @@ Section CANCEL.
     inline_hp (prog (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0))) (HModSem.sandbox scopes (HoareCall fsp fn varg))
     =
     (* head *)
-    '((my_tid, x, my_tid', x'), varg') <- (hmod_elim_head (meta fsp) (precond fsp) varg);;
+    '((my_tid, x, my_tid', x'), varg'):_ <- (hmod_elim_head (meta fsp) (precond fsp) varg);;
     (* body *)
     vret' <- inline_hp (prog (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0))) 
                        (HModSem.sandbox scp (interp_smod (ginv sk0) (stb sk0) (fbody varg')));;
@@ -401,7 +401,7 @@ Section CANCEL.
   Definition elim_head_body 
     sk0 scp fsp fbody varg
     :=
-    ('((my_tid, x, my_tid', x'), varg') <- (hmod_elim_head (meta fsp) (precond fsp) varg);;
+    ('((my_tid, x, my_tid', x'), varg'):_ <- (hmod_elim_head (meta fsp) (precond fsp) varg);;
     (* body *)
     vret' <- inline_hp (prog (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0))) 
                        (HModSem.sandbox scp (interp_smod (ginv sk0) (stb sk0) (fbody varg')));;

@@ -147,8 +147,8 @@ Module HIRed.
           { instantiate (1:= eq). i. subst. refl. }
           { i. subst. refl. }
           grind. 
-          replace (` x : X <- prog ms c;; (tau;; ITree.subst k (k0 x)))
-          with (` r0 : X <- prog ms c;; ` x : Any.t <- (tau;; k0 r0);; k x) by grind.
+          replace (' x : X <- prog ms c;; (tau;; ITree.subst k (k0 x)))
+          with (' r0 : X <- prog ms c;; ' x : Any.t <- (tau;; k0 r0);; k x) by grind.
           refl.
         } 
         destruct s.

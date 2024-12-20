@@ -1,27 +1,6 @@
-Require Import Coqlib ITreelib sflib.
-Require Import SchGInv SchHeader SchASpec SMod ModSim.
-Require Import ImpPrelude.
-Require Import Skeleton.
-Require Import PCM IPM.
-Require Import Events Behavior.
-Require Import Relation_Definitions.
+Require Import CRIS.
 
-(*** TODO: export these in Coqlib or Universe ***)
-Require Import Relation_Operators.
-Require Import RelationPairs.
-From ITree Require Import
-     Events.MapDefault.
-From ExtLib Require Import
-     Core.RelDec
-     Structures.Maps
-     Data.Map.FMapAList.
-Require Import STB.
-
-Require Import ISim HMod PMod Events ITactics.
-Require Import Mod ModSimFacts.
-
-Require Import sProp sWorld World SRF.
-From stdpp Require Import coPset gmap namespaces.
+Require Import SchGInv SchHeader SchASpec.
 
 Set Implicit Arguments.
 

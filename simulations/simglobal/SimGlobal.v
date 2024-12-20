@@ -1,13 +1,4 @@
-Require Import Coqlib.
-Require Import ITreelib.
-Require Import Any.
-Require Import Behavior.
-Require Import Events.
-Require Import Skeleton.
-Require Import PCM.
-Require Import Coq.Relations.Relation_Definitions.
-Require Import Relation_Operators.
-Require Import RelationPairs.
+Require Import Common.
 
 Set Implicit Arguments.
 
@@ -30,7 +21,7 @@ Definition smj_leb m1 m2 :=
 Definition smj_le m1 m2 :=
   m1 = m2 \/ smj_ltb m1 m2.
 
-Hint Unfold smj_le.
+Hint Unfold smj_le : core.
 
 Lemma smj_ltb_trans m1 m2 m3
     (LT1 : smj_ltb m1 m2)
@@ -168,8 +159,8 @@ Proof.
   inv PR; econs; des; subst; ss; eauto 7 using simg_def, simg_mon, rclo7.
 Qed.
 
-Hint Constructors _simg.
-Hint Unfold simg.
+Hint Constructors _simg : core.
+Hint Unfold simg : core.
 
 Variant flagC (r : forall S0 S1 (SS : S0 -> S1 -> Prop),  smj -> smj -> (itree coreE S0) -> (itree coreE S1) -> Prop):
   forall S0 S1 (SS : S0 -> S1 -> Prop),  smj -> smj -> (itree coreE S0) -> (itree coreE S1) -> Prop :=
@@ -273,8 +264,8 @@ Proof.
   intros. eapply wrespect7_uclo; eauto with paco. eapply bindC_wrespectful.
 Qed.
 
-Hint Constructors _simg.
-Hint Unfold simg.
+Hint Constructors _simg: core.
+Hint Unfold simg: core.
 Hint Resolve simg_mon: paco.
 Hint Constructors flagC: core.
 Hint Resolve flagC_mon: paco.

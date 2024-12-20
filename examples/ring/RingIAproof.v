@@ -1,16 +1,9 @@
-Require Import Coqlib ITreelib sflib.
+Require Import CRIS.
+
 Require Import RingHeader CellHeader 
   RingASpec CellASpec 
   RingA CtrlI CellA CellI 
   CtrlIAproof CellIAproof.
-Require Import Skeleton.
-Require Import PCM IPM sWorld.
-Require Import Events Behavior.
-Require Import Relation_Definitions.
-
-Require Import STB.
-Require Import ISim SMod HMod Mod ModSimFacts.
-Require Import MainAdequacy CtxRefine CtxRefineFacts.
 
 Set Implicit Arguments.
 
@@ -54,7 +47,7 @@ Module RingIA. Section RingIA.
           etrans; cycle 1.
           { eapply main_adequacy. eapply CellIA.sim. }
           eapply ctxr_cond_strengthen.
-          i. rewrite Nat.add_0_r seq_length. iIntros "(H &_)". eauto.
+          i. rewrite Nat.add_0_r length_seq. iIntros "(H &_)". eauto.
   Qed.
 
 End RingIA. End RingIA.

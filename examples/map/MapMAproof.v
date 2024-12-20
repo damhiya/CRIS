@@ -1,14 +1,6 @@
-Require Import Coqlib ITreelib.
-Require Import MapHeader MapM MapA MapMSpec MapASpec SMod ModSim.
-Require Import ImpPrelude.
-Require Import Skeleton.
-Require Import PCM IPM HMod SMod sWorld.
-Require Import Events Behavior.
-Require Import Relation_Definitions.
-Require Import STB.
+Require Import CRIS.
 
-Require Import ISim ITactics.
-From stdpp Require Import coPset gmap namespaces.
+Require Import MapHeader MapM MapA MapMSpec MapASpec. 
 
 Set Implicit Arguments.
 
