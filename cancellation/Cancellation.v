@@ -426,7 +426,7 @@ Section CANCEL.
         (tgts ++
          [' sem : (Any.t → itree modE Any.t) <-
           (alist_find fn
-             (List.map (map_snd (interp_hp_fun <*> HModSem.sandbox_body))
+             (List.map (map_snd (interp_hp_fun ∘ HModSem.sandbox_body))
                 (List.map (map_snd (wrap_elimI (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0))))
                    (List.map (map_snd (λ ksb : list string * fspecbody, (ksb.1, interp_sb_hp (ginv sk0) (stb sk0) ksb.2)))
                       (SModSem.fnsems (SMod.modsem md sk0)))))) !;; sem x0])).
@@ -448,7 +448,7 @@ Section CANCEL.
         (srcs ++
          [' sem : (Any.t → itree modE Any.t) <-
           (alist_find fn
-             (List.map (map_snd (interp_hp_fun <*> HModSem.sandbox_body))
+             (List.map (map_snd (interp_hp_fun ∘ HModSem.sandbox_body))
                 (List.map (map_snd (wrap_elimI (SModSemAux.to_hmod (SMod.modsem md sk0))))
                    (List.map (map_snd (λ ksb : list string * fspecbody, (ksb.1, interp_sb_hp_aux ksb.2))) (SModSem.fnsems (SMod.modsem md sk0)))))) !;; 
           sem args])).
@@ -700,7 +700,7 @@ Section CANCEL.
         (HModSem.to_mod ((HModAux.inline md_src).(HMod.modsem) sk0) rs)
         (HModSem.to_mod ((HModAux.inline md_tgt).(HMod.modsem) sk0) rt).
   Proof.
-    r. eapply adequacy_global_itree.
+    r. eapply adequacy_global.
     instantiate (1:= smj_top).
     instantiate (1:= smj_top).
     unfold ModSem.compile. s. unfold ITree.map.
@@ -789,15 +789,15 @@ Section CANCEL.
     exists a1. esplits; eauto.
     { eapply cmra_valid_op_l, valid_solve_eq; eauto. }
     {
-      inv WFM. econs; eauto. 
-      s. rewrite !map_map_compose !fst_map_snd.
-      rewrite !map_map_compose !fst_map_snd in wf_fns. eauto.
+      inv WFM. econs; eauto. s.
+      repeat rewrite List.map_map fst_map_snd.
+      repeat rewrite List.map_map fst_map_snd in wf_fns. eauto.
     }
     eapply cancel_main; eauto.
-    { 
-      inv WFM. econs; eauto.
-      rewrite !map_map_compose !fst_map_snd in wf_fns. 
-      rewrite !map_map_compose !fst_map_snd; eauto. 
+    {
+      inv WFM. econs; eauto. s.
+      repeat rewrite List.map_map fst_map_snd.
+      repeat rewrite List.map_map fst_map_snd in wf_fns. eauto.
     }
     etrans; eauto. r_solve.
   Qed.
