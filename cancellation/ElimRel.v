@@ -62,8 +62,8 @@ Section REL.
     Ret tid.
 
   Variant elim_rel_def {sk0 A}
-    (self: list (nat * nat * {X: Type & (X * X)%type}) -> itree hmodE A -> itree hmodE A -> Prop)
-    : list (nat * nat * {X: Type & (X * X)%type}) -> itree hmodE A -> itree hmodE A -> Prop
+    (self: list (nat * {X: Type & X}) -> itree hmodE A -> itree hmodE A -> Prop)
+    : list (nat * {X: Type & X}) -> itree hmodE A -> itree hmodE A -> Prop
   :=
   | elim_rel_NB l itrS ktrT
     :
@@ -105,18 +105,18 @@ Section REL.
 
   | elim_rel_head X P l varg src ktrS ktrT
      (SRC: src = ktrS varg)
-     (KTR: forall tid tid' m m' varg, 
-            self ((tid, tid', existT X (m, m'))::l) (ktrS varg) (ktrT (tid, m, tid', m', varg)))
+     (KTR: forall tid m varg,
+            self ((tid, existT X m)::l) (ktrS varg) (ktrT (tid, m, tid, m, varg)))
    :
    elim_rel_def self l (tau;; src) (@hmod_elim_head X P varg >>= ktrT) 
   
-  | elim_rel_tail X Q l tid m tid' m' vret src ktrS ktrT
+  | elim_rel_tail X Q l tid m vret src ktrS ktrT
       (SRC: src = ktrS vret)
       (KTR: forall vret, self l (ktrS vret) (ktrT vret))
     :
-    elim_rel_def self ((tid, tid', existT X (m, m'))::l)
+    elim_rel_def self ((tid, existT X m)::l)
         (tau;; tau;; tau;; src) 
-        (x <- @hmod_elim_tail X Q (tid, m, tid', m') vret;; tau;; ktrT x)
+        (x <- @hmod_elim_tail X Q (tid, m, tid, m) vret;; tau;; ktrT x)
 
   | elim_rel_spawn l f fn args ktrS ktrT
       (STB: stb sk0 fn = Some f)
@@ -150,8 +150,8 @@ Section REL.
   Hint Resolve elim_rel_def_mon: paco.
   
   Variant elim_rel_bindC {A}
-    (r: list (nat * nat * {X: Type & (X * X)%type}) -> itree hmodE A -> itree hmodE A -> Prop)
-    : list (nat * nat * {X: Type & (X * X)%type}) -> itree hmodE A -> itree hmodE A -> Prop
+    (r: list (nat * {X: Type & X }) -> itree hmodE A -> itree hmodE A -> Prop)
+    : list (nat * {X: Type & X}) -> itree hmodE A -> itree hmodE A -> Prop
     :=
   | elim_rel_bindC_intro
       l1 l2 itrS itrT ktrS ktrT
@@ -551,7 +551,7 @@ Section CANCEL.
         eapply elim_rel_bindC_intro with (l1 := []).
         { rewrite Heqi0. unfold interp_sb_hp_aux. s. eauto with paco. }
         i.
-        set_r. eassert (ITREE = a <- hmod_elim_tail (meta f) (postcond f) (tid, m, tid', m') v;; (tau;; Ret a)).
+        set_r. eassert (ITREE = a <- hmod_elim_tail (meta f) (postcond f) (tid, m, tid, m) v;; (tau;; Ret a)).
         { unfold ITREE, hmod_elim_tail. refl. }
         rewrite H.
         gstep. econs.

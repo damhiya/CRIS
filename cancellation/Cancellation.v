@@ -136,20 +136,11 @@ Section CANCEL.
     inv H0. eauto.
   Qed.
 
-  Inductive valid_stack: list (nat * nat * {X: Type & (X * X)%type}) -> Prop
-    :=
-    | valid_stack_base: valid_stack []
-
-    | valid_stack_cons n X (x: X) tl (TL: valid_stack tl):
-      valid_stack ((n, n, existT X (x, x))::tl)
-    .
-
   Definition yield_post sk0: itree hmodE _ :=
       tau;; tau;; r <- trigger Tid;; x <- (tau;; trigger (Assume (ginv sk0 r)));; Ret ().
 
   Variant thread_rel sk0 (cid tid: nat) src tgt : Prop :=
   | thread_rel_body X (meta: X) (Q: nat -> X -> Any.t -> Any.t -> iProp) l itrS itrT
-      (STACK: valid_stack l)
       (RET: ∀vret ret, 
             tid = 0 -> Q tid meta vret ret ⊢ ⌜vret = ret⌝)
       (REL: @elim_rel _ ginv stb sk0 _ l itrS itrT)
@@ -382,7 +373,6 @@ Section CANCEL.
       reveal ITREE. prb. gbase. pclearbot.
       eapply CIH with (l:= _ :: l); eauto; try (rewrite !length_insert; nia); 
       try (eapply KTR); try (rewrite list_lookup_insert; grind).
-      { econs; eauto. }
       i. rewrite !list_lookup_insert_ne in LKX, LKY; eauto.
     - (* tail *)
       ired. hide_r. tau 2. iterT 2. 
@@ -396,7 +386,6 @@ Section CANCEL.
       iterT 2.
       hexploit (Own_bupd_split rt); eauto.
       i. des.
-      inv STACK. eapply inj_pair2 in H9, H10. subst x3 m'. rename tid' into tid.
       iterL. _coreE a1. ls.
       iterL. _supd.
       assert (UPD': Own rs ==∗ Own (a1 ⋅ x0)). 
@@ -518,7 +507,7 @@ Section CANCEL.
       iterL. _supd. iterL. _supd.
       iterT 2.
       reveal ITREE. prb. gbase. pclearbot. rewrite H0.
-      eapply CIH; try (rewrite !length_insert !length_app; s; nia); swap 7 9.
+      eapply CIH; try (rewrite !length_insert !length_app; s; nia); swap 6 8.
       { auto. }
       { auto. }
       {
@@ -529,7 +518,6 @@ Section CANCEL.
         rewrite list_lookup_insert; eauto.
         rewrite length_insert length_app. s. nia. 
       }
-      { instantiate (1:= []). econs. }
       { i. nia. }
       {
         instantiate (1:= x). instantiate (1:= postcond f).
@@ -629,7 +617,7 @@ Section CANCEL.
       iterL. _coreE H5. ls. iterL. _coreE H3. ls.
       iterL. _supd. iterL. _supd. 
       reveal ITREE. prb. gbase. pclearbot. 
-      eapply CIH with (Q:=Q0); try (rewrite !length_insert; eauto); try (rewrite list_lookup_insert; grind); swap 1 7.
+      eapply CIH with (Q:=Q0); try (rewrite !length_insert; eauto); try (rewrite list_lookup_insert; grind); swap 1 6.
       { 
         instantiate (1:= tau;; itrT). instantiate (1:= tau;; itrS).
         pstep. econs. eauto.
@@ -760,7 +748,6 @@ Section CANCEL.
     { eapply Own_equiv in EQUIV. iIntros "H". iModIntro. iApply EQUIV. eauto. }
     econs; eauto using Forall2i.
     econs; s; eauto; try rewrite bind_ret_l; ss.
-    { econs. }
     { i. specialize (POST meta vret ret). auto. }
     { eapply elim_rel_refl; eauto. }
     rewrite HModSB.transl_bind HIRed.bind. 
