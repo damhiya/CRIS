@@ -207,3 +207,5 @@ Section CANCEL.
 
 
 End CANCEL.
+
+(* 47 sec / 1min 15sec *)

@@ -199,6 +199,6 @@ Section CANCEL.
     destruct H9. eauto.
   Qed.
 
-  
-
 End CANCEL.
+
+(* 41 sec *)

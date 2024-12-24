@@ -623,3 +623,5 @@ Section CANCEL.
   Qed.
 
 End CANCEL.
+
+(* 57 sec *)
