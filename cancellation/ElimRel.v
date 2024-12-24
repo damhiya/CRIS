@@ -10,7 +10,7 @@ Require Import ModSim ISim HPSim.
 Require Import CtxRefine CtxRefineFacts MainAdequacy ClosedAdequacy.
 Require Import SimGlobal SimGlobalFacts.
 Require Import SMod HMod Mod Events.
-Require Import HModInline Cancel.
+Require Import HModInline CancelCall.
 
 Section REL.
   Context `{Σ: GRA.t}.
