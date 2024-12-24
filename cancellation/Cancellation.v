@@ -1378,7 +1378,7 @@ Section CANCEL.
       (EQUIV: rs ≡ r ⋅ rt)
       (PRE: Own r ⊢ fsp.(precond) 0 meta tt↑ tt↑)
       (SAT: Own rt ⊢ P sk0)
-      (POST: ∀ m vret ret, (fsp.(postcond) 0 m vret ret) -∗ ⌜vret = ret⌝)
+      (POST: ∀ vret ret, (fsp.(postcond) 0 meta vret ret) -∗ ⌜vret = ret⌝)
     :  
       refines_modsem
         (HModSem.to_mod ((HModAux.inline md_src).(HMod.modsem) sk0) rs)
@@ -1444,7 +1444,7 @@ Section CANCEL.
     { eapply Own_equiv in EQUIV. iIntros "H". iModIntro. iApply EQUIV. eauto. }
     econs; eauto using Forall2i.
     econs; s; eauto; try rewrite bind_ret_l; ss.
-    { i. specialize (POST meta vret ret). auto. }
+    { i. specialize (POST vret ret). auto. }
     { eapply elim_rel_refl; eauto. }
     rewrite HModSB.transl_bind HIRed.bind. 
     do 2 f_equal. extensionalities.
@@ -1458,8 +1458,8 @@ Section CANCEL.
   (*** Final Theorem ***)
   Theorem cancellation P fsp meta
       (STB: ∀sk0 (EQV: Sk.equiv sk sk0) (SKWF: Sk.wf sk0), stb sk0 "CRIS_init" = Some fsp)
-      (POST: ∀sk0 (EQV: Sk.equiv sk sk0) (SKWF: Sk.wf sk0) m vret ret, 
-                (fsp.(postcond) 0 m vret ret) -∗ ⌜vret = ret⌝)
+      (POST: ∀sk0 (EQV: Sk.equiv sk sk0) (SKWF: Sk.wf sk0) vret ret, 
+                (fsp.(postcond) 0 meta vret ret) -∗ ⌜vret = ret⌝)
     :
     refines (md_src, P ∗∗ (fun _ => fsp.(precond) 0 meta tt↑ tt↑)) (md_tgt, P).
   Proof. 
