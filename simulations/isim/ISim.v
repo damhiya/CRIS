@@ -1,8 +1,6 @@
 Require Import Common.
 
 Require Import Skeleton HMod SMod.
-Require Import HPSim.
-
 Require Export ISimCore ITacticsCore.
 
 Set Implicit Arguments.
@@ -88,7 +86,7 @@ Section HModProd.
     revert nths. apply combine_quant.
     eapply isim_coind. intros g0 a _. destruct a as [nths [st_src [st_tgt [NODS [NODD it]]]]]. s.
     iIntros "[IST CIH]".
-    assert (CASE := case_itrH _ it); des; subst.
+    assert (CASE := case_itrH it); des; subst.
     - step. iFrame. eauto.
     - steps_l. steps_r. by_coind "CIH"; eauto.
     - steps_l. forces_r. iFrame. by_coind "CIH". eauto.
