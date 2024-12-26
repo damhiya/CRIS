@@ -626,14 +626,14 @@ Section SIM.
     }
   Qed.
 
-  Lemma combine_quant A (B : A -> Type) (P : ∀ a (b : B a), Prop)
-      (PR : ∀ (ab : sigT B), P (projT1 ab) (projT2 ab)) :
+  Lemma combine_quant A B (P : ∀ (a: A) (b: B), Prop)
+      (PR : ∀ (ab : A * B), P (fst ab) (snd ab)) :
     ∀ a b, P a b.
-  Proof. i. eapply (PR (existT a b)). Qed.
+  Proof. i. eapply (PR (a,b)). Qed.
 
   Lemma combine_quant_dep A (B: A -> Type) (P: forall a (b: B a), Prop)
-      (PR: forall (ab: sigT B), P (projT1 ab) (projT2 ab)):
-    forall a b, P a b.
+      (PR: ∀ (ab: sigT B), P (projT1 ab) (projT2 ab)):
+    ∀ a b, P a b.
   Proof. i. eapply (PR (existT a b)). Qed.
 End SIM.
 
