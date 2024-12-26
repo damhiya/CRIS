@@ -698,7 +698,7 @@ Section COMM.
     eapply isim_coind. i.
     destruct a as [nths [st_src [st_tgt [NODS [NODD it]]]]]. s.
     iIntros "(#IST & CIH)".
-    assert (CASE := case_itrH _ it); des; subst.
+    assert (CASE := case_itrH it); des; subst.
     - step. iFrame. eauto.
     - steps_l. steps_r. by_coind "CIH". eauto.
     - steps_l. force_r. iFrame. by_coind "CIH". eauto.
