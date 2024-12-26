@@ -90,12 +90,6 @@ Ltac alist_find_simpl nodup_tac :=
     end
   end.
   
-Lemma map_map_compose {A B C} (f: A -> B) (g: B -> C) l:
-  List.map g (List.map f l) = List.map (g ∘ f) l.
-Proof.
-  rewrite List.map_map. refl.
-Qed.
-
 Lemma fst_map_snd {A B C} f:
   (fst ∘ @map_snd A B C f) = fst.
 Proof.
@@ -104,7 +98,7 @@ Qed.
 
 Ltac fnsems_nodup H :=
   revert H; simpl HModSem.fnsems; (hrepeat do 1 unfold_hmod); simpl List.map;
-  try rewrite !map_map_compose; try rewrite !fst_map_snd; eauto; fail.
+  try rewrite !List.map_map; try rewrite !fst_map_snd; eauto; fail.
 
 Ltac hss_des :=
   ss; des_safe; subst;
