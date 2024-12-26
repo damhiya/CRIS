@@ -58,8 +58,8 @@ Section INTERP.
 
 End INTERP.
 
-Module HModSemAux.
-  Section AUX.
+Module HModSemInline.
+  Section INLINE.
     Context `{Σ: GRA.t}.
     Import HModSem.
 
@@ -82,21 +82,21 @@ Module HModSemAux.
 
     (* Definition to_elim ms := to_hmod ((interp_sb_hp_elim) ∘ fsb_body) ms. *)
 
-  End AUX.
-End HModSemAux.
+  End INLINE.
+End HModSemInline.
 
-Module HModAux.
-  Section AUX.
+Module HModInline.
+  Section INLINE.
     Context `{Σ: GRA.t}.
     Import HMod.
 
     Definition inline (md: t) := {|
-      HMod.modsem := fun sk => HModSemAux.inline (md.(modsem) sk);
+      HMod.modsem := fun sk => HModSemInline.inline (md.(modsem) sk);
       HMod.sk := md.(sk);
     |}.
 
-  End AUX.
-End HModAux.
+  End INLINE.
+End HModInline.
 
 Module HIRed.
   Section RED.

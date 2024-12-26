@@ -2,7 +2,7 @@ Require Import Common.
 
 Require Import SMod2HMod HMod2Mod SMod HMod Mod Skeleton.
 Require Import SimGlobal ITactics.
-Require Import ElimRel SMod2HModAux StRed HModInline.
+Require Import ElimRel SModCancel StRed HModInline.
 
 Set Implicit Arguments.
 
@@ -71,7 +71,7 @@ Section CANCEL.
       fn (FIND: alist_find fn (_stb SKINCL SKWF) = None),
       (<<NONE: stb sk0 fn = None>>).
 
-  Let md_src: HMod.t := SModAux.to_hmod md.
+  Let md_src: HMod.t := SModCancel.to_hmod md.
   Let md_tgt: HMod.t := SMod.to_hmod ginv stb md.
 
   Inductive Forall2i X Y (R: nat -> X -> Y -> Prop): nat -> list X -> list Y -> Prop :=

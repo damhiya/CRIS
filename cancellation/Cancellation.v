@@ -2,7 +2,7 @@ Require Import Common.
 
 Require Import SMod2HMod HMod2Mod Mod2ITree SMod HMod Mod Skeleton.
 Require Import ITactics SimGlobal SimGlobalFacts CtxRefine ClosedAdequacy.
-Require Import SMod2HModAux HModInline ElimRel StRed.
+Require Import SModCancel HModInline ElimRel StRed.
 Require Import CancelDef CancelCall CancelCallRev.
 Require Import CancelAux0 CancelAux1 CancelAux2 CancelAux3.
 
@@ -33,9 +33,6 @@ Section CANCEL.
       fn (FIND: alist_find fn (_stb SKINCL SKWF) = None),
       (<<NONE: stb sk0 fn = None>>).
 
-  Let md_src: HMod.t := SModAux.to_hmod md.
-  Let md_tgt: HMod.t := SMod.to_hmod ginv stb md.
-
   Import CancelTAC.
 
   Lemma cancel_aux rs0 rt0 sk0 (SKINCL: incl sk sk0) (SKWF: Sk.wf sk0):
@@ -52,8 +49,8 @@ Section CANCEL.
               (handle_schE_callE
                  (ModSem.prog
                     (HModSem.to_mod
-                       (HModSemAux.inline
-                         (SModSemAux.to_hmod (SMod.modsem md sk0))) rs0)))
+                       (HModSemInline.inline
+                         (SModSemCancel.to_hmod (SMod.modsem md sk0))) rs0)))
               (cid, srcs))
          (Any.pair st rs↑);; Ret x.2)
          (x <-
@@ -62,7 +59,7 @@ Section CANCEL.
               (handle_schE_callE
                  (ModSem.prog
                     (HModSem.to_mod
-                       (HModSemAux.inline
+                       (HModSemInline.inline
                          (SModSem.to_hmod (ginv sk0) 
                             (stb sk0) (SMod.modsem md sk0))) rt0))) 
               (cid, tgts))
@@ -126,7 +123,7 @@ Section CANCEL.
   Lemma cancel_main 
       P sk0 fsp meta rs rt r
       (EQV: Sk.equiv sk sk0) (SKWF: Sk.wf sk0)
-      (WF: HModSem.wf (md_src.(HMod.modsem) sk0))
+      (WF: HModSem.wf ((SModCancel.to_hmod md).(HMod.modsem) sk0))
       (STB: stb sk0 "CRIS_init" = Some fsp)
       (VALID: ✓ rs)
       (EQUIV: rs ≡ r ⋅ rt)
@@ -135,8 +132,8 @@ Section CANCEL.
       (POST: ∀ vret ret, (fsp.(postcond) 0 meta vret ret) -∗ ⌜vret = ret⌝)
     :  
       refines_modsem
-        (HModSem.to_mod ((HModAux.inline md_src).(HMod.modsem) sk0) rs)
-        (HModSem.to_mod ((HModAux.inline md_tgt).(HMod.modsem) sk0) rt).
+        (HModSem.to_mod ((HModInline.inline (SModCancel.to_hmod md)).(HMod.modsem) sk0) rs)
+        (HModSem.to_mod ((HModInline.inline (SMod.to_hmod ginv stb md)).(HMod.modsem) sk0) rt).
   Proof.
     r. eapply adequacy_global.
     instantiate (1:= smj_top).
@@ -157,7 +154,7 @@ Section CANCEL.
     rewrite !alist_find_map/o_map E. s. 
     erewrite !wrap_elimI_well_scoped; cycle 1.
     { unfold SModSem.to_hmod. s. rewrite alist_find_map_snd. instantiate (1:= "CRIS_init"). rewrite E. ss. }
-    { unfold SModSemAux.to_hmod. s. rewrite alist_find_map_snd. instantiate (1:= "CRIS_init"). rewrite E. ss. }
+    { unfold SModSemCancel.to_hmod. s. rewrite alist_find_map_snd. instantiate (1:= "CRIS_init"). rewrite E. ss. }
     ired. destruct p. s.
     unfold HModSem.sandbox_body, interp_hp_fun. s.
     unfold inline_hp_fun, interp_sb_hp. s.
@@ -215,7 +212,8 @@ Section CANCEL.
       (POST: ∀sk0 (EQV: Sk.equiv sk sk0) (SKWF: Sk.wf sk0) vret ret, 
                 (fsp.(postcond) 0 meta vret ret) -∗ ⌜vret = ret⌝)
     :
-    refines (md_src, P ∗∗ (fun _ => fsp.(precond) 0 meta tt↑ tt↑)) (md_tgt, P).
+    refines (SModCancel.to_hmod md, P ∗∗ (fun _ => fsp.(precond) 0 meta tt↑ tt↑))
+            (SMod.to_hmod ginv stb md, P).
   Proof. 
     etrans.
     { eapply cancel_call_rev. }

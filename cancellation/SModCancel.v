@@ -4,53 +4,43 @@ Require Import SMod2HMod.
 
 Set Implicit Arguments.
 
-(******* Rename each section into proper name  *******)
-
-Section AUX.
+Section Cancel.
   Context `{Σ: GRA.t}.
   Notation iProp := (iProp Σ).
 
-  Variable ginv : invspec.
-  (* Variable stb: gname -> option fspec. *)
-  
-  Definition Spawn_Cancel (fn: gname) (varg: Any.t) : itree hmodE nat :=
+  Definition Spawn_cancel (fn: gname) (varg: Any.t) : itree hmodE nat :=
     tid <- trigger (Spawn fn varg);;
     trigger (Yield tid);;;
     Ret tid.
 
-  Definition handle_schE_hmodE_aux : schE ~> itree hmodE :=
+  Definition handle_schE_hmodE_cancel : schE ~> itree hmodE :=
     fun _ e =>
       match e in schE T return itree hmodE T with
-      | Spawn fn varg =>
-          Spawn_Cancel fn varg
-      | Yield tid =>
-          trigger (Yield tid)
+      | Spawn fn varg => Spawn_cancel fn varg
+      | Yield tid => trigger (Yield tid)
       | Tid => trigger Tid
       end.
 
-  Definition interp_smod_aux R (it : itree hmodE R) : itree hmodE R :=
+  Definition interp_smod_cancel R (it : itree hmodE R) : itree hmodE R :=
     interp (case_ (bif:=sum1) trivial_Handler
-           (case_ (bif:=sum1) handle_schE_hmodE_aux
+           (case_ (bif:=sum1) handle_schE_hmodE_cancel
            (case_ (bif:=sum1) trivial_Handler
-            trivial_Handler))) it.
+                              trivial_Handler))) it.
 
-  Definition interp_sb_hp_aux (sb: fspecbody): Any.t -> itree hmodE Any.t :=
+  Definition interp_sb_hp_cancel (sb: fspecbody): Any.t -> itree hmodE Any.t :=
     fun arg =>
-      interp_smod_aux (sb.(fsb_body) arg).
+      interp_smod_cancel (sb.(fsb_body) arg).
 
-End AUX.
+End Cancel.
 
-Module SModSemAux.
-Section AUX.
+Module SModSemCancel.
+Section Cancel.
   Import SModSem.
   Context `{Σ: GRA.t}.
-  Variable ginv: invspec.
-  Variable stb: gname -> option fspec.
 
   Program Definition to_hmod (ms: t): HModSem.t := {|
     HModSem.scopes := ms.(scopes);
-    HModSem.fnsems := List.map (map_snd (λ ksb, (ksb.1, interp_sb_hp_aux ksb.2))) (ms.(fnsems));
-    (* HModSem.fnsems := List.map (map_snd (λ ksb, (ksb.1, fsb_body ksb.2))) (ms.(fnsems)); *)
+    HModSem.fnsems := List.map (map_snd (λ ksb, (ksb.1, interp_sb_hp_cancel ksb.2))) (ms.(fnsems));
     HModSem.initial_st := ms.(initial_st);
   |}.
   Next Obligation.
@@ -61,26 +51,24 @@ Section AUX.
   Next Obligation. ii. destruct ms. ss. eauto. Qed.
   Next Obligation. ii. destruct ms. ss. eauto. Qed.
 
-End AUX.
-End SModSemAux.
+End Cancel.
+End SModSemCancel.
 
-Module SModAux.
-Section AUX.
+Module SModCancel.
+Section Cancel.
   Import SMod.
   Context `{Σ: GRA.t}.
-  Variable ginv: Sk.t -> invspec.
-  Variable stb: Sk.t -> gname -> option fspec.
 
   Definition to_hmod (md: t) := {|
-    HMod.modsem := fun sk => SModSemAux.to_hmod (md.(modsem) sk);
+    HMod.modsem := fun sk => SModSemCancel.to_hmod (md.(modsem) sk);
     HMod.sk := md.(sk);
   |}.
 
-End AUX.
-End SModAux.
+End Cancel.
+End SModCancel.
 
 
-Module SAuxRed.
+Module SCancelRed.
 Section RED.
 
   Context `{Σ : GRA.t}.
@@ -90,11 +78,11 @@ Section RED.
         
         (s : itree hmodE R) (k : R -> itree hmodE S)
     :
-      interp_smod_aux (s >>= k)
+      interp_smod_cancel (s >>= k)
       =
-      st <- interp_smod_aux s;; interp_smod_aux (k st).
+      st <- interp_smod_cancel s;; interp_smod_cancel (k st).
   Proof.
-    unfold interp_smod_aux in *. grind.
+    unfold interp_smod_cancel in *. grind.
   Qed.
 
   Lemma tau
@@ -102,11 +90,11 @@ Section RED.
         (t : itree _ U)
         
     :
-      interp_smod_aux (tau;; t)
+      interp_smod_cancel (tau;; t)
       =
-      tau;; (interp_smod_aux t).
+      tau;; (interp_smod_cancel t).
   Proof.
-    unfold interp_smod_aux in *. grind.
+    unfold interp_smod_cancel in *. grind.
   Qed.
 
   Lemma ret
@@ -114,11 +102,11 @@ Section RED.
         (t: U)
         
     :
-      interp_smod_aux (Ret t)
+      interp_smod_cancel (Ret t)
       =
       Ret t.
   Proof.
-    unfold interp_smod_aux in *. grind.
+    unfold interp_smod_cancel in *. grind.
   Qed.
 
   Lemma sch
@@ -126,11 +114,11 @@ Section RED.
         (i: schE R)
         
     :
-      interp_smod_aux (trigger i)
+      interp_smod_cancel (trigger i)
       =
-      r <- handle_schE_hmodE_aux i;; tau;; Ret r.
+      r <- handle_schE_hmodE_cancel i;; tau;; Ret r.
   Proof.
-    unfold interp_smod_aux in *. rewrite interp_trigger. grind.
+    unfold interp_smod_cancel in *. rewrite interp_trigger. grind.
   Qed.
   
   Lemma call
@@ -138,11 +126,11 @@ Section RED.
         (i: callE R)
         
     :
-      interp_smod_aux (trigger i)
+      interp_smod_cancel (trigger i)
       =
       r <- trigger i;; tau;; Ret r.
   Proof.
-    unfold interp_smod_aux in *. rewrite interp_trigger. grind.
+    unfold interp_smod_cancel in *. rewrite interp_trigger. grind.
   Qed.
 
   Lemma pg
@@ -150,11 +138,11 @@ Section RED.
         (i: pgE R)
         
     :
-      interp_smod_aux (trigger i)
+      interp_smod_cancel (trigger i)
       =
       r <- trigger i;; tau;; Ret r.
   Proof.
-    unfold interp_smod_aux. rewrite interp_trigger. grind.
+    unfold interp_smod_cancel. rewrite interp_trigger. grind.
   Qed.
 
   Lemma core
@@ -162,21 +150,21 @@ Section RED.
         (i: coreE R)
         
     :
-      interp_smod_aux (trigger i)
+      interp_smod_cancel (trigger i)
       =
       r <- trigger i;; tau;; Ret r.
   Proof.
-    unfold interp_smod_aux. rewrite interp_trigger. grind.
+    unfold interp_smod_cancel. rewrite interp_trigger. grind.
   Qed.
 
   Lemma ag {A} (e: agE A)
         
     :
-      interp_smod_aux (trigger e)
+      interp_smod_cancel (trigger e)
       =
       x <- trigger e ;; tau;; Ret x.
   Proof.
-    unfold interp_smod_aux. rewrite interp_trigger. grind.
+    unfold interp_smod_cancel. rewrite interp_trigger. grind.
   Qed.
   
   Lemma unwrapU 
@@ -184,11 +172,11 @@ Section RED.
         (i: option R)
         
     :
-      interp_smod_aux (@unwrapU hmodE _ _ i)
+      interp_smod_cancel (@unwrapU hmodE _ _ i)
       =
       r <- (unwrapU i);; Ret r.
   Proof.
-    unfold interp_smod_aux, unwrapU in *. des_ifs; grind.
+    unfold interp_smod_cancel, unwrapU in *. des_ifs; grind.
     unfold triggerUB in *. rewrite unfold_interp. grind.
   Qed.
 
@@ -197,18 +185,18 @@ Section RED.
         (i: option R)
         
     :
-      interp_smod_aux (@unwrapN hmodE _ _ i)
+      interp_smod_cancel (@unwrapN hmodE _ _ i)
       =
       r <- (unwrapN i);; Ret r.
   Proof.
-    unfold interp_smod_aux, unwrapN in *. des_ifs; grind.
+    unfold interp_smod_cancel, unwrapN in *. des_ifs; grind.
     unfold triggerNB in *. rewrite unfold_interp. grind.
   Qed.
   
   Lemma asm
         P
     : 
-      interp_smod_aux (assume P)
+      interp_smod_cancel (assume P)
       =
       r <- assume P;; tau;; Ret r.
   Proof.
@@ -218,7 +206,7 @@ Section RED.
   Lemma grt
         P
     : 
-      interp_smod_aux (guarantee P)
+      interp_smod_cancel (guarantee P)
       =
       r <- guarantee P;; tau;; Ret r.
   Proof.
@@ -226,4 +214,4 @@ Section RED.
   Qed.
 
 End RED.
-End SAuxRed.
+End SCancelRed.

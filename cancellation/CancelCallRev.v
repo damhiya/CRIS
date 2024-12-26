@@ -14,7 +14,7 @@ Section CANCEL.
 
   Lemma cancel_call_rev P
   :
-    refines (md, P) (HModAux.inline md, P).
+    refines (md, P) (HModInline.inline md, P).
   Proof. 
     eapply closed_adequacy2.
     econs; ss. i. r.

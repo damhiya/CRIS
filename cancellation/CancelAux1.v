@@ -1,7 +1,7 @@
 Require Import Common.
 Require Import SMod2HMod HMod2Mod Mod2ITree SMod HMod Mod Skeleton.
 Require Import SimGlobal.
-Require Import SMod2HModAux HModInline ElimRel StRed CancelDef.
+Require Import SModCancel HModInline ElimRel StRed CancelDef.
 
 (* pre/post conditions of function calls *)
 
@@ -30,7 +30,7 @@ Section CANCEL.
       fn (FIND: alist_find fn (_stb sk0 SKINCL SKWF) = None),
       (<<NONE: stb sk0 fn = None>>).
 
-  Let md_src: HMod.t := SModAux.to_hmod md.
+  Let md_src: HMod.t := SModCancel.to_hmod md.
   Let md_tgt: HMod.t := SMod.to_hmod ginv stb md.
 
   Import CancelTAC.
@@ -63,13 +63,13 @@ Section CANCEL.
               → cid < base.length tgts
               → (∀ (k : nat) (x y : itree modE Any.t), cid ≠ k → srcs !! k = Some x → tgts !! k = Some y → thread_rel ginv stb md sk0 cid k x y)
               → r Any.t Any.t eq ps pt
-                  (x <- interp_stateE Any.t (ITree.iter (handle_schE_callE (ModSem.prog (HModSem.to_mod (HModSemAux.inline (SModSemAux.to_hmod (SMod.modsem md sk0))) rs0))) (cid, srcs)) (Any.pair st rs ↑);; Ret x.2)
-                  (x <- interp_stateE Any.t (ITree.iter (handle_schE_callE (ModSem.prog (HModSem.to_mod (HModSemAux.inline (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0))) rt0))) (cid, tgts)) (Any.pair st rt ↑);; Ret x.2))
+                  (x <- interp_stateE Any.t (ITree.iter (handle_schE_callE (ModSem.prog (HModSem.to_mod (HModSemInline.inline (SModSemCancel.to_hmod (SMod.modsem md sk0))) rs0))) (cid, srcs)) (Any.pair st rs ↑);; Ret x.2)
+                  (x <- interp_stateE Any.t (ITree.iter (handle_schE_callE (ModSem.prog (HModSem.to_mod (HModSemInline.inline (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0))) rt0))) (cid, tgts)) (Any.pair st rt ↑);; Ret x.2))
   :
   gpaco7 _simg (cpn7 _simg) bot7 r Any.t Any.t eq ps pt
-  (x <- interp_stateE Any.t (tau;; tau;; ITree.iter (handle_schE_callE (ModSem.prog (HModSem.to_mod (HModSemAux.inline (SModSemAux.to_hmod (SMod.modsem md sk0))) rs0)))
+  (x <- interp_stateE Any.t (tau;; tau;; ITree.iter (handle_schE_callE (ModSem.prog (HModSem.to_mod (HModSemInline.inline (SModSemCancel.to_hmod (SMod.modsem md sk0))) rs0)))
     (cid, <[cid:=interp_hp src]> srcs)) (Any.pair st rs ↑);; Ret x.2)
-  (x <- interp_stateE Any.t (tau;; ITree.iter (handle_schE_callE (ModSem.prog (HModSem.to_mod (HModSemAux.inline (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0))) rt0)))
+  (x <- interp_stateE Any.t (tau;; ITree.iter (handle_schE_callE (ModSem.prog (HModSem.to_mod (HModSemInline.inline (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0))) rt0)))
     (cid, <[cid:=tau;; interp_hp (tau;; x_ <- trigger (Choose X0);; x_0 <-
                                      (tau;; arg <- trigger (Choose Any.t);;
                                             (tau;; trigger (Guarantee (P cid x_ varg arg));;;
@@ -141,11 +141,11 @@ Section CANCEL.
               → cid < base.length tgts
               → (∀ (k : nat) (x y : itree modE Any.t), cid ≠ k → srcs !! k = Some x → tgts !! k = Some y → thread_rel ginv stb md sk0 cid k x y)
               → r Any.t Any.t eq ps pt
-                  (x <- interp_stateE Any.t (ITree.iter (handle_schE_callE (ModSem.prog (HModSem.to_mod (HModSemAux.inline (SModSemAux.to_hmod (SMod.modsem md sk0))) rs0))) (cid, srcs)) (Any.pair st rs ↑);; Ret x.2)
-                  (x <- interp_stateE Any.t (ITree.iter (handle_schE_callE (ModSem.prog (HModSem.to_mod (HModSemAux.inline (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0))) rt0))) (cid, tgts)) (Any.pair st rt ↑);; Ret x.2))
+                  (x <- interp_stateE Any.t (ITree.iter (handle_schE_callE (ModSem.prog (HModSem.to_mod (HModSemInline.inline (SModSemCancel.to_hmod (SMod.modsem md sk0))) rs0))) (cid, srcs)) (Any.pair st rs ↑);; Ret x.2)
+                  (x <- interp_stateE Any.t (ITree.iter (handle_schE_callE (ModSem.prog (HModSem.to_mod (HModSemInline.inline (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0))) rt0))) (cid, tgts)) (Any.pair st rt ↑);; Ret x.2))
   : 
   gpaco7 _simg (cpn7 _simg) bot7 r Any.t Any.t eq ps pt
-  (x <- interp_stateE Any.t (tau;; tau;; ITree.iter (handle_schE_callE (ModSem.prog (HModSem.to_mod (HModSemAux.inline (SModSemAux.to_hmod (SMod.modsem md sk0))) rs0)))
+  (x <- interp_stateE Any.t (tau;; tau;; ITree.iter (handle_schE_callE (ModSem.prog (HModSem.to_mod (HModSemInline.inline (SModSemCancel.to_hmod (SMod.modsem md sk0))) rs0)))
     (cid, <[cid:=interp_hp (tau;; tau;; src)]> srcs)) (Any.pair st rs ↑);; Ret x.2)
   (x <- interp_stateE Any.t (x_ <- trigger (Choose Any.t);;
     x_0 <- Ret (inl
@@ -160,7 +160,7 @@ Section CANCEL.
                    | inr r0 => Ret r0
                    end]> tgts));;
       match x_0 with
-      | inl l0 => tau;; ITree.iter (handle_schE_callE (ModSem.prog (HModSem.to_mod (HModSemAux.inline (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0))) rt0))) l0
+      | inl l0 => tau;; ITree.iter (handle_schE_callE (ModSem.prog (HModSem.to_mod (HModSemInline.inline (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0))) rt0))) l0
       | inr r0 => Ret r0
       end) (Any.pair st rt ↑);; Ret x.2).
   Proof.
