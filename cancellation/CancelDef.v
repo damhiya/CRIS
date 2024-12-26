@@ -1,16 +1,8 @@
-Require Import Coqlib.
-Require Import Behavior.
-Require Import AList.
-Require Import SMod2HMod SMod2HModAux.
-Require Import Skeleton.
-Require Import PCM IPM.
-Require Import Any.
-Require Export STB.
-Require Import ModSim ISim HPSim.
-Require Import CtxRefine CtxRefineFacts MainAdequacy ClosedAdequacy.
-Require Import SimGlobal SimGlobalFacts.
-Require Import SMod HMod Mod Events.
-Require Import StRed HModInline ElimRel.
+Require Import Common.
+
+Require Import SMod2HMod HMod2Mod SMod HMod Mod Skeleton.
+Require Import SimGlobal ITactics.
+Require Import ElimRel SMod2HModAux StRed HModInline.
 
 Set Implicit Arguments.
 

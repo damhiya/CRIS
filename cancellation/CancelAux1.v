@@ -1,17 +1,7 @@
-Require Import Coqlib.
-Require Import Behavior.
-Require Import AList.
-Require Import SMod2HMod SMod2HModAux.
-Require Import Skeleton.
-Require Import PCM IPM.
-Require Import Any.
-Require Export STB.
-Require Import ModSim ISim HPSim.
-Require Import CtxRefine CtxRefineFacts MainAdequacy ClosedAdequacy.
-Require Import SimGlobal SimGlobalFacts.
-Require Import SMod HMod Mod Events.
-Require Import HModInline ElimRel.
-Require Import Mod2ITree StRed CancelDef.
+Require Import Common.
+Require Import SMod2HMod HMod2Mod Mod2ITree SMod HMod Mod Skeleton.
+Require Import SimGlobal.
+Require Import SMod2HModAux HModInline ElimRel StRed CancelDef.
 
 (* pre/post conditions of function calls *)
 

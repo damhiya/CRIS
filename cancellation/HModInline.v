@@ -1,19 +1,9 @@
-Require Import Coqlib.
-Require Import sflib.
-Require Import ITreelib.
-Require Import AList.
-Require Import Behavior.
-Require Import Skeleton.
-Require Import PCM IPM.
-Require Import Any.
-Require Export STB.
-Require Import Events HMod.
-Require Import SMod2HMod HMod2Mod MainAdequacy ISim.
+Require Import Common.
 
+Require Import HMod.
+Require Import ISim MainAdequacy.
 
 Set Implicit Arguments.
-
-
 
 (* Inlining every function call in HMod. *)
 Section INTERP.

@@ -1,17 +1,6 @@
-Require Import Coqlib.
-Require Import sflib.
-Require Import ITreelib.
-Require Import AList.
-Require Import Behavior.
-Require Import SMod2HMod HMod2Mod.
-Require Import Skeleton.
-Require Import PCM IPM.
-Require Import Any.
-Require Export STB.
-Require Import HPSim ISim.
-Require Import ModSimFacts.
-Require Import MainAdequacy CtxRefine CtxRefineFacts ClosedAdequacy.
-Require Import Events SMod HMod Mod.
+Require Import Common.
+Require Import SMod2HMod SMod HMod Skeleton ITactics.
+Require Import ISim CtxRefine CtxRefineFacts ClosedAdequacy.
 Require Import HModInline.
 
 Set Implicit Arguments.
@@ -31,8 +20,7 @@ Section CANCEL.
     eapply closed_adequacy2.
     econs; ss. i. r.
     econs; ss; try refl; eauto.
-    { exists []. s. refl. }
-    { i. rewrite map_map_compose fst_map_snd. exists []. ss. }
+    { i. rewrite List.map_map fst_map_snd. exists []. ss. }
     ii. ss. exists (wrap_elimI (HMod.modsem md sk0) ft).
     esplits.
     { rewrite alist_find_map_snd FIND. ss. } 
@@ -45,8 +33,8 @@ Section CANCEL.
     generalize false at 1 as ps.
     generalize false at 1 as pt. intros pt ps.
     generalize (i y) as it. clear IN fn FIND i y NODD NODS.
-    revert st_tgt. apply combine_quant_dep.
-    revert st_src. apply combine_quant_dep.
+    revert st_tgt. apply combine_quant.
+    revert st_src. apply combine_quant.
     revert SCP. apply combine_quant.
     revert scopeT. apply combine_quant_dep.
     revert pt. apply combine_quant.
@@ -57,7 +45,7 @@ Section CANCEL.
     destruct a as [nths [ps [pt [scopeT [SCP [st_src [st_tgt it]]]]]]]. s.
     iIntros "(Ist & #CIH)".
     
-    assert (CASE := case_itrH _ it); des; subst.
+    assert (CASE := case_itrH it); des; subst.
     - rewrite HModSB.transl_ret HIRed.ret. step. eauto.
     - rewrite HModSB.transl_tau HIRed.tau. steps_l. steps_r. by_coind "CIH". eauto.
     - rewrite HModSB.transl_bind HModSB.transl_ag HIRed.bind_ag. steps_l. force_r. iFrame. by_coind "CIH". eauto.
@@ -124,8 +112,8 @@ Section CANCEL.
       + step. steps_l. by_coind "CIH". auto.
     Unshelve. all: eauto.
     {
-      assert(SCP0 := (HMod.modsem md sk0).(HModSem.well_scoped_fns)).
-      specialize (SCP0 fn). rewrite/fnsems_scopes FIND in SCP0. eauto.
+      assert(SCP0 := (HMod.modsem md sk0).(HModSem.well_scoped_fns) fn).
+      rewrite/fnsems_scopes FIND in SCP0. eauto.
     }
   Qed.
 

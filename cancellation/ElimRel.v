@@ -1,16 +1,6 @@
-Require Import Coqlib.
-Require Import Behavior.
-Require Import AList.
-Require Import SMod2HMod SMod2HModAux.
-Require Import Skeleton.
-Require Import PCM IPM.
-Require Import Any.
-Require Export STB.
-Require Import ModSim ISim HPSim.
-Require Import CtxRefine CtxRefineFacts MainAdequacy ClosedAdequacy.
-Require Import SimGlobal SimGlobalFacts.
-Require Import SMod HMod Mod Events.
-Require Import HModInline CancelCall.
+Require Import Common.
+Require Import SMod HMod SMod2HMod Skeleton.
+Require Import SMod2HModAux HModInline.
 
 Section REL.
   Context `{Σ: GRA.t}.
@@ -451,7 +441,7 @@ Section CANCEL.
   Proof. 
     unfold elim_rel.
     ginit. revert itr scopes. gcofix CIH. i.
-    assert (CASE:= case_itrH _ itr). des; subst.
+    assert (CASE:= case_itrH itr). des; subst.
     - rewrite SModRed.interp_ret SAuxRed.ret HModSB.transl_ret !HIRed.ret.
       gstep. econs. 
     - rewrite SModRed.interp_tau SAuxRed.tau !HModSB.transl_tau !HIRed.tau.

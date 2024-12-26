@@ -1,15 +1,6 @@
-Require Import Coqlib.
-Require Import sflib.
-Require Import ITreelib.
-Require Import AList.
-Require Import Behavior.
-Require Import Events SMod HMod Mod.
-Require Import SMod2HMod HMod2Mod.
-Require Import Skeleton.
-Require Import PCM IPM.
-Require Import Any.
-Require Export STB.
-Require Import ModSim.
+Require Import Common.
+Require Import SMod HMod Skeleton.
+Require Import SMod2HMod.
 
 Set Implicit Arguments.
 

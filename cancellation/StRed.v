@@ -1,7 +1,6 @@
-Require Import Coqlib.
-Require Import Behavior.
-Require Import AList.
-Require Import Mod2ITree Events.
+Require Import Common.
+
+Require Import Mod2ITree.
 
 Module StRed.
 Section RED.
