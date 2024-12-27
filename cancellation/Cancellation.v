@@ -218,34 +218,34 @@ Section CANCEL.
     rewrite HModSB.transl_ret. ss.
   Qed.
   
-  (*** Final Theorem ***)
-  Theorem cancellation ginv P fsp meta
-    (STB: ∀ sk (EQV: Sk.equiv (SMod.sk md) sk) (SKWF: Sk.wf sk),
-          stb_global md sk "CRIS_init" = Some (fsp sk))
-    (POST: ∀ sk (EQV: Sk.equiv (SMod.sk md) sk) (SKWF: Sk.wf sk) vret ret,
-           ((fsp sk).(postcond) 0 (meta sk) vret ret) -∗ ⌜vret = ret⌝)
-    :
-    refines (SModCancel.to_hmod md, P ∗∗ (fun sk => (fsp sk).(precond) 0 (meta sk) tt↑ tt↑))
-            (SMod.to_hmod ginv (stb_global md) md, P).
-  Proof. 
-    etrans.
-    { eapply cancel_call_rev. }
-    etrans; cycle 1.
-    { eapply cancel_call. }
-    r. esplits; ss.
-    ii. eapply Own_split in SRC; eauto. des.
-    exists a1. esplits; eauto.
-    { eapply cmra_valid_op_l, valid_solve_eq; eauto. }
-    {
-      inv WFM. econs; eauto. s.
-      do 2 rewrite List.map_map fst_map_snd.
-      do 2 rewrite List.map_map fst_map_snd in wf_fns. eauto.
-    }
-    eapply cancel_main; eauto.
-    - inv WFM. econs; eauto. s.
-      rewrite List.map_map fst_map_snd.
-      do 2 rewrite List.map_map fst_map_snd in wf_fns. eauto.
-    - etrans; eauto. r_solve.
-  Qed.
-    
 End CANCEL.
+
+(*** Final Theorem ***)
+Theorem cancellation `{Σ: GRA.t} md ginv P fsp meta
+  (STB: ∀ sk (EQV: Sk.equiv (SMod.sk md) sk) (SKWF: Sk.wf sk),
+        stb_global md sk "CRIS_init" = Some (fsp sk))
+  (POST: ∀ sk (EQV: Sk.equiv (SMod.sk md) sk) (SKWF: Sk.wf sk) vret ret,
+         ((fsp sk).(postcond) 0 (meta sk) vret ret) -∗ ⌜vret = ret⌝)
+  :
+  refines (SModCancel.to_hmod md, P ∗∗ (fun sk => (fsp sk).(precond) 0 (meta sk) tt↑ tt↑))
+          (SMod.to_hmod ginv (stb_global md) md, P).
+Proof. 
+  etrans.
+  { eapply cancel_call_rev. }
+  etrans; cycle 1.
+  { eapply cancel_call. }
+  r. esplits; ss.
+  ii. eapply Own_split in SRC; eauto. des.
+  exists a1. esplits; eauto.
+  { eapply cmra_valid_op_l, valid_solve_eq; eauto. }
+  {
+    inv WFM. econs; eauto. s.
+    do 2 rewrite List.map_map fst_map_snd.
+    do 2 rewrite List.map_map fst_map_snd in wf_fns. eauto.
+  }
+  eapply cancel_main; eauto.
+  - inv WFM. econs; eauto. s.
+    rewrite List.map_map fst_map_snd.
+    do 2 rewrite List.map_map fst_map_snd in wf_fns. eauto.
+  - etrans; eauto. r_solve.
+Qed.
