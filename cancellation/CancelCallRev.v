@@ -7,10 +7,7 @@ Set Implicit Arguments.
 
 Section CANCEL.
   Context `{Σ: GRA.t}.
-
   Variable md: HMod.t.
-
-  Let sk: Sk.t := HMod.sk md.
 
   Lemma cancel_call_rev P
   :
@@ -21,12 +18,12 @@ Section CANCEL.
     econs; ss; try refl; eauto.
     { i. rewrite List.map_map fst_map_snd. exists []. ss. }
     ii. rewrite alist_find_map_snd in FIND.
-    destruct (alist_find fn (HModSem.fnsems (HMod.modsem md sk0))) eqn:FINDT; ss.
+    destruct (alist_find fn (HModSem.fnsems (HMod.modsem md sk))) eqn:FINDT; ss.
     inv FIND. rename p into ft. esplits; eauto.
     ii. subst. destruct ft.
-    assert(SCP := (HMod.modsem md sk0).(HModSem.well_scoped_fns)).
+    assert(SCP := (HMod.modsem md sk).(HModSem.well_scoped_fns)).
     specialize (SCP fn). rewrite/fnsems_scopes FINDT in SCP.
-    remember (HModSem.scopes (HMod.modsem md sk0)) as scopeS. i.
+    remember (HModSem.scopes (HMod.modsem md sk)) as scopeS. i.
     rename l into scopeT. 
     unfold wrap_elimI. s. unfold HModSem.sandbox_body, inline_hp_fun. s.
     generalize false at 1 as ps.
@@ -57,7 +54,7 @@ Section CANCEL.
         steps_r. by_coind "CIH". auto.
       + steps_l. steps_r. by_coind "CIH". auto.
     - destruct c. rewrite HModSB.transl_bind HModSB.transl_call HIRed.call. steps_r. 
-      destruct (alist_find fn (HModSem.fnsems (HMod.modsem md sk0))) eqn:FIND; cycle 1.
+      destruct (alist_find fn (HModSem.fnsems (HMod.modsem md sk))) eqn:FIND; cycle 1.
       { s. unfold triggerNB. ired. rewrite HIRed.bind_core. steps_r. ss. }
       destruct p. iApply isim_inline_src.
       { rewrite alist_find_map_snd FIND. ss. }
@@ -98,7 +95,7 @@ Section CANCEL.
       + step. steps_r. by_coind "CIH". auto.
     Unshelve. all: try refl; eauto.
     {
-      assert(SCP0 := (HMod.modsem md sk0).(HModSem.well_scoped_fns) fn).
+      assert(SCP0 := (HMod.modsem md sk).(HModSem.well_scoped_fns) fn).
       rewrite/fnsems_scopes FIND in SCP0. eauto.
     }
   Qed.

@@ -44,35 +44,17 @@ Module CancelTAC.
   Ltac _coreA := _core; st; i; st; grind; _tau; st.
   Ltac _coreE x := _core; st; exists x; st; grind; _tau; st.
 
+  Ltac done_by_CIH CIH LKX LKY :=
+    prb; gbase; pclearbot; eapply CIH; eauto;
+    try (rewrite !length_insert; nia);
+    try (rewrite list_lookup_insert; grind);
+    try (i; rewrite !list_lookup_insert_ne in LKX, LKY; eauto).
+  
 End CancelTAC.
 
 Section CANCEL.
   Context `{Σ: GRA.t}.
-  Variable ginv: Sk.t -> invspec.
-  Variable stb: Sk.t -> gname -> option fspec.
   Variable md: SMod.t.
-  Notation iProp := (iProp Σ).
-
-  Let sk: Sk.t := SMod.sk md.
-  Let ms (sk0: Sk.t) (SKINCL: incl sk sk0) (SKWF: Sk.wf sk0) := 
-    SMod.modsem md sk0.
-  Let sbtb (sk0: Sk.t) (SKINCL: incl sk sk0) (SKWF: Sk.wf sk0): alist gname (list string * fspecbody) := 
-    (ms SKINCL SKWF).(SModSem.fnsems).
-  Let _stb (sk0: Sk.t) (SKINCL: incl sk sk0) (SKWF: Sk.wf sk0): alist gname (list string * fspec) := 
-    List.map (map_snd (fun '(fn, fs) => (fn, fs.(fsb_fspec)))) (sbtb SKINCL SKWF).
-
-  Hypothesis STBCOMPLETE:
-    forall 
-      sk0 (SKINCL: incl sk sk0) (SKWF: Sk.wf sk0)
-      fn scfsp (FIND: alist_find fn (_stb SKINCL SKWF) = Some scfsp), stb sk0 fn = Some scfsp.2.
-  Hypothesis STBSOUND:
-    forall 
-      sk0 (SKINCL: incl sk sk0) (SKWF: Sk.wf sk0)
-      fn (FIND: alist_find fn (_stb SKINCL SKWF) = None),
-      (<<NONE: stb sk0 fn = None>>).
-
-  Let md_src: HMod.t := SModCancel.to_hmod md.
-  Let md_tgt: HMod.t := SMod.to_hmod ginv stb md.
 
   Inductive Forall2i X Y (R: nat -> X -> Y -> Prop): nat -> list X -> list Y -> Prop :=
   | Forall2i_nil i: Forall2i R i [] []
@@ -123,21 +105,21 @@ Section CANCEL.
     inv H0. eauto.
   Qed.
 
-  Definition yield_post sk0: itree hmodE _ :=
-      tau;; tau;; r <- trigger Tid;; x <- (tau;; trigger (Assume (ginv sk0 r)));; Ret ().
+  Definition yield_post (ginv: Sk.t -> nat -> iProp Σ) sk: itree hmodE _ :=
+      tau;; tau;; tid <- trigger Tid;; x <- (tau;; trigger (Assume (ginv sk tid)));; Ret ().
 
-  Variant thread_rel sk0 (cid tid: nat) src tgt : Prop :=
-  | thread_rel_body X (meta: X) (Q: nat -> X -> Any.t -> Any.t -> iProp) l itrS itrT
+  Variant thread_rel ginv sk (cid tid: nat) src tgt : Prop :=
+  | thread_rel_body X (meta: X) (Q: nat -> X -> Any.t -> Any.t -> iProp Σ) l itrS itrT
       (RET: ∀vret ret, 
             tid = 0 -> Q tid meta vret ret ⊢ ⌜vret = ret⌝)
-      (REL: @elim_rel _ ginv stb sk0 _ l itrS itrT)
+      (REL: @elim_rel _ md ginv sk _ l itrS itrT)
       (SRC: src = 
           ((if Nat.eq_dec tid cid then Ret tt else tau;; Ret tt);;; interp_hp itrS))
       (TGT: tgt =
         (interp_hp
-            ((if Nat.eq_dec tid cid then Ret tt else yield_post sk0);;;
+            ((if Nat.eq_dec tid cid then Ret tt else yield_post ginv sk);;;
               vret <- itrT;; 
-              (inline_hp (prog (SModSem.to_hmod (ginv sk0) (stb sk0) (SMod.modsem md sk0)))
+              (inline_hp (prog (SModSem.to_hmod (ginv sk) (stb_global md sk) (SMod.modsem md sk)))
                 (ret <- trigger (Choose Any.t);;
                   trigger (Guarantee (Q tid meta vret ret));;;
                   Ret ret))))) 
@@ -168,5 +150,38 @@ Section CANCEL.
   Proof.
     eapply lookup_snoc_Some; right; eauto.
   Qed.
+
+  Definition CANCEL_GOAL
+    (R: ∀ x0 x1, (x0→x1→Prop)→smj→smj→itree coreE x0→itree coreE x1→Prop)
+    ginv sk (rs0 rt0: Σ) ps pt srcs tgts cid st (rs rt: Σ) : Prop :=
+    R Any.t Any.t eq ps pt
+    (x <-
+     interp_stateE Any.t
+       (ITree.iter
+          (handle_schE_callE
+             (ModSem.prog
+                (HModSem.to_mod
+                   (HModSemInline.inline
+                      (SModSemCancel.to_hmod (SMod.modsem md sk))) rs0)))
+          (cid, srcs)) (Any.pair st rs ↑);; Ret x.2)
+    (x <-
+     interp_stateE Any.t
+       (ITree.iter
+          (handle_schE_callE
+             (ModSem.prog
+                (HModSem.to_mod
+                   (HModSemInline.inline
+                      (SModSem.to_hmod (ginv sk) (stb_global md sk)
+                         (SMod.modsem md sk))) rt0)))
+          (cid, tgts)) (Any.pair st rt ↑);; Ret x.2).
+
+  Definition cancel_term ginv sk (cid:nat) X (meta: X) Q (itrT: itree hmodE Any.t) :=
+    (vret <- itrT;;
+     inline_hp (prog
+          (SModSem.to_hmod (ginv sk)
+             (stb_global md sk) (SMod.modsem md sk)))
+       (ret <- trigger (Choose Any.t);;
+        trigger (Guarantee (Q cid meta vret ret));;; Ret ret))
+  .
   
 End CANCEL.

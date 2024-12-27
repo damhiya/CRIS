@@ -3,69 +3,28 @@ Require Import Common.
 Require Import SMod2HMod HMod2Mod Mod2ITree SMod HMod Mod Skeleton.
 Require Import ITactics SimGlobal SimGlobalFacts CtxRefine ClosedAdequacy.
 Require Import SModCancel HModInline ElimRel StRed.
-Require Import CancelDef CancelCall CancelCallRev.
-Require Import CancelAux0 CancelAux1 CancelAux2 CancelAux3.
+Require Import CancelLib CancelCall CancelCallRev.
+Require Import CancelHead CancelTail CancelSpawn CancelYield.
 
 Set Implicit Arguments.
 
 Section CANCEL.
   Context `{Σ: GRA.t}.
-  Variable ginv: Sk.t -> invspec.
-  Variable stb: Sk.t -> gname -> option fspec.
   Variable md: SMod.t.
-  Notation iProp := (iProp Σ).
-
-  Let sk: Sk.t := SMod.sk md.
-  Let ms (sk0: Sk.t) (SKINCL: incl sk sk0) (SKWF: Sk.wf sk0) := 
-    SMod.modsem md sk0.
-  Let sbtb (sk0: Sk.t) (SKINCL: incl sk sk0) (SKWF: Sk.wf sk0): alist gname (list string * fspecbody) := 
-    (ms SKINCL SKWF).(SModSem.fnsems).
-  Let _stb (sk0: Sk.t) (SKINCL: incl sk sk0) (SKWF: Sk.wf sk0): alist gname (list string * fspec) := 
-    List.map (map_snd (fun '(fn, fs) => (fn, fs.(fsb_fspec)))) (sbtb SKINCL SKWF).
-
-  Hypothesis STBCOMPLETE:
-    forall 
-      sk0 (SKINCL: incl sk sk0) (SKWF: Sk.wf sk0)
-      fn scfsp (FIND: alist_find fn (_stb SKINCL SKWF) = Some scfsp), stb sk0 fn = Some scfsp.2.
-  Hypothesis STBSOUND:
-    forall 
-      sk0 (SKINCL: incl sk sk0) (SKWF: Sk.wf sk0)
-      fn (FIND: alist_find fn (_stb SKINCL SKWF) = None),
-      (<<NONE: stb sk0 fn = None>>).
 
   Import CancelTAC.
-
-  Lemma cancel_aux rs0 rt0 sk0 (SKINCL: incl sk sk0) (SKWF: Sk.wf sk0):
-    ∀ rs rt srcs tgts cid st ps pt
-       (WF: ✓ rs)       
-       (LEN: cid < List.length srcs)
-       (REL: Forall2i (thread_rel ginv stb md sk0 cid) 0 srcs tgts)
-       (UPD: Own rs ==∗ Own rt)
-       ,
-       gpaco7 _simg (cpn7 _simg) bot7 bot7 Any.t Any.t eq ps pt
-       (x <-
-         interp_stateE Any.t
-           (ITree.iter
-              (handle_schE_callE
-                 (ModSem.prog
-                    (HModSem.to_mod
-                       (HModSemInline.inline
-                         (SModSemCancel.to_hmod (SMod.modsem md sk0))) rs0)))
-              (cid, srcs))
-         (Any.pair st rs↑);; Ret x.2)
-         (x <-
-         interp_stateE Any.t
-           (ITree.iter
-              (handle_schE_callE
-                 (ModSem.prog
-                    (HModSem.to_mod
-                       (HModSemInline.inline
-                         (SModSem.to_hmod (ginv sk0) 
-                            (stb sk0) (SMod.modsem md sk0))) rt0))) 
-              (cid, tgts))
-         (Any.pair st rt↑);; Ret x.2).
+  
+  Lemma cancel_aux rs0 rt0
+    ginv sk (SKINCL: incl (SMod.sk md) sk) (SKWF: Sk.wf sk)
+    rs rt srcs tgts cid st ps pt
+    (WF: ✓ rs)       
+    (LEN: cid < List.length srcs)
+    (REL: Forall2i (thread_rel md ginv sk cid) 0 srcs tgts)
+    (UPD: Own rs ==∗ Own rt)
+    :
+    CANCEL_GOAL md (gpaco7 _simg (cpn7 _simg) bot7 bot7) ginv sk rs0 rt0 ps pt srcs tgts cid st rs rt.
   Proof.
-    i. exploit Forall2i_nth; eauto. i. des.
+    exploit Forall2i_nth; eauto. i. des.
     rename x into src, y into tgt.
     depdes x2.
     hexploit REL. i. eapply Forall2i_len in H. des.
@@ -73,73 +32,126 @@ Section CANCEL.
     assert (RELS: forall k x y (NEQ: cid ≠ k)
                     (LKX: srcs !! k = Some x)
                     (LKY: tgts !! k = Some y),
-                      thread_rel ginv stb md sk0 cid k x y). 
+                      thread_rel md ginv sk cid k x y). 
     { i. eapply Forall2i_forall in REL; eauto. }
     clear REL. rename REL0 into REL. unfold elim_rel in REL.
-    revert_until SKWF. s. gcofix CIH. i.
-    _iter. _iter. rewrite x7 x8. subst. ired.
-    destruct (Nat.eq_dec cid cid); ss. grind.
-    assert (✓ rt). { eapply Own_wand_valid with (a1:=rs); eauto. } 
-    punfold REL.  
-    pattern itrS, itrT. depdes REL; ired.
-    - hide_l. _coreA.
-    - eapply cancel_main_ret; eauto. 
-    - eapply cancel_main_tau; eauto.
-    - eapply cancel_main_core; eauto.
-    - eapply cancel_main_pg; eauto. 
-    - eapply cancel_main_asm; eauto.
-    - eapply cancel_main_grt; eauto.
-    - eapply cancel_main_tid; eauto.
-    - eapply cancel_main_head; eauto.
-    - eapply cancel_main_tail; eauto.
-    - eapply cancel_main_spawn; eauto.
-    - eapply cancel_main_yield; eauto.
+    simpl plus in *. subst.
+    destruct (Nat.eq_dec cid cid); ss. clear e.
+    rename x0 into SRC, x1 into TGT.
+    rewrite interp_hp_bind interp_hp_ret in TGT.
+    revert_until SKWF. gcofix CIH. i.
+    
+    assert (✓ rt). { eapply Own_wand_valid with (a1:=rs); eauto. }
+    punfold REL. depdes REL; subst.
+    - _iter. _iter. rewrite SRC TGT. ired.
+      hide_l. _coreA.
+    - _iter. _iter. rewrite SRC TGT. ired.
+      hide_r. des_ifs; cycle 1.
+      { unfold triggerUB. ired. _coreA. }
+      ired. reveal ITREE.
+      _coreA. iterT 2.
+      iterL. _supd. iterL. _coreA. ls.
+      iterL. _coreA. ls. iterL. _supd. iterL. _supd.
+      iterT 2. iterL. rewrite !StRed.ret. ired. st.
+      hexploit Own_bupd_split; eauto. i. des.
+      specialize (RET v x eq_refl).
+      eapply Own_pure_soundness with (x := a1).
+      + eapply Own_bupd_valid in H; eauto.
+        eapply cmra_valid_op_l; eauto.
+      + etrans; eauto.
+    - _iter. _iter. rewrite SRC TGT. ired. tau 4.
+      done_by_CIH CIH LKX LKY.
+    - _iter. _iter. rewrite SRC TGT. ired.
+      depdes e.
+      + hide_l. _coreA. iterT 1. reveal ITREE.
+        hide_r. _coreE x. iterT 1. reveal ITREE.
+        done_by_CIH CIH LKX LKY.
+      + hide_r. _coreA. iterT 1. reveal ITREE.
+        hide_l. _coreE x. iterT 1. reveal ITREE.
+        done_by_CIH CIH LKX LKY.
+      + hide_l. _core. reveal ITREE.
+        hide_r. _core. reveal ITREE.
+        st. instantiate (1:= smj_top). i. subst.
+        hide_l. st. ired. tau 1. iterT 1. reveal ITREE.
+        hide_r. st. ired. tau 1. iterT 1. reveal ITREE.
+        done_by_CIH CIH LKX LKY.
+    - _iter. _iter. rewrite SRC TGT. ired.
+      depdes e.
+      + hide_l. grind. _supd. iterL. _supd. iterT 1. reveal ITREE.
+        hide_r. grind. _supd. iterL. _supd. iterT 1. reveal ITREE.
+        done_by_CIH CIH LKX LKY.
+      + hide_l. grind. _supd. iterT 1. reveal ITREE.
+        hide_r. grind. _supd. iterT 1. reveal ITREE.
+        done_by_CIH CIH LKX LKY.
+    - _iter. _iter. rewrite SRC TGT. ired.
+      hide_r. _coreA. iterL. _supd. iterL. _coreA. iterL. _coreA.
+      iterL. _supd. iterL. _supd. iterT 1. reveal ITREE.
+      hide_l. _coreE x.
+      assert (UPD': Own(x ⋅ rs) ==∗ Own (x ⋅ rt)).
+      { iIntros "[H0 H1]". iSplitL "H0"; eauto.
+        iApply UPD; eauto.
+      }
+      assert (VALID: ✓ (x ⋅ rt)). 
+      { 
+        hexploit Own_bupd_valid; eauto.
+        iIntros "H". iPoseProof (UPD' with "H") as ">[H0 H1]".
+        iModIntro. iFrame.
+      }
+      iterL. _supd. iterL. _coreE VALID. ls.
+      iterL. _coreE x1. ls. 
+      iterL. _supd. iterL. _supd.
+      iterT 1. reveal ITREE.
+      done_by_CIH CIH LKX LKY.
+    - _iter. _iter. rewrite SRC TGT. ired.
+      hide_l. _supd. iterL. _coreA. iterL. _coreA.
+      iterL. _supd. iterL. _supd. iterT 1. reveal ITREE.
+      hide_r. _supd.
+      assert (SAT: Own rs ==∗ P ∗ Own x).
+      {
+        iIntros "H". iPoseProof (UPD with "H") as ">H". 
+        iApply x0; eauto.
+      }
+      iterL. _coreE x. iterL. _coreE SAT.
+      iterL. _supd. iterL. _supd. iterT 1. reveal ITREE.
+      assert (VALID: ✓ x).
+      { 
+        hexploit Own_bupd_split; eauto. i. des.
+        eapply Own_bupd_valid in H2; eauto.
+        eapply Own_pure_soundness with (x:=a2).
+        { eapply cmra_valid_op_r, Own_wand_valid; eauto. }
+        iIntros "H". iApply Own_valid. iStopProof. eauto.
+      }
+      done_by_CIH CIH LKX LKY.
+    - _iter. _iter. rewrite SRC TGT. ired.
+      hide_l. tau 1. iterT 1. reveal ITREE.
+      hide_r. tau 1. iterT 1. reveal ITREE.
+      done_by_CIH CIH LKX LKY.
+    - eapply cancel_aux_head; eauto. i; eapply CIH; eauto.
+    - eapply cancel_aux_tail; eauto. i; eapply CIH; eauto.
+    - eapply cancel_aux_spawn; eauto. i; eapply CIH; eauto.
+    - eapply cancel_aux_yield; eauto. i; eapply CIH; eauto.
   Qed.
 
-  Lemma fsb_find_spec fn l fsp fbody (sk0: Sk.t)
-    (SKINCL: incl sk sk0) 
-    (SKWF: Sk.wf sk0) 
-    (FIND: alist_find fn (sbtb SKINCL SKWF) = Some (l, {|fsb_fspec := fsp; fsb_body := fbody|}))
-  :
-    alist_find fn (_stb SKINCL SKWF) = Some (l, fsp).
-  Proof.
-    unfold sbtb, _stb.
-    rewrite alist_find_map_snd/o_map FIND. ss.
-  Qed. 
-
-  Lemma stb_find_fsb fn fsp l fspec fbody (sk0: Sk.t)
-    (SKINCL: incl sk sk0) 
-    (SKWF: Sk.wf sk0) 
-    (STB: stb sk0 fn = Some fsp)
-    (FIND: alist_find fn (sbtb SKINCL SKWF) = Some (l, {|fsb_fspec:= fspec; fsb_body := fbody|}))
-  :
-    fsp = fspec.
-  Proof.
-    specialize (STBCOMPLETE SKINCL SKWF fn).
-    eapply fsb_find_spec, STBCOMPLETE in FIND; ss.
-    rewrite FIND in STB. inv STB. ss. 
-  Qed.
-
-  Lemma cancel_main 
-      P sk0 fsp meta rs rt r
-      (EQV: Sk.equiv sk sk0) (SKWF: Sk.wf sk0)
-      (WF: HModSem.wf ((SModCancel.to_hmod md).(HMod.modsem) sk0))
-      (STB: stb sk0 "CRIS_init" = Some fsp)
+  Lemma cancel_main
+      P ginv sk fsp meta rs rt r
+      (EQV: Sk.equiv (SMod.sk md) sk) (SKWF: Sk.wf sk)
+      (WF: HModSem.wf ((SModCancel.to_hmod md).(HMod.modsem) sk))
+      (STB: stb_global md sk "CRIS_init" = Some fsp)
       (VALID: ✓ rs)
       (EQUIV: rs ≡ r ⋅ rt)
       (PRE: Own r ⊢ fsp.(precond) 0 meta tt↑ tt↑)
-      (SAT: Own rt ⊢ P sk0)
+      (SAT: Own rt ⊢ P sk)
       (POST: ∀ vret ret, (fsp.(postcond) 0 meta vret ret) -∗ ⌜vret = ret⌝)
     :  
-      refines_modsem
-        (HModSem.to_mod ((HModInline.inline (SModCancel.to_hmod md)).(HMod.modsem) sk0) rs)
-        (HModSem.to_mod ((HModInline.inline (SMod.to_hmod ginv stb md)).(HMod.modsem) sk0) rt).
+    refines_modsem
+      (HModSem.to_mod ((HModInline.inline (SModCancel.to_hmod md)).(HMod.modsem) sk) rs)
+      (HModSem.to_mod ((HModInline.inline (SMod.to_hmod ginv (stb_global md) md)).(HMod.modsem) sk) rt).
   Proof.
     r. eapply adequacy_global.
     instantiate (1:= smj_top).
     instantiate (1:= smj_top).
     unfold ModSem.compile. s. unfold ITree.map.
-    destruct (alist_find "CRIS_init" (SModSem.fnsems (SMod.modsem md sk0))) eqn:E; cycle 1.
+    destruct (alist_find "CRIS_init" (SModSem.fnsems (SMod.modsem md sk))) eqn:E; cycle 1.
     {
       rewrite !alist_find_map/o_map E. s.
       unfold interp_modE at 2.
@@ -162,8 +174,8 @@ Section CANCEL.
     
     unfold interp_modE, interp_schE_callE. 
     destruct f.
-    assert (SKINCL: incl sk sk0). { eapply Sk.equiv_incl. eauto. }
-    pose proof (stb_find_fsb SKINCL SKWF STB E). subst.
+    assert (SKINCL: incl (SMod.sk md) sk). { eapply Sk.equiv_incl. eauto. }
+    assert (TMP:=STB). unfold stb_global in TMP. rewrite E in TMP. depdes TMP.
     hide_l.
     ginit.
     rewrite !HModSB.transl_bind HModSB.transl_sch HIRed.bind_sch interp_hp_bind. s.
@@ -207,13 +219,14 @@ Section CANCEL.
   Qed.
   
   (*** Final Theorem ***)
-  Theorem cancellation P fsp meta
-      (STB: ∀sk0 (EQV: Sk.equiv sk sk0) (SKWF: Sk.wf sk0), stb sk0 "CRIS_init" = Some fsp)
-      (POST: ∀sk0 (EQV: Sk.equiv sk sk0) (SKWF: Sk.wf sk0) vret ret, 
-                (fsp.(postcond) 0 meta vret ret) -∗ ⌜vret = ret⌝)
+  Theorem cancellation ginv P fsp meta
+    (STB: ∀ sk (EQV: Sk.equiv (SMod.sk md) sk) (SKWF: Sk.wf sk),
+          stb_global md sk "CRIS_init" = Some (fsp sk))
+    (POST: ∀ sk (EQV: Sk.equiv (SMod.sk md) sk) (SKWF: Sk.wf sk) vret ret,
+           ((fsp sk).(postcond) 0 (meta sk) vret ret) -∗ ⌜vret = ret⌝)
     :
-    refines (SModCancel.to_hmod md, P ∗∗ (fun _ => fsp.(precond) 0 meta tt↑ tt↑))
-            (SMod.to_hmod ginv stb md, P).
+    refines (SModCancel.to_hmod md, P ∗∗ (fun sk => (fsp sk).(precond) 0 (meta sk) tt↑ tt↑))
+            (SMod.to_hmod ginv (stb_global md) md, P).
   Proof. 
     etrans.
     { eapply cancel_call_rev. }
@@ -229,14 +242,10 @@ Section CANCEL.
       do 2 rewrite List.map_map fst_map_snd in wf_fns. eauto.
     }
     eapply cancel_main; eauto.
-    {
-      inv WFM. econs; eauto. s.
+    - inv WFM. econs; eauto. s.
       rewrite List.map_map fst_map_snd.
       do 2 rewrite List.map_map fst_map_snd in wf_fns. eauto.
-    }
-    etrans; eauto. r_solve.
+    - etrans; eauto. r_solve.
   Qed.
     
 End CANCEL.
-
-(* total 4min 38sec*)

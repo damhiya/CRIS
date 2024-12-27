@@ -7,10 +7,7 @@ Set Implicit Arguments.
 
 Section CANCEL.
   Context `{Σ: GRA.t}.
-
   Variable md: HMod.t.
-
-  Let sk: Sk.t := HMod.sk md.
 
   Lemma cancel_call P
   :
@@ -20,11 +17,11 @@ Section CANCEL.
     econs; ss. i. r.
     econs; ss; try refl; eauto.
     { i. rewrite List.map_map fst_map_snd. exists []. ss. }
-    ii. ss. exists (wrap_elimI (HMod.modsem md sk0) ft).
+    ii. ss. exists (wrap_elimI (HMod.modsem md sk) ft).
     esplits.
     { rewrite alist_find_map_snd FIND. ss. } 
     ii. subst. destruct ft.
-    assert(SCP := (HMod.modsem md sk0).(HModSem.well_scoped_fns)).
+    assert(SCP := (HMod.modsem md sk).(HModSem.well_scoped_fns)).
     specialize (SCP fn). rewrite/fnsems_scopes FIND in SCP.
     rename l into scopeT. 
     unfold HModSem.sandbox_body, inline_hp_fun. s.
@@ -56,7 +53,7 @@ Section CANCEL.
         steps_l. by_coind "CIH". auto.
       + steps_l. steps_r. by_coind "CIH". auto.
     - destruct c. rewrite HModSB.transl_bind HModSB.transl_call HIRed.call. steps_l. 
-      destruct (alist_find fn (HModSem.fnsems (HMod.modsem md sk0))) eqn:FIND; cycle 1.
+      destruct (alist_find fn (HModSem.fnsems (HMod.modsem md sk))) eqn:FIND; cycle 1.
       { 
         iApply isim_call_none; ss.
         { rewrite alist_find_map_snd FIND. ss. }
@@ -65,19 +62,11 @@ Section CANCEL.
       destruct p. iApply isim_inline_tgt.
       { rewrite alist_find_map_snd FIND. ss. }
       s. ired. rewrite HIRed.bind HModSB.transl_bind.
-      (* iStopProof.
-      match goal with
-      | [|-context[(□ ?P)%I]] => remember (□P)%I
-      end.
-      rewrite Heqb. iIntros "[#CIH Ist]".  *)
       iApply isim_bind; iSplitL.
       {
-        (* instantiate (1:= bindRR (IstRR IstEq0) b).  *)
         iApply isim_RR_frame. 
-        (* instantiate(1:= b). rewrite Heqb.   *)
         iSplitR; [iApply "CIH"|]. by_coind "CIH". eauto.  
       }
-      (* rewrite Heqb.  *)
       unfold bindRR. iIntros (? ? ? ? ?) "(_ & % & IST)". des. subst.
       rewrite HIRed.tau. steps_l. steps_r. ired.
       by_coind "CIH". auto.
@@ -111,11 +100,9 @@ Section CANCEL.
       + step. steps_l. by_coind "CIH". auto.
     Unshelve. all: eauto.
     {
-      assert(SCP0 := (HMod.modsem md sk0).(HModSem.well_scoped_fns) fn).
+      assert(SCP0 := (HMod.modsem md sk).(HModSem.well_scoped_fns) fn).
       rewrite/fnsems_scopes FIND in SCP0. eauto.
     }
   Qed.
 
 End CANCEL.
-
-(* 1min 53sec (both) *)
