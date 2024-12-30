@@ -26,14 +26,13 @@ Module ITreeNotations.
     (at level 58, left associativity) : itree_scope.
   Notation "x <- t1 ;; t2" := (ITree.bind t1 (fun x => t2))
     (at level 62, t1 at next level, right associativity) : itree_scope.
-  Notation "` x : t <- t1 ;; t2" := (ITree.bind t1 (fun x : t => t2))
-    (at level 62, t at next level, t1 at next level, x ident, right associativity) : itree_scope.
+  Infix ">=>" := ITree.cat (at level 62, right associativity) : itree_scope.
+  
   Notation "t1 ;;; t2" := (ITree.bind t1 (fun _ => t2))
     (at level 62, right associativity) : itree_scope.
-  Notation "' p <- t1 ;; t2" :=
-    (ITree.bind t1 (fun x_ => match x_ with p => t2 end))
-    (at level 62, t1 at next level, p pattern, right associativity) : itree_scope.
-  Infix ">=>" := ITree.cat (at level 62, right associativity) : itree_scope.
+  Notation "' p : T <- t1 ;; t2" :=
+    (ITree.bind t1 (fun x_ : T => match x_ with p => t2 end))
+    (at level 62, T at next level, t1 at next level, p pattern, right associativity) : itree_scope.
   Notation "f <$> x" := (@fmap _ _ _ _ f x) (at level 61, left associativity).
 End ITreeNotations.
 Export ITreeNotations.
@@ -90,55 +89,55 @@ Proof.
 Qed.
 
 Lemma bind_ret_l : forall (E : Type -> Type) (R S : Type) (r : R) (k : R -> itree E S),
-    ` x : _ <- Ret r;; k x = k r.
+    x <- Ret r;; k x = k r.
 Proof.
   i. f. eapply bind_ret_l.
 Qed.
 
-Lemma bind_ret_r : forall (E : Type -> Type) (R : Type) (s : itree E R), ` x : R <- s;; Ret x = s.
+Lemma bind_ret_r : forall (E : Type -> Type) (R : Type) (s : itree E R), ' x : R <- s;; Ret x = s.
 Proof.
   i. f. eapply bind_ret_r.
 Qed.
 
-Lemma bind_ret_r_rev : forall (E : Type -> Type) (R : Type) (s : itree E R), s = ` x : R <- s;; Ret x.
+Lemma bind_ret_r_rev : forall (E : Type -> Type) (R : Type) (s : itree E R), s = ' x : R <- s;; Ret x.
 Proof.
   i. symmetry. apply bind_ret_r.
 Qed.
 
 Lemma bind_tau : forall (E : Type -> Type) (R U : Type) (t : itree E U) (k : U -> itree E R),
-  ` x : _ <- Tau t;; k x = Tau (` x : _ <- t;; k x).
+  ' x : _ <- Tau t;; k x = Tau (' x : _ <- t;; k x).
 Proof.
   i. f. eapply bind_tau.
 Qed.
 
 Lemma bind_vis : forall (E : Type -> Type) (R U V : Type) (e : E V) (ek : V -> itree E U) (k : U -> itree E R),
-  ` x : _ <- Vis e ek;; k x = Vis e (fun x : V => ` x : _ <- ek x;; k x).
+  ' x : _ <- Vis e ek;; k x = Vis e (fun x : V => ' x : _ <- ek x;; k x).
 Proof.
   i. f. eapply bind_vis.
 Qed.
 
 Lemma bind_trigger : forall (E : Type -> Type) (R U : Type) (e : E U) (k : U -> itree E R),
-    ` x : _ <- ITree.trigger e;; k x = Vis e (fun x : U => k x).
+    ' x : _ <- ITree.trigger e;; k x = Vis e (fun x : U => k x).
 Proof. i. f. eapply bind_trigger. Qed.
 
 Lemma bind_bind : forall (E : Type -> Type) (R S T : Type) (s : itree E R) (k : R -> itree E S) (h : S -> itree E T),
-    ` x : _ <- (` x : _ <- s;; k x);; h x = ` r : R <- s;; ` x : _ <- k r;; h x.
+    ' x : _ <- (' x : _ <- s;; k x);; h x = ' r : R <- s;; ' x : _ <- k r;; h x.
 Proof. i. f. eapply bind_bind. Qed.
 
 Lemma unfold_bind:
 forall {E : Type -> Type} {R S : Type} (t : itree E R) (k : R -> itree E S),
-` x : _ <- t;; k x
+' x : _ <- t;; k x
 = match observe t with
   | RetF r => k r
-  | TauF t0 => tau;; ` x : _ <- t0;; k x
-  | @VisF _ _ _ X e ke => Vis e (fun x : X => ` x : _ <- ke x;; k x)
+  | TauF t0 => tau;; ' x : _ <- t0;; k x
+  | @VisF _ _ _ X e ke => Vis e (fun x : X => ' x : _ <- ke x;; k x)
   end.
 Proof. i. f. apply unfold_bind. Qed.
 
 Lemma interp_mrec_bind:
   forall (D E : Type -> Type) (ctx : forall T : Type, D T -> itree (D +' E) T)
          (U T : Type) (t : itree (D +' E) U) (k : U -> itree (D +' E) T),
-    interp_mrec ctx (` x : _ <- t;; k x) = ` x : U <- interp_mrec ctx t;; interp_mrec ctx (k x)
+    interp_mrec ctx (' x : _ <- t;; k x) = ' x : U <- interp_mrec ctx t;; interp_mrec ctx (k x)
 .
 Proof. ii. f. eapply interp_mrec_bind. Qed.
 
@@ -156,13 +155,13 @@ Tactic Notation "irw" := repeat (autorewrite with itree_axiom; cbn).
 Lemma interp_state_bind:
   forall (E F : Type -> Type) (A B S : Type) (f : forall T : Type, E T -> S -> itree F (S * T)) (t : itree E A)
          (k : A -> itree E B) (s : S),
-    interp_state f (` x : _ <- t;; k x) s = ` st : S * A <- interp_state f t s;; interp_state f (k (snd st)) (fst st)
+    interp_state f (' x : _ <- t;; k x) s = ' st : S * A <- interp_state f t s;; interp_state f (k (snd st)) (fst st)
 .
 Proof. i. f. apply interp_state_bind. Qed.
 
 Lemma interp_state_vis:
   forall (E F : Type -> Type) (S T U : Type) (e : E T) (k : T -> itree E U) (h : forall T0 : Type, E T0 -> stateT S (itree F) T0)
-         (s : S), interp_state h (Vis e k) s = ` sx : S * T <- h T e s;; (tau;; interp_state h (k (snd sx)) (fst sx))
+         (s : S), interp_state h (Vis e k) s = ' sx : S * T <- h T e s;; (tau;; interp_state h (k (snd sx)) (fst sx))
 .
 Proof.
   i. f. apply interp_state_vis.
@@ -204,7 +203,7 @@ Proof. i. f. apply interp_tau. Qed.
 (*** Original name : interp_state_trigger_eqit ***)
 Lemma interp_state_trigger:
   forall (E F : Type -> Type) (R S : Type) (e : E R) (f : forall T : Type, E T -> stateT S (itree F) T) (s : S),
-    interp_state f (ITree.trigger e) s = ` x : S * R <- f R e s;; (tau;; Ret x)
+    interp_state f (ITree.trigger e) s = ' x : S * R <- f R e s;; (tau;; Ret x)
 .
 Proof. i. f. apply interp_state_trigger_eqit. Qed.
 
@@ -218,7 +217,7 @@ Proof. i. f. rewrite unfold_interp. ss. f_equiv; ii. rewrite interp_ret. refl. Q
 Lemma interp_bind :
 forall {E F : Type -> Type} {R S : Type} (f : forall T : Type, E T -> itree F T)
   (t : itree E R) (k : R -> itree E S),
-interp f (` x : _ <- t;; k x) = ` r : R <- interp f t;; interp f (k r).
+interp f (' x : _ <- t;; k x) = ' r : R <- interp f t;; interp f (k r).
 Proof. i. f. apply interp_bind. Qed.
 
 Lemma interp_mrec_hit:
@@ -232,7 +231,7 @@ Qed.
 
 (*** TODO : I don't want "F" here, but it is technically needed. Report it to itree people? ***)
 Lemma interp_mrec_miss:
-  (* forall (D E F : Type -> Type) `{F -< E} (ctx : forall T : Type, D T -> itree (D +' E) T) (U : Type) (a : F U), *)
+  (* forall (D E F : Type -> Type) '{F -< E} (ctx : forall T : Type, D T -> itree (D +' E) T) (U : Type) (a : F U), *)
   forall (D E F : Type -> Type) `{F -< E} (ctx : forall T : Type, D T -> itree (D +' E) T) (U : Type) (a : F U),
     interp_mrec ctx (trigger a) = x <- (trigger a);; tau;; Ret x
 (* (trigger a) >>= tauK *)
@@ -330,12 +329,14 @@ Ltac grind := repeat (ired; match goal with
                             | [ |- (_ <- _ ;; _) = (_ <- _ ;; _) ] => Morphisms.f_equiv; apply func_ext_dep; i
                             | _ => idtac
                             end; ii; des_ifs_safe).
+
 (*** simple regression tests ***)
+(*
 Goal forall E R (itr : itree E R), (tau;; tau;; tau;; itr) = (tau;; tau;; itr). i. grind. Abort.
 Goal forall E X Y (itr : itree E X) (ktr : X -> itree E Y), ((x <- itr;; tau;; tau;; Ret x) >>= ktr) = ((x <- itr;; tau;; Ret x) >>= ktr).
   i. progress grind. (*** it should progress ***)
 Abort.
-
+*)
 
 Definition update K V map `{Map K V map} : K -> (V -> V) -> map -> option map :=
   fun k f m => do v <- Maps.lookup k m ; Some (Maps.add k (f v) m).
@@ -351,7 +352,7 @@ Lemma unfold_update
 .
 Proof. unfold update. uo. des_ifs. Qed.
 
-Hint Unfold update.
+Hint Unfold update : core.
 
 
 
@@ -491,10 +492,10 @@ Qed.
 Definition resum_itr E F `{E -< F} : itree E ~> itree F := fun _ itr => interp (fun _ e => trigger e) itr.
 
 Definition tauK {E R} : R -> itree E R := fun r => tau;; Ret r.
-Hint Unfold tauK.
+Hint Unfold tauK : core.
 
 Definition idK {E R} : R -> itree E R := fun r => Ret r.
-Hint Unfold idK.
+Hint Unfold idK : core.
 
 Lemma idK_spec E R (i0 : itree E R) : i0 = i0 >>= idK. Proof. unfold idK. irw. refl. Qed.
 

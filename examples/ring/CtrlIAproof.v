@@ -1,15 +1,9 @@
-Require Import Coqlib ITreelib sflib.
-Require Import ImpPrelude.
-Require Import Skeleton.
-Require Import IPM sWorld.
-Require Import Events Behavior.
-Require Import Relation_Definitions.
+Require Import CRIS.
 
+Require Import ImpPrelude.
 Require Import CellHeader CellA CellASpec
                RingHeader RingA RingASpec
-               CtrlI STB.
-Require Import ISim HMod PMod SMod Events ITactics.
-Require Import Mod ModSimFacts.
+               CtrlI.
 
 Set Implicit Arguments.
 
@@ -53,9 +47,9 @@ Module CtrlIA. Section CtrlIA.
     rewrite EQ map_app hmod_addL_app. eauto.
   Qed.
 
-  Lemma big_sepL_mod {T} (Φ : nat -> T -> iProp) (l : list T):
-    ([∗ list] i↦x ∈ l, Φ (i mod List.length l) x) -∗
-    ([∗ list] i↦x ∈ l, Φ i x).
+  Lemma big_sepL_mod {T} (φ : nat -> T -> iProp) (l : list T):
+     ([∗ list] i↦x ∈ l, φ (i mod List.length l) x) -∗
+     ([∗ list] i↦x ∈ l, φ i x).
   Proof.
     iIntros "H". iApply (big_sepL_impl with "H").
     iModIntro. iIntros (? ?) "% H".
@@ -70,9 +64,9 @@ Module CtrlIA. Section CtrlIA.
     a mod c = b mod c.
   Proof. destruct EX. subst. eapply Nat.Div0.mod_add; eauto. Qed.
 
-  Lemma big_sepL_rotate {T} (Φ : nat -> T -> iProp) n (l : list T):
-    ([∗ list] i↦x ∈ l, Φ ((n+i) mod List.length l) x) -∗
-    ([∗ list] i↦x ∈ rotate (List.length l - n mod List.length l) l, Φ i x).
+  Lemma big_sepL_rotate {T} (φ : nat -> T -> iProp) n (l : list T):
+    ([∗ list] i↦x ∈ l, φ ((n+i) mod List.length l) x) -∗
+    ([∗ list] i↦x ∈ rotate (List.length l - n mod List.length l) l, φ i x).
   Proof.
     destruct (Nat.eq_decidable (List.length l) 0) as [|LENL].
     { destruct l; ss; iIntros "H"; iFrame. }

@@ -1,10 +1,8 @@
-Require Import Coqlib ITreelib.
-Require Import AList SubPerm.
-Require Import IPM.
-Require Import Mod HMod.
+Require Import Common.
 
-Require Import ModSim HPSimFacts.
-Require Export ISimCore.
+Require Import Mod HMod.
+Require Import ModSim HPSimFacts ISimCore.
+
 
 Section HSSIM_ADEQUACY.
 

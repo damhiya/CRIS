@@ -1,16 +1,8 @@
-Require Import Coqlib.
-Require Import ITreelib.
-Require Import Skeleton.
-Require Import Behavior.
-Require Import Relation_Definitions.
-Require Import IPM.
-Require Import ModSimTactics Mod2ITree.
+Require Import Common.
 
-Require Import Any.
-Require Import Mod2ITree Mod Events.
-Require Import SimGlobal SimGlobalFacts ModSim.
-Require Import Red IRed.
-Require Import Permutation.
+Require Import Skeleton Mod.
+Require Import SimGlobal SimGlobalFacts.
+Require Import ModSimTactics ModSim.
 
 Set Implicit Arguments.
 
@@ -303,10 +295,10 @@ Section SEMR.
     - rewrite !unfold_iter_eq. s. rewrite LKS LKT.
       grind. do 2 step. gstep. econs. econs; eauto using smj_lt_mid_top.
       gbase. eapply CIH.
-      { rewrite !app_length. s. rewrite !length_insert. eauto. }
-      { rewrite !app_length. s. rewrite !length_insert. nia. }
+      { rewrite !length_app. s. rewrite !length_insert. eauto. }
+      { rewrite !length_app. s. rewrite !length_insert. nia. }
       { nia. }
-      { instantiate (1:=(x2 ++ [MSim.winit sim])). rewrite app_length. s. nia. }
+      { instantiate (1:=(x2 ++ [MSim.winit sim])). rewrite length_app. s. nia. }
       i. des_ifs; des; subst.
       + rewrite lookup_app_l in INS; cycle 1.
         { rewrite length_insert. nia. }
@@ -316,7 +308,7 @@ Section SEMR.
         rewrite !list.list_lookup_insert in INT; try nia. inv INT.
         eexists. rewrite WF Nat.add_comm. s. move: K; rewrite !EQT; intros K; eapply K.
       + assert (DEC : tid < List.length itrs_tgt \/ tid = List.length itrs_tgt).
-        { apply lookup_lt_Some in INS. rewrite app_length in INS. ss.
+        { apply lookup_lt_Some in INS. rewrite length_app in INS. ss.
           rewrite length_insert in INS. nia. }
         des.
         { rewrite lookup_app_l in INS; cycle 1.
@@ -433,7 +425,7 @@ Section SEMR.
     <1=
     (Beh.of_itree (ModSem.compile ms_src)).
   Proof.
-    eapply adequacy_global_itree; ss.
+    eapply adequacy_global; ss.
     ginit.
     unfold ModSem.compile, assume. generalize ModSem.init_fun as fn. i.
 

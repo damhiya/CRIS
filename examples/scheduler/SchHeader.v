@@ -1,7 +1,5 @@
-Require Import Coqlib ITreelib sflib.
-Require Import Events Any IPM ImpPrelude Skeleton.
-From stdpp Require Import gmap.
-Require Import HMod SMod World sWorld SRF PCM.
+Require Import CRIS.
+Require Import ImpPrelude.
 
 Module SchName.
 
@@ -62,7 +60,7 @@ Module Sch.
   Definition spawn {E} `{coreE -< E} `{Events.callE -< E}: (gname * SAny.t) → itree E nat :=
     Seal.sealing "Sch"
       (λ fnarg,
-        `tid: nat <- ccallU SchName.spawn fnarg;;
+        'tid: nat <- ccallU SchName.spawn fnarg;;
         Ret tid)
   .
 
@@ -73,7 +71,7 @@ Module Sch.
         if b: bool
         then Ret (inr tt: () + ())
         else
-          '() <- ccallU SchName.yield tt;;
+          '():_ <- ccallU SchName.yield tt;;
           Ret (inl tt: () + ())
       )) tt)
   .
@@ -81,7 +79,7 @@ Module Sch.
   Definition terminate {E} `{coreE -< E, Events.callE -< E}: itree E unit :=
     Seal.sealing "Sch"
       (ITree.iter ((fun (_: unit) =>
-        '() <- ccallU SchName.yield tt;;
+        '():_ <- ccallU SchName.yield tt;;
         Ret (inl tt: () + ())
       )) tt)
   .
@@ -89,7 +87,7 @@ Module Sch.
   Definition join {E} `{coreE -< E, Events.callE -< E} (R: Type): nat → itree E R :=
     Seal.sealing "Sch"
       (λ tid,
-        `ora: option SAny.t <- ccallU SchName.join tid;;
+        'ora: option SAny.t <- ccallU SchName.join tid;;
         ra <- ora?;;
         rv <- (ra↓↓)?;;
         Ret rv)

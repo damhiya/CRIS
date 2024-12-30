@@ -1,5 +1,4 @@
-Require Import Coqlib ITreelib.
-Require Import Any IPM Skeleton.
+Require Import CRIS.
 
 Module CellioName.
   Definition mn := "Cellio".

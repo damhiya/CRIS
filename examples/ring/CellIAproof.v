@@ -1,15 +1,7 @@
-Require Import Coqlib ITreelib.
+Require Import CRIS.
+
 Require Import ImpPrelude.
-Require Import Skeleton.
-Require Import IPM sWorld.
-Require Import Events Behavior.
-Require Import Relation_Definitions.
-
-Require Import CellHeader CellASpec CellI SMod ModSim.
-Require Import CellA STB.
-
-Require Import ISim HMod PMod Events ITactics.
-Require Import Mod ModSimFacts.
+Require Import CellHeader CellASpec CellI CellA.
 
 Set Implicit Arguments.
 

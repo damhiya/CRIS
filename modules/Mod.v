@@ -1,12 +1,6 @@
-Require Import Coqlib.
-Require Import ITreelib.
-Require Import AList.
-Require Import Skeleton.
-Require Import Behavior.
-Require Import Any.
-Require Import Program.
-Require Import Mod2ITree.
-Require Import Events.
+Require Import Common.
+
+Require Export Mod2ITree.
 
 Set Implicit Arguments.
 

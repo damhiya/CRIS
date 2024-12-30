@@ -9,9 +9,11 @@ all:
 graph:
 		sh make_graph.sh
 
-### Quick
-# proof-quick: Makefile.coq $(COQTHEORIES)
-# 	$(MAKE) -f Makefile.coq quick
+%.vo: %.v
+	$(MAKE) -f Makefile.coq $@
+
+%.vos: %.v
+	$(MAKE) -f Makefile.coq $@
 
 proof-quick: Makefile.coq $(COQTHEORIES)
 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(COQTHEORIES))
@@ -21,6 +23,7 @@ proof: Makefile.coq $(COQTHEORIES)
 
 Makefile.coq: Makefile $(COQTHEORIES)
 	(echo "-arg -w -arg -deprecated-hint-without-locality"; \
+	 echo "-arg -w -arg -notation-incompatible-prefix"; \
 	 echo "-arg -w -arg -deprecated-instance-without-locality"; \
 	 echo "-arg -w -arg -ambiguous-paths"; \
 	 echo "-arg -w -arg -redundant-canonical-projection"; \

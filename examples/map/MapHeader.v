@@ -1,5 +1,6 @@
-Require Import Coqlib ITreelib sflib.
-Require Import Events Any IPM ImpPrelude.
+Require Import CRIS.
+
+Require Export ImpPrelude.
 
 Module MapName.
   

@@ -1,13 +1,6 @@
-Require Import Coqlib ITreelib sflib.
-Require Import ImpPrelude.
-Require Import Events.
-Require Import HMod SMod.
-Require Import Skeleton.
-Require Import IPM STB sProp sWorld.
-Require Import CellioHeader.
-Require Import ITactics.
+Require Import CRIS.
 
-From iris.algebra Require Import excl_auth.
+Require Import CellioHeader.
 
 Set Implicit Arguments.
 

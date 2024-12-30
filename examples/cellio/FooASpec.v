@@ -1,14 +1,7 @@
-Require Import Coqlib ITreelib sflib.
-Require Import ImpPrelude.
-Require Import Events.
-Require Import Behavior.
-Require Import HMod SMod.
-Require Import Skeleton.
-Require Import PCM IPM STB.
-Require Import ISim.
+Require Import CRIS.
+
 Require Import FooHeader.
-Require Import sProp sWorld World SRF.
-From stdpp Require Import coPset gmap namespaces.
+
 Set Implicit Arguments.
 
 Module FooAS.

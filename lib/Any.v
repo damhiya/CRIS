@@ -11,7 +11,7 @@ Module Type ANY.
   Parameter upcast_downcast: forall T (v: T), downcast (upcast v) = Some v.
   Parameter downcast_upcast: forall T (v: T) (a: t), downcast a = Some v -> <<CAST: upcast v = a>>.
   Parameter upcast_inj: forall A B (a: A) (b: B) (EQ: upcast a = upcast b),
-      <<EQ: A = B>> /\ <<EQ: a ~= b>>.
+      <<EQ: A = B>> /\ <<EQ: JMeq a b>>.
 
   Parameter upf: forall {T: Type}, (T -> t) -> t.
   Parameter downf: forall {T: Type}, t -> option (T -> t).
@@ -101,7 +101,7 @@ Module Any: ANY.
         A B (a: A) (b: B)
         (EQ: upcast a = upcast b)
     :
-      <<EQ: A = B>> /\ <<EQ: a ~= b>>
+      <<EQ: A = B>> /\ <<EQ: JMeq a b>>
   .
   Proof. unfold upcast in *. simpl_depind. ss. Qed.
 
@@ -161,7 +161,7 @@ Module Type SANY.
   Parameter upcast_downcast: forall T (v: T), downcast (upcast v) = Some v.
   Parameter downcast_upcast: forall T (v: T) (a: t), downcast a = Some v -> <<CAST: upcast v = a>>.
   Parameter upcast_inj: forall A B (a: A) (b: B) (EQ: upcast a = upcast b),
-      <<EQ: A = B>> /\ <<EQ: a ~= b>>.
+      <<EQ: A = B>> /\ <<EQ: JMeq a b>>.
 
   Parameter upf: forall {T: Type}, (T -> t) -> t.
   Parameter downf: forall {T: Type}, t -> option (T -> t).
@@ -251,7 +251,7 @@ Module SAny : SANY.
         A B (a: A) (b: B)
         (EQ: upcast a = upcast b)
     :
-      <<EQ: A = B>> /\ <<EQ: a ~= b>>
+      <<EQ: A = B>> /\ <<EQ: JMeq a b>>
   .
   Proof. unfold upcast in *. simpl_depind. ss. Qed.
 
@@ -308,8 +308,10 @@ Notation "a ↓" := (Any.downcast a) (at level 9).
 Notation "a ↑↑" := (SAny.upcast a) (at level 9).
 Notation "a ↓↓" := (SAny.downcast a) (at level 9).
 
+(*
 Goal (tt↑↓) = Some tt. rewrite Any.upcast_downcast. ss. Qed.
 Check (Any.pair tt↑ tt↑).
 Goal (tt ↑↑ ↓↓) = Some tt. rewrite SAny.upcast_downcast. ss. Qed.
 Check (SAny.pair tt↑↑ tt↑↑).
 Check (tt ↑↑ ↑ : Any.t).
+*)

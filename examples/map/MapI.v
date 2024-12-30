@@ -1,18 +1,9 @@
-Require Import Coqlib ITreelib sflib.
-Require Import ImpPrelude.
-Require Import Events.
-Require Import Behavior.
-Require Import HMod PMod.
-Require Import Skeleton.
-Require Import MapHeader.
-Require Import PCM.
-Require Import STB IPM ITactics.
-Require Import MemHeader.
+Require Import CRIS.
 
-From stdpp Require Import coPset gmap namespaces.
+Require Import MemHeader.
+Require Import MapHeader.
 
 Set Implicit Arguments.
-
 
 (*** module I Map
 private data := NULL
@@ -39,15 +30,15 @@ Module MapI. Section MapI.
   
   Definition init : list val -> itree pmodE val :=
     λ varg,
-      `sz : Z <- (pargs [Tint] varg)?;;
-      `hptr : val <- ccallU MemName.alloc [Vint sz];;
+      'sz : Z <- (pargs [Tint] varg)?;;
+      'hptr : val <- ccallU MemName.alloc [Vint sz];;
       cput v_hptr hptr;;;
       (ITree.iter
          (fun i =>
             if (Z_lt_le_dec i sz)
             then
               vptr <- (vadd hptr (Vint (i * 8)))?;;
-              `u : val <- ccallU MemName.store [vptr; Vint 0];;
+              'u : val <- ccallU MemName.store [vptr; Vint 0];;
               Ret (inl (i + 1)%Z)
             else
               Ret (inr tt)) 0%Z);;;
@@ -58,15 +49,15 @@ Module MapI. Section MapI.
       k <- (pargs [Tint] varg)?;;
       hptr <- cgetU v_hptr;;
       vptr <- (vadd hptr (Vint (k * 8)))?;;
-      `r : val <- ccallU MemName.load [vptr];; r <- (unint r)?;;
+      'r : val <- ccallU MemName.load [vptr];; r <- (unint r)?;;
       Ret (Vint r).
 
   Definition set : list val -> itree pmodE val :=
     λ varg,
-      '(k, v) <- (pargs [Tint; Tint] varg)?;;
+      '(k, v):_ <- (pargs [Tint; Tint] varg)?;;
       hptr <- cgetU v_hptr;; 
       vptr <- (vadd hptr (Vint (k * 8)))?;;
-      `u : val <- ccallU MemName.store [vptr; Vint v];;
+      'u : val <- ccallU MemName.store [vptr; Vint v];;
       Ret Vundef.
 
   Definition set_by_user : list val -> itree pmodE val :=

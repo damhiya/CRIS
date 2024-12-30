@@ -1,18 +1,6 @@
-Require Import Coqlib sflib ITreelib.
-Require Import Behavior.
-Require Import Skeleton.
-Require Import PCM IPM.
-Require Import Any.
-Require Import Events STB ModSim.
+Require Import Common.
 
-Require Import Relation_Definitions.
-Require Import Relation_Operators.
-Require Import RelationPairs.
-
-From ExtLib Require Import
-     Data.Map.FMapAList.
-
-Require Import Red IRed.
+Require Import ModSim.
 
 Section HPSIM.
 

@@ -1,13 +1,7 @@
-Require Import Coqlib.
-Require Import ITreelib.
+Require Import CRIS.
+
 Require Import ImpPrelude.
-Require Import Skeleton.
-Require Import PCM.
-Require Import Behavior.
-Require Import Any.
-Require Import Mod Events.
 Require Import Imp.
-Require Import AList.
 
 Set Implicit Arguments.
 
@@ -63,8 +57,8 @@ Section PROOFS.
     :
       interp_imp ge (denote_expr (Plus a b)) le0 =
       interp_imp ge (
-                   ` l : val <- denote_expr a;; ` r : val <- denote_expr b;;
-                   ` u : val <- unwrapU (vadd l r);; Ret u)le0.
+                   ' l : val <- denote_expr a;; ' r : val <- denote_expr b;;
+                   ' u : val <- unwrapU (vadd l r);; Ret u)le0.
   Proof. reflexivity. Qed.
 
   Lemma denote_expr_Minus
@@ -72,8 +66,8 @@ Section PROOFS.
     :
       interp_imp ge (denote_expr (Minus a b)) le0 =
       interp_imp ge (
-                   ` l : val <- denote_expr a;; ` r : val <- denote_expr b;;
-                   ` u : val <- unwrapU (vsub l r);; Ret u) le0.
+                   ' l : val <- denote_expr a;; ' r : val <- denote_expr b;;
+                   ' u : val <- unwrapU (vsub l r);; Ret u) le0.
   Proof. reflexivity. Qed.
 
   Lemma denote_expr_Mult
@@ -81,8 +75,8 @@ Section PROOFS.
     :
       interp_imp ge (denote_expr (Mult a b)) le0 =
       interp_imp ge (
-                   ` l : val <- denote_expr a;; ` r : val <- denote_expr b;;
-                   ` u : val <- unwrapU (vmul l r);; Ret u) le0.
+                   ' l : val <- denote_expr a;; ' r : val <- denote_expr b;;
+                   ' u : val <- unwrapU (vmul l r);; Ret u) le0.
   Proof. reflexivity. Qed.
 
   (* stmt *)
@@ -114,7 +108,7 @@ Section PROOFS.
       interp_imp ge (denote_stmt (If i t e)) le0 =
       interp_imp ge (v <- denote_expr i ;;
                      (if (wf_val v) then Ret tt else triggerUB);;;
-                     `b : bool <- (is_true v)? ;; tau;;
+                     'b : bool <- (is_true v)? ;; tau;;
                      if b then (denote_stmt t) else (denote_stmt e)) le0.
   Proof. reflexivity. Qed.
 
@@ -139,7 +133,7 @@ Section PROOFS.
     :
       interp_imp ge (denote_stmt (Free pe)) le0 =
       interp_imp ge (p <- denote_expr pe;;
-      `t : val <- ccallU "free" [p];; tau;; Ret Vundef) le0.
+      't : val <- ccallU "free" [p];; tau;; Ret Vundef) le0.
   Proof. reflexivity. Qed.
 
   Lemma denote_stmt_Load
@@ -147,7 +141,7 @@ Section PROOFS.
     :
       interp_imp ge (denote_stmt (Load x pe)) le0 =
       interp_imp ge (
-                   ` p : val <- denote_expr pe;;
+                   ' p : val <- denote_expr pe;;
                          (if wf_val p then Ret tt else triggerUB);;;
                          v0 <- ccallU "load" [p];;
                          trigger (SetVar x v0);;; (tau;; Ret Vundef)) le0.
@@ -158,10 +152,10 @@ Section PROOFS.
     :
       interp_imp ge (denote_stmt (Store pe ve)) le0 =
       interp_imp ge (
-                   ` p : val <- denote_expr pe;;
+                   ' p : val <- denote_expr pe;;
                          (if wf_val p then Ret tt else triggerUB);;;
-                          ` v : val <- denote_expr ve;;
-                              `t : val <- ccallU "store" [p; v];; tau;; Ret Vundef
+                          ' v : val <- denote_expr ve;;
+                              't : val <- ccallU "store" [p; v];; tau;; Ret Vundef
                           ) le0.
   Proof. reflexivity. Qed.
 
@@ -195,9 +189,9 @@ Section PROOFS.
           | Var _ => true
           | _ => false
           end then Ret () else triggerUB);;;
-      ` p : val <- denote_expr e;;
-      ` f : string <- trigger (GetName p);;
-      ` eval_args : list val <- denote_exprs args;; ` v : val <- ccallU f eval_args;; trigger (SetVar x v);;; (tau;; Ret Vundef)) le0.
+      ' p : val <- denote_expr e;;
+      ' f : string <- trigger (GetName p);;
+      ' eval_args : list val <- denote_exprs args;; ' v : val <- ccallU f eval_args;; trigger (SetVar x v);;; (tau;; Ret Vundef)) le0.
   Proof. reflexivity. Qed.
 
   Lemma denote_stmt_CallSys
@@ -205,9 +199,9 @@ Section PROOFS.
     :
       interp_imp ge (denote_stmt (CallSys x f args)) le0 =
       interp_imp ge (
-      ` sig : nat <- unwrapU (alist_find f syscalls);;
+      ' sig : nat <- unwrapU (alist_find f syscalls);;
       (if (sig =? Datatypes.length args)%nat then Ret () else triggerUB);;;
-      ` eval_args : list val <- denote_exprs args;;
+      ' eval_args : list val <- denote_exprs args;;
       (if forallb (fun v : val => match v with
                                   | Vint _ => true
                                   | _ => false
@@ -226,7 +220,7 @@ Section PROOFS.
         T R (itr : itree _ T) (ktr : T -> itree _ R) ge le0
     :
       interp_imp ge (v <- itr ;; ktr v) le0 =
-      '(le1, v) <- interp_imp ge itr le0;;
+      '(le1, v): _ <- interp_imp ge itr le0;;
       interp_imp ge (ktr v) le1.
   Proof.
     unfold interp_imp. unfold interp_GlobEnv.
@@ -437,8 +431,8 @@ Section PROOFS.
         ge le0 a b
     :
       interp_imp ge (denote_expr (Eq a b)) le0 =
-      '(le1, l) <- interp_imp ge (denote_expr a) le0 ;;
-      '(le2, r) <- interp_imp ge (denote_expr b) le1 ;;
+      '(le1, l):_ <- interp_imp ge (denote_expr a) le0 ;;
+      '(le2, r):_ <- interp_imp ge (denote_expr b) le1 ;;
       (if (wf_val l && wf_val r) then Ret tt else triggerUB);;;
       match l, r with
       | Vint lv, Vint rv => if (lv =? rv)%Z then Ret (le2, Vint 1) else Ret (le2, Vint 0)
@@ -459,8 +453,8 @@ Section PROOFS.
         ge le0 a b
     :
       interp_imp ge (denote_expr (Lt a b)) le0 =
-      '(le1, l) <- interp_imp ge (denote_expr a) le0 ;;
-      '(le2, r) <- interp_imp ge (denote_expr b) le1 ;;
+      '(le1, l):_ <- interp_imp ge (denote_expr a) le0 ;;
+      '(le2, r):_ <- interp_imp ge (denote_expr b) le1 ;;
       (if (wf_val l && wf_val r) then Ret tt else triggerUB);;;
       match l, r with
       | Vint lv, Vint rv => if (Z_lt_dec lv rv) then Ret (le2, Vint 1) else Ret (le2, Vint 0)
@@ -481,9 +475,9 @@ Section PROOFS.
         ge le0 a b
     :
       interp_imp ge (denote_expr (Plus a b)) le0 =
-      '(le1, l) <- interp_imp ge (denote_expr a) le0 ;;
-      '(le2, r) <- interp_imp ge (denote_expr b) le1 ;;
-      ` u : val <- unwrapU (vadd l r);; Ret (le2, u)
+      '(le1, l):_ <- interp_imp ge (denote_expr a) le0 ;;
+      '(le2, r):_ <- interp_imp ge (denote_expr b) le1 ;;
+      ' u : val <- unwrapU (vadd l r);; Ret (le2, u)
   .
   Proof.
     rewrite denote_expr_Plus. rewrite interp_imp_bind.
@@ -495,9 +489,9 @@ Section PROOFS.
         ge le0 a b
     :
       interp_imp ge (denote_expr (Minus a b)) le0 =
-      '(le1, l) <- interp_imp ge (denote_expr a) le0 ;;
-      '(le2, r) <- interp_imp ge (denote_expr b) le1 ;;
-      ` u : val <- unwrapU (vsub l r);; Ret (le2, u)
+      '(le1, l):_ <- interp_imp ge (denote_expr a) le0 ;;
+      '(le2, r):_ <- interp_imp ge (denote_expr b) le1 ;;
+      ' u : val <- unwrapU (vsub l r);; Ret (le2, u)
   .
   Proof.
     rewrite denote_expr_Minus. rewrite interp_imp_bind.
@@ -509,9 +503,9 @@ Section PROOFS.
         ge le0 a b
     :
       interp_imp ge (denote_expr (Mult a b)) le0 =
-      '(le1, l) <- interp_imp ge (denote_expr a) le0 ;;
-      '(le2, r) <- interp_imp ge (denote_expr b) le1 ;;
-      ` u : val <- unwrapU (vmul l r);; Ret (le2, u)
+      '(le1, l):_ <- interp_imp ge (denote_expr a) le0 ;;
+      '(le2, r):_ <- interp_imp ge (denote_expr b) le1 ;;
+      ' u : val <- unwrapU (vmul l r);; Ret (le2, u)
   .
   Proof.
     rewrite denote_expr_Mult. rewrite interp_imp_bind.
@@ -533,7 +527,7 @@ Section PROOFS.
         ge le0 x e
     :
       interp_imp ge (denote_stmt (Assign x e)) le0 =
-      '(le1, v) <- interp_imp ge (denote_expr e) le0 ;;
+      '(le1, v):_ <- interp_imp ge (denote_expr e) le0 ;;
       tau;; tau;; tau;; Ret (alist_add x v le1, Vundef).
   Proof.
     rewrite denote_stmt_Assign.
@@ -548,7 +542,7 @@ Section PROOFS.
     :
       interp_imp ge (denote_stmt (Seq a b)) le0 =
       tau;;
-      '(le1, _) <- interp_imp ge (denote_stmt a) le0 ;;
+      '(le1, _):_ <- interp_imp ge (denote_stmt a) le0 ;;
       interp_imp ge (denote_stmt b) le1.
   Proof.
     rewrite denote_stmt_Seq. rewrite interp_imp_tau; grind.
@@ -559,9 +553,9 @@ Section PROOFS.
         ge le0 i t e
     :
       interp_imp ge (denote_stmt (If i t e)) le0 =
-      '(le1, v) <- interp_imp ge (denote_expr i) le0 ;;
+      '(le1, v):_ <- interp_imp ge (denote_expr i) le0 ;;
       (if (wf_val v) then Ret tt else triggerUB);;;
-          `b : bool <- (is_true v)? ;; tau;;
+          'b : bool <- (is_true v)? ;; tau;;
               if b
               then interp_imp ge (denote_stmt t) le1
               else interp_imp ge (denote_stmt e) le1.
@@ -591,7 +585,7 @@ Section PROOFS.
         ge le0 x se
     :
       interp_imp ge (denote_stmt (Malloc x se)) le0 =
-      '(le1, s) <- interp_imp ge (denote_expr se) le0;;
+      '(le1, s):_ <- interp_imp ge (denote_expr se) le0;;
       v <- trigger (Call "alloc" ([s]↑));;
       tau;; tau;; v <- unwrapU (v↓);;
       tau;; tau;; tau;; Ret (alist_add x v le1, Vundef).
@@ -606,9 +600,9 @@ Section PROOFS.
         ge le0 pe
     :
       interp_imp ge (denote_stmt (Free pe)) le0 =
-      '(le1, p) <- interp_imp ge (denote_expr pe) le0;;
+      '(le1, p):_ <- interp_imp ge (denote_expr pe) le0;;
       v <- trigger (Call "free" ([p]↑));;
-      tau;; tau;; `v:val <- unwrapU (v↓);; tau;; Ret (le1, Vundef).
+      tau;; tau;; 'v:val <- unwrapU (v↓);; tau;; Ret (le1, Vundef).
   Proof.
     rewrite denote_stmt_Free. rewrite interp_imp_bind. grind.
     rewrite interp_imp_bind. rewrite interp_imp_ccallU. grind.
@@ -619,7 +613,7 @@ Section PROOFS.
         ge le0 x pe
     :
       interp_imp ge (denote_stmt (Load x pe)) le0 =
-      '(le1, p) <- interp_imp ge (denote_expr pe) le0;;
+      '(le1, p):_ <- interp_imp ge (denote_expr pe) le0;;
       (if (wf_val p) then Ret tt else triggerUB);;;
       v <- trigger (Call "load" ([p]↑));;
       tau;; tau;; v <- unwrapU (v↓);;
@@ -638,11 +632,11 @@ Section PROOFS.
         ge le0 pe ve
     :
       interp_imp ge (denote_stmt (Store pe ve)) le0 =
-      '(le1, p) <- interp_imp ge (denote_expr pe) le0;;
+      '(le1, p):_ <- interp_imp ge (denote_expr pe) le0;;
       (if (wf_val p) then Ret tt else triggerUB);;;
-      '(le2, v) <- interp_imp ge (denote_expr ve) le1;;
+      '(le2, v):_ <- interp_imp ge (denote_expr ve) le1;;
       v <- trigger (Call "store" ([p ; v]↑));;
-      tau;; tau;; `v:val <- (v↓)?;; tau;; Ret (le2, Vundef).
+      tau;; tau;; 'v:val <- (v↓)?;; tau;; Ret (le2, Vundef).
   Proof.
     rewrite denote_stmt_Store. rewrite interp_imp_bind. grind.
     des_ifs.
@@ -658,8 +652,8 @@ Section PROOFS.
         ge le0 x ae be
     :
       interp_imp ge (denote_stmt (Cmp x ae be)) le0 =
-      '(le1, a) <- interp_imp ge (denote_expr ae) le0;;
-      '(le2, b) <- interp_imp ge (denote_expr be) le1;;
+      '(le1, a):_ <- interp_imp ge (denote_expr ae) le0;;
+      '(le2, b):_ <- interp_imp ge (denote_expr be) le1;;
       (if (wf_val a && wf_val b) then Ret tt else triggerUB);;;
           v <- trigger (Call "cmp" ([a ; b]↑));;
           tau;; tau;; v <- unwrapU (v↓);;
@@ -683,7 +677,7 @@ Section PROOFS.
                    v <- ccallU f eval_args;;
                    trigger (SetVar x v);;; tau;; Ret Vundef) le0
       =
-      '(le1, vals) <- interp_imp ge (denote_exprs args) le0;;
+      '(le1, vals):_ <- interp_imp ge (denote_exprs args) le0;;
       v <- trigger (Call f (vals↑));;
       tau;; tau;; v <- unwrapU (v↓);;
       tau;; tau;; tau;; Ret (alist_add x v le1, Vundef).
@@ -699,7 +693,7 @@ Section PROOFS.
     :
       interp_imp ge (denote_stmt (CallFun x f args)) le0 =
       (if (call_ban f) then triggerUB else Ret tt);;;
-        '(le1, vals) <- interp_imp ge (denote_exprs args) le0;;
+        '(le1, vals):_ <- interp_imp ge (denote_exprs args) le0;;
         v <- trigger (Call f (vals↑));;
         tau;; tau;; v <- unwrapU (v↓);;
         tau;; tau;; tau;; Ret (alist_add x v le1, Vundef).
@@ -718,13 +712,13 @@ Section PROOFS.
          | _ => false
          end
        then Ret tt else triggerUB);;;
-          '(le1, p) <- interp_imp ge (denote_expr e) le0;;
+          '(le1, p):_ <- interp_imp ge (denote_expr e) le0;;
           match p with
           | Vptr n 0 =>
             match (SkEnv.blk2id ge n) with
             | Some f =>
                 tau;;
-                '(le2, vals) <- interp_imp ge (denote_exprs args) le1;;
+                '(le2, vals):_ <- interp_imp ge (denote_exprs args) le1;;
                 v <- trigger (Call f (vals↑));;
                 tau;; tau;; v <- unwrapU (v↓);;
                 tau;; tau;; tau;; Ret (alist_add x v le2, Vundef)
@@ -750,7 +744,7 @@ Section PROOFS.
         ge le0 x f args
     :
       interp_imp ge (
-      ` eval_args : list val <- denote_exprs args;;
+      ' eval_args : list val <- denote_exprs args;;
       (if forallb (fun v : val => match v with
                                   | Vint _ => true
                                   | _ => false
@@ -762,7 +756,7 @@ Section PROOFS.
        (if forallb intrange_64 eval_zs then Ret () else triggerUB);;;
        v <- trigger (IO f eval_zs);; trigger (SetVar x (Vint v));;; (tau;; Ret Vundef))) le0
       =
-      '(le1, vals) <- interp_imp ge (denote_exprs args) le0;;
+      '(le1, vals):_ <- interp_imp ge (denote_exprs args) le0;;
       (if forallb (fun v : val => match v with
                                   | Vint _ => true
                                   | _ => false
@@ -793,7 +787,7 @@ Section PROOFS.
       interp_imp ge (denote_stmt (CallSys x f args)) le0 =
       sig <- (alist_find f syscalls)? ;;
       (if (sig =? List.length args)%nat then Ret tt else triggerUB);;;
-      '(le1, vals) <- interp_imp ge (denote_exprs args) le0;;
+      '(le1, vals):_ <- interp_imp ge (denote_exprs args) le0;;
       (if forallb (fun v : val => match v with
                                   | Vint _ => true
                                   | _ => false
@@ -819,17 +813,17 @@ Section PROOFS.
   Lemma unfold_eval_imp
         ge fparams fvars fbody args
     :
-      ` vret : val <- eval_imp ge (mk_function fparams fvars fbody) args ;; Ret (vret↑)
+      ' vret : val <- eval_imp ge (mk_function fparams fvars fbody) args ;; Ret (vret↑)
                =
-               ` vret : val <-
+               ' vret : val <-
                         (
                           let vars := fvars ++ ["return"; "_"] in
                           let params := fparams in
                           (if ListDec.NoDup_dec string_dec (params ++ vars) then Ret tt else triggerUB);;;
                               match init_args params args (init_lenv vars) with
                               | Some iargs =>
-                                ` x_ : lenv * val <-
-                                       interp_imp ge (tau;; denote_stmt fbody;;; ` retv : val <- denote_expr (Var "return");; Ret retv)
+                                ' x_ : lenv * val <-
+                                       interp_imp ge (tau;; denote_stmt fbody;;; ' retv : val <- denote_expr (Var "return");; Ret retv)
                                                   iargs;; (let (_, retv) := x_ in Ret retv)
                               | None => triggerUB
                               end);; Ret (vret↑).
@@ -847,8 +841,8 @@ Section PROOFS.
       (if ListDec.NoDup_dec string_dec (params ++ vars) then Ret tt else triggerUB);;;
           match init_args params args (init_lenv vars) with
           | Some iargs =>
-            ` x_ : lenv * val <-
-                   interp_imp ge (tau;; denote_stmt (fn_body f);;; ` retv : val <- denote_expr (Var "return");; Ret retv)
+            ' x_ : lenv * val <-
+                   interp_imp ge (tau;; denote_stmt (fn_body f);;; ' retv : val <- denote_expr (Var "return");; Ret retv)
                               iargs;; (let (_, retv) := x_ in Ret retv)
           | None => triggerUB
           end
@@ -868,55 +862,3 @@ Require Import Red IRed.
 Require Import ModSim.
 Require Import ImpNotations.
 
-(* Require Import SimTactics. *)
-(* Import ImpNotations. *)
-(* (** tactic for imp-program reduction *) *)
-(* Ltac imp_red := *)
-(*   cbn; try (rewrite interp_imp_bind); *)
-(*   match goal with *)
-(*   (** denote_stmt *) *)
-(*   | [ |- (gpaco8 (_sim_itree _ _ _ _) _ _ _ _ _ _ _ _ _ _ (_, ITree.bind (interp_imp _ (denote_stmt (?stmt)) _) _)) ] => *)
-(*     match stmt with *)
-(*     | Skip => rewrite interp_imp_Skip *)
-(*     | Assign _ _ => rewrite interp_imp_Assign *)
-(*     | Seq _ _ => rewrite interp_imp_Seq; imp_red *)
-(*     | If _ _ _ => rewrite interp_imp_If *)
-(*     | CallFun _ _ _ => rewrite interp_imp_CallFun *)
-(*     | CallPtr _ _ _ => rewrite interp_imp_CallPtr *)
-(*     | CallSys _ _ _ => rewrite interp_imp_CallSys *)
-(*     | AddrOf _ _ => rewrite interp_imp_AddrOf *)
-(*     | Malloc _ _ => rewrite interp_imp_Malloc *)
-(*     | Free _ => rewrite interp_imp_Free *)
-(*     | Load _ _ => rewrite interp_imp_Load *)
-(*     | Store _ _ => rewrite interp_imp_Store *)
-(*     | Cmp _ _ _ => rewrite interp_imp_Cmp *)
-(*     | _ => fail *)
-(*     end *)
-
-(*       (** denote_expr *) *)
-(*   | [ |- (gpaco8 (_sim_itree _ _ _ _) _ _ _ _ _ _ _ _ _ _ (_, ITree.bind (interp_imp _ (denote_expr (?expr)) _) _)) ] => *)
-(*     match expr with *)
-(*     | Var _ => rewrite interp_imp_expr_Var *)
-(*     | Lit _ => rewrite interp_imp_expr_Lit *)
-(*     | Eq _ _ => rewrite interp_imp_expr_Eq *)
-(*     | Lt _ _ => rewrite interp_imp_expr_Lt *)
-(*     | Plus _ _ => rewrite interp_imp_expr_Plus *)
-(*     | Minus _ _ => rewrite interp_imp_expr_Minus *)
-(*     | Mult _ _ => rewrite interp_imp_expr_Mult *)
-(*     | Var_coerce _ => rewrite interp_imp_expr_Var *)
-(*     | Lit_coerce _ => rewrite interp_imp_expr_Lit *)
-(*     | _ => fail *)
-(*     end *)
-
-(*   | [ |- (gpaco8 (_sim_itree _ _ _ _) _ _ _ _ _ _ _ _ _ _ (_, ITree.bind (interp_imp _ (tau;; _) _) _)) ] => *)
-(*     rewrite interp_imp_tau *)
-
-(*   | [ |- (gpaco8 (_sim_itree _ _ _ _) _ _ _ _ _ _ _ _ _ _ (_, ITree.bind (interp_imp _ (Ret _) _) _)) ] => *)
-(*     rewrite interp_imp_Ret *)
-
-(*   | _ => idtac *)
-(*   end. *)
-
-(* Ltac imp_steps := repeat (repeat (imp_red; ss); steps). *)
-(* Ltac imp_steps_safe := repeat (repeat (imp_red; ss); steps_safe). *)
-(* Ltac solve_NoDup := repeat econs; ii; ss; des; ss. *)

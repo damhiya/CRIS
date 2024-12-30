@@ -1,20 +1,8 @@
-Require Import Coqlib.
-Require Export ITreelib.
-Require Import Any.
+Require Import Common.
 
-Require Import IRed.
-Require Import Behavior Skeleton.
-Require Import IPM.
-
-Require Import ModSim ModSimFacts.
-Require Import HPSim HPSimFacts.
-
-Require Import HMod Mod HMod2Mod Events.
-Require Import SubPerm.
-
-Require Import ISim ISimFacts.
+Require Import Skeleton Mod HMod.
+Require Import ModSim ModSimFacts HPSim HPSimFacts ISim ISimFacts ITactics.
 Require Import CtxRefine.
-Require Import ITactics.
 
 Set Implicit Arguments.
 
@@ -22,8 +10,8 @@ Section AUX.
   Context `{Σ : GRA.t}.
 
   Lemma alist_upd_fst_in {V} a (k : key) (v : V) l
-      (IN : In a (map (fst <*> fst) l)) :
-    In a (map (fst <*> fst) (alist_upd k v l)).
+      (IN : In a (List.map (fst ∘ fst) l)) :
+    In a (List.map (fst ∘ fst) (alist_upd k v l)).
   Proof.
     unfold alist_upd in *.
     induction l; ss; i; rewrite eq_rel_dec_correct; des_ifs; ss; des; eauto.
@@ -144,7 +132,7 @@ Section AUX.
   Proof.
     eapply alist_upd_not_in. 
     ii. eapply in_map with (f:=fst) in H. 
-    rewrite map_map in H. eapply INSCP in H.
+    rewrite List.map_map in H. eapply INSCP in H.
     assert (∃x, In x scopes /\ String.eqb k.1 x = true).
     { exists k.1. esplits; [eauto|]. eapply String.eqb_refl. }
     eapply existsb_exists in H0. clarify.
@@ -157,7 +145,7 @@ Section AUX.
   Proof.
     eapply existsb_exists.
     eapply alist_find_fst_some, in_map in FIND.
-    rewrite map_map in FIND.
+    rewrite List.map_map in FIND.
     exists k.1. esplits; eauto. eapply String.eqb_refl.
   Qed.
 
@@ -168,14 +156,14 @@ Section AUX.
   Proof.
     eapply alist_find_fst_notin.
     ii. eapply in_map with (f:=fst) in H. 
-    rewrite map_map in H. eapply INSCP in H.
+    rewrite List.map_map in H. eapply INSCP in H.
     assert (∃x, In x scopes /\ String.eqb k.1 x = true).
     { exists k.1. esplits; [eauto|]. eapply String.eqb_refl. }
     eapply existsb_exists in H0. clarify.
   Qed.
 
   Lemma alist_find_exists_l st ctx scopeS scopeC (k : key)
-      (DISJ : NoDup (scopeS ++ scopeC))
+      (DISJ : List.NoDup (scopeS ++ scopeC))
       (INS : incl (state_scopes st) scopeS)
       (INC : incl (state_scopes ctx) scopeC)
       (EXT : existsb (String.eqb k.1) scopeS = true) :
@@ -185,7 +173,7 @@ Section AUX.
     eapply alist_find_fst_notin. ii.
     eapply existsb_exists in EXT. des.
     eapply NoDup_app_disjoint; eauto.
-    eapply INC. unfold state_scopes. rewrite -map_map. 
+    eapply INC. unfold state_scopes. rewrite -List.map_map. 
     eapply in_map with (f:=fst) in H.
     eapply String.eqb_eq in EXT0. subst. eauto.
   Qed.
@@ -316,7 +304,7 @@ Section AUX.
           rewrite alist_upd_not_tail; eauto.
           ii. eapply NoDup_app_disjoint; eauto.
           eapply in_map with (f:=fst) in H2.
-          rewrite map_map in H2. eapply SCPC in H2.
+          rewrite List.map_map in H2. eapply SCPC in H2.
           rewrite <- Heq0. eauto.
         }
         rewrite UPD. eapply K; try refl; eauto.
@@ -342,7 +330,7 @@ Section AUX.
           eapply alist_upd_not_tail. eauto.
           ii. eapply NoDup_app_disjoint; eauto.
           eapply in_map with (f:=fst) in H2.
-          rewrite map_map in H2. eapply SCPC in H2.
+          rewrite List.map_map in H2. eapply SCPC in H2.
           rewrite <- Heq0. eauto.  
         }
         rewrite UPD. eapply K; try refl; eauto.
@@ -434,21 +422,21 @@ Section AUX.
     (FINDS : alist_find fn (HModSem.fnsems ms) = Some fs)
     (FINDT : alist_find fn (HModSem.fnsems mt) = Some ft)
     (SCOPES : sub_perm (HModSem.scopes mt) (HModSem.scopes ms))
-    (NODUPFS : NoDup (map fst (HModSem.fnsems ms ++ HModSem.fnsems ctx)))
-    (NODUPFT : NoDup (map fst (HModSem.fnsems mt ++ HModSem.fnsems ctx)))
+    (NODUPFS : List.NoDup (List.map fst (HModSem.fnsems ms ++ HModSem.fnsems ctx)))
+    (NODUPFT : List.NoDup (List.map fst (HModSem.fnsems mt ++ HModSem.fnsems ctx)))
     (IMON : ∀ nths0 nths', nths0 <= nths' → ∀ st_src st_tgt,
            Ist nths0 st_src st_tgt -∗ Ist nths' st_src st_tgt)
     (SIM : isim_fsem
-       (map (map_snd HModSem.sandbox_body) (HModSem.fnsems ms))
-       (map (map_snd HModSem.sandbox_body) (HModSem.fnsems mt))
+       (List.map (map_snd HModSem.sandbox_body) (HModSem.fnsems ms))
+       (List.map (map_snd HModSem.sandbox_body) (HModSem.fnsems mt))
        Ist
        (HModSem.sandbox_body fs)
        (HModSem.sandbox_body ft))
     :
       isim_fsem
-        (map (map_snd HModSem.sandbox_body)
+        (List.map (map_snd HModSem.sandbox_body)
            (HModSem.fnsems ms ++ HModSem.fnsems ctx))
-        (map (map_snd HModSem.sandbox_body)
+        (List.map (map_snd HModSem.sandbox_body)
            (HModSem.fnsems mt ++ HModSem.fnsems ctx))
         (IstProd0 (IstSB0 (HModSem.scopes ms) Ist) (IstSB0 (HModSem.scopes ctx) IstEq0))
         (HModSem.sandbox_body fs) (HModSem.sandbox_body ft).
@@ -468,8 +456,8 @@ Section AUX.
     assert (EQ : (λ x, (map_snd HModSem.sandbox_body x).1) = @fst string _).
     { extensionalities. destruct H. eauto. }
     eapply hpsim_ctx; eauto; ss; cycle 6.
-    { rewrite -map_app map_map EQ. eauto. }
-    { rewrite -map_app map_map EQ. eauto. }
+    { rewrite -map_app List.map_map EQ. eauto. }
+    { rewrite -map_app List.map_map EQ. eauto. }
     { 
       ii. eapply ms.(HModSem.well_scoped_fns).
       unfold fnsems_scopes. erewrite IN. ss.
@@ -612,18 +600,18 @@ Section COMM.
     fun _ l0 l1 => ⌜l0 ≡ₚ l1⌝%I.  
   
   Lemma alist_upd_perm {K V} l0 l1 `{Dec K} (k : K) (v : V)
-        (ND : List.NoDup (map fst l0))
+        (ND : List.NoDup (List.map fst l0))
         (PERM : l0 ≡ₚ l1)
       :
         alist_upd k v l0 ≡ₚ alist_upd k v l1.
   Proof.
-    destruct (classic (In k (map fst l0))); cycle 1.
+    destruct (classic (In k (List.map fst l0))); cycle 1.
     {
       rewrite! alist_upd_not_in; eauto. ii.
       eapply H0. eapply Permutation_in; cycle 1; eauto.
       eapply Permutation_map. symmetry. eauto.
     }
-    assert (List.NoDup (map fst l1)).
+    assert (List.NoDup (List.map fst l1)).
     { 
       eapply Permutation_NoDup; cycle 1; eauto. 
       eapply Permutation_map. eauto.
@@ -659,7 +647,7 @@ Section COMM.
 
   Lemma alist_find_comm {K V} `{Dec K}
         (l0 l1 : list (K*V)) fn f
-        (NODUP : List.NoDup (map fst (l0 ++ l1)))
+        (NODUP : List.NoDup (List.map fst (l0 ++ l1)))
         (FIND : alist_find fn (l0 ++ l1) = Some f)
       :
         alist_find fn (l1 ++ l0) = Some f.
