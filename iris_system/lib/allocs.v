@@ -1,17 +1,19 @@
-From iris.algebra Require Import functions csum excl updates.
+(* A resource algebra for pointwise lifting.
+Designed as a workaround for CRIS's weak-update problems by reserving every indices upfront. *)
+From iris.algebra Require Import functions csum excl updates big_op.
+From stdpp Require Import coPset.
 Require Import sflib.
 
-Definition allocsR (A : cmra) : cmra :=
-  positive -d> optionUR (csumR (exclR unitO) A).
 Definition allocsUR (A : cmra) : ucmra :=
   positive -d> optionUR (csumR (exclR unitO) A).
 
-Definition allocs_auth (A : cmra) (P : positive → Prop) `{∀ p, Decision (P p)} : allocsR A :=
-  λ γ, if decide (P γ) then Some (Cinl (Excl tt)) else None.
-Definition allocs_frag {A : cmra} γ a : allocsR A :=
+(* TODO : SEAL *)
+Definition allocs_auth (A : cmra) (X : coPset) : allocsUR A :=
+  λ γ, if decide (γ ∈ X) then Some (Cinl (Excl tt)) else None.
+Definition allocs_frag {A : cmra} γ a : allocsUR A :=
   discrete_fun_singleton γ (Some (Cinr a)).
 Global Instance: Params (@allocs_frag) 4 := {}.
-Global Arguments allocs_auth A P {_}.
+Global Arguments allocs_frag {_} γ a.
 
 Section allocs.
   Context `{CmraDiscrete A}.
@@ -31,15 +33,16 @@ Section allocs.
   Proof. by rewrite discrete_fun_singleton_valid Some_valid Cinr_valid. Qed.
 
   (** Frame-preserving updates *)
-  (* TODO : This can be further generalized to yielding list of resources. *)
-  Lemma allocs_alloc a `{∀ p, Decision (P p)} `{∀ p, Decision (Q p)}
-      (WF : ✓ a) (EX : ∃ γ, P γ ∧ ~ Q γ) (INCL : ∀ γ, Q γ → P γ) :
-    ∃ γ, allocs_auth A P ~~> allocs_auth A Q ⋅ allocs_frag γ a.
+  Lemma allocs_frag_update γ a b (UPD : a ~~> b) : allocs_frag γ a ~~> allocs_frag γ b.
+  Proof. by apply discrete_fun_singleton_update, option_update, csum_update_r. Qed.
+  (* TODO : This can be further generalized to yielding a set of resources.
+  Refactor when required. *)
+  Lemma allocs_alloc a (X : coPset) (γ : positive) (IN : γ ∈ X) (WF : ✓ a) :
+    allocs_auth A X ~~> allocs_auth A (X ∖ {[γ]}) ⋅ allocs_frag γ a.
   Proof.
-    destruct EX as [γ [HP HNQ]]; exists γ.
     apply discrete_fun_update; intros p; rewrite discrete_fun_lookup_op ?/allocs_auth /allocs_frag.
     des_ifs.
-    { rewrite discrete_fun_lookup_singleton_ne; ss. ii; clarify; ss. }
+    { rewrite discrete_fun_lookup_singleton_ne; ss. set_solver. }
     { rewrite left_id.
       destruct (decide (γ = p)); clarify;
         [rewrite discrete_fun_lookup_singleton | rewrite discrete_fun_lookup_singleton_ne]; ss.
@@ -49,9 +52,16 @@ Section allocs.
         apply Cinl_exclusive; ss.
       }
     }
-    { naive_solver. }
+    { set_solver. }
     { destruct (decide (γ = p)); clarify.
       rewrite discrete_fun_lookup_singleton_ne; ss.
     }
+  Qed.
+
+  Lemma allocs_auth_split (X Y Z : coPset) (DISJ : X ∩ Y = ∅) (EQ : Z = X ∪ Y) :
+    allocs_auth A Z ~~> allocs_auth A X ⋅ allocs_auth A Y.
+  Proof.
+    apply discrete_fun_update; intros a; rewrite /allocs_auth discrete_fun_lookup_op;
+      des_ifs; try set_solver.
   Qed.
 End allocs.

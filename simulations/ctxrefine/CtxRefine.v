@@ -8,7 +8,7 @@ Definition refines_modsem (ms_src ms_tgt: ModSem.t) : Prop :=
 
 Section CTX_REFINE.
   (* Definition of ctx refinement in HMod Level. *)
-  Context `{Σ : GRA.t}.
+  Context `{Σ : GRA}.
 
   Definition refines (mps : HMod.modc) (mpt : HMod.modc) : Prop :=
     let ms := mps.1 in let Ps := mps.2 in

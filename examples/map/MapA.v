@@ -21,7 +21,7 @@ def set_by_user(k : int) ≡
 ***)
 
 Module MapA. Section MapA.
-  Context {Σ : GRA.t}.
+  Context {Σ : GRA}.
   (* Context `{_W : CtxWD.t}.
   Context `{_A : MapAR.t (Γ:=Γ)}.
   Context `{_M : MapMR.t (Γ:=Γ)}. *)

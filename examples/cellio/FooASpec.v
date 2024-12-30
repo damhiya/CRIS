@@ -6,7 +6,7 @@ Set Implicit Arguments.
 
 Module FooAS.
 Section FooAS.
-  Context `{Σ: GRA.t}.
+  Context `{Σ: GRA}.
 
   Definition Stb: alist gname fspec :=
     Seal.sealing "ccr" [(FooName.foo, fspec_trivial)].

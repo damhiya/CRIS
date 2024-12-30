@@ -88,7 +88,7 @@ Section CANCEL.
 
 
 
-  Context `{Σ : GRA.t}.
+  Context `{Σ : GRA}.
 
   Variable mds : list SMod.t.
 

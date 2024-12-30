@@ -7,7 +7,7 @@ Require Import CellHeader.
 Set Implicit Arguments.
 
 Module CellI. Section CellI.
-  Context `{Σ : GRA.t}.
+  Context `{Σ : GRA}.
 
   Variable idx : nat.
 

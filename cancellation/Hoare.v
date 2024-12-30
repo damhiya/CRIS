@@ -55,7 +55,7 @@ Qed.
 
 Section CANCELSTB.
 
-  Context `{Σ : GRA.t}.
+  Context `{Σ : GRA}.
 
   Variable mds : list SMod.t.
 
@@ -148,7 +148,7 @@ End CANCELSTB.
 
 Section CANCEL.
 
-  Context `{Σ : GRA.t}.
+  Context `{Σ : GRA}.
 
   Variable md : SMod.t.
 
@@ -256,7 +256,7 @@ Require Import ClassicalChoice.
 
 Section CANCEL.
 
-  Context `{Σ : GRA.t}.
+  Context `{Σ : GRA}.
 
   Variable md : SMod.t.
 

@@ -5,7 +5,7 @@ Require Import HMod.
 Set Implicit Arguments.
 
 Section FSPEC.
-  Context `{Σ : GRA.t}.
+  Context `{Σ : GRA}.
   Notation iProp := (iProp Σ).
 
   Definition invspec := nat -> iProp.
@@ -80,7 +80,7 @@ Arguments postcond : simpl never.
 
 Section HOARE.
 
-  Context `{Σ: GRA.t}.
+  Context `{Σ: GRA}.
   Notation iProp := (iProp Σ).
 
   Variable ginv : invspec.
@@ -171,7 +171,7 @@ Notation "↧ it" := (interp_smod _ _ it) (at level 59, only printing).
 Module SModRed.
 Section RED.
 
-  Context `{Σ : GRA.t}.
+  Context `{Σ : GRA}.
 
   Lemma interp_bind
         (R S: Type)
@@ -351,7 +351,7 @@ End RED.
 End SModRed.
 
 (*
-Global Program Instance interp_rdb `{Σ : GRA.t} : red_database (mk_box (@interp_smod)) :=
+Global Program Instance interp_rdb `{Σ : GRA} : red_database (mk_box (@interp_smod)) :=
   mk_rdb
     1
     (mk_box SModRed.interp_bind)

@@ -8,7 +8,7 @@ Set Implicit Arguments.
 Module CtrlI. Section CtrlI.
   Local Open Scope nat_scope.
 
-  Context `{Σ : GRA.t}.
+  Context `{Σ : GRA}.
 
   Variable max_size : nat.
 

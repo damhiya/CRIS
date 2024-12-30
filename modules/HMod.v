@@ -16,7 +16,7 @@ Definition state_scopes (st : alist key Any.t) :=
   List.map (fst ∘ fst) st.
 
 Module HModSem. Section HModSem.
-  Context {Σ : GRA.t}.
+  Context {Σ : GRA}.
 
   Record t : Type := mk {
     scopes : list string;
@@ -117,7 +117,7 @@ Module HModSem. Section HModSem.
 End HModSem. End HModSem.
 
 Module HMod. Section HMod.
-  Context {Σ : GRA.t}.
+  Context {Σ : GRA}.
   Notation iProp := (iProp Σ).
 
   Record t : Type := mk {
@@ -166,7 +166,7 @@ Infix "∗∗" := HMod.addc (at level 9, right associativity).
 Notation "░ it" := (HModSem.sandbox _ it) (at level 60, only printing).
 
 Section HModProperties.
-  Context `{Σ : GRA.t}.
+  Context `{Σ : GRA}.
   Notation iProp := (iProp Σ).
 
   Lemma hmodsem_extensionality (ms1 ms2 : HModSem.t)
@@ -247,7 +247,7 @@ End HModProperties.
 
 (* Sandboxing interpretation lemmas *)
 Module HModSB. Section HModSB.
-  Context `{Σ : GRA.t}.
+  Context `{Σ : GRA}.
 
   Lemma transl_bind A B scopes (itr : itree hmodE A) (ktr : A → itree hmodE B) :
     HModSem.sandbox scopes (itr >>= ktr)

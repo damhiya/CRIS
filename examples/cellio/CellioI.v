@@ -5,7 +5,7 @@ Require Import CellioHeader.
 Set Implicit Arguments.
 
 Module CellioI. Section CellioI.
-  Context `{Σ: GRA.t}.
+  Context `{Σ: GRA}.
 
   Definition scopes := [CellioName.mn].
   Definition v_cv := (CellioName.mn) ↯ "cv".

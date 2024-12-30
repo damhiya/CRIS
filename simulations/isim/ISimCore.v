@@ -10,7 +10,7 @@ Ltac hred_r := try (prw _red_gen 1 1 1 0).
 Ltac hred := try (prw _red_gen 1 1 0).
 
 Section SIM.
-  Context `{Σ : GRA.t}.
+  Context `{Σ : GRA}.
   Local Notation iProp := (iProp Σ).
   Variable fl_src fl_tgt : alist gname (Any.t → itree hmodE Any.t).
   Variable Ist : nat → alist key Any.t → alist key Any.t → iProp.
@@ -639,7 +639,7 @@ End SIM.
 
 Global Opaque isim.
 
-Definition isim_fsem `{Σ : GRA.t} fl_src fl_tgt Ist : relation (Any.t -> itree hmodE Any.t) :=
+Definition isim_fsem `{Σ : GRA} fl_src fl_tgt Ist : relation (Any.t -> itree hmodE Any.t) :=
   (eq ==> (fun itr_src itr_tgt =>
              forall my_tid nths st_src st_tgt
                     (IMON : forall nths nths' (LE : nths <= nths') st_src st_tgt,
@@ -653,7 +653,7 @@ Definition isim_fsem `{Σ : GRA.t} fl_src fl_tgt Ist : relation (Any.t -> itree 
 
 Module HSSim. Section HSSim.
     Import HModSem.
-    Context `{Σ : GRA.t}.
+    Context `{Σ : GRA}.
     Notation iProp := (iProp Σ).
     Variable (ms_src ms_tgt : HModSem.t).
     Variable init_cond : iProp.
@@ -696,7 +696,7 @@ Module HSSim. Section HSSim.
 End HSSim. End HSSim.
 
 Module HSim. Section HSim.
-    Context `{Σ : GRA.t}.
+    Context `{Σ : GRA}.
     Notation iProp := (iProp Σ).
     Variable (md_src md_tgt : HMod.t).
     Variable init_cond : Sk.t -> iProp.

@@ -7,7 +7,7 @@ Require Import CtxRefine.
 Set Implicit Arguments.
 
 Section AUX.
-  Context `{Σ : GRA.t}.
+  Context `{Σ : GRA}.
 
   Lemma alist_upd_fst_in {V} a (k : key) (v : V) l
       (IN : In a (List.map (fst ∘ fst) l)) :
@@ -196,7 +196,7 @@ End AUX.
 
 
 Section AUX.
-  Context `{Σ : GRA.t}.
+  Context `{Σ : GRA}.
 
   Ltac hstep := guclo hpsimC_spec; econs; econs; eauto; econs; eauto.
 
@@ -558,7 +558,7 @@ End AUX.
 
 Section ADEQUACY.
 
-  Context {Σ : GRA.t}.
+  Context {Σ : GRA}.
 
   Theorem main_adequacy (ms mt : HMod.t) IC Ist
       (SIM : HSim.t ms mt IC Ist) :
@@ -593,7 +593,7 @@ End ADEQUACY.
 
 Section COMM.
 
-  Context `{Σ : GRA.t}.
+  Context `{Σ : GRA}.
   Notation iProp := (iProp Σ).
 
   Definition perm_Ist : nat -> alist key Any.t -> alist key Any.t -> iProp :=

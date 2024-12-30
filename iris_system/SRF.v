@@ -49,10 +49,7 @@ Module SRFCons.
 End SRFCons.
 
 (* Syntax *)
-Module SRFSyn.
-
-  Section SYNTAX.
-
+Module SRFSyn. Section SRFSyn.
   Context `{α: SRFCons.t}.
 
   Inductive term {Prev: Type} : Type :=
@@ -60,27 +57,24 @@ Module SRFSyn.
   | _cur i (op: (α i).(PF.shp)) (args: (α i).(PF.deg) op Prev -> term)
   .
 
-    Fixpoint _t (n : level) : Type :=
-      match n with
-      | O => Empty_set
-      | S m => term (Prev:=_t m) 
-      end.
+  Fixpoint _t (n : level) : Type :=
+    match n with
+    | O => Empty_set
+    | S m => term (Prev:=_t m) 
+    end.
 
-    Definition t_prev (n : level) : Type := _t n.
-    
-    Definition t (n : level) : Type := t_prev (S n).
+  Definition t_prev (n : level) : Type := _t n.
 
-    Definition lift {n} (p : t n) : t (S n) := _lift p.
-    
-    Fixpoint liftn k {n} (p : t n) : t (k+n) :=
-      match k return t (k+n) with
-      | 0 => p
-      | S k' => lift (liftn k' p)
-      end.
-    
-  End SYNTAX.
+  Definition t (n : level) : Type := t_prev (S n).
 
-End SRFSyn.
+  Definition lift {n} (p : t n) : t (S n) := _lift p.
+
+  Fixpoint liftn k {n} (p : t n) : t (k+n) :=
+    match k return t (k+n) with
+    | 0 => p
+    | S k' => lift (liftn k' p)
+    end.
+End SRFSyn. End SRFSyn.
 
 (* Semantic Domain *)
 Module SRFDom.
@@ -109,7 +103,7 @@ Module SRFIntpM.
   .
 
   End SEM.
-  
+
 End SRFIntpM.
 
 (* Interpretation for the constructors in all groups *)

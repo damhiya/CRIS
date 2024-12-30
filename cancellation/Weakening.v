@@ -31,7 +31,7 @@ Import TAC.
 
 Section PROOF.
 
-  Context `{Σ : GRA.t}.
+  Context `{Σ : GRA}.
 
   Let W : Type := (Any.t) * (Any.t).
 
@@ -207,7 +207,7 @@ Require Import ModSimFacts.
 
 Section PROOF.
   Context `{EMSConfig}.
-  Context `{Σ : GRA.t}.
+  Context `{Σ : GRA}.
 
   Theorem adequacy_weaken
           stb0 stb1

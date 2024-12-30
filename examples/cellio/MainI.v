@@ -6,7 +6,7 @@ Set Implicit Arguments.
 
 Module MainI.
 Section MainI.
-  Context `{Σ: GRA.t}.
+  Context `{Σ: GRA}.
 
   Definition scopes := [MainName.mn].
 

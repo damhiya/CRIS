@@ -4,7 +4,7 @@ Require Import HMod.
 Require Import HPSim ModSim ModSimTactics.
 
 Section HPSIM_ADEQUACY. 
-  Context `{Σ : GRA.t}.
+  Context `{Σ : GRA}.
   Notation iProp := (iProp Σ).
 
   Variable fl_src : alist gname (Any.t -> itree hmodE Any.t).

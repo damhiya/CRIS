@@ -6,7 +6,7 @@ Require Import RingHeader.
 Set Implicit Arguments.
 
 Module RingAS. Section RingAS.
-  Context `{Σ : GRA.t}.
+  Context `{Σ : GRA}.
 
   Definition Stb : alist gname fspec :=
     Seal.sealing "ccr" [(RingName.init, fspec_trivial);

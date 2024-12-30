@@ -6,7 +6,7 @@ Set Implicit Arguments.
 
 Section MID.
 
-  Context {Σ : GRA.t}.
+  Context {Σ : GRA}.
   Notation iProp := (iProp Σ).
 
   (* Consider moving into Any lib. *)
@@ -133,7 +133,7 @@ End MID.
 
 Section RED.
   (* itree reduction lemmas *)
-  Context `{Σ : GRA.t}.
+  Context `{Σ : GRA}.
   Notation iProp := (iProp Σ).
 
   Lemma interp_hp_bind (R S : Type) (s : itree hmodE R) (k : R -> itree hmodE S) :
