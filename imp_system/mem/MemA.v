@@ -13,7 +13,7 @@ Class memG (Γ : HRA.t) := { #[global] mem_inG :: @GRA.inG memRA Γ }.
 Local Arguments Z.of_nat : simpl nomatch.
 
 Section BODY.
-  Context `{!Inv.t Σ Γ α β τ, !memG Γ}.
+  Context `{!sinvGS Σ Γ α β τ, !memG Γ}.
   Notation iProp := (iProp Σ).
 
   Definition mem_points_to_singleton_r (loc : mblock * Z) (v : val) : memRA :=
@@ -42,7 +42,7 @@ Notation "loc ⤇ v" := (mem_points_to_singleton loc v) (at level 20).
 Notation "loc |-> vs" := (mem_points_to loc vs) (at level 20).
 
 Section AUX.
-  Context `{!Inv.t Σ Γ α β τ, !memG Γ}.
+  Context `{!sinvGS Σ Γ α β τ, !memG Γ}.
   Notation iProp := (iProp Σ).
 
   Lemma points_to_nil ptr : ptr |-> [] = emp%I.
@@ -136,7 +136,7 @@ End POINTS_TO. *)
 Module MemA.
 Section PROOF.
 
-  Context `{!Inv.t Σ Γ α β τ, !memG Γ}.
+  Context `{!sinvGS Σ Γ α β τ, !memG Γ}.
   Notation iProp := (iProp Σ).
 
   Definition scopes := ["Mem"].

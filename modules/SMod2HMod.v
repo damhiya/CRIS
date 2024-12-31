@@ -47,31 +47,27 @@ Section FSPEC.
              (fun tid x z a => (((snd ∘ DPQ tid) x a: iProp) ∗ ⌜z = a⌝)%I)
   .
 
-  Definition fspec_false : fspec :=
-  {| 
+  Definition fspec_false : fspec := {|
     meta := Empty_set;
     precond := fun _ _ _ _ => False%I;
     postcond := fun _ _ _ _ => False%I; 
   |}.
   
-  Definition app_fspec (fspecs : list fspec): fspec :=
-  {| 
+  Definition app_fspec (fspecs : list fspec): fspec := {|
     meta := { i : nat & (nth i fspecs fspec_false).(meta) };
     precond := fun tid '(existT i meta_i) => (nth i fspecs fspec_false).(precond) tid meta_i;
     postcond := fun tid '(existT i meta_i) => (nth i fspecs fspec_false).(postcond) tid meta_i 
   |}.
 
-  Context `{Inv.t (Σ:=Σ)}.
-
   Variant meta_inv {X: positive -> nat -> Type} : Type :=
   | mk_meta (u: positive) (n: nat) (x: X u n).  
 
-  Definition fspec_inv (k: nat) (fsp: positive -> nat -> fspec): fspec :=
+  Definition fspec_inv (k: nat) (fsp: positive -> nat -> fspec) `{!sinvGS Σ Γ α β τ} : fspec :=
     mk_fspec (meta := @meta_inv (fun u n => (fsp u n).(meta)))
       (fun tid '(mk_meta u n x) varg arg =>
-         closed_universe u (k+n) ⊤ ∗ (fsp u n).(precond) tid x varg arg)%I
+         wsats u (k+n) ⊤ ∗ (fsp u n).(precond) tid x varg arg)%I
       (fun tid '(mk_meta u n x) vret ret =>
-         closed_universe u (k+n) ⊤ ∗ (fsp u n).(postcond) tid x vret ret)%I.
+         wsats u (k+n) ⊤ ∗ (fsp u n).(postcond) tid x vret ret)%I.
   
 End FSPEC.
 

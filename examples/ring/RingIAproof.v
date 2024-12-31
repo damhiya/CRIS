@@ -10,7 +10,7 @@ Set Implicit Arguments.
 Local Open Scope nat_scope.
 
 Module RingIA. Section RingIA.
-  Context `{!Inv.t Σ Γ α β τ, !CellAS.G Γ}.
+  Context `{!sinvGS Σ Γ α β τ, !CellAS.G Γ}.
   Notation iProp := (iProp Σ).
 
   Definition CellIG start len :=

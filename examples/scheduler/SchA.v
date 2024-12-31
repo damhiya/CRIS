@@ -6,7 +6,7 @@ Set Implicit Arguments.
 
 Module SchA.
 Section A.
-  Context `{_W: @Inv.t Σ Γ α β τ, !SchAS.G Γ}.
+  Context `{_W: @sinvGS Σ Γ α β τ, !SchAS.G Γ}.
 
   Notation iProp := (iProp Σ).
 

@@ -10,7 +10,7 @@ Local Open Scope nat_scope.
 (* Simulation Proof *)
 Module CellIA. Section CellIA.
   Import CellAS.
-  Context `{!Inv.t Σ Γ α β τ, !CellAS.G Γ}.
+  Context `{!sinvGS Σ Γ α β τ, !CellAS.G Γ}.
   Notation iProp := (iProp Σ).
 
   Variable idx : nat.

@@ -6,10 +6,12 @@ Set Implicit Arguments.
 
 Module MapMS. Section MapMS.
   (* Resource algebra for MapI ⊆ MapM *)
-  Class G (Γ : HRA.t) := { #[global] RA_inG :: GRA.inG (optionUR (exclR unitO)) Γ }.
+  Class G (Γ : GRA) := {
+    #[global] RA_inG :: GRA.inG (optionUR (exclR unitO)) Γ
+  }.
   
   Import MapM.
-  Context `{!Inv.t Σ Γ α β τ, !G Γ}.
+  Context `{!sinvGS Σ Γ α β τ, !G Γ}.
   Notation iProp := (iProp Σ).
 
   Definition pending : iProp := Seal.sealing "MapMS" OwnM (Some (Excl ())).

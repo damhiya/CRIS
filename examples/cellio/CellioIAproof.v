@@ -8,7 +8,7 @@ Local Open Scope nat_scope.
 
 Module CellioIA. Section CellioIA.
   Import CellioA.
-  Context `{!Inv.t Σ Γ α β τ, !G Γ, !CellioA.G Γ}.
+  Context `{!sinvGS Σ Γ α β τ, !G Γ, !CellioA.G Γ}.
   Notation iProp := (iProp Σ).
 
   Variable ginv: Sk.t -> invspec.

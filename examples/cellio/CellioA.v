@@ -6,7 +6,7 @@ Set Implicit Arguments.
 
 Module CellioA. Section CellioA.
   Class G (Γ : HRA.t) := { #[local] RA_inG :: GRA.inG (excl_authR ZO) Γ}.
-  Context `{!Inv.t Σ Γ α β τ, !G Γ}.
+  Context `{!sinvGS Σ Γ α β τ, !G Γ}.
   Local Notation iProp := (iProp Σ).
 
   Definition auth (v : Z) : iProp :=

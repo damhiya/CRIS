@@ -119,7 +119,7 @@ Section SIM.
     econs; eauto.
     { iIntros "H1"; iPoseProof (RET with "H1") as "> HRR"; iModIntro; iIntros "H1".
       iRevert "HRR"; iStopProof; uPred.unseal; split; intros x' wfx'.
-      rewrite ?Own_eq /IPM.Own_def; uPred.unseal; intros [x'' ->].
+      rewrite ?own.Own_eq /own.Own_def; uPred.unseal; intros [x'' ->].
       eapply uPred_mono; last by eapply cmra_included_l.
       eapply HRR.
     }
@@ -160,7 +160,7 @@ Section SIM.
   Proof.
     split; intros x wfx RRx.
     guclo hpsimC_spec; econs; esplits; i; eauto; econs; eauto.
-    split; intros x' wfx'; rewrite IPM.Own_eq /IPM.Own_def; uPred.unseal; intros xx'.
+    split; intros x' wfx'; rewrite own.Own_eq /own.Own_def; uPred.unseal; intros xx'.
     exists x'; intros yf x'wf; split; eauto. eapply uPred_mono; eauto.
   Qed.
 
@@ -190,7 +190,7 @@ Section SIM.
     guclo hpsimC_spec. econs; esplits; eauto.
     econs; eauto; i; subst.
     { iIntros "[X1 X2]"; iSplitL "X1".
-      { iModIntro; iStopProof; split. i; eapply uPred_mono; eauto. rewrite IPM.Own_eq /IPM.Own_def in H1.
+      { iModIntro; iStopProof; split. i; eapply uPred_mono; eauto. rewrite own.Own_eq /own.Own_def in H1.
         uPred.unseal_in H1; eauto.
       }
       { iPoseProof (Own_general_completeness with "X2") as "X2"; eauto. }
@@ -461,7 +461,7 @@ Section SIM.
     guclo hpsimC_spec. econs; esplits; eauto.
     econs; eauto; i; subst.
     { iIntros "[X1 X2]"; iSplitL "X1".
-      { iModIntro; iStopProof; split. i; eapply uPred_mono; eauto. rewrite IPM.Own_eq /IPM.Own_def in H1.
+      { iModIntro; iStopProof; split. i; eapply uPred_mono; eauto. rewrite own.Own_eq /own.Own_def in H1.
         uPred.unseal_in H1; eauto.
       }
       { iPoseProof (Own_general_completeness with "X2") as "X2"; eauto. }
@@ -605,7 +605,7 @@ Section SIM.
     { ii; eauto. }
     { rewrite /g'; ii; inv PR.
       uPred.unseal_once_in REL; destruct REL as [REL]; hexploit REL; eauto.
-      { rewrite IPM.Own_eq /IPM.Own_def; uPred.unseal; rr; exists ε; rewrite right_id; ss. }
+      { rewrite own.Own_eq /own.Own_def; uPred.unseal; rr; exists ε; rewrite right_id; ss. }
       intros UPD; uPred.unseal_in UPD; destruct UPD as [x7']; dup H0.
       specialize (H0 ε); rewrite ?right_id in H0; hexploit H0; eauto; i; des.
       destruct H3.

@@ -8,7 +8,7 @@ Local Open Scope nat_scope.
 
 Module MapMA. Section MapMA.
   Import MapAS.
-  Context `{!Inv.t Σ Γ α β τ, !G Γ, !MapMS.G Γ}.
+  Context `{!sinvGS Σ Γ α β τ, !G Γ, !MapMS.G Γ}.
   Notation iProp := (iProp Σ).
 
   Definition Ist : Sk.t → nat → alist key Any.t → alist key Any.t → iProp :=

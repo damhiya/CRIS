@@ -20,7 +20,7 @@ End SchSK.
 
 (* Wrapping fspecs *)
 Section FSpec.
-  Context `{@Inv.t Σ Γ α β τ}.
+  Context `{@sinvGS Σ Γ α β τ}.
   Notation iProp := (iProp Σ).
 
   Variable univ: positive.

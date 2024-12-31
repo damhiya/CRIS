@@ -4,7 +4,7 @@ Set Implicit Arguments.
 
 Section GINV.
 
-  Context `{_W: Inv.t}.
+  Context `{_W: sinvGS}.
 
   Definition sch_ginv (univ: positive): Sk.t -> invspec :=
     fun _ _ => (∃ n, closed_universe univ n ⊤)%I.
@@ -13,7 +13,7 @@ End GINV.
 
 Section AUX.
 
-  Context `{_W: Inv.t}.
+  Context `{_W: sinvGS}.
   Notation iProp := (iProp Σ).
 
   Global Instance inv_persistent 

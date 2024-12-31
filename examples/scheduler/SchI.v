@@ -16,7 +16,7 @@ End THREADS.
 Module SchI.
 Section I.
   Local Open Scope string_scope.
-  Context `{_W: @Inv.t Σ Γ α β τ}.
+  Context `{_W: @sinvGS Σ Γ α β τ}.
 
   Definition scopes := ["Sch"].
   Definition v_ths := "Sch" ↯ "ths".

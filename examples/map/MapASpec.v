@@ -9,7 +9,7 @@ Module MapAS. Section MapAS.
   Class G (Γ : HRA.t) := { #[local] RA_inG :: GRA.inG (prodUR
     (optionUR (exclR unitO))
     (authUR (Z -d> optionUR (exclR ZO)))) Γ }.
-  Context `{!Inv.t Σ Γ α β τ, !G Γ, !MapMS.G Γ}.
+  Context `{!sinvGS Σ Γ α β τ, !G Γ, !MapMS.G Γ}.
   Import MapA.
   Notation iProp := (iProp Σ).
 

@@ -9,7 +9,7 @@ Local Open Scope nat_scope.
 Module SchIA.
 Section SIMMODSEM.
   Import SchAS.
-  Context `{_W: @Inv.t Σ Γ α β τ, !G Γ}.
+  Context `{_W: @sinvGS Σ Γ α β τ, !G Γ}.
 
   Notation iProp := (iProp Σ).
 
@@ -491,7 +491,7 @@ Section SIMMODSEM.
 End SIMMODSEM.
 
 Section PROOF.
-  Context `{_W: @Inv.t Σ Γ α β τ, !SchAS.G Γ}.
+  Context `{_W: @sinvGS Σ Γ α β τ, !SchAS.G Γ}.
 
   Theorem correct univ (StbFun StbSch: Sk.t -> gname -> option fspec)
     (FunInStbSch: forall sk, stb_sub (StbFun sk) (StbSch sk))
