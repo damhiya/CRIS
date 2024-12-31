@@ -6,6 +6,8 @@ From iris Require base_logic.lib.invariants.
 From Coq Require Import Program Arith.
 Require Export Coqlib iprop own SRF.
 
+Global Instance domain (Σ : GRA) : SRFDom.t := { dom := iProp Σ }.
+
 (* Note that the types in a group has the type PF.t *)
 (* The types in all groups *)
 Module Typ.
@@ -80,8 +82,11 @@ Notation "'τ{' t ',' n '}'" := (@PF.deg ST.t t (SRFSyn.t_prev n)) : SRF_scope.
 Notation "'τ{' t '}'" := (@PF.deg ST.t t (SRFSyn.t_prev _)) : SRF_scope.
 
 (* Separation Logic *)
+(* TODO : The functionalities below need to be separated! after coarse refactoring *)
 Module SL. Section SL.
   Context {τ : Typ.t} {α : @SRFCons.t} `{!subG Γ Σ}.
+  Local Definition dom := domain Σ.
+  Local Existing Instance dom.
 
   Variant shape : Type :=
     | _own i (γ : positive) (r : (GRA_lookup Γ) i)
@@ -121,9 +126,9 @@ Module SL. Section SL.
       deg := degree;
   }.
 
-  Global Instance domain : SRFDom.t := {
-    dom := iProp Σ;
-  }.
+  Notation "'⟦' F ',' n '⟧'" := (SRFSem.t (Δ := domain Σ) n F).
+  Notation "'⟦' F '⟧'" := (SRFSem.t (Δ := domain Σ) _ F).
+
 
   Definition interp n (s : shape)
       : (degree s (SRFSyn.t_prev n) → SRFSyn.t n) → (degree s (SRFSyn.t_prev n) → iProp Σ) → iProp Σ :=
@@ -250,13 +255,13 @@ Module SL. Section SL.
     : SRFSyn.t n :=
     fold_right (fun hd tl => sepconj (f hd) tl) empty I.
 End SL. End SL.
-(* A CRIS proof would typically be parameterized by CtxSL.t *)
+
 Module CtxSL.
   Class t Σ Γ α β τ := {
     #[global] subG :: subG Γ Σ;
     #[global] typG :: CtxST.t τ;
-    #[global] intpG :: @SRFIntp.inG (@SL.domain Σ) (@SL.syntax τ Γ) α (@SL.t τ α Γ Σ subG) β;
-    domainΣ : SRFDom.t := @SL.domain Σ
+    #[global] intpG :: @SRFIntp.inG (domain Σ) (@SL.syntax τ Γ) α (@SL.t τ α Γ Σ subG) β;
+    domainΣ : SRFDom.t := domain Σ
   }.
   (* This global instance declaration is a way to designate which GRA the TC should find as a
   domain of sProp interpretation. If a more concise approach exists, replace this. *)
@@ -270,7 +275,7 @@ Notation "'⌜' P '⌝'" := (SL.pure P) : SRF_scope.
 Notation "'⊤'" := ⌜True⌝ : SRF_scope.
 Notation "'⊥'" := ⌜False⌝ : SRF_scope.
 
-Notation "'<ownm>' γ r" := (SL.own γ r) (at level 20) : SRF_scope.
+Notation "<own>" := (SL.own) (at level 20) : SRF_scope.
 Notation "'<pers>' P" := (SL.persistently P) : SRF_scope.
 Notation "'<affine>' P" := (SL.affinely P) : SRF_scope.
 Notation "□ P" := (<affine> <pers> P) : SRF_scope.
@@ -314,7 +319,7 @@ Notation "'[∗' n , A 'list]' x ∈ l , P" :=
 
 Module SLRed. Section RED.
   Context `{!CtxSL.t Σ Γ α β τ}.
-  Notation interp := (SRFSem.t (Δ := @SL.domain Σ)).
+  Notation interp := (SRFSem.t (Δ := domain Σ)).
 
   Lemma own `{!inG M Γ} n γ (r : M) :
     interp n (SL.own γ r) = own γ r.
@@ -435,6 +440,7 @@ Global Opaque SL.upd.
 Global Opaque SRFSem.t.
 
 (* Simple sProp reduction tactics. *)
+From stdpp Require Import ssreflect.
 Ltac SL_red := repeat (try rewrite ! @SLRed.sepconj;
                       try rewrite ! @SLRed.and;
                       try rewrite ! @SLRed.or;
@@ -451,10 +457,12 @@ Ltac SL_red := repeat (try rewrite ! @SLRed.sepconj;
                       try rewrite ! @SLRed.intuitionistically;
                       try rewrite ! @SLRed.sepM;
                       try rewrite ! @SLRed.sepS;
-                      try rewrite ! @SLRed.sepL1
+                      try rewrite ! @SLRed.sepL1;
+                      try rewrite ! @SLRed.own;
+                      change (SRFSyn.t_prev (S ?n)) with (SRFSyn.t n); simpl
                       ).
 
-Ltac SL_red_all := repeat (try rewrite ! @SLRed.sepconj in *;
+(* Ltac SL_red_all := repeat (try rewrite ! @SLRed.sepconj in *;
                           try rewrite ! @SLRed.and in *;
                           try rewrite ! @SLRed.or in *;
                           try rewrite ! @SLRed.impl in *;
@@ -474,4 +482,4 @@ Ltac SL_red_all := repeat (try rewrite ! @SLRed.sepconj in *;
                           ).
 
 Ltac SL_red_ownm := try rewrite ! @SLRed.own.
-Ltac SL_red_ownm_all := try rewrite ! @SLRed.own in *.
+Ltac SL_red_ownm_all := try rewrite ! @SLRed.own in *. *)

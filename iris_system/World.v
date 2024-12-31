@@ -46,7 +46,6 @@ Section invariants.
     invGS_D : inG ownDRA Γ;
   }.
 
-  (* Two classes for Σ and Γ are separately defined for creating syntactic wsats in sWorld.v *)
   Class invGSΣ (Σ : GRA) := {
     inv_preΣ : invGpreSΣ Σ;
     invariant_name : gname;
@@ -57,13 +56,13 @@ Section invariants.
     disabled_name : gname;
   }.
 
-  Class invGS (Σ Γ : GRA) := {
+  Class invGS (Σ Γ : GRA) `{subG Γ Σ} := {
     #[global] invGS_Σ :: invGSΣ Σ;
     #[global] invGS_Γ :: invGSΓ Γ;
   }.
 
-  Definition invΣ : GRA := #[[ownIRA]].
   Definition invΓ : GRA := #[[ownERA]; [ownDRA]].
+  Definition invΣ : GRA := #[[ownIRA]; invΓ].
 
   Global Instance subG_invΣ {Σ} : subG invΣ Σ → invGpreSΣ Σ.
   Proof. solve_inG. Qed.
@@ -72,7 +71,7 @@ Section invariants.
 End invariants.
 
 Section predicates.
-  Context `{!CtxSL.t Σ Γ α β τ, !invGS Σ Γ}.
+  Context `{α : SRFCons.t, !subG Γ Σ, !invGS Σ Γ}.
   Local Existing Instances inv_preΣ inv_preΓ invGS_I invGS_E invGS_D.
 
   (* owns invariant *)
@@ -93,6 +92,11 @@ Section predicates.
         (gmap_view_auth (DfracOwn 1) (to_agree <$> I))).
   Definition ownI_auth (u : univ_id) (n : level) (I : gmap positive (SRFSyn.t n)) :=
     own invariant_name (ownI_authR u n I).
+
+  Definition wsat_authR u b : ownIRA :=
+    discrete_fun_singleton u
+      ((λ n, if (n <? b) then ε else gmap_view_auth (DfracOwn 1) ∅) : discrete_funUR InvSetRA).
+  Definition wsat_auth u b : iProp Σ := own invariant_name (wsat_authR u b).
 
   Definition ownER (u : univ_id) (E : coPset) : ownERA :=
     discrete_fun_singleton u (CoPset E).
@@ -134,7 +138,10 @@ Section predicates.
 End predicates.
 
 Section wsat.
-  Context `{!CtxSL.t Σ Γ α β τ, !invGS Σ Γ}.
+  Context `{@SRFIntp.t (domain Σ) α, !subG Γ Σ, !invGS Σ Γ}.
+
+  Notation "'⟦' F ',' n '⟧'" := (SRFSem.t (Δ := domain Σ) n F).
+  Notation "'⟦' F '⟧'" := (SRFSem.t (Δ := domain Σ) _ F).
 
   Variable u : univ_id.
   Variable n : level.
@@ -325,13 +332,8 @@ Section UNIVERSE.
 End UNIVERSE. *)
 
 Section WSATS.
-  Context `{!CtxSL.t Σ Γ α β τ, !invGS Σ Γ}.
+  Context `{@SRFIntp.t (domain Σ) α, !subG Γ Σ, !invGS Σ Γ}.
   Local Existing Instances inv_preΣ inv_preΓ invGS_I invGS_E invGS_D.
-
-  Definition wsat_authR u b : ownIRA :=
-    discrete_fun_singleton u
-      ((λ n, if (n <? b) then ε else gmap_view_auth (DfracOwn 1) ∅) : discrete_funUR InvSetRA).
-  Definition wsat_auth u b : iProp Σ := own invariant_name (wsat_authR u b).
 
   (* Definition empty_universesR {R : univ_id -> ucmra} eu (r : forall u, R u) : discrete_funUR R :=
     fun u =>
@@ -344,8 +346,8 @@ Section WSATS.
     ∗ own invariant_name (empty_universesR eu ((λ _, (λ n, gmap_view_auth (DfracOwn 1) ∅)) : ownIRA)). *)
   (* Definition free_universes := (∃ eu, empty_universes eu)%I. *)
 
-  Definition wsats u b E : iProp Σ :=
-    wsat_auth u b ∗ ownE u E ∗ ownD_auth u ∗ [∗ list] n ∈ (seq 0 b), wsat u n.
+  Definition wsats u n E : iProp Σ :=
+    wsat_auth u n ∗ ownE u E ∗ ownD_auth u ∗ [∗ list] n ∈ (seq 0 n), wsat u n.
 
   Local Definition uPred_fupd_def u b (E1 E2 : coPset) (P : iProp Σ) : iProp Σ :=
     wsats u b E1 ==∗ (wsats u b E2 ∗ P).
@@ -386,17 +388,18 @@ Section WSATS.
   Notation fupd_ex u n :=
     (@fupd (bi_car (uPredI (GRAUR Σ))) (@bi_fupd_fupd _ (uPred_bi_fupd u n))) (only parsing).
 
-  Notation "'=|' u ',' n '|={' E1 ',' E2 '}=>' P" := (fupd_ex u n E1 E2 P)%I (at level 90).
-  Notation "P '=|' u ',' n '|={' E1 ',' E2 '}=∗' Q" := (P -∗ =|u, n|={E1,E2}=> Q)%I (at level 90).
+  Notation "'=|' u ',' n '|={' E1 ',' E2 '}=>' P" := (fupd_ex u n E1 E2 P)%I (at level 90) : bi_scope.
+  Notation "P '=|' u ',' n '|={' E1 ',' E2 '}=∗' Q" := (P -∗ =|u, n|={E1,E2}=> Q)%I (at level 90)  : bi_scope.
 
-  Notation "'=|' u ',' n '|={' E '}=>' P" := (=|u, n|={E, E}=> P)%I (at level 90).
-  Notation "P '=|' u ',' n '|={' E '}=∗' Q" := (P -∗ =|u, n|={E, E}=> Q)%I (at level 90).
+  Notation "'=|' u ',' n '|={' E '}=>' P" := (=|u, n|={E, E}=> P)%I (at level 90) : bi_scope.
+  Notation "P '=|' u ',' n '|={' E '}=∗' Q" := (P -∗ =|u, n|={E, E}=> Q)%I (at level 90) : bi_scope.
 
   Local Definition inv_def u (n : level) (N : namespace) (p : SRFSyn.t n) : iProp Σ :=
     ∃ i, ⌜i ∈ (↑N : coPset)⌝ ∧ ownI u n i p.
   Local Definition inv_aux : seal (@inv_def). Proof. by eexists. Qed.
   Definition inv := inv_aux.(unseal).
   Local Definition inv_eq : @inv = @inv_def := inv_aux.(seal_eq).
+End WSATS.
 
   (* Definition used_worlds u b E : iProp Σ :=
     wsats u b ∗ ownE u E ∗ ownD_auth u ∗ free_universes. *)
@@ -687,7 +690,6 @@ Section WSATS.
     replace (b+(b'-b)) with b' by nia. iFrame.
   Qed. *)
 
-End WSATS.
 (* 
 Section FANCY_UPDATE.
 

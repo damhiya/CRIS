@@ -200,20 +200,20 @@ Local Open Scope SRF_scope.
 
 Notation "'⟨' op ',' args '⟩'" := (SRFSem.cur op args) : SRF_scope.
 Notation "⤉ P" := (SRFSyn.lift P) (at level 20) : SRF_scope.
-Notation "'⟦' F ',' n '⟧'" := (SRFSem.t n F).
-Notation "'⟦' F '⟧'" := (SRFSem.t _ F).
 
 (* Simple reduction tactics. *)
 
 Global Opaque SRFSyn.t_prev.
 Global Opaque SRFSyn.t.
 
+(* TODO : improve these tactics *)
+From stdpp Require Import ssreflect.
 Ltac SRF_red := repeat (
-                 try rewrite ! @SRFRed.cur;
-                 try rewrite ! @SRFRed.lift;
-                 change (SRFSyn.t_prev (S ?n)) with (SRFSyn.t n) in * ).
-
+                 try rewrite !@SRFRed.cur;
+                 try rewrite !@SRFRed.lift;
+                 change (SRFSyn.t_prev (S ?n)) with (SRFSyn.t n)).
+(* 
 Ltac SRF_red_all := repeat (
                      try rewrite ! @SRFRed.cur in *;
                      try rewrite ! @SRFRed.lift in *;
-                     change (SRFSyn.t_prev (S ?n)) with (SRFSyn.t n) in * ).
+                     change (SRFSyn.t_prev (S ?n)) with (SRFSyn.t n) in * ). *)
