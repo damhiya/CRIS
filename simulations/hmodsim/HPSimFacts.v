@@ -219,13 +219,18 @@ Section HPSIM_ADEQUACY.
     - clarify; steps.
       rewrite interp_hp_Assume /handle_Assume; steps.
       rewrite /mget_res /mput_res; steps.
-      eapply (K (fmr0 ⋅ x)); eauto.
-      { iIntros "[FMR X]"; iMod (CUR with "FMR") as "FMR"; iPoseProof (_ASSUME0 with "X") as "X";
-          iModIntro; iFrame.
+      apply bi.wand_entails, Own_split in _ASSUME0. des.
+      eapply (K (fmr0 ⋅ a1)); eauto.
+      { iIntros "[FMR X]"; iMod (CUR with "FMR") as "FMR". iFrame.
+        iModIntro. iApply _ASSUME1. eauto.
       }
-      { iIntros "[X MRS]"; iMod (FMR with "MRS") as "[[CTX FMR] MRT]"; iMod (x1 with "FMR") as "FMR";
-          iModIntro; iSplitR "MRT"; [iSplitL "CTX"; [|iSplitL "FMR"]|]; iFrame. 
+      { rewrite _ASSUME0.
+        iIntros "[X MRS]". iPoseProof (_ASSUME2 with "MRS") as "MRS".
+        iMod (FMR with "MRS") as "[[CTX FMR] MRT]"; iMod (x1 with "FMR") as "FMR".
+        iModIntro; iSplitR "MRT"; eauto.
+        iSplitL "CTX"; eauto. iSplitL "FMR"; eauto.
       }
+      { eauto. }
     - clarify; steps.
       rewrite interp_hp_Guarantee /handle_Guarantee; steps.
       rewrite /mget_res /mput_res; steps.
@@ -245,9 +250,15 @@ Section HPSIM_ADEQUACY.
       rewrite /mget_res /mput_res; steps.
       instantiate (1 := (ctx_sem ctx ⋅ rFMR ⋅ mr_tgt)).
       rewrite /guarantee; force_l.
-      { iIntros "MRS"; iMod (FMR with "MRS") as "[[CTX FMR] MRT]"; iMod (x1 with "FMR") as "FMR";
-          iMod (SPLIT with "FMR") as "[P FMR]"; iPoseProof (HP with "P") as "P";
-          iModIntro; iSplitL "P"; [|iSplitR "MRT"; [iSplitR "FMR"|]]; iFrame.
+      { eapply (Own_wand_valid mr_src); eauto.
+        iIntros "MRS"; iMod (FMR with "MRS") as "[[CTX FMR] MRT]"; iMod (x1 with "FMR") as "FMR".
+        iMod (SPLIT with "FMR") as "[P FMR]".
+        iSplitR "MRT"; eauto. iSplitL "CTX"; eauto.
+      }
+      rewrite /guarantee; force_l.
+      { iIntros "MRS"; iMod (FMR with "MRS") as "[[CTX FMR] MRT]"; iMod (x1 with "FMR") as "FMR".
+        iMod (SPLIT with "FMR") as "[P FMR]". iPoseProof (HP with "P") as "P".
+        iSplitL "P"; eauto. iSplitR "MRT"; eauto. iSplitR "FMR"; eauto.
       }
       steps; eapply K; eauto.
       { iIntros "?"; iApply HFMR; eauto. }
@@ -259,13 +270,15 @@ Section HPSIM_ADEQUACY.
       hexploit (Own_bupd_split fmr0); eauto; intros [rP [rFMR [SPLIT [HP HFMR]]]].
       rewrite interp_hp_Assume /handle_Assume; steps.
       rewrite /mget_res /mput_res; steps.
-      instantiate (1 := rP).
+      instantiate (1 := rP ⋅ mr_tgt).
       rewrite /assume; force_r.
       { eapply (Own_wand_valid mr_src); eauto.
-        iIntros "MRS"; iMod (FMR with "MRS") as "[[_ FMR] MRT]"; iMod (x1 with "FMR") as "FMR";
-          iMod (SPLIT with "FMR") as "[RP _]"; iModIntro; iSplitL "RP"; iFrame.
+        iIntros "MRS"; iMod (FMR with "MRS") as "[[_ FMR] MRT]"; iMod (x1 with "FMR") as "FMR".
+        iMod (SPLIT with "FMR") as "[RP _]"; iModIntro; iSplitL "RP"; iFrame.
       }
-      steps; eapply K; eauto.
+      steps.
+      { iIntros "(P & MRT)". iFrame. iApply HP. eauto. }
+      eapply K; eauto.
       { iIntros "?"; iApply HFMR; eauto. }
       { iIntros "MRS"; iMod (FMR with "MRS") as "[[CTX FMR] MRT]"; iMod (x1 with "FMR") as "FMR";
           iMod (SPLIT with "FMR") as "[P FMR]";

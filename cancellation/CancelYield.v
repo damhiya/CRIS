@@ -38,7 +38,7 @@ Section CANCEL.
     r. _iter. _iter. rewrite SRC TGT. ired.
     hide_r. tau 1.
     reveal ITREE. hide_l.
-    _supd. iterL. _coreA. ls. iterL. _coreA. ls.
+    _supd. iterL. _coreA. ls. iterL. _coreA. ls. iterL. _coreA. ls.
     iterL. _supd. iterL. _supd.
     iterT 2. iterL. tau 1. ls.
     hexploit (Own_bupd_split rt); eauto. i. des.
@@ -56,9 +56,11 @@ Section CANCEL.
       (* yield to itself *)
       subst tid.
       iterT 2. iterL. tau 1. iterT 2.
-      iterL. _coreE a1. iterL. _supd.
+      iterL. _supd. iterL. _coreE (a1 ⋅ x). 
       iterL. _coreE VALID. ls.
-      iterL. _coreE H0. ls.
+      assert (SAT: (Own (a1 ⋅ x) -∗ ginv sk cid ∗ Own x)).
+      { iIntros "[A X]". iFrame. iApply H0. eauto. }
+      iterL. _coreE SAT. ls.
       iterL. _supd. iterL. _supd.
       iterT 1.
       reveal ITREE. hide_r. iterT 1. reveal ITREE.
@@ -73,8 +75,8 @@ Section CANCEL.
       _iter. rewrite list_lookup_insert_ne; [|et]. rewrite H2.
       s. unfold triggerUB. ired. _coreA.
     }
-    exploit lookup_lt_is_Some_2; eauto. i. inv x2.
-    exploit (lookup_lt_is_Some_2 tgts tid); [nia|]. i. inv x3.
+    exploit lookup_lt_is_Some_2; eauto. i. inv x3.
+    exploit (lookup_lt_is_Some_2 tgts tid); [nia|]. i. inv x4.
     assert (tid < base.length tgts) by nia.
     hexploit RELS; eauto. i.
     depdes H6.
@@ -86,8 +88,11 @@ Section CANCEL.
     end.
     rewrite H4. ired. tau 2.
     iterT 1. iterL. tau 1. ls. iterT 2.
-    iterL. _coreE a1. ls. iterL. _supd.
-    iterL. _coreE VALID. ls. iterL. _coreE H0. ls.
+    iterL. _supd. iterL. _coreE (a1 ⋅ x). ls. 
+    iterL. _coreE VALID. ls.
+      assert (SAT: (Own (a1 ⋅ x) -∗ ginv sk tid ∗ Own x)).
+      { iIntros "[A X]". iFrame. iApply H0. eauto. }
+    iterL. _coreE SAT. ls.
     iterL. _supd. iterL. _supd.
     reveal ITREE.
     prb. gbase. pclearbot.

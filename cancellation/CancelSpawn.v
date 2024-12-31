@@ -46,10 +46,10 @@ Section CANCEL.
       assert(LTT: cid < List.length (tgts ++ t)) by (rewrite length_app; nia)
     end.
     iterT 2. iterL. _supd.
-    iterL. _coreA. ls. iterL. _coreA. ls.
+    iterL. _coreA. ls. iterL. _coreA. ls. iterL. _coreA. ls.
     iterL. _supd. iterL. _supd.
     iterT 2. iterL. _supd.
-    iterL. _coreA. ls. iterL. _coreA. ls.
+    iterL. _coreA. ls. iterL. _coreA. ls. iterL. _coreA. ls.
     iterL. _supd. iterL. _supd.
     iterT 2. iterL. tau 1. ls.
     reveal ITREE.
@@ -85,20 +85,11 @@ Section CANCEL.
     { i. rewrite length_app. s. nia. }
     hexploit (Own_bupd_split rt); eauto. i. des.
     hexploit (Own_bupd_split x1); eauto.
-    {
-      hexploit (Own_wand_valid rt (a1 ⋅ x1)); eauto.
-      {
-        iIntros "H". iPoseProof (H1 with "H") as ">[H0 H1]".
-        iPoseProof (H3 with "H1") as "H1".
-        iModIntro. rewrite Own_op. iFrame.
-      }
-      i. eapply cmra_valid_op_r. eauto.
-    }
     i. des.
     iterT 2. iterL. _coreE x. ls.
     iterT 2. iterL. _coreE args. ls.
-    iterT 2. iterL. _coreE (a0 ⋅ a1). ls. iterL. _supd.
-    assert (UPD': Own rs ==∗ Own (a0 ⋅ a1 ⋅ x3)).
+    iterT 2. iterL. _supd. iterL. _coreE (a0 ⋅ a1 ⋅ x4). ls.
+    assert (UPD': Own rs ==∗ Own (a0 ⋅ a1 ⋅ x4)).
     {
       iIntros "H". iPoseProof (UPD with "H") as ">H".
       iPoseProof (H1 with "H") as ">[H0 H1]".
@@ -107,12 +98,12 @@ Section CANCEL.
       iPoseProof (H6 with "H2") as "H2".
       iModIntro. rewrite !Own_op. iFrame.
     }
-    assert (VALID: ✓(a0 ⋅ a1 ⋅ x3)).
+    assert (VALID: ✓(a0 ⋅ a1 ⋅ x4)).
     { eapply Own_wand_valid with (a1 := rs); eauto. }
     iterL. _coreE VALID. ls.
-    assert (SAT: Own (a0 ⋅ a1) ⊢ precond f (base.length tgts) x args x0).
+    assert (SAT: Own (a0 ⋅ a1 ⋅ x4) -∗ precond f (base.length tgts) x args x0 ∗ Own x4).
     {
-      iIntros "[H0 H1]".
+      iIntros "((H0 & H1) & H2)". iFrame.
       iPoseProof (H5 with "H0") as "H0".
       iPoseProof (H2 with "H1") as "H1".
       iApply "H1". eauto.
@@ -165,7 +156,7 @@ Section CANCEL.
     }
     rewrite !list_lookup_insert_ne in H8, H9; try nia.
     eapply lookup_snoc_Some in H8, H9. des; try nia.
-    specialize (RELS k x5 y n H11 H10).
+    specialize (RELS k x7 y n H11 H10).
     inv RELS. econs; eauto; des_ifs.
   Qed.
 

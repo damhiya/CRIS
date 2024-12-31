@@ -96,16 +96,17 @@ Section MID.
       end.
 
   Definition handle_Assume (P : iProp) : itree modE unit :=
-    r <- trigger (Take Σ);;
     mr <- mget_res;;
-    assume (✓ (r ⋅ mr));;;
-    assume (Own r ⊢ P);;;
-    mput_res (r ⋅ mr).
+    mr' <- trigger (Take Σ);;
+    assume (✓ mr');;;
+    assume (Own mr' -∗ (P ∗ Own mr));;;
+    mput_res mr'.
 
   Definition handle_Guarantee (P : iProp) : itree modE unit :=
     mr <- mget_res;;
     mr' <- trigger (Choose Σ);;
-    guarantee (Own mr ==∗ P ∗ Own mr');;;
+    guarantee (✓ mr');;;
+    guarantee (Own mr ==∗ (P ∗ Own mr'));;;
     mput_res mr'.
 
   Definition handle_agE : agE ~> itree modE :=
