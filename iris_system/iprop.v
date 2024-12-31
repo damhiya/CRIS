@@ -15,7 +15,7 @@ Record DRA := DRA_mk {
 Global Arguments DRA_mk _ {_}.
 Global Existing Instance DRA_discrete.
 
-Record GRA := GRA_mk {
+Class GRA := GRA_mk {
   GRA_len : nat;
   GRA_lookup : fin GRA_len → DRA;
 }.
@@ -23,9 +23,9 @@ Record GRA := GRA_mk {
 Definition gname := positive.
 Canonical Structure gnameO := leibnizO gname.
 
-Definition gid (Σ : GRA) := fin (GRA_len Σ).
+Definition gid (Σ : GRA) := fin GRA_len.
 
-Definition GRAUR (Σ : GRA) : ucmra := discrete_funUR (λ i, allocsUR (GRA_lookup Σ i)).
+Definition GRAUR (Σ : GRA) : ucmra := discrete_funUR (λ i, allocsUR (GRA_lookup i)).
 Global Coercion GRAUR : GRA >-> ucmra.
 
 Global Instance GRA_discrete {Σ : GRA} : CmraDiscrete Σ.
@@ -34,7 +34,7 @@ Proof. apply _. Qed.
 (** * Typeclass for individual cmras being included in GRAs *)
 Class inG (RA : cmra) (Σ : GRA) := inG_mk {
   inG_id : gid Σ;
-  inG_prf : RA = GRA_lookup Σ inG_id
+  inG_prf : RA = GRA_lookup inG_id
 }.
 Global Arguments inG_id {_ _} _.
 Global Hint Mode inG ! - : typeclass_instances.
@@ -46,18 +46,19 @@ Module GRAs.
     GRA_mk 1 (fin_S_inv (λ _, DRA) A (fin_0_inv _)).
 
   Program Definition app (Σ1 Σ2 : GRA) : GRA :=
-    GRA_mk (GRA_len Σ1 + GRA_len Σ2) (fin_add_inv _ (GRA_lookup Σ1) (GRA_lookup Σ2)).
+    GRA_mk (@GRA_len Σ1 + @GRA_len Σ2) (fin_add_inv _ (@GRA_lookup Σ1) (@GRA_lookup Σ2)).
 End GRAs.
 Global Coercion GRAs.singleton : DRA >-> GRA.
 Notation "#[ ]" := GRAs.nil (format "#[ ]").
 (* TODO : Reversible coercions do not work - find a way *)
-Notation "[ R ]" := (DRA_mk R).
-Notation "#[ Σ1 ; .. ; Σn ]" := (GRAs.app Σ1 .. (GRAs.app Σn GRAs.nil) ..).
+(* Notation "[ R ]" := (DRA_mk R). *)
+Notation "#[ Σ1 ; .. ; Σn ]" := (GRAs.app (DRA_mk Σ1) .. (GRAs.app (DRA_mk Σn) GRAs.nil) ..).
+Notation "##[ Σ1 ; .. ; Σn ]" := (GRAs.app Σ1 .. (GRAs.app Σn GRAs.nil) ..).
 (* Notation "#[ Σ1  .. ; Σn ]" := (GRAs.app (DRA_mk Σ1) .. (GRAs.app (DRA_mk Σn) GRAs.nil) ..). *)
 
 (** * GRA being included in another GRA *)
 Class subG (Σ1 Σ2 : GRA) := subG_in i :
-  { j | GRA_lookup Σ1 i = GRA_lookup Σ2 j }.
+  { j | @GRA_lookup Σ1 i = @GRA_lookup Σ2 j }.
 Global Hint Mode subG ! + : typeclass_instances.
 
 Lemma subG_inv Σ1 Σ2 Σ : subG (GRAs.app Σ1 Σ2) Σ → subG Σ1 Σ * subG Σ2 Σ.
@@ -79,11 +80,11 @@ Proof.
   move=> H i; move: H=> /(_ i) [j ?].
   exists (Fin.R _ j). by rewrite /= fin_add_inv_r.
 Qed.
-Global Instance index_inG Σ (i : gid Σ) : inG (GRA_lookup Σ i) Σ.
+Global Instance index_inG Σ (i : gid Σ) : inG (@GRA_lookup Σ i) Σ.
 Proof.
   econstructor; eauto.
 Defined.
-Global Program Instance in_subG Σ1 Σ2 `{M : cmra} `{emb : inG M Σ1} : subG Σ1 Σ2 → inG M Σ2.
+Global Program Instance in_subG Σ1 Σ2 `{M : cmra} `{emb : !inG M Σ1} : subG Σ1 Σ2 → inG M Σ2.
 Next Obligation.
   intros. destruct emb. destruct (s inG_id0). exact x.
 Defined.

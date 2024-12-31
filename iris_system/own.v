@@ -43,7 +43,7 @@ Global Arguments own {_ _ _} γ a.
 (* TODO : Think later if mod_levels can be erased *)
 Local Program Definition own_admin_def (Σ : GRA) : iProp Σ :=
   ∃ (X : coPset), ⌜set_infinite X⌝
-    ∗ uPred_ownM ((λ i, @allocs_auth (GRA_lookup Σ i) X) : GRAUR Σ).
+    ∗ uPred_ownM ((λ i, @allocs_auth (@GRA_lookup Σ i) X) : GRAUR Σ).
 Local Definition own_admin_aux : seal (@own_admin_def). Proof. by eexists. Qed.
 Definition own_admin := own_admin_aux.(unseal).
 Local Definition own_admin_eq : @own_admin = @own_admin_def := own_admin_aux.(seal_eq).
@@ -118,7 +118,7 @@ Section properties.
     intros hwf. rewrite ?own_admin_eq /own_admin_def.
     iIntros "[%X [%INF OWN]]".
     iPoseProof (bupd_ownM_update _
-      (((λ i, allocs_auth (GRA_lookup Σ i) (X ∖ {[coPpick X]})) : GRAUR Σ)
+      (((λ i, allocs_auth (@GRA_lookup Σ i) (X ∖ {[coPpick X]})) : GRAUR Σ)
       ⋅ iRes_singleton (coPpick X) a)
       with "OWN") as "> [AUTH OWN]".
     { apply discrete_fun_update; intros i'; destruct (decide ((inG_id i) = i')).

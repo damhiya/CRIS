@@ -89,7 +89,7 @@ Module SL. Section SL.
   Local Existing Instance dom.
 
   Variant shape : Type :=
-    | _own i (γ : positive) (r : (GRA_lookup Γ) i)
+    | _own i (γ : positive) (r : (@GRA_lookup Γ) i)
     | _pure (P : Prop)
     | _and
     | _or

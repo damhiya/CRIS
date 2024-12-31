@@ -56,13 +56,13 @@ Section invariants.
     disabled_name : gname;
   }.
 
-  Class invGS (Σ Γ : GRA) `{subG Γ Σ} := {
+  Class invGS (Σ Γ : GRA) `{!subG Γ Σ} := {
     #[global] invGS_Σ :: invGSΣ Σ;
     #[global] invGS_Γ :: invGSΓ Γ;
   }.
 
-  Definition invΓ : GRA := #[[ownERA]; [ownDRA]].
-  Definition invΣ : GRA := #[[ownIRA]; invΓ].
+  Definition invΓ : GRA := #[ownERA; ownDRA].
+  Definition invΣ : GRA := ##[#[ownIRA]; invΓ].
 
   Global Instance subG_invΣ {Σ} : subG invΣ Σ → invGpreSΣ Σ.
   Proof. solve_inG. Qed.
