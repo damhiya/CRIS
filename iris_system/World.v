@@ -41,7 +41,7 @@ Section invariants.
   Class invGpreSΣ (Σ : GRA) := {
     invGS_I : inG ownIRA Σ
   }.
-  Class invGpreSΓ (Γ : GRA) := {
+  Class invGpreSΓ (Γ : HRA) := {
     invGS_E : inG ownERA Γ;
     invGS_D : inG ownDRA Γ;
   }.
@@ -50,13 +50,13 @@ Section invariants.
     inv_preΣ : invGpreSΣ Σ;
     invariant_name : gname;
   }.
-  Class invGSΓ (Γ : GRA) := {
+  Class invGSΓ (Γ : HRA) := {
     inv_preΓ : invGpreSΓ Γ;
     enabled_name : gname;
     disabled_name : gname;
   }.
 
-  Class invGS (Σ Γ : GRA) `{!subG Γ Σ} := {
+  Class invGS (Σ : GRA) (Γ : HRA) `{!subG Γ Σ} := {
     #[global] invGS_Σ :: invGSΣ Σ;
     #[global] invGS_Γ :: invGSΓ Γ;
   }.
@@ -71,7 +71,7 @@ Section invariants.
 End invariants.
 
 Section predicates.
-  Context `{α : SRFCons.t, !subG Γ Σ, !invGS Σ Γ}.
+  Context `{α : SRFCons.t, Γ : HRA, !subG Γ Σ, !invGS Σ Γ}.
   Local Existing Instances inv_preΣ inv_preΓ invGS_I invGS_E invGS_D.
 
   (* owns invariant *)
@@ -138,7 +138,7 @@ Section predicates.
 End predicates.
 
 Section wsat.
-  Context `{@SRFIntp.t (domain Σ) α, !subG Γ Σ, !invGS Σ Γ}.
+  Context `{@SRFIntp.t (domain Σ) α, Γ : HRA, !subG Γ Σ, !invGS Σ Γ}.
 
   Notation "'⟦' F ',' n '⟧'" := (SRFSem.t (Δ := domain Σ) n F).
   Notation "'⟦' F '⟧'" := (SRFSem.t (Δ := domain Σ) _ F).
@@ -332,7 +332,7 @@ Section UNIVERSE.
 End UNIVERSE. *)
 
 Section WSATS.
-  Context `{@SRFIntp.t (domain Σ) α, !subG Γ Σ, !invGS Σ Γ}.
+  Context `{@SRFIntp.t (domain Σ) α, Γ : HRA, !subG Γ Σ, !invGS Σ Γ}.
   Local Existing Instances inv_preΣ inv_preΓ invGS_I invGS_E invGS_D.
 
   (* Definition empty_universesR {R : univ_id -> ucmra} eu (r : forall u, R u) : discrete_funUR R :=

@@ -80,17 +80,7 @@ Proof.
   move=> H i; move: H=> /(_ i) [j ?].
   exists (Fin.R _ j). by rewrite /= fin_add_inv_r.
 Qed.
-Global Instance index_inG Σ (i : gid Σ) : inG (@GRA_lookup Σ i) Σ.
-Proof.
-  econstructor; eauto.
-Defined.
-Global Program Instance in_subG Σ1 Σ2 `{M : cmra} `{emb : !inG M Σ1} : subG Σ1 Σ2 → inG M Σ2.
-Next Obligation.
-  intros. destruct emb. destruct (s inG_id0). exact x.
-Defined.
-Next Obligation.
-  intros. destruct emb. simpl. destruct (s inG_id0). subst. f_equal. eauto.
-Defined.
+
 Lemma subG_inG Σ (A : DRA) : subG A Σ → inG A Σ.
 Proof.
   intros H; destruct (H 0%fin). exists x. rewrite -e. econstructor.

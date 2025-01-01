@@ -14,21 +14,29 @@ Module Typ.
   Class t: Type := __TYP : GPF.t.
 End Typ.
 
-(* Module HRA.
-  Class t : Type := HRA_mk : GRA.
-  Class subG (Σ1 : t) (Σ2 : GRA) := subG_in i :
-    { j | GRA_lookup Σ1 i = GRA_lookup Σ2 j }.
+(* Global Program Instance in_subG Σ1 Σ2 `{M : cmra} `{emb : inG M Σ1} : HRA.subG Σ1 Σ2 → inG M Σ2.
+Next Obligation.
+  intros. destruct emb. destruct (s inG_id). exact x.
+Defined.
+Next Obligation.
+  intros. destruct emb. simpl. destruct (s inG_id). subst. f_equal. eauto.
+Defined. *)
+(* End HRA. *)
 
-  Global Hint Mode subG ! + : typeclass_instances.
+Class HRA : Type := HRA_mk : GRA.
 
-  (* Global Program Instance in_subG Σ1 Σ2 `{M : cmra} `{emb : inG M Σ1} : HRA.subG Σ1 Σ2 → inG M Σ2.
-  Next Obligation.
-    intros. destruct emb. destruct (s inG_id). exact x.
-  Defined.
-  Next Obligation.
-    intros. destruct emb. simpl. destruct (s inG_id). subst. f_equal. eauto.
-  Defined. *)
-End HRA. *)
+Global Instance index_inG (Γ : HRA) (i : gid Γ) : inG (GRA_lookup i) Γ.
+Proof.
+  econstructor; eauto.
+Defined.
+Global Program Instance in_subG (Γ : HRA) (Σ : GRA) `{emb : !inG M Γ} : subG Γ Σ → inG M Σ.
+Next Obligation.
+  intros. destruct emb. destruct (s inG_id). exact x.
+Defined.
+Next Obligation.
+  intros. destruct emb. simpl. destruct (s inG_id). subst. f_equal. eauto.
+Defined.
+
 
 (* Global Instance subG_inG Σ1 Σ2 (i : gid Σ1) `{!HRA.subG Σ1 Σ2} : inG (GRA_lookup Σ1 i) Σ2.
 Proof.
@@ -84,7 +92,7 @@ Notation "'τ{' t '}'" := (@PF.deg ST.t t (SRFSyn.t_prev _)) : SRF_scope.
 (* Separation Logic *)
 (* TODO : The functionalities below need to be separated! after coarse refactoring *)
 Module SL. Section SL.
-  Context {τ : Typ.t} {α : @SRFCons.t} `{!subG Γ Σ}.
+  Context {τ : Typ.t} {α : @SRFCons.t} {Γ : HRA} {Σ : GRA} `{!subG Γ Σ}.
   Local Definition dom := domain Σ.
   Local Existing Instance dom.
 
@@ -125,10 +133,6 @@ Module SL. Section SL.
       shp := shape;
       deg := degree;
   }.
-
-  Notation "'⟦' F ',' n '⟧'" := (SRFSem.t (Δ := domain Σ) n F).
-  Notation "'⟦' F '⟧'" := (SRFSem.t (Δ := domain Σ) _ F).
-
 
   Definition interp n (s : shape)
       : (degree s (SRFSyn.t_prev n) → SRFSyn.t n) → (degree s (SRFSyn.t_prev n) → iProp Σ) → iProp Σ :=
@@ -257,7 +261,7 @@ Module SL. Section SL.
 End SL. End SL.
 
 Module CtxSL.
-  Class t Σ Γ α β τ := {
+  Class t (Σ : GRA) (Γ : HRA) α β τ := {
     #[global] subG :: subG Γ Σ;
     #[global] typG :: CtxST.t τ;
     #[global] intpG :: @SRFIntp.inG (domain Σ) (@SL.syntax τ Γ) α (@SL.t τ α Γ Σ subG) β;

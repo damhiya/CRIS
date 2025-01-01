@@ -26,7 +26,7 @@ Global Instance inv_syntax : PF.t := {
 }.
 (* TODO : find a way to construct gmap of SRFSyns from syn : pos → SRFSyn.t *)
 (* Invariant interpretations *)
-Local Definition inv_interp_aux `{α : SRFCons.t, !subG Γ Σ, !invGS Σ Γ} n (s : inv_shape) :
+Local Definition inv_interp_aux `{α : SRFCons.t, Γ : HRA, !subG Γ Σ, !invGS Σ Γ} n (s : inv_shape) :
     (inv_degree s (SRFSyn.t_prev n) → SRFSyn.t n) → (inv_degree s (SRFSyn.t_prev n) → iProp Σ)
     → iProp Σ :=
   match s with
@@ -35,7 +35,8 @@ Local Definition inv_interp_aux `{α : SRFCons.t, !subG Γ Σ, !invGS Σ Γ} n (
   | _wsat_auth u => λ _ _, wsat_auth u n
   end.
 
-Global Instance inv_interp `{α : SRFCons.t, !subG Γ Σ, !invGS Σ Γ} : @SRFIntpM.t (@domain Σ) α _ :=
+Global Instance inv_interp `{α : SRFCons.t, Γ : HRA, !subG Γ Σ, !invGS Σ Γ} :
+    @SRFIntpM.t (@domain Σ) α _ :=
   inv_interp_aux.
 
 Section syn_inv.
@@ -128,7 +129,7 @@ Section syn_inv.
   Local Definition syn_fupd_eq : @syn_fupd = @syn_fupd_def := syn_fupd_aux.(seal_eq).
 End syn_inv.
 
-Class sinvGS Σ Γ α β τ := {
+Class sinvGS (Σ : GRA) (Γ : HRA) α β τ := {
   #[global] sinv_CtxSL :: CtxSL.t Σ Γ α β τ;
   #[global] sinv_invGS :: invGS Σ Γ;
   #[global] sinv_intpG :: @SRFIntp.inG (domain Σ) inv_syntax α inv_interp β

@@ -6,15 +6,21 @@ Set Implicit Arguments.
 
 Module MapMS. Section MapMS.
   (* Resource algebra for MapI ⊆ MapM *)
-  Class G (Γ : GRA) := {
-    #[global] RA_inG :: GRA.inG (optionUR (exclR unitO)) Γ
+  Class GpreΓ (Γ : GRA) := {
+    #[global] map_inG :: inG (optionUR (exclR unitO)) Γ;
   }.
-  
-  Import MapM.
-  Context `{!sinvGS Σ Γ α β τ, !G Γ}.
-  Notation iProp := (iProp Σ).
+  Class GS (Γ : GRA) := {
+    #[global] preΓ :: GpreΓ Γ;
+    map_name : positive;
+  }.
+  Definition GΓ : GRA := #[optionUR (exclR unitO)].
+  Global Instance subG_GΓ {Γ} : subG GΓ Γ → GpreΓ Γ.
+  Proof. solve_inG. Qed.
 
-  Definition pending : iProp := Seal.sealing "MapMS" OwnM (Some (Excl ())).
+  Import MapM.
+  Context `{!sinvGS Σ Γ α β τ, !GS Γ}.
+
+  Definition pending : iProp Σ := own map_name (Some (Excl ())).
   Lemma pending_unique : pending -∗ pending -∗ False.
   Proof.
     rewrite /pending; unseal "MapMS".
@@ -22,31 +28,31 @@ Module MapMS. Section MapMS.
   Qed. 
   (* Global Opaque pending. *)
 
-  Definition init_spec : fspec :=
+  Definition init_spec : @fspec Σ :=
     fspec_simple
       (λ (sz : nat),
         (λ varg, ⌜varg = [Vint sz]↑ ∧ (8 * sz < modulus_64)%Z⌝ ∗ pending,
           λ vret, emp))%I.
 
-  Definition get_spec : fspec := 
+  Definition get_spec : @fspec Σ := 
     fspec_simple
       (λ k,
         (λ varg, ⌜varg = [Vint k]↑⌝,
           λ vret, emp))%I.
 
-  Definition set_spec : fspec :=
+  Definition set_spec : @fspec Σ :=
     fspec_simple
       (λ '(k, v),
         (λ varg, ⌜varg = ([Vint k; Vint v])↑⌝,
           λ vret, emp))%I.
 
-  Definition set_by_user_spec : fspec := 
+  Definition set_by_user_spec : @fspec Σ := 
     fspec_simple
       (λ k,
         (λ varg, ⌜varg = [Vint k]↑⌝,
           λ vret, emp))%I.
 
-  Definition Stb : alist gname fspec :=
+  Definition Stb : alist gname (@fspec Σ) :=
     Seal.sealing "ccr"
       [(MapName.init, init_spec);
        (MapName.get, get_spec);
@@ -62,7 +68,7 @@ Module MapMS. Section MapMS.
      (MapName.set, (scopes, mk_specbody MapMS.set_spec (cfunU set)));
      (MapName.set_by_user, (scopes, mk_specbody MapMS.set_by_user_spec (cfunU set_by_user)))].
 
-  Program Definition Sem : SModSem.t := {|
+  Program Definition Sem : (@SModSem.t Σ) := {|
     SModSem.scopes := scopes;
     SModSem.fnsems := fnsems;
     SModSem.initial_st := [(v_size, 0%Z↑);
@@ -71,15 +77,15 @@ Module MapMS. Section MapMS.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition Mod : SMod.t := {|
+  Definition Mod : @SMod.t Σ := {|
     SMod.modsem := λ _, Sem;
     SMod.sk := MapSK.t;
   |}.
 
-  Definition InitCond : Sk.t → iProp :=
+  Definition InitCond : Sk.t → iProp Σ :=
     λ _, emp%I.
 
-  Variable ginv : Sk.t → invspec.
-  Variable GlobalStb : Sk.t → gname → option fspec.
-  Definition t := Seal.sealing "ccr" (SMod.to_hmod ginv GlobalStb Mod).
+  Variable ginv : Sk.t → @invspec Σ.
+  Variable GlobalStb : Sk.t → gname → option (@fspec Σ).
+  Definition t := Seal.sealing "ccr" (@SMod.to_hmod Σ ginv GlobalStb Mod).
 End MapMS. End MapMS.
