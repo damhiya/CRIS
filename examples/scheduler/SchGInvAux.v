@@ -106,11 +106,11 @@ Section MACROAUX.
   Proof.
     iIntros "[[IST W] ISIM]". rewrite !/Sch.yield. unseal "Sch".
     rewrite !unfold_iter_eq. grind. prep. iApply isim_reset.
-    iStopProof.
-    revert st_tgt. revert st_src. apply combine_quant.
-    revert nths. apply combine_quant.
-    revert ps. apply combine_quant.
-    revert pt. apply combine_quant.
+    iStopProof. revert st_tgt.
+    combine_quant st_src.
+    combine_quant nths.
+    combine_quant ps.
+    combine_quant pt.
     eapply isim_coind. ii. destruct a as [pt [ps [nths [st_src st_tgt]]]].
     iIntros "((IST & W & ISIM) & #CIH)".
 
@@ -150,11 +150,11 @@ Section MACROAUX.
   Proof.
     iIntros "[IST ISIM]". rewrite !/Sch.yield. unseal "Sch".
     rewrite !unfold_iter_eq. grind. prep. iApply isim_reset.
-    iStopProof.
-    revert st_tgt. revert st_src. apply combine_quant.
-    revert nths. apply combine_quant.
-    revert ps. apply combine_quant.
-    revert pt. apply combine_quant.
+    iStopProof. revert st_tgt.
+    combine_quant st_src.
+    combine_quant nths.
+    combine_quant ps.
+    combine_quant pt.
     eapply isim_coind. ii. destruct a as [pt [ps [nths [st_src st_tgt]]]].
     iIntros "((IST & ISIM) & #CIH)".
 
