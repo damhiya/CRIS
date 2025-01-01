@@ -46,10 +46,10 @@ Section CANCEL.
       assert(LTT: cid < List.length (tgts ++ t)) by (rewrite length_app; nia)
     end.
     iterT 2. iterL. _supd.
-    iterL. _coreA. ls. iterL. _coreA. ls. iterL. _coreA. ls.
+    iterL. _coreA. iterL. _coreA. ls.
     iterL. _supd. iterL. _supd.
     iterT 2. iterL. _supd.
-    iterL. _coreA. ls. iterL. _coreA. ls. iterL. _coreA. ls.
+    iterL. _coreA. iterL. _coreA. ls.
     iterL. _supd. iterL. _supd.
     iterT 2. iterL. tau 1. ls.
     reveal ITREE.
@@ -88,8 +88,8 @@ Section CANCEL.
     i. des.
     iterT 2. iterL. _coreE x. ls.
     iterT 2. iterL. _coreE args. ls.
-    iterT 2. iterL. _supd. iterL. _coreE (a0 ⋅ a1 ⋅ x4). ls.
-    assert (UPD': Own rs ==∗ Own (a0 ⋅ a1 ⋅ x4)).
+    iterT 2. iterL. _supd. iterL. _coreE (a0 ⋅ a1 ⋅ x3). ls.
+    assert (UPD': Own rs ==∗ Own (a0 ⋅ a1 ⋅ x3)).
     {
       iIntros "H". iPoseProof (UPD with "H") as ">H".
       iPoseProof (H1 with "H") as ">[H0 H1]".
@@ -98,17 +98,15 @@ Section CANCEL.
       iPoseProof (H6 with "H2") as "H2".
       iModIntro. rewrite !Own_op. iFrame.
     }
-    assert (VALID: ✓(a0 ⋅ a1 ⋅ x4)).
-    { eapply Own_wand_valid with (a1 := rs); eauto. }
-    iterL. _coreE VALID. ls.
-    assert (SAT: Own (a0 ⋅ a1 ⋅ x4) -∗ precond f (base.length tgts) x args x0 ∗ Own x4).
-    {
-      iIntros "((H0 & H1) & H2)". iFrame.
-      iPoseProof (H5 with "H0") as "H0".
-      iPoseProof (H2 with "H1") as "H1".
-      iApply "H1". eauto.
+    assert (VALID: ✓(a0 ⋅ a1 ⋅ x3) ∧ (Own (a0 ⋅ a1 ⋅ x3) -∗ precond f (base.length tgts) x args x0 ∗ Own x3)).
+    { split.
+      - eapply Own_wand_valid with (a1 := rs); eauto.
+      - iIntros "((H0 & H1) & H2)". iFrame.
+        iPoseProof (H5 with "H0") as "H0".
+        iPoseProof (H2 with "H1") as "H1".
+        iApply "H1". eauto.
     }
-    iterL. _coreE SAT. ls.
+    iterL. _coreE VALID. ls.
     iterL. _supd. iterL. _supd.
     iterT 2.
     reveal ITREE.

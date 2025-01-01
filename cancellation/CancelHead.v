@@ -41,25 +41,24 @@ Section CANCEL.
     iterT 2. iterL. _coreA. ls.
     iterT 2. iterL. _coreA. ls.
     iterT 2. iterL. _supd.
-    iterL. _coreA. iterL. _coreA. iterL. _coreA. ls.
+    iterL. _coreA. iterL. _coreA. ls.
     iterL. _supd. iterL. _supd.
     iterT 3. iterL. ls. tau 1.
     iterT 2. iterL. _coreE x. ls.
     iterT 2. iterL. _coreE varg. ls.
-    iterT 2.
+    iterT 2. des.
     hexploit (Own_bupd_split rt); eauto.
     i. des.
     iterL. _supd.
     iterL. _coreE (a1 ⋅ x1). ls.
-    assert (VALID: ✓ (a1 ⋅ x1)).
-    { eapply Own_wand_valid with (a1 := rt); eauto.
-      iIntros "RT". iMod (H with "RT") as "[A X]". iModIntro.
-      iSplitL "A"; eauto. iApply H1; eauto.
+    assert (VALID: ✓ (a1 ⋅ x1) ∧ (Own (a1 ⋅ x1) -∗ P cid x varg x0 ∗ Own x1)).
+    { split.
+      - eapply Own_wand_valid with (a1 := rt); eauto.
+        iIntros "RT". iMod (H with "RT") as "[A X]". iModIntro.
+        iSplitL "A"; eauto. iApply H1; eauto.
+      - iIntros "[A X]". iFrame. iApply H0. eauto.
     }
     iterL. _coreE VALID. ls.
-    assert (UPD': Own (a1 ⋅ x1) -∗ P cid x varg x0 ∗ Own x1).
-    { iIntros "[A X]". iFrame. iApply H0. eauto. }
-    iterL. _coreE UPD'. ls.
     iterL. _supd. iterL. _supd.
     iterT 2.
     reveal ITREE.

@@ -218,7 +218,7 @@ Section HPSIM_ADEQUACY.
       rewrite Any.pair_split /= alist_encode_decode; steps; eapply K; eauto.
     - clarify; steps.
       rewrite interp_hp_Assume /handle_Assume; steps.
-      rewrite /mget_res /mput_res; steps.
+      rewrite /mget_res /mput_res; steps. des.
       apply bi.wand_entails, Own_split in _ASSUME0. des.
       eapply (K (fmr0 ⋅ a1)); eauto.
       { iIntros "[FMR X]"; iMod (CUR with "FMR") as "FMR". iFrame.
@@ -233,7 +233,7 @@ Section HPSIM_ADEQUACY.
       { eauto. }
     - clarify; steps.
       rewrite interp_hp_Guarantee /handle_Guarantee; steps.
-      rewrite /mget_res /mput_res; steps.
+      rewrite /mget_res /mput_res; steps. des.
       hexploit (Own_bupd_split); eauto.
       { hexploit (Own_wand_valid _ _ FMR); eauto using cmra_valid_op_r. }
       intros [rP [frt [UPD [HP Hx]]]]; eapply (K (fmr0 ⋅ rP)); eauto.
@@ -249,13 +249,12 @@ Section HPSIM_ADEQUACY.
       rewrite interp_hp_Guarantee /handle_Guarantee; steps.
       rewrite /mget_res /mput_res; steps.
       instantiate (1 := (ctx_sem ctx ⋅ rFMR ⋅ mr_tgt)).
-      rewrite /guarantee; force_l.
+      rewrite /guarantee; force_l; [split|].
       { eapply (Own_wand_valid mr_src); eauto.
         iIntros "MRS"; iMod (FMR with "MRS") as "[[CTX FMR] MRT]"; iMod (x1 with "FMR") as "FMR".
         iMod (SPLIT with "FMR") as "[P FMR]".
         iSplitR "MRT"; eauto. iSplitL "CTX"; eauto.
       }
-      rewrite /guarantee; force_l.
       { iIntros "MRS"; iMod (FMR with "MRS") as "[[CTX FMR] MRT]"; iMod (x1 with "FMR") as "FMR".
         iMod (SPLIT with "FMR") as "[P FMR]". iPoseProof (HP with "P") as "P".
         iSplitL "P"; eauto. iSplitR "MRT"; eauto. iSplitR "FMR"; eauto.
@@ -271,13 +270,13 @@ Section HPSIM_ADEQUACY.
       rewrite interp_hp_Assume /handle_Assume; steps.
       rewrite /mget_res /mput_res; steps.
       instantiate (1 := rP ⋅ mr_tgt).
-      rewrite /assume; force_r.
+      rewrite /assume; force_r; [split|].
       { eapply (Own_wand_valid mr_src); eauto.
         iIntros "MRS"; iMod (FMR with "MRS") as "[[_ FMR] MRT]"; iMod (x1 with "FMR") as "FMR".
         iMod (SPLIT with "FMR") as "[RP _]"; iModIntro; iSplitL "RP"; iFrame.
       }
-      steps.
       { iIntros "(P & MRT)". iFrame. iApply HP. eauto. }
+      steps.
       eapply K; eauto.
       { iIntros "?"; iApply HFMR; eauto. }
       { iIntros "MRS"; iMod (FMR with "MRS") as "[[CTX FMR] MRT]"; iMod (x1 with "FMR") as "FMR";
