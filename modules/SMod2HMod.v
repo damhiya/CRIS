@@ -137,7 +137,7 @@ Section HOARE.
            (case_ (bif:=sum1) handle_callE_hmodE
             trivial_Handler))) it.
 
-  Definition Hoareλ {X: Type}
+  Definition HoareFun {X: Type}
     (P: nat → X → Any.t → Any.t → iProp)
     (Q: nat → X → Any.t → Any.t → iProp)
     (body: Any.t → itree hmodE Any.t): Any.t → itree hmodE Any.t
@@ -158,7 +158,7 @@ Section HOARE.
   
   Definition interp_sb_hp (sb: fspecbody): (Any.t → itree hmodE Any.t) :=
     let fs: fspec := sb.(fsb_fspec) in
-    Hoareλ fs.(precond) fs.(postcond) sb.(fsb_body).
+    HoareFun fs.(precond) fs.(postcond) sb.(fsb_body).
 
 End HOARE.
 
