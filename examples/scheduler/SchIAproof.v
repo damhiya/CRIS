@@ -282,7 +282,7 @@ Section SIMMODSEM.
     
     iApply isim_reset. iStopProof.
     revert NODD1. revert NODS1. apply combine_quant.
-    revert st_tgt1. apply combine_quant_dep.
+    revert st_tgt1. apply combine_quant.
     revert st_src1. apply combine_quant_dep.
     revert nths1. apply combine_quant.
     eapply isim_coind. i.

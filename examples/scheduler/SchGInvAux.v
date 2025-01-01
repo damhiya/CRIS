@@ -25,11 +25,11 @@ Section MACROAUX.
       (((Ist nths st_src st_tgt) ∗ (∃ n, closed_universe univ n ⊤) ∗ pre) ∗
       (∀ nths0 st_src0 st_tgt0 tid,
         ((Ist nths0 st_src0 st_tgt0) ∗ (∃ n, closed_universe univ n ⊤) ∗ (SchAS.token_th tid postS))
-        -∗ @isim Σ fl fr Ist my_tid r g R RR true true nths0 
+        -∗ @isim Σ fl fr Ist my_tid false r g R RR true true nths0 
               (st_src0, k_src tid)
               (st_tgt0, k_tgt tid)))
     ⊢
-      (isim fl fr Ist my_tid r g RR ps pt nths 
+      (isim fl fr Ist my_tid false r g RR ps pt nths 
         (st_src, (HModSem.sandbox scp_src (interp_smod invspc (StbSch sk) (Sch.spawn (fn, fvarg)))) >>= k_src)
         (st_tgt, (HModSem.sandbox scp_tgt (PModSem.interp (Sch.spawn (fn, farg)))) >>= k_tgt)).
   Proof.
@@ -60,11 +60,11 @@ Section MACROAUX.
       ((Ist nths st_src st_tgt) ∗
       (∀ nths0 st_src0 st_tgt0 tid,
         (Ist nths0 st_src0 st_tgt0)
-        -∗ @isim Σ fl fr Ist my_tid r g R RR true true nths0 
+        -∗ @isim Σ fl fr Ist my_tid false r g R RR true true nths0 
               (st_src0, k_src tid)
               (st_tgt0, k_tgt tid)))
     ⊢
-      (isim fl fr Ist my_tid r g RR ps pt nths 
+      (isim fl fr Ist my_tid false r g RR ps pt nths 
         (st_src, (HModSem.sandbox scp_src (interp_smod invspc_src (stb_src sk) (Sch.spawn (fn, fvarg))))>>= k_src)
         (st_tgt, (HModSem.sandbox scp_tgt (interp_smod invspc_tgt (stb_tgt sk) (Sch.spawn (fn, fvarg)))) >>= k_tgt)).
   Proof.
@@ -97,10 +97,10 @@ Section MACROAUX.
       (((Ist nths st_src st_tgt) ∗ (∃ n, closed_universe univ n ⊤)) ∗
       (∀ nths0 st_src0 st_tgt0,
         ((Ist nths0 st_src0 st_tgt0) ∗ (∃ n, closed_universe univ n ⊤))
-        -∗ @isim Σ fl fr Ist my_tid r g R RR false true nths0 
+        -∗ @isim Σ fl fr Ist my_tid false r g R RR false true nths0 
               (st_src0, (HModSem.sandbox scp_src (interp_smod invspc stb (Sch.yield))) >>= k_src) 
               (st_tgt0, k_tgt tt)))
-      (isim fl fr Ist my_tid r g RR ps pt nths 
+      (isim fl fr Ist my_tid false r g RR ps pt nths 
         (st_src, (HModSem.sandbox scp_src (interp_smod invspc stb (Sch.yield))) >>= k_src) 
         (st_tgt, (HModSem.sandbox scp_tgt (PModSem.interp (Sch.yield))) >>= k_tgt)).
   Proof.
@@ -141,10 +141,10 @@ Section MACROAUX.
       ((Ist nths st_src st_tgt) ∗
       (∀ nths0 st_src0 st_tgt0,
         (Ist nths0 st_src0 st_tgt0)
-        -∗ @isim Σ fl fr Ist my_tid r g R RR false true nths0 
+        -∗ @isim Σ fl fr Ist my_tid false r g R RR false true nths0 
               (st_src0, (HModSem.sandbox scp_src (interp_smod invspc stb (Sch.yield))) >>= k_src) 
               (st_tgt0, k_tgt tt)))
-      (isim fl fr Ist my_tid r g RR ps pt nths 
+      (isim fl fr Ist my_tid false r g RR ps pt nths 
         (st_src, (HModSem.sandbox scp_src (interp_smod invspc stb (Sch.yield))) >>= k_src) 
         (st_tgt, (HModSem.sandbox scp_tgt (interp_smod invspc stb (Sch.yield))) >>= k_tgt)).
   Proof.
@@ -191,10 +191,10 @@ Section MACROAUX.
       (((Ist nths st_src st_tgt) ∗ (∃ n, closed_universe univ n ⊤)) ∗
       (∀ nths0 st_src0 st_tgt0,
         ((Ist nths0 st_src0 st_tgt0) ∗ (∃ n, closed_universe univ n ⊤))
-        -∗ @isim Σ fl fr Ist my_tid r g R RR true false nths0 
+        -∗ @isim Σ fl fr Ist my_tid false r g R RR true false nths0 
               (st_src0, k_src tt) 
               (st_tgt0, i_tgt)))
-      (isim fl fr Ist my_tid r g RR ps pt nths 
+      (isim fl fr Ist my_tid false r g RR ps pt nths 
         (st_src, (HModSem.sandbox scp_src (interp_smod invspc stb (Sch.yield))) >>= k_src) 
         (st_tgt, i_tgt)).
   Proof.
@@ -212,11 +212,11 @@ Section MACROAUX.
       (((Ist nths st_src st_tgt) ∗ (∃ n, closed_universe univ n ⊤) ∗ (SchAS.token_th tid postS)) ∗
       (∀ nths0 st_src0 st_tgt0 (ret: RT),
         ((Ist nths0 st_src0 st_tgt0) ∗ (∃ n, closed_universe univ n ⊤) ∗ (interp_cond (postS ret↑↑)))
-        -∗ @isim Σ fl fr Ist my_tid r g R RR true true nths0 
+        -∗ @isim Σ fl fr Ist my_tid false r g R RR true true nths0 
               (st_src0, k_src ret)
               (st_tgt0, k_tgt ret)))
     ⊢
-      (isim fl fr Ist my_tid r g RR ps pt nths 
+      (isim fl fr Ist my_tid false r g RR ps pt nths 
         (st_src, (HModSem.sandbox scp_src (interp_smod invspc (StbSch sk) (Sch.join RT tid))) >>= k_src)
         (st_tgt, (HModSem.sandbox scp_tgt (PModSem.interp (Sch.join RT tid))) >>= k_tgt)).
   Proof.
@@ -240,11 +240,11 @@ Section MACROAUX.
       ((Ist nths st_src st_tgt) ∗
       (∀ nths0 st_src0 st_tgt0 (ret: RT),
         (Ist nths0 st_src0 st_tgt0)
-        -∗ @isim Σ fl fr Ist my_tid r g R RR true true nths0 
+        -∗ @isim Σ fl fr Ist my_tid false r g R RR true true nths0 
               (st_src0, k_src ret)
               (st_tgt0, k_tgt ret)))
     ⊢
-      (isim fl fr Ist my_tid r g RR ps pt nths 
+      (isim fl fr Ist my_tid false r g RR ps pt nths 
         (st_src, (HModSem.sandbox scp_src (interp_smod invspc_src (stb_src sk) (Sch.join RT tid)))>>= k_src)
         (st_tgt, (HModSem.sandbox scp_tgt (interp_smod invspc_tgt (stb_tgt sk) (Sch.join RT tid))) >>= k_tgt)).
   Proof.

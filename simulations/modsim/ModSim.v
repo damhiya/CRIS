@@ -181,6 +181,16 @@ Section SIM_ITREE.
     :
     sim_itree_def sim_itree RR self ps pt w nths (st_src, i_src)
       (st_tgt, trigger Tid >>= k_tgt)
+      
+  | sim_itree_call_none
+      ps pt w nths st_src st_tgt
+      fn varg i_src k_tgt
+      (FUN: alist_find fn fl_tgt = None)
+      (K: self ps true w nths (st_src, i_src) (st_tgt, x <- triggerNB;; tau;; k_tgt x))
+    :
+    sim_itree_def sim_itree RR self ps pt w nths
+      (st_src, i_src)
+      (st_tgt, trigger (Call fn varg) >>= k_tgt)
 
   | sim_itree_progress
       w w0 nths st_src st_tgt 
@@ -224,7 +234,8 @@ Section SIM_ITREE.
   Lemma sim_itree_mon : monotone9 _sim_itree.
   Proof.
     ii. eapply sim_itree_tarski; eauto.
-    econs; inv PR; econs; eauto.
+    econs; inv PR. 
+    all: eauto using sim_itree_def.
   Qed.
 
   Hint Constructors _sim_itree: core.
@@ -326,6 +337,7 @@ Section SIM_ITREE.
     { econs 15; eauto. des. esplits; eauto. eapply sim_itree_mon; eauto. i. eapply rclo9_base. eauto.  }
     { econs 16; eauto. des. esplits; eauto. eapply sim_itree_mon; eauto. i. eapply rclo9_base. eauto.  }
     { econs 17; eauto. des. esplits; eauto. eapply sim_itree_mon; eauto. i. eapply rclo9_base. eauto.  }
+    { econs 18; eauto. des. esplits; eauto. eapply sim_itree_mon; eauto. i. eapply rclo9_base. eauto.  }
     { ss. }
   Qed.
 
@@ -353,7 +365,8 @@ Section SIM_ITREE.
     { guclo sim_itree_indC_spec. econs 15; eauto. gbase. eauto. }
     { guclo sim_itree_indC_spec. econs 16; eauto. gbase. eauto. }
     { guclo sim_itree_indC_spec. econs 17; eauto. gbase. eauto. }
-    { guclo sim_itree_indC_spec. econs 18; eauto. }
+    { guclo sim_itree_indC_spec. econs 18; eauto. gbase. eauto. }
+    { guclo sim_itree_indC_spec. econs 19; eauto. }
   Qed.
 
   Lemma sim_itreeC_spec r g
@@ -458,7 +471,8 @@ Section SIM_ITREE.
     gcofix CIH. 
     i. revert ps pt. pattern b, b0, w, nths, st_src, st_tgt.
     eapply sim_itree_ind, SIM. i.
-    inv PR; ss; i; clarify; try (guclo sim_itree_indC_spec; hdes; econs; eauto).
+    inv PR; ss; i; clarify.
+    all: try (by guclo sim_itree_indC_spec; hdes; econs; eauto).
     eapply sim_itree_flag_down. gfinal. right.
     eapply paco9_mon.
     - punfold SIM0. pstep. eapply sim_itree_wmon; eauto using le_others_refl.
@@ -500,19 +514,26 @@ Section SIM_ITREE.
     move SIM before GF. revert_until SIM. eapply GF in SIM.
     pattern x3, x4, x5, x6, p, p0.
     eapply sim_itree_tarski, SIM.
-    i. inv PR; clarify; grind; try (econs; econs; eauto).
+    i. inv PR; clarify; grind; try econs. 
+    all: try by econs; eauto.
     - exploit SIMK; eauto. i.
       eapply sim_itree_flag_mon with (ps0 := false) (pt0 := false); ss.
       eapply sim_itree_mon.
       + eapply sim_itree_wmon; eauto.
       + eauto using rclo9.
-    - exploit K; et. i. rewrite ->!bind_bind in *.
+    - econs; eauto.
+      exploit K; et. i. rewrite ->!bind_bind in *.
       erewrite equal_f; eauto. do 3 eapply f_equal.
       extensionalities. rewrite bind_tau. eauto.
-    - exploit K; et. i. rewrite ->!bind_bind in *.
+    - econs; eauto.
+      exploit K; et. i. rewrite ->!bind_bind in *.
       erewrite f_equal; eauto. do 2 eapply f_equal.
       extensionalities. rewrite bind_tau. eauto.
-    - eapply rclo9_clo_base. eauto.
+    - eapply sim_itree_call_none; eauto.
+      exploit K; et. i. rewrite ->!bind_bind in *.
+      eapply eq_ind; eauto. do 2 f_equal.
+      extensionalities. grind.
+    - econs; eauto. eapply rclo9_clo_base. eauto.
   Qed.
 
   Lemma lbindC_spec : lbindC <10= gupaco9 (_sim_itree) (cpn9 (_sim_itree)).

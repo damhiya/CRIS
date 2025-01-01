@@ -2,6 +2,7 @@ Require ClassicalFacts.
 Require FunctionalExtensionality.
 Require ChoiceFacts.
 Require IndefiniteDescription.
+Require ProofIrrelevance.
 
 Lemma func_ext_dep {A} {B : A -> Type} (f g : forall x, B x) : (forall x, f x = g x) -> f = g.
 Proof.
@@ -22,8 +23,8 @@ Proof.
   clear. exact Coq.Logic.IndefiniteDescription.functional_choice.
 Qed.
 
-Axiom proof_irr : ClassicalFacts.proof_irrelevance.
-
+Lemma proof_irr : ClassicalFacts.proof_irrelevance.
+Proof.
+  red. intros. apply ProofIrrelevance.proof_irrelevance.
+Qed.
 Arguments proof_irr [A].
-
-Axiom prop_ext : ClassicalFacts.prop_extensionality.

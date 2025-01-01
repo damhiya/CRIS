@@ -1,8 +1,6 @@
 Require Import Common.
 
 Require Import Skeleton HMod SMod.
-Require Import HPSim.
-
 Require Export ISimCore ITacticsCore.
 
 Set Implicit Arguments.
@@ -12,14 +10,14 @@ Section LEMMAS.
 (***** Move and rename: HoareCall LEMMAS *****)
 
   Lemma hcall_clo Σ
-    fls flt I my_tid r g ps pt {R} RR nths st_src st_tgt k_src k_tgt
+    fls flt I my_tid is_closed r g ps pt {R} RR nths st_src st_tgt k_src k_tgt
     fn varg arg X (x: shelve__ X) P Q :
     (P my_tid x varg arg
     ∗ I nths st_src st_tgt
     ∗ (∀ nths0 st_src0 st_tgt0 vret ret,
         (Q my_tid x vret ret ∗ I nths0 st_src0 st_tgt0)
-        -∗ @isim Σ fls flt I my_tid r g R RR true true nths0 (st_src0, k_src vret) (st_tgt0, k_tgt ret)))
-    ⊢ @isim _ fls flt I my_tid r g R RR ps pt nths
+        -∗ @isim Σ fls flt I my_tid is_closed r g R RR true true nths0 (st_src0, k_src vret) (st_tgt0, k_tgt ret)))
+    ⊢ @isim _ fls flt I my_tid is_closed r g R RR ps pt nths
         (st_src, HoareCall (mk_fspec P Q) fn varg >>= k_src)
         (st_tgt, trigger (Call fn arg) >>= k_tgt).
   Proof.
@@ -70,13 +68,13 @@ Section HModProd.
     rewrite /state_scopes -!List.map_map alist_upd_keys. eauto.
   Qed.
   
-  Lemma isim_reflR Ist fl_src fl_tgt scopesL scopesR scopesF (EqR : _ → _ → _ → iProp) itr
+  Lemma isim_reflR Ist is_closed fl_src fl_tgt scopesL scopesR scopesF (EqR : _ → _ → _ → iProp) itr
       (DISJ : List.NoDup (scopesL ++ scopesR))
       (INCL : incl scopesF scopesR)
       (EQGET : ∀ nths st_src st_tgt, EqR nths st_src st_tgt -∗ ⌜st_src = st_tgt⌝)
       (EQSET : ∀ nths st_src st_tgt nths0 (k : key) v,
           EqR nths st_src st_tgt -∗ EqR nths0 (alist_upd k v st_src) (alist_upd k v st_tgt)) :
-    isim_fsem fl_src fl_tgt (IstProd0 (IstSB0 scopesL Ist) EqR)
+    isim_fsem fl_src fl_tgt (IstProd0 (IstSB0 scopesL Ist) EqR) is_closed
       (HModSem.sandbox_body (scopesF,itr)) (HModSem.sandbox_body (scopesF,itr)).
   Proof.
     ii. subst. unfold HModSem.sandbox_body. s.
@@ -88,7 +86,7 @@ Section HModProd.
     revert nths. apply combine_quant.
     eapply isim_coind. intros g0 a _. destruct a as [nths [st_src [st_tgt [NODS [NODD it]]]]]. s.
     iIntros "[IST CIH]".
-    assert (CASE := case_itrH _ it); des; subst.
+    assert (CASE := case_itrH it); des; subst.
     - step. iFrame. eauto.
     - steps_l. steps_r. by_coind "CIH"; eauto.
     - steps_l. forces_r. iFrame. by_coind "CIH". eauto.
@@ -146,7 +144,7 @@ Section HModProd.
   { eapply alist_upd_nodup. eauto. }
   Qed.
 
-  Lemma mod_sim_reflR A B C init_cond Ist
+  Lemma mod_sim_reflR A B C init_cond Ist is_closed
     (INIT : ∀ sk, init_cond sk -∗
                     IstProd (IstSB A Ist) IstEq sk 1
                     (HModSem.initial_st (HMod.modsem (HMod.add A C) sk))
@@ -160,10 +158,10 @@ Section HModProd.
             (IN : In fn (List.map fst (HModSem.fnsems (HMod.modsem B sk))))
             (SKINCL : List.incl (HMod.sk (HMod.add B C)) sk) (SKWF : Sk.wf sk), 
           HSSim.sim_fun (HMod.modsem (HMod.add A C) sk) (HMod.modsem (HMod.add B C) sk)
-            (IstProd (IstSB A Ist) IstEq sk) fn)
+            (IstProd (IstSB A Ist) IstEq sk) is_closed fn)
     (SK : HMod.sk A = HMod.sk B)
     :
-    HSim.t (HMod.add A C) (HMod.add B C) init_cond (IstProd (IstSB A Ist) IstEq).
+    HSim._t (HMod.add A C) (HMod.add B C) init_cond (IstProd (IstSB A Ist) IstEq) is_closed.
   Proof.
     econs; cycle 1.
     { rr. eapply Permutation_app_tail. rewrite SK. refl. }

@@ -11,6 +11,7 @@ Section HPSIM.
   Variable fl_tgt : alist gname (Any.t → itree hmodE Any.t).
   Variable Ist : nat → alist key Any.t → alist key Any.t → iProp.
   Variable my_tid : nat.
+  Variable is_closed: bool.
 
   (* Note : iProp-style definition of hsupd (λ fmr, Own fmr ⊢ ∃ fmr0, |==> ⌜P fmr0⌝)
       incurs positivity problem when defining _hpsim. *)
@@ -236,12 +237,23 @@ Section HPSIM.
     :
     _hpsim' hpsimc hpsimi ps pt nths (st_src, i_src) (st_tgt, trigger Tid >>= k_tgt) fmr
 
+  | hpsim_call_none
+      (HPSIM_CALL_NONE: True)
+      ps pt nths st_src st_tgt fmr
+      fn varg i_src k_tgt
+      (CLOSED: is_closed = true)
+      (FUN: alist_find fn fl_tgt = None)
+      (K: hpsimi ps true nths (st_src, i_src) (st_tgt, triggerNB >>= (λ ret, tau;; tau;; k_tgt ret)) fmr)
+    :
+    _hpsim' hpsimc hpsimi ps pt nths (st_src, i_src) (st_tgt, trigger (Call fn varg) >>= k_tgt) fmr
+
   | hpsim_progress
       (HPSIM_PROGRESS : True)
       nths sti_src sti_tgt fmr
       (SIM : hpsimc R RR false false nths sti_src sti_tgt fmr)
     :
     _hpsim' hpsimc hpsimi true true nths sti_src sti_tgt fmr.
+
   Global Arguments _hpsim' hpsimc {R} RR hpsimi.
 
   Inductive _hpsim hpsim R RR ps pt nths sti_src sti_tgt fmr : Prop :=
@@ -271,7 +283,10 @@ Section HPSIM.
       (LEr : r <8= r')
       (LEs : s <6= s') :
     @_hpsim' r' R RR s' ps pt nths sti_src sti_tgt fmr.
-  Proof. ii. destruct REL; des; esplits; eauto; econs; esplits; eauto. Qed.
+  Proof. 
+    ii. destruct REL.
+    all: des; esplits; eauto using _hpsim'.
+  Qed.
   
   Lemma _hpsim_mon : monotone8 _hpsim.
   Proof.
@@ -305,33 +320,6 @@ Section HPSIM.
   Definition hpsim_fun (i_src : itree hmodE Any.t) (i_tgt : itree hmodE Any.t) : Prop :=
     ∀ nths st_src st_tgt fmr (INV : Own fmr ⊢ |==> Ist nths st_src st_tgt),
       hpsim_body false false nths (st_src, i_src) (st_tgt, i_tgt) fmr.
-
-  Lemma case_itrH R (itrH : itree hmodE R) :
-    (exists v, itrH = Ret v) \/
-    (exists itrH', itrH = tau;; itrH') \/
-    (exists P itrH', itrH = (trigger (Assume P);;; itrH')) \/
-    (exists P itrH', itrH = (trigger (Guarantee P);;; itrH')) \/
-    (exists R (s : schE R) ktrH', itrH = (trigger s >>= ktrH')) \/
-    (exists R (c : callE R) ktrH', itrH = (trigger c >>= ktrH')) \/
-    (exists R (s : pgE R) ktrH', itrH = (trigger s >>= ktrH')) \/
-    (exists R (e : coreE R) ktrH', itrH = (trigger e >>= ktrH')).
-  Proof.
-    ides itrH; eauto.
-    right; right.
-    destruct e; [destruct a|destruct p; [|destruct s; [|destruct s]]].
-    - left. exists P, (k()). unfold trigger. rewrite bind_vis.
-      repeat f_equal. extensionality x. destruct x. rewrite bind_ret_l. eauto.
-    - right; left. exists P, (k()). unfold trigger. rewrite bind_vis.
-      repeat f_equal. extensionality x. destruct x. rewrite bind_ret_l. eauto.
-    - do 2 right; left. exists X, s, k. unfold trigger. rewrite bind_vis.
-      repeat f_equal. extensionality x. rewrite bind_ret_l. eauto.
-    - do 3 right; left. exists X, c, k. unfold trigger. rewrite bind_vis.
-      repeat f_equal. extensionality x. rewrite bind_ret_l. eauto.
-    - do 4 right; left. exists X, p, k. unfold trigger. rewrite bind_vis.
-      repeat f_equal. extensionality x. rewrite bind_ret_l. eauto.
-    - do 5 right. exists X, c, k. unfold trigger. rewrite bind_vis.
-      repeat f_equal. extensionality x. rewrite bind_ret_l. eauto.
-  Qed.
 
   Lemma hsupd_incl P : P <1= hsupd P.
   Proof.
@@ -477,12 +465,14 @@ Section HPSIM.
       try (by do 2 (econs; esplits; eauto with paco);
               repeat rewrite <-bind_bind;
               eauto 10 using rclo8, hpsim_bindC).
-    { exploit SIMK; eauto.
+    - exploit SIMK; eauto.
       i. apply GF in x0. eapply (_hpsim_flag_mon _ _ _ _  _ ps0 pt0) in x0; try by i; clarify.
       destruct x0. eapply hsupd_update in IN; eauto.
       eapply _hpsim_mon_auto; eauto using rclo8.
       eapply Own_bupd_update; eauto.
-    }  
+    - esplits; eauto. eapply hpsim_call_none; eauto.
+      unfold triggerNB. ired. econs. econs. esplits; eauto.
+      econs; eauto. i. ss.  
   Qed.
 
   Lemma hpsim_bindC_spec : hpsim_bindC <9= gupaco8 _hpsim (cpn8 _hpsim).

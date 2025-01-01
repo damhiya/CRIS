@@ -344,3 +344,34 @@ Module HModSB. Section HModSB.
     HModSem.sandbox scopes (guarantee P) = guarantee P.
   Proof. rewrite /guarantee transl_bind transl_core transl_ret. eauto. Qed.
 End HModSB. End HModSB.
+
+Section HModProp.
+  Context {Σ : GRA.t}.
+
+  Lemma case_itrH R (itrH : itree hmodE R) :
+    (exists v, itrH = Ret v) \/
+    (exists itrH', itrH = tau;; itrH') \/
+    (exists P itrH', itrH = (trigger (Assume P);;; itrH')) \/
+    (exists P itrH', itrH = (trigger (Guarantee P);;; itrH')) \/
+    (exists R (s : schE R) ktrH', itrH = (trigger s >>= ktrH')) \/
+    (exists R (c : callE R) ktrH', itrH = (trigger c >>= ktrH')) \/
+    (exists R (s : pgE R) ktrH', itrH = (trigger s >>= ktrH')) \/
+    (exists R (e : coreE R) ktrH', itrH = (trigger e >>= ktrH')).
+  Proof.
+    ides itrH; eauto.
+    right; right.
+    destruct e; [destruct a|destruct p; [|destruct s; [|destruct s]]].
+    - left. exists P, (k()). unfold trigger. rewrite bind_vis.
+      repeat f_equal. extensionality x. destruct x. rewrite bind_ret_l. eauto.
+    - right; left. exists P, (k()). unfold trigger. rewrite bind_vis.
+      repeat f_equal. extensionality x. destruct x. rewrite bind_ret_l. eauto.
+    - do 2 right; left. exists X, s, k. unfold trigger. rewrite bind_vis.
+      repeat f_equal. extensionality x. rewrite bind_ret_l. eauto.
+    - do 3 right; left. exists X, c, k. unfold trigger. rewrite bind_vis.
+      repeat f_equal. extensionality x. rewrite bind_ret_l. eauto.
+    - do 4 right; left. exists X, p, k. unfold trigger. rewrite bind_vis.
+      repeat f_equal. extensionality x. rewrite bind_ret_l. eauto.
+    - do 5 right. exists X, c, k. unfold trigger. rewrite bind_vis.
+      repeat f_equal. extensionality x. rewrite bind_ret_l. eauto.
+  Qed.
+End HModProp.

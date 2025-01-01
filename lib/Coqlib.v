@@ -211,7 +211,7 @@ Proof. eauto. Qed.
 Ltac dsplit_r := eapply dependent_split_right.
 Ltac dsplit_l := eapply dependent_split_left.
 Ltac dsplits :=
-  repeat (let NAME := fresh "SPLITHINT" in try (dsplit_r; [|intro NAME])).
+  hrepeat do 1 (let NAME := fresh "SPLITHINT" in try (dsplit_r; [|intro NAME])).
 
 Definition sumbool_to_bool {P Q : Prop} (a : {P} + {Q}) : bool := if a then true else false.
 
@@ -234,7 +234,7 @@ Lemma sumbool_to_bool_false P Q (pq : { P } + { Q }) : sumbool_to_bool pq = fals
 Proof. intros. destruct pq; ss. Qed.
 
 Ltac des_sumbool :=
-  repeat
+  hrepeat do 1
     (unfold Datatypes.is_true, is_true in *;
      match goal with
      | [ H : sumbool_to_bool ?x = true |- _ ] => apply sumbool_to_bool_true in H
@@ -299,11 +299,11 @@ Ltac all_once_fast TAC :=
   generalize (I : aof_true);
   let name := fresh "bar" in
   place_bar name; revert_until name;
-  repeat
+  (hrepeat do 1
     match goal with
     | [ |- aof_true -> _ ] => fail 1
     | _ => intro; on_last_hyp TAC
-    end;
+    end);
   intro; on_last_hyp ltac:(fun H => clear H);
   clear name.
 
@@ -466,7 +466,7 @@ Ltac revert_until_bar :=
 
 (* Ltac folder := all_once_fast ltac:(fun H => try (is_local_definition H; fold_all H)). *)
 Ltac folder :=
-  repeat multimatch goal with
+  hrepeat do 1 multimatch goal with
          | [ H : _ |- _ ] => is_local_definition H; fold_all H
          end.
 
@@ -535,7 +535,7 @@ Proof. ginduction FORALL2; ii; ss. lia. Qed.
 
 Ltac hexpl_aux H NAME :=
   let n := fresh NAME in
-  first[hexploit H; eauto; check_safe; repeat intro n; des].
+  first[hexploit H; eauto; check_safe; (hrepeat do 1 intro n); des].
 Tactic Notation "hexpl" constr(H) := hexpl_aux H H.
 (* Tactic Notation "hexpl" constr(H) tactic(TAC) := hexpl_aux H TAC. *)
 Tactic Notation "hexpl" constr(H) ident(NAME) := hexpl_aux H NAME.
@@ -1287,7 +1287,7 @@ Proof.
 Qed.
 
 Ltac fold_not :=
-  repeat
+  hrepeat do 1
     multimatch goal with
     | H : context [?P -> False] |- _ => fold (~ P) in H
     | |- context [?P -> False] => fold (~ P)
@@ -1341,7 +1341,7 @@ Ltac Psimpl_ :=
   end
 .
 
-Ltac Psimpl := repeat Psimpl_.
+Ltac Psimpl := hrepeat do 1 Psimpl_.
 
 Goal (~ forall (mm : nat), mm = 0%nat) -> exists n, n <> 0%nat.
   ii. Psimpl. exists mm. assumption.
@@ -1425,9 +1425,9 @@ Ltac smart_intro T :=
   (* end *)
 .
 
-Tactic Notation "ii" "as" ident(a) := repeat (let name := fresh a in intro name).
+Tactic Notation "ii" "as" ident(a) := hrepeat do 1 (let name := fresh a in intro name).
 (* Ltac sii := repeat (smart_intro "X"). *)
-Tactic Notation "sii" ident(X) := repeat (smart_intro X).
+Tactic Notation "sii" ident(X) := hrepeat do 1 (smart_intro X).
 Goal forall (t : True), True -> forall (u : True), True -> False.
 Proof.
   sii T.
@@ -1453,10 +1453,10 @@ Ltac seal x :=
   seal_with key x.
 Ltac unseal x :=
   match (type of x) with
-  | string => repeat rewrite (@Seal.sealing_eq x); try clear x
-  | _ => repeat rewrite (@Seal.sealing_eq _ _ x);
-         repeat match goal with
-                | [ H : string |- _ ] => try clear H
+  | string => (hrepeat do 1 rewrite (@Seal.sealing_eq x)); try clear x
+  | _ => (hrepeat do 1 rewrite (@Seal.sealing_eq _ _ x));
+         hrepeat do 1 match goal with
+                | [ H : string |- _ ] => clear H
                 end
   end
 .

@@ -200,22 +200,23 @@ Section AUX.
 
   Ltac hstep := guclo hpsimC_spec; econs; econs; eauto; econs; eauto.
 
-  Lemma hpsim_ctx fnsems_src fnsems_tgt fl_src fl_tgt fl_ctx Ist my_tid scopes scopeC
+  Lemma hpsim_ctx fnsems_src fnsems_tgt fl_src fl_tgt fl_ctx Ist my_tid is_closed scopes scopeC
       (FLS : fl_src = (List.map (map_snd HModSem.sandbox_body) fnsems_src))
       (FLT : fl_tgt = (List.map (map_snd HModSem.sandbox_body) fnsems_tgt))
       (WS : ∀ (fn : gname) p (IN : alist_find fn fnsems_src = Some p), incl p.1 scopes)
       (WT : ∀ (fn : gname) p (IN : alist_find fn fnsems_tgt = Some p), incl p.1 scopes)
       (DISJ : List.NoDup (scopes ++ scopeC))
 
-      ps pt nths st_src st_tgt st_ctx itr_src itr_tgt fmr
-      (SCPS : incl (state_scopes st_src) scopes)
-      (SCPT : incl (state_scopes st_tgt) scopes)
-      (SCPC : incl (state_scopes st_ctx) scopeC)
-      (ITRS : HModSem.sandbox scopes itr_src = itr_src)
-      (ITRT : HModSem.sandbox scopes itr_tgt = itr_tgt)
-      (SIM : hpsim_body fl_src fl_tgt Ist my_tid ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr) :
+    ps pt nths st_src st_tgt st_ctx itr_src itr_tgt fmr
+    (SCPS : incl (state_scopes st_src) scopes)
+    (SCPT : incl (state_scopes st_tgt) scopes)
+    (SCPC : incl (state_scopes st_ctx) scopeC)
+    (ITRS : HModSem.sandbox scopes itr_src = itr_src)
+    (ITRT : HModSem.sandbox scopes itr_tgt = itr_tgt)
+    (SIM : hpsim_body fl_src fl_tgt Ist my_tid false ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr)
+    :
     hpsim_body (fl_src ++ fl_ctx) (fl_tgt ++ fl_ctx) 
-    (IstProd0 (IstSB0 scopes Ist) (IstSB0 scopeC IstEq0)) my_tid
+    (IstProd0 (IstSB0 scopes Ist) (IstSB0 scopeC IstEq0)) my_tid is_closed
     ps pt nths (st_src ++ st_ctx, itr_src) (st_tgt ++ st_ctx, itr_tgt) fmr.
   Proof.
     guardH FLS. guardH FLT.
@@ -409,14 +410,13 @@ Section AUX.
     - hstep. eapply K; try refl; eauto.
       rewrite HModSB.transl_bind HModSB.transl_sch !bind_trigger in ITRT.
       depdes ITRT. eapply equal_f in x. eauto.
-      
     - gstep. econs. econs. econs; eauto. econs; eauto. 
       gbase. pclearbot. eapply CIH; try refl; eauto.
       ii. eauto.
   Qed.
 
   Lemma isim_ctx
-    fs ft ms mt ctx Ist fn
+    fs ft ms mt ctx Ist fn is_closed
     (WFS : HModSem.wf (HModSem.add ms ctx))
     (WFT : HModSem.wf (HModSem.add mt ctx))
     (FINDS : alist_find fn (HModSem.fnsems ms) = Some fs)
@@ -429,7 +429,7 @@ Section AUX.
     (SIM : isim_fsem
        (List.map (map_snd HModSem.sandbox_body) (HModSem.fnsems ms))
        (List.map (map_snd HModSem.sandbox_body) (HModSem.fnsems mt))
-       Ist
+       Ist false
        (HModSem.sandbox_body fs)
        (HModSem.sandbox_body ft))
     :
@@ -438,7 +438,7 @@ Section AUX.
            (HModSem.fnsems ms ++ HModSem.fnsems ctx))
         (List.map (map_snd HModSem.sandbox_body)
            (HModSem.fnsems mt ++ HModSem.fnsems ctx))
-        (IstProd0 (IstSB0 (HModSem.scopes ms) Ist) (IstSB0 (HModSem.scopes ctx) IstEq0))
+        (IstProd0 (IstSB0 (HModSem.scopes ms) Ist) (IstSB0 (HModSem.scopes ctx) IstEq0)) is_closed
         (HModSem.sandbox_body fs) (HModSem.sandbox_body ft).
   Proof.
     ii. specialize (SIM x y H). subst.
@@ -483,12 +483,12 @@ Section AUX.
     ginit. i. eapply gpaco8_mon; first eapply ISIM; eauto using iunlift_ibot.
   Qed.
 
-  Lemma hmod_sim_ctx (ms mt ctx : HMod.t) IC Ist
+  Lemma hmod_sim_ctx (ms mt ctx : HMod.t) IC Ist is_closed
     (SIM : HSim.t ms mt IC Ist)
     :
-    HSim.t (ms ★ ctx) (mt ★ ctx) IC 
+    HSim._t (ms ★ ctx) (mt ★ ctx) IC 
       (fun sk => IstProd0 (IstSB0 (HMod.modsem ms sk).(HModSem.scopes) (Ist sk))
-                          (IstSB0 (HMod.modsem ctx sk).(HModSem.scopes) IstEq0)).
+                          (IstSB0 (HMod.modsem ctx sk).(HModSem.scopes) IstEq0)) is_closed.
   Proof.
     inv SIM.
     econs; cycle 1.
@@ -663,9 +663,9 @@ Section COMM.
     HMod.scopes (md0 ★ md1) sk = HMod.scopes md0 sk ++ HMod.scopes md1 sk.
   Proof. ss. Qed.
 
-  Lemma hmod_add_comm ms0 ms1 :
-    HSim.t (ms0 ★ ms1) (ms1 ★ ms0) (const(emp%I))
-      (fun sk => IstSB0 (HMod.scopes (ms0 ★ ms1) sk) perm_Ist).
+  Lemma hmod_add_comm ms0 ms1 is_closed:
+    HSim._t (ms0 ★ ms1) (ms1 ★ ms0) (const(emp%I))
+      (fun sk => IstSB0 (HMod.scopes (ms0 ★ ms1) sk) perm_Ist) is_closed.
   Proof.
     econs; cycle 1.
     { rr. eapply Permutation_app_comm. }
@@ -698,7 +698,7 @@ Section COMM.
     eapply isim_coind. i.
     destruct a as [nths [st_src [st_tgt [NODS [NODD it]]]]]. s.
     iIntros "(#IST & CIH)".
-    assert (CASE := case_itrH _ it); des; subst.
+    assert (CASE := case_itrH it); des; subst.
     - step. iFrame. eauto.
     - steps_l. steps_r. by_coind "CIH". eauto.
     - steps_l. force_r. iFrame. by_coind "CIH". eauto.
