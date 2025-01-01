@@ -59,7 +59,7 @@ Qed.
 (* Simulation proof *)
 Module MapIM. Section MapIM.
   Import MapMS.
-  Context `{!sinvGS Σ Γ α β τ, !G Γ, !memG Γ}.
+  Context `{!sinvGS Σ Γ α β τ, !MapMS.GS Γ, !memGS Γ}.
   Notation iProp := (iProp Σ).
 
   Definition Ist : Sk.t → nat → alist key Any.t → alist key Any.t → iProp :=
@@ -88,8 +88,8 @@ Module MapIM. Section MapIM.
     init_simF.
 
     (* SRC: handle the IST of Map and the precond of init *)
-    steps_l. iDestruct "ASM" as "((% & P0) & %)". des. hss. inv G2.
-    iDestruct "IST" as (????) "(%& (% & [%|(P & IST)]) &%)";    
+    steps_l. iDestruct "ASM" as "((% & P0) & %)". des. hss. inv G0.
+    iDestruct "IST" as (????) "(%& (% & [%|(P & IST)]) &%)";
       [|iDestruct "IST" as (????) "M"];
       hss; cycle 1.
     { iExFalso. iApply (pending_unique with "P P0"). }
@@ -114,7 +114,7 @@ Module MapIM. Section MapIM.
     steps_r. hss.
     replace (repeat Vundef sz) with (repeat (Vint 0) (sz-sz) ++ repeat Vundef sz); cycle 1.
     { rewrite Nat.sub_diag. eauto. }
-    rewrite// -[X in ITree.iter _ X](Z.sub_diag (sz%Z)).
+    rewrite // -[X in ITree.iter _ X](Z.sub_diag (sz%Z)).
     iStopProof. cut (sz <= sz); [|lia].
     generalize sz at 1 4 5 11. intros n.
     induction n; i; iIntros "(PD & PTS)".
@@ -152,18 +152,19 @@ Module MapIM. Section MapIM.
         rewrite lookup_app_r; rewrite repeat_length; try nia.
         rewrite Nat.sub_diag. s. eauto.
       }
-      rewrite -> !Z.add_0_l, Zpos_P_of_succ_nat, <-Nat2Z.inj_succ, Nat2Z.inj_sub; try nia.
+      rewrite -> !Z.add_0_l, Nat2Z.inj_sub; try nia.
+      (* , Zpos_P_of_succ_nat, <-Nat2Z.inj_succ, Nat2Z.inj_sub; try nia. *)
       iSplitL "PT".
       { iSplitL; cycle 1.
         { iPureIntro. do 3 f_equal. rewrite Z.div_mul; nia. }
-        iExists _. iFrame.
+        iExists Vundef. iFrame.
         iPureIntro. do 3 f_equal. rewrite Z.div_mul; nia.
       }
 
       (* TGT: handle the postcond of store *)
       steps_r. iDestruct "GRT" as "((GRT & %) & %)". subst.
       iSpecialize ("CTN" $! (Vint 0)). iPoseProof ("CTN" with "GRT") as "PTS".
-      rewrite -> !Zpos_P_of_succ_nat, <-!Nat2Z.inj_succ.
+      (* rewrite -> !Zpos_P_of_succ_nat, <-!Nat2Z.inj_succ. *)
       replace (sz - S n + 1)%Z with (sz - n)%Z by nia.
 
       (* apply the induction hypothesis and complete *)
@@ -180,7 +181,7 @@ Module MapIM. Section MapIM.
     init_simF.
 
     (* SRC: handle the IST of Map and the precond of get *)
-    steps_l. iDestruct "ASM" as "(% & %)". hss. inv G2.
+    steps_l. iDestruct "ASM" as "(% & %)". hss. inv G0.
     iDestruct "IST" as (? ? ? ?) "(%& (% & [%|(P & IST)]) &%)";
       [|iDestruct "IST" as (? ? ? ?) "(% & M)"];
       des; hss.
@@ -222,7 +223,7 @@ Module MapIM. Section MapIM.
     init_simF.
 
     (* SRC: handle the IST of Map and the precond of set *)
-    steps_l. iDestruct "ASM" as "(% & %)". hss. inv G2.
+    steps_l. iDestruct "ASM" as "(% & %)". hss. inv G0.
     iDestruct "IST" as (? ? ? ?) "(%& (% & [%|(P & IST)]) &%)";
       [|iDestruct "IST" as (? ? ? ?) "(% & M)"];
       des; hss.
@@ -266,7 +267,7 @@ Module MapIM. Section MapIM.
     init_simF.
 
     (* SRC: handle the IST of Map and the precond of set_by_user *)
-    steps_l. iDestruct "ASM" as "(% & %)". hss. inv G2. hss.
+    steps_l. iDestruct "ASM" as "(% & %)". hss. inv G0. hss.
     rename q2 into k.
 
     (* process an input *)
