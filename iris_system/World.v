@@ -61,7 +61,7 @@ Section invariants.
     #[global] invGS_Γ :: invGSΓ Γ;
   }.
 
-  Definition invΓ : GRA := #[ownERA; ownDRA].
+  Definition invΓ : HRA := #[ownERA; ownDRA].
   Definition invΣ : GRA := ##[#[ownIRA]; invΓ].
 
   Global Instance subG_invΣ {Σ} : subG invΣ Σ → invGpreSΣ Σ.
