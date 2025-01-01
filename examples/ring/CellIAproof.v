@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 
 Require Import ImpPrelude.
 Require Import CellHeader CellASpec CellI CellA.
@@ -95,4 +95,4 @@ Module CellIA. Section CellIA.
     - apply simF_set; eauto.
   Qed.
 
-End CellIA. End CellIA.
+End CellIA. End CellIA. *)

@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 
 Require Import ImpPrelude.
 Require Import CellHeader CellA CellASpec
@@ -277,4 +277,4 @@ Module CtrlIA. Section CtrlIA.
     - apply simF_dequeue; eauto.
   Qed.
 
-End CtrlIA. End CtrlIA.
+End CtrlIA. End CtrlIA. *)

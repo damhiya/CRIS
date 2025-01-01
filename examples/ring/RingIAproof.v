@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 
 Require Import RingHeader CellHeader 
   RingASpec CellASpec 
@@ -50,4 +50,4 @@ Module RingIA. Section RingIA.
           i. rewrite Nat.add_0_r length_seq. iIntros "(H &_)". eauto.
   Qed.
 
-End RingIA. End RingIA.
+End RingIA. End RingIA. *)

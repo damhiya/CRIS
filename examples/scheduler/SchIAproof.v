@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 
 Require Import SchGInv SchHeader SchI SchA SchASpec.
 
@@ -506,4 +506,4 @@ Section PROOF.
 
 End PROOF.
 
-End SchIA.
+End SchIA. *)

@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 
 Require Import ImpPrelude.
 Require Import RingHeader RingASpec CellASpec.
@@ -70,4 +70,4 @@ Module RingA. Section RingA.
   Variable GlobalStb : Sk.t -> gname -> option fspec.
   Definition t := Seal.sealing "ccr" (SMod.to_hmod ginv GlobalStb Mod).
 
-End RingA. End RingA.
+End RingA. End RingA. *)

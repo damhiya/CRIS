@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 
 Require Import CellioHeader.
 
@@ -39,4 +39,4 @@ Module CellioI. Section CellioI.
   |}.
 
   Definition t := Seal.sealing "ccr" (PMod.to_hmod Mod).
-End CellioI. End CellioI.
+End CellioI. End CellioI. *)

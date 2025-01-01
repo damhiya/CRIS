@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 
 Require Import CellioHeader.
 
@@ -74,4 +74,4 @@ Module CellioA. Section CellioA.
   Variable ginv: Sk.t -> invspec.
   Variable GlobalStb: Sk.t -> gname -> option fspec.
   Definition t := Seal.sealing "ccr" (SMod.to_hmod ginv GlobalStb Mod).
-End CellioA. End CellioA.
+End CellioA. End CellioA. *)

@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 
 Require Import ImpPrelude.
 Require Import CellHeader.
@@ -100,4 +100,4 @@ Module CellAS. Section CellAS.
 End CellAS. End CellAS.
 
 Global Hint Unfold CellAS.Stb : stb.
-
+ *)

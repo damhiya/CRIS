@@ -6,7 +6,7 @@ Require Import HModInline.
 Set Implicit Arguments.
 
 Section CANCEL.
-  Context `{Σ: GRA.t}.
+  Context `{Σ: GRA}.
   Variable md: HMod.t.
 
   Lemma cancel_call P

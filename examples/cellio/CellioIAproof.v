@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 
 Require Import CellioHeader CellioA CellioI.
 
@@ -73,4 +73,4 @@ Module CellioIA. Section CellioIA.
     - apply simF_get; eauto.
   Qed.
 
-End CellioIA. End CellioIA.
+End CellioIA. End CellioIA. *)

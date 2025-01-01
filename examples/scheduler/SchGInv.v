@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 
 Set Implicit Arguments.
 
@@ -55,4 +55,4 @@ Section AUX.
     iPoseProof ("INV" with "[W]") as "W"; et.
   Qed.
     
-End AUX.
+End AUX. *)

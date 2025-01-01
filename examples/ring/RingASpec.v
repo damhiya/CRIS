@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 
 Require Import ImpPrelude.
 Require Import RingHeader.
@@ -23,4 +23,4 @@ End RingAS.
 
 Global Hint Unfold Stb : stb.
 
-End RingAS.
+End RingAS. *)

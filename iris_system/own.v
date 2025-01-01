@@ -26,8 +26,6 @@ End uPredI.
 (* uPredI_affine is added so that IPM can also resolve pure predicates with evars. *)
 Global Hint Immediate uPredI_affine : core. *)
 
-(* TODO : 1) refactor GRA
-          2) move iProp Σ and own to a separate file *)
 Local Definition iRes_singleton `{i : !inG A Σ} (γ : gname) (a : A) : Σ :=
   discrete_fun_singleton (inG_id i) (allocs_frag γ (cmra_transport inG_prf a)).
 Global Instance: Params (@iRes_singleton) 4 := {}.
@@ -280,6 +278,9 @@ Section Own.
 
   Global Instance Own_core_persistent a : CoreId a → Persistent (@Own Σ a).
   Proof. unseal; apply _. Qed.
+
+  Lemma Own_unit : ⊢ Own ε.
+  Proof. unseal. iApply (ownM_unit True). done. Qed.
 
   Lemma Own_Upd a b (UPD : a ~~> b) : Own a ⊢ |==> Own b.
   Proof.

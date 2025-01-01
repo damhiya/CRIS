@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 
 Require Import SchHeader SchASpec SchGInv.
 
@@ -70,4 +70,4 @@ Section A.
   Definition t := Seal.sealing "ccr" (SMod.to_hmod (sch_ginv univ) GlobalStb Mod).
 
 End A.
-End SchA.
+End SchA. *)

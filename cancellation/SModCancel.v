@@ -5,7 +5,7 @@ Require Import SMod2HMod.
 Set Implicit Arguments.
 
 Section Cancel.
-  Context `{Σ: GRA.t}.
+  Context {Σ: GRA}.
   Notation iProp := (iProp Σ).
 
   Definition Spawn_cancel (fn: gname) (varg: Any.t) : itree hmodE nat :=
@@ -36,7 +36,7 @@ End Cancel.
 Module SModSemCancel.
 Section Cancel.
   Import SModSem.
-  Context `{Σ: GRA.t}.
+  Context `{Σ: GRA}.
 
   Program Definition to_hmod (ms: t): HModSem.t := {|
     HModSem.scopes := ms.(scopes);
@@ -57,7 +57,7 @@ End SModSemCancel.
 Module SModCancel.
 Section Cancel.
   Import SMod.
-  Context `{Σ: GRA.t}.
+  Context `{Σ: GRA}.
 
   Definition to_hmod (md: t) := {|
     HMod.modsem := fun sk => SModSemCancel.to_hmod (md.(modsem) sk);
@@ -71,7 +71,7 @@ End SModCancel.
 Module SCancelRed.
 Section RED.
 
-  Context `{Σ : GRA.t}.
+  Context `{Σ : GRA}.
 
   Lemma bind
         (R S: Type)

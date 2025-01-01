@@ -346,7 +346,7 @@ Module HModSB. Section HModSB.
 End HModSB. End HModSB.
 
 Section HModProp.
-  Context {Σ : GRA.t}.
+  Context {Σ : GRA}.
 
   Lemma case_itrH R (itrH : itree hmodE R) :
     (exists v, itrH = Ret v) \/

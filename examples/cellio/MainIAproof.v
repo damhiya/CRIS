@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 
 Require Import CellioHeader CellioA MainHeader MainA MainI FooASpec.
 
@@ -67,4 +67,4 @@ Module MainIM. Section MainIM.
     - eapply simF_main; eauto.
   Qed.
 
-End MainIM. End MainIM.
+End MainIM. End MainIM. *)

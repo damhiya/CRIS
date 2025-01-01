@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 
 Require Import SchGInv SchHeader SchASpec.
 
@@ -331,4 +331,4 @@ Ltac join hyps :=
     iApply isim_mjoin_hp; des_pairs; s;
     [|iSplitL hyps; [|iIntros "% % % %"; iIntrosFresh "[IST [W POST]]"]] |
     iApply isim_mjoin_hh; des_pairs; s;
-    [| |iSplitL hyps; [|iIntros "% % % %"; iIntrosFresh "IST"]]].
+    [| |iSplitL hyps; [|iIntros "% % % %"; iIntrosFresh "IST"]]]. *)

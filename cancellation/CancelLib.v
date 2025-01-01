@@ -53,7 +53,7 @@ Module CancelTAC.
 End CancelTAC.
 
 Section CANCEL.
-  Context `{Σ: GRA.t}.
+  Context `{Σ: GRA}.
   Variable md: SMod.t.
 
   Inductive Forall2i X Y (R: nat -> X -> Y -> Prop): nat -> list X -> list Y -> Prop :=

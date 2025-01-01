@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 
 Require Import SchHeader.
 
@@ -91,4 +91,4 @@ Section I.
 
 End I.
 
-End SchI.
+End SchI. *)

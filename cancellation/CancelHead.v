@@ -4,7 +4,7 @@ Require Import SimGlobal.
 Require Import SModCancel HModInline ElimRel StRed CancelLib.
 
 Section CANCEL.
-  Context `{Σ: GRA.t}.
+  Context `{Σ: GRA}.
   Variable md: SMod.t.
 
   Import CancelTAC.

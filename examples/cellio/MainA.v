@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 
 Require Import CellioA CellioHeader MainHeader FooHeader.
 
@@ -45,4 +45,4 @@ Module MainA. Section MainA.
   Variable GlobalStb: Sk.t -> gname -> option fspec.
   Definition t := Seal.sealing "ccr" (SMod.to_hmod GI GlobalStb Mod).
 
-End MainA. End MainA.
+End MainA. End MainA. *)

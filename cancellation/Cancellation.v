@@ -9,7 +9,7 @@ Require Import CancelHead CancelTail CancelSpawn CancelYield.
 Set Implicit Arguments.
 
 Section CANCEL.
-  Context `{Σ: GRA.t}.
+  Context `{Σ: GRA}.
   Variable md: SMod.t.
 
   Import CancelTAC.
@@ -55,7 +55,7 @@ Section CANCEL.
       iterT 2. iterL. rewrite !StRed.ret. ired. st.
       hexploit Own_bupd_split; eauto. i. des.
       specialize (RET v x eq_refl).
-      eapply Own_pure_soundness with (x := a1).
+      eapply Own_pure_soundness with (a := a1).
       + eapply Own_bupd_valid in H; eauto.
         eapply cmra_valid_op_l; eauto.
       + etrans; eauto.
@@ -215,7 +215,7 @@ Section CANCEL.
 End CANCEL.
 
 (*** Final Theorem ***)
-Theorem cancellation `{Σ: GRA.t} md ginv P fsp meta
+Theorem cancellation `{Σ: GRA} md ginv P fsp meta
   (STB: ∀ sk (EQV: Sk.equiv (SMod.sk md) sk) (SKWF: Sk.wf sk),
         stb_global md sk "CRIS_init" = Some (fsp sk))
   (POST: ∀ sk (EQV: Sk.equiv (SMod.sk md) sk) (SKWF: Sk.wf sk) vret ret,
@@ -241,5 +241,5 @@ Proof.
   - inv WFM. econs; eauto. s.
     rewrite List.map_map fst_map_snd.
     do 2 rewrite List.map_map fst_map_snd in wf_fns. eauto.
-  - etrans; eauto. r_solve.
+  - etrans; eauto. rewrite comm; ss.
 Qed.

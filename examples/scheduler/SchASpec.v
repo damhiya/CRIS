@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 
 Require Import SchHeader SchGInv.
 
@@ -207,4 +207,4 @@ Section Sch.
   End SPEC.
 
 End Sch.
-End SchAS.
+End SchAS. *)

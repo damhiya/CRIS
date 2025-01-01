@@ -651,7 +651,7 @@ End SIM.
 
 Global Opaque isim.
 
-Definition isim_fsem `{Σ : GRA} fl_src fl_tgt Ist : relation (Any.t -> itree hmodE Any.t) :=
+Definition isim_fsem `{Σ : GRA} fl_src fl_tgt Ist is_closed : relation (Any.t -> itree hmodE Any.t) :=
   (eq ==> (fun itr_src itr_tgt =>
              forall my_tid nths st_src st_tgt
                     (IMON : forall nths nths' (LE : nths <= nths') st_src st_tgt,
