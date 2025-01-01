@@ -182,8 +182,7 @@ Section CANCEL.
     _iter. _tau. st. st. st.
     rewrite interp_hp_tau. _iter. _tau. st. st.
     rewrite HModSB.transl_bind HModSB.transl_ag HIRed.bind_ag interp_hp_bind interp_hp_Assume. ired.
-    _iter. _sget. ired. _tau. st. st.
-    hss. ired. hss. ired.
+    _iter. _supd. hss. ired. hss. ired.
     _iter. _core. st. exists (r ⋅ rt). st. ired. _tau. st. 
     _iter. _core. st.
     assert (VALID': ✓(r ⋅ rt) ∧ (Own (r ⋅ rt) -∗ precond fsp 0 meta () ↑ () ↑ ∗ Own rt)).

@@ -218,7 +218,7 @@ Section HPSIM_ADEQUACY.
       rewrite Any.pair_split /= alist_encode_decode; steps; eapply K; eauto.
     - clarify; steps.
       rewrite interp_hp_Assume /handle_Assume; steps.
-      rewrite /mget_res /mput_res; steps. des.
+      rewrite /get_res /put_res; steps. des.
       apply bi.wand_entails, Own_split in _ASSUME0. des.
       eapply (K (fmr0 ⋅ a1)); eauto.
       { iIntros "[FMR X]"; iMod (CUR with "FMR") as "FMR". iFrame.
@@ -233,7 +233,7 @@ Section HPSIM_ADEQUACY.
       { eauto. }
     - clarify; steps.
       rewrite interp_hp_Guarantee /handle_Guarantee; steps.
-      rewrite /mget_res /mput_res; steps. des.
+      rewrite /get_res /put_res; steps. des.
       hexploit (Own_bupd_split); eauto.
       { hexploit (Own_wand_valid _ _ FMR); eauto using cmra_valid_op_r. }
       intros [rP [frt [UPD [HP Hx]]]]; eapply (K (fmr0 ⋅ rP)); eauto.
@@ -247,7 +247,7 @@ Section HPSIM_ADEQUACY.
     - clarify; steps.
       hexploit (Own_bupd_split fmr0); eauto; intros [rP [rFMR [SPLIT [HP HFMR]]]].
       rewrite interp_hp_Guarantee /handle_Guarantee; steps.
-      rewrite /mget_res /mput_res; steps.
+      rewrite /get_res /put_res; steps.
       instantiate (1 := (ctx_sem ctx ⋅ rFMR ⋅ mr_tgt)).
       rewrite /guarantee; force_l; [split|].
       { eapply (Own_wand_valid mr_src); eauto.
@@ -268,7 +268,7 @@ Section HPSIM_ADEQUACY.
     - clarify; steps.
       hexploit (Own_bupd_split fmr0); eauto; intros [rP [rFMR [SPLIT [HP HFMR]]]].
       rewrite interp_hp_Assume /handle_Assume; steps.
-      rewrite /mget_res /mput_res; steps.
+      rewrite /get_res /put_res; steps.
       instantiate (1 := rP ⋅ mr_tgt).
       rewrite /assume; force_r; [split|].
       { eapply (Own_wand_valid mr_src); eauto.
