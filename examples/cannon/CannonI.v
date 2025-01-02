@@ -1,12 +1,5 @@
-Require Import Coqlib ITreelib sflib.
+Require Import CRIS.
 Require Import ImpPrelude.
-Require Import Events.
-Require Import Behavior.
-Require Import HMod PMod.
-Require Import Skeleton.
-Require Import MapHeader.
-Require Import PCM.
-Require Import STB IPM ITactics.
 Require Import CannonHeader.
 
 

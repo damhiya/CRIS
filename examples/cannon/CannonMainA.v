@@ -1,13 +1,6 @@
-Require Import Coqlib ITreelib sflib.
+Require Import CRIS.
 Require Import ImpPrelude.
-Require Import Events.
-Require Import Behavior.
-Require Import SMod HMod.
-Require Import Skeleton.
-Require Import PCM.
-Require Import STB IPM ITactics.
 Require Import CannonHeader CannonMainASpec CannonMainI CannonASpec CannonHeader.
-Require Import sProp sWorld World SRF.
 
 Set Implicit Arguments.
 
@@ -26,7 +19,7 @@ Section A.
   | 0 =>
     Ret tt
   | S n' =>
-    `r: Z <- ccallU CannonName.fire ([]: list val);;
+    'r: Z <- ccallU CannonName.fire ([]: list val);;
     _ <- trigger (@IO _ void "print" [r]↑);;
     main_repeat n'
   end.

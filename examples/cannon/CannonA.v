@@ -1,13 +1,6 @@
-Require Import Coqlib ITreelib sflib.
+Require Import CRIS.
 Require Import ImpPrelude.
-Require Import Events.
-Require Import Behavior.
-Require Import SMod HMod.
-Require Import Skeleton.
-Require Import PCM.
-Require Import STB IPM ITactics.
 Require Import CannonHeader CannonASpec.
-Require Import sProp sWorld World SRF.
 
 Set Implicit Arguments.
 
