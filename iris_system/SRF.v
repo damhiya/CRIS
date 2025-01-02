@@ -198,6 +198,8 @@ Bind Scope SRF_scope with SRFSyn.t.
 
 Local Open Scope SRF_scope.
 
+Notation "'⟦' F ',' n '⟧'" := (SRFSem.t n F).
+Notation "'⟦' F '⟧'" := (SRFSem.t _ F).
 Notation "'⟨' op ',' args '⟩'" := (SRFSem.cur op args) : SRF_scope.
 Notation "⤉ P" := (SRFSyn.lift P) (at level 20) : SRF_scope.
 

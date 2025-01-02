@@ -6,9 +6,8 @@ Set Implicit Arguments.
 
 Local Open Scope Qp.
 
-Module SchAS.
-Section Sch.
-  Context `{_W: @sinvGS Σ Γ α β τ}.
+Module SchAS. Section Sch.
+  Context `{!sinvGS Σ Γ α β τ}.
 
   Canonical Structure SynDepO : ofe := leibnizO (sigT (λ n, SRFSyn.t n)).
 
@@ -17,14 +16,23 @@ Section Sch.
   Definition threadsF := (discrete_funUR (λ _: nat, fragreeUR)).
   Definition threadsRA := authUR threadsF.
 
-  Class G (Γ: HRA.t) := { #[global] RA_inG :: GRA.inG threadsRA Γ }.
-  Context `{!G Γ}.
+  (* Class GpreΓ (Γ : HRA) := {
+    #[global] RA_inG :: inG threadsRA Γ;
+  }. *)
+  (* Class G (Γ: HRA.t) := { #[global] RA_inG :: GRA.inG threadsRA Γ }. *)
+  (* Context `{!G Γ}. *)
 
   Notation iProp := (iProp Σ).
 
   Definition initial_threads_r: threadsRA := 
-    ● ((λ tid: nat, if tid =? 0 then Some (1, to_agree (λ _, (Some (to_agree (existT 0 ⊤%SRF))))) else None): threadsF)
-    ⋅ ◯ ((λ tid: nat, if tid =? 0 then Some (1/4, to_agree (λ _, (Some (to_agree (existT 0 ⊤%SRF))))) else None): threadsF).
+    ● ((λ tid: nat,
+      if tid =? 0
+      then Some (1, to_agree (λ _, (Some (to_agree (existT 0 ⊤%SRF)))))
+      else None): threadsF)
+    ⋅ ◯ ((λ tid: nat,
+        if tid =? 0
+        then Some (1/4, to_agree (λ _, (Some (to_agree (existT 0 ⊤%SRF)))))
+        else None): threadsF).
   Definition initial_threads: iProp := 
     Seal.sealing "SchA"
       OwnM initial_threads_r.

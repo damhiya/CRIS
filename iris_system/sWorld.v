@@ -141,10 +141,6 @@ Lemma test' : True. eapply test. Unshelve.
 
 Section reduction.
   Context `{!sinvGS Σ Γ α β τ}.
-
-  Notation "'⟦' F ',' n '⟧'" := (SRFSem.t (Δ := domain Σ) n F).
-  Notation "'⟦' F '⟧'" := (SRFSem.t (Δ := domain Σ) _ F).
-
   Lemma ownI_auth_red u n I :
     ⟦syn_ownI_auth u n I⟧ = ownI_auth u n I.
   Proof.

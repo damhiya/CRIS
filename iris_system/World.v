@@ -399,6 +399,9 @@ Section WSATS.
   Local Definition inv_aux : seal (@inv_def). Proof. by eexists. Qed.
   Definition inv := inv_aux.(unseal).
   Local Definition inv_eq : @inv = @inv_def := inv_aux.(seal_eq).
+
+  Global Instance inv_persistent u n N p : Persistent (inv u n N p).
+  Proof. rewrite inv_eq /inv_def. apply _. Qed.
 End WSATS.
 
   (* Definition used_worlds u b E : iProp Σ :=
