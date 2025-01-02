@@ -1,5 +1,4 @@
-Require Import Coqlib ITreelib sflib.
-Require Import Events Any IPM ImpPrelude Skeleton.
+Require Import CRIS.
 
 Module RingName.
   

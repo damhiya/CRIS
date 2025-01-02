@@ -1,20 +1,7 @@
-Require Import Coqlib ITreelib.
-Require Import Behavior.
-Require Import Skeleton.
-Require Import IPM.
-Require Import Any.
-Require Import STB ModSim.
-Require Import Events HMod HMod2Mod.
-Require Import ModSimTactics.
+Require Import Common.
 
-Require Import Relation_Definitions.
-Require Import Relation_Operators.
-Require Import RelationPairs.
-Require Import RelationClasses.
-
-Require Import Red IRed.
-Require Import HPSim.
-From iris.algebra Require Import big_op.
+Require Import HMod.
+Require Import HPSim ModSim ModSimTactics.
 
 Section HPSIM_ADEQUACY. 
   Context `{Σ : GRA.t}.
@@ -24,6 +11,7 @@ Section HPSIM_ADEQUACY.
   Variable fl_tgt : alist gname (Any.t -> itree hmodE Any.t).
   Variable Ist : nat -> alist key Any.t -> alist key Any.t -> iProp.
   Variable my_tid : nat.
+  Variable is_closed: bool.
 
   (*** Used only in hpsim_adequacy. ***)
   Lemma own_upd_in_middle mr_src mr_tgt ctx fmr fmr0
@@ -108,6 +96,7 @@ Section HPSIM_ADEQUACY.
       (NODUPT : List.NoDup (List.map fst st_tgt)) :
     interp_inv ctx (nths, Any.pair (alist_encode st_src) mr_src↑, Any.pair (alist_encode st_tgt) mr_tgt↑).
 
+  (* Now, adequacy requires 'is_closed = true'*)
   Lemma hpsim_adequacy
       (NODUPFS : List.NoDup (List.map fst fl_src))
       (NODUPFT : List.NoDup (List.map fst fl_tgt))
@@ -120,7 +109,7 @@ Section HPSIM_ADEQUACY.
       (ctx0 ctx : list Σ) (mr_src mr_tgt fmr : Σ)
       (CTXLE : @le_mine Σ eq my_tid ctx0 ctx)
       (TID : my_tid < List.length ctx0)
-      (SIM : hpsim_body fl_src fl_tgt Ist my_tid ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr)
+      (SIM : hpsim_body fl_src fl_tgt Ist my_tid true ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr)
       (WF : ✓ mr_src)
       (FMR : Own mr_src ⊢ |==> Own ((ctx_sem ctx) ⋅ fmr ⋅ mr_tgt)) :
     @sim_itree fl_src0 fl_tgt0 Σ ε interp_inv eq my_tid ctx0 ps pt ctx nths
@@ -325,6 +314,16 @@ Section HPSIM_ADEQUACY.
       rewrite /ctx_add /ctx_set list_lookup_insert; eauto using le_mine_in.
     - clarify; steps; rewrite interp_hp_tid /=; steps; eapply K; eauto.
     - clarify; steps; rewrite interp_hp_tid /=; steps; eapply K; eauto.
+    - clarify. prep. guclo sim_itree_indC_spec. econs 18.
+      { rewrite alist_find_map FUN. et. }
+      rewrite /interp_hp_fun.
+      exploit (K _ _ st_src st_tgt _ _ _ _ _ _ mr_src mr_tgt); eauto.
+      clear K CIH; intros K.
+      eapply eq_ind; eauto.
+      rewrite interp_hp_bind.
+      repeat f_equal. 
+      { rewrite interp_hp_triggerNB. eauto. }
+      extensionalities x. grind. rewrite !interp_hp_tau. eauto.
     - clarify. pclearbot. gstep; econs; econs; eauto; cycle 1.
       { gfinal; left; eapply CIH; eauto.
         { ginit; guclo hpsim_updateC_spec; econs; ii; esplits; eauto.

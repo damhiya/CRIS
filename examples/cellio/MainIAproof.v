@@ -1,18 +1,6 @@
-Require Import Coqlib ITreelib sflib.
-Require Import ImpPrelude.
-Require Import Skeleton.
-Require Import IPM.
-Require Import Events Behavior.
-Require Import Relation_Definitions.
-Require Import STB.
-Require Import ISim HMod PMod Events ITactics.
-Require Import SMod2HMod Mod ModSimFacts.
+Require Import CRIS.
 
 Require Import CellioHeader CellioA MainHeader MainA MainI FooASpec.
-
-
-Require Import sProp sWorld World SRF.
-From stdpp Require Import coPset gmap namespaces.
 
 Set Implicit Arguments.
 

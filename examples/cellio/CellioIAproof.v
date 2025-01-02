@@ -1,11 +1,5 @@
-Require Import Coqlib ITreelib.
-Require Import ImpPrelude.
-Require Import Skeleton.
-Require Import IPM STB sProp sWorld.
-Require Import Events Behavior.
+Require Import CRIS.
 
-Require Import ISim ITactics SMod HMod PMod Events STB.
-Require Import Mod ModSim ModSimFacts.
 Require Import CellioHeader CellioA CellioI.
 
 Set Implicit Arguments.
@@ -75,8 +69,8 @@ Module CellioIA. Section CellioIA.
   Proof.
     init_sim.
     - iIntros "H". iExists _. iFrame. eauto.
-    - apply simF_set.
-    - apply simF_get.
+    - apply simF_set; eauto.
+    - apply simF_get; eauto.
   Qed.
 
 End CellioIA. End CellioIA.

@@ -1,15 +1,9 @@
-Require Import Coqlib ITreelib sflib.
-Require Import ImpPrelude.
-Require Import Skeleton.
-Require Import IPM sWorld.
-Require Import Events Behavior.
-Require Import Relation_Definitions.
+Require Import CRIS.
 
+Require Import ImpPrelude.
 Require Import CellHeader CellA CellASpec
                RingHeader RingA RingASpec
-               CtrlI STB.
-Require Import ISim HMod PMod SMod Events ITactics.
-Require Import Mod ModSimFacts.
+               CtrlI.
 
 Set Implicit Arguments.
 
@@ -50,12 +44,12 @@ Module CtrlIA. Section CtrlIA.
       - f_equal. f_equal; nia.
       - f_equal. nia.
     }
-    rewrite/__ EQ map_app hmod_addL_app. eauto.
+    rewrite EQ map_app hmod_addL_app. eauto.
   Qed.
 
-  Lemma big_sepL_mod {T} (Φ : nat -> T -> iProp) (l : list T):
-    ([∗ list] i↦x ∈ l, Φ (i mod List.length l) x) -∗
-    ([∗ list] i↦x ∈ l, Φ i x).
+  Lemma big_sepL_mod {T} (φ : nat -> T -> iProp) (l : list T):
+     ([∗ list] i↦x ∈ l, φ (i mod List.length l) x) -∗
+     ([∗ list] i↦x ∈ l, φ i x).
   Proof.
     iIntros "H". iApply (big_sepL_impl with "H").
     iModIntro. iIntros (? ?) "% H".
@@ -70,20 +64,20 @@ Module CtrlIA. Section CtrlIA.
     a mod c = b mod c.
   Proof. destruct EX. subst. eapply Nat.Div0.mod_add; eauto. Qed.
 
-  Lemma big_sepL_rotate {T} (Φ : nat -> T -> iProp) n (l : list T):
-    ([∗ list] i↦x ∈ l, Φ ((n+i) mod List.length l) x) -∗
-    ([∗ list] i↦x ∈ rotate (List.length l - n mod List.length l) l, Φ i x).
+  Lemma big_sepL_rotate {T} (φ : nat -> T -> iProp) n (l : list T):
+    ([∗ list] i↦x ∈ l, φ ((n+i) mod List.length l) x) -∗
+    ([∗ list] i↦x ∈ rotate (List.length l - n mod List.length l) l, φ i x).
   Proof.
     destruct (Nat.eq_decidable (List.length l) 0) as [|LENL].
     { destruct l; ss; iIntros "H"; iFrame. }
     iIntros "H". iApply big_sepL_mod. rewrite length_rotate.
 
     destruct (Nat.eq_decidable (n mod List.length l) 0) as [|LENN].
-    { rewrite/__ H1 Nat.sub_0_r.
+    { rewrite H1 Nat.sub_0_r.
       unfold rotate. rewrite Nat.Div0.mod_same; eauto.
-      rewrite/__ drop_0 take_0 app_nil_r.
+      rewrite drop_0 take_0 app_nil_r.
       eapply eq_ind; try iAssumption. f_equal. extensionalities. f_equal.
-      rewrite Nat.Div0.add_mod; eauto. rewrite/__ H1 Nat.Div0.mod_mod; eauto.
+      rewrite Nat.Div0.add_mod; eauto. rewrite H1 Nat.Div0.mod_mod; eauto.
     }
     assert (LE:= Nat.mod_upper_bound n _ LENL).
 
@@ -93,10 +87,10 @@ Module CtrlIA. Section CtrlIA.
     iSplitL "H2";
       (eapply eq_ind; try iAssumption; f_equal; extensionalities; f_equal).
     - eapply mod_add_ex; eauto.
-      rewrite/__ {1}(Nat.div_mod_eq n (List.length l)).
+      rewrite {1}(Nat.div_mod_eq n (List.length l)).
       exists (S (n / List.length l)). nia.
     - eapply mod_add_ex; eauto.
-      rewrite/__ {1}(Nat.div_mod_eq n (List.length l)).
+      rewrite {1}(Nat.div_mod_eq n (List.length l)).
       exists (n / List.length l). nia.
   Qed.
 
@@ -224,7 +218,7 @@ Module CtrlIA. Section CtrlIA.
 
     steps_r. hss. steps_r. hss. steps_r.
     destruct q; ss.
-    { rewrite/__ Nat.add_0_r Nat.sub_diag. s. step. ss. }
+    { rewrite Nat.add_0_r Nat.sub_diag. s. step. ss. }
     replace (tl + S(List.length q) - tl) with (S(List.length q)) by nia. s.
     rewrite !length_app in H7.
 
@@ -256,7 +250,7 @@ Module CtrlIA. Section CtrlIA.
     iSplitL "LIVE".
     + iApply (big_sepL_impl with "LIVE").
       iModIntro. iIntros (k x FIND) "H".
-      rewrite/__ Nat.add_succ_r. eauto.
+      rewrite Nat.add_succ_r. eauto.
     + iApply big_sepL_app. iFrame. s. iSplitR ""; eauto.
       iRight. eapply eq_ind; try iAssumption. f_equal.
       erewrite <-mod_add_ex; eauto; try nia.
@@ -277,10 +271,10 @@ Module CtrlIA. Section CtrlIA.
       iModIntro. iIntros (? ? FIND) "P".
       iLeft. rewrite Nat.mod_small; eauto.
       eapply lookup_replicate_1. eauto.
-    - apply simF_init.
-    - apply simF_get_size.
-    - apply simF_enqueue.
-    - apply simF_dequeue.
+    - apply simF_init; eauto.
+    - apply simF_get_size; eauto.
+    - apply simF_enqueue; eauto.
+    - apply simF_dequeue; eauto.
   Qed.
 
 End CtrlIA. End CtrlIA.

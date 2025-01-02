@@ -1,11 +1,6 @@
-Require Import Coqlib sflib ITreelib.
+Require Import CRIS.
+
 Require Import ImpPrelude.
-Require Import Behavior.
-Require Import Mod HMod SMod Events.
-Require Import Skeleton.
-Require Import PCM.
-Require Import STB.
-Require Import IPM ITactics sProp sWorld.
 Require Import MemHeader.
 
 From iris.algebra Require Import excl_auth functions.

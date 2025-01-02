@@ -1,14 +1,7 @@
-Require Import Coqlib ITreelib sflib.
+Require Import CRIS.
+
 Require Import ImpPrelude.
-Require Import Events.
-Require Import Behavior.
-Require Import SMod HMod.
-Require Import Skeleton.
-Require Import PCM STB sProp sWorld.
-Require Import IPM ITactics.
 Require Import RingHeader RingASpec CellASpec.
-From stdpp Require Import coPset gmap namespaces.
-From iris.algebra Require Import auth excl functions.
 
 Set Implicit Arguments.
 
@@ -28,13 +21,13 @@ Module RingA. Section RingA.
 
   Definition get_size : unit -> itree hmodE nat :=
     λ _,
-      `que : list Z <- cgetU v_que;;
+      'que : list Z <- cgetU v_que;;
       Ret (List.length que)
   .
 
   Definition enqueue : Z -> itree hmodE unit :=
     λ x,
-      `que : list Z <- cgetU v_que;;
+      'que : list Z <- cgetU v_que;;
       if (List.length que <? max_size)%nat
       then cput v_que (que ++ [x])
       else trigger (@IO _ void "error" "exceeds the maximum size");;; Ret tt
@@ -42,7 +35,7 @@ Module RingA. Section RingA.
 
   Definition dequeue : unit -> itree hmodE Z :=
     λ _, 
-      `que : list Z <- cgetU v_que;;
+      'que : list Z <- cgetU v_que;;
       match que with
       | x :: que' => cput v_que que';;; Ret x
       | _ => trigger (@IO _ void "error" "dequeue the empty queue");;; Ret 0%Z

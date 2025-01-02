@@ -1,15 +1,6 @@
-Require Import Coqlib.
-Require Import ITreelib.
-Require Import Any.
-Require Import Behavior.
-Require Import Mod Mod2ITree.
-Require Import Skeleton.
-Require Import PCM IPM.
-Require Import Coq.Relations.Relation_Definitions.
-Require Import Relation_Operators.
-Require Import RelationPairs.
+Require Import Common.
+
 Require Import SimGlobal.
-Require Import Events.
 
 Set Implicit Arguments.
 
@@ -365,7 +356,7 @@ Section ADEQUACY.
     destruct b; ss. destruct pt0; ss.
   Qed.
   
-  Theorem adequacy_global_itree ps pt itr_src itr_tgt
+  Theorem adequacy_global ps pt itr_src itr_tgt
     (SIM: simg eq ps pt itr_src itr_tgt)
     :
     Beh.of_itree itr_tgt <1= Beh.of_itree itr_src.
@@ -375,6 +366,7 @@ Section ADEQUACY.
     pattern itr_tgt, tr. eapply Beh.of_itree_ind, PR. clear -CIH. i.
     depdes PR; des; hdes.
     - eapply paco2_mon; try eapply simg_adequacy_ret; eauto; ss.
+    - pstep. econs. econs.
     - eapply paco2_mon; try eapply simg_adequacy_spin; eauto; ss.
     - eapply paco2_mon; try eapply simg_adequacy_tau; eauto; ss.
     - eapply paco2_mon; try eapply simg_adequacy_hang; eauto; ss.
@@ -383,12 +375,4 @@ Section ADEQUACY.
     - eapply paco2_mon; try eapply simg_adequacy_take; eauto; ss.
   Qed.
 
-  Theorem adequacy_global (ms_src ms_tgt: ModSem.t) ps pt
-    (SIM: simg eq ps pt (@ModSem.compile ms_src) (@ModSem.compile ms_tgt))
-    :
-    Beh.of_itree (@ModSem.compile ms_tgt) <1= Beh.of_itree (@ModSem.compile ms_src).
-  Proof.
-    eapply adequacy_global_itree. eauto.
-  Qed.
-  
 End ADEQUACY.

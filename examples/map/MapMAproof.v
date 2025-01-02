@@ -1,14 +1,6 @@
-Require Import Coqlib ITreelib.
-Require Import MapHeader MapM MapA MapMSpec MapASpec SMod ModSim.
-Require Import ImpPrelude.
-Require Import Skeleton.
-Require Import PCM IPM HMod SMod sWorld.
-Require Import Events Behavior.
-Require Import Relation_Definitions.
-Require Import STB.
+Require Import CRIS.
 
-Require Import ISim ITactics.
-From stdpp Require Import coPset gmap namespaces.
+Require Import MapHeader MapM MapA MapMSpec MapASpec. 
 
 Set Implicit Arguments.
 
@@ -179,10 +171,10 @@ Module MapMA. Section MapMA.
     init_sim.
     - iIntros "(IST & P)"; s.
       iExists _, _. iSplit; eauto. iLeft. iFrame. eauto.
-    - apply simF_init.
-    - apply simF_get.
-    - apply simF_set.
-    - apply simF_set_by_user.
+    - apply simF_init; eauto.
+    - apply simF_get; eauto.
+    - apply simF_set; eauto.
+    - apply simF_set_by_user; eauto.
   Qed.
 
 End MapMA. End MapMA.

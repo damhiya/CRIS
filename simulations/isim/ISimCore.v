@@ -1,16 +1,7 @@
-(* Simulation rules for the user *)
-Require Import Coqlib ITreelib.
-Require Import Behavior.
-Require Import Mod HMod.
-Require Import Skeleton.
-Require Import IPM.
-Require Import Any.
-Require Import Events STB ModSim HPSim.
+Require Import Common.
 
-Require Import Red IRed.
-Require Import SubPerm.
-
-From stdpp Require Import coPset gmap.
+Require Import Skeleton HMod.
+Require Import HPSim.
 
 Set Implicit Arguments.
 
@@ -24,8 +15,9 @@ Section SIM.
   Variable fl_src fl_tgt : alist gname (Any.t → itree hmodE Any.t).
   Variable Ist : nat → alist key Any.t → alist key Any.t → iProp.
   Variable my_tid : nat.
+  Variable is_closed: bool.
 
-  Let _hpsim := _hpsim fl_src fl_tgt Ist my_tid.
+  Let _hpsim := _hpsim fl_src fl_tgt Ist my_tid is_closed.
   Let rel := ∀ R : Type, (nat → alist key Any.t * R → alist key Any.t * R → iProp) → bool → bool → nat → alist key Any.t * itree hmodE R → alist key Any.t * itree hmodE R → iProp.
 
   Variant iunlift (r : rel) R RR ps pt nths sti_src sti_tgt res : Prop :=
@@ -497,6 +489,17 @@ Section SIM.
     split; intros x wfx SIM; guclo hpsimC_spec; econs; esplits; eauto; econs; eauto.
   Qed.
 
+  Lemma isim_call_none
+    r g ps pt {R} RR nths st_src st_tgt i_src k_tgt fn varg
+    (CLOSED: is_closed = true)
+    (FIND: alist_find fn fl_tgt = None)
+  :
+    (@isim r g R RR ps true nths (st_src, i_src) (st_tgt, x <- triggerNB;; tau;; tau;; k_tgt x))
+    ⊢ (@isim r g R RR ps pt nths (st_src, i_src) (st_tgt, trigger (Call fn varg) >>= k_tgt)).
+  Proof.
+    split; intros x wfx SIM; guclo hpsimC_spec. econs; esplits; eauto. econs 24; eauto.
+  Qed.
+
   Lemma isim_progress r g {R} RR nths st_src st_tgt i_src i_tgt :
     @isim g g R RR false false nths (st_src, i_src) (st_tgt, i_tgt)
     ⊢ @isim r g R RR true true nths (st_src, i_src) (st_tgt, i_tgt).
@@ -635,20 +638,20 @@ Section SIM.
     }
   Qed.
 
-  Lemma combine_quant A (B : A -> Type) (P : ∀ a (b : B a), Prop)
-      (PR : ∀ (ab : sigT B), P (projT1 ab) (projT2 ab)) :
+  Lemma combine_quant A B (P : ∀ (a: A) (b: B), Prop)
+      (PR : ∀ (ab : A * B), P (fst ab) (snd ab)) :
     ∀ a b, P a b.
-  Proof. i. eapply (PR (existT a b)). Qed.
+  Proof. i. eapply (PR (a,b)). Qed.
 
   Lemma combine_quant_dep A (B: A -> Type) (P: forall a (b: B a), Prop)
-      (PR: forall (ab: sigT B), P (projT1 ab) (projT2 ab)):
-    forall a b, P a b.
+      (PR: ∀ (ab: sigT B), P (projT1 ab) (projT2 ab)):
+    ∀ a b, P a b.
   Proof. i. eapply (PR (existT a b)). Qed.
 End SIM.
 
 Global Opaque isim.
 
-Definition isim_fsem `{Σ : GRA.t} fl_src fl_tgt Ist : relation (Any.t -> itree hmodE Any.t) :=
+Definition isim_fsem `{Σ : GRA.t} fl_src fl_tgt Ist is_closed : relation (Any.t -> itree hmodE Any.t) :=
   (eq ==> (fun itr_src itr_tgt =>
              forall my_tid nths st_src st_tgt
                     (IMON : forall nths nths' (LE : nths <= nths') st_src st_tgt,
@@ -656,7 +659,7 @@ Definition isim_fsem `{Σ : GRA.t} fl_src fl_tgt Ist : relation (Any.t -> itree 
                     (NODS : List.NoDup (List.map fst st_src))
                     (NODD : List.NoDup (List.map fst st_tgt)),
                Ist nths st_src st_tgt ⊢
-                 @isim Σ fl_src fl_tgt Ist my_tid ibot ibot Any.t
+                 @isim Σ fl_src fl_tgt Ist my_tid is_closed ibot ibot Any.t
                  (fun nths '(st_src, v_src) '(st_tgt, v_tgt) => (⌜v_src = v_tgt⌝ ∗ Ist nths st_src st_tgt))%I
                  false false nths (st_src, itr_src) (st_tgt, itr_tgt)))%signature.
 
@@ -667,6 +670,7 @@ Module HSSim. Section HSSim.
     Variable (ms_src ms_tgt : HModSem.t).
     Variable init_cond : iProp.
     Variable Ist : nat -> alist key Any.t -> alist key Any.t -> iProp.
+    Variable is_closed: bool.
 
     Let scopes_src := ms_src.(scopes).
     Let scopes_tgt := ms_tgt.(scopes).
@@ -680,12 +684,12 @@ Module HSSim. Section HSSim.
         (WFT : HModSem.wf ms_tgt)
         (NODUPFS : List.NoDup (List.map fst fnsems_src))
         (NODUPFT : List.NoDup (List.map fst fnsems_tgt))
-        fs (FIND : alist_find fn fnsems_src = Some fs),
-      ∃ ft, alist_find fn fnsems_tgt = Some ft /\
+        ft (FIND : alist_find fn fnsems_tgt = Some ft),
+      ∃ fs, alist_find fn fnsems_src = Some fs /\
                    isim_fsem
                      (List.map (map_snd HModSem.sandbox_body) fnsems_src)
                      (List.map (map_snd HModSem.sandbox_body) fnsems_tgt)
-                     Ist
+                     Ist is_closed
                      (HModSem.sandbox_body fs) (HModSem.sandbox_body ft).
 
     Inductive t : Prop := mk {
@@ -696,13 +700,10 @@ Module HSSim. Section HSSim.
           Ist nths st_src st_tgt -∗ Ist nths' st_src st_tgt;
       sim_scopes :
         sub_perm scopes_tgt scopes_src;
-      sim_length :
-        List.length fnsems_src = List.length fnsems_tgt;
       sim_match :
-        ∀ fn (IN : In fn (List.map fst fnsems_src)),
-          In fn (List.map fst fnsems_tgt);
+        sub_perm (List.map fst fnsems_tgt) (List.map fst fnsems_src);
       sim_fnsems :
-        ∀ fn (IN : In fn (List.map fst fnsems_src)),
+        ∀ fn (IN : In fn (List.map fst fnsems_tgt)),
           sim_fun fn;
     }.
 End HSSim. End HSSim.
@@ -713,15 +714,22 @@ Module HSim. Section HSim.
     Variable (md_src md_tgt : HMod.t).
     Variable init_cond : Sk.t -> iProp.
     Variable Ist : Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp.
+    (* Variable is_closed: bool. *)
 
-    Inductive t : Prop :=
+    Inductive _t is_closed : Prop :=
       mk {
           sim_modsem:
-          ∀ sk (SKINCL : List.incl md_tgt.(HMod.sk) sk) (SKWF : Sk.wf sk),
-            <<SIM : HSSim.t (md_src.(HMod.modsem) sk) (md_tgt.(HMod.modsem) sk) (init_cond sk) (Ist sk)>>;
+          forall sk (SKINCL : List.incl md_tgt.(HMod.sk) sk) (SKWF : Sk.wf sk),
+            <<SIM : HSSim.t (md_src.(HMod.modsem) sk) (md_tgt.(HMod.modsem) sk) (init_cond sk) (Ist sk) is_closed>>;
           sim_sk : <<SIM : Sk.equiv md_src.(HMod.sk) md_tgt.(HMod.sk)>>;
         }.
 
-    Definition sim_fun fn : Prop :=
-      ∀ sk, HSSim.sim_fun (HMod.modsem md_src sk) (HMod.modsem md_tgt sk) (Ist sk) fn.
+    Definition t := _t false.
+
+    Definition _sim_fun is_closed fn : Prop :=
+      forall sk,
+        HSSim.sim_fun (HMod.modsem md_src sk) (HMod.modsem md_tgt sk) (Ist sk) is_closed fn.
+    
+    Definition sim_fun fn := _sim_fun false fn.
+
 End HSim. End HSim.

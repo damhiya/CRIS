@@ -1,8 +1,8 @@
-Require Import Coqlib sflib.
-Require Import IPM.
+Require Import Permutation.
+Require Import Coqlib.
 
 Definition sub_perm {A} (l1 l2 : list A) : Prop :=
-  exists l0, (l0 ++ l1) ≡ₚ l2.
+  exists l0, Permutation (l0 ++ l1) l2.
 
 Lemma sub_perm_incl {A} (l1 l2 : list A)
   (SP : sub_perm l1 l2)
@@ -12,6 +12,13 @@ Proof.
   r in SP. des.
   ii. eapply Permutation_in; eauto.
   apply in_or_app. eauto.
+Qed.
+
+Lemma sub_perm_comm {A} (l1 l2 : list A)
+  :
+  sub_perm (l1 ++ l2) (l2 ++ l1).
+Proof.
+  unfold sub_perm. exists []. s. rewrite Permutation_app_comm. refl.
 Qed.
 
 Lemma sub_perm_nodup {A} (l1 l2 : list A)
@@ -61,7 +68,7 @@ Lemma sub_perm_remove {A} (l0 l1 l2 : list A):
   sub_perm (l1 ++ l2) (l1 ++ l0 ++ l2).
 Proof.
   exists l0.
-  rewrite/__ !List.app_assoc [l0 ++ _]Permutation_app_comm.
+  rewrite !List.app_assoc, (Permutation_app_comm l0).
   eauto.
 Qed.
 
@@ -88,7 +95,7 @@ Lemma sub_perm_trans {A} (l1 l2 l3 : list A):
   sub_perm l1 l2 -> sub_perm l2 l3 -> sub_perm l1 l3.
 Proof.
   unfold sub_perm. i; des.
-  eexists. rewrite/__ -H0 -H.
+  eexists. rewrite <-H0, <-H.
   rewrite app_assoc. eauto.
 Qed.
 

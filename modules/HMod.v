@@ -1,13 +1,7 @@
-From CRIS.base_logic Require Import base_logic.
-
-Require Import Coqlib AList ITreelib.
-Require Import Any.
-Require Import Events.
-Require Import IRed.
-Require Import Behavior.
-Require Import IPM.
-Require Import Skeleton Mod.
+Require Import Common.
 Require Import PropExtensionality.
+
+Require Import Skeleton Mod.
 Require Export HMod2Mod.
 
 Set Implicit Arguments.
@@ -166,7 +160,7 @@ Module HMod. Section HMod.
 End HMod. End HMod.
 
 Infix "★" := HMod.add (at level 9, right associativity).
-Notation "◯" := HMod.empty (at level 9).
+Notation "⌽" := HMod.empty (at level 9).
 Infix "∗∗" := HMod.addc (at level 9, right associativity).
 
 Notation "░ it" := (HModSem.sandbox _ it) (at level 60, only printing).
@@ -204,12 +198,12 @@ Section HModProperties.
     - unfold Sk.add. rewrite app_assoc. eauto.
   Qed.
 
-  Lemma hmod_add_empty_l (md : HMod.t) : ◯ ★ md = md.
+  Lemma hmod_add_empty_l (md : HMod.t) : ⌽ ★ md = md.
   Proof.
     destruct md. unfold HMod.add. s. f_equal. extensionalities. apply hmodsem_add_empty_l.
   Qed.
 
-  Lemma hmod_add_empty_r (md : HMod.t) : md ★ ◯ = md.
+  Lemma hmod_add_empty_r (md : HMod.t) : md ★ ⌽ = md.
   Proof.
     destruct md. unfold HMod.add. s. f_equal.
     - extensionalities. apply hmodsem_add_empty_r.
@@ -327,7 +321,7 @@ Module HModSB. Section HModSB.
   Proof.
     unfold unwrapU. destruct r.
     - apply transl_ret.
-    - unfold triggerUB. rewrite/__ !transl_bind !transl_core.
+    - unfold triggerUB. rewrite !transl_bind !transl_core.
       f_equal. extensionalities. ss.
   Qed.
 
@@ -336,17 +330,48 @@ Module HModSB. Section HModSB.
   Proof.
     unfold unwrapN. destruct r.
     - apply transl_ret.
-    - unfold triggerNB. rewrite/__ !transl_bind !transl_core.
+    - unfold triggerNB. rewrite !transl_bind !transl_core.
       f_equal. extensionalities. ss.
   Qed.
 
   Lemma transl_asm scopes P :
     HModSem.sandbox scopes (assume P) = assume P.
   Proof.
-    unfold assume. rewrite/__ transl_bind transl_core transl_ret. eauto.
+    unfold assume. rewrite transl_bind transl_core transl_ret. eauto.
   Qed.
 
   Lemma transl_guar scopes P :
     HModSem.sandbox scopes (guarantee P) = guarantee P.
   Proof. rewrite /guarantee transl_bind transl_core transl_ret. eauto. Qed.
 End HModSB. End HModSB.
+
+Section HModProp.
+  Context {Σ : GRA.t}.
+
+  Lemma case_itrH R (itrH : itree hmodE R) :
+    (exists v, itrH = Ret v) \/
+    (exists itrH', itrH = tau;; itrH') \/
+    (exists P itrH', itrH = (trigger (Assume P);;; itrH')) \/
+    (exists P itrH', itrH = (trigger (Guarantee P);;; itrH')) \/
+    (exists R (s : schE R) ktrH', itrH = (trigger s >>= ktrH')) \/
+    (exists R (c : callE R) ktrH', itrH = (trigger c >>= ktrH')) \/
+    (exists R (s : pgE R) ktrH', itrH = (trigger s >>= ktrH')) \/
+    (exists R (e : coreE R) ktrH', itrH = (trigger e >>= ktrH')).
+  Proof.
+    ides itrH; eauto.
+    right; right.
+    destruct e; [destruct a|destruct p; [|destruct s; [|destruct s]]].
+    - left. exists P, (k()). unfold trigger. rewrite bind_vis.
+      repeat f_equal. extensionality x. destruct x. rewrite bind_ret_l. eauto.
+    - right; left. exists P, (k()). unfold trigger. rewrite bind_vis.
+      repeat f_equal. extensionality x. destruct x. rewrite bind_ret_l. eauto.
+    - do 2 right; left. exists X, s, k. unfold trigger. rewrite bind_vis.
+      repeat f_equal. extensionality x. rewrite bind_ret_l. eauto.
+    - do 3 right; left. exists X, c, k. unfold trigger. rewrite bind_vis.
+      repeat f_equal. extensionality x. rewrite bind_ret_l. eauto.
+    - do 4 right; left. exists X, p, k. unfold trigger. rewrite bind_vis.
+      repeat f_equal. extensionality x. rewrite bind_ret_l. eauto.
+    - do 5 right. exists X, c, k. unfold trigger. rewrite bind_vis.
+      repeat f_equal. extensionality x. rewrite bind_ret_l. eauto.
+  Qed.
+End HModProp.

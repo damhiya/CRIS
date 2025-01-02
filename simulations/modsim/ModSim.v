@@ -1,24 +1,7 @@
-Require Import Coqlib.
-Require Import ITreelib.
-Require Import Skeleton.
-Require Import Mod Events.
-Require Import Behavior.
-Require Import Relation_Definitions.
+Require Import Common.
 
-(*** TODO : export these in Coqlib or Universe ***)
-Require Import Relation_Operators.
-Require Import RelationPairs.
-From ITree Require Import
-     Events.MapDefault.
-From ExtLib Require Import
-     Core.RelDec
-     Structures.Maps
-     Data.Map.FMapAList.
-Require Import Any.
-
+Require Import Skeleton Mod.
 Require Import SimGlobal.
-Require Import Red IRed.
-
 
 Set Implicit Arguments.
 
@@ -198,6 +181,16 @@ Section SIM_ITREE.
     :
     sim_itree_def sim_itree RR self ps pt w nths (st_src, i_src)
       (st_tgt, trigger Tid >>= k_tgt)
+      
+  | sim_itree_call_none
+      ps pt w nths st_src st_tgt
+      fn varg i_src k_tgt
+      (FUN: alist_find fn fl_tgt = None)
+      (K: self ps true w nths (st_src, i_src) (st_tgt, x <- triggerNB;; tau;; k_tgt x))
+    :
+    sim_itree_def sim_itree RR self ps pt w nths
+      (st_src, i_src)
+      (st_tgt, trigger (Call fn varg) >>= k_tgt)
 
   | sim_itree_progress
       w w0 nths st_src st_tgt 
@@ -241,11 +234,12 @@ Section SIM_ITREE.
   Lemma sim_itree_mon : monotone9 _sim_itree.
   Proof.
     ii. eapply sim_itree_tarski; eauto.
-    econs; inv PR; econs; eauto.
+    econs; inv PR. 
+    all: eauto using sim_itree_def.
   Qed.
 
-  Hint Constructors _sim_itree.
-  Hint Unfold sim_itree.
+  Hint Constructors _sim_itree: core.
+  Hint Unfold sim_itree: core.
   Hint Resolve sim_itree_mon : paco.
   Hint Resolve cpn9_wcompat : paco.
 
@@ -271,7 +265,7 @@ Section SIM_ITREE.
     le_others w1 w2 -> le_others (w1++[x]) (w2++[x]).
   Proof.
     i. rdes H. split.
-    - rewrite !app_length. nia.
+    - rewrite !length_app. nia.
     - i. assert (i < List.length w1 \/ i >= List.length w1) by nia; des.
       + rewrite !list.lookup_app_l; try nia. eauto.
       + rewrite !list.lookup_app_r; try nia. f_equal. nia.
@@ -289,11 +283,11 @@ Section SIM_ITREE.
     i. econs. inv PR; eauto using sim_itree_def, le_others_refl, le_others_trans.
     econs. eapply K.
     destruct WLE. split.
-    { rewrite !app_length. s. nia. }
+    { rewrite !length_app. s. nia. }
     i. assert (CASE : i < List.length w1 \/ i = List.length w1 \/ i > List.length w1) by nia. des.
     - rewrite !list.lookup_app_l; try nia. eauto.
     - rewrite !(list.list_lookup_middle _ [] winit); try nia. eauto.
-    - rewrite !list.lookup_ge_None_2; eauto; rewrite app_length; s; try nia.
+    - rewrite !list.lookup_ge_None_2; eauto; rewrite length_app; s; try nia.
   Qed.
 
   Lemma sim_itree_ind
@@ -343,6 +337,7 @@ Section SIM_ITREE.
     { econs 15; eauto. des. esplits; eauto. eapply sim_itree_mon; eauto. i. eapply rclo9_base. eauto.  }
     { econs 16; eauto. des. esplits; eauto. eapply sim_itree_mon; eauto. i. eapply rclo9_base. eauto.  }
     { econs 17; eauto. des. esplits; eauto. eapply sim_itree_mon; eauto. i. eapply rclo9_base. eauto.  }
+    { econs 18; eauto. des. esplits; eauto. eapply sim_itree_mon; eauto. i. eapply rclo9_base. eauto.  }
     { ss. }
   Qed.
 
@@ -370,7 +365,8 @@ Section SIM_ITREE.
     { guclo sim_itree_indC_spec. econs 15; eauto. gbase. eauto. }
     { guclo sim_itree_indC_spec. econs 16; eauto. gbase. eauto. }
     { guclo sim_itree_indC_spec. econs 17; eauto. gbase. eauto. }
-    { guclo sim_itree_indC_spec. econs 18; eauto. }
+    { guclo sim_itree_indC_spec. econs 18; eauto. gbase. eauto. }
+    { guclo sim_itree_indC_spec. econs 19; eauto. }
   Qed.
 
   Lemma sim_itreeC_spec r g
@@ -475,7 +471,8 @@ Section SIM_ITREE.
     gcofix CIH. 
     i. revert ps pt. pattern b, b0, w, nths, st_src, st_tgt.
     eapply sim_itree_ind, SIM. i.
-    inv PR; ss; i; clarify; try (guclo sim_itree_indC_spec; hdes; econs; eauto).
+    inv PR; ss; i; clarify.
+    all: try (by guclo sim_itree_indC_spec; hdes; econs; eauto).
     eapply sim_itree_flag_down. gfinal. right.
     eapply paco9_mon.
     - punfold SIM0. pstep. eapply sim_itree_wmon; eauto using le_others_refl.
@@ -517,19 +514,26 @@ Section SIM_ITREE.
     move SIM before GF. revert_until SIM. eapply GF in SIM.
     pattern x3, x4, x5, x6, p, p0.
     eapply sim_itree_tarski, SIM.
-    i. inv PR; clarify; grind; try (econs; econs; eauto).
+    i. inv PR; clarify; grind; try econs. 
+    all: try by econs; eauto.
     - exploit SIMK; eauto. i.
       eapply sim_itree_flag_mon with (ps0 := false) (pt0 := false); ss.
       eapply sim_itree_mon.
       + eapply sim_itree_wmon; eauto.
       + eauto using rclo9.
-    - exploit K; et. i. rewrite !bind_bind in *.
+    - econs; eauto.
+      exploit K; et. i. rewrite ->!bind_bind in *.
       erewrite equal_f; eauto. do 3 eapply f_equal.
       extensionalities. rewrite bind_tau. eauto.
-    - exploit K; et. i. rewrite ! bind_bind in *.
+    - econs; eauto.
+      exploit K; et. i. rewrite ->!bind_bind in *.
       erewrite f_equal; eauto. do 2 eapply f_equal.
       extensionalities. rewrite bind_tau. eauto.
-    - eapply rclo9_clo_base. eauto.
+    - eapply sim_itree_call_none; eauto.
+      exploit K; et. i. rewrite ->!bind_bind in *.
+      eapply eq_ind; eauto. do 2 f_equal.
+      extensionalities. grind.
+    - econs; eauto. eapply rclo9_clo_base. eauto.
   Qed.
 
   Lemma lbindC_spec : lbindC <10= gupaco9 (_sim_itree) (cpn9 (_sim_itree)).
@@ -565,11 +569,9 @@ Section MODSEMR.
     wf_winit : forall w n st_src st_tgt (WF : wf w (n,st_src,st_tgt)), wf (w++[winit]) (n,st_src,st_tgt);
     sim_initial:
       exists w, wf [w] (1, st_src, st_tgt);
-    sim_length:
-      List.length fl_src = List.length fl_tgt;
     sim_fnsems:
-      forall fn fs (FIND : alist_find fn fl_src = Some fs),
-      exists ft, alist_find fn fl_tgt = Some ft /\
+      forall fn ft (FIND : alist_find fn fl_tgt = Some ft),
+      exists fs, alist_find fn fl_src = Some fs /\
         forall my_tid, sim_fsem fl_src fl_tgt winit wf wle my_tid fs ft;
   }.
 
@@ -579,19 +581,8 @@ Section MODSEMR.
     forall fn (MISS : alist_find fn fl_src = None),
       alist_find fn fl_tgt = None.
   Proof.
-    ii. destruct WF as [NODUP].
-    destruct (alist_find fn fl_tgt) eqn : EQ; eauto.
-    apply alist_find_fst_some in EQ. apply alist_find_fst_none in MISS.
-    exfalso. apply MISS.
-    eapply nodup_eqlen_in_rev.
-    - instantiate (1:= List.map fst fl_tgt).
-      rewrite !map_length, SIM.(sim_length); eauto.
-    - eauto.
-    - i. destruct (alist_find x fl_src) eqn : AEQ; cycle 1.
-      { apply alist_find_fst_none in AEQ. ss. }
-      eapply SIM.(sim_fnsems) in AEQ. des.
-      apply alist_find_fst_some in AEQ. eauto.
-    - eauto.
+    i. destruct (alist_find fn fl_tgt) eqn: EQ; eauto.
+    apply SIM in EQ. des. rewrite MISS in EQ. ss.
   Qed.
   
 End MODSEMR.

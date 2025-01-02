@@ -519,6 +519,14 @@ Section WSATS.
     iModIntro; iFrame.
   Qed.
 
+  Lemma closed_universe_mon {u} b b' (LE : b <= b') E:
+    closed_universe u b E ⊢ closed_universe u b' E.
+  Proof.
+    unfold closed_universe, used_worlds. iIntros "((W & E & D & FU) & FW)". inv LE; iFrame.
+    rewrite (free_worlds_alloc _ b (S m)); [|nia].
+    iDestruct "FW" as "[FW L]". iCombine "W L" as "W". rewrite wsats_split; [iFrame|nia].
+  Qed.
+
   (* Lemma empty_worlds_split eu:
     empty_universes eu ⊢ free_worlds eu 0 ∗ wsats eu 0 ∗ OwnE eu ⊤ ∗ OwnD_auth eu ∗ empty_universes (pos_ext_0 eu) ∗ empty_universes (pos_ext_1 eu).
   Proof.

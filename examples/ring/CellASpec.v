@@ -1,17 +1,7 @@
-Require Import Coqlib ITreelib sflib.
+Require Import CRIS.
+
 Require Import ImpPrelude.
-Require Import Events.
-Require Import Behavior.
-Require Import HMod SMod.
-Require Import Skeleton.
-Require Import PCM STB sProp sWorld.
-From ExtLib Require Import
-     Core.RelDec
-     Structures.Maps
-     Data.Map.FMapAList.
-Require Import ISim.
 Require Import CellHeader.
-From iris.algebra Require Import auth excl functions.
 
 Set Implicit Arguments.
 

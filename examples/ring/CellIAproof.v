@@ -1,15 +1,7 @@
-Require Import Coqlib ITreelib.
+Require Import CRIS.
+
 Require Import ImpPrelude.
-Require Import Skeleton.
-Require Import IPM sWorld.
-Require Import Events Behavior.
-Require Import Relation_Definitions.
-
-Require Import CellHeader CellASpec CellI SMod ModSim.
-Require Import CellA STB.
-
-Require Import ISim HMod PMod Events ITactics.
-Require Import Mod ModSimFacts.
+Require Import CellHeader CellASpec CellI CellA.
 
 Set Implicit Arguments.
 
@@ -99,8 +91,8 @@ Module CellIA. Section CellIA.
     init_sim.
     - iIntros "H". iDestruct "H" as (v) "(C & A)".
       repeat iExists _. iSplit; eauto. iLeft. iFrame.
-    - apply simF_get.
-    - apply simF_set.
+    - apply simF_get; eauto.
+    - apply simF_set; eauto.
   Qed.
 
 End CellIA. End CellIA.

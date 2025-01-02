@@ -1,10 +1,6 @@
-Require Import Coqlib.
-Require Import ITreelib.
+Require Import CRIS.
+
 Require Import ImpPrelude.
-Require Import Behavior.
-Require Import PMod HMod Events.
-Require Import Skeleton.
-Require Import PCM IPM ITactics.
 Require Export MemHeader.
 
 Set Implicit Arguments.
@@ -18,7 +14,7 @@ Section MEMI.
 
   Definition alloc : list val → itree pmodE val :=
     fun varg =>
-      `sz : Z <- (pargs [Tint] varg)?;;
+      'sz : Z <- (pargs [Tint] varg)?;;
       mem <- trigger (SGet v_mem);; mem <- mem↓?;;
       if (Z_le_gt_dec 0 sz && Z_lt_ge_dec (8 * sz) modulus_64)
       then (delta <- trigger (Choose _);;
@@ -31,7 +27,7 @@ Section MEMI.
 
   Definition free : list val → itree pmodE val :=
     fun varg =>
-      '(b, ofs) <- (pargs [Tptr] varg)?;;
+      '(b, ofs): _ <- (pargs [Tptr] varg)?;;
       mem <- trigger (SGet v_mem);; mem <- mem↓?;;
       mem1 <- (Mem.free mem b ofs)?;;
       trigger (SPut v_mem mem1↑);;;
@@ -40,7 +36,7 @@ Section MEMI.
 
   Definition load : list val → itree pmodE val :=
     fun varg =>
-      '(b, ofs) <- (pargs [Tptr] varg)?;;
+      '(b, ofs): _ <- (pargs [Tptr] varg)?;;
       mem <- trigger (SGet v_mem);; mem <- mem↓?;;
       v <- (Mem.load mem b ofs)?;;
       Ret v
@@ -48,7 +44,7 @@ Section MEMI.
 
   Definition store : list val → itree pmodE val :=
     fun varg =>
-      '(b, ofs, v) <- (pargs [Tptr; Tuntyped] varg)?;;
+      '(b, ofs, v): _ <- (pargs [Tptr; Tuntyped] varg)?;;
       mem <- trigger (SGet v_mem);; mem <- mem↓?;;
       mem1 <- (Mem.store mem b ofs v)?;;
       trigger (SPut v_mem mem1↑);;;
@@ -57,7 +53,7 @@ Section MEMI.
 
   Definition cmp : list val → itree pmodE val :=
     fun varg =>
-      '(v0, v1) <- (pargs [Tuntyped; Tuntyped] varg)?;;
+      '(v0, v1): _ <- (pargs [Tuntyped; Tuntyped] varg)?;;
       mem <- trigger (SGet v_mem);; mem <- mem↓?;;
       b <- (vcmp mem v0 v1)?;;
       if b : bool

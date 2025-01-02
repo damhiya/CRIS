@@ -1,13 +1,6 @@
-Require Import Coqlib ITreelib.
-Require Import ImpPrelude.
-Require Import Events.
-Require Import Behavior.
-Require Import SMod HMod PMod.
-Require Import Skeleton.
-Require Import STB IPM.
-Require Import RingHeader.
+Require Import CRIS.
+
 Require Import CellioHeader.
-Require Import ITactics.
 
 Set Implicit Arguments.
 

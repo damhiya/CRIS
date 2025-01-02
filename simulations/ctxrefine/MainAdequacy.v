@@ -1,20 +1,8 @@
-Require Import Coqlib.
-Require Export ITreelib.
-Require Import Any.
+Require Import Common.
 
-Require Import IRed.
-Require Import Behavior Skeleton.
-Require Import IPM.
-
-Require Import ModSim ModSimFacts.
-Require Import HPSim HPSimFacts.
-
-Require Import HMod Mod HMod2Mod Events.
-Require Import SubPerm.
-
-Require Import ISim ISimFacts.
+Require Import Skeleton Mod HMod.
+Require Import ModSim ModSimFacts HPSim HPSimFacts ISim ISimFacts ITactics.
 Require Import CtxRefine.
-Require Import ITactics.
 
 Set Implicit Arguments.
 
@@ -22,8 +10,8 @@ Section AUX.
   Context `{Σ : GRA.t}.
 
   Lemma alist_upd_fst_in {V} a (k : key) (v : V) l
-      (IN : In a (map (fst <*> fst) l)) :
-    In a (map (fst <*> fst) (alist_upd k v l)).
+      (IN : In a (List.map (fst ∘ fst) l)) :
+    In a (List.map (fst ∘ fst) (alist_upd k v l)).
   Proof.
     unfold alist_upd in *.
     induction l; ss; i; rewrite eq_rel_dec_correct; des_ifs; ss; des; eauto.
@@ -144,7 +132,7 @@ Section AUX.
   Proof.
     eapply alist_upd_not_in. 
     ii. eapply in_map with (f:=fst) in H. 
-    rewrite map_map in H. eapply INSCP in H.
+    rewrite List.map_map in H. eapply INSCP in H.
     assert (∃x, In x scopes /\ String.eqb k.1 x = true).
     { exists k.1. esplits; [eauto|]. eapply String.eqb_refl. }
     eapply existsb_exists in H0. clarify.
@@ -157,7 +145,7 @@ Section AUX.
   Proof.
     eapply existsb_exists.
     eapply alist_find_fst_some, in_map in FIND.
-    rewrite map_map in FIND.
+    rewrite List.map_map in FIND.
     exists k.1. esplits; eauto. eapply String.eqb_refl.
   Qed.
 
@@ -168,14 +156,14 @@ Section AUX.
   Proof.
     eapply alist_find_fst_notin.
     ii. eapply in_map with (f:=fst) in H. 
-    rewrite map_map in H. eapply INSCP in H.
+    rewrite List.map_map in H. eapply INSCP in H.
     assert (∃x, In x scopes /\ String.eqb k.1 x = true).
     { exists k.1. esplits; [eauto|]. eapply String.eqb_refl. }
     eapply existsb_exists in H0. clarify.
   Qed.
 
   Lemma alist_find_exists_l st ctx scopeS scopeC (k : key)
-      (DISJ : NoDup (scopeS ++ scopeC))
+      (DISJ : List.NoDup (scopeS ++ scopeC))
       (INS : incl (state_scopes st) scopeS)
       (INC : incl (state_scopes ctx) scopeC)
       (EXT : existsb (String.eqb k.1) scopeS = true) :
@@ -185,7 +173,7 @@ Section AUX.
     eapply alist_find_fst_notin. ii.
     eapply existsb_exists in EXT. des.
     eapply NoDup_app_disjoint; eauto.
-    eapply INC. unfold state_scopes. rewrite -map_map. 
+    eapply INC. unfold state_scopes. rewrite -List.map_map. 
     eapply in_map with (f:=fst) in H.
     eapply String.eqb_eq in EXT0. subst. eauto.
   Qed.
@@ -212,22 +200,23 @@ Section AUX.
 
   Ltac hstep := guclo hpsimC_spec; econs; econs; eauto; econs; eauto.
 
-  Lemma hpsim_ctx fnsems_src fnsems_tgt fl_src fl_tgt fl_ctx Ist my_tid scopes scopeC
+  Lemma hpsim_ctx fnsems_src fnsems_tgt fl_src fl_tgt fl_ctx Ist my_tid is_closed scopes scopeC
       (FLS : fl_src = (List.map (map_snd HModSem.sandbox_body) fnsems_src))
       (FLT : fl_tgt = (List.map (map_snd HModSem.sandbox_body) fnsems_tgt))
       (WS : ∀ (fn : gname) p (IN : alist_find fn fnsems_src = Some p), incl p.1 scopes)
       (WT : ∀ (fn : gname) p (IN : alist_find fn fnsems_tgt = Some p), incl p.1 scopes)
       (DISJ : List.NoDup (scopes ++ scopeC))
 
-      ps pt nths st_src st_tgt st_ctx itr_src itr_tgt fmr
-      (SCPS : incl (state_scopes st_src) scopes)
-      (SCPT : incl (state_scopes st_tgt) scopes)
-      (SCPC : incl (state_scopes st_ctx) scopeC)
-      (ITRS : HModSem.sandbox scopes itr_src = itr_src)
-      (ITRT : HModSem.sandbox scopes itr_tgt = itr_tgt)
-      (SIM : hpsim_body fl_src fl_tgt Ist my_tid ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr) :
+    ps pt nths st_src st_tgt st_ctx itr_src itr_tgt fmr
+    (SCPS : incl (state_scopes st_src) scopes)
+    (SCPT : incl (state_scopes st_tgt) scopes)
+    (SCPC : incl (state_scopes st_ctx) scopeC)
+    (ITRS : HModSem.sandbox scopes itr_src = itr_src)
+    (ITRT : HModSem.sandbox scopes itr_tgt = itr_tgt)
+    (SIM : hpsim_body fl_src fl_tgt Ist my_tid false ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr)
+    :
     hpsim_body (fl_src ++ fl_ctx) (fl_tgt ++ fl_ctx) 
-    (IstProd0 (IstSB0 scopes Ist) (IstSB0 scopeC IstEq0)) my_tid
+    (IstProd0 (IstSB0 scopes Ist) (IstSB0 scopeC IstEq0)) my_tid is_closed
     ps pt nths (st_src ++ st_ctx, itr_src) (st_tgt ++ st_ctx, itr_tgt) fmr.
   Proof.
     guardH FLS. guardH FLT.
@@ -316,7 +305,7 @@ Section AUX.
           rewrite alist_upd_not_tail; eauto.
           ii. eapply NoDup_app_disjoint; eauto.
           eapply in_map with (f:=fst) in H2.
-          rewrite map_map in H2. eapply SCPC in H2.
+          rewrite List.map_map in H2. eapply SCPC in H2.
           rewrite <- Heq0. eauto.
         }
         rewrite UPD. eapply K; try refl; eauto.
@@ -342,7 +331,7 @@ Section AUX.
           eapply alist_upd_not_tail. eauto.
           ii. eapply NoDup_app_disjoint; eauto.
           eapply in_map with (f:=fst) in H2.
-          rewrite map_map in H2. eapply SCPC in H2.
+          rewrite List.map_map in H2. eapply SCPC in H2.
           rewrite <- Heq0. eauto.  
         }
         rewrite UPD. eapply K; try refl; eauto.
@@ -421,36 +410,35 @@ Section AUX.
     - hstep. eapply K; try refl; eauto.
       rewrite HModSB.transl_bind HModSB.transl_sch !bind_trigger in ITRT.
       depdes ITRT. eapply equal_f in x. eauto.
-      
     - gstep. econs. econs. econs; eauto. econs; eauto. 
       gbase. pclearbot. eapply CIH; try refl; eauto.
       ii. eauto.
   Qed.
 
   Lemma isim_ctx
-    fs ft ms mt ctx Ist fn
+    fs ft ms mt ctx Ist fn is_closed
     (WFS : HModSem.wf (HModSem.add ms ctx))
     (WFT : HModSem.wf (HModSem.add mt ctx))
     (FINDS : alist_find fn (HModSem.fnsems ms) = Some fs)
     (FINDT : alist_find fn (HModSem.fnsems mt) = Some ft)
     (SCOPES : sub_perm (HModSem.scopes mt) (HModSem.scopes ms))
-    (NODUPFS : NoDup (map fst (HModSem.fnsems ms ++ HModSem.fnsems ctx)))
-    (NODUPFT : NoDup (map fst (HModSem.fnsems mt ++ HModSem.fnsems ctx)))
+    (NODUPFS : List.NoDup (List.map fst (HModSem.fnsems ms ++ HModSem.fnsems ctx)))
+    (NODUPFT : List.NoDup (List.map fst (HModSem.fnsems mt ++ HModSem.fnsems ctx)))
     (IMON : ∀ nths0 nths', nths0 <= nths' → ∀ st_src st_tgt,
            Ist nths0 st_src st_tgt -∗ Ist nths' st_src st_tgt)
     (SIM : isim_fsem
-       (map (map_snd HModSem.sandbox_body) (HModSem.fnsems ms))
-       (map (map_snd HModSem.sandbox_body) (HModSem.fnsems mt))
-       Ist
+       (List.map (map_snd HModSem.sandbox_body) (HModSem.fnsems ms))
+       (List.map (map_snd HModSem.sandbox_body) (HModSem.fnsems mt))
+       Ist false
        (HModSem.sandbox_body fs)
        (HModSem.sandbox_body ft))
     :
       isim_fsem
-        (map (map_snd HModSem.sandbox_body)
+        (List.map (map_snd HModSem.sandbox_body)
            (HModSem.fnsems ms ++ HModSem.fnsems ctx))
-        (map (map_snd HModSem.sandbox_body)
+        (List.map (map_snd HModSem.sandbox_body)
            (HModSem.fnsems mt ++ HModSem.fnsems ctx))
-        (IstProd0 (IstSB0 (HModSem.scopes ms) Ist) (IstSB0 (HModSem.scopes ctx) IstEq0))
+        (IstProd0 (IstSB0 (HModSem.scopes ms) Ist) (IstSB0 (HModSem.scopes ctx) IstEq0)) is_closed
         (HModSem.sandbox_body fs) (HModSem.sandbox_body ft).
   Proof.
     ii. specialize (SIM x y H). subst.
@@ -468,8 +456,8 @@ Section AUX.
     assert (EQ : (λ x, (map_snd HModSem.sandbox_body x).1) = @fst string _).
     { extensionalities. destruct H. eauto. }
     eapply hpsim_ctx; eauto; ss; cycle 6.
-    { rewrite -map_app map_map EQ. eauto. }
-    { rewrite -map_app map_map EQ. eauto. }
+    { rewrite -map_app List.map_map EQ. eauto. }
+    { rewrite -map_app List.map_map EQ. eauto. }
     { 
       ii. eapply ms.(HModSem.well_scoped_fns).
       unfold fnsems_scopes. erewrite IN. ss.
@@ -495,12 +483,12 @@ Section AUX.
     ginit. i. eapply gpaco8_mon; first eapply ISIM; eauto using iunlift_ibot.
   Qed.
 
-  Lemma hmod_sim_ctx (ms mt ctx : HMod.t) IC Ist
+  Lemma hmod_sim_ctx (ms mt ctx : HMod.t) IC Ist is_closed
     (SIM : HSim.t ms mt IC Ist)
     :
-    HSim.t (ms ★ ctx) (mt ★ ctx) IC 
+    HSim._t (ms ★ ctx) (mt ★ ctx) IC 
       (fun sk => IstProd0 (IstSB0 (HMod.modsem ms sk).(HModSem.scopes) (Ist sk))
-                          (IstSB0 (HMod.modsem ctx sk).(HModSem.scopes) IstEq0)).
+                          (IstSB0 (HMod.modsem ctx sk).(HModSem.scopes) IstEq0)) is_closed.
   Proof.
     inv SIM.
     econs; cycle 1.
@@ -523,11 +511,7 @@ Section AUX.
       repeat iExists _. iFrame. iPureIntro. esplits; eauto.
     }
     { eapply sub_perm_cancel_tail. eauto. }
-    { rewrite! app_length. nia. }
-    {
-      i. move: IN; rewrite ?map_app; intros IN. eapply in_app_or in IN.
-      des; eapply in_or_app; eauto.  
-    }
+    { rewrite ?map_app. eapply sub_perm_cancel_tail. eauto. }
     r. i. ss. rewrite alist_find_app_o in FIND. des_ifs.
     {
       (* find in src/tgt module *)
@@ -551,14 +535,14 @@ Section AUX.
       eapply isim_ctx; eauto.
     } 
     {
-      destruct fs as [scp itr]. esplits; ss.
-      { rewrite alist_find_app_o. des_ifs; eauto.
-        exfalso.
-        eapply alist_find_fst_some, hssim_match, alist_find_fst_in in Heq0.
-        - des. erewrite Heq in Heq0. ss.
-        - econs; eauto.
-        - rewrite map_app in NODUPFS. eapply nodup_app_l. eauto.
+      exists ft. esplits; ss.
+      { rewrite alist_find_app_o. des_ifs. exfalso.
+        eapply alist_find_some in FIND, Heq0.
+        eapply in_map with (f:=fst) in FIND, Heq0.
+        rewrite map_app in NODUPFS.
+        eapply NoDup_app_disjoint; eauto.
       }
+      destruct ft as [scp itr].
       inv WFS. eapply isim_reflR; ss; i; eauto.
       - replace scp with (fnsems_scopes fn (HMod.modsem ctx sk).(HModSem.fnsems)).
         { eapply (HMod.modsem ctx sk).(HModSem.well_scoped_fns). }
@@ -616,18 +600,18 @@ Section COMM.
     fun _ l0 l1 => ⌜l0 ≡ₚ l1⌝%I.  
   
   Lemma alist_upd_perm {K V} l0 l1 `{Dec K} (k : K) (v : V)
-        (ND : List.NoDup (map fst l0))
+        (ND : List.NoDup (List.map fst l0))
         (PERM : l0 ≡ₚ l1)
       :
         alist_upd k v l0 ≡ₚ alist_upd k v l1.
   Proof.
-    destruct (classic (In k (map fst l0))); cycle 1.
+    destruct (classic (In k (List.map fst l0))); cycle 1.
     {
       rewrite! alist_upd_not_in; eauto. ii.
       eapply H0. eapply Permutation_in; cycle 1; eauto.
       eapply Permutation_map. symmetry. eauto.
     }
-    assert (List.NoDup (map fst l1)).
+    assert (List.NoDup (List.map fst l1)).
     { 
       eapply Permutation_NoDup; cycle 1; eauto. 
       eapply Permutation_map. eauto.
@@ -663,7 +647,7 @@ Section COMM.
 
   Lemma alist_find_comm {K V} `{Dec K}
         (l0 l1 : list (K*V)) fn f
-        (NODUP : List.NoDup (map fst (l0 ++ l1)))
+        (NODUP : List.NoDup (List.map fst (l0 ++ l1)))
         (FIND : alist_find fn (l0 ++ l1) = Some f)
       :
         alist_find fn (l1 ++ l0) = Some f.
@@ -679,9 +663,9 @@ Section COMM.
     HMod.scopes (md0 ★ md1) sk = HMod.scopes md0 sk ++ HMod.scopes md1 sk.
   Proof. ss. Qed.
 
-  Lemma hmod_add_comm ms0 ms1 :
-    HSim.t (ms0 ★ ms1) (ms1 ★ ms0) (const(emp%I))
-      (fun sk => IstSB0 (HMod.scopes (ms0 ★ ms1) sk) perm_Ist).
+  Lemma hmod_add_comm ms0 ms1 is_closed:
+    HSim._t (ms0 ★ ms1) (ms1 ★ ms0) (const(emp%I))
+      (fun sk => IstSB0 (HMod.scopes (ms0 ★ ms1) sk) perm_Ist) is_closed.
   Proof.
     econs; cycle 1.
     { rr. eapply Permutation_app_comm. }
@@ -696,22 +680,15 @@ Section COMM.
       { eapply Permutation.Permutation_app_comm. }
     }
     { i. r. rewrite /IstSB0 /perm_Ist; iIntros "_ [% %]". iSplit; iPureIntro; eauto. }
-    {
-      r. exists []. rewrite app_nil_l.
-      eapply Permutation.Permutation_app_comm.
-    }
-    { rewrite! app_length. nia. }
-    {
-      rewrite ?map_app; i. eapply in_app_iff, Logic.or_comm.
-      eapply in_app_iff. eauto.
-    }
+    { apply sub_perm_comm. }
+    { rewrite ?map_app; i. apply sub_perm_comm. }
 
     ii. eapply alist_find_comm in FIND; cycle 1. 
     { inv WFT; ss. }
     esplits; eauto.
 
     (* simulation *)
-    ii. subst. destruct fs. unfold HModSem.sandbox_body. s.
+    ii. subst. destruct ft. unfold HModSem.sandbox_body. s.
     generalize (i y) as it. clear FIND i y.
     revert NODD. apply combine_quant.
     revert NODS. apply combine_quant.
@@ -721,7 +698,7 @@ Section COMM.
     eapply isim_coind. i.
     destruct a as [nths [st_src [st_tgt [NODS [NODD it]]]]]. s.
     iIntros "(#IST & CIH)".
-    assert (CASE := case_itrH _ it); des; subst.
+    assert (CASE := case_itrH it); des; subst.
     - step. iFrame. eauto.
     - steps_l. steps_r. by_coind "CIH". eauto.
     - steps_l. force_r. iFrame. by_coind "CIH". eauto.

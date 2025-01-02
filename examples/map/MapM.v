@@ -1,13 +1,6 @@
-Require Import Coqlib ITreelib sflib.
-Require Import ImpPrelude.
-Require Import Events.
-Require Import Behavior.
-Require Import SMod HMod.
-Require Import Skeleton.
-Require Import PCM.
-Require Import STB IPM ITactics.
+Require Import CRIS.
+
 Require Import MapHeader.
-Require Import sProp sWorld World SRF.
 
 Set Implicit Arguments.
 
@@ -53,7 +46,7 @@ Module MapM. Section MapM.
 
   Definition set : list val → itree hmodE val :=
     λ varg,
-      '(k, v) <- (pargs [Tint; Tint] varg)?;;
+      '(k, v):_ <- (pargs [Tint; Tint] varg)?;;
       size <- cgetU v_size;;
       assume(0 <= k < size)%Z;;;
       f <- cgetU v_map;;

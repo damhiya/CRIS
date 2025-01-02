@@ -1,13 +1,5 @@
-From CRIS.base_logic Require Import base_logic.
-Require Import IPM PCM. (* TODO : Remove dependency on this *)
-Require Import Coqlib AList.
-Require Import ITreelib.
-Require Import Any.
-Require Import Events.
-Require Import IRed.
-Require Import Behavior.
-Require Import PCM IPM.
-Require Import Behavior.
+Require Import Common.
+
 Require Import Skeleton Mod.
 
 Set Implicit Arguments.
@@ -70,11 +62,11 @@ Section MID.
   Qed.
 
   Definition mput_res `{stateE -< E} `{coreE -< E} (mr : Σ) : itree E unit :=
-    st <- trigger sGet;; '(mp, _) <- (Any.split st)?;;
+    st <- trigger sGet;; '(mp, _) :_ <- (Any.split st)?;;
     trigger (sPut (Any.pair mp mr↑)).
 
   Definition mget_res `{stateE -< E} `{coreE -< E} : itree E Σ :=
-    st <- trigger sGet;; '(_, mr) <- (Any.split st)?;;
+    st <- trigger sGet;; '(_, mr) : _ <- (Any.split st)?;;
     mr↓?.
 
   Definition mput_kv E `{stateE -< E} `{coreE -< E} (k: key) (v: Any.t) : itree E unit :=
