@@ -135,3 +135,65 @@ Section SMOD.
 
 End SMOD.
 End SMod.
+
+Section ADD.
+  Context `{Σ : GRA.t}.
+
+  Lemma hmod_ext
+      (ms0 ms1: HModSem.t)
+      (SCOPES: ms0.(HModSem.scopes) = ms1.(HModSem.scopes))
+      (FNSEMS: ms0.(HModSem.fnsems) = ms1.(HModSem.fnsems))
+      (STATES: ms0.(HModSem.initial_st) = ms1.(HModSem.initial_st))
+    :
+    ms0 = ms1.
+  Proof.
+    destruct ms0, ms1. ss. subst.
+    assert (well_scoped_fns = well_scoped_fns0) by apply proof_irr.
+    assert (well_scoped_init = well_scoped_init0) by apply proof_irr.
+    assert (nodup_fns = nodup_fns0) by apply proof_irr.
+    subst. eauto.
+  Qed.
+    
+  Lemma smodsem_add_interp_comm
+      ginv stb
+      (ms0 ms1: SModSem.t)
+    :
+    SModSem.to_hmod ginv stb (SModSem.add ms0 ms1) = HModSem.add (SModSem.to_hmod ginv stb ms0) (SModSem.to_hmod ginv stb ms1).
+  Proof.
+    eapply hmod_ext; ss; eauto.
+    rewrite map_app. ss.
+  Qed.
+
+  Lemma add_interp_comm
+      ginv stb
+      (md0 md1: SMod.t)
+    :
+    SMod.to_hmod ginv stb (SMod.add md0 md1) = HMod.add (SMod.to_hmod ginv stb md0) (SMod.to_hmod ginv stb md1).
+  Proof.
+    unfold SMod.to_hmod. unfold "★". s. 
+    f_equal. extensionalities.
+    eapply smodsem_add_interp_comm.
+  Qed. 
+
+  Lemma interp_empty
+      ginv stb
+    :
+    SMod.to_hmod ginv stb SMod.empty = HMod.empty.
+  Proof.
+    unfold SMod.to_hmod, HMod.empty. ss. 
+    f_equal. extensionalities.
+    eapply hmod_ext; eauto.
+  Qed.
+
+  Lemma addL_interp_comm
+      ginv stb
+      (mds: list SMod.t)
+    :
+    SMod.to_hmod ginv stb (SMod.addL mds) = HMod.addL (List.map (SMod.to_hmod ginv stb) mds).
+  Proof.
+    induction mds; [eapply interp_empty|].
+    s. rewrite add_interp_comm.
+    f_equal. eauto.
+  Qed. 
+
+End ADD.
