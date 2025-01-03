@@ -139,8 +139,7 @@ End SMod.
 Section ADD.
   Context `{Σ : GRA.t}.
 
-  Lemma hmod_ext
-      (ms0 ms1: HModSem.t)
+  Lemma hmod_ext (ms0 ms1: HModSem.t)
       (SCOPES: ms0.(HModSem.scopes) = ms1.(HModSem.scopes))
       (FNSEMS: ms0.(HModSem.fnsems) = ms1.(HModSem.fnsems))
       (STATES: ms0.(HModSem.initial_st) = ms1.(HModSem.initial_st))

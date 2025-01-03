@@ -1,21 +1,14 @@
 Require Import CRIS.
 Require Import ImpPrelude.
 Require Import CannonIAproof CannonMainIAproof.
-Require Import CannonA CannonMainA.
+Require Import CannonA CannonASpec CannonMainA CannonMainASpec .
 Require Import Cancellation.
 
 Set Implicit Arguments.
 
 Module CannonAll.
 Section C.
-  Context `{!Inv.t Σ Γ α β τ, !G Γ}.
-  Local Notation iProp := (iProp Σ).
-
-  Check CannonA.t.
-
-  Check (cancellation).
-
-
+  Variable num_fire: nat.
 
 End C.
 End CannonAll.
