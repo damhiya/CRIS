@@ -5,7 +5,7 @@ Require Import HMod.
 Set Implicit Arguments.
 
 Section FSPEC.
-  Context `{Σ : GRA}.
+  Context {Σ : GRA}.
   Notation iProp := (iProp Σ).
 
   Definition invspec := nat → iProp.
@@ -31,18 +31,18 @@ Section FSPEC.
   Definition fbody_trivial : Any.t → itree hmodE Any.t :=
     λ _, trigger (Choose _).
 
-  Definition fspec_virtual (M VA VR: Type)
+  Definition fspec_virtual (M VA VR : Type)
       (precond: nat → M → VA → Any.t → iProp)
       (postcond: nat → M → VR → Any.t → iProp) :=
     mk_fspec (meta:=M)
       (λ tid x varg arg, (∃ va: VA, ⌜varg = va↑⌝ ∗ precond tid x va arg)%I)
       (λ tid x vret ret, (∃ vr: VR, ⌜vret = vr↑⌝ ∗ postcond tid x vr ret)%I).
 
-  Definition fspec_simple {X: Type} (DPQ: X → (Any.t → iProp) * (Any.t → iProp)) : fspec :=
+  Definition fspec_simple {X : Type} (DPQ: X → (Any.t → iProp) * (Any.t → iProp)) : fspec :=
     mk_fspec (λ _ x y a, (((fst ∘ DPQ) x a: iProp) ∗ ⌜y = a⌝)%I)
              (λ _ x z a, (((snd ∘ DPQ) x a: iProp) ∗ ⌜z = a⌝)%I).
 
-  Definition fspec_simple_tid {X: Type}
+  Definition fspec_simple_tid {X : Type}
       (DPQ: nat → X → (Any.t → iProp) * (Any.t → iProp)) : fspec :=
     mk_fspec (λ tid x y a, (((fst ∘ DPQ tid) x a: iProp) ∗ ⌜y = a⌝)%I)
              (λ tid x z a, (((snd ∘ DPQ tid) x a: iProp) ∗ ⌜z = a⌝)%I).
@@ -59,16 +59,15 @@ Section FSPEC.
     postcond := λ tid '(existT i meta_i), (nth i fspecs fspec_false).(postcond) tid meta_i 
   |}.
 
-  Variant meta_inv {X: positive → nat → Type} : Type :=
-  | mk_meta (u: positive) (n: nat) (x: X u n).
+  Variant meta_inv {X : nat → Type} : Type :=
+  | mk_meta (u : positive) (n : nat) (x : X n).
 
-  Definition fspec_inv (k: nat) (fsp: positive → nat → fspec) `{!sinvGS Σ Γ α β τ} : fspec :=
-    mk_fspec (meta := @meta_inv (λ u n, (fsp u n).(meta)))
+  Definition fspec_inv (k : nat) (fsp : nat → fspec) `{!sinvGS Σ Γ α β τ} : fspec :=
+    mk_fspec (meta := @meta_inv (λ n, (fsp n).(meta)))
       (λ tid '(mk_meta u n x) varg arg,
-         wsats u (k+n) ⊤ ∗ (fsp u n).(precond) tid x varg arg)%I
+         own_admin ∗ wsats u (k+n) ⊤ ∗ (fsp n).(precond) tid x varg arg)%I
       (λ tid '(mk_meta u n x) vret ret,
-         wsats u (k+n) ⊤ ∗ (fsp u n).(postcond) tid x vret ret)%I.
-  
+         own_admin ∗ wsats u (k+n) ⊤ ∗ (fsp n).(postcond) tid x vret ret)%I.
 End FSPEC.
 
 Arguments precond : simpl never.

@@ -1,7 +1,7 @@
 From stdpp Require Import coPset gmap namespaces.
 From iris Require Import bi.big_op.
 Require Import Coq.Logic.ClassicalEpsilon.
-Require Export Coqlib own SRF sProp World.
+Require Export Coqlib own SRF sProp invariants.
 
 (* TODO : move these to separate files *)
 Local Notation univ_id := positive.
@@ -24,7 +24,7 @@ Global Instance inv_syntax : PF.t := {
   shp := inv_shape;
   deg := inv_degree;
 }.
-(* TODO : find a way to construct gmap of SRFSyns from syn : pos → SRFSyn.t *)
+
 (* Invariant interpretations *)
 Local Definition inv_interp_aux `{α : SRFCons.t, Γ : HRA, !subG Γ Σ, !invGS Σ Γ} n (s : inv_shape) :
     (inv_degree s (SRFSyn.t_prev n) → SRFSyn.t n) → (inv_degree s (SRFSyn.t_prev n) → iProp Σ)
@@ -190,13 +190,14 @@ Section reduction.
 
   Lemma inv_red u n N p : ⟦syn_inv u n N p⟧ ≡ inv u n N p.
   Proof.
-    rewrite syn_inv_eq /syn_inv_def. SL_red. rewrite /inv World.inv_aux.(seal_eq) /World.inv_def.
+    rewrite syn_inv_eq /syn_inv_def. SL_red.
+    rewrite /inv invariants.inv_aux.(seal_eq) /invariants.inv_def.
     iSplit; iIntros "[%x H]"; iExists x; SL_red; SRF_red; ss.
   Qed.
 
   Lemma fupd_red u n E1 E2 P : ⟦syn_fupd u n E1 E2 P⟧ ≡ uPred_fupd u n E1 E2 ⟦P⟧.
   Proof.
-    rewrite syn_fupd_eq /uPred_fupd World.uPred_fupd_aux.(seal_eq) /World.uPred_fupd_def.
+    rewrite syn_fupd_eq /uPred_fupd invariants.uPred_fupd_aux.(seal_eq) /invariants.uPred_fupd_def.
     rewrite SLRed.wand SLRed.upd wsats_red. SRF_red; ss.
     rewrite wsats_red; done.
   Qed.

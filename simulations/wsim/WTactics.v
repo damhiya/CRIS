@@ -14,7 +14,7 @@ From ExtLib Require Import
 Require Import Red IRed.
 Require Import ProofMode Invariant.
 Require Import HPSim.
-Require Import World sWorld.
+Require Import invariants sWorld.
 Require Import IProofMode ITacticsAux.
 
 From stdpp Require Import coPset gmap.

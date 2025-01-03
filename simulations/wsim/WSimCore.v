@@ -14,7 +14,7 @@ From ExtLib Require Import
      Data.Map.FMapAList.
 Require Import Red IRed.
 Require Import HPSim.
-Require Import World sWorld.
+Require Import invariants sWorld.
 Require Import Red IRed.
 
 From stdpp Require Import coPset gmap.
