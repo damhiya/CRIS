@@ -154,69 +154,96 @@ Module SchAS. Section Sch.
 
   Variable univ: positive.
 
-  Section SPEC.
+  Definition fspec_spawnable (univ: positive) (fsp: fspec) (tid: nat) (m: meta fsp)
+      (vargs args: Any.t) (pre: iProp) (postS: SAny.t -> SynDepO): Prop :=
+    (((∃ n, wsats univ n ⊤) ∗ pre
+        ⊢ (precond fsp tid m vargs args))%I
+    ∧ (∀ ret: Any.t, 
+        ((∃ vret, postcond fsp tid m vret ret)%I 
+          ⊢ (∃ sret: SAny.t, ((∃ n, wsats univ n ⊤) ∗ ⌜ret = sret↑⌝ 
+              ∗ interp_cond (postS sret))))%I)).
 
-    Definition fspec_spawnable (univ: positive) (fsp: fspec) (tid: nat) (m: meta fsp)
-        (vargs args: Any.t) (pre: iProp) (postS: SAny.t -> SynDepO): Prop :=
-      (((∃ n, wsats univ n ⊤) ∗ pre
-          ⊢ (precond fsp tid m vargs args))%I
-      ∧ (∀ ret: Any.t, 
-          ((∃ vret, postcond fsp tid m vret ret)%I 
-            ⊢ (∃ sret: SAny.t, ((∃ n, wsats univ n ⊤) ∗ ⌜ret = sret↑⌝ 
-               ∗ interp_cond (postS sret))))%I)).
+  Definition _spawn_spec (sk: Sk.t) (StbFun: Sk.t -> gname -> option fspec): fspec :=
+    fspec_inv univ 0
+      (λ n, fspec_virtual
+        (λ my_tid '(mid, fargs, fvargs, pre, postS, existT fn m) varg arg,
+          (⌜varg = ((mid, fn, fvargs) : nat * gname * SAny.t) 
+          ∧ arg = ((mid, fn, fargs) : nat * gname * SAny.t)↑ 
+          ∧ is_Some (StbFun sk fn)
+          ∧ fspec_spawnable univ (find_fsp sk StbFun fn) my_tid m fvargs↑ fargs↑ pre postS⌝
+          ∗ pre ∗ (token_half my_tid postS))%I
+        )
+        (λ _ _ (_ : SAny.t) _, (False)%I)
+      ).
+    (* wfspec_inv univ 
+      (fspec_virtual
+        (fun my_tid '(mid, fargs, fvargs, pre, postS, existT fn m) varg arg =>
+          (⌜varg = ((mid, fn, fvargs) : nat * gname * SAny.t) 
+            ∧ arg = ((mid, fn, fargs) : nat * gname * SAny.t)↑ 
+            ∧ is_Some (StbFun sk fn)
+            ∧ fspec_spawnable univ (find_fsp sk StbFun fn) my_tid m fvargs↑ fargs↑ pre postS⌝
+          ∗ pre ∗ (token_half my_tid postS))%I)
+        (fun _ _ (_: SAny.t) _ => (False)%I))
+  . *)
 
-    Definition _spawn_spec (sk: Sk.t) (StbFun: Sk.t -> gname -> option fspec): fspec :=
-      wfspec_inv univ 
-        (fspec_virtual
-          (fun my_tid '(mid, fargs, fvargs, pre, postS, existT fn m) varg arg =>
-            (⌜varg = ((mid, fn, fvargs) : nat * gname * SAny.t) 
-              ∧ arg = ((mid, fn, fargs) : nat * gname * SAny.t)↑ 
-              ∧ is_Some (StbFun sk fn)
-              ∧ fspec_spawnable univ (find_fsp sk StbFun fn) my_tid m fvargs↑ fargs↑ pre postS⌝
-            ∗ pre ∗ (token_half my_tid postS))%I)
-          (fun _ _ (_: SAny.t) _ => (False)%I))
-    .
+  Definition spawn_spec (sk: Sk.t) (StbFun: Sk.t -> gname -> option fspec) : fspec :=
+    fspec_inv univ 0
+      (λ n, fspec_virtual
+        (λ my_tid '(fargs, fvargs, pre, postS, existT fn m) varg arg,
+          (⌜varg = ((fn, fvargs) : gname * SAny.t) 
+            ∧ arg = ((fn, fargs) : gname * SAny.t)↑
+            ∧ is_Some (StbFun sk fn)
+            ∧ ∀ tid, fspec_spawnable univ (find_fsp sk StbFun fn) tid m fvargs↑ fargs↑ pre postS⌝
+          ∗ pre)%I
+        )
+        (λ _ '(fargs, fvargs, pre, postS, existT fn m) vret ret,
+          (∃ tid : nat, ⌜vret = tid ∧ ret = tid↑⌝ ∗ (token_th tid postS))%I)
+      ).
+    (* wfspec_inv univ
+      (fspec_virtual
+        (fun _ '(fargs, fvargs, pre, postS, existT fn m) varg arg => 
+          (⌜varg = ((fn, fvargs): gname * SAny.t) 
+            ∧ arg = ((fn, fargs): gname * SAny.t)↑
+            ∧ is_Some (StbFun sk fn)
+            ∧ ∀ tid, fspec_spawnable univ (find_fsp sk StbFun fn) tid m fvargs↑ fargs↑ pre postS⌝
+            ∗ pre)%I)
+        (fun _ '(fargs, fvargs, pre, postS, existT fn m) vret ret => 
+          (∃ tid: nat, ⌜vret = tid ∧ ret = tid↑⌝ ∗ (token_th tid postS))%I))
+  . *)
 
-    Definition spawn_spec (sk: Sk.t) (StbFun: Sk.t -> gname -> option fspec): fspec :=
-      wfspec_inv univ
-        (fspec_virtual
-          (fun _ '(fargs, fvargs, pre, postS, existT fn m) varg arg => 
-            (⌜varg = ((fn, fvargs): gname * SAny.t) 
-              ∧ arg = ((fn, fargs): gname * SAny.t)↑
-              ∧ is_Some (StbFun sk fn)
-              ∧ ∀ tid, fspec_spawnable univ (find_fsp sk StbFun fn) tid m fvargs↑ fargs↑ pre postS⌝
-             ∗ pre)%I)
-          (fun _ '(fargs, fvargs, pre, postS, existT fn m) vret ret => 
-            (∃ tid: nat, ⌜vret = tid ∧ ret = tid↑⌝ ∗ (token_th tid postS))%I))
-    .
+  Definition yield_spec: fspec :=
+    fspec_inv univ 0
+      (λ n, fspec_simple
+        (λ _ : unit,
+          ((λ varg, (⌜varg = tt↑⌝)%I),
+          (λ vret, (⌜vret = tt↑⌝)%I)))).
+    (* wfspec_inv univ
+      (fspec_simple (fun (_: unit) =>
+        ((fun varg => (⌜varg = tt↑⌝)%I),
+          (fun vret => (⌜vret = tt↑⌝)%I))))
+  . *)
 
-    Definition yield_spec: fspec :=
-      wfspec_inv univ
-        (fspec_simple (fun (_: unit) =>
-          ((fun varg => (⌜varg = tt↑⌝)%I),
-           (fun vret => (⌜vret = tt↑⌝)%I))))
-    .
+  Definition join_spec: fspec :=
+    fspec_inv univ 0
+      (λ n, fspec_simple
+        (λ '(tid, postS),
+          ((λ varg, ⌜varg = tid↑⌝ ∗ token_th tid postS)%I,
+          (λ vret, (∃ ret, ⌜vret = (Some ret)↑⌝ ∗ interp_cond (postS ret))%I)))).
+    (* wfspec_inv univ
+      (fspec_simple (fun '(tid, postS) =>
+        ((fun varg => (⌜varg = tid↑⌝ ∗ (token_th tid postS))%I),
+          (fun vret => (∃ ret, ⌜vret = (Some ret)↑⌝ ∗ interp_cond (postS ret))%I)))) *)
+  (* . *)
 
-    Definition join_spec: fspec :=
-      wfspec_inv univ
-        (fspec_simple (fun '(tid, postS) =>
-          ((fun varg => (⌜varg = tid↑⌝ ∗ (token_th tid postS))%I),
-            (fun vret => (∃ ret, ⌜vret = (Some ret)↑⌝ ∗ interp_cond (postS ret))%I))))
-    .
+  Definition Stb (sk: Sk.t) (StbFun: Sk.t -> gname -> option fspec): alist gname fspec :=
+    Seal.sealing "ccr" 
+      [(SchName._spawn, _spawn_spec sk StbFun);
+        (SchName.spawn, spawn_spec sk StbFun);
+        (SchName.yield, yield_spec);
+        (SchName.join, join_spec)].
 
-    Definition Stb (sk: Sk.t) (StbFun: Sk.t -> gname -> option fspec): alist gname fspec :=
-      Seal.sealing "ccr" 
-        [(SchName._spawn, _spawn_spec sk StbFun);
-         (SchName.spawn, spawn_spec sk StbFun);
-         (SchName.yield, yield_spec);
-         (SchName.join, join_spec)].
-
-    Lemma Stb_nodup sk StbFun: List.NoDup (List.map fst (Stb sk StbFun)).
-    Proof.
-      unfold Stb. unseal "ccr". prove_nodup.
-    Qed.
-
-  End SPEC.
-
-End Sch.
-End SchAS.
+  Lemma Stb_nodup sk StbFun: List.NoDup (List.map fst (Stb sk StbFun)).
+  Proof.
+    unfold Stb. unseal "ccr". prove_nodup.
+  Qed.
+End Sch. End SchAS.

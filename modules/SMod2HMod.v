@@ -60,13 +60,13 @@ Section FSPEC.
   |}.
 
   Variant meta_inv {X : nat → Type} : Type :=
-  | mk_meta (u : positive) (n : nat) (x : X n).
+  | mk_meta (n : nat) (x : X n).
 
-  Definition fspec_inv (k : nat) (fsp : nat → fspec) `{!sinvGS Σ Γ α β τ} : fspec :=
+  Definition fspec_inv (u : positive) (k : nat) (fsp : nat → fspec) `{!sinvGS Σ Γ α β τ} : fspec :=
     mk_fspec (meta := @meta_inv (λ n, (fsp n).(meta)))
-      (λ tid '(mk_meta u n x) varg arg,
+      (λ tid '(mk_meta n x) varg arg,
          own_admin ∗ univs u (k+n) ∗ wsats u (k+n) ⊤ ∗ (fsp n).(precond) tid x varg arg)%I
-      (λ tid '(mk_meta u n x) vret ret,
+      (λ tid '(mk_meta n x) vret ret,
          own_admin ∗ univs u (k+n) ∗ wsats u (k+n) ⊤ ∗ (fsp n).(postcond) tid x vret ret)%I.
 End FSPEC.
 

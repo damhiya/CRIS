@@ -245,106 +245,10 @@ Section wsat.
     iIntros "H"; iExists ∅; iFrame; iApply big_sepM_empty; ss.
   Qed.
 End wsat.
-(* 
-Section UNIVERSE.
 
-  Fixpoint pos_sup (p i : positive) : bool :=
-    match p, i with
-    | 1, _ => true
-    | p'~0, i'~0 => pos_sup p' i'
-    | p'~1, i'~1 => pos_sup p' i'
-    | _, _ => false
-    end%positive.
-
-  Fixpoint pos_ext_0 (p : positive) : positive :=
-    match p with
-    | 1 => 1~0
-    | p'~0 => (pos_ext_0 p')~0
-    | p'~1 => (pos_ext_0 p')~1
-    end%positive.
-
-  Fixpoint pos_ext_1 (p : positive) : positive :=
-    match p with
-    | 1 => 1~1
-    | p'~0 => (pos_ext_1 p')~0
-    | p'~1 => (pos_ext_1 p')~1
-    end%positive.
-
-  Lemma pos_sup_refl p:
-    pos_sup p p = true.
-  Proof. induction p; s; eauto. Qed.
-
-  Lemma pos_sup_trans p0 p1 p2
-    (EXT1 : pos_sup p0 p1 = true)
-    (EXT2 : pos_sup p1 p2 = true)
-    :
-    pos_sup p0 p2 = true.
-  Proof.
-    revert_until p0. induction p0; i; destruct p1, p2; ss; eauto.
-  Qed.
-
-  Lemma pos_ext_0_sup_true p:
-    pos_sup p (pos_ext_0 p) = true.
-  Proof. induction p; s; eauto. Qed.
-
-  Lemma pos_ext_1_sup_true p:
-    pos_sup p (pos_ext_1 p) = true.
-  Proof. induction p; s; eauto. Qed.
-
-  Lemma pos_ext_0_sup_false p:
-    pos_sup (pos_ext_0 p) p = false.
-  Proof. induction p; s; eauto. Qed.
-
-  Lemma pos_ext_1_sup_false p:
-    pos_sup (pos_ext_1 p) p = false.
-  Proof. induction p; s; eauto. Qed.
-
-  Lemma pos_ext_0_neq p:
-    p ≠ pos_ext_0 p.
-  Proof. induction p; eauto; ii; depdes H; eauto. Qed.
-
-  Lemma pos_ext_1_neq p:
-    p ≠ pos_ext_1 p.
-  Proof. induction p; eauto; ii; depdes H; eauto. Qed.
-
-  Lemma pos_ext_0_disj p p'
-    (SUP : pos_sup (pos_ext_1 p) p' = true)
-    :
-    pos_sup (pos_ext_0 p) p' = false.
-  Proof. revert p' SUP. induction p; i; destruct p'; ss; eauto. Qed.
-
-  Lemma pos_ext_1_disj p p'
-    (SUP : pos_sup (pos_ext_0 p) p' = true)
-    :
-    pos_sup (pos_ext_1 p) p' = false.
-  Proof. revert p' SUP. induction p; i; destruct p'; ss; eauto. Qed.
-
-  Lemma pos_sup_cases u k
-    (EQ : (k =? u)%positive = false)
-    (SUP0 : pos_sup (pos_ext_0 u) k = false)
-    (SUP1 : pos_sup (pos_ext_1 u) k = false)
-    :
-    pos_sup u k = false.
-  Proof.
-    revert_until u. induction u; i; destruct k; ss; eauto.
-  Qed.
-
-End UNIVERSE. *)
-
-Section WSATS.
+Section wsats.
   Context `{@SRFIntp.t (domain Σ) α, Γ : HRA, !subG Γ Σ, !invGS Σ Γ}.
   Local Existing Instances inv_preΣ inv_preΓ invGS_I invGS_E invGS_D.
-
-  (* Definition empty_universesR {R : univ_id -> ucmra} eu (r : forall u, R u) : discrete_funUR R :=
-    fun u =>
-      if (eu <? u)%positive
-      then r u
-      else ε.
-  Definition empty_universes (eu : univ_id) : iProp Σ :=
-    own enabled_name (empty_universesR eu (λ _, CoPset ⊤))
-    ∗ own disabled_name (empty_universesR eu (λ _, ● (GSet ∅)))
-    ∗ own invariant_name (empty_universesR eu ((λ _, (λ n, gmap_view_auth (DfracOwn 1) ∅)) : ownIRA)). *)
-  (* Definition free_universes := (∃ eu, empty_universes eu)%I. *)
 
   Definition wsats u n E : iProp Σ :=
     wsat_auth u n ∗ ownE u E ∗ ownD_auth u ∗ [∗ list] n ∈ (seq 0 n), wsat u n.
@@ -404,7 +308,7 @@ Section WSATS.
 
   Global Instance inv_persistent u n N p : Persistent (inv u n N p).
   Proof. rewrite inv_eq /inv_def. apply _. Qed.
-End WSATS.
+End wsats.
 
   (* Definition used_worlds u b E : iProp Σ :=
     wsats u b ∗ ownE u E ∗ ownD_auth u ∗ free_universes. *)
