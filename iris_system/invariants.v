@@ -348,6 +348,8 @@ Section WSATS.
 
   Definition wsats u n E : iProp Σ :=
     wsat_auth u n ∗ ownE u E ∗ ownD_auth u ∗ [∗ list] n ∈ (seq 0 n), wsat u n.
+  Definition univs u n : iProp Σ :=
+    [∗ list] v ∈ (seq 0 (Pos.to_nat u)), wsats (Pos.of_nat v) n ⊤.
 
   Local Definition uPred_fupd_def u b (E1 E2 : coPset) (P : iProp Σ) : iProp Σ :=
     wsats u b E1 ==∗ (wsats u b E2 ∗ P).

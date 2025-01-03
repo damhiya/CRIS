@@ -65,9 +65,9 @@ Section FSPEC.
   Definition fspec_inv (k : nat) (fsp : nat → fspec) `{!sinvGS Σ Γ α β τ} : fspec :=
     mk_fspec (meta := @meta_inv (λ n, (fsp n).(meta)))
       (λ tid '(mk_meta u n x) varg arg,
-         own_admin ∗ wsats u (k+n) ⊤ ∗ (fsp n).(precond) tid x varg arg)%I
+         own_admin ∗ univs u (k+n) ∗ wsats u (k+n) ⊤ ∗ (fsp n).(precond) tid x varg arg)%I
       (λ tid '(mk_meta u n x) vret ret,
-         own_admin ∗ wsats u (k+n) ⊤ ∗ (fsp n).(postcond) tid x vret ret)%I.
+         own_admin ∗ univs u (k+n) ∗ wsats u (k+n) ⊤ ∗ (fsp n).(postcond) tid x vret ret)%I.
 End FSPEC.
 
 Arguments precond : simpl never.

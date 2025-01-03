@@ -1,4 +1,4 @@
-(* Require Import CRIS.
+Require Import CRIS.
 
 Require Import SchHeader SchGInv.
 
@@ -16,11 +16,18 @@ Module SchAS. Section Sch.
   Definition threadsF := (discrete_funUR (λ _: nat, fragreeUR)).
   Definition threadsRA := authUR threadsF.
 
-  (* Class GpreΓ (Γ : HRA) := {
-    #[global] RA_inG :: inG threadsRA Γ;
-  }. *)
-  (* Class G (Γ: HRA.t) := { #[global] RA_inG :: GRA.inG threadsRA Γ }. *)
-  (* Context `{!G Γ}. *)
+  Class GpreSΣ (Σ : GRA) := {
+    #[global] RA_inG :: inG threadsRA Σ;
+  }.
+  Class GS (Σ : GRA) := {
+    #[global] G_GpreΣ :: GpreSΣ Σ;
+    sch_name : positive
+  }.
+  Definition GΣ : GRA := #[threadsRA].
+  Global Instance subG_GΣ {Σ'} : subG GΣ Σ' → GpreSΣ Σ'.
+  Proof. solve_inG. Qed.
+
+  Context `{!GS Σ}.
 
   Notation iProp := (iProp Σ).
 
@@ -33,43 +40,39 @@ Module SchAS. Section Sch.
         if tid =? 0
         then Some (1/4, to_agree (λ _, (Some (to_agree (existT 0 ⊤%SRF)))))
         else None): threadsF).
-  Definition initial_threads: iProp := 
-    Seal.sealing "SchA"
-      OwnM initial_threads_r.
+  Definition initial_threads: iProp := own sch_name initial_threads_r.
 
-  Definition token_pending_r (tid: nat): threadsRA :=
+  Definition token_pending_r (tid : nat) : threadsRA :=
     ◯ ((λ n, if (tid =? n) then None else ε): threadsF).
 
-  Definition token_quarter_r (tid: nat) (st: SAny.t → SynDepO): threadsRA := 
+  Definition token_quarter_r (tid : nat) (st : SAny.t → SynDepO) : threadsRA := 
     ◯ ((λ n, if (tid =? n) then Some (1/4, to_agree (λ s, Some (to_agree (st s)))) else ε): threadsF).
-  Definition token_th (tid: nat) (st: SAny.t → SynDepO): iProp := OwnM (token_quarter_r tid st).
+  Definition token_th (tid : nat) (st : SAny.t → SynDepO) : iProp :=
+    own sch_name (token_quarter_r tid st).
 
-  Definition token_half_r (tid: nat) (st: SAny.t → SynDepO): threadsRA := 
+  Definition token_half_r (tid : nat) (st : SAny.t → SynDepO) : threadsRA := 
     ◯ ((λ n, if (tid =? n) then Some (1/2, to_agree (λ s, Some (to_agree (st s)))) else ε): threadsF).
-  Definition token_half (tid: nat) (st: SAny.t → SynDepO): iProp := 
-    Seal.sealing "SchA"
-      (OwnM (token_half_r tid st)).
+  Definition token_half (tid : nat) (st : SAny.t → SynDepO): iProp := 
+    own sch_name (token_half_r tid st).
 
   Definition token_three_quarter_r (tid: nat) (st: SAny.t → SynDepO): threadsRA := 
     ◯ ((λ n, if (tid =? n) then Some (3/4, to_agree (λ s, Some (to_agree (st s)))) else ε): threadsF).
   Definition token_three_quarter (tid: nat) (st: SAny.t → SynDepO): iProp := 
-    Seal.sealing "SchA"
-      (OwnM (token_three_quarter_r tid st)).
+    own sch_name (token_three_quarter_r tid st).
 
   Definition token_one_r (tid: nat) (st: SAny.t → SynDepO): threadsRA := 
     ◯ ((λ n, if (tid =? n) then Some (1, to_agree (λ s, Some (to_agree (st s)))) else ε): threadsF).
   Definition token_one (tid: nat) (st: SAny.t → SynDepO): iProp := 
-    Seal.sealing "SchA"
-      (OwnM (token_one_r tid st)).
+    own sch_name (token_one_r tid st).
 
   Definition idle (tid: nat): iProp := 
-    Seal.sealing "SchA" (OwnM (token_pending_r tid)).
+    Seal.sealing "SchA" (own sch_name (token_pending_r tid)).
   Definition active (tid: nat) (st: SAny.t → SynDepO): iProp := 
-    Seal.sealing "SchA" (OwnM (token_quarter_r tid st)).
+    Seal.sealing "SchA" (own sch_name (token_quarter_r tid st)).
   Definition done (tid: nat) (st: SAny.t → SynDepO): iProp := 
-    Seal.sealing "SchA" (OwnM (token_three_quarter_r tid st)).
+    Seal.sealing "SchA" (own sch_name (token_three_quarter_r tid st)).
   Definition joined (tid: nat) (st: SAny.t → SynDepO): iProp := 
-    Seal.sealing "SchA" (OwnM (token_one_r tid st)).
+    Seal.sealing "SchA" (own sch_name (token_one_r tid st)).
 
   Section RA.
 
@@ -153,12 +156,13 @@ Module SchAS. Section Sch.
 
   Section SPEC.
 
-    Definition fspec_spawnable (univ: positive) (fsp: fspec) (tid: nat) (m: meta fsp) (vargs args: Any.t) (pre: iProp) (postS: SAny.t -> SynDepO): Prop :=
-      (((∃ n, closed_universe univ n ⊤) ∗ pre
+    Definition fspec_spawnable (univ: positive) (fsp: fspec) (tid: nat) (m: meta fsp)
+        (vargs args: Any.t) (pre: iProp) (postS: SAny.t -> SynDepO): Prop :=
+      (((∃ n, wsats univ n ⊤) ∗ pre
           ⊢ (precond fsp tid m vargs args))%I
       ∧ (∀ ret: Any.t, 
           ((∃ vret, postcond fsp tid m vret ret)%I 
-            ⊢ (∃ sret: SAny.t, ((∃ n, closed_universe univ n ⊤) ∗ ⌜ret = sret↑⌝ 
+            ⊢ (∃ sret: SAny.t, ((∃ n, wsats univ n ⊤) ∗ ⌜ret = sret↑⌝ 
                ∗ interp_cond (postS sret))))%I)).
 
     Definition _spawn_spec (sk: Sk.t) (StbFun: Sk.t -> gname -> option fspec): fspec :=
@@ -215,4 +219,4 @@ Module SchAS. Section Sch.
   End SPEC.
 
 End Sch.
-End SchAS. *)
+End SchAS.
