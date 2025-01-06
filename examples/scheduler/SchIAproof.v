@@ -166,7 +166,8 @@ Section SIMMODSEM.
   Proof.
     init_simF.
 
-    steps_l. des; subst; hss. destruct q. destruct x.
+    steps_l. des; subst; hss. destruct q.
+    iDestruct "ASM" as "(ADMIN & UNIVS & W & % & % & H)".
     iDestruct "ASM" as "(ADMIN & UNIVS & W & % & % & (% & % & [% %] & %) & PRE & TKN)". des; subst; hss.
     rewrite /token_half. unseal "SchA".
 

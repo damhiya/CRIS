@@ -155,7 +155,7 @@ Module SchAS. Section Sch.
   Variable univ: positive.
 
   Definition fspec_spawnable (univ: positive) (fsp: fspec) (tid: nat) (m: meta fsp)
-      (vargs args: Any.t) (pre: iProp) (postS: SAny.t -> SynDepO): Prop :=
+      (vargs args: Any.t) (pre: iProp) (postS: SAny.t -> SynDepO) : Prop :=
     (((∃ n, wsats univ n ⊤) ∗ pre
         ⊢ (precond fsp tid m vargs args))%I
     ∧ (∀ ret: Any.t, 
@@ -163,7 +163,7 @@ Module SchAS. Section Sch.
           ⊢ (∃ sret: SAny.t, ((∃ n, wsats univ n ⊤) ∗ ⌜ret = sret↑⌝ 
               ∗ interp_cond (postS sret))))%I)).
 
-  Definition _spawn_spec (sk: Sk.t) (StbFun: Sk.t -> gname -> option fspec): fspec :=
+  Definition _spawn_spec (sk: Sk.t) (StbFun: Sk.t -> gname -> option fspec) : fspec :=
     fspec_inv univ 0
       (λ n, fspec_virtual
         (λ my_tid '(mid, fargs, fvargs, pre, postS, existT fn m) varg arg,
