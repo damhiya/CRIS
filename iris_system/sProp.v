@@ -82,7 +82,7 @@ Coercion ST.baseT : Sortclass >-> ST.type.
 
 Notation "⇣ T" := (ST.baseT T) (at level 90) : SRF_scope.
 Notation "'Φ'" := (ST.sPropT) : SRF_scope.
-Infix "→" := (ST.funT) : SRF_scope.
+Infix "->" := (ST.funT) : SRF_scope.
 Infix "*" := (ST.prodT) : SRF_scope.
 Infix "+" := (ST.sumT) : SRF_scope.
 

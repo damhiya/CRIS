@@ -140,8 +140,8 @@ End predicates.
 Section wsat.
   Context `{@SRFIntp.t (domain Σ) α, Γ : HRA, !subG Γ Σ, !invGS Σ Γ}.
 
-  Notation "'⟦' F ',' n '⟧'" := (SRFSem.t (Δ := domain Σ) n F).
-  Notation "'⟦' F '⟧'" := (SRFSem.t (Δ := domain Σ) _ F).
+  (* Notation "'⟦' F ',' n '⟧'" := (SRFSem.t (Δ := domain Σ) n F). *)
+  (* Notation "'⟦' F '⟧'" := (SRFSem.t (Δ := domain Σ) _ F). *)
 
   Variable u : univ_id.
   Variable n : level.
