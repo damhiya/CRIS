@@ -281,11 +281,11 @@ Section SIMMODSEM.
 
     clear THWF SIM NTHS Heqst_tgt1.
     
-    iApply isim_reset. iStopProof.
-    revert NODD1. revert NODS1. apply combine_quant.
-    revert st_tgt1. apply combine_quant.
-    revert st_src1. apply combine_quant_dep.
-    revert nths1. apply combine_quant.
+    iApply isim_reset. iStopProof. revert NODD1.
+    combine_quant NODS1.
+    combine_quant st_tgt1.
+    combine_quant st_src1.
+    combine_quant nths1.
     eapply isim_coind. i.
     destruct a as [nths1 [st_src1 [st_tgt1 [NODS1 NODD1]]]]. s.
     iIntros "([W IST] & #CIH)".
@@ -389,11 +389,11 @@ Section SIMMODSEM.
     rewrite !/Sch.yield /ccallU. unseal "Sch". grind. prep.
     rewrite PModRed.interp_bind. rewrite HModSB.transl_bind. grind.
 
-    iApply isim_reset. iStopProof.
-    revert NODD. revert NODS. apply combine_quant.
-    revert st_tgt. apply combine_quant_dep.
-    revert st_src. apply combine_quant_dep.
-    revert nths. apply combine_quant.
+    iApply isim_reset. iStopProof. revert NODD.
+    combine_quant NODS.
+    combine_quant st_tgt.
+    combine_quant st_src.
+    combine_quant nths.
     eapply isim_coind. i.
     destruct a as [nths [st_src [st_tgt [NODS NODD]]]]. s.
     iIntros "((IST & W & TKN) & #CIH)".

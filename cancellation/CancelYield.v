@@ -38,9 +38,9 @@ Section CANCEL.
     r. _iter. _iter. rewrite SRC TGT. ired.
     hide_r. tau 1.
     reveal ITREE. hide_l.
-    _supd. iterL. _coreA. ls. iterL. _coreA. ls. iterL. _coreA. ls.
+    _supd. iterL. _coreA. iterL. _coreA. ls.
     iterL. _supd. iterL. _supd.
-    iterT 2. iterL. tau 1. ls.
+    iterT 2. iterL. tau 1. ls. des.
     hexploit (Own_bupd_split rt); eauto. i. des.
     assert (UPD': Own rs ==∗ Own (a1 ⋅ x)).
     {
@@ -56,10 +56,9 @@ Section CANCEL.
       (* yield to itself *)
       subst tid.
       iterT 2. iterL. tau 1. iterT 2.
-      iterL. _supd. iterL. _coreE (a1 ⋅ x). 
-      iterL. _coreE VALID. ls.
-      assert (SAT: (Own (a1 ⋅ x) -∗ ginv sk cid ∗ Own x)).
-      { iIntros "[A X]". iFrame. iApply H0. eauto. }
+      iterL. _supd. iterL. _coreE (a1 ⋅ x).
+      assert (SAT: ✓ (a1 ⋅ x) ∧ (Own (a1 ⋅ x) -∗ ginv sk cid ∗ Own x)).
+      { split; eauto. iIntros "[A X]". iFrame. iApply H0. eauto. }
       iterL. _coreE SAT. ls.
       iterL. _supd. iterL. _supd.
       iterT 1.
@@ -88,10 +87,9 @@ Section CANCEL.
     end.
     rewrite H4. ired. tau 2.
     iterT 1. iterL. tau 1. ls. iterT 2.
-    iterL. _supd. iterL. _coreE (a1 ⋅ x). ls. 
-    iterL. _coreE VALID. ls.
-      assert (SAT: (Own (a1 ⋅ x) -∗ ginv sk tid ∗ Own x)).
-      { iIntros "[A X]". iFrame. iApply H0. eauto. }
+    iterL. _supd. iterL. _coreE (a1 ⋅ x). ls.
+    assert (SAT: ✓ (a1 ⋅ x) ∧ (Own (a1 ⋅ x) -∗ ginv sk tid ∗ Own x)).
+    { split; eauto. iIntros "[A X]". iFrame. iApply H0. eauto. }
     iterL. _coreE SAT. ls.
     iterL. _supd. iterL. _supd.
     reveal ITREE.

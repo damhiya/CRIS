@@ -29,10 +29,6 @@ Module CancelTAC.
   Ltac _tau := rewrite !StRed.tau.
   Ltac _core := rewrite StRed.bind StRed.core; prep.
   Ltac _coreH := rewrite HModSB.transl_bind HModSB.transl_core interp_hp_bind interp_hp_core; prep.
-  Ltac _asm := rewrite HModSB.transl_bind HModSB.transl_ag interp_hp_bind interp_hp_Assume/handle_Assume /mget_res; prep.
-  Ltac _grt := rewrite HModSB.transl_bind HModSB.transl_ag interp_hp_bind interp_hp_Assume/handle_Guarantee /mget_res; prep.
-  Ltac _sget := rewrite/sGet !StRed.bind [interp_stateE Any.t _ _]StRed.state/handle_stateE. 
-  (* Ltac __supd := rewrite/sPut /sGet !StRed.bind [interp_stateE _ _ _]StRed.state/handle_stateE.  *)
   Ltac ls := rewrite !list_insert_insert.
   Ltac __supd := rewrite !StRed.bind StRed.state. 
   Ltac _supd := __supd; grind; try ls; _tau; st; st; try (rewrite Any.pair_split; ired); try (rewrite Any.upcast_downcast; ired).

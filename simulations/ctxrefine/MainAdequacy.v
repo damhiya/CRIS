@@ -690,11 +690,11 @@ Section COMM.
     (* simulation *)
     ii. subst. destruct ft. unfold HModSem.sandbox_body. s.
     generalize (i y) as it. clear FIND i y.
-    revert NODD. apply combine_quant.
-    revert NODS. apply combine_quant.
-    revert st_tgt. apply combine_quant_dep.
-    revert st_src. apply combine_quant_dep.
-    revert nths. apply combine_quant.
+    combine_quant NODD.
+    combine_quant NODS.
+    combine_quant st_tgt.
+    combine_quant st_src.
+    combine_quant nths.
     eapply isim_coind. i.
     destruct a as [nths [st_src [st_tgt [NODS [NODD it]]]]]. s.
     iIntros "(#IST & CIH)".

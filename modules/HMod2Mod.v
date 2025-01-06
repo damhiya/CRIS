@@ -61,11 +61,11 @@ Section MID.
     rewrite IHst. eauto.
   Qed.
 
-  Definition mput_res `{stateE -< E} `{coreE -< E} (mr : Σ) : itree E unit :=
+  Definition put_res `{stateE -< E} `{coreE -< E} (mr : Σ) : itree E unit :=
     st <- trigger sGet;; '(mp, _) :_ <- (Any.split st)?;;
     trigger (sPut (Any.pair mp mr↑)).
 
-  Definition mget_res `{stateE -< E} `{coreE -< E} : itree E Σ :=
+  Definition get_res `{stateE -< E} `{coreE -< E} : itree E Σ :=
     st <- trigger sGet;; '(_, mr) : _ <- (Any.split st)?;;
     mr↓?.
 
@@ -96,18 +96,16 @@ Section MID.
       end.
 
   Definition handle_Assume (P : iProp) : itree modE unit :=
-    mr <- mget_res;;
+    mr <- get_res;;
     mr' <- trigger (Take Σ);;
-    assume (✓ mr');;;
-    assume (Own mr' -∗ (P ∗ Own mr));;;
-    mput_res mr'.
+    assume (✓ mr' ∧ (Own mr' -∗ P ∗ Own mr));;;
+    put_res mr'.
 
   Definition handle_Guarantee (P : iProp) : itree modE unit :=
-    mr <- mget_res;;
+    mr <- get_res;;
     mr' <- trigger (Choose Σ);;
-    guarantee (✓ mr');;;
-    guarantee (Own mr ==∗ (P ∗ Own mr'));;;
-    mput_res mr'.
+    guarantee (✓ mr' ∧ (Own mr ==∗ P ∗ Own mr'));;;
+    put_res mr'.
 
   Definition handle_agE : agE ~> itree modE :=
     λ _ e,
