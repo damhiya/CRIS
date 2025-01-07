@@ -10,5 +10,12 @@ Module CannonAll.
 Section C.
   Variable num_fire: nat.
 
+  (* Definition Σ : GRA := #[invΣ]. *)
+  (* Definition Γ : HRA := #[invΓ; GΓ]. *)
+  (* Local Existing Instance  Σ : GRA. *)
+
+  (* Definition Mod := CannonA.Mod ☆ (MainA.Mod num_fire). *)
+
+
 End C.
 End CannonAll.
