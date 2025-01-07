@@ -1,42 +1,43 @@
-Require Import CRIS.
+(* Require Import CRIS.
 
 Require Import SchHeader SchASpec SchGInv.
 
 Set Implicit Arguments.
 
-Module SchA. Section A.
-  Context `{_W: @sinvGS Σ Γ α β τ, !SchAS.GS Σ}.
+Module SchA.
+Section A.
+  Context `{_W: @sinvGS Σ Γ α β τ, !SchAS.G Γ}.
 
   Notation iProp := (iProp Σ).
 
   Variable univ: positive.
 
-  Variable StbFun: Sk.t → gname → option fspec.
-  Variable GlobalStb: Sk.t → gname → option fspec.
+  Variable StbFun: Sk.t -> gname -> option fspec.
+  Variable GlobalStb: Sk.t -> gname -> option fspec.
 
   Definition scopes := ["Sch"].
 
-  Definition _spawn : (nat * gname * SAny.t) → itree hmodE unit :=
+  Definition _spawn : (nat * gname * SAny.t) -> itree hmodE unit :=
     fun '(mtid, fn, args) =>
       trigger (Yield mtid);;;
       trigger (Call fn args↑);;;
       Sch.terminate
   .
 
-  Definition spawn : (gname * SAny.t) → itree hmodE nat :=
+  Definition spawn : (gname * SAny.t) -> itree hmodE nat :=
     fun '(fn, args) =>
       mid <- trigger Tid;;
       tid <- trigger (Spawn SchName._spawn (mid, fn, args)↑);;
       Ret tid
   .
 
-  Definition yield: unit → itree hmodE unit :=
+  Definition yield: unit -> itree hmodE unit :=
     fun _ =>
       tid <- trigger (Choose nat);;
       trigger (Yield tid)
   .
 
-  Definition join: nat → itree hmodE (option SAny.t) :=
+  Definition join: nat -> itree hmodE (option SAny.t) :=
     fun _ =>
       Sch.yield;;;
       trigger (Choose (option SAny.t))
@@ -63,8 +64,10 @@ Module SchA. Section A.
     SMod.sk := SchSK.t;
   |}.
 
-  Definition InitCond : Sk.t → iProp :=
+  Definition InitCond : Sk.t -> iProp :=
     fun _ => (SchAS.initial_threads)%I.
   
   Definition t := Seal.sealing "ccr" (SMod.to_hmod (sch_ginv univ) GlobalStb Mod).
-End A. End SchA.
+
+End A.
+End SchA. *)

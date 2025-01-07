@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 
 Require Import SchHeader SchGInv.
 
@@ -6,8 +6,9 @@ Set Implicit Arguments.
 
 Local Open Scope Qp.
 
-Module SchAS. Section Sch.
-  Context `{!sinvGS Σ Γ α β τ}.
+Module SchAS.
+Section Sch.
+  Context `{_W: @sinvGS Σ Γ α β τ}.
 
   Canonical Structure SynDepO : ofe := leibnizO (sigT (λ n, SRFSyn.t n)).
 
@@ -16,63 +17,51 @@ Module SchAS. Section Sch.
   Definition threadsF := (discrete_funUR (λ _: nat, fragreeUR)).
   Definition threadsRA := authUR threadsF.
 
-  Class GpreSΣ (Σ : GRA) := {
-    #[global] RA_inG :: inG threadsRA Σ;
-  }.
-  Class GS (Σ : GRA) := {
-    #[global] G_GpreΣ :: GpreSΣ Σ;
-    sch_name : positive
-  }.
-  Definition GΣ : GRA := #[threadsRA].
-  Global Instance subG_GΣ {Σ'} : subG GΣ Σ' → GpreSΣ Σ'.
-  Proof. solve_inG. Qed.
-
-  Context `{!GS Σ}.
+  Class G (Γ: HRA.t) := { #[global] RA_inG :: GRA.inG threadsRA Γ }.
+  Context `{!G Γ}.
 
   Notation iProp := (iProp Σ).
 
   Definition initial_threads_r: threadsRA := 
-    ● ((λ tid: nat,
-      if tid =? 0
-      then Some (1, to_agree (λ _, (Some (to_agree (existT 0 ⊤%SRF)))))
-      else None): threadsF)
-    ⋅ ◯ ((λ tid: nat,
-        if tid =? 0
-        then Some (1/4, to_agree (λ _, (Some (to_agree (existT 0 ⊤%SRF)))))
-        else None): threadsF).
-  Definition initial_threads: iProp := own sch_name initial_threads_r.
+    ● ((λ tid: nat, if tid =? 0 then Some (1, to_agree (λ _, (Some (to_agree (existT 0 ⊤%SRF))))) else None): threadsF)
+    ⋅ ◯ ((λ tid: nat, if tid =? 0 then Some (1/4, to_agree (λ _, (Some (to_agree (existT 0 ⊤%SRF))))) else None): threadsF).
+  Definition initial_threads: iProp := 
+    Seal.sealing "SchA"
+      OwnM initial_threads_r.
 
-  Definition token_pending_r (tid : nat) : threadsRA :=
+  Definition token_pending_r (tid: nat): threadsRA :=
     ◯ ((λ n, if (tid =? n) then None else ε): threadsF).
 
-  Definition token_quarter_r (tid : nat) (st : SAny.t → SynDepO) : threadsRA := 
+  Definition token_quarter_r (tid: nat) (st: SAny.t → SynDepO): threadsRA := 
     ◯ ((λ n, if (tid =? n) then Some (1/4, to_agree (λ s, Some (to_agree (st s)))) else ε): threadsF).
-  Definition token_th (tid : nat) (st : SAny.t → SynDepO) : iProp :=
-    own sch_name (token_quarter_r tid st).
+  Definition token_th (tid: nat) (st: SAny.t → SynDepO): iProp := OwnM (token_quarter_r tid st).
 
-  Definition token_half_r (tid : nat) (st : SAny.t → SynDepO) : threadsRA := 
+  Definition token_half_r (tid: nat) (st: SAny.t → SynDepO): threadsRA := 
     ◯ ((λ n, if (tid =? n) then Some (1/2, to_agree (λ s, Some (to_agree (st s)))) else ε): threadsF).
-  Definition token_half (tid : nat) (st : SAny.t → SynDepO): iProp := 
-    own sch_name (token_half_r tid st).
+  Definition token_half (tid: nat) (st: SAny.t → SynDepO): iProp := 
+    Seal.sealing "SchA"
+      (OwnM (token_half_r tid st)).
 
   Definition token_three_quarter_r (tid: nat) (st: SAny.t → SynDepO): threadsRA := 
     ◯ ((λ n, if (tid =? n) then Some (3/4, to_agree (λ s, Some (to_agree (st s)))) else ε): threadsF).
   Definition token_three_quarter (tid: nat) (st: SAny.t → SynDepO): iProp := 
-    own sch_name (token_three_quarter_r tid st).
+    Seal.sealing "SchA"
+      (OwnM (token_three_quarter_r tid st)).
 
   Definition token_one_r (tid: nat) (st: SAny.t → SynDepO): threadsRA := 
     ◯ ((λ n, if (tid =? n) then Some (1, to_agree (λ s, Some (to_agree (st s)))) else ε): threadsF).
   Definition token_one (tid: nat) (st: SAny.t → SynDepO): iProp := 
-    own sch_name (token_one_r tid st).
+    Seal.sealing "SchA"
+      (OwnM (token_one_r tid st)).
 
   Definition idle (tid: nat): iProp := 
-    Seal.sealing "SchA" (own sch_name (token_pending_r tid)).
+    Seal.sealing "SchA" (OwnM (token_pending_r tid)).
   Definition active (tid: nat) (st: SAny.t → SynDepO): iProp := 
-    Seal.sealing "SchA" (own sch_name (token_quarter_r tid st)).
+    Seal.sealing "SchA" (OwnM (token_quarter_r tid st)).
   Definition done (tid: nat) (st: SAny.t → SynDepO): iProp := 
-    Seal.sealing "SchA" (own sch_name (token_three_quarter_r tid st)).
+    Seal.sealing "SchA" (OwnM (token_three_quarter_r tid st)).
   Definition joined (tid: nat) (st: SAny.t → SynDepO): iProp := 
-    Seal.sealing "SchA" (own sch_name (token_one_r tid st)).
+    Seal.sealing "SchA" (OwnM (token_one_r tid st)).
 
   Section RA.
 
@@ -154,96 +143,68 @@ Module SchAS. Section Sch.
 
   Variable univ: positive.
 
-  Definition fspec_spawnable (univ: positive) (fsp: fspec) (tid: nat) (m: meta fsp)
-      (vargs args: Any.t) (pre: iProp) (postS: SAny.t -> SynDepO) : Prop :=
-    (((∃ n, wsats univ n ⊤) ∗ pre
-        ⊢ (precond fsp tid m vargs args))%I
-    ∧ (∀ ret: Any.t, 
-        ((∃ vret, postcond fsp tid m vret ret)%I 
-          ⊢ (∃ sret: SAny.t, ((∃ n, wsats univ n ⊤) ∗ ⌜ret = sret↑⌝ 
-              ∗ interp_cond (postS sret))))%I)).
+  Section SPEC.
 
-  Definition _spawn_spec (sk: Sk.t) (StbFun: Sk.t -> gname -> option fspec) : fspec :=
-    fspec_inv univ 0
-      (λ n, fspec_virtual
-        (λ my_tid '(mid, fargs, fvargs, pre, postS, existT fn m) varg arg,
-          (⌜varg = ((mid, fn, fvargs) : nat * gname * SAny.t) 
-          ∧ arg = ((mid, fn, fargs) : nat * gname * SAny.t)↑ 
-          ∧ is_Some (StbFun sk fn)
-          ∧ fspec_spawnable univ (find_fsp sk StbFun fn) my_tid m fvargs↑ fargs↑ pre postS⌝
-          ∗ pre ∗ (token_half my_tid postS))%I
-        )
-        (λ _ _ (_ : SAny.t) _, (False)%I)
-      ).
-    (* wfspec_inv univ 
-      (fspec_virtual
-        (fun my_tid '(mid, fargs, fvargs, pre, postS, existT fn m) varg arg =>
-          (⌜varg = ((mid, fn, fvargs) : nat * gname * SAny.t) 
-            ∧ arg = ((mid, fn, fargs) : nat * gname * SAny.t)↑ 
-            ∧ is_Some (StbFun sk fn)
-            ∧ fspec_spawnable univ (find_fsp sk StbFun fn) my_tid m fvargs↑ fargs↑ pre postS⌝
-          ∗ pre ∗ (token_half my_tid postS))%I)
-        (fun _ _ (_: SAny.t) _ => (False)%I))
-  . *)
+    Definition fspec_spawnable (univ: positive) (fsp: fspec) (tid: nat) (m: meta fsp) (vargs args: Any.t) (pre: iProp) (postS: SAny.t -> SynDepO): Prop :=
+      (((∃ n, closed_universe univ n ⊤) ∗ pre
+          ⊢ (precond fsp tid m vargs args))%I
+      ∧ (∀ ret: Any.t, 
+          ((∃ vret, postcond fsp tid m vret ret)%I 
+            ⊢ (∃ sret: SAny.t, ((∃ n, closed_universe univ n ⊤) ∗ ⌜ret = sret↑⌝ 
+               ∗ interp_cond (postS sret))))%I)).
 
-  Definition spawn_spec (sk: Sk.t) (StbFun: Sk.t -> gname -> option fspec) : fspec :=
-    fspec_inv univ 0
-      (λ n, fspec_virtual
-        (λ my_tid '(fargs, fvargs, pre, postS, existT fn m) varg arg,
-          (⌜varg = ((fn, fvargs) : gname * SAny.t) 
-            ∧ arg = ((fn, fargs) : gname * SAny.t)↑
-            ∧ is_Some (StbFun sk fn)
-            ∧ ∀ tid, fspec_spawnable univ (find_fsp sk StbFun fn) tid m fvargs↑ fargs↑ pre postS⌝
-          ∗ pre)%I
-        )
-        (λ _ '(fargs, fvargs, pre, postS, existT fn m) vret ret,
-          (∃ tid : nat, ⌜vret = tid ∧ ret = tid↑⌝ ∗ (token_th tid postS))%I)
-      ).
-    (* wfspec_inv univ
-      (fspec_virtual
-        (fun _ '(fargs, fvargs, pre, postS, existT fn m) varg arg => 
-          (⌜varg = ((fn, fvargs): gname * SAny.t) 
-            ∧ arg = ((fn, fargs): gname * SAny.t)↑
-            ∧ is_Some (StbFun sk fn)
-            ∧ ∀ tid, fspec_spawnable univ (find_fsp sk StbFun fn) tid m fvargs↑ fargs↑ pre postS⌝
-            ∗ pre)%I)
-        (fun _ '(fargs, fvargs, pre, postS, existT fn m) vret ret => 
-          (∃ tid: nat, ⌜vret = tid ∧ ret = tid↑⌝ ∗ (token_th tid postS))%I))
-  . *)
+    Definition _spawn_spec (sk: Sk.t) (StbFun: Sk.t -> gname -> option fspec): fspec :=
+      wfspec_inv univ 
+        (fspec_virtual
+          (fun my_tid '(mid, fargs, fvargs, pre, postS, existT fn m) varg arg =>
+            (⌜varg = ((mid, fn, fvargs) : nat * gname * SAny.t) 
+              ∧ arg = ((mid, fn, fargs) : nat * gname * SAny.t)↑ 
+              ∧ is_Some (StbFun sk fn)
+              ∧ fspec_spawnable univ (find_fsp sk StbFun fn) my_tid m fvargs↑ fargs↑ pre postS⌝
+            ∗ pre ∗ (token_half my_tid postS))%I)
+          (fun _ _ (_: SAny.t) _ => (False)%I))
+    .
 
-  Definition yield_spec: fspec :=
-    fspec_inv univ 0
-      (λ n, fspec_simple
-        (λ _ : unit,
-          ((λ varg, (⌜varg = tt↑⌝)%I),
-          (λ vret, (⌜vret = tt↑⌝)%I)))).
-    (* wfspec_inv univ
-      (fspec_simple (fun (_: unit) =>
-        ((fun varg => (⌜varg = tt↑⌝)%I),
-          (fun vret => (⌜vret = tt↑⌝)%I))))
-  . *)
+    Definition spawn_spec (sk: Sk.t) (StbFun: Sk.t -> gname -> option fspec): fspec :=
+      wfspec_inv univ
+        (fspec_virtual
+          (fun _ '(fargs, fvargs, pre, postS, existT fn m) varg arg => 
+            (⌜varg = ((fn, fvargs): gname * SAny.t) 
+              ∧ arg = ((fn, fargs): gname * SAny.t)↑
+              ∧ is_Some (StbFun sk fn)
+              ∧ ∀ tid, fspec_spawnable univ (find_fsp sk StbFun fn) tid m fvargs↑ fargs↑ pre postS⌝
+             ∗ pre)%I)
+          (fun _ '(fargs, fvargs, pre, postS, existT fn m) vret ret => 
+            (∃ tid: nat, ⌜vret = tid ∧ ret = tid↑⌝ ∗ (token_th tid postS))%I))
+    .
 
-  Definition join_spec: fspec :=
-    fspec_inv univ 0
-      (λ n, fspec_simple
-        (λ '(tid, postS),
-          ((λ varg, ⌜varg = tid↑⌝ ∗ token_th tid postS)%I,
-          (λ vret, (∃ ret, ⌜vret = (Some ret)↑⌝ ∗ interp_cond (postS ret))%I)))).
-    (* wfspec_inv univ
-      (fspec_simple (fun '(tid, postS) =>
-        ((fun varg => (⌜varg = tid↑⌝ ∗ (token_th tid postS))%I),
-          (fun vret => (∃ ret, ⌜vret = (Some ret)↑⌝ ∗ interp_cond (postS ret))%I)))) *)
-  (* . *)
+    Definition yield_spec: fspec :=
+      wfspec_inv univ
+        (fspec_simple (fun (_: unit) =>
+          ((fun varg => (⌜varg = tt↑⌝)%I),
+           (fun vret => (⌜vret = tt↑⌝)%I))))
+    .
 
-  Definition Stb (sk: Sk.t) (StbFun: Sk.t -> gname -> option fspec): alist gname fspec :=
-    Seal.sealing "ccr" 
-      [(SchName._spawn, _spawn_spec sk StbFun);
-        (SchName.spawn, spawn_spec sk StbFun);
-        (SchName.yield, yield_spec);
-        (SchName.join, join_spec)].
+    Definition join_spec: fspec :=
+      wfspec_inv univ
+        (fspec_simple (fun '(tid, postS) =>
+          ((fun varg => (⌜varg = tid↑⌝ ∗ (token_th tid postS))%I),
+            (fun vret => (∃ ret, ⌜vret = (Some ret)↑⌝ ∗ interp_cond (postS ret))%I))))
+    .
 
-  Lemma Stb_nodup sk StbFun: List.NoDup (List.map fst (Stb sk StbFun)).
-  Proof.
-    unfold Stb. unseal "ccr". prove_nodup.
-  Qed.
-End Sch. End SchAS.
+    Definition Stb (sk: Sk.t) (StbFun: Sk.t -> gname -> option fspec): alist gname fspec :=
+      Seal.sealing "ccr" 
+        [(SchName._spawn, _spawn_spec sk StbFun);
+         (SchName.spawn, spawn_spec sk StbFun);
+         (SchName.yield, yield_spec);
+         (SchName.join, join_spec)].
+
+    Lemma Stb_nodup sk StbFun: List.NoDup (List.map fst (Stb sk StbFun)).
+    Proof.
+      unfold Stb. unseal "ccr". prove_nodup.
+    Qed.
+
+  End SPEC.
+
+End Sch.
+End SchAS. *)

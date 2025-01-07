@@ -41,8 +41,6 @@ Global Instance inv_interp `{α : SRFCons.t, Γ : HRA, !subG Γ Σ, !invGS Σ Γ
 
 Section syn_inv.
   Context `{!CtxSL.t Σ Γ α β τ, !invGS Σ Γ, !SRFIntp.inG _ α inv_interp β}.
-  Local Definition a : SRFDom.t := domain Σ.
-  Local Existing Instance a.
   Local Existing Instances inv_preΣ inv_preΓ invGS_I invGS_E invGS_D.
 
   Local Definition syn_ownI u n i (p : SRFSyn.t n) : SRFSyn.t n :=
