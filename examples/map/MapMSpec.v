@@ -25,7 +25,7 @@ Module MapMS. Section MapMS.
   Proof.
     rewrite /pending; unseal "MapMS".
     iIntros "P1 P2"; iCombine "P1 P2" as "P" gives %CONT; ss.
-  Qed. 
+  Qed.
 
   Definition init_spec : fspec :=
     fspec_simple

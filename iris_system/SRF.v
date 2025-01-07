@@ -1,7 +1,7 @@
 (* TODO : make SRFSyn.t rewriting more flexible by using setoids *)
 Require Import Basics Program.
 
-Local Notation level := nat.
+Definition level := nat.
 
 (****
 

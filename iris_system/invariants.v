@@ -1,13 +1,13 @@
-From stdpp Require Import namespaces.
+From stdpp Require Export namespaces coPset.
 Require Import sflib.
 From iris.algebra Require Import ofe auth agree coPset gset gmap_view.
 From CRIS.algebra Require Import functions.
 From iris Require Import bi.big_op.
 Require Import Coqlib.
+
 Require Export SRF sProp own.
 
-Local Notation univ_id := positive.
-Local Notation level := nat.
+Definition univ_id := positive.
 
 Section invariants.
   Context `{α : SRFCons.t}.
@@ -291,15 +291,6 @@ Section wsats.
     @BiBUpdFUpd (iProp Σ) (uPred_bi_bupd Σ) (uPred_bi_fupd u n).
   Proof. rewrite /BiBUpdFUpd uPred_fupd_unseal. by iIntros (E P) ">? [$ $] !>". Qed.
 
-  Notation fupd_ex u n :=
-    (@fupd (bi_car (uPredI (GRAUR Σ))) (@bi_fupd_fupd _ (uPred_bi_fupd u n))) (only parsing).
-
-  Notation "'=|' u ',' n '|={' E1 ',' E2 '}=>' P" := (fupd_ex u n E1 E2 P)%I (at level 90) : bi_scope.
-  Notation "P '=|' u ',' n '|={' E1 ',' E2 '}=∗' Q" := (P -∗ =|u, n|={E1,E2}=> Q)%I (at level 90)  : bi_scope.
-
-  Notation "'=|' u ',' n '|={' E '}=>' P" := (=|u, n|={E, E}=> P)%I (at level 90) : bi_scope.
-  Notation "P '=|' u ',' n '|={' E '}=∗' Q" := (P -∗ =|u, n|={E, E}=> Q)%I (at level 90) : bi_scope.
-
   Local Definition inv_def u (n : level) (N : namespace) (p : SRFSyn.t n) : iProp Σ :=
     ∃ i, ⌜i ∈ (↑N : coPset)⌝ ∧ ownI u n i p.
   Local Definition inv_aux : seal (@inv_def). Proof. by eexists. Qed.
@@ -309,6 +300,15 @@ Section wsats.
   Global Instance inv_persistent u n N p : Persistent (inv u n N p).
   Proof. rewrite inv_eq /inv_def. apply _. Qed.
 End wsats.
+
+Notation fupd_ex u n :=
+  (@fupd (bi_car (iProp _)) (@bi_fupd_fupd _ (uPred_bi_fupd u n))) (only parsing).
+
+Notation "'=|' u ',' n '|={' E1 ',' E2 '}=>' P" := (fupd_ex u n E1 E2 P)%I (at level 90) : bi_scope.
+Notation "P '=|' u ',' n '|={' E1 ',' E2 '}=∗' Q" := (P -∗ =|u, n|={E1,E2}=> Q)%I (at level 90)  : bi_scope.
+
+Notation "'=|' u ',' n '|={' E '}=>' P" := (=|u, n|={E, E}=> P)%I (at level 90) : bi_scope.
+Notation "P '=|' u ',' n '|={' E '}=∗' Q" := (P -∗ =|u, n|={E, E}=> Q)%I (at level 90) : bi_scope.
 
   (* Definition used_worlds u b E : iProp Σ :=
     wsats u b ∗ ownE u E ∗ ownD_auth u ∗ free_universes. *)
