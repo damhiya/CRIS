@@ -136,7 +136,7 @@ Section SYNTAX.
   Definition ccallN {X Y} (fn : gname) (varg : X) : itree E Y :=
     vret <- trigger (Call fn (varg↑));; vret↓!.
 
-  Definition cput {T} k (v:T) : itree E unit :=
+  Definition cput {T} k (v : T) : itree E unit :=
     trigger (SPut k v↑).
 
   Definition cgetU {T} k : itree E T :=

@@ -38,7 +38,6 @@ Definition own := own_aux.(unseal).
 Local Definition own_eq : @own = @own_def := own_aux.(seal_eq).
 Global Arguments own {_ _ _} γ a.
 
-(* TODO : Think later if mod_levels can be erased *)
 Local Program Definition own_admin_def (Σ : GRA) : iProp Σ :=
   ∃ (X : coPset), ⌜set_infinite X⌝
     ∗ uPred_ownM ((λ i, @allocs_auth (@GRA_lookup Σ i) X) : GRAUR Σ).
