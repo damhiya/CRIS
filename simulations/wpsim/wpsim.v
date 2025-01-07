@@ -24,7 +24,7 @@ Section wpsim.
   Implicit Types E : coPset.
 
   (* TODO : abstraction into mixins *)
-  Local Definition wpsim_pre u n E : iProp Σ := univs u n ∗ wsats u n E.
+  Local Definition wpsim_pre u n E : iProp Σ := own_admin ∗ univs u n ∗ wsats u n E.
   (* Simulation relation that corresponds to iris' weakest precondition *)
   (* TODO : seal *)
   Local Definition wpsim_def r g R RR ps pt nths st_s st_t u n E : iProp Σ :=
