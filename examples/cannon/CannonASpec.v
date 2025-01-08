@@ -6,20 +6,18 @@ Require Import CannonHeader.
 Set Implicit Arguments.
 
 Module CannonAS.
-Section Cannon.
-  Class G (Γ: HRA.t) := { #[local] RA_inG :: GRA.inG (excl_authR unitO) Γ }.
-  Context `{!Inv.t Σ Γ α β τ, !G Γ}.
-  Local Notation iProp := (iProp Σ).
-
-  Definition Ready: iProp := 
-    Seal.sealing "CannonA" 
-      (OwnM (●E tt)).
-  Definition Ball: iProp :=
-    Seal.sealing "CannonA"
-      (OwnM (◯E tt)).
-  Definition Fired: iProp :=
-    Seal.sealing "CannonA"
-      (OwnM ((●E tt) ⋅ (◯E tt))).
+Section CannonAS.
+  Local Definition RA : ucmra :=
+    excl_authR unitO.
+  Class GS (Γ: HRA) := {
+    #[global] RA_inG :: inG CannonAS.RA Γ;
+    map_name : positive;
+  }.
+  Context `{!sinvGS Σ Γ α β τ, !CannonAS.GS Γ}.
+  
+  Definition Ready: iProp Σ := own map_name (●E tt).
+  Definition Ball: iProp Σ := own map_name (◯E tt).
+  Definition Fired: iProp Σ := own map_name ((●E tt) ⋅ (◯E tt)).
 
   Lemma ReadyBall: 
     Ready ∗ Ball ⊢ Fired.
@@ -32,16 +30,16 @@ Section Cannon.
     Ready ∗ Fired ⊢ False.
   Proof. 
     rewrite /Ready /Fired. unseal "CannonA".
-    iIntros "[B0 [B1 W]]". iCombine "B0 B1" as "X".
-    iOwnWf "X" as X. rewrite excl_auth_auth_op_valid // in X.
+    iIntros "[B0 [B1 W]]". iCombine "B0 B1" as "X" gives %FALSE.
+    rewrite excl_auth_auth_op_valid // in FALSE.
   Qed.
 
   Lemma FiredBall: 
     Ball ∗ Fired ⊢ False.
   Proof.
     rewrite /Ball /Fired. unseal "CannonA".
-    iIntros "[W0 [B W1]]". iCombine "W0 W1" as "X".
-    iOwnWf "X" as X. rewrite excl_auth_frag_op_valid // in X.
+    iIntros "[W0 [B W1]]". iCombine "W0 W1" as "X" gives %FALSE.
+    rewrite excl_auth_frag_op_valid // in FALSE.
   Qed.
 
   Definition fire_spec: fspec :=
@@ -57,5 +55,5 @@ Section Cannon.
     unfold Stb. unseal "ccr". prove_nodup.
   Qed.
 
-End Cannon.
+End CannonAS.
 End CannonAS.

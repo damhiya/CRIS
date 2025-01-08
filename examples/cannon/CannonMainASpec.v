@@ -7,7 +7,7 @@ Set Implicit Arguments.
 Module CannonMainAS.
 Section Main.
   Import CannonAS.
-  Context `{!Inv.t Σ Γ α β τ, !G Γ}.
+  Context `{!sinvGS Σ Γ α β τ, !CannonAS.GS Γ}.
 
   Definition main_spec: fspec :=
     fspec_simple (fun (_: unit) =>

@@ -7,7 +7,7 @@ Set Implicit Arguments.
 Module MainI.
 Section I.
   Local Open Scope string_scope.
-  Context `{!Inv.t Σ Γ α β τ}.
+  Context `{Σ: GRA}.
 
   Variable num_fire: nat.
 

@@ -12,7 +12,7 @@ Local Open Scope nat_scope.
 Module CannonMainIA.
 Section SIMMODSEM.
   Import CannonAS.
-  Context `{!Inv.t Σ Γ α β τ, !G Γ}.
+  Context `{!sinvGS Σ Γ α β τ, !CannonAS.GS Γ}.
   Local Notation iProp := (iProp Σ).
   
   Definition Ist: Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp :=
@@ -54,7 +54,7 @@ End SIMMODSEM.
 Section PROOF.
 
   Import CannonAS.
-  Context `{!Inv.t Σ Γ α β τ, !G Γ}.
+  Context `{!sinvGS Σ Γ α β τ, !CannonAS.GS Γ}.
 
   Theorem correct gi StbMain
     (CannonInStbMain: forall sk, stb_incl CannonAS.Stb (StbMain sk))

@@ -139,7 +139,7 @@ End SMod.
 Infix "☆" := SMod.add (at level 9, right associativity).
 
 Section ADD.
-  Context `{Σ : GRA.t}.
+  Context `{Σ : GRA}.
 
   Lemma hmod_ext (ms0 ms1: HModSem.t)
       (SCOPES: ms0.(HModSem.scopes) = ms1.(HModSem.scopes))

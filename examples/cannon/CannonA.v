@@ -7,7 +7,7 @@ Set Implicit Arguments.
 Module CannonA.
 Section A.
   Import CannonAS.
-  Context `{!Inv.t Σ Γ α β τ, !G Γ}.
+  Context `{!sinvGS Σ Γ α β τ, !CannonAS.GS Γ}.
   Local Notation iProp := (iProp Σ).
 
   Definition scopes := ["Cannon"].

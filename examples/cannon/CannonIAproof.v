@@ -11,7 +11,7 @@ Local Open Scope nat_scope.
 Module CannonIA.
 Section SIMMODSEM.
   Import CannonAS.
-  Context `{!Inv.t Σ Γ α β τ, !G Γ}.
+  Context `{!sinvGS Σ Γ α β τ, !CannonAS.GS Γ}.
   Local Notation iProp := (iProp Σ).
 
   Definition Ist: Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp :=
@@ -34,13 +34,9 @@ Section SIMMODSEM.
     init_simF.
 
     steps_l. iDestruct "ASM" as "((%Y & B) & %Q)". subst. hss.
-    unfold Ist. iDestruct "IST" as "[[% %] [R | F]]". des; subst.
-
+    unfold Ist. iDestruct "IST" as "[[% %] [R | F]]"; cycle 1. 
     (* already fired *)
-    2:{
-      iExFalso. iCombine "B F" as "Boom".
-      iApply (FiredBall with "Boom").
-    }
+    { iExFalso. iApply FiredBall. iFrame. }
 
     steps_r. force_r. iSplitR.
     { iPureIntro. rewrite Any.upcast_downcast. et. }
@@ -61,7 +57,7 @@ End SIMMODSEM.
 
 Section PROOF.
   Import CannonAS.
-  Context `{!Inv.t Σ Γ α β τ, !G Γ}.
+  Context `{!sinvGS Σ Γ α β τ, !CannonAS.GS Γ}.
 
   Theorem correct gi StbCannon
     :

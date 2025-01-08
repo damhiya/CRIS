@@ -3,7 +3,7 @@ Require Import ImpPrelude.
 Require Import CannonHeader.
 
 
-Require Import sProp sWorld World SRF.
+Require Import sProp sWorld SRF.
 From stdpp Require Import coPset gmap namespaces.
 
 Set Implicit Arguments.
@@ -11,7 +11,8 @@ Set Implicit Arguments.
 Module CannonI.
 Section I.
   Local Open Scope string_scope.
-  Context `{!Inv.t Σ Γ α β τ}.
+  (* Context `{sInvGS Σ Γ α β τ}. *)
+  Context `{Σ: GRA}.
 
   Definition scopes := ["Cannon"].
   Definition v_lv := "Cannon" ↯ "lv". (* local variable *)

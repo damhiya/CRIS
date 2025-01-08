@@ -7,8 +7,7 @@ Set Implicit Arguments.
 Module MainA.
 Section A.
   Import CannonAS.
-  Context `{!Inv.t Σ Γ α β τ, !G Γ}.
-  Local Notation iProp := (iProp Σ).
+  Context `{!sinvGS Σ Γ α β τ, !CannonAS.GS Γ}.
 
   Variable num_fire: nat.
 
@@ -47,7 +46,7 @@ Section A.
     SMod.sk := MainSK.t;
   |}.
 
-  Definition InitCond : Sk.t -> iProp :=
+  Definition InitCond : Sk.t -> iProp Σ :=
     fun _ => Ready%I.
 
   Variable ginv: Sk.t -> invspec.
