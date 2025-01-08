@@ -72,6 +72,19 @@ Section SIM.
     eapply gpaco8_mon; first eapply SIM; eauto using iunlift_mon.
   Qed.
 
+  (* Lemma isim_mono_knowledge_I r0 g0 r1 g1 {R} RR ps pt nths sti_src sti_tgt :
+    (□ ∀ R RR ps pt nths sti_src sti_tgt,
+      @r0 R RR ps pt nths sti_src sti_tgt ==∗ @r1 R RR ps pt nths sti_src sti_tgt) ∗
+    (□ ∀ R RR ps pt nths sti_src sti_tgt,
+      @g0 R RR ps pt nths sti_src sti_tgt ==∗ @g1 R RR ps pt nths sti_src sti_tgt) ∗
+    @isim r0 g0 R RR ps pt nths sti_src sti_tgt ⊢ @isim r1 g1 R RR ps pt nths sti_src sti_tgt.
+  Proof.
+    (* Search bi_persistently.
+    iIntros "[#H1 [#H2 SIM]]". iPoseProof (bi.wand_entails with "H1") as "H3". Search bi_wand bi_entails.
+    split; intros x wfx SIM.
+    eapply gpaco8_mon; first eapply SIM; eauto using iunlift_mon. *)
+  Admitted. *)
+
   Lemma isim_upd r g ps pt {R} RR nths sti_src sti_tgt :
     ( |==> @isim r g R RR ps pt nths sti_src sti_tgt) ⊢ @isim r g R RR ps pt nths sti_src sti_tgt.
   Proof.
@@ -578,7 +591,7 @@ Section SIM.
   Proof.
     split; intros x wfx SIM. eapply hpsim_flag_down. eauto. 
   Qed.
-  
+
   Lemma isim_coind (r g : rel) A P RA RRA psA ptA nthsA srcA tgtA
       (COIND : ∀ (g0 : rel) (a : A),
         (∀ R RR ps pt nths0 src tgt, g R RR ps pt nths0 src tgt -∗ g0 R RR ps pt nths0 src tgt)
@@ -588,7 +601,6 @@ Section SIM.
   Proof.
     i. iIntros "H". iPoseProof (bupd_intro with "H") as "H". iStopProof.
     split; intros x wfx Px.
-    (* rr. autorewrite with iprop. *)
     revert_until COIND. gcofix CIH. i. rename r0 into g0.
     pose (g' :=
       (λ R RR ps pt nths src tgt,
