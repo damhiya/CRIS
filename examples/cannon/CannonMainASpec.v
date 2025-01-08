@@ -4,7 +4,7 @@ Require Import CannonHeader CannonASpec.
 
 Set Implicit Arguments.
 
-Module CannonMainAS.
+Module MainAS.
 Section Main.
   Import CannonAS.
   Context `{!sinvGS Σ Γ α β τ, !CannonAS.GS Γ}.
@@ -23,4 +23,4 @@ Section Main.
   Qed.
 
 End Main.
-End CannonMainAS.
+End MainAS.

@@ -29,7 +29,7 @@ Section A.
   .
 
   Definition fnsems :=
-    [(MainName.main, (scopes, mk_specbody CannonMainAS.main_spec (cfunU main)))].
+    [(MainName.main, (scopes, mk_specbody MainAS.main_spec (cfunU main)))].
 
   Program Definition Sem: SModSem.t :=
   {|

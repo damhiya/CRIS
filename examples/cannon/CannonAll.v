@@ -2,7 +2,7 @@ Require Import CRIS.
 Require Import ImpPrelude.
 Require Import CannonIAproof CannonMainIAproof.
 Require Import CannonA CannonASpec CannonMainA CannonMainASpec .
-Require Import Cancellation.
+Require Import ElimRel SModCancel Cancellation.
 
 Set Implicit Arguments.
 
@@ -48,6 +48,27 @@ Section C.
 
   Definition Mod := (@CannonA.Mod Σ Γ α β τ sinvGS_ _) ☆ (@MainA.Mod Σ Γ α β τ sinvGS_ _ num_fire).
 
+  Definition ginv0 : invspec := fun _ => True%I.
+  Definition ginv : Sk.t -> invspec := fun _ => ginv0.
+
+  Definition stb := stb_global Mod.
+(* 
+  Definition stb : Sk.t -> _ := 
+    fun sk => to_closed_stb ((@CannonAS.Stb Σ Γ α β τ sinvGS_ _) ++ (@MainAS.Stb Σ Γ α β τ sinvGS_ _)). *)
+
+  Definition src := SModCancel.to_hmod Mod.
+  Definition tgt := SMod.to_hmod ginv stb Mod.
+
+  Definition mainfsp : Sk.t -> fspec := fun _ => (@MainAS.main_spec Σ Γ α β τ _ _).
+
+  Lemma final meta: 
+    refines (src, (const(emp)%I) ∗∗ (fun sk => (mainfsp sk).(precond) 0 (meta sk) tt↑ tt↑)) 
+            (tgt, (const(emp)%I)).
+  Proof.
+    eapply cancellation; try by econs.
+    i. iIntros "%POST". iPureIntro.
+    des; eauto.
+  Qed.
 
 End C.
 End CannonAll.
