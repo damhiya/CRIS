@@ -9,11 +9,19 @@ Module CannonAS.
 Section CannonAS.
   Local Definition RA : ucmra :=
     excl_authR unitO.
+  Class GpreΓ (Γ : HRA) := {
+    #[global] map_inG :: inG (excl_authR unitO) Γ;
+  }.
   Class GS (Γ: HRA) := {
     #[global] RA_inG :: inG CannonAS.RA Γ;
     map_name : positive;
   }.
+  Definition GΓ : HRA := #[excl_authR unitO].
+  Global Instance subG_GΓ {Γ} : subG GΓ Γ → GpreΓ Γ.
+  Proof. solve_inG. Qed.
+
   Context `{!sinvGS Σ Γ α β τ, !CannonAS.GS Γ}.
+
   
   Definition Ready: iProp Σ := own map_name (●E tt).
   Definition Ball: iProp Σ := own map_name (◯E tt).
