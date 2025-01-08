@@ -8,7 +8,7 @@ Set Implicit Arguments.
 Module SModSem.
 Section SMODSEM.
 
-  Context `{Σ : GRA.t}.
+  Context `{Σ : GRA}.
   Variable ginv : invspec.
   Variable stb : gname -> option fspec.
 
@@ -100,7 +100,7 @@ End SModSem.
 Module SMod.
 Section SMOD.
 
-  Context `{Σ : GRA.t}.
+  Context `{Σ : GRA}.
   Variable ginv : Sk.t -> invspec.
   Variable stb : Sk.t -> gname -> option fspec.
 

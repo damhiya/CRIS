@@ -23,7 +23,7 @@ def set_by_user(k : int) ≡
 
 Module MapI. Section MapI.
   Local Open Scope string_scope.
-  Context `{Σ : GRA.t}.
+  Context `{Σ : GRA}.
 
   Definition scopes := ["Map"].
   Definition v_hptr := "Map" ↯ "hptr".

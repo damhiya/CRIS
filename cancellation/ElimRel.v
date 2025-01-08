@@ -3,7 +3,7 @@ Require Import SMod HMod SMod2HMod Skeleton.
 Require Import SModCancel HModInline.
 
 Section REL.
-  Context `{Σ: GRA.t}.
+  Context `{Σ: GRA}.
   Variable md: SMod.t.
 
   Definition stb_global: Sk.t -> gname -> option fspec :=
@@ -201,7 +201,7 @@ Hint Resolve cpn3_wcompat: paco.
 Hint Resolve elim_rel_def_mon: paco.
 
 Section CANCEL.
-  Context `{Σ: GRA.t}.
+  Context `{Σ: GRA}.
   Variable md: SMod.t.
 
   Lemma HoareYield_sandbox

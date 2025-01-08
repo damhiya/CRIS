@@ -4,64 +4,54 @@ Require Import sflib.
 From iris Require Import bi.big_op.
 From iris Require base_logic.lib.invariants.
 From Coq Require Import Program Arith.
-Require Export Coqlib PCM IPM SRF.
+Require Export Coqlib iprop own SRF.
 
-Module HRA.
-
-  Section HRA.
-
-  Class t := __HRA : GRA.t.
-
-  Class subG (Γ : t) (Σ : GRA.t) : Type := {
-    subG_map : nat -> nat;
-    subG_prf : forall i, (@GRA.gra_map Σ) (subG_map i) = (@GRA.gra_map Γ) i;
-  }.
-
-  Coercion subG_map : subG >-> Funclass.
-
-  Context `{sub : @subG Γ Σ}.
-
-  Global Program Instance embed (i:nat) : @GRA.inG (@GRA.gra_map Γ i) Σ := {
-      inG_id := sub i;
-    }.
-  Next Obligation. i. symmetry. apply HRA.subG_prf. Qed.
-
-  Global Program Instance in_subG `{M : cmra} `{emb : @GRA.inG M Γ} : @GRA.inG M Σ := {
-      inG_id := sub.(subG_map) emb.(GRA.inG_id);
-  }.
-  Next Obligation.
-    i. destruct emb. destruct sub. ss. rewrite subG_prf0. ss.
-  Qed.
-
-  End HRA.
-
-End HRA.
-
-Coercion HRA.subG_map : HRA.subG >-> Funclass.
+Global Instance domain (Σ : GRA) : SRFDom.t := { dom := iProp Σ }.
 
 (* Note that the types in a group has the type PF.t *)
-
 (* The types in all groups *)
 Module Typ.
-
   Class t: Type := __TYP : GPF.t.
-
 End Typ.
 
+(* Global Program Instance in_subG Σ1 Σ2 `{M : cmra} `{emb : inG M Σ1} : HRA.subG Σ1 Σ2 → inG M Σ2.
+Next Obligation.
+  intros. destruct emb. destruct (s inG_id). exact x.
+Defined.
+Next Obligation.
+  intros. destruct emb. simpl. destruct (s inG_id). subst. f_equal. eauto.
+Defined. *)
+(* End HRA. *)
+
+Class HRA : Type := HRA_mk : GRA.
+
+Global Instance index_inG (Γ : HRA) (i : gid Γ) : inG (GRA_lookup i) Γ.
+Proof.
+  econstructor; eauto.
+Defined.
+Global Program Instance in_subG (Γ : HRA) (Σ : GRA) `{emb : !inG M Γ} : subG Γ Σ → inG M Σ.
+Next Obligation.
+  intros. destruct emb. destruct (s inG_id). exact x.
+Defined.
+Next Obligation.
+  intros. destruct emb. simpl. destruct (s inG_id). subst. f_equal. eauto.
+Defined.
+
+
+(* Global Instance subG_inG Σ1 Σ2 (i : gid Σ1) `{!HRA.subG Σ1 Σ2} : inG (GRA_lookup Σ1 i) Σ2.
+Proof.
+  destruct (H i); econstructor; rewrite e; reflexivity.
+Defined. *)
 (** Types for Separation Logic **)
-
-Module ST.
-
-  Section TYPES.
-
+Module ST. Section ST.
   Inductive type : Type :=
   | baseT (t : Type) : type
   | sPropT : type
-  | funT : type -> type -> type
-  | prodT : type -> type -> type
-  | sumT : type -> type -> type
-  | listT : type -> type
-  | gmapT : type -> type
+  | funT : type → type → type
+  | prodT : type → type → type
+  | sumT : type → type → type
+  | listT : type → type
+  | gmapT : type → type
   | metaT : type
   .
 
@@ -69,7 +59,7 @@ Module ST.
     match ty with
     | baseT b => b
     | sPropT => sProp
-    | funT ty1 ty2 => (interp ty1 sProp -> interp ty2 sProp)
+    | funT ty1 ty2 => (interp ty1 sProp → interp ty2 sProp)
     | prodT ty1 ty2 => prod (interp ty1 sProp) (interp ty2 sProp)
     | sumT ty1 ty2 => sum (interp ty1 sProp) (interp ty2 sProp)
     | listT ty1 => list (interp ty1 sProp)
@@ -81,17 +71,10 @@ Module ST.
       shp := type;
       deg := interp;
     }.
-
-  End TYPES.
-
-End ST.
+End ST. End ST.
 
 Module CtxST.
-
   Class t (τ : Typ.t) := { #[global] inG :: @GPF.inG ST.t τ }.
-    (* `{_C: @GPF.inG ST.t τ} *)
-    (* := ctxSL: unit. *)
-
 End CtxST.
 
 (** Notations and Coercions. *)
@@ -107,16 +90,14 @@ Notation "'τ{' t ',' n '}'" := (@PF.deg ST.t t (SRFSyn.t_prev n)) : SRF_scope.
 Notation "'τ{' t '}'" := (@PF.deg ST.t t (SRFSyn.t_prev _)) : SRF_scope.
 
 (* Separation Logic *)
+(* TODO : The functionalities below need to be separated! after coarse refactoring *)
+Module SL. Section SL.
+  Context {τ : Typ.t} {α : @SRFCons.t} {Γ : HRA} {Σ : GRA} `{!subG Γ Σ}.
+  Local Definition dom := domain Σ.
+  Local Existing Instance dom.
 
-Module SL.
-
-  Section SL.
-
-  Context `{τ: Typ.t}.
-  Context `{Γ: HRA.t}.
-  
   Variant shape : Type :=
-    | _ownm i (r : (@GRA.gra_map Γ) i)
+    | _own i (γ : positive) (r : (@GRA_lookup Γ) i)
     | _pure (P : Prop)
     | _and
     | _or
@@ -133,7 +114,7 @@ Module SL.
 
   Definition degree (s : shape) (Prev : Type) : Type :=
     match s with
-    | _ownm i r => fin 0
+    | _own γ i r => fin 0
     | _pure P => fin 0
     | _and => fin 2
     | _or => fin 2
@@ -153,39 +134,31 @@ Module SL.
       deg := degree;
   }.
 
-  Context `{α: @SRFCons.t}.
-  Context `{_C0: @HRA.subG Γ Σ}.
-  
-  Local Notation iProp := (iProp Σ).
-  Global Instance domain : SRFDom.t := {
-    dom := iProp;
-  }.
-
   Definition interp n (s : shape)
-      : (degree s (SRFSyn.t_prev n) -> SRFSyn.t n) -> (degree s (SRFSyn.t_prev n) -> iProp) -> iProp :=
+      : (degree s (SRFSyn.t_prev n) → SRFSyn.t n) → (degree s (SRFSyn.t_prev n) → iProp Σ) → iProp Σ :=
     match s with
-    | _ownm i r => fun _ _ => OwnM r
-    | _pure P => fun _ _ => ⌜P⌝%I
-    | _and => fun _ sem => ((sem 0%fin) ∧ (sem 1%fin))%I
-    | _or => fun _ sem => ((sem 0%fin) ∨ (sem 1%fin))%I
-    | _impl => fun _ sem => ((sem 0%fin) → (sem 1%fin))%I
-    | _univ i ty => fun _ sem => bi_forall sem
-    | _ex   i ty => fun _ sem => bi_exist sem
-    | _empty => fun _ _ => emp%I
-    | _sepconj => fun _ sem => ((sem 0%fin) ∗ (sem 1%fin))%I
-    | _wand => fun _ sem => ((sem 0%fin) -∗ (sem 1%fin))%I
-    | _persistently => fun _ sem => (<pers> (sem 0%fin))%I
-    | _plainly => fun _ sem => (■ (sem 0%fin))%I
-    | _upd => fun _ sem => (|==> (sem 0%fin))%I
+    | _own i γ r => λ _ _, @own _ _ _ γ r
+    | _pure P => λ _ _, ⌜P⌝%I
+    | _and => λ _ sem, ((sem 0%fin) ∧ (sem 1%fin))%I
+    | _or => λ _ sem, ((sem 0%fin) ∨ (sem 1%fin))%I
+    | _impl => λ _ sem, ((sem 0%fin) → (sem 1%fin))%I
+    | _univ i ty => λ _ sem, bi_forall sem
+    | _ex   i ty => λ _ sem, bi_exist sem
+    | _empty => λ _ _, emp%I
+    | _sepconj => λ _ sem, ((sem 0%fin) ∗ (sem 1%fin))%I
+    | _wand => λ _ sem, ((sem 0%fin) -∗ (sem 1%fin))%I
+    | _persistently => λ _ sem, (<pers> (sem 0%fin))%I
+    | _plainly => λ _ sem, (■ (sem 0%fin))%I
+    | _upd => λ _ sem, (|==> (sem 0%fin))%I
     end.
 
-  Global Instance t: SRFIntpM.t := interp.
+  Global Instance t : @SRFIntpM.t _ α syntax := interp.
 
   Context `{@SRFIntp.inG _ _ _ t β}.
-  
-  Definition ownm `{IN: @GRA.inG M Γ} {n} (r: M) : SRFSyn.t n.
+
+  Definition own `{IN: !inG M Γ} {n} (γ : positive) (r : M) : SRFSyn.t n.
     destruct IN. subst.
-    refine ⟨ _ownm _ r, _ ⟩%SRF.
+    refine ⟨ _own _ γ r, _ ⟩%SRF.
     i. inv X.
   Defined.
 
@@ -215,12 +188,14 @@ Module SL.
     - exact p2.
   Defined.
   
-  Definition univ `{IN: @GPF.inG T τ} {n} (ty: T.(PF.shp)) (p: T.(PF.deg) ty (SRFSyn.t_prev n) -> SRFSyn.t n) : SRFSyn.t n.
+  Definition univ `{IN: @GPF.inG T τ} {n} (ty: T.(PF.shp)) (p: T.(PF.deg) ty (SRFSyn.t_prev n) → SRFSyn.t n)
+      : SRFSyn.t n.
     destruct IN. subst.
     exact ⟨ _univ _ ty, p ⟩%SRF.
   Defined.
 
-  Definition ex `{IN: @GPF.inG T τ} {n} (ty: T.(PF.shp)) (p: T.(PF.deg) ty (SRFSyn.t_prev n) -> SRFSyn.t n) : SRFSyn.t n.
+  Definition ex `{IN: @GPF.inG T τ} {n} (ty: T.(PF.shp)) (p: T.(PF.deg) ty (SRFSyn.t_prev n) → SRFSyn.t n)
+      : SRFSyn.t n.
     destruct IN. subst.
     exact ⟨ _ex _ ty, p ⟩%SRF.
   Defined.
@@ -268,49 +243,43 @@ Module SL.
   Definition sepM
              n {K} {H1 : EqDecision K} {H2 : Countable K}
              {A} (I : @gmap K H1 H2 A)
-             (f : K -> A -> SRFSyn.t n)
+             (f : K → A → SRFSyn.t n)
     : SRFSyn.t n :=
     fold_right (fun hd tl => sepconj (uncurry f hd) tl) empty (map_to_list I).
 
   Definition sepS n {K} {H1 : EqDecision K} {H2 : Countable K}
       (I : @gset K H1 H2)
-      (f : K -> SRFSyn.t n)
+      (f : K → SRFSyn.t n)
       : SRFSyn.t n :=
     fold_right (fun hd tl => sepconj (f hd) tl) empty (elements I).
 
   Definition sepL1
              n {A} (I : list A)
-             (f : A -> SRFSyn.t n)
+             (f : A → SRFSyn.t n)
     : SRFSyn.t n :=
     fold_right (fun hd tl => sepconj (f hd) tl) empty I.
-
-  End SL.
-
-End SL.
+End SL. End SL.
 
 Module CtxSL.
-
-  Class t Σ Γ α β τ :=
-    { #[global] subG :: HRA.subG Γ Σ;
-      #[global] typG :: CtxST.t τ;
-      #[global] intpG :: @SRFIntp.inG SL.domain SL.syntax α SL.t β }.
-    (* `{α: SRFCons.t} `{β: @SRFIntp.t SL.domain α}
-    `{_C: CtxST.t}
-    `{_C: !HRA.subG Γ Σ}
-    `{_C: @SRFIntp.inG SL.domain _ α SL.t β}
-    := ctxSL: unit. *)
-  
+  Class t (Σ : GRA) (Γ : HRA) α β τ := {
+    #[global] subG :: subG Γ Σ;
+    #[global] typG :: CtxST.t τ;
+    #[global] intpG :: @SRFIntp.inG (domain Σ) (@SL.syntax τ Γ) α (@SL.t τ α Γ Σ subG) β;
+    domainΣ : SRFDom.t := domain Σ
+  }.
+  (* This global instance declaration is a way to designate which GRA the TC should find as a
+  domain of sProp interpretation. If a more concise approach exists, replace this. *)
+  #[global] Existing Instance domainΣ.
 End CtxSL.
 
 (** Notations *)
-
 Local Open Scope SRF_scope.
 
 Notation "'⌜' P '⌝'" := (SL.pure P) : SRF_scope.
 Notation "'⊤'" := ⌜True⌝ : SRF_scope.
 Notation "'⊥'" := ⌜False⌝ : SRF_scope.
 
-Notation "'<ownm>' r" := (SL.ownm r) (at level 20) : SRF_scope.
+Notation "<own>" := (SL.own) (at level 20) : SRF_scope.
 Notation "'<pers>' P" := (SL.persistently P) : SRF_scope.
 Notation "'<affine>' P" := (SL.affinely P) : SRF_scope.
 Notation "□ P" := (<affine> <pers> P) : SRF_scope.
@@ -352,24 +321,18 @@ Notation "'[∗' n , A 'list]' x ∈ l , P" :=
     (at level 200, n at level 1, l at level 10, x, A at level 1, right associativity,
       format "[∗  n ,  A  list]  x  ∈  l ,  P") : SRF_scope.
 
-Module SLRed.
-
-  Section RED.
-
+Module SLRed. Section RED.
   Context `{!CtxSL.t Σ Γ α β τ}.
-  Notation interp := (SRFSem.t (Δ := @SL.domain Σ)).
+  Notation interp := (SRFSem.t (Δ := domain Σ)).
 
-  Lemma ownm `{@GRA.inG M Γ} n (r : M) :
-    interp n (SL.ownm r) = OwnM r.
+  Lemma own `{!inG M Γ} n γ (r : M) :
+    interp n (SL.own γ r) = own γ r.
   Proof.
-    depdes H0. subst. unfold SL.ownm, eq_rect_r. ss.
+    depdes inG0. subst. unfold SL.own, eq_rect_r. ss.
     rewrite @SRFRed.cur. ss.
-    f_equal. unfold HRA.in_subG, HRA.embed. ss.
-    erewrite (UIP _ _ _ _). reflexivity.
   Qed.
 
-  Lemma pure n P :
-    interp n (SL.pure P) = ⌜P⌝%I.
+  Lemma pure n P : interp n (SL.pure P) = ⌜P⌝%I.
   Proof. unfold SL.pure. rewrite @SRFRed.cur. reflexivity. Qed.
 
   Lemma and n p q :
@@ -384,8 +347,8 @@ Module SLRed.
     interp n (SL.impl p q) = (interp n p → interp n q)%I.
   Proof. unfold SL.impl. rewrite @SRFRed.cur. reflexivity. Qed.
 
-  Lemma univ `{T:PF.t} `{@GPF.inG T τ} n (ty: T.(PF.shp)) p :
-    SRFSem.t n (SL.univ ty p) = (∀ x: (T.(PF.deg) ty (SRFSyn.t_prev n)), SRFSem.t n (p x))%I.
+  Lemma univ `{T : PF.t} `{@GPF.inG T τ} n (ty: T.(PF.shp)) p :
+    interp n (SL.univ ty p) = (∀ x : (T.(PF.deg) ty (SRFSyn.t_prev n)), interp n (p x))%I.
   Proof.
     destruct H0 eqn : EQ. subst.
     unfold SL.univ, eq_rect_r. ss.
@@ -464,7 +427,7 @@ Module SLRed.
   End RED.
 End SLRed.
 
-Global Opaque SL.ownm.
+Global Opaque SL.own.
 Global Opaque SL.pure.
 Global Opaque SL.and.
 Global Opaque SL.or.
@@ -481,6 +444,7 @@ Global Opaque SL.upd.
 Global Opaque SRFSem.t.
 
 (* Simple sProp reduction tactics. *)
+From stdpp Require Import ssreflect.
 Ltac SL_red := repeat (try rewrite ! @SLRed.sepconj;
                       try rewrite ! @SLRed.and;
                       try rewrite ! @SLRed.or;
@@ -497,10 +461,12 @@ Ltac SL_red := repeat (try rewrite ! @SLRed.sepconj;
                       try rewrite ! @SLRed.intuitionistically;
                       try rewrite ! @SLRed.sepM;
                       try rewrite ! @SLRed.sepS;
-                      try rewrite ! @SLRed.sepL1
+                      try rewrite ! @SLRed.sepL1;
+                      try rewrite ! @SLRed.own;
+                      change (SRFSyn.t_prev (S ?n)) with (SRFSyn.t n); simpl
                       ).
 
-Ltac SL_red_all := repeat (try rewrite ! @SLRed.sepconj in *;
+(* Ltac SL_red_all := repeat (try rewrite ! @SLRed.sepconj in *;
                           try rewrite ! @SLRed.and in *;
                           try rewrite ! @SLRed.or in *;
                           try rewrite ! @SLRed.impl in *;
@@ -519,5 +485,5 @@ Ltac SL_red_all := repeat (try rewrite ! @SLRed.sepconj in *;
                           try rewrite ! @SLRed.sepL1 in *
                           ).
 
-Ltac SL_red_ownm := try rewrite ! @SLRed.ownm.
-Ltac SL_red_ownm_all := try rewrite ! @SLRed.ownm in *.
+Ltac SL_red_ownm := try rewrite ! @SLRed.own.
+Ltac SL_red_ownm_all := try rewrite ! @SLRed.own in *. *)

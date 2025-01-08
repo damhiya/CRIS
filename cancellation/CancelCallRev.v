@@ -6,7 +6,7 @@ Require Import HModInline.
 Set Implicit Arguments.
 
 Section CANCEL.
-  Context `{Σ: GRA.t}.
+  Context `{Σ: GRA}.
   Variable md: HMod.t.
 
   Lemma cancel_call_rev P
@@ -29,13 +29,13 @@ Section CANCEL.
     generalize false at 1 as ps.
     generalize false at 1 as pt. intros pt ps.
     generalize (i y) as it. clear IN fn FINDT i y NODD NODS.
-    revert st_tgt. apply combine_quant.
-    revert st_src. apply combine_quant.
-    revert SCP. apply combine_quant.
-    revert scopeT. apply combine_quant_dep.
-    revert pt. apply combine_quant.
-    revert ps. apply combine_quant.
-    revert nths. apply combine_quant.
+    combine_quant st_tgt.
+    combine_quant st_src.
+    combine_quant SCP.
+    combine_quant scopeT.
+    combine_quant pt.
+    combine_quant ps.
+    combine_quant nths.
     eapply isim_coind. i.
 
     destruct a as [nths [ps [pt [scopeT [SCP [st_src [st_tgt it]]]]]]]. s.

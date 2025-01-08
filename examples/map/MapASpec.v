@@ -6,36 +6,39 @@ Set Implicit Arguments.
 
 Module MapAS. Section MapAS.
   (* Resource algebra for MapM ⊆ MapA *)
-  Class G (Γ : HRA.t) := { #[local] RA_inG :: GRA.inG (prodUR
-    (optionUR (exclR unitO))
-    (authUR (Z -d> optionUR (exclR ZO)))) Γ }.
-  Context `{!Inv.t Σ Γ α β τ, !G Γ, !MapMS.G Γ}.
-  Import MapA.
-  Notation iProp := (iProp Σ).
+  Local Definition RA : ucmra :=
+    prodUR (optionUR (exclR unitO)) (authUR (Z -d> optionUR (exclR ZO))).
+  Class GS (Γ : HRA) := {
+    #[global] RA_inG :: inG MapAS.RA Γ;
+    map_name : positive;
+  }.
 
-  Definition pending : iProp := Seal.sealing "MapAS"
-    OwnM (Some (Excl ()), ε).
+  Context `{!sinvGS Σ Γ α β τ, !MapAS.GS Γ, !MapMS.GS Γ}.
+  Import MapA.
+
+  Definition pending : iProp Σ := own map_name (Some (Excl ()), ε).
 
   Local Definition initial_fun : Z -d> optionUR (exclR ZO) := λ z, Some (Excl 0%Z).
-  Definition initial_map : iProp := Seal.sealing "MapAS"
-    OwnM (ε, ● initial_fun ⋅ ◯ initial_fun).
-  Definition auth_allocated (f : Z → Z) : iProp := Seal.sealing "MapAS"
-    OwnM (ε, ● ((λ k, Some (Excl (f k))) : Z -d> optionUR (exclR ZO))).
-  Definition auth_unallocated (sz : Z) : iProp := Seal.sealing "MapAS"
-    OwnM (ε,
+  Definition initial_map : iProp Σ := own map_name (ε, ● initial_fun ⋅ ◯ initial_fun).
+
+  Definition auth_allocated (f : Z → Z) : iProp Σ :=
+    own map_name (ε, ● ((λ k, Some (Excl (f k))) : Z -d> optionUR (exclR ZO))).
+  Definition auth_unallocated (sz : Z) : iProp Σ :=
+    own map_name
+      (ε,
       ◯ ((λ k,
         if (Z_gt_le_dec 0 k)
         then Some (Excl 0%Z)
         else if (Z_gt_le_dec sz k) then ε else Some (Excl 0%Z)) : Z -d> optionUR (exclR ZO)))%Z.
-  Definition points_to (k v : Z) : iProp := Seal.sealing "MapAS"
-    OwnM (ε, ◯ (discrete_fun_singleton k (Some (Excl v)))).
-  Definition initial_points_tos (sz : nat) : iProp :=
+  Definition points_to (k v : Z) : iProp Σ :=
+    own map_name (ε, ◯ (discrete_fun_singleton k (Some (Excl v)))).
+  Definition initial_points_tos (sz : nat) : iProp Σ :=
     ([∗ list] i↦v ∈ (repeat (0 : Z) sz), points_to i%Z v)%I.
 
   Lemma pending_unique : pending -∗ pending -∗ False.
   Proof.
-    rewrite /pending; unseal "MapAS".
-    iIntros "P P'"; iCombine "P P'" as "P" gives %FALSE; rewrite -pair_op pair_valid in FALSE; des; ss.
+    iIntros "P P'"; iCombine "P P'" as "P" gives %FALSE.
+    rewrite -pair_op pair_valid in FALSE; des; ss.
   Qed.
   Lemma initialize (sz : nat) :
     initial_map ==∗ auth_allocated (λ _ : Z, 0%Z) ∗ auth_unallocated sz ∗ initial_points_tos sz.
@@ -43,7 +46,7 @@ Module MapAS. Section MapAS.
     induction sz; ss.
     { rewrite /initial_map /initial_fun /auth_allocated /auth_unallocated /initial_points_tos; unseal "MapAS".
       iIntros "[I1 I2]"; iSplitL "I1"; first iModIntro; iFrame.
-      iSplitL; last iModIntro; ss; iApply (OwnM_Upd with "I2").
+      iSplitL; last iModIntro; ss; iApply (own_update with "I2").
       apply prod_update; ss.
       rewrite cmra_update_proper; try reflexivity.
       f_equiv. ii; des_ifs; lia.
@@ -53,8 +56,8 @@ Module MapAS. Section MapAS.
       replace (S sz) with (sz + 1); last by lia.
       rewrite repeat_app big_opL_app repeat_length; ss.
       iSplitL "I1"; first by iModIntro; iFrame.
-      iMod (OwnM_Upd with "I2") as "[I1 I2]"; cycle 1.
-      { iModIntro; iFrame. rewrite /points_to; unseal "MapAS"; iSplitL; done. }
+      iMod (own_update with "I2") as "[I1 I2]"; cycle 1.
+      { iModIntro; iFrame. }
       rewrite -pair_op -auth_frag_op right_id; apply prod_update; ss.
       rewrite cmra_update_proper; try reflexivity.
       f_equiv; ii; rewrite discrete_fun_lookup_op; des_ifs; ss; try lia;
@@ -93,7 +96,7 @@ Module MapAS. Section MapAS.
   Proof.
     rewrite /auth_allocated /points_to; unseal "MapAS".
     iIntros "AU PT"; iCombine "AU" "PT" as "AU".
-    iMod (OwnM_Upd with "AU") as "[AU PT]"; last by iModIntro; iSplitL "AU"; iFrame.
+    iMod (own_update with "AU") as "[AU PT]"; last by iModIntro; iSplitL "AU"; iFrame.
     apply prod_update, auth_update, discrete_fun_local_update; intros x; ss.
     destruct (decide (k = x)); subst.
     { rewrite ?discrete_fun_lookup_singleton fn_lookup_insert.
@@ -178,7 +181,7 @@ Module MapAS. Section MapAS.
     SMod.sk := MapSK.t;
   |}.
 
-  Definition InitCond : Sk.t → iProp :=
+  Definition InitCond : Sk.t → iProp Σ :=
     (λ _, initial_map ∗ MapMS.pending)%I.
 
   Variable ginv : Sk.t → invspec.

@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 
 Require Import MainHeader CellioHeader FooHeader.
 
@@ -6,7 +6,7 @@ Set Implicit Arguments.
 
 Module MainI.
 Section MainI.
-  Context `{Σ: GRA.t}.
+  Context `{Σ: GRA}.
 
   Definition scopes := [MainName.mn].
 
@@ -39,4 +39,4 @@ Section MainI.
 
   Definition t := Seal.sealing "ccr" (PMod.to_hmod Mod).
 
-End MainI. End MainI.
+End MainI. End MainI. *)

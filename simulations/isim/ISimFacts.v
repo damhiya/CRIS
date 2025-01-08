@@ -6,7 +6,7 @@ Require Import ModSim HPSimFacts ISimCore.
 
 Section HSSIM_ADEQUACY.
 
-  Context `{Σ : GRA.t}.
+  Context `{Σ : GRA}.
   Notation iProp := (iProp Σ).
 
   Lemma hssim_wf ms mt cond Ist is_closed

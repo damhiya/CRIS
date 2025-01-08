@@ -4,7 +4,7 @@ Require Export AList.
 Require Import Any.
 
 From CRIS.base_logic Require Import base_logic.
-Require Import IPM.
+Require Import iprop.
 (* TODO : delete this dependency after gra mod *)
 
 Set Implicit Arguments.
@@ -83,9 +83,8 @@ Section WRAP.
 End WRAP.
 
 Section EVENTS_OTHER.
-
-  Context {Σ : GRA.t}.
-  Notation iProp := (iProp Σ).
+  Context {Σ : GRA}.
+  (* Notation iProp := (iProp Σ). *)
 
   Definition key := (string * string)%type.
 
@@ -106,8 +105,8 @@ Section EVENTS_OTHER.
   | SGet (k : key) : pgE Any.t.
 
   Variant agE : Type -> Type :=
-  | Assume (P : iProp) : agE unit
-  | Guarantee (P : iProp) : agE unit.
+  | Assume (P : iProp Σ) : agE unit
+  | Guarantee (P : iProp Σ) : agE unit.
 
   Definition pmodE := schE +' callE +' pgE +' coreE.
 

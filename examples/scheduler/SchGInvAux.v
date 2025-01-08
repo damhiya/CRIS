@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 
 Require Import SchGInv SchHeader SchASpec.
 
@@ -8,7 +8,7 @@ Local Open Scope nat_scope.
 
 Section MACROAUX.
 
-  Context `{_W: @Inv.t Σ Γ α β τ, !SchAS.G Γ}.
+  Context `{_W: @sinvGS Σ Γ α β τ, !SchAS.G Γ}.
   Notation iProp := (iProp Σ).
 
   (** Sch.spawn LEMMA *)
@@ -106,11 +106,11 @@ Section MACROAUX.
   Proof.
     iIntros "[[IST W] ISIM]". rewrite !/Sch.yield. unseal "Sch".
     rewrite !unfold_iter_eq. grind. prep. iApply isim_reset.
-    iStopProof.
-    revert st_tgt. revert st_src. apply combine_quant.
-    revert nths. apply combine_quant.
-    revert ps. apply combine_quant.
-    revert pt. apply combine_quant.
+    iStopProof. revert st_tgt.
+    combine_quant st_src.
+    combine_quant nths.
+    combine_quant ps.
+    combine_quant pt.
     eapply isim_coind. ii. destruct a as [pt [ps [nths [st_src st_tgt]]]].
     iIntros "((IST & W & ISIM) & #CIH)".
 
@@ -150,11 +150,11 @@ Section MACROAUX.
   Proof.
     iIntros "[IST ISIM]". rewrite !/Sch.yield. unseal "Sch".
     rewrite !unfold_iter_eq. grind. prep. iApply isim_reset.
-    iStopProof.
-    revert st_tgt. revert st_src. apply combine_quant.
-    revert nths. apply combine_quant.
-    revert ps. apply combine_quant.
-    revert pt. apply combine_quant.
+    iStopProof. revert st_tgt.
+    combine_quant st_src.
+    combine_quant nths.
+    combine_quant ps.
+    combine_quant pt.
     eapply isim_coind. ii. destruct a as [pt [ps [nths [st_src st_tgt]]]].
     iIntros "((IST & ISIM) & #CIH)".
 
@@ -331,4 +331,4 @@ Ltac join hyps :=
     iApply isim_mjoin_hp; des_pairs; s;
     [|iSplitL hyps; [|iIntros "% % % %"; iIntrosFresh "[IST [W POST]]"]] |
     iApply isim_mjoin_hh; des_pairs; s;
-    [| |iSplitL hyps; [|iIntros "% % % %"; iIntrosFresh "IST"]]].
+    [| |iSplitL hyps; [|iIntros "% % % %"; iIntrosFresh "IST"]]]. *)

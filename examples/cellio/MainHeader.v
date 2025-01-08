@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 
 Module MainName.
 
@@ -13,4 +13,4 @@ End MainName.
 
 Module MainSK.
   Definition t : Sk.t := [].
-End MainSK.
+End MainSK. *)

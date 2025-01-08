@@ -49,10 +49,7 @@ Module SRFCons.
 End SRFCons.
 
 (* Syntax *)
-Module SRFSyn.
-
-  Section SYNTAX.
-
+Module SRFSyn. Section SRFSyn.
   Context `{α: SRFCons.t}.
 
   Inductive term {Prev: Type} : Type :=
@@ -60,27 +57,24 @@ Module SRFSyn.
   | _cur i (op: (α i).(PF.shp)) (args: (α i).(PF.deg) op Prev -> term)
   .
 
-    Fixpoint _t (n : level) : Type :=
-      match n with
-      | O => Empty_set
-      | S m => term (Prev:=_t m) 
-      end.
+  Fixpoint _t (n : level) : Type :=
+    match n with
+    | O => Empty_set
+    | S m => term (Prev:=_t m) 
+    end.
 
-    Definition t_prev (n : level) : Type := _t n.
-    
-    Definition t (n : level) : Type := t_prev (S n).
+  Definition t_prev (n : level) : Type := _t n.
 
-    Definition lift {n} (p : t n) : t (S n) := _lift p.
-    
-    Fixpoint liftn k {n} (p : t n) : t (k+n) :=
-      match k return t (k+n) with
-      | 0 => p
-      | S k' => lift (liftn k' p)
-      end.
-    
-  End SYNTAX.
+  Definition t (n : level) : Type := t_prev (S n).
 
-End SRFSyn.
+  Definition lift {n} (p : t n) : t (S n) := _lift p.
+
+  Fixpoint liftn k {n} (p : t n) : t (k+n) :=
+    match k return t (k+n) with
+    | 0 => p
+    | S k' => lift (liftn k' p)
+    end.
+End SRFSyn. End SRFSyn.
 
 (* Semantic Domain *)
 Module SRFDom.
@@ -109,7 +103,7 @@ Module SRFIntpM.
   .
 
   End SEM.
-  
+
 End SRFIntpM.
 
 (* Interpretation for the constructors in all groups *)
@@ -204,22 +198,24 @@ Bind Scope SRF_scope with SRFSyn.t.
 
 Local Open Scope SRF_scope.
 
-Notation "'⟨' op ',' args '⟩'" := (SRFSem.cur op args) : SRF_scope.
-Notation "⤉ P" := (SRFSyn.lift P) (at level 20) : SRF_scope.
 Notation "'⟦' F ',' n '⟧'" := (SRFSem.t n F).
 Notation "'⟦' F '⟧'" := (SRFSem.t _ F).
+Notation "'⟨' op ',' args '⟩'" := (SRFSem.cur op args) : SRF_scope.
+Notation "⤉ P" := (SRFSyn.lift P) (at level 20) : SRF_scope.
 
 (* Simple reduction tactics. *)
 
 Global Opaque SRFSyn.t_prev.
 Global Opaque SRFSyn.t.
 
+(* TODO : improve these tactics *)
+From stdpp Require Import ssreflect.
 Ltac SRF_red := repeat (
-                 try rewrite ! @SRFRed.cur;
-                 try rewrite ! @SRFRed.lift;
-                 change (SRFSyn.t_prev (S ?n)) with (SRFSyn.t n) in * ).
-
+                 try rewrite !@SRFRed.cur;
+                 try rewrite !@SRFRed.lift;
+                 change (SRFSyn.t_prev (S ?n)) with (SRFSyn.t n)).
+(* 
 Ltac SRF_red_all := repeat (
                      try rewrite ! @SRFRed.cur in *;
                      try rewrite ! @SRFRed.lift in *;
-                     change (SRFSyn.t_prev (S ?n)) with (SRFSyn.t n) in * ).
+                     change (SRFSyn.t_prev (S ?n)) with (SRFSyn.t n) in * ). *)

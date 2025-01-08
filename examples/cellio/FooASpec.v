@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 
 Require Import FooHeader.
 
@@ -6,7 +6,7 @@ Set Implicit Arguments.
 
 Module FooAS.
 Section FooAS.
-  Context `{Σ: GRA.t}.
+  Context `{Σ: GRA}.
 
   Definition Stb: alist gname fspec :=
     Seal.sealing "ccr" [(FooName.foo, fspec_trivial)].
@@ -16,4 +16,4 @@ Section FooAS.
     unfold Stb. unseal "ccr". prove_nodup.
   Qed.
 
-End FooAS. End FooAS.
+End FooAS. End FooAS. *)

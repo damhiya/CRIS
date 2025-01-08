@@ -6,13 +6,13 @@ Set Implicit Arguments.
 Create HintDb stb.
 Hint Rewrite (Seal.sealing_eq "stb") : stb.
 
-Definition to_stb `{Σ : GRA.t} (l : alist gname fspec) : gname -> option fspec :=
+Definition to_stb `{Σ : GRA} (l : alist gname fspec) : gname -> option fspec :=
   fun fn => alist_find fn l.
 
-Definition to_stb_context `{Σ : GRA.t} (stbu : list gname) (stbk : alist gname fspec) :=
+Definition to_stb_context `{Σ : GRA} (stbu : list gname) (stbk : alist gname fspec) :=
   to_stb (List.map (fun fn => (fn, fspec_trivial)) stbu ++ stbk).
 
-Definition to_closed_stb `{Σ : GRA.t} (l : alist gname fspec) : gname -> option fspec :=
+Definition to_closed_stb `{Σ : GRA} (l : alist gname fspec) : gname -> option fspec :=
   fun fn => match alist_find fn l with
             | Some fsp => Some fsp
             | _ => Some fspec_trivial
@@ -52,7 +52,7 @@ Ltac stb_tac :=
 
 Section HEADER.
 
-  Context `{Σ: GRA.t}.
+  Context `{Σ: GRA}.
   
   Definition fspec_weaker (fsp_src fsp_tgt: fspec): Prop :=
     forall tid x_src,

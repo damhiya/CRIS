@@ -94,7 +94,7 @@ Proof. ii. subst. unfold dec. destruct H; ss. Qed.
 
 Section SIMMODSEM.
 
-  Context `{Σ : GRA.t}.
+  Context `{Σ : GRA}.
   Context `{@GRA.inG Mem1.memRA Σ}.
 
   (* Eval compute in (@RA.car (RA.excl Mem.t)). *)

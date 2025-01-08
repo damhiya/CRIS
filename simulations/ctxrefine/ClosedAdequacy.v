@@ -5,7 +5,6 @@ Require Import Any.
 
 Require Import IRed.
 Require Import Behavior Skeleton.
-Require Import PCM IPM.
 
 Require Import ModSim ModSimFacts.
 Require Import HPSim HPSimFacts.
@@ -16,6 +15,7 @@ Require Import SubPerm.
 Require Import ISim ISimFacts.
 Require Import CtxRefine.
 Require Import ITactics.
+Require Import sWorld.
 
 From ExtLib Require Import
      Core.RelDec
@@ -25,7 +25,7 @@ From ExtLib Require Import
 Set Implicit Arguments.
 
 Section CLOSED.
-  Context `{Σ: GRA.t}.
+  Context `{Σ: GRA}.
 
   Ltac hstep := guclo hpsimC_spec; econs; econs; eauto; econs; eauto.
 
@@ -92,7 +92,7 @@ Section CLOSED.
     ii. subst. eapply adequacy_modsem, PR.
     - eapply hssim_adequacy; try eapply SRC0; eauto.
       + rewrite -Own_op. eapply Own_equiv. 
-        etrans; eauto. r_solve.
+        etrans; eauto. rewrite comm; ss.
       + eapply hssim_wf; eauto.
     - inv WFM. econs. ss. unfold map_snd.
       rewrite !List.map_map. eapply eq_ind; [apply wf_fns|].

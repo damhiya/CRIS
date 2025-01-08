@@ -6,19 +6,26 @@ Set Implicit Arguments.
 
 Module MapMS. Section MapMS.
   (* Resource algebra for MapI ⊆ MapM *)
-  Class G (Γ : HRA.t) := { #[global] RA_inG :: GRA.inG (optionUR (exclR unitO)) Γ }.
-  
-  Import MapM.
-  Context `{!Inv.t Σ Γ α β τ, !G Γ}.
-  Notation iProp := (iProp Σ).
+  Class GpreΓ (Γ : HRA) := {
+    #[global] map_inG :: inG (exclR unitO) Γ;
+  }.
+  Class GS (Γ : HRA) := {
+    #[global] preΓ :: GpreΓ Γ;
+    map_name : positive;
+  }.
+  Definition GΓ : HRA := #[exclR unitO].
+  Global Instance subG_GΓ {Γ} : subG GΓ Γ → GpreΓ Γ.
+  Proof. solve_inG. Qed.
 
-  Definition pending : iProp := Seal.sealing "MapMS" OwnM (Some (Excl ())).
+  Import MapM.
+  Context `{!sinvGS Σ Γ α β τ, !GS Γ}.
+
+  Definition pending : iProp Σ := own map_name (Excl ()).
   Lemma pending_unique : pending -∗ pending -∗ False.
   Proof.
     rewrite /pending; unseal "MapMS".
     iIntros "P1 P2"; iCombine "P1 P2" as "P" gives %CONT; ss.
   Qed. 
-  (* Global Opaque pending. *)
 
   Definition init_spec : fspec :=
     fspec_simple
@@ -74,10 +81,10 @@ Module MapMS. Section MapMS.
     SMod.sk := MapSK.t;
   |}.
 
-  Definition InitCond : Sk.t → iProp :=
+  Definition InitCond : Sk.t → iProp Σ :=
     λ _, emp%I.
 
   Variable ginv : Sk.t → invspec.
-  Variable GlobalStb : Sk.t → gname → option fspec.
-  Definition t := Seal.sealing "ccr" (SMod.to_hmod ginv GlobalStb Mod).
+  Variable GlobalStb : Sk.t → gname → option (fspec).
+  Definition t := Seal.sealing "ccr" (@SMod.to_hmod Σ ginv GlobalStb Mod).
 End MapMS. End MapMS.

@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 
 Require Import ImpPrelude.
 Require Import CellHeader.
@@ -14,7 +14,7 @@ Module CellAS. Section CellAS.
   Definition RA : ucmra := prodUR pendingRA (authUR cellRA).
 
   Class G (Γ : HRA.t) := { #[local] RA_inG :: GRA.inG RA Γ }.
-  Context `{!Inv.t Σ Γ α β τ, !G Γ}.
+  Context `{!sinvGS Σ Γ α β τ, !G Γ}.
 
   Notation iProp := (iProp Σ).
 
@@ -100,4 +100,4 @@ Module CellAS. Section CellAS.
 End CellAS. End CellAS.
 
 Global Hint Unfold CellAS.Stb : stb.
-
+ *)

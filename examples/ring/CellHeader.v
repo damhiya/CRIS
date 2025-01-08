@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 
 Module CellName.
   Definition mn (idx : nat) := "Cell" +:+ HexString.of_nat idx.
@@ -12,4 +12,4 @@ End CellName.
 
 Module CellSK.
   Definition t : Sk.t := [].
-End CellSK.
+End CellSK. *)

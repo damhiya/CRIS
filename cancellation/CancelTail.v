@@ -4,7 +4,7 @@ Require Import SimGlobal.
 Require Import SModCancel HModInline ElimRel StRed CancelLib.
 
 Section CANCEL.
-  Context `{Σ: GRA.t}.
+  Context `{Σ: GRA}.
   Variable md: SMod.t.
 
   Import CancelTAC.
@@ -39,32 +39,31 @@ Section CANCEL.
     hide_r. tau 2. iterT 2.
     reveal ITREE. hide_l. _coreA.
     iterT 2. iterL. _supd.
-    iterL. _coreA. ls.
-    iterL. _coreA. ls.
+    iterL. _coreA. iterL. _coreA. ls.
     iterL. _supd. iterL. _supd.
     iterT 4.
     iterL. _coreE vret.
-    iterT 2.
+    iterT 2. des.
     hexploit (Own_bupd_split rt); eauto.
     i. des.
-    iterL. _coreE a1. ls.
     iterL. _supd.
-    assert (UPD': Own rs ==∗ Own (a1 ⋅ x0)).
-    {
-      iIntros "H". iPoseProof (UPD with "H") as ">H".
-      iPoseProof (H with "H") as ">[H0 H1]".
-      iPoseProof (H1 with "H1") as "H1".
-      iModIntro. rewrite Own_op. iFrame.
+    iterL. _coreE (a1 ⋅ x0). ls.
+    assert (VALID: ✓ (a1 ⋅ x0) ∧ (Own (a1 ⋅ x0) -∗ Q0 tid m vret x ∗ Own x0)).
+    { split.
+      - eapply Own_wand_valid with (a1 := rt); eauto.
+        iIntros "RT". iMod (H with "RT") as "[A X]". iModIntro.
+        iSplitL "A"; eauto. iApply H1; eauto.
+      - iIntros "[A X]". iFrame. iApply H0. eauto.
     }
-    assert (✓ (a1 ⋅ x0)).
-    { eapply Own_wand_valid with (a1 := rs); eauto. }
-    iterL. _coreE H2. ls.
-    iterL. _coreE H0. ls.
+    iterL. _coreE VALID. ls.
     iterL. _supd. iterL. _supd.
     iterT 3.
     reveal ITREE.
     done_by_CIH CIH LKX LKY.
-    i. rewrite !list_lookup_insert_ne in H4, H5; eauto.
+    { iIntros "RS". iMod (UPD with "RS") as "RS". iMod (H with "RS") as "[A1 A2]".
+      iSplitL "A1"; eauto. iApply H1. eauto.
+    }
+    i. rewrite !list_lookup_insert_ne in H3, H4; eauto.
   Qed.
   
 End CANCEL.

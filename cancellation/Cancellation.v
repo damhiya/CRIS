@@ -9,7 +9,7 @@ Require Import CancelHead CancelTail CancelSpawn CancelYield.
 Set Implicit Arguments.
 
 Section CANCEL.
-  Context `{Σ: GRA.t}.
+  Context `{Σ: GRA}.
   Variable md: SMod.t.
 
   Import CancelTAC.
@@ -41,7 +41,7 @@ Section CANCEL.
     rewrite interp_hp_bind interp_hp_ret in TGT.
     revert_until SKWF. gcofix CIH. i.
     
-    assert (✓ rt). { eapply Own_wand_valid with (a1:=rs); eauto. }
+    assert (RT: ✓ rt). { eapply Own_wand_valid with (a1:=rs); eauto. }
     punfold REL. depdes REL; subst.
     - _iter. _iter. rewrite SRC TGT. ired.
       hide_l. _coreA.
@@ -50,12 +50,12 @@ Section CANCEL.
       { unfold triggerUB. ired. _coreA. }
       ired. reveal ITREE.
       _coreA. iterT 2.
-      iterL. _supd. iterL. _coreA. ls.
-      iterL. _coreA. ls. iterL. _supd. iterL. _supd.
-      iterT 2. iterL. rewrite !StRed.ret. ired. st.
+      iterL. _supd. iterL. _coreA. iterL. _coreA. ls.
+      iterL. _supd. iterL. _supd.
+      iterT 2. iterL. rewrite !StRed.ret. ired. st. des.
       hexploit Own_bupd_split; eauto. i. des.
       specialize (RET v x eq_refl).
-      eapply Own_pure_soundness with (x := a1).
+      eapply Own_pure_soundness with (a := a1).
       + eapply Own_bupd_valid in H; eauto.
         eapply cmra_valid_op_l; eauto.
       + etrans; eauto.
@@ -84,43 +84,34 @@ Section CANCEL.
         hide_r. grind. _supd. iterT 1. reveal ITREE.
         done_by_CIH CIH LKX LKY.
     - _iter. _iter. rewrite SRC TGT. ired.
-      hide_r. _coreA. iterL. _supd. iterL. _coreA. iterL. _coreA.
-      iterL. _supd. iterL. _supd. iterT 1. reveal ITREE.
-      hide_l. _coreE x.
-      assert (UPD': Own(x ⋅ rs) ==∗ Own (x ⋅ rt)).
-      { iIntros "[H0 H1]". iSplitL "H0"; eauto.
-        iApply UPD; eauto.
+      hide_r. _supd. iterL. _coreA. iterL. _coreA.
+      iterL. _supd. iterL. _supd. iterT 1. reveal ITREE. des.
+      eapply bi.wand_entails, Own_split in x1. des.
+      hide_l. _supd. iterL. _coreE (a1 ⋅ rt).
+      assert (UPD': Own (a1 ⋅ a2) ==∗ Own (a1 ⋅ rt)).
+      { iIntros "[A1 A2]". iSplitL "A1"; eauto.
+        iApply UPD. iApply x3. eauto.
       }
-      assert (VALID: ✓ (x ⋅ rt)). 
-      { 
-        hexploit Own_bupd_valid; eauto.
-        iIntros "H". iPoseProof (UPD' with "H") as ">[H0 H1]".
-        iModIntro. iFrame.
+      assert (VALID: ✓ (a1 ⋅ rt) ∧ (Own (a1 ⋅ rt) -∗ P ∗ Own rt)). 
+      { split.
+        - rewrite x1 in x0. eapply Own_wand_valid, x0.
+          eapply bi.wand_entails. eauto.
+        - iIntros "[H0 H1]". iFrame. iApply x2. eauto.
       }
-      iterL. _supd. iterL. _coreE VALID. ls.
-      iterL. _coreE x1. ls. 
+      iterL. _coreE VALID. ls.
       iterL. _supd. iterL. _supd.
       iterT 1. reveal ITREE.
       done_by_CIH CIH LKX LKY.
+      + rewrite x1. eauto.
+      + eauto.
     - _iter. _iter. rewrite SRC TGT. ired.
-      hide_l. _supd. iterL. _coreA. iterL. _coreA.
+      hide_l. _supd. iterL. _coreA. iterL. _coreA. ls. des.
       iterL. _supd. iterL. _supd. iterT 1. reveal ITREE.
-      hide_r. _supd.
-      assert (SAT: Own rs ==∗ P ∗ Own x).
-      {
-        iIntros "H". iPoseProof (UPD with "H") as ">H". 
-        iApply x0; eauto.
-      }
-      iterL. _coreE x. iterL. _coreE SAT.
+      hide_r. _supd. iterL. _coreE x.
+      assert (VALID: ✓ x ∧ (Own rs ==∗ P ∗ Own x)).
+      { split; eauto. iIntros "H". iMod (UPD with "H") as "H". iApply x1; eauto. }
+      iterL. _coreE VALID.
       iterL. _supd. iterL. _supd. iterT 1. reveal ITREE.
-      assert (VALID: ✓ x).
-      { 
-        hexploit Own_bupd_split; eauto. i. des.
-        eapply Own_bupd_valid in H2; eauto.
-        eapply Own_pure_soundness with (x:=a2).
-        { eapply cmra_valid_op_r, Own_wand_valid; eauto. }
-        iIntros "H". iApply Own_valid. iStopProof. eauto.
-      }
       done_by_CIH CIH LKX LKY.
     - _iter. _iter. rewrite SRC TGT. ired.
       hide_l. tau 1. iterT 1. reveal ITREE.
@@ -191,16 +182,18 @@ Section CANCEL.
     _iter. _tau. st. st. st.
     rewrite interp_hp_tau. _iter. _tau. st. st.
     rewrite HModSB.transl_bind HModSB.transl_ag HIRed.bind_ag interp_hp_bind interp_hp_Assume. ired.
-    _iter. _core. st. exists r. st. ired. _tau. st. 
-    _iter. _sget. ired. _tau. st. st.
-    hss. ired. hss. ired.
+    _iter. _supd. hss. ired. hss. ired.
+    _iter. _core. st. exists (r ⋅ rt). st. ired. _tau. st. 
     _iter. _core. st.
-    assert (V: ✓(r ⋅ rt)). { eapply valid_solve_eq; eauto. }
-    exists V. ired. _tau. st. st. 
-    _iter. _core. st. exists PRE. ired.
-    _iter. _tau. st. st. _supd. _iter. _supd.
+    assert (VALID': ✓(r ⋅ rt) ∧ (Own (r ⋅ rt) -∗ precond fsp 0 meta () ↑ () ↑ ∗ Own rt)).
+    { split.
+      - eapply valid_solve_eq; eauto.
+      - iIntros "[R RT]". iFrame. iStopProof. eauto.
+    }
+    exists VALID'. ired. _tau. st. st.
+    _iter. _supd. _iter. _supd.
     _iter. _tau. st. st. rewrite interp_hp_tau. _iter. _tau. st. st.
-    
+
     (* CRIS_init's precond all executed. *)
     reveal ITREE. 
     eapply cancel_aux; eauto; cycle 1.
@@ -221,7 +214,7 @@ Section CANCEL.
 End CANCEL.
 
 (*** Final Theorem ***)
-Theorem cancellation `{Σ: GRA.t} md ginv P fsp meta
+Theorem cancellation `{Σ: GRA} md ginv P fsp meta
   (STB: ∀ sk (EQV: Sk.equiv (SMod.sk md) sk) (SKWF: Sk.wf sk),
         stb_global md sk "CRIS_init" = Some (fsp sk))
   (POST: ∀ sk (EQV: Sk.equiv (SMod.sk md) sk) (SKWF: Sk.wf sk) vret ret,
@@ -247,5 +240,5 @@ Proof.
   - inv WFM. econs; eauto. s.
     rewrite List.map_map fst_map_snd.
     do 2 rewrite List.map_map fst_map_snd in wf_fns. eauto.
-  - etrans; eauto. r_solve.
+  - etrans; eauto. rewrite comm; ss.
 Qed.

@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 
 Require Import ImpPrelude.
 Require Import RingHeader.
@@ -6,7 +6,7 @@ Require Import RingHeader.
 Set Implicit Arguments.
 
 Module RingAS. Section RingAS.
-  Context `{Σ : GRA.t}.
+  Context `{Σ : GRA}.
 
   Definition Stb : alist gname fspec :=
     Seal.sealing "ccr" [(RingName.init, fspec_trivial);
@@ -23,4 +23,4 @@ End RingAS.
 
 Global Hint Unfold Stb : stb.
 
-End RingAS.
+End RingAS. *)

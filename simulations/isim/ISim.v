@@ -35,7 +35,7 @@ End LEMMAS.
 
 Section HModProd.
 
-  Context `{Σ : GRA.t}.
+  Context `{Σ : GRA}.
   Notation iProp := (iProp Σ).
 
   Definition IstProd0 (IstL IstR : nat -> alist key Any.t -> alist key Any.t -> iProp) :=
@@ -79,11 +79,11 @@ Section HModProd.
   Proof.
     ii. subst. unfold HModSem.sandbox_body. s.
     generalize (itr y) as it; clear itr y.
-    revert NODD. apply combine_quant.
-    revert NODS. apply combine_quant.
-    revert st_tgt. apply combine_quant_dep.
-    revert st_src. apply combine_quant_dep.
-    revert nths. apply combine_quant.
+    combine_quant NODD.
+    combine_quant NODS.
+    combine_quant st_tgt.
+    combine_quant st_src.
+    combine_quant nths.
     eapply isim_coind. intros g0 a _. destruct a as [nths [st_src [st_tgt [NODS [NODD it]]]]]. s.
     iIntros "[IST CIH]".
     assert (CASE := case_itrH it); des; subst.

@@ -1,11 +1,11 @@
-Require Import CRIS.
+(* Require Import CRIS.
 
 Require Import CellioHeader.
 
 Set Implicit Arguments.
 
 Module CellioI. Section CellioI.
-  Context `{Σ: GRA.t}.
+  Context `{Σ: GRA}.
 
   Definition scopes := [CellioName.mn].
   Definition v_cv := (CellioName.mn) ↯ "cv".
@@ -39,4 +39,4 @@ Module CellioI. Section CellioI.
   |}.
 
   Definition t := Seal.sealing "ccr" (PMod.to_hmod Mod).
-End CellioI. End CellioI.
+End CellioI. End CellioI. *)

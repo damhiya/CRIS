@@ -10,7 +10,7 @@ Require Import Hoare.
 Set Implicit Arguments.
 
 
-Let Σ : GRA.t := fun _ => of_RA.t RA.empty.
+Let Σ : GRA := fun _ => of_RA.t RA.empty.
 Local Existing Instance Σ.
 
 Definition main0 : itree EventsL.Es Any.t :=

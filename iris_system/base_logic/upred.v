@@ -784,13 +784,14 @@ Module uPred_primitive.
     Lemma bupd_ownM_update x y :
       x ~~> y → uPred_ownM x ⊢ |==> uPred_ownM y.
     Proof.
-      unseal=> Hup; split=> x' Hwf [x'' ->]; exists (y ⋅ x''); intros yf ?; split; last by exists x''; eauto.
+      unseal=> Hup; split=> x' Hwf [x'' ->]; exists (y ⋅ x'');
+        intros yf ?; split; last by exists x''; eauto.
       rewrite cmra_valid_validN; intros n; specialize (Hup n (Some (x'' ⋅ yf))).
       rewrite cmra_valid_validN in H; simpl in Hup.
       specialize (H n); rewrite -assoc in H; eapply Hup in H; rewrite -assoc; eauto.
     Qed.
     (* Note : there are few lemmas newly created in CRIS that breaks the abstraction of logic,
-      and this seems inevitable unless the simulation relation itself is defined inside the logic. *)
+    and this seems inevitable unless the simulation relation itself is defined inside the logic. *)
     Lemma bupd_ownM_update_2 x y (UPD : uPred_ownM x ⊢ |==> uPred_ownM y) (VAL : ✓ x) :
       ✓ y.
     Proof.
@@ -801,7 +802,8 @@ Module uPred_primitive.
       by apply H.
     Qed.
     Lemma bupd_ownM_update_3 x P Q (UPD : uPred_ownM x ⊢ |==> P ∗ Q) (VALID : ✓ x) :
-      ∃ y z, (uPred_ownM x ⊢ |==> uPred_ownM y ∗ uPred_ownM z) ∧ (uPred_ownM y ⊢ P) ∧ (uPred_ownM z ⊢ Q).
+      ∃ y z,
+        (uPred_ownM x ⊢ |==> uPred_ownM y ∗ uPred_ownM z) ∧ (uPred_ownM y ⊢ P) ∧ (uPred_ownM z ⊢ Q).
     Proof.
       move: UPD; unseal=> UPD.
       destruct UPD as [UPD]; specialize (UPD x VALID).

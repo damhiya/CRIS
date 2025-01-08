@@ -9,7 +9,7 @@ Set Implicit Arguments.
 (** ** Rewriting Leamms *)
 Section PROOFS.
 
-  Context `{Σ : GRA.t}.
+  Context `{Σ : GRA}.
 
   (* expr *)
   Lemma denote_expr_Var

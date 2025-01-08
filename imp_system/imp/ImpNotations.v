@@ -106,9 +106,9 @@ End ImpNotations.
 Section Example_Extract.
 
   Import ImpNotations.
-  (* Let Σ : GRA.t := fun _ => of_RA.t RA.empty. *)
+  (* Let Σ : GRA := fun _ => of_RA.t RA.empty. *)
   (* Local Existing Instance Σ. *)
-  Context `{Σ : GRA.t}.
+  Context `{Σ : GRA}.
 
   Local Open Scope expr_scope.
   Local Open Scope stmt_scope.

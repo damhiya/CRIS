@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 
 Module CellioName.
   Definition mn := "Cellio".
@@ -12,4 +12,4 @@ End CellioName.
 
 Module CellioSK.
   Definition t : Sk.t := [].
-End CellioSK.
+End CellioSK. *)

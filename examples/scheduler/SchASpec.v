@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 
 Require Import SchHeader SchGInv.
 
@@ -8,7 +8,7 @@ Local Open Scope Qp.
 
 Module SchAS.
 Section Sch.
-  Context `{_W: @Inv.t Σ Γ α β τ}.
+  Context `{_W: @sinvGS Σ Γ α β τ}.
 
   Canonical Structure SynDepO : ofe := leibnizO (sigT (λ n, SRFSyn.t n)).
 
@@ -207,4 +207,4 @@ Section Sch.
   End SPEC.
 
 End Sch.
-End SchAS.
+End SchAS. *)

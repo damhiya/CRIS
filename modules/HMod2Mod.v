@@ -6,7 +6,7 @@ Set Implicit Arguments.
 
 Section MID.
 
-  Context {Σ : GRA.t}.
+  Context {Σ : GRA}.
   Notation iProp := (iProp Σ).
 
   (* Consider moving into Any lib. *)
@@ -61,11 +61,11 @@ Section MID.
     rewrite IHst. eauto.
   Qed.
 
-  Definition mput_res `{stateE -< E} `{coreE -< E} (mr : Σ) : itree E unit :=
+  Definition put_res `{stateE -< E} `{coreE -< E} (mr : Σ) : itree E unit :=
     st <- trigger sGet;; '(mp, _) :_ <- (Any.split st)?;;
     trigger (sPut (Any.pair mp mr↑)).
 
-  Definition mget_res `{stateE -< E} `{coreE -< E} : itree E Σ :=
+  Definition get_res `{stateE -< E} `{coreE -< E} : itree E Σ :=
     st <- trigger sGet;; '(_, mr) : _ <- (Any.split st)?;;
     mr↓?.
 
@@ -96,17 +96,16 @@ Section MID.
       end.
 
   Definition handle_Assume (P : iProp) : itree modE unit :=
-    r <- trigger (Take Σ);;
-    mr <- mget_res;;
-    assume (✓ (r ⋅ mr));;;
-    assume (Own r ⊢ P);;;
-    mput_res (r ⋅ mr).
+    mr <- get_res;;
+    mr' <- trigger (Take Σ);;
+    assume (✓ mr' ∧ (Own mr' -∗ P ∗ Own mr));;;
+    put_res mr'.
 
   Definition handle_Guarantee (P : iProp) : itree modE unit :=
-    mr <- mget_res;;
+    mr <- get_res;;
     mr' <- trigger (Choose Σ);;
-    guarantee (Own mr ==∗ P ∗ Own mr');;;
-    mput_res mr'.
+    guarantee (✓ mr' ∧ (Own mr ==∗ P ∗ Own mr'));;;
+    put_res mr'.
 
   Definition handle_agE : agE ~> itree modE :=
     λ _ e,
@@ -133,7 +132,7 @@ End MID.
 
 Section RED.
   (* itree reduction lemmas *)
-  Context `{Σ : GRA.t}.
+  Context `{Σ : GRA}.
   Notation iProp := (iProp Σ).
 
   Lemma interp_hp_bind (R S : Type) (s : itree hmodE R) (k : R -> itree hmodE S) :

@@ -235,7 +235,7 @@ Global Opaque SkEnv.load_skenv.
 
 Section FB_HAS_SPEC.
 
-  Context `{Σ : GRA.t}.
+  Context `{Σ : GRA}.
 
   Variable skenv : SkEnv.t.
 

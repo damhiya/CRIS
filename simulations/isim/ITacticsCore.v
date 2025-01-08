@@ -31,6 +31,9 @@ Ltac prove_nodup :=
   (hrepeat do 1 (econs; [ii; ss; des; try match goal with [H: _ |- _] => inv_string H end|]));
   try (econs; fail).
 
+Ltac combine_quant tm :=
+  revert tm; first [apply combine_quant | apply combine_quant_dep].
+
 Ltac by_coind CIH :=
   iApply isim_progress; iApply isim_base;
   iSpecialize (CIH $! _);

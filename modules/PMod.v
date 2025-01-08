@@ -7,7 +7,7 @@ Set Implicit Arguments.
 Module PModSem.
 Section PMODSEM.
 
-  Context `{Σ : GRA.t}.
+  Context `{Σ : GRA}.
 
   Record t : Type := mk {
     scopes : list string;
@@ -60,7 +60,7 @@ End PModSem.
 Module PMod.
 Section PMOD.
 
-  Context `{Σ : GRA.t}.
+  Context `{Σ : GRA}.
 
   Record t : Type := mk {
     modsem : Sk.t -> PModSem.t;
@@ -80,7 +80,7 @@ Notation "↥ it" := (PModSem.interp it) (at level 60, only printing).
 Module PModRed.
 Section RED.
 
-  Context `{Σ : GRA.t}.
+  Context `{Σ : GRA}.
 
 (* itree reduction *)
   Lemma interp_bind

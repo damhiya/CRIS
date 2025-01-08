@@ -7,19 +7,30 @@ From iris.algebra Require Import excl_auth functions.
 
 Canonical Structure valO := leibnizO val.
 
+(* Memory resource algebra *)
+(* Coercion memGS >-> inG memRA Γ is global since it can be used in other modules *)
 Definition memRA := authUR (mblock -d> Z -d> optionUR (exclR valO)).
-Class memG (Γ : HRA.t) := { #[global] mem_inG :: @GRA.inG memRA Γ }.
+Class memGpreSΓ (Γ : HRA) := {
+  #[global] mem_inG :: inG memRA Γ;
+}.
+Class memGS (Γ : HRA) := {
+  #[global] memGS_Γ :: memGpreSΓ Γ;
+  mem_name : positive;
+}.
+Definition memΓ : HRA := #[memRA].
+Global Instance subG_memΓ {Γ} : subG memΓ Γ → memGpreSΓ Γ.
+Proof. solve_inG. Qed.
 
 Local Arguments Z.of_nat : simpl nomatch.
 
 Section BODY.
-  Context `{!Inv.t Σ Γ α β τ, !memG Γ}.
+  Context `{!sinvGS Σ Γ α β τ, !memGS Γ}.
   Notation iProp := (iProp Σ).
 
   Definition mem_points_to_singleton_r (loc : mblock * Z) (v : val) : memRA :=
     ◯ (discrete_fun_singleton loc.1 (discrete_fun_singleton loc.2 (Some (Excl v)))).
   Definition mem_points_to_singleton (loc : mblock * Z) (v : val) : iProp :=
-    OwnM (mem_points_to_singleton_r loc v).
+    own mem_name (mem_points_to_singleton_r loc v).
   Definition mem_points_to : (mblock * Z) → list val → iProp :=
     λ '(blk, ofs) vs, ([∗ list] i ↦ v ∈ vs, mem_points_to_singleton (blk, ofs + i)%Z v)%I.
 
@@ -34,16 +45,14 @@ Section BODY.
         | _ => ε
         end) : mblock -d> Z -d> optionUR (exclR valO)).
   Definition mem_initial_mem (csl : gname -> bool) (sk : Sk.t) : iProp :=
-    OwnM (mem_initial_mem_r csl sk).
-
+    own mem_name (mem_initial_mem_r csl sk).
 End BODY.
 
 Notation "loc ⤇ v" := (mem_points_to_singleton loc v) (at level 20).
 Notation "loc |-> vs" := (mem_points_to loc vs) (at level 20).
 
 Section AUX.
-  Context `{!Inv.t Σ Γ α β τ, !memG Γ}.
-  Notation iProp := (iProp Σ).
+  Context `{!sinvGS Σ Γ α β τ, !memGS Γ}.
 
   Lemma points_to_nil ptr : ptr |-> [] = emp%I.
   Proof. destruct ptr. ss. Qed.
@@ -133,11 +142,8 @@ End POINTS_TO. *)
 
 
 
-Module MemA.
-Section PROOF.
-
-  Context `{!Inv.t Σ Γ α β τ, !memG Γ}.
-  Notation iProp := (iProp Σ).
+Module MemA. Section MemA.
+  Context `{!sinvGS Σ Γ α β τ, !memGS Γ}.
 
   Definition scopes := ["Mem"].
 
@@ -210,15 +216,13 @@ Section PROOF.
     SMod.sk := Sk.unit;
   |}.
 
-  Definition InitCond : Sk.t -> iProp :=
+  Definition InitCond : Sk.t -> iProp Σ :=
     λ sk, mem_initial_mem csl sk.
 
   Variable ginv : Sk.t -> invspec.
   Variable GlobalStb : Sk.t -> gname -> option fspec.
   Definition t : HMod.t := Seal.sealing "ccr" (SMod.to_hmod ginv GlobalStb Mod).
-
-End PROOF.
-End MemA.
+End MemA. End MemA.
 
 Global Opaque MemA.mem_points_to_singleton_r.
 

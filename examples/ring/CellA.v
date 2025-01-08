@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 
 Require Import ImpPrelude.
 Require Import RingHeader CellHeader CellASpec.
@@ -6,7 +6,7 @@ Require Import RingHeader CellHeader CellASpec.
 Set Implicit Arguments.
 
 Module CellA. Section CellA.
-  Context `{!Inv.t Σ Γ α β τ, !CellAS.G Γ}.
+  Context `{!sinvGS Σ Γ α β τ, !CellAS.G Γ}.
   Notation iProp := (iProp Σ).
 
   Variable idx : nat.
@@ -39,4 +39,4 @@ Module CellA. Section CellA.
   Variable GlobalStb : Sk.t -> gname -> option fspec.
   Definition t := Seal.sealing "ccr" (SMod.to_hmod ginv GlobalStb Mod).
 
-End CellA. End CellA.
+End CellA. End CellA. *)

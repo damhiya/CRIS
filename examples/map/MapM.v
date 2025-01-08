@@ -23,7 +23,7 @@ def set_by_user(k : int) ≡
   set(k, input())
 ***)
 Module MapM. Section MapM.
-  Context {Σ : GRA.t}.
+  Context {Σ : GRA}.
   Notation iProp := (iProp Σ).
 
   Definition scopes := ["Map"].

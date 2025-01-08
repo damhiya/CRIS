@@ -10,7 +10,7 @@ Ltac hred_r := try (prw _red_gen 1 1 1 0).
 Ltac hred := try (prw _red_gen 1 1 0).
 
 Section SIM.
-  Context `{Σ : GRA.t}.
+  Context `{Σ : GRA}.
   Local Notation iProp := (iProp Σ).
   Variable fl_src fl_tgt : alist gname (Any.t → itree hmodE Any.t).
   Variable Ist : nat → alist key Any.t → alist key Any.t → iProp.
@@ -120,7 +120,7 @@ Section SIM.
     econs; eauto.
     { iIntros "H1"; iPoseProof (RET with "H1") as "> HRR"; iModIntro; iIntros "H1".
       iRevert "HRR"; iStopProof; uPred.unseal; split; intros x' wfx'.
-      rewrite ?Own_eq /IPM.Own_def; uPred.unseal; intros [x'' ->].
+      rewrite ?own.Own_eq /own.Own_def; uPred.unseal; intros [x'' ->].
       eapply uPred_mono; last by eapply cmra_included_l.
       eapply HRR.
     }
@@ -161,7 +161,7 @@ Section SIM.
   Proof.
     split; intros x wfx RRx.
     guclo hpsimC_spec; econs; esplits; i; eauto; econs; eauto.
-    split; intros x' wfx'; rewrite IPM.Own_eq /IPM.Own_def; uPred.unseal; intros xx'.
+    split; intros x' wfx'; rewrite own.Own_eq /own.Own_def; uPred.unseal; intros xx'.
     exists x'; intros yf x'wf; split; eauto. eapply uPred_mono; eauto.
   Qed.
 
@@ -191,7 +191,7 @@ Section SIM.
     guclo hpsimC_spec. econs; esplits; eauto.
     econs; eauto; i; subst.
     { iIntros "[X1 X2]"; iSplitL "X1".
-      { iModIntro; iStopProof; split. i; eapply uPred_mono; eauto. rewrite IPM.Own_eq /IPM.Own_def in H1.
+      { iModIntro; iStopProof; split. i; eapply uPred_mono; eauto. rewrite own.Own_eq /own.Own_def in H1.
         uPred.unseal_in H1; eauto.
       }
       { iPoseProof (Own_general_completeness with "X2") as "X2"; eauto. }
@@ -462,7 +462,7 @@ Section SIM.
     guclo hpsimC_spec. econs; esplits; eauto.
     econs; eauto; i; subst.
     { iIntros "[X1 X2]"; iSplitL "X1".
-      { iModIntro; iStopProof; split. i; eapply uPred_mono; eauto. rewrite IPM.Own_eq /IPM.Own_def in H1.
+      { iModIntro; iStopProof; split. i; eapply uPred_mono; eauto. rewrite own.Own_eq /own.Own_def in H1.
         uPred.unseal_in H1; eauto.
       }
       { iPoseProof (Own_general_completeness with "X2") as "X2"; eauto. }
@@ -617,7 +617,7 @@ Section SIM.
     { ii; eauto. }
     { rewrite /g'; ii; inv PR.
       uPred.unseal_once_in REL; destruct REL as [REL]; hexploit REL; eauto.
-      { rewrite IPM.Own_eq /IPM.Own_def; uPred.unseal; rr; exists ε; rewrite right_id; ss. }
+      { rewrite own.Own_eq /own.Own_def; uPred.unseal; rr; exists ε; rewrite right_id; ss. }
       intros UPD; uPred.unseal_in UPD; destruct UPD as [x7']; dup H0.
       specialize (H0 ε); rewrite ?right_id in H0; hexploit H0; eauto; i; des.
       destruct H3.
@@ -651,7 +651,7 @@ End SIM.
 
 Global Opaque isim.
 
-Definition isim_fsem `{Σ : GRA.t} fl_src fl_tgt Ist is_closed : relation (Any.t -> itree hmodE Any.t) :=
+Definition isim_fsem `{Σ : GRA} fl_src fl_tgt Ist is_closed : relation (Any.t -> itree hmodE Any.t) :=
   (eq ==> (fun itr_src itr_tgt =>
              forall my_tid nths st_src st_tgt
                     (IMON : forall nths nths' (LE : nths <= nths') st_src st_tgt,
@@ -665,7 +665,7 @@ Definition isim_fsem `{Σ : GRA.t} fl_src fl_tgt Ist is_closed : relation (Any.t
 
 Module HSSim. Section HSSim.
     Import HModSem.
-    Context `{Σ : GRA.t}.
+    Context `{Σ : GRA}.
     Notation iProp := (iProp Σ).
     Variable (ms_src ms_tgt : HModSem.t).
     Variable init_cond : iProp.
@@ -709,7 +709,7 @@ Module HSSim. Section HSSim.
 End HSSim. End HSSim.
 
 Module HSim. Section HSim.
-    Context `{Σ : GRA.t}.
+    Context `{Σ : GRA}.
     Notation iProp := (iProp Σ).
     Variable (md_src md_tgt : HMod.t).
     Variable init_cond : Sk.t -> iProp.

@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 
 Require Import ImpPrelude.
 Require Import RingHeader CellHeader.
@@ -8,7 +8,7 @@ Set Implicit Arguments.
 Module CtrlI. Section CtrlI.
   Local Open Scope nat_scope.
 
-  Context `{Σ : GRA.t}.
+  Context `{Σ : GRA}.
 
   Variable max_size : nat.
 
@@ -77,4 +77,4 @@ Module CtrlI. Section CtrlI.
 
   Definition t := Seal.sealing "ccr" (PMod.to_hmod Mod).
 
-End CtrlI. End CtrlI.
+End CtrlI. End CtrlI. *)

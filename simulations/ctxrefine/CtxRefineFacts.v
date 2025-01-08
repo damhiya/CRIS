@@ -5,7 +5,7 @@ Require Import ModSim ModSimFacts ISimCore ISimFacts.
 Require Import CtxRefine MainAdequacy.
 
 Section CtxRefineFacts.
-  Context `{Σ : GRA.t}.
+  Context `{Σ : GRA}.
   Notation iProp := (iProp Σ).
 
   Global Program Instance refines_modsem_PreOrder : PreOrder refines_modsem.

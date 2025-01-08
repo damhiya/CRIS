@@ -86,7 +86,7 @@ Section MEMI.
   |}
   .
 
-  Context `{Σ : GRA.t}.
+  Context `{Σ : GRA}.
   Definition t : HMod.t := Seal.sealing "ccr" (PMod.to_hmod Mem).
 
 End MEMI.

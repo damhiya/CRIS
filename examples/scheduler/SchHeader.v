@@ -20,27 +20,27 @@ End SchSK.
 
 (* Wrapping fspecs *)
 Section FSpec.
-  Context `{@Inv.t Σ Γ α β τ}.
+  Context `{@sinvGS Σ Γ α β τ}.
   Notation iProp := (iProp Σ).
 
   Variable univ: positive.
 
   (* fspec wrapping functions - TODO: move them to a proper file *)
-  Definition wfspec_inv (univ: positive) (fsp: fspec): fspec :=
+  Definition wfspec_inv (univ : positive) (fsp : fspec) : fspec :=
     mk_fspec (meta := (fsp).(meta))
       (fun tid x varg arg =>
-        (∃ n, closed_universe univ n ⊤) ∗ fsp.(precond) tid x varg arg)%I
+        (∃ n, wsats univ n ⊤) ∗ fsp.(precond) tid x varg arg)%I
       (fun tid x vret ret =>
-        (∃ n, closed_universe univ n ⊤) ∗ fsp.(postcond) tid x vret ret)%I.
+        (∃ n, wsats univ n ⊤) ∗ fsp.(postcond) tid x vret ret)%I.
 
-  Definition wfspec_type (A R: Type) (fsp: fspec): fspec :=
+  Definition wfspec_type (A R : Type) (fsp : fspec) : fspec :=
     mk_fspec (meta := (fsp).(meta))
       (fun tid x varg arg =>
         ⌜∃ sarg: A, arg = sarg↑⌝ ∗ fsp.(precond) tid x varg arg)%I
       (fun tid x vret ret =>
         ⌜∃ sret: R, ret = sret↑⌝ ∗ fsp.(postcond) tid x vret ret)%I.
 
-  Definition interp_cond (s: {n & SRFSyn.t n}) :=
+  Definition interp_cond (s : {n & SRFSyn.t n}) :=
     match s with
     | existT n p => ⟦ p ⟧
     end.
@@ -52,11 +52,9 @@ Section FSpec.
     | Some fsp => fsp
     | None => fspec_trivial
     end.
-
 End FSpec.
 
 Module Sch.
-
   Definition spawn {E} `{coreE -< E} `{Events.callE -< E}: (gname * SAny.t) → itree E nat :=
     Seal.sealing "Sch"
       (λ fnarg,
@@ -92,5 +90,4 @@ Module Sch.
         rv <- (ra↓↓)?;;
         Ret rv)
   .
-
 End Sch.

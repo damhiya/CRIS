@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 
 Require Import SchHeader SchASpec SchGInv.
 
@@ -6,7 +6,7 @@ Set Implicit Arguments.
 
 Module SchA.
 Section A.
-  Context `{_W: @Inv.t Σ Γ α β τ, !SchAS.G Γ}.
+  Context `{_W: @sinvGS Σ Γ α β τ, !SchAS.G Γ}.
 
   Notation iProp := (iProp Σ).
 
@@ -70,4 +70,4 @@ Section A.
   Definition t := Seal.sealing "ccr" (SMod.to_hmod (sch_ginv univ) GlobalStb Mod).
 
 End A.
-End SchA.
+End SchA. *)

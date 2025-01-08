@@ -4,19 +4,14 @@ Require Import SchHeader.
 
 Set Implicit Arguments.
 
-Section THREADS.
-  
-  Definition thslist: Type := list (nat * (option SAny.t)).
+Definition thslist: Type := list (nat * (option SAny.t)).
 
-  Definition is_in_thslist (tid: nat) (ths: thslist) :=
-    is_some (alist_find tid ths).
+Definition is_in_thslist (tid: nat) (ths: thslist) :=
+  is_some (alist_find tid ths).
 
-End THREADS.
-
-Module SchI.
-Section I.
+Module SchI. Section SchI.
   Local Open Scope string_scope.
-  Context `{_W: @Inv.t Σ Γ α β τ}.
+  Context `{!sinvGS Σ Γ α β τ}.
 
   Definition scopes := ["Sch"].
   Definition v_ths := "Sch" ↯ "ths".
@@ -40,7 +35,7 @@ Section I.
       let newths: thslist := alist_add tid None ths in
       cput v_ths newths;;;
       trigger (Yield tid);;;
-     Ret tid
+      Ret tid
   .
 
   Definition yield: unit -> itree pmodE unit :=
@@ -89,6 +84,4 @@ Section I.
 
   Definition t := Seal.sealing "ccr" (PMod.to_hmod Mod).
 
-End I.
-
-End SchI.
+End SchI. End SchI.

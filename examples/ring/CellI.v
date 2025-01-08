@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 
 Require Import ImpPrelude.
 Require Import RingHeader.
@@ -7,7 +7,7 @@ Require Import CellHeader.
 Set Implicit Arguments.
 
 Module CellI. Section CellI.
-  Context `{Σ : GRA.t}.
+  Context `{Σ : GRA}.
 
   Variable idx : nat.
 
@@ -45,4 +45,4 @@ Module CellI. Section CellI.
 
   Definition t := Seal.sealing "ccr" (PMod.to_hmod Mod).
 
-End CellI. End CellI.
+End CellI. End CellI. *)

@@ -7,7 +7,7 @@ Set Implicit Arguments.
 
 (* Inlining every function call in HMod. *)
 Section INTERP.
-  Context `{Σ: GRA.t}.
+  Context `{Σ: GRA}.
 
   Definition handle_callE (prog: callE ~> itree hmodE): itree hmodE Any.t -> itree hmodE (_ + Any.t)
   :=
@@ -60,7 +60,7 @@ End INTERP.
 
 Module HModSemInline.
   Section INLINE.
-    Context `{Σ: GRA.t}.
+    Context `{Σ: GRA}.
     Import HModSem.
 
     Program Definition inline (ms: HModSem.t): HModSem.t := {|
@@ -87,7 +87,7 @@ End HModSemInline.
 
 Module HModInline.
   Section INLINE.
-    Context `{Σ: GRA.t}.
+    Context `{Σ: GRA}.
     Import HMod.
 
     Definition inline (md: t) := {|
@@ -100,7 +100,7 @@ End HModInline.
 
 Module HIRed.
   Section RED.
-    Context `{Σ: GRA.t}.
+    Context `{Σ: GRA}.
 
     Variable ms: HModSem.t.
 
@@ -234,7 +234,7 @@ End HIRed.
 
 
 Section CANCEL.
-  Context `{Σ: GRA.t}.
+  Context `{Σ: GRA}.
   Notation iProp := (iProp Σ).
 
   Lemma wrap_elimI_well_scoped

@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 
 Require Import CellioA CellioHeader MainHeader FooHeader.
 
@@ -6,7 +6,7 @@ Set Implicit Arguments.
 
 Module MainA. Section MainA.
   Import CellioA.
-  Context `{!Inv.t Σ Γ α β τ, !G Γ, !CellioA.G Γ}.
+  Context `{!sinvGS Σ Γ α β τ, !G Γ, !CellioA.G Γ}.
   Notation iProp := (iProp Σ).
 
   Definition scopes := [MainName.mn].
@@ -45,4 +45,4 @@ Module MainA. Section MainA.
   Variable GlobalStb: Sk.t -> gname -> option fspec.
   Definition t := Seal.sealing "ccr" (SMod.to_hmod GI GlobalStb Mod).
 
-End MainA. End MainA.
+End MainA. End MainA. *)
