@@ -13,7 +13,7 @@ Module MapAS. Section MapAS.
     map_name : positive;
   }.
 
-  Context `{!sinvGS Σ Γ α β τ, !MapAS.GS Γ, !MapMS.GS Γ}.
+  Context `{!sinvG Σ Γ α β τ, !MapAS.GS Γ, !MapMS.GS Γ}.
   Import MapA.
 
   Definition pending : iProp Σ := own map_name (Some (Excl ()), ε).

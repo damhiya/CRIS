@@ -62,7 +62,7 @@ Section FSPEC.
   Variant meta_inv {X : nat → Type} : Type :=
   | mk_meta (n : nat) (x : X n).
 
-  Definition fspec_inv (u : positive) (k : nat) (fsp : nat → fspec) `{!sinvGS Σ Γ α β τ} : fspec :=
+  Definition fspec_inv (u : positive) (k : nat) (fsp : nat → fspec) `{!sinvG Σ Γ α β τ} : fspec :=
     mk_fspec (meta := @meta_inv (λ n, (fsp n).(meta)))
       (λ tid '(mk_meta n x) varg arg,
          own_admin ∗ univs u (k+n) ∗ wsats u (k+n) ⊤ ∗ (fsp n).(precond) tid x varg arg)%I
@@ -342,8 +342,7 @@ Section RED.
   Proof. subst; et. Qed.
 *)
   
-End RED.
-End SModRed.
+End RED. End SModRed.
 
 (*
 Global Program Instance interp_rdb `{Σ : GRA} : red_database (mk_box (@interp_smod)) :=

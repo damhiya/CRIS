@@ -15,7 +15,7 @@ Require Import SubPerm.
 Require Import ISim ISimFacts.
 Require Import CtxRefine.
 Require Import ITactics.
-Require Import sWorld.
+Require Import syn_invariants.
 
 From ExtLib Require Import
      Core.RelDec

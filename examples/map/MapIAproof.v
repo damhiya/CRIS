@@ -3,7 +3,7 @@ Require Import CRIS.
 Require Import MapHeader MapASpec MapMSpec MapI ModSim MapIMproof MapMAproof MemA.
 
 Module MapIA. Section MapIA.
-  Context `{!sinvGS Σ Γ α β τ, !MapAS.GS Γ, !MapMS.GS Γ, !memGS Γ}.
+  Context `{!sinvG Σ Γ α β τ, !MapAS.GS Γ, !MapMS.GS Γ, !memGS Γ}.
 
   Theorem correct gi (StbMap StbMem : Sk.t → gname → option fspec)
       (MapInStbMap : ∀ sk, stb_incl MapAS.Stb (StbMap sk)) :

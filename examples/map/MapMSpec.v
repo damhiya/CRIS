@@ -18,7 +18,7 @@ Module MapMS. Section MapMS.
   Proof. solve_inG. Qed.
 
   Import MapM.
-  Context `{!sinvGS Σ Γ α β τ, !GS Γ}.
+  Context `{!sinvG Σ Γ α β τ, !GS Γ}.
 
   Definition pending : iProp Σ := own map_name (Excl ()).
   Lemma pending_unique : pending -∗ pending -∗ False.

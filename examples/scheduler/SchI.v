@@ -11,7 +11,7 @@ Definition is_in_thslist (tid: nat) (ths: thslist) :=
 
 Module SchI. Section SchI.
   Local Open Scope string_scope.
-  Context `{!sinvGS Σ Γ α β τ}.
+  Context `{!sinvG Σ Γ α β τ}.
 
   Definition scopes := ["Sch"].
   Definition v_ths := "Sch" ↯ "ths".

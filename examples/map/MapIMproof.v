@@ -59,7 +59,7 @@ Qed.
 (* Simulation proof *)
 Module MapIM. Section MapIM.
   Import MapMS.
-  Context `{!sinvGS Σ Γ α β τ, !MapMS.GS Γ, !memGS Γ}.
+  Context `{!sinvG Σ Γ α β τ, !MapMS.GS Γ, !memGS Γ}.
   Notation iProp := (iProp Σ).
 
   Definition Ist : Sk.t → nat → alist key Any.t → alist key Any.t → iProp :=

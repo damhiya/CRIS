@@ -14,7 +14,7 @@ Module CellAS. Section CellAS.
   Definition RA : ucmra := prodUR pendingRA (authUR cellRA).
 
   Class G (Γ : HRA.t) := { #[local] RA_inG :: GRA.inG RA Γ }.
-  Context `{!sinvGS Σ Γ α β τ, !G Γ}.
+  Context `{!sinvG Σ Γ α β τ, !G Γ}.
 
   Notation iProp := (iProp Σ).
 
