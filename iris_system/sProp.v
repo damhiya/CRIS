@@ -14,15 +14,6 @@ Module Typ.
   Class t: Type := __TYP : GPF.t.
 End Typ.
 
-(* Global Program Instance in_subG Σ1 Σ2 `{M : cmra} `{emb : inG M Σ1} : HRA.subG Σ1 Σ2 → inG M Σ2.
-Next Obligation.
-  intros. destruct emb. destruct (s inG_id). exact x.
-Defined.
-Next Obligation.
-  intros. destruct emb. simpl. destruct (s inG_id). subst. f_equal. eauto.
-Defined. *)
-(* End HRA. *)
-
 Class HRA : Type := HRA_mk : GRA.
 
 Global Instance index_inG (Γ : HRA) (i : gid Γ) : inG (GRA_lookup i) Γ.
@@ -37,11 +28,6 @@ Next Obligation.
   intros. destruct emb. simpl. destruct (s inG_id). subst. f_equal. eauto.
 Defined.
 
-
-(* Global Instance subG_inG Σ1 Σ2 (i : gid Σ1) `{!HRA.subG Σ1 Σ2} : inG (GRA_lookup Σ1 i) Σ2.
-Proof.
-  destruct (H i); econstructor; rewrite e; reflexivity.
-Defined. *)
 (** Types for Separation Logic **)
 Module ST. Section ST.
   Inductive type : Type :=
@@ -93,8 +79,6 @@ Notation "'τ{' t '}'" := (@PF.deg ST.t t (SRFSyn.t_prev _)) : SRF_scope.
 (* TODO : The functionalities below need to be separated! after coarse refactoring *)
 Module SL. Section SL.
   Context {τ : Typ.t} {α : @SRFCons.t} {Γ : HRA} {Σ : GRA} `{!subG Γ Σ}.
-  Local Definition dom := domain Σ.
-  Local Existing Instance dom.
 
   Variant shape : Type :=
     | _own i (γ : positive) (r : (@GRA_lookup Γ) i)
@@ -260,17 +244,10 @@ Module SL. Section SL.
     fold_right (fun hd tl => sepconj (f hd) tl) empty I.
 End SL. End SL.
 
-Module CtxSL.
-  Class t (Σ : GRA) (Γ : HRA) α β τ := {
-    #[global] subG :: subG Γ Σ;
-    #[global] typG :: CtxST.t τ;
-    #[global] intpG :: @SRFIntp.inG (domain Σ) (@SL.syntax τ Γ) α (@SL.t τ α Γ Σ subG) β;
-    domainΣ : SRFDom.t := domain Σ
-  }.
-  (* This global instance declaration is a way to designate which GRA the TC should find as a
-  domain of sProp interpretation. If a more concise approach exists, replace this. *)
-  #[global] Existing Instance domainΣ.
-End CtxSL.
+(* Module CtxSL.
+  Class t (Σ : GRA) (Γ : HRA) α β τ 
+    `{!subG Γ Σ} `{!CtxST.t τ} `{!SRFIntp.inG SL.syntax α SL.t β} := mk_t : unit.
+End CtxSL. *)
 
 (** Notations *)
 Local Open Scope SRF_scope.
@@ -322,7 +299,7 @@ Notation "'[∗' n , A 'list]' x ∈ l , P" :=
       format "[∗  n ,  A  list]  x  ∈  l ,  P") : SRF_scope.
 
 Module SLRed. Section RED.
-  Context `{!CtxSL.t Σ Γ α β τ}.
+  Context `{Γ : HRA} `{!subG Γ Σ} `{!CtxST.t τ} `{!SRFIntp.inG SL.syntax α SL.t β}.
   Notation interp := (SRFSem.t (Δ := domain Σ)).
 
   Lemma own `{!inG M Γ} n γ (r : M) :
@@ -350,7 +327,7 @@ Module SLRed. Section RED.
   Lemma univ `{T : PF.t} `{@GPF.inG T τ} n (ty: T.(PF.shp)) p :
     interp n (SL.univ ty p) = (∀ x : (T.(PF.deg) ty (SRFSyn.t_prev n)), interp n (p x))%I.
   Proof.
-    destruct H0 eqn : EQ. subst.
+    destruct H1 eqn : EQ. subst.
     unfold SL.univ, eq_rect_r. ss.
     rewrite @SRFRed.cur. reflexivity.
   Qed.
@@ -358,7 +335,7 @@ Module SLRed. Section RED.
   Lemma ex `{@GPF.inG T τ} n ty p :
     interp n (SL.ex ty p) = (∃ x, interp n (p x))%I.
   Proof.
-    destruct H0 eqn : EQ. subst.
+    destruct H1 eqn : EQ. subst.
     unfold SL.ex, eq_rect_r. ss.
     rewrite @SRFRed.cur. reflexivity.
   Qed.
