@@ -117,6 +117,7 @@ Inductive Forall3 X Y Z (R : X -> Y -> Z -> Prop) : list X -> list Y -> list Z -
 | Forall3_nil : Forall3 R [] [] []
 | Forall3_cons
     x y z xs ys zs
+    (RSAT : R x y z)
     (TAIL : Forall3 R xs ys zs):
     Forall3 R (x :: xs) (y :: ys) (z :: zs).
 

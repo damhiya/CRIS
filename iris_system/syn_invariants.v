@@ -26,7 +26,7 @@ Global Instance inv_syntax : PF.t := {
 }.
 
 (* Invariant interpretations *)
-Local Definition inv_interp_aux `{α : SRFCons.t, Γ : HRA, !subG Γ Σ, !invGS Σ Γ} n (s : inv_shape) :
+Local Definition inv_interp_aux `{α : SRFCons.t, Γ : HRA, !subG Γ Σ, !invG Σ Γ} n (s : inv_shape) :
     (inv_degree s (SRFSyn.t_prev n) → SRFSyn.t n) → (inv_degree s (SRFSyn.t_prev n) → iProp Σ)
     → iProp Σ :=
   match s with
@@ -35,13 +35,15 @@ Local Definition inv_interp_aux `{α : SRFCons.t, Γ : HRA, !subG Γ Σ, !invGS 
   | _wsat_auth u => λ _ _, wsat_auth u n
   end.
 
-Global Instance inv_interp `{α : SRFCons.t, Γ : HRA, !subG Γ Σ, !invGS Σ Γ} :
+Global Instance inv_interp `{α : SRFCons.t, Γ : HRA, !subG Γ Σ, !invG Σ Γ} :
     @SRFIntpM.t (@domain Σ) α _ :=
   inv_interp_aux.
 
 Section syn_inv.
-  Context `{!CtxSL.t Σ Γ α β τ, !invGS Σ Γ, !SRFIntp.inG _ α inv_interp β}.
-  Local Existing Instances inv_preΣ inv_preΓ invGS_I invGS_E invGS_D.
+  Context `{Γ : HRA} `{!subG Γ Σ} `{!CtxST.t τ} `{!SRFIntp.inG SL.syntax α SL.t β}.
+  Context `{!invG Σ Γ, !SRFIntp.inG _ α inv_interp β}.
+  Local Existing Instances invG_Σ invG_Γ invG_I invG_E invG_D.
+  (* Local Existing Instances inv_preΣ inv_preΓ invG_I invG_E invG_D. *)
 
   Local Definition syn_ownI u n i (p : SRFSyn.t n) : SRFSyn.t n :=
     ⟨ _ownI u i, λ _, p ⟩.
@@ -51,11 +53,11 @@ Section syn_inv.
     ⟨ _wsat_auth u, λ e, match e with end ⟩.
 
   Local Definition syn_ownE (u : univ_id) n (E : coPset) : SRFSyn.t n :=
-    <own> enabled_name (ownER u E).
+    <own> 1%positive (ownER u E).
   Local Definition syn_ownD (u : univ_id) n (D : gset positive) : SRFSyn.t n :=
-    <own> disabled_name (ownDR u D).
+    <own> 1%positive (ownDR u D).
   Local Definition syn_ownD_auth (u : univ_id) n : SRFSyn.t n :=
-    (∃ D : τ{⇣gset positive}, <own> disabled_name (ownD_authR u D))%SRF.
+    (∃ D : τ{⇣gset positive}, <own> 1%positive (ownD_authR u D))%SRF.
 
   Local Definition syn_inv_satall u n (I : gmap positive (SRFSyn.t n)) : SRFSyn.t n :=
     ([∗ n map] i ↦ p ∈ I, (p ∗ syn_ownD u n {[i]}) ∨ syn_ownE u n {[i]})%SRF.
@@ -70,50 +72,7 @@ Section syn_inv.
   Local Definition syn_wsats u n (E : coPset) : SRFSyn.t n :=
     syn_wsat_auth u n ∗ syn_ownE u n E ∗ syn_ownD_auth u n ∗ syn_wsats_aux u n.
 
-  (* Definition OwnI u n i (p : SRFSyn.t n) : SRFSyn.t n := *)
-    (* ⟨ _OwnI u i, fun _ => p ⟩%SRF. *)
-  (* Definition OwnI_auth u n (I : gmap positive (SRFSyn.t n)) : SRFSyn.t n := *)
-    (* ⟨ _OwnI_auth u (elements (dom I)), fun i => or_else (I !! i) emp⟩%SRF. *)
-  (* Definition free_worlds u b : SRFSyn.t b := *)
-    (* ⟨ _free_worlds u b, fun e => match e with end ⟩%SRF. *)
-  (* Definition empty_universes eu {n} : SRFSyn.t n := *)
-    (* ⟨ _empty_universes eu , fun a => match a with end ⟩%SRF. *)
-
-  (* Definition OwnE (u : univ_id) {n} (E : coPset) : SRFSyn.t n := *)
-    (* (<ownm> (OwnER u E))%SRF. *)
-  (* Definition OwnD (u : univ_id) {n} (D : gset positive) : SRFSyn.t n := *)
-    (* (<ownm> (OwnDR u D))%SRF. *)
-  (* Definition ownD_auth (u : univ_id) {n} : SRFSyn.t n := *)
-    (* (∃ D : τ{⇣gset positive}, <ownm> (OwnD_authR u D))%SRF. *)
-
-  (* Definition inv_satall u n (I : gmap positive (SRFSyn.t n)) : SRFSyn.t n := *)
-    (* ([∗ n map] i ↦ p ∈ I, (p ∗ OwnD u {[i]}) ∨ OwnE u {[i]})%SRF. *)
-  (* Definition wsat u n : SRFSyn.t (S n) := *)
-    (* (∃ I : τ{ST.gmapT Φ}, (⤉ OwnI_auth u n I) ∗ (⤉ inv_satall u n I))%SRF. *)
-  (* Definition syn_wsats (u : univ_id) (n : level) (E : coPset) : SRFSyn.t n :=
-    ⟨ _wsats u n E, λ e, match e with end ⟩%SRF.
-  Definition syn_inv (u : univ_id) (n : level) (N : namespace) (p : SRFSyn.t n) : SRFSyn.t n :=
-    ⟨ _inv u n N p, λ e, match e with end ⟩%SRF. *)
-  (* Definition syn_fupd u b (E1 E2 : coPset) (P : iProp Σ) : SRFSyn.t n :=
-    syn_wsats u b E1 ==∗ (syn_wsats u b E2 ∗ P) *)
-
-  (* Definition empty_worlds (eu : univ_id) {n} : SRFSyn.t n := *)
-    (* (<ownm> (empty_worldsR eu (fun _ => Some ⊤ : CoPset.t) : OwnERA) ∗ *)
-    (* <ownm> (empty_worldsR eu (fun _ => Auth.black (Some ∅ : Gset.t)) : OwnDRA) ∗ *)
-    (* ownI_free eu). *)
-  (* Definition free_universes {n} : SRFSyn.t n :=
-    (∃ eu : τ{⇣ univ_id}, empty_universes eu)%SRF.
-  Fixpoint wsats u b : SRFSyn.t b :=
-    match b with
-    | 0 => emp%SRF
-    | S n => (wsat u n ∗ ⤉ wsats u n)%SRF
-    end. *)
-
   (* Interface for the user *)
-  (* Definition used_worlds u b E : SRFSyn.t b := *)
-    (* wsats u b ∗ OwnE u E ∗ ownD_auth u ∗ free_universes. *)
-  (* Definition closed_universe u b E : SRFSyn.t b := *)
-    (* used_worlds u b E ∗ free_worlds u b. *)
   Local Definition syn_inv_def (u : univ_id) (n : level) (N : namespace) p :=
     (∃ i : τ{⇣positive}, ⌜i ∈ (↑N : coPset)⌝ ∧ syn_ownI u n i p)%SRF.
   Local Definition syn_inv_aux : seal (@syn_inv_def). Proof. by eexists. Qed.
@@ -127,18 +86,17 @@ Section syn_inv.
   Local Definition syn_fupd_eq : @syn_fupd = @syn_fupd_def := syn_fupd_aux.(seal_eq).
 End syn_inv.
 
-Class sinvGS (Σ : GRA) (Γ : HRA) α β τ := {
-  #[global] sinv_CtxSL :: CtxSL.t Σ Γ α β τ;
-  #[global] sinv_invGS :: invGS Σ Γ;
-  #[global] sinv_intpG :: @SRFIntp.inG (domain Σ) inv_syntax α inv_interp β
+Class sinvG (Σ : GRA) (Γ : HRA) α β τ := {
+  #[global] sinv_subG :: subG Γ Σ;
+  #[global] sinv_typG :: CtxST.t τ;
+  #[global] sinv_SL_intpG :: SRFIntp.inG SL.syntax α SL.t β;
+  #[global] sinv_invG :: invG Σ Γ;
+  #[global] sinv_inv_intpG :: SRFIntp.inG inv_syntax α inv_interp β;
+  (* sinv_dom := domain Σ *)
 }.
 
-(* Definition test `{!sinvGS Σ Γ α β τ} : True. Proof. exact I. Qed.
-Lemma test' : True. eapply test. Unshelve.
-{ eapply #[invΣ; invΓ]. Unshelve.  } *)
-
 Section reduction.
-  Context `{!sinvGS Σ Γ α β τ}.
+  Context `{!sinvG Σ Γ α β τ}.
   Lemma ownI_auth_red u n I :
     ⟦syn_ownI_auth u n I⟧ = ownI_auth u n I.
   Proof.
@@ -206,3 +164,35 @@ Ltac inv_red :=
     try rewrite ! inv_red;
     try rewrite ! fupd_red
   ).
+
+Module inv_instances.
+  Instance τ : Typ.t := λ _, ST.t.
+
+  Instance typG : CtxST.t τ.
+  Proof. econs. econs. instantiate (1:=0); ss. Qed.
+
+  Instance α {Γ : HRA} : SRFCons.t :=
+    λ n,
+      match n with
+      | 0 => SL.syntax
+      | _ => inv_syntax
+      end.
+
+  Instance β {Σ : GRA} {Γ : HRA} `{!subG Γ Σ, !invG Σ Γ} : SRFIntp.t :=
+    λ n,
+      match n with
+      | 0 => SL.t
+      | _ => inv_interp
+      end.
+
+  Instance intpG {Σ : GRA} {Γ : HRA} `{!subG Γ Σ, !invG Σ Γ} :
+    SRFIntp.inG (@SL.syntax τ Γ) α (@SL.t τ α Γ Σ _) β.
+  Proof. econs; instantiate (1:=0); ss. Qed.
+
+  Instance invintpG {Σ : GRA} {Γ : HRA} `{!subG Γ Σ, !invG Σ Γ} :
+    SRFIntp.inG inv_syntax α inv_interp β.
+  Proof. econs; instantiate (1:=1); ss. Qed.
+
+  Instance sinvg {Σ : GRA} {Γ : HRA} `{!subG Γ Σ, !invG Σ Γ} : sinvG Σ Γ α β τ.
+  Proof. econs; try typeclasses eauto. Qed.
+End inv_instances.

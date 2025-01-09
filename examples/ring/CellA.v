@@ -6,7 +6,7 @@ Require Import RingHeader CellHeader CellASpec.
 Set Implicit Arguments.
 
 Module CellA. Section CellA.
-  Context `{!sinvGS Σ Γ α β τ, !CellAS.G Γ}.
+  Context `{!sinvG Σ Γ α β τ, !CellAS.G Γ}.
   Notation iProp := (iProp Σ).
 
   Variable idx : nat.

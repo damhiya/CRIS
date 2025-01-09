@@ -10,27 +10,27 @@ Canonical Structure valO := leibnizO val.
 (* Memory resource algebra *)
 (* Coercion memGS >-> inG memRA Γ is global since it can be used in other modules *)
 Definition memRA := authUR (mblock -d> Z -d> optionUR (exclR valO)).
-Class memGpreSΓ (Γ : HRA) := {
+Class memGΓ (Γ : HRA) := {
   #[global] mem_inG :: inG memRA Γ;
 }.
-Class memGS (Γ : HRA) := {
+(* Class memGS (Γ : HRA) := {
   #[global] memGS_Γ :: memGpreSΓ Γ;
-  mem_name : positive;
-}.
+  1%positive : positive;
+}. *)
 Definition memΓ : HRA := #[memRA].
-Global Instance subG_memΓ {Γ} : subG memΓ Γ → memGpreSΓ Γ.
+Global Instance subG_memΓ {Γ} : subG memΓ Γ → memGΓ Γ.
 Proof. solve_inG. Qed.
 
 Local Arguments Z.of_nat : simpl nomatch.
 
 Section BODY.
-  Context `{!sinvGS Σ Γ α β τ, !memGS Γ}.
+  Context `{!sinvG Σ Γ α β τ, !memGΓ Γ}.
   Notation iProp := (iProp Σ).
 
   Definition mem_points_to_singleton_r (loc : mblock * Z) (v : val) : memRA :=
     ◯ (discrete_fun_singleton loc.1 (discrete_fun_singleton loc.2 (Some (Excl v)))).
   Definition mem_points_to_singleton (loc : mblock * Z) (v : val) : iProp :=
-    own mem_name (mem_points_to_singleton_r loc v).
+    own 1%positive (mem_points_to_singleton_r loc v).
   Definition mem_points_to : (mblock * Z) → list val → iProp :=
     λ '(blk, ofs) vs, ([∗ list] i ↦ v ∈ vs, mem_points_to_singleton (blk, ofs + i)%Z v)%I.
 
@@ -44,15 +44,15 @@ Section BODY.
           end
         | _ => ε
         end) : mblock -d> Z -d> optionUR (exclR valO)).
-  Definition mem_initial_mem (csl : gname -> bool) (sk : Sk.t) : iProp :=
-    own mem_name (mem_initial_mem_r csl sk).
+  Definition mem_initial_mem (csl : gname → bool) (sk : Sk.t) : iProp :=
+    own 1%positive (mem_initial_mem_r csl sk).
 End BODY.
 
 Notation "loc ⤇ v" := (mem_points_to_singleton loc v) (at level 20).
 Notation "loc |-> vs" := (mem_points_to loc vs) (at level 20).
 
 Section AUX.
-  Context `{!sinvGS Σ Γ α β τ, !memGS Γ}.
+  Context `{!sinvG Σ Γ α β τ, !memGΓ Γ}.
 
   Lemma points_to_nil ptr : ptr |-> [] = emp%I.
   Proof. destruct ptr. ss. Qed.
@@ -143,7 +143,7 @@ End POINTS_TO. *)
 
 
 Module MemA. Section MemA.
-  Context `{!sinvGS Σ Γ α β τ, !memGS Γ}.
+  Context `{!sinvG Σ Γ α β τ, !memGΓ Γ}.
 
   Definition scopes := ["Mem"].
 
@@ -201,7 +201,7 @@ Module MemA. Section MemA.
      (MemName.store, ([], mk_specbody store_spec fbody_trivial));
      (MemName.cmp,   ([], mk_specbody cmp_spec fbody_trivial))].
 
-  Variable csl : gname -> bool.
+  Variable csl : gname → bool.
 
   Program Definition Sem : SModSem.t := {|
     SModSem.scopes := scopes;
@@ -216,11 +216,11 @@ Module MemA. Section MemA.
     SMod.sk := Sk.unit;
   |}.
 
-  Definition InitCond : Sk.t -> iProp Σ :=
+  Definition InitCond : Sk.t → iProp Σ :=
     λ sk, mem_initial_mem csl sk.
 
-  Variable ginv : Sk.t -> invspec.
-  Variable GlobalStb : Sk.t -> gname -> option fspec.
+  Variable ginv : Sk.t → invspec.
+  Variable GlobalStb : Sk.t → gname → option fspec.
   Definition t : HMod.t := Seal.sealing "ccr" (SMod.to_hmod ginv GlobalStb Mod).
 End MemA. End MemA.
 
