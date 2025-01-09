@@ -16,22 +16,22 @@ Module MapAS. Section MapAS.
   Context `{!sinvG Σ Γ α β τ, !MapMGΓ Γ, !MapAGΓ Γ}.
   Import MapA.
 
-  Definition pending : iProp Σ := own 1%positive (Some (Excl ()), ε).
+  Definition pending : iProp Σ := own default_loc (Some (Excl ()), ε).
 
   Local Definition initial_fun : Z -d> optionUR (exclR ZO) := λ z, Some (Excl 0%Z).
-  Definition initial_map : iProp Σ := own 1%positive (ε, ● initial_fun ⋅ ◯ initial_fun).
+  Definition initial_map : iProp Σ := own default_loc (ε, ● initial_fun ⋅ ◯ initial_fun).
 
   Definition auth_allocated (f : Z → Z) : iProp Σ :=
-    own 1%positive (ε, ● ((λ k, Some (Excl (f k))) : Z -d> optionUR (exclR ZO))).
+    own default_loc (ε, ● ((λ k, Some (Excl (f k))) : Z -d> optionUR (exclR ZO))).
   Definition auth_unallocated (sz : Z) : iProp Σ :=
-    own 1%positive
+    own default_loc
       (ε,
       ◯ ((λ k,
         if (Z_gt_le_dec 0 k)
         then Some (Excl 0%Z)
         else if (Z_gt_le_dec sz k) then ε else Some (Excl 0%Z)) : Z -d> optionUR (exclR ZO)))%Z.
   Definition points_to (k v : Z) : iProp Σ :=
-    own 1%positive (ε, ◯ (discrete_fun_singleton k (Some (Excl v)))).
+    own default_loc (ε, ◯ (discrete_fun_singleton k (Some (Excl v)))).
   Definition initial_points_tos (sz : nat) : iProp Σ :=
     ([∗ list] i↦v ∈ (repeat (0 : Z) sz), points_to i%Z v)%I.
 

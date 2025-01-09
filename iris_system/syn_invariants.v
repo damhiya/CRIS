@@ -53,11 +53,11 @@ Section syn_inv.
     ⟨ _wsat_auth u, λ e, match e with end ⟩.
 
   Local Definition syn_ownE (u : univ_id) n (E : coPset) : SRFSyn.t n :=
-    <own> 1%positive (ownER u E).
+    <own> default_loc (ownER u E).
   Local Definition syn_ownD (u : univ_id) n (D : gset positive) : SRFSyn.t n :=
-    <own> 1%positive (ownDR u D).
+    <own> default_loc (ownDR u D).
   Local Definition syn_ownD_auth (u : univ_id) n : SRFSyn.t n :=
-    (∃ D : τ{⇣gset positive}, <own> 1%positive (ownD_authR u D))%SRF.
+    (∃ D : τ{⇣gset positive}, <own> default_loc (ownD_authR u D))%SRF.
 
   Local Definition syn_inv_satall u n (I : gmap positive (SRFSyn.t n)) : SRFSyn.t n :=
     ([∗ n map] i ↦ p ∈ I, (p ∗ syn_ownD u n {[i]}) ∨ syn_ownE u n {[i]})%SRF.

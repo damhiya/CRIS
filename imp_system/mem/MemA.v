@@ -15,7 +15,7 @@ Class memGΓ (Γ : HRA) := {
 }.
 (* Class memGS (Γ : HRA) := {
   #[global] memGS_Γ :: memGpreSΓ Γ;
-  1%positive : positive;
+  default_loc : positive;
 }. *)
 Definition memΓ : HRA := #[memRA].
 Global Instance subG_memΓ {Γ} : subG memΓ Γ → memGΓ Γ.
@@ -30,7 +30,7 @@ Section BODY.
   Definition mem_points_to_singleton_r (loc : mblock * Z) (v : val) : memRA :=
     ◯ (discrete_fun_singleton loc.1 (discrete_fun_singleton loc.2 (Some (Excl v)))).
   Definition mem_points_to_singleton (loc : mblock * Z) (v : val) : iProp :=
-    own 1%positive (mem_points_to_singleton_r loc v).
+    own default_loc (mem_points_to_singleton_r loc v).
   Definition mem_points_to : (mblock * Z) → list val → iProp :=
     λ '(blk, ofs) vs, ([∗ list] i ↦ v ∈ vs, mem_points_to_singleton (blk, ofs + i)%Z v)%I.
 
@@ -45,7 +45,7 @@ Section BODY.
         | _ => ε
         end) : mblock -d> Z -d> optionUR (exclR valO)).
   Definition mem_initial_mem (csl : string → bool) (sk : Sk.t) : iProp :=
-    own 1%positive (mem_initial_mem_r csl sk).
+    own default_loc (mem_initial_mem_r csl sk).
 End BODY.
 
 Notation "loc ⤇ v" := (mem_points_to_singleton loc v) (at level 20).
