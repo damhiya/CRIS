@@ -26,12 +26,3 @@ Module MapIA. Section MapIA.
     refl.
   Qed.
 End MapIA. End MapIA.
-
-Import inv_instances.
-Local Instance Γ : HRA := ##[invΓ; MapAΓ; MapMΓ; memΓ].
-Local Instance Σ : GRA := ##[invΣ; Γ].
-Local Definition skeleton : Sk.t := MapSK.t.
-Local Definition global_invariant : Sk.t → invspec := λ sk n, True%I.
-Local Definition spec_table_map : Sk.t → gname → option fspec := to_stb MapAS.Stb.
-Local Definition src_module : HMod.t := 
-Local Definition src : Mod.ModSem.t := HModSem.to_mod (HMod.empty.(HMod.modsem) Sk.unit) ε.
