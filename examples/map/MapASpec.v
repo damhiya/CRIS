@@ -4,34 +4,34 @@ Require Import MapHeader MapA MapMSpec.
 
 Set Implicit Arguments.
 
-Module MapAS. Section MapAS.
-  (* Resource algebra for MapM ⊆ MapA *)
-  Local Definition RA : ucmra :=
-    prodUR (optionUR (exclR unitO)) (authUR (Z -d> optionUR (exclR ZO))).
-  Class GS (Γ : HRA) := {
-    #[global] RA_inG :: inG MapAS.RA Γ;
-    map_name : positive;
-  }.
+(* Resource algebra for MapM ⊆ MapA *)
+Local Definition RA : ucmra :=
+  prodUR (optionUR (exclR unitO)) (authUR (Z -d> optionUR (exclR ZO))).
+Class MapAGΓ (Γ : HRA) := {
+  #[global] RA_inG :: inG RA Γ;
+}.
+Definition MapAΓ : HRA := #[RA].
 
-  Context `{!sinvG Σ Γ α β τ, !MapAS.GS Γ, !MapMS.GS Γ}.
+Module MapAS. Section MapAS.
+  Context `{!sinvG Σ Γ α β τ, !MapMGΓ Γ, !MapAGΓ Γ}.
   Import MapA.
 
-  Definition pending : iProp Σ := own map_name (Some (Excl ()), ε).
+  Definition pending : iProp Σ := own 1%positive (Some (Excl ()), ε).
 
   Local Definition initial_fun : Z -d> optionUR (exclR ZO) := λ z, Some (Excl 0%Z).
-  Definition initial_map : iProp Σ := own map_name (ε, ● initial_fun ⋅ ◯ initial_fun).
+  Definition initial_map : iProp Σ := own 1%positive (ε, ● initial_fun ⋅ ◯ initial_fun).
 
   Definition auth_allocated (f : Z → Z) : iProp Σ :=
-    own map_name (ε, ● ((λ k, Some (Excl (f k))) : Z -d> optionUR (exclR ZO))).
+    own 1%positive (ε, ● ((λ k, Some (Excl (f k))) : Z -d> optionUR (exclR ZO))).
   Definition auth_unallocated (sz : Z) : iProp Σ :=
-    own map_name
+    own 1%positive
       (ε,
       ◯ ((λ k,
         if (Z_gt_le_dec 0 k)
         then Some (Excl 0%Z)
         else if (Z_gt_le_dec sz k) then ε else Some (Excl 0%Z)) : Z -d> optionUR (exclR ZO)))%Z.
   Definition points_to (k v : Z) : iProp Σ :=
-    own map_name (ε, ◯ (discrete_fun_singleton k (Some (Excl v)))).
+    own 1%positive (ε, ◯ (discrete_fun_singleton k (Some (Excl v)))).
   Definition initial_points_tos (sz : nat) : iProp Σ :=
     ([∗ list] i↦v ∈ (repeat (0 : Z) sz), points_to i%Z v)%I.
 
@@ -109,25 +109,6 @@ Module MapAS. Section MapAS.
     }
   Qed.
 
-  (* Definition initial_r : (Z ==> (Excl.t Z))%ra := (fun _ => Excl.just 0%Z).
-  Definition initial_map_r : RA :=
-    (ε, (Auth.black initial_r) ⋅ (Auth.white initial_r)).
-  Definition initial_map : iProp :=
-    OwnM initial_map_r.
-
-  Definition black_map_r (f : Z -> Z) : RA :=
-    (Excl.unit, Auth.black ((fun k => Excl.just (f k)) : (Z ==> (Excl.t Z))%ra)).
-  Definition black_map (f : Z -> Z) : iProp :=
-    OwnM (black_map_r f).
-
-  Definition unallocated_r (sz : Z) : RA :=
-    (Excl.unit, Auth.white ((fun k =>
-                               if (Z_gt_le_dec 0 k) then Excl.just 0%Z
-                               else if (Z_gt_le_dec sz k) then Excl.unit else Excl.just 0%Z)
-                             : (Z ==> (Excl.t Z))%ra)).
-  Definition unallocated (sz : Z) : iProp :=
-    OwnM (unallocated_r sz). *)
-  
   Definition init_spec : fspec :=
     fspec_simple
       (λ sz : nat,
