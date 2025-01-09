@@ -8,7 +8,7 @@ Set Implicit Arguments.
 Module RingAS. Section RingAS.
   Context `{Σ : GRA}.
 
-  Definition Stb : alist gname fspec :=
+  Definition Stb : alist string fspec :=
     Seal.sealing "ccr" [(RingName.init, fspec_trivial);
                           (RingName.get_size, fspec_trivial);
                           (RingName.enqueue, fspec_trivial);

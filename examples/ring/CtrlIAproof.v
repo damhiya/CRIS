@@ -17,8 +17,8 @@ Module CtrlIA. Section CtrlIA.
   Variable max_size : nat.
 
   Variable ginv : Sk.t -> invspec.
-  Variable StbR : Sk.t -> gname -> option fspec.
-  Variable StbC : Sk.t -> gname -> option fspec.
+  Variable StbR : Sk.t -> string -> option fspec.
+  Variable StbC : Sk.t -> string -> option fspec.
 
   Local Notation CellA := (fun idx => CellA.t idx ginv StbC).
   Definition CellG start len : HMod.t :=

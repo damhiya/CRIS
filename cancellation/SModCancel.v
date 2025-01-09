@@ -8,7 +8,7 @@ Section Cancel.
   Context {Σ: GRA}.
   Notation iProp := (iProp Σ).
 
-  Definition Spawn_cancel (fn: gname) (varg: Any.t) : itree hmodE nat :=
+  Definition Spawn_cancel (fn: string) (varg: Any.t) : itree hmodE nat :=
     tid <- trigger (Spawn fn varg);;
     trigger (Yield tid);;;
     Ret tid.

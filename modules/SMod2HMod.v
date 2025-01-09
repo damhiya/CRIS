@@ -79,9 +79,9 @@ Section HOARE.
   Notation iProp := (iProp Σ).
 
   Variable ginv : invspec.
-  Variable stb: gname → option fspec.
+  Variable stb: string → option fspec.
 
-  Definition HoareCall (fsp: fspec): gname → Any.t → (itree hmodE) Any.t 
+  Definition HoareCall (fsp: fspec): string → Any.t → (itree hmodE) Any.t 
     := 
     λ fn varg,
       my_tid <- trigger Tid;;
@@ -106,7 +106,7 @@ Section HOARE.
     my_tid <- trigger Tid;;
     trigger (Assume (ginv my_tid)).
 
-  Definition HoareSpawn (fsp: fspec) (fn: gname) (varg: Any.t) : itree hmodE nat :=
+  Definition HoareSpawn (fsp: fspec) (fn: string) (varg: Any.t) : itree hmodE nat :=
     x <- trigger (Choose fsp.(meta));; 
     arg <- trigger (Choose Any.t);;
     tid <- trigger (Spawn fn arg);;

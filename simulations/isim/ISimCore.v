@@ -12,7 +12,7 @@ Ltac hred := try (prw _red_gen 1 1 0).
 Section SIM.
   Context `{Σ : GRA}.
   Local Notation iProp := (iProp Σ).
-  Variable fl_src fl_tgt : alist gname (Any.t → itree hmodE Any.t).
+  Variable fl_src fl_tgt : alist string (Any.t → itree hmodE Any.t).
   Variable Ist : nat → alist key Any.t → alist key Any.t → iProp.
   Variable my_tid : nat.
   Variable is_closed: bool.

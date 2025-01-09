@@ -23,7 +23,7 @@ Module CellIA. Section CellIA.
           ∨ (⌜vany = v↑⌝ ∗ pending idx ∗ auth idx v)))%I.
 
   Variable ginv : Sk.t -> invspec.
-  Variable StbCell : Sk.t -> gname -> option fspec.
+  Variable StbCell : Sk.t -> string -> option fspec.
 
   Local Notation CellA := (CellA.t idx ginv StbCell).
   Local Notation CellI := (CellI.t idx).

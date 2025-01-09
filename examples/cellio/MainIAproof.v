@@ -15,7 +15,7 @@ Module MainIM. Section MainIM.
     λ _ _ st_src st_tgt, emp%I.
 
   Variable ginv: Sk.t -> invspec.
-  Variable Stb: Sk.t -> gname -> option fspec.
+  Variable Stb: Sk.t -> string -> option fspec.
   Hypothesis FooInStbMap: forall sk, stb_incl FooAS.Stb (Stb sk).
 
   Local Notation CellioA := (CellioA.t ginv Stb).

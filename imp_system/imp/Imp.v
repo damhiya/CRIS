@@ -97,8 +97,8 @@ Module SkEnv.
   Notation ptrofs := Z (only parsing).
 
   Record t : Type := mk {
-    blk2id : mblock -> option gname;
-    id2blk : gname -> option mblock;
+    blk2id : mblock -> option string;
+    id2blk : string -> option mblock;
   }
   .
   
@@ -239,14 +239,14 @@ Section FB_HAS_SPEC.
 
   Variable skenv : SkEnv.t.
 
-  Variant fb_has_spec (stb : gname -> option fspec) (fb : mblock) (fsp : fspec) : Prop :=
+  Variant fb_has_spec (stb : string -> option fspec) (fb : mblock) (fsp : fspec) : Prop :=
   | fb_has_spec_intro
       fn
       (FBLOCK : skenv.(SkEnv.blk2id) fb = Some fn)
       (SPEC : fn_has_spec stb fn fsp)
   .
 
-  Lemma fb_has_spec_weaker (stb : gname -> option fspec) (fb : mblock) (fsp0 fsp1 : fspec)
+  Lemma fb_has_spec_weaker (stb : string -> option fspec) (fb : mblock) (fsp0 fsp1 : fspec)
         (SPEC : fb_has_spec stb fb fsp1)
         (WEAK : fspec_weaker fsp0 fsp1)
     :
@@ -281,10 +281,10 @@ Inductive stmt : Type :=
 | Assign (x : var) (e : expr)    (* x = e *)
 | Seq    (a b : stmt)            (* a ; b *)
 | If     (i : expr) (t e : stmt) (* if (i) then { t } else { e } *)
-| CallFun (x : var) (f : gname) (args : list expr) (* x = f(args), call by name *)
+| CallFun (x : var) (f : string) (args : list expr) (* x = f(args), call by name *)
 | CallPtr (x : var) (p : expr) (args : list expr)  (* x = f(args), by pointer*)
-| CallSys (x : var) (f : gname) (args : list expr) (* x = f(args), system call *)
-| AddrOf (x : var) (X : gname)         (* x = &X *)
+| CallSys (x : var) (f : string) (args : list expr) (* x = f(args), system call *)
+| AddrOf (x : var) (X : string)         (* x = &X *)
 | Malloc (x : var) (s : expr)          (* x = malloc(s) *)
 | Free (p : expr)                      (* free(p) *)
 | Load (x : var) (p : expr)            (* x = *p *)
@@ -315,13 +315,13 @@ Global Opaque syscalls.
 
 (** program components *)
 (* declared external global variables *)
-Definition extVars := list gname.
+Definition extVars := list string.
 (* declared external functions with arg nums*)
-Definition extFuns := list (gname * nat).
+Definition extFuns := list (string * nat).
 (* defined global variables *)
-Definition progVars := list (gname * Z).
+Definition progVars := list (string * Z).
 (* defined internal functions *)
-Definition progFuns := list (gname * function).
+Definition progFuns := list (string * function).
 
 (** Imp program *)
 
@@ -330,9 +330,9 @@ Definition progFuns := list (gname * function).
   ext_varsL : extVars;
   ext_funsL : extFuns;
   prog_varsL : progVars;
-  prog_funsL : list (mname * (gname * function));
-  publicL : list gname;
-  defsL : list (gname * Sk.gdef);
+  prog_funsL : list (mname * (string * function));
+  publicL : list string;
+  defsL : list (string * Sk.gdef);
 }. *)
 
 Record program : Type := mk_program {
@@ -341,14 +341,14 @@ Record program : Type := mk_program {
   ext_funs : extFuns;
   prog_vars : progVars;
   prog_funs : progFuns;
-  public : list gname :=
+  public : list string :=
     let sys := List.map fst syscalls in
     let evs := ext_vars in
     let efs := List.map fst ext_funs in
     let ivs := List.map fst prog_vars in
     let ifs := List.map fst prog_funs in
     sys ++ evs ++ efs ++ ivs ++ ifs;
-  defs : list (gname * gdef) :=
+  defs : list (string * gdef) :=
     let fs := (List.map (fun '(fn, _) => (fn, Gfun)) prog_funs) in
     let vs := (List.map (fun '(vn, vv) => (vn, Gvar vv)) prog_vars) in
     (List.filter (negb ∘ call_ban ∘ fst) (fs ++ vs));
@@ -377,8 +377,8 @@ Variant ImpState : Type -> Type :=
 
 (** Get pointer to a global variable/function *)
 Variant GlobEnv : Type -> Type :=
-| GetPtr (x : gname) : GlobEnv val
-| GetName (p : val) : GlobEnv gname.
+| GetPtr (x : string) : GlobEnv val
+| GetName (p : val) : GlobEnv string.
 
 Section Denote.
 

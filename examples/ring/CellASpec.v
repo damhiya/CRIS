@@ -88,7 +88,7 @@ Module CellAS. Section CellAS.
      ((fun arg => ⌜arg = v↑⌝ ∗ (pending ∨ cell v0)),
       (fun ret => ⌜ret = tt↑⌝ ∗ cell v)))%I.
 
-  Definition Stb : alist gname fspec :=
+  Definition Stb : alist string fspec :=
     Seal.sealing "ccr" [(CellName.get idx, get_spec);
                         (CellName.set idx, set_spec)].
 

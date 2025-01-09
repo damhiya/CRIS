@@ -14,8 +14,8 @@ Section SIMMODSEM.
   Notation iProp := (iProp Σ).
 
   Variable univ: positive.
-  Variable StbFun: Sk.t -> gname -> option fspec.
-  Variable StbSch: Sk.t -> gname -> option fspec.
+  Variable StbFun: Sk.t -> string -> option fspec.
+  Variable StbSch: Sk.t -> string -> option fspec.
   Hypothesis FunInStbSch: forall sk, stb_sub (StbFun sk) (StbSch sk).
   Hypothesis SchInStbSch: forall sk, stb_incl (SchAS.Stb univ sk StbFun) (StbSch sk).
 
@@ -495,7 +495,7 @@ End SIMMODSEM.
 Section PROOF.
   Context `{_W: @sinvG Σ Γ α β τ, !SchAS.GS Σ}.
 
-  Theorem correct univ (StbFun StbSch: Sk.t -> gname -> option fspec)
+  Theorem correct univ (StbFun StbSch: Sk.t -> string -> option fspec)
     (FunInStbSch: forall sk, stb_sub (StbFun sk) (StbSch sk))
     (SchInStbSch: forall sk, stb_incl (SchAS.Stb univ sk StbFun) (StbSch sk))
     :

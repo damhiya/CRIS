@@ -36,7 +36,7 @@ Module CellA. Section CellA.
     λ _, (∃ v, CellAS.cell idx v ∗ CellAS.auth idx v)%I.
 
   Variable ginv : Sk.t -> invspec.
-  Variable GlobalStb : Sk.t -> gname -> option fspec.
+  Variable GlobalStb : Sk.t -> string -> option fspec.
   Definition t := Seal.sealing "ccr" (SMod.to_hmod ginv GlobalStb Mod).
 
 End CellA. End CellA. *)

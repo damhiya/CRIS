@@ -11,7 +11,7 @@ Section PMODSEM.
 
   Record t : Type := mk {
     scopes : list string;
-    fnsems : alist gname (list string * (Any.t -> itree pmodE Any.t));
+    fnsems : alist string (list string * (Any.t -> itree pmodE Any.t));
     initial_st : alist key Any.t;
     well_scoped_fns:
       forall fn, incl (fnsems_scopes fn fnsems) scopes;

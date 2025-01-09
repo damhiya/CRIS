@@ -155,7 +155,7 @@ Module Mem.
 (*** NOTE : Probably we can support comparison between nullptr and 0 ***)
 (*** NOTE : Unlike CompCert, we don't support comparison with weak_valid_ptr (for simplicity) ***)
 
-  Definition load_mem (csl : gname -> bool) (sk : Sk.t) : Mem.t :=
+  Definition load_mem (csl : string -> bool) (sk : Sk.t) : Mem.t :=
     Mem.mk
       (fun blk ofs =>
          do '(g, gd) <- (List.nth_error sk blk);
@@ -171,7 +171,7 @@ Module Mem.
            To be more faithful, we need to migrate the notion of "permission" from CompCert.
            CompCert expresses it with "nonempty" permission.
        ***)
-      (*** TODO : When doing so, I would like to extend val with "Vfid (id : gname)" case.
+      (*** TODO : When doing so, I would like to extend val with "Vfid (id : string)" case.
            That way, I might be able to support more higher-order features (overriding, newly allocating function)
        ***)
       (List.length sk)

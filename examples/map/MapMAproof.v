@@ -23,11 +23,11 @@ Module MapMA. Section MapMA.
             ∗ auth_unallocated sz))%I.
 
   Variable ginvH : Sk.t → invspec.
-  Variable StbH : Sk.t → gname → option fspec.
+  Variable StbH : Sk.t → string → option fspec.
   Hypothesis MapInStbH : forall sk, stb_incl MapAS.Stb (StbH sk).
 
   Variable ginvL : Sk.t → invspec.
-  Variable StbL : Sk.t → gname → option fspec.
+  Variable StbL : Sk.t → string → option fspec.
   Hypothesis MapInStbL : forall sk, stb_incl MapMS.Stb (StbL sk).
 
   Local Notation MapA := (MapAS.t ginvH StbH).

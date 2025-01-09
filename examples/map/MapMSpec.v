@@ -47,7 +47,7 @@ Module MapMS. Section MapMS.
         (λ varg, ⌜varg = [Vint k]↑⌝,
           λ vret, emp))%I.
 
-  Definition Stb : alist gname fspec :=
+  Definition Stb : alist string fspec :=
     Seal.sealing "ccr"
       [(MapName.init, init_spec);
        (MapName.get, get_spec);
@@ -81,6 +81,6 @@ Module MapMS. Section MapMS.
     λ _, emp%I.
 
   Variable ginv : Sk.t → invspec.
-  Variable GlobalStb : Sk.t → gname → option (fspec).
+  Variable GlobalStb : Sk.t → string → option (fspec).
   Definition t := Seal.sealing "ccr" (@SMod.to_hmod Σ ginv GlobalStb Mod).
 End MapMS. End MapMS.

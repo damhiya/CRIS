@@ -7,8 +7,8 @@ Section HPSIM.
   Context `{Σ : GRA}.
   Notation iProp := (iProp Σ).
 
-  Variable fl_src : alist gname (Any.t → itree hmodE Any.t).
-  Variable fl_tgt : alist gname (Any.t → itree hmodE Any.t).
+  Variable fl_src : alist string (Any.t → itree hmodE Any.t).
+  Variable fl_tgt : alist string (Any.t → itree hmodE Any.t).
   Variable Ist : nat → alist key Any.t → alist key Any.t → iProp.
   Variable my_tid : nat.
   Variable is_closed: bool.

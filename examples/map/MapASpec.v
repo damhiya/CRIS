@@ -133,7 +133,7 @@ Module MapAS. Section MapAS.
         (λ varg, ⌜varg = [Vint k]↑⌝ ∗ points_to k w,
           λ vret, ⌜vret = Vundef↑⌝ ∗ ∃ v, points_to k v))%I.
   
-  Definition Stb : alist gname fspec :=
+  Definition Stb : alist string fspec :=
     Seal.sealing "ccr"
       [(MapName.init, init_spec);
        (MapName.get, get_spec);
@@ -166,6 +166,6 @@ Module MapAS. Section MapAS.
     (λ _, initial_map ∗ MapMS.pending)%I.
 
   Variable ginv : Sk.t → invspec.
-  Variable GlobalStb : Sk.t → gname → option fspec.
+  Variable GlobalStb : Sk.t → string → option fspec.
   Definition t := Seal.sealing "ccr" (SMod.to_hmod ginv GlobalStb Mod).
 End MapAS. End MapAS.

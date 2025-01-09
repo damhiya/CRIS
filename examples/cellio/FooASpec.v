@@ -8,7 +8,7 @@ Module FooAS.
 Section FooAS.
   Context `{Σ: GRA}.
 
-  Definition Stb: alist gname fspec :=
+  Definition Stb: alist string fspec :=
     Seal.sealing "ccr" [(FooName.foo, fspec_trivial)].
   
   Lemma Stb_nodup: List.NoDup (List.map fst Stb).

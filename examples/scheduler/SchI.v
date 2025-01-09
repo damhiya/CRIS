@@ -16,7 +16,7 @@ Module SchI. Section SchI.
   Definition scopes := ["Sch"].
   Definition v_ths := "Sch" ↯ "ths".
 
-  Definition _spawn: (nat * gname * SAny.t) -> itree pmodE unit :=
+  Definition _spawn: (nat * string * SAny.t) -> itree pmodE unit :=
     fun '(mtid, fn, arg) =>
       trigger (Yield mtid);;;
       'rv: SAny.t <- ccallU fn arg;;
@@ -27,7 +27,7 @@ Module SchI. Section SchI.
       Sch.terminate
   .
 
-  Definition spawn: (gname * SAny.t) -> itree pmodE nat :=
+  Definition spawn: (string * SAny.t) -> itree pmodE nat :=
     fun '(fn, arg) =>
       mtid <- trigger Tid;;
       tid <- trigger (Spawn SchName._spawn (mtid, fn, arg)↑);;

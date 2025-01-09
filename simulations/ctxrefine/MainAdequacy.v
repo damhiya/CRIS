@@ -203,8 +203,8 @@ Section AUX.
   Lemma hpsim_ctx fnsems_src fnsems_tgt fl_src fl_tgt fl_ctx Ist my_tid is_closed scopes scopeC
       (FLS : fl_src = (List.map (map_snd HModSem.sandbox_body) fnsems_src))
       (FLT : fl_tgt = (List.map (map_snd HModSem.sandbox_body) fnsems_tgt))
-      (WS : ∀ (fn : gname) p (IN : alist_find fn fnsems_src = Some p), incl p.1 scopes)
-      (WT : ∀ (fn : gname) p (IN : alist_find fn fnsems_tgt = Some p), incl p.1 scopes)
+      (WS : ∀ (fn : string) p (IN : alist_find fn fnsems_src = Some p), incl p.1 scopes)
+      (WT : ∀ (fn : string) p (IN : alist_find fn fnsems_tgt = Some p), incl p.1 scopes)
       (DISJ : List.NoDup (scopes ++ scopeC))
 
     ps pt nths st_src st_tgt st_ctx itr_src itr_tgt fmr

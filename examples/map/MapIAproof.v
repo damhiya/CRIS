@@ -5,7 +5,7 @@ Require Import MapHeader MapASpec MapMSpec MapI ModSim MapIMproof MapMAproof Mem
 Module MapIA. Section MapIA.
   Context `{!sinvG Σ Γ α β τ, !MapAGΓ Γ, !MapMGΓ Γ, !memGΓ Γ}.
 
-  Theorem correct gi (StbMap StbMem : Sk.t → gname → option fspec)
+  Theorem correct gi (StbMap StbMem : Sk.t → string → option fspec)
       (MapInStbMap : ∀ sk, stb_incl MapAS.Stb (StbMap sk)) :
     ctx_refines
       ((MapAS.t gi StbMap)  ★ (MemA.t gi StbMem), MapAS.InitCond ∗∗ MapMS.InitCond)

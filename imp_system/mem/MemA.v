@@ -34,7 +34,7 @@ Section BODY.
   Definition mem_points_to : (mblock * Z) → list val → iProp :=
     λ '(blk, ofs) vs, ([∗ list] i ↦ v ∈ vs, mem_points_to_singleton (blk, ofs + i)%Z v)%I.
 
-  Definition mem_initial_mem_r (csl : gname → bool) (sk : Sk.t) : memRA :=
+  Definition mem_initial_mem_r (csl : string → bool) (sk : Sk.t) : memRA :=
     ● ((λ blk ofs,
         match List.nth_error sk blk with
         | Some (g, gd) =>
@@ -44,7 +44,7 @@ Section BODY.
           end
         | _ => ε
         end) : mblock -d> Z -d> optionUR (exclR valO)).
-  Definition mem_initial_mem (csl : gname → bool) (sk : Sk.t) : iProp :=
+  Definition mem_initial_mem (csl : string → bool) (sk : Sk.t) : iProp :=
     own 1%positive (mem_initial_mem_r csl sk).
 End BODY.
 
@@ -186,7 +186,7 @@ Module MemA. Section MemA.
               ∗ ∃ b ofs v, ⌜varg = [Vptr b ofs; Vptr b ofs]↑⌝ ∗ (res -∗ (b, ofs) ⤇ v)),
           λ vret, res ∗ ⌜vret = (if ret then Vint 1 else Vint 0)↑⌝))%I.
 
-  Definition Stb : alist gname fspec :=  
+  Definition Stb : alist string fspec :=  
     Seal.sealing "ccr"
       [(MemName.alloc, alloc_spec);
        (MemName.free,  free_spec);
@@ -194,14 +194,14 @@ Module MemA. Section MemA.
        (MemName.store, store_spec);
        (MemName.cmp,   cmp_spec)].
 
-  Definition fnsems : alist gname (list string * fspecbody) :=
+  Definition fnsems : alist string (list string * fspecbody) :=
     [(MemName.alloc, ([], mk_specbody alloc_spec fbody_trivial));
      (MemName.free,  ([], mk_specbody free_spec fbody_trivial));
      (MemName.load,  ([], mk_specbody load_spec fbody_trivial));
      (MemName.store, ([], mk_specbody store_spec fbody_trivial));
      (MemName.cmp,   ([], mk_specbody cmp_spec fbody_trivial))].
 
-  Variable csl : gname → bool.
+  Variable csl : string → bool.
 
   Program Definition Sem : SModSem.t := {|
     SModSem.scopes := scopes;
@@ -220,7 +220,7 @@ Module MemA. Section MemA.
     λ sk, mem_initial_mem csl sk.
 
   Variable ginv : Sk.t → invspec.
-  Variable GlobalStb : Sk.t → gname → option fspec.
+  Variable GlobalStb : Sk.t → string → option fspec.
   Definition t : HMod.t := Seal.sealing "ccr" (SMod.to_hmod ginv GlobalStb Mod).
 End MemA. End MemA.
 

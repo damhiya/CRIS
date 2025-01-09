@@ -28,7 +28,7 @@ Module ModSem.
 
   Record t : Type := mk {
     initial_st : Any.t;
-    fnsems : alist gname (Any.t -> itree modE Any.t);
+    fnsems : alist string (Any.t -> itree modE Any.t);
   }.
 
   Record wf (ms : t) : Prop := mk_wf {

@@ -12,7 +12,7 @@ Module CellioIA. Section CellioIA.
   Notation iProp := (iProp Σ).
 
   Variable ginv: Sk.t -> invspec.
-  Variable StbG: Sk.t -> gname -> option fspec.
+  Variable StbG: Sk.t -> string -> option fspec.
 
   Definition Ist: Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp :=
     λ _ _ st_src st_tgt,

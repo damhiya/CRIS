@@ -10,11 +10,11 @@ Section SMODSEM.
 
   Context `{Σ : GRA}.
   Variable ginv : invspec.
-  Variable stb : gname -> option fspec.
+  Variable stb : string -> option fspec.
 
   Record t : Type := mk {
     scopes : list string;
-    fnsems : alist gname (list string * fspecbody);
+    fnsems : alist string (list string * fspecbody);
     initial_st : alist key Any.t;
     well_scoped_fns:
       forall fn, incl (fnsems_scopes fn fnsems) scopes;
@@ -45,7 +45,7 @@ Section SMOD.
 
   Context `{Σ : GRA}.
   Variable ginv : Sk.t -> invspec.
-  Variable stb : Sk.t -> gname -> option fspec.
+  Variable stb : Sk.t -> string -> option fspec.
 
   Record t : Type := mk {
     modsem : Sk.t -> SModSem.t;
@@ -57,7 +57,7 @@ Section SMOD.
     HMod.sk := md.(sk);
  |}.
     
-  (* Definition get_stb (mds : list t) : Sk.t -> alist gname (list string * fspec) := *)
+  (* Definition get_stb (mds : list t) : Sk.t -> alist string (list string * fspec) := *)
   (*   fun sk => List.map (map_snd (map_snd fsb_fspec)) (flat_map (SModSem.fnsems ∘ (flip modsem sk)) mds). *)
 
   (* Definition get_sk (mds : list t) : Sk.t := *)

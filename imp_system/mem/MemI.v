@@ -68,7 +68,7 @@ Section MEMI.
      (MemName.store, ([scope], cfunU store)) ;
      (MemName.cmp,   ([scope], cfunU cmp))].
 
-  Variable csl : gname → bool.
+  Variable csl : string → bool.
 
   Program Definition MemSem (sk : Sk.t) : PModSem.t :=
     {|

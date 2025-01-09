@@ -9,7 +9,7 @@ Local Open Scope nat_scope.
 
 Section SIM_ITREE.
 
-  Variable fl_src fl_tgt : alist gname (Any.t -> itree modE Any.t).
+  Variable fl_src fl_tgt : alist string (Any.t -> itree modE Any.t).
   
   Variable world : Type.
   Variable winit : world.

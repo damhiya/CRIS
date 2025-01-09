@@ -9,23 +9,21 @@ Require Import iprop.
 
 Set Implicit Arguments.
 
-Notation gname := string (only parsing). (*** convention : not capitalized ***)
-
 Section EVENTS.
 
   Variant coreE : Type -> Type :=
   | Choose (X : Type) : coreE X
   | Take X : coreE X
-  | IO {I : Type} {O : Type} (fn : gname) (args : I) : coreE O.
+  | IO {I : Type} {O : Type} (fn : string) (args : I) : coreE O.
 
   Inductive callE : Type -> Type :=
-  | Call (fn : gname) (args : Any.t) : callE Any.t.
+  | Call (fn : string) (args : Any.t) : callE Any.t.
 
   Variant stateE (V : Type) : Type :=
   | SUpdate (run : Any.t -> Any.t * V) : stateE V.
 
   Variant schE : Type -> Type :=
-  | Spawn (fn : gname) (args : Any.t) : schE nat
+  | Spawn (fn : string) (args : Any.t) : schE nat
   | Yield (tid : nat) : schE unit
   | Tid : schE nat.
 
@@ -133,7 +131,7 @@ Section SYNTAX.
   Definition ccallU {X Y} fn (varg : X) : itree E Y :=
     vret <- trigger (Call fn (varg↑));; vret↓?.
 
-  Definition ccallN {X Y} (fn : gname) (varg : X) : itree E Y :=
+  Definition ccallN {X Y} (fn : string) (varg : X) : itree E Y :=
     vret <- trigger (Call fn (varg↑));; vret↓!.
 
   Definition cput {T} k (v:T) : itree E unit :=

@@ -7,8 +7,8 @@ Section HPSIM_ADEQUACY.
   Context `{Σ : GRA}.
   Notation iProp := (iProp Σ).
 
-  Variable fl_src : alist gname (Any.t -> itree hmodE Any.t).
-  Variable fl_tgt : alist gname (Any.t -> itree hmodE Any.t).
+  Variable fl_src : alist string (Any.t -> itree hmodE Any.t).
+  Variable fl_tgt : alist string (Any.t -> itree hmodE Any.t).
   Variable Ist : nat -> alist key Any.t -> alist key Any.t -> iProp.
   Variable my_tid : nat.
   Variable is_closed: bool.
@@ -100,7 +100,7 @@ Section HPSIM_ADEQUACY.
   Lemma hpsim_adequacy
       (NODUPFS : List.NoDup (List.map fst fl_src))
       (NODUPFT : List.NoDup (List.map fst fl_tgt))
-      (fl_src0 fl_tgt0 : alist gname (Any.t -> itree modE Any.t))
+      (fl_src0 fl_tgt0 : alist string (Any.t -> itree modE Any.t))
       (FLS : fl_src0 = List.map (fun '(s, f) => (s, interp_hp_fun f)) fl_src)
       (FLT : fl_tgt0 = List.map (fun '(s, f) => (s, interp_hp_fun f)) fl_tgt)
       ps pt nths st_src st_tgt itr_src itr_tgt

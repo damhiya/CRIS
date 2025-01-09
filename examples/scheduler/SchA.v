@@ -12,19 +12,19 @@ Section A.
 
   Variable univ: positive.
 
-  Variable StbFun: Sk.t -> gname -> option fspec.
-  Variable GlobalStb: Sk.t -> gname -> option fspec.
+  Variable StbFun: Sk.t -> string -> option fspec.
+  Variable GlobalStb: Sk.t -> string -> option fspec.
 
   Definition scopes := ["Sch"].
 
-  Definition _spawn : (nat * gname * SAny.t) -> itree hmodE unit :=
+  Definition _spawn : (nat * string * SAny.t) -> itree hmodE unit :=
     fun '(mtid, fn, args) =>
       trigger (Yield mtid);;;
       trigger (Call fn args↑);;;
       Sch.terminate
   .
 
-  Definition spawn : (gname * SAny.t) -> itree hmodE nat :=
+  Definition spawn : (string * SAny.t) -> itree hmodE nat :=
     fun '(fn, args) =>
       mid <- trigger Tid;;
       tid <- trigger (Spawn SchName._spawn (mid, fn, args)↑);;
