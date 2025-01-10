@@ -37,16 +37,16 @@ Module CannonIA. Section CannonIA.
     steps_r. ss.
   Qed.
 
-  Theorem sim : HSim.t CannonAMod CannonIMod CannonA.InitCond Ist.
+  Theorem sim : HSim.t CannonAMod CannonIMod CannonA.init_cond Ist.
   Proof.
     init_sim.
-    - iIntros "IC". unfold Ist, CannonA.InitCond. iSplitR; et.
+    - iIntros "IC". unfold Ist, CannonA.init_cond. iSplitR; et.
     - eapply simF_fire.
   Qed.
 
   Theorem correct :
     ctx_refines
-      (CannonAMod, CannonA.InitCond)
+      (CannonAMod, CannonA.init_cond)
       (CannonIMod, const(emp%I)).
   Proof.
     eapply main_adequacy.

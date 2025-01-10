@@ -34,7 +34,7 @@ Module CannonMainIA. Section CannonMainIA.
     step. iFrame; et.
   Qed.
 
-  Theorem sim : HSim.t MainAMod MainIMod MainA.InitCond Ist.
+  Theorem sim : HSim.t MainAMod MainIMod MainA.init_cond Ist.
   Proof.
     init_sim.
     - iIntros "IC". et.
@@ -43,7 +43,7 @@ Module CannonMainIA. Section CannonMainIA.
 
   Theorem correct :
     ctx_refines
-      (MainAMod, (MainA.InitCond))
+      (MainAMod, (MainA.init_cond))
       (MainIMod, const(emp%I)).
   Proof.
     eapply main_adequacy.

@@ -7,7 +7,7 @@ Set Implicit Arguments.
 
 Local Definition RA : ucmra := excl_authR unitO.
 Class CannonAGΓ (Γ : HRA) := {
-  #[local] map_inG :: inG (excl_authR unitO) Γ;
+  #[local] cannon_inG :: inG (excl_authR unitO) Γ;
 }.
 Definition CannonAΓ : HRA := #[excl_authR unitO].
 Global Instance subG_GΓ {Γ : HRA} : subG CannonAΓ Γ → CannonAGΓ Γ.
@@ -19,6 +19,8 @@ Module CannonAS. Section CannonAS.
   Definition Ready : iProp Σ := own 1%positive (●E tt).
   Definition Ball : iProp Σ := own 1%positive (◯E tt).
   Definition Fired : iProp Σ := own 1%positive ((●E tt) ⋅ (◯E tt)).
+
+  Definition init_res : Σ := CRIS.own.iRes_singleton 1%positive (●E tt).
 
   Lemma ReadyBall : Ready ∗ Ball ⊢ Fired.
   Proof. rewrite /Ready /Ball /Fired. iIntros "[B W]". iSplitL "B"; iFrame. Qed.

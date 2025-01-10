@@ -33,7 +33,7 @@ Module CannonA. Section CannonA.
     SMod.sk := CannonSK.t;
   |}.
 
-  Definition InitCond : Sk.t → iProp Σ :=
+  Definition init_cond : Sk.t → iProp Σ :=
     λ _, Ready.
 
   Variable ginv : Sk.t → invspec.

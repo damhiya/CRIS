@@ -25,7 +25,7 @@ Module MainA. Section MainA.
     λ _, main_repeat num_fire.
 
   Definition fnsems :=
-    [(MainName.main, (scopes, mk_specbody CannonMainAS.main_spec (cfunU main)))].
+    [(MainName.main, (scopes, mk_specbody MainAS.main_spec (cfunU main)))].
 
   Program Definition Sem : SModSem.t := {|
     SModSem.scopes := scopes;
@@ -40,7 +40,7 @@ Module MainA. Section MainA.
     SMod.sk := MainSK.t;
   |}.
 
-  Definition InitCond : Sk.t → iProp Σ := λ _, Ready.
+  Definition init_cond : Sk.t → iProp Σ := λ _, True%I.
 
   Variable ginv : Sk.t → invspec.
   Variable GlobalStb : Sk.t → gname → option fspec.

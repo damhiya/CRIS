@@ -1,6 +1,5 @@
 From stdpp Require Import coPset gmap namespaces.
 From iris Require Import bi.big_op.
-Require Import Coq.Logic.ClassicalEpsilon.
 Require Export Coqlib own SRF sProp invariants.
 
 (* TODO : move these to separate files *)
