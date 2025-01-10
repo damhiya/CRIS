@@ -3,32 +3,25 @@ Require Import ImpPrelude.
 Require Import CannonHeader CannonI CannonA CannonASpec.
 Require Import CannonMainI CannonMainA CannonMainASpec.
 
-(* Require Import MainAdequacy CtxRefine. *)
-
 Set Implicit Arguments.
 
 Local Open Scope nat_scope.
 
-Module CannonMainIA.
-Section SIMMODSEM.
+Module CannonMainIA. Section CannonMainIA.
   Import CannonAS.
-  Context `{!sinvGS Σ Γ α β τ, !CannonAS.GS Γ}.
-  Local Notation iProp := (iProp Σ).
-  
-  Definition Ist: Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp :=
-    fun _ _ _ _ => (True)%I.
+  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !CannonAGΓ Γ}.
 
-  Variable ginv: Sk.t -> invspec.
-  Variable StbMain: Sk.t -> gname -> option fspec.
-  Hypothesis CannonInStbMain: forall sk, stb_incl CannonAS.Stb (StbMain sk).
+  Definition Ist : Sk.t → nat → alist key Any.t → alist key Any.t → iProp Σ :=
+    λ _ _ _ _, (True)%I.
+
+  Variable ginv : Sk.t → invspec.
+  Variable StbMain : Sk.t → gname → option fspec.
+  Hypothesis CannonInStbMain : ∀ sk, stb_incl CannonAS.Stb (StbMain sk).
   
   Local Notation MainAMod := (MainA.t 1 ginv StbMain).
   Local Notation MainIMod := (MainI.t 1).
   
-  (*************)
-
-  Lemma simF_main:
-    HSim.sim_fun MainAMod MainIMod Ist MainName.main.
+  Lemma simF_main : HSim.sim_fun MainAMod MainIMod Ist MainName.main.
   Proof.
     init_simF.
 
@@ -41,31 +34,19 @@ Section SIMMODSEM.
     step. iFrame; et.
   Qed.
 
-  Theorem sim:
-    HSim.t MainAMod MainIMod MainA.InitCond Ist.
+  Theorem sim : HSim.t MainAMod MainIMod MainA.InitCond Ist.
   Proof.
     init_sim.
     - iIntros "IC". et.
     - apply simF_main.
   Qed.
 
-End SIMMODSEM.
-
-Section PROOF.
-
-  Import CannonAS.
-  Context `{!sinvGS Σ Γ α β τ, !CannonAS.GS Γ}.
-
-  Theorem correct gi StbMain
-    (CannonInStbMain: forall sk, stb_incl CannonAS.Stb (StbMain sk))
-    :
+  Theorem correct :
     ctx_refines
-      ((MainA.t 1 gi StbMain), (MainA.InitCond))
-      ((MainI.t 1), const(emp%I)).
+      (MainAMod, (MainA.InitCond))
+      (MainIMod, const(emp%I)).
   Proof.
     eapply main_adequacy.
     apply sim; et.
   Qed.
-
-End PROOF.
-End CannonMainIA.
+End CannonMainIA. End CannonMainIA.

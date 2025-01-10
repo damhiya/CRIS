@@ -24,7 +24,7 @@ Proof. solve_inG. Qed.
 Local Arguments Z.of_nat : simpl nomatch.
 
 Section BODY.
-  Context `{!sinvG Σ Γ α β τ, !memGΓ Γ}.
+  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !memGΓ Γ}.
   Notation iProp := (iProp Σ).
 
   Definition mem_points_to_singleton_r (loc : mblock * Z) (v : val) : memRA :=
@@ -52,7 +52,7 @@ Notation "loc ⤇ v" := (mem_points_to_singleton loc v) (at level 20).
 Notation "loc |-> vs" := (mem_points_to loc vs) (at level 20).
 
 Section AUX.
-  Context `{!sinvG Σ Γ α β τ, !memGΓ Γ}.
+  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !memGΓ Γ}.
 
   Lemma points_to_nil ptr : ptr |-> [] = emp%I.
   Proof. destruct ptr. ss. Qed.
@@ -143,7 +143,7 @@ End POINTS_TO. *)
 
 
 Module MemA. Section MemA.
-  Context `{!sinvG Σ Γ α β τ, !memGΓ Γ}.
+  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !memGΓ Γ}.
 
   Definition scopes := ["Mem"].
 

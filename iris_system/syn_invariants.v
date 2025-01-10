@@ -26,7 +26,7 @@ Global Instance inv_syntax : PF.t := {
 }.
 
 (* Invariant interpretations *)
-Local Definition inv_interp_aux `{α : SRFCons.t, Γ : HRA, !subG Γ Σ, !invG Σ Γ} n (s : inv_shape) :
+Local Definition inv_interp_aux `{!invG α Σ Γ, !subHG Γ Σ} n (s : inv_shape) :
     (inv_degree s (SRFSyn.t_prev n) → SRFSyn.t n) → (inv_degree s (SRFSyn.t_prev n) → iProp Σ)
     → iProp Σ :=
   match s with
@@ -35,16 +35,22 @@ Local Definition inv_interp_aux `{α : SRFCons.t, Γ : HRA, !subG Γ Σ, !invG �
   | _wsat_auth u => λ _ _, wsat_auth u n
   end.
 
-Global Instance inv_interp `{α : SRFCons.t, Γ : HRA, !subG Γ Σ, !invG Σ Γ} :
+Global Instance inv_interp `{!invG α Σ Γ, !subHG Γ Σ} :
     @SRFIntpM.t (@domain Σ) α _ :=
   inv_interp_aux.
 
+Class syn_invG (Σ : GRA) (Γ : HRA) (α : SRFCons.t) (β : SRFIntp.t) (τ : Typ.t)
+    `{!invG α Σ Γ, !subHG Γ Σ} := {
+  #[global] syn_invG_inG :: SRFIntp.inG inv_syntax α inv_interp β;
+}.
+
 Section syn_inv.
-  Context `{Γ : HRA} `{!subG Γ Σ} `{!CtxST.t τ} `{!SRFIntp.inG SL.syntax α SL.t β}.
-  Context `{!invG Σ Γ, !SRFIntp.inG _ α inv_interp β}.
+  Context `{!invG α Σ Γ, !subHG Γ Σ, !CtxST.t τ, !SL.G Σ Γ α β τ, !syn_invG Σ Γ α β τ}.
+  (* Context `{Γ : HRA} `{!subHG Γ Σ} `{!CtxST.t τ} `{!SL.G Σ Γ α β τ}. *)
+  (* Context `{!invG Σ Γ, !SRFIntp.inG inv_syntax α inv_interp β}. *)
   Local Existing Instances invG_Σ invG_Γ invG_I invG_E invG_D.
   (* Local Existing Instances inv_preΣ inv_preΓ invG_I invG_E invG_D. *)
-
+  (* Set Typeclasses Debug. *)
   Local Definition syn_ownI u n i (p : SRFSyn.t n) : SRFSyn.t n :=
     ⟨ _ownI u i, λ _, p ⟩.
   Local Definition syn_ownI_auth u n (I : gmap positive (SRFSyn.t n)) : SRFSyn.t n :=
@@ -86,17 +92,16 @@ Section syn_inv.
   Local Definition syn_fupd_eq : @syn_fupd = @syn_fupd_def := syn_fupd_aux.(seal_eq).
 End syn_inv.
 
-Class sinvG (Σ : GRA) (Γ : HRA) α β τ := {
-  #[global] sinv_subG :: subG Γ Σ;
+(* Context `{Γ : HRA, !subHG Γ Σ, !CtxST.t τ, !SL.G Σ Γ α β τ, !syn_invG Σ Γ α β τ}. *)
+Class sinvG (Σ : GRA) (Γ : HRA) (α : SRFCons.t) (β : SRFIntp.t) (τ : Typ.t)
+    `{!invG α Σ Γ, !subHG Γ Σ} := sinvG_mk {
   #[global] sinv_typG :: CtxST.t τ;
-  #[global] sinv_SL_intpG :: SRFIntp.inG SL.syntax α SL.t β;
-  #[global] sinv_invG :: invG Σ Γ;
-  #[global] sinv_inv_intpG :: SRFIntp.inG inv_syntax α inv_interp β;
-  (* sinv_dom := domain Σ *)
+  #[global] sinv_SLG :: SL.G Σ Γ α β τ;
+  #[global] sinv_syn_invG :: syn_invG Σ Γ α β τ;
 }.
 
 Section reduction.
-  Context `{!sinvG Σ Γ α β τ}.
+  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ}.
   Lemma ownI_auth_red u n I :
     ⟦syn_ownI_auth u n I⟧ = ownI_auth u n I.
   Proof.
@@ -166,33 +171,50 @@ Ltac inv_red :=
   ).
 
 Module inv_instances.
-  Instance τ : Typ.t := λ _, ST.t.
+  #[export] Instance τ : Typ.t := λ _, ST.t.
 
-  Instance typG : CtxST.t τ.
+  #[export] Instance typG : CtxST.t τ.
   Proof. econs. econs. instantiate (1:=0); ss. Qed.
 
-  Instance α {Γ : HRA} : SRFCons.t :=
+  #[export] Instance α {Γ : HRA} : SRFCons.t :=
     λ n,
       match n with
       | 0 => SL.syntax
       | _ => inv_syntax
       end.
 
-  Instance β {Σ : GRA} {Γ : HRA} `{!subG Γ Σ, !invG Σ Γ} : SRFIntp.t :=
+  #[export] Instance β {Σ : GRA} {Γ : HRA} `{!subG Γ Σ, !invG α Σ Γ} : SRFIntp.t :=
     λ n,
       match n with
-      | 0 => SL.t
+      | 0 => SL.interp
       | _ => inv_interp
       end.
 
-  Instance intpG {Σ : GRA} {Γ : HRA} `{!subG Γ Σ, !invG Σ Γ} :
-    SRFIntp.inG (@SL.syntax τ Γ) α (@SL.t τ α Γ Σ _) β.
+  #[export] Instance intpG {Σ : GRA} {Γ : HRA} `{!subG Γ Σ, !invG α Σ Γ} :
+    SRFIntp.inG (@SL.syntax τ Γ) α (@SL.interp τ α Γ Σ _) β.
   Proof. econs; instantiate (1:=0); ss. Qed.
 
-  Instance invintpG {Σ : GRA} {Γ : HRA} `{!subG Γ Σ, !invG Σ Γ} :
+  #[export] Instance invintpG {Σ : GRA} {Γ : HRA} `{!subG Γ Σ, !invG α Σ Γ} :
     SRFIntp.inG inv_syntax α inv_interp β.
   Proof. econs; instantiate (1:=1); ss. Qed.
 
-  Instance sinvg {Σ : GRA} {Γ : HRA} `{!subG Γ Σ, !invG Σ Γ} : sinvG Σ Γ α β τ.
-  Proof. econs; try typeclasses eauto. Qed.
+  #[export] Instance sinvg {Σ : GRA} {Γ : HRA} `{!subG Γ Σ, !invG α Σ Γ} : sinvG Σ Γ α β τ.
+  Proof.
+    econs; econs; try typeclasses eauto.
+  Qed.
+
+  #[export] Instance subG_refl (Γ : HRA) : subG Γ Γ.
+  Proof. move=> i; by exists i. Qed.
+  #[export] Instance subG_app_l_HRA (Γ : HRA) (Σ1 Σ2 : GRA) : subG Γ Σ1 → subG Γ (GRAs.app Σ1 Σ2).
+  Proof. move=> H i; move: H=> /(_ i) [j ?]. exists (Fin.L _ j). by rewrite /= fin_add_inv_l. Qed.
+  #[export] Instance subG_app_r_HRA (Γ : HRA) (Σ1 Σ2 : GRA) : subG Γ Σ2 → subG Γ (GRAs.app Σ1 Σ2).
+  Proof. move=> H i; move: H=> /(_ i) [j ?]. exists (Fin.R _ j). by rewrite /= fin_add_inv_r. Qed.
+  #[export] Instance subG_app_l_HRA' (Γ Σ1 : HRA) (Σ2 : GRA) : subG Γ Σ1 → subG Γ (GRAs.app Σ1 Σ2).
+  Proof. move=> H i; move: H=> /(_ i) [j ?]. exists (Fin.L _ j). by rewrite /= fin_add_inv_l. Qed.
+  #[export] Instance subG_app_r_HRA' (Γ Σ2 : HRA) (Σ1 : GRA) : subG Γ Σ2 → subG Γ (GRAs.app Σ1 Σ2).
+  Proof. move=> H i; move: H=> /(_ i) [j ?]. exists (Fin.R _ j). by rewrite /= fin_add_inv_r. Qed.
+  #[export] Instance subG_app_l_HRA'' (Γ Σ2 : HRA) (Σ1 : GRA) : subG Γ Σ1 → subG Γ (GRAs.app Σ1 Σ2).
+  Proof. move=> H i; move: H=> /(_ i) [j ?]. exists (Fin.L _ j). by rewrite /= fin_add_inv_l. Qed.
+  #[export] Instance subG_app_r_HRA'' (Γ Σ1 : HRA) (Σ2 : GRA) : subG Γ Σ2 → subG Γ (GRAs.app Σ1 Σ2).
+  Proof. move=> H i; move: H=> /(_ i) [j ?]. exists (Fin.R _ j). by rewrite /= fin_add_inv_r. Qed.
 End inv_instances.

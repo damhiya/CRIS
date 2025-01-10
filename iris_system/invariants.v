@@ -38,7 +38,7 @@ Section invariants.
   Definition ownDRA : ucmra :=
     univ_id -d> (authUR (gset_disjUR positive)).
 
-  Class invGΣ (Σ : GRA) := {
+  Class invGΣ (α : SRFCons.t) (Σ : GRA) := {
     #[local] invG_I :: inG ownIRA Σ
   }.
   Class invGΓ (Γ : HRA) := {
@@ -56,22 +56,22 @@ Section invariants.
     1%positive : gname;
   }. *)
 
-  Class invG (Σ : GRA) (Γ : HRA) `{!subG Γ Σ} := {
-    #[local] invG_Σ :: invGΣ Σ;
+  Class invG (α : SRFCons.t) (Σ : GRA) (Γ : HRA) := {
+    #[local] invG_Σ :: invGΣ α Σ;
     #[local] invG_Γ :: invGΓ Γ;
   }.
 
   Definition invΓ : HRA := #[ownERA; ownDRA].
   Definition invΣ : GRA := #[ownIRA].
 
-  Global Instance subG_invΣ {Σ} : subG invΣ Σ → invGΣ Σ.
+  Global Instance subHG_invΣ {α' Σ} : subG invΣ Σ → invGΣ α' Σ.
   Proof. solve_inG. Qed.
-  Global Instance subG_invΓ {Γ} : subG invΓ Γ → invGΓ Γ.
+  Global Instance subHG_invΓ {Γ} : subG invΓ Γ → invGΓ Γ.
   Proof. solve_inG. Qed.
 End invariants.
 
 Section predicates.
-  Context `{α : SRFCons.t, Γ : HRA, !subG Γ Σ, !invG Σ Γ}.
+  Context `{!subHG Γ Σ, !invG α Σ Γ}.
   Local Existing Instances invG_Σ invG_Γ invG_I invG_E invG_D.
 
   (* owns invariant *)
@@ -138,7 +138,7 @@ Section predicates.
 End predicates.
 
 Section wsat.
-  Context `{@SRFIntp.t (domain Σ) α, Γ : HRA, !subG Γ Σ, !invG Σ Γ}.
+  Context `{@SRFIntp.t (domain Σ) α, !invG α Σ Γ, !subHG Γ Σ}.
 
   Variable u : univ_id.
   Variable n : level.
@@ -244,7 +244,7 @@ Section wsat.
 End wsat.
 
 Section wsats.
-  Context `{@SRFIntp.t (domain Σ) α, Γ : HRA, !subG Γ Σ, !invG Σ Γ}.
+  Context `{@SRFIntp.t (domain Σ) α, !invG α Σ Γ, !subHG Γ Σ}.
   (* Local Existing Instances inv_preΣ inv_preΓ invG_I invG_E invG_D. *)
 
   Definition wsats u n E : iProp Σ :=

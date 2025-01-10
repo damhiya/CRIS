@@ -6,7 +6,7 @@ Set Implicit Arguments.
 
 (* Resource algebra for MapI ⊆ MapM *)
 Class MapMGΓ (Γ : HRA) := {
-    #[global] map_inG :: inG (exclR unitO) Γ;
+  #[global] map_inG :: inG (exclR unitO) Γ;
 }.
 Definition MapMΓ : HRA := #[exclR unitO].
 Global Instance subG_GΓ {Γ} : subG MapMΓ Γ → MapMGΓ Γ.
@@ -14,7 +14,7 @@ Proof. solve_inG. Qed.
 
 Module MapMS. Section MapMS.
   Import MapM.
-  Context `{!sinvG Σ Γ α β τ, !MapMGΓ Γ}.
+  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !MapMGΓ Γ}.
 
   Definition pending : iProp Σ := own 1%positive (Excl ()).
   Lemma pending_unique : pending -∗ pending -∗ False.

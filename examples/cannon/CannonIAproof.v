@@ -1,35 +1,27 @@
 Require Import CRIS.
 Require Import ImpPrelude.
-Require Import CannonHeader CannonI CannonA CannonASpec SMod ModSim.
-
-(* Require Import MainAdequacy CtxRefine. *)
+Require Import CannonHeader CannonI CannonA CannonASpec.
 
 Set Implicit Arguments.
-
 Local Open Scope nat_scope.
 
-Module CannonIA.
-Section SIMMODSEM.
+Module CannonIA. Section CannonIA.
   Import CannonAS.
-  Context `{!sinvGS Σ Γ α β τ, !CannonAS.GS Γ}.
-  Local Notation iProp := (iProp Σ).
+  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !CannonAGΓ Γ}.
 
-  Definition Ist: Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp :=
-    fun _ _ st_src st_tgt =>
-      ((⌜st_src = [(CannonA.v_lv, 1%Z↑)] /\ st_tgt = [(CannonI.v_lv, 1%Z↑)]⌝
-        ∗
-        (Ready ∨ Fired)))%I.
+  Definition Ist : Sk.t → nat → alist key Any.t → alist key Any.t → iProp Σ :=
+    (λ _ _ st_s st_t,
+      (⌜st_s = [(CannonA.v_lv, 1%Z↑)] /\ st_t = [(CannonI.v_lv, 1%Z↑)]⌝ ∗
+      (Ready ∨ Fired))
+    )%I.
 
-  Variable ginv: Sk.t -> invspec.
-  Variable StbCannon: Sk.t -> gname -> option fspec.
+  Variable ginv : Sk.t → invspec.
+  Variable StbCannon : Sk.t → gname → option fspec.
   
   Local Notation CannonAMod := (CannonA.t ginv StbCannon).
   Local Notation CannonIMod := (CannonI.t).
-  
-  (*************)
 
-  Lemma simF_fire:
-    HSim.sim_fun CannonAMod CannonIMod Ist CannonName.fire.
+  Lemma simF_fire : HSim.sim_fun CannonAMod CannonIMod Ist CannonName.fire.
   Proof.
     init_simF.
 
@@ -45,28 +37,19 @@ Section SIMMODSEM.
     steps_r. ss.
   Qed.
 
-  Theorem sim:
-    HSim.t CannonAMod CannonIMod CannonA.InitCond Ist.
+  Theorem sim : HSim.t CannonAMod CannonIMod CannonA.InitCond Ist.
   Proof.
     init_sim.
     - iIntros "IC". unfold Ist, CannonA.InitCond. iSplitR; et.
     - eapply simF_fire.
   Qed.
 
-End SIMMODSEM.
-
-Section PROOF.
-  Import CannonAS.
-  Context `{!sinvGS Σ Γ α β τ, !CannonAS.GS Γ}.
-
-  Theorem correct gi StbCannon
-    :
+  Theorem correct :
     ctx_refines
-      (CannonA.t gi StbCannon, CannonA.InitCond)
-      (CannonI.t, const(emp%I)).
+      (CannonAMod, CannonA.InitCond)
+      (CannonIMod, const(emp%I)).
   Proof.
     eapply main_adequacy.
     apply sim.
   Qed.
-End PROOF.
-End CannonIA.
+End CannonIA. End CannonIA.

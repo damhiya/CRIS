@@ -13,7 +13,7 @@ Class MapAGΓ (Γ : HRA) := {
 Definition MapAΓ : HRA := #[RA].
 
 Module MapAS. Section MapAS.
-  Context `{!sinvG Σ Γ α β τ, !MapMGΓ Γ, !MapAGΓ Γ}.
+  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !MapMGΓ Γ, !MapAGΓ Γ}.
   Import MapA.
 
   Definition pending : iProp Σ := own 1%positive (Some (Excl ()), ε).
