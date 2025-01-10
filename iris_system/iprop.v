@@ -4,8 +4,8 @@ requirement that every resource algebras contained in it should be discrete
 since CRIS is a framework with no step-indexing. Refer to explanation of
 resource management of iris for further information. *)
 From iris.algebra Require Import cmra updates functions gmap_view.
-From CRIS.base_logic Require Export base_logic.
-From CRIS.lib Require Import allocs.
+Require Export base_logic.
+Require Import allocs.
 
 (** * Discrete resource algebras (internal use only) *)
 Record DRA := DRA_mk {

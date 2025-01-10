@@ -3,7 +3,7 @@ Require Export ITreelib.
 Require Export AList.
 Require Import Any.
 
-From CRIS.base_logic Require Import base_logic.
+Require Import base_logic.
 Require Import iprop.
 (* TODO : delete this dependency after gra mod *)
 

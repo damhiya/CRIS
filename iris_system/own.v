@@ -1,7 +1,7 @@
 From iris.algebra Require Import proofmode_classes functions coPset.
 From iris.proofmode Require Export proofmode.
-From CRIS.base_logic Require Export base_logic.
-From CRIS.lib Require Import allocs.
+Require Export base_logic.
+Require Import allocs.
 Require Import sflib.
 Require Import Level.
 Require Export iprop.

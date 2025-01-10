@@ -1,8 +1,8 @@
 From iris.algebra Require Import cmra view auth agree csum list excl gmap.
 From iris.algebra.lib Require Import excl_auth gmap_view dfrac_agree.
 From iris.bi Require Import lib.cmra.
-From CRIS.base_logic Require Import bi derived.
 From iris.prelude Require Import options.
+Require Import bi derived.
 
 (** Internalized properties of our CMRA constructions. *)
 Local Coercion uPred_holds : uPred >-> Funclass.

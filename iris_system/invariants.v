@@ -1,9 +1,9 @@
 From stdpp Require Import namespaces.
 Require Import sflib.
 From iris.algebra Require Import ofe auth agree coPset gset gmap_view.
-From CRIS.algebra Require Import functions.
 From iris Require Import bi.big_op.
 Require Import Coqlib.
+Require Import functions.
 Require Export SRF sProp own.
 
 Local Notation univ_id := positive.
