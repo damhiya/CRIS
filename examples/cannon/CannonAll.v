@@ -1,14 +1,14 @@
 Require Import CRIS.
 Require Import ImpPrelude.
-Require Import CannonIAproof CannonMainIAproof.
-Require Import CannonA CannonASpec CannonMainA CannonMainASpec .
 Require Import ElimRel SModCancel Cancellation.
+Require Import CannonI CannonMainI.
+Require Import CannonA CannonASpec CannonMainA CannonMainASpec.
+Require Import CannonIAproof CannonMainIAproof.
 
 Set Implicit Arguments.
 
 Module CannonAll.
 Section C.
-  Variable num_fire: nat.
   Definition Γ : HRA := ##[invΓ; CannonAS.GΓ].
   Local Existing Instance Γ.
 
@@ -25,7 +25,7 @@ Section C.
   Local Existing Instance α.
 
   Definition Σ : GRA := ##[invΣ; Γ].
-  Local Existing Instance  Σ.
+  Local Existing Instance Σ.
 
   Local Instance subG_GΓ : subG Γ Σ.
   Proof. Admitted. 
@@ -46,28 +46,67 @@ Section C.
   Local Instance asdf: CannonAS.GS Γ.
   Proof. Admitted.
 
-  Definition Mod := (@CannonA.Mod Σ Γ α β τ sinvGS_ _) ☆ (@MainA.Mod Σ Γ α β τ sinvGS_ _ num_fire).
+  Definition Mod := (@CannonA.Mod Σ Γ α β τ sinvGS_ _) ☆ (@MainA.Mod Σ Γ α β τ sinvGS_ _ 1).
 
   Definition ginv0 : invspec := fun _ => True%I.
   Definition ginv : Sk.t -> invspec := fun _ => ginv0.
 
   Definition stb := stb_global Mod.
-(* 
-  Definition stb : Sk.t -> _ := 
-    fun sk => to_closed_stb ((@CannonAS.Stb Σ Γ α β τ sinvGS_ _) ++ (@MainAS.Stb Σ Γ α β τ sinvGS_ _)). *)
 
-  Definition src := SModCancel.to_hmod Mod.
-  Definition tgt := SMod.to_hmod ginv stb Mod.
+  Definition md_cancel := SModCancel.to_hmod Mod.
+  Definition md_src := SMod.to_hmod ginv stb Mod.
+  Definition md_tgt := CannonI.t ★ (MainI.t 1).
 
-  Definition mainfsp : Sk.t -> fspec := fun _ => (@MainAS.main_spec Σ Γ α β τ _ _).
+  Definition mainfsp : fspec := (@MainAS.main_spec Σ Γ α β τ _ _).
 
-  Lemma final meta: 
-    refines (src, (const(emp)%I) ∗∗ (fun sk => (mainfsp sk).(precond) 0 (meta sk) tt↑ tt↑)) 
-            (tgt, (const(emp)%I)).
+  Definition InitCond: Sk.t -> iProp Σ := 
+    (@CannonA.InitCond Σ Γ α β τ sinvGS_ _) ∗∗ (@MainA.InitCond Σ Γ α β τ sinvGS_ _).
+
+  (* Apply cancellation to linked spec module *)
+  Lemma cancel meta: 
+    refines (md_cancel, InitCond ∗∗ (fun _ => mainfsp.(precond) 0 meta tt↑ tt↑)) 
+            (md_src, InitCond).
   Proof.
     eapply cancellation; try by econs.
     i. iIntros "%POST". iPureIntro.
     des; eauto.
+  Qed.
+
+  (* Refinement between spec/impl of whole program (linked module) *)
+  Lemma correct:
+    refines (md_src, InitCond) (md_tgt, const(emp)%I).
+  Proof.
+    eapply ctxr_refines. 
+    rewrite -[(md_tgt, _)]hmod_addc_empty_r.
+    unfold md_src, md_tgt. rewrite add_interp_comm.
+    eapply ctxr_compose_hor.
+    { 
+      replace (SMod.to_hmod ginv stb CannonA.Mod)
+      with (@CannonA.t Σ Γ α β τ sinvGS_ _ ginv stb); cycle 1.
+      { unfold CannonA.t. unseal "ccr". ss. }
+      eapply CannonIA.correct.
+    }
+    {
+      replace (SMod.to_hmod ginv stb (MainA.Mod 1))
+      with (@MainA.t Σ Γ α β τ sinvGS_ _ 1 ginv stb); cycle 1.
+      { unfold MainA.t. unseal "ccr". ss. }
+      eapply CannonMainIA.correct.
+      i. econs.
+      { unfold CannonAS.Stb. unseal "ccr". econs. ss. econs. }
+      unfold stb_sub, stb, stb_global, Mod, to_stb.
+      unfold CannonAS.Stb. unseal "ccr". i. ss.
+      destruct (fn ?[ eq ] CannonHeader.CannonName.fire); ss.
+    }
+  Qed.
+
+  Theorem final:
+    ∃meta, refines (md_cancel, InitCond ∗∗ (fun _ => mainfsp.(precond) 0 meta tt↑ tt↑))
+            (md_tgt, const(emp)%I).
+  Proof.
+    exists tt.
+    etrans.
+    - eapply cancel.
+    - eapply correct.
   Qed.
 
 End C.
