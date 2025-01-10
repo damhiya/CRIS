@@ -1,4 +1,4 @@
-(* Require Import CRIS.
+Require Import CRIS.
 
 Require Import FooHeader.
 
@@ -16,4 +16,4 @@ Section FooAS.
     unfold Stb. unseal "ccr". prove_nodup.
   Qed.
 
-End FooAS. End FooAS. *)
+End FooAS. End FooAS.

@@ -1,4 +1,4 @@
-(* Require Import CRIS.
+Require Import CRIS.
 
 Module FooName.
 
@@ -13,4 +13,4 @@ End FooName.
 
 Module FooSK.
   Definition t : Sk.t := [].
-End FooSK. *)
+End FooSK.

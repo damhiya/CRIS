@@ -1,4 +1,4 @@
-(* Require Import CRIS.
+Require Import CRIS.
 
 Require Import CellioHeader CellioA MainHeader MainA MainI FooASpec.
 
@@ -8,10 +8,9 @@ Local Open Scope nat_scope.
 
 Module MainIM. Section MainIM.
   Import CellioA.
-  Context `{!sinvG Σ Γ α β τ, !G Γ, !CellioA.G Γ}.
-  Notation iProp := (iProp Σ).
+  Context `{!sinvG Σ Γ α β τ, !CellioAGΓ Γ}.
 
-  Definition Ist: Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp :=
+  Definition Ist: Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp Σ :=
     λ _ _ st_src st_tgt, emp%I.
 
   Variable ginv: Sk.t -> invspec.
@@ -67,4 +66,4 @@ Module MainIM. Section MainIM.
     - eapply simF_main; eauto.
   Qed.
 
-End MainIM. End MainIM. *)
+End MainIM. End MainIM.
