@@ -651,17 +651,20 @@ End SIM.
 
 Global Opaque isim.
 
+Definition Ist_monotone `{Σ : GRA} (Ist: nat → alist key Any.t → alist key Any.t → iProp Σ) : Prop :=
+  ∀ nths nths' (LE : nths <= nths') st_src st_tgt,
+  Ist nths st_src st_tgt -∗ Ist nths' st_src st_tgt.
+
 Definition isim_fsem `{Σ : GRA} fl_src fl_tgt Ist is_closed : relation (Any.t -> itree hmodE Any.t) :=
   (eq ==> (fun itr_src itr_tgt =>
-             forall my_tid nths st_src st_tgt
-                    (IMON : forall nths nths' (LE : nths <= nths') st_src st_tgt,
-                        Ist nths st_src st_tgt -∗ Ist nths' st_src st_tgt)
-                    (NODS : List.NoDup (List.map fst st_src))
-                    (NODD : List.NoDup (List.map fst st_tgt)),
-               Ist nths st_src st_tgt ⊢
-                 @isim Σ fl_src fl_tgt Ist my_tid is_closed ibot ibot Any.t
-                 (fun nths '(st_src, v_src) '(st_tgt, v_tgt) => (⌜v_src = v_tgt⌝ ∗ Ist nths st_src st_tgt))%I
-                 false false nths (st_src, itr_src) (st_tgt, itr_tgt)))%signature.
+  ∀ my_tid nths st_src st_tgt
+    (IMON : Ist_monotone Ist)
+    (NODS : List.NoDup (List.map fst st_src))
+    (NODD : List.NoDup (List.map fst st_tgt)),
+  Ist nths st_src st_tgt ⊢
+    @isim Σ fl_src fl_tgt Ist my_tid is_closed ibot ibot Any.t
+      (fun nths '(st_src, v_src) '(st_tgt, v_tgt) => (⌜v_src = v_tgt⌝ ∗ Ist nths st_src st_tgt))%I
+      false false nths (st_src, itr_src) (st_tgt, itr_tgt)))%signature.
 
 Module HSSim. Section HSSim.
     Import HModSem.

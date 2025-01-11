@@ -1,10 +1,7 @@
 Require Import CRIS.
-
 Require Import CellioHeader CellioA MainHeader MainA MainI FooASpec.
 
 Set Implicit Arguments.
-
-Local Open Scope nat_scope.
 
 Module MainIM. Section MainIM.
   Import CellioA.
@@ -29,7 +26,7 @@ Module MainIM. Section MainIM.
     steps_l. iDestruct "ASM" as "%". subst.
 
     inline_r.
-    step_r. forces_r. iSplitL ""; eauto.
+    steps_r. forces_r. iSplitL ""; eauto.
     forces_r. steps_r. forces_r. iSplitL "ASM'"; eauto.
 
     steps_r. step.

@@ -71,7 +71,10 @@ Ltac trivial_nodup H :=
 
 Ltac move_nodup :=
   (hrepeat do 1 match goal with [H: List.NoDup _ |- _ ] => guardH H; move H at top end);
+  (hrepeat do 1 match goal with [H: Ist_monotone _ |- _ ] => guardH H; move H at top end);
   (hrepeat do 1 match goal with [H: incl _ (HMod.scopes _ _) |- _] => guardH H; move H at top end);
+  (hrepeat do 1 match goal with [H: HModSem.wf _ |- _ ] => guardH H; move H at top end);
+  (hrepeat do 1 match goal with [H: ∀ _, stb_incl _ _ |- _ ] => guardH H; move H at top end);
   unguard.
 
 Ltac alist_find_simpl nodup_tac :=
