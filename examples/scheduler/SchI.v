@@ -6,9 +6,6 @@ Set Implicit Arguments.
 
 Definition thslist: Type := list (nat * (option SAny.t)).
 
-Definition is_in_thslist (tid: nat) (ths: thslist) :=
-  is_some (alist_find tid ths).
-
 Module SchI. Section SchI.
   Local Open Scope string_scope.
   Context `{!sinvG Σ Γ α β τ}.
@@ -42,7 +39,7 @@ Module SchI. Section SchI.
     fun _ =>
       'ths: thslist <- cgetU v_ths;;
       'ntid: nat <- trigger (Choose nat);;
-      guarantee (is_in_thslist ntid ths);;;
+      guarantee (is_some (alist_find ntid ths));;;
       trigger (Yield ntid)
   .
 

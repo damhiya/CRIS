@@ -1,24 +1,25 @@
-(* Require Import CRIS.
+Require Import CRIS.
 
-Require Import SchHeader SchGInv.
+Require Import SchHeader SchGInv SchA.
 
 Set Implicit Arguments.
 
 Local Open Scope Qp.
 
-Module SchAS.
-Section Sch.
+Module SchAS. Section SchAS.
   Context `{_W: @sinvG Σ Γ α β τ}.
+  Import SchA.
 
-  Canonical Structure SynDepO : ofe := leibnizO (sigT (λ n, SRFSyn.t n)).
+  Canonical Structure SynDepO : ofe := leibnizO {n & SRFSyn.t n}.
 
   Definition thst: ucmra := (SAny.t -d> optionUR (agreeR SynDepO)).
   Definition fragreeUR := optionUR (prodR fracR (agreeR thst)).
   Definition threadsF := (discrete_funUR (λ _: nat, fragreeUR)).
   Definition threadsRA := authUR threadsF.
 
-  Class G (Γ: HRA.t) := { #[global] RA_inG :: GRA.inG threadsRA Γ }.
-  Context `{!G Γ}.
+  Class SchAGΣ (Σ: GRA) := { #[global] RA_inG :: inG threadsRA Σ }.
+  Definition SchAΣ : GRA := #[threadsRA].
+  Context `{!SchAGΣ Σ}.
 
   Notation iProp := (iProp Σ).
 
@@ -27,41 +28,42 @@ Section Sch.
     ⋅ ◯ ((λ tid: nat, if tid =? 0 then Some (1/4, to_agree (λ _, (Some (to_agree (existT 0 ⊤%SRF))))) else None): threadsF).
   Definition initial_threads: iProp := 
     Seal.sealing "SchA"
-      OwnM initial_threads_r.
+      (own default_loc initial_threads_r).
 
   Definition token_pending_r (tid: nat): threadsRA :=
     ◯ ((λ n, if (tid =? n) then None else ε): threadsF).
 
   Definition token_quarter_r (tid: nat) (st: SAny.t → SynDepO): threadsRA := 
     ◯ ((λ n, if (tid =? n) then Some (1/4, to_agree (λ s, Some (to_agree (st s)))) else ε): threadsF).
-  Definition token_th (tid: nat) (st: SAny.t → SynDepO): iProp := OwnM (token_quarter_r tid st).
+  Definition token_th (tid: nat) (st: SAny.t → SynDepO): iProp :=
+    own default_loc (token_quarter_r tid st).
 
   Definition token_half_r (tid: nat) (st: SAny.t → SynDepO): threadsRA := 
     ◯ ((λ n, if (tid =? n) then Some (1/2, to_agree (λ s, Some (to_agree (st s)))) else ε): threadsF).
   Definition token_half (tid: nat) (st: SAny.t → SynDepO): iProp := 
     Seal.sealing "SchA"
-      (OwnM (token_half_r tid st)).
+      (own default_loc (token_half_r tid st)).
 
   Definition token_three_quarter_r (tid: nat) (st: SAny.t → SynDepO): threadsRA := 
     ◯ ((λ n, if (tid =? n) then Some (3/4, to_agree (λ s, Some (to_agree (st s)))) else ε): threadsF).
   Definition token_three_quarter (tid: nat) (st: SAny.t → SynDepO): iProp := 
     Seal.sealing "SchA"
-      (OwnM (token_three_quarter_r tid st)).
+      (own default_loc (token_three_quarter_r tid st)).
 
   Definition token_one_r (tid: nat) (st: SAny.t → SynDepO): threadsRA := 
     ◯ ((λ n, if (tid =? n) then Some (1, to_agree (λ s, Some (to_agree (st s)))) else ε): threadsF).
   Definition token_one (tid: nat) (st: SAny.t → SynDepO): iProp := 
     Seal.sealing "SchA"
-      (OwnM (token_one_r tid st)).
+      (own default_loc (token_one_r tid st)).
 
   Definition idle (tid: nat): iProp := 
-    Seal.sealing "SchA" (OwnM (token_pending_r tid)).
+    Seal.sealing "SchA" (own default_loc (token_pending_r tid)).
   Definition active (tid: nat) (st: SAny.t → SynDepO): iProp := 
-    Seal.sealing "SchA" (OwnM (token_quarter_r tid st)).
+    Seal.sealing "SchA" (own default_loc (token_quarter_r tid st)).
   Definition done (tid: nat) (st: SAny.t → SynDepO): iProp := 
-    Seal.sealing "SchA" (OwnM (token_three_quarter_r tid st)).
+    Seal.sealing "SchA" (own default_loc (token_three_quarter_r tid st)).
   Definition joined (tid: nat) (st: SAny.t → SynDepO): iProp := 
-    Seal.sealing "SchA" (OwnM (token_one_r tid st)).
+    Seal.sealing "SchA" (own default_loc (token_one_r tid st)).
 
   Section RA.
 
@@ -142,15 +144,17 @@ Section Sch.
   End RA.
 
   Variable univ: positive.
+  Variable StbFun: Sk.t -> string -> option fspec.
+  Variable GlobalStb: Sk.t -> string -> option fspec.
 
   Section SPEC.
 
     Definition fspec_spawnable (univ: positive) (fsp: fspec) (tid: nat) (m: meta fsp) (vargs args: Any.t) (pre: iProp) (postS: SAny.t -> SynDepO): Prop :=
-      (((∃ n, closed_universe univ n ⊤) ∗ pre
+      (((∃ n, wsats univ n ⊤) ∗ pre
           ⊢ (precond fsp tid m vargs args))%I
       ∧ (∀ ret: Any.t, 
           ((∃ vret, postcond fsp tid m vret ret)%I 
-            ⊢ (∃ sret: SAny.t, ((∃ n, closed_universe univ n ⊤) ∗ ⌜ret = sret↑⌝ 
+            ⊢ (∃ sret: SAny.t, ((∃ n, wsats univ n ⊤) ∗ ⌜ret = sret↑⌝ 
                ∗ interp_cond (postS sret))))%I)).
 
     Definition _spawn_spec (sk: Sk.t) (StbFun: Sk.t -> string -> option fspec): fspec :=
@@ -199,12 +203,35 @@ Section Sch.
          (SchName.yield, yield_spec);
          (SchName.join, join_spec)].
 
-    Lemma Stb_nodup sk StbFun: List.NoDup (List.map fst (Stb sk StbFun)).
-    Proof.
-      unfold Stb. unseal "ccr". prove_nodup.
-    Qed.
+    Lemma Stb_nodup sk: List.NoDup (List.map fst (Stb sk StbFun)).
+    Proof. unfold Stb. unseal "ccr". prove_nodup. Qed.
+
+    Definition fnsems (sk: Sk.t) :=
+      [(SchName._spawn, (scopes, mk_specbody (_spawn_spec sk StbFun) (cfunU _spawn)));
+      (SchName.spawn, (scopes, mk_specbody (spawn_spec sk StbFun) (cfunU spawn)));
+      (SchName.yield, (scopes, mk_specbody (yield_spec) (cfunU yield)));
+      (SchName.join, (scopes, mk_specbody (join_spec) (cfunU join)))].
+
+    Program Definition Sem (sk: Sk.t): SModSem.t :=
+    {|
+      SModSem.scopes := scopes;
+      SModSem.fnsems := fnsems sk;
+      SModSem.initial_st := [];
+    |}.
+    Solve All Obligations with prove_scope.
+    Next Obligation. prove_nodup. Qed.
+
+    Definition Mod: SMod.t :=
+    {|
+      SMod.modsem := fun sk => Sem sk;
+      SMod.sk := SchSK.t;
+    |}.
+
+    Definition InitCond : Sk.t -> iProp :=
+      fun _ => (initial_threads)%I.
+    
+    Definition t := Seal.sealing "ccr" (SMod.to_hmod (sch_ginv univ) GlobalStb Mod).
 
   End SPEC.
 
-End Sch.
-End SchAS. *)
+End SchAS. End SchAS.
