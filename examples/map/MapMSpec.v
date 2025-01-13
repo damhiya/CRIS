@@ -4,23 +4,19 @@ Require Import MapHeader MapM.
 
 Set Implicit Arguments.
 
+(* Resource algebra for MapI ⊆ MapM *)
+Class MapMGΓ (Γ : HRA) := {
+  #[global] map_inG :: inG (exclR unitO) Γ;
+}.
+Definition MapMΓ : HRA := #[exclR unitO].
+Global Instance subG_GΓ {Γ} : subG MapMΓ Γ → MapMGΓ Γ.
+Proof. solve_inG. Qed.
+
 Module MapMS. Section MapMS.
-  (* Resource algebra for MapI ⊆ MapM *)
-  Class GpreΓ (Γ : HRA) := {
-    #[global] map_inG :: inG (exclR unitO) Γ;
-  }.
-  Class GS (Γ : HRA) := {
-    #[global] preΓ :: GpreΓ Γ;
-    map_name : positive;
-  }.
-  Definition GΓ : HRA := #[exclR unitO].
-  Global Instance subG_GΓ {Γ} : subG GΓ Γ → GpreΓ Γ.
-  Proof. solve_inG. Qed.
-
   Import MapM.
-  Context `{!sinvGS Σ Γ α β τ, !GS Γ}.
+  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !MapMGΓ Γ}.
 
-  Definition pending : iProp Σ := own map_name (Excl ()).
+  Definition pending : iProp Σ := own 1%positive (Excl ()).
   Lemma pending_unique : pending -∗ pending -∗ False.
   Proof.
     rewrite /pending; unseal "MapMS".

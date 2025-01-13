@@ -8,7 +8,7 @@ Local Open Scope nat_scope.
 
 Section MACROAUX.
 
-  Context `{_W: @sinvGS Σ Γ α β τ, !SchAS.G Γ}.
+  Context `{_W: @sinvG Σ Γ α β τ, !SchAS.G Γ}.
   Notation iProp := (iProp Σ).
 
   (** Sch.spawn LEMMA *)

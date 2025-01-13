@@ -8,10 +8,9 @@ Local Open Scope nat_scope.
 
 Module MapMA. Section MapMA.
   Import MapAS.
-  Context `{!sinvGS Σ Γ α β τ, !MapAS.GS Γ, !MapMS.GS Γ}.
-  Notation iProp := (iProp Σ).
+  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !MapAGΓ Γ, !MapMGΓ Γ}.
 
-  Definition Ist : Sk.t → nat → alist key Any.t → alist key Any.t → iProp :=
+  Definition Ist : Sk.t → nat → alist key Any.t → alist key Any.t → iProp Σ :=
     (λ _ _ st_src st_tgt,
       ∃ f sz,
         ⌜st_src = [(MapA.v_map, f↑)] ∧ st_tgt = [(MapM.v_size, sz↑); (MapM.v_map, f↑)]⌝
@@ -165,7 +164,7 @@ Module MapMA. Section MapMA.
     (* prove the IST of Map *)
     step. eauto.
   Qed.
-  
+
   Theorem sim : HSim.t MapA MapM MapAS.InitCond Ist.
   Proof.
     init_sim.

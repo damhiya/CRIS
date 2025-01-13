@@ -698,11 +698,11 @@ Module HSSim. Section HSSim.
         (NODUPFT : List.NoDup (List.map fst fnsems_tgt))
         ft (FIND : alist_find fn fnsems_tgt = Some ft),
       ∃ fs, alist_find fn fnsems_src = Some fs /\
-                   isim_fsem
-                     (List.map (map_snd HModSem.sandbox_body) fnsems_src)
-                     (List.map (map_snd HModSem.sandbox_body) fnsems_tgt)
-                     Ist is_closed
-                     (HModSem.sandbox_body fs) (HModSem.sandbox_body ft).
+        isim_fsem
+          (List.map (map_snd HModSem.sandbox_body) fnsems_src)
+          (List.map (map_snd HModSem.sandbox_body) fnsems_tgt)
+          Ist is_closed
+          (HModSem.sandbox_body fs) (HModSem.sandbox_body ft).
 
     Inductive t : Prop := mk {
       sim_initial :
@@ -721,27 +721,24 @@ Module HSSim. Section HSSim.
 End HSSim. End HSSim.
 
 Module HSim. Section HSim.
-    Context `{Σ : GRA}.
-    Notation iProp := (iProp Σ).
-    Variable (md_src md_tgt : HMod.t).
-    Variable init_cond : Sk.t -> iProp.
-    Variable Ist : Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp.
-    (* Variable is_closed: bool. *)
+  Context `{Σ : GRA}.
+  Variable (md_src md_tgt : HMod.t).
+  Variable init_cond : Sk.t -> iProp Σ.
+  Variable Ist : Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp Σ.
 
-    Inductive _t is_closed : Prop :=
-      mk {
-          sim_modsem:
-          forall sk (SKINCL : List.incl md_tgt.(HMod.sk) sk) (SKWF : Sk.wf sk),
-            <<SIM : HSSim.t (md_src.(HMod.modsem) sk) (md_tgt.(HMod.modsem) sk) (init_cond sk) (Ist sk) is_closed>>;
-          sim_sk : <<SIM : Sk.equiv md_src.(HMod.sk) md_tgt.(HMod.sk)>>;
-        }.
+  Inductive _t is_closed : Prop :=
+    mk {
+        sim_modsem:
+        ∀ sk (SKINCL : List.incl md_tgt.(HMod.sk) sk) (SKWF : Sk.wf sk),
+          <<SIM : HSSim.t (md_src.(HMod.modsem) sk) (md_tgt.(HMod.modsem) sk) (init_cond sk) (Ist sk) is_closed>>;
+        sim_sk : <<SIM : Sk.equiv md_src.(HMod.sk) md_tgt.(HMod.sk)>>;
+      }.
 
-    Definition t := _t false.
+  Definition t := _t false.
 
-    Definition _sim_fun is_closed fn : Prop :=
-      forall sk,
-        HSSim.sim_fun (HMod.modsem md_src sk) (HMod.modsem md_tgt sk) (Ist sk) is_closed fn.
-    
-    Definition sim_fun fn := _sim_fun false fn.
-
+  (* TODO : add skeleton condition *)
+  Definition _sim_fun is_closed fn : Prop :=
+    ∀ sk, HSSim.sim_fun (HMod.modsem md_src sk) (HMod.modsem md_tgt sk) (Ist sk) is_closed fn.
+  
+  Definition sim_fun fn := _sim_fun false fn.
 End HSim. End HSim.

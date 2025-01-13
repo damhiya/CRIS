@@ -2,7 +2,7 @@ From iris.algebra Require Import cmra.
 From stdpp Require Import coPset gmap namespaces.
 Require Import sflib.
 From iris Require Import bi.big_op.
-From iris Require base_logic.lib.invariants.
+(* From iris Require base_logic.lib.invariants. *)
 From Coq Require Import Program Arith.
 Require Export Coqlib iprop own SRF.
 
@@ -14,22 +14,15 @@ Module Typ.
   Class t: Type := __TYP : GPF.t.
 End Typ.
 
-(* Global Program Instance in_subG Σ1 Σ2 `{M : cmra} `{emb : inG M Σ1} : HRA.subG Σ1 Σ2 → inG M Σ2.
-Next Obligation.
-  intros. destruct emb. destruct (s inG_id). exact x.
-Defined.
-Next Obligation.
-  intros. destruct emb. simpl. destruct (s inG_id). subst. f_equal. eauto.
-Defined. *)
-(* End HRA. *)
-
 Class HRA : Type := HRA_mk : GRA.
+Class subHG (Γ : HRA) (Σ : GRA) := subHG_mk : subG Γ Σ.
+Global Instance subG_subHG (Γ : HRA) (Σ : GRA) : subG Γ Σ → subHG Γ Σ. auto. Qed.
 
 Global Instance index_inG (Γ : HRA) (i : gid Γ) : inG (GRA_lookup i) Γ.
 Proof.
   econstructor; eauto.
 Defined.
-Global Program Instance in_subG (Γ : HRA) (Σ : GRA) `{emb : !inG M Γ} : subG Γ Σ → inG M Σ.
+Global Program Instance in_subG (Γ : HRA) (Σ : GRA) `{emb : !inG M Γ} : subHG Γ Σ → inG M Σ.
 Next Obligation.
   intros. destruct emb. destruct (s inG_id). exact x.
 Defined.
@@ -37,11 +30,6 @@ Next Obligation.
   intros. destruct emb. simpl. destruct (s inG_id). subst. f_equal. eauto.
 Defined.
 
-
-(* Global Instance subG_inG Σ1 Σ2 (i : gid Σ1) `{!HRA.subG Σ1 Σ2} : inG (GRA_lookup Σ1 i) Σ2.
-Proof.
-  destruct (H i); econstructor; rewrite e; reflexivity.
-Defined. *)
 (** Types for Separation Logic **)
 Module ST. Section ST.
   Inductive type : Type :=
@@ -91,12 +79,11 @@ Notation "'τ{' t '}'" := (@PF.deg ST.t t (SRFSyn.t_prev _)) : SRF_scope.
 
 (* Separation Logic *)
 (* TODO : The functionalities below need to be separated! after coarse refactoring *)
-Module SL. Section SL.
-  Context {τ : Typ.t} {α : @SRFCons.t} {Γ : HRA} {Σ : GRA} `{!subG Γ Σ}.
-  Local Definition dom := domain Σ.
-  Local Existing Instance dom.
+Module SL.
+  Section syntax.
+    Context {τ : Typ.t} {α : @SRFCons.t} {Γ : HRA}.
 
-  Variant shape : Type :=
+    Variant shape : Type :=
     | _own i (γ : positive) (r : (@GRA_lookup Γ) i)
     | _pure (P : Prop)
     | _and
@@ -109,168 +96,172 @@ Module SL. Section SL.
     | _wand
     | _persistently
     | _plainly
-    | _upd
-  .
+    | _upd.
 
-  Definition degree (s : shape) (Prev : Type) : Type :=
-    match s with
-    | _own γ i r => fin 0
-    | _pure P => fin 0
-    | _and => fin 2
-    | _or => fin 2
-    | _impl => fin 2
-    | _univ i ty => (τ i).(PF.deg) ty Prev
-    | _ex   i ty => (τ i).(PF.deg) ty Prev
-    | _empty => fin 0
-    | _sepconj => fin 2
-    | _wand => fin 2
-    | _persistently => fin 1
-    | _plainly => fin 1
-    | _upd => fin 1
-    end.
+    Definition degree (s : shape) (Prev : Type) : Type :=
+      match s with
+      | _own γ i r => fin 0
+      | _pure P => fin 0
+      | _and => fin 2
+      | _or => fin 2
+      | _impl => fin 2
+      | _univ i ty => (τ i).(PF.deg) ty Prev
+      | _ex   i ty => (τ i).(PF.deg) ty Prev
+      | _empty => fin 0
+      | _sepconj => fin 2
+      | _wand => fin 2
+      | _persistently => fin 1
+      | _plainly => fin 1
+      | _upd => fin 1
+      end.
 
-  Global Instance syntax : PF.t := {
-      shp := shape;
-      deg := degree;
+    Global Instance syntax : PF.t := {
+        shp := shape;
+        deg := degree;
+    }.
+  End syntax.
+
+  Section semantics.
+    Context {τ : Typ.t} {α : @SRFCons.t} {Γ : HRA} {Σ : GRA} `{!subHG Γ Σ}.
+    Definition interp_aux n (s : shape)
+        : (degree s (SRFSyn.t_prev n) → SRFSyn.t n) → (degree s (SRFSyn.t_prev n) → iProp Σ) → iProp Σ :=
+      match s with
+      | _own i γ r => λ _ _, @own _ _ _ γ r
+      | _pure P => λ _ _, ⌜P⌝%I
+      | _and => λ _ sem, ((sem 0%fin) ∧ (sem 1%fin))%I
+      | _or => λ _ sem, ((sem 0%fin) ∨ (sem 1%fin))%I
+      | _impl => λ _ sem, ((sem 0%fin) → (sem 1%fin))%I
+      | _univ i ty => λ _ sem, bi_forall sem
+      | _ex   i ty => λ _ sem, bi_exist sem
+      | _empty => λ _ _, emp%I
+      | _sepconj => λ _ sem, ((sem 0%fin) ∗ (sem 1%fin))%I
+      | _wand => λ _ sem, ((sem 0%fin) -∗ (sem 1%fin))%I
+      | _persistently => λ _ sem, (<pers> (sem 0%fin))%I
+      | _plainly => λ _ sem, (■ (sem 0%fin))%I
+      | _upd => λ _ sem, (|==> (sem 0%fin))%I
+      end.
+
+    Global Instance interp : @SRFIntpM.t _ α syntax := interp_aux.
+  End semantics.
+
+  Class G (Σ : GRA) (Γ : HRA) (α : SRFCons.t) (β : SRFIntp.t) (τ : Typ.t) `{!subHG Γ Σ} := {
+    #[local] G_inG :: SRFIntp.inG SL.syntax α SL.interp β;
   }.
 
-  Definition interp n (s : shape)
-      : (degree s (SRFSyn.t_prev n) → SRFSyn.t n) → (degree s (SRFSyn.t_prev n) → iProp Σ) → iProp Σ :=
-    match s with
-    | _own i γ r => λ _ _, @own _ _ _ γ r
-    | _pure P => λ _ _, ⌜P⌝%I
-    | _and => λ _ sem, ((sem 0%fin) ∧ (sem 1%fin))%I
-    | _or => λ _ sem, ((sem 0%fin) ∨ (sem 1%fin))%I
-    | _impl => λ _ sem, ((sem 0%fin) → (sem 1%fin))%I
-    | _univ i ty => λ _ sem, bi_forall sem
-    | _ex   i ty => λ _ sem, bi_exist sem
-    | _empty => λ _ _, emp%I
-    | _sepconj => λ _ sem, ((sem 0%fin) ∗ (sem 1%fin))%I
-    | _wand => λ _ sem, ((sem 0%fin) -∗ (sem 1%fin))%I
-    | _persistently => λ _ sem, (<pers> (sem 0%fin))%I
-    | _plainly => λ _ sem, (■ (sem 0%fin))%I
-    | _upd => λ _ sem, (|==> (sem 0%fin))%I
-    end.
+  Section definitions.
+    Context `{!subHG Γ Σ, !G Σ Γ α β τ}.
+    Local Existing Instances G_inG.
 
-  Global Instance t : @SRFIntpM.t _ α syntax := interp.
+    Definition own `{IN: !inG M Γ} {n} (γ : positive) (r : M) : SRFSyn.t n.
+      destruct IN. subst.
+      refine ⟨ _own _ γ r, _ ⟩%SRF.
+      i. inv X.
+    Defined.
 
-  Context `{@SRFIntp.inG _ _ _ t β}.
+    Definition pure {n} (P : Prop) : SRFSyn.t n.
+      refine ⟨ _pure P, _ ⟩%SRF.
+      i. inv X.
+    Defined.
 
-  Definition own `{IN: !inG M Γ} {n} (γ : positive) (r : M) : SRFSyn.t n.
-    destruct IN. subst.
-    refine ⟨ _own _ γ r, _ ⟩%SRF.
-    i. inv X.
-  Defined.
+    Definition and {n} (p1 p2 : SRFSyn.t n) : SRFSyn.t n.
+      refine ⟨ _and, _ ⟩%SRF.
+      i. destruct X.
+      - exact p1.
+      - exact p2.
+    Defined.
 
-  Definition pure {n} (P : Prop) : SRFSyn.t n.
-    refine ⟨ _pure P, _ ⟩%SRF.
-    i. inv X.
-  Defined.
+    Definition or {n} (p1 p2 : SRFSyn.t n) : SRFSyn.t n.
+      refine ⟨ _or, _ ⟩%SRF.
+      i. destruct X.
+      - exact p1.
+      - exact p2.
+    Defined.
 
-  Definition and {n} (p1 p2 : SRFSyn.t n) : SRFSyn.t n.
-    refine ⟨ _and, _ ⟩%SRF.
-    i. destruct X.
-    - exact p1.
-    - exact p2.
-  Defined.
+    Definition impl {n} (p1 p2 : SRFSyn.t n) : SRFSyn.t n.
+      refine ⟨ _impl, _ ⟩%SRF.
+      i. destruct X.
+      - exact p1.
+      - exact p2.
+    Defined.
+    
+    Definition univ `{IN: @GPF.inG T τ} {n} (ty: T.(PF.shp)) (p: T.(PF.deg) ty (SRFSyn.t_prev n) → SRFSyn.t n)
+        : SRFSyn.t n.
+      destruct IN. subst.
+      exact ⟨ _univ _ ty, p ⟩%SRF.
+    Defined.
 
-  Definition or {n} (p1 p2 : SRFSyn.t n) : SRFSyn.t n.
-    refine ⟨ _or, _ ⟩%SRF.
-    i. destruct X.
-    - exact p1.
-    - exact p2.
-  Defined.
+    Definition ex `{IN: @GPF.inG T τ} {n} (ty: T.(PF.shp)) (p: T.(PF.deg) ty (SRFSyn.t_prev n) → SRFSyn.t n)
+        : SRFSyn.t n.
+      destruct IN. subst.
+      exact ⟨ _ex _ ty, p ⟩%SRF.
+    Defined.
 
-  Definition impl {n} (p1 p2 : SRFSyn.t n) : SRFSyn.t n.
-    refine ⟨ _impl, _ ⟩%SRF.
-    i. destruct X.
-    - exact p1.
-    - exact p2.
-  Defined.
-  
-  Definition univ `{IN: @GPF.inG T τ} {n} (ty: T.(PF.shp)) (p: T.(PF.deg) ty (SRFSyn.t_prev n) → SRFSyn.t n)
-      : SRFSyn.t n.
-    destruct IN. subst.
-    exact ⟨ _univ _ ty, p ⟩%SRF.
-  Defined.
+    Definition empty {n} : SRFSyn.t n.
+      refine ⟨ _empty, _ ⟩%SRF.
+      i. inv X.
+    Defined.
 
-  Definition ex `{IN: @GPF.inG T τ} {n} (ty: T.(PF.shp)) (p: T.(PF.deg) ty (SRFSyn.t_prev n) → SRFSyn.t n)
-      : SRFSyn.t n.
-    destruct IN. subst.
-    exact ⟨ _ex _ ty, p ⟩%SRF.
-  Defined.
+    Definition sepconj {n} (p1 p2 : SRFSyn.t n) : SRFSyn.t n.
+      refine ⟨ _sepconj, _ ⟩%SRF.
+      i. destruct X.
+      - exact p1.
+      - exact p2.
+    Defined.
 
-  Definition empty {n} : SRFSyn.t n.
-    refine ⟨ _empty, _ ⟩%SRF.
-    i. inv X.
-  Defined.
+    Definition wand {n} (p1 p2 : SRFSyn.t n) : SRFSyn.t n.
+      refine ⟨ _wand, _ ⟩%SRF.
+      i. destruct X.
+      - exact p1.
+      - exact p2.
+    Defined.
 
-  Definition sepconj {n} (p1 p2 : SRFSyn.t n) : SRFSyn.t n.
-    refine ⟨ _sepconj, _ ⟩%SRF.
-    i. destruct X.
-    - exact p1.
-    - exact p2.
-  Defined.
+    Definition persistently {n} (p : SRFSyn.t n) : SRFSyn.t n.
+      refine ⟨ _persistently, _ ⟩%SRF.
+      i. inv X; [|inv H0].
+      exact p.
+    Defined.
 
-  Definition wand {n} (p1 p2 : SRFSyn.t n) : SRFSyn.t n.
-    refine ⟨ _wand, _ ⟩%SRF.
-    i. destruct X.
-    - exact p1.
-    - exact p2.
-  Defined.
+    Definition plainly {n} (p : SRFSyn.t n) : SRFSyn.t n.
+      refine ⟨ _plainly, _ ⟩%SRF.
+      i. inv X; [|inv H0].
+      exact p.
+    Defined.
 
-  Definition persistently {n} (p : SRFSyn.t n) : SRFSyn.t n.
-    refine ⟨ _persistently, _ ⟩%SRF.
-    i. inv X; [|inv H1].
-    exact p.
-  Defined.
+    Definition upd {n} (p : SRFSyn.t n) : SRFSyn.t n.
+      refine ⟨ _upd, _ ⟩%SRF.
+      i. inv X; [|inv H0].
+      exact p.
+    Defined.
 
-  Definition plainly {n} (p : SRFSyn.t n) : SRFSyn.t n.
-    refine ⟨ _plainly, _ ⟩%SRF.
-    i. inv X; [|inv H1].
-    exact p.
-  Defined.
+    Definition affinely {n} (p : SRFSyn.t n) : SRFSyn.t n :=
+      and empty p.
 
-  Definition upd {n} (p : SRFSyn.t n) : SRFSyn.t n.
-    refine ⟨ _upd, _ ⟩%SRF.
-    i. inv X; [|inv H1].
-    exact p.
-  Defined.
-
-  Definition affinely {n} (p : SRFSyn.t n) : SRFSyn.t n :=
-    and empty p.
-
-  Definition sepM
-             n {K} {H1 : EqDecision K} {H2 : Countable K}
-             {A} (I : @gmap K H1 H2 A)
-             (f : K → A → SRFSyn.t n)
-    : SRFSyn.t n :=
-    fold_right (fun hd tl => sepconj (uncurry f hd) tl) empty (map_to_list I).
-
-  Definition sepS n {K} {H1 : EqDecision K} {H2 : Countable K}
-      (I : @gset K H1 H2)
-      (f : K → SRFSyn.t n)
+    Definition sepM
+              n {K} {H1 : EqDecision K} {H2 : Countable K}
+              {A} (I : @gmap K H1 H2 A)
+              (f : K → A → SRFSyn.t n)
       : SRFSyn.t n :=
-    fold_right (fun hd tl => sepconj (f hd) tl) empty (elements I).
+      fold_right (fun hd tl => sepconj (uncurry f hd) tl) empty (map_to_list I).
 
-  Definition sepL1
-             n {A} (I : list A)
-             (f : A → SRFSyn.t n)
-    : SRFSyn.t n :=
-    fold_right (fun hd tl => sepconj (f hd) tl) empty I.
-End SL. End SL.
+    Definition sepS n {K} {H1 : EqDecision K} {H2 : Countable K}
+        (I : @gset K H1 H2)
+        (f : K → SRFSyn.t n)
+        : SRFSyn.t n :=
+      fold_right (fun hd tl => sepconj (f hd) tl) empty (elements I).
 
-Module CtxSL.
-  Class t (Σ : GRA) (Γ : HRA) α β τ := {
-    #[global] subG :: subG Γ Σ;
-    #[global] typG :: CtxST.t τ;
-    #[global] intpG :: @SRFIntp.inG (domain Σ) (@SL.syntax τ Γ) α (@SL.t τ α Γ Σ subG) β;
-    domainΣ : SRFDom.t := domain Σ
-  }.
-  (* This global instance declaration is a way to designate which GRA the TC should find as a
-  domain of sProp interpretation. If a more concise approach exists, replace this. *)
-  #[global] Existing Instance domainΣ.
-End CtxSL.
+    Definition sepL1
+              n {A} (I : list A)
+              (f : A → SRFSyn.t n)
+      : SRFSyn.t n :=
+      fold_right (fun hd tl => sepconj (f hd) tl) empty I.
+
+  End definitions.
+End SL.
+
+(* Module CtxSL.
+  Class t (Σ : GRA) (Γ : HRA) α β τ 
+    `{!subG Γ Σ} `{!CtxST.t τ} `{!SRFIntp.inG SL.syntax α SL.t β} := mk_t : unit.
+End CtxSL. *)
 
 (** Notations *)
 Local Open Scope SRF_scope.
@@ -322,7 +313,7 @@ Notation "'[∗' n , A 'list]' x ∈ l , P" :=
       format "[∗  n ,  A  list]  x  ∈  l ,  P") : SRF_scope.
 
 Module SLRed. Section RED.
-  Context `{!CtxSL.t Σ Γ α β τ}.
+  Context `{!subHG Γ Σ} `{!SL.G Σ Γ α β τ}.
   Notation interp := (SRFSem.t (Δ := domain Σ)).
 
   Lemma own `{!inG M Γ} n γ (r : M) :

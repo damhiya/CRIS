@@ -8,7 +8,7 @@ Local Open Scope nat_scope.
 
 Module MainIM. Section MainIM.
   Import CellioA.
-  Context `{!sinvGS Σ Γ α β τ, !G Γ, !CellioA.G Γ}.
+  Context `{!sinvG Σ Γ α β τ, !G Γ, !CellioA.G Γ}.
   Notation iProp := (iProp Σ).
 
   Definition Ist: Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp :=

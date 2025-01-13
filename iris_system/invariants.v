@@ -38,41 +38,41 @@ Section invariants.
   Definition ownDRA : ucmra :=
     univ_id -d> (authUR (gset_disjUR positive)).
 
-  Class invGpreSΣ (Σ : GRA) := {
-    invGS_I : inG ownIRA Σ
+  Class invGΣ (α : SRFCons.t) (Σ : GRA) := {
+    #[local] invG_I :: inG ownIRA Σ
   }.
-  Class invGpreSΓ (Γ : HRA) := {
-    invGS_E : inG ownERA Γ;
-    invGS_D : inG ownDRA Γ;
+  Class invGΓ (Γ : HRA) := {
+    #[local] invG_E :: inG ownERA Γ;
+    #[local] invG_D :: inG ownDRA Γ;
   }.
 
-  Class invGSΣ (Σ : GRA) := {
+  (* Class invGΣ (Σ : GRA) := {
     inv_preΣ : invGpreSΣ Σ;
-    invariant_name : gname;
+    1%positive : gname;
   }.
-  Class invGSΓ (Γ : HRA) := {
+  Class invGΓ (Γ : HRA) := {
     inv_preΓ : invGpreSΓ Γ;
-    enabled_name : gname;
-    disabled_name : gname;
-  }.
+    1%positive : gname;
+    1%positive : gname;
+  }. *)
 
-  Class invGS (Σ : GRA) (Γ : HRA) `{!subG Γ Σ} := {
-    #[global] invGS_Σ :: invGSΣ Σ;
-    #[global] invGS_Γ :: invGSΓ Γ;
+  Class invG (α : SRFCons.t) (Σ : GRA) (Γ : HRA) := {
+    #[local] invG_Σ :: invGΣ α Σ;
+    #[local] invG_Γ :: invGΓ Γ;
   }.
 
   Definition invΓ : HRA := #[ownERA; ownDRA].
-  Definition invΣ : GRA := ##[#[ownIRA]; invΓ].
+  Definition invΣ : GRA := #[ownIRA].
 
-  Global Instance subG_invΣ {Σ} : subG invΣ Σ → invGpreSΣ Σ.
+  Global Instance subHG_invΣ {α' Σ} : subG invΣ Σ → invGΣ α' Σ.
   Proof. solve_inG. Qed.
-  Global Instance subG_invΓ {Γ} : subG invΓ Γ → invGpreSΓ Γ.
+  Global Instance subHG_invΓ {Γ} : subG invΓ Γ → invGΓ Γ.
   Proof. solve_inG. Qed.
 End invariants.
 
 Section predicates.
-  Context `{α : SRFCons.t, Γ : HRA, !subG Γ Σ, !invGS Σ Γ}.
-  Local Existing Instances inv_preΣ inv_preΓ invGS_I invGS_E invGS_D.
+  Context `{!subHG Γ Σ, !invG α Σ Γ}.
+  Local Existing Instances invG_Σ invG_Γ invG_I invG_E invG_D.
 
   (* owns invariant *)
   Definition ownIR (u : univ_id) (n : level) (i : positive) (p : SRFSyn.t n) : ownIRA :=
@@ -80,7 +80,7 @@ Section predicates.
       (discrete_fun_singleton n
         (gmap_view_frag i DfracDiscarded (to_agree p))).
   Definition ownI (u : univ_id) (n : level) (i : positive) (p : SRFSyn.t n) : iProp Σ :=
-    own invariant_name (ownIR u n i p).
+    own 1%positive (ownIR u n i p).
 
   Global Instance ownI_persistent
     u n i p : Persistent (ownI u n i p).
@@ -91,27 +91,27 @@ Section predicates.
       (discrete_fun_singleton n
         (gmap_view_auth (DfracOwn 1) (to_agree <$> I))).
   Definition ownI_auth (u : univ_id) (n : level) (I : gmap positive (SRFSyn.t n)) :=
-    own invariant_name (ownI_authR u n I).
+    own 1%positive (ownI_authR u n I).
 
   Definition wsat_authR u b : ownIRA :=
     discrete_fun_singleton u
       ((λ n, if (n <? b) then ε else gmap_view_auth (DfracOwn 1) ∅) : discrete_funUR InvSetRA).
-  Definition wsat_auth u b : iProp Σ := own invariant_name (wsat_authR u b).
+  Definition wsat_auth u b : iProp Σ := own 1%positive (wsat_authR u b).
 
   Definition ownER (u : univ_id) (E : coPset) : ownERA :=
     discrete_fun_singleton u (CoPset E).
   Definition ownE (u : univ_id) (E : coPset) : iProp Σ :=
-    own enabled_name (ownER u E).
+    own 1%positive (ownER u E).
 
   Definition ownDR (u : univ_id) (D : gset positive) : ownDRA :=
     discrete_fun_singleton u (◯ (GSet D)).
   Definition ownD (u : univ_id) (D : gset positive) : iProp Σ :=
-    own disabled_name (ownDR u D).
+    own 1%positive (ownDR u D).
 
   Definition ownD_authR  (u : univ_id) (D : gset positive) : ownDRA :=
     discrete_fun_singleton u (● (GSet D)).
   Definition ownD_auth (u : univ_id) : iProp Σ :=
-    ∃ D, own disabled_name (ownD_authR u D).
+    ∃ D, own 1%positive (ownD_authR u D).
 
   Lemma ownE_exploit u (E1 E2 : coPset) :
     ownE u E1 ∗ ownE u E2 ⊢ ⌜E1 ## E2⌝.
@@ -138,10 +138,7 @@ Section predicates.
 End predicates.
 
 Section wsat.
-  Context `{@SRFIntp.t (domain Σ) α, Γ : HRA, !subG Γ Σ, !invGS Σ Γ}.
-
-  (* Notation "'⟦' F ',' n '⟧'" := (SRFSem.t (Δ := domain Σ) n F). *)
-  (* Notation "'⟦' F '⟧'" := (SRFSem.t (Δ := domain Σ) _ F). *)
+  Context `{@SRFIntp.t (domain Σ) α, !invG α Σ Γ, !subHG Γ Σ}.
 
   Variable u : univ_id.
   Variable n : level.
@@ -247,8 +244,8 @@ Section wsat.
 End wsat.
 
 Section wsats.
-  Context `{@SRFIntp.t (domain Σ) α, Γ : HRA, !subG Γ Σ, !invGS Σ Γ}.
-  Local Existing Instances inv_preΣ inv_preΓ invGS_I invGS_E invGS_D.
+  Context `{@SRFIntp.t (domain Σ) α, !invG α Σ Γ, !subHG Γ Σ}.
+  (* Local Existing Instances inv_preΣ inv_preΓ invG_I invG_E invG_D. *)
 
   Definition wsats u n E : iProp Σ :=
     wsat_auth u n ∗ ownE u E ∗ ownD_auth u ∗ [∗ list] n ∈ (seq 0 n), wsat u n.
