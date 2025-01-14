@@ -154,6 +154,27 @@ Section SIM.
     iApply (BINDSIM with "H2"); iFrame.
   Qed.
 
+  Lemma isim_eqit_src r g ps pt {R} RR nths st_src st_tgt i_src0 i_src1 i_tgt
+    (EQIT: eqit eq false true i_src0 i_src1)
+    :
+    @isim r g R RR ps pt nths (st_src, i_src0) (st_tgt, i_tgt)
+    ⊢ isim r g RR ps pt nths (st_src, i_src1) (st_tgt, i_tgt).
+  Proof.
+    split; intros x wfx RRx.
+    guclo hpsim_eqitC_src_spec; econs; esplits; i; eauto; econs; eauto.
+  Qed.
+
+  Lemma isim_eqit_tgt r g ps pt {R} RR nths st_src st_tgt i_src i_tgt0 i_tgt1
+    (EQIT: eqit eq false true i_tgt0 i_tgt1)
+    :
+    @isim r g R RR ps pt nths (st_src, i_src) (st_tgt, i_tgt0)
+    ⊢ isim r g RR ps pt nths (st_src, i_src) (st_tgt, i_tgt1).
+  Proof.
+    split; intros x wfx RRx.
+    guclo hpsim_eqitC_tgt_spec; econs; esplits; i; eauto; econs; eauto.
+  Qed.
+
+
   (* Simulation rules *)
   Lemma isim_ret r g ps pt {R} RR nths st_src st_tgt v_src v_tgt :
     RR nths (st_src, v_src) (st_tgt, v_tgt)
@@ -223,6 +244,17 @@ Section SIM.
     split; intros x wfx SIM; guclo hpsimC_spec; econs; esplits; eauto; econs; eauto.
   Qed.
 
+  Lemma isim_inline_src_simpl r g ps pt {R} RR nths st_src st_tgt k_src i_tgt f fn varg
+      (FIND : alist_find fn fl_src = Some f) :
+    @isim r g R RR true pt nths (st_src, f varg >>= k_src) (st_tgt, i_tgt)
+    ⊢ @isim r g R RR ps pt nths (st_src, trigger (Call fn varg) >>= k_src) (st_tgt, i_tgt).
+  Proof.
+    iIntros. iApply isim_inline_src; eauto.
+    iApply isim_eqit_src; [|eauto].
+    ired. eapply eqit_bind; eauto using eqit_refl.
+    ii. ired. eauto using eqit_Tau_r, eqit_refl.
+  Qed.
+
   Lemma isim_inline_tgt r g ps pt {R} RR nths st_src st_tgt i_src k_tgt f fn varg
       (FIND : alist_find fn fl_tgt = Some f) :
     @isim r g R RR ps true nths (st_src, i_src) (st_tgt, f varg >>= (λ ret, tau;; tau;; Ret ret) >>= k_tgt)
@@ -230,7 +262,18 @@ Section SIM.
   Proof. 
     split; intros x wfx SIM; guclo hpsimC_spec; econs; esplits; eauto; econs; eauto.
   Qed.
-  
+
+  Lemma isim_inline_tgt_simpl r g ps pt {R} RR nths st_src st_tgt i_src k_tgt f fn varg
+      (FIND : alist_find fn fl_tgt = Some f) :
+    @isim r g R RR ps true nths (st_src, i_src) (st_tgt, f varg >>= k_tgt)
+    ⊢ @isim r g R RR ps pt nths (st_src, i_src) (st_tgt, trigger (Call fn varg) >>= k_tgt).
+  Proof.
+    iIntros. iApply isim_inline_tgt; eauto.
+    iApply isim_eqit_tgt; [|eauto].
+    ired. eapply eqit_bind; eauto using eqit_refl.
+    ii. ired. eauto using eqit_Tau_r, eqit_refl.
+  Qed.
+
   Lemma isim_take_src X r g ps pt {R} RR nths st_src st_tgt k_src i_tgt :
     (∀ x, @isim r g R RR true pt nths (st_src, k_src x) (st_tgt, i_tgt))
     ⊢ @isim r g R RR ps pt nths (st_src, trigger (Take X) >>= k_src) (st_tgt, i_tgt).

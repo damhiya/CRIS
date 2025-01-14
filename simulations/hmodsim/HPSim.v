@@ -660,6 +660,134 @@ Section HPSIM.
     eapply hpsim_frameC_mon, PR; eauto with paco.
   Qed.
 
+
+
+
+
+  Variant hpsim_eqitC_src
+    (r : ∀ R (RR : nat → (alist key Any.t) * R → (alist key Any.t) * R → iProp), bool → bool → nat → (alist key Any.t) * itree hmodE R → (alist key Any.t) * itree hmodE R → Σ → Prop) :
+    ∀ R (RR : nat → (alist key Any.t) * R → (alist key Any.t) * R → iProp), bool → bool → nat → (alist key Any.t) * itree hmodE R → (alist key Any.t) * itree hmodE R → Σ → Prop :=
+  | hpsim_eqitC_src_intro
+      ps pt nths R RR fmr st_src isrc0 isrc1 sti_tgt 
+      (EQIT: eqit eq false true isrc0 isrc1)
+      (SIM : r R RR ps pt nths (st_src, isrc0) sti_tgt fmr)
+    :
+    hpsim_eqitC_src r R RR ps pt nths (st_src, isrc1) sti_tgt fmr.
+
+  Lemma hpsim_eqitC_src_mon r1 r2 (LEr : r1 <8= r2) : hpsim_eqitC_src r1 <8= hpsim_eqitC_src r2.
+  Proof. ii. destruct PR. econs; eauto using hsupd_mon. Qed.
+
+  Lemma hpsim_eqitC_src_compatible : compatible8 _hpsim hpsim_eqitC_src.
+  Proof.
+    econs; first by eauto using hpsim_eqitC_src_mon. unfold rel8. ii.
+    destruct PR. remember (st_src, isrc0) as sti_src0.
+    move SIM before r. revert_until SIM.
+    pattern R, RR, ps, pt, nths, sti_src0, sti_tgt, fmr.
+    eapply _hpsim_tarski, SIM. i.
+    econs. ii. specialize (IN H). des. esplits; eauto.
+    punfold EQIT. subst. rr in EQIT.
+    remember (observe isrc0) as otgt0. remember (observe isrc1) as otgt1.
+    move EQIT before r. revert_until EQIT.
+    assert (EQIT_TAU:= @eqit_Tau). hdes. clear EQIT_TAU0.
+    induction EQIT; i; subst; pclearbot.
+    - ides isrc0. ides isrc1. eapply _hpsim'_mon; eauto; i.
+      + destruct x5. econs; eauto using eqit_refl.
+      + ss. destruct x3. eauto using eqit_refl.
+    - ides isrc0. ides isrc1.
+      inv IN; [..|guardH CLOSED|]; try itree_clarify H5; eauto using _hpsim', hpsim_eqitC_src.
+    - ides isrc0. ides isrc1. depdes H1.
+      Local Hint Unfold eqit: core.
+      inv IN; [..|guardH CLOSED|]; try itree_clarify H5;
+        try (assert (REL' := bind_ret_l_forall (fun v t => _ t (k0 v)) k_src REL);
+             s in REL');
+        try(match goal with [|-context[vis ?e ?k]] =>
+            replace (vis e k) with (x <- trigger e;; k x)
+                              by (rewrite bind_vis; repeat f_equal;
+                                  extensionalities; ired; eauto; fail)
+            end);
+      eauto using _hpsim', hpsim_eqitC_src, eqit_Vis.
+      + eapply hpsim_inline_src; eauto. eapply K; eauto.
+        eapply eqit_bind; eauto using eqit_refl. 
+    - ides isrc0.
+    - ides isrc1. destruct sti_tgt0 as [st_tgt itgt0].
+      eapply hpsim_tau_src; eauto.
+      eapply _hpsim_flag_mon with (ps:=ps0) (pt:=pt0); eauto.
+      econs. econs. eauto.
+  Qed.
+  
+  Lemma hpsim_eqitC_src_spec : hpsim_eqitC_src <9= gupaco8 _hpsim (cpn8 _hpsim).
+  Proof.
+    intros. gclo. econs; eauto using hpsim_eqitC_src_compatible.
+    eapply hpsim_eqitC_src_mon, PR; eauto with paco.
+  Qed.
+
+
+
+
+
+
+  Variant hpsim_eqitC_tgt
+    (r : ∀ R (RR : nat → (alist key Any.t) * R → (alist key Any.t) * R → iProp), bool → bool → nat → (alist key Any.t) * itree hmodE R → (alist key Any.t) * itree hmodE R → Σ → Prop) :
+    ∀ R (RR : nat → (alist key Any.t) * R → (alist key Any.t) * R → iProp), bool → bool → nat → (alist key Any.t) * itree hmodE R → (alist key Any.t) * itree hmodE R → Σ → Prop :=
+  | hpsim_eqitC_tgt_intro
+      ps pt nths R RR fmr sti_src st_tgt itgt0 itgt1
+      (EQIT: eqit eq false true itgt0 itgt1)
+      (SIM : r R RR ps pt nths sti_src (st_tgt, itgt0) fmr)
+    :
+    hpsim_eqitC_tgt r R RR ps pt nths sti_src (st_tgt, itgt1) fmr.
+
+  Lemma hpsim_eqitC_tgt_mon r1 r2 (LEr : r1 <8= r2) : hpsim_eqitC_tgt r1 <8= hpsim_eqitC_tgt r2.
+  Proof. ii. destruct PR. econs; eauto using hsupd_mon. Qed.
+
+  Lemma hpsim_eqitC_tgt_compatible : compatible8 _hpsim hpsim_eqitC_tgt.
+  Proof.
+    econs; first by eauto using hpsim_eqitC_tgt_mon. unfold rel8. ii.
+    destruct PR. remember (st_tgt, itgt0) as sti_tgt0.
+    move SIM before r. revert_until SIM.
+    pattern R, RR, ps, pt, nths, sti_src, sti_tgt0, fmr.
+    eapply _hpsim_tarski, SIM. i.
+    econs. ii. specialize (IN H). des. esplits; eauto.
+    punfold EQIT. subst. rr in EQIT.
+    remember (observe itgt0) as otgt0. remember (observe itgt1) as otgt1.
+    move EQIT before r. revert_until EQIT.
+    assert (EQIT_TAU:= @eqit_Tau). hdes. clear EQIT_TAU0.
+    induction EQIT; i; subst; pclearbot.
+    - ides itgt0. ides itgt1. eapply _hpsim'_mon; eauto; i.
+      + destruct x6. econs; eauto using eqit_refl.
+      + ss. destruct x4. eauto using eqit_refl.
+    - ides itgt0. ides itgt1.
+      depdes IN; try itree_clarify x; eauto using _hpsim', hpsim_eqitC_tgt.
+    - ides itgt0. ides itgt1. depdes H1.
+      Local Hint Unfold eqit: core.
+      inv IN; [..|guardH CLOSED|]; try itree_clarify H6;
+        try (assert (REL' := bind_ret_l_forall (fun v t => _ t (k0 v)) k_tgt REL);
+             s in REL');
+        try(match goal with [|-context[vis ?e ?k]] =>
+            replace (vis e k) with (x <- trigger e;; k x)
+                              by (rewrite bind_vis; repeat f_equal;
+                                  extensionalities; ired; eauto; fail)
+            end);
+      eauto using _hpsim', hpsim_eqitC_tgt, eqit_Vis.
+      + eapply hpsim_inline_tgt; eauto. eapply K; eauto.
+        eapply eqit_bind; eauto using eqit_refl.
+      + eapply hpsim_call_none; eauto. eapply K; eauto.
+        eapply eqit_bind; ii; eauto using eqit_refl.
+    - ides itgt0.
+    - ides itgt1. destruct sti_src0 as [st_src isrc0].
+      eapply hpsim_tau_tgt; eauto.
+      eapply _hpsim_flag_mon with (ps:=ps0) (pt:=pt0); eauto.
+      econs. econs. eauto.
+  Qed.
+  
+  Lemma hpsim_eqitC_tgt_spec : hpsim_eqitC_tgt <9= gupaco8 _hpsim (cpn8 _hpsim).
+  Proof.
+    intros. gclo. econs; eauto using hpsim_eqitC_tgt_compatible.
+    eapply hpsim_eqitC_tgt_mon, PR; eauto with paco.
+  Qed.
+
+
+
+
   (* TODO : currently not used. Maybe these need to be in the adequacy *)
   (* Definition hpsim_fsem : relation (Any.t → itree hmodE Any.t) :=
     (eq ==> hpsim_fun)%signature.
