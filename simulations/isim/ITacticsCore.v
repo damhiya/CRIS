@@ -615,11 +615,11 @@ Ltac prove_sub_perm :=
       | _ => try rewrite /y
       end
   end;
-  Lauto_normalize;
   match goal with
     [|-sub_perm ?x ?y] =>
       replace (sub_perm x y) with (sub_perm (x++[]) (y++[])) by (rewrite !app_nil_r; eauto)
   end;
+  Lauto_normalize;
   (hrepeat do 1 first [eapply sub_perm_cancel_head|eapply sub_perm_remove_head]);
   eapply sub_perm_refl.
 
