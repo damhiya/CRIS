@@ -22,7 +22,8 @@ Class GRA := GRA_mk {
 
 Definition gname := positive.
 Canonical Structure gnameO := leibnizO gname.
-Definition default_loc : gname := 1%positive.
+
+Definition base_γ : gname := 1%positive.
 
 Definition gid (Σ : GRA) := fin GRA_len.
 

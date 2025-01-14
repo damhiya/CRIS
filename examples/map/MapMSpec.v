@@ -16,7 +16,7 @@ Module MapMS. Section MapMS.
   Import MapM.
   Context `{!sinvG Σ Γ α β τ, !MapMGΓ Γ}.
 
-  Definition pending : iProp Σ := own default_loc (Excl ()).
+  Definition pending : iProp Σ := own base_γ (Excl ()).
   Lemma pending_unique : pending -∗ pending -∗ False.
   Proof.
     rewrite /pending; unseal "MapMS".

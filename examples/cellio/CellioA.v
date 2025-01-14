@@ -14,10 +14,10 @@ Module CellioA. Section CellioA.
   Context `{!sinvG Σ Γ α β τ, !CellioAGΓ Γ}.
 
   Definition auth (v : Z) : iProp Σ :=
-    own default_loc (●E v).
+    own base_γ (●E v).
 
   Definition cell (v : Z) : iProp Σ :=
-    own default_loc (◯E v).
+    own base_γ (◯E v).
 
   Lemma cell_auth_get v v':
     cell v -∗ auth v' -∗ ⌜v = v'⌝.
