@@ -98,47 +98,10 @@ Module Sch. Section MACRO.
 
 End MACRO. End Sch.
 
-Notation "x <- t1 |;; t2" := (ITree.bind t1 (fun x => (Sch.yield ;;; t2)))
+Notation "x <- t1 ||; t2" := (ITree.bind t1 (fun x => (Sch.yield ;;; t2)))
   (at level 62, t1 at next level, right associativity) : itree_scope.
-Notation "t1 |;;; t2" := (ITree.bind t1 (fun _ => (Sch.yield ;;;t2)))
+Notation "t1 ||;; t2" := (ITree.bind t1 (fun _ => (Sch.yield ;;;t2)))
   (at level 62, right associativity) : itree_scope.
-Notation "' p : T <- t1 |;; t2" :=
+Notation "' p : T <- t1 ||; t2" :=
   (ITree.bind t1 (fun x_ : T => match x_ with p => (Sch.yield ;;; t2) end))
   (at level 62, T at next level, t1 at next level, p pattern, right associativity) : itree_scope.
-
-Module TEST. Section TEST.
-
-  Context {Σ: GRA}.
-
-  Definition _spawn: (nat * string * SAny.t) -> itree pmodE unit :=
-    fun '(mtid, fn, arg) =>
-      trigger (Yield mtid)|;;;
-      'rv: SAny.t <- ccallU fn arg|;;
-      mytid <- trigger Tid|;;
-      let newths: list (nat * option SAny.t) := alist_replace mytid (Some rv) [] in
-      Sch.terminate
-  .
-
-  Definition retn : itree hmodE nat :=
-    n <- trigger (Choose nat) |;;
-    Ret n.
-
-  Definition retn' : itree hmodE nat :=
-    n <- trigger (Choose nat);;
-    Sch.yield;;;
-    Ret n.
-  
-  Goal retn = retn'. grind. Qed.
-
-  Definition ret1 : itree hmodE nat :=
-    trigger (Choose nat) |;;;
-    Ret 1.
-
-  Definition ret1' : itree hmodE nat :=
-    trigger (Choose nat);;;
-    Sch.yield;;;
-    Ret 1.
-  
-  Goal retn = retn'. grind. Qed.
-
-End TEST. End TEST.  
