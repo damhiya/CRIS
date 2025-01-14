@@ -67,7 +67,7 @@ Section A.
   Definition InitCond : Sk.t -> iProp :=
     fun _ => (SchAS.initial_threads)%I.
   
-  Definition t := Seal.sealing "ccr" (SMod.to_hmod (sch_ginv univ) GlobalStb Mod).
+  Definition t := Seal.sealing CRIS (SMod.to_hmod (sch_ginv univ) GlobalStb Mod).
 
 End A.
 End SchA. *)

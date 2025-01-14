@@ -68,6 +68,6 @@ Module RingA. Section RingA.
 
   Variable ginv : Sk.t -> invspec.
   Variable GlobalStb : Sk.t -> string -> option fspec.
-  Definition t := Seal.sealing "ccr" (SMod.to_hmod ginv GlobalStb Mod).
+  Definition t := Seal.sealing CRIS (SMod.to_hmod ginv GlobalStb Mod).
 
 End RingA. End RingA. *)

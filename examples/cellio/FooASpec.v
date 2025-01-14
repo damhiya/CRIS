@@ -9,11 +9,11 @@ Section FooAS.
   Context `{Σ: GRA}.
 
   Definition Stb: alist string fspec :=
-    Seal.sealing "ccr" [(FooName.foo, fspec_trivial)].
+    Seal.sealing CRIS [(FooName.foo, fspec_trivial)].
   
   Lemma Stb_nodup: List.NoDup (List.map fst Stb).
   Proof.
-    unfold Stb. unseal "ccr". prove_nodup.
+    unfold Stb. unseal CRIS. prove_nodup.
   Qed.
 
 End FooAS. End FooAS.

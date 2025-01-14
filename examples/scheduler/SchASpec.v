@@ -193,7 +193,7 @@ Section Sch.
     .
 
     Definition Stb (sk: Sk.t) (StbFun: Sk.t -> string -> option fspec): alist string fspec :=
-      Seal.sealing "ccr" 
+      Seal.sealing CRIS 
         [(SchName._spawn, _spawn_spec sk StbFun);
          (SchName.spawn, spawn_spec sk StbFun);
          (SchName.yield, yield_spec);
@@ -201,7 +201,7 @@ Section Sch.
 
     Lemma Stb_nodup sk StbFun: List.NoDup (List.map fst (Stb sk StbFun)).
     Proof.
-      unfold Stb. unseal "ccr". prove_nodup.
+      unfold Stb. unseal CRIS. prove_nodup.
     Qed.
 
   End SPEC.

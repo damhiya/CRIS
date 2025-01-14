@@ -134,14 +134,14 @@ Module MapAS. Section MapAS.
           λ vret, ⌜vret = Vundef↑⌝ ∗ ∃ v, points_to k v))%I.
   
   Definition Stb : alist string fspec :=
-    Seal.sealing "ccr"
+    Seal.sealing CRIS
       [(MapName.init, init_spec);
        (MapName.get, get_spec);
        (MapName.set, set_spec);
        (MapName.set_by_user, set_by_user_spec)].
   
   Lemma Stb_nodup : List.NoDup (List.map fst Stb).
-  Proof. unfold Stb. unseal "ccr". prove_nodup. Qed.
+  Proof. unfold Stb. unseal CRIS. prove_nodup. Qed.
 
   Definition fnsems :=
     [(MapName.init, (scopes, mk_specbody MapAS.init_spec fbody_trivial));
@@ -167,5 +167,5 @@ Module MapAS. Section MapAS.
 
   Variable ginv : Sk.t → invspec.
   Variable GlobalStb : Sk.t → string → option fspec.
-  Definition t := Seal.sealing "ccr" (SMod.to_hmod ginv GlobalStb Mod).
+  Definition t := Seal.sealing CRIS (SMod.to_hmod ginv GlobalStb Mod).
 End MapAS. End MapAS.

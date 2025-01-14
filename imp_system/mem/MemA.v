@@ -183,7 +183,7 @@ Module MemA. Section MemA.
           λ vret, res ∗ ⌜vret = (if ret then Vint 1 else Vint 0)↑⌝))%I.
 
   Definition Stb : alist string fspec :=  
-    Seal.sealing "ccr"
+    Seal.sealing CRIS
       [(MemName.alloc, alloc_spec);
        (MemName.free,  free_spec);
        (MemName.load,  load_spec);
@@ -217,7 +217,7 @@ Module MemA. Section MemA.
 
   Variable ginv : Sk.t → invspec.
   Variable GlobalStb : Sk.t → string → option fspec.
-  Definition t : HMod.t := Seal.sealing "ccr" (SMod.to_hmod ginv GlobalStb Mod).
+  Definition t : HMod.t := Seal.sealing CRIS (SMod.to_hmod ginv GlobalStb Mod).
 End MemA. End MemA.
 
 Global Opaque MemA.mem_points_to_singleton_r.

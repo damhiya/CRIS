@@ -40,10 +40,13 @@ Ltac by_coind CIH :=
   (hrepeat do 1 first[instantiate (1:= (_,_))|instantiate (1:= existT _ _)]); s;
   iApply CIH.
 
+Definition CRIS := "cris".
+Global Opaque CRIS.
+
 Ltac unfold_hmod :=
   match goal with
-  | [|-context[HMod.modsem ?x _]] => rewrite {1}/x; try unseal "ccr"
-  | [|-context[HMod.sk ?x]] => rewrite {1}/x; try unseal "ccr"
+  | [|-context[HMod.modsem ?x _]] => rewrite {1}/x; try unseal CRIS
+  | [|-context[HMod.sk ?x]] => rewrite {1}/x; try unseal CRIS
   end.
 
 Lemma ereplace T (x y: T):
@@ -466,7 +469,7 @@ Ltac unfold_stb :=
           erewrite (RW name);
           [|revert ND; unfold to_stb;
             match goal with [|-context[alist_find _ ?x]] => rewrite /x end;
-            unseal "ccr"; i;
+            unseal CRIS; i;
             alist_find_simpl;
             refl];
           simpl unwrapN; clear ND RW
