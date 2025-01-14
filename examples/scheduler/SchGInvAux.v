@@ -1,4 +1,4 @@
-(* Require Import CRIS.
+Require Import CRIS.
 
 Require Import SchGInv SchHeader SchASpec.
 
@@ -7,8 +7,8 @@ Set Implicit Arguments.
 Local Open Scope nat_scope.
 
 Section MACROAUX.
-
-  Context `{_W: @sinvG Σ Γ α β τ, !SchAS.G Γ}.
+  Import SchAS.
+  Context `{!sinvG Σ Γ α β τ, !SchAGΣ Σ}.
   Notation iProp := (iProp Σ).
 
   (** Sch.spawn LEMMA *)
@@ -22,9 +22,9 @@ Section MACROAUX.
     (FINDS: StbSch sk SchName.spawn = Some (SchAS.spawn_spec univ sk StbFun))
     (SPWN: ∀ tid, SchAS.fspec_spawnable univ fsp tid m fvarg↑ farg↑ pre postS)
     :
-      (((Ist nths st_src st_tgt) ∗ (∃ n, closed_universe univ n ⊤) ∗ pre) ∗
+      (((Ist nths st_src st_tgt) ∗ (∃ n, wsats univ n ⊤) ∗ pre) ∗
       (∀ nths0 st_src0 st_tgt0 tid,
-        ((Ist nths0 st_src0 st_tgt0) ∗ (∃ n, closed_universe univ n ⊤) ∗ (SchAS.token_th tid postS))
+        ((Ist nths0 st_src0 st_tgt0) ∗ (∃ n, wsats univ n ⊤) ∗ (SchAS.token_th tid postS))
         -∗ @isim Σ fl fr Ist my_tid false r g R RR true true nths0 
               (st_src0, k_src tid)
               (st_tgt0, k_tgt tid)))
@@ -76,8 +76,8 @@ Section MACROAUX.
 
     forces_l. iSplit; et. steps_l. forces_l. iSplitL "PRE W".
     { iFrame. iExists _. iSplit; et. Unshelve.
-      2:{ split; [exact (t, t0, b, o)|]. exists x. ss. }
-      2:exact ((x, t)↑). ss. iSplit; et. }
+      2:{ split; [exact (t0, t1, b, o)|]. exists x. ss. }
+      2:exact ((x, t0)↑). ss. iSplit; et. }
 
     call "IST"; et. iModIntro.
 
@@ -94,9 +94,9 @@ Section MACROAUX.
     (SPC: stb SchName.yield = Some (SchAS.yield_spec univ))
     :
     bi_entails
-      (((Ist nths st_src st_tgt) ∗ (∃ n, closed_universe univ n ⊤)) ∗
+      (((Ist nths st_src st_tgt) ∗ (∃ n, wsats univ n ⊤)) ∗
       (∀ nths0 st_src0 st_tgt0,
-        ((Ist nths0 st_src0 st_tgt0) ∗ (∃ n, closed_universe univ n ⊤))
+        ((Ist nths0 st_src0 st_tgt0) ∗ (∃ n, wsats univ n ⊤))
         -∗ @isim Σ fl fr Ist my_tid false r g R RR false true nths0 
               (st_src0, (HModSem.sandbox scp_src (interp_smod invspc stb (Sch.yield))) >>= k_src) 
               (st_tgt0, k_tgt tt)))
@@ -120,7 +120,7 @@ Section MACROAUX.
       iApply (isim_mono_knowledge with "[ISIM W IST]").
       - instantiate (1:=r). et.
       - instantiate (1:=g). ii. destruct sti_src, sti_tgt. iIntros "G". iModIntro. 
-        iApply H0. et.
+        iApply H. et.
       - iApply "ISIM"; iFrame.
     }
 
@@ -164,7 +164,7 @@ Section MACROAUX.
       iApply (isim_mono_knowledge with "[ISIM IST]").
       - instantiate (1:=r). et.
       - instantiate (1:=g). ii. destruct sti_src, sti_tgt. iIntros "G". iModIntro. 
-        iApply H0. et.
+        iApply H. et.
       - iApply "ISIM"; iFrame.
     }
 
@@ -188,9 +188,9 @@ Section MACROAUX.
     (SPC: stb SchName.yield = Some (SchAS.yield_spec univ))
     :
     bi_entails
-      (((Ist nths st_src st_tgt) ∗ (∃ n, closed_universe univ n ⊤)) ∗
+      (((Ist nths st_src st_tgt) ∗ (∃ n, wsats univ n ⊤)) ∗
       (∀ nths0 st_src0 st_tgt0,
-        ((Ist nths0 st_src0 st_tgt0) ∗ (∃ n, closed_universe univ n ⊤))
+        ((Ist nths0 st_src0 st_tgt0) ∗ (∃ n, wsats univ n ⊤))
         -∗ @isim Σ fl fr Ist my_tid false r g R RR true false nths0 
               (st_src0, k_src tt) 
               (st_tgt0, i_tgt)))
@@ -209,9 +209,9 @@ Section MACROAUX.
     (StbSch: Sk.t → string → option fspec) (univ: positive) (postS: SAny.t → {n & SRFSyn.t n})
     (FINDS: StbSch sk SchName.join = Some (SchAS.join_spec univ))
     :
-      (((Ist nths st_src st_tgt) ∗ (∃ n, closed_universe univ n ⊤) ∗ (SchAS.token_th tid postS)) ∗
+      (((Ist nths st_src st_tgt) ∗ (∃ n, wsats univ n ⊤) ∗ (SchAS.token_th tid postS)) ∗
       (∀ nths0 st_src0 st_tgt0 (ret: RT),
-        ((Ist nths0 st_src0 st_tgt0) ∗ (∃ n, closed_universe univ n ⊤) ∗ (interp_cond (postS ret↑↑)))
+        ((Ist nths0 st_src0 st_tgt0) ∗ (∃ n, wsats univ n ⊤) ∗ (interp_cond (postS ret↑↑)))
         -∗ @isim Σ fl fr Ist my_tid false r g R RR true true nths0 
               (st_src0, k_src ret)
               (st_tgt0, k_tgt ret)))
@@ -331,4 +331,4 @@ Ltac join hyps :=
     iApply isim_mjoin_hp; des_pairs; s;
     [|iSplitL hyps; [|iIntros "% % % %"; iIntrosFresh "[IST [W POST]]"]] |
     iApply isim_mjoin_hh; des_pairs; s;
-    [| |iSplitL hyps; [|iIntros "% % % %"; iIntrosFresh "IST"]]]. *)
+    [| |iSplitL hyps; [|iIntros "% % % %"; iIntrosFresh "IST"]]].

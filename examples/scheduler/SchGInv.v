@@ -19,12 +19,12 @@ Section AUX.
   Definition close_inv (u: positive) (n invn: nat) (ns: namespace) (p: SRFSyn.t invn) : iProp :=
     (⟦p⟧ -∗ wsats u n (⊤ ∖ ↑ns) ==∗ wsats u n ⊤).
 
-  Lemma open_invariant u lv0 lv1 ns p
+  (* Lemma open_invariant u lv0 lv1 ns p
     (LT: lv0 < lv1)
   :
     inv u lv0 ns p -∗ ( =|u, lv1|={⊤}=> ⟦ p ⟧ ∗ @close_inv u lv1 lv0 ns p).
   Proof.
-    (* iIntros "#INV". ss. iModIntro.
+    iIntros "#INV". ss. iModIntro.
     iApply elim_acc_fupd.
     iInv "INV" as "T".
     Search fupd.
@@ -35,7 +35,7 @@ Section AUX.
     iModIntro. iIntros "P CW". iPoseProof ("FU" with "[P]") as "P"; et.
     iPoseProof ("P" with "[CW]") as ">[U [FW _]]".
     { iDestruct "CW" as "[U FW]". iFrame. }
-    iModIntro. iFrame. *)
+    iModIntro. iFrame.
   Admitted.
 
   Lemma close_invariant u lv0 lv1 ns p
@@ -47,6 +47,6 @@ Section AUX.
     iIntros "(INV & W & CLOSE)".
     unfold close_inv. iPoseProof ("CLOSE" with "[INV]") as "INV"; et.
     iPoseProof ("INV" with "[W]") as "W"; et.
-  Qed.
+  Qed. *)
     
 End AUX.
