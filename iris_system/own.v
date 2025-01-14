@@ -4,7 +4,7 @@ Require Export base_logic.
 Require Import allocs.
 Require Import sflib.
 Require Import Level.
-Require Export iprop.
+Require Export base_logic iprop.
 Import uPred.
 
 (* Section uPredI.
