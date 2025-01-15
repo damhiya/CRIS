@@ -11,7 +11,7 @@ Section MACROAUX.
   Context `{!sinvG Σ Γ α β τ, !SchAGΣ Σ}.
   Notation iProp := (iProp Σ).
 
-  (** Sch.spawn LEMMA *)
+  (** Sch.spawn *)
 
   Lemma isim_mspawn_hp
     fl fr Ist r g {R} RR my_tid ps pt nths st_src st_tgt k_src k_tgt scp_src scp_tgt invspc
@@ -87,7 +87,7 @@ Section MACROAUX.
     steps_r. hss. steps_r. iApply "ISIM". iFrame.
   Qed.
 
-  (** YIELD LEMMA **)
+  (** Sch.yield **)
 
   Lemma isim_myield_tgt_hp
     fl fr Ist r g {R} RR my_tid ps pt nths st_src st_tgt k_src k_tgt scp_src scp_tgt invspc stb univ
@@ -203,7 +203,8 @@ Section MACROAUX.
     force_l. instantiate (1:=true). steps_l. iApply "ISIM"; iFrame.
   Qed.
 
-  (* Sch.join lemmas *)
+  (* Sch.join *)
+  
   Lemma isim_mjoin_hp
     fl fr Ist r g {R} RR my_tid ps pt nths st_src st_tgt RT (k_src k_tgt: RT → itree hmodE R) scp_src scp_tgt invspc tid sk
     (StbSch: Sk.t → string → option fspec) (univ: positive) (postS: SAny.t → {n & SRFSyn.t n})

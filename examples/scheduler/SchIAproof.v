@@ -150,8 +150,8 @@ Module SchIA. Section SchIA.
             ∧ <<THWF: ths_wf numths ths_tgt>>
             ∧ <<SIM: (∀ tid, sim_ths tid (alist_find tid ths_tgt) (ths_src_b tid) (ths_src_w tid) (ths_cond !! tid))>>
             ∧ <<NTHS: 0 < numths>>⌝
-          ∗ own default_loc (● ths_src_b)
-          ∗ own default_loc (◯ ths_src_w)
+          ∗ own base_γ (● ths_src_b)
+          ∗ own base_γ (◯ ths_src_w)
           ∗ ([∗ map] tid↦P ∈ ths_cond, P))%I.
 
   Local Notation SchAMod := (SchAS.t univ StbFun StbSch).
@@ -167,7 +167,7 @@ Module SchIA. Section SchIA.
     steps_l. des; subst; hss. destruct q2.
     iDestruct "ASM" as "(W & % & % & % & PRE & TKN)"; des; subst; hss.
     rewrite /is_Some in H2. des.
-    rewrite /token_half. unseal "SchA".
+    rewrite /token_half. unseal "SchA". steps_l.
 
     (* remove dependent type issue *)
     remember (existT x m) as DT. clear HeqDT.
@@ -486,15 +486,7 @@ Module SchIA. Section SchIA.
     - eapply simF_join; eauto.
   Qed.
 
-End SchIA.
-
-Section SchIA.
-  Context `{!sinvG Σ Γ α β τ, !SchAS.SchAGΣ Σ}.
-
-  Theorem correct univ (StbFun StbSch: Sk.t -> string -> option fspec)
-    (FunInStbSch: forall sk, stb_sub (StbFun sk) (StbSch sk))
-    (SchInStbSch: forall sk, stb_incl (SchAS.Stb univ sk StbFun) (StbSch sk))
-    :
+  Theorem correct :
     ctx_refines
       (SchAS.t univ StbFun StbSch, SchAS.InitCond)
       (SchI.t, const(emp%I)).
