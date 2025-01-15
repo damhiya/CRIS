@@ -70,12 +70,12 @@ Section HSSIM_ADEQUACY.
       eapply hpsim_adequacy; eauto; cycle 5.
       { apply le_mine_refl. ii; eauto. }
       { ginit; cycle 2; i.
-        eapply gpaco8_mon with (r := iunlift ibot) (rg:= iunlift ibot); eauto using iunlift_ibot.
+        eapply gpaco9_mon with (r := iunlift ibot) (rg:= iunlift ibot); eauto using iunlift_ibot.
         eapply isim_init; eauto.
         iIntros "H". iApply isim_upd. iPoseProof (MR with "H") as ">H".
         iModIntro. iApply x1; eauto.
         { eapply HPSim._hpsim_mon. }
-        { eapply cpn8_wcompat, HPSim._hpsim_mon. }
+        { eapply cpn9_wcompat, HPSim._hpsim_mon. }
       }
       { exact true. }
       { inv WFS. rewrite List.map_map.
