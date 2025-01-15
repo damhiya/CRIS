@@ -7,8 +7,6 @@ Set Implicit Arguments.
 Module SchA. Section SchA.
   Context {Σ: GRA}.
 
-  Definition scopes := ["Sch"].
-
   Definition _spawn : (nat * string * SAny.t) -> itree hmodE unit :=
     fun '(mtid, fn, args) =>
       trigger (Yield mtid);;;
