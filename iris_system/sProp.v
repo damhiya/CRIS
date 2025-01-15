@@ -4,7 +4,7 @@ Require Import sflib.
 From iris Require Import bi.big_op.
 From iris Require base_logic.lib.invariants.
 From Coq Require Import Program Arith.
-Require Export Coqlib iprop own SRF.
+Require Export Coqlib base_logic iprop own SRF.
 
 Global Instance domain (Σ : GRA) : SRFDom.t := { dom := iProp Σ }.
 

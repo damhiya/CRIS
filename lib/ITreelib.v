@@ -77,8 +77,11 @@ Proof.
   autorewrite with itree. refl.
 Qed.
 
-
-
+Lemma eqit_refl {E R} bs bt t:
+  @eqit E R R eq bs bt t t.
+Proof.
+  apply Reflexive_eqit_eq.
+Qed.  
 
 (*** TODO : move to SIRCommon ***)
 Lemma unfold_interp_mrec :
@@ -102,6 +105,14 @@ Qed.
 Lemma bind_ret_r_rev : forall (E : Type -> Type) (R : Type) (s : itree E R), s = ' x : R <- s;; Ret x.
 Proof.
   i. symmetry. apply bind_ret_r.
+Qed.
+
+Lemma bind_ret_l_forall
+  {X E R} (P: _ -> _ -> Prop) (k: X -> itree E R)
+  :
+  (forall v: X, P v (_v <- Ret v;; k _v)) -> (forall v: X, P v (k v)).
+Proof.
+  i. specialize (H v). revert H. rewrite bind_ret_l. eauto.
 Qed.
 
 Lemma bind_tau : forall (E : Type -> Type) (R U : Type) (t : itree E U) (k : U -> itree E R),

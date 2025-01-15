@@ -16,7 +16,7 @@ Module MapMS. Section MapMS.
   Import MapM.
   Context `{!sinvG Σ Γ α β τ, !MapMGΓ Γ}.
 
-  Definition pending : iProp Σ := own default_loc (Excl ()).
+  Definition pending : iProp Σ := own base_γ (Excl ()).
   Lemma pending_unique : pending -∗ pending -∗ False.
   Proof.
     rewrite /pending; unseal "MapMS".
@@ -48,14 +48,14 @@ Module MapMS. Section MapMS.
           λ vret, emp))%I.
 
   Definition Stb : alist string fspec :=
-    Seal.sealing "ccr"
+    Seal.sealing CRIS
       [(MapName.init, init_spec);
        (MapName.get, get_spec);
        (MapName.set, set_spec);
        (MapName.set_by_user, set_by_user_spec)].
 
   Lemma Stb_nodup : List.NoDup (List.map fst Stb).
-  Proof. by rewrite /Stb; unseal "ccr"; prove_nodup. Qed.
+  Proof. by rewrite /Stb; unseal CRIS; prove_nodup. Qed.
 
   Definition fnsems :=
     [(MapName.init, (scopes, mk_specbody MapMS.init_spec (cfunU init)));
@@ -82,5 +82,5 @@ Module MapMS. Section MapMS.
 
   Variable ginv : Sk.t → invspec.
   Variable GlobalStb : Sk.t → string → option (fspec).
-  Definition t := Seal.sealing "ccr" (@SMod.to_hmod Σ ginv GlobalStb Mod).
+  Definition t := Seal.sealing CRIS (@SMod.to_hmod Σ ginv GlobalStb Mod).
 End MapMS. End MapMS.

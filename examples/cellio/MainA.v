@@ -41,6 +41,6 @@ Module MainA. Section MainA.
 
   Variable GI: Sk.t -> invspec.
   Variable GlobalStb: Sk.t -> string -> option fspec.
-  Definition t := Seal.sealing "ccr" (SMod.to_hmod GI GlobalStb Mod).
+  Definition t := Seal.sealing CRIS (SMod.to_hmod GI GlobalStb Mod).
 
 End MainA. End MainA.

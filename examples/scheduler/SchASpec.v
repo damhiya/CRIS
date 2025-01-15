@@ -197,7 +197,7 @@ Module SchAS. Section SchAS.
     .
 
     Definition Stb (sk: Sk.t) (StbFun: Sk.t -> string -> option fspec): alist string fspec :=
-      Seal.sealing "ccr" 
+      Seal.sealing CRIS 
         [(SchName._spawn, _spawn_spec sk StbFun);
          (SchName.spawn, spawn_spec sk StbFun);
          (SchName.yield, yield_spec);

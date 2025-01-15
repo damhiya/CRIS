@@ -89,12 +89,12 @@ Module CellAS. Section CellAS.
       (fun ret => ⌜ret = tt↑⌝ ∗ cell v)))%I.
 
   Definition Stb : alist string fspec :=
-    Seal.sealing "ccr" [(CellName.get idx, get_spec);
+    Seal.sealing CRIS [(CellName.get idx, get_spec);
                         (CellName.set idx, set_spec)].
 
   Lemma Stb_nodup : List.NoDup (List.map fst Stb).
   Proof.
-    unfold Stb. unseal "ccr". prove_nodup.
+    unfold Stb. unseal CRIS. prove_nodup.
   Qed.
   
 End CellAS. End CellAS.

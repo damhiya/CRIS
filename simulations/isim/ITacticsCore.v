@@ -40,16 +40,20 @@ Ltac by_coind CIH :=
   (hrepeat do 1 first[instantiate (1:= (_,_))|instantiate (1:= existT _ _)]); s;
   iApply CIH.
 
+Definition CRIS := "cris".
+Global Opaque CRIS.
+
 Ltac unfold_hmod :=
   match goal with
-  | [|-context[HMod.modsem ?x _]] => rewrite {1}/x; progress unseal "ccr"
-  | [|-context[HMod.sk ?x]] => rewrite {1}/x; progress unseal "ccr" end.
+  | [|-context[HMod.modsem ?x _]] => rewrite {1}/x; try unseal CRIS
+  | [|-context[HMod.sk ?x]] => rewrite {1}/x; try unseal CRIS
+  end.
 
 Lemma ereplace T (x y: T):
   x = y -> x = y.
 Proof. eauto. Qed.
 
-Ltac alist_upd_simpl nodup_tac :=
+Ltac alist_upd_simpl :=
   match goal with
   [ |- context[alist_upd ?k ?v ?l]] =>
     match l with
@@ -57,7 +61,7 @@ Ltac alist_upd_simpl nodup_tac :=
       let TMP := fresh "_TMP" in
       let NODUP := fresh "NODUP" in
       match goal with [H: List.NoDup _|-_] =>
-        eassert (TMP: List.NoDup (List.map fst l)) by (nodup_tac H); clear H; revert TMP
+        eassert (TMP: List.NoDup (List.map fst l)) by (exact H); clear H; revert TMP
       end;
       erewrite (@ereplace _ l); [intros ?|Lauto_prepare; Lauto_find (k,v0); refl];
       eassert (NODUP := alist_upd_nodup k v _ TMP); revert NODUP;
@@ -65,9 +69,6 @@ Ltac alist_upd_simpl nodup_tac :=
       Lauto_finish; intros ?
     end
   end.
-
-Ltac trivial_nodup H :=
-  exact H.
 
 Ltac move_nodup :=
   (hrepeat do 1 match goal with [H: List.NoDup _ |- _ ] => guardH H; move H at top end);
@@ -77,14 +78,24 @@ Ltac move_nodup :=
   (hrepeat do 1 match goal with [H: ∀ _, stb_incl _ _ |- _ ] => guardH H; move H at top end);
   unguard.
 
-Ltac alist_find_simpl nodup_tac :=
+Lemma fst_map_snd {A B C} f:
+  (fst ∘ @map_snd A B C f) = fst.
+Proof.
+  extensionalities. destruct H. s. eauto.
+Qed.
+
+Ltac fnsems_nodup H :=
+  revert H; simpl HModSem.fnsems; (hrepeat do 1 unfold_hmod); simpl List.map;
+  try rewrite !List.map_map; try rewrite !fst_map_snd; eauto; fail.
+
+Ltac _alist_find_simpl :=
   match goal with
   [ |- context[alist_find ?k ?l]] =>
     match l with
     | context[(k,_)] =>
       let TMP := fresh "_TMP" in
       match goal with [H: List.NoDup _|-_] =>
-        eassert (TMP: List.NoDup (List.map fst l))  by (nodup_tac H);
+        eassert (TMP: List.NoDup (List.map fst l))  by (fnsems_nodup H);
         revert TMP
       end;
       erewrite (@ereplace _ l);
@@ -95,16 +106,18 @@ Ltac alist_find_simpl nodup_tac :=
       Lauto_finish
     end
   end.
-  
-Lemma fst_map_snd {A B C} f:
-  (fst ∘ @map_snd A B C f) = fst.
-Proof.
-  extensionalities. destruct H. s. eauto.
-Qed.
 
-Ltac fnsems_nodup H :=
-  revert H; simpl HModSem.fnsems; (hrepeat do 1 unfold_hmod); simpl List.map;
-  try rewrite !List.map_map; try rewrite !fst_map_snd; eauto; fail.
+Tactic Notation "alist_find_simpl_with" tactic(simpl_tac) :=
+  let GOAL := fresh "GOAL" in
+  match goal with [|-context [alist_find ?n ?x]] =>
+    pattern (alist_find n x) at 1;
+    match goal with [|- ?G _] => set (GOAL := G) end
+  end;
+  simpl HModSem.fnsems; (hrepeat do 1 unfold_hmod; simpl HModSem.fnsems);
+  simpl_tac;
+  unfold GOAL; clear GOAL.
+
+Ltac alist_find_simpl := alist_find_simpl_with (do 1 _alist_find_simpl).
 
 Ltac hss_des :=
   ss; des_safe; subst;
@@ -129,7 +142,7 @@ Ltac hss :=
   end);
   try (rewrite -> !Any.pair_split in * );
   try (rewrite -> !Any.upcast_downcast in * );
-  (hrepeat do 1 (alist_upd_simpl trivial_nodup));
+  (hrepeat do 1 alist_upd_simpl);
   hss_des;
   move_nodup.
 
@@ -456,8 +469,8 @@ Ltac unfold_stb :=
           erewrite (RW name);
           [|revert ND; unfold to_stb;
             match goal with [|-context[alist_find _ ?x]] => rewrite /x end;
-            unseal "ccr"; i;
-            alist_find_simpl fnsems_nodup;
+            unseal CRIS; i;
+            alist_find_simpl;
             refl];
           simpl unwrapN; clear ND RW
       end
@@ -488,14 +501,14 @@ Ltac prep :=
 
 Ltac step_l := let marker := fresh "MARKER" in
   hide_itree_r marker;
-  prep; _step_l; try alist_find_simpl fnsems_nodup; s; des_pairs; s;
+  prep; _step_l; try alist_find_simpl; s; des_pairs; s;
   show_itree marker.
 
 Ltac steps_l := hrepeat do 1 step_l.
 
 Ltac step_r := let marker := fresh "MARKER" in
   hide_itree_l marker;
-  prep; _step_r; try alist_find_simpl fnsems_nodup; s; des_pairs; s;
+  prep; _step_r; try alist_find_simpl; s; des_pairs; s;
   show_itree marker.
 
 Ltac steps_r := hrepeat do 1 step_r.
@@ -536,7 +549,7 @@ Ltac inline_l := let marker := fresh "MARKER" in
   prep;
   iApply isim_inline_src;
   [simpl HModSem.fnsems; (hrepeat do 1 unfold_hmod); simpl List.map;
-   alist_find_simpl fnsems_nodup; eauto|];
+   alist_find_simpl; eauto|];
   unfold interp_sb_hp, HoareFun; s;
   show_itree marker.
   
@@ -545,7 +558,7 @@ Ltac inline_r := let marker := fresh "MARKER" in
   prep;
   iApply isim_inline_tgt;
   [simpl HModSem.fnsems; (hrepeat do 1 unfold_hmod); simpl List.map;
-   alist_find_simpl fnsems_nodup; eauto|];
+   alist_find_simpl; eauto|];
   unfold interp_sb_hp, HoareFun; s;
   show_itree marker.
 
@@ -563,17 +576,11 @@ Ltac yield hyps := let marker := fresh "MARKER" in
   iSplitL hyps; [ |iIntros "% % % % %"; iIntrosFresh "IST"];
   move_nodup.
 
-Ltac init_simF :=
+Ltac pre_simF :=
   unfold HSim.sim_fun, HSim._sim_fun, HSSim.sim_fun; i;
-  match goal with [H: _|-_] => revert H end;
-  s; unfold_hmod;
-  match goal with [|-context[alist_find _ ?x]] =>
-    set (TMP := x); unfold_hmod; unfold TMP; clear TMP
-  end;
-  simpl HModSem.fnsems;
-  alist_find_simpl fnsems_nodup;
-  let H := fresh "TMP" in intros H; inv H;
-  alist_find_simpl fnsems_nodup;
+  match goal with [H: _|-_] => revert H end.
+
+Ltac post_simF :=
   eexists; split; [eauto|];
   (hrepeat do 1 match goal with
   | [|- context[{| fsb_body := cfunU ?x |}]] => rewrite {1}/x
@@ -586,6 +593,14 @@ Ltac init_simF :=
   unfold interp_sb_hp, HoareFun, cfunU, cfunN, HModSem.sandbox_body; s;
   ii; subst; iIntros "IST";
   move_nodup.
+  
+
+Ltac init_simF :=
+  pre_simF;
+  alist_find_simpl;
+  let H := fresh "H" in intro H; inv H;
+  alist_find_simpl;
+  post_simF.
 
 Ltac prove_sub_perm :=
   i; try rewrite /HMod.scopes; s; (hrepeat do 1 unfold_hmod); s; Lauto_normalize;
@@ -600,11 +615,11 @@ Ltac prove_sub_perm :=
       | _ => try rewrite /y
       end
   end;
-  Lauto_normalize;
   match goal with
     [|-sub_perm ?x ?y] =>
       replace (sub_perm x y) with (sub_perm (x++[]) (y++[])) by (rewrite !app_nil_r; eauto)
   end;
+  Lauto_normalize;
   (hrepeat do 1 first [eapply sub_perm_cancel_head|eapply sub_perm_remove_head]);
   eapply sub_perm_refl.
 
