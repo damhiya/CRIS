@@ -54,15 +54,20 @@ Section FSpec.
     end.
 End FSpec.
 
-Module Sch.
-  Definition spawn {E} `{coreE -< E} `{Events.callE -< E}: (string * SAny.t) → itree E nat :=
+Module Sch. Section MACRO.
+  Import Events.
+
+  Context {E: Type → Type}.
+  Context `{coreE -< E, callE -< E}.
+
+  Definition spawn : (string * SAny.t) → itree E nat :=
     Seal.sealing "Sch"
       (λ fnarg,
         'tid: nat <- ccallU SchName.spawn fnarg;;
         Ret tid)
   .
 
-  Definition yield {E} `{coreE -< E} `{Events.callE -< E}: itree E unit :=
+  Definition yield : itree E unit :=
     Seal.sealing "Sch"
       (ITree.iter ((fun (_: unit) =>
         b <- trigger (Choose bool);;
@@ -74,7 +79,7 @@ Module Sch.
       )) tt)
   .
 
-  Definition terminate {E} `{coreE -< E, Events.callE -< E}: itree E unit :=
+  Definition terminate : itree E unit :=
     Seal.sealing "Sch"
       (ITree.iter ((fun (_: unit) =>
         '():_ <- ccallU SchName.yield tt;;
@@ -82,7 +87,7 @@ Module Sch.
       )) tt)
   .
 
-  Definition join {E} `{coreE -< E, Events.callE -< E} (R: Type): nat → itree E R :=
+  Definition join (R: Type): nat → itree E R :=
     Seal.sealing "Sch"
       (λ tid,
         'ora: option SAny.t <- ccallU SchName.join tid;;
@@ -90,4 +95,13 @@ Module Sch.
         rv <- (ra↓↓)?;;
         Ret rv)
   .
-End Sch.
+
+End MACRO. End Sch.
+
+Notation "x <- t1 ||; t2" := (ITree.bind t1 (fun x => (Sch.yield ;;; t2)))
+  (at level 62, t1 at next level, right associativity) : itree_scope.
+Notation "t1 ||;; t2" := (ITree.bind t1 (fun _ => (Sch.yield ;;;t2)))
+  (at level 62, right associativity) : itree_scope.
+Notation "' p : T <- t1 ||; t2" :=
+  (ITree.bind t1 (fun x_ : T => match x_ with p => (Sch.yield ;;; t2) end))
+  (at level 62, T at next level, t1 at next level, p pattern, right associativity) : itree_scope.
