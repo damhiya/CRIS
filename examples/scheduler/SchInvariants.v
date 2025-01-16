@@ -154,4 +154,45 @@ Section fancy_aux.
 
 End fancy_aux.
 
+Section invariants.
+
+  Context `{@SRFIntp.t (domain Σ) α, Γ : HRA, !subG Γ Σ, !invG Σ Γ}.
+  Notation iProp := (iProp Σ).
+
+  Definition close_inv (u: positive) (n invn: nat) (ns: namespace) (p: SRFSyn.t invn) : iProp :=
+    (⟦p⟧ -∗ wsats u n (⊤ ∖ ↑ns) ==∗ wsats u n ⊤).
+
+  Lemma open_invariant u lv0 lv1 ns p
+    (LT: lv0 < lv1)
+  :
+    inv u lv0 ns p ∗ wsats u lv1 ⊤
+    ⊢
+    |==> (⟦ p ⟧ ∗ @close_inv u lv1 lv0 ns p ∗ wsats u lv1 (⊤∖↑ns)).
+  Proof.
+    iIntros "[#INV W]".
+    iPoseProof (FUpd_open with "[INV]") as "F"; et.
+    unfold FUpd, fancy_wsats, wsats.
+    iDestruct "W" as "(A & E & D & W)".
+    iPoseProof ("F" with "[E D W]") as "FU". { iFrame. }
+    iMod "FU". iDestruct "FU" as "(W & P & CI)". iSplitL "P"; et.
+    iSplitR "A W". 2:{ iFrame. et. }
+    iModIntro. unfold close_inv. iIntros "P W". iPoseProof ("CI" with "[P]") as "P"; et.
+    iDestruct "W" as "[U W]". iPoseProof ("P" with "[W]") as ">((E & D & W) & _)". { iFrame. }
+    iModIntro. iFrame.
+  Qed.
+
+  Lemma close_invariant u lv0 lv1 ns p
+    (LT: lv0 < lv1)
+  :
+    ⟦ p ⟧ ∗ wsats u lv1 (⊤∖↑ns) ∗ @close_inv u lv1 lv0 ns p
+    ⊢
+    |==> wsats u lv1 ⊤.
+  Proof.
+    iIntros "(INV & W & CLOSE)".
+    unfold close_inv. iPoseProof ("CLOSE" with "[INV]") as "INV"; et.
+    iPoseProof ("INV" with "[W]") as "W"; et.
+  Qed.
+
+End invariants.
+
 Global Opaque FUpd.
