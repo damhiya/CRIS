@@ -1,5 +1,4 @@
-(* Require Import CRIS.
-
+Require Import CRIS.
 Require Import CellioHeader CellioA CellioI.
 
 Set Implicit Arguments.
@@ -8,13 +7,12 @@ Local Open Scope nat_scope.
 
 Module CellioIA. Section CellioIA.
   Import CellioA.
-  Context `{!sinvG Σ Γ α β τ, !G Γ, !CellioA.G Γ}.
-  Notation iProp := (iProp Σ).
+  Context `{!sinvG Σ Γ α β τ, !CellioAGΓ Γ}.
 
   Variable ginv: Sk.t -> invspec.
-  Variable StbG: Sk.t -> gname -> option fspec.
+  Variable StbG: Sk.t -> string -> option fspec.
 
-  Definition Ist: Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp :=
+  Definition Ist: Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp Σ :=
     λ _ _ st_src st_tgt,
       (∃ v, ⌜st_tgt = [(CellioI.v_cv, v↑)]⌝ ∗ auth v)%I.
 
@@ -73,4 +71,4 @@ Module CellioIA. Section CellioIA.
     - apply simF_get; eauto.
   Qed.
 
-End CellioIA. End CellioIA. *)
+End CellioIA. End CellioIA.

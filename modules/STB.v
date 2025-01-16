@@ -6,13 +6,13 @@ Set Implicit Arguments.
 Create HintDb stb.
 Hint Rewrite (Seal.sealing_eq "stb") : stb.
 
-Definition to_stb `{Σ : GRA} (l : alist gname fspec) : gname -> option fspec :=
+Definition to_stb `{Σ : GRA} (l : alist string fspec) : string -> option fspec :=
   fun fn => alist_find fn l.
 
-Definition to_stb_context `{Σ : GRA} (stbu : list gname) (stbk : alist gname fspec) :=
+Definition to_stb_context `{Σ : GRA} (stbu : list string) (stbk : alist string fspec) :=
   to_stb (List.map (fun fn => (fn, fspec_trivial)) stbu ++ stbk).
 
-Definition to_closed_stb `{Σ : GRA} (l : alist gname fspec) : gname -> option fspec :=
+Definition to_closed_stb `{Σ : GRA} (l : alist string fspec) : string -> option fspec :=
   fun fn => match alist_find fn l with
             | Some fsp => Some fsp
             | _ => Some fspec_trivial
@@ -82,22 +82,22 @@ Section HEADER.
       iApply bupd_idemp. iApply POST0. iApply "H". }
   Qed.
 
-  Variant fn_has_spec (stb : gname -> option fspec) (fn : gname) (fsp : fspec) : Prop :=
+  Variant fn_has_spec (stb : string -> option fspec) (fn : string) (fsp : fspec) : Prop :=
   | fn_has_spec_intro fsp1
       (FIND : stb fn = Some fsp1)
       (WEAK : fspec_weaker fsp fsp1).
   Hint Constructors fn_has_spec : core.
 
-  Lemma fn_has_spec_weaker (stb : gname -> option fspec) (fn : gname) (fsp0 fsp1 : fspec)
+  Lemma fn_has_spec_weaker (stb : string -> option fspec) (fn : string) (fsp0 fsp1 : fspec)
       (SPEC : fn_has_spec stb fn fsp1)
       (WEAK : fspec_weaker fsp0 fsp1) :
     fn_has_spec stb fn fsp0.
   Proof. inv SPEC. econs; eauto. etrans; eauto. Qed.
 
-  Definition stb_sub (stb0 stb1 : gname -> option fspec) : Prop :=
+  Definition stb_sub (stb0 stb1 : string -> option fspec) : Prop :=
     ∀ fn fsp (FIND : stb0 fn = Some fsp), stb1 fn = Some fsp.
 
-  Definition stb_incl (stbl : alist gname fspec) (gstb : gname -> option fspec) : Prop :=
+  Definition stb_incl (stbl : alist string fspec) (gstb : string -> option fspec) : Prop :=
     List.NoDup (List.map fst stbl) ∧ stb_sub (to_stb stbl) gstb.
 
   Global Program Instance stb_sub_PreOrder : PreOrder stb_sub.
@@ -133,7 +133,7 @@ Section HEADER.
     Unshelve. exact string_Dec.
   Qed.
 
-  Definition stb_weaker (stb0 stb1 : gname -> option fspec) : Prop :=
+  Definition stb_weaker (stb0 stb1 : string -> option fspec) : Prop :=
     ∀ fn fsp0 (FINDTGT : stb0 fn = Some fsp0),
       ∃ fsp1, (<<FINDSRC : stb1 fn = Some fsp1>>) ∧ (<<WEAKER : fspec_weaker fsp0 fsp1>>).
 

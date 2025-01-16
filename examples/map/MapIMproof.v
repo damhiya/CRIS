@@ -73,9 +73,9 @@ Module MapIM. Section MapIM.
           ∗ (blk, ofs) |-> (fun_to_list f (Z.to_nat sz)))%I.
 
   Variable ginv : Sk.t → invspec.
-  Variable StbMap : Sk.t → gname → option fspec.
+  Variable StbMap : Sk.t → string → option fspec.
   Hypothesis MapInStbMap : forall sk, stb_incl MapMS.Stb (StbMap sk).
-  Variable StbMem : Sk.t → gname → option fspec.
+  Variable StbMem : Sk.t → string → option fspec.
 
   Local Notation MemA := (MemA.t ginv StbMem).
   Local Notation MapM := (MapMS.t ginv StbMap).

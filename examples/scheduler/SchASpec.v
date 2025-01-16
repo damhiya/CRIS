@@ -153,24 +153,24 @@ Section Sch.
             ⊢ (∃ sret: SAny.t, ((∃ n, closed_universe univ n ⊤) ∗ ⌜ret = sret↑⌝ 
                ∗ interp_cond (postS sret))))%I)).
 
-    Definition _spawn_spec (sk: Sk.t) (StbFun: Sk.t -> gname -> option fspec): fspec :=
+    Definition _spawn_spec (sk: Sk.t) (StbFun: Sk.t -> string -> option fspec): fspec :=
       wfspec_inv univ 
         (fspec_virtual
           (fun my_tid '(mid, fargs, fvargs, pre, postS, existT fn m) varg arg =>
-            (⌜varg = ((mid, fn, fvargs) : nat * gname * SAny.t) 
-              ∧ arg = ((mid, fn, fargs) : nat * gname * SAny.t)↑ 
+            (⌜varg = ((mid, fn, fvargs) : nat * string * SAny.t) 
+              ∧ arg = ((mid, fn, fargs) : nat * string * SAny.t)↑ 
               ∧ is_Some (StbFun sk fn)
               ∧ fspec_spawnable univ (find_fsp sk StbFun fn) my_tid m fvargs↑ fargs↑ pre postS⌝
             ∗ pre ∗ (token_half my_tid postS))%I)
           (fun _ _ (_: SAny.t) _ => (False)%I))
     .
 
-    Definition spawn_spec (sk: Sk.t) (StbFun: Sk.t -> gname -> option fspec): fspec :=
+    Definition spawn_spec (sk: Sk.t) (StbFun: Sk.t -> string -> option fspec): fspec :=
       wfspec_inv univ
         (fspec_virtual
           (fun _ '(fargs, fvargs, pre, postS, existT fn m) varg arg => 
-            (⌜varg = ((fn, fvargs): gname * SAny.t) 
-              ∧ arg = ((fn, fargs): gname * SAny.t)↑
+            (⌜varg = ((fn, fvargs): string * SAny.t) 
+              ∧ arg = ((fn, fargs): string * SAny.t)↑
               ∧ is_Some (StbFun sk fn)
               ∧ ∀ tid, fspec_spawnable univ (find_fsp sk StbFun fn) tid m fvargs↑ fargs↑ pre postS⌝
              ∗ pre)%I)
@@ -192,8 +192,8 @@ Section Sch.
             (fun vret => (∃ ret, ⌜vret = (Some ret)↑⌝ ∗ interp_cond (postS ret))%I))))
     .
 
-    Definition Stb (sk: Sk.t) (StbFun: Sk.t -> gname -> option fspec): alist gname fspec :=
-      Seal.sealing "ccr" 
+    Definition Stb (sk: Sk.t) (StbFun: Sk.t -> string -> option fspec): alist string fspec :=
+      Seal.sealing CRIS 
         [(SchName._spawn, _spawn_spec sk StbFun);
          (SchName.spawn, spawn_spec sk StbFun);
          (SchName.yield, yield_spec);
@@ -201,7 +201,7 @@ Section Sch.
 
     Lemma Stb_nodup sk StbFun: List.NoDup (List.map fst (Stb sk StbFun)).
     Proof.
-      unfold Stb. unseal "ccr". prove_nodup.
+      unfold Stb. unseal CRIS. prove_nodup.
     Qed.
 
   End SPEC.

@@ -1,4 +1,4 @@
-(* Require Import CRIS.
+Require Import CRIS.
 
 Require Import FooHeader.
 
@@ -8,12 +8,12 @@ Module FooAS.
 Section FooAS.
   Context `{Σ: GRA}.
 
-  Definition Stb: alist gname fspec :=
-    Seal.sealing "ccr" [(FooName.foo, fspec_trivial)].
+  Definition Stb: alist string fspec :=
+    Seal.sealing CRIS [(FooName.foo, fspec_trivial)].
   
   Lemma Stb_nodup: List.NoDup (List.map fst Stb).
   Proof.
-    unfold Stb. unseal "ccr". prove_nodup.
+    unfold Stb. unseal CRIS. prove_nodup.
   Qed.
 
-End FooAS. End FooAS. *)
+End FooAS. End FooAS.

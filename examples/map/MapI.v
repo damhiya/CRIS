@@ -85,5 +85,5 @@ Module MapI. Section MapI.
     PMod.sk := MapSK.t;
   |}.
 
-  Definition t : HMod.t := Seal.sealing "ccr" (PMod.to_hmod Mod).
+  Definition t : HMod.t := Seal.sealing CRIS (PMod.to_hmod Mod).
 End MapI. End MapI.

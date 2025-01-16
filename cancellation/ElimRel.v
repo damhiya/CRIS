@@ -6,7 +6,7 @@ Section REL.
   Context `{Σ: GRA}.
   Variable md: SMod.t.
 
-  Definition stb_global: Sk.t -> gname -> option fspec :=
+  Definition stb_global: Sk.t -> string -> option fspec :=
     fun sk fn =>
       option_map (fun scfsp => scfsp.2.(fsb_fspec))
         (alist_find fn (SMod.modsem md sk).(SModSem.fnsems)).
@@ -54,7 +54,7 @@ Section REL.
     my_tid <- trigger Tid;; tau;;
     trigger (Assume (ginv my_tid)).
 
-  Definition HoareSpawnE ginv (fsp: fspec) (fn: gname) (varg: Any.t) : itree hmodE nat :=
+  Definition HoareSpawnE ginv (fsp: fspec) (fn: string) (varg: Any.t) : itree hmodE nat :=
     x <- trigger (Choose fsp.(meta));; tau;;
     arg <- trigger (Choose Any.t);; tau;;
     tid <- trigger (Spawn fn arg);; tau;;
@@ -62,7 +62,7 @@ Section REL.
     HoareYieldE ginv tid;;; 
     Ret tid.
 
-  Definition SpawnCancelE (fn: gname) (varg: Any.t) : itree hmodE nat :=
+  Definition SpawnCancelE (fn: string) (varg: Any.t) : itree hmodE nat :=
     tid <- trigger (Spawn fn varg);; tau;;
     trigger (Yield tid);;;
     Ret tid.

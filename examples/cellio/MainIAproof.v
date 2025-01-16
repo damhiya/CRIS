@@ -1,21 +1,17 @@
-(* Require Import CRIS.
-
+Require Import CRIS.
 Require Import CellioHeader CellioA MainHeader MainA MainI FooASpec.
 
 Set Implicit Arguments.
 
-Local Open Scope nat_scope.
-
 Module MainIM. Section MainIM.
   Import CellioA.
-  Context `{!sinvG Σ Γ α β τ, !G Γ, !CellioA.G Γ}.
-  Notation iProp := (iProp Σ).
+  Context `{!sinvG Σ Γ α β τ, !CellioAGΓ Γ}.
 
-  Definition Ist: Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp :=
+  Definition Ist: Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp Σ :=
     λ _ _ st_src st_tgt, emp%I.
 
   Variable ginv: Sk.t -> invspec.
-  Variable Stb: Sk.t -> gname -> option fspec.
+  Variable Stb: Sk.t -> string -> option fspec.
   Hypothesis FooInStbMap: forall sk, stb_incl FooAS.Stb (Stb sk).
 
   Local Notation CellioA := (CellioA.t ginv Stb).
@@ -30,7 +26,7 @@ Module MainIM. Section MainIM.
     steps_l. iDestruct "ASM" as "%". subst.
 
     inline_r.
-    step_r. forces_r. iSplitL ""; eauto.
+    steps_r. forces_r. iSplitL ""; eauto.
     forces_r. steps_r. forces_r. iSplitL "ASM'"; eauto.
 
     steps_r. step.
@@ -67,4 +63,4 @@ Module MainIM. Section MainIM.
     - eapply simF_main; eauto.
   Qed.
 
-End MainIM. End MainIM. *)
+End MainIM. End MainIM.

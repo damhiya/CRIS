@@ -1,36 +1,38 @@
-(* Require Import CRIS.
-
+Require Import CRIS.
 Require Import CellioHeader.
 
 Set Implicit Arguments.
 
+Local Definition RA : ucmra :=
+  authUR (optionUR (exclR ZO)).
+Class CellioAGΓ (Γ : HRA) := {
+  #[global] RA_inG :: inG RA Γ;
+}.
+Definition CellioAΓ : HRA := #[RA].
+
 Module CellioA. Section CellioA.
-  Class G (Γ : HRA.t) := { #[local] RA_inG :: GRA.inG (excl_authR ZO) Γ}.
-  Context `{!sinvG Σ Γ α β τ, !G Γ}.
-  Local Notation iProp := (iProp Σ).
+  Context `{!sinvG Σ Γ α β τ, !CellioAGΓ Γ}.
 
-  Definition auth (v : Z) : iProp :=
-    Seal.sealing "CellioA"
-      (OwnM (●E v)).
+  Definition auth (v : Z) : iProp Σ :=
+    own base_γ (●E v).
 
-  Definition cell (v : Z) : iProp :=
-    Seal.sealing "CellioA"
-      OwnM (◯E v).
+  Definition cell (v : Z) : iProp Σ :=
+    own base_γ (◯E v).
 
   Lemma cell_auth_get v v':
-    cell v' -∗ auth v -∗ ⌜v = v'⌝.
+    cell v -∗ auth v' -∗ ⌜v = v'⌝.
   Proof.
-    rewrite /cell /auth; unseal "CellioA". 
+    rewrite /cell /auth.
     iIntros "P P'"; iCombine "P P'" as "P" gives %wf.
     by apply excl_auth_agree in wf.
   Qed.
 
   Lemma cell_auth_set v v':
-    cell v -∗ auth v -∗ |==> cell v' ∗ auth v'.
+    cell v -∗ auth v ==∗ cell v' ∗ auth v'.
   Proof.
-    rewrite /cell /auth; unseal "CellioA".
+    rewrite /cell /auth.
     iIntros "C AU". iCombine "C AU" as "H".
-    iMod (OwnM_Upd with "H") as "[C AU]"; last by (iModIntro; iSplitL "AU"). 
+    iMod (own_update with "H") as "[C AU]"; last by (iModIntro; iSplitL "AU"). 
     rewrite comm; apply excl_auth_update.
   Qed.
 
@@ -68,10 +70,10 @@ Module CellioA. Section CellioA.
     SMod.sk := CellioSK.t;
   |}.
 
-  Definition InitCond : Sk.t -> iProp :=
+  Definition InitCond : Sk.t -> iProp Σ :=
     λ _, CellioA.auth 0.
 
   Variable ginv: Sk.t -> invspec.
-  Variable GlobalStb: Sk.t -> gname -> option fspec.
-  Definition t := Seal.sealing "ccr" (SMod.to_hmod ginv GlobalStb Mod).
-End CellioA. End CellioA. *)
+  Variable GlobalStb: Sk.t -> string -> option fspec.
+  Definition t := Seal.sealing CRIS (SMod.to_hmod ginv GlobalStb Mod).
+End CellioA. End CellioA.

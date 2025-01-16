@@ -374,7 +374,7 @@ Section CANCEL.
       {R} Ist (P: iProp)
       ps pt sti_src sti_tgt
     :
-      (P ∗ @isim _ fls flt Ist my_tid is_closed r g R 
+      (P ∗ @isim _ fls flt Ist my_tid is_closed r g R R 
             (fun nths '(sts, vs) '(stt, vt) => ⌜vs = vt⌝ ∗ Ist nths sts stt)%I
             ps pt nths sti_src sti_tgt)  
       ⊢ isim fls flt Ist my_tid is_closed r g 

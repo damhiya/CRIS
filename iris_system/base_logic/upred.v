@@ -1,4 +1,4 @@
-(* This file corresponds to IProp.v file in earlier CCR developments. *)
+(* This file corresponds to IProp.v file in earlier CRIS developments. *)
 (* Major changes:
    - bupd is modified to a 'strong update'
    - no step indices and later modalities *)

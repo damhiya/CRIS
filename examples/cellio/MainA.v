@@ -1,22 +1,20 @@
-(* Require Import CRIS.
-
+Require Import CRIS.
 Require Import CellioA CellioHeader MainHeader FooHeader.
 
 Set Implicit Arguments.
 
 Module MainA. Section MainA.
   Import CellioA.
-  Context `{!sinvG Σ Γ α β τ, !G Γ, !CellioA.G Γ}.
-  Notation iProp := (iProp Σ).
+  Context `{!sinvG Σ Γ α β τ, !CellioAGΓ Γ}.
 
   Definition scopes := [MainName.mn].
 
   Definition main: Any.t -> itree hmodE Any.t :=
     λ _,
-      trigger (Assume (CellioA.cell 0));;;
-      i <- trigger (@IO _ Z "Input" tt);;
-      ccallU (Y:=unit) FooName.foo tt;;;
-      trigger (@IO _ unit "Print" i);;;
+      trigger (Assume (cell 0));;;
+      'i: Z <- trigger (IO "Input" tt);;
+      '_: unit <- ccallU FooName.foo tt;;
+      '_: unit <- trigger (IO "Print" i);;
       Ret tt↑
   .
   
@@ -38,11 +36,11 @@ Module MainA. Section MainA.
   |}
   .
 
-  Definition InitCond : Sk.t -> iProp :=
+  Definition InitCond : Sk.t -> iProp Σ :=
     λ _, emp%I.
 
   Variable GI: Sk.t -> invspec.
-  Variable GlobalStb: Sk.t -> gname -> option fspec.
-  Definition t := Seal.sealing "ccr" (SMod.to_hmod GI GlobalStb Mod).
+  Variable GlobalStb: Sk.t -> string -> option fspec.
+  Definition t := Seal.sealing CRIS (SMod.to_hmod GI GlobalStb Mod).
 
-End MainA. End MainA. *)
+End MainA. End MainA.

@@ -1,6 +1,6 @@
 From iris.bi Require Export derived_connectives extensions updates internal_eq plainly.
-From CRIS Require Export upred.
 From iris.prelude Require Import options.
+Require Export upred.
 Import uPred_primitive.
 
 (** BI instances for [uPred], and re-stating the remaining primitive laws in

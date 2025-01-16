@@ -47,7 +47,7 @@ Section FSpec.
 
   Definition wfspec_thread: fspec → fspec := (wfspec_inv univ) ∘ (wfspec_type SAny.t SAny.t).
 
-  Definition find_fsp (sk: Sk.t) (StbFun: Sk.t -> gname -> option fspec) (fn : gname) : fspec :=
+  Definition find_fsp (sk: Sk.t) (StbFun: Sk.t -> string -> option fspec) (fn : string) : fspec :=
     match (StbFun sk fn) with
     | Some fsp => fsp
     | None => fspec_trivial
@@ -55,7 +55,7 @@ Section FSpec.
 End FSpec.
 
 Module Sch.
-  Definition spawn {E} `{coreE -< E} `{Events.callE -< E}: (gname * SAny.t) → itree E nat :=
+  Definition spawn {E} `{coreE -< E} `{Events.callE -< E}: (string * SAny.t) → itree E nat :=
     Seal.sealing "Sch"
       (λ fnarg,
         'tid: nat <- ccallU SchName.spawn fnarg;;

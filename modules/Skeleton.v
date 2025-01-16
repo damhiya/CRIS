@@ -4,7 +4,7 @@ Set Implicit Arguments.
 Local Open Scope nat_scope.
 
 Module Sk.
-  Definition t := alist gname Any.t.
+  Definition t := alist string Any.t.
   Definition wf (sk : t) := List.NoDup (List.map fst sk).
   Definition unit : t := [].
   Definition add (sk1 sk2 : t) : t := sk1 ++ sk2.

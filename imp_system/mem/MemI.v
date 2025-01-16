@@ -68,7 +68,7 @@ Section MEMI.
      (MemName.store, ([scope], cfunU store)) ;
      (MemName.cmp,   ([scope], cfunU cmp))].
 
-  Variable csl : gname → bool.
+  Variable csl : string → bool.
 
   Program Definition MemSem (sk : Sk.t) : PModSem.t :=
     {|
@@ -87,7 +87,7 @@ Section MEMI.
   .
 
   Context `{Σ : GRA}.
-  Definition t : HMod.t := Seal.sealing "ccr" (PMod.to_hmod Mem).
+  Definition t : HMod.t := Seal.sealing CRIS (PMod.to_hmod Mem).
 
 End MEMI.
 End MemI.

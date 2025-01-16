@@ -6,7 +6,7 @@ Require Export HMod2Mod.
 
 Set Implicit Arguments.
 
-Definition fnsems_scopes {T} (fn : gname) (fnsems : alist gname (list string * T)) :=
+Definition fnsems_scopes {T} (fn : string) (fnsems : alist string (list string * T)) :=
   match (alist_find fn fnsems) with
   | Some (keys, body) => keys
   | None => []
@@ -20,7 +20,7 @@ Module HModSem. Section HModSem.
 
   Record t : Type := mk {
     scopes : list string;
-    fnsems : alist gname (list string * (Any.t → itree hmodE Any.t));
+    fnsems : alist string (list string * (Any.t → itree hmodE Any.t));
     initial_st : alist key Any.t;
 
     well_scoped_fns :

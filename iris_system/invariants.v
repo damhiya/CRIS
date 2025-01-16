@@ -1,10 +1,9 @@
 From stdpp Require Export namespaces coPset.
 Require Import sflib.
 From iris.algebra Require Import ofe auth agree coPset gset gmap_view.
-From CRIS.algebra Require Import functions.
 From iris Require Import bi.big_op.
 Require Import Coqlib.
-
+Require Import functions.
 Require Export SRF sProp own.
 
 Definition univ_id := positive.
@@ -46,16 +45,6 @@ Section invariants.
     #[local] invG_D :: inG ownDRA Γ;
   }.
 
-  (* Class invGΣ (Σ : GRA) := {
-    inv_preΣ : invGpreSΣ Σ;
-    1%positive : gname;
-  }.
-  Class invGΓ (Γ : HRA) := {
-    inv_preΓ : invGpreSΓ Γ;
-    1%positive : gname;
-    1%positive : gname;
-  }. *)
-
   Class invG (α : SRFCons.t) (Σ : GRA) (Γ : HRA) := {
     #[local] invG_Σ :: invGΣ α Σ;
     #[local] invG_Γ :: invGΓ Γ;
@@ -80,7 +69,7 @@ Section predicates.
       (discrete_fun_singleton n
         (gmap_view_frag i DfracDiscarded (to_agree p))).
   Definition ownI (u : univ_id) (n : level) (i : positive) (p : SRFSyn.t n) : iProp Σ :=
-    own 1%positive (ownIR u n i p).
+    own base_γ (ownIR u n i p).
 
   Global Instance ownI_persistent
     u n i p : Persistent (ownI u n i p).
@@ -91,27 +80,27 @@ Section predicates.
       (discrete_fun_singleton n
         (gmap_view_auth (DfracOwn 1) (to_agree <$> I))).
   Definition ownI_auth (u : univ_id) (n : level) (I : gmap positive (SRFSyn.t n)) :=
-    own 1%positive (ownI_authR u n I).
+    own base_γ (ownI_authR u n I).
 
   Definition wsat_authR u b : ownIRA :=
     discrete_fun_singleton u
       ((λ n, if (n <? b) then ε else gmap_view_auth (DfracOwn 1) ∅) : discrete_funUR InvSetRA).
-  Definition wsat_auth u b : iProp Σ := own 1%positive (wsat_authR u b).
+  Definition wsat_auth u b : iProp Σ := own base_γ (wsat_authR u b).
 
   Definition ownER (u : univ_id) (E : coPset) : ownERA :=
     discrete_fun_singleton u (CoPset E).
   Definition ownE (u : univ_id) (E : coPset) : iProp Σ :=
-    own 1%positive (ownER u E).
+    own base_γ (ownER u E).
 
   Definition ownDR (u : univ_id) (D : gset positive) : ownDRA :=
     discrete_fun_singleton u (◯ (GSet D)).
   Definition ownD (u : univ_id) (D : gset positive) : iProp Σ :=
-    own 1%positive (ownDR u D).
+    own base_γ (ownDR u D).
 
   Definition ownD_authR  (u : univ_id) (D : gset positive) : ownDRA :=
     discrete_fun_singleton u (● (GSet D)).
   Definition ownD_auth (u : univ_id) : iProp Σ :=
-    ∃ D, own 1%positive (ownD_authR u D).
+    ∃ D, own base_γ (ownD_authR u D).
 
   Lemma ownE_exploit u (E1 E2 : coPset) :
     ownE u E1 ∗ ownE u E2 ⊢ ⌜E1 ## E2⌝.

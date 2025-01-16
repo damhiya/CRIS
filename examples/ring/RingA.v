@@ -67,7 +67,7 @@ Module RingA. Section RingA.
     fun _ => ([∗ list] i↦_ ∈ (replicate max_size 0%Z), CellAS.pending i)%I.
 
   Variable ginv : Sk.t -> invspec.
-  Variable GlobalStb : Sk.t -> gname -> option fspec.
-  Definition t := Seal.sealing "ccr" (SMod.to_hmod ginv GlobalStb Mod).
+  Variable GlobalStb : Sk.t -> string -> option fspec.
+  Definition t := Seal.sealing CRIS (SMod.to_hmod ginv GlobalStb Mod).
 
 End RingA. End RingA. *)

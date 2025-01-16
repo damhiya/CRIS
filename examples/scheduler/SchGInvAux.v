@@ -15,9 +15,9 @@ Section MACROAUX.
 
   Lemma isim_mspawn_hp
     fl fr Ist r g {R} RR my_tid ps pt nths st_src st_tgt k_src k_tgt scp_src scp_tgt invspc
-    (StbFun StbSch: Sk.t → gname → option fspec) (univ: positive)
+    (StbFun StbSch: Sk.t → string → option fspec) (univ: positive)
     (sk: Sk.t) (fvarg farg: SAny.t) (pre: iProp) (postS: SAny.t → {n & SRFSyn.t n}) 
-    (fn: gname) (fsp: fspec) (m: meta fsp)
+    (fn: string) (fsp: fspec) (m: meta fsp)
     (FINDF: StbFun sk fn = Some fsp)
     (FINDS: StbSch sk SchName.spawn = Some (SchAS.spawn_spec univ sk StbFun))
     (SPWN: ∀ tid, SchAS.fspec_spawnable univ fsp tid m fvarg↑ farg↑ pre postS)
@@ -51,8 +51,8 @@ Section MACROAUX.
 
   Lemma isim_mspawn_hh
     fl fr Ist r g {R} RR my_tid ps pt nths st_src st_tgt k_src k_tgt scp_src scp_tgt invspc_src invspc_tgt
-    (stbf stb_src stb_tgt: Sk.t → gname → option fspec) (univ: positive)
-    (sk: Sk.t) (fvarg: SAny.t) (fn: gname) (fsp: fspec) (m: meta fsp)
+    (stbf stb_src stb_tgt: Sk.t → string → option fspec) (univ: positive)
+    (sk: Sk.t) (fvarg: SAny.t) (fn: string) (fsp: fspec) (m: meta fsp)
     (FIND: stbf sk fn = Some fsp)
     (SPWNS: stb_src sk SchName.spawn = Some (SchAS.spawn_spec univ sk stbf))
     (SPWNT: stb_tgt sk SchName.spawn = Some (SchAS.spawn_spec univ sk stbf))
@@ -206,7 +206,7 @@ Section MACROAUX.
   (* Sch.join lemmas *)
   Lemma isim_mjoin_hp
     fl fr Ist r g {R} RR my_tid ps pt nths st_src st_tgt RT (k_src k_tgt: RT → itree hmodE R) scp_src scp_tgt invspc tid sk
-    (StbSch: Sk.t → gname → option fspec) (univ: positive) (postS: SAny.t → {n & SRFSyn.t n})
+    (StbSch: Sk.t → string → option fspec) (univ: positive) (postS: SAny.t → {n & SRFSyn.t n})
     (FINDS: StbSch sk SchName.join = Some (SchAS.join_spec univ))
     :
       (((Ist nths st_src st_tgt) ∗ (∃ n, closed_universe univ n ⊤) ∗ (SchAS.token_th tid postS)) ∗

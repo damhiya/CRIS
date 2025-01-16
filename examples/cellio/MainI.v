@@ -1,4 +1,4 @@
-(* Require Import CRIS.
+Require Import CRIS.
 
 Require Import MainHeader CellioHeader FooHeader.
 
@@ -37,6 +37,6 @@ Section MainI.
   |}
   .
 
-  Definition t := Seal.sealing "ccr" (PMod.to_hmod Mod).
+  Definition t := Seal.sealing CRIS (PMod.to_hmod Mod).
 
-End MainI. End MainI. *)
+End MainI. End MainI.
