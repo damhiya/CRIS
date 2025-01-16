@@ -451,7 +451,7 @@ Section AUX.
     iPoseProof (SIM with "IST") as "SIM".
     iStopProof. Local Transparent isim.
     split; intros x wfx ISIM.
-    gfinal. right. eapply paco8_mon_bot; eauto.
+    gfinal. right. eapply paco9_mon_bot; eauto.
     rewrite! List.map_app.
     assert (EQ : (λ x, (map_snd HModSem.sandbox_body x).1) = @fst string _).
     { extensionalities. destruct H. eauto. }
@@ -480,7 +480,7 @@ Section AUX.
       ii. eapply mt.(HModSem.well_scoped_fns). 
       unfold fnsems_scopes. erewrite FINDT. ss.
     }
-    ginit. i. eapply gpaco8_mon; first eapply ISIM; eauto using iunlift_ibot.
+    ginit. i. eapply gpaco9_mon; first eapply ISIM; eauto using iunlift_ibot.
   Qed.
 
   Lemma hmod_sim_ctx (ms mt ctx : HMod.t) IC Ist is_closed

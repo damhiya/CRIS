@@ -19,11 +19,11 @@ Section HPSIM.
     λ fmr, ✓ fmr → ∃ fmr0, P fmr0 ∧ (Own fmr ⊢ |==> Own fmr0).
 
   Variant _hpsim'
-      (hpsimc : ∀ R (RR : nat → alist key Any.t * R → alist key Any.t * R → iProp),
-          bool → bool → nat → alist key Any.t * itree hmodE R → alist key Any.t * itree hmodE R → Σ → Prop)
-      {R} {RR : nat → alist key Any.t * R → alist key Any.t * R → iProp}
-      (hpsimi : bool → bool → nat → alist key Any.t * itree hmodE R → alist key Any.t * itree hmodE R → Σ → Prop)
-    : bool → bool → nat → alist key Any.t * itree hmodE R → alist key Any.t * itree hmodE R → Σ → Prop :=
+      (hpsimc : ∀ Rs Rt (RR : nat → alist key Any.t * Rs → alist key Any.t * Rt → iProp),
+          bool → bool → nat → alist key Any.t * itree hmodE Rs → alist key Any.t * itree hmodE Rt → Σ → Prop)
+      {Rs Rt} {RR : nat → alist key Any.t * Rs → alist key Any.t * Rt → iProp}
+      (hpsimi : bool → bool → nat → alist key Any.t * itree hmodE Rs → alist key Any.t * itree hmodE Rt → Σ → Prop)
+    : bool → bool → nat → alist key Any.t * itree hmodE Rs → alist key Any.t * itree hmodE Rt → Σ → Prop :=
 
   | hpsim_ret
       (HPSIM_RET : True)
@@ -250,23 +250,23 @@ Section HPSIM.
   | hpsim_progress
       (HPSIM_PROGRESS : True)
       nths sti_src sti_tgt fmr
-      (SIM : hpsimc R RR false false nths sti_src sti_tgt fmr)
+      (SIM : hpsimc Rs Rt RR false false nths sti_src sti_tgt fmr)
     :
     _hpsim' hpsimc hpsimi true true nths sti_src sti_tgt fmr.
 
-  Global Arguments _hpsim' hpsimc {R} RR hpsimi.
+  Global Arguments _hpsim' hpsimc {Rs Rt} RR hpsimi.
 
-  Inductive _hpsim hpsim R RR ps pt nths sti_src sti_tgt fmr : Prop :=
+  Inductive _hpsim hpsim Rs Rt RR ps pt nths sti_src sti_tgt fmr : Prop :=
   | hpsim_intro
-      (IN : hsupd (@_hpsim' hpsim R RR (@_hpsim hpsim R RR) ps pt nths sti_src sti_tgt) fmr).
+      (IN : hsupd (@_hpsim' hpsim Rs Rt RR (@_hpsim hpsim Rs Rt RR) ps pt nths sti_src sti_tgt) fmr).
 
-  Definition hpsim {R} RR := paco8 _hpsim bot8 R RR.
+  Definition hpsim {Rs Rt} RR := paco9 _hpsim bot9 Rs Rt RR.
 
-  Lemma _hpsim_tarski hpsim R RR rel
+  Lemma _hpsim_tarski hpsim Rs Rt RR rel
       (FIX : ∀ ps pt nths sti_src sti_tgt fmr
-          (IN : hsupd (@_hpsim' hpsim R RR rel ps pt nths sti_src sti_tgt) fmr),
+          (IN : hsupd (@_hpsim' hpsim Rs Rt RR rel ps pt nths sti_src sti_tgt) fmr),
         rel ps pt nths sti_src sti_tgt fmr) :
-    _hpsim hpsim R RR <6= rel.
+    _hpsim hpsim Rs Rt RR <6= rel.
   Proof.
     fix self 7. i.
     destruct PR. apply FIX. intros wf. specialize (IN wf); des.
@@ -277,35 +277,35 @@ Section HPSIM.
   Lemma hsupd_mon P Q r (IN : hsupd P r) (LE : P <1= Q) : hsupd Q r.
   Proof. by intros wf; specialize (IN wf); inv IN; exists x; split; des; eauto. Qed.
 
-  Lemma _hpsim'_mon r r' R RR s s'
+  Lemma _hpsim'_mon r r' Rs Rt RR s s'
       ps pt nths sti_src sti_tgt fmr
-      (REL : @_hpsim' r R RR s ps pt nths sti_src sti_tgt fmr)
-      (LEr : r <8= r')
+      (REL : @_hpsim' r Rs Rt RR s ps pt nths sti_src sti_tgt fmr)
+      (LEr : r <9= r')
       (LEs : s <6= s') :
-    @_hpsim' r' R RR s' ps pt nths sti_src sti_tgt fmr.
+    @_hpsim' r' Rs Rt RR s' ps pt nths sti_src sti_tgt fmr.
   Proof. 
     ii. destruct REL.
     all: des; esplits; eauto using _hpsim'.
   Qed.
   
-  Lemma _hpsim_mon : monotone8 _hpsim.
+  Lemma _hpsim_mon : monotone9 _hpsim.
   Proof.
     ii. eapply _hpsim_tarski, IN.
     i. econs. eauto using hsupd_mon, _hpsim'_mon.
   Qed.
 
-  Lemma _hpsim_mon_auto r r' R RR
+  Lemma _hpsim_mon_auto r r' Rs Rt RR
       ps pt nths sti_src sti_tgt fmr
-      (REL : _hpsim r R RR ps pt nths sti_src sti_tgt fmr)
-      (LEr : r <8= r') :
-    _hpsim r' R RR ps pt nths sti_src sti_tgt fmr.
+      (REL : _hpsim r Rs Rt RR ps pt nths sti_src sti_tgt fmr)
+      (LEr : r <9= r') :
+    _hpsim r' Rs Rt RR ps pt nths sti_src sti_tgt fmr.
   Proof. eapply _hpsim_mon; eauto. Qed.
 
   Hint Constructors _hpsim' _hpsim : core.
   Hint Unfold hpsim : core.
   Hint Resolve _hpsim_mon : paco.
   Hint Resolve hsupd_mon _hpsim'_mon _hpsim_mon_auto : paco.
-  Hint Resolve cpn8_wcompat : paco.
+  Hint Resolve cpn9_wcompat : paco.
 
   Definition hpsim_tail : nat → (alist key Any.t) * Any.t → (alist key Any.t) * Any.t → iProp :=
     fun nths '(st_src, v_src) '(st_tgt, v_tgt) => (⌜v_src = v_tgt⌝ ∗ Ist nths st_src st_tgt)%I.
@@ -315,7 +315,7 @@ Section HPSIM.
       (NODFT : List.NoDup (List.map fst fl_tgt))
       (NODS : List.NoDup (List.map fst sti_src.1))
       (NODD : List.NoDup (List.map fst sti_tgt.1)),
-    @hpsim _ hpsim_tail ps pt nths sti_src sti_tgt fmr.
+    @hpsim _ _ hpsim_tail ps pt nths sti_src sti_tgt fmr.
 
   Definition hpsim_fun (i_src : itree hmodE Any.t) (i_tgt : itree hmodE Any.t) : Prop :=
     ∀ nths st_src st_tgt fmr (INV : Own fmr ⊢ |==> Ist nths st_src st_tgt),
@@ -351,11 +351,11 @@ Section HPSIM.
     hsupd P r.
   Proof. intros wf; hexploit (IN wf wf); i; des; clarify; esplits; eauto. Qed.
 
-  Lemma _hpsim_flag_mon r R RR (ps pt ps' pt' : bool) nths st_src st_tgt fmr
-      (SIM : _hpsim r R RR ps pt nths st_src st_tgt fmr)
+  Lemma _hpsim_flag_mon r Rs Rt RR (ps pt ps' pt' : bool) nths st_src st_tgt fmr
+      (SIM : _hpsim r Rs Rt RR ps pt nths st_src st_tgt fmr)
       (LES : ps → ps')
       (LET : pt → pt') :
-    _hpsim r R RR ps' pt' nths st_src st_tgt fmr.
+    _hpsim r Rs Rt RR ps' pt' nths st_src st_tgt fmr.
   Proof.
     move SIM before r. revert_until SIM.
     pattern ps, pt, nths, st_src, st_tgt, fmr.
@@ -367,90 +367,90 @@ Section HPSIM.
     econs; esplits; eauto.
   Qed.
 
-  Lemma hpsim_flag_mon R RR (ps pt ps' pt' : bool) nths st_src st_tgt fmr
-      (SIM : @hpsim R RR ps pt nths st_src st_tgt fmr)
+  Lemma hpsim_flag_mon Rs Rt RR (ps pt ps' pt' : bool) nths st_src st_tgt fmr
+      (SIM : @hpsim Rs Rt RR ps pt nths st_src st_tgt fmr)
       (LES : ps → ps')
       (LET : pt → pt') :
     hpsim RR ps' pt' nths st_src st_tgt fmr.
   Proof.
     move SIM before RR. revert_until SIM. pcofix CIH. i.
     pstep. eapply _hpsim_flag_mon; eauto.
-    eapply paco8_mon_bot in SIM; eauto. punfold SIM.
+    eapply paco9_mon_bot in SIM; eauto. punfold SIM.
   Qed.
 
-  Lemma hpsim_progress_flag R RR r g nths st_src st_tgt fmr
-      (SIM : gpaco8 _hpsim (cpn8 _hpsim) g g R RR false false nths st_src st_tgt fmr) :
-    gpaco8 _hpsim (cpn8 _hpsim) r g R RR true true nths st_src st_tgt fmr.
+  Lemma hpsim_progress_flag Rs Rt RR r g nths st_src st_tgt fmr
+      (SIM : gpaco9 _hpsim (cpn9 _hpsim) g g Rs Rt RR false false nths st_src st_tgt fmr) :
+    gpaco9 _hpsim (cpn9 _hpsim) r g Rs Rt RR true true nths st_src st_tgt fmr.
   Proof.
     gstep. econs. r; esplits; eauto.
   Qed.
 
-  Definition hpsimC hpsim R RR ps pt nths sti_src sti_tgt fmr :=
-    hsupd (@_hpsim' hpsim R RR (hpsim R RR) ps pt nths sti_src sti_tgt) fmr.
+  Definition hpsimC hpsim Rs Rt RR ps pt nths sti_src sti_tgt fmr :=
+    hsupd (@_hpsim' hpsim Rs Rt RR (hpsim Rs Rt RR) ps pt nths sti_src sti_tgt) fmr.
   
-  Lemma hpsimC_mon : monotone8 hpsimC.
+  Lemma hpsimC_mon : monotone9 hpsimC.
   Proof.
     ii. specialize (IN H). des.
     destruct IN; econs; esplits; eauto; try by esplits; eauto.
   Qed.
 
-  Lemma hpsimC_spec : hpsimC <9= gupaco8 _hpsim (cpn8 _hpsim).
+  Lemma hpsimC_spec : hpsimC <10= gupaco9 _hpsim (cpn9 _hpsim).
   Proof.
-    eapply wrespect8_uclo; eauto with paco.
+    eapply wrespect9_uclo; eauto with paco.
     econs; eauto using hpsimC_mon; i.
     econs. ii. destruct PR; eauto. des. esplits; eauto.
-    eapply _hpsim'_mon; eauto using rclo8, _hpsim_mon_auto; i.
+    eapply _hpsim'_mon; eauto using rclo9, _hpsim_mon_auto; i.
   Qed.
 
   Variant hpsim_flagC 
-      (r : ∀ (R : Type) (RR : nat → (alist key Any.t) * R → (alist key Any.t) * R → iProp),
-        bool → bool → nat → (alist key Any.t) * itree hmodE R → (alist key Any.t) * itree hmodE R → Σ → Prop)
-      R RR ps1 pt1 nths st_src st_tgt fmr : Prop :=
+      (r : ∀ (Rs Rt : Type) (RR : nat → (alist key Any.t) * Rs → (alist key Any.t) * Rt → iProp),
+        bool → bool → nat → (alist key Any.t) * itree hmodE Rs → (alist key Any.t) * itree hmodE Rt → Σ → Prop)
+      Rs Rt RR ps1 pt1 nths st_src st_tgt fmr : Prop :=
   | hpsim_flagC_intro ps0 pt0
-    (SIM : r R RR ps0 pt0 nths st_src st_tgt fmr)
+    (SIM : r Rs Rt RR ps0 pt0 nths st_src st_tgt fmr)
     (SRC : ps0 = true → ps1 = true)
     (TGT : pt0 = true → pt1 = true).
 
-  Lemma hpsim_flagC_mon r1 r2 (LE : r1 <8= r2) :
-    hpsim_flagC r1 <8= hpsim_flagC r2.
+  Lemma hpsim_flagC_mon r1 r2 (LE : r1 <9= r2) :
+    hpsim_flagC r1 <9= hpsim_flagC r2.
   Proof. ii. destruct PR; econs; et. Qed.
 
   Hint Resolve hpsim_flagC_mon : paco.
   
-  Lemma hpsim_flagC_spec : hpsim_flagC <9= gupaco8 _hpsim (cpn8 _hpsim).
+  Lemma hpsim_flagC_spec : hpsim_flagC <10= gupaco9 _hpsim (cpn9 _hpsim).
   Proof.
-    eapply wrespect8_uclo; eauto with paco.
+    eapply wrespect9_uclo; eauto with paco.
     econs; eauto with paco. i. inv PR.
-    eauto using _hpsim_flag_mon, _hpsim_mon_auto, rclo8.
+    eauto using _hpsim_flag_mon, _hpsim_mon_auto, rclo9.
   Qed.
 
-  Lemma hpsim_flag_down R RR r g ps pt nths st_src st_tgt fmr
-      (SIM : gpaco8 _hpsim (cpn8 _hpsim) r g R RR false false nths st_src st_tgt fmr) :
-    gpaco8 _hpsim (cpn8 _hpsim) r g R RR ps pt nths st_src st_tgt fmr.
+  Lemma hpsim_flag_down Rs Rt RR r g ps pt nths st_src st_tgt fmr
+      (SIM : gpaco9 _hpsim (cpn9 _hpsim) r g Rs Rt RR false false nths st_src st_tgt fmr) :
+    gpaco9 _hpsim (cpn9 _hpsim) r g Rs Rt RR ps pt nths st_src st_tgt fmr.
   Proof. 
     guclo hpsim_flagC_spec. econs; et. 
   Qed.
 
   Variant hpsim_bindC
-      (r : ∀ R (RR : nat → (alist key Any.t) * R → (alist key Any.t) * R → iProp),
-        bool → bool → nat → (alist key Any.t) * itree hmodE R → (alist key Any.t) * itree hmodE R → Σ → Prop)
-    : ∀ R (RR : nat → (alist key Any.t) * R → (alist key Any.t) * R → iProp),
-        bool → bool → nat → (alist key Any.t) * itree hmodE R → (alist key Any.t) * itree hmodE R → Σ → Prop :=
+      (r : ∀ Rs Rt (RR : nat → (alist key Any.t) * Rs → (alist key Any.t) * Rt → iProp),
+        bool → bool → nat → (alist key Any.t) * itree hmodE Rs → (alist key Any.t) * itree hmodE Rt → Σ → Prop)
+    : ∀ Rs Rt (RR : nat → (alist key Any.t) * Rs → (alist key Any.t) * Rt → iProp),
+        bool → bool → nat → (alist key Any.t) * itree hmodE Rs → (alist key Any.t) * itree hmodE Rt → Σ → Prop :=
   | hpsim_bindC_intro
-      ps pt nths Q QQ st_src st_tgt i_src i_tgt fmr
-      (SIM : r Q QQ ps pt nths (st_src, i_src) (st_tgt, i_tgt) fmr)
-      R RR k_src k_tgt
+      ps pt nths Qs Qt QQ st_src st_tgt i_src i_tgt fmr
+      (SIM : r Qs Qt QQ ps pt nths (st_src, i_src) (st_tgt, i_tgt) fmr)
+      Rs Rt RR k_src k_tgt
       (SIMK : ∀ nths0 st_src0 st_tgt0 vret_src vret_tgt fmr0
           (RET : Own fmr0 ⊢ |==> QQ nths0 (st_src0, vret_src) (st_tgt0, vret_tgt)),
-        r R RR false false nths0 (st_src0, k_src vret_src) (st_tgt0, k_tgt vret_tgt) fmr0)
+        r Rs Rt RR false false nths0 (st_src0, k_src vret_src) (st_tgt0, k_tgt vret_tgt) fmr0)
     :
-    hpsim_bindC r R RR ps pt nths (st_src, i_src >>= k_src) (st_tgt, i_tgt >>= k_tgt) fmr.
+    hpsim_bindC r Rs Rt RR ps pt nths (st_src, i_src >>= k_src) (st_tgt, i_tgt >>= k_tgt) fmr.
 
-  Lemma hpsim_bindC_mon r1 r2 (LEr : r1 <8= r2) : hpsim_bindC r1 <8= hpsim_bindC r2.
+  Lemma hpsim_bindC_mon r1 r2 (LEr : r1 <9= r2) : hpsim_bindC r1 <9= hpsim_bindC r2.
   Proof. ii. destruct PR; econs; et. Qed.
 
   (* Local Hint Resolve Own_wand_valid : core. *)
-  Lemma hpsim_bindC_wrespectful : wrespectful8 _hpsim hpsim_bindC.
+  Lemma hpsim_bindC_wrespectful : wrespectful9 _hpsim hpsim_bindC.
   Proof.
     econs; eauto using hpsim_bindC_mon; i.
     destruct PR. apply GF in SIM.
@@ -464,38 +464,38 @@ Section HPSIM.
       try (by rr; i; esplits; eauto with paco);
       try (by do 2 (econs; esplits; eauto with paco);
               repeat rewrite <-bind_bind;
-              eauto 10 using rclo8, hpsim_bindC).
+              eauto 7 using rclo9, hpsim_bindC).
     - exploit SIMK; eauto.
-      i. apply GF in x0. eapply (_hpsim_flag_mon _ _ _ _  _ ps0 pt0) in x0; try by i; clarify.
+      i. apply GF in x0. eapply (_hpsim_flag_mon _ _ _ _ _  _ ps0 pt0) in x0; try by i; clarify.
       destruct x0. eapply hsupd_update in IN; eauto.
-      eapply _hpsim_mon_auto; eauto using rclo8.
+      eapply _hpsim_mon_auto; eauto using rclo9.
       eapply Own_bupd_update; eauto.
     - esplits; eauto. eapply hpsim_call_none; eauto.
       unfold triggerNB. ired. econs. econs. esplits; eauto.
       econs; eauto. i. ss.  
   Qed.
 
-  Lemma hpsim_bindC_spec : hpsim_bindC <9= gupaco8 _hpsim (cpn8 _hpsim).
+  Lemma hpsim_bindC_spec : hpsim_bindC <10= gupaco9 _hpsim (cpn9 _hpsim).
   Proof.
-    intros. eapply wrespect8_uclo; eauto with paco.
+    intros. eapply wrespect9_uclo; eauto with paco.
     apply hpsim_bindC_wrespectful.
   Qed.
 
 
   Variant hpsim_extendC
-    (r : ∀ R (RR : nat → (alist key Any.t) * R → (alist key Any.t) * R → iProp), bool → bool → nat → (alist key Any.t) * itree hmodE R → (alist key Any.t) * itree hmodE R → Σ → Prop) :
-    ∀ R (RR : nat → (alist key Any.t) * R → (alist key Any.t) * R → iProp), bool → bool → nat → (alist key Any.t) * itree hmodE R → (alist key Any.t) * itree hmodE R → Σ → Prop :=
+    (r : ∀ Rs Rt (RR : nat → (alist key Any.t) * Rs → (alist key Any.t) * Rt → iProp), bool → bool → nat → (alist key Any.t) * itree hmodE Rs → (alist key Any.t) * itree hmodE Rt → Σ → Prop) :
+    ∀ Rs Rt (RR : nat → (alist key Any.t) * Rs → (alist key Any.t) * Rt → iProp), bool → bool → nat → (alist key Any.t) * itree hmodE Rs → (alist key Any.t) * itree hmodE Rt → Σ → Prop :=
   | hpsim_extendC_intro
-      ps pt nths R RR sti_src sti_tgt fmr fmr'
-      (SIM : r R RR ps pt nths sti_src sti_tgt fmr)
+      ps pt nths Rs Rt RR sti_src sti_tgt fmr fmr'
+      (SIM : r Rs Rt RR ps pt nths sti_src sti_tgt fmr)
       (EXT : fmr ≼ fmr') :
-    hpsim_extendC r R RR ps pt nths sti_src sti_tgt fmr'.
+    hpsim_extendC r Rs Rt RR ps pt nths sti_src sti_tgt fmr'.
 
-  Lemma hpsim_extendC_mon r1 r2 (LEr : r1 <8= r2) : hpsim_extendC r1 <8= hpsim_extendC r2.
+  Lemma hpsim_extendC_mon r1 r2 (LEr : r1 <9= r2) : hpsim_extendC r1 <9= hpsim_extendC r2.
   Proof. ii. destruct PR; econs; et. Qed.
 
   Lemma hpsim_extendC_compatible :
-    compatible8 _hpsim hpsim_extendC.
+    compatible9 _hpsim hpsim_extendC.
   Proof.
     econs; eauto using hpsim_extendC_mon.
     intros. destruct PR. destruct SIM. econs.
@@ -504,48 +504,48 @@ Section HPSIM.
     i. econs; eauto; refl.
   Qed.
   
-  Lemma hpsim_extendC_spec : hpsim_extendC <9= gupaco8 _hpsim (cpn8 _hpsim).
+  Lemma hpsim_extendC_spec : hpsim_extendC <10= gupaco9 _hpsim (cpn9 _hpsim).
   Proof.
     intros. gclo. econs; eauto using hpsim_extendC_compatible.
     eapply hpsim_extendC_mon, PR; eauto with paco.
   Qed.
 
 
-  Variant hpsim_wfC (r : ∀ R (RR : nat → (alist key Any.t) * R → (alist key Any.t) * R → iProp), bool → bool → nat → (alist key Any.t) * itree hmodE R → (alist key Any.t) * itree hmodE R → Σ → Prop):
-    ∀ R (RR : nat → (alist key Any.t) * R → (alist key Any.t) * R → iProp), bool → bool → nat → (alist key Any.t) * itree hmodE R → (alist key Any.t) * itree hmodE R → Σ → Prop :=
+  Variant hpsim_wfC (r : ∀ Rs Rt (RR : nat → (alist key Any.t) * Rs → (alist key Any.t) * Rt → iProp), bool → bool → nat → (alist key Any.t) * itree hmodE Rs → (alist key Any.t) * itree hmodE Rt → Σ → Prop):
+    ∀ Rs Rt (RR : nat → (alist key Any.t) * Rs → (alist key Any.t) * Rt → iProp), bool → bool → nat → (alist key Any.t) * itree hmodE Rs → (alist key Any.t) * itree hmodE Rt → Σ → Prop :=
   | hpsim_wfC_intro
-      ps pt nths R RR sti_src sti_tgt fmr
-      (SIM : ✓ fmr → r R RR ps pt nths sti_src sti_tgt fmr) :
-    hpsim_wfC r R RR ps pt nths sti_src sti_tgt fmr.
+      ps pt nths Rs Rt RR sti_src sti_tgt fmr
+      (SIM : ✓ fmr → r Rs Rt RR ps pt nths sti_src sti_tgt fmr) :
+    hpsim_wfC r Rs Rt RR ps pt nths sti_src sti_tgt fmr.
 
-  Lemma hpsim_wfC_mon r1 r2 (LEr : r1 <8= r2) : hpsim_wfC r1 <8= hpsim_wfC r2 .
+  Lemma hpsim_wfC_mon r1 r2 (LEr : r1 <9= r2) : hpsim_wfC r1 <9= hpsim_wfC r2 .
   Proof. ii. destruct PR. econs; eauto using hsupd_mon. Qed.
 
-  Lemma hpsim_wfC_compatible : compatible8 _hpsim hpsim_wfC.
+  Lemma hpsim_wfC_compatible : compatible9 _hpsim hpsim_wfC.
   Proof.
     econs; eauto using hpsim_wfC_mon.
     i. destruct PR. econs. eapply hsupd_wf. i.
     eapply _hpsim_mon_auto; eauto 10 using hpsim_wfC, hsupd_incl with paco.
   Qed.
   
-  Lemma hpsim_wfC_spec : hpsim_wfC <9= gupaco8 _hpsim (cpn8 _hpsim).
+  Lemma hpsim_wfC_spec : hpsim_wfC <10= gupaco9 _hpsim (cpn9 _hpsim).
   Proof.
     intros. gclo. econs; eauto using hpsim_wfC_compatible.
     eapply hpsim_wfC_mon, PR; eauto with paco.
   Qed.
   
 
-  Variant hpsim_updateC (r : ∀ R (RR : nat → (alist key Any.t) * R → (alist key Any.t) * R → iProp), bool → bool → nat → (alist key Any.t) * itree hmodE R → (alist key Any.t) * itree hmodE R → Σ → Prop):
-    ∀ R (RR : nat → (alist key Any.t) * R → (alist key Any.t) * R → iProp), bool → bool → nat → (alist key Any.t) * itree hmodE R → (alist key Any.t) * itree hmodE R → Σ → Prop :=
+  Variant hpsim_updateC (r : ∀ Rs Rt (RR : nat → (alist key Any.t) * Rs → (alist key Any.t) * Rt → iProp), bool → bool → nat → (alist key Any.t) * itree hmodE Rs → (alist key Any.t) * itree hmodE Rt → Σ → Prop):
+    ∀ Rs Rt (RR : nat → (alist key Any.t) * Rs → (alist key Any.t) * Rt → iProp), bool → bool → nat → (alist key Any.t) * itree hmodE Rs → (alist key Any.t) * itree hmodE Rt → Σ → Prop :=
   | hpsim_updateC_intro
-      ps pt nths R RR sti_src sti_tgt fmr
-      (SIM : hsupd (r R RR ps pt nths sti_src sti_tgt) fmr) :
-    hpsim_updateC r R RR ps pt nths sti_src sti_tgt fmr.
+      ps pt nths Rs Rt RR sti_src sti_tgt fmr
+      (SIM : hsupd (r Rs Rt RR ps pt nths sti_src sti_tgt) fmr) :
+    hpsim_updateC r Rs Rt RR ps pt nths sti_src sti_tgt fmr.
 
-  Lemma hpsim_updateC_mon r1 r2 (LEr : r1 <8= r2) : hpsim_updateC r1 <8= hpsim_updateC r2.
+  Lemma hpsim_updateC_mon r1 r2 (LEr : r1 <9= r2) : hpsim_updateC r1 <9= hpsim_updateC r2.
   Proof. ii. destruct PR. econs; eauto using hsupd_mon. Qed.
 
-  Lemma hpsim_updateC_compatible : compatible8 _hpsim hpsim_updateC.
+  Lemma hpsim_updateC_compatible : compatible9 _hpsim hpsim_updateC.
   Proof.
     econs; eauto using hpsim_updateC_mon.
     i. destruct PR. econs. eapply hsupd_merge.
@@ -554,7 +554,7 @@ Section HPSIM.
     eauto 10 using hpsim_updateC, hsupd_incl with paco.
   Qed.
   
-  Lemma hpsim_updateC_spec : hpsim_updateC <9= gupaco8 _hpsim (cpn8 _hpsim).
+  Lemma hpsim_updateC_spec : hpsim_updateC <10= gupaco9 _hpsim (cpn9 _hpsim).
   Proof.
     intros. gclo. econs; eauto using hpsim_updateC_compatible.
     eapply hpsim_updateC_mon, PR; eauto with paco.
@@ -562,18 +562,18 @@ Section HPSIM.
   
 
   Variant hpsim_frameC
-      (r : ∀ R (RR : nat → (alist key Any.t) * R → (alist key Any.t) * R → iProp), bool → bool → nat → (alist key Any.t) * itree hmodE R → (alist key Any.t) * itree hmodE R → Σ → Prop) :
-    ∀ R (RR : nat → (alist key Any.t) * R → (alist key Any.t) * R → iProp), bool → bool → nat → (alist key Any.t) * itree hmodE R → (alist key Any.t) * itree hmodE R → Σ → Prop :=
+      (r : ∀ Rs Rt (RR : nat → (alist key Any.t) * Rs → (alist key Any.t) * Rt → iProp), bool → bool → nat → (alist key Any.t) * itree hmodE Rs → (alist key Any.t) * itree hmodE Rt → Σ → Prop) :
+    ∀ Rs Rt (RR : nat → (alist key Any.t) * Rs → (alist key Any.t) * Rt → iProp), bool → bool → nat → (alist key Any.t) * itree hmodE Rs → (alist key Any.t) * itree hmodE Rt → Σ → Prop :=
   | hpsim_frameC_intro
-      ps pt nths R RR sti_src sti_tgt fmr fmrc (CTX : iProp)
-      (SIM : r R (fun n s t => CTX -∗ RR n s t)%I ps pt nths sti_src sti_tgt fmr)
+      ps pt nths Rs Rt RR sti_src sti_tgt fmr fmrc (CTX : iProp)
+      (SIM : r Rs Rt (fun n s t => CTX -∗ RR n s t)%I ps pt nths sti_src sti_tgt fmr)
       (UPD : Own fmrc ⊢ |==> (Own fmr ∗ CTX)) :
-    hpsim_frameC r R RR ps pt nths sti_src sti_tgt fmrc.
+    hpsim_frameC r Rs Rt RR ps pt nths sti_src sti_tgt fmrc.
 
-  Lemma hpsim_frameC_mon r1 r2 (LEr : r1 <8= r2) : hpsim_frameC r1 <8= hpsim_frameC r2.
+  Lemma hpsim_frameC_mon r1 r2 (LEr : r1 <9= r2) : hpsim_frameC r1 <9= hpsim_frameC r2.
   Proof. ii. destruct PR. econs; eauto using hsupd_mon. Qed.
   
-  Lemma hpsim_frameC_compatible : compatible8 _hpsim hpsim_frameC.
+  Lemma hpsim_frameC_compatible : compatible9 _hpsim hpsim_frameC.
   Proof.
     econs; first by eauto using hpsim_frameC_mon. ii.
     destruct PR. move SIM before r. revert_until SIM.
@@ -654,7 +654,7 @@ Section HPSIM.
     - eauto using hpsim_frameC with paco.
   Qed.
   
-  Lemma hpsim_frameC_spec : hpsim_frameC <9= gupaco8 _hpsim (cpn8 _hpsim).
+  Lemma hpsim_frameC_spec : hpsim_frameC <10= gupaco9 _hpsim (cpn9 _hpsim).
   Proof.
     intros. gclo. econs; eauto using hpsim_frameC_compatible.
     eapply hpsim_frameC_mon, PR; eauto with paco.
@@ -665,24 +665,24 @@ Section HPSIM.
 
 
   Variant hpsim_eqitC_src
-    (r : ∀ R (RR : nat → (alist key Any.t) * R → (alist key Any.t) * R → iProp), bool → bool → nat → (alist key Any.t) * itree hmodE R → (alist key Any.t) * itree hmodE R → Σ → Prop) :
-    ∀ R (RR : nat → (alist key Any.t) * R → (alist key Any.t) * R → iProp), bool → bool → nat → (alist key Any.t) * itree hmodE R → (alist key Any.t) * itree hmodE R → Σ → Prop :=
+    (r : ∀ Rs Rt (RR : nat → (alist key Any.t) * Rs → (alist key Any.t) * Rt → iProp), bool → bool → nat → (alist key Any.t) * itree hmodE Rs → (alist key Any.t) * itree hmodE Rt → Σ → Prop) :
+    ∀ Rs Rt (RR : nat → (alist key Any.t) * Rs → (alist key Any.t) * Rt → iProp), bool → bool → nat → (alist key Any.t) * itree hmodE Rs → (alist key Any.t) * itree hmodE Rt → Σ → Prop :=
   | hpsim_eqitC_src_intro
-      ps pt nths R RR fmr st_src isrc0 isrc1 sti_tgt 
+      ps pt nths Rs Rt RR fmr st_src isrc0 isrc1 sti_tgt 
       (EQIT: eqit eq false true isrc0 isrc1)
-      (SIM : r R RR ps pt nths (st_src, isrc0) sti_tgt fmr)
+      (SIM : r Rs Rt RR ps pt nths (st_src, isrc0) sti_tgt fmr)
     :
-    hpsim_eqitC_src r R RR ps pt nths (st_src, isrc1) sti_tgt fmr.
+    hpsim_eqitC_src r Rs Rt RR ps pt nths (st_src, isrc1) sti_tgt fmr.
 
-  Lemma hpsim_eqitC_src_mon r1 r2 (LEr : r1 <8= r2) : hpsim_eqitC_src r1 <8= hpsim_eqitC_src r2.
+  Lemma hpsim_eqitC_src_mon r1 r2 (LEr : r1 <9= r2) : hpsim_eqitC_src r1 <9= hpsim_eqitC_src r2.
   Proof. ii. destruct PR. econs; eauto using hsupd_mon. Qed.
 
-  Lemma hpsim_eqitC_src_compatible : compatible8 _hpsim hpsim_eqitC_src.
+  Lemma hpsim_eqitC_src_compatible : compatible9 _hpsim hpsim_eqitC_src.
   Proof.
-    econs; first by eauto using hpsim_eqitC_src_mon. unfold rel8. ii.
+    econs; first by eauto using hpsim_eqitC_src_mon. unfold rel9. ii.
     destruct PR. remember (st_src, isrc0) as sti_src0.
     move SIM before r. revert_until SIM.
-    pattern R, RR, ps, pt, nths, sti_src0, sti_tgt, fmr.
+    pattern Rs, Rt, RR, ps, pt, nths, sti_src0, sti_tgt, fmr.
     eapply _hpsim_tarski, SIM. i.
     econs. ii. specialize (IN H). des. esplits; eauto.
     punfold EQIT. subst. rr in EQIT.
@@ -691,7 +691,7 @@ Section HPSIM.
     assert (EQIT_TAU:= @eqit_Tau). hdes. clear EQIT_TAU0.
     induction EQIT; i; subst; pclearbot.
     - ides isrc0. ides isrc1. eapply _hpsim'_mon; eauto; i.
-      + destruct x5. econs; eauto using eqit_refl.
+      + destruct x6. econs; eauto using eqit_refl.
       + ss. destruct x3. eauto using eqit_refl.
     - ides isrc0. ides isrc1.
       inv IN; [..|guardH CLOSED|]; try itree_clarify H5; eauto using _hpsim', hpsim_eqitC_src.
@@ -715,7 +715,7 @@ Section HPSIM.
       econs. econs. eauto.
   Qed.
   
-  Lemma hpsim_eqitC_src_spec : hpsim_eqitC_src <9= gupaco8 _hpsim (cpn8 _hpsim).
+  Lemma hpsim_eqitC_src_spec : hpsim_eqitC_src <10= gupaco9 _hpsim (cpn9 _hpsim).
   Proof.
     intros. gclo. econs; eauto using hpsim_eqitC_src_compatible.
     eapply hpsim_eqitC_src_mon, PR; eauto with paco.
@@ -727,24 +727,24 @@ Section HPSIM.
 
 
   Variant hpsim_eqitC_tgt
-    (r : ∀ R (RR : nat → (alist key Any.t) * R → (alist key Any.t) * R → iProp), bool → bool → nat → (alist key Any.t) * itree hmodE R → (alist key Any.t) * itree hmodE R → Σ → Prop) :
-    ∀ R (RR : nat → (alist key Any.t) * R → (alist key Any.t) * R → iProp), bool → bool → nat → (alist key Any.t) * itree hmodE R → (alist key Any.t) * itree hmodE R → Σ → Prop :=
+    (r : ∀ Rs Rt (RR : nat → (alist key Any.t) * Rs → (alist key Any.t) * Rt → iProp), bool → bool → nat → (alist key Any.t) * itree hmodE Rs → (alist key Any.t) * itree hmodE Rt → Σ → Prop) :
+    ∀ Rs Rt (RR : nat → (alist key Any.t) * Rs → (alist key Any.t) * Rt → iProp), bool → bool → nat → (alist key Any.t) * itree hmodE Rs → (alist key Any.t) * itree hmodE Rt → Σ → Prop :=
   | hpsim_eqitC_tgt_intro
-      ps pt nths R RR fmr sti_src st_tgt itgt0 itgt1
+      ps pt nths Rs Rt RR fmr sti_src st_tgt itgt0 itgt1
       (EQIT: eqit eq false true itgt0 itgt1)
-      (SIM : r R RR ps pt nths sti_src (st_tgt, itgt0) fmr)
+      (SIM : r Rs Rt RR ps pt nths sti_src (st_tgt, itgt0) fmr)
     :
-    hpsim_eqitC_tgt r R RR ps pt nths sti_src (st_tgt, itgt1) fmr.
+    hpsim_eqitC_tgt r Rs Rt RR ps pt nths sti_src (st_tgt, itgt1) fmr.
 
-  Lemma hpsim_eqitC_tgt_mon r1 r2 (LEr : r1 <8= r2) : hpsim_eqitC_tgt r1 <8= hpsim_eqitC_tgt r2.
+  Lemma hpsim_eqitC_tgt_mon r1 r2 (LEr : r1 <9= r2) : hpsim_eqitC_tgt r1 <9= hpsim_eqitC_tgt r2.
   Proof. ii. destruct PR. econs; eauto using hsupd_mon. Qed.
 
-  Lemma hpsim_eqitC_tgt_compatible : compatible8 _hpsim hpsim_eqitC_tgt.
+  Lemma hpsim_eqitC_tgt_compatible : compatible9 _hpsim hpsim_eqitC_tgt.
   Proof.
-    econs; first by eauto using hpsim_eqitC_tgt_mon. unfold rel8. ii.
+    econs; first by eauto using hpsim_eqitC_tgt_mon. unfold rel9. ii.
     destruct PR. remember (st_tgt, itgt0) as sti_tgt0.
     move SIM before r. revert_until SIM.
-    pattern R, RR, ps, pt, nths, sti_src, sti_tgt0, fmr.
+    pattern Rs, Rt, RR, ps, pt, nths, sti_src, sti_tgt0, fmr.
     eapply _hpsim_tarski, SIM. i.
     econs. ii. specialize (IN H). des. esplits; eauto.
     punfold EQIT. subst. rr in EQIT.
@@ -753,7 +753,7 @@ Section HPSIM.
     assert (EQIT_TAU:= @eqit_Tau). hdes. clear EQIT_TAU0.
     induction EQIT; i; subst; pclearbot.
     - ides itgt0. ides itgt1. eapply _hpsim'_mon; eauto; i.
-      + destruct x6. econs; eauto using eqit_refl.
+      + destruct x7. econs; eauto using eqit_refl.
       + ss. destruct x4. eauto using eqit_refl.
     - ides itgt0. ides itgt1.
       depdes IN; try itree_clarify x; eauto using _hpsim', hpsim_eqitC_tgt.
@@ -779,7 +779,7 @@ Section HPSIM.
       econs. econs. eauto.
   Qed.
   
-  Lemma hpsim_eqitC_tgt_spec : hpsim_eqitC_tgt <9= gupaco8 _hpsim (cpn8 _hpsim).
+  Lemma hpsim_eqitC_tgt_spec : hpsim_eqitC_tgt <10= gupaco9 _hpsim (cpn9 _hpsim).
   Proof.
     intros. gclo. econs; eauto using hpsim_eqitC_tgt_compatible.
     eapply hpsim_eqitC_tgt_mon, PR; eauto with paco.
@@ -798,4 +798,4 @@ Section HPSIM.
 End HPSIM.
 
 Hint Resolve _hpsim_mon : paco.
-Hint Resolve cpn8_wcompat : paco.
+Hint Resolve cpn9_wcompat : paco.

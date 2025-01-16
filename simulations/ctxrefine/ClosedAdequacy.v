@@ -30,13 +30,13 @@ Section CLOSED.
   Ltac hstep := guclo hpsimC_spec; econs; econs; eauto; econs; eauto.
 
   Lemma _hpsim_close fls flt Ist my_tid:
-    @_hpsim _ fls flt Ist my_tid false <9= @_hpsim _ fls flt Ist my_tid true.
+    @_hpsim _ fls flt Ist my_tid false <10= @_hpsim _ fls flt Ist my_tid true.
   Proof.
     i. ss. 
     eapply _hpsim_tarski; eauto. i. 
     econs. ii. exploit IN; eauto. i. des.
     esplits; eauto. clear IN.
-    destruct x9; ss; econs; eauto.
+    destruct x10; ss; econs; eauto.
   Qed.
 
   Lemma hpsim_close
@@ -58,7 +58,7 @@ Section CLOSED.
     destruct x0; i; des; inv Heqp; try inv Heqp0; clarify; hstep.
     - eapply K; try refl; eauto. eapply alist_upd_nodup; eauto. 
     - eapply K; try refl; eauto. eapply alist_upd_nodup; eauto.
-    - pclearbot. gfinal. right. eapply paco8_mon_bot; eauto.
+    - pclearbot. gfinal. right. eapply paco9_mon_bot; eauto.
       i. eapply _hpsim_close. eauto.
   Qed. 
 
