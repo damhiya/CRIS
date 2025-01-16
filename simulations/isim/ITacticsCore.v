@@ -499,19 +499,31 @@ Ltac prep :=
   try rewrite !bind_bind;
   try rewrite !bind_tau.
 
+Ltac step_l_core :=
+  prep; _step_l; try alist_find_simpl; s; des_pairs; s.
+
 Ltac step_l := let marker := fresh "MARKER" in
   hide_itree_r marker;
-  prep; _step_l; try alist_find_simpl; s; des_pairs; s;
+  step_l_core;
   show_itree marker.
 
-Ltac steps_l := hrepeat do 1 step_l.
+Ltac steps_l := let marker := fresh "MARKER" in
+  hide_itree_r marker;
+  (hrepeat do 1 step_l_core);
+  show_itree marker.
+
+Ltac step_r_core :=
+  prep; _step_r; try alist_find_simpl; s; des_pairs; s.
 
 Ltac step_r := let marker := fresh "MARKER" in
   hide_itree_l marker;
-  prep; _step_r; try alist_find_simpl; s; des_pairs; s;
+  step_r_core;
   show_itree marker.
 
-Ltac steps_r := hrepeat do 1 step_r.
+Ltac steps_r := let marker := fresh "MARKER" in
+  hide_itree_l marker;
+  (hrepeat do 1 step_r_core);
+  show_itree marker.
 
 Ltac step := let marker := fresh "MARKER" in
   hide_itree_r marker; prep; show_itree marker;
@@ -538,7 +550,7 @@ Ltac force_r_core := let marker := fresh "MARKER" in
 
 Tactic Notation "force_r" :=
   force_r_core; try (iExists _).
-  
+
 Tactic Notation "force_r" uconstr(p) :=
   force_r_core; iExists p.
 
@@ -593,7 +605,6 @@ Ltac post_simF :=
   unfold interp_sb_hp, HoareFun, cfunU, cfunN, HModSem.sandbox_body; s;
   ii; subst; iIntros "IST";
   move_nodup.
-  
 
 Ltac init_simF :=
   pre_simF;
