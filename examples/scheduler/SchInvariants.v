@@ -107,11 +107,11 @@ Section fancy_aux.
 
   Local Definition fancy_wsats u b (E: coPset): iProp :=
     ownE u E ∗ ownD_auth u ∗ wsatseq u b.
-  Definition FUpd u b (E1 E2 : coPset) (P : iProp) : iProp :=
+  Definition fancy_upd u b (E1 E2 : coPset) (P : iProp) : iProp :=
     fancy_wsats u b E1 ==∗ (fancy_wsats u b E2 ∗ P).
   
   Lemma fupd_mono u b b' E1 E2 P (LE : b <= b') :
-    FUpd u b E1 E2 P ⊢ FUpd u b' E1 E2 P.
+    fancy_upd u b E1 E2 P ⊢ fancy_upd u b' E1 E2 P.
   Proof.
     iIntros "FUPD (A & R & SAT)". unfold FUpd, fancy_wsats.
     rewrite -(wsats_split _ LE).
@@ -119,8 +119,8 @@ Section fancy_aux.
     iMod ("FUPD" with "[A SAT1 R]") as "T"; iFrame. iModIntro; iFrame.
   Qed.
 
-  Lemma FUpd_mask_frame u b E1 E2 E P (DISJ : E1 ## E):
-    FUpd u b E1 E2 P ⊢ FUpd u b (E1 ∪ E) (E2 ∪ E) P.
+  Lemma fupd_mask_frame u b E1 E2 E P (DISJ : E1 ## E):
+    fancy_upd u b E1 E2 P ⊢ fancy_upd u b (E1 ∪ E) (E2 ∪ E) P.
   Proof.
     iIntros "FUPD (E & D & SAT)". unfold FUpd, fancy_wsats.
     iPoseProof (ownE_op _ _ _ DISJ with "E") as "(E1 & E)".
@@ -129,10 +129,10 @@ Section fancy_aux.
     iModIntro. iApply ownE_op; et; iFrame.
   Qed.
 
-  Lemma FUpd_open u b n N E (LT : n < b) (IN : ↑N ⊆ E) p :
-    inv u n N p ⊢ FUpd u b E (E∖↑N) (⟦p⟧ ∗ ((⟦p⟧) -∗ FUpd u b (E∖↑N) E emp)).
+  Lemma fupd_open u b n N E (LT : n < b) (IN : ↑N ⊆ E) p :
+    inv u n N p ⊢ fancy_upd u b E (E∖↑N) (⟦p⟧ ∗ ((⟦p⟧) -∗ fancy_upd u b (E∖↑N) E emp)).
   Proof.
-    unfold inv. rewrite seal_eq. unfold invariants.inv_def, FUpd, fancy_wsats.
+    unfold inv. rewrite seal_eq. unfold invariants.inv_def, fancy_upd, fancy_wsats.
     iIntros "[% (%iN & #HI)] (EN & D & WSAT)".
     rewrite {1}(union_difference_L (↑N) E); eauto.
     iPoseProof (ownE_op with "EN") as "[EN EE]"; first by set_solver.
@@ -170,8 +170,8 @@ Section invariants.
     |==> (⟦ p ⟧ ∗ @close_inv u lv1 lv0 ns p ∗ wsats u lv1 (⊤∖↑ns)).
   Proof.
     iIntros "[#INV W]".
-    iPoseProof (FUpd_open with "[INV]") as "F"; et.
-    unfold FUpd, fancy_wsats, wsats.
+    iPoseProof (fupd_open with "[INV]") as "F"; et.
+    unfold fancy_upd, fancy_wsats, wsats.
     iDestruct "W" as "(A & E & D & W)".
     iPoseProof ("F" with "[E D W]") as "FU". { iFrame. }
     iMod "FU". iDestruct "FU" as "(W & P & CI)". iSplitL "P"; et.
@@ -195,4 +195,4 @@ Section invariants.
 
 End invariants.
 
-Global Opaque FUpd.
+Global Opaque fancy_upd.
