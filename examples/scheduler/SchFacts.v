@@ -14,7 +14,7 @@ Section MACROAUX.
   (** Sch.spawn *)
 
   Lemma isim_mspawn_hp
-    fl fr Ist r g {R} RR my_tid ps pt nths st_src st_tgt k_src k_tgt scp_src scp_tgt invspc
+    fl fr Ist r g {Rs Rt} RR my_tid ps pt nths st_src st_tgt k_src k_tgt scp_src scp_tgt invspc
     (StbFun StbSch: Sk.t → string → option fspec) (univ: positive)
     (sk: Sk.t) (fvarg farg: SAny.t) (pre: iProp) (postS: SAny.t → {n & SRFSyn.t n}) 
     (fn: string) (fsp: fspec) (m: meta fsp)
@@ -25,7 +25,7 @@ Section MACROAUX.
       (((Ist nths st_src st_tgt) ∗ (∃ n, wsats univ n ⊤) ∗ pre) ∗
       (∀ nths0 st_src0 st_tgt0 tid,
         ((Ist nths0 st_src0 st_tgt0) ∗ (∃ n, wsats univ n ⊤) ∗ (SchAS.token_th tid postS))
-        -∗ @isim Σ fl fr Ist my_tid false r g R RR true true nths0 
+        -∗ @isim Σ fl fr Ist my_tid false r g Rs Rt RR true true nths0 
               (st_src0, k_src tid)
               (st_tgt0, k_tgt tid)))
     ⊢
@@ -50,7 +50,7 @@ Section MACROAUX.
   Qed.
 
   Lemma isim_mspawn_hh
-    fl fr Ist r g {R} RR my_tid ps pt nths st_src st_tgt k_src k_tgt scp_src scp_tgt invspc_src invspc_tgt
+    fl fr Ist r g Rs Rt RR my_tid ps pt nths st_src st_tgt k_src k_tgt scp_src scp_tgt invspc_src invspc_tgt
     (stbf stb_src stb_tgt: Sk.t → string → option fspec) (univ: positive)
     (sk: Sk.t) (fvarg: SAny.t) (fn: string) (fsp: fspec) (m: meta fsp)
     (FIND: stbf sk fn = Some fsp)
@@ -60,7 +60,7 @@ Section MACROAUX.
       ((Ist nths st_src st_tgt) ∗
       (∀ nths0 st_src0 st_tgt0 tid,
         (Ist nths0 st_src0 st_tgt0)
-        -∗ @isim Σ fl fr Ist my_tid false r g R RR true true nths0 
+        -∗ @isim Σ fl fr Ist my_tid false r g Rs Rt RR true true nths0 
               (st_src0, k_src tid)
               (st_tgt0, k_tgt tid)))
     ⊢
@@ -90,14 +90,14 @@ Section MACROAUX.
   (** Sch.yield **)
 
   Lemma isim_myield_tgt_hp
-    fl fr Ist r g {R} RR my_tid ps pt nths st_src st_tgt k_src k_tgt scp_src scp_tgt invspc stb univ
+    fl fr Ist r g {Rs Rt} RR my_tid ps pt nths st_src st_tgt k_src k_tgt scp_src scp_tgt invspc stb univ
     (SPC: stb SchName.yield = Some (SchAS.yield_spec univ))
     :
     bi_entails
       (((Ist nths st_src st_tgt) ∗ (∃ n, wsats univ n ⊤)) ∗
       (∀ nths0 st_src0 st_tgt0,
         ((Ist nths0 st_src0 st_tgt0) ∗ (∃ n, wsats univ n ⊤))
-        -∗ @isim Σ fl fr Ist my_tid false r g R RR false true nths0 
+        -∗ @isim Σ fl fr Ist my_tid false r g Rs Rt RR false true nths0 
               (st_src0, (HModSem.sandbox scp_src (interp_smod invspc stb (Sch.yield))) >>= k_src) 
               (st_tgt0, k_tgt tt)))
       (isim fl fr Ist my_tid false r g RR ps pt nths 
@@ -134,14 +134,14 @@ Section MACROAUX.
   Qed.
 
   Lemma isim_myield_tgt_hh
-    fl fr Ist r g {R} RR my_tid ps pt nths st_src st_tgt k_src k_tgt scp_src scp_tgt invspc stb univ
+    fl fr Ist r g {Rs Rt} RR my_tid ps pt nths st_src st_tgt k_src k_tgt scp_src scp_tgt invspc stb univ
     (SPC: stb SchName.yield = Some (SchAS.yield_spec univ))
     :
     bi_entails
       ((Ist nths st_src st_tgt) ∗
       (∀ nths0 st_src0 st_tgt0,
         (Ist nths0 st_src0 st_tgt0)
-        -∗ @isim Σ fl fr Ist my_tid false r g R RR false true nths0 
+        -∗ @isim Σ fl fr Ist my_tid false r g Rs Rt RR false true nths0 
               (st_src0, (HModSem.sandbox scp_src (interp_smod invspc stb (Sch.yield))) >>= k_src) 
               (st_tgt0, k_tgt tt)))
       (isim fl fr Ist my_tid false r g RR ps pt nths 
@@ -184,14 +184,14 @@ Section MACROAUX.
   Qed.
 
   Lemma isim_myield_src
-    fl fr Ist r g {R} RR my_tid ps pt nths st_src st_tgt k_src i_tgt scp_src invspc stb univ
+    fl fr Ist r g {Rs Rt} RR my_tid ps pt nths st_src st_tgt k_src i_tgt scp_src invspc stb univ
     (SPC: stb SchName.yield = Some (SchAS.yield_spec univ))
     :
     bi_entails
       (((Ist nths st_src st_tgt) ∗ (∃ n, wsats univ n ⊤)) ∗
       (∀ nths0 st_src0 st_tgt0,
         ((Ist nths0 st_src0 st_tgt0) ∗ (∃ n, wsats univ n ⊤))
-        -∗ @isim Σ fl fr Ist my_tid false r g R RR true false nths0 
+        -∗ @isim Σ fl fr Ist my_tid false r g Rs Rt RR true false nths0 
               (st_src0, k_src tt) 
               (st_tgt0, i_tgt)))
       (isim fl fr Ist my_tid false r g RR ps pt nths 
@@ -206,14 +206,15 @@ Section MACROAUX.
   (* Sch.join *)
   
   Lemma isim_mjoin_hp
-    fl fr Ist r g {R} RR my_tid ps pt nths st_src st_tgt RT (k_src k_tgt: RT → itree hmodE R) scp_src scp_tgt invspc tid sk
+    fl fr Ist r g {Rs Rt} RR my_tid ps pt nths st_src st_tgt RT (k_src: RT → itree hmodE Rs) (k_tgt: RT → itree hmodE Rt)
+    scp_src scp_tgt invspc tid sk
     (StbSch: Sk.t → string → option fspec) (univ: positive) (postS: SAny.t → {n & SRFSyn.t n})
     (FINDS: StbSch sk SchName.join = Some (SchAS.join_spec univ))
     :
       (((Ist nths st_src st_tgt) ∗ (∃ n, wsats univ n ⊤) ∗ (SchAS.token_th tid postS)) ∗
       (∀ nths0 st_src0 st_tgt0 (ret: RT),
         ((Ist nths0 st_src0 st_tgt0) ∗ (∃ n, wsats univ n ⊤) ∗ (interp_cond (postS ret↑↑)))
-        -∗ @isim Σ fl fr Ist my_tid false r g R RR true true nths0 
+        -∗ @isim Σ fl fr Ist my_tid false r g Rs Rt RR true true nths0 
               (st_src0, k_src ret)
               (st_tgt0, k_tgt ret)))
     ⊢
@@ -234,14 +235,15 @@ Section MACROAUX.
   Qed.
 
   Lemma isim_mjoin_hh
-    fl fr Ist r g {R} RR my_tid ps pt nths st_src st_tgt RT (k_src k_tgt: RT → itree hmodE R) scp_src scp_tgt invspc_src invspc_tgt (sk: Sk.t) univ stb_src stb_tgt tid
+    fl fr Ist r g {Rs Rt} RR my_tid ps pt nths st_src st_tgt RT (k_src: RT → itree hmodE Rs) (k_tgt: RT → itree hmodE Rt)
+    scp_src scp_tgt invspc_src invspc_tgt (sk: Sk.t) univ stb_src stb_tgt tid
     (JOINS: stb_src sk SchName.join = Some (SchAS.join_spec univ))
     (JOINT: stb_tgt sk SchName.join = Some (SchAS.join_spec univ))
     :
       ((Ist nths st_src st_tgt) ∗
       (∀ nths0 st_src0 st_tgt0 (ret: RT),
         (Ist nths0 st_src0 st_tgt0)
-        -∗ @isim Σ fl fr Ist my_tid false r g R RR true true nths0 
+        -∗ @isim Σ fl fr Ist my_tid false r g Rs Rt RR true true nths0 
               (st_src0, k_src ret)
               (st_tgt0, k_tgt ret)))
     ⊢
