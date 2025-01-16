@@ -15,7 +15,7 @@ Module CannonMainIA. Section CannonMainIA.
     λ _ _ _ _, (True)%I.
 
   Variable ginv : Sk.t → invspec.
-  Variable StbMain : Sk.t → gname → option fspec.
+  Variable StbMain : Sk.t → string → option fspec.
   Hypothesis CannonInStbMain : ∀ sk, stb_incl CannonAS.Stb (StbMain sk).
   
   Local Notation MainAMod := (MainA.t 1 ginv StbMain).

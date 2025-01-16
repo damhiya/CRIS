@@ -16,9 +16,9 @@ Module MainAS. Section MainAS.
       (λ ret, ⌜ret = tt↑⌝))
     )%I.
 
-  Definition Stb : alist gname fspec :=
-    Seal.sealing "ccr" [(MainName.main, main_spec)].
+  Definition Stb : alist string fspec :=
+    Seal.sealing CRIS [(MainName.main, main_spec)].
 
   Lemma Stb_nodup: List.NoDup (List.map fst Stb).
-  Proof. unfold Stb. unseal "ccr". prove_nodup. Qed.
+  Proof. unfold Stb. unseal CRIS. prove_nodup. Qed.
 End MainAS. End MainAS.

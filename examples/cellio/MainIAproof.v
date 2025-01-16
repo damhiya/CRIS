@@ -5,7 +5,7 @@ Set Implicit Arguments.
 
 Module MainIM. Section MainIM.
   Import CellioA.
-  Context `{!sinvG Σ Γ α β τ, !CellioAGΓ Γ}.
+  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !CellioAGΓ Γ}.
 
   Definition Ist: Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp Σ :=
     λ _ _ st_src st_tgt, emp%I.
@@ -54,7 +54,7 @@ Module MainIM. Section MainIM.
     Unshelve. all:(exact ()).
   Qed.
 
-  Theorem sim:
+  Theorem sim :
     HSim.t (MainA ★ CellioA) (MainI.t ★ CellioA) (const emp%I) IstFull.
   Proof.
     init_sim.
@@ -62,5 +62,4 @@ Module MainIM. Section MainIM.
       repeat (iSplit; eauto); iPureIntro; prove_scope.
     - eapply simF_main; eauto.
   Qed.
-
 End MainIM. End MainIM.

@@ -7,7 +7,7 @@ Local Open Scope nat_scope.
 
 Module CellioIA. Section CellioIA.
   Import CellioA.
-  Context `{!sinvG Σ Γ α β τ, !CellioAGΓ Γ}.
+  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !CellioAGΓ Γ}.
 
   Variable ginv: Sk.t -> invspec.
   Variable StbG: Sk.t -> string -> option fspec.
@@ -70,5 +70,4 @@ Module CellioIA. Section CellioIA.
     - apply simF_set; eauto.
     - apply simF_get; eauto.
   Qed.
-
 End CellioIA. End CellioIA.

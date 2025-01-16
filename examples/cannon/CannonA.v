@@ -37,6 +37,6 @@ Module CannonA. Section CannonA.
     λ _, Ready.
 
   Variable ginv : Sk.t → invspec.
-  Variable GlobalStb : Sk.t → gname → option fspec.
-  Definition t := Seal.sealing "ccr" (SMod.to_hmod ginv GlobalStb Mod).
+  Variable GlobalStb : Sk.t → string → option fspec.
+  Definition t := Seal.sealing CRIS (SMod.to_hmod ginv GlobalStb Mod).
 End CannonA. End CannonA.

@@ -43,9 +43,9 @@ Module CannonAS. Section CannonAS.
       (λ ret, (⌜ret = (1: Z)%Z↑⌝)))
     )%I.
 
-  Definition Stb : alist gname fspec :=
-    Seal.sealing "ccr" [(CannonName.fire, fire_spec)].
+  Definition Stb : alist string fspec :=
+    Seal.sealing CRIS [(CannonName.fire, fire_spec)].
 
   Lemma Stb_nodup : List.NoDup (List.map fst Stb).
-  Proof. unfold Stb. unseal "ccr". prove_nodup. Qed.
+  Proof. unfold Stb. unseal CRIS. prove_nodup. Qed.
 End CannonAS. End CannonAS.

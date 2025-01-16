@@ -11,7 +11,7 @@ Class CellioAGΓ (Γ : HRA) := {
 Definition CellioAΓ : HRA := #[RA].
 
 Module CellioA. Section CellioA.
-  Context `{!sinvG Σ Γ α β τ, !CellioAGΓ Γ}.
+  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !CellioAGΓ Γ}.
 
   Definition auth (v : Z) : iProp Σ :=
     own base_γ (●E v).

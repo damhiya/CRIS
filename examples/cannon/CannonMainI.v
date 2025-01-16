@@ -41,5 +41,5 @@ Module MainI. Section MainI.
     PMod.sk := MainSK.t;
   |}.
 
-  Definition t := Seal.sealing "ccr" (PMod.to_hmod Mod).
+  Definition t := Seal.sealing CRIS (PMod.to_hmod Mod).
 End MainI. End MainI.

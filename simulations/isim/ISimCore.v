@@ -68,8 +68,6 @@ Section SIM.
         @g0 Rs Rt RR ps pt nths sti_src sti_tgt ⊢ |==> @g1 Rs Rt RR ps pt nths sti_src sti_tgt) :
     @isim r0 g0 Rs Rt RR ps pt nths sti_src sti_tgt ⊢ @isim r1 g1 Rs Rt RR ps pt nths sti_src sti_tgt.
   Proof.
-    (* Search bi_persistently.
-    iIntros "[#H1 [#H2 SIM]]". iPoseProof (bi.wand_entails with "H1") as "H3". Search bi_wand bi_entails.
     split; intros x wfx SIM.
     eapply gpaco9_mon; first eapply SIM; eauto using iunlift_mon.
   Qed.

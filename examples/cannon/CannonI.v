@@ -39,5 +39,5 @@ Module CannonI. Section CannonI.
     PMod.sk := CannonSK.t;
   |}.
 
-  Definition t := Seal.sealing "ccr" (PMod.to_hmod Mod).
+  Definition t := Seal.sealing CRIS (PMod.to_hmod Mod).
 End CannonI. End CannonI.

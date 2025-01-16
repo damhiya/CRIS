@@ -43,6 +43,6 @@ Module MainA. Section MainA.
   Definition init_cond : Sk.t → iProp Σ := λ _, True%I.
 
   Variable ginv : Sk.t → invspec.
-  Variable GlobalStb : Sk.t → gname → option fspec.
-  Definition t := Seal.sealing "ccr" (SMod.to_hmod ginv GlobalStb Mod).
+  Variable GlobalStb : Sk.t → string → option fspec.
+  Definition t := Seal.sealing CRIS (SMod.to_hmod ginv GlobalStb Mod).
 End MainA. End MainA.

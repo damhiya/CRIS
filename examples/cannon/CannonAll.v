@@ -12,7 +12,7 @@ Module CannonAll. Section CannonAll.
 
   Local Definition smod_src : SMod.t := CannonA.Mod ☆ (MainA.Mod 1).
   Local Definition ginv : Sk.t → invspec := λ _ _, True%I.
-  Local Definition stb : Sk.t → gname → option fspec := stb_global smod_src.
+  Local Definition stb : Sk.t → string → option fspec := stb_global smod_src.
   Local Definition mod_cancel : HMod.t := SModCancel.to_hmod smod_src.
   Local Definition mod_src : HMod.t := SMod.to_hmod ginv stb smod_src.
   Local Definition mod_tgt : HMod.t := CannonI.t ★ (MainI.t 1).
@@ -39,13 +39,13 @@ Module CannonAll. Section CannonAll.
     unfold mod_src, mod_tgt. rewrite add_interp_comm.
     eapply ctxr_compose_hor.
     { replace (SMod.to_hmod ginv stb CannonA.Mod) with (CannonA.t ginv stb); cycle 1.
-      { unfold CannonA.t. unseal "ccr". ss. }
+      { unfold CannonA.t. unseal CRIS. ss. }
       eapply CannonIA.correct.
     }
     { replace (SMod.to_hmod ginv stb (MainA.Mod 1)) with (MainA.t 1 ginv stb); cycle 1.
-      { unfold MainA.t. unseal "ccr". ss. }
+      { unfold MainA.t. unseal CRIS. ss. }
       eapply CannonMainIA.correct.
-      i. rewrite /CannonAS.Stb. unseal "ccr". econs; first prove_nodup.
+      i. rewrite /CannonAS.Stb. unseal CRIS. econs; first prove_nodup.
       ii; rewrite -FIND /stb /stb_global /smod_src //=; des_ifs; ss; des_ifs.
     }
   Qed.
@@ -74,7 +74,7 @@ Module CannonAll. Section CannonAll.
   Proof.
     move: (cancel_tgt)=>H; rewrite /refines in H; des; ss.
     destruct (REF skeleton initial_resource).
-    { rewrite /CannonI.t /MainI.t /skeleton; unseal "ccr"; ss. }
+    { rewrite /CannonI.t /MainI.t /skeleton; unseal CRIS; ss. }
     { rewrite /skeleton /CannonSK.t /MainSK.t; ss; econs; ii; ss; des; ss; prove_nodup. }
     { apply initial_resource_valid. }
     { iIntros "I"; rewrite /init_cond /CannonA.init_cond /MainA.init_cond /HMod.addc.
