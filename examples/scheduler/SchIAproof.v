@@ -8,7 +8,7 @@ Local Open Scope nat_scope.
 
 Module SchIA. Section SchIA.
   Import SchAS.
-  Context `{!sinvG Σ Γ α β τ, !SchAGΣ Σ}.
+  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !SchAGΣ Σ}.
   Notation iProp := (iProp Σ).
 
   Variable univ: positive.

@@ -8,7 +8,7 @@ Local Open Scope Qp.
 
 Module SchAS. Section SchAS.
   Import SchA.
-  Context `{_W: @sinvG Σ Γ α β τ}.
+  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ}.
   Import SchA.
 
   Canonical Structure SynDepO : ofe := leibnizO {n & SRFSyn.t n}.
