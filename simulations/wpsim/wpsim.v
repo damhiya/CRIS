@@ -1,15 +1,16 @@
 Require Import Common.
 
-Require Import ISim.
-Require Export invariants.
+Require Import ISim SMod SMod2HMod HMod.
+Require Import Skeleton.
 
 From stdpp Require Import coPset.
+
 Section wpsim.
-  Context `{!sinvGS Σ Γ α β τ}.
+  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ}.
   Context {fl_s fl_t : alist string (Any.t → itree hmodE Any.t)}.
   Context {Ist : nat → alist key Any.t → alist key Any.t → iProp Σ}.
   Context {my_tid : nat}.
-  Context {u : univ_id}.
+  Context {u : positive}.
   Context {n : level}.
 
   Local Definition state : Type := alist key Any.t.
@@ -24,26 +25,40 @@ Section wpsim.
 
   (* TODO : abstraction into mixins *)
   (* TODO : hard-code nodup conditions *)
-  Local Definition wpsim_pre E : iProp Σ := own_admin ∗ univs u n ∗ wsats u n E.
-  Local Definition wpsim_rel (r : rel) : rel :=
+  Local Definition wpsim_pre u n E : iProp Σ := own_admin ∗ univs u n ∗ wsats u n E.
+  Local Definition wpsim_retcond u n {R} (RR : post R) : post R :=
+    (λ nths src tgt, RR nths src tgt ∗ wpsim_pre u n ⊤)%I.
+  Local Definition wpsim_rel u n (r : rel) : rel :=
     λ R RR ps pt nths '(st_s, i_s) '(st_t, i_t),
-      (wpsim_pre ⊤ ∗ r R RR ps pt nths (st_s, i_s) (st_t, i_t))%I.
+      (∃ RR', ⌜ RR = wpsim_retcond u n RR' ⌝ ∧
+      wpsim_pre u n ⊤ ∗ r R RR' ps pt nths (st_s, i_s) (st_t, i_t))%I.
 
   (* Simulation relation that corresponds to iris' weakest precondition *)
   (* TODO : seal *)
   Local Definition wpsim_def r g R RR ps pt nths st_s st_t E : iProp Σ :=
-    wpsim_pre E -∗
-    @isim Σ fl_s fl_t Ist my_tid false (wpsim_rel r) (wpsim_rel g) R RR ps pt nths st_s st_t.
+    wpsim_pre u n E -∗
+    @isim Σ fl_s fl_t Ist my_tid false (wpsim_rel u n r) (wpsim_rel u n g)
+      R (wpsim_retcond u n RR) ps pt nths st_s st_t.
   Local Definition wpsim_aux : seal (@wpsim_def). Proof. by eexists. Qed.
   Definition wpsim := wpsim_aux.(unseal).
   Local Definition wpsim_eq : @wpsim = @wpsim_def := wpsim_aux.(seal_eq).
   Local Ltac unseal := rewrite wpsim_eq /wpsim_def.
 
+  Variant wp_meta {X : nat → Type} : Type :=
+  | mk_wp_meta (n : nat) (x : X n).
+
+  Definition wp_fspec (u : positive) (k : nat) (fsp : nat → fspec) : fspec :=
+    mk_fspec (meta := @wp_meta (λ n, (fsp n).(meta)))
+      (λ tid '(mk_wp_meta n x) varg arg,
+        @wpsim_pre u (k + n) ⊤ ∗ (fsp n).(precond) tid x varg arg)%I
+      (λ tid '(mk_wp_meta n x) vret ret,
+        @wpsim_pre u (k + n) ⊤ ∗ (fsp n).(postcond) tid x vret ret)%I.
+
   (* Primitive simulation rules *)
   (* Mostly will not be used *)
   Lemma wpsim_ret r g R RR ps pt nths st_s st_t rs rt E :
     RR nths (st_s, rs) (st_t, rt) ⊢ wpsim r g R RR ps pt nths (st_s, Ret rs) (st_t, Ret rt) ⊤.
-  Proof. unseal; iIntros "RR I". iApply isim_ret; done. Qed.
+  Proof. unseal; iIntros "RR I". iApply isim_ret. rewrite /wpsim_retcond; iFrame. Qed.
 
   Lemma wpim_call r g R RR ps pt nths st_s st_t fn arg k_s k_t E :
     Ist nths st_s st_t ∗
@@ -202,7 +217,7 @@ Section wpsim.
   Lemma wpsim_base r g R RR ps pt nths st_s st_t i_s i_t :
     r R RR ps pt nths (st_s, i_s) (st_t, i_t) ⊢
     wpsim r g R RR ps pt nths (st_s, i_s) (st_t, i_t) ⊤.
-  Proof. unseal; iIntros "RR I". iApply isim_base; iFrame. Qed.
+  Proof. unseal; iIntros "RR I". iApply isim_base; iFrame. iPureIntro; ss. Qed.
 
   Lemma wpsim_coind (r g : rel) A P RA RRA psA ptA nthsA srcA tgtA :
     (∀ (g' : rel) (a : A),
@@ -213,13 +228,15 @@ Section wpsim.
     ∀ (a : A), P a ⊢ wpsim r g (RA a) (RRA a) (psA a) (ptA a) (nthsA a) (srcA a) (tgtA a) ⊤.
   Proof.
     unseal; intros H a; iIntros "P I"; iCombine "P I" as "P". iStopProof.
+    (* rewrite /wpsim_retcond *)
     revert a. eapply isim_coind.
     intros g' a Himpl; iIntros "[[P I] #CIH]".
     iPoseProof (H with "P [] [] I") as "H".
     { instantiate (1 :=
         (λ R RR ps pt nths '(st_s, i_s) '(st_t, i_t),
-          wpsim_pre ⊤ -∗ g' R RR ps pt nths (st_s, i_s) (st_t, i_t))%I).
-      iModIntro; iIntros (???????) "G"; destruct src, tgt; iIntros "I". iApply Himpl; iFrame.
+          wpsim_pre u n ⊤  -∗ g' R (wpsim_retcond u n RR) ps pt nths (st_s, i_s) (st_t, i_t))%I).
+      iModIntro; iIntros (???????) "G"; destruct src, tgt; iIntros "I". iApply Himpl. iFrame.
+      iPureIntro; ss.
     }
     { iModIntro; iIntros (a') "P"; iSpecialize ("CIH" $! a'); destruct (srcA a'), (tgtA a').
       iIntros "I"; iApply "CIH"; iFrame.
@@ -227,8 +244,39 @@ Section wpsim.
     iApply (isim_mono_knowledge with "H"); ss.
     { iIntros (???????) "H"; iModIntro; iFrame. }
     { iIntros (???????) "H !>"; destruct sti_src, sti_tgt; rewrite /wpsim_rel.
-      iDestruct "H" as "[H1 H2]"; iApply "H2"; iFrame.
+      iDestruct "H" as (RR') "[-> [H1 H2]]"; iApply "H2"; iFrame.
     }
   Qed.
 End wpsim.
+
+(* Section test. *)
+  (* Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ}. *)
+  (* Context (m_s : SMod.t). *)
+  (* Context (m_t : HMod.t). *)
+  (* Context (ginv : Sk.t → nat → iProp Σ). *)
+  (* Context (stb : Sk.t → gname → option fspec). *)
+  (* Context (body_s body_t : Any.t → itree hmodE Any.t). *)
+  (* Context (fl_s fl_t : alist string (Any.t → itree hmodE Any.t)). *)
+  (* Context (my_tid : nat). *)
+  (* Context (u : univ_id). *)
+  (* Context (k : level). *)
+  (* Context (spec_s : nat → fspec). *)
+
+  (* Context (init_cond : Sk.t → iProp Σ). *)
+  (* Context (Ist : Sk.t → nat → alist key Any.t → alist key Any.t → iProp Σ). *)
+  (* Goal ∀ sk nths st_s st_t RR arg, *)
+    (* (∀ n, *)
+      (* Ist sk nths st_s st_t ⊢ *)
+      (* @wpsim α Σ Γ _ _  β fl_s fl_t (Ist sk) my_tid u n ibot ibot Any.t RR false false nths *)
+        (* (st_s, interp_sb_hp (ginv sk) (stb sk) (mk_specbody (spec_s (k + n)) body_s) arg) *)
+        (* (st_t, body_t arg) ⊤) → *)
+    (* (Ist sk nths st_s st_t ⊢ *)
+    (* @isim Σ fl_s fl_t (Ist sk) my_tid false ibot ibot Any.t RR false false nths *)
+      (* (st_s, interp_sb_hp (ginv sk) (stb sk) (mk_specbody (wp_fspec u k spec_s) body_s) arg) *)
+      (* (st_t, body_t arg)). *)
+  (* Proof. *)
+    (* rewrite /interp_sb_hp /HoareFun; ss. *)
+    (* ii. iIntros "IST". step_l. *)
+  (* Admitted. *)
+(* End test. *)
 (* TODO : proofmode instances *)
