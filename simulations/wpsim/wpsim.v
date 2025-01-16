@@ -5,12 +5,16 @@ Require Import Skeleton.
 
 From stdpp Require Import coPset.
 
+Definition wpsim_ginv (u : univ_id) (n : level) (E : coPset)
+    `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ} : iProp Σ :=
+  own_admin ∗ univs u n ∗ wsats u n E.
+
 Section wpsim.
   Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ}.
   Context {fl_s fl_t : alist string (Any.t → itree hmodE Any.t)}.
   Context {Ist : nat → alist key Any.t → alist key Any.t → iProp Σ}.
   Context {my_tid : nat}.
-  Context {u : positive}.
+  Context {u : univ_id}.
   Context {n : level}.
 
   Local Definition state : Type := alist key Any.t.
@@ -25,18 +29,18 @@ Section wpsim.
 
   (* TODO : abstraction into mixins *)
   (* TODO : hard-code nodup conditions *)
-  Local Definition wpsim_pre u n E : iProp Σ := own_admin ∗ univs u n ∗ wsats u n E.
+  (* Local Definition wpsim_pre u n E : iProp Σ := own_admin ∗ univs u n ∗ wsats u n E. *)
   Local Definition wpsim_retcond u n {R_s R_t} (RR : post R_s R_t) : post R_s R_t :=
-    (λ nths src tgt, RR nths src tgt ∗ wpsim_pre u n ⊤)%I.
+    (λ nths src tgt, RR nths src tgt ∗ wpsim_ginv u n ⊤)%I.
   Local Definition wpsim_rel u n (r : rel) : rel :=
     λ R_s R_t RR ps pt nths '(st_s, i_s) '(st_t, i_t),
       (∃ RR', ⌜ RR = wpsim_retcond u n RR' ⌝ ∧
-      wpsim_pre u n ⊤ ∗ r R_s R_t RR' ps pt nths (st_s, i_s) (st_t, i_t))%I.
+      wpsim_ginv u n ⊤ ∗ r R_s R_t RR' ps pt nths (st_s, i_s) (st_t, i_t))%I.
 
   (* Simulation relation that corresponds to iris' weakest precondition *)
   (* TODO : seal *)
   Local Definition wpsim_def r g R_s R_t RR ps pt nths st_s st_t E : iProp Σ :=
-    wpsim_pre u n E -∗
+    wpsim_ginv u n E -∗
     @isim Σ fl_s fl_t Ist my_tid false (wpsim_rel u n r) (wpsim_rel u n g)
       R_s R_t (wpsim_retcond u n RR) ps pt nths st_s st_t.
   Local Definition wpsim_aux : seal (@wpsim_def). Proof. by eexists. Qed.
@@ -50,9 +54,9 @@ Section wpsim.
   Definition wp_fspec (u : positive) (k : nat) (fsp : nat → fspec) : fspec :=
     mk_fspec (meta := @wp_meta (λ n, (fsp n).(meta)))
       (λ tid '(mk_wp_meta n x) varg arg,
-        @wpsim_pre u (k + n) ⊤ ∗ (fsp n).(precond) tid x varg arg)%I
+        wpsim_ginv u (k + n) ⊤ ∗ (fsp n).(precond) tid x varg arg)%I
       (λ tid '(mk_wp_meta n x) vret ret,
-        @wpsim_pre u (k + n) ⊤ ∗ (fsp n).(postcond) tid x vret ret)%I.
+        wpsim_ginv u (k + n) ⊤ ∗ (fsp n).(postcond) tid x vret ret)%I.
 
   (* Primitive simulation rules *)
   (* Mostly will not be used *)
@@ -236,7 +240,7 @@ Section wpsim.
     iPoseProof (H with "P [] [] I") as "H".
     { instantiate (1 :=
         (λ R_s R_t RR ps pt nths '(st_s, i_s) '(st_t, i_t),
-          wpsim_pre u n ⊤ -∗
+          wpsim_ginv u n ⊤ -∗
           g' R_s R_t (wpsim_retcond u n RR) ps pt nths (st_s, i_s) (st_t, i_t))%I).
       iModIntro; iIntros (????????) "G"; destruct src, tgt; iIntros "I". iApply Himpl. iFrame.
       iPureIntro; ss.

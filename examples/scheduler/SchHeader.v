@@ -1,13 +1,16 @@
 Require Import CRIS.
 Require Import ImpPrelude.
+Require Import wpsim.
+
+Definition sch_ginv (u : univ_id) (n : level)
+    `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ} : Sk.t → invspec :=
+  λ sk n, wpsim_ginv u n ⊤.
 
 Module SchName.
-
-Definition _spawn := "Sch._spawn".
-Definition spawn := "Sch.spawn".
-Definition yield := "Sch.yield".
-Definition join := "Sch.join".
-
+  Definition _spawn := "Sch._spawn".
+  Definition spawn := "Sch.spawn".
+  Definition yield := "Sch.yield".
+  Definition join := "Sch.join".
 End SchName.
 
 Module SchSK.
@@ -21,9 +24,7 @@ End SchSK.
 (* Wrapping fspecs *)
 Section FSpec.
   Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ}.
-  Notation iProp := (iProp Σ).
-
-  Variable univ: positive.
+  Context (u : univ_id).
 
   (* fspec wrapping functions - TODO: move them to a proper file *)
   Definition wfspec_inv (univ : positive) (fsp : fspec) : fspec :=
@@ -45,7 +46,7 @@ Section FSpec.
     | existT n p => ⟦ p ⟧
     end.
 
-  Definition wfspec_thread: fspec → fspec := (wfspec_inv univ) ∘ (wfspec_type SAny.t SAny.t).
+  Definition wfspec_thread: fspec → fspec := (wfspec_inv u) ∘ (wfspec_type SAny.t SAny.t).
 
   Definition find_fsp (sk: Sk.t) (StbFun: Sk.t -> string -> option fspec) (fn : string) : fspec :=
     match (StbFun sk fn) with

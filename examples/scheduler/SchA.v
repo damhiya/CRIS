@@ -1,6 +1,6 @@
 Require Import CRIS.
 
-Require Import SchHeader SchGInv.
+Require Import SchHeader.
 
 Set Implicit Arguments.
 

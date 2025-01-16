@@ -1,6 +1,6 @@
 Require Import CRIS.
 
-Require Import SchHeader SchGInv SchA.
+Require Import SchHeader SchA.
 
 Set Implicit Arguments.
 
@@ -233,7 +233,7 @@ Module SchAS. Section SchAS.
     Definition InitCond : Sk.t -> iProp :=
       fun _ => (initial_threads)%I.
     
-    Definition t := Seal.sealing CRIS (SMod.to_hmod (sch_ginv univ) GlobalStb Mod).
+    Definition t := Seal.sealing CRIS (SMod.to_hmod (sch_ginv univ 0) GlobalStb Mod).
 
   End SPEC.
 
