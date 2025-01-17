@@ -4,7 +4,7 @@ Require Import wpsim.
 
 Definition sch_ginv (u : univ_id) (n : level)
     `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ} : Sk.t → invspec :=
-  λ sk n, wpsim_ginv u n ⊤.
+  λ _ _, wpsim_ginv u n ⊤.
 
 Module SchName.
   Definition _spawn := "Sch._spawn".
