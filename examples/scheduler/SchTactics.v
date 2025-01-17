@@ -6,6 +6,7 @@ Set Implicit Arguments.
 
 Local Open Scope nat_scope.
 
+(* TODO : revise this file after refactoring sch examples *)
 Section MACROAUX.
   Import SchAS.
   Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !SchAGΣ Σ}.
@@ -13,7 +14,7 @@ Section MACROAUX.
 
   (** Sch.spawn *)
 
-  Lemma isim_mspawn_hp
+  (* Lemma isim_mspawn_hp
     fl fr Ist r g {Rs Rt} RR my_tid ps pt nths st_src st_tgt k_src k_tgt scp_src scp_tgt invspc
     (StbFun StbSch: Sk.t → string → option fspec) (univ: positive)
     (sk: Sk.t) (fvarg farg: SAny.t) (pre: iProp) (postS: SAny.t → {n & SRFSyn.t n}) 
@@ -266,7 +267,7 @@ Section MACROAUX.
     forces_r. iSplitL "POST W". { iFrame; et. }
     steps_r. hss. steps_r. rewrite SAny.upcast_downcast. hss. steps_r.
     iApply "ISIM". iFrame.
-  Qed.
+  Qed. *)
 
 End MACROAUX.
 
@@ -307,7 +308,7 @@ Ltac prep_macro :=
   hide_itree_r marker; try _prep_macro_l; show_itree marker;
   hide_itree_l marker; try _prep_macro_r; show_itree marker.
 
-Ltac yield_r hyps :=
+(* Ltac yield_r hyps :=
   prep_macro;
   first [
     iApply isim_myield_tgt_hp; des_pairs; s;
@@ -334,4 +335,4 @@ Ltac join hyps :=
     iApply isim_mjoin_hp; des_pairs; s;
     [|iSplitL hyps; [|iIntros "% % % %"; iIntrosFresh "[IST [W POST]]"]] |
     iApply isim_mjoin_hh; des_pairs; s;
-    [| |iSplitL hyps; [|iIntros "% % % %"; iIntrosFresh "IST"]]].
+    [| |iSplitL hyps; [|iIntros "% % % %"; iIntrosFresh "IST"]]]. *)

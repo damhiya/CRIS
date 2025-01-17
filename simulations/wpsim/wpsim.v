@@ -59,6 +59,22 @@ Section wpsim.
         wpsim_ginv u (k + n) ⊤ ∗ (fsp n).(postcond) tid x vret ret)%I.
 
   (* Primitive simulation rules *)
+  Lemma wpsim_init R_s R_t RR ps pt nths st_s st_t :
+    wpsim ibot ibot R_s R_t RR ps pt nths st_s st_t ⊤ ∗ wpsim_ginv u n ⊤ ⊢
+    @isim Σ fl_s fl_t Ist my_tid false ibot ibot R_s R_t RR ps pt nths st_s st_t.
+  Proof.
+    unseal; iIntros "[SIM I]"; iPoseProof ("SIM" with "I") as "SIM".
+    iPoseProof (isim_mono_knowledge with "SIM") as "SIM".
+    { instantiate (1:=ibot); i; iIntros "H"; rewrite /wpsim_rel /ibot; destruct sti_src, sti_tgt.
+      iDestruct "H" as (?) "[_ [_ []]]".
+    }
+    { instantiate (1:=ibot); i; iIntros "H"; rewrite /wpsim_rel /ibot; destruct sti_src, sti_tgt.
+      iDestruct "H" as (?) "[_ [_ []]]".
+    }
+    iApply (isim_mono with "SIM"); rewrite /wpsim_retcond; iFrame.
+    iIntros (?????) "[R _]"; iFrame.
+  Qed.
+
   (* Mostly will not be used *)
   Lemma wpsim_ret r g R_s R_t RR ps pt nths st_s st_t rs rt :
     RR nths (st_s, rs) (st_t, rt) ⊢ wpsim r g R_s R_t RR ps pt nths (st_s, Ret rs) (st_t, Ret rt) ⊤.

@@ -1,6 +1,6 @@
 Require Import CRIS.
 
-Require Import SchHeader SchA.
+Require Import SchHeader SchA wpsim.
 
 Set Implicit Arguments.
 
@@ -9,7 +9,6 @@ Local Open Scope Qp.
 Module SchAS. Section SchAS.
   Import SchA.
   Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ}.
-  Import SchA.
 
   Canonical Structure SynDepO : ofe := leibnizO {n & SRFSyn.t n}.
 
@@ -144,12 +143,11 @@ Module SchAS. Section SchAS.
 
   End RA.
 
-  Variable univ: positive.
-  Variable StbFun: Sk.t -> string -> option fspec.
-  Variable GlobalStb: Sk.t -> string -> option fspec.
+  Variable u : univ_id.
+  Variable StbFun : Sk.t -> string -> option fspec.
+  Variable GlobalStb : Sk.t -> string -> option fspec.
 
   Section SPEC.
-
     Definition fspec_spawnable (univ: positive) (fsp: fspec) (tid: nat) (m: meta fsp) (vargs args: Any.t) (pre: iProp) (postS: SAny.t -> SynDepO): Prop :=
       (((∃ n, wsats univ n ⊤) ∗ pre
           ⊢ (precond fsp tid m vargs args))%I
@@ -159,19 +157,41 @@ Module SchAS. Section SchAS.
                ∗ interp_cond (postS sret))))%I)).
 
     Definition _spawn_spec (sk: Sk.t) (StbFun: Sk.t -> string -> option fspec): fspec :=
-      wfspec_inv univ 
-        (fspec_virtual
-          (fun my_tid '(mid, fargs, fvargs, pre, postS, existT fn m) varg arg =>
-            (⌜varg = ((mid, fn, fvargs) : nat * string * SAny.t) 
-              ∧ arg = ((mid, fn, fargs) : nat * string * SAny.t)↑ 
-              ∧ is_Some (StbFun sk fn)
-              ∧ fspec_spawnable univ (find_fsp sk StbFun fn) my_tid m fvargs↑ fargs↑ pre postS⌝
-            ∗ pre ∗ (token_half my_tid postS))%I)
-          (fun _ _ (_: SAny.t) _ => (False)%I))
-    .
+      wp_fspec u 0
+        (λ n, fspec_virtual
+          (λ my_tid '(mid, fargs, fvargs, pre, postS, existT fn m) varg arg,
+            (⌜varg = ((mid, fn, fvargs) : nat * string * SAny.t) ∧
+              arg = ((mid, fn, fargs) : nat * string * SAny.t)↑ ∧
+              is_Some (StbFun sk fn) ∧
+              fspec_spawnable u (find_fsp sk StbFun fn) my_tid m fvargs↑ fargs↑ pre postS⌝
+            ∗ pre
+            ∗ token_half my_tid postS)%I)
+          (λ _ _ (_: SAny.t) _, (False)%I)
+        ).
+      (* wfspec_inv univ  *)
+        (* (fspec_virtual *)
+          (* (fun my_tid '(mid, fargs, fvargs, pre, postS, existT fn m) varg arg => *)
+            (* (⌜varg = ((mid, fn, fvargs) : nat * string * SAny.t)  *)
+              (* ∧ arg = ((mid, fn, fargs) : nat * string * SAny.t)↑  *)
+              (* ∧ is_Some (StbFun sk fn) *)
+              (* ∧ fspec_spawnable univ (find_fsp sk StbFun fn) my_tid m fvargs↑ fargs↑ pre postS⌝ *)
+            (* ∗ pre ∗ (token_half my_tid postS))%I) *)
+          (* (fun _ _ (_: SAny.t) _ => (False)%I)) *)
+    (* . *)
 
-    Definition spawn_spec (sk: Sk.t) (StbFun: Sk.t -> string -> option fspec): fspec :=
-      wfspec_inv univ
+    Definition spawn_spec (sk : Sk.t) (StbFun : Sk.t -> string -> option fspec): fspec :=
+      wp_fspec u 0
+        (λ n, fspec_virtual
+          (λ _ '(fargs, fvargs, pre, postS, existT fn m) varg arg,
+            ⌜varg = ((fn, fvargs): string * SAny.t) 
+            ∧ arg = ((fn, fargs): string * SAny.t)↑
+            ∧ is_Some (StbFun sk fn)
+            ∧ ∀ tid, fspec_spawnable u (find_fsp sk StbFun fn) tid m fvargs↑ fargs↑ pre postS⌝
+             ∗ pre)
+          (λ _ '(fargs, fvargs, pre, postS, existT fn m) vret ret,
+            ∃ tid: nat, ⌜vret = tid ∧ ret = tid↑⌝ ∗ token_th tid postS)
+        )%I.
+      (* wfspec_inv univ
         (fspec_virtual
           (fun _ '(fargs, fvargs, pre, postS, existT fn m) varg arg => 
             (⌜varg = ((fn, fvargs): string * SAny.t) 
@@ -181,21 +201,28 @@ Module SchAS. Section SchAS.
              ∗ pre)%I)
           (fun _ '(fargs, fvargs, pre, postS, existT fn m) vret ret => 
             (∃ tid: nat, ⌜vret = tid ∧ ret = tid↑⌝ ∗ (token_th tid postS))%I))
-    .
+    . *)
 
-    Definition yield_spec: fspec :=
-      wfspec_inv univ
+    Definition yield_spec : fspec :=
+      wp_fspec u 0
+        (λ n, fspec_simple (λ _ : unit, ((λ varg, ⌜varg = tt↑⌝), (λ vret, ⌜vret = tt↑⌝))))%I.
+      (* wfspec_inv univ
         (fspec_simple (fun (_: unit) =>
           ((fun varg => (⌜varg = tt↑⌝)%I),
            (fun vret => (⌜vret = tt↑⌝)%I))))
-    .
+    . *)
 
-    Definition join_spec: fspec :=
-      wfspec_inv univ
+    Definition join_spec : fspec :=
+      wp_fspec u 0
+        (λ n, fspec_simple (λ '(tid, postS),
+          (λ varg, ⌜varg = tid↑⌝ ∗ (token_th tid postS),
+          λ vret, ∃ ret, ⌜vret = (Some ret)↑⌝ ∗ interp_cond (postS ret)))
+        )%I.
+      (* wfspec_inv univ
         (fspec_simple (fun '(tid, postS) =>
           ((fun varg => (⌜varg = tid↑⌝ ∗ (token_th tid postS))%I),
             (fun vret => (∃ ret, ⌜vret = (Some ret)↑⌝ ∗ interp_cond (postS ret))%I))))
-    .
+    . *)
 
     Definition Stb (sk: Sk.t) (StbFun: Sk.t -> string -> option fspec): alist string fspec :=
       Seal.sealing CRIS 
@@ -209,14 +236,13 @@ Module SchAS. Section SchAS.
 
     Definition scopes := ["Sch"].
 
-    Definition fnsems (sk: Sk.t) :=
+    Definition fnsems (sk : Sk.t) :=
       [(SchName._spawn, (scopes, mk_specbody (_spawn_spec sk StbFun) (cfunN _spawn)));
       (SchName.spawn, (scopes, mk_specbody (spawn_spec sk StbFun) (cfunU spawn)));
       (SchName.yield, (scopes, mk_specbody (yield_spec) (cfunU yield)));
       (SchName.join, (scopes, mk_specbody (join_spec) (cfunU join)))].
 
-    Program Definition Sem (sk: Sk.t): SModSem.t :=
-    {|
+    Program Definition Sem (sk: Sk.t): SModSem.t := {|
       SModSem.scopes := scopes;
       SModSem.fnsems := fnsems sk;
       SModSem.initial_st := [];
@@ -224,17 +250,13 @@ Module SchAS. Section SchAS.
     Solve All Obligations with prove_scope.
     Next Obligation. prove_nodup. Qed.
 
-    Definition Mod: SMod.t :=
-    {|
+    Definition Mod: SMod.t := {|
       SMod.modsem := fun sk => Sem sk;
       SMod.sk := SchSK.t;
     |}.
 
-    Definition InitCond : Sk.t -> iProp :=
-      fun _ => (initial_threads)%I.
-    
-    Definition t := Seal.sealing CRIS (SMod.to_hmod (sch_ginv univ 0) GlobalStb Mod).
+    Definition InitCond : Sk.t → iProp := λ _, initial_threads.
 
+    Definition t := Seal.sealing CRIS (SMod.to_hmod (sch_ginv u 0) GlobalStb Mod).
   End SPEC.
-
 End SchAS. End SchAS.
