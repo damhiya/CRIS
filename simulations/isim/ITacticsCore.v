@@ -91,20 +91,16 @@ Ltac fnsems_nodup H :=
 Ltac _alist_find_simpl :=
   match goal with
   [ |- context[alist_find ?k ?l]] =>
-    match l with
-    | context[(k,_)] =>
-      let TMP := fresh "_TMP" in
-      match goal with [H: List.NoDup _|-_] =>
-        eassert (TMP: List.NoDup (List.map fst l))  by (fnsems_nodup H);
-        revert TMP
-      end;
-      erewrite (@ereplace _ l);
-      [intros ?
-      |Lauto_normalize; try rewrite !List.map_app; simpl List.map; Lauto_prepare;
-       match goal with [|-context[(k,?v)]] => Lauto_find (k,v) end; refl];
-      rewrite !alist_find_with_nodup; [|exact TMP]; clear TMP;
-      Lauto_finish
-    end
+    let TMP := fresh "_TMP" in
+    match goal with [H: List.NoDup _|-_] =>
+      eassert (TMP: List.NoDup (List.map fst l))  by (fnsems_nodup H);
+      revert TMP
+    end;
+    erewrite (@ereplace _ l); [intros ?
+    | Lauto_normalize; try rewrite !List.map_app; simpl List.map; Lauto_prepare;
+      match goal with [|-context[(?k',?v)]] => change k' with k; Lauto_find (k,v) end; refl];
+    rewrite !alist_find_with_nodup; [|exact TMP]; clear TMP;
+    Lauto_finish
   end.
 
 Tactic Notation "alist_find_simpl_with" tactic(simpl_tac) :=
