@@ -23,27 +23,35 @@ Module MainIM. Section MainIM.
   Proof.
     init_simF.
 
-    steps_l. iDestruct "ASM" as "%". subst.
+    (* Take cell(0) *)
+    steps_l; iDestruct "ASM" as "%"; subst.
 
     inline_r.
+    (* Give cell(0) *)
     steps_r. forces_r. iSplitL ""; eauto.
     forces_r. steps_r. forces_r. iSplitL "ASM'"; eauto.
 
-    steps_r. step.
+    (* Call Input() simultaneously *)
+    steps_r. step. rename vret into i.
 
-    steps_l. steps_r. iDestruct "GRT'" as "%". subst. hss.
-    steps_r. forces_l.
-    iSplitL ""; eauto.
-
+    (* Take cell(i) *)
+    steps_r. iDestruct "GRT'" as "%". subst. hss.
+    
+    (* Call Foo.foo() simultaneously *)
+    steps_l. steps_r. forces_l. iSplitL ""; eauto.
     call "IST"; [eauto|]. iModIntro.
+    steps_l. iDestruct "ASM" as "%". subst. hss. steps_r. hss. steps_r.
 
-    steps_l. iDestruct "ASM" as "%". subst. hss.
-    steps_r. hss. steps_r. inline_r.
+    inline_r.
+    (* Give cell(i) *)
     step_r. forces_r. iSplitL ""; eauto.
     forces_r. steps_r. forces_r.
     iSplitL "GRT"; eauto.
 
+    (* Take cell(i) *)
     steps_r. iDestruct "GRT'" as "%". subst. hss.
+
+    (* Call Print(i) simultaneously *)
     steps_r. step.
 
     steps_l. forces_l.
