@@ -1,5 +1,5 @@
 Require Import CRIS.
-Require Import CellioA CellioHeader MainHeader FooHeader.
+Require Import CellioA CellioHeader MainHeader FooHeader InputHeader.
 
 Set Implicit Arguments.
 
@@ -12,7 +12,8 @@ Module MainA. Section MainA.
   Definition main: Any.t -> itree hmodE Any.t :=
     λ _,
       trigger (Assume (cell 0));;;
-      'i: Z <- trigger (IO "Input" tt);;
+      (* 'i: Z <- trigger (IO "Input" tt);; *)
+      'i: Z <- ccallU InputName.input tt;;
       '_: unit <- ccallU FooName.foo tt;;
       '_: unit <- trigger (IO "Print" i);;
       Ret tt↑
@@ -38,6 +39,12 @@ Module MainA. Section MainA.
 
   Definition InitCond : Sk.t -> iProp Σ :=
     λ _, emp%I.
+
+  (* Definition Stb : alist string fspec :=
+    Seal.sealing CRIS [(MainName.main, fspec_trivial)].
+
+  Lemma Stb_nodup: List.NoDup (List.map fst Stb).
+  Proof. unfold Stb. unseal CRIS. prove_nodup. Qed. *)
 
   Variable GI: Sk.t -> invspec.
   Variable GlobalStb: Sk.t -> string -> option fspec.

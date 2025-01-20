@@ -1,9 +1,9 @@
 Require Import CRIS.
-Require Import CellioHeader CellioA MainHeader MainA MainI FooASpec.
+Require Import CellioHeader CellioA MainHeader MainA MainI FooASpec InputASpec.
 
 Set Implicit Arguments.
 
-Module MainIM. Section MainIM.
+Module MainIA. Section MainIA.
   Import CellioA.
   Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !CellioAGΓ Γ}.
 
@@ -13,6 +13,7 @@ Module MainIM. Section MainIM.
   Variable ginv: Sk.t -> invspec.
   Variable Stb: Sk.t -> string -> option fspec.
   Hypothesis FooInStbMap: forall sk, stb_incl FooAS.Stb (Stb sk).
+  Hypothesis InputInStb: forall sk, stb_incl InputAS.Stb (Stb sk).
 
   Local Notation CellioA := (CellioA.t ginv Stb).
   Local Notation MainA := (MainA.t ginv Stb).
@@ -32,7 +33,10 @@ Module MainIM. Section MainIM.
     forces_r. steps_r. forces_r. iSplitL "ASM'"; eauto.
 
     (* Call Input() simultaneously *)
-    steps_r. step. rename vret into i.
+    steps_r. forces_l. iSplitL "GRT"; eauto.
+    call "IST"; eauto. iModIntro.
+    steps_l. forces_r. iSplitL "ASM"; eauto.
+    steps_r. hss.
 
     (* Take cell(i) *)
     steps_r. iDestruct "GRT'" as "%". subst. hss.
@@ -63,11 +67,11 @@ Module MainIM. Section MainIM.
   Qed.
 
   Theorem sim :
-    HSim.t (MainA ★ CellioA) (MainI.t ★ CellioA) (const emp%I) IstFull.
+    HSim.t (MainA ★ CellioA) (MainI.t ★ CellioA) MainA.InitCond IstFull.
   Proof.
     init_sim.
     - iIntros "_". repeat iExists []. iSplit; eauto.
       repeat (iSplit; eauto); iPureIntro; prove_scope.
     - eapply simF_main; eauto.
   Qed.
-End MainIM. End MainIM.
+End MainIA. End MainIA.
