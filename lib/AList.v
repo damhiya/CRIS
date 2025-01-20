@@ -479,27 +479,6 @@ Module StringOrder <: TotalOrderBool.
   Qed.
 End StringOrder.
 
-Module ProdFstOrder (A : TotalOrderBool) (B : Typ) <: TotalOrderBool.
-  Definition t := (A.t * B.t)%type.
-  Definition leb := fun (x y : t) => A.leb (fst x) (fst y).
-  Lemma leb_total : forall x y : t, leb x y = true \/ leb y x = true.
-  Proof. i. eapply A.leb_total. Qed.
-
-  Lemma leb_trans : Transitive leb.
-  Proof. ii. eapply A.leb_trans; et. Qed.
-
-  Definition eqA (x y : t) := A.eqA (fst x) (fst y).
-
-  Lemma eqb_eq : forall x y : t, eqA x y <-> leb x y = true /\ leb y x.
-  Proof.
-    i. split.
-    { i. destruct x, y. unfold eqA, leb in *. ss.
-      eapply A.eqb_eq; auto. }
-    { i. destruct x, y. unfold eqA, leb in *. ss.
-      eapply A.eqb_eq; auto. }
-  Qed.
-End ProdFstOrder.
-
 Require Import Sorting.Mergesort.
 Require Import Sorting.Sorted.
 
@@ -614,61 +593,69 @@ Module OrderSort (A : TotalOrderBool).
 
 End OrderSort.
 
-Module AListSort (V : Typ).
-  Module _Order := ProdFstOrder StringOrder V.
-  Include (OrderSort _Order).
+Module StringSort.
+  Include (OrderSort StringOrder).
+End StringSort.
 
-  Definition t := alist string V.t.
+Module Type ATyp.
+  Parameter t: Type.
+  Parameter default: t.
+End ATyp.
+
+Module AListSort (V : ATyp).
+
+  Definition t := list (string * V.t).
+
+  Definition _find (l: t) := (fun k => (k, or_else (alist_find k l) V.default)).
+  
+  Definition sort (l: t) : t :=
+    List.map (_find l) (StringSort.sort (List.map fst l)).
 
   Lemma sort_permutation (l : t)
+    (ND : List.NoDup (List.map fst l))
     :
-      Permutation l (sort l).
+    Permutation l (sort l).
   Proof.
-    eapply Permuted_sort.
-  Qed.
-
-  Lemma sort_add_comm (l0 l1 : t)
-        (ND : List.NoDup (List.map fst (l0 ++ l1)))
-    :
-      sort (l0 ++ l1) = sort (l1 ++ l0).
-  Proof.
-    eapply permutation_sorted_unique.
-    { etrans.
-      { symmetry. eapply sort_permutation. }
-      etrans.
-      { eapply Permutation_app_comm. }
-      { eapply sort_permutation. }
-    }
-    { eapply NoDupA_permutation.
-      { ii. eapply _Order.eqb_eq. eapply _Order.eqb_eq in H. des. auto. }
-      { eapply sort_permutation. }
-      revert ND. generalize (l0 ++ l1). clear. induction l.
-      { i. econs. }
-      { i. ss. inv ND. econs; et.
-        eapply Forall_forall. ii. eapply H1.
-        replace (fst a) with (fst x).
-        eapply in_map. ss.
-      }
-    }
-    { eapply sort_StronglySorted. }
-    { eapply sort_StronglySorted. }
+    assert (PERM := StringSort.Permuted_sort (List.map fst l)).
+    eapply Permutation_map with (f:= _find l) in PERM.
+    unfold sort. etrans; [|eauto].
+    eapply eq_ind; [refl|].
+    rewrite map_map. clear PERM. revert ND.
+    induction l; s; i; eauto.
+    unfold _find. destruct a. ss. rewrite eq_rel_dec_correct. des_ifs.
+    f_equal. depdes ND. rewrite IHl at 1; eauto.
+    apply map_ext_Forall, Forall_forall. i.
+    destruct x. unfold _find. s. rewrite eq_rel_dec_correct. des_ifs.
+    exfalso. apply H. eapply in_map with (f:=fst) in H0. eauto.
   Qed.
 
   Lemma permutation_sort (l1 l2 : t)
-    (NODUP : NoDupA _Order.eqA l1)
+    (NODUP : NoDup (map fst l1))
     (PERM : Permutation l1 l2)
     :
     sort l1 = sort l2.
   Proof.
-    eapply permutation_sorted_unique.
-    - etrans. { symmetry. apply Permuted_sort. }
-      etrans. { apply PERM. }
-      apply Permuted_sort.
-    - eapply NoDupA_permutation, NODUP.
-      + ii. symmetry. eauto.
-      + apply Permuted_sort.
-    - apply sort_StronglySorted.
-    - apply sort_StronglySorted.
+    unfold sort. etrans; [apply map_ext_Forall, Forall_forall|f_equal]; i.
+    - unfold _find. do 2 f_equal.
+      apply alist_permutation_find; eauto.
+    - eapply StringSort.permutation_sorted_unique.
+      + etrans.
+        { symmetry; apply StringSort.Permuted_sort. }
+        etrans; cycle 1.
+        { apply StringSort.Permuted_sort. }
+        apply Permutation_map. eauto.
+      + apply NoDupA_eq_Nodup. eapply Permutation_NoDup, NODUP.
+        apply StringSort.Permuted_sort.
+      + eapply StringSort.sort_StronglySorted.
+      + eapply StringSort.sort_StronglySorted.
+  Qed.
+  
+  Lemma sort_add_comm (l0 l1 : t)
+        (ND : List.NoDup (List.map fst (l0 ++ l1)))
+    :
+    sort (l0 ++ l1) = sort (l1 ++ l0).
+  Proof.
+    eapply permutation_sort; eauto using Permutation_app_comm.
   Qed.
   
 End AListSort.

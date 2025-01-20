@@ -37,7 +37,7 @@ Qed.
 
 Module AnySort.
 
-  Module AnyT <: Typ. Definition t := Any.t. End AnyT.
+  Module AnyT <: ATyp. Definition t := Any.t. Definition default := ()↑. End AnyT.
 
   Module SkSort := AListSort AnyT.
   
@@ -50,42 +50,37 @@ Module AnySort.
     sort sk0 = sort sk1.
   Proof.
     eapply SkSort.permutation_sort; eauto.
-    eapply NoDupA_eq_Nodup in WF.
-    unfold SkSort._Order.eqA, StringOrder.eqA.
-    clear EQV sk1. revert WF.
-    induction sk0; i; ss.
-    - econs.
-    - inv WF. econs; eauto.
-      apply Forall_forall. i.
-      eapply Forall_forall in HD; eauto.
-      eapply elem_of_list_In, in_map, elem_of_list_In. eauto.
   Qed.
 
-  Lemma sort_equiv sk:
+  Lemma sort_equiv sk
+    (WF : Sk.wf sk)
+    :
     Sk.equiv sk (sort sk).
   Proof.
-    apply SkSort.Permuted_sort.
+    apply SkSort.sort_permutation; eauto.
   Qed.
   
   Lemma sort_wf sk
     (WF : Sk.wf sk):
     Sk.wf (sort sk).
   Proof.
-    eapply Sk.equiv_wf; eauto. apply sort_equiv.
+    eapply Sk.equiv_wf; eauto. apply sort_equiv; eauto.
   Qed.
 
   Lemma sort_incl sk
+    (WF : Sk.wf sk)
     :
     List.incl sk (sort sk).
   Proof.
-    eapply Sk.equiv_incl. apply sort_equiv.
+    eapply Sk.equiv_incl. apply sort_equiv; eauto.
   Qed.
 
   Lemma sort_incl_rev sk
+    (WF : Sk.wf sk)
     :
     List.incl (sort sk) sk.
   Proof.
-    eapply Sk.equiv_incl. symmetry. apply sort_equiv.
+    eapply Sk.equiv_incl. symmetry. apply sort_equiv; eauto.
   Qed.
 
 End AnySort.
@@ -153,14 +148,15 @@ Module SkEnv.
     exists blk, <<FIND : skenv.(SkEnv.id2blk) gn = Some blk>>.
 
   Lemma incl_incl_env sk0 sk1
-        (INCL : List.incl sk0 sk1)
+    (WF: Sk.wf sk1)
+    (INCL : List.incl sk0 sk1)
     :
       incl_env sk0 (load_skenv sk1).
   Proof.
     assert (incl sk0 (AnySort.sort sk1)).
-    { etrans. apply INCL. apply AnySort.sort_incl. }
+    { etrans. apply INCL. apply AnySort.sort_incl; eauto. }
     unfold load_skenv. clear INCL. revert H.
-    generalize (AnySort.sort sk1). clear sk1. intros sk1 INCL.
+    generalize (AnySort.sort sk1). clear WF sk1. intros sk1 INCL.
 
     ii. exploit INCL; et. i. ss. uo. des_ifs; et.
     exfalso. clear - x0 Heq0. ginduction sk1; et.
@@ -171,39 +167,42 @@ Module SkEnv.
 
   Lemma in_env_in_sk :
     forall sk blk symb
+      (WF: Sk.wf sk)
       (FIND : blk2id (load_skenv sk) blk = Some symb),
     exists def, In (symb, def) sk.
   Proof.
     i. cut (exists def, In (symb, def) (AnySort.sort sk)).
-    { i; des. eexists. apply AnySort.sort_incl_rev. eauto. }
+    { i; des. eexists. apply AnySort.sort_incl_rev; eauto. }
 
     ss. uo. des_ifs. eapply nth_error_In in Heq0. et.
   Qed.
 
   Lemma in_sk_in_env :
     forall sk def symb
+           (WF: Sk.wf sk)
            (IN : In (symb, def) sk),
     exists blk, blk2id (load_skenv sk) blk = Some symb.
   Proof.
-    i. apply AnySort.sort_incl in IN.
+    i. apply AnySort.sort_incl in IN; eauto.
     ss. uo. eapply In_nth_error in IN. des.
     eexists. rewrite ->IN. et.
   Qed.
 
   Lemma env_range_some :
     forall sk blk
+      (WF: Sk.wf sk)
       (BLKRANGE : blk < Datatypes.length sk),
       <<FOUND : exists symb, blk2id (load_skenv sk) blk = Some symb>>.
   Proof.
     i. erewrite Permutation.Permutation_length in BLKRANGE; cycle 1.
-    { apply AnySort.SkSort.sort_permutation. }
+    { apply AnySort.SkSort.sort_permutation; eauto. }
     unfold load_skenv, AnySort.sort. revert BLKRANGE.
-    generalize (AnySort.SkSort.sort sk). clear sk. intros sk ?.
+    generalize (AnySort.SkSort.sort sk). clear WF sk. intros sk ?.
 
     depgen sk. induction blk; i; ss; clarify.
     { destruct sk; ss; clarify.
       { lia. }
-      uo. destruct t0. exists t0. ss. }
+      uo. destruct p. exists s. ss. }
     destruct sk; ss; clarify.
     { lia. }
     apply PeanoNat.lt_S_n in BLKRANGE. eapply IHblk; eauto.
@@ -211,13 +210,14 @@ Module SkEnv.
 
   Lemma env_found_range :
     forall sk symb blk
+      (WF: Sk.wf sk)
       (FOUND : id2blk (load_skenv sk) symb = Some blk),
       <<BLKRANGE : blk < Datatypes.length sk>>.
   Proof.
     i. erewrite Permutation.Permutation_length; cycle 1.
-    { apply AnySort.SkSort.sort_permutation. }
+    { apply AnySort.SkSort.sort_permutation; eauto. }
     revert FOUND. unfold load_skenv, AnySort.sort.
-    generalize (AnySort.SkSort.sort sk). clear sk. intros sk ?.
+    generalize (AnySort.SkSort.sort sk). clear WF sk. intros sk ?.
     
     ginduction sk; i; ss; clarify.
     uo; des_ifs. destruct p0. rewrite find_idx_red in Heq0. des_ifs.
