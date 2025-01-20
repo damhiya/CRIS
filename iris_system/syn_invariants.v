@@ -38,7 +38,7 @@ Global Instance inv_interp `{!invG α Σ Γ, !subHG Γ Σ} :
     @SRFIntpM.t (@domain Σ) α _ :=
   inv_interp_aux.
 
-Class syn_invG (Σ : GRA) (Γ : HRA) (α : SRFCons.t) (β : SRFIntp.t) (τ : Typ.t)
+Class syn_invG (Σ : GRA) (Γ : HRA) (α : SRFCons.t) (β : SRFIntp.t) (τ : TypG.t)
     `{!invG α Σ Γ, !subHG Γ Σ} := {
   #[global] syn_invG_inG :: SRFIntp.inG inv_syntax α inv_interp β;
 }.
@@ -92,7 +92,7 @@ Section syn_inv.
 End syn_inv.
 
 (* Context `{Γ : HRA, !subHG Γ Σ, !CtxST.t τ, !SL.G Σ Γ α β τ, !syn_invG Σ Γ α β τ}. *)
-Class sinvG (Σ : GRA) (Γ : HRA) (α : SRFCons.t) (β : SRFIntp.t) (τ : Typ.t)
+Class sinvG (Σ : GRA) (Γ : HRA) (α : SRFCons.t) (β : SRFIntp.t) (τ : TypG.t)
     `{!invG α Σ Γ, !subHG Γ Σ} := sinvG_mk {
   #[global] sinv_typG :: CtxST.t τ;
   #[global] sinv_SLG :: SL.G Σ Γ α β τ;
@@ -170,7 +170,7 @@ Ltac inv_red :=
   ).
 
 Module inv_instances.
-  #[export] Instance τ : Typ.t := λ _, ST.t.
+  #[export] Instance τ : TypG.t := λ _, ST.t.
 
   #[export] Instance typG : CtxST.t τ.
   Proof. econs. econs. instantiate (1:=0); ss. Qed.

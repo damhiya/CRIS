@@ -10,9 +10,9 @@ Global Instance domain (Σ : GRA) : SRFDom.t := { dom := iProp Σ }.
 
 (* Note that the types in a group has the type PF.t *)
 (* The types in all groups *)
-Module Typ.
+Module TypG.
   Class t: Type := __TYP : GPF.t.
-End Typ.
+End TypG.
 
 Class HRA : Type := HRA_mk : GRA.
 Class subHG (Γ : HRA) (Σ : GRA) := subHG_mk : subG Γ Σ.
@@ -62,7 +62,7 @@ Module ST. Section ST.
 End ST. End ST.
 
 Module CtxST.
-  Class t (τ : Typ.t) := { #[global] inG :: @GPF.inG ST.t τ }.
+  Class t (τ : TypG.t) := { #[global] inG :: @GPF.inG ST.t τ }.
 End CtxST.
 
 (** Notations and Coercions. *)
@@ -81,7 +81,7 @@ Notation "'τ{' t '}'" := (@PF.deg ST.t t (SRFSyn.t_prev _)) : SRF_scope.
 (* TODO : The functionalities below need to be separated! after coarse refactoring *)
 Module SL.
   Section syntax.
-    Context {τ : Typ.t} {α : @SRFCons.t} {Γ : HRA}.
+    Context {τ : TypG.t} {α : @SRFCons.t} {Γ : HRA}.
 
     Variant shape : Type :=
     | _own i (γ : positive) (r : (@GRA_lookup Γ) i)
@@ -122,7 +122,7 @@ Module SL.
   End syntax.
 
   Section semantics.
-    Context {τ : Typ.t} {α : @SRFCons.t} {Γ : HRA} {Σ : GRA} `{!subHG Γ Σ}.
+    Context {τ : TypG.t} {α : @SRFCons.t} {Γ : HRA} {Σ : GRA} `{!subHG Γ Σ}.
     Definition interp_aux n (s : shape)
         : (degree s (SRFSyn.t_prev n) → SRFSyn.t n) → (degree s (SRFSyn.t_prev n) → iProp Σ) → iProp Σ :=
       match s with
@@ -144,7 +144,7 @@ Module SL.
     Global Instance interp : @SRFIntpM.t _ α syntax := interp_aux.
   End semantics.
 
-  Class G (Σ : GRA) (Γ : HRA) (α : SRFCons.t) (β : SRFIntp.t) (τ : Typ.t) `{!subHG Γ Σ} := {
+  Class G (Σ : GRA) (Γ : HRA) (α : SRFCons.t) (β : SRFIntp.t) (τ : TypG.t) `{!subHG Γ Σ} := {
     #[local] G_inG :: SRFIntp.inG SL.syntax α SL.interp β;
   }.
 
