@@ -76,6 +76,8 @@ Module CellioA. Section CellioA.
   Definition InitCond : Sk.t -> iProp Σ :=
     λ _, CellioA.auth 0.
 
+  Definition InitRes : Σ := CRIS.own.iRes_singleton base_γ (●E 0%Z).
+
   Variable ginv: Sk.t -> invspec.
   Variable GlobalStb: Sk.t -> string -> option fspec.
   Definition t := Seal.sealing CRIS (SMod.to_hmod ginv GlobalStb Mod).

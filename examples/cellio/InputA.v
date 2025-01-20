@@ -32,6 +32,8 @@ Module InputA. Section InputA.
 
   Definition InitCond : Sk.t -> iProp Σ :=
     λ _, emp%I.
+    
+  Definition InitRes : Σ := ε.
 
   Variable ginv: Sk.t -> invspec.
   Variable GlobalStb: Sk.t -> string -> option fspec.

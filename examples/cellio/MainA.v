@@ -40,6 +40,8 @@ Module MainA. Section MainA.
   Definition InitCond : Sk.t -> iProp Σ :=
     λ _, emp%I.
 
+  Definition InitRes : Σ := ε.
+
   (* Definition Stb : alist string fspec :=
     Seal.sealing CRIS [(MainName.main, fspec_trivial)].
 
