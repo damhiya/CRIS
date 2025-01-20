@@ -98,7 +98,7 @@ Section MID.
   Definition handle_Assume (P : iProp) : itree modE unit :=
     mr <- get_res;;
     mr' <- trigger (Take Σ);;
-    assume (✓ mr' ∧ (Own mr' -∗ P ∗ Own mr));;;
+    assume (✓ mr' ∧ (Own mr' ==∗ P ∗ Own mr));;;
     put_res mr'.
 
   Definition handle_Guarantee (P : iProp) : itree modE unit :=

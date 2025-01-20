@@ -98,7 +98,7 @@ Section CANCEL.
       iPoseProof (H6 with "H2") as "H2".
       iModIntro. rewrite !Own_op. iFrame.
     }
-    assert (VALID: ✓(a0 ⋅ a1 ⋅ x3) ∧ (Own (a0 ⋅ a1 ⋅ x3) -∗ precond f (base.length tgts) x args x0 ∗ Own x3)).
+    assert (VALID: ✓(a0 ⋅ a1 ⋅ x3) ∧ (Own (a0 ⋅ a1 ⋅ x3) ==∗ precond f (base.length tgts) x args x0 ∗ Own x3)).
     { split.
       - eapply Own_wand_valid with (a1 := rs); eauto.
       - iIntros "((H0 & H1) & H2)". iFrame.

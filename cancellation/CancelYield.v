@@ -57,7 +57,7 @@ Section CANCEL.
       subst tid.
       iterT 2. iterL. tau 1. iterT 2.
       iterL. _supd. iterL. _coreE (a1 ⋅ x).
-      assert (SAT: ✓ (a1 ⋅ x) ∧ (Own (a1 ⋅ x) -∗ ginv sk cid ∗ Own x)).
+      assert (SAT: ✓ (a1 ⋅ x) ∧ (Own (a1 ⋅ x) ==∗ ginv sk cid ∗ Own x)).
       { split; eauto. iIntros "[A X]". iFrame. iApply H0. eauto. }
       iterL. _coreE SAT. ls.
       iterL. _supd. iterL. _supd.
@@ -88,7 +88,7 @@ Section CANCEL.
     rewrite H4. ired. tau 2.
     iterT 1. iterL. tau 1. ls. iterT 2.
     iterL. _supd. iterL. _coreE (a1 ⋅ x). ls.
-    assert (SAT: ✓ (a1 ⋅ x) ∧ (Own (a1 ⋅ x) -∗ ginv sk tid ∗ Own x)).
+    assert (SAT: ✓ (a1 ⋅ x) ∧ (Own (a1 ⋅ x) ==∗ ginv sk tid ∗ Own x)).
     { split; eauto. iIntros "[A X]". iFrame. iApply H0. eauto. }
     iterL. _coreE SAT. ls.
     iterL. _supd. iterL. _supd.

@@ -58,7 +58,7 @@ Section REL.
     x <- trigger (Choose fsp.(meta));; tau;;
     arg <- trigger (Choose Any.t);; tau;;
     tid <- trigger (Spawn fn arg);; tau;;
-    trigger (Guarantee (ginv tid -∗ fsp.(precond) tid x varg arg));;; tau;;
+    trigger (Guarantee (ginv tid ==∗ fsp.(precond) tid x varg arg));;; tau;;
     HoareYieldE ginv tid;;; 
     Ret tid.
 

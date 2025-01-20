@@ -51,7 +51,7 @@ Section CANCEL.
     i. des.
     iterL. _supd.
     iterL. _coreE (a1 ⋅ x1). ls.
-    assert (VALID: ✓ (a1 ⋅ x1) ∧ (Own (a1 ⋅ x1) -∗ P cid x varg x0 ∗ Own x1)).
+    assert (VALID: ✓ (a1 ⋅ x1) ∧ (Own (a1 ⋅ x1) ==∗ P cid x varg x0 ∗ Own x1)).
     { split.
       - eapply Own_wand_valid with (a1 := rt); eauto.
         iIntros "RT". iMod (H with "RT") as "[A X]". iModIntro.

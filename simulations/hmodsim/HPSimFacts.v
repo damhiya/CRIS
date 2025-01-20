@@ -219,13 +219,13 @@ Section HPSIM_ADEQUACY.
     - clarify; steps.
       rewrite interp_hp_Assume /handle_Assume; steps.
       rewrite /get_res /put_res; steps. des.
-      apply bi.wand_entails, Own_split in _ASSUME0. des.
+      apply bi.wand_entails, Own_bupd_split in _ASSUME0. des.
       eapply (K (fmr0 ⋅ a1)); eauto.
       { iIntros "[FMR X]"; iMod (CUR with "FMR") as "FMR". iFrame.
         iModIntro. iApply _ASSUME1. eauto.
       }
       { rewrite _ASSUME0.
-        iIntros "[X MRS]". iPoseProof (_ASSUME2 with "MRS") as "MRS".
+        iIntros "> [X MRS]". iPoseProof (_ASSUME2 with "MRS") as "MRS".
         iMod (FMR with "MRS") as "[[CTX FMR] MRT]"; iMod (x1 with "FMR") as "FMR".
         iModIntro; iSplitR "MRT"; eauto.
         iSplitL "CTX"; eauto. iSplitL "FMR"; eauto.

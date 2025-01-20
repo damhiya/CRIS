@@ -86,23 +86,26 @@ Section CANCEL.
     - _iter. _iter. rewrite SRC TGT. ired.
       hide_r. _supd. iterL. _coreA. iterL. _coreA.
       iterL. _supd. iterL. _supd. iterT 1. reveal ITREE. des.
-      eapply bi.wand_entails, Own_split in x1. des.
+      eapply bi.wand_entails, Own_bupd_split in x1. des.
       hide_l. _supd. iterL. _coreE (a1 ⋅ rt).
       assert (UPD': Own (a1 ⋅ a2) ==∗ Own (a1 ⋅ rt)).
       { iIntros "[A1 A2]". iSplitL "A1"; eauto.
         iApply UPD. iApply x3. eauto.
       }
-      assert (VALID: ✓ (a1 ⋅ rt) ∧ (Own (a1 ⋅ rt) -∗ P ∗ Own rt)). 
+      assert (VALID: ✓ (a1 ⋅ rt) ∧ (Own (a1 ⋅ rt) ==∗ P ∗ Own rt)). 
       { split.
-        - rewrite x1 in x0. eapply Own_wand_valid, x0.
-          eapply bi.wand_entails. eauto.
+        - eapply bi.wand_entails in UPD'.
+          eapply Own_wand_valid; eauto.
+          eapply Own_wand_valid, x0.
+          iIntros "X"; iMod (x1 with "X") as "[A1 A2]". iSplitL "A1"; eauto.
         - iIntros "[H0 H1]". iFrame. iApply x2. eauto.
       }
       iterL. _coreE VALID. ls.
       iterL. _supd. iterL. _supd.
       iterT 1. reveal ITREE.
       done_by_CIH CIH LKX LKY.
-      + rewrite x1. eauto.
+      + iIntros "X"; iMod (x1 with "X") as "[A1 A2]". 
+        iApply UPD'. iSplitL "A1"; eauto.
       + eauto.
     - _iter. _iter. rewrite SRC TGT. ired.
       hide_l. _supd. iterL. _coreA. iterL. _coreA. ls. des.
@@ -132,7 +135,7 @@ Section CANCEL.
       (EQUIV: rs ≡ r ⋅ rt)
       (PRE: Own r ⊢ fsp.(precond) 0 meta tt↑ tt↑)
       (SAT: Own rt ⊢ P sk)
-      (POST: ∀ vret ret, (fsp.(postcond) 0 meta vret ret) -∗ ⌜vret = ret⌝)
+      (POST: ∀ vret ret, (fsp.(postcond) 0 meta vret ret) ==∗ ⌜vret = ret⌝)
     :  
     refines_modsem
       (HModSem.to_mod ((HModInline.inline (SModCancel.to_hmod md)).(HMod.modsem) sk) rs)
@@ -185,10 +188,10 @@ Section CANCEL.
     _iter. _supd. hss. ired. hss. ired.
     _iter. _core. st. exists (r ⋅ rt). st. ired. _tau. st. 
     _iter. _core. st.
-    assert (VALID': ✓(r ⋅ rt) ∧ (Own (r ⋅ rt) -∗ precond fsp 0 meta () ↑ () ↑ ∗ Own rt)).
+    assert (VALID': ✓(r ⋅ rt) ∧ (Own (r ⋅ rt) ==∗ precond fsp 0 meta () ↑ () ↑ ∗ Own rt)).
     { split.
-      - eapply valid_solve_eq; eauto.
-      - iIntros "[R RT]". iFrame. iStopProof. eauto.
+      - rewrite -EQUIV. eauto.
+      - iIntros "[R RT]". iFrame. iModIntro. iStopProof. eauto.
     }
     exists VALID'. ired. _tau. st. st.
     _iter. _supd. _iter. _supd.
@@ -200,7 +203,9 @@ Section CANCEL.
     { eapply Own_equiv in EQUIV. iIntros "H". iModIntro. iApply EQUIV. eauto. }
     econs; eauto using Forall2i.
     econs; s; eauto; try rewrite bind_ret_l; ss.
-    { i. specialize (POST vret ret). auto. }
+    { i. specialize (POST vret ret). auto.
+      iIntros "H". iMod (POST with "H") as "H". eauto.
+    }
     { eapply elim_rel_refl; eauto. }
     rewrite HModSB.transl_bind HIRed.bind. 
     do 2 f_equal. extensionalities.
@@ -240,5 +245,6 @@ Proof.
   - inv WFM. econs; eauto. s.
     rewrite List.map_map fst_map_snd.
     do 2 rewrite List.map_map fst_map_snd in wf_fns. eauto.
-  - etrans; eauto. rewrite comm; ss.
+  - rewrite SRC. rewrite comm. eauto.
+  - iIntros (? ?) "H". iModIntro. iApply POST; eauto.
 Qed.
