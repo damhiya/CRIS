@@ -657,6 +657,20 @@ Module AListSort (V : ATyp).
   Proof.
     eapply permutation_sort; eauto using Permutation_app_comm.
   Qed.
+
+  Lemma sort_nodup_iff (l: t):
+    List.NoDup (List.map fst l) <-> List.NoDup (List.map fst (sort l)).
+  Proof.
+    split.
+    - i. eapply Permutation_NoDup, H.
+      eapply Permutation_map. apply sort_permutation; eauto.
+    - induction l; s; eauto.
+      unfold sort, _find in *. i.
+      rewrite !map_map in *. ss.
+      rewrite map_id in *.
+      eapply Permutation_NoDup, H.
+      symmetry. apply StringSort.Permuted_sort.
+  Qed.
   
 End AListSort.
 
