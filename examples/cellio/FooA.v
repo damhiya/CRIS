@@ -22,8 +22,8 @@ Module FooA. Section FooA.
   Local Definition handle_call: callE ~> itree hmodE :=
     λ _ '(Call fn varg), 
       match (existsb (String.eqb fn) local_fns) with
-      | true => trigger (Call fn varg)
-      | false => triggerUB
+      | true => triggerUB
+      | false => trigger (Call fn varg)
       end.
 
   Local Definition interp_body R (it : itree hmodE R) : itree hmodE R :=
