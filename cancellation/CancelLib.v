@@ -23,20 +23,14 @@ Module CancelTAC.
 
   Ltac st := prep; guclo simg_indC_spec; econs; try instantiate (1:= smj_top).
   Ltac prb := gstep; econs; econs; try instantiate (1:= smj_bot); try instantiate (1:= smj_bot); eauto.  
-  Ltac prm := gstep; econs; econs; try instantiate (1:= smj_mid); try instantiate (1:= smj_mid); eauto.  
-  Ltac _iter := rewrite unfold_iter_eq; ired.
-  Ltac _iterI := rewrite [ITree.iter (handle_callE _) _]unfold_iter_eq; ired.
+  Ltac _iter := rewrite {1}unfold_iter_eq; ired.
   Ltac _tau := rewrite !StRed.tau.
-  Ltac _core := rewrite StRed.bind StRed.core; prep.
-  Ltac _coreH := rewrite HModSB.transl_bind HModSB.transl_core interp_hp_bind interp_hp_core; prep.
   Ltac ls := rewrite !list_insert_insert.
-  Ltac __supd := rewrite !StRed.bind StRed.state. 
-  Ltac _supd := __supd; grind; try ls; _tau; st; st; try (rewrite Any.pair_split; ired); try (rewrite Any.upcast_downcast; ired).
-  Ltac _ub := rewrite/triggerUB !StRed.bind StRed.core; st; i; ss.
+  Ltac _supd := rewrite !StRed.bind StRed.state; grind; try ls; _tau; st; st; try (rewrite Any.pair_split; ired); try (rewrite Any.upcast_downcast; ired).
   Ltac iterL := _iter; rewrite list_lookup_insert;[|try rewrite !length_insert; auto]; ired.
-
   Tactic Notation "tau" integer(n) := _tau; do n st.
   Tactic Notation "iterT" integer(n) := do n (iterL; ls; tau 2).
+  Ltac _core := rewrite StRed.bind StRed.core; prep.
   Ltac _coreA := _core; st; i; st; grind; _tau; st.
   Ltac _coreE x := _core; st; exists x; st; grind; _tau; st.
 
