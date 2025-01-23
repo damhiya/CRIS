@@ -8,7 +8,7 @@ Module MainAS. Section MainAS.
   Import CannonAS.
   Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !CannonAGΓ Γ}.
   Local Existing Instance cannon_inG.
-  Definition init_res : Σ := CRIS.own.iRes_singleton 1%positive (◯E tt).
+  Definition init_res : Σ := own.iRes_singleton 1%positive (◯E tt).
 
   Definition main_spec : fspec :=
     fspec_simple (λ _ : unit,

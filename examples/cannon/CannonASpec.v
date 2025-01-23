@@ -20,7 +20,7 @@ Module CannonAS. Section CannonAS.
   Definition Ball : iProp Σ := own 1%positive (◯E tt).
   Definition Fired : iProp Σ := own 1%positive ((●E tt) ⋅ (◯E tt)).
 
-  Definition init_res : Σ := CRIS.own.iRes_singleton 1%positive (●E tt).
+  Definition init_res : Σ := own.iRes_singleton 1%positive (●E tt).
 
   Lemma ReadyBall : Ready ∗ Ball ⊢ Fired.
   Proof. rewrite /Ready /Ball /Fired. iIntros "[B W]". iSplitL "B"; iFrame. Qed.
