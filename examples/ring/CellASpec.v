@@ -1,48 +1,37 @@
-(* Require Import CRIS.
+Require Import CRIS.
 
-Require Import ImpPrelude.
 Require Import CellHeader.
 
 Set Implicit Arguments.
 
+Local Definition pendingUR := (nat -d> optionUR (exclR unitO)).
+Local Definition cellUR := (nat -d> optionUR (exclR ZO)).
+Local Definition RA : ucmra := prodUR pendingUR (authUR cellUR).
+Class CellAGΓ (Γ : HRA) := {
+  #[global] RA_inG :: inG RA Γ;
+}.
+Definition CellAΓ : HRA := #[RA].
+
 Module CellAS. Section CellAS.
+  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !CellAGΓ Γ}.
+                 
   Variable idx : nat.
  
-  Definition pendingRA : ucmra := (nat -d> optionUR (exclR unitO)).
-  Definition cellRA : ucmra := (nat -d> optionUR (exclR ZO)).
+  Definition pending : iProp Σ :=
+    own base_γ ((fun n => if Nat.eq_dec n idx then Some (Excl ()) else ε) : pendingUR, ε).
 
-  Definition RA : ucmra := prodUR pendingRA (authUR cellRA).
-
-  Class G (Γ : HRA.t) := { #[local] RA_inG :: GRA.inG RA Γ }.
-  Context `{!sinvG Σ Γ α β τ, !G Γ}.
-
-  Notation iProp := (iProp Σ).
-
-  Definition pending_r : RA :=
-    ((fun n => if Nat.eq_dec n idx then Excl' tt else ε) : pendingRA, ε).
-
-  Definition pending : iProp :=
-    Seal.sealing "CellAS"
-      (OwnM pending_r).
- 
-  Definition cellraw_r (v : Z) : cellRA :=
+  Definition cellraw_r (v : Z) : cellUR :=
     (fun n => if Nat.eq_dec n idx then Excl' v else ε).
- 
-  Definition cell_r (v : Z) : RA :=
-    (ε, ◯ (cellraw_r v)).
-  Definition cell (v : Z) : iProp :=
-    Seal.sealing "CellAS"
-      (OwnM (cell_r v)).
+  
+  Definition cell (v : Z) : iProp Σ :=
+    own base_γ (ε, ◯ (cellraw_r v)).
 
-  Definition auth_r (v : Z) : RA :=
-    (ε, ● (cellraw_r v)).
-  Definition auth (v : Z) : iProp :=
-    Seal.sealing "CellAS"
-      (OwnM (auth_r v)).
+  Definition auth (v : Z) : iProp Σ :=
+    own base_γ (ε, ● (cellraw_r v)).
 
   Lemma pending_unique : pending -∗ pending -∗ False.
   Proof.
-    rewrite /pending /pending_r; unseal "CellAS".
+    rewrite /pending.
     iIntros "P P'"; iCombine "P P'" as "P" gives %FALSE; rewrite -pair_op pair_valid in FALSE; des; ss.
     rr in FALSE; specialize (FALSE idx); des_ifs.
   Qed.
@@ -50,7 +39,7 @@ Module CellAS. Section CellAS.
   Lemma cell_unique v v':
     cell v -∗ cell v' -∗ False.
   Proof.
-    rewrite /cell /auth /cell_r /cellraw_r; unseal "CellAS".
+    rewrite /cell /auth /cellraw_r.
     iIntros "P P'"; iCombine "P P'" as "P" gives %FALSE; rewrite -pair_op pair_valid in FALSE; des; ss.
     rewrite -auth_frag_op in FALSE0; apply auth_frag_valid_1 in FALSE0.
     rr in FALSE0; specialize (FALSE0 idx); des_ifs.
@@ -59,7 +48,7 @@ Module CellAS. Section CellAS.
   Lemma cell_auth_get v v':
     cell v' -∗ auth v -∗ ⌜v = v'⌝.
   Proof.
-    rewrite /cell /auth /cell_r; unseal "CellAS"; rewrite /auth_r /cellraw_r.
+    rewrite /cell /auth /cellraw_r.
     iIntros "P P'"; iCombine "P P'" as "P" gives %wf.
     rewrite -pair_op pair_valid auth_both_valid_discrete /= in wf; des.
     apply (discrete_fun_included_spec_1 _ _ idx) in wf0; ss;
@@ -70,9 +59,9 @@ Module CellAS. Section CellAS.
   Lemma cell_auth_set v v':
     cell v -∗ auth v -∗ |==> cell v' ∗ auth v'.
   Proof.
-    rewrite /cell /auth /cell_r; unseal "CellAS"; rewrite /auth_r /cellraw_r.
+    rewrite /cell /auth /cellraw_r.
     iIntros "C AU". iCombine "C AU" as "H".
-    iMod (OwnM_Upd with "H") as "[C AU]"; last by (iModIntro; iSplitL "AU"). 
+    iMod (own_update with "H") as "[C AU]"; last by (iModIntro; iSplitL "AU"). 
     rewrite comm; apply prod_update, auth_update, discrete_fun_local_update; intros x; ss.
     destruct (decide (idx = x)); subst; des_ifs.
     apply option_local_update, exclusive_local_update; ss.
@@ -90,7 +79,7 @@ Module CellAS. Section CellAS.
 
   Definition Stb : alist string fspec :=
     Seal.sealing CRIS [(CellName.get idx, get_spec);
-                        (CellName.set idx, set_spec)].
+                       (CellName.set idx, set_spec)].
 
   Lemma Stb_nodup : List.NoDup (List.map fst Stb).
   Proof.
@@ -100,4 +89,3 @@ Module CellAS. Section CellAS.
 End CellAS. End CellAS.
 
 Global Hint Unfold CellAS.Stb : stb.
- *)

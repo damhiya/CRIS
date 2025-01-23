@@ -1,4 +1,4 @@
-(* Require Import CRIS.
+Require Import CRIS.
 
 Module RingName.
   
@@ -11,4 +11,4 @@ End RingName.
 
 Module RingSK.
   Definition t : Sk.t := [].
-End RingSK. *)
+End RingSK.

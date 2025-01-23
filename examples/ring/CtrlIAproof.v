@@ -1,4 +1,4 @@
-(* Require Import CRIS.
+Require Import CRIS.
 
 Require Import ImpPrelude.
 Require Import CellHeader CellA CellASpec
@@ -11,8 +11,7 @@ Local Open Scope nat_scope.
 
 (* Simulation Proof *)
 Module CtrlIA. Section CtrlIA.
-  Context `{!sinvG Σ Γ α β τ, !CellAS.G Γ}.
-  Notation iProp := (iProp Σ).
+  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !CellAGΓ Γ}.
 
   Variable max_size : nat.
 
@@ -47,7 +46,7 @@ Module CtrlIA. Section CtrlIA.
     rewrite EQ map_app hmod_addL_app. eauto.
   Qed.
 
-  Lemma big_sepL_mod {T} (φ : nat -> T -> iProp) (l : list T):
+  Lemma big_sepL_mod {T} (φ : nat -> T -> iProp Σ) (l : list T):
      ([∗ list] i↦x ∈ l, φ (i mod List.length l) x) -∗
      ([∗ list] i↦x ∈ l, φ i x).
   Proof.
@@ -64,7 +63,7 @@ Module CtrlIA. Section CtrlIA.
     a mod c = b mod c.
   Proof. destruct EX. subst. eapply Nat.Div0.mod_add; eauto. Qed.
 
-  Lemma big_sepL_rotate {T} (φ : nat -> T -> iProp) n (l : list T):
+  Lemma big_sepL_rotate {T} (φ : nat -> T -> iProp Σ) n (l : list T):
     ([∗ list] i↦x ∈ l, φ ((n+i) mod List.length l) x) -∗
     ([∗ list] i↦x ∈ rotate (List.length l - n mod List.length l) l, φ i x).
   Proof.
@@ -73,11 +72,11 @@ Module CtrlIA. Section CtrlIA.
     iIntros "H". iApply big_sepL_mod. rewrite length_rotate.
 
     destruct (Nat.eq_decidable (n mod List.length l) 0) as [|LENN].
-    { rewrite H1 Nat.sub_0_r.
+    { rewrite H Nat.sub_0_r.
       unfold rotate. rewrite Nat.Div0.mod_same; eauto.
       rewrite drop_0 take_0 app_nil_r.
       eapply eq_ind; try iAssumption. f_equal. extensionalities. f_equal.
-      rewrite Nat.Div0.add_mod; eauto. rewrite H1 Nat.Div0.mod_mod; eauto.
+      rewrite Nat.Div0.add_mod; eauto. rewrite H Nat.Div0.mod_mod; eauto.
     }
     assert (LE:= Nat.mod_upper_bound n _ LENL).
 
@@ -94,7 +93,7 @@ Module CtrlIA. Section CtrlIA.
       exists (n / List.length l). nia.
   Qed.
 
-  Definition Ist : Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp :=
+  Definition Ist : Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp Σ :=
     (λ _ _ st_src st_tgt,
      ∃ (q q' : list Z) (hd tl : nat),
        ⌜st_src = [(RingA.v_que, q↑)] /\ st_tgt = [(CtrlI.v_hd,hd↑);(CtrlI.v_tl,tl↑)] /\
@@ -124,7 +123,7 @@ Module CtrlIA. Section CtrlIA.
     iSplit.
     { iPureIntro. esplits; eauto. s. rewrite length_rotate. eauto. }
 
-    iSplit; eauto. rewrite -H6.
+    iSplit; eauto. rewrite -H4.
     iApply big_sepL_rotate. iApply big_sepL_app.
     iSplitL "LIVE".
     + iApply (big_sepL_impl with "LIVE").
@@ -171,7 +170,7 @@ Module CtrlIA. Section CtrlIA.
 
     steps_l. hss.
 
-    apply Nat.ltb_lt in Heq. rewrite length_app in H7.
+    apply Nat.ltb_lt in Heq. rewrite length_app in H5.
     assert (UBND:= Nat.mod_upper_bound (tl + List.length q) max_size).
     rewrite (@cellgroup_split ((tl+ List.length q) mod max_size)) in NODUPFS NODUPFT WFS WFT; try nia.
     rewrite (@cellgroup_split ((tl+ List.length q) mod max_size)); try nia.
@@ -220,7 +219,7 @@ Module CtrlIA. Section CtrlIA.
     destruct q; ss.
     { rewrite Nat.add_0_r Nat.sub_diag. s. step. ss. }
     replace (tl + S(List.length q) - tl) with (S(List.length q)) by nia. s.
-    rewrite !length_app in H7.
+    rewrite !length_app in H5.
 
     steps_l. hss.
     assert (UBND:= Nat.mod_upper_bound tl max_size).
@@ -277,4 +276,4 @@ Module CtrlIA. Section CtrlIA.
     - apply simF_dequeue; eauto.
   Qed.
 
-End CtrlIA. End CtrlIA. *)
+End CtrlIA. End CtrlIA.

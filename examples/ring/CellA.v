@@ -1,4 +1,4 @@
-(* Require Import CRIS.
+Require Import CRIS.
 
 Require Import ImpPrelude.
 Require Import RingHeader CellHeader CellASpec.
@@ -6,8 +6,7 @@ Require Import RingHeader CellHeader CellASpec.
 Set Implicit Arguments.
 
 Module CellA. Section CellA.
-  Context `{!sinvG Σ Γ α β τ, !CellAS.G Γ}.
-  Notation iProp := (iProp Σ).
+  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !CellAGΓ Γ}.
 
   Variable idx : nat.
 
@@ -32,11 +31,11 @@ Module CellA. Section CellA.
   |}
   .
 
-  Definition InitCond : Sk.t -> iProp :=
+  Definition InitCond : Sk.t -> iProp Σ :=
     λ _, (∃ v, CellAS.cell idx v ∗ CellAS.auth idx v)%I.
 
   Variable ginv : Sk.t -> invspec.
   Variable GlobalStb : Sk.t -> string -> option fspec.
   Definition t := Seal.sealing CRIS (SMod.to_hmod ginv GlobalStb Mod).
 
-End CellA. End CellA. *)
+End CellA. End CellA.

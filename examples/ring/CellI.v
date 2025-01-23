@@ -1,4 +1,4 @@
-(* Require Import CRIS.
+Require Import CRIS.
 
 Require Import ImpPrelude.
 Require Import RingHeader.
@@ -45,4 +45,4 @@ Module CellI. Section CellI.
 
   Definition t := Seal.sealing CRIS (PMod.to_hmod Mod).
 
-End CellI. End CellI. *)
+End CellI. End CellI.
