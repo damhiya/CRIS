@@ -12,10 +12,8 @@ Module SchIA. Section SchIA.
   Notation iProp := (iProp Σ).
 
   Variable univ: positive.
-  Variable StbFun: Sk.t -> string -> option fspec.
-  Variable StbSch: Sk.t -> string -> option fspec.
-  Hypothesis FunInStbSch: ∀ sk, stb_sub (StbFun sk) (StbSch sk).
-  Hypothesis SchInStbSch: ∀ sk, stb_incl (Stb univ sk StbFun) (StbSch sk).
+  Variable Stb: Sk.t -> string -> option fspec.
+  Hypothesis SchInStb: ∀ sk, stb_incl (stb univ Stb sk) (Stb sk).
 
   Fixpoint ths_wf (nths: nat) (ths_tgt: SchI.thslist): Prop :=
     match ths_tgt with
@@ -154,7 +152,7 @@ Module SchIA. Section SchIA.
           ∗ own base_γ (◯ ths_src_w)
           ∗ ([∗ map] tid↦P ∈ ths_cond, P))%I.
 
-  Local Notation SchAMod := (SchA.t univ StbFun StbSch).
+  Local Notation SchAMod := (SchA.t univ Stb).
   Local Notation SchIMod := (SchI.t).
   
   (*************)
@@ -176,7 +174,7 @@ Module SchIA. Section SchIA.
     yield "IST"; et.
     (* iDestruct "IST" as (? ? ? ? ?) "IST". des. *)
     steps_r. steps_l. iDestruct "ASM" as "W". forces_l. iSplitR.
-    { iPureIntro. apply FunInStbSch; et. }
+    { iPureIntro. eauto. }
     steps_l. forces_l. iSplitL "W PRE".
 
     { Unshelve.
@@ -484,7 +482,7 @@ Module SchIA. Section SchIA.
 
   Theorem correct :
     ctx_refines
-      (SchA.t univ StbFun StbSch, SchA.InitCond)
+      (SchA.t univ Stb, SchA.InitCond)
       (SchI.t, const(emp%I)).
   Proof.
     eapply main_adequacy. eapply sim; et.

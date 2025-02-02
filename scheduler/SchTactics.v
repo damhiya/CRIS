@@ -15,11 +15,11 @@ Section MACROAUX.
 
   Lemma isim_mspawn_hp
     fl fr Ist r g {Rs Rt} RR my_tid ps pt nths st_src st_tgt k_src k_tgt scp_src scp_tgt invspc
-    (StbFun StbSch: Sk.t → string → option fspec) (univ: positive)
+    (Stb: Sk.t → string → option fspec) (univ: positive)
     (sk: Sk.t) (fvarg farg: SAny.t) (pre: iProp) (postS: SAny.t → {n & SRFSyn.t n}) 
     (fn: string) (fsp: fspec) (m: meta fsp)
-    (FINDF: StbFun sk fn = Some fsp)
-    (FINDS: StbSch sk SchName.spawn = Some (SchAS.spawn_spec univ sk StbFun))
+    (FINDF: Stb sk fn = Some fsp)
+    (FINDS: Stb sk SchName.spawn = Some (SchAS.spawn_spec univ Stb sk))
     (SPWN: ∀ tid, SchAS.fspec_spawnable univ fsp tid m fvarg↑ farg↑ pre postS)
     :
       (((Ist nths st_src st_tgt) ∗ (∃ n, wsats univ n ⊤) ∗ pre) ∗
@@ -30,7 +30,7 @@ Section MACROAUX.
               (st_tgt0, k_tgt tid)))
     ⊢
       (isim fl fr Ist my_tid false r g RR ps pt nths 
-        (st_src, (HModSem.sandbox scp_src (interp_smod invspc (StbSch sk) (Sch.spawn (fn, fvarg)))) >>= k_src)
+        (st_src, (HModSem.sandbox scp_src (interp_smod invspc (Stb sk) (Sch.spawn (fn, fvarg)))) >>= k_src)
         (st_tgt, (HModSem.sandbox scp_tgt (PModSem.interp (Sch.spawn (fn, farg)))) >>= k_tgt)).
   Proof.
     iIntros "[(IST & W & PRE) ISIM]". rewrite !/Sch.spawn /ccallU. unseal "Sch".
@@ -54,8 +54,8 @@ Section MACROAUX.
     (stbf stb_src stb_tgt: Sk.t → string → option fspec) (univ: positive)
     (sk: Sk.t) (fvarg: SAny.t) (fn: string) (fsp: fspec) (m: meta fsp)
     (FIND: stbf sk fn = Some fsp)
-    (SPWNS: stb_src sk SchName.spawn = Some (SchAS.spawn_spec univ sk stbf))
-    (SPWNT: stb_tgt sk SchName.spawn = Some (SchAS.spawn_spec univ sk stbf))
+    (SPWNS: stb_src sk SchName.spawn = Some (SchAS.spawn_spec univ stbf sk))
+    (SPWNT: stb_tgt sk SchName.spawn = Some (SchAS.spawn_spec univ stbf sk))
     :
       ((Ist nths st_src st_tgt) ∗
       (∀ nths0 st_src0 st_tgt0 tid,
@@ -208,8 +208,8 @@ Section MACROAUX.
   Lemma isim_mjoin_hp
     fl fr Ist r g {Rs Rt} RR my_tid ps pt nths st_src st_tgt RT (k_src: RT → itree hmodE Rs) (k_tgt: RT → itree hmodE Rt)
     scp_src scp_tgt invspc tid sk
-    (StbSch: Sk.t → string → option fspec) (univ: positive) (postS: SAny.t → {n & SRFSyn.t n})
-    (FINDS: StbSch sk SchName.join = Some (SchAS.join_spec univ))
+    (Stb: Sk.t → string → option fspec) (univ: positive) (postS: SAny.t → {n & SRFSyn.t n})
+    (FINDS: Stb sk SchName.join = Some (SchAS.join_spec univ))
     :
       (((Ist nths st_src st_tgt) ∗ (∃ n, wsats univ n ⊤) ∗ (SchAS.token_th tid postS)) ∗
       (∀ nths0 st_src0 st_tgt0 (ret: RT),
@@ -219,7 +219,7 @@ Section MACROAUX.
               (st_tgt0, k_tgt ret)))
     ⊢
       (isim fl fr Ist my_tid false r g RR ps pt nths 
-        (st_src, (HModSem.sandbox scp_src (interp_smod invspc (StbSch sk) (Sch.join RT tid))) >>= k_src)
+        (st_src, (HModSem.sandbox scp_src (interp_smod invspc (Stb sk) (Sch.join RT tid))) >>= k_src)
         (st_tgt, (HModSem.sandbox scp_tgt (PModSem.interp (Sch.join RT tid))) >>= k_tgt)).
   Proof.
     iIntros "[(IST & W & TKN) ISIM]". rewrite !/Sch.join !/ccallU. unseal "Sch".

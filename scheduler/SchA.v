@@ -144,7 +144,7 @@ Module SchAS. Section SchAS.
   End RA.
 
   Variable univ: positive.
-  Variable StbFun: Sk.t -> string -> option fspec.
+  Variable Stb: Sk.t -> string -> option fspec.
 
   Section SPEC.
 
@@ -156,26 +156,26 @@ Module SchAS. Section SchAS.
             ⊢ (∃ sret: SAny.t, ((∃ n, wsats univ n ⊤) ∗ ⌜ret = sret↑⌝ 
                ∗ interp_cond (postS sret))))%I)).
 
-    Definition _spawn_spec (sk: Sk.t) (StbFun: Sk.t -> string -> option fspec): fspec :=
+    Definition _spawn_spec (sk: Sk.t): fspec :=
       wfspec_inv univ 
         (fspec_virtual
           (fun my_tid '(mid, fargs, fvargs, pre, postS, existT fn m) varg arg =>
             (⌜varg = ((mid, fn, fvargs) : nat * string * SAny.t) 
               ∧ arg = ((mid, fn, fargs) : nat * string * SAny.t)↑ 
-              ∧ is_Some (StbFun sk fn)
-              ∧ fspec_spawnable univ (find_fsp sk StbFun fn) my_tid m fvargs↑ fargs↑ pre postS⌝
+              ∧ is_Some (Stb sk fn)
+              ∧ fspec_spawnable univ (find_fsp sk Stb fn) my_tid m fvargs↑ fargs↑ pre postS⌝
             ∗ pre ∗ (token_half my_tid postS))%I)
           (fun _ _ (_: SAny.t) _ => (False)%I))
     .
 
-    Definition spawn_spec (sk: Sk.t) (StbFun: Sk.t -> string -> option fspec): fspec :=
+    Definition spawn_spec (sk: Sk.t): fspec :=
       wfspec_inv univ
         (fspec_virtual
           (fun _ '(fargs, fvargs, pre, postS, existT fn m) varg arg => 
             (⌜varg = ((fn, fvargs): string * SAny.t) 
               ∧ arg = ((fn, fargs): string * SAny.t)↑
-              ∧ is_Some (StbFun sk fn)
-              ∧ ∀ tid, fspec_spawnable univ (find_fsp sk StbFun fn) tid m fvargs↑ fargs↑ pre postS⌝
+              ∧ is_Some (Stb sk fn)
+              ∧ ∀ tid, fspec_spawnable univ (find_fsp sk Stb fn) tid m fvargs↑ fargs↑ pre postS⌝
              ∗ pre)%I)
           (fun _ '(fargs, fvargs, pre, postS, existT fn m) vret ret => 
             (∃ tid: nat, ⌜vret = tid ∧ ret = tid↑⌝ ∗ (token_th tid postS))%I))
@@ -195,15 +195,15 @@ Module SchAS. Section SchAS.
             (fun vret => (∃ ret, ⌜vret = (Some ret)↑⌝ ∗ interp_cond (postS ret))%I))))
     .
 
-    Definition Stb (sk: Sk.t) (StbFun: Sk.t -> string -> option fspec): alist string fspec :=
+    Definition stb (sk: Sk.t) : alist string fspec :=
       Seal.sealing CRIS 
-        [(SchName._spawn, _spawn_spec sk StbFun);
-         (SchName.spawn, spawn_spec sk StbFun);
+        [(SchName._spawn, _spawn_spec sk);
+         (SchName.spawn, spawn_spec sk);
          (SchName.yield, yield_spec);
          (SchName.join, join_spec)].
 
-    Lemma Stb_nodup sk: List.NoDup (List.map fst (Stb sk StbFun)).
-    Proof. unfold Stb. unseal CRIS. prove_nodup. Qed.
+    Lemma Stb_nodup sk: List.NoDup (List.map fst (stb sk)).
+    Proof. unfold stb. unseal CRIS. prove_nodup. Qed.
 
   End SPEC.
 
@@ -240,9 +240,9 @@ Module SchA. Section SchA.
 
     Definition scopes := ["Sch"].
 
-    Definition fnsems u StbFun (sk: Sk.t) :=
-      [(SchName._spawn, (scopes, mk_specbody (SchAS._spawn_spec u sk StbFun) (cfunN _spawn)));
-      (SchName.spawn, (scopes, mk_specbody (SchAS.spawn_spec u sk StbFun) (cfunU spawn)));
+    Definition fnsems u Stb (sk: Sk.t) :=
+      [(SchName._spawn, (scopes, mk_specbody (SchAS._spawn_spec u Stb sk) (cfunN _spawn)));
+      (SchName.spawn, (scopes, mk_specbody (SchAS.spawn_spec u Stb sk) (cfunU spawn)));
       (SchName.yield, (scopes, mk_specbody (SchAS.yield_spec u) (cfunU yield)));
       (SchName.join, (scopes, mk_specbody (SchAS.join_spec u) (cfunU join)))].
 
@@ -264,6 +264,6 @@ Module SchA. Section SchA.
     Definition InitCond : Sk.t -> iProp Σ :=
       fun _ => (SchAS.initial_threads)%I.
     
-    Definition t u StbFun Stb := Seal.sealing CRIS (SMod.to_hmod (sch_ginv u) Stb (Mod u StbFun)).
+    Definition t u Stb := Seal.sealing CRIS (SMod.to_hmod (sch_ginv u) Stb (Mod u Stb)).
 
 End SchA. End SchA.
