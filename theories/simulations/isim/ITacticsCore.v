@@ -690,26 +690,29 @@ Ltac init_simF :=
   alist_find_simpl;
   post_simF.
 
-Ltac prove_sub_perm :=
-  i; try rewrite /HMod.scopes; s; (hrepeat do 1 unfold_hmod); s; Lauto_normalize;
+Ltac prove_sub_perm :=  
+  i; try rewrite /HMod.scopes; s; (hrepeat do 1 unfold_hmod); s;
   match goal with
     [|-sub_perm ?x ?y] =>
       match x with
-      | _ ++ _ => idtac
+      | _ :: _ => idtac
       | _ => try rewrite /x
       end;
       match y with
-      | _ ++ _ => idtac
+      | _ :: _ => idtac
       | _ => try rewrite /y
       end
   end;
-  match goal with
-    [|-sub_perm ?x ?y] =>
-      replace (sub_perm x y) with (sub_perm (x++[]) (y++[])) by (rewrite !app_nil_r; eauto)
-  end;
-  Lauto_normalize;
-  (hrepeat do 1 first [eapply sub_perm_cancel_head|eapply sub_perm_remove_head]);
-  eapply sub_perm_refl.
+  (hrepeat do 1 s;
+   match goal with [|-sub_perm (?k::_) ?tgt] =>
+     match tgt with
+     |  context[?k'::_] =>
+          change k' with k;
+          eapply eq_ind; [|symmetry; Lauto_prepare; Lauto_find k; refl];
+          eapply (sub_perm_cancel [k] [])
+     end
+  end);
+  apply sub_perm_nil.
 
 (**** TODO ****)
 (* A tactic to handle meta variables *)
