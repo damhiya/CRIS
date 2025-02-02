@@ -3,6 +3,20 @@ Require Import InputHeader.
 
 Set Implicit Arguments.
 
+Module InputAS.
+Section InputAS.
+  Context `{Σ: GRA}.
+
+  Definition Stb: alist string fspec :=
+    Seal.sealing CRIS [(InputName.input, fspec_trivial)].
+  
+  Lemma Stb_nodup: List.NoDup (List.map fst Stb).
+  Proof.
+    unfold Stb. unseal CRIS. prove_nodup.
+  Qed.
+
+End InputAS. End InputAS.
+
 Module InputA. Section InputA.
   Context `{Σ: GRA}.
 
@@ -35,7 +49,5 @@ Module InputA. Section InputA.
     
   Definition InitRes : Σ := ε.
 
-  Variable ginv: Sk.t -> invspec.
-  Variable GlobalStb: Sk.t -> string -> option fspec.
-  Definition t := Seal.sealing CRIS (SMod.to_hmod ginv GlobalStb Mod).
+  Definition t ginv Stb := Seal.sealing CRIS (SMod.to_hmod ginv Stb Mod).
 End InputA. End InputA.

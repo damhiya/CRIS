@@ -1,6 +1,6 @@
 Require Import CRIS.
 
-Require Import SchGInv SchHeader SchASpec.
+Require Import SchGInv SchHeader SchA.
 
 Set Implicit Arguments.
 
@@ -76,8 +76,8 @@ Section MACROAUX.
 
     forces_l. iSplit; et. steps_l. forces_l. iSplitL "PRE W".
     { iFrame. iExists _. iSplit; et. Unshelve.
-      2:{ split; [exact (t0, t1, b, o)|]. exists x. ss. }
-      2:exact ((x, t0)↑). ss. iSplit; et. }
+      2:{ split; [exact (t, t0, b, o)|]. exists x. ss. }
+      2:exact ((x, t)↑). ss. iSplit; et. }
 
     call "IST"; et.
 

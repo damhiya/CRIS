@@ -48,8 +48,6 @@ Module MainA. Section MainA.
   Lemma Stb_nodup: List.NoDup (List.map fst Stb).
   Proof. unfold Stb. unseal CRIS. prove_nodup. Qed. *)
 
-  Variable GI: Sk.t -> invspec.
-  Variable GlobalStb: Sk.t -> string -> option fspec.
-  Definition t := Seal.sealing CRIS (SMod.to_hmod GI GlobalStb Mod).
+  Definition t ginv Stb := Seal.sealing CRIS (SMod.to_hmod ginv Stb Mod).
 
 End MainA. End MainA.

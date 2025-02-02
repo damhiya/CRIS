@@ -1,7 +1,7 @@
 Require Import CRIS.
 
 Require Import ImpPrelude.
-Require Import CellHeader CellASpec CellI CellA.
+Require Import CellHeader CellI CellA.
 
 Set Implicit Arguments.
 

@@ -1,6 +1,6 @@
 Require Import CRIS.
 
-Require Import MapHeader MapM MapA MapMSpec MapASpec. 
+Require Import MapHeader MapM MapA.
 
 Set Implicit Arguments.
 
@@ -29,8 +29,8 @@ Module MapMA. Section MapMA.
   Variable StbL : Sk.t → string → option fspec.
   Hypothesis MapInStbL : forall sk, stb_incl MapMS.Stb (StbL sk).
 
-  Local Notation MapA := (MapAS.t ginvH StbH).
-  Local Notation MapM := (MapMS.t ginvL StbL).
+  Local Notation MapA := (MapA.t ginvH StbH).
+  Local Notation MapM := (MapM.t ginvL StbL).
   
   Lemma simF_init : HSim.sim_fun MapA MapM Ist MapName.init.
   Proof.
@@ -164,7 +164,7 @@ Module MapMA. Section MapMA.
     step. eauto.
   Qed.
 
-  Theorem sim : HSim.t MapA MapM MapAS.InitCond Ist.
+  Theorem sim : HSim.t MapA MapM MapA.InitCond Ist.
   Proof.
     init_sim.
     - iIntros "(IST & P)"; s.

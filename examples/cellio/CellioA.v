@@ -78,7 +78,5 @@ Module CellioA. Section CellioA.
 
   Definition InitRes : Σ := own.iRes_singleton base_γ (●E 0%Z).
 
-  Variable ginv: Sk.t -> invspec.
-  Variable GlobalStb: Sk.t -> string -> option fspec.
-  Definition t := Seal.sealing CRIS (SMod.to_hmod ginv GlobalStb Mod).
+  Definition t ginv Stb := Seal.sealing CRIS (SMod.to_hmod ginv Stb Mod).
 End CellioA. End CellioA.

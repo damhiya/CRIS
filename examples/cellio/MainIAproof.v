@@ -1,5 +1,5 @@
 Require Import CRIS.
-Require Import CellioHeader CellioA MainHeader MainA MainI FooASpec InputASpec.
+Require Import CellioHeader CellioA MainHeader MainA MainI FooA InputA.
 
 Set Implicit Arguments.
 

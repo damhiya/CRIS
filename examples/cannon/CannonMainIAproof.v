@@ -1,7 +1,7 @@
 Require Import CRIS.
 Require Import ImpPrelude.
-Require Import CannonHeader CannonI CannonA CannonASpec.
-Require Import CannonMainI CannonMainA CannonMainASpec.
+Require Import CannonHeader CannonI CannonA.
+Require Import CannonMainI CannonMainA.
 
 Set Implicit Arguments.
 

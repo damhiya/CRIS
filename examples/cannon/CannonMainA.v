@@ -1,8 +1,27 @@
 Require Import CRIS.
 Require Import ImpPrelude.
-Require Import CannonHeader CannonMainASpec CannonMainI CannonASpec CannonHeader.
+Require Import CannonHeader CannonMainI CannonA CannonHeader.
 
 Set Implicit Arguments.
+
+Module MainAS. Section MainAS.
+  Import CannonAS.
+  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !CannonAGΓ Γ}.
+  Local Existing Instance cannon_inG.
+  Definition init_res : Σ := own.iRes_singleton 1%positive (◯E tt).
+
+  Definition main_spec : fspec :=
+    fspec_simple (λ _ : unit,
+      ((λ arg, ⌜arg = tt↑⌝ ∗ Ball),
+      (λ ret, ⌜ret = tt↑⌝))
+    )%I.
+
+  Definition Stb : alist string fspec :=
+    Seal.sealing CRIS [(MainName.main, main_spec)].
+
+  Lemma Stb_nodup: List.NoDup (List.map fst Stb).
+  Proof. unfold Stb. unseal CRIS. prove_nodup. Qed.
+End MainAS. End MainAS.
 
 Module MainA. Section MainA.
   Import CannonAS.
@@ -42,7 +61,5 @@ Module MainA. Section MainA.
 
   Definition init_cond : Sk.t → iProp Σ := λ _, True%I.
 
-  Variable ginv : Sk.t → invspec.
-  Variable GlobalStb : Sk.t → string → option fspec.
-  Definition t := Seal.sealing CRIS (SMod.to_hmod ginv GlobalStb Mod).
+  Definition t ginv Stb := Seal.sealing CRIS (SMod.to_hmod ginv Stb Mod).
 End MainA. End MainA.

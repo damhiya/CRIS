@@ -1,8 +1,8 @@
 Require Import CRIS.
 
 Require Import ImpPrelude.
-Require Import CellHeader CellA CellASpec
-               RingHeader RingA RingASpec
+Require Import CellHeader CellA
+               RingHeader RingA
                CtrlI.
 
 Set Implicit Arguments.

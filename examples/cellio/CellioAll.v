@@ -2,7 +2,6 @@ Require Import CRIS Cancel.
 Require Import ImpPrelude.
 Require Import CellioHeader MainHeader InputHeader FooHeader.
 Require Import CellioA CellioI MainA MainI InputA FooA.
-Require Import InputASpec FooASpec.
 Require Import CellioIAproof MainIAproof.
 
 Module CellioAll. Section CellioAll.

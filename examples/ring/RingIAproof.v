@@ -1,7 +1,6 @@
 Require Import CRIS.
 
 Require Import RingHeader CellHeader 
-  RingASpec CellASpec 
   RingA CtrlI CellA CellI 
   CtrlIAproof CellIAproof.
 

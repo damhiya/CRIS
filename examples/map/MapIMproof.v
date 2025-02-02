@@ -1,7 +1,7 @@
 Require Import CRIS.
 
 Require Import MemA.
-Require Import MapHeader MapI MapM MapMSpec.
+Require Import MapHeader MapI MapM.
 
 Set Implicit Arguments.
 
@@ -78,7 +78,7 @@ Module MapIM. Section MapIM.
   Variable StbMem : Sk.t → string → option fspec.
 
   Local Notation MemA := (MemA.t ginv StbMem).
-  Local Notation MapM := (MapMS.t ginv StbMap).
+  Local Notation MapM := (MapM.t ginv StbMap).
   Local Notation MapMMod := (MapM ★ MemA).
   Local Notation MapIMod := (MapI.t ★ MemA).
   Local Notation IstFull := (IstProd (IstSB MapM Ist) IstEq).
@@ -290,7 +290,7 @@ Module MapIM. Section MapIM.
     hss. steps_r. step. eauto.
   Qed.
 
-  Theorem sim : HSim.t MapMMod MapIMod MapMS.InitCond IstFull.
+  Theorem sim : HSim.t MapMMod MapIMod MapM.InitCond IstFull.
   Proof.
     init_sim.
     - iIntros "_". iExists _,_,[],[]. iSplit.

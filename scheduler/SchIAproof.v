@@ -1,6 +1,6 @@
 Require Import CRIS.
 
-Require Import SchGInv SchHeader SchI SchA SchASpec.
+Require Import SchGInv SchHeader SchI SchA.
 
 Set Implicit Arguments.
 
@@ -145,7 +145,7 @@ Module SchIA. Section SchIA.
 
   Definition Ist: Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp :=
     fun sk numths st_src st_tgt =>
-      (∃ ths_tgt (ths_src_b ths_src_w: SchAS.threadsF) (ths_cond: gmap nat iProp), 
+      (∃ ths_tgt (ths_src_b ths_src_w: SchA.threadsF) (ths_cond: gmap nat iProp), 
           ⌜st_tgt = [(SchI.v_ths, ths_tgt↑)] 
             ∧ <<THWF: ths_wf numths ths_tgt>>
             ∧ <<SIM: (∀ tid, sim_ths tid (alist_find tid ths_tgt) (ths_src_b tid) (ths_src_w tid) (ths_cond !! tid))>>
@@ -154,7 +154,7 @@ Module SchIA. Section SchIA.
           ∗ own base_γ (◯ ths_src_w)
           ∗ ([∗ map] tid↦P ∈ ths_cond, P))%I.
 
-  Local Notation SchAMod := (SchAS.t univ StbFun StbSch).
+  Local Notation SchAMod := (SchA.t univ StbFun StbSch).
   Local Notation SchIMod := (SchI.t).
   
   (*************)
@@ -412,8 +412,8 @@ Module SchIA. Section SchIA.
 
         apply agree_op_inv in WF0. dup WF0.
         apply (inj to_agree) in WF0.
-        iAssert (interp_cond (q2 t0))%I with "[POST]" as "POST".
-        { unfold interp_cond. specialize (WF0 t0). ss. inv WF0. apply (inj to_agree) in H5.
+        iAssert (interp_cond (q2 t))%I with "[POST]" as "POST".
+        { unfold interp_cond. specialize (WF0 t). ss. inv WF0. apply (inj to_agree) in H5.
           rewrite -H5. iApply "POST". }
         
         forces_l. iSplitL "W POST"; iFrame; et.
@@ -462,10 +462,10 @@ Module SchIA. Section SchIA.
   Qed.
 
   Theorem sim:
-    HSim.t SchAMod SchIMod InitCond Ist.
+    HSim.t SchAMod SchIMod SchA.InitCond Ist.
   Proof.
     init_sim.
-    - rewrite /InitCond /initial_threads. unseal "SchA".
+    - rewrite /SchA.InitCond /initial_threads. unseal "SchA".
       iIntros "[THB THW]". iExists _, _, _, ∅.
       iFrame. rewrite big_sepM_empty. iSplitL; et.
       iPureIntro. esplits; et; ss; [split; nia |]. i. 
@@ -484,7 +484,7 @@ Module SchIA. Section SchIA.
 
   Theorem correct :
     ctx_refines
-      (SchAS.t univ StbFun StbSch, SchAS.InitCond)
+      (SchA.t univ StbFun StbSch, SchA.InitCond)
       (SchI.t, const(emp%I)).
   Proof.
     eapply main_adequacy. eapply sim; et.

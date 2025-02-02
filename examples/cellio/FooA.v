@@ -5,6 +5,20 @@ Require Import CellioA MainA InputA.
 
 Set Implicit Arguments.
 
+Module FooAS.
+Section FooAS.
+  Context `{Σ: GRA}.
+
+  Definition Stb: alist string fspec :=
+    Seal.sealing CRIS [(FooName.foo, fspec_trivial)].
+  
+  Lemma Stb_nodup: List.NoDup (List.map fst Stb).
+  Proof.
+    unfold Stb. unseal CRIS. prove_nodup.
+  Qed.
+
+End FooAS. End FooAS.
+
 Module FooA. Section FooA.
   Context `{Σ: GRA}.
   (* Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !CellioAGΓ Γ}. *)
@@ -15,7 +29,7 @@ Module FooA. Section FooA.
     need some better idea to specify the list of local function names 
     without linking all local modules at this moment.
   *)
-  (* Local Definition modules := (CellioA.t ginv GlobalStb) ★ (MainA.t ginv GlobalStb) ★ (InputA.t ginv GlobalStb). *)  
+  (* Local Definition modules := (CellioA.t ginv Stb) ★ (MainA.t ginv Stb) ★ (InputA.t ginv Stb). *)  
   Local Definition local_fns 
     := [CellioName.set; CellioName.get; MainName.main; InputName.input].
 
@@ -58,8 +72,5 @@ Module FooA. Section FooA.
 
   Definition InitRes : Σ := ε.
 
-  Variable ginv: Sk.t -> invspec.
-  Variable GlobalStb: Sk.t -> string -> option fspec.
-
-  Definition t := Seal.sealing CRIS (SMod.to_hmod ginv GlobalStb Mod).
+  Definition t ginv Stb := Seal.sealing CRIS (SMod.to_hmod ginv Stb Mod).
 End FooA. End FooA.

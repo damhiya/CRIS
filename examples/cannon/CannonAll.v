@@ -1,7 +1,7 @@
 Require Import CRIS.
 Require Import ImpPrelude.
 Require Import CannonHeader CannonI CannonMainI.
-Require Import CannonA CannonASpec CannonMainA CannonMainASpec.
+Require Import CannonA CannonMainA.
 Require Import CannonIAproof CannonMainIAproof.
 Require Import ElimRel SModCancel Cancellation.
 

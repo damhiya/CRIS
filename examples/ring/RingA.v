@@ -1,9 +1,29 @@
 Require Import CRIS.
 
 Require Import ImpPrelude.
-Require Import RingHeader RingASpec CellASpec.
+Require Import RingHeader CellA.
 
 Set Implicit Arguments.
+
+Module RingAS. Section RingAS.
+  Context `{Σ : GRA}.
+
+  Definition Stb : alist string fspec :=
+    Seal.sealing CRIS [(RingName.init, fspec_trivial);
+                       (RingName.get_size, fspec_trivial);
+                       (RingName.enqueue, fspec_trivial);
+                       (RingName.dequeue, fspec_trivial)].
+
+  Lemma Stb_nodup : List.NoDup (List.map fst Stb).
+  Proof.
+    unfold Stb. unseal CRIS. prove_nodup.
+  Qed.
+  
+End RingAS.
+
+Global Hint Unfold Stb : stb.
+
+End RingAS.
 
 Module RingA. Section RingA.
   Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !CellAGΓ Γ}.
@@ -65,8 +85,6 @@ Module RingA. Section RingA.
   Definition InitCond : Sk.t -> iProp Σ :=
     fun _ => ([∗ list] i↦_ ∈ (replicate max_size 0%Z), CellAS.pending i)%I.
 
-  Variable ginv : Sk.t -> invspec.
-  Variable GlobalStb : Sk.t -> string -> option fspec.
-  Definition t := Seal.sealing CRIS (SMod.to_hmod ginv GlobalStb Mod).
+  Definition t ginv Stb := Seal.sealing CRIS (SMod.to_hmod ginv Stb Mod).
 
 End RingA. End RingA.
