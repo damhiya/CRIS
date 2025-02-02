@@ -86,4 +86,4 @@ Module CannonAll. Section CannonAll.
     { exists x; des; eauto. }
   Qed.
 End CannonAll. End CannonAll.
-Print Assumptions CannonAll.behavioral_refinement.
+(* Print Assumptions CannonAll.behavioral_refinement. *)

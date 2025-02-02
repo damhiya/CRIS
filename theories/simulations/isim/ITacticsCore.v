@@ -70,12 +70,13 @@ Ltac alist_upd_simpl :=
     end
   end.
 
-Ltac move_nodup :=
+Ltac move_aux :=
   (hrepeat do 1 match goal with [H: List.NoDup _ |- _ ] => guardH H; move H at top end);
   (hrepeat do 1 match goal with [H: Ist_monotone _ |- _ ] => guardH H; move H at top end);
   (hrepeat do 1 match goal with [H: incl _ (HMod.scopes _ _) |- _] => guardH H; move H at top end);
   (hrepeat do 1 match goal with [H: HModSem.wf _ |- _ ] => guardH H; move H at top end);
   (hrepeat do 1 match goal with [H: ∀ _, stb_incl _ _ |- _ ] => guardH H; move H at top end);
+  (hrepeat do 1 match goal with [H:=_:list (_ * (Any.t -> itree hmodE Any.t)) |- _ ] => guardH H; move H at top end);
   unguard.
 
 Lemma fst_map_snd {A B C} f:
@@ -140,7 +141,7 @@ Ltac hss :=
   try (rewrite -> !Any.upcast_downcast in * );
   (hrepeat do 1 alist_upd_simpl);
   hss_des;
-  move_nodup.
+  move_aux.
 
 (***
   Step-level tactics
@@ -428,26 +429,35 @@ Ltac _force_r :=
   end
 .
 
-Ltac hide_itree_all marker :=
-  assert (marker: True) by exact I;
-  hrepeat do 1 (
-      let IT := fresh "ITREE" in
-      match goal with
-      | [|- context[?f ?arg]] =>
-          match type of (f arg) with
-          | itree _ _ => set (IT := f arg) at 1
-          end
-      end ).
+Ltac set_marker marker :=
+  assert (marker: True) by exact I.
 
-Ltac hide_itree_l marker :=
-  hide_itree_all marker;
-  match goal with [|- _ (_ _ (_, ?it))] => try unfold it end.
+Ltac hide_ihyps_env env :=
+  match env with
+  | environments.Enil => idtac
+  | environments.Esnoc ?tl _ ?hyp =>
+      hide_ihyps_env tl;
+      let IHYP := fresh "IHYP" in
+      set (IHYP := hyp) at 1
+  end.
 
-Ltac hide_itree_r marker :=
-  hide_itree_all marker;
-  match goal with [|- _ (_ (_, ?it) _)] => try unfold it end.
+Ltac hide_ihyps :=
+  match goal with
+  | [ |- environments.envs_entails {|environments.env_intuitionistic := ?ienv; environments.env_spatial := ?env |} _] =>
+      hide_ihyps_env ienv;
+      hide_ihyps_env env
+  end.
 
-Ltac show_itree marker :=
+Ltac show_itree :=
+  match goal with [H:_|-_] => unfold H; clear H end.
+
+Ltac hide_itree_l :=
+  match goal with [|- _ (_ (_, ?it) _)] => set (IT := it) at 1 end.
+
+Ltac hide_itree_r :=
+  match goal with [|- _ (_ _ (_, ?it))] => first [set (IT := it) at 2|set (IT := it) at 1] end.
+
+Ltac show_until marker :=
   (hrepeat do 1 match goal with
       [H: _ |- _] =>
         try match H with marker => fail 3 end;
@@ -495,41 +505,80 @@ Ltac prep :=
   try rewrite !bind_bind;
   try rewrite !bind_tau.
 
+Ltac prep_l :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  hide_itree_r;
+  prep;
+  show_until marker.
+
+Ltac prep_r :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  hide_itree_l;
+  prep;
+  show_until marker.
+
 Ltac step_l_core :=
-  prep; _step_l; try alist_find_simpl; s; des_pairs; s.
+  _step_l; try alist_find_simpl; s; des_pairs; s.
 
-Ltac step_l := let marker := fresh "MARKER" in
-  hide_itree_r marker;
+Ltac step_l :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  hide_itree_r;
+  prep;
   step_l_core;
-  show_itree marker.
+  show_until marker.
 
-Ltac steps_l := let marker := fresh "MARKER" in
-  hide_itree_r marker;
-  (hrepeat do 1 step_l_core);
-  show_itree marker.
+Ltac steps_l :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  hide_itree_r;
+  (hrepeat do 1 prep; step_l_core);
+  show_until marker.
 
 Ltac step_r_core :=
-  prep; _step_r; try alist_find_simpl; s; des_pairs; s.
+  _step_r; try alist_find_simpl; s; des_pairs; s.
 
-Ltac step_r := let marker := fresh "MARKER" in
-  hide_itree_l marker;
+Ltac step_r :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  hide_itree_l;
+  prep;
   step_r_core;
-  show_itree marker.
+  show_until marker.
 
-Ltac steps_r := let marker := fresh "MARKER" in
-  hide_itree_l marker;
-  (hrepeat do 1 step_r_core);
-  show_itree marker.
+Ltac steps_r :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  hide_itree_l;
+  (hrepeat do 1 prep; step_r_core);
+  show_until marker.
 
-Ltac step := let marker := fresh "MARKER" in
-  hide_itree_r marker; prep; show_itree marker;
-  hide_itree_l marker; prep; show_itree marker;
-  _step; s; des_pairs; s.
+Ltac step :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  hide_itree_r; prep; show_itree;
+  hide_itree_l; prep; show_itree;
+  _step;
+  s; des_pairs; s;
+  show_until marker.
 
-Ltac force_l_core := let marker := fresh "MARKER" in
-  hide_itree_r marker;
-  prep; _force_l; s;
-  show_itree marker.
+Ltac force_l_core :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  hide_itree_r;
+  prep;
+  _force_l; s;
+  show_until marker.
 
 Tactic Notation "force_l" :=
   force_l_core; try (iExists _).
@@ -537,12 +586,17 @@ Tactic Notation "force_l" :=
 Tactic Notation "force_l" uconstr(p) :=
   force_l_core; iExists p.
 
-Ltac forces_l := hrepeat do 1 force_l.
+Ltac forces_l :=
+  hrepeat do 1 force_l.
 
-Ltac force_r_core := let marker := fresh "MARKER" in
-  hide_itree_l marker;
-  prep; _force_r; s;
-  show_itree marker.
+Ltac force_r_core :=
+  let marker := fresh "MARKER" in
+  set_marker marker;  
+  hide_ihyps;
+  hide_itree_l;
+  prep;
+  _force_r; s;
+  show_until marker.
 
 Tactic Notation "force_r" :=
   force_r_core; try (iExists _).
@@ -552,44 +606,7 @@ Tactic Notation "force_r" uconstr(p) :=
 
 Ltac forces_r := hrepeat do 1 force_r.
 
-Ltac inline_l := let marker := fresh "MARKER" in
-  hide_itree_r marker;
-  prep;
-  iApply isim_inline_src;
-  [simpl HModSem.fnsems; (hrepeat do 1 unfold_hmod); simpl List.map;
-   alist_find_simpl; eauto|];
-  unfold interp_sb_hp, HoareFun; s;
-  show_itree marker.
-  
-Ltac inline_r := let marker := fresh "MARKER" in
-  hide_itree_l marker;
-  prep;
-  iApply isim_inline_tgt;
-  [simpl HModSem.fnsems; (hrepeat do 1 unfold_hmod); simpl List.map;
-   alist_find_simpl; eauto|];
-  unfold interp_sb_hp, HoareFun; s;
-  show_itree marker.
-
-Ltac call hyps := let marker := fresh "MARKER" in
-  hide_itree_r marker; prep; show_itree marker;
-  hide_itree_l marker; prep; show_itree marker;
-  iApply isim_call;
-  iSplitL hyps; [ |iIntros "% % % % % %"; iIntrosFresh "IST"];
-  move_nodup.
-
-Ltac yield hyps := let marker := fresh "MARKER" in
-  hide_itree_r marker; prep; show_itree marker;
-  hide_itree_l marker; prep; show_itree marker;
-  iApply isim_yield;
-  iSplitL hyps; [ |iIntros "% % % % %"; iIntrosFresh "IST"];
-  move_nodup.
-
-Ltac pre_simF :=
-  unfold HSim.sim_fun, HSim._sim_fun, HSSim.sim_fun; i;
-  match goal with [H: _|-_] => revert H end.
-
-Ltac post_simF :=
-  eexists; split; [eauto|];
+Ltac unfold_cris_defs :=
   (hrepeat do 1 match goal with
   | [|- context[{| fsb_body := cfunU ?x |}]] => rewrite {1}/x
   | [|- context[{| fsb_body := cfunN ?x |}]] => rewrite {1}/x
@@ -598,9 +615,73 @@ Ltac post_simF :=
   | [|- context[cfunU ?x]] => rewrite {1}/x
   | [|- context[cfunN ?x]] => rewrite {1}/x
   end);
-  unfold interp_sb_hp, HoareFun, cfunU, cfunN, HModSem.sandbox_body; s;
+  unfold interp_sb_hp, HoareFun, cfunU, cfunN, HModSem.sandbox_body; s.  
+
+Ltac prove_inline_cond :=
+  match goal with [|- alist_find _ ?FL = _] =>
+    rewrite /FL;
+    simpl HModSem.fnsems; (hrepeat do 1 unfold_hmod);
+    simpl List.map; alist_find_simpl; eauto
+  end.
+
+Ltac inline_l :=
+  let marker := fresh "MARKER" in
+  set_marker marker;  
+  hide_ihyps;
+  hide_itree_r;
+  prep;
+  iApply isim_inline_src; [prove_inline_cond|];
+  unfold_cris_defs;
+  show_until marker.
+  
+Ltac inline_r :=
+  let marker := fresh "MARKER" in
+  set_marker marker;  
+  hide_ihyps;
+  hide_itree_l;
+  prep;
+  iApply isim_inline_tgt; [prove_inline_cond|];
+  unfold_cris_defs;
+  show_until marker.
+
+Ltac call hyps :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  hide_itree_r; prep; show_itree;
+  hide_itree_l; prep; show_itree;
+  iApply isim_call;
+  show_until marker;
+  iSplitL hyps; [ |iIntros "% % % % % %"; iIntrosFresh "IST"];
+  move_aux.
+
+Ltac yield hyps :=
+  let marker := fresh "MARKER" in
+  set_marker marker;  
+  hide_ihyps;
+  hide_itree_r; prep; show_itree;
+  hide_itree_l; prep; show_itree;
+  iApply isim_yield;
+  show_until marker;
+  iSplitL hyps; [ |iIntros "% % % % %"; iIntrosFresh "IST"];
+  move_aux.
+
+Ltac hide_flist :=
+  let FLS := fresh "FLS" in let FLT := fresh "FLT" in
+  match goal with [|- context[(isim_fsem ?fls ?flt _ _)]] =>
+    set (FLS := fls); set (FLT := flt)
+  end.
+
+Ltac pre_simF :=
+  unfold HSim.sim_fun, HSim._sim_fun, HSSim.sim_fun; i;
+  match goal with [H: _|-_] => revert H end;
+  hide_flist.
+
+Ltac post_simF :=
+  eexists; split; [eauto|];
+  unfold_cris_defs;
   ii; subst; iIntros "IST";
-  move_nodup.
+  move_aux.
 
 Ltac init_simF :=
   pre_simF;
@@ -646,7 +727,7 @@ Local Notation level := nat.
 
 (*** TODO: 
           What else should be displayed? 
-          Simplify (hide) k-trees
+n          Simplify (hide) k-trees
 
 ***)
 

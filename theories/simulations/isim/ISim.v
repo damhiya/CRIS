@@ -9,6 +9,17 @@ Section LEMMAS.
 
 (***** Move and rename: HoareCall LEMMAS *****)
 
+(* Goal forall Σ: GRA, ({| environments.env_intuitionistic := (environments.Esnoc environments.Enil (INamed "x") emp%I) ; *)
+(*        environments.env_spatial := (environments.Esnoc environments.Enil (INamed "x") emp%I); *)
+(*        environments.env_counter := 3%positive |} : environments.envs (iProp Σ)) *)
+(*        = *)
+(*        {| environments.env_intuitionistic := environments.Enil ; *)
+(*        environments.env_spatial := environments.Enil ; *)
+(*          environments.env_counter := 3%positive |}. *)
+
+(*   intros. *)
+(*   set (X := (emp%I : iProp Σ)) at 2. *)
+  
   Lemma hcall_clo Σ
     fls flt I my_tid is_closed r g ps pt {Rs Rt} RR nths st_src st_tgt k_src k_tgt
     fn varg arg X (x: shelve__ X) P Q :
@@ -22,12 +33,12 @@ Section LEMMAS.
         (st_tgt, trigger (Call fn arg) >>= k_tgt).
   Proof.
     iIntros "(P & IST & K)".
-    unfold HoareCall. prep. steps_l.
+    steps_l.
     force_l x.
     force_l arg.
     forces_l. iSplitL "P"; [eauto|].
 
-    call "IST"; [eauto|]. iModIntro.
+    call "IST"; [eauto|].
     steps_l. iApply "K". iFrame.
   Qed.
 

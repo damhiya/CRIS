@@ -34,7 +34,7 @@ Module MainIA. Section MainIA.
 
     (* Call Input() simultaneously *)
     steps_r. forces_l. iSplitL "GRT"; eauto.
-    call "IST"; eauto. iModIntro.
+    call "IST"; eauto.
     steps_l. forces_r. iSplitL "ASM"; eauto.
     steps_r. hss.
 
@@ -43,7 +43,7 @@ Module MainIA. Section MainIA.
     
     (* Call Foo.foo() simultaneously *)
     steps_l. steps_r. forces_l. iSplitL ""; eauto.
-    call "IST"; [eauto|]. iModIntro.
+    call "IST"; [eauto|].
     steps_l. iDestruct "ASM" as "%". subst. hss. steps_r. hss. steps_r.
 
     inline_r.

@@ -278,7 +278,7 @@ Module MapIM. Section MapIM.
     iSplitL "". { iFrame. eauto. }
 
     (* make a call to set *)
-    steps_r. call "IST"; [eauto|]. iModIntro.
+    steps_r. call "IST"; [eauto|].
 
     (* SRC: handle the postcond of set *)
     steps_l. iDestruct "ASM" as "(_ & %)". hss. steps_r.

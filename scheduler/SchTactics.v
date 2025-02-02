@@ -43,7 +43,7 @@ Section MACROAUX.
     { iFrame. revert SPWN. revert m. generalize FINDF. unfold find_fsp. rewrite FINDF. i.
       rewrite (@UIP _ _ _ FINDF0 eq_refl). erewrite <-rew_swap; et. }
     
-    call "IST"; et. iModIntro.
+    call "IST"; et.
     
     steps_l. steps_r. iDestruct "ASM" as "(W & (% & % & % & % & TKN))". des; subst; hss.
     steps_r. iApply "ISIM". iFrame.
@@ -79,7 +79,7 @@ Section MACROAUX.
       2:{ split; [exact (t0, t1, b, o)|]. exists x. ss. }
       2:exact ((x, t0)↑). ss. iSplit; et. }
 
-    call "IST"; et. iModIntro.
+    call "IST"; et.
 
     steps_l. iDestruct "ASM" as "[W (% & % & % & [% %] & TKN)]". subst; hss.
 
@@ -126,7 +126,7 @@ Section MACROAUX.
 
     force_l. instantiate (1:=false). steps_l. unfold ccallU. force_l. iSplitR; et.
     unfold HoareCall. steps_l. forces_l. iSplitL "W"; et.
-    call "IST"; et. iModIntro. steps_l. iDestruct "ASM" as "(W & % & %)". subst; hss. steps_r. hss. steps_r. steps_l.
+    call "IST"; et. steps_l. iDestruct "ASM" as "(W & % & %)". subst; hss. steps_r. hss. steps_r. steps_l.
 
     rewrite !unfold_iter_eq. grind. prep. prep. by_coind "CIH"; iFrame; et.
 
@@ -172,7 +172,7 @@ Section MACROAUX.
 
     force_l. instantiate (1:=false). steps_l. unfold ccallU. force_l. iSplitR; et.
     unfold HoareCall. steps_l. forces_l. iSplitL "W"; et.
-    call "IST"; et. iModIntro.
+    call "IST"; et.
     
     steps_l. iDestruct "ASM" as "(W & % & %)". subst; hss. steps_r. hss. steps_r. steps_l.
 
@@ -225,7 +225,7 @@ Section MACROAUX.
     iIntros "[(IST & W & TKN) ISIM]". rewrite !/Sch.join !/ccallU. unseal "Sch".
     force_l. iSplitR; et. unfold HoareCall. steps_l. force_l (tid, postS).
     force_l (tid↑). force_l. iSplitL "TKN W"; iFrame; et.
-    call "IST"; et. iModIntro.
+    call "IST"; et.
     
     steps_l. steps_r. iDestruct "ASM" as "(W & [% [% POST]] & %)". des; subst; hss.
     steps_r. apply SAny.downcast_upcast in G0. r in G0. subst.
@@ -258,7 +258,7 @@ Section MACROAUX.
 
     forces_l. iSplit; et. steps_l. force_l (n, o). forces_l. iSplitL "TKN W"; iFrame; et.
     
-    call "IST"; et. iModIntro.
+    call "IST"; et.
 
     steps_l. iDestruct "ASM" as "[W [[% [% POST]] %]]". subst; hss.
     apply SAny.downcast_upcast in G1. r in G1. subst.

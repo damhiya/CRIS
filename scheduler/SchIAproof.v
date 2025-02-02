@@ -173,8 +173,8 @@ Module SchIA. Section SchIA.
     remember (existT x m) as DT. clear HeqDT.
 
     steps_r. forces_l. iSplitL "W"; et.
-    hide_itree_r marker; prep; hide_itree_l marker2; prep; show_itree marker; show_itree marker2.
-    iApply isim_yield. iSplitL "IST"; et. iIntros (? ? ? ? ?) "IST".
+    yield "IST"; et.
+    (* iDestruct "IST" as (? ? ? ? ?) "IST". des. *)
     steps_r. steps_l. iDestruct "ASM" as "W". forces_l. iSplitR.
     { iPureIntro. apply FunInStbSch; et. }
     steps_l. forces_l. iSplitL "W PRE".
@@ -190,7 +190,7 @@ Module SchIA. Section SchIA.
       iPoseProof (H3 with "PRE") as "PRE". ss.
     }
 
-    call "IST"; et. iModIntro. steps_l.
+    call "IST"; et. steps_l.
     rename vret into ret. rename q into vret.
 
     revert H3. revert m. unfold find_fsp. generalize H2. rewrite H2. i. ss.
@@ -286,10 +286,11 @@ Module SchIA. Section SchIA.
     destruct a as [nths1 [st_src1 [st_tgt1 [NODS1 NODD1]]]]. s.
     iIntros "([W IST] & #CIH)".
 
-    hide_itree_l marker. rewrite unfold_iter_eq.
-    hide_itree_r marker2. rewrite unfold_iter_eq.
-    show_itree marker2. show_itree marker.
-    steps_l. forces_l. iSplitL "W"; et. call "IST"; et. iModIntro. steps_l.
+    set_marker MARKER. hide_ihyps.
+    do 2 rewrite unfold_iter_eq.
+    show_until MARKER.
+    
+    steps_l. forces_l. iSplitL "W"; et. call "IST"; et. steps_l.
     iDestruct "ASM" as "(W & % & %)". des; subst; hss. step_l. grind.
     steps_r. hss. steps_r. 
     rewrite SModRed.interp_tau. steps_l.
@@ -342,8 +343,7 @@ Module SchIA. Section SchIA.
           des_ifs; [rewrite Nat.eqb_eq in Heq; subst; ss|].
           rewrite right_id. et. }
 
-    hide_itree_r marker; prep; hide_itree_l marker2; prep; show_itree marker; show_itree marker2.
-    iApply isim_yield. iSplitL "IST"; et. iIntros (? ? ? ? ?) "IST".
+    yield "IST"; et.
 
     steps_l. iDestruct "ASM" as "W". rewrite /sch_ginv.
     steps_r. forces_l. iSplitL "W TKNQ0".
@@ -362,12 +362,8 @@ Module SchIA. Section SchIA.
     steps_r. iDestruct "IST" as (? ? ? ?) "(% & THB & THW & COND)". subst; hss. steps_r.
     force_l. instantiate (1:=q). steps_l. force_l. iSplitL "W"; et.
     
-    (* yield *)
-    do 10 prep.
-    iApply isim_yield.
-    iSplitL.
+    yield "THB THW COND".
     { iExists _, _, _, _. iSplit; et. iFrame. }
-    iIntros (? ? ? ? ?) "IST".
 
     steps_l. unfold sch_ginv. iDestruct "ASM" as (?) "W".
     steps_r. steps_r. force_l. steps_l. forces_l. iSplitL "W"; et.
@@ -394,9 +390,9 @@ Module SchIA. Section SchIA.
     destruct a as [nths [st_src [st_tgt [NODS NODD]]]]. s.
     iIntros "((IST & W & TKN) & #CIH)".
 
-    hide_itree_l marker. rewrite unfold_iter_eq.
-    hide_itree_r marker2. rewrite unfold_iter_eq.
-    show_itree marker2. show_itree marker.
+    set_marker MARKER. hide_ihyps.
+    do 2 rewrite unfold_iter_eq.
+    show_until MARKER.
 
     iDestruct "IST" as (? ? ? ?) "(% & THB & THW & COND)". des; subst; hss.
     steps_r. hss. steps_r.
@@ -449,7 +445,7 @@ Module SchIA. Section SchIA.
       iAssert (Ist sk nths st_src st_tgt0) with "[THB THW COND]" as "IST".
       { iExists _, _, _, _. iFrame. iPureIntro. esplits; et. }
       force_l false. steps_l. forces_l. iSplitL "W"; et.
-      call "IST"; et. iModIntro. steps_l. destruct q1. steps_l.
+      call "IST"; et. steps_l. destruct q1. steps_l.
       iDestruct "ASM" as "(W & % & %)". steps_r. hss. steps_r.
       by_coind "CIH". iFrame.
     }

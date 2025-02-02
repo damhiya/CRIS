@@ -172,8 +172,9 @@ Module CtrlIA. Section CtrlIA.
 
     apply Nat.ltb_lt in Heq. rewrite length_app in H5.
     assert (UBND:= Nat.mod_upper_bound (tl + List.length q) max_size).
-    rewrite (@cellgroup_split ((tl+ List.length q) mod max_size)) in NODUPFS NODUPFT WFS WFT; try nia.
+    revert FLS FLT NODUPFS NODUPFT WFS WFT.
     rewrite (@cellgroup_split ((tl+ List.length q) mod max_size)); try nia.
+    i; move_aux.
     inline_r.
 
     steps_r.
@@ -223,8 +224,9 @@ Module CtrlIA. Section CtrlIA.
 
     steps_l. hss.
     assert (UBND:= Nat.mod_upper_bound tl max_size).
-    rewrite (@cellgroup_split (tl mod max_size)) in NODUPFS NODUPFT WFS WFT; try nia.
+    revert FLS FLT NODUPFS NODUPFT WFS WFT.
     rewrite (@cellgroup_split (tl mod max_size)); try nia.
+    i; move_aux.
     inline_r.
 
     step_r. forces_r. iDestruct "LIVE" as "(Q & LIVE)".

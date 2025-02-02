@@ -12,9 +12,9 @@ Section FSPEC.
 
   Record fspec : Type := mk_fspec {
     meta : Type;
-    (*** thread id → meta-variable → new logical arg → current logical arg → iProp ***)
+    (*** thread id → meta-variable → virtual arg → physical arg → iProp ***)
     precond : nat → meta → Any.t → Any.t → iProp; 
-    (*** thread id → meta-variable → new logical ret → current logical ret → iProp ***)
+    (*** thread id → meta-variable → virtual ret → physical ret → iProp ***)
     postcond : nat → meta → Any.t → Any.t → iProp; 
   }.
 

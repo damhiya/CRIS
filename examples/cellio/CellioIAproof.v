@@ -28,7 +28,7 @@ Module CellioIA. Section CellioIA.
     steps_l. iDestruct "ASM" as "%"; subst.
 
     force_l tt. forces_l. iSplitL ""; eauto.
-    call "IST"; eauto. iModIntro.
+    call "IST"; eauto.
     steps_l. iDestruct "ASM" as "%"; subst.
 
     iDestruct "IST" as (v) "(% & AUTH)". subst.

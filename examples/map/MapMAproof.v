@@ -147,7 +147,6 @@ Module MapMA. Section MapMA.
 
     (* make a call to set *)
     call "IST". { eauto. }
-    iModIntro.
 
     (* SRC: handle the postcond of set *)
     steps_l. iDestruct "ASM" as "((% & MAP) & %)". hss.
