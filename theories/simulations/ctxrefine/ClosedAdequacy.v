@@ -4,7 +4,7 @@ Require Export ITreelib.
 Require Import Any.
 
 Require Import IRed.
-Require Import Behavior Skeleton.
+Require Import Behavior.
 
 Require Import ModSim ModSimFacts.
 Require Import HPSim HPSimFacts.
@@ -76,49 +76,42 @@ Section CLOSED.
   Qed.
 
   Theorem closed_adequacy (ms mt: HMod.t) IC Ist P
-    (SIM: HSim._t ms mt IC Ist true)
+    (SIM: HSim.t ms mt IC Ist true)
     :
-    refines (ms, IC ∗∗ P) (mt, P).
+    refines (ms, IC ∗ P)%I (mt, P).
   Proof.
-    split.
-    { s. apply SIM. }
-    ii. hexploit (HSim.sim_modsem SIM); eauto.
-    { eapply Sk.equiv_incl in EQV. etrans; eauto. refl. }
-    eapply Own_split in SRC; eauto. des.
+    ii. eapply Own_split in SRC; eauto. des.
     i. ss. des. exists a2.
     esplits; eauto.
-    { eapply cmra_valid_op_r. eapply valid_solve_eq; eauto.  }
-    { eapply hssim_wf; eauto. }
+    { eapply cmra_valid_op_r. eapply valid_solve_eq; eauto. }
+    { eapply hsim_wf; eauto. }
     ii. subst. eapply adequacy_modsem, PR.
-    - eapply hssim_adequacy; try eapply SRC0; eauto.
+    - eapply hsim_adequacy; try eapply SRC0; eauto.
       + rewrite -Own_op. eapply Own_equiv. 
         etrans; eauto. rewrite comm; ss.
-      + eapply hssim_wf; eauto.
+      + eapply hsim_wf; eauto.
     - inv WFM. econs. ss. unfold map_snd.
       rewrite !List.map_map. eapply eq_ind; [apply wf_fns|].
-      f_equal. extensionalities. destruct H0. ss.
+      f_equal. extensionalities. destruct H. ss.
   Qed.
 
   Theorem closed_adequacy2 (ms mt: HMod.t) P
-    (SIM: HSim._t ms mt (const(emp%I)) IstEq true)
+    (SIM: HSim.t ms mt emp%I IstEq true)
     :
     refines (ms, P) (mt, P).
   Proof.
-    split.
-    { s. apply SIM. }
-    ii. hexploit (HSim.sim_modsem SIM); eauto.
-    { eapply Sk.equiv_incl in EQV. etrans; eauto. refl. }
-    i. ss. des. exists rs.
+    ii. ss. des. exists rs.
     esplits; eauto.
-    { eapply hssim_wf; eauto. }
+    { eapply hsim_wf; eauto. }
     ii. subst. eapply adequacy_modsem, PR.
-    - eapply hssim_adequacy; auto.
+    - eapply hsim_adequacy; auto.
       + iIntros "H". iFrame. iApply Own_unit. 
-      + eapply hssim_wf; eauto.
-      + inv H. econs; eauto. iIntros "_". iApply sim_initial; eauto.
+      + eapply hsim_wf; eauto.
+      + inv SIM. econs; eauto. iIntros "_".
+        iApply sim_initial; eauto.
     - inv WFM. econs. ss. unfold map_snd.
       rewrite !List.map_map. eapply eq_ind; [apply wf_fns|].
-      f_equal. extensionalities. destruct H0. ss.
+      f_equal. extensionalities. destruct H. ss.
   Qed.
 
 End CLOSED.

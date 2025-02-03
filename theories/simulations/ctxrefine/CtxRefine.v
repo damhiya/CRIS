@@ -1,10 +1,9 @@
 Require Import Common.
+Require Import Mod HMod.
 
-Require Import Skeleton Mod HMod.
-
-Definition refines_modsem (ms_src ms_tgt: ModSem.t) : Prop :=
-  Beh.of_itree (ModSem.compile ms_tgt) <1=
-  Beh.of_itree (ModSem.compile ms_src).
+Definition refines_mod (ms_src ms_tgt: Mod.t) : Prop :=
+  Beh.of_itree (Mod.compile ms_tgt) <1=
+  Beh.of_itree (Mod.compile ms_src).
 
 Section CTX_REFINE.
   (* Definition of ctx refinement in HMod Level. *)
@@ -14,22 +13,19 @@ Section CTX_REFINE.
     let ms := mps.1 in let Ps := mps.2 in
     let mt := mpt.1 in let Pt := mpt.2 in
 
-    <<EQV : Sk.equiv ms.(HMod.sk) mt.(HMod.sk)>> ∧
-    <<REF :
-      ∀ sk rs
-        (EQV : Sk.equiv mt.(HMod.sk) sk) (SKWF : Sk.wf sk)
-        (WFR : ✓ rs) (SRC : Own rs ⊢ Ps sk)
-        (WFM : HModSem.wf (ms.(HMod.modsem) sk)),
-      ∃ rt,
-        ✓ rt /\ (Own rt ⊢ Pt sk)%I /\
-        HModSem.wf (mt.(HMod.modsem) sk) /\
-        refines_modsem
-          (HModSem.to_mod (ms.(HMod.modsem) sk) rs)
-          (HModSem.to_mod (mt.(HMod.modsem) sk) rt)>>.
+    ∀ rs
+      (WFR : ✓ rs) (SRC : Own rs ⊢ Ps)
+      (WFM : HMod.wf ms),
+    ∃ rt,
+      ✓ rt /\ (Own rt ⊢ Pt)%I /\
+      HMod.wf mt /\
+      refines_mod
+        (HMod.to_mod ms rs)
+        (HMod.to_mod mt rt).
 
   Definition ctx_refines (mps mpt : HMod.modc) : Prop :=
     ∀ (ctx : HMod.modc),
-      refines (mps.1 ★ ctx.1, mps.2 ∗∗ ctx.2)
-              (mpt.1 ★ ctx.1, mpt.2 ∗∗ ctx.2).
+      refines (mps.1 ★ ctx.1, mps.2 ∗ ctx.2)%I
+              (mpt.1 ★ ctx.1, mpt.2 ∗ ctx.2)%I.
 End CTX_REFINE.
 Global Instance: Params (@ctx_refines) 1 := {}.

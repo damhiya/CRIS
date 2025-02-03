@@ -1,6 +1,5 @@
 Require Import Common.
-
-Require Import Skeleton Mod HMod.
+Require Import Mod HMod.
 Require Import ModSim ModSimFacts HPSim HPSimFacts ISim ISimFacts ITactics.
 Require Import CtxRefine.
 
@@ -19,7 +18,7 @@ Section AUX.
   
   Lemma sandbox_well_scoped {A} scopes0 scopes1 (itr : itree hmodE A) 
       (SCP : incl scopes0 scopes1) :
-    HModSem.sandbox scopes1 (HModSem.sandbox scopes0 itr) = HModSem.sandbox scopes0 itr.
+    HMod.sandbox scopes1 (HMod.sandbox scopes0 itr) = HMod.sandbox scopes0 itr.
   Proof.
     apply bisim_is_eq.
     revert_until Σ. ginit. gcofix CIH. i.
@@ -75,16 +74,16 @@ Section AUX.
   Qed.
 
   Lemma inv_sandbox_tau {X} scp (itr : itree hmodE X)
-      (SB : HModSem.sandbox scp (tau;; itr) = tau;; itr) :
-    HModSem.sandbox scp itr = itr.
+      (SB : HMod.sandbox scp (tau;; itr) = tau;; itr) :
+    HMod.sandbox scp itr = itr.
   Proof.
     rewrite HModSB.transl_tau in SB. inv SB.
     rewrite sandbox_well_scoped; refl.
   Qed.
 
   Lemma inv_sandbox_core {X Y} x scp (ktr : X -> itree hmodE Y) (c : coreE X)
-      (SB : HModSem.sandbox scp (trigger c >>= ktr) = trigger c >>= ktr) :
-    HModSem.sandbox scp (ktr x) = ktr x.
+      (SB : HMod.sandbox scp (trigger c >>= ktr) = trigger c >>= ktr) :
+    HMod.sandbox scp (ktr x) = ktr x.
   Proof.
     rewrite HModSB.transl_bind HModSB.transl_core in SB.
     rewrite! bind_trigger in SB. inv SB.
@@ -92,8 +91,8 @@ Section AUX.
   Qed.
 
   Lemma inv_sandbox_call {X Y} x scp (ktr : X -> itree hmodE Y) (c : callE X)
-      (SB : HModSem.sandbox scp (trigger c >>= ktr) = trigger c >>= ktr) :
-    HModSem.sandbox scp (ktr x) = ktr x.
+      (SB : HMod.sandbox scp (trigger c >>= ktr) = trigger c >>= ktr) :
+    HMod.sandbox scp (ktr x) = ktr x.
   Proof.
     destruct c.
     rewrite HModSB.transl_bind HModSB.transl_call in SB.
@@ -102,8 +101,8 @@ Section AUX.
   Qed.
 
   Lemma inv_sandbox_pg {X Y} x scp (ktr : X -> itree hmodE Y) (pg : pgE X)
-      (SB : HModSem.sandbox scp (trigger pg >>= ktr) = trigger pg >>= ktr) :
-    HModSem.sandbox scp (ktr x) = ktr x.
+      (SB : HMod.sandbox scp (trigger pg >>= ktr) = trigger pg >>= ktr) :
+    HMod.sandbox scp (ktr x) = ktr x.
   Proof.
     destruct pg.
     { rewrite HModSB.transl_bind HModSB.transl_put in SB.
@@ -117,8 +116,8 @@ Section AUX.
   Qed.
 
   Lemma inv_sandbox_ag {X} scp (ktr : unit -> itree hmodE X) (ag : agE unit)
-      (SB : HModSem.sandbox scp (trigger ag >>= ktr) = trigger ag >>= ktr) :
-    HModSem.sandbox scp (ktr tt) = ktr tt.
+      (SB : HMod.sandbox scp (trigger ag >>= ktr) = trigger ag >>= ktr) :
+    HMod.sandbox scp (ktr tt) = ktr tt.
   Proof.
     rewrite HModSB.transl_bind HModSB.transl_ag in SB.
     rewrite! bind_trigger in SB. inv SB.
@@ -182,16 +181,13 @@ Section AUX.
   Proof. i. rewrite <- H0. eauto. Qed.
 
   Lemma wf_inv_l ms0 ms1
-      (WF : HModSem.wf (HModSem.add ms0 ms1)) :
-    HModSem.wf ms0.
+      (WF : HMod.wf (HMod.add ms0 ms1)) :
+    HMod.wf ms0.
   Proof.
     inv WF; ss. rewrite map_app in wf_fns. 
     econs; eauto using nodup_app_l.
   Qed.
 
-  Lemma sk_equiv_ctx sk0 sk1 ctx (EQV : Sk.equiv sk0 sk1) :
-    Sk.equiv (Sk.add sk0 ctx) (Sk.add sk1 ctx).
-  Proof. eapply Permutation_app_tail. eauto. Qed.
 End AUX.
 
 
@@ -201,8 +197,8 @@ Section AUX.
   Ltac hstep := guclo hpsimC_spec; econs; econs; eauto; econs; eauto.
 
   Lemma hpsim_ctx fnsems_src fnsems_tgt fl_src fl_tgt fl_ctx Ist my_tid is_closed scopes scopeC
-      (FLS : fl_src = (List.map (map_snd HModSem.sandbox_body) fnsems_src))
-      (FLT : fl_tgt = (List.map (map_snd HModSem.sandbox_body) fnsems_tgt))
+      (FLS : fl_src = (List.map (map_snd HMod.sandbox_body) fnsems_src))
+      (FLT : fl_tgt = (List.map (map_snd HMod.sandbox_body) fnsems_tgt))
       (WS : ∀ (fn : string) p (IN : alist_find fn fnsems_src = Some p), incl p.1 scopes)
       (WT : ∀ (fn : string) p (IN : alist_find fn fnsems_tgt = Some p), incl p.1 scopes)
       (DISJ : List.NoDup (scopes ++ scopeC))
@@ -211,12 +207,12 @@ Section AUX.
     (SCPS : incl (state_scopes st_src) scopes)
     (SCPT : incl (state_scopes st_tgt) scopes)
     (SCPC : incl (state_scopes st_ctx) scopeC)
-    (ITRS : HModSem.sandbox scopes itr_src = itr_src)
-    (ITRT : HModSem.sandbox scopes itr_tgt = itr_tgt)
+    (ITRS : HMod.sandbox scopes itr_src = itr_src)
+    (ITRT : HMod.sandbox scopes itr_tgt = itr_tgt)
     (SIM : hpsim_body fl_src fl_tgt Ist my_tid false ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr)
     :
     hpsim_body (fl_src ++ fl_ctx) (fl_tgt ++ fl_ctx) 
-    (IstProd0 (IstSB0 scopes Ist) (IstSB0 scopeC IstEq0)) my_tid is_closed
+    (IstProd (IstSB scopes Ist) (IstSB scopeC IstEq)) my_tid is_closed
     ps pt nths (st_src ++ st_ctx, itr_src) (st_tgt ++ st_ctx, itr_tgt) fmr.
   Proof.
     guardH FLS. guardH FLT.
@@ -246,12 +242,12 @@ Section AUX.
       eapply Own_bupd_split in INV0; eauto. des.
       eapply Own_general_soundness in INV1; eauto; cycle 1.
       { by eapply Own_wand_valid; first by iIntros "F"; iMod (INV0 with "F") as "[? _]"; iFrame. }
-      rewrite /IstProd0 in INV1. uPred.unseal_in INV1; destruct INV1 as [st_srcL [st_tgtL [st_srcR [st_tgtR INV1]]]].
+      rewrite /IstProd in INV1. uPred.unseal_in INV1; destruct INV1 as [st_srcL [st_tgtL [st_srcR [st_tgtR INV1]]]].
       destruct INV1 as [a1' [a1'' [INV1 [INV1' INV1'']]]]; inv INV1'.
-      rewrite /IstSB0 in INV1''; rr in INV1''; uPred.unseal_in INV1''; des.
+      rewrite /IstSB in INV1''; rr in INV1''; uPred.unseal_in INV1''; des.
       destruct INV1''0 as [x0' [x0'' [? [INV1''0 ?]]]]; inv INV1''0.
       destruct INV1''1 as [x1' [x1'' [? [INV1''1 ?]]]]; inv INV1''1.
-      rewrite /IstEq0 in H7; uPred.unseal_in H7; inv H7.
+      rewrite /IstEq in H7; uPred.unseal_in H7; inv H7.
       (* 
         new states after call should maintain the scope of previous states. 
         ctx state should maintain its own scope.
@@ -272,7 +268,7 @@ Section AUX.
       rewrite FLS in FUN.
       rewrite alist_find_map_snd in FUN.
       unfold o_map in FUN. des_ifs.
-      unfold HModSem.sandbox_body.
+      unfold HMod.sandbox_body.
       rewrite sandbox_well_scoped; eauto.
       f_equal. extensionalities.
       rewrite ?HModSB.transl_bind !HModSB.transl_tau HModSB.transl_ret.
@@ -284,7 +280,7 @@ Section AUX.
       rewrite FLT in FUN.
       rewrite alist_find_map_snd in FUN.
       unfold o_map in FUN. des_ifs.
-      unfold HModSem.sandbox_body.
+      unfold HMod.sandbox_body.
       rewrite sandbox_well_scoped; eauto.
       f_equal. extensionalities.
       rewrite ?HModSB.transl_bind !HModSB.transl_tau HModSB.transl_ret.
@@ -381,12 +377,12 @@ Section AUX.
       eapply Own_bupd_split in INV0; eauto. des.
       eapply Own_general_soundness in INV1; eauto; cycle 1.
       { by eapply Own_wand_valid; first by iIntros "F"; iMod (INV0 with "F") as "[? _]"; iFrame. }
-      rewrite /IstProd0 in INV1. uPred.unseal_in INV1; destruct INV1 as [st_srcL [st_tgtL [st_srcR [st_tgtR INV1]]]].
+      rewrite /IstProd in INV1. uPred.unseal_in INV1; destruct INV1 as [st_srcL [st_tgtL [st_srcR [st_tgtR INV1]]]].
       destruct INV1 as [a1' [a1'' [INV1 [INV1' INV1'']]]]; inv INV1'.
-      rewrite /IstSB0 in INV1''; rr in INV1''; uPred.unseal_in INV1''; des.
+      rewrite /IstSB in INV1''; rr in INV1''; uPred.unseal_in INV1''; des.
       destruct INV1''0 as [x0' [x0'' [? [INV1''0 ?]]]]; inv INV1''0.
       destruct INV1''1 as [x1' [x1'' [? [INV1''1 ?]]]]; inv INV1''1.
-      rewrite /IstEq0 in H7; uPred.unseal_in H7; inv H7.
+      rewrite /IstEq in H7; uPred.unseal_in H7; inv H7.
       (* 
         new states after call should maintain the scope of previous states. 
         ctx state should maintain its own scope.
@@ -406,7 +402,6 @@ Section AUX.
     - hstep. eapply K; try refl; eauto.
       rewrite HModSB.transl_bind HModSB.transl_sch !bind_trigger in ITRS.
       depdes ITRS. eapply equal_f in x. eauto.
-      
     - hstep. eapply K; try refl; eauto.
       rewrite HModSB.transl_bind HModSB.transl_sch !bind_trigger in ITRT.
       depdes ITRT. eapply equal_f in x. eauto.
@@ -417,29 +412,29 @@ Section AUX.
 
   Lemma isim_ctx
     fs ft ms mt ctx Ist fn is_closed
-    (WFS : HModSem.wf (HModSem.add ms ctx))
-    (WFT : HModSem.wf (HModSem.add mt ctx))
-    (FINDS : alist_find fn (HModSem.fnsems ms) = Some fs)
-    (FINDT : alist_find fn (HModSem.fnsems mt) = Some ft)
-    (SCOPES : sub_perm (HModSem.scopes mt) (HModSem.scopes ms))
-    (NODUPFS : List.NoDup (List.map fst (HModSem.fnsems ms ++ HModSem.fnsems ctx)))
-    (NODUPFT : List.NoDup (List.map fst (HModSem.fnsems mt ++ HModSem.fnsems ctx)))
+    (WFS : HMod.wf (HMod.add ms ctx))
+    (WFT : HMod.wf (HMod.add mt ctx))
+    (FINDS : alist_find fn (HMod.fnsems ms) = Some fs)
+    (FINDT : alist_find fn (HMod.fnsems mt) = Some ft)
+    (SCOPES : sub_perm (HMod.scopes mt) (HMod.scopes ms))
+    (NODUPFS : List.NoDup (List.map fst (HMod.fnsems ms ++ HMod.fnsems ctx)))
+    (NODUPFT : List.NoDup (List.map fst (HMod.fnsems mt ++ HMod.fnsems ctx)))
     (IMON : ∀ nths0 nths', nths0 <= nths' → ∀ st_src st_tgt,
            Ist nths0 st_src st_tgt -∗ Ist nths' st_src st_tgt)
     (SIM : isim_fsem
-       (List.map (map_snd HModSem.sandbox_body) (HModSem.fnsems ms))
-       (List.map (map_snd HModSem.sandbox_body) (HModSem.fnsems mt))
+       (List.map (map_snd HMod.sandbox_body) (HMod.fnsems ms))
+       (List.map (map_snd HMod.sandbox_body) (HMod.fnsems mt))
        Ist false
-       (HModSem.sandbox_body fs)
-       (HModSem.sandbox_body ft))
+       (HMod.sandbox_body fs)
+       (HMod.sandbox_body ft))
     :
       isim_fsem
-        (List.map (map_snd HModSem.sandbox_body)
-           (HModSem.fnsems ms ++ HModSem.fnsems ctx))
-        (List.map (map_snd HModSem.sandbox_body)
-           (HModSem.fnsems mt ++ HModSem.fnsems ctx))
-        (IstProd0 (IstSB0 (HModSem.scopes ms) Ist) (IstSB0 (HModSem.scopes ctx) IstEq0)) is_closed
-        (HModSem.sandbox_body fs) (HModSem.sandbox_body ft).
+        (List.map (map_snd HMod.sandbox_body)
+           (HMod.fnsems ms ++ HMod.fnsems ctx))
+        (List.map (map_snd HMod.sandbox_body)
+           (HMod.fnsems mt ++ HMod.fnsems ctx))
+        (IstProd (IstSB (HMod.scopes ms) Ist) (IstSB (HMod.scopes ctx) IstEq)) is_closed
+        (HMod.sandbox_body fs) (HMod.sandbox_body ft).
   Proof.
     ii. specialize (SIM x y H). subst.
     iIntros "H". iDestruct "H" as (? ? ? ?) "(% & (% & IST) & %)". des. subst.
@@ -453,57 +448,50 @@ Section AUX.
     split; intros x wfx ISIM.
     gfinal. right. eapply paco9_mon_bot; eauto.
     rewrite! List.map_app.
-    assert (EQ : (λ x, (map_snd HModSem.sandbox_body x).1) = @fst string _).
+    assert (EQ : (λ x, (map_snd HMod.sandbox_body x).1) = @fst string _).
     { extensionalities. destruct H. eauto. }
     eapply hpsim_ctx; eauto; ss; cycle 6.
     { rewrite -map_app List.map_map EQ. eauto. }
     { rewrite -map_app List.map_map EQ. eauto. }
     { 
-      ii. eapply ms.(HModSem.well_scoped_fns).
+      ii. eapply ms.(HMod.well_scoped_fns).
       unfold fnsems_scopes. erewrite IN. ss.
     }
     {
       i. etrans; cycle 1.
       { eapply sub_perm_incl; eauto. }
-      ii. eapply mt.(HModSem.well_scoped_fns).
+      ii. eapply mt.(HMod.well_scoped_fns).
       unfold fnsems_scopes. erewrite IN. ss.
     }
     { eapply WFS. }
     { 
       eapply sandbox_well_scoped. ii.
-      eapply ms.(HModSem.well_scoped_fns). 
+      eapply ms.(HMod.well_scoped_fns). 
       unfold fnsems_scopes. erewrite FINDS. ss.
     }
     { 
       eapply sandbox_well_scoped. etrans; cycle 1.
       { eapply sub_perm_incl; eauto. }
-      ii. eapply mt.(HModSem.well_scoped_fns). 
+      ii. eapply mt.(HMod.well_scoped_fns). 
       unfold fnsems_scopes. erewrite FINDT. ss.
     }
     ginit. i. eapply gpaco9_mon; first eapply ISIM; eauto using iunlift_ibot.
   Qed.
 
   Lemma hmod_sim_ctx (ms mt ctx : HMod.t) IC Ist is_closed
-    (SIM : HSim.t ms mt IC Ist)
+    (SIM : HSim.t ms mt IC Ist false)
     :
-    HSim._t (ms ★ ctx) (mt ★ ctx) IC 
-      (fun sk => IstProd0 (IstSB0 (HMod.modsem ms sk).(HModSem.scopes) (Ist sk))
-                          (IstSB0 (HMod.modsem ctx sk).(HModSem.scopes) IstEq0)) is_closed.
+    HSim.t (ms ★ ctx) (mt ★ ctx) IC 
+      (IstProd (IstSB ms.(HMod.scopes) Ist)
+               (IstSB ctx.(HMod.scopes) IstEq)) is_closed.
   Proof.
     inv SIM.
-    econs; cycle 1.
-    { ss. r. eapply sk_equiv_ctx. eauto. }
-    i. hexploit sim_modsem; eauto.
-    { 
-      r in SKINCL. ii. hexploit (SKINCL a); eauto.
-      ss. eapply in_or_app; eauto.
-    }
-    i. inv H. econs; ss.
+    econs; ss.
     { 
       iIntros "H". iPoseProof (sim_initial with "H") as "H".
       unfold IstProd. iExists _, _, _, _. iFrame. iPureIntro.
-      esplits; eauto; try eapply HModSem.well_scoped_init.
-      etrans; [eapply HModSem.well_scoped_init|].
+      esplits; eauto; try eapply HMod.well_scoped_init.
+      etrans; [eapply HMod.well_scoped_init|].
       eapply sub_perm_incl, sim_scopes.
     }
     { i. iIntros "H". iDestruct "H" as (? ? ? ?) "(% & (% & H) & %)". des; subst.
@@ -544,8 +532,8 @@ Section AUX.
       }
       destruct ft as [scp itr].
       inv WFS. eapply isim_reflR; ss; i; eauto.
-      - replace scp with (fnsems_scopes fn (HMod.modsem ctx sk).(HModSem.fnsems)).
-        { eapply (HMod.modsem ctx sk).(HModSem.well_scoped_fns). }
+      - replace scp with (fnsems_scopes fn ctx.(HMod.fnsems)).
+        { eapply ctx.(HMod.well_scoped_fns). }
         { unfold fnsems_scopes. des_ifs. }
       - iIntros "%". des; subst; eauto.
       - iIntros "%". des; subst; eauto. iPureIntro.  esplits; eauto.
@@ -561,32 +549,26 @@ Section ADEQUACY.
   Context {Σ : GRA}.
 
   Theorem main_adequacy (ms mt : HMod.t) IC Ist
-      (SIM : HSim.t ms mt IC Ist) :
-    ctx_refines (ms, IC) (mt, const(emp%I)).
+      (SIM : HSim.t ms mt IC Ist false) :
+    ctx_refines (ms, IC) (mt, emp%I).
   Proof.
-    ii. s. split.
-    { s. eapply sk_equiv_ctx. apply SIM. }
-
+    ii. s.
     destruct ctx as [ctx cond].
     assert (SIMC := SIM).
     ii. ss. eapply hmod_sim_ctx with (ctx := ctx) in SIMC.
-    hexploit (HSim.sim_modsem SIMC); eauto.
-    { eapply Sk.equiv_incl in EQV. etrans; eauto. refl. }
-    i. ss.
-
-    rewrite /HMod.addc in SRC.
+  
     hexploit Own_split; eauto; intros [a1 [a2 [Ha [H1 H2]]]].
     exists a2; splits; eauto.
     { eapply cmra_valid_op_r; erewrite <- Ha; ss. }
-    { rewrite /HMod.addc; iIntros "H"; iSplitR "H"; ss; iApply H2; done. }
-    { eapply hssim_wf; eauto. }
+    { iIntros "H"; iSplitR "H"; ss; iApply H2; done. }
+    { eapply hsim_wf; eauto. }
     ii. subst. eapply adequacy_modsem, PR.
-    - eapply (hssim_adequacy _ _ rs a1 a2); eauto.
+    - eapply (hsim_adequacy _ _ rs a1 a2); eauto.
       { rewrite Ha; iIntros "[H1 H2]"; iFrame. }
-      { eapply hssim_wf; eauto. }
+      { eapply hsim_wf; eauto. }
     - inv WFM. econs. ss. unfold map_snd.
       rewrite !List.map_map. eapply eq_ind; [apply wf_fns|].
-      f_equal. extensionalities. destruct H0. ss.
+      f_equal. extensionalities. destruct H. ss.
   Qed.
 
 End ADEQUACY.
@@ -659,27 +641,25 @@ Section COMM.
     eapply NoDup_app_disjoint in NODUP; eauto.
   Qed.
 
-  Lemma hmod_add_scopes sk md0 md1:
-    HMod.scopes (md0 ★ md1) sk = HMod.scopes md0 sk ++ HMod.scopes md1 sk.
+  Lemma hmod_add_scopes md0 md1:
+    HMod.scopes (md0 ★ md1) = HMod.scopes md0 ++ HMod.scopes md1.
   Proof. ss. Qed.
 
   Lemma hmod_add_comm ms0 ms1 is_closed:
-    HSim._t (ms0 ★ ms1) (ms1 ★ ms0) (const(emp%I))
-      (fun sk => IstSB0 (HMod.scopes (ms0 ★ ms1) sk) perm_Ist) is_closed.
+    HSim.t (ms0 ★ ms1) (ms1 ★ ms0) (emp%I)
+      (IstSB (HMod.scopes (ms0 ★ ms1)) perm_Ist) is_closed.
   Proof.
-    econs; cycle 1.
-    { rr. eapply Permutation_app_comm. }
-    i. econs; ss.
+    econs; ss.
     {
       iIntros "_". iPureIntro. esplits.
-      { eapply (HMod.modsem ms0 ★ ms1 sk).(HModSem.well_scoped_init). }
-      { ii. eapply (HMod.modsem ms0 ★ ms1 sk).(HModSem.well_scoped_init); ss.
+      { eapply (ms0 ★ ms1).(HMod.well_scoped_init). }
+      { ii. eapply (ms0 ★ ms1).(HMod.well_scoped_init); ss.
         move: H; rewrite /state_scopes ?map_app; intros H.
         eapply in_app_or in H. eapply in_or_app. des; eauto.
       }
       { eapply Permutation.Permutation_app_comm. }
     }
-    { i. r. rewrite /IstSB0 /perm_Ist; iIntros "_ [% %]". iSplit; iPureIntro; eauto. }
+    { i. r. rewrite /IstSB /perm_Ist; iIntros "_ [% %]". iSplit; iPureIntro; eauto. }
     { apply sub_perm_comm. }
     { rewrite ?map_app; i. apply sub_perm_comm. }
 
@@ -688,7 +668,7 @@ Section COMM.
     esplits; eauto.
 
     (* simulation *)
-    ii. subst. destruct ft. unfold HModSem.sandbox_body. s.
+    ii. subst. destruct ft. unfold HMod.sandbox_body. s.
     generalize (i y) as it. clear FIND i y.
     combine_quant NODD.
     combine_quant NODS.

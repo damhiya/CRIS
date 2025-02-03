@@ -1,6 +1,6 @@
 Require Import Common.
 
-Require Import Skeleton HMod SMod.
+Require Import HMod SMod.
 Require Export ISimCore ITacticsCore.
 
 Set Implicit Arguments.
@@ -47,31 +47,21 @@ End LEMMAS.
 Section HModProd.
 
   Context `{Σ : GRA}.
-  Notation iProp := (iProp Σ).
 
-  Definition IstProd0 (IstL IstR : nat -> alist key Any.t -> alist key Any.t -> iProp) :=
+  Definition IstProd (IstL IstR : nat -> alist key Any.t -> alist key Any.t -> iProp Σ) :=
     fun nths (st_src st_tgt : alist key Any.t) =>
       (∃ st_srcL st_tgtL st_srcR st_tgtR,
        ⌜st_src = st_srcL ++ st_srcR /\ st_tgt = st_tgtL ++ st_tgtR⌝ ∗
        IstL nths st_srcL st_tgtL ∗ IstR nths st_srcR st_tgtR)%I.
 
-  Definition IstProd IstL IstR :=
-    fun (sk : Sk.t) => IstProd0 (IstL sk) (IstR sk).
-
-  Definition IstSB0 scopes (Ist : nat -> alist key Any.t -> alist key Any.t -> iProp) :=
+  Definition IstSB scopes (Ist : nat -> alist key Any.t -> alist key Any.t -> iProp Σ) :=
     fun nths st_src st_tgt =>
       (⌜incl (state_scopes st_src) scopes ∧
         incl (state_scopes st_tgt) scopes⌝
        ∗ Ist nths st_src st_tgt)%I.
 
-  Definition IstSB ms Ist :=
-    fun (sk : Sk.t) => IstSB0 (HMod.scopes ms sk) (Ist sk).
-
-  Definition IstEq0 : nat -> alist key Any.t -> alist key Any.t -> iProp :=
+  Definition IstEq : nat -> alist key Any.t -> alist key Any.t -> iProp Σ :=
     (fun _ st_src st_tgt => ⌜st_src = st_tgt⌝)%I.
-
-  Definition IstEq :=
-    fun (sk : Sk.t) => IstEq0.
 
   Lemma state_scopes_update k v st:
     state_scopes (alist_upd k v st) = state_scopes st.
@@ -79,16 +69,16 @@ Section HModProd.
     rewrite /state_scopes -!List.map_map alist_upd_keys. eauto.
   Qed.
   
-  Lemma isim_reflR Ist is_closed fl_src fl_tgt scopesL scopesR scopesF (EqR : _ → _ → _ → iProp) itr
+  Lemma isim_reflR Ist is_closed fl_src fl_tgt scopesL scopesR scopesF (EqR : _ → _ → _ → iProp Σ) itr
       (DISJ : List.NoDup (scopesL ++ scopesR))
       (INCL : incl scopesF scopesR)
       (EQGET : ∀ nths st_src st_tgt, EqR nths st_src st_tgt -∗ ⌜st_src = st_tgt⌝)
       (EQSET : ∀ nths st_src st_tgt nths0 (k : key) v,
           EqR nths st_src st_tgt -∗ EqR nths0 (alist_upd k v st_src) (alist_upd k v st_tgt)) :
-    isim_fsem fl_src fl_tgt (IstProd0 (IstSB0 scopesL Ist) EqR) is_closed
-      (HModSem.sandbox_body (scopesF,itr)) (HModSem.sandbox_body (scopesF,itr)).
+    isim_fsem fl_src fl_tgt (IstProd (IstSB scopesL Ist) EqR) is_closed
+      (HMod.sandbox_body (scopesF,itr)) (HMod.sandbox_body (scopesF,itr)).
   Proof.
-    ii. subst. unfold HModSem.sandbox_body. s.
+    ii. subst. unfold HMod.sandbox_body. s.
     generalize (itr y) as it; clear itr y.
     combine_quant NODD.
     combine_quant NODS.
@@ -129,7 +119,7 @@ Section HModProd.
         iApply isim_sget_src. iApply isim_sget_tgt.
         apply existsb_exists in Heq. des. apply String.eqb_eq in Heq0. subst.
         iAssert (⌜alist_find k st_src = alist_find k st_tgt⌝ ∗
-                 IstProd0 (IstSB0 scopesL Ist) EqR nths st_src st_tgt)%I
+                 IstProd (IstSB scopesL Ist) EqR nths st_src st_tgt)%I
           with "[IST]" as "(% & IST)".
         { iDestruct "IST" as (? ? ? ?) "(% & (% & IST) & EQR)". des; subst.
           iPoseProof (EQGET with "EQR") as "%". subst.
@@ -155,27 +145,22 @@ Section HModProd.
   { eapply alist_upd_nodup. eauto. }
   Qed.
 
-  Lemma mod_sim_reflR A B C init_cond Ist is_closed
-    (INIT : ∀ sk, init_cond sk -∗
-                    IstProd (IstSB A Ist) IstEq sk 1
-                    (HModSem.initial_st (HMod.modsem (HMod.add A C) sk))
-                    (HModSem.initial_st (HMod.modsem (HMod.add B C) sk)))
-    (MON : ∀ sk nths nths' (LE : nths <= nths') st_src st_tgt,
-        Ist sk nths st_src st_tgt -∗ Ist sk nths' st_src st_tgt)
-    (SCOPE : ∀ sk, sub_perm (HMod.scopes B sk) (HMod.scopes A sk))
-    (MATCH : ∀ sk,
-           sub_perm (List.map fst (HModSem.fnsems (HMod.modsem B sk))) (List.map fst (HModSem.fnsems (HMod.modsem A sk))))
-    (SIM : ∀ fn sk
-            (IN : In fn (List.map fst (HModSem.fnsems (HMod.modsem B sk))))
-            (SKINCL : List.incl (HMod.sk (HMod.add B C)) sk) (SKWF : Sk.wf sk), 
-          HSSim.sim_fun (HMod.modsem (HMod.add A C) sk) (HMod.modsem (HMod.add B C) sk)
-            (IstProd (IstSB A Ist) IstEq sk) is_closed fn)
-    (SK : HMod.sk A = HMod.sk B)
+  Lemma hmod_sim_reflR A B C init_cond Ist is_closed
+    (INIT : init_cond -∗
+            IstProd (IstSB (HMod.scopes A) Ist) IstEq 1
+                    (HMod.initial_st (HMod.add A C))
+                    (HMod.initial_st (HMod.add B C)))
+    (MON : ∀ nths nths' (LE : nths <= nths') st_src st_tgt,
+        Ist nths st_src st_tgt -∗ Ist nths' st_src st_tgt)
+    (SCOPE : sub_perm (HMod.scopes B) (HMod.scopes A))
+    (MATCH : sub_perm (List.map fst (HMod.fnsems B)) (List.map fst (HMod.fnsems A)))
+    (SIM : ∀ fn
+            (IN : In fn (List.map fst (HMod.fnsems B))),
+          HSim.sim_fun (HMod.add A C) (HMod.add B C)
+            (IstProd (IstSB (HMod.scopes A) Ist) IstEq) is_closed fn)
     :
-    HSim._t (HMod.add A C) (HMod.add B C) init_cond (IstProd (IstSB A Ist) IstEq) is_closed.
+    HSim.t (HMod.add A C) (HMod.add B C) init_cond (IstProd (IstSB (HMod.scopes A) Ist) IstEq) is_closed.
   Proof.
-    econs; cycle 1.
-    { rr. eapply Permutation_app_tail. rewrite SK. refl. }
     econs.
     - iApply INIT.
     - i. iIntros "H". iDestruct "H" as (? ? ? ?) "(% & (% & H) & %)"; des; subst.
@@ -186,10 +171,9 @@ Section HModProd.
     - s. i. rewrite map_app in IN. apply in_app_or in IN. des.
       { eapply SIM; eauto. }
       ii. exists ft. destruct ft as [scp f].
-      assert (FND : alist_find fn (HModSem.fnsems (HMod.modsem C sk))
-                   = Some (scp,f)).
+      assert (FND : alist_find fn (HMod.fnsems C) = Some (scp,f)).
       { s in FIND. rewrite alist_find_app_o in FIND. des_ifs.
-        exfalso. assert (ND:= HModSem.wf_fns WFT). s in ND. rewrite map_app in ND.
+        exfalso. assert (ND:= HMod.wf_fns WFT). s in ND. rewrite map_app in ND.
         eapply NoDup_app_disjoint; try apply ND; eauto.
         eapply alist_find_some, (in_map fst) in Heq. eauto.
       }
@@ -200,8 +184,9 @@ Section HModProd.
       
       eapply isim_reflR; eauto.
       + apply WFS.
-      + ii. eapply (HMod.modsem C sk). unfold fnsems_scopes. erewrite FND. eauto.
-      + i. unfold IstEq, IstEq0. iIntros "%". subst. eauto.
-Qed.
+      + etrans; [|eapply HMod.well_scoped_fns].
+        unfold fnsems_scopes. erewrite FND. refl.
+      + i. unfold IstEq. iIntros "%". subst. eauto.
+  Qed.
 
 End HModProd.

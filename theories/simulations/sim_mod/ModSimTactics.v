@@ -1,6 +1,5 @@
 Require Import Common.
-
-Require Import Skeleton Mod.
+Require Import Mod.
 Require Import ModSim.
 
 Set Implicit Arguments.

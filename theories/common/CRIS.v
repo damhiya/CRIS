@@ -1,6 +1,6 @@
 Require Export Common.
 
-Require Export Skeleton STB.
+Require Export Spc.
 Require Export SMod HMod PMod.
 Require Export ISim ITactics.
 Require Export CtxRefine CtxRefineFacts MainAdequacy.

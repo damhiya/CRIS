@@ -1,5 +1,5 @@
 Require Import Common.
-Require Import SMod2HMod SMod HMod Skeleton ITactics.
+Require Import SMod2HMod SMod HMod ITactics.
 Require Import ISim CtxRefine CtxRefineFacts ClosedAdequacy.
 Require Import HModInline.
 
@@ -14,18 +14,17 @@ Section CANCEL.
     refines (HModInline.inline md, P) (md, P).
   Proof.
     eapply closed_adequacy2.
-    econs; ss. i. r.
     econs; ss; try refl; eauto.
     { i. rewrite List.map_map fst_map_snd. exists []. ss. }
-    ii. ss. exists (wrap_elimI (HMod.modsem md sk) ft).
+    ii. ss. exists (wrap_elimI md ft).
     esplits.
     { rewrite alist_find_map_snd FIND. ss. } 
     ii. subst. destruct ft.
-    assert(SCP := (HMod.modsem md sk).(HModSem.well_scoped_fns)).
+    assert(SCP := md.(HMod.well_scoped_fns)).
     specialize (SCP fn). rewrite/fnsems_scopes FIND in SCP.
     rename l into scopeT. 
-    unfold HModSem.sandbox_body, inline_hp_fun. s.
-    unfold HModSem.sandbox_body, inline_hp_fun. s.
+    unfold HMod.sandbox_body, inline_hp_fun. s.
+    unfold HMod.sandbox_body, inline_hp_fun. s.
     generalize false at 1 as ps.
     generalize false at 1 as pt. intros pt ps.
     generalize (i y) as it. clear IN fn FIND i y NODD NODS.
@@ -53,7 +52,7 @@ Section CANCEL.
         steps_l. by_coind "CIH". auto.
       + steps_l. steps_r. by_coind "CIH". auto.
     - destruct c. rewrite HModSB.transl_bind HModSB.transl_call HIRed.call. steps_l. 
-      destruct (alist_find fn (HModSem.fnsems (HMod.modsem md sk))) eqn:FIND; cycle 1.
+      destruct (alist_find fn (HMod.fnsems md)) eqn:FIND; cycle 1.
       { 
         iApply isim_call_none; ss.
         { rewrite alist_find_map_snd FIND. ss. }
@@ -100,7 +99,7 @@ Section CANCEL.
       + step. steps_l. by_coind "CIH". auto.
     Unshelve. all: eauto.
     {
-      assert(SCP0 := (HMod.modsem md sk).(HModSem.well_scoped_fns) fn).
+      assert(SCP0 := md.(HMod.well_scoped_fns) fn).
       rewrite/fnsems_scopes FIND in SCP0. eauto.
     }
   Qed.

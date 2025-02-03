@@ -10,7 +10,3 @@ Module InputName.
   Definition input := fn "input".
 
 End InputName.
-
-Module InputSK.
-  Definition t : Sk.t := [].
-End InputSK.

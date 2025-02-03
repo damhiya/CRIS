@@ -1,5 +1,5 @@
 Require Import Common.
-Require Import SMod2HMod HMod2Mod Mod2ITree SMod HMod Mod Skeleton.
+Require Import SMod2HMod HMod2Mod Mod2ITree SMod HMod Mod.
 Require Import SimGlobal.
 Require Import SModCancel HModInline ElimRel StRed CancelLib.
 
@@ -10,7 +10,7 @@ Section CANCEL.
   Import CancelTAC.
 
   Lemma cancel_aux_spawn
-    ginv sk (SKINCL: incl (SMod.sk md) sk) (SKWF: Sk.wf sk) r ps pt srcs tgts
+    ginv r ps pt srcs tgts
     cid st (rs rt rs0 rt0: Σ) l X (meta: X) Q ktrS ktrT f fn args
     (WFS: ✓ rs) (WFT: ✓ rt)
     (UPD: Own rs ==∗ Own rt)
@@ -18,23 +18,23 @@ Section CANCEL.
     (LENT: cid < List.length tgts)
     (LEN: List.length srcs = Datatypes.length tgts)
     (RET: ∀ vret ret : Any.t, cid = 0 → Q cid meta vret ret ⊢ ⌜vret = ret⌝)
-    (RELS: ∀ k x y, cid ≠ k → srcs !! k = Some x → tgts !! k = Some y → thread_rel md ginv sk cid k x y)
-    (STB: stb_global md sk fn = Some f)
-    (KTR: ∀ tid, upaco3 (@elim_rel_def _ md ginv sk _) bot3 l (ktrS tid) (ktrT tid))
+    (RELS: ∀ k x y, cid ≠ k → srcs !! k = Some x → tgts !! k = Some y → thread_rel md ginv cid k x y)
+    (STB: spc_global md fn = Some f)
+    (KTR: ∀ tid, upaco3 (@elim_rel_def _ md ginv _) bot3 l (ktrS tid) (ktrT tid))
     (SRC : srcs !! cid = Some (Ret ();;; interp_hp (x <- SpawnCancelE fn args;; ktrS x)))
-    (TGT : tgts !! cid = Some (Ret ();;; interp_hp (cancel_term md ginv sk cid meta Q (x <- HoareSpawnE (ginv sk) f fn args;; ktrT x))))
+    (TGT : tgts !! cid = Some (Ret ();;; interp_hp (cancel_term md ginv cid meta Q (x <- HoareSpawnE ginv f fn args;; ktrT x))))
     (CIH: ∀ rs rt srcs tgts cid st ps pt X (meta : X) Q itrS itrT l,
         ✓ rs → (Own rs ==∗ Own rt) →
         List.length srcs = List.length tgts →
         cid < List.length srcs → cid < List.length tgts → 
         srcs !! cid = Some (Ret ();;; interp_hp itrS) →
-        tgts !! cid = Some (Ret ();;; interp_hp (cancel_term md ginv sk cid meta Q itrT)) →
+        tgts !! cid = Some (Ret ();;; interp_hp (cancel_term md ginv cid meta Q itrT)) →
         (∀ vret ret, cid = 0 → Q cid meta vret ret ⊢ ⌜vret = ret⌝) →
-        paco3 (@elim_rel_def _ md ginv sk _) bot3 l itrS itrT →
-        (∀ k x y, cid ≠ k → srcs !! k = Some x → tgts !! k = Some y → thread_rel md ginv sk cid k x y)
-        → CANCEL_GOAL md r ginv sk rs0 rt0 ps pt srcs tgts cid st rs rt)
+        paco3 (@elim_rel_def _ md ginv _) bot3 l itrS itrT →
+        (∀ k x y, cid ≠ k → srcs !! k = Some x → tgts !! k = Some y → thread_rel md ginv cid k x y)
+        → CANCEL_GOAL md r ginv rs0 rt0 ps pt srcs tgts cid st rs rt)
     :
-    CANCEL_GOAL md (gpaco7 _simg (cpn7 _simg) bot7 r) ginv sk rs0 rt0 ps pt srcs tgts cid st rs rt.
+    CANCEL_GOAL md (gpaco7 _simg (cpn7 _simg) bot7 r) ginv rs0 rt0 ps pt srcs tgts cid st rs rt.
   Proof.
     r. _iter. _iter. rewrite SRC TGT. ired.
     hide_l. _coreA.
@@ -60,7 +60,7 @@ Section CANCEL.
     end.
     iterT 2.
     iterL. tau 1. ls.
-    hexploit stb_in_alist_find; eauto. i. des.
+    hexploit spc_in_alist_find; eauto. i. des.
     reveal ITREE.
     rewrite !alist_find_map_snd !H. s.
     erewrite wrap_elimI_well_scoped; cycle 1.
@@ -76,7 +76,7 @@ Section CANCEL.
       rewrite alist_find_map_snd H. ss.
     }
     ired.
-    unfold interp_hp_fun, inline_hp_fun, HModSem.sandbox_body. s.
+    unfold interp_hp_fun, inline_hp_fun, HMod.sandbox_body. s.
     unfold interp_sb_hp, interp_sb_hp_cancel. s.
     hide_l. _iter.
     rewrite list_lookup_insert_ne; try nia.
@@ -125,7 +125,7 @@ Section CANCEL.
       { rewrite length_insert length_app. s. nia. }
       grind. unfold cancel_term, inline_hp.
       match goal with [|-context[translate (_ ?scopes) ?itr]]=>
-        fold (HModSem.sandbox scopes itr)
+        fold (HMod.sandbox scopes itr)
       end.
       rewrite -HIRed.iter_handle_bind HModSB.transl_bind.
       do 4 f_equal. extensionalities.

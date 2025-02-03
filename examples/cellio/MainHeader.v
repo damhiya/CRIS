@@ -11,7 +11,3 @@ Module MainName.
   Definition main := "CRIS_init".
 
 End MainName.
-
-Module MainSK.
-  Definition t : Sk.t := [].
-End MainSK.

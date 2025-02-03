@@ -1,13 +1,11 @@
 Require Import Common.
-
-Require Import Skeleton Mod.
+Require Import Mod.
 
 Set Implicit Arguments.
 
 Section MID.
 
   Context {Σ : GRA}.
-  Notation iProp := (iProp Σ).
 
   (* Consider moving into Any lib. *)
   (* Any.encode & Any.decode *)
@@ -95,13 +93,13 @@ Section MID.
       | SGet k => mget_kv k
       end.
 
-  Definition handle_Assume (P : iProp) : itree modE unit :=
+  Definition handle_Assume (P : iProp Σ) : itree modE unit :=
     mr <- get_res;;
     mr' <- trigger (Take Σ);;
     assume (✓ mr' ∧ (Own mr' ==∗ P ∗ Own mr));;;
     put_res mr'.
 
-  Definition handle_Guarantee (P : iProp) : itree modE unit :=
+  Definition handle_Guarantee (P : iProp Σ) : itree modE unit :=
     mr <- get_res;;
     mr' <- trigger (Choose Σ);;
     guarantee (✓ mr' ∧ (Own mr ==∗ P ∗ Own mr'));;;

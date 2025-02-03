@@ -1,5 +1,5 @@
 Require Import Common.
-Require Import SMod HMod Skeleton.
+Require Import SMod HMod.
 Require Import SMod2HMod.
 
 Set Implicit Arguments.
@@ -33,15 +33,15 @@ Section Cancel.
 
 End Cancel.
 
-Module SModSemCancel.
+Module SModCancel.
 Section Cancel.
-  Import SModSem.
+  Import SMod.
   Context `{Σ: GRA}.
 
-  Program Definition to_hmod (ms: t): HModSem.t := {|
-    HModSem.scopes := ms.(scopes);
-    HModSem.fnsems := List.map (map_snd (λ ksb, (ksb.1, interp_sb_hp_cancel ksb.2))) (ms.(fnsems));
-    HModSem.initial_st := ms.(initial_st);
+  Program Definition to_hmod (ms: t): HMod.t := {|
+    HMod.scopes := ms.(scopes);
+    HMod.fnsems := List.map (map_snd (λ ksb, (ksb.1, interp_sb_hp_cancel ksb.2))) (ms.(fnsems));
+    HMod.initial_st := ms.(initial_st);
   |}.
   Next Obligation.
     i. destruct ms. ss. ii. unfold fnsems_scopes in *. unfold map_snd in*.
@@ -52,21 +52,7 @@ Section Cancel.
   Next Obligation. ii. destruct ms. ss. eauto. Qed.
 
 End Cancel.
-End SModSemCancel.
-
-Module SModCancel.
-Section Cancel.
-  Import SMod.
-  Context `{Σ: GRA}.
-
-  Definition to_hmod (md: t) := {|
-    HMod.modsem := fun sk => SModSemCancel.to_hmod (md.(modsem) sk);
-    HMod.sk := md.(sk);
-  |}.
-
-End Cancel.
 End SModCancel.
-
 
 Module SCancelRed.
 Section RED.

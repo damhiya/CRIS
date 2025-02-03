@@ -1,43 +1,40 @@
 Require Import Common.
-
 Require Import Mod HMod.
 Require Import ModSim HPSimFacts ISimCore.
 
-
-Section HSSIM_ADEQUACY.
+Section HSIM_ADEQUACY.
 
   Context `{Σ : GRA}.
-  Notation iProp := (iProp Σ).
 
-  Lemma hssim_wf ms mt cond Ist is_closed
-    (SIM: HSSim.t ms mt cond Ist is_closed)
-    (WF: HModSem.wf ms)
+  Lemma hsim_wf ms mt cond Ist is_closed
+    (SIM: HSim.t ms mt cond Ist is_closed)
+    (WF: HMod.wf ms)
     :
-    HModSem.wf mt.
+    HMod.wf mt.
   Proof.
     inv SIM. econs.
     - eapply sub_perm_nodup; eauto. apply WF.
     - eapply sub_perm_nodup; eauto. apply WF.
   Qed.
 
-  Lemma hssim_match ms mt cond Ist is_closed fn
-    (SIM: HSSim.t ms mt cond Ist is_closed)
-    (WF: List.NoDup (List.map fst (HModSem.fnsems ms)))
-    (IN: In fn (List.map fst (HModSem.fnsems mt)))
+  Lemma hsim_match ms mt cond Ist is_closed fn
+    (SIM: HSim.t ms mt cond Ist is_closed)
+    (WF: List.NoDup (List.map fst (HMod.fnsems ms)))
+    (IN: In fn (List.map fst (HMod.fnsems mt)))
     :
-    In fn (List.map fst (HModSem.fnsems ms)).
+    In fn (List.map fst (HMod.fnsems ms)).
   Proof.
     eapply sub_perm_incl; eauto. apply SIM.
   Qed.
   
-  Lemma hssim_adequacy (ms mt : HModSem.t) (rs rm rt : Σ) (IC : iProp) Ist
+  Lemma hsim_adequacy (ms mt : HMod.t) (rs rm rt : Σ) (IC : iProp Σ) Ist
       (SUB : Own rs ⊢ Own rt ∗ Own rm)
       (WF : ✓ rs)
       (COND : Own rm ⊢ IC)
-      (WFS : HModSem.wf ms)
-      (WFT : HModSem.wf mt)
-      (SIM : HSSim.t ms mt IC Ist true) :
-    MSim.t (HModSem.to_mod ms rs) (HModSem.to_mod mt rt).
+      (WFS : HMod.wf ms)
+      (WFT : HMod.wf mt)
+      (SIM : HSim.t ms mt IC Ist true) :
+    MSim.t (HMod.to_mod ms rs) (HMod.to_mod mt rt).
   Proof.
     inv SIM.
     econs; i; ss.
@@ -55,8 +52,8 @@ Section HSSIM_ADEQUACY.
         iModIntro; iSplitL "IC"; iFrame.
       }
       { iIntros "M"; iModIntro; iApply sim_initial; iApply COND; done. }
-      { eapply ms.(HModSem.nodup_fns). eapply WFS. }
-      { eapply mt.(HModSem.nodup_fns). eapply WFT. }
+      { eapply ms.(HMod.nodup_fns). eapply WFS. }
+      { eapply mt.(HMod.nodup_fns). eapply WFT. }
     - move: FIND; rewrite ?alist_find_map_snd /o_map; intros FIND; des_ifs; cycle 1.
       { eapply alist_find_fst_some, sub_perm_incl in Heq0; [|apply sim_match].
         eapply alist_find_fst_in in Heq0. des. rewrite Heq0 in Heq. ss.
@@ -91,4 +88,4 @@ Section HSSIM_ADEQUACY.
   Unshelve. apply string_Dec.
   Qed.
   
-End HSSIM_ADEQUACY.
+End HSIM_ADEQUACY.

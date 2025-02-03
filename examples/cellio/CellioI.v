@@ -26,18 +26,13 @@ Module CellioI. Section CellioI.
     [(CellioName.set, (scopes, set));
      (CellioName.get, (scopes, get))].
 
-  Program Definition Sem: PModSem.t := {|
-    PModSem.scopes := scopes;
-    PModSem.fnsems := fnsems;
-    PModSem.initial_st := [(v_cv, (0%Z)↑)];
+  Program Definition Mod: PMod.t := {|
+    PMod.scopes := scopes;
+    PMod.fnsems := fnsems;
+    PMod.initial_st := [(v_cv, (0%Z)↑)];
   |}.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
   
-  Definition Mod: PMod.t := {|
-    PMod.modsem := λ _, Sem;
-    PMod.sk := CellioSK.t;
-  |}.
-
   Definition t := Seal.sealing CRIS (PMod.to_hmod Mod).
 End CellioI. End CellioI.
