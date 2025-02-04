@@ -144,21 +144,21 @@ Module SchAS. Section SchAS.
   End RA.
 
   Variable u : univ_id.
+  Variable n : level.
   Variable StbFun : Sk.t -> string -> option fspec.
   Variable GlobalStb : Sk.t -> string -> option fspec.
 
   Section SPEC.
+    (* TODO : iris accessors? *)
     Definition fspec_spawnable (univ: positive) (fsp: fspec) (tid: nat) (m: meta fsp) (vargs args: Any.t) (pre: iProp) (postS: SAny.t -> SynDepO): Prop :=
-      (((∃ n, wsats univ n ⊤) ∗ pre
-          ⊢ (precond fsp tid m vargs args))%I
+      ((wpsim_ginv u n ⊤ ∗ pre ⊢ (precond fsp tid m vargs args))%I
       ∧ (∀ ret: Any.t, 
           ((∃ vret, postcond fsp tid m vret ret)%I 
-            ⊢ (∃ sret: SAny.t, ((∃ n, wsats univ n ⊤) ∗ ⌜ret = sret↑⌝ 
-               ∗ interp_cond (postS sret))))%I)).
+            ⊢ (wpsim_ginv u n ⊤ ∗ ∃ sret: SAny.t, (⌜ret = sret↑⌝ ∗ interp_cond (postS sret))))%I)).
 
     Definition _spawn_spec (sk: Sk.t) (StbFun: Sk.t -> string -> option fspec): fspec :=
-      wp_fspec u 0
-        (λ n, fspec_virtual
+      wp_fspec u n
+        (fspec_virtual
           (λ my_tid '(mid, fargs, fvargs, pre, postS, existT fn m) varg arg,
             (⌜varg = ((mid, fn, fvargs) : nat * string * SAny.t) ∧
               arg = ((mid, fn, fargs) : nat * string * SAny.t)↑ ∧
@@ -180,8 +180,8 @@ Module SchAS. Section SchAS.
     (* . *)
 
     Definition spawn_spec (sk : Sk.t) (StbFun : Sk.t -> string -> option fspec): fspec :=
-      wp_fspec u 0
-        (λ n, fspec_virtual
+      wp_fspec u n
+        (fspec_virtual
           (λ _ '(fargs, fvargs, pre, postS, existT fn m) varg arg,
             ⌜varg = ((fn, fvargs): string * SAny.t) 
             ∧ arg = ((fn, fargs): string * SAny.t)↑
@@ -204,8 +204,8 @@ Module SchAS. Section SchAS.
     . *)
 
     Definition yield_spec : fspec :=
-      wp_fspec u 0
-        (λ n, fspec_simple (λ _ : unit, ((λ varg, ⌜varg = tt↑⌝), (λ vret, ⌜vret = tt↑⌝))))%I.
+      wp_fspec u n
+        (fspec_simple (λ _ : unit, ((λ varg, ⌜varg = tt↑⌝), (λ vret, ⌜vret = tt↑⌝))))%I.
       (* wfspec_inv univ
         (fspec_simple (fun (_: unit) =>
           ((fun varg => (⌜varg = tt↑⌝)%I),
@@ -213,8 +213,8 @@ Module SchAS. Section SchAS.
     . *)
 
     Definition join_spec : fspec :=
-      wp_fspec u 0
-        (λ n, fspec_simple (λ '(tid, postS),
+      wp_fspec u n
+        (fspec_simple (λ '(tid, postS),
           (λ varg, ⌜varg = tid↑⌝ ∗ (token_th tid postS),
           λ vret, ∃ ret, ⌜vret = (Some ret)↑⌝ ∗ interp_cond (postS ret)))
         )%I.
@@ -257,6 +257,6 @@ Module SchAS. Section SchAS.
 
     Definition InitCond : Sk.t → iProp := λ _, initial_threads.
 
-    Definition t := Seal.sealing CRIS (SMod.to_hmod (sch_ginv u 0) GlobalStb Mod).
+    Definition t := Seal.sealing CRIS (SMod.to_hmod (sch_ginv u n) GlobalStb Mod).
   End SPEC.
 End SchAS. End SchAS.

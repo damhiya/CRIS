@@ -80,6 +80,7 @@ Module CannonAll. Section CannonAll.
     { iIntros "I"; rewrite /init_cond /CannonA.init_cond /MainA.init_cond /HMod.addc.
       rewrite /precond /= /CannonAS.Ready /CannonAS.Ball
         own.Own_eq own.own_eq /own.Own_def /own.own_def.
+      rewrite /initial_resource /MainAS.init_res /CannonAS.init_res. Set Printing Implicit.
       iDestruct "I" as "[I1 I2]"; iFrame. iSplit; iPureIntro; ss.
     }
     { econs; ss; try prove_nodup. }

@@ -1,5 +1,6 @@
 Require Import CRIS.
 
+
 Require Import SchHeader SchI SchA SchASpec wpsim.
 
 Set Implicit Arguments.
@@ -11,11 +12,12 @@ Module SchIA. Section SchIA.
   Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !SchAGΣ Σ}.
   Notation iProp := (iProp Σ).
 
-  Variable univ: positive.
+  Variable υ : univ_id.
+  Variable n : level.
   Variable StbFun: Sk.t -> string -> option fspec.
   Variable StbSch: Sk.t -> string -> option fspec.
   Hypothesis FunInStbSch: ∀ sk, stb_sub (StbFun sk) (StbSch sk).
-  Hypothesis SchInStbSch: ∀ sk, stb_incl (Stb univ sk StbFun) (StbSch sk).
+  Hypothesis SchInStbSch: ∀ sk, stb_incl (Stb υ n sk StbFun) (StbSch sk).
 
   Fixpoint ths_wf (nths: nat) (ths_tgt: SchI.thslist): Prop :=
     match ths_tgt with
@@ -154,7 +156,7 @@ Module SchIA. Section SchIA.
           ∗ own base_γ (◯ ths_src_w)
           ∗ ([∗ map] tid↦P ∈ ths_cond, P))%I.
 
-  Local Notation SchAMod := (SchAS.t univ StbFun StbSch).
+  Local Notation SchAMod := (SchAS.t υ n StbFun StbSch).
   Local Notation SchIMod := (SchI.t).
   
   (*************)
@@ -163,15 +165,15 @@ From iris.proofmode Require Import coq_tactics environments.
 Notation "E1 '------------------------------------------------------------------□' E2 '------------------------------------------------------------------∗' st_src st_tgt '------------------------------params------------------------------' ○ n E r g ps pt '-------------------------------wsim-------------------------------' itr_src itr_tgt" :=
   (environments.envs_entails (Envs E1 E2 _) (wpsim _ _ _ _ None _ _ n E r g _ _ _ ps pt _ (st_src, itr_src) (st_tgt, itr_tgt)))
     (at level 50, only printing,
-      format "E1 '------------------------------------------------------------------□' '//' E2 '//' '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '------------------------------params------------------------------' '//' ○ '/' n '/' E '/' r '/' g '/' ps '/' pt '//' '-------------------------------wsim-------------------------------' '//' itr_src '//' '//' '//' itr_tgt '//'").
+      format "E1 '------------------------------------------------------------------□' '//' E2 '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '------------------------------params------------------------------' '//' ○ '/' n '/' E '/' r '/' g '/' ps '/' pt '//' '-------------------------------wsim-------------------------------' '//' itr_src '//' '//' '//' itr_tgt '//'").
 Notation "E1 '------------------------------------------------------------------□' E2 '------------------------------------------------------------------∗' st_src st_tgt '------------------------------params------------------------------' ◓ n E r g ps pt '-------------------------------wsim-------------------------------' itr_src itr_tgt" :=
   (environments.envs_entails (Envs E1 E2 _) (wpsim _ _ _ _ (Some false) _ _ n E r g _ _ _ ps pt _ (st_src, itr_src) (st_tgt, itr_tgt)))
     (at level 50, only printing,
-      format "E1 '------------------------------------------------------------------□' '//' E2 '//' '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '------------------------------params------------------------------' '//' ◓ '/' n '/' E '/' r '/' g '/' ps '/' pt '//' '-------------------------------wsim-------------------------------' '//' itr_src '//' '//' '//' itr_tgt '//'").
+      format "E1 '------------------------------------------------------------------□' '//' E2 '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '------------------------------params------------------------------' '//' ◓ '/' n '/' E '/' r '/' g '/' ps '/' pt '//' '-------------------------------wsim-------------------------------' '//' itr_src '//' '//' '//' itr_tgt '//'").
 Notation "E1 '------------------------------------------------------------------□' E2 '------------------------------------------------------------------∗' st_src st_tgt '------------------------------params------------------------------' ● n E r g ps pt '-------------------------------wsim-------------------------------' itr_src itr_tgt" :=
   (environments.envs_entails (Envs E1 E2 _) (wpsim _ _ _ _ (Some true) _ _ n E r g _ _ _ ps pt _ (st_src, itr_src) (st_tgt, itr_tgt)))
     (at level 50, only printing,
-      format "E1 '------------------------------------------------------------------□' '//' E2 '//' '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '------------------------------params------------------------------' '//' ● '/' n '/' E '/' r '/' g '/' ps '/' pt '//' '-------------------------------wsim-------------------------------' '//' itr_src '//' '//' '//' itr_tgt '//'").
+      format "E1 '------------------------------------------------------------------□' '//' E2 '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '------------------------------params------------------------------' '//' ● '/' n '/' E '/' r '/' g '/' ps '/' pt '//' '-------------------------------wsim-------------------------------' '//' itr_src '//' '//' '//' itr_tgt '//'").
 Notation "E1 '------------------------------------------------------------------□' st_src st_tgt '------------------------------params------------------------------' ○ n E r g ps pt '-------------------------------wsim-------------------------------' itr_src itr_tgt" :=
   (environments.envs_entails (Envs E1 Enil _) (wpsim _ _ _ _ None _ _ n E r g _ _ _ ps pt _ (st_src, itr_src) (st_tgt, itr_tgt)))
     (at level 50, only printing,
@@ -187,15 +189,15 @@ Notation "E1 '------------------------------------------------------------------
 Notation "E2 '------------------------------------------------------------------∗' st_src st_tgt '------------------------------params------------------------------' ○ n E r g ps pt '-------------------------------wsim-------------------------------' itr_src itr_tgt" :=
   (environments.envs_entails (Envs Enil E2 _) (wpsim _ _ _ _ None _ _ n E r g _ _ _ ps pt _ (st_src, itr_src) (st_tgt, itr_tgt)))
     (at level 50, only printing,
-      format "E2 '//' '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '------------------------------params------------------------------' '//' ○ '/' n '/' E '/' r '/' g '/' ps '/' pt '//' '-------------------------------wsim-------------------------------' '//' itr_src '//' '//' '//' itr_tgt '//'").
+      format "E2 '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '------------------------------params------------------------------' '//' ○ '/' n '/' E '/' r '/' g '/' ps '/' pt '//' '-------------------------------wsim-------------------------------' '//' itr_src '//' '//' '//' itr_tgt '//'").
 Notation "E2 '------------------------------------------------------------------∗' st_src st_tgt '------------------------------params------------------------------' ◓ n E r g ps pt '-------------------------------wsim-------------------------------' itr_src itr_tgt" :=
   (environments.envs_entails (Envs Enil E2 _) (wpsim _ _ _ _ (Some false) _ _ n E r g _ _ _ ps pt _ (st_src, itr_src) (st_tgt, itr_tgt)))
     (at level 50, only printing,
-      format "E2 '//' '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '------------------------------params------------------------------' '//' ◓ '/' n '/' E '/' r '/' g '/' ps '/' pt '//' '-------------------------------wsim-------------------------------' '//' itr_src '//' '//' '//' itr_tgt '//'").
+      format "E2 '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '------------------------------params------------------------------' '//' ◓ '/' n '/' E '/' r '/' g '/' ps '/' pt '//' '-------------------------------wsim-------------------------------' '//' itr_src '//' '//' '//' itr_tgt '//'").
 Notation "E2 '------------------------------------------------------------------∗' st_src st_tgt '------------------------------params------------------------------' ● n E r g ps pt '-------------------------------wsim-------------------------------' itr_src itr_tgt" :=
   (environments.envs_entails (Envs Enil E2 _) (wpsim _ _ _ _ (Some true) _ _ n E r g _ _ _ ps pt _ (st_src, itr_src) (st_tgt, itr_tgt)))
     (at level 50, only printing,
-      format "E2 '//' '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '------------------------------params------------------------------' '//' ● '/' n '/' E '/' r '/' g '/' ps '/' pt '//' '-------------------------------wsim-------------------------------' '//' itr_src '//' '//' '//' itr_tgt '//'").
+      format "E2 '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '------------------------------params------------------------------' '//' ● '/' n '/' E '/' r '/' g '/' ps '/' pt '//' '-------------------------------wsim-------------------------------' '//' itr_src '//' '//' '//' itr_tgt '//'").
 
 (* additional *) 
 (* Notation "E1 '------------------------------------------------------------------□' E2 '------------------------------------------------------------------∗' st_src st_tgt '-------------------------------wsim-------------------------------' P '∗' 'ISIM'" :=
@@ -223,14 +225,18 @@ Notation "E1 '------------------------------------------------------------------
         iApply wpsim_tau_src
     | [ |- environments.envs_entails _ (wpsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, Ret _ >>= _) _) ] =>
         rewrite bind_ret_l
+    | [ |- environments.envs_entails _ (wpsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger Tid >>= _) _) ] =>
+        iApply wpsim_tid_src
+    | [ |- environments.envs_entails _ (wpsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _) _) ] =>
+        let name := fresh "q" in iApply wpsim_take_src; iIntros (name)
+    | [ |- environments.envs_entails _ (wpsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Assume ?P) >>= _) _) ] =>
+        unfold_precond_postcond P; iApply wpsim_assume_src; iIntrosFresh "ASM"
+    | [ |- environments.envs_entails _ (wpsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, (HModSem.sandbox _ (trigger (SPut _ _))) >>= _) _) ] =>
+        iApply wpsim_sput_src_sandbox; [s;eauto|]
+    | [ |- environments.envs_entails _ (wpsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, (HModSem.sandbox _ (trigger (SGet _))) >>= _) _) ] =>
+        iApply wpsim_sget_src_sandbox; [s;eauto|]
     end.
-    (* | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, (HModSem.sandbox _ (trigger (SPut _ _))) >>= _) _) ] =>
-        iApply isim_sput_src_sandbox; [s;eauto|]
-    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, (HModSem.sandbox _ (trigger (SGet _))) >>= _) _) ] =>
-        iApply isim_sget_src_sandbox; [s;eauto|]
-    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _) _) ] =>
-        let name := fresh "q" in
-        iApply isim_take_src; iIntros (name)
+    (* 
     | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _  (_, trigger (Assume ?P) >>= _) _) ] =>
         unfold_precond_postcond P; iApply isim_Assume_src; iIntrosFresh "ASM"
     | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, unwrapU ?ox >>= _) _) ] =>
@@ -239,8 +245,6 @@ Notation "E1 '------------------------------------------------------------------
         match goal with [ H: ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite -> G in * end
     | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _) _) ] =>
         let name := fresh "asm" in iApply isim_asm_src; iIntros (name)
-    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, trigger Tid >>= _) _) ] =>
-        iApply isim_tid_src
     end. *)
 
   Ltac _w_step_r :=
@@ -251,10 +255,11 @@ Notation "E1 '------------------------------------------------------------------
         iApply wpsim_tau_tgt
     | [ |- environments.envs_entails _ (wpsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, Ret _ >>= _) ) ] =>
         rewrite bind_ret_l
-    (* | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ _ (_, (HModSem.sandbox _ (trigger (SPut _ _))) >>= _)) ] =>
-        iApply isim_sput_tgt_sandbox; [s; eauto|]
-    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ _ (_, (HModSem.sandbox _ (trigger (SGet _))) >>= _)) ] =>
-        iApply isim_sget_tgt_sandbox; [s; eauto|]
+    | [ |- environments.envs_entails _ (wpsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, (HModSem.sandbox _ (trigger (SPut _ _))) >>= _)) ] =>
+        iApply wpsim_sput_tgt_sandbox; [s; eauto|]
+    | [ |- environments.envs_entails _ (wpsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, (HModSem.sandbox _ (trigger (SGet _))) >>= _)) ] =>
+        iApply wpsim_sget_tgt_sandbox; [s; eauto|]
+    (* 
     | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose _) >>= _)) ] =>
         let name := fresh "q" in
         iApply isim_choose_tgt; iIntros (name)
@@ -265,10 +270,33 @@ Notation "E1 '------------------------------------------------------------------
         iApply isim_unwrapN_tgt; iIntros (name) "%";
         match goal with [ H: ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite -> G in * end
     | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, guarantee _ >>= _)) ] =>
-        let name := fresh "grt" in iApply isim_guar_tgt; iIntros (name)
-    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger Tid >>=  _)) ] =>
-        iApply isim_tid_tgt *)
+        let name := fresh "grt" in iApply isim_guar_tgt; iIntros (name) *)
+    | [ |- environments.envs_entails _ (wpsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger Tid >>= _)) ] =>
+        iApply wpsim_tid_tgt
     end.
+
+  Ltac _w_force_l :=
+    match goal with
+    | [ |- environments.envs_entails _ (wpsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose ?T) >>= _) _) ] =>
+        iApply wpsim_choose_src
+    | [ |- environments.envs_entails _ (wpsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _) _) ] =>
+        unfold_precond_postcond P; iApply wpsim_guarantee_src
+    | [ |- environments.envs_entails _ (wpsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, unwrapN _ >>= _) _) ] =>
+        iApply wpsim_unwrapN_src
+    (* | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, guarantee _ >>= _) _) ] =>
+        iApply isim_guar_src *)
+    end.
+
+  Ltac w_force_l_core := let marker := fresh "MARKER" in
+    hide_itree_r marker;
+    prep; _w_force_l; s;
+    show_itree marker.
+
+  Tactic Notation "w_force_l" :=
+    w_force_l_core; try (iExists _).
+
+  Tactic Notation "w_force_l" uconstr(p) :=
+    w_force_l_core; iExists p.
 
   Ltac w_step_l :=
     let marker := fresh "MARKER" in
@@ -282,6 +310,41 @@ Notation "E1 '------------------------------------------------------------------
     prep; _w_step_r; try alist_find_simpl; s; des_pairs; s;
     show_itree marker.
 
+  Ltac by_coind CIH :=
+    iApply wpsim_progress; iApply wpsim_base;
+    iSpecialize (CIH $! _);
+    (hrepeat do 1 first[instantiate (1:= (_,_))|instantiate (1:= existT _ _)]); s;
+    iApply CIH.
+  (* Ltac _step :=
+    match goal with
+    (******* isim ******)
+    (** both **)
+    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, Ret _) (_, Ret _)) ] =>
+        iApply isim_ret
+    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (IO _ _) >>= _) (_, trigger (IO _ _) >>= _)) ] =>
+        iApply isim_io; iIntros "%"
+    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Spawn _ _) >>= _) (_, trigger (Spawn _ _) >>= _)) ] =>
+        iApply isim_spawn
+  end. *)
+  (* Ltac w_step := let marker := fresh "MARKER" in
+    hide_itree_r marker; prep; show_itree marker;
+    hide_itree_l marker; prep; show_itree marker;
+    _step; s; des_pairs; s. *)
+
+  Ltac w_call hyps := let marker := fresh "MARKER" in
+    hide_itree_r marker; prep; show_itree marker;
+    hide_itree_l marker; prep; show_itree marker;
+    iApply wpsim_call;
+    iSplitL hyps; [try done | iIntros "% % % % % %"; iIntrosFresh "IST"];
+    move_nodup.
+
+  Ltac yield hyps := let marker := fresh "MARKER" in
+    hide_itree_r marker; prep; show_itree marker;
+    hide_itree_l marker; prep; show_itree marker;
+    iApply wpsim_yield;
+    iSplitL hyps; [try done | iIntros "% % % % %"; iIntrosFresh "IST"];
+    move_nodup.
+
   Ltac init_simF :=
     pre_simF;
     alist_find_simpl;
@@ -292,13 +355,14 @@ Notation "E1 '------------------------------------------------------------------
 
   Ltac init_wpsim :=
     match goal with
-    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Take wp_meta) >>= _) _)] =>
-      let name := fresh "q" in let n := fresh "n" in iApply isim_take_src; iIntros (name); destruct name as [n name];
-        prep; let arg := fresh "arg" in iApply isim_take_src; iIntros (arg);
+    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _) _)] =>
+      let name := fresh "q" in let n := fresh "n" in iApply isim_take_src; iIntros (name);
+        prep; let varg := fresh "varg" in iApply isim_take_src; iIntros (varg);
         prep;
         match goal with
         | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _  (_, trigger (Assume ?P) >>= _) _) ] =>
-          unfold_precond_postcond P; iApply isim_Assume_src; iIntros "[I ASM]"; iApply wpsim_init; iSplitR "I"; last done
+          unfold_precond_postcond P; iApply isim_Assume_src; iIntros "[I ASM]";
+          iApply wpsim_init; iSplitR "I"; last iExact "I"
         end
     end.
 
@@ -317,59 +381,62 @@ Notation "E1 '------------------------------------------------------------------
     rename q8 into callerid.
     rename q9 into userarg.
     depdes user.
+    rename m into userm.
+    rename x into userf.
     iDestruct "ASM" as "[[% [% [% %]]] [PRE TOKEN]]"; clarify. hss.
 
+    (* Process yield *)
     w_step_r. prep.
-    iApply wpsim_full_guarantee_src; iSplitL ""; first rewrite /sch_ginv; iFrame.
-    let marker := fresh "MARKER" in
-    hide_itree_r marker;
-    prep. rewrite /sch_ginv. iStopProof.
+    iApply wpsim_full_guarantee_src; iSplitL ""; first rewrite /sch_ginv; iFrame; eauto.
+    yield "IST".
+    w_step_l.
+    prep. iApply wpsim_full_assume_src; iSplitL ""; first rewrite /sch_ginv; iIntros "I"; iFrame.
+    { iAssert (emp)%I as "E"; first done; iApply "E". }
+    iClear "I".
+    do 2 w_step_l.
+    do 2 w_step_r.
 
-    steps_l. des; subst; hss. destruct q.
-    iDestruct "ASM" as "W (% & % & % & PRE & TKN)"; des; subst; hss.
-    rewrite /is_Some in H2. des.
-    rewrite /token_half. unseal "SchA". steps_l.
+    (* Call the spawnee *)
+    prep. inv H1. rename x into userfspec. w_force_l userfspec; iFrame.
+    iSplit.
+    { iPureIntro; apply FunInStbSch; ss. }
+    w_step_l.
 
-    (* remove dependent type issue *)
-    remember (existT x m) as DT. clear HeqDT.
-
-    steps_r. forces_l. iSplitL "W"; et.
-    hide_itree_r marker; prep; hide_itree_l marker2; prep; show_itree marker; show_itree marker2.
-    iApply isim_yield. iSplitL "IST"; et. iIntros (? ? ? ? ?) "IST".
-    steps_r. steps_l. iDestruct "ASM" as "W". forces_l. iSplitR.
-    { iPureIntro. apply FunInStbSch; et. }
-    steps_l. forces_l. iSplitL "W PRE".
-
-    { Unshelve.
-      2:{ clear H3 DT. unfold find_fsp in m. rewrite H2 in m. ss. }
-      2:{ exact (q10↑). } ss.
-      unfold find_fsp in *. revert H3. revert m.
-      generalize H2. rewrite H2. i. ss.
-      rewrite (@UIP _ _ _ H0 eq_refl). erewrite <-rew_swap; et. ss.
-      unfold fspec_spawnable in H3. des.
-      iCombine "W PRE" as "PRE".
-      iPoseProof (H3 with "PRE") as "PRE". ss.
+    (* Choose the metavariables *)
+    do 2 w_force_l.
+    prep. iApply wpsim_full_guarantee_src. iSplitL "PRE".
+    Unshelve.
+    3:{ exact 1%positive. (* TODO : replace with ν *) }
+    3:{ clear H2. unfold find_fsp in userm. rewrite H in userm. exact userm. }
+    3:{ exact (userarg↑). }
+    { unfold find_fsp in *. revert userm H2. generalize H.
+      rewrite H. i.
+      rewrite (UIP _ _ _ H0 eq_refl). erewrite <-rew_swap; et; ss.
+      unfold fspec_spawnable in H2. des.
+      iIntros "I"; iApply H2; iFrame.
     }
 
-    call "IST"; et. iModIntro. steps_l.
-    rename vret into ret. rename q into vret.
+    w_call "IST"; et.
+    w_step_l. rename q into vret.
+    remember (existT userf userm) as DT; clear HeqDT.
+    revert userm H2. generalize H. unfold find_fsp. rewrite H.
+    i; ss. rewrite (UIP _ _ _ H0 eq_refl). erewrite <- rew_swap; ss.
+    unfold fspec_spawnable in H2; des.
+    prep. iApply wpsim_full_assume_src; iSplitL ""; iIntros "I".
+    { iPoseProof (H1 $ ret with "[I]") as "H".
+      { iExists _; iFrame. }
+      { iExact "H". }
+    }
+    iDestruct "I" as (sret) "[% POST]".
 
-    revert H3. revert m. unfold find_fsp. generalize H2. rewrite H2. i. ss.
-    rewrite (@UIP _ _ _ H0 eq_refl). erewrite <-rew_swap; et. ss.
-    unfold fspec_spawnable in H3. des.
-    iAssert (∃ vret: Any.t, postcond x0 my_tid m vret ret)%I with "[ASM]" as "POST".
-    { iExists _. et. }
-
-    specialize (H1 ret).
-    iPoseProof (H1 with "POST") as "POST". iDestruct "POST" as (?) "(W & % & POST)". subst; hss.
-
-    steps_r. hss. steps_r.
-    
-    iDestruct "IST" as (? ? ? ?) "(% & THB & THW & COND)". subst; hss. steps_r.
-    unfold alist_upd, _alist_upd; ss.
+    do 3 w_step_l.
+    do 2 w_step_r. hss.
+    do 5 w_step_r. w_step_r. w_step_r.
+    iDestruct "IST" as (? ? ? ?) "(% & THB & THW & COND)". subst; hss.
+    w_step_r. w_step_r. w_step_r. w_step_r. hss.
 
     remember ([(SchI.v_ths, ((alist_replace my_tid (Some sret) ths_tgt): thslist) ↑)]) as st_tgt1.
-    iAssert (Ist sk nths1 st_src1 st_tgt1) with "[TKN THB THW COND POST]" as "IST".
+    iAssert (Ist sk nths'0 st_s'0 st_tgt1) with "[TOKEN THB THW COND POST]" as "IST".
     { destruct (alist_find my_tid ths_tgt) eqn:LU; cycle 1; [|destruct o].
       { (* idle case - impossible *)
         dup SIM. specialize (SIM my_tid). rewrite LU in SIM. inv SIM.
@@ -378,20 +445,20 @@ Notation "E1 '------------------------------------------------------------------
           rewrite eq_rel_dec_correct. des_ifs. ss. des; split; et.
         - i. destruct (classic (tid = my_tid)).
           + subst. erewrite alist_replace_find_eq_None; et. 
-            rewrite -H -H0 -H4. econs 1; et. exact None.
+            rewrite -H0 -H3 -H4. econs 1; et. exact None.
           + erewrite alist_replace_find_neq_Some; et. exact None.
       }
       { (* already done case - impossible *)
         dup SIM. specialize (SIM my_tid). rewrite LU in SIM. inv SIM.
         { (* done *)
-          symmetry in H6. iCombine "TKN THW" gives %X.
+          symmetry in H6. rewrite /token_half. unseal "SchA". iCombine "TOKEN THW" gives %X.
           exfalso. rewrite auth_frag_valid in X.
           specialize (X my_tid). rewrite discrete_fun_lookup_op in X. ss.
           rewrite -H5 in X. rewrite Nat.eqb_refl in X.
           rewrite Some_valid pair_valid in X; des. ss.
         }
         { (* joined *) 
-          symmetry in H6. iCombine "TKN THW" gives %X.
+          symmetry in H6. rewrite /token_half. unseal "SchA". iCombine "TOKEN THW" gives %X.
           exfalso. rewrite auth_frag_valid in X.
           specialize (X my_tid). rewrite discrete_fun_lookup_op in X. ss.
           rewrite -H5 in X. rewrite Nat.eqb_refl in X.
@@ -400,22 +467,24 @@ Notation "E1 '------------------------------------------------------------------
       }
       { (* active - only possible case *)
         dup SIM. specialize (SIM my_tid). rewrite LU in SIM. inv SIM.
-        iCombine "TKN THW" gives %THW. iCombine "TKN THW" as "THW".
+        rewrite /token_half. unseal "SchA".
+        iCombine "TOKEN THW" gives %THW. iCombine "TOKEN THW" as "THW".
 
         rewrite auth_frag_valid in THW. ss.
         specialize (THW my_tid). rewrite discrete_fun_lookup_op in THW. rewrite Nat.eqb_refl in THW.
-        rewrite -H0 in THW. rewrite// -Some_op Some_valid pair_valid in THW. des; ss.
+        rewrite -H3 in THW. rewrite// -Some_op Some_valid pair_valid in THW. des; ss.
         apply agree_op_inv in THW0.
 
-        remember (λ s: SAny.t, Some (to_agree (q4 s)))%I as POSTF.
+        remember (λ s: SAny.t, Some (to_agree (synpost s)))%I as POSTF.
         iAssert (interp_cond (Q sret))%I with "[POST]" as "POST".
         { subst. apply (inj to_agree) in THW0. specialize (THW0 sret). ss. inv THW0.
           apply (inj to_agree) in H7. unfold interp_cond. rewrite H7. et. }
 
-        assert (((((λ n : nat, if my_tid =? n then Some ((1/2)%Qp, to_agree POSTF) else ε): threadsF) ⋅ ths_src_w): threadsF) ≡ ((λ n : nat, if my_tid =? n then Some ((3/4)%Qp, to_agree (λ s: SAny.t, Some (to_agree (Q s)))) else ths_src_w n): threadsF)).
+        assert (((((λ n : nat, if my_tid =? n then Some ((1/2)%Qp, to_agree POSTF) else ε) : threadsF) ⋅ ths_src_w): threadsF) ≡ ((λ n : nat, if my_tid =? n then Some ((3/4)%Qp, to_agree (λ s: SAny.t, Some (to_agree (Q s)))) else ths_src_w n): threadsF)).
         { intros y. rewrite discrete_fun_lookup_op. des_ifs. 2:rewrite left_id //.
-          rewrite Nat.eqb_eq in Heq; subst. rewrite -H0 -Some_op -pair_op frac_op -THW0 agree_idemp.
-          f_equiv. f_equiv. compute_done. }
+          rewrite Nat.eqb_eq in Heq; subst. rewrite -H3 -Some_op -pair_op frac_op -THW0 agree_idemp.
+          f_equiv. f_equiv. compute_done.
+        }
         rewrite H5.
 
         iExists _, _, _, (<[my_tid:=(interp_cond (Q sret))%I]> ths_cond).
@@ -426,7 +495,7 @@ Notation "E1 '------------------------------------------------------------------
             des; split; et.
           + i. destruct (classic (tid = my_tid)).
             * subst. erewrite alist_replace_find_eq_Some; et. rewrite !lookup_insert. 
-              rewrite Nat.eqb_refl. rewrite -H. econs 3; et.
+              rewrite Nat.eqb_refl. rewrite -H0. econs 3; et.
             * erewrite alist_replace_find_neq_Some; et. 2:exact None.
               des_ifs; [rewrite Nat.eqb_eq in Heq; subst; ss|].
               rewrite !lookup_insert_ne; et.
@@ -434,29 +503,39 @@ Notation "E1 '------------------------------------------------------------------
       }
     }
 
+    (* Coinduction on yield loop *)
     rewrite !/Sch.terminate /ccallU. unseal "Sch".
-
     clear THWF SIM NTHS Heqst_tgt1.
-    
-    iApply isim_reset. iStopProof. revert NODD1.
+    iApply wpsim_reset.
+    iStopProof. revert NODUP.
     combine_quant NODS1.
     combine_quant st_tgt1.
-    combine_quant st_src1.
-    combine_quant nths1.
-    eapply isim_coind. i.
+    combine_quant st_s'0.
+    combine_quant nths'0.
+    eapply wpsim_coind. i.
     destruct a as [nths1 [st_src1 [st_tgt1 [NODS1 NODD1]]]]. s.
-    iIntros "([W IST] & #CIH)".
-
-    hide_itree_l marker. rewrite unfold_iter_eq.
-    hide_itree_r marker2. rewrite unfold_iter_eq.
-    show_itree marker2. show_itree marker.
-    steps_l. forces_l. iSplitL "W"; et. call "IST"; et. iModIntro. steps_l.
-    iDestruct "ASM" as "(W & % & %)". des; subst; hss. step_l. grind.
-    steps_r. hss. steps_r. 
-    rewrite SModRed.interp_tau. steps_l.
-    by_coind "CIH".
-    iFrame.
-    
+    iIntros "IST _ #CIH".
+    (* Check unfold_iter_eq. *)
+    (* iStopProof. *)
+    rewrite {2}(@unfold_iter_eq hmodE). rewrite {2}(@unfold_iter_eq pmodE).
+    w_step_l. w_step_l. w_force_l tt. w_force_l.
+    prep. hide_itree_r marker. prep.
+    iApply wpsim_full_guarantee_src; iSplitL "".
+    { unfold precond; ss. iIntros "$". ss. }
+    show_itree marker.
+    w_call "IST".
+    w_step_l.
+    hide_itree_r marker. prep.
+    iApply wpsim_full_assume_src; iSplitL ""; first rewrite /sch_ginv; iIntros "I"; iFrame.
+    show_itree marker.
+    do 3 w_step_l. rewrite {2}/postcond; ss. iDestruct "I" as "[-> ->]". hss.
+    do 3 w_step_l.
+    do 2 w_step_r. hss. do 3 w_step_r.
+    iApply wpsim_progress; iApply wpsim_base;
+    iSpecialize ("CIH" $! _);
+    (hrepeat do 1 first[instantiate (1:= (_,_))|instantiate (1:= existT _ _)]); s.
+    iApply "CIH".
+    done.
     Unshelve. all: ss.
   Qed.
 
