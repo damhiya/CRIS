@@ -9,19 +9,20 @@ Module CannonIA. Section CannonIA.
   Import CannonAS.
   Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !CannonAGΓ Γ}.
 
-  Definition Ist : Sk.t → nat → alist key Any.t → alist key Any.t → iProp Σ :=
-    (λ _ _ st_s st_t,
+  Definition Ist : nat → alist key Any.t → alist key Any.t → iProp Σ :=
+    (λ _ st_s st_t,
       (⌜st_s = [(CannonA.v_lv, 1%Z↑)] /\ st_t = [(CannonI.v_lv, 1%Z↑)]⌝ ∗
       (Ready ∨ Fired))
     )%I.
 
-  Variable ginv : Sk.t → invspec.
-  Variable StbCannon : Sk.t → string → option fspec.
+  Variable ginv : invspec.
+  Variable SpcCannon : string -> option fspec.
+  (* Variable StbCannon : Sk.t → string → option fspec. *)
   
-  Local Notation CannonAMod := (CannonA.t ginv StbCannon).
+  Local Notation CannonAMod := (CannonA.t ginv SpcCannon).
   Local Notation CannonIMod := (CannonI.t).
 
-  Lemma simF_fire : HSim.sim_fun CannonAMod CannonIMod Ist CannonName.fire.
+  Lemma simF_fire : HSim.sim_fun CannonAMod CannonIMod Ist false CannonName.fire.
   Proof.
     init_simF.
 
@@ -37,9 +38,10 @@ Module CannonIA. Section CannonIA.
     steps_r. ss.
   Qed.
 
-  Theorem sim : HSim.t CannonAMod CannonIMod CannonA.init_cond Ist.
+  Theorem sim : HSim.t CannonAMod CannonIMod CannonA.init_cond Ist false.
   Proof.
-    init_sim.
+    econs;[i; s; repeat unfold_hmod; s|eauto|try prove_sub_perm|try prove_sub_perm|unfold_hmod; s; i; des; subst; ss].
+    (* init_sim. *)
     - iIntros "IC". unfold Ist, CannonA.init_cond. iSplitR; et.
     - eapply simF_fire.
   Qed.
@@ -47,7 +49,7 @@ Module CannonIA. Section CannonIA.
   Theorem correct :
     ctx_refines
       (CannonAMod, CannonA.init_cond)
-      (CannonIMod, const(emp%I)).
+      (CannonIMod, emp%I).
   Proof.
     eapply main_adequacy.
     apply sim.

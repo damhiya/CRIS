@@ -16,11 +16,11 @@ Module MainAS. Section MainAS.
       (λ ret, ⌜ret = tt↑⌝))
     )%I.
 
-  Definition Stb : alist string fspec :=
+  Definition Spc : alist string fspec :=
     Seal.sealing CRIS [(MainName.main, main_spec)].
 
-  Lemma Stb_nodup: List.NoDup (List.map fst Stb).
-  Proof. unfold Stb. unseal CRIS. prove_nodup. Qed.
+  Lemma Spc_nodup: List.NoDup (List.map fst Spc).
+  Proof. unfold Spc. unseal CRIS. prove_nodup. Qed.
 End MainAS. End MainAS.
 
 Module MainA. Section MainA.
@@ -46,20 +46,15 @@ Module MainA. Section MainA.
   Definition fnsems :=
     [(MainName.main, (scopes, mk_specbody MainAS.main_spec (cfunU main)))].
 
-  Program Definition Sem : SModSem.t := {|
-    SModSem.scopes := scopes;
-    SModSem.fnsems := fnsems;
-    SModSem.initial_st := [];
+  Program Definition Mod : SMod.t := {|
+    SMod.scopes := scopes;
+    SMod.fnsems := fnsems;
+    SMod.initial_st := [];
   |}.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition Mod : SMod.t := {|
-    SMod.modsem := λ _, Sem;
-    SMod.sk := MainSK.t;
-  |}.
+  Definition init_cond : iProp Σ := True%I.
 
-  Definition init_cond : Sk.t → iProp Σ := λ _, True%I.
-
-  Definition t ginv Stb := Seal.sealing CRIS (SMod.to_hmod ginv Stb Mod).
+  Definition t ginv Spc := Seal.sealing CRIS (SMod.to_hmod ginv Spc Mod).
 End MainA. End MainA.

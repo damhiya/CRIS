@@ -12,10 +12,10 @@ Module MainName.
   (* Definition main := "Main.main". *)
 End MainName.
 
-Module CannonSK.
-  Definition t : Sk.t := [(CannonName.fire, Gfun↑)].
-End CannonSK.
+(* Module CannonGEnv.
+  Definition t : GEnv.t := [(CannonName.fire, Gfun↑)].
+End CannonGEnv.
 
-Module MainSK.
-  Definition t : Sk.t := [(MainName.main, Gfun↑)].
-End MainSK.
+Module MainGEnv.
+  Definition t : GEnv.t := [(MainName.main, Gfun↑)].
+End MainGEnv. *)

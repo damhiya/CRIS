@@ -44,11 +44,11 @@ Module CannonAS. Section CannonAS.
       (λ ret, (⌜ret = (1: Z)%Z↑⌝)))
     )%I.
 
-  Definition Stb : alist string fspec :=
+  Definition Spc : alist string fspec :=
     Seal.sealing CRIS [(CannonName.fire, fire_spec)].
 
-  Lemma Stb_nodup : List.NoDup (List.map fst Stb).
-  Proof. unfold Stb. unseal CRIS. prove_nodup. Qed.
+  Lemma Spc_nodup : List.NoDup (List.map fst Spc).
+  Proof. unfold Spc. unseal CRIS. prove_nodup. Qed.
 End CannonAS. End CannonAS.
 
 Module CannonA. Section CannonA.
@@ -67,21 +67,15 @@ Module CannonA. Section CannonA.
   Definition fnsems :=
     [(CannonName.fire, (scopes, mk_specbody CannonAS.fire_spec (cfunU fire)))].
 
-  Program Definition Sem : SModSem.t := {|
-    SModSem.scopes := scopes;
-    SModSem.fnsems := fnsems;
-    SModSem.initial_st := [(v_lv, 1%Z↑)];
+  Program Definition Mod : SMod.t := {|
+    SMod.scopes := scopes;
+    SMod.fnsems := fnsems;
+    SMod.initial_st := [(v_lv, 1%Z↑)];
   |}.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition Mod : SMod.t := {|
-    SMod.modsem := fun _ => Sem;
-    SMod.sk := CannonSK.t;
-  |}.
+  Definition init_cond : iProp Σ := Ready.
 
-  Definition init_cond : Sk.t → iProp Σ :=
-    λ _, Ready.
-
-  Definition t ginv Stb := Seal.sealing CRIS (SMod.to_hmod ginv Stb Mod).
+  Definition t ginv Spc := Seal.sealing CRIS (SMod.to_hmod ginv Spc Mod).
 End CannonA. End CannonA.
