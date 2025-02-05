@@ -21,14 +21,14 @@ Section LEMMAS.
 (*   set (X := (emp%I : iProp Σ)) at 2. *)
   
   Lemma hcall_clo Σ
-    fls flt I my_tid is_closed r g ps pt {Rs Rt} RR nths st_src st_tgt k_src k_tgt
+    fls flt I my_tid contextual r g ps pt {Rs Rt} RR nths st_src st_tgt k_src k_tgt
     fn varg arg X (x: shelve__ X) P Q :
     (P my_tid x varg arg
     ∗ I nths st_src st_tgt
     ∗ (∀ nths0 st_src0 st_tgt0 vret ret,
         (Q my_tid x vret ret ∗ I nths0 st_src0 st_tgt0)
-        -∗ @isim Σ fls flt I my_tid is_closed r g Rs Rt RR true true nths0 (st_src0, k_src vret) (st_tgt0, k_tgt ret)))
-    ⊢ @isim _ fls flt I my_tid is_closed r g Rs Rt RR ps pt nths
+        -∗ @isim Σ contextual fls flt I my_tid r g Rs Rt RR true true nths0 (st_src0, k_src vret) (st_tgt0, k_tgt ret)))
+    ⊢ @isim _ contextual fls flt I my_tid r g Rs Rt RR ps pt nths
         (st_src, HoareCall (mk_fspec P Q) fn varg >>= k_src)
         (st_tgt, trigger (Call fn arg) >>= k_tgt).
   Proof.
@@ -69,13 +69,13 @@ Section HModProd.
     rewrite /state_scopes -!List.map_map alist_upd_keys. eauto.
   Qed.
   
-  Lemma isim_reflR Ist is_closed fl_src fl_tgt scopesL scopesR scopesF (EqR : _ → _ → _ → iProp Σ) itr
+  Lemma isim_reflR Ist contextual fl_src fl_tgt scopesL scopesR scopesF (EqR : _ → _ → _ → iProp Σ) itr
       (DISJ : List.NoDup (scopesL ++ scopesR))
       (INCL : incl scopesF scopesR)
       (EQGET : ∀ nths st_src st_tgt, EqR nths st_src st_tgt -∗ ⌜st_src = st_tgt⌝)
       (EQSET : ∀ nths st_src st_tgt nths0 (k : key) v,
           EqR nths st_src st_tgt -∗ EqR nths0 (alist_upd k v st_src) (alist_upd k v st_tgt)) :
-    isim_fsem fl_src fl_tgt (IstProd (IstSB scopesL Ist) EqR) is_closed
+    isim_fsem fl_src fl_tgt (IstProd (IstSB scopesL Ist) EqR) contextual
       (HMod.sandbox_body (scopesF,itr)) (HMod.sandbox_body (scopesF,itr)).
   Proof.
     ii. subst. unfold HMod.sandbox_body. s.
@@ -145,7 +145,7 @@ Section HModProd.
   { eapply alist_upd_nodup. eauto. }
   Qed.
 
-  Lemma hmod_sim_reflR A B C init_cond Ist is_closed
+  Lemma hmod_sim_reflR A B C init_cond Ist contextual
     (INIT : init_cond -∗
             IstProd (IstSB (HMod.scopes A) Ist) IstEq 1
                     (HMod.initial_st (HMod.add A C))
@@ -156,10 +156,11 @@ Section HModProd.
     (MATCH : sub_perm (List.map fst (HMod.fnsems B)) (List.map fst (HMod.fnsems A)))
     (SIM : ∀ fn
             (IN : In fn (List.map fst (HMod.fnsems B))),
-          HSim.sim_fun (HMod.add A C) (HMod.add B C)
-            (IstProd (IstSB (HMod.scopes A) Ist) IstEq) is_closed fn)
+          HSim.sim_fun contextual
+            (HMod.add A C) (HMod.add B C)
+            (IstProd (IstSB (HMod.scopes A) Ist) IstEq) fn)
     :
-    HSim.t (HMod.add A C) (HMod.add B C) init_cond (IstProd (IstSB (HMod.scopes A) Ist) IstEq) is_closed.
+    HSim.t contextual (HMod.add A C) (HMod.add B C) init_cond (IstProd (IstSB (HMod.scopes A) Ist) IstEq).
   Proof.
     econs.
     - iApply INIT.

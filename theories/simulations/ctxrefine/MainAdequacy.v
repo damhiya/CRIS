@@ -196,7 +196,7 @@ Section AUX.
 
   Ltac hstep := guclo hpsimC_spec; econs; econs; eauto; econs; eauto.
 
-  Lemma hpsim_ctx fnsems_src fnsems_tgt fl_src fl_tgt fl_ctx Ist my_tid is_closed scopes scopeC
+  Lemma hpsim_ctx fnsems_src fnsems_tgt fl_src fl_tgt fl_ctx Ist my_tid contextual scopes scopeC
       (FLS : fl_src = (List.map (map_snd HMod.sandbox_body) fnsems_src))
       (FLT : fl_tgt = (List.map (map_snd HMod.sandbox_body) fnsems_tgt))
       (WS : ∀ (fn : string) p (IN : alist_find fn fnsems_src = Some p), incl p.1 scopes)
@@ -209,10 +209,10 @@ Section AUX.
     (SCPC : incl (state_scopes st_ctx) scopeC)
     (ITRS : HMod.sandbox scopes itr_src = itr_src)
     (ITRT : HMod.sandbox scopes itr_tgt = itr_tgt)
-    (SIM : hpsim_body fl_src fl_tgt Ist my_tid false ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr)
+    (SIM : hpsim_body open fl_src fl_tgt Ist my_tid ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr)
     :
-    hpsim_body (fl_src ++ fl_ctx) (fl_tgt ++ fl_ctx) 
-    (IstProd (IstSB scopes Ist) (IstSB scopeC IstEq)) my_tid is_closed
+    hpsim_body contextual (fl_src ++ fl_ctx) (fl_tgt ++ fl_ctx) 
+    (IstProd (IstSB scopes Ist) (IstSB scopeC IstEq)) my_tid
     ps pt nths (st_src ++ st_ctx, itr_src) (st_tgt ++ st_ctx, itr_tgt) fmr.
   Proof.
     guardH FLS. guardH FLT.
@@ -411,7 +411,7 @@ Section AUX.
   Qed.
 
   Lemma isim_ctx
-    fs ft ms mt ctx Ist fn is_closed
+    fs ft ms mt ctx Ist fn contextual
     (WFS : HMod.wf (HMod.add ms ctx))
     (WFT : HMod.wf (HMod.add mt ctx))
     (FINDS : alist_find fn (HMod.fnsems ms) = Some fs)
@@ -424,7 +424,7 @@ Section AUX.
     (SIM : isim_fsem
        (List.map (map_snd HMod.sandbox_body) (HMod.fnsems ms))
        (List.map (map_snd HMod.sandbox_body) (HMod.fnsems mt))
-       Ist false
+       Ist open
        (HMod.sandbox_body fs)
        (HMod.sandbox_body ft))
     :
@@ -433,7 +433,7 @@ Section AUX.
            (HMod.fnsems ms ++ HMod.fnsems ctx))
         (List.map (map_snd HMod.sandbox_body)
            (HMod.fnsems mt ++ HMod.fnsems ctx))
-        (IstProd (IstSB (HMod.scopes ms) Ist) (IstSB (HMod.scopes ctx) IstEq)) is_closed
+        (IstProd (IstSB (HMod.scopes ms) Ist) (IstSB (HMod.scopes ctx) IstEq)) contextual
         (HMod.sandbox_body fs) (HMod.sandbox_body ft).
   Proof.
     ii. specialize (SIM x y H). subst.
@@ -478,12 +478,12 @@ Section AUX.
     ginit. i. eapply gpaco9_mon; first eapply ISIM; eauto using iunlift_ibot.
   Qed.
 
-  Lemma hmod_sim_ctx (ms mt ctx : HMod.t) IC Ist is_closed
-    (SIM : HSim.t ms mt IC Ist false)
+  Lemma hmod_sim_ctx (ms mt ctx : HMod.t) IC Ist contextual
+    (SIM : HSim.t open ms mt IC Ist)
     :
-    HSim.t (ms ★ ctx) (mt ★ ctx) IC 
+    HSim.t contextual (ms ★ ctx) (mt ★ ctx) IC 
       (IstProd (IstSB ms.(HMod.scopes) Ist)
-               (IstSB ctx.(HMod.scopes) IstEq)) is_closed.
+               (IstSB ctx.(HMod.scopes) IstEq)).
   Proof.
     inv SIM.
     econs; ss.
@@ -549,7 +549,7 @@ Section ADEQUACY.
   Context {Σ : GRA}.
 
   Theorem main_adequacy (ms mt : HMod.t) IC Ist
-      (SIM : HSim.t ms mt IC Ist false) :
+      (SIM : HSim.t open ms mt IC Ist) :
     ctx_refines (ms, IC) (mt, emp%I).
   Proof.
     ii. s.
@@ -645,9 +645,9 @@ Section COMM.
     HMod.scopes (md0 ★ md1) = HMod.scopes md0 ++ HMod.scopes md1.
   Proof. ss. Qed.
 
-  Lemma hmod_add_comm ms0 ms1 is_closed:
-    HSim.t (ms0 ★ ms1) (ms1 ★ ms0) (emp%I)
-      (IstSB (HMod.scopes (ms0 ★ ms1)) perm_Ist) is_closed.
+  Lemma hmod_add_comm ms0 ms1 contextual:
+    HSim.t contextual (ms0 ★ ms1) (ms1 ★ ms0) (emp%I)
+      (IstSB (HMod.scopes (ms0 ★ ms1)) perm_Ist).
   Proof.
     econs; ss.
     {

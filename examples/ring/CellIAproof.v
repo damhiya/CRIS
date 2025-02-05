@@ -27,7 +27,7 @@ Module CellIA. Section CellIA.
   Local Notation CellA := (CellA.t idx ginv SpcCell).
   Local Notation CellI := (CellI.t idx).
 
-  Lemma simF_get : HSim.sim_fun CellA CellI Ist false (CellName.get idx).
+  Lemma simF_get : HSim.sim_fun open CellA CellI Ist (CellName.get idx).
   Proof.
     init_simF.
 
@@ -48,7 +48,7 @@ Module CellIA. Section CellIA.
   Qed.
 
   Lemma simF_set:
-    HSim.sim_fun CellA CellI Ist false (CellName.set idx).
+    HSim.sim_fun open CellA CellI Ist (CellName.set idx).
   Proof.
     init_simF.
 
@@ -85,7 +85,7 @@ Module CellIA. Section CellIA.
     iExists _, _. iSplit; eauto. iRight. iFrame; eauto.
   Qed.
 
-  Theorem sim : HSim.t CellA CellI (CellA.InitCond idx) Ist false.
+  Theorem sim : HSim.t open CellA CellI (CellA.InitCond idx) Ist.
   Proof.
     init_sim.
     - iIntros "H". iDestruct "H" as (v) "(C & A)".

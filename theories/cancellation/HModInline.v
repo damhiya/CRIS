@@ -357,14 +357,14 @@ Section CANCEL.
     fun nths '(st0, ret0) '(st1, ret1) => (⌜ret0 = ret1⌝ ∗ Ist nths st0 st1)%I.
 
   Lemma isim_RR_frame
-      fls flt my_tid is_closed r g nths
+      fls flt my_tid contextual r g nths
       {R} Ist (P: iProp)
       ps pt sti_src sti_tgt
     :
-      (P ∗ @isim _ fls flt Ist my_tid is_closed r g R R 
+      (P ∗ @isim _ contextual fls flt Ist my_tid r g R R 
             (fun nths '(sts, vs) '(stt, vt) => ⌜vs = vt⌝ ∗ Ist nths sts stt)%I
             ps pt nths sti_src sti_tgt)  
-      ⊢ isim fls flt Ist my_tid is_closed r g 
+      ⊢ isim contextual fls flt Ist my_tid r g 
          (bindRR (IstRR Ist) P) ps pt nths sti_src sti_tgt.
   Proof.
     iIntros "[H0 H1]". iApply isim_wand. iFrame. eauto.

@@ -32,7 +32,7 @@ Module MapMA. Section MapMA.
   Local Notation MapA := (MapA.t ginvH SpcH).
   Local Notation MapM := (MapM.t ginvL SpcL).
   
-  Lemma simF_init : HSim.sim_fun MapA MapM Ist false MapName.init.
+  Lemma simF_init : HSim.sim_fun open MapA MapM Ist MapName.init.
   Proof.
     init_simF.
 
@@ -58,7 +58,7 @@ Module MapMA. Section MapMA.
     iExists _, _. iSplitR; eauto. iRight. iFrame. 
   Qed.
 
-  Lemma simF_get : HSim.sim_fun MapA MapM Ist false MapName.get.
+  Lemma simF_get : HSim.sim_fun open MapA MapM Ist MapName.get.
   Proof.
     init_simF.
 
@@ -91,7 +91,7 @@ Module MapMA. Section MapMA.
   Unshelve. lia.
   Qed.
 
-  Lemma simF_set : HSim.sim_fun MapA MapM Ist false MapName.set.
+  Lemma simF_set : HSim.sim_fun open MapA MapM Ist MapName.set.
   Proof.
     init_simF.
 
@@ -123,7 +123,7 @@ Module MapMA. Section MapMA.
   Unshelve. done.
   Qed.
 
-  Lemma simF_set_by_user : HSim.sim_fun MapA MapM Ist false MapName.set_by_user.
+  Lemma simF_set_by_user : HSim.sim_fun open MapA MapM Ist MapName.set_by_user.
   Proof.
     init_simF.
 
@@ -164,7 +164,7 @@ Module MapMA. Section MapMA.
     step. eauto.
   Qed.
 
-  Theorem sim : HSim.t MapA MapM MapA.InitCond Ist false.
+  Theorem sim : HSim.t open MapA MapM MapA.InitCond Ist.
   Proof.
     init_sim.
     - iIntros "(IST & P)"; s.

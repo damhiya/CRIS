@@ -1,10 +1,4 @@
-Require Import Coqlib AList.
-Require Export sflib.
-Require Export ITreelib.
-Require Import Any.
-
-Require Import IRed.
-Require Import Behavior.
+Require Import Common.
 
 Require Import ModSim ModSimFacts.
 Require Import HPSim HPSimFacts.
@@ -30,7 +24,7 @@ Section CLOSED.
   Ltac hstep := guclo hpsimC_spec; econs; econs; eauto; econs; eauto.
 
   Lemma _hpsim_close fls flt Ist my_tid:
-    @_hpsim _ fls flt Ist my_tid false <10= @_hpsim _ fls flt Ist my_tid true.
+    @_hpsim _ open fls flt Ist my_tid <10= @_hpsim _ closed fls flt Ist my_tid.
   Proof.
     i. ss. 
     eapply _hpsim_tarski; eauto. i. 
@@ -42,9 +36,9 @@ Section CLOSED.
   Lemma hpsim_close
     fl_src fl_tgt Ist my_tid
     ps pt nths st_src st_tgt itr_src itr_tgt fmr
-    (SIM: hpsim_body fl_src fl_tgt Ist my_tid false ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr)
+    (SIM: hpsim_body open fl_src fl_tgt Ist my_tid ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr)
   :
-    hpsim_body fl_src fl_tgt Ist my_tid true ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr.
+    hpsim_body closed fl_src fl_tgt Ist my_tid ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr.
   Proof.
     ginit. s. revert_until my_tid. gcofix CIH. i.
     exploit SIM; s; i; eauto.
@@ -76,7 +70,7 @@ Section CLOSED.
   Qed.
 
   Theorem closed_adequacy (ms mt: HMod.t) IC Ist P
-    (SIM: HSim.t ms mt IC Ist true)
+    (SIM: HSim.t closed ms mt IC Ist)
     :
     refines (ms, IC ∗ P)%I (mt, P).
   Proof.
@@ -96,7 +90,7 @@ Section CLOSED.
   Qed.
 
   Theorem closed_adequacy2 (ms mt: HMod.t) P
-    (SIM: HSim.t ms mt emp%I IstEq true)
+    (SIM: HSim.t closed ms mt emp%I IstEq)
     :
     refines (ms, P) (mt, P).
   Proof.

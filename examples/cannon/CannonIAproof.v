@@ -21,7 +21,7 @@ Module CannonIA. Section CannonIA.
   Local Notation CannonAMod := (CannonA.t ginv SpcCannon).
   Local Notation CannonIMod := (CannonI.t).
 
-  Lemma simF_fire : HSim.sim_fun CannonAMod CannonIMod Ist false CannonName.fire.
+  Lemma simF_fire : HSim.sim_fun open CannonAMod CannonIMod Ist CannonName.fire.
   Proof.
     init_simF.
 
@@ -37,7 +37,7 @@ Module CannonIA. Section CannonIA.
     steps_r. ss.
   Qed.
 
-  Theorem sim : HSim.t CannonAMod CannonIMod CannonA.init_cond Ist false.
+  Theorem sim : HSim.t open CannonAMod CannonIMod CannonA.init_cond Ist.
   Proof.
     init_sim.
     - iIntros "IC". unfold Ist, CannonA.init_cond. iSplitR; et.

@@ -5,3 +5,10 @@ Require Export sflib Coqlib ITreelib.
 Require Export own SRF invariants sProp syn_invariants.
 Require Export Events Behavior GEnv.
 
+(* TODO: Move *)
+Section CONTEXT.
+  Variant contextuality : Type := 
+  | open 
+  | closed.
+  
+End CONTEXT.

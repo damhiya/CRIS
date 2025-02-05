@@ -6,8 +6,8 @@ Section HSIM_ADEQUACY.
 
   Context `{Σ : GRA}.
 
-  Lemma hsim_wf ms mt cond Ist is_closed
-    (SIM: HSim.t ms mt cond Ist is_closed)
+  Lemma hsim_wf contextual ms mt cond Ist
+    (SIM: HSim.t contextual ms mt cond Ist)
     (WF: HMod.wf ms)
     :
     HMod.wf mt.
@@ -17,8 +17,8 @@ Section HSIM_ADEQUACY.
     - eapply sub_perm_nodup; eauto. apply WF.
   Qed.
 
-  Lemma hsim_match ms mt cond Ist is_closed fn
-    (SIM: HSim.t ms mt cond Ist is_closed)
+  Lemma hsim_match ms mt cond Ist contextual fn
+    (SIM: HSim.t contextual ms mt cond Ist)
     (WF: List.NoDup (List.map fst (HMod.fnsems ms)))
     (IN: In fn (List.map fst (HMod.fnsems mt)))
     :
@@ -33,7 +33,7 @@ Section HSIM_ADEQUACY.
       (COND : Own rm ⊢ IC)
       (WFS : HMod.wf ms)
       (WFT : HMod.wf mt)
-      (SIM : HSim.t ms mt IC Ist true) :
+      (SIM : HSim.t closed ms mt IC Ist) :
     MSim.t (HMod.to_mod ms rs) (HMod.to_mod mt rt).
   Proof.
     inv SIM.
@@ -64,7 +64,7 @@ Section HSIM_ADEQUACY.
       { apply WFT. }
       ii. des; subst.
       rewrite Heq in x0. inv x0. inv SIMMRS.
-      eapply hpsim_adequacy; eauto; cycle 5.
+      eapply hpsim_adequacy; eauto; cycle 4.
       { apply le_mine_refl. ii; eauto. }
       { ginit; cycle 2; i.
         eapply gpaco9_mon with (r := iunlift ibot) (rg:= iunlift ibot); eauto using iunlift_ibot.
@@ -74,7 +74,6 @@ Section HSIM_ADEQUACY.
         { eapply HPSim._hpsim_mon. }
         { eapply cpn9_wcompat, HPSim._hpsim_mon. }
       }
-      { exact true. }
       { inv WFS. rewrite List.map_map.
         eapply eq_ind; [apply wf_fns|].
         f_equal. extensionalities. destruct H; eauto.

@@ -6,12 +6,11 @@ Section HPSIM.
 
   Context `{Σ : GRA}.
   Notation iProp := (iProp Σ).
-
+  Variable contextual: contextuality.
   Variable fl_src : alist string (Any.t → itree hmodE Any.t).
   Variable fl_tgt : alist string (Any.t → itree hmodE Any.t).
   Variable Ist : nat → alist key Any.t → alist key Any.t → iProp.
   Variable my_tid : nat.
-  Variable is_closed: bool.
 
   (* Note : iProp-style definition of hsupd (λ fmr, Own fmr ⊢ ∃ fmr0, |==> ⌜P fmr0⌝)
       incurs positivity problem when defining _hpsim. *)
@@ -241,7 +240,7 @@ Section HPSIM.
       (HPSIM_CALL_NONE: True)
       ps pt nths st_src st_tgt fmr
       fn varg i_src k_tgt
-      (CLOSED: is_closed = true)
+      (CLOSED: contextual = closed)
       (FUN: alist_find fn fl_tgt = None)
       (K: hpsimi ps true nths (st_src, i_src) (st_tgt, triggerNB >>= (λ ret, tau;; tau;; k_tgt ret)) fmr)
     :

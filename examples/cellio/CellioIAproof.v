@@ -21,7 +21,7 @@ Module CellioIA. Section CellioIA.
   Local Notation CellioI := (CellioI.t).
   Local Notation CellioA := (CellioA.t ginv SpcG).
 
-  Lemma simF_set : HSim.sim_fun CellioA CellioI Ist false CellioName.set.
+  Lemma simF_set : HSim.sim_fun open CellioA CellioI Ist CellioName.set.
   Proof.
     init_simF.
 
@@ -47,7 +47,7 @@ Module CellioIA. Section CellioIA.
   Qed.
   
   Lemma simF_get:
-    HSim.sim_fun CellioA CellioI Ist false CellioName.get.
+    HSim.sim_fun open CellioA CellioI Ist CellioName.get.
   Proof.
     init_simF.
 
@@ -67,7 +67,7 @@ Module CellioIA. Section CellioIA.
     iExists _. iFrame. eauto.
   Qed.
   
-  Theorem sim: HSim.t CellioA CellioI CellioA.InitCond Ist false.
+  Theorem sim: HSim.t open CellioA CellioI CellioA.InitCond Ist.
   Proof.
     init_sim.
     - iIntros "H". iExists _. iFrame. eauto.

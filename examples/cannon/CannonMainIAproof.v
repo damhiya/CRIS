@@ -21,7 +21,7 @@ Module CannonMainIA. Section CannonMainIA.
   Local Notation MainAMod := (MainA.t 1 ginv SpcMain).
   Local Notation MainIMod := (MainI.t 1).
   
-  Lemma simF_main : HSim.sim_fun MainAMod MainIMod Ist false MainName.main.
+  Lemma simF_main : HSim.sim_fun open MainAMod MainIMod Ist MainName.main.
   Proof.
     init_simF.
     steps_l. iDestruct "ASM" as "((%Y & B) & %Q)". subst. hss.
@@ -33,7 +33,7 @@ Module CannonMainIA. Section CannonMainIA.
     step. iFrame; et.
   Qed.
 
-  Theorem sim : HSim.t MainAMod MainIMod MainA.init_cond Ist false.
+  Theorem sim : HSim.t open MainAMod MainIMod MainA.init_cond Ist.
   Proof.
     init_sim.
     - iIntros "IC". et.
