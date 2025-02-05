@@ -11,9 +11,11 @@ Module SchIA. Section SchIA.
   Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !SchAGΣ Σ}.
   Notation iProp := (iProp Σ).
 
-  Variable univ: positive.
-  Variable Stb: Sk.t -> string -> option fspec.
-  Hypothesis SchInStb: ∀ sk, stb_incl (stb univ Stb sk) (Stb sk).
+  Variable univ : positive.
+  Variable Spc: string -> option fspec.
+  Variable SpcFun: string -> option fspec.
+  Hypothesis SchInSpc : spc_incl (spc univ SpcFun) Spc.
+  Hypothesis FunInSpc : spc_sub SpcFun Spc.
 
   Fixpoint ths_wf (nths: nat) (ths_tgt: SchI.thslist): Prop :=
     match ths_tgt with
@@ -141,8 +143,8 @@ Module SchIA. Section SchIA.
 
   (**************************)
 
-  Definition Ist: Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp :=
-    fun sk numths st_src st_tgt =>
+  Definition Ist: nat -> alist key Any.t -> alist key Any.t -> iProp :=
+    fun numths st_src st_tgt =>
       (∃ ths_tgt (ths_src_b ths_src_w: SchA.threadsF) (ths_cond: gmap nat iProp), 
           ⌜st_tgt = [(SchI.v_ths, ths_tgt↑)] 
             ∧ <<THWF: ths_wf numths ths_tgt>>
@@ -152,13 +154,13 @@ Module SchIA. Section SchIA.
           ∗ own base_γ (◯ ths_src_w)
           ∗ ([∗ map] tid↦P ∈ ths_cond, P))%I.
 
-  Local Notation SchAMod := (SchA.t univ Stb).
+  Local Notation SchAMod := (SchA.t univ Spc SpcFun).
   Local Notation SchIMod := (SchI.t).
   
   (*************)
 
   Lemma simF__spawn:
-    HSim.sim_fun SchAMod SchIMod Ist SchName._spawn.
+    HSim.sim_fun open SchAMod SchIMod Ist SchName._spawn.
   Proof.
     init_simF.
 
@@ -206,7 +208,7 @@ Module SchIA. Section SchIA.
     unfold alist_upd, _alist_upd; ss.
 
     remember ([(SchI.v_ths, ((alist_replace my_tid (Some sret) ths_tgt): thslist) ↑)]) as st_tgt1.
-    iAssert (Ist sk nths1 st_src1 st_tgt1) with "[TKN THB THW COND POST]" as "IST".
+    iAssert (Ist nths1 st_src1 st_tgt1) with "[TKN THB THW COND POST]" as "IST".
     { destruct (alist_find my_tid ths_tgt) eqn:LU; cycle 1; [|destruct o].
       { (* idle case - impossible *)
         dup SIM. specialize (SIM my_tid). rewrite LU in SIM. inv SIM.
@@ -299,7 +301,7 @@ Module SchIA. Section SchIA.
   Qed.
 
   Lemma simF_spawn:
-    HSim.sim_fun SchAMod SchIMod Ist SchName.spawn.
+    HSim.sim_fun open SchAMod SchIMod Ist SchName.spawn.
   Proof.
     init_simF.
 
@@ -326,7 +328,7 @@ Module SchIA. Section SchIA.
     (* build IST *)
     rewrite /alist_upd /_alist_upd /=.
     set (st_tgt0 := [(SchI.v_ths, ((alist_add nths None ths_tgt): thslist)↑)]).
-    iAssert (Ist sk (S nths) st_src st_tgt0) with "[COND THB THW TKNQ1]" as "IST".
+    iAssert (Ist (S nths) st_src st_tgt0) with "[COND THB THW TKNQ1]" as "IST".
     { iCombine "THW TKNQ1" as "THW". iExists _, _, _, _. iFrame.
       iPureIntro. esplits; et.
       - clear SIM. ss. split; [nia|]. rewrite alist_remove_find_None; et.
@@ -351,7 +353,7 @@ Module SchIA. Section SchIA.
   Qed.
 
   Lemma simF_yield:
-    HSim.sim_fun SchAMod SchIMod Ist SchName.yield.
+    HSim.sim_fun open SchAMod SchIMod Ist SchName.yield.
   Proof.
     init_simF.
 
@@ -369,7 +371,7 @@ Module SchIA. Section SchIA.
   Qed.
 
   Lemma simF_join:
-    HSim.sim_fun SchAMod SchIMod Ist SchName.join.
+    HSim.sim_fun open SchAMod SchIMod Ist SchName.join.
   Proof.
     init_simF.
 
@@ -440,7 +442,7 @@ Module SchIA. Section SchIA.
     }
     { (* active(O) *)
       set (st_tgt0 := [(SchI.v_ths, ths_tgt↑)]).
-      iAssert (Ist sk nths st_src st_tgt0) with "[THB THW COND]" as "IST".
+      iAssert (Ist nths st_src st_tgt0) with "[THB THW COND]" as "IST".
       { iExists _, _, _, _. iFrame. iPureIntro. esplits; et. }
       force_l false. steps_l. forces_l. iSplitL "W"; et.
       call "IST"; et. steps_l. destruct q1. steps_l.
@@ -460,7 +462,7 @@ Module SchIA. Section SchIA.
   Qed.
 
   Theorem sim:
-    HSim.t SchAMod SchIMod SchA.InitCond Ist.
+    HSim.t open SchAMod SchIMod SchA.InitCond Ist.
   Proof.
     init_sim.
     - rewrite /SchA.InitCond /initial_threads. unseal "SchA".
@@ -482,8 +484,8 @@ Module SchIA. Section SchIA.
 
   Theorem correct :
     ctx_refines
-      (SchA.t univ Stb, SchA.InitCond)
-      (SchI.t, const(emp%I)).
+      (SchA.t univ Spc SpcFun, SchA.InitCond)
+      (SchI.t, emp%I).
   Proof.
     eapply main_adequacy. eapply sim; et.
   Qed.

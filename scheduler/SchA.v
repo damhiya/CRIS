@@ -143,8 +143,8 @@ Module SchAS. Section SchAS.
 
   End RA.
 
-  Variable univ: positive.
-  Variable Stb: Sk.t -> string -> option fspec.
+  Variable univ : positive.
+  Variable Spc : string -> option fspec.
 
   Section SPEC.
 
@@ -156,26 +156,26 @@ Module SchAS. Section SchAS.
             ⊢ (∃ sret: SAny.t, ((∃ n, wsats univ n ⊤) ∗ ⌜ret = sret↑⌝ 
                ∗ interp_cond (postS sret))))%I)).
 
-    Definition _spawn_spec (sk: Sk.t): fspec :=
+    Definition _spawn_spec: fspec :=
       wfspec_inv univ 
         (fspec_virtual
           (fun my_tid '(mid, fargs, fvargs, pre, postS, existT fn m) varg arg =>
             (⌜varg = ((mid, fn, fvargs) : nat * string * SAny.t) 
               ∧ arg = ((mid, fn, fargs) : nat * string * SAny.t)↑ 
-              ∧ is_Some (Stb sk fn)
-              ∧ fspec_spawnable univ (find_fsp sk Stb fn) my_tid m fvargs↑ fargs↑ pre postS⌝
+              ∧ is_Some (Spc fn)
+              ∧ fspec_spawnable univ (find_fsp Spc fn) my_tid m fvargs↑ fargs↑ pre postS⌝
             ∗ pre ∗ (token_half my_tid postS))%I)
           (fun _ _ (_: SAny.t) _ => (False)%I))
     .
 
-    Definition spawn_spec (sk: Sk.t): fspec :=
+    Definition spawn_spec : fspec :=
       wfspec_inv univ
         (fspec_virtual
           (fun _ '(fargs, fvargs, pre, postS, existT fn m) varg arg => 
             (⌜varg = ((fn, fvargs): string * SAny.t) 
               ∧ arg = ((fn, fargs): string * SAny.t)↑
-              ∧ is_Some (Stb sk fn)
-              ∧ ∀ tid, fspec_spawnable univ (find_fsp sk Stb fn) tid m fvargs↑ fargs↑ pre postS⌝
+              ∧ is_Some (Spc fn)
+              ∧ ∀ tid, fspec_spawnable univ (find_fsp Spc fn) tid m fvargs↑ fargs↑ pre postS⌝
              ∗ pre)%I)
           (fun _ '(fargs, fvargs, pre, postS, existT fn m) vret ret => 
             (∃ tid: nat, ⌜vret = tid ∧ ret = tid↑⌝ ∗ (token_th tid postS))%I))
@@ -195,15 +195,12 @@ Module SchAS. Section SchAS.
             (fun vret => (∃ ret, ⌜vret = (Some ret)↑⌝ ∗ interp_cond (postS ret))%I))))
     .
 
-    Definition stb (sk: Sk.t) : alist string fspec :=
+    Definition spc : alist string fspec :=
       Seal.sealing CRIS 
-        [(SchName._spawn, _spawn_spec sk);
-         (SchName.spawn, spawn_spec sk);
+        [(SchName._spawn, _spawn_spec);
+         (SchName.spawn, spawn_spec);
          (SchName.yield, yield_spec);
          (SchName.join, join_spec)].
-
-    Lemma Stb_nodup sk: List.NoDup (List.map fst (stb sk)).
-    Proof. unfold stb. unseal CRIS. prove_nodup. Qed.
 
   End SPEC.
 
@@ -240,30 +237,23 @@ Module SchA. Section SchA.
 
     Definition scopes := ["Sch"].
 
-    Definition fnsems u Stb (sk: Sk.t) :=
-      [(SchName._spawn, (scopes, mk_specbody (SchAS._spawn_spec u Stb sk) (cfunN _spawn)));
-      (SchName.spawn, (scopes, mk_specbody (SchAS.spawn_spec u Stb sk) (cfunU spawn)));
+    Definition fnsems u Spc :=
+      [(SchName._spawn, (scopes, mk_specbody (SchAS._spawn_spec u Spc) (cfunN _spawn)));
+      (SchName.spawn, (scopes, mk_specbody (SchAS.spawn_spec u Spc) (cfunU spawn)));
       (SchName.yield, (scopes, mk_specbody (SchAS.yield_spec u) (cfunU yield)));
       (SchName.join, (scopes, mk_specbody (SchAS.join_spec u) (cfunU join)))].
 
-    Program Definition Sem u StbFun (sk: Sk.t): SModSem.t :=
+    Program Definition Mod u SpcFun : SMod.t :=
     {|
-      SModSem.scopes := scopes;
-      SModSem.fnsems := fnsems u StbFun sk;
-      SModSem.initial_st := [];
+      SMod.scopes := scopes;
+      SMod.fnsems := fnsems u SpcFun;
+      SMod.initial_st := [];
     |}.
     Solve All Obligations with prove_scope.
     Next Obligation. prove_nodup. Qed.
 
-    Definition Mod u StbFun : SMod.t :=
-    {|
-      SMod.modsem := fun sk => Sem u StbFun sk;
-      SMod.sk := SchSK.t;
-    |}.
-
-    Definition InitCond : Sk.t -> iProp Σ :=
-      fun _ => (SchAS.initial_threads)%I.
+    Definition InitCond : iProp Σ := SchAS.initial_threads.
     
-    Definition t u Stb := Seal.sealing CRIS (SMod.to_hmod (sch_ginv u) Stb (Mod u Stb)).
+    Definition t u Spc SpcFun := Seal.sealing CRIS (SMod.to_hmod (sch_ginv u) Spc (Mod u SpcFun)).
 
 End SchA. End SchA.

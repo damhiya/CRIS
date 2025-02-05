@@ -8,7 +8,7 @@ Section GINV.
 
   Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ}.
 
-  Definition sch_ginv (univ: positive): Sk.t -> invspec :=
-    fun _ _ => (∃ n, wsats univ n ⊤)%I.
+  Definition sch_ginv (univ: positive): invspec :=
+    fun _ => (∃ n, wsats univ n ⊤)%I.
 
 End GINV.
