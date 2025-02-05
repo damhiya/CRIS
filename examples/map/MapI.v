@@ -72,18 +72,13 @@ Module MapI. Section MapI.
      (MapName.set,  (scopes, cfunU set));
      (MapName.set_by_user, (scopes, cfunU set_by_user))].
   
-  Program Definition Sem : PModSem.t := {|
-    PModSem.scopes := scopes;
-    PModSem.fnsems := fnsems;
-    PModSem.initial_st := [(v_hptr, Vnullptr↑)];
+  Program Definition Mod : PMod.t := {|
+    PMod.scopes := scopes;
+    PMod.fnsems := fnsems;
+    PMod.initial_st := [(v_hptr, Vnullptr↑)];
   |}.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
-
-  Definition Mod : PMod.t := {|
-    PMod.modsem := fun _ => Sem;
-    PMod.sk := MapSK.t;
-  |}.
 
   Definition t : HMod.t := Seal.sealing CRIS (PMod.to_hmod Mod).
 End MapI. End MapI.

@@ -62,8 +62,8 @@ Module MapIM. Section MapIM.
   Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !MapMGΓ Γ, !memGΓ Γ}.
   Notation iProp := (iProp Σ).
 
-  Definition Ist : Sk.t → nat → alist key Any.t → alist key Any.t → iProp :=
-    (λ _ _ st_src st_tgt,
+  Definition Ist : nat → alist key Any.t → alist key Any.t → iProp :=
+    (λ _ st_src st_tgt,
       ⌜st_src = [(MapM.v_size, 0%Z↑); (MapM.v_map, (λ _ : Z, 0%Z)↑)]
         ∧ st_tgt = [(MapI.v_hptr, Vnullptr↑)]⌝
       ∨ pending
@@ -72,18 +72,18 @@ Module MapIM. Section MapIM.
             ∧ st_tgt = [(MapI.v_hptr,(Vptr blk ofs)↑)]⌝
           ∗ (blk, ofs) |-> (fun_to_list f (Z.to_nat sz)))%I.
 
-  Variable ginv : Sk.t → invspec.
-  Variable StbMap : Sk.t → string → option fspec.
-  Hypothesis MapInStbMap : forall sk, stb_incl MapMS.Stb (StbMap sk).
-  Variable StbMem : Sk.t → string → option fspec.
+  Variable ginv : invspec.
+  Variable SpcMap : string → option fspec.
+  Hypothesis MapInSpcMap : spc_incl MapMS.Spc SpcMap.
+  Variable SpcMem : string → option fspec.
 
-  Local Notation MemA := (MemA.t ginv StbMem).
-  Local Notation MapM := (MapM.t ginv StbMap).
+  Local Notation MemA := (MemA.t ginv SpcMem).
+  Local Notation MapM := (MapM.t ginv SpcMap).
   Local Notation MapMMod := (MapM ★ MemA).
   Local Notation MapIMod := (MapI.t ★ MemA).
-  Local Notation IstFull := (IstProd (IstSB MapM Ist) IstEq).
+  Local Notation IstFull := (IstProd (IstSB MapM.(HMod.scopes) Ist) IstEq).
 
-  Lemma simF_init : HSim.sim_fun MapMMod MapIMod IstFull MapName.init.
+  Lemma simF_init : HSim.sim_fun MapMMod MapIMod IstFull false MapName.init.
   Proof.
     init_simF.
 
@@ -176,7 +176,7 @@ Module MapIM. Section MapIM.
     }
   Qed.
 
-  Lemma simF_get : HSim.sim_fun MapMMod MapIMod IstFull MapName.get.
+  Lemma simF_get : HSim.sim_fun MapMMod MapIMod IstFull false MapName.get.
   Proof.
     init_simF.
 
@@ -218,7 +218,7 @@ Module MapIM. Section MapIM.
     iPoseProof ("M" with "GRT") as "M". iFrame.
   Qed.
 
-  Lemma simF_set : HSim.sim_fun MapMMod MapIMod IstFull MapName.set.
+  Lemma simF_set : HSim.sim_fun MapMMod MapIMod IstFull false MapName.set.
   Proof.
     init_simF.
 
@@ -262,7 +262,7 @@ Module MapIM. Section MapIM.
     rewrite -> fun_to_list_update, Z2Nat.id; try nia. iFrame.
   Qed.
 
-  Lemma simF_set_by_user : HSim.sim_fun MapMMod MapIMod IstFull MapName.set_by_user.
+  Lemma simF_set_by_user : HSim.sim_fun MapMMod MapIMod IstFull false MapName.set_by_user.
   Proof.
     init_simF.
 
@@ -290,7 +290,7 @@ Module MapIM. Section MapIM.
     hss. steps_r. step. eauto.
   Qed.
 
-  Theorem sim : HSim.t MapMMod MapIMod MapM.InitCond IstFull.
+  Theorem sim : HSim.t MapMMod MapIMod MapM.InitCond IstFull false.
   Proof.
     init_sim.
     - iIntros "_". iExists _,_,[],[]. iSplit.
