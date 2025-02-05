@@ -35,8 +35,7 @@ Module CannonMainIA. Section CannonMainIA.
 
   Theorem sim : HSim.t MainAMod MainIMod MainA.init_cond Ist false.
   Proof.
-    (* init_sim. *)
-    econs;[i; s; repeat unfold_hmod; s|eauto|try prove_sub_perm|try prove_sub_perm|unfold_hmod; s; i; des; subst; ss].
+    init_sim.
     - iIntros "IC". et.
     - apply simF_main.
   Qed.

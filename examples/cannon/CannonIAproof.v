@@ -40,8 +40,7 @@ Module CannonIA. Section CannonIA.
 
   Theorem sim : HSim.t CannonAMod CannonIMod CannonA.init_cond Ist false.
   Proof.
-    econs;[i; s; repeat unfold_hmod; s|eauto|try prove_sub_perm|try prove_sub_perm|unfold_hmod; s; i; des; subst; ss].
-    (* init_sim. *)
+    init_sim.
     - iIntros "IC". unfold Ist, CannonA.init_cond. iSplitR; et.
     - eapply simF_fire.
   Qed.
