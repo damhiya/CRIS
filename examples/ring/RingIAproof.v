@@ -1,7 +1,6 @@
-(* Require Import CRIS.
+Require Import CRIS.
 
 Require Import RingHeader CellHeader 
-  RingASpec CellASpec 
   RingA CtrlI CellA CellI 
   CtrlIAproof CellIAproof.
 
@@ -10,8 +9,7 @@ Set Implicit Arguments.
 Local Open Scope nat_scope.
 
 Module RingIA. Section RingIA.
-  Context `{!sinvG Σ Γ α β τ, !CellAS.G Γ}.
-  Notation iProp := (iProp Σ).
+  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !CellAGΓ Γ}.  
 
   Definition CellIG start len :=
     HMod.addL (List.map CellI.t (seq start len)).
@@ -50,4 +48,4 @@ Module RingIA. Section RingIA.
           i. rewrite Nat.add_0_r length_seq. iIntros "(H &_)". eauto.
   Qed.
 
-End RingIA. End RingIA. *)
+End RingIA. End RingIA.

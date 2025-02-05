@@ -1,6 +1,6 @@
 Require Import CRIS.
 Require Import ImpPrelude.
-Require Import CannonHeader CannonI CannonA CannonASpec.
+Require Import CannonHeader CannonI CannonA.
 
 Set Implicit Arguments.
 Local Open Scope nat_scope.

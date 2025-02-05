@@ -1,5 +1,6 @@
 Require Import CRIS.
 Require Import CellioHeader CellioA CellioI.
+Require Import InputA.
 
 Set Implicit Arguments.
 
@@ -11,6 +12,7 @@ Module CellioIA. Section CellioIA.
 
   Variable ginv: Sk.t -> invspec.
   Variable StbG: Sk.t -> string -> option fspec.
+  Hypothesis InputInStbG: forall sk, stb_incl InputAS.Stb (StbG sk).
 
   Definition Ist: Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp Σ :=
     λ _ _ st_src st_tgt,
@@ -24,17 +26,19 @@ Module CellioIA. Section CellioIA.
     init_simF.
 
     steps_l. iDestruct "ASM" as "%"; subst.
-    iDestruct "IST" as (v) "(% & AUTH)". subst.
 
-    step.
+    force_l tt. forces_l. iSplitL ""; eauto.
+    call "IST"; eauto.
+    steps_l. iDestruct "ASM" as "%"; subst.
+
+    iDestruct "IST" as (v) "(% & AUTH)". subst.
 
     iPoseProof (cell_auth_get with "ASM' AUTH") as "%"; subst.
     iMod (cell_auth_set with "ASM' AUTH") as "(C & A)".
 
-    steps_r. hss. steps_l. forces_l.
-    iSplitL "C"; eauto.
-    
-    steps_l. forces_l.
+    forces_l. iSplitL "C"; eauto.
+
+    steps_r. hss. steps_r. steps_l. forces_l.
     iSplitL ""; eauto.
 
     step.

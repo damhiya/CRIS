@@ -1,14 +1,16 @@
 Require Import CRIS.
-Require Import CellioHeader.
+Require Import CellioHeader InputHeader.
 
 Set Implicit Arguments.
 
 Local Definition RA : ucmra :=
   authUR (optionUR (exclR ZO)).
 Class CellioAGΓ (Γ : HRA) := {
-  #[global] RA_inG :: inG RA Γ;
+  #[local] RA_inG :: inG RA Γ;
 }.
 Definition CellioAΓ : HRA := #[RA].
+Global Instance subG_GΓ {Γ : HRA} : subG CellioAΓ Γ → CellioAGΓ Γ.
+Proof. solve_inG. Qed.
 
 Module CellioA. Section CellioA.
   Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !CellioAGΓ Γ}.
@@ -40,7 +42,8 @@ Module CellioA. Section CellioA.
     λ _,
       x <- trigger (Take Z);;
       trigger (Assume (CellioA.cell x));;;
-      i <- trigger (@IO _ Z "Input" tt);;
+      (* i <- trigger (@IO _ Z "Input" tt);; *)
+      'i: Z <- ccallU InputName.input tt;;
       trigger (Guarantee (CellioA.cell i));;;
       Ret tt↑.
   
@@ -73,7 +76,7 @@ Module CellioA. Section CellioA.
   Definition InitCond : Sk.t -> iProp Σ :=
     λ _, CellioA.auth 0.
 
-  Variable ginv: Sk.t -> invspec.
-  Variable GlobalStb: Sk.t -> string -> option fspec.
-  Definition t := Seal.sealing CRIS (SMod.to_hmod ginv GlobalStb Mod).
+  Definition InitRes : Σ := own.iRes_singleton base_γ (●E 0%Z).
+
+  Definition t ginv Stb := Seal.sealing CRIS (SMod.to_hmod ginv Stb Mod).
 End CellioA. End CellioA.

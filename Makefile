@@ -6,9 +6,6 @@ COQTHEORIES  := $(shell find . -not -path "./deprecated/*" -not -path "./_opam/*
 all:
 	$(MAKE) proof
 
-graph:
-		sh make_graph.sh
-
 %.vo: %.v
 	$(MAKE) -f Makefile.coq $@
 
@@ -21,6 +18,26 @@ proof-quick: Makefile.coq $(COQTHEORIES)
 proof: Makefile.coq $(COQTHEORIES)
 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(COQTHEORIES))
 
+theories_files  := $(shell find theories -iname '*.v')
+theories: Makefile.coq $(theories_files)
+	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(theories_files))
+
+scheduler_files  := $(shell find scheduler -iname '*.v')
+scheduler: Makefile.coq $(scheduler_files)
+	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(scheduler_files))
+
+examples_files  := $(shell find examples -iname '*.v')
+examples: Makefile.coq $(examples_files)
+	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(examples_files))
+
+imp_system_files := $(shell find imp_system -iname '*.v')
+imp_system: Makefile.coq $(imp_system_files)
+	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(imp_system_files))
+
+extract_files  := $(shell find extract -iname '*.v')
+extract: Makefile.coq $(extract_files)
+	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(extract_files))
+
 Makefile.coq: Makefile $(COQTHEORIES)
 	(echo "-arg -w -arg -deprecated-hint-without-locality"; \
 	 echo "-arg -w -arg -deprecated-instance-without-locality"; \
@@ -29,16 +46,12 @@ Makefile.coq: Makefile $(COQTHEORIES)
 	 echo "-arg -w -arg -ambiguous-paths"; \
 	 echo "-arg -w -arg -redundant-canonical-projection"; \
 	 echo "-arg -w -arg -cannot-define-projection"; \
-				 echo "-R lib $(COQMODULE)"; \
-         echo "-R common $(COQMODULE)"; \
-         echo "-R modules $(COQMODULE)"; \
-         echo "-R simulations $(COQMODULE)"; \
-         echo "-R cancellation $(COQMODULE)"; \
-         echo "-R iris_system $(COQMODULE)"; \
-         echo "-R imp_system $(COQMODULE)"; \
-         echo "-R examples $(COQMODULE)"; \
-         echo "-R extract $(COQMODULE)"; \
-   echo $(COQTHEORIES)) > _CoqProject
+	 echo "-R theories $(COQMODULE)"; \
+	 echo "-R scheduler $(COQMODULE)"; \
+	 echo "-R imp_system $(COQMODULE)"; \
+	 echo "-R examples $(COQMODULE)"; \
+	 echo "-R extract $(COQMODULE)"; \
+	 echo $(COQTHEORIES)) > _CoqProject
 	coq_makefile -f _CoqProject -o Makefile.coq
 
 clean: Makefile.coq

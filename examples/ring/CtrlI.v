@@ -1,4 +1,4 @@
-(* Require Import CRIS.
+Require Import CRIS.
 
 Require Import ImpPrelude.
 Require Import RingHeader CellHeader.
@@ -77,4 +77,4 @@ Module CtrlI. Section CtrlI.
 
   Definition t := Seal.sealing CRIS (PMod.to_hmod Mod).
 
-End CtrlI. End CtrlI. *)
+End CtrlI. End CtrlI.

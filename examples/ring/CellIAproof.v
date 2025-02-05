@@ -1,7 +1,7 @@
-(* Require Import CRIS.
+Require Import CRIS.
 
 Require Import ImpPrelude.
-Require Import CellHeader CellASpec CellI CellA.
+Require Import CellHeader CellI CellA.
 
 Set Implicit Arguments.
 
@@ -10,12 +10,11 @@ Local Open Scope nat_scope.
 (* Simulation Proof *)
 Module CellIA. Section CellIA.
   Import CellAS.
-  Context `{!sinvG Σ Γ α β τ, !CellAS.G Γ}.
-  Notation iProp := (iProp Σ).
+  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !CellAGΓ Γ}.
 
   Variable idx : nat.
 
-  Definition Ist : Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp :=
+  Definition Ist : Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp Σ :=
     (λ _ _ st_src st_tgt,
        ∃ vany v, 
         ⌜st_tgt = [(CellI.v_cv idx, vany)]⌝
@@ -95,4 +94,4 @@ Module CellIA. Section CellIA.
     - apply simF_set; eauto.
   Qed.
 
-End CellIA. End CellIA. *)
+End CellIA. End CellIA.
