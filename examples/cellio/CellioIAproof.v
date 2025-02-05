@@ -10,18 +10,18 @@ Module CellioIA. Section CellioIA.
   Import CellioA.
   Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !CellioAGΓ Γ}.
 
-  Variable ginv: Sk.t -> invspec.
-  Variable StbG: Sk.t -> string -> option fspec.
-  Hypothesis InputInStbG: forall sk, stb_incl InputAS.Stb (StbG sk).
+  Variable ginv: invspec.
+  Variable SpcG: string -> option fspec.
+  Hypothesis InputInSpcG: spc_incl InputAS.Spc SpcG.
 
-  Definition Ist: Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp Σ :=
-    λ _ _ st_src st_tgt,
+  Definition Ist: nat -> alist key Any.t -> alist key Any.t -> iProp Σ :=
+    λ _ st_src st_tgt,
       (∃ v, ⌜st_tgt = [(CellioI.v_cv, v↑)]⌝ ∗ auth v)%I.
 
   Local Notation CellioI := (CellioI.t).
-  Local Notation CellioA := (CellioA.t ginv StbG).
+  Local Notation CellioA := (CellioA.t ginv SpcG).
 
-  Lemma simF_set : HSim.sim_fun CellioA CellioI Ist CellioName.set.
+  Lemma simF_set : HSim.sim_fun CellioA CellioI Ist false CellioName.set.
   Proof.
     init_simF.
 
@@ -47,7 +47,7 @@ Module CellioIA. Section CellioIA.
   Qed.
   
   Lemma simF_get:
-    HSim.sim_fun CellioA CellioI Ist CellioName.get.
+    HSim.sim_fun CellioA CellioI Ist false CellioName.get.
   Proof.
     init_simF.
 
@@ -67,7 +67,7 @@ Module CellioIA. Section CellioIA.
     iExists _. iFrame. eauto.
   Qed.
   
-  Theorem sim: HSim.t CellioA CellioI CellioA.InitCond Ist.
+  Theorem sim: HSim.t CellioA CellioI CellioA.InitCond Ist false.
   Proof.
     init_sim.
     - iIntros "H". iExists _. iFrame. eauto.
