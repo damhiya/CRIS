@@ -8,7 +8,3 @@ Definition enqueue  := "Ring.enqueue".
 Definition dequeue  := "Ring.dequeue".
 
 End RingName.
-
-(* Module RingSK.
-  Definition t : Sk.t := [].
-End RingSK. *)

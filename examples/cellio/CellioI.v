@@ -12,7 +12,6 @@ Module CellioI. Section CellioI.
 
   Definition set: Any.t -> itree pmodE Any.t :=
     λ _,
-      (* i <- trigger (@IO _ Z "Input" tt);; *)
       'i: Z <- ccallU InputName.input tt;;
       cput v_cv i;;;
       Ret tt↑.

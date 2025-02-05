@@ -12,7 +12,6 @@ Module MainA. Section MainA.
   Definition main: Any.t -> itree hmodE Any.t :=
     λ _,
       trigger (Assume (cell 0));;;
-      (* 'i: Z <- trigger (IO "Input" tt);; *)
       'i: Z <- ccallU InputName.input tt;;
       '_: unit <- ccallU FooName.foo tt;;
       '_: unit <- trigger (IO "Print" i);;
@@ -34,12 +33,6 @@ Module MainA. Section MainA.
   Definition InitCond : iProp Σ := emp%I.
 
   Definition InitRes : Σ := ε.
-
-  (* Definition Spc : alist string fspec :=
-    Seal.sealing CRIS [(MainName.main, fspec_trivial)].
-
-  Lemma Spc_nodup: List.NoDup (List.map fst Spc).
-  Proof. unfold Spc. unseal CRIS. prove_nodup. Qed. *)
 
   Definition t ginv Spc := Seal.sealing CRIS (SMod.to_hmod ginv Spc Mod).
 

@@ -74,8 +74,6 @@ Module CannonAll. Section CannonAll.
   Proof.
     move: (cancel_tgt)=>H; rewrite /refines in H; des; ss.
     destruct (H initial_resource).
-    (* { rewrite /CannonI.t /MainI.t /skeleton; unseal CRIS; ss. } *)
-    (* { rewrite /skeleton /CannonSK.t /MainSK.t; ss; econs; ii; ss; des; ss; prove_nodup. } *)
     { apply initial_resource_valid. }
     { iIntros "I"; rewrite /init_cond /CannonA.init_cond /MainA.init_cond.
       rewrite /precond /= /CannonAS.Ready /CannonAS.Ball

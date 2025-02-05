@@ -17,7 +17,6 @@ Module CannonIA. Section CannonIA.
 
   Variable ginv : invspec.
   Variable SpcCannon : string -> option fspec.
-  (* Variable StbCannon : Sk.t → string → option fspec. *)
   
   Local Notation CannonAMod := (CannonA.t ginv SpcCannon).
   Local Notation CannonIMod := (CannonI.t).
