@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 
 Require Import SchGInv SchHeader SchA.
 
@@ -15,11 +15,11 @@ Section MACROAUX.
 
   Lemma isim_mspawn_hp
     fl fr Ist r g {Rs Rt} RR my_tid ps pt nths st_src st_tgt k_src k_tgt scp_src scp_tgt invspc
-    (Stb: Sk.t → string → option fspec) (univ: positive)
+    (Stb: Sk.t → string → option fspec) (univ: positive) (n : level)
     (sk: Sk.t) (fvarg farg: SAny.t) (pre: iProp) (postS: SAny.t → {n & SRFSyn.t n}) 
     (fn: string) (fsp: fspec) (m: meta fsp)
     (FINDF: Stb sk fn = Some fsp)
-    (FINDS: Stb sk SchName.spawn = Some (SchAS.spawn_spec univ Stb sk))
+    (FINDS: Stb sk SchName.spawn = Some (SchAS.spawn_spec univ n Stb sk))
     (SPWN: ∀ tid, SchAS.fspec_spawnable univ fsp tid m fvarg↑ farg↑ pre postS)
     :
       (((Ist nths st_src st_tgt) ∗ (∃ n, wsats univ n ⊤) ∗ pre) ∗
@@ -334,4 +334,4 @@ Ltac join hyps :=
     iApply isim_mjoin_hp; des_pairs; s;
     [|iSplitL hyps; [|iIntros "% % % %"; iIntrosFresh "[IST [W POST]]"]] |
     iApply isim_mjoin_hh; des_pairs; s;
-    [| |iSplitL hyps; [|iIntros "% % % %"; iIntrosFresh "IST"]]].
+    [| |iSplitL hyps; [|iIntros "% % % %"; iIntrosFresh "IST"]]]. *)

@@ -2,6 +2,8 @@ Require Import CRIS.
 
 Require Import SchGInv SchHeader SchI SchA.
 
+Require Import wpsim.
+
 Set Implicit Arguments.
 
 Local Open Scope nat_scope.
@@ -9,11 +11,11 @@ Local Open Scope nat_scope.
 Module SchIA. Section SchIA.
   Import SchAS.
   Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !SchAGΣ Σ}.
+  Context (υ : positive) (n : level).
   Notation iProp := (iProp Σ).
 
-  Variable univ: positive.
   Variable Stb: Sk.t -> string -> option fspec.
-  Hypothesis SchInStb: ∀ sk, stb_incl (stb univ Stb sk) (Stb sk).
+  Hypothesis SchInStb: ∀ sk, stb_incl (stb υ n Stb sk) (Stb sk).
 
   Fixpoint ths_wf (nths: nat) (ths_tgt: SchI.thslist): Prop :=
     match ths_tgt with
@@ -152,151 +154,9 @@ Module SchIA. Section SchIA.
           ∗ own base_γ (◯ ths_src_w)
           ∗ ([∗ map] tid↦P ∈ ths_cond, P))%I.
 
-  Local Notation SchAMod := (SchA.t univ Stb).
+  Local Notation SchAMod := (SchA.t υ n Stb).
   Local Notation SchIMod := (SchI.t).
-  
-  (*************)
 
-  Lemma simF__spawn:
-    HSim.sim_fun SchAMod SchIMod Ist SchName._spawn.
-  Proof.
-    init_simF.
-
-    steps_l. des; subst; hss. destruct q2.
-    iDestruct "ASM" as "(W & % & % & % & PRE & TKN)"; des; subst; hss.
-    rewrite /is_Some in H2. des.
-    rewrite /token_half. unseal "SchA". steps_l.
-
-    (* remove dependent type issue *)
-    remember (existT x m) as DT. clear HeqDT.
-
-    steps_r. forces_l. iSplitL "W"; et.
-    yield "IST"; et.
-    (* iDestruct "IST" as (? ? ? ? ?) "IST". des. *)
-    steps_r. steps_l. iDestruct "ASM" as "W". forces_l. iSplitR.
-    { iPureIntro. eauto. }
-    steps_l. forces_l. iSplitL "W PRE".
-
-    { Unshelve.
-      2:{ clear H3 DT. unfold find_fsp in m. rewrite H2 in m. ss. }
-      2:{ exact (q10↑). } ss.
-      unfold find_fsp in *. revert H3. revert m.
-      generalize H2. rewrite H2. i. ss.
-      rewrite (@UIP _ _ _ H0 eq_refl). erewrite <-rew_swap; et. ss.
-      unfold fspec_spawnable in H3. des.
-      iCombine "W PRE" as "PRE".
-      iPoseProof (H3 with "PRE") as "PRE". ss.
-    }
-
-    call "IST"; et. steps_l.
-    rename vret into ret. rename q into vret.
-
-    revert H3. revert m. unfold find_fsp. generalize H2. rewrite H2. i. ss.
-    rewrite (@UIP _ _ _ H0 eq_refl). erewrite <-rew_swap; et. ss.
-    unfold fspec_spawnable in H3. des.
-    iAssert (∃ vret: Any.t, postcond x0 my_tid m vret ret)%I with "[ASM]" as "POST".
-    { iExists _. et. }
-
-    specialize (H1 ret).
-    iPoseProof (H1 with "POST") as "POST". iDestruct "POST" as (?) "(W & % & POST)". subst; hss.
-
-    steps_r. hss. steps_r.
-    
-    iDestruct "IST" as (? ? ? ?) "(% & THB & THW & COND)". subst; hss. steps_r.
-    unfold alist_upd, _alist_upd; ss.
-
-    remember ([(SchI.v_ths, ((alist_replace my_tid (Some sret) ths_tgt): thslist) ↑)]) as st_tgt1.
-    iAssert (Ist sk nths1 st_src1 st_tgt1) with "[TKN THB THW COND POST]" as "IST".
-    { destruct (alist_find my_tid ths_tgt) eqn:LU; cycle 1; [|destruct o].
-      { (* idle case - impossible *)
-        dup SIM. specialize (SIM my_tid). rewrite LU in SIM. inv SIM.
-        iExists _, _, _, _. iFrame. iPureIntro. esplits; et.
-        - clear SIM0. induction ths_tgt; ss. destruct a. rewrite eq_rel_dec_correct in LU.
-          rewrite eq_rel_dec_correct. des_ifs. ss. des; split; et.
-        - i. destruct (classic (tid = my_tid)).
-          + subst. erewrite alist_replace_find_eq_None; et. 
-            rewrite -H -H0 -H4. econs 1; et. exact None.
-          + erewrite alist_replace_find_neq_Some; et. exact None.
-      }
-      { (* already done case - impossible *)
-        dup SIM. specialize (SIM my_tid). rewrite LU in SIM. inv SIM.
-        { (* done *)
-          symmetry in H6. iCombine "TKN THW" gives %X.
-          exfalso. rewrite auth_frag_valid in X.
-          specialize (X my_tid). rewrite discrete_fun_lookup_op in X. ss.
-          rewrite -H5 in X. rewrite Nat.eqb_refl in X.
-          rewrite Some_valid pair_valid in X; des. ss.
-        }
-        { (* joined *) 
-          symmetry in H6. iCombine "TKN THW" gives %X.
-          exfalso. rewrite auth_frag_valid in X.
-          specialize (X my_tid). rewrite discrete_fun_lookup_op in X. ss.
-          rewrite -H5 in X. rewrite Nat.eqb_refl in X.
-          rewrite Some_valid pair_valid in X; des. ss.
-        }
-      }
-      { (* active - only possible case *)
-        dup SIM. specialize (SIM my_tid). rewrite LU in SIM. inv SIM.
-        iCombine "TKN THW" gives %THW. iCombine "TKN THW" as "THW".
-
-        rewrite auth_frag_valid in THW. ss.
-        specialize (THW my_tid). rewrite discrete_fun_lookup_op in THW. rewrite Nat.eqb_refl in THW.
-        rewrite -H0 in THW. rewrite// -Some_op Some_valid pair_valid in THW. des; ss.
-        apply agree_op_inv in THW0.
-
-        remember (λ s: SAny.t, Some (to_agree (q4 s)))%I as POSTF.
-        iAssert (interp_cond (Q sret))%I with "[POST]" as "POST".
-        { subst. apply (inj to_agree) in THW0. specialize (THW0 sret). ss. inv THW0.
-          apply (inj to_agree) in H7. unfold interp_cond. rewrite H7. et. }
-
-        assert (((((λ n : nat, if my_tid =? n then Some ((1/2)%Qp, to_agree POSTF) else ε): threadsF) ⋅ ths_src_w): threadsF) ≡ ((λ n : nat, if my_tid =? n then Some ((3/4)%Qp, to_agree (λ s: SAny.t, Some (to_agree (Q s)))) else ths_src_w n): threadsF)).
-        { intros y. rewrite discrete_fun_lookup_op. des_ifs. 2:rewrite left_id //.
-          rewrite Nat.eqb_eq in Heq; subst. rewrite -H0 -Some_op -pair_op frac_op -THW0 agree_idemp.
-          f_equiv. f_equiv. compute_done. }
-        rewrite H5.
-
-        iExists _, _, _, (<[my_tid:=(interp_cond (Q sret))%I]> ths_cond).
-        iFrame. iSplitR "POST COND".
-        - iPureIntro. esplits; et.
-          + clear SIM0. induction ths_tgt; ss. destruct a; ss.
-            rewrite eq_rel_dec_correct in LU. rewrite eq_rel_dec_correct. des_ifs. ss.
-            des; split; et.
-          + i. destruct (classic (tid = my_tid)).
-            * subst. erewrite alist_replace_find_eq_Some; et. rewrite !lookup_insert. 
-              rewrite Nat.eqb_refl. rewrite -H. econs 3; et.
-            * erewrite alist_replace_find_neq_Some; et. 2:exact None.
-              des_ifs; [rewrite Nat.eqb_eq in Heq; subst; ss|].
-              rewrite !lookup_insert_ne; et.
-        - iApply big_sepM_replace; iFrame.
-      }
-    }
-
-    rewrite !/Sch.terminate /ccallU. unseal "Sch".
-
-    clear THWF SIM NTHS Heqst_tgt1.
-    
-    iApply isim_reset. iStopProof. revert NODD1.
-    combine_quant NODS1.
-    combine_quant st_tgt1.
-    combine_quant st_src1.
-    combine_quant nths1.
-    eapply isim_coind. i.
-    destruct a as [nths1 [st_src1 [st_tgt1 [NODS1 NODD1]]]]. s.
-    iIntros "([W IST] & #CIH)".
-
-    set_marker MARKER. hide_ihyps.
-    do 2 rewrite unfold_iter_eq.
-    show_until MARKER.
-    
-    steps_l. forces_l. iSplitL "W"; et. call "IST"; et. steps_l.
-    iDestruct "ASM" as "(W & % & %)". des; subst; hss. step_l. grind.
-    steps_r. hss. steps_r. 
-    rewrite SModRed.interp_tau. steps_l.
-    by_coind "CIH".
-    iFrame.
-    
-    Unshelve. all: ss.
-  Qed.
 From iris.proofmode Require Import coq_tactics environments.
 (* ● ◓ ○ *)
 Notation "E1 '------------------------------------------------------------------□' E2 '------------------------------------------------------------------∗' st_src st_tgt '------------------------------params------------------------------' ○ n E r g ps pt '-------------------------------wsim-------------------------------' itr_src itr_tgt" :=
@@ -347,14 +207,15 @@ Notation "E1 '------------------------------------------------------------------
     (at level 50, only printing,
       format "E1 '------------------------------------------------------------------□' '//' E2 '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '-------------------------------wsim-------------------------------' '//' P  '-∗'  'ISIM' "). *)
 
-
-  Ltac hide_itree_l marker :=
-    hide_itree_all marker;
-    match goal with [|- _ (_ _ (_, ?it))] => try unfold it end.
-
-  Ltac hide_itree_r marker :=
-    hide_itree_all marker;
-    match goal with [|- _ (_ (_, ?it) _)] => try unfold it end.
+  Ltac _w_step :=
+    match goal with
+    | [ |- environments.envs_entails _ (wpsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, Ret _) (_, Ret _))] =>
+        iApply wpsim_ret
+    | [ |- environments.envs_entails _ (wpsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (IO _ _) >>= _) (_, trigger (IO _ _) >>= _))] =>
+        iApply wpsim_io; iIntros "%"
+    | [ |- environments.envs_entails _ (wpsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Spawn _ _) >>= _) (_, trigger (Spawn _ _) >>= _))] =>
+        iApply wpsim_spawn
+    end.
 
   Ltac _w_step_l :=
     match goal with
@@ -368,20 +229,18 @@ Notation "E1 '------------------------------------------------------------------
         let name := fresh "q" in iApply wpsim_take_src; iIntros (name)
     | [ |- environments.envs_entails _ (wpsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Assume ?P) >>= _) _) ] =>
         unfold_precond_postcond P; iApply wpsim_assume_src; iIntrosFresh "ASM"
+    | [ |- environments.envs_entails _ (wpsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _) _) ] =>
+        let name := fresh "asm" in iApply wpsim_asm_src; iIntros (name)
     | [ |- environments.envs_entails _ (wpsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, (HModSem.sandbox _ (trigger (SPut _ _))) >>= _) _) ] =>
         iApply wpsim_sput_src_sandbox; [s;eauto|]
     | [ |- environments.envs_entails _ (wpsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, (HModSem.sandbox _ (trigger (SGet _))) >>= _) _) ] =>
         iApply wpsim_sget_src_sandbox; [s;eauto|]
     end.
     (* 
-    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _  (_, trigger (Assume ?P) >>= _) _) ] =>
-        unfold_precond_postcond P; iApply isim_Assume_src; iIntrosFresh "ASM"
     | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, unwrapU ?ox >>= _) _) ] =>
         let name := fresh "q" in
         iApply isim_unwrapU_src; iIntros (name) "%";
         match goal with [ H: ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite -> G in * end
-    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _) _) ] =>
-        let name := fresh "asm" in iApply isim_asm_src; iIntros (name)
     end. *)
 
   Ltac _w_step_r :=
@@ -392,42 +251,58 @@ Notation "E1 '------------------------------------------------------------------
         iApply wpsim_tau_tgt
     | [ |- environments.envs_entails _ (wpsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, Ret _ >>= _) ) ] =>
         rewrite bind_ret_l
+    | [ |- environments.envs_entails _ (wpsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose _) >>= _) ) ] =>
+        let name := fresh "q" in iApply wpsim_choose_tgt; iIntros (name)
+    | [ |- environments.envs_entails _ (wpsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _) ) ] =>
+        unfold_precond_postcond P; iApply wpsim_guarantee_tgt; iIntrosFresh "GRT"
+    | [ |- environments.envs_entails _ (wpsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, guarantee _ >>= _)) ] =>
+        let name := fresh "grt" in iApply wpsim_guar_tgt; iIntros (name)
     | [ |- environments.envs_entails _ (wpsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, (HModSem.sandbox _ (trigger (SPut _ _))) >>= _)) ] =>
         iApply wpsim_sput_tgt_sandbox; [s; eauto|]
     | [ |- environments.envs_entails _ (wpsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, (HModSem.sandbox _ (trigger (SGet _))) >>= _)) ] =>
         iApply wpsim_sget_tgt_sandbox; [s; eauto|]
     (* 
-    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose _) >>= _)) ] =>
-        let name := fresh "q" in
-        iApply isim_choose_tgt; iIntros (name)
-    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _)) ] =>
-        unfold_precond_postcond P; iApply isim_Guarantee_tgt; iIntrosFresh "GRT"
     | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ _ (_, unwrapN ?ox >>= _)) ] =>
         let name := fresh "q" in
         iApply isim_unwrapN_tgt; iIntros (name) "%";
         match goal with [ H: ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite -> G in * end
-    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, guarantee _ >>= _)) ] =>
-        let name := fresh "grt" in iApply isim_guar_tgt; iIntros (name) *)
+ *)
     | [ |- environments.envs_entails _ (wpsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger Tid >>= _)) ] =>
         iApply wpsim_tid_tgt
     end.
+
+  Ltac w_step_l_core :=
+    _w_step_l; try alist_find_simpl; s; des_pairs; s.
+  Ltac w_step_r_core :=
+    _w_step_r; try alist_find_simpl; s; des_pairs; s.
 
   Ltac _w_force_l :=
     match goal with
     | [ |- environments.envs_entails _ (wpsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose ?T) >>= _) _) ] =>
         iApply wpsim_choose_src
     | [ |- environments.envs_entails _ (wpsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _) _) ] =>
-        unfold_precond_postcond P; iApply wpsim_guarantee_src
+        unfold_precond_postcond P;
+        match goal with
+        | [|- environments.envs_entails _ (wpsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _) _)] =>
+          match P with
+          | (wpsim_ginv _ _ _)%I => iApply wpsim_full_guarantee_src; iSplitL ""; first iIntros "I"; iFrame
+          | _ => iApply wpsim_guarantee_src
+          end
+        end
     | [ |- environments.envs_entails _ (wpsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, unwrapN _ >>= _) _) ] =>
         iApply wpsim_unwrapN_src
     (* | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, guarantee _ >>= _) _) ] =>
         iApply isim_guar_src *)
     end.
 
-  Ltac w_force_l_core := let marker := fresh "MARKER" in
-    hide_itree_r marker;
-    prep; _w_force_l; s;
-    show_itree marker.
+  Ltac w_force_l_core :=
+    let marker := fresh "MARKER" in
+    set_marker marker;
+    hide_ihyps;
+    hide_itree_r;
+    prep;
+    _w_force_l;
+    show_until marker.
 
   Tactic Notation "w_force_l" :=
     w_force_l_core; try (iExists _).
@@ -435,52 +310,77 @@ Notation "E1 '------------------------------------------------------------------
   Tactic Notation "w_force_l" uconstr(p) :=
     w_force_l_core; iExists p.
 
+  Ltac w_step :=
+    let marker := fresh "MARKER" in
+    set_marker marker;
+    hide_ihyps;
+    hide_itree_r; prep; show_itree;
+    hide_itree_l; prep; show_itree;
+    _w_step;
+    show_until marker.
+
   Ltac w_step_l :=
     let marker := fresh "MARKER" in
-    hide_itree_r marker;
-    prep; _w_step_l; try alist_find_simpl; s; des_pairs; s;
-    show_itree marker.
+    set_marker marker;
+    hide_ihyps;
+    hide_itree_r;
+    prep;
+    w_step_l_core;
+    show_until marker.
+
+  Ltac w_steps_l :=
+    let marker := fresh "MARKER" in
+    set_marker marker;
+    hide_ihyps;
+    hide_itree_r;
+    (hrepeat do 1 (prep; w_step_l_core));
+    show_until marker.
 
   Ltac w_step_r :=
     let marker := fresh "MARKER" in
-    hide_itree_l marker;
-    prep; _w_step_r; try alist_find_simpl; s; des_pairs; s;
-    show_itree marker.
+    set_marker marker;
+    hide_ihyps;
+    hide_itree_l;
+    prep;
+    w_step_r_core;
+    show_until marker.
+
+  Ltac w_steps_r :=
+    let marker := fresh "MARKER" in
+    set_marker marker;
+    hide_ihyps;
+    hide_itree_l;
+    (hrepeat do 1 (prep; w_step_r_core));
+    show_until marker.
 
   Ltac by_coind CIH :=
     iApply wpsim_progress; iApply wpsim_base;
     iSpecialize (CIH $! _);
-    (hrepeat do 1 first[instantiate (1:= (_,_))|instantiate (1:= existT _ _)]); s;
+    (hrepeat do 1 first[instantiate (1:= (_,_))|instantiate (1:= existT _ _)]); s; grind;
     iApply CIH.
-  (* Ltac _step :=
-    match goal with
-    (******* isim ******)
-    (** both **)
-    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, Ret _) (_, Ret _)) ] =>
-        iApply isim_ret
-    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (IO _ _) >>= _) (_, trigger (IO _ _) >>= _)) ] =>
-        iApply isim_io; iIntros "%"
-    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Spawn _ _) >>= _) (_, trigger (Spawn _ _) >>= _)) ] =>
-        iApply isim_spawn
-  end. *)
-  (* Ltac w_step := let marker := fresh "MARKER" in
-    hide_itree_r marker; prep; show_itree marker;
-    hide_itree_l marker; prep; show_itree marker;
-    _step; s; des_pairs; s. *)
 
-  Ltac w_call hyps := let marker := fresh "MARKER" in
-    hide_itree_r marker; prep; show_itree marker;
-    hide_itree_l marker; prep; show_itree marker;
+  Ltac w_call hyps :=
+    let marker := fresh "MARKER" in
+    set_marker marker;
+    hide_ihyps;
+    hide_itree_r; prep; show_itree;
+    hide_itree_l; prep; show_itree;
     iApply wpsim_call;
+    show_until marker;
     iSplitL hyps; [try done | iIntros "% % % % % %"; iIntrosFresh "IST"];
-    move_nodup.
+    move_aux.
 
-  Ltac yield hyps := let marker := fresh "MARKER" in
-    hide_itree_r marker; prep; show_itree marker;
-    hide_itree_l marker; prep; show_itree marker;
-    iApply wpsim_yield;
-    iSplitL hyps; [try done | iIntros "% % % % %"; iIntrosFresh "IST"];
-    move_nodup.
+  Ltac yield hyps :=
+    let marker := fresh "MARKER" in
+    set_marker marker;
+    hide_ihyps;
+    hide_itree_r; prep; show_itree;
+    hide_itree_l; prep; show_itree;
+    iApply wpsim_yield
+    ; show_until marker
+    ; iSplitL hyps; [try done | iIntros "% % % % %"; iIntrosFresh "IST"]
+    ; move_aux
+    .
 
   Ltac init_simF :=
     pre_simF;
@@ -491,6 +391,8 @@ Notation "E1 '------------------------------------------------------------------
     step_l.
 
   Ltac init_wpsim :=
+    init_simF;
+    prep_l;
     match goal with
     | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _) _)] =>
       let name := fresh "q" in let n := fresh "n" in iApply isim_take_src; iIntros (name);
@@ -503,51 +405,53 @@ Notation "E1 '------------------------------------------------------------------
         end
     end.
 
+  Ltac unfold_iter_l :=
+    let marker := fresh "MARKER" in
+    set_marker marker;
+    hide_ihyps;
+    hide_itree_r; rewrite unfold_iter_eq; show_itree;
+    show_until marker.
+
+  Ltac unfold_iter_r :=
+    let marker := fresh "MARKER" in
+    set_marker marker;
+    hide_ihyps;
+    hide_itree_l; rewrite unfold_iter_eq; show_itree;
+    show_until marker.
+
   Lemma simF__spawn : HSim.sim_fun SchAMod SchIMod Ist SchName._spawn.
   Proof.
-    init_simF.
-    prep.
     init_wpsim.
-
     iDestruct "ASM" as "[%va [-> ASM]]"; hss.
-    w_step_l.
-    rename q1 into user.
-    rename q3 into synpost.
-    rename q5 into pre.
-    rename q7 into uservarg.
-    rename q8 into callerid.
-    rename q9 into userarg.
-    depdes user.
-    rename m into userm.
-    rename x into userf.
-    iDestruct "ASM" as "[[% [% [% %]]] [PRE TOKEN]]"; clarify. hss.
+    destruct q as [[[[[callertid fargs] fvargs] pre] postS] [userf userm]].
+    iDestruct "ASM" as "[[-> [-> [% %]]] [pre token]]".
+    (* destruct va as [[user userf] userargs]. *)
+    w_step_l. hss.
 
     (* Process yield *)
-    w_step_r. prep.
-    iApply wpsim_full_guarantee_src; iSplitL ""; first rewrite /sch_ginv; iFrame; eauto.
-    yield "IST".
+    w_step_r. prep_l. rewrite /sch_ginv. w_force_l.
+    prep_r. yield "IST".
     w_step_l.
-    prep. iApply wpsim_full_assume_src; iSplitL ""; first rewrite /sch_ginv; iIntros "I"; iFrame.
+    prep_l. iApply wpsim_full_assume_src; iSplitL ""; first rewrite /sch_ginv; iIntros "I"; iFrame.
     { iAssert (emp)%I as "E"; first done; iApply "E". }
     iClear "I".
     do 2 w_step_l.
     do 2 w_step_r.
 
     (* Call the spawnee *)
-    prep. inv H1. rename x into userfspec. w_force_l userfspec; iFrame.
-    iSplit.
-    { iPureIntro; apply FunInStbSch; ss. }
+    prep. inv H. rename x into userfspec. w_force_l userfspec; iFrame.
+    iSplit; first (iPureIntro; easy).
     w_step_l.
 
     (* Choose the metavariables *)
     do 2 w_force_l.
-    prep. iApply wpsim_full_guarantee_src. iSplitL "PRE".
+    prep. iApply wpsim_full_guarantee_src. iSplitL "pre".
     Unshelve.
     3:{ exact 1%positive. (* TODO : replace with ν *) }
-    3:{ clear H2. unfold find_fsp in userm. rewrite H in userm. exact userm. }
-    3:{ exact (userarg↑). }
-    { unfold find_fsp in *. revert userm H2. generalize H.
-      rewrite H. i.
+    3:{ clear H0. unfold find_fsp in userm. rewrite H1 in userm. exact userm. }
+    3:{ exact (fargs↑). }
+    { unfold find_fsp in *. revert userm H0. generalize H1.
+      rewrite H1. i.
       rewrite (UIP _ _ _ H0 eq_refl). erewrite <-rew_swap; et; ss.
       unfold fspec_spawnable in H2. des.
       iIntros "I"; iApply H2; iFrame.
@@ -556,24 +460,22 @@ Notation "E1 '------------------------------------------------------------------
     w_call "IST"; et.
     w_step_l. rename q into vret.
     remember (existT userf userm) as DT; clear HeqDT.
-    revert userm H2. generalize H. unfold find_fsp. rewrite H.
+    revert userm H0. generalize H1. unfold find_fsp. rewrite H1.
     i; ss. rewrite (UIP _ _ _ H0 eq_refl). erewrite <- rew_swap; ss.
     unfold fspec_spawnable in H2; des.
     prep. iApply wpsim_full_assume_src; iSplitL ""; iIntros "I".
-    { iPoseProof (H1 $ ret with "[I]") as "H".
+    { iPoseProof (H3 $ ret with "[I]") as "H".
       { iExists _; iFrame. }
       { iExact "H". }
     }
     iDestruct "I" as (sret) "[% POST]".
 
-    do 3 w_step_l.
-    do 2 w_step_r. hss.
-    do 5 w_step_r. w_step_r. w_step_r.
+    w_steps_l. w_steps_r. hss. w_steps_r.
     iDestruct "IST" as (? ? ? ?) "(% & THB & THW & COND)". subst; hss.
-    w_step_r. w_step_r. w_step_r. w_step_r. hss.
+    w_steps_r. hss.
 
     remember ([(SchI.v_ths, ((alist_replace my_tid (Some sret) ths_tgt): thslist) ↑)]) as st_tgt1.
-    iAssert (Ist sk nths'0 st_s'0 st_tgt1) with "[TOKEN THB THW COND POST]" as "IST".
+    iAssert (Ist sk nths'0 st_s'0 st_tgt1) with "[token THB THW COND POST]" as "IST".
     { destruct (alist_find my_tid ths_tgt) eqn:LU; cycle 1; [|destruct o].
       { (* idle case - impossible *)
         dup SIM. specialize (SIM my_tid). rewrite LU in SIM. inv SIM.
@@ -582,20 +484,20 @@ Notation "E1 '------------------------------------------------------------------
           rewrite eq_rel_dec_correct. des_ifs. ss. des; split; et.
         - i. destruct (classic (tid = my_tid)).
           + subst. erewrite alist_replace_find_eq_None; et. 
-            rewrite -H0 -H3 -H4. econs 1; et. exact None.
+            rewrite -H0 -H -H4. econs 1; et. exact None.
           + erewrite alist_replace_find_neq_Some; et. exact None.
       }
       { (* already done case - impossible *)
         dup SIM. specialize (SIM my_tid). rewrite LU in SIM. inv SIM.
         { (* done *)
-          symmetry in H6. rewrite /token_half. unseal "SchA". iCombine "TOKEN THW" gives %X.
+          symmetry in H6. rewrite /token_half. unseal "SchA". iCombine "token THW" gives %X.
           exfalso. rewrite auth_frag_valid in X.
           specialize (X my_tid). rewrite discrete_fun_lookup_op in X. ss.
           rewrite -H5 in X. rewrite Nat.eqb_refl in X.
           rewrite Some_valid pair_valid in X; des. ss.
         }
         { (* joined *) 
-          symmetry in H6. rewrite /token_half. unseal "SchA". iCombine "TOKEN THW" gives %X.
+          symmetry in H6. rewrite /token_half. unseal "SchA". iCombine "token THW" gives %X.
           exfalso. rewrite auth_frag_valid in X.
           specialize (X my_tid). rewrite discrete_fun_lookup_op in X. ss.
           rewrite -H5 in X. rewrite Nat.eqb_refl in X.
@@ -605,21 +507,21 @@ Notation "E1 '------------------------------------------------------------------
       { (* active - only possible case *)
         dup SIM. specialize (SIM my_tid). rewrite LU in SIM. inv SIM.
         rewrite /token_half. unseal "SchA".
-        iCombine "TOKEN THW" gives %THW. iCombine "TOKEN THW" as "THW".
+        iCombine "token THW" gives %THW. iCombine "token THW" as "THW".
 
         rewrite auth_frag_valid in THW. ss.
         specialize (THW my_tid). rewrite discrete_fun_lookup_op in THW. rewrite Nat.eqb_refl in THW.
-        rewrite -H3 in THW. rewrite// -Some_op Some_valid pair_valid in THW. des; ss.
+        rewrite -H0 in THW. rewrite// -Some_op Some_valid pair_valid in THW. des; ss.
         apply agree_op_inv in THW0.
 
-        remember (λ s: SAny.t, Some (to_agree (synpost s)))%I as POSTF.
+        remember (λ s: SAny.t, Some (to_agree (postS s)))%I as POSTF.
         iAssert (interp_cond (Q sret))%I with "[POST]" as "POST".
         { subst. apply (inj to_agree) in THW0. specialize (THW0 sret). ss. inv THW0.
           apply (inj to_agree) in H7. unfold interp_cond. rewrite H7. et. }
 
         assert (((((λ n : nat, if my_tid =? n then Some ((1/2)%Qp, to_agree POSTF) else ε) : threadsF) ⋅ ths_src_w): threadsF) ≡ ((λ n : nat, if my_tid =? n then Some ((3/4)%Qp, to_agree (λ s: SAny.t, Some (to_agree (Q s)))) else ths_src_w n): threadsF)).
         { intros y. rewrite discrete_fun_lookup_op. des_ifs. 2:rewrite left_id //.
-          rewrite Nat.eqb_eq in Heq; subst. rewrite -H3 -Some_op -pair_op frac_op -THW0 agree_idemp.
+          rewrite Nat.eqb_eq in Heq; subst. rewrite -H0 -Some_op -pair_op frac_op -THW0 agree_idemp.
           f_equiv. f_equiv. compute_done.
         }
         rewrite H5.
@@ -632,7 +534,7 @@ Notation "E1 '------------------------------------------------------------------
             des; split; et.
           + i. destruct (classic (tid = my_tid)).
             * subst. erewrite alist_replace_find_eq_Some; et. rewrite !lookup_insert. 
-              rewrite Nat.eqb_refl. rewrite -H0. econs 3; et.
+              rewrite Nat.eqb_refl. rewrite -H. econs 3; et.
             * erewrite alist_replace_find_neq_Some; et. 2:exact None.
               des_ifs; [rewrite Nat.eqb_eq in Heq; subst; ss|].
               rewrite !lookup_insert_ne; et.
@@ -652,53 +554,57 @@ Notation "E1 '------------------------------------------------------------------
     eapply wpsim_coind. i.
     destruct a as [nths1 [st_src1 [st_tgt1 [NODS1 NODD1]]]]. s.
     iIntros "IST _ #CIH".
-    (* Check unfold_iter_eq. *)
-    (* iStopProof. *)
-    rewrite {2}(@unfold_iter_eq hmodE). rewrite {2}(@unfold_iter_eq pmodE).
-    w_step_l. w_step_l. w_force_l tt. w_force_l.
-    prep. hide_itree_r marker. prep.
-    iApply wpsim_full_guarantee_src; iSplitL "".
-    { unfold precond; ss. iIntros "$". ss. }
-    show_itree marker.
+    unfold_iter_l. unfold_iter_r.
+    (* rewrite {2}(@unfold_iter_eq hmodE). rewrite {2}(@unfold_iter_eq pmodE). *)
+
+    w_step_l. w_step_l.
+    w_force_l tt. w_force_l (tt↑).
+    prep_l.
+    iApply wpsim_full_guarantee_src_WP.
+    iSplitL ""; ss.
+
     w_call "IST".
     w_step_l.
-    hide_itree_r marker. prep.
-    iApply wpsim_full_assume_src; iSplitL ""; first rewrite /sch_ginv; iIntros "I"; iFrame.
-    show_itree marker.
-    do 3 w_step_l. rewrite {2}/postcond; ss. iDestruct "I" as "[-> ->]". hss.
-    do 3 w_step_l.
-    do 2 w_step_r. hss. do 3 w_step_r.
-    iApply wpsim_progress; iApply wpsim_base;
-    iSpecialize ("CIH" $! _);
-    (hrepeat do 1 first[instantiate (1:= (_,_))|instantiate (1:= existT _ _)]); s.
-    iApply "CIH".
+    prep_l.
+    iApply wpsim_full_assume_src_WP; iIntros "Q".
+    w_steps_l. rewrite {2}/postcond; ss. iDestruct "Q" as "[-> ->]". hss.
+    w_steps_l.
+    w_steps_r. hss. w_steps_r.
+    by_coind "CIH".
     done.
     Unshelve. all: ss.
   Qed.
-  Lemma simF_spawn:
-    HSim.sim_fun SchAMod SchIMod Ist SchName.spawn.
+
+  Lemma simF_spawn : HSim.sim_fun SchAMod SchIMod Ist SchName.spawn.
   Proof.
-    init_simF.
+    init_wpsim.
+    iDestruct "ASM" as "[%va [-> ASM]]".
+    destruct q as [[[[farg fvarg] pre] synpost] [userf userm]].
+    iDestruct "ASM" as "[[-> [-> [% %]]] PRE]". inv H. rename x into userfspec.
 
-    steps_l. hss. destruct q2; ss.
-    iDestruct "ASM" as "[W (% & % & (% & % & [% %] & %) & PRE)]"; des; subst; hss.
-    steps_r. unfold HoareSpawn. force_l (my_tid, q7, q8, q6, q4, existT x m).
-    force_l ((my_tid, x, q7)↑). step. steps_r.
+    (* spawn _spawn *)
+    hss. w_step_l. w_step_l. w_step_l. w_step_l.
+    prep_l. w_step_l.
+    prep_l. w_force_l (my_tid, farg, fvarg, pre, synpost, existT userf userm).
+    w_force_l ((my_tid, userf, farg)↑).
+    w_step_r. w_step_r. w_step_r. w_step_r. w_step.
+    w_step_r. w_step_r. w_step_r. w_step_r. w_step_r.
 
-    iDestruct "IST" as (? ? ? ?) "(% & THB & THW & COND)". subst; hss. steps_r.
+    iDestruct "IST" as (? ? ? ?) "(% & THB & THW & COND)". subst; hss.
+    w_step_r. w_step_r. w_step_r. w_step_r.
 
     (* create new token *)
     dup THWF. apply ths_wf_nths_none in THWF. hexploit (SIM nths). i. rewrite THWF in H. inv H.
 
     iCombine "THB THW" as "TH".
     iPoseProof (own_update with "TH") as "TH".
-    { apply shot_thread with (Q:=q4). split; et. apply wf_ths_src in SIM. et. }
-    iApply isim_upd. iMod "TH" as "[[[[THB THW] TKNH] TKNQ1] TKNQ0]". iModIntro.
+    { apply shot_thread with (Q:=synpost). split; et. apply wf_ths_src in SIM. et. }
+    iMod "TH" as "[[[[THB THW] TKNH] TKNQ1] TKNQ0]".
 
-    force_l. iSplitL "PRE TKNH".
+    w_force_l. iSplitL "PRE TKNH".
     { iIntros "W". rewrite /token_half. unseal "SchA". iFrame. iPureIntro. esplits; et. }
 
-    steps_l. forces_l. iSplitL "W"; et.
+    prep_l. iApply wpsim_full_guarantee_src; iSplitL ""; first rewrite /sch_ginv; iFrame; eauto.
 
     (* build IST *)
     rewrite /alist_upd /_alist_upd /=.
@@ -711,107 +617,129 @@ Notation "E1 '------------------------------------------------------------------
         des; des_ifs; split; [nia|et].
       - i. destruct (classic (tid = nths)).
         + subst. rewrite alist_add_find_eq. 
-          rewrite !discrete_fun_lookup_op Nat.eqb_refl -H1 left_id -H4.
+          rewrite !discrete_fun_lookup_op Nat.eqb_refl -H3 left_id -H4.
           econs 2; et.
         + rewrite alist_add_find_neq; et.
           rewrite discrete_fun_lookup_op.
           des_ifs; [rewrite Nat.eqb_eq in Heq; subst; ss|].
-          rewrite right_id. et. }
-
+          rewrite right_id. et.
+    }
     yield "IST"; et.
+    w_step_l.
+    prep_l. iApply wpsim_full_assume_src; iSplitL ""; first rewrite /sch_ginv; iIntros "I"; iFrame.
+    { iAssert (emp)%I as "E"; first done; iApply "E". }
+    iClear "I".
 
-    steps_l. iDestruct "ASM" as "W". rewrite /sch_ginv.
-    steps_r. forces_l. iSplitL "W TKNQ0".
-    { iFrame. iExists nths; iSplit; et. }
-
-    step. iSplit; et.
+    w_step_l. w_step_l. w_step_l. w_step_l. w_step_l.
+    w_step_r. w_step_r. w_step_r.
+    w_force_l (nths ↑).
+    prep_l. iApply wpsim_full_guarantee_src; iSplitL "TKNQ0"; iFrame; eauto.
+    { repeat (unfold postcond; s).
+      iIntros "$"; iExists nths; iSplit; first done.
+      iExists nths; iSplit; et.
+    }
+    w_step. iFrame; easy.
+    Unshelve. exact 1%positive. (* TODO: Erase!*)
   Qed.
 
-  Lemma simF_yield:
-    HSim.sim_fun SchAMod SchIMod Ist SchName.yield.
+  Lemma simF_yield : HSim.sim_fun SchAMod SchIMod Ist SchName.yield.
   Proof.
-    init_simF.
+    init_wpsim.
+    iDestruct "ASM" as "[-> ->]". hss.
 
-    steps_l. iDestruct "ASM" as "(W & % & %)". des; subst; hss.
-    
-    steps_r. iDestruct "IST" as (? ? ? ?) "(% & THB & THW & COND)". subst; hss. steps_r.
-    force_l. instantiate (1:=q). steps_l. force_l. iSplitL "W"; et.
+    w_step_l. w_step_r. w_step_r. w_step_r.
+    iDestruct "IST" as (? ? ? ?) "(% & THB & THW & COND)". subst; hss.
+    w_step_r. hss. w_step_r.
+    w_step_r. w_step_r. w_step_r. w_step_r. w_step_r. w_step_r. w_step_r.
+    w_force_l q. w_step_l. w_step_l.
+    prep_l. rewrite /sch_ginv; w_force_l.
     
     yield "THB THW COND".
     { iExists _, _, _, _. iSplit; et. iFrame. }
 
-    steps_l. unfold sch_ginv. iDestruct "ASM" as (?) "W".
-    steps_r. steps_r. force_l. steps_l. forces_l. iSplitL "W"; et.
-    step. iFrame; et.
+    w_step_l.
+    prep_l. iApply wpsim_full_assume_src; iSplitL ""; first (iIntros "I"; iFrame; instantiate (1:=True%I); easy).
+    iIntros "_".
+
+    w_step_l. w_step_l. w_step_l.
+    w_force_l (tt↑).
+    prep_l. iApply wpsim_full_guarantee_src; iSplitL "".
+    { iIntros "I"; iFrame. unfold postcond; s; iSplit; easy. }
+    w_step_r. w_step_r.
+    w_step. iFrame; easy.
+    Unshelve. exact 1%positive.
   Qed.
 
-  Lemma simF_join:
-    HSim.sim_fun SchAMod SchIMod Ist SchName.join.
+  Lemma simF_join : HSim.sim_fun SchAMod SchIMod Ist SchName.join.
   Proof.
-    init_simF.
+    init_wpsim.
+    destruct q as [tid postS]; s.
+    iDestruct "ASM" as "[[-> TOK] ->]". hss.
+    w_step_l.
 
-    steps_l. iDestruct "ASM" as "(W & [% TKN] & %)". subst; hss.
-    steps_r.
-
-    rewrite !/Sch.yield /ccallU. unseal "Sch". grind. prep.
+    w_step_r.
+    rewrite !/Sch.yield /ccallU. unseal "Sch".
     rewrite PModRed.interp_bind. rewrite HModSB.transl_bind. grind.
 
-    iApply isim_reset. iStopProof. revert NODD.
+    iApply wpsim_reset. iStopProof.
+    revert NODD.
     combine_quant NODS.
     combine_quant st_tgt.
     combine_quant st_src.
     combine_quant nths.
-    eapply isim_coind. i.
+    Unshelve. 2:{ exact 1%positive. }
+    eapply wpsim_coind. intros g' a.
     destruct a as [nths [st_src [st_tgt [NODS NODD]]]]. s.
-    iIntros "((IST & W & TKN) & #CIH)".
+    iIntros "[IST TKN] _ #CIH".
 
-    set_marker MARKER. hide_ihyps.
-    do 2 rewrite unfold_iter_eq.
-    show_until MARKER.
+    unfold_iter_l; unfold_iter_r.
 
     iDestruct "IST" as (? ? ? ?) "(% & THB & THW & COND)". des; subst; hss.
-    steps_r. hss. steps_r.
-
-    destruct (alist_find q ths_tgt) eqn:LU; [destruct o|].
+    w_steps_r. hss. w_steps_r.
+    
+    destruct (alist_find tid ths_tgt) eqn:LU; [destruct o|].
     { (* done(O) | joined(X) *)
-      hexploit (SIM q). intro T. rewrite LU in T. inv T.
+      hexploit (SIM tid). intro T. rewrite LU in T. inv T.
       { (* done(O) *)
-        iClear "CIH". steps_r.
-        force_l true. steps_l. force_l. steps_l.
+        iClear "CIH". w_step_r. w_step_r.
+        w_force_l true. w_steps_l. w_force_l.
+        w_steps_l.
         iPoseProof (big_sepM_delete with "COND") as "[POST COND]"; et.
 
         iCombine "THW TKN" gives %WF. iCombine "THW TKN" as "WF".
-        rewrite auth_frag_valid in WF. specialize (WF q). ss.
-        rewrite discrete_fun_lookup_op Nat.eqb_refl -H3 -Some_op Some_valid in WF.
+        rewrite auth_frag_valid in WF. specialize (WF tid). ss.
+        rewrite discrete_fun_lookup_op Nat.eqb_refl -H2 -Some_op Some_valid in WF.
         rewrite -pair_op pair_valid frac_op in WF. des.
 
         apply agree_op_inv in WF0. dup WF0.
         apply (inj to_agree) in WF0.
-        iAssert (interp_cond (q2 t))%I with "[POST]" as "POST".
-        { unfold interp_cond. specialize (WF0 t). ss. inv WF0. apply (inj to_agree) in H5.
-          rewrite -H5. iApply "POST". }
+        iAssert (interp_cond (postS t))%I with "[POST]" as "POST".
+        { unfold interp_cond. specialize (WF0 t). ss. inv WF0. apply (inj to_agree) in H4.
+          rewrite -H4. iApply "POST".
+        }
         
-        forces_l. iSplitL "W POST"; iFrame; et.
-        assert (◯ (ths_src_w ⋅ (λ n: nat, if q =? n then Some ((1/4)%Qp, to_agree (λ s: SAny.t, Some (to_agree (q2 s)))) else ε) : threadsF) ≡ ◯ ((λ n: nat, if q =? n then Some (1%Qp, to_agree (λ s: SAny.t, Some (to_agree (Q s)))) else ths_src_w n) : threadsF)).
+        w_force_l. 
+        prep_l; iApply wpsim_full_guarantee_src; iSplitL "POST"; iFrame; et.
+        { rewrite /postcond /=; iIntros "$"; rewrite /postcond /=; iFrame; iSplit; easy. }
+        assert (◯ (ths_src_w ⋅ (λ n: nat, if tid =? n then Some ((1/4)%Qp, to_agree (λ s: SAny.t, Some (to_agree (postS s)))) else ε) : threadsF) ≡ ◯ ((λ n: nat, if tid =? n then Some (1%Qp, to_agree (λ s: SAny.t, Some (to_agree (Q s)))) else ths_src_w n) : threadsF)).
         { f_equiv. intros y. rewrite !discrete_fun_lookup_op.
-          destruct (classic (q = y)).
-          - subst. rewrite Nat.eqb_refl.
-            rewrite -WF1 -H3 -Some_op -pair_op frac_op agree_idemp. do 2 f_equiv.
-            compute_done.
+          destruct (decide (tid = y)).
+          - subst. rewrite Nat.eqb_refl -WF1 -H2 -Some_op -pair_op frac_op agree_idemp.
+            do 2 f_equiv. compute_done.
           - des_ifs; [|rewrite right_id //]. rewrite Nat.eqb_eq in Heq. subst; ss.
         }
         rewrite H0.
 
-        step. iSplit; et. iExists _, _, _, _. iFrame. iPureIntro.
-        esplits; et. i. destruct (classic (tid = q)).
-        - subst. rewrite LU -H2 Nat.eqb_refl lookup_delete. econs.
+        w_step. iSplit; et. iExists _, _, _, _. iFrame. iPureIntro.
+        esplits; et. i. destruct (classic (tid = tid0)).
+        - subst. rewrite LU -H2 -H Nat.eqb_refl lookup_delete. econs.
         - des_ifs; [rewrite Nat.eqb_eq in Heq; subst; ss|].
           rewrite lookup_delete_ne; et.
       }
       { (* joined(X) *)
         iCombine "THW TKN" gives %WF. exfalso.
-        rewrite auth_frag_valid in WF. specialize (WF q). ss.
-        rewrite discrete_fun_lookup_op -H3 Nat.eqb_refl -Some_op -pair_op frac_op in WF.
+        rewrite auth_frag_valid in WF. specialize (WF tid). ss.
+        rewrite discrete_fun_lookup_op -H2 Nat.eqb_refl -Some_op -pair_op frac_op in WF.
         rewrite Some_valid pair_valid in WF. des. ss.
       }
     }
@@ -819,25 +747,29 @@ Notation "E1 '------------------------------------------------------------------
       set (st_tgt0 := [(SchI.v_ths, ths_tgt↑)]).
       iAssert (Ist sk nths st_src st_tgt0) with "[THB THW COND]" as "IST".
       { iExists _, _, _, _. iFrame. iPureIntro. esplits; et. }
-      force_l false. steps_l. forces_l. iSplitL "W"; et.
-      call "IST"; et. steps_l. destruct q1. steps_l.
-      iDestruct "ASM" as "(W & % & %)". steps_r. hss. steps_r.
+      w_force_l false. w_steps_l. w_force_l (tt). w_force_l (tt↑).
+      prep_l; iApply wpsim_full_guarantee_src_WP; iSplitL ""; et.
+
+      w_call "IST".
+      w_step_l; prep_l; iApply wpsim_full_assume_src_WP; iIntros "[-> ->]".
+      w_steps_l. hss; w_steps_l.
+      w_steps_r. hss; w_steps_r.
+      rewrite /cgetU.
       by_coind "CIH". iFrame.
     }
     { (* idle(X) *)
       iCombine "THB TKN" gives %WF. exfalso.
-      hexploit (SIM q). intro STHS. rewrite LU in STHS. inv STHS.
+      hexploit (SIM tid). intro STHS. rewrite LU in STHS. inv STHS.
       apply auth_both_valid_discrete in WF. des.
-      apply (discrete_fun_included_spec_1 _ _ q) in WF.
-      ss. rewrite Nat.eqb_refl in WF. rewrite -H0 in WF.
+      apply (discrete_fun_included_spec_1 _ _ tid) in WF.
+      ss. rewrite Nat.eqb_refl in WF. rewrite -H in WF.
       eapply fragree_incl_false. et.
     }
 
     Unshelve. all: ss.
   Qed.
 
-  Theorem sim:
-    HSim.t SchAMod SchIMod SchA.InitCond Ist.
+  Theorem sim : HSim.t SchAMod SchIMod SchA.InitCond Ist.
   Proof.
     init_sim.
     - rewrite /SchA.InitCond /initial_threads. unseal "SchA".
