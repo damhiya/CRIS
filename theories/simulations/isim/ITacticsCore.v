@@ -469,9 +469,9 @@ Ltac show_until marker :=
 
 Ltac unfold_spc :=
   try match goal with
-    [|-context[unwrapN (?spc ?sk ?name)]] =>
+    [|-context[unwrapN (?spc ?name)]] =>
       try match goal with
-        [H: context[spc_incl _ (spc _)]|-_] =>
+        [H: context[spc_incl _ spc]|-_] =>
           let RW := fresh "_RW" in let ND := fresh "_ND" in
           edestruct H as [ND RW];
           erewrite (RW name);
