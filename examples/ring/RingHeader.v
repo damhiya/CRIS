@@ -9,6 +9,6 @@ Definition dequeue  := "Ring.dequeue".
 
 End RingName.
 
-Module RingSK.
+(* Module RingSK.
   Definition t : Sk.t := [].
-End RingSK.
+End RingSK. *)

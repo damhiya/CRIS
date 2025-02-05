@@ -15,16 +15,16 @@ Module CtrlIA. Section CtrlIA.
 
   Variable max_size : nat.
 
-  Variable ginv : Sk.t -> invspec.
-  Variable StbR : Sk.t -> string -> option fspec.
-  Variable StbC : Sk.t -> string -> option fspec.
+  Variable ginv : invspec.
+  Variable SpcR : string -> option fspec.
+  Variable SpcC : string -> option fspec.
 
-  Local Notation CellA := (fun idx => CellA.t idx ginv StbC).
+  Local Notation CellA := (fun idx => CellA.t idx ginv SpcC).
   Definition CellG start len : HMod.t :=
     HMod.addL (List.map CellA (seq start len)).
   Local Notation CellGS := (CellG 0 max_size).
 
-  Local Notation RingA := (RingA.t max_size ginv StbR).
+  Local Notation RingA := (RingA.t max_size ginv SpcR).
   Local Notation CtrlI := (CtrlI.t max_size).
   Local Notation RingAMod := (RingA ★ CellGS).
   Local Notation RingIMod := (CtrlI ★ CellGS).
@@ -93,18 +93,18 @@ Module CtrlIA. Section CtrlIA.
       exists (n / List.length l). nia.
   Qed.
 
-  Definition Ist : Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp Σ :=
-    (λ _ _ st_src st_tgt,
+  Definition Ist : nat -> alist key Any.t -> alist key Any.t -> iProp Σ :=
+    (λ _ st_src st_tgt,
      ∃ (q q' : list Z) (hd tl : nat),
        ⌜st_src = [(RingA.v_que, q↑)] /\ st_tgt = [(CtrlI.v_hd,hd↑);(CtrlI.v_tl,tl↑)] /\
        hd = (tl + List.length q)%nat /\ List.length (q ++ q') = max_size⌝ ∗
        ([∗ list] i↦x ∈ q, CellAS.cell ((tl+i) mod max_size) x) ∗
        ([∗ list] i↦x ∈ q', (CellAS.pending ((hd+i) mod max_size) ∨ CellAS.cell ((hd+i) mod max_size) x)))%I.
 
-  Notation IstFull := (IstProd (IstSB (RingA.t max_size ginv StbR) Ist) IstEq).
+  Notation IstFull := (IstProd (IstSB (RingA.t max_size ginv SpcR).(HMod.scopes) Ist) IstEq).
 
   Lemma simF_init:
-    HSim.sim_fun RingAMod RingIMod IstFull RingName.init.
+    HSim.sim_fun RingAMod RingIMod IstFull false RingName.init.
   Proof.
     init_simF.
 
@@ -136,7 +136,7 @@ Module CtrlIA. Section CtrlIA.
   Qed.
 
   Lemma simF_get_size:
-    HSim.sim_fun RingAMod RingIMod IstFull RingName.get_size.
+    HSim.sim_fun RingAMod RingIMod IstFull false RingName.get_size.
   Proof.
     init_simF.
 
@@ -155,7 +155,7 @@ Module CtrlIA. Section CtrlIA.
   Qed.
 
   Lemma simF_enqueue:
-    HSim.sim_fun RingAMod RingIMod IstFull RingName.enqueue.
+    HSim.sim_fun RingAMod RingIMod IstFull false RingName.enqueue.
   Proof.
     init_simF.
 
@@ -208,7 +208,7 @@ Module CtrlIA. Section CtrlIA.
   Qed.
 
   Lemma simF_dequeue:
-    HSim.sim_fun RingAMod RingIMod IstFull RingName.dequeue.
+    HSim.sim_fun RingAMod RingIMod IstFull false RingName.dequeue.
   Proof.
     init_simF.
 
@@ -258,7 +258,7 @@ Module CtrlIA. Section CtrlIA.
       exists 1. nia.
   Qed.
 
-  Theorem sim : HSim.t RingAMod RingIMod (RingA.InitCond max_size) IstFull.
+  Theorem sim : HSim.t RingAMod RingIMod (RingA.InitCond max_size) IstFull false.
   Proof.
     init_sim.
     - iIntros "R". iExists [_], [_;_], _, _.

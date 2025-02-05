@@ -14,20 +14,20 @@ Module CellIA. Section CellIA.
 
   Variable idx : nat.
 
-  Definition Ist : Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp Σ :=
-    (λ _ _ st_src st_tgt,
+  Definition Ist : nat -> alist key Any.t -> alist key Any.t -> iProp Σ :=
+    (λ _ st_src st_tgt,
        ∃ vany v, 
         ⌜st_tgt = [(CellI.v_cv idx, vany)]⌝
         ∗ ((cell idx v ∗ auth idx v)
           ∨ (⌜vany = v↑⌝ ∗ pending idx ∗ auth idx v)))%I.
 
-  Variable ginv : Sk.t -> invspec.
-  Variable StbCell : Sk.t -> string -> option fspec.
+  Variable ginv : invspec.
+  Variable SpcCell : string -> option fspec.
 
-  Local Notation CellA := (CellA.t idx ginv StbCell).
+  Local Notation CellA := (CellA.t idx ginv SpcCell).
   Local Notation CellI := (CellI.t idx).
 
-  Lemma simF_get : HSim.sim_fun CellA CellI Ist (CellName.get idx).
+  Lemma simF_get : HSim.sim_fun CellA CellI Ist false (CellName.get idx).
   Proof.
     init_simF.
 
@@ -48,7 +48,7 @@ Module CellIA. Section CellIA.
   Qed.
 
   Lemma simF_set:
-    HSim.sim_fun CellA CellI Ist (CellName.set idx).
+    HSim.sim_fun CellA CellI Ist false (CellName.set idx).
   Proof.
     init_simF.
 
@@ -85,7 +85,7 @@ Module CellIA. Section CellIA.
     iExists _, _. iSplit; eauto. iRight. iFrame; eauto.
   Qed.
 
-  Theorem sim : HSim.t CellA CellI (CellA.InitCond idx) Ist.
+  Theorem sim : HSim.t CellA CellI (CellA.InitCond idx) Ist false.
   Proof.
     init_sim.
     - iIntros "H". iDestruct "H" as (v) "(C & A)".

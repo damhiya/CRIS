@@ -8,20 +8,20 @@ Set Implicit Arguments.
 Module RingAS. Section RingAS.
   Context `{Σ : GRA}.
 
-  Definition Stb : alist string fspec :=
+  Definition Spc : alist string fspec :=
     Seal.sealing CRIS [(RingName.init, fspec_trivial);
                        (RingName.get_size, fspec_trivial);
                        (RingName.enqueue, fspec_trivial);
                        (RingName.dequeue, fspec_trivial)].
 
-  Lemma Stb_nodup : List.NoDup (List.map fst Stb).
+  Lemma Spc_nodup : List.NoDup (List.map fst Spc).
   Proof.
-    unfold Stb. unseal CRIS. prove_nodup.
+    unfold Spc. unseal CRIS. prove_nodup.
   Qed.
   
 End RingAS.
 
-Global Hint Unfold Stb : stb.
+Global Hint Unfold Spc : stb.
 
 End RingAS.
 
@@ -67,24 +67,18 @@ Module RingA. Section RingA.
      (RingName.enqueue, (scopes,mk_specbody fspec_trivial (cfunU enqueue)));
      (RingName.dequeue, (scopes,mk_specbody fspec_trivial (cfunU dequeue)))].
 
-  Program Definition Sem : SModSem.t := {|
-    SModSem.scopes := scopes;
-    SModSem.fnsems := fnsems;
-    SModSem.initial_st := [(v_que,([]:list Z)↑)];
+  Program Definition Mod : SMod.t := {|
+    SMod.scopes := scopes;
+    SMod.fnsems := fnsems;
+    SMod.initial_st := [(v_que,([]:list Z)↑)];
   |}
   .
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition Mod : SMod.t := {|
-    SMod.modsem := λ _, Sem;
-    SMod.sk := RingSK.t;
-  |}
-  .
+  Definition InitCond : iProp Σ :=
+    ([∗ list] i↦_ ∈ (replicate max_size 0%Z), CellAS.pending i)%I.
 
-  Definition InitCond : Sk.t -> iProp Σ :=
-    fun _ => ([∗ list] i↦_ ∈ (replicate max_size 0%Z), CellAS.pending i)%I.
-
-  Definition t ginv Stb := Seal.sealing CRIS (SMod.to_hmod ginv Stb Mod).
+  Definition t ginv Spc := Seal.sealing CRIS (SMod.to_hmod ginv Spc Mod).
 
 End RingA. End RingA.

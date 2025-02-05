@@ -10,6 +10,6 @@ Module CellName.
   Definition set idx := fn idx "set".
 End CellName.
 
-Module CellSK.
+(* Module CellSK.
   Definition t : Sk.t := [].
-End CellSK.
+End CellSK. *)
