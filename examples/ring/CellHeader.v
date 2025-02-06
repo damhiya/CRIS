@@ -9,7 +9,3 @@ Module CellName.
   Definition get idx := fn idx "get".
   Definition set idx := fn idx "set".
 End CellName.
-
-Module CellSK.
-  Definition t : Sk.t := [].
-End CellSK.

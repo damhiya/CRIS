@@ -8,10 +8,9 @@ Require Export ITacticsCore.
  ***)
 
 Ltac init_sim :=
-  first [eapply mod_sim_reflR | econs; [econs|]];
+  first [eapply hmod_sim_reflR | econs];
   [i; s; repeat unfold_hmod; s
   |eauto
   |try prove_sub_perm
   |try prove_sub_perm
-  |unfold_hmod; s; i; des; subst; ss
-  |repeat unfold_hmod; ss; eauto].
+  |unfold_hmod; s; i; des; subst; ss].

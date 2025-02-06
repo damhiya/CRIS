@@ -14,13 +14,13 @@ Module RingIA. Section RingIA.
   Definition CellIG start len :=
     HMod.addL (List.map CellI.t (seq start len)).
 
-  Theorem correct max_size ginv (StbR StbC : Sk.t -> string -> option fspec)
+  Theorem correct max_size ginv (SpcR SpcC : string -> option fspec)
     :
     ctx_refines
-      ((RingA.t max_size ginv StbR) ★ (CtrlIA.CellG ginv StbC 0 max_size),
-       (RingA.InitCond max_size) ∗∗ (fun sk => [∗ list] i↦x ∈ seq 0 max_size, CellA.InitCond i sk))%I
+      ((RingA.t max_size ginv SpcR) ★ (CtrlIA.CellG ginv SpcC 0 max_size),
+       (RingA.InitCond max_size) ∗ ([∗ list] i↦x ∈ seq 0 max_size, CellA.InitCond i))%I
       ((CtrlI.t max_size)           ★ (CellIG 0 max_size),
-       const(emp%I)).
+       emp%I).
   Proof.
     etrans.
     - eapply ctxr_cond_frameR.
@@ -34,13 +34,13 @@ Module RingIA. Section RingIA.
         rewrite !seq_S !map_app !hmod_addL_app.
         etrans; [|etrans]; [|apply ctxr_compose_hor|]; cycle 3.
         * eapply ctxr_cond_strengthen.
-          i. do 2 instantiate (1:=const(emp%I)). eauto.
+          i. do 2 instantiate (1:=emp%I). eauto.
         * eapply ctxr_cond_strengthen.
-          i. unfold HMod.addc. rewrite {1}big_sepL_app.
-          iIntros "(H1 & H2)". iSplitL "H1"; eauto.
+          i. rewrite {1}big_sepL_app.
+          iIntros "(H1 & H2)". iSplitL "H1"; [iApply "H1"|iApply "H2"].
         * etrans; cycle 1. { apply IHmax_size. }
           eapply ctxr_cond_strengthen.
-          i. unfold HMod.addc. eauto.
+          i. eauto.
         * s. rewrite !hmod_add_empty_r.
           etrans; cycle 1.
           { eapply main_adequacy. eapply CellIA.sim. }

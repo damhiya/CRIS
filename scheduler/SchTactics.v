@@ -14,24 +14,24 @@ Section MACROAUX.
   (** Sch.spawn *)
 
   Lemma isim_mspawn_hp
-    fl fr Ist r g {Rs Rt} RR my_tid ps pt nths st_src st_tgt k_src k_tgt scp_src scp_tgt invspc
-    (Stb: Sk.t → string → option fspec) (univ: positive)
-    (sk: Sk.t) (fvarg farg: SAny.t) (pre: iProp) (postS: SAny.t → {n & SRFSyn.t n}) 
+    contextual fl fr Ist r g {Rs Rt} RR my_tid ps pt nths st_src st_tgt k_src k_tgt scp_src scp_tgt invspc
+    (Stb: string → option fspec) (univ: positive)
+    (fvarg farg: SAny.t) (pre: iProp) (postS: SAny.t → {n & SRFSyn.t n}) 
     (fn: string) (fsp: fspec) (m: meta fsp)
-    (FINDF: Stb sk fn = Some fsp)
-    (FINDS: Stb sk SchName.spawn = Some (SchAS.spawn_spec univ Stb sk))
+    (FINDF: Stb fn = Some fsp)
+    (FINDS: Stb SchName.spawn = Some (SchAS.spawn_spec univ Stb))
     (SPWN: ∀ tid, SchAS.fspec_spawnable univ fsp tid m fvarg↑ farg↑ pre postS)
     :
       (((Ist nths st_src st_tgt) ∗ (∃ n, wsats univ n ⊤) ∗ pre) ∗
       (∀ nths0 st_src0 st_tgt0 tid,
         ((Ist nths0 st_src0 st_tgt0) ∗ (∃ n, wsats univ n ⊤) ∗ (SchAS.token_th tid postS))
-        -∗ @isim Σ fl fr Ist my_tid false r g Rs Rt RR true true nths0 
+        -∗ @isim Σ contextual fl fr Ist my_tid r g Rs Rt RR true true nths0 
               (st_src0, k_src tid)
               (st_tgt0, k_tgt tid)))
     ⊢
-      (isim fl fr Ist my_tid false r g RR ps pt nths 
-        (st_src, (HModSem.sandbox scp_src (interp_smod invspc (Stb sk) (Sch.spawn (fn, fvarg)))) >>= k_src)
-        (st_tgt, (HModSem.sandbox scp_tgt (PModSem.interp (Sch.spawn (fn, farg)))) >>= k_tgt)).
+      (isim contextual fl fr Ist my_tid r g RR ps pt nths 
+        (st_src, (HMod.sandbox scp_src (interp_smod invspc Stb (Sch.spawn (fn, fvarg)))) >>= k_src)
+        (st_tgt, (HMod.sandbox scp_tgt (PMod.interp (Sch.spawn (fn, farg)))) >>= k_tgt)).
   Proof.
     iIntros "[(IST & W & PRE) ISIM]". rewrite !/Sch.spawn /ccallU. unseal "Sch".
     force_l. iSplitR; et. unfold HoareCall. steps_l. force_l.
@@ -50,23 +50,23 @@ Section MACROAUX.
   Qed.
 
   Lemma isim_mspawn_hh
-    fl fr Ist r g Rs Rt RR my_tid ps pt nths st_src st_tgt k_src k_tgt scp_src scp_tgt invspc_src invspc_tgt
-    (stbf stb_src stb_tgt: Sk.t → string → option fspec) (univ: positive)
-    (sk: Sk.t) (fvarg: SAny.t) (fn: string) (fsp: fspec) (m: meta fsp)
-    (FIND: stbf sk fn = Some fsp)
-    (SPWNS: stb_src sk SchName.spawn = Some (SchAS.spawn_spec univ stbf sk))
-    (SPWNT: stb_tgt sk SchName.spawn = Some (SchAS.spawn_spec univ stbf sk))
+    contextual fl fr Ist r g Rs Rt RR my_tid ps pt nths st_src st_tgt k_src k_tgt scp_src scp_tgt invspc_src invspc_tgt
+    (stbf stb_src stb_tgt: string → option fspec) (univ: positive)
+    (fvarg: SAny.t) (fn: string) (fsp: fspec) (m: meta fsp)
+    (FIND: stbf fn = Some fsp)
+    (SPWNS: stb_src SchName.spawn = Some (SchAS.spawn_spec univ stbf))
+    (SPWNT: stb_tgt SchName.spawn = Some (SchAS.spawn_spec univ stbf))
     :
       ((Ist nths st_src st_tgt) ∗
       (∀ nths0 st_src0 st_tgt0 tid,
         (Ist nths0 st_src0 st_tgt0)
-        -∗ @isim Σ fl fr Ist my_tid false r g Rs Rt RR true true nths0 
+        -∗ @isim Σ contextual fl fr Ist my_tid r g Rs Rt RR true true nths0 
               (st_src0, k_src tid)
               (st_tgt0, k_tgt tid)))
     ⊢
-      (isim fl fr Ist my_tid false r g RR ps pt nths 
-        (st_src, (HModSem.sandbox scp_src (interp_smod invspc_src (stb_src sk) (Sch.spawn (fn, fvarg))))>>= k_src)
-        (st_tgt, (HModSem.sandbox scp_tgt (interp_smod invspc_tgt (stb_tgt sk) (Sch.spawn (fn, fvarg)))) >>= k_tgt)).
+      (isim contextual fl fr Ist my_tid r g RR ps pt nths 
+        (st_src, (HMod.sandbox scp_src (interp_smod invspc_src stb_src (Sch.spawn (fn, fvarg))))>>= k_src)
+        (st_tgt, (HMod.sandbox scp_tgt (interp_smod invspc_tgt stb_tgt (Sch.spawn (fn, fvarg)))) >>= k_tgt)).
   Proof.
     iIntros "[IST ISIM]". rewrite !/Sch.spawn !/ccallU. unseal "Sch".
     
@@ -90,19 +90,19 @@ Section MACROAUX.
   (** Sch.yield **)
 
   Lemma isim_myield_tgt_hp
-    fl fr Ist r g {Rs Rt} RR my_tid ps pt nths st_src st_tgt k_src k_tgt scp_src scp_tgt invspc stb univ
+    contextual fl fr Ist r g {Rs Rt} RR my_tid ps pt nths st_src st_tgt k_src k_tgt scp_src scp_tgt invspc stb univ
     (SPC: stb SchName.yield = Some (SchAS.yield_spec univ))
     :
     bi_entails
       (((Ist nths st_src st_tgt) ∗ (∃ n, wsats univ n ⊤)) ∗
       (∀ nths0 st_src0 st_tgt0,
         ((Ist nths0 st_src0 st_tgt0) ∗ (∃ n, wsats univ n ⊤))
-        -∗ @isim Σ fl fr Ist my_tid false r g Rs Rt RR false true nths0 
-              (st_src0, (HModSem.sandbox scp_src (interp_smod invspc stb (Sch.yield))) >>= k_src) 
+        -∗ @isim Σ contextual fl fr Ist my_tid r g Rs Rt RR false true nths0 
+              (st_src0, (HMod.sandbox scp_src (interp_smod invspc stb (Sch.yield))) >>= k_src) 
               (st_tgt0, k_tgt tt)))
-      (isim fl fr Ist my_tid false r g RR ps pt nths 
-        (st_src, (HModSem.sandbox scp_src (interp_smod invspc stb (Sch.yield))) >>= k_src) 
-        (st_tgt, (HModSem.sandbox scp_tgt (PModSem.interp (Sch.yield))) >>= k_tgt)).
+      (isim contextual fl fr Ist my_tid r g RR ps pt nths 
+        (st_src, (HMod.sandbox scp_src (interp_smod invspc stb (Sch.yield))) >>= k_src) 
+        (st_tgt, (HMod.sandbox scp_tgt (PMod.interp (Sch.yield))) >>= k_tgt)).
   Proof.
     iIntros "[[IST W] ISIM]". rewrite !/Sch.yield. unseal "Sch".
     rewrite !unfold_iter_eq. grind. prep. iApply isim_reset.
@@ -134,19 +134,19 @@ Section MACROAUX.
   Qed.
 
   Lemma isim_myield_tgt_hh
-    fl fr Ist r g {Rs Rt} RR my_tid ps pt nths st_src st_tgt k_src k_tgt scp_src scp_tgt invspc stb univ
+    contextual fl fr Ist r g {Rs Rt} RR my_tid ps pt nths st_src st_tgt k_src k_tgt scp_src scp_tgt invspc stb univ
     (SPC: stb SchName.yield = Some (SchAS.yield_spec univ))
     :
     bi_entails
       ((Ist nths st_src st_tgt) ∗
       (∀ nths0 st_src0 st_tgt0,
         (Ist nths0 st_src0 st_tgt0)
-        -∗ @isim Σ fl fr Ist my_tid false r g Rs Rt RR false true nths0 
-              (st_src0, (HModSem.sandbox scp_src (interp_smod invspc stb (Sch.yield))) >>= k_src) 
+        -∗ @isim Σ contextual fl fr Ist my_tid r g Rs Rt RR false true nths0 
+              (st_src0, (HMod.sandbox scp_src (interp_smod invspc stb (Sch.yield))) >>= k_src) 
               (st_tgt0, k_tgt tt)))
-      (isim fl fr Ist my_tid false r g RR ps pt nths 
-        (st_src, (HModSem.sandbox scp_src (interp_smod invspc stb (Sch.yield))) >>= k_src) 
-        (st_tgt, (HModSem.sandbox scp_tgt (interp_smod invspc stb (Sch.yield))) >>= k_tgt)).
+      (isim contextual fl fr Ist my_tid r g RR ps pt nths 
+        (st_src, (HMod.sandbox scp_src (interp_smod invspc stb (Sch.yield))) >>= k_src) 
+        (st_tgt, (HMod.sandbox scp_tgt (interp_smod invspc stb (Sch.yield))) >>= k_tgt)).
   Proof.
     iIntros "[IST ISIM]". rewrite !/Sch.yield. unseal "Sch".
     rewrite !unfold_iter_eq. grind. prep. iApply isim_reset.
@@ -184,18 +184,18 @@ Section MACROAUX.
   Qed.
 
   Lemma isim_myield_src
-    fl fr Ist r g {Rs Rt} RR my_tid ps pt nths st_src st_tgt k_src i_tgt scp_src invspc stb univ
+    contextual fl fr Ist r g {Rs Rt} RR my_tid ps pt nths st_src st_tgt k_src i_tgt scp_src invspc stb univ
     (SPC: stb SchName.yield = Some (SchAS.yield_spec univ))
     :
     bi_entails
       (((Ist nths st_src st_tgt) ∗ (∃ n, wsats univ n ⊤)) ∗
       (∀ nths0 st_src0 st_tgt0,
         ((Ist nths0 st_src0 st_tgt0) ∗ (∃ n, wsats univ n ⊤))
-        -∗ @isim Σ fl fr Ist my_tid false r g Rs Rt RR true false nths0 
+        -∗ @isim Σ contextual fl fr Ist my_tid r g Rs Rt RR true false nths0 
               (st_src0, k_src tt) 
               (st_tgt0, i_tgt)))
-      (isim fl fr Ist my_tid false r g RR ps pt nths 
-        (st_src, (HModSem.sandbox scp_src (interp_smod invspc stb (Sch.yield))) >>= k_src) 
+      (isim contextual fl fr Ist my_tid r g RR ps pt nths 
+        (st_src, (HMod.sandbox scp_src (interp_smod invspc stb (Sch.yield))) >>= k_src) 
         (st_tgt, i_tgt)).
   Proof.
     iIntros "[[IST W] ISIM]". rewrite !/Sch.yield. unseal "Sch".
@@ -206,21 +206,21 @@ Section MACROAUX.
   (* Sch.join *)
   
   Lemma isim_mjoin_hp
-    fl fr Ist r g {Rs Rt} RR my_tid ps pt nths st_src st_tgt RT (k_src: RT → itree hmodE Rs) (k_tgt: RT → itree hmodE Rt)
-    scp_src scp_tgt invspc tid sk
-    (Stb: Sk.t → string → option fspec) (univ: positive) (postS: SAny.t → {n & SRFSyn.t n})
-    (FINDS: Stb sk SchName.join = Some (SchAS.join_spec univ))
+    contextual fl fr Ist r g {Rs Rt} RR my_tid ps pt nths st_src st_tgt RT (k_src: RT → itree hmodE Rs) (k_tgt: RT → itree hmodE Rt)
+    scp_src scp_tgt invspc tid
+    (Stb: string → option fspec) (univ: positive) (postS: SAny.t → {n & SRFSyn.t n})
+    (FINDS: Stb SchName.join = Some (SchAS.join_spec univ))
     :
       (((Ist nths st_src st_tgt) ∗ (∃ n, wsats univ n ⊤) ∗ (SchAS.token_th tid postS)) ∗
       (∀ nths0 st_src0 st_tgt0 (ret: RT),
         ((Ist nths0 st_src0 st_tgt0) ∗ (∃ n, wsats univ n ⊤) ∗ (interp_cond (postS ret↑↑)))
-        -∗ @isim Σ fl fr Ist my_tid false r g Rs Rt RR true true nths0 
+        -∗ @isim Σ contextual fl fr Ist my_tid r g Rs Rt RR true true nths0 
               (st_src0, k_src ret)
               (st_tgt0, k_tgt ret)))
     ⊢
-      (isim fl fr Ist my_tid false r g RR ps pt nths 
-        (st_src, (HModSem.sandbox scp_src (interp_smod invspc (Stb sk) (Sch.join RT tid))) >>= k_src)
-        (st_tgt, (HModSem.sandbox scp_tgt (PModSem.interp (Sch.join RT tid))) >>= k_tgt)).
+      (isim contextual fl fr Ist my_tid r g RR ps pt nths 
+        (st_src, (HMod.sandbox scp_src (interp_smod invspc Stb (Sch.join RT tid))) >>= k_src)
+        (st_tgt, (HMod.sandbox scp_tgt (PMod.interp (Sch.join RT tid))) >>= k_tgt)).
   Proof.
     iIntros "[(IST & W & TKN) ISIM]". rewrite !/Sch.join !/ccallU. unseal "Sch".
     force_l. iSplitR; et. unfold HoareCall. steps_l. force_l (tid, postS).
@@ -235,21 +235,21 @@ Section MACROAUX.
   Qed.
 
   Lemma isim_mjoin_hh
-    fl fr Ist r g {Rs Rt} RR my_tid ps pt nths st_src st_tgt RT (k_src: RT → itree hmodE Rs) (k_tgt: RT → itree hmodE Rt)
-    scp_src scp_tgt invspc_src invspc_tgt (sk: Sk.t) univ stb_src stb_tgt tid
-    (JOINS: stb_src sk SchName.join = Some (SchAS.join_spec univ))
-    (JOINT: stb_tgt sk SchName.join = Some (SchAS.join_spec univ))
+    contextual fl fr Ist r g {Rs Rt} RR my_tid ps pt nths st_src st_tgt RT (k_src: RT → itree hmodE Rs) (k_tgt: RT → itree hmodE Rt)
+    scp_src scp_tgt invspc_src invspc_tgt univ stb_src stb_tgt tid
+    (JOINS: stb_src SchName.join = Some (SchAS.join_spec univ))
+    (JOINT: stb_tgt SchName.join = Some (SchAS.join_spec univ))
     :
       ((Ist nths st_src st_tgt) ∗
       (∀ nths0 st_src0 st_tgt0 (ret: RT),
         (Ist nths0 st_src0 st_tgt0)
-        -∗ @isim Σ fl fr Ist my_tid false r g Rs Rt RR true true nths0 
+        -∗ @isim Σ contextual fl fr Ist my_tid r g Rs Rt RR true true nths0 
               (st_src0, k_src ret)
               (st_tgt0, k_tgt ret)))
     ⊢
-      (isim fl fr Ist my_tid false r g RR ps pt nths 
-        (st_src, (HModSem.sandbox scp_src (interp_smod invspc_src (stb_src sk) (Sch.join RT tid)))>>= k_src)
-        (st_tgt, (HModSem.sandbox scp_tgt (interp_smod invspc_tgt (stb_tgt sk) (Sch.join RT tid))) >>= k_tgt)).
+      (isim contextual fl fr Ist my_tid r g RR ps pt nths 
+        (st_src, (HMod.sandbox scp_src (interp_smod invspc_src stb_src (Sch.join RT tid)))>>= k_src)
+        (st_tgt, (HMod.sandbox scp_tgt (interp_smod invspc_tgt stb_tgt (Sch.join RT tid))) >>= k_tgt)).
   Proof.
     iIntros "[IST ISIM]". rewrite !/Sch.join !/ccallU. unseal "Sch".
     
@@ -274,32 +274,32 @@ Ltac _prep_macro_l :=
   prep; match goal with
   | [|- context[interp_smod _ _ (Sch.spawn _ >>= _)]] =>
       rewrite// [in (interp_smod _ _ (Sch.spawn _ >>= _))] SModRed.interp_bind; _prep_macro_l
-  | [|- context[HModSem.sandbox _ (interp_smod _ _ (Sch.spawn _) >>= _)]] =>
-      rewrite// [in HModSem.sandbox _ (interp_smod _ _ (Sch.spawn _) >>= _)] HModSB.transl_bind
+  | [|- context[HMod.sandbox _ (interp_smod _ _ (Sch.spawn _) >>= _)]] =>
+      rewrite// [in HMod.sandbox _ (interp_smod _ _ (Sch.spawn _) >>= _)] HModSB.transl_bind
   | [|- context[interp_smod _ _ (Sch.yield >>= _)]] =>
       rewrite// [in (interp_smod _ _ (Sch.yield >>= _))] SModRed.interp_bind; _prep_macro_l
-  | [|- context[HModSem.sandbox _ (interp_smod _ _ (Sch.yield) >>= _)]] =>
-      rewrite// [in HModSem.sandbox _ (interp_smod _ _ (Sch.yield) >>= _)] HModSB.transl_bind
+  | [|- context[HMod.sandbox _ (interp_smod _ _ (Sch.yield) >>= _)]] =>
+      rewrite// [in HMod.sandbox _ (interp_smod _ _ (Sch.yield) >>= _)] HModSB.transl_bind
   | [|- context[interp_smod _ _ (Sch.join _ _ >>= _)]] =>
       rewrite// [in (interp_smod _ _ (Sch.join _ _ >>= _))] SModRed.interp_bind; _prep_macro_l
-  | [|- context[HModSem.sandbox _ (interp_smod _ _ (Sch.join _ _) >>= _)]] =>
-      rewrite// [in HModSem.sandbox _ (interp_smod _ _ (Sch.join _ _) >>= _)] HModSB.transl_bind
+  | [|- context[HMod.sandbox _ (interp_smod _ _ (Sch.join _ _) >>= _)]] =>
+      rewrite// [in HMod.sandbox _ (interp_smod _ _ (Sch.join _ _) >>= _)] HModSB.transl_bind
   end; prep.
 
 Ltac _prep_macro_r :=
   prep; match goal with
-  | [|- context[PModSem.interp (Sch.spawn _ >>= _)]] =>
-      rewrite// [in (PModSem.interp (Sch.spawn _ >>= _))] PModRed.interp_bind; _prep_macro_r
-  | [|- context[HModSem.sandbox _ (PModSem.interp (Sch.spawn _) >>= _)]] =>
-      rewrite// [in HModSem.sandbox _ (PModSem.interp (Sch.spawn _) >>= _)] HModSB.transl_bind
-  | [|- context[PModSem.interp (Sch.yield >>= _)]] =>
-      rewrite// [in (PModSem.interp (Sch.yield >>= _))] PModRed.interp_bind; _prep_macro_r
-  | [|- context[HModSem.sandbox _ (PModSem.interp (Sch.yield) >>= _)]] =>
-      rewrite// [in HModSem.sandbox _ (PModSem.interp (Sch.yield) >>= _)] HModSB.transl_bind
-  | [|- context[PModSem.interp (Sch.join _ _ >>= _)]] =>
-      rewrite// [in (PModSem.interp (Sch.join _ _ >>= _))] PModRed.interp_bind; _prep_macro_r
-  | [|- context[HModSem.sandbox _ (PModSem.interp (Sch.join _ _) >>= _)]] =>
-      rewrite// [in HModSem.sandbox _ (PModSem.interp (Sch.join _ _) >>= _)] HModSB.transl_bind
+  | [|- context[PMod.interp (Sch.spawn _ >>= _)]] =>
+      rewrite// [in (PMod.interp (Sch.spawn _ >>= _))] PModRed.interp_bind; _prep_macro_r
+  | [|- context[HMod.sandbox _ (PMod.interp (Sch.spawn _) >>= _)]] =>
+      rewrite// [in HMod.sandbox _ (PMod.interp (Sch.spawn _) >>= _)] HModSB.transl_bind
+  | [|- context[PMod.interp (Sch.yield >>= _)]] =>
+      rewrite// [in (PMod.interp (Sch.yield >>= _))] PModRed.interp_bind; _prep_macro_r
+  | [|- context[HMod.sandbox _ (PMod.interp (Sch.yield) >>= _)]] =>
+      rewrite// [in HMod.sandbox _ (PMod.interp (Sch.yield) >>= _)] HModSB.transl_bind
+  | [|- context[PMod.interp (Sch.join _ _ >>= _)]] =>
+      rewrite// [in (PMod.interp (Sch.join _ _ >>= _))] PModRed.interp_bind; _prep_macro_r
+  | [|- context[HMod.sandbox _ (PMod.interp (Sch.join _ _) >>= _)]] =>
+      rewrite// [in HMod.sandbox _ (PMod.interp (Sch.join _ _) >>= _)] HModSB.transl_bind
   end; prep.
 
 Ltac prep_macro :=

@@ -1,5 +1,5 @@
 Require Import Common.
-Require Import SMod2HMod HMod2Mod Mod2ITree SMod HMod Mod Skeleton.
+Require Import SMod2HMod HMod2Mod Mod2ITree SMod HMod Mod.
 Require Import SimGlobal.
 Require Import SModCancel HModInline ElimRel StRed CancelLib.
 
@@ -10,7 +10,7 @@ Section CANCEL.
   Import CancelTAC.
 
   Lemma cancel_aux_yield
-    ginv sk (SKINCL: incl (SMod.sk md) sk) (SKWF: Sk.wf sk) r ps pt srcs tgts
+    ginv r ps pt srcs tgts
     cid st (rs rt rs0 rt0: Σ) l X (meta: X) Q ktrS ktrT tid
     (WFS: ✓ rs) (WFT: ✓ rt)
     (UPD: Own rs ==∗ Own rt)
@@ -18,22 +18,22 @@ Section CANCEL.
     (LENT: cid < List.length tgts)
     (LEN: List.length srcs = Datatypes.length tgts)
     (RET: ∀ vret ret : Any.t, cid = 0 → Q cid meta vret ret ⊢ ⌜vret = ret⌝)
-    (RELS: ∀ k x y, cid ≠ k → srcs !! k = Some x → tgts !! k = Some y → thread_rel md ginv sk cid k x y)
-    (KTR: ∀ x, upaco3 (@elim_rel_def _ md ginv sk _) bot3 l (ktrS x) (ktrT x))
+    (RELS: ∀ k x y, cid ≠ k → srcs !! k = Some x → tgts !! k = Some y → thread_rel md ginv cid k x y)
+    (KTR: ∀ x, upaco3 (@elim_rel_def _ md ginv _) bot3 l (ktrS x) (ktrT x))
     (SRC : srcs !! cid = Some (Ret ();;; interp_hp (x <- trigger (Yield tid);; ktrS x)))
-    (TGT : tgts !! cid = Some (Ret ();;; interp_hp (cancel_term md ginv sk cid meta Q (x <- HoareYieldE (ginv sk) tid;; ktrT x))))
+    (TGT : tgts !! cid = Some (Ret ();;; interp_hp (cancel_term md ginv cid meta Q (x <- HoareYieldE ginv tid;; ktrT x))))
     (CIH: ∀ rs rt srcs tgts cid st ps pt X (meta : X) Q itrS itrT l,
         ✓ rs → (Own rs ==∗ Own rt) →
         List.length srcs = List.length tgts →
         cid < List.length srcs → cid < List.length tgts → 
         srcs !! cid = Some (Ret ();;; interp_hp itrS) →
-        tgts !! cid = Some (Ret ();;; interp_hp (cancel_term md ginv sk cid meta Q itrT)) →
+        tgts !! cid = Some (Ret ();;; interp_hp (cancel_term md ginv cid meta Q itrT)) →
         (∀ vret ret, cid = 0 → Q cid meta vret ret ⊢ ⌜vret = ret⌝) →
-        paco3 (@elim_rel_def _ md ginv sk _) bot3 l itrS itrT →
-        (∀ k x y, cid ≠ k → srcs !! k = Some x → tgts !! k = Some y → thread_rel md ginv sk cid k x y)
-        → CANCEL_GOAL md r ginv sk rs0 rt0 ps pt srcs tgts cid st rs rt)
+        paco3 (@elim_rel_def _ md ginv _) bot3 l itrS itrT →
+        (∀ k x y, cid ≠ k → srcs !! k = Some x → tgts !! k = Some y → thread_rel md ginv cid k x y)
+        → CANCEL_GOAL md r ginv rs0 rt0 ps pt srcs tgts cid st rs rt)
     :
-    CANCEL_GOAL md (gpaco7 _simg (cpn7 _simg) bot7 r) ginv sk rs0 rt0 ps pt srcs tgts cid st rs rt.
+    CANCEL_GOAL md (gpaco7 _simg (cpn7 _simg) bot7 r) ginv rs0 rt0 ps pt srcs tgts cid st rs rt.
   Proof.
     r. _iter. _iter. rewrite SRC TGT. ired.
     hide_r. tau 1.
@@ -57,7 +57,7 @@ Section CANCEL.
       subst tid.
       iterT 2. iterL. tau 1. iterT 2.
       iterL. _supd. iterL. _coreE (a1 ⋅ x).
-      assert (SAT: ✓ (a1 ⋅ x) ∧ (Own (a1 ⋅ x) ==∗ ginv sk cid ∗ Own x)).
+      assert (SAT: ✓ (a1 ⋅ x) ∧ (Own (a1 ⋅ x) ==∗ ginv cid ∗ Own x)).
       { split; eauto. iIntros "[A X]". iFrame. iApply H0. eauto. }
       iterL. _coreE SAT. ls.
       iterL. _supd. iterL. _supd.
@@ -88,7 +88,7 @@ Section CANCEL.
     rewrite H4. ired. tau 2.
     iterT 1. iterL. tau 1. ls. iterT 2.
     iterL. _supd. iterL. _coreE (a1 ⋅ x). ls.
-    assert (SAT: ✓ (a1 ⋅ x) ∧ (Own (a1 ⋅ x) ==∗ ginv sk tid ∗ Own x)).
+    assert (SAT: ✓ (a1 ⋅ x) ∧ (Own (a1 ⋅ x) ==∗ ginv tid ∗ Own x)).
     { split; eauto. iIntros "[A X]". iFrame. iApply H0. eauto. }
     iterL. _coreE SAT. ls.
     iterL. _supd. iterL. _supd.

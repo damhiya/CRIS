@@ -10,8 +10,8 @@ Module MapMA. Section MapMA.
   Import MapAS.
   Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !MapAGΓ Γ, !MapMGΓ Γ}.
 
-  Definition Ist : Sk.t → nat → alist key Any.t → alist key Any.t → iProp Σ :=
-    (λ _ _ st_src st_tgt,
+  Definition Ist : nat → alist key Any.t → alist key Any.t → iProp Σ :=
+    (λ _ st_src st_tgt,
       ∃ f sz,
         ⌜st_src = [(MapA.v_map, f↑)] ∧ st_tgt = [(MapM.v_size, sz↑); (MapM.v_map, f↑)]⌝
         ∗ (⌜f = (λ _ : Z, 0%Z) ∧ sz = 0%Z⌝
@@ -21,18 +21,18 @@ Module MapMA. Section MapMA.
             ∗ auth_allocated f
             ∗ auth_unallocated sz))%I.
 
-  Variable ginvH : Sk.t → invspec.
-  Variable StbH : Sk.t → string → option fspec.
-  Hypothesis MapInStbH : forall sk, stb_incl MapAS.Stb (StbH sk).
+  Variable ginvH : invspec.
+  Variable SpcH : string → option fspec.
+  Hypothesis MapInSpcH : spc_incl MapAS.Spc SpcH.
 
-  Variable ginvL : Sk.t → invspec.
-  Variable StbL : Sk.t → string → option fspec.
-  Hypothesis MapInStbL : forall sk, stb_incl MapMS.Stb (StbL sk).
+  Variable ginvL : invspec.
+  Variable SpcL : string → option fspec.
+  Hypothesis MapInSpcL : spc_incl MapMS.Spc SpcL.
 
-  Local Notation MapA := (MapA.t ginvH StbH).
-  Local Notation MapM := (MapM.t ginvL StbL).
+  Local Notation MapA := (MapA.t ginvH SpcH).
+  Local Notation MapM := (MapM.t ginvL SpcL).
   
-  Lemma simF_init : HSim.sim_fun MapA MapM Ist MapName.init.
+  Lemma simF_init : HSim.sim_fun open MapA MapM Ist MapName.init.
   Proof.
     init_simF.
 
@@ -58,7 +58,7 @@ Module MapMA. Section MapMA.
     iExists _, _. iSplitR; eauto. iRight. iFrame. 
   Qed.
 
-  Lemma simF_get : HSim.sim_fun MapA MapM Ist MapName.get.
+  Lemma simF_get : HSim.sim_fun open MapA MapM Ist MapName.get.
   Proof.
     init_simF.
 
@@ -91,7 +91,7 @@ Module MapMA. Section MapMA.
   Unshelve. lia.
   Qed.
 
-  Lemma simF_set : HSim.sim_fun MapA MapM Ist MapName.set.
+  Lemma simF_set : HSim.sim_fun open MapA MapM Ist MapName.set.
   Proof.
     init_simF.
 
@@ -123,7 +123,7 @@ Module MapMA. Section MapMA.
   Unshelve. done.
   Qed.
 
-  Lemma simF_set_by_user : HSim.sim_fun MapA MapM Ist MapName.set_by_user.
+  Lemma simF_set_by_user : HSim.sim_fun open MapA MapM Ist MapName.set_by_user.
   Proof.
     init_simF.
 
@@ -164,7 +164,7 @@ Module MapMA. Section MapMA.
     step. eauto.
   Qed.
 
-  Theorem sim : HSim.t MapA MapM MapA.InitCond Ist.
+  Theorem sim : HSim.t open MapA MapM MapA.InitCond Ist.
   Proof.
     init_sim.
     - iIntros "(IST & P)"; s.

@@ -7,23 +7,23 @@ Module MainIA. Section MainIA.
   Import CellioA.
   Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !CellioAGΓ Γ}.
 
-  Definition Ist: Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp Σ :=
-    λ _ _ st_src st_tgt, emp%I.
+  Definition Ist: nat -> alist key Any.t -> alist key Any.t -> iProp Σ :=
+    λ _ st_src st_tgt, emp%I.
 
-  Variable ginv: Sk.t -> invspec.
-  Variable Stb: Sk.t -> string -> option fspec.
-  Hypothesis FooInStbMap: forall sk, stb_incl FooAS.Stb (Stb sk).
-  Hypothesis InputInStb: forall sk, stb_incl InputAS.Stb (Stb sk).
+  Variable ginv: invspec.
+  Variable Spc: string -> option fspec.
+  Hypothesis FooInSpcMap: spc_incl FooAS.Spc Spc.
+  Hypothesis InputInSpc: spc_incl InputAS.Spc Spc.
 
-  Local Notation CellioA := (CellioA.t ginv Stb).
-  Local Notation MainA := (MainA.t ginv Stb).
-  Local Notation IstFull := (IstProd (IstSB MainA Ist) IstEq).
+  Local Notation CellioA := (CellioA.t ginv Spc).
+  Local Notation MainA := (MainA.t ginv Spc).
+  Local Notation IstFull := (IstProd (IstSB MainA.(HMod.scopes) Ist) IstEq).
 
   Lemma simF_main:
-    HSim.sim_fun (MainA ★ CellioA) (MainI.t ★ CellioA) IstFull MainName.main.
-  Proof.
+    HSim.sim_fun open (MainA ★ CellioA) (MainI.t ★ CellioA) IstFull MainName.main.
+  Proof. 
     init_simF.
-
+    
     (* Take cell(0) *)
     steps_l; iDestruct "ASM" as "%"; subst.
 
@@ -67,7 +67,7 @@ Module MainIA. Section MainIA.
   Qed.
 
   Theorem sim :
-    HSim.t (MainA ★ CellioA) (MainI.t ★ CellioA) MainA.InitCond IstFull.
+    HSim.t open (MainA ★ CellioA) (MainI.t ★ CellioA) MainA.InitCond IstFull.
   Proof.
     init_sim.
     - iIntros "_". repeat iExists []. iSplit; eauto.

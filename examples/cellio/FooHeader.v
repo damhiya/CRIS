@@ -10,7 +10,3 @@ Module FooName.
   Definition foo := fn "foo".
 
 End FooName.
-
-Module FooSK.
-  Definition t : Sk.t := [].
-End FooSK.

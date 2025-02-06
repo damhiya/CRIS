@@ -155,10 +155,10 @@ Module Mem.
 (*** NOTE : Probably we can support comparison between nullptr and 0 ***)
 (*** NOTE : Unlike CompCert, we don't support comparison with weak_valid_ptr (for simplicity) ***)
 
-  Definition load_mem (csl : string -> bool) (sk : Sk.t) : Mem.t :=
+  Definition load_mem (csl : string -> bool) (genv : GEnv.t) : Mem.t :=
     Mem.mk
       (fun blk ofs =>
-         do '(g, gd) <- (List.nth_error sk blk);
+         do '(g, gd) <- (List.nth_error genv blk);
          match gd↓ with
          | Some Gfun =>
            None
@@ -174,7 +174,7 @@ Module Mem.
       (*** TODO : When doing so, I would like to extend val with "Vfid (id : string)" case.
            That way, I might be able to support more higher-order features (overriding, newly allocating function)
        ***)
-      (List.length sk)
+      (List.length genv)
   .
 
   Definition mem_pad (m0 : Mem.t) (delta : nat) : Mem.t :=

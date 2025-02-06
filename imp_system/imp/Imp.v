@@ -6,7 +6,7 @@ Require Import ImpPrelude.
 Set Implicit Arguments.
 
 (* ========================================================================== *)
-(** ** SkEnv *)
+(** ** GEnv *)
 
 Fixpoint _find_idx {A} (f : A -> bool) (l : list A) (acc : nat) : option (nat * A) :=
   match l with
@@ -35,7 +35,7 @@ Proof.
   - rewrite Heq0. specialize (IHl (S n)). rewrite Heq0 in IHl. ss.
 Qed.
 
-Module SkEnv.
+Module CEnv.
 
   Notation mblock := nat (only parsing).
   Notation ptrofs := Z (only parsing).
@@ -46,134 +46,134 @@ Module SkEnv.
   }
   .
   
-  Definition wf (ske : t) : Prop :=
-    forall id blk, ske.(id2blk) id = Some blk <-> ske.(blk2id) blk = Some id.
+  Definition wf (genve : t) : Prop :=
+    forall id blk, genve.(id2blk) id = Some blk <-> genve.(blk2id) blk = Some id.
 
-  Definition load_skenv (sk : Sk.t) : t :=
-    let n := List.length sk in
+  Definition load_genv (genv : GEnv.t) : t :=
+    let n := List.length genv in
     {|
-      SkEnv.blk2id := fun blk => do '(gn, _) <- (List.nth_error sk blk); Some gn;
-      SkEnv.id2blk := fun id => do '(blk, _) <- find_idx (fun '(id', _) => string_dec id id') sk; Some blk
+      blk2id := fun blk => do '(gn, _) <- (List.nth_error genv blk); Some gn;
+      id2blk := fun id => do '(blk, _) <- find_idx (fun '(id', _) => string_dec id id') genv; Some blk
     |}
   .
 
-  Lemma load_skenv_wf
-        sk
-        (WF : Sk.wf sk)
+  Lemma load_genv_wf
+        genv
+        (WF : GEnv.wf genv)
     :
-      <<WF : wf (load_skenv sk)>>
+      <<WF : wf (load_genv genv)>>
   .
   Proof.
     r in WF.
     rr. split; i; ss.
     - uo; des_ifs.
-      + f_equal. ginduction sk; ss. i. inv WF.
+      + f_equal. ginduction genv; ss. i. inv WF.
         rewrite find_idx_red in Heq1. des_ifs; ss.
         { des_sumbool. subst. ss. clarify. }
         des_sumbool. uo. des_ifs. destruct p. ss.
-        hexploit IHsk; et.
-      + exfalso. ginduction sk; ss. i. inv WF.
+        hexploit IHgenv; et.
+      + exfalso. ginduction genv; ss. i. inv WF.
         rewrite find_idx_red in Heq2. des_ifs; ss.
         des_sumbool. uo. des_ifs. destruct p. ss.
-        hexploit IHsk; et.
-    - ginduction sk; ss.
+        hexploit IHgenv; et.
+    - ginduction genv; ss.
       { i. uo. ss. destruct blk; ss. }
       i. destruct a. inv WF. uo. destruct blk; ss; clarify.
       {  rewrite find_idx_red. uo. des_ifs; des_sumbool; ss. }
-      hexploit IHsk; et. i.
+      hexploit IHgenv; et. i.
       rewrite find_idx_red. uo. des_ifs; des_sumbool; ss. exfalso.
-      subst. clear - Heq1 H2. ginduction sk; ss. i.
+      subst. clear - Heq1 H2. ginduction genv; ss. i.
       rewrite find_idx_red in Heq1. des_ifs; des_sumbool; ss; et.
-      uo. des_ifs. destruct p. eapply IHsk; et.
+      uo. des_ifs. destruct p. eapply IHgenv; et.
   Qed.
 
-  Definition incl_env (sk0 : Sk.t) (skenv : t) : Prop :=
-    forall gn gd (IN : List.In (gn, gd) sk0),
-    exists blk, <<FIND : skenv.(SkEnv.id2blk) gn = Some blk>>.
+  Definition incl_env (genv0 : GEnv.t) (genvenv : t) : Prop :=
+    forall gn gd (IN : List.In (gn, gd) genv0),
+    exists blk, <<FIND : genvenv.(CEnv.id2blk) gn = Some blk>>.
 
-  Lemma incl_incl_env sk0 sk1
-    (WF: Sk.wf sk1)
-    (INCL : List.incl sk0 sk1)
+  Lemma incl_incl_env genv0 genv1
+    (WF: GEnv.wf genv1)
+    (INCL : List.incl genv0 genv1)
     :
-      incl_env sk0 (load_skenv sk1).
+      incl_env genv0 (load_genv genv1).
   Proof.
     ii. exploit INCL; et. i. ss. uo. des_ifs; et.
-    exfalso. clear - x0 Heq0. ginduction sk1; et.
+    exfalso. clear - x0 Heq0. ginduction genv1; et.
     i. ss. rewrite find_idx_red in Heq0. des_ifs.
     des_sumbool. uo.  des_ifs. des; clarify.
-    eapply IHsk1; et.
+    eapply IHgenv1; et.
   Qed.
 
-  Lemma in_env_in_sk :
-    forall sk blk symb
-      (WF: Sk.wf sk)
-      (FIND : blk2id (load_skenv sk) blk = Some symb),
-    exists def, In (symb, def) sk.
+  Lemma in_env_in_genv :
+    forall genv blk symb
+      (WF: GEnv.wf genv)
+      (FIND : blk2id (load_genv genv) blk = Some symb),
+    exists def, In (symb, def) genv.
   Proof.
-    i. cut (exists def, In (symb, def) sk).
+    i. cut (exists def, In (symb, def) genv).
     { i; des. eexists. eauto. }
 
     ss. uo. des_ifs. eapply nth_error_In in Heq0. et.
   Qed.
 
-  Lemma in_sk_in_env :
-    forall sk def symb
-           (WF: Sk.wf sk)
-           (IN : In (symb, def) sk),
-    exists blk, blk2id (load_skenv sk) blk = Some symb.
+  Lemma in_genv_in_env :
+    forall genv def symb
+           (WF: GEnv.wf genv)
+           (IN : In (symb, def) genv),
+    exists blk, blk2id (load_genv genv) blk = Some symb.
   Proof.
     i. ss. uo. eapply In_nth_error in IN. des.
     eexists. rewrite ->IN. et.
   Qed.
 
   Lemma env_range_some :
-    forall sk blk
-      (WF: Sk.wf sk)
-      (BLKRANGE : blk < Datatypes.length sk),
-      <<FOUND : exists symb, blk2id (load_skenv sk) blk = Some symb>>.
+    forall genv blk
+      (WF: GEnv.wf genv)
+      (BLKRANGE : blk < Datatypes.length genv),
+      <<FOUND : exists symb, blk2id (load_genv genv) blk = Some symb>>.
   Proof.
-    i. depgen sk. induction blk; i; ss; clarify.
-    { destruct sk; ss; clarify.
+    i. depgen genv. induction blk; i; ss; clarify.
+    { destruct genv; ss; clarify.
       { lia. }
       uo. destruct p. exists s. ss. }
-    destruct sk; ss; clarify.
+    destruct genv; ss; clarify.
     { lia. }
     apply PeanoNat.lt_S_n in BLKRANGE. eapply IHblk; eauto.
     r in WF. ss. apply NoDup_cons_iff in WF. des; eauto.
   Qed.
 
   Lemma env_found_range :
-    forall sk symb blk
-      (WF: Sk.wf sk)
-      (FOUND : id2blk (load_skenv sk) symb = Some blk),
-      <<BLKRANGE : blk < Datatypes.length sk>>.
+    forall genv symb blk
+      (WF: GEnv.wf genv)
+      (FOUND : id2blk (load_genv genv) symb = Some blk),
+      <<BLKRANGE : blk < Datatypes.length genv>>.
   Proof.
-    intros sk. ginduction sk; i; ss; clarify.
+    intros genv. ginduction genv; i; ss; clarify.
     uo; des_ifs. destruct p0. rewrite find_idx_red in Heq0. des_ifs.
     { apply Nat.lt_0_succ. }
     destruct blk.
     { apply Nat.lt_0_succ. }
     uo. des_ifs. destruct p. ss. clarify. eapply (Nat.succ_lt_mono n).
-    eapply IHsk; eauto.
+    eapply IHgenv; eauto.
     { r in WF. ss. apply NoDup_cons_iff in WF. des; eauto. }
     instantiate (1:=symb). rewrite Heq0. ss.
   Qed.
   
-End SkEnv.
+End CEnv.
 
-Coercion SkEnv.load_skenv : Sk.t >-> SkEnv.t.
-Global Opaque SkEnv.load_skenv.
+Coercion CEnv.load_genv : GEnv.t >-> CEnv.t.
+Global Opaque CEnv.load_genv.
 
 Section FB_HAS_SPEC.
 
   Context `{Σ : GRA}.
 
-  Variable skenv : SkEnv.t.
+  Variable genvenv : GEnv.t.
 
   Variant fb_has_spec (stb : string -> option fspec) (fb : mblock) (fsp : fspec) : Prop :=
   | fb_has_spec_intro
       fn
-      (FBLOCK : skenv.(SkEnv.blk2id) fb = Some fn)
+      (FBLOCK : genvenv.(CEnv.blk2id) fb = Some fn)
       (SPEC : fn_has_spec stb fn fsp)
   .
 
@@ -263,7 +263,7 @@ Definition progFuns := list (string * function).
   prog_varsL : progVars;
   prog_funsL : list (mname * (string * function));
   publicL : list string;
-  defsL : list (string * Sk.gdef);
+  defsL : list (string * GEnv.gdef);
 }. *)
 
 Record program : Type := mk_program {
@@ -451,19 +451,19 @@ Section Interp.
 
   Definition effs := GlobEnv +' ImpState +' pmodE.
 
-  Definition handle_GlobEnv {eff} `{coreE -< eff} (ge : SkEnv.t) : GlobEnv ~> (itree eff) :=
+  Definition handle_GlobEnv {eff} `{coreE -< eff} (ge : GEnv.t) : GlobEnv ~> (itree eff) :=
     fun _ e =>
       match e with
       | GetPtr X =>
-        r <- (ge.(SkEnv.id2blk) X)?;; Ret (Vptr r 0)
+        r <- (ge.(CEnv.id2blk) X)?;; Ret (Vptr r 0)
       | GetName p =>
         match p with
-        | Vptr n 0 => x <- (ge.(SkEnv.blk2id) n)?;; Ret (x)
+        | Vptr n 0 => x <- (ge.(CEnv.blk2id) n)?;; Ret (x)
         | _ => triggerUB
         end
       end.
 
-  Definition interp_GlobEnv {eff} `{coreE -< eff} (ge : SkEnv.t) : itree (GlobEnv +' eff) ~> (itree eff) :=
+  Definition interp_GlobEnv {eff} `{coreE -< eff} (ge : GEnv.t) : itree (GlobEnv +' eff) ~> (itree eff) :=
     interp (case_ (handle_GlobEnv ge) trivial_Handler).
 
   (** function local environment *)
@@ -512,7 +512,7 @@ Section Interp.
 
   (* 'return' is a fixed register, holding the return value of this function. *)
   (* '_' is a black hole register, holding garbage *)
-  Definition eval_imp (ge : SkEnv.t) (f : function) (args : list val) : itree pmodE val :=
+  Definition eval_imp (ge : GEnv.t) (f : function) (args : list val) : itree pmodE val :=
     let vars := f.(fn_vars) ++ ["return"; "_"] in
     let params := f.(fn_params) in
     (if (ListDec.NoDup_dec string_dec (params ++ vars)) then Ret tt else triggerUB);;;
@@ -536,13 +536,13 @@ Section MODSEM.
   Set Typeclasses Depth 5.
   (* Instance Initial_void1 : @Initial (Type -> Type) IFun void1 := @elim_void1. (*** TODO : move to ITreelib ***) *)
 
-  Definition to_itree (ge : SkEnv.t) : (string*_) -> (string * (list string * (Any.t -> itree pmodE Any.t)))%type :=
+  Definition to_itree (ge : GEnv.t) : (string*_) -> (string * (list string * (Any.t -> itree pmodE Any.t)))%type :=
     (fun '(fn, f) => (fn, ([], cfunU (eval_imp ge f)))).
   
-  Program Definition modsem (m : program) (ge : SkEnv.t) : PModSem.t :=
-    {|PModSem.scopes := [];
-      PModSem.fnsems := List.map (to_itree ge) m.(prog_funs);
-      PModSem.initial_st := [];
+  Program Definition get_mod (m : program) (ge : GEnv.t) : PMod.t :=
+    {|PMod.scopes := [];
+      PMod.fnsems := List.map (to_itree ge) m.(prog_funs);
+      PMod.initial_st := [];
   |}.
   Solve All Obligations with prove_scope.
   Next Obligation.
@@ -553,15 +553,9 @@ Section MODSEM.
   Next Obligation. prove_nodup. Qed.
 
   (* Definition get_mod (m : program) : Mod.t := {| *)
-  (*   Mod.modsem := fun ge => (modsem m (SkEnv.load_skenv ge)); *)
-  (*   Mod.sk := List.map (update_snd Any.upcast) m.(defs); *)
+  (*   Mod.modsem := fun ge => (modsem m (GEnv.load_genv ge)); *)
+  (*   Mod.genv := List.map (update_snd Any.upcast) m.(defs); *)
   (* |}. *)
-
-  Definition get_mod (m : program) : PMod.t := {|
-    PMod.modsem := fun ge => (modsem m (SkEnv.load_skenv ge));
-    PMod.sk := List.map (update_snd Any.upcast) m.(defs);
-  |}.
-  
   (* Definition init : PModSem.t := *)
   (*   PModSem.init ( *)
   (*     rv <- ccallU "main" ([] : list val);; *)
@@ -574,7 +568,7 @@ Section MODSEM.
   (*     end *)
   (*   ). *)
 
-  (* Definition modsemL (mL : programL) (ge : SkEnv.t) : ModSemL.t := {|
+  (* Definition modsemL (mL : programL) (ge : GEnv.t) : ModSemL.t := {|
     ModSemL.fnsems :=
       List.map (fun '(mn, (fn, f)) => (fn, fun a => transl_all mn (cfunU (eval_imp ge f) a))) mL.(prog_funsL);
     ModSemL.initial_mrs :=
@@ -582,8 +576,8 @@ Section MODSEM.
   |}.
 
   Definition get_modL (mL : programL) : ModL.t := {|
-    ModL.get_modsem := fun ge => (modsemL mL (Sk.load_skenv ge));
-    ModL.sk := mL.(defsL);
+    ModL.get_modsem := fun ge => (modsemL mL (GEnv.load_genv ge));
+    ModL.genv := mL.(defsL);
   |}.
 
   Lemma comm_imp_mod_lift :
@@ -591,8 +585,8 @@ Section MODSEM.
   Proof.
     unfold compose. extensionality p. unfold lift. unfold Mod.lift. unfold get_modL, get_mod.
     f_equal. unfold modsemL, modsem. ss. unfold ModSem.lift.
-    ss. extensionality sk. f_equal.
-    revert sk. induction (prog_funs p); i; ss; clarify.
+    ss. extensionality genv. f_equal.
+    revert genv. induction (prog_funs p); i; ss; clarify.
     destruct a. unfold map_snd. f_equal.
     apply IHp0.
   Qed. *)

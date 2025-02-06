@@ -28,21 +28,15 @@ Module CellI. Section CellI.
     [(CellName.get idx, (scopes, cfunU get));
      (CellName.set idx, (scopes, cfunU set))].
 
-  Program Definition Sem : PModSem.t := {|
-    PModSem.scopes := scopes;
-    PModSem.fnsems := fnsems;
-    PModSem.initial_st := [(v_cv,tt↑)];
+  Program Definition Mod : PMod.t := {|
+    PMod.scopes := scopes;
+    PMod.fnsems := fnsems;
+    PMod.initial_st := [(v_cv,tt↑)];
   |}
   .
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
   
-  Definition Mod : PMod.t := {|
-    PMod.modsem := λ _, Sem;
-    PMod.sk := CellSK.t;
-  |}
-  .
-
   Definition t := Seal.sealing CRIS (PMod.to_hmod Mod).
 
 End CellI. End CellI.

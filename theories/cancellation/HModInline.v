@@ -38,36 +38,36 @@ Section INTERP.
     fun args =>
       inline_hp prog (body args).
 
-  Definition prog (ms: HModSem.t) : callE ~> itree hmodE :=
+  Definition prog (ms: HMod.t) : callE ~> itree hmodE :=
     fun _ '(Call fn args) =>
-      lbody <- (alist_find fn ms.(HModSem.fnsems))!;;
-      HModSem.sandbox_body lbody args.
+      lbody <- (alist_find fn ms.(HMod.fnsems))!;;
+      HMod.sandbox_body lbody args.
       
-  Definition inline_hp_fbody (ms: HModSem.t)
+  Definition inline_hp_fbody (ms: HMod.t)
     : (list string * (Any.t -> itree hmodE Any.t)) -> (list string * (Any.t -> itree hmodE Any.t))
     :=
     fun '(k, b) => (k, inline_hp_fun (prog ms) b).
 
   Definition wrap_sandbox scopeS: list string * (Any.t -> itree hmodE Any.t) -> list string * (Any.t -> itree hmodE Any.t)
     := 
-    fun kb => (scopeS, HModSem.sandbox_body kb).
+    fun kb => (scopeS, HMod.sandbox_body kb).
 
   Definition wrap_elimI ms: list string * (Any.t -> itree hmodE Any.t) -> list string * (Any.t -> itree hmodE Any.t)
     :=
-    fun kb => inline_hp_fbody ms (wrap_sandbox ms.(HModSem.scopes) kb). 
+    fun kb => inline_hp_fbody ms (wrap_sandbox ms.(HMod.scopes) kb). 
 
 End INTERP.
 
-Module HModSemInline.
+Module HModInline.
   Section INLINE.
     Context `{Σ: GRA}.
-    Import HModSem.
+    Import HMod.
 
-    Program Definition inline (ms: HModSem.t): HModSem.t := {|
-      HModSem.scopes := ms.(scopes);
-      HModSem.fnsems := List.map (map_snd (wrap_elimI ms)) (ms.(fnsems));
-      (* HModSem.fnsems := List.map (map_snd (λ ksb, (ksb.1, inline_hp_fun (prog ms) ksb.2))) (ms.(fnsems)); *)
-      HModSem.initial_st := ms.(initial_st);
+    Program Definition inline (ms: HMod.t): HMod.t := {|
+      HMod.scopes := ms.(scopes);
+      HMod.fnsems := List.map (map_snd (wrap_elimI ms)) (ms.(fnsems));
+      (* HMod.fnsems := List.map (map_snd (λ ksb, (ksb.1, inline_hp_fun (prog ms) ksb.2))) (ms.(fnsems)); *)
+      HMod.initial_st := ms.(initial_st);
     |}.
     Next Obligation.
       i. depdes ms. ss. ii. unfold fnsems_scopes in *. unfold map_snd in*.
@@ -83,26 +83,13 @@ Module HModSemInline.
     (* Definition to_elim ms := to_hmod ((interp_sb_hp_elim) ∘ fsb_body) ms. *)
 
   End INLINE.
-End HModSemInline.
-
-Module HModInline.
-  Section INLINE.
-    Context `{Σ: GRA}.
-    Import HMod.
-
-    Definition inline (md: t) := {|
-      HMod.modsem := fun sk => HModSemInline.inline (md.(modsem) sk);
-      HMod.sk := md.(sk);
-    |}.
-
-  End INLINE.
 End HModInline.
 
 Module HIRed.
   Section RED.
     Context `{Σ: GRA}.
 
-    Variable ms: HModSem.t.
+    Variable ms: HMod.t.
 
     Lemma iter_handle_bind i k:
       ITree.iter (handle_callE (prog ms)) (i >>= k)
@@ -239,19 +226,19 @@ Section CANCEL.
 
   Lemma wrap_elimI_well_scoped
       ms fn sb
-      (FIND: alist_find fn ms.(HModSem.fnsems) = Some sb)
+      (FIND: alist_find fn ms.(HMod.fnsems) = Some sb)
     :
-    HModSem.sandbox_body (wrap_elimI ms sb)
+    HMod.sandbox_body (wrap_elimI ms sb)
     = 
-    inline_hp_fun (prog ms) (HModSem.sandbox_body sb).
+    inline_hp_fun (prog ms) (HMod.sandbox_body sb).
   Proof.
     extensionality args. 
     unfold wrap_elimI, inline_hp_fbody. s.
-    unfold HModSem.sandbox_body, inline_hp_fun. destruct sb. s.
-    assert(SCP := ms.(HModSem.well_scoped_fns)).
+    unfold HMod.sandbox_body, inline_hp_fun. destruct sb. s.
+    assert(SCP := ms.(HMod.well_scoped_fns)).
     specialize (SCP fn). rewrite/fnsems_scopes FIND in SCP.
     
-    (* remember (HModSem.scopes ms) as scopeS. i. *)
+    (* remember (HMod.scopes ms) as scopeS. i. *)
     rename l into scopeT. 
     apply bisim_is_eq. move scopeT at bottom.
     eapply (@gpaco2_init _ _ _ _ (eqitC eq false false)); eauto with paco.
@@ -282,20 +269,20 @@ Section CANCEL.
         destruct c. rewrite H.
         rewrite !HModSB.transl_call HIRed.call HModSB.transl_tau. s.
         gstep. econs.
-        destruct (alist_find fn (HModSem.fnsems ms)) eqn: FIND.
+        destruct (alist_find fn (HMod.fnsems ms)) eqn: FIND.
         { 
           ired. assert (X:=@sandbox_well_scoped). 
-          unfold HModSem.sandbox_body. destruct p. s.
+          unfold HMod.sandbox_body. destruct p. s.
           gbase.
           match goal with
-          [|- _ _ (_ _ ?itr)] => assert (EX: exists itr', itr = HModSem.sandbox (HModSem.scopes ms) itr')
+          [|- _ _ (_ _ ?itr)] => assert (EX: exists itr', itr = HMod.sandbox (HMod.scopes ms) itr')
           end.
           {
             eexists. instantiate (1:= _ >>= _). 
             rewrite HModSB.transl_bind. f_equal.
             { 
               erewrite <-(@sandbox_well_scoped _ _ l); eauto. 
-              assert(SCP0 := ms.(HModSem.well_scoped_fns)).
+              assert(SCP0 := ms.(HMod.well_scoped_fns)).
               specialize (SCP0 fn). rewrite/fnsems_scopes FIND in SCP0.
               eauto.
             }
@@ -304,7 +291,7 @@ Section CANCEL.
             rewrite HModSB.transl_tau. do 2 f_equal.
             ired.
             erewrite <-(@sandbox_well_scoped _ _ scopeT); eauto. 
-            instantiate (1:= fun x => HModSem.sandbox scopeT (k x)). 
+            instantiate (1:= fun x => HMod.sandbox scopeT (k x)). 
             s. refl.
           }
           des. rewrite EX. eapply CIH. refl.
@@ -322,7 +309,7 @@ Section CANCEL.
           {
             rewrite HIRed.bind_pg HModSB.transl_bind HModSB.transl_put. des_ifs; cycle 1.
             {
-              exfalso. assert (existsb (eqb k0.1) (HModSem.scopes ms) = true).
+              exfalso. assert (existsb (eqb k0.1) (HMod.scopes ms) = true).
               {
                 eapply existsb_exists. eapply existsb_exists in Heq. des.
                 esplits; eauto.
@@ -340,7 +327,7 @@ Section CANCEL.
         {
           rewrite HIRed.bind_pg HModSB.transl_bind HModSB.transl_get. des_ifs; cycle 1.
           {
-            exfalso. assert (existsb (eqb k0.1) (HModSem.scopes ms) = true).
+            exfalso. assert (existsb (eqb k0.1) (HMod.scopes ms) = true).
             {
               eapply existsb_exists. eapply existsb_exists in Heq. des.
               esplits; eauto.
@@ -370,14 +357,14 @@ Section CANCEL.
     fun nths '(st0, ret0) '(st1, ret1) => (⌜ret0 = ret1⌝ ∗ Ist nths st0 st1)%I.
 
   Lemma isim_RR_frame
-      fls flt my_tid is_closed r g nths
+      fls flt my_tid contextual r g nths
       {R} Ist (P: iProp)
       ps pt sti_src sti_tgt
     :
-      (P ∗ @isim _ fls flt Ist my_tid is_closed r g R R 
+      (P ∗ @isim _ contextual fls flt Ist my_tid r g R R 
             (fun nths '(sts, vs) '(stt, vt) => ⌜vs = vt⌝ ∗ Ist nths sts stt)%I
             ps pt nths sti_src sti_tgt)  
-      ⊢ isim fls flt Ist my_tid is_closed r g 
+      ⊢ isim contextual fls flt Ist my_tid r g 
          (bindRR (IstRR Ist) P) ps pt nths sti_src sti_tgt.
   Proof.
     iIntros "[H0 H1]". iApply isim_wand. iFrame. eauto.

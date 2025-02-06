@@ -1,5 +1,5 @@
 Require Import Common.
-Require Import SMod2HMod SMod HMod Skeleton ITactics.
+Require Import SMod2HMod SMod HMod ITactics.
 Require Import ISim CtxRefine CtxRefineFacts ClosedAdequacy.
 Require Import HModInline.
 
@@ -14,18 +14,17 @@ Section CANCEL.
     refines (md, P) (HModInline.inline md, P).
   Proof. 
     eapply closed_adequacy2.
-    econs; ss. i. r.
     econs; ss; try refl; eauto.
     { i. rewrite List.map_map fst_map_snd. exists []. ss. }
     ii. rewrite alist_find_map_snd in FIND.
-    destruct (alist_find fn (HModSem.fnsems (HMod.modsem md sk))) eqn:FINDT; ss.
+    destruct (alist_find fn (HMod.fnsems md)) eqn:FINDT; ss.
     inv FIND. rename p into ft. esplits; eauto.
     ii. subst. destruct ft.
-    assert(SCP := (HMod.modsem md sk).(HModSem.well_scoped_fns)).
+    assert(SCP := md.(HMod.well_scoped_fns)).
     specialize (SCP fn). rewrite/fnsems_scopes FINDT in SCP.
-    remember (HModSem.scopes (HMod.modsem md sk)) as scopeS. i.
+    remember (HMod.scopes md) as scopeS. i.
     rename l into scopeT. 
-    unfold wrap_elimI. s. unfold HModSem.sandbox_body, inline_hp_fun. s.
+    unfold wrap_elimI. s. unfold HMod.sandbox_body, inline_hp_fun. s.
     generalize false at 1 as ps.
     generalize false at 1 as pt. intros pt ps.
     generalize (i y) as it. clear IN fn FINDT i y NODD NODS.
@@ -54,7 +53,7 @@ Section CANCEL.
         steps_r. by_coind "CIH". auto.
       + steps_l. steps_r. by_coind "CIH". auto.
     - destruct c. rewrite HModSB.transl_bind HModSB.transl_call HIRed.call. steps_r. 
-      destruct (alist_find fn (HModSem.fnsems (HMod.modsem md sk))) eqn:FIND; cycle 1.
+      destruct (alist_find fn (HMod.fnsems md)) eqn:FIND; cycle 1.
       { s. unfold triggerNB. ired. rewrite HIRed.bind_core. steps_r. ss. }
       destruct p. iApply isim_inline_src.
       { rewrite alist_find_map_snd FIND. ss. }
@@ -95,7 +94,7 @@ Section CANCEL.
       + step. steps_r. by_coind "CIH". auto.
     Unshelve. all: try refl; eauto.
     {
-      assert(SCP0 := (HMod.modsem md sk).(HModSem.well_scoped_fns) fn).
+      assert(SCP0 := md.(HMod.well_scoped_fns) fn).
       rewrite/fnsems_scopes FIND in SCP0. eauto.
     }
   Qed.

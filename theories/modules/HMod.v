@@ -1,7 +1,7 @@
 Require Import Common.
 Require Import PropExtensionality.
 
-Require Import Skeleton Mod.
+Require Import Mod.
 Require Export HMod2Mod.
 
 Set Implicit Arguments.
@@ -15,7 +15,7 @@ Definition fnsems_scopes {T} (fn : string) (fnsems : alist string (list string *
 Definition state_scopes (st : alist key Any.t) :=
   List.map (fst ∘ fst) st.
 
-Module HModSem. Section HModSem.
+Module HMod. Section HMod.
   Context {Σ : GRA}.
 
   Record t : Type := mk {
@@ -110,104 +110,59 @@ Module HModSem. Section HModSem.
   Definition sandbox_body (kb : list string * (Any.t → itree hmodE Any.t)) :=
     λ arg, sandbox kb.1 (kb.2 arg).
 
-  Definition to_mod (ms : t) (r : Σ) : ModSem.t := {|
-    ModSem.fnsems := List.map (map_snd (interp_hp_fun ∘ sandbox_body)) ms.(fnsems);
-    ModSem.initial_st := Any.pair (alist_encode ms.(initial_st)) r↑;
-  |}.
-End HModSem. End HModSem.
-
-Module HMod. Section HMod.
-  Context {Σ : GRA}.
-  Notation iProp := (iProp Σ).
-
-  Record t : Type := mk {
-    modsem : Sk.t → HModSem.t;
-    sk : Sk.t;
-  }.
-
-  Definition empty := {|
-    modsem := const (HModSem.empty);
-    sk := []
-  |}.
-
-  Definition add (md0 md1 : t) : t := {|
-    modsem := λ sk, HModSem.add (md0.(modsem) sk) (md1.(modsem) sk);
-    sk := Sk.add md0.(sk) md1.(sk);
+  Definition to_mod (ms : t) (r : Σ) : Mod.t := {|
+    Mod.fnsems := List.map (map_snd (interp_hp_fun ∘ sandbox_body)) ms.(fnsems);
+    Mod.initial_st := Any.pair (alist_encode ms.(initial_st)) r↑;
   |}.
 
   Definition addL (ms : list t) : t :=
     foldr add empty ms.
 
-  Definition scopes (md : t) : Sk.t → list string :=
-    λ sk, (md.(modsem) sk).(HModSem.scopes).
-
-  Definition modc : Type := (t * (Sk.t → iProp))%type.
-  Global Instance modc_equiv : Equiv modc := λ m1 m2, m1.1 = m2.1 ∧ ∀ sk, m1.2 sk ≡ m2.2 sk.
+  Definition modc : Type := (t * iProp Σ)%type.
+  Global Instance modc_equiv : Equiv modc := λ m1 m2, m1.1 = m2.1 ∧ m1.2 ≡ m2.2.
   Global Instance modc_equiv_equiv : Equivalence modc_equiv.
   Proof.
     split; ss; ii.
-    { inv H; split; clarify. i; rewrite H1; ss. }
+    { inv H; split; clarify. }
     { inv H; inv H0; split; clarify; ss.
       { rewrite H1 H; ss. }
       { i; rewrite H2 H3; ss. }
     }
   Qed.
 
-  Definition empty_mc : modc := (empty, const(emp%I)).
+  Definition empty_mc : modc := (empty, emp%I).
 
-  Definition addc (C C' : Sk.t → iProp) : Sk.t → iProp :=
-    (λ sk, C sk ∗ C' sk)%I.
 End HMod. End HMod.
 
 Infix "★" := HMod.add (at level 9, right associativity).
 Notation "⌽" := HMod.empty (at level 9).
-Infix "∗∗" := HMod.addc (at level 9, right associativity).
 
-Notation "░ it" := (HModSem.sandbox _ it) (at level 60, only printing).
+Notation "░ it" := (HMod.sandbox _ it) (at level 60, only printing).
 
 Section HModProperties.
   Context `{Σ : GRA}.
-  Notation iProp := (iProp Σ).
 
-  Lemma hmodsem_extensionality (ms1 ms2 : HModSem.t)
-      (SCOPE : HModSem.scopes ms1 = HModSem.scopes ms2)
-      (FNSEM : HModSem.fnsems ms1 = HModSem.fnsems ms2)
-      (INITS : HModSem.initial_st ms1 = HModSem.initial_st ms2) :
+  Lemma hmod_extensionality (ms1 ms2 : HMod.t)
+      (SCOPE : HMod.scopes ms1 = HMod.scopes ms2)
+      (FNSEM : HMod.fnsems ms1 = HMod.fnsems ms2)
+      (INITS : HMod.initial_st ms1 = HMod.initial_st ms2)
+       :
     ms1 = ms2.
   Proof. destruct ms1, ms2; ss. subst. f_equal; apply proof_irrelevance. Qed.
-
-  Lemma hmodsem_add_assoc (ms1 ms2 ms3 : HModSem.t) :
-    HModSem.add (HModSem.add ms1 ms2) ms3 = HModSem.add ms1 (HModSem.add ms2 ms3).
-  Proof.
-    destruct ms1, ms2, ms3.
-    apply hmodsem_extensionality; s; try rewrite app_assoc; eauto.
-  Qed.
-
-  Lemma hmodsem_add_empty_l (ms : HModSem.t) :
-    HModSem.add HModSem.empty ms = ms.
-  Proof. destruct ms. apply hmodsem_extensionality; s; eauto. Qed.
-
-  Lemma hmodsem_add_empty_r ms : HModSem.add ms HModSem.empty = ms.
-  Proof. destruct ms. apply hmodsem_extensionality; s; try rewrite app_nil_r; eauto. Qed.
 
   Lemma hmod_add_assoc (md1 md2 md3 : HMod.t) :
     (md1 ★ md2) ★ md3 = md1 ★ md2 ★ md3.
   Proof.
-    destruct md1, md2, md3. unfold HMod.add. s. f_equal.
-    - extensionalities. rewrite hmodsem_add_assoc. eauto.
-    - unfold Sk.add. rewrite app_assoc. eauto.
+    destruct md1, md2, md3.
+    apply hmod_extensionality; s; try rewrite app_assoc; eauto.
   Qed.
 
   Lemma hmod_add_empty_l (md : HMod.t) : ⌽ ★ md = md.
-  Proof.
-    destruct md. unfold HMod.add. s. f_equal. extensionalities. apply hmodsem_add_empty_l.
-  Qed.
+  Proof. destruct md. apply hmod_extensionality; s; eauto. Qed.
 
   Lemma hmod_add_empty_r (md : HMod.t) : md ★ ⌽ = md.
   Proof.
-    destruct md. unfold HMod.add. s. f_equal.
-    - extensionalities. apply hmodsem_add_empty_r.
-    - destruct sk; ss. unfold Sk.add. s. rewrite app_nil_r. eauto.
+    destruct md. apply hmod_extensionality; s; try rewrite app_nil_r; eauto.
   Qed.
 
   Lemma hmod_addL_app l l' : HMod.addL (l ++ l') = (HMod.addL l) ★ (HMod.addL l').
@@ -217,29 +172,29 @@ Section HModProperties.
     - rewrite hmod_add_assoc. rewrite IHl. eauto.
   Qed.
 
-  Lemma hmod_addc_assoc (md : HMod.t) (P Q R : Sk.t → iProp) :
-    (md, (P ∗∗ Q) ∗∗ R) ≡ (md, P ∗∗ Q ∗∗ R).
+  Lemma hmod_addc_assoc (md : HMod.t) (P Q R : iProp Σ) :
+    (md, (P ∗ Q) ∗ R)%I ≡ (md, P ∗ Q ∗ R)%I.
   Proof.
     econs; ss.
-    intros sk; iSplit.
+    iSplit.
     { iIntros "[[P Q] R]"; iFrame. }
     { iIntros "[P [Q R]]"; iFrame. }
   Qed.
 
-  Lemma hmod_addc_empty_l (md : HMod.t) (P : Sk.t → iProp) :
-    (md, (const(emp%I)) ∗∗ P) ≡ (md, P).
+  Lemma hmod_addc_empty_l (md : HMod.t) (P : iProp Σ) :
+    (md, emp ∗ P)%I ≡ (md, P).
   Proof.
     econs; ss.
-    intros sk; iSplit.
+    iSplit.
     { iIntros "[_ P]"; iFrame. }
-    { iIntros "P"; iFrame. rewrite /const //. }
+    { iIntros "P"; iFrame. }
   Qed.
 
-  Lemma hmod_addc_empty_r (md : HMod.t) (P : Sk.t → iProp) :
-    (md, P ∗∗ (const(emp%I))) ≡ (md, P).
+  Lemma hmod_addc_empty_r (md : HMod.t) (P : iProp Σ) :
+    (md, P ∗ emp)%I ≡ (md, P).
   Proof.
     econs; ss.
-    intros sk; iSplit.
+    iSplit.
     { iIntros "[P _]"; iFrame. }
     { iIntros "P"; iFrame. }
   Qed.
@@ -250,74 +205,74 @@ Module HModSB. Section HModSB.
   Context `{Σ : GRA}.
 
   Lemma transl_bind A B scopes (itr : itree hmodE A) (ktr : A → itree hmodE B) :
-    HModSem.sandbox scopes (itr >>= ktr)
-    = a <- (HModSem.sandbox scopes itr);; (HModSem.sandbox scopes (ktr a)).
-  Proof. unfold HModSem.sandbox. rewrite (bisim_is_eq (translate_bind _ _ _)); eauto. Qed.
+    HMod.sandbox scopes (itr >>= ktr)
+    = a <- (HMod.sandbox scopes itr);; (HMod.sandbox scopes (ktr a)).
+  Proof. unfold HMod.sandbox. rewrite (bisim_is_eq (translate_bind _ _ _)); eauto. Qed.
 
   Lemma transl_tau A scopes (itr : itree hmodE A) :
-    HModSem.sandbox scopes (tau;; itr) = tau;; (HModSem.sandbox scopes itr).
-  Proof. unfold HModSem.sandbox. rewrite (bisim_is_eq (translate_tau _ _)); eauto. Qed.
+    HMod.sandbox scopes (tau;; itr) = tau;; (HMod.sandbox scopes itr).
+  Proof. unfold HMod.sandbox. rewrite (bisim_is_eq (translate_tau _ _)); eauto. Qed.
 
   Lemma transl_ret A (a : A) scopes :
-    HModSem.sandbox scopes (Ret a) = Ret a.
-  Proof. unfold HModSem.sandbox. rewrite (bisim_is_eq (translate_ret _ _)); eauto. Qed.
+    HMod.sandbox scopes (Ret a) = Ret a.
+  Proof. unfold HMod.sandbox. rewrite (bisim_is_eq (translate_ret _ _)); eauto. Qed.
 
   Lemma transl_call {A} (e : callE A) scopes :
-    HModSem.sandbox scopes (trigger e) = trigger e.
+    HMod.sandbox scopes (trigger e) = trigger e.
   Proof.
-    unfold HModSem.sandbox, trigger.
+    unfold HMod.sandbox, trigger.
     rewrite (bisim_is_eq (translate_vis _ _ _ _)). ss.
     do 2 f_equal. extensionalities.
     rewrite (bisim_is_eq (translate_ret _ _)); eauto.
   Qed.
 
   Lemma transl_put scopes k v :
-    HModSem.sandbox scopes (trigger (SPut k v))
+    HMod.sandbox scopes (trigger (SPut k v))
     = if existsb (String.eqb k.1) scopes then trigger (SPut k v) else trigger (Choose _).
   Proof.
-    unfold HModSem.sandbox, trigger. destruct k. s.
+    unfold HMod.sandbox, trigger. destruct k. s.
     rewrite (bisim_is_eq (translate_vis _ _ _ _)). ss.
     des_ifs; s; do 2 f_equal; extensionalities; rewrite (bisim_is_eq (translate_ret _ _)); eauto.
   Qed.
 
   Lemma transl_get scopes k :
-    HModSem.sandbox scopes (trigger (SGet k))
+    HMod.sandbox scopes (trigger (SGet k))
     = if existsb (String.eqb k.1) scopes then trigger (SGet k) else trigger (Choose Any.t).
   Proof.
-    unfold HModSem.sandbox, trigger. destruct k. s.
+    unfold HMod.sandbox, trigger. destruct k. s.
     rewrite (bisim_is_eq (translate_vis _ _ _ _)). ss.
     des_ifs; s; do 2 f_equal; extensionalities; rewrite (bisim_is_eq (translate_ret _ _)); eauto.
   Qed.
 
   Lemma transl_core T scopes (e : coreE T) :
-    HModSem.sandbox scopes (trigger e) = trigger e.
+    HMod.sandbox scopes (trigger e) = trigger e.
   Proof.
-    unfold HModSem.sandbox, trigger.
+    unfold HMod.sandbox, trigger.
     rewrite (bisim_is_eq (translate_vis _ _ _ _)). ss.
     des_ifs; s; do 2 f_equal; extensionalities;
       rewrite (bisim_is_eq (translate_ret _ _)); eauto.
   Qed.
 
   Lemma transl_ag {A} (e : agE A) scopes :
-    HModSem.sandbox scopes (trigger e) = trigger e.
+    HMod.sandbox scopes (trigger e) = trigger e.
   Proof.
-    unfold HModSem.sandbox, trigger.
+    unfold HMod.sandbox, trigger.
     rewrite (bisim_is_eq (translate_vis _ _ _ _)). ss.
     do 2 f_equal. extensionalities.
     rewrite (bisim_is_eq (translate_ret _ _)); eauto.
   Qed.
 
   Lemma transl_sch {A} (e : schE A) scopes :
-    HModSem.sandbox scopes (trigger e) = trigger e.
+    HMod.sandbox scopes (trigger e) = trigger e.
   Proof.
-    unfold HModSem.sandbox, trigger.
+    unfold HMod.sandbox, trigger.
     rewrite (bisim_is_eq (translate_vis _ _ _ _)). ss.
     do 2 f_equal. extensionalities.
     rewrite (bisim_is_eq (translate_ret _ _)); eauto.
   Qed.
 
   Lemma transl_unwrapU R scopes (r : option R) :
-    HModSem.sandbox scopes (unwrapU r) = unwrapU r.
+    HMod.sandbox scopes (unwrapU r) = unwrapU r.
   Proof.
     unfold unwrapU. destruct r.
     - apply transl_ret.
@@ -326,7 +281,7 @@ Module HModSB. Section HModSB.
   Qed.
 
   Lemma transl_unwrapN R scopes (r : option R) :
-    HModSem.sandbox scopes (unwrapN r) = unwrapN r.
+    HMod.sandbox scopes (unwrapN r) = unwrapN r.
   Proof.
     unfold unwrapN. destruct r.
     - apply transl_ret.
@@ -335,13 +290,13 @@ Module HModSB. Section HModSB.
   Qed.
 
   Lemma transl_asm scopes P :
-    HModSem.sandbox scopes (assume P) = assume P.
+    HMod.sandbox scopes (assume P) = assume P.
   Proof.
     unfold assume. rewrite transl_bind transl_core transl_ret. eauto.
   Qed.
 
   Lemma transl_guar scopes P :
-    HModSem.sandbox scopes (guarantee P) = guarantee P.
+    HMod.sandbox scopes (guarantee P) = guarantee P.
   Proof. rewrite /guarantee transl_bind transl_core transl_ret. eauto. Qed.
 End HModSB. End HModSB.
 

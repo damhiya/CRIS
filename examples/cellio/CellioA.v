@@ -60,21 +60,16 @@ Module CellioA. Section CellioA.
     [(CellioName.set, (scopes, mk_specbody fspec_trivial set));
      (CellioName.get, (scopes, mk_specbody fspec_trivial get))].
 
-  Program Definition Sem : SModSem.t := {|
-    SModSem.scopes := scopes;
-    SModSem.fnsems := fnsems;
-    SModSem.initial_st := [];
+  Program Definition Mod : SMod.t := {|
+    SMod.scopes := scopes;
+    SMod.fnsems := fnsems;
+    SMod.initial_st := [];
   |}.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition Mod : SMod.t := {|
-    SMod.modsem := λ _, Sem;
-    SMod.sk := CellioSK.t;
-  |}.
-
-  Definition InitCond : Sk.t -> iProp Σ :=
-    λ _, CellioA.auth 0.
+  Definition InitCond : iProp Σ :=
+    CellioA.auth 0.
 
   Definition InitRes : Σ := own.iRes_singleton base_γ (●E 0%Z).
 

@@ -60,20 +60,14 @@ Module CtrlI. Section CtrlI.
      (RingName.enqueue, (scopes, cfunU enqueue));
      (RingName.dequeue, (scopes, cfunU dequeue))].
   
-  Program Definition Sem : PModSem.t := {|
-    PModSem.scopes := scopes;
-    PModSem.fnsems := fnsems;
-    PModSem.initial_st := [(v_hd,0↑);(v_tl,0↑)];
+  Program Definition Mod : PMod.t := {|
+    PMod.scopes := scopes;
+    PMod.fnsems := fnsems;
+    PMod.initial_st := [(v_hd,0↑);(v_tl,0↑)];
   |}
   .
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
-
-  Definition Mod : PMod.t := {|
-    PMod.modsem := λ _, Sem;
-    PMod.sk := RingSK.t;
-  |}
-  .
 
   Definition t := Seal.sealing CRIS (PMod.to_hmod Mod).
 
