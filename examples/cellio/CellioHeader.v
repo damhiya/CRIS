@@ -10,6 +10,3 @@ Module CellioName.
   Definition get := fn "get".
 End CellioName.
 
-Module CellioSK.
-  Definition t : Sk.t := [].
-End CellioSK.

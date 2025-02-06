@@ -1,10 +1,4 @@
-Require Import Coqlib AList.
-Require Export sflib.
-Require Export ITreelib.
-Require Import Any.
-
-Require Import IRed.
-Require Import Behavior Skeleton.
+Require Import Common.
 
 Require Import ModSim ModSimFacts.
 Require Import HPSim HPSimFacts.
@@ -30,7 +24,7 @@ Section CLOSED.
   Ltac hstep := guclo hpsimC_spec; econs; econs; eauto; econs; eauto.
 
   Lemma _hpsim_close fls flt Ist my_tid:
-    @_hpsim _ fls flt Ist my_tid false <10= @_hpsim _ fls flt Ist my_tid true.
+    @_hpsim _ open fls flt Ist my_tid <10= @_hpsim _ closed fls flt Ist my_tid.
   Proof.
     i. ss. 
     eapply _hpsim_tarski; eauto. i. 
@@ -42,9 +36,9 @@ Section CLOSED.
   Lemma hpsim_close
     fl_src fl_tgt Ist my_tid
     ps pt nths st_src st_tgt itr_src itr_tgt fmr
-    (SIM: hpsim_body fl_src fl_tgt Ist my_tid false ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr)
+    (SIM: hpsim_body open fl_src fl_tgt Ist my_tid ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr)
   :
-    hpsim_body fl_src fl_tgt Ist my_tid true ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr.
+    hpsim_body closed fl_src fl_tgt Ist my_tid ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr.
   Proof.
     ginit. s. revert_until my_tid. gcofix CIH. i.
     exploit SIM; s; i; eauto.
@@ -76,49 +70,42 @@ Section CLOSED.
   Qed.
 
   Theorem closed_adequacy (ms mt: HMod.t) IC Ist P
-    (SIM: HSim._t ms mt IC Ist true)
+    (SIM: HSim.t closed ms mt IC Ist)
     :
-    refines (ms, IC ∗∗ P) (mt, P).
+    refines (ms, IC ∗ P)%I (mt, P).
   Proof.
-    split.
-    { s. apply SIM. }
-    ii. hexploit (HSim.sim_modsem SIM); eauto.
-    { eapply Sk.equiv_incl in EQV. etrans; eauto. refl. }
-    eapply Own_split in SRC; eauto. des.
+    ii. eapply Own_split in SRC; eauto. des.
     i. ss. des. exists a2.
     esplits; eauto.
-    { eapply cmra_valid_op_r. eapply valid_solve_eq; eauto.  }
-    { eapply hssim_wf; eauto. }
+    { eapply cmra_valid_op_r. eapply valid_solve_eq; eauto. }
+    { eapply hsim_wf; eauto. }
     ii. subst. eapply adequacy_modsem, PR.
-    - eapply hssim_adequacy; try eapply SRC0; eauto.
+    - eapply hsim_adequacy; try eapply SRC0; eauto.
       + rewrite -Own_op. eapply Own_equiv. 
         etrans; eauto. rewrite comm; ss.
-      + eapply hssim_wf; eauto.
+      + eapply hsim_wf; eauto.
     - inv WFM. econs. ss. unfold map_snd.
       rewrite !List.map_map. eapply eq_ind; [apply wf_fns|].
-      f_equal. extensionalities. destruct H0. ss.
+      f_equal. extensionalities. destruct H. ss.
   Qed.
 
   Theorem closed_adequacy2 (ms mt: HMod.t) P
-    (SIM: HSim._t ms mt (const(emp%I)) IstEq true)
+    (SIM: HSim.t closed ms mt emp%I IstEq)
     :
     refines (ms, P) (mt, P).
   Proof.
-    split.
-    { s. apply SIM. }
-    ii. hexploit (HSim.sim_modsem SIM); eauto.
-    { eapply Sk.equiv_incl in EQV. etrans; eauto. refl. }
-    i. ss. des. exists rs.
+    ii. ss. des. exists rs.
     esplits; eauto.
-    { eapply hssim_wf; eauto. }
+    { eapply hsim_wf; eauto. }
     ii. subst. eapply adequacy_modsem, PR.
-    - eapply hssim_adequacy; auto.
+    - eapply hsim_adequacy; auto.
       + iIntros "H". iFrame. iApply Own_unit. 
-      + eapply hssim_wf; eauto.
-      + inv H. econs; eauto. iIntros "_". iApply sim_initial; eauto.
+      + eapply hsim_wf; eauto.
+      + inv SIM. econs; eauto. iIntros "_".
+        iApply sim_initial; eauto.
     - inv WFM. econs. ss. unfold map_snd.
       rewrite !List.map_map. eapply eq_ind; [apply wf_fns|].
-      f_equal. extensionalities. destruct H0. ss.
+      f_equal. extensionalities. destruct H. ss.
   Qed.
 
 End CLOSED.

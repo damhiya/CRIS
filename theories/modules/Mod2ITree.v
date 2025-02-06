@@ -1,7 +1,5 @@
 Require Import Common.
 
-Require Import Skeleton.
-
 Section EXEC.
 
   Definition pure_state {S E} : E ~> stateT S (itree E) := fun _ e s => x <- trigger e;; Ret (s, x).

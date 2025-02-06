@@ -78,18 +78,18 @@ Module CellAS. Section CellAS.
      ((fun arg => ⌜arg = v↑⌝ ∗ (pending ∨ cell v0)),
       (fun ret => ⌜ret = tt↑⌝ ∗ cell v)))%I.
 
-  Definition Stb : alist string fspec :=
+  Definition Spc : alist string fspec :=
     Seal.sealing CRIS [(CellName.get idx, get_spec);
                        (CellName.set idx, set_spec)].
 
-  Lemma Stb_nodup : List.NoDup (List.map fst Stb).
+  Lemma Spc_nodup : List.NoDup (List.map fst Spc).
   Proof.
-    unfold Stb. unseal CRIS. prove_nodup.
+    unfold Spc. unseal CRIS. prove_nodup.
   Qed.
   
 End CellAS. End CellAS.
 
-Global Hint Unfold CellAS.Stb : stb.
+Global Hint Unfold CellAS.Spc : spc.
 
 Module CellA. Section CellA.
   Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !CellAGΓ Γ}.
@@ -102,24 +102,18 @@ Module CellA. Section CellA.
     [(CellName.get idx, ([], mk_specbody (CellAS.get_spec idx) fbody_trivial));
      (CellName.set idx, ([], mk_specbody (CellAS.set_spec idx) fbody_trivial))].
  
-  Program Definition Sem : SModSem.t := {|
-    SModSem.scopes := scopes;
-    SModSem.fnsems := fnsems;
-    SModSem.initial_st := [];
+  Program Definition Mod : SMod.t := {|
+    SMod.scopes := scopes;
+    SMod.fnsems := fnsems;
+    SMod.initial_st := [];
   |}
   .
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition Mod : SMod.t := {|
-    SMod.modsem := λ _, Sem;
-    SMod.sk := CellSK.t;
-  |}
-  .
+  Definition InitCond : iProp Σ :=
+    (∃ v, CellAS.cell idx v ∗ CellAS.auth idx v)%I.
 
-  Definition InitCond : Sk.t -> iProp Σ :=
-    λ _, (∃ v, CellAS.cell idx v ∗ CellAS.auth idx v)%I.
-
-  Definition t ginv Stb := Seal.sealing CRIS (SMod.to_hmod ginv Stb Mod).
+  Definition t ginv Spc := Seal.sealing CRIS (SMod.to_hmod ginv Spc Mod).
 
 End CellA. End CellA.

@@ -9,12 +9,12 @@ Module FooAS.
 Section FooAS.
   Context `{Σ: GRA}.
 
-  Definition Stb: alist string fspec :=
+  Definition Spc: alist string fspec :=
     Seal.sealing CRIS [(FooName.foo, fspec_trivial)].
   
-  Lemma Stb_nodup: List.NoDup (List.map fst Stb).
+  Lemma Spc_nodup: List.NoDup (List.map fst Spc).
   Proof.
-    unfold Stb. unseal CRIS. prove_nodup.
+    unfold Spc. unseal CRIS. prove_nodup.
   Qed.
 
 End FooAS. End FooAS.
@@ -29,7 +29,7 @@ Module FooA. Section FooA.
     need some better idea to specify the list of local function names 
     without linking all local modules at this moment.
   *)
-  (* Local Definition modules := (CellioA.t ginv Stb) ★ (MainA.t ginv Stb) ★ (InputA.t ginv Stb). *)  
+  (* Local Definition modules := (CellioA.t ginv Spc) ★ (MainA.t ginv Spc) ★ (InputA.t ginv Spc). *)  
   Local Definition local_fns 
     := [CellioName.set; CellioName.get; MainName.main; InputName.input].
 
@@ -54,23 +54,17 @@ Module FooA. Section FooA.
   Definition fnsems : alist string (list string * fspecbody) :=
     [(FooName.foo, (scopes, mk_specbody fspec_trivial (interp_fun foo)))].
 
-  Program Definition Sem : SModSem.t := {|
-    SModSem.scopes := scopes;
-    SModSem.fnsems := fnsems;
-    SModSem.initial_st := [];
+  Program Definition Mod : SMod.t := {|
+    SMod.scopes := scopes;
+    SMod.fnsems := fnsems;
+    SMod.initial_st := [];
   |}.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition Mod : SMod.t := {|
-    SMod.modsem := λ _, Sem;
-    SMod.sk := FooSK.t;
-  |}.
-
-  Definition InitCond : Sk.t -> iProp Σ :=
-    λ _, emp%I.
+  Definition InitCond : iProp Σ := emp%I.
 
   Definition InitRes : Σ := ε.
 
-  Definition t ginv Stb := Seal.sealing CRIS (SMod.to_hmod ginv Stb Mod).
+  Definition t ginv Spc := Seal.sealing CRIS (SMod.to_hmod ginv Spc Mod).
 End FooA. End FooA.

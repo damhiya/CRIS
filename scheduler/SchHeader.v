@@ -13,14 +13,6 @@ Module SchName.
   Definition join := "Sch.join".
 End SchName.
 
-Module SchSK.
-  Definition t : Sk.t := 
-    [(SchName._spawn, Gfun↑);
-     (SchName.spawn, Gfun↑);
-     (SchName.yield, Gfun↑);
-     (SchName.join, Gfun↑)].
-End SchSK.
-
 (* Wrapping fspecs *)
 Section FSpec.
   Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ}.
@@ -48,8 +40,8 @@ Section FSpec.
 
   Definition wfspec_thread: fspec → fspec := (wfspec_inv u) ∘ (wfspec_type SAny.t SAny.t).
 
-  Definition find_fsp (sk: Sk.t) (StbFun: Sk.t -> string -> option fspec) (fn : string) : fspec :=
-    match (StbFun sk fn) with
+  Definition find_fsp (StbFun: string -> option fspec) (fn : string) : fspec :=
+    match (StbFun fn) with
     | Some fsp => fsp
     | None => fspec_trivial
     end.

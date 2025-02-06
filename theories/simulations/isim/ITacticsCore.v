@@ -1,7 +1,7 @@
 Require Import Common.
 Require Import LAuto.
 
-Require Import Skeleton STB Mod SMod HMod PMod.
+Require Import Spc Mod SMod HMod PMod.
 Require Import HPSim ISimCore.
 
 (************ User Tactics **************)
@@ -24,7 +24,7 @@ Ltac inv_string X :=
   ss.
 
 Ltac prove_scope :=
-  try unfold HModSem.fnsems; try unfold SModSem.fnsems; try unfold fnsems_scopes;
+  try unfold HMod.fnsems; try unfold SMod.fnsems; try unfold fnsems_scopes;
   s; ii; des_ifs; ss; des; ss; eauto.
 
 Ltac prove_nodup :=
@@ -45,8 +45,10 @@ Global Opaque CRIS.
 
 Ltac unfold_hmod :=
   match goal with
-  | [|-context[HMod.modsem ?x _]] => rewrite {1}/x; try unseal CRIS
-  | [|-context[HMod.sk ?x]] => rewrite {1}/x; try unseal CRIS
+  | [|-context[?x]] => 
+    match type of x with HMod.t =>
+      rewrite {1}/x; try unseal CRIS
+    end
   end.
 
 Lemma ereplace T (x y: T):
@@ -74,8 +76,8 @@ Ltac move_aux :=
   (hrepeat do 1 match goal with [H: List.NoDup _ |- _ ] => guardH H; move H at top end);
   (hrepeat do 1 match goal with [H: Ist_monotone _ |- _ ] => guardH H; move H at top end);
   (hrepeat do 1 match goal with [H: incl _ (HMod.scopes _ _) |- _] => guardH H; move H at top end);
-  (hrepeat do 1 match goal with [H: HModSem.wf _ |- _ ] => guardH H; move H at top end);
-  (hrepeat do 1 match goal with [H: ∀ _, stb_incl _ _ |- _ ] => guardH H; move H at top end);
+  (hrepeat do 1 match goal with [H: HMod.wf _ |- _ ] => guardH H; move H at top end);
+  (hrepeat do 1 match goal with [H: ∀ _, spc_incl _ _ |- _ ] => guardH H; move H at top end);
   (hrepeat do 1 match goal with [H:=_:list (_ * (Any.t -> itree hmodE Any.t)) |- _ ] => guardH H; move H at top end);
   unguard.
 
@@ -86,7 +88,7 @@ Proof.
 Qed.
 
 Ltac fnsems_nodup H :=
-  revert H; simpl HModSem.fnsems; (hrepeat do 1 unfold_hmod); simpl List.map;
+  revert H; simpl HMod.fnsems; (hrepeat do 1 unfold_hmod); simpl List.map;
   try rewrite !List.map_map; try rewrite !fst_map_snd; eauto; fail.
 
 Ltac _alist_find_simpl :=
@@ -110,7 +112,7 @@ Tactic Notation "alist_find_simpl_with" tactic(simpl_tac) :=
     pattern (alist_find n x) at 1;
     match goal with [|- ?G _] => set (GOAL := G) end
   end;
-  simpl HModSem.fnsems; (hrepeat do 1 unfold_hmod; simpl HModSem.fnsems);
+  simpl HMod.fnsems; (hrepeat do 1 unfold_hmod; simpl HMod.fnsems);
   simpl_tac;
   unfold GOAL; clear GOAL.
 
@@ -225,12 +227,12 @@ Ltac _unwrapSB itr :=
 
 Ltac unwrapSB :=
   try match goal with
-  | [|-context[HModSem.sandbox _ ?itr]] => first [desugar itr|fail 2]
+  | [|-context[HMod.sandbox _ ?itr]] => first [desugar itr|fail 2]
   end;
   match goal with
-  | [|-context[HModSem.sandbox _ (?itr >>= _)]] =>
+  | [|-context[HMod.sandbox _ (?itr >>= _)]] =>
       rewrite HModSB.transl_bind; unwrapSB
-  | [|-context[HModSem.sandbox _ ?itr]] => first [_unwrapSB itr|fail 2]
+  | [|-context[HMod.sandbox _ ?itr]] => first [_unwrapSB itr|fail 2]
   end.
 
 Ltac _unwrapS itr :=
@@ -319,12 +321,12 @@ Ltac _unwrapP itr :=
 
 Ltac unwrapP :=
   try match goal with
-  | [|-context[PModSem.interp ?itr]] => first [desugar itr|fail 2]
+  | [|-context[PMod.interp ?itr]] => first [desugar itr|fail 2]
   end;
   match goal with
-  | [|-context[PModSem.interp (?itr >>= _)]] =>
+  | [|-context[PMod.interp (?itr >>= _)]] =>
       rewrite PModRed.interp_bind; unwrapP
-  | [|-context[PModSem.interp ?itr]] => first [_unwrapP itr|fail 2]
+  | [|-context[PMod.interp ?itr]] => first [_unwrapP itr|fail 2]
   end.
 
 Ltac has_precond_in TM :=
@@ -345,9 +347,9 @@ Ltac _step_l :=
       iApply isim_tau_src
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, Ret _ >>= _) _) ] =>
       rewrite bind_ret_l
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, (HModSem.sandbox _ (trigger (SPut _ _))) >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, (HMod.sandbox _ (trigger (SPut _ _))) >>= _) _) ] =>
       iApply isim_sput_src_sandbox; [s;eauto|]
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, (HModSem.sandbox _ (trigger (SGet _))) >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, (HMod.sandbox _ (trigger (SGet _))) >>= _) _) ] =>
       iApply isim_sget_src_sandbox; [s;eauto|]
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _) _) ] =>
       let name := fresh "q" in
@@ -372,9 +374,9 @@ Ltac _step_r :=
       rewrite bind_ret_l
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ _ (_, tau;; _)) ] =>
       iApply isim_tau_tgt
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ _ (_, (HModSem.sandbox _ (trigger (SPut _ _))) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ _ (_, (HMod.sandbox _ (trigger (SPut _ _))) >>= _)) ] =>
       iApply isim_sput_tgt_sandbox; [s; eauto|]
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ _ (_, (HModSem.sandbox _ (trigger (SGet _))) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ _ (_, (HMod.sandbox _ (trigger (SGet _))) >>= _)) ] =>
       iApply isim_sget_tgt_sandbox; [s; eauto|]
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose _) >>= _)) ] =>
       let name := fresh "q" in
@@ -465,15 +467,15 @@ Ltac show_until marker :=
     end);
   clear marker; i.
 
-Ltac unfold_stb :=
+Ltac unfold_spc :=
   try match goal with
-    [|-context[unwrapN (?stb ?sk ?name)]] =>
+    [|-context[unwrapN (?spc ?name)]] =>
       try match goal with
-        [H: context[stb_incl _ (stb _)]|-_] =>
+        [H: context[spc_incl _ spc]|-_] =>
           let RW := fresh "_RW" in let ND := fresh "_ND" in
           edestruct H as [ND RW];
           erewrite (RW name);
-          [|revert ND; unfold to_stb;
+          [|revert ND; unfold to_spc;
             match goal with [|-context[alist_find _ ?x]] => rewrite /x end;
             unseal CRIS; i;
             alist_find_simpl;
@@ -485,7 +487,7 @@ Ltac unfold_stb :=
 Ltac _prep :=
   first
     [ unwrapSB
-    | unwrapS; unfold_stb; unwrapSB
+    | unwrapS; unfold_spc; unwrapSB
     | unwrapP; unwrapSB
     | idtac].
 
@@ -494,13 +496,13 @@ Ltac prep :=
   try match goal with
   | [|-context[interp_smod _ _ (?f ?arg)]] =>
     match type of arg with Any.t => rewrite {1}/f end
-  | [|-context[PModSem.interp (?f ?arg)]] =>
+  | [|-context[PMod.interp (?f ?arg)]] =>
     match type of arg with Any.t => rewrite {1}/f end
   end;
   unfold ccallU, ccallN;
   try match goal with
-      | [|-context[(_, HModSem.sandbox _ _)]] => _prep
-      | [|-context[(_, HModSem.sandbox _ _ >>= _)]] => _prep
+      | [|-context[(_, HMod.sandbox _ _)]] => _prep
+      | [|-context[(_, HMod.sandbox _ _ >>= _)]] => _prep
       end;
   try rewrite !bind_bind;
   try rewrite !bind_tau.
@@ -611,16 +613,16 @@ Ltac unfold_cris_defs :=
   | [|- context[{| fsb_body := cfunU ?x |}]] => rewrite {1}/x
   | [|- context[{| fsb_body := cfunN ?x |}]] => rewrite {1}/x
   | [|- context[{| fsb_body := ?x |}]] => rewrite {1}/x
-  | [|- context[PModSem.interp (?x _)]] => unfold x
+  | [|- context[PMod.interp (?x _)]] => unfold x
   | [|- context[cfunU ?x]] => rewrite {1}/x
   | [|- context[cfunN ?x]] => rewrite {1}/x
   end);
-  unfold interp_sb_hp, HoareFun, cfunU, cfunN, HModSem.sandbox_body; s.  
+  unfold interp_sb_hp, HoareFun, cfunU, cfunN, HMod.sandbox_body; s.  
 
 Ltac prove_inline_cond :=
   match goal with [|- alist_find _ ?FL = _] =>
     rewrite /FL;
-    simpl HModSem.fnsems; (hrepeat do 1 unfold_hmod);
+    simpl HMod.fnsems; (hrepeat do 1 unfold_hmod);
     simpl List.map; alist_find_simpl; eauto
   end.
 
@@ -673,7 +675,7 @@ Ltac hide_flist :=
   end.
 
 Ltac pre_simF :=
-  unfold HSim.sim_fun, HSim._sim_fun, HSSim.sim_fun; i;
+  unfold HSim.sim_fun; i;
   match goal with [H: _|-_] => revert H end;
   hide_flist.
 

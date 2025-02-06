@@ -30,9 +30,9 @@ Section BODY.
   Definition mem_points_to : (mblock * Z) → list val → iProp :=
     λ '(blk, ofs) vs, ([∗ list] i ↦ v ∈ vs, mem_points_to_singleton (blk, ofs + i)%Z v)%I.
 
-  Definition mem_initial_mem_r (csl : string → bool) (sk : Sk.t) : memRA :=
+  Definition mem_initial_mem_r (csl : string → bool) (genv : GEnv.t) : memRA :=
     ● ((λ blk ofs,
-        match List.nth_error sk blk with
+        match List.nth_error genv blk with
         | Some (g, gd) =>
           match gd↓ with
           | Some (Gvar gv) => if csl g && (decide (ofs = 0)) then Some (Excl (Vint gv)) else ε
@@ -40,8 +40,8 @@ Section BODY.
           end
         | _ => ε
         end) : mblock -d> Z -d> optionUR (exclR valO)).
-  Definition mem_initial_mem (csl : string → bool) (sk : Sk.t) : iProp :=
-    own base_γ (mem_initial_mem_r csl sk).
+  Definition mem_initial_mem (csl : string → bool) (genv : GEnv.t) : iProp :=
+    own base_γ (mem_initial_mem_r csl genv).
 End BODY.
 
 Notation "loc ⤇ v" := (mem_points_to_singleton loc v) (at level 20).
@@ -199,25 +199,18 @@ Module MemA. Section MemA.
 
   Variable csl : string → bool.
 
-  Program Definition Sem : SModSem.t := {|
-    SModSem.scopes := scopes;
-    SModSem.fnsems := fnsems;
-    SModSem.initial_st := [];
+  Program Definition Mod : SMod.t := {|
+    SMod.scopes := scopes;
+    SMod.fnsems := fnsems;
+    SMod.initial_st := [];
   |}.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition Mod : SMod.t := {|
-    SMod.modsem := λ _, Sem;
-    SMod.sk := Sk.unit;
-  |}.
+  Definition InitCond : GEnv.t → iProp Σ :=
+    λ genv, mem_initial_mem csl genv.
 
-  Definition InitCond : Sk.t → iProp Σ :=
-    λ sk, mem_initial_mem csl sk.
-
-  Variable ginv : Sk.t → invspec.
-  Variable GlobalStb : Sk.t → string → option fspec.
-  Definition t : HMod.t := Seal.sealing CRIS (SMod.to_hmod ginv GlobalStb Mod).
+  Definition t ginv spc : HMod.t := Seal.sealing CRIS (SMod.to_hmod ginv spc Mod).
 End MemA. End MemA.
 
 Global Opaque MemA.mem_points_to_singleton_r.

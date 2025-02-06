@@ -26,18 +26,13 @@ Module CannonI. Section CannonI.
   Definition fnsems :=
     [(CannonName.fire, (scopes, cfunU fire))].
   
-  Program Definition Sem : PModSem.t := {|
-    PModSem.scopes := scopes;
-    PModSem.fnsems := fnsems;
-    PModSem.initial_st := [(v_lv, 1%Z↑)];
+  Program Definition Mod : PMod.t := {|
+    PMod.scopes := scopes;
+    PMod.fnsems := fnsems;
+    PMod.initial_st := [(v_lv, 1%Z↑)];
   |}.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
-
-  Definition Mod : PMod.t := {|
-    PMod.modsem := fun _ => Sem;
-    PMod.sk := CannonSK.t;
-  |}.
 
   Definition t := Seal.sealing CRIS (PMod.to_hmod Mod).
 End CannonI. End CannonI.

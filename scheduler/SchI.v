@@ -64,21 +64,14 @@ Module SchI. Section SchI.
      (SchName.yield, (scopes, cfunU yield));
      (SchName.join, (scopes, cfunU join))].
   
-  Program Definition Sem: PModSem.t :=
+  Program Definition Mod: PMod.t :=
   {|
-    PModSem.scopes := scopes;
-    PModSem.fnsems := fnsems;
-    PModSem.initial_st := [(v_ths, ([(0, None)]: thslist)↑)];
+    PMod.scopes := scopes;
+    PMod.fnsems := fnsems;
+    PMod.initial_st := [(v_ths, ([(0, None)]: thslist)↑)];
   |}.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition Mod: PMod.t := 
-  {|
-    PMod.modsem := fun _ => Sem;
-    PMod.sk := SchSK.t;
-  |}.
-
   Definition t := Seal.sealing CRIS (PMod.to_hmod Mod).
-
 End SchI. End SchI.

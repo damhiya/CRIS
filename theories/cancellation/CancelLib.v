@@ -1,6 +1,6 @@
 Require Import Common.
 
-Require Import SMod2HMod HMod2Mod SMod HMod Mod Skeleton.
+Require Import SMod2HMod HMod2Mod SMod HMod Mod.
 Require Import SimGlobal ITactics.
 Require Import ElimRel SModCancel StRed HModInline.
 
@@ -95,21 +95,21 @@ Section CANCEL.
     inv H0. eauto.
   Qed.
 
-  Definition yield_post (ginv: Sk.t -> nat -> iProp Σ) sk: itree hmodE _ :=
-      tau;; tau;; tid <- trigger Tid;; x <- (tau;; trigger (Assume (ginv sk tid)));; Ret ().
+  Definition yield_post (ginv: nat -> iProp Σ): itree hmodE _ :=
+      tau;; tau;; tid <- trigger Tid;; x <- (tau;; trigger (Assume (ginv tid)));; Ret ().
 
-  Variant thread_rel ginv sk (cid tid: nat) src tgt : Prop :=
+  Variant thread_rel ginv (cid tid: nat) src tgt : Prop :=
   | thread_rel_body X (meta: X) (Q: nat -> X -> Any.t -> Any.t -> iProp Σ) l itrS itrT
       (RET: ∀vret ret, 
             tid = 0 -> Q tid meta vret ret ⊢ ⌜vret = ret⌝)
-      (REL: @elim_rel _ md ginv sk _ l itrS itrT)
+      (REL: @elim_rel _ md ginv _ l itrS itrT)
       (SRC: src = 
           ((if Nat.eq_dec tid cid then Ret tt else tau;; Ret tt);;; interp_hp itrS))
       (TGT: tgt =
         (interp_hp
-            ((if Nat.eq_dec tid cid then Ret tt else yield_post ginv sk);;;
+            ((if Nat.eq_dec tid cid then Ret tt else yield_post ginv);;;
               vret <- itrT;; 
-              (inline_hp (prog (SModSem.to_hmod (ginv sk) (stb_global md sk) (SMod.modsem md sk)))
+              (inline_hp (prog (SMod.to_hmod ginv (spc_global md) md))
                 (ret <- trigger (Choose Any.t);;
                   trigger (Guarantee (Q tid meta vret ret));;;
                   Ret ret))))) 
@@ -143,33 +143,33 @@ Section CANCEL.
 
   Definition CANCEL_GOAL
     (R: ∀ x0 x1, (x0→x1→Prop)→smj→smj→itree coreE x0→itree coreE x1→Prop)
-    ginv sk (rs0 rt0: Σ) ps pt srcs tgts cid st (rs rt: Σ) : Prop :=
+    ginv (rs0 rt0: Σ) ps pt srcs tgts cid st (rs rt: Σ) : Prop :=
     R Any.t Any.t eq ps pt
     (x <-
      interp_stateE Any.t
        (ITree.iter
           (handle_schE_callE
-             (ModSem.prog
-                (HModSem.to_mod
-                   (HModSemInline.inline
-                      (SModSemCancel.to_hmod (SMod.modsem md sk))) rs0)))
+             (Mod.prog
+                (HMod.to_mod
+                   (HModInline.inline
+                      (SModCancel.to_hmod md)) rs0)))
           (cid, srcs)) (Any.pair st rs ↑);; Ret x.2)
     (x <-
      interp_stateE Any.t
        (ITree.iter
           (handle_schE_callE
-             (ModSem.prog
-                (HModSem.to_mod
-                   (HModSemInline.inline
-                      (SModSem.to_hmod (ginv sk) (stb_global md sk)
-                         (SMod.modsem md sk))) rt0)))
+             (Mod.prog
+                (HMod.to_mod
+                   (HModInline.inline
+                      (SMod.to_hmod ginv (spc_global md)
+                         md)) rt0)))
           (cid, tgts)) (Any.pair st rt ↑);; Ret x.2).
 
-  Definition cancel_term ginv sk (cid:nat) X (meta: X) Q (itrT: itree hmodE Any.t) :=
+  Definition cancel_term ginv (cid:nat) X (meta: X) Q (itrT: itree hmodE Any.t) :=
     (vret <- itrT;;
      inline_hp (prog
-          (SModSem.to_hmod (ginv sk)
-             (stb_global md sk) (SMod.modsem md sk)))
+          (SMod.to_hmod ginv
+             (spc_global md) md))
        (ret <- trigger (Choose Any.t);;
         trigger (Guarantee (Q cid meta vret ret));;; Ret ret))
   .

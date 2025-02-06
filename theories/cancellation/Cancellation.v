@@ -1,6 +1,6 @@
 Require Import Common.
 
-Require Import SMod2HMod HMod2Mod Mod2ITree SMod HMod Mod Skeleton.
+Require Import SMod2HMod HMod2Mod Mod2ITree SMod HMod Mod.
 Require Import ITactics SimGlobal SimGlobalFacts CtxRefine ClosedAdequacy.
 Require Import SModCancel HModInline ElimRel StRed.
 Require Import CancelLib CancelCall CancelCallRev.
@@ -15,14 +15,13 @@ Section CANCEL.
   Import CancelTAC.
   
   Lemma cancel_aux rs0 rt0
-    ginv sk (SKINCL: incl (SMod.sk md) sk) (SKWF: Sk.wf sk)
-    rs rt srcs tgts cid st ps pt
+    ginv rs rt srcs tgts cid st ps pt
     (WF: ✓ rs)       
     (LEN: cid < List.length srcs)
-    (REL: Forall2i (thread_rel md ginv sk cid) 0 srcs tgts)
+    (REL: Forall2i (thread_rel md ginv cid) 0 srcs tgts)
     (UPD: Own rs ==∗ Own rt)
     :
-    CANCEL_GOAL md (gpaco7 _simg (cpn7 _simg) bot7 bot7) ginv sk rs0 rt0 ps pt srcs tgts cid st rs rt.
+    CANCEL_GOAL md (gpaco7 _simg (cpn7 _simg) bot7 bot7) ginv rs0 rt0 ps pt srcs tgts cid st rs rt.
   Proof.
     exploit Forall2i_nth; eauto. i. des.
     rename x into src, y into tgt.
@@ -32,14 +31,14 @@ Section CANCEL.
     assert (RELS: forall k x y (NEQ: cid ≠ k)
                     (LKX: srcs !! k = Some x)
                     (LKY: tgts !! k = Some y),
-                      thread_rel md ginv sk cid k x y). 
+                      thread_rel md ginv cid k x y). 
     { i. eapply Forall2i_forall in REL; eauto. }
     clear REL. rename REL0 into REL. unfold elim_rel in REL.
     simpl plus in *. subst.
     destruct (Nat.eq_dec cid cid); ss. clear e.
     rename x0 into SRC, x1 into TGT.
     rewrite interp_hp_bind interp_hp_ret in TGT.
-    revert_until SKWF. gcofix CIH. i.
+    revert_until md. gcofix CIH. i.
     
     assert (RT: ✓ rt). { eapply Own_wand_valid with (a1:=rs); eauto. }
     punfold REL. depdes REL; subst.
@@ -127,25 +126,24 @@ Section CANCEL.
   Qed.
 
   Lemma cancel_main
-      P ginv sk fsp meta rs rt r
-      (EQV: Sk.equiv (SMod.sk md) sk) (SKWF: Sk.wf sk)
-      (WF: HModSem.wf ((SModCancel.to_hmod md).(HMod.modsem) sk))
-      (STB: stb_global md sk "CRIS_init" = Some fsp)
+      P ginv fsp meta rs rt r
+      (WF: HMod.wf (SModCancel.to_hmod md))
+      (SPC: spc_global md "CRIS_init" = Some fsp)
       (VALID: ✓ rs)
       (EQUIV: rs ≡ r ⋅ rt)
       (PRE: Own r ⊢ fsp.(precond) 0 meta tt↑ tt↑)
-      (SAT: Own rt ⊢ P sk)
+      (SAT: Own rt ⊢ P)
       (POST: ∀ vret ret, (fsp.(postcond) 0 meta vret ret) ==∗ ⌜vret = ret⌝)
     :  
-    refines_modsem
-      (HModSem.to_mod ((HModInline.inline (SModCancel.to_hmod md)).(HMod.modsem) sk) rs)
-      (HModSem.to_mod ((HModInline.inline (SMod.to_hmod ginv (stb_global md) md)).(HMod.modsem) sk) rt).
+    refines_mod
+      (HMod.to_mod (HModInline.inline (SModCancel.to_hmod md)) rs)
+      (HMod.to_mod (HModInline.inline (SMod.to_hmod ginv (spc_global md) md)) rt).
   Proof.
     r. eapply adequacy_global.
     instantiate (1:= smj_top).
     instantiate (1:= smj_top).
-    unfold ModSem.compile. s. unfold ITree.map.
-    destruct (alist_find "CRIS_init" (SModSem.fnsems (SMod.modsem md sk))) eqn:E; cycle 1.
+    unfold Mod.compile. s. unfold ITree.map.
+    destruct (alist_find "CRIS_init" (SMod.fnsems md)) eqn:E; cycle 1.
     {
       rewrite !alist_find_map/o_map E. s.
       unfold interp_modE at 2.
@@ -159,17 +157,16 @@ Section CANCEL.
     }
     rewrite !alist_find_map/o_map E. s. 
     erewrite !wrap_elimI_well_scoped; cycle 1.
-    { unfold SModSem.to_hmod. s. rewrite alist_find_map_snd. instantiate (1:= "CRIS_init"). rewrite E. ss. }
-    { unfold SModSemCancel.to_hmod. s. rewrite alist_find_map_snd. instantiate (1:= "CRIS_init"). rewrite E. ss. }
+    { unfold SMod.to_hmod. s. rewrite alist_find_map_snd. instantiate (1:= "CRIS_init"). rewrite E. ss. }
+    { unfold SModCancel.to_hmod. s. rewrite alist_find_map_snd. instantiate (1:= "CRIS_init"). rewrite E. ss. }
     ired. destruct p. s.
-    unfold HModSem.sandbox_body, interp_hp_fun. s.
+    unfold HMod.sandbox_body, interp_hp_fun. s.
     unfold inline_hp_fun, interp_sb_hp. s.
     unfold HoareFun.
     
     unfold interp_modE, interp_schE_callE. 
     destruct f.
-    assert (SKINCL: incl (SMod.sk md) sk). { eapply Sk.equiv_incl. eauto. }
-    assert (TMP:=STB). unfold stb_global in TMP. rewrite E in TMP. depdes TMP.
+    assert (TMP:=SPC). unfold spc_global in TMP. rewrite E in TMP. depdes TMP.
     hide_l.
     ginit.
     rewrite !HModSB.transl_bind HModSB.transl_sch HIRed.bind_sch interp_hp_bind. s.
@@ -220,19 +217,17 @@ End CANCEL.
 
 (*** Final Theorem ***)
 Theorem cancellation `{Σ: GRA} md ginv P fsp meta
-  (STB: ∀ sk (EQV: Sk.equiv (SMod.sk md) sk) (SKWF: Sk.wf sk),
-        stb_global md sk "CRIS_init" = Some (fsp sk))
-  (POST: ∀ sk (EQV: Sk.equiv (SMod.sk md) sk) (SKWF: Sk.wf sk) vret ret,
-         ((fsp sk).(postcond) 0 (meta sk) vret ret) -∗ ⌜vret = ret⌝)
+  (SPC: spc_global md "CRIS_init" = Some fsp)
+  (POST: ∀ vret ret,
+         ((fsp).(postcond) 0 (meta) vret ret) -∗ ⌜vret = ret⌝)
   :
-  refines (SModCancel.to_hmod md, P ∗∗ (fun sk => (fsp sk).(precond) 0 (meta sk) tt↑ tt↑))
-          (SMod.to_hmod ginv (stb_global md) md, P).
+  refines (SModCancel.to_hmod md, P ∗ ((fsp).(precond) 0 (meta) tt↑ tt↑))%I
+          (SMod.to_hmod ginv (spc_global md) md, P).
 Proof. 
   etrans.
   { eapply cancel_call_rev. }
   etrans; cycle 1.
   { eapply cancel_call. }
-  r. esplits; ss.
   ii. eapply Own_split in SRC; eauto. des.
   exists a1. esplits; eauto.
   { eapply cmra_valid_op_l, valid_solve_eq; eauto. }

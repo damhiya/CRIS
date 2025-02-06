@@ -310,7 +310,7 @@ Section PROOFS.
         ge le0 X
     :
       interp_imp ge (trigger (GetPtr X)) le0 =
-      r <- (ge.(SkEnv.id2blk) X)? ;; tau;; Ret (le0, Vptr r 0).
+      r <- (ge.(CEnv.id2blk) X)? ;; tau;; Ret (le0, Vptr r 0).
   Proof.
     unfold interp_imp, interp_GlobEnv, interp_ImpState, unwrapU.
     des_ifs; grind.
@@ -325,7 +325,7 @@ Section PROOFS.
     :
       interp_imp ge (trigger (GetName x)) le0 =
       match x with
-      | Vptr n 0 => u <- unwrapU (SkEnv.blk2id ge n);; tau;; Ret (le0, u)
+      | Vptr n 0 => u <- unwrapU (CEnv.blk2id ge n);; tau;; Ret (le0, u)
       | _ => triggerUB
       end
   .
@@ -334,7 +334,7 @@ Section PROOFS.
     destruct x; try destruct ofs.
     1,3,4,5:(rewrite interp_trigger; grind; unfold triggerUB, Mod2ITree.pure_state; grind).
     rewrite interp_trigger. grind. unfold unwrapU.
-    destruct (SkEnv.blk2id ge blk).
+    destruct (CEnv.blk2id ge blk).
     { grind. }
     unfold triggerUB, Mod2ITree.pure_state. grind.
   Qed.
@@ -572,7 +572,7 @@ Section PROOFS.
         ge le0 x X
     :
       interp_imp ge (denote_stmt (AddrOf x X)) le0 =
-      r <- (ge.(SkEnv.id2blk) X)? ;; tau;;
+      r <- (ge.(CEnv.id2blk) X)? ;; tau;;
       tau;; tau;; tau;; Ret (alist_add x (Vptr r 0) le0, Vundef).
   Proof.
     rewrite denote_stmt_AddrOf. rewrite interp_imp_bind.
@@ -715,7 +715,7 @@ Section PROOFS.
           '(le1, p):_ <- interp_imp ge (denote_expr e) le0;;
           match p with
           | Vptr n 0 =>
-            match (SkEnv.blk2id ge n) with
+            match (CEnv.blk2id ge n) with
             | Some f =>
                 tau;;
                 '(le2, vals):_ <- interp_imp ge (denote_exprs args) le1;;

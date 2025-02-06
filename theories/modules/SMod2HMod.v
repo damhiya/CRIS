@@ -1,5 +1,4 @@
 Require Import Common.
-
 Require Import HMod.
 
 Set Implicit Arguments.

@@ -11,19 +11,19 @@ Module CannonAll. Section CannonAll.
   Local Instance Σ : GRA := ##[invΣ; Γ].
 
   Local Definition smod_src : SMod.t := CannonA.Mod ☆ (MainA.Mod 1).
-  Local Definition ginv : Sk.t → invspec := λ _ _, True%I.
-  Local Definition stb : Sk.t → string → option fspec := stb_global smod_src.
+  Local Definition ginv : invspec := λ _, True%I.
+  Local Definition spc : string → option fspec := spc_global smod_src.
   Local Definition mod_cancel : HMod.t := SModCancel.to_hmod smod_src.
-  Local Definition mod_src : HMod.t := SMod.to_hmod ginv stb smod_src.
+  Local Definition mod_src : HMod.t := SMod.to_hmod ginv spc smod_src.
   Local Definition mod_tgt : HMod.t := CannonI.t ★ (MainI.t 1).
 
   Local Definition main_fsp : fspec := MainAS.main_spec.
-  Local Definition init_cond : Sk.t → iProp Σ := CannonA.init_cond ∗∗ MainA.init_cond.
-  Local Definition skeleton : Sk.t := Sk.add CannonSK.t MainSK.t.
+  Local Definition init_cond : iProp Σ := CannonA.init_cond ∗ MainA.init_cond.
+  (* Local Definition genv : GEnv.t := GEnv.add CannonGEnv.t MainGEnv.t. *)
 
   (* Apply cancellation to linked spec module *)
   Lemma cancel_src :
-    refines (mod_cancel, init_cond ∗∗ (λ _, main_fsp.(precond) 0 tt tt↑ tt↑)) 
+    refines (mod_cancel, (init_cond ∗ main_fsp.(precond) 0 tt tt↑ tt↑)%I) 
             ((mod_src, init_cond) : HMod.modc).
   Proof.
     eapply cancellation; try by econs.
@@ -32,27 +32,27 @@ Module CannonAll. Section CannonAll.
   Qed.
 
   (* Refinement between spec/impl of whole program (linked module) *)
-  Lemma src_tgt : refines (mod_src, init_cond) (mod_tgt, const(emp)%I).
+  Lemma src_tgt : refines (mod_src, init_cond) (mod_tgt, emp%I).
   Proof.
     eapply ctxr_refines. 
     rewrite -[(mod_tgt, _)]hmod_addc_empty_r.
     unfold mod_src, mod_tgt. rewrite add_interp_comm.
     eapply ctxr_compose_hor.
-    { replace (SMod.to_hmod ginv stb CannonA.Mod) with (CannonA.t ginv stb); cycle 1.
+    { replace (SMod.to_hmod ginv spc CannonA.Mod) with (CannonA.t ginv spc); cycle 1.
       { unfold CannonA.t. unseal CRIS. ss. }
       eapply CannonIA.correct.
     }
-    { replace (SMod.to_hmod ginv stb (MainA.Mod 1)) with (MainA.t 1 ginv stb); cycle 1.
+    { replace (SMod.to_hmod ginv spc (MainA.Mod 1)) with (MainA.t 1 ginv spc); cycle 1.
       { unfold MainA.t. unseal CRIS. ss. }
       eapply CannonMainIA.correct.
-      i. rewrite /CannonAS.Stb. unseal CRIS. econs; first prove_nodup.
-      ii; rewrite -FIND /stb /stb_global /smod_src //=; des_ifs; ss; des_ifs.
+      i. rewrite /CannonAS.Spc. unseal CRIS. econs; first prove_nodup.
+      ii; rewrite -FIND /spc /spc_global /smod_src //=; des_ifs; ss; des_ifs.
     }
   Qed.
 
   Lemma cancel_tgt :
-    refines (mod_cancel, init_cond ∗∗ (λ _, main_fsp.(precond) 0 tt tt↑ tt↑))
-            (mod_tgt, const(emp)%I).
+    refines (mod_cancel, (init_cond ∗ main_fsp.(precond) 0 tt tt↑ tt↑)%I)
+            (mod_tgt, emp%I).
   Proof.
     etrans.
     { eapply cancel_src. }
@@ -68,16 +68,14 @@ Module CannonAll. Section CannonAll.
   Qed.
 
   Theorem behavioral_refinement :
-    ∃ target_resource, refines_modsem
-      (HModSem.to_mod ((HMod.modsem mod_cancel) skeleton) initial_resource)
-      (HModSem.to_mod ((HMod.modsem mod_tgt) skeleton) target_resource).
+    ∃ target_resource, refines_mod
+      (HMod.to_mod mod_cancel initial_resource)
+      (HMod.to_mod mod_tgt target_resource).
   Proof.
     move: (cancel_tgt)=>H; rewrite /refines in H; des; ss.
-    destruct (REF skeleton initial_resource).
-    { rewrite /CannonI.t /MainI.t /skeleton; unseal CRIS; ss. }
-    { rewrite /skeleton /CannonSK.t /MainSK.t; ss; econs; ii; ss; des; ss; prove_nodup. }
+    destruct (H initial_resource).
     { apply initial_resource_valid. }
-    { iIntros "I"; rewrite /init_cond /CannonA.init_cond /MainA.init_cond /HMod.addc.
+    { iIntros "I"; rewrite /init_cond /CannonA.init_cond /MainA.init_cond.
       rewrite /precond /= /CannonAS.Ready /CannonAS.Ball
         own.Own_eq own.own_eq /own.Own_def /own.own_def.
       rewrite /initial_resource /MainAS.init_res /CannonAS.init_res. Set Printing Implicit.

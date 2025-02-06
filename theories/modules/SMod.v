@@ -1,21 +1,21 @@
 Require Import Common.
-
-Require Import Skeleton HMod.
+Require Import HMod.
 Require Export SMod2HMod.
 
 Set Implicit Arguments.
 
-Module SModSem.
-Section SMODSEM.
+Module SMod.
+Section SMOD.
 
   Context `{Σ : GRA}.
   Variable ginv : invspec.
-  Variable stb : string -> option fspec.
+  Variable spc : string -> option fspec.
 
   Record t : Type := mk {
     scopes : list string;
     fnsems : alist string (list string * fspecbody);
     initial_st : alist key Any.t;
+
     well_scoped_fns:
       forall fn, incl (fnsems_scopes fn fnsems) scopes;
     well_scoped_init:
@@ -81,10 +81,13 @@ Section SMODSEM.
     { eapply INCL2. rewrite - List.map_map. eapply in_map. eauto. }
   Qed.
 
-  Program Definition to_hmod (ms : t) : HModSem.t := {|
-    HModSem.scopes := ms.(scopes);
-    HModSem.fnsems := List.map (map_snd (λ ksb, (ksb.1, interp_sb_hp ginv stb ksb.2))) ms.(fnsems);
-    HModSem.initial_st := ms.(initial_st);
+  Definition addL (ms : list t) : t :=
+    foldr add empty ms.
+
+  Program Definition to_hmod (ms : t) : HMod.t := {|
+    HMod.scopes := ms.(scopes);
+    HMod.fnsems := List.map (map_snd (λ ksb, (ksb.1, interp_sb_hp ginv spc ksb.2))) ms.(fnsems);
+    HMod.initial_st := ms.(initial_st);
   |}.
   Next Obligation.
     i. destruct ms. ss. ii. unfold fnsems_scopes in *. unfold map_snd in*.
@@ -94,45 +97,6 @@ Section SMODSEM.
   Next Obligation. ii. destruct ms. ss. eauto. Qed.
   Next Obligation. ii. destruct ms. ss. eauto. Qed.
 
-End SMODSEM.
-End SModSem.
-
-Module SMod.
-Section SMOD.
-
-  Context `{Σ : GRA}.
-  Variable ginv : Sk.t -> invspec.
-  Variable stb : Sk.t -> string -> option fspec.
-
-  Record t : Type := mk {
-    modsem : Sk.t -> SModSem.t;
-    sk : Sk.t;
-  }.
-
-  Definition empty := {|
-    modsem := const (SModSem.empty);
-    sk := []
-  |}.
-
-  Definition add (md0 md1 : t) : t := {|
-    modsem := λ sk, SModSem.add (md0.(modsem) sk) (md1.(modsem) sk);
-    sk := Sk.add md0.(sk) md1.(sk);
-  |}.
-
-  Definition addL (ms : list t) : t :=
-    foldr add empty ms.
-
-  Definition to_hmod (md:t) : HMod.t := {|
-    HMod.modsem := fun sk => SModSem.to_hmod (ginv sk) (stb sk) (md.(modsem) sk);
-    HMod.sk := md.(sk);
- |}.
-    
-  (* Definition get_stb (mds : list t) : Sk.t -> alist string (list string * fspec) := *)
-  (*   fun sk => List.map (map_snd (map_snd fsb_fspec)) (flat_map (SModSem.fnsems ∘ (flip modsem sk)) mds). *)
-
-  (* Definition get_sk (mds : list t) : Sk.t := *)
-  (*   fold_right Sk.add Sk.unit (List.map sk mds). *)
-
 End SMOD.
 End SMod.
 
@@ -140,57 +104,42 @@ Infix "☆" := SMod.add (at level 9, right associativity).
 
 Section ADD.
   Context `{Σ : GRA}.
-
-  Lemma hmod_ext (ms0 ms1: HModSem.t)
-      (SCOPES: ms0.(HModSem.scopes) = ms1.(HModSem.scopes))
-      (FNSEMS: ms0.(HModSem.fnsems) = ms1.(HModSem.fnsems))
-      (STATES: ms0.(HModSem.initial_st) = ms1.(HModSem.initial_st))
-    :
-    ms0 = ms1.
-  Proof.
-    destruct ms0, ms1. ss. subst.
-    assert (well_scoped_fns = well_scoped_fns0) by apply proof_irr.
-    assert (well_scoped_init = well_scoped_init0) by apply proof_irr.
-    assert (nodup_fns = nodup_fns0) by apply proof_irr.
-    subst. eauto.
-  Qed.
     
-  Lemma smodsem_add_interp_comm
-      ginv stb
-      (ms0 ms1: SModSem.t)
+  Lemma smod_add_interp_comm
+      ginv spc
+      (ms0 ms1: SMod.t)
     :
-    SModSem.to_hmod ginv stb (SModSem.add ms0 ms1) = HModSem.add (SModSem.to_hmod ginv stb ms0) (SModSem.to_hmod ginv stb ms1).
+    SMod.to_hmod ginv spc (SMod.add ms0 ms1) = HMod.add (SMod.to_hmod ginv spc ms0) (SMod.to_hmod ginv spc ms1).
   Proof.
-    eapply hmod_ext; ss; eauto.
+    eapply hmod_extensionality; ss; eauto.
     rewrite map_app. ss.
   Qed.
 
   Lemma add_interp_comm
-      ginv stb
+      ginv spc
       (md0 md1: SMod.t)
     :
-    SMod.to_hmod ginv stb (SMod.add md0 md1) = HMod.add (SMod.to_hmod ginv stb md0) (SMod.to_hmod ginv stb md1).
+    SMod.to_hmod ginv spc (SMod.add md0 md1) = HMod.add (SMod.to_hmod ginv spc md0) (SMod.to_hmod ginv spc md1).
   Proof.
     unfold SMod.to_hmod. unfold "★". s. 
     f_equal. extensionalities.
-    eapply smodsem_add_interp_comm.
-  Qed. 
+    eapply smod_add_interp_comm.
+  Qed.
 
   Lemma interp_empty
-      ginv stb
+      ginv spc
     :
-    SMod.to_hmod ginv stb SMod.empty = HMod.empty.
+    SMod.to_hmod ginv spc SMod.empty = HMod.empty.
   Proof.
-    unfold SMod.to_hmod, HMod.empty. ss. 
-    f_equal. extensionalities.
-    eapply hmod_ext; eauto.
+    unfold SMod.to_hmod, HMod.empty.
+    eapply hmod_extensionality; eauto.
   Qed.
 
   Lemma addL_interp_comm
-      ginv stb
+      ginv spc
       (mds: list SMod.t)
     :
-    SMod.to_hmod ginv stb (SMod.addL mds) = HMod.addL (List.map (SMod.to_hmod ginv stb) mds).
+    SMod.to_hmod ginv spc (SMod.addL mds) = HMod.addL (List.map (SMod.to_hmod ginv spc) mds).
   Proof.
     induction mds; [eapply interp_empty|].
     s. rewrite add_interp_comm.

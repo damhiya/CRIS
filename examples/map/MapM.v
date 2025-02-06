@@ -46,15 +46,15 @@ Module MapMS. Section MapMS.
         (λ varg, ⌜varg = [Vint k]↑⌝,
           λ vret, emp))%I.
 
-  Definition Stb : alist string fspec :=
+  Definition Spc : alist string fspec :=
     Seal.sealing CRIS
       [(MapName.init, init_spec);
        (MapName.get, get_spec);
        (MapName.set, set_spec);
        (MapName.set_by_user, set_by_user_spec)].
 
-  Lemma Stb_nodup : List.NoDup (List.map fst Stb).
-  Proof. by rewrite /Stb; unseal CRIS; prove_nodup. Qed.
+  Lemma Spc_nodup : List.NoDup (List.map fst Spc).
+  Proof. by rewrite /Spc; unseal CRIS; prove_nodup. Qed.
 
 End MapMS. End MapMS.
 
@@ -118,22 +118,16 @@ Module MapM. Section MapM.
      (MapName.set, (scopes, mk_specbody MapMS.set_spec (cfunU set)));
      (MapName.set_by_user, (scopes, mk_specbody MapMS.set_by_user_spec (cfunU set_by_user)))].
 
-  Program Definition Sem : SModSem.t := {|
-    SModSem.scopes := scopes;
-    SModSem.fnsems := fnsems;
-    SModSem.initial_st := [(v_size, 0%Z↑);
+  Program Definition Mod : SMod.t := {|
+    SMod.scopes := scopes;
+    SMod.fnsems := fnsems;
+    SMod.initial_st := [(v_size, 0%Z↑);
                            (v_map,  (λ (_ : Z), 0%Z)↑)];
   |}.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition Mod : SMod.t := {|
-    SMod.modsem := λ _, Sem;
-    SMod.sk := MapSK.t;
-  |}.
+  Definition InitCond : iProp Σ := emp%I.
 
-  Definition InitCond : Sk.t → iProp Σ :=
-    λ _, emp%I.
-
-  Definition t ginv Stb := Seal.sealing CRIS (@SMod.to_hmod Σ ginv Stb Mod).
+  Definition t ginv Spc := Seal.sealing CRIS (@SMod.to_hmod Σ ginv Spc Mod).
 End MapM. End MapM.

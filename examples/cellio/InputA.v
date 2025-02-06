@@ -7,12 +7,12 @@ Module InputAS.
 Section InputAS.
   Context `{Σ: GRA}.
 
-  Definition Stb: alist string fspec :=
+  Definition Spc: alist string fspec :=
     Seal.sealing CRIS [(InputName.input, fspec_trivial)].
   
-  Lemma Stb_nodup: List.NoDup (List.map fst Stb).
+  Lemma Spc_nodup: List.NoDup (List.map fst Spc).
   Proof.
-    unfold Stb. unseal CRIS. prove_nodup.
+    unfold Spc. unseal CRIS. prove_nodup.
   Qed.
 
 End InputAS. End InputAS.
@@ -31,23 +31,17 @@ Module InputA. Section InputA.
   Definition fnsems : alist string (list string * fspecbody) :=
     [(InputName.input, (scopes, mk_specbody fspec_trivial input))].
 
-  Program Definition Sem : SModSem.t := {|
-    SModSem.scopes := scopes;
-    SModSem.fnsems := fnsems;
-    SModSem.initial_st := [];
+  Program Definition Mod : SMod.t := {|
+    SMod.scopes := scopes;
+    SMod.fnsems := fnsems;
+    SMod.initial_st := [];
   |}.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition Mod : SMod.t := {|
-    SMod.modsem := λ _, Sem;
-    SMod.sk := InputSK.t;
-  |}.
-
-  Definition InitCond : Sk.t -> iProp Σ :=
-    λ _, emp%I.
+  Definition InitCond : iProp Σ := emp%I.
     
   Definition InitRes : Σ := ε.
 
-  Definition t ginv Stb := Seal.sealing CRIS (SMod.to_hmod ginv Stb Mod).
+  Definition t ginv Spc := Seal.sealing CRIS (SMod.to_hmod ginv Spc Mod).
 End InputA. End InputA.

@@ -14,8 +14,10 @@ Module SchIA. Section SchIA.
   Context (υ : positive) (n : level).
   Notation iProp := (iProp Σ).
 
-  Variable Stb: Sk.t -> string -> option fspec.
-  Hypothesis SchInStb: ∀ sk, stb_incl (stb υ n Stb sk) (Stb sk).
+  Variable Spc_global: string -> option fspec.
+  Variable Spc_user: string -> option fspec.
+  Hypothesis SchInSpc : spc_incl (spc υ n Spc_user) Spc_global.
+  Hypothesis FunInSpc : spc_sub Spc_user Spc_global.
 
   Fixpoint ths_wf (nths: nat) (ths_tgt: SchI.thslist): Prop :=
     match ths_tgt with
@@ -143,8 +145,8 @@ Module SchIA. Section SchIA.
 
   (**************************)
 
-  Definition Ist: Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp :=
-    fun sk numths st_src st_tgt =>
+  Definition Ist: nat -> alist key Any.t -> alist key Any.t -> iProp :=
+    fun numths st_src st_tgt =>
       (∃ ths_tgt (ths_src_b ths_src_w: SchA.threadsF) (ths_cond: gmap nat iProp), 
           ⌜st_tgt = [(SchI.v_ths, ths_tgt↑)] 
             ∧ <<THWF: ths_wf numths ths_tgt>>
@@ -154,7 +156,7 @@ Module SchIA. Section SchIA.
           ∗ own base_γ (◯ ths_src_w)
           ∗ ([∗ map] tid↦P ∈ ths_cond, P))%I.
 
-  Local Notation SchAMod := (SchA.t υ n Stb).
+  Local Notation SchAMod := (SchA.t υ n Spc_global Spc_user).
   Local Notation SchIMod := (SchI.t).
 
 From iris.proofmode Require Import coq_tactics environments.
@@ -419,7 +421,7 @@ Notation "E1 '------------------------------------------------------------------
     hide_itree_l; rewrite unfold_iter_eq; show_itree;
     show_until marker.
 
-  Lemma simF__spawn : HSim.sim_fun SchAMod SchIMod Ist SchName._spawn.
+  Lemma simF__spawn : HSim.sim_fun open SchAMod SchIMod Ist SchName._spawn.
   Proof.
     init_wpsim.
     iDestruct "ASM" as "[%va [-> ASM]]"; hss.
@@ -575,7 +577,7 @@ Notation "E1 '------------------------------------------------------------------
     Unshelve. all: ss.
   Qed.
 
-  Lemma simF_spawn : HSim.sim_fun SchAMod SchIMod Ist SchName.spawn.
+  Lemma simF_spawn : HSim.sim_fun open SchAMod SchIMod Ist SchName.spawn.
   Proof.
     init_wpsim.
     iDestruct "ASM" as "[%va [-> ASM]]".
@@ -609,7 +611,7 @@ Notation "E1 '------------------------------------------------------------------
     (* build IST *)
     rewrite /alist_upd /_alist_upd /=.
     set (st_tgt0 := [(SchI.v_ths, ((alist_add nths None ths_tgt): thslist)↑)]).
-    iAssert (Ist sk (S nths) st_src st_tgt0) with "[COND THB THW TKNQ1]" as "IST".
+    iAssert (Ist (S nths) st_src st_tgt0) with "[COND THB THW TKNQ1]" as "IST".
     { iCombine "THW TKNQ1" as "THW". iExists _, _, _, _. iFrame.
       iPureIntro. esplits; et.
       - clear SIM. ss. split; [nia|]. rewrite alist_remove_find_None; et.
@@ -642,7 +644,7 @@ Notation "E1 '------------------------------------------------------------------
     Unshelve. exact 1%positive. (* TODO: Erase!*)
   Qed.
 
-  Lemma simF_yield : HSim.sim_fun SchAMod SchIMod Ist SchName.yield.
+  Lemma simF_yield : HSim.sim_fun open SchAMod SchIMod Ist SchName.yield.
   Proof.
     init_wpsim.
     iDestruct "ASM" as "[-> ->]". hss.
@@ -670,7 +672,7 @@ Notation "E1 '------------------------------------------------------------------
     Unshelve. exact 1%positive.
   Qed.
 
-  Lemma simF_join : HSim.sim_fun SchAMod SchIMod Ist SchName.join.
+  Lemma simF_join : HSim.sim_fun open SchAMod SchIMod Ist SchName.join.
   Proof.
     init_wpsim.
     destruct q as [tid postS]; s.
@@ -745,7 +747,7 @@ Notation "E1 '------------------------------------------------------------------
     }
     { (* active(O) *)
       set (st_tgt0 := [(SchI.v_ths, ths_tgt↑)]).
-      iAssert (Ist sk nths st_src st_tgt0) with "[THB THW COND]" as "IST".
+      iAssert (Ist nths st_src st_tgt0) with "[THB THW COND]" as "IST".
       { iExists _, _, _, _. iFrame. iPureIntro. esplits; et. }
       w_force_l false. w_steps_l. w_force_l (tt). w_force_l (tt↑).
       prep_l; iApply wpsim_full_guarantee_src_WP; iSplitL ""; et.
@@ -769,7 +771,7 @@ Notation "E1 '------------------------------------------------------------------
     Unshelve. all: ss.
   Qed.
 
-  Theorem sim : HSim.t SchAMod SchIMod SchA.InitCond Ist.
+  Theorem sim : HSim.t open SchAMod SchIMod SchA.InitCond Ist.
   Proof.
     init_sim.
     - rewrite /SchA.InitCond /initial_threads. unseal "SchA".
@@ -791,8 +793,8 @@ Notation "E1 '------------------------------------------------------------------
 
   Theorem correct :
     ctx_refines
-      (SchA.t univ Stb, SchA.InitCond)
-      (SchI.t, const(emp%I)).
+      (SchA.t univ Spc_global Spc_user, SchA.InitCond)
+      (SchI.t, emp%I).
   Proof.
     eapply main_adequacy. eapply sim; et.
   Qed.

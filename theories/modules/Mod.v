@@ -24,7 +24,7 @@ Section ADD.
 
 End ADD.
 
-Module ModSem.
+Module Mod.
 
   Record t : Type := mk {
     initial_st : Any.t;
@@ -55,4 +55,4 @@ Module ModSem.
       snd <$> interp_modE prog (prog (Call init_fun ()↑)) (initial_st ms).
 
   End COMPILE.
-End ModSem.
+End Mod.

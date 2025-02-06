@@ -70,24 +70,18 @@ Section MEMI.
 
   Variable csl : string → bool.
 
-  Program Definition MemSem (sk : Sk.t) : PModSem.t :=
+  Program Definition Mem (genv : GEnv.t) : PMod.t :=
     {|
-      PModSem.scopes := [scope];
-      PModSem.fnsems := fnsems ;
-      PModSem.initial_st := [(v_mem, (Mem.load_mem csl sk)↑)];
+      PMod.scopes := [scope];
+      PMod.fnsems := fnsems ;
+      PMod.initial_st := [(v_mem, (Mem.load_mem csl genv)↑)];
     |}
   .
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition Mem : PMod.t := {|
-    PMod.modsem := MemSem;
-    PMod.sk := Sk.unit;
-  |}
-  .
-
   Context `{Σ : GRA}.
-  Definition t : HMod.t := Seal.sealing CRIS (PMod.to_hmod Mem).
+  Definition t genv : HMod.t := Seal.sealing CRIS (PMod.to_hmod (Mem genv)).
 
 End MEMI.
 End MemI.

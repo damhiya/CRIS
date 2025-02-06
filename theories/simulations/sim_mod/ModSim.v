@@ -1,6 +1,5 @@
 Require Import Common.
-
-Require Import Skeleton Mod.
+Require Import Mod.
 Require Import SimGlobal.
 
 Set Implicit Arguments.
@@ -551,12 +550,12 @@ Require Import Program.
 Module MSim.
 Section MODSEMR.
 
-  Variable (ms_src ms_tgt : ModSem.t).
+  Variable (ms_src ms_tgt : Mod.t).
   
-  Let fl_src := ms_src.(ModSem.fnsems).
-  Let fl_tgt := ms_tgt.(ModSem.fnsems).
-  Let st_src := ms_src.(ModSem.initial_st).
-  Let st_tgt := ms_tgt.(ModSem.initial_st).
+  Let fl_src := ms_src.(Mod.fnsems).
+  Let fl_tgt := ms_tgt.(Mod.fnsems).
+  Let st_src := ms_src.(Mod.initial_st).
+  Let st_tgt := ms_tgt.(Mod.initial_st).
 
   Inductive t : Type := mk {
     world : Type;
@@ -576,7 +575,7 @@ Section MODSEMR.
   }.
 
   Lemma wf_sim_miss (SIM : t)
-    (WF : ModSem.wf ms_src)
+    (WF : Mod.wf ms_src)
     :
     forall fn (MISS : alist_find fn fl_src = None),
       alist_find fn fl_tgt = None.

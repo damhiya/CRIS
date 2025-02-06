@@ -1,6 +1,5 @@
 Require Import Common.
-
-Require Import Skeleton HMod.
+Require Import HMod.
 Require Import HPSim.
 
 Set Implicit Arguments.
@@ -12,12 +11,12 @@ Ltac hred := try (prw _red_gen 1 1 0).
 Section SIM.
   Context `{Σ : GRA}.
   Local Notation iProp := (iProp Σ).
+  Variable contextual: contextuality.
   Variable fl_src fl_tgt : alist string (Any.t → itree hmodE Any.t).
   Variable Ist : nat → alist key Any.t → alist key Any.t → iProp.
   Variable my_tid : nat.
-  Variable is_closed: bool.
 
-  Let _hpsim := _hpsim fl_src fl_tgt Ist my_tid is_closed.
+  Let _hpsim := _hpsim contextual fl_src fl_tgt Ist my_tid.
   Let rel := ∀ Rs Rt, (nat → alist key Any.t * Rs → alist key Any.t * Rt → iProp) → bool → bool → nat → alist key Any.t * itree hmodE Rs → alist key Any.t * itree hmodE Rt → iProp.
 
   Variant iunlift (r : rel) Rs Rt RR ps pt nths sti_src sti_tgt res : Prop :=
@@ -362,7 +361,7 @@ Section SIM.
   Lemma isim_sput_src_sandbox r g ps pt {Rs Rt} RR  k v nths st_src st_tgt k_src i_tgt scopes :
     In k.1 scopes →
     @isim r g Rs Rt RR true pt nths (alist_upd k v st_src, k_src tt) (st_tgt, i_tgt)
-    ⊢ @isim r g Rs Rt RR ps pt nths (st_src, HModSem.sandbox scopes (trigger (SPut k v)) >>= k_src) (st_tgt, i_tgt).
+    ⊢ @isim r g Rs Rt RR ps pt nths (st_src, HMod.sandbox scopes (trigger (SPut k v)) >>= k_src) (st_tgt, i_tgt).
   Proof.
     i. iIntros "ISIM".
     rewrite HModSB.transl_put.
@@ -384,7 +383,7 @@ Section SIM.
   Lemma isim_sput_tgt_sandbox r g ps pt {Rs Rt} RR k v nths st_src st_tgt i_src k_tgt scopes :
     In k.1 scopes →
     @isim r g Rs Rt RR ps true nths (st_src, i_src) (alist_upd k v st_tgt, k_tgt tt)
-    ⊢ @isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, HModSem.sandbox scopes (trigger (SPut k v)) >>= k_tgt).
+    ⊢ @isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, HMod.sandbox scopes (trigger (SPut k v)) >>= k_tgt).
   Proof.
     i. iIntros "ISIM".
     rewrite HModSB.transl_put.
@@ -406,7 +405,7 @@ Section SIM.
   Lemma isim_sget_src_sandbox r g ps pt {Rs Rt} RR k nths st_src st_tgt k_src i_tgt scopes :
     In k.1 scopes →
     @isim r g Rs Rt RR true pt nths (st_src, k_src (or_else (alist_find k st_src) tt↑)) (st_tgt, i_tgt)
-    ⊢ @isim r g Rs Rt RR ps pt nths (st_src, HModSem.sandbox scopes (trigger (SGet k)) >>= k_src) (st_tgt, i_tgt).
+    ⊢ @isim r g Rs Rt RR ps pt nths (st_src, HMod.sandbox scopes (trigger (SGet k)) >>= k_src) (st_tgt, i_tgt).
   Proof.
     i. iIntros "ISIM".
     rewrite HModSB.transl_get.
@@ -428,7 +427,7 @@ Section SIM.
   Lemma isim_sget_tgt_sandbox r g ps pt {Rs Rt} RR k nths st_src st_tgt i_src k_tgt scopes :
     In k.1 scopes →
     @isim r g Rs Rt RR ps true nths (st_src, i_src) (st_tgt, k_tgt (or_else (alist_find k st_tgt) tt↑))
-    ⊢ @isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, HModSem.sandbox scopes (trigger (SGet k)) >>= k_tgt).
+    ⊢ @isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, HMod.sandbox scopes (trigger (SGet k)) >>= k_tgt).
   Proof.
     i. iIntros "ISIM".
     rewrite HModSB.transl_get.
@@ -534,7 +533,7 @@ Section SIM.
 
   Lemma isim_call_none
     r g ps pt {Rs Rt} RR nths st_src st_tgt i_src k_tgt fn varg
-    (CLOSED: is_closed = true)
+    (CLOSED: contextual = closed)
     (FIND: alist_find fn fl_tgt = None)
   :
     (@isim r g Rs Rt RR ps true nths (st_src, i_src) (st_tgt, x <- triggerNB;; tau;; tau;; k_tgt x))
@@ -699,25 +698,25 @@ Definition Ist_monotone `{Σ : GRA} (Ist: nat → alist key Any.t → alist key 
   ∀ nths nths' (LE : nths <= nths') st_src st_tgt,
   Ist nths st_src st_tgt -∗ Ist nths' st_src st_tgt.
 
-Definition isim_fsem `{Σ : GRA} fl_src fl_tgt Ist is_closed : relation (Any.t -> itree hmodE Any.t) :=
+Definition isim_fsem `{Σ : GRA} fl_src fl_tgt Ist contextual : relation (Any.t -> itree hmodE Any.t) :=
   (eq ==> (fun itr_src itr_tgt =>
   ∀ my_tid nths st_src st_tgt
     (IMON : Ist_monotone Ist)
     (NODS : List.NoDup (List.map fst st_src))
     (NODD : List.NoDup (List.map fst st_tgt)),
   Ist nths st_src st_tgt ⊢
-    @isim Σ fl_src fl_tgt Ist my_tid is_closed ibot ibot Any.t Any.t
+    @isim Σ contextual fl_src fl_tgt Ist my_tid ibot ibot Any.t Any.t
       (fun nths '(st_src, v_src) '(st_tgt, v_tgt) => (⌜v_src = v_tgt⌝ ∗ Ist nths st_src st_tgt))%I
       false false nths (st_src, itr_src) (st_tgt, itr_tgt)))%signature.
 
-Module HSSim. Section HSSim.
-    Import HModSem.
+Module HSim. Section HSim.
+    Import HMod.
     Context `{Σ : GRA}.
-    Notation iProp := (iProp Σ).
-    Variable (ms_src ms_tgt : HModSem.t).
-    Variable init_cond : iProp.
-    Variable Ist : nat -> alist key Any.t -> alist key Any.t -> iProp.
-    Variable is_closed: bool.
+
+    Variable contextual: contextuality.
+    Variable (ms_src ms_tgt : HMod.t).
+    Variable init_cond : iProp Σ.
+    Variable Ist : nat -> alist key Any.t -> alist key Any.t -> iProp Σ.
 
     Let scopes_src := ms_src.(scopes).
     Let scopes_tgt := ms_tgt.(scopes).
@@ -727,17 +726,17 @@ Module HSSim. Section HSSim.
     Let init_tgt := ms_tgt.(initial_st).
 
     Definition sim_fun fn : Prop :=
-      ∀ (WFS : HModSem.wf ms_src)
-        (WFT : HModSem.wf ms_tgt)
+      ∀ (WFS : HMod.wf ms_src)
+        (WFT : HMod.wf ms_tgt)
         (NODUPFS : List.NoDup (List.map fst fnsems_src))
         (NODUPFT : List.NoDup (List.map fst fnsems_tgt))
         ft (FIND : alist_find fn fnsems_tgt = Some ft),
       ∃ fs, alist_find fn fnsems_src = Some fs /\
         isim_fsem
-          (List.map (map_snd HModSem.sandbox_body) fnsems_src)
-          (List.map (map_snd HModSem.sandbox_body) fnsems_tgt)
-          Ist is_closed
-          (HModSem.sandbox_body fs) (HModSem.sandbox_body ft).
+          (List.map (map_snd HMod.sandbox_body) fnsems_src)
+          (List.map (map_snd HMod.sandbox_body) fnsems_tgt)
+          Ist contextual
+          (HMod.sandbox_body fs) (HMod.sandbox_body ft).
 
     Inductive t : Prop := mk {
       sim_initial :
@@ -753,27 +752,4 @@ Module HSSim. Section HSSim.
         ∀ fn (IN : In fn (List.map fst fnsems_tgt)),
           sim_fun fn;
     }.
-End HSSim. End HSSim.
-
-Module HSim. Section HSim.
-  Context `{Σ : GRA}.
-  Variable (md_src md_tgt : HMod.t).
-  Variable init_cond : Sk.t -> iProp Σ.
-  Variable Ist : Sk.t -> nat -> alist key Any.t -> alist key Any.t -> iProp Σ.
-
-  Inductive _t is_closed : Prop :=
-    mk {
-        sim_modsem:
-        ∀ sk (SKINCL : List.incl md_tgt.(HMod.sk) sk) (SKWF : Sk.wf sk),
-          <<SIM : HSSim.t (md_src.(HMod.modsem) sk) (md_tgt.(HMod.modsem) sk) (init_cond sk) (Ist sk) is_closed>>;
-        sim_sk : <<SIM : Sk.equiv md_src.(HMod.sk) md_tgt.(HMod.sk)>>;
-      }.
-
-  Definition t := _t false.
-
-  (* TODO : add skeleton condition *)
-  Definition _sim_fun is_closed fn : Prop :=
-    ∀ sk, HSSim.sim_fun (HMod.modsem md_src sk) (HMod.modsem md_tgt sk) (Ist sk) is_closed fn.
-  
-  Definition sim_fun fn := _sim_fun false fn.
 End HSim. End HSim.

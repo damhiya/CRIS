@@ -1,4 +1,4 @@
-# Conditional Contextual Refinement
+# Contextual Refinement with Imaginary Specifications (CRIS)
 
 ## Build
 Requirement: opam (>=2.0.0), Coq 8.20.0
