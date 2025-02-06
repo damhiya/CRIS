@@ -2,10 +2,6 @@ Require Import CRIS.
 Require Import ImpPrelude.
 Require Import wpsim.
 
-Definition sch_ginv (u : univ_id) (n : level)
-    `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ} : Sk.t → invspec :=
-  λ _ _, wpsim_ginv u n ⊤.
-
 Module SchName.
   Definition _spawn := "Sch._spawn".
   Definition spawn := "Sch.spawn".

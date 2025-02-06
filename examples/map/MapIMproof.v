@@ -2,6 +2,7 @@ Require Import CRIS.
 
 Require Import MemA.
 Require Import MapHeader MapI MapM.
+Require Import wpsim_tactics.
 
 Set Implicit Arguments.
 
@@ -72,87 +73,136 @@ Module MapIM. Section MapIM.
             ∧ st_tgt = [(MapI.v_hptr,(Vptr blk ofs)↑)]⌝
           ∗ (blk, ofs) |-> (fun_to_list f (Z.to_nat sz)))%I.
 
-  Variable ginv : invspec.
-  Variable SpcMap : string → option fspec.
-  Hypothesis MapInSpcMap : spc_incl MapMS.Spc SpcMap.
-  Variable SpcMem : string → option fspec.
+  Context (υ : univ_id) (n : level) (ginv : invspec).
+  Context (SpcMap SpcMem : string → option fspec).
+  Hypothesis MapInSpcMap : spc_incl (MapMS.Spc υ n) SpcMap.
 
   Local Notation MemA := (MemA.t ginv SpcMem).
-  Local Notation MapM := (MapM.t ginv SpcMap).
+  Local Notation MapM := (MapM.t υ n ginv SpcMap).
   Local Notation MapMMod := (MapM ★ MemA).
   Local Notation MapIMod := (MapI.t ★ MemA).
   Local Notation IstFull := (IstProd (IstSB MapM.(HMod.scopes) Ist) IstEq).
 
+  Ltac w_inline_l :=
+    let marker := fresh "MARKER" in
+    set_marker marker;  
+    hide_ihyps;
+    hide_itree_r;
+    prep;
+    iApply wpsim_inline_src; [prove_inline_cond|];
+    unfold_cris_defs;
+    show_until marker.
+
+  Ltac w_inline_r :=
+    let marker := fresh "MARKER" in
+    set_marker marker;  
+    hide_ihyps;
+    hide_itree_l;
+    prep;
+    iApply wpsim_inline_tgt; [prove_inline_cond|];
+    unfold_cris_defs;
+    show_until marker.
+
+  Ltac _w_force_r :=
+    match goal with
+    | [ |- environments.envs_entails _ (wpsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _)) ] =>
+        iApply wpsim_take_tgt
+    | [ |- environments.envs_entails _ (wpsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Assume ?P) >>= _)) ] =>
+        unfold_precond_postcond P; iApply wpsim_assume_tgt
+    (* | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ _ (_, unwrapU _ >>= _)) ] =>
+        iApply isim_unwrapU_tgt; iExists _
+    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _)) ] =>
+        iApply isim_asm_tgt *)
+    end
+  .
+
+  Ltac w_force_r_core :=
+    let marker := fresh "MARKER" in
+    set_marker marker;  
+    hide_ihyps;
+    hide_itree_l;
+    prep;
+    _w_force_r; s;
+    show_until marker.
+  
+  Tactic Notation "w_force_r" :=
+    w_force_r_core; try (iExists _).
+  
+  Tactic Notation "w_force_r" uconstr(p) :=
+    w_force_r_core; iExists p.
+
   Lemma simF_init : HSim.sim_fun open MapMMod MapIMod IstFull MapName.init.
   Proof.
-    init_simF.
+    (* initialize wpsim *)
+    unshelve init_wpsim; first exact 1%positive.
+
+    (* preprocess given assumptions *)
+    iDestruct "ASM" as "[[[-> %] P] ->]". hss.
+    w_steps_l.
 
     (* SRC: handle the IST of Map and the precond of init *)
-    steps_l. iDestruct "ASM" as "((% & P0) & %)". des. hss. inv G0.
-    iDestruct "IST" as (????) "(%& (% & [%|(P & IST)]) &%)";
+    iDestruct "IST" as (????) "([-> ->] & (% & [% | (P' & IST)]) & %)";
       [|iDestruct "IST" as (????) "M"];
       hss; cycle 1.
-    { iExFalso. iApply (pending_unique with "P P0"). }
+    { iExFalso. iApply (pending_unique with "P P'"). }
     rename q into sz.
 
     (* SRC: prove the postcond of init *)
-    forces_l. iSplit; eauto.
-    steps_r.
+    w_force_l (Vundef ↑).
+    w_force_l; iSplitL ""; first done.
 
     (* TGT : inline alloc *)
-    inline_r.
+    w_steps_r. w_inline_r.
 
     (* TGT: prove the precond of alloc *)
-    step_r. forces_r.
-    iSplit; eauto.
+    w_step_r. w_force_r sz. w_force_r ([Vint sz] ↑).
+    w_force_r; iSplit; first done.
 
     (* TGT: handle the postcond of alloc *)
-    steps_r. iDestruct "GRT" as "[GRT %]". 
-    iDestruct "GRT" as (?) "(% & POINTS)". hss.
+    w_steps_r. iDestruct "GRT" as "[[%b [-> PTS]] ->]".
+    hss. w_steps_r. hss.
 
     (* prepare and start an induction *)
-    steps_r. hss.
     replace (repeat Vundef sz) with (repeat (Vint 0) (sz-sz) ++ repeat Vundef sz); cycle 1.
     { rewrite Nat.sub_diag. eauto. }
     rewrite // -[X in ITree.iter _ X](Z.sub_diag (sz%Z)).
     iStopProof. cut (sz <= sz); [|lia].
-    generalize sz at 1 4 5 11. intros n.
-    induction n; i; iIntros "(PD & PTS)".
+    generalize sz at 1 4 5 11. intros n'.
+    induction n'; i; iIntros "(PD & PTS)".
 
     (* Base case *)
-    {
-      (* TGT : unwind the loop *)
-      rewrite unfold_iter_eq. des_ifs; try nia. steps_r.
+    { (* TGT : unwind the loop *)
+      unfold_iter_r. des_ifs; try nia. w_steps_r.
+
       (* prove the IST of Map *)
-      step. repeat (iSplit; eauto).
+      w_step. repeat (iSplit; eauto).
       iExists [_;_], [_], _, _.
-      do 3 (iSplit; eauto).
+      repeat iSplit; eauto.
       iRight. iFrame. iExists _, _, _, _. iSplitR; eauto.
-      rewrite -> app_nil_r, Nat.sub_0_r, fun_to_list_repeat, Nat2Z.id. eauto.
+      rewrite app_nil_r Nat.sub_0_r fun_to_list_repeat Nat2Z.id //=.
     }
 
     (* Inductive case *)
-    {
-      (* TGT : unwind the loop *)
-      rewrite unfold_iter_eq. des_ifs; try nia.
+    { (* TGT : unwind the loop *)
+      unfold_iter_r. des_ifs; try nia.
       (* TGT : compute the input to store *)
       unfold scale_int at 1. des_ifs; cycle 1.
       { exfalso. eapply n0. eapply Z.divide_factor_r. }
-      s. steps_r.
+      s. w_steps_r.
       
       (* TGT : inline store *)
-      inline_r.
+      w_inline_r. w_steps_r.
 
       (* TGT: prove the precond of store *)
-      step_r. force_r (_, (sz - S n)%Z, _).
-      force_r ([Vptr _ (sz - (S n))%Z; _]↑).
-      forces_r.
+      w_force_r (_, (sz - S n')%Z, _).
+      w_force_r ([Vptr _ (sz - (S n'))%Z; _]↑).
+      w_force_r.
       iPoseProof (big_sepL_insert_acc with "PTS") as "(PT & CTN)".
-      { instantiate (2:= (sz - (S n))).
+      { instantiate (2:= (sz - (S n'))).
         rewrite lookup_app_r; rewrite repeat_length; try nia.
         rewrite Nat.sub_diag. s. eauto.
       }
-      rewrite -> !Z.add_0_l, Nat2Z.inj_sub; try nia.
+      rewrite !Z.add_0_l Nat2Z.inj_sub; try nia.
       (* , Zpos_P_of_succ_nat, <-Nat2Z.inj_succ, Nat2Z.inj_sub; try nia. *)
       iSplitL "PT".
       { iSplitL; cycle 1.
@@ -162,14 +212,14 @@ Module MapIM. Section MapIM.
       }
 
       (* TGT: handle the postcond of store *)
-      steps_r. iDestruct "GRT" as "((GRT & %) & %)". subst.
+      w_steps_r. iDestruct "GRT" as "[[GRT ->] ->]". hss.
       iSpecialize ("CTN" $! (Vint 0)). iPoseProof ("CTN" with "GRT") as "PTS".
       (* rewrite -> !Zpos_P_of_succ_nat, <-!Nat2Z.inj_succ. *)
-      replace (sz - S n + 1)%Z with (sz - n)%Z by nia.
+      replace (sz - S n' + 1)%Z with (sz - n')%Z by nia.
 
       (* apply the induction hypothesis and complete *)
-      hss. steps_r.
-      iApply IHn; try nia. iFrame.
+      w_steps_r.
+      iApply IHn'; try nia. iFrame.
       rewrite repeat_update.
       eapply eq_ind; [iAssumption |].
       do 3 f_equal. nia.
@@ -178,116 +228,122 @@ Module MapIM. Section MapIM.
 
   Lemma simF_get : HSim.sim_fun open MapMMod MapIMod IstFull MapName.get.
   Proof.
-    init_simF.
+    init_wpsim.
 
     (* SRC: handle the IST of Map and the precond of get *)
-    steps_l. iDestruct "ASM" as "(% & %)". hss. inv G0.
+    iDestruct "ASM" as "[-> ->]". hss.
+    w_steps_l.
     iDestruct "IST" as (? ? ? ?) "(%& (% & [%|(P & IST)]) &%)";
       [|iDestruct "IST" as (? ? ? ?) "(% & M)"];
       des; hss.
     { nia. }
-    rename q2 into idx.
+    rename q0 into sz.
+    rename q into idx.
     
     (* SRC: prove the postcond of get *)
-    forces_l. iSplitL "". { eauto. }
+    w_force_l. w_force_l. iSplitL "". { eauto. }
 
     (* TGT : compute the input to load *)
-    steps_r. hss. steps_r.
+    w_steps_r. hss. w_steps_r.
     unfold scale_int. des_ifs; cycle 1.
-    { exfalso. eapply n. eapply Z.divide_factor_r. }
-    s. steps_r. rewrite Z_div_mult; try nia.
+    { exfalso. eapply n0. eapply Z.divide_factor_r. }
+    s. w_steps_r. rewrite Z_div_mult; try nia.
 
     (* TGT : inline load *)
-    inline_r.
+    w_inline_r.
 
     (* TGT: prove the precond of load *)
-    step_r. force_r (_, (ofs + _)%Z, _). forces_r.
+    w_step_r. w_force_r (_, (ofs + _)%Z, _). w_force_r. w_force_r.
     iPoseProof (big_sepL_lookup_acc with "M") as "(IP & M)".
-    { apply fun_to_list_lookup with (i:=Z.to_nat idx). hss. nia. }
+    { apply fun_to_list_lookup with (i:=Z.to_nat idx). nia. }
     rewrite Z2Nat.id; try nia.
     iSplitL "IP"; eauto.
     
     (* TGT: handle the postcond of load *)
-    steps_r. iDestruct "GRT" as "[[GRT %] %]". hss. steps_r.
+    w_steps_r. iDestruct "GRT" as "[[GRT ->] ->]". hss. w_steps_r.
 
     (* prove the IST of Map *)
-    step. repeat (iSplit; eauto).
+    w_step. repeat (iSplit; eauto).
     iExists [_;_], [_], _, _.
     do 3 (iSplit; eauto).
     iRight. iFrame. iExists _, _, _, _. iSplit; eauto.
     iPoseProof ("M" with "GRT") as "M". iFrame.
+    Unshelve. exact 1%positive.
   Qed.
 
   Lemma simF_set : HSim.sim_fun open MapMMod MapIMod IstFull MapName.set.
   Proof.
-    init_simF.
+    init_wpsim.
+    destruct q as [k v]; s; iDestruct "ASM" as "[-> ->]".
 
     (* SRC: handle the IST of Map and the precond of set *)
-    steps_l. iDestruct "ASM" as "(% & %)". hss. inv G0.
+    w_steps_l. hss. inv G0.
     iDestruct "IST" as (? ? ? ?) "(%& (% & [%|(P & IST)]) &%)";
       [|iDestruct "IST" as (? ? ? ?) "(% & M)"];
       des; hss.
     { nia. }
-    rename q4 into idx, q5 into v.
-
-    (* SRC: prove the postcond of set *)
-    forces_l. iSplitL "". { eauto. }
+    rename q1 into idx.
 
     (* TGT : compute the input to store *)
-    steps_r. hss. steps_r.
+    w_steps_r. hss. w_steps_r.
     unfold scale_int. des_ifs; cycle 1.
-    { exfalso. eapply n. eapply Z.divide_factor_r. }
+    { exfalso. eapply n0. eapply Z.divide_factor_r. }
     rewrite Z_div_mult; try nia.
-    s. steps_r.
+    s. w_steps_r.
 
     (* TGT : inline load *)
-    inline_r.
+    w_inline_r.
 
     (* TGT: prove the precond of store *)
-    step_r. force_r (_, _, _). forces_r.
+    w_step_r. w_force_r (blk, (ofs + idx)%Z, _). w_force_r. w_force_r.
     iPoseProof (big_sepL_insert_acc with "M") as "(IP & M)".
     { apply fun_to_list_lookup with (i:=Z.to_nat idx). hss. nia. }
     rewrite Z2Nat.id; try nia.
     iSplitL "IP". { eauto. }
 
     (* TGT: handle the postcond of load *)
-    steps_r. iDestruct "GRT" as "[[GRT %] %]". hss. steps_r.
+    w_steps_r. iDestruct "GRT" as "[[GRT ->] ->]". hss. w_steps_r.
+
+    (* SRC: prove the postcond of set *)
+    w_force_l. w_force_l. iSplitL "". { eauto. }
 
     (* prove the IST of Map *)
-    step. repeat (iSplit; eauto).
+    w_step. repeat (iSplit; eauto).
     iExists [_;_], [_], _, _.
     do 3 (iSplit; eauto).
     iRight. iFrame. iExists _, _, _, _. iSplit; eauto.
     iPoseProof ("M" with "GRT") as "M".
     rewrite -> fun_to_list_update, Z2Nat.id; try nia. iFrame.
+    Unshelve. exact 1%positive.
   Qed.
 
   Lemma simF_set_by_user : HSim.sim_fun open MapMMod MapIMod IstFull MapName.set_by_user.
   Proof.
-    init_simF.
+    init_wpsim.
+    iDestruct "ASM" as "[-> ->]".
 
     (* SRC: handle the IST of Map and the precond of set_by_user *)
-    steps_l. iDestruct "ASM" as "(% & %)". hss. inv G0. hss.
-    rename q2 into k.
+    hss. w_steps_l. rename q into k.
 
     (* process an input *)
-    steps_r. step.
+    w_steps_r. w_step.
     
     (* SRC: prove the precond of set *)
-    steps_l. force_l (_,_); s. forces_l.
-    iSplitL "". { iFrame. eauto. }
+    w_steps_l. w_force_l (_,_); s. w_force_l. w_force_l.
+    iSplitL "". { eauto. }
 
     (* make a call to set *)
-    steps_r. call "IST"; [eauto|].
+    w_steps_r. w_call "IST".
 
     (* SRC: handle the postcond of set *)
-    steps_l. iDestruct "ASM" as "(_ & %)". hss. steps_r.
+    w_steps_l. iDestruct "ASM" as "(_ & ->)". hss.
 
     (* SRC: prove the postcond of set_by_user *)
-    forces_l. iSplitL "". { eauto. }
+    w_force_l. w_force_l. iSplitL "". { eauto. }
 
     (* prove the IST of Map *)
-    hss. steps_r. step. eauto.
+    w_steps_r. hss. w_steps_r. w_step. eauto.
+    Unshelve. exact 1%positive.
   Qed.
 
   Theorem sim : HSim.t open MapMMod MapIMod MapM.InitCond IstFull.

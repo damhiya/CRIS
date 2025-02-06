@@ -8,9 +8,10 @@ Set Implicit Arguments.
 Local Definition RA : ucmra :=
   prodUR (optionUR (exclR unitO)) (authUR (Z -d> optionUR (exclR ZO))).
 Class MapAGΓ (Γ : HRA) := {
-  #[global] RA_inG :: inG RA Γ;
+  #[local] RA_inG :: inG RA Γ;
 }.
 Definition MapAΓ : HRA := #[RA].
+(* TODO : add GRA_index boilerplate *)
 
 Module MapAS. Section MapAS.
   Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !MapMGΓ Γ, !MapAGΓ Γ}.
