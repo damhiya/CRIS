@@ -15,7 +15,7 @@ Global Instance subG_GΓ {Γ : HRA} : subG CannonAΓ Γ → CannonAGΓ Γ.
 Proof. solve_inG. Qed.
 
 Module CannonAS. Section CannonAS.
-  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !CannonAGΓ Γ}.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !CannonAGΓ Γ}.
   
   Definition Ready : iProp Σ := own 1%positive (●E tt).
   Definition Ball : iProp Σ := own 1%positive (◯E tt).
@@ -53,7 +53,7 @@ End CannonAS. End CannonAS.
 
 Module CannonA. Section CannonA.
   Import CannonAS.
-  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !CannonAGΓ Γ}.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !CannonAGΓ Γ}.
 
   Definition scopes := ["Cannon"].
   Definition v_lv := "Cannon" ↯ "lv".

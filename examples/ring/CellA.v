@@ -14,21 +14,21 @@ Class CellAGΓ (Γ : HRA) := {
 Definition CellAΓ : HRA := #[RA].
 
 Module CellAS. Section CellAS.
-  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !CellAGΓ Γ}.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !CellAGΓ Γ}.
                  
   Variable idx : nat.
  
   Definition pending : iProp Σ :=
-    own base_γ ((fun n => if Nat.eq_dec n idx then Some (Excl ()) else ε) : pendingUR, ε).
+    own base_γ (((fun n => if Nat.eq_dec n idx then Some (Excl ()) else ε) : pendingUR, ε): RA).
 
   Definition cellraw_r (v : Z) : cellUR :=
     (fun n => if Nat.eq_dec n idx then Excl' v else ε).
   
   Definition cell (v : Z) : iProp Σ :=
-    own base_γ (ε, ◯ (cellraw_r v)).
+    own base_γ ((ε, ◯ (cellraw_r v)): RA).
 
   Definition auth (v : Z) : iProp Σ :=
-    own base_γ (ε, ● (cellraw_r v)).
+    own base_γ ((ε, ● (cellraw_r v)): RA).
 
   Lemma pending_unique : pending -∗ pending -∗ False.
   Proof.
@@ -92,7 +92,7 @@ End CellAS. End CellAS.
 Global Hint Unfold CellAS.Spc : spc.
 
 Module CellA. Section CellA.
-  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !CellAGΓ Γ}.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !CellAGΓ Γ}.
 
   Variable idx : nat.
 

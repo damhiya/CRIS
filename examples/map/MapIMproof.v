@@ -59,7 +59,7 @@ Qed.
 (* Simulation proof *)
 Module MapIM. Section MapIM.
   Import MapMS.
-  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !MapMGΓ Γ, !memGΓ Γ}.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !MapMGΓ Γ, !memGΓ Γ}.
   Notation iProp := (iProp Σ).
 
   Definition Ist : nat → alist key Any.t → alist key Any.t → iProp :=
@@ -201,7 +201,7 @@ Module MapIM. Section MapIM.
     inline_r.
 
     (* TGT: prove the precond of load *)
-    step_r. force_r (_, (ofs + _)%Z, _). forces_r.
+    step_r. force_r (_, (ofs + _)%Z, _, _). forces_r.
     iPoseProof (big_sepL_lookup_acc with "M") as "(IP & M)".
     { apply fun_to_list_lookup with (i:=Z.to_nat idx). hss. nia. }
     rewrite Z2Nat.id; try nia.

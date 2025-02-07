@@ -8,7 +8,7 @@ Local Open Scope nat_scope.
 
 Module SchIA. Section SchIA.
   Import SchAS.
-  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !SchAGΣ Σ}.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !SchAGΣ Σ}.
   Notation iProp := (iProp Σ).
 
   Variable univ : positive.
@@ -290,7 +290,8 @@ Module SchIA. Section SchIA.
     do 2 rewrite unfold_iter_eq.
     show_until MARKER.
     
-    steps_l. forces_l. iSplitL "W"; et. call "IST"; et. steps_l.
+    forces_l. steps_l. forces_l. iSplitL "W"; et.
+    call "IST"; et. steps_l.
     iDestruct "ASM" as "(W & % & %)". des; subst; hss. step_l. grind.
     steps_r. hss. steps_r. 
     rewrite SModRed.interp_tau. steps_l.
@@ -307,7 +308,7 @@ Module SchIA. Section SchIA.
 
     steps_l. hss. destruct q2; ss.
     iDestruct "ASM" as "[W (% & % & (% & % & [% %] & %) & PRE)]"; des; subst; hss.
-    steps_r. unfold HoareSpawn. force_l (my_tid, q7, q8, q6, q4, existT x m).
+    steps_r. force_l (my_tid, q7, q8, q6, q4, existT x m).
     force_l ((my_tid, x, q7)↑). step. steps_r.
 
     iDestruct "IST" as (? ? ? ?) "(% & THB & THW & COND)". subst; hss. steps_r.

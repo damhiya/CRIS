@@ -53,14 +53,16 @@ Section invariants.
   Definition invΓ : HRA := #[ownERA; ownDRA].
   Definition invΣ : GRA := #[ownIRA].
 
-  Global Instance subHG_invΣ {α' Σ} : subG invΣ Σ → invGΣ α' Σ.
+  Global Instance subG_invΣ {α' Σ} : subG invΣ Σ → invGΣ α' Σ.
   Proof. solve_inG. Qed.
-  Global Instance subHG_invΓ {Γ} : subG invΓ Γ → invGΓ Γ.
+  Global Instance subG_invΓ {Γ : HRA} : subG invΓ Γ → invGΓ Γ.
   Proof. solve_inG. Qed.
+  Global Instance invG_subG {α' Σ Γ} : invGΣ α' Σ → invGΓ Γ → invG α' Σ Γ.
+  Proof. i; ss. Qed.
 End invariants.
 
 Section predicates.
-  Context `{!subHG Γ Σ, !invG α Σ Γ}.
+  Context `{!subG (Γ : HRA) Σ, !invG α Σ Γ}.
   Local Existing Instances invG_Σ invG_Γ invG_I invG_E invG_D.
 
   (* owns invariant *)
@@ -127,7 +129,7 @@ Section predicates.
 End predicates.
 
 Section wsat.
-  Context `{@SRFIntp.t (domain Σ) α, !invG α Σ Γ, !subHG Γ Σ}.
+  Context `{@SRFIntp.t (domain Σ) α, !invG α Σ Γ, !subG Γ Σ}.
 
   Variable u : univ_id.
   Variable n : level.
@@ -233,7 +235,7 @@ Section wsat.
 End wsat.
 
 Section wsats.
-  Context `{@SRFIntp.t (domain Σ) α, !invG α Σ Γ, !subHG Γ Σ}.
+  Context `{@SRFIntp.t (domain Σ) α, !invG α Σ Γ, !subG Γ Σ}.
   (* Local Existing Instances inv_preΣ inv_preΓ invG_I invG_E invG_D. *)
 
   Definition wsats u n E : iProp Σ :=

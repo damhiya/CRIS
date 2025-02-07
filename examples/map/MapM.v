@@ -13,7 +13,7 @@ Global Instance subG_GΓ {Γ} : subG MapMΓ Γ → MapMGΓ Γ.
 Proof. solve_inG. Qed.
 
 Module MapMS. Section MapMS.
-  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !MapMGΓ Γ}.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !MapMGΓ Γ}.
 
   Definition pending : iProp Σ := own base_γ (Excl ()).
   Lemma pending_unique : pending -∗ pending -∗ False.
@@ -77,7 +77,7 @@ def set_by_user(k : int) ≡
   set(k, input())
 ***)
 Module MapM. Section MapM.
-  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !MapMGΓ Γ}.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !MapMGΓ Γ}.
 
   Definition scopes := ["Map"].
   Definition v_size := "Map" ↯ "size".

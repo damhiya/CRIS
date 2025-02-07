@@ -12,13 +12,15 @@ End SchName.
 
 (* Wrapping fspecs *)
 Section FSpec.
-  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ}.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
   Notation iProp := (iProp Σ).
 
   Variable univ: positive.
+  Variable genv: GEnv.t.
+  Variable StbFun: string → option fspec.
 
   (* fspec wrapping functions - TODO: move them to a proper file *)
-  Definition wfspec_inv (univ : positive) (fsp : fspec) : fspec :=
+  Definition wfspec_inv (fsp : fspec) : fspec :=
     mk_fspec (meta := (fsp).(meta))
       (fun tid x varg arg =>
         (∃ n, wsats univ n ⊤) ∗ fsp.(precond) tid x varg arg)%I
@@ -37,9 +39,9 @@ Section FSpec.
     | existT n p => ⟦ p ⟧
     end.
 
-  Definition wfspec_thread: fspec → fspec := (wfspec_inv univ) ∘ (wfspec_type SAny.t SAny.t).
+  Definition wfspec_thread: fspec → fspec := (wfspec_inv) ∘ (wfspec_type SAny.t SAny.t).
 
-  Definition find_fsp (StbFun: string -> option fspec) (fn : string) : fspec :=
+  Definition find_fsp (fn : string) : fspec :=
     match (StbFun fn) with
     | Some fsp => fsp
     | None => fspec_trivial

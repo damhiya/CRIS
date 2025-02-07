@@ -1,0 +1,31 @@
+Require Import CRIS.
+
+Require Import APCHeader APC APCA.
+
+Set Implicit Arguments.
+
+Module APCC. Section APCC.
+  Context {Σ : GRA}.
+
+  Definition scopes := ["APC"].
+
+  Definition Spc : alist string fspec :=
+    Seal.sealing CRIS
+      [(APCName.apc, APCA.apc_spec)].
+  
+  Lemma Spc_nodup : List.NoDup (List.map fst Spc).
+  Proof. unfold Spc. unseal CRIS. prove_nodup. Qed.
+
+  Definition fnsems :=
+    [(APCName.apc, (scopes, mk_specbody APCA.apc_spec fbody_trivial))].
+
+  Program Definition Mod : SMod.t := {|
+    SMod.scopes := scopes;
+    SMod.fnsems := fnsems;
+    SMod.initial_st := [];
+  |}.
+  Solve All Obligations with prove_scope.
+  Next Obligation. prove_nodup. Qed.
+
+  Definition t ginv Spc := Seal.sealing CRIS (SMod.to_hmod ginv Spc Mod).
+End APCC. End APCC.

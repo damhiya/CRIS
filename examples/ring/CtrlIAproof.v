@@ -11,7 +11,7 @@ Local Open Scope nat_scope.
 
 (* Simulation Proof *)
 Module CtrlIA. Section CtrlIA.
-  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !CellAGΓ Γ}.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !CellAGΓ Γ}.
 
   Variable max_size : nat.
 

@@ -9,7 +9,7 @@ Set Implicit Arguments.
 Local Open Scope nat_scope.
 
 Module RingIA. Section RingIA.
-  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !CellAGΓ Γ}.  
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !CellAGΓ Γ}.  
 
   Definition CellIG start len :=
     HMod.addL (List.map CellI.t (seq start len)).

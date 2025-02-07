@@ -15,20 +15,25 @@ Module TypG.
 End TypG.
 
 Class HRA : Type := HRA_mk : GRA.
-Class subHG (Γ : HRA) (Σ : GRA) := subHG_mk : subG Γ Σ.
-Global Instance subG_subHG (Γ : HRA) (Σ : GRA) : subG Γ Σ → subHG Γ Σ. auto. Qed.
+(* Class subG (Γ : HRA) (Σ : GRA) := subG_mk : subG Γ Σ. *)
+(* Global Instance subG_subG (Γ : HRA) (Σ : GRA) : subG Γ Σ → subG Γ Σ. auto. Qed. *)
 
 Global Instance index_inG (Γ : HRA) (i : gid Γ) : inG (GRA_lookup i) Γ.
 Proof.
   econstructor; eauto.
 Defined.
-Global Program Instance in_subG (Γ : HRA) (Σ : GRA) `{emb : !inG M Γ} : subHG Γ Σ → inG M Σ.
+Global Program Instance in_subG (Γ : HRA) (Σ : GRA) `{emb : !inG M Γ} : subG Γ Σ → inG M Σ.
 Next Obligation.
   intros. destruct emb. destruct (s inG_id). exact x.
 Defined.
 Next Obligation.
   intros. destruct emb. simpl. destruct (s inG_id). subst. f_equal. eauto.
 Defined.
+Lemma inG_id_in_subG (Γ : HRA) (Σ : GRA) (RA : cmra) inΓ ΓinΣ :
+  @inG_id RA Σ (@in_subG Γ Σ RA inΓ ΓinΣ) = let '(exist _ id _) := (ΓinΣ (inG_id inΓ)) in id.
+Proof.
+  unfold in_subG; simpl. unfold sProp.in_subG_obligation_1. destruct inΓ. simpl. reflexivity.
+Qed.
 
 (** Types for Separation Logic **)
 Module ST. Section ST.
@@ -122,7 +127,7 @@ Module SL.
   End syntax.
 
   Section semantics.
-    Context {τ : TypG.t} {α : @SRFCons.t} {Γ : HRA} {Σ : GRA} `{!subHG Γ Σ}.
+    Context {τ : TypG.t} {α : @SRFCons.t} {Γ : HRA} {Σ : GRA} `{!subG Γ Σ}.
     Definition interp_aux n (s : shape)
         : (degree s (SRFSyn.t_prev n) → SRFSyn.t n) → (degree s (SRFSyn.t_prev n) → iProp Σ) → iProp Σ :=
       match s with
@@ -144,12 +149,12 @@ Module SL.
     Global Instance interp : @SRFIntpM.t _ α syntax := interp_aux.
   End semantics.
 
-  Class G (Σ : GRA) (Γ : HRA) (α : SRFCons.t) (β : SRFIntp.t) (τ : TypG.t) `{!subHG Γ Σ} := {
+  Class G (Σ : GRA) (Γ : HRA) (α : SRFCons.t) (β : SRFIntp.t) (τ : TypG.t) `{!subG Γ Σ} := {
     #[local] G_inG :: SRFIntp.inG SL.syntax α SL.interp β;
   }.
 
   Section definitions.
-    Context `{!subHG Γ Σ, !G Σ Γ α β τ}.
+    Context `{!subG (Γ : HRA) Σ, !G Σ Γ α β τ}.
     Local Existing Instances G_inG.
 
     Definition own `{IN: !inG M Γ} {n} (γ : positive) (r : M) : SRFSyn.t n.
@@ -313,7 +318,7 @@ Notation "'[∗' n , A 'list]' x ∈ l , P" :=
       format "[∗  n ,  A  list]  x  ∈  l ,  P") : SRF_scope.
 
 Module SLRed. Section RED.
-  Context `{!subHG Γ Σ} `{!SL.G Σ Γ α β τ}.
+  Context `{!subG (Γ : HRA) Σ, !SL.G Σ Γ α β τ}.
   Notation interp := (SRFSem.t (Δ := domain Σ)).
 
   Lemma own `{!inG M Γ} n γ (r : M) :

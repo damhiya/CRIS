@@ -1,0 +1,168 @@
+Require Import CRIS.
+
+Require Import KnotHeader.
+Require Import APCHeader APC.
+
+Set Implicit Arguments.
+
+Local Definition RA : ucmra :=
+  authUR (optionUR (exclR (optionO (natO -d> natO)))).
+Class KnotAGΓ (Γ: HRA) := {
+  #[local] RA_inG :: inG RA Γ;
+}.
+Definition KnotAΓ : HRA := #[RA].
+Global Instance subG_GΓ {Γ : HRA} : subG KnotAΓ Γ → KnotAGΓ Γ.
+Proof. solve_inG. Defined.
+Hint Unfold subG_GΓ RA_inG : GRA_index.
+
+Module KnotA. Section KnotA.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !KnotAGΓ Γ, !memGΓ Γ}.
+  Notation iProp := (iProp Σ).
+
+  Definition init_res : Σ := own.iRes_singleton 1%positive (● (Some (Excl None))).
+  Definition init_res_mem (genv: GEnv.t) : Σ := own.iRes_singleton 1%positive (
+    match ((CEnv.load_genv genv).(CEnv.id2blk) KnotName._f) with
+    | Some blk => mem_points_to_singleton_r (blk, 0%Z) 1%Qp (Vint 0)
+    | None => ε
+    end
+  ).
+
+  (* Resources *)
+
+  Global Instance leibniz_equiv_discrete_funO_natO_natO: LeibnizEquiv (natO -d> natO).
+  Proof.
+    ii. assert ((x: nat → nat) = (y: nat → nat)).
+    { apply func_ext. intro z. specialize (H z). ss. } ss.
+  Qed.
+
+  Definition knot_full (f: option (nat → nat)) : iProp :=
+    own base_γ (● (Some (Excl (f: optionO (natO -d> natO))))).
+  Definition knot_frag (f: option (nat → nat)) : iProp := 
+    own base_γ (◯ (Some (Excl (f: optionO (natO -d> natO))))).
+
+  Definition knot_init: iProp := knot_frag None.
+
+  Lemma knot_ra_merge
+      (f0 f1: optionO (natO -d> natO))
+    :
+    (knot_full f0) -∗ (knot_frag f1) -∗ (⌜f1 ≡ f0⌝).
+  Proof.
+    iIntros "H0 H1". iCombine "H0 H1" as "H" gives %WF.
+    iPureIntro. rewrite auth_both_valid_discrete in WF. des.
+    apply Excl_included in WF. et.
+  Qed.
+
+  Lemma knot_frag_unique
+      (f0 f1: optionO (natO -d> natO))
+    :
+      (knot_frag f0) -∗ (knot_frag f1) -∗ (⌜False⌝).
+  Proof.
+    iIntros "H0 H1". iCombine "H0 H1" as "H" gives %WF. exfalso.
+    rewrite -auth_frag_op auth_frag_valid in WF. inv WF.
+  Qed.
+
+  Lemma knot_full_unique
+      (f0 f1: optionO (natO -d> natO))
+    :
+      (knot_full f0) -∗ (knot_full f1) -∗ (⌜False⌝).
+  Proof.
+    iIntros "H0 H1". iCombine "H0 H1" as "H" gives %WF. exfalso.
+    inv WF; ss.
+  Qed.
+
+  Lemma auth_excl_both_update N
+      (old new: optionO (natO -d> natO))
+    :
+      own N (● Excl' old ⋅ ◯ Excl' old) ⊢ |==> own N (● Excl' new ⋅ ◯ Excl' new).
+  Proof.
+    apply own_update. apply auth_update. rewrite local_update_discrete. i.
+    split; ss. destruct mz; ss. destruct c; ss. inv H0.
+  Qed.
+
+  (* Specifications *)
+
+Section KnotAS.
+
+  Variable genv: GEnv.t.
+  Variable ginv: invspec.
+  Variable SpcRec: string → option fspec.
+  Variable SpcFun: string → option fspec.
+  Variable SpcPure: string → option fspec.
+
+  Definition var_points_to (var: string) (v: val): iProp :=
+    match ((CEnv.load_genv genv).(CEnv.id2blk) var) with
+    | Some blk => mem_points_to_singleton (blk, 0%Z) 1%Qp v
+    | None => True
+    end.
+
+  Definition mrec_spec (f: nat -> nat) (INV: iProp): fspec :=
+    fspec_apc (λ n: nat, 2 * n + 1)%ord
+      (fun (n: nat) =>
+          ((fun arg => (⌜arg = [Vint (Z.of_nat n)]↑ /\ (intrange_64 n)⌝ ∗ INV)%I),
+            (fun ret => (⌜ret = (Vint (Z.of_nat (f n)))↑⌝ ∗ INV)%I))).
+  
+  Definition rec_spec: fspec :=
+    fspec_apc (λ '(f, n), (2 * (n: nat) + 1)%ord)
+      (fun '(f, n) => 
+        ((fun varg => (⌜varg = [Vint (Z.of_nat n)]↑ /\ (intrange_64 n)⌝ ∗ knot_frag (Some f))%I),
+          (fun vret => (⌜vret = (Vint (Z.of_nat (f n)))↑⌝ ∗ knot_frag (Some f))%I))).
+  
+  Definition fun_gen (f: nat -> nat): fspec :=
+    fspec_apc (λ n: nat, (2 * n)%ord)
+      (fun n => 
+        ((fun varg => (⌜∃ fb, varg = [Vptr fb 0; Vint (Z.of_nat n)]↑ ∧ (intrange_64 n) ∧
+                        fb_has_spec genv SpcRec fb rec_spec⌝
+                        ∗ knot_frag (Some f))%I),
+          (fun vret => (⌜vret = (Vint (Z.of_nat (f n)))↑⌝ ∗ knot_frag (Some f))%I))).
+
+  Definition KnotRecSpc: alist string fspec :=
+    Seal.sealing CRIS [(KnotName.rec, rec_spec)].
+
+  Definition knot_spec : fspec :=
+    fspec_simple (X:=(nat -> nat))
+      (fun f => 
+        ((fun varg => (⌜∃ fb, varg = [Vptr fb 0]↑ ∧ 
+                        fb_has_spec genv SpcFun fb (fun_gen f)⌝
+                        ∗ (∃ old, knot_frag old))%I,
+          (fun vret => (⌜∃ fb, vret = (Vptr fb 0)↑ ∧
+                        fb_has_spec genv SpcRec fb rec_spec⌝
+                        ∗ knot_frag (Some f))%I)))).
+
+  Definition KnotSpc : alist string fspec :=
+    Seal.sealing CRIS 
+      [(KnotName.rec, rec_spec); 
+      (KnotName.knot, knot_spec)].
+
+  Lemma KnotRecSpc_nodup: List.NoDup (List.map fst KnotRecSpc).
+  Proof. unfold KnotRecSpc. unseal CRIS. prove_nodup. Qed.
+
+  Lemma KnotSpc_nodup : List.NoDup (List.map fst KnotSpc).
+  Proof. unfold KnotSpc. unseal CRIS. prove_nodup. Qed.
+
+End KnotAS.
+
+Section KnotA.
+  (* Define Module *)
+
+  Definition scopes := ["Knot"].
+
+  Definition fnsems genv SpcRec SpcFun SpcPure :=
+    [(KnotName.rec, (scopes, mk_specbody rec_spec (pure_body SpcPure)));
+     (KnotName.knot, (scopes, mk_specbody (knot_spec genv SpcRec SpcFun) fbody_trivial))].
+
+  Program Definition Mod genv SpcRec SpcFun SpcPure : SMod.t :=
+  {|
+    SMod.scopes := scopes;
+    SMod.fnsems := fnsems genv SpcRec SpcFun SpcPure;
+    SMod.initial_st := [];
+  |}.
+  Solve All Obligations with prove_scope.
+  Next Obligation. prove_nodup. Qed.
+
+  Definition InitCond genv : iProp :=
+    ((var_points_to genv KnotName._f (Vint 0)) ∗ knot_full None)%I.
+
+  Definition t genv ginv SpcRec SpcFun SpcPure Spc :=
+    Seal.sealing CRIS (SMod.to_hmod ginv Spc (Mod genv SpcRec SpcFun SpcPure)).
+End KnotA.
+End KnotA. End KnotA.

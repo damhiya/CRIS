@@ -7,7 +7,7 @@ Set Implicit Arguments.
 Local Open Scope Qp.
 
 Section SchRA.
-  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ}.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
 
   Canonical Structure SynDepO : ofe := leibnizO {n & SRFSyn.t n}.
 
@@ -21,7 +21,7 @@ Section SchRA.
 End SchRA.
 
 Module SchAS. Section SchAS.
-  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !SchAGΣ Σ}.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !SchAGΣ Σ}.
 
   Definition initial_threads_r: threadsRA := 
     ● ((λ tid: nat, if tid =? 0 then Some (1, to_agree (λ _, (Some (to_agree (existT 0 ⊤%SRF))))) else None): threadsF)
@@ -148,7 +148,7 @@ Module SchAS. Section SchAS.
 
   Section SPEC.
 
-    Definition fspec_spawnable (univ: positive) (fsp: fspec) (tid: nat) (m: meta fsp) (vargs args: Any.t) (pre: iProp Σ) (postS: SAny.t -> SynDepO): Prop :=
+    Definition fspec_spawnable (fsp: fspec) (tid: nat) (m: meta fsp) (vargs args: Any.t) (pre: iProp Σ) (postS: SAny.t -> SynDepO): Prop :=
       (((∃ n, wsats univ n ⊤) ∗ pre
           ⊢ (precond fsp tid m vargs args))%I
       ∧ (∀ ret: Any.t, 
@@ -163,7 +163,7 @@ Module SchAS. Section SchAS.
             (⌜varg = ((mid, fn, fvargs) : nat * string * SAny.t) 
               ∧ arg = ((mid, fn, fargs) : nat * string * SAny.t)↑ 
               ∧ is_Some (Spc fn)
-              ∧ fspec_spawnable univ (find_fsp Spc fn) my_tid m fvargs↑ fargs↑ pre postS⌝
+              ∧ fspec_spawnable (find_fsp Spc fn) my_tid m fvargs↑ fargs↑ pre postS⌝
             ∗ pre ∗ (token_half my_tid postS))%I)
           (fun _ _ (_: SAny.t) _ => (False)%I))
     .
@@ -175,7 +175,7 @@ Module SchAS. Section SchAS.
             (⌜varg = ((fn, fvargs): string * SAny.t) 
               ∧ arg = ((fn, fargs): string * SAny.t)↑
               ∧ is_Some (Spc fn)
-              ∧ ∀ tid, fspec_spawnable univ (find_fsp Spc fn) tid m fvargs↑ fargs↑ pre postS⌝
+              ∧ ∀ tid, fspec_spawnable (find_fsp Spc fn) tid m fvargs↑ fargs↑ pre postS⌝
              ∗ pre)%I)
           (fun _ '(fargs, fvargs, pre, postS, existT fn m) vret ret => 
             (∃ tid: nat, ⌜vret = tid ∧ ret = tid↑⌝ ∗ (token_th tid postS))%I))
@@ -207,7 +207,10 @@ Module SchAS. Section SchAS.
 End SchAS. End SchAS.
 
 Module SchA. Section SchA.
-  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !SchAGΣ Σ}.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !SchAGΣ Σ}.
+
+  Variable univ: positive.
+  Variable Spc: string -> option fspec.
 
   Definition _spawn : (nat * string * SAny.t) -> itree hmodE unit :=
     fun '(mtid, fn, args) =>
