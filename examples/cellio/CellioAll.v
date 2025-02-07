@@ -11,7 +11,7 @@ Module CellioAll. Section CellioAll.
   Variable foo: Any.t -> itree hmodE Any.t.
   Local Definition smod_src : SMod.t := MainA.Mod ☆ CellioA.Mod ☆ InputA.Mod ☆ (FooA.Mod foo).
   Local Definition ginv : invspec := λ _, True%I.
-  Local Definition spc : string → option fspec := spc_global smod_src.
+  Local Definition spc : string → option fspec := spc_from smod_src.
   Local Definition mod_cancel : HMod.t := SModCancel.to_hmod smod_src.
   Local Definition mod_src : HMod.t := SMod.to_hmod ginv spc smod_src.
   Local Definition mod_tgt : HMod.t := MainI.t ★ CellioI.t ★ (InputA.t ginv spc) ★ (FooA.t foo ginv spc).
@@ -51,11 +51,11 @@ Module CellioAll. Section CellioAll.
       eapply ctxr_cond_frameR, main_adequacy, MainIA.sim.
       {
         i. rewrite /FooAS.Spc. unseal CRIS. econs; first prove_nodup.
-        ii; rewrite -FIND /spc /spc_global /smod_src //=. des_ifs; ss; des_ifs.
+        ii; rewrite -FIND /spc /spc_from /smod_src //=. des_ifs; ss; des_ifs.
       }
       {
         i. rewrite /InputAS.Spc. unseal CRIS. econs; first prove_nodup.
-        ii; rewrite -FIND /spc /spc_global /smod_src //=. des_ifs; ss; des_ifs.
+        ii; rewrite -FIND /spc /spc_from /smod_src //=. des_ifs; ss; des_ifs.
       }
     }
     (* MainI ★ CellioI ⊆ MainI ★ CellioA 
@@ -63,7 +63,7 @@ Module CellioAll. Section CellioAll.
     rewrite -[(_, emp%I)]hmod_addc_empty_r.
     eapply ctxr_frameL, ctxr_cond_frameL, main_adequacy, CellioIA.sim. 
     i. rewrite /InputAS.Spc. unseal CRIS. econs; first prove_nodup.
-    ii; rewrite -FIND /spc /spc_global /smod_src //=.
+    ii; rewrite -FIND /spc /spc_from /smod_src //=.
     des_ifs; ss; des_ifs.
   Qed.
 

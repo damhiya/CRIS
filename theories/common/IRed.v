@@ -39,22 +39,6 @@ Ltac get_head2 term :=
 (* . *)
 
 Ltac get_itr term :=
-  (* repeat multimatch term with *)
-  (*        | _ ?x => match type of x with itree _ _ => x end *)
-  (*        | _ ?x _ => match type of x with itree _ _ => x end *)
-  (*        | _ ?x _ _ => match type of x with itree _ _ => x end *)
-  (*        | _ ?x _ _ _ => match type of x with itree _ _ => x end *)
-  (*        | _ ?x _ _ _ _ => match type of x with itree _ _ => x end *)
-  (*        | _ ?x _ _ _ _ _ => match type of x with itree _ _ => x end *)
-  (*        end *)
-  (* repeat multimatch term with *)
-  (*        | _ ?x => match type of x with itree _ _ => constr:(x) end *)
-  (*        | _ ?x _ => match type of x with itree _ _ => constr:(x) end *)
-  (*        | _ ?x _ _ => match type of x with itree _ _ => constr:(x) end *)
-  (*        | _ ?x _ _ _ => match type of x with itree _ _ => constr:(x) end *)
-  (*        | _ ?x _ _ _ _ => match type of x with itree _ _ => constr:(x) end *)
-  (*        | _ ?x _ _ _ _ _ => match type of x with itree _ _ => constr:(x) end *)
-  (*        end *)
   match term with
   | _ ?x => match type of x with itree _ _ => constr:(x) end
   | _ ?x _ => match type of x with itree _ _ => constr:(x) end

@@ -16,6 +16,9 @@ Require Import Bool List Arith ZArith String Program.
 
 Set Implicit Arguments.
 
+Tactic Notation "tryany" tactic(tac1) tactic(tac2) :=
+  tryif tac1 then try tac2 else tac2.
+
 Tactic Notation "hrepeat_or_fail" tactic(tac) :=
   tryif tac then (
   tryif tac then (
@@ -799,9 +802,10 @@ Ltac esplits :=
   | [ |- @prod _  _ ] => split
   end.
 
-Tactic Notation "replace_all" constr(e) := repeat (
+Tactic Notation "replace_all" constr(e) :=
   let X := fresh in assert (X : e) by (clarify; eauto; done);
-  first [rewrite !X | setoid_rewrite X]; clear X).
+  (hrepeat do 1 first [rewrite !X | setoid_rewrite X]);
+  clear X.
 
 Lemma all_conj_dist : forall A (P Q : A -> Prop),
   (forall a, P a /\ Q a) -> (forall a, P a) /\ (forall a, Q a).
@@ -961,9 +965,7 @@ Ltac inst_pairs :=
 (* Qed. *)
 
 Ltac simpl_proj :=
-  do 5 (simpl (fst (_, _)) in *; simpl (snd (_, _)) in *).
-  (* ; repeat first [rewrite !simpl_fst | rewrite !simpl_snd] *)
-  (* ; Hdo (fun H => repeat first [rewrite !simpl_fst in H | rewrite !simpl_snd in H]). *)
+  (* do 5 *) (simpl (fst (_, _)) in *; simpl (snd (_, _)) in *).
 
 Ltac clean :=
   (hrepeat do 1 match goal with
@@ -1125,7 +1127,6 @@ Ltac is_inside_others_body TARGET :=
 .
 
 Ltac on_leftest_function TAC :=
-  (* repeat *)
   multimatch goal with
   | [ |- context[?f ?x] ] =>
     tryif (is_applied_function f)
@@ -1178,7 +1179,6 @@ Ltac is_term_applied_function TARGET :=
 .
 
 Ltac on_leftest_function_with_type TAC :=
-  (* repeat *)
   multimatch goal with
   | [ |- context[?f ?x] ] =>
     tryif (is_term_applied_function f)
@@ -1304,7 +1304,7 @@ Ltac clear_universal_truth :=
          end
 .
 
-Ltac clear_tac := repeat (clear_unused; clear_tautology; clear_universal_truth).
+Ltac clear_tac := (clear_unused; clear_tautology; clear_universal_truth).
 
 Ltac des_ifs_safe_aux TAC :=
   TAC;

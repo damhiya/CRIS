@@ -2,7 +2,7 @@ Require Import CRIS.
 
 (* Cmra *)
 Ltac simple_rewrite_id :=
-  repeat (
+  hrepeat do 1 (
     match goal with
     | [H: context[(ε ⋅ ?x)] |- _] => rewrite left_id in H 
     | [|- context[(ε ⋅ ?x)]] => rewrite left_id
@@ -17,7 +17,7 @@ Ltac simple_rewrite_id :=
 .
 
 Ltac substitute_setoid_rewrite :=
-  repeat (
+  hrepeat do 1 (
     match goal with
     | [H1: context[?x], H2: ?x ≡ ?y |- _] => setoid_rewrite H2 in H1
     | [H: context[?x ≡ ?y] |- context [?x]] => setoid_rewrite H
@@ -205,7 +205,6 @@ Lemma tmp a1 a2:
 Proof.
  ii. auth_tac. ss.  
 Qed.
-
 
 End example_auth.
 

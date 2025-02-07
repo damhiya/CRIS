@@ -120,9 +120,8 @@ Ltac _step :=
   end
 .
 
-Ltac _steps := repeat ((*** pre processing ***) prep; try _step; (*** post processing ***) simpl).
-Ltac steps := repeat ((*** pre processing ***) prep; try _step; (*** post processing ***) simpl; des_ifs_safe).
-Ltac step := ((*** pre processing ***) prep; try _step; (*** post processing ***) simpl; des_ifs_safe).
+Ltac steps := (hrepeat do 1 (*** pre processing ***) prep; _step; (*** post processing ***) simpl; des_ifs_safe); prep.
+Ltac step := ((*** pre processing ***) prep; _step; (*** post processing ***) simpl; des_ifs_safe).
 
 Ltac force_l := _force_l.
 Ltac force_r := _force_r.

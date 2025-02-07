@@ -4,6 +4,7 @@ requirement that every resource algebras contained in it should be discrete
 since CRIS is a framework with no step-indexing. Refer to explanation of
 resource management of iris for further information. *)
 From iris.algebra Require Import cmra updates functions gmap_view.
+Require Import sflib.
 Require Import base_logic.
 Require Import allocs.
 
@@ -107,14 +108,14 @@ Ltac solve_inG :=
   | H : subG ?xΣ _ |- _ => try unfold xΣ in H
   end;
   (* Take apart subG for non-"atomic" lists *)
-  repeat match goal with
+  (hrepeat do 1 match goal with
          | H : subG (GRAs.app _ _) _ |- _ => apply subG_inv in H; destruct H
-         end;
+         end);
   (* Try to turn singleton subG into inG; but also keep the subG for typeclass
      resolution -- to keep them, we put them onto the goal. *)
-  repeat match goal with
+  (hrepeat do 1 match goal with
          | H : subG _ _ |- _ => move:(H); (apply subG_inG in H || clear H)
-         end;
+         end);
   (* Again get all assumptions and simplify the functors *)
   intros; simpl in *;
   (* We support two kinds of goals: Things convertible to inG;

@@ -34,8 +34,8 @@ Module KnotAll. Section KnotAll.
     (KnotMainA.Mod genv spc_rec spc_pure) ☆ (KnotA.Mod genv spc_rec spc_fun spc_pure)
     ☆ MemA.Mod ☆ APCC.Mod.
   Local Definition ginv : invspec := λ _, True%I.
-  Local Definition spc_apc : string → option fspec := spc_global smod_src_apc.
-  Local Definition spc : string → option fspec := spc_global smod_src.
+  Local Definition spc_apc : string → option fspec := spc_from smod_src_apc.
+  Local Definition spc : string → option fspec := spc_from smod_src.
   Local Definition mod_cancel : HMod.t := SModCancel.to_hmod smod_src.
   Local Definition mod_src : HMod.t := SMod.to_hmod ginv spc smod_src.
   Local Definition mod_tgt : HMod.t :=
@@ -58,7 +58,7 @@ Module KnotAll. Section KnotAll.
 
   Lemma spc_spc_apc_eq : spc_apc = spc.
   Proof.
-    unfold spc_apc, spc, spc_global, smod_src, smod_src_apc.
+    unfold spc_apc, spc, spc_from, smod_src, smod_src_apc.
     extensionalities fn. ss. des_ifs; rewrite ->eq_rel_dec_correct in *.
   Qed.
 
@@ -99,7 +99,7 @@ Module KnotAll. Section KnotAll.
     { eapply APCAC.correct.
       { instantiate (1:=spc_apc). unfold spc_incl, APCA.Spc, spc_apc. unseal CRIS.
         prove_nodup. unfold spc_sub, to_spc. ss. des_ifs; i; rewrite ->eq_rel_dec_correct in *; des_ifs. }
-      { instantiate (1:=spc_pure). unfold spc_apc, smod_src_apc, spc_pure, to_spc, spc_global, spc_sub.
+      { instantiate (1:=spc_pure). unfold spc_apc, smod_src_apc, spc_pure, to_spc, spc_from, spc_sub.
         unfold KnotA.KnotRecSpc, KnotMainA.MainFunSpc. unseal CRIS. ss. i.
         des_ifs; rewrite ->eq_rel_dec_correct in *; des_ifs; revert H; unseal CRIS; ss.
       }
@@ -128,12 +128,12 @@ Module KnotAll. Section KnotAll.
       { i. unfold spc_incl, spc_fun, KnotMainA.MainFunSpc. unseal CRIS. prove_nodup. ss. }
       { i. unfold APCA.Spc, spc. unseal CRIS. unfold spc_incl, KnotA.KnotRecSpc.
         unseal CRIS. prove_nodup.
-        unfold spc_sub, to_spc, smod_src, spc_global. ss. i. des_ifs; rewrite ->eq_rel_dec_correct in *; des_ifs. }
+        unfold spc_sub, to_spc, smod_src, spc_from. ss. i. des_ifs; rewrite ->eq_rel_dec_correct in *; des_ifs. }
       { i. unfold spc_sub, spc_rec, spc_pure, to_spc, spc_incl, APCA.Spc, spc_sub, to_spc.
         unseal CRIS. prove_nodup. i. inv FIND. des_ifs. rewrite ->eq_rel_dec_correct in *; des_ifs. }
       { unfold spc_sub, spc_pure, spc, spc_rec, to_spc, KnotA.KnotRecSpc, KnotMainA.MainFunSpc.
         i. revert FIND. unseal CRIS. i. ss. des_ifs; rewrite ->eq_rel_dec_correct in *; des_ifs. }
-      { unfold spc_sub, spc_pure, spc, to_spc, KnotA.KnotRecSpc, KnotMainA.MainFunSpc, spc_global, smod_src.
+      { unfold spc_sub, spc_pure, spc, to_spc, KnotA.KnotRecSpc, KnotMainA.MainFunSpc, spc_from, smod_src.
         unseal CRIS. i. inv FIND. des_ifs; rewrite ->eq_rel_dec_correct in *; des_ifs. }
     }
     rewrite !hmod_add_empty_r hmod_addc_empty_l.
@@ -154,7 +154,7 @@ Module KnotAll. Section KnotAll.
         unfold KnotMainA.MainFunSpc, KnotA.KnotRecSpc. i. unseal CRIS. revert FIND. unseal CRIS. i.
         ss. des_ifs; rewrite ->eq_rel_dec_correct in *; des_ifs. }
       { unfold spc_sub, spc_pure, spc, to_spc, smod_src ,KnotA.KnotRecSpc, KnotMainA.MainFunSpc.
-        unseal CRIS. i. revert FIND; unseal CRIS; i. unfold spc_global. ss.
+        unseal CRIS. i. revert FIND; unseal CRIS; i. unfold spc_from. ss.
         des_ifs; rewrite ->eq_rel_dec_correct in *; des_ifs. }
     }
     rewrite !hmod_add_empty_r hmod_addc_empty_l.

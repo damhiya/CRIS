@@ -200,11 +200,11 @@ End HEADER.
 Ltac spc_sub_tac :=
   i; eapply incl_to_spc;
   [ autounfold with spc; autorewrite with spc; ii; ss; des; clarify; auto|
-    autounfold with spc; autorewrite with spc; repeat econs; ii; ss; des; ss].
+    autounfold with spc; autorewrite with spc; (hrepeat do 1 econs); ii; ss; des; ss].
 
 Ltac spc_context_sub_tac :=
   i; eapply to_spc_context_sub;
   [ autounfold with spc; autorewrite with spc; ii; ss; des; clarify; auto|
-    autounfold with spc; autorewrite with spc; repeat econs; ii; ss; des; ss].
+    autounfold with spc; autorewrite with spc; (hrepeat do 1 econs); ii; ss; des; ss].
 
-Ltac ors_tac := repeat ((try by (ss; left; ss)); right).
+Ltac ors_tac := hrepeat do 1 ((try by (ss; left; ss)); right).

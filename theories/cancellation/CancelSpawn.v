@@ -19,7 +19,7 @@ Section CANCEL.
     (LEN: List.length srcs = Datatypes.length tgts)
     (RET: ∀ vret ret : Any.t, cid = 0 → Q cid meta vret ret ⊢ ⌜vret = ret⌝)
     (RELS: ∀ k x y, cid ≠ k → srcs !! k = Some x → tgts !! k = Some y → thread_rel md ginv cid k x y)
-    (STB: spc_global md fn = Some f)
+    (STB: spc_from md fn = Some f)
     (KTR: ∀ tid, upaco3 (@elim_rel_def _ md ginv _) bot3 l (ktrS tid) (ktrT tid))
     (SRC : srcs !! cid = Some (Ret ();;; interp_hp (x <- SpawnCancelE fn args;; ktrS x)))
     (TGT : tgts !! cid = Some (Ret ();;; interp_hp (cancel_term md ginv cid meta Q (x <- HoareSpawnE ginv f fn args;; ktrT x))))

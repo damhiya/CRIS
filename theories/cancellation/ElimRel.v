@@ -6,20 +6,20 @@ Section REL.
   Context `{Σ: GRA}.
   Variable md: SMod.t.
 
-  Definition spc_global: string -> option fspec :=
+  Definition spc_from: string -> option fspec :=
     fun fn =>
       option_map (fun scfsp => scfsp.2.(fsb_fspec))
         (alist_find fn md.(SMod.fnsems)).
 
   Lemma spc_in_alist_find
         fn fsp
-        (SOME: spc_global fn = Some fsp)
+        (SOME: spc_from fn = Some fsp)
       :
       exists l fbody, 
         alist_find fn (SMod.fnsems md)
         = Some (l, {|fsb_fspec :=fsp; fsb_body := fbody|}).
   Proof.
-    unfold spc_global in *.
+    unfold spc_from in *.
     destruct (alist_find fn _) eqn: FIND; ss.
     inv SOME. destruct p. destruct f. s. eauto.
   Qed.
@@ -123,7 +123,7 @@ Section REL.
         (x <- @hmod_elim_tail X Q (tid, m, tid, m) vret;; tau;; ktrT x)
 
   | elim_rel_spawn l f fn args ktrS ktrT
-      (STB: spc_global fn = Some f)
+      (STB: spc_from fn = Some f)
       (KTR: forall x, self l (ktrS x) (ktrT x))
     :
     elim_rel_def self l (SpawnCancelE fn args >>= ktrS)
@@ -284,7 +284,7 @@ Section CANCEL.
     ginv scopes fn varg scp fsp fbody 
     (FIND: alist_find fn (SMod.fnsems md) = Some (scp, {|fsb_fspec := fsp; fsb_body := fbody|}))
     :
-    inline_hp (prog (SMod.to_hmod ginv (spc_global md) md)) (HMod.sandbox scopes (HoareCall fsp fn varg))
+    inline_hp (prog (SMod.to_hmod ginv (spc_from md) md)) (HMod.sandbox scopes (HoareCall fsp fn varg))
     =
     (* head *)
     my_tid <- trigger Tid;; tau;;
@@ -296,8 +296,8 @@ Section CANCEL.
     varg' <- trigger (Take Any.t);; tau;;
     trigger (Assume (precond fsp my_tid' m' varg' arg));;; tau;; 
     (* body *)
-    vret' <- inline_hp (prog (SMod.to_hmod ginv (spc_global md) md)) 
-                       (HMod.sandbox scp (interp_smod ginv (spc_global md) (fbody varg')));;
+    vret' <- inline_hp (prog (SMod.to_hmod ginv (spc_from md) md)) 
+                       (HMod.sandbox scp (interp_smod ginv (spc_from md) (fbody varg')));;
     (* tail *)
     ret <- trigger (Choose Any.t);; tau;;
     trigger (Guarantee (postcond fsp my_tid' m' vret' ret));;; tau;; tau;; tau;;
@@ -347,13 +347,13 @@ Section CANCEL.
     ginv scopes fn varg scp fsp fbody 
     (FIND: alist_find fn (SMod.fnsems md) = Some (scp, {|fsb_fspec := fsp; fsb_body := fbody|}))
     :
-    inline_hp (prog (SMod.to_hmod  ginv (spc_global md) md)) (HMod.sandbox scopes (HoareCall fsp fn varg))
+    inline_hp (prog (SMod.to_hmod  ginv (spc_from md) md)) (HMod.sandbox scopes (HoareCall fsp fn varg))
     =
     (* head *)
     '((my_tid, x, my_tid', x'), varg'):_ <- (hmod_elim_head (meta fsp) (precond fsp) varg);;
     (* body *)
-    vret' <- inline_hp (prog (SMod.to_hmod  ginv (spc_global md) md)) 
-                       (HMod.sandbox scp (interp_smod  ginv (spc_global md) (fbody varg')));;
+    vret' <- inline_hp (prog (SMod.to_hmod  ginv (spc_from md) md)) 
+                       (HMod.sandbox scp (interp_smod  ginv (spc_from md) (fbody varg')));;
     (* tail *)
     hmod_elim_tail (meta fsp) (postcond fsp) (my_tid, x, my_tid', x') vret'. 
   Proof.
@@ -367,15 +367,15 @@ Section CANCEL.
     :=
     ('((my_tid, x, my_tid', x'), varg'):_ <- (hmod_elim_head (meta fsp) (precond fsp) varg);;
     (* body *)
-    vret' <- inline_hp (prog (SMod.to_hmod  ginv (spc_global md) md)) 
-                       (HMod.sandbox scp (interp_smod  ginv (spc_global md) (fbody varg')));;
+    vret' <- inline_hp (prog (SMod.to_hmod  ginv (spc_from md) md)) 
+                       (HMod.sandbox scp (interp_smod  ginv (spc_from md) (fbody varg')));;
     Ret ((my_tid, x, my_tid', x'), vret')).
 
   Lemma HoareCall_inline2
     ginv scopes fn varg scp fsp fbody 
     (FIND: alist_find fn (SMod.fnsems md) = Some (scp, {|fsb_fspec := fsp; fsb_body := fbody|}))
     :
-    inline_hp (prog (SMod.to_hmod  ginv (spc_global md) md)) 
+    inline_hp (prog (SMod.to_hmod  ginv (spc_from md) md)) 
       (HMod.sandbox scopes (HoareCall fsp fn varg))
     =
     (* head *)
@@ -408,8 +408,8 @@ Section CANCEL.
     @elim_rel _ md ginv _ []
       (inline_hp (prog (SModCancel.to_hmod md)) 
           (HMod.sandbox scopes (interp_smod_cancel itr)))
-      (inline_hp (prog (SMod.to_hmod  ginv (spc_global md) md)) 
-          (HMod.sandbox scopes (interp_smod  ginv (spc_global md) itr))).
+      (inline_hp (prog (SMod.to_hmod  ginv (spc_from md) md)) 
+          (HMod.sandbox scopes (interp_smod  ginv (spc_from md) itr))).
   Proof. 
     unfold elim_rel.
     ginit. revert itr scopes. gcofix CIH. i.
@@ -428,7 +428,7 @@ Section CANCEL.
       gstep. econs. gstep. econs. eauto with paco.
     - rewrite SModRed.interp_bind SModRed.interp_sch SCancelRed.bind SCancelRed.sch. ired. 
       unfold handle_schE_hmodE, handle_schE_hmodE_cancel. depdes s.
-      + destruct (spc_global md fn) eqn:STB; ired; cycle 1.
+      + destruct (spc_from md fn) eqn:STB; ired; cycle 1.
         { 
           unfold triggerNB. ired. 
           rewrite !HModSB.transl_bind HModSB.transl_core. ired. 
@@ -451,7 +451,7 @@ Section CANCEL.
         gstep. econs. gstep. econs. eauto with paco.
     - rewrite SModRed.interp_bind SModRed.interp_call SCancelRed.bind SCancelRed.call.
       unfold handle_callE_hmodE. depdes c. 
-      destruct (spc_global md fn) eqn: STB; ired; cycle 1.
+      destruct (spc_from md fn) eqn: STB; ired; cycle 1.
       { 
         unfold triggerNB. 
         rewrite !HModSB.transl_bind HModSB.transl_core. ired. 
@@ -481,7 +481,7 @@ Section CANCEL.
       eassert (ITREE0 = x <- (a <- inline_hp _ _;; tau;; Ret a);; tau;; _ x).
       {
         instantiate (2:= HMod.sandbox scopes (HoareCall f fn args)).
-        instantiate (2:= prog (SMod.to_hmod  ginv (spc_global md) md)).
+        instantiate (2:= prog (SMod.to_hmod  ginv (spc_from md) md)).
         rewrite /ITREE0 !HIRed.bind. ired. f_equal.
         extensionalities. ired. rewrite HModSB.transl_tau HIRed.tau.
         instantiate (1:= fun H0 => _ (_ (_ (_ H0)))). refl.

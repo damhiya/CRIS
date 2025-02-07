@@ -108,7 +108,7 @@ Section MemRA.
     own base_γ (mem_initial_mem_r csl genv).
 
   Definition mem_init_res (csl: string → bool) (genv: GEnv.t): Σ :=
-    own.iRes_singleton 1%positive (mem_initial_mem_r csl genv).
+    own.iRes_singleton base_γ (mem_initial_mem_r csl genv).
 
 End MemRA.
 

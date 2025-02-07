@@ -10,7 +10,7 @@ Module KnotMainA. Section KnotMainA.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !KnotAGΓ Γ, !memGΓ Γ}.
   Notation iProp := (iProp Σ).
   Local Existing Instance RA_inG.
-  Definition init_res : Σ := own.iRes_singleton 1%positive (◯ (Some (Excl None))).
+  Definition init_res : Σ := own.iRes_singleton base_γ (◯ (Some (Excl None))).
 
   (* Specifications *)
 

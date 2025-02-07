@@ -166,10 +166,7 @@ Section reduction.
 End reduction.
 
 Ltac inv_red :=
-  repeat (
-    try rewrite ! inv_red;
-    try rewrite ! fupd_red
-  ).
+  hrepeat do 1 tryany (do 1 rewrite ! inv_red) (do 1 rewrite ! fupd_red).
 
 (* Module for constructing concrete structures for stratified propositions and global RAs *)
 Module inv_instances.

@@ -17,11 +17,11 @@ Proof. solve_inG. Qed.
 Module CannonAS. Section CannonAS.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !CannonAGΓ Γ}.
   
-  Definition Ready : iProp Σ := own 1%positive (●E tt).
-  Definition Ball : iProp Σ := own 1%positive (◯E tt).
-  Definition Fired : iProp Σ := own 1%positive ((●E tt) ⋅ (◯E tt)).
+  Definition Ready : iProp Σ := own base_γ (●E tt).
+  Definition Ball : iProp Σ := own base_γ (◯E tt).
+  Definition Fired : iProp Σ := own base_γ ((●E tt) ⋅ (◯E tt)).
 
-  Definition init_res : Σ := own.iRes_singleton 1%positive (●E tt).
+  Definition init_res : Σ := own.iRes_singleton base_γ (●E tt).
 
   Lemma ReadyBall : Ready ∗ Ball ⊢ Fired.
   Proof. rewrite /Ready /Ball /Fired. iIntros "[B W]". iSplitL "B"; iFrame. Qed.

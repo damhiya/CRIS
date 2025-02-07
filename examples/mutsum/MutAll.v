@@ -11,7 +11,7 @@ Module MutAll. Section MutAll.
 
   Local Definition smod_src : SMod.t := MutMainA.Mod ☆ MutFA.Mod ☆ MutGA.Mod.
   Local Definition ginv : invspec := λ _, True%I.
-  Local Definition stb : string → option fspec := spc_global smod_src.
+  Local Definition stb : string → option fspec := spc_from smod_src.
   Local Definition mod_cancel : HMod.t := SModCancel.to_hmod smod_src.
   Local Definition mod_src : HMod.t := SMod.to_hmod ginv stb smod_src.
   Local Definition mod_tgt : HMod.t := MutMainI.t ★ MutFI.t ★ MutGI.t.

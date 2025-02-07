@@ -441,45 +441,27 @@ Global Opaque SRFSem.t.
 
 (* Simple sProp reduction tactics. *)
 From stdpp Require Import ssreflect.
-Ltac SL_red := repeat (try rewrite ! @SLRed.sepconj;
-                      try rewrite ! @SLRed.and;
-                      try rewrite ! @SLRed.or;
-                      try rewrite ! @SLRed.impl;
-                      try rewrite ! @SLRed.wand;
-                      try rewrite ! @SLRed.pure;
-                      try rewrite ! @SLRed.univ;
-                      try rewrite ! @SLRed.ex;
-                      try rewrite ! @SLRed.empty;
-                      try rewrite ! @SLRed.persistently;
-                      try rewrite ! @SLRed.plainly;
-                      try rewrite ! @SLRed.upd;
-                      try rewrite ! @SLRed.affinely;
-                      try rewrite ! @SLRed.intuitionistically;
-                      try rewrite ! @SLRed.sepM;
-                      try rewrite ! @SLRed.sepS;
-                      try rewrite ! @SLRed.sepL1;
-                      try rewrite ! @SLRed.own;
-                      change (SRFSyn.t_prev (S ?n)) with (SRFSyn.t n); simpl
-                      ).
-
-(* Ltac SL_red_all := repeat (try rewrite ! @SLRed.sepconj in *;
-                          try rewrite ! @SLRed.and in *;
-                          try rewrite ! @SLRed.or in *;
-                          try rewrite ! @SLRed.impl in *;
-                          try rewrite ! @SLRed.wand in *;
-                          try rewrite ! @SLRed.pure in *;
-                          try rewrite ! @SLRed.univ in *;
-                          try rewrite ! @SLRed.ex in *;
-                          try rewrite ! @SLRed.empty in *;
-                          try rewrite ! @SLRed.persistently in *;
-                          try rewrite ! @SLRed.plainly in *;
-                          try rewrite ! @SLRed.upd in *;
-                          try rewrite ! @SLRed.affinely in *;
-                          try rewrite ! @SLRed.intuitionistically in *;
-                          try rewrite ! @SLRed.sepM in *;
-                          try rewrite ! @SLRed.sepS in *;
-                          try rewrite ! @SLRed.sepL1 in *
-                          ).
-
-Ltac SL_red_ownm := try rewrite ! @SLRed.own.
-Ltac SL_red_ownm_all := try rewrite ! @SLRed.own in *. *)
+Ltac SL_red :=
+  (hrepeat do 1
+   (tryany (do 1 rewrite ! @SLRed.sepconj)
+    tryany (do 1 rewrite ! @SLRed.and)
+    tryany (do 1 rewrite ! @SLRed.or)
+    tryany (do 1 rewrite ! @SLRed.impl)
+    tryany (do 1 rewrite ! @SLRed.wand)
+    tryany (do 1 rewrite ! @SLRed.pure)
+    tryany (do 1 rewrite ! @SLRed.univ)
+    tryany (do 1 rewrite ! @SLRed.ex)
+    tryany (do 1 rewrite ! @SLRed.empty)
+    tryany (do 1 rewrite ! @SLRed.persistently)
+    tryany (do 1 rewrite ! @SLRed.plainly)
+    tryany (do 1 rewrite ! @SLRed.upd)
+    tryany (do 1 rewrite ! @SLRed.affinely)
+    tryany (do 1 rewrite ! @SLRed.intuitionistically)
+    tryany (do 1 rewrite ! @SLRed.sepM)
+    tryany (do 1 rewrite ! @SLRed.sepS)
+    tryany (do 1 rewrite ! @SLRed.sepL1)
+    tryany (do 1 rewrite ! @SLRed.own)
+           (try (change (SRFSyn.t_prev (S ?n)) with (); fail 1);
+            change (SRFSyn.t_prev (S ?n)) with (SRFSyn.t n)));
+    simpl);
+  simpl.

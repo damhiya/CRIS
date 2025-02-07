@@ -128,7 +128,7 @@ Section CANCEL.
   Lemma cancel_main
       P ginv fsp meta rs rt r
       (WF: HMod.wf (SModCancel.to_hmod md))
-      (SPC: spc_global md "CRIS_init" = Some fsp)
+      (SPC: spc_from md "CRIS_init" = Some fsp)
       (VALID: ✓ rs)
       (EQUIV: rs ≡ r ⋅ rt)
       (PRE: Own r ⊢ fsp.(precond) 0 meta tt↑ tt↑)
@@ -137,7 +137,7 @@ Section CANCEL.
     :  
     refines_mod
       (HMod.to_mod (HModInline.inline (SModCancel.to_hmod md)) rs)
-      (HMod.to_mod (HModInline.inline (SMod.to_hmod ginv (spc_global md) md)) rt).
+      (HMod.to_mod (HModInline.inline (SMod.to_hmod ginv (spc_from md) md)) rt).
   Proof.
     r. eapply adequacy_global.
     instantiate (1:= smj_top).
@@ -166,7 +166,7 @@ Section CANCEL.
     
     unfold interp_modE, interp_schE_callE. 
     destruct f.
-    assert (TMP:=SPC). unfold spc_global in TMP. rewrite E in TMP. depdes TMP.
+    assert (TMP:=SPC). unfold spc_from in TMP. rewrite E in TMP. depdes TMP.
     hide_l.
     ginit.
     rewrite !HModSB.transl_bind HModSB.transl_sch HIRed.bind_sch interp_hp_bind. s.
@@ -217,12 +217,12 @@ End CANCEL.
 
 (*** Final Theorem ***)
 Theorem cancellation `{Σ: GRA} md ginv P fsp meta
-  (SPC: spc_global md "CRIS_init" = Some fsp)
+  (SPC: spc_from md "CRIS_init" = Some fsp)
   (POST: ∀ vret ret,
          ((fsp).(postcond) 0 (meta) vret ret) -∗ ⌜vret = ret⌝)
   :
   refines (SModCancel.to_hmod md, P ∗ ((fsp).(precond) 0 (meta) tt↑ tt↑))%I
-          (SMod.to_hmod ginv (spc_global md) md, P).
+          (SMod.to_hmod ginv (spc_from md) md, P).
 Proof. 
   etrans.
   { eapply cancel_call_rev. }

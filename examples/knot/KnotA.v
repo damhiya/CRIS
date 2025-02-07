@@ -19,8 +19,8 @@ Module KnotA. Section KnotA.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !KnotAGΓ Γ, !memGΓ Γ}.
   Notation iProp := (iProp Σ).
 
-  Definition init_res : Σ := own.iRes_singleton 1%positive (● (Some (Excl None))).
-  Definition init_res_mem (genv: GEnv.t) : Σ := own.iRes_singleton 1%positive (
+  Definition init_res : Σ := own.iRes_singleton base_γ (● (Some (Excl None))).
+  Definition init_res_mem (genv: GEnv.t) : Σ := own.iRes_singleton base_γ (
     match ((CEnv.load_genv genv).(CEnv.id2blk) KnotName._f) with
     | Some blk => mem_points_to_singleton_r (blk, 0%Z) 1%Qp (Vint 0)
     | None => ε

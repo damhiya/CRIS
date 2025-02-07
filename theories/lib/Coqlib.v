@@ -191,9 +191,9 @@ Notation "p -2 q" := (p /2\ ~2 q) (at level 50).
 Notation "p -3 q" := (p /3\ ~3 q) (at level 50).
 Notation "p -4 q" := (p /4\ ~4 q) (at level 50).
 
-Tactic Notation "u" "in" hyp(H) := repeat (autounfold with * in H; cbn in H).
-Tactic Notation "u" := repeat (autounfold with *; cbn).
-Tactic Notation "u" "in" "*" := repeat (autounfold with * in *; cbn in *).
+Local Tactic Notation "u" "in" hyp(H) := repeat (autounfold with * in H; cbn in H).
+Local Tactic Notation "u" := repeat (autounfold with *; cbn).
+Local Tactic Notation "u" "in" "*" := repeat (autounfold with * in *; cbn in *).
 
 Lemma dependent_split_right
       (A B : Prop)
@@ -586,7 +586,7 @@ Ltac rp := first [erewrite f_equal8|
                   fail].
 
 Ltac align_bool :=
-  (repeat match goal with
+  (hrepeat do 1 match goal with
           | [ H : true <> true |- _ ] => tauto
           | [ H : false <> false |- _ ] => tauto
           | [ H : true <> _ |- _ ] => symmetry in H
@@ -741,7 +741,7 @@ Lemma some_injective
 Proof. injection EQ. auto. Qed.
 
 Ltac align_opt :=
-  repeat
+  hrepeat do 1
     match goal with
     (* remove trivial things *)
     | H : Some ?x = Some ?y |- _ => rewrite some_injective in H
@@ -752,7 +752,6 @@ Ltac align_opt :=
     | H : Some _ = ?x |- _ => symmetry in H
     | H : None = ?x |- _ => symmetry in H
     end.
-(* Ltac clarify0 := repeat (align_opt; progress clarify). *)
 
 Fixpoint list_diff X (dec : (forall x0 x1, {x0 = x1} + {x0 <> x1})) (xs0 xs1 : list X) : list X :=
   match xs0 with
@@ -1427,7 +1426,6 @@ Ltac smart_intro T :=
 .
 
 Tactic Notation "ii" "as" ident(a) := hrepeat do 1 (let name := fresh a in intro name).
-(* Ltac sii := repeat (smart_intro "X"). *)
 Tactic Notation "sii" ident(X) := hrepeat do 1 (smart_intro X).
 Goal forall (t : True), True -> forall (u : True), True -> False.
 Proof.
