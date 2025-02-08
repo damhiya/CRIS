@@ -5,9 +5,6 @@ Require Import KnotHeader KnotMainHeader KnotI KnotMainI.
 Require Import KnotA KnotMainA.
 Require Import KnotIAproof KnotMainIAproof.
 
-From Ltac2 Require Import Ltac2 Message.
-Set Default Proof Mode "Classic".
-
 Module KnotAll. Section KnotAll.
   Import inv_instances.
   Local Instance Γ : HRA := ##[invΓ; memΓ; KnotAΓ].
@@ -178,17 +175,6 @@ Module KnotAll. Section KnotAll.
     { eapply src_tgt. }
   Qed.
 
-  Lemma discrete_fun_singleton_valid `{EqDecision A} (B : A → ucmra) (a1 a2 : A)
-    (b1 : B a1) (b2 : B a2) : 
-    a1 <> a2 → ✓ b1 → ✓ b2 →
-    ✓ (discrete_fun_singleton a1 b1 ⋅ discrete_fun_singleton a2 b2).
-  Proof. 
-    ii; rewrite discrete_fun_lookup_op.
-    unfold discrete_fun_singleton, discrete_fun_insert; des_ifs; ss;
-      rewrite ?right_id ?left_id //=.
-    apply ucmra_unit_valid.
-  Qed.
-
   Local Definition initial_resource : Σ :=
     KnotMainA.init_res ⋅ KnotA.init_res ⋅
     ((KnotA.init_res_mem genv) ⋅ (mem_init_res csl genv)).
@@ -197,32 +183,9 @@ Module KnotAll. Section KnotAll.
 
   Lemma initial_resource_valid : ✓ initial_resource.
   Proof.
-    rewrite /initial_resource /KnotA.init_res /mem_init_res /KnotMainA.init_res.
-    rewrite /KnotA.init_res_mem.
-    rewrite /own.iRes_singleton.
-
-    (* Assort initial resorces according to where they belong *)
-    rewrite discrete_fun_singleton_op.
-    Proof Mode "Ltac2".
-    match! goal with
-    | [ |- context [discrete_fun_singleton (inG_id ?g) ?y1 ⋅ discrete_fun_singleton (inG_id ?g) ?y2]] =>
-      remember $y1 as y1; remember $y2 as y2; remember $g as g
-    end.
-    Proof Mode "Classic".
-    rewrite (discrete_fun_singleton_op (inG_id g) y1 y2); clarify.
-
-    apply discrete_fun_singleton_valid.
-    { Proof Mode "Ltac2".
-      solve_indices. auto.
-      Proof Mode "Classic".
-    }
-    { rewrite allocs.allocs_frag_op -cmra_transport_op.
-      rewrite allocs.allocs_frag_valid cmra_transport_valid.
-      rewrite comm auth_both_valid_discrete; split; ss.
-    }
-    { rewrite allocs.allocs_frag_op -cmra_transport_op.
-      rewrite allocs.allocs_frag_valid cmra_transport_valid comm.
-      unfold mem_initial_mem_r, mem_points_to_singleton_r.
+    dfs_solve.
+    - rewrite comm auth_both_valid_discrete; split; ss.
+    - unfold mem_initial_mem_r, mem_points_to_singleton_r.
       rewrite auth_both_valid_discrete. split.
       { unfold mem_init_val, _points_to_r. econs. instantiate (1:=ε).
         rewrite right_id. intros b ofs.
@@ -235,7 +198,6 @@ Module KnotAll. Section KnotAll.
         { do 2 (destruct b; ss). destruct b; hss. }
       }
       { intros b ofs. unfold mem_init_val. des_ifs. }
-    }
   Qed.
 
   Theorem behavioral_refinement :

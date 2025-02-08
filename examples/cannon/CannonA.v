@@ -12,7 +12,8 @@ Class CannonAGΓ (Γ : HRA) := {
 }.
 Definition CannonAΓ : HRA := #[excl_authR unitO].
 Global Instance subG_GΓ {Γ : HRA} : subG CannonAΓ Γ → CannonAGΓ Γ.
-Proof. solve_inG. Qed.
+Proof. solve_inG. Defined.
+Hint Unfold subG_GΓ cannon_inG : GRA_index.
 
 Module CannonAS. Section CannonAS.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !CannonAGΓ Γ}.

@@ -10,7 +10,8 @@ Class CellioAGΓ (Γ : HRA) := {
 }.
 Definition CellioAΓ : HRA := #[RA].
 Global Instance subG_GΓ {Γ : HRA} : subG CellioAΓ Γ → CellioAGΓ Γ.
-Proof. solve_inG. Qed.
+Proof. solve_inG. Defined.
+Hint Unfold subG_GΓ RA_inG : GRA_index.
 
 Module CellioA. Section CellioA.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !CellioAGΓ Γ}.

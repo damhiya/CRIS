@@ -1,8 +1,6 @@
 From stdpp Require Import coPset gmap namespaces.
 From iris Require Import bi.big_op.
 Require Export Coqlib own SRF sProp invariants.
-From Ltac2 Require Import Ltac2.
-Set Default Proof Mode "Classic".
 
 (* TODO : move these to separate files *)
 Local Notation univ_id := positive.
@@ -260,38 +258,18 @@ Module inv_instances.
       (eq_ind_r (λ p : DRA, GRA_lookup i = p) jprf (fin_add_inv_r (λ _ : fin (GRA_len + GRA_len), DRA) GRA_lookup GRA_lookup j)).
   Proof. unfold subG_app_r_HRA''. destruct (subGins i). reflexivity. Qed.
 
-  Ltac2 solve_in_subG_goal () :=
-    ltac1:(autounfold with GRA_index);
-    repeat (match! goal with
-    | [ |- context [inG_id (in_subG _ _ _)]] => rewrite inG_id_in_subG
-    | [ |- context [subG_app_r_HRA _ _ _ _ _]] => rewrite subG_app_r_HRA_inG_id
-    | [ |- context [subG_app_r_HRA' _ _ _ _ _]] => rewrite subG_app_r_HRA'_inG_id
-    | [ |- context [subG_app_r_HRA'' _ _ _ _ _]] => rewrite subG_app_r_HRA''_inG_id
-    | [ |- context [subG_app_l_HRA _ _ _ _ _]] => rewrite subG_app_l_HRA_inG_id
-    | [ |- context [subG_app_l_HRA' _ _ _ _ _]] => rewrite subG_app_l_HRA'_inG_id
-    | [ |- context [subG_app_l_HRA'' _ _ _ _ _]] => rewrite subG_app_l_HRA''_inG_id
-    | [ |- context [subG_refl _ _]] => unfold subG_refl
-    | [ |- context [inG_id (subG_inG _ _ _)]] =>
-      ltac1:(rewrite (inG_id_subG_inG _))
-    end).
-
-  Ltac2 eq_to_refl heq :=
-    (ltac1:(eq |- generalize eq; intros e; simpl in e; rewrite (UIP_refl _ _ e); clear e) (Ltac1.of_constr heq)).
-
-  Ltac2 remove_two_eqs () :=
-    match! goal with
-    | [|- context [eq_rec_r _ _ _ ?eq]] =>
-      eq_to_refl eq
-    end;
-    match! goal with
-    | [|- context [eq_rec_r _ _ ?eq]] =>
-      eq_to_refl eq
+  Ltac solve_in_subG_goal :=
+    autounfold with GRA_index;
+    hrepeat do 1 match goal with
+    | [|- context [inG_id (in_subG _ _ _)]] => rewrite inG_id_in_subG
+    | [|- context [subG_app_r_HRA _ _ _ _ _]] => rewrite subG_app_r_HRA_inG_id
+    | [|- context [subG_app_r_HRA' _ _ _ _ _]] => rewrite subG_app_r_HRA'_inG_id
+    | [|- context [subG_app_r_HRA'' _ _ _ _ _]] => rewrite subG_app_r_HRA''_inG_id
+    | [|- context [subG_app_l_HRA _ _ _ _ _]] => rewrite subG_app_l_HRA_inG_id
+    | [|- context [subG_app_l_HRA' _ _ _ _ _]] => rewrite subG_app_l_HRA'_inG_id
+    | [|- context [subG_app_l_HRA'' _ _ _ _ _]] => rewrite subG_app_l_HRA''_inG_id
+    | [|- context [subG_refl _ _]] => unfold subG_refl
+    | [|- context [inG_id (subG_inG _ _ _)]] => rewrite (inG_id_subG_inG _)
     end.
 
-  Ltac2 remove_eq () := remove_two_eqs (); simpl; remove_two_eqs (); simpl.
-  Ltac2 solve_indices_aux () := solve_in_subG_goal (); remove_eq ().
-  (* Ltac Notation solve_indices := ltac2:(solve_indices ()). *)
-  (* User-level tactic for solving goal of index ≠ index *)
-  Ltac2 Notation solve_indices := solve_indices_aux ().
-  (* Ltac solve_indices := ltac2:(solve_indices_aux ()). *)
 End inv_instances.

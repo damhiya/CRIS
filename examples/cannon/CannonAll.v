@@ -62,9 +62,8 @@ Module CannonAll. Section CannonAll.
   Local Definition initial_resource : Σ := MainAS.init_res ⋅ CannonAS.init_res.
   Lemma initial_resource_valid : ✓ initial_resource.
   Proof.
-    rewrite /initial_resource /MainAS.init_res /CannonAS.init_res -own.iRes_singleton_op.
-    apply discrete_fun_singleton_valid, allocs.allocs_frag_valid,
-      cmra_transport_valid, excl_auth_valid.
+    dfs_solve.
+    apply excl_auth_valid.    
   Qed.
 
   Theorem behavioral_refinement :

@@ -1,7 +1,6 @@
 Require Import CRIS.
 Require Import MemHeader MemA MemI.
 Require Import ImpPrelude.
-Require Import IrisTacticsAux.
 
 Set Implicit Arguments.
 

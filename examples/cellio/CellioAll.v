@@ -76,12 +76,12 @@ Module CellioAll. Section CellioAll.
     { eapply src_tgt. }
   Qed.
 
-  Local Definition initial_resource : Σ := MainA.InitRes ⋅ CellioA.InitRes ⋅ InputA.InitRes ⋅ FooA.InitRes.
+  Local Definition initial_resource : Σ :=
+    (MainA.InitRes ⋅ CellioA.InitRes ⋅ InputA.InitRes ⋅ FooA.InitRes).
 
   Lemma initial_resource_valid : ✓ initial_resource.
   Proof.
-    rewrite /initial_resource /CellioA.InitRes !right_id left_id /own.iRes_singleton.
-    apply discrete_fun_singleton_valid, allocs.allocs_frag_valid, cmra_transport_valid. 
+    dfs_solve.
     unfold "●E". apply auth_auth_valid. econs.  
   Qed.
 

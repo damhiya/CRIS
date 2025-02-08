@@ -10,7 +10,8 @@ Class MapMGΓ (Γ : HRA) := {
 }.
 Definition MapMΓ : HRA := #[exclR unitO].
 Global Instance subG_GΓ {Γ} : subG MapMΓ Γ → MapMGΓ Γ.
-Proof. solve_inG. Qed.
+Proof. solve_inG. Defined.
+Hint Unfold subG_GΓ map_inG : GRA_index.
 
 Module MapMS. Section MapMS.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !MapMGΓ Γ}.
