@@ -134,7 +134,7 @@ Module HMod. Section HMod.
 
 End HMod. End HMod.
 
-Infix "★" := HMod.add (at level 9, right associativity).
+Infix "★" := HMod.add (at level 60, right associativity).
 Notation "⌽" := HMod.empty (at level 9).
 
 Notation "░ it" := (HMod.sandbox _ it) (at level 60, only printing).
