@@ -145,24 +145,25 @@ Section HModProd.
   { eapply alist_upd_nodup. eauto. }
   Qed.
 
-  Lemma hmod_sim_reflR A B C init_cond Ist contextual
+  Lemma hmod_sim_reflR A B C init_cond scopes Ist contextual
+    (SCOPES: scopes = HMod.scopes A)
     (INIT : init_cond -∗
-            IstProd (IstSB (HMod.scopes A) Ist) IstEq 1
+            IstProd (IstSB scopes Ist) IstEq 1
                     (HMod.initial_st (HMod.add A C))
                     (HMod.initial_st (HMod.add B C)))
     (MON : ∀ nths nths' (LE : nths <= nths') st_src st_tgt,
         Ist nths st_src st_tgt -∗ Ist nths' st_src st_tgt)
-    (SCOPE : sub_perm (HMod.scopes B) (HMod.scopes A))
+    (SCOPE : sub_perm (HMod.scopes B) scopes)
     (MATCH : sub_perm (List.map fst (HMod.fnsems B)) (List.map fst (HMod.fnsems A)))
     (SIM : ∀ fn
             (IN : In fn (List.map fst (HMod.fnsems B))),
           HSim.sim_fun contextual
             (HMod.add A C) (HMod.add B C)
-            (IstProd (IstSB (HMod.scopes A) Ist) IstEq) fn)
+            (IstProd (IstSB scopes Ist) IstEq) fn)
     :
-    HSim.t contextual (HMod.add A C) (HMod.add B C) init_cond (IstProd (IstSB (HMod.scopes A) Ist) IstEq).
+    HSim.t contextual (HMod.add A C) (HMod.add B C) init_cond (IstProd (IstSB scopes Ist) IstEq).
   Proof.
-    econs.
+    subst. econs.
     - iApply INIT.
     - i. iIntros "H". iDestruct "H" as (? ? ? ?) "(% & (% & H) & %)"; des; subst.
       do 4 (iExists _). do 2 (iSplit; eauto). iSplitR; eauto.
