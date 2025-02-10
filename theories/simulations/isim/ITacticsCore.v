@@ -707,12 +707,15 @@ Ltac prove_sub_perm :=
   end;
   (hrepeat do 1 s;
    match goal with [|-sub_perm (?k::_) ?tgt] =>
+     let key := fresh "key" in
+     set (key := k);
      match tgt with
      |  context[?k'::_] =>
-          change k' with k;
-          eapply eq_ind; [|symmetry; Lauto_prepare; Lauto_find k; refl];
-          eapply (sub_perm_cancel [k] [])
-     end
+          change k' with key;
+          eapply eq_ind; [|symmetry; Lauto_prepare; Lauto_find key; refl];
+          eapply (sub_perm_cancel [key] [])
+     end;
+     unfold key; clear key
   end);
   apply sub_perm_nil.
 
