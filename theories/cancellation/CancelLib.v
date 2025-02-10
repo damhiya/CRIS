@@ -109,7 +109,7 @@ Section CANCEL.
         (interp_hp
             ((if Nat.eq_dec tid cid then Ret tt else yield_post ginv);;;
               vret <- itrT;; 
-              (inline_hp (prog (SMod.to_hmod ginv (spc_global md) md))
+              (inline_hp (prog (SMod.to_hmod ginv (spc_from md) md))
                 (ret <- trigger (Choose Any.t);;
                   trigger (Guarantee (Q tid meta vret ret));;;
                   Ret ret))))) 
@@ -161,7 +161,7 @@ Section CANCEL.
              (Mod.prog
                 (HMod.to_mod
                    (HModInline.inline
-                      (SMod.to_hmod ginv (spc_global md)
+                      (SMod.to_hmod ginv (spc_from md)
                          md)) rt0)))
           (cid, tgts)) (Any.pair st rt ↑);; Ret x.2).
 
@@ -169,7 +169,7 @@ Section CANCEL.
     (vret <- itrT;;
      inline_hp (prog
           (SMod.to_hmod ginv
-             (spc_global md) md))
+             (spc_from md) md))
        (ret <- trigger (Choose Any.t);;
         trigger (Guarantee (Q cid meta vret ret));;; Ret ret))
   .

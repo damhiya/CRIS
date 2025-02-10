@@ -7,7 +7,7 @@ Local Open Scope nat_scope.
 
 Module CannonIA. Section CannonIA.
   Import CannonAS.
-  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !CannonAGΓ Γ}.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !CannonAGΓ Γ}.
 
   Definition Ist : nat → alist key Any.t → alist key Any.t → iProp Σ :=
     (λ _ st_s st_t,
@@ -41,7 +41,7 @@ Module CannonIA. Section CannonIA.
   Proof.
     init_sim.
     - iIntros "IC". unfold Ist, CannonA.init_cond. iSplitR; et.
-    - eapply simF_fire.
+    - eapply simF_fire; eauto.
   Qed.
 
   Theorem correct :

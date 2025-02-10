@@ -5,7 +5,7 @@ Set Implicit Arguments.
 
 Module MainA. Section MainA.
   Import CellioA.
-  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !CellioAGΓ Γ}.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !CellioAGΓ Γ}.
 
   Definition scopes := [MainName.mn].
 

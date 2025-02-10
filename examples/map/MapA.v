@@ -15,7 +15,7 @@ Definition MapAΓ : HRA := #[RA].
 (* TODO : add GRA_index boilerplate *)
 
 Module MapAS. Section MapAS.
-  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !MapMGΓ Γ, !MapAGΓ Γ}.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !MapMGΓ Γ, !MapAGΓ Γ}.
 
   Definition pending : iProp Σ := own base_γ (Some (Excl ()), ε).
 
@@ -169,7 +169,7 @@ def set_by_user(k : int) ≡
 ***)
 
 Module MapA. Section MapA.
-  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !MapMGΓ Γ, !MapAGΓ Γ}.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !MapMGΓ Γ, !MapAGΓ Γ}.
   Context (υ : univ_id) (n : level).
 
   Definition scopes := ["Map"].

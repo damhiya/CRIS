@@ -60,7 +60,7 @@ Qed.
 (* Simulation proof *)
 Module MapIM. Section MapIM.
   Import MapMS.
-  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !MapMGΓ Γ, !memGΓ Γ}.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !MapMGΓ Γ, !memGΓ Γ}.
   Notation iProp := (iProp Σ).
 
   (* Context (n : level).

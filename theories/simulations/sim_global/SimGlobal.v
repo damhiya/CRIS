@@ -186,7 +186,12 @@ Hint Resolve flagC_mon : paco.
 Lemma flagC_wrespectful : wrespectful7 (_simg) flagC.
 Proof.
   econs; eauto with paco.
-  ii. inv PR. csc.
+  ii. inv PR. 
+  
+     
+
+  
+  clarify. csc.
   eapply GF in SIM.
   move SIM before GF. revert_until SIM.
   pattern ps0, pt0, x5, x6.

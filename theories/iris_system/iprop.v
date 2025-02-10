@@ -4,6 +4,7 @@ requirement that every resource algebras contained in it should be discrete
 since CRIS is a framework with no step-indexing. Refer to explanation of
 resource management of iris for further information. *)
 From iris.algebra Require Import cmra updates functions gmap_view.
+Require Import sflib.
 Require Import base_logic.
 Require Import allocs.
 
@@ -53,25 +54,28 @@ End GRAs.
 Global Coercion GRAs.singleton : DRA >-> GRA.
 Notation "#[ ]" := GRAs.nil (format "#[ ]").
 (* TODO : Reversible coercions do not work - find a way *)
-(* Notation "[ R ]" := (DRA_mk R). *)
 Notation "#[ Σ1 ; .. ; Σn ]" := (GRAs.app (DRA_mk Σ1) .. (GRAs.app (DRA_mk Σn) GRAs.nil) ..).
 Notation "##[ Σ1 ; .. ; Σn ]" := (GRAs.app Σ1 .. (GRAs.app Σn GRAs.nil) ..).
-(* Notation "#[ Σ1  .. ; Σn ]" := (GRAs.app (DRA_mk Σ1) .. (GRAs.app (DRA_mk Σn) GRAs.nil) ..). *)
 
 (** * GRA being included in another GRA *)
 Class subG (Σ1 Σ2 : GRA) := subG_in i :
   { j | @GRA_lookup Σ1 i = @GRA_lookup Σ2 j }.
 Global Hint Mode subG ! + : typeclass_instances.
 
+(* Hint Database for resolving GRA indices - add subG_RAG & RA_inG typeclasses here *)
+Create HintDb GRA_index.
 Lemma subG_inv Σ1 Σ2 Σ : subG (GRAs.app Σ1 Σ2) Σ → subG Σ1 Σ * subG Σ2 Σ.
 Proof.
   move=> H; split.
   - move=> i; move: H=> /(_ (Fin.L _ i)) [j] /=; rewrite fin_add_inv_l; eauto.
   - move=> i; move: H=> /(_ (Fin.R _ i)) [j] /=; rewrite fin_add_inv_r; eauto.
-Qed.
+Defined.
+Hint Unfold subG_inv : GRA_index.
 
 Global Instance subG_refl Σ : subG Σ Σ.
-Proof. move=> i; by exists i. Qed.
+Proof. move=> i; by exists i. Defined.
+Hint Unfold subG_refl : GRA_index.
+
 Global Instance subG_app_l Σ Σ1 Σ2 : subG Σ Σ1 → subG Σ (GRAs.app Σ1 Σ2).
 Proof.
   move=> H i; move: H=> /(_ i) [j ?].
@@ -86,7 +90,11 @@ Qed.
 Lemma subG_inG Σ (A : DRA) : subG A Σ → inG A Σ.
 Proof.
   intros H; destruct (H 0%fin). exists x. rewrite -e. econstructor.
-Qed.
+Defined.
+Lemma inG_id_subG_inG Γ (RA : DRA) inΓ :
+  inG_id (subG_inG Γ RA inΓ) = let '(exist _ id _) := inΓ 0%fin in id.
+Proof. unfold subG_inG. destruct (inΓ 0%fin). simpl. done. Qed.
+
 (** This tactic solves the usual obligations "subG ? Σ → {in,?}G ? Σ" *)
 Ltac solve_inG :=
   (* Get all assumptions *)
@@ -100,14 +108,14 @@ Ltac solve_inG :=
   | H : subG ?xΣ _ |- _ => try unfold xΣ in H
   end;
   (* Take apart subG for non-"atomic" lists *)
-  repeat match goal with
+  (hrepeat do 1 match goal with
          | H : subG (GRAs.app _ _) _ |- _ => apply subG_inv in H; destruct H
-         end;
+         end);
   (* Try to turn singleton subG into inG; but also keep the subG for typeclass
      resolution -- to keep them, we put them onto the goal. *)
-  repeat match goal with
+  (hrepeat do 1 match goal with
          | H : subG _ _ |- _ => move:(H); (apply subG_inG in H || clear H)
-         end;
+         end);
   (* Again get all assumptions and simplify the functors *)
   intros; simpl in *;
   (* We support two kinds of goals: Things convertible to inG;

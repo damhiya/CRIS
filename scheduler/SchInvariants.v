@@ -11,7 +11,7 @@ Local Notation univ_id := positive.
 Local Notation level := nat.
 
 Section wsats_aux.
-  Context `{@SRFIntp.t (domain Σ) α, !invG α Σ Γ, !subHG Γ Σ}.
+  Context `{@SRFIntp.t (domain Σ) α, !invG α Σ Γ, !subG Γ Σ}.
 
   Local Definition wsatseq u n := ([∗ list] n ∈ (seq 0 n), wsat u n)%I.
 
@@ -100,7 +100,7 @@ Section wsats_aux.
 End wsats_aux.
 
 Section fancy_aux.
-  Context `{@SRFIntp.t (domain Σ) α, !invG α Σ Γ, !subHG Γ Σ}.
+  Context `{@SRFIntp.t (domain Σ) α, !invG α Σ Γ, !subG Γ Σ}.
   Notation iProp := (iProp Σ).
 
   Local Definition fancy_wsats u b (E: coPset): iProp :=
@@ -153,7 +153,7 @@ Section fancy_aux.
 End fancy_aux.
 
 Section invariants.
-  Context `{@SRFIntp.t (domain Σ) α, !invG α Σ Γ, !subHG Γ Σ}.
+  Context `{@SRFIntp.t (domain Σ) α, !invG α Σ Γ, !subG Γ Σ}.
   Notation iProp := (iProp Σ).
 
   Definition close_inv (u: positive) (n invn: nat) (ns: namespace) (p: SRFSyn.t invn) : iProp :=

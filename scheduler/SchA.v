@@ -12,7 +12,7 @@ Definition sch_ginv `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ}
   λ _, wpsim_ginv υ n ⊤.
 
 Section SchRA.
-  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ}.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
 
   Canonical Structure SynDepO : ofe := leibnizO {n & SRFSyn.t n}.
 
@@ -26,7 +26,7 @@ Section SchRA.
 End SchRA.
 
 Module SchAS. Section SchAS.
-  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !SchAGΣ Σ}.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !SchAGΣ Σ}.
 
   Definition initial_threads_r: threadsRA := 
     ● ((λ tid: nat, if tid =? 0 then Some (1, to_agree (λ _, (Some (to_agree (existT 0 ⊤%SRF))))) else None): threadsF)
@@ -209,7 +209,10 @@ Module SchAS. Section SchAS.
 End SchAS. End SchAS.
 
 Module SchA. Section SchA.
-  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !SchAGΣ Σ}.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !SchAGΣ Σ}.
+
+  Variable univ: positive.
+  Variable Spc: string -> option fspec.
 
   Definition _spawn : (nat * string * SAny.t) -> itree hmodE unit :=
     fun '(mtid, fn, args) =>

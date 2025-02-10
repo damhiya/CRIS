@@ -21,7 +21,7 @@ End FooAS. End FooAS.
 
 Module FooA. Section FooA.
   Context `{Σ: GRA}.
-  (* Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !CellioAGΓ Γ}. *)
+  (* Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !CellioAGΓ Γ}. *)
   
   (* Unknown function body. Shouldn't call functions in local modules *)
   Variable foo: Any.t -> itree hmodE Any.t.

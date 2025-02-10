@@ -10,7 +10,7 @@ Local Open Scope nat_scope.
 (* Simulation Proof *)
 Module CellIA. Section CellIA.
   Import CellAS.
-  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !CellAGΓ Γ}.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !CellAGΓ Γ}.
 
   Variable idx : nat.
 

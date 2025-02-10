@@ -1,5 +1,5 @@
 (* TODO : make SRFSyn.t rewriting more flexible by using setoids *)
-Require Import Basics Program.
+Require Import sflib Basics Program.
 
 Definition level := nat.
 
@@ -210,12 +210,10 @@ Global Opaque SRFSyn.t.
 
 (* TODO : improve these tactics *)
 From stdpp Require Import ssreflect.
-Ltac SRF_red := repeat (
-                 try rewrite !@SRFRed.cur;
-                 try rewrite !@SRFRed.lift;
-                 change (SRFSyn.t_prev (S ?n)) with (SRFSyn.t n)).
-(* 
-Ltac SRF_red_all := repeat (
-                     try rewrite ! @SRFRed.cur in *;
-                     try rewrite ! @SRFRed.lift in *;
-                     change (SRFSyn.t_prev (S ?n)) with (SRFSyn.t n) in * ). *)
+Ltac SRF_red :=
+  (hrepeat do 1
+    tryany (do 1 rewrite !@SRFRed.cur)
+    tryany (do 1 rewrite !@SRFRed.lift)
+           (try (change (SRFSyn.t_prev (S ?n)) with (); fail 1);
+            change (SRFSyn.t_prev (S ?n)) with (SRFSyn.t n)));
+  simpl.

@@ -160,8 +160,8 @@ Hint Rewrite bind_tau : itree_axiom.
 Hint Rewrite bind_vis : itree_axiom.
 Hint Rewrite bind_trigger : itree_axiom.
 Hint Rewrite bind_bind : itree_axiom.
-Tactic Notation "irw" "in" ident(H) := repeat (autorewrite with itree_axiom in H; cbn in H).
-Tactic Notation "irw" := repeat (autorewrite with itree_axiom; cbn).
+Local Tactic Notation "irw" "in" ident(H) := repeat (autorewrite with itree_axiom in H; cbn in H).
+Local Tactic Notation "irw" := repeat (autorewrite with itree_axiom; cbn).
 
 Lemma interp_state_bind:
   forall (E F : Type -> Type) (A B S : Type) (f : forall T : Type, E T -> S -> itree F (S * T)) (t : itree E A)
@@ -306,8 +306,6 @@ Ltac iby1 TAC :=
     ]
 .
 
-(* Ltac grind :=  f; repeat (f_equiv; ii; des_ifs_safe); f. *)
-
 Ltac ired1 :=
   first
     [ rewrite subst_bind
@@ -335,11 +333,6 @@ Ltac ired1 :=
    cbn.
 
 Ltac ired := cbn; hrepeat do 1 ired1.
-
-(* first [eapply eqit_VisF|f_equiv] *)
-(* Ltac grind := repeat (ired; f; repeat (f_equiv; match goal with [ |- context[going] ] => fail | _ => idtac end; ii; des_ifs_safe); f). *)
-(* Ltac grind := repeat (ired; f; repeat (Morphisms.f_equiv; ii; des_ifs_safe); f). *)
-
 
 Ltac grind_simplify :=
   cbn;

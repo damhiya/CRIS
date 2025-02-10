@@ -8,7 +8,7 @@ Local Open Scope nat_scope.
 
 Section MACROAUX.
   Import SchAS.
-  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !SchAGΣ Σ}.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !SchAGΣ Σ}.
   Notation iProp := (iProp Σ).
 
   (** Sch.spawn *)

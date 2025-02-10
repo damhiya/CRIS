@@ -9,7 +9,7 @@ Local Open Scope nat_scope.
 
 Module MapMA. Section MapMA.
   Import MapAS.
-  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !MapAGΓ Γ, !MapMGΓ Γ}.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !MapAGΓ Γ, !MapMGΓ Γ}.
   Context `{ModRel υ ν, n : level}.
 
   Context (ginv_s : invspec) (Spc_s : string → option fspec).

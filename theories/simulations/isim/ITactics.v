@@ -8,8 +8,8 @@ Require Export ITacticsCore.
  ***)
 
 Ltac init_sim :=
-  first [eapply hmod_sim_reflR | econs];
-  [i; s; repeat unfold_hmod; s
+  first [eapply hmod_sim_reflR; [(hrepeat do 1 unfold_hmod); eauto|..] | econs];
+  [i; s; (hrepeat do 1 unfold_hmod); s
   |eauto
   |try prove_sub_perm
   |try prove_sub_perm

@@ -10,16 +10,17 @@ Class CellioAGΓ (Γ : HRA) := {
 }.
 Definition CellioAΓ : HRA := #[RA].
 Global Instance subG_GΓ {Γ : HRA} : subG CellioAΓ Γ → CellioAGΓ Γ.
-Proof. solve_inG. Qed.
+Proof. solve_inG. Defined.
+Hint Unfold subG_GΓ RA_inG : GRA_index.
 
 Module CellioA. Section CellioA.
-  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !CellioAGΓ Γ}.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !CellioAGΓ Γ}.
 
   Definition auth (v : Z) : iProp Σ :=
-    own base_γ (●E v).
+    own base_γ ((●E v): RA).
 
   Definition cell (v : Z) : iProp Σ :=
-    own base_γ (◯E v).
+    own base_γ ((◯E v): RA).
 
   Lemma cell_auth_get v v':
     cell v -∗ auth v' -∗ ⌜v = v'⌝.

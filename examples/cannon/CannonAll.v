@@ -12,7 +12,7 @@ Module CannonAll. Section CannonAll.
 
   Local Definition smod_src : SMod.t := CannonA.Mod ☆ (MainA.Mod 1).
   Local Definition ginv : invspec := λ _, True%I.
-  Local Definition spc : string → option fspec := spc_global smod_src.
+  Local Definition spc : string → option fspec := spc_from smod_src.
   Local Definition mod_cancel : HMod.t := SModCancel.to_hmod smod_src.
   Local Definition mod_src : HMod.t := SMod.to_hmod ginv spc smod_src.
   Local Definition mod_tgt : HMod.t := CannonI.t ★ (MainI.t 1).
@@ -46,7 +46,7 @@ Module CannonAll. Section CannonAll.
       { unfold MainA.t. unseal CRIS. ss. }
       eapply CannonMainIA.correct.
       i. rewrite /CannonAS.Spc. unseal CRIS. econs; first prove_nodup.
-      ii; rewrite -FIND /spc /spc_global /smod_src //=; des_ifs; ss; des_ifs.
+      ii; rewrite -FIND /spc /spc_from /smod_src //=; des_ifs; ss; des_ifs.
     }
   Qed.
 
@@ -62,9 +62,8 @@ Module CannonAll. Section CannonAll.
   Local Definition initial_resource : Σ := MainAS.init_res ⋅ CannonAS.init_res.
   Lemma initial_resource_valid : ✓ initial_resource.
   Proof.
-    rewrite /initial_resource /MainAS.init_res /CannonAS.init_res -own.iRes_singleton_op.
-    apply discrete_fun_singleton_valid, allocs.allocs_frag_valid,
-      cmra_transport_valid, excl_auth_valid.
+    dfs_solve.
+    apply excl_auth_valid.    
   Qed.
 
   Theorem behavioral_refinement :
