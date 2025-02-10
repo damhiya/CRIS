@@ -7,7 +7,7 @@ Set Implicit Arguments.
 
 Local Open Scope Qp.
 
-Definition sch_ginv `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ}
+Definition sch_ginv `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}
     (υ : positive) (n : level) : invspec :=
   λ _, wpsim_ginv υ n ⊤.
 

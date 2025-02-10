@@ -84,6 +84,7 @@ def set_by_user(k : int) ≡
 ***)
 Module MapM. Section MapM.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !MapMGΓ Γ}.
+  Context (υ : univ_id) (n : level).
 
   Definition scopes := ["Map"].
   Definition v_size := "Map" ↯ "size".

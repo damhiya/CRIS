@@ -5,11 +5,11 @@ Require Import ISim SMod SMod2HMod HMod.
 From stdpp Require Import coPset.
 
 Definition wpsim_ginv (u : univ_id) (n : level) (E : coPset)
-    `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ} : iProp Σ :=
+    `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ} : iProp Σ :=
   own_admin ∗ univs u n ∗ wsats u n E.
 
 Lemma wpsim_ginv_split (υ ν : univ_id) (n : level) (E : coPset)
-    `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ} :
+    `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ} :
   (ν < υ)%positive →
   wpsim_ginv υ n E ⊣⊢ wpsim_ginv ν n ⊤ ∗ (wpsim_ginv ν n ⊤ -∗ wpsim_ginv υ n E).
 Proof.
@@ -21,7 +21,7 @@ Proof.
   iIntros "[_ [U W]]"; iApply ("U2" with "U W").
 Qed.
 
-Class WP `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ} 
+Class WP `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ} 
     (P : iProp Σ) (υ : univ_id) (n : level) (E : coPset) := mk_WP {
   WP_remainder : iProp Σ;
   WP_iff : P ∗-∗ wpsim_ginv υ n E ∗ WP_remainder
@@ -34,13 +34,13 @@ Class ModRel (υ ν : positive) := mk_ModRel : (ν < υ)%positive.
 Global Instance sub_ModRel (κ υ ν : univ_id) : υ = (κ + ν)%positive → ModRel υ ν.
 Proof. rewrite /ModRel; i; lia. Qed.
 
-Program Global Instance WP_refl `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ}
+Program Global Instance WP_refl `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}
     (υ : univ_id) (n : level) (E : coPset)
   : WP (wpsim_ginv υ n E) υ n E := mk_WP (wpsim_ginv υ n E) υ n E True _.
 Next Obligation. ii; iSplit; first iIntros "$"; iIntros "[$ _]". Qed.
 
 Section wpsim.
-  Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ}.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
 
   Local Definition state : Type := alist key Any.t.
   Local Definition post (R_s R_t : Type) : Type := nat → state * R_s → state * R_t → iProp Σ.
@@ -54,9 +54,6 @@ Section wpsim.
 
   (* TODO : abstraction into mixins *)
   (* TODO : hard-code nodup conditions *)
-  (* Local Definition wpsim_pre u n E : iProp Σ := own_admin ∗ univs u n ∗ wsats u n E. *)
-  (* Local Definition wpsim_retcond υ n {R_s R_t} (RR : post R_s R_t) : post R_s R_t :=
-    (λ nths src tgt, RR nths src tgt ∗ wpsim_ginv υ n ⊤)%I. *)
   Local Definition wpsim_rel υ n (r : rel) : rel :=
     λ R_s R_t RR ps pt nths '(st_s, i_s) '(st_t, i_t),
       (wpsim_ginv υ n ⊤ ∗ r R_s R_t RR ps pt nths (st_s, i_s) (st_t, i_t))%I.
@@ -80,15 +77,6 @@ Section wpsim.
   Local Definition wpsim_eq : @wpsim = @wpsim_def := wpsim_aux.(seal_eq).
   Local Ltac unseal := rewrite wpsim_eq /wpsim_def.
 
-  (* Variant wp_meta {X : nat → Type} : Type :=
-  | mk_wp_meta (n : nat) (x : X n).
-
-  Definition wp_fspec (υ : positive) (k : nat) (fsp : nat → fspec) : fspec :=
-    mk_fspec (meta := @wp_meta (λ n, (fsp n).(meta)))
-      (λ tid '(mk_wp_meta n x) varg arg,
-        wpsim_ginv υ (k + n) ⊤ ∗ (fsp n).(precond) tid x varg arg)%I
-      (λ tid '(mk_wp_meta n x) vret ret,
-        wpsim_ginv υ (k + n) ⊤ ∗ (fsp n).(postcond) tid x vret ret)%I. *)
   Definition wp_fspec (υ : univ_id) (n : level) (fsp : fspec) : fspec :=
     mk_fspec (meta := fsp.(meta))
       (λ tid x varg arg,
@@ -597,34 +585,3 @@ Section wpsim.
       iApply ("H1" with "H0 HPRE").
     Qed.
 End lemmas. End wpsim.
-(* Section test. *)
-  (* Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ}. *)
-  (* Context (m_s : SMod.t). *)
-  (* Context (m_t : HMod.t). *)
-  (* Context (ginv : Sk.t → nat → iProp Σ). *)
-  (* Context (stb : Sk.t → gname → option fspec). *)
-  (* Context (body_s body_t : Any.t → itree hmodE Any.t). *)
-  (* Context (fl_s fl_t : alist string (Any.t → itree hmodE Any.t)). *)
-  (* Context (my_tid : nat). *)
-  (* Context (u : univ_id). *)
-  (* Context (k : level). *)
-  (* Context (spec_s : nat → fspec). *)
-
-  (* Context (init_cond : Sk.t → iProp Σ). *)
-  (* Context (Ist : Sk.t → nat → alist key Any.t → alist key Any.t → iProp Σ). *)
-  (* Goal ∀ sk nths st_s st_t RR arg, *)
-    (* (∀ n, *)
-      (* Ist sk nths st_s st_t ⊢ *)
-      (* @wpsim α Σ Γ _ _  β fl_s fl_t (Ist sk) my_tid u n ibot ibot Any.t RR false false nths *)
-        (* (st_s, interp_sb_hp (ginv sk) (stb sk) (mk_specbody (spec_s (k + n)) body_s) arg) *)
-        (* (st_t, body_t arg) ⊤) → *)
-    (* (Ist sk nths st_s st_t ⊢ *)
-    (* @isim Σ fl_s fl_t (Ist sk) my_tid false ibot ibot Any.t RR false false nths *)
-      (* (st_s, interp_sb_hp (ginv sk) (stb sk) (mk_specbody (wp_fspec u k spec_s) body_s) arg) *)
-      (* (st_t, body_t arg)). *)
-  (* Proof. *)
-    (* rewrite /interp_sb_hp /HoareFun; ss. *)
-    (* ii. iIntros "IST". step_l. *)
-  (* Admitted. *)
-(* End test. *)
-(* TODO : proofmode instances *)

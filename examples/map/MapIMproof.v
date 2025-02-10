@@ -208,7 +208,7 @@ Module MapIM. Section MapIM.
     w_inline_r.
 
     (* TGT: prove the precond of load *)
-    w_step_r. w_force_r (_, (ofs + _)%Z, _). w_force_r. w_force_r.
+    w_step_r. w_force_r (_, (ofs + _)%Z, _, 1%Qp). w_force_r. w_force_r.
     iPoseProof (big_sepL_lookup_acc with "M") as "(IP & M)".
     { apply fun_to_list_lookup with (i:=Z.to_nat idx). nia. }
     rewrite Z2Nat.id; try nia.
