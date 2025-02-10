@@ -77,14 +77,14 @@ End KnotMainAS.
 Section KnotMainA.
   Definition scopes := ["KnotMain"].
 
-  Definition fnsems genv SpcRec SpcPure :=
-    [(KnotMainName.fib, (scopes, mk_specbody (fib_spec genv SpcRec) (pure_body SpcPure)));
+  Definition fnsems genv SpcRec :=
+    [(KnotMainName.fib, (scopes, mk_specbody (fib_spec genv SpcRec) pure_body));
      (KnotMainName.main, (scopes, mk_specbody main_spec main_body))].
 
-  Program Definition Mod genv SpcRec SpcPure : SMod.t :=
+  Program Definition Mod genv SpcRec : SMod.t :=
   {|
     SMod.scopes := scopes;
-    SMod.fnsems := fnsems genv SpcRec SpcPure;
+    SMod.fnsems := fnsems genv SpcRec;
     SMod.initial_st := [];
   |}.
   Solve All Obligations with prove_scope.
@@ -92,6 +92,6 @@ Section KnotMainA.
 
   Definition InitCond : iProp := emp%I.
 
-  Definition t genv ginv SpcRec SpcPure Spc := Seal.sealing CRIS (SMod.to_hmod ginv Spc (Mod genv SpcRec SpcPure)).
+  Definition t genv ginv SpcRec Spc := Seal.sealing CRIS (SMod.to_hmod ginv Spc (Mod genv SpcRec)).
 End KnotMainA.
 End KnotMainA. End KnotMainA.

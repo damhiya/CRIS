@@ -14,7 +14,7 @@ Section wrapper.
     mk_fspec (λ _ x y a, (((fst ∘ DPQ) x a: iProp) ∗ ⌜∃ vo: Ord.t, y = vo↑ ∧ ((o x) <= vo)%ord⌝)%I)
              (λ _ x _ a, (((snd ∘ DPQ) x a: iProp))%I).
 
-  Definition pure_body (stb_pure: string → option fspec): Any.t → itree hmodE Any.t :=
+  Definition pure_body : Any.t → itree hmodE Any.t :=
     cfunN (λ dep_ord: Ord.t, trigger (Call APCName.apc dep_ord↑);;; Ret ()).
 
 End wrapper.
@@ -86,11 +86,11 @@ Section aux.
   Definition find_body md fn :=
     alist_find fn (map (map_snd (λ (kb : list string * (Any.t → itree hmodE Any.t)) (arg : Any.t), HMod.sandbox (fst kb) ((snd kb) arg))) (HMod.fnsems md)).
 
-  Definition pure_specbody scopes ginv spc pure_spc fsp :=
+  Definition pure_specbody scopes ginv spc fsp :=
     (λ arg : Any.t,
       HMod.sandbox scopes
         (interp_sb_hp ginv spc
-           {| fsb_fspec := fsp; fsb_body := pure_body pure_spc |} arg)).
+           {| fsb_fspec := fsp; fsb_body := pure_body |} arg)).
 
   Definition pure: itree hmodE Any.t :=
     o <- trigger (Choose Ord.t);;

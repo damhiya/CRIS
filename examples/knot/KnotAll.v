@@ -25,10 +25,10 @@ Module KnotAll. Section KnotAll.
   Local Definition csl : string → bool := λ _, false.
 
   Local Definition smod_src_apc : SMod.t :=
-    (KnotMainA.Mod genv spc_rec spc_pure) ☆ (KnotA.Mod genv spc_rec spc_fun spc_pure)
+    (KnotMainA.Mod genv spc_rec) ☆ (KnotA.Mod genv spc_rec spc_fun)
     ☆ MemA.Mod ☆ (APCA.Mod spc_pure).
   Local Definition smod_src : SMod.t :=
-    (KnotMainA.Mod genv spc_rec spc_pure) ☆ (KnotA.Mod genv spc_rec spc_fun spc_pure)
+    (KnotMainA.Mod genv spc_rec) ☆ (KnotA.Mod genv spc_rec spc_fun)
     ☆ MemA.Mod ☆ APCC.Mod.
   Local Definition ginv : invspec := λ _, True%I.
   Local Definition spc_apc : string → option fspec := spc_from smod_src_apc.
@@ -80,9 +80,9 @@ Module KnotAll. Section KnotAll.
     etrans; cycle 1.
     { apply ctxr_frameR. eapply ctxr_empty. }
     instantiate (1:=emp%I). instantiate (1:=APCA.t ginv spc_pure spc).
-    replace (SMod.to_hmod ginv spc (KnotMainA.Mod _ _ _)) with (KnotMainA.t genv ginv spc_rec spc_pure spc); cycle 1.
+    replace (SMod.to_hmod ginv spc (KnotMainA.Mod _ _)) with (KnotMainA.t genv ginv spc_rec spc); cycle 1.
     { unfold KnotMainA.t; unseal CRIS; ss. }
-    replace (SMod.to_hmod ginv spc (KnotA.Mod _ _ _ _)) with (KnotA.t genv ginv spc_rec spc_fun spc_pure spc); cycle 1.
+    replace (SMod.to_hmod ginv spc (KnotA.Mod _ _ _)) with (KnotA.t genv ginv spc_rec spc_fun spc); cycle 1.
     { unfold KnotA.t; unseal CRIS; ss. }
     replace (SMod.to_hmod ginv spc MemA.Mod) with (MemA.t ginv spc); cycle 1.
     { unfold MemA.t; unseal CRIS; ss. }
@@ -116,7 +116,7 @@ Module KnotAll. Section KnotAll.
     etrans; cycle 1. { eapply ctxr_comm. }
     rewrite !hmod_add_assoc.
 
-    rewrite -(hmod_add_empty_r ((KnotMainA.t _ _ _ _ _) ★ _ ★ _ ★ _)).
+    rewrite -(hmod_add_empty_r ((KnotMainA.t _ _ _ _) ★ _ ★ _ ★ _)).
     unfold init_cond.
     etrans.
     { eapply ctxr_compose_hor; [|refl]. eapply KnotMainIA.correct; et.
@@ -138,7 +138,7 @@ Module KnotAll. Section KnotAll.
     rewrite !hmod_add_assoc.
     eapply ctxr_frameL.
 
-    rewrite -(hmod_add_empty_r ((KnotA.t _ _ _ _ _ _) ★ _ ★ _)).
+    rewrite -(hmod_add_empty_r ((KnotA.t _ _ _ _ _) ★ _ ★ _)).
     etrans.
     { eapply ctxr_compose_hor; [|refl]. eapply KnotIA.correct; et.
       { apply genv_wf. }

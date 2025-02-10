@@ -50,7 +50,7 @@ Module KnotIA. Section KnotIA.
 
   Local Notation APCA := (APCA.t ginv SpcPure Spc).
   Local Notation MemA := (MemA.t ginv SpcMem).
-  Local Notation KnotA := (KnotA.t genv ginv SpcRec SpcFun SpcPure Spc).
+  Local Notation KnotA := (KnotA.t genv ginv SpcRec SpcFun Spc).
   Local Notation KnotAMod := (KnotA ★ MemA ★ APCA).
   Local Notation KnotIMod := ((KnotI.t genv) ★ MemA ★ APCA).
   Local Notation IstFull := (IstProd (IstSB KnotA.(HMod.scopes) Ist) IstEq).

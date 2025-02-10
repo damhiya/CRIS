@@ -35,9 +35,9 @@ Module KnotMainIA. Section KnotMainIA.
 
   Local Notation APCA := (APCA.t ginv SpcPure Spc).
   Local Notation MemA := (MemA.t ginv Spc).
-  Local Notation KnotA := (KnotA.t genv ginv SpcRec SpcFun SpcPure Spc).
+  Local Notation KnotA := (KnotA.t genv ginv SpcRec SpcFun Spc).
   Local Notation KnotAMod := (KnotA ★ MemA ★ APCA).
-  Local Notation KnotMainA := (KnotMainA.t genv ginv SpcRec SpcPure Spc).
+  Local Notation KnotMainA := (KnotMainA.t genv ginv SpcRec Spc).
   Local Notation KnotMainI := (KnotMainI.t genv).
   Local Notation KnotMainAMod := (KnotMainA ★ KnotAMod).
   Local Notation KnotMainIMod := (KnotMainI ★ KnotAMod).

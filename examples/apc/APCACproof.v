@@ -26,7 +26,7 @@ Module APCAC. Section APCAC.
   Hypothesis PureIsPure :
     ∀ fn pfsp, 
       SpcPure fn = Some pfsp 
-      → ∃ scp, find_body md fn = Some (pure_specbody scp ginv SpcA SpcPure pfsp).
+      → ∃ scp, find_body md fn = Some (pure_specbody scp ginv SpcA pfsp).
 
   Local Notation APCC := (APCC.t ginv SpcC).
   Local Notation APCA := (APCA.t ginv SpcPure SpcA).

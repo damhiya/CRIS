@@ -146,14 +146,14 @@ Section KnotA.
 
   Definition scopes := ["Knot"].
 
-  Definition fnsems genv SpcRec SpcFun SpcPure :=
-    [(KnotName.rec, (scopes, mk_specbody rec_spec (pure_body SpcPure)));
+  Definition fnsems genv SpcRec SpcFun :=
+    [(KnotName.rec, (scopes, mk_specbody rec_spec pure_body));
      (KnotName.knot, (scopes, mk_specbody (knot_spec genv SpcRec SpcFun) fbody_trivial))].
 
-  Program Definition Mod genv SpcRec SpcFun SpcPure : SMod.t :=
+  Program Definition Mod genv SpcRec SpcFun : SMod.t :=
   {|
     SMod.scopes := scopes;
-    SMod.fnsems := fnsems genv SpcRec SpcFun SpcPure;
+    SMod.fnsems := fnsems genv SpcRec SpcFun;
     SMod.initial_st := [];
   |}.
   Solve All Obligations with prove_scope.
@@ -162,7 +162,7 @@ Section KnotA.
   Definition InitCond genv : iProp :=
     ((var_points_to genv KnotName._f (Vint 0)) ∗ knot_full None)%I.
 
-  Definition t genv ginv SpcRec SpcFun SpcPure Spc :=
-    Seal.sealing CRIS (SMod.to_hmod ginv Spc (Mod genv SpcRec SpcFun SpcPure)).
+  Definition t genv ginv SpcRec SpcFun Spc :=
+    Seal.sealing CRIS (SMod.to_hmod ginv Spc (Mod genv SpcRec SpcFun)).
 End KnotA.
 End KnotA. End KnotA.
