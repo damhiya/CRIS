@@ -59,9 +59,8 @@ Section allocs.
   Qed.
 
   Lemma allocs_auth_split (X Y Z : coPset) (DISJ : X ∩ Y = ∅) (EQ : Z = X ∪ Y) :
-    allocs_auth A Z ~~> allocs_auth A X ⋅ allocs_auth A Y.
+    allocs_auth A Z ≡ allocs_auth A X ⋅ allocs_auth A Y.
   Proof.
-    apply discrete_fun_update; intros a; rewrite /allocs_auth discrete_fun_lookup_op;
-      des_ifs; try set_solver.
+    rewrite EQ => x; rewrite discrete_fun_lookup_op /allocs_auth; des_ifs; try set_solver.
   Qed.
 End allocs.

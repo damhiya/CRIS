@@ -234,12 +234,26 @@ End wsat.
 
 Section wsats.
   Context `{@SRFIntp.t (domain Σ) α, !invG α Σ Γ, !subHG Γ Σ}.
-  (* Local Existing Instances inv_preΣ inv_preΓ invG_I invG_E invG_D. *)
 
   Definition wsats u n E : iProp Σ :=
     wsat_auth u n ∗ ownE u E ∗ ownD_auth u ∗ [∗ list] n ∈ (seq 0 n), wsat u n.
+
   Definition univs u n : iProp Σ :=
     [∗ list] v ∈ (seq 0 (Pos.to_nat u)), wsats (Pos.of_nat v) n ⊤.
+
+  Lemma univs_split ν υ n : (ν < υ)%positive →
+    univs υ n ⊣⊢ univs ν n ∗ wsats ν n ⊤ ∗ (univs ν n -∗ (wsats ν n ⊤ -∗ univs υ n)).
+  Proof.
+    intros LT; iSplit; last (iIntros "[H1 [H2 H3]]"; iApply ("H3" with "H1 H2")).
+    iIntros "H"; rewrite {1}/univs.
+    replace (Pos.to_nat υ) with ((Pos.to_nat ν) + S (Pos.to_nat (υ - ν) - 1)); last lia.
+    iEval (rewrite (seq_app) big_sepL_app) in "H"; iDestruct "H" as "[$ H2]".
+    iDestruct "H2" as "[H1 H2]"; s; iSplitL "H1"; first rewrite Pos2Nat.id //.
+    iIntros "H1 H3". iCombine "H3 H2" as "H". fold seq.
+    rewrite -{2}(Pos2Nat.id ν) -(big_sepL_cons (λ _ ν, wsats (Pos.of_nat ν) n ⊤)).
+    rewrite cons_seq; iCombine "H1" "H" as "H"; rewrite -big_sepL_app -seq_app.
+    rewrite /univs. eapply eq_ind; first iExact "H"; repeat f_equal; try lia.
+  Qed.
 
   Local Definition uPred_fupd_def u b (E1 E2 : coPset) (P : iProp Σ) : iProp Σ :=
     wsats u b E1 ==∗ (wsats u b E2 ∗ P).

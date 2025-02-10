@@ -8,6 +8,19 @@ Definition wpsim_ginv (u : univ_id) (n : level) (E : coPset)
     `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ} : iProp Σ :=
   own_admin ∗ univs u n ∗ wsats u n E.
 
+Lemma wpsim_ginv_split (υ ν : univ_id) (n : level) (E : coPset)
+    `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ} :
+  (ν < υ)%positive →
+  wpsim_ginv υ n E ⊣⊢ wpsim_ginv ν n ⊤ ∗ (wpsim_ginv ν n ⊤ -∗ wpsim_ginv υ n E).
+Proof.
+  intros H; iSplit; last (iIntros "[H1 H2]"; iApply ("H2" with "H1")).
+  iIntros "[H1 [H2 H3]]".
+  iDestruct (univs_split ν υ with "H2") as "[U1 [W1 U2]]"; first done.
+  iDestruct (own_admin_split with "H1") as "[O1 O2]".
+  iSplitL "U1 W1 O1"; first rewrite /wpsim_ginv; iFrame.
+  iIntros "[_ [U W]]"; iApply ("U2" with "U W").
+Qed.
+
 Class WP `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ} 
     (P : iProp Σ) (υ : univ_id) (n : level) (E : coPset) := mk_WP {
   WP_remainder : iProp Σ;
@@ -16,6 +29,10 @@ Class WP `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ}
 Arguments mk_WP {_ _ _ _ _ _ _ _} _ _ _ _ _ _.
 Arguments WP_remainder {_ _ _ _ _ _ _ _} [_ _ _ _] _.
 Arguments WP_iff {_ _ _ _ _ _ _ _} [_ _ _ _] _.
+
+Class ModRel (υ ν : positive) := mk_ModRel : (ν < υ)%positive.
+Global Instance sub_ModRel (κ υ ν : univ_id) : υ = (κ + ν)%positive → ModRel υ ν.
+Proof. rewrite /ModRel; i; lia. Qed.
 
 Program Global Instance WP_refl `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ}
     (υ : univ_id) (n : level) (E : coPset)
@@ -44,16 +61,18 @@ Section wpsim.
     λ R_s R_t RR ps pt nths '(st_s, i_s) '(st_t, i_t),
       (wpsim_ginv υ n ⊤ ∗ r R_s R_t RR ps pt nths (st_s, i_s) (st_t, i_t))%I.
 
+  Local Definition wpsim_pre t υ ν n E : iProp Σ :=
+    match t with
+    | None => emp
+    | Some false => wpsim_ginv ν n ⊤ -∗ wpsim_ginv υ n E
+    | Some true => wpsim_ginv υ n E
+    end.
+
   (* Simulation relation that corresponds to iris' weakest precondition *)
   Local Definition wpsim_def
       fl_s fl_t Ist my_tid (t : option bool) υ ν n E r g R_s R_t RR ps pt nths st_s st_t
       : iProp Σ :=
-  (* TODO : hide *)
-    (match t with
-    | None => emp
-    | Some false => wpsim_ginv ν n E -∗ wpsim_ginv υ n E
-    | Some true => wpsim_ginv υ n E
-    end) -∗
+    wpsim_pre t υ ν n E -∗
     @isim Σ open fl_s fl_t Ist my_tid (wpsim_rel υ n r) (wpsim_rel υ n g)
       R_s R_t RR ps pt nths st_s st_t.
   Local Definition wpsim_aux : seal (@wpsim_def). Proof. by eexists. Qed.
@@ -407,6 +426,33 @@ Section wpsim.
       unseal; iIntros "[P SIM] I". iApply isim_Assume_src; eauto.
       iIntros "P'". iPoseProof ("P" with "P'") as "[GINV P]".
       iApply ("SIM" with "P GINV").
+    Qed.
+
+    Lemma wpsim_half_assume_tgt_WP `{i : !WP P ν n ⊤, ModRel υ ν} r g i_s k_t E :
+      (WP_remainder i ∗
+      wpsim fl_s fl_t Ist my_tid (Some false) υ ν n E r g R_s R_t RR ps true nths
+        (st_s, i_s) (st_t, k_t tt)) ⊢
+      wpsim fl_s fl_t Ist my_tid (Some true) υ ν n E r g R_s R_t RR ps pt nths
+        (st_s, i_s) (st_t, trigger (Assume P) >>= k_t).
+    Proof.
+      unseal; iIntros "[P SIM] I". iPoseProof (wpsim_ginv_split with "I") as "[I1 I2]".
+      { apply H. }
+      iApply isim_Assume_tgt; eauto.
+      iSplitL "P I1".
+      { iApply (WP_iff i); iFrame. }
+      { iApply "SIM"; iFrame. }
+    Qed.
+
+    Lemma wpsim_half_guarantee_tgt_WP `{i : !WP P ν n ⊤, ModRel υ ν} r g i_s k_t E :
+      (WP_remainder i -∗
+      wpsim fl_s fl_t Ist my_tid (Some true) υ ν n E r g R_s R_t RR ps true nths
+        (st_s, i_s) (st_t, k_t tt)) ⊢
+      wpsim fl_s fl_t Ist my_tid (Some false) υ ν n E r g R_s R_t RR ps pt nths
+        (st_s, i_s) (st_t, trigger (Guarantee P) >>= k_t).
+    Proof.
+      unseal; iIntros "SIM I".
+      iApply isim_Guarantee_tgt; iIntros "P"; iPoseProof (WP_iff with "P") as "[P1 P2]".
+      iApply ("SIM" with "P2"); rewrite /wpsim_pre; iApply "I"; done.
     Qed.
 
     (* Derived lemmas *)

@@ -1,6 +1,7 @@
 Require Import CRIS.
 
 Require Import MapHeader MapM.
+Require Import wpsim.
 
 Set Implicit Arguments.
 
@@ -109,40 +110,46 @@ Module MapAS. Section MapAS.
     }
   Qed.
 
-  Definition init_spec : fspec :=
-    fspec_simple
-      (λ sz : nat,
-        (λ varg, ⌜varg = [Vint sz]↑ ∧ (8 * (Z.of_nat sz) < modulus_64)%Z⌝ ∗ pending,
-          λ vret, ⌜vret = Vundef↑⌝ ∗ initial_points_tos sz))%I.
+  Section spec.
+    Context (υ : univ_id) (n : level).
+    Definition init_spec : fspec :=
+      wp_fspec υ n
+        (fspec_simple
+          (λ sz : nat,
+            (λ varg, ⌜varg = [Vint sz]↑ ∧ (8 * (Z.of_nat sz) < modulus_64)%Z⌝ ∗ pending,
+              λ vret, ⌜vret = Vundef↑⌝ ∗ initial_points_tos sz)))%I.
 
-  Definition get_spec: fspec :=
-    fspec_simple
-      (λ '(k, v),
-        (λ varg, ⌜varg = [Vint k]↑⌝ ∗ points_to k v,
-          λ vret, ⌜vret = (Vint v)↑⌝ ∗ points_to k v))%I.
+    Definition get_spec: fspec :=
+      wp_fspec υ n
+        (fspec_simple
+          (λ '(k, v),
+            (λ varg, ⌜varg = [Vint k]↑⌝ ∗ points_to k v,
+              λ vret, ⌜vret = (Vint v)↑⌝ ∗ points_to k v)))%I.
 
-  Definition set_spec: fspec :=
-    fspec_simple
-      (λ '(k, w, v),
-        (λ varg, ⌜varg = [Vint k; Vint v]↑⌝ ∗ points_to k w,
-          λ vret, ⌜vret = Vundef↑⌝ ∗ points_to k v))%I.
+    Definition set_spec: fspec :=
+      wp_fspec υ n
+        (fspec_simple
+          (λ '(k, w, v),
+            (λ varg, ⌜varg = [Vint k; Vint v]↑⌝ ∗ points_to k w,
+              λ vret, ⌜vret = Vundef↑⌝ ∗ points_to k v)))%I.
 
-  Definition set_by_user_spec: fspec :=
-    fspec_simple
-      (λ '(k, w),
-        (λ varg, ⌜varg = [Vint k]↑⌝ ∗ points_to k w,
-          λ vret, ⌜vret = Vundef↑⌝ ∗ ∃ v, points_to k v))%I.
-  
-  Definition Spc : alist string fspec :=
-    Seal.sealing CRIS
-      [(MapName.init, init_spec);
-       (MapName.get, get_spec);
-       (MapName.set, set_spec);
-       (MapName.set_by_user, set_by_user_spec)].
-  
-  Lemma Spc_nodup : List.NoDup (List.map fst Spc).
-  Proof. unfold Spc. unseal CRIS. prove_nodup. Qed.
-
+    Definition set_by_user_spec: fspec :=
+      wp_fspec υ n
+        (fspec_simple
+          (λ '(k, w),
+            (λ varg, ⌜varg = [Vint k]↑⌝ ∗ points_to k w,
+              λ vret, ⌜vret = Vundef↑⌝ ∗ ∃ v, points_to k v)))%I.
+    
+    Definition Spc : alist string fspec :=
+      Seal.sealing CRIS
+        [(MapName.init, init_spec);
+        (MapName.get, get_spec);
+        (MapName.set, set_spec);
+        (MapName.set_by_user, set_by_user_spec)].
+    
+    Lemma Spc_nodup : List.NoDup (List.map fst Spc).
+    Proof. unfold Spc. unseal CRIS. prove_nodup. Qed.
+  End spec.
 End MapAS. End MapAS.
 
 (*** module A Map
@@ -163,6 +170,7 @@ def set_by_user(k : int) ≡
 
 Module MapA. Section MapA.
   Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !MapMGΓ Γ, !MapAGΓ Γ}.
+  Context (υ : univ_id) (n : level).
 
   Definition scopes := ["Map"].
   Definition v_map := "Map" ↯ "map".
@@ -187,10 +195,10 @@ Module MapA. Section MapA.
       ccallN MapName.set [Vint k; Vint v].
 
   Definition fnsems :=
-    [(MapName.init, (scopes, mk_specbody MapAS.init_spec fbody_trivial));
-     (MapName.get, (scopes, mk_specbody MapAS.get_spec (cfunN get)));
-     (MapName.set, (scopes, mk_specbody MapAS.set_spec (cfunN set)));
-     (MapName.set_by_user, (scopes, mk_specbody MapAS.set_by_user_spec (cfunN set_by_user)))].
+    [(MapName.init, (scopes, mk_specbody (MapAS.init_spec υ n) fbody_trivial));
+     (MapName.get, (scopes, mk_specbody (MapAS.get_spec υ n) (cfunN get)));
+     (MapName.set, (scopes, mk_specbody (MapAS.set_spec υ n) (cfunN set)));
+     (MapName.set_by_user, (scopes, mk_specbody (MapAS.set_by_user_spec υ n) (cfunN set_by_user)))].
 
   Program Definition Mod : SMod.t := {|
     SMod.scopes := scopes;
@@ -204,5 +212,4 @@ Module MapA. Section MapA.
     (MapAS.initial_map ∗ MapMS.pending)%I.
 
   Definition t ginv Spc := Seal.sealing CRIS (SMod.to_hmod ginv Spc Mod).
-  
 End MapA. End MapA.

@@ -20,7 +20,7 @@ Import uPred.
   Proof.
     rewrite /IsExcept0 /bi_except_0. uPred.unseal.
     split=> x WFn. intros [|]; done.
-  Qed.
+  Qed.+
 
 End uPredI.
 (* uPredI_affine is added so that IPM can also resolve pure predicates with evars. *)
@@ -132,7 +132,7 @@ Section properties.
       { rewrite discrete_fun_lookup_op /iRes_singleton discrete_fun_lookup_singleton_ne; eauto.
         rewrite right_id.
         etrans.
-        eapply (allocs_auth_split (X ∖ {[coPpick X]}) {[coPpick X]}); try set_solver.
+        rewrite (allocs_auth_split (X ∖ {[coPpick X]}) {[coPpick X]}); try set_solver.
         { set_unfold; intros x; split; intros H; des; eauto.
           { destruct (decide (x = coPpick X)); eauto. }
           { subst; eapply coPpick_elem_of, coPset_infinite_finite; eauto. }
@@ -144,6 +144,20 @@ Section properties.
     iSplit; eauto.
     { iPureIntro. eapply difference_infinite, singleton_finite; eauto. }
     { iExists (coPpick X); rewrite own_eq /own_def; done. }
+  Qed.
+
+  Lemma own_admin_split : own_admin ⊢ own_admin ∗ own_admin.
+  Proof.
+    rewrite ?own_admin_eq /own_admin_def; iIntros "[%X [%H OWN]]".
+    apply coPset_split_infinite in H as [X1 [X2 [-> [H [H1 H2]]]]].
+    erewrite ownM_proper; cycle 1.
+    { intros x; rewrite allocs_auth_split; eauto.
+      instantiate (1:=((λ x, allocs_auth (GRA_lookup x) X1) : GRAUR Σ)
+        ⋅ (λ x, allocs_auth (GRA_lookup x) X2)).
+      rewrite discrete_fun_lookup_op //.
+    }
+    iDestruct "OWN" as "[O1 O2]".
+    iSplitL "O1"; [iExists X1|iExists X2]; iSplit; easy.
   Qed.
 
   Lemma own_update γ a a' : a ~~> a' → own γ a ⊢ |==> own γ a'.

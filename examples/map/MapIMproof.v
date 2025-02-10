@@ -63,6 +63,9 @@ Module MapIM. Section MapIM.
   Context `{!invG α Σ Γ, !subHG Γ Σ, !sinvG Σ Γ α β τ, !MapMGΓ Γ, !memGΓ Γ}.
   Notation iProp := (iProp Σ).
 
+  (* Context (n : level).
+  Definition a : SRFSyn.t n := (∃ b : τ{⇣ Any.t}, ⌜b = b⌝)%SRF. *)
+
   Definition Ist : nat → alist key Any.t → alist key Any.t → iProp :=
     (λ _ st_src st_tgt,
       ⌜st_src = [(MapM.v_size, 0%Z↑); (MapM.v_map, (λ _ : Z, 0%Z)↑)]
@@ -82,54 +85,6 @@ Module MapIM. Section MapIM.
   Local Notation MapMMod := (MapM ★ MemA).
   Local Notation MapIMod := (MapI.t ★ MemA).
   Local Notation IstFull := (IstProd (IstSB MapM.(HMod.scopes) Ist) IstEq).
-
-  Ltac w_inline_l :=
-    let marker := fresh "MARKER" in
-    set_marker marker;  
-    hide_ihyps;
-    hide_itree_r;
-    prep;
-    iApply wpsim_inline_src; [prove_inline_cond|];
-    unfold_cris_defs;
-    show_until marker.
-
-  Ltac w_inline_r :=
-    let marker := fresh "MARKER" in
-    set_marker marker;  
-    hide_ihyps;
-    hide_itree_l;
-    prep;
-    iApply wpsim_inline_tgt; [prove_inline_cond|];
-    unfold_cris_defs;
-    show_until marker.
-
-  Ltac _w_force_r :=
-    match goal with
-    | [ |- environments.envs_entails _ (wpsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _)) ] =>
-        iApply wpsim_take_tgt
-    | [ |- environments.envs_entails _ (wpsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Assume ?P) >>= _)) ] =>
-        unfold_precond_postcond P; iApply wpsim_assume_tgt
-    (* | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ _ (_, unwrapU _ >>= _)) ] =>
-        iApply isim_unwrapU_tgt; iExists _
-    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _)) ] =>
-        iApply isim_asm_tgt *)
-    end
-  .
-
-  Ltac w_force_r_core :=
-    let marker := fresh "MARKER" in
-    set_marker marker;  
-    hide_ihyps;
-    hide_itree_l;
-    prep;
-    _w_force_r; s;
-    show_until marker.
-  
-  Tactic Notation "w_force_r" :=
-    w_force_r_core; try (iExists _).
-  
-  Tactic Notation "w_force_r" uconstr(p) :=
-    w_force_r_core; iExists p.
 
   Lemma simF_init : HSim.sim_fun open MapMMod MapIMod IstFull MapName.init.
   Proof.
