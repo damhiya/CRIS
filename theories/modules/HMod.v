@@ -243,6 +243,50 @@ Module HModSB. Section HModSB.
       else vis (Choose Any.t) (fun x => HMod.sandbox scopes (ktr x)).
   Proof. destruct k; ss. eapply observe_eta; ss. des_ifs. Qed.
 
+  Definition putSB {R} scopes k v (itr : itree hmodE R) : itree hmodE R :=
+    HMod.sandbox scopes (trigger (SPut k v));;; itr.
+
+  Definition getSB {R} scopes k (ktr : Any.t -> itree hmodE R) : itree hmodE R :=
+    HMod.sandbox scopes (trigger (SGet k)) >>= ktr.
+
+  Lemma SPut_putSB {R} scopes k v (ktr : () -> itree hmodE R) :
+    HMod.sandbox scopes (vis (SPut k v) ktr) = putSB scopes k v (HMod.sandbox scopes (ktr tt)).
+  Proof.
+    eapply observe_eta; ss. f_equal. extensionality x. destruct x.
+    eapply observe_eta; ss.
+  Qed.
+
+  Lemma putSB_SPut {R} scopes k v (itr : itree hmodE R) :
+    putSB scopes k v itr = HMod.sandbox scopes (trigger (SPut k v));;; itr.
+  Proof.
+    reflexivity.
+  Qed.
+
+  Lemma putSB_bind {T U} scopes k v (itr : itree hmodE T) (ktr : T -> itree hmodE U) :
+    putSB scopes k v itr >>= ktr = putSB scopes k v (itr >>= ktr).
+  Proof.
+    unfold putSB. rewrite bind_bind. reflexivity.
+  Qed.
+
+  Lemma SGet_getSB {R} scopes k (ktr : Any.t -> itree hmodE R) :
+    HMod.sandbox scopes (vis (SGet k) ktr) = getSB scopes k (fun x => HMod.sandbox scopes (ktr x)).
+  Proof.
+    eapply observe_eta; ss. f_equal. extensionality x.
+    eapply observe_eta; ss.
+  Qed.
+
+  Lemma getSB_SGet {R} scopes k (ktr : Any.t -> itree hmodE R) :
+    getSB scopes k ktr = x <- HMod.sandbox scopes (trigger (SGet k));; ktr x.
+  Proof.
+    reflexivity.
+  Qed.
+
+  Lemma getSB_bind {T U} scopes k (ktr1 : Any.t -> itree hmodE T) (ktr2 : T -> itree hmodE U) :
+    getSB scopes k ktr1 >>= ktr2 = getSB scopes k (fun x => ktr1 x >>= ktr2).
+  Proof.
+    unfold getSB. rewrite bind_bind. reflexivity.
+  Qed.
+
   Lemma transl_vis_core {X R} (e : coreE X) scopes (k : X -> itree hmodE R) :
     HMod.sandbox scopes (vis e k) = vis e (fun x => HMod.sandbox scopes (k x)).
   Proof. eapply observe_eta; ss. Qed.
