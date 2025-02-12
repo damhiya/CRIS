@@ -681,8 +681,8 @@ Section COMM.
     assert (CASE := case_itrH it); des; subst.
     - step. iFrame. eauto.
     - steps_l. steps_r. by_coind "CIH". eauto.
-    - steps_l. force_r. iFrame. by_coind "CIH". eauto.
-    - steps_r. force_l. iFrame. by_coind "CIH". eauto.
+    - steps_l. force_r. iFrame. steps_r. by_coind "CIH". eauto.
+    - steps_r. force_l. iFrame. steps_l. by_coind "CIH". eauto.
     - destruct s.
       + step. by_coind "CIH". eauto.
       + yield "IST"; eauto. by_coind "CIH". eauto.
@@ -690,14 +690,14 @@ Section COMM.
     - destruct c. call "IST"; eauto. by_coind "CIH". eauto.
     - depdes s.
       + rewrite !HModSB.transl_bind !HModSB.transl_put. des_ifs; cycle 1.
-        { steps_r. force_l. instantiate (1:=q). by_coind "CIH". eauto. }
+        { steps_r. force_l. instantiate (1:=q). steps_l. by_coind "CIH". eauto. }
         iApply isim_sput_src. iApply isim_sput_tgt.
         by_coind "CIH". unfold perm_Ist. 
         iDestruct "IST" as "%". des. 
         iPureIntro. rewrite !state_scopes_update. esplits; eauto. 
         eapply alist_upd_perm; eauto.
       + rewrite !HModSB.transl_bind !HModSB.transl_get. des_ifs; cycle 1.
-        { steps_r. force_l. instantiate (1:=q). by_coind "CIH". eauto. }
+        { steps_r. force_l. instantiate (1:=q). steps_l. by_coind "CIH". eauto. }
         iApply isim_sget_src. iApply isim_sget_tgt.
         apply existsb_exists in Heq. des. apply String.eqb_eq in Heq0. subst.
         iAssert (⌜alist_find k st_src = alist_find k st_tgt⌝)%I with "[IST]" as "%".
@@ -705,8 +705,8 @@ Section COMM.
           eapply alist_permutation_find; eauto. }
         rewrite H0. by_coind "CIH". eauto.
     - destruct e.
-      + steps_r. force_l. instantiate (1:= q). by_coind "CIH". eauto. 
-      + steps_l. force_r. instantiate (1:= q). by_coind "CIH". eauto. 
+      + steps_r. force_l. instantiate (1:= q). steps_l. by_coind "CIH". eauto. 
+      + steps_l. force_r. instantiate (1:= q). steps_r. by_coind "CIH". eauto.
       + step. by_coind "CIH". eauto. 
     Unshelve. all : eauto. 
     { eapply alist_upd_nodup. eauto. }

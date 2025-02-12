@@ -57,7 +57,7 @@ Module RepeatIA. Section RepeatIA.
     iDestruct "ASM" as "%". hss. dup H3. inv H3. steps_l.
 
     (* TGT: handle input *)
-    steps_r. force_r. steps_r.
+    steps_r. unfold assume. force_r. steps_r.
 
     (* case analysis: n *)
     destruct n as [|n'].
@@ -69,10 +69,10 @@ Module RepeatIA. Section RepeatIA.
 
       (* SRC: unfold APC to skip *)
       forces_l. iSplit. { iPureIntro. apply SpcPureInSpc. apply APCInSpcPure. unfold APCA.Spc. unseal CRIS. et. }
-      steps_l. forces_l. iSplit; et.
+      steps_l. forces_l. iSplit; et. steps_l.
       inline_l. steps_l. iDestruct "ASM" as "%". hss.
       steps_l. unfold APC. force_l. steps_l. rewrite unfold_APC. force_l true. steps_l.
-      forces_l. iSplit; et. steps_l. forces_l. iSplit; et.
+      forces_l. iSplit; et. steps_l. forces_l. iSplit; et. steps_l.
 
       (* prove the IST *)
       step. by iSplit.
@@ -86,12 +86,13 @@ Module RepeatIA. Section RepeatIA.
 
       (* SRC: unfold APC for fn *)
       force_l. iSplit. { iPureIntro. apply SpcPureInSpc. apply APCInSpcPure. unfold APCA.Spc. unseal CRIS. et. }
-      steps_l. fspec_simpl. forces_l. iSplit; et.
+      steps_l. fspec_simpl. forces_l. iSplit; et. steps_l.
       inline_l. fspec_simpl. steps_l. iDestruct "ASM" as "%". hss.
       steps_l. unfold APC. force_l 2. steps_l. rewrite unfold_APC. force_l false. steps_l. force_l 1. steps_l.
       assert (LT: (1 < 2)%ord). { apply OrdArith.lt_from_nat; lia. }
       force_l LT. steps_l. force_l fn. steps_l. force_l (OrdArith.add Ord.omega (n':nat)%ord). steps_l.
       assert (PO: is_Some (Spc fn) ∧ ((Ord.omega + n') < q)%ord). { split; et. eapply Ord.lt_le_lt; et. apply OrdArith.lt_add_r. apply OrdArith.lt_from_nat. lia. }
+      unfold guarantee.
       force_l PO. steps_l. force_l. iSplit; et. steps_l. 
 
       (* SRC: prove the precond of fn *)
@@ -99,7 +100,7 @@ Module RepeatIA. Section RepeatIA.
       force_l x_tgt. force_l ([Vint x]↑).
       iPoseProof ((PRE (OrdArith.add Ord.omega (n':nat)%ord)↑ [Vint x]↑) with "[]") as ">PRE".
       { iSplit; et. iExists (OrdArith.add Ord.omega (n':nat)%ord). iSplit; et. iPureIntro. apply OrdArith.add_base_l. }
-      force_l. iSplitR "IST"; et.
+      force_l. iSplitR "IST"; et. steps_l.
 
       (* make a call to fn *)
       call "IST"; et.
@@ -116,6 +117,7 @@ Module RepeatIA. Section RepeatIA.
       assert (LT': (0 < 1)%ord). { apply OrdArith.lt_from_nat; lia. }
       force_l LT'. steps_l. force_l RepeatName.repeat. steps_l. force_l (OrdArith.add Ord.omega (n':nat)%ord). steps_l.
       assert (PO': is_Some (Spc RepeatName.repeat) ∧ ((Ord.omega + n') < q)%ord); et.
+      unfold guarantee.
       force_l PO'. steps_l. force_l. iSplit; et. steps_l.
 
       (* SRC: prove the precond of repeat *)
@@ -130,6 +132,7 @@ Module RepeatIA. Section RepeatIA.
 
       (* make a call to repeat *)
       assert (S n' - 1 = n')%Z as -> by lia.
+      steps_l.
       call "IST"; et.
 
       (* SRC: handle the postcond of repeat *)
@@ -138,7 +141,7 @@ Module RepeatIA. Section RepeatIA.
 
       (* SRC: unfold APC to skip *)
       rewrite unfold_APC. force_l true. steps_l.
-      forces_l. iSplit; et. steps_l. forces_l. iSplit; et.
+      forces_l. iSplit; et. steps_l. forces_l. iSplit; et. steps_l.
 
       (* prove the IST *)
       step. by iSplit.

@@ -32,7 +32,7 @@ Module CannonIA. Section CannonIA.
 
     steps_r. force_r. iSplitR.
     { iPureIntro. rewrite Any.upcast_downcast. et. }
-    steps_r. unfold CannonI.div. des_ifs. force_r. iSplitR; et.
+    steps_r. change (1 `div` 1)%Z with 1%Z.
     step. steps_l. force_l. force_l. instantiate (1:=(1%Z)↑). iSplitR; et.
     steps_r. ss.
   Qed.
