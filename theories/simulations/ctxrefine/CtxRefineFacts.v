@@ -12,13 +12,22 @@ Section CtxRefineFacts.
 
   Global Program Instance refines_PreOrder : PreOrder refines.
   Next Obligation.
-    ii. exists rs. esplits; eauto. refl.
+    ii. esplits; eauto. ii; esplits; eauto. refl.
   Qed.
   Next Obligation.
     ii.
-    edestruct H; eauto. des.
-    edestruct H0; eauto. des.
-    exists x1. esplits; eauto.
+    (* ii; split.
+    { }
+    destruct x, y, z; ss; split.
+    { eapply H. }
+    edestruct H.
+    { eapply H; last eapply H0; eauto. eapply  } *)
+    edestruct H; des; eauto;
+    edestruct H0; des; eauto.
+    esplits; eauto. ii.
+    specialize (H2 rs WFR SRC); des.
+    specialize (H4 rt H2 H5). des.
+    exists rt0. esplits; eauto.
     etrans; eauto.
   Qed.
 
@@ -33,15 +42,21 @@ Section CtxRefineFacts.
 
   Global Program Instance ctx_refines_Proper : Proper ((≡) ==> (≡) ==> iff) (@ctx_refines Σ).
   Next Obligation.
-    intros ms1 ms2 mseq mt1 mt2 mteq; split; intros CTXR;
-      destruct ms1, ms2, mt1, mt2; inv mseq; inv mteq; ss; clarify; ii;
-      specialize (CTXR ctx); ss; hexploit (CTXR rs); eauto.
-    { iIntros "H"; iPoseProof (SRC with "H") as "[H1 H2]"; iSplitL "H1"; eauto; iApply H0; ss. }
-    { i. des; esplits; eauto. iIntros "H". iPoseProof (H1 with "H") as "[H1 H2]".
-      iSplitL "H1"; eauto; iApply H2; ss. }
-    { iIntros "H"; iPoseProof (SRC with "H") as "[H1 H2]"; iSplitL "H1"; eauto; iApply H0; ss. }
-    { i; des; esplits; eauto. iIntros "H"; iPoseProof (H1 with "H") as "[H1 H2]".
-        iSplitL "H1"; eauto; iApply H2; ss. }
+    intros ms1 ms2 mseq mt1 mt2 mteq; split; intros CTXR.
+    { destruct ms1, ms2, mt1, mt2; inv mseq; inv mteq; ii; ss; split; auto; clarify.
+      { apply CTXR; s; eauto. }
+      { ii. destruct (CTXR _ WFM). hexploit (H1 rs); eauto; ss.
+        { rewrite H0; done. }
+        { intros [rt Hrt]; rewrite H2 in Hrt; des; exists rt; esplits; eauto. }
+      }
+    }
+    { destruct ms1, ms2, mt1, mt2; inv mseq; inv mteq; ii; ss; split; auto; clarify.
+      { apply CTXR; s; eauto. }
+      { ii. destruct (CTXR _ WFM). hexploit (H1 rs); eauto; ss.
+        { rewrite -H0; done. }
+        { intros [rt Hrt]; rewrite -H2 in Hrt; des; exists rt; esplits; eauto. }
+      }
+    }
   Qed.
 
   Lemma ctxr_refines mcs mct (REF : ctx_refines mcs mct) :
@@ -50,17 +65,17 @@ Section CtxRefineFacts.
     i. specialize (REF HMod.empty_mc).
     destruct mcs, mct. ss.
     rewrite !hmod_add_empty_r in REF.
-    ii. des. ss. red in REF. hexploit REF; eauto.
-    { iIntros "H". iSplit; eauto. iApply SRC. eauto. }
+    ii; split; ii; des; ss; red in REF; hexploit REF; eauto; i; des; ss.
+    hexploit (H0 rs); ss; first (iIntros "H"; iSplit; eauto; iApply SRC; eauto).
     i; des; esplits; eauto.
-    iIntros "H". iPoseProof (H0 with "H") as "(? & _)". eauto.
+    iIntros "H". iPoseProof (H2 with "H") as "(? & _)". eauto.
   Qed.
 
   (*** weakening for initial condition ***)
   Lemma ctxr_cond_strengthen (m : HMod.t) (P Q : iProp Σ) (IMPL : P -∗ Q) :
     ctx_refines (m, P) (m, Q).
   Proof.
-    ii. ss. exists rs. esplits; eauto.
+    ii. ss; split; first done. ii; ss; exists rs. esplits; eauto.
     + iIntros "H". iPoseProof (SRC with "H") as "(X & Y)".
       iFrame. iApply IMPL. eauto.
     + refl.
@@ -72,11 +87,14 @@ Section CtxRefineFacts.
   Proof.
     ii. specialize (REF (ctx.1, Q ∗ ctx.2)%I).
     destruct ctx. ss.
-    ii. ss. des. red in REF. hexploit REF; eauto.
+    split.
+    { red in REF. hexploit REF; ss; i; des; eauto. }
+    ii. ss. des. red in REF. hexploit REF; ss; i; des; eauto.
+    hexploit (H0 rs); ss.
     { iIntros "H". iPoseProof (SRC with "H") as "((? & ?) & ?)".
       iFrame. }
-    i; des. esplits; eauto.
-    { iIntros "H". iPoseProof (H0 with "H") as "(? & (? & ?))".
+    i; des; esplits; eauto.
+    { iIntros "H". iPoseProof (H2 with "H") as "(? & (? & ?))".
       iFrame. }
   Qed.
 

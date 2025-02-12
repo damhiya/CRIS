@@ -331,10 +331,11 @@ Section HPSIM_ADEQUACY.
       rewrite /interp_hp_fun.
       exploit (K _ _ st_src st_tgt _ _ _ _ _ _ mr_src mr_tgt); eauto.
       clear K CIH; intros K.
+      pattern (x <- triggerUB;; (tau;; x_ <- (tau;; Ret x);; interp_hp (k_src x_))).
       eapply eq_ind; eauto.
       rewrite interp_hp_bind.
       repeat f_equal. 
-      { rewrite interp_hp_triggerNB. eauto. }
+      { rewrite interp_hp_triggerUB. eauto. }
       extensionalities x. grind. rewrite !interp_hp_tau. eauto.
     - clarify. pclearbot. gstep; econs; econs; eauto; cycle 1.
       { gfinal; left; eapply CIH; eauto.

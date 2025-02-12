@@ -8,9 +8,9 @@ Section HSIM_ADEQUACY.
 
   Lemma hsim_wf contextual ms mt cond Ist
     (SIM: HSim.t contextual ms mt cond Ist)
-    (WF: HMod.wf ms)
+    (WF: HMod.wf mt)
     :
-    HMod.wf mt.
+    HMod.wf ms.
   Proof.
     inv SIM. econs.
     - eapply sub_perm_nodup; eauto. apply WF.
@@ -19,10 +19,10 @@ Section HSIM_ADEQUACY.
 
   Lemma hsim_match ms mt cond Ist contextual fn
     (SIM: HSim.t contextual ms mt cond Ist)
-    (WF: List.NoDup (List.map fst (HMod.fnsems ms)))
-    (IN: In fn (List.map fst (HMod.fnsems mt)))
+    (WF: List.NoDup (List.map fst (HMod.fnsems mt)))
+    (IN: In fn (List.map fst (HMod.fnsems ms)))
     :
-    In fn (List.map fst (HMod.fnsems ms)).
+    In fn (List.map fst (HMod.fnsems mt)).
   Proof.
     eapply sub_perm_incl; eauto. apply SIM.
   Qed.

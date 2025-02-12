@@ -532,12 +532,12 @@ Section SIM.
   Qed.
 
   Lemma isim_call_none
-    r g ps pt {Rs Rt} RR nths st_src st_tgt i_src k_tgt fn varg
+    r g ps pt {Rs Rt} RR nths st_src st_tgt k_src i_tgt fn varg
     (CLOSED: contextual = closed)
-    (FIND: alist_find fn fl_tgt = None)
+    (FIND: alist_find fn fl_src = None)
   :
-    (@isim r g Rs Rt RR ps true nths (st_src, i_src) (st_tgt, x <- triggerNB;; tau;; tau;; k_tgt x))
-    ⊢ (@isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, trigger (Call fn varg) >>= k_tgt)).
+    (@isim r g Rs Rt RR true pt nths (st_src, x <- triggerUB;; tau;; tau;; k_src x) (st_tgt, i_tgt))
+    ⊢ (@isim r g Rs Rt RR ps pt nths (st_src, trigger (Call fn varg) >>= k_src) (st_tgt, i_tgt)).
   Proof.
     split; intros x wfx SIM; guclo hpsimC_spec. econs; esplits; eauto. econs 24; eauto.
   Qed.
@@ -730,8 +730,8 @@ Module HSim. Section HSim.
         (WFT : HMod.wf ms_tgt)
         (NODUPFS : List.NoDup (List.map fst fnsems_src))
         (NODUPFT : List.NoDup (List.map fst fnsems_tgt))
-        ft (FIND : alist_find fn fnsems_tgt = Some ft),
-      ∃ fs, alist_find fn fnsems_src = Some fs /\
+        fs (FIND : alist_find fn fnsems_src = Some fs),
+      ∃ ft, alist_find fn fnsems_tgt = Some ft /\
         isim_fsem
           (List.map (map_snd HMod.sandbox_body) fnsems_src)
           (List.map (map_snd HMod.sandbox_body) fnsems_tgt)
@@ -745,11 +745,11 @@ Module HSim. Section HSim.
         ∀ nths nths' (LE : nths <= nths') st_src st_tgt,
           Ist nths st_src st_tgt -∗ Ist nths' st_src st_tgt;
       sim_scopes :
-        sub_perm scopes_tgt scopes_src;
+        sub_perm scopes_src scopes_tgt;
       sim_match :
-        sub_perm (List.map fst fnsems_tgt) (List.map fst fnsems_src);
+        sub_perm (List.map fst fnsems_src) (List.map fst fnsems_tgt);
       sim_fnsems :
-        ∀ fn (IN : In fn (List.map fst fnsems_tgt)),
+        ∀ fn (IN : In fn (List.map fst fnsems_src)),
           sim_fun fn;
     }.
 End HSim. End HSim.

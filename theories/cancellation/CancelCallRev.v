@@ -16,10 +16,14 @@ Section CANCEL.
     eapply closed_adequacy2.
     econs; ss; try refl; eauto.
     { i. rewrite List.map_map fst_map_snd. exists []. ss. }
-    ii. rewrite alist_find_map_snd in FIND.
+    ii.
     destruct (alist_find fn (HMod.fnsems md)) eqn:FINDT; ss.
-    inv FIND. rename p into ft. esplits; eauto.
-    ii. subst. destruct ft.
+    
+    inv FIND.
+     (* rename p into ft. *)
+     esplits; eauto.
+    { rewrite alist_find_map_snd. rewrite FINDT. ss. }
+    ii. subst. destruct fs.
     assert(SCP := md.(HMod.well_scoped_fns)).
     specialize (SCP fn). rewrite/fnsems_scopes FINDT in SCP.
     remember (HMod.scopes md) as scopeS. i.
@@ -54,7 +58,10 @@ Section CANCEL.
       + steps_l. steps_r. by_coind "CIH". auto.
     - destruct c. rewrite HModSB.transl_bind HModSB.transl_call HIRed.call. steps_r. 
       destruct (alist_find fn (HMod.fnsems md)) eqn:FIND; cycle 1.
-      { s. unfold triggerNB. ired. rewrite HIRed.bind_core. steps_r. ss. }
+      { s. iApply isim_call_none; ss.
+        { rewrite alist_find_map_snd FIND. ss. }
+        unfold triggerUB. ired. rewrite HIRed.bind_core. steps_l. ss.
+      }
       destruct p. iApply isim_inline_src.
       { rewrite alist_find_map_snd FIND. ss. }
       s. ired. rewrite HIRed.bind HModSB.transl_bind.

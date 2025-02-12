@@ -183,13 +183,13 @@ Section SIM_ITREE.
       
   | sim_itree_call_none
       ps pt w nths st_src st_tgt
-      fn varg i_src k_tgt
-      (FUN: alist_find fn fl_tgt = None)
-      (K: self ps true w nths (st_src, i_src) (st_tgt, x <- triggerNB;; tau;; k_tgt x))
+      fn varg k_src i_tgt
+      (FUN: alist_find fn fl_src = None)
+      (K: self true pt w nths (st_src, x <- triggerUB;; tau;; k_src x) (st_tgt, i_tgt))
     :
     sim_itree_def sim_itree RR self ps pt w nths
-      (st_src, i_src)
-      (st_tgt, trigger (Call fn varg) >>= k_tgt)
+      (st_src, trigger (Call fn varg) >>= k_src)
+      (st_tgt, i_tgt)
 
   | sim_itree_progress
       w w0 nths st_src st_tgt 
@@ -530,6 +530,7 @@ Section SIM_ITREE.
       extensionalities. rewrite bind_tau. eauto.
     - eapply sim_itree_call_none; eauto.
       exploit K; et. i. rewrite ->!bind_bind in *.
+      pattern (x <- triggerUB;; (tau;; x_ <- k_src0 x;; k_src x_)).
       eapply eq_ind; eauto. do 2 f_equal.
       extensionalities. grind.
     - econs; eauto. eapply rclo9_clo_base. eauto.
@@ -569,18 +570,18 @@ Section MODSEMR.
     sim_initial:
       exists w, wf [w] (1, st_src, st_tgt);
     sim_fnsems:
-      forall fn ft (FIND : alist_find fn fl_tgt = Some ft),
-      exists fs, alist_find fn fl_src = Some fs /\
+      forall fn fs (FIND : alist_find fn fl_src = Some fs),
+      exists ft, alist_find fn fl_tgt = Some ft /\
         forall my_tid, sim_fsem fl_src fl_tgt winit wf wle my_tid fs ft;
   }.
 
   Lemma wf_sim_miss (SIM : t)
-    (WF : Mod.wf ms_src)
+    (WF : Mod.wf ms_tgt)
     :
-    forall fn (MISS : alist_find fn fl_src = None),
-      alist_find fn fl_tgt = None.
+    forall fn (MISS : alist_find fn fl_tgt = None),
+      alist_find fn fl_src = None.
   Proof.
-    i. destruct (alist_find fn fl_tgt) eqn: EQ; eauto.
+    i. destruct (alist_find fn fl_src) eqn: EQ; eauto.
     apply SIM in EQ. des. rewrite MISS in EQ. ss.
   Qed.
   
