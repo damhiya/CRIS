@@ -9,7 +9,7 @@ Module CellioAll. Section CellioAll.
   Local Instance Γ : HRA := ##[invΓ; CellioAΓ].
   Local Instance Σ : GRA := ##[invΣ; Γ].
   Variable foo: Any.t -> itree hmodE Any.t.
-  Local Definition smod_src : SMod.t := MainA.Mod ☆ CellioA.Mod ☆ InputA.Mod ☆ (FooA.Mod foo).
+  Local Definition smod_src : SMod.t := MainA.Mod ☆ InputA.Mod ☆ (FooA.Mod foo).
   Local Definition ginv : invspec := λ _, True%I.
   Local Definition spc : string → option fspec := spc_from smod_src.
   Local Definition mod_cancel : HMod.t := SModCancel.to_hmod smod_src.
@@ -46,7 +46,7 @@ Module CellioAll. Section CellioAll.
     etrans.
     {
       (* MainI ★ CellioA ⊆ MainA ★ CellioA *)
-      rewrite -[(SMod.to_hmod _ _ MainA.Mod)](Seal.sealing_eq CRIS) -[(SMod.to_hmod _ _ CellioA.Mod)](Seal.sealing_eq CRIS).
+      rewrite -[(SMod.to_hmod _ _ MainA.Mod)](Seal.sealing_eq CRIS).
       instantiate (1:= (MainI.t ★ (CellioA.t ginv spc), (emp ∗ CellioA.InitCond)%I)).
       eapply ctxr_cond_frameR, main_adequacy, MainIA.sim.
       {
@@ -91,7 +91,9 @@ Module CellioAll. Section CellioAll.
       (HMod.to_mod mod_tgt target_resource).
   Proof.
     move: (cancel_tgt)=>H; rewrite /refines in H; des; ss.
-    destruct (H initial_resource).
+    assert (Hwf : HMod.wf mod_tgt).
+    { econs; ss; rewrite /MainI.t /CellioI.t /FooA.t /InputA.t; unseal CRIS; try prove_nodup. }
+    destruct (H Hwf). destruct (H1 initial_resource).
     { apply initial_resource_valid. }
     { iIntros "I"; rewrite /init_cond /CellioA.InitCond /MainA.InitCond /InputA.InitCond /FooA.InitCond.
       rewrite /precond /= /CellioA.auth 
@@ -99,7 +101,6 @@ Module CellioAll. Section CellioAll.
       iDestruct "I" as "[[[_ I] _] _]"; iFrame. 
       iSplit; iPureIntro; ss.
     }
-    { econs; ss; try prove_nodup. }
     { exists x; des; eauto. }
   Qed.
 End CellioAll. End CellioAll.
