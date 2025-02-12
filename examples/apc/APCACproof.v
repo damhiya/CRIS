@@ -47,7 +47,7 @@ Module APCAC. Section APCAC.
     (* SRC *)
     bind_expand_l.
     (* TGT *)
-    bind_expand_r.
+    bind_expand_r. steps_r.
 
     (* add meaningless return in src *)
     set (itr:=(ITree.bind _ _)).
@@ -76,8 +76,8 @@ Module APCAC. Section APCAC.
     steps_r. des.
     
     (* inlining *)
-    unfold is_Some in *. des. dup q3. apply PureInSpcA in q3. rewrite q3 in G. inv G; ss.
-    apply PureIsPure in q8. ss. destruct q8. unfold find_body in H1.
+    unfold is_Some in *. des. dup grt. apply PureInSpcA in grt. rewrite grt in G. inv G; ss.
+    apply PureIsPure in grt1. ss. destruct grt1. unfold find_body in H1.
     hide_itree_l; prep; iApply isim_inline_tgt_simpl.
     { subst FLT. rewrite map_app. apply alist_find_comm.
       { rewrite map_app. rewrite !map_fst_map_map_snd_refl.
@@ -86,18 +86,18 @@ Module APCAC. Section APCAC.
     s; show_itree.
 
     unfold pure_specbody, interp_sb_hp, HoareFun. steps_r.
-    force_r q5. forces_r. iSplitR "IST"; et.
+    force_r q4. forces_r. iSplitR "IST"; et.
 
-    steps_r. hss. iDestruct "GRT" as "%". hss.
+    steps_r. unfold pure_body. steps_r. hss. iDestruct "GRT" as "%". hss.
 
     (* inlining *)
-    inline_r. steps_r. force_r q9. forces_r. iSplitR; et. steps_r.
+    inline_r. steps_r. force_r q7. forces_r. iSplitR; et. steps_r.
 
     (* normalize itree *)
     bind_expand_r.
 
     (* add meaningless return in src *)
-    set (itr:=(λ _: unit, _)).
+    set (itr:=(λ _: unit, _)). steps_r.
     eapply isim_congruence_src.
     { instantiate (1:=Ret ();;; Ret ()). grind. }
 

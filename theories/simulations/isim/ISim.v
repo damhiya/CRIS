@@ -36,10 +36,10 @@ Section LEMMAS.
     steps_l.
     force_l x.
     force_l arg.
-    forces_l. iSplitL "P"; [eauto|].
+    forces_l. iSplitL "P"; [eauto|]. steps_l.
 
     call "IST"; [eauto|].
-    steps_l. iApply "K". iFrame.
+    steps_l. steps_r. iApply "K". iFrame.
   Qed.
 
 End LEMMAS.
@@ -90,8 +90,8 @@ Section HModProd.
     assert (CASE := case_itrH it); des; subst.
     - step. iFrame. eauto.
     - steps_l. steps_r. by_coind "CIH"; eauto.
-    - steps_l. forces_r. iFrame. by_coind "CIH". eauto.
-    - steps_r. forces_l. iFrame. by_coind "CIH". eauto.
+    - steps_l. forces_r. iFrame. steps_r. by_coind "CIH". eauto.
+    - steps_r. forces_l. iFrame. steps_l. by_coind "CIH". eauto.
     - depdes s.
       + step. by_coind "CIH". iApply IMON; [|eauto]; nia.
       + yield "IST"; eauto. by_coind "CIH". eauto.
@@ -99,7 +99,7 @@ Section HModProd.
     - destruct c. call "IST"; eauto. by_coind "CIH". eauto.
     - depdes s.
       + rewrite !HModSB.transl_bind !HModSB.transl_put. des_ifs; cycle 1.
-        { steps_r. force_l q. by_coind "CIH". eauto. }
+        { steps_r. force_l q. steps_l. by_coind "CIH". eauto. }
         iApply isim_sput_src. iApply isim_sput_tgt.
         by_coind "CIH". unfold IstProd.
         iDestruct "IST" as (? ? ? ?) "(% & (% & IST) & EQR)". des; subst.
@@ -115,7 +115,7 @@ Section HModProd.
           eapply NoDup_app_disjoint; try apply DISJ; eauto.
           apply H1. eapply in_map in H. rewrite List.map_map in H. apply H.
       + rewrite !HModSB.transl_bind !HModSB.transl_get. des_ifs; cycle 1.
-        { steps_r. force_l q. by_coind "CIH". eauto. }
+        { steps_r. force_l q. steps_l. by_coind "CIH". eauto. }
         iApply isim_sget_src. iApply isim_sget_tgt.
         apply existsb_exists in Heq. des. apply String.eqb_eq in Heq0. subst.
         iAssert (⌜alist_find k st_src = alist_find k st_tgt⌝ ∗
@@ -137,8 +137,8 @@ Section HModProd.
         }
         rewrite H. by_coind "CIH". eauto.
     - destruct e.
-      + steps_r. force_l q. by_coind "CIH". eauto.
-      + steps_l. force_r q. by_coind "CIH". eauto.
+      + steps_r. force_l q. steps_l. by_coind "CIH". eauto.
+      + steps_l. force_r q. steps_r. by_coind "CIH". eauto.
       + step. by_coind "CIH". eauto.
   Unshelve. all : eauto.
   { eapply alist_upd_nodup. eauto. }

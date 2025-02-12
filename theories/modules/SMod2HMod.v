@@ -203,6 +203,67 @@ Section RED.
     unfold interp_smod in *. grind.
   Qed.
 
+  Lemma interp_vis_ag {X R} ginv stb (e : agE X) (ktr : X -> itree hmodE R) :
+    interp_smod ginv stb (vis e ktr) = vis e (fun x => tau;; interp_smod ginv stb (ktr x)).
+  Proof.
+    eapply observe_eta; ss. f_equal. extensionality x.
+    eapply observe_eta; ss.
+  Qed.
+
+  Lemma interp_vis_sch {X R} ginv stb (e : schE X) (ktr : X -> itree hmodE R) :
+    interp_smod ginv stb (vis e ktr) = x <- handle_schE_hmodE ginv stb e;; tau;; interp_smod ginv stb (ktr x).
+  Proof.
+    eapply bisim_is_eq. unfold interp_smod. rewrite interp_vis. reflexivity.
+  Qed.
+
+  Lemma interp_vis_call {X R} ginv stb (e : callE X) (ktr : X -> itree hmodE R) :
+    interp_smod ginv stb (vis e ktr) = x <- handle_callE_hmodE stb e;; tau;; interp_smod ginv stb (ktr x).
+  Proof.
+    eapply bisim_is_eq. unfold interp_smod. rewrite interp_vis. reflexivity.
+  Qed.
+
+  Lemma interp_vis_pg {X R} ginv stb (e : pgE X) (ktr : X -> itree hmodE R) :
+    interp_smod ginv stb (vis e ktr) = vis e (fun x => tau;; interp_smod ginv stb (ktr x)).
+  Proof.
+    eapply observe_eta; ss. f_equal. extensionality x.
+    eapply observe_eta; ss.
+  Qed.
+
+  Lemma interp_vis_core {X R} ginv stb (e : coreE X) (ktr : X -> itree hmodE R) :
+    interp_smod ginv stb (vis e ktr) = vis e (fun x => tau;; interp_smod ginv stb (ktr x)).
+  Proof.
+    eapply observe_eta; ss. f_equal. extensionality x.
+    eapply observe_eta; ss.
+  Qed.
+
+  Lemma interp_assumeK {R} ginv stb P (itr : itree hmodE R) :
+    interp_smod ginv stb (assumeK P itr) = assumeK P (tau;; interp_smod ginv stb itr).
+  Proof.
+    eapply observe_eta; ss. f_equal. extensionality x.
+    eapply observe_eta; ss.
+  Qed.
+
+  Lemma interp_guaranteeK {R} ginv stb P (itr : itree hmodE R) :
+    interp_smod ginv stb (guaranteeK P itr) = guaranteeK P (tau;; interp_smod ginv stb itr).
+  Proof.
+    eapply observe_eta; ss. f_equal. extensionality x.
+    eapply observe_eta; ss.
+  Qed.
+
+  Lemma interp_unwrapUK {X R} ginv stb x (ktr : X -> itree hmodE R) :
+    interp_smod ginv stb (unwrapUK x ktr) = unwrapUK x (fun x => interp_smod ginv stb (ktr x)).
+  Proof.
+    destruct x; ss.
+    eapply observe_eta; ss. f_equal. extensionality x. ss.
+  Qed.
+
+  Lemma interp_unwrapNK {X R} ginv stb x (ktr : X -> itree hmodE R) :
+    interp_smod ginv stb (unwrapNK x ktr) = unwrapNK x (fun x => interp_smod ginv stb (ktr x)).
+  Proof.
+    destruct x; ss.
+    eapply observe_eta; ss. f_equal. extensionality x. ss.
+  Qed.
+
   Lemma interp_sch
         (R: Type)
         (i: schE R)

@@ -36,47 +36,144 @@ End EVENTS.
 
 Section WRAP.
 
-  Definition assume {E} `{coreE -< E} (P : Prop) : itree E unit := trigger (Take P) ;;; Ret tt.
-  Definition guarantee {E} `{coreE -< E} (P : Prop) : itree E unit := trigger (Choose P) ;;; Ret tt.
+  Context {E : Type -> Type}.
+  Context `{coreE -< E}.
 
-  Definition triggerUB {E A} `{coreE -< E}: itree E A := v <- trigger (Take False);; match v: False with end.
-  Definition triggerNB {E A} `{coreE -< E}: itree E A := v <- trigger (Choose False);; match v: False with end.
+  Definition assumeK {R} (P : Prop) (itr : itree E R) := vis (Take P) (fun _ => itr).
 
-  Definition unwrapU {E X} `{coreE -< E} (x : option X) : itree E X :=
+  Definition guaranteeK {R} (P : Prop) (itr : itree E R) := vis (Choose P) (fun _ => itr).
+
+  Definition assume (P : Prop) : itree E unit := trigger (Take P) ;;; Ret tt.
+
+  Definition guarantee (P : Prop) : itree E unit := trigger (Choose P) ;;; Ret tt.
+
+  Definition triggerUB {A} : itree E A := v <- trigger (Take False);; match v: False with end.
+
+  Definition triggerNB {A} : itree E A := v <- trigger (Choose False);; match v: False with end.
+
+  Definition unwrapUK {X R} (x : option X) (ktr : X -> itree E R) : itree E R :=
+    match x with
+    | Some x => ktr x
+    | None => triggerUB
+    end.
+
+  Definition unwrapNK {X R} (x : option X) (ktr : X -> itree E R) : itree E R :=
+    match x with
+    | Some x => ktr x
+    | None => triggerNB
+    end.
+
+  Definition unwrapU {X} (x : option X) : itree E X :=
     match x with
     | Some x => Ret x
     | None => triggerUB
     end.
 
-  Definition unwrapN {E X} `{coreE -< E} (x : option X) : itree E X :=
+  Definition unwrapN {X} (x : option X) : itree E X :=
     match x with
     | Some x => Ret x
     | None => triggerNB
     end.
 
-  Definition unleftU {E X Y} `{coreE -< E} (xy : X + Y) : itree E X :=
+  Definition unleftU {X Y} (xy : X + Y) : itree E X :=
     match xy with
     | inl x => Ret x
     | inr y => triggerUB
     end.
 
-  Definition unleftN {E X Y} `{coreE -< E} (xy : X + Y) : itree E X :=
+  Definition unleftN {X Y} (xy : X + Y) : itree E X :=
     match xy with
     | inl x => Ret x
     | inr y => triggerNB
     end.
 
-  Definition unrightU {E X Y} `{coreE -< E} (xy : X + Y) : itree E Y :=
+  Definition unrightU {X Y} (xy : X + Y) : itree E Y :=
     match xy with
     | inl x => triggerUB
     | inr y => Ret y
     end.
 
-  Definition unrightN {E X Y} `{coreE -< E} (xy : X + Y) : itree E Y :=
+  Definition unrightN {X Y} (xy : X + Y) : itree E Y :=
     match xy with
     | inl x => triggerNB
     | inr y => Ret y
     end.
+
+  Lemma assume_assumeK (P : Prop) :
+    assume P = assumeK P (Ret tt).
+  Proof.
+    eapply observe_eta; ss. f_equal. extensionality x.
+    eapply observe_eta; ss.
+  Qed.
+
+  Lemma assumeK_assume {R} (P : Prop) (itr : itree E R) :
+    assumeK P itr = assume P;;; itr.
+  Proof.
+    eapply observe_eta; ss. f_equal. extensionality x.
+    eapply observe_eta; ss.
+  Qed.
+
+  Lemma assumeK_bind {U T} (P : Prop) (k1 : itree E U) (k2 : U -> itree E T) :
+    (assumeK P k1 >>= k2) = assumeK P (k1 >>= k2).
+  Proof.
+    eapply observe_eta; ss.
+  Qed.
+
+  Lemma guarantee_guaranteeK (P : Prop) :
+    guarantee P = guaranteeK P (Ret tt).
+  Proof.
+    eapply observe_eta; ss. f_equal. extensionality x.
+    eapply observe_eta; ss.
+  Qed.
+
+  Lemma guaranteeK_guarantee {R} (P : Prop) (k : itree E R) :
+    guaranteeK P k = guarantee P;;; k.
+  Proof.
+    eapply observe_eta; ss. f_equal. extensionality x.
+    eapply observe_eta; ss.
+  Qed.
+
+  Lemma guaranteeK_bind {U T} (P : Prop) (k1 : itree E U) (k2 : U -> itree E T) :
+    (guaranteeK P k1 >>= k2) = guaranteeK P (k1 >>= k2).
+  Proof.
+    eapply observe_eta; ss.
+  Qed.
+
+  Lemma unwrapU_unwrapUK {X} (x : option X) :
+    unwrapU x = unwrapUK x (fun x => Ret x).
+  Proof.
+    eapply observe_eta; ss.
+  Qed.
+
+  Lemma unwrapUK_unwrapU {X R} (x : option X) (k : X -> itree E R) :
+    unwrapUK x k = unwrapU x >>= k.
+  Proof.
+    eapply observe_eta; destruct x; ss. f_equal. extensionality x. ss.
+  Qed.
+
+  Lemma unwrapUK_bind {X U T} (x : option X) (k1 : X -> itree E U) (k2 : U -> itree E T) :
+    (unwrapUK x k1 >>= k2) = unwrapUK x (fun x => k1 x >>= k2).
+  Proof.
+    eapply observe_eta; destruct x; ss. f_equal. extensionality x. ss.
+  Qed.
+
+  Lemma unwrapN_unwrapNK {X} (x : option X) :
+    unwrapN x = unwrapNK x (fun x => Ret x).
+  Proof.
+    eapply observe_eta; ss.
+  Qed.
+
+  Lemma unwrapNK_unwrapN {X R} (x : option X) (k : X -> itree E R) :
+    unwrapNK x k = unwrapN x >>= k.
+  Proof.
+    eapply observe_eta; destruct x; ss. f_equal. extensionality x. ss.
+  Qed.
+
+  Lemma unwrapNK_bind {X U T} (x : option X) (k1 : X -> itree E U) (k2 : U -> itree E T) :
+    (unwrapNK x k1 >>= k2) = unwrapNK x (fun x => k1 x >>= k2).
+  Proof.
+    eapply observe_eta; destruct x; ss. f_equal. extensionality x. ss.
+  Qed.
 
 End WRAP.
 

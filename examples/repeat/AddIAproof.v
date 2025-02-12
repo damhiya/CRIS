@@ -85,10 +85,10 @@ Module AddIA. Section AddIA.
 
     (* SRC: unfold APC to skip *)
     force_l. iSplit. { iPureIntro. apply SpcPureInSpc. apply APCInSpcPure. unfold APCA.Spc. unseal CRIS. et. }
-    steps_l. forces_l. iSplit; et.
+    steps_l. forces_l. iSplit; et. steps_l.
     inline_l. steps_l. iDestruct "ASM" as "%". hss.
     steps_l. unfold APC. force_l. steps_l. rewrite unfold_APC. force_l true. steps_l.
-    forces_l. iSplit; et. steps_l. forces_l. iSplit; et.
+    forces_l. iSplit; et. steps_l. forces_l. iSplit; et. steps_l.
 
     (* prove the IST *)
     step. by iSplit.
@@ -117,12 +117,13 @@ Module AddIA. Section AddIA.
 
     (* SRC: unfold APC for repeat *)
     force_l. iSplit. { iPureIntro. apply SpcPureInSpc. apply APCInSpcPure. unfold APCA.Spc. unseal CRIS. et. }
-    steps_l. forces_l. iSplit; et.
+    steps_l. forces_l. iSplit; et. steps_l.
     inline_l. steps_l. iDestruct "ASM" as "%". hss.
     steps_l. unfold APC. force_l 1. steps_l. rewrite unfold_APC. force_l false. steps_l. force_l 0. steps_l.
     assert (LT: (0 < 1)%ord). { apply OrdArith.lt_from_nat; lia. }
     force_l LT. steps_l. force_l RepeatName.repeat. steps_l. force_l (Ord.omega + (Z.to_nat n))%ord. steps_l.
     assert (PO: is_Some (SpcPure RepeatName.repeat) ∧ ((Ord.omega + (Z.to_nat n)) < q)%ord). { split; et. eapply Ord.lt_le_lt; et. apply OrdArith.lt_add_r. apply OrdArith.lt_from_nat. lia. }
+    unfold guarantee.
     force_l PO. steps_l. force_l. iSplit; et. steps_l.
 
     (* SRC: prove the precond of repeat *)
@@ -137,7 +138,7 @@ Module AddIA. Section AddIA.
         ii. exists x_src. split; r; ii; iIntros; iModIntro; hss.
         iPureIntro. split; ss. exists vo. split; et. eapply Ord.le_trans; et. apply Ord.lt_le. apply Ord.omega_upperbound.
       - exists (Ord.omega + (Z.to_nat n))%ord. split; et. apply Ord.le_refl. }
-    force_l. iSplitL "PRE"; et.
+    force_l. iSplitL "PRE"; et. steps_l.
 
     (* make a call to repeat *)
     call "IST"; et.
@@ -148,7 +149,7 @@ Module AddIA. Section AddIA.
 
     (* SRC: unfold APC to skip *)
     rewrite unfold_APC. force_l true. steps_l. 
-    force_l. force_l. iSplit; et. steps_l. forces_l. iSplit; et.
+    force_l. force_l. iSplit; et. steps_l. forces_l. iSplit; et. steps_l.
 
     (* prove the IST *)
     step. iSplit; et. 

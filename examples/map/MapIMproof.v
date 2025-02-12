@@ -122,7 +122,7 @@ Module MapIM. Section MapIM.
     (* Base case *)
     {
       (* TGT : unwind the loop *)
-      rewrite unfold_iter_eq. des_ifs; try nia. steps_r.
+      rewrite unfold_iter_eq. des_ifs; try nia. steps_r. steps_l.
       (* prove the IST of Map *)
       step. repeat (iSplit; eauto).
       iExists [_;_], [_], _, _.
@@ -181,7 +181,7 @@ Module MapIM. Section MapIM.
     init_simF.
 
     (* SRC: handle the IST of Map and the precond of get *)
-    steps_l. iDestruct "ASM" as "(% & %)". hss. inv G0.
+    unfold assume. steps_l. iDestruct "ASM" as "(% & %)". hss. inv G0.
     iDestruct "IST" as (? ? ? ?) "(%& (% & [%|(P & IST)]) &%)";
       [|iDestruct "IST" as (? ? ? ?) "(% & M)"];
       des; hss.
@@ -189,7 +189,7 @@ Module MapIM. Section MapIM.
     rename q2 into idx.
     
     (* SRC: prove the postcond of get *)
-    forces_l. iSplitL "". { eauto. }
+    forces_l. iSplitL "". { eauto. } steps_l.
 
     (* TGT : compute the input to load *)
     steps_r. hss. steps_r.
@@ -223,15 +223,16 @@ Module MapIM. Section MapIM.
     init_simF.
 
     (* SRC: handle the IST of Map and the precond of set *)
-    steps_l. iDestruct "ASM" as "(% & %)". hss. inv G0.
+    unfold assume.
+    steps_l. destruct q3. steps_l. iDestruct "ASM" as "(% & %)". hss. inv G0.
     iDestruct "IST" as (? ? ? ?) "(%& (% & [%|(P & IST)]) &%)";
       [|iDestruct "IST" as (? ? ? ?) "(% & M)"];
       des; hss.
     { nia. }
-    rename q4 into idx, q5 into v.
+    rename z into idx, z0 into v.
 
     (* SRC: prove the postcond of set *)
-    forces_l. iSplitL "". { eauto. }
+    forces_l. iSplitL "". { eauto. } steps_l.
 
     (* TGT : compute the input to store *)
     steps_r. hss. steps_r.
@@ -275,7 +276,7 @@ Module MapIM. Section MapIM.
     
     (* SRC: prove the precond of set *)
     steps_l. force_l (_,_); s. forces_l.
-    iSplitL "". { iFrame. eauto. }
+    iSplitL "". { iFrame. eauto. } steps_l.
 
     (* make a call to set *)
     steps_r. call "IST"; [eauto|].
@@ -284,7 +285,7 @@ Module MapIM. Section MapIM.
     steps_l. iDestruct "ASM" as "(_ & %)". hss. steps_r.
 
     (* SRC: prove the postcond of set_by_user *)
-    forces_l. iSplitL "". { eauto. }
+    forces_l. iSplitL "". { eauto. } steps_l.
 
     (* prove the IST of Map *)
     hss. steps_r. step. eauto.

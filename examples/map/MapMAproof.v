@@ -51,7 +51,7 @@ Module MapMA. Section MapMA.
     (* SRC: prove the postcond of init *)
     iMod (initialize with "INIT") as "(ALLOC & UNALLOC & INIT)".
     forces_l. steps_l. forces_l.
-    iSplitL "INIT". { iFrame. eauto. }
+    iSplitL "INIT". { iFrame. eauto. } steps_l.
     
     (* prove the IST of Map *)
     step. iSplit; eauto.
@@ -83,12 +83,11 @@ Module MapMA. Section MapMA.
     (* SRC: prove the postcond of get *)
     steps_l. forces_l.
     iPoseProof (auth_allocated_get with "B MAP") as "%". subst.
-    iSplitL "MAP". { iFrame. eauto. }
+    iSplitL "MAP". { iFrame. eauto. } steps_l.
 
     (* prove the IST of Map *)
     step. iSplit; eauto.
     iExists _, _. iSplit; eauto. iRight. iFrame.
-  Unshelve. lia.
   Qed.
 
   Lemma simF_set : HSim.sim_fun open MapA MapM Ist MapName.set.
@@ -115,12 +114,11 @@ Module MapMA. Section MapMA.
     
     (* SRC : prove the postcond of set *)
     iPoseProof (auth_allocated_set with "B MAP") as ">(B & MAP)".
-    forces_l. iSplitL "MAP". { iFrame. eauto. }
+    forces_l. iSplitL "MAP". { iFrame. eauto. } steps_l.
 
     (* prove the IST of Map *)
     step. iSplit; eauto.
     iExists _, _. iSplit; eauto. iRight. iFrame.
-  Unshelve. done.
   Qed.
 
   Lemma simF_set_by_user : HSim.sim_fun open MapA MapM Ist MapName.set_by_user.
@@ -143,7 +141,7 @@ Module MapMA. Section MapMA.
     
     (* SRC: prove the precond of set *)
     steps_l. force_l (_,_,_). forces_l.
-    iSplitL "MAP". { iFrame. eauto. }
+    iSplitL "MAP". { iFrame. eauto. } steps_l.
 
     (* make a call to set *)
     call "IST". { eauto. }
@@ -158,7 +156,7 @@ Module MapMA. Section MapMA.
     steps_r. hss. steps_r. iDestruct "GRT" as "(_ & %)". subst.
     
     (* SRC: prove the postcond of set_by_user *)
-    forces_l. iSplitL "MAP". { iFrame. eauto. }
+    forces_l. iSplitL "MAP". { iFrame. eauto. } steps_l.
 
     (* prove the IST of Map *)
     step. eauto.

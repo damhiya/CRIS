@@ -93,7 +93,7 @@ Module KnotIA. Section KnotIA.
     (* iDestruct "VF" as "[VF _]". *)
 
     (* TGT: load the function at the block of _f by inlining "load" *)
-    inline_r. steps_r.
+    hnorm_r. inline_r. steps_r.
     force_r. instantiate (1:=(blk0, 0%Z, (Vptr fb 0), 1%Qp)). force_r.
     force_r. iSplitL "VF"; iFrame; et.
     steps_r. iDestruct "GRT" as "((VF & %) & %)". des; subst. hss.
@@ -104,7 +104,7 @@ Module KnotIA. Section KnotIA.
     force_r. iSplitR; et.
 
     (* SRC: unfold APC *)
-    force_l vo. force_l. force_l. iSplitR; et.
+    force_l vo. force_l. force_l. iSplitR; et. steps_l.
     inline_l. unfold apc_spec. steps_l. iDestruct "ASM" as "%"; subst; hss.
     steps_l. unfold apc_body, APC.
     force_l 1. steps_l. rewrite unfold_APC. force_l false. steps_l. force_l 0. steps_l. 
@@ -116,6 +116,7 @@ Module KnotIA. Section KnotIA.
     assert (PO: is_Some (SpcPure fn) ∧ (2 * q2 < q)%ord).
     { split; et.
       eapply Ord.lt_le_lt; et. rewrite -OrdArith.mult_from_nat -OrdArith.add_from_nat. apply OrdArith.lt_from_nat. nia. }
+    unfold guarantee.
     force_l PO. steps_l. unfold is_Some in PO. des. force_l. iSplitR; et.
     apply FunInPure in FIND0. rewrite FIND0 in PO. inv PO.
     steps_l. force_l x_tgt.
@@ -125,7 +126,7 @@ Module KnotIA. Section KnotIA.
     { iFrame. iSplit; et.
       { iPureIntro. eexists; esplits; et. econs; et. econs; [|refl]. apply RecInSpc. unfold KnotRecSpc. unseal CRIS. ss. }
       { iPureIntro. eexists; esplits; et. refl. } }
-    forces_l. iSplitL "PRE"; et.
+    forces_l. iSplitL "PRE"; et. steps_l. steps_r.
     call "FL VF"; iFrame.
     { iExists _, _, _, _. repeat (iSplit; et). iExists _. iSplit; et.
       { iPureIntro. i. esplits; et. econs; et. inv EQ; et. }
@@ -137,7 +138,7 @@ Module KnotIA. Section KnotIA.
     iDestruct "POST" as "[% FG]".
     
     rewrite unfold_APC. force_l true. steps_l. forces_l. iSplitR; et.
-    steps_l. steps_r. hss. steps_r. forces_l. iSplitL "FG"; iFrame; et.
+    steps_l. steps_r. hss. steps_r. forces_l. iSplitL "FG"; iFrame; et. steps_l.
     step. iFrame; et.
     Unshelve. all: ss.
   Qed.
@@ -189,6 +190,7 @@ Module KnotIA. Section KnotIA.
     iSplitL "FG"; iFrame; et.
     { iSplit; et. iPureIntro. eexists. esplit; et. econs; et. econs; [|refl].
       apply RecInSpc. unfold KnotRecSpc. unseal CRIS. ss. }
+    steps_l.
     hss. steps_r. force_r. iSplitR; et.
     steps_r. step. iSplit; et.
 

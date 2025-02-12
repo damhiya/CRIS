@@ -41,7 +41,7 @@ Module CellIA. Section CellIA.
 
     steps_r. hss. steps_r.    
     forces_l. steps_l. forces_l.
-    iSplitL "C". { eauto. }
+    iSplitL "C". { eauto. } steps_l.
 
     step. iSplit; eauto.
     iExists _, _. iSplit; eauto. iRight. iFrame; eauto.
@@ -62,7 +62,7 @@ Module CellIA. Section CellIA.
 
       steps_r. hss.
       forces_l. steps_l. forces_l.
-      iSplitL "C". { eauto. }
+      iSplitL "C". { eauto. } steps_l.
 
       step.
       iSplit; eauto.
@@ -78,7 +78,7 @@ Module CellIA. Section CellIA.
 
     steps_r. hss.
     forces_l. steps_l. forces_l.
-    iSplitL "C". { eauto. }
+    iSplitL "C". { eauto. } steps_l.
 
     step.
     iSplit; eauto.

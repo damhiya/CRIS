@@ -54,18 +54,18 @@ Module KnotMainIA. Section KnotMainIA.
     steps_r. inv H3. des. force_r. iSplitR; et.
     force_r; et. des_ifs.
     { (* base case *)
-      steps_r. steps_l. forces_l. iSplitR; et.
+      steps_r. steps_l. forces_l. iSplitR; et. steps_l.
       inline_l. steps_l.
       iDestruct "ASM" as "%"; des; subst; hss. steps_l.
       unfold apc_body, APC. force_l 0. steps_l. rewrite unfold_APC.
       force_l true. steps_l. forces_l. iSplitR; et. steps_l.
-      forces_l. iSplitL "INV"; iFrame; et.
+      forces_l. iSplitL "INV"; iFrame; et. steps_l.
       assert (q1 >= 0)%Z by nia. assert (q1 = 1 \/ q1 = 0) by nia. assert (Z.of_nat (Fib q1) = 1)%Z.
       { des; subst; reflexivity. }
       rewrite H3. step. iSplit; et.
     }
     { (* recursive call *)
-      steps_r. steps_l. forces_l. iSplitR; et.
+      steps_r. steps_l. forces_l. iSplitR; et. steps_l.
       inline_l. steps_l.
       iDestruct "ASM" as "%"; des; subst; hss. steps_l. unfold apc_body, APC.
       force_l 2. steps_l.
@@ -80,6 +80,7 @@ Module KnotMainIA. Section KnotMainIA.
       assert (PO: is_Some (SpcPure fn) ∧ (2 * (q1 - 1) + 1 < q)%ord).
       { split; et.
         eapply Ord.lt_le_lt; [|et]. rewrite -!OrdArith.mult_from_nat -OrdArith.add_from_nat. apply OrdArith.lt_from_nat. nia. }
+      unfold guarantee.
       force_l PO. unfold is_Some in PO; des. steps_l. force_l. iSplitR.
       { iPureIntro. apply PureInGlobal. et. }
       steps_l. apply RecInSpcPure in FIND. rewrite PO in FIND. inv FIND.
@@ -91,7 +92,7 @@ Module KnotMainIA. Section KnotMainIA.
         { iPureIntro. unfold intrange_64 in *.
           bsimpl; des; split; des_sumbool; repeat destruct Z_le_gt_dec; unfold min_64, max_64, modulus_64_half in *; try nia; ss. }
         { iPureIntro. eexists; esplits; et. refl. } }
-      force_l. iSplitL "PRE"; et.
+      force_l. iSplitL "PRE"; et. steps_l.
       call "IST"; et. steps_r. steps_l.
       specialize (POST q0 vret). iPoseProof (POST with "[ASM]") as ">POST"; iFrame.
       iDestruct "POST" as "[% INV]". subst; hss. steps_r.
@@ -106,6 +107,7 @@ Module KnotMainIA. Section KnotMainIA.
       assert (PO2: is_Some (SpcPure fn) ∧ (2 * (q1 - 1) < q)%ord).
       { split; et. eapply Ord.lt_le_lt; [|et].
         rewrite -!OrdArith.mult_from_nat. eapply OrdArith.lt_from_nat. nia. }
+      unfold guarantee.
       force_l PO2. des. steps_l. force_l. iSplitR.
       { iPureIntro. apply PureInGlobal. et. }
       steps_l. force_l x_tgt0. force_l ([Vint (q1 - 2)]↑).
@@ -116,14 +118,14 @@ Module KnotMainIA. Section KnotMainIA.
         { iPureIntro. unfold intrange_64 in *.
           bsimpl; des; split; des_sumbool; repeat destruct Z_le_gt_dec; unfold min_64, max_64, modulus_64_half in *; try nia; ss. }
         { iPureIntro. eexists; esplits; et. rewrite -!OrdArith.mult_from_nat -OrdArith.add_from_nat. eapply OrdArith.le_from_nat. nia. } }
-      force_l. iSplitL "PRE"; et.
+      force_l. iSplitL "PRE"; et. steps_l.
       call "IST"; et. steps_r. steps_l.
       specialize (POST0 q3 vret). iPoseProof (POST0 with "[ASM]") as ">POST"; iFrame.
       iDestruct "POST" as "[% INV]". subst; hss. steps_r.
 
       (* stop APC *)
       rewrite unfold_APC. force_l true. steps_l. forces_l. iSplitR; et.
-      steps_l. forces_l. iSplitL "INV"; et. step. iSplit; et.
+      steps_l. forces_l. iSplitL "INV"; et. steps_l. step. iSplit; et.
       iPureIntro. repeat f_equal. rewrite unfold_fib; nia.
     }
     Unshelve. all: ss. exact (0↑).
@@ -148,7 +150,7 @@ Module KnotMainIA. Section KnotMainIA.
 
     steps_l. destruct q; ss. iDestruct "ASM" as "[[% FG] %]". des; subst. hss.
 
-    steps_r. force_r. iSplitR; et. inline_r. steps_r. force_r Fib. forces_r. iSplitL "FG"; et.
+    steps_r. force_r. iSplitR; et. steps_r. inline_r. steps_r. force_r Fib. forces_r. iSplitL "FG"; et.
     { iFrame. iSplit; et. iPureIntro. eexists. esplits; et. econs; esplits; et.
       eapply fn_has_spec_weaker.
       { econs; [|refl]. apply MainInFun. unfold MainFunSpc. unseal CRIS. ss. }
@@ -166,14 +168,16 @@ Module KnotMainIA. Section KnotMainIA.
       }
     }
     steps_r. iDestruct "GRT" as "[[% FG] %]"; des; subst; hss. steps_r. inv H3.
-    force_r. iSplitR; et. force_l 30%ord. steps_l. inv SPEC. force_l.
-    forces_l. iSplitR; et.
+    force_r. iSplitR; et. unfold pure. steps_l.
+    force_l 30%ord. steps_l. inv SPEC. force_l.
+    forces_l. iSplitR; et. steps_l.
     inline_l. steps_l. iDestruct "ASM" as "%"; des; subst; hss. steps_l. unfold apc_body, APC.
     force_l 1. steps_l. rewrite unfold_APC. force_l false. steps_l. force_l 0. steps_l.
     assert (LT: (0 < 1)%ord). { eapply OrdArith.lt_from_nat; et. } force_l LT. steps_l.
     force_l fn. steps_l. force_l 29. steps_l.
     assert (PO: is_Some (SpcPure fn) ∧ (29 < 30)%ord).
     { split; et. eapply OrdArith.lt_from_nat; nia. }
+    unfold guarantee.
     force_l PO. steps_l. unfold is_Some in PO; des.
     force_l. iSplitR. { iPureIntro. apply PureInGlobal. et. }
     steps_l. apply RecInSpcPure in FIND0. rewrite FIND0 in PO. inv PO.
@@ -183,10 +187,10 @@ Module KnotMainIA. Section KnotMainIA.
     iPoseProof (PRE with "[FG]") as ">PRE".
     { iFrame. iSplit; et. iPureIntro. eexists; esplits; ss.
       rewrite -OrdArith.mult_from_nat -OrdArith.add_from_nat. apply OrdArith.le_from_nat; nia. }
-    force_l. iSplitL "PRE"; et. call "IST"; et. steps_l. rewrite unfold_APC.
+    force_l. iSplitL "PRE"; et. steps_l. steps_r. call "IST"; et. steps_l. rewrite unfold_APC.
     force_l true. steps_l. steps_r. specialize (POST q vret). iPoseProof (POST with "[ASM]") as ">POST"; iFrame.
     forces_l. iSplitR; et. unfold postcond, rec_spec, fspec_apc; ss. iDestruct "POST" as "[% FG]"; subst; hss.
-    steps_r. steps_l. forces_l. steps_l. forces_l. iSplitR; et. step. iSplitR; et.
+    steps_r. steps_l. forces_l. steps_l. forces_l. iSplitR; et. steps_l. step. iSplitR; et.
     Unshelve. all: ss.
   Qed.
 

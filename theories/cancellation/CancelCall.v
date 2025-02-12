@@ -43,10 +43,10 @@ Section CANCEL.
     assert (CASE := case_itrH it); des; subst.
     - rewrite HModSB.transl_ret HIRed.ret. step. eauto.
     - rewrite HModSB.transl_tau HIRed.tau. steps_l. steps_r. by_coind "CIH". eauto.
-    - rewrite HModSB.transl_bind HModSB.transl_ag HIRed.bind_ag. steps_l. force_r. iFrame. by_coind "CIH". eauto.
+    - rewrite HModSB.transl_bind HModSB.transl_ag HIRed.bind_ag. steps_l. force_r. iFrame. steps_r. by_coind "CIH". eauto.
     - rewrite HModSB.transl_bind HModSB.transl_ag HIRed.bind_ag. steps_r. force_l. iFrame. steps_l. by_coind "CIH". eauto.
     - rewrite HModSB.transl_bind HModSB.transl_sch HIRed.bind_sch. depdes s.
-      + step. steps_l. by_coind "CIH". auto.
+      + step. steps_l. steps_r. by_coind "CIH". auto.
       + rewrite !HModSB.transl_bind !HModSB.transl_sch.
         iApply isim_yield. iFrame. iIntros (? ? ? ? ?) "IST".
         steps_l. by_coind "CIH". auto.
@@ -94,9 +94,9 @@ Section CANCEL.
     - rewrite HModSB.transl_bind HModSB.transl_core HIRed.bind_core. depdes e.
       + steps_r. force_l. steps_l.
         instantiate (1:= q). by_coind "CIH". eauto.
-      + steps_l. force_r. instantiate (1:= q).
+      + steps_l. force_r. instantiate (1:= q). steps_r.
         by_coind "CIH". auto.
-      + step. steps_l. by_coind "CIH". auto.
+      + step. steps_l. steps_r. by_coind "CIH". auto.
     Unshelve. all: eauto.
     {
       assert(SCP0 := md.(HMod.well_scoped_fns) fn).

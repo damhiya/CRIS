@@ -34,7 +34,7 @@ Module MutMainIA. Section MutMainIA.
     force_r 10. force_r ([Vint 10]↑). force_r. iSplitR.
     { iSplit; iPureIntro; et. esplits; et. unfold MutAUX.mut_max. nia. }
     steps_r. iDestruct "GRT" as "%"; des; subst; hss.
-    steps_r. force_l. steps_l. forces_l. iSplit; et.
+    steps_r. force_l. steps_l. forces_l. iSplit; et. steps_l.
     step. iFrame; et.
   Qed.
 

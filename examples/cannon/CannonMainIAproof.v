@@ -27,9 +27,9 @@ Module CannonMainIA. Section CannonMainIA.
     steps_l. iDestruct "ASM" as "((%Y & B) & %Q)". subst. hss.
     steps_r. 
     unfold HoareCall. force_l. instantiate (1:=()). force_l.
-    force_l. iSplitL "B"; et.
+    force_l. iSplitL "B"; et. steps_l.
     call "IST"; et. steps_l. iDestruct "ASM" as "[% %]"; des; subst. hss.
-    steps_r. hss. steps_r. step. steps_l. steps_r. force_l. force_l. iSplitR; et.
+    steps_r. hss. steps_r. step. steps_l. steps_r. force_l. force_l. iSplitR; et. steps_l.
     step. iFrame; et.
   Qed.
 
