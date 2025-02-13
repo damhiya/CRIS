@@ -301,7 +301,7 @@ Module MapIM. Section MapIM.
     Unshelve. exact 1%positive.
   Qed.
 
-  Theorem sim : HSim.t open MapMMod MapIMod MapM.InitCond IstFull.
+  Lemma sim : HSim.t open MapMMod MapIMod MapM.InitCond IstFull.
   Proof.
     init_sim.
     - iIntros "_". iExists _,_,[],[]. iSplit.
@@ -315,3 +315,14 @@ Module MapIM. Section MapIM.
     - eapply simF_set_by_user; eauto.
   Qed.
 End MapIM. End MapIM.
+
+Section wctxr.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !MapMGΓ Γ, !memGΓ Γ}.
+  Lemma wctxr n SpcMap SpcMem ginv (INCL : ∀ u, spc_incl (MapMS.Spc u n) (SpcMap u)) :
+    w_ctx_refines
+      (λ υ, ((MapM.t υ n ginv (SpcMap υ)) ★ (MemA.t ginv SpcMem), MapM.InitCond))
+      (λ _, (MapI.t                       ★ (MemA.t ginv SpcMem), emp%I)).
+  Proof.
+    exists 1; move => u v Huv; eapply main_adequacy, MapIM.sim; apply INCL.
+  Qed.
+End wctxr.

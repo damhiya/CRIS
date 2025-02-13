@@ -8,7 +8,75 @@ Require Export SRF sProp own.
 
 Definition univ_id := positive.
 
-Section invariants.
+(* TODO - move to another library? *)
+Section univ_id.
+  Fixpoint pos_sup (p i : positive) : bool :=
+    match p, i with
+    | 1, _ => true
+    | p'~0, i'~0 => pos_sup p' i'
+    | p'~1, i'~1 => pos_sup p' i'
+    | _, _ => false
+    end%positive.
+
+  Fixpoint pos_ext_0 (p : positive) : positive :=
+    match p with
+    | 1 => 1~0
+    | p'~0 => (pos_ext_0 p')~0
+    | p'~1 => (pos_ext_0 p')~1
+    end%positive.
+
+  Fixpoint pos_ext_1 (p : positive) : positive :=
+    match p with
+    | 1 => 1~1
+    | p'~0 => (pos_ext_1 p')~0
+    | p'~1 => (pos_ext_1 p')~1
+    end%positive.
+
+  Lemma pos_sup_refl p :
+    pos_sup p p = true.
+  Proof. induction p; s; eauto. Qed.
+
+  Lemma pos_sup_trans p0 p1 p2
+      (EXT1: pos_sup p0 p1 = true)
+      (EXT2: pos_sup p1 p2 = true) :
+    pos_sup p0 p2 = true.
+  Proof. revert_until p0. induction p0; i; destruct p1, p2; ss; eauto. Qed.
+
+  Lemma pos_ext_0_sup_true p : pos_sup p (pos_ext_0 p) = true.
+  Proof. induction p; s; eauto. Qed.
+
+  Lemma pos_ext_1_sup_true p : pos_sup p (pos_ext_1 p) = true.
+  Proof. induction p; s; eauto. Qed.
+
+  Lemma pos_ext_0_sup_false p : pos_sup (pos_ext_0 p) p = false.
+  Proof. induction p; s; eauto. Qed.
+
+  Lemma pos_ext_1_sup_false p : pos_sup (pos_ext_1 p) p = false.
+  Proof. induction p; s; eauto. Qed.
+
+  Lemma pos_ext_0_neq p : p ≠ pos_ext_0 p.
+  Proof. induction p; eauto; ii; depdes H; eauto. Qed.
+
+  Lemma pos_ext_1_neq p : p ≠ pos_ext_1 p.
+  Proof. induction p; eauto; ii; depdes H; eauto. Qed.
+
+  Lemma pos_ext_0_disj p p' (SUP: pos_sup (pos_ext_1 p) p' = true) :
+    pos_sup (pos_ext_0 p) p' = false.
+  Proof. revert p' SUP. induction p; i; destruct p'; ss; eauto. Qed.
+
+  Lemma pos_ext_1_disj p p' (SUP: pos_sup (pos_ext_0 p) p' = true) :
+    pos_sup (pos_ext_1 p) p' = false.
+  Proof. revert p' SUP. induction p; i; destruct p'; ss; eauto. Qed.
+
+  Lemma pos_sup_cases u k
+      (EQ : (k =? u)%positive = false)
+      (SUP0 : pos_sup (pos_ext_0 u) k = false)
+      (SUP1 : pos_sup (pos_ext_1 u) k = false) :
+    pos_sup u k = false.
+  Proof. revert_until u. induction u; i; destruct k; ss; eauto. Qed.
+End univ_id.
+
+Section resources.
   Context `{α : SRFCons.t}.
 
   Canonical Structure SynO n : ofe := leibnizO (SRFSyn.t n).
@@ -59,13 +127,13 @@ Section invariants.
   Proof. solve_inG. Qed.
   Global Instance invG_subG {α' Σ Γ} : invGΣ α' Σ → invGΓ Γ → invG α' Σ Γ.
   Proof. i; ss. Qed.
-End invariants.
+End resources.
 
 Section predicates.
   Context `{!subG (Γ : HRA) Σ, !invG α Σ Γ}.
   Local Existing Instances invG_Σ invG_Γ invG_I invG_E invG_D.
 
-  (* owns invariant *)
+  (* owns an invariant *)
   Definition ownIR (u : univ_id) (n : level) (i : positive) (p : SRFSyn.t n) : ownIRA :=
     discrete_fun_singleton u
       (discrete_fun_singleton n
@@ -77,6 +145,7 @@ Section predicates.
     u n i p : Persistent (ownI u n i p).
   Proof. apply _. Qed.
 
+  (* authorative resource *)
   Definition ownI_authR (u : univ_id) (n : level) (I : gmap positive (SRFSyn.t n)) : ownIRA :=
     discrete_fun_singleton u
       (discrete_fun_singleton n
@@ -84,16 +153,19 @@ Section predicates.
   Definition ownI_auth (u : univ_id) (n : level) (I : gmap positive (SRFSyn.t n)) :=
     own base_γ (ownI_authR u n I).
 
-  Definition wsat_authR u b : ownIRA :=
+  (* authorative resource for wsats *)
+  Definition wsat_restR u b : ownIRA :=
     discrete_fun_singleton u
       ((λ n, if (n <? b) then ε else gmap_view_auth (DfracOwn 1) ∅) : discrete_funUR InvSetRA).
-  Definition wsat_auth u b : iProp Σ := own base_γ (wsat_authR u b).
+  Definition wsat_rest u b : iProp Σ := own base_γ (wsat_restR u b).
 
+  (* namespaces *)
   Definition ownER (u : univ_id) (E : coPset) : ownERA :=
     discrete_fun_singleton u (CoPset E).
   Definition ownE (u : univ_id) (E : coPset) : iProp Σ :=
     own base_γ (ownER u E).
 
+  (* disabled *)
   Definition ownDR (u : univ_id) (D : gset positive) : ownDRA :=
     discrete_fun_singleton u (◯ (GSet D)).
   Definition ownD (u : univ_id) (D : gset positive) : iProp Σ :=
@@ -104,6 +176,7 @@ Section predicates.
   Definition ownD_auth (u : univ_id) : iProp Σ :=
     ∃ D, own base_γ (ownD_authR u D).
 
+  (* predicate rules *)
   Lemma ownE_exploit u (E1 E2 : coPset) :
     ownE u E1 ∗ ownE u E2 ⊢ ⌜E1 ## E2⌝.
   Proof.
@@ -227,20 +300,27 @@ Section wsat.
     rewrite insert_delete; eauto. iFrame.
   Qed.
 
-  Lemma wsat_init :
-    ownI_auth u n ∅ ⊢ wsat.
-  Proof.
-    iIntros "H"; iExists ∅; iFrame; iApply big_sepM_empty; ss.
-  Qed.
+  Lemma wsat_init : ownI_auth u n ∅ ⊢ wsat.
+  Proof. iIntros "H"; iExists ∅; iFrame; iApply big_sepM_empty; ss. Qed.
 End wsat.
 
 Section wsats.
   Context `{@SRFIntp.t (domain Σ) α, !invG α Σ Γ, !subG Γ Σ}.
+  Local Existing Instances invG_Σ invG_Γ invG_I invG_E invG_D.
 
+  (* resources for multiple wsats *)
+  Definition univs_fun {A : univ_id → ucmra} (u : univ_id) (r : ∀ u, A u) : discrete_funUR A :=
+    λ v, if pos_sup u v then r v else ε.
+  
   Definition wsats u n E : iProp Σ :=
-    wsat_auth u n ∗ ownE u E ∗ ownD_auth u ∗ [∗ list] n ∈ (seq 0 n), wsat u n.
+    wsat_rest u n ∗ ownE u E ∗ ownD_auth u ∗ [∗ list] n ∈ (seq 0 n), wsat u n.
 
-  Definition univs u n : iProp Σ :=
+  Definition univs u : iProp Σ :=
+    own base_γ (univs_fun u ((λ _ _, gmap_view_auth (DfracOwn 1) ∅) : ownIRA)) ∗
+    own base_γ (univs_fun u (λ _, CoPset ⊤) : ownERA) ∗
+    own base_γ (univs_fun u (λ _, ● (GSet ∅)) : ownDRA).
+
+  (* Definition univs u n : iProp Σ :=
     [∗ list] v ∈ (seq 0 (Pos.to_nat u)), wsats (Pos.of_nat v) n ⊤.
 
   Lemma univs_split ν υ n : (ν < υ)%positive →
@@ -255,7 +335,7 @@ Section wsats.
     rewrite -{2}(Pos2Nat.id ν) -(big_sepL_cons (λ _ ν, wsats (Pos.of_nat ν) n ⊤)).
     rewrite cons_seq; iCombine "H1" "H" as "H"; rewrite -big_sepL_app -seq_app.
     rewrite /univs. eapply eq_ind; first iExact "H"; repeat f_equal; try lia.
-  Qed.
+  Qed. *)
 
   Local Definition uPred_fupd_def u b (E1 E2 : coPset) (P : iProp Σ) : iProp Σ :=
     wsats u b E1 ==∗ (wsats u b E2 ∗ P).
@@ -315,7 +395,7 @@ Notation "P '=|' u ',' n '|={' E '}=∗' Q" := (P -∗ =|u, n|={E, E}=> Q)%I (at
   (* Definition used_worlds u b E : iProp Σ :=
     wsats u b ∗ ownE u E ∗ ownD_auth u ∗ free_universes. *)
   (* Definition closed_universe u b E : iProp Σ :=
-    used_worlds u b E ∗ wsat_auth u b. *)
+    used_worlds u b E ∗ wsat_rest u b. *)
 
   (* Lemma wsats_fold u b :
     wsats u (S b) ⊣⊢ (wsat u b ∗ wsats u b)%I.
@@ -325,9 +405,9 @@ Notation "P '=|' u ',' n '|={' E '}=∗' Q" := (P -∗ =|u, n|={E, E}=> Q)%I (at
   Qed. *)
 
   (* Lemma free_worlds_alloc u (b b' : level) (NIN : b < b') :
-    wsat_auth u b ⊢ wsat_auth u b' ∗ ([∗ list] n ∈ (seq b (b' - b)), wsat u n).
+    wsat_rest u b ⊢ wsat_rest u b' ∗ ([∗ list] n ∈ (seq b (b' - b)), wsat u n).
   Proof.
-    rewrite /wsat_auth /wsat_authR.
+    rewrite /wsat_rest /wsat_authR.
     induction NIN; iIntros "FW".
     { replace (S b - b) with 1 by lia; ss.
       iEval (rewrite (discrete_fun_delete b (λ n, if n <? b then ε else gmap_view_auth (DfracOwn 1) ∅))) in "FW".
@@ -368,7 +448,7 @@ Notation "P '=|' u ',' n '|={' E '}=∗' Q" := (P -∗ =|u, n|={E, E}=> Q)%I (at
   Qed. *)
 
  (* Lemma free_worlds_nin u (b b' : level) (LE : b <= b')
-    : wsat_auth u b ⊢ wsat_auth u b' ∗
+    : wsat_rest u b ⊢ wsat_rest u b' ∗
                       ([∗ list] n ∈ (seq b (b' - b)), wsat u n).
   Proof.
     iIntros "R".
@@ -378,7 +458,7 @@ Notation "P '=|' u ',' n '|={' E '}=∗' Q" := (P -∗ =|u, n|={E, E}=> Q)%I (at
   Qed.
 
   Lemma wsats_allocs u b b':
-    b <= b' -> wsat_auth u b ∗ wsats u b ⊢ wsat_auth u b' ∗ wsats u b'.
+    b <= b' -> wsat_rest u b ∗ wsats u b ⊢ wsat_rest u b' ∗ wsats u b'.
   Proof.
     iIntros (LE) "(AUTH & SAT)".
     iPoseProof ((free_worlds_nin _ _ _ LE) with "AUTH") as "(AUTH & NEW)". iFrame.
@@ -424,9 +504,9 @@ Notation "P '=|' u ',' n '|={' E '}=∗' Q" := (P -∗ =|u, n|={E, E}=> Q)%I (at
             | None => True
             | Some G => (exists i, i ∉ G /\ φ i)
             end)
-    : wsat_auth u b ∗ ownD_auth u ∗ wsats u b ⊢
+    : wsat_rest u b ∗ ownD_auth u ∗ wsats u b ⊢
         |==> ((∃ i, ⌜φ i⌝ ∧ ownI u n i p)
-              ∗ wsat_auth u (S n) ∗ ownD_auth u ∗ (⟦p⟧ -∗ wsats u (S n))).
+              ∗ wsat_rest u (S n) ∗ ownD_auth u ∗ (⟦p⟧ -∗ wsats u (S n))).
   Proof.
     iIntros "(AUTH & D & WSAT)".
     iPoseProof ((wsats_allocs u b (S n)) with "[AUTH WSAT]") as "[AUTH WSAT]". lia. iFrame.
@@ -440,9 +520,9 @@ Notation "P '=|' u ',' n '|={' E '}=∗' Q" := (P -∗ =|u, n|={E, E}=> Q)%I (at
             | None => True
             | Some G => (exists i, i ∉ G /\ φ i)
             end)
-    : wsat_auth u b ∗ ownD_auth u ∗ wsats u b ∗ ⟦p⟧ ⊢
+    : wsat_rest u b ∗ ownD_auth u ∗ wsats u b ∗ ⟦p⟧ ⊢
         |==> ((∃ i, ⌜φ i⌝ ∧ ownI u n i p)
-                ∗ wsat_auth u (S n) ∗ ownD_auth u ∗ wsats u (S n)).
+                ∗ wsat_rest u (S n) ∗ ownD_auth u ∗ wsats u (S n)).
   Proof.
     iIntros "(A & D & W & P)". iMod (wsats_ownI_alloc_ge_gen with "[A D W]") as "(I & A & D & W)".
     1,2 : eauto. iFrame.
@@ -450,10 +530,10 @@ Notation "P '=|' u ',' n '|={' E '}=∗' Q" := (P -∗ =|u, n|={E, E}=> Q)%I (at
   Qed.
 
   Lemma free_worlds_ownI_le u b n i p :
-    ownI u n i p ∗ wsat_auth u b ⊢ ⌜n < b⌝.
+    ownI u n i p ∗ wsat_rest u b ⊢ ⌜n < b⌝.
   Proof.
     iIntros "(I & AUTH)".
-    unfold ownI, wsat_auth, wsat_auth.
+    unfold ownI, wsat_rest, wsat_rest.
     iCombine "AUTH I" as "AUTH".
     iPoseProof (own_valid with "AUTH") as "%WF".
     unfold wsat_authR, ownIR, maps_to_res, maps_to_res_dep in WF.
@@ -500,7 +580,7 @@ Notation "P '=|' u ',' n '|={' E '}=∗' Q" := (P -∗ =|u, n|={E, E}=> Q)%I (at
   Qed. *)
 
   (* Lemma empty_worlds_split eu:
-    empty_universes eu ⊢ wsat_auth eu 0 ∗ wsats eu 0 ∗ ownE eu ⊤ ∗ ownD_auth eu ∗ empty_universes (pos_ext_0 eu) ∗ empty_universes (pos_ext_1 eu).
+    empty_universes eu ⊢ wsat_rest eu 0 ∗ wsats eu 0 ∗ ownE eu ⊤ ∗ ownD_auth eu ∗ empty_universes (pos_ext_0 eu) ∗ empty_universes (pos_ext_1 eu).
   Proof.
     assert (ERA : URA.extends
               ((ownER eu ⊤) ⋅

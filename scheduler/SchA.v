@@ -211,9 +211,6 @@ End SchAS. End SchAS.
 Module SchA. Section SchA.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !SchAGΣ Σ}.
 
-  Variable univ: positive.
-  Variable Spc: string -> option fspec.
-
   Definition _spawn : (nat * string * SAny.t) -> itree hmodE unit :=
     fun '(mtid, fn, args) =>
       trigger (Yield mtid);;;

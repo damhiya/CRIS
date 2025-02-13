@@ -2,21 +2,19 @@ From stdpp Require Import coPset gmap namespaces.
 From iris Require Import bi.big_op.
 Require Export Coqlib own SRF sProp invariants.
 
-(* TODO : move these to separate files *)
-Local Notation univ_id := positive.
 Local Notation level := nat.
 
 (* Syntactic invariants *)
 Variant inv_shape : Type :=
 | _ownI (u : univ_id) (i : positive)
 | _ownI_auth (u : univ_id) (keys : gmap positive unit)
-| _wsat_auth (u : univ_id).
+| _wsat_rest (u : univ_id).
 
 Local Definition inv_degree (s : inv_shape) (sProp : Type) : Type :=
   match s with
   | _ownI u i => fin 1
   | _ownI_auth u keys => positive
-  | _wsat_auth u => fin 0
+  | _wsat_rest u => fin 0
   end.
 
 Global Instance inv_syntax : PF.t := {
@@ -31,7 +29,7 @@ Local Definition inv_interp_aux `{!invG α Σ Γ, !subG Γ Σ} n (s : inv_shape)
   match s with
   | _ownI u i => λ syn _, ownI u n i (syn 0%fin)
   | _ownI_auth u keys => λ syn _, ownI_auth u n (map_imap (λ k v, Some (syn k)) keys)
-  | _wsat_auth u => λ _ _, wsat_auth u n
+  | _wsat_rest u => λ _ _, wsat_rest u n
   end.
 
 Global Instance inv_interp `{!invG α Σ Γ, !subG Γ Σ} :
@@ -45,17 +43,14 @@ Class syn_invG (Σ : GRA) (Γ : HRA) (α : SRFCons.t) (β : SRFIntp.t) (τ : Typ
 
 Section syn_inv.
   Context `{!invG α Σ Γ, !subG Γ Σ, !CtxST.t τ, !SL.G Σ Γ α β τ, !syn_invG Σ Γ α β τ}.
-  (* Context `{Γ : HRA} `{!subG Γ Σ} `{!CtxST.t τ} `{!SL.G Σ Γ α β τ}. *)
-  (* Context `{!invG Σ Γ, !SRFIntp.inG inv_syntax α inv_interp β}. *)
   Local Existing Instances invG_Σ invG_Γ invG_I invG_E invG_D.
-  (* Local Existing Instances inv_preΣ inv_preΓ invG_I invG_E invG_D. *)
-  (* Set Typeclasses Debug. *)
+
   Local Definition syn_ownI u n i (p : SRFSyn.t n) : SRFSyn.t n :=
     ⟨ _ownI u i, λ _, p ⟩.
   Local Definition syn_ownI_auth u n (I : gmap positive (SRFSyn.t n)) : SRFSyn.t n :=
     ⟨ _ownI_auth u (gset_to_gmap tt (dom I)), λ i, or_else (I !! i) emp%SRF⟩.
-  Local Definition syn_wsat_auth u n : SRFSyn.t n :=
-    ⟨ _wsat_auth u, λ e, match e with end ⟩.
+  Local Definition syn_wsat_rest u n : SRFSyn.t n :=
+    ⟨ _wsat_rest u, λ e, match e with end ⟩.
 
   Local Definition syn_ownE (u : univ_id) n (E : coPset) : SRFSyn.t n :=
     <own> base_γ (ownER u E).
@@ -68,14 +63,14 @@ Section syn_inv.
     ([∗ n map] i ↦ p ∈ I, (p ∗ syn_ownD u n {[i]}) ∨ syn_ownE u n {[i]})%SRF.
   Local Definition syn_wsat u n : SRFSyn.t (S n) :=
     (∃ I : τ{ST.gmapT Φ}, (⤉ syn_ownI_auth u n I) ∗ (⤉ syn_inv_satall u n I))%SRF.
-  (* wsat_auth u (S n) ∗ ownE u E ∗ ownD_auth u ∗ [∗ list] n ∈ (seq 0 (S n)), wsat u n. *)
+  (* wsat_rest u (S n) ∗ ownE u E ∗ ownD_auth u ∗ [∗ list] n ∈ (seq 0 (S n)), wsat u n. *)
   Local Fixpoint syn_wsats_aux u n : SRFSyn.t n :=
     match n with
     | O => emp%SRF
     | S n' => syn_wsat u n' ∗ ⤉ syn_wsats_aux u n'
     end.
   Local Definition syn_wsats u n (E : coPset) : SRFSyn.t n :=
-    syn_wsat_auth u n ∗ syn_ownE u n E ∗ syn_ownD_auth u n ∗ syn_wsats_aux u n.
+    syn_wsat_rest u n ∗ syn_ownE u n E ∗ syn_ownD_auth u n ∗ syn_wsats_aux u n.
 
   (* Interface for the user *)
   Local Definition syn_inv_def (u : univ_id) (n : level) (N : namespace) p :=
@@ -91,7 +86,6 @@ Section syn_inv.
   Local Definition syn_fupd_eq : @syn_fupd = @syn_fupd_def := syn_fupd_aux.(seal_eq).
 End syn_inv.
 
-(* Context `{Γ : HRA, !subG Γ Σ, !CtxST.t τ, !SL.G Σ Γ α β τ, !syn_invG Σ Γ α β τ}. *)
 Class sinvG (Σ : GRA) (Γ : HRA) (α : SRFCons.t) (β : SRFIntp.t) (τ : TypG.t)
     `{!invG α Σ Γ, !subG Γ Σ} := sinvG_mk {
   #[global] sinv_typG :: CtxST.t τ;

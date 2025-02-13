@@ -132,6 +132,18 @@ Module HMod. Section HMod.
 
   Definition empty_mc : modc := (empty, emp%I).
 
+  Definition modc_gen : Type := (univ_id → t) * iProp Σ.
+  Global Instance modc_gen_equiv : Equiv modc_gen :=
+    λ m1 m2, ∀ υ, (m1.1 υ, m1.2) ≡ (m2.1 υ, m2.2).
+  Global Instance modc_gen_equiv_equiv : Equivalence modc_gen_equiv.
+  Proof.
+    split; ss; ii.
+    { specialize (H υ). inv H; split; clarify. }
+    { specialize (H υ). specialize (H0 υ). inv H; inv H0; split; clarify; ss.
+      { rewrite H1 H; ss. }
+      { i; rewrite H2 H3; ss. }
+    }
+  Qed.
 End HMod. End HMod.
 
 Infix "★" := HMod.add (at level 9, right associativity).

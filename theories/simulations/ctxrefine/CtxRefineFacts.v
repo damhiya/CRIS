@@ -146,3 +146,126 @@ Section CtxRefineFacts.
     apply ctxr_frameL, ctxr_comm.
   Qed.
 End CtxRefineFacts.
+
+(* Composition lemmas for w_ctx_refines *)
+Section w_ctx_refines.
+  Context `{Σ : GRA}.
+
+  Definition w_ctx_refines (ms mt : HMod.modc_gen) : Prop :=
+    ∃ κ : positive,
+      ∀ υ ν : univ_id, (υ >= ν + κ)%positive →
+        ctx_refines (ms.1 υ, ms.2) (mt.1 ν, mt.2).
+  Global Instance: Params (@w_ctx_refines) 1 := {}.
+
+  Global Program Instance w_ctx_refines_PreOrder : Transitive w_ctx_refines.
+  (* Next Obligation. rr; intros x; exists 0; intros ? ν H; rewrite Nat.add_0_r in H; inv H; done. Qed. *)
+  Next Obligation.
+    intros x y z [k1 H1] [k2 H2]; exists (k1 + k2)%positive; intros υ ν H; etrans.
+    { apply (H1 _ (ν + k2)%positive); eauto; lia. }
+    { apply H2; lia. }
+  Qed.
+
+  Global Program Instance w_ctx_refines_Proper : Proper ((≡) ==> (≡) ==> iff) (w_ctx_refines).
+  Next Obligation.
+    intros ms1 ms2 mseq mt1 mt2 mteq; split; intros [k CTXR]; exists k; intros υ ν H.
+    { rewrite -(Pos2Nat.id υ) -(mseq (Pos.of_nat (Pos.to_nat υ))).
+      rewrite -{1}(Pos2Nat.id ν) -(mteq _). apply CTXR. lia.
+    }
+    { rewrite -(Pos2Nat.id υ) (mseq (Pos.of_nat (Pos.to_nat υ))).
+      rewrite -{1}(Pos2Nat.id ν) (mteq _). apply CTXR. lia. }
+  Qed.
+
+  (*** weakening for initial condition ***)
+  (* Lemma w_ctx_refines_cond_strengthen
+      (m : univ_id → HMod.t) (P Q : univ_id → iProp Σ) (IMPL : ∀ υ, P υ -∗ Q υ) :
+    w_ctx_refines (λ υ, (m υ, P υ)) (λ ν, (m ν, Q ν)).
+  Proof.
+    exists 0; intros υ ν H.
+    rewrite Nat.add_0_r in H; inv H; apply ctxr_cond_strengthen; done.
+  Qed. *)
+
+  (*** frame rule for initial condition ***)
+  Lemma w_ctx_refines_cond_frameR
+      (ms mt : univ_id → HMod.t) (Ps Pt Q : iProp Σ)
+      (REF : w_ctx_refines (ms, Ps) (mt, Pt)) :
+    w_ctx_refines (ms, Ps ∗ Q)%I (mt, Pt ∗ Q)%I.
+  Proof.
+    destruct REF as [k REF]; exists k; intros u v Huv; specialize (REF u v Huv).
+    apply ctxr_cond_frameR; done.
+  Qed.
+
+  Lemma w_ctx_refines_cond_frameL
+      (ms mt : univ_id → HMod.t) (Ps Pt Q :  iProp Σ)
+      (REF : w_ctx_refines (ms, Ps) (mt, Pt)) :
+    w_ctx_refines (ms, Q ∗ Ps)%I (mt, Q ∗ Pt)%I.
+  Proof.
+    destruct REF as [k REF]; exists k; intros u v Huv; specialize (REF u v Huv).
+    apply ctxr_cond_frameL; done.
+  Qed.
+  
+  (*** commutativity ***)
+  (* Lemma w_ctx_refines_comm  (ma mb : univ_id → HMod.t) (P : univ_id → iProp Σ) :
+    w_ctx_refines (λ υ, ((ma υ) ★ (mb υ), P υ)) (λ υ, ((mb υ) ★ (ma υ), P υ)).
+  Proof.
+    exists 0; intros u v Huv; rewrite Nat.add_0_r in Huv; inv Huv; apply ctxr_comm.
+  Qed. *)
+
+  (*** frame rules ***)
+  Lemma w_ctx_refines_frameR ms Ps mt Pt mc
+      (REF : w_ctx_refines (ms, Ps) (mt, Pt)) :
+    w_ctx_refines ((λ υ, (ms υ) ★ mc), Ps) ((λ ν, (mt ν) ★ mc), Pt).
+  Proof.
+    destruct REF as [k REF]; exists k; intros u v Huv; specialize (REF u v Huv).
+    apply ctxr_frameR; done.
+  Qed.
+
+  Lemma w_ctx_refines_frameL ms Ps mt Pt mc
+      (REF : w_ctx_refines (ms, Ps) (mt, Pt)) :
+    w_ctx_refines ((λ υ, mc ★ (ms υ)), Ps) ((λ ν, mc ★ (mt ν)), Pt).
+  Proof.
+    destruct REF as [k REF]; exists k; intros u v Huv; specialize (REF u v Huv).
+    apply ctxr_frameL; done.
+  Qed.
+
+  (*** horizontal composition ***)
+  Lemma w_ctx_compose_hor msa Psa mta Pta msb Psb mtb Ptb
+      (REFA : w_ctx_refines (msa, Psa) (mta, Pta))
+      (REFB : w_ctx_refines (msb, Psb) (mtb, Ptb)) :
+    w_ctx_refines (λ υ, (msa υ) ★ (msb υ), Psa ∗ Psb)%I
+                  (λ ν, (mta ν) ★ (mtb ν), Pta ∗ Ptb)%I.
+  Proof.
+    move: REFA REFB; case => k1 REFA; case => k2 REFB; exists (k1 + k2)%positive => u v Huv.
+    apply ctxr_compose_hor; [apply REFA|apply REFB]; lia.
+  Qed.
+
+  (*** mixed composition ***)
+  (* Lemma ctxr_compose_mix msa Psa mta Pta msb Psb mtb Ptb mc
+      (REFA : ctx_refines (msa ★ mc, Psa) (mta ★ mc, Pta))
+      (REFB : ctx_refines (msb ★ mc, Psb) (mtb ★ mc, Ptb)) :
+    ctx_refines (msa ★ msb ★ mc, Psa ∗ Psb)%I
+                (mta ★ mtb ★ mc, Pta ∗ Ptb)%I.
+  Proof.
+    etrans.
+    { eapply ctxr_frameL, ctxr_cond_frameL. apply REFB. }
+    etrans.
+    { eapply ctxr_frameL, ctxr_comm. }
+    etrans.
+    { rewrite <-hmod_add_assoc.
+      eapply ctxr_frameR, ctxr_cond_frameR. apply REFA. }
+    rewrite hmod_add_assoc.
+    apply ctxr_frameL, ctxr_comm.
+  Qed. *)
+End w_ctx_refines.
+
+(* Section test.
+  Context (A : Type).
+  Context (R : A → A → Prop).
+  Context (P : A → Prop).
+  Context `{!Transitive R} `{!RewriteRelation R}.
+  Context `{!Proper (flip R ==> impl) P}.
+  Context (a b : A).
+  Context `(R a b).
+  (* Global Instance cmra_update_rewrite_relation :
+  RewriteRelation (@cmra_update A) | 170 := {}. *)
+  Goal P a.
+    rewrite R0. rewrite -R0. *)
