@@ -264,7 +264,7 @@ Module MutIA. Section MutIA.
     init_sim.
     - iIntros "IC". ss.
     - exists []; unfold MutFI.t, MutGI.t, MutFA, MutGA; unseal CRIS; ss.
-    - unfold MutFI.t, MutGI.t in IN. revert IN. unseal CRIS. i; ss; des; ss.
+    - unfold MutFA, MutGA.t in IN. revert IN. unseal CRIS. i; ss; des; ss.
       { subst. eapply simF_mutf; eauto. }
       { subst. eapply simF_mutg; eauto. }
   Qed.

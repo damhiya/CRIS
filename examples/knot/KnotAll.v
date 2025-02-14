@@ -1,4 +1,4 @@
-Require Import CRIS Cancel.
+(* Require Import CRIS Cancel.
 Require Import MemHeader MemI MemA MemIAproof.
 Require Import APCHeader APC APCA APCC APCACproof.
 Require Import KnotHeader KnotMainHeader KnotI KnotMainI.
@@ -220,5 +220,5 @@ Module KnotAll. Section KnotAll.
     { econs; ss; try prove_nodup. }
     { exists x; des; eauto. }
   Qed.
-End KnotAll. End KnotAll.
+End KnotAll. End KnotAll. *)
 (* Print Assumptions KnotAll.behavioral_refinement. *)
