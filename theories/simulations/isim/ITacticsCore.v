@@ -169,13 +169,21 @@ Ltac hss :=
                         | s
  *)
 
-Tactic Notation "red_bind" tactic(tac) :=
+Inductive _hprogress := _hprogress_intro.
+
+Ltac _hprogress prg :=
+  try instantiate (1:= _hprogress_intro) in (value of prg).
+
+Ltac _hprogress_check prg :=
+  try (instantiate (1:= _hprogress_intro) in (value of prg); fail 1).
+
+Tactic Notation "red_bind" hyp(prg) tactic(tac) :=
   lazymatch goal with
   | [ |- @ITree.bind _ _ _ ?itr _ = _ ] =>
       lazymatch itr with
-      | Ret _ => etransitivity; [ eapply bind_ret_l | s; tac ]
-      | Tau _ => eapply bind_tau
-      | vis _ _ => eapply vis_bind
+      | Ret _ => _hprogress prg; etransitivity; [ eapply bind_ret_l | s; tac ]
+      | Tau _ => _hprogress prg; eapply bind_tau
+      | vis _ _ => _hprogress prg; eapply vis_bind
       | assumeK _ _ => eapply assumeK_bind
       | guaranteeK _ _ => eapply guaranteeK_bind
       | unwrapUK _ _ => eapply unwrapUK_bind
@@ -186,44 +194,44 @@ Tactic Notation "red_bind" tactic(tac) :=
       end
   end.
 
-Tactic Notation "red_SB" :=
+Tactic Notation "red_SB" hyp(prg) :=
   lazymatch goal with
   | [ |- @HMod.sandbox _ _ _ ?itr = _ ] =>
       lazymatch itr with
       | Ret _ =>
-          eapply HModSB.transl_ret
+          _hprogress prg; eapply HModSB.transl_ret
       | Tau _ =>
-          eapply HModSB.transl_tau
+          _hprogress prg; eapply HModSB.transl_tau
       | vis (Assume _) _ =>
-          eapply HModSB.transl_vis_ag
+          _hprogress prg; eapply HModSB.transl_vis_ag
       | vis (Guarantee _) _ =>
-          eapply HModSB.transl_vis_ag
+          _hprogress prg; eapply HModSB.transl_vis_ag
       | vis (Spawn _ _) _ =>
-          eapply HModSB.transl_vis_sch
+          _hprogress prg; eapply HModSB.transl_vis_sch
       | vis (Yield _) _ =>
-          eapply HModSB.transl_vis_sch
+          _hprogress prg; eapply HModSB.transl_vis_sch
       | vis Tid _ =>
-          eapply HModSB.transl_vis_sch
+          _hprogress prg; eapply HModSB.transl_vis_sch
       | vis (Call _ _) _ =>
-          eapply HModSB.transl_vis_call
+          _hprogress prg; eapply HModSB.transl_vis_call
       | vis (SPut _ _) _ =>
-          eapply HModSB.SPut_putSB
+          _hprogress prg; eapply HModSB.SPut_putSB
       | vis (SGet _) _ =>
-          eapply HModSB.SGet_getSB
+          _hprogress prg; eapply HModSB.SGet_getSB
       | vis (Choose _) _ =>
-          eapply HModSB.transl_vis_core
+          _hprogress prg; eapply HModSB.transl_vis_core
       | vis (Take _) _ =>
-          eapply HModSB.transl_vis_core
+          _hprogress prg; eapply HModSB.transl_vis_core
       | vis (IO _ _) _ =>
-          eapply HModSB.transl_vis_core
+          _hprogress prg; eapply HModSB.transl_vis_core
       | assumeK _ _ =>
-          eapply HModSB.transl_assumeK
+          _hprogress prg; eapply HModSB.transl_assumeK
       | guaranteeK _ _ =>
-          eapply HModSB.transl_guaranteeK
+          _hprogress prg; eapply HModSB.transl_guaranteeK
       | unwrapUK _ _ =>
-          eapply HModSB.transl_unwrapUK
+          _hprogress prg; eapply HModSB.transl_unwrapUK
       | unwrapNK _ _ =>
-          eapply HModSB.transl_unwrapNK
+          _hprogress prg; eapply HModSB.transl_unwrapNK
       | _ =>
           reflexivity
       end
@@ -244,40 +252,40 @@ Ltac unfold_spc_exact spc name :=
         simpl unwrapN; clear ND RW
     end.
 
-Tactic Notation "red_S" tactic(tac) :=
+Tactic Notation "red_S" hyp(prg) tactic(tac) :=
   lazymatch goal with
   | [ |- @interp_smod ?Σ ?ginv ?stb ?R ?itr = _ ] =>
       lazymatch itr with
       | Ret _ =>
-          eapply SModRed.interp_ret
+          _hprogress prg; eapply SModRed.interp_ret
       | Tau _ =>
-          eapply SModRed.interp_tau
+          _hprogress prg; eapply SModRed.interp_tau
       | vis (Assume _) _ =>
-          eapply SModRed.interp_vis_ag
+          _hprogress prg; eapply SModRed.interp_vis_ag
       | vis (Guarantee _) _ =>
-          eapply SModRed.interp_vis_ag
+          _hprogress prg; eapply SModRed.interp_vis_ag
       | vis (Spawn _ _) _ =>
-          etransitivity;
+          _hprogress prg; etransitivity;
           [ eapply SModRed.interp_vis_sch
           | unfold handle_schE_hmodE;
             unfold HoareSpawn;
             tac
           ]
       | vis (Yield _) _ =>
-          etransitivity;
+          _hprogress prg; etransitivity;
           [ eapply SModRed.interp_vis_sch
           | unfold handle_schE_hmodE;
             unfold HoareYield;
             tac
           ]
       | vis Tid _ =>
-          etransitivity;
+          _hprogress prg; etransitivity;
           [ eapply SModRed.interp_vis_sch
           | unfold handle_schE_hmodE;
             tac
           ]
       | vis (Call ?fn _) _ =>
-          etransitivity;
+          _hprogress prg; etransitivity;
           [ eapply SModRed.interp_vis_call
           | unfold handle_callE_hmodE;
             unfold HoareCall;
@@ -285,68 +293,68 @@ Tactic Notation "red_S" tactic(tac) :=
             tac
           ]
       | vis (SPut _ _) _ =>
-          eapply SModRed.interp_vis_pg
+          _hprogress prg; eapply SModRed.interp_vis_pg
       | vis (SGet _) _ =>
-          eapply SModRed.interp_vis_pg
+          _hprogress prg; eapply SModRed.interp_vis_pg
       | vis (Choose _) _ =>
-          eapply SModRed.interp_vis_core
+          _hprogress prg; eapply SModRed.interp_vis_core
       | vis (Take _) _ =>
-          eapply SModRed.interp_vis_core
+          _hprogress prg; eapply SModRed.interp_vis_core
       | vis (IO _ _) _ =>
-          eapply SModRed.interp_vis_core
+          _hprogress prg; eapply SModRed.interp_vis_core
       | assumeK _ _ =>
-          eapply SModRed.interp_assumeK
+          _hprogress prg; eapply SModRed.interp_assumeK
       | guaranteeK _ _ =>
-          eapply SModRed.interp_guaranteeK
+          _hprogress prg; eapply SModRed.interp_guaranteeK
       | unwrapUK _ _ =>
-          eapply SModRed.interp_unwrapUK
+          _hprogress prg; eapply SModRed.interp_unwrapUK
       | unwrapNK _ _ =>
-          eapply SModRed.interp_unwrapNK
+          _hprogress prg; eapply SModRed.interp_unwrapNK
       | _ =>
           reflexivity
       end
   end.
 
-Tactic Notation "red_P" :=
+Tactic Notation "red_P" hyp(prg) :=
   lazymatch goal with
   | [ |- @PMod.interp _ _ ?itr = _ ] =>
       lazymatch itr with
       | Ret _ =>
-          eapply PModRed.interp_ret
+          _hprogress prg; eapply PModRed.interp_ret
       | Tau _ =>
-          eapply PModRed.interp_tau
+          _hprogress prg; eapply PModRed.interp_tau
       | vis (Spawn _ _) _ =>
-          eapply PModRed.interp_vis_sch
+          _hprogress prg; eapply PModRed.interp_vis_sch
       | vis (Yield _) _ =>
-          eapply PModRed.interp_vis_sch
+          _hprogress prg; eapply PModRed.interp_vis_sch
       | vis Tid _ =>
-          eapply PModRed.interp_vis_sch
+          _hprogress prg; eapply PModRed.interp_vis_sch
       | vis (Call _ _) _ =>
-          eapply PModRed.interp_vis_call
+          _hprogress prg; eapply PModRed.interp_vis_call
       | vis (SPut _ _) _ =>
-          eapply PModRed.interp_vis_pg
+          _hprogress prg; eapply PModRed.interp_vis_pg
       | vis (SGet _) _ =>
-          eapply PModRed.interp_vis_pg
+          _hprogress prg; eapply PModRed.interp_vis_pg
       | vis (Choose _) _ =>
-          eapply PModRed.interp_vis_choose
+          _hprogress prg; eapply PModRed.interp_vis_choose
       | vis (Take _) _ =>
-          eapply PModRed.interp_vis_take
+          _hprogress prg; eapply PModRed.interp_vis_take
       | vis (IO _ _) _ =>
-          eapply PModRed.interp_vis_io
+          _hprogress prg; eapply PModRed.interp_vis_io
       | assumeK _ _ =>
-          eapply PModRed.interp_assumeK
+          _hprogress prg; eapply PModRed.interp_assumeK
       | guaranteeK _ _ =>
-          eapply PModRed.interp_guaranteeK
+          _hprogress prg; eapply PModRed.interp_guaranteeK
       | unwrapUK _ _ =>
-          eapply PModRed.interp_unwrapUK
+          _hprogress prg; eapply PModRed.interp_unwrapUK
       | unwrapNK _ _ =>
-          eapply PModRed.interp_unwrapNK
+          _hprogress prg; eapply PModRed.interp_unwrapNK
       | _ =>
           reflexivity
       end
   end.
 
-Ltac _hnorm_itr :=
+Ltac _hnorm_itr prg :=
   lazymatch goal with
   | [ |- Ret _ = _ ] =>
       reflexivity
@@ -356,16 +364,16 @@ Ltac _hnorm_itr :=
       reflexivity
   | [ |- @ITree.bind ?E ?T ?U ?itr ?ktr = _ ] =>
       etransitivity;
-      [ let itr' := fresh "itr" in cong (fun itr' => @ITree.bind E T U itr' ktr); _hnorm_itr | red_bind (do 1 _hnorm_itr) ]
+      [ let itr' := fresh "itr" in cong (fun itr' => @ITree.bind E T U itr' ktr); _hnorm_itr prg | red_bind prg (do 1 _hnorm_itr prg) ]
   | [ |- @HMod.sandbox ?Σ ?R ?scopes ?itr = _ ] =>
       etransitivity;
-      [ cong (@HMod.sandbox Σ R scopes); _hnorm_itr | red_SB ]
+      [ cong (@HMod.sandbox Σ R scopes); _hnorm_itr prg | red_SB prg ]
   | [ |- @interp_smod ?Σ ?ginv ?stb ?R ?itr = _ ] =>
       etransitivity;
-      [ cong (@interp_smod Σ ginv stb R); _hnorm_itr | red_S (do 1 _hnorm_itr) ]
+      [ cong (@interp_smod Σ ginv stb R); _hnorm_itr prg | red_S prg (do 1 _hnorm_itr prg) ]
   | [ |- @PMod.interp ?Σ ?R ?itr = _ ] =>
       etransitivity;
-      [ cong (@PMod.interp Σ R); _hnorm_itr | red_P ]
+      [ cong (@PMod.interp Σ R); _hnorm_itr prg | red_P prg ]
   | [ |- trigger _ = _ ] =>
       eapply trigger_vis
   | [ |- assume _ = _ ] =>
@@ -377,52 +385,57 @@ Ltac _hnorm_itr :=
   | [ |- unwrapN _ = _ ] =>
       eapply unwrapN_unwrapNK
   | [ |- HoareCall _ _ _ = _ ] =>
-      unfold HoareCall;
-      _hnorm_itr
+      _hprogress prg; unfold HoareCall;
+      _hnorm_itr prg
   | [ |- HoareSpawn _ _ _ _ = _ ] =>
-      unfold HoareSpawn;
-      _hnorm_itr
+      _hprogress prg; unfold HoareSpawn;
+      _hnorm_itr prg
   | [ |- HoareYield _ _ = _ ] =>
-      unfold HoareYield;
-      _hnorm_itr
+      _hprogress prg; unfold HoareYield;
+      _hnorm_itr prg
   | [ |- fbody_trivial _ = _ ] =>
-      unfold fbody_trivial;
-      _hnorm_itr
+      _hprogress prg; unfold fbody_trivial;
+      _hnorm_itr prg
   | [ |- cput _ _ = _ ] =>
-      unfold cput;
-      _hnorm_itr
+      _hprogress prg; unfold cput;
+      _hnorm_itr prg
   | [ |- cgetU _ = _ ] =>
-      unfold cgetU;
-      _hnorm_itr
+      _hprogress prg; unfold cgetU;
+      _hnorm_itr prg
   | [ |- cgetN _ = _ ] =>
-      unfold cgetN;
-      _hnorm_itr
+      _hprogress prg; unfold cgetN;
+      _hnorm_itr prg
   | [ |- cfunU _ _ = _ ] =>
-      unfold cfunU;
-      _hnorm_itr
+      _hprogress prg; unfold cfunU;
+      _hnorm_itr prg
   | [ |- cfunN _ _ = _ ] =>
-      unfold cfunN;
-      _hnorm_itr
+      _hprogress prg; unfold cfunN;
+      _hnorm_itr prg
   | [ |- ccallU _ _ = _ ] =>
-      unfold ccallU;
-      _hnorm_itr
+      _hprogress prg; unfold ccallU;
+      _hnorm_itr prg
   | [ |- ccallN _ _ = _ ] =>
-      unfold ccallN;
-      _hnorm_itr
+      _hprogress prg; unfold ccallN;
+      _hnorm_itr prg
   | [ |- triggerUB = _ ] =>
-      unfold triggerUB;
-      _hnorm_itr
+      _hprogress prg; unfold triggerUB;
+      _hnorm_itr prg
   | [ |- triggerNB = _ ] =>
-      unfold triggerNB;
-      _hnorm_itr
+      _hprogress prg; unfold triggerNB;
+      _hnorm_itr prg
   | [ |- ?itr = _ ] =>
       reflexivity
   end.
 
 Ltac hnorm_itr :=
+  try match goal with
+  | [ |- @ITree.bind _ _ _ (trigger _) _ = _ ] => fail 2
+  end;
+  let prg := fresh "Progress" in
+  epose (prg := _ : _hprogress);
   etransitivity;
-  [ _hnorm_itr
-  | s;
+  [ _hnorm_itr prg
+  | _hprogress_check prg; s;
     lazymatch goal with
     | [ |- Ret _ = _ ] =>
         reflexivity
@@ -847,16 +860,15 @@ Ltac step_l :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  hnorm_l;
-  step_l_core;
+  (hrepeat do 1 hnorm_l);
+  try step_l_core;
   show_until marker.
 
 Ltac steps_l :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  hnorm_l;
-  (hrepeat (do 1 step_l_core; hnorm_l));
+  (hrepeat do 1 tryany (do 1 hnorm_l) (do 1 step_l_core)); try hnorm_l;
   show_until marker.
 
 Ltac step_r_core :=
@@ -866,24 +878,23 @@ Ltac step_r :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  hnorm_r;
-  step_r_core;
+  (hrepeat do 1 hnorm_r);
+  try step_r_core;
   show_until marker.
 
 Ltac steps_r :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  hnorm_r;
-  (hrepeat do 1 (step_r_core; hnorm_r));
+  (hrepeat do 1 tryany (do 1 hnorm_r) (do 1 step_r_core)); try hnorm_r;
   show_until marker.
 
 Ltac step :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  hnorm_l;
-  hnorm_r;
+  (hrepeat do 1 hnorm_l);
+  (hrepeat do 1 hnorm_r);
   _step;
   s; des_pairs; s;
   show_until marker.
@@ -892,7 +903,7 @@ Ltac force_l_core :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  hnorm_l;
+  (hrepeat do 1 hnorm_l);
   _force_l; s;
   show_until marker.
 
@@ -909,7 +920,7 @@ Ltac force_r_core :=
   let marker := fresh "MARKER" in
   set_marker marker;  
   hide_ihyps;
-  hnorm_r;
+  (hrepeat do 1 hnorm_r);
   _force_r; s;
   show_until marker.
 
@@ -943,7 +954,7 @@ Ltac inline_l :=
   let marker := fresh "MARKER" in
   set_marker marker;  
   hide_ihyps;
-  hnorm_l;
+  (hrepeat do 1 hnorm_l);
   iApply isim_inline_src; [prove_inline_cond|];
   unfold_cris_defs;
   show_until marker.
@@ -952,7 +963,7 @@ Ltac inline_r :=
   let marker := fresh "MARKER" in
   set_marker marker;  
   hide_ihyps;
-  hnorm_r;
+  (hrepeat do 1 hnorm_r);
   iApply isim_inline_tgt; [prove_inline_cond|];
   unfold_cris_defs;
   show_until marker.
@@ -961,8 +972,8 @@ Ltac call hyps :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  hnorm_l;
-  hnorm_r;
+  (hrepeat do 1 hnorm_l);
+  (hrepeat do 1 hnorm_r);
   iApply isim_call;
   show_until marker;
   iSplitL hyps; [ |iIntros "% % % % % %"; iIntrosFresh "IST"];
@@ -972,8 +983,8 @@ Ltac yield hyps :=
   let marker := fresh "MARKER" in
   set_marker marker;  
   hide_ihyps;
-  hnorm_l;
-  hnorm_r;
+  (hrepeat do 1 hnorm_l);
+  (hrepeat do 1 hnorm_r);
   iApply isim_yield;
   show_until marker;
   iSplitL hyps; [ |iIntros "% % % % %"; iIntrosFresh "IST"];
