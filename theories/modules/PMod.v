@@ -1,5 +1,5 @@
 Require Import Common.
-Require Import HMod.
+Require Import SMod HMod.
 
 Set Implicit Arguments.
 
@@ -50,6 +50,26 @@ Section PMOD.
     unfold fnsems_scopes, map_snd in *.
     rewrite alist_find_map in H.
     unfold o_map in *. des_ifs.
+  Qed.
+  Next Obligation. i. destruct ms. s. eauto. Qed.
+  Next Obligation. i. destruct ms. eauto. Qed.
+
+  Definition wrap_trivial_spec (body: Any.t -> itree pmodE Any.t): fspecbody := {|
+    fsb_fspec := fspec_trivial;
+    fsb_body := λ i, interp (body i);
+  |}.
+  
+  Program Definition to_smod (ms: t) : SMod.t := {|
+  SMod.scopes := ms.(scopes);
+  SMod.fnsems := List.map (map_snd (λ kb, (kb.1, wrap_trivial_spec kb.2))) ms.(fnsems);
+  SMod.initial_st := ms.(initial_st);
+  |}.
+  Next Obligation.
+  i. destruct ms. s. ii.
+  eapply well_scoped_fns0. instantiate (1:=fn).
+  unfold fnsems_scopes, map_snd in *.
+  rewrite alist_find_map in H.
+  unfold o_map in *. des_ifs.
   Qed.
   Next Obligation. i. destruct ms. s. eauto. Qed.
   Next Obligation. i. destruct ms. eauto. Qed.
