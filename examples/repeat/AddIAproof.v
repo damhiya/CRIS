@@ -3,7 +3,7 @@ Require Import CRIS.
 Require Import Imp.
 Require Import AddHeader AddI AddA.
 Require Import RepeatHeader RepeatA.
-Require Import APCHeader APC APCA.
+Require Import APCHeader APC APCA APCTactics.
 
 Set Implicit Arguments.
 
@@ -47,14 +47,6 @@ Module AddIA. Section AddIA.
   Tactic Notation "fspec_simpl" := _fspec_simpl_core.
   Tactic Notation "fspec_simpl" constr(p) := try (depdes p); _fspec_simpl_core.
 
-  (* auxiliary fn_has_spec-related lemma *)
-  Lemma fn_has_spec_trivial :
-    ∀ Spc fn fsp,
-        Spc fn = Some fsp → fn_has_spec Spc fn fsp.
-  Proof.
-    ii. do 2 (econs; et). by split; r; iIntros; iModIntro.
-  Qed.
-
   (* helper lemma for simF_add proof *)
   Lemma _add_succ_repeat_fun:
     ∀ n m, add_fun (Z.of_nat n) m = RepeatAS.repeat_fun succ_fun n m.
@@ -83,12 +75,13 @@ Module AddIA. Section AddIA.
     (* TGT: steps tgt *)
     steps_r.
 
-    (* SRC: unfold APC to skip *)
+    (* SRC: unfold APC *)
     force_l. iSplit. { iPureIntro. apply SpcPureInSpc. apply APCInSpcPure. unfold APCA.Spc. unseal CRIS. et. }
-    steps_l. forces_l. iSplit; et. steps_l.
-    inline_l. steps_l. iDestruct "ASM" as "%". hss.
-    steps_l. unfold APC. force_l. steps_l. rewrite unfold_APC. force_l true. steps_l.
-    forces_l. iSplit; et. steps_l. forces_l. iSplit; et. steps_l.
+    steps_l. forces_l. iSplit; et. inline_l. steps_l. iDestruct "ASM" as "%". hss.
+    steps_l. unfold APC. force_l. steps_l.
+
+    (* SRC: change to skip *)
+    apc_l. steps_l. forces_l. iSplit; et. steps_l. forces_l. iSplit; et.
 
     (* prove the IST *)
     step. by iSplit.
@@ -115,41 +108,31 @@ Module AddIA. Section AddIA.
     (* TGT: handle input *)
     steps_r. rewrite FIND. hss. steps_r.
 
-    (* SRC: unfold APC for repeat *)
+    (* SRC: unfold APC *)
     force_l. iSplit. { iPureIntro. apply SpcPureInSpc. apply APCInSpcPure. unfold APCA.Spc. unseal CRIS. et. }
     steps_l. forces_l. iSplit; et. steps_l.
     inline_l. steps_l. iDestruct "ASM" as "%". hss.
-    steps_l. unfold APC. force_l 1. steps_l. rewrite unfold_APC. force_l false. steps_l. force_l 0. steps_l.
-    assert (LT: (0 < 1)%ord). { apply OrdArith.lt_from_nat; lia. }
-    force_l LT. steps_l. force_l RepeatName.repeat. steps_l. force_l (Ord.omega + (Z.to_nat n))%ord. steps_l.
-    assert (PO: is_Some (SpcPure RepeatName.repeat) ∧ ((Ord.omega + (Z.to_nat n)) < q)%ord). { split; et. eapply Ord.lt_le_lt; et. apply OrdArith.lt_add_r. apply OrdArith.lt_from_nat. lia. }
-    unfold guarantee.
-    force_l PO. steps_l. force_l. iSplit; et. steps_l.
+    steps_l. unfold APC. force_l 1. steps_l.
 
-    (* SRC: prove the precond of repeat *)
-    pose proof (fn_has_spec_trivial SpcPure _ repeatInSpcPure) as Hrepeat_has_spec. inv Hrepeat_has_spec.
-    specialize (WEAK my_tid (Z.to_nat n, m, succ_fun)). des.
-    force_l x_tgt. force_l ([Vptr blk 0; Vint n; Vint m] ↑).
-    iPoseProof ((PRE (Ord.omega + Z.to_nat n)%ord↑ [Vptr blk 0; Vint n; Vint m]↑) with "[]") as ">PRE".
-    { iPureIntro. split.
+    (* call apc with repeat *)
+    apc_call "IST"; et.
+    { instantiate (1 := 0). apply OrdArith.lt_from_nat; lia. }
+    { eapply Ord.lt_le_lt; et. apply OrdArith.lt_add_r. instantiate (1:= (Z.to_nat n)). apply OrdArith.lt_from_nat. lia. }
+    { unfold precond. ss. iFrame. instantiate (1 := (Z.to_nat n, m, succ_fun)). iPureIntro. split.
       - exists AddName.succ, blk. rewrite Z2Nat.id; et. hrepeat split; et. unfold_intrange_64; des_ifs_safe; hrepeat destruct Z_le_gt_dec; ss; try lia.
         (* succ has sufficient spec *)
         econs; et. unfold succ_spec, fspec_weaker. fspec_simpl.
         ii. exists x_src. split; r; ii; iIntros; iModIntro; hss.
         iPureIntro. split; ss. exists vo. split; et. eapply Ord.le_trans; et. apply Ord.lt_le. apply Ord.omega_upperbound.
       - exists (Ord.omega + (Z.to_nat n))%ord. split; et. apply Ord.le_refl. }
-    force_l. iSplitL "PRE"; et. steps_l.
+    unfold postcond. ss.
+    iDestruct "ISTPOST" as "[IST %]". subst.
 
-    (* make a call to repeat *)
-    call "IST"; et.
-
-    (* SRC: handle the postcond of repeat *)
-    steps_l. iMod ((POST q0 vret) with "ASM") as "%". hss.
+    (* TGT: steps tgt *)
     steps_r. hss. steps_r.
 
-    (* SRC: unfold APC to skip *)
-    rewrite unfold_APC. force_l true. steps_l. 
-    force_l. force_l. iSplit; et. steps_l. forces_l. iSplit; et. steps_l.
+    (* SRC: change to skip *)
+    apc_l. steps_l. forces_l. iSplit; et. steps_l. forces_l. iSplit; et.
 
     (* prove the IST *)
     step. iSplit; et. 

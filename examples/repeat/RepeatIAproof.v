@@ -1,7 +1,7 @@
 Require Import CRIS.
 
 Require Import RepeatHeader RepeatI RepeatA.
-Require Import APCHeader APC APCA.
+Require Import APCHeader APC APCA APCTactics.
 
 Set Implicit Arguments.
 
@@ -23,7 +23,7 @@ Module RepeatIA. Section RepeatIA.
   Hypothesis repeatInSpcPure: SpcPure RepeatName.repeat = Some (RepeatAS.repeat_spec SpcPureFun genv). (* to avoid recursive definition of SpcPure *)
 
   (* Modules *)
-  Local Notation APCA := (APCA.t ginv Spc SpcPure).
+  Local Notation APCA := (APCA.t ginv SpcPure Spc).
   Local Notation RepeatI := (RepeatI.t genv).
   Local Notation RepeatA := (RepeatA.t ginv genv Spc SpcPureFun).
   Local Notation RepeatIMod := (RepeatI ★ APCA).
@@ -40,12 +40,12 @@ Module RepeatIA. Section RepeatIA.
   Tactic Notation "fspec_simpl" constr(p) := try (depdes p); _fspec_simpl_core.
 
   (* auxiliary fn_has_spec-related lemma *)
-  Lemma fn_has_spec_trivial :
+  (* Lemma fn_has_spec_trivial :
     ∀ Spc fn fsp,
         Spc fn = Some fsp → fn_has_spec Spc fn fsp.
   Proof.
     ii. do 2 (econs; et). by split; r; iIntros; iModIntro.
-  Qed.
+  Qed. *)
 
   Lemma simF_repeat : HSim.sim_fun open RepeatAMod RepeatIMod IstFull RepeatName.repeat.
   Proof.
@@ -67,81 +67,55 @@ Module RepeatIA. Section RepeatIA.
       (* TGT: steps tgt *)
       hss. steps_r.
 
-      (* SRC: unfold APC to skip *)
+      (* SRC: unfold APC *)
       forces_l. iSplit. { iPureIntro. apply SpcPureInSpc. apply APCInSpcPure. unfold APCA.Spc. unseal CRIS. et. }
-      steps_l. forces_l. iSplit; et. steps_l.
-      inline_l. steps_l. iDestruct "ASM" as "%". hss.
-      steps_l. unfold APC. force_l. steps_l. rewrite unfold_APC. force_l true. steps_l.
-      forces_l. iSplit; et. steps_l. forces_l. iSplit; et. steps_l.
+      steps_l. forces_l. iSplit; et. inline_l. steps_l. iDestruct "ASM" as "%". hss.
+      steps_l. unfold APC. force_l. steps_l.
+
+      (* SRC: change to skip *)
+      apc_l. steps_l. forces_l. iSplit; et. steps_l. forces_l. iSplit; et.
 
       (* prove the IST *)
       step. by iSplit.
     }
 
-    (* n is S n' *)
+    (* CASE: n is S n' *)
     {
       (* TGT: load fn from function pointer *)
       destruct (Z_lt_le_dec (S n') 1) eqn:E; try lia.
       rewrite H2. hss. steps_r.
 
-      (* SRC: unfold APC for fn *)
+      (* SRC: unfold APC *)
       force_l. iSplit. { iPureIntro. apply SpcPureInSpc. apply APCInSpcPure. unfold APCA.Spc. unseal CRIS. et. }
       steps_l. fspec_simpl. forces_l. iSplit; et. steps_l.
       inline_l. fspec_simpl. steps_l. iDestruct "ASM" as "%". hss.
-      steps_l. unfold APC. force_l 2. steps_l. rewrite unfold_APC. force_l false. steps_l. force_l 1. steps_l.
-      assert (LT: (1 < 2)%ord). { apply OrdArith.lt_from_nat; lia. }
-      force_l LT. steps_l. force_l fn. steps_l. force_l (OrdArith.add Ord.omega (n':nat)%ord). steps_l.
-      assert (PO: is_Some (Spc fn) ∧ ((Ord.omega + n') < q)%ord). { split; et. eapply Ord.lt_le_lt; et. apply OrdArith.lt_add_r. apply OrdArith.lt_from_nat. lia. }
-      unfold guarantee.
-      force_l PO. steps_l. force_l. iSplit; et. steps_l. 
+      steps_l. unfold APC. force_l 2. steps_l.
 
-      (* SRC: prove the precond of fn *)
-      specialize (WEAK my_tid x). des. fspec_simpl fsp1.
-      force_l x_tgt. force_l ([Vint x]↑).
-      iPoseProof ((PRE (OrdArith.add Ord.omega (n':nat)%ord)↑ [Vint x]↑) with "[]") as ">PRE".
-      { iSplit; et. iExists (OrdArith.add Ord.omega (n':nat)%ord). iSplit; et. iPureIntro. apply OrdArith.add_base_l. }
-      force_l. iSplitR "IST"; et. steps_l.
+      (* call apc with fn *)
+      apc_call_weaker "IST"; et.
+      { instantiate (1:= 1%ord). apply OrdArith.lt_from_nat. lia. }
+      { eapply Ord.lt_le_lt; et. apply OrdArith.lt_add_r. instantiate (1:=n'). apply OrdArith.lt_from_nat. lia. }
+      { unfold precond. ss. do 2 (iSplit; et). iExists (Ord.omega + n')%ord. iSplit; et. iPureIntro. apply OrdArith.add_base_l. }
+      iDestruct "ISTPOST" as "[IST %]". unfold postcond. subst.
 
-      (* make a call to fn *)
-      call "IST"; et.
+      (* TGT: steps tgt *)
+      steps_r. hss. steps_r. assert (S n' - 1 = n')%Z as -> by lia.
 
-      (* SRC: handle the postcond of fn *)
-      steps_l.
-      iPoseProof ((POST q0 vret) with "ASM") as ">%". hss.
+      (* call apc with repeat *)
+      apc_call "IST"; et.
+      { instantiate (1 := 0%ord). apply OrdArith.lt_from_nat; lia. }
+      { eapply Ord.lt_le_lt; et. apply OrdArith.lt_add_r. instantiate (1:= n'). apply OrdArith.lt_from_nat; lia. }
+      { unfold precond. ss. iFrame. instantiate (1:= (n', (f_sem x), f_sem)). iPureIntro. split.
+        - exists fn, fptr. hrepeat split; et. unfold_intrange_64; des_ifs_safe; hrepeat destruct Z_le_gt_dec; ss; try lia.
+        - exists (Ord.omega + n')%ord. split; et. apply Ord.le_refl. }
+      unfold postcond. ss.
+      iDestruct "ISTPOST" as "[IST %]". subst.
 
       (* TGT: steps tgt *)
       steps_r. hss. steps_r.
 
-      (* SRC: unfold APC for repeat *)
-      rewrite unfold_APC. force_l false. steps_l. force_l 0. steps_l. 
-      assert (LT': (0 < 1)%ord). { apply OrdArith.lt_from_nat; lia. }
-      force_l LT'. steps_l. force_l RepeatName.repeat. steps_l. force_l (OrdArith.add Ord.omega (n':nat)%ord). steps_l.
-      assert (PO': is_Some (Spc RepeatName.repeat) ∧ ((Ord.omega + n') < q)%ord); et.
-      unfold guarantee.
-      force_l PO'. steps_l. force_l. iSplit; et. steps_l.
-
-      (* SRC: prove the precond of repeat *)
-      pose proof (fn_has_spec_trivial _ _ repeatInSpcPure) as Hrepeat_has_spec. inv Hrepeat_has_spec.
-      specialize (WEAK my_tid (n', (f_sem x), f_sem)). des.
-      force_l x_tgt0. force_l ([Vptr fptr 0; Vint n'; Vint (f_sem x)] ↑).
-      iPoseProof ((PRE0 (OrdArith.add Ord.omega (n':nat)%ord)↑ [Vptr fptr 0; Vint n'; Vint (f_sem x)]↑) with "[]") as ">PRE".
-      { iPureIntro. split.
-        - exists fn, fptr. hrepeat split; et. unfold_intrange_64; des_ifs_safe; hrepeat destruct Z_le_gt_dec; ss; try lia.
-        - exists (Ord.omega + n')%ord. split; et. apply Ord.le_refl. }
-      force_l. iSplitL "PRE"; et.
-
-      (* make a call to repeat *)
-      assert (S n' - 1 = n')%Z as -> by lia.
-      steps_l.
-      call "IST"; et.
-
-      (* SRC: handle the postcond of repeat *)
-      steps_l. iMod ((POST0 q1 vret) with "ASM") as "%". hss.
-      steps_r. hss. steps_r.
-
-      (* SRC: unfold APC to skip *)
-      rewrite unfold_APC. force_l true. steps_l.
-      forces_l. iSplit; et. steps_l. forces_l. iSplit; et. steps_l.
+      (* SRC: change to skip *)
+      apc_l. steps_l. forces_l. iSplit; et. steps_l. forces_l. iSplit; et.
 
       (* prove the IST *)
       step. by iSplit.

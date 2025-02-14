@@ -1,7 +1,7 @@
 Require Import CRIS.
 
 Require Import KnotHeader KnotMainHeader KnotMainI KnotMainA KnotA KnotI KnotIAproof.
-Require Import APCHeader APC APCA.
+Require Import APCHeader APC APCA APCTactics.
 
 Set Implicit Arguments.
 
@@ -57,9 +57,10 @@ Module KnotMainIA. Section KnotMainIA.
       steps_r. steps_l. forces_l. iSplitR; et. steps_l.
       inline_l. steps_l.
       iDestruct "ASM" as "%"; des; subst; hss. steps_l.
-      unfold apc_body, APC. force_l 0. steps_l. rewrite unfold_APC.
-      force_l true. steps_l. forces_l. iSplitR; et. steps_l.
-      forces_l. iSplitL "INV"; iFrame; et. steps_l.
+      unfold apc_body, APC. force_l 0. steps_l. 
+      (* SRC: change to skip *)
+      apc_l. steps_l. forces_l. iSplitR; et. steps_l.
+      forces_l. iSplitL "INV"; iFrame; et.
       assert (q1 >= 0)%Z by nia. assert (q1 = 1 \/ q1 = 0) by nia. assert (Z.of_nat (Fib q1) = 1)%Z.
       { des; subst; reflexivity. }
       rewrite H3. step. iSplit; et.
@@ -71,61 +72,33 @@ Module KnotMainIA. Section KnotMainIA.
       force_l 2. steps_l.
       
       (* first call - rec(n - 1) *)
-      rewrite unfold_APC. force_l false. steps_l.
-      force_l 1. steps_l. assert (LT: (1 < 2)%ord).
-      { apply OrdArith.lt_from_nat. ss. } force_l LT. steps_l.
-      inv SPEC. unfold fspec_weaker, mrec_spec in WEAK; ss.
-      dup WEAK. specialize (WEAK my_tid (q1 - 1)). des.
-      force_l fn. steps_l. force_l (2 * (q1 - 1) + 1)%ord. steps_l.
-      assert (PO: is_Some (SpcPure fn) ∧ (2 * (q1 - 1) + 1 < q)%ord).
-      { split; et.
-        eapply Ord.lt_le_lt; [|et]. rewrite -!OrdArith.mult_from_nat -OrdArith.add_from_nat. apply OrdArith.lt_from_nat. nia. }
-      unfold guarantee.
-      force_l PO. unfold is_Some in PO; des. steps_l. force_l. iSplitR.
-      { iPureIntro. apply PureInGlobal. et. }
-      steps_l. apply RecInSpcPure in FIND. rewrite PO in FIND. inv FIND.
-      force_l x_tgt. force_l ([Vint (q1 - 1)]↑).
-      unfold mrec_spec, fspec_apc, precond, postcond in *; ss.
-      specialize (PRE (2 * (q1 - 1) + 1)%ord↑ [Vint (q1 - 1)]↑). iPoseProof (PRE with "[INV]") as ">PRE".
-      { iFrame. iSplit; et. iSplit; et.
-        { iPureIntro. repeat f_equal. nia. }
-        { iPureIntro. unfold intrange_64 in *.
-          bsimpl; des; split; des_sumbool; repeat destruct Z_le_gt_dec; unfold min_64, max_64, modulus_64_half in *; try nia; ss. }
-        { iPureIntro. eexists; esplits; et. refl. } }
-      force_l. iSplitL "PRE"; et. steps_l.
-      call "IST"; et. steps_r. steps_l.
-      specialize (POST q0 vret). iPoseProof (POST with "[ASM]") as ">POST"; iFrame.
-      iDestruct "POST" as "[% INV]". subst; hss. steps_r.
+      dup SPEC. inv SPEC.
+      apc_call_weaker "IST INV"; et.
+      { instantiate (1 := 1). apply OrdArith.lt_from_nat. ss. }
+      { instantiate (1 := (2 * (q1 - 1) + 1)%ord). eapply Ord.lt_le_lt; [|et]. rewrite -!OrdArith.mult_from_nat -OrdArith.add_from_nat. apply OrdArith.lt_from_nat. nia. }
+      { unfold precond. ss. instantiate (1:= (q1 - 1) ). iFrame. iSplit; et. iSplit; et.
+        - iPureIntro. repeat f_equal. nia.
+        - iPureIntro. unfold intrange_64 in *.
+          bsimpl; des; split; des_sumbool; repeat destruct Z_le_gt_dec; unfold min_64, max_64, modulus_64_half in *; try nia; ss.
+        - iPureIntro. eexists; esplits; et. refl. 
+      }
+      iDestruct "ISTPOST" as "[IST [% INV]]". subst. steps_r. hss. steps_r.
 
       (* second call - rec(n - 2) *)
-      rewrite unfold_APC. force_l false. steps_l.
-      force_l 0. steps_l. assert (LT1: (0 < 1)%ord).
-      { apply OrdArith.lt_from_nat. ss. } force_l LT1. steps_l.
-      unfold fspec_weaker, mrec_spec in WEAK0; ss.
-      specialize (WEAK0 my_tid (q1 - 2)). des.
-      force_l fn. steps_l. force_l (2 * (q1 - 1))%ord. steps_l.
-      assert (PO2: is_Some (SpcPure fn) ∧ (2 * (q1 - 1) < q)%ord).
-      { split; et. eapply Ord.lt_le_lt; [|et].
-        rewrite -!OrdArith.mult_from_nat. eapply OrdArith.lt_from_nat. nia. }
-      unfold guarantee.
-      force_l PO2. des. steps_l. force_l. iSplitR.
-      { iPureIntro. apply PureInGlobal. et. }
-      steps_l. force_l x_tgt0. force_l ([Vint (q1 - 2)]↑).
-      unfold mrec_spec, fspec_apc, precond, postcond in *; ss.
-      specialize (PRE0 (2 * (q1 - 1))%ord↑ [Vint (q1 - 2)]↑). iPoseProof (PRE0 with "[INV]") as ">PRE".
-      { iFrame. iSplit; et. iSplit; et.
-        { iPureIntro. repeat f_equal. nia. }
-        { iPureIntro. unfold intrange_64 in *.
-          bsimpl; des; split; des_sumbool; repeat destruct Z_le_gt_dec; unfold min_64, max_64, modulus_64_half in *; try nia; ss. }
-        { iPureIntro. eexists; esplits; et. rewrite -!OrdArith.mult_from_nat -OrdArith.add_from_nat. eapply OrdArith.le_from_nat. nia. } }
-      force_l. iSplitL "PRE"; et. steps_l.
-      call "IST"; et. steps_r. steps_l.
-      specialize (POST0 q3 vret). iPoseProof (POST0 with "[ASM]") as ">POST"; iFrame.
-      iDestruct "POST" as "[% INV]". subst; hss. steps_r.
+      apc_call_weaker "IST INV"; et.
+      { instantiate (1:=0). apply OrdArith.lt_from_nat. ss. }
+      { instantiate (1 := (2 * (q1 - 1))%ord). eapply Ord.lt_le_lt; [|et]. rewrite -!OrdArith.mult_from_nat. eapply OrdArith.lt_from_nat. nia. }
+      { iFrame. instantiate (1:= (q1 - 2)). iSplit; et. iSplit; et.
+        - iPureIntro. repeat f_equal. nia.
+        - iPureIntro. unfold intrange_64 in *.
+          bsimpl; des; split; des_sumbool; repeat destruct Z_le_gt_dec; unfold min_64, max_64, modulus_64_half in *; try nia; ss.
+        - iPureIntro. eexists; esplits; et. rewrite -!OrdArith.mult_from_nat -OrdArith.add_from_nat. eapply OrdArith.le_from_nat. nia.
+      }
+      iDestruct "ISTPOST" as "[IST [% INV]]". subst. steps_r. hss. steps_r.
 
-      (* stop APC *)
-      rewrite unfold_APC. force_l true. steps_l. forces_l. iSplitR; et.
-      steps_l. forces_l. iSplitL "INV"; et. steps_l. step. iSplit; et.
+      apc_l. steps_l. forces_l. iSplit; et. steps_l. forces_l. iFrame. iSplit; et.
+
+      step. iSplit; et.
       iPureIntro. repeat f_equal. rewrite unfold_fib; nia.
     }
     Unshelve. all: ss. exact (0↑).
@@ -168,29 +141,21 @@ Module KnotMainIA. Section KnotMainIA.
       }
     }
     steps_r. iDestruct "GRT" as "[[% FG] %]"; des; subst; hss. steps_r. inv H3.
-    force_r. iSplitR; et. unfold pure. steps_l.
+    force_r. iSplitR; et. steps_r. unfold pure. steps_l.
     force_l 30%ord. steps_l. inv SPEC. force_l.
     forces_l. iSplitR; et. steps_l.
     inline_l. steps_l. iDestruct "ASM" as "%"; des; subst; hss. steps_l. unfold apc_body, APC.
-    force_l 1. steps_l. rewrite unfold_APC. force_l false. steps_l. force_l 0. steps_l.
-    assert (LT: (0 < 1)%ord). { eapply OrdArith.lt_from_nat; et. } force_l LT. steps_l.
-    force_l fn. steps_l. force_l 29. steps_l.
-    assert (PO: is_Some (SpcPure fn) ∧ (29 < 30)%ord).
-    { split; et. eapply OrdArith.lt_from_nat; nia. }
-    unfold guarantee.
-    force_l PO. steps_l. unfold is_Some in PO; des.
-    force_l. iSplitR. { iPureIntro. apply PureInGlobal. et. }
-    steps_l. apply RecInSpcPure in FIND0. rewrite FIND0 in PO. inv PO.
-    unfold fspec_weaker in WEAK. unfold rec_spec, fspec_apc in WEAK.
-    specialize (WEAK my_tid (Fib, 10)). unfold precond, postcond in WEAK. des; ss.
-    force_l x_tgt. force_l ([Vint 10]↑). specialize (PRE (Ord.from_nat 29)↑ ([Vint 10]↑)); ss.
-    iPoseProof (PRE with "[FG]") as ">PRE".
-    { iFrame. iSplit; et. iPureIntro. eexists; esplits; ss.
+    force_l 1. steps_l. 
+    
+    apc_call_weaker "IST FG"; et.
+    { instantiate (1:=0). eapply OrdArith.lt_from_nat; et. }
+    { instantiate (1:= 29). eapply OrdArith.lt_from_nat; nia. }
+    { unfold precond. ss. instantiate (1:=(Fib, 10)). iFrame. iSplit; et. iPureIntro. eexists; esplits; ss.
       rewrite -OrdArith.mult_from_nat -OrdArith.add_from_nat. apply OrdArith.le_from_nat; nia. }
-    force_l. iSplitL "PRE"; et. steps_l. steps_r. call "IST"; et. steps_l. rewrite unfold_APC.
-    force_l true. steps_l. steps_r. specialize (POST q vret). iPoseProof (POST with "[ASM]") as ">POST"; iFrame.
-    forces_l. iSplitR; et. unfold postcond, rec_spec, fspec_apc; ss. iDestruct "POST" as "[% FG]"; subst; hss.
-    steps_r. steps_l. forces_l. steps_l. forces_l. iSplitR; et. steps_l. step. iSplitR; et.
+    iDestruct "ISTPOST" as "[IST [% FG]]". subst. steps_r. hss. steps_r.
+
+    apc_l. steps_l. forces_l. iSplit; et. steps_l. force_l. steps_l. forces_l. iSplit; et.
+    step. iSplitR; et.
     Unshelve. all: ss.
   Qed.
 

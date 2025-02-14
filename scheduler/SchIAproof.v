@@ -150,8 +150,8 @@ Module SchIA. Section SchIA.
             ∧ <<THWF: ths_wf numths ths_tgt>>
             ∧ <<SIM: (∀ tid, sim_ths tid (alist_find tid ths_tgt) (ths_src_b tid) (ths_src_w tid) (ths_cond !! tid))>>
             ∧ <<NTHS: 0 < numths>>⌝
-          ∗ own base_γ (● ths_src_b)
-          ∗ own base_γ (◯ ths_src_w)
+          ∗ own base_γ (● ths_src_b : threadsRA)
+          ∗ own base_γ (◯ ths_src_w : threadsRA)
           ∗ ([∗ map] tid↦P ∈ ths_cond, P))%I.
 
   Local Notation SchAMod := (SchA.t univ Spc SpcFun).
@@ -293,8 +293,7 @@ Module SchIA. Section SchIA.
     forces_l. steps_l. forces_l. iSplitL "W"; et.
     call "IST"; et. steps_l.
     iDestruct "ASM" as "(W & % & %)". des; subst; hss. step_l. grind.
-    steps_r. hss. steps_r. 
-    rewrite SModRed.interp_tau. steps_l.
+    steps_r. hss. steps_r. steps_l.
     by_coind "CIH".
     iFrame.
     
@@ -308,7 +307,9 @@ Module SchIA. Section SchIA.
 
     steps_l. hss. destruct q2; ss.
     iDestruct "ASM" as "[W (% & % & (% & % & [% %] & %) & PRE)]"; des; subst; hss.
-    steps_r. force_l (my_tid, q7, q8, q6, q4, existT x m).
+    steps_r. steps_l. force_l. iSplitR.
+    { iPureIntro. apply SchInSpc. unfold spc. unseal CRIS; ss. }
+    steps_l. force_l (my_tid, q7, q8, q6, q4, existT x m).
     force_l ((my_tid, x, q7)↑). step. steps_r.
 
     iDestruct "IST" as (? ? ? ?) "(% & THB & THW & COND)". subst; hss. steps_r.

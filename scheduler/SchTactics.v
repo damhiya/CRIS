@@ -270,7 +270,7 @@ Section MACROAUX.
 
 End MACROAUX.
 
-Ltac _prep_macro_l :=
+Local Ltac _prep_macro_l :=
   prep; match goal with
   | [|- context[interp_smod _ _ (Sch.spawn _ >>= _)]] =>
       rewrite// [in (interp_smod _ _ (Sch.spawn _ >>= _))] SModRed.interp_bind; _prep_macro_l
@@ -286,7 +286,7 @@ Ltac _prep_macro_l :=
       rewrite// [in HMod.sandbox _ (interp_smod _ _ (Sch.join _ _) >>= _)] HModSB.transl_bind
   end; prep.
 
-Ltac _prep_macro_r :=
+Local Ltac _prep_macro_r :=
   prep; match goal with
   | [|- context[PMod.interp (Sch.spawn _ >>= _)]] =>
       rewrite// [in (PMod.interp (Sch.spawn _ >>= _))] PModRed.interp_bind; _prep_macro_r
@@ -302,7 +302,7 @@ Ltac _prep_macro_r :=
       rewrite// [in HMod.sandbox _ (PMod.interp (Sch.join _ _) >>= _)] HModSB.transl_bind
   end; prep.
 
-Ltac prep_macro :=
+Local Ltac prep_macro :=
   let marker := fresh "MARKER" in
   hide_itree_r marker; try _prep_macro_l; show_itree marker;
   hide_itree_l marker; try _prep_macro_r; show_itree marker.
@@ -311,27 +311,27 @@ Ltac yield_r hyps :=
   prep_macro;
   first [
     iApply isim_myield_tgt_hp; des_pairs; s;
-    [|iSplitL hyps; [|iIntros "% % %"; iIntrosFresh "[IST W]"]] |
+    [|iSplitL hyps; [|iIntros "% % %"; iIntros "[IST W]"]] |
     iApply isim_myield_tgt_hh; des_pairs; s;
-    [|iSplitL hyps; [|iIntros "% % %"; iIntrosFresh "IST"]]].
+    [|iSplitL hyps; [|iIntros "% % %"; iIntros "IST"]]].
 
 Ltac yield_l hyps :=
   prep_macro;
   iApply isim_myield_src; des_pairs; s;
-  [|iSplitL hyps; [ |iIntros "% % %"; iIntrosFresh "[IST W]"]].
+  [|iSplitL hyps; [ |iIntros "% % %"; iIntros "[IST W]"]].
 
 Ltac spawn hyps :=
   prep_macro;
   first [
     iApply isim_mspawn_hp; des_pairs; s;
-    [| | |iSplitL hyps; [|iIntros "% % % %"; iIntrosFresh "[IST [W TKN]]"]] |
+    [| | |iSplitL hyps; [|iIntros "% % % %"; iIntros "[IST [W TKN]]"]] |
     iApply isim_mspawn_hh; des_pairs; s;
-    [| | |iSplitL hyps; [|iIntros "% % % %"; iIntrosFresh "IST"]]].
+    [| | |iSplitL hyps; [|iIntros "% % % %"; iIntros "IST"]]].
 
 Ltac join hyps :=
   prep_macro;
   first [
     iApply isim_mjoin_hp; des_pairs; s;
-    [|iSplitL hyps; [|iIntros "% % % %"; iIntrosFresh "[IST [W POST]]"]] |
+    [|iSplitL hyps; [|iIntros "% % % %"; iIntros "[IST [W POST]]"]] |
     iApply isim_mjoin_hh; des_pairs; s;
-    [| |iSplitL hyps; [|iIntros "% % % %"; iIntrosFresh "IST"]]].
+    [| |iSplitL hyps; [|iIntros "% % % %"; iIntros "IST"]]].
