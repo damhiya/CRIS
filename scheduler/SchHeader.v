@@ -16,7 +16,6 @@ Section FSpec.
   Notation iProp := (iProp Σ).
 
   Variable univ: positive.
-  Variable genv: GEnv.t.
   Variable StbFun: string → option fspec.
 
   (* fspec wrapping functions - TODO: move them to a proper file *)
