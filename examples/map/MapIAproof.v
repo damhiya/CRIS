@@ -36,8 +36,8 @@ Module w_MapIA. Section w_MapIA.
   Theorem correct gi (SpcMap : univ_id → string → option fspec) (SpcMem : string → option fspec)
       (MapInSpcMap : ∀ υ, spc_incl (MapAS.Spc υ n) (SpcMap υ)) :
     w_ctx_refines
-      (λ υ, ((MapA.t υ n gi (SpcMap υ))  ★ (MemA.t gi SpcMem), (MapA.InitCond ∗ MapM.InitCond)%I))
-      (λ _, ((MapI.t)                    ★ (MemA.t gi SpcMem), emp%I)).
+      ((λ υ, (MapA.t υ n gi (SpcMap υ)) ★ (MemA.t gi SpcMem)), (MapA.InitCond ∗ MapM.InitCond)%I)
+      ((λ _, (MapI.t)                   ★ (MemA.t gi SpcMem)), emp%I).
   Proof.
     etrans; cycle 1.
     { eapply MapIMproof.wctxr.
@@ -46,7 +46,11 @@ Module w_MapIA. Section w_MapIA.
     }
     etrans; cycle 1.
     { eapply w_ctx_refines_frameR.
-      instantiate (1:=(λ υ, emp%I ∗ MapM.InitCond)%I).
+      rewrite -(hmod_addc_empty_l _ MapM.InitCond).
+      etrans; first eapply wctxr.
+      {  }
+      rewrite -[MapM.InitCond]/(MapM.InitCond ∗ emp)%I.
+      instantiate (1:=(emp%I ∗ MapM.InitCond)%I).
       eapply w_ctx_refines_cond_frameR.
       (* rewrite -(hmod_addc_empty_l _ MapM.InitCond). *)
       eapply ctxr_cond_frameR, main_adequacy, MapMA.sim; eauto.

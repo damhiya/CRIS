@@ -166,7 +166,7 @@ Module MapMA. Section MapMA.
     w_step. eauto.
   Qed.
 
-  Theorem sim : HSim.t open MapA MapM MapA.InitCond Ist.
+  Lemma sim : HSim.t open MapA MapM MapA.InitCond Ist.
   Proof.
     init_sim.
     - iIntros "(IST & P)"; s.
@@ -177,18 +177,17 @@ Module MapMA. Section MapMA.
     - apply simF_set_by_user; eauto.
   Qed.
 End MapMA. End MapMA.
-(* 
+
 Section wctxr.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !MapAGΓ Γ, !MapMGΓ Γ, !memGΓ Γ}.
   Lemma wctxr n Spc_s Spc_t ginv_t ginv_s
       (MapInSpcS : ∀ υ, spc_incl (MapAS.Spc υ n) (Spc_s υ))
       (MapInSpcT : ∀ υ, spc_incl (MapMS.Spc υ n) (Spc_t υ)) :
     w_ctx_refines
-      (λ υ, ((MapA.t υ n ginv_s (Spc_s υ)), MapA.InitCond))
-      (λ ν, (MapM.t ν n ginv_t (Spc_t ν), emp%I)).
+      ((λ υ, MapA.t υ n ginv_s (Spc_s υ)), MapA.InitCond)
+      ((λ ν, MapM.t ν n ginv_t (Spc_t ν)), emp%I).
   Proof.
-    exists 1; move => u v Huv; eapply main_adequacy with (Ist := MapMA.Ist).
-    assert (ModRel u v). { r. lia. }
-    eapply MapMA.sim; eauto.
+    exists 1%positive; intros u v Huv; eapply main_adequacy, MapMA.sim; eauto.
+    Unshelve. r; lia.
   Qed.
-End wctxr. *)
+End wctxr.
