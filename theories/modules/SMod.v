@@ -100,7 +100,7 @@ Section SMOD.
 End SMOD.
 End SMod.
 
-Infix "☆" := SMod.add (at level 9, right associativity).
+Infix "☆" := SMod.add (at level 60, right associativity).
 
 Section ADD.
   Context `{Σ : GRA}.

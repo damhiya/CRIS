@@ -61,12 +61,8 @@ Qed.
 Module MapIM. Section MapIM.
   Import MapMS.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !MapMGΓ Γ, !memGΓ Γ}.
-  Notation iProp := (iProp Σ).
 
-  (* Context (n : level).
-  Definition a : SRFSyn.t n := (∃ b : τ{⇣ Any.t}, ⌜b = b⌝)%SRF. *)
-
-  Definition Ist : nat → alist key Any.t → alist key Any.t → iProp :=
+  Definition Ist : nat → alist key Any.t → alist key Any.t → iProp Σ :=
     (λ _ st_src st_tgt,
       ⌜st_src = [(MapM.v_size, 0%Z↑); (MapM.v_map, (λ _ : Z, 0%Z)↑)]
         ∧ st_tgt = [(MapI.v_hptr, Vnullptr↑)]⌝
@@ -76,24 +72,29 @@ Module MapIM. Section MapIM.
             ∧ st_tgt = [(MapI.v_hptr,(Vptr blk ofs)↑)]⌝
           ∗ (blk, ofs) |-> (fun_to_list f (Z.to_nat sz)))%I.
 
-  Context (υ : univ_id) (n : level) (ginv : invspec).
-  Context (SpcMap SpcMem : string → option fspec).
-  Hypothesis MapInSpcMap : spc_incl (MapMS.Spc υ n) SpcMap.
+  (* 1) universe ids of src/tgt modules *)
+  Context (u_MapM u_MapI : univ_id).
+  (* 2) stratification levels in the proof *)
+  Context (n : level).
+  (* 3) global invariant of the source module *)
+  Context (ginv : invspec).
+  (* 4) Spcs of src/tgt modules *)
+  Context (Spc_MapM Spc_Mem : string → option fspec).
+  Context (MapInSpc_MapM : spc_incl (MapMS.Spc u_MapM n) Spc_MapM).
 
-  Local Notation MemA := (MemA.t ginv SpcMem).
-  Local Notation MapM := (MapM.t υ n ginv SpcMap).
+  Local Notation MemA := (MemA.t ginv Spc_Mem).
+  Local Notation MapM := (MapM.t u_MapM n ginv Spc_MapM).
   Local Notation MapMMod := (MapM ★ MemA).
   Local Notation MapIMod := (MapI.t ★ MemA).
   Local Notation IstFull := (IstProd (IstSB MapM.(HMod.scopes) Ist) IstEq).
 
   Lemma simF_init : HSim.sim_fun open MapMMod MapIMod IstFull MapName.init.
   Proof.
-    (* initialize wpsim *)
-    unshelve init_wpsim; first exact 1%positive.
+    init_wpsim u_MapM u_MapI n.
 
     (* preprocess given assumptions *)
-    iDestruct "ASM" as "[[[-> %] P] ->]". hss.
     w_steps_l.
+    iDestruct "ASM" as "[[[-> %] P] ->]". hss.
 
     (* SRC: handle the IST of Map and the precond of init *)
     iDestruct "IST" as (????) "([-> ->] & (% & [% | (P' & IST)]) & %)";
@@ -122,7 +123,7 @@ Module MapIM. Section MapIM.
     { rewrite Nat.sub_diag. eauto. }
     rewrite // -[X in ITree.iter _ X](Z.sub_diag (sz%Z)).
     iStopProof. cut (sz <= sz); [|lia].
-    generalize sz at 1 4 5 11. intros n'.
+    generalize sz at 1 4 5 10. intros n'.
     induction n'; i; iIntros "(PD & PTS)".
 
     (* Base case *)
@@ -133,7 +134,7 @@ Module MapIM. Section MapIM.
       w_step. repeat (iSplit; eauto).
       iExists [_;_], [_], _, _.
       repeat iSplit; eauto.
-      iRight. iFrame. iExists _, _, _, _. iSplitR; eauto.
+      iRight. iFrame. iExists _, _, _, _. iSplitR; eauto. inv G0.
       rewrite app_nil_r Nat.sub_0_r fun_to_list_repeat Nat2Z.id //=.
     }
 
@@ -183,17 +184,17 @@ Module MapIM. Section MapIM.
 
   Lemma simF_get : HSim.sim_fun open MapMMod MapIMod IstFull MapName.get.
   Proof.
-    init_wpsim.
+    init_wpsim u_MapM u_MapI n.
 
     (* SRC: handle the IST of Map and the precond of get *)
-    iDestruct "ASM" as "[-> ->]". hss.
     w_steps_l.
+    iDestruct "ASM" as "[-> ->]". hss.
     iDestruct "IST" as (? ? ? ?) "(%& (% & [%|(P & IST)]) &%)";
       [|iDestruct "IST" as (? ? ? ?) "(% & M)"];
       des; hss.
     { nia. }
-    rename q0 into sz.
-    rename q into idx.
+    inv G0.
+    rename q2 into idx.
     
     (* SRC: prove the postcond of get *)
     w_force_l. w_force_l. iSplitL "". { eauto. }
@@ -223,21 +224,21 @@ Module MapIM. Section MapIM.
     do 3 (iSplit; eauto).
     iRight. iFrame. iExists _, _, _, _. iSplit; eauto.
     iPoseProof ("M" with "GRT") as "M". iFrame.
-    Unshelve. exact 1%positive.
   Qed.
 
   Lemma simF_set : HSim.sim_fun open MapMMod MapIMod IstFull MapName.set.
   Proof.
-    init_wpsim.
-    destruct q as [k v]; s; iDestruct "ASM" as "[-> ->]".
+    init_wpsim u_MapM u_MapI n.
+
+    w_steps_l.
+    iDestruct "ASM" as "[-> ->]". hss. inv G0.
 
     (* SRC: handle the IST of Map and the precond of set *)
-    w_steps_l. hss. inv G0.
     iDestruct "IST" as (? ? ? ?) "(%& (% & [%|(P & IST)]) &%)";
       [|iDestruct "IST" as (? ? ? ?) "(% & M)"];
       des; hss.
     { nia. }
-    rename q1 into idx.
+    rename q4 into idx.
 
     (* TGT : compute the input to store *)
     w_steps_r. hss. w_steps_r.
@@ -269,16 +270,17 @@ Module MapIM. Section MapIM.
     iRight. iFrame. iExists _, _, _, _. iSplit; eauto.
     iPoseProof ("M" with "GRT") as "M".
     rewrite -> fun_to_list_update, Z2Nat.id; try nia. iFrame.
-    Unshelve. exact 1%positive.
   Qed.
 
   Lemma simF_set_by_user : HSim.sim_fun open MapMMod MapIMod IstFull MapName.set_by_user.
   Proof.
-    init_wpsim.
+    init_wpsim u_MapM u_MapI n.
+
+    w_steps_l.
     iDestruct "ASM" as "[-> ->]".
+    hss. inv G0. rename q2 into k.
 
     (* SRC: handle the IST of Map and the precond of set_by_user *)
-    hss. w_steps_l. rename q into k.
 
     (* process an input *)
     w_steps_r. w_step.
@@ -298,7 +300,6 @@ Module MapIM. Section MapIM.
 
     (* prove the IST of Map *)
     w_steps_r. hss. w_steps_r. w_step. eauto.
-    Unshelve. exact 1%positive.
   Qed.
 
   Lemma sim : HSim.t open MapMMod MapIMod MapM.InitCond IstFull.
@@ -314,13 +315,13 @@ Module MapIM. Section MapIM.
     - eapply simF_set; eauto.
     - eapply simF_set_by_user; eauto.
   Qed.
-End MapIM. End MapIM.
+  End MapIM.
 
-Section wctxr.
-  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !MapMGΓ Γ, !memGΓ Γ}.
-  Lemma wctxr n SpcMap SpcMem ginv (INCL : ∀ u, spc_incl (MapMS.Spc u n) (SpcMap u)) :
-    w_ctx_refines
-      ((λ υ, (MapM.t υ n ginv (SpcMap υ)) ★ (MemA.t ginv SpcMem)), MapM.InitCond)
-      ((λ _, MapI.t                       ★ (MemA.t ginv SpcMem)), emp%I).
-  Proof. exists 1%positive; intros u v Huv; eapply main_adequacy, MapIM.sim; eauto. Qed.
-End wctxr.
+  Section MapIM.
+    Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !MapMGΓ Γ, !memGΓ Γ}.
+    Lemma wctxr n Spc_MapM Spc_Mem ginv (INCL : ∀ u, spc_incl (MapMS.Spc u n) (Spc_MapM u)) :
+      w_ctx_refines
+        ((λ υ, (MapM.t υ n ginv (Spc_MapM υ)) ★ (MemA.t ginv Spc_Mem)), MapM.InitCond)
+        ((λ _, MapI.t                       ★ (MemA.t ginv Spc_Mem)), emp%I).
+    Proof. exists 1%positive; intros u v Huv; eapply main_adequacy, MapIM.sim; eauto. Qed.
+End MapIM. End MapIM.

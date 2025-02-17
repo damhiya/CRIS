@@ -45,9 +45,9 @@ Section CANCEL.
     - rewrite HModSB.transl_ret HIRed.ret. step. eauto.
     - rewrite HModSB.transl_tau HIRed.tau. steps_l. steps_r. by_coind "CIH". eauto.
     - rewrite HModSB.transl_bind HModSB.transl_ag HIRed.bind_ag. steps_l. force_r. iFrame. steps_r. by_coind "CIH". eauto.
-    - rewrite HModSB.transl_bind HModSB.transl_ag HIRed.bind_ag. steps_r. force_l. iFrame. by_coind "CIH". eauto.
+    - rewrite HModSB.transl_bind HModSB.transl_ag HIRed.bind_ag. steps_r. force_l. iFrame. steps_l. by_coind "CIH". eauto.
     - rewrite HModSB.transl_bind HModSB.transl_sch HIRed.bind_sch. depdes s.
-      + step. steps_r. by_coind "CIH". auto.
+      + step. steps_l. steps_r. by_coind "CIH". auto.
       + rewrite !HModSB.transl_bind !HModSB.transl_sch.
         iApply isim_yield. iFrame. iIntros (? ? ? ? ?) "IST".
         steps_r. by_coind "CIH". auto.
@@ -68,7 +68,7 @@ Section CANCEL.
       by_coind "CIH". auto.
     - depdes s.
       + rewrite !HModSB.transl_bind !HModSB.transl_put. des_ifs; cycle 1. 
-        { rewrite HIRed.bind_core. steps_r. force_l. instantiate (1:= q). by_coind "CIH". eauto. }
+        { rewrite HIRed.bind_core. steps_r. force_l. instantiate (1:= q). steps_l. by_coind "CIH". eauto. }
         rewrite HIRed.bind_pg HModSB.transl_bind HModSB.transl_put. des_ifs; cycle 1.
         { 
           exfalso. eapply existsb_exists in Heq. des. 
@@ -78,7 +78,7 @@ Section CANCEL.
         iApply isim_sput_src. iApply isim_sput_tgt.
         steps_r. by_coind "CIH". iDestruct "Ist" as "%". subst. eauto.
       + rewrite !HModSB.transl_bind !HModSB.transl_get. des_ifs; cycle 1.
-        { rewrite HIRed.bind_core. steps_r. force_l. instantiate (1:= q). by_coind "CIH". eauto. }
+        { rewrite HIRed.bind_core. steps_r. force_l. instantiate (1:= q). steps_l. by_coind "CIH". eauto. }
         rewrite HIRed.bind_pg HModSB.transl_bind HModSB.transl_get. des_ifs; cycle 1.
         { 
           exfalso. eapply existsb_exists in Heq. des. 
@@ -89,9 +89,9 @@ Section CANCEL.
         steps_r. iDestruct "Ist" as "%". subst. 
         by_coind "CIH". eauto.
     - rewrite HModSB.transl_bind HModSB.transl_core HIRed.bind_core. depdes e.
-      + steps_r. force_l. instantiate (1:= q). by_coind "CIH". eauto.
+      + steps_r. force_l. instantiate (1:= q). steps_l. by_coind "CIH". eauto.
       + steps_l. force_r. steps_r. instantiate (1:= q). by_coind "CIH". auto.
-      + step. steps_r. by_coind "CIH". auto.
+      + step. steps_l. steps_r. by_coind "CIH". auto.
     Unshelve. all: try refl; eauto.
     {
       assert(SCP0 := md.(HMod.well_scoped_fns) fn).

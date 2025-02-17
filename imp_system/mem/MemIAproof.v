@@ -270,6 +270,7 @@ Module MemIA. Section MemIA.
     { instantiate (1:= (Vptr blk 0) ↑). instantiate (1:= (Vptr blk 0) ↑). iSplitL; et.
       iExists blk. iSplitR; et. instantiate (1:=sz). instantiate (1:=pad).
       iPoseProof (points_to_transform with "WHT") as "WHT". iFrame. }
+    steps_l.
     step. iSplit; et.
     iExists st_srcL, [_], st_tgtR, st_tgtR. iSplit; et; iSplit; et.
     iSplit; et. iExists _, _. iFrame. esplits; et. iPureIntro. splits; et.
@@ -368,7 +369,7 @@ Module MemIA. Section MemIA.
     }
     iMod "P".
     
-    steps_r. force_l. steps_l. forces_l. iSplitR; et. 
+    steps_r. force_l. steps_l. forces_l. iSplitR; et. steps_l.
     step. iSplit; et.
   
     iFrame. iExists st_srcL, [_], st_tgtR, st_tgtR. iSplit; et. iSplit; et.
@@ -410,7 +411,7 @@ Module MemIA. Section MemIA.
     force_r; ss. unfold Mem.load.  iSplitR; et. des_ifs.  instantiate (1:=q4).
     unfold sim_loc in T. des_ifs; bsimpl; des; des_sumbool; Ztac. inv HIT. iris_tac. 
     inv HIT.  
-    steps_r. force_l. steps_l. forces_l. iSplitL "WHT"; iFrame; et.
+    steps_r. force_l. steps_l. forces_l. iSplitL "WHT"; iFrame; et. steps_l.
 
     step. iSplit; et.
     iFrame.  iExists _, [_], _, _. repeat iSplit; et.
@@ -517,6 +518,7 @@ Module MemIA. Section MemIA.
     steps_r. force_l. steps_l. forces_l. iSplitL "WHT"; et.
     { iSplitL; et. iSplitL; et. iPoseProof (points_to_transform with "WHT") as "WHT".
       ss. rewrite Z.add_0_r. iDestruct "WHT" as "[WHT _]"; et. }
+    steps_l.
     
     step.
     iSplit; et.
@@ -561,17 +563,16 @@ Module MemIA. Section MemIA.
         - destruct c. specialize (WF1 b ofs). rewrite WF in WF1. inv WF1; ss.
         - rewrite right_id in WF. eauto.
       }
-      des. hexploit (SIM b ofs). intro T.  unfold sim_loc in T. 
+      des. hexploit (SIM b ofs). intro T.  unfold sim_loc in T.
 
       des_ifs; bsimpl; des; des_sumbool; unfold Mem.valid_ptr, is_some in *; des_ifs.
-      force_r. iSplitR; et. hss.
-      iDestruct "P" as "[BLK WHT]". 
-
-      steps_r. force_l; steps_l; forces_l. iSplitL "WHT". iFrame; et.
-      step. iSplit; et.
-
-      { iFrame. iExists _, [_], _, _. repeat iSplit; et. }
-      inversion HIT.
+      - steps_r. force_l. steps_l. forces_l.
+        iDestruct "P" as "[P Q]".
+        iSplitL "Q".
+        { iFrame. iSplit; et. }
+        steps_l. step. iSplit; et.
+        { iFrame. iExists _, [_], _, _. repeat iSplit; et. }
+      - inversion HIT.
     }
 
     destruct x.
@@ -604,13 +605,11 @@ Module MemIA. Section MemIA.
       des. hexploit (SIM b ofs). intro T.  unfold sim_loc in T.
 
       des_ifs; bsimpl; des; des_sumbool; unfold Mem.valid_ptr, is_some in *; des_ifs.
-      force_r. iSplitR; et. hss.
-      iDestruct "P" as "[BLK WHT]".
-
-      steps_r. force_l; steps_l; forces_l. iSplitL "WHT"; iFrame; et.
-      step. iSplit; et.
-      { iFrame. iExists _, [_], _, _. repeat iSplit; et. }
-      inversion HIT.
+      - steps_r. force_l. steps_l. forces_l. iDestruct "P" as "[P Q]".
+        iSplitL "Q". { iFrame. iSplit; et. }
+        steps_l. step. iSplit; et.
+        { iFrame. iExists _, [_], _, _. repeat iSplit; et. }
+      - inversion HIT.
     }
 
     destruct x.
@@ -685,14 +684,14 @@ Module MemIA. Section MemIA.
       des. hexploit (SIM b ofs). intro T.  unfold sim_loc in T. 
 
       des_ifs; bsimpl; des; des_sumbool; unfold Mem.valid_ptr, is_some in *; des_ifs.
-      force_r. iSplitR; et. hss.
-      des_ifs; bsimpl; des; des_sumbool; Ztac; ss.
-      iDestruct "P" as "[BLK WHT]".
+      - steps_r. destruct dec; destruct dec; try congruence. steps_r.
+        iDestruct "P" as "[BLK WHT]".
 
-      steps_r. force_l; steps_l; forces_l. iSplitL "WHT"; iFrame; et.
-      step. iSplit; et.
-      { iFrame. iExists _, [_], _, _. repeat iSplit; et. }
-      inversion HIT. inversion HIT.
+        steps_r. force_l; steps_l; forces_l. iSplitL "WHT"; iFrame; et.
+        step. iSplit; et.
+        { iFrame. iExists _, [_], _, _. repeat iSplit; et. }
+      - inversion HIT.
+      - inversion HIT.
     }
 
     destruct x.
@@ -797,7 +796,7 @@ Module MemIA. Section MemIA.
       iMod "P".
 
       iDestruct "P" as "[BLK WHT]".
-      des_ifs. 
+      des_ifs. steps_r. destruct dec; try congruence. steps_r.
       force_r. iSplitR; et.
       { iPureIntro. unfold Mem.store. des_ifs. }
 
@@ -837,12 +836,11 @@ Module MemIA. Section MemIA.
       inv HIT. hss. inv HIT.
       iDestruct "P" as "[BLK WHT]".
       des_ifs.
-
-      steps_r. force_l. steps_l. forces_l. iSplitL "WHT"; iFrame; et.
-
-      step. iSplit; et.
-      { iFrame. iExists _, [_], _, _. repeat iSplit; et. }
-      inversion HIT.
+      - steps_r. destruct dec; try congruence. steps_r.
+        steps_l. force_l. steps_l. forces_l. iSplitL "WHT"; iFrame; et.
+        steps_l. step. iSplit; et.
+        { iFrame. iExists _, [_], _, _. repeat iSplit; et. }
+      - inversion HIT.
     }
   Qed.
 

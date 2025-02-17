@@ -109,11 +109,10 @@ Section wpsim.
   
     (* Primitive simulation rules *)
     Lemma wpsim_init sti_s sti_t :
-      (wpsim fl_s fl_t Ist my_tid (Some true) υ ν n ⊤ ibot ibot R_s R_t RR ps pt nths sti_s sti_t ∗
-      wpsim_ginv υ n ⊤) ⊢
+      wpsim fl_s fl_t Ist my_tid None υ ν n ⊤ ibot ibot R_s R_t RR ps pt nths sti_s sti_t ⊢
       @isim Σ open fl_s fl_t Ist my_tid ibot ibot R_s R_t RR ps pt nths sti_s sti_t.
     Proof.
-      unseal; iIntros "[SIM I]"; iPoseProof ("SIM" with "I") as "SIM".
+      unseal; iIntros "SIM"; ss; iPoseProof ("SIM" with "[]") as "SIM"; first done.
       iPoseProof (isim_mono_knowledge with "SIM") as "SIM".
       { instantiate (1:=ibot); i; iIntros "H"; rewrite /wpsim_rel /ibot; destruct sti_src, sti_tgt.
         iDestruct "H" as "[_ []]".

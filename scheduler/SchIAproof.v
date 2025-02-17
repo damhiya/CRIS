@@ -11,13 +11,11 @@ Local Open Scope nat_scope.
 Module SchIA. Section SchIA.
   Import SchAS.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !SchAGΣ Σ}.
-  Context (υ : positive) (n : level).
-  Notation iProp := (iProp Σ).
+  Context (u_a u_i : positive) (n : level).
 
-  Variable Spc_global: string -> option fspec.
-  Variable Spc_user: string -> option fspec.
-  Hypothesis SchInSpc : spc_incl (spc υ n Spc_user) Spc_global.
-  Hypothesis FunInSpc : spc_sub Spc_user Spc_global.
+  Context (Spc_global Spc_user : string -> option fspec).
+  Context (SchInSpc : spc_incl (spc u_a n Spc_user) Spc_global).
+  Context (FunInSpc : spc_sub Spc_user Spc_global).
 
   Fixpoint ths_wf (nths: nat) (ths_tgt: SchI.thslist): Prop :=
     match ths_tgt with
@@ -26,7 +24,7 @@ Module SchIA. Section SchIA.
     end.
 
   Inductive sim_ths (tid: nat): 
-    (option (option SAny.t)) -> fragreeUR -> fragreeUR -> option iProp -> Prop :=
+    (option (option SAny.t)) -> fragreeUR -> fragreeUR -> option (iProp Σ) -> Prop :=
   | sim_ths_idle
     :
       sim_ths tid None None None None
@@ -68,18 +66,15 @@ Module SchIA. Section SchIA.
       rewrite eq_rel_dec_correct in Heq. des_ifs; try nia.
     Qed.
 
-    Lemma wf_ths_src ths_tgt (ths_src_b ths_src_w: threadsF) (ths_cond: gmap nat iProp)
+    Lemma wf_ths_src ths_tgt (ths_src_b ths_src_w: threadsF) (ths_cond: gmap nat (iProp Σ ))
       (SIM: ∀ tid, sim_ths tid (alist_find tid ths_tgt) (ths_src_b tid) (ths_src_w tid) (ths_cond !! tid))
     :
       ✓ ths_src_b ∧ ✓ ths_src_w.
-    Proof.
-      split; intros x; specialize (SIM x); inv SIM; ss.
-    Qed.
+    Proof. split; intros x; specialize (SIM x); inv SIM; ss. Qed.
 
-    Lemma big_sepM_replace (m: gmap nat iProp) i (Q: iProp):
+    Lemma big_sepM_replace (m: gmap nat (iProp Σ)) i (Q: iProp Σ) :
       ([∗ map] P ∈ m, P) ∗ Q
-      ⊢
-      [∗ map] P ∈ <[i:=Q]> m, P.
+      ⊢ [∗ map] P ∈ <[i:=Q]> m, P.
     Proof.
       iIntros "[M Q]". destruct (m !! i) eqn:L.
       - iApply big_sepM_insert_delete. iFrame. 
@@ -145,26 +140,30 @@ Module SchIA. Section SchIA.
 
   (**************************)
 
-  Definition Ist: nat -> alist key Any.t -> alist key Any.t -> iProp :=
+  Definition Ist: nat -> alist key Any.t -> alist key Any.t -> iProp Σ :=
     fun numths st_src st_tgt =>
-      (∃ ths_tgt (ths_src_b ths_src_w: SchA.threadsF) (ths_cond: gmap nat iProp), 
+      (∃ ths_tgt (ths_src_b ths_src_w: SchA.threadsF) (ths_cond: gmap nat (iProp Σ)), 
           ⌜st_tgt = [(SchI.v_ths, ths_tgt↑)] 
             ∧ <<THWF: ths_wf numths ths_tgt>>
             ∧ <<SIM: (∀ tid, sim_ths tid (alist_find tid ths_tgt) (ths_src_b tid) (ths_src_w tid) (ths_cond !! tid))>>
             ∧ <<NTHS: 0 < numths>>⌝
-          ∗ own base_γ (● ths_src_b)
-          ∗ own base_γ (◯ ths_src_w)
+          ∗ own base_γ (● ths_src_b : threadsRA)
+          ∗ own base_γ (◯ ths_src_w : threadsRA)
           ∗ ([∗ map] tid↦P ∈ ths_cond, P))%I.
 
-  Local Notation SchAMod := (SchA.t υ n Spc_global Spc_user).
+  Local Notation SchAMod := (SchA.t u_a n Spc_global Spc_user).
   Local Notation SchIMod := (SchI.t).
 
   Lemma simF__spawn : HSim.sim_fun open SchAMod SchIMod Ist SchName._spawn.
   Proof.
-    init_wpsim.
+    init_wpsim u_a u_i n.
+
+    w_steps_l.
     iDestruct "ASM" as "[%va [-> ASM]]"; hss.
-    destruct q as [[[[[callertid fargs] fvargs] pre] postS] [userf userm]].
+    (* destruct q as [[[[[callertid fargs] fvargs] pre] postS] [userf userm]]. *)
+    destruct q2 as [userf userm].
     iDestruct "ASM" as "[[-> [-> [% %]]] [pre token]]".
+    rename q6 into pre. rename q4 into synpost. rename q8 into fargs. rename q10 into fvargs.
     (* destruct va as [[user userf] userargs]. *)
     w_step_l. hss.
 
@@ -185,9 +184,8 @@ Module SchIA. Section SchIA.
     do 2 w_force_l.
     prep. iApply wpsim_full_guarantee_src. iSplitL "pre".
     Unshelve.
-    3:{ exact 1%positive. (* TODO : replace with ν *) }
     3:{ clear H0. unfold find_fsp in userm. rewrite H1 in userm. exact userm. }
-    3:{ exact (fargs↑). }
+    3:{ exact (fvargs↑). }
     { unfold find_fsp in *. revert userm H0. generalize H1.
       rewrite H1. i.
       rewrite (UIP _ _ _ H0 eq_refl). erewrite <-rew_swap; et; ss.
@@ -252,7 +250,7 @@ Module SchIA. Section SchIA.
         rewrite -H0 in THW. rewrite// -Some_op Some_valid pair_valid in THW. des; ss.
         apply agree_op_inv in THW0.
 
-        remember (λ s: SAny.t, Some (to_agree (postS s)))%I as POSTF.
+        remember (λ s: SAny.t, Some (to_agree (synpost s)))%I as POSTF.
         iAssert (interp_cond (Q sret))%I with "[POST]" as "POST".
         { subst. apply (inj to_agree) in THW0. specialize (THW0 sret). ss. inv THW0.
           apply (inj to_agree) in H7. unfold interp_cond. rewrite H7. et. }
@@ -309,21 +307,23 @@ Module SchIA. Section SchIA.
 
   Lemma simF_spawn : HSim.sim_fun open SchAMod SchIMod Ist SchName.spawn.
   Proof.
-    init_wpsim.
-    iDestruct "ASM" as "[%va [-> ASM]]".
+    init_wpsim u_a u_i n.
+
+    w_step_l. w_step_l.
     destruct q as [[[[farg fvarg] pre] synpost] [userf userm]].
+    w_steps_l.
+    iDestruct "ASM" as "[%va [-> ASM]]".
     iDestruct "ASM" as "[[-> [-> [% %]]] PRE]". inv H. rename x into userfspec.
 
     (* spawn _spawn *)
-    hss. w_step_l. w_step_l. w_step_l. w_step_l.
-    prep_l. w_step_l.
     prep_l. w_force_l (my_tid, farg, fvarg, pre, synpost, existT userf userm).
     w_force_l ((my_tid, userf, farg)↑).
-    w_step_r. w_step_r. w_step_r. w_step_r. w_step.
-    w_step_r. w_step_r. w_step_r. w_step_r. w_step_r.
+    hss. w_steps_r.
+    w_step.
+    w_steps_r.
 
     iDestruct "IST" as (? ? ? ?) "(% & THB & THW & COND)". subst; hss.
-    w_step_r. w_step_r. w_step_r. w_step_r.
+    w_steps_r.
 
     (* create new token *)
     dup THWF. apply ths_wf_nths_none in THWF. hexploit (SIM nths). i. rewrite THWF in H. inv H.
@@ -364,18 +364,19 @@ Module SchIA. Section SchIA.
     w_force_l.
     iSplitL "TKNQ0"; iFrame; eauto.
     w_step. iFrame; easy.
-    Unshelve. exact 1%positive. (* TODO: Erase!*)
   Qed.
 
   Lemma simF_yield : HSim.sim_fun open SchAMod SchIMod Ist SchName.yield.
   Proof.
-    init_wpsim.
+    init_wpsim u_a u_i n.
+
+    w_steps_l.
     iDestruct "ASM" as "[-> ->]". hss.
 
-    w_step_l. w_step_r. w_step_r. w_step_r.
+    w_steps_r.
     iDestruct "IST" as (? ? ? ?) "(% & THB & THW & COND)". subst; hss.
-    w_step_r. hss. w_step_r.
-    w_step_r. w_step_r. w_step_r. w_step_r. w_step_r. w_step_r. w_step_r.
+    w_steps_r.
+
     w_force_l q. w_step_l. w_step_l.
     w_force_l. iSplitL ""; first done.
     
@@ -388,15 +389,15 @@ Module SchIA. Section SchIA.
     w_force_l; iSplitL ""; first done.
     w_steps_r.
     w_step. iFrame; easy.
-    Unshelve. exact 1%positive.
   Qed.
 
   Lemma simF_join : HSim.sim_fun open SchAMod SchIMod Ist SchName.join.
   Proof.
-    init_wpsim.
-    destruct q as [tid postS]; s.
-    iDestruct "ASM" as "[[-> TOK] ->]". hss.
-    w_step_l.
+    init_wpsim u_a u_i n.
+
+    w_step_l. w_step_l.
+    destruct q as [tid postS]; s. w_steps_l.
+    iDestruct "ASM" as "[[-> TOK] ->]". hss. rename q0 into tid.
 
     w_step_r.
     rewrite !/Sch.yield /ccallU. unseal "Sch".
@@ -408,7 +409,6 @@ Module SchIA. Section SchIA.
     combine_quant st_tgt.
     combine_quant st_src.
     combine_quant nths.
-    Unshelve. 2:{ exact 1%positive. }
     eapply wpsim_coind. intros g' a.
     destruct a as [nths [st_src [st_tgt [NODS NODD]]]]. s.
     iIntros "[IST TKN] _ #CIH".
@@ -484,11 +484,10 @@ Module SchIA. Section SchIA.
       ss. rewrite Nat.eqb_refl in WF. rewrite -H in WF.
       eapply fragree_incl_false. et.
     }
-
-    Unshelve. all: ss.
+  Unshelve. all : ss.
   Qed.
 
-  Theorem sim : HSim.t open SchAMod SchIMod SchA.InitCond Ist.
+  Lemma sim : HSim.t open SchAMod SchIMod SchA.InitCond Ist.
   Proof.
     init_sim.
     - rewrite /SchA.InitCond /initial_threads. unseal "SchA".
@@ -507,12 +506,15 @@ Module SchIA. Section SchIA.
     - eapply simF_yield; eauto.
     - eapply simF_join; eauto.
   Qed.
+  End SchIA.
 
-  Theorem correct :
-    ctx_refines
-      (SchA.t υ n Spc_global Spc_user, SchA.InitCond)
-      (SchI.t, emp%I).
-  Proof.
-    eapply main_adequacy. eapply sim; et.
-  Qed.
+  Section SchIA.
+    Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !SchAGΣ Σ}.
+    Lemma wctxr Spc_global Spc_user n
+        (SchInGlobal : ∀ u, spc_incl (SchAS.spc u n Spc_user) Spc_global)
+        (UserInGlobal : spc_sub Spc_user Spc_global) :
+      w_ctx_refines
+        (λ u, SchA.t u n Spc_global Spc_user, SchA.InitCond)
+        (λ _, SchI.t, emp%I).
+    Proof. exists 1%positive; intros u v Huv; eapply main_adequacy, sim; eauto. Qed.
 End SchIA. End SchIA.

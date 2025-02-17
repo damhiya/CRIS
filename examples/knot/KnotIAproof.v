@@ -1,6 +1,6 @@
 Require Import CRIS.
 
-Require Import KnotHeader KnotI KnotA MemHeader APCHeader APC APCA.
+Require Import KnotHeader KnotI KnotA MemHeader APCHeader APC APCA APCTactics.
 
 Set Implicit Arguments.
 
@@ -41,16 +41,12 @@ Module KnotIA. Section KnotIA.
   Hypothesis APCInSpc: spc_incl APCA.Spc Spc.
 
   (* Pure SPC Hypothesis *)
-  Hypothesis Pures:
-    ∀ fn M msr DPQ,
-      SpcPure fn = Some (@fspec_apc _ _ msr DPQ)
-      → Spc fn = Some (@fspec_apc _ M msr DPQ).
   Hypothesis FunInPure: spc_sub SpcFun SpcPure.
   Hypothesis PureInSpc : spc_sub SpcPure Spc.
 
   Local Notation APCA := (APCA.t ginv SpcPure Spc).
   Local Notation MemA := (MemA.t ginv SpcMem).
-  Local Notation KnotA := (KnotA.t genv ginv SpcRec SpcFun SpcPure Spc).
+  Local Notation KnotA := (KnotA.t genv ginv SpcRec SpcFun Spc).
   Local Notation KnotAMod := (KnotA ★ MemA ★ APCA).
   Local Notation KnotIMod := ((KnotI.t genv) ★ MemA ★ APCA).
   Local Notation IstFull := (IstProd (IstSB KnotA.(HMod.scopes) Ist) IstEq).
@@ -93,7 +89,7 @@ Module KnotIA. Section KnotIA.
     (* iDestruct "VF" as "[VF _]". *)
 
     (* TGT: load the function at the block of _f by inlining "load" *)
-    inline_r. steps_r.
+    hnorm_r. inline_r. steps_r.
     force_r. instantiate (1:=(blk0, 0%Z, (Vptr fb 0), 1%Qp)). force_r.
     force_r. iSplitL "VF"; iFrame; et.
     steps_r. iDestruct "GRT" as "((VF & %) & %)". des; subst. hss.
@@ -101,44 +97,35 @@ Module KnotIA. Section KnotIA.
 
     (* TGT: get blocks of the function pointer and "rec" *)
     dup FN. inv FN. des. force_r. iSplitR; et.
-    force_r. iSplitR; et.
+    force_r. iSplitR; et. steps_r.
 
     (* SRC: unfold APC *)
-    force_l vo. force_l. force_l. iSplitR; et.
+    force_l vo. force_l. force_l. iSplitR; et. steps_l.
     inline_l. unfold apc_spec. steps_l. iDestruct "ASM" as "%"; subst; hss.
     steps_l. unfold apc_body, APC.
-    force_l 1. steps_l. rewrite unfold_APC. force_l false. steps_l. force_l 0. steps_l. 
-    assert (LT: (0 < 1)%ord). { apply OrdArith.lt_from_nat. nia. }
-    force_l LT. steps_l. inv FN0. des. inv SPEC.
-    
-    unfold fspec_weaker in WEAK; ss. specialize (WEAK my_tid q2). des; ss.
-    force_l fn. steps_l. force_l (2 * q2)%ord. steps_l.
-    assert (PO: is_Some (SpcPure fn) ∧ (2 * q2 < q)%ord).
-    { split; et.
-      eapply Ord.lt_le_lt; et. rewrite -OrdArith.mult_from_nat -OrdArith.add_from_nat. apply OrdArith.lt_from_nat. nia. }
-    force_l PO. steps_l. unfold is_Some in PO. des. force_l. iSplitR; et.
-    apply FunInPure in FIND0. rewrite FIND0 in PO. inv PO.
-    steps_l. force_l x_tgt.
-    (* precondition *)
-    specialize (PRE ((2 * q2)%ord↑) [Vptr blk 0; Vint q2]↑). unfold fun_gen, fspec_apc, precond in PRE; ss. des.
-    iPoseProof (PRE with "[FG]") as ">PRE".
-    { iFrame. iSplit; et.
-      { iPureIntro. eexists; esplits; et. econs; et. econs; [|refl]. apply RecInSpc. unfold KnotRecSpc. unseal CRIS. ss. }
-      { iPureIntro. eexists; esplits; et. refl. } }
-    forces_l. iSplitL "PRE"; et.
-    call "FL VF"; iFrame.
-    { iExists _, _, _, _. repeat (iSplit; et). iExists _. iSplit; et.
-      { iPureIntro. i. esplits; et. econs; et. inv EQ; et. }
-      { unfold var_points_to. rewrite Heq. iFrame. } }
-    steps_l.
-    (* postcondition *)
-    specialize (POST q0 vret).
-    iPoseProof (POST with "ASM") as ">POST". unfold postcond, fun_gen, fspec_apc; ss.
-    iDestruct "POST" as "[% FG]".
-    
-    rewrite unfold_APC. force_l true. steps_l. forces_l. iSplitR; et.
-    steps_l. steps_r. hss. steps_r. forces_l. iSplitL "FG"; iFrame; et.
-    step. iFrame; et.
+    force_l 1. steps_l. 
+
+    (* call apc with fn *)
+    dup SPEC. inv SPEC. apc_call_weaker "FL FG VF"; et.
+    { instantiate (1 := 0). apply OrdArith.lt_from_nat. nia. }
+    { instantiate (1:= (2 * q2)). eapply Ord.lt_le_lt; et. rewrite -OrdArith.mult_from_nat -OrdArith.add_from_nat. apply OrdArith.lt_from_nat. nia. }
+    { iSplitR "FL VF".
+      - unfold precond. ss. iFrame. iSplit.
+        + iPureIntro. eexists; esplits; et. econs; et. econs; [|refl]. apply RecInSpc. unfold KnotRecSpc. unseal CRIS. ss.
+        + iPureIntro. eexists; esplits; et. rewrite -OrdArith.mult_from_nat. apply OrdArith.le_from_nat. nia. 
+      - iExists _, _, _, _. repeat (iSplit; et). iExists (Some _f_spec), _. iSplit.
+        + iPureIntro. i. esplits; et. instantiate (1:=fb). econs; et. inv EQ; et.
+        + unfold var_points_to. rewrite Heq. iFrame.
+    }
+    iDestruct "ISTPOST" as "[IST [% FG]]". hss.
+
+    (* TGT: steps tgt *)
+    steps_r. hss. steps_r.
+
+    (* SRC: change to skip *)
+    apc_l. steps_l. forces_l. iSplit; et. steps_l. forces_l. iSplitL "FG"; iFrame; et.
+
+    step. by iFrame.
     Unshelve. all: ss.
   Qed.
 
@@ -189,6 +176,7 @@ Module KnotIA. Section KnotIA.
     iSplitL "FG"; iFrame; et.
     { iSplit; et. iPureIntro. eexists. esplit; et. econs; et. econs; [|refl].
       apply RecInSpc. unfold KnotRecSpc. unseal CRIS. ss. }
+    steps_l.
     hss. steps_r. force_r. iSplitR; et.
     steps_r. step. iSplit; et.
 

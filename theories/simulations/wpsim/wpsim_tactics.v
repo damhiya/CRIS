@@ -310,20 +310,8 @@ Ltac init_simF :=
   post_simF;
   step_l.
 
-Ltac init_wpsim :=
-  init_simF;
-  prep_l;
-  match goal with
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _) _)] =>
-    let name := fresh "q" in let n := fresh "n" in iApply isim_take_src; iIntros (name);
-      prep; let varg := fresh "varg" in iApply isim_take_src; iIntros (varg);
-      prep;
-      match goal with
-      | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _  (_, trigger (Assume ?P) >>= _) _) ] =>
-        unfold_precond_postcond P; iApply isim_Assume_src; iIntros "[I ASM]";
-        iApply wpsim_init; iSplitR "I"; last iExact "I"
-      end
-  end.
+Ltac init_wpsim u_src u_tgt n :=
+  init_simF; iApply (wpsim_init _ _ _ _ u_src u_tgt n).
 
 Ltac unfold_iter_l :=
   let marker := fresh "MARKER" in

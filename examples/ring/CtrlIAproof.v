@@ -113,7 +113,7 @@ Module CtrlIA. Section CtrlIA.
     iDestruct "IST" as (? ? ? ?) "(% & LIVE & FREE)". des; subst. hss.
 
     steps_r. hss.
-    forces_l. iSplitL "". { eauto. }
+    forces_l. iSplitL "". { eauto. } steps_l.
 
     step.
     iSplit; eauto.
@@ -145,7 +145,7 @@ Module CtrlIA. Section CtrlIA.
     iDestruct "IST" as (? ? ? ?) "(% & LIVE & FREE)". des; subst. hss.
 
     steps_r. hss. steps_r. hss. steps_r.
-    forces_l. iSplitL "". { eauto. }
+    forces_l. iSplitL "". { eauto. } steps_l.
 
     step.
     iSplit. { iPureIntro. f_equal. nia. }
@@ -188,7 +188,7 @@ Module CtrlIA. Section CtrlIA.
 
     steps_r. iDestruct "GRT" as "((% & CELL) & %)". subst. hss.
     steps_r. hss. forces_l.
-    iSplitL ""; eauto.
+    iSplitL ""; eauto. steps_l.
 
     step.
     iSplit; eauto.
@@ -236,7 +236,7 @@ Module CtrlIA. Section CtrlIA.
 
     steps_r. iDestruct "GRT" as "((% & CELL) & %)". subst. hss.
     steps_r. hss. forces_l.
-    iSplitL ""; eauto.
+    iSplitL ""; eauto. steps_l.
 
     step.
     iSplit; eauto.

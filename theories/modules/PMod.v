@@ -98,6 +98,79 @@ Section RED.
     unfold PMod.interp. grind.
   Qed.
 
+  Lemma interp_vis_sch {X R} (e : schE X) (ktr : X -> itree pmodE R) :
+    PMod.interp (vis e ktr) = vis e (fun x => tau;; PMod.interp (ktr x)).
+  Proof.
+    eapply observe_eta; ss. f_equal. extensionality x.
+    eapply observe_eta; ss.
+  Qed.
+
+  Lemma interp_vis_call {X R} (e : callE X) (ktr : X -> itree pmodE R) :
+    PMod.interp (vis e ktr) = vis e (fun x => tau;; PMod.interp (ktr x)).
+  Proof.
+    eapply observe_eta; ss. f_equal. extensionality x.
+    eapply observe_eta; ss.
+  Qed.
+
+  Lemma interp_vis_pg {X R} (e : pgE X) (ktr : X -> itree pmodE R) :
+    PMod.interp (vis e ktr) = vis e (fun x => tau;; PMod.interp (ktr x)).
+  Proof.
+    eapply observe_eta; ss. f_equal. extensionality x.
+    eapply observe_eta; ss.
+  Qed.
+
+  Lemma interp_vis_choose {X R} (ktr : X -> itree pmodE R) :
+    PMod.interp (vis (Choose X) ktr) = vis (Choose X) (fun x => tau;; PMod.interp (ktr x)).
+  Proof.
+    eapply observe_eta; ss. f_equal. extensionality x.
+    eapply observe_eta; ss.
+  Qed.
+
+  Lemma interp_vis_take {X : Prop} {R} (ktr : X -> itree pmodE R) :
+    PMod.interp (vis (Take X) ktr) = vis (Take X) (fun x => tau;; PMod.interp (ktr x)).
+  Proof.
+    eapply observe_eta; cbn. destruct excluded_middle_informative as [H|H]; ss.
+    - f_equal. extensionality x. eapply observe_eta; ss.
+    - exfalso. apply H. exists X. reflexivity.
+  Qed.
+
+  Lemma interp_vis_io {I O R} fn args (ktr : O -> itree pmodE R) :
+    PMod.interp (vis (@IO I O fn args) ktr) = vis (IO fn args) (fun x => tau;; PMod.interp (ktr x)).
+  Proof.
+    eapply observe_eta; ss. f_equal. extensionality x.
+    eapply observe_eta; ss.
+  Qed.
+
+  Lemma interp_assumeK {R} P (itr : itree pmodE R) :
+    PMod.interp (assumeK P itr) = assumeK P (tau;; PMod.interp itr).
+  Proof.
+    eapply observe_eta; cbn. destruct excluded_middle_informative as [H|H]; ss.
+    - f_equal. extensionality x. eapply observe_eta; ss.
+    - exfalso. apply H. exists P. reflexivity.
+  Qed.
+
+  Lemma interp_guaranteeK {R} P (itr : itree pmodE R) :
+    PMod.interp (guaranteeK P itr) = guaranteeK P (tau;; PMod.interp itr).
+  Proof.
+    eapply observe_eta; ss. f_equal. extensionality x.
+    eapply observe_eta; ss.
+  Qed.
+
+  Lemma interp_unwrapUK {X R} x (ktr : X -> itree pmodE R) :
+    PMod.interp (unwrapUK x ktr) = unwrapUK x (fun x => PMod.interp (ktr x)).
+  Proof.
+    destruct x; ss. eapply observe_eta; cbn. destruct excluded_middle_informative as [H|H]; ss.
+    - f_equal. extensionality x. eapply observe_eta; ss.
+    - exfalso. apply H. exists False. reflexivity.
+  Qed.
+
+  Lemma interp_unwrapNK {X R} x (ktr : X -> itree pmodE R) :
+    PMod.interp (unwrapNK x ktr) = unwrapNK x (fun x => PMod.interp (ktr x)).
+  Proof.
+    destruct x; ss.
+    eapply observe_eta; ss. f_equal. extensionality x. ss.
+  Qed.
+
   Lemma interp_call
         (R: Type)
         (i: callE R)

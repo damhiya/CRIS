@@ -10,13 +10,13 @@ Local Open Scope nat_scope.
 Module MapMA. Section MapMA.
   Import MapAS.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !MapAGΓ Γ, !MapMGΓ Γ}.
-  Context `{ModRel υ ν, n : level}.
+  Context `{!ModRel u_a u_m} (n : level).
 
   Context (ginv_s : invspec) (Spc_s : string → option fspec).
-  Context (MapInSpcS : spc_incl (MapAS.Spc υ n) Spc_s).
+  Context (MapInSpcS : spc_incl (MapAS.Spc u_a n) Spc_s).
 
   Context (ginv_t : invspec) (Spc_t : string → option fspec).
-  Context (MapInSpcT : spc_incl (MapMS.Spc ν n) Spc_t).
+  Context (MapInSpcT : spc_incl (MapMS.Spc u_m n) Spc_t).
 
   Definition Ist : nat → alist key Any.t → alist key Any.t → iProp Σ :=
     (λ _ st_src st_tgt,
@@ -29,12 +29,14 @@ Module MapMA. Section MapMA.
             ∗ auth_allocated f
             ∗ auth_unallocated sz))%I.
 
-  Local Notation MapA := (MapA.t υ n ginv_s Spc_s ).
-  Local Notation MapM := (MapM.t ν n ginv_t Spc_t ).
+  Local Notation MapA := (MapA.t u_a n ginv_s Spc_s ).
+  Local Notation MapM := (MapM.t u_m n ginv_t Spc_t ).
 
   Lemma simF_init : HSim.sim_fun open MapA MapM Ist MapName.init.
   Proof.
-    init_wpsim.
+    init_wpsim u_a u_m n.
+
+    w_steps_l.
     iDestruct "ASM" as "[[[-> %range] P] ->]".
 
     (* SRC: handle the IST of Map and the precond of init *)
@@ -56,14 +58,16 @@ Module MapMA. Section MapMA.
     
     (* prove the IST of Map *)
     w_step. iSplit; eauto.
-    iExists _, _. iSplitR; eauto. iRight. iFrame. 
+    iExists _, _. iSplitR; eauto. iRight. iFrame.
   Qed.
 
   Lemma simF_get : HSim.sim_fun open MapA MapM Ist MapName.get.
   Proof.
-    init_wpsim.
-    destruct q as [k v]; s.
+    init_wpsim u_a u_m n.
+
+    w_steps_l.
     iDestruct "ASM" as "((-> & MAP) & ->)".
+    rename q1 into k.
 
     (* SRC: handle the IST of Map and the precond of get *)
     iDestruct "IST" as (f sz) "(% & [(% & P0 & INIT)|(P' & B & U)])".
@@ -90,15 +94,16 @@ Module MapMA. Section MapMA.
     (* prove the IST of Map *)
     w_step. iSplit; eauto.
     iExists _, _. iSplit; eauto. iRight. iFrame.
-  Unshelve. lia.
+    Unshelve. done.
   Qed.
 
   Lemma simF_set : HSim.sim_fun open MapA MapM Ist MapName.set.
   Proof.
-    init_wpsim.
+    init_wpsim u_a u_m n.
 
     (* SRC: handle the IST of Map and the precond of set *)
-    destruct q as [[k w] v].
+    do 2 w_step_l.
+    destruct q as [[k w] v]. w_steps_l.
     iDestruct "ASM" as "((-> & MAP) & ->)".
     iDestruct "IST" as (f sz) "(% & [(% & P0 & INIT)|(P' & B & U)])".
     { iExFalso. iApply (initial_map_points_to with "INIT MAP"). }
@@ -122,15 +127,15 @@ Module MapMA. Section MapMA.
     (* prove the IST of Map *)
     w_step. iSplit; eauto.
     iExists _, _. iSplit; eauto. iRight. iFrame.
-  Unshelve. done.
+    Unshelve. done.
   Qed.
 
   Lemma simF_set_by_user : HSim.sim_fun open MapA MapM Ist MapName.set_by_user.
   Proof.
-    init_wpsim.
+    init_wpsim u_a u_m n.
 
     (* SRC: handle the IST of Map and the precond of set_by_user *)
-    destruct q as [k w].
+    do 2 w_step_l. destruct q as [k w]. w_steps_l.
     iDestruct "ASM" as "((-> & MAP) & ->)".
     hss. w_steps_l.
 
@@ -176,18 +181,19 @@ Module MapMA. Section MapMA.
     - apply simF_set; eauto.
     - apply simF_set_by_user; eauto.
   Qed.
-End MapMA. End MapMA.
 
-Section wctxr.
-  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !MapAGΓ Γ, !MapMGΓ Γ, !memGΓ Γ}.
-  Lemma wctxr n Spc_s Spc_t ginv_t ginv_s
-      (MapInSpcS : ∀ υ, spc_incl (MapAS.Spc υ n) (Spc_s υ))
-      (MapInSpcT : ∀ υ, spc_incl (MapMS.Spc υ n) (Spc_t υ)) :
-    w_ctx_refines
-      ((λ υ, MapA.t υ n ginv_s (Spc_s υ)), MapA.InitCond)
-      ((λ ν, MapM.t ν n ginv_t (Spc_t ν)), emp%I).
-  Proof.
-    exists 1%positive; intros u v Huv; eapply main_adequacy, MapMA.sim; eauto.
-    Unshelve. r; lia.
-  Qed.
-End wctxr.
+  End MapMA.
+
+  Section MapMA.
+    Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !MapAGΓ Γ, !MapMGΓ Γ, !memGΓ Γ}.
+    Lemma wctxr n Spc_s Spc_t ginv_t ginv_s
+        (MapInSpcS : ∀ υ, spc_incl (MapAS.Spc υ n) (Spc_s υ))
+        (MapInSpcT : ∀ υ, spc_incl (MapMS.Spc υ n) (Spc_t υ)) :
+      w_ctx_refines
+        ((λ υ, MapA.t υ n ginv_s (Spc_s υ)), MapA.InitCond)
+        ((λ ν, MapM.t ν n ginv_t (Spc_t ν)), emp%I).
+    Proof.
+      exists 1%positive; intros u v Huv; eapply main_adequacy, MapMA.sim; eauto.
+      Unshelve. r; lia.
+    Qed.
+End MapMA. End MapMA.

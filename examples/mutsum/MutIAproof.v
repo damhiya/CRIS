@@ -39,14 +39,14 @@ Module MutIA. Section MutIA.
     init_simF.
 
     steps_l. iDestruct "ASM" as "((%Y & %B) & %Q)". subst; hss.
-    steps_r. force_r. steps_r. 
+    steps_r. unfold assume. force_r. steps_r. 
     
     (* HOW TO PROVE: make goal simple as possible *)
     (* 1. remove if-then-else clause *)
     destruct q; s.
     { (* f(0) *)
       steps_r. steps_r. force_l. steps_l.
-      forces_l. iSplitR; et. step. iFrame; et.
+      forces_l. iSplitR; et. steps_l. step. iFrame; et.
     }
 
     (* 2. normalize itree for applying bind rule easier *)
@@ -84,7 +84,7 @@ Module MutIA. Section MutIA.
       { instantiate (1:=r <- it;; Ret r). grind. }
       subst it.
       
-      inline_r. hss. steps_r. force_r. steps_r.
+      inline_r. hss. steps_r. unfold assume. force_r. steps_r.
       step. iFrame; et.
     }
     { (* f(1) *)
@@ -96,8 +96,8 @@ Module MutIA. Section MutIA.
       { instantiate (1:=r <- it;; Ret r). grind. }
       subst it.
       
-      inline_r. hss. steps_r. force_r. steps_r.
-      inline_r. hss. steps_r. force_r. steps_r.
+      inline_r. hss. steps_r. unfold assume. force_r. steps_r.
+      inline_r. hss. steps_r. unfold assume. force_r. steps_r.
       hss. steps_r. step. iFrame; et.
     }
     { (* f(S S x) *)
@@ -108,10 +108,10 @@ Module MutIA. Section MutIA.
       { instantiate (1:=r <- it;; Ret r). grind. }
       subst it.
       (* first inline *)
-      inline_r. hss. steps_r. force_r. steps_r.
+      inline_r. hss. steps_r. unfold assume. force_r. steps_r.
       destruct (dec ((S (S q) - 1))%Z 0%Z); [lia|]. clear n.
       (* second inline *)
-      inline_r. hss. steps_r. force_r. steps_r.
+      inline_r. hss. steps_r. unfold assume. force_r. steps_r.
       replace ((S (S q)) - 1)%Z with (Z.of_nat (S q)) by lia. s.
       replace (S q - 1)%Z with (Z.of_nat q) by lia.
 
@@ -152,7 +152,7 @@ Module MutIA. Section MutIA.
     init_simF.
 
     steps_l. iDestruct "ASM" as "((%Y & %B) & %Q)". subst; hss.
-    steps_r. force_r. steps_r. 
+    steps_r. unfold assume. force_r. steps_r. 
     
     (* HOW TO PROVE: make goal simple as possible *)
     (* 1. remove if-then-else clause *)
@@ -197,7 +197,7 @@ Module MutIA. Section MutIA.
       { instantiate (1:=r <- it;; Ret r). grind. }
       subst it.
       
-      inline_r. hss. steps_r. force_r. steps_r.
+      inline_r. hss. steps_r. unfold assume. force_r. steps_r.
       step. iFrame; et.
     }
     { (* f(1) *)
@@ -209,8 +209,8 @@ Module MutIA. Section MutIA.
       { instantiate (1:=r <- it;; Ret r). grind. }
       subst it.
       
-      inline_r. hss. steps_r. force_r. steps_r.
-      inline_r. hss. steps_r. force_r. steps_r.
+      inline_r. hss. steps_r. unfold assume. force_r. steps_r.
+      inline_r. hss. steps_r. unfold assume. force_r. steps_r.
       hss. steps_r. step. iFrame; et.
     }
     { (* f(S S x) *)
@@ -221,10 +221,10 @@ Module MutIA. Section MutIA.
       { instantiate (1:=r <- it;; Ret r). grind. }
       subst it.
       (* first inline *)
-      inline_r. hss. steps_r. force_r. steps_r.
+      inline_r. hss. steps_r. unfold assume. force_r. steps_r.
       destruct (dec ((S (S q) - 1))%Z 0%Z); [lia|]. clear n.
       (* second inline *)
-      inline_r. hss. steps_r. force_r. steps_r.
+      inline_r. hss. steps_r. unfold assume. force_r. steps_r.
       replace ((S (S q)) - 1)%Z with (Z.of_nat (S q)) by lia. s.
       replace (S q - 1)%Z with (Z.of_nat q) by lia.
 

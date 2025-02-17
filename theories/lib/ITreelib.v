@@ -578,3 +578,24 @@ Ltac grind_ret_gen :=
 Ltac itree_clarify H :=
   revert H; grind; try unfold trigger in H; try rewrite !bind_vis in H; try depdes H;
     grind_ret_gen; try rewrite !bind_ret_l_eta; subst.
+
+Lemma trigger_vis
+  `{subE -< E} {X : Type} (e : subE X) :
+  (trigger e : itree E X) = vis e (fun x => Ret x).
+Proof. reflexivity. Qed.
+
+Lemma vis_trigger
+  `{subE -< E} {X T : Type} (e : subE X) (k : X -> itree E T) :
+  vis e k = trigger e >>= k.
+Proof.
+  eapply observe_eta; cbn. f_equal. extensionality x.
+  eapply observe_eta. reflexivity.
+Qed.
+
+Lemma vis_bind
+  `{subE -< E} {X T U : Type} (e : subE X) (k1 : X -> itree E T) (k2 : T -> itree E U) :
+  vis e k1 >>= k2 = vis e (fun x => k1 x >>= k2).
+Proof.
+  rewrite ! vis_trigger.
+  apply bind_bind.
+Qed.
