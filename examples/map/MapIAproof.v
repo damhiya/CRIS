@@ -2,11 +2,11 @@ Require Import CRIS.
 
 Require Import MapHeader MapA MapM MapI ModSim MapIMproof MapMAproof MemA wsim.
 
-Module w_MapIA. Section w_MapIA.
+Module MapIA. Section MapIA.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !MapAGΓ Γ, !MapMGΓ Γ, !memGΓ Γ}.
   Context (n : level).
 
-  Theorem correct gi (SpcMap : univ_id → string → option fspec) (SpcMem : string → option fspec)
+  Lemma wctxr gi (SpcMap : univ_id → string → option fspec) (SpcMem : string → option fspec)
       (MapInSpcMap : ∀ υ, spc_incl (MapAS.Spc υ n) (SpcMap υ)) :
     w_ctx_refines
       ((λ υ, (MapA.t υ n gi (SpcMap υ)) ★ (MemA.t gi SpcMem)), (MapA.InitCond ∗ MapM.InitCond)%I)
@@ -24,4 +24,4 @@ Module w_MapIA. Section w_MapIA.
     split; try refl.
     rewrite /MapMS.Spc; unseal CRIS; prove_nodup.
   Qed.
-End w_MapIA. End w_MapIA.
+End MapIA. End MapIA.
