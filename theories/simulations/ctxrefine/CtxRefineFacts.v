@@ -151,7 +151,12 @@ End CtxRefineFacts.
 Section w_ctx_refines.
   Context `{Σ : GRA}.
 
-  Definition w_ctx_refines (ms mt : HMod.modc_gen) : Prop :=
+  (* TODO : move to somewhere else *)
+  Lemma pair_impl_subseteq (m : univ_id → HMod.t) (P Q : iProp Σ) :
+    (Q ⊢ P) → (m, P) ⊆ (m, Q).
+  Proof. by econs; ss. Qed.
+
+  Definition w_ctx_refines (ms mt : HMod.pair) : Prop :=
     ∃ κ : positive,
       ∀ υ ν : univ_id, (υ >= ν + κ)%positive →
         ctx_refines (ms.1 υ, ms.2) (mt.1 ν, mt.2).
@@ -175,14 +180,36 @@ Section w_ctx_refines.
       rewrite -{1}(Pos2Nat.id ν) (mteq _). apply CTXR. lia. }
   Qed.
 
+  Global Program Instance w_ctx_refines_subseteq : Proper ((⊆) ==> flip (⊆) ==> impl) w_ctx_refines.
+  Next Obligation.
+    intros [ms1 cs1] [ms2 cs2] Hssub [mt1 ct1] [mt2 ct2] Htsub [k REF]; exists k.
+    intros u v Huv; hexploit REF; eauto; intros REF'; ss.
+    inv Hssub; inv Htsub; ss; rewrite -H H1.
+    etrans; first eapply ctxr_cond_strengthen.
+    { iIntros "H"; iPoseProof (H0 with "H") as "H"; iExact "H". }
+    { etrans; first eauto.
+      eapply ctxr_cond_strengthen; iIntros "H"; iApply H2; iFrame.
+    }
+  Qed.
+
   (*** weakening for initial condition ***)
-  (* Lemma w_ctx_refines_cond_strengthen
-      (m : univ_id → HMod.t) (P Q : univ_id → iProp Σ) (IMPL : ∀ υ, P υ -∗ Q υ) :
-    w_ctx_refines (λ υ, (m υ, P υ)) (λ ν, (m ν, Q ν)).
+  Lemma w_ctx_refines_cond_weaken
+      (m : univ_id → HMod.t) (mt : HMod.pair) (P Q : iProp Σ) (IMPL : P -∗ Q)
+      (REF : w_ctx_refines (λ u, m u, Q) mt) :
+    w_ctx_refines (λ υ, m υ, P) mt.
   Proof.
-    exists 0; intros υ ν H.
-    rewrite Nat.add_0_r in H; inv H; apply ctxr_cond_strengthen; done.
-  Qed. *)
+    eapply w_ctx_refines_subseteq; last eapply REF; ss.
+    eapply pair_impl_subseteq; iIntros "H"; iApply IMPL; iFrame.
+  Qed.
+
+  Lemma w_ctx_refines_cond_strengthen
+      (m : univ_id → HMod.t) (ms : HMod.pair) (P Q : iProp Σ) (IMPL : P -∗ Q)
+      (REF : w_ctx_refines ms (λ u, m u, P)) :
+    w_ctx_refines ms (λ υ, m υ, Q).
+  Proof.
+    eapply w_ctx_refines_subseteq; last eapply REF; ss.
+    eapply pair_impl_subseteq; iIntros "H"; iApply IMPL; iFrame.
+  Qed.
 
   (*** frame rule for initial condition ***)
   Lemma w_ctx_refines_cond_frameR

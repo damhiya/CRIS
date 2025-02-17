@@ -132,10 +132,10 @@ Module HMod. Section HMod.
 
   Definition empty_mc : modc := (empty, emp%I).
 
-  Definition modc_gen : Type := (univ_id → t) * iProp Σ.
-  Global Instance modc_gen_equiv : Equiv modc_gen :=
+  Definition pair : Type := (univ_id → t) * iProp Σ.
+  Global Instance pair_equiv : Equiv pair :=
     λ m1 m2, ∀ υ, (m1.1 υ, m1.2) ≡ (m2.1 υ, m2.2).
-  Global Instance modc_gen_equiv_equiv : Equivalence modc_gen_equiv.
+  Global Instance pair_equiv_equiv : Equivalence pair_equiv.
   Proof.
     split; ss; ii.
     { specialize (H υ). inv H; split; clarify. }
@@ -144,6 +144,10 @@ Module HMod. Section HMod.
       { i; rewrite H2 H3; ss. }
     }
   Qed.
+
+  Definition pair_included (p1 p2 : pair) : Prop :=
+    (∀ u, p1.1 u = p2.1 u) ∧ (p2.2 ⊢ p1.2)%I.
+  Global Instance pair_subseteq : SubsetEq pair := pair_included.
 End HMod. End HMod.
 
 Infix "★" := HMod.add (at level 9, right associativity).
