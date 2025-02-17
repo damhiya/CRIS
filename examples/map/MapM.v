@@ -1,7 +1,7 @@
 Require Import CRIS.
 
 Require Import MapHeader.
-Require Import wpsim.
+Require Import wsim.
 
 Set Implicit Arguments.
 
@@ -26,28 +26,28 @@ Module MapMS. Section MapMS.
   Qed.
 
   Definition init_spec : fspec :=
-    wp_fspec υ n
+    w_fspec υ n
       (fspec_simple
         (λ (sz : nat),
           (λ varg, ⌜varg = [Vint sz]↑ ∧ (8 * sz < modulus_64)%Z⌝ ∗ pending,
             λ vret, emp)))%I.
 
   Definition get_spec : fspec := 
-    wp_fspec υ n
+    w_fspec υ n
       (fspec_simple
         (λ k,
           (λ varg, ⌜varg = [Vint k]↑⌝,
             λ vret, emp)))%I.
 
   Definition set_spec : fspec :=
-    wp_fspec υ n
+    w_fspec υ n
       (fspec_simple
         (λ '(k, v),
           (λ varg, ⌜varg = ([Vint k; Vint v])↑⌝,
             λ vret, emp))%I).
 
   Definition set_by_user_spec : fspec := 
-    wp_fspec υ n
+    w_fspec υ n
       (fspec_simple
         (λ k,
           (λ varg, ⌜varg = [Vint k]↑⌝,

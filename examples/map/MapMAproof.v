@@ -1,7 +1,7 @@
 Require Import CRIS.
 
 Require Import MapHeader MapM MapA.
-Require Import wpsim_tactics ltac2_lib.
+Require Import wsim_tactics ltac2_lib.
 
 Set Implicit Arguments.
 
@@ -34,7 +34,7 @@ Module MapMA. Section MapMA.
 
   Lemma simF_init : HSim.sim_fun open MapA MapM Ist MapName.init.
   Proof.
-    init_wpsim u_a u_m n.
+    init_wsim u_a u_m n.
 
     w_steps_l.
     iDestruct "ASM" as "[[[-> %range] P] ->]".
@@ -63,7 +63,7 @@ Module MapMA. Section MapMA.
 
   Lemma simF_get : HSim.sim_fun open MapA MapM Ist MapName.get.
   Proof.
-    init_wpsim u_a u_m n.
+    init_wsim u_a u_m n.
 
     w_steps_l.
     iDestruct "ASM" as "((-> & MAP) & ->)".
@@ -99,7 +99,7 @@ Module MapMA. Section MapMA.
 
   Lemma simF_set : HSim.sim_fun open MapA MapM Ist MapName.set.
   Proof.
-    init_wpsim u_a u_m n.
+    init_wsim u_a u_m n.
 
     (* SRC: handle the IST of Map and the precond of set *)
     do 2 w_step_l.
@@ -132,7 +132,7 @@ Module MapMA. Section MapMA.
 
   Lemma simF_set_by_user : HSim.sim_fun open MapA MapM Ist MapName.set_by_user.
   Proof.
-    init_wpsim u_a u_m n.
+    init_wsim u_a u_m n.
 
     (* SRC: handle the IST of Map and the precond of set_by_user *)
     do 2 w_step_l. destruct q as [k w]. w_steps_l.

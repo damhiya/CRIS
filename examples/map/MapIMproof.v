@@ -2,7 +2,7 @@ Require Import CRIS.
 
 Require Import MemA.
 Require Import MapHeader MapI MapM.
-Require Import wpsim_tactics.
+Require Import wsim_tactics.
 
 Set Implicit Arguments.
 
@@ -90,7 +90,7 @@ Module MapIM. Section MapIM.
 
   Lemma simF_init : HSim.sim_fun open MapMMod MapIMod IstFull MapName.init.
   Proof.
-    init_wpsim u_MapM u_MapI n.
+    init_wsim u_MapM u_MapI n.
 
     (* preprocess given assumptions *)
     w_steps_l.
@@ -184,7 +184,7 @@ Module MapIM. Section MapIM.
 
   Lemma simF_get : HSim.sim_fun open MapMMod MapIMod IstFull MapName.get.
   Proof.
-    init_wpsim u_MapM u_MapI n.
+    init_wsim u_MapM u_MapI n.
 
     (* SRC: handle the IST of Map and the precond of get *)
     w_steps_l.
@@ -228,7 +228,7 @@ Module MapIM. Section MapIM.
 
   Lemma simF_set : HSim.sim_fun open MapMMod MapIMod IstFull MapName.set.
   Proof.
-    init_wpsim u_MapM u_MapI n.
+    init_wsim u_MapM u_MapI n.
 
     w_steps_l.
     iDestruct "ASM" as "[-> ->]". hss. inv G0.
@@ -274,7 +274,7 @@ Module MapIM. Section MapIM.
 
   Lemma simF_set_by_user : HSim.sim_fun open MapMMod MapIMod IstFull MapName.set_by_user.
   Proof.
-    init_wpsim u_MapM u_MapI n.
+    init_wsim u_MapM u_MapI n.
 
     w_steps_l.
     iDestruct "ASM" as "[-> ->]".

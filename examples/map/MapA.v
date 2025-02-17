@@ -1,7 +1,7 @@
 Require Import CRIS.
 
 Require Import MapHeader MapM.
-Require Import wpsim.
+Require Import wsim.
 
 Set Implicit Arguments.
 
@@ -113,28 +113,28 @@ Module MapAS. Section MapAS.
   Section spec.
     Context (υ : univ_id) (n : level).
     Definition init_spec : fspec :=
-      wp_fspec υ n
+      w_fspec υ n
         (fspec_simple
           (λ sz : nat,
             (λ varg, ⌜varg = [Vint sz]↑ ∧ (8 * (Z.of_nat sz) < modulus_64)%Z⌝ ∗ pending,
               λ vret, ⌜vret = Vundef↑⌝ ∗ initial_points_tos sz)))%I.
 
     Definition get_spec: fspec :=
-      wp_fspec υ n
+      w_fspec υ n
         (fspec_simple
           (λ '(k, v),
             (λ varg, ⌜varg = [Vint k]↑⌝ ∗ points_to k v,
               λ vret, ⌜vret = (Vint v)↑⌝ ∗ points_to k v)))%I.
 
     Definition set_spec: fspec :=
-      wp_fspec υ n
+      w_fspec υ n
         (fspec_simple
           (λ '(k, w, v),
             (λ varg, ⌜varg = [Vint k; Vint v]↑⌝ ∗ points_to k w,
               λ vret, ⌜vret = Vundef↑⌝ ∗ points_to k v)))%I.
 
     Definition set_by_user_spec: fspec :=
-      wp_fspec υ n
+      w_fspec υ n
         (fspec_simple
           (λ '(k, w),
             (λ varg, ⌜varg = [Vint k]↑⌝ ∗ points_to k w,

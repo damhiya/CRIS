@@ -1,6 +1,6 @@
 (* Require Import CRIS.
 
-Require Import SchInvariants wpsim.
+Require Import SchInvariants wsim.
 
 Set Implicit Arguments.
 

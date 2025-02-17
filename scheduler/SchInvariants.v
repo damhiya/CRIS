@@ -5,7 +5,7 @@ From iris Require Import gmap_view.
 
 Set Implicit Arguments.
 
-(** TODO: The following code will be deprecated once wpsim, an improved version of isim that avoids the direct use of wsats, is developed. This file contains lemmas that can be used to explicitly open and close invariants at the isim level. *)
+(** TODO: The following code will be deprecated once wsim, an improved version of isim that avoids the direct use of wsats, is developed. This file contains lemmas that can be used to explicitly open and close invariants at the isim level. *)
 
 Local Notation univ_id := positive.
 Local Notation level := nat.

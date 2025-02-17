@@ -1,7 +1,7 @@
 Require Import CRIS.
 
 Require Import SchHeader SchGInv.
-Require Import wpsim.
+Require Import wsim.
 
 Set Implicit Arguments.
 
@@ -9,7 +9,7 @@ Local Open Scope Qp.
 
 Definition sch_ginv `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}
     (υ : positive) (n : level) : invspec :=
-  λ _, wpsim_ginv υ n ⊤.
+  λ _, wsim_ginv υ n ⊤.
 
 Section SchRA.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
@@ -156,13 +156,13 @@ Module SchAS. Section SchAS.
     (* TODO : clarify with WP tc *)
     Definition fspec_spawnable (univ : positive) (n : level) (fsp : fspec) (tid : nat) (m : meta fsp)
         (vargs args : Any.t) (pre : iProp Σ) (postS: SAny.t -> SynDepO) : Prop :=
-      ((wpsim_ginv univ n ⊤ ∗ pre ⊢ (precond fsp tid m vargs args))%I ∧
+      ((wsim_ginv univ n ⊤ ∗ pre ⊢ (precond fsp tid m vargs args))%I ∧
       (∀ ret: Any.t, 
         ((∃ vret, postcond fsp tid m vret ret)%I ⊢
-          (wpsim_ginv univ n ⊤ ∗ ∃ sret: SAny.t, (⌜ret = sret↑⌝ ∗ interp_cond (postS sret))))%I)).
+          (wsim_ginv univ n ⊤ ∗ ∃ sret: SAny.t, (⌜ret = sret↑⌝ ∗ interp_cond (postS sret))))%I)).
 
     Definition _spawn_spec : fspec :=
-      wp_fspec υ n
+      w_fspec υ n
         (fspec_virtual
           (λ my_tid '(mid, fargs, fvargs, pre, postS, existT fn m) varg arg,
             (⌜varg = ((mid, fn, fvargs) : nat * string * SAny.t) 
@@ -174,7 +174,7 @@ Module SchAS. Section SchAS.
     .
 
     Definition spawn_spec : fspec :=
-      wp_fspec υ n
+      w_fspec υ n
         (fspec_virtual
           (λ _ '(fargs, fvargs, pre, postS, existT fn m) varg arg,
             (⌜varg = ((fn, fvargs): string * SAny.t) 
@@ -187,11 +187,11 @@ Module SchAS. Section SchAS.
     .
 
     Definition yield_spec: fspec :=
-      wp_fspec υ n
+      w_fspec υ n
         (fspec_simple (λ (_: unit), ((λ varg, ⌜varg = tt↑⌝), (λ vret, ⌜vret = tt↑⌝))))%I.
 
     Definition join_spec: fspec :=
-      wp_fspec υ n
+      w_fspec υ n
         (fspec_simple
           (λ '(tid, postS),
             ((λ varg, (⌜varg = tid↑⌝ ∗ token_th tid postS)),

@@ -1,6 +1,6 @@
 Require Import CRIS.
 Require Import ImpPrelude.
-Require Import wpsim.
+Require Import wsim.
 
 Module SchName.
   Definition _spawn := "Sch._spawn".

@@ -2,7 +2,7 @@ Require Import CRIS.
 
 Require Import SchGInv SchHeader SchI SchA.
 
-Require Import wpsim_tactics ltac2_lib.
+Require Import wsim_tactics ltac2_lib.
 
 Set Implicit Arguments.
 
@@ -156,7 +156,7 @@ Module SchIA. Section SchIA.
 
   Lemma simF__spawn : HSim.sim_fun open SchAMod SchIMod Ist SchName._spawn.
   Proof.
-    init_wpsim u_a u_i n.
+    init_wsim u_a u_i n.
 
     w_steps_l.
     iDestruct "ASM" as "[%va [-> ASM]]"; hss.
@@ -182,7 +182,7 @@ Module SchIA. Section SchIA.
 
     (* Choose the metavariables *)
     do 2 w_force_l.
-    prep. iApply wpsim_full_guarantee_src. iSplitL "pre".
+    prep. iApply wsim_full_guarantee_src. iSplitL "pre".
     Unshelve.
     3:{ clear H0. unfold find_fsp in userm. rewrite H1 in userm. exact userm. }
     3:{ exact (fvargs↑). }
@@ -199,7 +199,7 @@ Module SchIA. Section SchIA.
     revert userm H0. generalize H1. unfold find_fsp. rewrite H1.
     i; ss. rewrite (UIP _ _ _ H0 eq_refl). erewrite <- rew_swap; ss.
     unfold fspec_spawnable in H2; des.
-    prep. iApply wpsim_full_assume_src; iSplitL ""; iIntros "I".
+    prep. iApply wsim_full_assume_src; iSplitL ""; iIntros "I".
     { iPoseProof (H3 $ ret with "[I]") as "H".
       { iExists _; iFrame. }
       { iExact "H". }
@@ -281,13 +281,13 @@ Module SchIA. Section SchIA.
     (* Coinduction on yield loop *)
     rewrite !/Sch.terminate /ccallU. unseal "Sch".
     clear THWF SIM NTHS Heqst_tgt1.
-    iApply wpsim_reset.
+    iApply wsim_reset.
     iStopProof. revert NODUP.
     combine_quant NODS1.
     combine_quant st_tgt1.
     combine_quant st_s'0.
     combine_quant nths'0.
-    eapply wpsim_coind. i.
+    eapply wsim_coind. i.
     destruct a as [nths1 [st_src1 [st_tgt1 [NODS1 NODD1]]]]. s.
     iIntros "IST _ #CIH".
     unfold_iter_l. unfold_iter_r.
@@ -307,7 +307,7 @@ Module SchIA. Section SchIA.
 
   Lemma simF_spawn : HSim.sim_fun open SchAMod SchIMod Ist SchName.spawn.
   Proof.
-    init_wpsim u_a u_i n.
+    init_wsim u_a u_i n.
 
     w_step_l. w_step_l.
     destruct q as [[[[farg fvarg] pre] synpost] [userf userm]].
@@ -368,7 +368,7 @@ Module SchIA. Section SchIA.
 
   Lemma simF_yield : HSim.sim_fun open SchAMod SchIMod Ist SchName.yield.
   Proof.
-    init_wpsim u_a u_i n.
+    init_wsim u_a u_i n.
 
     w_steps_l.
     iDestruct "ASM" as "[-> ->]". hss.
@@ -393,7 +393,7 @@ Module SchIA. Section SchIA.
 
   Lemma simF_join : HSim.sim_fun open SchAMod SchIMod Ist SchName.join.
   Proof.
-    init_wpsim u_a u_i n.
+    init_wsim u_a u_i n.
 
     w_step_l. w_step_l.
     destruct q as [tid postS]; s. w_steps_l.
@@ -403,13 +403,13 @@ Module SchIA. Section SchIA.
     rewrite !/Sch.yield /ccallU. unseal "Sch".
     rewrite PModRed.interp_bind. rewrite HModSB.transl_bind. grind.
 
-    iApply wpsim_reset. iStopProof.
+    iApply wsim_reset. iStopProof.
     revert NODD.
     combine_quant NODS.
     combine_quant st_tgt.
     combine_quant st_src.
     combine_quant nths.
-    eapply wpsim_coind. intros g' a.
+    eapply wsim_coind. intros g' a.
     destruct a as [nths [st_src [st_tgt [NODS NODD]]]]. s.
     iIntros "[IST TKN] _ #CIH".
 
