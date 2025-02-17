@@ -216,6 +216,9 @@ Tactic Notation "w_force_l" :=
 Tactic Notation "w_force_l" uconstr(p) :=
   w_force_l_core; iExists p.
 
+Ltac w_forces_l :=
+  hrepeat do 1 w_force_l.
+
 Ltac _w_force_r :=
   match goal with
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _)) ] =>
@@ -252,6 +255,9 @@ Tactic Notation "w_force_r" :=
 
 Tactic Notation "w_force_r" uconstr(p) :=
   w_force_r_core; iExists p.
+
+Ltac w_forces_r :=
+  hrepeat do 1 w_force_r.
 
 Ltac w_inline_l :=
   let marker := fresh "MARKER" in

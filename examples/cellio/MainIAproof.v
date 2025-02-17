@@ -10,10 +10,10 @@ Module MainIA. Section MainIA.
   Definition Ist: nat -> alist key Any.t -> alist key Any.t -> iProp Σ :=
     λ _ st_src st_tgt, emp%I.
 
-  Variable ginv: invspec.
-  Variable Spc: string -> option fspec.
-  Hypothesis FooInSpcMap: spc_incl FooAS.Spc Spc.
-  Hypothesis InputInSpc: spc_incl InputAS.Spc Spc.
+  Variable ginv : invspec.
+  Variable Spc : string -> option fspec.
+  Hypothesis FooInSpcMap : spc_incl FooAS.Spc Spc.
+  Hypothesis InputInSpc : spc_incl InputAS.Spc Spc.
 
   Local Notation CellioA := (CellioA.t ginv Spc).
   Local Notation MainA := (MainA.t ginv Spc).

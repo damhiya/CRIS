@@ -17,10 +17,10 @@ Module CellioA. Section CellioA.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !CellioAGΓ Γ}.
 
   Definition auth (v : Z) : iProp Σ :=
-    own base_γ ((●E v): RA).
+    own base_γ (●E v).
 
   Definition cell (v : Z) : iProp Σ :=
-    own base_γ ((◯E v): RA).
+    own base_γ (◯E v).
 
   Lemma cell_auth_get v v':
     cell v -∗ auth v' -∗ ⌜v = v'⌝.
@@ -74,5 +74,5 @@ Module CellioA. Section CellioA.
 
   Definition InitRes : Σ := own.iRes_singleton base_γ (●E 0%Z).
 
-  Definition t ginv Stb := Seal.sealing CRIS (SMod.to_hmod ginv Stb Mod).
+  Definition t ginv Spc := Seal.sealing CRIS (SMod.to_hmod ginv Spc Mod).
 End CellioA. End CellioA.

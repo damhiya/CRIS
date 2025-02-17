@@ -32,11 +32,9 @@ Module CellI. Section CellI.
     PMod.scopes := scopes;
     PMod.fnsems := fnsems;
     PMod.initial_st := [(v_cv,tt↑)];
-  |}
-  .
+  |}.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
   
   Definition t := Seal.sealing CRIS (PMod.to_hmod Mod).
-
 End CellI. End CellI.

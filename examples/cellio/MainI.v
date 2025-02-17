@@ -1,11 +1,9 @@
 Require Import CRIS.
-
 Require Import MainHeader CellioHeader FooHeader.
 
 Set Implicit Arguments.
 
-Module MainI.
-Section MainI.
+Module MainI. Section MainI.
   Context `{Σ: GRA}.
 
   Definition scopes := [MainName.mn].
@@ -16,8 +14,7 @@ Section MainI.
       ccallU (Y:=unit) FooName.foo tt;;;
       x <- ccallU (Y:=Z) CellioName.get tt;;
       trigger (@IO _ unit "Print" x);;;
-      Ret tt↑
-  .
+      Ret tt↑.
   
   Definition fnsems :=
     [(MainName.main, (scopes, main))].
@@ -26,11 +23,9 @@ Section MainI.
     PMod.scopes := scopes;
     PMod.fnsems := fnsems;
     PMod.initial_st := [];
-  |}
-  .
+  |}.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
   
   Definition t := Seal.sealing CRIS (PMod.to_hmod Mod).
-
 End MainI. End MainI.

@@ -15,8 +15,7 @@ Module MainA. Section MainA.
       'i: Z <- ccallU InputName.input tt;;
       '_: unit <- ccallU FooName.foo tt;;
       '_: unit <- trigger (IO "Print" i);;
-      Ret tt↑
-  .
+      Ret tt↑.
   
   Definition fnsems : alist string (list string * fspecbody) :=
     [(MainName.main, (scopes, mk_specbody fspec_trivial main))].
@@ -25,8 +24,7 @@ Module MainA. Section MainA.
     SMod.scopes := scopes;
     SMod.fnsems := fnsems;
     SMod.initial_st := [];
-  |}
-  .
+  |}.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
@@ -35,5 +33,4 @@ Module MainA. Section MainA.
   Definition InitRes : Σ := ε.
 
   Definition t ginv Spc := Seal.sealing CRIS (SMod.to_hmod ginv Spc Mod).
-
 End MainA. End MainA.

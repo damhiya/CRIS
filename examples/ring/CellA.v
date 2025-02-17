@@ -9,7 +9,7 @@ Local Definition pendingUR := (nat -d> optionUR (exclR unitO)).
 Local Definition cellUR := (nat -d> optionUR (exclR ZO)).
 Local Definition RA : ucmra := prodUR pendingUR (authUR cellUR).
 Class CellAGΓ (Γ : HRA) := {
-  #[global] RA_inG :: inG RA Γ;
+  #[local] RA_inG :: inG RA Γ;
 }.
 Definition CellAΓ : HRA := #[RA].
 
