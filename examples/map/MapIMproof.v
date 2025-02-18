@@ -231,14 +231,14 @@ Module MapIM. Section MapIM.
     init_wsim u_MapM u_MapI n.
 
     w_steps_l.
-    iDestruct "ASM" as "[-> ->]". hss. inv G0.
+    iDestruct "ASM" as "[-> ->]". hss. inv G0. w_steps_l.
 
     (* SRC: handle the IST of Map and the precond of set *)
     iDestruct "IST" as (? ? ? ?) "(%& (% & [%|(P & IST)]) &%)";
       [|iDestruct "IST" as (? ? ? ?) "(% & M)"];
       des; hss.
     { nia. }
-    rename q4 into idx.
+    rename q1 into idx.
 
     (* TGT : compute the input to store *)
     w_steps_r. hss. w_steps_r.

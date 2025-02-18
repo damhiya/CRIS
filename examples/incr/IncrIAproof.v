@@ -15,6 +15,7 @@ Module IncrIA. Section IncrIA.
   Local Notation IncrI := (IncrI.t ★ MemA).
   Local Notation IstFull := (IstProd (IstSB IncrA.(HMod.scopes) Ist) IstEq).
 
+  
   Lemma simF_incr : HSim.sim_fun open IncrA IncrI IstFull IncrName.incr.
   Proof.
     init_wsim u_s u_t n.
@@ -24,5 +25,11 @@ Module IncrIA. Section IncrIA.
 
     w_steps_l. w_steps_r.
     prep_l. prep_r.
+    let marker := fresh "MARKER" in
+    set_marker marker;
+    hide_ihyps;
+    hide_itree_r.
+    prep;
+    show_until marker.
   Admitted.
 End IncrIA. End IncrIA.

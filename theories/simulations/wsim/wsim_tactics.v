@@ -51,6 +51,21 @@ Notation "E1 '------------------------------------------------------------------
     (at level 50, only printing,
       format "E1 '------------------------------------------------------------------□' '//' E2 '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '-------------------------------wsim-------------------------------' '//' P  '-∗'  'WSIM' ").
 
+
+Ltac w_replace_l :=
+  lazymatch goal with
+  | [ |- environments.envs_entails ?env (wsim ?fl_src ?tl_tgt ?Ist ?my_tid ?t ?u ?v ?n ?E ?r ?g ?R_s ?R_t ?RR ?ps ?pt ?nths (?st_src, ?itr_src) (?st_tgt, ?itr_tgt)) ] =>
+      refine (eq_ind_r (fun itr_src' => environments.envs_entails env (wsim fl_src tl_tgt Ist my_tid t u v n E r g R_s R_t RR ps pt nths (st_src, itr_src') (st_tgt, itr_tgt))) _ _); cycle 1
+  end.
+
+Ltac w_replace_r :=
+  lazymatch goal with
+  | [ |- environments.envs_entails ?env (wsim ?fl_src ?tl_tgt ?Ist ?my_tid ?t ?u ?v ?n ?E ?r ?g ?R_s ?R_t ?RR ?ps ?pt ?nths (?st_src, ?itr_src) (?st_tgt, ?itr_tgt)) ] =>
+      refine (eq_ind_r (fun itr_tgt' => environments.envs_entails env (wsim fl_src tl_tgt Ist my_tid t u v n E r g R_s R_t RR ps pt nths (st_src, itr_src) (st_tgt, itr_tgt'))) _ _); cycle 1
+  end.
+
+Ltac w_hnorm_l := w_replace_l; [s; hnorm_itr|].
+Ltac w_hnorm_r := w_replace_r; [s; hnorm_itr|].
 Ltac _w_step :=
   match goal with
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, Ret _) (_, Ret _))] =>
@@ -101,8 +116,8 @@ Ltac w_step :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  hide_itree_r; prep; show_itree;
-  hide_itree_l; prep; show_itree;
+  (hrepeat do 1 w_hnorm_l);
+  (hrepeat do 1 w_hnorm_r);
   _w_step;
   show_until marker.
 
@@ -110,17 +125,15 @@ Ltac w_step_l :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  hide_itree_r;
-  prep;
-  w_step_l_core;
+  (hrepeat do 1 w_hnorm_l);
+  try w_step_l_core;
   show_until marker.
 
 Ltac w_steps_l :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  hide_itree_r;
-  (hrepeat do 1 (prep; w_step_l_core));
+  (hrepeat do 1 tryany (do 1 w_hnorm_l) (do 1 w_step_l_core)); try w_hnorm_l;
   show_until marker.
 
 Ltac _w_step_r :=
@@ -167,17 +180,15 @@ Ltac w_step_r :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  hide_itree_l;
-  prep;
-  w_step_r_core;
+  (hrepeat do 1 w_hnorm_r);
+  try w_step_r_core;
   show_until marker.
 
 Ltac w_steps_r :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  hide_itree_l;
-  (hrepeat do 1 (prep; w_step_r_core));
+  (hrepeat do 1 tryany (do 1 w_hnorm_r) (do 1 w_step_r_core)); try w_hnorm_r;
   show_until marker.
 
 Ltac _w_force_l :=
@@ -205,8 +216,7 @@ Ltac w_force_l_core :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  hide_itree_r;
-  prep;
+  (hrepeat do 1 w_hnorm_l);
   _w_force_l;
   show_until marker.
 
@@ -234,10 +244,10 @@ Ltac _w_force_r :=
         end
       | unfold_precond_postcond P; iApply wsim_assume_tgt
       ]
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _)) ] =>
+      iApply wsim_asm_tgt
   (* | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ _ (_, unwrapU _ >>= _)) ] =>
-      iApply isim_unwrapU_tgt; iExists _
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _)) ] =>
-      iApply isim_asm_tgt *)
+      iApply isim_unwrapU_tgt; iExists _ *)
   end
 .
 
@@ -245,8 +255,7 @@ Ltac w_force_r_core :=
   let marker := fresh "MARKER" in
   set_marker marker;  
   hide_ihyps;
-  hide_itree_l;
-  prep;
+  (hrepeat do 1 w_hnorm_r);
   _w_force_r; s;
   show_until marker.
 
@@ -263,8 +272,7 @@ Ltac w_inline_l :=
   let marker := fresh "MARKER" in
   set_marker marker;  
   hide_ihyps;
-  hide_itree_r;
-  prep;
+  (hrepeat do 1 w_hnorm_l);
   iApply wsim_inline_src; [prove_inline_cond|];
   unfold_cris_defs;
   show_until marker.
@@ -273,8 +281,7 @@ Ltac w_inline_r :=
   let marker := fresh "MARKER" in
   set_marker marker;  
   hide_ihyps;
-  hide_itree_l;
-  prep;
+  (hrepeat do 1 w_hnorm_r);
   iApply wsim_inline_tgt; [prove_inline_cond|];
   unfold_cris_defs;
   show_until marker.
@@ -289,8 +296,8 @@ Ltac w_call hyps :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  hide_itree_r; prep; show_itree;
-  hide_itree_l; prep; show_itree;
+  (hrepeat do 1 w_hnorm_l);
+  (hrepeat do 1 w_hnorm_r);
   iApply wsim_call;
   show_until marker;
   iSplitL hyps; [try done | iIntros "% % % % % %"; iIntrosFresh "IST"];
@@ -300,8 +307,8 @@ Ltac yield hyps :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  hide_itree_r; prep; show_itree;
-  hide_itree_l; prep; show_itree;
+  (hrepeat do 1 w_hnorm_l);
+  (hrepeat do 1 w_hnorm_r);
   iApply wsim_yield
   ; show_until marker
   ; iSplitL hyps; [try done | iIntros "% % % % %"; iIntrosFresh "IST"]

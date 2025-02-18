@@ -182,7 +182,7 @@ Module SchIA. Section SchIA.
 
     (* Choose the metavariables *)
     do 2 w_force_l.
-    prep. iApply wsim_full_guarantee_src. iSplitL "pre".
+    w_hnorm_l. iApply wsim_full_guarantee_src. iSplitL "pre".
     Unshelve.
     3:{ clear H0. unfold find_fsp in userm. rewrite H1 in userm. exact userm. }
     3:{ exact (fvargs↑). }
@@ -199,7 +199,7 @@ Module SchIA. Section SchIA.
     revert userm H0. generalize H1. unfold find_fsp. rewrite H1.
     i; ss. rewrite (UIP _ _ _ H0 eq_refl). erewrite <- rew_swap; ss.
     unfold fspec_spawnable in H2; des.
-    prep. iApply wsim_full_assume_src; iSplitL ""; iIntros "I".
+    w_hnorm_l. iApply wsim_full_assume_src; iSplitL ""; iIntros "I".
     { iPoseProof (H3 $ ret with "[I]") as "H".
       { iExists _; iFrame. }
       { iExact "H". }
@@ -313,10 +313,13 @@ Module SchIA. Section SchIA.
     destruct q as [[[[farg fvarg] pre] synpost] [userf userm]].
     w_steps_l.
     iDestruct "ASM" as "[%va [-> ASM]]".
-    iDestruct "ASM" as "[[-> [-> [% %]]] PRE]". inv H. rename x into userfspec.
+    iDestruct "ASM" as "[[-> [-> [% %]]] PRE]". hss. inv H. rename x into userfspec.
+    w_steps_l.
+    w_force_l. iSplit.
+    { iPureIntro. apply SchInSpc; ss. rewrite /spc; unseal CRIS; ss. }
 
     (* spawn _spawn *)
-    prep_l. w_force_l (my_tid, farg, fvarg, pre, synpost, existT userf userm).
+    w_force_l (my_tid, farg, fvarg, pre, synpost, existT userf userm).
     w_force_l ((my_tid, userf, farg)↑).
     hss. w_steps_r.
     w_step.
@@ -397,7 +400,7 @@ Module SchIA. Section SchIA.
 
     w_step_l. w_step_l.
     destruct q as [tid postS]; s. w_steps_l.
-    iDestruct "ASM" as "[[-> TOK] ->]". hss. rename q0 into tid.
+    iDestruct "ASM" as "[[-> TOK] ->]". hss. rename q into tid.
 
     w_step_r.
     rewrite !/Sch.yield /ccallU. unseal "Sch".

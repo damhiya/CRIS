@@ -81,7 +81,7 @@ Module MapMA. Section MapMA.
     (* TGT : handle the body of get *)
     hss. w_steps_r. hss. w_steps_r.
     iPoseProof (auth_unallocated_points_to with "U MAP") as "%".
-    w_force_r.
+    w_force_r; first eauto.
 
     (* TGT: handle the postcond of get *)
     w_steps_r. hss. w_steps_r. iDestruct "GRT" as "(_ & <-)".
@@ -94,7 +94,6 @@ Module MapMA. Section MapMA.
     (* prove the IST of Map *)
     w_step. iSplit; eauto.
     iExists _, _. iSplit; eauto. iRight. iFrame.
-    Unshelve. done.
   Qed.
 
   Lemma simF_set : HSim.sim_fun open MapA MapM Ist MapName.set.
@@ -115,7 +114,7 @@ Module MapMA. Section MapMA.
     (* TGT : handle the body of set *)
     hss. w_steps_r. hss. w_steps_r.
     iPoseProof (auth_unallocated_points_to with "U MAP") as "%".
-    w_force_r. w_steps_r. hss. w_steps_r.
+    w_force_r; first done. w_steps_r. hss. w_steps_r.
 
     (* TGT: handle the postcond of set *)
     iDestruct "GRT" as "(_ & <-)".
@@ -127,7 +126,6 @@ Module MapMA. Section MapMA.
     (* prove the IST of Map *)
     w_step. iSplit; eauto.
     iExists _, _. iSplit; eauto. iRight. iFrame.
-    Unshelve. done.
   Qed.
 
   Lemma simF_set_by_user : HSim.sim_fun open MapA MapM Ist MapName.set_by_user.
