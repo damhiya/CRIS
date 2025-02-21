@@ -14,13 +14,13 @@ Section MACROAUX.
   (** Sch.spawn *)
 
   Lemma isim_mspawn_hp
-    contextual fl fr Ist r g {Rs Rt} RR my_tid ps pt nths st_src st_tgt k_src k_tgt scp_src scp_tgt invspc
+    n contextual fl fr Ist r g {Rs Rt} RR my_tid ps pt nths st_src st_tgt k_src k_tgt scp_src scp_tgt invspc
     (Stb: string → option fspec) (univ: positive)
     (fvarg farg: SAny.t) (pre: iProp) (postS: SAny.t → {n & SRFSyn.t n}) 
     (fn: string) (fsp: fspec) (m: meta fsp)
     (FINDF: Stb fn = Some fsp)
-    (FINDS: Stb SchName.spawn = Some (SchAS.spawn_spec univ Stb))
-    (SPWN: ∀ tid, SchAS.fspec_spawnable univ fsp tid m fvarg↑ farg↑ pre postS)
+    (FINDS: Stb SchName.spawn = Some (SchAS.spawn_spec univ n Stb))
+    (SPWN: ∀ tid, SchAS.fspec_spawnable univ n fsp tid m fvarg↑ farg↑ pre postS)
     :
       (((Ist nths st_src st_tgt) ∗ (∃ n, wsats univ n ⊤) ∗ pre) ∗
       (∀ nths0 st_src0 st_tgt0 tid,
@@ -334,5 +334,4 @@ Ltac join hyps :=
     iApply isim_mjoin_hp; des_pairs; s;
     [|iSplitL hyps; [|iIntros "% % % %"; iIntros "[IST [W POST]]"]] |
     iApply isim_mjoin_hh; des_pairs; s;
-    [| |iSplitL hyps; [|iIntros "% % % %"; iIntros "IST"]]].
-*)
+    [| |iSplitL hyps; [|iIntros "% % % %"; iIntros "IST"]]]. *)

@@ -7,22 +7,24 @@ Set Implicit Arguments.
 
 Local Open Scope Qp.
 
-Definition sch_ginv `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}
-    (υ : positive) (n : level) : invspec :=
-  λ _, wsim_ginv υ n ⊤.
+Definition sch_ginv `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ} (υ : univ_id) : invspec :=
+  λ _, wsim_ginv υ ⊤.
 
 Section SchRA.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
 
   Canonical Structure SynDepO : ofe := leibnizO {n & SRFSyn.t n}.
 
-  Definition thst: ucmra := (SAny.t -d> optionUR (agreeR SynDepO)).
+  Definition thst : ucmra := (SAny.t -d> optionUR (agreeR SynDepO)).
   Definition fragreeUR := optionUR (prodR fracR (agreeR thst)).
-  Definition threadsF := (discrete_funUR (λ _: nat, fragreeUR)).
+  Definition threadsF := nat -d> fragreeUR.
   Definition threadsRA := authUR threadsF.
 
   Class SchAGΣ (Σ: GRA) := { #[global] RA_inG :: inG threadsRA Σ }.
   Definition SchAΣ : GRA := #[threadsRA].
+  Global Instance subG_GΣ {Σ'} : subG SchAΣ Σ' → SchAGΣ Σ'.
+  Proof. solve_inG. Defined.
+  Hint Unfold subG_GΣ SchAΣ : GRA_index.
 End SchRA.
 
 Module SchAS. Section SchAS.
@@ -34,6 +36,9 @@ Module SchAS. Section SchAS.
   Definition initial_threads: iProp Σ := 
     Seal.sealing "SchA"
       (own base_γ initial_threads_r).
+
+  Definition initial_resource : Σ :=
+    own.iRes_singleton base_γ initial_threads_r.
 
   Definition token_pending_r (tid: nat): threadsRA :=
     ◯ ((λ n, if (tid =? n) then None else ε): threadsF).
@@ -149,49 +154,48 @@ Module SchAS. Section SchAS.
   End RA.
 
   Variable υ : univ_id.
-  Variable n : level.
   Variable Spc_user : string -> option fspec.
 
   Section SPEC.
     (* TODO : clarify with WP tc *)
-    Definition fspec_spawnable (univ : positive) (n : level) (fsp : fspec) (tid : nat) (m : meta fsp)
+    Definition fspec_spawnable (u : univ_id) (fsp : fspec) (tid : nat) (m : meta fsp)
         (vargs args : Any.t) (pre : iProp Σ) (postS: SAny.t -> SynDepO) : Prop :=
-      ((wsim_ginv univ n ⊤ ∗ pre ⊢ (precond fsp tid m vargs args))%I ∧
+      ((wsim_ginv u ⊤ ∗ pre ⊢ (precond fsp tid m vargs args))%I ∧
       (∀ ret: Any.t, 
         ((∃ vret, postcond fsp tid m vret ret)%I ⊢
-          (wsim_ginv univ n ⊤ ∗ ∃ sret: SAny.t, (⌜ret = sret↑⌝ ∗ interp_cond (postS sret))))%I)).
+          (wsim_ginv u ⊤ ∗ ∃ sret: SAny.t, (⌜ret = sret↑⌝ ∗ interp_cond (postS sret))))%I)).
 
     Definition _spawn_spec : fspec :=
-      w_fspec υ n
+      w_fspec υ
         (fspec_virtual
           (λ my_tid '(mid, fargs, fvargs, pre, postS, existT fn m) varg arg,
             (⌜varg = ((mid, fn, fvargs) : nat * string * SAny.t) 
               ∧ arg = ((mid, fn, fargs) : nat * string * SAny.t)↑ 
               ∧ is_Some (Spc_user fn)
-              ∧ fspec_spawnable υ n (find_fsp Spc_user fn) my_tid m fvargs↑ fargs↑ pre postS⌝
+              ∧ fspec_spawnable υ (find_fsp Spc_user fn) my_tid m fvargs↑ fargs↑ pre postS⌝
             ∗ pre ∗ (token_half my_tid postS))%I)
           (λ _ _ (_: SAny.t) _, (False)%I))
     .
 
     Definition spawn_spec : fspec :=
-      w_fspec υ n
+      w_fspec υ
         (fspec_virtual
           (λ _ '(fargs, fvargs, pre, postS, existT fn m) varg arg,
             (⌜varg = ((fn, fvargs): string * SAny.t) 
               ∧ arg = ((fn, fargs): string * SAny.t)↑
               ∧ is_Some (Spc_user fn)
-              ∧ ∀ tid, fspec_spawnable υ n (find_fsp Spc_user fn) tid m fvargs↑ fargs↑ pre postS⌝
+              ∧ ∀ tid, fspec_spawnable υ (find_fsp Spc_user fn) tid m fvargs↑ fargs↑ pre postS⌝
              ∗ pre)%I)
           (fun _ '(fargs, fvargs, pre, postS, existT fn m) vret ret => 
             (∃ tid: nat, ⌜vret = tid ∧ ret = tid↑⌝ ∗ (token_th tid postS))%I))
     .
 
     Definition yield_spec: fspec :=
-      w_fspec υ n
+      w_fspec υ
         (fspec_simple (λ (_: unit), ((λ varg, ⌜varg = tt↑⌝), (λ vret, ⌜vret = tt↑⌝))))%I.
 
     Definition join_spec: fspec :=
-      w_fspec υ n
+      w_fspec υ
         (fspec_simple
           (λ '(tid, postS),
             ((λ varg, (⌜varg = tid↑⌝ ∗ token_th tid postS)),
@@ -239,15 +243,15 @@ Module SchA. Section SchA.
 
     Definition scopes := ["Sch"].
 
-    Definition fnsems υ n Spc_user :=
-      [(SchName._spawn, (scopes, mk_specbody (SchAS._spawn_spec υ n Spc_user) (cfunN _spawn)));
-       (SchName.spawn, (scopes, mk_specbody (SchAS.spawn_spec υ n Spc_user) (cfunU spawn)));
-       (SchName.yield, (scopes, mk_specbody (SchAS.yield_spec υ n) (cfunU yield)));
-       (SchName.join, (scopes, mk_specbody (SchAS.join_spec υ n) (cfunU join)))].
+    Definition fnsems υ Spc_user :=
+      [(SchName._spawn, (scopes, mk_specbody (SchAS._spawn_spec υ Spc_user) (cfunN _spawn)));
+       (SchName.spawn, (scopes, mk_specbody (SchAS.spawn_spec υ Spc_user) (cfunU spawn)));
+       (SchName.yield, (scopes, mk_specbody (SchAS.yield_spec υ) (cfunU yield)));
+       (SchName.join, (scopes, mk_specbody (SchAS.join_spec υ) (cfunU join)))].
 
-    Program Definition Mod υ n Spc_user : SMod.t := {|
+    Program Definition Mod υ Spc_user : SMod.t := {|
       SMod.scopes := scopes;
-      SMod.fnsems := fnsems υ n Spc_user;
+      SMod.fnsems := fnsems υ Spc_user;
       SMod.initial_st := [];
     |}.
     Solve All Obligations with prove_scope.
@@ -255,6 +259,6 @@ Module SchA. Section SchA.
 
     Definition InitCond : iProp Σ := SchAS.initial_threads.
     
-    Definition t υ n Spc_global Spc_user :=
-      Seal.sealing CRIS (SMod.to_hmod (sch_ginv υ n) Spc_global (Mod υ n Spc_user)).
+    Definition t υ Spc_global Spc_user :=
+      Seal.sealing CRIS (SMod.to_hmod (sch_ginv υ) Spc_global (Mod υ Spc_user)).
 End SchA. End SchA.

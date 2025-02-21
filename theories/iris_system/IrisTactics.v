@@ -325,7 +325,7 @@ Ltac dfs_to_list :=
   dfs_normalize_assoc_rev;
   match goal with
   | |- ✓ ?tm =>
-     epose (X := _ : list {i : _ & allocs.allocsUR (GRA_lookup i)});
+     epose (X := _ : list {i : _ & allocs.allocsUR positive (GRA_lookup i)});
      epose (NL := _ : list (fin GRA_len)); revert X NL;
      dfs_to_list_instantiate tm; intros X NL;
      change tm with (discrete_fun_list X); unfold X; clear X; revert NL

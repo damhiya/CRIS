@@ -18,12 +18,20 @@ Section FSpec.
   Variable StbFun: string → option fspec.
 
   (* fspec wrapping functions - TODO: move them to a proper file *)
-  Definition wfspec_inv (fsp : fspec) : fspec :=
+  (* Definition wfspec_inv (fsp : fspec) : fspec :=
     mk_fspec (meta := (fsp).(meta))
       (fun tid x varg arg =>
         (∃ n, wsats univ n ⊤) ∗ fsp.(precond) tid x varg arg)%I
       (fun tid x vret ret =>
-        (∃ n, wsats univ n ⊤) ∗ fsp.(postcond) tid x vret ret)%I.
+        (∃ n, wsats univ n ⊤) ∗ fsp.(postcond) tid x vret ret)%I. *)
+
+  Definition sfunN {X Y} `{coreE -< E} `{callE -< E} `{pgE -< E}
+      (body : X -> itree E Y) : SAny.t -> itree E SAny.t :=
+    λ varg, varg <- varg↓↓!;; vret <- body varg;; Ret vret↑↑.
+
+  Definition sfunU {X Y} `{coreE -< E} `{callE -< E} `{pgE -< E}
+      (body : X -> itree E Y) : SAny.t -> itree E SAny.t :=
+    λ varg, varg <- varg↓↓?;; vret <- body varg;; Ret vret↑↑.
 
   Definition wfspec_type (A R : Type) (fsp : fspec) : fspec :=
     mk_fspec (meta := (fsp).(meta))
@@ -37,7 +45,7 @@ Section FSpec.
     | existT n p => ⟦ p ⟧
     end.
 
-  Definition wfspec_thread: fspec → fspec := (wfspec_inv) ∘ (wfspec_type SAny.t SAny.t).
+  (* Definition wfspec_thread: fspec → fspec := (wfspec_inv) ∘ (wfspec_type SAny.t SAny.t). *)
 
   Definition find_fsp (fn : string) : fspec :=
     match (StbFun fn) with

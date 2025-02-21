@@ -28,8 +28,13 @@ Definition base_γ : gname := 1%positive.
 
 Definition gid (Σ : GRA) := fin GRA_len.
 
-Definition GRAUR (Σ : GRA) : ucmra := discrete_funUR (λ i, allocsUR (GRA_lookup i)).
+Definition GRAUR (Σ : GRA) : ucmra := discrete_funUR (λ i, allocsUR positive (GRA_lookup i)).
 Global Coercion GRAUR : GRA >-> ucmra.
+
+Definition initial {Σ : GRA} : GRAUR Σ :=
+  (λ i, allocs_auth (@GRA_lookup Σ i) (λ _, True)).
+Lemma initial_valid {Σ : GRA} : ✓ initial.
+Proof. rewrite /initial /allocs_auth; intros i g; des_ifs. Qed.
 
 Global Instance GRA_discrete {Σ : GRA} : CmraDiscrete Σ.
 Proof. apply _. Qed.
@@ -80,12 +85,25 @@ Global Instance subG_app_l Σ Σ1 Σ2 : subG Σ Σ1 → subG Σ (GRAs.app Σ1 Σ
 Proof.
   move=> H i; move: H=> /(_ i) [j ?].
   exists (Fin.L _ j). by rewrite /= fin_add_inv_l.
-Qed.
+Defined.
+Lemma subG_app_l_inG_id Σ Σ1 Σ2 subGins i :
+    (subG_app_l Σ Σ1 Σ2 subGins) i
+    = let '(exist _ j jprf) := subGins i in
+      exist _ (Fin.L _ j)
+      (eq_ind_r (λ p : DRA, GRA_lookup i = p) jprf (fin_add_inv_l (λ _ : fin (GRA_len + GRA_len), DRA) GRA_lookup GRA_lookup j)).
+Proof. unfold subG_app_l. destruct (subGins i). reflexivity. Qed.
+
 Global Instance subG_app_r Σ Σ1 Σ2 : subG Σ Σ2 → subG Σ (GRAs.app Σ1 Σ2).
 Proof.
   move=> H i; move: H=> /(_ i) [j ?].
   exists (Fin.R _ j). by rewrite /= fin_add_inv_r.
-Qed.
+Defined.
+Lemma subG_app_r_inG_id Σ Σ1 Σ2 subGins i :
+    (subG_app_r Σ Σ1 Σ2 subGins) i
+    = let '(exist _ j jprf) := subGins i in
+      exist _ (Fin.R _ j)
+      (eq_ind_r (λ p : DRA, GRA_lookup i = p) jprf (fin_add_inv_r (λ _ : fin (GRA_len + GRA_len), DRA) GRA_lookup GRA_lookup j)).
+Proof. unfold subG_app_r. destruct (subGins i). reflexivity. Qed.
 
 Lemma subG_inG Σ (A : DRA) : subG A Σ → inG A Σ.
 Proof.

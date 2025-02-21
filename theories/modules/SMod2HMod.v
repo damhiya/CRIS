@@ -57,17 +57,6 @@ Section FSPEC.
     precond := λ tid '(existT i meta_i), (nth i fspecs fspec_false).(precond) tid meta_i;
     postcond := λ tid '(existT i meta_i), (nth i fspecs fspec_false).(postcond) tid meta_i 
   |}.
-
-  Variant meta_inv {X : nat → Type} : Type :=
-  | mk_meta (n : nat) (x : X n).
-
-  Definition fspec_inv (u : positive) (k : nat) (fsp : nat → fspec)
-      `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ} : fspec :=
-    mk_fspec (meta := @meta_inv (λ n, (fsp n).(meta)))
-      (λ tid '(mk_meta n x) varg arg,
-         own_admin ∗ univs u (k+n) ∗ wsats u (k+n) ⊤ ∗ (fsp n).(precond) tid x varg arg)%I
-      (λ tid '(mk_meta n x) vret ret,
-         own_admin ∗ univs u (k+n) ∗ wsats u (k+n) ⊤ ∗ (fsp n).(postcond) tid x vret ret)%I.
 End FSPEC.
 
 Arguments precond : simpl never.

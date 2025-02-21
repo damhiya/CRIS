@@ -1,44 +1,44 @@
-Require Import CRIS ltac2_lib.
+Require Import CRIS ltac2_lib SchHeader.
 Require Export wsim.
 
 From iris.proofmode Require Import coq_tactics environments.
 (* ● ◓ ○ *)
-Notation "E1 '------------------------------------------------------------------□' E2 '------------------------------------------------------------------∗' st_src st_tgt '------------------------------params------------------------------' ○ n E r g ps pt '-------------------------------wsim-------------------------------' itr_src itr_tgt" :=
-  (environments.envs_entails (Envs E1 E2 _) (wsim _ _ _ _ None _ _ n E r g _ _ _ ps pt _ (st_src, itr_src) (st_tgt, itr_tgt)))
+Notation "E1 '------------------------------------------------------------------□' E2 '------------------------------------------------------------------∗' st_src st_tgt '------------------------------params------------------------------' ○ E r g ps pt '-------------------------------wsim-------------------------------' itr_src itr_tgt" :=
+  (environments.envs_entails (Envs E1 E2 _) (wsim _ _ _ _ None _ _ E r g _ _ _ ps pt _ (st_src, itr_src) (st_tgt, itr_tgt)))
     (at level 50, only printing,
-      format "E1 '------------------------------------------------------------------□' '//' E2 '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '------------------------------params------------------------------' '//' ○ '/' n '/' E '/' r '/' g '/' ps '/' pt '//' '-------------------------------wsim-------------------------------' '//' itr_src '//' '//' '//' itr_tgt '//'").
-Notation "E1 '------------------------------------------------------------------□' E2 '------------------------------------------------------------------∗' st_src st_tgt '------------------------------params------------------------------' ◓ n E r g ps pt '-------------------------------wsim-------------------------------' itr_src itr_tgt" :=
-  (environments.envs_entails (Envs E1 E2 _) (wsim _ _ _ _ (Some false) _ _ n E r g _ _ _ ps pt _ (st_src, itr_src) (st_tgt, itr_tgt)))
+      format "E1 '------------------------------------------------------------------□' '//' E2 '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '------------------------------params------------------------------' '//' ○ '/' E '/' r '/' g '/' ps '/' pt '//' '-------------------------------wsim-------------------------------' '//' itr_src '//' '//' '//' itr_tgt '//'").
+Notation "E1 '------------------------------------------------------------------□' E2 '------------------------------------------------------------------∗' st_src st_tgt '------------------------------params------------------------------' ◓ E r g ps pt '-------------------------------wsim-------------------------------' itr_src itr_tgt" :=
+  (environments.envs_entails (Envs E1 E2 _) (wsim _ _ _ _ (Some false) _ _ E r g _ _ _ ps pt _ (st_src, itr_src) (st_tgt, itr_tgt)))
     (at level 50, only printing,
-      format "E1 '------------------------------------------------------------------□' '//' E2 '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '------------------------------params------------------------------' '//' ◓ '/' n '/' E '/' r '/' g '/' ps '/' pt '//' '-------------------------------wsim-------------------------------' '//' itr_src '//' '//' '//' itr_tgt '//'").
-Notation "E1 '------------------------------------------------------------------□' E2 '------------------------------------------------------------------∗' st_src st_tgt '------------------------------params------------------------------' ● n E r g ps pt '-------------------------------wsim-------------------------------' itr_src itr_tgt" :=
-  (environments.envs_entails (Envs E1 E2 _) (wsim _ _ _ _ (Some true) _ _ n E r g _ _ _ ps pt _ (st_src, itr_src) (st_tgt, itr_tgt)))
+      format "E1 '------------------------------------------------------------------□' '//' E2 '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '------------------------------params------------------------------' '//' ◓ '/' E '/' r '/' g '/' ps '/' pt '//' '-------------------------------wsim-------------------------------' '//' itr_src '//' '//' '//' itr_tgt '//'").
+Notation "E1 '------------------------------------------------------------------□' E2 '------------------------------------------------------------------∗' st_src st_tgt '------------------------------params------------------------------' ● E r g ps pt '-------------------------------wsim-------------------------------' itr_src itr_tgt" :=
+  (environments.envs_entails (Envs E1 E2 _) (wsim _ _ _ _ (Some true) _ _ E r g _ _ _ ps pt _ (st_src, itr_src) (st_tgt, itr_tgt)))
     (at level 50, only printing,
-      format "E1 '------------------------------------------------------------------□' '//' E2 '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '------------------------------params------------------------------' '//' ● '/' n '/' E '/' r '/' g '/' ps '/' pt '//' '-------------------------------wsim-------------------------------' '//' itr_src '//' '//' '//' itr_tgt '//'").
-Notation "E1 '------------------------------------------------------------------□' st_src st_tgt '------------------------------params------------------------------' ○ n E r g ps pt '-------------------------------wsim-------------------------------' itr_src itr_tgt" :=
-  (environments.envs_entails (Envs E1 Enil _) (wsim _ _ _ _ None _ _ n E r g _ _ _ ps pt _ (st_src, itr_src) (st_tgt, itr_tgt)))
+      format "E1 '------------------------------------------------------------------□' '//' E2 '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '------------------------------params------------------------------' '//' ● '/' E '/' r '/' g '/' ps '/' pt '//' '-------------------------------wsim-------------------------------' '//' itr_src '//' '//' '//' itr_tgt '//'").
+Notation "E1 '------------------------------------------------------------------□' st_src st_tgt '------------------------------params------------------------------' ○ E r g ps pt '-------------------------------wsim-------------------------------' itr_src itr_tgt" :=
+  (environments.envs_entails (Envs E1 Enil _) (wsim _ _ _ _ None _ _ E r g _ _ _ ps pt _ (st_src, itr_src) (st_tgt, itr_tgt)))
     (at level 50, only printing,
-      format "E1 '------------------------------------------------------------------□' '//' st_src '//' st_tgt '//' '------------------------------params------------------------------' '//' ○ '/' n '/' E '/' r '/' g '/' ps '/' pt '//' '-------------------------------wsim-------------------------------' '//' itr_src '//' '//' '//' itr_tgt '//'").
-Notation "E1 '------------------------------------------------------------------□' st_src st_tgt '------------------------------params------------------------------' ◓ n E r g ps pt '-------------------------------wsim-------------------------------' itr_src itr_tgt" :=
-  (environments.envs_entails (Envs E1 Enil _) (wsim _ _ _ _ (Some false) _ _ n E r g _ _ _ ps pt _ (st_src, itr_src) (st_tgt, itr_tgt)))
+      format "E1 '------------------------------------------------------------------□' '//' st_src '//' st_tgt '//' '------------------------------params------------------------------' '//' ○ '/' E '/' r '/' g '/' ps '/' pt '//' '-------------------------------wsim-------------------------------' '//' itr_src '//' '//' '//' itr_tgt '//'").
+Notation "E1 '------------------------------------------------------------------□' st_src st_tgt '------------------------------params------------------------------' ◓ E r g ps pt '-------------------------------wsim-------------------------------' itr_src itr_tgt" :=
+  (environments.envs_entails (Envs E1 Enil _) (wsim _ _ _ _ (Some false) _ _ E r g _ _ _ ps pt _ (st_src, itr_src) (st_tgt, itr_tgt)))
     (at level 50, only printing,
-      format "E1 '------------------------------------------------------------------□' '//' st_src '//' st_tgt '//' '------------------------------params------------------------------' '//' ◓ '/' n '/' E '/' r '/' g '/' ps '/' pt '//' '-------------------------------wsim-------------------------------' '//' itr_src '//' '//' '//' itr_tgt '//'").
-Notation "E1 '------------------------------------------------------------------□' st_src st_tgt '------------------------------params------------------------------' ● n E r g ps pt '-------------------------------wsim-------------------------------' itr_src itr_tgt" :=
-  (environments.envs_entails (Envs E1 Enil _) (wsim _ _ _ _ (Some true) _ _ n E r g _ _ _ ps pt _ (st_src, itr_src) (st_tgt, itr_tgt)))
+      format "E1 '------------------------------------------------------------------□' '//' st_src '//' st_tgt '//' '------------------------------params------------------------------' '//' ◓ '/' E '/' r '/' g '/' ps '/' pt '//' '-------------------------------wsim-------------------------------' '//' itr_src '//' '//' '//' itr_tgt '//'").
+Notation "E1 '------------------------------------------------------------------□' st_src st_tgt '------------------------------params------------------------------' ● E r g ps pt '-------------------------------wsim-------------------------------' itr_src itr_tgt" :=
+  (environments.envs_entails (Envs E1 Enil _) (wsim _ _ _ _ (Some true) _ _ E r g _ _ _ ps pt _ (st_src, itr_src) (st_tgt, itr_tgt)))
     (at level 50, only printing,
-      format "E1 '------------------------------------------------------------------□' '//' st_src '//' st_tgt '//' '------------------------------params------------------------------' '//' ● '/' n '/' E '/' r '/' g '/' ps '/' pt '//' '-------------------------------wsim-------------------------------' '//' itr_src '//' '//' '//' itr_tgt '//'").
-Notation "E2 '------------------------------------------------------------------∗' st_src st_tgt '------------------------------params------------------------------' ○ n E r g ps pt '-------------------------------wsim-------------------------------' itr_src itr_tgt" :=
-  (environments.envs_entails (Envs Enil E2 _) (wsim _ _ _ _ None _ _ n E r g _ _ _ ps pt _ (st_src, itr_src) (st_tgt, itr_tgt)))
+      format "E1 '------------------------------------------------------------------□' '//' st_src '//' st_tgt '//' '------------------------------params------------------------------' '//' ● '/' E '/' r '/' g '/' ps '/' pt '//' '-------------------------------wsim-------------------------------' '//' itr_src '//' '//' '//' itr_tgt '//'").
+Notation "E2 '------------------------------------------------------------------∗' st_src st_tgt '------------------------------params------------------------------' ○ E r g ps pt '-------------------------------wsim-------------------------------' itr_src itr_tgt" :=
+  (environments.envs_entails (Envs Enil E2 _) (wsim _ _ _ _ None _ _ E r g _ _ _ ps pt _ (st_src, itr_src) (st_tgt, itr_tgt)))
     (at level 50, only printing,
-      format "E2 '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '------------------------------params------------------------------' '//' ○ '/' n '/' E '/' r '/' g '/' ps '/' pt '//' '-------------------------------wsim-------------------------------' '//' itr_src '//' '//' '//' itr_tgt '//'").
-Notation "E2 '------------------------------------------------------------------∗' st_src st_tgt '------------------------------params------------------------------' ◓ n E r g ps pt '-------------------------------wsim-------------------------------' itr_src itr_tgt" :=
-  (environments.envs_entails (Envs Enil E2 _) (wsim _ _ _ _ (Some false) _ _ n E r g _ _ _ ps pt _ (st_src, itr_src) (st_tgt, itr_tgt)))
+      format "E2 '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '------------------------------params------------------------------' '//' ○ '/' E '/' r '/' g '/' ps '/' pt '//' '-------------------------------wsim-------------------------------' '//' itr_src '//' '//' '//' itr_tgt '//'").
+Notation "E2 '------------------------------------------------------------------∗' st_src st_tgt '------------------------------params------------------------------' ◓ E r g ps pt '-------------------------------wsim-------------------------------' itr_src itr_tgt" :=
+  (environments.envs_entails (Envs Enil E2 _) (wsim _ _ _ _ (Some false) _ _ E r g _ _ _ ps pt _ (st_src, itr_src) (st_tgt, itr_tgt)))
     (at level 50, only printing,
-      format "E2 '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '------------------------------params------------------------------' '//' ◓ '/' n '/' E '/' r '/' g '/' ps '/' pt '//' '-------------------------------wsim-------------------------------' '//' itr_src '//' '//' '//' itr_tgt '//'").
-Notation "E2 '------------------------------------------------------------------∗' st_src st_tgt '------------------------------params------------------------------' ● n E r g ps pt '-------------------------------wsim-------------------------------' itr_src itr_tgt" :=
-  (environments.envs_entails (Envs Enil E2 _) (wsim _ _ _ _ (Some true) _ _ n E r g _ _ _ ps pt _ (st_src, itr_src) (st_tgt, itr_tgt)))
+      format "E2 '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '------------------------------params------------------------------' '//' ◓ '/' E '/' r '/' g '/' ps '/' pt '//' '-------------------------------wsim-------------------------------' '//' itr_src '//' '//' '//' itr_tgt '//'").
+Notation "E2 '------------------------------------------------------------------∗' st_src st_tgt '------------------------------params------------------------------' ● E r g ps pt '-------------------------------wsim-------------------------------' itr_src itr_tgt" :=
+  (environments.envs_entails (Envs Enil E2 _) (wsim _ _ _ _ (Some true) _ _ E r g _ _ _ ps pt _ (st_src, itr_src) (st_tgt, itr_tgt)))
     (at level 50, only printing,
-      format "E2 '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '------------------------------params------------------------------' '//' ● '/' n '/' E '/' r '/' g '/' ps '/' pt '//' '-------------------------------wsim-------------------------------' '//' itr_src '//' '//' '//' itr_tgt '//'").
+      format "E2 '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '------------------------------params------------------------------' '//' ● '/' E '/' r '/' g '/' ps '/' pt '//' '-------------------------------wsim-------------------------------' '//' itr_src '//' '//' '//' itr_tgt '//'").
 
 (* additional *) 
 Notation "E1 '------------------------------------------------------------------□' E2 '------------------------------------------------------------------∗' st_src st_tgt '-------------------------------wsim-------------------------------' P '∗' 'WSIM'" :=
@@ -54,56 +54,89 @@ Notation "E1 '------------------------------------------------------------------
 
 Ltac w_replace_l :=
   lazymatch goal with
-  | [ |- environments.envs_entails ?env (wsim ?fl_src ?tl_tgt ?Ist ?my_tid ?t ?u ?v ?n ?E ?r ?g ?R_s ?R_t ?RR ?ps ?pt ?nths (?st_src, ?itr_src) (?st_tgt, ?itr_tgt)) ] =>
-      refine (eq_ind_r (fun itr_src' => environments.envs_entails env (wsim fl_src tl_tgt Ist my_tid t u v n E r g R_s R_t RR ps pt nths (st_src, itr_src') (st_tgt, itr_tgt))) _ _); cycle 1
+  | [ |- environments.envs_entails ?env (wsim ?fl_src ?tl_tgt ?Ist ?my_tid ?t ?u ?v ?E ?r ?g ?R_s ?R_t ?RR ?ps ?pt ?nths (?st_src, ?itr_src) (?st_tgt, ?itr_tgt)) ] =>
+      refine (eq_ind_r (fun itr_src' => environments.envs_entails env (wsim fl_src tl_tgt Ist my_tid t u v E r g R_s R_t RR ps pt nths (st_src, itr_src') (st_tgt, itr_tgt))) _ _); cycle 1
   end.
 
 Ltac w_replace_r :=
   lazymatch goal with
-  | [ |- environments.envs_entails ?env (wsim ?fl_src ?tl_tgt ?Ist ?my_tid ?t ?u ?v ?n ?E ?r ?g ?R_s ?R_t ?RR ?ps ?pt ?nths (?st_src, ?itr_src) (?st_tgt, ?itr_tgt)) ] =>
-      refine (eq_ind_r (fun itr_tgt' => environments.envs_entails env (wsim fl_src tl_tgt Ist my_tid t u v n E r g R_s R_t RR ps pt nths (st_src, itr_src) (st_tgt, itr_tgt'))) _ _); cycle 1
+  | [ |- environments.envs_entails ?env (wsim ?fl_src ?tl_tgt ?Ist ?my_tid ?t ?u ?v ?E ?r ?g ?R_s ?R_t ?RR ?ps ?pt ?nths (?st_src, ?itr_src) (?st_tgt, ?itr_tgt)) ] =>
+      refine (eq_ind_r (fun itr_tgt' => environments.envs_entails env (wsim fl_src tl_tgt Ist my_tid t u v E r g R_s R_t RR ps pt nths (st_src, itr_src) (st_tgt, itr_tgt'))) _ _); cycle 1
   end.
+
+Ltac hnorm_itr :=
+  try match goal with
+  | [ |- @ITree.bind _ _ _ (trigger _) _ = _ ] => fail 2
+  end;
+  let prg := fresh "Progress" in
+  epose (prg := _ : _hprogress);
+  etransitivity;
+  [ _hnorm_itr prg
+  | _hprogress_check prg; s;
+    lazymatch goal with
+    | [ |- Ret _ = _ ] =>
+        reflexivity
+    | [ |- Tau _ = _ ] =>
+        reflexivity
+    | [ |- vis _ _ = _ ] =>
+        eapply vis_trigger
+    | [ |- assumeK _ _ = _ ] =>
+        eapply assumeK_assume
+    | [ |- guaranteeK _ _ = _ ] =>
+        eapply guaranteeK_guarantee
+    | [ |- unwrapUK _ _ = _ ] =>
+        eapply unwrapUK_unwrapU
+    | [ |- unwrapNK _ _ = _ ] =>
+        eapply unwrapNK_unwrapN
+    | [ |- HModSB.putSB _ _ _ _ = _ ] =>
+        eapply HModSB.putSB_SPut
+    | [ |- HModSB.getSB _ _ _ = _ ] =>
+        eapply HModSB.getSB_SGet
+    | [ |- _ = _ ] =>
+        reflexivity
+    end
+  ].
 
 Ltac w_hnorm_l := w_replace_l; [s; hnorm_itr|].
 Ltac w_hnorm_r := w_replace_r; [s; hnorm_itr|].
 Ltac _w_step :=
   match goal with
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, Ret _) (_, Ret _))] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, Ret _) (_, Ret _))] =>
       iApply wsim_ret
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (IO _ _) >>= _) (_, trigger (IO _ _) >>= _))] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (IO _ _) >>= _) (_, trigger (IO _ _) >>= _))] =>
       iApply wsim_io; iIntros "%"
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Spawn _ _) >>= _) (_, trigger (Spawn _ _) >>= _))] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Spawn _ _) >>= _) (_, trigger (Spawn _ _) >>= _))] =>
       iApply wsim_spawn
   end.
 
 Ltac _w_step_l :=
   match goal with
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, tau;; _) _) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, tau;; _) _) ] =>
       iApply wsim_tau_src
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, Ret _ >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, Ret _ >>= _) _) ] =>
       rewrite bind_ret_l
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger Tid >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger Tid >>= _) _) ] =>
       iApply wsim_tid_src
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _) _) ] =>
       let name := fresh "q" in iApply wsim_take_src; iIntros (name)
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ ?υ _ ?n _ _ _ _ _ _ _ _ _ (_, trigger (Assume ?P) >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ ?υ _ _ _ _ _ _ _ _ _ _ (_, trigger (Assume ?P) >>= _) _) ] =>
       first [
-        tcsearch constr:(WP P υ n ⊤)
+        tcsearch constr:(WP P υ ⊤)
           ltac:(fun c =>
-            iApply (wsim_full_assume_src_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); simpl);
+            iApply (wsim_full_assume_src_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); simpl);
         match goal with
         | [ |- environments.envs_entails _ (?P' -∗ _)] =>
           unfold_precond_postcond P'; iIntrosFresh "ASM"
         end
       | unfold_precond_postcond P; iApply wsim_assume_src; iIntrosFresh "ASM"
       ]
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _) _) ] =>
       let name := fresh "asm" in iApply wsim_asm_src; iIntros (name)
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, (HMod.sandbox _ (trigger (SPut _ _))) >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, (HMod.sandbox _ (trigger (SPut _ _))) >>= _) _) ] =>
       iApply wsim_sput_src_sandbox; [s;eauto|]
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, (HMod.sandbox _ (trigger (SGet _))) >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, (HMod.sandbox _ (trigger (SGet _))) >>= _) _) ] =>
       iApply wsim_sget_src_sandbox; [s;eauto|]
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, unwrapU ?ox >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, unwrapU ?ox >>= _) _) ] =>
       let name := fresh "q" in
       iApply wsim_unwrapU_src; iIntros (name) "%";
       match goal with [ H: ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite -> G in * end
@@ -140,28 +173,28 @@ Ltac _w_step_r :=
   match goal with
   (******* isim ******)
   (** tgt **)
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, tau;; _)) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, tau;; _)) ] =>
       iApply wsim_tau_tgt
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, Ret _ >>= _) ) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, Ret _ >>= _) ) ] =>
       rewrite bind_ret_l
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose _) >>= _) ) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose _) >>= _) ) ] =>
       let name := fresh "q" in iApply wsim_choose_tgt; iIntros (name)
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ ?ν ?n _ _ _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _) ) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ ?ν _ _ _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _) ) ] =>
       first [
-        tcsearch constr:(WP P ν n ⊤)
+        tcsearch constr:(WP P ν ⊤)
           ltac:(fun c =>
-            iApply (wsim_half_guarantee_tgt_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); simpl);
+            iApply (wsim_half_guarantee_tgt_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); simpl);
         match goal with
         | [ |- environments.envs_entails _ (?P' -∗ _)] =>
           unfold_precond_postcond P'; iIntrosFresh "GRT"
         end
       | unfold_precond_postcond P; iApply wsim_guarantee_tgt; iIntrosFresh "GRT"
       ]
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, guarantee _ >>= _)) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, guarantee _ >>= _)) ] =>
       let name := fresh "grt" in iApply wsim_guar_tgt; iIntros (name)
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, (HMod.sandbox _ (trigger (SPut _ _))) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, (HMod.sandbox _ (trigger (SPut _ _))) >>= _)) ] =>
       iApply wsim_sput_tgt_sandbox; [s; eauto|]
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, (HMod.sandbox _ (trigger (SGet _))) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, (HMod.sandbox _ (trigger (SGet _))) >>= _)) ] =>
       iApply wsim_sget_tgt_sandbox; [s; eauto|]
   (* 
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ _ (_, unwrapN ?ox >>= _)) ] =>
@@ -169,7 +202,7 @@ Ltac _w_step_r :=
       iApply isim_unwrapN_tgt; iIntros (name) "%";
       match goal with [ H: ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite -> G in * end
 *)
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger Tid >>= _)) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger Tid >>= _)) ] =>
       iApply wsim_tid_tgt
   end.
 
@@ -193,20 +226,20 @@ Ltac w_steps_r :=
 
 Ltac _w_force_l :=
   match goal with
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose ?T) >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose ?T) >>= _) _) ] =>
       iApply wsim_choose_src
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ ?υ _ ?n _ _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ ?υ _ _ _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _) _) ] =>
       first [
-        tcsearch constr:(WP P υ n ⊤)
+        tcsearch constr:(WP P υ ⊤)
           ltac:(fun c =>
-            iApply (wsim_full_guarantee_src_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); simpl);
+            iApply (wsim_full_guarantee_src_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); simpl);
         match goal with
         | [ |- environments.envs_entails _ (?P' ∗ _)] =>
           unfold_precond_postcond P'
         end
       | unfold_precond_postcond P; iApply wsim_guarantee_src
       ]
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, unwrapN _ >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, unwrapN _ >>= _) _) ] =>
       iApply wsim_unwrapN_src
   (* | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, guarantee _ >>= _) _) ] =>
       iApply isim_guar_src *)
@@ -231,20 +264,20 @@ Ltac w_forces_l :=
 
 Ltac _w_force_r :=
   match goal with
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _)) ] =>
       iApply wsim_take_tgt
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ ?ν ?n _ _ _ _ _ _ _ _ _ _ (_, trigger (Assume ?P) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ ?ν _ _ _ _ _ _ _ _ _ _ (_, trigger (Assume ?P) >>= _)) ] =>
       first [
-        tcsearch constr:(WP P ν n ⊤)
+        tcsearch constr:(WP P ν ⊤)
           ltac:(fun c =>
-            iApply (wsim_half_assume_tgt_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); simpl);
+            iApply (wsim_half_assume_tgt_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); simpl);
         match goal with
         | [ |- environments.envs_entails _ (?P' ∗ _)] =>
           unfold_precond_postcond P'
         end
       | unfold_precond_postcond P; iApply wsim_assume_tgt
       ]
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _)) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _)) ] =>
       iApply wsim_asm_tgt
   (* | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ _ (_, unwrapU _ >>= _)) ] =>
       iApply isim_unwrapU_tgt; iExists _ *)
@@ -323,8 +356,8 @@ Ltac init_simF :=
   post_simF;
   step_l.
 
-Ltac init_wsim u_src u_tgt n :=
-  init_simF; iApply (wsim_init _ _ _ _ u_src u_tgt n).
+Ltac init_wsim u_src u_tgt :=
+  init_simF; iApply (wsim_init _ _ _ _ u_src u_tgt).
 
 Ltac unfold_iter_l :=
   let marker := fresh "MARKER" in

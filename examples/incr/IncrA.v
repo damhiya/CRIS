@@ -1,4 +1,4 @@
-Require Import CRIS wsim.
+(* Require Import CRIS wsim.
 Require Export ImpPrelude IncrHeader SchHeader MemA.
 
 Module IncrAS. Section IncrAS.
@@ -24,6 +24,8 @@ Module IncrA. Section IncrA.
       Sch.yield;;;
       v <- trigger (Take Z);;
       trigger (Assume ((blk, ofs) ⤇ (Vint v)));;;
+      Itree.iter (λ v,
+      )
       trigger (Guarantee ((blk, ofs) ⤇ (Vint (v + 1)%Z)));;;
       Sch.yield;;;
       Ret tt.
@@ -41,4 +43,4 @@ Module IncrA. Section IncrA.
 
   Definition t u n ginv spc : HMod.t :=
     Seal.sealing CRIS (SMod.to_hmod ginv spc (Mod u n)).
-End IncrA. End IncrA.
+End IncrA. End IncrA. *)

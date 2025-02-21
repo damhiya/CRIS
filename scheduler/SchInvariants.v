@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 
 Require Import functions.
 From iris Require Import gmap_view.
@@ -192,4 +192,4 @@ Section invariants.
 
 End invariants.
 
-Global Opaque fancy_upd.
+Global Opaque fancy_upd. *)

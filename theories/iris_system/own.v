@@ -40,7 +40,7 @@ Global Arguments own {_ _ _} γ a.
 
 Local Program Definition own_admin_def (Σ : GRA) : iProp Σ :=
   ∃ (X : coPset), ⌜set_infinite X⌝
-    ∗ uPred_ownM ((λ i, @allocs_auth (@GRA_lookup Σ i) X) : GRAUR Σ).
+    ∗ uPred_ownM ((λ i, allocs_auth (@GRA_lookup Σ i) (.∈ X)) : GRAUR Σ).
 Local Definition own_admin_aux : seal (@own_admin_def). Proof. by eexists. Qed.
 Definition own_admin := own_admin_aux.(unseal).
 Local Definition own_admin_eq : @own_admin = @own_admin_def := own_admin_aux.(seal_eq).
@@ -53,9 +53,14 @@ Definition Own := Own_aux.(unseal).
 Local Definition Own_eq : @Own = @Own_def := Own_aux.(seal_eq).
 Global Arguments Own {Σ} a.
 
+(* Definition initial_resource_list `{Σ : GRA} (l : list (sigT (λ A, inG A Σ))) : Σ.
+  [^(⋅) list] x ∈ l, iRes_singleton base_γ (projT2 x). *)
+
 Section properties.
   Context `{i : !inG A Σ}.
   Implicit Types a : A.
+
+  (* Lemma big_bang : initial  *)
 
   Local Instance iRes_singleton_ne γ : NonExpansive (@iRes_singleton A Σ _ γ).
   Proof.
@@ -114,30 +119,30 @@ Section properties.
   Proof.
     intros hwf. rewrite ?own_admin_eq /own_admin_def.
     iIntros "[%X [%INF OWN]]".
-    iPoseProof (bupd_ownM_update _
-      (((λ i, allocs_auth (@GRA_lookup Σ i) (X ∖ {[coPpick X]})) : GRAUR Σ)
+    iPoseProof (bupd_ownM_update _ 
+      (((λ i, allocs_auth (@GRA_lookup Σ i) (.∈ X ∖ {[coPpick X]})) : GRAUR Σ)
       ⋅ iRes_singleton (coPpick X) a)
       with "OWN") as "> [AUTH OWN]".
-    { apply discrete_fun_update; intros i'; destruct (decide ((inG_id i) = i')).
-      { subst i'.
-        rewrite discrete_fun_lookup_op. etrans.
-        { eapply (allocs_alloc (cmra_transport inG_prf a) X (coPpick X)).
-          { eapply coPpick_elem_of, coPset_infinite_finite; eauto. }
-          { apply cmra_transport_valid. apply hwf. }
+    { apply discrete_fun_update; intros i'. destruct (decide ((inG_id i) = i')).
+      { subst i'. rewrite discrete_fun_lookup_op. etrans.
+        { eapply (allocs_alloc (cmra_transport inG_prf a) _ (.∈ X∖{[coPpick X]}) (coPpick X)).
+          { eapply cmra_transport_valid, hwf. }
+          { set_solver. }
+          { split; last set_solver. apply coPpick_elem_of, coPset_infinite_finite; ss. }
         }
-        apply cmra_update_op.
-        { done. }
-        { rewrite /iRes_singleton discrete_fun_lookup_singleton; done. }
+        { eapply cmra_update_op; first reflexivity.
+          rewrite /iRes_singleton discrete_fun_lookup_singleton //.
+        }
       }
       { rewrite discrete_fun_lookup_op /iRes_singleton discrete_fun_lookup_singleton_ne; eauto.
         rewrite right_id.
-        etrans.
-        rewrite (allocs_auth_split (X ∖ {[coPpick X]}) {[coPpick X]}); try set_solver.
-        { set_unfold; intros x; split; intros H; des; eauto.
-          { destruct (decide (x = coPpick X)); eauto. }
-          { subst; eapply coPpick_elem_of, coPset_infinite_finite; eauto. }
+        etrans; first eapply
+          (allocs_auth_split (.∈ X) (.∈ X∖({[coPpick X]} : coPset)) (.∈ ({[coPpick X]} : coPset))); ss.
+        { ii; des. set_solver. }
+        { ii; des; try set_solver. eapply elem_of_singleton in H. subst k. eapply coPpick_elem_of.
+          eapply coPset_infinite_finite; ss.
         }
-        apply cmra_update_op_l.
+        { eapply cmra_update_op_l; intros k; ss. }
       }
     }
     iModIntro; iFrame.
@@ -146,18 +151,18 @@ Section properties.
     { iExists (coPpick X); rewrite own_eq /own_def; done. }
   Qed.
 
-  Lemma own_admin_split : own_admin ⊢ own_admin ∗ own_admin.
+  Lemma own_admin_split : own_admin ==∗ own_admin ∗ own_admin.
   Proof.
     rewrite ?own_admin_eq /own_admin_def; iIntros "[%X [%H OWN]]".
     apply coPset_split_infinite in H as [X1 [X2 [-> [H [H1 H2]]]]].
-    erewrite ownM_proper; cycle 1.
-    { intros x; rewrite allocs_auth_split; eauto.
-      instantiate (1:=((λ x, allocs_auth (GRA_lookup x) X1) : GRAUR Σ)
-        ⋅ (λ x, allocs_auth (GRA_lookup x) X2)).
-      rewrite discrete_fun_lookup_op //.
+    iMod (bupd_ownM_update with "OWN") as "[OWN1 OWN2]".
+    { eapply discrete_fun_update; intros a; etrans;
+        first eapply (allocs_auth_split (.∈X1∪X2)(.∈X1)(.∈X2)); try set_solver.
+      instantiate (1:=(λ x, allocs_auth (GRA_lookup x) (.∈X2))).
+      instantiate (1:=((λ x, allocs_auth (GRA_lookup x) (.∈X1)) : GRAUR Σ)).
+      rewrite discrete_fun_lookup_op; eapply cmra_update_op; ss.
     }
-    iDestruct "OWN" as "[O1 O2]".
-    iSplitL "O1"; [iExists X1|iExists X2]; iSplit; easy.
+    iSplitL "OWN1"; [iExists X1|iExists X2]; iModIntro; iSplit; easy.
   Qed.
 
   Lemma own_update γ a a' : a ~~> a' → own γ a ⊢ |==> own γ a'.

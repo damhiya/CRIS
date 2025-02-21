@@ -75,22 +75,22 @@ Module MapIM. Section MapIM.
   (* 1) universe ids of src/tgt modules *)
   Context (u_MapM u_MapI : univ_id).
   (* 2) stratification levels in the proof *)
-  Context (n : level).
+  (* Context (n : level). *)
   (* 3) global invariant of the source module *)
   Context (ginv : invspec).
   (* 4) Spcs of src/tgt modules *)
   Context (Spc_MapM Spc_Mem : string → option fspec).
-  Context (MapInSpc_MapM : spc_incl (MapMS.Spc u_MapM n) Spc_MapM).
+  Context (MapInSpc_MapM : spc_incl (MapMS.Spc u_MapM) Spc_MapM).
 
   Local Notation MemA := (MemA.t ginv Spc_Mem).
-  Local Notation MapM := (MapM.t u_MapM n ginv Spc_MapM).
+  Local Notation MapM := (MapM.t u_MapM ginv Spc_MapM).
   Local Notation MapMMod := (MapM ★ MemA).
   Local Notation MapIMod := (MapI.t ★ MemA).
   Local Notation IstFull := (IstProd (IstSB MapM.(HMod.scopes) Ist) IstEq).
 
   Lemma simF_init : HSim.sim_fun open MapMMod MapIMod IstFull MapName.init.
   Proof.
-    init_wsim u_MapM u_MapI n.
+    init_wsim u_MapM u_MapI.
 
     (* preprocess given assumptions *)
     w_steps_l.
@@ -111,7 +111,7 @@ Module MapIM. Section MapIM.
     w_steps_r. w_inline_r.
 
     (* TGT: prove the precond of alloc *)
-    w_step_r. w_force_r sz. w_force_r ([Vint sz] ↑).
+    w_steps_r. w_force_r sz. w_force_r ([Vint sz] ↑).
     w_force_r; iSplit; first done.
 
     (* TGT: handle the postcond of alloc *)
@@ -143,7 +143,7 @@ Module MapIM. Section MapIM.
       unfold_iter_r. des_ifs; try nia.
       (* TGT : compute the input to store *)
       unfold scale_int at 1. des_ifs; cycle 1.
-      { exfalso. eapply n0. eapply Z.divide_factor_r. }
+      { exfalso. eapply n. eapply Z.divide_factor_r. }
       s. w_steps_r.
       
       (* TGT : inline store *)
@@ -184,7 +184,7 @@ Module MapIM. Section MapIM.
 
   Lemma simF_get : HSim.sim_fun open MapMMod MapIMod IstFull MapName.get.
   Proof.
-    init_wsim u_MapM u_MapI n.
+    init_wsim u_MapM u_MapI.
 
     (* SRC: handle the IST of Map and the precond of get *)
     w_steps_l.
@@ -202,7 +202,7 @@ Module MapIM. Section MapIM.
     (* TGT : compute the input to load *)
     w_steps_r. hss. w_steps_r.
     unfold scale_int. des_ifs; cycle 1.
-    { exfalso. eapply n0. eapply Z.divide_factor_r. }
+    { exfalso. eapply n. eapply Z.divide_factor_r. }
     s. w_steps_r. rewrite Z_div_mult; try nia.
 
     (* TGT : inline load *)
@@ -228,7 +228,7 @@ Module MapIM. Section MapIM.
 
   Lemma simF_set : HSim.sim_fun open MapMMod MapIMod IstFull MapName.set.
   Proof.
-    init_wsim u_MapM u_MapI n.
+    init_wsim u_MapM u_MapI.
 
     w_steps_l.
     iDestruct "ASM" as "[-> ->]". hss. inv G0. w_steps_l.
@@ -243,7 +243,7 @@ Module MapIM. Section MapIM.
     (* TGT : compute the input to store *)
     w_steps_r. hss. w_steps_r.
     unfold scale_int. des_ifs; cycle 1.
-    { exfalso. eapply n0. eapply Z.divide_factor_r. }
+    { exfalso. eapply n. eapply Z.divide_factor_r. }
     rewrite Z_div_mult; try nia.
     s. w_steps_r.
 
@@ -274,7 +274,7 @@ Module MapIM. Section MapIM.
 
   Lemma simF_set_by_user : HSim.sim_fun open MapMMod MapIMod IstFull MapName.set_by_user.
   Proof.
-    init_wsim u_MapM u_MapI n.
+    init_wsim u_MapM u_MapI.
 
     w_steps_l.
     iDestruct "ASM" as "[-> ->]".

@@ -157,27 +157,23 @@ Section w_ctx_refines.
   Proof. by econs; ss. Qed.
 
   Definition w_ctx_refines (ms mt : HMod.pair) : Prop :=
-    ∃ κ : positive,
-      ∀ υ ν : univ_id, (υ >= ν + κ)%positive →
+    ∃ κ, ∀ υ ν : univ_id, (υ >= ν + κ) →
         ctx_refines (ms.1 υ, ms.2) (mt.1 ν, mt.2).
   Global Instance: Params (@w_ctx_refines) 1 := {}.
 
   Global Program Instance w_ctx_refines_PreOrder : Transitive w_ctx_refines.
   (* Next Obligation. rr; intros x; exists 0; intros ? ν H; rewrite Nat.add_0_r in H; inv H; done. Qed. *)
   Next Obligation.
-    intros x y z [k1 H1] [k2 H2]; exists (k1 + k2)%positive; intros υ ν H; etrans.
-    { apply (H1 _ (ν + k2)%positive); eauto; lia. }
+    intros x y z [k1 H1] [k2 H2]; exists (k1 + k2); intros υ ν H; etrans.
+    { apply (H1 _ (ν + k2)); eauto; lia. }
     { apply H2; lia. }
   Qed.
 
   Global Program Instance w_ctx_refines_Proper : Proper ((≡) ==> (≡) ==> iff) (w_ctx_refines).
   Next Obligation.
     intros ms1 ms2 mseq mt1 mt2 mteq; split; intros [k CTXR]; exists k; intros υ ν H.
-    { rewrite -(Pos2Nat.id υ) -(mseq (Pos.of_nat (Pos.to_nat υ))).
-      rewrite -{1}(Pos2Nat.id ν) -(mteq _). apply CTXR. lia.
-    }
-    { rewrite -(Pos2Nat.id υ) (mseq (Pos.of_nat (Pos.to_nat υ))).
-      rewrite -{1}(Pos2Nat.id ν) (mteq _). apply CTXR. lia. }
+    { rewrite -(mseq υ) -(mteq ν). apply CTXR. lia. }
+    { rewrite (mseq υ) (mteq ν). apply CTXR. lia. }
   Qed.
 
   Global Program Instance w_ctx_refines_subseteq : Proper ((⊆) ==> flip (⊆) ==> impl) w_ctx_refines.
@@ -261,7 +257,7 @@ Section w_ctx_refines.
     w_ctx_refines (λ υ, (msa υ) ★ (msb υ), Psa ∗ Psb)%I
                   (λ ν, (mta ν) ★ (mtb ν), Pta ∗ Ptb)%I.
   Proof.
-    move: REFA REFB; case => k1 REFA; case => k2 REFB; exists (k1 + k2)%positive => u v Huv.
+    move: REFA REFB; case => k1 REFA; case => k2 REFB; exists (k1 + k2) => u v Huv.
     apply ctxr_compose_hor; [apply REFA|apply REFB]; lia.
   Qed.
 
@@ -283,16 +279,3 @@ Section w_ctx_refines.
     apply ctxr_frameL, ctxr_comm.
   Qed. *)
 End w_ctx_refines.
-
-(* Section test.
-  Context (A : Type).
-  Context (R : A → A → Prop).
-  Context (P : A → Prop).
-  Context `{!Transitive R} `{!RewriteRelation R}.
-  Context `{!Proper (flip R ==> impl) P}.
-  Context (a b : A).
-  Context `(R a b).
-  (* Global Instance cmra_update_rewrite_relation :
-  RewriteRelation (@cmra_update A) | 170 := {}. *)
-  Goal P a.
-    rewrite R0. rewrite -R0. *)

@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 Require Import ImpPrelude IncrHeader MemHeader SchHeader.
 
 Module IncrI. Section IncrI.
@@ -42,4 +42,4 @@ Module IncrI. Section IncrI.
   Next Obligation. prove_nodup. Qed.
 
   Definition t : HMod.t := Seal.sealing CRIS (PMod.to_hmod Mod).
-End IncrI. End IncrI.
+End IncrI. End IncrI. *)

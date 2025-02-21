@@ -11,10 +11,10 @@ Local Open Scope nat_scope.
 Module SchIA. Section SchIA.
   Import SchAS.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !SchAGΣ Σ}.
-  Context (u_a u_i : positive) (n : level).
+  Context (u_a u_i : univ_id).
 
   Context (Spc_global Spc_user : string -> option fspec).
-  Context (SchInSpc : spc_incl (spc u_a n Spc_user) Spc_global).
+  Context (SchInSpc : spc_incl (spc u_a Spc_user) Spc_global).
   Context (FunInSpc : spc_sub Spc_user Spc_global).
 
   Fixpoint ths_wf (nths: nat) (ths_tgt: SchI.thslist): Prop :=
@@ -151,12 +151,12 @@ Module SchIA. Section SchIA.
           ∗ own base_γ (◯ ths_src_w : threadsRA)
           ∗ ([∗ map] tid↦P ∈ ths_cond, P))%I.
 
-  Local Notation SchAMod := (SchA.t u_a n Spc_global Spc_user).
+  Local Notation SchAMod := (SchA.t u_a Spc_global Spc_user).
   Local Notation SchIMod := (SchI.t).
 
   Lemma simF__spawn : HSim.sim_fun open SchAMod SchIMod Ist SchName._spawn.
   Proof.
-    init_wsim u_a u_i n.
+    init_wsim u_a u_i.
 
     w_steps_l.
     iDestruct "ASM" as "[%va [-> ASM]]"; hss.
@@ -307,7 +307,7 @@ Module SchIA. Section SchIA.
 
   Lemma simF_spawn : HSim.sim_fun open SchAMod SchIMod Ist SchName.spawn.
   Proof.
-    init_wsim u_a u_i n.
+    init_wsim u_a u_i.
 
     w_step_l. w_step_l.
     destruct q as [[[[farg fvarg] pre] synpost] [userf userm]].
@@ -371,7 +371,7 @@ Module SchIA. Section SchIA.
 
   Lemma simF_yield : HSim.sim_fun open SchAMod SchIMod Ist SchName.yield.
   Proof.
-    init_wsim u_a u_i n.
+    init_wsim u_a u_i.
 
     w_steps_l.
     iDestruct "ASM" as "[-> ->]". hss.
@@ -396,7 +396,7 @@ Module SchIA. Section SchIA.
 
   Lemma simF_join : HSim.sim_fun open SchAMod SchIMod Ist SchName.join.
   Proof.
-    init_wsim u_a u_i n.
+    init_wsim u_a u_i.
 
     w_step_l. w_step_l.
     destruct q as [tid postS]; s. w_steps_l.
@@ -513,11 +513,11 @@ Module SchIA. Section SchIA.
 
   Section SchIA.
     Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !SchAGΣ Σ}.
-    Lemma wctxr Spc_global Spc_user n
-        (SchInGlobal : ∀ u, spc_incl (SchAS.spc u n Spc_user) Spc_global)
+    Lemma wctxr Spc_global Spc_user
+        (SchInGlobal : ∀ u, spc_incl (SchAS.spc u Spc_user) Spc_global)
         (UserInGlobal : spc_sub Spc_user Spc_global) :
       w_ctx_refines
-        (λ u, SchA.t u n Spc_global Spc_user, SchA.InitCond)
+        (λ u, SchA.t u Spc_global Spc_user, SchA.InitCond)
         (λ _, SchI.t, emp%I).
-    Proof. exists 1%positive; intros u v Huv; eapply main_adequacy, sim; eauto. Qed.
+    Proof. exists 1; intros u v Huv; eapply main_adequacy, sim; eauto. Qed.
 End SchIA. End SchIA.

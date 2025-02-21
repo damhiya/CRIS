@@ -63,14 +63,14 @@ Section syn_inv.
     ([∗ n map] i ↦ p ∈ I, (p ∗ syn_ownD u n {[i]}) ∨ syn_ownE u n {[i]})%SRF.
   Local Definition syn_wsat u n : SRFSyn.t (S n) :=
     (∃ I : τ{ST.gmapT Φ}, (⤉ syn_ownI_auth u n I) ∗ (⤉ syn_inv_satall u n I))%SRF.
-  (* wsat_rest u (S n) ∗ ownE u E ∗ ownD_auth u ∗ [∗ list] n ∈ (seq 0 (S n)), wsat u n. *)
-  Local Fixpoint syn_wsats_aux u n : SRFSyn.t n :=
+
+  Local Fixpoint syn_wsatl u n : SRFSyn.t n :=
     match n with
     | O => emp%SRF
-    | S n' => syn_wsat u n' ∗ ⤉ syn_wsats_aux u n'
+    | S n' => syn_wsat u n' ∗ ⤉ syn_wsatl u n'
     end.
   Local Definition syn_wsats u n (E : coPset) : SRFSyn.t n :=
-    syn_wsat_auth u n ∗ syn_ownE u n E ∗ syn_ownD_auth u n ∗ syn_wsats_aux u n.
+    syn_wsat_auth u n ∗ syn_ownE u n E ∗ syn_ownD_auth u n ∗ syn_wsatl u n.
 
   (* Interface for the user *)
   Local Definition syn_inv_def (u : univ_id) (n : level) (N : namespace) p :=
@@ -80,7 +80,8 @@ Section syn_inv.
   Local Definition syn_inv_eq : @syn_inv = @syn_inv_def := syn_inv_aux.(seal_eq).
 
   Local Definition syn_fupd_def u b (E1 E2 : coPset) (P : SRFSyn.t b) : SRFSyn.t b :=
-    syn_wsats u b E1 ==∗ (syn_wsats u b E2 ∗ P).
+    syn_wsatl u b ∗ syn_ownE u b E1 ∗ syn_ownD_auth u b
+    ==∗ (syn_wsatl u b ∗ syn_ownE u b E2 ∗ syn_ownD_auth u b ∗ P).
   Local Definition syn_fupd_aux : seal (@syn_fupd_def). Proof. by eexists. Qed.
   Definition syn_fupd := syn_fupd_aux.(unseal).
   Local Definition syn_fupd_eq : @syn_fupd = @syn_fupd_def := syn_fupd_aux.(seal_eq).
@@ -125,11 +126,11 @@ Section reduction.
     }
   Qed.
 
-  Lemma wsats_aux_red u n : ⟦syn_wsats_aux u n⟧ ≡ ([∗ list] n ∈ (seq 0 n), wsat u n)%I.
+  Lemma wsatl_red u n : ⟦syn_wsatl u n⟧ ≡ wsatl u n.
   Proof.
     induction n.
     { SRF_red; SL_red; ss. }
-    { simpl syn_wsats_aux. rewrite seq_S big_sepL_app; ss. SRF_red; ss.
+    { simpl syn_wsatl. SRF_red; ss. rewrite /wsatl seq_S big_sepL_app //=.
       rewrite wsat_red; SRF_red; rewrite IHn; iSplit; iIntros "[$ H]"; iFrame.
       iDestruct "H" as "[??]"; iFrame.
     }
@@ -138,7 +139,7 @@ Section reduction.
   Lemma wsats_red u n E : ⟦syn_wsats u n E⟧ ≡ wsats u n E.
   Proof.
     rewrite /syn_wsats /syn_ownE /syn_ownD_auth. SRF_red. SL_red.
-    rewrite wsats_aux_red; SRF_red; ss; rewrite /wsats /ownD_auth.
+    rewrite wsatl_red; SRF_red; ss; rewrite /wsats /ownD_auth.
     iSplit; iIntros "($ & $ & [%x H] & $)"; iExists x; SL_red; iFrame.
   Qed.
 
@@ -152,8 +153,10 @@ Section reduction.
   Lemma fupd_red u n E1 E2 P : ⟦syn_fupd u n E1 E2 P⟧ ≡ uPred_fupd u n E1 E2 ⟦P⟧.
   Proof.
     rewrite syn_fupd_eq /uPred_fupd invariants.uPred_fupd_aux.(seal_eq) /invariants.uPred_fupd_def.
-    rewrite SLRed.wand SLRed.upd wsats_red. SRF_red; ss.
-    rewrite wsats_red; done.
+    rewrite /syn_fupd_def SLRed.wand SLRed.upd. repeat SRF_red.
+    rewrite wsatl_red /wsatl /syn_ownE /syn_ownD_auth; SL_red.
+    iSplit; iIntros "I [W [E [%x D]]]"; iMod ("I" with "[W E D]") as "[$ [$ [[%x' I] $]]]"; SL_red; iFrame.
+    all: ss; iExists _; SL_red; ss.
   Qed.
 End reduction.
 
