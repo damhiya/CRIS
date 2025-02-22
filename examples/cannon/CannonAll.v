@@ -11,10 +11,9 @@ Module CannonAll. Section CannonAll.
   Local Instance Σ : GRA := ##[invΣ; Γ].
 
   Local Definition smod_src : SMod.t := CannonA.Mod ☆ (MainA.Mod 1).
-  Local Definition ginv : invspec := λ _, True%I.
   Local Definition spc : string → option fspec := spc_from smod_src.
   Local Definition mod_cancel : HMod.t := SModCancel.to_hmod smod_src.
-  Local Definition mod_src : HMod.t := SMod.to_hmod ginv spc smod_src.
+  Local Definition mod_src : HMod.t := SMod.to_hmod ginv_emp spc smod_src.
   Local Definition mod_tgt : HMod.t := CannonI.t ★ (MainI.t 1).
 
   Local Definition main_fsp : fspec := MainAS.main_spec.
@@ -38,11 +37,11 @@ Module CannonAll. Section CannonAll.
     rewrite -[(mod_tgt, _)]hmod_addc_empty_r.
     unfold mod_src, mod_tgt. rewrite add_interp_comm.
     eapply ctxr_compose_hor.
-    { replace (SMod.to_hmod ginv spc CannonA.Mod) with (CannonA.t ginv spc); cycle 1.
+    { replace (SMod.to_hmod ginv_emp spc CannonA.Mod) with (CannonA.t spc); cycle 1.
       { unfold CannonA.t. unseal CRIS. ss. }
       eapply CannonIA.correct.
     }
-    { replace (SMod.to_hmod ginv spc (MainA.Mod 1)) with (MainA.t 1 ginv spc); cycle 1.
+    { replace (SMod.to_hmod ginv_emp spc (MainA.Mod 1)) with (MainA.t 1 spc); cycle 1.
       { unfold MainA.t. unseal CRIS. ss. }
       eapply CannonMainIA.correct.
       i. rewrite /CannonAS.Spc. unseal CRIS. econs; first prove_nodup.

@@ -5,11 +5,11 @@ Require Import MapHeader MapA MapM MapI ModSim MapIMproof MapMAproof MemA.
 Module MapIA. Section MapIA.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !MapAGΓ Γ, !MapMGΓ Γ, !memGΓ Γ}.
 
-  Theorem correct gi (SpcMap SpcMem : string → option fspec)
+  Theorem correct (SpcMap SpcMem : string → option fspec)
       (MapInSpcMap : spc_incl MapAS.Spc SpcMap) :
     ctx_refines
-      ((MapA.t gi SpcMap)  ★ (MemA.t gi SpcMem), (MapA.InitCond ∗ MapM.InitCond)%I)
-      ((MapI.t)            ★ (MemA.t gi SpcMem), emp%I).
+      ((MapA.t SpcMap)  ★ (MemA.t SpcMem), (MapA.InitCond ∗ MapM.InitCond)%I)
+      ((MapI.t)            ★ (MemA.t SpcMem), emp%I).
   Proof.
     etrans; cycle 1.
     { eapply main_adequacy. eapply MapIM.sim.

@@ -37,5 +37,5 @@ Module APCA. Section APCA.
 
   Definition InitCond : iProp Σ := emp%I.
 
-  Definition t ginv SpcPure Spc := Seal.sealing CRIS (SMod.to_hmod ginv Spc (Mod SpcPure)).
+  Definition t SpcPure Spc := Seal.sealing CRIS (SMod.to_hmod ginv_emp Spc (Mod SpcPure)).
 End APCA. End APCA.

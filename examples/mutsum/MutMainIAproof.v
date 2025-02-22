@@ -13,13 +13,12 @@ Module MutMainIA. Section MutMainIA.
   Definition Ist: nat -> alist key Any.t -> alist key Any.t -> iProp :=
     λ _ _ _, (True)%I.
 
-  Variable ginv: invspec.
   Variable Spc: string -> option fspec.
   Hypothesis FInSpc: spc_incl MutFA.SpcF Spc.
 
-  Local Notation MutMainAMod := ((MutMainA.t ginv Spc) ★ (MutFA.t ginv Spc)).
-  Local Notation MutMainIMod := ((MutMainI.t) ★ (MutFA.t ginv Spc)).
-  Local Notation IstFull := (IstProd (IstSB (MutMainA.t ginv Spc).(HMod.scopes) Ist) IstEq).
+  Local Notation MutMainAMod := ((MutMainA.t Spc) ★ (MutFA.t Spc)).
+  Local Notation MutMainIMod := ((MutMainI.t) ★ (MutFA.t Spc)).
+  Local Notation IstFull := (IstProd (IstSB (MutMainA.t Spc).(HMod.scopes) Ist) IstEq).
   
   (*************)
 

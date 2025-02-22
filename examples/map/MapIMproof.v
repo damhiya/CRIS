@@ -72,13 +72,12 @@ Module MapIM. Section MapIM.
             ∧ st_tgt = [(MapI.v_hptr,(Vptr blk ofs)↑)]⌝
           ∗ (blk, ofs) |-> (fun_to_list f (Z.to_nat sz)))%I.
 
-  Variable ginv : invspec.
   Variable SpcMap : string → option fspec.
   Hypothesis MapInSpcMap : spc_incl MapMS.Spc SpcMap.
   Variable SpcMem : string → option fspec.
 
-  Local Notation MemA := (MemA.t ginv SpcMem).
-  Local Notation MapM := (MapM.t ginv SpcMap).
+  Local Notation MemA := (MemA.t SpcMem).
+  Local Notation MapM := (MapM.t SpcMap).
   Local Notation MapMMod := (MapM ★ MemA).
   Local Notation MapIMod := (MapI.t ★ MemA).
   Local Notation IstFull := (IstProd (IstSB MapM.(HMod.scopes) Ist) IstEq).

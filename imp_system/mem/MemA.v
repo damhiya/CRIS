@@ -227,7 +227,7 @@ Module MemA. Section MemA.
 
   Definition InitCond csl genv: iProp := mem_initial_mem csl genv.
 
-  Definition t ginv Spc := Seal.sealing CRIS (SMod.to_hmod ginv Spc Mod).
+  Definition t Spc := Seal.sealing CRIS (SMod.to_hmod ginv_emp Spc Mod).
 End MemA. End MemA.
 
 Global Opaque mem_points_to_singleton_r.

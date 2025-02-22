@@ -13,11 +13,10 @@ Module MutIA. Section MutIA.
   Definition Ist: nat -> alist key Any.t -> alist key Any.t -> iProp :=
     λ _ _ _, (True)%I.
 
-  Variable ginv: invspec.
   Variable Spc: string -> option fspec.
 
-  Local Notation MutFA := (MutFA.t ginv Spc).
-  Local Notation MutGA := (MutGA.t ginv Spc).
+  Local Notation MutFA := (MutFA.t Spc).
+  Local Notation MutGA := (MutGA.t Spc).
   Local Notation MutAMod := (MutFA ★ MutGA).
   Local Notation MutIMod := (MutFI.t ★ MutGI.t).
   

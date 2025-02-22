@@ -21,10 +21,9 @@ Module CellIA. Section CellIA.
         ∗ ((cell idx v ∗ auth idx v)
           ∨ (⌜vany = v↑⌝ ∗ pending idx ∗ auth idx v)))%I.
 
-  Variable ginv : invspec.
   Variable SpcCell : string -> option fspec.
 
-  Local Notation CellA := (CellA.t idx ginv SpcCell).
+  Local Notation CellA := (CellA.t idx SpcCell).
   Local Notation CellI := (CellI.t idx).
 
   Lemma simF_get : HSim.sim_fun open CellA CellI Ist (CellName.get idx).

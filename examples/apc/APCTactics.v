@@ -13,14 +13,14 @@ Section APCAUX.
 
   Lemma isim_apc_src
     contextual fl fr Ist r g {Rs Rt} RR my_tid ps pt nths st_src st_tgt k_src i_tgt spc spc_pure
-    scopes ginv (ow od: Ord.t)
+    scopes (ow od: Ord.t)
     :
       (@isim Σ contextual fl fr Ist my_tid r g Rs Rt RR true pt nths
         (st_src, k_src ())
         (st_tgt, i_tgt))
     ⊢
       (@isim Σ contextual fl fr Ist my_tid r g Rs Rt RR ps pt nths 
-        (st_src, ((HMod.sandbox scopes (interp_smod ginv spc (_APC od spc_pure ow))) >>= k_src))
+        (st_src, ((HMod.sandbox scopes (interp_smod ginv_emp spc (_APC od spc_pure ow))) >>= k_src))
         (st_tgt, i_tgt)).
   Proof.
     iIntros "ISIM".
@@ -30,7 +30,7 @@ Section APCAUX.
 
   Lemma isim_apc_tgt
     contextual fl fr Ist r g {Rs Rt} RR my_tid ps pt nths st_src st_tgt i_src i_tgt spc spc_pure
-    scopes ginv (ow_src ow_tgt od_src od_tgt : Ord.t)
+    scopes (ow_src ow_tgt od_src od_tgt : Ord.t)
     (WIDTH: (ow_tgt < ow_src)%ord)
     (DEPTH: (od_tgt <= od_src)%ord)
     :
@@ -38,12 +38,12 @@ Section APCAUX.
         (∀ nths0 st_src0 st_tgt0 ow_src_nxt,
           (Ist nths0 st_src0 st_tgt0)
           -∗ @isim Σ contextual fl fr Ist my_tid r g Rs Rt RR false false nths0
-              (st_src0, ((HMod.sandbox scopes (interp_smod ginv spc (_APC od_src spc_pure ow_src_nxt)));;; i_src))
+              (st_src0, ((HMod.sandbox scopes (interp_smod ginv_emp spc (_APC od_src spc_pure ow_src_nxt)));;; i_src))
               (st_tgt0, i_tgt)))
     ⊢
       (@isim Σ contextual fl fr Ist my_tid r g Rs Rt RR ps pt nths 
-        (st_src, ((HMod.sandbox scopes (interp_smod ginv spc (_APC od_src spc_pure ow_src)));;; i_src))
-        (st_tgt, ((HMod.sandbox scopes (interp_smod ginv spc (_APC od_tgt spc_pure ow_tgt)));;; i_tgt))).
+        (st_src, ((HMod.sandbox scopes (interp_smod ginv_emp spc (_APC od_src spc_pure ow_src)));;; i_src))
+        (st_tgt, ((HMod.sandbox scopes (interp_smod ginv_emp spc (_APC od_tgt spc_pure ow_tgt)));;; i_tgt))).
   Proof.
     iIntros "[IST ISIM]". iApply isim_reset. iStopProof.
     revert nths st_src. apply combine_quant.
@@ -84,7 +84,7 @@ Section APCAUX.
 
   Lemma isim_apc_src_call_tgt
     contextual fl fr Ist r g {Rs Rt} RR my_tid ps pt nths st_src st_tgt k_src k_tgt spc spc_pure
-    scopes ginv fn args fsp (spec_arg: meta fsp) (ow_src ow_fn od_src od_fn : Ord.t)
+    scopes fn args fsp (spec_arg: meta fsp) (ow_src ow_fn od_src od_fn : Ord.t)
     (WIDTH: (ow_fn < ow_src)%ord)
     (DEPTH: (od_fn < od_src)%ord)
     (SpcPureInSpc: spc_sub spc_pure spc)
@@ -94,11 +94,11 @@ Section APCAUX.
       (∀ nths0 st_src0 st_tgt0 vret ret,
         (Ist nths0 st_src0 st_tgt0) ∗ (postcond fsp my_tid spec_arg vret ret) 
         -∗ @isim Σ contextual fl fr Ist my_tid r g Rs Rt RR false false nths0
-            (st_src0, ((HMod.sandbox scopes (interp_smod ginv spc (_APC od_src spc_pure ow_fn))) >>= k_src))
+            (st_src0, ((HMod.sandbox scopes (interp_smod ginv_emp spc (_APC od_src spc_pure ow_fn))) >>= k_src))
             (st_tgt0, k_tgt ret)))
     ⊢
       (@isim Σ contextual fl fr Ist my_tid r g Rs Rt RR ps pt nths 
-        (st_src, ((HMod.sandbox scopes (interp_smod ginv spc (_APC od_src spc_pure ow_src))) >>= k_src))
+        (st_src, ((HMod.sandbox scopes (interp_smod ginv_emp spc (_APC od_src spc_pure ow_src))) >>= k_src))
         (st_tgt, (trigger (Call fn args) >>= k_tgt))).
   Proof.
     iIntros "[[PRE IST] ISIM]".
@@ -119,7 +119,7 @@ Section APCAUX.
 
   Lemma isim_apc_src_call_tgt_weaker
     contextual fl fr Ist r g {Rs Rt} RR my_tid ps pt nths st_src st_tgt k_src k_tgt spc spc_pure
-    scopes ginv fn args fsp' fsp (spec_arg: meta fsp) o P Q (ow_src ow_fn od_src od_fn : Ord.t)
+    scopes fn args fsp' fsp (spec_arg: meta fsp) o P Q (ow_src ow_fn od_src od_fn : Ord.t)
     (WIDTH: (ow_fn < ow_src)%ord)
     (DEPTH: (od_fn < od_src)%ord)
     (SpcPureInSpc: spc_sub spc_pure spc)
@@ -131,11 +131,11 @@ Section APCAUX.
       (∀ nths0 st_src0 st_tgt0 vret ret,
         (Ist nths0 st_src0 st_tgt0) ∗ (postcond fsp my_tid spec_arg vret ret)
         -∗ @isim Σ contextual fl fr Ist my_tid r g Rs Rt RR false false nths0
-            (st_src0, ((HMod.sandbox scopes (interp_smod ginv spc (_APC od_src spc_pure ow_fn))) >>= k_src))
+            (st_src0, ((HMod.sandbox scopes (interp_smod ginv_emp spc (_APC od_src spc_pure ow_fn))) >>= k_src))
             (st_tgt0, k_tgt ret)))
     ⊢
       (@isim Σ contextual fl fr Ist my_tid r g Rs Rt RR ps pt nths
-        (st_src, ((HMod.sandbox scopes (interp_smod ginv spc (_APC od_src spc_pure ow_src))) >>= k_src))
+        (st_src, ((HMod.sandbox scopes (interp_smod ginv_emp spc (_APC od_src spc_pure ow_src))) >>= k_src))
         (st_tgt, (trigger (Call fn args) >>= k_tgt))).
   Proof.
     iIntros "[[PRE IST] ISIM]".
@@ -161,13 +161,13 @@ Section APCAUX.
 
   Lemma isim_apc_tgt_noist
     contextual fl fr Ist r g {Rs Rt} RR my_tid ps pt nths st_src st_tgt i_src i_tgt
-    (ginv: invspec) (spc spc_pure: string → option fspec) (od ow: Ord.t) (scopes: list string)
+    (spc spc_pure: string → option fspec) (od ow: Ord.t) (scopes: list string)
     (SUB: spc_sub spc_pure spc)
     (SUBA: spc_incl APCA.Spc spc)
-    (FIND: alist_find APCName.apc fr = Some (HMod.sandbox_body (APCA.scopes, interp_sb_hp ginv spc
+    (FIND: alist_find APCName.apc fr = Some (HMod.sandbox_body (APCA.scopes, interp_sb_hp ginv_emp spc
         {| fsb_fspec := APCA.apc_spec; fsb_body := cfunN (APCA.apc_body spc_pure) |})))
     (BODY: ∀ fn fsp, spc_pure fn = Some fsp 
-            → ∃ scp, alist_find fn fr = Some (pure_specbody scp ginv spc fsp))
+            → ∃ scp, alist_find fn fr = Some (pure_specbody scp spc fsp))
     :
       (@isim Σ contextual fl fr Ist my_tid r g Rs Rt RR false false nths
         (st_src, i_src)
@@ -175,7 +175,7 @@ Section APCAUX.
     ⊢
       (@isim Σ contextual fl fr Ist my_tid r g Rs Rt RR ps pt nths 
         (st_src, i_src)
-        (st_tgt, ((HMod.sandbox scopes (interp_smod ginv spc (_APC od spc_pure ow)));;; i_tgt))).
+        (st_tgt, ((HMod.sandbox scopes (interp_smod ginv_emp spc (_APC od spc_pure ow)));;; i_tgt))).
   Proof.
     iIntros "ISIM".
 

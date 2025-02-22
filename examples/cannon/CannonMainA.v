@@ -56,5 +56,5 @@ Module MainA. Section MainA.
 
   Definition init_cond : iProp Σ := True%I.
 
-  Definition t ginv Spc := Seal.sealing CRIS (SMod.to_hmod ginv Spc Mod).
+  Definition t Spc := Seal.sealing CRIS (SMod.to_hmod ginv_emp Spc Mod).
 End MainA. End MainA.

@@ -11,7 +11,6 @@ Module KnotMainIA. Section KnotMainIA.
   Notation iProp := (iProp Σ).
 
   Variable genv: GEnv.t.
-  Variable ginv: invspec.
   Variable SpcRec: string → option fspec.
   Variable SpcFun: string → option fspec.
   Variable SpcPure: string → option fspec.
@@ -33,11 +32,11 @@ Module KnotMainIA. Section KnotMainIA.
   Hypothesis RecInSpcPure: spc_sub SpcRec SpcPure.
   Hypothesis PureInGlobal : spc_sub SpcPure Spc.
 
-  Local Notation APCA := (APCA.t ginv SpcPure Spc).
-  Local Notation MemA := (MemA.t ginv Spc).
-  Local Notation KnotA := (KnotA.t genv ginv SpcRec SpcFun Spc).
+  Local Notation APCA := (APCA.t SpcPure Spc).
+  Local Notation MemA := (MemA.t Spc).
+  Local Notation KnotA := (KnotA.t genv SpcRec SpcFun Spc).
   Local Notation KnotAMod := (KnotA ★ MemA ★ APCA).
-  Local Notation KnotMainA := (KnotMainA.t genv ginv SpcRec Spc).
+  Local Notation KnotMainA := (KnotMainA.t genv SpcRec Spc).
   Local Notation KnotMainI := (KnotMainI.t genv).
   Local Notation KnotMainAMod := (KnotMainA ★ KnotAMod).
   Local Notation KnotMainIMod := (KnotMainI ★ KnotAMod).

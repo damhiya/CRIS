@@ -84,7 +84,6 @@ Module KnotA. Section KnotA.
 Section KnotAS.
 
   Variable genv: GEnv.t.
-  Variable ginv: invspec.
   Variable SpcRec: string → option fspec.
   Variable SpcFun: string → option fspec.
   Variable SpcPure: string → option fspec.
@@ -162,7 +161,7 @@ Section KnotA.
   Definition InitCond genv : iProp :=
     ((var_points_to genv KnotName._f (Vint 0)) ∗ knot_full None)%I.
 
-  Definition t genv ginv SpcRec SpcFun Spc :=
-    Seal.sealing CRIS (SMod.to_hmod ginv Spc (Mod genv SpcRec SpcFun)).
+  Definition t genv SpcRec SpcFun Spc :=
+    Seal.sealing CRIS (SMod.to_hmod ginv_emp Spc (Mod genv SpcRec SpcFun)).
 End KnotA.
 End KnotA. End KnotA.

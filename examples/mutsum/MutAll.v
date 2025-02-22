@@ -10,10 +10,9 @@ Module MutAll. Section MutAll.
   Local Instance Σ : GRA := ##[invΣ; Γ].
 
   Local Definition smod_src : SMod.t := MutMainA.Mod ☆ MutFA.Mod ☆ MutGA.Mod.
-  Local Definition ginv : invspec := λ _, True%I.
   Local Definition stb : string → option fspec := spc_from smod_src.
   Local Definition mod_cancel : HMod.t := SModCancel.to_hmod smod_src.
-  Local Definition mod_src : HMod.t := SMod.to_hmod ginv stb smod_src.
+  Local Definition mod_src : HMod.t := SMod.to_hmod ginv_emp stb smod_src.
   Local Definition mod_tgt : HMod.t := MutMainI.t ★ MutFI.t ★ MutGI.t.
 
   Local Definition main_fsp : fspec := MutMainA.main_spec.
@@ -38,15 +37,15 @@ Module MutAll. Section MutAll.
     rewrite -hmod_add_assoc.
     etrans.
     { rewrite -hmod_addc_empty_l. eapply ctxr_cond_frameR. eapply ctxr_frameR.
-      replace (SMod.to_hmod ginv stb MutMainA.Mod) with (MutMainA.t ginv stb); cycle 1.
+      replace (SMod.to_hmod ginv_emp stb MutMainA.Mod) with (MutMainA.t stb); cycle 1.
       { unfold MutMainA.t. unseal CRIS. ss. }
-      replace (SMod.to_hmod ginv stb MutFA.Mod) with (MutFA.t ginv stb); cycle 1.
+      replace (SMod.to_hmod ginv_emp stb MutFA.Mod) with (MutFA.t stb); cycle 1.
       { unfold MutFA.t. unseal CRIS. ss. }
       apply MutMainIA.correct.
     }
     rewrite hmod_add_assoc hmod_addc_empty_l.
     eapply ctxr_frameL.
-    replace (SMod.to_hmod ginv stb MutGA.Mod) with (MutGA.t ginv stb); cycle 1.
+    replace (SMod.to_hmod ginv_emp stb MutGA.Mod) with (MutGA.t stb); cycle 1.
     { unfold MutGA.t. unseal CRIS. ss. }
     apply MutIA.correct.
   Qed.

@@ -21,16 +21,14 @@ Module MapMA. Section MapMA.
             ∗ auth_allocated f
             ∗ auth_unallocated sz))%I.
 
-  Variable ginvH : invspec.
   Variable SpcH : string → option fspec.
   Hypothesis MapInSpcH : spc_incl MapAS.Spc SpcH.
 
-  Variable ginvL : invspec.
   Variable SpcL : string → option fspec.
   Hypothesis MapInSpcL : spc_incl MapMS.Spc SpcL.
 
-  Local Notation MapA := (MapA.t ginvH SpcH).
-  Local Notation MapM := (MapM.t ginvL SpcL).
+  Local Notation MapA := (MapA.t SpcH).
+  Local Notation MapM := (MapM.t SpcL).
   
   Lemma simF_init : HSim.sim_fun open MapA MapM Ist MapName.init.
   Proof.

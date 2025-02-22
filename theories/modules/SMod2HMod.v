@@ -9,6 +9,8 @@ Section FSPEC.
 
   Definition invspec := nat → iProp.
 
+  Definition ginv_emp : invspec := const(emp%I).
+
   Record fspec : Type := mk_fspec {
     meta : Type;
     (*** thread id → meta-variable → virtual arg → physical arg → iProp ***)

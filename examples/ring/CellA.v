@@ -114,6 +114,6 @@ Module CellA. Section CellA.
   Definition InitCond : iProp Σ :=
     (∃ v, CellAS.cell idx v ∗ CellAS.auth idx v)%I.
 
-  Definition t ginv Spc := Seal.sealing CRIS (SMod.to_hmod ginv Spc Mod).
+  Definition t Spc := Seal.sealing CRIS (SMod.to_hmod ginv_emp Spc Mod).
 
 End CellA. End CellA.

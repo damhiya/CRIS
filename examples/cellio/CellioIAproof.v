@@ -10,7 +10,6 @@ Module CellioIA. Section CellioIA.
   Import CellioA.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !CellioAGΓ Γ}.
 
-  Variable ginv: invspec.
   Variable SpcG: string -> option fspec.
   Hypothesis InputInSpcG: spc_incl InputAS.Spc SpcG.
 
@@ -19,7 +18,7 @@ Module CellioIA. Section CellioIA.
       (∃ v, ⌜st_tgt = [(CellioI.v_cv, v↑)]⌝ ∗ auth v)%I.
 
   Local Notation CellioI := (CellioI.t).
-  Local Notation CellioA := (CellioA.t ginv SpcG).
+  Local Notation CellioA := (CellioA.t SpcG).
 
   Lemma simF_set : HSim.sim_fun open CellioA CellioI Ist CellioName.set.
   Proof.
