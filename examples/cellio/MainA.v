@@ -32,5 +32,6 @@ Module MainA. Section MainA.
 
   Definition InitRes : Σ := ε.
 
-  Definition t ginv Spc := Seal.sealing CRIS (SMod.to_hmod ginv Spc Mod).
+  Definition t Spc := Seal.sealing CRIS (SMod.to_hmod ginv_emp Spc Mod).
+
 End MainA. End MainA.

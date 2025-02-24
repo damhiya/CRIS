@@ -16,7 +16,6 @@ Module APCAC. Section APCAC.
   (* context *)
   Variable md: HMod.t.
 
-  Variable ginv : invspec.
   Variable SpcC : string → option fspec.
   Variable SpcA : string → option fspec.
   Variable SpcPure : string → option fspec.
@@ -26,10 +25,10 @@ Module APCAC. Section APCAC.
   Hypothesis PureIsPure :
     ∀ fn pfsp, 
       SpcPure fn = Some pfsp 
-      → ∃ scp, find_body md fn = Some (pure_specbody scp ginv SpcA pfsp).
+      → ∃ scp, find_body md fn = Some (pure_specbody scp SpcA pfsp).
 
-  Local Notation APCC := (APCC.t ginv SpcC).
-  Local Notation APCA := (APCA.t ginv SpcPure SpcA).
+  Local Notation APCC := (APCC.t SpcC).
+  Local Notation APCA := (APCA.t SpcPure SpcA).
   Local Notation APCCMod := (APCC ★ md).
   Local Notation APCAMod := (APCA ★ md).
   Local Notation IstFull := (IstProd (IstSB APCC.(HMod.scopes) Ist) IstEq).

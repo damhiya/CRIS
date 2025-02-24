@@ -15,16 +15,15 @@ Module CtrlIA. Section CtrlIA.
 
   Variable max_size : nat.
 
-  Variable ginv : invspec.
   Variable SpcR : string -> option fspec.
   Variable SpcC : string -> option fspec.
 
-  Local Notation CellA := (fun idx => CellA.t idx ginv SpcC).
+  Local Notation CellA := (fun idx => CellA.t idx SpcC).
   Definition CellG start len : HMod.t :=
     HMod.addL (List.map CellA (seq start len)).
   Local Notation CellGS := (CellG 0 max_size).
 
-  Local Notation RingA := (RingA.t max_size ginv SpcR).
+  Local Notation RingA := (RingA.t max_size SpcR).
   Local Notation CtrlI := (CtrlI.t max_size).
   Local Notation RingAMod := (RingA ★ CellGS).
   Local Notation RingIMod := (CtrlI ★ CellGS).
@@ -101,7 +100,7 @@ Module CtrlIA. Section CtrlIA.
        ([∗ list] i↦x ∈ q, CellAS.cell ((tl+i) mod max_size) x) ∗
        ([∗ list] i↦x ∈ q', (CellAS.pending ((hd+i) mod max_size) ∨ CellAS.cell ((hd+i) mod max_size) x)))%I.
 
-  Notation IstFull := (IstProd (IstSB (RingA.t max_size ginv SpcR).(HMod.scopes) Ist) IstEq).
+  Notation IstFull := (IstProd (IstSB (RingA.t max_size SpcR).(HMod.scopes) Ist) IstEq).
 
   Lemma simF_init:
     HSim.sim_fun open RingAMod RingIMod IstFull RingName.init.

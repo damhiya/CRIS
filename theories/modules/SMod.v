@@ -8,7 +8,7 @@ Module SMod.
 Section SMOD.
 
   Context `{Σ : GRA}.
-  Variable ginv : invspec.
+  Variable ginv : iProp Σ.
   Variable spc : string -> option fspec.
 
   Record t : Type := mk {

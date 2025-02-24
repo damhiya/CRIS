@@ -17,19 +17,19 @@ Section CANCEL.
     (LENS: cid < List.length srcs)
     (LENT: cid < List.length tgts)
     (LEN: List.length srcs = Datatypes.length tgts)
-    (RET: ∀ vret ret : Any.t, cid = 0 → Q cid meta vret ret ⊢ ⌜vret = ret⌝)
+    (RET: ∀ vret ret : Any.t, cid = 0 → Q meta vret ret ⊢ ⌜vret = ret⌝)
     (RELS: ∀ k x y, cid ≠ k → srcs !! k = Some x → tgts !! k = Some y → thread_rel md ginv cid k x y)
     (STB: spc_from md fn = Some f)
     (KTR: ∀ tid, upaco3 (@elim_rel_def _ md ginv _) bot3 l (ktrS tid) (ktrT tid))
     (SRC : srcs !! cid = Some (Ret ();;; interp_hp (x <- SpawnCancelE fn args;; ktrS x)))
-    (TGT : tgts !! cid = Some (Ret ();;; interp_hp (cancel_term md ginv cid meta Q (x <- HoareSpawnE ginv f fn args;; ktrT x))))
+    (TGT : tgts !! cid = Some (Ret ();;; interp_hp (cancel_term md ginv meta Q (x <- HoareSpawnE ginv f fn args;; ktrT x))))
     (CIH: ∀ rs rt srcs tgts cid st ps pt X (meta : X) Q itrS itrT l,
         ✓ rs → (Own rs ==∗ Own rt) →
         List.length srcs = List.length tgts →
         cid < List.length srcs → cid < List.length tgts → 
         srcs !! cid = Some (Ret ();;; interp_hp itrS) →
-        tgts !! cid = Some (Ret ();;; interp_hp (cancel_term md ginv cid meta Q itrT)) →
-        (∀ vret ret, cid = 0 → Q cid meta vret ret ⊢ ⌜vret = ret⌝) →
+        tgts !! cid = Some (Ret ();;; interp_hp (cancel_term md ginv meta Q itrT)) →
+        (∀ vret ret, cid = 0 → Q meta vret ret ⊢ ⌜vret = ret⌝) →
         paco3 (@elim_rel_def _ md ginv _) bot3 l itrS itrT →
         (∀ k x y, cid ≠ k → srcs !! k = Some x → tgts !! k = Some y → thread_rel md ginv cid k x y)
         → CANCEL_GOAL md r ginv rs0 rt0 ps pt srcs tgts cid st rs rt)
@@ -80,13 +80,13 @@ Section CANCEL.
     unfold interp_sb_hp, interp_sb_hp_cancel. s.
     hide_l. _iter.
     rewrite list_lookup_insert_ne; try nia.
-    rewrite list_lookup_length. ired. tau 1.
+    rewrite list_lookup_length. ired.
     assert (forall x, List.length tgts < List.length (tgts ++ [x])).
     { i. rewrite length_app. s. nia. }
     hexploit (Own_bupd_split rt); eauto. i. des.
     hexploit (Own_bupd_split x1); eauto.
     i. des.
-    iterT 2. iterL. _coreE x. ls.
+    _coreE x.
     iterT 2. iterL. _coreE args. ls.
     iterT 2. iterL. _supd. iterL. _coreE (a0 ⋅ a1 ⋅ x3). ls.
     assert (UPD': Own rs ==∗ Own (a0 ⋅ a1 ⋅ x3)).
@@ -98,7 +98,7 @@ Section CANCEL.
       iPoseProof (H6 with "H2") as "H2".
       iModIntro. rewrite !Own_op. iFrame.
     }
-    assert (VALID: ✓(a0 ⋅ a1 ⋅ x3) ∧ (Own (a0 ⋅ a1 ⋅ x3) ==∗ precond f (base.length tgts) x args x0 ∗ Own x3)).
+    assert (VALID: ✓(a0 ⋅ a1 ⋅ x3) ∧ (Own (a0 ⋅ a1 ⋅ x3) ==∗ precond f x args x0 ∗ Own x3)).
     { split.
       - eapply Own_wand_valid with (a1 := rs); eauto.
       - iIntros "((H0 & H1) & H2)". iFrame.
@@ -148,7 +148,7 @@ Section CANCEL.
         destruct (Nat.eq_dec cid (base.length tgts)); try nia.
         instantiate (1:= ktrT (base.length tgts)).
         unfold yield_post. ired. rewrite -interp_hp_tau.
-        do 6 f_equal. extensionalities. grind.
+        do 6 f_equal.
       }
       eapply KTR.
     }

@@ -226,7 +226,6 @@ Module MemIA. Section MemIA.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !memGΓ Γ}.
   Notation iProp := (iProp Σ).
 
-  Variable ginv: invspec.
   Variable csl: string -> bool.
   Variable genv: GEnv.t.
   Variable Spc: string -> option fspec.
@@ -244,7 +243,7 @@ Module MemIA. Section MemIA.
         (own base_γ ((● (memk_src : _memRA)): memRA))
       ))%I.
 
-  Local Notation MemA := (MemA.t ginv Spc).
+  Local Notation MemA := (MemA.t Spc).
   Local Notation MemI := (MemI.t csl genv).
   Local Notation IstFull := (IstProd (IstSB MemA.(HMod.scopes) Ist) IstEq).
 
@@ -866,7 +865,7 @@ Module MemIA. Section MemIA.
 
   Theorem correct:
     ctx_refines
-      (MemA.t ginv Spc, MemA.InitCond csl genv)
+      (MemA.t Spc, MemA.InitCond csl genv)
       (MemI.t csl genv, emp%I).
   Proof.
     eapply main_adequacy.

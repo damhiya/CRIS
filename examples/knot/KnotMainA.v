@@ -38,7 +38,6 @@ Module KnotMainA. Section KnotMainA.
 Section KnotMainAS.
 
   Variable genv: GEnv.t.
-  Variable ginv: invspec.
   Variable SpcRec: string -> option fspec.
   Variable SpcPure: string -> option fspec.
   Variable Spc: string -> option fspec.
@@ -92,6 +91,6 @@ Section KnotMainA.
 
   Definition InitCond : iProp := emp%I.
 
-  Definition t genv ginv SpcRec Spc := Seal.sealing CRIS (SMod.to_hmod ginv Spc (Mod genv SpcRec)).
+  Definition t genv SpcRec Spc := Seal.sealing CRIS (SMod.to_hmod ginv_emp Spc (Mod genv SpcRec)).
 End KnotMainA.
 End KnotMainA. End KnotMainA.

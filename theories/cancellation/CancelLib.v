@@ -95,13 +95,13 @@ Section CANCEL.
     inv H0. eauto.
   Qed.
 
-  Definition yield_post (ginv: nat -> iProp Σ): itree hmodE _ :=
-      tau;; tau;; tid <- trigger Tid;; x <- (tau;; trigger (Assume (ginv tid)));; Ret ().
+  Definition yield_post (ginv: iProp Σ): itree hmodE _ :=
+      tau;; tau;; x <- (trigger (Assume ginv));; Ret ().
 
-  Variant thread_rel ginv (cid tid: nat) src tgt : Prop :=
-  | thread_rel_body X (meta: X) (Q: nat -> X -> Any.t -> Any.t -> iProp Σ) l itrS itrT
+  Variant thread_rel ginv cid tid src tgt : Prop :=
+  | thread_rel_body X (meta: X) (Q: X -> Any.t -> Any.t -> iProp Σ) l itrS itrT
       (RET: ∀vret ret, 
-            tid = 0 -> Q tid meta vret ret ⊢ ⌜vret = ret⌝)
+            tid = 0 -> Q meta vret ret ⊢ ⌜vret = ret⌝)
       (REL: @elim_rel _ md ginv _ l itrS itrT)
       (SRC: src = 
           ((if Nat.eq_dec tid cid then Ret tt else tau;; Ret tt);;; interp_hp itrS))
@@ -111,7 +111,7 @@ Section CANCEL.
               vret <- itrT;; 
               (inline_hp (prog (SMod.to_hmod ginv (spc_from md) md))
                 (ret <- trigger (Choose Any.t);;
-                  trigger (Guarantee (Q tid meta vret ret));;;
+                  trigger (Guarantee (Q meta vret ret));;;
                   Ret ret))))) 
   .
 
@@ -165,13 +165,13 @@ Section CANCEL.
                          md)) rt0)))
           (cid, tgts)) (Any.pair st rt ↑);; Ret x.2).
 
-  Definition cancel_term ginv (cid:nat) X (meta: X) Q (itrT: itree hmodE Any.t) :=
+  Definition cancel_term ginv X (meta: X) Q (itrT: itree hmodE Any.t) :=
     (vret <- itrT;;
      inline_hp (prog
           (SMod.to_hmod ginv
              (spc_from md) md))
        (ret <- trigger (Choose Any.t);;
-        trigger (Guarantee (Q cid meta vret ret));;; Ret ret))
+        trigger (Guarantee (Q meta vret ret));;; Ret ret))
   .
   
 End CANCEL.

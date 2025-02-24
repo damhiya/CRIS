@@ -11,7 +11,6 @@ Module RepeatIA. Section RepeatIA.
   Notation iProp := (iProp Σ).
 
   Variable genv: GEnv.t.
-  Variable ginv: invspec.
   Variable Spc: string → option fspec.
   Variable SpcPure: string → option fspec.
   Variable SpcPureFun: string → option fspec. (* SpcPureFun stores fspecs which repeat use *)
@@ -23,9 +22,9 @@ Module RepeatIA. Section RepeatIA.
   Hypothesis repeatInSpcPure: SpcPure RepeatName.repeat = Some (RepeatAS.repeat_spec SpcPureFun genv). (* to avoid recursive definition of SpcPure *)
 
   (* Modules *)
-  Local Notation APCA := (APCA.t ginv SpcPure Spc).
+  Local Notation APCA := (APCA.t SpcPure Spc).
   Local Notation RepeatI := (RepeatI.t genv).
-  Local Notation RepeatA := (RepeatA.t ginv genv Spc SpcPureFun).
+  Local Notation RepeatA := (RepeatA.t genv Spc SpcPureFun).
   Local Notation RepeatIMod := (RepeatI ★ APCA).
   Local Notation RepeatAMod := (RepeatA ★ APCA).
 

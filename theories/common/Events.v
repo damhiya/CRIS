@@ -24,8 +24,7 @@ Section EVENTS.
 
   Variant schE : Type -> Type :=
   | Spawn (fn : string) (args : Any.t) : schE nat
-  | Yield (tid : nat) : schE unit
-  | Tid : schE nat.
+  | Yield (tid : nat) : schE unit.
 
   Definition sPut x : stateE unit := SUpdate (fun _ => (x, tt)).
   Definition sGet : stateE Any.t := SUpdate (fun x => (x, x)).

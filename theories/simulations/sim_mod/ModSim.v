@@ -165,22 +165,6 @@ Section SIM_ITREE.
     sim_itree_def sim_itree RR self ps pt w nths (st_src, trigger (Yield tid) >>= k_src)
       (st_tgt, trigger (Yield tid) >>= k_tgt)
                  
-  | sim_itree_tid_src
-      ps pt w nths st_src st_tgt
-      k_src i_tgt
-      (K : self true pt w nths (st_src, k_src my_tid) (st_tgt, i_tgt))
-    :
-    sim_itree_def sim_itree RR self ps pt w nths (st_src, trigger Tid >>= k_src)
-      (st_tgt, i_tgt)
-
-  | sim_itree_tid_tgt
-      ps pt w nths st_src st_tgt
-      i_src k_tgt
-      (K : self ps true w nths (st_src, i_src) (st_tgt, k_tgt my_tid))
-    :
-    sim_itree_def sim_itree RR self ps pt w nths (st_src, i_src)
-      (st_tgt, trigger Tid >>= k_tgt)
-      
   | sim_itree_call_none
       ps pt w nths st_src st_tgt
       fn varg i_src k_tgt
@@ -335,8 +319,6 @@ Section SIM_ITREE.
     { econs 14; eauto. des. esplits; eauto. eapply sim_itree_mon; eauto. i. eapply rclo9_base. eauto.  }
     { econs 15; eauto. des. esplits; eauto. eapply sim_itree_mon; eauto. i. eapply rclo9_base. eauto.  }
     { econs 16; eauto. des. esplits; eauto. eapply sim_itree_mon; eauto. i. eapply rclo9_base. eauto.  }
-    { econs 17; eauto. des. esplits; eauto. eapply sim_itree_mon; eauto. i. eapply rclo9_base. eauto.  }
-    { econs 18; eauto. des. esplits; eauto. eapply sim_itree_mon; eauto. i. eapply rclo9_base. eauto.  }
     { ss. }
   Qed.
 
@@ -363,9 +345,7 @@ Section SIM_ITREE.
     { guclo sim_itree_indC_spec. econs 14; eauto. gbase. eauto. }
     { guclo sim_itree_indC_spec. econs 15; eauto. gbase. eauto. }
     { guclo sim_itree_indC_spec. econs 16; eauto. gbase. eauto. }
-    { guclo sim_itree_indC_spec. econs 17; eauto. gbase. eauto. }
-    { guclo sim_itree_indC_spec. econs 18; eauto. gbase. eauto. }
-    { guclo sim_itree_indC_spec. econs 19; eauto. }
+    { guclo sim_itree_indC_spec. econs 17; eauto. }
   Qed.
 
   Lemma sim_itreeC_spec r g

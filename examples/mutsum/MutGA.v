@@ -35,7 +35,5 @@ Module MutGA. Section MutGA.
 
   Definition InitCond : iProp := emp%I.
 
-  Variable ginv: invspec.
-  Variable GlobalStb: string -> option fspec.
-  Definition t := Seal.sealing CRIS (SMod.to_hmod ginv GlobalStb Mod).
+  Definition t Stb := Seal.sealing CRIS (SMod.to_hmod ginv_emp Stb Mod).
 End MutGA. End MutGA.

@@ -196,7 +196,7 @@ Section AUX.
 
   Ltac hstep := guclo hpsimC_spec; econs; econs; eauto; econs; eauto.
 
-  Lemma hpsim_ctx fnsems_src fnsems_tgt fl_src fl_tgt fl_ctx Ist my_tid contextual scopes scopeC
+  Lemma hpsim_ctx fnsems_src fnsems_tgt fl_src fl_tgt fl_ctx Ist contextual scopes scopeC
       (FLS : fl_src = (List.map (map_snd HMod.sandbox_body) fnsems_src))
       (FLT : fl_tgt = (List.map (map_snd HMod.sandbox_body) fnsems_tgt))
       (WS : ∀ (fn : string) p (IN : alist_find fn fnsems_src = Some p), incl p.1 scopes)
@@ -209,10 +209,10 @@ Section AUX.
     (SCPC : incl (state_scopes st_ctx) scopeC)
     (ITRS : HMod.sandbox scopes itr_src = itr_src)
     (ITRT : HMod.sandbox scopes itr_tgt = itr_tgt)
-    (SIM : hpsim_body open fl_src fl_tgt Ist my_tid ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr)
+    (SIM : hpsim_body open fl_src fl_tgt Ist ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr)
     :
     hpsim_body contextual (fl_src ++ fl_ctx) (fl_tgt ++ fl_ctx) 
-    (IstProd (IstSB scopes Ist) (IstSB scopeC IstEq)) my_tid
+    (IstProd (IstSB scopes Ist) (IstSB scopeC IstEq))
     ps pt nths (st_src ++ st_ctx, itr_src) (st_tgt ++ st_ctx, itr_tgt) fmr.
   Proof.
     guardH FLS. guardH FLT.
@@ -399,12 +399,6 @@ Section AUX.
       { rewrite INV1 INV1'' H2; iDestruct "H1" as "[_ [[_ H] _]]";
           iPoseProof (Own_general_completeness with "H") as "H"; eauto. }
       { iApply INV2; done. }
-    - hstep. eapply K; try refl; eauto.
-      rewrite HModSB.transl_bind HModSB.transl_sch !bind_trigger in ITRS.
-      depdes ITRS. eapply equal_f in x. eauto.
-    - hstep. eapply K; try refl; eauto.
-      rewrite HModSB.transl_bind HModSB.transl_sch !bind_trigger in ITRT.
-      depdes ITRT. eapply equal_f in x. eauto.
     - gstep. econs. econs. econs; eauto. econs; eauto. 
       gbase. pclearbot. eapply CIH; try refl; eauto.
       ii. eauto.
@@ -441,7 +435,7 @@ Section AUX.
     move: NODUPFS NODUPFT NODS NODD; rewrite ?map_app; intros NODUPFS NODUPFT NODS NODD.
     assert (NODA := NODS). assert (NODB := NODD). assert (NODC:= NODS).
     eapply nodup_app_l in NODA, NODB. eapply nodup_app_r in NODC.
-    specialize (SIM my_tid nths st_srcL st_tgtL IMON NODA NODB).
+    specialize (SIM nths st_srcL st_tgtL IMON NODA NODB).
     rewrite <- map_app in *.
     iPoseProof (SIM with "IST") as "SIM".
     iStopProof. Local Transparent isim.
@@ -686,7 +680,6 @@ Section COMM.
     - destruct s.
       + step. by_coind "CIH". eauto.
       + yield "IST"; eauto. by_coind "CIH". eauto.
-      + steps_l. steps_r. by_coind "CIH". eauto.
     - destruct c. call "IST"; eauto. by_coind "CIH". eauto.
     - depdes s.
       + rewrite !HModSB.transl_bind !HModSB.transl_put. des_ifs; cycle 1.

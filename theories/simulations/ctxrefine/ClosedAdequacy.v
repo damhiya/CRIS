@@ -23,8 +23,8 @@ Section CLOSED.
 
   Ltac hstep := guclo hpsimC_spec; econs; econs; eauto; econs; eauto.
 
-  Lemma _hpsim_close fls flt Ist my_tid:
-    @_hpsim _ open fls flt Ist my_tid <10= @_hpsim _ closed fls flt Ist my_tid.
+  Lemma _hpsim_close fls flt Ist:
+    @_hpsim _ open fls flt Ist <10= @_hpsim _ closed fls flt Ist.
   Proof.
     i. ss. 
     eapply _hpsim_tarski; eauto. i. 
@@ -34,13 +34,13 @@ Section CLOSED.
   Qed.
 
   Lemma hpsim_close
-    fl_src fl_tgt Ist my_tid
+    fl_src fl_tgt Ist
     ps pt nths st_src st_tgt itr_src itr_tgt fmr
-    (SIM: hpsim_body open fl_src fl_tgt Ist my_tid ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr)
+    (SIM: hpsim_body open fl_src fl_tgt Ist ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr)
   :
-    hpsim_body closed fl_src fl_tgt Ist my_tid ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr.
+    hpsim_body closed fl_src fl_tgt Ist ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr.
   Proof.
-    ginit. s. revert_until my_tid. gcofix CIH. i.
+    ginit. s. revert_until Ist. gcofix CIH. i.
     exploit SIM; s; i; eauto.
     clear SIM. rename x0 into SIM.
     remember (st_src, itr_src). remember (st_tgt, itr_tgt).

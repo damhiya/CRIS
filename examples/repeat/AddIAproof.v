@@ -13,7 +13,6 @@ Module AddIA. Section AddIA.
   Notation iProp := (iProp Σ).
 
   Variable genv: GEnv.t.
-  Variable ginv: invspec.
   Variable Spc: string → option fspec.
   Variable SpcPure: string -> option fspec.
   Variable SpcPureFun: string -> option fspec.
@@ -29,11 +28,11 @@ Module AddIA. Section AddIA.
   Hypothesis succInSpcPureFun: SpcPureFun AddName.succ = Some AddAS.succ_spec.
 
   (* Modules *)
-  Local Notation APCA := (APCA.t ginv SpcPure Spc).
-  Local Notation RepeatA := (RepeatA.t ginv genv Spc SpcPureFun).
+  Local Notation APCA := (APCA.t SpcPure Spc).
+  Local Notation RepeatA := (RepeatA.t genv Spc SpcPureFun).
   Local Notation RepeatAMod := (RepeatA ★ APCA).
   Local Notation AddI := (AddI.t genv).
-  Local Notation AddA := (AddA.t ginv Spc).
+  Local Notation AddA := (AddA.t Spc).
   Local Notation AddIMod := (AddI ★ RepeatAMod).
   Local Notation AddAMod := (AddA ★ RepeatAMod).
 

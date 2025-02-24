@@ -13,11 +13,7 @@ Module CellioIA. Section CellioIA.
 
   (* 1) universe ids of src/tgt modules *)
   Context (u_a u_i : univ_id).
-  (* 2) stratification level *)
-  Context (n : level).
-  (* 3) global invariant for src module *)
-  Context (ginv : invspec).
-  (* 4) spc for src module *)
+  (* 2) spc for src module *)
   Context (Spc_s : string → option fspec).
   Context (InputInSpcG : spc_incl InputAS.Spc Spc_s).
   
@@ -26,7 +22,7 @@ Module CellioIA. Section CellioIA.
       (∃ v, ⌜st_tgt = [(CellioI.v_cv, v↑)]⌝ ∗ auth v)%I.
 
   Local Notation CellioI := (CellioI.t).
-  Local Notation CellioA := (CellioA.t ginv Spc_s).
+  Local Notation CellioA := (CellioA.t SpcG).
 
   Lemma simF_set : HSim.sim_fun open CellioA CellioI Ist CellioName.set.
   Proof.

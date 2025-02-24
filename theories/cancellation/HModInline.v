@@ -222,7 +222,6 @@ End HIRed.
 
 Section CANCEL.
   Context `{Σ: GRA}.
-  Notation iProp := (iProp Σ).
 
   Lemma wrap_elimI_well_scoped
       ms fn sb
@@ -350,21 +349,21 @@ Section CANCEL.
   Qed.
 
 
-  Definition bindRR {R} RR P : nat -> alist key Any.t * R-> alist key Any.t * R -> iProp :=
+  Definition bindRR {R} RR P : nat -> alist key Any.t * R-> alist key Any.t * R -> iProp Σ :=
     fun nths '(st0, ret0) '(st1, ret1) => (P ∗ RR nths (st0, ret0) (st1, ret1))%I.
 
-  Definition IstRR {R} Ist : nat -> alist key Any.t * R-> alist key Any.t * R -> iProp :=
+  Definition IstRR {R} Ist : nat -> alist key Any.t * R-> alist key Any.t * R -> iProp Σ :=
     fun nths '(st0, ret0) '(st1, ret1) => (⌜ret0 = ret1⌝ ∗ Ist nths st0 st1)%I.
 
   Lemma isim_RR_frame
-      fls flt my_tid contextual r g nths
-      {R} Ist (P: iProp)
+      fls flt contextual r g nths
+      {R} Ist (P: iProp Σ)
       ps pt sti_src sti_tgt
     :
-      (P ∗ @isim _ contextual fls flt Ist my_tid r g R R 
+      (P ∗ @isim _ contextual fls flt Ist r g R R 
             (fun nths '(sts, vs) '(stt, vt) => ⌜vs = vt⌝ ∗ Ist nths sts stt)%I
             ps pt nths sti_src sti_tgt)  
-      ⊢ isim contextual fls flt Ist my_tid r g 
+      ⊢ isim contextual fls flt Ist r g 
          (bindRR (IstRR Ist) P) ps pt nths sti_src sti_tgt.
   Proof.
     iIntros "[H0 H1]". iApply isim_wand. iFrame. eauto.

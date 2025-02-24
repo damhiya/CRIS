@@ -21,14 +21,14 @@ Section LEMMAS.
 (*   set (X := (emp%I : iProp Σ)) at 2. *)
   
   Lemma hcall_clo Σ
-    fls flt I my_tid contextual r g ps pt {Rs Rt} RR nths st_src st_tgt k_src k_tgt
+    fls flt I contextual r g ps pt {Rs Rt} RR nths st_src st_tgt k_src k_tgt
     fn varg arg X (x: shelve__ X) P Q :
-    (P my_tid x varg arg
+    (P x varg arg
     ∗ I nths st_src st_tgt
     ∗ (∀ nths0 st_src0 st_tgt0 vret ret,
-        (Q my_tid x vret ret ∗ I nths0 st_src0 st_tgt0)
-        -∗ @isim Σ contextual fls flt I my_tid r g Rs Rt RR true true nths0 (st_src0, k_src vret) (st_tgt0, k_tgt ret)))
-    ⊢ @isim _ contextual fls flt I my_tid r g Rs Rt RR ps pt nths
+        (Q x vret ret ∗ I nths0 st_src0 st_tgt0)
+        -∗ @isim Σ contextual fls flt I r g Rs Rt RR true true nths0 (st_src0, k_src vret) (st_tgt0, k_tgt ret)))
+    ⊢ @isim _ contextual fls flt I r g Rs Rt RR ps pt nths
         (st_src, HoareCall (mk_fspec P Q) fn varg >>= k_src)
         (st_tgt, trigger (Call fn arg) >>= k_tgt).
   Proof.
@@ -95,7 +95,6 @@ Section HModProd.
     - depdes s.
       + step. by_coind "CIH". iApply IMON; [|eauto]; nia.
       + yield "IST"; eauto. by_coind "CIH". eauto.
-      + steps_l. steps_r. by_coind "CIH". eauto.
     - destruct c. call "IST"; eauto. by_coind "CIH". eauto.
     - depdes s.
       + rewrite !HModSB.transl_bind !HModSB.transl_put. des_ifs; cycle 1.

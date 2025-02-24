@@ -6,7 +6,6 @@ Set Implicit Arguments.
 
 Section Cancel.
   Context {Σ: GRA}.
-  Notation iProp := (iProp Σ).
 
   Definition Spawn_cancel (fn: string) (varg: Any.t) : itree hmodE nat :=
     tid <- trigger (Spawn fn varg);;
@@ -18,7 +17,6 @@ Section Cancel.
       match e in schE T return itree hmodE T with
       | Spawn fn varg => Spawn_cancel fn varg
       | Yield tid => trigger (Yield tid)
-      | Tid => trigger Tid
       end.
 
   Definition interp_smod_cancel R (it : itree hmodE R) : itree hmodE R :=
