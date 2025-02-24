@@ -7,16 +7,12 @@ Section FSPEC.
   Context {Σ : GRA}.
   Notation iProp := (iProp Σ).
 
-  Definition invspec := nat → iProp.
-
-  Definition ginv_emp : invspec := const(emp%I).
-
   Record fspec : Type := mk_fspec {
     meta : Type;
-    (*** thread id → meta-variable → virtual arg → physical arg → iProp ***)
-    precond : nat → meta → Any.t → Any.t → iProp; 
-    (*** thread id → meta-variable → virtual ret → physical ret → iProp ***)
-    postcond : nat → meta → Any.t → Any.t → iProp; 
+    (*** meta-variable → virtual arg → physical arg → iProp ***)
+    precond : meta → Any.t → Any.t → iProp; 
+    (*** meta-variable → virtual ret → physical ret → iProp ***)
+    postcond : meta → Any.t → Any.t → iProp; 
   }.
 
   Record fspecbody : Type := mk_specbody {
@@ -26,38 +22,38 @@ Section FSPEC.
 
   Definition fspec_trivial : fspec :=
     mk_fspec (meta:=unit)
-             (λ _ _ argh argl, (⌜argh = argl⌝ : iProp)%I)
-             (λ _ _ reth retl, (⌜reth = retl⌝ : iProp)%I).
+             (λ _ argh argl, (⌜argh = argl⌝ : iProp)%I)
+             (λ _ reth retl, (⌜reth = retl⌝ : iProp)%I).
 
   Definition fbody_trivial : Any.t → itree hmodE Any.t :=
     λ _, trigger (Choose _).
 
   Definition fspec_virtual (M VA VR : Type)
-      (precond: nat → M → VA → Any.t → iProp)
-      (postcond: nat → M → VR → Any.t → iProp) :=
+      (precond: M → VA → Any.t → iProp)
+      (postcond: M → VR → Any.t → iProp) :=
     mk_fspec (meta:=M)
-      (λ tid x varg arg, (∃ va: VA, ⌜varg = va↑⌝ ∗ precond tid x va arg)%I)
-      (λ tid x vret ret, (∃ vr: VR, ⌜vret = vr↑⌝ ∗ postcond tid x vr ret)%I).
+      (λ x varg arg, (∃ va: VA, ⌜varg = va↑⌝ ∗ precond x va arg)%I)
+      (λ x vret ret, (∃ vr: VR, ⌜vret = vr↑⌝ ∗ postcond x vr ret)%I).
 
   Definition fspec_simple {X : Type} (DPQ: X → (Any.t → iProp) * (Any.t → iProp)) : fspec :=
-    mk_fspec (λ _ x y a, (((fst ∘ DPQ) x a: iProp) ∗ ⌜y = a⌝)%I)
-             (λ _ x z a, (((snd ∘ DPQ) x a: iProp) ∗ ⌜z = a⌝)%I).
+    mk_fspec (λ x y a, (((fst ∘ DPQ) x a: iProp) ∗ ⌜y = a⌝)%I)
+             (λ x z a, (((snd ∘ DPQ) x a: iProp) ∗ ⌜z = a⌝)%I).
 
   Definition fspec_simple_tid {X : Type}
-      (DPQ: nat → X → (Any.t → iProp) * (Any.t → iProp)) : fspec :=
-    mk_fspec (λ tid x y a, (((fst ∘ DPQ tid) x a: iProp) ∗ ⌜y = a⌝)%I)
-             (λ tid x z a, (((snd ∘ DPQ tid) x a: iProp) ∗ ⌜z = a⌝)%I).
+      (DPQ: X → (Any.t → iProp) * (Any.t → iProp)) : fspec :=
+    mk_fspec (λ x y a, (((fst ∘ DPQ) x a: iProp) ∗ ⌜y = a⌝)%I)
+             (λ x z a, (((snd ∘ DPQ) x a: iProp) ∗ ⌜z = a⌝)%I).
 
   Definition fspec_false : fspec := {|
     meta := Empty_set;
-    precond := λ _ _ _ _, False%I;
-    postcond := λ _ _ _ _, False%I; 
+    precond := λ _ _ _, False%I;
+    postcond := λ _ _ _, False%I; 
   |}.
   
   Definition app_fspec (fspecs : list fspec) : fspec := {|
     meta := { i : nat & (nth i fspecs fspec_false).(meta) };
-    precond := λ tid '(existT i meta_i), (nth i fspecs fspec_false).(precond) tid meta_i;
-    postcond := λ tid '(existT i meta_i), (nth i fspecs fspec_false).(postcond) tid meta_i 
+    precond := λ '(existT i meta_i), (nth i fspecs fspec_false).(precond) meta_i;
+    postcond := λ '(existT i meta_i), (nth i fspecs fspec_false).(postcond) meta_i 
   |}.
 
   Variant meta_inv {X : nat → Type} : Type :=
@@ -66,10 +62,10 @@ Section FSPEC.
   Definition fspec_inv (u : positive) (k : nat) (fsp : nat → fspec)
       `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ} : fspec :=
     mk_fspec (meta := @meta_inv (λ n, (fsp n).(meta)))
-      (λ tid '(mk_meta n x) varg arg,
-         own_admin ∗ univs u (k+n) ∗ wsats u (k+n) ⊤ ∗ (fsp n).(precond) tid x varg arg)%I
-      (λ tid '(mk_meta n x) vret ret,
-         own_admin ∗ univs u (k+n) ∗ wsats u (k+n) ⊤ ∗ (fsp n).(postcond) tid x vret ret)%I.
+      (λ '(mk_meta n x) varg arg,
+         own_admin ∗ univs u (k+n) ∗ wsats u (k+n) ⊤ ∗ (fsp n).(precond) x varg arg)%I
+      (λ '(mk_meta n x) vret ret,
+         own_admin ∗ univs u (k+n) ∗ wsats u (k+n) ⊤ ∗ (fsp n).(postcond) x vret ret)%I.
 End FSPEC.
 
 Arguments precond : simpl never.
@@ -78,41 +74,40 @@ Arguments postcond : simpl never.
 Section HOARE.
 
   Context `{Σ: GRA}.
-  Notation iProp := (iProp Σ).
 
-  Variable ginv : invspec.
+  Definition ginv_emp : iProp Σ := emp%I.
+
+  Variable ginv : iProp Σ.
   Variable stb: string → option fspec.
 
   Definition HoareCall (fsp: fspec): string → Any.t → (itree hmodE) Any.t 
     := 
     λ fn varg,
-      my_tid <- trigger Tid;;
       x <- trigger (Choose fsp.(meta));; 
 
       (*** precondition ***)
       arg <- trigger (Choose Any.t);;
-      trigger (Guarantee (fsp.(precond) my_tid x varg arg));;;
+      trigger (Guarantee (fsp.(precond) x varg arg));;;
 
       (*** call ***)
       ret <- trigger (Call fn arg);;
 
       (*** postcondition ***)
       vret <- trigger (Take Any.t);;
-      trigger (Assume (fsp.(postcond) my_tid x vret ret));;;
+      trigger (Assume (fsp.(postcond) x vret ret));;;
 
       Ret vret.
 
   Definition HoareYield (tid: nat) : itree hmodE unit :=
-    trigger (Guarantee (ginv tid));;;
+    trigger (Guarantee ginv);;;
     trigger (Yield tid);;;
-    my_tid <- trigger Tid;;
-    trigger (Assume (ginv my_tid)).
+    trigger (Assume ginv).
 
   Definition HoareSpawn (fsp: fspec) (fn: string) (varg: Any.t) : itree hmodE nat :=
     x <- trigger (Choose fsp.(meta));; 
     arg <- trigger (Choose Any.t);;
     tid <- trigger (Spawn fn arg);;
-    trigger (Guarantee (ginv tid ==∗ fsp.(precond) tid x varg arg));;;
+    trigger (Guarantee (ginv ==∗ fsp.(precond) x varg arg));;;
     HoareYield tid;;;
     Ret tid.
   
@@ -124,7 +119,6 @@ Section HOARE.
           HoareSpawn fsp fn arg
       | Yield tid =>
           HoareYield tid
-      | Tid => trigger Tid
       end.
   
   Definition handle_callE_hmodE: callE ~> itree hmodE :=
@@ -139,20 +133,19 @@ Section HOARE.
             trivial_Handler))) it.
 
   Definition HoareFun {X: Type}
-      (P: nat → X → Any.t → Any.t → iProp)
-      (Q: nat → X → Any.t → Any.t → iProp)
+      (P: X → Any.t → Any.t → iProp Σ)
+      (Q: X → Any.t → Any.t → iProp Σ)
       (body: Any.t → itree hmodE Any.t): Any.t → itree hmodE Any.t :=
     λ arg,
-      my_tid <- trigger Tid;;
       x <- trigger (Take X);;
 
       varg <- trigger (Take _);;
-      trigger (Assume (P my_tid x varg arg));;; (*** precondition ***)
+      trigger (Assume (P x varg arg));;; (*** precondition ***)
 
       vret <- interp_smod (body varg);;
 
       ret <- trigger (Choose Any.t);;
-      trigger (Guarantee (Q my_tid x vret ret));;; (*** postcondition ***)
+      trigger (Guarantee (Q x vret ret));;; (*** postcondition ***)
 
       Ret ret.
   
@@ -370,59 +363,4 @@ Section RED.
     unfold guarantee. rewrite interp_bind. rewrite interp_core. grind. rewrite interp_ret. refl.
   Qed.
 
-(*  
-  Lemma interp_triggerUB
-        (R: Type)
-        stb
-    :
-      interp_smod stb (triggerUB)
-      =
-      triggerUB (A:=R).
-  Proof.
-    unfold interp_smod, triggerUB in *. rewrite unfold_interp. grind.
-  Qed.  
-
-  Lemma interp_triggerNB
-        (R: Type)
-        stb
-    :
-      interp_smod stb (triggerNB)
-      =
-      triggerNB (A:=R).
-  Proof.
-    unfold interp_smod, triggerNB in *. rewrite unfold_interp. grind.
-  Qed.
-
-  Lemma interp_ext
-        R (itr0 itr1: itree _ R)
-        (EQ: itr0 = itr1)
-        stb
-    :
-      interp_smod stb itr0
-      =
-      interp_smod stb itr1.
-  Proof. subst; et. Qed.
-*)
-  
 End RED. End SModRed.
-
-(*
-Global Program Instance interp_rdb `{Σ : GRA} : red_database (mk_box (@interp_smod)) :=
-  mk_rdb
-    1
-    (mk_box SModRed.interp_bind)
-    (mk_box SModRed.interp_tau)
-    (mk_box SModRed.interp_ret)
-    (mk_box SModRed.interp_call)
-    (mk_box SModRed.interp_triggere)
-    (mk_box SModRed.interp_triggerp)
-    (mk_box SModRed.interp_triggerp)
-    (mk_box SModRed.interp_triggerUB)
-    (mk_box SModRed.interp_triggerNB)
-    (mk_box SModRed.interp_unwrapU)
-    (mk_box SModRed.interp_unwrapN)
-    (mk_box SModRed.interp_Assume)
-    (mk_box SModRed.interp_Guarantee)
-    (mk_box SModRed.interp_ext)
-.
-*)

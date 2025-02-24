@@ -39,8 +39,6 @@ Section EXEC.
                               Ret (inl (tid, (base.insert tid (k (List.length ths)) ths) ++ [prog _ (Call fn arg)]))
           | Yield tid' => fun k =>
                             Ret (inl (tid', base.insert tid (k tt) ths))
-          | Tid => fun k =>
-                     Ret (inl (tid, base.insert tid (k tid) ths))
           end k
       end.
 

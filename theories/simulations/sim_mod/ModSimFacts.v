@@ -374,36 +374,6 @@ Section SEMR.
           esplits; eauto. apply sim. eauto.
       }
 
-    - rewrite unfold_iter_eq. s. rewrite LKS.
-      grind. step.
-      eapply K;
-        try rewrite length_insert;
-        try rewrite list.list_lookup_insert; eauto; try nia.
-      i. des_ifs; des; subst.
-      + rewrite !list.list_lookup_insert in INS; try nia. inv INS.
-        eexists. rewrite WF. ginit. guclo lflagC_spec. econs.
-        { gfinal. right. eapply K. }
-        { apply le_others_refl. }
-        { eauto. }
-        { eauto. }
-      + rewrite !list.list_lookup_insert_ne in INS; try nia. inv INS.
-        eapply SIM; eauto; des_ifs.
-
-    - rewrite (unfold_iter_eq _ (_, itrs_tgt)). s. rewrite LKT.
-      grind. step.
-      eapply K;
-        try rewrite length_insert;
-        try rewrite list.list_lookup_insert; eauto; try nia.
-      i. des_ifs; des; subst.
-      + rewrite !list.list_lookup_insert in INT; try nia. inv INT.
-        eexists. rewrite WF. ginit. guclo lflagC_spec. econs.
-        { gfinal. right. eapply K. }
-        { apply le_others_refl. }
-        { eauto. }
-        { eauto. }
-      + rewrite !list.list_lookup_insert_ne in INT; try nia. inv INT.
-        eapply SIM; eauto; des_ifs.
-
     - rewrite (unfold_iter_eq _ (_, itrs_tgt)). s. rewrite LKT.
       grind. rewrite FUN. grind. step.
       eapply K;

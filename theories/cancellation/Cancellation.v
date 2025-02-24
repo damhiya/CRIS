@@ -115,10 +115,6 @@ Section CANCEL.
       iterL. _coreE VALID.
       iterL. _supd. iterL. _supd. iterT 1. reveal ITREE.
       done_by_CIH CIH LKX LKY.
-    - _iter. _iter. rewrite SRC TGT. ired.
-      hide_l. tau 1. iterT 1. reveal ITREE.
-      hide_r. tau 1. iterT 1. reveal ITREE.
-      done_by_CIH CIH LKX LKY.
     - eapply cancel_aux_head; eauto. i; eapply CIH; eauto.
     - eapply cancel_aux_tail; eauto. i; eapply CIH; eauto.
     - eapply cancel_aux_spawn; eauto. i; eapply CIH; eauto.
@@ -131,9 +127,9 @@ Section CANCEL.
       (SPC: spc_from md "CRIS_init" = Some fsp)
       (VALID: ✓ rs)
       (EQUIV: rs ≡ r ⋅ rt)
-      (PRE: Own r ⊢ fsp.(precond) 0 meta tt↑ tt↑)
+      (PRE: Own r ⊢ fsp.(precond) meta tt↑ tt↑)
       (SAT: Own rt ⊢ P)
-      (POST: ∀ vret ret, (fsp.(postcond) 0 meta vret ret) ==∗ ⌜vret = ret⌝)
+      (POST: ∀ vret ret, (fsp.(postcond) meta vret ret) ==∗ ⌜vret = ret⌝)
     :  
     refines_mod
       (HMod.to_mod (HModInline.inline (SModCancel.to_hmod md)) rs)
@@ -169,10 +165,6 @@ Section CANCEL.
     assert (TMP:=SPC). unfold spc_from in TMP. rewrite E in TMP. depdes TMP.
     hide_l.
     ginit.
-    rewrite !HModSB.transl_bind HModSB.transl_sch HIRed.bind_sch interp_hp_bind. s.
-    rewrite interp_hp_tid. ired.
-    _iter. _tau. st. _iter. _tau. st. st.
-    rewrite interp_hp_tau. _iter. _tau. st. st.
     rewrite HModSB.transl_bind HModSB.transl_core HIRed.bind_core interp_hp_bind interp_hp_core. ired.
     _iter. _core. st. exists meta. st. ired. 
     _tau. st. _iter. _tau. st. st.
@@ -185,7 +177,7 @@ Section CANCEL.
     _iter. _supd. hss. ired. hss. ired.
     _iter. _core. st. exists (r ⋅ rt). st. ired. _tau. st. 
     _iter. _core. st.
-    assert (VALID': ✓(r ⋅ rt) ∧ (Own (r ⋅ rt) ==∗ precond fsp 0 meta () ↑ () ↑ ∗ Own rt)).
+    assert (VALID': ✓(r ⋅ rt) ∧ (Own (r ⋅ rt) ==∗ precond fsp meta () ↑ () ↑ ∗ Own rt)).
     { split.
       - rewrite -EQUIV. eauto.
       - iIntros "[R RT]". iFrame. iModIntro. iStopProof. eauto.
@@ -219,9 +211,9 @@ End CANCEL.
 Theorem cancellation `{Σ: GRA} md ginv P fsp meta
   (SPC: spc_from md "CRIS_init" = Some fsp)
   (POST: ∀ vret ret,
-         ((fsp).(postcond) 0 (meta) vret ret) -∗ ⌜vret = ret⌝)
+         ((fsp).(postcond) (meta) vret ret) -∗ ⌜vret = ret⌝)
   :
-  refines (SModCancel.to_hmod md, P ∗ ((fsp).(precond) 0 (meta) tt↑ tt↑))%I
+  refines (SModCancel.to_hmod md, P ∗ ((fsp).(precond) (meta) tt↑ tt↑))%I
           (SMod.to_hmod ginv (spc_from md) md, P).
 Proof. 
   etrans.

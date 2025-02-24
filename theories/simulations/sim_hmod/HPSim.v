@@ -220,22 +220,6 @@ Section HPSIM.
     :
     _hpsim' hpsimc hpsimi ps pt nths (st_src, trigger (Yield tid) >>= k_src) (st_tgt, trigger (Yield tid) >>= k_tgt) fmr
         
-  | hpsim_tid_src
-      (HPSIM_TID_SRC : True)
-      ps pt nths st_src st_tgt fmr
-      k_src i_tgt
-      (K : hpsimi true pt nths (st_src, k_src my_tid) (st_tgt, i_tgt) fmr)
-    :
-    _hpsim' hpsimc hpsimi ps pt nths (st_src, trigger Tid >>= k_src) (st_tgt, i_tgt) fmr
-
-  | hpsim_tid_tgt
-      (HPSIM_TID_TGT : True)
-      ps pt nths st_src st_tgt fmr
-      i_src k_tgt
-      (K : hpsimi ps true nths (st_src, i_src) (st_tgt, k_tgt my_tid) fmr)
-    :
-    _hpsim' hpsimc hpsimi ps pt nths (st_src, i_src) (st_tgt, trigger Tid >>= k_tgt) fmr
-
   | hpsim_call_none
       (HPSIM_CALL_NONE: True)
       ps pt nths st_src st_tgt fmr

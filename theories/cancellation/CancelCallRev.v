@@ -51,7 +51,6 @@ Section CANCEL.
       + rewrite !HModSB.transl_bind !HModSB.transl_sch.
         iApply isim_yield. iFrame. iIntros (? ? ? ? ?) "IST".
         steps_r. by_coind "CIH". auto.
-      + steps_l. steps_r. by_coind "CIH". auto.
     - destruct c. rewrite HModSB.transl_bind HModSB.transl_call HIRed.call. steps_r. 
       destruct (alist_find fn (HMod.fnsems md)) eqn:FIND; cycle 1.
       { s. unfold triggerNB. ired. rewrite HIRed.bind_core. steps_r. ss. }

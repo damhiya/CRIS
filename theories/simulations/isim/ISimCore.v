@@ -10,14 +10,12 @@ Ltac hred := try (prw _red_gen 1 1 0).
 
 Section SIM.
   Context `{Σ : GRA}.
-  Local Notation iProp := (iProp Σ).
   Variable contextual: contextuality.
   Variable fl_src fl_tgt : alist string (Any.t → itree hmodE Any.t).
-  Variable Ist : nat → alist key Any.t → alist key Any.t → iProp.
-  Variable my_tid : nat.
+  Variable Ist : nat → alist key Any.t → alist key Any.t → iProp Σ.
 
-  Let _hpsim := _hpsim contextual fl_src fl_tgt Ist my_tid.
-  Let rel := ∀ Rs Rt, (nat → alist key Any.t * Rs → alist key Any.t * Rt → iProp) → bool → bool → nat → alist key Any.t * itree hmodE Rs → alist key Any.t * itree hmodE Rt → iProp.
+  Let _hpsim := _hpsim contextual fl_src fl_tgt Ist.
+  Let rel := ∀ Rs Rt, (nat → alist key Any.t * Rs → alist key Any.t * Rt → iProp Σ) → bool → bool → nat → alist key Any.t * itree hmodE Rs → alist key Any.t * itree hmodE Rt → iProp Σ.
 
   Variant iunlift (r : rel) Rs Rt RR ps pt nths sti_src sti_tgt res : Prop :=
   | unlift_intro (WF : ✓ res) (REL : Own res ⊢ |==> r Rs Rt RR ps pt nths sti_src sti_tgt).
@@ -25,8 +23,8 @@ Section SIM.
   Definition ibot : rel := λ _ _ _ _ _ _ _ _, False%I.
 
   Global Program Definition isim
-      r g {Rs Rt} (RR : nat → alist key Any.t * Rs → alist key Any.t * Rt → iProp) ps pt
-      nths sti_src sti_tgt : iProp :=
+      r g {Rs Rt} (RR : nat → alist key Any.t * Rs → alist key Any.t * Rt → iProp Σ) ps pt
+      nths sti_src sti_tgt : iProp Σ :=
     UPred Σ (gpaco9 (_hpsim) (cpn9 _hpsim) (iunlift r) (iunlift g) _ _ RR ps pt nths sti_src sti_tgt) _.
   Next Obligation. guclo hpsim_extendC_spec. econs; et. Defined.
 
@@ -517,20 +515,6 @@ Section SIM.
     iApply "B". eauto.
   Qed.
 
-  Lemma isim_tid_src r g ps pt {Rs Rt} RR nths st_src st_tgt k_src i_tgt :
-    @isim r g Rs Rt RR true pt nths (st_src, k_src my_tid) (st_tgt, i_tgt)
-    ⊢ @isim r g Rs Rt RR ps pt nths (st_src, trigger Tid >>= k_src) (st_tgt, i_tgt).
-  Proof.
-    split; intros x wfx SIM; guclo hpsimC_spec; econs; esplits; eauto; econs; eauto.
-  Qed.
-
-  Lemma isim_tid_tgt r g ps pt {Rs Rt} RR nths st_src st_tgt i_src k_tgt :
-    @isim r g Rs Rt RR ps true nths (st_src, i_src) (st_tgt, k_tgt my_tid)
-    ⊢ @isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, trigger Tid >>= k_tgt).
-  Proof. 
-    split; intros x wfx SIM; guclo hpsimC_spec; econs; esplits; eauto; econs; eauto.
-  Qed.
-
   Lemma isim_call_none
     r g ps pt {Rs Rt} RR nths st_src st_tgt i_src k_tgt fn varg
     (CLOSED: contextual = closed)
@@ -539,7 +523,7 @@ Section SIM.
     (@isim r g Rs Rt RR ps true nths (st_src, i_src) (st_tgt, x <- triggerNB;; tau;; tau;; k_tgt x))
     ⊢ (@isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, trigger (Call fn varg) >>= k_tgt)).
   Proof.
-    split; intros x wfx SIM; guclo hpsimC_spec. econs; esplits; eauto. econs 24; eauto.
+    split; intros x wfx SIM; guclo hpsimC_spec. econs; esplits; eauto. econs 22; eauto.
   Qed.
 
   Lemma isim_progress r g {Rs Rt} RR nths st_src st_tgt i_src i_tgt :
@@ -700,12 +684,12 @@ Definition Ist_monotone `{Σ : GRA} (Ist: nat → alist key Any.t → alist key 
 
 Definition isim_fsem `{Σ : GRA} fl_src fl_tgt Ist contextual : relation (Any.t -> itree hmodE Any.t) :=
   (eq ==> (fun itr_src itr_tgt =>
-  ∀ my_tid nths st_src st_tgt
+  ∀ nths st_src st_tgt
     (IMON : Ist_monotone Ist)
     (NODS : List.NoDup (List.map fst st_src))
     (NODD : List.NoDup (List.map fst st_tgt)),
   Ist nths st_src st_tgt ⊢
-    @isim Σ contextual fl_src fl_tgt Ist my_tid ibot ibot Any.t Any.t
+    @isim Σ contextual fl_src fl_tgt Ist ibot ibot Any.t Any.t
       (fun nths '(st_src, v_src) '(st_tgt, v_tgt) => (⌜v_src = v_tgt⌝ ∗ Ist nths st_src st_tgt))%I
       false false nths (st_src, itr_src) (st_tgt, itr_tgt)))%signature.
 

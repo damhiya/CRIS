@@ -24,40 +24,37 @@ Section REL.
     inv SOME. destruct p. destruct f. s. eauto.
   Qed.
   
-  Definition hmod_elim_head X P : Any.t -> itree hmodE ((nat * X * nat * X) * Any.t)
+  Definition hmod_elim_head X P : Any.t -> itree hmodE ((X * X) * Any.t)
     :=
     fun varg =>
-      my_tid <- trigger Tid;; tau;;
       x <- trigger (Choose X);; tau;;
       arg <- trigger (Choose Any.t);; tau;;
-      trigger (Guarantee (P my_tid x varg arg));;; tau;; tau;;
-      my_tid' <- trigger Tid;; tau;;
+      trigger (Guarantee (P x varg arg));;; tau;; tau;;
       x' <- trigger (Take X);; tau;;
       varg' <- trigger (Take _);; tau;;
-      trigger (Assume (P my_tid' x' varg' arg));;; tau;;
-      Ret ((my_tid, x, my_tid', x'), varg').
+      trigger (Assume (P x' varg' arg));;; tau;;
+      Ret ((x, x'), varg').
 
-  Definition hmod_elim_tail X Q : (nat * X * nat * X) -> Any.t -> itree hmodE Any.t
+  Definition hmod_elim_tail X Q : (X * X) -> Any.t -> itree hmodE Any.t
     :=
-    fun '(my_tid, x, my_tid', x') vret' =>
+    fun '(x, x') vret' =>
       ret <- trigger (Choose Any.t);; tau;;
-      trigger (Guarantee (Q my_tid' x' vret' ret));;; tau;; tau;; tau;;
+      trigger (Guarantee (Q x' vret' ret));;; tau;; tau;; tau;;
       vret <- trigger (Take Any.t);; tau;;
-      trigger (Assume (Q my_tid x vret ret));;; tau;;
+      trigger (Assume (Q x vret ret));;; tau;;
       Ret vret.
       
   Definition HoareYieldE ginv (tid: nat) : itree hmodE unit :=
-    trigger (Guarantee (ginv tid));;; tau;;
+    trigger (Guarantee ginv);;; tau;;
     trigger (Yield tid);;; tau;;
-    my_tid <- trigger Tid;; tau;;
-    trigger (Assume (ginv my_tid)).
+    trigger (Assume ginv).
 
   Definition HoareSpawnE ginv (fsp: fspec) (fn: string) (varg: Any.t) : itree hmodE nat :=
     x <- trigger (Choose fsp.(meta));; tau;;
     arg <- trigger (Choose Any.t);; tau;;
     tid <- trigger (Spawn fn arg);; tau;;
-    trigger (Guarantee (ginv tid ==∗ fsp.(precond) tid x varg arg));;; tau;;
-    HoareYieldE ginv tid;;; 
+    trigger (Guarantee (ginv ==∗ fsp.(precond) x varg arg));;; tau;;
+    HoareYieldE ginv tid;;;
     Ret tid.
 
   Definition SpawnCancelE (fn: string) (varg: Any.t) : itree hmodE nat :=
@@ -65,9 +62,9 @@ Section REL.
     trigger (Yield tid);;;
     Ret tid.
 
-  Variant elim_rel_def {ginv: nat -> iProp Σ} {A}
-    (self: list (nat * {X: Type & X}) -> itree hmodE A -> itree hmodE A -> Prop)
-    : list (nat * {X: Type & X}) -> itree hmodE A -> itree hmodE A -> Prop
+  Variant elim_rel_def {ginv: iProp Σ} {A}
+    (self: list {X: Type & X} -> itree hmodE A -> itree hmodE A -> Prop)
+    : list {X: Type & X} -> itree hmodE A -> itree hmodE A -> Prop
   :=
   | elim_rel_NB l itrS ktrT
     :
@@ -102,25 +99,20 @@ Section REL.
     :
     elim_rel_def self l (trigger (Guarantee P) >>= ktrS) (a <- trigger (Guarantee P);; ktrT a)
   
-  | elim_rel_tid l ktrS ktrT
-      (KTR: forall (tid: nat), self l (ktrS tid) (ktrT tid))
-    :
-    elim_rel_def self l (trigger Tid >>= ktrS) (a <- trigger Tid;; ktrT a)
-
   | elim_rel_head X P l varg src ktrS ktrT
      (SRC: src = ktrS varg)
-     (KTR: forall tid m varg,
-            self ((tid, existT X m)::l) (ktrS varg) (ktrT (tid, m, tid, m, varg)))
+     (KTR: forall m varg,
+            self ((existT X m)::l) (ktrS varg) (ktrT (m, m, varg)))
    :
    elim_rel_def self l (tau;; src) (@hmod_elim_head X P varg >>= ktrT) 
   
-  | elim_rel_tail X Q l tid m vret src ktrS ktrT
+  | elim_rel_tail X Q l m vret src ktrS ktrT
       (SRC: src = ktrS vret)
       (KTR: forall vret, self l (ktrS vret) (ktrT vret))
     :
-    elim_rel_def self ((tid, existT X m)::l)
+    elim_rel_def self ((existT X m)::l)
         (tau;; tau;; tau;; src) 
-        (x <- @hmod_elim_tail X Q (tid, m, tid, m) vret;; tau;; ktrT x)
+        (x <- @hmod_elim_tail X Q (m, m) vret;; tau;; ktrT x)
 
   | elim_rel_spawn l f fn args ktrS ktrT
       (STB: spc_from fn = Some f)
@@ -154,8 +146,8 @@ Section REL.
   Hint Resolve elim_rel_def_mon: paco.
   
   Variant elim_rel_bindC {A}
-    (r: list (nat * {X: Type & X }) -> itree hmodE A -> itree hmodE A -> Prop)
-    : list (nat * {X: Type & X}) -> itree hmodE A -> itree hmodE A -> Prop
+    (r: list {X: Type & X } -> itree hmodE A -> itree hmodE A -> Prop)
+    : list {X: Type & X} -> itree hmodE A -> itree hmodE A -> Prop
     :=
   | elim_rel_bindC_intro
       l1 l2 itrS itrT ktrS ktrT
@@ -210,7 +202,6 @@ Section CANCEL.
     unfold HoareYield.
     rewrite HModSB.transl_bind HModSB.transl_ag. f_equal. extensionalities.
     rewrite HModSB.transl_bind HModSB.transl_sch. f_equal. extensionalities.
-    rewrite HModSB.transl_bind HModSB.transl_sch. f_equal. extensionalities.
     rewrite HModSB.transl_ag. ss.
   Qed. 
 
@@ -223,7 +214,6 @@ Section CANCEL.
   Proof. 
     unfold HoareYield, HoareYieldE. ired.
     rewrite HIRed.bind_ag. f_equal. extensionalities. ired. do 2 f_equal.
-    rewrite HIRed.bind_sch. f_equal. extensionalities. ired. do 2 f_equal.
     rewrite HIRed.bind_sch. f_equal. extensionalities. ired. do 2 f_equal.
     rewrite HIRed.bind_ag. f_equal.
   Qed.
@@ -287,28 +277,24 @@ Section CANCEL.
     inline_hp (prog (SMod.to_hmod ginv (spc_from md) md)) (HMod.sandbox scopes (HoareCall fsp fn varg))
     =
     (* head *)
-    my_tid <- trigger Tid;; tau;;
     m <- trigger (Choose (meta fsp));; tau;;
     arg <- trigger (Choose Any.t);; tau;;
-    trigger (Guarantee (precond fsp my_tid m varg arg));;; tau;; tau;;
-    my_tid' <- trigger Tid;; tau;;
+    trigger (Guarantee (precond fsp m varg arg));;; tau;; tau;;
     m' <- trigger (Take (meta fsp));; tau;;
     varg' <- trigger (Take Any.t);; tau;;
-    trigger (Assume (precond fsp my_tid' m' varg' arg));;; tau;; 
+    trigger (Assume (precond fsp m' varg' arg));;; tau;; 
     (* body *)
     vret' <- inline_hp (prog (SMod.to_hmod ginv (spc_from md) md)) 
                        (HMod.sandbox scp (interp_smod ginv (spc_from md) (fbody varg')));;
     (* tail *)
     ret <- trigger (Choose Any.t);; tau;;
-    trigger (Guarantee (postcond fsp my_tid' m' vret' ret));;; tau;; tau;; tau;;
+    trigger (Guarantee (postcond fsp m' vret' ret));;; tau;; tau;; tau;;
     vret <- trigger (Take Any.t);; tau;;
-    trigger (Assume (postcond fsp my_tid m vret ret));;; tau;;
+    trigger (Assume (postcond fsp m vret ret));;; tau;;
     Ret vret.
   Proof.
     unfold HoareCall.
     (* head *)
-    rewrite HModSB.transl_bind HModSB.transl_sch HIRed.bind_sch. 
-    f_equal. extensionality my_tid. do 2 f_equal.
     rewrite HModSB.transl_bind HModSB.transl_core HIRed.bind_core.
     f_equal. extensionality m. do 2 f_equal.
     rewrite HModSB.transl_bind HModSB.transl_core HIRed.bind_core.
@@ -319,8 +305,6 @@ Section CANCEL.
     do 2 f_equal. ired.
     rewrite alist_find_map_snd FIND. ired.
     unfold HMod.sandbox_body, interp_sb_hp, HoareFun. s.
-    rewrite HModSB.transl_bind HModSB.transl_sch. ired. rewrite HIRed.bind_sch.
-    f_equal. extensionality my_tid'. do 2 f_equal.
     rewrite HModSB.transl_bind HModSB.transl_core. ired. rewrite HIRed.bind_core.
     f_equal. extensionality m'. do 2 f_equal.
     rewrite HModSB.transl_bind HModSB.transl_core. ired. rewrite HIRed.bind_core.
@@ -350,12 +334,12 @@ Section CANCEL.
     inline_hp (prog (SMod.to_hmod  ginv (spc_from md) md)) (HMod.sandbox scopes (HoareCall fsp fn varg))
     =
     (* head *)
-    '((my_tid, x, my_tid', x'), varg'):_ <- (hmod_elim_head (meta fsp) (precond fsp) varg);;
+    '((x, x'), varg'):_ <- (hmod_elim_head (meta fsp) (precond fsp) varg);;
     (* body *)
     vret' <- inline_hp (prog (SMod.to_hmod  ginv (spc_from md) md)) 
                        (HMod.sandbox scp (interp_smod  ginv (spc_from md) (fbody varg')));;
     (* tail *)
-    hmod_elim_tail (meta fsp) (postcond fsp) (my_tid, x, my_tid', x') vret'. 
+    hmod_elim_tail (meta fsp) (postcond fsp) (x, x') vret'. 
   Proof.
     erewrite HoareCall_inline_cancel; eauto.
     unfold hmod_elim_head, hmod_elim_tail. ired. 
@@ -365,11 +349,11 @@ Section CANCEL.
   Definition elim_head_body 
     ginv scp fsp fbody varg
     :=
-    ('((my_tid, x, my_tid', x'), varg'):_ <- (hmod_elim_head (meta fsp) (precond fsp) varg);;
+    ('((x, x'), varg'):_ <- (hmod_elim_head (meta fsp) (precond fsp) varg);;
     (* body *)
     vret' <- inline_hp (prog (SMod.to_hmod  ginv (spc_from md) md)) 
                        (HMod.sandbox scp (interp_smod  ginv (spc_from md) (fbody varg')));;
-    Ret ((my_tid, x, my_tid', x'), vret')).
+    Ret ((x, x'), vret')).
 
   Lemma HoareCall_inline2
     ginv scopes fn varg scp fsp fbody 
@@ -382,8 +366,8 @@ Section CANCEL.
     RET <- elim_head_body ginv scp fsp fbody varg;;
     (* tail *)
     (fun RET =>
-      let '((my_tid, x, my_tid', x'), vret') := RET in
-      hmod_elim_tail (meta fsp) (postcond fsp) (my_tid, x, my_tid', x') vret') RET. 
+      let '((x, x'), vret') := RET in
+      hmod_elim_tail (meta fsp) (postcond fsp) (x, x') vret') RET. 
   Proof.
     erewrite HoareCall_inline; eauto. unfold elim_head_body. grind.
   Qed.
@@ -443,10 +427,6 @@ Section CANCEL.
       + do 2 rewrite HModSB.transl_bind. 
         rewrite HoareYield_sandbox HoareYield_hpI HModSB.transl_sch HIRed.bind_sch.
         gstep. econs. i. gstep. econs. ired.
-        rewrite !HModSB.transl_tau !HIRed.tau.
-        gstep. econs. gstep. econs. eauto with paco.
-      + rewrite !HModSB.transl_bind HModSB.transl_sch !HIRed.bind_sch.
-        gstep. econs. gstep. econs. ired.
         rewrite !HModSB.transl_tau !HIRed.tau.
         gstep. econs. gstep. econs. eauto with paco.
     - rewrite SModRed.interp_bind SModRed.interp_call SCancelRed.bind SCancelRed.call.
@@ -510,7 +490,7 @@ Section CANCEL.
         eapply elim_rel_bindC_intro with (l1 := []).
         { rewrite Heqi0. unfold interp_sb_hp_cancel. s. eauto with paco. }
         i.
-        set_r. eassert (ITREE = a <- hmod_elim_tail (meta f) (postcond f) (tid, m, tid, m) v;; (tau;; Ret a)).
+        set_r. eassert (ITREE = a <- hmod_elim_tail (meta f) (postcond f) (m, m) v;; (tau;; Ret a)).
         { unfold ITREE, hmod_elim_tail. refl. }
         rewrite H.
         gstep. econs.

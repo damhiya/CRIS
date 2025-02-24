@@ -161,10 +161,6 @@ Section RED.
     interp_hp (trigger (Yield tid)) = r <- trigger (Yield tid);; tau;; Ret r.
   Proof. rewrite /interp_hp interp_trigger //. Qed.
 
-  Lemma interp_hp_tid :
-    interp_hp (trigger Tid) = r <- trigger Tid;; tau;; Ret r.
-  Proof. rewrite /interp_hp interp_trigger //. Qed.
-
   Lemma interp_hp_pg (R : Type) (i : pgE R) :
     interp_hp (trigger i) = r <- handle_pgE i;; tau;; Ret r.
   Proof. rewrite /interp_hp interp_trigger //. Qed.

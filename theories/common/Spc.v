@@ -55,12 +55,12 @@ Section HEADER.
   Context `{Σ: GRA}.
   
   Definition fspec_weaker (fsp_src fsp_tgt: fspec): Prop :=
-    forall tid x_src,
+    forall x_src,
     exists x_tgt,
       (<<PRE: forall arg_src arg_tgt,
-          (fsp_src.(precond) tid x_src arg_src arg_tgt) ==∗ (fsp_tgt.(precond) tid x_tgt arg_src arg_tgt)>>) ∧
+          (fsp_src.(precond) x_src arg_src arg_tgt) ==∗ (fsp_tgt.(precond) x_tgt arg_src arg_tgt)>>) ∧
       (<<POST: forall ret_src ret_tgt,
-          (fsp_tgt.(postcond) tid x_tgt ret_src ret_tgt) ==∗ (fsp_src.(postcond) tid x_src ret_src ret_tgt)>>)
+          (fsp_tgt.(postcond) x_tgt ret_src ret_tgt) ==∗ (fsp_src.(postcond) x_src ret_src ret_tgt)>>)
   .
 
   Global Program Instance fspec_weaker_PreOrder : PreOrder fspec_weaker.
@@ -72,8 +72,8 @@ Section HEADER.
   Qed.
   Next Obligation.
   Proof.
-    ii. hexploit (H tid x_src). i. des.
-    hexploit (H0 tid x_tgt). i. des. esplits; ii.
+    ii. hexploit (H x_src). i. des.
+    hexploit (H0 x_tgt). i. des. esplits; ii.
     { iStartProof. iIntros "H".
       iApply bupd_idemp. iApply PRE0.
       iApply bupd_idemp. iApply PRE. iApply "H". }

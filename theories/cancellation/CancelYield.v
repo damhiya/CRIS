@@ -17,18 +17,18 @@ Section CANCEL.
     (LENS: cid < List.length srcs)
     (LENT: cid < List.length tgts)
     (LEN: List.length srcs = Datatypes.length tgts)
-    (RET: ∀ vret ret : Any.t, cid = 0 → Q cid meta vret ret ⊢ ⌜vret = ret⌝)
+    (RET: ∀ vret ret : Any.t, cid = 0 → Q meta vret ret ⊢ ⌜vret = ret⌝)
     (RELS: ∀ k x y, cid ≠ k → srcs !! k = Some x → tgts !! k = Some y → thread_rel md ginv cid k x y)
     (KTR: ∀ x, upaco3 (@elim_rel_def _ md ginv _) bot3 l (ktrS x) (ktrT x))
     (SRC : srcs !! cid = Some (Ret ();;; interp_hp (x <- trigger (Yield tid);; ktrS x)))
-    (TGT : tgts !! cid = Some (Ret ();;; interp_hp (cancel_term md ginv cid meta Q (x <- HoareYieldE ginv tid;; ktrT x))))
+    (TGT : tgts !! cid = Some (Ret ();;; interp_hp (cancel_term md ginv meta Q (x <- HoareYieldE ginv tid;; ktrT x))))
     (CIH: ∀ rs rt srcs tgts cid st ps pt X (meta : X) Q itrS itrT l,
         ✓ rs → (Own rs ==∗ Own rt) →
         List.length srcs = List.length tgts →
         cid < List.length srcs → cid < List.length tgts → 
         srcs !! cid = Some (Ret ();;; interp_hp itrS) →
-        tgts !! cid = Some (Ret ();;; interp_hp (cancel_term md ginv cid meta Q itrT)) →
-        (∀ vret ret, cid = 0 → Q cid meta vret ret ⊢ ⌜vret = ret⌝) →
+        tgts !! cid = Some (Ret ();;; interp_hp (cancel_term md ginv meta Q itrT)) →
+        (∀ vret ret, cid = 0 → Q meta vret ret ⊢ ⌜vret = ret⌝) →
         paco3 (@elim_rel_def _ md ginv _) bot3 l itrS itrT →
         (∀ k x y, cid ≠ k → srcs !! k = Some x → tgts !! k = Some y → thread_rel md ginv cid k x y)
         → CANCEL_GOAL md r ginv rs0 rt0 ps pt srcs tgts cid st rs rt)
@@ -55,9 +55,9 @@ Section CANCEL.
     {
       (* yield to itself *)
       subst tid.
-      iterT 2. iterL. tau 1. iterT 2.
-      iterL. _supd. iterL. _coreE (a1 ⋅ x).
-      assert (SAT: ✓ (a1 ⋅ x) ∧ (Own (a1 ⋅ x) ==∗ ginv cid ∗ Own x)).
+      iterT 2. iterL.
+      _supd. iterL. _coreE (a1 ⋅ x).
+      assert (SAT: ✓ (a1 ⋅ x) ∧ (Own (a1 ⋅ x) ==∗ ginv ∗ Own x)).
       { split; eauto. iIntros "[A X]". iFrame. iApply H0. eauto. }
       iterL. _coreE SAT. ls.
       iterL. _supd. iterL. _supd.
@@ -86,9 +86,9 @@ Section CANCEL.
       replace tm with (tgts !! tid) by (rewrite list_lookup_insert_ne; eauto)
     end.
     rewrite H4. ired. tau 2.
-    iterT 1. iterL. tau 1. ls. iterT 2.
-    iterL. _supd. iterL. _coreE (a1 ⋅ x). ls.
-    assert (SAT: ✓ (a1 ⋅ x) ∧ (Own (a1 ⋅ x) ==∗ ginv tid ∗ Own x)).
+    iterT 1. iterL.
+    _supd. iterL. _coreE (a1 ⋅ x). ls.
+    assert (SAT: ✓ (a1 ⋅ x) ∧ (Own (a1 ⋅ x) ==∗ ginv ∗ Own x)).
     { split; eauto. iIntros "[A X]". iFrame. iApply H0. eauto. }
     iterL. _coreE SAT. ls.
     iterL. _supd. iterL. _supd.
@@ -120,7 +120,7 @@ Section CANCEL.
     f_equal. ired. do 5 f_equal.
     extensionalities. ired. do 3 f_equal.
     extensionalities. ired. f_equal.
-    destruct H8. eauto.
+    destruct H7. eauto.
   Qed.
 
 End CANCEL.
