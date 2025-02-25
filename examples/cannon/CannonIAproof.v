@@ -15,9 +15,10 @@ Module CannonIA. Section CannonIA.
       (Ready ∨ Fired))
     )%I.
 
+  Variable u: univ_id.
   Variable SpcCannon : string -> option fspec.
   
-  Local Notation CannonAMod := (CannonA.t SpcCannon).
+  Local Notation CannonAMod := (CannonA.t u SpcCannon).
   Local Notation CannonIMod := (CannonI.t).
 
   Lemma simF_fire : HSim.sim_fun open CannonAMod CannonIMod Ist CannonName.fire.

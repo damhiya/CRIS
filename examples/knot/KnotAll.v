@@ -30,10 +30,11 @@ Module KnotAll. Section KnotAll.
   Local Definition smod_src : SMod.t :=
     (KnotMainA.Mod genv spc_rec) ☆ (KnotA.Mod genv spc_rec spc_fun)
     ☆ MemA.Mod ☆ APCC.Mod.
+  Local Definition u: univ_id := 1.
   Local Definition spc_apc : string → option fspec := spc_from smod_src_apc.
   Local Definition spc : string → option fspec := spc_from smod_src.
   Local Definition mod_cancel : HMod.t := SModCancel.to_hmod smod_src.
-  Local Definition mod_src : HMod.t := SMod.to_hmod ginv_emp spc smod_src.
+  Local Definition mod_src : HMod.t := SMod.to_hmod (wsim_ginv u ⊤) spc smod_src.
   Local Definition mod_tgt : HMod.t :=
     (KnotMainI.t genv) ★ (KnotI.t genv) ★ (MemI.t csl genv).
 
@@ -44,7 +45,7 @@ Module KnotAll. Section KnotAll.
     KnotMainA.InitCond ∗ (KnotA.InitCond genv) ∗ (MemA.InitCond csl genv).
 
   Lemma cancel_src :
-    refines (mod_cancel, (init_cond ∗ main_fsp.(precond) 0 tt tt↑ tt↑)%I)
+    refines (mod_cancel, (init_cond ∗ main_fsp.(precond) tt tt↑ tt↑)%I)
             ((mod_src, init_cond) : HMod.modc).
   Proof.
     eapply cancellation; try by econs.
@@ -78,14 +79,14 @@ Module KnotAll. Section KnotAll.
     rewrite -(hmod_add_empty_l ((KnotMainI.t genv) ★ _ ★ _)).
     etrans; cycle 1.
     { apply ctxr_frameR. eapply ctxr_empty. }
-    instantiate (1:=emp%I). instantiate (1:=APCA.t spc_pure spc).
-    replace (SMod.to_hmod ginv_emp spc (KnotMainA.Mod _ _)) with (KnotMainA.t genv spc_rec spc); cycle 1.
+    instantiate (1:=emp%I). instantiate (1:=APCA.t u spc_pure spc).
+    replace (SMod.to_hmod _ spc (KnotMainA.Mod _ _)) with (KnotMainA.t genv u spc_rec spc); cycle 1.
     { unfold KnotMainA.t; unseal CRIS; ss. }
-    replace (SMod.to_hmod ginv_emp spc (KnotA.Mod _ _ _)) with (KnotA.t genv spc_rec spc_fun spc); cycle 1.
+    replace (SMod.to_hmod _ spc (KnotA.Mod _ _ _)) with (KnotA.t genv u spc_rec spc_fun spc); cycle 1.
     { unfold KnotA.t; unseal CRIS; ss. }
-    replace (SMod.to_hmod ginv_emp spc MemA.Mod) with (MemA.t spc); cycle 1.
+    replace (SMod.to_hmod _ spc MemA.Mod) with (MemA.t u spc); cycle 1.
     { unfold MemA.t; unseal CRIS; ss. }
-    replace (SMod.to_hmod ginv_emp spc APCC.Mod) with (APCC.t spc); cycle 1.
+    replace (SMod.to_hmod _ spc APCC.Mod) with (APCC.t u spc); cycle 1.
     { unfold APCC.t; unseal CRIS; ss. }
     (* APC Cancellation *)
     rewrite -!hmod_add_assoc.
@@ -115,7 +116,7 @@ Module KnotAll. Section KnotAll.
     etrans; cycle 1. { eapply ctxr_comm. }
     rewrite !hmod_add_assoc.
 
-    rewrite -(hmod_add_empty_r ((KnotMainA.t _ _ _) ★ _ ★ _ ★ _)).
+    rewrite -(hmod_add_empty_r ((KnotMainA.t _ _ _ _) ★ _ ★ _ ★ _)).
     unfold init_cond.
     etrans.
     { eapply ctxr_compose_hor; [|refl]. eapply KnotMainIA.correct; et.
@@ -137,7 +138,7 @@ Module KnotAll. Section KnotAll.
     rewrite !hmod_add_assoc.
     eapply ctxr_frameL.
 
-    rewrite -(hmod_add_empty_r ((KnotA.t _ _ _ _) ★ _ ★ _)).
+    rewrite -(hmod_add_empty_r ((KnotA.t _ _ _ _ _) ★ _ ★ _)).
     etrans.
     { eapply ctxr_compose_hor; [|refl]. eapply KnotIA.correct; et.
       { apply genv_wf. }
@@ -166,7 +167,7 @@ Module KnotAll. Section KnotAll.
   Qed.
 
   Lemma cancel_tgt :
-    refines (mod_cancel, (init_cond ∗ main_fsp.(precond) 0 tt tt↑ tt↑)%I)
+    refines (mod_cancel, (init_cond ∗ main_fsp.(precond) tt tt↑ tt↑)%I)
             (mod_tgt, emp%I).
   Proof.
     etrans.

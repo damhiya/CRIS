@@ -64,8 +64,6 @@ Section HOARE.
 
   Context `{Σ: GRA}.
 
-  Definition ginv_emp : iProp Σ := emp%I.
-
   Variable ginv : iProp Σ.
   Variable stb: string → option fspec.
 

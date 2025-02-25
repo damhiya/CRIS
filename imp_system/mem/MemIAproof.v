@@ -228,8 +228,8 @@ Module MemIA. Section MemIA.
 
   Variable csl: string -> bool.
   Variable genv: GEnv.t.
+  Variable u: univ_id.
   Variable Spc: string -> option fspec.
-
   Hypothesis MemInSpcMem: spc_incl MemA.Spc Spc.
 
   Definition Ist: nat -> alist key Any.t -> alist key Any.t -> iProp :=
@@ -243,7 +243,7 @@ Module MemIA. Section MemIA.
         (own base_γ ((● (memk_src : _memRA)): memRA))
       ))%I.
 
-  Local Notation MemA := (MemA.t Spc).
+  Local Notation MemA := (MemA.t u Spc).
   Local Notation MemI := (MemI.t csl genv).
   Local Notation IstFull := (IstProd (IstSB MemA.(HMod.scopes) Ist) IstEq).
 
@@ -865,8 +865,8 @@ Module MemIA. Section MemIA.
 
   Theorem correct:
     ctx_refines
-      (MemA.t Spc, MemA.InitCond csl genv)
-      (MemI.t csl genv, emp%I).
+      (MemA, MemA.InitCond csl genv)
+      (MemI, emp%I).
   Proof.
     eapply main_adequacy.
     apply sim.

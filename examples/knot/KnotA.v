@@ -161,7 +161,7 @@ Section KnotA.
   Definition InitCond genv : iProp :=
     ((var_points_to genv KnotName._f (Vint 0)) ∗ knot_full None)%I.
 
-  Definition t genv SpcRec SpcFun Spc :=
-    Seal.sealing CRIS (SMod.to_hmod ginv_emp Spc (Mod genv SpcRec SpcFun)).
+  Definition t genv u SpcRec SpcFun Spc :=
+    Seal.sealing CRIS (SMod.to_hmod (wsim_ginv u ⊤) Spc (Mod genv SpcRec SpcFun)).
 End KnotA.
 End KnotA. End KnotA.

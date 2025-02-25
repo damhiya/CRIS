@@ -12,6 +12,7 @@ Module KnotIA. Section KnotIA.
   Notation iProp := (iProp Σ).
 
   Variable genv: GEnv.t.
+  Variable u: univ_id.
   Variable SpcRec: string -> option fspec.
   Variable SpcFun: string -> option fspec.
   Variable Spc: string -> option fspec.
@@ -43,9 +44,9 @@ Module KnotIA. Section KnotIA.
   Hypothesis FunInPure: spc_sub SpcFun SpcPure.
   Hypothesis PureInSpc : spc_sub SpcPure Spc.
 
-  Local Notation APCA := (APCA.t SpcPure Spc).
-  Local Notation MemA := (MemA.t SpcMem).
-  Local Notation KnotA := (KnotA.t genv SpcRec SpcFun Spc).
+  Local Notation APCA := (APCA.t u SpcPure Spc).
+  Local Notation MemA := (MemA.t u SpcMem).
+  Local Notation KnotA := (KnotA.t genv u SpcRec SpcFun Spc).
   Local Notation KnotAMod := (KnotA ★ MemA ★ APCA).
   Local Notation KnotIMod := ((KnotI.t genv) ★ MemA ★ APCA).
   Local Notation IstFull := (IstProd (IstSB KnotA.(HMod.scopes) Ist) IstEq).
@@ -200,8 +201,8 @@ Module KnotIA. Section KnotIA.
 
   Theorem correct :
     ctx_refines
-      (KnotA   ★ (MemA.t SpcMem) ★ APCA, KnotA.InitCond genv)
-      ((KnotI.t genv) ★ (MemA.t SpcMem) ★ APCA, emp%I).
+      (KnotA   ★ MemA ★ APCA, KnotA.InitCond genv)
+      ((KnotI.t genv) ★ MemA ★ APCA, emp%I).
   Proof.
     eapply main_adequacy.
     eapply KnotIA.sim; et.

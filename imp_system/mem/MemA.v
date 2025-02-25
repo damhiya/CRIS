@@ -3,9 +3,6 @@ Require Import MemHeader.
 
 Set Implicit Arguments.
 
-Require Import CRIS.
-Require Import MemHeader.
-
 (* Memory resource algebra *)
 (* Coercion memGS >-> inG memRA Γ is global since it can be used in other modules *)
 Canonical Structure valO := leibnizO val.
@@ -227,7 +224,7 @@ Module MemA. Section MemA.
 
   Definition InitCond csl genv: iProp := mem_initial_mem csl genv.
 
-  Definition t Spc := Seal.sealing CRIS (SMod.to_hmod ginv_emp Spc Mod).
+  Definition t u Spc := Seal.sealing CRIS (SMod.to_hmod (wsim_ginv u ⊤) Spc Mod).
 End MemA. End MemA.
 
 Global Opaque mem_points_to_singleton_r.

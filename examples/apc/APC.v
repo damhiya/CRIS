@@ -7,12 +7,11 @@ Set Implicit Arguments.
 Section wrapper.
 
   Context {Σ: GRA}.
-  Notation iProp := (iProp Σ).
-
+  
   (* fspec is only about args, varg is always ordinal *)
-  Definition fspec_apc {X : Type} (o: X → Ord.t) (DPQ: X → (Any.t → iProp) * (Any.t → iProp)) : fspec :=
-    mk_fspec (λ _ x y a, (((fst ∘ DPQ) x a: iProp) ∗ ⌜∃ vo: Ord.t, y = vo↑ ∧ ((o x) <= vo)%ord⌝)%I)
-             (λ _ x _ a, (((snd ∘ DPQ) x a: iProp))%I).
+  Definition fspec_apc {X : Type} (o: X → Ord.t) (DPQ: X → (Any.t → iProp Σ) * (Any.t → iProp Σ)) : fspec :=
+    mk_fspec (λ x y a, (((fst ∘ DPQ) x a: iProp Σ) ∗ ⌜∃ vo: Ord.t, y = vo↑ ∧ ((o x) <= vo)%ord⌝)%I)
+             (λ x _ a, (((snd ∘ DPQ) x a: iProp Σ))%I).
 
   Definition pure_body : Any.t → itree hmodE Any.t :=
     cfunN (λ dep_ord: Ord.t, trigger (Call APCName.apc dep_ord↑);;; Ret ()).
@@ -21,7 +20,7 @@ End wrapper.
 
 Section apc.
 
-  Context {Σ: GRA}.
+  Context {Σ: GRA}.  
 
   Variable dep_ord: Ord.t.
   Variable SpcPure: string → option fspec.
@@ -74,7 +73,7 @@ Section apc.
 End apc.
 
 Section aux.
-  Context {Σ: GRA}.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
 
   Lemma map_fst_map_map_snd_refl {A B C} (f: B → C) (l: list (A * B)):
     map fst (map (map_snd f) l) = map fst l.
@@ -86,10 +85,10 @@ Section aux.
   Definition find_body md fn :=
     alist_find fn (map (map_snd (λ (kb : list string * (Any.t → itree hmodE Any.t)) (arg : Any.t), HMod.sandbox (fst kb) ((snd kb) arg))) (HMod.fnsems md)).
 
-  Definition pure_specbody scopes spc fsp :=
+  Definition pure_specbody scopes (u: univ_id) spc fsp :=
     (λ arg : Any.t,
       HMod.sandbox scopes
-        (interp_sb_hp ginv_emp spc
+        (interp_sb_hp (wsim_ginv u ⊤) spc
            {| fsb_fspec := fsp; fsb_body := pure_body |} arg)).
 
   Definition pure: itree hmodE Any.t :=

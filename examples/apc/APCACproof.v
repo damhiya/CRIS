@@ -7,15 +7,15 @@ Set Implicit Arguments.
 
 Module APCAC. Section APCAC.
   Import APCA.
-  Context {Σ: GRA}.
-  Notation iProp := (iProp Σ).
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
 
-  Definition Ist : nat → alist key Any.t → alist key Any.t → iProp :=
+  Definition Ist : nat → alist key Any.t → alist key Any.t → iProp Σ :=
     (λ _ _ _, True)%I.
 
   (* context *)
   Variable md: HMod.t.
 
+  Variable u : univ_id.
   Variable SpcC : string → option fspec.
   Variable SpcA : string → option fspec.
   Variable SpcPure : string → option fspec.
@@ -25,10 +25,10 @@ Module APCAC. Section APCAC.
   Hypothesis PureIsPure :
     ∀ fn pfsp, 
       SpcPure fn = Some pfsp 
-      → ∃ scp, find_body md fn = Some (pure_specbody scp SpcA pfsp).
+      → ∃ scopes, find_body md fn = Some (pure_specbody scopes u SpcA pfsp).
 
-  Local Notation APCC := (APCC.t SpcC).
-  Local Notation APCA := (APCA.t SpcPure SpcA).
+  Local Notation APCC := (APCC.t u SpcC).
+  Local Notation APCA := (APCA.t u SpcPure SpcA).
   Local Notation APCCMod := (APCC ★ md).
   Local Notation APCAMod := (APCA ★ md).
   Local Notation IstFull := (IstProd (IstSB APCC.(HMod.scopes) Ist) IstEq).

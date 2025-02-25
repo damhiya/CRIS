@@ -18,7 +18,7 @@ Section InputAS.
 End InputAS. End InputAS.
 
 Module InputA. Section InputA.
-  Context `{Σ: GRA}.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
 
   Definition input: Any.t -> itree hmodE Any.t :=
     λ _,
@@ -43,5 +43,5 @@ Module InputA. Section InputA.
     
   Definition InitRes : Σ := ε.
 
-  Definition t Spc := Seal.sealing CRIS (SMod.to_hmod ginv_emp Spc Mod).
+  Definition t u Spc := Seal.sealing CRIS (SMod.to_hmod (wsim_ginv u ⊤) Spc Mod).
 End InputA. End InputA.

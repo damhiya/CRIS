@@ -10,10 +10,11 @@ Module CellioAll. Section CellioAll.
   Local Instance Σ : GRA := ##[invΣ; Γ].
   Variable foo: Any.t -> itree hmodE Any.t.
   Local Definition smod_src : SMod.t := MainA.Mod ☆ CellioA.Mod ☆ InputA.Mod ☆ (FooA.Mod foo).
+  Local Definition u : univ_id := 1.
   Local Definition spc : string → option fspec := spc_from smod_src.
   Local Definition mod_cancel : HMod.t := SModCancel.to_hmod smod_src.
-  Local Definition mod_src : HMod.t := SMod.to_hmod ginv_emp spc smod_src.
-  Local Definition mod_tgt : HMod.t := MainI.t ★ CellioI.t ★ (InputA.t spc) ★ (FooA.t foo spc).
+  Local Definition mod_src : HMod.t := SMod.to_hmod (wsim_ginv u ⊤) spc smod_src.
+  Local Definition mod_tgt : HMod.t := MainI.t ★ CellioI.t ★ (InputA.t u spc) ★ (FooA.t foo u spc).
 
   Local Definition main_fsp : fspec := fspec_trivial.
   Local Definition init_cond : iProp Σ := MainA.InitCond ∗ CellioA.InitCond ∗ InputA.InitCond ∗ FooA.InitCond.
@@ -21,7 +22,7 @@ Module CellioAll. Section CellioAll.
 
   (* Apply cancellation to linked spec module *)
   Lemma cancel_src :
-    refines (mod_cancel, (init_cond ∗ main_fsp.(precond) 0 tt tt↑ tt↑)%I) 
+    refines (mod_cancel, (init_cond ∗ main_fsp.(precond) tt tt↑ tt↑)%I) 
             (mod_src, init_cond).
   Proof.
     eapply cancellation; try by econs.
@@ -46,7 +47,7 @@ Module CellioAll. Section CellioAll.
     {
       (* MainI ★ CellioA ⊆ MainA ★ CellioA *)
       rewrite -[(SMod.to_hmod _ _ MainA.Mod)](Seal.sealing_eq CRIS) -[(SMod.to_hmod _ _ CellioA.Mod)](Seal.sealing_eq CRIS).
-      instantiate (1:= (MainI.t ★ (CellioA.t spc), (emp ∗ CellioA.InitCond)%I)).
+      instantiate (1:= (MainI.t ★ (CellioA.t u spc), (emp ∗ CellioA.InitCond)%I)).
       eapply ctxr_cond_frameR, main_adequacy, MainIA.sim.
       {
         i. rewrite /FooAS.Spc. unseal CRIS. econs; first prove_nodup.
@@ -60,14 +61,14 @@ Module CellioAll. Section CellioAll.
     (* MainI ★ CellioI ⊆ MainI ★ CellioA 
       by CellioI ⊆ctx CellioA *)
     rewrite -[(_, emp%I)]hmod_addc_empty_r.
-    eapply ctxr_frameL, ctxr_cond_frameL, main_adequacy, CellioIA.sim. 
+    eapply ctxr_frameL, ctxr_cond_frameL, main_adequacy, CellioIA.sim.
     i. rewrite /InputAS.Spc. unseal CRIS. econs; first prove_nodup.
-    ii; rewrite -FIND /spc /spc_from /smod_src //=.
+    ii. rewrite -FIND /spc /spc_from /smod_src //=.
     des_ifs; ss; des_ifs.
   Qed.
 
   Lemma cancel_tgt :
-    refines (mod_cancel, (init_cond ∗ main_fsp.(precond) 0 tt tt↑ tt↑)%I)
+    refines (mod_cancel, (init_cond ∗ main_fsp.(precond) tt tt↑ tt↑)%I)
             (mod_tgt, emp%I).
   Proof.
     etrans.

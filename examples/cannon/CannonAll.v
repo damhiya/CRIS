@@ -11,9 +11,10 @@ Module CannonAll. Section CannonAll.
   Local Instance Σ : GRA := ##[invΣ; Γ].
 
   Local Definition smod_src : SMod.t := CannonA.Mod ☆ (MainA.Mod 1).
+  Local Definition u : univ_id := 1.
   Local Definition spc : string → option fspec := spc_from smod_src.
   Local Definition mod_cancel : HMod.t := SModCancel.to_hmod smod_src.
-  Local Definition mod_src : HMod.t := SMod.to_hmod ginv_emp spc smod_src.
+  Local Definition mod_src : HMod.t := SMod.to_hmod (wsim_ginv u ⊤) spc smod_src.
   Local Definition mod_tgt : HMod.t := CannonI.t ★ (MainI.t 1).
 
   Local Definition main_fsp : fspec := MainAS.main_spec.
@@ -22,7 +23,7 @@ Module CannonAll. Section CannonAll.
 
   (* Apply cancellation to linked spec module *)
   Lemma cancel_src :
-    refines (mod_cancel, (init_cond ∗ main_fsp.(precond) 0 tt tt↑ tt↑)%I) 
+    refines (mod_cancel, (init_cond ∗ main_fsp.(precond) tt tt↑ tt↑)%I) 
             ((mod_src, init_cond) : HMod.modc).
   Proof.
     eapply cancellation; try by econs.
@@ -37,11 +38,11 @@ Module CannonAll. Section CannonAll.
     rewrite -[(mod_tgt, _)]hmod_addc_empty_r.
     unfold mod_src, mod_tgt. rewrite add_interp_comm.
     eapply ctxr_compose_hor.
-    { replace (SMod.to_hmod ginv_emp spc CannonA.Mod) with (CannonA.t spc); cycle 1.
+    { replace (SMod.to_hmod _ _ CannonA.Mod) with (CannonA.t u spc); cycle 1.
       { unfold CannonA.t. unseal CRIS. ss. }
       eapply CannonIA.correct.
     }
-    { replace (SMod.to_hmod ginv_emp spc (MainA.Mod 1)) with (MainA.t 1 spc); cycle 1.
+    { replace (SMod.to_hmod _ _ (MainA.Mod 1)) with (MainA.t 1 u spc); cycle 1.
       { unfold MainA.t. unseal CRIS. ss. }
       eapply CannonMainIA.correct.
       i. rewrite /CannonAS.Spc. unseal CRIS. econs; first prove_nodup.
@@ -50,7 +51,7 @@ Module CannonAll. Section CannonAll.
   Qed.
 
   Lemma cancel_tgt :
-    refines (mod_cancel, (init_cond ∗ main_fsp.(precond) 0 tt tt↑ tt↑)%I)
+    refines (mod_cancel, (init_cond ∗ main_fsp.(precond) tt tt↑ tt↑)%I)
             (mod_tgt, emp%I).
   Proof.
     etrans.
@@ -62,7 +63,7 @@ Module CannonAll. Section CannonAll.
   Lemma initial_resource_valid : ✓ initial_resource.
   Proof.
     dfs_solve.
-    apply excl_auth_valid.    
+    apply excl_auth_valid.
   Qed.
 
   Theorem behavioral_refinement :

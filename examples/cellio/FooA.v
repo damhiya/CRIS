@@ -20,8 +20,7 @@ Section FooAS.
 End FooAS. End FooAS.
 
 Module FooA. Section FooA.
-  Context `{Σ: GRA}.
-  (* Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !CellioAGΓ Γ}. *)
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.  
   
   (* Unknown function body. Shouldn't call functions in local modules *)
   Variable foo: Any.t -> itree hmodE Any.t.
@@ -66,5 +65,5 @@ Module FooA. Section FooA.
 
   Definition InitRes : Σ := ε.
 
-  Definition t Spc := Seal.sealing CRIS (SMod.to_hmod ginv_emp Spc Mod).
+  Definition t u Spc := Seal.sealing CRIS (SMod.to_hmod (wsim_ginv u ⊤) Spc Mod).
 End FooA. End FooA.

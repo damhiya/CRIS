@@ -91,6 +91,6 @@ Section KnotMainA.
 
   Definition InitCond : iProp := emp%I.
 
-  Definition t genv SpcRec Spc := Seal.sealing CRIS (SMod.to_hmod ginv_emp Spc (Mod genv SpcRec)).
+  Definition t genv u SpcRec Spc := Seal.sealing CRIS (SMod.to_hmod (wsim_ginv u ⊤) Spc (Mod genv SpcRec)).
 End KnotMainA.
 End KnotMainA. End KnotMainA.

@@ -14,10 +14,11 @@ Module CannonMainIA. Section CannonMainIA.
   Definition Ist : nat → alist key Any.t → alist key Any.t → iProp Σ :=
     λ _ _ _, (True)%I.
 
+  Variable u: univ_id.
   Variable SpcMain : string → option fspec.
   Hypothesis CannonInSpcMain : spc_incl CannonAS.Spc SpcMain.
-  
-  Local Notation MainAMod := (MainA.t 1 SpcMain).
+
+  Local Notation MainAMod := (MainA.t 1 u SpcMain).
   Local Notation MainIMod := (MainI.t 1).
   
   Lemma simF_main : HSim.sim_fun open MainAMod MainIMod Ist MainName.main.

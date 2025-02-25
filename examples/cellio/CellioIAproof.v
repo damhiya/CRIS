@@ -12,7 +12,7 @@ Module CellioIA. Section CellioIA.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !CellioAGΓ Γ}.
 
   (* 1) universe ids of src/tgt modules *)
-  Context (u_a u_i : univ_id).
+  Context (u_s: univ_id).
   (* 2) spc for src module *)
   Context (Spc_s : string → option fspec).
   Context (InputInSpcG : spc_incl InputAS.Spc Spc_s).
@@ -22,11 +22,11 @@ Module CellioIA. Section CellioIA.
       (∃ v, ⌜st_tgt = [(CellioI.v_cv, v↑)]⌝ ∗ auth v)%I.
 
   Local Notation CellioI := (CellioI.t).
-  Local Notation CellioA := (CellioA.t SpcG).
+  Local Notation CellioA := (CellioA.t u_s Spc_s).
 
   Lemma simF_set : HSim.sim_fun open CellioA CellioI Ist CellioName.set.
   Proof.
-    init_wsim u_a u_i n.
+    init_wsim u_s 0.
 
     w_steps_l. iDestruct "ASM" as "->".
     w_force_l tt. w_forces_l. iSplit; first eauto.
@@ -51,7 +51,7 @@ Module CellioIA. Section CellioIA.
   
   Lemma simF_get : HSim.sim_fun open CellioA CellioI Ist CellioName.get.
   Proof.
-    init_wsim u_a u_i n.
+    init_wsim u_s 0.
 
     w_steps_l. iDestruct "ASM" as "->".
     iDestruct "IST" as (v) "(% & AUTH)". subst.
@@ -78,7 +78,7 @@ Module CellioIA. Section CellioIA.
 
   Section CellioIA.
     Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !CellioAGΓ Γ}.
-    Lemma wctxr (n : level) ginv Spc_s (InputInSpc : spc_incl InputAS.Spc Spc_s) :
+    Lemma wctxr ginv Spc_s (InputInSpc : spc_incl InputAS.Spc Spc_s) :
       w_ctx_refines (λ _, CellioA.t ginv Spc_s, CellioA.InitCond) (λ _, CellioI.t, emp%I).
-    Proof. exists 1%positive; intros u v Huv; s; eapply main_adequacy, sim; ss. Qed.
+    Proof. exists 1; intros u v Huv; s; eapply main_adequacy, sim; ss. Qed.
 End CellioIA. End CellioIA.

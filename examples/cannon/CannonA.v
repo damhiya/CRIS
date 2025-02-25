@@ -78,5 +78,5 @@ Module CannonA. Section CannonA.
 
   Definition init_cond : iProp Σ := Ready.
 
-  Definition t Spc := Seal.sealing CRIS (SMod.to_hmod ginv_emp Spc Mod).
+  Definition t u Spc := Seal.sealing CRIS (SMod.to_hmod (wsim_ginv u ⊤) Spc Mod).
 End CannonA. End CannonA.

@@ -5,7 +5,7 @@ Require Import APCHeader APC APCA.
 Set Implicit Arguments.
 
 Module APCC. Section APCC.
-  Context {Σ : GRA}.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
 
   Definition scopes := ["APC"].
 
@@ -27,5 +27,5 @@ Module APCC. Section APCC.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition t Spc := Seal.sealing CRIS (SMod.to_hmod ginv_emp Spc Mod).
+  Definition t u Spc := Seal.sealing CRIS (SMod.to_hmod (wsim_ginv u ⊤) Spc Mod).
 End APCC. End APCC.

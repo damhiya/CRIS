@@ -10,18 +10,18 @@ Section ISIM.
     → (f (@isim Σ fl fr Ist tid is_closed r g Rs Rt RR ps pt nths (st_src, s1) (st_tgt, t1)): Prop).
   Proof. subst; eauto. Qed. *)
 
-  Lemma isim_congruence_tgt Γ' f fl fr Ist my_tid is_closed r g Rs Rt RR ps pt nths sti_src st_tgt t0 t1
+  Lemma isim_congruence_tgt Γ' f is_closed fl fr Ist r g Rs Rt RR ps pt nths sti_src st_tgt t0 t1
     (EQ: t0 = t1):
-    f (@isim Γ' fl fr Ist my_tid is_closed r g Rs Rt RR ps pt nths sti_src (st_tgt, t0) ) ->
-    (f (@isim Γ' fl fr Ist my_tid is_closed r g Rs Rt RR ps pt nths sti_src (st_tgt, t1) ): Prop).
+    f (@isim Γ' is_closed fl fr Ist r g Rs Rt RR ps pt nths sti_src (st_tgt, t0) ) ->
+    (f (@isim Γ' is_closed fl fr Ist r g Rs Rt RR ps pt nths sti_src (st_tgt, t1) ): Prop).
   Proof.
     subst. eauto.
   Qed.
 
-  Lemma isim_congruence_src Γ' f fl fr Ist my_tid is_closed r g Rs Rt RR ps pt nths sti_tgt st_src t0 t1
+  Lemma isim_congruence_src Γ' is_closed f fl fr Ist r g Rs Rt RR ps pt nths sti_tgt st_src t0 t1
     (EQ: t0 = t1):
-    f (@isim Γ' fl fr Ist my_tid is_closed r g Rs Rt RR ps pt nths (st_src, t0) sti_tgt ) ->
-    (f (@isim Γ' fl fr Ist my_tid is_closed r g Rs Rt RR ps pt nths (st_src, t1) sti_tgt): Prop).
+    f (@isim Γ' is_closed fl fr Ist r g Rs Rt RR ps pt nths (st_src, t0) sti_tgt ) ->
+    (f (@isim Γ' is_closed fl fr Ist r g Rs Rt RR ps pt nths (st_src, t1) sti_tgt): Prop).
   Proof.
     subst. eauto.
   Qed.
