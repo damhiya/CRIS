@@ -1,4 +1,4 @@
-Require Import CRIS wsim.
+Require Import CRIS.
 Require Export ImpPrelude IncrMainHeader SchHeader MemHeader MemA.
 From iris Require Import frac_auth numbers.
 
@@ -20,15 +20,16 @@ Module IncrMainAS. Section IncrMainAS.
   Definition N_main : namespace := (nroot .@ MainName.main).
 
   Definition counter γ q (v : Z) : iProp Σ := own γ (◯F{q} v).
+  Definition counter_syn {n} γ q (v : Z) : SRFSyn.t n := <own> γ (◯F{q} v).
   Definition counter_auth γ (v : Z) : iProp Σ := own γ (●F v).
 
-  Definition ccounter n γ blk ofs : SRFSyn.t n :=
+  Definition ccounter_syn n γ blk ofs : SRFSyn.t n :=
     (∃ v : τ{Z, n},
       <own> base_γ (mem_points_to_singleton_r (blk, ofs) 1%Qp (Vint v))
       ∗ <own> γ (frac_auth_auth v))%SRF.
 
   Definition f_inv u n γ blk ofs : iProp Σ :=
-    inv u n N_main (ccounter n γ blk ofs).
+    inv u n N_main (ccounter_syn n γ blk ofs).
 
   Lemma counter_op γ v1 q1 v2 q2 :
     counter γ q1 v1 ∗ counter γ q2 v2 ⊣⊢ counter γ (q1 + q2) (v1 ⋅ v2).
@@ -93,6 +94,6 @@ Module IncrMainA. Section IncrMainA.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition t u ginv spc : HMod.t :=
-    Seal.sealing CRIS (SMod.to_hmod ginv spc (Mod u)).
+  Definition t u spc : HMod.t :=
+    Seal.sealing CRIS (SMod.to_hmod (wsim_ginv u ⊤) spc (Mod u)).
 End IncrMainA. End IncrMainA.

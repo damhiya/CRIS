@@ -1,7 +1,13 @@
-Require Import Common HMod ITactics ltac2_lib.
+Require Import Common HMod ltac2_lib.
 Require Export wsim.
+Require Export ITacticsCommon.
 
 From iris.proofmode Require Import coq_tactics environments.
+
+Global Arguments Envs _ _%_proof_scope _%_proof_scope _.
+Global Arguments Enil {_}.
+Global Arguments Esnoc {_} _%_proof_scope _%_string _%_I.
+
 (* ● ◓ ○ *)
 Notation "E1 '------------------------------------------------------------------□' E2 '------------------------------------------------------------------∗' st_src st_tgt '------------------------------params------------------------------' ○ E r g ps pt '-------------------------------wsim-------------------------------' itr_src itr_tgt" :=
   (environments.envs_entails (Envs E1 E2 _) (wsim _ _ _ None _ _ E r g _ _ _ ps pt _ (st_src, itr_src) (st_tgt, itr_tgt)))
@@ -52,64 +58,47 @@ Notation "E1 '------------------------------------------------------------------
       format "E1 '------------------------------------------------------------------□' '//' E2 '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '-------------------------------wsim-------------------------------' '//' P  '-∗'  'WSIM' ").
 
 
-Ltac w_replace_l :=
+Ltac wreplace_l :=
   lazymatch goal with
   | [ |- environments.envs_entails ?env (wsim ?fl_src ?tl_tgt ?Ist ?t ?u ?v ?E ?r ?g ?R_s ?R_t ?RR ?ps ?pt ?nths (?st_src, ?itr_src) (?st_tgt, ?itr_tgt)) ] =>
       refine (eq_ind_r (fun itr_src' => environments.envs_entails env (wsim fl_src tl_tgt Ist t u v E r g R_s R_t RR ps pt nths (st_src, itr_src') (st_tgt, itr_tgt))) _ _); cycle 1
   end.
 
-Ltac w_replace_r :=
+Ltac wreplace_r :=
   lazymatch goal with
   | [ |- environments.envs_entails ?env (wsim ?fl_src ?tl_tgt ?Ist ?t ?u ?v ?E ?r ?g ?R_s ?R_t ?RR ?ps ?pt ?nths (?st_src, ?itr_src) (?st_tgt, ?itr_tgt)) ] =>
       refine (eq_ind_r (fun itr_tgt' => environments.envs_entails env (wsim fl_src tl_tgt Ist t u v E r g R_s R_t RR ps pt nths (st_src, itr_src) (st_tgt, itr_tgt'))) _ _); cycle 1
   end.
 
-Ltac hnorm_itr :=
-  try match goal with
-  | [ |- @ITree.bind _ _ _ (trigger _) _ = _ ] => fail 2
-  end;
-  let prg := fresh "Progress" in
-  epose (prg := _ : _hprogress);
-  etransitivity;
-  [ _hnorm_itr prg
-  | _hprogress_check prg; s;
-    lazymatch goal with
-    | [ |- Ret _ = _ ] =>
-        reflexivity
-    | [ |- Tau _ = _ ] =>
-        reflexivity
-    | [ |- vis _ _ = _ ] =>
-        eapply vis_trigger
-    | [ |- assumeK _ _ = _ ] =>
-        eapply assumeK_assume
-    | [ |- guaranteeK _ _ = _ ] =>
-        eapply guaranteeK_guarantee
-    | [ |- unwrapUK _ _ = _ ] =>
-        eapply unwrapUK_unwrapU
-    | [ |- unwrapNK _ _ = _ ] =>
-        eapply unwrapNK_unwrapN
-    | [ |- HModSB.putSB _ _ _ _ = _ ] =>
-        eapply HModSB.putSB_SPut
-    | [ |- HModSB.getSB _ _ _ = _ ] =>
-        eapply HModSB.getSB_SGet
-    | [ |- _ = _ ] =>
-        reflexivity
-    end
-  ].
+Ltac wnorm_l := wreplace_l; [s; hnorm_itr|].
+Ltac wnorm_r := wreplace_r; [s; hnorm_itr|].
 
-Ltac w_hnorm_l := w_replace_l; [s; hnorm_itr|].
-Ltac w_hnorm_r := w_replace_r; [s; hnorm_itr|].
-Ltac _w_step :=
-  match goal with
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, Ret _) (_, Ret _))] =>
-      iApply wsim_ret
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (IO _ _) >>= _) (_, trigger (IO _ _) >>= _))] =>
-      iApply wsim_io; iIntros "%"
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Spawn _ _) >>= _) (_, trigger (Spawn _ _) >>= _))] =>
-      iApply wsim_spawn
-  end.
+Tactic Notation "wnorm_l" "with" tactic(tac) :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  (hrepeat do 1 wnorm_l);
+  tac;
+  show_until marker.
 
-Ltac _w_step_l :=
+Tactic Notation "wnorm_r" "with" tactic(tac) :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  (hrepeat do 1 wnorm_r);  
+  tac;
+  show_until marker.
+
+Tactic Notation "wnorm" "with" tactic(tac) :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  (hrepeat do 1 wnorm_l);
+  (hrepeat do 1 wnorm_r);
+  tac;
+  show_until marker.
+
+Ltac _wstep_l :=
   match goal with
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, tau;; _) _) ] =>
       iApply wsim_tau_src
@@ -140,34 +129,20 @@ Ltac _w_step_l :=
       match goal with [ H: ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite -> G in * end
   end.
 
-Ltac w_step_l_core :=
-  _w_step_l; try alist_find_simpl; s; des_pairs; s.
+Ltac wstep_l_core :=
+  _wstep_l; try alist_find_simpl; s; des_pairs; s.
 
-Ltac w_step :=
+Ltac wstep_l :=
+  wnorm_l with do 1 try wstep_l_core.
+
+Ltac wsteps_l :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  (hrepeat do 1 w_hnorm_l);
-  (hrepeat do 1 w_hnorm_r);
-  _w_step;
+  (hrepeat do 1 tryany (do 1 wnorm_l) (do 1 wstep_l_core)); try wnorm_l;
   show_until marker.
 
-Ltac w_step_l :=
-  let marker := fresh "MARKER" in
-  set_marker marker;
-  hide_ihyps;
-  (hrepeat do 1 w_hnorm_l);
-  try w_step_l_core;
-  show_until marker.
-
-Ltac w_steps_l :=
-  let marker := fresh "MARKER" in
-  set_marker marker;
-  hide_ihyps;
-  (hrepeat do 1 tryany (do 1 w_hnorm_l) (do 1 w_step_l_core)); try w_hnorm_l;
-  show_until marker.
-
-Ltac _w_step_r :=
+Ltac _wstep_r :=
   match goal with
   (******* isim ******)
   (** tgt **)
@@ -194,33 +169,39 @@ Ltac _w_step_r :=
       iApply wsim_sput_tgt_sandbox; [s; eauto|]
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, (HMod.sandbox _ (trigger (SGet _))) >>= _)) ] =>
       iApply wsim_sget_tgt_sandbox; [s; eauto|]
-  (* 
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, unwrapN ?ox >>= _)) ] =>
-      let name := fresh "q" in
-      iApply isim_unwrapN_tgt; iIntros (name) "%";
-      match goal with [ H: ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite -> G in * end
-*)
+  (* | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, unwrapN ?ox >>= _)) ] => *)
+  (*     let name := fresh "q" in *)
+  (*     iApply isim_unwrapN_tgt; iIntros (name) "%"; *)
+  (*     match goal with [ H: ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite -> G in * end *)
   end.
 
-Ltac w_step_r_core :=
-  _w_step_r; try alist_find_simpl; s; des_pairs; s.
+Ltac wstep_r_core :=
+  _wstep_r; try alist_find_simpl; s; des_pairs; s.
 
-Ltac w_step_r :=
+Ltac wstep_r :=
+  wnorm_r with do 1 try wstep_r_core.
+
+Ltac wsteps_r :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  (hrepeat do 1 w_hnorm_r);
-  try w_step_r_core;
+  (hrepeat do 1 tryany (do 1 wnorm_r) (do 1 wstep_r_core)); try wnorm_r;
   show_until marker.
 
-Ltac w_steps_r :=
-  let marker := fresh "MARKER" in
-  set_marker marker;
-  hide_ihyps;
-  (hrepeat do 1 tryany (do 1 w_hnorm_r) (do 1 w_step_r_core)); try w_hnorm_r;
-  show_until marker.
+Ltac _wstep :=
+  match goal with
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, Ret _) (_, Ret _))] =>
+      iApply wsim_ret
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (IO _ _) >>= _) (_, trigger (IO _ _) >>= _))] =>
+      iApply wsim_io; iIntros "%"
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Spawn _ _) >>= _) (_, trigger (Spawn _ _) >>= _))] =>
+      iApply wsim_spawn
+  end.
 
-Ltac _w_force_l :=
+Ltac wstep :=
+  wnorm with do 1 _wstep; s; des_pairs; s.
+
+Ltac _wforce_l :=
   match goal with
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose ?T) >>= _) _) ] =>
       iApply wsim_choose_src
@@ -241,24 +222,19 @@ Ltac _w_force_l :=
       iApply isim_guar_src *)
   end.
 
-Ltac w_force_l_core :=
-  let marker := fresh "MARKER" in
-  set_marker marker;
-  hide_ihyps;
-  (hrepeat do 1 w_hnorm_l);
-  _w_force_l;
-  show_until marker.
+Ltac wforce_l_core :=
+  wnorm_l with do 1 _wforce_l.
 
-Tactic Notation "w_force_l" :=
-  w_force_l_core; try (iExists _).
+Tactic Notation "wforce_l" :=
+  wforce_l_core; try (iExists _).
 
-Tactic Notation "w_force_l" uconstr(p) :=
-  w_force_l_core; iExists p.
+Tactic Notation "wforce_l" uconstr(p) :=
+  wforce_l_core; iExists p.
 
-Ltac w_forces_l :=
-  hrepeat do 1 w_force_l.
+Ltac wforces_l :=
+  hrepeat do 1 wforce_l.
 
-Ltac _w_force_r :=
+Ltac _wforce_r :=
   match goal with
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _)) ] =>
       iApply wsim_take_tgt
@@ -275,96 +251,47 @@ Ltac _w_force_r :=
       ]
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _)) ] =>
       iApply wsim_asm_tgt
-  (* | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, unwrapU _ >>= _)) ] =>
-      iApply isim_unwrapU_tgt; iExists _ *)
+  (* | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, unwrapU _ >>= _)) ] => *)
+  (*     iApply isim_unwrapU_tgt; iExists _ *)
   end
 .
 
-Ltac w_force_r_core :=
-  let marker := fresh "MARKER" in
-  set_marker marker;  
-  hide_ihyps;
-  (hrepeat do 1 w_hnorm_r);
-  _w_force_r; s;
-  show_until marker.
+Ltac wforce_r_core :=
+  wnorm_r with do 1 _wforce_r; s.
 
-Tactic Notation "w_force_r" :=
-  w_force_r_core; try (iExists _).
+Tactic Notation "wforce_r" :=
+  wforce_r_core; try (iExists _).
 
-Tactic Notation "w_force_r" uconstr(p) :=
-  w_force_r_core; iExists p.
+Tactic Notation "wforce_r" uconstr(p) :=
+  wforce_r_core; iExists p.
 
-Ltac w_forces_r :=
-  hrepeat do 1 w_force_r.
+Ltac wforces_r :=
+  hrepeat do 1 wforce_r.
 
-Ltac w_inline_l :=
-  let marker := fresh "MARKER" in
-  set_marker marker;  
-  hide_ihyps;
-  (hrepeat do 1 w_hnorm_l);
-  iApply wsim_inline_src; [prove_inline_cond|];
-  unfold_cris_defs;
-  show_until marker.
+Ltac winline_l :=
+  wnorm_l with
+    do 1 iApply wsim_inline_src; [prove_inline_cond|]; unfold_cris_defs.
 
-Ltac w_inline_r :=
-  let marker := fresh "MARKER" in
-  set_marker marker;  
-  hide_ihyps;
-  (hrepeat do 1 w_hnorm_r);
-  iApply wsim_inline_tgt; [prove_inline_cond|];
-  unfold_cris_defs;
-  show_until marker.
+Ltac winline_r :=
+  wnorm_r with
+    do 1 iApply wsim_inline_tgt; [prove_inline_cond|]; unfold_cris_defs.
 
-Ltac by_coind CIH :=
+Ltac wcall hyps :=
+  (wnorm with do 1 iApply wsim_call);
+  iSplitL hyps; [try done | iIntros "% % % % % %"; iIntrosFresh "IST"];
+  move_aux.
+
+Ltac wyield hyps :=
+  (wnorm with do 1 iApply wsim_yield);
+  iSplitL hyps; [try done | iIntros "% % % % %"; iIntrosFresh "IST"];
+  move_aux.
+
+Ltac wby_coind CIH :=
   iApply wsim_progress; iApply wsim_base;
   iSpecialize (CIH $! _);
   (hrepeat do 1 first[instantiate (1:= (_,_))|instantiate (1:= existT _ _)]); s; grind;
   iApply CIH.
 
-Ltac w_call hyps :=
-  let marker := fresh "MARKER" in
-  set_marker marker;
-  hide_ihyps;
-  (hrepeat do 1 w_hnorm_l);
-  (hrepeat do 1 w_hnorm_r);
-  iApply wsim_call;
-  show_until marker;
-  iSplitL hyps; [try done | iIntros "% % % % % %"; iIntrosFresh "IST"];
-  move_aux.
-
-Ltac yield hyps :=
-  let marker := fresh "MARKER" in
-  set_marker marker;
-  hide_ihyps;
-  (hrepeat do 1 w_hnorm_l);
-  (hrepeat do 1 w_hnorm_r);
-  iApply wsim_yield
-  ; show_until marker
-  ; iSplitL hyps; [try done | iIntros "% % % % %"; iIntrosFresh "IST"]
-  ; move_aux
-  .
-
-Ltac init_simF :=
-  pre_simF;
-  alist_find_simpl;
-  let H := fresh "H" in intro H; inv H;
-  alist_find_simpl;
-  post_simF;
-  step_l.
-
-Ltac init_wsim u_src u_tgt :=
+Ltac winit_simF u_src u_tgt :=
   init_simF; iApply (wsim_init _ _ _ u_src u_tgt).
 
-Ltac unfold_iter_l :=
-  let marker := fresh "MARKER" in
-  set_marker marker;
-  hide_ihyps;
-  hide_itree_r; rewrite unfold_iter_eq; show_itree;
-  show_until marker.
-
-Ltac unfold_iter_r :=
-  let marker := fresh "MARKER" in
-  set_marker marker;
-  hide_ihyps;
-  hide_itree_l; rewrite unfold_iter_eq; show_itree;
-  show_until marker.

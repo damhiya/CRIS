@@ -208,9 +208,9 @@ Section APCAUX.
       step. iPureIntro. split; et.
     }
     { (* continue *)
-      steps_r. prep.
+      steps_r.      
       unfold is_Some in *. des. dup grt. apply BODY in grt. des.
-      iApply isim_inline_tgt; eauto.
+      inline_r.
       unfold pure_specbody, interp_sb_hp; ss. steps_r.
       unfold pure_specbody, interp_sb_hp in q3; ss.
       apply SUB in grt1. rewrite grt1 in G. inv G.
@@ -218,7 +218,7 @@ Section APCAUX.
       forces_r. iSplitL "GRT"; et.
       steps_r. unfold pure_body, cfunN. hss. steps_r.
       iDestruct "GRT" as "%"; des; subst; hss.
-      prep. iApply isim_inline_tgt; eauto.
+      inline_r.
       unfold HMod.sandbox_body, interp_sb_hp, HoareFun; hss.
       steps_r. force_r q6. force_r (q6↑). forces_r. iSplitR; et. hss.
       steps_r. hss. unfold APCA.apc_body, APC. steps_r.
@@ -239,44 +239,64 @@ Section APCAUX.
 
 End APCAUX.
 
-Local Ltac _prep_macro_l :=
-  prep_l; match goal with
-  | [|- context[interp_smod _ _ (_APC _ _ _ >>= _)]] =>
-      rewrite// [in (interp_smod _ _ (_APC _ _ _ >>= _))] SModRed.interp_bind; _prep_macro_l
+Ltac _prep_macro :=
+  ired;
+  match goal with
+  | [|- context[HMod.sandbox _ (interp_smod _ _ (_APC _ _ _)) >>= _]] => fail 1
   | [|- context[HMod.sandbox _ (interp_smod _ _ (_APC _ _ _) >>= _)]] =>
       rewrite// [in HMod.sandbox _ (interp_smod _ _ (_APC _ _ _) >>= _)] HModSB.transl_bind
-  end.
-
-Local Ltac _prep_macro_r :=
-  prep_r; match goal with
-  | [|- context[PMod.interp (_APC _ _ _ >>= _)]] =>
-      rewrite// [in (PMod.interp (_APC _ _ _ >>= _))] PModRed.interp_bind; _prep_macro_r
+  | [|- context[interp_smod _ _ (_APC _ _ _ >>= _)]] =>
+      rewrite// [in (interp_smod _ _ (_APC _ _ _ >>= _))] SModRed.interp_bind; _prep_macro
+  | [|- context[HMod.sandbox _ (PMod.interp (_APC _ _ _)) >>= _]] => fail 1
   | [|- context[HMod.sandbox _ (PMod.interp (_APC _ _ _) >>= _)]] =>
       rewrite// [in HMod.sandbox _ (PMod.interp (_APC _ _ _) >>= _)] HModSB.transl_bind
+  | [|- context[PMod.interp (_APC _ _ _ >>= _)]] =>
+      rewrite// [in (PMod.interp (_APC _ _ _ >>= _))] PModRed.interp_bind; _prep_macro
   end.
 
-Local Ltac prep_macro :=
-  try _prep_macro_l; prep_l; try _prep_macro_r; prep_r.
+Ltac prep_macro_l :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  hide_itree_r;
+  try _prep_macro; ired;
+  show_until marker.  
+
+Ltac prep_macro_r :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  hide_itree_l;
+  try _prep_macro; ired;
+  show_until marker.
+
+Ltac prep_macro :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  hide_itree_r; try _prep_macro; ired; show_itree;
+  hide_itree_l; try _prep_macro; ired; show_itree;
+  show_until marker.
 
 Ltac apc_l :=
-  prep_macro;
+  prep_macro_l;
   iApply isim_apc_src; des_pairs; s.
 
 Ltac apc_r hyps :=
-  prep_macro;
+  prep_macro_r;
   iApply isim_apc_tgt; des_pairs; s;
   [| |iSplitL hyps; [|iIntros "% % % %"; iIntrosFresh "IST"]].
 
-Ltac apc_call hyps := 
-  prep_macro;
+Ltac apc_call hyps :=
+  prep_macro_l; (hrepeat do 1 hnorm_r);
   iApply isim_apc_src_call_tgt; des_pairs; s;
   [| | | |iSplitL hyps; [ |iIntros "% % % % %"; iIntrosFresh "ISTPOST"]].
 
 Ltac apc_call_weaker hyps :=
-  prep_macro;
+  prep_macro_l; (hrepeat do 1 hnorm_r);
   iApply isim_apc_src_call_tgt_weaker; des_pairs; s;
   [| | | | | | iSplitL hyps; [ |iIntros "% % % % %"; iIntrosFresh "ISTPOST"]].
 
 Ltac apc_tgt_noist :=
-  prep_macro;
+  prep_macro_r;
   iApply isim_apc_tgt_noist; des_pairs; s.

@@ -35,10 +35,10 @@ Section FSpec.
 
   Definition wfspec_type (A R : Type) (fsp : fspec) : fspec :=
     mk_fspec (meta := (fsp).(meta))
-      (fun tid x varg arg =>
-        ⌜∃ sarg: A, arg = sarg↑⌝ ∗ fsp.(precond) tid x varg arg)%I
-      (fun tid x vret ret =>
-        ⌜∃ sret: R, ret = sret↑⌝ ∗ fsp.(postcond) tid x vret ret)%I.
+      (fun x varg arg =>
+        ⌜∃ sarg: A, arg = sarg↑⌝ ∗ fsp.(precond) x varg arg)%I
+      (fun x vret ret =>
+        ⌜∃ sret: R, ret = sret↑⌝ ∗ fsp.(postcond) x vret ret)%I.
 
   Definition interp_cond (s : {n & SRFSyn.t n}) :=
     match s with
