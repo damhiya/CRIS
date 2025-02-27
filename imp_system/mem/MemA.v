@@ -1,6 +1,6 @@
+Require Import sProp.
 Require Import CRIS.
 Require Import MemHeader.
-
 Set Implicit Arguments.
 
 (* Memory resource algebra *)
@@ -110,7 +110,9 @@ Section MemRA.
 End MemRA.
 
 Notation "loc '|={' q '}=>' v" := (mem_points_to_singleton loc q v) (at level 20).
-Notation "loc ⤇ v" := (mem_points_to_singleton loc 1 v) (at level 20).
+(* Notation "loc ⤇ v" := (mem_points_to_singleton loc 1 v) (at level 20). *)
+Notation "loc ↦ v" := (mem_points_to_singleton loc 1 v) (at level 20).
+Notation "loc ↦ v" := (<own> base_γ (mem_points_to_singleton_r loc 1 v))%SRF (at level 20) : SRF_scope.
 Notation "loc |-> vs" := (mem_points_to loc 1 vs) (at level 20).
 
 Module MemA. Section MemA.
@@ -128,7 +130,7 @@ Module MemA. Section MemA.
 
   Definition free_spec: fspec :=
       (fspec_simple (fun '(b, ofs) => (
-                      (fun varg => (∃ v, (⌜varg = [Vptr b ofs]↑⌝) ∗ (b, ofs) ⤇ v)),
+                      (fun varg => (∃ v, (⌜varg = [Vptr b ofs]↑⌝) ∗ (b, ofs) ↦ v)),
                       (fun vret => ⌜vret = (Vint 0)↑⌝)
       )))%I.
 
@@ -141,8 +143,8 @@ Module MemA. Section MemA.
   Definition store_spec: fspec :=
       (fspec_simple
         (fun '(b, ofs, v_new) => (
-              (fun varg => (∃ v_old, (⌜varg = [Vptr b ofs ; v_new]↑⌝) ∗ (b, ofs) ⤇ v_old)),
-              (fun vret => (b, ofs) ⤇ v_new ∗ ⌜vret = (Vint 0)↑⌝)
+              (fun varg => (∃ v_old, (⌜varg = [Vptr b ofs ; v_new]↑⌝) ∗ (b, ofs) ↦ v_old)),
+              (fun vret => (b, ofs) ↦ v_new ∗ ⌜vret = (Vint 0)↑⌝)
       )))%I.
 
   Definition cmp_spec0: fspec :=
@@ -185,14 +187,14 @@ Module MemA. Section MemA.
   
   Definition cas_spec0 : fspec :=
       (fspec_simple (fun '(b, ofs, v_old, v_new) => (
-                      (fun varg => (⌜varg = [Vptr b ofs; v_old; v_new]↑⌝) ∗ (b, ofs) ⤇ v_old),
-                      (fun vret => ((b, ofs) ⤇ v_new ∗ ⌜vret = (Vint 1)↑⌝))
+                      (fun varg => (⌜varg = [Vptr b ofs; v_old; v_new]↑⌝) ∗ (b, ofs) ↦ v_old),
+                      (fun vret => ((b, ofs) ↦ v_new ∗ ⌜vret = (Vint 1)↑⌝))
       )))%I.
 
   Definition cas_spec1 : fspec :=
       (fspec_simple (fun '(b, ofs, v_old, v_new, v_real) => (
-                      (fun varg => (⌜varg = [Vptr b ofs; v_old; v_new]↑ ∧ v_old <> v_real⌝ ∗ (b, ofs) ⤇ v_real)),
-                      (fun vret => ((b, ofs) ⤇ v_real ∗ ⌜vret = (Vint 0)↑⌝))
+                      (fun varg => (⌜varg = [Vptr b ofs; v_old; v_new]↑ ∧ v_old <> v_real⌝ ∗ (b, ofs) ↦ v_real)),
+                      (fun vret => ((b, ofs) ↦ v_real ∗ ⌜vret = (Vint 0)↑⌝))
       )))%I.
 
   Definition cas_spec: fspec := app_fspec [cas_spec0; cas_spec1].
