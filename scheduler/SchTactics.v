@@ -141,7 +141,7 @@ Section wsim.
     iApply ("SIM" with "IST Q").
   Qed.
 End wsim.
-
+(* 
 Local Ltac _prep_macro :=
   ired;
   match goal with
@@ -199,19 +199,19 @@ Local Ltac prep_macro :=
   hide_ihyps;
   hide_itree_r; try _prep_macro; ired; show_itree;
   hide_itree_l; try _prep_macro; ired; show_itree;
-  show_until marker.
+  show_until marker. *)
 
 Ltac sch_yield_l :=
-  prep_macro; iApply wsim_yield_src; first eassumption.
+  wnorm with (iApply wsim_yield_src; first eassumption).
 
 Ltac sch_yield_r :=
-  prep_macro; iApply wsim_yield_tgt; first eassumption.
+  wnorm with (iApply wsim_yield_tgt; first eassumption).
 
 Ltac sch_spawn :=
-  prep_macro; iApply wsim_spawn; first eassumption.
+  wnorm with (iApply wsim_spawn; first eassumption).
 
 Ltac sch_join :=
-  prep_macro; iApply wsim_join; first eassumption.
+  wnorm with (iApply wsim_join; first eassumption).
 
 
 

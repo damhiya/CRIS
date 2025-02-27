@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 
 Require Import SchHeader.
 
@@ -74,4 +74,4 @@ Module SchI. Section SchI.
   Next Obligation. prove_nodup. Qed.
 
   Definition t := Seal.sealing CRIS (PMod.to_hmod Mod).
-End SchI. End SchI.
+End SchI. End SchI. *)

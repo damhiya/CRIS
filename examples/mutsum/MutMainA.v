@@ -34,5 +34,5 @@ Module MutMainA. Section MutMainA.
 
   Definition InitCond : iProp := emp%I.
 
-  Definition t Spc := Seal.sealing CRIS (SMod.to_hmod ginv_emp Spc Mod).
+  Definition t Spc := Seal.sealing CRIS (SMod.to_hmod emp Spc Mod).
 End MutMainA. End MutMainA.

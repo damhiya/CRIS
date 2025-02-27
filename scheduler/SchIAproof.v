@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 
 Require Import SchGInv SchHeader SchI SchA.
 
@@ -520,4 +520,4 @@ Module SchIA. Section SchIA.
         (λ u, SchA.t u Spc_global Spc_user, SchA.InitCond)
         (λ _, SchI.t, emp%I).
     Proof. exists 1; intros u v Huv; eapply main_adequacy, sim; eauto. Qed.
-End SchIA. End SchIA.
+End SchIA. End SchIA. *)
