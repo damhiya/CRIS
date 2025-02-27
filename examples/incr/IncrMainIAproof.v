@@ -3,13 +3,6 @@ Require Import CRIS.
 Require Import IncrMainI IncrMainA SchA MemA wsim_tactics SchTactics.
 From iris Require Import frac_auth numbers.
 
-Lemma yield_yieldK {E : Type → Type} `{coreE -< E, callE -< E} :
-  @Sch.yield E _ _ = (@Sch.yield E _ _);;; Ret tt.
-Proof. rewrite {1}(bind_ret_r_rev (Sch.yield)); f_equal; extensionalities x; destruct x; ss. Qed.
-
-
-Ltac wnorm_l := wreplace_l; [s; hnorm_itr|].
-Ltac wnorm_r := wreplace_r; [s; hnorm_itr|].
 Module IncrIA. Section IncrIA.
   Import IncrMainAS.
   Local Existing Instance IncrMainA.RA_inG.
