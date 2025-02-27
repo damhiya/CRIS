@@ -26,6 +26,7 @@ Module IncrMainI. Section IncrMainI.
       'v : Z <- (pargs [Tint] [v_raw])?;;
       Sch.yield;;;
       '_ : unit <- trigger (IO "OUT" v);;
+      Sch.yield;;;
       Ret tt.
   
   Definition f : list val → itree pmodE unit :=
@@ -35,6 +36,7 @@ Module IncrMainI. Section IncrMainI.
       'v_raw : val <- ccallU MemName.load [Vptr blk ofs];;
       'v : Z <- (pargs [Tint] [v_raw])?;;
       '_ : val <- ccallU MemName.store [Vptr blk ofs; Vint (v + 1)%Z];;
+      Sch.yield;;;
       Ret tt.
 
   Definition fnsems :=

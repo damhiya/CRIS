@@ -75,6 +75,7 @@ Module IncrMainA. Section IncrMainA.
       Sch.join unit tid2;;;
       Sch.yield;;;
       trigger (IO (O:=unit) "OUT" 2%Z);;;
+      Sch.yield;;;
       Ret tt.
 
   Definition f : list val → itree hmodE unit :=

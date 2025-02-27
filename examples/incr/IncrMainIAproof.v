@@ -28,20 +28,19 @@ Module IncrIA. Section IncrIA.
   Proof.
     winit_simF u_s 0.
 
-    wsteps_l. iDestruct "ASM" as "[[-> [C I]] ->]". hss.
+    wsteps_l. iDestruct "ASM" as "[[-> [C #INV]] ->]". hss.
 
-    wsteps_l. rewrite SAny.upcast_downcast. hss. wsteps_l.
-    wsteps_r. rewrite SAny.upcast_downcast. hss. wsteps_r.
-    rewrite /IncrMainI.f /IncrMainA.f /=.
-    wnorm_l. wnorm_r.
-
+    wsteps_l. hss. wsteps_l.
+    wsteps_r. hss. wsteps_r.
+    rewrite /IncrMainI.f /IncrMainA.f /=. wsteps_r.
+    
     sch_yield_r.
     iSplitL "IST"; iFrame.
     clear nths. iIntros (nths st_s st_t) "IST".
 
-    rewrite /IncrMainAS.f_inv; ss.
-    iInv "I" as "I" "IA". SL_red.
-    iDestruct "I" as (x) "PT"; SL_red; iDestruct "PT" as "[PT CA]".
+    rewrite /IncrMainAS.f_inv.
+    iInv "INV" as "I" "IA". SL_red.
+    iDestruct "I" as (x) "PT". SL_red. iDestruct "PT" as "[PT CA]".
 
     winline_r. wsteps_r.
     wforce_r (q5, q6, Vint x, 1%Qp).
@@ -59,13 +58,17 @@ Module IncrIA. Section IncrIA.
     wforce_r. iSplitL "PT"; iFrame; ss. wsteps_r.
     iDestruct "GRT" as "[[PT ->] ->]". hss. wsteps_r.
 
-    sch_yield_l.
     iMod (counter_incr 1 with "[C CA]") as "[C CA]"; first iFrame.
     iMod ("IA" with "[PT CA]") as "_".
     { iExists (x + 1)%Z; SL_red; ss; iFrame. }
-
-    wsteps_l. wforce_l. wsteps_l. wforce_l. iSplitL "C"; iFrame; eauto.
-    wsteps_l. wstep; eauto.
+    
+    sch_yield_r.
+    iSplitL "IST"; iFrame.
+    clear nths st_s st_t. iIntros (nths st_s st_t) "IST".
+    
+    sch_yield_l.
+    wsteps_l. wforce_l. wsteps_l. wforce_l. iSplitL "C"; iFrame; eauto. wsteps_l.
+    wstep; eauto.
   Qed.
 
   Lemma main_simF : HSim.sim_fun open MA MI IstFull MainName.main.
@@ -180,11 +183,16 @@ Module IncrIA. Section IncrIA.
 
     sch_yield_r. iFrame.
     clear nths st_s st_t. iIntros (nths st_s st_t) "IST".
+
+    sch_yield_l. wstep.
+    wsteps_l. wsteps_r.
+
+    sch_yield_r. iFrame.
+    clear nths st_s st_t. iIntros (nths st_s st_t) "IST".
+
     sch_yield_l.
-
-    wstep. wsteps_l. wforce_l. wstep_l. wforce_l. iSplit; eauto. wsteps_l.
-    wsteps_r.
-
+    wsteps_l. wforce_l. wsteps_l. wforce_l. iSplit; eauto.
+    wsteps_l. wsteps_r.
     wstep. eauto.
   Qed.
 
