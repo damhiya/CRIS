@@ -51,13 +51,16 @@ Module SpinLockIA. Section SpinLockIA.
     unfold is_lock.
     iDestruct "LOCK" as (? ?) "[% LOCK]".
     wsteps_r.
-    iApply wsim_reset.
     iStopProof. 
     revert NODUPFS.
     combine_quant NODUPFT.
-    combine_quant nths. 
+    combine_quant nths.
+    combine_quant NODD.
+    combine_quant NODS. 
+    combine_quant st_src.
+    combine_quant st_tgt. 
     eapply wsim_coind. ii.
-    destruct a as [nths [NODUPFT NODUPFS]]. ss.
+    destruct a as [st_tgt [st_src [NODS [NODD [nths [NODUPFT NODUPFS]]]]]]. ss.
     iIntros "[IST LOCK] _ #CIH".
     unfold_iter_r.
     sch_yield_r. iSplitL "IST"; iFrame. clear nths; iIntros (nths st_s st_t) "IST".
@@ -68,18 +71,59 @@ Module SpinLockIA. Section SpinLockIA.
     winline_r.
     wforces_r. 
     instantiate (1:= existT _ _). hss. instantiate (2:= 1). ss.  
-    instantiate (1:= (_, _, _, _, _)). hss. admit.
-    - (* success case*)
-    iDestruct "SUCC" as "S & S'".
+    instantiate (1:= (_, _, _, _, _)). hss. 
+    iSplitL "FAIL". iFrame. et. 
+    wsteps_r.
+    iDestruct "GRT" as "[[POINTS_TO %] %]".
+    hss. wsteps_r.
+    iMod ("Hcl" with "[POINTS_TO]") as "_". iFrame.
+    sch_yield_r. iSplitL "IST"; iFrame. clear nths; iIntros (nths0 st_s0 st_t0) "IST".
+    wsteps_r. 
+    sch_yield_r. iSplitL "IST"; iFrame. clear nths0; iIntros (nths st_s1 st_t1) "IST".
+    wsteps_r. 
+    (* by_coind "CIH"*)
+    admit.
+    - (* success case *)
+    iDestruct "SUCC" as "[POINTS_TO [Q TKN]]".
     winline_r. wforces_r. 
     instantiate (1:= existT _ _). ss. instantiate (2:= 0). ss.  
-    instantiate (1:= (_, _, _, _)). ss. iSplitR; iFrame; et. rewrite H.
-    instantiate (3:=ofs). instantiate (6:=blk). instantiate (2:= Vint 0). instantiate (2:= Vint 1).
-    hss. admit.
-    wsteps_r. wforces_r.
-
+    instantiate (1:= (_, _, _, _)). hss. iSplitL "POINTS_TO"; iFrame; et. 
+    wsteps_r.
+    iDestruct "GRT" as "[[POINTS_TO %] %]".
+    hss.
+    wsteps_r.
+    iMod ("Hcl" with "[POINTS_TO]") as "_". iFrame.
+    sch_yield_r. iSplitL "IST"; iFrame. clear nths; iIntros (nths0 st_s0 st_t0) "IST".
+    wsteps_r.
+    sch_yield_r. iSplitL "IST"; iFrame. clear nths0; iIntros (nths st_s1 st_t1) "IST".
+    wsteps_r.
+    sch_yield_r. iSplitL "IST"; iFrame. clear nths; iIntros (nths0 st_s2 st_t2) "IST".
+    sch_yield_l. wsteps_l. wforces_l. iSplitL "Q TKN"; SL_red; et. iFrame. et.
+    wstep.
+    et. 
   Admitted.
 
   Lemma release_simF : HSim.sim_fun open MA MI IstFull SpinLockName.release.
-  Admitted.
+    winit_simF u_a 0.
+    wsteps_l.
+    iDestruct "ASM" as "[(% & #LOCK & TKN & Q) %]".
+    iDestruct "LOCK" as (? ?) "[% LOCK]".
+    hss.
+    wsteps_r.
+    sch_yield_r.  iSplitL "IST"; iFrame. clear nths; iIntros (nths0 st_s st_t) "IST".
+    iInv "LOCK" as "I" "Hcl".
+    SL_red.
+    iDestruct "I" as "[LOCKED|UNLOCKED]".
+    - winline_r. wsteps_r. wforces_r. instantiate (1:= (_, _)).
+      ss. instantiate (2:=(_, _)). ss.
+      iSplitL "LOCKED"; iFrame; et.
+      wsteps_r. iDestruct "GRT" as "[[POINTS_TO %] %]". hss.
+      wsteps_r.
+      iMod ("Hcl" with "[POINTS_TO Q TKN]") as "_". iRight. iFrame. 
+      sch_yield_r. iSplitL "IST"; iFrame. clear nths0; iIntros (nths st_s0 st_t0) "IST".
+      sch_yield_l. wsteps_l. wforces_l. iSplitR; et. wstep. iFrame; et.
+    -
+    iDestruct "UNLOCKED" as "[POINTS_TO [Q' TKN']]".
+    iCombine "TKN TKN'" gives %Hv. done.
+  Qed.
 End SpinLockIA. End SpinLockIA.

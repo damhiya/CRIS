@@ -39,7 +39,7 @@ Module SpinLockAS. Section SpinLockAS.
       (fspec_simple (X := gname * val * {n & SRFSyn.t n})
         (λ '(γ, val, P),
           ((λ arg, ⌜arg = [val]↑⌝ ∗ is_lock u γ val (projT2 P)),
-          (λ ret, ⌜ret = [Vundef]↑⌝ ∗ ⟦token (projT1 P) γ⟧ ∗ ⟦projT2 P⟧))
+          (λ ret, ⌜ret = Vundef↑⌝ ∗ ⟦token (projT1 P) γ⟧ ∗ ⟦projT2 P⟧))
       ))%I.
 
   Definition release_spec u : fspec :=
@@ -47,7 +47,7 @@ Module SpinLockAS. Section SpinLockAS.
       (fspec_simple (X := gname * val * {n & SRFSyn.t n})
         (λ '(γ, val, P),
           ((λ arg, ⌜arg = [val]↑⌝ ∗ is_lock u γ val (projT2 P) ∗ ⟦token (projT1 P) γ⟧ ∗ ⟦projT2 P⟧),
-          (λ ret, ⌜ret = [Vundef]↑⌝))
+          (λ ret, ⌜ret = Vundef↑⌝))
       ))%I.
 
   Definition spc u : alist string fspec :=
