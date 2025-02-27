@@ -48,8 +48,36 @@ Module SpinLockIA. Section SpinLockIA.
     winit_simF u_a 0.
     wsteps_l. 
     iDestruct "ASM" as "[[% LOCK] %]". hss.
+    unfold is_lock.
+    iDestruct "LOCK" as (? ?) "[% LOCK]".
     wsteps_r.
-    
+    iApply wsim_reset.
+    iStopProof. 
+    revert NODUPFS.
+    combine_quant NODUPFT.
+    combine_quant nths. 
+    eapply wsim_coind. ii.
+    destruct a as [nths [NODUPFT NODUPFS]]. ss.
+    iIntros "[IST LOCK] _ #CIH".
+    unfold_iter_r.
+    sch_yield_r. iSplitL "IST"; iFrame. clear nths; iIntros (nths st_s st_t) "IST".
+    iInv "LOCK" as "I" "Hcl".
+    SL_red.
+    iDestruct "I" as "[FAIL|SUCC]".
+    - (* fail case *)
+    winline_r.
+    wforces_r. 
+    instantiate (1:= existT _ _). hss. instantiate (2:= 1). ss.  
+    instantiate (1:= (_, _, _, _, _)). hss. admit.
+    - (* success case*)
+    iDestruct "SUCC" as "S & S'".
+    winline_r. wforces_r. 
+    instantiate (1:= existT _ _). ss. instantiate (2:= 0). ss.  
+    instantiate (1:= (_, _, _, _)). ss. iSplitR; iFrame; et. rewrite H.
+    instantiate (3:=ofs). instantiate (6:=blk). instantiate (2:= Vint 0). instantiate (2:= Vint 1).
+    hss. admit.
+    wsteps_r. wforces_r.
+
   Admitted.
 
   Lemma release_simF : HSim.sim_fun open MA MI IstFull SpinLockName.release.
