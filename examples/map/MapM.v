@@ -136,5 +136,5 @@ Module MapM. Section MapM.
 
   Definition InitCond : iProp Σ := emp%I.
 
-  Definition t Spc := Seal.sealing CRIS (@SMod.to_hmod Σ ginv_emp Spc Mod).
+  Definition t Spc := Seal.sealing CRIS (@SMod.to_hmod Σ emp Spc Mod).
 End MapM. End MapM.

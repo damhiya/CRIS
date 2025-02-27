@@ -26,44 +26,44 @@ Module CellioIA. Section CellioIA.
 
   Lemma simF_set : HSim.sim_fun open CellioA CellioI Ist CellioName.set.
   Proof.
-    init_wsim u_s 0.
+    winit_simF u_s 0.
 
-    w_steps_l. iDestruct "ASM" as "->".
-    w_force_l tt. w_forces_l. iSplit; first eauto.
+    wsteps_l. iDestruct "ASM" as "->".
+    wforce_l tt. wforces_l. iSplit; first eauto.
 
-    w_call "IST"; eauto.
-    w_steps_l. iDestruct "ASM" as "->".
+    wcall "IST"; eauto.
+    wsteps_l. iDestruct "ASM" as "->".
 
     iDestruct "IST" as (v) "(% & AUTH)". subst.
 
     iPoseProof (cell_auth_get with "ASM' AUTH") as "%"; subst.
     iMod (cell_auth_set with "ASM' AUTH") as "(C & A)".
 
-    w_forces_l. iSplitL "C"; eauto.
+    wforces_l. iSplitL "C"; eauto.
 
-    w_steps_r. hss. w_steps_r. w_steps_l. w_forces_l.
+    wsteps_r. hss. wsteps_r. wsteps_l. wforces_l.
     iSplit; eauto.
 
-    w_step.
+    wstep.
     iSplitL ""; eauto.
     iExists _. iFrame. eauto.
   Qed.
   
   Lemma simF_get : HSim.sim_fun open CellioA CellioI Ist CellioName.get.
   Proof.
-    init_wsim u_s 0.
+    winit_simF u_s 0.
 
-    w_steps_l. iDestruct "ASM" as "->".
+    wsteps_l. iDestruct "ASM" as "->".
     iDestruct "IST" as (v) "(% & AUTH)". subst.
 
     iPoseProof (cell_auth_get with "ASM' AUTH") as "%"; subst.
 
-    w_steps_r. hss. w_steps_r.
-    w_forces_l. iSplitL "ASM'"; eauto.
+    wsteps_r. hss. wsteps_r.
+    wforces_l. iSplitL "ASM'"; eauto.
     
-    w_steps_l. w_forces_l. iSplit; eauto.
+    wsteps_l. wforces_l. iSplit; eauto.
 
-    w_step. iSplit; eauto.
+    wstep. iSplit; eauto.
     iExists _. iFrame. eauto.
   Qed.
   

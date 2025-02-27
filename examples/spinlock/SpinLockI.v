@@ -1,86 +1,49 @@
 Require Import CRIS.
+Require Import ImpPrelude SchHeader MemHeader SpinLockHeader.
 
-Require Import SchHeader.
-Require Import ImpPrelude.
+Notation 𝒴 := (Sch.yield).
 
-Require Import SpinLockHeader.
-Require Import MemA MemHeader.
+Module SpinLockI. Section SpinLockI.
+  Context {Σ : GRA}.
 
-(* Using CAS *)
+  Definition scopes : list string := [].
 
-(*
+  Definition newlock : list val → itree pmodE val :=
+    λ _,
+      𝒴;;; 'loc : val <- ccallU MemName.alloc [Vint 1];;
+      𝒴;;; '_ : val <- ccallU MemName.store [loc; Vint 0];;
+      𝒴;;; Ret loc.
 
-void acquire(int* lock) {
-    int expected = 0;
-    // Spin until the lock is acquired
-    while (!compare_and_set(lock, &expected, 1)){
-      expected = 1;
-    }; // Try to set it to 1 (locked)
-}
+  Definition acquire : list val → itree pmodE val :=
+    λ x,
+      (ITree.iter
+        (λ _,
+          𝒴;;; 'b_raw : val <- ccallU MemName.cas (x ++ [Vint 0; Vint 1]);;
+          𝒴;;; 'b : Z <- (pargs [Tint] [b_raw])?;;
+          𝒴;;;
+            if (decide (b = 0)) then Ret (inl tt)
+            else if (decide (b = 1)) then Ret (inr tt)
+            else triggerUB
+        ) tt);;;
+      𝒴;;; Ret Vundef.
 
-// Unlock the spinlock
-void release(int *lock) {
-    lock = 0;  // Set lock to 0 (unlocked)
-}
+  Definition release : list val → itree pmodE val :=
+    λ x,
+      𝒴;;; '_ : val <- ccallU MemName.store (x ++ [Vint 0]);;
+      𝒴;;; Ret Vundef.
 
-*)
+  Definition fnsems :=
+    [(SpinLockName.newlock, (scopes, cfunU newlock));
+     (SpinLockName.acquire, (scopes, cfunU acquire));
+     (SpinLockName.release, (scopes, cfunU release))].
 
-
-Module SpinLockI.
-Section SPINLOCK_I.
-
-  Context `{Σ: GRA}.  
-
-  Definition scopes := ["Spinlock"].
-
-  Definition new_lock: unit -> itree pmodE val := 
-    fun _ =>
-      Sch.yield;;;
-      'locked: val <- ccallU MemName.alloc [Vint 1];;
-      Sch.yield;;;
-      '_: val <- ccallU MemName.store [locked; Vint 0];;
-      Sch.yield;;;
-      Ret locked
-      .
-
-  Definition acquire: val -> itree pmodE unit :=
-    fun arg =>
-      Sch.yield;;;
-      _ <- (ITree.iter (fun (arg' : val) => 
-        Sch.yield;;;
-        'b: val <- ccallU MemName.cas [arg; Vint 0; Vint 1];;
-        Sch.yield;;;
-        if ((dec b (Vint 1)))
-        then Ret (inr tt)
-        else Ret (inl arg')
-      ) arg);;
-      Sch.yield;;;
-      Ret tt.
-
-  Definition release: val -> itree pmodE unit := 
-    fun arg => 
-      Sch.yield;;; 
-      '_: val <- ccallU MemName.store [arg; Vint 0];;
-      Sch.yield;;;
-      Ret tt.
-
-  Definition fnsems := 
-    [(SpinLockName.new_lock, (scopes, cfunU new_lock));
-    (SpinLockName.acquire, (scopes, cfunU acquire));
-    (SpinLockName.release, (scopes, cfunU release))
-    ].
-  
-  Program Definition Mod: PMod.t := {|
+  Program Definition Mod : PMod.t := {|
     PMod.scopes := scopes;
     PMod.fnsems := fnsems;
     PMod.initial_st := [];
-  |}
-  .
+  |}.
   Solve All Obligations with prove_scope.
-  Next Obligation. prove_nodup. Qed.
+  Next Obligation. prove_nodup. Defined.
 
-
-  Definition t: HMod.t := Seal.sealing CRIS (PMod.to_hmod Mod).
-
-End SPINLOCK_I.
-End SpinLockI.
+  Definition t : HMod.t := Seal.sealing CRIS (PMod.to_hmod Mod).
+End SpinLockI. End SpinLockI.

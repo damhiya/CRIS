@@ -211,6 +211,6 @@ Module MapA. Section MapA.
   Definition InitCond : iProp Σ :=
     (MapAS.initial_map ∗ MapMS.pending)%I.
 
-  Definition t Spc := Seal.sealing CRIS (SMod.to_hmod ginv_emp Spc Mod).
+  Definition t Spc := Seal.sealing CRIS (SMod.to_hmod emp Spc Mod).
   
 End MapA. End MapA.

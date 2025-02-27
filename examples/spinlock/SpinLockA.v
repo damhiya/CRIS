@@ -1,129 +1,82 @@
 Require Import CRIS.
+Require Import ImpPrelude SchHeader MemHeader MemA SpinLockHeader.
+Require Import wsim.
+From iris Require Import excl.
 
-Require Import SchHeader SchA.
-Require Import MemA MemHeader.
-Require Import ImpPrelude.
-Require Import SpinLockHeader.
-From iris.algebra Require Import excl.
+Notation 𝒴 := (Sch.yield).
 
-Set Implicit Arguments.
-
-Section SpinLockRA.
-
-Definition lockRA := exclR unitR.
-
-Class lockGΓ (Γ : HRA) := { 
-  #[global] lock_G :: inG lockRA Γ;
+Class SpinLockAGΓ (Γ : HRA) := {
+  #[local] spinlock_inG :: inG (exclR unitO) Γ;
 }.
-Definition lockΓ : HRA := #[lockRA].
+Definition SpinLockΓ : HRA := #[exclR unitO].
+Global Instance subG_GΓ {Γ} : subG SpinLockΓ Γ → SpinLockAGΓ Γ.
+Proof. solve_inG. Defined.
+Hint Unfold subG_GΓ spinlock_inG : GRA_index.
 
-End SpinLockRA.
+Module SpinLockAS. Section SpinLockAS.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !memGΓ Γ, !SpinLockAGΓ Γ}.
 
-Module SpinLockAS.
-Section SpinLockAS.
-  
-  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !memGΓ Γ, !lockGΓ Γ}.
-  Context `{!CtxST.t τ, !SL.G Σ Γ α β τ, !syn_invG Σ Γ α β τ}.
-  
-  Notation iProp := (iProp Σ).
+  Definition N_SpinLockA := nroot .@ "spin_lock".
 
-  Definition locked {n} γ : SRFSyn.t n := <own> γ (Excl ()).
+  Definition token n γ : SRFSyn.t n := <own> γ (Excl ()).
 
-  Definition lockN := nroot .@ "lock" .
+  Definition lock_inv {n} blk ofs (P : SRFSyn.t n) γ : SRFSyn.t n :=
+    (blk, ofs) ↦ (Vint 1)
+    ∨ (blk, ofs) ↦ (Vint 0) ∗ P ∗ token n γ.
 
-  Definition mem_points_to_singleton_s {n} (loc : mblock * Z) (q: Qp) (v : val) : SRFSyn.t n :=
-    <own> base_γ ((mem_points_to_singleton_r loc q v): memRA).
+  Definition is_lock {n} u γ val P : iProp Σ :=
+    ∃ blk ofs, ⌜val = Vptr blk ofs⌝ ∗ inv u n N_SpinLockA (lock_inv blk ofs P γ).
 
-  Notation "loc ⟾ v" := (mem_points_to_singleton_s loc 1 v) (at level 20).
+  Definition newlock_spec u : fspec :=
+    w_fspec u
+      (fspec_simple (λ P : {n & SRFSyn.t n},
+        ((λ _, ⟦projT2 P⟧),
+        (λ ret, ∃ val γ, ⌜ret = val↑⌝ ∗ is_lock u γ val (projT2 P)))
+      ))%I.
 
-  Definition is_lock γ (v: val) u n (P:SRFSyn.t n) :=
-    (∃ (l: mblock * Z), ⌜v = (Vptr l.1 l.2)⌝ 
-    ∧ inv u n (lockN) ((
-          ( @mem_points_to_singleton_s n l 1 (Vint 0)) ∗ P ∗ @locked n γ) 
-        ∨ 
-          ( @mem_points_to_singleton_s n l 1 (Vint 1))))%I.
-  
-  Global Instance is_lock_persistent γ v u n (p: SRFSyn.t n) : Persistent (is_lock γ v u p).
-  Proof. apply _. Qed.
+  Definition acquire_spec u : fspec :=
+    w_fspec u
+      (fspec_simple (X := gname * val * {n & SRFSyn.t n})
+        (λ '(γ, val, P),
+          ((λ arg, ⌜arg = [val]↑⌝ ∗ is_lock u γ val (projT2 P)),
+          (λ ret, ⌜ret = [Vundef]↑⌝ ∗ ⟦token (projT1 P) γ⟧ ∗ ⟦projT2 P⟧))
+      ))%I.
 
-  Definition new_lock_spec u: fspec := 
-    w_fspec u (fspec_simple (fun '(u, existT n P) => (
-                (fun varg => (⌜varg = tt↑⌝ ∗ (⟦P, n⟧))%I),
-                (fun vret => (∃ b, (⌜vret = (Vptr b 0)↑⌝) 
-                                    ∗ ∃ γ, is_lock γ (Vptr b 0) u P)%I)
-    ))).
-  
-  Definition acquire_spec u: fspec :=
-    w_fspec u (fspec_simple (fun '(b, ofs, γ, u, existT n P) => (
-                (fun varg => ((⌜varg = (Vptr b ofs)↑⌝) ∗ (is_lock γ (Vptr b ofs) u P))%I),
-                (fun vret => (⌜vret = tt↑⌝ ∗ ⟦P, n⟧ ∗ ⟦locked γ, n⟧)%I)
-    ))).
+  Definition release_spec u : fspec :=
+    w_fspec u
+      (fspec_simple (X := gname * val * {n & SRFSyn.t n})
+        (λ '(γ, val, P),
+          ((λ arg, ⌜arg = [val]↑⌝ ∗ is_lock u γ val (projT2 P) ∗ ⟦token (projT1 P) γ⟧ ∗ ⟦projT2 P⟧),
+          (λ ret, ⌜ret = [Vundef]↑⌝))
+      ))%I.
 
-  Definition release_spec u: fspec :=
-    w_fspec u (fspec_simple (fun '(b, ofs, γ, u, existT n P) => (
-                (fun varg => (  ⌜varg = (Vptr b ofs)↑⌝ 
-                              ∗ (is_lock γ (Vptr b ofs) u P) 
-                              ∗ (⟦locked γ, n⟧)
-                              ∗ ⟦P, n⟧)%I),
-                (fun vret => (⌜vret = tt↑⌝)%I)
-    ))).
-  
-  Definition Spc u: alist string fspec :=
-    Seal.sealing CRIS 
-      [(SpinLockName.new_lock, new_lock_spec u);
-       (SpinLockName.acquire, acquire_spec u);
-       (SpinLockName.release, release_spec u)].
+  Definition spc u : alist string fspec :=
+    [(SpinLockName.newlock, newlock_spec u);
+     (SpinLockName.acquire, acquire_spec u);
+     (SpinLockName.release, release_spec u)].
+End SpinLockAS. End SpinLockAS.
 
-End SpinLockAS.
-End SpinLockAS.
+Module SpinLockA. Section SpinLockA.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !memGΓ Γ, !SpinLockAGΓ Γ}.
 
-Module SpinLockA.
-Section SpinLockA.
+  Definition scopes : list string := [].
 
-  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !memGΓ Γ, !lockGΓ Γ}.
-
-  Variable univ: positive. 
-
-  Definition new_lock: unit -> itree hmodE val :=
-    λ _, 
-      Sch.yield;;;
-      v <- trigger (Choose val);;
-      Sch.yield;;;
-      Ret v
-    .
-
-  Definition acquire: val -> itree hmodE unit :=
-    λ _, 
-      Sch.yield;;;
-      Ret tt
-    .
-
-  Definition release: val -> itree hmodE unit :=
-    λ _, 
-      Sch.yield;;;
-      Ret tt
-    .
-
-  Definition scopes := ["SpinLock"].
+  Definition newlock : list val → itree hmodE val := λ _, 𝒴;;; trigger (Choose val).
+  Definition acquire : list val → itree hmodE val := λ _, 𝒴;;; Ret Vundef.
+  Definition release : list val → itree hmodE val := λ _, 𝒴;;; Ret Vundef.
 
   Definition fnsems u :=
-    [(SpinLockName.new_lock, (scopes, mk_specbody (SpinLockAS.new_lock_spec u) (cfunN new_lock)));
-     (SpinLockName.acquire, (scopes, mk_specbody (SpinLockAS.acquire_spec u) (cfunN acquire)));
-     (SpinLockName.release, (scopes, mk_specbody (SpinLockAS.release_spec u) (cfunN release)))
-    ].
+    [(SpinLockName.newlock, (scopes, mk_specbody (SpinLockAS.newlock_spec u) (cfunU newlock)));
+     (SpinLockName.acquire, (scopes, mk_specbody (SpinLockAS.acquire_spec u) (cfunU acquire)));
+     (SpinLockName.release, (scopes, mk_specbody (SpinLockAS.release_spec u) (cfunU release)))].
 
-  Program Definition Mod u: SMod.t :=
-  {|
-      SMod.scopes := scopes;
-      SMod.fnsems := fnsems u;
-      SMod.initial_st := [];
+  Program Definition Mod u : SMod.t := {|
+    SMod.scopes := [];
+    SMod.fnsems := fnsems u;
+    SMod.initial_st := []
   |}.
-    Solve All Obligations with prove_scope.
-    Next Obligation. prove_nodup. Qed.
+  Solve All Obligations with prove_scope.
+  Next Obligation. prove_nodup. Defined.
 
-    Definition InitCond : iProp Σ := emp%I.
-    
-    Definition t u Spc := Seal.sealing CRIS (SMod.to_hmod (wsim_ginv u ⊤) (Spc) (Mod u)).
-
-End SpinLockA.
-End SpinLockA.
+  Definition t u spc : HMod.t := Seal.sealing CRIS SMod.to_hmod (wsim_ginv u ⊤) spc (Mod u).
+End SpinLockA. End SpinLockA.

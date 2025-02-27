@@ -81,9 +81,9 @@ Module TEST. Section TEST.
   Instance bar: Bar a := mk_Bar _ b.
 
   Goal True.
-    time (let _ := tcsearch_alt constr:(Foo 3) in ()).
+    (* time (let _ := tcsearch_alt constr:(Foo 3) in ()).
     time (let _ := tcsearch_alt constr:(Bar a) in ()).
-    time (do 100 (let _ := tcsearch constr:(Bar a) in ())).
+    time (do 100 (let _ := tcsearch constr:(Bar a) in ())). *)
     exact I.
   Qed.
 End TEST. End TEST.

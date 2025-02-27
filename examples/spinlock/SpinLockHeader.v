@@ -1,9 +1,7 @@
-Require Import CRIS.
+Require Import Common.
 
 Module SpinLockName.
-
-Definition new_lock := "SpinLock.new_lock".
-Definition acquire := "SpinLock.acquire".
-Definition release := "SpinLock.release".
-
+  Definition newlock := "newlock".
+  Definition acquire := "acquire".
+  Definition release := "release".
 End SpinLockName.

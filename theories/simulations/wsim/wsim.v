@@ -37,8 +37,6 @@ Arguments WP_remainder {_ _ _ _ _ _ _ _} [_ _ _] _.
 Arguments WP_iff {_ _ _ _ _ _ _ _} [_ _ _] _.
 
 Class ModRel (υ ν : univ_id) := mk_ModRel : (ν < υ).
-(* Global Instance sub_ModRel (κ υ ν : univ_id) : υ > (κ + ν) → ModRel υ ν. *)
-(* Proof. rewrite /ModRel; i; lia. Qed. *)
 
 Program Global Instance WP_refl `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}
     (υ : univ_id) (E : coPset)

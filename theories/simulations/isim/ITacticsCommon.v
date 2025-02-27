@@ -3,6 +3,7 @@ Require Import LAuto.
 
 Require Import Spc Mod SMod HMod PMod.
 Require Import HPSim ISimCore.
+(* Require Import SchHeader. *)
 
 (************ User Tactics **************)
 
@@ -173,7 +174,7 @@ Ltac _hprogress_check prg :=
 
 Tactic Notation "red_bind" hyp(prg) tactic(tac) :=
   lazymatch goal with
-  | [ |- @ITree.bind _ _ _ ?itr _ = _ ] =>
+  | [ |- @ITree.bind _ _ _ ?itr ?ktr2 = _ ] =>
       lazymatch itr with
       | Ret _ => _hprogress prg; etransitivity; [ eapply bind_ret_l | s; tac ]
       | Tau _ => _hprogress prg; eapply bind_tau
@@ -184,6 +185,7 @@ Tactic Notation "red_bind" hyp(prg) tactic(tac) :=
       | unwrapNK _ _ => eapply unwrapNK_bind
       | HModSB.putSB _ _ _ _ => eapply HModSB.putSB_bind
       | HModSB.getSB _ _ _ => eapply HModSB.getSB_bind
+      | @ITree.bind _ _ _ _ _ => eapply bind_bind
       | _ => reflexivity
       end
   end.
@@ -224,6 +226,14 @@ Tactic Notation "red_SB" hyp(prg) :=
           _hprogress prg; eapply HModSB.transl_unwrapUK
       | unwrapNK _ _ =>
           _hprogress prg; eapply HModSB.transl_unwrapNK
+      (* | Sch.spawnK_S _ _ _ _ =>
+          _hprogress prg; eapply Sch.spawnK_S_transl
+      | Sch.yieldK_S _ _ _ =>
+          _hprogress prg; eapply Sch.yieldK_S_transl *)
+      | @ITree.bind _ _ _ _ _ =>
+          _hprogress prg; eapply HModSB.transl_bind
+      (* | Sch.joinK_S _ _ _ _ =>
+          _hprogress prg; eapply Sch.joinK_S_transl *)
       | _ =>
           reflexivity
       end
@@ -296,6 +306,8 @@ Tactic Notation "red_S" hyp(prg) tactic(tac) :=
           _hprogress prg; eapply SModRed.interp_unwrapUK
       | unwrapNK _ _ =>
           _hprogress prg; eapply SModRed.interp_unwrapNK
+      | @ITree.bind _ _ _ _ _ =>
+          _hprogress prg; eapply SModRed.interp_bind
       | _ =>
           reflexivity
       end
@@ -333,6 +345,8 @@ Tactic Notation "red_P" hyp(prg) :=
           _hprogress prg; eapply PModRed.interp_unwrapUK
       | unwrapNK _ _ =>
           _hprogress prg; eapply PModRed.interp_unwrapNK
+      | @ITree.bind _ _ _ _ _ =>
+          _hprogress prg; eapply PModRed.interp_bind
       | _ =>
           reflexivity
       end

@@ -35,5 +35,5 @@ Module MutGA. Section MutGA.
 
   Definition InitCond : iProp := emp%I.
 
-  Definition t Stb := Seal.sealing CRIS (SMod.to_hmod ginv_emp Stb Mod).
+  Definition t Stb := Seal.sealing CRIS (SMod.to_hmod emp Stb Mod).
 End MutGA. End MutGA.

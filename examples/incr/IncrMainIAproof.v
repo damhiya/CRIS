@@ -32,8 +32,9 @@ Module IncrIA. Section IncrIA.
 
     wsteps_l. rewrite SAny.upcast_downcast. hss. wsteps_l.
     wsteps_r. rewrite SAny.upcast_downcast. hss. wsteps_r.
-    rewrite /IncrMainI.f /IncrMainA.f /=. wsteps_l. wsteps_r.
-    
+    rewrite /IncrMainI.f /IncrMainA.f /=.
+    wnorm_l. wnorm_r.
+
     sch_yield_r.
     iSplitL "IST"; iFrame.
     clear nths. iIntros (nths st_s st_t) "IST".
@@ -113,6 +114,7 @@ Module IncrIA. Section IncrIA.
     { rewrite -Qp.half_half -{2}(Z.add_0_r 0%Z). iApply "F". }
 
     iCombine "F1 I" as "F1". iCombine "F2 I" as "F2".
+    wsteps_l. wsteps_r.
 
     (* src/tgt spawns *)
     sch_spawn.
@@ -195,19 +197,16 @@ Module IncrIA. Section IncrIA.
   Qed.
 End IncrIA.
 
-Notation "'<[' u 'CTX' v ']=' I A" := ({ k | ∀ u v, u >= v + k → ctx_refines I A})
-  (at level 200, u name, v name, I, A at level 9, right associativity).
 Section wctxr.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
   Context `{!SchAGΣ Σ, !memGΓ Γ, !IncrMainAGΓ Γ}.
-  (* Context (I A : univ_id → HMod.modc). *)
-  (* Goal <[u CTX v]= (I u) (A u). *)
-  Definition wctxr (spc_s spc_user_s spc_mem : univ_id → string → option fspec)
+
+  Definition wctxr (u : univ_id) (spc_s spc_user_s spc_mem : univ_id → string → option fspec)
       (SchInSpc : ∀ u, spc_incl (SchAS.spc u (spc_user_s u)) (spc_s u))
       (MainInSpc : ∀ u, spc_incl (IncrMainAS.spc u) (spc_user_s u))
       (MemInSpc : ∀ u, spc_incl MemA.Spc (spc_s u)) :
-    <[u CTX v]=
-        ((IncrMainA.t u (spc_s u)) ★ (MemA.t u (spc_mem u)), emp%I)
-        ((IncrMainI.t)             ★ (MemA.t u (spc_mem u)), emp%I).
-  Proof. exists 1; intros u v GE; eapply main_adequacy, sim; eauto. Defined.
+    ctx_refines
+      ((IncrMainA.t u (spc_s u)) ★ (MemA.t u (spc_mem u)), emp%I)
+      ((IncrMainI.t)             ★ (MemA.t u (spc_mem u)), emp%I).
+  Proof. eapply main_adequacy, sim; eauto. Qed.
 End wctxr. End IncrIA.

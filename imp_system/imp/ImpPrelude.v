@@ -1,4 +1,4 @@
-Require Import CRIS.
+Require Import Common.
 Require Export GEnv.
 
 Set Implicit Arguments.

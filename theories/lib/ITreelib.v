@@ -53,7 +53,7 @@ Ltac csc := clarify; simpl_depind; clarify.
 Notation "tau;; t2" := (Tau t2)
   (at level 200, right associativity) : itree_scope.
 
-Ltac f_equiv := first [eapply eutt_eq_bind|eapply eqit_VisF|Morphisms.f_equiv].
+Ltac if_equiv := first [eapply eutt_eq_bind|eapply eqit_VisF|Morphisms.f_equiv].
 
 Hint Rewrite @bind_trigger : itree.
 Hint Rewrite @tau_eutt : itree.
@@ -250,7 +250,7 @@ Lemma interp_mrec_miss:
 Proof.
   i. rewrite unfold_interp_mrec. cbn.
   unfold trigger. irw.
-  f; repeat (f_equiv; ii; des_ifs_safe); f.
+  f; repeat (if_equiv; ii; des_ifs_safe); f.
   irw. ss.
 Qed.
 
