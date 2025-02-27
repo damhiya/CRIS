@@ -45,6 +45,11 @@ Module SpinLockIA. Section SpinLockIA.
   Qed.
 
   Lemma acquire_simF : HSim.sim_fun open MA MI IstFull SpinLockName.acquire.
+    winit_simF u_a 0.
+    wsteps_l. 
+    iDestruct "ASM" as "[[% LOCK] %]". hss.
+    wsteps_r.
+    
   Admitted.
 
   Lemma release_simF : HSim.sim_fun open MA MI IstFull SpinLockName.release.
