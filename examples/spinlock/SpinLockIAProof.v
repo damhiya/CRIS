@@ -81,6 +81,14 @@ Module SpinLockIA. Section SpinLockIA.
     wsteps_r. 
     sch_yield_r. iSplitL "IST"; iFrame. clear nths0; iIntros (nths st_s1 st_t1) "IST".
     wsteps_r. 
+    (* iApply wsim_base.
+    iSpecialize ("CIH" $! _).
+    (hrepeat do 1 first[instantiate (1:= (_,_))|instantiate (1:= existT _ _)]); s; grind. 
+    iApply "CIH".
+    iSpecialize (CIH $! _);
+    (hrepeat do 1 first[instantiate (1:= (_,_))|instantiate (1:= existT _ _)]); s; grind;
+    iApply CIH.
+    wby_coind "CIH". *)
     (* by_coind "CIH"*)
     admit.
     - (* success case *)
