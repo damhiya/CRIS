@@ -26,13 +26,17 @@ scheduler_files  := $(shell find scheduler -iname '*.v')
 scheduler: Makefile.coq $(scheduler_files)
 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(scheduler_files))
 
-examples_files  := $(shell find examples -iname '*.v')
-examples: Makefile.coq $(examples_files)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(examples_files))
+apc_files  := $(shell find apc -iname '*.v')
+apc: Makefile.coq $(apc_files)
+	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(apc_files))
 
 imp_system_files := $(shell find imp_system -iname '*.v')
 imp_system: Makefile.coq $(imp_system_files)
 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(imp_system_files))
+
+examples_files  := $(shell find examples -iname '*.v')
+examples: Makefile.coq $(examples_files)
+	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(examples_files))
 
 extract_files  := $(shell find extract -iname '*.v')
 extract: Makefile.coq $(extract_files)
@@ -48,6 +52,7 @@ Makefile.coq: Makefile $(COQTHEORIES)
 	 echo "-arg -w -arg -cannot-define-projection"; \
 	 echo "-R theories $(COQMODULE)"; \
 	 echo "-R scheduler $(COQMODULE)"; \
+	 echo "-R apc $(COQMODULE)"; \
 	 echo "-R imp_system $(COQMODULE)"; \
 	 echo "-R examples $(COQMODULE)"; \
 	 echo "-R extract $(COQMODULE)"; \
