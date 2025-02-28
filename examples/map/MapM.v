@@ -10,13 +10,13 @@ Class MapMGΓ (Γ : HRA) := {
   #[local] map_inG :: inG (exclR unitO) Γ;
 }.
 Definition MapMΓ : HRA := #[exclR unitO].
-Global Instance subG_GΓ {Γ} : subG MapMΓ Γ → MapMGΓ Γ.
+Global Instance subG_GΓ {Γ : HRA} : subG MapMΓ Γ → MapMGΓ Γ.
 Proof. solve_inG. Defined.
 Hint Unfold subG_GΓ map_inG : GRA_index.
 
 Module MapMS. Section MapMS.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !MapMGΓ Γ}.
-  Context (υ : univ_id).
+  Context (u : univ_id).
 
   Definition pending : iProp Σ := own base_γ (Excl ()).
   Lemma pending_unique : pending -∗ pending -∗ False.
@@ -26,42 +26,42 @@ Module MapMS. Section MapMS.
   Qed.
 
   Definition init_spec : fspec :=
-    w_fspec υ
+    w_fspec u
       (fspec_simple
         (λ (sz : nat),
           (λ varg, ⌜varg = [Vint sz]↑ ∧ (8 * sz < modulus_64)%Z⌝ ∗ pending,
             λ vret, emp)))%I.
 
   Definition get_spec : fspec := 
-    w_fspec υ
+    w_fspec u
       (fspec_simple
         (λ k,
           (λ varg, ⌜varg = [Vint k]↑⌝,
             λ vret, emp)))%I.
 
   Definition set_spec : fspec :=
-    w_fspec υ
+    w_fspec u
       (fspec_simple
         (λ '(k, v),
           (λ varg, ⌜varg = ([Vint k; Vint v])↑⌝,
             λ vret, emp))%I).
 
   Definition set_by_user_spec : fspec := 
-    w_fspec υ
+    w_fspec u
       (fspec_simple
         (λ k,
           (λ varg, ⌜varg = [Vint k]↑⌝,
             λ vret, emp))%I).
 
-  Definition Spc : alist string fspec :=
+  Definition spc : alist string fspec :=
     Seal.sealing CRIS
       [(MapName.init, init_spec);
        (MapName.get, get_spec);
        (MapName.set, set_spec);
        (MapName.set_by_user, set_by_user_spec)].
 
-  Lemma Spc_nodup : List.NoDup (List.map fst Spc).
-  Proof. by rewrite /Spc; unseal CRIS; prove_nodup. Qed.
+  Lemma spc_nodup : List.NoDup (List.map fst spc).
+  Proof. by rewrite /spc; unseal CRIS; prove_nodup. Qed.
 End MapMS. End MapMS.
 
 (*** module M Map
@@ -84,7 +84,7 @@ def set_by_user(k : int) ≡
 ***)
 Module MapM. Section MapM.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !MapMGΓ Γ}.
-  Context (υ : univ_id).
+  Context (u : univ_id).
 
   Definition scopes := ["Map"].
   Definition v_size := "Map" ↯ "size".
@@ -120,21 +120,21 @@ Module MapM. Section MapM.
       ccallU MapName.set [Vint k; Vint v].
 
   Definition fnsems :=
-    [(MapName.init, (scopes, mk_specbody (MapMS.init_spec υ) (cfunU init)));
-     (MapName.get, (scopes, mk_specbody (MapMS.get_spec υ) (cfunU get)));
-     (MapName.set, (scopes, mk_specbody (MapMS.set_spec υ) (cfunU set)));
-     (MapName.set_by_user, (scopes, mk_specbody (MapMS.set_by_user_spec υ) (cfunU set_by_user)))].
+    [(MapName.init, (scopes, mk_specbody (MapMS.init_spec u) (cfunU init)));
+     (MapName.get, (scopes, mk_specbody (MapMS.get_spec u) (cfunU get)));
+     (MapName.set, (scopes, mk_specbody (MapMS.set_spec u) (cfunU set)));
+     (MapName.set_by_user, (scopes, mk_specbody (MapMS.set_by_user_spec u) (cfunU set_by_user)))].
 
   Program Definition Mod : SMod.t := {|
     SMod.scopes := scopes;
     SMod.fnsems := fnsems;
     SMod.initial_st := [(v_size, 0%Z↑);
-                           (v_map,  (λ (_ : Z), 0%Z)↑)];
+                        (v_map,  (λ (_ : Z), 0%Z)↑)];
   |}.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition InitCond : iProp Σ := emp%I.
+  Definition init_cond : iProp Σ := emp%I.
 
   Definition t Spc := Seal.sealing CRIS (@SMod.to_hmod Σ emp Spc Mod).
 End MapM. End MapM.

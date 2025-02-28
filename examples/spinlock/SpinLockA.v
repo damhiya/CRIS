@@ -7,7 +7,7 @@ Class SpinLockAGΓ (Γ : HRA) := {
   #[local] spinlock_inG :: inG (exclR unitO) Γ;
 }.
 Definition SpinLockΓ : HRA := #[exclR unitO].
-Global Instance subG_GΓ {Γ} : subG SpinLockΓ Γ → SpinLockAGΓ Γ.
+Global Instance subG_GΓ {Γ : HRA} : subG SpinLockΓ Γ → SpinLockAGΓ Γ.
 Proof. solve_inG. Defined.
 Hint Unfold subG_GΓ spinlock_inG : GRA_index.
 

@@ -8,11 +8,11 @@ Set Implicit Arguments.
 (* Resource algebra for MapM ⊆ MapA *)
 Local Definition RA : ucmra :=
   prodUR (optionUR (exclR unitO)) (authUR (Z -d> optionUR (exclR ZO))).
-Class MapAGΓ (Γ : HRA) := {
-  #[local] RA_inG :: inG RA Γ;
-}.
+Class MapAGΓ (Γ : HRA) := { #[local] RA_inG :: inG RA Γ }.
 Definition MapAΓ : HRA := #[RA].
-(* TODO : add GRA_index boilerplate *)
+Global Instance subG_GΓ {Γ : HRA} : subG MapAΓ Γ → MapAGΓ Γ.
+Proof. solve_inG. Defined.
+Hint Unfold subG_GΓ MapAΓ : GRA_index.
 
 Module MapAS. Section MapAS.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !MapMGΓ Γ, !MapAGΓ Γ}.
@@ -111,44 +111,44 @@ Module MapAS. Section MapAS.
   Qed.
 
   Section spec.
-    Context (υ : univ_id).
+    Context (u : univ_id).
     Definition init_spec : fspec :=
-      w_fspec υ
+      w_fspec u
         (fspec_simple
           (λ sz : nat,
             (λ varg, ⌜varg = [Vint sz]↑ ∧ (8 * (Z.of_nat sz) < modulus_64)%Z⌝ ∗ pending,
               λ vret, ⌜vret = Vundef↑⌝ ∗ initial_points_tos sz)))%I.
 
     Definition get_spec: fspec :=
-      w_fspec υ
+      w_fspec u
         (fspec_simple
           (λ '(k, v),
             (λ varg, ⌜varg = [Vint k]↑⌝ ∗ points_to k v,
               λ vret, ⌜vret = (Vint v)↑⌝ ∗ points_to k v)))%I.
 
     Definition set_spec: fspec :=
-      w_fspec υ
+      w_fspec u
         (fspec_simple
           (λ '(k, w, v),
             (λ varg, ⌜varg = [Vint k; Vint v]↑⌝ ∗ points_to k w,
               λ vret, ⌜vret = Vundef↑⌝ ∗ points_to k v)))%I.
 
     Definition set_by_user_spec: fspec :=
-      w_fspec υ
+      w_fspec u
         (fspec_simple
           (λ '(k, w),
             (λ varg, ⌜varg = [Vint k]↑⌝ ∗ points_to k w,
               λ vret, ⌜vret = Vundef↑⌝ ∗ ∃ v, points_to k v)))%I.
     
-    Definition Spc : alist string fspec :=
+    Definition spc : alist string fspec :=
       Seal.sealing CRIS
         [(MapName.init, init_spec);
         (MapName.get, get_spec);
         (MapName.set, set_spec);
         (MapName.set_by_user, set_by_user_spec)].
     
-    Lemma Spc_nodup : List.NoDup (List.map fst Spc).
-    Proof. unfold Spc. unseal CRIS. prove_nodup. Qed.
+    Lemma spc_nodup : List.NoDup (List.map fst spc).
+    Proof. unfold spc. unseal CRIS. prove_nodup. Qed.
   End spec.
 End MapAS. End MapAS.
 
@@ -208,9 +208,8 @@ Module MapA. Section MapA.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition InitCond : iProp Σ :=
+  Definition init_cond : iProp Σ :=
     (MapAS.initial_map ∗ MapMS.pending)%I.
 
-  Definition t Spc := Seal.sealing CRIS (SMod.to_hmod emp Spc Mod).
-  
+  Definition t spc := Seal.sealing CRIS (SMod.to_hmod emp spc Mod).
 End MapA. End MapA.

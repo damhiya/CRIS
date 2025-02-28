@@ -72,28 +72,24 @@ Module MapIM. Section MapIM.
             ∧ st_tgt = [(MapI.v_hptr,(Vptr blk ofs)↑)]⌝
           ∗ (blk, ofs) |-> (fun_to_list f (Z.to_nat sz)))%I.
 
-  (* 1) universe ids of src/tgt modules *)
-  Context (u_MapM u_MapI : univ_id).
-  (* 2) stratification levels in the proof *)
-  (* Context (n : level). *)
-  (* 3) global invariant of the source module *)
-  Context (ginv : invspec).
-  (* 4) Spcs of src/tgt modules *)
-  Context (Spc_MapM Spc_Mem : string → option fspec).
-  Context (MapInSpc_MapM : spc_incl (MapMS.Spc u_MapM) Spc_MapM).
+  (* universe ids of src modules *)
+  Context (u_s : univ_id).
+  (* spcs of src/mem modules *)
+  Context (spc_s spc_mem : string → option fspec).
+  Context (MapInSpc : spc_incl (MapMS.spc u_s) spc_s).
 
-  Local Notation MemA := (MemA.t ginv Spc_Mem).
-  Local Notation MapM := (MapM.t u_MapM ginv Spc_MapM).
+  Local Notation MemA := (MemA.t u_s spc_mem).
+  Local Notation MapM := (MapM.t u_s spc_s).
   Local Notation MapMMod := (MapM ★ MemA).
   Local Notation MapIMod := (MapI.t ★ MemA).
   Local Notation IstFull := (IstProd (IstSB MapM.(HMod.scopes) Ist) IstEq).
 
   Lemma simF_init : HSim.sim_fun open MapMMod MapIMod IstFull MapName.init.
   Proof.
-    init_wsim u_MapM u_MapI.
+    winit_simF u_s 0.
 
     (* preprocess given assumptions *)
-    w_steps_l.
+    wsteps_l.
     iDestruct "ASM" as "[[[-> %] P] ->]". hss.
 
     (* SRC: handle the IST of Map and the precond of init *)
@@ -104,19 +100,19 @@ Module MapIM. Section MapIM.
     rename q into sz.
 
     (* SRC: prove the postcond of init *)
-    w_force_l (Vundef ↑).
-    w_force_l; iSplitL ""; first done.
+    wforce_l (Vundef ↑).
+    wforce_l; iSplitL ""; first done. wsteps_l.
 
     (* TGT : inline alloc *)
-    w_steps_r. w_inline_r.
+    wsteps_r. winline_r.
 
     (* TGT: prove the precond of alloc *)
-    w_steps_r. w_force_r sz. w_force_r ([Vint sz] ↑).
-    w_force_r; iSplit; first done.
+    wsteps_r. wforce_r sz. wforce_r ([Vint sz] ↑).
+    wforce_r; iSplit; first done.
 
     (* TGT: handle the postcond of alloc *)
-    w_steps_r. iDestruct "GRT" as "[[%b [-> PTS]] ->]".
-    hss. w_steps_r. hss.
+    wsteps_r. iDestruct "GRT" as "[[%b [-> PTS]] ->]".
+    hss. wsteps_r. hss.
 
     (* prepare and start an induction *)
     replace (repeat Vundef sz) with (repeat (Vint 0) (sz-sz) ++ repeat Vundef sz); cycle 1.
@@ -128,10 +124,10 @@ Module MapIM. Section MapIM.
 
     (* Base case *)
     { (* TGT : unwind the loop *)
-      unfold_iter_r. des_ifs; try nia. w_steps_r.
+      unfold_iter_r. des_ifs; try nia. wsteps_r.
 
       (* prove the IST of Map *)
-      w_step. repeat (iSplit; eauto).
+      wstep. repeat (iSplit; eauto).
       iExists [_;_], [_], _, _.
       repeat iSplit; eauto.
       iRight. iFrame. iExists _, _, _, _. iSplitR; eauto. inv G0.
@@ -144,15 +140,15 @@ Module MapIM. Section MapIM.
       (* TGT : compute the input to store *)
       unfold scale_int at 1. des_ifs; cycle 1.
       { exfalso. eapply n. eapply Z.divide_factor_r. }
-      s. w_steps_r.
+      s. wsteps_r.
       
       (* TGT : inline store *)
-      w_inline_r. w_steps_r.
+      winline_r. wsteps_r.
 
       (* TGT: prove the precond of store *)
-      w_force_r (_, (sz - S n')%Z, _).
-      w_force_r ([Vptr _ (sz - (S n'))%Z; _]↑).
-      w_force_r.
+      wforce_r (_, (sz - S n')%Z, _).
+      wforce_r ([Vptr _ (sz - (S n'))%Z; _]↑).
+      wforce_r.
       iPoseProof (big_sepL_insert_acc with "PTS") as "(PT & CTN)".
       { instantiate (2:= (sz - (S n'))).
         rewrite lookup_app_r; rewrite repeat_length; try nia.
@@ -168,13 +164,13 @@ Module MapIM. Section MapIM.
       }
 
       (* TGT: handle the postcond of store *)
-      w_steps_r. iDestruct "GRT" as "[[GRT ->] ->]". hss.
+      wsteps_r. iDestruct "GRT" as "[[GRT ->] ->]". hss.
       iSpecialize ("CTN" $! (Vint 0)). iPoseProof ("CTN" with "GRT") as "PTS".
       (* rewrite -> !Zpos_P_of_succ_nat, <-!Nat2Z.inj_succ. *)
       replace (sz - S n' + 1)%Z with (sz - n')%Z by nia.
 
       (* apply the induction hypothesis and complete *)
-      w_steps_r.
+      wsteps_r.
       iApply IHn'; try nia. iFrame.
       rewrite repeat_update.
       eapply eq_ind; [iAssumption |].
@@ -184,10 +180,10 @@ Module MapIM. Section MapIM.
 
   Lemma simF_get : HSim.sim_fun open MapMMod MapIMod IstFull MapName.get.
   Proof.
-    init_wsim u_MapM u_MapI.
+    winit_simF u_s 0.
 
     (* SRC: handle the IST of Map and the precond of get *)
-    w_steps_l.
+    wsteps_l.
     iDestruct "ASM" as "[-> ->]". hss.
     iDestruct "IST" as (? ? ? ?) "(%& (% & [%|(P & IST)]) &%)";
       [|iDestruct "IST" as (? ? ? ?) "(% & M)"];
@@ -197,29 +193,29 @@ Module MapIM. Section MapIM.
     rename q2 into idx.
     
     (* SRC: prove the postcond of get *)
-    w_force_l. w_force_l. iSplitL "". { eauto. }
+    wforce_l. wforce_l. iSplitL "". { eauto. }
 
     (* TGT : compute the input to load *)
-    w_steps_r. hss. w_steps_r.
+    wsteps_r. hss. wsteps_r.
     unfold scale_int. des_ifs; cycle 1.
     { exfalso. eapply n. eapply Z.divide_factor_r. }
-    s. w_steps_r. rewrite Z_div_mult; try nia.
+    s. wsteps_r. rewrite Z_div_mult; try nia.
 
     (* TGT : inline load *)
-    w_inline_r.
+    winline_r.
 
     (* TGT: prove the precond of load *)
-    w_step_r. w_force_r (_, (ofs + _)%Z, _, 1%Qp). w_force_r. w_force_r.
+    wstep_r. wforce_r (_, (ofs + _)%Z, _, 1%Qp). wforce_r. wforce_r.
     iPoseProof (big_sepL_lookup_acc with "M") as "(IP & M)".
     { apply fun_to_list_lookup with (i:=Z.to_nat idx). nia. }
     rewrite Z2Nat.id; try nia.
     iSplitL "IP"; eauto.
     
     (* TGT: handle the postcond of load *)
-    w_steps_r. iDestruct "GRT" as "[[GRT ->] ->]". hss. w_steps_r.
+    wsteps_r. iDestruct "GRT" as "[[GRT ->] ->]". hss. wsteps_r.
 
     (* prove the IST of Map *)
-    w_step. repeat (iSplit; eauto).
+    wstep. repeat (iSplit; eauto).
     iExists [_;_], [_], _, _.
     do 3 (iSplit; eauto).
     iRight. iFrame. iExists _, _, _, _. iSplit; eauto.
@@ -228,10 +224,10 @@ Module MapIM. Section MapIM.
 
   Lemma simF_set : HSim.sim_fun open MapMMod MapIMod IstFull MapName.set.
   Proof.
-    init_wsim u_MapM u_MapI.
+    winit_simF u_s 0.
 
-    w_steps_l.
-    iDestruct "ASM" as "[-> ->]". hss. inv G0. w_steps_l.
+    wsteps_l.
+    iDestruct "ASM" as "[-> ->]". hss. inv G0. wsteps_l.
 
     (* SRC: handle the IST of Map and the precond of set *)
     iDestruct "IST" as (? ? ? ?) "(%& (% & [%|(P & IST)]) &%)";
@@ -241,30 +237,30 @@ Module MapIM. Section MapIM.
     rename q1 into idx.
 
     (* TGT : compute the input to store *)
-    w_steps_r. hss. w_steps_r.
+    wsteps_r. hss. wsteps_r.
     unfold scale_int. des_ifs; cycle 1.
     { exfalso. eapply n. eapply Z.divide_factor_r. }
     rewrite Z_div_mult; try nia.
-    s. w_steps_r.
+    s. wsteps_r.
 
     (* TGT : inline load *)
-    w_inline_r.
+    winline_r.
 
     (* TGT: prove the precond of store *)
-    w_step_r. w_force_r (blk, (ofs + idx)%Z, _). w_force_r. w_force_r.
+    wstep_r. wforce_r (blk, (ofs + idx)%Z, _). wforce_r. wforce_r.
     iPoseProof (big_sepL_insert_acc with "M") as "(IP & M)".
     { apply fun_to_list_lookup with (i:=Z.to_nat idx). hss. nia. }
     rewrite Z2Nat.id; try nia.
     iSplitL "IP". { eauto. }
 
     (* TGT: handle the postcond of load *)
-    w_steps_r. iDestruct "GRT" as "[[GRT ->] ->]". hss. w_steps_r.
+    wsteps_r. iDestruct "GRT" as "[[GRT ->] ->]". hss. wsteps_r.
 
     (* SRC: prove the postcond of set *)
-    w_force_l. w_force_l. iSplitL "". { eauto. }
+    wforce_l. wforce_l. iSplitL "". { eauto. }
 
     (* prove the IST of Map *)
-    w_step. repeat (iSplit; eauto).
+    wstep. repeat (iSplit; eauto).
     iExists [_;_], [_], _, _.
     do 3 (iSplit; eauto).
     iRight. iFrame. iExists _, _, _, _. iSplit; eauto.
@@ -274,35 +270,35 @@ Module MapIM. Section MapIM.
 
   Lemma simF_set_by_user : HSim.sim_fun open MapMMod MapIMod IstFull MapName.set_by_user.
   Proof.
-    init_wsim u_MapM u_MapI.
+    winit_simF u_s 0.
 
-    w_steps_l.
+    wsteps_l.
     iDestruct "ASM" as "[-> ->]".
     hss. inv G0. rename q2 into k.
 
     (* SRC: handle the IST of Map and the precond of set_by_user *)
 
     (* process an input *)
-    w_steps_r. w_step.
+    wsteps_r. wstep.
     
     (* SRC: prove the precond of set *)
-    w_steps_l. w_force_l (_,_); s. w_force_l. w_force_l.
+    wsteps_l. wforce_l (_,_); s. wforce_l. wforce_l.
     iSplitL "". { eauto. }
 
     (* make a call to set *)
-    w_steps_r. w_call "IST".
+    wsteps_r. wcall "IST".
 
     (* SRC: handle the postcond of set *)
-    w_steps_l. iDestruct "ASM" as "(_ & ->)". hss.
+    wsteps_l. iDestruct "ASM" as "(_ & ->)". hss.
 
     (* SRC: prove the postcond of set_by_user *)
-    w_force_l. w_force_l. iSplitL "". { eauto. }
+    wforce_l. wforce_l. iSplitL "". { eauto. }
 
     (* prove the IST of Map *)
-    w_steps_r. hss. w_steps_r. w_step. eauto.
+    wsteps_r. hss. wsteps_r. wstep. eauto.
   Qed.
 
-  Lemma sim : HSim.t open MapMMod MapIMod MapM.InitCond IstFull.
+  Lemma sim : HSim.t open MapMMod MapIMod MapM.init_cond IstFull.
   Proof.
     init_sim.
     - iIntros "_". iExists _,_,[],[]. iSplit.
@@ -315,13 +311,13 @@ Module MapIM. Section MapIM.
     - eapply simF_set; eauto.
     - eapply simF_set_by_user; eauto.
   Qed.
-  End MapIM.
-
-  Section MapIM.
-    Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !MapMGΓ Γ, !memGΓ Γ}.
-    Lemma wctxr n Spc_MapM Spc_Mem ginv (INCL : ∀ u, spc_incl (MapMS.Spc u n) (Spc_MapM u)) :
-      w_ctx_refines
-        ((λ υ, (MapM.t υ n ginv (Spc_MapM υ)) ★ (MemA.t ginv Spc_Mem)), MapM.InitCond)
-        ((λ _, MapI.t                       ★ (MemA.t ginv Spc_Mem)), emp%I).
-    Proof. exists 1%positive; intros u v Huv; eapply main_adequacy, MapIM.sim; eauto. Qed.
+End MapIM.
+Section MapIM.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !MapMGΓ Γ, !memGΓ Γ}.
+  Lemma wctxr (u : univ_id) (spc_s spc_mem : univ_id → string → option fspec)
+      (INCL : ∀ u, spc_incl (MapMS.spc u) (spc_s u)) :
+    ctx_refines
+      ((MapM.t u (spc_s u)) ★ (MemA.t u (spc_mem u)), MapM.init_cond)
+      ((MapI.t)             ★ (MemA.t u (spc_mem u)), emp%I).
+  Proof. eapply main_adequacy, MapIM.sim; eauto. Qed.
 End MapIM. End MapIM.
