@@ -29,7 +29,7 @@ Section wsim.
     Ist nths st_s st_t ∗
     (∀ nths st_s st_t,
       Ist nths st_s st_t -∗
-      wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR false true nths
+      wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR ps true nths
         (st_s, (HMod.sandbox scp_s (interp_smod ginv spc Sch.yield)) >>= k_s)
         (st_t, k_t tt))
     ⊢ wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR ps pt nths
@@ -39,10 +39,11 @@ Section wsim.
     rewrite !wsim.wsim_eq /wsim.wsim_def.
     iIntros "SIM P".
     rewrite /Sch.yield; unseal "Sch".
-    iApply isim_reset. iStopProof.
-    revert nths. combine_quant st_s. combine_quant st_t.
+    (* iApply isim_reset. *)
+    iStopProof.
+    revert nths. combine_quant st_s. combine_quant st_t. combine_quant ps. combine_quant pt.
     eapply isim_coind.
-    iIntros (g' [st_s' [st_t' nths']]) "%MON [[[IST SIM] P] #CIH]". s.
+    iIntros (g' [pt [ps [st_s' [st_t' nths']]]]) "%MON [[[IST SIM] P] #CIH]". s.
 
     unfold_iter_r.
     steps_r. destruct q.
@@ -56,15 +57,18 @@ Section wsim.
     steps_r.
     unfold_iter_l; steps_l.
     force_l false; steps_l.
+    iApply isim_progress.
     forces_l. iSplitL "P"; first (ss; eauto).
     steps_l. call "IST"; ss.
     steps_l. iDestruct "ASM" as "[P [-> ->]]". hss. steps_l.
     steps_r. hss. steps_r.
-    iApply isim_progress; iApply isim_base.
+    iApply isim_base.
     iSpecialize ("CIH" $! _);
-    (hrepeat do 1 first[instantiate (1:= (_,_))|instantiate (1:= existT _ _)]); s;
+    (hrepeat do 1 first[instantiate (1:= (_,_))|instantiate (1:= existT _ _)]); s.
     iApply "CIH".
     iFrame.
+    iIntros (nths st_s st_t) "IST GINV".
+    iPoseProof ("SIM" with "IST GINV") as "SIM". iApply (isim_flag_mon with "SIM"); eauto.
     Unshelve. done.
   Qed.
 
@@ -73,7 +77,7 @@ Section wsim.
     Ist nths st_s st_t ∗
     (∀ nths st_s st_t,
       Ist nths st_s st_t -∗
-      wsim fl_s fl_t Ist None υ ν ⊤ r g R_s R_t RR false true nths
+      wsim fl_s fl_t Ist None υ ν ⊤ r g R_s R_t RR ps true nths
         (st_s, (HMod.sandbox scp_s (interp_smod ginv spc Sch.yield)) >>= k_s)
         (st_t, k_t tt))
     ⊢ wsim fl_s fl_t Ist None υ ν ⊤ r g R_s R_t RR ps pt nths
@@ -83,10 +87,11 @@ Section wsim.
     rewrite !wsim.wsim_eq /wsim.wsim_def.
     iIntros "SIM P".
     rewrite /Sch.yield; unseal "Sch".
-    iApply isim_reset. iStopProof.
-    revert nths. combine_quant st_s. combine_quant st_t.
+    (* iApply isim_reset. *)
+    iStopProof.
+    revert nths. combine_quant st_s. combine_quant st_t. combine_quant ps. combine_quant pt.
     eapply isim_coind.
-    iIntros (g' [st_s' [st_t' nths']]) "%MON [[[IST SIM] P] #CIH]". s.
+    iIntros (g' [pt [ps [st_s' [st_t' nths']]]]) "%MON [[[IST SIM] P] #CIH]". s.
 
     unfold_iter_r.
     steps_r. destruct q.
@@ -101,14 +106,17 @@ Section wsim.
     unfold_iter_l; steps_l.
     force_l false; steps_l. iDestruct "GRT" as "[P' [-> _]]".
     forces_l. iFrame. iSplit; eauto.
+    iApply isim_progress.
     steps_l. call "IST"; ss.
     steps_l. iDestruct "ASM" as "[P' [-> ->]]". hss. steps_l.
     steps_r. forces_r. iFrame; iSplit; eauto. steps_r. hss. steps_r.
-    iApply isim_progress; iApply isim_base.
+    iApply isim_base.
     iSpecialize ("CIH" $! _);
-    (hrepeat do 1 first[instantiate (1:= (_,_))|instantiate (1:= existT _ _)]); s;
+    (hrepeat do 1 first[instantiate (1:= (_,_))|instantiate (1:= existT _ _)]); s.
     iApply "CIH".
     iFrame.
+    iIntros (nths st_s st_t) "IST GINV".
+    iPoseProof ("SIM" with "IST GINV") as "SIM". iApply (isim_flag_mon with "SIM"); eauto.
     Unshelve. done.
   Qed.
 

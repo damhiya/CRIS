@@ -60,7 +60,13 @@ Module SpinLockA. Section SpinLockA.
   Definition scopes : list string := [].
 
   Definition newlock : list val → itree hmodE val := λ _, 𝒴;;; trigger (Choose val).
-  Definition acquire : list val → itree hmodE val := λ _, 𝒴;;; Ret Vundef.
+  Definition acquire : list val → itree hmodE val :=
+    λ _,
+      (ITree.iter (λ _,
+        𝒴;;; 'x : bool <- trigger (Choose bool);;
+        Ret (if x then inr tt else inl tt)) tt
+      );;;
+      Ret Vundef.
   Definition release : list val → itree hmodE val := λ _, 𝒴;;; Ret Vundef.
 
   Definition fnsems u :=

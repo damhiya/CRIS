@@ -531,7 +531,7 @@ Section SIM.
     ⊢ @isim r g Rs Rt RR true true nths (st_src, i_src) (st_tgt, i_tgt).
   Proof.
     split; intros x wfx SIM; eapply hpsim_progress_flag; eauto.
-  Qed.  
+  Qed.
 
   Lemma isim_triggerUB_src r g {Rs Rt} RR ps pt X nths st_src st_tgt (k_src : X -> _) i_tgt :
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, triggerUB >>= k_src) (st_tgt, i_tgt).
@@ -597,6 +597,12 @@ Section SIM.
     gfinal; left; econs; eauto.
     eapply Own_general_completeness in Hr; iIntros "X"; iModIntro; iApply Hr; done.
   Qed.
+
+  Lemma isim_flag_mon r g {Rs Rt} RR nths st_src st_tgt i_src i_tgt (ps pt ps' pt' : bool)
+      (PSLE : ps' → ps) (PTLE : pt' → pt) :
+    @isim r g Rs Rt RR ps' pt' nths (st_src, i_src) (st_tgt, i_tgt)
+    ⊢ @isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, i_tgt).
+  Proof. split; intros x wfx SIM. guclo hpsim_flagC_spec. econs; eauto. eapply SIM. Qed.
 
   Lemma isim_reset r g {Rs Rt} RR ps pt nths sti_src sti_tgt :
     @isim r g Rs Rt RR false false nths sti_src sti_tgt
