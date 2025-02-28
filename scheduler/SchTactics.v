@@ -24,7 +24,7 @@ Section wsim.
   Context (nths : nat).
   Context (st_s st_t : state).
 
-  Lemma wsim_yield_tgt r g scp_s scp_t ginv spc spc_user k_s k_t
+  Lemma wsim_yield_tgt_u0 r g scp_s scp_t ginv spc spc_user k_s k_t
       (SchInSpc : spc_incl (SchAS.spc υ spc_user) spc) :
     Ist nths st_s st_t ∗
     (∀ nths st_s st_t,
@@ -60,6 +60,50 @@ Section wsim.
     steps_l. call "IST"; ss.
     steps_l. iDestruct "ASM" as "[P [-> ->]]". hss. steps_l.
     steps_r. hss. steps_r.
+    iApply isim_progress; iApply isim_base.
+    iSpecialize ("CIH" $! _);
+    (hrepeat do 1 first[instantiate (1:= (_,_))|instantiate (1:= existT _ _)]); s;
+    iApply "CIH".
+    iFrame.
+    Unshelve. done.
+  Qed.
+
+  Lemma wsim_yield_tgt_uu r g scp_s scp_t ginv spc spc_user k_s k_t
+      (SchInSpc : spc_incl (SchAS.spc υ spc_user) spc) :
+    Ist nths st_s st_t ∗
+    (∀ nths st_s st_t,
+      Ist nths st_s st_t -∗
+      wsim fl_s fl_t Ist None υ ν ⊤ r g R_s R_t RR false true nths
+        (st_s, (HMod.sandbox scp_s (interp_smod ginv spc Sch.yield)) >>= k_s)
+        (st_t, k_t tt))
+    ⊢ wsim fl_s fl_t Ist None υ ν ⊤ r g R_s R_t RR ps pt nths
+      (st_s, (HMod.sandbox scp_s (interp_smod ginv spc Sch.yield)) >>= k_s)
+      (st_t, (HMod.sandbox scp_t (interp_smod ginv spc Sch.yield)) >>= k_t).
+  Proof.
+    rewrite !wsim.wsim_eq /wsim.wsim_def.
+    iIntros "SIM P".
+    rewrite /Sch.yield; unseal "Sch".
+    iApply isim_reset. iStopProof.
+    revert nths. combine_quant st_s. combine_quant st_t.
+    eapply isim_coind.
+    iIntros (g' [st_s' [st_t' nths']]) "%MON [[[IST SIM] P] #CIH]". s.
+
+    unfold_iter_r.
+    steps_r. destruct q.
+    { steps_r. iPoseProof ("SIM" with "IST P") as "SIM".
+      iPoseProof (isim_mono_knowledge with "SIM") as "SIM"; cycle 2.
+      { iApply "SIM". }
+      { iIntros (????????) "$"; done. }
+      { iIntros (????????) "P !>"; iApply MON; ss. }
+    }
+
+    steps_r.
+    unfold_iter_l; steps_l.
+    force_l false; steps_l. iDestruct "GRT" as "[P' [-> _]]".
+    forces_l. iFrame. iSplit; eauto.
+    steps_l. call "IST"; ss.
+    steps_l. iDestruct "ASM" as "[P' [-> ->]]". hss. steps_l.
+    steps_r. forces_r. iFrame; iSplit; eauto. steps_r. hss. steps_r.
     iApply isim_progress; iApply isim_base.
     iSpecialize ("CIH" $! _);
     (hrepeat do 1 first[instantiate (1:= (_,_))|instantiate (1:= existT _ _)]); s;
@@ -146,7 +190,7 @@ Ltac sch_yield_l :=
   wnorm with (iApply wsim_yield_src; first eassumption).
 
 Ltac sch_yield_r :=
-  wnorm with (iApply wsim_yield_tgt; first eassumption).
+  wnorm with (first [(iApply wsim_yield_tgt_u0; first eassumption) | (iApply wsim_yield_tgt_uu; first eassumption)]).
 
 Ltac sch_spawn :=
   wnorm with (iApply wsim_spawn; first eassumption).

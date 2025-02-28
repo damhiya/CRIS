@@ -152,11 +152,18 @@ Ltac _wstep_r :=
       rewrite bind_ret_l
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose _) >>= _) ) ] =>
       let name := fresh "q" in iApply wsim_choose_tgt; iIntros (name)
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ ?ν _ _ _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _) ) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ ?u ?ν _ _ _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _) ) ] =>
       first [
         tcsearch constr:(WP P ν ⊤)
           ltac:(fun c =>
             iApply (wsim_half_guarantee_tgt_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); simpl);
+        match goal with
+        | [ |- environments.envs_entails _ (?P' -∗ _)] =>
+          unfold_precond_postcond P'; iIntrosFresh "GRT"
+        end
+      | tcsearch constr:(WP P u ⊤)
+          ltac:(fun c =>
+            iApply (wsim_full_guarantee_tgt_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); simpl);
         match goal with
         | [ |- environments.envs_entails _ (?P' -∗ _)] =>
           unfold_precond_postcond P'; iIntrosFresh "GRT"
@@ -238,11 +245,18 @@ Ltac _wforce_r :=
   match goal with
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _)) ] =>
       iApply wsim_take_tgt
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ ?ν _ _ _ _ _ _ _ _ _ _ (_, trigger (Assume ?P) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ ?u ?ν _ _ _ _ _ _ _ _ _ _ (_, trigger (Assume ?P) >>= _)) ] =>
       first [
         tcsearch constr:(WP P ν ⊤)
           ltac:(fun c =>
             iApply (wsim_half_assume_tgt_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); simpl);
+        match goal with
+        | [ |- environments.envs_entails _ (?P' ∗ _)] =>
+          unfold_precond_postcond P'
+        end
+      | tcsearch constr:(WP P u ⊤)
+          ltac:(fun c =>
+            iApply (wsim_full_assume_tgt_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); simpl);
         match goal with
         | [ |- environments.envs_entails _ (?P' ∗ _)] =>
           unfold_precond_postcond P'

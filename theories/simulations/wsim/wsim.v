@@ -391,6 +391,32 @@ Section wsim.
       iApply ("SIM" with "P GINV").
     Qed.
 
+    Lemma wsim_full_assume_tgt_WP `{i : !WP P υ E} r g i_s k_t :
+      (WP_remainder i ∗
+      wsim None υ ν E r g R_s R_t RR ps true nths
+        (st_s, i_s) (st_t, k_t tt)) ⊢
+      wsim (Some true) υ ν E r g R_s R_t RR ps pt nths
+        (st_s, i_s) (st_t, trigger (Assume P) >>= k_t).
+    Proof.
+      unseal; iIntros "[P SIM] I". iApply isim_Assume_tgt; eauto.
+      iSplitR "SIM"; iFrame.
+      { iApply WP_iff; iFrame. }
+      { iApply "SIM"; done. }
+    Qed.
+
+    Lemma wsim_full_guarantee_tgt_WP `{i : !WP P υ E} r g i_s k_t :
+      (WP_remainder i -∗
+      wsim (Some true) υ ν E r g R_s R_t RR ps true nths
+        (st_s, i_s) (st_t, k_t tt)) ⊢
+      wsim None υ ν E r g R_s R_t RR ps pt nths
+        (st_s, i_s) (st_t, trigger (Guarantee P) >>= k_t).
+    Proof.
+      unseal. iIntros "SIM I".
+      iApply isim_Guarantee_tgt; iIntros "P"; iPoseProof (WP_iff with "P") as "[P1 P2]".
+      iSpecialize ("SIM" with "P2 P1").
+      iApply "SIM"; iFrame.
+    Qed.
+
     Lemma wsim_half_assume_tgt_WP `{i : !WP P ν ⊤, ModRel υ ν} r g i_s k_t E :
       (WP_remainder i ∗
       wsim (Some false) υ ν E r g R_s R_t RR ps true nths

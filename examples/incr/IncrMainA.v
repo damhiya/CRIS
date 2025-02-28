@@ -2,7 +2,6 @@ Require Import CRIS.
 Require Export ImpPrelude IncrMainHeader SchHeader MemHeader MemA.
 From iris Require Import frac_auth numbers.
 
-(* Resource algebra for MapM ⊆ MapA *)
 Class IncrMainAGΓ (Γ : HRA) := {
   #[local] RA_inG :: inG (frac_authR ZR) Γ;
 }.

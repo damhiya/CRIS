@@ -1,8 +1,6 @@
 Require Import CRIS.
 Require Import ImpPrelude SchHeader MemHeader SpinLockHeader.
 
-Notation 𝒴 := (Sch.yield).
-
 Module SpinLockI. Section SpinLockI.
   Context {Σ : GRA}.
 
