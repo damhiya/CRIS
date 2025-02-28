@@ -128,17 +128,27 @@ Ltac hss :=
   hss_des;
   try (rewrite -> !Any.pair_split in * );
   try (rewrite -> !Any.upcast_downcast in * );
+  try (rewrite -> !SAny.pair_split in * );
+  try (rewrite -> !SAny.upcast_downcast in * );
   (hrepeat do 1 match goal with [G: Any.downcast _ = Some _ |-_] =>
     apply Any.downcast_upcast in G; inv G; ss
    end);
   (hrepeat do 1 match goal with [G: Any.upcast _ = Any.upcast _ |-_] =>
     apply Any.upcast_inj in G; destruct G as [_ G]; red in G; depdes G; ss
    end);
+  (hrepeat do 1 match goal with [G: SAny.downcast _ = Some _ |-_] =>
+    apply SAny.downcast_upcast in G; inv G; ss
+   end);
+  (hrepeat do 1 match goal with [G: SAny.upcast _ = SAny.upcast _ |-_] =>
+    apply SAny.upcast_inj in G; destruct G as [_ G]; red in G; depdes G; ss
+   end);
   (hrepeat do 1 match goal with [G: Some _ = Some _ |- _] =>
     depdes G; ss
-  end);
+   end);
   try (rewrite -> !Any.pair_split in * );
   try (rewrite -> !Any.upcast_downcast in * );
+  try (rewrite -> !SAny.pair_split in * );
+  try (rewrite -> !SAny.upcast_downcast in * );
   (hrepeat do 1 alist_upd_simpl);
   hss_des;
   move_aux.

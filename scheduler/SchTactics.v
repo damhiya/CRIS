@@ -180,8 +180,7 @@ Section wsim.
     iFrame; iSplit; eauto. wsteps_l.
 
     wsteps_r. wcall "IST". wsteps_l. iDestruct "ASM" as "[[%ret' [-> Q]] ->]". hss.
-    wsteps_r. hss. wsteps_r.
-    apply SAny.downcast_upcast in G0. inv G0. rewrite SAny.upcast_downcast. hss. wstep_r.
+    wsteps_r. hss. wsteps_r. hss. wstep_r.
     iApply ("SIM" with "IST Q").
   Qed.
 End wsim.
