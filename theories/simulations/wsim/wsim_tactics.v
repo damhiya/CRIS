@@ -57,6 +57,10 @@ Notation "E1 '------------------------------------------------------------------
     (at level 50, only printing,
       format "E1 '------------------------------------------------------------------□' '//' E2 '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '-------------------------------wsim-------------------------------' '//' P  '-∗'  'WSIM' ").
 
+Notation "[○  E g ]" := (wsim_rel None _ _ E g) (at level 10).
+Notation "[◓  E g ]" := (wsim_rel (Some false) _ _ E g) (at level 10).
+Notation "[●  E g ]" := (wsim_rel (Some true) _ _ E g) (at level 10).
+
 Arguments difference : simpl never.
 
 Ltac wreplace_l :=
@@ -302,11 +306,10 @@ Ltac wyield hyps :=
   move_aux.
 
 Ltac wby_coind CIH :=
-  iApply wsim_progress; iApply wsim_base;
+  iApply wsim_progress; iApply wsim_base_t;
   iSpecialize (CIH $! _);
   (hrepeat do 1 first[instantiate (1:= (_,_))|instantiate (1:= existT _ _)]); s; grind;
   iApply CIH.
 
 Ltac winit_simF u_src u_tgt :=
   init_simF; iApply (wsim_init _ _ _ u_src u_tgt).
-

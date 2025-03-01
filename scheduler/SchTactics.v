@@ -122,10 +122,10 @@ Section wsim.
 
   Lemma wsim_yield_src r g scp_s ginv spc spc_user k_s i_t
       (SchInSpc : spc_incl (SchAS.spc υ spc_user) spc) :
-    wsim fl_s fl_t Ist (Some true) υ ν E r g R_s R_t RR true pt nths
+    wsim fl_s fl_t Ist t υ ν E r g R_s R_t RR true pt nths
       (st_s, k_s tt)
       (st_t, i_t)
-    ⊢ wsim fl_s fl_t Ist (Some true) υ ν E r g R_s R_t RR ps pt nths
+    ⊢ wsim fl_s fl_t Ist t υ ν E r g R_s R_t RR ps pt nths
       (st_s, (HMod.sandbox scp_s (interp_smod ginv spc Sch.yield)) >>= k_s)
       (st_t, i_t).
   Proof.

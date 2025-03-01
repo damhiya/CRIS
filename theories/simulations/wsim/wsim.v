@@ -58,10 +58,6 @@ Section wsim.
 
   (* TODO : abstraction into mixins *)
   (* TODO : hard-code nodup conditions *)
-  Local Definition wsim_rel υ (r : rel) : rel :=
-    λ R_s R_t RR ps pt nths '(st_s, i_s) '(st_t, i_t),
-      (wsim_ginv υ ⊤ ∗ r R_s R_t RR ps pt nths (st_s, i_s) (st_t, i_t))%I.
-
   Local Definition wsim_pre t υ ν E : iProp Σ :=
     match t with
     | None => True
@@ -69,13 +65,16 @@ Section wsim.
     | Some true => wsim_ginv υ E
     end.
 
+  Definition wsim_rel t υ ν E (r : rel) : rel :=
+    λ R_s R_t RR ps pt nths '(st_s, i_s) '(st_t, i_t),
+      (wsim_pre t υ ν E ∗ r R_s R_t RR ps pt nths (st_s, i_s) (st_t, i_t))%I.
+
   (* Simulation relation that corresponds to iris' weakest precondition *)
   Local Definition wsim_def
       fl_s fl_t Ist (t : option bool) υ ν E r g R_s R_t RR ps pt nths st_s st_t
       : iProp Σ :=
     wsim_pre t υ ν E -∗
-    @isim Σ open fl_s fl_t Ist (wsim_rel υ r) (wsim_rel υ g)
-      R_s R_t RR ps pt nths st_s st_t.
+    @isim Σ open fl_s fl_t Ist r g R_s R_t RR ps pt nths st_s st_t.
   Local Definition wsim_aux : seal (@wsim_def). Proof. by eexists. Qed.
   Definition wsim := wsim_aux.(unseal).
   Local Definition wsim_eq : @wsim = @wsim_def := wsim_aux.(seal_eq).
@@ -305,9 +304,15 @@ Section wsim.
       wsim t υ ν E r g R_s R_t RR true true nths (st_s, i_s) (st_t, i_t).
     Proof. unseal; iIntros "RR I". iApply isim_progress; iApply "RR"; iFrame. Qed.
 
-    Lemma wsim_base r g i_s i_t :
+    (* Lemma wsim_base r g i_s i_t :
       r R_s R_t RR ps pt nths (st_s, i_s) (st_t, i_t) ⊢
-      wsim (Some true) υ ν ⊤ r g R_s R_t RR ps pt nths
+      wsim t υ ν ⊤ r g R_s R_t RR ps pt nths
+        (st_s, i_s) (st_t, i_t).
+    Proof. unseal; iIntros "RR I". iApply isim_base; iFrame. Qed. *)
+
+    Lemma wsim_base_t r g i_s i_t :
+      r R_s R_t RR ps pt nths (st_s, i_s) (st_t, i_t) ⊢
+      wsim t υ ν ⊤ (wsim_rel t υ ν ⊤ r) g R_s R_t RR ps pt nths
         (st_s, i_s) (st_t, i_t).
     Proof. unseal; iIntros "RR I". iApply isim_base; iFrame. Qed.
 
@@ -316,12 +321,12 @@ Section wsim.
         P a -∗
         (□ ∀ R_s R_t RR ps pt nths0 src tgt,
           g R_s R_t RR ps pt nths0 src tgt -∗ g' R_s R_t RR ps pt nths0 src tgt) -∗
-        (□ ∀ a, P a -∗ g' (RA_s a) (RA_t a) (RRA a) (psA a) (ptA a) (nthsA a) (srcA a) (tgtA a)) -∗
-        wsim (Some true) υ ν ⊤ r g'
+        (□ ∀ a, P a -∗
+          g' (RA_s a) (RA_t a) (RRA a) (psA a) (ptA a) (nthsA a) (srcA a) (tgtA a)) -∗
+        wsim t υ ν ⊤ r (wsim_rel t υ ν ⊤ g')
           (RA_s a) (RA_t a) (RRA a) (psA a) (ptA a) (nthsA a) (srcA a) (tgtA a)) →
       ∀ (a : A), P a ⊢
-        wsim (Some true) υ ν ⊤ r g
-          (RA_s a) (RA_t a) (RRA a) (psA a) (ptA a) (nthsA a) (srcA a) (tgtA a).
+        wsim t υ ν ⊤ r g (RA_s a) (RA_t a) (RRA a) (psA a) (ptA a) (nthsA a) (srcA a) (tgtA a).
     Proof.
       unseal; intros H a; iIntros "P I"; iCombine "P I" as "P". iStopProof.
       (* rewrite /wsim_retcond *)
@@ -330,8 +335,7 @@ Section wsim.
       iPoseProof (H with "P [] [] I") as "H".
       { instantiate (1 :=
           (λ R_s R_t RR ps pt nths '(st_s, i_s) '(st_t, i_t),
-            wsim_ginv υ ⊤ -∗
-            g' R_s R_t RR ps pt nths (st_s, i_s) (st_t, i_t))%I).
+            wsim_pre t υ ν ⊤ -∗ g' R_s R_t RR ps pt nths (st_s, i_s) (st_t, i_t))%I).
         iModIntro; iIntros (????????) "G"; destruct src, tgt; iIntros "I". iApply Himpl. iFrame.
       }
       { iModIntro; iIntros (a') "P"; iSpecialize ("CIH" $! a'); destruct (srcA a'), (tgtA a').
@@ -339,7 +343,7 @@ Section wsim.
       }
       iApply (isim_mono_knowledge with "H"); ss.
       { iIntros (????????) "H"; iModIntro; iFrame. }
-      { iIntros (????????) "H !>"; destruct sti_src, sti_tgt; rewrite /wsim_rel.
+      { iIntros (????????) "H !>"; destruct sti_src, sti_tgt.
         iDestruct "H" as "[H1 H2]"; iApply "H2"; iFrame.
       }
     Qed.
@@ -673,10 +677,10 @@ Section wsim.
       unseal; iIntros "SIM"; ss; iPoseProof ("SIM" with "[]") as "SIM"; first done.
       iPoseProof (isim_mono_knowledge with "SIM") as "SIM".
       { instantiate (1:=ibot); i; iIntros "H"; rewrite /wsim_rel /ibot; destruct sti_src, sti_tgt.
-        iDestruct "H" as "[_ []]".
+        iDestruct "H" as "[]".
       }
       { instantiate (1:=ibot); i; iIntros "H"; rewrite /wsim_rel /ibot; destruct sti_src, sti_tgt.
-        iDestruct "H" as "[_ []]".
+        iDestruct "H" as "[]".
       }
       iFrame.
     Qed.

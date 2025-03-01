@@ -70,10 +70,18 @@ Module SpinLockMainA. Section SpinLockMainA.
       𝒴;;; 't2 : nat <- Sch.spawn ("incr", [l; v]↑↑);;
       𝒴;;; '_ : val <- Sch.join val t1;;
       𝒴;;; '_ : val <- Sch.join val t2;;
+      (ITree.iter
+        (λ _, 𝒴;;; 'x : bool <- trigger (Choose bool);; Ret (if x then inr tt else inl tt)) tt);;;
       𝒴;;; '_ : unit <- trigger (IO "printf" 2%Z);;
       𝒴;;; Ret tt.
 
-  Definition incr : list val → itree hmodE val := λ _, 𝒴;;; Ret Vundef.
+  Definition incr : list val → itree hmodE val :=
+    λ _,
+      (ITree.iter (λ _,
+        𝒴;;; 'x : bool <- trigger (Choose bool);;
+        Ret (if x then inr tt else inl tt)
+      ) tt);;;
+      Ret Vundef.
 
   Definition fnsems u :=
     [(SpinLockMainName.main, (scopes, mk_specbody (SpinLockMainAS.main_spec u) (cfunN main)));

@@ -33,12 +33,20 @@ Module SpinLockMainIA. Section SpinLockMainIA.
     rename q2 into γ_v, q4 into ofs_v, q6 into blk_v, q7 into blk_l, q8 into ofs_l.
     wsteps_l. rewrite SAny.upcast_downcast. wsteps_l. rewrite /SpinLockMainA.incr. wsteps_l.
     wsteps_r. rewrite SAny.upcast_downcast. wsteps_r. rewrite /SpinLockMainI.incr. wsteps_r.
+    unfold_iter_l. wsteps_l.
     sch_yield_r. iSplitL "IST"; ss; clear nths; iIntros (nths st_s st_t) "IST".
     wsteps_r. sch_yield_r. iSplitL "IST"; ss; clear nths st_s st_t; iIntros (nths st_s st_t) "IST".
     winline_r. wforce_r (γ_l, Vptr blk_l ofs_l, existT 0 (lock_P (blk_v, ofs_v) γ_v)).
     wsteps_r. wforces_r.
     iSplit; eauto. hss. wsteps_r.
+    sch_yield_l. wforce_l false. wsteps_l.
+    iApply wsim_reset. iStopProof. revert nths. combine_quant st_s. combine_quant st_t.
+    eapply wsim_coind.
+    iIntros (g' [st_t [st_s nths]]) "[#I [F IST]] _ #CIH".
+    unfold_iter_r. unfold_iter_l. wsteps_l. wsteps_r.
     sch_yield_r. iSplitL "IST"; ss; clear nths st_s st_t; iIntros (nths st_s st_t) "IST".
+    wsteps_r. destruct q; cycle 1.
+    { wsteps_r. sch_yield_l. wforce_l false. wsteps_l. wby_coind "CIH". iFrame. done. }
     wsteps_r. iDestruct "GRT" as "[[_ [TKN P]] <-]". hss. wsteps_r.
     sch_yield_r. iSplitL "IST"; ss; clear nths st_s st_t; iIntros (nths st_s st_t) "IST".
     rewrite /lock_P; SL_red; iDestruct "P" as "[%x P]"; SL_red; iDestruct "P" as "[PT C]".
@@ -63,7 +71,7 @@ Module SpinLockMainIA. Section SpinLockMainIA.
     wsteps_r. iDestruct "GRT" as "[-> _]". hss. wsteps_r.
     sch_yield_r. iSplitL "IST"; ss; clear nths st_s st_t; iIntros (nths st_s st_t) "IST".
     wsteps_r.
-    sch_yield_l. wsteps_l. wforces_l. iFrame; iSplit; eauto.
+    sch_yield_l. wsteps_l. wforce_l true. wsteps_l. wforces_l. iFrame; iSplit; eauto.
     wsteps_l. wstep. iFrame. eauto.
   Qed.
 
@@ -119,11 +127,20 @@ Module SpinLockMainIA. Section SpinLockMainIA.
     sch_join; iFrame.
     clear nths st_s st_t; iIntros (nths st_s st_t ret2) "IST W2 /=".
     wsteps_l. wsteps_r.
+    unfold_iter_l. wsteps_l.
     sch_yield_r. iSplitL "IST"; ss; clear nths st_s st_t; iIntros (nths st_s st_t) "IST".
+    sch_yield_l. wforce_l false. wsteps_l.
     winline_r. wforce_r (γ_l, Vptr b_l o_l, existT 0 (lock_P (blk, 0%Z) γ)). wforces_r.
     iSplit; eauto.
     wsteps_r. hss. wsteps_r.
+    (* lock acquire coinduction *)
+    iApply wsim_reset. iStopProof. revert nths. combine_quant st_s. combine_quant st_t.
+    eapply wsim_coind.
+    iIntros (g' [st_t [st_s nths]]) "[#I [W1 [W2 IST]]] _ #CIH /=".
+    unfold_iter_r. unfold_iter_l. wsteps_r.
     sch_yield_r. iSplitL "IST"; ss; clear nths st_s st_t; iIntros (nths st_s st_t) "IST".
+    wsteps_r. destruct q; cycle 1.
+    { wsteps_r. sch_yield_l. wforce_l false. wsteps_l. wby_coind "CIH". iFrame. ss. }
     wsteps_r. iDestruct "GRT" as "[[-> [TKN P]] _]". hss. wsteps_r.
     SL_red. iCombine "W1 W2" as "W". iDestruct "P" as "[%x P]"; SL_red; iDestruct "P" as "[PT B]".
     iCombine "B W" gives %WF%frac_auth_agree. inv WF.
@@ -139,7 +156,8 @@ Module SpinLockMainIA. Section SpinLockMainIA.
     sch_yield_r. iSplitL "IST"; ss; clear nths st_s st_t; iIntros (nths st_s st_t) "IST".
     wsteps_r. iDestruct "GRT" as "[-> _]". hss. wsteps_r.
     sch_yield_r. iSplitL "IST"; ss; clear nths st_s st_t; iIntros (nths st_s st_t) "IST".
-    sch_yield_l. wsteps_l. wstep.
+    sch_yield_l. wforce_l true. wsteps_l.
+    sch_yield_l. wstep.
     wsteps_l. wsteps_r.
     sch_yield_r. iSplitL "IST"; ss; clear nths st_s st_t; iIntros (nths st_s st_t) "IST". wsteps_r.
     sch_yield_l. wsteps_l. wforces_l. iSplit; eauto. wsteps_l. wstep.
