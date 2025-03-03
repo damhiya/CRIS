@@ -23,16 +23,16 @@ Module RepeatIA. Section RepeatIA.
   Hypothesis repeatInSpcPure: SpcPure RepeatName.repeat = Some (RepeatAS.repeat_spec SpcPureFun genv). (* to avoid recursive definition of SpcPure *)
 
   (* Modules *)
-  Local Notation APCA := (APCA.t u SpcPure Spc).
-  Local Notation RepeatI := (RepeatI.t genv).
-  Local Notation RepeatA := (RepeatA.t genv u Spc SpcPureFun).
-  Local Notation RepeatIMod := (RepeatI ★ APCA).
-  Local Notation RepeatAMod := (RepeatA ★ APCA).
+  Local Definition APCA := (APCA.t u SpcPure Spc).
+  Local Definition RepeatI := (RepeatI.t genv).
+  Local Definition RepeatA := (RepeatA.t genv u Spc SpcPureFun).
+  Local Definition RepeatIMod := (RepeatI ★ APCA).
+  Local Definition RepeatAMod := (RepeatA ★ APCA).
 
   (* IST *)
   Definition Ist : nat → alist key Any.t → alist key Any.t → iProp :=
     (λ _ st_src st_tgt, emp%I).
-  Local Notation IstFull := (IstProd (IstSB RepeatA.(HMod.scopes) Ist) IstEq).
+  Local Definition IstFull := (IstProd (IstSB RepeatA.(HMod.scopes) Ist) IstEq).
 
   (* tactic to simplify meta/precond/postcond for fspecs *)
   Ltac _fspec_simpl_core := unfold SMod2HMod.meta, SMod2HMod.precond, SMod2HMod.postcond in *; simpl in *.
@@ -139,4 +139,5 @@ Module RepeatIA. Section RepeatIA.
     eapply main_adequacy.
     eapply RepeatIA.sim; et.
   Qed.
+
 End RepeatIA. End RepeatIA.

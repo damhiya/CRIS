@@ -4,7 +4,7 @@ Require Import MutHeader MutMainHeader MutFA MutGA MutMainA.
 Require Import MutFI MutGI MutMainI.
 Require Import MutIAproof MutMainIAproof.
 
-Module MutAll. Section MutAll.
+Module MutAll.
   Import inv_instances.
   Local Instance Γ : HRA := ##[invΓ].
   Local Instance Σ : GRA := ##[invΣ; Γ].
@@ -75,5 +75,5 @@ Module MutAll. Section MutAll.
     { econs; ss; try prove_nodup. }
     { exists x; des; eauto. }
   Qed.
-End MutAll. End MutAll.
+End MutAll.
 (* Print Assumptions MutAll.behavioral_refinement. *)

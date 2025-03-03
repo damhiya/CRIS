@@ -559,7 +559,22 @@ Ltac hide_flist :=
     set (FLS := fls); set (FLT := flt)
   end.
 
+Ltac kill_trivial :=
+  match goal with |-?T => match type of T with Prop => econs; fail end end.
+
+Ltac clear_trivials :=
+  (hrepeat do 1
+   lazymatch goal with H: ?T |-_ =>
+     revert H; 
+     try match type of T with Prop =>
+       let TMP := fresh "TMP" in
+       assert (TMP: T) by (econs; fail); clear TMP; intros []; []
+     end
+   end);
+  i.
+
 Ltac pre_simF :=
+  clear_trivials;
   unfold HSim.sim_fun; i;
   match goal with [H: _|-_] => revert H end;
   hide_flist.

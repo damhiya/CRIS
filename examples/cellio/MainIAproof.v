@@ -15,9 +15,9 @@ Module MainIA. Section MainIA.
   Hypothesis FooInSpcMap: spc_incl FooAS.Spc Spc.
   Hypothesis InputInSpc: spc_incl InputAS.Spc Spc.
 
-  Local Notation CellioA := (CellioA.t u_s Spc).
-  Local Notation MainA := (MainA.t u_s Spc).
-  Local Notation IstFull := (IstProd (IstSB MainA.(HMod.scopes) Ist) IstEq).
+  Local Definition CellioA := (CellioA.t u_s Spc).
+  Local Definition MainA := (MainA.t u_s Spc).
+  Local Definition IstFull := (IstProd (IstSB MainA.(HMod.scopes) Ist) IstEq).
 
   Lemma simF_main:
     HSim.sim_fun open (MainA ★ CellioA) (MainI.t ★ CellioA) IstFull MainName.main.

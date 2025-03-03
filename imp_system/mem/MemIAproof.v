@@ -8,9 +8,8 @@ Local Open Scope nat_scope.
 
 Section AUX.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !memGΓ Γ}.
-  Notation iProp := (iProp Σ).
 
-  Fixpoint is_list (ll: val) (xs: list val): iProp :=
+  Fixpoint is_list (ll: val) (xs: list val): iProp Σ :=
     match xs with
     | [] => (⌜ll = Vnullptr⌝)%I
     | xhd :: xtl =>
@@ -46,7 +45,6 @@ Ltac Ztac := all_once_fast ltac:(fun H => first[apply Z.leb_le in H|apply Z.ltb_
 
 Section AUX2.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !memGΓ Γ}.
-  Notation iProp := (iProp Σ).
   
   Lemma repeat_nth_some
   X (x: X) sz ofs
@@ -224,7 +222,6 @@ End RA.
 
 Module MemIA. Section MemIA.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !memGΓ Γ}.
-  Notation iProp := (iProp Σ).
 
   Variable csl: string -> bool.
   Variable genv: GEnv.t.
@@ -232,7 +229,7 @@ Module MemIA. Section MemIA.
   Variable Spc: string -> option fspec.
   Hypothesis MemInSpcMem: spc_incl MemA.Spc Spc.
 
-  Definition Ist: nat -> alist key Any.t -> alist key Any.t -> iProp :=
+  Definition Ist: nat -> alist key Any.t -> alist key Any.t -> iProp Σ :=
     fun _ st_src st_tgt =>
       ( (∃ (mem_tgt: Mem.t) (memk_src: _memRA),
         (⌜(<<TGT: st_tgt = [(MemI.v_mem, mem_tgt↑)] >>) ∧
@@ -243,9 +240,9 @@ Module MemIA. Section MemIA.
         (own base_γ ((● (memk_src : _memRA)): memRA))
       ))%I.
 
-  Local Notation MemA := (MemA.t u Spc).
-  Local Notation MemI := (MemI.t csl genv).
-  Local Notation IstFull := (IstProd (IstSB MemA.(HMod.scopes) Ist) IstEq).
+  Local Definition MemA := (MemA.t u Spc).
+  Local Definition MemI := (MemI.t csl genv).
+  Local Definition IstFull := (IstProd (IstSB MemA.(HMod.scopes) Ist) IstEq).
 
   Lemma simF_alloc:
     HSim.sim_fun open MemA MemI IstFull MemName.alloc.
@@ -847,14 +844,15 @@ Module MemIA. Section MemIA.
     HSim.t open MemA MemI (MemA.InitCond csl genv) IstFull.
   Proof.
     init_sim.
-    - iIntros "P". iExists [], [_], [], []. repeat iSplit; et. et. { iPureIntro. ss. }
-     iExists _, _. iFrame. iPureIntro. esplits; et.
-    + ii. unfold mem_init_val, sim_loc. des_ifs; hss; uo. des_ifs; hss; ii; try econs; des_ifs; hss.
-      des_ifs; hss. destruct ofs; ss. des_ifs. hss. des_ifs; hss. des_ifs. des_ifs.          
-    + unfold Mem.load_mem, mem_wf. ii. cbn. uo. r. unfold Mem.cnts in H. des_ifs.
-      destruct (nth_error genv b) eqn:E; ss. destruct p. r. gen genv. induction b.
-      * i. destruct genv0; ss. nia.
-      * i. apply nth_error_Some. rewrite E. ss.  
+    - rewrite /IstFull /MemA /MemI. unfold_hmod. s.
+      iIntros "P". iExists [], [_], [], []. repeat iSplit; et. et. { iPureIntro. ss. }
+      iExists _, _. iFrame. iPureIntro. esplits; et.
+      + ii. unfold mem_init_val, sim_loc. des_ifs; hss; uo. des_ifs; hss; ii; try econs; des_ifs; hss.
+        des_ifs; hss. destruct ofs; ss. des_ifs. hss. des_ifs; hss. des_ifs. des_ifs.          
+      + unfold Mem.load_mem, mem_wf. ii. cbn. uo. r. unfold Mem.cnts in H. des_ifs.
+        destruct (nth_error genv b) eqn:E; ss. destruct p. r. gen genv. induction b.
+        * i. destruct genv0; ss. nia.
+        * i. apply nth_error_Some. rewrite E. ss.  
     - apply simF_alloc.
     - apply simF_free.
     - apply simF_load.

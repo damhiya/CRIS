@@ -18,8 +18,8 @@ Module CannonMainIA. Section CannonMainIA.
   Variable SpcMain : string → option fspec.
   Hypothesis CannonInSpcMain : spc_incl CannonAS.Spc SpcMain.
 
-  Local Notation MainAMod := (MainA.t 1 u SpcMain).
-  Local Notation MainIMod := (MainI.t 1).
+  Local Definition MainAMod := (MainA.t 1 u SpcMain).
+  Local Definition MainIMod := (MainI.t 1).
   
   Lemma simF_main : HSim.sim_fun open MainAMod MainIMod Ist MainName.main.
   Proof.

@@ -27,11 +27,11 @@ Module APCAC. Section APCAC.
       SpcPure fn = Some pfsp 
       → ∃ scopes, find_body md fn = Some (pure_specbody scopes u SpcA pfsp).
 
-  Local Notation APCC := (APCC.t u SpcC).
-  Local Notation APCA := (APCA.t u SpcPure SpcA).
-  Local Notation APCCMod := (APCC ★ md).
-  Local Notation APCAMod := (APCA ★ md).
-  Local Notation IstFull := (IstProd (IstSB APCC.(HMod.scopes) Ist) IstEq).
+  Local Definition APCC := (APCC.t u SpcC).
+  Local Definition APCA := (APCA.t u SpcPure SpcA).
+  Local Definition APCCMod := (APCC ★ md).
+  Local Definition APCAMod := (APCA ★ md).
+  Local Definition IstFull := (IstProd (IstSB APCC.(HMod.scopes) Ist) IstEq).
 
   Local Transparent _APC.
 

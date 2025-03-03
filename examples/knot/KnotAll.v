@@ -5,7 +5,7 @@ Require Import KnotHeader KnotMainHeader KnotI KnotMainI.
 Require Import KnotA KnotMainA.
 Require Import KnotIAproof KnotMainIAproof.
 
-Module KnotAll. Section KnotAll.
+Module KnotAll.
   Import inv_instances.
   Local Instance Γ : HRA := ##[invΓ; memΓ; KnotAΓ].
   Local Instance Σ : GRA := ##[invΣ; Γ].
@@ -220,5 +220,5 @@ Module KnotAll. Section KnotAll.
     { econs; ss; try prove_nodup. }
     { exists x; des; eauto. }
   Qed.
-End KnotAll. End KnotAll.
+End KnotAll.
 (* Print Assumptions KnotAll.behavioral_refinement. *)

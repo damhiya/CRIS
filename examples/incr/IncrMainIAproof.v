@@ -17,12 +17,12 @@ Module IncrIA. Section IncrIA.
   Context (MemInSpc : spc_incl MemA.Spc spc_s).
   Context (MainInSpc : spc_incl (IncrMainAS.spc u_s) spc_user_s).
 
-  Local Notation MemA := (MemA.t u_s spc_mem).
-  Local Notation IncrMainA := (IncrMainA.t u_s spc_s).
-  Local Notation IncrMainI := (IncrMainI.t).
-  Local Notation IstFull := (IstProd (IstSB IncrMainA.(HMod.scopes) Ist) IstEq).
-  Local Notation MA := (IncrMainA ★ MemA).
-  Local Notation MI := (IncrMainI ★ MemA).
+  Local Definition MemA := (MemA.t u_s spc_mem).
+  Local Definition IncrMainA := (IncrMainA.t u_s spc_s).
+  Local Definition IncrMainI := (IncrMainI.t).
+  Local Definition IstFull := (IstProd (IstSB IncrMainA.(HMod.scopes) Ist) IstEq).
+  Local Definition MA := (IncrMainA ★ MemA).
+  Local Definition MI := (IncrMainI ★ MemA).
 
   Lemma f_simF : HSim.sim_fun open MA MI IstFull MainName.f.
   Proof.

@@ -10,7 +10,6 @@ Set Implicit Arguments.
 Module AddIA. Section AddIA.
   Import AddAS APC APCA.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
-  Notation iProp := (iProp Σ).
 
   Variable genv: GEnv.t.
   Variable Spc: string → option fspec.
@@ -28,18 +27,18 @@ Module AddIA. Section AddIA.
   Hypothesis succInSpcPureFun: SpcPureFun AddName.succ = Some AddAS.succ_spec.
 
   (* Modules *)
-  Local Notation APCA := (APCA.t SpcPure Spc).
-  Local Notation RepeatA := (RepeatA.t genv Spc SpcPureFun).
-  Local Notation RepeatAMod := (RepeatA ★ APCA).
-  Local Notation AddI := (AddI.t genv).
-  Local Notation AddA := (AddA.t Spc).
-  Local Notation AddIMod := (AddI ★ RepeatAMod).
-  Local Notation AddAMod := (AddA ★ RepeatAMod).
+  Local Definition APCA := (APCA.t SpcPure Spc).
+  Local Definition RepeatA := (RepeatA.t genv Spc SpcPureFun).
+  Local Definition RepeatAMod := (RepeatA ★ APCA).
+  Local Definition AddI := (AddI.t genv).
+  Local Definition AddA := (AddA.t Spc).
+  Local Definition AddIMod := (AddI ★ RepeatAMod).
+  Local Definition AddAMod := (AddA ★ RepeatAMod).
 
   (* IST *)
   Definition Ist : nat → alist key Any.t → alist key Any.t → iProp :=
     (λ _ st_src st_tgt, emp%I).
-  Local Notation IstFull := (IstProd (IstSB AddA.(HMod.scopes) Ist) IstEq).
+  Local Definition IstFull := (IstProd (IstSB AddA.(HMod.scopes) Ist) IstEq).
 
   (* tactic to simplify meta/precond/postcond for fspecs *)
   Ltac _fspec_simpl_core := unfold SMod2HMod.meta, SMod2HMod.precond, SMod2HMod.postcond in *; simpl in *.

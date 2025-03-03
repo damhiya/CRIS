@@ -21,8 +21,8 @@ Module CellioIA. Section CellioIA.
     λ _ st_src st_tgt,
       (∃ v, ⌜st_tgt = [(CellioI.v_cv, v↑)]⌝ ∗ auth v)%I.
 
-  Local Notation CellioI := (CellioI.t).
-  Local Notation CellioA := (CellioA.t u_s Spc_s).
+  Local Definition CellioI := (CellioI.t).
+  Local Definition CellioA := (CellioA.t u_s Spc_s).
 
   Lemma simF_set : HSim.sim_fun open CellioA CellioI Ist CellioName.set.
   Proof.

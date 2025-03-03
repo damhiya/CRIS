@@ -78,11 +78,11 @@ Module MapIM. Section MapIM.
   Context (spc_s spc_mem : string → option fspec).
   Context (MapInSpc : spc_incl (MapMS.spc u_s) spc_s).
 
-  Local Notation MemA := (MemA.t u_s spc_mem).
-  Local Notation MapM := (MapM.t u_s spc_s).
-  Local Notation MapMMod := (MapM ★ MemA).
-  Local Notation MapIMod := (MapI.t ★ MemA).
-  Local Notation IstFull := (IstProd (IstSB MapM.(HMod.scopes) Ist) IstEq).
+  Local Definition MemA := (MemA.t u_s spc_mem).
+  Local Definition MapM := (MapM.t u_s spc_s).
+  Local Definition MapMMod := (MapM ★ MemA).
+  Local Definition MapIMod := (MapI.t ★ MemA).
+  Local Definition IstFull := (IstProd (IstSB MapM.(HMod.scopes) Ist) IstEq).
 
   Lemma simF_init : HSim.sim_fun open MapMMod MapIMod IstFull MapName.init.
   Proof.

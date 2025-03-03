@@ -44,12 +44,12 @@ Module KnotIA. Section KnotIA.
   Hypothesis FunInPure: spc_sub SpcFun SpcPure.
   Hypothesis PureInSpc : spc_sub SpcPure Spc.
 
-  Local Notation APCA := (APCA.t u SpcPure Spc).
-  Local Notation MemA := (MemA.t u SpcMem).
-  Local Notation KnotA := (KnotA.t genv u SpcRec SpcFun Spc).
-  Local Notation KnotAMod := (KnotA ★ MemA ★ APCA).
-  Local Notation KnotIMod := ((KnotI.t genv) ★ MemA ★ APCA).
-  Local Notation IstFull := (IstProd (IstSB KnotA.(HMod.scopes) Ist) IstEq).
+  Local Definition APCA := (APCA.t u SpcPure Spc).
+  Local Definition MemA := (MemA.t u SpcMem).
+  Local Definition KnotA := (KnotA.t genv u SpcRec SpcFun Spc).
+  Local Definition KnotAMod := (KnotA ★ MemA ★ APCA).
+  Local Definition KnotIMod := ((KnotI.t genv) ★ MemA ★ APCA).
+  Local Definition IstFull := (IstProd (IstSB KnotA.(HMod.scopes) Ist) IstEq).
   
   (*************)
 

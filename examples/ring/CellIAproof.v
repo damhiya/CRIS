@@ -23,8 +23,8 @@ Module CellIA. Section CellIA.
 
   Variable SpcCell : string -> option fspec.
 
-  Local Notation CellA := (CellA.t idx SpcCell).
-  Local Notation CellI := (CellI.t idx).
+  Local Definition CellA := (CellA.t idx SpcCell).
+  Local Definition CellI := (CellI.t idx).
 
   Lemma simF_get : HSim.sim_fun open CellA CellI Ist (CellName.get idx).
   Proof.

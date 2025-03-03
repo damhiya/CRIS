@@ -16,12 +16,12 @@ Module SpinLockIA. Section SpinLockIA.
 
   Definition Ist : nat → alist key Any.t → alist key Any.t → iProp Σ := λ _ _ _, emp%I.
 
-  Local Notation MemA := (MemA.t u_a spc_mem).
-  Local Notation SpinLockA := (SpinLockA.t u_a spc_s).
-  Local Notation SpinLockI := (SpinLockI.t).
-  Local Notation IstFull := (IstProd (IstSB SpinLockA.(HMod.scopes) Ist) IstEq).
-  Local Notation MA := (SpinLockA ★ MemA).
-  Local Notation MI := (SpinLockI ★ MemA).
+  Local Definition MemA := (MemA.t u_a spc_mem).
+  Local Definition SpinLockA := (SpinLockA.t u_a spc_s).
+  Local Definition SpinLockI := (SpinLockI.t).
+  Local Definition IstFull := (IstProd (IstSB SpinLockA.(HMod.scopes) Ist) IstEq).
+  Local Definition MA := (SpinLockA ★ MemA).
+  Local Definition MI := (SpinLockI ★ MemA).
 
   Lemma newlock_simF : HSim.sim_fun open MA MI IstFull SpinLockName.newlock.
   Proof.

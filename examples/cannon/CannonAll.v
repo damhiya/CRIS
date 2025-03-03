@@ -5,7 +5,7 @@ Require Import CannonA CannonMainA.
 Require Import CannonIAproof CannonMainIAproof.
 Require Import ElimRel SModCancel Cancellation.
 
-Module CannonAll. Section CannonAll.
+Module CannonAll.
   Import inv_instances.
   Local Instance Γ : HRA := ##[invΓ; CannonAΓ].
   Local Instance Σ : GRA := ##[invΣ; Γ].
@@ -83,5 +83,5 @@ Module CannonAll. Section CannonAll.
     { econs; ss; try prove_nodup. }
     { exists x; des; eauto. }
   Qed.
-End CannonAll. End CannonAll.
+End CannonAll.
 (* Print Assumptions CannonAll.behavioral_refinement. *)

@@ -16,9 +16,9 @@ Module MutMainIA. Section MutMainIA.
   Variable Spc: string -> option fspec.
   Hypothesis FInSpc: spc_incl MutFA.SpcF Spc.
 
-  Local Notation MutMainAMod := ((MutMainA.t Spc) ★ (MutFA.t Spc)).
-  Local Notation MutMainIMod := ((MutMainI.t) ★ (MutFA.t Spc)).
-  Local Notation IstFull := (IstProd (IstSB (MutMainA.t Spc).(HMod.scopes) Ist) IstEq).
+  Local Definition MutMainAMod := ((MutMainA.t Spc) ★ (MutFA.t Spc)).
+  Local Definition MutMainIMod := ((MutMainI.t) ★ (MutFA.t Spc)).
+  Local Definition IstFull := (IstProd (IstSB (MutMainA.t Spc).(HMod.scopes) Ist) IstEq).
   
   (*************)
 

@@ -18,15 +18,15 @@ Module CtrlIA. Section CtrlIA.
   Variable SpcR : string -> option fspec.
   Variable SpcC : string -> option fspec.
 
-  Local Notation CellA := (fun idx => CellA.t idx SpcC).
+  Local Definition CellA := (fun idx => CellA.t idx SpcC).
   Definition CellG start len : HMod.t :=
     HMod.addL (List.map CellA (seq start len)).
-  Local Notation CellGS := (CellG 0 max_size).
+  Local Definition CellGS := (CellG 0 max_size).
 
-  Local Notation RingA := (RingA.t max_size SpcR).
-  Local Notation CtrlI := (CtrlI.t max_size).
-  Local Notation RingAMod := (RingA ★ CellGS).
-  Local Notation RingIMod := (CtrlI ★ CellGS).
+  Local Definition RingA := (RingA.t max_size SpcR).
+  Local Definition CtrlI := (CtrlI.t max_size).
+  Local Definition RingAMod := (RingA ★ CellGS).
+  Local Definition RingIMod := (CtrlI ★ CellGS).
 
   (* Auxiliary Lemmas *)
   Lemma cellgroup_split idx start len (RANGE : start <= idx < start + len):

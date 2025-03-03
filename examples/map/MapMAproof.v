@@ -29,8 +29,8 @@ Module MapMA. Section MapMA.
             ∗ auth_allocated f
             ∗ auth_unallocated sz))%I.
 
-  Local Notation MapA := (MapA.t u_a n ginv_s Spc_s ).
-  Local Notation MapM := (MapM.t u_m n ginv_t Spc_t ).
+  Local Definition MapA := (MapA.t u_a n ginv_s Spc_s ).
+  Local Definition MapM := (MapM.t u_m n ginv_t Spc_t ).
 
   Lemma simF_init : HSim.sim_fun open MapA MapM Ist MapName.init.
   Proof.

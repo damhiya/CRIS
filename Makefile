@@ -1,10 +1,7 @@
 COQMODULE    := CRIS
 COQTHEORIES  := $(shell find . -not -path "./deprecated/*" -not -path "./_opam/*" -iname '*.v')
 
-.PHONY: all proof proof-quick graph
-
-all:
-	$(MAKE) proof
+.PHONY: all all-quick
 
 %.vo: %.v
 	$(MAKE) -f Makefile.coq $@
@@ -12,35 +9,46 @@ all:
 %.vos: %.v
 	$(MAKE) -f Makefile.coq $@
 
-proof-quick: Makefile.coq $(COQTHEORIES)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(COQTHEORIES))
-
-proof: Makefile.coq $(COQTHEORIES)
+all: Makefile.coq $(COQTHEORIES)
 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(COQTHEORIES))
+all-quick: Makefile.coq $(COQTHEORIES)
+	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(COQTHEORIES))
 
 theories_files  := $(shell find theories -iname '*.v')
 theories: Makefile.coq $(theories_files)
 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(theories_files))
+theories-quick: Makefile.coq $(theories_files)
+	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(theories_files))
 
 scheduler_files  := $(shell find scheduler -iname '*.v')
 scheduler: Makefile.coq $(scheduler_files)
 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(scheduler_files))
+scheduler-quick: Makefile.coq $(scheduler_files)
+	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(scheduler_files))
 
 apc_files  := $(shell find apc -iname '*.v')
 apc: Makefile.coq $(apc_files)
 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(apc_files))
+apc-quick: Makefile.coq $(apc_files)
+	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(apc_files))
 
 imp_system_files := $(shell find imp_system -iname '*.v')
 imp_system: Makefile.coq $(imp_system_files)
 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(imp_system_files))
+imp_system-quick: Makefile.coq $(imp_system_files)
+	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(imp_system_files))
 
 examples_files  := $(shell find examples -iname '*.v')
 examples: Makefile.coq $(examples_files)
 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(examples_files))
+examples-quick: Makefile.coq $(examples_files)
+	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(examples_files))
 
 extract_files  := $(shell find extract -iname '*.v')
 extract: Makefile.coq $(extract_files)
 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(extract_files))
+extract-quick: Makefile.coq $(extract_files)
+	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(extract_files))
 
 Makefile.coq: Makefile $(COQTHEORIES)
 	(echo "-arg -w -arg -deprecated-hint-without-locality"; \

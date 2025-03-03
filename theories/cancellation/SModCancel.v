@@ -53,11 +53,8 @@ End Cancel.
 End SModCancel.
 
 Module SCancelRed.
-Section RED.
 
-  Context `{Σ : GRA}.
-
-  Lemma bind
+  Lemma bind `{Σ : GRA}
         (R S: Type)
         
         (s : itree hmodE R) (k : R -> itree hmodE S)
@@ -69,7 +66,7 @@ Section RED.
     unfold interp_smod_cancel in *. grind.
   Qed.
 
-  Lemma tau
+  Lemma tau `{Σ : GRA}
         (U : Type)
         (t : itree _ U)
         
@@ -81,7 +78,7 @@ Section RED.
     unfold interp_smod_cancel in *. grind.
   Qed.
 
-  Lemma ret
+  Lemma ret `{Σ : GRA}
         (U: Type)
         (t: U)
         
@@ -93,7 +90,7 @@ Section RED.
     unfold interp_smod_cancel in *. grind.
   Qed.
 
-  Lemma sch
+  Lemma sch `{Σ : GRA}
         (R: Type)
         (i: schE R)
         
@@ -105,7 +102,7 @@ Section RED.
     unfold interp_smod_cancel in *. rewrite interp_trigger. grind.
   Qed.
   
-  Lemma call
+  Lemma call `{Σ : GRA}
         (R: Type)
         (i: callE R)
         
@@ -117,7 +114,7 @@ Section RED.
     unfold interp_smod_cancel in *. rewrite interp_trigger. grind.
   Qed.
 
-  Lemma pg
+  Lemma pg `{Σ : GRA}
         (R: Type)
         (i: pgE R)
         
@@ -129,7 +126,7 @@ Section RED.
     unfold interp_smod_cancel. rewrite interp_trigger. grind.
   Qed.
 
-  Lemma core
+  Lemma core `{Σ : GRA}
         (R: Type)
         (i: coreE R)
         
@@ -141,7 +138,7 @@ Section RED.
     unfold interp_smod_cancel. rewrite interp_trigger. grind.
   Qed.
 
-  Lemma ag {A} (e: agE A)
+  Lemma ag `{Σ : GRA} {A} (e: agE A)
         
     :
       interp_smod_cancel (trigger e)
@@ -151,7 +148,7 @@ Section RED.
     unfold interp_smod_cancel. rewrite interp_trigger. grind.
   Qed.
   
-  Lemma unwrapU 
+  Lemma unwrapU `{Σ : GRA}
         (R: Type)
         (i: option R)
         
@@ -164,7 +161,7 @@ Section RED.
     unfold triggerUB in *. rewrite unfold_interp. grind.
   Qed.
 
-  Lemma unwrapN
+  Lemma unwrapN `{Σ : GRA}
         (R: Type)
         (i: option R)
         
@@ -177,7 +174,7 @@ Section RED.
     unfold triggerNB in *. rewrite unfold_interp. grind.
   Qed.
   
-  Lemma asm
+  Lemma asm `{Σ : GRA}
         P
     : 
       interp_smod_cancel (assume P)
@@ -187,7 +184,7 @@ Section RED.
     unfold assume. rewrite bind. rewrite core. grind. rewrite ret. refl.
   Qed. 
 
-  Lemma grt
+  Lemma grt `{Σ : GRA}
         P
     : 
       interp_smod_cancel (guarantee P)
@@ -197,5 +194,4 @@ Section RED.
     unfold guarantee. rewrite bind. rewrite core. grind. rewrite ret. refl.
   Qed.
 
-End RED.
 End SCancelRed.

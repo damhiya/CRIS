@@ -8,17 +8,14 @@ Set Implicit Arguments.
 Module MutIA. Section MutIA.
   Import MutAUX.
   Context {Σ: GRA}.
-  Notation iProp := (iProp Σ).
-
-  Definition Ist: nat -> alist key Any.t -> alist key Any.t -> iProp :=
-    λ _ _ _, (True)%I.
 
   Variable Spc: string -> option fspec.
 
-  Local Notation MutFA := (MutFA.t Spc).
-  Local Notation MutGA := (MutGA.t Spc).
-  Local Notation MutAMod := (MutFA ★ MutGA).
-  Local Notation MutIMod := (MutFI.t ★ MutGI.t).
+  Definition Ist: nat -> alist key Any.t -> alist key Any.t -> iProp Σ :=
+    λ _ _ _, (True)%I.
+
+  Local Definition MutAMod := (MutFA.t Spc ★ MutGA.t Spc).  
+  Local Definition MutIMod := (MutFI.t ★ MutGI.t).
   
   (*************)
 
@@ -257,24 +254,27 @@ Module MutIA. Section MutIA.
     { eapply mut_max_intrange_sub1. nia. }
   Qed.
 
-  Theorem sim:
-    HSim.t open MutAMod MutIMod (MutFA.InitCond ∗ MutGA.InitCond) Ist.
+  End MutIA.   
+
+  Theorem sim `{Σ: GRA} Spc:
+    HSim.t open (MutIA.MutAMod Spc) MutIMod (MutFA.InitCond ∗ MutGA.InitCond) Ist.
   Proof.
+    rewrite /MutIMod /MutAMod.
     init_sim.
     - iIntros "IC". ss.
-    - exists []; unfold MutFI.t, MutGI.t, MutFA, MutGA; unseal CRIS; ss.
-    - unfold MutFI.t, MutGI.t in IN. revert IN. unseal CRIS. i; ss; des; ss.
-      { subst. eapply simF_mutf; eauto. }
-      { subst. eapply simF_mutg; eauto. }
+    - repeat (unfold_hmod; s). rewrite /MutGI.scopes /MutGA.scopes.
+      prove_sub_perm.
+    - eapply simF_mutf; eauto.
+    - eapply simF_mutg; eauto.
   Qed.
 
-  Theorem correct:
+  Theorem correct `{Σ: GRA} Spc:
     ctx_refines
-      (MutAMod, (MutFA.InitCond ∗ MutGA.InitCond)%I)
+      (MutAMod Spc, (MutFA.InitCond ∗ MutGA.InitCond)%I)
       (MutIMod, emp%I).
   Proof.
     eapply main_adequacy.
     eapply sim.
   Qed.
 
-End MutIA. End MutIA.
+End MutIA.

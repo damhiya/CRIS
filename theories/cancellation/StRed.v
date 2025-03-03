@@ -3,7 +3,6 @@ Require Import Common.
 Require Import Mod2ITree.
 
 Module StRed.
-Section RED.
   Lemma ret
         E A st0 v
     :
@@ -74,5 +73,4 @@ Section RED.
     unfold interp_stateE, Mod2ITree.pure_state, triggerNB. grind.
   Qed.  
 
-End RED.
 End StRed.

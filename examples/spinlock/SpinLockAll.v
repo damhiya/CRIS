@@ -5,7 +5,7 @@ Require Import SpinLockMainHeader SpinLockMainI SpinLockMainA SpinLockMainIAProo
 Require Import SchHeader SchI SchA SchIAproof.
 Require Import ElimRel SModCancel Cancellation.
 
-Module IncrAll. Section IncrAll.
+Module IncrAll.
   Import inv_instances.
   Local Instance Γ : HRA := ##[invΓ; memΓ; SpinLockΓ; SpinLockMainAΓ].
   Local Instance Σ : GRA := ##[invΣ; SchAΣ; Γ].
@@ -156,5 +156,5 @@ Module IncrAll. Section IncrAll.
     { econs; ss; try prove_nodup. }
     { exists x; des; eauto. }
   Admitted. *)
-End IncrAll. End IncrAll.
+End IncrAll.
 (* Print Assumptions CannonAll.behavioral_refinement. *)
