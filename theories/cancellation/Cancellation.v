@@ -37,7 +37,7 @@ Section CANCEL.
     simpl plus in *. subst.
     destruct (Nat.eq_dec cid cid); ss. clear e.
     rename x0 into SRC, x1 into TGT.
-    rewrite interp_hp_bind interp_hp_ret in TGT.
+    rewrite HRed.bind HRed.ret in TGT.
     revert_until md. gcofix CIH. i.
     
     assert (RT: ✓ rt). { eapply Own_wand_valid with (a1:=rs); eauto. }
@@ -165,15 +165,15 @@ Section CANCEL.
     assert (TMP:=SPC). unfold spc_from in TMP. rewrite E in TMP. depdes TMP.
     hide_l.
     ginit.
-    rewrite HModSB.transl_bind HModSB.transl_core HIRed.bind_core interp_hp_bind interp_hp_core. ired.
+    rewrite SBRed.bind SBRed.core HIRed.bind_core HRed.bind HRed.core. ired.
     _iter. _core. st. exists meta. st. ired. 
     _tau. st. _iter. _tau. st. st.
-    rewrite interp_hp_tau. _iter. _tau. st. st.
-    rewrite HModSB.transl_bind HModSB.transl_core HIRed.bind_core interp_hp_bind interp_hp_core. ired.
+    rewrite HRed.tau. _iter. _tau. st. st.
+    rewrite SBRed.bind SBRed.core HIRed.bind_core HRed.bind HRed.core. ired.
     _iter. _core. st. exists (tt↑). st. ired.
     _iter. _tau. st. st. st.
-    rewrite interp_hp_tau. _iter. _tau. st. st.
-    rewrite HModSB.transl_bind HModSB.transl_ag HIRed.bind_ag interp_hp_bind interp_hp_Assume. ired.
+    rewrite HRed.tau. _iter. _tau. st. st.
+    rewrite SBRed.bind SBRed.ag HIRed.bind_ag HRed.bind HRed.Assume. ired.
     _iter. _supd. hss. ired. hss. ired.
     _iter. _core. st. exists (r ⋅ rt). st. ired. _tau. st. 
     _iter. _core. st.
@@ -184,7 +184,7 @@ Section CANCEL.
     }
     exists VALID'. ired. _tau. st. st.
     _iter. _supd. _iter. _supd.
-    _iter. _tau. st. st. rewrite interp_hp_tau. _iter. _tau. st. st.
+    _iter. _tau. st. st. rewrite HRed.tau. _iter. _tau. st. st.
 
     (* CRIS_init's precond all executed. *)
     reveal ITREE. 
@@ -196,13 +196,13 @@ Section CANCEL.
       iIntros "H". iMod (POST with "H") as "H". eauto.
     }
     { eapply elim_rel_refl; eauto. }
-    rewrite HModSB.transl_bind HIRed.bind. 
+    rewrite SBRed.bind HIRed.bind. 
     do 2 f_equal. extensionalities.
-    rewrite HModSB.transl_bind HModSB.transl_core. do 2 f_equal.
+    rewrite SBRed.bind SBRed.core. do 2 f_equal.
     extensionalities.
-    rewrite HModSB.transl_bind HModSB.transl_ag. do 2 f_equal.
+    rewrite SBRed.bind SBRed.ag. do 2 f_equal.
     extensionalities.
-    rewrite HModSB.transl_ret. ss.
+    rewrite SBRed.ret. ss.
   Qed.
   
 End CANCEL.

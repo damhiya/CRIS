@@ -200,9 +200,9 @@ Section CANCEL.
     HMod.sandbox scopes (HoareYield ginv tid) = HoareYield ginv tid.
   Proof.
     unfold HoareYield.
-    rewrite HModSB.transl_bind HModSB.transl_ag. f_equal. extensionalities.
-    rewrite HModSB.transl_bind HModSB.transl_sch. f_equal. extensionalities.
-    rewrite HModSB.transl_ag. ss.
+    rewrite SBRed.bind SBRed.ag. f_equal. extensionalities.
+    rewrite SBRed.bind SBRed.sch. f_equal. extensionalities.
+    rewrite SBRed.ag. ss.
   Qed. 
 
   Lemma HoareYield_hpI
@@ -224,12 +224,12 @@ Section CANCEL.
     HMod.sandbox scopes (HoareSpawn ginv f fn args) = HoareSpawn ginv f fn args.
   Proof.
     unfold HoareSpawn.
-    rewrite HModSB.transl_bind HModSB.transl_core. f_equal. extensionalities.
-    rewrite HModSB.transl_bind HModSB.transl_core. f_equal. extensionalities.
-    rewrite HModSB.transl_bind HModSB.transl_sch. f_equal. extensionalities.
-    rewrite HModSB.transl_bind HModSB.transl_ag. f_equal. extensionalities.
-    rewrite HModSB.transl_bind HoareYield_sandbox. f_equal. extensionalities.
-    rewrite HModSB.transl_ret. ss.
+    rewrite SBRed.bind SBRed.core. f_equal. extensionalities.
+    rewrite SBRed.bind SBRed.core. f_equal. extensionalities.
+    rewrite SBRed.bind SBRed.sch. f_equal. extensionalities.
+    rewrite SBRed.bind SBRed.ag. f_equal. extensionalities.
+    rewrite SBRed.bind HoareYield_sandbox. f_equal. extensionalities.
+    rewrite SBRed.ret. ss.
   Qed. 
 
   Lemma HoareSpawn_hpI
@@ -253,9 +253,9 @@ Section CANCEL.
     HMod.sandbox scopes (Spawn_cancel fn args) = Spawn_cancel fn args.
   Proof.
     unfold Spawn_cancel.
-    rewrite HModSB.transl_bind HModSB.transl_sch. f_equal. extensionalities.
-    rewrite HModSB.transl_bind HModSB.transl_sch. f_equal. extensionalities.
-    rewrite HModSB.transl_ret. ss.
+    rewrite SBRed.bind SBRed.sch. f_equal. extensionalities.
+    rewrite SBRed.bind SBRed.sch. f_equal. extensionalities.
+    rewrite SBRed.ret. ss.
   Qed. 
 
   Lemma Spawn_cancel_hpI
@@ -295,36 +295,36 @@ Section CANCEL.
   Proof.
     unfold HoareCall.
     (* head *)
-    rewrite HModSB.transl_bind HModSB.transl_core HIRed.bind_core.
+    rewrite SBRed.bind SBRed.core HIRed.bind_core.
     f_equal. extensionality m. do 2 f_equal.
-    rewrite HModSB.transl_bind HModSB.transl_core HIRed.bind_core.
+    rewrite SBRed.bind SBRed.core HIRed.bind_core.
     f_equal. extensionality arg. do 2 f_equal.
-    rewrite HModSB.transl_bind HModSB.transl_ag HIRed.bind_ag.
+    rewrite SBRed.bind SBRed.ag HIRed.bind_ag.
     f_equal. extensionalities. do 2 f_equal.
-    rewrite HModSB.transl_bind HModSB.transl_call HIRed.call.
+    rewrite SBRed.bind SBRed.call HIRed.call.
     do 2 f_equal. ired.
     rewrite alist_find_map_snd FIND. ired.
     unfold HMod.sandbox_body, interp_sb_hp, HoareFun. s.
-    rewrite HModSB.transl_bind HModSB.transl_core. ired. rewrite HIRed.bind_core.
+    rewrite SBRed.bind SBRed.core. ired. rewrite HIRed.bind_core.
     f_equal. extensionality m'. do 2 f_equal.
-    rewrite HModSB.transl_bind HModSB.transl_core. ired. rewrite HIRed.bind_core.
+    rewrite SBRed.bind SBRed.core. ired. rewrite HIRed.bind_core.
     f_equal. extensionality varg'. do 2 f_equal.
-    rewrite HModSB.transl_bind HModSB.transl_ag. ired. rewrite HIRed.bind_ag.
+    rewrite SBRed.bind SBRed.ag. ired. rewrite HIRed.bind_ag.
     f_equal. extensionalities. do 2 f_equal. 
     (* body *)
-    rewrite HModSB.transl_bind. ired. rewrite HIRed.bind.
+    rewrite SBRed.bind. ired. rewrite HIRed.bind.
     f_equal. extensionality vret'.
-    rewrite HModSB.transl_bind HModSB.transl_core. ired. rewrite HIRed.bind_core.
+    rewrite SBRed.bind SBRed.core. ired. rewrite HIRed.bind_core.
     f_equal. extensionality ret. do 2 f_equal. 
-    rewrite HModSB.transl_bind HModSB.transl_ag. ired. rewrite HIRed.bind_ag.
+    rewrite SBRed.bind SBRed.ag. ired. rewrite HIRed.bind_ag.
     f_equal. extensionalities. do 2 f_equal.
-    rewrite HModSB.transl_ret. ired. rewrite HIRed.tau.
+    rewrite SBRed.ret. ired. rewrite HIRed.tau.
     do 4 f_equal.
-    rewrite HModSB.transl_bind HModSB.transl_core. ired. rewrite HIRed.bind_core.
+    rewrite SBRed.bind SBRed.core. ired. rewrite HIRed.bind_core.
     f_equal. extensionality vret. do 2 f_equal.
-    rewrite HModSB.transl_bind HModSB.transl_ag. ired. rewrite HIRed.bind_ag.
+    rewrite SBRed.bind SBRed.ag. ired. rewrite HIRed.bind_ag.
     f_equal. extensionalities. do 2 f_equal.
-    rewrite HModSB.transl_ret HIRed.ret. ss.
+    rewrite SBRed.ret HIRed.ret. ss.
   Qed.
 
   Lemma HoareCall_inline
@@ -398,47 +398,47 @@ Section CANCEL.
     unfold elim_rel.
     ginit. revert itr scopes. gcofix CIH. i.
     assert (CASE:= case_itrH itr). des; subst.
-    - rewrite SModRed.interp_ret SCancelRed.ret HModSB.transl_ret !HIRed.ret.
+    - rewrite SRed.ret SCancelRed.ret SBRed.ret !HIRed.ret.
       gstep. econs. 
-    - rewrite SModRed.interp_tau SCancelRed.tau !HModSB.transl_tau !HIRed.tau.
+    - rewrite SRed.tau SCancelRed.tau !SBRed.tau !HIRed.tau.
       gstep; econs. gstep; econs. eauto with paco.
-    - rewrite SModRed.interp_bind SModRed.interp_ag SCancelRed.bind SCancelRed.ag !HModSB.transl_bind HModSB.transl_ag. ired.
+    - rewrite SRed.bind SRed.ag SCancelRed.bind SCancelRed.ag !SBRed.bind SBRed.ag. ired.
       rewrite !HIRed.bind_ag. gstep. econs. gstep. econs.
-      rewrite HModSB.transl_tau HModSB.transl_ret. ired. rewrite !HIRed.tau.
+      rewrite SBRed.tau SBRed.ret. ired. rewrite !HIRed.tau.
       gstep. econs. gstep. econs. eauto with paco. 
-    - rewrite SModRed.interp_bind SModRed.interp_ag SCancelRed.bind SCancelRed.ag !HModSB.transl_bind HModSB.transl_ag. ired.
+    - rewrite SRed.bind SRed.ag SCancelRed.bind SCancelRed.ag !SBRed.bind SBRed.ag. ired.
       rewrite !HIRed.bind_ag. gstep. econs. gstep. econs. 
-      rewrite HModSB.transl_tau HModSB.transl_ret. ired. rewrite !HIRed.tau.  
+      rewrite SBRed.tau SBRed.ret. ired. rewrite !HIRed.tau.  
       gstep. econs. gstep. econs. eauto with paco.
-    - rewrite SModRed.interp_bind SModRed.interp_sch SCancelRed.bind SCancelRed.sch. ired. 
+    - rewrite SRed.bind SRed.sch SCancelRed.bind SCancelRed.sch. ired. 
       unfold handle_schE_hmodE, handle_schE_hmodE_cancel. depdes s.
       + destruct (spc_from md fn) eqn:STB; ired; cycle 1.
         { 
           unfold triggerNB. ired. 
-          rewrite !HModSB.transl_bind HModSB.transl_core. ired. 
+          rewrite !SBRed.bind SBRed.core. ired. 
           rewrite HIRed.bind_core. gstep. econs. 
         }
-        do 2 rewrite HModSB.transl_bind.
+        do 2 rewrite SBRed.bind.
         rewrite HoareSpawn_sandbox HoareSpawn_hpI. 
         rewrite Spawn_cancel_sandbox Spawn_cancel_hpI. ired.
         gstep. econs; eauto. i. gstep. econs. ired.
-        rewrite !HModSB.transl_tau !HIRed.tau.
+        rewrite !SBRed.tau !HIRed.tau.
         gstep. econs. gstep. econs. eauto with paco.
-      + do 2 rewrite HModSB.transl_bind. 
-        rewrite HoareYield_sandbox HoareYield_hpI HModSB.transl_sch HIRed.bind_sch.
+      + do 2 rewrite SBRed.bind. 
+        rewrite HoareYield_sandbox HoareYield_hpI SBRed.sch HIRed.bind_sch.
         gstep. econs. i. gstep. econs. ired.
-        rewrite !HModSB.transl_tau !HIRed.tau.
+        rewrite !SBRed.tau !HIRed.tau.
         gstep. econs. gstep. econs. eauto with paco.
-    - rewrite SModRed.interp_bind SModRed.interp_call SCancelRed.bind SCancelRed.call.
+    - rewrite SRed.bind SRed.call SCancelRed.bind SCancelRed.call.
       unfold handle_callE_hmodE. depdes c. 
       destruct (spc_from md fn) eqn: STB; ired; cycle 1.
       { 
         unfold triggerNB. 
-        rewrite !HModSB.transl_bind HModSB.transl_core. ired. 
+        rewrite !SBRed.bind SBRed.core. ired. 
         rewrite HIRed.bind_core. gstep. econs.
       }
-      do 2 rewrite HModSB.transl_bind. 
-      rewrite HModSB.transl_call HIRed.call HIRed.bind.
+      do 2 rewrite SBRed.bind. 
+      rewrite SBRed.call HIRed.call HIRed.bind.
       
       assert (FIND := spc_in_alist_find).
       specialize (FIND md fn f STB). des.
@@ -451,11 +451,11 @@ Section CANCEL.
       {
         unfold ITREE. do 2 f_equal. 
         instantiate (3:= prog (SModCancel.to_hmod md)).
-        ired. rewrite HModSB.transl_bind HIRed.bind. ired. f_equal.  
-        extensionalities. rewrite HModSB.transl_tau !HIRed.tau. ired.
+        ired. rewrite SBRed.bind HIRed.bind. ired. f_equal.  
+        extensionalities. rewrite SBRed.tau !HIRed.tau. ired.
         do 4 f_equal.
-        rewrite HModSB.transl_ret HIRed.ret. ired.
-        rewrite HModSB.transl_tau HIRed.tau. do 4 f_equal.
+        rewrite SBRed.ret HIRed.ret. ired.
+        rewrite SBRed.tau HIRed.tau. do 4 f_equal.
       }
       set_r.
       eassert (ITREE0 = x <- (a <- inline_hp _ _;; tau;; Ret a);; tau;; _ x).
@@ -463,7 +463,7 @@ Section CANCEL.
         instantiate (2:= HMod.sandbox scopes (HoareCall f fn args)).
         instantiate (2:= prog (SMod.to_hmod  ginv (spc_from md) md)).
         rewrite /ITREE0 !HIRed.bind. ired. f_equal.
-        extensionalities. ired. rewrite HModSB.transl_tau HIRed.tau.
+        extensionalities. ired. rewrite SBRed.tau HIRed.tau.
         instantiate (1:= fun H0 => _ (_ (_ (_ H0)))). refl.
       }
       rewrite H H0. clear ITREE ITREE0 H H0.
@@ -472,7 +472,7 @@ Section CANCEL.
       eapply elim_rel_bindC_intro with (l1 := []).
       {
         erewrite HoareCall_inline; eauto.
-        rewrite HModSB.transl_bind HIRed.bind.
+        rewrite SBRed.bind HIRed.bind.
         set (inline_hp _ _ ). eassert (i = _ args).
         { unfold i. instantiate (1:= fun x => inline_hp _ (_ (_ x))). refl. }
         remember (λ x : Any.t, inline_hp (prog (SModCancel.to_hmod md)) (HMod.sandbox l0 (_ x))).
@@ -481,7 +481,7 @@ Section CANCEL.
         { 
           instantiate (1:= fun args => a <- i0 args;; tau;; tau;; tau;; Ret a). s. 
           f_equal. extensionalities.
-          rewrite HModSB.transl_tau HModSB.transl_ret HIRed.tau HIRed.ret.
+          rewrite SBRed.tau SBRed.ret HIRed.tau HIRed.ret.
           ired. refl. 
         }
         i. ired. 
@@ -500,36 +500,36 @@ Section CANCEL.
       i. gstep. econs. eauto with paco.
 
     - depdes s.
-      + rewrite SModRed.interp_bind SModRed.interp_pg SCancelRed.bind SCancelRed.pg. 
-        rewrite !HModSB.transl_bind HModSB.transl_put. ired.
+      + rewrite SRed.bind SRed.pg SCancelRed.bind SCancelRed.pg. 
+        rewrite !SBRed.bind SBRed.put. ired.
         des_ifs.
         * rewrite !HIRed.bind_pg.
           gstep. econs. i. gstep. econs.
-          rewrite HModSB.transl_tau HModSB.transl_ret. ired.
+          rewrite SBRed.tau SBRed.ret. ired.
           rewrite !HIRed.tau.
           gstep. econs. i. gstep. econs. eauto with paco. 
         * rewrite !HIRed.bind_core.
           gstep. econs. i. gstep. econs.
-          rewrite HModSB.transl_tau HModSB.transl_ret. ired.
+          rewrite SBRed.tau SBRed.ret. ired.
           rewrite !HIRed.tau.
           gstep. econs. i. gstep. econs. eauto with paco.  
-      + rewrite SModRed.interp_bind SModRed.interp_pg SCancelRed.bind SCancelRed.pg. 
-        rewrite !HModSB.transl_bind HModSB.transl_get. ired.
+      + rewrite SRed.bind SRed.pg SCancelRed.bind SCancelRed.pg. 
+        rewrite !SBRed.bind SBRed.get. ired.
         des_ifs.
         * rewrite !HIRed.bind_pg.
           gstep. econs. i. gstep. econs.
-          rewrite HModSB.transl_tau HModSB.transl_ret. ired.
+          rewrite SBRed.tau SBRed.ret. ired.
           rewrite !HIRed.tau.
           gstep. econs. i. gstep. econs. eauto with paco. 
         * rewrite !HIRed.bind_core.
           gstep. econs. i. gstep. econs.
-          rewrite HModSB.transl_tau HModSB.transl_ret. ired.
+          rewrite SBRed.tau SBRed.ret. ired.
           rewrite !HIRed.tau.
           gstep. econs. i. gstep. econs. eauto with paco.  
-    - rewrite SModRed.interp_bind SModRed.interp_core SCancelRed.bind SCancelRed.core. ired. 
-      rewrite !HModSB.transl_bind HModSB.transl_core !HIRed.bind_core. 
+    - rewrite SRed.bind SRed.core SCancelRed.bind SCancelRed.core. ired. 
+      rewrite !SBRed.bind SBRed.core !HIRed.bind_core. 
       gstep. econs. i. gstep. econs. ired. 
-      rewrite !HModSB.transl_tau !HIRed.tau.
+      rewrite !SBRed.tau !HIRed.tau.
       gstep. econs. i. gstep. econs. eauto with paco.
   Qed.
 

@@ -182,9 +182,9 @@ Section HPSIM_ADEQUACY.
 
       match goal with [|- _ ?t _] => pattern t end.
       eapply eq_ind; eauto.
-      rewrite ?interp_hp_bind bind_bind.
+      rewrite ?HRed.bind bind_bind.
       repeat f_equal. extensionalities x.
-      grind. rewrite !interp_hp_tau ?bind_tau. repeat f_equal. rewrite interp_hp_ret; grind.
+      grind. rewrite !HRed.tau ?bind_tau. repeat f_equal. rewrite HRed.ret; grind.
     - clarify. step; eauto.
       { instantiate (1:= interp_hp_fun f). rewrite alist_find_map FUN. et. }
 
@@ -193,9 +193,9 @@ Section HPSIM_ADEQUACY.
       clear K CIH; intros K.
 
       eapply eq_ind; eauto.
-      rewrite ?interp_hp_bind bind_bind.
+      rewrite ?HRed.bind bind_bind.
       repeat f_equal. extensionalities x.
-      grind. rewrite !interp_hp_tau ?bind_tau. repeat f_equal. rewrite interp_hp_ret; grind.
+      grind. rewrite !HRed.tau ?bind_tau. repeat f_equal. rewrite HRed.ret; grind.
     - clarify; steps; eapply K; eauto.
     - clarify; steps; eapply K; eauto.
     - clarify; steps; eapply K; eauto.
@@ -217,7 +217,7 @@ Section HPSIM_ADEQUACY.
       rewrite /mget_kv; steps.
       rewrite Any.pair_split /= alist_encode_decode; steps; eapply K; eauto.
     - clarify; steps.
-      rewrite interp_hp_Assume /handle_Assume; steps.
+      rewrite HRed.Assume /handle_Assume; steps.
       rewrite /get_res /put_res; steps. des.
       apply bi.wand_entails, Own_bupd_split in _ASSUME0. des.
       eapply (K (fmr0 ⋅ a1)); eauto.
@@ -232,7 +232,7 @@ Section HPSIM_ADEQUACY.
       }
       { eauto. }
     - clarify; steps.
-      rewrite interp_hp_Guarantee /handle_Guarantee; steps.
+      rewrite HRed.Guarantee /handle_Guarantee; steps.
       rewrite /get_res /put_res; steps. des.
       hexploit (Own_bupd_split); eauto.
       { hexploit (Own_wand_valid _ _ FMR); eauto using cmra_valid_op_r. }
@@ -246,7 +246,7 @@ Section HPSIM_ADEQUACY.
       }
     - clarify; steps.
       hexploit (Own_bupd_split fmr0); eauto; intros [rP [rFMR [SPLIT [HP HFMR]]]].
-      rewrite interp_hp_Guarantee /handle_Guarantee; steps.
+      rewrite HRed.Guarantee /handle_Guarantee; steps.
       rewrite /get_res /put_res; steps.
       instantiate (1 := (ctx_sem ctx ⋅ rFMR ⋅ mr_tgt)).
       rewrite /guarantee; force_l; [split|].
@@ -267,7 +267,7 @@ Section HPSIM_ADEQUACY.
       }
     - clarify; steps.
       hexploit (Own_bupd_split fmr0); eauto; intros [rP [rFMR [SPLIT [HP HFMR]]]].
-      rewrite interp_hp_Assume /handle_Assume; steps.
+      rewrite HRed.Assume /handle_Assume; steps.
       rewrite /get_res /put_res; steps.
       instantiate (1 := rP ⋅ mr_tgt).
       rewrite /assume; force_r; [split|].
@@ -284,7 +284,7 @@ Section HPSIM_ADEQUACY.
           iModIntro; iSplitR "P MRT"; [iSplitR "FMR"; iFrame|]; iSplitL "P"; iFrame.
       }
     - clarify; steps.
-      rewrite interp_hp_spawn; do 3 step; prep.
+      rewrite HRed.spawn; do 3 step; prep.
       eapply K; eauto.
       { eapply le_mine_trans; eauto; first ii; subst; ss.
         ii; esplits; ss; rewrite lookup_app_l; eauto using le_mine_in.
@@ -330,10 +330,10 @@ Section HPSIM_ADEQUACY.
       exploit (K _ _ st_src st_tgt _ _ _ _ _ _ mr_src mr_tgt); eauto.
       clear K CIH; intros K.
       eapply eq_ind; eauto.
-      rewrite interp_hp_bind.
+      rewrite HRed.bind.
       repeat f_equal. 
-      { rewrite interp_hp_triggerNB. eauto. }
-      extensionalities x. grind. rewrite !interp_hp_tau. eauto.
+      { rewrite HRed.triggerNB. eauto. }
+      extensionalities x. grind. rewrite !HRed.tau. eauto.
     - clarify. pclearbot. gstep; econs; econs; eauto; cycle 1.
       { gfinal; left; eapply CIH; eauto.
         { ginit; guclo hpsim_updateC_spec; econs; ii; esplits; eauto.

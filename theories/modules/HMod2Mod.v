@@ -128,12 +128,13 @@ Section MID.
 
 End MID.
 
+Module HRed.
 Section RED.
   (* itree reduction lemmas *)
   Context `{Σ : GRA}.
   Notation iProp := (iProp Σ).
 
-  Lemma interp_hp_bind (R S : Type) (s : itree hmodE R) (k : R -> itree hmodE S) :
+  Lemma bind (R S : Type) (s : itree hmodE R) (k : R -> itree hmodE S) :
     interp_hp (s >>= k) = st <- interp_hp s;; interp_hp (k st).
   Proof. rewrite /interp_hp interp_bind //. Qed.
 
@@ -141,91 +142,91 @@ Section RED.
     interp_hp_body (s >>= k) fmr = '(fr,r) <- interp_hp s fmr;; interp_hp_body (Σ:=Σ) (k r) fr.
   Proof. unfold interp_hp_body. rewrite interp_hp_bind. grind. destruct x. eauto. Qed. *)
 
-  Lemma interp_hp_tau (R : Type) (t : itree _ R) :
+  Lemma tau (R : Type) (t : itree _ R) :
     interp_hp (tau;; t) = tau;; (interp_hp t).
   Proof. rewrite /interp_hp interp_tau //. Qed.
 
-  Lemma interp_hp_ret (R : Type) (t : R) :
+  Lemma ret (R : Type) (t : R) :
     interp_hp (Ret t) = Ret t.
   Proof. rewrite /interp_hp interp_ret //. Qed.
 
-  Lemma interp_hp_call (R : Type) (c : callE R) :
+  Lemma call (R : Type) (c : callE R) :
     interp_hp (trigger c) = r <- trigger c;; tau;; Ret r.
   Proof. rewrite /interp_hp interp_trigger //. Qed.
 
-  Lemma interp_hp_spawn fn arg :
+  Lemma spawn fn arg :
     interp_hp (trigger (Spawn fn arg)) = r <- trigger (Spawn fn arg);; tau;; Ret r.
   Proof. rewrite /interp_hp interp_trigger //. Qed.
 
-  Lemma interp_hp_yield tid :
+  Lemma yield tid :
     interp_hp (trigger (Yield tid)) = r <- trigger (Yield tid);; tau;; Ret r.
   Proof. rewrite /interp_hp interp_trigger //. Qed.
 
-  Lemma interp_hp_pg (R : Type) (i : pgE R) :
+  Lemma pg (R : Type) (i : pgE R) :
     interp_hp (trigger i) = r <- handle_pgE i;; tau;; Ret r.
   Proof. rewrite /interp_hp interp_trigger //. Qed.
 
-  Lemma interp_hp_core (R : Type) (i : coreE R) :
+  Lemma core (R : Type) (i : coreE R) :
     interp_hp (trigger i) = r <- trigger i;; tau;; Ret r.
   Proof. rewrite /interp_hp interp_trigger //. Qed.
 
-  Lemma interp_hp_triggerUB (R : Type) :
+  Lemma triggerUB (R : Type) :
     interp_hp (triggerUB) = triggerUB (A:=R).
   Proof.
     rewrite /interp_hp /triggerUB interp_bind interp_trigger; grind.
   Qed.
 
-  Lemma interp_hp_triggerNB (R : Type) :
+  Lemma triggerNB (R : Type) :
     interp_hp (triggerNB) = triggerNB (A:=R).
   Proof.
     rewrite /interp_hp /triggerNB interp_bind interp_trigger; grind.
   Qed.
 
-  Lemma interp_hp_unwrapU (R : Type) (i : option R) :
+  Lemma unwrapU (R : Type) (i : option R) :
     interp_hp (@unwrapU hmodE _ _ i) = r <- (unwrapU i);; Ret r.
   Proof.
-    rewrite /interp_hp /unwrapU; des_ifs; grind; eauto using interp_hp_triggerUB.
+    rewrite /interp_hp /unwrapU; des_ifs; grind; eauto using triggerUB.
   Qed.
 
-  Lemma interp_hp_unwrapN (R : Type) (i : option R) :
+  Lemma unwrapN (R : Type) (i : option R) :
     interp_hp (@unwrapN hmodE _ _ i) = r <- (unwrapN i);; Ret r.
   Proof.
-    rewrite /interp_hp /unwrapN; des_ifs; grind; eauto using interp_hp_triggerNB.
+    rewrite /interp_hp /unwrapN; des_ifs; grind; eauto using triggerNB.
   Qed.
 
-  Lemma interp_hp_Assume P :
+  Lemma Assume P :
     interp_hp (trigger (Assume P)) = x <- handle_Assume P;; tau;; Ret x.
   Proof. rewrite /interp_hp interp_trigger //. Qed.
 
-  Lemma interp_hp_Guarantee P :
+  Lemma Guarantee P :
     interp_hp (trigger (Guarantee P)) = x <- handle_Guarantee P;; tau;; Ret x.
   Proof. rewrite /interp_hp interp_trigger //. Qed.
 
-  Lemma interp_hp_ext R (itr0 itr1 : itree _ R) (EQ : itr0 = itr1) :
+  Lemma ext R (itr0 itr1 : itree _ R) (EQ : itr0 = itr1) :
     interp_hp itr0 = interp_hp itr1.
   Proof. subst; et. Qed.
 
   (* TODO : Same lemmas for other interps ( not defined yet. ) *)
 
-  Global Program Instance interp_hp_rdb : red_database (mk_box (@interp_hp)) :=
+  Global Program Instance rdb : red_database (mk_box (@interp_hp)) :=
     mk_rdb
       0
-      (mk_box interp_hp_bind)
-      (mk_box interp_hp_tau)
-      (mk_box interp_hp_ret)
-      (mk_box interp_hp_call)
-      (* (mk_box interp_hp_spawn) *)
-      (mk_box interp_hp_yield)
-      (* (mk_box interp_hp_tid) *)
-      (mk_box interp_hp_core)
-      (mk_box interp_hp_pg)
-      (mk_box interp_hp_triggerUB)
-      (mk_box interp_hp_triggerNB)
-      (mk_box interp_hp_unwrapU)
-      (mk_box interp_hp_unwrapN)
-      (mk_box interp_hp_Assume)
-      (mk_box interp_hp_Guarantee)
-      (mk_box interp_hp_ext).
+      (mk_box bind)
+      (mk_box tau)
+      (mk_box ret)
+      (mk_box call)
+      (* (mk_box spawn) *)
+      (mk_box yield)
+      (* (mk_box tid) *)
+      (mk_box core)
+      (mk_box pg)
+      (mk_box triggerUB)
+      (mk_box triggerNB)
+      (mk_box unwrapU)
+      (mk_box unwrapN)
+      (mk_box Assume)
+      (mk_box Guarantee)
+      (mk_box ext).
 
 End RED.
-
+End HRed.

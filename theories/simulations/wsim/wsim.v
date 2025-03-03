@@ -480,7 +480,7 @@ Section wsim.
         (st_s, HMod.sandbox scopes (trigger (SPut k v)) >>= k_s) (st_t, i_t).
     Proof.
       intros IN; iIntros "SIM".
-      rewrite HModSB.transl_put; des_ifs; ss.
+      rewrite SBRed.put; des_ifs; ss.
       { iApply wsim_sput_src; ss. }
       { edestruct (existsb_exists (String.eqb k.1) scopes).
         hexploit H0; ss.
@@ -497,7 +497,7 @@ Section wsim.
         (st_s, HMod.sandbox scopes (trigger (SGet k)) >>= k_s) (st_t, i_t).
     Proof.
       intros IN; iIntros "SIM".
-      rewrite HModSB.transl_get; des_ifs; ss.
+      rewrite SBRed.get; des_ifs; ss.
       { iApply wsim_sget_src; ss. }
       { edestruct (existsb_exists (String.eqb k.1) scopes).
         hexploit H0; ss.
@@ -514,7 +514,7 @@ Section wsim.
         (st_s, i_s) (st_t, HMod.sandbox scopes (trigger (SPut k v)) >>= k_t).
     Proof.
       intros IN; iIntros "SIM".
-      rewrite HModSB.transl_put; des_ifs; ss.
+      rewrite SBRed.put; des_ifs; ss.
       { iApply wsim_sput_tgt; ss. }
       { edestruct (existsb_exists (String.eqb k.1) scopes).
         hexploit H0; ss.
@@ -531,7 +531,7 @@ Section wsim.
         (st_s, i_s) (st_t, HMod.sandbox scopes (trigger (SGet k)) >>= k_t).
     Proof.
       intros IN; iIntros "SIM".
-      rewrite HModSB.transl_get; des_ifs; ss.
+      rewrite SBRed.get; des_ifs; ss.
       { iApply wsim_sget_tgt; ss. }
       { edestruct (existsb_exists (String.eqb k.1) scopes).
         hexploit H0; ss.

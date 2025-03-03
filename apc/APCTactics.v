@@ -244,14 +244,14 @@ Ltac _prep_macro :=
   match goal with
   | [|- context[HMod.sandbox _ (interp_smod _ _ (_APC _ _ _)) >>= _]] => fail 1
   | [|- context[HMod.sandbox _ (interp_smod _ _ (_APC _ _ _) >>= _)]] =>
-      rewrite// [in HMod.sandbox _ (interp_smod _ _ (_APC _ _ _) >>= _)] HModSB.transl_bind
+      rewrite// [in HMod.sandbox _ (interp_smod _ _ (_APC _ _ _) >>= _)] SBRed.bind
   | [|- context[interp_smod _ _ (_APC _ _ _ >>= _)]] =>
-      rewrite// [in (interp_smod _ _ (_APC _ _ _ >>= _))] SModRed.interp_bind; _prep_macro
+      rewrite// [in (interp_smod _ _ (_APC _ _ _ >>= _))] SRed.bind; _prep_macro
   | [|- context[HMod.sandbox _ (PMod.interp (_APC _ _ _)) >>= _]] => fail 1
   | [|- context[HMod.sandbox _ (PMod.interp (_APC _ _ _) >>= _)]] =>
-      rewrite// [in HMod.sandbox _ (PMod.interp (_APC _ _ _) >>= _)] HModSB.transl_bind
+      rewrite// [in HMod.sandbox _ (PMod.interp (_APC _ _ _) >>= _)] SBRed.bind
   | [|- context[PMod.interp (_APC _ _ _ >>= _)]] =>
-      rewrite// [in (PMod.interp (_APC _ _ _ >>= _))] PModRed.interp_bind; _prep_macro
+      rewrite// [in (PMod.interp (_APC _ _ _ >>= _))] PRed.bind; _prep_macro
   end.
 
 Ltac prep_macro_l :=

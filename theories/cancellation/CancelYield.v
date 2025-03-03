@@ -98,9 +98,9 @@ Section CANCEL.
     { eauto. }
     { eauto. }
     { rewrite list_lookup_insert_ne; eauto.
-      rewrite H3. grind. rewrite -interp_hp_tau. refl.
+      rewrite H3. grind. rewrite -HRed.tau. refl.
     }
-    { unfold cancel_term. rewrite -interp_hp_tau -bind_tau. refl. }
+    { unfold cancel_term. rewrite -HRed.tau -bind_tau. refl. }
     { rewrite length_insert. nia. }
     { eauto. }
     { pstep. econs. eauto. }
@@ -116,7 +116,7 @@ Section CANCEL.
     rewrite list_lookup_insert in H7; eauto.
     rewrite list_lookup_insert in H8; eauto.
     inv H7. econs; try refl; grind; eauto.
-    rewrite/yield_post -interp_hp_tau.
+    rewrite/yield_post -HRed.tau.
     f_equal. ired. do 5 f_equal.
     extensionalities. ired. do 3 f_equal.
     extensionalities. ired. f_equal.

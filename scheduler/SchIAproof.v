@@ -404,7 +404,7 @@ Module SchIA. Section SchIA.
 
     w_step_r.
     rewrite !/Sch.yield /ccallU. unseal "Sch".
-    rewrite PModRed.interp_bind. rewrite HModSB.transl_bind. grind.
+    rewrite PModRed.interp_bind. rewrite SBRed.bind. grind.
 
     iApply wsim_reset. iStopProof.
     revert NODD.

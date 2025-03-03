@@ -244,29 +244,29 @@ Section CANCEL.
     generalize (i args) as itr. clear FIND fn i args.
     revert_until ms. gcofix CIH. i.
     ides itr.
-    - rewrite !HModSB.transl_ret HIRed.ret HModSB.transl_ret. gstep. econs. refl.
-    - rewrite !HModSB.transl_tau HIRed.tau !HModSB.transl_tau. 
+    - rewrite !SBRed.ret HIRed.ret SBRed.ret. gstep. econs. refl.
+    - rewrite !SBRed.tau HIRed.tau !SBRed.tau. 
       gstep. econs. gstep. econs. gbase. eauto.
-    - rewrite -bind_trigger !HModSB.transl_bind.
+    - rewrite -bind_trigger !SBRed.bind.
       destruct e.
       {
         assert ((@ITree.trigger (@hmodE Σ) X (inl1 a)) = trigger a) by grind. 
-        rewrite H !HModSB.transl_ag HIRed.bind_ag HModSB.transl_bind HModSB.transl_ag !bind_trigger.
+        rewrite H !SBRed.ag HIRed.bind_ag SBRed.bind SBRed.ag !bind_trigger.
         gstep. econs. i. r.
-        rewrite HModSB.transl_tau. gstep. econs. gbase. eauto.
+        rewrite SBRed.tau. gstep. econs. gbase. eauto.
       }
       destruct p.
       {
         assert ((@ITree.trigger (@hmodE Σ) X (inr1 (inl1 s))) = trigger s) by grind.
-        rewrite H !HModSB.transl_sch HIRed.bind_sch HModSB.transl_bind HModSB.transl_sch !bind_trigger.
+        rewrite H !SBRed.sch HIRed.bind_sch SBRed.bind SBRed.sch !bind_trigger.
         gstep. econs. i. r.
-        rewrite HModSB.transl_tau. gstep. econs. gbase. eauto.
+        rewrite SBRed.tau. gstep. econs. gbase. eauto.
       }
       destruct s.
       {
         assert ((@ITree.trigger (@hmodE Σ) X (inr1 (inr1 (inl1 c)))) = trigger c) by grind.
         destruct c. rewrite H.
-        rewrite !HModSB.transl_call HIRed.call HModSB.transl_tau. s.
+        rewrite !SBRed.call HIRed.call SBRed.tau. s.
         gstep. econs.
         destruct (alist_find fn (HMod.fnsems ms)) eqn: FIND.
         { 
@@ -278,7 +278,7 @@ Section CANCEL.
           end.
           {
             eexists. instantiate (1:= _ >>= _). 
-            rewrite HModSB.transl_bind. f_equal.
+            rewrite SBRed.bind. f_equal.
             { 
               erewrite <-(@sandbox_well_scoped _ _ l); eauto. 
               assert(SCP0 := ms.(HMod.well_scoped_fns)).
@@ -287,7 +287,7 @@ Section CANCEL.
             }
             extensionality x.
             instantiate (1:= fun x => tau;;(_ x)). s.
-            rewrite HModSB.transl_tau. do 2 f_equal.
+            rewrite SBRed.tau. do 2 f_equal.
             ired.
             erewrite <-(@sandbox_well_scoped _ _ scopeT); eauto. 
             instantiate (1:= fun x => HMod.sandbox scopeT (k x)). 
@@ -296,7 +296,7 @@ Section CANCEL.
           des. rewrite EX. eapply CIH. refl.
         }
         ired. unfold triggerNB. ired. 
-        rewrite !HIRed.bind_core !HModSB.transl_bind HModSB.transl_core !bind_trigger.
+        rewrite !HIRed.bind_core !SBRed.bind SBRed.core !bind_trigger.
         gstep. econs. i. ss.
       }
       destruct s.
@@ -304,9 +304,9 @@ Section CANCEL.
         assert ((@ITree.trigger (@hmodE Σ) X (inr1 (inr1 (inr1 (inl1 p))))) = trigger p) by grind.
         destruct p; rewrite H.
         {
-          rewrite !HModSB.transl_put. des_ifs.
+          rewrite !SBRed.put. des_ifs.
           {
-            rewrite HIRed.bind_pg HModSB.transl_bind HModSB.transl_put. des_ifs; cycle 1.
+            rewrite HIRed.bind_pg SBRed.bind SBRed.put. des_ifs; cycle 1.
             {
               exfalso. assert (existsb (eqb k0.1) (HMod.scopes ms) = true).
               {
@@ -316,15 +316,15 @@ Section CANCEL.
               rewrite H0 in Heq0. ss.
             }
             rewrite !bind_trigger. gstep. econs. i.
-            rewrite HModSB.transl_tau. gstep. econs. gbase; eauto. 
+            rewrite SBRed.tau. gstep. econs. gbase; eauto. 
           }
-          rewrite HIRed.bind_core HModSB.transl_bind HModSB.transl_core !bind_trigger. 
+          rewrite HIRed.bind_core SBRed.bind SBRed.core !bind_trigger. 
           gstep. econs. i. r. 
-          rewrite HModSB.transl_tau. gstep. econs. gbase; eauto.
+          rewrite SBRed.tau. gstep. econs. gbase; eauto.
         }
-        rewrite !HModSB.transl_get. des_ifs.
+        rewrite !SBRed.get. des_ifs.
         {
-          rewrite HIRed.bind_pg HModSB.transl_bind HModSB.transl_get. des_ifs; cycle 1.
+          rewrite HIRed.bind_pg SBRed.bind SBRed.get. des_ifs; cycle 1.
           {
             exfalso. assert (existsb (eqb k0.1) (HMod.scopes ms) = true).
             {
@@ -334,16 +334,16 @@ Section CANCEL.
             rewrite H0 in Heq0. ss.
           }
           rewrite !bind_trigger. gstep. econs. i.
-          rewrite HModSB.transl_tau. gstep. econs. gbase; eauto. 
+          rewrite SBRed.tau. gstep. econs. gbase; eauto. 
         }
-        rewrite HIRed.bind_core HModSB.transl_bind HModSB.transl_core !bind_trigger. 
+        rewrite HIRed.bind_core SBRed.bind SBRed.core !bind_trigger. 
         gstep. econs. i. r. 
-        rewrite HModSB.transl_tau. gstep. econs. gbase; eauto.
+        rewrite SBRed.tau. gstep. econs. gbase; eauto.
       }
       assert ((@ITree.trigger (@hmodE Σ) X (inr1 (inr1 (inr1 (inr1 c))))) = trigger c) by grind.
-      rewrite H HModSB.transl_core HIRed.bind_core HModSB.transl_bind HModSB.transl_core !bind_trigger.
+      rewrite H SBRed.core HIRed.bind_core SBRed.bind SBRed.core !bind_trigger.
       gstep. econs. i. r.
-      rewrite HModSB.transl_tau. gstep. econs. gbase; eauto.
+      rewrite SBRed.tau. gstep. econs. gbase; eauto.
     Unshelve.
       eapply eqit__mono; eauto.
   Qed.

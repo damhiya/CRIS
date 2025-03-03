@@ -193,8 +193,8 @@ Tactic Notation "red_bind" hyp(prg) tactic(tac) :=
       | guaranteeK _ _ => eapply guaranteeK_bind
       | unwrapUK _ _ => eapply unwrapUK_bind
       | unwrapNK _ _ => eapply unwrapNK_bind
-      | HModSB.putSB _ _ _ _ => eapply HModSB.putSB_bind
-      | HModSB.getSB _ _ _ => eapply HModSB.getSB_bind
+      | SBRed.putSB _ _ _ _ => eapply SBRed.putSB_bind
+      | SBRed.getSB _ _ _ => eapply SBRed.getSB_bind
       | @ITree.bind _ _ _ _ _ => eapply bind_bind
       | _ => reflexivity
       end
@@ -205,43 +205,43 @@ Tactic Notation "red_SB" hyp(prg) :=
   | [ |- @HMod.sandbox _ _ _ ?itr = _ ] =>
       lazymatch itr with
       | Ret _ =>
-          _hprogress prg; eapply HModSB.transl_ret
+          _hprogress prg; eapply SBRed.ret
       | Tau _ =>
-          _hprogress prg; eapply HModSB.transl_tau
+          _hprogress prg; eapply SBRed.tau
       | vis (Assume _) _ =>
-          _hprogress prg; eapply HModSB.transl_vis_ag
+          _hprogress prg; eapply SBRed.vis_ag
       | vis (Guarantee _) _ =>
-          _hprogress prg; eapply HModSB.transl_vis_ag
+          _hprogress prg; eapply SBRed.vis_ag
       | vis (Spawn _ _) _ =>
-          _hprogress prg; eapply HModSB.transl_vis_sch
+          _hprogress prg; eapply SBRed.vis_sch
       | vis (Yield _) _ =>
-          _hprogress prg; eapply HModSB.transl_vis_sch
+          _hprogress prg; eapply SBRed.vis_sch
       | vis (Call _ _) _ =>
-          _hprogress prg; eapply HModSB.transl_vis_call
+          _hprogress prg; eapply SBRed.vis_call
       | vis (SPut _ _) _ =>
-          _hprogress prg; eapply HModSB.SPut_putSB
+          _hprogress prg; eapply SBRed.SPut_putSB
       | vis (SGet _) _ =>
-          _hprogress prg; eapply HModSB.SGet_getSB
+          _hprogress prg; eapply SBRed.SGet_getSB
       | vis (Choose _) _ =>
-          _hprogress prg; eapply HModSB.transl_vis_core
+          _hprogress prg; eapply SBRed.vis_core
       | vis (Take _) _ =>
-          _hprogress prg; eapply HModSB.transl_vis_core
+          _hprogress prg; eapply SBRed.vis_core
       | vis (IO _ _) _ =>
-          _hprogress prg; eapply HModSB.transl_vis_core
+          _hprogress prg; eapply SBRed.vis_core
       | assumeK _ _ =>
-          _hprogress prg; eapply HModSB.transl_assumeK
+          _hprogress prg; eapply SBRed.assumeK
       | guaranteeK _ _ =>
-          _hprogress prg; eapply HModSB.transl_guaranteeK
+          _hprogress prg; eapply SBRed.guaranteeK
       | unwrapUK _ _ =>
-          _hprogress prg; eapply HModSB.transl_unwrapUK
+          _hprogress prg; eapply SBRed.unwrapUK
       | unwrapNK _ _ =>
-          _hprogress prg; eapply HModSB.transl_unwrapNK
+          _hprogress prg; eapply SBRed.unwrapNK
       (* | Sch.spawnK_S _ _ _ _ =>
           _hprogress prg; eapply Sch.spawnK_S_transl
       | Sch.yieldK_S _ _ _ =>
           _hprogress prg; eapply Sch.yieldK_S_transl *)
       | @ITree.bind _ _ _ _ _ =>
-          _hprogress prg; eapply HModSB.transl_bind
+          _hprogress prg; eapply SBRed.bind
       (* | Sch.joinK_S _ _ _ _ =>
           _hprogress prg; eapply Sch.joinK_S_transl *)
       | _ =>
@@ -269,55 +269,55 @@ Tactic Notation "red_S" hyp(prg) tactic(tac) :=
   | [ |- @interp_smod ?Σ ?ginv ?stb ?R ?itr = _ ] =>
       lazymatch itr with
       | Ret _ =>
-          _hprogress prg; eapply SModRed.interp_ret
+          _hprogress prg; eapply SRed.ret
       | Tau _ =>
-          _hprogress prg; eapply SModRed.interp_tau
+          _hprogress prg; eapply SRed.tau
       | vis (Assume _) _ =>
-          _hprogress prg; eapply SModRed.interp_vis_ag
+          _hprogress prg; eapply SRed.vis_ag
       | vis (Guarantee _) _ =>
-          _hprogress prg; eapply SModRed.interp_vis_ag
+          _hprogress prg; eapply SRed.vis_ag
       | vis (Spawn _ _) _ =>
           _hprogress prg; etransitivity;
-          [ eapply SModRed.interp_vis_sch
+          [ eapply SRed.vis_sch
           | unfold handle_schE_hmodE;
             unfold HoareSpawn;
             tac
           ]
       | vis (Yield _) _ =>
           _hprogress prg; etransitivity;
-          [ eapply SModRed.interp_vis_sch
+          [ eapply SRed.vis_sch
           | unfold handle_schE_hmodE;
             unfold HoareYield;
             tac
           ]
       | vis (Call ?fn _) _ =>
           _hprogress prg; etransitivity;
-          [ eapply SModRed.interp_vis_call
+          [ eapply SRed.vis_call
           | unfold handle_callE_hmodE;
             unfold HoareCall;
             unfold_spc_exact stb fn;
             tac
           ]
       | vis (SPut _ _) _ =>
-          _hprogress prg; eapply SModRed.interp_vis_pg
+          _hprogress prg; eapply SRed.vis_pg
       | vis (SGet _) _ =>
-          _hprogress prg; eapply SModRed.interp_vis_pg
+          _hprogress prg; eapply SRed.vis_pg
       | vis (Choose _) _ =>
-          _hprogress prg; eapply SModRed.interp_vis_core
+          _hprogress prg; eapply SRed.vis_core
       | vis (Take _) _ =>
-          _hprogress prg; eapply SModRed.interp_vis_core
+          _hprogress prg; eapply SRed.vis_core
       | vis (IO _ _) _ =>
-          _hprogress prg; eapply SModRed.interp_vis_core
+          _hprogress prg; eapply SRed.vis_core
       | assumeK _ _ =>
-          _hprogress prg; eapply SModRed.interp_assumeK
+          _hprogress prg; eapply SRed.assumeK
       | guaranteeK _ _ =>
-          _hprogress prg; eapply SModRed.interp_guaranteeK
+          _hprogress prg; eapply SRed.guaranteeK
       | unwrapUK _ _ =>
-          _hprogress prg; eapply SModRed.interp_unwrapUK
+          _hprogress prg; eapply SRed.unwrapUK
       | unwrapNK _ _ =>
-          _hprogress prg; eapply SModRed.interp_unwrapNK
+          _hprogress prg; eapply SRed.unwrapNK
       | @ITree.bind _ _ _ _ _ =>
-          _hprogress prg; eapply SModRed.interp_bind
+          _hprogress prg; eapply SRed.bind
       | _ =>
           reflexivity
       end
@@ -328,35 +328,35 @@ Tactic Notation "red_P" hyp(prg) :=
   | [ |- @PMod.interp _ _ ?itr = _ ] =>
       lazymatch itr with
       | Ret _ =>
-          _hprogress prg; eapply PModRed.interp_ret
+          _hprogress prg; eapply PRed.ret
       | Tau _ =>
-          _hprogress prg; eapply PModRed.interp_tau
+          _hprogress prg; eapply PRed.tau
       | vis (Spawn _ _) _ =>
-          _hprogress prg; eapply PModRed.interp_vis_sch
+          _hprogress prg; eapply PRed.vis_sch
       | vis (Yield _) _ =>
-          _hprogress prg; eapply PModRed.interp_vis_sch
+          _hprogress prg; eapply PRed.vis_sch
       | vis (Call _ _) _ =>
-          _hprogress prg; eapply PModRed.interp_vis_call
+          _hprogress prg; eapply PRed.vis_call
       | vis (SPut _ _) _ =>
-          _hprogress prg; eapply PModRed.interp_vis_pg
+          _hprogress prg; eapply PRed.vis_pg
       | vis (SGet _) _ =>
-          _hprogress prg; eapply PModRed.interp_vis_pg
+          _hprogress prg; eapply PRed.vis_pg
       | vis (Choose _) _ =>
-          _hprogress prg; eapply PModRed.interp_vis_choose
+          _hprogress prg; eapply PRed.vis_choose
       | vis (Take _) _ =>
-          _hprogress prg; eapply PModRed.interp_vis_take
+          _hprogress prg; eapply PRed.vis_take
       | vis (IO _ _) _ =>
-          _hprogress prg; eapply PModRed.interp_vis_io
+          _hprogress prg; eapply PRed.vis_io
       | assumeK _ _ =>
-          _hprogress prg; eapply PModRed.interp_assumeK
+          _hprogress prg; eapply PRed.assumeK
       | guaranteeK _ _ =>
-          _hprogress prg; eapply PModRed.interp_guaranteeK
+          _hprogress prg; eapply PRed.guaranteeK
       | unwrapUK _ _ =>
-          _hprogress prg; eapply PModRed.interp_unwrapUK
+          _hprogress prg; eapply PRed.unwrapUK
       | unwrapNK _ _ =>
-          _hprogress prg; eapply PModRed.interp_unwrapNK
+          _hprogress prg; eapply PRed.unwrapNK
       | @ITree.bind _ _ _ _ _ =>
-          _hprogress prg; eapply PModRed.interp_bind
+          _hprogress prg; eapply PRed.bind
       | _ =>
           reflexivity
       end
@@ -459,10 +459,10 @@ Ltac hnorm_itr :=
         eapply unwrapUK_unwrapU
     | [ |- unwrapNK _ _ = _ ] =>
         eapply unwrapNK_unwrapN
-    | [ |- HModSB.putSB _ _ _ _ = _ ] =>
-        eapply HModSB.putSB_SPut
-    | [ |- HModSB.getSB _ _ _ = _ ] =>
-        eapply HModSB.getSB_SGet
+    | [ |- SBRed.putSB _ _ _ _ = _ ] =>
+        eapply SBRed.putSB_SPut
+    | [ |- SBRed.getSB _ _ _ = _ ] =>
+        eapply SBRed.getSB_SGet
     | [ |- _ = _ ] =>
         reflexivity
     end
@@ -665,37 +665,37 @@ Ltac desugar itr :=
 Ltac _unwrapSB itr :=
   match itr with
   | Ret _ =>
-      rewrite HModSB.transl_ret
+      rewrite SBRed.ret
   | tau;; _ =>
-      rewrite HModSB.transl_tau
+      rewrite SBRed.tau
   | trigger (Choose _) =>
-      rewrite HModSB.transl_core
+      rewrite SBRed.core
   | trigger (Take _) =>
-      rewrite HModSB.transl_core
+      rewrite SBRed.core
   | trigger (IO _ _) =>
-      rewrite HModSB.transl_core
+      rewrite SBRed.core
   | trigger (Call _ _) =>
-      rewrite HModSB.transl_call
+      rewrite SBRed.call
   | trigger (SPut _ _) =>
       idtac
   | trigger (SGet _) =>
       idtac
   | trigger (Assume _) =>
-      rewrite HModSB.transl_ag
+      rewrite SBRed.ag
   | trigger (Guarantee _) =>
-      rewrite HModSB.transl_ag
+      rewrite SBRed.ag
   | unwrapU _ =>
-      rewrite HModSB.transl_unwrapU
+      rewrite SBRed.unwrapU
   | unwrapN _ =>
-      rewrite HModSB.transl_unwrapN
+      rewrite SBRed.unwrapN
   | assume _ =>
-      rewrite HModSB.transl_asm
+      rewrite SBRed.asm
   | guarantee _ =>
-      rewrite HModSB.transl_guar
+      rewrite SBRed.guar
   | trigger (Spawn _ _) =>
-      rewrite HModSB.transl_sch
+      rewrite SBRed.sch
   | trigger (Yield _) =>
-      rewrite HModSB.transl_sch
+      rewrite SBRed.sch
   | _ => fail
   end.
 
@@ -705,44 +705,44 @@ Ltac unwrapSB :=
   end;
   match goal with
   | [|-context[HMod.sandbox _ (?itr >>= _)]] =>
-      rewrite HModSB.transl_bind; unwrapSB
+      rewrite SBRed.bind; unwrapSB
   | [|-context[HMod.sandbox _ ?itr]] => first [_unwrapSB itr|fail 2]
   end.
 
 Ltac _unwrapS itr :=
   match itr with
   | Ret _ =>
-      rewrite SModRed.interp_ret
+      rewrite SRed.ret
   | tau;; _ =>
-      rewrite SModRed.interp_tau
+      rewrite SRed.tau
   | trigger (Choose _) =>
-      rewrite SModRed.interp_core
+      rewrite SRed.core
   | trigger (Take _) =>
-      rewrite SModRed.interp_core
+      rewrite SRed.core
   | trigger (IO _ _) =>
-      rewrite SModRed.interp_core
+      rewrite SRed.core
   | trigger (Call _ _) =>
-      rewrite SModRed.interp_call {1}/handle_callE_hmodE
+      rewrite SRed.call {1}/handle_callE_hmodE
   | trigger (Spawn _ _) =>
-      rewrite SModRed.interp_sch {1}/handle_schE_hmodE
+      rewrite SRed.sch {1}/handle_schE_hmodE
   | trigger (Yield _) =>
-      rewrite SModRed.interp_sch {1}/handle_schE_hmodE
+      rewrite SRed.sch {1}/handle_schE_hmodE
   | trigger (SPut _ _) =>
-      rewrite SModRed.interp_pg
+      rewrite SRed.pg
   | trigger (SGet _) =>
-      rewrite SModRed.interp_pg
+      rewrite SRed.pg
   | trigger (Assume _) =>
-      rewrite SModRed.interp_ag
+      rewrite SRed.ag
   | trigger (Guarantee _) =>
-      rewrite SModRed.interp_ag
+      rewrite SRed.ag
   | unwrapU _ =>
-      rewrite SModRed.interp_unwrapU
+      rewrite SRed.unwrapU
   | unwrapN _ =>
-      rewrite SModRed.interp_unwrapN
+      rewrite SRed.unwrapN
   | assume _ =>
-      rewrite SModRed.interp_asm
+      rewrite SRed.asm
   | guarantee _ =>
-      rewrite SModRed.interp_guar
+      rewrite SRed.guar
   | _ => fail
   end.
 
@@ -752,40 +752,40 @@ Ltac unwrapS :=
   end;
   match goal with
   | [|-context[interp_smod _ _ (?itr >>= _)]] =>
-      rewrite SModRed.interp_bind; unwrapS
+      rewrite SRed.bind; unwrapS
   | [|-context[interp_smod _ _ ?itr]] => first [_unwrapS itr|fail 2]
   end.
 
 Ltac _unwrapP itr :=
   match itr with
   | Ret _ =>
-      rewrite PModRed.interp_ret
+      rewrite PRed.ret
   | tau;; _ =>
-      rewrite PModRed.interp_tau
+      rewrite PRed.tau
   | trigger (Choose _) =>
-      rewrite PModRed.interp_choose
+      rewrite PRed.choose
   | trigger (Take _) =>
-      rewrite PModRed.interp_take
+      rewrite PRed.take
   | trigger (IO _ _) =>
-      rewrite PModRed.interp_io
+      rewrite PRed.io
   | trigger (Call _ _) =>
-      rewrite PModRed.interp_call
+      rewrite PRed.call
   | trigger (Spawn _ _) =>
-      rewrite PModRed.interp_sch
+      rewrite PRed.sch
   | trigger (Yield _) =>
-      rewrite PModRed.interp_sch
+      rewrite PRed.sch
   | trigger (SPut _ _) =>
-      rewrite PModRed.interp_pg
+      rewrite PRed.pg
   | trigger (SGet _) =>
-      rewrite PModRed.interp_pg
+      rewrite PRed.pg
   | unwrapU _ =>
-      rewrite PModRed.interp_unwrapU
+      rewrite PRed.unwrapU
   | unwrapN _ =>
-      rewrite PModRed.interp_unwrapN
+      rewrite PRed.unwrapN
   | assume _ =>
-      rewrite PModRed.interp_asm
+      rewrite PRed.asm
   | guarantee _ =>
-      rewrite PModRed.interp_guar
+      rewrite PRed.guar
   | _ => fail
   end.
 
@@ -795,7 +795,7 @@ Ltac unwrapP :=
   end;
   match goal with
   | [|-context[PMod.interp (?itr >>= _)]] =>
-      rewrite PModRed.interp_bind; unwrapP
+      rewrite PRed.bind; unwrapP
   | [|-context[PMod.interp ?itr]] => first [_unwrapP itr|fail 2]
   end.
 

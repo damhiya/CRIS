@@ -36,20 +36,20 @@ End ISIM.
 
 Ltac _bind_expand :=
   _prep;
-  rewrite ?SModRed.interp_bind ?PModRed.interp_bind ?HModSB.transl_bind ?bind_bind;
+  rewrite ?SRed.bind ?PRed.bind ?SBRed.bind ?bind_bind;
   try ((eapply bind_equal);[|extensionalities];_bind_expand);
   eauto.
 
 Ltac bind_expand_r := 
   hide_itree_l;
-  rewrite ?PModRed.interp_bind ?HModSB.transl_bind ?bind_bind;
+  rewrite ?PRed.bind ?SBRed.bind ?bind_bind;
   eapply isim_congruence_tgt;
   _bind_expand;
   show_itree.
 
 Ltac bind_expand_l := 
   hide_itree_r;
-  rewrite ?SModRed.interp_bind ?HModSB.transl_bind ?bind_bind;
+  rewrite ?SRed.bind ?SBRed.bind ?bind_bind;
   eapply isim_congruence_src;
   _bind_expand;
   show_itree.

@@ -97,7 +97,7 @@ Section HModProd.
       + yield "IST"; eauto. by_coind "CIH". eauto.
     - destruct c. call "IST"; eauto. by_coind "CIH". eauto.
     - depdes s.
-      + rewrite !HModSB.transl_bind !HModSB.transl_put. des_ifs; cycle 1.
+      + rewrite !SBRed.bind !SBRed.put. des_ifs; cycle 1.
         { steps_r. force_l q. steps_l. by_coind "CIH". eauto. }
         iApply isim_sput_src. iApply isim_sput_tgt.
         by_coind "CIH". unfold IstProd.
@@ -113,7 +113,7 @@ Section HModProd.
         * eapply alist_upd_tail. ii.
           eapply NoDup_app_disjoint; try apply DISJ; eauto.
           apply H1. eapply in_map in H. rewrite List.map_map in H. apply H.
-      + rewrite !HModSB.transl_bind !HModSB.transl_get. des_ifs; cycle 1.
+      + rewrite !SBRed.bind !SBRed.get. des_ifs; cycle 1.
         { steps_r. force_l q. steps_l. by_coind "CIH". eauto. }
         iApply isim_sget_src. iApply isim_sget_tgt.
         apply existsb_exists in Heq. des. apply String.eqb_eq in Heq0. subst.

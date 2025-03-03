@@ -59,13 +59,13 @@ End PMod.
 
 Notation "↥ it" := (PMod.interp it) (at level 60, only printing).
 
-Module PModRed.
+Module PRed.
 Section RED.
 
   Context `{Σ : GRA}.
 
 (* itree reduction *)
-  Lemma interp_bind
+  Lemma bind
         (R S: Type)
         (s : itree pmodE R) (k : R -> itree pmodE S)
     :
@@ -76,7 +76,7 @@ Section RED.
     unfold PMod.interp. grind.
   Qed.
 
-  Lemma interp_tau
+  Lemma tau
         (U: Type)
         (t : itree _ U)
     :
@@ -87,7 +87,7 @@ Section RED.
     unfold PMod.interp. grind.
   Qed.
 
-  Lemma interp_ret
+  Lemma ret
         (U: Type)
         (t: U)
     :
@@ -98,35 +98,35 @@ Section RED.
     unfold PMod.interp. grind.
   Qed.
 
-  Lemma interp_vis_sch {X R} (e : schE X) (ktr : X -> itree pmodE R) :
+  Lemma vis_sch {X R} (e : schE X) (ktr : X -> itree pmodE R) :
     PMod.interp (vis e ktr) = vis e (fun x => tau;; PMod.interp (ktr x)).
   Proof.
     eapply observe_eta; ss. f_equal. extensionality x.
     eapply observe_eta; ss.
   Qed.
 
-  Lemma interp_vis_call {X R} (e : callE X) (ktr : X -> itree pmodE R) :
+  Lemma vis_call {X R} (e : callE X) (ktr : X -> itree pmodE R) :
     PMod.interp (vis e ktr) = vis e (fun x => tau;; PMod.interp (ktr x)).
   Proof.
     eapply observe_eta; ss. f_equal. extensionality x.
     eapply observe_eta; ss.
   Qed.
 
-  Lemma interp_vis_pg {X R} (e : pgE X) (ktr : X -> itree pmodE R) :
+  Lemma vis_pg {X R} (e : pgE X) (ktr : X -> itree pmodE R) :
     PMod.interp (vis e ktr) = vis e (fun x => tau;; PMod.interp (ktr x)).
   Proof.
     eapply observe_eta; ss. f_equal. extensionality x.
     eapply observe_eta; ss.
   Qed.
 
-  Lemma interp_vis_choose {X R} (ktr : X -> itree pmodE R) :
+  Lemma vis_choose {X R} (ktr : X -> itree pmodE R) :
     PMod.interp (vis (Choose X) ktr) = vis (Choose X) (fun x => tau;; PMod.interp (ktr x)).
   Proof.
     eapply observe_eta; ss. f_equal. extensionality x.
     eapply observe_eta; ss.
   Qed.
 
-  Lemma interp_vis_take {X : Prop} {R} (ktr : X -> itree pmodE R) :
+  Lemma vis_take {X : Prop} {R} (ktr : X -> itree pmodE R) :
     PMod.interp (vis (Take X) ktr) = vis (Take X) (fun x => tau;; PMod.interp (ktr x)).
   Proof.
     eapply observe_eta; cbn. destruct excluded_middle_informative as [H|H]; ss.
@@ -134,14 +134,14 @@ Section RED.
     - exfalso. apply H. exists X. reflexivity.
   Qed.
 
-  Lemma interp_vis_io {I O R} fn args (ktr : O -> itree pmodE R) :
+  Lemma vis_io {I O R} fn args (ktr : O -> itree pmodE R) :
     PMod.interp (vis (@IO I O fn args) ktr) = vis (IO fn args) (fun x => tau;; PMod.interp (ktr x)).
   Proof.
     eapply observe_eta; ss. f_equal. extensionality x.
     eapply observe_eta; ss.
   Qed.
 
-  Lemma interp_assumeK {R} P (itr : itree pmodE R) :
+  Lemma assumeK {R} P (itr : itree pmodE R) :
     PMod.interp (assumeK P itr) = assumeK P (tau;; PMod.interp itr).
   Proof.
     eapply observe_eta; cbn. destruct excluded_middle_informative as [H|H]; ss.
@@ -149,14 +149,14 @@ Section RED.
     - exfalso. apply H. exists P. reflexivity.
   Qed.
 
-  Lemma interp_guaranteeK {R} P (itr : itree pmodE R) :
+  Lemma guaranteeK {R} P (itr : itree pmodE R) :
     PMod.interp (guaranteeK P itr) = guaranteeK P (tau;; PMod.interp itr).
   Proof.
     eapply observe_eta; ss. f_equal. extensionality x.
     eapply observe_eta; ss.
   Qed.
 
-  Lemma interp_unwrapUK {X R} x (ktr : X -> itree pmodE R) :
+  Lemma unwrapUK {X R} x (ktr : X -> itree pmodE R) :
     PMod.interp (unwrapUK x ktr) = unwrapUK x (fun x => PMod.interp (ktr x)).
   Proof.
     destruct x; ss. eapply observe_eta; cbn. destruct excluded_middle_informative as [H|H]; ss.
@@ -164,14 +164,14 @@ Section RED.
     - exfalso. apply H. exists False. reflexivity.
   Qed.
 
-  Lemma interp_unwrapNK {X R} x (ktr : X -> itree pmodE R) :
+  Lemma unwrapNK {X R} x (ktr : X -> itree pmodE R) :
     PMod.interp (unwrapNK x ktr) = unwrapNK x (fun x => PMod.interp (ktr x)).
   Proof.
     destruct x; ss.
     eapply observe_eta; ss. f_equal. extensionality x. ss.
   Qed.
 
-  Lemma interp_call
+  Lemma call
         (R: Type)
         (i: callE R)
     :
@@ -182,7 +182,7 @@ Section RED.
     unfold PMod.interp. rewrite interp_trigger. grind.
   Qed.
 
-  Lemma interp_sch
+  Lemma sch
         (R: Type)
         (i: schE R)
     :
@@ -193,7 +193,7 @@ Section RED.
     unfold PMod.interp. rewrite interp_trigger. grind.
   Qed.
   
-  Lemma interp_pg
+  Lemma pg
         (R: Type)
         (i: pgE R)
     :
@@ -204,7 +204,7 @@ Section RED.
     unfold PMod.interp. rewrite interp_trigger. grind.
   Qed.
 
-  Lemma interp_take
+  Lemma take
         (P: Prop)
     :
       PMod.interp (trigger (Take P))
@@ -216,7 +216,7 @@ Section RED.
     exfalso. eauto.
   Qed.
   
-  Lemma interp_choose
+  Lemma choose
         (X: Type)
     :
       PMod.interp (trigger (Choose X))
@@ -227,7 +227,7 @@ Section RED.
     rewrite interp_trigger. grind.
   Qed.
 
-  Lemma interp_io
+  Lemma io
         I O fn args
     :
       PMod.interp (trigger (@IO I O fn args))
@@ -238,7 +238,7 @@ Section RED.
     rewrite interp_trigger. grind.
   Qed.
   
-  Lemma interp_unwrapU 
+  Lemma unwrapU 
         (R: Type)
         (i: option R)
     :
@@ -247,11 +247,11 @@ Section RED.
     unwrapU i.
   Proof.
     rewrite /unwrapU. des_ifs.
-    - rewrite interp_ret; eauto.
-    - rewrite /triggerUB !interp_bind !interp_take. grind.
+    - rewrite ret; eauto.
+    - rewrite /triggerUB !bind !take. grind.
   Qed.
 
-  Lemma interp_unwrapN
+  Lemma unwrapN
         (R: Type)
         (i: option R)
     :
@@ -260,32 +260,32 @@ Section RED.
       unwrapN i.
   Proof.
     rewrite /unwrapN. des_ifs.
-    - rewrite interp_ret; eauto.
-    - rewrite /triggerNB !interp_bind !interp_choose. grind.
+    - rewrite ret; eauto.
+    - rewrite /triggerNB !bind !choose. grind.
   Qed.
 
-  Lemma interp_asm
+  Lemma asm
         P
     : 
       PMod.interp (assume P)
       =
       assume P;;; tau;; Ret ().
   Proof.
-    rewrite /assume !interp_bind !interp_take !interp_ret. grind.
+    rewrite /assume !bind !take !ret. grind.
   Qed. 
 
-  Lemma interp_guar
+  Lemma guar
         P
     : 
       PMod.interp (guarantee P)
       =
       guarantee P;;; tau;; Ret ().
   Proof.
-    rewrite /guarantee !interp_bind !interp_choose !interp_ret. grind.
+    rewrite /guarantee !bind !choose !ret. grind.
   Qed.
   
 End RED.
-End PModRed.
+End PRed.
 
 Module PMWrap.
 

@@ -144,12 +144,12 @@ End HOARE.
 
 Notation "↧ it" := (interp_smod _ _ it) (at level 59, only printing).
 
-Module SModRed.
+Module SRed.
 Section RED.
 
   Context `{Σ : GRA}.
 
-  Lemma interp_bind
+  Lemma bind
         (R S: Type)
         ginv stb
         (s : itree hmodE R) (k : R → itree hmodE S)
@@ -161,7 +161,7 @@ Section RED.
     unfold interp_smod in *. grind.
   Qed.
 
-  Lemma interp_tau
+  Lemma tau
         (U : Type)
         (t : itree _ U)
         ginv stb
@@ -173,7 +173,7 @@ Section RED.
     unfold interp_smod in *. grind.
   Qed.
 
-  Lemma interp_ret
+  Lemma ret
         (U: Type)
         (t: U)
         ginv stb
@@ -185,68 +185,68 @@ Section RED.
     unfold interp_smod in *. grind.
   Qed.
 
-  Lemma interp_vis_ag {X R} ginv stb (e : agE X) (ktr : X -> itree hmodE R) :
+  Lemma vis_ag {X R} ginv stb (e : agE X) (ktr : X -> itree hmodE R) :
     interp_smod ginv stb (vis e ktr) = vis e (fun x => tau;; interp_smod ginv stb (ktr x)).
   Proof.
     eapply observe_eta; ss. f_equal. extensionality x.
     eapply observe_eta; ss.
   Qed.
 
-  Lemma interp_vis_sch {X R} ginv stb (e : schE X) (ktr : X -> itree hmodE R) :
+  Lemma vis_sch {X R} ginv stb (e : schE X) (ktr : X -> itree hmodE R) :
     interp_smod ginv stb (vis e ktr) = x <- handle_schE_hmodE ginv stb e;; tau;; interp_smod ginv stb (ktr x).
   Proof.
     eapply bisim_is_eq. unfold interp_smod. rewrite interp_vis. reflexivity.
   Qed.
 
-  Lemma interp_vis_call {X R} ginv stb (e : callE X) (ktr : X -> itree hmodE R) :
+  Lemma vis_call {X R} ginv stb (e : callE X) (ktr : X -> itree hmodE R) :
     interp_smod ginv stb (vis e ktr) = x <- handle_callE_hmodE stb e;; tau;; interp_smod ginv stb (ktr x).
   Proof.
     eapply bisim_is_eq. unfold interp_smod. rewrite interp_vis. reflexivity.
   Qed.
 
-  Lemma interp_vis_pg {X R} ginv stb (e : pgE X) (ktr : X -> itree hmodE R) :
+  Lemma vis_pg {X R} ginv stb (e : pgE X) (ktr : X -> itree hmodE R) :
     interp_smod ginv stb (vis e ktr) = vis e (fun x => tau;; interp_smod ginv stb (ktr x)).
   Proof.
     eapply observe_eta; ss. f_equal. extensionality x.
     eapply observe_eta; ss.
   Qed.
 
-  Lemma interp_vis_core {X R} ginv stb (e : coreE X) (ktr : X -> itree hmodE R) :
+  Lemma vis_core {X R} ginv stb (e : coreE X) (ktr : X -> itree hmodE R) :
     interp_smod ginv stb (vis e ktr) = vis e (fun x => tau;; interp_smod ginv stb (ktr x)).
   Proof.
     eapply observe_eta; ss. f_equal. extensionality x.
     eapply observe_eta; ss.
   Qed.
 
-  Lemma interp_assumeK {R} ginv stb P (itr : itree hmodE R) :
+  Lemma assumeK {R} ginv stb P (itr : itree hmodE R) :
     interp_smod ginv stb (assumeK P itr) = assumeK P (tau;; interp_smod ginv stb itr).
   Proof.
     eapply observe_eta; ss. f_equal. extensionality x.
     eapply observe_eta; ss.
   Qed.
 
-  Lemma interp_guaranteeK {R} ginv stb P (itr : itree hmodE R) :
+  Lemma guaranteeK {R} ginv stb P (itr : itree hmodE R) :
     interp_smod ginv stb (guaranteeK P itr) = guaranteeK P (tau;; interp_smod ginv stb itr).
   Proof.
     eapply observe_eta; ss. f_equal. extensionality x.
     eapply observe_eta; ss.
   Qed.
 
-  Lemma interp_unwrapUK {X R} ginv stb x (ktr : X -> itree hmodE R) :
+  Lemma unwrapUK {X R} ginv stb x (ktr : X -> itree hmodE R) :
     interp_smod ginv stb (unwrapUK x ktr) = unwrapUK x (fun x => interp_smod ginv stb (ktr x)).
   Proof.
     destruct x; ss.
     eapply observe_eta; ss. f_equal. extensionality x. ss.
   Qed.
 
-  Lemma interp_unwrapNK {X R} ginv stb x (ktr : X -> itree hmodE R) :
+  Lemma unwrapNK {X R} ginv stb x (ktr : X -> itree hmodE R) :
     interp_smod ginv stb (unwrapNK x ktr) = unwrapNK x (fun x => interp_smod ginv stb (ktr x)).
   Proof.
     destruct x; ss.
     eapply observe_eta; ss. f_equal. extensionality x. ss.
   Qed.
 
-  Lemma interp_sch
+  Lemma sch
         (R: Type)
         (i: schE R)
         ginv stb
@@ -258,7 +258,7 @@ Section RED.
     unfold interp_smod in *. rewrite interp_trigger. grind.
   Qed.
   
-  Lemma interp_call
+  Lemma call
         (R: Type)
         (i: callE R)
         ginv stb
@@ -270,7 +270,7 @@ Section RED.
     unfold interp_smod in *. rewrite interp_trigger. grind.
   Qed.
 
-  Lemma interp_pg
+  Lemma pg
         (R: Type)
         (i: pgE R)
         ginv stb
@@ -282,7 +282,7 @@ Section RED.
     unfold interp_smod. rewrite interp_trigger. grind.
   Qed.
 
-  Lemma interp_core
+  Lemma core
         (R: Type)
         (i: coreE R)
         ginv stb
@@ -294,7 +294,7 @@ Section RED.
     unfold interp_smod. rewrite interp_trigger. grind.
   Qed.
 
-  Lemma interp_ag {A} (e: agE A)
+  Lemma ag {A} (e: agE A)
         ginv stb
     :
       interp_smod ginv stb (trigger e)
@@ -304,7 +304,7 @@ Section RED.
     unfold interp_smod. rewrite interp_trigger. grind.
   Qed.
   
-  Lemma interp_unwrapU 
+  Lemma unwrapU 
         (R: Type)
         (i: option R)
         ginv stb
@@ -317,7 +317,7 @@ Section RED.
     unfold triggerUB in *. rewrite unfold_interp. grind.
   Qed.
 
-  Lemma interp_unwrapN
+  Lemma unwrapN
         (R: Type)
         (i: option R)
         ginv stb
@@ -330,24 +330,24 @@ Section RED.
     unfold triggerNB in *. rewrite unfold_interp. grind.
   Qed.
   
-  Lemma interp_asm
+  Lemma asm
         ginv stb P
     : 
       interp_smod ginv stb (assume P)
       =
       r <- assume P;; tau;; Ret r.
   Proof.
-    unfold assume. rewrite interp_bind. rewrite interp_core. grind. rewrite interp_ret. refl.
+    unfold assume. rewrite bind. rewrite core. grind. rewrite ret. refl.
   Qed. 
 
-  Lemma interp_guar
+  Lemma guar
         ginv stb P
     : 
       interp_smod ginv stb (guarantee P)
       =
       r <- guarantee P;; tau;; Ret r.
   Proof.
-    unfold guarantee. rewrite interp_bind. rewrite interp_core. grind. rewrite interp_ret. refl.
+    unfold guarantee. rewrite bind. rewrite core. grind. rewrite ret. refl.
   Qed.
 
-End RED. End SModRed.
+End RED. End SRed.

@@ -127,11 +127,11 @@ Section CANCEL.
       match goal with [|-context[translate (_ ?scopes) ?itr]]=>
         fold (HMod.sandbox scopes itr)
       end.
-      rewrite -HIRed.iter_handle_bind HModSB.transl_bind.
+      rewrite -HIRed.iter_handle_bind SBRed.bind.
       do 4 f_equal. extensionalities.
-      rewrite HModSB.transl_bind HModSB.transl_core.
+      rewrite SBRed.bind SBRed.core.
       f_equal. extensionalities.
-      rewrite HModSB.transl_bind HModSB.transl_ag HModSB.transl_ret.
+      rewrite SBRed.bind SBRed.ag SBRed.ret.
       refl.
     }
     { i. nia. }
@@ -147,7 +147,7 @@ Section CANCEL.
       {
         destruct (Nat.eq_dec cid (base.length tgts)); try nia.
         instantiate (1:= ktrT (base.length tgts)).
-        unfold yield_post. ired. rewrite -interp_hp_tau.
+        unfold yield_post. ired. rewrite -HRed.tau.
         do 6 f_equal.
       }
       eapply KTR.

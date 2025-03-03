@@ -362,7 +362,7 @@ Section SIM.
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, HMod.sandbox scopes (trigger (SPut k v)) >>= k_src) (st_tgt, i_tgt).
   Proof.
     i. iIntros "ISIM".
-    rewrite HModSB.transl_put.
+    rewrite SBRed.put.
     des_ifs; ss.
     - iApply isim_sput_src. iFrame.
     - exfalso. edestruct (existsb_exists (String.eqb k.1) scopes).
@@ -384,7 +384,7 @@ Section SIM.
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, HMod.sandbox scopes (trigger (SPut k v)) >>= k_tgt).
   Proof.
     i. iIntros "ISIM".
-    rewrite HModSB.transl_put.
+    rewrite SBRed.put.
     des_ifs; ss.
     - iApply isim_sput_tgt. iFrame.
     - exfalso. edestruct (existsb_exists (String.eqb k.1) scopes).
@@ -406,7 +406,7 @@ Section SIM.
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, HMod.sandbox scopes (trigger (SGet k)) >>= k_src) (st_tgt, i_tgt).
   Proof.
     i. iIntros "ISIM".
-    rewrite HModSB.transl_get.
+    rewrite SBRed.get.
     des_ifs; ss.
     - iApply isim_sget_src. iFrame.
     - exfalso. edestruct (existsb_exists (String.eqb k.1) scopes).
@@ -428,7 +428,7 @@ Section SIM.
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, HMod.sandbox scopes (trigger (SGet k)) >>= k_tgt).
   Proof.
     i. iIntros "ISIM".
-    rewrite HModSB.transl_get.
+    rewrite SBRed.get.
     des_ifs; ss.
     - iApply isim_sget_tgt. iFrame.
     - exfalso. edestruct (existsb_exists (String.eqb k.1) scopes).
