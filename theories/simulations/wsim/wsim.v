@@ -36,8 +36,6 @@ Arguments mk_WP {_ _ _ _ _ _ _ _} _ _ _ _ _.
 Arguments WP_remainder {_ _ _ _ _ _ _ _} [_ _ _] _.
 Arguments WP_iff {_ _ _ _ _ _ _ _} [_ _ _] _.
 
-Class ModRel (υ ν : univ_id) := mk_ModRel : (ν < υ).
-
 Program Global Instance WP_refl `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}
     (υ : univ_id) (E : coPset)
   : WP (wsim_ginv υ E) υ E := mk_WP (wsim_ginv υ E) υ E True _.
@@ -421,7 +419,7 @@ Section wsim.
       iApply "SIM"; iFrame.
     Qed.
 
-    Lemma wsim_half_assume_tgt_WP `{i : !WP P ν ⊤, ModRel υ ν} r g i_s k_t E :
+    Lemma wsim_half_assume_tgt_WP `{i : !WP P ν ⊤, υ > ν} r g i_s k_t E :
       (WP_remainder i ∗
       wsim (Some false) υ ν E r g R_s R_t RR ps true nths
         (st_s, i_s) (st_t, k_t tt)) ⊢
@@ -437,7 +435,7 @@ Section wsim.
       { iApply "SIM"; iFrame. }
     Qed.
 
-    Lemma wsim_half_guarantee_tgt_WP `{i : !WP P ν ⊤, ModRel υ ν} r g i_s k_t E :
+    Lemma wsim_half_guarantee_tgt_WP `{i : !WP P ν ⊤, υ > ν} r g i_s k_t E :
       (WP_remainder i -∗
       wsim (Some true) υ ν E r g R_s R_t RR ps true nths
         (st_s, i_s) (st_t, k_t tt)) ⊢

@@ -161,14 +161,14 @@ Ltac _wstep_r :=
       first [
         tcsearch constr:(WP P ν ⊤)
           ltac:(fun c =>
-            iApply (wsim_half_guarantee_tgt_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); simpl);
+            unshelve iApply (wsim_half_guarantee_tgt_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); eauto);
         match goal with
         | [ |- environments.envs_entails _ (?P' -∗ _)] =>
           unfold_precond_postcond P'; iIntrosFresh "GRT"
         end
       | tcsearch constr:(WP P u ⊤)
           ltac:(fun c =>
-            iApply (wsim_full_guarantee_tgt_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); simpl);
+            unshelve iApply (wsim_full_guarantee_tgt_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); eauto);
         match goal with
         | [ |- environments.envs_entails _ (?P' -∗ _)] =>
           unfold_precond_postcond P'; iIntrosFresh "GRT"
@@ -254,14 +254,14 @@ Ltac _wforce_r :=
       first [
         tcsearch constr:(WP P ν ⊤)
           ltac:(fun c =>
-            iApply (wsim_half_assume_tgt_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); simpl);
+            unshelve iApply (wsim_half_assume_tgt_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); eauto);
         match goal with
         | [ |- environments.envs_entails _ (?P' ∗ _)] =>
           unfold_precond_postcond P'
         end
       | tcsearch constr:(WP P u ⊤)
           ltac:(fun c =>
-            iApply (wsim_full_assume_tgt_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); simpl);
+            unshelve iApply (wsim_full_assume_tgt_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); eauto);
         match goal with
         | [ |- environments.envs_entails _ (?P' ∗ _)] =>
           unfold_precond_postcond P'

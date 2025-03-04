@@ -10,13 +10,12 @@ Local Open Scope nat_scope.
 Module MapMA. Section MapMA.
   Import MapAS.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !MapAGΓ Γ, !MapMGΓ Γ}.
-  Context `{!ModRel u_a u_m} (n : level).
+  Context (u_a u_m : univ_id).
+  Context `(u_a > u_m).
 
-  Context (ginv_s : invspec) (Spc_s : string → option fspec).
-  Context (MapInSpcS : spc_incl (MapAS.Spc u_a n) Spc_s).
-
-  Context (ginv_t : invspec) (Spc_t : string → option fspec).
-  Context (MapInSpcT : spc_incl (MapMS.Spc u_m n) Spc_t).
+  Context (spc_s spc_t : string → option fspec).
+  Context (MapInSpcS : spc_incl (MapAS.spc u_a) spc_s).
+  Context (MapInSpcT : spc_incl (MapMS.spc u_m) spc_t).
 
   Definition Ist : nat → alist key Any.t → alist key Any.t → iProp Σ :=
     (λ _ st_src st_tgt,
@@ -29,14 +28,14 @@ Module MapMA. Section MapMA.
             ∗ auth_allocated f
             ∗ auth_unallocated sz))%I.
 
-  Local Definition MapA := (MapA.t u_a n ginv_s Spc_s ).
-  Local Definition MapM := (MapM.t u_m n ginv_t Spc_t ).
+  Local Definition MapA := (MapA.t u_a spc_s).
+  Local Definition MapM := (MapM.t u_m spc_t).
 
   Lemma simF_init : HSim.sim_fun open MapA MapM Ist MapName.init.
   Proof.
-    init_wsim u_a u_m n.
+    winit_simF u_a u_m.
 
-    w_steps_l.
+    wsteps_l.
     iDestruct "ASM" as "[[[-> %range] P] ->]".
 
     (* SRC: handle the IST of Map and the precond of init *)
@@ -45,131 +44,131 @@ Module MapMA. Section MapMA.
     des. hss. rename q into sz.
     
     (* TGT: prove the precond of init *)
-    w_step_r. w_force_r sz. w_force_r ([Vint sz] ↑). w_force_r.
+    wstep_r. wforce_r sz. wforce_r ([Vint sz] ↑). wforce_r.
     iSplitL "P0". { iFrame. eauto. }
 
     (* TGT: handle the postcond of init *)
-    hss. w_steps_r. iDestruct "GRT" as "(_ & %)". hss.
+    hss. wsteps_r. iDestruct "GRT" as "(_ & %)". hss.
     
     (* SRC: prove the postcond of init *)
     iMod (initialize with "INIT") as "(ALLOC & UNALLOC & INIT)".
-    w_force_l. w_steps_l. w_force_l. w_force_l.
+    wforce_l. wsteps_l. wforce_l. wforce_l.
     iSplitL "INIT". { iFrame. eauto. }
     
     (* prove the IST of Map *)
-    w_step. iSplit; eauto.
+    wstep. iSplit; eauto.
     iExists _, _. iSplitR; eauto. iRight. iFrame.
   Qed.
 
   Lemma simF_get : HSim.sim_fun open MapA MapM Ist MapName.get.
   Proof.
-    init_wsim u_a u_m n.
+    winit_simF u_a u_m.
 
-    w_steps_l.
+    wsteps_l.
     iDestruct "ASM" as "((-> & MAP) & ->)".
     rename q1 into k.
 
     (* SRC: handle the IST of Map and the precond of get *)
     iDestruct "IST" as (f sz) "(% & [(% & P0 & INIT)|(P' & B & U)])".
     { iExFalso. iApply (initial_map_points_to with "INIT MAP"). }
-    hss. w_steps_l. hss. w_steps_l.
+    hss. wsteps_l. hss. wsteps_l.
 
     (* TGT: prove the precond of get *)
-    w_step_r. w_force_r k. w_force_r. w_force_r.
+    wstep_r. wforce_r k. wforce_r. wforce_r.
     iSplit; first eauto.
 
     (* TGT : handle the body of get *)
-    hss. w_steps_r. hss. w_steps_r.
+    hss. wsteps_r. hss. wsteps_r.
     iPoseProof (auth_unallocated_points_to with "U MAP") as "%".
-    w_force_r; first eauto.
+    wforce_r; first eauto.
 
     (* TGT: handle the postcond of get *)
-    w_steps_r. hss. w_steps_r. iDestruct "GRT" as "(_ & <-)".
+    wsteps_r. hss. wsteps_r. iDestruct "GRT" as "(_ & <-)".
 
     (* SRC: prove the postcond of get *)
-    w_force_l. w_force_l.
+    wforce_l. wforce_l.
     iPoseProof (auth_allocated_get with "B MAP") as "->".
     iSplitL "MAP". { iFrame. eauto. }
 
     (* prove the IST of Map *)
-    w_step. iSplit; eauto.
+    wstep. iSplit; eauto.
     iExists _, _. iSplit; eauto. iRight. iFrame.
   Qed.
 
   Lemma simF_set : HSim.sim_fun open MapA MapM Ist MapName.set.
   Proof.
-    init_wsim u_a u_m n.
+    winit_simF u_a u_m.
 
     (* SRC: handle the IST of Map and the precond of set *)
-    do 2 w_step_l.
-    destruct q as [[k w] v]. w_steps_l.
+    do 2 wstep_l.
+    destruct q as [[k w] v]. wsteps_l.
     iDestruct "ASM" as "((-> & MAP) & ->)".
     iDestruct "IST" as (f sz) "(% & [(% & P0 & INIT)|(P' & B & U)])".
     { iExFalso. iApply (initial_map_points_to with "INIT MAP"). }
-    des. hss. w_steps_l. hss. w_steps_l. hss.
+    des. hss. wsteps_l. hss. wsteps_l. hss.
 
     (* TGT: prove the precond of set *)
-    w_step_r. w_force_r (k, v). w_force_r. w_force_r. iSplitR; first eauto.
+    wstep_r. wforce_r (k, v). wforce_r. wforce_r. iSplitR; first eauto.
 
     (* TGT : handle the body of set *)
-    hss. w_steps_r. hss. w_steps_r.
+    hss. wsteps_r. hss. wsteps_r.
     iPoseProof (auth_unallocated_points_to with "U MAP") as "%".
-    w_force_r; first done. w_steps_r. hss. w_steps_r.
+    wforce_r; first done. wsteps_r. hss. wsteps_r.
 
     (* TGT: handle the postcond of set *)
     iDestruct "GRT" as "(_ & <-)".
     
     (* SRC : prove the postcond of set *)
     iPoseProof (auth_allocated_set with "B MAP") as ">(B & MAP)".
-    w_force_l. w_force_l. iSplitL "MAP". { iFrame. eauto. }
+    wforce_l. wforce_l. iSplitL "MAP". { iFrame. eauto. }
 
     (* prove the IST of Map *)
-    w_step. iSplit; eauto.
+    wstep. iSplit; eauto.
     iExists _, _. iSplit; eauto. iRight. iFrame.
   Qed.
 
   Lemma simF_set_by_user : HSim.sim_fun open MapA MapM Ist MapName.set_by_user.
   Proof.
-    init_wsim u_a u_m n.
+    winit_simF u_a u_m.
 
     (* SRC: handle the IST of Map and the precond of set_by_user *)
-    do 2 w_step_l. destruct q as [k w]. w_steps_l.
+    do 2 wstep_l. destruct q as [k w]. wsteps_l.
     iDestruct "ASM" as "((-> & MAP) & ->)".
-    hss. w_steps_l.
+    hss. wsteps_l.
 
     (* TGT: prove the precond of set_by_user *)
-    w_step_r. w_force_r. w_force_r. w_force_r. hss. iSplitR. { eauto. }
+    wstep_r. wforce_r. wforce_r. wforce_r. hss. iSplitR. { eauto. }
 
     (* process an input *)
-    w_steps_r. w_step.
+    wsteps_r. wstep.
 
     (* TGT: handle the precond of set *)
-    w_steps_r. iDestruct "GRT" as "%". des. hss.
+    wsteps_r. iDestruct "GRT" as "%". des. hss.
     
     (* SRC: prove the precond of set *)
-    w_steps_l. w_force_l (_,_,_). w_force_l. w_force_l.
+    wsteps_l. wforce_l (_,_,_). wforce_l. wforce_l.
     iSplitL "MAP". { iFrame. eauto. }
 
     (* make a call to set *)
-    w_call "IST".
+    wcall "IST".
 
     (* SRC: handle the postcond of set *)
-    w_steps_l. iDestruct "ASM" as "((-> & MAP) & ->)". hss.
+    wsteps_l. iDestruct "ASM" as "((-> & MAP) & ->)". hss.
 
     (* TGT: prove the postcond of set *)
-    w_steps_l. w_force_r. w_force_r. iSplitR. { iFrame. eauto. }
+    wsteps_l. wforce_r. wforce_r. iSplitR. { iFrame. eauto. }
 
     (* TGT: handle the postcond of set_by_user *)
-    w_steps_r. hss. w_steps_r. iDestruct "GRT" as "(_ & <-)".
+    wsteps_r. hss. wsteps_r. iDestruct "GRT" as "(_ & <-)".
     
     (* SRC: prove the postcond of set_by_user *)
-    w_force_l. w_force_l. iSplitL "MAP". { iFrame. eauto. }
+    wforce_l. wforce_l. iSplitL "MAP". { iFrame. eauto. }
 
     (* prove the IST of Map *)
-    w_step. eauto.
+    wstep. eauto.
   Qed.
 
-  Lemma sim : HSim.t open MapA MapM MapA.InitCond Ist.
+  Lemma sim : HSim.t open MapA MapM MapA.init_cond Ist.
   Proof.
     init_sim.
     - iIntros "(IST & P)"; s.
@@ -179,19 +178,15 @@ Module MapMA. Section MapMA.
     - apply simF_set; eauto.
     - apply simF_set_by_user; eauto.
   Qed.
-
-  End MapMA.
-
-  Section MapMA.
-    Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !MapAGΓ Γ, !MapMGΓ Γ, !memGΓ Γ}.
-    Lemma wctxr n Spc_s Spc_t ginv_t ginv_s
-        (MapInSpcS : ∀ υ, spc_incl (MapAS.Spc υ n) (Spc_s υ))
-        (MapInSpcT : ∀ υ, spc_incl (MapMS.Spc υ n) (Spc_t υ)) :
-      w_ctx_refines
-        ((λ υ, MapA.t υ n ginv_s (Spc_s υ)), MapA.InitCond)
-        ((λ ν, MapM.t ν n ginv_t (Spc_t ν)), emp%I).
-    Proof.
-      exists 1%positive; intros u v Huv; eapply main_adequacy, MapMA.sim; eauto.
-      Unshelve. r; lia.
-    Qed.
+End MapMA.
+Section MapMA.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !MapAGΓ Γ, !MapMGΓ Γ, !memGΓ Γ}.
+  Lemma wctxr u_s u_t spc_s spc_t
+      (LE : u_s > u_t)
+      (MapInSpcS : spc_incl (MapAS.spc u_s) spc_s)
+      (MapInSpcT : spc_incl (MapMS.spc u_t) spc_t) :
+    ctx_refines
+      (MapA.t u_s spc_s, MapA.init_cond)
+      (MapM.t u_t spc_t, emp%I).
+  Proof. eapply main_adequacy, MapMA.sim; eauto. Qed.
 End MapMA. End MapMA.
