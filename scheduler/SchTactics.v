@@ -1,7 +1,8 @@
 Require Import CRIS wsim_tactics SchHeader SchA.
 
 Section wsim.
-  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !SchAGΣ Σ}.
+  Import SchAS.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !SchAGΣ Σ, !SchAGΓ Γ}.
 
   Local Definition state : Type := alist key Any.t.
   Local Definition post (R_s R_t : Type) : Type := nat → state * R_s → state * R_t → iProp Σ.
@@ -24,11 +25,11 @@ Section wsim.
   Context (nths : nat).
   Context (st_s st_t : state).
 
-  Lemma wsim_yield_tgt_u0 r g scp_s scp_t ginv spc spc_user k_s k_t
+  Lemma wsim_yield_tgt_u0 r g scp_s scp_t ginv spc spc_user k_s k_t my_tid
       (SchInSpc : spc_incl (SchAS.spc υ spc_user) spc) :
-    Ist nths st_s st_t ∗
+    Ist nths st_s st_t ∗ tid_user my_tid ∗
     (∀ nths st_s st_t,
-      Ist nths st_s st_t -∗
+      Ist nths st_s st_t -∗ tid_user my_tid -∗
       wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR ps true nths
         (st_s, (HMod.sandbox scp_s (interp_smod ginv spc Sch.yield)) >>= k_s)
         (st_t, k_t tt))
@@ -43,11 +44,11 @@ Section wsim.
     iStopProof.
     revert nths. combine_quant st_s. combine_quant st_t. combine_quant ps. combine_quant pt.
     eapply isim_coind.
-    iIntros (g' [pt [ps [st_s' [st_t' nths']]]]) "%MON [[[IST SIM] P] #CIH]". s.
+    iIntros (g' [pt [ps [st_s' [st_t' nths']]]]) "%MON [[[IST [TID SIM]] P] #CIH]". s.
 
     unfold_iter_r.
     steps_r. destruct q.
-    { steps_r. iPoseProof ("SIM" with "IST P") as "SIM".
+    { steps_r. iPoseProof ("SIM" with "IST TID P") as "SIM"; iFrame.
       iPoseProof (isim_mono_knowledge with "SIM") as "SIM"; cycle 2.
       { iApply "SIM". }
       { iIntros (????????) "$"; done. }
@@ -58,18 +59,18 @@ Section wsim.
     unfold_iter_l; steps_l.
     force_l false; steps_l.
     iApply isim_progress.
-    forces_l. iSplitL "P"; first (ss; eauto).
+    forces_l. iSplitL "P TID"; iFrame; eauto.
     steps_l. call "IST"; ss.
-    steps_l. iDestruct "ASM" as "[P [-> ->]]". hss. steps_l.
+    steps_l. iDestruct "ASM" as "[P [[-> TID] ->]]". hss. steps_l.
     steps_r. hss. steps_r.
     iApply isim_base.
     iSpecialize ("CIH" $! _);
     (hrepeat do 1 first[instantiate (1:= (_,_))|instantiate (1:= existT _ _)]); s.
     iApply "CIH".
     iFrame.
-    iIntros (nths st_s st_t) "IST GINV".
-    iPoseProof ("SIM" with "IST GINV") as "SIM". iApply (isim_flag_mon with "SIM"); eauto.
-    Unshelve. done.
+    iIntros (nths st_s st_t) "IST TID GINV".
+    iPoseProof ("SIM" with "IST TID GINV") as "SIM".
+    iApply (isim_flag_mon with "SIM"); eauto.
   Qed.
 
   Lemma wsim_yield_tgt_uu r g scp_s scp_t ginv spc spc_user k_s k_t
@@ -104,11 +105,11 @@ Section wsim.
 
     steps_r.
     unfold_iter_l; steps_l.
-    force_l false; steps_l. iDestruct "GRT" as "[P' [-> _]]".
+    force_l false; steps_l. iDestruct "GRT" as "[P' [[-> TID] _]]".
     forces_l. iFrame. iSplit; eauto.
     iApply isim_progress.
     steps_l. call "IST"; ss.
-    steps_l. iDestruct "ASM" as "[P' [-> ->]]". hss. steps_l.
+    steps_l. iDestruct "ASM" as "[P' [[-> TID] ->]]". hss. steps_l.
     steps_r. forces_r. iFrame; iSplit; eauto. steps_r. hss. steps_r.
     iApply isim_base.
     iSpecialize ("CIH" $! _);
@@ -117,7 +118,6 @@ Section wsim.
     iFrame.
     iIntros (nths st_s st_t) "IST GINV".
     iPoseProof ("SIM" with "IST GINV") as "SIM". iApply (isim_flag_mon with "SIM"); eauto.
-    Unshelve. done.
   Qed.
 
   Lemma wsim_yield_src r g scp_s ginv spc spc_user k_s i_t
@@ -136,26 +136,28 @@ Section wsim.
   Qed.
 
   Lemma wsim_spawn fn args fn_spec (x : meta fn_spec) (P : iProp Σ) (Q : SAny.t → SynDepO)
-      r g scp_s scp_t ginv spc spc_user k_s k_t
+      r g scp_s scp_t ginv spc spc_user k_s k_t my_tid
       (SchInSpc : spc_incl (SchAS.spc υ spc_user) spc)
       (CalleeInSpc : spc_user fn = Some fn_spec)
-      (Spawnable : SchAS.fspec_spawnable υ fn_spec x args↑ args↑ P Q) :
+      (Spawnable : ∀ tid, SchAS.fspec_spawnable υ fn_spec tid x args↑ args↑ P Q) :
     Ist nths st_s st_t ∗
+    tid_user my_tid ∗
     P ∗
     (∀ tid nths st_s st_t,
         Ist nths st_s st_t
-        -∗ SchAS.token_th tid Q
+        -∗ tid_user my_tid
+        -∗ token_th tid Q
         -∗ wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR true true nths
             (st_s, k_s tid) (st_t, k_t tid))
     ⊢ wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR ps pt nths
       (st_s, (HMod.sandbox scp_s (interp_smod ginv spc (Sch.spawn (fn, args)))) >>= k_s)
       (st_t, (HMod.sandbox scp_t (PMod.interp (Sch.spawn (fn, args)))) >>= k_t).
   Proof.
-    iIntros "(I & P & SIM)". rewrite /Sch.spawn; unseal "Sch".
-    wsteps_l. wforces_l. iSplitL "P".
+    iIntros "(I & TID & P & SIM)". rewrite /Sch.spawn; unseal "Sch".
+    wsteps_l. wforces_l. iSplitL "P TID".
     { iExists _; iSplit; eauto.
       Unshelve.
-      2:{ split; first exact (args, args, P, Q).
+      2:{ split; first exact (my_tid, args, args, P, Q).
           exists fn. rewrite /find_fsp CalleeInSpc; exact x.
       }
       2:{ exact ((fn, args)↑). }
@@ -165,17 +167,19 @@ Section wsim.
       }
     }
     wsteps_l. wsteps_r. wcall "I". wsteps_l. wsteps_r.
-    iDestruct "ASM" as "[%vr [-> [%tid [[-> ->] TKN]]]]". hss. wsteps_r.
-    iApply ("SIM" with "IST TKN").
+    iDestruct "ASM" as (vr) "[% [[%tid [[-> ->] TKN]] TID]]". hss. wsteps_r.
+    iApply ("SIM" with "IST TID TKN").
   Qed.
 
   Lemma wsim_join tid (Q : SAny.t → SynDepO) R
-      r g scp_s scp_t ginv spc spc_user k_s k_t
+      r g scp_s scp_t ginv spc spc_user k_s k_t my_tid
       (SchInSpc : spc_incl (SchAS.spc υ spc_user) spc) :
     Ist nths st_s st_t ∗
-    SchAS.token_th tid Q ∗
+    tid_user my_tid ∗
+    token_th tid Q ∗
     (∀ nths st_s st_t ret,
         Ist nths st_s st_t
+        -∗ tid_user my_tid
         -∗ interp_cond (Q ret↑↑)
         -∗ wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR true true nths
             (st_s, k_s ret) (st_t, k_t ret))
@@ -183,13 +187,13 @@ Section wsim.
       (st_s, (HMod.sandbox scp_s (interp_smod ginv spc (Sch.join R tid))) >>= k_s)
       (st_t, (HMod.sandbox scp_t (PMod.interp (Sch.join R tid))) >>= k_t).
   Proof.
-    iIntros "(IST & TK & SIM)". rewrite /Sch.join; unseal "Sch".
-    wsteps_l. wforce_l (tid, Q). wsteps_l. wforce_l (tid↑). wsteps_l. wforce_l.
+    iIntros "(IST & TID & TK & SIM)". rewrite /Sch.join; unseal "Sch".
+    wsteps_l. wforce_l (tid, Q, my_tid). wsteps_l. wforce_l (tid↑). wsteps_l. wforce_l.
     iFrame; iSplit; eauto. wsteps_l.
 
-    wsteps_r. wcall "IST". wsteps_l. iDestruct "ASM" as "[[%ret' [-> Q]] ->]". hss.
+    wsteps_r. wcall "IST". wsteps_l. iDestruct "ASM" as "[[[%ret' [-> Q]] TID] ->]". hss.
     wsteps_r. hss. wsteps_r. hss. wstep_r.
-    iApply ("SIM" with "IST Q").
+    iApply ("SIM" with "IST TID Q").
   Qed.
 End wsim.
 

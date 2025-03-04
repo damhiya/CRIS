@@ -7,6 +7,7 @@ Module SchName.
   Definition spawn := "Sch.spawn".
   Definition yield := "Sch.yield".
   Definition join := "Sch.join".
+  Definition get_tid := "Sch.get_tid".
 End SchName.
 
 (* Wrapping fspecs *)
