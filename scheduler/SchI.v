@@ -1,10 +1,11 @@
-(* Require Import CRIS.
+Require Import CRIS.
 
 Require Import SchHeader.
 
 Set Implicit Arguments.
 
-Definition thslist: Type := list (nat * (option SAny.t)).
+Definition thstat : Type := nat * (option SAny.t).
+Definition thslist: Type := list thstat.
 
 Module SchI. Section SchI.
   Local Open Scope string_scope.
@@ -12,35 +13,44 @@ Module SchI. Section SchI.
 
   Definition scopes := ["Sch"].
   Definition v_ths := "Sch" ↯ "ths".
+  Definition v_tid := "Sch" ↯ "tid".
+
+  Definition trigger_Yield (nxt_tid : nat) : itree pmodE unit :=
+    'my_tid: nat <- cgetU v_tid;;
+    trigger (Yield nxt_tid);;;
+    cput v_tid my_tid
+  .
 
   Definition _spawn: (nat * string * SAny.t) -> itree pmodE unit :=
-    fun '(mtid, fn, arg) =>
-      trigger (Yield mtid);;;
+    fun '(pa_tid, fn, arg) =>
+      trigger_Yield pa_tid;;;
       'rv: SAny.t <- ccallU fn arg;;
-      mytid <- trigger Tid;;
+      'my_tid: nat <- cgetU v_tid;;
       'ths: thslist <- cgetU v_ths;;
-      let newths: thslist := alist_replace mytid (Some rv) ths in
+      let newths: thslist := alist_replace my_tid (Some rv) ths in
       cput v_ths newths;;;
       Sch.terminate
   .
 
   Definition spawn: (string * SAny.t) -> itree pmodE nat :=
     fun '(fn, arg) =>
-      mtid <- trigger Tid;;
-      tid <- trigger (Spawn SchName._spawn (mtid, fn, arg)↑);;
       'ths: thslist <- cgetU v_ths;;
-      let newths: thslist := alist_add tid None ths in
+      'my_tid: nat <- cgetU v_tid;;
+      new_tid <- trigger (Spawn SchName._spawn (my_tid, fn, arg)↑);;
+      let newths: thslist := alist_add new_tid None ths in
       cput v_ths newths;;;
-      trigger (Yield tid);;;
-      Ret tid
+      cput v_tid new_tid;;;
+      trigger (Yield new_tid);;;
+      cput v_tid my_tid;;;
+      Ret new_tid
   .
 
   Definition yield: unit -> itree pmodE unit :=
     fun _ =>
       'ths: thslist <- cgetU v_ths;;
       'ntid: nat <- trigger (Choose nat);;
-      guarantee (is_some (alist_find ntid ths));;;
-      trigger (Yield ntid)
+      guarantee (is_Some (alist_find ntid ths));;;
+      trigger_Yield ntid
   .
 
   Definition join: nat -> itree pmodE (option SAny.t) :=
@@ -58,20 +68,27 @@ Module SchI. Section SchI.
       Ret orv
   .
 
+  Definition get_tid: unit -> itree pmodE nat :=
+    fun _ =>
+      'my_tid : nat <- cgetU v_tid;;
+      Ret my_tid
+  .
+
   Definition fnsems :=
     [(SchName._spawn, (scopes, cfunU _spawn));
      (SchName.spawn, (scopes, cfunU spawn));
      (SchName.yield, (scopes, cfunU yield));
-     (SchName.join, (scopes, cfunU join))].
+     (SchName.join, (scopes, cfunU join));
+     (SchName.get_tid, (scopes, cfunU get_tid))].
   
   Program Definition Mod: PMod.t :=
   {|
     PMod.scopes := scopes;
     PMod.fnsems := fnsems;
-    PMod.initial_st := [(v_ths, ([(0, None)]: thslist)↑)];
+    PMod.initial_st := [(v_ths, ([(0, None)]: thslist)↑); (v_tid, 0↑)];
   |}.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
   Definition t := Seal.sealing CRIS (PMod.to_hmod Mod).
-End SchI. End SchI. *)
+End SchI. End SchI.
