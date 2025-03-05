@@ -10,10 +10,9 @@ Set Implicit Arguments.
 Module RepeatAS. Section RepeatAS.
 
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
-  Notation iProp := (iProp Σ).
 
-  Variable genv: GEnv.t.
-  Variable SpcPure: string → option fspec.
+  Context (genv : GEnv.t).
+  Context (spc_pure : string → option fspec).
 
   (* mathematical repeat *)
   Fixpoint repeat_fun A (f: A → A) (n: nat) (a: A): A :=
@@ -28,7 +27,7 @@ Module RepeatAS. Section RepeatAS.
         ((λ arg, ⌜∃ (fn:string) (fptr:mblock), arg = [Vptr fptr 0; Vint (Z.of_nat n); Vint x]↑
                         ∧ (intrange_64 (Z.of_nat n))
                         ∧ CEnv.blk2id (CEnv.load_genv genv) fptr = Some fn
-                        ∧ fn_has_spec SpcPure fn
+                        ∧ fn_has_spec spc_pure fn
                             (fspec_apc
                               (λ _, Ord.omega)
                               (λ x, 
@@ -54,12 +53,12 @@ Module RepeatA. Section RepeatA.
 
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
 
-  Definition fnsems genv SpcPure :=
-    [(RepeatName.repeat, (scopes, mk_specbody (RepeatAS.repeat_spec SpcPure genv) pure_body))].
+  Definition fnsems genv spc_pure :=
+    [(RepeatName.repeat, (scopes, mk_specbody (RepeatAS.repeat_spec spc_pure genv) pure_body))].
 
-  Program Definition Mod genv SpcPure : SMod.t := {|
+  Program Definition Mod genv spc_pure : SMod.t := {|
     SMod.scopes := scopes;
-    SMod.fnsems := fnsems genv SpcPure;
+    SMod.fnsems := fnsems genv spc_pure;
     SMod.initial_st := [];
   |}.
   Solve All Obligations with prove_scope.
@@ -67,5 +66,5 @@ Module RepeatA. Section RepeatA.
 
   Definition InitCond : iProp Σ := emp%I.
 
-  Definition t genv u Spc SpcPure := Seal.sealing CRIS (SMod.to_hmod (wsim_ginv u ⊤) Spc (Mod genv SpcPure)).
+  Definition t genv u spc spc_pure := Seal.sealing CRIS (SMod.to_hmod (wsim_ginv u ⊤) spc (Mod genv spc_pure)).
 End RepeatA. End RepeatA.
