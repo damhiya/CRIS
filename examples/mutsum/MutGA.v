@@ -5,7 +5,7 @@ Set Implicit Arguments.
 
 Module MutGA. Section MutGA.
   Import MutAUX.
-  Context {Σ: GRA}.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
   Notation iProp := (iProp Σ).
 
   Definition scopes := ["MutG"].
@@ -36,5 +36,5 @@ Module MutGA. Section MutGA.
 
   Definition InitCond : iProp := emp%I.
 
-  Definition t Stb := Seal.sealing CRIS (SMod.to_hmod emp Stb Mod).
+  Definition t u Stb := Seal.sealing CRIS (SMod.to_hmod (wsim_ginv u ⊤) Stb Mod).
 End MutGA. End MutGA.
