@@ -62,7 +62,7 @@ Module CannonA. Section CannonA.
   Definition fire : list val → itree hmodE Z :=
     λ _,
       let r := 1%Z in
-      _ <- trigger (@IO _ void "print" [r]↑);;
+      _ <- trigger (@IO _ unit "print" [r]↑);;
       Ret r.
 
   Definition fnsems :=

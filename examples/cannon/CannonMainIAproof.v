@@ -9,28 +9,30 @@ Local Open Scope nat_scope.
 
 Module CannonMainIA. Section CannonMainIA.
   Import CannonAS.
-  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !CannonAGΓ Γ}.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
+  Context `{!CannonAGΓ Γ}.
+
+  Context (u_s: univ_id).
+  Context (SpcMain : string → option fspec).
+  Context (CannonInMain : spc_incl CannonAS.Spc SpcMain).
 
   Definition Ist : nat → alist key Any.t → alist key Any.t → iProp Σ :=
     λ _ _ _, (True)%I.
 
-  Variable u: univ_id.
-  Variable SpcMain : string → option fspec.
-  Hypothesis CannonInSpcMain : spc_incl CannonAS.Spc SpcMain.
-
-  Local Definition MainAMod := (MainA.t 1 u SpcMain).
+  Local Definition MainAMod := (MainA.t 1 u_s SpcMain).
   Local Definition MainIMod := (MainI.t 1).
   
   Lemma simF_main : HSim.sim_fun open MainAMod MainIMod Ist MainName.main.
   Proof.
-    init_simF.
-    steps_l. iDestruct "ASM" as "((%Y & B) & %Q)". subst. hss.
-    steps_r. 
-    unfold HoareCall. force_l. instantiate (1:=()). force_l.
-    force_l. iSplitL "B"; et. steps_l.
-    call "IST"; et. steps_l. iDestruct "ASM" as "[% %]"; des; subst. hss.
-    steps_r. hss. steps_r. step. steps_l. steps_r. force_l. force_l. iSplitR; et. steps_l.
-    step. iFrame; et.
+    winit_simF u_s 0.
+    wsteps_l. iDestruct "ASM" as "((%Y & B) & %Q)". subst. hss.
+    wsteps_r. 
+    unfold HoareCall. wforce_l. instantiate (1:=()). wforce_l.
+    wforce_l. iSplitL "B"; et. wsteps_l.
+    wcall "IST"; et. wsteps_l. iDestruct "ASM" as "[% %]"; des; subst. hss.
+    wsteps_r. hss. wsteps_r. wstep. wsteps_l. wsteps_r. wforce_l.
+    wforce_l. iSplitR; et. wsteps_l.
+    wstep. iFrame; et.
   Qed.
 
   Theorem sim : HSim.t open MainAMod MainIMod MainA.init_cond Ist.

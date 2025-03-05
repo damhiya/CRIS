@@ -19,7 +19,7 @@ Module CannonI. Section CannonI.
     λ _,
       powder <- cgetU v_lv;;
       r <- (div 1 powder)?;;
-      _ <- trigger (@IO _ void "print" [r]↑);;
+      _ <- trigger (@IO _ unit "print" [r]↑);;
       cput v_lv (powder - 1)%Z;;;
       Ret r.
 

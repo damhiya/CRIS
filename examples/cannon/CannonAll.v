@@ -1,9 +1,8 @@
-Require Import CRIS.
+Require Import CRIS Cancel.
 Require Import ImpPrelude.
 Require Import CannonHeader CannonI CannonMainI.
 Require Import CannonA CannonMainA.
 Require Import CannonIAproof CannonMainIAproof.
-Require Import ElimRel SModCancel Cancellation.
 
 Module CannonAll.
   Import inv_instances.
@@ -19,7 +18,6 @@ Module CannonAll.
 
   Local Definition main_fsp : fspec := MainAS.main_spec.
   Local Definition init_cond : iProp Σ := CannonA.init_cond ∗ MainA.init_cond.
-  (* Local Definition genv : GEnv.t := GEnv.add CannonGEnv.t MainGEnv.t. *)
 
   (* Apply cancellation to linked spec module *)
   Lemma cancel_src :
