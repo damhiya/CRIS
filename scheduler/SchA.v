@@ -236,12 +236,13 @@ Module SchAS. Section SchAS.
 
     (* TODO : clarify with WP tc *)
     Definition fspec_spawnable (u : univ_id) (fsp : fspec)
-        (pre : iProp Σ) (postS: SAny.t -> SynDepO) : Prop :=
+        (pre : SAny.t → Any.t → iProp Σ) (postS: SAny.t -> SynDepO) : Prop :=
       fspec_weaker
-        (w_fspec u (fspec_simple (λ tid : nat,
-          ((λ _, tid_user tid ∗ pre)%I,
-          (λ ret, tid_user tid ∗ ∃ sret: SAny.t, (⌜ret = sret↑⌝ ∗ interp_cond (postS sret)))%I)
-          )))
+        (w_fspec u (fspec_virtual 
+          (λ (tid: nat) (varg: SAny.t) arg,
+            tid_user tid ∗ pre varg arg)%I
+          (λ (tid: nat) (sret: SAny.t) ret,
+            tid_user tid ∗ (⌜ret = sret↑⌝ ∗ interp_cond (postS sret)))%I))
         fsp.
 
     Definition _spawn_spec : fspec := 
@@ -252,7 +253,7 @@ Module SchAS. Section SchAS.
               ∧ arg = ((pa_tid, fn, fargs) : nat * string * SAny.t)↑ 
               ∧ is_Some (Spc_user fn)
               ∧ fspec_spawnable υ (find_fsp Spc_user fn) pre postS⌝
-            ∗ pre ∗ (token_half my_tid postS) ∗ (tid_user my_tid))%I)
+            ∗ (pre fvargs fargs↑) ∗ (token_half my_tid postS) ∗ (tid_user my_tid))%I)
           (λ _ (_: SAny.t) _, (False)%I))
     .
 
@@ -264,7 +265,7 @@ Module SchAS. Section SchAS.
               ∧ arg = ((fn, fargs): string * SAny.t)↑
               ∧ is_Some (Spc_user fn)
               ∧ (fspec_spawnable υ (find_fsp Spc_user fn) pre postS)⌝
-             ∗ pre ∗ tid_user my_tid)%I)
+             ∗ (pre fvargs fargs↑) ∗ tid_user my_tid)%I)
           (λ '(my_tid, fargs, fvargs, pre, postS, fn) vret ret,
             ((∃ tid: nat, ⌜vret = tid ∧ ret = tid↑⌝ ∗ (token_th tid postS)) ∗ tid_user my_tid)%I))
     .
