@@ -26,11 +26,12 @@ Module RingIA. Section RingIA.
     - eapply ctxr_cond_frameR.
       eapply main_adequacy.
       apply CtrlIA.sim.
+      exact 0.
     - rewrite hmod_addc_empty_l.
       eapply ctxr_frameL.
       induction max_size; i.
       + eapply ctxr_cond_strengthen. eauto.
-      + unfold CellIG, CtrlIA.CellG.
+      + unfold CellIG, CtrlIA.CellGS, CtrlIA.CellG.
         rewrite !seq_S !map_app !hmod_addL_app.
         etrans; [|etrans]; [|apply ctxr_compose_hor|]; cycle 3.
         * eapply ctxr_cond_strengthen.
@@ -43,7 +44,7 @@ Module RingIA. Section RingIA.
           i. eauto.
         * s. rewrite !hmod_add_empty_r.
           etrans; cycle 1.
-          { eapply main_adequacy. eapply CellIA.sim. }
+          { eapply main_adequacy. eapply CellIA.sim. exact 0. }
           eapply ctxr_cond_strengthen.
           i. rewrite Nat.add_0_r length_seq. iIntros "(H &_)". eauto.
   Qed.

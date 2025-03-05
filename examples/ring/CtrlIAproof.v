@@ -22,7 +22,7 @@ Module CtrlIA. Section CtrlIA.
   Local Definition CellA := (fun idx => CellA.t idx SpcC).
   Definition CellG start len : HMod.t :=
     HMod.addL (List.map CellA (seq start len)).
-  Local Definition CellGS := (CellG 0 max_size).
+  Definition CellGS := (CellG 0 max_size).
 
   Local Definition RingA := (RingA.t max_size SpcR).
   Local Definition CtrlI := (CtrlI.t max_size).
