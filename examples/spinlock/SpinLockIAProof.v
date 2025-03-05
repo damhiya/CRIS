@@ -7,7 +7,7 @@ Require Import SchHeader.
 Module SpinLockIA. Section SpinLockIA.
   Import SpinLockAS.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
-  Context `{!SchAGΣ Σ, !memGΓ Γ, !SpinLockAGΓ Γ}.
+  Context `{!SchAGΣ Σ, !SchAGΓ Γ, !memGΓ Γ, !SpinLockAGΓ Γ}.
 
   Context (u_a : univ_id). (* univ_id of the source/mem module *)
   Context (spc_s spc_user_s spc_mem : string → option fspec). (* spcs of lock/sch/mem *)
@@ -26,21 +26,21 @@ Module SpinLockIA. Section SpinLockIA.
   Lemma newlock_simF : HSim.sim_fun open MA MI IstFull SpinLockName.newlock.
   Proof.
     winit_simF u_a 0.
-    wsteps_l. destruct q as [n P]; s. iDestruct "ASM" as "[P ->]". hss.
-    wsteps_r. sch_yield_r. iSplitL "IST"; iFrame. clear nths; iIntros (nths st_s st_t) "IST".
+    wsteps_l. rename q1 into tid. destruct q2 as [n P]; s. iDestruct "ASM" as "[[TID P] ->]". hss.
+    wsteps_r. sch_yield_r. iFrame. clear nths; iIntros (nths st_s st_t) "IST TID".
     winline_r. wforce_r 1. wforces_r. iSplit; eauto.
     wsteps_r. iDestruct "GRT" as "[[%blk [-> [PT _]]] ->]". hss. wsteps_r.
-    sch_yield_r. iSplitL "IST"; iFrame. clear nths st_s st_t; iIntros (nths st_s st_t) "IST".
+    sch_yield_r. iFrame. clear nths st_s st_t; iIntros (nths st_s st_t) "IST TID".
     winline_r. wforce_r (blk, 0%Z, Vint 0). wsteps_r. wforces_r. iSplitL "PT"; eauto.
     wsteps_r. iDestruct "GRT" as "[[PT ->] ->]". hss. wsteps_r.
-    sch_yield_r. iSplitL "IST"; iFrame. clear nths st_s st_t; iIntros (nths st_s st_t) "IST".
+    sch_yield_r. iFrame. clear nths st_s st_t; iIntros (nths st_s st_t) "IST TID".
     sch_yield_l. wforce_l (Vptr blk 0). wsteps_l. wforce_l. wsteps_l.
 
     (* alloc invariant *)
     iApply (wsim_own_alloc (Excl ())); ss. iIntros "[%γ TKN]".
     iMod (inv_alloc (SpinLockAS.lock_inv blk 0 P γ) u_a _ _ N_SpinLockA with "[P PT TKN]") as "#I"; eauto.
     { rewrite /lock_inv /=; SL_red; iRight; iFrame. }
-    wforces_l. iSplit; eauto.
+    wforces_l. iFrame. iSplit; eauto.
     { iSplit; eauto. rewrite /is_lock. iExists _, _; iSplit; eauto. }
     wsteps_l. wstep. eauto.
   Qed.
@@ -48,7 +48,7 @@ Module SpinLockIA. Section SpinLockIA.
   Lemma acquire_simF : HSim.sim_fun open MA MI IstFull SpinLockName.acquire.
   Proof.
     winit_simF u_a 0.
-    wsteps_l. iDestruct "ASM" as "[[% LOCK] %]". hss.
+    wsteps_l. iDestruct "ASM" as "[[% [TID #LOCK]] %]". hss.
     iDestruct "LOCK" as (? ?) "[% LOCK]".
     wsteps_r. iApply wsim_reset.
     iStopProof.
@@ -60,10 +60,10 @@ Module SpinLockIA. Section SpinLockIA.
     combine_quant st_src. combine_quant st_tgt.
     eapply wsim_coind. ii.
     destruct a as [st_tgt [st_src nths]]. ss.
-    iIntros "[IST #LOCK] _ #CIH".
+    iIntros "[#LOCK [IST TID]] _ #CIH".
     unfold_iter_l. wsteps_l.
     unfold_iter_r. wsteps_r.
-    sch_yield_r. iSplitL "IST"; iFrame. clear nths; iIntros (nths st_s st_t) "IST".
+    sch_yield_r. iFrame. clear nths; iIntros (nths st_s st_t) "IST TID".
     iInv "LOCK" as "I" "Hcl".
     SL_red.
     iDestruct "I" as "[FAIL|SUCC]".
@@ -76,9 +76,9 @@ Module SpinLockIA. Section SpinLockIA.
       iDestruct "GRT" as "[[POINTS_TO %] %]".
       hss. wsteps_r.
       iMod ("Hcl" with "[POINTS_TO]") as "_". iFrame.
-      sch_yield_r. iSplitL "IST"; iFrame. clear nths; iIntros (nths0 st_s0 st_t0) "IST".
+      sch_yield_r. iFrame. clear nths; iIntros (nths0 st_s0 st_t0) "IST TID".
       wsteps_r.
-      sch_yield_r. iSplitL "IST"; iFrame. clear nths0; iIntros (nths st_s1 st_t1) "IST".
+      sch_yield_r. iFrame. clear nths0; iIntros (nths st_s1 st_t1) "IST TID".
       wsteps_r.
       sch_yield_l. wforce_l false. wsteps_l.
       wby_coind "CIH".
@@ -86,19 +86,19 @@ Module SpinLockIA. Section SpinLockIA.
     }
     { (* success case *)
       iDestruct "SUCC" as "[POINTS_TO [Q TKN]]".
-      winline_r. wforces_r. 
+      winline_r. wforces_r.
       instantiate (1:= existT _ _). ss. instantiate (2:= 0). ss.  
       instantiate (1:= (_, _, _, _)). hss. iSplitL "POINTS_TO"; iFrame; et. 
       wsteps_r.
       iDestruct "GRT" as "[[POINTS_TO ->] ->]". hss.
       wsteps_r.
       iMod ("Hcl" with "[POINTS_TO]") as "_". iFrame.
-      sch_yield_r. iSplitL "IST"; iFrame. clear nths; iIntros (nths0 st_s0 st_t0) "IST".
+      sch_yield_r. iFrame. clear nths; iIntros (nths0 st_s0 st_t0) "IST TID".
       wsteps_r.
-      sch_yield_r. iSplitL "IST"; iFrame. clear nths0; iIntros (nths st_s1 st_t1) "IST".
+      sch_yield_r. iFrame. clear nths0; iIntros (nths st_s1 st_t1) "IST TID".
       wsteps_r.
-      sch_yield_r. iSplitL "IST"; iFrame. clear nths; iIntros (nths0 st_s2 st_t2) "IST".
-      sch_yield_l. wforce_l true. wsteps_l. wforces_l. iSplitL "Q TKN"; SL_red; et. iFrame. et.
+      sch_yield_r. iFrame. clear nths; iIntros (nths0 st_s2 st_t2) "IST TID".
+      sch_yield_l. wforce_l true. wsteps_l. wforces_l. iSplitL "Q TKN TID"; SL_red; et. iFrame. et.
       wstep.
       et.
     }
@@ -107,11 +107,11 @@ Module SpinLockIA. Section SpinLockIA.
   Lemma release_simF : HSim.sim_fun open MA MI IstFull SpinLockName.release.
     winit_simF u_a 0.
     wsteps_l.
-    iDestruct "ASM" as "[(% & #LOCK & TKN & Q) %]".
+    iDestruct "ASM" as "[(% & TID & #LOCK & TKN & Q) %]".
     iDestruct "LOCK" as (? ?) "[% LOCK]".
     hss.
     wsteps_r.
-    sch_yield_r.  iSplitL "IST"; iFrame. clear nths; iIntros (nths0 st_s st_t) "IST".
+    sch_yield_r. iFrame. clear nths; iIntros (nths0 st_s st_t) "IST TID".
     iInv "LOCK" as "I" "Hcl".
     SL_red.
     iDestruct "I" as "[LOCKED|UNLOCKED]".
@@ -120,9 +120,9 @@ Module SpinLockIA. Section SpinLockIA.
       iSplitL "LOCKED"; iFrame; et.
       wsteps_r. iDestruct "GRT" as "[[POINTS_TO %] %]". hss.
       wsteps_r.
-      iMod ("Hcl" with "[POINTS_TO Q TKN]") as "_". iRight. iFrame. 
-      sch_yield_r. iSplitL "IST"; iFrame. clear nths0; iIntros (nths st_s0 st_t0) "IST".
-      sch_yield_l. wsteps_l. wforces_l. iSplitR; et. wstep. iFrame; et.
+      iMod ("Hcl" with "[POINTS_TO Q TKN]") as "_". iRight. iFrame.
+      sch_yield_r. iFrame. clear nths0; iIntros (nths st_s0 st_t0) "IST TID".
+      sch_yield_l. wsteps_l. wforces_l. iFrame. iSplit; et. wstep. iFrame; et.
     }
     { iDestruct "UNLOCKED" as "[POINTS_TO [Q' TKN']]".
       iCombine "TKN TKN'" gives %Hv. done.

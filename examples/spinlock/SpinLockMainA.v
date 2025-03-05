@@ -15,23 +15,30 @@ Hint Unfold subG_GΓ SpinLockMainAΓ : GRA_index.
 Module SpinLockMainAS. Section SpinLockMainAS.
   Import SpinLockAS.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
-  Context `{!memGΓ Γ, !SpinLockMainAGΓ Γ, !SpinLockAGΓ Γ}.
+  Context `{!memGΓ Γ, !SchAGΣ Σ, !SchAGΓ Γ, !SpinLockMainAGΓ Γ, !SpinLockAGΓ Γ}.
 
   Definition main_spec u : fspec :=
-    w_fspec u (fspec_simple (λ _ : unit, (λ arg, ⌜arg = tt↑⌝, λ ret, ⌜ret = tt↑⌝)))%I.
+    w_fspec u
+      (fspec_simple (λ _ : unit,
+        (λ arg, ⌜arg = tt↑⌝ ∗ SchAS.tid_user 0,
+        λ ret, ⌜ret = tt↑⌝)))%I.
 
   Definition lock_P loc γ : SRFSyn.t 0 :=
     ∃ v : τ{Z}%SRF, loc ↦ (Vint v) ∗ <own> γ (●F v).
 
+  Program Definition fspec_tid (fsp : fspec) : fspec :=
+    mk_fspec (meta:=(nat * fsp.(meta))) _ _.
   Definition incr_spec u : fspec :=
     w_fspec u
-      (fspec_simple (λ '(blk_l, ofs_l, blk_v, ofs_v, γ_v),
+      (fspec_simple (λ '(tid, blk_l, ofs_l, blk_v, ofs_v, γ_v),
         ((λ arg,
           ⌜arg = ([Vptr blk_l ofs_l; Vptr blk_v ofs_v]↑↑)↑⌝
+          ∗ SchAS.tid_user tid
           ∗ (∃ γ_l, is_lock u γ_l (Vptr blk_l ofs_l) (lock_P (blk_v, ofs_v) γ_v)
           ∗ own γ_v (◯F{1/2} 0%Z))),
         (λ ret,
           ⌜ret = ((Vundef)↑↑)↑⌝
+          ∗ SchAS.tid_user tid
           ∗ own γ_v (◯F{1/2} 1%Z)))
       ))%I.
 
@@ -42,14 +49,16 @@ Module SpinLockMainAS. Section SpinLockMainAS.
   Definition incr_post γ_v : SAny.t → SynDepO :=
     (λ _, existT 0 (<own> γ_v (◯F{1/2} 1%Z)))%SRF.
 
-  Lemma incr_spawnable u blk_l ofs_l blk_v ofs_v γ_v :
-    SchAS.fspec_spawnable u (incr_spec u) (blk_l, ofs_l, blk_v, ofs_v, γ_v)
+  Lemma incr_spawnable u tid blk_l ofs_l blk_v ofs_v γ_v :
+    SchAS.fspec_spawnable u (incr_spec u) tid (tid, blk_l, ofs_l, blk_v, ofs_v, γ_v)
       (([Vptr blk_l ofs_l; Vptr blk_v ofs_v]↑↑)↑) (([Vptr blk_l ofs_l; Vptr blk_v ofs_v]↑↑)↑)
       (incr_pre u blk_l ofs_l blk_v ofs_v γ_v) (incr_post γ_v).
   Proof.
     rr. split.
-    { iIntros "[$ [% [#L O]]]". iFrame. iSplit; eauto. }
-    { iIntros (ret) "[%vret [$ P]]". iDestruct "P" as "[[-> O] ->] /=". SL_red. iExists _; eauto. }
+    { iIntros "[$ [TID [% [#L O]]]]". iFrame. iSplit; eauto. }
+    { iIntros (ret) "[%vret [$ P]]". iDestruct "P" as "[[-> [$ O]] ->] /=".
+      SL_red. iExists _; eauto.
+    }
   Qed.
 
   Definition spc u : alist string fspec :=
@@ -59,7 +68,7 @@ End SpinLockMainAS. End SpinLockMainAS.
 
 Module SpinLockMainA. Section SpinLockMainA.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
-  Context `{!memGΓ Γ, !SpinLockAGΓ Γ, !SpinLockMainAGΓ Γ}.
+  Context `{!memGΓ Γ, !SchAGΣ Σ, !SchAGΓ Γ, !SpinLockMainAGΓ Γ, !SpinLockAGΓ Γ}.
 
   Definition scopes : list string := [].
 

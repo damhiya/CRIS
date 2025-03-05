@@ -87,10 +87,10 @@ Module Sch. Section Sch.
 End Sch. End Sch.
 
 Notation 𝒴 := (Sch.yield).
-Notation "x <- t1 ;;𝒴 t2" := (ITree.bind t1 (fun x => (Sch.yield ;;; t2)))
+(* Notation "x <- t1 ;;𝒴 t2" := (ITree.bind t1 (fun x => (Sch.yield ;;; t2)))
   ( at level 62, t1 at next level, right associativity) : itree_scope.
 Notation "t1 ;;;𝒴 t2" := (ITree.bind t1 (fun _ => (Sch.yield ;;;t2)))
   (at level 62, right associativity) : itree_scope.
 Notation "' p : T <- t1 ;;𝒴 t2" :=
   (ITree.bind t1 (fun x_ : T => match x_ with p => (Sch.yield ;;; t2) end))
-  (at level 62, T at next level, t1 at next level, p pattern, right associativity) : itree_scope.
+  (at level 62, T at next level, t1 at next level, p pattern, right associativity) : itree_scope. *)

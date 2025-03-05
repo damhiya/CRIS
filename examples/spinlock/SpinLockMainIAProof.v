@@ -8,7 +8,7 @@ From iris Require Import frac_auth numbers.
 Module SpinLockMainIA. Section SpinLockMainIA.
   Import SpinLockAS SpinLockMainAS.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
-  Context `{!SchAGΣ Σ, !memGΓ Γ, !SpinLockMainAGΓ Γ, !SpinLockAGΓ Γ}.
+  Context `{!memGΓ Γ, !SchAGΣ Σ, !SchAGΓ Γ, !SpinLockMainAGΓ Γ, !SpinLockAGΓ Γ}.
 
   Context (u_a : univ_id). (* univ_id of the source/mem module *)
   Context (spc_s spc_user_s spc_mem : string → option fspec). (* spcs of lock/sch/mem *)
@@ -29,15 +29,15 @@ Module SpinLockMainIA. Section SpinLockMainIA.
   Lemma incr_simF : HSim.sim_fun open MA MI IstFull SpinLockMainName.incr.
   Proof.
     winit_simF u_a 0.
-    wsteps_l. iDestruct "ASM" as "[[-> [%γ_l [#I F]]] ->]". hss.
-    rename q2 into γ_v, q4 into ofs_v, q6 into blk_v, q7 into blk_l, q8 into ofs_l.
-    wsteps_l. rewrite SAny.upcast_downcast. wsteps_l. rewrite /SpinLockMainA.incr. wsteps_l.
-    wsteps_r. rewrite SAny.upcast_downcast. wsteps_r. rewrite /SpinLockMainI.incr. wsteps_r.
+    wsteps_l. iDestruct "ASM" as "[[-> [TID [%γ_l [#I F]]]] ->]". hss.
+    rename q2 into γ_v, q4 into ofs_v, q6 into blk_v, q8 into ofs_l, q10 into blk_l, q9 into tid.
+    wsteps_l. hss. wsteps_l. rewrite /SpinLockMainA.incr. wsteps_l.
+    wsteps_r. hss. wsteps_r. rewrite /SpinLockMainI.incr. wsteps_r.
     unfold_iter_l. wsteps_l.
-    sch_yield_r. iSplitL "IST"; ss; clear nths; iIntros (nths st_s st_t) "IST".
-    wsteps_r. sch_yield_r. iSplitL "IST"; ss; clear nths st_s st_t; iIntros (nths st_s st_t) "IST".
-    winline_r. wforce_r (γ_l, Vptr blk_l ofs_l, existT 0 (lock_P (blk_v, ofs_v) γ_v)).
-    wsteps_r. wforces_r.
+    sch_yield_r. iFrame; ss; clear nths; iIntros (nths st_s st_t) "IST TID".
+    wsteps_r. sch_yield_r. iFrame; ss; clear nths st_s st_t; iIntros (nths st_s st_t) "IST TID".
+    winline_r. wforce_r (tid, γ_l, Vptr blk_l ofs_l, existT 0 (lock_P (blk_v, ofs_v) γ_v)).
+    wsteps_r. wforces_r. iFrame.
     iSplit; eauto. hss. wsteps_r.
     sch_yield_l. wforce_l false. wsteps_l.
     iApply wsim_reset. iStopProof. revert nths. combine_quant st_s. combine_quant st_t.
@@ -48,28 +48,28 @@ Module SpinLockMainIA. Section SpinLockMainIA.
     wsteps_r. destruct q; cycle 1.
     { wsteps_r. sch_yield_l. wforce_l false. wsteps_l. wby_coind "CIH". iFrame. done. }
     wsteps_r. iDestruct "GRT" as "[[_ [TKN P]] <-]". hss. wsteps_r.
-    sch_yield_r. iSplitL "IST"; ss; clear nths st_s st_t; iIntros (nths st_s st_t) "IST".
-    rewrite /lock_P; SL_red; iDestruct "P" as "[%x P]"; SL_red; iDestruct "P" as "[PT C]".
+    sch_yield_r. iFrame; ss; clear nths st_s st_t; iIntros (nths st_s st_t) "IST TID".
+    rewrite /lock_P; SL_red; iDestruct "P" as "[TKN [%x P]]"; SL_red; iDestruct "P" as "[PT P]".
     winline_r. wforce_r (blk_v, ofs_v, Vint x, 1%Qp). wforces_r. iSplitL "PT"; iFrame; eauto.
     wsteps_r. iDestruct "GRT" as "[[PT ->] ->]". hss. wsteps_r.
-    sch_yield_r. iSplitL "IST"; ss; clear nths st_s st_t; iIntros (nths st_s st_t) "IST".
-    wsteps_r. sch_yield_r. iSplitL "IST"; ss; clear nths st_s st_t; iIntros (nths st_s st_t) "IST".
+    sch_yield_r. iFrame; ss; clear nths st_s st_t; iIntros (nths st_s st_t) "IST TID".
+    wsteps_r. sch_yield_r. iFrame; ss; clear nths st_s st_t; iIntros (nths st_s st_t) "IST TID".
     winline_r. wforce_r (blk_v, ofs_v, Vint (x + 1)). wforces_r. iSplitL "PT"; iFrame; eauto.
     wsteps_r. iDestruct "GRT" as "[[PT ->] ->]". hss. wsteps_r.
-    sch_yield_r. iSplitL "IST"; ss; clear nths st_s st_t; iIntros (nths st_s st_t) "IST".
-    iCombine "C F" as "C". iMod (own_update with "C") as "[F C]".
+    sch_yield_r. iFrame; ss; clear nths st_s st_t; iIntros (nths st_s st_t) "IST TID".
+    iCombine "P F" as "C". iMod (own_update with "C") as "[F C]".
     { apply frac_auth_update, (Z_local_update _ _ (x + 1) 1); lia. }
-    winline_r. wforce_r (γ_l, Vptr blk_l ofs_l, existT 0 (lock_P (blk_v, ofs_v) γ_v)).
+    winline_r. wforce_r (tid, γ_l, Vptr blk_l ofs_l, existT 0 (lock_P (blk_v, ofs_v) γ_v)).
     wforces_r.
-    iSplitL "F PT TKN".
+    iSplitL "TID F PT TKN".
     { SL_red. rewrite /lock_P; ss. iSplit; iFrame; eauto. iSplit; eauto. iSplit.
       { iExact "I". }
       { iExists _; SL_red; iFrame. }
     }
     wsteps_r. hss. wsteps_r.
-    sch_yield_r. iSplitL "IST"; ss; clear nths st_s st_t; iIntros (nths st_s st_t) "IST".
-    wsteps_r. iDestruct "GRT" as "[-> _]". hss. wsteps_r.
-    sch_yield_r. iSplitL "IST"; ss; clear nths st_s st_t; iIntros (nths st_s st_t) "IST".
+    sch_yield_r. iFrame; ss; clear nths st_s st_t; iIntros (nths st_s st_t) "IST".
+    wsteps_r. iDestruct "GRT" as "[[-> TID] _]". hss. wsteps_r.
+    sch_yield_r. iFrame; ss; clear nths st_s st_t; iIntros (nths st_s st_t) "IST TID".
     wsteps_r.
     sch_yield_l. wsteps_l. wforce_l true. wsteps_l. wforces_l. iFrame; iSplit; eauto.
     wsteps_l. wstep. iFrame. eauto.

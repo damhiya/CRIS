@@ -1,5 +1,6 @@
 Require Import CRIS.
-Require Import ImpPrelude SchHeader MemHeader MemA SpinLockHeader.
+Require Import ImpPrelude MemHeader MemA SpinLockHeader.
+Require Import SchHeader SchA.
 Require Import wsim.
 From iris Require Import excl.
 
@@ -12,7 +13,8 @@ Proof. solve_inG. Defined.
 Hint Unfold subG_GΓ spinlock_inG : GRA_index.
 
 Module SpinLockAS. Section SpinLockAS.
-  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !memGΓ Γ, !SpinLockAGΓ Γ}.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
+  Context `{!SchAGΣ Σ, !SchAGΓ Γ, !memGΓ Γ, !SpinLockAGΓ Γ}.
 
   Definition N_SpinLockA := nroot .@ "spin_lock".
 
@@ -27,25 +29,31 @@ Module SpinLockAS. Section SpinLockAS.
 
   Definition newlock_spec u : fspec :=
     w_fspec u
-      (fspec_simple (λ P : {n & SRFSyn.t n},
-        ((λ _, ⟦projT2 P⟧),
-        (λ ret, ∃ val γ, ⌜ret = val↑⌝ ∗ is_lock u γ val (projT2 P)))
+      (fspec_simple (X := nat * {n & SRFSyn.t n})
+        (λ '(tid, (existT n P)),
+          ((λ _, SchAS.tid_user tid ∗ ⟦P⟧),
+          (λ ret, SchAS.tid_user tid ∗ ∃ val γ, ⌜ret = val↑⌝ ∗ is_lock u γ val P))
       ))%I.
 
   Definition acquire_spec u : fspec :=
     w_fspec u
-      (fspec_simple (X := gname * val * {n & SRFSyn.t n})
-        (λ '(γ, val, P),
-          ((λ arg, ⌜arg = [val]↑⌝ ∗ is_lock u γ val (projT2 P)),
-          (λ ret, ⌜ret = Vundef↑⌝ ∗ ⟦token (projT1 P) γ⟧ ∗ ⟦projT2 P⟧))
+      (fspec_simple (X := nat * gname * val * {n & SRFSyn.t n})
+        (λ '(tid, γ, val, P),
+          ((λ arg, ⌜arg = [val]↑⌝ ∗ SchAS.tid_user tid ∗ is_lock u γ val (projT2 P)),
+          (λ ret, ⌜ret = Vundef↑⌝ ∗ SchAS.tid_user tid ∗ ⟦token (projT1 P) γ⟧ ∗ ⟦projT2 P⟧))
       ))%I.
 
   Definition release_spec u : fspec :=
     w_fspec u
-      (fspec_simple (X := gname * val * {n & SRFSyn.t n})
-        (λ '(γ, val, P),
-          ((λ arg, ⌜arg = [val]↑⌝ ∗ is_lock u γ val (projT2 P) ∗ ⟦token (projT1 P) γ⟧ ∗ ⟦projT2 P⟧),
-          (λ ret, ⌜ret = Vundef↑⌝))
+      (fspec_simple (X := nat * gname * val * {n & SRFSyn.t n})
+        (λ '(tid, γ, val, P),
+          ((λ arg, ⌜arg = [val]↑⌝
+            ∗ SchAS.tid_user tid
+            ∗ is_lock u γ val (projT2 P)
+            ∗ ⟦token (projT1 P) γ⟧
+            ∗ ⟦projT2 P⟧),
+          (λ ret, ⌜ret = Vundef↑⌝
+            ∗ SchAS.tid_user tid))
       ))%I.
 
   Definition spc u : alist string fspec :=
@@ -56,6 +64,7 @@ End SpinLockAS. End SpinLockAS.
 
 Module SpinLockA. Section SpinLockA.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !memGΓ Γ, !SpinLockAGΓ Γ}.
+  Context `{!SchAGΣ Σ, !SchAGΓ Γ}.
 
   Definition scopes : list string := [].
 
