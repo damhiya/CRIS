@@ -10,58 +10,58 @@ Module MainIA. Section MainIA.
   Definition Ist: nat -> alist key Any.t -> alist key Any.t -> iProp Σ :=
     λ _ st_src st_tgt, emp%I.
 
-  Context (u_s u_t: univ_id).
-  Variable Spc: string -> option fspec.
-  Hypothesis FooInSpcMap: spc_incl FooAS.Spc Spc.
-  Hypothesis InputInSpc: spc_incl InputAS.Spc Spc.
+  Context (u_s : univ_id).
+  Variable spc: string -> option fspec.
+  Hypothesis FooInSpcMap: spc_incl FooAS.spc spc.
+  Hypothesis InputInSpc: spc_incl InputAS.spc spc.
 
-  Local Definition CellioA := (CellioA.t u_s Spc).
-  Local Definition MainA := (MainA.t u_s Spc).
+  Local Definition CellioA := (CellioA.t u_s spc).
+  Local Definition MainA := (MainA.t u_s spc).
   Local Definition IstFull := (IstProd (IstSB MainA.(HMod.scopes) Ist) IstEq).
 
   Lemma simF_main:
     HSim.sim_fun open (MainA ★ CellioA) (MainI.t ★ CellioA) IstFull MainName.main.
   Proof. 
-    init_simF.
+    winit_simF u_s 0.
     
     (* Take cell(0) *)
-    steps_l; iDestruct "ASM" as "%"; subst.
+    wsteps_l; iDestruct "ASM" as "%"; subst.
 
-    inline_r.
+    winline_r.
     (* Give cell(0) *)
-    steps_r. forces_r. iSplitL ""; eauto.
-    forces_r. steps_r. forces_r. iSplitL "ASM'"; eauto.
+    wsteps_r. wforces_r. iSplitL ""; eauto.
+    wforces_r. wsteps_r. wforces_r. iSplitL "ASM'"; eauto.
 
     (* Call Input() simultaneously *)
-    steps_r. forces_l. iSplitL "GRT"; eauto.
-    call "IST"; eauto.
-    steps_l. forces_r. iSplitL "ASM"; eauto.
-    steps_r. hss.
+    wsteps_r. wforces_l. iSplitL "GRT"; eauto.
+    wcall "IST"; eauto.
+    wsteps_l. wforces_r. iSplitL "ASM"; eauto.
+    wsteps_r. hss.
 
     (* Take cell(i) *)
-    steps_r. iDestruct "GRT'" as "%". subst. hss.
+    wsteps_r. iDestruct "GRT'" as "%". subst. hss.
     
     (* Call Foo.foo() simultaneously *)
-    steps_l. steps_r. forces_l. iSplitL ""; eauto.
-    call "IST"; [eauto|].
-    steps_l. iDestruct "ASM" as "%". subst. hss. steps_r. hss. steps_r.
+    wsteps_l. wsteps_r. wforces_l. iSplitL ""; eauto.
+    wcall "IST"; eauto.
+    wsteps_l. iDestruct "ASM" as "%". subst. hss. wsteps_r. hss. wsteps_r.
 
-    inline_r.
+    winline_r.
     (* Give cell(i) *)
-    step_r. forces_r. iSplitL ""; eauto.
-    forces_r. steps_r. forces_r.
+    wstep_r. wforces_r. iSplitL ""; eauto.
+    wforces_r. wsteps_r. wforces_r.
     iSplitL "GRT"; eauto.
 
     (* Take cell(i) *)
-    steps_r. iDestruct "GRT'" as "%". subst. hss.
+    wsteps_r. iDestruct "GRT'" as "%". subst. hss.
 
     (* Call Print(i) simultaneously *)
-    steps_r. step.
+    wsteps_r. wstep.
 
-    steps_l. forces_l.
+    wsteps_l. wforces_l.
     iSplitL ""; eauto.
 
-    steps_r. step. iFrame. eauto.
+    wsteps_r. wstep. iFrame. eauto.
 
     Unshelve. all:(exact ()).
   Qed.

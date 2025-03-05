@@ -9,12 +9,12 @@ Module FooAS.
 Section FooAS.
   Context `{Σ: GRA}.
 
-  Definition Spc: alist string fspec :=
+  Definition spc: alist string fspec :=
     Seal.sealing CRIS [(FooName.foo, fspec_trivial)].
   
-  Lemma Spc_nodup: List.NoDup (List.map fst Spc).
+  Lemma spc_nodup: List.NoDup (List.map fst spc).
   Proof.
-    unfold Spc. unseal CRIS. prove_nodup.
+    unfold spc. unseal CRIS. prove_nodup.
   Qed.
 
 End FooAS. End FooAS.
