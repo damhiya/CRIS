@@ -88,60 +88,61 @@ Qed. *)
 Admitted.
 
 Lemma wsim_apc_src_call_tgt_weaker `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}
-  fl fr Ist u0 u1 r g {Rs Rt} RR ps pt nths st_src st_tgt k_src k_tgt spc spc_pure
-  scopes ginv fn args fsp' fsp (spec_arg: meta fsp) o P Q (ow_src ow_fn od_src od_fn : Ord.t)
+  fl fr Ist is_closed u0 u1 cP r g {Rs Rt} RR ps pt nths st_src st_tgt k_src k_tgt spc spc_pure
+  scopes ginv fn args fsp' fsp X (spec_arg: X) o P Q (ow_src ow_fn od_src od_fn : Ord.t)
   (WIDTH: (ow_fn < ow_src)%ord)
   (DEPTH: (od_fn < od_src)%ord)
   (SpcPureInSpc: spc_sub spc_pure spc)
   (fnInSpcPure: spc_pure fn = Some fsp')
-  (WEAK: fspec_weaker (fspec_apc o (λ x, (P x, Q x))) fsp')
+  (WEAK: fspec_weaker fsp fsp')
+  (fspIsfspecapc: fsp = (@fspec_apc Σ X o (λ x, (P x, Q x))))
   :
   (((P spec_arg args ∗ ⌜∃ vo : Ord.t, od_fn ↑ = vo ↑ ∧ (o spec_arg <= vo)%ord⌝) ∗ (Ist nths st_src st_tgt)) ∗
     (∀ nths0 st_src0 st_tgt0 (vret ret: Any.t),
       ((Ist nths0 st_src0 st_tgt0) ∗ (Q spec_arg ret))
-      -∗ wsim fl fr Ist (Some true) u0 u1 ⊤ r g Rs Rt RR false false nths0
+      -∗ wsim fl fr Ist is_closed u0 u1 cP r g Rs Rt RR false false nths0
           (st_src0, ((HMod.sandbox scopes (interp_smod ginv spc (_APC od_src spc_pure ow_fn))) >>= k_src))
           (st_tgt0, k_tgt ret)))
   ⊢
-    (wsim fl fr Ist (Some true) u0 u1 ⊤ r g Rs Rt RR ps pt nths
+    (wsim fl fr Ist is_closed u0 u1 cP r g Rs Rt RR ps pt nths
       (st_src, ((HMod.sandbox scopes (interp_smod ginv spc (_APC od_src spc_pure ow_src))) >>= k_src))
       (st_tgt, (trigger (Call fn args) >>= k_tgt))).
 Proof.
-  rewrite wsim.wsim_eq /wsim.wsim_def /wsim.wsim_pre.
-  iIntros "[[PRE IST] ISIM] INV".
-  rewrite (unfold_APC _ _ ow_src). force_l false. steps_l.
-  force_l ow_fn. steps_l. force_l WIDTH. steps_l.
-  force_l fn. steps_l. force_l od_fn. steps_l.
-  assert (PO: (is_Some (spc_pure fn) ∧ (od_fn < od_src)%ord)); et.
-  unfold guarantee. force_l PO. steps_l.
-  assert (spc fn = Some fsp'); et. force_l. iSplit; et. steps_l.
+  iIntros "[[[PRE %] IST] ISIM]".
+  des. set_marker m. hide_ihyps. rewrite unfold_APC. show_until m.
+  wforce_l false. wsteps_l. wforce_l ow_fn. wsteps_l. wforce_l WIDTH. wsteps_l.
+  wforce_l fn. wsteps_l. wforce_l od_fn. wsteps_l.
+  assert (PO: (is_Some (spc_pure fn) ∧ (od_fn < od_src)%ord)); et. 
+  unfold guarantee. wforce_l PO. wsteps_l.
+  assert (spc fn = Some fsp'); et. wforce_l. iSplit; et. wsteps_l.
   specialize (WEAK spec_arg). des.
-  force_l x_tgt. force_l args.
-  iPoseProof ((PRE od_fn ↑ args) with "PRE") as ">PRE".
-  force_l. iSplitL "PRE"; et.
-  call "IST"; et. steps_r. steps_l.
-  iPoseProof ((POST q vret) with "ASM") as ">POST".
-  iApply isim_reset.
-  iSpecialize ("ISIM" $! nths0 st_src0 st_tgt0 q vret).
-  iApply ("ISIM" with "[IST POST]"); iFrame.
+  wforce_l x_tgt. wforce_l args. wsteps_l.
+  iPoseProof ((PRE od_fn ↑ args) with "[PRE]") as ">PRE". { unfold precond, fspec_apc; ss. iFrame. by iExists _. }
+  wforce_l. iFrame. wsteps_l.
+  wcall "IST"; et.
+  wsteps_l. iApply wsim_reset.
+  iPoseProof ((POST q ret) with "ASM") as ">POST".
+  iSpecialize ("ISIM" $! nths' st_s' st_t' q ret).
+  iApply "ISIM". iFrame.
 Qed.
 
 Lemma wsim_apc_src_call_tgt `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}
-  fl fr Ist u0 u1 r g {Rs Rt} RR ps pt nths st_src st_tgt k_src k_tgt spc spc_pure
-  scopes ginv fn args fsp (spec_arg: meta fsp) o P Q (ow_src ow_fn od_src od_fn : Ord.t)
+  fl fr Ist is_closed u0 u1 cP r g {Rs Rt} RR ps pt nths st_src st_tgt k_src k_tgt spc spc_pure
+  scopes ginv fn args fsp X (spec_arg: X) o P Q (ow_src ow_fn od_src od_fn : Ord.t)
   (WIDTH: (ow_fn < ow_src)%ord)
   (DEPTH: (od_fn < od_src)%ord)
   (SpcPureInSpc: spc_sub spc_pure spc)
-  (fnInSpcPure: spc_pure fn = Some (fspec_apc o (λ x, (P x, Q x))))
+  (fnInSpcPure: spc_pure fn = Some fsp)
+  (fspIsfspecapc: fsp = (@fspec_apc Σ X o (λ x, (P x, Q x))))
   :
   (((P spec_arg args ∗ ⌜∃ vo : Ord.t, od_fn ↑ = vo ↑ ∧ (o spec_arg <= vo)%ord⌝) ∗ (Ist nths st_src st_tgt)) ∗
     (∀ nths0 st_src0 st_tgt0 (vret ret: Any.t),
       ((Ist nths0 st_src0 st_tgt0) ∗ (Q spec_arg ret))
-      -∗ wsim fl fr Ist (Some true) u0 u1 ⊤ r g Rs Rt RR false false nths0
+      -∗ wsim fl fr Ist is_closed u0 u1 cP r g Rs Rt RR false false nths0
           (st_src0, ((HMod.sandbox scopes (interp_smod ginv spc (_APC od_src spc_pure ow_fn))) >>= k_src))
           (st_tgt0, k_tgt ret)))
   ⊢
-    (wsim fl fr Ist (Some true) u0 u1 ⊤ r g Rs Rt RR ps pt nths
+    (wsim fl fr Ist is_closed u0 u1 cP r g Rs Rt RR ps pt nths
       (st_src, ((HMod.sandbox scopes (interp_smod ginv spc (_APC od_src spc_pure ow_src))) >>= k_src))
       (st_tgt, (trigger (Call fn args) >>= k_tgt))).
 Proof.
@@ -286,7 +287,7 @@ Ltac apc_r hyps :=
 Ltac apc_call hyps :=
   prep_macro_l; (hrepeat do 1 hnorm_r);
   iApply wsim_apc_src_call_tgt; des_pairs; s;
-  [| | | |iSplitL hyps; [ |iIntros "% % % % %"; iIntrosFresh "ISTPOST"]].
+  [| | | | |iSplitL hyps; [ |iIntros "% % % % %"; iIntrosFresh "ISTPOST"]].
 
 Ltac apc_call_weaker hyps :=
   prep_macro_l; (hrepeat do 1 hnorm_r);
