@@ -135,14 +135,14 @@ Section wsim.
     wforce_l true; wsteps_l. iApply "SIM".
   Qed.
 
-  Lemma wsim_spawn fn args fn_spec (x : meta fn_spec) (P : iProp Σ) (Q : SAny.t → SynDepO)
+  Lemma wsim_spawn fn args fn_spec (x : meta fn_spec) (P : SAny.t → Any.t → iProp Σ) (Q : SAny.t → SynDepO)
       r g scp_s scp_t ginv spc spc_user k_s k_t my_tid
       (SchInSpc : spc_incl (SchAS.spc υ spc_user) spc)
       (CalleeInSpc : spc_user fn = Some fn_spec)
-      (Spawnable : ∀ tid, SchAS.fspec_spawnable υ fn_spec tid x args↑ args↑ P Q) :
+      (Spawnable : SchAS.fspec_spawnable υ fn_spec P Q) :
     Ist nths st_s st_t ∗
     tid_user my_tid ∗
-    P ∗
+    P args args↑ ∗
     (∀ tid nths st_s st_t,
         Ist nths st_s st_t
         -∗ tid_user my_tid
@@ -155,16 +155,10 @@ Section wsim.
   Proof.
     iIntros "(I & TID & P & SIM)". rewrite /Sch.spawn; unseal "Sch".
     wsteps_l. wforces_l. iSplitL "P TID".
-    { iExists _; iSplit; eauto.
-      Unshelve.
-      2:{ split; first exact (my_tid, args, args, P, Q).
-          exists fn. rewrite /find_fsp CalleeInSpc; exact x.
-      }
-      2:{ exact ((fn, args)↑). }
-      { ss; iFrame; iPureIntro. do 3 split; eauto.
-        rewrite /find_fsp. generalize (CalleeInSpc). rewrite CalleeInSpc.
-        intros H; rewrite (UIP_refl _ _ H) /eq_rect_r /=. done.
-      }
+    { iExists (fn, args); iSplit; eauto.
+      instantiate (1:=(fn, args)↑).
+      instantiate (1:=(my_tid, args, args, P, Q, fn)).
+      iFrame. iPureIntro. esplits; eauto. unfold find_fsp. rewrite CalleeInSpc. eauto.
     }
     wsteps_l. wsteps_r. wcall "I". wsteps_l. wsteps_r.
     iDestruct "ASM" as (vr) "[% [[%tid [[-> ->] TKN]] TID]]". hss. wsteps_r.

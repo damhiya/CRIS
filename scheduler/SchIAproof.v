@@ -172,10 +172,10 @@ Module SchIA. Section SchIA.
 
     wsteps_l.
     iDestruct "ASM" as "[%va [-> ASM]]"; hss.
-    destruct q2 as [userf userm].
-    iDestruct "ASM" as "[[-> [-> [% [% %]]]] [pre [token tid]]]"; hss.
-    rename q6 into pre. rename q4 into synpost. rename q8 into fargs. rename q10 into fvargs.
-    rename q11 into my_tid. rename q12 into pa_tid.
+    (* destruct q2 as [userf userm]. *)
+    iDestruct "ASM" as "[[-> [-> [% %]]] [pre [token tid]]]"; hss.
+    rename q6 into pre. rename q4 into synpost. rename q8 into fvargs. rename q10 into fargs.
+    rename q11 into my_tid. rename q12 into pa_tid. rename q2 into userf.
     wsteps_l. wsteps_r.
 
     (* Process yield *)
@@ -195,7 +195,7 @@ Module SchIA. Section SchIA.
     wyield "IST".
     iDestruct "IST" as (??????) "(% & THB & THW & COND & TA)"; subst; hss.
     wsteps_l; iClear "ASM"; hss.
-    iDestruct "TA" as "[[TA %] | [TA %]]"; hss. clear H2.
+    iDestruct "TA" as "[[TA %] | [TA %]]"; hss. clear H1.
     wsteps_r. rewrite /alist_upd /_alist_upd /=.
     
     (* Call the spawnee *)
@@ -206,17 +206,17 @@ Module SchIA. Section SchIA.
     iPoseProof (tid_admin_none_split with "TA") as "[TA tid]".
     instantiate (1:=my_tid).
 
+    unfold find_fsp in *. rewrite H1 in H0.
+    unfold fspec_spawnable, fspec_weaker in H0.
+    specialize (H0 my_tid). des.
+
     (* Choose the metavariables *)
-    do 2 wforce_l.
-    wsteps_l. iApply wsim_full_guarantee_src. iSplitL "pre tid".
-    Unshelve.
-    3:{ clear H0 H1. unfold find_fsp in userm. rewrite H2 in userm. exact userm. }
-    3:{ exact (fvargs↑). }
-    { unfold find_fsp in *. revert userm H0 H1. generalize H2.
-      rewrite H2. i.
-      rewrite (UIP _ _ _ H0 eq_refl). erewrite <-rew_swap; et; ss.
-      iIntros "I"; iApply H1; iFrame.
-    }
+    wforce_l x_tgt. wsteps_l. wforce_l (fargs↑). wsteps_l.
+    iAssert (wsim_ginv u_a ⊤ ==∗ precond userfspec x_tgt fvargs↑ fargs↑)%I with "[pre tid]" as "PRE".
+    { iIntros "I". iApply PRE. rewrite /fspec_virtual /w_fspec /precond /=.
+      iFrame. eauto. }
+    
+    iApply wsim_full_guarantee_src_upd. iSplitL "PRE"; iFrame.
 
     remember [(_, _)] as st_s'.
     remember [(_, _); (_, _)] as st_t'.
@@ -225,16 +225,11 @@ Module SchIA. Section SchIA.
 
     wcall "IST"; et.
     wstep_l. rename q into vret.
-    remember (existT userf userm) as DT; clear HeqDT.
-    revert userm H0 H1. generalize H2. unfold find_fsp. rewrite H2.
-    i; ss. rewrite (UIP _ _ _ H0 eq_refl). erewrite <- rew_swap; ss.
     grind. prep_l.
-    iApply wsim_full_assume_src; iSplitL ""; iIntros "I".
-    { iPoseProof (H3 $ ret with "[I]") as "H".
-      { iExists _; iFrame. }
-      { iExact "H". }
-    }
-    iDestruct "I" as "[tid [% [% POST]]]".
+    iApply wsim_full_assume_src_upd; iSplitL ""; iIntros "I".
+    { iPoseProof (POST $ vret with "[I]") as "H"; iFrame. }
+    rewrite /postcond /fspec_virtual.
+    iDestruct "I" as (sret) "[-> [tid [-> POST]]]". iModIntro.
 
     wsteps_l. wsteps_r. hss. wsteps_r.
     iDestruct "IST" as (??????) "(% & THB & THW & COND & [[TA %]|[TA %]])"; subst; hss.
@@ -253,24 +248,24 @@ Module SchIA. Section SchIA.
         - clear SIM2. induction ths_tgt1; ss. destruct a. rewrite eq_rel_dec_correct in LU.
           rewrite eq_rel_dec_correct. des_ifs. ss. des; split; et.
         - i. destruct (classic (tid0 = my_tid)).
-          + subst. erewrite alist_replace_find_eq_None; et. 
-            rewrite -H0 -H -H4. econs 1; et. exact None.
+          + subst. erewrite alist_replace_find_eq_None; et.
+            { rewrite -H0 -H -H2. econs 1; et. } { exact None. }
           + erewrite alist_replace_find_neq_Some; et. exact None.
       }
       { (* already done case - impossible *)
         dup SIM1. specialize (SIM1 my_tid). rewrite LU in SIM1. inv SIM1.
         { (* done *)
-          symmetry in H6. rewrite /token_half. unseal "SchA". iCombine "token THW" gives %X.
+          symmetry in H4. rewrite /token_half. unseal "SchA". iCombine "token THW" gives %X.
           exfalso. rewrite auth_frag_valid in X.
           specialize (X my_tid). rewrite discrete_fun_lookup_op in X. ss.
-          rewrite -H5 in X. rewrite Nat.eqb_refl in X.
+          rewrite -H3 in X. rewrite Nat.eqb_refl in X.
           rewrite Some_valid pair_valid in X; des. ss.
         }
         { (* joined *) 
-          symmetry in H6. rewrite /token_half. unseal "SchA". iCombine "token THW" gives %X.
+          symmetry in H4. rewrite /token_half. unseal "SchA". iCombine "token THW" gives %X.
           exfalso. rewrite auth_frag_valid in X.
           specialize (X my_tid). rewrite discrete_fun_lookup_op in X. ss.
-          rewrite -H5 in X. rewrite Nat.eqb_refl in X.
+          rewrite -H3 in X. rewrite Nat.eqb_refl in X.
           rewrite Some_valid pair_valid in X; des. ss.
         }
       }
@@ -287,14 +282,14 @@ Module SchIA. Section SchIA.
         remember (λ s: SAny.t, Some (to_agree (synpost s)))%I as POSTF.
         iAssert (interp_cond (Q sret))%I with "[POST]" as "POST".
         { subst. apply (inj to_agree) in THW0. specialize (THW0 sret). ss. inv THW0.
-          apply (inj to_agree) in H7. unfold interp_cond. rewrite H7. et. }
+          apply (inj to_agree) in H5. unfold interp_cond. rewrite H5. et. }
 
         assert (((((λ n : nat, if my_tid =? n then Some ((1/2)%Qp, to_agree POSTF) else ε) : threadsF) ⋅ ths_src_w1): threadsF) ≡ ((λ n : nat, if my_tid =? n then Some ((3/4)%Qp, to_agree (λ s: SAny.t, Some (to_agree (Q s)))) else ths_src_w1 n): threadsF)).
         { intros y. rewrite discrete_fun_lookup_op. des_ifs. 2:rewrite left_id //.
           rewrite Nat.eqb_eq in Heq; subst. rewrite -H0 -Some_op -pair_op frac_op -THW0 agree_idemp.
           f_equiv. f_equiv. compute_done.
         }
-        rewrite H5.
+        rewrite H3.
 
         clear SIM SIM0.
         iExists (alist_replace my_tid (Some sret) ths_tgt1), _, _, (<[my_tid:=(interp_cond (Q sret))%I]> ths_cond1), my_tid, false.
@@ -344,7 +339,7 @@ Module SchIA. Section SchIA.
     winit_simF u_a 0.
 
     wstep_l. wstep_l.
-    destruct q as [[[[farg fvarg] pre] synpost] [userf userm]].
+    destruct q as [[[[farg fvarg] pre] synpost] userf].
     wsteps_l.
     iDestruct "ASM" as "[%va [-> ASM]]".
     iDestruct "ASM" as "[[-> [-> [% %]]] [PRE tid]]". hss. inv H. rename x into userfspec.
@@ -354,7 +349,7 @@ Module SchIA. Section SchIA.
 
     (* spawn _spawn *)
     rename q into my_tid. rename q1 into farg.
-    wforce_l (nths, my_tid, farg, fvarg, pre, synpost, existT userf userm).
+    wforce_l (nths, my_tid, farg, fvarg, pre, synpost, userf).
     wforce_l ((my_tid, userf, farg)↑).
     wsteps_l. wsteps_r.
 

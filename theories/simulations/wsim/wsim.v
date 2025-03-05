@@ -359,6 +359,19 @@ Section wsim.
       { iApply "SIM"; done. }
     Qed.
 
+    Lemma wsim_full_guarantee_src_upd (P : iProp Σ) r g k_s i_t E :
+      ((wsim_ginv υ E ==∗ P) ∗
+      wsim None υ ν E r g R_s R_t RR true pt nths
+        (st_s, k_s tt) (st_t, i_t)) ⊢
+      wsim (Some true) υ ν E r g R_s R_t RR ps pt nths
+        (st_s, trigger (Guarantee P) >>= k_s) (st_t, i_t).
+    Proof.
+      unseal; iIntros "[P SIM] I".
+      iPoseProof ("P" with "I") as ">P".
+      iApply isim_Guarantee_src; eauto.
+      iSplitR "SIM"; iFrame. iApply "SIM"; done.
+    Qed.
+
     Lemma wsim_full_guarantee_src (P : iProp Σ) r g k_s i_t E :
       ((wsim_ginv υ E -∗ P) ∗
       wsim None υ ν E r g R_s R_t RR true pt nths
@@ -391,6 +404,19 @@ Section wsim.
       unseal; iIntros "[P SIM] I". iApply isim_Assume_src; eauto.
       iIntros "P'". iPoseProof ("P" with "P'") as "[GINV P]".
       iApply ("SIM" with "P GINV").
+    Qed.
+
+    Lemma wsim_full_assume_src_upd (P P' : iProp Σ) r g k_s i_t E :
+      ((P ==∗ (wsim_ginv υ E ∗ P')) ∗
+      (P' ==∗ wsim (Some true) υ ν E r g R_s R_t RR true pt nths
+        (st_s, k_s tt) (st_t, i_t))) ⊢
+      wsim None υ ν E r g R_s R_t RR ps pt nths
+        (st_s, trigger (Assume P) >>= k_s) (st_t, i_t).
+    Proof.
+      unseal; iIntros "[P SIM] I". iApply isim_Assume_src; eauto.
+      iIntros "P'". iPoseProof ("P" with "P'") as ">[GINV P]".
+      iPoseProof ("SIM" with "P") as ">SIM".
+      iApply ("SIM" with "GINV").
     Qed.
 
     Lemma wsim_full_assume_tgt_WP `{i : !WP P υ E} r g i_s k_t :
