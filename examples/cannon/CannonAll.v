@@ -38,11 +38,11 @@ Module CannonAll.
     eapply ctxr_compose_hor.
     { replace (SMod.to_hmod _ _ CannonA.Mod) with (CannonA.t u spc); cycle 1.
       { unfold CannonA.t. unseal CRIS. ss. }
-      eapply CannonIA.correct.
+      eapply CannonIA.wctxr.
     }
     { replace (SMod.to_hmod _ _ (MainA.Mod 1)) with (MainA.t 1 u spc); cycle 1.
       { unfold MainA.t. unseal CRIS. ss. }
-      eapply CannonMainIA.correct.
+      eapply CannonMainIA.wctxr.
       i. rewrite /CannonAS.Spc. unseal CRIS. econs; first prove_nodup.
       ii; rewrite -FIND /spc /spc_from /smod_src //=; des_ifs; ss; des_ifs.
     }

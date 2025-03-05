@@ -43,12 +43,15 @@ Module CannonIA. Section CannonIA.
     - iIntros "IC". unfold Ist, CannonA.init_cond. iLeft. iFrame; eauto.
     - eapply simF_fire.
   Qed.
+End CannonIA.
 
-  Theorem correct :
+Section wctxr.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
+  Context `{!CannonAGΓ Γ}.
+
+  Theorem wctxr (u: univ_id) (Spc_s : string → option fspec):
     ctx_refines
-      (CannonAMod, CannonA.init_cond)
-      (CannonIMod, emp%I).
-  Proof.
-    eapply main_adequacy, sim.
-  Qed.
-End CannonIA. End CannonIA.
+      (CannonA.t u Spc_s, CannonA.init_cond)
+      (CannonI.t, emp%I).
+  Proof. eapply main_adequacy, sim. Qed.
+End wctxr. End CannonIA.

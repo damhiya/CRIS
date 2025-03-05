@@ -41,13 +41,17 @@ Module CannonMainIA. Section CannonMainIA.
     - iIntros "IC". et.
     - apply simF_main; eauto.
   Qed.
+End CannonMainIA.
 
-  Theorem correct :
+Section wctxr.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
+  Context `{!CannonAGΓ Γ}.
+
+  Theorem wctxr (u: univ_id) (SpcMain : string → option fspec)
+    (CannonInMain : spc_incl CannonAS.Spc SpcMain)
+  :
     ctx_refines
-      (MainAMod, (MainA.init_cond))
-      (MainIMod, (emp%I)).
-  Proof.
-    eapply main_adequacy.
-    apply sim; et.
-  Qed.
-End CannonMainIA. End CannonMainIA.
+      (MainA.t 1 u SpcMain, (MainA.init_cond))
+      (MainI.t 1, (emp%I)).
+  Proof. eapply main_adequacy, sim; eauto. Qed.
+End wctxr. End CannonMainIA.
