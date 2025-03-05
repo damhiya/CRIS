@@ -1,6 +1,6 @@
 Require Import CRIS.
 
-Require Import SchGInv SchHeader SchI SchA.
+Require Import SchHeader SchI SchA.
 
 Require Import wsim_tactics ltac2_lib.
 
