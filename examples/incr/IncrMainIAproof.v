@@ -142,8 +142,8 @@ Module IncrIA. Section IncrIA.
 
     (* src/tgt spawns *)
     pose proof (f_spawnable γc 0 0 b 0).
-    wnorm with iApply wsim_spawn. 4:eauto.
-    { rewrite /f_spec /w_fspec_sch /w_fspec /fspec_simple /=. exact (q1, (b, 0%Z, 0%Z, γc)). }
+    wnorm with iApply wsim_spawn. 3:eauto.
+    (* { rewrite /f_spec /w_fspec_sch /w_fspec /fspec_simple /=. exact (q1, (b, 0%Z, 0%Z, γc)). } *)
     { eauto. } { eapply MainInSpc. ss. }
     iFrame. iSplitL "" ; eauto.
     clear nths st_s st_t.
@@ -155,8 +155,8 @@ Module IncrIA. Section IncrIA.
     sch_yield_l.
 
     pose proof (f_spawnable γc 0 0 b 0).
-    wnorm with iApply wsim_spawn. 4:eauto.
-    { rewrite /f_spec /w_fspec_sch /w_fspec /fspec_simple /=. exact (q1, (b, 0%Z, 0%Z, γc)). }
+    wnorm with iApply wsim_spawn. 3:eauto.
+    (* { rewrite /f_spec /w_fspec_sch /w_fspec /fspec_simple /=. exact (q1, (b, 0%Z, 0%Z, γc)). } *)
     { eauto. } { eapply MainInSpc. ss. }
     iFrame. iSplitL "" ; eauto.
     clear nths st_s st_t.

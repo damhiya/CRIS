@@ -147,7 +147,7 @@ Section wsim.
     wforce_l true; wsteps_l. iApply "SIM".
   Qed.
 
-  Lemma wsim_spawn fn args fn_spec (P : SAny.t → Any.t → iProp Σ) (Q : SAny.t → SynDepO)
+  Lemma wsim_spawn fn vargs args fn_spec (P : SAny.t → SAny.t → iProp Σ) (Q : SAny.t → SAny.t → SynDepO)
       r g scp_s scp_t ginv spc spc_user k_s k_t my_tid
       (SchInSpc : spc_incl (SchAS.spc υ spc_user) spc)
       (CalleeInSpc : spc_user fn = Some fn_spec)
