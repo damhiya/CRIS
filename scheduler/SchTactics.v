@@ -1,5 +1,17 @@
 Require Import CRIS wsim_tactics SchHeader SchA.
 
+Section wrapper.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
+  Context `{!SchAGΣ Σ, !SchAGΓ Γ}.
+  Definition w_fspec_sch (υ: univ_id) (fsp : fspec) : fspec :=
+    w_fspec υ
+     (mk_fspec (meta := nat * (fsp).(meta))
+        (fun '(tid, x) varg arg =>
+          SchAS.tid_user tid ∗ fsp.(precond) x varg arg)%I
+        (fun '(tid, x) vret ret =>
+          SchAS.tid_user tid ∗ fsp.(postcond) x vret ret)%I).
+End wrapper.
+
 Section wsim.
   Import SchAS.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !SchAGΣ Σ, !SchAGΓ Γ}.
@@ -135,14 +147,14 @@ Section wsim.
     wforce_l true; wsteps_l. iApply "SIM".
   Qed.
 
-  Lemma wsim_spawn fn args fn_spec (x : meta fn_spec) (P : SAny.t → Any.t → iProp Σ) (Q : SAny.t → SynDepO)
+  Lemma wsim_spawn fn vargs args fn_spec (x : meta fn_spec) (P : SAny.t → SAny.t → iProp Σ) (Q : SAny.t → SAny.t → SynDepO)
       r g scp_s scp_t ginv spc spc_user k_s k_t my_tid
       (SchInSpc : spc_incl (SchAS.spc υ spc_user) spc)
       (CalleeInSpc : spc_user fn = Some fn_spec)
       (Spawnable : SchAS.fspec_spawnable υ fn_spec P Q) :
     Ist nths st_s st_t ∗
     tid_user my_tid ∗
-    P args args↑ ∗
+    P vargs args ∗
     (∀ tid nths st_s st_t,
         Ist nths st_s st_t
         -∗ tid_user my_tid
@@ -150,14 +162,14 @@ Section wsim.
         -∗ wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR true true nths
             (st_s, k_s tid) (st_t, k_t tid))
     ⊢ wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR ps pt nths
-      (st_s, (HMod.sandbox scp_s (interp_smod ginv spc (Sch.spawn (fn, args)))) >>= k_s)
+      (st_s, (HMod.sandbox scp_s (interp_smod ginv spc (Sch.spawn (fn, vargs)))) >>= k_s)
       (st_t, (HMod.sandbox scp_t (PMod.interp (Sch.spawn (fn, args)))) >>= k_t).
   Proof.
     iIntros "(I & TID & P & SIM)". rewrite /Sch.spawn; unseal "Sch".
     wsteps_l. wforces_l. iSplitL "P TID".
-    { iExists (fn, args); iSplit; eauto.
+    { iExists (fn, vargs); iSplit; eauto.
       instantiate (1:=(fn, args)↑).
-      instantiate (1:=(my_tid, args, args, P, Q, fn)).
+      instantiate (1:=(my_tid, args, vargs, P, Q, fn)).
       iFrame. iPureIntro. esplits; eauto. unfold find_fsp. rewrite CalleeInSpc. eauto.
     }
     wsteps_l. wsteps_r. wcall "I". wsteps_l. wsteps_r.
@@ -165,28 +177,28 @@ Section wsim.
     iApply ("SIM" with "IST TID TKN").
   Qed.
 
-  Lemma wsim_join tid (Q : SAny.t → SynDepO) R
+  Lemma wsim_join tid (Q : SAny.t → SAny.t → SynDepO)
       r g scp_s scp_t ginv spc spc_user k_s k_t my_tid
       (SchInSpc : spc_incl (SchAS.spc υ spc_user) spc) :
     Ist nths st_s st_t ∗
     tid_user my_tid ∗
     token_th tid Q ∗
-    (∀ nths st_s st_t ret,
+    (∀ nths st_s st_t vret ret,
         Ist nths st_s st_t
         -∗ tid_user my_tid
-        -∗ interp_cond (Q ret↑↑)
+        -∗ interp_cond (Q vret ret)
         -∗ wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR true true nths
-            (st_s, k_s ret) (st_t, k_t ret))
+            (st_s, k_s vret) (st_t, k_t ret))
     ⊢ wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR ps pt nths
-      (st_s, (HMod.sandbox scp_s (interp_smod ginv spc (Sch.join R tid))) >>= k_s)
-      (st_t, (HMod.sandbox scp_t (PMod.interp (Sch.join R tid))) >>= k_t).
+      (st_s, (HMod.sandbox scp_s (interp_smod ginv spc (Sch.join tid))) >>= k_s)
+      (st_t, (HMod.sandbox scp_t (PMod.interp (Sch.join tid))) >>= k_t).
   Proof.
     iIntros "(IST & TID & TK & SIM)". rewrite /Sch.join; unseal "Sch".
     wsteps_l. wforce_l (tid, Q, my_tid). wsteps_l. wforce_l (tid↑). wsteps_l. wforce_l.
     iFrame; iSplit; eauto. wsteps_l.
 
-    wsteps_r. wcall "IST". wsteps_l. iDestruct "ASM" as "[[[%ret' [-> Q]] TID] ->]". hss.
-    wsteps_r. hss. wsteps_r. hss. wstep_r.
+    wsteps_r. wcall "IST". wsteps_l. iDestruct "ASM" as "(% & % & (% & % & % & Q) & TID)".
+    subst; hss. wsteps_r. hss. wsteps_r. hss. wstep_r.
     iApply ("SIM" with "IST TID Q").
   Qed.
 End wsim.

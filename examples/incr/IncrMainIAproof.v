@@ -7,7 +7,7 @@ Module IncrIA. Section IncrIA.
   Import IncrMainAS.
   Local Existing Instance IncrMainA.RA_inG.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
-  Context `{!SchAGΣ Σ, !memGΓ Γ, !IncrMainAGΓ Γ}.
+  Context `{!SchAGΣ Σ, !SchAGΓ Γ, !memGΓ Γ, !IncrMainAGΓ Γ}.
 
   Definition Ist : nat → alist key Any.t → alist key Any.t → iProp Σ := λ _ _ _, emp%I.
 
@@ -24,27 +24,45 @@ Module IncrIA. Section IncrIA.
   Local Definition MA := (IncrMainA ★ MemA).
   Local Definition MI := (IncrMainI ★ MemA).
 
+  Lemma f_spawnable γ n v blk ofs:
+    SchAS.fspec_spawnable u_s (IncrMainAS.f_spec u_s)
+      (λ varg arg, ⌜varg = arg ∧ varg = ([Vptr blk ofs]↑↑)⌝ ∗ counter γ (1/2) v ∗ f_inv u_s 0 γ blk ofs)%I
+      (λ vret ret, existT n ((⌜vret = ret ∧ vret = tt↑↑⌝ ∗ counter_syn γ (1/2) (v + 1))%SRF)).
+  Proof.
+    rewrite /SchAS.fspec_spawnable /w_fspec /fspec_virtual /precond /postcond /f_spec /=.
+    ii; ss. eexists (x_src, (blk, ofs, v, γ)); split; red; ii.
+    - rewrite /precond /w_fspec_sch /fspec_simple /w_fspec /precond /=.
+      iIntros "[W [% [-> [TID [% [-> [[-> ->] [C #INV]]]]]]]]". iFrame. eauto.
+    - rewrite /postcond /w_fspec_sch /fspec_simple /w_fspec /postcond /=.
+      iIntros "[W [TID [[-> C] ->]]]". iFrame. iExists _; iSplitR; eauto.
+      iExists _; iSplitR; eauto. SL_red. iSplitR; eauto.
+  Qed.
+
   Lemma f_simF : HSim.sim_fun open MA MI IstFull MainName.f.
   Proof.
     winit_simF u_s 0.
 
-    wsteps_l. iDestruct "ASM" as "[[-> [C #INV]] ->]". hss.
+    wsteps_l. iDestruct "ASM" as "[TID [[-> [C #INV]] ->]]". hss.
 
     wsteps_l. hss. wsteps_l.
     wsteps_r. hss. wsteps_r.
     rewrite /IncrMainI.f /IncrMainA.f /=. wsteps_r.
-    
+
     sch_yield_r.
     iSplitL "IST"; iFrame.
-    clear nths. iIntros (nths st_s st_t) "IST".
+    clear nths. iIntros (nths st_s st_t) "IST TID".
+    wsteps_r.
+    sch_yield_r.
+    iSplitL "IST"; iFrame.
+    clear nths st_s st_t. iIntros (nths st_s st_t) "IST TID".
 
     rewrite /IncrMainAS.f_inv.
     iInv "INV" as "I" "IA". SL_red.
     iDestruct "I" as (x) "PT". SL_red. iDestruct "PT" as "[PT CA]".
 
     winline_r. wsteps_r.
-    wforce_r (q5, q6, Vint x, 1%Qp).
-    wsteps_r. wforce_r ([Vptr q5 q6]↑).
+    wforce_r (q7, q8, Vint x, 1%Qp).
+    wsteps_r. wforce_r ([Vptr q7 q8]↑).
     wsteps_r. wforce_r.
     iSplitL "PT".
     { iFrame; ss. }
@@ -53,8 +71,8 @@ Module IncrIA. Section IncrIA.
     wsteps_r.
 
     winline_r. wsteps_r.
-    wforce_r (q5, q6, Vint (x + 1)). wsteps_r.
-    wforce_r ([Vptr q5 q6; Vint (x + 1)]↑). wsteps_r.
+    wforce_r (q7, q8, Vint (x + 1)). wsteps_r.
+    wforce_r ([Vptr q7 q8; Vint (x + 1)]↑). wsteps_r.
     wforce_r. iSplitL "PT"; iFrame; ss. wsteps_r.
     iDestruct "GRT" as "[[PT ->] ->]". hss. wsteps_r.
 
@@ -64,10 +82,10 @@ Module IncrIA. Section IncrIA.
     
     sch_yield_r.
     iSplitL "IST"; iFrame.
-    clear nths st_s st_t. iIntros (nths st_s st_t) "IST".
+    clear nths st_s st_t. iIntros (nths st_s st_t) "IST TID".
     
     sch_yield_l.
-    wsteps_l. wforce_l. wsteps_l. wforce_l. iSplitL "C"; iFrame; eauto. wsteps_l.
+    wsteps_l. wforce_l. wsteps_l. wforce_l. iSplitL "TID C"; iFrame; eauto. wsteps_l.
     wstep; eauto.
   Qed.
 
@@ -75,14 +93,14 @@ Module IncrIA. Section IncrIA.
   Proof.
     winit_simF u_s 0.
 
-    wsteps_l. iDestruct "ASM" as "[-> ->]". hss.
+    wsteps_l. iDestruct "ASM" as "[TID [-> ->]]". hss.
     wsteps_l.
 
     (* src/tgt yield *)
     wsteps_r.
     sch_yield_r.
     iSplitL "IST"; iFrame.
-    clear nths. iIntros (nths st_s st_t) "IST".
+    clear nths. iIntros (nths st_s st_t) "IST TID".
     sch_yield_l.
 
     (* src/tgt alloc *)
@@ -94,7 +112,10 @@ Module IncrIA. Section IncrIA.
 
     (* tgt yield *)
     sch_yield_r. iFrame.
-    clear nths st_s st_t. iIntros (nths st_s st_t) "IST".
+    clear nths st_s st_t. iIntros (nths st_s st_t) "IST TID".
+    wsteps_r.
+    sch_yield_r. iFrame.
+    clear nths st_s st_t. iIntros (nths st_s st_t) "IST TID".
 
     (* tgt store *)
     winline_r. wsteps_r. wforce_r (b, 0%Z, Vint 0%Z). wsteps_r.
@@ -104,7 +125,7 @@ Module IncrIA. Section IncrIA.
 
     (* src/tgt yield *)
     sch_yield_r. iFrame.
-    clear nths st_s st_t. iIntros (nths st_s st_t) "IST".
+    clear nths st_s st_t. iIntros (nths st_s st_t) "IST TID".
     sch_yield_l.
 
     iApply (wsim_own_alloc (●F 0%Z ⋅ ◯F{1} 0%Z)).
@@ -120,54 +141,46 @@ Module IncrIA. Section IncrIA.
     wsteps_l. wsteps_r.
 
     (* src/tgt spawns *)
-    sch_spawn.
-    { apply MainInSpc; ss. }
-    { instantiate (1:= λ _, existT 0 (counter_syn γc (1/2)%Qp 1%Z)).
-      instantiate (2:= (b, 0%Z, 0%Z, γc)).
-      split.
-      - rewrite /precond /fspec_simple; ss.
-      - iIntros (ret) "[%vret [$ [[-> P] ->]]]"; ss.
-        iExists _; iSplit; SL_red; eauto.
-    }
+    pose proof (f_spawnable γc 0 0 b 0).
+    wnorm with iApply wsim_spawn. 4:eauto.
+    { rewrite /f_spec /w_fspec_sch /w_fspec /fspec_simple /=. exact (q1, (b, 0%Z, 0%Z, γc)). }
+    { eauto. } { eapply MainInSpc. ss. }
     iFrame. iSplitL "" ; eauto.
     clear nths st_s st_t.
-    iIntros (tid nths st_s st_t) "IST TOKEN".
+    iIntros (tid nths st_s st_t) "IST TID TOKEN".
 
     (* src/tgt yield *)
     sch_yield_r. iFrame.
-    clear nths st_s st_t. iIntros (nths st_s st_t) "IST".
+    clear nths st_s st_t. iIntros (nths st_s st_t) "IST TID".
     sch_yield_l.
 
-    sch_spawn.
-    { apply MainInSpc; ss. }
-    { instantiate (1:= λ _, existT 0 (counter_syn γc (1/2)%Qp 1%Z)).
-      instantiate (2:= (b, 0%Z, 0%Z, γc)).
-      split.
-      - rewrite /precond /fspec_simple; ss.
-      - iIntros (ret) "[%vret [$ [[-> P] ->]]]"; ss.
-        iExists _; iSplit; SL_red; eauto.
-    }
+    pose proof (f_spawnable γc 0 0 b 0).
+    wnorm with iApply wsim_spawn. 4:eauto.
+    { rewrite /f_spec /w_fspec_sch /w_fspec /fspec_simple /=. exact (q1, (b, 0%Z, 0%Z, γc)). }
+    { eauto. } { eapply MainInSpc. ss. }
     iFrame. iSplitL "" ; eauto.
     clear nths st_s st_t.
-    iIntros (tid2 nths st_s st_t) "IST TOKEN2".
+    iIntros (tid0 nths st_s st_t) "IST TID TOKEN2".
 
     (* src/tgt yield *)
     sch_yield_r. iFrame.
-    clear nths st_s st_t. iIntros (nths st_s st_t) "IST".
+    clear nths st_s st_t. iIntros (nths st_s st_t) "IST TID".
     sch_yield_l.
 
     sch_join. iFrame.
-    clear nths st_s st_t. iIntros (nths st_s st_t []) "IST Q /="; SL_red.
+    clear nths st_s st_t. iIntros (nths st_s st_t ? ?) "IST TID Q /="; SL_red.
+    iDestruct "Q" as "[[-> ->] Q]".
 
     sch_yield_r. iFrame.
-    clear nths st_s st_t. iIntros (nths st_s st_t) "IST".
+    clear nths st_s st_t. iIntros (nths st_s st_t) "IST TID".
     sch_yield_l.
 
     sch_join. iFrame.
-    clear nths st_s st_t. iIntros (nths st_s st_t []) "IST Q2 /="; SL_red.
+    clear nths st_s st_t. iIntros (nths st_s st_t ? ?) "IST TID Q2 /="; SL_red.
+    iDestruct "Q2" as "[[-> ->] Q2]".
 
     sch_yield_r. iFrame.
-    clear nths st_s st_t. iIntros (nths st_s st_t) "IST".
+    clear nths st_s st_t. iIntros (nths st_s st_t) "IST TID".
 
     iInv "I" as "INV" "INVA"; iEval (SL_red) in "INV"; iDestruct "INV" as "[%x INV]".
     iEval (SL_red) in "INV". iDestruct "INV" as "[PT C]".
@@ -182,16 +195,18 @@ Module IncrIA. Section IncrIA.
     { SL_red. iExists 2; SL_red; iFrame. }
 
     sch_yield_r. iFrame.
-    clear nths st_s st_t. iIntros (nths st_s st_t) "IST".
+    clear nths st_s st_t. iIntros (nths st_s st_t) "IST TID".
+    sch_yield_r. iFrame.
+    clear nths st_s st_t. iIntros (nths st_s st_t) "IST TID".
 
     sch_yield_l. wstep.
     wsteps_l. wsteps_r.
 
     sch_yield_r. iFrame.
-    clear nths st_s st_t. iIntros (nths st_s st_t) "IST".
+    clear nths st_s st_t. iIntros (nths st_s st_t) "IST TID".
 
     sch_yield_l.
-    wsteps_l. wforce_l. wsteps_l. wforce_l. iSplit; eauto.
+    wsteps_l. wforce_l. wsteps_l. wforce_l. iSplitL "TID"; eauto.
     wsteps_l. wsteps_r.
     wstep. eauto.
   Qed.
@@ -207,7 +222,7 @@ End IncrIA.
 
 Section wctxr.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
-  Context `{!SchAGΣ Σ, !memGΓ Γ, !IncrMainAGΓ Γ}.
+  Context `{!SchAGΣ Σ, !SchAGΓ Γ, !memGΓ Γ, !IncrMainAGΓ Γ}.
 
   Definition wctxr (u : univ_id) (spc_s spc_user_s spc_mem : univ_id → string → option fspec)
       (SchInSpc : ∀ u, spc_incl (SchAS.spc u (spc_user_s u)) (spc_s u))

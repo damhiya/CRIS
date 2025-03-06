@@ -107,7 +107,7 @@ Module KnotAll.
     rewrite hmod_addc_empty_l.
     rewrite -hmod_addc_empty_r -[(MemI.t csl genv ★ _, emp%I)]hmod_addc_empty_r.
     eapply ctxr_compose_hor.
-    { eapply MemIA.correct; prove_spc. }
+    { eapply MemIA.wctxr; prove_spc. }
     { eapply APCIA.wctxr; prove_spc. }
   Qed.
 
