@@ -501,6 +501,11 @@ Ltac unfold_precond_postcond term := let TM := fresh "_term" in
   (hrepeat do 1 (has_precond_in TM; unfold precond in TM; simpl in TM));
   (hrepeat do 1 (has_postcond_in TM; unfold postcond in TM; simpl in TM));
   subst TM.
+Ltac unfold_pre_post :=
+  repeat match goal with
+  | |- context [postcond ?P] => rewrite /P /postcond /=
+  | |- context [precond ?P] => rewrite /P /precond /=
+  end.
 
 Ltac set_marker marker :=
   assert (marker: True) by exact I.

@@ -27,7 +27,7 @@ Section SchRA.
   Definition SchAΓ : HRA := #[tidRA].
   Global Instance subG_GΣ {Σ'} : subG SchAΣ Σ' → SchAGΣ Σ'.
   Proof. solve_inG. Defined.
-  Global Instance subG_GΓ {Γ'} : subG SchAΓ Γ' → SchAGΓ Γ'.
+  Global Instance subG_GΓ {Γ' : HRA} : subG SchAΓ Γ' → SchAGΓ Γ'.
   Proof. solve_inG. Defined.
   Hint Unfold subG_GΣ SchAΣ : GRA_index.
   Hint Unfold subG_GΓ SchAΓ : GRA_index.

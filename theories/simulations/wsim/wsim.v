@@ -346,6 +346,19 @@ Section wsim.
       }
     Qed.
 
+    Lemma wsim_bind r g {Qs Qt} QQ i_s i_t k_s k_t E :
+      wsim t υ ν E r g Qs Qt QQ ps pt nths (st_s, i_s) (st_t, i_t)
+      ∗ (∀ nths st_s' r_s st_t' r_t,
+          QQ nths (st_s', r_s) (st_t', r_t)
+          -∗ wsim None υ ν E r g R_s R_t RR false false nths (st_s', k_s r_s) (st_t', k_t r_t))%I
+      ⊢ (wsim t υ ν E r g R_s R_t RR ps pt nths (st_s, i_s >>= k_s) (st_t, i_t >>= k_t)).
+    Proof.
+      rewrite wsim.wsim_eq /wsim.wsim_def /wsim.wsim_pre.
+      iIntros "[W SIM] INV". iApply isim_bind.
+      iSplitL "W INV". { iApply "W"; eauto. }
+      iIntros (? ? ? ? ?) "Q". iApply ("SIM" with "Q"). done.
+    Qed.
+
     (* ginv related lemmas *)
     Lemma wsim_full_guarantee_src_WP `{i : !WP P υ E} r g k_s i_t :
       (WP_remainder i ∗

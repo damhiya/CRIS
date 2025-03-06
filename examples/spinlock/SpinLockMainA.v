@@ -26,8 +26,6 @@ Module SpinLockMainAS. Section SpinLockMainAS.
   Definition lock_P loc γ : SRFSyn.t 0 :=
     ∃ v : τ{Z}%SRF, loc ↦ (Vint v) ∗ <own> γ (●F v).
 
-  Program Definition fspec_tid (fsp : fspec) : fspec :=
-    mk_fspec (meta:=(nat * fsp.(meta))) _ _.
   Definition incr_spec u : fspec :=
     w_fspec u
       (fspec_simple (λ '(tid, blk_l, ofs_l, blk_v, ofs_v, γ_v),
@@ -42,22 +40,27 @@ Module SpinLockMainAS. Section SpinLockMainAS.
           ∗ own γ_v (◯F{1/2} 1%Z)))
       ))%I.
 
-  Definition incr_pre u blk_l ofs_l blk_v ofs_v γ_v : iProp Σ :=
-    ∃ γ_l, is_lock u γ_l (Vptr blk_l ofs_l) (lock_P (blk_v, ofs_v) γ_v)
-      ∗ own γ_v (◯F{1/2} 0%Z).
+  Definition incr_pre u blk_l ofs_l blk_v ofs_v γ_v : SAny.t → Any.t → iProp Σ :=
+    λ varg arg,
+      (⌜varg↑ = arg⌝
+      ∗ (⌜varg = [Vptr blk_l ofs_l; Vptr blk_v ofs_v]↑↑⌝
+      ∗ ∃ γ_l, is_lock u γ_l (Vptr blk_l ofs_l) (lock_P (blk_v, ofs_v) γ_v)
+          ∗ own γ_v (◯F{1/2} 0%Z)))%I.
 
   Definition incr_post γ_v : SAny.t → SynDepO :=
     (λ _, existT 0 (<own> γ_v (◯F{1/2} 1%Z)))%SRF.
 
-  Lemma incr_spawnable u tid blk_l ofs_l blk_v ofs_v γ_v :
-    SchAS.fspec_spawnable u (incr_spec u) tid (tid, blk_l, ofs_l, blk_v, ofs_v, γ_v)
-      (([Vptr blk_l ofs_l; Vptr blk_v ofs_v]↑↑)↑) (([Vptr blk_l ofs_l; Vptr blk_v ofs_v]↑↑)↑)
+  Lemma incr_spawnable u blk_l ofs_l blk_v ofs_v γ_v :
+    SchAS.fspec_spawnable u (incr_spec u)
       (incr_pre u blk_l ofs_l blk_v ofs_v γ_v) (incr_post γ_v).
   Proof.
-    rr. split.
-    { iIntros "[$ [TID [% [#L O]]]]". iFrame. iSplit; eauto. }
-    { iIntros (ret) "[%vret [$ P]]". iDestruct "P" as "[[-> [$ O]] ->] /=".
-      SL_red. iExists _; eauto.
+    intros x_s; ss.
+    exists (x_s, blk_l, ofs_l, blk_v, ofs_v, γ_v); split.
+    { intros varg arg. iIntros "[W [%va [-> [TID [<- [-> P]]]]]]".
+      iFrame. iModIntro. eauto.
+    }
+    { iIntros (vret ret); rewrite /postcond /incr_spec /=; iIntros "[$ [[-> [TID R]] ->]] /=".
+      iFrame. iModIntro; iExists _; iSplit; eauto. iSplit; eauto. SL_red; done.
     }
   Qed.
 

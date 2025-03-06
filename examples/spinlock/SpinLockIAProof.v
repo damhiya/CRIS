@@ -128,4 +128,24 @@ Module SpinLockIA. Section SpinLockIA.
       iCombine "TKN TKN'" gives %Hv. done.
     }
   Qed.
+
+  Lemma sim : HSim.t open MA MI emp%I IstFull.
+  Proof.
+    init_sim.
+    { iIntros "_"; iExists [], [], [], []; iSplit; eauto. }
+    { apply newlock_simF. }
+    { apply acquire_simF. }
+    { apply release_simF. }
+  Qed.
+End SpinLockIA.
+Section SpinLockIA.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
+  Context `{!SchAGΣ Σ, !SchAGΓ Γ, !memGΓ Γ, !SpinLockAGΓ Γ}.
+  Lemma wctxr (u : univ_id) (spc_s spc_user_s spc_mem : string → option fspec)
+      (SchInSpc : spc_incl (SchAS.spc u spc_user_s) spc_s)
+      (MemInSpc : spc_incl MemA.Spc spc_s) :
+    ctx_refines
+      (SpinLockA.t u spc_s ★ MemA.t u spc_mem, emp%I)
+      (SpinLockI.t         ★ MemA.t u spc_mem, emp%I).
+  Proof. eapply main_adequacy, sim; eauto. Qed.
 End SpinLockIA. End SpinLockIA.

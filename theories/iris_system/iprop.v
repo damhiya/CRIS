@@ -145,3 +145,25 @@ Ltac solve_inG :=
 
 (* iProps are parameterized on GRAs, without step-indexing *)
 Notation iProp Σ := (uPredI Σ).
+
+(* Require Import ucmra_list.
+Class GRAL := GRAL_mk {
+  l : cmra_list
+}.
+Local Coercion l : GRAL >-> cmra_list.
+
+Definition GRALUR (Σ : GRAL) : ucmra :=
+  discrete_funUR (λ i, allocsUR positive (UList.nth i Σ Empty_set)).
+Global Coercion GRALUR : GRAL >-> ucmra.
+
+Global Instance GRAL_discrete {Σ : GRAL} : CmraDiscrete Σ.
+Proof.
+  rewrite /GRALUR. apply discrete_funR_cmra_discrete. destruct Σ. induction l0; ss.
+  { intros i; des_ifs; apply _. }
+  { intros i; des_ifs; apply _. }
+Qed.
+
+Definition InitRes {Σ : GRA} : Type := (ucmra * )
+
+Class A (Γ : HRA) := { inG RA Γ; }.
+Definition initial_resource : InitRes := a. *)

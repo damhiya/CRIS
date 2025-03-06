@@ -580,11 +580,11 @@ Module SchIA. Section SchIA.
   Section wctxr.
     Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
     Context `{!SchAGΣ Σ, !SchAGΓ Γ}.
-    Lemma wctxr (u: univ_id) (spc_global spc_user : univ_id → string → option fspec)
-        (SchInGlobal : ∀ u, spc_incl (SchAS.spc u (spc_user u)) (spc_global u))
-        (UserInGlobal : ∀ u, spc_sub (spc_user u) (spc_global u)) :
+    Lemma wctxr (u : univ_id) (spc_global spc_user : string → option fspec)
+        (SchInGlobal : spc_incl (SchAS.spc u spc_user) spc_global)
+        (UserInGlobal : spc_sub spc_user spc_global) :
       ctx_refines
-        (SchA.t u (spc_global u) (spc_user u), SchA.InitCond)
+        (SchA.t u spc_global spc_user, SchA.InitCond)
         (SchI.t, emp%I).
     Proof. eapply main_adequacy, sim; eauto. Qed.
 End wctxr. End SchIA.

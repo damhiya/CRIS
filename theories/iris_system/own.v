@@ -45,6 +45,8 @@ Local Definition own_admin_aux : seal (@own_admin_def). Proof. by eexists. Qed.
 Definition own_admin := own_admin_aux.(unseal).
 Local Definition own_admin_eq : @own_admin = @own_admin_def := own_admin_aux.(seal_eq).
 Global Arguments own_admin {_}.
+Definition initial_resource_own_admin {Σ : GRA} : GRAUR Σ :=
+  λ i, allocs_auth (@GRA_lookup Σ i) (λ x, x <> base_γ).
 
 (** * Definitions of resource ownership - for metatheoretical uses only *)
 Local Definition Own_def {Σ : GRA} (a : Σ) : iProp Σ := uPred_ownM a.
@@ -399,3 +401,111 @@ Section Own.
   Qed.
 
 End Own.
+(* 
+Definition resource {Σ : GRA} (A : cmra) : Type := { a : A & inG A Σ & ✓ a}.
+Inductive res_list {Σ : GRA} :=
+| r_nil
+| r_cons (A : cmra) (r : resource A) (l : res_list).
+Definition eq_index {Σ : GRA} {A B} (a : resource A) (b : resource B) : Prop.
+Proof. destruct a as [a [ia va]]. destruct b as [b [ib vb]]. exact (ia = ib). Defined.
+Fixpoint In {Σ : GRA} {A} (a : resource A) (l : res_list) : Prop :=
+  match l with
+    | r_nil => False
+    | r_cons B b tl => eq_index a b ∨ In a tl
+  end.
+Inductive NoDup {Σ : GRA} : res_list → Prop :=
+| NoDup_nil : NoDup r_nil
+| NoDup_cons : forall X (x : resource X) l, ~ In x l → NoDup l → NoDup (r_cons _ x l).
+Fixpoint op_res_list {Σ : GRA} (l : res_list) : Σ :=
+  match l with
+  | r_nil => ε
+  | r_cons A (existT2 _ _ a inG V) tl => (iRes_singleton base_γ a) ⋅ (op_res_list tl)
+  end.
+Lemma not_in_emp {Σ : GRA} {R} (r : resource R) (l : res_list) :
+  ~ In r l → (op_res_list l (inG_id (projT2 (sigT_of_sigT2 r)))) ≡ ε.
+Proof.
+  revert r. induction l; first ss.
+  intros r0 NIN. destruct r0 as [r0 [in0 v0]]. destruct r as [r1 [in1 v1]].
+  destruct (decide (in0 = in1)).
+  { subst. exfalso; eapply NIN; ss; left; done. }
+  { s. rewrite discrete_fun_lookup_op /iRes_singleton /= discrete_fun_lookup_singleton_ne.
+    { rewrite left_id. ss. hexploit IHl.
+      { ii; eapply NIN; right; eauto. }
+      ss.
+    }
+    { ii; clarify. }
+  }
+Qed.
+(* TODO : own_admin *)
+Lemma op_res_list_valid {Σ : GRA} (l : res_list) (NODUP : NoDup l) : ✓ (op_res_list l).
+Proof.
+  induction l; ss. inv NODUP. inv H0. clear r H2. destruct x0 as [r [ING VALID]].
+  intros i; rewrite discrete_fun_lookup_op.
+  destruct (decide (i = ING)).
+  { hexploit (@not_in_emp _ A).
+    { ii; eapply H1; eapply H. }
+    ss. rewrite e. intros ->; ss. rewrite right_id.
+    rewrite /iRes_singleton /= discrete_fun_lookup_singleton allocs_frag_valid cmra_transport_valid.
+    done.
+  }
+  rewrite /iRes_singleton discrete_fun_lookup_singleton_ne; ss; last ii; clarify.
+  rewrite left_id. apply IHl; eauto.
+Qed.
+Definition own_res_list {Σ : GRA} (l : res_list) : iProp Σ.
+Proof.
+  induction l as [|B b tl].
+  { exact True%I. }
+  { destruct b as [b [ib va]]. refine (@own B Σ (inG_mk B Σ ib va) base_γ b ∗ IHtl)%I. }
+Defined.
+Lemma big_bang {Σ : GRA} (l : res_list) : Own (op_res_list l) ⊢ own_admin ∗ own_res_list l.
+Proof.
+  induction l; first iIntros "_ //".
+  destruct r as [r [IN VAL]]; iIntros "[O1 O2] /=".
+  iSplitL "O1".
+  { rewrite own_eq /own_def Own_eq /Own_def //. }
+  { iApply IHl; iFrame. }
+Qed.
+From iris Require Import excl auth.
+Class MapMGΓ (Γ : GRA) := {
+  #[local] map_inG :: inG (exclR unitO) Γ;
+}.
+Definition MapMΓ : GRA := #[exclR unitO].
+Global Instance subG_GΓ {Γ : GRA} : subG MapMΓ Γ → MapMGΓ Γ.
+Proof. solve_inG. Defined.
+Hint Unfold subG_GΓ map_inG : GRA_index.
+
+Local Definition RA : ucmra :=
+  prodUR (optionUR (exclR unitO)) (authUR (Z -d> optionUR (exclR ZO))).
+Class MapAGΓ (Γ : GRA) := { #[local] RA_inG :: inG RA Γ }.
+Definition MapAΓ : GRA := #[RA].
+Global Instance AsubG_GΓ {Γ : GRA} : subG MapAΓ Γ → MapAGΓ Γ.
+Proof. solve_inG. Defined.
+Hint Unfold AsubG_GΓ MapAΓ : GRA_index.
+Section user.
+  Context `{!MapMGΓ Σ, !MapAGΓ Σ}.
+  Program Definition initial_resource : resource (exclR unitO) :=
+    existT2 _ _ (Excl ()) _ _.
+  Next Obligation. ss. apply _. Defined.
+  Next Obligation. ss. Defined.
+
+  Program Definition initial_resource_A : resource RA :=
+    existT2 _ _ (Some (Excl ()), ε) _ _.
+  Next Obligation. ss. apply _. Defined.
+  Next Obligation. ss. eapply pair_valid; split; ss. eapply ucmra_unit_valid. Defined.
+  Definition init_cond : iProp Σ := own base_γ (Excl ()) ∗ own base_γ (Some (Excl ()), ε).
+End user.
+
+Section big_bang.
+  Local Instance Σ : GRA := ##[MapMΓ; MapAΓ].
+  Lemma cancel : ∃ rs, ✓ rs ∧ (Own rs ⊢ init_cond).
+  Proof.
+    exists (op_res_list (r_cons _ initial_resource_A (r_cons _ initial_resource r_nil))). split.
+    { apply op_res_list_valid. rewrite /initial_resource. econs; ss; cycle 1.
+      { econs; ss. econs; ss. }
+      rewrite /initial_resource_obligation_2 /initial_resource_A_obligation_2. ss.
+      ii; des; ss. admit. }
+    { iIntros "O". iPoseProof (big_bang with "O") as "O".
+      rewrite /init_cond. ss. des_ifs. iDestruct "O" as "[$ [$ _]]".
+    }
+  Qed.
+   *)
