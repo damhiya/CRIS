@@ -26,8 +26,8 @@ Proof.
   iFrame.
 Qed.
 
-Lemma wsim_apc_tgt `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}
-  fl fr Ist is_closed u0 u1 cP r g {Rs Rt} RR ps pt nths st_src st_tgt i_src i_tgt spc spc_pure
+(* Lemma wsim_apc_tgt `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}
+  fl fr Ist is_closed u0 u1 r g {Rs Rt} RR ps pt nths st_src st_tgt i_src i_tgt spc spc_pure
   scopes ginv (ow_src ow_tgt od_src od_tgt : Ord.t)
   (WIDTH: (ow_tgt < ow_src)%ord)
   (DEPTH: (od_tgt <= od_src)%ord)
@@ -35,35 +35,33 @@ Lemma wsim_apc_tgt `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}
     ((Ist nths st_src st_tgt) ∗
       (∀ nths0 st_src0 st_tgt0 ow_src_nxt,
         (Ist nths0 st_src0 st_tgt0)
-        -∗ wsim fl fr Ist is_closed u0 u1 cP r g Rs Rt RR false false nths0
+        -∗ wsim fl fr Ist is_closed u0 u1 ⊤ r g Rs Rt RR false false nths0
             (st_src0, ((HMod.sandbox scopes (interp_smod ginv spc (_APC od_src spc_pure ow_src_nxt)));;; i_src))
             (st_tgt0, i_tgt)))
   ⊢
-    (wsim fl fr Ist is_closed u0 u1 cP r g Rs Rt RR ps pt nths 
+    (wsim fl fr Ist is_closed u0 u1 ⊤ r g Rs Rt RR ps pt nths 
       (st_src, ((HMod.sandbox scopes (interp_smod ginv spc (_APC od_src spc_pure ow_src)));;; i_src))
       (st_tgt, ((HMod.sandbox scopes (interp_smod ginv spc (_APC od_tgt spc_pure ow_tgt)));;; i_tgt))).
 Proof.
-  (* generalize is_closed, cP *)
-  (* TODO: refactor proof by carefully using isim_mono_knowledge *)
-  (* iIntros "[IST ISIM]". iApply wsim_reset.
+  iIntros "[IST ISIM]". iApply wsim_reset.
   iStopProof.
   revert nths st_src. apply combine_quant.
   revert WIDTH. apply combine_quant.
   revert st_tgt. apply combine_quant.
   revert ow_src. apply combine_quant_dep.
   revert ow_tgt. apply combine_quant_dep.
-  eapply wsim_coind. i. iIntros "(IST & ISIM) #CIH".
+  eapply wsim_coind. i. iIntros "(IST & ISIM) %MON #CIH".
   destruct a as [ow_tgt [ow_src [st_tgt [WIDTH [nths st_src]]]]]; ss.
   set_marker marker. hide_ihyps. hide_itree_l.
   rewrite !unfold_APC.
   show_until marker.
-  w_steps_r. des_ifs.
+  wsteps_r. des_ifs.
   { (* break *)
-    w_steps_r. iApply wsim_reset. iPoseProof ("ISIM" $! nths st_src st_tgt ow_src) as "ISIM".
+    wsteps_r. iApply wsim_reset. iPoseProof ("ISIM" $! nths st_src st_tgt ow_src) as "ISIM".
     rewrite wsim.wsim_eq /wsim.wsim_def /wsim.wsim_pre. iIntros "W".
     iApply (isim_mono_knowledge with "[ISIM IST CIH W]").
-    { instantiate (1:=wsim.wsim_rel u0 r). et. }
-    { instantiate (1:=wsim.wsim_rel u0 g). ii. destruct sti_src, sti_tgt. iIntros "G". iModIntro. rewrite /wsim.wsim_rel. iDestruct "G" as "[I G]". iFrame. iApply MON; iFrame. }
+    { et. }
+    { instantiate (1:=g). ii. destruct sti_src, sti_tgt. iIntros "G". iModIntro. rewrite /wsim.wsim_rel. iDestruct "G" as "[I G]". iFrame. iApply MON; iFrame. }
     iApply ("ISIM" with "IST"); iFrame.
   }
   { (* continue *)
@@ -85,7 +83,7 @@ Proof.
   }
   Unshelve. eauto.
 Qed. *)
-Admitted.
+
 
 Lemma wsim_apc_src_call_tgt_weaker `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}
   fl fr Ist is_closed u0 u1 cP r g {Rs Rt} RR ps pt nths st_src st_tgt k_src k_tgt spc spc_pure
@@ -152,7 +150,7 @@ Qed.
 
 (* useful apc lemmas cont. - don't require IST *)
 
-Lemma wsim_apc_tgt_noist `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}
+(* Lemma wsim_apc_tgt_noist `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}
   is_closed fl fr Ist u0 u1 cP r g {Rs Rt} RR ps pt nths st_src st_tgt i_src i_tgt
   (spc spc_pure: string → option fspec) (od ow: Ord.t) (scopes: list string)
   (SUB: spc_sub spc_pure spc)
@@ -170,8 +168,7 @@ Lemma wsim_apc_tgt_noist `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}
       (st_src, i_src)
       (st_tgt, ((HMod.sandbox scopes (interp_smod (wsim_ginv u1 cP) spc (_APC od spc_pure ow)));;; i_tgt))).
   Proof.
-  (* do well-founded induction twice? (due to wsim_ginv u0 cP)*)
-  (* iIntros "ISIM".
+  iIntros "ISIM".
   set (E:=environments.envs_entails _).
   apply wsim_congruence_src with (Ret ();;; i_src).
   { rewrite bind_ret_l. refl. }
@@ -234,7 +231,6 @@ Lemma wsim_apc_tgt_noist `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}
   }
   Unshelve. eauto.
 Qed. *)
-Admitted.
 
 Ltac _prep_macro :=
   ired;
@@ -279,10 +275,10 @@ Ltac apc_l :=
   prep_macro_l;
   iApply wsim_apc_src; des_pairs; s.
 
-Ltac apc_r hyps :=
+(* Ltac apc_r hyps :=
   prep_macro_r;
   iApply wsim_apc_tgt; des_pairs; s;
-  [| |iSplitL hyps; [|iIntros "% % % %"; iIntrosFresh "IST"]].
+  [| |iSplitL hyps; [|iIntros "% % % %"; iIntrosFresh "IST"]]. *)
 
 Ltac apc_call hyps :=
   prep_macro_l; (hrepeat do 1 hnorm_r);
@@ -294,6 +290,6 @@ Ltac apc_call_weaker hyps :=
   iApply wsim_apc_src_call_tgt_weaker; des_pairs; s;
   [| | | | | | iSplitL hyps; [ |iIntros "% % % % %"; iIntrosFresh "ISTPOST"]].
 
-Ltac apc_tgt_noist :=
+(* Ltac apc_tgt_noist :=
   prep_macro_r;
-  iApply wsim_apc_tgt_noist; des_pairs; s.
+  iApply wsim_apc_tgt_noist; des_pairs; s. *)
