@@ -1,18 +1,22 @@
 Require Import CRIS.
-Require Import MutHeader MutMainHeader.
+Require Import MutHeader MutMainHeader APCHeader APC.
 
 Set Implicit Arguments.
 
 Module MutMainA. Section MutMainA.
-  Context {Σ: GRA}.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
   Notation iProp := (iProp Σ).
 
   Definition scopes := ["MutMain"].
 
+  Definition main_body : Any.t → itree hmodE Any.t :=
+    λ _, pure;;; trigger (Choose Any.t).
+
   Definition main_spec: fspec :=
-    fspec_simple (fun (_: unit) =>
-      ((λ varg, (⌜varg = tt↑⌝)%I),
-       (λ vret, (⌜vret = (Vint 55)↑⌝)%I))).
+    fspec_simple
+      (fun (_: unit) =>
+        ((λ varg, (⌜varg = tt↑⌝)%I),
+         (λ vret, (⌜vret = (Vint 55)↑⌝)%I))).
 
   Definition Spc: alist string fspec :=
     Seal.sealing CRIS [(MutMainName.main, main_spec)].
@@ -21,7 +25,7 @@ Module MutMainA. Section MutMainA.
   Proof. unfold Spc. unseal CRIS. prove_nodup. Qed.
 
   Definition fnsems :=
-    [(MutMainName.main, (scopes, mk_specbody main_spec fbody_trivial))].
+    [(MutMainName.main, (scopes, mk_specbody main_spec main_body))].
 
   Program Definition Mod: SMod.t :=
   {|
@@ -34,5 +38,5 @@ Module MutMainA. Section MutMainA.
 
   Definition InitCond : iProp := emp%I.
 
-  Definition t Spc := Seal.sealing CRIS (SMod.to_hmod emp Spc Mod).
+  Definition t u Spc := Seal.sealing CRIS (SMod.to_hmod (wsim_ginv u ⊤) Spc Mod).
 End MutMainA. End MutMainA.

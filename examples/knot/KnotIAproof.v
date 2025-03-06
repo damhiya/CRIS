@@ -11,13 +11,22 @@ Module KnotIA. Section KnotIA.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !memGΓ Γ, !KnotAGΓ Γ}.
   Notation iProp := (iProp Σ).
 
-  Variable genv: GEnv.t.
-  Variable u: univ_id.
-  Variable SpcRec: string -> option fspec.
-  Variable SpcFun: string -> option fspec.
-  Variable Spc: string -> option fspec.
-  Variable SpcMem: string -> option fspec.
-  Variable SpcPure: string → option fspec.
+  (* 1. global environment *)
+  Context (genv: GEnv.t).
+  (* 2. universe for knot module and apc module *)
+  Context (u_s u_apc: univ_id).
+  (* 3. spec tables *)
+  Context (SpcRec SpcFun Spc SpcMem SpcPure: string -> option fspec).
+  (* 4. hypotheses for genv *)
+  Context (GEnvWF: GEnv.wf genv).
+  Context (GEnvIncl: incl KnotGEnv.t genv).
+  (* 5. hypotheses for spc *)
+  Context (RecInSpc: spc_incl KnotRecSpc SpcRec).
+  Context (MemInSpc: spc_incl MemA.Spc Spc).
+  Context (APCInSpc: spc_incl APCA.Spc Spc).
+  (* 6. hypotheses for pure spc *)
+  Context (FunInPure: spc_sub SpcFun SpcPure).
+  Context (PureInSpc : spc_sub SpcPure Spc).
 
   Definition inv : iProp :=
     (∃ (f': optionO (natO -d> natO)) (fb': val),
@@ -31,22 +40,9 @@ Module KnotIA. Section KnotIA.
   Definition Ist: nat -> alist key Any.t -> alist key Any.t -> iProp :=
     λ _ _ _, inv.
 
-  (* GEnv Hypothesis *)
-  Hypothesis GEnvWF: GEnv.wf genv.
-  Hypothesis GEnvIncl: incl KnotGEnv.t genv.
-
-  (* SPC Hypothesis *)
-  Hypothesis RecInSpc: spc_incl KnotRecSpc SpcRec.
-  Hypothesis MemInSpc: spc_incl MemA.Spc Spc.
-  Hypothesis APCInSpc: spc_incl APCA.Spc Spc.
-
-  (* Pure SPC Hypothesis *)
-  Hypothesis FunInPure: spc_sub SpcFun SpcPure.
-  Hypothesis PureInSpc : spc_sub SpcPure Spc.
-
-  Local Definition APCA := (APCA.t u SpcPure Spc).
-  Local Definition MemA := (MemA.t u SpcMem).
-  Local Definition KnotA := (KnotA.t genv u SpcRec SpcFun Spc).
+  Local Definition APCA := (APCA.t u_apc SpcPure Spc).
+  Local Definition MemA := (MemA.t u_s SpcMem).
+  Local Definition KnotA := (KnotA.t genv u_s SpcRec SpcFun Spc).
   Local Definition KnotAMod := (KnotA ★ MemA ★ APCA).
   Local Definition KnotIMod := ((KnotI.t genv) ★ MemA ★ APCA).
   Local Definition IstFull := (IstProd (IstSB KnotA.(HMod.scopes) Ist) IstEq).
@@ -56,7 +52,7 @@ Module KnotIA. Section KnotIA.
   Lemma simF_rec:
     HSim.sim_fun open KnotAMod KnotIMod IstFull KnotName.rec.
   Proof.
-    init_simF.
+    winit_simF u_s 0.
 
     (* SKINCL - SkEnv id2blk *)
     pose proof (@CEnv.incl_incl_env KnotGEnv.t genv) as INCLENV.
@@ -74,7 +70,7 @@ Module KnotIA. Section KnotIA.
 
     (* Simulation Start *)
     (* SRC: precondition *)
-    steps_l. iDestruct "ASM" as "((%Y & FG) & %Q)"; des; subst; hss. steps_r.
+    wsteps_l. iDestruct "ASM" as "((%Y & FG) & %Q)"; des; subst; hss. wsteps_r.
     iDestruct "IST" as (? ? ? ?) "(%ST & [% IST] & %E)"; des; subst.
     iDestruct "IST" as (? ?) "(% & FL & VF)".
 
@@ -84,29 +80,28 @@ Module KnotIA. Section KnotIA.
     rename q1 into _f_spec.
     
     (* TGT: get a block of _f *)
-    force_r. iSplitR; et.
-    unfold var_points_to. des_ifs.
-    (* iDestruct "VF" as "[VF _]". *)
+    rewrite FIND0. hss. wsteps_r.
 
     (* TGT: load the function at the block of _f by inlining "load" *)
-    hnorm_r. inline_r. steps_r.
-    force_r. instantiate (1:=(blk0, 0%Z, (Vptr fb 0), 1%Qp)). force_r.
-    force_r. iSplitL "VF"; iFrame; et.
-    steps_r. iDestruct "GRT" as "((VF & %) & %)". des; subst. hss.
-    steps_r. inv H2. steps_l.
+    winline_r. wsteps_r.
+    wforce_r. instantiate (1:=(blk0, 0%Z, (Vptr fb 0), 1%Qp)). wforce_r.
+    wforce_r. iSplitL "VF".
+    { iSplit; eauto. iSplitR; eauto. unfold var_points_to. rewrite FIND0. iFrame. }
+    wsteps_r. iDestruct "GRT" as "((VF & %) & %)". des; subst. hss.
+    wsteps_r. inv H2. wsteps_l.
 
     (* TGT: get blocks of the function pointer and "rec" *)
-    dup FN. inv FN. des. force_r. iSplitR; et.
-    force_r. iSplitR; et. steps_r.
+    dup FN. inv FN. des. rewrite FBLOCK. hss. wforces_l. iSplitR; et.
+    wsteps_r. rewrite FINDR; hss. wsteps_r.
 
     (* SRC: unfold APC *)
-    force_l vo. force_l. force_l. iSplitR; et. steps_l.
-    inline_l. unfold apc_spec. steps_l. iDestruct "ASM" as "%"; subst; hss.
-    steps_l. unfold apc_body, APC.
-    force_l 1. steps_l. 
+    wsteps_l. winline_l. wsteps_l. iDestruct "ASM" as "%"; subst; hss.
+    wsteps_l. unfold apc_body, APC.
+    wforce_l 1. wsteps_l. 
 
     (* call apc with fn *)
-    dup SPEC. inv SPEC. apc_call_weaker "FL FG VF"; et.
+    dup SPEC. inv SPEC.
+    apc_call_weaker "FL FG VF"; et.
     { instantiate (1 := 0). apply OrdArith.lt_from_nat. nia. }
     { instantiate (1:= (2 * q2)). eapply Ord.lt_le_lt; et. rewrite -OrdArith.mult_from_nat -OrdArith.add_from_nat. apply OrdArith.lt_from_nat. nia. }
     { iSplitR "FL VF".
@@ -115,24 +110,24 @@ Module KnotIA. Section KnotIA.
         + iPureIntro. eexists; esplits; et. rewrite -OrdArith.mult_from_nat. apply OrdArith.le_from_nat. nia. 
       - iExists _, _, _, _. repeat (iSplit; et). iExists (Some _f_spec), _. iSplit.
         + iPureIntro. i. esplits; et. instantiate (1:=fb). econs; et. inv EQ; et.
-        + unfold var_points_to. rewrite Heq. iFrame.
+        + unfold var_points_to. rewrite FIND0. iFrame.
     }
     iDestruct "ISTPOST" as "[IST [% FG]]". hss.
 
     (* TGT: steps tgt *)
-    steps_r. hss. steps_r.
+    wsteps_r. hss. wsteps_r.
 
     (* SRC: change to skip *)
-    apc_l. steps_l. forces_l. iSplit; et. steps_l. forces_l. iSplitL "FG"; iFrame; et.
+    apc_l. wsteps_l. wforces_l. iSplit; et. wsteps_l. wforces_l. iSplitL "FG"; iFrame; et.
 
-    step. by iFrame.
+    wstep. by iFrame.
     Unshelve. all: ss.
   Qed.
 
   Lemma simF_knot:
     HSim.sim_fun open KnotAMod KnotIMod IstFull KnotName.knot.
   Proof.
-    init_simF.
+    winit_simF u_s 0.
 
     (* SKINCL *)
     pose proof (@CEnv.incl_incl_env KnotGEnv.t genv) as INCLENV.
@@ -147,9 +142,9 @@ Module KnotIA. Section KnotIA.
     specialize (GEnvWF KnotName.rec blk). apply GEnvWF in FIND; et. apply GEnvWF in FIND as FINDR.
 
     (* SRC: precondition *)
-    steps_l. 
+    wsteps_l.
     rename q into new_spec.
-    iDestruct "ASM" as "((%FB & [%old OLD]) & %Q)". des; subst. hss. steps_r.
+    iDestruct "ASM" as "((%FB & [%old OLD]) & %Q)". des; subst. hss. wsteps_r.
     iDestruct "IST" as (? ? ? ?) "(%ST & [% IST] & %E)"; des; subst.
     iDestruct "IST" as (? ?) "(% & FL & VF)".
 
@@ -157,28 +152,26 @@ Module KnotIA. Section KnotIA.
     iPoseProof (knot_ra_merge with "FL OLD") as "%". symmetry in H2.
     assert (REFL: knot_full f' ⊢ knot_full old). { iIntros "F". rewrite /knot_full H2. ss. }
     iPoseProof (REFL with "FL") as "FL".
-    unfold var_points_to. des_ifs. ss.
-    (* iDestruct "VF" as "[VF _]". *)
+    rewrite FIND0; hss. wsteps_r.
     
     (* TGT: save a function by calling "store" *)
-    steps_r. inline_r. steps_r.
-    force_r. instantiate (1:=(blk0, 0%Z, Vptr fb 0)). force_r. force_r. iSplitL "VF".
-    { iSplit; et. }
-    steps_r. iDestruct "GRT" as "[[VF %] %]"; des; subst.
+    wsteps_r. winline_r. wsteps_r.
+    wforce_r. instantiate (1:=(blk0, 0%Z, Vptr fb 0)). wforce_r. wforce_r. iSplitL "VF".
+    { iSplit; et. unfold var_points_to. rewrite FIND0; eauto. }
+    wsteps_r. iDestruct "GRT" as "[[VF %] %]"; des; subst.
 
     (* RA: update spec *)
-    iApply isim_upd. iCombine "FL OLD" as "SPEC".
-    iPoseProof (auth_excl_both_update with "SPEC") as ">SPEC".
-    iModIntro. iDestruct "SPEC" as "[FL FG]".
+    hss. wsteps_r. rewrite FINDR; hss. wsteps_r.
+    iCombine "FL OLD" as "SPEC".
+    iPoseProof (auth_excl_both_update with "SPEC") as ">[FL FG]".
 
     (* finish reasoning *)
-    steps_l. force_l. steps_l. force_l. force_l.
+    wsteps_l. wforce_l. wsteps_l. wforce_l. wforce_l.
     iSplitL "FG"; iFrame; et.
     { iSplit; et. iPureIntro. eexists. esplit; et. econs; et. econs; [|refl].
       apply RecInSpc. unfold KnotRecSpc. unseal CRIS. ss. }
-    steps_l.
-    hss. steps_r. force_r. iSplitR; et.
-    steps_r. step. iSplit; et.
+    wsteps_l.
+    hss. wsteps_r. wstep. iSplit; et.
 
     (* check IST *)
     inv FB0. des.
@@ -198,14 +191,26 @@ Module KnotIA. Section KnotIA.
     - apply simF_rec; et.
     - apply simF_knot; et.
   Qed.
+End KnotIA.
 
-  Theorem correct :
+Section wctxr.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
+  Context `{!memGΓ Γ, !KnotAGΓ Γ}.
+
+  Theorem wctxr (genv: GEnv.t) (u_s u_apc: univ_id)
+    (SpcRec SpcFun Spc SpcMem SpcPure : string → option fspec)
+    (GEnvWF: GEnv.wf genv)
+    (GEnvIncl: incl KnotGEnv.t genv)
+    (RecInSpc: spc_incl KnotA.KnotRecSpc SpcRec)
+    (MemInSpc: spc_incl MemA.Spc Spc)
+    (APCInSpc: spc_incl APCA.Spc Spc)
+    (FunInPure: spc_sub SpcFun SpcPure)
+    (PureInSpc : spc_sub SpcPure Spc)   
+  :
     ctx_refines
-      (KnotA   ★ MemA ★ APCA, KnotA.InitCond genv)
-      ((KnotI.t genv) ★ MemA ★ APCA, emp%I).
-  Proof.
-    eapply main_adequacy.
-    eapply KnotIA.sim; et.
-  Qed.
-
-End KnotIA. End KnotIA.
+      (KnotA.t genv u_s SpcRec SpcFun Spc ★ MemA u_s SpcMem ★ APCA.t u_apc SpcPure Spc,
+        KnotA.InitCond genv)
+      (KnotI.t genv ★ MemA u_s SpcMem ★ APCA.t u_apc SpcPure Spc,
+        emp%I).
+  Proof. eapply main_adequacy, sim; eauto. Qed.
+End wctxr. End KnotIA.

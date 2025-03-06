@@ -1,6 +1,6 @@
 Require Import CRIS.
 
-Require Import SchGInv SchHeader SchI SchA.
+Require Import SchHeader SchI SchA.
 
 Require Import wsim_tactics ltac2_lib.
 
@@ -24,33 +24,37 @@ Module SchIA. Section SchIA.
     end.
 
   Inductive sim_ths (tid: nat): 
-    (option (option SAny.t)) -> fragreeUR -> fragreeUR -> option (iProp Σ) -> Prop :=
+    (option (option SAny.t)) -> (option (option SAny.t))
+    -> fragreeUR -> fragreeUR -> option (iProp Σ) -> Prop :=
   | sim_ths_idle
     :
-      sim_ths tid None None None None
+      sim_ths tid None None None None None
 
   | sim_ths_active Q
     : 
       sim_ths tid
         (Some None)
-        (Some (1%Qp, to_agree (λ s, Some (to_agree (Q s)))))
-        (Some ((1/4)%Qp, to_agree (λ s, Some (to_agree (Q s)))))
+        (Some None)
+        (Some (1%Qp, to_agree (λ vs s, Some (to_agree (Q vs s)))))
+        (Some ((1/4)%Qp, to_agree (λ vs s, Some (to_agree (Q vs s)))))
         None
 
-  | sim_ths_done rv Q
+  | sim_ths_done vrv rv Q
     : 
-      sim_ths tid 
+      sim_ths tid
+        (Some (Some vrv))
         (Some (Some rv))
-        (Some (1%Qp, to_agree (λ s, Some (to_agree (Q s)))))
-        (Some ((3/4)%Qp, to_agree (λ s, Some (to_agree (Q s)))))
-        (Some (interp_cond (Q rv)))%I
+        (Some (1%Qp, to_agree (λ vs s, Some (to_agree (Q vs s)))))
+        (Some ((3/4)%Qp, to_agree (λ vs s, Some (to_agree (Q vs s)))))
+        (Some (interp_cond (Q vrv rv)))%I
 
-  | sim_ths_joined rv Q
+  | sim_ths_joined vrv rv Q
     :
       sim_ths tid
+        (Some (Some vrv))
         (Some (Some rv))
-        (Some (1%Qp, to_agree (λ s, Some (to_agree (Q s)))))
-        (Some (1%Qp, to_agree (λ s, Some (to_agree (Q s)))))
+        (Some (1%Qp, to_agree (λ vs s, Some (to_agree (Q vs s)))))
+        (Some (1%Qp, to_agree (λ vs s, Some (to_agree (Q vs s)))))
         None
   .
 
@@ -74,10 +78,10 @@ Module SchIA. Section SchIA.
     Qed.
 
     Lemma wf_ths_src ths_tgt (ths_src_b ths_src_w: threadsF) (ths_cond: gmap nat (iProp Σ ))
-      (SIM: ∀ tid, sim_ths tid (alist_find tid ths_tgt) (ths_src_b tid) (ths_src_w tid) (ths_cond !! tid))
+      (SIM: ∀ tid, ∃ vrv, sim_ths tid vrv (alist_find tid ths_tgt) (ths_src_b tid) (ths_src_w tid) (ths_cond !! tid))
     :
       ✓ ths_src_b ∧ ✓ ths_src_w.
-    Proof. split; intros x; specialize (SIM x); inv SIM; ss. Qed.
+    Proof. split; intros x; specialize (SIM x); des; inv SIM; ss. Qed.
 
     Lemma big_sepM_replace (m: gmap nat (iProp Σ)) i (Q: iProp Σ) :
       ([∗ map] P ∈ m, P) ∗ Q
@@ -152,7 +156,7 @@ Module SchIA. Section SchIA.
       (∃ ths_tgt (ths_src_b ths_src_w: SchA.threadsF) (ths_cond: gmap nat (iProp Σ)) (tid: nat) (_internal: bool),
           ⌜st_tgt = [(SchI.v_ths, ths_tgt↑); (SchI.v_tid, tid↑)]
             ∧ <<THWF: ths_wf numths ths_tgt>>
-            ∧ <<SIM: (∀ tid, sim_ths tid (alist_find tid ths_tgt) (ths_src_b tid) (ths_src_w tid) (ths_cond !! tid))>>
+            ∧ <<SIM: (∀ tid, ∃ vrv, sim_ths tid vrv (alist_find tid ths_tgt) (ths_src_b tid) (ths_src_w tid) (ths_cond !! tid))>>
             ∧ <<NTHS: 0 < numths>>
             ∧ st_src = [(SchA.v_internal, _internal↑)]⌝
           ∗ own base_γ (● ths_src_b : threadsRA)
@@ -229,7 +233,7 @@ Module SchIA. Section SchIA.
     iApply wsim_full_assume_src_upd; iSplitL ""; iIntros "I".
     { iPoseProof (POST $ vret with "[I]") as "H"; iFrame. }
     rewrite /postcond /fspec_virtual.
-    iDestruct "I" as (sret) "[-> [tid [-> POST]]]". iModIntro.
+    iDestruct "I" as (vsret) "[-> [tid [%sret [-> POST]]]]". iModIntro.
 
     wsteps_l. wsteps_r. hss. wsteps_r.
     iDestruct "IST" as (??????) "(% & THB & THW & COND & [[TA %]|[TA %]])"; subst; hss.
@@ -248,57 +252,56 @@ Module SchIA. Section SchIA.
         - clear SIM2. induction ths_tgt1; ss. destruct a. rewrite eq_rel_dec_correct in LU.
           rewrite eq_rel_dec_correct. des_ifs. ss. des; split; et.
         - i. destruct (classic (tid0 = my_tid)).
-          + subst. erewrite alist_replace_find_eq_None; et.
-            { rewrite -H0 -H -H2. econs 1; et. } { exact None. }
+          + subst. erewrite alist_replace_find_eq_None; et. exact None.
           + erewrite alist_replace_find_neq_Some; et. exact None.
       }
       { (* already done case - impossible *)
-        dup SIM1. specialize (SIM1 my_tid). rewrite LU in SIM1. inv SIM1.
+        dup SIM1. specialize (SIM1 my_tid). des. rewrite LU in SIM1. inv SIM1.
         { (* done *)
-          symmetry in H4. rewrite /token_half. unseal "SchA". iCombine "token THW" gives %X.
+          symmetry in H5. rewrite /token_half. unseal "SchA". iCombine "token THW" gives %X.
           exfalso. rewrite auth_frag_valid in X.
           specialize (X my_tid). rewrite discrete_fun_lookup_op in X. ss.
-          rewrite -H3 in X. rewrite Nat.eqb_refl in X.
+          rewrite -H4 in X. rewrite Nat.eqb_refl in X.
           rewrite Some_valid pair_valid in X; des. ss.
         }
-        { (* joined *) 
-          symmetry in H4. rewrite /token_half. unseal "SchA". iCombine "token THW" gives %X.
+        { (* done *)
+          symmetry in H5. rewrite /token_half. unseal "SchA". iCombine "token THW" gives %X.
           exfalso. rewrite auth_frag_valid in X.
           specialize (X my_tid). rewrite discrete_fun_lookup_op in X. ss.
-          rewrite -H3 in X. rewrite Nat.eqb_refl in X.
+          rewrite -H4 in X. rewrite Nat.eqb_refl in X.
           rewrite Some_valid pair_valid in X; des. ss.
         }
       }
       { (* active - only possible case *)
-        dup SIM1. specialize (SIM1 my_tid). rewrite LU in SIM1. inv SIM1.
+        dup SIM1. specialize (SIM1 my_tid). des. rewrite LU in SIM1. inv SIM1.
         rewrite /token_half. unseal "SchA".
         iCombine "token THW" gives %THW. iCombine "token THW" as "THW".
 
         rewrite auth_frag_valid in THW. ss.
         specialize (THW my_tid). rewrite discrete_fun_lookup_op in THW. rewrite Nat.eqb_refl in THW.
-        rewrite -H0 in THW. rewrite// -Some_op Some_valid pair_valid in THW. des; ss.
+        rewrite -H2 in THW. rewrite// -Some_op Some_valid pair_valid in THW. des; ss.
         apply agree_op_inv in THW0.
 
-        remember (λ s: SAny.t, Some (to_agree (synpost s)))%I as POSTF.
-        iAssert (interp_cond (Q sret))%I with "[POST]" as "POST".
-        { subst. apply (inj to_agree) in THW0. specialize (THW0 sret). ss. inv THW0.
+        remember (λ vs s: SAny.t, Some (to_agree (synpost vs s)))%I as POSTF.
+        iAssert (interp_cond (Q vsret sret))%I with "[POST]" as "POST".
+        { subst. apply (inj to_agree) in THW0. specialize (THW0 vsret sret). ss. inv THW0.
           apply (inj to_agree) in H5. unfold interp_cond. rewrite H5. et. }
 
-        assert (((((λ n : nat, if my_tid =? n then Some ((1/2)%Qp, to_agree POSTF) else ε) : threadsF) ⋅ ths_src_w1): threadsF) ≡ ((λ n : nat, if my_tid =? n then Some ((3/4)%Qp, to_agree (λ s: SAny.t, Some (to_agree (Q s)))) else ths_src_w1 n): threadsF)).
+        assert (((((λ n : nat, if my_tid =? n then Some ((1/2)%Qp, to_agree POSTF) else ε) : threadsF) ⋅ ths_src_w1): threadsF) ≡ ((λ n : nat, if my_tid =? n then Some ((3/4)%Qp, to_agree (λ (vs s: SAny.t), Some (to_agree (Q vs s)))) else ths_src_w1 n): threadsF)).
         { intros y. rewrite discrete_fun_lookup_op. des_ifs. 2:rewrite left_id //.
-          rewrite Nat.eqb_eq in Heq; subst. rewrite -H0 -Some_op -pair_op frac_op -THW0 agree_idemp.
+          rewrite Nat.eqb_eq in Heq; subst. rewrite -H2 -Some_op -pair_op frac_op -THW0 agree_idemp.
           f_equiv. f_equiv. compute_done.
         }
-        rewrite H3.
+        rewrite H.
 
         clear SIM SIM0.
-        iExists (alist_replace my_tid (Some sret) ths_tgt1), _, _, (<[my_tid:=(interp_cond (Q sret))%I]> ths_cond1), my_tid, false.
+        iExists (alist_replace my_tid (Some sret) ths_tgt1), _, _, (<[my_tid:=(interp_cond (Q vsret sret))%I]> ths_cond1), my_tid, false.
         iFrame. iSplitR "POST COND TA".
         - iPureIntro. esplits; et.
           + eapply ths_wf_replace; eauto.
           + i. destruct (classic (tid0 = my_tid)).
             * subst. erewrite alist_replace_find_eq_Some; et. rewrite !lookup_insert. 
-              rewrite Nat.eqb_refl. rewrite -H. econs 3; et.
+              rewrite Nat.eqb_refl. rewrite -H0. eexists; econs 3; et.
             * erewrite alist_replace_find_neq_Some; et. 2:exact None.
               des_ifs; [rewrite Nat.eqb_eq in Heq; subst; ss|].
               rewrite !lookup_insert_ne; et.
@@ -361,7 +364,7 @@ Module SchIA. Section SchIA.
     wstep. wsteps_r. wsteps_l.
 
     (* create new token *)
-    dup THWF. apply ths_wf_nths_none in THWF. hexploit (SIM nths). i. rewrite THWF in H. inv H.
+    dup THWF. apply ths_wf_nths_none in THWF. hexploit (SIM nths). i. rewrite THWF in H. des. inv H.
 
     iCombine "THB THW" as "TH".
     iPoseProof (own_update with "TH") as "TH".
@@ -390,8 +393,8 @@ Module SchIA. Section SchIA.
         des; des_ifs; split; [nia|et].
       - i. destruct (classic (tid = nths)).
         + subst. rewrite alist_add_find_eq. 
-          rewrite !discrete_fun_lookup_op Nat.eqb_refl -H3 left_id -H4.
-          econs 2; et.
+          rewrite !discrete_fun_lookup_op Nat.eqb_refl -H4 left_id -H5.
+          eexists; econs 2; et.
         + rewrite alist_add_find_neq; et.
           rewrite discrete_fun_lookup_op.
           des_ifs; [rewrite Nat.eqb_eq in Heq; subst; ss|].
@@ -448,7 +451,7 @@ Module SchIA. Section SchIA.
 
     wstep_l. wstep_l.
     destruct q as [[tid postS] my_tid]; s. wsteps_l.
-    iDestruct "ASM" as "[[-> [TOK tid]] ->]". hss. rename q into tid.
+    iDestruct "ASM" as (vargs) "[-> [[-> ->] [TOK tid]]]". hss. rename q into tid.
 
     wstep_r.
     rewrite !/Sch.yield /ccallU. unseal "Sch".
@@ -472,45 +475,45 @@ Module SchIA. Section SchIA.
     
     destruct (alist_find tid ths_tgt) eqn:LU; [destruct o|].
     { (* done(O) | joined(X) *)
-      hexploit (SIM tid). intro T. rewrite LU in T. inv T.
+      hexploit (SIM tid). intro T. des. rewrite LU in T. inv T.
       { (* done(O) *)
         iClear "CIH". wstep_r. wstep_r.
-        wforce_l true. wsteps_l. wforce_l.
+        wforce_l true. wsteps_l. wforce_l (Some vrv0).
         wsteps_l.
         iPoseProof (big_sepM_delete with "COND") as "[POST COND]"; et.
 
         iCombine "THW TKN" gives %WF. iCombine "THW TKN" as "WF".
         rewrite auth_frag_valid in WF. specialize (WF tid). ss.
-        rewrite discrete_fun_lookup_op Nat.eqb_refl -H2 -Some_op Some_valid in WF.
+        rewrite discrete_fun_lookup_op Nat.eqb_refl -H3 -Some_op Some_valid in WF.
         rewrite -pair_op pair_valid frac_op in WF. des.
 
         apply agree_op_inv in WF0. dup WF0.
         apply (inj to_agree) in WF0.
-        iAssert (interp_cond (postS t))%I with "[POST]" as "POST".
-        { unfold interp_cond. specialize (WF0 t). ss. inv WF0. apply (inj to_agree) in H4.
-          rewrite -H4. iApply "POST".
+        iAssert (interp_cond (postS vrv0 t))%I with "[POST]" as "POST".
+        { unfold interp_cond. specialize (WF0 vrv0 t). ss. inv WF0. apply (inj to_agree) in H1.
+          rewrite -H1. iApply "POST".
         }
         
         wforce_l. wforce_l. iSplitL "POST tid"; iFrame; et.
-        assert (◯ (ths_src_w ⋅ (λ n: nat, if tid =? n then Some ((1/4)%Qp, to_agree (λ s: SAny.t, Some (to_agree (postS s)))) else ε) : threadsF) ≡ ◯ ((λ n: nat, if tid =? n then Some (1%Qp, to_agree (λ s: SAny.t, Some (to_agree (Q s)))) else ths_src_w n) : threadsF)).
+        assert (◯ (ths_src_w ⋅ (λ n: nat, if tid =? n then Some ((1/4)%Qp, to_agree (λ (vs s: SAny.t), Some (to_agree (postS vs s)))) else ε) : threadsF) ≡ ◯ ((λ n: nat, if tid =? n then Some (1%Qp, to_agree (λ vs s: SAny.t, Some (to_agree (Q vs s)))) else ths_src_w n) : threadsF)).
         { f_equiv. intros y. rewrite !discrete_fun_lookup_op.
           destruct (decide (tid = y)).
-          - subst. rewrite Nat.eqb_refl -WF1 -H2 -Some_op -pair_op frac_op agree_idemp.
+          - subst. rewrite Nat.eqb_refl -WF1 -H3 -Some_op -pair_op frac_op agree_idemp.
             do 2 f_equiv. compute_done.
           - des_ifs; [|rewrite right_id //]. rewrite Nat.eqb_eq in Heq. subst; ss.
         }
-        rewrite H0.
+        rewrite H.
 
         wstep. iSplit; et. iExists _, _, _, _, _, _. iFrame. iSplit; eauto. iPureIntro.
         esplits; et. i. destruct (classic (tid = tid0)).
-        - subst. rewrite LU -H2 -H Nat.eqb_refl lookup_delete. econs.
+        - subst. rewrite LU -H3 -H2 Nat.eqb_refl lookup_delete. eexists; econs.
         - des_ifs; [rewrite Nat.eqb_eq in Heq; subst; ss|].
           rewrite lookup_delete_ne; et.
       }
       { (* joined(X) *)
         iCombine "THW TKN" gives %WF. exfalso.
         rewrite auth_frag_valid in WF. specialize (WF tid). ss.
-        rewrite discrete_fun_lookup_op -H2 Nat.eqb_refl -Some_op -pair_op frac_op in WF.
+        rewrite discrete_fun_lookup_op -H3 Nat.eqb_refl -Some_op -pair_op frac_op in WF.
         rewrite Some_valid pair_valid in WF. des. ss.
       }
     }
@@ -531,10 +534,10 @@ Module SchIA. Section SchIA.
     }
     { (* idle(X) *)
       iCombine "THB TKN" gives %WF. exfalso.
-      hexploit (SIM tid). intro STHS. rewrite LU in STHS. inv STHS.
+      hexploit (SIM tid). intro STHS. des. rewrite LU in STHS. inv STHS.
       apply auth_both_valid_discrete in WF. des.
       apply (discrete_fun_included_spec_1 _ _ tid) in WF.
-      ss. rewrite Nat.eqb_refl in WF. rewrite -H in WF.
+      ss. rewrite Nat.eqb_refl in WF. rewrite -H0 in WF.
       eapply fragree_incl_false. et.
     }
   Unshelve. all : ss.
@@ -563,9 +566,9 @@ Module SchIA. Section SchIA.
           unseal "SchA". eauto. }
       iPureIntro. esplits; et; ss; [split; nia |]. i. 
       rewrite// /SchAS.initial_threads_r eq_rel_dec_correct. des_ifs.
-      + rewrite lookup_empty. econs 2.
+      + rewrite lookup_empty. eexists; econs 2.
       + rewrite Nat.eqb_eq in Heq0. subst; ss.
-      + rewrite lookup_empty. econs.
+      + rewrite lookup_empty. eexists; econs.
     - ii. iIntros "IST". iDestruct "IST" as (??????) "(% & THB & THW & COND & TA)"; des; subst.
       iExists _, _, _, _, _, _. iFrame. iPureIntro. i. esplits; [et| |et|nia|et].
       clear SIM. induction ths_tgt; ss. destruct a. des. splits; [nia|]. apply IHths_tgt; et.

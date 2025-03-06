@@ -1,5 +1,5 @@
 Require Import CRIS.
-Require Export ImpPrelude IncrMainHeader SchHeader MemHeader MemA.
+Require Export ImpPrelude IncrMainHeader SchHeader SchA SchTactics MemHeader MemA.
 From iris Require Import frac_auth numbers.
 
 Class IncrMainAGΓ (Γ : HRA) := {
@@ -11,10 +11,11 @@ Proof. solve_inG. Defined.
 Hint Unfold subG_GΓ IncrMainAΓ : GRA_index.
 
 Module IncrMainAS. Section IncrMainAS.
-  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !memGΓ Γ, !IncrMainAGΓ Γ}.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
+  Context `{!SchAGΣ Σ, !SchAGΓ Γ, !memGΓ Γ, !IncrMainAGΓ Γ}.
 
   Definition main_spec u : fspec :=
-    w_fspec u (fspec_simple (λ _ : unit, (λ arg, ⌜arg = tt↑⌝, λ ret, ⌜ret = tt↑⌝)))%I.
+    w_fspec_sch u (fspec_simple (λ _ : unit, (λ arg, ⌜arg = tt↑⌝, λ ret, ⌜ret = tt↑⌝)))%I.
 
   Definition N_main : namespace := (nroot .@ MainName.main).
 
@@ -44,7 +45,7 @@ Module IncrMainAS. Section IncrMainAS.
   Qed.
 
   Definition f_spec u : fspec :=
-    w_fspec u
+    w_fspec_sch u
       (fspec_simple (λ '(blk, ofs, v, γ),
         (λ varg, ⌜varg = ([Vptr blk ofs]↑↑)↑⌝ ∗ counter γ (1/2) v ∗ f_inv u 0 γ blk ofs,
         λ vret, ⌜vret = (tt↑↑)↑⌝ ∗ counter γ (1/2) (v + 1))
@@ -56,31 +57,23 @@ Module IncrMainAS. Section IncrMainAS.
 End IncrMainAS. End IncrMainAS.
 
 Module IncrMainA. Section IncrMainA.
-  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !memGΓ Γ, !IncrMainAGΓ Γ}.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
+  Context `{!SchAGΣ Σ, !SchAGΓ Γ, !memGΓ Γ, !IncrMainAGΓ Γ}.
 
   Definition scopes : list string := [].
 
   Definition main : unit → itree hmodE unit :=
     λ _,
-      Sch.yield;;;
-      'ptr_raw : val <- ccallU MemName.alloc [Vint 1%Z];;
-      Sch.yield;;;
-      tid1 <- Sch.spawn ("f", [ptr_raw]↑↑);;
-      Sch.yield;;;
-      tid2 <- Sch.spawn ("f", [ptr_raw]↑↑);;
-      Sch.yield;;;
-      Sch.join unit tid1;;;
-      Sch.yield;;;
-      Sch.join unit tid2;;;
-      Sch.yield;;;
-      trigger (IO (O:=unit) "OUT" 2%Z);;;
-      Sch.yield;;;
-      Ret tt.
+      𝒴;;; 'ptr_raw : val <- ccallU MemName.alloc [Vint 1%Z];;
+      𝒴;;; tid1 <- Sch.spawn ("f", [ptr_raw]↑↑);;
+      𝒴;;; tid2 <- Sch.spawn ("f", [ptr_raw]↑↑);;
+      𝒴;;; Sch.join tid1;;;
+      𝒴;;; Sch.join tid2;;;
+      𝒴;;; trigger (IO (O:=unit) "OUT" 2%Z);;;
+      𝒴;;; Ret tt.
 
   Definition f : list val → itree hmodE unit :=
-    λ _,
-      Sch.yield;;;
-      Ret tt.
+    λ _, 𝒴;;; Ret tt.
 
   Definition fnsems u :=
     [(MainName.main, (scopes, mk_specbody (IncrMainAS.main_spec u) (cfunN main)));

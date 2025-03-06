@@ -26,13 +26,6 @@ Section FSpec.
       (body : X -> itree E Y) : SAny.t -> itree E SAny.t :=
     λ varg, varg <- varg↓↓?;; vret <- body varg;; Ret vret↑↑.
 
-  Definition wfspec_type (A R : Type) (fsp : fspec) : fspec :=
-    mk_fspec (meta := (fsp).(meta))
-      (fun x varg arg =>
-        ⌜∃ sarg: A, arg = sarg↑⌝ ∗ fsp.(precond) x varg arg)%I
-      (fun x vret ret =>
-        ⌜∃ sret: R, ret = sret↑⌝ ∗ fsp.(postcond) x vret ret)%I.
-
   Definition interp_cond (s : {n & SRFSyn.t n}) :=
     match s with
     | existT n p => ⟦ p ⟧
@@ -77,13 +70,12 @@ Module Sch. Section Sch.
         Ret (inl tt: () + ())
       )) tt).
 
-  Definition join (R : Type) : nat → itree E R :=
+  Definition join : nat → itree E SAny.t :=
     Seal.sealing "Sch"
       (λ tid,
-        'ora: option SAny.t <- ccallU SchName.join tid;;
-        ra <- ora?;;
-        rv <- (ra↓↓)?;;
-        Ret rv).
+        'ors: option SAny.t <- ccallU SchName.join tid;;
+        rs <- ors?;;
+        Ret rs).
 End Sch. End Sch.
 
 Notation 𝒴 := (Sch.yield).

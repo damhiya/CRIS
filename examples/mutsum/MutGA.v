@@ -1,17 +1,18 @@
 Require Import CRIS.
-Require Import MutHeader.
+Require Import MutHeader APCHeader APC.
 
 Set Implicit Arguments.
 
 Module MutGA. Section MutGA.
   Import MutAUX.
-  Context {Σ: GRA}.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
   Notation iProp := (iProp Σ).
 
   Definition scopes := ["MutG"].
 
   Definition g_spec: fspec :=
-    fspec_simple (fun (n: nat) =>
+    fspec_apc (λ n: nat, n)%ord
+      (fun (n: nat) =>
         ((λ varg, (⌜varg = [Vint (Z.of_nat n)]↑ ∧ n < mut_max⌝)%I),
          (λ vret, (⌜vret = (Vint (Z.of_nat (sum n)))↑⌝)%I))).
          
@@ -22,7 +23,7 @@ Module MutGA. Section MutGA.
   Proof. unfold SpcG. unseal CRIS. prove_nodup. Qed.
 
   Definition fnsems :=
-    [(MutName.mutg, (scopes, mk_specbody g_spec fbody_trivial))].
+    [(MutName.mutg, (scopes, mk_specbody g_spec pure_body))].
 
   Program Definition Mod: SMod.t :=
   {|
@@ -35,5 +36,5 @@ Module MutGA. Section MutGA.
 
   Definition InitCond : iProp := emp%I.
 
-  Definition t Stb := Seal.sealing CRIS (SMod.to_hmod emp Stb Mod).
+  Definition t u Stb := Seal.sealing CRIS (SMod.to_hmod (wsim_ginv u ⊤) Stb Mod).
 End MutGA. End MutGA.

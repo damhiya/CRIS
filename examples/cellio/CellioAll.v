@@ -50,11 +50,11 @@ Module CellioAll. Section CellioAll.
       instantiate (1:= (MainI.t ★ (CellioA.t u spc), (emp ∗ CellioA.InitCond)%I)).
       eapply ctxr_cond_frameR, main_adequacy, MainIA.sim.
       {
-        i. rewrite /FooAS.Spc. unseal CRIS. econs; first prove_nodup.
+        i. rewrite /FooAS.spc. unseal CRIS. econs; first prove_nodup.
         ii; rewrite -FIND /spc /spc_from /smod_src //=. des_ifs; ss; des_ifs.
       }
       {
-        i. rewrite /InputAS.Spc. unseal CRIS. econs; first prove_nodup.
+        i. rewrite /InputAS.spc. unseal CRIS. econs; first prove_nodup.
         ii; rewrite -FIND /spc /spc_from /smod_src //=. des_ifs; ss; des_ifs.
       }
     }
@@ -62,7 +62,7 @@ Module CellioAll. Section CellioAll.
       by CellioI ⊆ctx CellioA *)
     rewrite -[(_, emp%I)]hmod_addc_empty_r.
     eapply ctxr_frameL, ctxr_cond_frameL, main_adequacy, CellioIA.sim.
-    i. rewrite /InputAS.Spc. unseal CRIS. econs; first prove_nodup.
+    i. rewrite /InputAS.spc. unseal CRIS. econs; first prove_nodup.
     ii. rewrite -FIND /spc /spc_from /smod_src //=.
     des_ifs; ss; des_ifs.
   Qed.

@@ -9,7 +9,6 @@ Set Implicit Arguments.
 Module AddAS. Section AddAS.
 
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
-  Notation iProp := (iProp Σ).
 
   (* mathematical succ *)
   Definition succ_fun n : Z :=
@@ -63,5 +62,5 @@ Module AddA. Section AddA.
 
   Definition InitCond : iProp Σ := emp%I.
 
-  Definition t Spc := Seal.sealing CRIS (SMod.to_hmod emp Spc Mod).
+  Definition t u spc := Seal.sealing CRIS (SMod.to_hmod (wsim_ginv u ⊤) spc Mod).
 End AddA. End AddA.

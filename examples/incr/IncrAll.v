@@ -1,20 +1,22 @@
-Require Import CRIS.
+Require Import CRIS Cancel.
 Require Import MemI MemA MemIAproof ImpPrelude.
 Require Import IncrMainHeader IncrMainI IncrMainA IncrMainIAproof.
-Require Import SchHeader SchI SchA SchIAproof.
-Require Import ElimRel SModCancel Cancellation.
+Require Import SchHeader SchI SchA SchIAproof SchTactics.
 
 Module IncrAll.
   Import inv_instances.
-  Local Instance Γ : HRA := ##[invΓ; memΓ; IncrMainAΓ].
+  Local Instance Γ : HRA := ##[invΓ; SchAΓ; memΓ; IncrMainAΓ].
   Local Instance Σ : GRA := ##[invΣ; SchAΣ; Γ].
 
-  Local Definition ginv : univ_id → invspec := sch_ginv.
-  Local Definition spc_user_s : univ_id → string → option fspec :=
-    λ u, to_spc (IncrMainAS.spc u ++ MemA.Spc).
+  Local Definition u : nat := 1.
+  Local Definition ginv : iProp Σ := wsim_ginv u ⊤.
 
-  Local Definition smod_src : univ_id → SMod.t :=
-    λ u, (IncrMainA.Mod u) ☆ (MemA.Mod) ☆ (SchA.Mod u (spc_user_s u)).
+  Local Definition spc_user_s : string → option fspec :=
+    to_spc (IncrMainAS.spc u ++ MemA.Spc).
+
+  Local Definition smod_src : SMod.t :=
+    (IncrMainA.Mod u) ☆ (MemA.Mod) ☆ (SchA.Mod u (spc_user_s u)).
+
   Local Definition spc_s : univ_id → string → option fspec :=
     λ u, spc_from (smod_src u).
 
