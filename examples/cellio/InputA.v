@@ -43,5 +43,5 @@ Module InputA. Section InputA.
     
   Definition InitRes : Σ := ε.
 
-  Definition t u Spc := Seal.sealing CRIS (SMod.to_hmod (wsim_ginv u ⊤) Spc Mod).
+  Definition t spc := Seal.sealing CRIS (SMod.to_hmod emp spc Mod).
 End InputA. End InputA.

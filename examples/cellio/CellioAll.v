@@ -10,11 +10,11 @@ Module CellioAll. Section CellioAll.
   Local Instance Σ : GRA := ##[invΣ; Γ].
   Variable foo: Any.t -> itree hmodE Any.t.
   Local Definition smod_src : SMod.t := MainA.Mod ☆ CellioA.Mod ☆ InputA.Mod ☆ (FooA.Mod foo).
-  Local Definition u : univ_id := 1.
+  (* Local Definition u : univ_id := 1. *)
   Local Definition spc : string → option fspec := spc_from smod_src.
   Local Definition mod_cancel : HMod.t := SModCancel.to_hmod smod_src.
-  Local Definition mod_src : HMod.t := SMod.to_hmod (wsim_ginv u ⊤) spc smod_src.
-  Local Definition mod_tgt : HMod.t := MainI.t ★ CellioI.t ★ (InputA.t u spc) ★ (FooA.t foo u spc).
+  Local Definition mod_src : HMod.t := SMod.to_hmod emp spc smod_src.
+  Local Definition mod_tgt : HMod.t := MainI.t ★ CellioI.t ★ (InputA.t spc) ★ (FooA.t foo spc).
 
   Local Definition main_fsp : fspec := fspec_trivial.
   Local Definition init_cond : iProp Σ := MainA.InitCond ∗ CellioA.InitCond ∗ InputA.InitCond ∗ FooA.InitCond.
@@ -47,7 +47,7 @@ Module CellioAll. Section CellioAll.
     {
       (* MainI ★ CellioA ⊆ MainA ★ CellioA *)
       rewrite -[(SMod.to_hmod _ _ MainA.Mod)](Seal.sealing_eq CRIS) -[(SMod.to_hmod _ _ CellioA.Mod)](Seal.sealing_eq CRIS).
-      instantiate (1:= (MainI.t ★ (CellioA.t u spc), (emp ∗ CellioA.InitCond)%I)).
+      instantiate (1:= (MainI.t ★ (CellioA.t spc), (emp ∗ CellioA.InitCond)%I)).
       eapply ctxr_cond_frameR, main_adequacy, MainIA.sim.
       {
         i. rewrite /FooAS.spc. unseal CRIS. econs; first prove_nodup.
