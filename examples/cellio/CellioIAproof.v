@@ -1,7 +1,6 @@
 Require Import CRIS.
 Require Import CellioHeader CellioA CellioI.
 Require Import InputA.
-(* Require Import wsim_tactics. *)
 
 Set Implicit Arguments.
 
@@ -11,9 +10,7 @@ Module CellioIA. Section CellioIA.
   Import CellioA.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !CellioAGΓ Γ}.
 
-  (* 1) universe ids of src/tgt modules *)
-  (* Context (u_s: univ_id). *)
-  (* 2) spc for src module *)
+  (* spc for src module *)
   Context (spc_s : string → option fspec).
   Context (InputInSpc : spc_incl InputAS.spc spc_s).
   
