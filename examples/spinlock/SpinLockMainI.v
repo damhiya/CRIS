@@ -11,8 +11,8 @@ Module SpinLockMainI. Section SpinLockMainI.
       𝒴;;; 'l : val <- ccallU SpinLockName.newlock ([] : list val);;
       𝒴;;; 't1 : nat <- Sch.spawn ("incr", [l; v]↑↑);;
       𝒴;;; 't2 : nat <- Sch.spawn ("incr", [l; v]↑↑);;
-      𝒴;;; '_ : val <- Sch.join val t1;;
-      𝒴;;; '_ : val <- Sch.join val t2;;
+      𝒴;;; '_ : SAny.t <- Sch.join t1;;
+      𝒴;;; '_ : SAny.t <- Sch.join t2;;
       𝒴;;; '_ : val <- ccallU SpinLockName.acquire [l];;
       𝒴;;; 'x : val <- ccallU MemName.load [v];;
       𝒴;;; 'x : Z <- (pargs [Tint] [x])?;;

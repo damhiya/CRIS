@@ -259,6 +259,8 @@ Module inv_instances.
     autounfold with GRA_index;
     hrepeat do 1 match goal with
     | [|- context [inG_id (in_subG _ _ _)]] => rewrite inG_id_in_subG
+    | [|- context [subG_app_l _ _ _ _ _]] => rewrite subG_app_l_inG_id
+    | [|- context [subG_app_r _ _ _ _ _] ]=> rewrite subG_app_r_inG_id
     | [|- context [subG_app_r_HRA _ _ _ _ _]] => rewrite subG_app_r_HRA_inG_id
     | [|- context [subG_app_r_HRA' _ _ _ _ _]] => rewrite subG_app_r_HRA'_inG_id
     | [|- context [subG_app_r_HRA'' _ _ _ _ _]] => rewrite subG_app_r_HRA''_inG_id
@@ -269,4 +271,29 @@ Module inv_instances.
     | [|- context [inG_id (subG_inG _ _ _)]] => rewrite (inG_id_subG_inG _)
     end.
 
+  Ltac solve_eq_index :=
+    match goal with
+    | H : eq_index ?r ?r2 |- _ => rewrite /r /r2 /eq_index in H
+    end; des_ifs;
+    match goal with
+    | H1 : @eq (inG _ _) ?a _, H2 : @eq (inG _ _) ?b _ |- _ =>
+        let H := fresh "H" in assert (H : inG_id a = inG_id b) by rewrite H1 H2 //=;
+        repeat match goal with
+        | H : inG_id ?a = inG_id ?b |- _ => rewrite /a /b in H
+        end;
+        (* rewrite /a /b in H *)
+        revert H; autounfold with GRA_index; inv_instances.solve_in_subG_goal;
+        rewrite /eq_rec_r /eq_rec -!eq_rect_eq //=
+    end.
+  Ltac solve_nin_aux :=
+    match goal with
+    | H : r_In ?RES (r_cons ?RA ?RES' ?tl) |- _ => destruct H as [EQ | IN]; [solve_eq_index| solve_nin_aux]
+    | H : r_In ?RES (r_nil) |- _ => inv H
+    end.
+  Ltac solve_nin := ii; solve_nin_aux.
+  Ltac dfs_solve :=
+    match goal with
+    | |- r_NoDup (r_cons ?RA ?RES ?tl) => econs; [solve_nin|solve]
+    | |- r_NoDup (r_nil) => econs
+    end.
 End inv_instances.

@@ -1,4 +1,3 @@
-(* TODO : remove this file *)
 From iris.algebra Require Export functions.
 Require Import sflib.
 

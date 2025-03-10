@@ -54,11 +54,11 @@ Section invariants.
   Definition invΣ : GRA := #[ownIRA].
 
   Global Instance subG_invΣ {α' Σ} : subG invΣ Σ → invGΣ α' Σ.
-  Proof. solve_inG. Qed.
+  Proof. solve_inG. Defined.
   Global Instance subG_invΓ {Γ : HRA} : subG invΓ Γ → invGΓ Γ.
-  Proof. solve_inG. Qed.
+  Proof. solve_inG. Defined.
   Global Instance invG_subG {α' Σ Γ} : invGΣ α' Σ → invGΓ Γ → invG α' Σ Γ.
-  Proof. i; ss. Qed.
+  Proof. i; ss. Defined.
 End invariants.
 
 Section predicates.
@@ -327,6 +327,101 @@ Section wsats.
     iIntros "!> %k %x %IN W"; iApply wsats_mon; eauto.
   Qed.
 
+  (* For cancellation *)
+  Definition ownI_initial u' : ownIRA :=
+    λ u n, if (decide (u <= u')) then gmap_view_auth (DfracOwn 1) ∅ else ε.
+  Definition ownE_initial u' : ownERA :=
+    λ u, if (decide (u <= u')) then CoPset ⊤ else ε.
+  Definition ownD_initial u' : ownDRA :=
+    λ u, if (decide (u <= u')) then ● (GSet ∅) else ε.
+
+  Lemma ownI_initial_cons u : ownI_initial (S u) ≡ wsat_authR (S u) 0 ⋅ ownI_initial u.
+  Proof.
+    rewrite (discrete_fun_delete (S u) (ownI_initial (S u))) comm.
+    f_equiv.
+    { rewrite /ownI_initial; des_ifs; try lia. }
+    { intros x; des_ifs; ss.
+      { rewrite /ownI_initial; des_ifs; try lia. }
+      { rewrite /ownI_initial; des_ifs; try lia. }
+    }
+  Qed.
+
+  Lemma ownE_initial_cons u : ownE_initial (S u) ≡ ownER (S u) ⊤ ⋅ ownE_initial u.
+  Proof.
+    rewrite (discrete_fun_delete (S u) (ownE_initial (S u))) comm.
+    f_equiv.
+    { rewrite /ownE_initial; des_ifs; try lia. }
+    { intros x; des_ifs; ss.
+      { rewrite /ownE_initial; des_ifs; try lia. }
+      { rewrite /ownE_initial; des_ifs; try lia. }
+    }
+  Qed.
+
+  Lemma ownD_initial_cons u : ownD_initial (S u) ≡ ownD_authR (S u) ∅ ⋅ ownD_initial u.
+  Proof.
+    rewrite (discrete_fun_delete (S u) (ownD_initial (S u))) comm.
+    f_equiv.
+    { rewrite /ownD_initial; des_ifs; try lia. }
+    { intros x; des_ifs; ss.
+      { rewrite /ownD_initial; des_ifs; try lia. }
+      { rewrite /ownD_initial; des_ifs; try lia. }
+    }
+  Qed.
+
+  Lemma ownI_initial_valid u : ✓ ownI_initial u.
+  Proof.
+    rewrite /ownI_initial; intros u' n'; des_ifs.
+    { apply gmap_view_auth_valid. }
+    { apply ucmra_unit_valid. }
+  Qed.
+
+  Lemma ownE_initial_valid u : ✓ ownE_initial u.
+  Proof. rewrite /ownE_initial; intros u'; des_ifs. Qed.
+
+  Lemma ownD_initial_valid u : ✓ ownD_initial u.
+  Proof.
+    rewrite /ownD_initial; intros u'; des_ifs.
+    { apply auth_auth_valid; ss. }
+    { apply ucmra_unit_valid. }
+   Qed.
+
+  Lemma ownI_initial_gen u :
+    own base_γ (ownI_initial u)
+    ∗ own base_γ (ownE_initial u)
+    ∗ own base_γ (ownD_initial u)
+    ⊢ univs u 0 ∗ wsats u 0 ⊤.
+  Proof.
+    induction u; ss; iIntros "[I [E D]]".
+    { iSplitR.
+      { rewrite /univs //. }
+      { rewrite /wsats. iSplitL "I".
+        { rewrite (discrete_fun_delete 0 (ownI_initial 0)); iDestruct "I" as "[_ $]". }
+        { iSplitL "E".
+          { rewrite (discrete_fun_delete 0 (ownE_initial 0)); iDestruct "E" as "[_ $]". }
+          { iSplitL "D"; last rewrite /wsatl //.
+            rewrite (discrete_fun_delete 0 (ownD_initial 0)); iDestruct "D" as "[_ $]".
+          }
+        }
+      }
+    }
+    rewrite ownI_initial_cons. iDestruct "I" as "[I1 I2]".
+    rewrite ownE_initial_cons. iDestruct "E" as "[E1 E2]".
+    rewrite ownD_initial_cons. iDestruct "D" as "[D1 D2]".
+    iSplitR "I1 E1 D1".
+    { iPoseProof (IHu with "[$]") as "[A B]". rewrite {2}/univs seq_S big_opL_app /=. iFrame. }
+    { rewrite /wsats. iFrame. rewrite /wsatl /= //. }
+  Qed.
+
+  Program Definition ownIRA_resource u : resource ownIRA := existT2 _ _ _ _ (ownI_initial_valid u).
+  Next Obligation. ss. i; apply _. Defined.
+
+  Program Definition ownERA_resource u : resource ownERA := existT2 _ _ _ _ (ownE_initial_valid u).
+  Next Obligation. ss. i; apply _. Defined.
+
+  Program Definition ownDRA_resource u : resource ownDRA := existT2 _ _ _ _ (ownD_initial_valid u).
+  Next Obligation. ss. i; apply _. Defined.
+
+  (* Definitions for fancy updates & invariants *)
   Local Definition uPred_fupd_def u b (E1 E2 : coPset) (P : iProp Σ) : iProp Σ :=
     wsatl u b ∗ ownE u E1 ∗ ownD_auth u ==∗ (wsatl u b ∗ ownE u E2 ∗ ownD_auth u ∗ P).
   Local Definition uPred_fupd_aux : seal (@uPred_fupd_def). Proof. by eexists. Qed.

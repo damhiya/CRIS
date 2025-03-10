@@ -121,11 +121,11 @@ Module SpinLockMainIA. Section SpinLockMainIA.
     sch_yield_r. iFrame; ss; clear nths st_s st_t; iIntros (nths st_s st_t) "IST TID".
     sch_yield_l. wsteps_l.
     sch_join; iFrame.
-    clear nths st_s st_t; iIntros (nths st_s st_t ret) "IST TID W1 /=".
+    clear nths st_s st_t; iIntros (nths st_s st_t vret ret) "IST TID W1 /=".
     wsteps_r. sch_yield_r. iFrame; ss; clear nths st_s st_t; iIntros (nths st_s st_t) "IST TID".
     sch_yield_l. wsteps_l.
     sch_join; iFrame.
-    clear nths st_s st_t; iIntros (nths st_s st_t ret2) "IST TID W2 /=".
+    clear nths st_s st_t; iIntros (nths st_s st_t vret2 ret2) "IST TID W2 /=".
     wsteps_l. wsteps_r.
     unfold_iter_l. wsteps_l.
     sch_yield_r. iFrame; ss; clear nths st_s st_t; iIntros (nths st_s st_t) "IST TID".

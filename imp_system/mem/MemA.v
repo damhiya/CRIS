@@ -73,6 +73,9 @@ Section MemRA.
     rewrite /mem_initial_mem_r /mem_initial_frag auth_both_valid_discrete; split; ii; des_ifs.
   Qed.
 
+  Program Definition memRA_resource csl genv : resource memRA := existT2 _ _ _ _ (mem_initial_valid csl genv).
+  Next Obligation. ss. i; apply _. Defined.
+
   Lemma mem_initial_mem_r_valid (csl : string → bool) (genv : GEnv.t) blk ofs v :
     mem_init_val csl genv blk ofs = Some v →
     mem_points_to_singleton_r (blk, ofs) 1 (Vint v) ≼ mem_initial_frag csl genv.

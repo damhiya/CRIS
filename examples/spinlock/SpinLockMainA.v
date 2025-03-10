@@ -40,15 +40,15 @@ Module SpinLockMainAS. Section SpinLockMainAS.
           ∗ own γ_v (◯F{1/2} 1%Z)))
       ))%I.
 
-  Definition incr_pre u blk_l ofs_l blk_v ofs_v γ_v : SAny.t → Any.t → iProp Σ :=
+  Definition incr_pre u blk_l ofs_l blk_v ofs_v γ_v : SAny.t → SAny.t → iProp Σ :=
     λ varg arg,
-      (⌜varg↑ = arg⌝
+      (⌜varg = arg⌝
       ∗ (⌜varg = [Vptr blk_l ofs_l; Vptr blk_v ofs_v]↑↑⌝
       ∗ ∃ γ_l, is_lock u γ_l (Vptr blk_l ofs_l) (lock_P (blk_v, ofs_v) γ_v)
           ∗ own γ_v (◯F{1/2} 0%Z)))%I.
 
-  Definition incr_post γ_v : SAny.t → SynDepO :=
-    (λ _, existT 0 (<own> γ_v (◯F{1/2} 1%Z)))%SRF.
+  Definition incr_post γ_v : SAny.t → SAny.t → SynDepO :=
+    (λ _ _, existT 0 (<own> γ_v (◯F{1/2} 1%Z)))%SRF.
 
   Lemma incr_spawnable u blk_l ofs_l blk_v ofs_v γ_v :
     SchAS.fspec_spawnable u (incr_spec u)
@@ -56,11 +56,11 @@ Module SpinLockMainAS. Section SpinLockMainAS.
   Proof.
     intros x_s; ss.
     exists (x_s, blk_l, ofs_l, blk_v, ofs_v, γ_v); split.
-    { intros varg arg. iIntros "[W [%va [-> [TID [<- [-> P]]]]]]".
-      iFrame. iModIntro. eauto.
+    { intros varg arg. unfold_pre_post. iIntros "[W [%va [-> [TID [%sarg [-> [-> [-> P]]]]]]]]".
+      iFrame. iModIntro. iSplit; eauto.
     }
     { iIntros (vret ret); rewrite /postcond /incr_spec /=; iIntros "[$ [[-> [TID R]] ->]] /=".
-      iFrame. iModIntro; iExists _; iSplit; eauto. iSplit; eauto. SL_red; done.
+      iFrame. iModIntro; iExists _; iSplit; eauto. iExists _. iSplit; eauto. SL_red; done.
     }
   Qed.
 
@@ -80,8 +80,8 @@ Module SpinLockMainA. Section SpinLockMainA.
       𝒴;;; '(l, v) : val * val <- trigger (Choose (val * val));;
       𝒴;;; 't1 : nat <- Sch.spawn ("incr", [l; v]↑↑);;
       𝒴;;; 't2 : nat <- Sch.spawn ("incr", [l; v]↑↑);;
-      𝒴;;; '_ : val <- Sch.join val t1;;
-      𝒴;;; '_ : val <- Sch.join val t2;;
+      𝒴;;; '_ : SAny.t <- Sch.join t1;;
+      𝒴;;; '_ : SAny.t <- Sch.join t2;;
       (ITree.iter
         (λ _, 𝒴;;; 'x : bool <- trigger (Choose bool);; Ret (if x then inr tt else inl tt)) tt);;;
       𝒴;;; '_ : unit <- trigger (IO "printf" 2%Z);;

@@ -99,6 +99,30 @@ Module SchAS. Section SchAS.
   Definition initial_tid : iProp Σ :=
     Seal.sealing "SchA" (own base_γ initial_tid_admin_r)%I.
 
+  Definition threadsRA_initial : threadsRA := initial_threads_r.
+  Definition threadsRA_initial_valid : ✓ threadsRA_initial.
+  Proof.
+    rewrite /threadsRA_initial /initial_threads_r. apply auth_both_valid_discrete. split.
+    { exists (λ tid: nat, if tid =? 0 then Some (3/4, to_agree (λ _ _, (Some (to_agree (existT 0 ⊤%SRF))))) else None).
+      intros i; des_ifs; rewrite discrete_fun_lookup_op.
+      { eapply Nat.eqb_eq in Heq; subst; des_ifs.
+        rewrite -Some_op -pair_op frac_op; repeat f_equiv; ss.
+        { rewrite Qp.quarter_three_quarter //. }
+        { rr; ii; split; ii; esplits; eauto; try set_solver. }
+      }
+      { rewrite Nat.eqb_neq in Heq. des_ifs; rewrite Nat.eqb_eq in Heq0; ss. }
+    }
+    { intros i; des_ifs; ss. }
+  Qed.
+  Program Definition threadsRA_resource : resource threadsRA := existT2 _ _ _ _ (threadsRA_initial_valid).
+  Next Obligation. ss. i; apply _. Defined.
+
+  Definition tidRA_initial : tidRA := tid_admin_r None.
+  Definition tidRA_initial_valid : ✓ tidRA_initial.
+  Proof. rewrite /tidRA_initial /tid_admin_r. intros i; ss. Qed.
+  Program Definition tidRA_resource : resource tidRA := existT2 _ _ _ _ (tidRA_initial_valid).
+  Next Obligation. ss. i; apply _. Defined.
+
   Definition initial_resource : Σ :=
     (own.iRes_singleton base_γ initial_threads_r)
     ⋅ (own.iRes_singleton base_γ initial_tid_admin_r).
