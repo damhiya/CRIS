@@ -24,10 +24,10 @@ Module IncrIA. Section IncrIA.
   Local Definition MA := (IncrMainA ★ MemA).
   Local Definition MI := (IncrMainI ★ MemA).
 
-  Lemma f_spawnable γ n v blk ofs:
+  Lemma f_spawnable γ v blk ofs:
     SchAS.fspec_spawnable u_s (IncrMainAS.f_spec u_s)
       (λ varg arg, ⌜varg = arg ∧ varg = ([Vptr blk ofs]↑↑)⌝ ∗ counter γ (1/2) v ∗ f_inv u_s 0 γ blk ofs)%I
-      (λ vret ret, existT n ((⌜vret = ret ∧ vret = tt↑↑⌝ ∗ counter_syn γ (1/2) (v + 1))%SRF)).
+      (λ vret ret, existT 0 ((⌜vret = ret ∧ vret = tt↑↑⌝ ∗ counter_syn γ (1/2) (v + 1))%SRF)).
   Proof.
     rewrite /SchAS.fspec_spawnable /w_fspec /fspec_virtual /precond /postcond /f_spec /=.
     ii; ss. eexists (x_src, (blk, ofs, v, γ)); split; red; ii.
@@ -141,10 +141,8 @@ Module IncrIA. Section IncrIA.
     wsteps_l. wsteps_r.
 
     (* src/tgt spawns *)
-    pose proof (f_spawnable γc 0 0 b 0).
-    wnorm with iApply wsim_spawn. 3:eauto.
-    (* { rewrite /f_spec /w_fspec_sch /w_fspec /fspec_simple /=. exact (q1, (b, 0%Z, 0%Z, γc)). } *)
-    { eauto. } { eapply MainInSpc. ss. }
+    sch_spawn; eauto using f_spawnable.
+    { eapply MainInSpc. ss. }
     iFrame. iSplitL "" ; eauto.
     clear nths st_s st_t.
     iIntros (tid nths st_s st_t) "IST TID TOKEN".
@@ -154,10 +152,8 @@ Module IncrIA. Section IncrIA.
     clear nths st_s st_t. iIntros (nths st_s st_t) "IST TID".
     sch_yield_l.
 
-    pose proof (f_spawnable γc 0 0 b 0).
-    wnorm with iApply wsim_spawn. 3:eauto.
-    (* { rewrite /f_spec /w_fspec_sch /w_fspec /fspec_simple /=. exact (q1, (b, 0%Z, 0%Z, γc)). } *)
-    { eauto. } { eapply MainInSpc. ss. }
+    sch_spawn; eauto using f_spawnable.
+    { eapply MainInSpc. ss. }
     iFrame. iSplitL "" ; eauto.
     clear nths st_s st_t.
     iIntros (tid0 nths st_s st_t) "IST TID TOKEN2".
@@ -224,12 +220,12 @@ Section wctxr.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
   Context `{!SchAGΣ Σ, !SchAGΓ Γ, !memGΓ Γ, !IncrMainAGΓ Γ}.
 
-  Definition wctxr (u : univ_id) (spc_s spc_user_s spc_mem : univ_id → string → option fspec)
-      (SchInSpc : ∀ u, spc_incl (SchAS.spc u (spc_user_s u)) (spc_s u))
-      (MainInSpc : ∀ u, spc_incl (IncrMainAS.spc u) (spc_user_s u))
-      (MemInSpc : ∀ u, spc_incl MemA.Spc (spc_s u)) :
+  Definition wctxr (u : univ_id) (spc_s spc_user_s spc_mem : string → option fspec)
+      (SchInSpc : spc_incl (SchAS.spc u spc_user_s) spc_s)
+      (MainInSpc : spc_incl (IncrMainAS.spc u) spc_user_s)
+      (MemInSpc : spc_incl MemA.Spc spc_s) :
     ctx_refines
-      ((IncrMainA.t u (spc_s u)) ★ (MemA.t u (spc_mem u)), emp%I)
-      ((IncrMainI.t)             ★ (MemA.t u (spc_mem u)), emp%I).
+      ((IncrMainA.t u spc_s) ★ (MemA.t u spc_mem), emp%I)
+      ((IncrMainI.t)         ★ (MemA.t u spc_mem), emp%I).
   Proof. eapply main_adequacy, sim; eauto. Qed.
 End wctxr. End IncrIA.

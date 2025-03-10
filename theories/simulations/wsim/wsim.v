@@ -309,19 +309,19 @@ Section wsim.
     Proof. unseal; iIntros "RR I". iApply isim_base; iFrame. Qed. *)
 
     Lemma wsim_base_t r g i_s i_t :
-      r R_s R_t RR ps pt nths (st_s, i_s) (st_t, i_t) ⊢
-      wsim t υ ν ⊤ (wsim_rel t υ ν ⊤ r) g R_s R_t RR ps pt nths
+      (wsim_pre t υ ν ⊤ -∗ r R_s R_t RR ps pt nths (st_s, i_s) (st_t, i_t)) ⊢
+      wsim t υ ν ⊤ r g R_s R_t RR ps pt nths
         (st_s, i_s) (st_t, i_t).
-    Proof. unseal; iIntros "RR I". iApply isim_base; iFrame. Qed.
+    Proof. unseal; iIntros "RR I". iApply isim_base; iRevert "I"; iFrame. Qed.
 
     Lemma wsim_coind (r g : rel) A P RA_s RA_t RRA psA ptA nthsA srcA tgtA :
       (∀ (g' : rel) (a : A),
         P a -∗
-        (□ ∀ R_s R_t RR ps pt nths0 src tgt,
-          g R_s R_t RR ps pt nths0 src tgt -∗ g' R_s R_t RR ps pt nths0 src tgt) -∗
-        (□ ∀ a, P a -∗
+        (⌜∀ R_s R_t RR ps pt nths0 src tgt,
+          g R_s R_t RR ps pt nths0 src tgt -∗ g' R_s R_t RR ps pt nths0 src tgt⌝) -∗
+        (□ ∀ a, (P a ∗ wsim_pre t υ ν ⊤) -∗
           g' (RA_s a) (RA_t a) (RRA a) (psA a) (ptA a) (nthsA a) (srcA a) (tgtA a)) -∗
-        wsim t υ ν ⊤ r (wsim_rel t υ ν ⊤ g')
+        wsim t υ ν ⊤ r g'
           (RA_s a) (RA_t a) (RRA a) (psA a) (ptA a) (nthsA a) (srcA a) (tgtA a)) →
       ∀ (a : A), P a ⊢
         wsim t υ ν ⊤ r g (RA_s a) (RA_t a) (RRA a) (psA a) (ptA a) (nthsA a) (srcA a) (tgtA a).
@@ -331,19 +331,15 @@ Section wsim.
       revert a. eapply isim_coind.
       intros g' a Himpl; iIntros "[[P I] #CIH]".
       iPoseProof (H with "P [] [] I") as "H".
-      { instantiate (1 :=
-          (λ R_s R_t RR ps pt nths '(st_s, i_s) '(st_t, i_t),
-            wsim_pre t υ ν ⊤ -∗ g' R_s R_t RR ps pt nths (st_s, i_s) (st_t, i_t))%I).
-        iModIntro; iIntros (????????) "G"; destruct src, tgt; iIntros "I". iApply Himpl. iFrame.
+      { instantiate (1 := g').
+        iPureIntro; iIntros (????????) "G"; destruct src, tgt. iApply Himpl. iFrame.
       }
-      { iModIntro; iIntros (a') "P"; iSpecialize ("CIH" $! a'); destruct (srcA a'), (tgtA a').
-        iIntros "I"; iApply "CIH"; iFrame.
+      { iModIntro; iIntros (a') "[P I]"; iSpecialize ("CIH" $! a'); destruct (srcA a'), (tgtA a').
+        iApply "CIH"; iFrame.
       }
       iApply (isim_mono_knowledge with "H"); ss.
       { iIntros (????????) "H"; iModIntro; iFrame. }
-      { iIntros (????????) "H !>"; destruct sti_src, sti_tgt.
-        iDestruct "H" as "[H1 H2]"; iApply "H2"; iFrame.
-      }
+      { iIntros (????????) "H !>"; destruct sti_src, sti_tgt; iFrame. }
     Qed.
 
     Lemma wsim_bind r g {Qs Qt} QQ i_s i_t k_s k_t E :
