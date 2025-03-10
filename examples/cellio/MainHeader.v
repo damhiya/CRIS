@@ -7,7 +7,6 @@ Module MainName.
   Definition fn (method: string) :=
     mn +:+ "." +:+ method.
   
-  (* Definition main := fn "main". *)
   Definition main := "CRIS_init".
 
 End MainName.

@@ -10,19 +10,18 @@ Module MainIA. Section MainIA.
   Definition Ist: nat -> alist key Any.t -> alist key Any.t -> iProp Σ :=
     λ _ st_src st_tgt, emp%I.
 
-  Context (u_s : univ_id).
-  Variable spc: string -> option fspec.
-  Hypothesis FooInSpcMap: spc_incl FooAS.spc spc.
-  Hypothesis InputInSpc: spc_incl InputAS.spc spc.
+  Context (spc_s: string -> option fspec).
+  Context (FooInSpc: spc_incl FooAS.spc spc_s).
+  Context (InputInSpc: spc_incl InputAS.spc spc_s).
 
-  Local Definition CellioA := (CellioA.t u_s spc).
-  Local Definition MainA := (MainA.t u_s spc).
+  Local Definition CellioA := (CellioA.t spc_s).
+  Local Definition MainA := (MainA.t spc_s).
   Local Definition IstFull := (IstProd (IstSB MainA.(HMod.scopes) Ist) IstEq).
 
   Lemma simF_main:
     HSim.sim_fun open (MainA ★ CellioA) (MainI.t ★ CellioA) IstFull MainName.main.
   Proof. 
-    winit_simF u_s 0.
+    winit_simF 0 0.
     
     (* Take cell(0) *)
     wsteps_l; iDestruct "ASM" as "%"; subst.

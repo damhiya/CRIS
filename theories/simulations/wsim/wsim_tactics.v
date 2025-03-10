@@ -306,9 +306,10 @@ Ltac wyield hyps :=
   move_aux.
 
 Ltac wby_coind CIH :=
-  iApply wsim_progress; iApply wsim_base_t;
+  (iApply wsim_progress; iApply wsim_base_t;
   iSpecialize (CIH $! _);
-  (hrepeat do 1 first[instantiate (1:= (_,_))|instantiate (1:= existT _ _)]); s; grind;
+  (hrepeat do 1 first[instantiate (1:= (_,_))|instantiate (1:= existT _ _)]); s; grind);
+  iIntrosFresh "I";
   iApply CIH.
 
 Ltac winit_simF u_src u_tgt :=

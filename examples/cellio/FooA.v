@@ -28,7 +28,6 @@ Module FooA. Section FooA.
     need some better idea to specify the list of local function names 
     without linking all local modules at this moment.
   *)
-  (* Local Definition modules := (CellioA.t Spc) ★ (MainA.t Spc) ★ (InputA.t Spc). *)  
   Local Definition local_fns 
     := [CellioName.set; CellioName.get; MainName.main; InputName.input].
 
@@ -65,5 +64,5 @@ Module FooA. Section FooA.
 
   Definition InitRes : Σ := ε.
 
-  Definition t u Spc := Seal.sealing CRIS (SMod.to_hmod (wsim_ginv u ⊤) Spc Mod).
+  Definition t spc := Seal.sealing CRIS (SMod.to_hmod emp spc Mod).
 End FooA. End FooA.

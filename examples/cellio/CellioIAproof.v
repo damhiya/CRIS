@@ -1,7 +1,6 @@
 Require Import CRIS.
 Require Import CellioHeader CellioA CellioI.
 Require Import InputA.
-(* Require Import wsim_tactics. *)
 
 Set Implicit Arguments.
 
@@ -11,9 +10,7 @@ Module CellioIA. Section CellioIA.
   Import CellioA.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !CellioAGΓ Γ}.
 
-  (* 1) universe ids of src/tgt modules *)
-  Context (u_s: univ_id).
-  (* 2) spc for src module *)
+  (* spc for src module *)
   Context (spc_s : string → option fspec).
   Context (InputInSpc : spc_incl InputAS.spc spc_s).
   
@@ -22,11 +19,11 @@ Module CellioIA. Section CellioIA.
       (∃ v, ⌜st_tgt = [(CellioI.v_cv, v↑)]⌝ ∗ auth v)%I.
 
   Local Definition CellioI := (CellioI.t).
-  Local Definition CellioA := (CellioA.t u_s spc_s).
+  Local Definition CellioA := (CellioA.t spc_s).
 
   Lemma simF_set : HSim.sim_fun open CellioA CellioI Ist CellioName.set.
   Proof.
-    winit_simF u_s 0.
+    winit_simF 0 0.
 
     wsteps_l. iDestruct "ASM" as "->".
     wforce_l tt. wforces_l. iSplit; first eauto.
@@ -51,7 +48,7 @@ Module CellioIA. Section CellioIA.
   
   Lemma simF_get : HSim.sim_fun open CellioA CellioI Ist CellioName.get.
   Proof.
-    winit_simF u_s 0.
+    winit_simF 0 0.
 
     wsteps_l. iDestruct "ASM" as "->".
     iDestruct "IST" as (v) "(% & AUTH)". subst.
@@ -73,13 +70,5 @@ Module CellioIA. Section CellioIA.
     - iIntros "H". iExists _. iFrame. eauto.
     - apply simF_set; eauto.
     - apply simF_get; eauto.
-  Qed.
-  
-  Theorem correct : 
-    ctx_refines
-      (CellioA, CellioA.InitCond)
-      (CellioI, emp%I).
-  Proof.
-    eapply main_adequacy, sim.
   Qed.
 End CellioIA. End CellioIA.
