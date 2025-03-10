@@ -4,9 +4,49 @@ Require Import IncrMainHeader IncrMainI IncrMainA IncrMainIAproof.
 Require Import SchHeader SchI SchA SchIAproof SchTactics.
 
 Module IncrAll.
-  Import inv_instances.
+  Local Existing Instances invG_Σ invG_Γ invG_I invG_E invG_D.
+
+  Instance τ : TypG.t := λ _, ST.t.
+  Instance typG : CtxST.t τ. Proof. econs. econs. instantiate (1:=0); ss. Qed.
+
   Local Instance Γ : HRA := ##[invΓ; SchAΓ; memΓ; IncrMainAΓ].
+  Local Instance α : SRFCons.t :=
+    λ n,
+      match n with
+      | 0 => SL.syntax
+      | _ => inv_syntax
+      end.
   Local Instance Σ : GRA := ##[invΣ; SchAΣ; Γ].
+  Local Instance sub : subG Γ Σ.
+  Proof. do 2 apply subG_app_r. apply subG_refl. Defined.
+  Local Instance invG : invG α Σ Γ.
+  Proof. econs. { econs. exists 0%fin. ss. } { econs. { exists 0%fin. ss. } { exists 1%fin. ss. } } Defined.
+  Instance β : SRFIntp.t :=
+    λ n,
+      match n with
+      | 0 => SL.interp
+      | _ => inv_interp
+      end.
+  Local Instance intpG : SRFIntp.inG (@SL.syntax τ Γ) α (@SL.interp τ α Γ Σ _) β.
+  Proof. econs; instantiate (1:=0); ss. Qed.
+
+  Local Instance invintpG : SRFIntp.inG inv_syntax α inv_interp β.
+  Proof. econs; instantiate (1:=1); ss. Qed.
+
+  Local Instance sinvg : sinvG Σ Γ α β τ.
+  Proof. econs; econs; try typeclasses eauto. Qed.
+
+  Local Instance memΓ : memGΓ Γ.
+  Proof. econs. exists 3%fin; ss. Defined.
+
+  Local Instance SchAΓ : SchAGΓ Γ.
+  Proof. econs. exists 2%fin; ss. Defined.
+
+  Local Instance IncrMainAGΓ : IncrMainAGΓ Γ.
+  Proof. econs. exists 4%fin; ss. Defined.
+
+  Local Instance SchAΣ : SchAGΣ Σ.
+  Proof. econs. exists 1%fin; ss. Defined.
 
   Local Definition csl : string → bool := λ _, false.
   Local Definition genv : GEnv.t := GEnv.unit.
@@ -86,6 +126,23 @@ Module IncrAll.
     etrans.
     { eapply cancel_src. }
     { eapply src_tgt. }
+  Qed.
+
+  Import rListNotations.
+  Local Definition initial_resource_list : res_list :=
+    [ownIRA_resource u; ownERA_resource u; ownDRA_resource u;
+     SchAS.tidRA_resource; SchAS.threadsRA_resource; memRA_resource csl genv]%res_list.
+
+  Local Definition initial_resource : Σ := 
+    (op_res_list initial_resource_list) ⋅ initial_resource_own_admin.
+
+  Ltac dfs_solve :=
+    econs; [repeat (intros [C | C]; [inv C|]; revert C); intros []|].
+    
+  Lemma initial_resource_valid : ✓ initial_resource.
+  Proof.
+    apply op_res_list_valid.
+    repeat dfs_solve. econs.
   Qed.
 
   Local Definition initial_resource : Σ :=
