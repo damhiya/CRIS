@@ -46,7 +46,8 @@ Module SpinLockMainIA. Section SpinLockMainIA.
     unfold_iter_r. unfold_iter_l. wsteps_l. wsteps_r.
     sch_yield_r. iSplitL "IST"; ss; clear nths st_s st_t; iIntros (nths st_s st_t) "IST".
     wsteps_r. destruct q; cycle 1.
-    { wsteps_r. sch_yield_l. wforce_l false. wsteps_l. wby_coind "CIH". eauto. }
+    { wsteps_r. sch_yield_l. wforce_l false. wsteps_l. wby_coind "CIH".
+      hss. iFrame. eauto. }
     wsteps_r. iDestruct "GRT" as "[[_ [TKN P]] <-]". hss. wsteps_r.
     sch_yield_r. iFrame; ss; clear nths st_s st_t; iIntros (nths st_s st_t) "IST TID".
     rewrite /lock_P; SL_red; iDestruct "P" as "[TKN [%x P]]"; SL_red; iDestruct "P" as "[PT P]".
@@ -141,7 +142,7 @@ Module SpinLockMainIA. Section SpinLockMainIA.
     sch_yield_r. iSplitL "IST"; ss; clear nths st_s st_t; iIntros (nths st_s st_t) "IST".
     wsteps_r. destruct q; cycle 1.
     { wsteps_r. sch_yield_l. wforce_l false. wsteps_l. wby_coind "CIH".
-      iSplitR "I'"; eauto. iFrame. eauto. }
+      hss. iFrame. eauto. }
     wsteps_r. iDestruct "GRT" as "[[-> [TID [TKN P]]] _]". hss. wsteps_r.
     SL_red. iCombine "W1 W2" as "W". iDestruct "P" as "[%x P]"; SL_red; iDestruct "P" as "[PT B]".
     iCombine "B W" gives %WF%frac_auth_agree. inv WF.
