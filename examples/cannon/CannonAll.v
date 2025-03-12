@@ -69,7 +69,9 @@ Module CannonAll.
       (HMod.to_mod mod_tgt target_resource).
   Proof.
     move: (cancel_tgt)=>H; rewrite /refines in H; des; ss.
-    destruct (H initial_resource).
+    assert (Hwf : HMod.wf mod_tgt).
+    { econs; ss; rewrite /CannonI.t /MainI.t; unseal CRIS; ss; try prove_nodup. }
+    destruct (H Hwf). destruct (H1 initial_resource).
     { apply initial_resource_valid. }
     { iIntros "I"; rewrite /init_cond /CannonA.init_cond /MainA.init_cond.
       rewrite /precond /= /CannonAS.Ready /CannonAS.Ball
@@ -77,7 +79,6 @@ Module CannonAll.
       rewrite /initial_resource /MainAS.init_res /CannonAS.init_res. Set Printing Implicit.
       iDestruct "I" as "[I1 I2]"; iFrame. iSplit; iPureIntro; ss.
     }
-    { econs; ss; try prove_nodup. }
     { exists x; des; eauto. }
   Qed.
 End CannonAll.

@@ -40,7 +40,7 @@ Section INTERP.
 
   Definition prog (ms: HMod.t) : callE ~> itree hmodE :=
     fun _ '(Call fn args) =>
-      lbody <- (alist_find fn ms.(HMod.fnsems))!;;
+      lbody <- (alist_find fn ms.(HMod.fnsems))?;;
       HMod.sandbox_body lbody args.
       
   Definition inline_hp_fbody (ms: HMod.t)

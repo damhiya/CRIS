@@ -13,15 +13,15 @@ Section CTX_REFINE.
     let ms := mps.1 in let Ps := mps.2 in
     let mt := mpt.1 in let Pt := mpt.2 in
 
-    ∀ rs
-      (WFR : ✓ rs) (SRC : Own rs ⊢ Ps)
-      (WFM : HMod.wf ms),
-    ∃ rt,
-      ✓ rt /\ (Own rt ⊢ Pt)%I /\
-      HMod.wf mt /\
-      refines_mod
-        (HMod.to_mod ms rs)
-        (HMod.to_mod mt rt).
+    ∀ (WFM : HMod.wf mt),
+      HMod.wf ms /\
+      ∀ rs
+        (WFR : ✓ rs) (SRC : Own rs ⊢ Ps),
+        ∃ rt,
+          ✓ rt /\ (Own rt ⊢ Pt)%I /\
+          refines_mod
+            (HMod.to_mod ms rs)
+            (HMod.to_mod mt rt).
 
   Definition ctx_refines (mps mpt : HMod.modc) : Prop :=
     ∀ (ctx : HMod.modc),

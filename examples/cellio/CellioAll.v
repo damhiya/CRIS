@@ -89,7 +89,9 @@ Module CellioAll. Section CellioAll.
       (HMod.to_mod mod_tgt target_resource).
   Proof.
     move: (cancel_tgt)=>H; rewrite /refines in H; des; ss.
-    destruct (H initial_resource).
+    assert (Hwf : HMod.wf mod_tgt).
+    { econs; ss; rewrite /MainI.t /CellioI.t /FooA.t /InputA.t; unseal CRIS; try prove_nodup. }
+    destruct (H Hwf). destruct (H1 initial_resource).
     { apply initial_resource_valid. }
     { iIntros "I"; rewrite /init_cond /CellioA.InitCond /MainA.InitCond /InputA.InitCond /FooA.InitCond.
       rewrite /precond /= /CellioA.auth 
@@ -97,7 +99,6 @@ Module CellioAll. Section CellioAll.
       iDestruct "I" as "[[[_ I] _] _]"; iFrame. 
       iSplit; iPureIntro; ss.
     }
-    { econs; ss; try prove_nodup. }
     { exists x; des; eauto. }
   Qed.
 End CellioAll. End CellioAll.

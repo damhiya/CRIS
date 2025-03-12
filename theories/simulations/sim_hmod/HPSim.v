@@ -223,12 +223,12 @@ Section HPSIM.
   | hpsim_call_none
       (HPSIM_CALL_NONE: True)
       ps pt nths st_src st_tgt fmr
-      fn varg i_src k_tgt
+      fn varg k_src i_tgt
       (CLOSED: contextual = closed)
-      (FUN: alist_find fn fl_tgt = None)
-      (K: hpsimi ps true nths (st_src, i_src) (st_tgt, triggerNB >>= (λ ret, tau;; tau;; k_tgt ret)) fmr)
+      (FUN: alist_find fn fl_src = None)
+      (K: hpsimi true pt nths (st_src, triggerUB >>= (λ ret, tau;; tau;; k_src ret)) (st_tgt, i_tgt) fmr)
     :
-    _hpsim' hpsimc hpsimi ps pt nths (st_src, i_src) (st_tgt, trigger (Call fn varg) >>= k_tgt) fmr
+    _hpsim' hpsimc hpsimi ps pt nths (st_src, trigger (Call fn varg) >>= k_src) (st_tgt, i_tgt) fmr
 
   | hpsim_progress
       (HPSIM_PROGRESS : True)
@@ -454,7 +454,7 @@ Section HPSIM.
       eapply _hpsim_mon_auto; eauto using rclo9.
       eapply Own_bupd_update; eauto.
     - esplits; eauto. eapply hpsim_call_none; eauto.
-      unfold triggerNB. ired. econs. econs. esplits; eauto.
+      unfold triggerUB. ired. econs. econs. esplits; eauto.
       econs; eauto. i. ss.  
   Qed.
 
@@ -690,7 +690,9 @@ Section HPSIM.
             end);
       eauto using _hpsim', hpsim_eqitC_src, eqit_Vis.
       + eapply hpsim_inline_src; eauto. eapply K; eauto.
-        eapply eqit_bind; eauto using eqit_refl. 
+        eapply eqit_bind; eauto using eqit_refl.
+      + eapply hpsim_call_none; eauto. eapply K; eauto.
+        eapply eqit_bind; ii; eauto using eqit_refl.
     - ides isrc0.
     - ides isrc1. destruct sti_tgt0 as [st_tgt itgt0].
       eapply hpsim_tau_src; eauto.
@@ -753,8 +755,6 @@ Section HPSIM.
       eauto using _hpsim', hpsim_eqitC_tgt, eqit_Vis.
       + eapply hpsim_inline_tgt; eauto. eapply K; eauto.
         eapply eqit_bind; eauto using eqit_refl.
-      + eapply hpsim_call_none; eauto. eapply K; eauto.
-        eapply eqit_bind; ii; eauto using eqit_refl.
     - ides itgt0.
     - ides itgt1. destruct sti_src0 as [st_src isrc0].
       eapply hpsim_tau_tgt; eauto.

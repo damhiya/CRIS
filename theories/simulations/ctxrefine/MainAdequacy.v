@@ -196,119 +196,119 @@ Lemma hpsim_ctx `{Σ: GRA} fnsems_src fnsems_tgt fl_src fl_tgt fl_ctx Ist contex
     (WT : ∀ (fn : string) p (IN : alist_find fn fnsems_tgt = Some p), incl p.1 scopes)
     (DISJ : List.NoDup (scopes ++ scopeC))
 
-  ps pt nths st_src st_tgt st_ctx itr_src itr_tgt fmr
-  (SCPS : incl (state_scopes st_src) scopes)
-  (SCPT : incl (state_scopes st_tgt) scopes)
-  (SCPC : incl (state_scopes st_ctx) scopeC)
-  (ITRS : HMod.sandbox scopes itr_src = itr_src)
-  (ITRT : HMod.sandbox scopes itr_tgt = itr_tgt)
-  (SIM : hpsim_body open fl_src fl_tgt Ist ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr)
-  :
-  hpsim_body contextual (fl_src ++ fl_ctx) (fl_tgt ++ fl_ctx) 
-  (IstProd (IstSB scopes Ist) (IstSB scopeC IstEq))
-  ps pt nths (st_src ++ st_ctx, itr_src) (st_tgt ++ st_ctx, itr_tgt) fmr.
-Proof.
-  guardH FLS. guardH FLT.
-  ginit. s. revert_until DISJ. gcofix CIH. i.
-  exploit SIM; s; i.
-  { eapply nodup_app_l. rewrite <- map_app. eauto. }
-  { eapply nodup_app_l. rewrite <- map_app. eauto. }
-  { subst. eapply nodup_app_l. rewrite <- map_app. eauto. }
-  { subst. eapply nodup_app_l. rewrite <- map_app. eauto. }
-  clear SIM. rename x0 into SIM.
-  remember (st_src, itr_src). remember (st_tgt, itr_tgt).
-  move SIM before CIH. revert_until SIM. punfold SIM.
-  pattern ps, pt, nths, p, p0, fmr.
-  eapply _hpsim_tarski, SIM; i. clear SIM fmr. rename fmr0 into fmr.
-  guclo hpsim_wfC_spec. econs. i. 
-  exploit IN; i; des; eauto. clear IN.
-  destruct x0; i; des; inv Heqp; try inv Heqp0.
-  - hstep. iIntros "H". iPoseProof (RET with "H") as ">[% H]".
-    iModIntro. iSplit; eauto. iExists st_src, st_tgt, st_ctx, st_ctx.
-    iSplit; eauto. iFrame. eauto.
-  - hstep.
-    { instantiate (1:= FR). iIntros "H". iPoseProof (INV with "H") as ">[H FR]".
-      iModIntro. iFrame. iExists st_ctx, st_ctx.
-      iSplit; eauto.
-    }
-    i. guclo hpsim_wfC_spec. econs. i.
-    eapply Own_bupd_split in INV0; eauto. des.
-    eapply Own_general_soundness in INV1; eauto; cycle 1.
-    { by eapply Own_wand_valid; first by iIntros "F"; iMod (INV0 with "F") as "[? _]"; iFrame. }
-    rewrite /IstProd in INV1. uPred.unseal_in INV1; destruct INV1 as [st_srcL [st_tgtL [st_srcR [st_tgtR INV1]]]].
-    destruct INV1 as [a1' [a1'' [INV1 [INV1' INV1'']]]]; inv INV1'.
-    rewrite /IstSB in INV1''; rr in INV1''; uPred.unseal_in INV1''; des.
-    destruct INV1''0 as [x0' [x0'' [? [INV1''0 ?]]]]; inv INV1''0.
-    destruct INV1''1 as [x1' [x1'' [? [INV1''1 ?]]]]; inv INV1''1.
-    rewrite /IstEq in H7; uPred.unseal_in H7; inv H7.
-    (* 
-      new states after call should maintain the scope of previous states. 
-      ctx state should maintain its own scope.
-    *)
-    eapply K; try refl; eauto using inv_sandbox_call; cycle 3.
+    ps pt nths st_src st_tgt st_ctx itr_src itr_tgt fmr
+    (SCPT : incl (state_scopes st_tgt) scopes)
+    (SCPS : incl (state_scopes st_src) scopes)
+    (SCPC : incl (state_scopes st_ctx) scopeC)
+    (ITRT : HMod.sandbox scopes itr_tgt = itr_tgt)
+    (ITRS : HMod.sandbox scopes itr_src = itr_src)
+    (SIM : hpsim_body open fl_src fl_tgt Ist my_tid ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr)
+    :
+    hpsim_body contextual (fl_src ++ fl_ctx) (fl_tgt ++ fl_ctx) 
+    (IstProd (IstSB scopes Ist) (IstSB scopeC IstEq)) my_tid
+    ps pt nths (st_src ++ st_ctx, itr_src) (st_tgt ++ st_ctx, itr_tgt) fmr.
+  Proof.
+    guardH FLS. guardH FLT.
+    ginit. s. revert_until DISJ. gcofix CIH. i.
+    exploit SIM; s; i.
     { eapply nodup_app_l. rewrite <- map_app. eauto. }
     { eapply nodup_app_l. rewrite <- map_app. eauto. }
-    iIntros "H". iPoseProof (INV0 with "H") as ">H".
-    iDestruct "H" as "[H1 H2]"; iModIntro; iSplitL "H1".
-    { rewrite INV1 INV1'' H2; iDestruct "H1" as "[_ [[_ H] _]]";
-        iPoseProof (Own_general_completeness with "H") as "H"; eauto. }
-    { iApply INV2; done. }
-  - hstep. i. eapply K; try refl; eauto using inv_sandbox_core. 
-  - hstep. { rewrite alist_find_app_o. rewrite FUN. eauto. }
-    eapply K; try refl; eauto. grind.
-    rewrite! SBRed.bind.
-    move FLS at bottom. move FUN at bottom.
-    rewrite FLS in FUN.
-    rewrite alist_find_map_snd in FUN.
-    unfold o_map in FUN. des_ifs.
-    unfold HMod.sandbox_body.
-    rewrite sandbox_well_scoped; eauto.
-    f_equal. extensionalities.
-    rewrite ?SBRed.bind !SBRed.tau SBRed.ret.
-    do 4 f_equal. extensionalities. eapply inv_sandbox_call; eauto. 
-  - hstep. { rewrite alist_find_app_o. rewrite FUN. eauto. }
-    eapply K; try refl; eauto. grind.
-    rewrite! SBRed.bind.
-    move FLT at bottom. move FUN at bottom.
-    rewrite FLT in FUN.
-    rewrite alist_find_map_snd in FUN.
-    unfold o_map in FUN. des_ifs.
-    unfold HMod.sandbox_body.
-    rewrite sandbox_well_scoped; eauto.
-    f_equal. extensionalities.
-    rewrite ?SBRed.bind !SBRed.tau SBRed.ret.
-    do 4 f_equal. extensionalities. eapply inv_sandbox_call; eauto.
-  - hstep. eapply K; try refl; eauto using inv_sandbox_tau.
-  - hstep. eapply K; try refl; eauto using inv_sandbox_tau.
-  - hstep. i. eapply K; try refl; eauto using inv_sandbox_core.
-  - hstep. i. eapply K; try refl; eauto using inv_sandbox_core.
-  - hstep. eapply K; try refl; eauto using inv_sandbox_core.
-  - hstep. eapply K; try refl; eauto using inv_sandbox_core.
-  - assert (H1:= ITRS).
-    rewrite  -ITRS SBRed.bind SBRed.put. des_ifs.
-    + hstep.
-      assert (UPD : alist_upd k v (st_src ++ st_ctx) = alist_upd k v st_src ++ st_ctx).
-      { 
-        move SCPS at bottom. move SCPC at bottom. 
-        eapply existsb_exists in Heq. des. eapply String.eqb_eq in Heq0.
-        rewrite alist_upd_not_tail; eauto.
-        ii. eapply NoDup_app_disjoint; eauto.
-        eapply in_map with (f:=fst) in H2.
-        rewrite List.map_map in H2. eapply SCPC in H2.
-        rewrite <- Heq0. eauto.
+    { subst. eapply nodup_app_l. rewrite <- map_app. eauto. }
+    { subst. eapply nodup_app_l. rewrite <- map_app. eauto. }
+    clear SIM. rename x0 into SIM.
+    remember (st_src, itr_src). remember (st_tgt, itr_tgt).
+    move SIM before CIH. revert_until SIM. punfold SIM.
+    pattern ps, pt, nths, p, p0, fmr.
+    eapply _hpsim_tarski, SIM; i. clear SIM fmr. rename fmr0 into fmr.
+    guclo hpsim_wfC_spec. econs. i. 
+    exploit IN; i; des; eauto. clear IN.
+    destruct x0; i; des; inv Heqp; try inv Heqp0.
+    - hstep. iIntros "H". iPoseProof (RET with "H") as ">[% H]".
+      iModIntro. iSplit; eauto. iExists st_src, st_tgt, st_ctx, st_ctx.
+      iSplit; eauto. iFrame. eauto.
+    - hstep.
+      { instantiate (1:= FR). iIntros "H". iPoseProof (INV with "H") as ">[H FR]".
+        iModIntro. iFrame. iExists st_ctx, st_ctx.
+        iSplit; eauto.
       }
-      rewrite UPD. eapply K; try refl; eauto.
-      { rewrite state_scopes_update. eauto. }
-      { eapply sandbox_well_scoped. refl. }
-      { rewrite <-UPD. eapply alist_upd_nodup. eauto. }
-      { f_equal. symmetry. eapply inv_sandbox_pg. eauto. }
-    + hstep. eapply K; try refl; eauto.
-      { eapply sandbox_well_scoped. refl. }
-      { 
-        f_equal. 
-        { eapply alist_upd_not_exists; eauto. }
-        { symmetry. eapply inv_sandbox_pg. eauto. }
-      }
+      i. guclo hpsim_wfC_spec. econs. i.
+      eapply Own_bupd_split in INV0; eauto. des.
+      eapply Own_general_soundness in INV1; eauto; cycle 1.
+      { by eapply Own_wand_valid; first by iIntros "F"; iMod (INV0 with "F") as "[? _]"; iFrame. }
+      rewrite /IstProd in INV1. uPred.unseal_in INV1; destruct INV1 as [st_srcL [st_tgtL [st_srcR [st_tgtR INV1]]]].
+      destruct INV1 as [a1' [a1'' [INV1 [INV1' INV1'']]]]; inv INV1'.
+      rewrite /IstSB in INV1''; rr in INV1''; uPred.unseal_in INV1''; des.
+      destruct INV1''0 as [x0' [x0'' [? [INV1''0 ?]]]]; inv INV1''0.
+      destruct INV1''1 as [x1' [x1'' [? [INV1''1 ?]]]]; inv INV1''1.
+      rewrite /IstEq in H7; uPred.unseal_in H7; inv H7.
+      (* 
+        new states after call should maintain the scope of previous states. 
+        ctx state should maintain its own scope.
+      *)
+      eapply K; try refl; eauto using inv_sandbox_call; cycle 3.
+      { eapply nodup_app_l. rewrite <- map_app. eauto. }
+      { eapply nodup_app_l. rewrite <- map_app. eauto. }
+      iIntros "H". iPoseProof (INV0 with "H") as ">H".
+      iDestruct "H" as "[H1 H2]"; iModIntro; iSplitL "H1".
+      { rewrite INV1 INV1'' H2; iDestruct "H1" as "[_ [[_ H] _]]";
+          iPoseProof (Own_general_completeness with "H") as "H"; eauto. }
+      { iApply INV2; done. }
+    - hstep. i. eapply K; try refl; eauto using inv_sandbox_core. 
+    - hstep. { rewrite alist_find_app_o. rewrite FUN. eauto. }
+      eapply K; try refl; eauto. grind.
+      rewrite! HModSB.transl_bind.
+      move FLS at bottom. move FUN at bottom.
+      rewrite FLS in FUN.
+      rewrite alist_find_map_snd in FUN.
+      unfold o_map in FUN. des_ifs.
+      unfold HMod.sandbox_body.
+      rewrite sandbox_well_scoped; eauto.
+      f_equal. extensionalities.
+      rewrite ?HModSB.transl_bind !HModSB.transl_tau HModSB.transl_ret.
+      do 4 f_equal. extensionalities. eapply inv_sandbox_call; eauto. 
+    - hstep. { rewrite alist_find_app_o. rewrite FUN. eauto. }
+      eapply K; try refl; eauto. grind.
+      rewrite! HModSB.transl_bind.
+      move FLT at bottom. move FUN at bottom.
+      rewrite FLT in FUN.
+      rewrite alist_find_map_snd in FUN.
+      unfold o_map in FUN. des_ifs.
+      unfold HMod.sandbox_body.
+      rewrite sandbox_well_scoped; eauto.
+      f_equal. extensionalities.
+      rewrite ?HModSB.transl_bind !HModSB.transl_tau HModSB.transl_ret.
+      do 4 f_equal. extensionalities. eapply inv_sandbox_call; eauto.
+    - hstep. eapply K; try refl; eauto using inv_sandbox_tau.
+    - hstep. eapply K; try refl; eauto using inv_sandbox_tau.
+    - hstep. i. eapply K; try refl; eauto using inv_sandbox_core.
+    - hstep. i. eapply K; try refl; eauto using inv_sandbox_core.
+    - hstep. eapply K; try refl; eauto using inv_sandbox_core.
+    - hstep. eapply K; try refl; eauto using inv_sandbox_core.
+    - assert (H1:= ITRS).
+      rewrite  -ITRS HModSB.transl_bind HModSB.transl_put. des_ifs.
+      + hstep.
+        assert (UPD : alist_upd k v (st_src ++ st_ctx) = alist_upd k v st_src ++ st_ctx).
+        { 
+          move SCPS at bottom. move SCPC at bottom. 
+          eapply existsb_exists in Heq. des. eapply String.eqb_eq in Heq0.
+          rewrite alist_upd_not_tail; eauto.
+          ii. eapply NoDup_app_disjoint; eauto.
+          eapply in_map with (f:=fst) in H2.
+          rewrite List.map_map in H2. eapply SCPC in H2.
+          rewrite <- Heq0. eauto.
+        }
+        rewrite UPD. eapply K; try refl; eauto.
+        { rewrite state_scopes_update. eauto. }
+        { eapply sandbox_well_scoped. refl. }
+        { rewrite <-UPD. eapply alist_upd_nodup. eauto. }
+        { f_equal. symmetry. eapply inv_sandbox_pg. eauto. }
+      + hstep. eapply K; try refl; eauto.
+        { eapply sandbox_well_scoped. refl. }
+        { 
+          f_equal. 
+          { eapply alist_upd_not_exists; eauto. }
+          { symmetry. eapply inv_sandbox_pg. eauto. }
+        }
 
   - assert (H1:=ITRT).
     rewrite -ITRT SBRed.bind SBRed.put. des_ifs.
@@ -403,7 +403,7 @@ Lemma isim_ctx `{Σ: GRA}
   (WFT : HMod.wf (HMod.add mt ctx))
   (FINDS : alist_find fn (HMod.fnsems ms) = Some fs)
   (FINDT : alist_find fn (HMod.fnsems mt) = Some ft)
-  (SCOPES : sub_perm (HMod.scopes mt) (HMod.scopes ms))
+  (SCOPES : sub_perm (HMod.scopes ms) (HMod.scopes mt))
   (NODUPFS : List.NoDup (List.map fst (HMod.fnsems ms ++ HMod.fnsems ctx)))
   (NODUPFT : List.NoDup (List.map fst (HMod.fnsems mt ++ HMod.fnsems ctx)))
   (IMON : ∀ nths0 nths', nths0 <= nths' → ∀ st_src st_tgt,
@@ -420,7 +420,7 @@ Lemma isim_ctx `{Σ: GRA}
          (HMod.fnsems ms ++ HMod.fnsems ctx))
       (List.map (map_snd HMod.sandbox_body)
          (HMod.fnsems mt ++ HMod.fnsems ctx))
-      (IstProd (IstSB (HMod.scopes ms) Ist) (IstSB (HMod.scopes ctx) IstEq)) contextual
+      (IstProd (IstSB (HMod.scopes mt) Ist) (IstSB (HMod.scopes ctx) IstEq)) contextual
       (HMod.sandbox_body fs) (HMod.sandbox_body ft).
 Proof.
   ii. specialize (SIM x y H). subst.
@@ -441,26 +441,26 @@ Proof.
   { rewrite -map_app List.map_map EQ. eauto. }
   { rewrite -map_app List.map_map EQ. eauto. }
   { 
-    ii. eapply ms.(HMod.well_scoped_fns).
+    ii. eapply mt.(HMod.well_scoped_fns).
     unfold fnsems_scopes. erewrite IN. ss.
   }
   {
     i. etrans; cycle 1.
     { eapply sub_perm_incl; eauto. }
-    ii. eapply mt.(HMod.well_scoped_fns).
+    ii. eapply ms.(HMod.well_scoped_fns).
     unfold fnsems_scopes. erewrite IN. ss.
   }
-  { eapply WFS. }
+  { eapply WFT. }
   { 
     eapply sandbox_well_scoped. ii.
-    eapply ms.(HMod.well_scoped_fns). 
-    unfold fnsems_scopes. erewrite FINDS. ss.
+    eapply mt.(HMod.well_scoped_fns). 
+    unfold fnsems_scopes. erewrite FINDT. ss.
   }
   { 
     eapply sandbox_well_scoped. etrans; cycle 1.
     { eapply sub_perm_incl; eauto. }
-    ii. eapply mt.(HMod.well_scoped_fns). 
-    unfold fnsems_scopes. erewrite FINDT. ss.
+    ii. eapply ms.(HMod.well_scoped_fns). 
+    unfold fnsems_scopes. erewrite FINDS. ss.
   }
   ginit. i. eapply gpaco9_mon; first eapply ISIM; eauto using iunlift_ibot.
 Qed.
@@ -469,7 +469,7 @@ Lemma hmod_sim_ctx `{Σ: GRA} (ms mt ctx : HMod.t) IC Ist contextual
   (SIM : HSim.t open ms mt IC Ist)
   :
   HSim.t contextual (ms ★ ctx) (mt ★ ctx) IC 
-    (IstProd (IstSB ms.(HMod.scopes) Ist)
+    (IstProd (IstSB mt.(HMod.scopes) Ist)
              (IstSB ctx.(HMod.scopes) IstEq)).
 Proof.
   inv SIM.
@@ -510,15 +510,15 @@ Proof.
     eapply isim_ctx; eauto.
   } 
   {
-    exists ft. esplits; ss.
+    exists fs. esplits; ss.
     { rewrite alist_find_app_o. des_ifs. exfalso.
       eapply alist_find_some in FIND, Heq0.
       eapply in_map with (f:=fst) in FIND, Heq0.
-      rewrite map_app in NODUPFS.
+      rewrite map_app in NODUPFT.
       eapply NoDup_app_disjoint; eauto.
     }
-    destruct ft as [scp itr].
-    inv WFS. eapply isim_reflR; ss; i; eauto.
+    destruct fs as [scp itr].
+    inv WFT. eapply isim_reflR; ss; i; eauto.
     - replace scp with (fnsems_scopes fn ctx.(HMod.fnsems)).
       { eapply ctx.(HMod.well_scoped_fns). }
       { unfold fnsems_scopes. des_ifs. }
@@ -529,30 +529,38 @@ Proof.
   }
 Qed.
 
-(* ADEQUACY *)
+End AUX.
 
-Theorem main_adequacy `{Σ: GRA} (ms mt : HMod.t) IC Ist
-    (SIM : HSim.t open ms mt IC Ist) :
-  ctx_refines (ms, IC) (mt, emp%I).
-Proof.
-  ii. s.
-  destruct ctx as [ctx cond].
-  assert (SIMC := SIM).
-  ii. ss. eapply hmod_sim_ctx with (ctx := ctx) in SIMC.
+Section ADEQUACY.
 
-  hexploit Own_split; eauto; intros [a1 [a2 [Ha [H1 H2]]]].
-  exists a2; splits; eauto.
-  { eapply cmra_valid_op_r; erewrite <- Ha; ss. }
-  { iIntros "H"; iSplitR "H"; ss; iApply H2; done. }
-  { eapply hsim_wf; eauto. }
-  ii. subst. eapply adequacy_modsem, PR.
-  - eapply (hsim_adequacy _ _ rs a1 a2); eauto.
-    { rewrite Ha; iIntros "[H1 H2]"; iFrame. }
+  Context {Σ : GRA}.
+
+  Theorem main_adequacy '{Σ: GRA} (ms mt : HMod.t) IC Ist
+      (SIM : HSim.t open ms mt IC Ist) :
+    ctx_refines (ms, IC) (mt, emp%I).
+  Proof.
+    ii. s.
+    destruct ctx as [ctx cond].
+    assert (SIMC := SIM).
+    ii. ss. eapply hmod_sim_ctx with (ctx := ctx) in SIMC.
+    split.
     { eapply hsim_wf; eauto. }
-  - inv WFM. econs. ss. unfold map_snd.
-    rewrite !List.map_map. eapply eq_ind; [apply wf_fns|].
-    f_equal. extensionalities. destruct H. ss.
-Qed.
+    ii. hexploit Own_split; eauto; intros [a1 [a2 [Ha [H1 H2]]]].
+    exists a2; splits; eauto.
+    { eapply cmra_valid_op_r; erewrite <- Ha; ss. }
+    { iIntros "H"; iSplitR "H"; ss; iApply H2; done. }
+    ii. subst. eapply adequacy_modsem, PR.
+    - eapply (hsim_adequacy _ _ rs a1 a2); eauto.
+      { rewrite Ha; iIntros "[H1 H2]"; iFrame. }
+      { eapply hsim_wf; eauto. }
+    - inv WFM. econs. ss. unfold map_snd.
+      rewrite !List.map_map.
+      eapply eq_ind; [|].
+      { inv SIM. eapply sub_perm_nodup. eapply sub_perm_cancel_tail. eapply sim_match.
+        rewrite map_app in wf_fns. eapply wf_fns. }
+      rewrite -map_app.
+      f_equal. extensionalities. destruct H. ss.
+  Qed.
 
 (* COMM *)
 
@@ -646,7 +654,7 @@ Proof.
   esplits; eauto.
 
   (* simulation *)
-  ii. subst. destruct ft. unfold HMod.sandbox_body. s.
+  ii. subst. destruct fs. unfold HMod.sandbox_body. s.
   generalize (i y) as it. clear FIND i y.
   combine_quant NODD.
   combine_quant NODS.

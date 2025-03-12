@@ -214,16 +214,19 @@ Proof.
   { eapply cancel_call_rev. }
   etrans; cycle 1.
   { eapply cancel_call. }
-  ii. eapply Own_split in SRC; eauto. des.
-  exists a1. esplits; eauto.
-  { eapply cmra_valid_op_l, valid_solve_eq; eauto. }
+  ii; split.
   {
     inv WFM. econs; eauto. s.
     do 2 rewrite List.map_map fst_map_snd.
     do 2 rewrite List.map_map fst_map_snd in wf_fns. eauto.
   }
+  inv WFM. s; i.
+  eapply Own_split in SRC; eauto. des.
+  exists a1. esplits; eauto.
+  { eapply cmra_valid_op_l, valid_solve_eq; eauto. }
+
   eapply cancel_main; eauto.
-  - inv WFM. econs; eauto. s.
+  - econs; eauto. s.
     rewrite List.map_map fst_map_snd.
     do 2 rewrite List.map_map fst_map_snd in wf_fns. eauto.
   - rewrite SRC. rewrite comm. eauto.
