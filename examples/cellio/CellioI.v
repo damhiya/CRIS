@@ -1,6 +1,6 @@
 Require Import CRIS.
 
-Require Import CellioHeader InputHeader.
+Require Import CellioHeader LibHeader.
 
 Set Implicit Arguments.
 
@@ -12,7 +12,7 @@ Module CellioI. Section CellioI.
 
   Definition set: Any.t -> itree pmodE Any.t :=
     λ _,
-      'i: Z <- ccallU InputName.input tt;;
+      'i: Z <- ccallU LibName.input tt;;
       cput v_cv i;;;
       Ret tt↑.
 

@@ -1,22 +1,24 @@
 Require Import CRIS Cancel.
 Require Import ImpPrelude.
-Require Import CellioHeader MainHeader InputHeader FooHeader.
-Require Import CellioA CellioI MainA MainI InputA FooA.
+Require Import CellioHeader MainHeader .
+Require Import CellioA CellioI MainA MainI LibA.
 Require Import CellioIAproof MainIAproof.
 
 Module CellioAll. Section CellioAll.
   Import inv_instances.  
   Local Instance Γ : HRA := ##[invΓ; CellioAΓ].
   Local Instance Σ : GRA := ##[invΣ; Γ].
-  Variable foo input : Any.t -> itree hmodE Any.t.
-  Local Definition smod_src : SMod.t := MainA.Mod ☆ (InputA.Mod input) ☆ (FooA.Mod foo).
+  Variable LibA: SMod.t.
+  Local Definition smod_src : SMod.t := MainA.Mod ☆ LibA.
   Local Definition spc : string → option fspec := spc_from smod_src.
+  Local Definition Lib := Seal.sealing CRIS (SMod.to_hmod emp spc LibA).
   Local Definition mod_cancel : HMod.t := SModCancel.to_hmod smod_src.
   Local Definition mod_src : HMod.t := SMod.to_hmod emp spc smod_src.
-  Local Definition mod_tgt : HMod.t := MainI.t ★ CellioI.t ★ (InputA.t input spc) ★ (FooA.t foo spc).
-
+  Local Definition mod_tgt : HMod.t := MainI.t ★ CellioI.t ★ Lib.
+  
   Local Definition main_fsp : fspec := fspec_trivial.
-  Local Definition init_cond : iProp Σ := MainA.InitCond ∗ CellioA.InitCond ∗ InputA.InitCond ∗ FooA.InitCond.
+  Local Definition LibInitCond: iProp Σ := emp%I.
+  Local Definition init_cond : iProp Σ := MainA.InitCond ∗ CellioA.InitCond ∗ LibInitCond.
   
   (* Apply cancellation to linked spec module *)
   Lemma cancel_src :
@@ -28,16 +30,37 @@ Module CellioAll. Section CellioAll.
     des; eauto.
   Qed.
 
+  Local Definition trivial_specbody body := {|fsb_fspec := fspec_trivial; fsb_body := body|}.
+
+  Hypothesis ModulesWF : HMod.wf mod_tgt.
+  Hypothesis inputInLib : ∃scp input (SCP: incl scp LibA.(SMod.scopes)), alist_find LibName.input (SMod.fnsems LibA) = Some (scp, trivial_specbody input).
+  Hypothesis fooInLib : ∃scp foo (SCP: incl scp LibA.(SMod.scopes)), alist_find LibName.foo (SMod.fnsems LibA) = Some (scp, trivial_specbody foo).
+
+  Lemma lib_spc_incl: spc_incl LibAS.spc spc.
+  Proof.
+    i. rewrite /LibAS.spc. unseal CRIS. econs; first prove_nodup.
+    destruct inputInLib, fooInLib. des.
+    ii; rewrite -FIND /spc /spc_from /smod_src //=. des_ifs; ss; des_ifs.
+    {
+      rewrite eq_rel_dec_correct in Heq0. des_ifs.
+      rewrite /option_map. des_ifs.
+    }
+    {
+      rewrite eq_rel_dec_correct in Heq1. des_ifs.
+      rewrite /option_map. des_ifs.
+    }
+  Qed.
+
   (* Refinement between spec/impl of whole program (linked module) *)
   Lemma src_tgt : refines (mod_src, init_cond) (mod_tgt, emp%I).
   Proof.
-    (* consider identical modules in src/tgt as context (InputA, FooA) *)
+    (* consider identical modules in src/tgt as context (LibA, LibA) *)
     eapply ctxr_refines.
     rewrite -[(_, emp%I)]hmod_addc_empty_r /init_cond -!hmod_addc_assoc.
-    rewrite /mod_src /mod_tgt !add_interp_comm -!hmod_add_assoc /FooA.t.
+    rewrite /mod_src /mod_tgt !add_interp_comm -!hmod_add_assoc /Lib.
     unseal CRIS. eapply ctxr_frameR, ctxr_cond_frameR.
-    rewrite -[(_, emp%I)]hmod_addc_empty_r /InputA.t.
-    unseal CRIS. eapply ctxr_frameR, ctxr_cond_frameR.
+    (* rewrite -[(_, emp%I)]hmod_addc_empty_r /Lib. *)
+    (* unseal CRIS. eapply ctxr_frameR, ctxr_cond_frameR. *)
     (* solve by transitivity:
       MainI ★ CellioI ⊆ MainI ★ CellioA ⊆ MainA ★ CellioA 
     *)
@@ -47,22 +70,13 @@ Module CellioAll. Section CellioAll.
       rewrite -[(SMod.to_hmod _ _ MainA.Mod)](Seal.sealing_eq CRIS).
       instantiate (1:= (MainI.t ★ (CellioA.t spc), (emp ∗ CellioA.InitCond)%I)).
       eapply ctxr_cond_frameR, main_adequacy, MainIA.sim.
-      {
-        i. rewrite /FooAS.spc. unseal CRIS. econs; first prove_nodup.
-        ii; rewrite -FIND /spc /spc_from /smod_src //=. des_ifs; ss; des_ifs.
-      }
-      {
-        i. rewrite /InputAS.spc. unseal CRIS. econs; first prove_nodup.
-        ii; rewrite -FIND /spc /spc_from /smod_src //=. des_ifs; ss; des_ifs.
-      }
+      eapply lib_spc_incl.
     }
     (* MainI ★ CellioI ⊆ MainI ★ CellioA 
       by CellioI ⊆ctx CellioA *)
     rewrite -[(_, emp%I)]hmod_addc_empty_r.
     eapply ctxr_frameL, ctxr_cond_frameL, main_adequacy, CellioIA.sim.
-    i. rewrite /InputAS.spc. unseal CRIS. econs; first prove_nodup.
-    ii. rewrite -FIND /spc /spc_from /smod_src //=.
-    des_ifs; ss; des_ifs.
+    eapply lib_spc_incl.
   Qed.
 
   Lemma cancel_tgt :
@@ -75,13 +89,14 @@ Module CellioAll. Section CellioAll.
   Qed.
 
   Local Definition initial_resource : Σ :=
-    (MainA.InitRes ⋅ CellioA.InitRes ⋅ InputA.InitRes ⋅ FooA.InitRes).
+    (MainA.InitRes ⋅ CellioA.InitRes).
 
   Lemma initial_resource_valid : ✓ initial_resource.
   Proof.
     dfs_solve.
     unfold "●E". apply auth_auth_valid. econs.  
   Qed.
+  (* Admitted. *)
 
   Theorem behavioral_refinement :
     ∃ target_resource, refines_mod
@@ -89,15 +104,15 @@ Module CellioAll. Section CellioAll.
       (HMod.to_mod mod_tgt target_resource).
   Proof.
     move: (cancel_tgt)=>H; rewrite /refines in H; des; ss.
-    assert (Hwf : HMod.wf mod_tgt).
-    { econs; ss; rewrite /MainI.t /CellioI.t /FooA.t /InputA.t; unseal CRIS; try prove_nodup. }
-    destruct (H Hwf). destruct (H1 initial_resource).
+    (* assert (Hwf : HMod.wf mod_tgt).
+    { econs; ss; rewrite /MainI.t /CellioI.t /LibA.t; unseal CRIS; try prove_nodup. } *)
+    destruct (H ModulesWF). destruct (H1 initial_resource).
     { apply initial_resource_valid. }
-    { iIntros "I"; rewrite /init_cond /CellioA.InitCond /MainA.InitCond /InputA.InitCond /FooA.InitCond.
+    { iIntros "I"; rewrite /init_cond /CellioA.InitCond /MainA.InitCond.
       rewrite /precond /= /CellioA.auth 
        own.Own_eq own.own_eq /own.Own_def /own.own_def. 
-      iDestruct "I" as "[[[_ I] _] _]"; iFrame. 
-      iSplit; iPureIntro; ss.
+      iDestruct "I" as "[_ I]"; iFrame. 
+      iPureIntro; ss.
     }
     { exists x; des; eauto. }
   Qed.
