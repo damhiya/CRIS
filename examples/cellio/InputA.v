@@ -19,6 +19,32 @@ End InputAS. End InputAS.
 
 Module InputA. Section InputA.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
+  Variable input: Any.t -> itree hmodE Any.t.
+
+  Definition scopes := [InputName.mn].
+  
+  Definition fnsems : alist string (list string * fspecbody) :=
+    [(InputName.input, (scopes, mk_specbody fspec_trivial input))].
+
+  Program Definition Mod : SMod.t := {|
+    SMod.scopes := scopes;
+    SMod.fnsems := fnsems;
+    SMod.initial_st := [];
+  |}.
+  Solve All Obligations with prove_scope.
+  Next Obligation. prove_nodup. Qed.
+
+  Definition InitCond : iProp Σ := emp%I.
+    
+  Definition InitRes : Σ := ε.
+
+  Definition t spc := Seal.sealing CRIS (SMod.to_hmod emp spc Mod).
+End InputA. End InputA.
+
+  
+
+(* Module InputA. Section InputA.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
 
   Definition input: Any.t -> itree hmodE Any.t :=
     λ _,
@@ -44,4 +70,4 @@ Module InputA. Section InputA.
   Definition InitRes : Σ := ε.
 
   Definition t spc := Seal.sealing CRIS (SMod.to_hmod emp spc Mod).
-End InputA. End InputA.
+End InputA. End InputA. *)

@@ -21,36 +21,14 @@ End FooAS. End FooAS.
 
 Module FooA. Section FooA.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.  
-  
-  (* Unknown function body. Shouldn't call functions in local modules *)
+
+  (* Don't need to restrict unknown functions not to call myself anymore. *)
   Variable foo: Any.t -> itree hmodE Any.t.
-  (* 
-    need some better idea to specify the list of local function names 
-    without linking all local modules at this moment.
-  *)
-  Local Definition local_fns 
-    := [CellioName.set; CellioName.get; MainName.main; InputName.input].
-
-  Local Definition handle_call: callE ~> itree hmodE :=
-    λ _ '(Call fn varg), 
-      match (existsb (String.eqb fn) local_fns) with
-      | true => triggerUB
-      | false => trigger (Call fn varg)
-      end.
-
-  Local Definition interp_body R (it : itree hmodE R) : itree hmodE R :=
-    interp (case_ (bif:=sum1) trivial_Handler
-           (case_ (bif:=sum1) trivial_Handler
-           (case_ (bif:=sum1) handle_call
-                              trivial_Handler))) it.
-
-  Local Definition interp_fun (f : Any.t -> itree hmodE Any.t) : Any.t -> itree hmodE Any.t :=
-    λ x, interp_body (f x).
-
+  
   Definition scopes := [FooName.mn].
   
   Definition fnsems : alist string (list string * fspecbody) :=
-    [(FooName.foo, (scopes, mk_specbody fspec_trivial (interp_fun foo)))].
+    [(FooName.foo, (scopes, mk_specbody fspec_trivial foo))].
 
   Program Definition Mod : SMod.t := {|
     SMod.scopes := scopes;
