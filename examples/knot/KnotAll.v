@@ -166,4 +166,6 @@ Module KnotAll.
     { exists x; des; eauto. }
   Qed.
 End KnotAll.
+*)
+
 (* Print Assumptions KnotAll.behavioral_refinement. *)

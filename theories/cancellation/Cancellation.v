@@ -138,14 +138,7 @@ Proof.
   destruct (alist_find "CRIS_init" (SMod.fnsems md)) eqn:E; cycle 1.
   {
     rewrite !alist_find_map/o_map E. s.
-    unfold interp_modE at 2.
-    rewrite/interp_schE_callE unfold_iter_eq /handle_schE_callE.
-    grind. rewrite StRed.bind. grind.
-    destruct (resum IFun False (Choose False)) eqn:V.
-    { inv V. }
-    depdes c; inv V. resub.
-    rewrite [interp_stateE _ _ _]StRed.core. grind.
-    ginit. st. i. ss.
+    rewrite /spc_from E in SPC. ss.
   }
   rewrite !alist_find_map/o_map E. s. 
   erewrite !wrap_elimI_well_scoped; cycle 1.

@@ -71,18 +71,20 @@ Theorem closed_adequacy `{Σ: GRA} (ms mt: HMod.t) IC Ist P
   :
   refines (ms, IC ∗ P)%I (mt, P).
 Proof.
+  split.
+  { eapply hsim_wf; eauto. }
   ii. eapply Own_split in SRC; eauto. des.
   i. ss. des. exists a2.
   esplits; eauto.
   { eapply cmra_valid_op_r. eapply valid_solve_eq; eauto. }
-  { eapply hsim_wf; eauto. }
   ii. subst. eapply adequacy_modsem, PR.
   - eapply hsim_adequacy; try eapply SRC0; eauto.
     + rewrite -Own_op. eapply Own_equiv. 
       etrans; eauto. rewrite comm; ss.
     + eapply hsim_wf; eauto.
   - inv WFM. econs. ss. unfold map_snd.
-    rewrite !List.map_map. eapply eq_ind; [apply wf_fns|].
+    rewrite !List.map_map. eapply eq_ind.
+    { inv SIM. eapply sub_perm_nodup; eauto. }
     f_equal. extensionalities. destruct H. ss.
 Qed.
 
@@ -91,9 +93,10 @@ Theorem closed_adequacy2 `{Σ: GRA} (ms mt: HMod.t) P
   :
   refines (ms, P) (mt, P).
 Proof.
+  split. 
+  { eapply hsim_wf; eauto. }
   ii. ss. des. exists rs.
   esplits; eauto.
-  { eapply hsim_wf; eauto. }
   ii. subst. eapply adequacy_modsem, PR.
   - eapply hsim_adequacy; auto.
     + iIntros "H". iFrame. iApply Own_unit. 
@@ -101,6 +104,7 @@ Proof.
     + inv SIM. econs; eauto. iIntros "_".
       iApply sim_initial; eauto.
   - inv WFM. econs. ss. unfold map_snd.
-    rewrite !List.map_map. eapply eq_ind; [apply wf_fns|].
+    rewrite !List.map_map. eapply eq_ind.
+    { inv SIM. eapply sub_perm_nodup; eauto. }
     f_equal. extensionalities. destruct H. ss.
 Qed.

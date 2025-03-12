@@ -284,7 +284,7 @@ Proof.
         }
         des. rewrite EX. eapply CIH. refl.
       }
-      ired. unfold triggerNB. ired. 
+      ired. unfold triggerUB. ired. 
       rewrite !HIRed.bind_core !SBRed.bind SBRed.core !bind_trigger.
       gstep. econs. i. ss.
     }
@@ -359,5 +359,5 @@ Qed.
 
 Definition progI `{Σ: GRA} fl : callE ~> itree hmodE :=
   fun _ '(Call fn args) =>
-    lbody <- (alist_find fn fl)!;;
+    lbody <- (alist_find fn fl)?;;
     lbody args.
