@@ -46,7 +46,8 @@ Module SpinLockMainIA. Section SpinLockMainIA.
     unfold_iter_r. unfold_iter_l. wsteps_l. wsteps_r.
     sch_yield_r. iSplitL "IST"; ss; clear nths st_s st_t; iIntros (nths st_s st_t) "IST".
     wsteps_r. destruct q; cycle 1.
-    { wsteps_r. sch_yield_l. wforce_l false. wsteps_l. wby_coind "CIH". iClear "I'"; iFrame. done. }
+    { wsteps_r. sch_yield_l. wforce_l false. wsteps_l. wby_coind "CIH".
+      hss. iFrame. eauto. }
     wsteps_r. iDestruct "GRT" as "[[_ [TKN P]] <-]". hss. wsteps_r.
     sch_yield_r. iFrame; ss; clear nths st_s st_t; iIntros (nths st_s st_t) "IST TID".
     rewrite /lock_P; SL_red; iDestruct "P" as "[TKN [%x P]]"; SL_red; iDestruct "P" as "[PT P]".
@@ -73,7 +74,7 @@ Module SpinLockMainIA. Section SpinLockMainIA.
     wsteps_r.
     sch_yield_l. wsteps_l. wforce_l true. wsteps_l. wforces_l. iFrame; iSplit; eauto.
     wsteps_l. wstep. iFrame. eauto.
-  Qed.
+  (*FAST*)Qed.
 
   Lemma main_simF : HSim.sim_fun open MA MI IstFull SpinLockMainName.main.
   Proof.
@@ -140,7 +141,8 @@ Module SpinLockMainIA. Section SpinLockMainIA.
     unfold_iter_r. unfold_iter_l. wsteps_r.
     sch_yield_r. iSplitL "IST"; ss; clear nths st_s st_t; iIntros (nths st_s st_t) "IST".
     wsteps_r. destruct q; cycle 1.
-    { wsteps_r. sch_yield_l. wforce_l false. wsteps_l. wby_coind "CIH". iClear "I'". iFrame. done. }
+    { wsteps_r. sch_yield_l. wforce_l false. wsteps_l. wby_coind "CIH".
+      hss. iFrame. eauto. }
     wsteps_r. iDestruct "GRT" as "[[-> [TID [TKN P]]] _]". hss. wsteps_r.
     SL_red. iCombine "W1 W2" as "W". iDestruct "P" as "[%x P]"; SL_red; iDestruct "P" as "[PT B]".
     iCombine "B W" gives %WF%frac_auth_agree. inv WF.
@@ -162,7 +164,7 @@ Module SpinLockMainIA. Section SpinLockMainIA.
     sch_yield_r. iFrame; ss; clear nths st_s st_t; iIntros (nths st_s st_t) "IST TID". wsteps_r.
     sch_yield_l. wsteps_l. wforces_l. iSplit; eauto. wsteps_l. wstep.
     iSplit; eauto.
-  Qed.
+  (*FAST*)Qed.
 
   Lemma sim : HSim.t open MA MI emp%I IstFull.
   Proof.
@@ -172,6 +174,7 @@ Module SpinLockMainIA. Section SpinLockMainIA.
     { eapply incr_simF. }
   Qed.
 End SpinLockMainIA.
+
 Section wctxr.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
   Context `{!SchAGΣ Σ, !SchAGΓ Γ, !memGΓ Γ, !SpinLockMainAGΓ Γ, !SpinLockAGΓ Γ}.

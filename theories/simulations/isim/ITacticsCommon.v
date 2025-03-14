@@ -125,6 +125,7 @@ Ltac hss_des :=
   ss.
 
 Ltac hss :=
+  (hrepeat do 1 match goal with [|- context[environments.Esnoc _ ?H (bi_pure True)]] => iClear H end);
   hss_des;
   try (rewrite -> !Any.pair_split in * );
   try (rewrite -> !Any.upcast_downcast in * );
