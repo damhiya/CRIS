@@ -150,6 +150,7 @@ Module SchIA. Section SchIA.
   End ALIST.
 
   (**************************)
+  Local Existing Instances SchA.RA_inG SchA.RA_inG0.
 
   Definition Ist: nat -> alist key Any.t -> alist key Any.t -> iProp Σ :=
     fun numths st_src st_tgt =>

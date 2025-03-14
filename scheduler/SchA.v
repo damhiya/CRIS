@@ -21,8 +21,8 @@ Section SchRA.
 
   Definition tidRA : ucmra := nat -d> excl' unit.
 
-  Class SchAGΣ (Σ: GRA) := { #[global] RA_inG :: inG threadsRA Σ }.
-  Class SchAGΓ (Γ: HRA) := { #[global] RA_inG0 :: inG tidRA Γ }.
+  Class SchAGΣ (Σ: GRA) := { #[local] RA_inG :: inG threadsRA Σ }.
+  Class SchAGΓ (Γ: HRA) := { #[local] RA_inG0 :: inG tidRA Γ }.
   Definition SchAΣ : GRA := #[threadsRA].
   Definition SchAΓ : HRA := #[tidRA].
   Global Instance subG_GΣ {Σ'} : subG SchAΣ Σ' → SchAGΣ Σ'.
@@ -34,6 +34,7 @@ Section SchRA.
 End SchRA.
 
 Module SchAS. Section SchAS.
+  Local Existing Instances RA_inG RA_inG0.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !SchAGΣ Σ, !SchAGΓ Γ}.
 
   (** thread **)
@@ -226,9 +227,9 @@ Module SchAS. Section SchAS.
     Qed.
 
     Lemma tid_admin_none_split_r t :
-      (tid_admin_r (Some t): tidRA) ⋅ (tid_user_r t: tidRA) ≡ (tid_admin_r None: tidRA).
+      (tid_admin_r (Some t): tidRA) ⋅ (tid_user_r t: tidRA) = (tid_admin_r None: tidRA).
     Proof.
-      rewrite /tid_admin_r /tid_user_r. intros x.
+      rewrite /tid_admin_r /tid_user_r. extensionalities x.
       rewrite !discrete_fun_lookup_op. des_ifs.
     Qed.
 
