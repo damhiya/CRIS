@@ -557,16 +557,16 @@ Module SchIA. Section SchIA.
     wstep. iSplit; eauto. iFrame. iExists _, _, _. iSplit; eauto.
   Qed.
 
-  Lemma sim : HSim.t open SchAMod SchIMod SchA.InitCond Ist.
+  Lemma sim : HSim.t open SchAMod SchIMod SchA.init_cond Ist.
   Proof.
     init_sim.
-    - rewrite /SchA.InitCond /initial_threads/ initial_tid. unseal "SchA".
+    - rewrite /SchA.init_cond /init_threads /init_tid. unseal "SchA".
       iIntros "[[THB THW] tid]". iExists _, _, _, ∅, 0, false.
       iFrame. rewrite big_sepM_empty. iSplitR; et.
-      2:{ rewrite /initial_tid_admin_r. iSplitR; eauto. iLeft. rewrite /tid_admin.
+      2:{ rewrite /tid_admin. iSplitR; eauto. iLeft. rewrite /tid_admin.
           unseal "SchA". eauto. }
       iPureIntro. esplits; et; ss; [split; nia |]. i. 
-      rewrite// /SchAS.initial_threads_r eq_rel_dec_correct. des_ifs.
+      rewrite// eq_rel_dec_correct. des_ifs.
       + rewrite lookup_empty. eexists; econs 2.
       + rewrite Nat.eqb_eq in Heq0. subst; ss.
       + rewrite lookup_empty. eexists; econs.
@@ -588,7 +588,7 @@ Module SchIA. Section SchIA.
         (SchInGlobal : spc_incl (SchAS.spc u spc_user) spc_global)
         (UserInGlobal : spc_sub spc_user spc_global) :
       ctx_refines
-        (SchA.t u spc_global spc_user, SchA.InitCond)
+        (SchA.t u spc_global spc_user, SchA.init_cond)
         (SchI.t, emp%I).
     Proof. eapply main_adequacy, sim; eauto. Qed.
 End wctxr. End SchIA.

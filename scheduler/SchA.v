@@ -29,9 +29,8 @@ Section SchRA.
   Proof. solve_inG. Defined.
   Global Instance subG_GΓ {Γ' : HRA} : subG SchAΓ Γ' → SchAGΓ Γ'.
   Proof. solve_inG. Defined.
-  Hint Unfold subG_GΣ SchAΣ : GRA_index.
-  Hint Unfold subG_GΓ SchAΓ : GRA_index.
 End SchRA.
+Hint Unfold RA_inG RA_inG0 subG_GΣ SchAΣ subG_GΓ SchAΓ : GRA_index.
 
 Module SchAS. Section SchAS.
   Local Existing Instances RA_inG RA_inG0.
@@ -89,21 +88,13 @@ Module SchAS. Section SchAS.
   Definition tid_user (tid: nat): iProp Σ :=
     Seal.sealing "SchA" (own base_γ (tid_user_r tid)).
 
-(** initial resource *)
-  Definition initial_threads_r: threadsRA := 
+  (** initial resource *)
+  Definition ir_threadsRA : DRA_mk threadsRA := 
     ● ((λ tid: nat, if tid =? 0 then Some (1, to_agree (λ _ _, (Some (to_agree (existT 0 ⊤%SRF))))) else None): threadsF)
     ⋅ ◯ ((λ tid: nat, if tid =? 0 then Some (1/4, to_agree (λ _ _, (Some (to_agree (existT 0 ⊤%SRF))))) else None): threadsF).
-  Definition initial_threads: iProp Σ := 
-    Seal.sealing "SchA" (own base_γ initial_threads_r).
-
-  Definition initial_tid_admin_r: tidRA := tid_admin_r (Some 0).
-  Definition initial_tid : iProp Σ :=
-    Seal.sealing "SchA" (own base_γ initial_tid_admin_r)%I.
-
-  Definition threadsRA_initial : threadsRA := initial_threads_r.
-  Definition threadsRA_initial_valid : ✓ threadsRA_initial.
+  Definition ir_threadsRA_valid : ✓ ir_threadsRA.
   Proof.
-    rewrite /threadsRA_initial /initial_threads_r. apply auth_both_valid_discrete. split.
+    rewrite /ir_threadsRA. apply auth_both_valid_discrete. split.
     { exists (λ tid: nat, if tid =? 0 then Some (3/4, to_agree (λ _ _, (Some (to_agree (existT 0 ⊤%SRF))))) else None).
       intros i; des_ifs; rewrite discrete_fun_lookup_op.
       { eapply Nat.eqb_eq in Heq; subst; des_ifs.
@@ -115,18 +106,22 @@ Module SchAS. Section SchAS.
     }
     { intros i; des_ifs; ss. }
   Qed.
-  Program Definition threadsRA_resource : resource threadsRA := existT2 _ _ _ _ (threadsRA_initial_valid).
-  Next Obligation. ss. i; apply _. Defined.
 
-  Definition tidRA_initial : tidRA := tid_admin_r None.
-  Definition tidRA_initial_valid : ✓ tidRA_initial.
-  Proof. rewrite /tidRA_initial /tid_admin_r. intros i; ss. Qed.
-  Program Definition tidRA_resource : resource tidRA := existT2 _ _ _ _ (tidRA_initial_valid).
-  Next Obligation. ss. i; apply _. Defined.
+  Definition ir_tidRA : DRA_mk tidRA :=
+    tid_admin_r None.
+  Lemma ir_tidRA_valid : ✓ (ir_tidRA). intro i; ss. Qed.
 
-  Definition initial_resource : Σ :=
-    (own.iRes_singleton base_γ initial_threads_r)
-    ⋅ (own.iRes_singleton base_γ initial_tid_admin_r).
+  Definition ir_SchAΓ : SchAΓ :=
+    *[Some ir_tidRA].
+
+  Definition ir_SchAΣ : SchAΣ :=
+    *[Some ir_threadsRA].
+
+  Definition init_threads : iProp Σ := 
+    Seal.sealing "SchA" (own base_γ ir_threadsRA).
+
+  Definition init_tid_r : tidRA := tid_admin_r (Some 0).
+  Definition init_tid : iProp Σ := Seal.sealing "SchA" (own base_γ init_tid_r)%I.
 
   Section RA.
 
@@ -390,7 +385,7 @@ Module SchA. Section SchA.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition InitCond : iProp Σ := SchAS.initial_threads ∗ SchAS.initial_tid.
+  Definition init_cond : iProp Σ := SchAS.init_threads ∗ SchAS.init_tid.
   
   Definition t υ Spc_global Spc_user :=
     Seal.sealing CRIS (SMod.to_hmod (wsim_ginv υ ⊤) Spc_global (Mod υ Spc_user)).

@@ -14,7 +14,7 @@ Module IncrIA. Section IncrIA.
   Context (u_s: univ_id).
   Context (spc_s spc_user_s spc_mem : string → option fspec).
   Context (SchInSpc : spc_incl (SchAS.spc u_s spc_user_s) spc_s).
-  Context (MemInSpc : spc_incl MemA.Spc spc_s).
+  Context (MemInSpc : spc_incl MemA.spc spc_s).
   Context (MainInSpc : spc_incl (IncrMainAS.spc u_s) spc_user_s).
 
   Local Definition MemA := (MemA.t u_s spc_mem).
@@ -223,7 +223,7 @@ Section wctxr.
   Definition wctxr (u : univ_id) (spc_s spc_user_s spc_mem : string → option fspec)
       (SchInSpc : spc_incl (SchAS.spc u spc_user_s) spc_s)
       (MainInSpc : spc_incl (IncrMainAS.spc u) spc_user_s)
-      (MemInSpc : spc_incl MemA.Spc spc_s) :
+      (MemInSpc : spc_incl MemA.spc spc_s) :
     ctx_refines
       ((IncrMainA.t u spc_s) ★ (MemA.t u spc_mem), emp%I)
       ((IncrMainI.t)         ★ (MemA.t u spc_mem), emp%I).

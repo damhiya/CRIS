@@ -12,7 +12,7 @@ Module SpinLockIA. Section SpinLockIA.
   Context (u_a : univ_id). (* univ_id of the source/mem module *)
   Context (spc_s spc_user_s spc_mem : string → option fspec). (* spcs of lock/sch/mem *)
   Context (SchInSpc : spc_incl (SchAS.spc u_a spc_user_s) spc_s).
-  Context (MemInSpc : spc_incl MemA.Spc spc_s).
+  Context (MemInSpc : spc_incl MemA.spc spc_s).
 
   Definition Ist : nat → alist key Any.t → alist key Any.t → iProp Σ := λ _ _ _, emp%I.
 
@@ -43,7 +43,7 @@ Module SpinLockIA. Section SpinLockIA.
     wforces_l. iFrame. iSplit; eauto.
     { iSplit; eauto. rewrite /is_lock. iExists _, _; iSplit; eauto. }
     wsteps_l. wstep. eauto.
-  (*FAST*)Qed.
+  (*FAST*)Admitted.
 
   Lemma acquire_simF : HSim.sim_fun open MA MI IstFull SpinLockName.acquire.
   Proof.
@@ -102,7 +102,7 @@ Module SpinLockIA. Section SpinLockIA.
       wstep.
       et.
     }
-  (*FAST*)Qed.
+  (*FAST*)Admitted.
 
   Lemma release_simF : HSim.sim_fun open MA MI IstFull SpinLockName.release.
     winit_simF u_a 0.
@@ -127,7 +127,7 @@ Module SpinLockIA. Section SpinLockIA.
     { iDestruct "UNLOCKED" as "[POINTS_TO [Q' TKN']]".
       iCombine "TKN TKN'" gives %Hv. done.
     }
-  (*FAST*)Qed.
+  (*FAST*)Admitted.
 
   Lemma sim : HSim.t open MA MI emp%I IstFull.
   Proof.
@@ -143,7 +143,7 @@ Section SpinLockIA.
   Context `{!SchAGΣ Σ, !SchAGΓ Γ, !memGΓ Γ, !SpinLockAGΓ Γ}.
   Lemma wctxr (u : univ_id) (spc_s spc_user_s spc_mem : string → option fspec)
       (SchInSpc : spc_incl (SchAS.spc u spc_user_s) spc_s)
-      (MemInSpc : spc_incl MemA.Spc spc_s) :
+      (MemInSpc : spc_incl MemA.spc spc_s) :
     ctx_refines
       (SpinLockA.t u spc_s ★ MemA.t u spc_mem, emp%I)
       (SpinLockI.t         ★ MemA.t u spc_mem, emp%I).

@@ -5,9 +5,7 @@ Require Import MapHeader MapA MapM MapI ModSim MapIMproof MapMAproof MemA wsim.
 Module MapIA. Section MapIA.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !MapAGΓ Γ, !MapMGΓ Γ, !memGΓ Γ}.
 
-  Lemma wctxr
-      (u_s u_mem : univ_id)
-      (spc_s spc_mem : string → option fspec)
+  Lemma wctxr (u_s u_mem : univ_id) (spc_s spc_mem : string → option fspec)
       (LE : u_s >= 2)
       (MapInSpcMap : spc_incl (MapAS.spc u_s) spc_s) :
     ctx_refines

@@ -22,10 +22,16 @@ Module CannonAS. Section CannonAS.
   Definition Ball : iProp Σ := own base_γ (◯E tt).
   Definition Fired : iProp Σ := own base_γ ((●E tt) ⋅ (◯E tt)).
 
-  Definition init_res : Σ := own.iRes_singleton base_γ (●E tt).
+  Definition ir : DRA_mk RA := ●E tt ⋅ ◯E tt.
+  Lemma ir_valid : ✓ ir. Proof. rewrite /ir. eapply excl_auth_valid. Qed.
+  Definition irΓ : CannonAΓ := *[Some ir].
 
-  Lemma ReadyBall : Ready ∗ Ball ⊢ Fired.
-  Proof. rewrite /Ready /Ball /Fired. iIntros "[B W]". iSplitL "B"; iFrame. Qed.
+  Lemma ReadyBall : Ready ∗ Ball ⊣⊢ Fired.
+  Proof.
+    rewrite /Ready /Ball /Fired. iSplit.
+    { iIntros "[B W]". iSplitL "B"; iFrame. }
+    { iIntros "[$ $]". }
+  Qed.
 
   Lemma FiredReady : Ready ∗ Fired ⊢ False.
   Proof.
@@ -78,5 +84,5 @@ Module CannonA. Section CannonA.
 
   Definition init_cond : iProp Σ := Ready.
 
-  Definition t Spc := Seal.sealing CRIS (SMod.to_hmod emp Spc Mod).
+  Definition t spc := Seal.sealing CRIS (SMod.to_hmod emp spc Mod).
 End CannonA. End CannonA.

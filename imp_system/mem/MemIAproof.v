@@ -223,11 +223,11 @@ End RA.
 Module MemIA. Section MemIA.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !memGΓ Γ}.
 
-  Context (csl: string → bool).
-  Context (genv: GEnv.t).
-  Context (u_s: univ_id).
-  Context (Spc: string → option fspec).
-  Context (MemInSpcMem: spc_incl MemA.Spc Spc).
+  Context (csl : string → bool).
+  Context (genv : GEnv.t).
+  Context (u_s : univ_id).
+  Context (spc : string → option fspec).
+  Context (MemInSpcMem: spc_incl MemA.spc spc).
 
   Definition Ist: nat -> alist key Any.t -> alist key Any.t -> iProp Σ :=
     fun _ st_src st_tgt =>
@@ -240,12 +240,11 @@ Module MemIA. Section MemIA.
         (own base_γ ((● (memk_src : _memRA)): memRA))
       ))%I.
 
-  Local Definition MemA := (MemA.t u_s Spc).
+  Local Definition MemA := (MemA.t u_s spc).
   Local Definition MemI := (MemI.t csl genv).
   Local Definition IstFull := (IstProd (IstSB MemA.(HMod.scopes) Ist) IstEq).
 
-  Lemma simF_alloc:
-    HSim.sim_fun open MemA MemI IstFull MemName.alloc.
+  Lemma simF_alloc : HSim.sim_fun open MemA MemI IstFull MemName.alloc.
   Proof.
     winit_simF u_s 0.
     wsteps_l.
@@ -289,8 +288,7 @@ Module MemIA. Section MemIA.
       unfold AList.update in *. des_ifs. exploit WFTGT; et. i; des. r; lia.
   Qed.
 
-  Lemma simF_free:
-    HSim.sim_fun open MemA MemI IstFull MemName.free.
+  Lemma simF_free : HSim.sim_fun open MemA MemI IstFull MemName.free.
   Proof.
     winit_simF u_s 0.
   
@@ -378,8 +376,7 @@ Module MemIA. Section MemIA.
     - ii. ss. unfold AList.update in *. des_ifs; et.
   Qed.
 
-  Lemma simF_load:
-    HSim.sim_fun open MemA MemI IstFull MemName.load.
+  Lemma simF_load : HSim.sim_fun open MemA MemI IstFull MemName.load.
   Proof.
     winit_simF u_s 0.
 
@@ -413,8 +410,7 @@ Module MemIA. Section MemIA.
     iFrame. iExists _, [_], _, _. repeat iSplit; et.
   Qed.
 
-  Lemma simF_store:
-    HSim.sim_fun open MemA MemI IstFull MemName.store.
+  Lemma simF_store : HSim.sim_fun open MemA MemI IstFull MemName.store.
   Proof.
     winit_simF u_s 0.
 
@@ -524,8 +520,7 @@ Module MemIA. Section MemIA.
     unfold sim_loc in T. des_ifs; bsimpl; des; des_sumbool; try nia; subst; exploit WFTGT; et.
   Qed.
 
-  Lemma simF_cmp:
-    HSim.sim_fun open MemA MemI IstFull MemName.cmp.
+  Lemma simF_cmp : HSim.sim_fun open MemA MemI IstFull MemName.cmp.
   Proof.
     winit_simF u_s 0.
     
@@ -713,8 +708,7 @@ Module MemIA. Section MemIA.
     destruct x; ss.
   Qed.
 
-  Lemma simF_cas:
-    HSim.sim_fun open MemA MemI IstFull MemName.cas.
+  Lemma simF_cas : HSim.sim_fun open MemA MemI IstFull MemName.cas.
   Proof.
     winit_simF u_s 0.
 
@@ -841,8 +835,7 @@ Module MemIA. Section MemIA.
     }
   Qed.
 
-  Theorem sim:
-    HSim.t open MemA MemI (MemA.InitCond csl genv) IstFull.
+  Theorem sim : HSim.t open MemA MemI (MemA.init_cond csl genv) IstFull.
   Proof.
     init_sim.
     - rewrite /IstFull /MemA /MemI. unfold_hmod. s.
@@ -867,11 +860,10 @@ Section wctxr.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
   Context `{!memGΓ Γ}.
 
-  Theorem wctxr csl genv (u_s: univ_id) (Spc: string → option fspec)
-    (MemInSpcMem: spc_incl MemA.Spc Spc)
-  :
+  Theorem wctxr csl genv (u_s: univ_id) (spc : string → option fspec)
+      (MemInSpcMem: spc_incl MemA.spc spc) :
     ctx_refines
-      (MemA.t u_s Spc, MemA.InitCond csl genv)
+      (MemA.t u_s spc, MemA.init_cond csl genv)
       (MemI.t csl genv, emp%I).
   Proof. eapply main_adequacy, sim; eauto. Qed.
 End wctxr. End MemIA.

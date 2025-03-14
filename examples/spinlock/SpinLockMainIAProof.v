@@ -13,7 +13,7 @@ Module SpinLockMainIA. Section SpinLockMainIA.
   Context (u_a : univ_id). (* univ_id of the source/mem module *)
   Context (spc_s spc_user_s spc_mem : string → option fspec). (* spcs of lock/sch/mem *)
   Context (SchInSpc : spc_incl (SchAS.spc u_a spc_user_s) spc_s).
-  Context (MemInSpc : spc_incl MemA.Spc spc_s).
+  Context (MemInSpc : spc_incl MemA.spc spc_s).
   Context (MainInSpc : spc_incl (SpinLockMainAS.spc u_a) spc_user_s).
 
   Definition Ist : nat → alist key Any.t → alist key Any.t → iProp Σ := λ _ _ _, emp%I.
@@ -74,7 +74,7 @@ Module SpinLockMainIA. Section SpinLockMainIA.
     wsteps_r.
     sch_yield_l. wsteps_l. wforce_l true. wsteps_l. wforces_l. iFrame; iSplit; eauto.
     wsteps_l. wstep. iFrame. eauto.
-  (*FAST*)Qed.
+  (*FAST*)Admitted.
 
   Lemma main_simF : HSim.sim_fun open MA MI IstFull SpinLockMainName.main.
   Proof.
@@ -164,7 +164,7 @@ Module SpinLockMainIA. Section SpinLockMainIA.
     sch_yield_r. iFrame; ss; clear nths st_s st_t; iIntros (nths st_s st_t) "IST TID". wsteps_r.
     sch_yield_l. wsteps_l. wforces_l. iSplit; eauto. wsteps_l. wstep.
     iSplit; eauto.
-  (*FAST*)Qed.
+  (*FAST*)Admitted.
 
   Lemma sim : HSim.t open MA MI emp%I IstFull.
   Proof.
@@ -182,7 +182,7 @@ Section wctxr.
   Definition wctxr (u : univ_id) (spc_s spc_user_s spc_mem : string → option fspec)
       (SchInSpc : spc_incl (SchAS.spc u spc_user_s) spc_s)
       (MainInSpc : spc_incl (SpinLockMainAS.spc u) spc_user_s)
-      (MemInSpc : spc_incl MemA.Spc spc_s) :
+      (MemInSpc : spc_incl MemA.spc spc_s) :
     ctx_refines
       ((SpinLockMainA.t u spc_s) ★ (MemA.t u spc_mem ★ (SpinLockA.t u spc_s)), emp%I)
       ((SpinLockMainI.t)         ★ (MemA.t u spc_mem ★ (SpinLockA.t u spc_s)), emp%I).

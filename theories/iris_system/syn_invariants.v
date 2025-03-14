@@ -203,59 +203,59 @@ Module inv_instances.
 
   #[export] Instance subG_app_l_HRA (Γ : HRA) (Σ1 Σ2 : GRA) : subG Γ Σ1 → subG Γ (GRAs.app Σ1 Σ2).
   Proof. move=> H i; move: H=> /(_ i) [j ?]. exists (Fin.L _ j). by rewrite /= fin_add_inv_l. Defined.
-  Lemma subG_app_l_HRA_inG_id Γ Σ1 Σ2 subGins i :
+  (* Lemma subG_app_l_HRA_inG_id Γ Σ1 Σ2 subGins i :
     (subG_app_l_HRA Γ Σ1 Σ2 subGins) i
     = let '(exist _ j jprf) := subGins i in
       exist _ (Fin.L _ j)
       (eq_ind_r (λ p : DRA, GRA_lookup i = p) jprf (fin_add_inv_l (λ _ : fin (GRA_len + GRA_len), DRA) GRA_lookup GRA_lookup j)).
-  Proof. unfold subG_app_l_HRA. destruct (subGins i). reflexivity. Qed.
+  Proof. unfold subG_app_l_HRA. destruct (subGins i). reflexivity. Qed. *)
 
   #[export] Instance subG_app_r_HRA (Γ : HRA) (Σ1 Σ2 : GRA) : subG Γ Σ2 → subG Γ (GRAs.app Σ1 Σ2).
   Proof. move=> H i; move: H=> /(_ i) [j ?]. exists (Fin.R _ j). by rewrite /= fin_add_inv_r. Defined.
-  Lemma subG_app_r_HRA_inG_id Γ Σ1 Σ2 subGins i :
+  (* Lemma subG_app_r_HRA_inG_id Γ Σ1 Σ2 subGins i :
       (subG_app_r_HRA Γ Σ1 Σ2 subGins) i
       = let '(exist _ j jprf) := subGins i in
         exist _ (Fin.R _ j)
         (eq_ind_r (λ p : DRA, GRA_lookup i = p) jprf (fin_add_inv_r (λ _ : fin (GRA_len + GRA_len), DRA) GRA_lookup GRA_lookup j)).
-  Proof. unfold subG_app_r_HRA. destruct (subGins i). reflexivity. Qed.
+  Proof. unfold subG_app_r_HRA. destruct (subGins i). reflexivity. Qed. *)
 
   #[export] Instance subG_app_l_HRA' (Γ Σ1 : HRA) (Σ2 : GRA) : subG Γ Σ1 → subG Γ (GRAs.app Σ1 Σ2).
   Proof. move=> H i; move: H=> /(_ i) [j ?]. exists (Fin.L _ j). by rewrite /= fin_add_inv_l. Defined.
-  Lemma subG_app_l_HRA'_inG_id Γ Σ1 Σ2 subGins i :
+  (* Lemma subG_app_l_HRA'_inG_id Γ Σ1 Σ2 subGins i :
     (subG_app_l_HRA' Γ Σ1 Σ2 subGins) i
     = let '(exist _ j jprf) := subGins i in
       exist _ (Fin.L _ j)
       (eq_ind_r (λ p : DRA, GRA_lookup i = p) jprf (fin_add_inv_l (λ _ : fin (GRA_len + GRA_len), DRA) GRA_lookup GRA_lookup j)).
-  Proof. unfold subG_app_l_HRA'. destruct (subGins i). reflexivity. Qed.
+  Proof. unfold subG_app_l_HRA'. destruct (subGins i). reflexivity. Qed. *)
 
   #[export] Instance subG_app_r_HRA' (Γ Σ2 : HRA) (Σ1 : GRA) : subG Γ Σ2 → subG Γ (GRAs.app Σ1 Σ2).
   Proof. move=> H i; move: H=> /(_ i) [j ?]. exists (Fin.R _ j). by rewrite /= fin_add_inv_r. Defined.
-  Lemma subG_app_r_HRA'_inG_id Γ Σ1 Σ2 subGins i :
+  (* Lemma subG_app_r_HRA'_inG_id Γ Σ1 Σ2 subGins i :
       (subG_app_r_HRA' Γ Σ1 Σ2 subGins) i
       = let '(exist _ j jprf) := subGins i in
         exist _ (Fin.R _ j)
         (eq_ind_r (λ p : DRA, GRA_lookup i = p) jprf (fin_add_inv_r (λ _ : fin (GRA_len + GRA_len), DRA) GRA_lookup GRA_lookup j)).
-  Proof. unfold subG_app_r_HRA'. destruct (subGins i). reflexivity. Qed.
+  Proof. unfold subG_app_r_HRA'. destruct (subGins i). reflexivity. Qed. *)
 
   #[export] Instance subG_app_l_HRA'' (Γ Σ2 : HRA) (Σ1 : GRA) : subG Γ Σ1 → subG Γ (GRAs.app Σ1 Σ2).
   Proof. move=> H i; move: H=> /(_ i) [j ?]. exists (Fin.L _ j). by rewrite /= fin_add_inv_l. Defined.
-  Lemma subG_app_l_HRA''_inG_id Γ Σ1 Σ2 subGins i :
+  (* Lemma subG_app_l_HRA''_inG_id Γ Σ1 Σ2 subGins i :
     (subG_app_l_HRA'' Γ Σ1 Σ2 subGins) i
     = let '(exist _ j jprf) := subGins i in
       exist _ (Fin.L _ j)
       (eq_ind_r (λ p : DRA, GRA_lookup i = p) jprf (fin_add_inv_l (λ _ : fin (GRA_len + GRA_len), DRA) GRA_lookup GRA_lookup j)).
-  Proof. unfold subG_app_l_HRA''. destruct (subGins i). reflexivity. Qed.
+  Proof. unfold subG_app_l_HRA''. destruct (subGins i). reflexivity. Qed. *)
 
   #[export] Instance subG_app_r_HRA'' (Γ Σ1 : HRA) (Σ2 : GRA) : subG Γ Σ2 → subG Γ (GRAs.app Σ1 Σ2).
   Proof. move=> H i; move: H=> /(_ i) [j ?]. exists (Fin.R _ j). by rewrite /= fin_add_inv_r. Defined.
-  Lemma subG_app_r_HRA''_inG_id Γ Σ1 Σ2 subGins i :
+  (* Lemma subG_app_r_HRA''_inG_id Γ Σ1 Σ2 subGins i :
     (subG_app_r_HRA'' Γ Σ1 Σ2 subGins) i
     = let '(exist _ j jprf) := subGins i in
       exist _ (Fin.R _ j)
       (eq_ind_r (λ p : DRA, GRA_lookup i = p) jprf (fin_add_inv_r (λ _ : fin (GRA_len + GRA_len), DRA) GRA_lookup GRA_lookup j)).
-  Proof. unfold subG_app_r_HRA''. destruct (subGins i). reflexivity. Qed.
+  Proof. unfold subG_app_r_HRA''. destruct (subGins i). reflexivity. Qed. *)
 
-  Ltac solve_in_subG_goal :=
+  (* Ltac solve_in_subG_goal :=
     autounfold with GRA_index;
     hrepeat do 1 match goal with
     | [|- context [inG_id (in_subG _ _ _)]] => rewrite inG_id_in_subG
@@ -269,9 +269,9 @@ Module inv_instances.
     | [|- context [subG_app_l_HRA'' _ _ _ _ _]] => rewrite subG_app_l_HRA''_inG_id
     | [|- context [subG_refl _ _]] => unfold subG_refl
     | [|- context [inG_id (subG_inG _ _ _)]] => rewrite (inG_id_subG_inG _)
-    end.
+    end. *)
 
-  Ltac solve_eq_index :=
+  (* Ltac solve_eq_index :=
     match goal with
     | H : eq_index ?r ?r2 |- _ => rewrite /r /r2 /eq_index in H
     end; des_ifs;
@@ -295,5 +295,5 @@ Module inv_instances.
     match goal with
     | |- r_NoDup (r_cons ?RA ?RES ?tl) => econs; [solve_nin|solve]
     | |- r_NoDup (r_nil) => econs
-    end.
+    end. *)
 End inv_instances.

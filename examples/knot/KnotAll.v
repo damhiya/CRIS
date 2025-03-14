@@ -46,7 +46,7 @@ Module KnotAll.
   Proof. cbn. prove_nodup. Qed.
 
   Local Definition init_cond : iProp Σ :=
-    KnotMainA.InitCond ∗ (KnotA.InitCond genv) ∗ (MemA.InitCond csl genv).
+    KnotMainA.InitCond ∗ (KnotA.InitCond genv) ∗ (MemA.init_cond csl genv).
 
   Lemma cancel_src :
     refines (mod_cancel, (init_cond ∗ main_fsp.(precond) tt tt↑ tt↑)%I)
@@ -58,7 +58,7 @@ Module KnotAll.
   Qed.
 
   Ltac prove_spc :=
-    rewrite /MemA.Spc /APCA.Spc /KnotA.KnotRecSpc /KnotA.KnotSpc /KnotMainA.MainFunSpc /KnotMainA.MainSpc;
+    rewrite /MemA.spc /APCA.Spc /KnotA.KnotRecSpc /KnotA.KnotSpc /KnotMainA.MainFunSpc /KnotMainA.MainSpc;
     rewrite /spc /spc_pure /spc_fun /spc_rec /smod_src /spc_pure /spc_incl /spc_sub /find_body /pure_specbody /spc_from /option_map;
     rewrite /spc_fun /spc_rec /APCA.Spc /KnotA.KnotRecSpc /KnotA.KnotSpc /KnotMainA.MainFunSpc /KnotMainA.MainSpc;
     try unseal CRIS; try prove_nodup;
@@ -154,7 +154,7 @@ Module KnotAll.
     destruct (H initial_resource).
     { apply initial_resource_valid. }
     { iIntros "[[IM IK] [IKM IMM]]".
-      rewrite /init_cond /KnotA.InitCond /KnotMainA.InitCond /MemA.InitCond.
+      rewrite /init_cond /KnotA.InitCond /KnotMainA.InitCond /MemA.init_cond.
       rewrite /KnotMainA.init_res /KnotA.init_res /mem_init_res /KnotA.init_res_mem.
       rewrite /mem_initial_mem_r.
       rewrite /precond /= /KnotA.knot_full /KnotA.var_points_to /KnotA.knot_init /KnotA.knot_frag

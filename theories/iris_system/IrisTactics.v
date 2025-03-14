@@ -218,8 +218,7 @@ Ltac iris_tac :=
       try frac_des).
 
 (* Tactics for discrete_fun_singleton *)
-
-Fixpoint discrete_fun_list `{EqDecision A} {B : A → ucmra} (l: list (sigT B)) :=
+(* Fixpoint discrete_fun_list `{EqDecision A} {B : A → ucmra} (l: list (sigT B)) :=
   match l with
   | [] => ε%I
   | (existT a b) :: tl => (discrete_fun_singleton a b) ⋅ discrete_fun_list tl
@@ -356,4 +355,4 @@ Ltac dfs_solve :=
   dfs_to_list;
   dfs_resolve;
   dfs_split;
-  dfs_simplify.
+  dfs_simplify. *)

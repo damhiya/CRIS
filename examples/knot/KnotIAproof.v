@@ -22,7 +22,7 @@ Module KnotIA. Section KnotIA.
   Context (GEnvIncl: incl KnotGEnv.t genv).
   (* 5. hypotheses for spc *)
   Context (RecInSpc: spc_incl KnotRecSpc SpcRec).
-  Context (MemInSpc: spc_incl MemA.Spc Spc).
+  Context (MemInSpc: spc_incl MemA.spc Spc).
   Context (APCInSpc: spc_incl APCA.Spc Spc).
   (* 6. hypotheses for pure spc *)
   Context (FunInPure: spc_sub SpcFun SpcPure).
@@ -202,7 +202,7 @@ Section wctxr.
     (GEnvWF: GEnv.wf genv)
     (GEnvIncl: incl KnotGEnv.t genv)
     (RecInSpc: spc_incl KnotA.KnotRecSpc SpcRec)
-    (MemInSpc: spc_incl MemA.Spc Spc)
+    (MemInSpc: spc_incl MemA.spc Spc)
     (APCInSpc: spc_incl APCA.Spc Spc)
     (FunInPure: spc_sub SpcFun SpcPure)
     (PureInSpc : spc_sub SpcPure Spc)   

@@ -4,82 +4,89 @@ Require Import IncrMainHeader IncrMainI IncrMainA IncrMainIAproof.
 Require Import SchHeader SchI SchA SchIAproof SchTactics.
 
 Module IncrAll.
-  Local Existing Instances invG_Σ invG_Γ invG_I invG_E invG_D.
-
-  Instance τ : TypG.t := λ _, ST.t.
-  Instance typG : CtxST.t τ. Proof. econs. econs. instantiate (1:=0); ss. Qed.
-
-  Local Instance Γ : HRA := ##[invΓ; SchAΓ; memΓ; IncrMainAΓ].
-  Local Instance α : SRFCons.t :=
-    λ n,
-      match n with
-      | 0 => SL.syntax
-      | _ => inv_syntax
-      end.
-  Local Instance Σ : GRA := ##[invΣ; SchAΣ; Γ].
-  Local Instance sub : subG Γ Σ.
-  Proof. do 2 apply subG_app_r. apply subG_refl. Defined.
-  Local Instance invG : invG α Σ Γ.
-  Proof. econs. { econs. exists 0%fin. ss. } { econs. { exists 0%fin. ss. } { exists 1%fin. ss. } } Defined.
-  Instance β : SRFIntp.t :=
-    λ n,
-      match n with
-      | 0 => SL.interp
-      | _ => inv_interp
-      end.
-  Local Instance intpG : SRFIntp.inG (@SL.syntax τ Γ) α (@SL.interp τ α Γ Σ _) β.
-  Proof. econs; instantiate (1:=0); ss. Qed.
-
-  Local Instance invintpG : SRFIntp.inG inv_syntax α inv_interp β.
-  Proof. econs; instantiate (1:=1); ss. Qed.
-
-  Local Instance sinvg : sinvG Σ Γ α β τ.
-  Proof. econs; econs; try typeclasses eauto. Qed.
-
-  Local Instance memΓ : memGΓ Γ.
-  Proof. econs. exists 3%fin; ss. Defined.
-
-  Local Instance SchAΓ : SchAGΓ Γ.
-  Proof. econs. exists 2%fin; ss. Defined.
-
-  Local Instance IncrMainAGΓ : IncrMainAGΓ Γ.
-  Proof. econs. exists 4%fin; ss. Defined.
-
-  Local Instance SchAΣ : SchAGΣ Σ.
-  Proof. econs. exists 1%fin; ss. Defined.
+  Import inv_instances.
+  Local Definition u : univ_id := 1.
 
   Local Definition csl : string → bool := λ _, false.
   Local Definition genv : GEnv.t := GEnv.unit.
-  Local Definition u : nat := 1.
-  Local Definition ginv : iProp Σ := wsim_ginv u ⊤.
 
+  Local Instance Γ : HRA := ##[invΓ; memΓ; SchAΓ; IncrMainAΓ].
+  Local Instance Σ : GRA := ##[invΣ; SchAΣ; Γ].
+
+  Definition IRΓ : Γ :=
+    **[ir_invΓ u; ir_memΓ csl genv; SchAS.ir_SchAΓ; *[None]].
+  Definition IRΣ : Σ :=
+    **[ir_invΣ u; SchAS.ir_SchAΣ; IRΓ].
+
+  Lemma IRΣ_valid : ✓ (IRΣ ⋅ initial_resource_own_admin).
+  Proof.
+    eapply InitRes.app_valid.
+    { rewrite /ir_invΣ. apply InitRes.app_valid.
+      { apply InitRes.singleton_some_valid, ir_ownIRA_valid. }
+      { intros i; inv_fin i. }
+    }
+    apply InitRes.app_valid.
+    { apply InitRes.app_valid.
+      { apply InitRes.singleton_some_valid, SchAS.ir_threadsRA_valid. }
+      { intros i; inv_fin i. }
+    }
+    apply InitRes.app_valid.
+    { apply InitRes.app_valid.
+      { rewrite /ir_invΓ. apply InitRes.app_valid.
+        { apply InitRes.singleton_some_valid, ir_ownERA_valid. }
+        { apply InitRes.app_valid.
+          { apply InitRes.singleton_some_valid, ir_ownDRA_valid. }
+          { intros i; inv_fin i. }
+        }
+      }
+      apply InitRes.app_valid.
+      { rewrite /ir_memΓ. apply InitRes.app_valid.
+        { apply InitRes.singleton_some_valid, ir_memRA_valid. }
+        { intros i; inv_fin i. }
+      }
+      apply InitRes.app_valid.
+      { apply InitRes.app_valid.
+        { apply InitRes.singleton_some_valid, SchAS.ir_tidRA_valid. }
+        { intros i; inv_fin i. }
+      }
+      apply InitRes.app_valid.
+      { apply InitRes.app_valid.
+        { apply InitRes.singleton_none_valid. }
+        { intros i; inv_fin i. }
+      }
+      { intros i; inv_fin i. }
+    }
+    { intros i; inv_fin i. }
+  Qed.
+
+  (* source module *)
   Local Definition spc_user_s : string → option fspec :=
-    to_spc (IncrMainAS.spc u ++ MemA.Spc).
-
+    to_spc (IncrMainAS.spc u ++ MemA.spc).
   Local Definition smod_src : SMod.t :=
     (IncrMainA.Mod u) ☆ (MemA.Mod) ☆ (SchA.Mod u spc_user_s).
   Local Definition spc_s : string → option fspec := spc_from smod_src.
+
   Local Definition smod_cancel : HMod.t := SModCancel.to_hmod smod_src.
-  Local Definition mod_src : HMod.t := SMod.to_hmod ginv spc_s smod_src.
+  Local Definition mod_src : HMod.t := SMod.to_hmod (wsim_ginv u ⊤) spc_s smod_src.
   Local Definition mod_tgt : HMod.t := IncrMainI.t ★ (MemI.t csl genv) ★ (SchI.t).
 
   Local Definition SchInSpc : spc_incl (SchAS.spc u spc_user_s) spc_s.
   Proof.
-    ii; rewrite /spc_s /SchAS.spc /MemA.Spc /IncrMainAS.spc; unseal CRIS; split; [prove_nodup|ii].
+    ii; rewrite /spc_s /SchAS.spc /MemA.spc /IncrMainAS.spc; unseal CRIS; split; [prove_nodup|ii].
     ss; des_ifs; rewrite ->eq_rel_dec_correct in *; des_ifs.
   Qed.
   Local Definition MainInSpc : spc_incl (IncrMainAS.spc u) spc_user_s.
   Proof.
-    ii; rewrite /spc_s /SchAS.spc /MemA.Spc /IncrMainAS.spc; unseal CRIS; split; [prove_nodup|ii].
+    ii; rewrite /spc_s /SchAS.spc /MemA.spc /IncrMainAS.spc; unseal CRIS; split; [prove_nodup|ii].
     ss; des_ifs; rewrite ->eq_rel_dec_correct in *; des_ifs.
   Qed.
-  Local Definition MemInSpc : spc_incl MemA.Spc spc_s.
+  Local Definition MemInSpc : spc_incl MemA.spc spc_s.
   Proof.
-    ii; rewrite /spc_s /SchAS.spc /MemA.Spc /IncrMainAS.spc; unseal CRIS; split; [prove_nodup|ii].
+    ii; rewrite /spc_s /SchAS.spc /MemA.spc /IncrMainAS.spc; unseal CRIS; split; [prove_nodup|ii].
     ss; des_ifs; rewrite ->eq_rel_dec_correct in *; des_ifs.
   Qed.
 
-  Local Definition init_cond : iProp Σ := MemA.InitCond csl genv ∗ SchA.InitCond.
+  Local Definition init_cond : iProp Σ := MemA.init_cond csl genv ∗ SchA.init_cond.
   Local Definition main_fsp : fspec := IncrMainAS.main_spec u.
 
   (* Apply cancellation to linked spec module *)
@@ -114,7 +121,7 @@ Module IncrAll.
     replace (SMod.to_hmod _ _ (SchA.Mod u spc_user_s)) with (SchA.t u spc_s spc_user_s); cycle 1.
     { rewrite /SchA.t; unseal CRIS; ss. }
     eapply SchIA.sim; eauto using SchInSpc.
-    { rewrite /spc_sub /spc_user_s /spc_s /IncrMainAS.spc /MemA.Spc; unseal CRIS. ii; ss.
+    { rewrite /spc_sub /spc_user_s /spc_s /IncrMainAS.spc /MemA.spc; unseal CRIS. ii; ss.
       des_ifs; rewrite ->eq_rel_dec_correct in *; des_ifs.
     }
   Qed.
@@ -128,71 +135,39 @@ Module IncrAll.
     { eapply src_tgt. }
   Qed.
 
-  Import rListNotations.
-  Local Definition initial_resource_list : res_list :=
-    [ownIRA_resource u; ownERA_resource u; ownDRA_resource u;
-     SchAS.tidRA_resource; SchAS.threadsRA_resource; memRA_resource csl genv]%res_list.
-
-  Local Definition initial_resource : Σ := 
-    (op_res_list initial_resource_list) ⋅ initial_resource_own_admin.
-
-  Ltac dfs_solve :=
-    econs; [repeat (intros [C | C]; [inv C|]; revert C); intros []|].
-    
-  Lemma initial_resource_valid : ✓ initial_resource.
-  Proof.
-    apply op_res_list_valid.
-    repeat dfs_solve. econs.
-  Qed.
-
-  Local Definition initial_resource : Σ :=
-    (MemA.mem_init_res csl genv) ⋅ SchAS.initial_resource.
-  Lemma initial_resource_valid : ✓ initial_resource.
-  Proof.
-    dfs_unfold; dfs_merge; dfs_to_list; dfs_resolve.
-    { rewrite inG_id_subG_inG in x.
-      rewrite ?/eq_rec_r ?/eq_rec in x; try rewrite -!eq_rect_eq in x; ss; eauto.
-    }
-    { rewrite inG_id_subG_inG in x.
-      rewrite ?/eq_rec_r ?/eq_rec in x; try rewrite -!eq_rect_eq in x; ss; eauto.
-    }
-    { rewrite inG_id_subG_inG in x.
-      rewrite ?/eq_rec_r ?/eq_rec in x; try rewrite -!eq_rect_eq in x; ss; eauto.
-      rewrite inG_id_subG_inG in x.
-      rewrite ?/eq_rec_r ?/eq_rec in x; try rewrite -!eq_rect_eq in x; ss; eauto.
-    }
-    { dfs_split; dfs_simplify.
-      { pose proof mem_initial_valid csl genv. eapply cmra_valid_op_l; eauto. }
-      { rewrite /SchAS.initial_threads_r; eapply auth_both_valid_discrete; split.
-        { exists (λ tid, if (tid =? 0) then Some ((3/4)%Qp, to_agree (λ _ _ : SAny.t, Some (to_agree (existT 0 ⊤%SRF)))) else None).
-          intros i; des_ifs; ss; [rewrite Nat.eqb_eq in Heq|rewrite Nat.eqb_neq in Heq]; clarify; ss.
-          { rewrite discrete_fun_lookup_op //= -Some_op -pair_op frac_op; repeat f_equiv; ss.
-            { rewrite Qp.quarter_three_quarter; ss. }
-            { rr; ii; split; ii; esplits; eauto; try set_solver. }
-          }
-          { rewrite discrete_fun_lookup_op; des_ifs; rewrite Nat.eqb_eq in Heq0; ss. }
-        }
-        { ii; des_ifs; ss. }
-      }
-      { rewrite /SchAS.initial_tid_admin_r /SchAS.tid_admin_r. intros x. des_ifs. }
-    }
-  Qed.
-
   Theorem behavioral_refinement :
     ∃ target_resource, refines_mod
-      (HMod.to_mod smod_cancel initial_resource)
+      (HMod.to_mod smod_cancel (IRΣ ⋅ initial_resource_own_admin))
       (HMod.to_mod mod_tgt target_resource).
   Proof.
     move: (cancel_tgt)=>H; rewrite /refines in H; ss.
-    destruct (H initial_resource).
-    { apply initial_resource_valid. }
-    { iIntros "[M S]".
-      rewrite /init_cond /MemA.InitCond /SchA.InitCond /precond /main_fsp /IncrMainAS.main_spec; ss.
-      rewrite /precond /fspec_simple /=.
-      admit.
+    destruct (H (IRΣ ⋅ initial_resource_own_admin)).
+    { apply IRΣ_valid. }
+    { rewrite /IRΣ /InitRes.app.
+      try (repeat rewrite ?InitRes.L_distr ?InitRes.R_distr).
+      iIntros "[[[I _] [[THS _] [[[E [D _]] [[M _] [[TID _] _]]] _]]] O]".
+      iPoseProof (make_wsats u with "[I E D]") as "[U W]".
+      { iSplitL "I".
+        { solve_index "I". f_equal. }
+        iSplitL "E".
+        { solve_index "E". f_equal. }
+        { solve_index "D". f_equal. }
+      }
+      iAssert (SchAS.tid_admin None) with "[TID]" as "TID".
+      { rewrite /SchAS.tid_admin. unseal "SchA". solve_index "TID". f_equal. }
+      iPoseProof (SchAS.tid_admin_none_split 0 with "TID") as "[H1 H2]".
+      { iSplitR "U W O H2"; cycle 1.
+        { iPoseProof (make_own_admin with "O") as "$". unfold_pre_post; iFrame. iSplit; eauto. }
+        rewrite /init_cond. iSplitL "M".
+        { iAssert (mem_init csl genv) with "[M]" as "[$ _]".
+          { rewrite /mem_init. solve_index "M". f_equal. }
+        }
+        iSplitL "THS".
+        { rewrite /SchAS.init_threads. unseal "SchA". solve_index "THS". f_equal. }
+        { iFrame. }
+      }
     }
     { econs; ss; try prove_nodup. }
     { exists x; des; eauto. }
-  Admitted.
+  Qed.
 End IncrAll.
-(* Print Assumptions CannonAll.behavioral_refinement. *)
