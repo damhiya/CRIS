@@ -13,29 +13,8 @@ Module CannonAll.
 
   Local Lemma irΣ_valid : ✓ (irΣ ⋅ initial_resource_own_admin).
   Proof.
-    eapply InitRes.app_valid.
-    { rewrite /ir_invΣ.
-      apply InitRes.app_valid.
-      { apply InitRes.singleton_some_valid, ir_ownIRA_valid. }
-      { intros i; inv_fin i. }
-    }
-    eapply InitRes.app_valid.
-    { eapply InitRes.app_valid.
-      { rewrite /ir_invΓ.
-        apply InitRes.app_valid.
-        { apply InitRes.singleton_some_valid, ir_ownERA_valid. }
-        apply InitRes.app_valid.
-        { apply InitRes.singleton_some_valid, ir_ownDRA_valid. }
-        { intros i; inv_fin i. }
-      }
-      apply InitRes.app_valid.
-      { rewrite /CannonAS.irΓ. apply InitRes.app_valid.
-        { apply InitRes.singleton_some_valid, CannonAS.ir_valid. }
-        { intros i; inv_fin i. }
-      }
-      { intros i; inv_fin i. }
-    }
-    { intros i; inv_fin i. }
+    solve_ir_valid.
+    - apply CannonAS.ir_valid.
   Qed.
 
   Local Definition smod_src : SMod.t := CannonA.Mod ☆ (MainA.Mod 1).
@@ -93,21 +72,14 @@ Module CannonAll.
     move: (cancel_tgt)=>H; rewrite /refines in H; des; ss.
     destruct (H (irΣ ⋅ initial_resource_own_admin)).
     { apply irΣ_valid. }
-    { rewrite /irΣ /InitRes.app.
-      try (repeat rewrite ?InitRes.L_distr ?InitRes.R_distr).
-      iIntros "[[[I _] [[[E [D _]] [[M _] _]] _]] O]".
-      iPoseProof (make_wsats 1 with "[I E D]") as "[U W]".
-      { iSplitL "I".
-        { solve_index "I". f_equal. }
-        iSplitL "E".
-        { solve_index "E". f_equal. }
-        { solve_index "D". f_equal. }
+    { clear H. simplify_res.
+      {
+        iPoseProof (CannonAS.ReadyBall with "[H10]") as "[R B]"; eauto.
+        iSplitL "R".
+        { iFrame. }
+        unfold_pre_post. iFrame. eauto.
       }
-      iPoseProof (CannonAS.ReadyBall with "[M]") as "[R B]".
-      { rewrite /CannonAS.Fired. solve_index "M". f_equal. }
-      iSplitL "R".
-      { rewrite /init_cond. iFrame. }
-      unfold_pre_post. iFrame. iSplit; eauto.
+      all: solve_res.
     }
     { econs; ss; try prove_nodup. }
     { exists x; des; eauto. }

@@ -621,15 +621,20 @@ Ltac solve_index H :=
     ]
   ].
 
-Ltac _solve_ir_valid := lazymatch goal with
-| |- ✓ ( (InitRes.app _ _) ⋅ initial_resource_own_admin ) => eapply InitRes.app_valid
-| |- ✓ ( InitRes.nil ⋅ initial_resource_own_admin ) => let i := fresh "i" in intros i; inv_fin i
-| |- ✓ ( InitRes.singleton None ⋅ initial_resource_own_admin ) => eapply InitRes.singleton_none_valid
-| |- ✓ ( InitRes.singleton _ ⋅ initial_resource_own_admin ) => eapply InitRes.singleton_some_valid
-| |- ✓ ( ?r ⋅ initial_resource_own_admin ) => rewrite /r; eapply InitRes.app_valid
-end.
+Ltac _solve_ir_valid :=
+  lazymatch goal with
+  | |- ✓ ( (InitRes.app _ _) ⋅ initial_resource_own_admin ) => eapply InitRes.app_valid
+  | |- ✓ ( InitRes.nil ⋅ initial_resource_own_admin ) => let i := fresh "i" in intros i; inv_fin i
+  | |- ✓ ( InitRes.singleton None ⋅ initial_resource_own_admin ) => eapply InitRes.singleton_none_valid
+  | |- ✓ ( InitRes.singleton _ ⋅ initial_resource_own_admin ) => eapply InitRes.singleton_some_valid
+  | |- ✓ ( ?r ⋅ initial_resource_own_admin ) => rewrite /r; eapply InitRes.app_valid
+  end.
 
-Ltac solve_ir_valid := hrepeat do 1 _solve_ir_valid.
+Ltac solve_ir_valid :=
+  (hrepeat do 1 _solve_ir_valid);
+  try match goal with |- ✓ ir_ownIRA _ => apply ir_ownIRA_valid end;
+  try match goal with |- ✓ ir_ownERA _ => apply ir_ownERA_valid end;
+  try match goal with |- ✓ ir_ownDRA _ => apply ir_ownDRA_valid end.
 
 Ltac _unfold_res :=
   match goal with

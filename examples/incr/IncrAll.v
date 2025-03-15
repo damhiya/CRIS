@@ -20,43 +20,10 @@ Module IncrAll.
 
   Lemma IRΣ_valid : ✓ (IRΣ ⋅ initial_resource_own_admin).
   Proof.
-    eapply InitRes.app_valid.
-    { rewrite /ir_invΣ. apply InitRes.app_valid.
-      { apply InitRes.singleton_some_valid, ir_ownIRA_valid. }
-      { intros i; inv_fin i. }
-    }
-    apply InitRes.app_valid.
-    { apply InitRes.app_valid.
-      { apply InitRes.singleton_some_valid, SchAS.ir_threadsRA_valid. }
-      { intros i; inv_fin i. }
-    }
-    apply InitRes.app_valid.
-    { apply InitRes.app_valid.
-      { rewrite /ir_invΓ. apply InitRes.app_valid.
-        { apply InitRes.singleton_some_valid, ir_ownERA_valid. }
-        { apply InitRes.app_valid.
-          { apply InitRes.singleton_some_valid, ir_ownDRA_valid. }
-          { intros i; inv_fin i. }
-        }
-      }
-      apply InitRes.app_valid.
-      { rewrite /ir_memΓ. apply InitRes.app_valid.
-        { apply InitRes.singleton_some_valid, ir_memRA_valid. }
-        { intros i; inv_fin i. }
-      }
-      apply InitRes.app_valid.
-      { apply InitRes.app_valid.
-        { apply InitRes.singleton_some_valid, SchAS.ir_tidRA_valid. }
-        { intros i; inv_fin i. }
-      }
-      apply InitRes.app_valid.
-      { apply InitRes.app_valid.
-        { apply InitRes.singleton_none_valid. }
-        { intros i; inv_fin i. }
-      }
-      { intros i; inv_fin i. }
-    }
-    { intros i; inv_fin i. }
+    solve_ir_valid.
+    - apply SchAS.ir_threadsRA_valid.
+    - apply ir_memRA_valid.
+    - apply SchAS.ir_tidRA_valid.
   Qed.
 
   (* source module *)
@@ -143,29 +110,21 @@ Module IncrAll.
     move: (cancel_tgt)=>H; rewrite /refines in H; ss.
     destruct (H (IRΣ ⋅ initial_resource_own_admin)).
     { apply IRΣ_valid. }
-    { rewrite /IRΣ /InitRes.app.
-      try (repeat rewrite ?InitRes.L_distr ?InitRes.R_distr).
-      iIntros "[[[I _] [[THS _] [[[E [D _]] [[M _] [[TID _] _]]] _]]] O]".
-      iPoseProof (make_wsats u with "[I E D]") as "[U W]".
-      { iSplitL "I".
-        { solve_index "I". f_equal. }
-        iSplitL "E".
-        { solve_index "E". f_equal. }
-        { solve_index "D". f_equal. }
+    { clear H. simplify_res.
+      {
+        iAssert (SchAS.tid_admin None) with "[H18]" as "TID".
+        { rewrite /SchAS.tid_admin. unseal "SchA". eauto. }
+        iPoseProof (SchAS.tid_admin_none_split 0 with "TID") as "[TA TU]".
+        iSplitR "U W H1 TU".
+        - rewrite /init_cond. iSplitL "H20".
+          { iAssert (mem_init csl genv) with "[H20]" as "[$ _]". eauto. }
+          iSplitL "H26".
+          { rewrite /SchAS.init_threads. unseal "SchA". eauto. }
+          eauto.
+        - iPoseProof (make_own_admin with "H1") as "$".
+          unfold_pre_post; iFrame. eauto.
       }
-      iAssert (SchAS.tid_admin None) with "[TID]" as "TID".
-      { rewrite /SchAS.tid_admin. unseal "SchA". solve_index "TID". f_equal. }
-      iPoseProof (SchAS.tid_admin_none_split 0 with "TID") as "[H1 H2]".
-      { iSplitR "U W O H2"; cycle 1.
-        { iPoseProof (make_own_admin with "O") as "$". unfold_pre_post; iFrame. iSplit; eauto. }
-        rewrite /init_cond. iSplitL "M".
-        { iAssert (mem_init csl genv) with "[M]" as "[$ _]".
-          { rewrite /mem_init. solve_index "M". f_equal. }
-        }
-        iSplitL "THS".
-        { rewrite /SchAS.init_threads. unseal "SchA". solve_index "THS". f_equal. }
-        { iFrame. }
-      }
+      all: solve_res.
     }
     { econs; ss; try prove_nodup. }
     { exists x; des; eauto. }

@@ -23,10 +23,7 @@ Module SpinLockAll.
   Lemma irΣ_valid : ✓ (irΣ ⋅ initial_resource_own_admin).
   Proof.
     solve_ir_valid.
-    - apply ir_ownIRA_valid.
     - apply SchAS.ir_threadsRA_valid.
-    - apply ir_ownERA_valid.
-    - apply ir_ownDRA_valid.
     - apply ir_memRA_valid.
     - apply SchAS.ir_tidRA_valid.
   Qed.
