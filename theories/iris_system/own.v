@@ -608,36 +608,3 @@ Notation "*[ Σ1 ; .. ; Σn ]" :=
 Notation "**[ Σ1 ; .. ; Σn ]" := (InitRes.app Σ1 .. (InitRes.app Σn InitRes.nil) ..).
 Notation "'L'" := InitRes.L (at level 50, only printing).
 Notation "'R'" := InitRes.R (at level 50, only printing).
-
-Ltac unfold_own :=
-  match goal with
-  | |- Own ?R = own base_γ ?R2 =>
-    rewrite own.Own_eq /own.Own_def own.own_eq /own.own_def /own.iRes_singleton; f_equal
-  end.
-
-Ltac unfold_left :=
-  repeat match goal with
-  | |- context [InitRes.singleton _] => rewrite InitRes.singleton_index
-  | |- context [InitRes.L (discrete_fun_singleton _ _)] => rewrite ?InitRes.L_index
-  | |- context [InitRes.R (discrete_fun_singleton _ _)] => rewrite ?InitRes.R_index
-  end.
-
-  Ltac solve_index H := 
-  eapply eq_ind; first iExact H;
-  unfold_own;
-  etrans;
-  [unfold_left; repeat match goal with | |- ?a = _ => remove_eq a end; simpl; refl
-  | etrans; cycle 1;
-    [ symmetry;
-      let k := fresh "k" in
-      match goal with
-      | |- context [inG_id ?i] => pattern i; match goal with | |- ?f ?a => set (k:=f) end
-      end;
-      autounfold with GRA_index
-      ; subst k
-      ; simpl
-      ; hrepeat do 1 match goal with | |- ?a = _ => remove_eq a end
-      ; simpl
-    | refl
-    ]
-  ].

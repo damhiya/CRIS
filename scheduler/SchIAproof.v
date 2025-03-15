@@ -336,7 +336,7 @@ Module SchIA. Section SchIA.
     wsteps_r. hss. wsteps_r.
     wby_coind "CIH". iFrame.
     Unshelve. all: ss.
-  Qed.
+  (*FAST*)Qed.
 
   Lemma simF_spawn : HSim.sim_fun open SchAMod SchIMod Ist SchName.spawn.
   Proof.
@@ -410,7 +410,7 @@ Module SchIA. Section SchIA.
     wforce_l.
     iSplitL "tid TKNQ0"; iFrame; eauto.
     wstep. iFrame. iSplit; eauto. iExists _, _, _. esplits; eauto.
-  Qed.
+  (*FAST*)Qed.
 
   Lemma simF_yield : HSim.sim_fun open SchAMod SchIMod Ist SchName.yield.
   Proof.
@@ -444,7 +444,7 @@ Module SchIA. Section SchIA.
     wforce_l (tt↑). wsteps_l.
     wforce_l; iSplitL "tid"; eauto.
     wstep. iFrame. iSplit; eauto. iExists _, _, _. iSplit; eauto.
-  Qed.
+  (*FAST*)Qed.
 
   Lemma simF_join : HSim.sim_fun open SchAMod SchIMod Ist SchName.join.
   Proof.
@@ -542,7 +542,7 @@ Module SchIA. Section SchIA.
       eapply fragree_incl_false. et.
     }
   Unshelve. all : ss.
-  Qed.
+  (*FAST*)Qed.
 
   Lemma simF_get_tid : HSim.sim_fun open SchAMod SchIMod Ist SchName.get_tid.
   Proof.
@@ -555,7 +555,7 @@ Module SchIA. Section SchIA.
     iPoseProof (tid_admin_some_user with "[TA tid]") as "%"; iFrame; subst.
     wsteps_r. wforces_l. wsteps_l. wforce_l. wsteps_l. wforce_l; iSplitL "tid"; eauto.
     wstep. iSplit; eauto. iFrame. iExists _, _, _. iSplit; eauto.
-  Qed.
+  (*FAST*)Qed.
 
   Lemma sim : HSim.t open SchAMod SchIMod SchA.init_cond Ist.
   Proof.

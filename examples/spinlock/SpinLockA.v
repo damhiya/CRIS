@@ -12,6 +12,9 @@ Global Instance subG_GΓ {Γ : HRA} : subG SpinLockΓ Γ → SpinLockAGΓ Γ.
 Proof. solve_inG. Defined.
 Hint Unfold subG_GΓ spinlock_inG : GRA_index.
 
+(** initial resource *)
+Definition ir_SpinLockΓ : SpinLockΓ := *[None].
+
 Module SpinLockAS. Section SpinLockAS.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
   Context `{!SchAGΣ Σ, !SchAGΓ Γ, !memGΓ Γ, !SpinLockAGΓ Γ}.

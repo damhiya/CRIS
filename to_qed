@@ -5,7 +5,7 @@ t_word="(\*FAST\*)Qed"
 
 for file in `find . -name "*.v"`
 do
-  res=`grep "(\*FAST\*)" $file`
+  res=`grep "$s_word" $file`
   if [ -n "$res" ]
   then
     echo "substitute $s_word with $t_word in $file ..."

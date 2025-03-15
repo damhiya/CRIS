@@ -43,7 +43,7 @@ Module SpinLockIA. Section SpinLockIA.
     wforces_l. iFrame. iSplit; eauto.
     { iSplit; eauto. rewrite /is_lock. iExists _, _; iSplit; eauto. }
     wsteps_l. wstep. eauto.
-  (*FAST*)Admitted.
+  (*FAST*)Qed.
 
   Lemma acquire_simF : HSim.sim_fun open MA MI IstFull SpinLockName.acquire.
   Proof.
@@ -102,7 +102,7 @@ Module SpinLockIA. Section SpinLockIA.
       wstep.
       et.
     }
-  (*FAST*)Admitted.
+  (*FAST*)Qed.
 
   Lemma release_simF : HSim.sim_fun open MA MI IstFull SpinLockName.release.
     winit_simF u_a 0.
@@ -127,7 +127,7 @@ Module SpinLockIA. Section SpinLockIA.
     { iDestruct "UNLOCKED" as "[POINTS_TO [Q' TKN']]".
       iCombine "TKN TKN'" gives %Hv. done.
     }
-  (*FAST*)Admitted.
+  (*FAST*)Qed.
 
   Lemma sim : HSim.t open MA MI emp%I IstFull.
   Proof.

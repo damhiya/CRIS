@@ -16,55 +16,19 @@ Module SpinLockAll.
   Local Instance Σ : GRA := ##[invΣ; SchAΣ; Γ].
 
   Definition irΓ : Γ :=
-    **[ir_invΓ u; ir_memΓ csl genv; SchAS.ir_SchAΓ; *[None]; *[None]].
+    **[ir_invΓ u; ir_memΓ csl genv; SchAS.ir_SchAΓ; ir_SpinLockΓ; ir_SpinLockMainAΓ].
   Definition irΣ : Σ :=
     **[ir_invΣ u; SchAS.ir_SchAΣ; irΓ].
 
   Lemma irΣ_valid : ✓ (irΣ ⋅ initial_resource_own_admin).
   Proof.
-    eapply InitRes.app_valid.
-    { rewrite /ir_invΣ.
-      apply InitRes.app_valid.
-      { apply InitRes.singleton_some_valid, ir_ownIRA_valid. }
-      { intros i; inv_fin i. }
-    }
-    apply InitRes.app_valid.
-    { apply InitRes.app_valid.
-      { apply InitRes.singleton_some_valid, SchAS.ir_threadsRA_valid. }
-      { intros i; inv_fin i. }
-    }
-    apply InitRes.app_valid.
-    { apply InitRes.app_valid.
-      { rewrite /ir_invΓ. apply InitRes.app_valid.
-        { apply InitRes.singleton_some_valid, ir_ownERA_valid. }
-        { apply InitRes.app_valid.
-          { apply InitRes.singleton_some_valid, ir_ownDRA_valid. }
-          { intros i; inv_fin i. }
-        }
-      }
-      apply InitRes.app_valid.
-      { rewrite /ir_memΓ. apply InitRes.app_valid.
-        { apply InitRes.singleton_some_valid, ir_memRA_valid. }
-        { intros i; inv_fin i. }
-      }
-      apply InitRes.app_valid.
-      { apply InitRes.app_valid.
-        { apply InitRes.singleton_some_valid, SchAS.ir_tidRA_valid. }
-        { intros i; inv_fin i. }
-      }
-      apply InitRes.app_valid.
-      { apply InitRes.app_valid.
-        { apply InitRes.singleton_none_valid. }
-        { intros i; inv_fin i. }
-      }
-      apply InitRes.app_valid.
-      { apply InitRes.app_valid.
-        { apply InitRes.singleton_none_valid. }
-        { intros i; inv_fin i. }
-      }
-      { intros i; inv_fin i. }
-    }
-    { intros i; inv_fin i. }
+    solve_ir_valid.
+    - apply ir_ownIRA_valid.
+    - apply SchAS.ir_threadsRA_valid.
+    - apply ir_ownERA_valid.
+    - apply ir_ownDRA_valid.
+    - apply ir_memRA_valid.
+    - apply SchAS.ir_tidRA_valid.
   Qed.
 
   (* building the target module *)
@@ -180,31 +144,24 @@ Module SpinLockAll.
     move: (cancel_tgt)=>H; rewrite /refines in H; ss.
     destruct (H ((irΣ ⋅ initial_resource_own_admin))).
     { apply irΣ_valid. }
-    { rewrite /irΣ /InitRes.app.
-      try (repeat rewrite ?InitRes.L_distr ?InitRes.R_distr).
-      iIntros "[[[I _] [[THS _] [[[E [D _]] [[M _] [[TID _] _]]] _]]] O]".
-      iPoseProof (make_wsats u with "[I E D]") as "[U W]".
-      { iSplitL "I".
-        { solve_index "I". f_equal. }
-        iSplitL "E".
-        { solve_index "E". f_equal. }
-        { solve_index "D". f_equal. }
-      }
-      iAssert (SchAS.tid_admin None) with "[TID]" as "TID".
-      { rewrite /SchAS.tid_admin. unseal "SchA". solve_index "TID". f_equal. }
-      iPoseProof (SchAS.tid_admin_none_split 0 with "TID") as "[H1 H2]".
-      { iSplitR "U W O H2"; cycle 1.
-        { iPoseProof (make_own_admin with "O") as "$". unfold_pre_post; iFrame. iSplit; eauto. }
-        rewrite /init_cond. iSplitL "M".
-        { iAssert (mem_init csl genv) with "[M]" as "[$ _]".
-          { rewrite /mem_init. solve_index "M". f_equal. }
+    { clear H. simplify_res.
+      { iAssert (SchAS.tid_admin None) with "[H22]" as "TID".
+        { rewrite /SchAS.tid_admin. unseal "SchA". iFrame. }
+        iPoseProof (SchAS.tid_admin_none_split 0 with "TID") as "[TID1 TID2]".
+        { iSplitR "U W H1 TID2"; cycle 1.
+          { iPoseProof (make_own_admin with "H1") as "$".
+            unfold_pre_post; iFrame. eauto. }
+          rewrite /init_cond. iSplitL "H24".
+          { iAssert (mem_init csl genv) with "[H24]" as "[$ _]". eauto. }
+          iSplitL "H30".
+          { rewrite /SchAS.init_threads. unseal "SchA". eauto. }
+          { iFrame. }
         }
-        iSplitL "THS".
-        { rewrite /SchAS.init_threads. unseal "SchA". solve_index "THS". f_equal. }
-        { iFrame. }
       }
+      all: solve_res.
     }
     { econs; ss; prove_nodup. }
     { exists x; des; eauto. }
   Qed.
+
 End SpinLockAll.

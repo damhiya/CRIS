@@ -1,3 +1,4 @@
+Require Import DecimalString.
 From stdpp Require Export namespaces coPset.
 Require Import sflib.
 From iris.algebra Require Import ofe auth agree coPset gset gmap_view.
@@ -585,3 +586,123 @@ Section inv.
     iMod "P". iMod ("K" with "P") as "K"; iModIntro; ss.
   Qed.
 End inv.
+
+
+Ltac unfold_own :=
+  match goal with
+  | |- Own ?R = own base_γ ?R2 =>
+    rewrite own.Own_eq /own.Own_def own.own_eq /own.own_def /own.iRes_singleton; f_equal
+  end.
+
+Ltac unfold_left :=
+  repeat match goal with
+  | |- context [InitRes.singleton _] => rewrite InitRes.singleton_index
+  | |- context [InitRes.L (discrete_fun_singleton _ _)] => rewrite ?InitRes.L_index
+  | |- context [InitRes.R (discrete_fun_singleton _ _)] => rewrite ?InitRes.R_index
+  end.
+
+Ltac solve_index H := 
+  eapply eq_ind; first iExact H;
+  unfold_own;
+  etrans;
+  [unfold_left; repeat match goal with | |- ?a = _ => remove_eq a end; simpl; refl
+  | etrans; cycle 1;
+    [ symmetry;
+      let k := fresh "k" in
+      match goal with
+      | |- context [inG_id ?i] => pattern i; match goal with | |- ?f ?a => set (k:=f) end
+      end;
+      autounfold with GRA_index
+      ; subst k
+      ; simpl
+      ; hrepeat do 1 match goal with | |- ?a = _ => remove_eq a end
+      ; simpl
+    | refl
+    ]
+  ].
+
+Ltac _solve_ir_valid := lazymatch goal with
+| |- ✓ ( (InitRes.app _ _) ⋅ initial_resource_own_admin ) => eapply InitRes.app_valid
+| |- ✓ ( InitRes.nil ⋅ initial_resource_own_admin ) => let i := fresh "i" in intros i; inv_fin i
+| |- ✓ ( InitRes.singleton None ⋅ initial_resource_own_admin ) => eapply InitRes.singleton_none_valid
+| |- ✓ ( InitRes.singleton _ ⋅ initial_resource_own_admin ) => eapply InitRes.singleton_some_valid
+| |- ✓ ( ?r ⋅ initial_resource_own_admin ) => rewrite /r; eapply InitRes.app_valid
+end.
+
+Ltac solve_ir_valid := hrepeat do 1 _solve_ir_valid.
+
+Ltac _unfold_res :=
+  match goal with
+    |- context[Own(?r ⋅ initial_resource_own_admin)] =>
+      rewrite /r /InitRes.app;
+      repeat (rewrite ?InitRes.L_distr ?InitRes.R_distr)
+  end.
+
+Ltac _destruct_res :=
+  let CNT := fresh "CNT" in
+  let Pat := fresh "Pat" in
+  pose (CNT := 0);
+  (hrepeat do 1
+    pose (Pat := ("[H" ++ NilEmpty.string_of_uint (Nat.to_uint CNT) ++ " H" ++ NilEmpty.string_of_uint (Nat.to_uint (S CNT)) ++ "]")%string);
+    compute in Pat;
+    lazymatch goal with
+    |- context[environments.Esnoc _ (INamed ?H) (Own (_ ⋅ _))] =>
+        match goal with [_ := ?pat |-_] => iDestruct H as pat end
+    end;
+    clear Pat;
+    match goal with [CNT := ?n |-_] => clear CNT; pose (CNT := S(S n)) end);
+  clear CNT.
+
+Ltac _clear_res :=
+  hrepeat do 1 match goal with
+  |- context[environments.Esnoc _ (INamed ?H) (Own ?r)] =>
+     pose (RRR := r);
+     lazymatch goal with
+     | [_ := context[InitRes.nil] |-_] => iClear H
+     | [_ := context[InitRes.singleton None] |- _] => iClear H
+     end;
+     clear RRR
+   end.
+
+Ltac _simplify_res :=
+  try match goal with
+      |- context[environments.Esnoc _ (INamed ?H) (Own ?r)] =>
+      let R := fresh "R" in
+      let pat := fresh "pat" in
+      pose (R:=r);
+      lazymatch goal with
+        [_ := context[ InitRes.singleton (Some ?r) ] |-_] =>
+          pose (pat := ("[" ++ H ++ "]")%string); compute in pat;
+          iAssert (own base_γ r) with pat as H;
+          clear R pat;
+          cycle 1; [_simplify_res|]
+      end
+  end.
+
+Ltac _wsats_res :=
+  lazymatch goal with
+  |- context[environments.Esnoc _ (INamed ?I) (own base_γ (ir_ownIRA _))] =>
+  lazymatch goal with 
+  |- context[environments.Esnoc _ (INamed ?E) (own base_γ (ir_ownERA _))] =>
+  lazymatch goal with 
+  |- context[environments.Esnoc _ (INamed ?D) (own base_γ (ir_ownDRA _))] =>
+    let Pat := fresh "Pat" in      
+    pose (Pat := ("[" ++ I ++ " " ++ E ++ " " ++ D ++ "]")%string);
+    compute in Pat;
+    iPoseProof (make_wsats _ with Pat) as "[U W]"; [by iFrame|];
+    clear Pat
+  end end end.
+
+Ltac simplify_res :=
+  _unfold_res;
+  iIntros "H";
+  _destruct_res;
+  _clear_res;
+  _simplify_res;
+  [try _wsats_res|..].
+
+Ltac solve_res :=
+  match goal with
+    |- context[environments.Esnoc _ (INamed ?H) _] =>
+      solve_index H; f_equal
+  end.
