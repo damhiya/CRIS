@@ -133,7 +133,7 @@ Module AddIA. Section AddIA.
     Unshelve. et.
   Qed.
 
-  Theorem sim : HSim.t open AddAMod AddIMod AddA.InitCond IstFull.
+  Theorem sim : HSim.t open AddAMod AddIMod AddA.init_cond IstFull.
   Proof.
     init_sim.
     - iIntros "_". repeat iExists []. iSplit; eauto.

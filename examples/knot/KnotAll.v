@@ -1,4 +1,4 @@
-(* Require Import CRIS Cancel.
+Require Import CRIS Cancel.
 Require Import MemHeader MemI MemA MemIAproof.
 Require Import APCHeader APC APCI APCA APCC APCACproof APCIAproof.
 Require Import KnotHeader KnotMainHeader KnotI KnotMainI.
@@ -9,13 +9,26 @@ Module KnotAll.
   Import inv_instances.
   Local Instance Γ : HRA := ##[invΓ; memΓ; KnotAΓ].
   Local Instance Σ : GRA := ##[invΣ; Γ].
-
-  (* global environment *)
-  Local Definition genv : GEnv.t := KnotGEnv.t ++ KnotMainGEnv.t.
+  
   (* universe *)
   Local Definition u: univ_id := 1.
   (* global invariant *)
   Local Definition ginv : iProp Σ := wsim_ginv u ⊤.
+  (* mem *)
+  Local Definition csl : string → bool := λ _, false.
+  (* global environment *)
+  Local Definition genv : GEnv.t := KnotGEnv.t ++ KnotMainGEnv.t.
+
+  (* initial resource *)
+  Local Definition irΓ : Γ := **[ir_invΓ u; ir_memΓ csl genv; ir_knotAΓ].
+  Local Definition irΣ : Σ := **[ir_invΣ u; irΓ].
+
+  Lemma irΣ_valid : ✓ (irΣ ⋅ initial_resource_own_admin).
+  Proof.
+    solve_ir_valid.
+    - apply ir_memRA_valid.
+    - apply ir_knotRA_valid.
+  Qed.
 
   (* pure spc *)
   Local Definition spc_rec : string → option fspec := 
@@ -24,9 +37,6 @@ Module KnotAll.
     to_spc (KnotMainA.MainFunSpc genv spc_rec).
   Local Definition spc_pure : string → option fspec :=
     to_spc (KnotA.KnotRecSpc ++ (KnotMainA.MainFunSpc genv spc_rec)).
-
-  (* mem *)
-  Local Definition csl : string → bool := λ _, false.
 
   Local Definition smod_src : SMod.t :=
     (KnotMainA.Mod genv spc_rec) ☆ (KnotA.Mod genv spc_rec spc_fun)
@@ -46,7 +56,7 @@ Module KnotAll.
   Proof. cbn. prove_nodup. Qed.
 
   Local Definition init_cond : iProp Σ :=
-    KnotMainA.InitCond ∗ (KnotA.InitCond genv) ∗ (MemA.init_cond csl genv).
+    KnotMainA.init_cond ∗ (KnotA.init_cond genv) ∗ (MemA.init_cond csl genv).
 
   Lemma cancel_src :
     refines (mod_cancel, (init_cond ∗ main_fsp.(precond) tt tt↑ tt↑)%I)
@@ -120,52 +130,40 @@ Module KnotAll.
     { eapply src_tgt. }
   Qed.
 
-  Local Definition initial_resource : Σ :=
-    KnotMainA.init_res ⋅ KnotA.init_res ⋅
-    ((KnotA.init_res_mem genv) ⋅ (mem_init_res csl genv)).
-
   Local Transparent mem_points_to_singleton_r.
-
-  Lemma initial_resource_valid : ✓ initial_resource.
-  Proof.
-    dfs_solve.
-    - rewrite comm auth_both_valid_discrete; split; ss.
-    - unfold mem_initial_mem_r, mem_points_to_singleton_r.
-      rewrite auth_both_valid_discrete. split.
-      { unfold mem_init_val, _points_to_r. econs. instantiate (1:=ε).
-        rewrite right_id. intros b ofs.
-        des_ifs; bsimpl; des; rewrite ->?Z.leb_le, ->?Z.leb_gt, ->?Z.ltb_lt, ->?Z.ltb_ge in *; unfold length in *; try destruct decide; ss; subst; ss; unfold genv in *; ss; try destruct dec; ss.
-        { do 2 (destruct b; ss; [inv Heq1; hss|]). destruct b; hss. do 2 (destruct b; ss; [inv Heq0; hss|]). rewrite nth_error_nil in Heq0. ss. }
-        { do 2 (destruct b; hss). destruct b; hss. }
-        { do 2 (destruct b; ss). destruct b; hss.
-          rewrite discrete_fun_lookup_singleton discrete_fun_lookup_singleton_ne //. }
-        { do 2 (destruct b; ss). destruct b; hss. }
-        { do 2 (destruct b; ss). destruct b; hss. }
-      }
-      { intros b ofs. unfold mem_init_val. des_ifs. }
-  Qed.
+  Local Transparent CEnv.load_genv.
 
   Theorem behavioral_refinement :
     ∃ target_resource, refines_mod
-      (HMod.to_mod mod_cancel initial_resource)
+      (HMod.to_mod mod_cancel (irΣ ⋅ initial_resource_own_admin))
       (HMod.to_mod mod_tgt target_resource).
   Proof.
     move: (cancel_tgt)=>H; rewrite /refines in H; des; ss.
-    destruct (H initial_resource).
-    { apply initial_resource_valid. }
-    { iIntros "[[IM IK] [IKM IMM]]".
-      rewrite /init_cond /KnotA.InitCond /KnotMainA.InitCond /MemA.init_cond.
-      rewrite /KnotMainA.init_res /KnotA.init_res /mem_init_res /KnotA.init_res_mem.
-      rewrite /mem_initial_mem_r.
-      rewrite /precond /= /KnotA.knot_full /KnotA.var_points_to /KnotA.knot_init /KnotA.knot_frag
-        /mem_initial_mem own.Own_eq own.own_eq /own.Own_def /own.own_def.
-      iFrame. iSplitL; et. rewrite /genv /KnotA.init_res_mem. ss. des_ifs. ss.
-      rewrite /mem_points_to_singleton /mem_points_to_singleton_r /own.own_eq /own.Own_def /own.own_def /=. rewrite own.own_eq /own.Own_def /own.own_def. iFrame.
+    hexploit H.
+    { rewrite /mod_tgt /KnotMainI.t /KnotI.t /MemI.t /APCI.t. unseal CRIS. prove_nodup. }
+    clear H; intros [WF H].
+    destruct (H (irΣ ⋅ initial_resource_own_admin)).
+    { apply irΣ_valid. }
+    { clear H. simplify_res.
+      { iClear "H1 U W".
+        rewrite /init_cond /KnotA.init_cond /KnotMainA.init_cond /MemA.init_cond.
+        rewrite /KnotA.var_points_to /KnotA.knot_full /precond /mem_init_auth /main_fsp /KnotMainA.main_spec /KnotA.knot_init /= /KnotA.knot_frag.
+        rewrite /ir_knotRA /knot_init_res /ir_memRA.
+        iDestruct "H12" as "[A F]". iFrame. iSplitL; eauto.
+        iDestruct "H14" as "[A F]". iFrame.
+        rewrite /mem_points_to_singleton.
+        assert (mem_init_frag_r csl genv ≡ mem_points_to_singleton_r (2, 0%Z) 1 (Vint 0)).
+        { rewrite /mem_init_frag_r /mem_points_to_singleton_r /=. f_equiv.
+          intros blk ofs. rewrite /mem_init_val. ss. do 3 (destruct blk; hss).
+          { rewrite discrete_fun_lookup_singleton. destruct ofs; hss. }
+          do 3 (destruct blk; hss).
+        }
+        rewrite H. iFrame.
+      }
+      all: solve_res.
     }
-    { econs; ss; try prove_nodup. }
     { exists x; des; eauto. }
   Qed.
 End KnotAll.
-*)
 
 (* Print Assumptions KnotAll.behavioral_refinement. *)

@@ -2,7 +2,7 @@ Require Import CRIS.
 
 Require Import NormITree.
 Require Import MutHeader MutGI MutGA MutFA.
-Require Import APCHeader APC APCA.
+Require Import APCHeader APC APCA APCTactics.
 
 Set Implicit Arguments.
 
@@ -31,55 +31,62 @@ Module MutGIA. Section MutGIA.
     HSim.sim_fun open MutGAMod MutGIMod IstFull MutName.mutg.
   Proof.
     winit_simF u_s 0.
-
+    
+    (* SRC: precondition *)
     wsteps_l. iDestruct "ASM" as "((%Y & %B) & %Q)". subst; hss.
+
+    (* TGT: take steps *)
     wsteps_r. unfold assume. wforce_r. wsteps_r.
     
+    (* destruct cases of the number of recursive call *)
     destruct q; s.
     { (* f(0) *)
       wsteps_r. wforce_l. wsteps_l.
       wforces_l. iSplitR; et. wsteps_l. 
+
+      (* SRC: inlining APC *)
       winline_l. wsteps_l. iDestruct "ASM" as "[-> <-]"; hss. wsteps_l.
-      rewrite /APC. wforce_l q. wsteps_l. rewrite unfold_APC.
-      wforce_l true. wsteps_l. wforces_l. iSplitR; eauto.
-      wsteps_l. wforces_l. iSplitR; eauto.
+      rewrite /APC. wforce_l q. wsteps_l.
+      
+      (* SRC: jump APC *)
+      apc_l. wsteps_l. wforces_l. iSplitR; eauto. wsteps_l.
+      wforces_l. iSplitR; eauto.
+
+      (* SRC, TGT : prove the IST *)
       wstep. iSplitR "IST"; iFrame; auto.
     }
 
+    (* f(S n) *)
     replace (S q - 1)%Z with (Z.of_nat q) by nia.
     wsteps_l. wforce_l vo. wsteps_l. wforces_l. iSplitR; eauto.
+
+    (* SRC: inlining APC in order to call mutg *)
     winline_l. wsteps_l. iDestruct "ASM" as "[-> <-]"; hss. wsteps_l.
-    rewrite /APC. wforce_l 1. wsteps_l. rewrite unfold_APC.
-    wforce_l false. wsteps_l. wforce_l 0. wsteps_l.
-    assert (LT: (0 < 1)%ord).
-    { eapply OrdArith.lt_from_nat. nia. }
-    wforce_l LT. wsteps_l. wforce_l MutName.mutf. wsteps_l. wforce_l q. wsteps_l.
-    assert (is_Some (SpcPure MutName.mutf) ∧ (q < vo)%ord).
-    { split. 
-      { rewrite /is_Some. unfold MutFA.SpcF in FInPure.
-        revert FInPure. unseal CRIS. i. unfold spc_incl in FInPure.
-        destruct FInPure. rewrite /spc_sub /to_spc in H0.
-        hexploit (H0 MutName.mutf MutFA.f_spec); [refl|]. i. eauto.
-      }
-      { eapply Ord.lt_le_lt; eauto. eapply OrdArith.lt_from_nat. nia. }
-    }
-    unfold guarantee. wforce_l H. wsteps_l. wforce_l. iSplitR.
-    { iPureIntro. eapply PureInSpc. eapply FInPure. rewrite /MutFA.SpcF. unseal CRIS. ss. }
-    wsteps_l. wforce_l q. wsteps_l. wforces_l. iSplitR; eauto.
-    { iPureIntro. esplits; eauto.
-      { nia. } { refl. }
-    }
-    wcall "IST". wsteps_l. iDestruct "ASM" as "->"; hss. wsteps_r. hss. wsteps_r.
-    rewrite unfold_APC. wforce_l true. wsteps_l. wforces_l. iSplitR; first done.
-    wsteps_l. wforces_l; iSplitR; eauto; iClear "ASM".
-    wstep. iFrame. iPureIntro. do 2 f_equal. nia.
+    rewrite /APC. wforce_l 1. wsteps_l.
+
+    (* SRC, TGT : call mutg using APC tactic *)
+    wsteps_r. apc_call "IST"; eauto.
+    { instantiate (1:=0). eapply OrdArith.lt_from_nat. nia. }
+    { instantiate (1:=q). eapply Ord.lt_le_lt; eauto. eapply OrdArith.lt_from_nat. nia. }
+    { apply FInPure. unfold MutFA.SpcF. unseal CRIS. ss. }
+    { iFrame. iPureIntro. esplits; eauto; [nia|refl]. }
+    iDestruct "ISTPOST" as "[IST ->]".
+
+    (* SRC: jump APC *)
+    apc_l. wsteps_r. hss. wsteps_r. wsteps_l.
+    wforces_l; iSplitR; eauto. wsteps_l.
+    wforces_l; iSplitR; eauto. wsteps_l.
+    wstep. iSplitR "IST"; iFrame; eauto.
+    { iPureIntro; do 2 f_equal; nia. }
+
+    (* prove shelved goals *)
     Unshelve. all: ss.
     { eapply mut_max_intrange; eauto. }
     { exact (0↑). }
   Qed.
 
   Theorem sim:
-    HSim.t open MutGAMod MutGIMod MutGA.InitCond IstFull.
+    HSim.t open MutGAMod MutGIMod MutGA.init_cond IstFull.
   Proof.
     init_sim.
     - iIntros "C". iExists [], [], [], []. do 2 iSplit; eauto. iFrame. iPureIntro.
@@ -97,7 +104,7 @@ Section ctxr.
     (PureInSpc : spc_sub SpcPure Spc)
   :
     ctx_refines
-      (MutGA.t u_s Spc ★ APCA.t u_apc SpcPure Spc, MutGA.InitCond)
+      (MutGA.t u_s Spc ★ APCA.t u_apc SpcPure Spc, MutGA.init_cond)
       (MutGI.t ★ APCA.t u_apc SpcPure Spc, emp%I).
   Proof. eapply main_adequacy, sim; eauto. Qed.
 End ctxr. End MutGIA.

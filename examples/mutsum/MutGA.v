@@ -19,9 +19,6 @@ Module MutGA. Section MutGA.
   Definition SpcG: alist string fspec :=
     Seal.sealing CRIS [(MutName.mutg, g_spec)].
 
-  Lemma SpcG_nodup: List.NoDup (List.map fst SpcG).
-  Proof. unfold SpcG. unseal CRIS. prove_nodup. Qed.
-
   Definition fnsems :=
     [(MutName.mutg, (scopes, mk_specbody g_spec pure_body))].
 
@@ -34,7 +31,7 @@ Module MutGA. Section MutGA.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition InitCond : iProp := emp%I.
+  Definition init_cond : iProp := emp%I.
 
   Definition t u Stb := Seal.sealing CRIS (SMod.to_hmod (wsim_ginv u ⊤) Stb Mod).
 End MutGA. End MutGA.

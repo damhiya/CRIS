@@ -24,13 +24,19 @@ Module CannonIA. Section CannonIA.
   Proof.
     winit_simF 0 0.
 
+    (* SRC: precondition *)
     wsteps_l. iDestruct "ASM" as "((%Y & B) & %Q)". subst. hss.
     unfold Ist. iDestruct "IST" as "[[% R] | F]"; des; subst; cycle 1. 
     (* already fired *)
     { iExFalso. iApply FiredBall. iFrame. }
 
     wsteps_r. hss. wsteps_r.
-    change (1 `div` 1)%Z with 1%Z. wstep. wsteps_r.
+    change (1 `div` 1)%Z with 1%Z.
+    
+    (* SRC, TGT: print 1 *)
+    wstep. wsteps_r.
+
+    (* prove postcondition & the IST - Ready * Ball = Shot *)
     rewrite /alist_upd /_alist_upd /=. replace (1 - 1)%Z with 0%Z by nia.
     wsteps_l. wforces_l. iSplitR; eauto. wstep.
     iSplit; eauto. iRight. iApply ReadyBall; iFrame.

@@ -30,7 +30,7 @@ Module MutAll.
   Local Definition mod_tgt : HMod.t := MutMainI.t ★ MutFI.t ★ MutGI.t ★ APCI.t.
 
   Local Definition main_fsp : fspec := MutMainA.main_spec.
-  Local Definition init_cond : iProp Σ := MutFA.InitCond ∗ MutGA.InitCond.
+  Local Definition init_cond : iProp Σ := MutFA.init_cond ∗ MutGA.init_cond.
 
   (* Apply cancellation to linked spec module *)
   Lemma cancel_src :

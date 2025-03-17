@@ -15,17 +15,20 @@ Global Instance subG_GΓ {Γ : HRA} : subG KnotAΓ Γ → KnotAGΓ Γ.
 Proof. solve_inG. Defined.
 Hint Unfold subG_GΓ RA_inG : GRA_index.
 
+(* Initial Resource *)
+Definition knot_init_res : RA := (● (Excl' None) ⋅ ◯ (Excl' None)).
+
+Lemma knot_init_valid : ✓ knot_init_res.
+Proof. rewrite /knot_init_res auth_both_valid //. Qed.
+Definition ir_knotRA : DRA_mk RA := knot_init_res.
+Lemma ir_knotRA_valid : ✓ ir_knotRA.
+Proof. eapply knot_init_valid. Qed.
+
+Definition ir_knotAΓ : KnotAΓ := *[Some (ir_knotRA)].
+
 Module KnotA. Section KnotA.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !KnotAGΓ Γ, !memGΓ Γ}.
   Notation iProp := (iProp Σ).
-
-  Definition init_res : Σ := own.iRes_singleton base_γ (● (Some (Excl None))).
-  Definition init_res_mem (genv: GEnv.t) : Σ := own.iRes_singleton base_γ (
-    match ((CEnv.load_genv genv).(CEnv.id2blk) KnotName._f) with
-    | Some blk => mem_points_to_singleton_r (blk, 0%Z) 1%Qp (Vint 0)
-    | None => ε
-    end
-  ).
 
   (* Resources *)
 
@@ -132,12 +135,6 @@ Section KnotAS.
       [(KnotName.rec, rec_spec); 
       (KnotName.knot, knot_spec)].
 
-  Lemma KnotRecSpc_nodup: List.NoDup (List.map fst KnotRecSpc).
-  Proof. unfold KnotRecSpc. unseal CRIS. prove_nodup. Qed.
-
-  Lemma KnotSpc_nodup : List.NoDup (List.map fst KnotSpc).
-  Proof. unfold KnotSpc. unseal CRIS. prove_nodup. Qed.
-
 End KnotAS.
 
 Section KnotA.
@@ -158,7 +155,7 @@ Section KnotA.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition InitCond genv : iProp :=
+  Definition init_cond genv : iProp :=
     ((var_points_to genv KnotName._f (Vint 0)) ∗ knot_full None)%I.
 
   Definition t genv u SpcRec SpcFun Spc :=

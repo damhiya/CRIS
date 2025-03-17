@@ -87,7 +87,7 @@ Module IncrIA. Section IncrIA.
     sch_yield_l.
     wsteps_l. wforce_l. wsteps_l. wforce_l. iSplitL "TID C"; iFrame; eauto. wsteps_l.
     wstep; eauto.
-  (*FAST*)Admitted.
+  (*FAST*)Qed.
 
   Lemma main_simF : HSim.sim_fun open MA MI IstFull MainName.main.
   Proof.
@@ -205,7 +205,7 @@ Module IncrIA. Section IncrIA.
     wsteps_l. wforce_l. wsteps_l. wforce_l. iSplitL "TID"; eauto.
     wsteps_l. wsteps_r.
     wstep. eauto.
-  (*FAST*)Admitted.
+  (*FAST*)Qed.
 
   Lemma sim : HSim.t open MA MI emp%I IstFull.
   Proof.

@@ -10,7 +10,6 @@ Module KnotMainA. Section KnotMainA.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !KnotAGΓ Γ, !memGΓ Γ}.
   Notation iProp := (iProp Σ).
   Local Existing Instance RA_inG.
-  Definition init_res : Σ := own.iRes_singleton base_γ (◯ (Some (Excl None))).
 
   (* Specifications *)
 
@@ -65,12 +64,6 @@ Section KnotMainAS.
   Definition MainSpc : alist string fspec :=
     Seal.sealing CRIS
       [("fib", fib_spec); ("main", main_spec)].
-
-  Lemma MainFunSpc_nodup : List.NoDup (List.map fst MainFunSpc).
-  Proof. unfold MainFunSpc. unseal CRIS. prove_nodup. Qed.
-
-  Lemma MainSpc_nodup : List.NoDup (List.map fst MainSpc).
-  Proof. unfold MainSpc. unseal CRIS. prove_nodup. Qed.
 End KnotMainAS.
 
 Section KnotMainA.
@@ -89,7 +82,7 @@ Section KnotMainA.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition InitCond : iProp := emp%I.
+  Definition init_cond : iProp := emp%I.
 
   Definition t genv u SpcRec Spc := Seal.sealing CRIS (SMod.to_hmod (wsim_ginv u ⊤) Spc (Mod genv SpcRec)).
 End KnotMainA.

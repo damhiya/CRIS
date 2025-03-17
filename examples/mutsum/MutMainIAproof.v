@@ -2,7 +2,7 @@ Require Import CRIS.
 
 Require Import MutFA MutGA.
 Require Import MutHeader MutMainHeader MutMainI MutMainA.
-Require Import APCHeader APC APCA.
+Require Import APCHeader APC APCA APCTactics.
 
 Set Implicit Arguments.
 
@@ -31,31 +31,38 @@ Module MutMainIA. Section MutMainIA.
   Proof.
     winit_simF u_s 0.
 
+    (* SRC: precondition *)
     wsteps_l. iDestruct "ASM" as "%". des; subst; hss.
+
+    (* SRC: handle pure (APC) *)
     rewrite /pure.
-    wsteps_r. wforce_l 11. wsteps_l. wforces_l. iSplitR; eauto.
-    wsteps_l. winline_l. wsteps_l. iDestruct "ASM" as "[-> <-]"; hss.
-    wsteps_l. rewrite /APC. wforce_l 1. wsteps_l. rewrite unfold_APC.
-    wforce_l false. wsteps_l. wforce_l 0. wsteps_l.
-    assert (LT: (0 < 1)%ord). { eapply OrdArith.lt_from_nat. nia. }
-    wforce_l LT. wsteps_l. wforce_l MutName.mutf. wsteps_l. wforce_l 10.
-    wsteps_l. 
-    assert (F: SpcPure MutName.mutf = Some MutFA.f_spec).
+    wforce_l 11. wsteps_l. wforces_l. iSplitR; eauto.
+    wsteps_l.
+    
+    (* SRC: inlining APC *)
+    winline_l. wsteps_l. iDestruct "ASM" as "[-> <-]"; hss.
+    wsteps_l. rewrite /APC. wforce_l 1. wsteps_l.
+
+    (* SRC, TGT: call mutg using APC tactic *)
+    wsteps_r. apc_call "IST"; eauto.
+    { instantiate (1:=0). eapply OrdArith.lt_from_nat. nia. }
+    { instantiate (1:=10). eapply OrdArith.lt_from_nat. nia. }
     { eapply FInPure. rewrite /MutFA.SpcF. unseal CRIS. ss. }
-    assert (PO: is_Some (SpcPure MutName.mutf) ∧ (10 < 11)%ord).
-    { split; eauto. eapply OrdArith.lt_from_nat; nia. }
-    rewrite /guarantee. wforce_l PO. wsteps_l. wforces_l. iSplit; eauto.
-    wsteps_l. wforce_l 10. wsteps_l. wforces_l. iSplitR.
-    { iPureIntro. esplits; eauto. { unfold mut_max. nia. } { refl. } }
-    wcall "IST". wsteps_l. iDestruct "ASM" as "->". wsteps_r.
-    rewrite unfold_APC. wforce_l true. wsteps_l. wforces_l. iSplitR; first done.
-    wsteps_l. hss. wsteps_r. wforces_l. wsteps_l. wforces_l. iSplitR; eauto.
+    { instantiate (1:=10). iSplitR; eauto. iPureIntro. esplits; eauto; [unfold mut_max; nia|refl]. }
+    iDestruct "ISTPOST" as "[IST ->]".
+    
+    (* SRC: jump APC *)
+    apc_l. wsteps_l. wsteps_r. hss. wsteps_r.
+    wforces_l. iSplitR; first done.
+    wsteps_l. wforces_l. wsteps_l. wforces_l. iSplitR; eauto.
+
+    (* SRC, TGT: prove the IST *)
     wstep. iSplitR "IST"; eauto.
     Unshelve. all: ss.
   Qed.
 
   Theorem sim:
-    HSim.t open MutMainAMod MutMainIMod MutMainA.InitCond IstFull.
+    HSim.t open MutMainAMod MutMainIMod MutMainA.init_cond IstFull.
   Proof.
     init_sim.
     - iIntros "IC". iExists [], [], [], []. iSplitR; et.

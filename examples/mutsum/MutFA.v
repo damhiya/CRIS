@@ -19,9 +19,6 @@ Module MutFA. Section MutFA.
   Definition SpcF: alist string fspec :=
     Seal.sealing CRIS [(MutName.mutf, f_spec)].
 
-  Lemma SpcF_nodup: List.NoDup (List.map fst SpcF).
-  Proof. unfold SpcF. unseal CRIS. prove_nodup. Qed.
-
   Definition fnsems :=
     [(MutName.mutf, (scopes, mk_specbody f_spec pure_body))].
 
@@ -34,7 +31,7 @@ Module MutFA. Section MutFA.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition InitCond : iProp := emp%I.
+  Definition init_cond : iProp := emp%I.
 
   Definition t u Spc := Seal.sealing CRIS (SMod.to_hmod (wsim_ginv u ⊤) Spc Mod).
 End MutFA. End MutFA.

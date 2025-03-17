@@ -181,7 +181,7 @@ Module KnotIA. Section KnotIA.
     { unfold var_points_to. des_ifs. }
   Qed.
 
-  Theorem sim : HSim.t open KnotAMod KnotIMod (KnotA.InitCond genv) IstFull.
+  Theorem sim : HSim.t open KnotAMod KnotIMod (KnotA.init_cond genv) IstFull.
   Proof.
     init_sim.
     - iIntros "[VF FL]". iExists [], [], _, _. iSplit; et. iSplit; et.
@@ -209,7 +209,7 @@ Section ctxr.
   :
     ctx_refines
       (KnotA.t genv u_s SpcRec SpcFun Spc ★ MemA u_s SpcMem ★ APCA.t u_apc SpcPure Spc,
-        KnotA.InitCond genv)
+        KnotA.init_cond genv)
       (KnotI.t genv ★ MemA u_s SpcMem ★ APCA.t u_apc SpcPure Spc,
         emp%I).
   Proof. eapply main_adequacy, sim; eauto. Qed.

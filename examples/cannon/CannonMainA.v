@@ -8,7 +8,6 @@ Module MainAS. Section MainAS.
   Import CannonAS.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !CannonAGΓ Γ}.
   Local Existing Instance cannon_inG.
-  Definition init_res : Σ := own.iRes_singleton base_γ (◯E tt).
 
   Definition main_spec : fspec :=
     fspec_simple (λ _ : unit,
@@ -18,9 +17,6 @@ Module MainAS. Section MainAS.
 
   Definition Spc : alist string fspec :=
     Seal.sealing CRIS [(MainName.main, main_spec)].
-
-  Lemma Spc_nodup: List.NoDup (List.map fst Spc).
-  Proof. unfold Spc. unseal CRIS. prove_nodup. Qed.
 End MainAS. End MainAS.
 
 Module MainA. Section MainA.

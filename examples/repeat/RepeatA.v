@@ -41,9 +41,6 @@ Module RepeatAS. Section RepeatAS.
   Definition Spc: alist string fspec :=
     Seal.sealing CRIS [(RepeatName.repeat, repeat_spec genv)].
 
-  Lemma Spc_nodup : List.NoDup (List.map fst Spc).
-  Proof. by rewrite /Spc; unseal CRIS; prove_nodup. Qed.
-
 End RepeatAS. End RepeatAS.
 
 (* Define Module *)
@@ -64,7 +61,7 @@ Module RepeatA. Section RepeatA.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition InitCond : iProp Σ := emp%I.
+  Definition init_cond : iProp Σ := emp%I.
 
   Definition t genv u spc spc_pure := Seal.sealing CRIS (SMod.to_hmod (wsim_ginv u ⊤) spc (Mod genv spc_pure)).
 End RepeatA. End RepeatA.

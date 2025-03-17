@@ -119,11 +119,16 @@ Module KnotMainIA. Section KnotMainIA.
     apply CEnv.load_genv_wf in GEnvWF. unfold CEnv.wf in GEnvWF.
     specialize (GEnvWF KnotMainName.fib blk). apply GEnvWF in FIND; et. apply GEnvWF in FIND as FINDF.
 
+    (* SRC: precondition *)
     wsteps_l. destruct q; ss. iDestruct "ASM" as "[[% FG] %]". des; subst. hss.
 
+    (* TGT: find a block of the function "fib" using SKINCL *)
     wsteps_r. rewrite FINDF; hss. wsteps_r.
+
+    (* TGT: inlining "fib" *)
     winline_r. wsteps_r. wforce_r Fib. wforces_r. iSplitL "FG"; et.
-    { iFrame. iSplit; et. iPureIntro. eexists. esplits; et. econs; esplits; et.
+    { (* prove the precondition of "fib" *)
+      iFrame. iSplit; et. iPureIntro. eexists. esplits; et. econs; esplits; et.
       eapply fn_has_spec_weaker.
       { econs; [|refl]. apply MainInFun. unfold MainFunSpc. unseal CRIS. ss. }
       { unfold fspec_weaker, precond, postcond, fun_gen, fib_spec, fun_gen, fib_spec, fspec_apc; ss. 
@@ -139,13 +144,23 @@ Module KnotMainIA. Section KnotMainIA.
         { i. ss. iIntros; et. }
       }
     }
+
+    (* TGT: take a postcondition of "fib" *)
     wsteps_r. iDestruct "GRT" as "[[% FG] %]"; des; subst; hss. wsteps_r. inv H3.
-    rewrite FBLOCK; hss. wsteps_r. unfold pure. wsteps_l.
+
+    (* TGT: find a block of the function "rec" using the postcondition of "fib" *)
+    rewrite FBLOCK; hss. wsteps_r.
+    
+    (* SRC: handle pure (APC) *)
+    unfold pure. wsteps_l.
     wforce_l 30%ord. wsteps_l. inv SPEC. wforce_l.
     wforces_l. iSplitR; et. wsteps_l.
+
+    (* SRC: inlining APC *)
     winline_l. wsteps_l. iDestruct "ASM" as "%"; des; subst; hss. wsteps_l.
     unfold apc_body, APC. wforce_l 1. wsteps_l. 
     
+    (* SRC, TGT: call "fib" using APC tactic *)
     apc_call_weaker "IST FG"; et.
     { instantiate (1:=0). eapply OrdArith.lt_from_nat; et. }
     { instantiate (1:= 29). eapply OrdArith.lt_from_nat; nia. }
@@ -153,13 +168,14 @@ Module KnotMainIA. Section KnotMainIA.
       rewrite -OrdArith.mult_from_nat -OrdArith.add_from_nat. apply OrdArith.le_from_nat; nia. }
     iDestruct "ISTPOST" as "[IST [% FG]]". subst. steps_r. hss. steps_r.
 
+    (* SRC: jump APC *)
     apc_l. wsteps_l. wforces_l. iSplit; et. wsteps_l. wforce_l. wsteps_l. wforces_l. iSplit; et.
     wsteps_r. hss. wsteps_r.
     wstep. iSplitR; et.
     Unshelve. all: ss.
   Qed.
 
-  Theorem sim : HSim.t open KnotMainAMod KnotMainIMod KnotMainA.InitCond IstFull.
+  Theorem sim : HSim.t open KnotMainAMod KnotMainIMod KnotMainA.init_cond IstFull.
   Proof.
     init_sim.
     - iIntros "IC". iExists [], [], [], []. do 4 (iSplit; et); iPureIntro; ss.
@@ -187,7 +203,7 @@ Section ctxr.
         ★ KnotA.t genv u_s SpcRec SpcFun Spc
         ★ MemA.t u_s Spc
         ★ APCA.t u_apc SpcPure Spc,
-      KnotMainA.InitCond)
+      KnotMainA.init_cond)
       (KnotMainI.t genv
         ★ KnotA.t genv u_s SpcRec SpcFun Spc
         ★ MemA.t u_s Spc

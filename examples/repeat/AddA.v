@@ -60,7 +60,7 @@ Module AddA. Section AddA.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition InitCond : iProp Σ := emp%I.
+  Definition init_cond : iProp Σ := emp%I.
 
   Definition t u spc := Seal.sealing CRIS (SMod.to_hmod (wsim_ginv u ⊤) spc Mod).
 End AddA. End AddA.

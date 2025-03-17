@@ -107,7 +107,7 @@ Module RepeatIA. Section RepeatIA.
     Unshelve. all: et. exact (0↑).
   Qed.
 
-  Theorem sim : HSim.t open RepeatAMod RepeatIMod RepeatA.InitCond IstFull.
+  Theorem sim : HSim.t open RepeatAMod RepeatIMod RepeatA.init_cond IstFull.
   Proof.
     init_sim.
     - iIntros "_". repeat iExists [].
