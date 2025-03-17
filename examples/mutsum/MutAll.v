@@ -8,10 +8,15 @@ Require Import APCIAproof APCACproof.
 
 Module MutAll.
   Import inv_instances.
+  Local Definition u : univ_id := 1.
+
   Local Instance Γ : HRA := ##[invΓ].
   Local Instance Σ : GRA := ##[invΣ; Γ].
+  Definition irΓ : Γ := **[ir_invΓ u].
+  Definition irΣ : Σ := **[ir_invΣ u; irΓ].
 
-  Local Definition u : nat := 1.
+  Lemma irΣ_valid : ✓ (irΣ ⋅ initial_resource_own_admin).
+  Proof. solve_ir_valid. Qed.
   Local Definition ginv : iProp Σ := wsim_ginv u ⊤.
 
   Local Definition smod_src : SMod.t := MutMainA.Mod ☆ MutFA.Mod ☆ MutGA.Mod ☆ APCC.Mod.
@@ -31,21 +36,17 @@ Module MutAll.
   Lemma cancel_src :
     refines (mod_cancel, (init_cond ∗ main_fsp.(precond) tt tt↑ tt↑)%I)
             ((mod_src, init_cond) : HMod.modc).
-  Proof.
-    eapply cancellation; try by econs.
-    i. iIntros "%POST". iPureIntro.
-    des; eauto.
-  Qed.
+  Proof. eapply cancellation; try by econs. i. iIntros "%POST". iPureIntro. des; eauto. Qed.
 
   Ltac prove_spc :=
-    rewrite /APCA.Spc /MutFA.SpcF /MutGA.SpcG /spc /smod_src /spc_pure /spc_incl /spc_sub /find_body /pure_specbody /spc_from /smod_pure /option_map; try unseal CRIS; try prove_nodup;
+    rewrite /APCA.Spc /MutFA.SpcF /MutGA.SpcG /spc /smod_src /spc_pure /spc_incl /spc_sub /find_body
+      /pure_specbody /spc_from /smod_pure /option_map; try unseal CRIS; try prove_nodup;
     ii; ss; rewrite ->!eq_rel_dec_correct in *; des_ifs; eexists; ss.
 
   (* Refinement between spec/impl of whole program (linked module) *)
   Lemma src_tgt : refines (mod_src, init_cond) (mod_tgt, emp%I).
   Proof.
     eapply ctxr_refines.
-    (* rewrite -[(mod_tgt, _)]hmod_addc_empty_r. *)
     unfold mod_src, mod_tgt. rewrite !add_interp_comm.
     do 2 rewrite -hmod_add_assoc.
     etrans. { eapply ctxr_comm. }
@@ -93,21 +94,17 @@ Module MutAll.
     { eapply src_tgt. }
   Qed.
 
-  Local Definition initial_resource : Σ := ε.
-  Lemma initial_resource_valid : ✓ initial_resource.
-  Proof. econs. Qed.
-
   Theorem behavioral_refinement :
     ∃ target_resource, refines_mod
-      (HMod.to_mod mod_cancel initial_resource)
+      (HMod.to_mod mod_cancel (irΣ ⋅ initial_resource_own_admin))
       (HMod.to_mod mod_tgt target_resource).
   Proof.
     move: (cancel_tgt)=>H; rewrite /refines in H; des; ss.
     hexploit H.
-    { econs; ss; rewrite /MutMainI.t /MutFI.t /MutGI.t; unseal CRIS; try prove_nodup. }
-    intros [_ H'].
-    destruct (H' initial_resource).
-    { apply initial_resource_valid. }
+    { rewrite /mod_tgt /MutMainI.t /MutFI.t /MutGI.t /APCI.t; unseal CRIS; prove_nodup. }
+    clear H; intros [_ H].
+    destruct (H (irΣ ⋅ initial_resource_own_admin)).
+    { apply irΣ_valid. }
     { iIntros; iSplit; et. }
     { exists x; des; eauto. }
   Qed.

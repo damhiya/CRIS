@@ -139,6 +139,9 @@ Module SpinLockAll.
       (HMod.to_mod mod_tgt target_resource).
   Proof.
     move: (cancel_tgt)=>H; rewrite /refines in H; ss.
+    hexploit H.
+    { rewrite /mod_tgt /SpinLockMainI.t /MemI.t /SchI.t /SpinLockI.t; unseal CRIS; prove_nodup. }
+    clear H; intros [WF H].
     destruct (H ((irΣ ⋅ initial_resource_own_admin))).
     { apply irΣ_valid. }
     { clear H. simplify_res.
@@ -157,8 +160,6 @@ Module SpinLockAll.
       }
       all: solve_res.
     }
-    { econs; ss; prove_nodup. }
     { exists x; des; eauto. }
   Qed.
-
 End SpinLockAll.

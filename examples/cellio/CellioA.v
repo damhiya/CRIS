@@ -22,6 +22,10 @@ Module CellioA. Section CellioA.
   Definition cell (v : Z) : iProp Σ :=
     own base_γ (◯E v).
 
+  Definition ir : DRA_mk RA := ●E 0%Z ⋅ ◯E 0%Z.
+  Lemma ir_valid : ✓ ir. Proof. rewrite /ir. eapply excl_auth_valid. Qed.
+  Definition irΓ : CellioAΓ := *[Some ir].
+
   Lemma cell_auth_get v v':
     cell v -∗ auth v' -∗ ⌜v = v'⌝.
   Proof.

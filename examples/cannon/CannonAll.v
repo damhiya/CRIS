@@ -70,6 +70,9 @@ Module CannonAll.
       (HMod.to_mod mod_tgt target_resource).
   Proof.
     move: (cancel_tgt)=>H; rewrite /refines in H; des; ss.
+    hexploit H.
+    { rewrite /mod_tgt /CannonI.t /MainI.t; unseal CRIS; prove_nodup. }
+    clear H; intros [WF H].
     destruct (H (irΣ ⋅ initial_resource_own_admin)).
     { apply irΣ_valid. }
     { clear H. simplify_res.
