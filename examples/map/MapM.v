@@ -1,7 +1,6 @@
 Require Import CRIS.
 
 Require Import MapHeader.
-Require Import wsim.
 
 Set Implicit Arguments.
 

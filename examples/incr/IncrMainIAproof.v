@@ -1,6 +1,6 @@
 Require Import CRIS.
 
-Require Import IncrMainI IncrMainA SchA MemA wsim_tactics SchTactics.
+Require Import IncrMainI IncrMainA SchA MemA SchTactics.
 From iris Require Import frac_auth numbers.
 
 Module IncrIA. Section IncrIA.
@@ -40,18 +40,18 @@ Module IncrIA. Section IncrIA.
 
   Lemma f_simF : HSim.sim_fun open MA MI IstFull MainName.f.
   Proof.
-    winit_simF u_s 0.
+    init_simF u_s 0.
 
-    wsteps_l. iDestruct "ASM" as "[TID [[-> [C #INV]] ->]]". hss.
+    steps_l. iDestruct "ASM" as "[TID [[-> [C #INV]] ->]]". hss.
 
-    wsteps_l. hss. wsteps_l.
-    wsteps_r. hss. wsteps_r.
-    rewrite /IncrMainI.f /IncrMainA.f /=. wsteps_r.
+    steps_l. hss. steps_l.
+    steps_r. hss. steps_r.
+    rewrite /IncrMainI.f /IncrMainA.f /=. steps_r.
 
     sch_yield_r.
     iSplitL "IST"; iFrame.
     clear nths. iIntros (nths st_s st_t) "IST TID".
-    wsteps_r.
+    steps_r.
     sch_yield_r.
     iSplitL "IST"; iFrame.
     clear nths st_s st_t. iIntros (nths st_s st_t) "IST TID".
@@ -60,21 +60,21 @@ Module IncrIA. Section IncrIA.
     iInv "INV" as "I" "IA". SL_red.
     iDestruct "I" as (x) "PT". SL_red. iDestruct "PT" as "[PT CA]".
 
-    winline_r. wsteps_r.
-    wforce_r (q7, q8, Vint x, 1%Qp).
-    wsteps_r. wforce_r ([Vptr q7 q8]↑).
-    wsteps_r. wforce_r.
+    inline_r. steps_r.
+    force_r (q7, q8, Vint x, 1%Qp).
+    steps_r. force_r ([Vptr q7 q8]↑).
+    steps_r. force_r.
     iSplitL "PT".
     { iFrame; ss. }
-    wsteps_r.
+    steps_r.
     iDestruct "GRT" as "[[PT ->] ->]". hss.
-    wsteps_r.
+    steps_r.
 
-    winline_r. wsteps_r.
-    wforce_r (q7, q8, Vint (x + 1)). wsteps_r.
-    wforce_r ([Vptr q7 q8; Vint (x + 1)]↑). wsteps_r.
-    wforce_r. iSplitL "PT"; iFrame; ss. wsteps_r.
-    iDestruct "GRT" as "[[PT ->] ->]". hss. wsteps_r.
+    inline_r. steps_r.
+    force_r (q7, q8, Vint (x + 1)). steps_r.
+    force_r ([Vptr q7 q8; Vint (x + 1)]↑). steps_r.
+    force_r. iSplitL "PT"; iFrame; ss. steps_r.
+    iDestruct "GRT" as "[[PT ->] ->]". hss. steps_r.
 
     iMod (counter_incr 1 with "[C CA]") as "[C CA]"; first iFrame.
     iMod ("IA" with "[PT CA]") as "_".
@@ -85,43 +85,43 @@ Module IncrIA. Section IncrIA.
     clear nths st_s st_t. iIntros (nths st_s st_t) "IST TID".
     
     sch_yield_l.
-    wsteps_l. wforce_l. wsteps_l. wforce_l. iSplitL "TID C"; iFrame; eauto. wsteps_l.
-    wstep; eauto.
+    steps_l. force_l. steps_l. force_l. iSplitL "TID C"; iFrame; eauto. steps_l.
+    step; eauto.
   (*FAST*)Qed.
 
   Lemma main_simF : HSim.sim_fun open MA MI IstFull MainName.main.
   Proof.
-    winit_simF u_s 0.
+    init_simF u_s 0.
 
-    wsteps_l. iDestruct "ASM" as "[TID [-> ->]]". hss.
-    wsteps_l.
+    steps_l. iDestruct "ASM" as "[TID [-> ->]]". hss.
+    steps_l.
 
     (* src/tgt yield *)
-    wsteps_r.
+    steps_r.
     sch_yield_r.
     iSplitL "IST"; iFrame.
     clear nths. iIntros (nths st_s st_t) "IST TID".
     sch_yield_l.
 
     (* src/tgt alloc *)
-    wsteps_l. wforce_l 1. wsteps_l. wforce_l. wsteps_l.
-    wforce_l. iSplit; eauto. wsteps_l.
-    wsteps_r. wcall "IST".
-    wsteps_l. iDestruct "ASM" as "[[%b [-> [PT _]]] ->]". hss.
-    wsteps_r. hss. wsteps_r.
+    steps_l. force_l 1. steps_l. force_l. steps_l.
+    force_l. iSplit; eauto. steps_l.
+    steps_r. call "IST".
+    steps_l. iDestruct "ASM" as "[[%b [-> [PT _]]] ->]". hss.
+    steps_r. hss. steps_r.
 
     (* tgt yield *)
     sch_yield_r. iFrame.
     clear nths st_s st_t. iIntros (nths st_s st_t) "IST TID".
-    wsteps_r.
+    steps_r.
     sch_yield_r. iFrame.
     clear nths st_s st_t. iIntros (nths st_s st_t) "IST TID".
 
     (* tgt store *)
-    winline_r. wsteps_r. wforce_r (b, 0%Z, Vint 0%Z). wsteps_r.
-    wforce_r. wsteps_r. wforce_r. iSplitL "PT".
+    inline_r. steps_r. force_r (b, 0%Z, Vint 0%Z). steps_r.
+    force_r. steps_r. force_r. iSplitL "PT".
     { iFrame. eauto. }
-    wsteps_r. iDestruct "GRT" as "[[PT ->] ->]". hss. wsteps_r.
+    steps_r. iDestruct "GRT" as "[[PT ->] ->]". hss. steps_r.
 
     (* src/tgt yield *)
     sch_yield_r. iFrame.
@@ -138,7 +138,7 @@ Module IncrIA. Section IncrIA.
     { rewrite -Qp.half_half -{2}(Z.add_0_r 0%Z). iApply "F". }
 
     iCombine "F1 I" as "F1". iCombine "F2 I" as "F2".
-    wsteps_l. wsteps_r.
+    steps_l. steps_r.
 
     (* src/tgt spawns *)
     sch_spawn; eauto using f_spawnable.
@@ -183,9 +183,9 @@ Module IncrIA. Section IncrIA.
     iCombine "C Q Q2" as "C" gives %[_ WF%frac_auth_agree]. inv WF; ss.
     iDestruct "C" as "[CA CF]".
 
-    winline_r. wsteps_r. wforce_r (b, 0%Z, (Vint 2), 1%Qp). wsteps_r. wforces_r.
+    inline_r. steps_r. force_r (b, 0%Z, (Vint 2), 1%Qp). steps_r. forces_r.
     iSplitL "PT"; eauto.
-    wsteps_r. iDestruct "GRT" as "[[PT ->] ->]". hss. wsteps_r.
+    steps_r. iDestruct "GRT" as "[[PT ->] ->]". hss. steps_r.
 
     iMod ("INVA" with "[CA PT]") as "_".
     { SL_red. iExists 2; SL_red; iFrame. }
@@ -195,16 +195,16 @@ Module IncrIA. Section IncrIA.
     sch_yield_r. iFrame.
     clear nths st_s st_t. iIntros (nths st_s st_t) "IST TID".
 
-    sch_yield_l. wstep.
-    wsteps_l. wsteps_r.
+    sch_yield_l. step.
+    steps_l. steps_r.
 
     sch_yield_r. iFrame.
     clear nths st_s st_t. iIntros (nths st_s st_t) "IST TID".
 
     sch_yield_l.
-    wsteps_l. wforce_l. wsteps_l. wforce_l. iSplitL "TID"; eauto.
-    wsteps_l. wsteps_r.
-    wstep. eauto.
+    steps_l. force_l. steps_l. force_l. iSplitL "TID"; eauto.
+    steps_l. steps_r.
+    step. eauto.
   (*FAST*)Qed.
 
   Lemma sim : HSim.t open MA MI emp%I IstFull.

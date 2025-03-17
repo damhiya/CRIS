@@ -1,7 +1,7 @@
 Require Import CRIS.
 Require Import APCHeader APC APCA.
 Require Import NormITree.
-Require Import wsim wsim_tactics.
+Require Import TacticsCommon.
 
 Set Implicit Arguments.
 
@@ -22,7 +22,7 @@ Lemma wsim_apc_src `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}
       (st_tgt, i_tgt)).
 Proof.
   iIntros "ISIM".
-  rewrite unfold_APC. wforce_l true. wsteps_l.
+  rewrite unfold_APC. force_l true. steps_l.
   iFrame.
 Qed.
 
@@ -55,9 +55,9 @@ Proof.
   set_marker marker. hide_ihyps. hide_itree_l.
   rewrite !unfold_APC.
   show_until marker.
-  wsteps_r. des_ifs.
+  steps_r. des_ifs.
   { (* break *)
-    wsteps_r. iApply wsim_reset. iPoseProof ("ISIM" $! nths st_src st_tgt ow_src) as "ISIM".
+    steps_r. iApply wsim_reset. iPoseProof ("ISIM" $! nths st_src st_tgt ow_src) as "ISIM".
     rewrite wsim.wsim_eq /wsim.wsim_def /wsim.wsim_pre. iIntros "W".
     iApply (isim_mono_knowledge with "[ISIM IST CIH W]").
     { et. }
@@ -108,17 +108,17 @@ Lemma wsim_apc_src_call_tgt_weaker `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ �
 Proof.
   iIntros "[[[PRE %] IST] ISIM]".
   des. set_marker m. hide_ihyps. rewrite unfold_APC. show_until m.
-  wforce_l false. wsteps_l. wforce_l ow_fn. wsteps_l. wforce_l WIDTH. wsteps_l.
-  wforce_l fn. wsteps_l. wforce_l od_fn. wsteps_l.
+  force_l false. steps_l. force_l ow_fn. steps_l. force_l WIDTH. steps_l.
+  force_l fn. steps_l. force_l od_fn. steps_l.
   assert (PO: (is_Some (spc_pure fn) ∧ (od_fn < od_src)%ord)); et. 
-  unfold guarantee. wforce_l PO. wsteps_l.
-  assert (spc fn = Some fsp'); et. wforce_l. iSplit; et. wsteps_l.
+  unfold guarantee. force_l PO. steps_l.
+  assert (spc fn = Some fsp'); et. force_l. iSplit; et. steps_l.
   specialize (WEAK spec_arg). des.
-  wforce_l x_tgt. wforce_l args. wsteps_l.
+  force_l x_tgt. force_l args. steps_l.
   iPoseProof ((PRE od_fn ↑ args) with "[PRE]") as ">PRE". { unfold precond, fspec_apc; ss. iFrame. by iExists _. }
-  wforce_l. iFrame. wsteps_l.
-  wcall "IST"; et.
-  wsteps_l. iApply wsim_reset.
+  force_l. iFrame. steps_l.
+  call "IST"; et.
+  steps_l. iApply wsim_reset.
   iPoseProof ((POST q ret) with "ASM") as ">POST".
   iSpecialize ("ISIM" $! nths' st_s' st_t' q ret).
   iApply "ISIM". iFrame.
@@ -194,28 +194,28 @@ Qed.
   revert ow. apply (well_founded_induction Ord.lt_well_founded).
   i. subst GOAL. ss. iIntros "_".
 
-  rewrite unfold_APC. wsteps_r. des_ifs.
+  rewrite unfold_APC. steps_r. des_ifs.
   { (* break *)
-    wsteps_r. 
+    steps_r. 
     rewrite wsim.wsim_eq /wsim.wsim_def /wsim.wsim_pre. iIntros "_".
     step. iPureIntro. split; et.
   }
   { (* continue *)
-    wsteps_r.
+    steps_r.
 
     unfold is_Some in *. des. dup grt. apply BODY in grt. des.
-    apply SUB in grt1. rewrite grt1. hss. wsteps_r.
+    apply SUB in grt1. rewrite grt1. hss. steps_r.
     iApply wsim_inline_tgt; eauto.
-    unfold pure_specbody, interp_sb_hp; ss. wsteps_r.
+    unfold pure_specbody, interp_sb_hp; ss. steps_r.
     unfold pure_specbody, interp_sb_hp in q3; ss.
-    unfold HoareFun. wsteps_r. wforce_r q3. wsteps_r.
-    wforces_r. iSplitL "GRT"; et.
-    wsteps_r. unfold pure_body, cfunN. hss. wsteps_r.
+    unfold HoareFun. steps_r. force_r q3. steps_r.
+    forces_r. iSplitL "GRT"; et.
+    steps_r. unfold pure_body, cfunN. hss. steps_r.
     iDestruct "GRT" as "%"; des; subst; hss.
     iApply wsim_inline_tgt; eauto.
     unfold HMod.sandbox_body, interp_sb_hp, HoareFun; hss.
-    wsteps_r. wforce_r q5. wforce_r (q5↑). wforces_r. iSplit; et.
-    wsteps_r. hss. unfold APCA.apc_body, APC. wsteps_r.
+    steps_r. force_r q5. force_r (q5↑). forces_r. iSplit; et.
+    steps_r. hss. unfold APCA.apc_body, APC. steps_r.
 
     wbind_expand_r.
     apply wsim_congruence_src with (Ret ();;; Ret ()).
@@ -281,12 +281,12 @@ Ltac apc_l :=
   [| |iSplitL hyps; [|iIntros "% % % %"; iIntrosFresh "IST"]]. *)
 
 Ltac apc_call hyps :=
-  prep_macro_l; (hrepeat do 1 hnorm_r);
+  prep_macro_l; (hrepeat do 1 norm_r);
   iApply wsim_apc_src_call_tgt; des_pairs; s;
   [| | | | |iSplitL hyps; [ |iIntros "% % % % %"; iIntrosFresh "ISTPOST"]].
 
 Ltac apc_call_weaker hyps :=
-  prep_macro_l; (hrepeat do 1 hnorm_r);
+  prep_macro_l; (hrepeat do 1 norm_r);
   iApply wsim_apc_src_call_tgt_weaker; des_pairs; s;
   [| | | | | | iSplitL hyps; [ |iIntros "% % % % %"; iIntrosFresh "ISTPOST"]].
 

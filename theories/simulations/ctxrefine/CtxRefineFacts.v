@@ -1,6 +1,6 @@
 Require Import Common.
 Require Import Mod HMod.
-Require Import ModSim ModSimFacts ISimCore ISimFacts.
+Require Import ModSim ModSimFacts ISim ISimInit ISimFacts.
 Require Import CtxRefine MainAdequacy.
 
 Global Program Instance refines_mod_PreOrder : PreOrder refines_mod.

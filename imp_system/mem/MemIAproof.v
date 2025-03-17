@@ -246,27 +246,27 @@ Module MemIA. Section MemIA.
 
   Lemma simF_alloc : HSim.sim_fun open MemA MemI IstFull MemName.alloc.
   Proof.
-    winit_simF u_s 0.
-    wsteps_l.
+    init_simF u_s 0.
+    steps_l.
     iDestruct "ASM" as "(% & %)". des; subst; hss.
 
-    wsteps_r.  iDestruct "IST" as (? ? ? ?) "(% & [% IST] & %)".
+    steps_r.  iDestruct "IST" as (? ? ? ?) "(% & [% IST] & %)".
     unfold Ist. iDestruct "IST" as (? ?) "[% B]". des; subst; hss.
-    wsteps_r. des_ifs.
+    steps_r. des_ifs.
     2:{ rewrite andb_false_iff in Heq. des; des_sumbool; nia. }
 
-    wsteps_r. unfold alist_upd, _alist_upd. ss.
+    steps_r. unfold alist_upd, _alist_upd. ss.
     rename q0 into pad. rename q into sz. set (blk := Mem.nb mem_tgt + pad).
     iPoseProof (own_valid with "B") as "%".
     iPoseProof (mem_alloc with "B") as ">B"; et.
     iDestruct "B" as "[BLK WHT]".
-    wforces_l.
-    wsteps_l. wforce_l. wsteps_l. wforces_l. iSplitL "WHT". 
+    forces_l.
+    steps_l. force_l. steps_l. forces_l. iSplitL "WHT". 
     { instantiate (1:= (Vptr blk 0) ↑). instantiate (1:= (Vptr blk 0) ↑). iSplitL; et.
       iExists blk. iSplitR; et. instantiate (1:=sz). instantiate (1:=pad).
       iPoseProof (points_to_transform with "WHT") as "WHT". iFrame. }
-    wsteps_l.
-    wstep. iSplit; et.
+    steps_l.
+    step. iSplit; et.
     iExists st_srcL, [_], st_tgtR, st_tgtR. iSplit; et; iSplit; et.
     iSplit; et. iExists _, _. iFrame. esplits; et. iPureIntro. splits; et.
     - ii. destruct (mem_tgt.(Mem.cnts) blk ofs) eqn:E.
@@ -290,14 +290,14 @@ Module MemIA. Section MemIA.
 
   Lemma simF_free : HSim.sim_fun open MemA MemI IstFull MemName.free.
   Proof.
-    winit_simF u_s 0.
+    init_simF u_s 0.
   
-    wsteps_l. iDestruct "ASM" as "((% & % & P) & %)". des; subst; hss.
-    wsteps_r.
+    steps_l. iDestruct "ASM" as "((% & % & P) & %)". des; subst; hss.
+    steps_r.
     
     iDestruct "IST" as (? ? ? ?) "(% & [% IST] & %)".
     unfold Ist. iDestruct "IST" as (? ?) "[% B]". des; subst; hss.
-    wsteps_r.
+    steps_r.
     rename q1 into b. rename q2 into ofs.
   
     iCombine "B P" as "P". 
@@ -331,7 +331,7 @@ Module MemIA. Section MemIA.
   
     hexploit (SIM b ofs). intro B.
     unfold Mem.free. des_ifs; unfold sim_loc in B; des_ifs; inv HIT. hss.
-    wsteps_r.
+    steps_r.
   
     iAssert _ with "[P]" as "P".
     { (* update resource according to freeing *)
@@ -364,8 +364,8 @@ Module MemIA. Section MemIA.
     }
     iMod "P".
     
-    wforce_l. wsteps_l. wforces_l. iSplitR; et. wsteps_l.
-    wstep. iSplit; et.
+    force_l. steps_l. forces_l. iSplitR; et. steps_l.
+    step. iSplit; et.
   
     iFrame. iExists st_srcL, [_], st_tgtR, st_tgtR. iSplit; et. iSplit; et.
     iSplit; et. iExists _. iFrame. iPureIntro. esplits; et.
@@ -378,14 +378,14 @@ Module MemIA. Section MemIA.
 
   Lemma simF_load : HSim.sim_fun open MemA MemI IstFull MemName.load.
   Proof.
-    winit_simF u_s 0.
+    init_simF u_s 0.
 
-    wsteps_l. iDestruct "ASM" as "([% P] & %)". subst; hss.
+    steps_l. iDestruct "ASM" as "([% P] & %)". subst; hss.
     rename q5 into b, q6 into ofs.
  
-    wsteps_r. iDestruct "IST" as (? ? ? ?) "(% & [% IST] & %)".
+    steps_r. iDestruct "IST" as (? ? ? ?) "(% & [% IST] & %)".
     unfold Ist. iDestruct "IST" as (? ?) "[% B]". des; subst; hss.
-    wsteps_r.
+    steps_r.
 
     iCombine "B P" as "P". iPoseProof (own_valid with "P") as "%WF". 
     assert (HIT: memk_src b ofs ≡ Some (q2%Qp, Excl q4)).
@@ -404,24 +404,24 @@ Module MemIA. Section MemIA.
     iDestruct "P" as "[BLK WHT]".
     unfold Mem.load.
     unfold sim_loc in T. des_ifs; bsimpl; des; des_sumbool; Ztac; inv HIT. iris_tac. 
-    wsteps_r. wforce_l. wsteps_l. wforces_l. iSplitL "WHT"; iFrame; et. wsteps_l.
+    steps_r. force_l. steps_l. forces_l. iSplitL "WHT"; iFrame; et. steps_l.
 
-    wstep. iSplit; et.
+    step. iSplit; et.
     iFrame. iExists _, [_], _, _. repeat iSplit; et.
   Qed.
 
   Lemma simF_store : HSim.sim_fun open MemA MemI IstFull MemName.store.
   Proof.
-    winit_simF u_s 0.
+    init_simF u_s 0.
 
-    wsteps_l. iDestruct "ASM" as "((% & % & P) & %)". subst; hss.
+    steps_l. iDestruct "ASM" as "((% & % & P) & %)". subst; hss.
     rename q3 into b, q4 into ofs.
 
-    wsteps_r.
+    steps_r.
     
-    wsteps_r. iDestruct "IST" as (? ? ? ?) "(% & [% IST] & %)".
+    steps_r. iDestruct "IST" as (? ? ? ?) "(% & [% IST] & %)".
     unfold Ist. iDestruct "IST" as (? ?) "[% B]". des; subst; hss.
-    wsteps_r.
+    steps_r.
 
     iCombine "B P" as "P". 
     iPoseProof (own_valid with "P") as "%WF".
@@ -504,14 +504,14 @@ Module MemIA. Section MemIA.
 
     iDestruct "P" as "[BLK WHT]".
     unfold Mem.store. des_ifs; unfold sim_loc in T; des_ifs; inv HIT.
-    wsteps_r. 
+    steps_r. 
 
-    wforce_l. wsteps_l. wforces_l. iSplitL "WHT"; et.
+    force_l. steps_l. forces_l. iSplitL "WHT"; et.
     { iSplitL; et. iSplitL; et. iPoseProof (points_to_transform with "WHT") as "WHT".
       ss. rewrite Z.add_0_r. iDestruct "WHT" as "[WHT _]"; et. }
-    wsteps_l.
+    steps_l.
     
-    wstep. iSplit; et.
+    step. iSplit; et.
 
     iFrame. iExists _, [_], _, _. repeat iSplit; et.
     iExists _. iFrame. iSplit; et. iPureIntro. esplits; et.
@@ -522,19 +522,19 @@ Module MemIA. Section MemIA.
 
   Lemma simF_cmp : HSim.sim_fun open MemA MemI IstFull MemName.cmp.
   Proof.
-    winit_simF u_s 0.
+    init_simF u_s 0.
     
-    wsteps_l. destruct q. destruct x.
+    steps_l. destruct q. destruct x.
     { (* cmp spec 0 *)
       ss. unfold precond. ss. destruct m. destruct p. destruct p. cbn.
       iDestruct "ASM" as "([% P] & %)". subst; hss.
       rename n into b, z into ofs.
       
-      wsteps_r. 
+      steps_r. 
 
-      wsteps_r. iDestruct "IST" as (? ? ? ?) "(% & [% IST] & %)".
+      steps_r. iDestruct "IST" as (? ? ? ?) "(% & [% IST] & %)".
       unfold Ist. iDestruct "IST" as (? ?) "[% B]". des; subst; hss.
-      wsteps_r.
+      steps_r.
 
       iCombine "B P" as "P". iPoseProof (own_valid with "P") as "%WF".
       assert (HIT: ∃ q, memk_src b ofs ≡ Some (q, Excl v)).
@@ -554,11 +554,11 @@ Module MemIA. Section MemIA.
       des. hexploit (SIM b ofs). intro T.  unfold sim_loc in T.
 
       des_ifs; bsimpl; des; des_sumbool; unfold Mem.valid_ptr, is_some in *; des_ifs.
-      - wsteps_r. wforce_l. wsteps_l. wforces_l.
+      - steps_r. force_l. steps_l. forces_l.
         iDestruct "P" as "[P Q]".
         iSplitL "Q".
         { iFrame. iSplit; et. }
-        wsteps_l. wstep. iSplit; et.
+        steps_l. step. iSplit; et.
         { iFrame. iExists _, [_], _, _. repeat iSplit; et. }
       - inv HIT.
     }
@@ -569,11 +569,11 @@ Module MemIA. Section MemIA.
       iDestruct "ASM" as "([% P] & %)". subst; hss.
       rename n into b, z into ofs.
       
-      wsteps_r.
+      steps_r.
 
-      wsteps_r. iDestruct "IST" as (? ? ? ?) "(% & [% IST] & %)".
+      steps_r. iDestruct "IST" as (? ? ? ?) "(% & [% IST] & %)".
       unfold Ist. iDestruct "IST" as (? ?) "[% B]". des; subst; hss.
-      wsteps_r.
+      steps_r.
 
       iCombine "B P" as "P". iPoseProof (own_valid with "P") as "%WF".
       assert (HIT: ∃ q, memk_src b ofs ≡ Some(q, Excl v)).
@@ -593,9 +593,9 @@ Module MemIA. Section MemIA.
       des. hexploit (SIM b ofs). intro T.  unfold sim_loc in T.
 
       des_ifs; bsimpl; des; des_sumbool; unfold Mem.valid_ptr, is_some in *; des_ifs.
-      - wsteps_r. wforce_l. wsteps_l. wforces_l. iDestruct "P" as "[P Q]".
+      - steps_r. force_l. steps_l. forces_l. iDestruct "P" as "[P Q]".
         iSplitL "Q". { iFrame. iSplit; et. }
-        wsteps_l. wstep. iSplit; et.
+        steps_l. step. iSplit; et.
         { iFrame. iExists _, [_], _, _. repeat iSplit; et. }
       - inv HIT.
     }
@@ -607,9 +607,9 @@ Module MemIA. Section MemIA.
       rename n0 into b0, z0 into ofs0, n into b1, z into ofs1.
       rename q1 into q0, q into q1, v0 into v0, v into v1.
 
-      wsteps_r. iDestruct "IST" as (? ? ? ?) "(% & [% IST] & %)".
+      steps_r. iDestruct "IST" as (? ? ? ?) "(% & [% IST] & %)".
       unfold Ist. iDestruct "IST" as (? ?) "[% B]". des_safe; subst; hss.
-      wsteps_r.
+      steps_r.
 
       iCombine "B P0" as "P0". iPoseProof (own_valid with "P0") as "%WF".
       assert (HIT: ∃ q, memk_src b0 ofs0 ≡ Some (q, Excl v0)).
@@ -642,17 +642,17 @@ Module MemIA. Section MemIA.
       des_ifs_safe; bsimpl; des_safe; des_sumbool; unfold Mem.valid_ptr, is_some in *; des_ifs_safe.
 
       des_ifs; bsimpl; des_safe; des_sumbool; des; ss; inv HIT.
-      { wsteps_r. des_ifs; bsimpl; des; des_sumbool; ss. 
-        { wforce_l; wsteps_l; wforces_l. iSplitL "P0 P1"; iFrame; et.
-          wsteps_r. wsteps_l. wstep. iSplit; et. iFrame; try (iExists _, [_], _, _; repeat iSplit; et). }
-        { wforce_l; wsteps_l; wforces_l. iSplitL "P0 P1"; iFrame; et.
-          wsteps_r. wsteps_l. wstep. iSplit; et. iFrame; try (iExists _, [_], _, _; repeat iSplit; et). }
+      { steps_r. des_ifs; bsimpl; des; des_sumbool; ss. 
+        { force_l; steps_l; forces_l. iSplitL "P0 P1"; iFrame; et.
+          steps_r. steps_l. step. iSplit; et. iFrame; try (iExists _, [_], _, _; repeat iSplit; et). }
+        { force_l; steps_l; forces_l. iSplitL "P0 P1"; iFrame; et.
+          steps_r. steps_l. step. iSplit; et. iFrame; try (iExists _, [_], _, _; repeat iSplit; et). }
       }
-      { wsteps_r. des_ifs; bsimpl; des; des_sumbool; ss. 
-        { wforce_l; wsteps_l; wforces_l. iSplitL "P0 P1"; iFrame; et.
-          wsteps_r. wsteps_l. wstep. iSplit; et. iFrame; try (iExists _, [_], _, _; repeat iSplit; et). }
-        { wforce_l; wsteps_l; wforces_l. iSplitL "P0 P1"; iFrame; et.
-          wsteps_r. wsteps_l. wstep. iSplit; et. iFrame; try (iExists _, [_], _, _; repeat iSplit; et). }
+      { steps_r. des_ifs; bsimpl; des; des_sumbool; ss. 
+        { force_l; steps_l; forces_l. iSplitL "P0 P1"; iFrame; et.
+          steps_r. steps_l. step. iSplit; et. iFrame; try (iExists _, [_], _, _; repeat iSplit; et). }
+        { force_l; steps_l; forces_l. iSplitL "P0 P1"; iFrame; et.
+          steps_r. steps_l. step. iSplit; et. iFrame; try (iExists _, [_], _, _; repeat iSplit; et). }
       }
     }
 
@@ -662,9 +662,9 @@ Module MemIA. Section MemIA.
       iDestruct "ASM" as "([% P] & %)". subst; hss.
       rename n into b, z into ofs.
 
-      wsteps_r. iDestruct "IST" as (? ? ? ?) "(% & [% IST] & %)".
+      steps_r. iDestruct "IST" as (? ? ? ?) "(% & [% IST] & %)".
       unfold Ist. iDestruct "IST" as (? ?) "[% B]". des; subst; hss.
-      wsteps_r.
+      steps_r.
 
       iCombine "B P" as "P". iPoseProof (own_valid with "P") as "%WF".
       assert (HIT: ∃ q, memk_src b ofs ≡ Some (q, Excl v)).
@@ -680,11 +680,11 @@ Module MemIA. Section MemIA.
       des. hexploit (SIM b ofs). intro T.  unfold sim_loc in T. 
 
       des_ifs; bsimpl; des; des_sumbool; unfold Mem.valid_ptr, is_some in *; des_ifs.
-      - steps_r. destruct dec; destruct dec; try congruence. wsteps_r.
+      - steps_r. destruct dec; destruct dec; try congruence. steps_r.
         iDestruct "P" as "[BLK WHT]".
 
-        wsteps_r. wforce_l; wsteps_l; wforces_l. iSplitL "WHT"; iFrame; et.
-        wstep. iSplit; et.
+        steps_r. force_l; steps_l; forces_l. iSplitL "WHT"; iFrame; et.
+        step. iSplit; et.
         { iFrame. iExists _, [_], _, _. repeat iSplit; et. }
       - inversion HIT.
       - inversion HIT.
@@ -695,13 +695,13 @@ Module MemIA. Section MemIA.
       ss. unfold precond. ss. destruct m.
       iDestruct "ASM" as "(% & %)". subst; hss.
       
-      wsteps_r. 
+      steps_r. 
 
-      wsteps_r. iDestruct "IST" as (? ? ? ?) "(% & [% IST] & %)".
+      steps_r. iDestruct "IST" as (? ? ? ?) "(% & [% IST] & %)".
       unfold Ist. iDestruct "IST" as (? ?) "[% B]". des; subst; hss.
 
-      wsteps_r. wforce_l; wsteps_l; wforces_l. iSplitR. iFrame; et.
-      wstep. iSplit; et.
+      steps_r. force_l; steps_l; forces_l. iSplitR. iFrame; et.
+      step. iSplit; et.
       { iFrame. iExists _, [_], _, _. repeat iSplit; et. }
     }
 
@@ -710,9 +710,9 @@ Module MemIA. Section MemIA.
 
   Lemma simF_cas : HSim.sim_fun open MemA MemI IstFull MemName.cas.
   Proof.
-    winit_simF u_s 0.
+    init_simF u_s 0.
 
-    wsteps_l.
+    steps_l.
     destruct q. 
     destruct x; [|destruct x; [| des_ifs]]; ss; unfold precond; 
     ss; destruct m; destruct p; destruct p; try destruct p; ss.
@@ -721,11 +721,11 @@ Module MemIA. Section MemIA.
       iDestruct "ASM" as "([% P] & %)"; subst; hss.
       rename n into b, z into ofs, v0 into v_old, v into v_new.
 
-      wsteps_r.
+      steps_r.
       
-      wsteps_r. iDestruct "IST" as (? ? ? ?) "(% & [% IST] & %)".
+      steps_r. iDestruct "IST" as (? ? ? ?) "(% & [% IST] & %)".
       unfold Ist. iDestruct "IST" as (? ?) "[% B]". des; subst; hss.
-      wsteps_r.
+      steps_r.
 
       iCombine "B P" as "P". iPoseProof (own_valid with "P") as "%WF". 
       assert (HIT: memk_src b ofs ≡ Some (1%Qp, Excl v_old)).
@@ -742,7 +742,7 @@ Module MemIA. Section MemIA.
 
       assert (UW: Mem.load mem_tgt b ofs = Some v_old).
       { des_ifs; des; subst; et; inv HIT. eauto. }
-      rewrite UW. hss. wsteps_r. destruct (dec v_old v_old) eqn:S; ss.
+      rewrite UW. hss. steps_r. destruct (dec v_old v_old) eqn:S; ss.
 
       set (memk_src1 := 
         fun _b _ofs => if Nat.eq_dec _b b && Z.eq_dec _ofs ofs 
@@ -792,11 +792,11 @@ Module MemIA. Section MemIA.
       iDestruct "P" as "[BLK WHT]".
       des_ifs; inv HIT. unfold Mem.store. des_ifs.
 
-      wsteps_r. wforce_l. wsteps_l. wforces_l. iSplitL "WHT"; iFrame; et.
+      steps_r. force_l. steps_l. forces_l. iSplitL "WHT"; iFrame; et.
       { iSplit; et. iSplit; et. iPoseProof (points_to_transform with "WHT") as "[WHT _]".
         rewrite Z.add_0_r. iFrame. }
 
-      wstep. iSplit; et.
+      step. iSplit; et.
       { iFrame. iExists _, [_], _, _. repeat iSplit; et.
         iExists _. iFrame. iSplit; et. iPureIntro. esplits; et.
         - i. cbn. des_ifs; bsimpl; des; des_sumbool; subst memk_src1; ss; des_ifs; bsimpl; des; des_sumbool; try nia.
@@ -807,9 +807,9 @@ Module MemIA. Section MemIA.
       iDestruct "ASM" as "([% P] & %)"; des; subst; hss.
       rename n into b, z into ofs, v into v_real, v1 into v_old, v0 into v_new.
 
-      wsteps_r. iDestruct "IST" as (? ? ? ?) "(% & [% IST] & %)".
+      steps_r. iDestruct "IST" as (? ? ? ?) "(% & [% IST] & %)".
       unfold Ist. iDestruct "IST" as (? ?) "[% B]". des; subst; hss.
-      wsteps_r.
+      steps_r.
 
       iCombine "B P" as "P". iPoseProof (own_valid with "P") as "%WF".
       assert (HIT: memk_src b ofs ≡ Some (1%Qp, Excl v_real)).
@@ -825,12 +825,12 @@ Module MemIA. Section MemIA.
       hexploit (SIM b ofs). i. unfold sim_loc in H.
       assert (UW: Mem.load mem_tgt b ofs = Some v_real).
       { des_ifs; des; subst; unfold Mem.load; inv HIT; eauto. }
-      rewrite UW; hss. wsteps_r.
+      rewrite UW; hss. steps_r.
       des_ifs; inv HIT.
       iDestruct "P" as "[BLK WHT]".
-      wsteps_r.
-      wsteps_l. wforce_l. wsteps_l. wforces_l. iSplitL "WHT"; iFrame; et.
-      wsteps_l. wstep. iSplit; et.
+      steps_r.
+      steps_l. force_l. steps_l. forces_l. iSplitL "WHT"; iFrame; et.
+      steps_l. step. iSplit; et.
       iFrame. iExists _, [_], _, _. repeat iSplit; et.
     }
   Qed.

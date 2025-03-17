@@ -58,25 +58,25 @@ Module AddIA. Section AddIA.
   Lemma simF_succ : HSim.sim_fun open AddAMod AddIMod IstFull AddName.succ.
   Proof.
     (* Simulation Start *)
-    winit_simF u 0.
+    init_simF u 0.
 
     (* SRC: handle the precond of succ *)
-    wsteps_l. rename q into n.
-    iDestruct "ASM" as "%". hss. wsteps_l.
+    steps_l. rename q into n.
+    iDestruct "ASM" as "%". hss. steps_l.
 
     (* TGT: steps tgt *)
-    wsteps_r.
+    steps_r.
 
     (* SRC: unfold APC *)
-    wforce_l. iSplit. { iPureIntro. apply SpcPureInSpc. apply APCInSpcPure. unfold APCA.Spc. unseal CRIS. et. }
-    wsteps_l. wforces_l. iSplit; et. winline_l. wsteps_l. iDestruct "ASM" as "%". hss.
-    wsteps_l. unfold APC. wforce_l. wsteps_l.
+    force_l. iSplit. { iPureIntro. apply SpcPureInSpc. apply APCInSpcPure. unfold APCA.Spc. unseal CRIS. et. }
+    steps_l. forces_l. iSplit; et. inline_l. steps_l. iDestruct "ASM" as "%". hss.
+    steps_l. unfold APC. force_l. steps_l.
 
     (* SRC: change to skip *)
-    apc_l. wsteps_l. wforces_l. iSplit; et. wsteps_l. wforces_l. iSplit; et.
+    apc_l. steps_l. forces_l. iSplit; et. steps_l. forces_l. iSplit; et.
 
     (* prove the IST *)
-    wstep. by iSplit.
+    step. by iSplit.
     Unshelve. et. exact (0↑).
   (*FAST*)Qed.
 
@@ -91,20 +91,20 @@ Module AddIA. Section AddIA.
     pose proof (GEnvWF AddName.succ blk) as GEnvWF. apply GEnvWF in FIND as FIND'.
 
     (* Simulation Start *)
-    winit_simF u 0.
+    init_simF u 0.
 
     (* SRC: handle the precond of add *)
-    wsteps_l. rename q1 into n, q2 into m.
-    iDestruct "ASM" as "%". hss. wsteps_l.
+    steps_l. rename q1 into n, q2 into m.
+    iDestruct "ASM" as "%". hss. steps_l.
 
     (* TGT: handle input *)
-    wsteps_r. rewrite FIND. hss. wsteps_r.
+    steps_r. rewrite FIND. hss. steps_r.
 
     (* SRC: unfold APC *)
-    wforce_l. iSplit. { iPureIntro. apply SpcPureInSpc. apply APCInSpcPure. unfold APCA.Spc. unseal CRIS. et. }
-    wsteps_l. wforces_l. iSplit; et. wsteps_l.
-    winline_l. wsteps_l. iDestruct "ASM" as "%". hss.
-    wsteps_l. unfold APC. wforce_l 1. wsteps_l.
+    force_l. iSplit. { iPureIntro. apply SpcPureInSpc. apply APCInSpcPure. unfold APCA.Spc. unseal CRIS. et. }
+    steps_l. forces_l. iSplit; et. steps_l.
+    inline_l. steps_l. iDestruct "ASM" as "%". hss.
+    steps_l. unfold APC. force_l 1. steps_l.
 
     (* call apc with repeat *)
     apc_call "IST"; et.
@@ -121,13 +121,13 @@ Module AddIA. Section AddIA.
     iDestruct "ISTPOST" as "[IST %]". subst.
 
     (* TGT: steps tgt *)
-    wsteps_r. hss. wsteps_r.
+    steps_r. hss. steps_r.
 
     (* SRC: change to skip *)
-    apc_l. wsteps_l. wforces_l. iSplit; et. wsteps_l. wforces_l. iSplit; et.
+    apc_l. steps_l. forces_l. iSplit; et. steps_l. forces_l. iSplit; et.
 
     (* prove the IST *)
-    wstep. iSplit; et. 
+    step. iSplit; et. 
     iPureIntro. do 2 f_equal.
     apply add_succ_repeat_fun; et.
     Unshelve. et.

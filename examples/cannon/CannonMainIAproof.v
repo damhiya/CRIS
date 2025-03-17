@@ -23,25 +23,25 @@ Module CannonMainIA. Section CannonMainIA.
   
   Lemma simF_main : HSim.sim_fun open MainAMod MainIMod Ist MainName.main.
   Proof.
-    winit_simF 0 0.
+    init_simF 0 0.
 
     (* SRC: precondition *)
-    wsteps_l. iDestruct "ASM" as "((%Y & B) & %Q)". subst. hss.
+    steps_l. iDestruct "ASM" as "((%Y & B) & %Q)". subst. hss.
 
     (* SRC: prove the precondition of "fire" *)
-    wsteps_r. unfold HoareCall. wforce_l. instantiate (1:=()). wforce_l.
-    wforce_l. iSplitL "B"; et. wsteps_l.
+    steps_r. unfold HoareCall. force_l. instantiate (1:=()). force_l.
+    force_l. iSplitL "B"; et. steps_l.
 
     (* SRC, TGT; call "fire" and take a postcondition *)
-    wcall "IST"; et. wsteps_l. iDestruct "ASM" as "[% %]"; des; subst. hss.
-    wsteps_r. hss. wsteps_r.
+    call "IST"; et. steps_l. iDestruct "ASM" as "[% %]"; des; subst. hss.
+    steps_r. hss. steps_r.
     
     (* SRC, TGT: print 1 *)
-    wstep. wsteps_l. wsteps_r. wforce_l.
+    step. steps_l. steps_r. force_l.
 
     (* SRC: prove the postcondition & IST *)
-    wforce_l. iSplitR; et. wsteps_l.
-    wstep. iFrame; et.
+    force_l. iSplitR; et. steps_l.
+    step. iFrame; et.
   (*FAST*)Qed.
 
   Theorem sim : HSim.t open MainAMod MainIMod MainA.init_cond Ist.

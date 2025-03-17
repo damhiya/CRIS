@@ -1,7 +1,6 @@
 Require Import CRIS.
 
 Require Import SchHeader.
-Require Import wsim.
 
 From iris Require Import frac_auth.
 

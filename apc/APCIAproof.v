@@ -24,12 +24,12 @@ Module APCIA. Section APCIA.
   Lemma simF_apc :
     HSim.sim_fun open APCAMod APCIMod Ist APCName.apc.
   Proof.
-    winit_simF u 0.
+    init_simF u 0.
     
-    wsteps_l. iDestruct "ASM" as "[-> ->]"; hss.
-    wsteps_r. wsteps_l. rewrite /APC. wforce_l. wsteps_l.
-    rewrite unfold_APC. wforce_l true. wsteps_l.
-    wforces_l. iSplitR; first done. wstep. iFrame; eauto.
+    steps_l. iDestruct "ASM" as "[-> ->]"; hss.
+    steps_r. steps_l. rewrite /APC. force_l. steps_l.
+    rewrite unfold_APC. force_l true. steps_l.
+    forces_l. iSplitR; first done. step. iFrame; eauto.
     Unshelve. all: ss.
   Qed.
 

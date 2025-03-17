@@ -1,4 +1,4 @@
-Require Import CRIS wsim_tactics SchHeader SchA.
+Require Import CRIS SchHeader SchA.
 
 Section wrapper.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
@@ -49,7 +49,7 @@ Section wsim.
       (st_s, (HMod.sandbox scp_s (interp_smod ginv spc Sch.yield)) >>= k_s)
       (st_t, (HMod.sandbox scp_t (PMod.interp Sch.yield)) >>= k_t).
   Proof.
-    rewrite !wsim.wsim_eq /wsim.wsim_def.
+    rewrite !WSim.wsim_eq /WSim.wsim_def.
     iIntros "SIM P".
     rewrite /Sch.yield; unseal "Sch".
     (* iApply isim_reset. *)
@@ -83,7 +83,7 @@ Section wsim.
     iIntros (nths st_s st_t) "IST TID GINV".
     iPoseProof ("SIM" with "IST TID GINV") as "SIM".
     iApply (isim_flag_mon with "SIM"); eauto.
-  Qed.
+  (*FAST*)Qed.
 
   Lemma wsim_yield_tgt_uu r g scp_s scp_t ginv spc spc_user k_s k_t
       (SchInSpc : spc_incl (SchAS.spc υ spc_user) spc) :
@@ -97,7 +97,7 @@ Section wsim.
       (st_s, (HMod.sandbox scp_s (interp_smod ginv spc Sch.yield)) >>= k_s)
       (st_t, (HMod.sandbox scp_t (interp_smod ginv spc Sch.yield)) >>= k_t).
   Proof.
-    rewrite !wsim.wsim_eq /wsim.wsim_def.
+    rewrite !WSim.wsim_eq /WSim.wsim_def.
     iIntros "SIM P".
     rewrite /Sch.yield; unseal "Sch".
     (* iApply isim_reset. *)
@@ -130,7 +130,7 @@ Section wsim.
     iFrame.
     iIntros (nths st_s st_t) "IST GINV".
     iPoseProof ("SIM" with "IST GINV") as "SIM". iApply (isim_flag_mon with "SIM"); eauto.
-  Qed.
+  (*FAST*)Qed.
 
   Lemma wsim_yield_src r g scp_s ginv spc spc_user k_s i_t
       (SchInSpc : spc_incl (SchAS.spc υ spc_user) spc) :
@@ -143,8 +143,8 @@ Section wsim.
   Proof.
     iIntros "SIM".
     rewrite /Sch.yield; unseal "Sch".
-    unfold_iter_l; wsteps_l.
-    wforce_l true; wsteps_l. iApply "SIM".
+    unfold_iter_l; steps_l.
+    force_l true; steps_l. iApply "SIM".
   Qed.
 
   Lemma wsim_spawn fn vargs args fn_spec (P : SAny.t → SAny.t → iProp Σ) (Q : SAny.t → SAny.t → SynDepO)
@@ -166,14 +166,14 @@ Section wsim.
       (st_t, (HMod.sandbox scp_t (PMod.interp (Sch.spawn (fn, args)))) >>= k_t).
   Proof.
     iIntros "(I & TID & P & SIM)". rewrite /Sch.spawn; unseal "Sch".
-    wsteps_l. wforces_l. iSplitL "P TID".
+    steps_l. forces_l. iSplitL "P TID".
     { iExists (fn, vargs); iSplit; eauto.
       instantiate (1:=(fn, args)↑).
       instantiate (1:=(my_tid, args, vargs, P, Q, fn)).
       iFrame. iPureIntro. esplits; eauto. unfold find_fsp. rewrite CalleeInSpc. eauto.
     }
-    wsteps_l. wsteps_r. wcall "I". wsteps_l. wsteps_r.
-    iDestruct "ASM" as (vr) "[% [[%tid [[-> ->] TKN]] TID]]". hss. wsteps_r.
+    steps_l. steps_r. call "I". steps_l. steps_r.
+    iDestruct "ASM" as (vr) "[% [[%tid [[-> ->] TKN]] TID]]". hss. steps_r.
     iApply ("SIM" with "IST TID TKN").
   Qed.
 
@@ -194,23 +194,23 @@ Section wsim.
       (st_t, (HMod.sandbox scp_t (PMod.interp (Sch.join tid))) >>= k_t).
   Proof.
     iIntros "(IST & TID & TK & SIM)". rewrite /Sch.join; unseal "Sch".
-    wsteps_l. wforce_l (tid, Q, my_tid). wsteps_l. wforce_l (tid↑). wsteps_l. wforce_l.
-    iFrame; iSplit; eauto. wsteps_l.
+    steps_l. force_l (tid, Q, my_tid). steps_l. force_l (tid↑). steps_l. force_l.
+    iFrame; iSplit; eauto. steps_l.
 
-    wsteps_r. wcall "IST". wsteps_l. iDestruct "ASM" as "(% & % & (% & % & % & Q) & TID)".
-    subst; hss. wsteps_r. hss. wsteps_r. hss. wstep_r.
+    steps_r. call "IST". steps_l. iDestruct "ASM" as "(% & % & (% & % & % & Q) & TID)".
+    subst; hss. steps_r. hss. steps_r. hss. step_r.
     iApply ("SIM" with "IST TID Q").
   Qed.
 End wsim.
 
 Ltac sch_yield_l :=
-  wnorm with (iApply wsim_yield_src; first eassumption).
+  norm with (iApply wsim_yield_src; first eassumption).
 
 Ltac sch_yield_r :=
-  wnorm with (first [(iApply wsim_yield_tgt_u0; first eassumption) | (iApply wsim_yield_tgt_uu; first eassumption)]).
+  norm with (first [(iApply wsim_yield_tgt_u0; first eassumption) | (iApply wsim_yield_tgt_uu; first eassumption)]).
 
 Ltac sch_spawn :=
-  wnorm with (iApply wsim_spawn; first eassumption).
+  norm with (iApply wsim_spawn; first eassumption).
 
 Ltac sch_join :=
-  wnorm with (iApply wsim_join; first eassumption).
+  norm with (iApply wsim_join; first eassumption).

@@ -34,14 +34,14 @@ Module RepeatIA. Section RepeatIA.
   Lemma simF_repeat : HSim.sim_fun open RepeatAMod RepeatIMod IstFull RepeatName.repeat.
   Proof.
     (* Simulation Start *)
-    winit_simF u 0.
+    init_simF u 0.
 
     (* SRC: handle the precond of repeat *)
-    wsteps_l. rename q2 into f_sem, q3 into n, q4 into x.
-    iDestruct "ASM" as "%". hss. dup H3. inv H3. wsteps_l.
+    steps_l. rename q2 into f_sem, q3 into n, q4 into x.
+    iDestruct "ASM" as "%". hss. dup H3. inv H3. steps_l.
 
     (* TGT: handle input *)
-    wsteps_r. unfold assume. wforce_r. wsteps_r.
+    steps_r. unfold assume. force_r. steps_r.
 
     (* case analysis: n *)
     destruct n as [|n'].
@@ -49,31 +49,31 @@ Module RepeatIA. Section RepeatIA.
     (* CASE: n is 0 *)
     {
       (* TGT: steps tgt *)
-      hss. wsteps_r.
+      hss. steps_r.
 
       (* SRC: unfold APC *)
-      wforces_l. iSplit. { iPureIntro. apply SpcPureInSpc. apply APCInSpcPure. unfold APCA.Spc. unseal CRIS. et. }
-      wsteps_l. wforces_l. iSplit; et. winline_l. wsteps_l. iDestruct "ASM" as "%". hss.
-      wsteps_l. unfold APC. wforce_l. wsteps_l.
+      forces_l. iSplit. { iPureIntro. apply SpcPureInSpc. apply APCInSpcPure. unfold APCA.Spc. unseal CRIS. et. }
+      steps_l. forces_l. iSplit; et. inline_l. steps_l. iDestruct "ASM" as "%". hss.
+      steps_l. unfold APC. force_l. steps_l.
 
       (* SRC: change to skip *)
-      apc_l. wsteps_l. wforces_l. iSplit; et. wsteps_l. wforces_l. iSplit; et.
+      apc_l. steps_l. forces_l. iSplit; et. steps_l. forces_l. iSplit; et.
 
       (* prove the IST *)
-      wstep. by iSplit.
+      step. by iSplit.
     }
 
     (* CASE: n is S n' *)
     {
       (* TGT: load fn from function pointer *)
       destruct (Z_lt_le_dec (S n') 1) eqn:E; try lia.
-      rewrite H2. hss. wsteps_r.
+      rewrite H2. hss. steps_r.
 
       (* SRC: unfold APC *)
-      wforce_l. iSplit. { iPureIntro. apply SpcPureInSpc. apply APCInSpcPure. unfold APCA.Spc. unseal CRIS. et. }
-      wsteps_l. wforces_l. iSplit; et. wsteps_l.
-      winline_l. wsteps_l. iDestruct "ASM" as "%". hss.
-      wsteps_l. unfold APC. wforce_l 2. wsteps_l.
+      force_l. iSplit. { iPureIntro. apply SpcPureInSpc. apply APCInSpcPure. unfold APCA.Spc. unseal CRIS. et. }
+      steps_l. forces_l. iSplit; et. steps_l.
+      inline_l. steps_l. iDestruct "ASM" as "%". hss.
+      steps_l. unfold APC. force_l 2. steps_l.
 
       (* call apc with fn *)
       apc_call_weaker "IST"; et.
@@ -83,7 +83,7 @@ Module RepeatIA. Section RepeatIA.
       iDestruct "ISTPOST" as "[IST %]". unfold postcond. subst.
 
       (* TGT: steps tgt *)
-      wsteps_r. hss. wsteps_r. assert (S n' - 1 = n')%Z as -> by lia.
+      steps_r. hss. steps_r. assert (S n' - 1 = n')%Z as -> by lia.
 
       (* call apc with repeat *)
       apc_call "IST"; et.
@@ -96,13 +96,13 @@ Module RepeatIA. Section RepeatIA.
       iDestruct "ISTPOST" as "[IST %]". subst.
 
       (* TGT: steps tgt *)
-      wsteps_r. hss. wsteps_r.
+      steps_r. hss. steps_r.
 
       (* SRC: change to skip *)
-      apc_l. wsteps_l. wforces_l. iSplit; et. wsteps_l. wforces_l. iSplit; et.
+      apc_l. steps_l. forces_l. iSplit; et. steps_l. forces_l. iSplit; et.
 
       (* prove the IST *)
-      wstep. by iSplit.
+      step. by iSplit.
     }
     Unshelve. all: et. exact (0↑).
   (*FAST*)Qed.

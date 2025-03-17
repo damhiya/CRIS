@@ -6,7 +6,7 @@ Require Import HPSim HPSimFacts.
 Require Import HMod Mod HMod2Mod Events.
 Require Import SubPerm.
 
-Require Import ISim ISimFacts.
+Require Import ISim ISimInit ISimFacts.
 Require Import CtxRefine.
 Require Import ITactics.
 Require Import syn_invariants.

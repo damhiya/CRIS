@@ -1,6 +1,6 @@
 Require Import Common.
 Require Import Mod HMod.
-Require Import ModSim ModSimFacts HPSim HPSimFacts ISim ISimFacts ITactics.
+Require Import ModSim ModSimFacts HPSim HPSimFacts ISim ISimInit ISimFacts.
 Require Import CtxRefine.
 
 Set Implicit Arguments.

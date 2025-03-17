@@ -115,20 +115,20 @@ Module CtrlIA. Section CtrlIA.
   Lemma simF_init:
     HSim.sim_fun open RingAMod RingIMod IstFull RingName.init.
   Proof.
-    winit_simF u_s 0.
+    init_simF u_s 0.
 
     (* Simulation Starts Here *)
     (* SRC: precondition *)
-    wsteps_l. iDestruct "ASM" as "%". subst. hss.
+    steps_l. iDestruct "ASM" as "%". subst. hss.
     iDestruct "IST" as (? ? ? ?) "(% & (% & IST) & %)". des; subst.
     iDestruct "IST" as (? ? ? ?) "(% & LIVE & FREE)". des; subst. hss.
 
     (* TGT, SRC: take steps *)
-    wsteps_r. hss.
-    wforces_l. iSplitL "". { eauto. } wsteps_l.
+    steps_r. hss.
+    forces_l. iSplitL "". { eauto. } steps_l.
 
     (* Prove the IST *)
-    wstep.
+    step.
     iSplit; eauto.
     iExists [_], [_;_], st_tgtR, st_tgtR.
     do 3 (iSplit; eauto).
@@ -151,20 +151,20 @@ Module CtrlIA. Section CtrlIA.
   Lemma simF_get_size:
     HSim.sim_fun open RingAMod RingIMod IstFull RingName.get_size.
   Proof.
-    winit_simF u_s 0.
+    init_simF u_s 0.
 
     (* Simulation Starts Here *)
     (* SRC: precondition *)
-    wsteps_l. iDestruct "ASM" as "%". subst. hss.
+    steps_l. iDestruct "ASM" as "%". subst. hss.
     iDestruct "IST" as (? ? ? ?) "(% & (% & IST) & %)". des; subst.
     iDestruct "IST" as (? ? ? ?) "(% & LIVE & FREE)". des; subst. hss.
 
     (* TGT, SRC: take steps *)
-    wsteps_r. hss. wsteps_r. hss. wsteps_r.
-    wforces_l. iSplitL "". { eauto. } wsteps_l.
+    steps_r. hss. steps_r. hss. steps_r.
+    forces_l. iSplitL "". { eauto. } steps_l.
 
     (* Prove the IST *)
-    wstep.
+    step.
     iSplit. { iPureIntro. f_equal. nia. }
     iExists [_], [_;_], st_tgtR, st_tgtR.
     do 3 (iSplit; eauto).
@@ -175,22 +175,22 @@ Module CtrlIA. Section CtrlIA.
     HSim.sim_fun open RingAMod RingIMod IstFull RingName.enqueue.
   Proof.
     unfold RingAMod, RingIMod, CellGS.
-    winit_simF u_s 0.
+    init_simF u_s 0.
 
     (* Simulation Starts Here *)
     (* SRC: precondition *)
-    wsteps_l. iDestruct "ASM" as "%". subst. hss.
+    steps_l. iDestruct "ASM" as "%". subst. hss.
     iDestruct "IST" as (? ? ? ?) "(% & (% & IST) & %)". des; subst.
     iDestruct "IST" as (? ? ? ?) "(% & LIVE & FREE)". des; subst. hss.
     rename q1 into v.
 
     (* TGT: check the length of the queue *)
-    wsteps_r. hss. wsteps_r. hss. wsteps_r.
+    steps_r. hss. steps_r. hss. steps_r.
     rewrite Nat.add_sub'; des_ifs; cycle 1.
-    { wstep. ss. }
+    { step. ss. }
 
     (* SRC: take steps *)
-    wsteps_l. hss.
+    steps_l. hss.
 
     apply Nat.ltb_lt in Heq. rewrite length_app in H5.
     assert (UBND:= Nat.mod_upper_bound (tl + List.length q) max_size).
@@ -199,10 +199,10 @@ Module CtrlIA. Section CtrlIA.
     i; move_aux.
 
     (* TGT: inline CellName.set *)
-    winline_r.
-    wsteps_r.
+    inline_r.
+    steps_r.
     destruct q'; [ss; nia|].
-    wforce_r (_,_). wforces_r.
+    force_r (_,_). forces_r.
     iDestruct "FREE" as "(Q & FREE)".
     rewrite !Nat.add_0_l in NODUPFS NODUPFT WFS WFT.
     rewrite !Nat.add_0_r.
@@ -210,12 +210,12 @@ Module CtrlIA. Section CtrlIA.
     { iFrame. eauto. }
 
     (* TGT: take steps using GRT from set_spec *)
-    wsteps_r. iDestruct "GRT" as "((% & CELL) & %)". subst. hss.
-    wsteps_r. hss. wforces_l.
-    iSplitL ""; eauto. wsteps_l.
+    steps_r. iDestruct "GRT" as "((% & CELL) & %)". subst. hss.
+    steps_r. hss. forces_l.
+    iSplitL ""; eauto. steps_l.
 
     (* Prove the IST *)
-    wstep.
+    step.
     iSplit; eauto.
     iExists [_], [_;_], st_tgtR, st_tgtR.
     do 3 (iSplit; eauto).
@@ -236,42 +236,42 @@ Module CtrlIA. Section CtrlIA.
     HSim.sim_fun open RingAMod RingIMod IstFull RingName.dequeue.
   Proof.
     unfold RingAMod, RingIMod, CellGS.
-    winit_simF u_s 0.
+    init_simF u_s 0.
 
     (* Simulation Starts Here *)
     (* SRC: precondition *)
-    wsteps_l. iDestruct "ASM" as "%". subst. hss.
+    steps_l. iDestruct "ASM" as "%". subst. hss.
     iDestruct "IST" as (? ? ? ?) "(% & (% & IST) & %)". des; subst.
     iDestruct "IST" as (? ? ? ?) "(% & LIVE & FREE)". des; subst. hss.
 
     (* TGT: check the length of the queue *)
-    wsteps_r. hss. wsteps_r. hss. wsteps_r.
+    steps_r. hss. steps_r. hss. steps_r.
     destruct q; ss.
-    { rewrite Nat.add_0_r Nat.sub_diag. s. wstep. ss. }
+    { rewrite Nat.add_0_r Nat.sub_diag. s. step. ss. }
     replace (tl + S(List.length q) - tl) with (S(List.length q)) by nia. s.
     rewrite !length_app in H5.
 
     (* SRC: take steps *)
-    wsteps_l. hss.
+    steps_l. hss.
     assert (UBND:= Nat.mod_upper_bound tl max_size).
     revert FLS FLT NODUPFS NODUPFT WFS WFT.
     rewrite (@cellgroup_split (tl mod max_size)); try nia.
     i; move_aux.
 
     (* TGT: inline CellName.get *)
-    winline_r.
-    wstep_r. wforces_r. iDestruct "LIVE" as "(Q & LIVE)".
+    inline_r.
+    step_r. forces_r. iDestruct "LIVE" as "(Q & LIVE)".
     rewrite !Nat.add_0_l in NODUPFS NODUPFT WFS WFT.
     rewrite !Nat.add_0_r.
     iSplitL "Q". { iFrame. eauto. }
 
     (* TGT: take steps using GRT from get_spec *)
-    wsteps_r. iDestruct "GRT" as "((% & CELL) & %)". subst. hss.
-    wsteps_r. hss. wforces_l.
-    iSplitL ""; eauto. wsteps_l.
+    steps_r. iDestruct "GRT" as "((% & CELL) & %)". subst. hss.
+    steps_r. hss. forces_l.
+    iSplitL ""; eauto. steps_l.
 
     (* Prove the IST *)
-    wstep.
+    step.
     iSplit; eauto.
     iExists [_], [_;_], st_tgtR, st_tgtR.
     do 3 (iSplit; eauto).

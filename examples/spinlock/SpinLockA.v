@@ -1,7 +1,6 @@
 Require Import CRIS.
 Require Import ImpPrelude MemHeader MemA SpinLockHeader.
 Require Import SchHeader SchA.
-Require Import wsim.
 From iris Require Import excl.
 
 (** Specification Module of the spinlock library *)

@@ -34,11 +34,11 @@ Module CellIA. Section CellIA.
 
   Lemma simF_get : HSim.sim_fun open CellA CellI Ist (CellName.get idx).
   Proof.
-    winit_simF u_s 0.
+    init_simF u_s 0.
 
     (* Simulation Starts Here *)
     (* SRC: precondition *)
-    wsteps_l. iDestruct "ASM" as "((% & C) & %)". subst. hss.
+    steps_l. iDestruct "ASM" as "((% & C) & %)". subst. hss.
     iDestruct "IST" as (vany v0) "(% & [(C' & A)|(% & P & A)])".
     { iExFalso. iApply (cell_unique with "C' C"). }
     subst. hss. rename q into v.
@@ -46,24 +46,24 @@ Module CellIA. Section CellIA.
     iPoseProof (cell_auth_get with "C A") as "%". subst.
 
     (* TGT: return the value of Cell with [idx] *)
-    wsteps_r. hss. wsteps_r.
+    steps_r. hss. steps_r.
 
     (* SRC: take steps *)
-    wforces_l. wsteps_l. wforces_l.
-    iSplitL "C". { eauto. } wsteps_l.
+    forces_l. steps_l. forces_l.
+    iSplitL "C". { eauto. } steps_l.
 
-    wstep. iSplit; eauto.
+    step. iSplit; eauto.
     iExists _, _. iSplit; eauto. iRight. iFrame; eauto.
   (*FAST*)Qed.
 
   Lemma simF_set:
     HSim.sim_fun open CellA CellI Ist (CellName.set idx).
   Proof.
-    winit_simF u_s 0.
+    init_simF u_s 0.
 
     (* Simulation Starts Here *)
     (* SRC: precondition *)
-    wsteps_l. iDestruct "ASM" as "((% & [P|C]) & %)";
+    steps_l. iDestruct "ASM" as "((% & [P|C]) & %)";
       subst; hss; rename q1 into v, q2 into v'; unfold Ist.
     { (* A case with a resource [P: pending idx] *)
       iDestruct "IST" as (vany v0) "(% & [(C & A)|(% & P' & A)])"; cycle 1.
@@ -73,12 +73,12 @@ Module CellIA. Section CellIA.
       iMod (cell_auth_set with "C A") as "(C & A)".
 
       (* TGT, SRC: take steps *)
-      wsteps_r. hss.
-      wforces_l. wsteps_l. wforces_l.
-      iSplitL "C". { eauto. } wsteps_l.
+      steps_r. hss.
+      forces_l. steps_l. forces_l.
+      iSplitL "C". { eauto. } steps_l.
 
       (* Prove the IST *)
-      wstep.
+      step.
       iSplit; eauto.
       iExists _, _. iSplit; eauto. iRight. iFrame; eauto.
     }
@@ -92,12 +92,12 @@ Module CellIA. Section CellIA.
     iMod (cell_auth_set with "C A") as "(C & A)".
 
     (* TGT, SRC: take steps *)
-    wsteps_r. hss.
-    wforces_l. wsteps_l. wforces_l.
-    iSplitL "C". { eauto. } wsteps_l.
+    steps_r. hss.
+    forces_l. steps_l. forces_l.
+    iSplitL "C". { eauto. } steps_l.
 
     (* Prove the IST *)
-    wstep.
+    step.
     iSplit; eauto.
     iExists _, _. iSplit; eauto. iRight. iFrame; eauto.
   (*FAST*)Qed.

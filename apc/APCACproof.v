@@ -34,16 +34,16 @@ Module APCAC. Section APCAC.
   Lemma simF_apc :
     HSim.sim_fun open APCCMod APCAMod IstFull APCName.apc.
   Proof.
-    winit_simF u 0.
+    init_simF u 0.
     (* init_simF. *)
-    wsteps_l. iDestruct "ASM" as "%"; des; subst.
-    wsteps_r. wforce_r q. wforce_r (q↑). wforce_r. iSplitR; et. hss. wsteps_r.
+    steps_l. iDestruct "ASM" as "%"; des; subst.
+    steps_r. force_r q. force_r (q↑). force_r. iSplitR; et. hss. steps_r.
 
     (* normalize itree - remove all interpretations and sandboxes except APC *)
     (* SRC *)
     wbind_expand_l.
     (* TGT *)
-    wbind_expand_r. wsteps_r.
+    wbind_expand_r. steps_r.
 
     (* add meaningless return in src *)
     set (itr:=(ITree.bind _ _)).
@@ -53,7 +53,7 @@ Module APCAC. Section APCAC.
     iApply wsim_bind. iSplitL; cycle 1.
     { iIntros (? ? ? ? ?) "R".
       instantiate (1:=(λ nths '(st_src, _) '(st_tgt, _), IstFull nths st_src st_tgt)%I).
-      subst itr. wsteps_r. wforce_l. wsteps_l. wforces_l. iSplitR; et. wstep. iSplit; et. }
+      subst itr. steps_r. force_l. steps_l. forces_l. iSplitR; et. step. iSplit; et. }
     clear itr.
 
     (* well founded induction on depth ordinal *)
@@ -68,12 +68,12 @@ Module APCAC. Section APCAC.
     revert q0. apply (well_founded_induction Ord.lt_well_founded).
     i. subst GOAL. ss. iIntros (? ? ?) "IST".
 
-    rewrite unfold_APC. wsteps_r. des_ifs. { wstep. iFrame. }
-    wsteps_r.
+    rewrite unfold_APC. steps_r. des_ifs. { step. iFrame. }
+    steps_r.
 
     (* manually do what wsim_unwrapN_tgt does *)
-    unfold unwrapN. des_ifs. 2:{ unfold triggerNB. wsteps_r. des_ifs. }
-    rename Heq into G, f into q3. wsteps_r. 
+    unfold unwrapN. des_ifs. 2:{ unfold triggerNB. steps_r. des_ifs. }
+    rename Heq into G, f into q3. steps_r. 
     
     (* inlining *)
     unfold is_Some in *. des. dup grt. apply PureInSpcA in grt. rewrite grt in G. inv G; ss.
@@ -85,36 +85,36 @@ Module APCAC. Section APCAC.
       apply alist_find_app. et. }
     s; show_itree.
 
-    unfold pure_specbody, interp_sb_hp, HoareFun. wsteps_r.
-    wforce_r q4. wforces_r. iSplitR "IST"; et.
+    unfold pure_specbody, interp_sb_hp, HoareFun. steps_r.
+    force_r q4. forces_r. iSplitR "IST"; et.
 
-    wsteps_r. unfold pure_body.
+    steps_r. unfold pure_body.
     (* manually do what wsim_unwrapN_tgt does *)
-    wstep_r. hss. wsteps_r. rename q7 into q8, q6 into q7.
+    step_r. hss. steps_r. rename q7 into q8, q6 into q7.
 
-    wsteps_r. iDestruct "GRT" as "%". hss.
+    steps_r. iDestruct "GRT" as "%". hss.
 
     (* inlining *)
-    winline_r. wsteps_r. wforce_r q7. wforces_r. iSplitR; et. wsteps_r.
+    inline_r. steps_r. force_r q7. forces_r. iSplitR; et. steps_r.
 
     (* manually do what wsim_unwrapN_tgt does *)
-    hss. wsteps_r.
+    hss. steps_r.
 
     (* normalize itree *)
     wbind_expand_r.
 
     (* add meaningless return in src *)
-    set (itr:=(λ _: unit, _)). wsteps_r.
+    set (itr:=(λ _: unit, _)). steps_r.
     eapply wsim_congruence_src.
     { instantiate (1:=Ret ();;; Ret ()). grind. }
 
     iApply wsim_bind. iSplitL; cycle 1.
     { iIntros (? ? ? ? ?) "R". instantiate (1:=(λ nths '(st_src, _) '(st_tgt, _), IstFull nths st_src st_tgt)%I).
-      subst itr. wsteps_r. wforces_r. iSplitL "GRT"; et.
-      wsteps_r. wforces_r. iSplitL "GRT"; et. wsteps_r. iApply wsim_reset. iStopProof. eapply H0; et. }
+      subst itr. steps_r. forces_r. iSplitL "GRT"; et.
+      steps_r. forces_r. iSplitL "GRT"; et. steps_r. iApply wsim_reset. iStopProof. eapply H0; et. }
     clear itr. iApply wsim_reset. iStopProof. eapply H; et.
     Unshelve. all: ss.
-  Qed.
+  (*FAST*)Qed.
 
   Theorem sim : HSim.t open APCCMod APCAMod emp%I IstFull.
   Proof.

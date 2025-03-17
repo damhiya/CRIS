@@ -20,46 +20,46 @@ Module MainIA. Section MainIA.
   Lemma simF_main:
     HSim.sim_fun open MainA (MainI.t ★ CellioA) IstFull MainName.main.
   Proof. 
-    winit_simF 0 0.
+    init_simF 0 0.
     
     (* Take cell(0) *)
-    wsteps_l; iDestruct "ASM" as "%"; subst.
+    steps_l; iDestruct "ASM" as "%"; subst.
 
-    winline_r.
+    inline_r.
     (* Give cell(0) *)
-    wsteps_r. wforces_r. iSplitL ""; eauto.
-    wforces_r. wsteps_r. wforces_r. iSplitL "ASM'"; eauto.
+    steps_r. forces_r. iSplitL ""; eauto.
+    forces_r. steps_r. forces_r. iSplitL "ASM'"; eauto.
 
     (* Call Input() simultaneously *)
-    wsteps_r. wforces_l. iSplitL "GRT"; eauto.
-    wcall "IST"; eauto.
-    wsteps_l. wforces_r. iSplitL "ASM"; eauto.
-    wsteps_r. hss.
+    steps_r. forces_l. iSplitL "GRT"; eauto.
+    call "IST"; eauto.
+    steps_l. forces_r. iSplitL "ASM"; eauto.
+    steps_r. hss.
 
     (* Take cell(i) *)
-    wsteps_r. iDestruct "GRT'" as "%". subst. hss.
+    steps_r. iDestruct "GRT'" as "%". subst. hss.
     
     (* Call Foo.foo() simultaneously *)
-    wsteps_l. wsteps_r. wforces_l. iSplitL ""; eauto.
-    wcall "IST"; eauto.
-    wsteps_l. iDestruct "ASM" as "%". subst. hss. wsteps_r. hss. wsteps_r.
+    steps_l. steps_r. forces_l. iSplitL ""; eauto.
+    call "IST"; eauto.
+    steps_l. iDestruct "ASM" as "%". subst. hss. steps_r. hss. steps_r.
 
-    winline_r.
+    inline_r.
     (* Give cell(i) *)
-    wstep_r. wforces_r. iSplitL ""; eauto.
-    wforces_r. wsteps_r. wforces_r.
+    step_r. forces_r. iSplitL ""; eauto.
+    forces_r. steps_r. forces_r.
     iSplitL "GRT"; eauto.
 
     (* Take cell(i) *)
-    wsteps_r. iDestruct "GRT'" as "%". subst. hss.
+    steps_r. iDestruct "GRT'" as "%". subst. hss.
 
     (* Call Print(i) simultaneously *)
-    wsteps_r. wstep.
+    steps_r. step.
 
-    wsteps_l. wforces_l.
+    steps_l. forces_l.
     iSplitL ""; eauto.
 
-    wsteps_r. wstep. iFrame. eauto.
+    steps_r. step. iFrame. eauto.
 
     Unshelve. all:(exact ()).
   (*FAST*)Qed.

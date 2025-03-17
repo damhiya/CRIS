@@ -52,7 +52,7 @@ Module KnotIA. Section KnotIA.
   Lemma simF_rec:
     HSim.sim_fun open KnotAMod KnotIMod IstFull KnotName.rec.
   Proof.
-    winit_simF u_s 0.
+    init_simF u_s 0.
 
     (* SKINCL - SkEnv id2blk *)
     pose proof (@CEnv.incl_incl_env KnotGEnv.t genv) as INCLENV.
@@ -70,7 +70,7 @@ Module KnotIA. Section KnotIA.
 
     (* Simulation Start *)
     (* SRC: precondition *)
-    wsteps_l. iDestruct "ASM" as "((%Y & FG) & %Q)"; des; subst; hss. wsteps_r.
+    steps_l. iDestruct "ASM" as "((%Y & FG) & %Q)"; des; subst; hss. steps_r.
     iDestruct "IST" as (? ? ? ?) "(%ST & [% IST] & %E)"; des; subst.
     iDestruct "IST" as (? ?) "(% & FL & VF)".
 
@@ -80,24 +80,24 @@ Module KnotIA. Section KnotIA.
     rename q1 into _f_spec.
     
     (* TGT: get a block of _f *)
-    rewrite FIND0. hss. wsteps_r.
+    rewrite FIND0. hss. steps_r.
 
     (* TGT: load the function at the block of _f by inlining "load" *)
-    winline_r. wsteps_r.
-    wforce_r. instantiate (1:=(blk0, 0%Z, (Vptr fb 0), 1%Qp)). wforce_r.
-    wforce_r. iSplitL "VF".
+    inline_r. steps_r.
+    force_r. instantiate (1:=(blk0, 0%Z, (Vptr fb 0), 1%Qp)). force_r.
+    force_r. iSplitL "VF".
     { iSplit; eauto. iSplitR; eauto. unfold var_points_to. rewrite FIND0. iFrame. }
-    wsteps_r. iDestruct "GRT" as "((VF & %) & %)". des; subst. hss.
-    wsteps_r. inv H2. wsteps_l.
+    steps_r. iDestruct "GRT" as "((VF & %) & %)". des; subst. hss.
+    steps_r. inv H2. steps_l.
 
     (* TGT: get blocks of the function pointer and "rec" *)
-    dup FN. inv FN. des. rewrite FBLOCK. hss. wforces_l. iSplitR; et.
-    wsteps_r. rewrite FINDR; hss. wsteps_r.
+    dup FN. inv FN. des. rewrite FBLOCK. hss. forces_l. iSplitR; et.
+    steps_r. rewrite FINDR; hss. steps_r.
 
     (* SRC: unfold APC *)
-    wsteps_l. winline_l. wsteps_l. iDestruct "ASM" as "%"; subst; hss.
-    wsteps_l. unfold apc_body, APC.
-    wforce_l 1. wsteps_l. 
+    steps_l. inline_l. steps_l. iDestruct "ASM" as "%"; subst; hss.
+    steps_l. unfold apc_body, APC.
+    force_l 1. steps_l. 
 
     (* call apc with fn *)
     dup SPEC. inv SPEC.
@@ -115,19 +115,19 @@ Module KnotIA. Section KnotIA.
     iDestruct "ISTPOST" as "[IST [% FG]]". hss.
 
     (* TGT: steps tgt *)
-    wsteps_r. hss. wsteps_r.
+    steps_r. hss. steps_r.
 
     (* SRC: change to skip *)
-    apc_l. wsteps_l. wforces_l. iSplit; et. wsteps_l. wforces_l. iSplitL "FG"; iFrame; et.
+    apc_l. steps_l. forces_l. iSplit; et. steps_l. forces_l. iSplitL "FG"; iFrame; et.
 
-    wstep. by iFrame.
+    step. by iFrame.
     Unshelve. all: ss.
   (*FAST*)Qed.
 
   Lemma simF_knot:
     HSim.sim_fun open KnotAMod KnotIMod IstFull KnotName.knot.
   Proof.
-    winit_simF u_s 0.
+    init_simF u_s 0.
 
     (* SKINCL *)
     pose proof (@CEnv.incl_incl_env KnotGEnv.t genv) as INCLENV.
@@ -142,9 +142,9 @@ Module KnotIA. Section KnotIA.
     specialize (GEnvWF KnotName.rec blk). apply GEnvWF in FIND; et. apply GEnvWF in FIND as FINDR.
 
     (* SRC: precondition *)
-    wsteps_l.
+    steps_l.
     rename q into new_spec.
-    iDestruct "ASM" as "((%FB & [%old OLD]) & %Q)". des; subst. hss. wsteps_r.
+    iDestruct "ASM" as "((%FB & [%old OLD]) & %Q)". des; subst. hss. steps_r.
     iDestruct "IST" as (? ? ? ?) "(%ST & [% IST] & %E)"; des; subst.
     iDestruct "IST" as (? ?) "(% & FL & VF)".
 
@@ -152,26 +152,26 @@ Module KnotIA. Section KnotIA.
     iPoseProof (knot_ra_merge with "FL OLD") as "%". symmetry in H2.
     assert (REFL: knot_full f' ⊢ knot_full old). { iIntros "F". rewrite /knot_full H2. ss. }
     iPoseProof (REFL with "FL") as "FL".
-    rewrite FIND0; hss. wsteps_r.
+    rewrite FIND0; hss. steps_r.
     
     (* TGT: save a function by calling "store" *)
-    wsteps_r. winline_r. wsteps_r.
-    wforce_r. instantiate (1:=(blk0, 0%Z, Vptr fb 0)). wforce_r. wforce_r. iSplitL "VF".
+    steps_r. inline_r. steps_r.
+    force_r. instantiate (1:=(blk0, 0%Z, Vptr fb 0)). force_r. force_r. iSplitL "VF".
     { iSplit; et. unfold var_points_to. rewrite FIND0; eauto. }
-    wsteps_r. iDestruct "GRT" as "[[VF %] %]"; des; subst.
+    steps_r. iDestruct "GRT" as "[[VF %] %]"; des; subst.
 
     (* RA: update spec *)
-    hss. wsteps_r. rewrite FINDR; hss. wsteps_r.
+    hss. steps_r. rewrite FINDR; hss. steps_r.
     iCombine "FL OLD" as "SPEC".
     iPoseProof (auth_excl_both_update with "SPEC") as ">[FL FG]".
 
     (* finish reasoning *)
-    wsteps_l. wforce_l. wsteps_l. wforce_l. wforce_l.
+    steps_l. force_l. steps_l. force_l. force_l.
     iSplitL "FG"; iFrame; et.
     { iSplit; et. iPureIntro. eexists. esplit; et. econs; et. econs; [|refl].
       apply RecInSpc. unfold KnotRecSpc. unseal CRIS. ss. }
-    wsteps_l.
-    hss. wsteps_r. wstep. iSplit; et.
+    steps_l.
+    hss. steps_r. step. iSplit; et.
 
     (* check IST *)
     inv FB0. des.

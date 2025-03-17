@@ -1,5 +1,4 @@
 Require Import CRIS.
-Require Import wsim.
   
 (* Lemma isim_congruence f fl fr Ist tid is_closed r g {Rs Rt} RR ps pt nths st_src st_tgt s0 s1 t0 t1
   (EQS: s0 = s1)
@@ -51,7 +50,7 @@ Lemma wsim_bind `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}
       -∗ wsim fl fr Ist is_closed u0 u1 cP r g Rs Rt RR false false nths0 (st_src0, k_src ret_src) (st_tgt0, k_tgt ret_tgt))%I
   ⊢ (wsim fl fr Ist is_closed u0 u1 cP r g Rs Rt RR ps pt nths (st_src, i_src >>= k_src) (st_tgt, i_tgt >>= k_tgt)).
 Proof.
-  rewrite wsim.wsim_eq /wsim.wsim_def /wsim.wsim_pre. des_ifs.
+  rewrite WSim.wsim_eq /WSim.wsim_def /WSim.wsim_pre. des_ifs.
   { iIntros "[W SIM] INV". iApply isim_bind.
     iSplitL "W". { iApply "W"; eauto. }
     iIntros (? ? ? ? ?) "Q". iApply ("SIM" with "Q"). iFrame. }

@@ -29,22 +29,22 @@ Module MutMainIA. Section MutMainIA.
   Lemma simF_main:
     HSim.sim_fun open MutMainAMod MutMainIMod IstFull MutMainName.main.
   Proof.
-    winit_simF u_s 0.
+    init_simF u_s 0.
 
     (* SRC: precondition *)
-    wsteps_l. iDestruct "ASM" as "%". des; subst; hss.
+    steps_l. iDestruct "ASM" as "%". des; subst; hss.
 
     (* SRC: handle pure (APC) *)
     rewrite /pure.
-    wforce_l 11. wsteps_l. wforces_l. iSplitR; eauto.
-    wsteps_l.
+    force_l 11. steps_l. forces_l. iSplitR; eauto.
+    steps_l.
     
     (* SRC: inlining APC *)
-    winline_l. wsteps_l. iDestruct "ASM" as "[-> <-]"; hss.
-    wsteps_l. rewrite /APC. wforce_l 1. wsteps_l.
+    inline_l. steps_l. iDestruct "ASM" as "[-> <-]"; hss.
+    steps_l. rewrite /APC. force_l 1. steps_l.
 
     (* SRC, TGT: call mutg using APC tactic *)
-    wsteps_r. apc_call "IST"; eauto.
+    steps_r. apc_call "IST"; eauto.
     { instantiate (1:=0). eapply OrdArith.lt_from_nat. nia. }
     { instantiate (1:=10). eapply OrdArith.lt_from_nat. nia. }
     { eapply FInPure. rewrite /MutFA.SpcF. unseal CRIS. ss. }
@@ -52,12 +52,12 @@ Module MutMainIA. Section MutMainIA.
     iDestruct "ISTPOST" as "[IST ->]".
     
     (* SRC: jump APC *)
-    apc_l. wsteps_l. wsteps_r. hss. wsteps_r.
-    wforces_l. iSplitR; first done.
-    wsteps_l. wforces_l. wsteps_l. wforces_l. iSplitR; eauto.
+    apc_l. steps_l. steps_r. hss. steps_r.
+    forces_l. iSplitR; first done.
+    steps_l. forces_l. steps_l. forces_l. iSplitR; eauto.
 
     (* SRC, TGT: prove the IST *)
-    wstep. iSplitR "IST"; eauto.
+    step. iSplitR "IST"; eauto.
     Unshelve. all: ss.
   (*FAST*)Qed.
 

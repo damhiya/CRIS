@@ -1,6 +1,6 @@
 Require Import Common HMod ltac2_lib.
-Require Export wsim.
-Require Export ITacticsCommon.
+Require Export WSim.
+Require Export TacticsCommon.
 
 From iris.proofmode Require Import coq_tactics environments.
 
@@ -313,4 +313,4 @@ Ltac wby_coind CIH :=
   iApply CIH.
 
 Ltac winit_simF u_src u_tgt :=
-  init_simF; iApply (wsim_init _ _ _ u_src u_tgt).
+  initialize_simF; iApply (wsim_init _ _ _ u_src u_tgt).

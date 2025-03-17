@@ -45,29 +45,29 @@ Module KnotMainIA. Section KnotMainIA.
   Lemma simF_fib:
     HSim.sim_fun open KnotMainAMod KnotMainIMod IstFull KnotMainName.fib.
   Proof.
-    winit_simF u_s 0.
+    init_simF u_s 0.
 
-    wsteps_l. iDestruct "ASM" as "[[% INV] %]". des; subst. hss.
-    wsteps_r. inv H3. des. rewrite FBLOCK; hss. wsteps_r.
-    unfold assume. assert (T:true) by auto. wforce_r T. wsteps_r.
+    steps_l. iDestruct "ASM" as "[[% INV] %]". des; subst. hss.
+    steps_r. inv H3. des. rewrite FBLOCK; hss. steps_r.
+    unfold assume. assert (T:true) by auto. force_r T. steps_r.
     des_ifs.
     { (* base case *)
-      wsteps_r. wsteps_l. wforces_l. iSplitR; et. wsteps_l.
-      winline_l. wsteps_l.
-      iDestruct "ASM" as "%"; des; subst; hss. wsteps_l.
-      unfold apc_body, APC. wforce_l 0. wsteps_l. 
+      steps_r. steps_l. forces_l. iSplitR; et. steps_l.
+      inline_l. steps_l.
+      iDestruct "ASM" as "%"; des; subst; hss. steps_l.
+      unfold apc_body, APC. force_l 0. steps_l. 
       (* SRC: change to skip *)
-      apc_l. wsteps_l. wforces_l. iSplitR; et. wsteps_l.
-      wforces_l. iSplitL "INV"; iFrame; et.
+      apc_l. steps_l. forces_l. iSplitR; et. steps_l.
+      forces_l. iSplitL "INV"; iFrame; et.
       assert (q1 >= 0)%Z by nia. assert (q1 = 1 \/ q1 = 0) by nia. assert (Z.of_nat (Fib q1) = 1)%Z.
       { des; subst; reflexivity. }
-      rewrite H3. wstep. iSplit; et.
+      rewrite H3. step. iSplit; et.
     }
     { (* recursive call *)
-      wsteps_r. wsteps_l. wforces_l. iSplitR; et. wsteps_l.
-      winline_l. wsteps_l.
-      iDestruct "ASM" as "%"; des; subst; hss. wsteps_l. unfold apc_body, APC.
-      wforce_l 2. wsteps_l.
+      steps_r. steps_l. forces_l. iSplitR; et. steps_l.
+      inline_l. steps_l.
+      iDestruct "ASM" as "%"; des; subst; hss. steps_l. unfold apc_body, APC.
+      force_l 2. steps_l.
       
       (* first call - rec(n - 1) *)
       dup SPEC. inv SPEC.
@@ -80,7 +80,7 @@ Module KnotMainIA. Section KnotMainIA.
           bsimpl; des; split; des_sumbool; repeat destruct Z_le_gt_dec; unfold min_64, max_64, modulus_64_half in *; try nia; ss.
         - iPureIntro. eexists; esplits; et. refl. 
       }
-      iDestruct "ISTPOST" as "[IST [% INV]]". subst. wsteps_r. hss. wsteps_r.
+      iDestruct "ISTPOST" as "[IST [% INV]]". subst. steps_r. hss. steps_r.
 
       (* second call - rec(n - 2) *)
       apc_call_weaker "IST INV"; et.
@@ -92,11 +92,11 @@ Module KnotMainIA. Section KnotMainIA.
           bsimpl; des; split; des_sumbool; repeat destruct Z_le_gt_dec; unfold min_64, max_64, modulus_64_half in *; try nia; ss.
         - iPureIntro. eexists; esplits; et. rewrite -!OrdArith.mult_from_nat -OrdArith.add_from_nat. eapply OrdArith.le_from_nat. nia.
       }
-      iDestruct "ISTPOST" as "[IST [% INV]]". subst. wsteps_r. hss. wsteps_r.
+      iDestruct "ISTPOST" as "[IST [% INV]]". subst. steps_r. hss. steps_r.
 
-      apc_l. wsteps_l. wforces_l. iSplit; et. wsteps_l. wforces_l. iFrame. iSplit; et.
+      apc_l. steps_l. forces_l. iSplit; et. steps_l. forces_l. iFrame. iSplit; et.
 
-      wstep. iSplit; et.
+      step. iSplit; et.
       iPureIntro. repeat f_equal. rewrite unfold_fib; nia.
     }
     Unshelve. all: ss. exact (0↑).
@@ -105,7 +105,7 @@ Module KnotMainIA. Section KnotMainIA.
   Lemma simF_main:
     HSim.sim_fun open KnotMainAMod KnotMainIMod IstFull KnotMainName.main.
   Proof.
-    winit_simF u_s 0.
+    init_simF u_s 0.
 
     (* SKINCL *)
     pose proof (@CEnv.incl_incl_env KnotMainGEnv.t genv) as INCLENV.
@@ -120,13 +120,13 @@ Module KnotMainIA. Section KnotMainIA.
     specialize (GEnvWF KnotMainName.fib blk). apply GEnvWF in FIND; et. apply GEnvWF in FIND as FINDF.
 
     (* SRC: precondition *)
-    wsteps_l. destruct q; ss. iDestruct "ASM" as "[[% FG] %]". des; subst. hss.
+    steps_l. destruct q; ss. iDestruct "ASM" as "[[% FG] %]". des; subst. hss.
 
     (* TGT: find a block of the function "fib" using SKINCL *)
-    wsteps_r. rewrite FINDF; hss. wsteps_r.
+    steps_r. rewrite FINDF; hss. steps_r.
 
     (* TGT: inlining "fib" *)
-    winline_r. wsteps_r. wforce_r Fib. wforces_r. iSplitL "FG"; et.
+    inline_r. steps_r. force_r Fib. forces_r. iSplitL "FG"; et.
     { (* prove the precondition of "fib" *)
       iFrame. iSplit; et. iPureIntro. eexists. esplits; et. econs; esplits; et.
       eapply fn_has_spec_weaker.
@@ -146,19 +146,19 @@ Module KnotMainIA. Section KnotMainIA.
     }
 
     (* TGT: take a postcondition of "fib" *)
-    wsteps_r. iDestruct "GRT" as "[[% FG] %]"; des; subst; hss. wsteps_r. inv H3.
+    steps_r. iDestruct "GRT" as "[[% FG] %]"; des; subst; hss. steps_r. inv H3.
 
     (* TGT: find a block of the function "rec" using the postcondition of "fib" *)
-    rewrite FBLOCK; hss. wsteps_r.
+    rewrite FBLOCK; hss. steps_r.
     
     (* SRC: handle pure (APC) *)
-    unfold pure. wsteps_l.
-    wforce_l 30%ord. wsteps_l. inv SPEC. wforce_l.
-    wforces_l. iSplitR; et. wsteps_l.
+    unfold pure. steps_l.
+    force_l 30%ord. steps_l. inv SPEC. force_l.
+    forces_l. iSplitR; et. steps_l.
 
     (* SRC: inlining APC *)
-    winline_l. wsteps_l. iDestruct "ASM" as "%"; des; subst; hss. wsteps_l.
-    unfold apc_body, APC. wforce_l 1. wsteps_l. 
+    inline_l. steps_l. iDestruct "ASM" as "%"; des; subst; hss. steps_l.
+    unfold apc_body, APC. force_l 1. steps_l. 
     
     (* SRC, TGT: call "fib" using APC tactic *)
     apc_call_weaker "IST FG"; et.
@@ -169,9 +169,9 @@ Module KnotMainIA. Section KnotMainIA.
     iDestruct "ISTPOST" as "[IST [% FG]]". subst. steps_r. hss. steps_r.
 
     (* SRC: jump APC *)
-    apc_l. wsteps_l. wforces_l. iSplit; et. wsteps_l. wforce_l. wsteps_l. wforces_l. iSplit; et.
-    wsteps_r. hss. wsteps_r.
-    wstep. iSplitR; et.
+    apc_l. steps_l. forces_l. iSplit; et. steps_l. force_l. steps_l. forces_l. iSplit; et.
+    steps_r. hss. steps_r.
+    step. iSplitR; et.
     Unshelve. all: ss.
   (*FAST*)Qed.
 

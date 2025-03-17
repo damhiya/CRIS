@@ -1,6 +1,6 @@
 Require Import Common.
 Require Import Mod HMod.
-Require Import ModSim HPSimFacts ISimCore.
+Require Import ModSim HPSimFacts ISim.
 
 (* HSIM_ADEQUACY *)
 

@@ -1,6 +1,5 @@
 Require Import CRIS.
 Require Import ImpPrelude SchHeader SchA MemHeader MemA SpinLockMainHeader SpinLockA.
-Require Import wsim.
 From iris Require Import frac_auth numbers.
 
 (** Specification Module of SpinLockMainI *)

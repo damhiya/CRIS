@@ -2,7 +2,7 @@ Require Import Common.
 Require Import LAuto.
 
 Require Import Spc Mod SMod HMod PMod.
-Require Import HPSim ISimCore.
+Require Import HPSim ISim.
 (* Require Import SchHeader. *)
 
 (************ User Tactics **************)
@@ -591,7 +591,7 @@ Ltac post_simF :=
   ii; subst; iIntros "IST";
   move_aux.
 
-Ltac init_simF :=
+Ltac initialize_simF :=
   pre_simF;
   alist_find_simpl;
   let H := fresh "H" in intro H; inv H;
