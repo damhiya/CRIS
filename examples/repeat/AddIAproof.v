@@ -142,10 +142,10 @@ Module AddIA. Section AddIA.
     - apply simF_add; et.
   Qed.
 End AddIA.
-Section wctxr.
+Section ctxr.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
 
-  Definition wctxr (ge : GEnv.t) (u u_apc : univ_id) (spc spc_pure spc_pure_fun : string → option fspec)
+  Definition ctxr (ge : GEnv.t) (u u_apc : univ_id) (spc spc_pure spc_pure_fun : string → option fspec)
         (GEnvWF : GEnv.wf ge)
         (GEnvIncl : incl AddGEnv.t ge)
         (APCInSpcPure : spc_incl APCA.Spc spc_pure)
@@ -156,4 +156,4 @@ Section wctxr.
       ((AddA.t u spc) ★ (RepeatA.t ge u spc spc_pure_fun) ★ (APCA.t u_apc spc_pure spc), emp%I)
       ((AddI.t ge)    ★ (RepeatA.t ge u spc spc_pure_fun) ★ (APCA.t u_apc spc_pure spc), emp%I).
   Proof. eapply main_adequacy, sim; eauto. Qed.
-End wctxr. End AddIA.
+End ctxr. End AddIA.

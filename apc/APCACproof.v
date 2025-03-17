@@ -127,10 +127,10 @@ Module APCAC. Section APCAC.
   Qed.
 End APCAC.
 
-Section wctxr.
+Section ctxr.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
 
-  Definition wctxr (md : HMod.t) (u : univ_id) (spc_c spc_a spc_pure : string → option fspec)
+  Definition ctxr (md : HMod.t) (u : univ_id) (spc_c spc_a spc_pure : string → option fspec)
       (APCInSpcA : spc_incl APCA.Spc spc_a)
       (PureInSpcA : spc_sub spc_pure spc_a)
       (PureIsPure : 
@@ -141,4 +141,4 @@ Section wctxr.
       ((APCC.t u spc_c)           ★ md, emp%I)
       ((APCA.t u spc_pure spc_a)  ★ md, emp%I).
   Proof. eapply main_adequacy, sim; eauto. Qed.
-End wctxr. End APCAC.
+End ctxr. End APCAC.

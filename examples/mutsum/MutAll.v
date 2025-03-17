@@ -54,7 +54,7 @@ Module MutAll.
     { rewrite -hmod_addc_empty_l. eapply ctxr_cond_frameR.
       replace (SMod.to_hmod ginv spc APCC.Mod) with (APCC.t u spc); cycle 1.
       { unfold APCC.t. unseal CRIS. ss. }
-      eapply APCAC.wctxr.
+      eapply APCAC.ctxr.
       { instantiate (1:=spc). prove_spc. }
       { instantiate (1:=spc_pure). prove_spc. } 
       { prove_spc. }
@@ -65,7 +65,7 @@ Module MutAll.
     { eapply ctxr_compose_mix.
       { replace (SMod.to_hmod ginv spc MutMainA.Mod) with (MutMainA.t u spc); cycle 1.
         { unfold MutMainA.t. unseal CRIS. ss. }
-        eapply MutMainIA.wctxr; prove_spc.
+        eapply MutMainIA.ctxr; prove_spc.
       }
       { replace (SMod.to_hmod ginv spc MutFA.Mod) with (MutFA.t u spc); cycle 1.
         { unfold MutFA.t. unseal CRIS. ss. }
@@ -74,15 +74,15 @@ Module MutAll.
         rewrite !hmod_add_assoc.
         etrans.
         { eapply ctxr_compose_mix.
-          { eapply MutFIA.wctxr; prove_spc. }
-          { eapply MutGIA.wctxr; prove_spc. }
+          { eapply MutFIA.ctxr; prove_spc. }
+          { eapply MutGIA.ctxr; prove_spc. }
         }
         rewrite hmod_addc_empty_l -hmod_add_assoc. refl.
       }
     }
     rewrite hmod_addc_empty_l -!hmod_add_assoc.
     eapply ctxr_frameL.
-    eapply APCIA.wctxr.
+    eapply APCIA.ctxr.
   Qed.
 
   Lemma cancel_tgt :

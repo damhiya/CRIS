@@ -856,14 +856,14 @@ Module MemIA. Section MemIA.
   Qed.
 End MemIA.
 
-Section wctxr.
+Section ctxr.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
   Context `{!memGΓ Γ}.
 
-  Theorem wctxr csl genv (u_s: univ_id) (spc : string → option fspec)
+  Theorem ctxr csl genv (u_s: univ_id) (spc : string → option fspec)
       (MemInSpcMem: spc_incl MemA.spc spc) :
     ctx_refines
       (MemA.t u_s spc, MemA.init_cond csl genv)
       (MemI.t csl genv, emp%I).
   Proof. eapply main_adequacy, sim; eauto. Qed.
-End wctxr. End MemIA.
+End ctxr. End MemIA.

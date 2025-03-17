@@ -193,11 +193,11 @@ Module KnotIA. Section KnotIA.
   Qed.
 End KnotIA.
 
-Section wctxr.
+Section ctxr.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
   Context `{!memGΓ Γ, !KnotAGΓ Γ}.
 
-  Theorem wctxr (genv: GEnv.t) (u_s u_apc: univ_id)
+  Theorem ctxr (genv: GEnv.t) (u_s u_apc: univ_id)
     (SpcRec SpcFun Spc SpcMem SpcPure : string → option fspec)
     (GEnvWF: GEnv.wf genv)
     (GEnvIncl: incl KnotGEnv.t genv)
@@ -213,4 +213,4 @@ Section wctxr.
       (KnotI.t genv ★ MemA u_s SpcMem ★ APCA.t u_apc SpcPure Spc,
         emp%I).
   Proof. eapply main_adequacy, sim; eauto. Qed.
-End wctxr. End KnotIA.
+End ctxr. End KnotIA.

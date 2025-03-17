@@ -65,7 +65,7 @@ Module IncrAll.
   (* Refinement between spec/impl of whole program (linked module) *)
   Lemma src_tgt : refines (mod_src, init_cond) (mod_tgt, emp%I).
   Proof.
-    hexploit (IncrIA.wctxr u spc_s spc_user_s spc_s); eauto using SchInSpc, MainInSpc, MemInSpc.
+    hexploit (IncrIA.ctxr u spc_s spc_user_s spc_s); eauto using SchInSpc, MainInSpc, MemInSpc.
     i; eapply ctxr_refines.
     rewrite -[(mod_src, _)]hmod_addc_empty_l.
     rewrite -[(mod_tgt, _)]hmod_addc_empty_r.
@@ -79,7 +79,7 @@ Module IncrAll.
         { rewrite /MemA.t; unseal CRIS; ss. }
         eauto.
       }
-      { eapply ctxr_frameL. etrans; first eapply ctxr_cond_frameL, MemIA.wctxr.
+      { eapply ctxr_frameL. etrans; first eapply ctxr_cond_frameL, MemIA.ctxr.
         { eauto using MemInSpc. }
         { eapply ctxr_cond_strengthen; eauto. }
       }

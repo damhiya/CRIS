@@ -581,14 +581,14 @@ Module SchIA. Section SchIA.
   Qed.
   End SchIA.
 
-  Section wctxr.
+  Section ctxr.
     Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
     Context `{!SchAGΣ Σ, !SchAGΓ Γ}.
-    Lemma wctxr (u : univ_id) (spc_global spc_user : string → option fspec)
+    Lemma ctxr (u : univ_id) (spc_global spc_user : string → option fspec)
         (SchInGlobal : spc_incl (SchAS.spc u spc_user) spc_global)
         (UserInGlobal : spc_sub spc_user spc_global) :
       ctx_refines
         (SchA.t u spc_global spc_user, SchA.init_cond)
         (SchI.t, emp%I).
     Proof. eapply main_adequacy, sim; eauto. Qed.
-End wctxr. End SchIA.
+End ctxr. End SchIA.

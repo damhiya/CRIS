@@ -115,10 +115,10 @@ Module RepeatIA. Section RepeatIA.
     - apply simF_repeat; eauto.
   Qed.
 End RepeatIA. 
-Section wctxr.
+Section ctxr.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
 
-  Definition wctxr (ge : GEnv.t) (u u_apc : univ_id) (spc spc_pure spc_pure_fun : string → option fspec)
+  Definition ctxr (ge : GEnv.t) (u u_apc : univ_id) (spc spc_pure spc_pure_fun : string → option fspec)
         (APCInSpcPure : spc_incl APCA.Spc spc_pure)
         (SpcPureInSpc : spc_sub spc_pure spc)
         (SpcPureFunInSpcPure : spc_sub spc_pure_fun spc_pure)
@@ -127,4 +127,4 @@ Section wctxr.
       ((RepeatA.t ge u spc spc_pure_fun) ★ (APCA.t u_apc spc_pure spc), emp%I)
       ((RepeatI.t ge)                    ★ (APCA.t u_apc spc_pure spc), emp%I).
   Proof. eapply main_adequacy, sim; eauto. Qed.
-End wctxr. End RepeatIA.
+End ctxr. End RepeatIA.

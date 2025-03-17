@@ -181,7 +181,7 @@ Module MapMA. Section MapMA.
 End MapMA.
 Section MapMA.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !MapAGΓ Γ, !MapMGΓ Γ, !memGΓ Γ}.
-  Lemma wctxr u_s u_t spc_s spc_t
+  Lemma ctxr u_s u_t spc_s spc_t
       (LE : u_s > u_t)
       (MapInSpcS : spc_incl (MapAS.spc u_s) spc_s)
       (MapInSpcT : spc_incl (MapMS.spc u_t) spc_t) :

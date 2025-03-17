@@ -83,7 +83,7 @@ Module KnotAll.
     etrans. { eapply ctxr_comm. }
     etrans. 
     { rewrite !hmod_add_assoc. rewrite -hmod_addc_empty_l. eapply ctxr_cond_frameR.
-      eapply APCAC.wctxr.
+      eapply APCAC.ctxr.
       { instantiate (1:=spc). prove_spc. }
       { instantiate (1:=spc_pure). prove_spc. }
       { prove_spc; rewrite /KnotMainA.t /KnotA.t /= alist_find_map_snd /o_map; unseal CRIS; ss. }
@@ -93,22 +93,22 @@ Module KnotAll.
     etrans.
     { rewrite !hmod_add_assoc hmod_addc_empty_l /init_cond.
       eapply ctxr_cond_frameR.
-      eapply KnotMainIA.wctxr; try prove_spc.
+      eapply KnotMainIA.ctxr; try prove_spc.
       rewrite /genv /incl; ss. i; des; ss; tauto.
     }
     eapply ctxr_frameL.
     etrans.
     { rewrite hmod_addc_empty_l.
       eapply ctxr_cond_frameR.
-      eapply KnotIA.wctxr; try prove_spc.
+      eapply KnotIA.ctxr; try prove_spc.
       rewrite /genv /incl; ss. i; des; ss; tauto.
     }
     eapply ctxr_frameL. unfold KnotIAproof.KnotIA.MemA.
     rewrite hmod_addc_empty_l.
     rewrite -hmod_addc_empty_r -[(MemI.t csl genv ★ _, emp%I)]hmod_addc_empty_r.
     eapply ctxr_compose_hor.
-    { eapply MemIA.wctxr; prove_spc. }
-    { eapply APCIA.wctxr; prove_spc. }
+    { eapply MemIA.ctxr; prove_spc. }
+    { eapply APCIA.ctxr; prove_spc. }
   Qed.
 
   Lemma cancel_tgt :

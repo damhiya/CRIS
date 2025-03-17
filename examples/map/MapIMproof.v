@@ -314,7 +314,7 @@ Module MapIM. Section MapIM.
 End MapIM.
 Section MapIM.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !MapMGΓ Γ, !memGΓ Γ}.
-  Lemma wctxr (u_s u_mem : univ_id) (spc_s spc_mem : string → option fspec)
+  Lemma ctxr (u_s u_mem : univ_id) (spc_s spc_mem : string → option fspec)
       (INCL : spc_incl (MapMS.spc u_s) spc_s) :
     ctx_refines
       ((MapM.t u_s spc_s) ★ (MemA.t u_mem spc_mem), MapM.init_cond)

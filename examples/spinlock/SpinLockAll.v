@@ -122,7 +122,7 @@ Module SpinLockAll.
     rewrite hmod_add_assoc.
     etrans; first eapply ctxr_comm. rewrite -hmod_add_assoc. eapply ctxr_frameR.
     etrans.
-    { rewrite hmod_addc_empty_l. eapply ctxr_frameR, ctxr_cond_frameR. eapply MemIA.wctxr.
+    { rewrite hmod_addc_empty_l. eapply ctxr_frameR, ctxr_cond_frameR. eapply MemIA.ctxr.
       apply MemInSpc.
     }
     eapply ctxr_frameL.
@@ -130,7 +130,7 @@ Module SpinLockAll.
     { replace (SMod.to_hmod _ _ (SchA.Mod _ _)) with (SchA.t u spc_s spc_user_s); cycle 1.
       { unfold_hmod; ss. }
       rewrite hmod_addc_empty_l.
-      eapply SchIA.wctxr.
+      eapply SchIA.ctxr.
       { apply SchInSpc. }
       { apply UserInSpc. }
     }

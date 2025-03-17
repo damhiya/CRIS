@@ -88,10 +88,10 @@ Module MutFIA. Section MutFIA.
   Qed.
 End MutFIA.
 
-Section wctxr.
+Section ctxr.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
 
-  Theorem wctxr (u_s u_apc: univ_id) (Spc SpcPure: string → option fspec) 
+  Theorem ctxr (u_s u_apc: univ_id) (Spc SpcPure: string → option fspec) 
     (APCInSpc : spc_incl (APCA.Spc) Spc)
     (GInPure : spc_incl (MutGA.SpcG) SpcPure)
     (PureInSpc : spc_sub SpcPure Spc)
@@ -100,4 +100,4 @@ Section wctxr.
       (MutFA.t u_s Spc ★ APCA.t u_apc SpcPure Spc, MutFA.InitCond)
       (MutFI.t ★ APCA.t u_apc SpcPure Spc, emp%I).
   Proof. eapply main_adequacy, sim; eauto. Qed.
-End wctxr. End MutFIA.
+End ctxr. End MutFIA.

@@ -41,12 +41,12 @@ Module APCIA. Section APCIA.
   Qed.
 End APCIA.
 
-Section wctxr.
+Section ctxr.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
 
-  Theorem wctxr (u: univ_id) (SpcA SpcPure: string → option fspec):
+  Theorem ctxr (u: univ_id) (SpcA SpcPure: string → option fspec):
     ctx_refines
       (APCA.t u SpcPure SpcA, emp%I)
       (APCI.t, emp%I).
   Proof. eapply main_adequacy, sim. Qed.
-End wctxr. End APCIA.
+End ctxr. End APCIA.

@@ -216,11 +216,11 @@ Module IncrIA. Section IncrIA.
   Qed.
 End IncrIA.
 
-Section wctxr.
+Section ctxr.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
   Context `{!SchAGΣ Σ, !SchAGΓ Γ, !memGΓ Γ, !IncrMainAGΓ Γ}.
 
-  Definition wctxr (u : univ_id) (spc_s spc_user_s spc_mem : string → option fspec)
+  Definition ctxr (u : univ_id) (spc_s spc_user_s spc_mem : string → option fspec)
       (SchInSpc : spc_incl (SchAS.spc u spc_user_s) spc_s)
       (MainInSpc : spc_incl (IncrMainAS.spc u) spc_user_s)
       (MemInSpc : spc_incl MemA.spc spc_s) :
@@ -228,4 +228,4 @@ Section wctxr.
       ((IncrMainA.t u spc_s) ★ (MemA.t u spc_mem), emp%I)
       ((IncrMainI.t)         ★ (MemA.t u spc_mem), emp%I).
   Proof. eapply main_adequacy, sim; eauto. Qed.
-End wctxr. End IncrIA.
+End ctxr. End IncrIA.
