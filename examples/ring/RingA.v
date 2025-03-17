@@ -54,7 +54,7 @@ Module RingA. Section RingA.
       'que : list Z <- cgetU v_que;;
       if (List.length que <? max_size)%nat
       then cput v_que (que ++ [x])
-      else trigger (@IO _ void "error" "exceeds the maximum size");;; Ret tt
+      else trigger (@IO _ void "error" "enqueue failed: queue reached its maximum capacity");;; Ret tt
   .
 
   Definition dequeue : unit -> itree hmodE Z :=
@@ -62,7 +62,7 @@ Module RingA. Section RingA.
       'que : list Z <- cgetU v_que;;
       match que with
       | x :: que' => cput v_que que';;; Ret x
-      | _ => trigger (@IO _ void "error" "dequeue the empty queue");;; Ret 0%Z
+      | _ => trigger (@IO _ void "error" "dequeue failed: cannot dequeue from an empty queue");;; Ret 0%Z
       end
   .
 
