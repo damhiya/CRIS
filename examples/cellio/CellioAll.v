@@ -1,11 +1,11 @@
 Require Import CRIS Cancel.
 Require Import ImpPrelude.
-Require Import CellioHeader MainHeader .
+Require Import CellioHeader MainHeader.
 Require Import CellioA CellioI MainA MainI LibA.
 Require Import CellioIAproof MainIAproof.
 
 Module CellioAll. Section CellioAll.
-  Import inv_instances.  
+  Import inv_instances.
   Local Instance Γ : HRA := ##[invΓ; CellioAΓ].
   Local Instance Σ : GRA := ##[invΣ; Γ].
   Variable LibA: SMod.t.

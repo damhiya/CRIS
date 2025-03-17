@@ -108,6 +108,9 @@ Module IncrAll.
       (HMod.to_mod mod_tgt target_resource).
   Proof.
     move: (cancel_tgt)=>H; rewrite /refines in H; ss.
+    hexploit H.
+    { rewrite /mod_tgt /IncrMainI.t /MemI.t /SchI.t; unseal CRIS; prove_nodup. }
+    clear H; intros [WF H].
     destruct (H (IRΣ ⋅ initial_resource_own_admin)).
     { apply IRΣ_valid. }
     { clear H. simplify_res.
@@ -126,7 +129,6 @@ Module IncrAll.
       }
       all: solve_res.
     }
-    { econs; ss; try prove_nodup. }
     { exists x; des; eauto. }
   Qed.
 End IncrAll.

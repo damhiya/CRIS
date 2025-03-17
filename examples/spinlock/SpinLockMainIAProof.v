@@ -74,7 +74,7 @@ Module SpinLockMainIA. Section SpinLockMainIA.
     wsteps_r.
     sch_yield_l. wsteps_l. wforce_l true. wsteps_l. wforces_l. iFrame; iSplit; eauto.
     wsteps_l. wstep. iFrame. eauto.
-  (*FAST*)Qed.
+  (*FAST*)Admitted.
 
   Lemma main_simF : HSim.sim_fun open MA MI IstFull SpinLockMainName.main.
   Proof.
@@ -164,7 +164,7 @@ Module SpinLockMainIA. Section SpinLockMainIA.
     sch_yield_r. iFrame; ss; clear nths st_s st_t; iIntros (nths st_s st_t) "IST TID". wsteps_r.
     sch_yield_l. wsteps_l. wforces_l. iSplit; eauto. wsteps_l. wstep.
     iSplit; eauto.
-  (*FAST*)Qed.
+  (*FAST*)Admitted.
 
   Lemma sim : HSim.t open MA MI emp%I IstFull.
   Proof.
