@@ -1,5 +1,5 @@
 Require Import CRIS.
-Require Import MainHeader CellioHeader FooHeader.
+Require Import MainHeader CellioHeader LibHeader.
 
 Set Implicit Arguments.
 
@@ -11,7 +11,7 @@ Module MainI. Section MainI.
   Definition main: Any.t -> itree pmodE Any.t :=
     λ _,
       ccallU (Y:=unit) CellioName.set tt;;;
-      ccallU (Y:=unit) FooName.foo tt;;;
+      ccallU (Y:=unit) LibName.foo tt;;;
       x <- ccallU (Y:=Z) CellioName.get tt;;
       trigger (@IO _ unit "Print" x);;;
       Ret tt↑.

@@ -1,5 +1,5 @@
 Require Import CRIS.
-Require Import CellioA CellioHeader MainHeader FooHeader InputHeader.
+Require Import CellioA LibHeader CellioHeader MainHeader.
 
 Set Implicit Arguments.
 
@@ -12,8 +12,8 @@ Module MainA. Section MainA.
   Definition main: Any.t -> itree hmodE Any.t :=
     λ _,
       trigger (Assume (cell 0));;;
-      'i: Z <- ccallU InputName.input tt;;
-      '_: unit <- ccallU FooName.foo tt;;
+      'i: Z <- ccallU LibName.input tt;;
+      '_: unit <- ccallU LibName.foo tt;;
       '_: unit <- trigger (IO "Print" i);;
       Ret tt↑.
   

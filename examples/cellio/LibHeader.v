@@ -1,12 +1,13 @@
 Require Import CRIS.
 
-Module InputName.
+Module LibName.
 
-  Definition mn := "Input".
+  Definition mn := "Lib".
     
   Definition fn (method: string) :=
     mn +:+ "." +:+ method.
   
+  Definition foo := fn "foo".
   Definition input := fn "input".
 
-End InputName.
+End LibName.

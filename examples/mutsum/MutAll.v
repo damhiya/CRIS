@@ -103,10 +103,12 @@ Module MutAll.
       (HMod.to_mod mod_tgt target_resource).
   Proof.
     move: (cancel_tgt)=>H; rewrite /refines in H; des; ss.
-    destruct (H initial_resource).
+    hexploit H.
+    { econs; ss; rewrite /MutMainI.t /MutFI.t /MutGI.t; unseal CRIS; try prove_nodup. }
+    intros [_ H'].
+    destruct (H' initial_resource).
     { apply initial_resource_valid. }
     { iIntros; iSplit; et. }
-    { econs; ss; try prove_nodup. }
     { exists x; des; eauto. }
   Qed.
 End MutAll.

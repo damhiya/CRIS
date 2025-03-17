@@ -138,14 +138,7 @@ Proof.
   destruct (alist_find "CRIS_init" (SMod.fnsems md)) eqn:E; cycle 1.
   {
     rewrite !alist_find_map/o_map E. s.
-    unfold interp_modE at 2.
-    rewrite/interp_schE_callE unfold_iter_eq /handle_schE_callE.
-    grind. rewrite StRed.bind. grind.
-    destruct (resum IFun False (Choose False)) eqn:V.
-    { inv V. }
-    depdes c; inv V. resub.
-    rewrite [interp_stateE _ _ _]StRed.core. grind.
-    ginit. st. i. ss.
+    rewrite /spc_from E in SPC. ss.
   }
   rewrite !alist_find_map/o_map E. s. 
   erewrite !wrap_elimI_well_scoped; cycle 1.
@@ -214,16 +207,19 @@ Proof.
   { eapply cancel_call_rev. }
   etrans; cycle 1.
   { eapply cancel_call. }
-  ii. eapply Own_split in SRC; eauto. des.
-  exists a1. esplits; eauto.
-  { eapply cmra_valid_op_l, valid_solve_eq; eauto. }
+  ii; split.
   {
     inv WFM. econs; eauto. s.
     do 2 rewrite List.map_map fst_map_snd.
     do 2 rewrite List.map_map fst_map_snd in wf_fns. eauto.
   }
+  inv WFM. s; i.
+  eapply Own_split in SRC; eauto. des.
+  exists a1. esplits; eauto.
+  { eapply cmra_valid_op_l, valid_solve_eq; eauto. }
+
   eapply cancel_main; eauto.
-  - inv WFM. econs; eauto. s.
+  - econs; eauto. s.
     rewrite List.map_map fst_map_snd.
     do 2 rewrite List.map_map fst_map_snd in wf_fns. eauto.
   - rewrite SRC. rewrite comm. eauto.

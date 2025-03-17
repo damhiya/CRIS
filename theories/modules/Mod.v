@@ -48,7 +48,7 @@ Module Mod.
 
     Definition prog: callE ~> itree modE :=
       fun _ '(Call fn args) =>
-        sem <- (alist_find fn ms.(fnsems))!;;
+        sem <- (alist_find fn ms.(fnsems))?;;
         sem args.
 
     Definition compile : itree coreE Any.t :=

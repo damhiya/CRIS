@@ -40,7 +40,7 @@ Section INTERP.
 
   Definition prog (ms: HMod.t) : callE ~> itree hmodE :=
     fun _ '(Call fn args) =>
-      lbody <- (alist_find fn ms.(HMod.fnsems))!;;
+      lbody <- (alist_find fn ms.(HMod.fnsems))?;;
       HMod.sandbox_body lbody args.
       
   Definition inline_hp_fbody (ms: HMod.t)
@@ -284,7 +284,7 @@ Proof.
         }
         des. rewrite EX. eapply CIH. refl.
       }
-      ired. unfold triggerNB. ired. 
+      ired. unfold triggerUB. ired. 
       rewrite !HIRed.bind_core !SBRed.bind SBRed.core !bind_trigger.
       gstep. econs. i. ss.
     }
@@ -359,5 +359,5 @@ Qed.
 
 Definition progI `{Σ: GRA} fl : callE ~> itree hmodE :=
   fun _ '(Call fn args) =>
-    lbody <- (alist_find fn fl)!;;
+    lbody <- (alist_find fn fl)?;;
     lbody args.

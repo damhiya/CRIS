@@ -12,18 +12,18 @@ Proof.
   eapply closed_adequacy2.
   econs; ss; try refl; eauto.
   { i. rewrite List.map_map fst_map_snd. exists []. ss. }
-  ii. ss. exists (wrap_elimI md ft).
-  esplits.
-  { rewrite alist_find_map_snd FIND. ss. } 
+  ii. rewrite alist_find_map_snd in FIND.
+  destruct (alist_find fn (HMod.fnsems md)) eqn:FINDT; ss.
+  inv FIND. rename p into ft. esplits; eauto.
   ii. subst. destruct ft.
   assert(SCP := md.(HMod.well_scoped_fns)).
-  specialize (SCP fn). rewrite/fnsems_scopes FIND in SCP.
+  specialize (SCP fn). rewrite/fnsems_scopes FINDT in SCP.
+  remember (HMod.scopes md) as scopeS. i.
   rename l into scopeT. 
-  unfold HMod.sandbox_body, inline_hp_fun. s.
-  unfold HMod.sandbox_body, inline_hp_fun. s.
+  unfold wrap_elimI. s. unfold HMod.sandbox_body, inline_hp_fun. s.
   generalize false at 1 as ps.
   generalize false at 1 as pt. intros pt ps.
-  generalize (i y) as it. clear IN fn FIND i y NODD NODS.
+  generalize (i y) as it. clear IN fn FINDT i y NODD NODS.
   combine_quant st_tgt.
   combine_quant st_src.
   combine_quant SCP.
@@ -32,7 +32,6 @@ Proof.
   combine_quant ps.
   combine_quant nths.
   eapply isim_coind. i.
-
   destruct a as [nths [ps [pt [scopeT [SCP [st_src [st_tgt it]]]]]]]. s.
   iIntros "(Ist & #CIH)".
   
@@ -48,11 +47,7 @@ Proof.
       steps_l. by_coind "CIH". auto.
   - destruct c. rewrite SBRed.bind SBRed.call HIRed.call. steps_l. 
     destruct (alist_find fn (HMod.fnsems md)) eqn:FIND; cycle 1.
-    { 
-      iApply isim_call_none; ss.
-      { rewrite alist_find_map_snd FIND. ss. }
-      unfold triggerNB. steps_r. ss.
-    }
+    { ss. unfold triggerUB. ired. rewrite HIRed.bind_core. steps_l. ss. }
     destruct p. iApply isim_inline_tgt.
     { rewrite alist_find_map_snd FIND. ss. }
     s. ired. rewrite HIRed.bind SBRed.bind.

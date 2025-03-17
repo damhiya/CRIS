@@ -141,17 +141,17 @@ Unshelve. all : eauto.
 Qed.
 
 Lemma hmod_sim_reflR `{Σ : GRA} A B C init_cond scopes Ist contextual
-  (SCOPES: scopes = HMod.scopes A)
+  (SCOPES: scopes = HMod.scopes B)
   (INIT : init_cond -∗
           IstProd (IstSB scopes Ist) IstEq 1
                   (HMod.initial_st (HMod.add A C))
                   (HMod.initial_st (HMod.add B C)))
   (MON : ∀ nths nths' (LE : nths <= nths') st_src st_tgt,
       Ist nths st_src st_tgt -∗ Ist nths' st_src st_tgt)
-  (SCOPE : sub_perm (HMod.scopes B) scopes)
-  (MATCH : sub_perm (List.map fst (HMod.fnsems B)) (List.map fst (HMod.fnsems A)))
+  (SCOPE : sub_perm (HMod.scopes A) scopes)
+  (MATCH : sub_perm (List.map fst (HMod.fnsems A)) (List.map fst (HMod.fnsems B)))
   (SIM : ∀ fn
-          (IN : In fn (List.map fst (HMod.fnsems B))),
+          (IN : In fn (List.map fst (HMod.fnsems A))),
         HSim.sim_fun contextual
           (HMod.add A C) (HMod.add B C)
           (IstProd (IstSB scopes Ist) IstEq) fn)
@@ -167,10 +167,10 @@ Proof.
   - s. rewrite ?map_app. apply sub_perm_cancel_tail. eauto.
   - s. i. rewrite map_app in IN. apply in_app_or in IN. des.
     { eapply SIM; eauto. }
-    ii. exists ft. destruct ft as [scp f].
+    ii. exists fs. destruct fs as [scp f].
     assert (FND : alist_find fn (HMod.fnsems C) = Some (scp,f)).
     { s in FIND. rewrite alist_find_app_o in FIND. des_ifs.
-      exfalso. assert (ND:= HMod.wf_fns WFT). s in ND. rewrite map_app in ND.
+      exfalso. assert (ND:= HMod.wf_fns WFS). s in ND. rewrite map_app in ND.
       eapply NoDup_app_disjoint; try apply ND; eauto.
       eapply alist_find_some, (in_map fst) in Heq. eauto.
     }
@@ -180,7 +180,7 @@ Proof.
       apply in_or_app. right. eapply alist_find_some. eauto. }
     
     eapply isim_reflR; eauto.
-    + apply WFS.
+    + apply WFT.
     + etrans; [|eapply HMod.well_scoped_fns].
       unfold fnsems_scopes. erewrite FND. refl.
     + i. unfold IstEq. iIntros "%". subst. eauto.

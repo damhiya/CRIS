@@ -81,7 +81,6 @@ Module CannonAll.
       }
       all: solve_res.
     }
-    { econs; ss; try prove_nodup. }
     { exists x; des; eauto. }
   Qed.
 End CannonAll.
