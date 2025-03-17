@@ -10,18 +10,20 @@ Module CtrlI. Section CtrlI.
 
   Context `{Σ : GRA}.
 
+  (* A maximum size of the ring buffer *)
   Variable max_size : nat.
 
   Definition scopes := ["Ring"].
   Definition v_hd := "Ring" ↯ "hd".
   Definition v_tl := "Ring" ↯ "tl".
 
+  (* Implementations of init, get_size, enqueue, dequeue *)
   Definition init : unit -> itree pmodE unit :=
     λ _,
       cput v_hd 0;;;
       cput v_tl 0
   .
-  
+
   Definition get_size : unit -> itree pmodE nat :=
     λ _,
       'hd : nat <- cgetU v_hd;;
@@ -38,7 +40,7 @@ Module CtrlI. Section CtrlI.
         'u: () <- ccallU (CellName.set (hd mod max_size)) x;;
         cput v_hd (hd+1)
       else
-        trigger (@IO _ void "error" "exceeds the maximum size");;; Ret tt
+        trigger (@IO _ void "error" "enqueue failed: queue reached its maximum capacity");;; Ret tt
   .
 
   Definition dequeue : unit -> itree pmodE Z :=
@@ -51,7 +53,7 @@ Module CtrlI. Section CtrlI.
         cput v_tl (tl+1);;;
         Ret x
       else
-        trigger (@IO _ void "error" "dequeue the empty queue");;; Ret 0%Z
+        trigger (@IO _ void "error" "dequeue failed: cannot dequeue from an empty queue");;; Ret 0%Z
   .
 
   Definition fnsems :=
@@ -59,7 +61,7 @@ Module CtrlI. Section CtrlI.
      (RingName.get_size, (scopes, cfunU get_size));
      (RingName.enqueue, (scopes, cfunU enqueue));
      (RingName.dequeue, (scopes, cfunU dequeue))].
-  
+
   Program Definition Mod : PMod.t := {|
     PMod.scopes := scopes;
     PMod.fnsems := fnsems;

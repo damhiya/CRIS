@@ -14,24 +14,30 @@ Module CellIA. Section CellIA.
 
   Variable idx : nat.
 
+  (* An universe for Cell module *)
   Context (u_s: univ_id).
+  (* A spec table *)
   Context (Spc_s : string → option fspec).
 
   Definition Ist : nat -> alist key Any.t -> alist key Any.t -> iProp Σ :=
     (λ _ st_src st_tgt,
-       ∃ vany v, 
+       ∃ vany v,
         ⌜st_tgt = [(CellI.v_cv idx, vany)]⌝
         ∗ ((cell idx v ∗ auth idx v)
           ∨ (⌜vany = v↑⌝ ∗ pending idx ∗ auth idx v)))%I.
 
+  (* Definitions of two Cell modules *)
   Local Definition CellA := (CellA.t idx Spc_s).
   Local Definition CellI := (CellI.t idx).
+
+  (*************)
 
   Lemma simF_get : HSim.sim_fun open CellA CellI Ist (CellName.get idx).
   Proof.
     winit_simF u_s 0.
 
-    (* SRC: handle the IST of the Cell and the precond of get *)
+    (* Simulation Starts Here *)
+    (* SRC: precondition *)
     wsteps_l. iDestruct "ASM" as "((% & C) & %)". subst. hss.
     iDestruct "IST" as (vany v0) "(% & [(C' & A)|(% & P & A)])".
     { iExFalso. iApply (cell_unique with "C' C"). }
@@ -39,7 +45,10 @@ Module CellIA. Section CellIA.
 
     iPoseProof (cell_auth_get with "C A") as "%". subst.
 
-    wsteps_r. hss. wsteps_r.    
+    (* TGT: return the value of Cell with [idx] *)
+    wsteps_r. hss. wsteps_r.
+
+    (* SRC: take steps *)
     wforces_l. wsteps_l. wforces_l.
     iSplitL "C". { eauto. } wsteps_l.
 
@@ -52,23 +61,29 @@ Module CellIA. Section CellIA.
   Proof.
     winit_simF u_s 0.
 
+    (* Simulation Starts Here *)
+    (* SRC: precondition *)
     wsteps_l. iDestruct "ASM" as "((% & [P|C]) & %)";
       subst; hss; rename q1 into v, q2 into v'; unfold Ist.
-    { iDestruct "IST" as (vany v0) "(% & [(C & A)|(% & P' & A)])"; cycle 1.
+    { (* A case with a resource [P: pending idx] *)
+      iDestruct "IST" as (vany v0) "(% & [(C & A)|(% & P' & A)])"; cycle 1.
       { iExFalso. iApply (pending_unique with "P' P"). }
       des; subst. hss.
 
       iMod (cell_auth_set with "C A") as "(C & A)".
 
+      (* TGT, SRC: take steps *)
       wsteps_r. hss.
       wforces_l. wsteps_l. wforces_l.
       iSplitL "C". { eauto. } wsteps_l.
 
+      (* Prove the IST *)
       wstep.
       iSplit; eauto.
       iExists _, _. iSplit; eauto. iRight. iFrame; eauto.
     }
 
+    (* A case with a resource [C: cell idx v] *)
     iDestruct "IST" as (vany v0) "(% & [(C' & A)|(% & P & A)])".
     { iExFalso. iApply (cell_unique with "C' C"). }
     subst. hss.
@@ -76,10 +91,12 @@ Module CellIA. Section CellIA.
     iPoseProof (cell_auth_get with "C A") as "%". subst.
     iMod (cell_auth_set with "C A") as "(C & A)".
 
+    (* TGT, SRC: take steps *)
     wsteps_r. hss.
     wforces_l. wsteps_l. wforces_l.
     iSplitL "C". { eauto. } wsteps_l.
 
+    (* Prove the IST *)
     wstep.
     iSplit; eauto.
     iExists _, _. iSplit; eauto. iRight. iFrame; eauto.
