@@ -122,7 +122,7 @@ Module KnotIA. Section KnotIA.
 
     wstep. by iFrame.
     Unshelve. all: ss.
-  Qed.
+  (*FAST*)Qed.
 
   Lemma simF_knot:
     HSim.sim_fun open KnotAMod KnotIMod IstFull KnotName.knot.

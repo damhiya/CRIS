@@ -47,7 +47,7 @@ Module CellioIA. Section CellioIA.
     wstep.
     iSplitL ""; eauto.
     iExists _. iFrame. eauto.
-  Qed.
+  (*FAST*)Qed.
   
   Lemma simF_get : HSim.sim_fun open CellioA CellioI Ist CellioName.get.
   Proof.
@@ -68,7 +68,7 @@ Module CellioIA. Section CellioIA.
 
     wstep. iSplit; eauto.
     iExists _. iFrame. eauto.
-  Qed.
+  (*FAST*)Qed.
   
   Lemma sim : HSim.t open CellioA CellioI CellioA.InitCond Ist.
   Proof.

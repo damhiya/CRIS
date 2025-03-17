@@ -59,7 +59,7 @@ Module MutMainIA. Section MutMainIA.
     (* SRC, TGT: prove the IST *)
     wstep. iSplitR "IST"; eauto.
     Unshelve. all: ss.
-  Qed.
+  (*FAST*)Qed.
 
   Theorem sim:
     HSim.t open MutMainAMod MutMainIMod MutMainA.init_cond IstFull.

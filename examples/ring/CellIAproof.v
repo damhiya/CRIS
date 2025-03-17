@@ -54,7 +54,7 @@ Module CellIA. Section CellIA.
 
     wstep. iSplit; eauto.
     iExists _, _. iSplit; eauto. iRight. iFrame; eauto.
-  Qed.
+  (*FAST*)Qed.
 
   Lemma simF_set:
     HSim.sim_fun open CellA CellI Ist (CellName.set idx).
@@ -100,7 +100,7 @@ Module CellIA. Section CellIA.
     wstep.
     iSplit; eauto.
     iExists _, _. iSplit; eauto. iRight. iFrame; eauto.
-  Qed.
+  (*FAST*)Qed.
 
   Theorem sim : HSim.t open CellA CellI (CellA.InitCond idx) Ist.
   Proof.

@@ -100,7 +100,7 @@ Module KnotMainIA. Section KnotMainIA.
       iPureIntro. repeat f_equal. rewrite unfold_fib; nia.
     }
     Unshelve. all: ss. exact (0↑).
-  Qed.
+  (*FAST*)Qed.
 
   Lemma simF_main:
     HSim.sim_fun open KnotMainAMod KnotMainIMod IstFull KnotMainName.main.
@@ -173,7 +173,7 @@ Module KnotMainIA. Section KnotMainIA.
     wsteps_r. hss. wsteps_r.
     wstep. iSplitR; et.
     Unshelve. all: ss.
-  Qed.
+  (*FAST*)Qed.
 
   Theorem sim : HSim.t open KnotMainAMod KnotMainIMod KnotMainA.init_cond IstFull.
   Proof.
