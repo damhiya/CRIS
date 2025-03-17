@@ -18,7 +18,7 @@ Module RingAS. Section RingAS.
   Proof.
     unfold Spc. unseal CRIS. prove_nodup.
   Qed.
-  
+
 End RingAS.
 
 Global Hint Unfold Spc : stb.
@@ -26,13 +26,18 @@ Global Hint Unfold Spc : stb.
 End RingAS.
 
 Module RingA. Section RingA.
+  (* Define Ring module *)
+
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !CellAGΓ Γ}.
 
+  (* A maximum size of the ring buffer *)
   Variable max_size : nat.
 
+  (* Define scopes and a member variable `que` *)
   Definition scopes := ["Ring"].
   Definition v_que := "Ring" ↯ "que".
-  
+
+  (* Specifications of functions in RingA *)
   Definition init : unit -> itree hmodE unit :=
     λ _,
       cput v_que ([]:list Z)
@@ -53,7 +58,7 @@ Module RingA. Section RingA.
   .
 
   Definition dequeue : unit -> itree hmodE Z :=
-    λ _, 
+    λ _,
       'que : list Z <- cgetU v_que;;
       match que with
       | x :: que' => cput v_que que';;; Ret x

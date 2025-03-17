@@ -9,11 +9,14 @@ Set Implicit Arguments.
 Module CellI. Section CellI.
   Context `{Σ : GRA}.
 
+  (* Index of this Cell *)
   Variable idx : nat.
 
+  (* Scopes and a member variable `cv` *)
   Definition scopes := [CellName.mn idx].
   Definition v_cv := (CellName.mn idx) ↯ "cv".
 
+  (* Implementations of get and set *)
   Definition get : unit -> itree pmodE Z :=
     λ _,
       cv <- cgetU v_cv;;
@@ -35,6 +38,6 @@ Module CellI. Section CellI.
   |}.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
-  
+
   Definition t := Seal.sealing CRIS (PMod.to_hmod Mod).
 End CellI. End CellI.

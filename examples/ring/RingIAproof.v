@@ -1,15 +1,16 @@
 Require Import CRIS.
 
-Require Import RingHeader CellHeader 
-  RingA CtrlI CellA CellI 
+Require Import RingHeader CellHeader
+  RingA CtrlI CellA CellI
   CtrlIAproof CellIAproof.
 
 Set Implicit Arguments.
 
 Local Open Scope nat_scope.
 
+(* Contextual Refinement Proof *)
 Module RingIA. Section RingIA.
-  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !CellAGΓ Γ}.  
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !CellAGΓ Γ}.
 
   Definition CellIG start len :=
     HMod.addL (List.map CellI.t (seq start len)).
@@ -19,7 +20,7 @@ Module RingIA. Section RingIA.
     ctx_refines
       ((RingA.t max_size SpcR) ★ (CtrlIA.CellG SpcC 0 max_size),
        (RingA.InitCond max_size) ∗ ([∗ list] i↦x ∈ seq 0 max_size, CellA.InitCond i))%I
-      ((CtrlI.t max_size)           ★ (CellIG 0 max_size),
+      ((CtrlI.t max_size)      ★ (CellIG 0 max_size),
        emp%I).
   Proof.
     etrans.
