@@ -5,21 +5,28 @@ Require Import SpinLockMainHeader SpinLockMainI SpinLockMainA SpinLockMainIAProo
 Require Import SchHeader SchI SchA SchIAproof.
 Require Import ElimRel SModCancel Cancellation.
 
+(* Cancellation *)
 Module SpinLockAll.
   Import inv_instances.
+
+  (* univ_id for the source module *)
   Local Definition u : univ_id := 1.
 
+  (* initialization parameters for memory module *)
   Local Definition csl : string → bool := λ _, false.
   Local Definition genv : GEnv.t := GEnv.unit.
 
+  (* HRA & GRA *)
   Local Instance Γ : HRA := ##[invΓ; memΓ; SchAΓ; SpinLockΓ; SpinLockMainAΓ].
   Local Instance Σ : GRA := ##[invΣ; SchAΣ; Γ].
 
+  (* initial resources for HRA & GRA *)
   Definition irΓ : Γ :=
-    **[ir_invΓ u; ir_memΓ csl genv; SchAS.ir_SchAΓ; ir_SpinLockΓ; ir_SpinLockMainAΓ].
+    **[ir_invΓ u; ir_memΓ csl genv; SchAS.ir_SchAΓ; SpinLockAS.ir; SpinLockMainAS.ir].
   Definition irΣ : Σ :=
     **[ir_invΣ u; SchAS.ir_SchAΣ; irΓ].
 
+  (* validity lemma for the initial resource irΣ *)
   Lemma irΣ_valid : ✓ (irΣ ⋅ initial_resource_own_admin).
   Proof.
     solve_ir_valid.
@@ -28,17 +35,23 @@ Module SpinLockAll.
     - apply SchAS.ir_tidRA_valid.
   Qed.
 
-  (* building the target module *)
+  (* the target module *)
   Local Definition mod_tgt : HMod.t := SpinLockMainI.t ★ MemI.t csl genv ★ SchI.t ★ SpinLockI.t.
 
-  (* building the source module *)
+  (* spc of source module (scheduler spec excluded) *)
   Local Definition spc_user_s : string → option fspec :=
     to_spc (SpinLockMainAS.spc u ++ MemA.spc ++ SpinLockAS.spc u).
+
+  (* the source SMod *)
   Local Definition smod_src : SMod.t :=
     SpinLockMainA.Mod u ☆ MemA.Mod ☆ SchA.Mod u spc_user_s ☆ SpinLockA.Mod u.
+  (* the source spc *)
   Local Definition spc_s : string → option fspec :=
     spc_from smod_src.
+  (* the source HMod *)
   Local Definition mod_src : HMod.t := SMod.to_hmod (wsim_ginv u ⊤) spc_s smod_src.
+
+  (* initial condition for the source *)
   Local Definition init_cond : iProp Σ := (MemA.init_cond csl genv ∗ SchA.init_cond)%I.
 
   (* source module after cancellation *)
@@ -91,7 +104,7 @@ Module SpinLockAll.
       { unfold_hmod; ss. }
       rewrite hmod_add_assoc -hmod_addc_empty_l.
       etrans; first eapply ctxr_cond_frameR.
-      { eapply SpinLockMainIA.wctxr; eauto.
+      { eapply SpinLockMainIA.ctxr; eauto.
         { apply SchInSpc. }
         { apply MainInSpc. }
         { apply MemInSpc. }
@@ -102,7 +115,7 @@ Module SpinLockAll.
     etrans.
     { eapply ctxr_frameR. rewrite -hmod_addc_empty_l. eapply ctxr_cond_frameR.
       etrans; first eapply ctxr_comm.
-      eapply SpinLockIA.wctxr.
+      eapply SpinLockIA.ctxr.
       { apply SchInSpc. }
       { apply MemInSpc. }
     }
@@ -124,6 +137,7 @@ Module SpinLockAll.
     refl.
   Qed.
 
+  (* source HMod ⊆ source SMod ⊆ cancelled HMod *)
   Lemma cancel_tgt :
     refines (smod_cancel, (init_cond ∗ (main_fsp).(precond) tt tt↑ tt↑)%I)
             (mod_tgt, emp%I).
@@ -133,6 +147,7 @@ Module SpinLockAll.
     { eapply src_tgt. }
   Qed.
 
+  (* tgt HMod ⊆ cancelled HMod *)
   Theorem behavioral_refinement :
     ∃ target_resource, refines_mod
       (HMod.to_mod smod_cancel (irΣ ⋅ initial_resource_own_admin))
@@ -144,6 +159,7 @@ Module SpinLockAll.
     clear H; intros [WF H].
     destruct (H ((irΣ ⋅ initial_resource_own_admin))).
     { apply irΣ_valid. }
+    (* initial condition constructions - wrap them by simplify_res and solve_res *)
     { clear H. simplify_res.
       { iAssert (SchAS.tid_admin None) with "[H22]" as "TID".
         { rewrite /SchAS.tid_admin. unseal "SchA". iFrame. }

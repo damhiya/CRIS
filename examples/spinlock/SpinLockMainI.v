@@ -1,6 +1,12 @@
 Require Import CRIS.
 Require Import ImpPrelude SchHeader MemHeader SpinLockHeader SpinLockMainHeader.
 
+(* Implementation of an example user module that uses spinlock library *)
+(* Define three components for a module:
+  1) scope
+  2) code (via itree)
+  3) initial state (via Any.t)
+*)
 Module SpinLockMainI. Section SpinLockMainI.
   Definition scopes : list string := [].
 

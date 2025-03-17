@@ -1,6 +1,12 @@
 Require Import CRIS.
 Require Import ImpPrelude SchHeader MemHeader SpinLockHeader.
 
+(* Implementation of the spinlock library *)
+(* Define three components for a module:
+  1) scope
+  2) code (via itree)
+  3) initial state (via Any.t)
+*)
 Module SpinLockI. Section SpinLockI.
   Context {Σ : GRA}.
 

@@ -4,20 +4,31 @@ Require Import SchHeader SchA.
 Require Import wsim.
 From iris Require Import excl.
 
+(** Specification Module of the spinlock library *)
+
+(* Resource algebra *)
+(* Structure of the resource algebra definition is similar to that of iris,
+  but few differences exist. *)
+(* HRAs are structs similar to GRAs, but for RAs that sProps can own. *)
 Class SpinLockAGΓ (Γ : HRA) := {
   #[local] spinlock_inG :: inG (exclR unitO) Γ;
 }.
 Definition SpinLockΓ : HRA := #[exclR unitO].
+(* Be sure to annotate Γ as HRA, or tc search may not work properly. *)
 Global Instance subG_GΓ {Γ : HRA} : subG SpinLockΓ Γ → SpinLockAGΓ Γ.
 Proof. solve_inG. Defined.
+(* Be sure to add these two instances to hint database so that we can resolve inG instances
+  in the cancellation phase. *)
 Hint Unfold subG_GΓ spinlock_inG : GRA_index.
 
-(** initial resource *)
-Definition ir_SpinLockΓ : SpinLockΓ := *[None].
-
+(* Spec definition *)
+(* Define 1) initial resource 2) function specs 3) spc here. *)
 Module SpinLockAS. Section SpinLockAS.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
   Context `{!SchAGΣ Σ, !SchAGΓ Γ, !memGΓ Γ, !SpinLockAGΓ Γ}.
+
+  (* Initial resource *)
+  Definition ir : SpinLockΓ := *[None].
 
   Definition N_SpinLockA := nroot .@ "spin_lock".
 
@@ -30,6 +41,7 @@ Module SpinLockAS. Section SpinLockAS.
   Definition is_lock {n} u γ val P : iProp Σ :=
     ∃ blk ofs, ⌜val = Vptr blk ofs⌝ ∗ inv u n N_SpinLockA (lock_inv blk ofs P γ).
 
+  (* Function specs *)
   Definition newlock_spec u : fspec :=
     w_fspec u
       (fspec_simple (X := nat * {n & SRFSyn.t n})
@@ -65,6 +77,12 @@ Module SpinLockAS. Section SpinLockAS.
      (SpinLockName.release, release_spec u)].
 End SpinLockAS. End SpinLockAS.
 
+(* Module definition *)
+(* Define three components for a module:
+  1) scope
+  2) code (via itree)
+  3) initial state (via Any.t)
+*)
 Module SpinLockA. Section SpinLockA.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !memGΓ Γ, !SpinLockAGΓ Γ}.
   Context `{!SchAGΣ Σ, !SchAGΓ Γ}.

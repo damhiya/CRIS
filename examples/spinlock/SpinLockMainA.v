@@ -1,24 +1,28 @@
 Require Import CRIS.
 Require Import ImpPrelude SchHeader SchA MemHeader MemA SpinLockMainHeader SpinLockA.
 Require Import wsim.
-
 From iris Require Import frac_auth numbers.
 
+(** Specification Module of SpinLockMainI *)
+
+(* Resource algebra - same as Counter.v example from iris *)
 Class SpinLockMainAGΓ (Γ : HRA) := {
   #[local] RA_inG :: inG (frac_authR ZR) Γ;
 }.
 Definition SpinLockMainAΓ : HRA := #[frac_authR ZR].
 Global Instance subG_GΓ {Γ : HRA} : subG SpinLockMainAΓ Γ → SpinLockMainAGΓ Γ.
 Proof. solve_inG. Defined.
-Hint Unfold subG_GΓ SpinLockMainAΓ : GRA_index.
+Hint Unfold RA_inG subG_GΓ SpinLockMainAΓ : GRA_index.
 
-(** initial resource *)
-Definition ir_SpinLockMainAΓ : SpinLockMainAΓ := *[None].
-
+(* Spec definition *)
+(* Define 1) initial resource 2) function specs 3) spc here. *)
 Module SpinLockMainAS. Section SpinLockMainAS.
   Import SpinLockAS.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
   Context `{!memGΓ Γ, !SchAGΣ Σ, !SchAGΓ Γ, !SpinLockMainAGΓ Γ, !SpinLockAGΓ Γ}.
+
+  (* initial resource *)
+  Definition ir : SpinLockMainAΓ := *[None].
 
   Definition main_spec u : fspec :=
     w_fspec u
@@ -43,6 +47,7 @@ Module SpinLockMainAS. Section SpinLockMainAS.
           ∗ own γ_v (◯F{1/2} 1%Z)))
       ))%I.
 
+  (* pre/postconditions for threads to be spawned *)
   Definition incr_pre u blk_l ofs_l blk_v ofs_v γ_v : SAny.t → SAny.t → iProp Σ :=
     λ varg arg,
       (⌜varg = arg⌝
@@ -72,6 +77,12 @@ Module SpinLockMainAS. Section SpinLockMainAS.
      (SpinLockMainName.incr, incr_spec u)].
 End SpinLockMainAS. End SpinLockMainAS.
 
+(* Module definition *)
+(* Define three components for a module:
+  1) scope
+  2) code (via itree)
+  3) initial state (via Any.t)
+*)
 Module SpinLockMainA. Section SpinLockMainA.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
   Context `{!memGΓ Γ, !SchAGΣ Σ, !SchAGΓ Γ, !SpinLockMainAGΓ Γ, !SpinLockAGΓ Γ}.
