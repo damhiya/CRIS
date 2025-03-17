@@ -11,9 +11,7 @@ Module MainIA. Section MainIA.
     λ _ st_src st_tgt, emp%I.
 
   Context (spc_s: string -> option fspec).
-  Context (LibInSpc: spc_incl LibAS.spc spc_s).
-  (* Context (FooInSpc: spc_incl FooAS.spc spc_s). *)
-  (* Context (InputInSpc: spc_incl InputAS.spc spc_s). *)
+  Context (LibInSpc: spc_incl LibAS.spc spc_s). (* Specs of Library functions *)
 
   Local Definition CellioA := (CellioA.t spc_s).
   Local Definition MainA := (MainA.t spc_s).

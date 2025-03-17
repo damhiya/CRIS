@@ -25,12 +25,15 @@ Module CellioIA. Section CellioIA.
   Proof.
     winit_simF 0 0.
 
+    (* Take (x:Z) & cell(x) *)
     wsteps_l. iDestruct "ASM" as "->".
+    
+    (* Call Input() simultaneously *)
     wforce_l tt. wforces_l. iSplit; first eauto.
-
     wcall "IST"; eauto.
     wsteps_l. iDestruct "ASM" as "->".
 
+    (* Give cell(i) *)
     iDestruct "IST" as (v) "(% & AUTH)". subst.
 
     iPoseProof (cell_auth_get with "ASM' AUTH") as "%"; subst.
@@ -50,12 +53,15 @@ Module CellioIA. Section CellioIA.
   Proof.
     winit_simF 0 0.
 
+    (* Take (x:Z) & cell(x) *)
     wsteps_l. iDestruct "ASM" as "->".
     iDestruct "IST" as (v) "(% & AUTH)". subst.
 
     iPoseProof (cell_auth_get with "ASM' AUTH") as "%"; subst.
 
     wsteps_r. hss. wsteps_r.
+
+    (* Give cell(x) *)
     wforces_l. iSplitL "ASM'"; eauto.
     
     wsteps_l. wforces_l. iSplit; eauto.
