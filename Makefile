@@ -38,17 +38,19 @@ imp_system: Makefile.coq $(imp_system_files)
 imp_system-quick: Makefile.coq $(imp_system_files)
 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(imp_system_files))
 
-examples_files  := $(shell find examples -iname '*.v')
-examples: Makefile.coq $(examples_files)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(examples_files))
-examples-quick: Makefile.coq $(examples_files)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(examples_files))
+# examples_files  := $(shell find examples -iname '*.v')
+# examples: Makefile.coq $(examples_files)
+# 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(examples_files))
+# examples-quick: Makefile.coq $(examples_files)
+# 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(examples_files))
 
 extract_files  := $(shell find extract -iname '*.v')
 extract: Makefile.coq $(extract_files)
 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(extract_files))
 extract-quick: Makefile.coq $(extract_files)
 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(extract_files))
+
+# echo "-R examples $(COQMODULE)"; \
 
 Makefile.coq: Makefile $(COQTHEORIES)
 	(echo "-arg -w -arg -deprecated-hint-without-locality"; \
@@ -62,7 +64,6 @@ Makefile.coq: Makefile $(COQTHEORIES)
 	 echo "-R scheduler $(COQMODULE)"; \
 	 echo "-R apc $(COQMODULE)"; \
 	 echo "-R imp_system $(COQMODULE)"; \
-	 echo "-R examples $(COQMODULE)"; \
 	 echo "-R extract $(COQMODULE)"; \
 	 echo $(COQTHEORIES)) > _CoqProject
 	coq_makefile -f _CoqProject -o Makefile.coq
