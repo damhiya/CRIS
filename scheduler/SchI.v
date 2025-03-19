@@ -11,9 +11,9 @@ Module SchI. Section SchI.
   Local Open Scope string_scope.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
 
-  Definition scopes := ["Sch"].
+  Definition scopes := ["Sch"; "Tid"].
   Definition v_ths := "Sch" ↯ "ths".
-  Definition v_tid := "Sch" ↯ "tid".
+  Definition v_tid := "Tid" ↯ "tid".
 
   Definition trigger_Yield (nxt_tid : nat) : itree pmodE unit :=
     'my_tid: nat <- cgetU v_tid;;
@@ -74,12 +74,14 @@ Module SchI. Section SchI.
       Ret my_tid
   .
 
+  Local Definition scopes_tid := ["Tid"].
+
   Definition fnsems :=
     [(SchName._spawn, (scopes, cfunU _spawn));
      (SchName.spawn, (scopes, cfunU spawn));
      (SchName.yield, (scopes, cfunU yield));
      (SchName.join, (scopes, cfunU join));
-     (SchName.get_tid, (scopes, cfunU get_tid))].
+     (SchName.get_tid, (scopes_tid, cfunU get_tid))].
   
   Program Definition Mod: PMod.t :=
   {|
