@@ -329,8 +329,8 @@ End SchAS. End SchAS.
 Module SchA. Section SchA.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !SchAGΣ Σ, !SchAGΓ Γ}.
 
-  Definition scopes := ["Sch"].
-  Definition v_internal := "Sch" ↯ "internal".
+  Definition scopes := ["Sch_pub"].
+  Definition v_internal := "Sch_pub" ↯ "internal".
 
   Definition trigger_Yield (nxt_tid: nat) : itree hmodE unit :=
     cput v_internal true;;;
@@ -373,8 +373,7 @@ Module SchA. Section SchA.
     [(SchName._spawn, (scopes, mk_specbody (SchAS._spawn_spec υ Spc_user) (cfunN _spawn)));
      (SchName.spawn, (scopes, mk_specbody (SchAS.spawn_spec υ Spc_user) (cfunU spawn)));
      (SchName.yield, (scopes, mk_specbody (SchAS.yield_spec υ) (cfunU yield)));
-     (SchName.join, (scopes, mk_specbody (SchAS.join_spec υ) (cfunU join)));
-     (SchName.get_tid, (scopes, mk_specbody (SchAS.get_tid_spec υ) fbody_trivial))].
+     (SchName.join, (scopes, mk_specbody (SchAS.join_spec υ) (cfunU join)))].
 
   Program Definition Mod υ Spc_user : SMod.t := {|
     SMod.scopes := scopes;
@@ -389,3 +388,27 @@ Module SchA. Section SchA.
   Definition t υ Spc_global Spc_user :=
     Seal.sealing CRIS (SMod.to_hmod (wsim_ginv υ ⊤) Spc_global (Mod υ Spc_user)).
 End SchA. End SchA.
+
+Module SchLinkableA. Section SchLinkableA.
+
+  Definition scopes := ["Sch_priv"].
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !SchAGΣ Σ, !SchAGΓ Γ}.
+  
+  Definition fnsems υ :=
+    [(SchName.get_tid, (scopes, mk_specbody (SchAS.get_tid_spec υ) fbody_trivial))].
+
+    Program Definition Mod υ : SMod.t := {|
+    SMod.scopes := scopes;
+    SMod.fnsems := fnsems υ;
+    SMod.initial_st := [];
+  |}.
+  Solve All Obligations with prove_scope.
+  Next Obligation. prove_nodup. Qed.
+
+
+  Definition InitCond : iProp Σ := SchAS.init_threads ∗ SchAS.init_tid.
+  
+  Definition t υ Spc_global :=
+    Seal.sealing CRIS (SMod.to_hmod (wsim_ginv υ ⊤) Spc_global (Mod υ)).
+
+  End SchLinkableA. End SchLinkableA.
