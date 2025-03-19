@@ -1,7 +1,7 @@
 Require Import Common.
 
 Require Import SMod2HMod HMod2Mod Mod2ITree SMod HMod Mod.
-Require Import ITactics SimGlobal SimGlobalFacts CtxRefine ClosedAdequacy.
+Require Import ITactics TacticsCommon SimGlobal SimGlobalFacts CtxRefine ClosedAdequacy.
 Require Import SModCancel HModInline ElimRel StRed.
 Require Import CancelLib CancelCall CancelCallRev.
 Require Import CancelHead CancelTail CancelSpawn CancelYield.
