@@ -329,8 +329,8 @@ End SchAS. End SchAS.
 Module SchA. Section SchA.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !SchAGΣ Σ, !SchAGΓ Γ}.
 
-  Definition scopes := ["Sch_pub"].
-  Definition v_internal := "Sch_pub" ↯ "internal".
+  Definition scopes := ["Sch"].
+  Definition v_internal := "Sch" ↯ "internal".
 
   Definition trigger_Yield (nxt_tid: nat) : itree hmodE unit :=
     cput v_internal true;;;
@@ -389,9 +389,9 @@ Module SchA. Section SchA.
     Seal.sealing CRIS (SMod.to_hmod (wsim_ginv υ ⊤) Spc_global (Mod υ Spc_user)).
 End SchA. End SchA.
 
-Module SchLinkableA. Section SchLinkableA.
+Module SchA_link. Section SchA_link.
 
-  Definition scopes := ["Sch_priv"].
+  Definition scopes := ["Tid"].
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !SchAGΣ Σ, !SchAGΓ Γ}.
   
   Definition fnsems υ :=
@@ -411,4 +411,4 @@ Module SchLinkableA. Section SchLinkableA.
   Definition t υ Spc_global :=
     Seal.sealing CRIS (SMod.to_hmod (wsim_ginv υ ⊤) Spc_global (Mod υ)).
 
-  End SchLinkableA. End SchLinkableA.
+  End SchA_link. End SchA_link.

@@ -167,8 +167,8 @@ Module SchIA. Section SchIA.
               ∨ (tid_admin None ∧ ⌜_internal = true⌝)))%I.
 
   Local Definition SchA := (SchA.t u_a Spc_global Spc_user).
-  Local Definition SchALinkable := (SchLinkableA.t u_a Spc_global).
-  Local Definition SchAMod := (SchA ★ SchALinkable). 
+  Local Definition SchAlink := (SchA_link.t u_a Spc_global).
+  Local Definition SchAMod := (SchA ★ SchAlink). 
   Local Definition SchIMod := (SchI.t).
   
   Lemma simF__spawn : HSim.sim_fun open SchAMod SchIMod Ist SchName._spawn.
@@ -575,8 +575,8 @@ Module SchIA. Section SchIA.
     - ii. iIntros "IST". iDestruct "IST" as (??????) "(% & THB & THW & COND & TA)"; des; subst.
       iExists _, _, _, _, _, _. iFrame. iPureIntro. i. esplits; [et| |et|nia|et].
       clear SIM. induction ths_tgt; ss. destruct a. des. splits; [nia|]. apply IHths_tgt; et. 
-    - hss. unfold sub_perm, SchIMod, SchI.t, SchA, SchA.t, SchALinkable, SchLinkableA.t. 
-      unseal CRIS. simpl. unfold SchLinkableA.scopes.
+    - hss. unfold sub_perm, SchIMod, SchI.t, SchA, SchA.t, SchAlink, SchA_link.t. 
+      unseal CRIS. simpl. unfold SchA_link.scopes.
       exists []. ss. 
     - eapply simF__spawn.
     - eapply simF_spawn.
@@ -593,7 +593,7 @@ Module SchIA. Section SchIA.
         (SchInGlobal : spc_incl (SchAS.spc u spc_user) spc_global)
         (UserInGlobal : spc_sub spc_user spc_global) :
       ctx_refines
-        ((SchA.t u spc_global spc_user) ★ (SchLinkableA.t u spc_global), SchA.init_cond)
+        ((SchA.t u spc_global spc_user) ★ (SchA_link.t u spc_global), SchA.init_cond)
         (SchI.t, emp%I).
     Proof. eapply main_adequacy, sim; eauto. Qed.
 End ctxr. End SchIA.
