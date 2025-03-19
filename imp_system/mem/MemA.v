@@ -126,9 +126,10 @@ Notation "loc |-> vs" := (mem_points_to loc 1 vs) (at level 20).
 Module MemA. Section MemA.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !memGΓ Γ}.
   Notation iProp := (iProp Σ).
-  
+
   Definition scopes := ["Mem"].
 
+  (* Function specifications *)
   Definition alloc_spec: fspec :=
       (fspec_simple (fun sz => (
                       (fun varg => (⌜varg = [Vint (Z.of_nat sz)]↑ /\ (8 * (Z.of_nat sz) < modulus_64)%Z⌝: iProp)),
@@ -205,9 +206,9 @@ Module MemA. Section MemA.
                       (fun vret => ((b, ofs) ↦ v_real ∗ ⌜vret = (Vint 0)↑⌝))
       )))%I.
 
-  Definition cas_spec: fspec := app_fspec [cas_spec0; cas_spec1].
+  Definition cas_spec : fspec := app_fspec [cas_spec0; cas_spec1].
 
-  Definition spc: alist string fspec :=  
+  Definition spc : alist string fspec :=  
     Seal.sealing CRIS
       [(MemName.alloc, alloc_spec);
        (MemName.free,  free_spec);
@@ -224,6 +225,7 @@ Module MemA. Section MemA.
      (MemName.cmp,   (scopes, mk_specbody cmp_spec    fbody_trivial));
      (MemName.cas,   (scopes, mk_specbody cas_spec    fbody_trivial))].
 
+  (* Module definition *)
   Program Definition Mod : SMod.t := {|
     SMod.scopes := scopes;
     SMod.fnsems := fnsems;
