@@ -439,6 +439,8 @@ Ltac _hnorm_itr prg :=
 Ltac hnorm_itr :=
   try match goal with
   | [ |- @ITree.bind _ _ _ (trigger _) _ = _ ] => fail 2
+  | [ |- @ITree.bind _ _ _ (@HMod.sandbox _ _ _ (trigger (SPut _ _))) _ = _ ] => fail 2
+  | [ |- @ITree.bind _ _ _ (@HMod.sandbox _ _ _ (trigger (SGet _))) _ = _ ] => fail 2
   end;
   let prg := fresh "Progress" in
   epose (prg := _ : _hprogress);

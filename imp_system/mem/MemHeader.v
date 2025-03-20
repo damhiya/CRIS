@@ -19,3 +19,10 @@ Module MemGEnv.
      (MemName.cmp, Gfun↑);
      (MemName.cas, Gfun↑)].
 End MemGEnv.
+
+Definition faa {E : Type → Type} `{callE -< E, coreE -< E} : list val → itree E val :=
+  λ l,
+  'v_raw : val <- ccallU MemName.load l;;
+  'v : Z <- (pargs [Tint] [v_raw])?;;
+  'r : val <- ccallU MemName.store (l ++ [Vint (v + 1)%Z]);;
+  Ret r.
