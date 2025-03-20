@@ -717,4 +717,20 @@ Section wsim.
       }
       iFrame.
     Qed.
+
+    Lemma wsim_split sti_s sti_t :
+      (wsim_pre t υ ν ⊤ -∗ wsim None υ ν ⊤ ibot ibot R_s R_t RR ps pt nths sti_s sti_t) ⊢
+      wsim t υ ν ⊤ ibot ibot R_s R_t RR ps pt nths sti_s sti_t.
+    Proof.
+      unseal.
+      iIntros "SIM PRE"; ss. iApply ("SIM" with "PRE"). done.
+    Qed.
+
+    Lemma wsim_merge sti_s sti_t :
+      wsim_pre t υ ν ⊤ ∗ wsim t υ ν ⊤ ibot ibot R_s R_t RR ps pt nths sti_s sti_t ⊢
+      wsim None υ ν ⊤ ibot ibot R_s R_t RR ps pt nths sti_s sti_t.
+    Proof.
+      unseal.
+      iIntros "[PRE SIM] _"; ss. iApply ("SIM" with "PRE").
+    Qed.
 End lemmas. End wsim.
