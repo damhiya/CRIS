@@ -1,4 +1,5 @@
 Require Import CRIS SchHeader SchA.
+Require Import ITactics.
 
 Section wrapper.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
@@ -38,9 +39,10 @@ Section wsim.
   Context (st_s st_t : state).
 
   Lemma wsim_yield_tgt_u0 r g scp_s scp_t ginv spc spc_user k_s k_t my_tid
+      (NODS: List.NoDup (List.map fst st_s)) (NODT: List.NoDup (List.map fst st_t))
       (SchInSpc : spc_incl (SchAS.spc υ spc_user) spc) :
     Ist nths st_s st_t ∗ tid_user my_tid ∗
-    (∀ nths st_s st_t,
+    (∀ nths st_s st_t (NODS: List.NoDup (List.map fst st_s)) (NODT: List.NoDup (List.map fst st_t)),
       Ist nths st_s st_t -∗ tid_user my_tid -∗
       wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR ps true nths
         (st_s, (HMod.sandbox scp_s (interp_smod ginv spc Sch.yield)) >>= k_s)
@@ -54,13 +56,15 @@ Section wsim.
     rewrite /Sch.yield; unseal "Sch".
     (* iApply isim_reset. *)
     iStopProof.
-    revert nths. combine_quant st_s. combine_quant st_t. combine_quant ps. combine_quant pt.
+    revert nths. 
+    combine_quant NODS. combine_quant NODT.
+    combine_quant st_s. combine_quant st_t. combine_quant ps. combine_quant pt.
     eapply isim_coind.
-    iIntros (g' [pt [ps [st_s' [st_t' nths']]]]) "%MON [[[IST [TID SIM]] P] #CIH]". s.
+    iIntros (g' [pt [ps [st_t' [st_s' [NODT [NODS nths']]]]]]) "%MON [[[IST [TID SIM]] P] #CIH]". s.
 
     unfold_iter_r.
     steps_r. destruct q.
-    { steps_r. iPoseProof ("SIM" with "IST TID P") as "SIM"; iFrame.
+    { steps_r. iPoseProof ("SIM" $! _ _ _ NODS NODT with "IST TID P") as "SIM"; iFrame.
       iPoseProof (isim_mono_knowledge with "SIM") as "SIM"; cycle 2.
       { iApply "SIM". }
       { iIntros (????????) "$"; done. }
@@ -72,7 +76,16 @@ Section wsim.
     force_l false; steps_l.
     iApply isim_progress.
     forces_l. iSplitL "P TID"; iFrame; eauto.
-    steps_l. call "IST"; ss.
+    steps_l.
+
+    (* "hss" removes nodup-assumption *)
+    iApply isim_call. iSplitL "IST"; iFrame.
+    iIntros "% % % % % %"; iIntros "IST".
+    assert (NODSS: Seal.sealing "" (List.NoDup (List.map fst st_src0))).
+    { unseal ""; eauto. }
+    assert (NODTT: Seal.sealing "" (List.NoDup (List.map fst st_tgt0))).
+    { unseal ""; eauto. }
+    
     steps_l. iDestruct "ASM" as "[P [[-> TID] ->]]". hss. steps_l.
     steps_r. hss. steps_r.
     iApply isim_base.
@@ -80,15 +93,17 @@ Section wsim.
     (hrepeat do 1 first[instantiate (1:= (_,_))|instantiate (1:= existT _ _)]); s.
     iApply "CIH".
     iFrame.
-    iIntros (nths st_s st_t) "IST TID GINV".
-    iPoseProof ("SIM" with "IST TID GINV") as "SIM".
+    iIntros (nths st_s st_t NODS1 NODT1) "IST TID GINV".
+    iPoseProof ("SIM" $! nths _ _ NODS1 NODT1 with "IST TID GINV") as "SIM".
     iApply (isim_flag_mon with "SIM"); eauto.
+    Unshelve. all: revert NODSS NODTT; unseal ""; ss.
   (*FAST*)Qed.
 
   Lemma wsim_yield_tgt_uu r g scp_s scp_t ginv spc spc_user k_s k_t
+      (NODS: List.NoDup (List.map fst st_s)) (NODT: List.NoDup (List.map fst st_t))
       (SchInSpc : spc_incl (SchAS.spc υ spc_user) spc) :
     Ist nths st_s st_t ∗
-    (∀ nths st_s st_t,
+    (∀ nths st_s st_t (NODS: List.NoDup (List.map fst st_s)) (NODT: List.NoDup (List.map fst st_t)),
       Ist nths st_s st_t -∗
       wsim fl_s fl_t Ist None υ ν ⊤ r g R_s R_t RR ps true nths
         (st_s, (HMod.sandbox scp_s (interp_smod ginv spc Sch.yield)) >>= k_s)
@@ -102,13 +117,15 @@ Section wsim.
     rewrite /Sch.yield; unseal "Sch".
     (* iApply isim_reset. *)
     iStopProof.
-    revert nths. combine_quant st_s. combine_quant st_t. combine_quant ps. combine_quant pt.
+    revert nths.
+    combine_quant NODS; combine_quant NODT.
+    combine_quant st_s. combine_quant st_t. combine_quant ps. combine_quant pt.
     eapply isim_coind.
-    iIntros (g' [pt [ps [st_s' [st_t' nths']]]]) "%MON [[[IST SIM] P] #CIH]". s.
+    iIntros (g' [pt [ps [st_t' [st_s' [NODT [NODS nths']]]]]]) "%MON [[[IST SIM] P] #CIH]". s.
 
     unfold_iter_r.
     steps_r. destruct q.
-    { steps_r. iPoseProof ("SIM" with "IST P") as "SIM".
+    { steps_r. iPoseProof ("SIM" $! nths' _ _ NODS NODT with "IST P") as "SIM".
       iPoseProof (isim_mono_knowledge with "SIM") as "SIM"; cycle 2.
       { iApply "SIM". }
       { iIntros (????????) "$"; done. }
@@ -120,7 +137,15 @@ Section wsim.
     force_l false; steps_l. iDestruct "GRT" as "[P' [[-> TID] _]]".
     forces_l. iFrame. iSplit; eauto.
     iApply isim_progress.
-    steps_l. call "IST"; ss.
+    steps_l.
+
+    iApply isim_call. iSplitL "IST"; iFrame.
+    iIntros "% % % % % %"; iIntros "IST".
+    assert (NODSS: Seal.sealing "" (List.NoDup (List.map fst st_src0))).
+    { unseal ""; eauto. }
+    assert (NODTT: Seal.sealing "" (List.NoDup (List.map fst st_tgt0))).
+    { unseal ""; eauto. }
+
     steps_l. iDestruct "ASM" as "[P' [[-> TID] ->]]". hss. steps_l.
     steps_r. forces_r. iFrame; iSplit; eauto. steps_r. hss. steps_r.
     iApply isim_base.
@@ -128,8 +153,10 @@ Section wsim.
     (hrepeat do 1 first[instantiate (1:= (_,_))|instantiate (1:= existT _ _)]); s.
     iApply "CIH".
     iFrame.
-    iIntros (nths st_s st_t) "IST GINV".
-    iPoseProof ("SIM" with "IST GINV") as "SIM". iApply (isim_flag_mon with "SIM"); eauto.
+    iIntros (nths st_s st_t NODS1 NODT1) "IST GINV".
+    iPoseProof ("SIM" $! nths _ _ NODS1 NODT1 with "IST GINV") as "SIM".
+    iApply (isim_flag_mon with "SIM"); eauto.
+    Unshelve. all: revert NODSS NODTT; unseal ""; ss.
   (*FAST*)Qed.
 
   Lemma wsim_yield_src r g scp_s ginv spc spc_user k_s i_t
@@ -149,13 +176,14 @@ Section wsim.
 
   Lemma wsim_spawn fn vargs args fn_spec (P : SAny.t → SAny.t → iProp Σ) (Q : SAny.t → SAny.t → SynDepO)
       r g scp_s scp_t ginv spc spc_user k_s k_t my_tid
+      (NODS: List.NoDup (List.map fst st_s)) (NODT: List.NoDup (List.map fst st_t))
       (SchInSpc : spc_incl (SchAS.spc υ spc_user) spc)
       (CalleeInSpc : spc_user fn = Some fn_spec)
       (Spawnable : SchAS.fspec_spawnable υ fn_spec P Q) :
     Ist nths st_s st_t ∗
     tid_user my_tid ∗
     P vargs args ∗
-    (∀ tid nths st_s st_t,
+    (∀ tid nths st_s st_t (NODS: List.NoDup (List.map fst st_s)) (NODT: List.NoDup (List.map fst st_t)),
         Ist nths st_s st_t
         -∗ tid_user my_tid
         -∗ token_th tid Q
@@ -172,18 +200,29 @@ Section wsim.
       instantiate (1:=(my_tid, args, vargs, P, Q, fn)).
       iFrame. iPureIntro. esplits; eauto. unfold find_fsp. rewrite CalleeInSpc. eauto.
     }
-    steps_l. steps_r. call "I". steps_l. steps_r.
+    steps_l. steps_r.
+    
+    iApply wsim_call. iSplitL "I"; iFrame.
+    iIntros "% % % % % %"; iIntros "IST".
+    assert (NODSS: Seal.sealing "" (List.NoDup (List.map fst st_s'))).
+    { unseal ""; eauto. }
+    assert (NODTT: Seal.sealing "" (List.NoDup (List.map fst st_t'))).
+    { unseal ""; eauto. }
+    
+    steps_l. steps_r.
     iDestruct "ASM" as (vr) "[% [[%tid [[-> ->] TKN]] TID]]". hss. steps_r.
-    iApply ("SIM" with "IST TID TKN").
+    revert NODSS NODTT; unseal ""; i.
+    iApply ("SIM" $! _ nths' _ _ NODSS NODTT with "IST TID TKN").
   Qed.
 
   Lemma wsim_join tid (Q : SAny.t → SAny.t → SynDepO)
       r g scp_s scp_t ginv spc spc_user k_s k_t my_tid
+      (NODS: List.NoDup (List.map fst st_s)) (NODT: List.NoDup (List.map fst st_t))
       (SchInSpc : spc_incl (SchAS.spc υ spc_user) spc) :
     Ist nths st_s st_t ∗
     tid_user my_tid ∗
     token_th tid Q ∗
-    (∀ nths st_s st_t vret ret,
+    (∀ nths st_s st_t vret ret (NODS: List.NoDup (List.map fst st_s)) (NODT: List.NoDup (List.map fst st_t)),
         Ist nths st_s st_t
         -∗ tid_user my_tid
         -∗ interp_cond (Q vret ret)
@@ -197,9 +236,19 @@ Section wsim.
     steps_l. force_l (tid, Q, my_tid). steps_l. force_l (tid↑). steps_l. force_l.
     iFrame; iSplit; eauto. steps_l.
 
-    steps_r. call "IST". steps_l. iDestruct "ASM" as "(% & % & (% & % & % & Q) & TID)".
+    steps_r.
+    
+    iApply wsim_call. iSplitL "IST"; iFrame.
+    iIntros "% % % % % %"; iIntros "IST".
+    assert (NODSS: Seal.sealing "" (List.NoDup (List.map fst st_s'))).
+    { unseal ""; eauto. }
+    assert (NODTT: Seal.sealing "" (List.NoDup (List.map fst st_t'))).
+    { unseal ""; eauto. }
+    
+    steps_l. iDestruct "ASM" as "(% & % & (% & % & % & Q) & TID)".
     subst; hss. steps_r. hss. steps_r. hss. step_r.
-    iApply ("SIM" with "IST TID Q").
+    revert NODSS NODTT; unseal ""; i.
+    iApply ("SIM" $! nths' _ _ _ _ NODSS NODTT with "IST TID Q").
   Qed.
 End wsim.
 
