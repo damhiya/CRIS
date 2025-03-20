@@ -38,19 +38,16 @@ Lemma hpsim_close `{Σ: GRA}
   hpsim_body closed fl_src fl_tgt Ist ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr.
 Proof.
   ginit. s. revert_until Ist. gcofix CIH. i.
-  exploit SIM; s; i; eauto.
-  clear SIM. rename x0 into SIM.
   remember (st_src, itr_src). remember (st_tgt, itr_tgt).
   move SIM before CIH. revert_until SIM. punfold SIM.
   pattern ps, pt, nths, p, p0, fmr.
   eapply _hpsim_tarski, SIM; i. clear SIM fmr. rename fmr0 into fmr.
-  guclo hpsim_wfC_spec. econs. i. 
+  guclo hpsim_wfC_spec. econs. i.
+  guclo hpsim_nodupC_spec. econs. i.
   exploit IN; i; des; eauto. clear IN.
   destruct x0; i; des; inv Heqp; try inv Heqp0; clarify; hstep.
-  - eapply K; try refl; eauto. eapply alist_upd_nodup; eauto. 
-  - eapply K; try refl; eauto. eapply alist_upd_nodup; eauto.
-  - pclearbot. gfinal. right. eapply paco9_mon_bot; eauto.
-    i. eapply _hpsim_close. eauto.
+  pclearbot. gfinal. right. eapply paco9_mon_bot; eauto.
+  i. eapply _hpsim_close. eauto.
 Qed. 
 
 Lemma valid_solve_eq `{Σ: GRA} (a b : Σ) :

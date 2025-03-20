@@ -241,18 +241,28 @@ Section HPSIM.
 
   Inductive _hpsim hpsim Rs Rt RR ps pt nths sti_src sti_tgt fmr : Prop :=
   | hpsim_intro
-      (IN : hsupd (@_hpsim' hpsim Rs Rt RR (@_hpsim hpsim Rs Rt RR) ps pt nths sti_src sti_tgt) fmr).
+      (IN :
+        ∀ (NODFS : List.NoDup (List.map fst fl_src))
+          (NODFT : List.NoDup (List.map fst fl_tgt))
+          (NODS : List.NoDup (List.map fst sti_src.1))
+          (NODD : List.NoDup (List.map fst sti_tgt.1)),
+        hsupd (@_hpsim' hpsim Rs Rt RR (@_hpsim hpsim Rs Rt RR) ps pt nths sti_src sti_tgt) fmr).
 
   Definition hpsim {Rs Rt} RR := paco9 _hpsim bot9 Rs Rt RR.
 
   Lemma _hpsim_tarski hpsim Rs Rt RR rel
       (FIX : ∀ ps pt nths sti_src sti_tgt fmr
-          (IN : hsupd (@_hpsim' hpsim Rs Rt RR rel ps pt nths sti_src sti_tgt) fmr),
+             (IN : ∀ (NODFS : List.NoDup (List.map fst fl_src))
+                     (NODFT : List.NoDup (List.map fst fl_tgt))
+                     (NODS : List.NoDup (List.map fst sti_src.1))
+                     (NODD : List.NoDup (List.map fst sti_tgt.1)),
+                 hsupd (@_hpsim' hpsim Rs Rt RR rel ps pt nths sti_src sti_tgt) fmr),
         rel ps pt nths sti_src sti_tgt fmr) :
     _hpsim hpsim Rs Rt RR <6= rel.
   Proof.
     fix self 7. i.
-    destruct PR. apply FIX. intros wf. specialize (IN wf); des.
+    destruct PR. apply FIX. i. intros wf.
+    specialize (IN NODFS NODFT NODS NODD wf); des.
     exists fmr0; split; eauto.
     destruct IN; try by esplits; eauto using @_hpsim' with paco.
   Qed.
@@ -270,7 +280,7 @@ Section HPSIM.
     ii. destruct REL.
     all: des; esplits; eauto using _hpsim'.
   Qed.
-  
+
   Lemma _hpsim_mon : monotone9 _hpsim.
   Proof.
     ii. eapply _hpsim_tarski, IN.
@@ -294,10 +304,6 @@ Section HPSIM.
     fun nths '(st_src, v_src) '(st_tgt, v_tgt) => (⌜v_src = v_tgt⌝ ∗ Ist nths st_src st_tgt)%I.
 
   Definition hpsim_body ps pt nths sti_src sti_tgt fmr :=
-    ∀ (NODFS : List.NoDup (List.map fst fl_src))
-      (NODFT : List.NoDup (List.map fst fl_tgt))
-      (NODS : List.NoDup (List.map fst sti_src.1))
-      (NODD : List.NoDup (List.map fst sti_tgt.1)),
     @hpsim _ _ hpsim_tail ps pt nths sti_src sti_tgt fmr.
 
   Definition hpsim_fun (i_src : itree hmodE Any.t) (i_tgt : itree hmodE Any.t) : Prop :=
@@ -343,7 +349,7 @@ Section HPSIM.
     move SIM before r. revert_until SIM.
     pattern ps, pt, nths, st_src, st_tgt, fmr.
     eapply _hpsim_tarski, SIM. i. econs.
-    ii. specialize (IN H). des. destruct IN;
+    ii. specialize (IN NODFS NODFT NODS NODD H). des. destruct IN;
       try by esplits; eauto; try by econs; esplits; eauto.
     hexploit LES; eauto; i. hexploit LET; eauto; i.
     destruct ps', pt'; try discriminate. 
@@ -440,9 +446,9 @@ Section HPSIM.
     remember (st_src, i_src) as sti_src. remember (st_tgt, i_tgt) as sti_tgt.
     move SIM before GF. revert_until SIM.
     pattern ps, pt, nths, sti_src, sti_tgt, fmr.
-    eapply _hpsim_tarski, SIM. econs. apply hsupd_merge.
+    eapply _hpsim_tarski, SIM. econs. i. apply hsupd_merge.
     econs; esplits; eauto.
-    specialize (IN H); des.
+    subst. specialize (IN NODFS NODFT NODS NODD H). des.
     depdes IN; grind;
       try (by rr; i; esplits; eauto with paco);
       try (by do 2 (econs; esplits; eauto with paco);
@@ -481,7 +487,7 @@ Section HPSIM.
     compatible9 _hpsim hpsim_extendC.
   Proof.
     econs; eauto using hpsim_extendC_mon.
-    intros. destruct PR. destruct SIM. econs.
+    intros. destruct PR. destruct SIM. econs. i.
     eapply hsupd_extends; eauto.
     eapply _hpsim_mon_auto; eauto.
     i. econs; eauto; refl.
@@ -507,7 +513,7 @@ Section HPSIM.
   Lemma hpsim_wfC_compatible : compatible9 _hpsim hpsim_wfC.
   Proof.
     econs; eauto using hpsim_wfC_mon.
-    i. destruct PR. econs. eapply hsupd_wf. i.
+    i. destruct PR. econs. i. eapply hsupd_wf. i.
     eapply _hpsim_mon_auto; eauto 10 using hpsim_wfC, hsupd_incl with paco.
   Qed.
   
@@ -531,7 +537,7 @@ Section HPSIM.
   Lemma hpsim_updateC_compatible : compatible9 _hpsim hpsim_updateC.
   Proof.
     econs; eauto using hpsim_updateC_mon.
-    i. destruct PR. econs. eapply hsupd_merge.
+    i. destruct PR. econs. i. eapply hsupd_merge.
     eapply hsupd_mon; eauto.
     i. destruct PR.
     eauto 10 using hpsim_updateC, hsupd_incl with paco.
@@ -561,9 +567,9 @@ Section HPSIM.
     econs; first by eauto using hpsim_frameC_mon. ii.
     destruct PR. move SIM before r. revert_until SIM.
     pattern ps, pt, nths, sti_src, sti_tgt, fmr.
-    eapply _hpsim_tarski, SIM. i. econs.
+    eapply _hpsim_tarski, SIM. i. econs. i.
     econs; esplits; eauto.
-    exploit IN.
+    exploit IN; eauto.
     { eapply Own_wand_valid; last by eauto. iIntros "O"; iMod (UPD with "O") as "[O1 O2]"; done. }
     i. des.
     assert (Own fmrc ⊢ |==> (Own fmr1 ∗ CTX)).
@@ -584,19 +590,19 @@ Section HPSIM.
         iFrame. iPoseProof (Own_Upd with "H") as "H"; eauto.
         { eapply Own_bupd_update; eauto. }
         iMod "H". iPoseProof (INV with "H") as "H". eauto.
-      + i. econs. apply hsupd_merge. ii. esplits; eauto.
+      + i. econs. i. apply hsupd_merge. ii. esplits; eauto.
         rewrite assoc in INV0. hexploit (Own_bupd_split fmr2); eauto; i; des.
         eapply (K _ _ _ _ a1); eauto.
         { iIntros "?"; iApply H3; iFrame; done. }
         { iIntros "H"; iPoseProof (H2 with "H") as "> [H1 H2]"; iModIntro; iFrame. iApply H4; done. }
     - econs; eauto. i.
-      econs. apply hsupd_merge. ii. esplits; eauto.
+      econs. i. apply hsupd_merge. ii. esplits; eauto.
       rewrite assoc in NEW; hexploit (Own_bupd_split fmr2); eauto; i; des.
       eapply (K a1); eauto.
       { iIntros "H1"; iPoseProof (H3 with "H1") as "[P H1]". iMod (CUR with "H1") as "?"; iModIntro; iFrame. }
       { iIntros "H2"; iPoseProof (H2 with "H2") as "> [H1 H2]"; iPoseProof (H4 with "H2") as "?"; iModIntro; iFrame. }
     - econs; eauto. i.
-      econs. apply hsupd_merge. ii. esplits; eauto.
+      econs. i. apply hsupd_merge. ii. esplits; eauto.
       rewrite assoc in NEW; hexploit (Own_bupd_split fmr2); eauto; i; des.
       eapply (K a1); eauto.
       { iIntros "H1"; iPoseProof (H3 with "H1") as "[P H1]". iMod (CUR with "H1") as "?"; iModIntro; iFrame. }
@@ -605,7 +611,7 @@ Section HPSIM.
       { instantiate (1:= (FMR ∗ CTX)%I).
         iIntros "H". iPoseProof (H0 with "H") as "H". iMod "H" as "[F C]".
         iFrame. iStopProof; eauto. }
-      i. econs. apply hsupd_merge. ii. esplits; eauto.
+      i. econs. i. apply hsupd_merge. ii. esplits; eauto.
       hexploit (Own_bupd_split fmr2); eauto; i; des.
       eapply (K a1); eauto.
       { iIntros "H". iModIntro; iApply H3; done. }
@@ -616,7 +622,7 @@ Section HPSIM.
       { instantiate (1:= (FMR ∗ CTX)%I).
         iIntros "H". iPoseProof (H0 with "H") as "H". iMod "H" as "[F C]".
         iFrame. iStopProof; eauto. }
-      i. econs. apply hsupd_merge. ii. esplits; eauto.
+      i. econs. i. apply hsupd_merge. ii. esplits; eauto.
       hexploit (Own_bupd_split fmr2); eauto; i; des.
       eapply (K a1); eauto.
       { iIntros "H". iModIntro; iApply H3; done. }
@@ -627,7 +633,7 @@ Section HPSIM.
       + instantiate (1:= (FR ∗ CTX)%I).
         iIntros "C"; iPoseProof (H0 with "C") as "> [H1 CTX]"; iPoseProof (INV with "H1") as ">?".
         iModIntro; iFrame; done.
-      + i. econs. apply hsupd_merge. ii. esplits; eauto.
+      + i. econs. i. apply hsupd_merge. ii. esplits; eauto.
         rewrite assoc in INV0. exploit (Own_bupd_split fmr2); eauto; i; des.
         eapply (K _ _ _ a1); eauto.
         { iIntros "H2"; iModIntro; iApply x2; done. }
@@ -667,7 +673,8 @@ Section HPSIM.
     move SIM before r. revert_until SIM.
     pattern Rs, Rt, RR, ps, pt, nths, sti_src0, sti_tgt, fmr.
     eapply _hpsim_tarski, SIM. i.
-    econs. ii. specialize (IN H). des. esplits; eauto.
+    econs. ii. subst. specialize (IN NODFS NODFT NODS NODD H). des.
+    esplits; eauto.
     punfold EQIT. subst. rr in EQIT.
     remember (observe isrc0) as otgt0. remember (observe isrc1) as otgt1.
     move EQIT before r. revert_until EQIT.
@@ -731,7 +738,8 @@ Section HPSIM.
     move SIM before r. revert_until SIM.
     pattern Rs, Rt, RR, ps, pt, nths, sti_src, sti_tgt0, fmr.
     eapply _hpsim_tarski, SIM. i.
-    econs. ii. specialize (IN H). des. esplits; eauto.
+    econs. ii. subst. specialize (IN NODFS NODFT NODS NODD H). des.
+    esplits; eauto.
     punfold EQIT. subst. rr in EQIT.
     remember (observe itgt0) as otgt0. remember (observe itgt1) as otgt1.
     move EQIT before r. revert_until EQIT.
@@ -770,6 +778,34 @@ Section HPSIM.
 
 
 
+  Variant hpsim_nodupC (r : ∀ Rs Rt (RR : nat → (alist key Any.t) * Rs → (alist key Any.t) * Rt → iProp), bool → bool → nat → (alist key Any.t) * itree hmodE Rs → (alist key Any.t) * itree hmodE Rt → Σ → Prop):
+    ∀ Rs Rt (RR : nat → (alist key Any.t) * Rs → (alist key Any.t) * Rt → iProp), bool → bool → nat → (alist key Any.t) * itree hmodE Rs → (alist key Any.t) * itree hmodE Rt → Σ → Prop :=
+  | hpsim_nodupC_intro
+      ps pt nths Rs Rt RR sti_src sti_tgt fmr
+      (SIM : ∀ (NODFS : List.NoDup (List.map fst fl_src))
+               (NODFT : List.NoDup (List.map fst fl_tgt))
+               (NODS : List.NoDup (List.map fst sti_src.1))
+               (NODD : List.NoDup (List.map fst sti_tgt.1)),
+             r Rs Rt RR ps pt nths sti_src sti_tgt fmr) :
+    hpsim_nodupC r Rs Rt RR ps pt nths sti_src sti_tgt fmr.
+
+  Lemma hpsim_nodupC_mon r1 r2 (LEr : r1 <9= r2) : hpsim_nodupC r1 <9= hpsim_nodupC r2.
+  Proof. ii. destruct PR. econs; eauto using hsupd_mon. Qed.
+
+  Lemma hpsim_nodupC_compatible : compatible9 _hpsim hpsim_nodupC.
+  Proof.
+    econs; eauto using hpsim_nodupC_mon.
+    i. destruct PR. econs. ii.
+    edestruct SIM; eauto. edestruct IN; des; eauto.
+    esplits; eauto.
+    eapply _hpsim'_mon; eauto using hpsim_nodupC, _hpsim_mon.
+  Qed.
+  
+  Lemma hpsim_nodupC_spec : hpsim_nodupC <10= gupaco9 _hpsim (cpn9 _hpsim).
+  Proof.
+    intros. gclo. econs; eauto using hpsim_nodupC_compatible.
+    eapply hpsim_nodupC_mon, PR; eauto with paco.
+  Qed.
 
   (* TODO : currently not used. Maybe these need to be in the adequacy *)
   (* Definition hpsim_fsem : relation (Any.t → itree hmodE Any.t) :=

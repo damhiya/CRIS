@@ -69,6 +69,18 @@ Section SIM.
     eapply gpaco9_mon; first eapply SIM; eauto using iunlift_mon.
   Qed.
 
+  Lemma isim_nodup r g ps pt {Rs Rt} RR nths sti_src sti_tgt :
+    (∀ (NODFS : List.NoDup (List.map fst fl_src))
+       (NODFT : List.NoDup (List.map fst fl_tgt))
+       (NODS : List.NoDup (List.map fst sti_src.1))
+       (NODD : List.NoDup (List.map fst sti_tgt.1)),
+     @isim r g Rs Rt RR ps pt nths sti_src sti_tgt)
+    ⊢ @isim r g Rs Rt RR ps pt nths sti_src sti_tgt.
+  Proof.
+    uPred.unseal. split. intros x wfx SIM. rr. rr in SIM.
+    guclo hpsim_nodupC_spec. econs. eauto.
+  Qed.
+  
   Lemma isim_upd r g ps pt {Rs Rt} RR nths sti_src sti_tgt :
     ( |==> @isim r g Rs Rt RR ps pt nths sti_src sti_tgt) ⊢ @isim r g Rs Rt RR ps pt nths sti_src sti_tgt.
   Proof.

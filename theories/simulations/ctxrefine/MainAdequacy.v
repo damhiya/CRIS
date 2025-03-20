@@ -210,19 +210,18 @@ Lemma hpsim_ctx `{Σ: GRA} fnsems_src fnsems_tgt fl_src fl_tgt fl_ctx Ist contex
   Proof.
     guardH FLS. guardH FLT.
     ginit. s. revert_until DISJ. gcofix CIH. i.
-    exploit SIM; s; i.
-    { eapply nodup_app_l. rewrite <- map_app. eauto. }
-    { eapply nodup_app_l. rewrite <- map_app. eauto. }
-    { subst. eapply nodup_app_l. rewrite <- map_app. eauto. }
-    { subst. eapply nodup_app_l. rewrite <- map_app. eauto. }
-    clear SIM. rename x0 into SIM.
     remember (st_src, itr_src). remember (st_tgt, itr_tgt).
     move SIM before CIH. revert_until SIM. punfold SIM.
     pattern ps, pt, nths, p, p0, fmr.
     eapply _hpsim_tarski, SIM; i. clear SIM fmr. rename fmr0 into fmr.
-    guclo hpsim_wfC_spec. econs. i. 
-    exploit IN; i; des; eauto. clear IN.
-    destruct x0; i; des; inv Heqp; try inv Heqp0.
+    guclo hpsim_wfC_spec. econs. i.
+    guclo hpsim_nodupC_spec. econs. i.
+    exploit IN; i; des; eauto.
+    { rewrite map_app in NODFS. eapply NoDup_app_remove_r. eauto. }
+    { rewrite map_app in NODFT. eapply NoDup_app_remove_r. eauto. }
+    { subst. rewrite map_app in NODS. eapply NoDup_app_remove_r. eauto. }
+    { subst. rewrite map_app in NODD. eapply NoDup_app_remove_r. eauto. }
+    clear IN. destruct x0; i; des; inv Heqp; try inv Heqp0.
     - hstep. iIntros "H". iPoseProof (RET with "H") as ">[% H]".
       iModIntro. iSplit; eauto. iExists st_src, st_tgt, st_ctx, st_ctx.
       iSplit; eauto. iFrame. eauto.
@@ -300,7 +299,6 @@ Lemma hpsim_ctx `{Σ: GRA} fnsems_src fnsems_tgt fl_src fl_tgt fl_ctx Ist contex
         rewrite UPD. eapply K; try refl; eauto.
         { rewrite state_scopes_update. eauto. }
         { eapply sandbox_well_scoped. refl. }
-        { rewrite <-UPD. eapply alist_upd_nodup. eauto. }
         { f_equal. symmetry. eapply inv_sandbox_pg. eauto. }
       + hstep. eapply K; try refl; eauto.
         { eapply sandbox_well_scoped. refl. }
@@ -326,7 +324,6 @@ Lemma hpsim_ctx `{Σ: GRA} fnsems_src fnsems_tgt fl_src fl_tgt fl_ctx Ist contex
       rewrite UPD. eapply K; try refl; eauto.
       { rewrite state_scopes_update. eauto. }
       { eapply sandbox_well_scoped. refl. }
-      { rewrite <-UPD. eapply alist_upd_nodup. eauto. }
       { f_equal. symmetry. eapply inv_sandbox_pg. eauto. }
     + rewrite SBRed.bind SBRed.put Heq !bind_trigger in H1.
     exfalso. ss.   
@@ -394,7 +391,6 @@ Lemma hpsim_ctx `{Σ: GRA} fnsems_src fnsems_tgt fl_src fl_tgt fl_ctx Ist contex
     { iApply INV2; done. }
   - gstep. econs. econs. econs; eauto. econs; eauto. 
     gbase. pclearbot. eapply CIH; try refl; eauto.
-    ii. eauto.
 Qed.
 
 Lemma isim_ctx `{Σ: GRA}
@@ -437,9 +433,7 @@ Proof.
   rewrite! List.map_app.
   assert (EQ : (λ x, (map_snd HMod.sandbox_body x).1) = @fst string _).
   { extensionalities. destruct H. eauto. }
-  eapply hpsim_ctx; eauto; ss; cycle 6.
-  { rewrite -map_app List.map_map EQ. eauto. }
-  { rewrite -map_app List.map_map EQ. eauto. }
+  eapply hpsim_ctx; eauto; ss.
   {
     i. etrans; cycle 1.
     { eapply sub_perm_incl; eauto. }

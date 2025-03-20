@@ -113,7 +113,6 @@ Lemma hpsim_adequacy
   (Any.pair (alist_encode st_src) mr_src↑, interp_hp itr_src)
   (Any.pair (alist_encode st_tgt) mr_tgt↑, interp_hp itr_tgt).
 Proof.
-  exploit SIM; eauto; clear SIM; intros SIM.
   revert_until FLT. ginit. gcofix CIH. i.
   remember (st_src, itr_src). remember (st_tgt, itr_tgt).
   move SIM before FLT. revert_until SIM. punfold SIM.
@@ -123,7 +122,8 @@ Proof.
   { hexploit Own_wand_valid; eauto; intros wf.
     apply cmra_valid_op_l, cmra_valid_op_r in wf; ss.
   }
-  exploit IN; i; des; eauto; clear IN.
+  exploit IN; i; try (subst sti_src sti_tgt; eauto; fail). 
+  des; clear IN.
   assert (wffmr0 : ✓ fmr0).
   { by eapply Own_wand_valid. }
 
@@ -335,10 +335,6 @@ Proof.
     { rewrite HRed.triggerUB. eauto. }
     extensionalities x. grind. rewrite !HRed.tau. eauto.
   - clarify. pclearbot. gstep; econs; econs; eauto; cycle 1.
-    { gfinal; left; eapply CIH; eauto.
-      { ginit; guclo hpsim_updateC_spec; econs; ii; esplits; eauto.
-        by gfinal; right.
-      }
-    }
+    { gfinal; left; eapply CIH; eauto. }
     by apply le_others_refl.
 Qed.
