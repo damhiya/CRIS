@@ -3,6 +3,6 @@ Require Import CRIS.
 Require Export ImpPrelude.
 From Ordinal Require Export Ordinal Arithmetic Inaccessible.
 
-Module APCName.  
+Module APCHdr.  
   Definition apc := "APC.apc".
-End APCName.
+End APCHdr.

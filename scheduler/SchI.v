@@ -36,7 +36,7 @@ Module SchI. Section SchI.
     fun '(fn, arg) =>
       'ths: thslist <- cgetU v_ths;;
       'my_tid: nat <- cgetU v_tid;;
-      new_tid <- trigger (Spawn SchName._spawn (my_tid, fn, arg)↑);;
+      new_tid <- trigger (Spawn SchHdr._spawn (my_tid, fn, arg)↑);;
       let newths: thslist := alist_add new_tid None ths in
       cput v_ths newths;;;
       cput v_tid new_tid;;;
@@ -61,7 +61,7 @@ Module SchI. Section SchI.
         | None => Ret (inr None)
         | Some (Some rv) => Ret (inr (Some rv))
         | Some None =>
-            '(): _ <- ccallU SchName.yield tt;;
+            '(): _ <- ccallU SchHdr.yield tt;;
             Ret (inl tt)
         end
       ) tt);;
@@ -77,11 +77,11 @@ Module SchI. Section SchI.
   Local Definition scopes_tid := ["Tid"].
 
   Definition fnsems :=
-    [(SchName._spawn, (scopes, cfunU _spawn));
-     (SchName.spawn, (scopes, cfunU spawn));
-     (SchName.yield, (scopes, cfunU yield));
-     (SchName.join, (scopes, cfunU join));
-     (SchName.get_tid, (scopes_tid, cfunU get_tid))].
+    [(SchHdr._spawn, (scopes, cfunU _spawn));
+     (SchHdr.spawn, (scopes, cfunU spawn));
+     (SchHdr.yield, (scopes, cfunU yield));
+     (SchHdr.join, (scopes, cfunU join));
+     (SchHdr.get_tid, (scopes_tid, cfunU get_tid))].
   
   Program Definition Mod: PMod.t :=
   {|

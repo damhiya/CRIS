@@ -155,7 +155,7 @@ Qed.
   (spc spc_pure: string → option fspec) (od ow: Ord.t) (scopes: list string)
   (SUB: spc_sub spc_pure spc)
   (SUBA: spc_incl APCA.Spc spc)
-  (FIND: alist_find APCName.apc fr = Some (HMod.sandbox_body (APCA.scopes, interp_sb_hp (wsim_ginv u0 cP) spc
+  (FIND: alist_find APCHdr.apc fr = Some (HMod.sandbox_body (APCA.scopes, interp_sb_hp (wsim_ginv u0 cP) spc
       {| fsb_fspec := APCA.apc_spec; fsb_body := cfunN (APCA.apc_body spc_pure) |})))
   (BODY: ∀ fn fsp, spc_pure fn = Some fsp 
           → ∃ scp, alist_find fn fr = Some (pure_specbody scp u0 spc fsp))

@@ -14,7 +14,7 @@ Section wrapper.
              (λ x _ a, (((snd ∘ DPQ) x a: iProp Σ))%I).
 
   Definition pure_body : Any.t → itree hmodE Any.t :=
-    cfunN (λ dep_ord: Ord.t, trigger (Call APCName.apc dep_ord↑);;; Ret ()).
+    cfunN (λ dep_ord: Ord.t, trigger (Call APCHdr.apc dep_ord↑);;; Ret ()).
 
 End wrapper.
 
@@ -93,6 +93,6 @@ Section aux.
 
   Definition pure: itree hmodE Any.t :=
     o <- trigger (Choose Ord.t);;
-    trigger (Call APCName.apc o↑).
+    trigger (Call APCHdr.apc o↑).
 
 End aux.

@@ -2,13 +2,13 @@ Require Export Common.
 Require Export SMod HMod PMod.
 Require Import ImpPrelude.
 
-Module SchName.
+Module SchHdr.
   Definition _spawn := "Sch._spawn".
   Definition spawn := "Sch.spawn".
   Definition yield := "Sch.yield".
   Definition join := "Sch.join".
   Definition get_tid := "Sch.get_tid".
-End SchName.
+End SchHdr.
 
 (* Wrapping fspecs *)
 Section FSpec.
@@ -49,7 +49,7 @@ Module Sch. Section Sch.
   Definition spawn : (string * SAny.t) → itree E nat :=
     Seal.sealing "Sch"
       (λ fnarg,
-        'tid: nat <- ccallU SchName.spawn fnarg;;
+        'tid: nat <- ccallU SchHdr.spawn fnarg;;
         Ret tid).
 
   Definition yield : itree E unit :=
@@ -59,21 +59,21 @@ Module Sch. Section Sch.
         if b: bool
         then Ret (inr tt: () + ())
         else
-          '():_ <- ccallU SchName.yield tt;;
+          '():_ <- ccallU SchHdr.yield tt;;
           Ret (inl tt: () + ())
       )) tt).
 
   Definition terminate : itree E unit :=
     Seal.sealing "Sch"
       (ITree.iter ((fun (_: unit) =>
-        '():_ <- ccallU SchName.yield tt;;
+        '():_ <- ccallU SchHdr.yield tt;;
         Ret (inl tt: () + ())
       )) tt).
 
   Definition join : nat → itree E SAny.t :=
     Seal.sealing "Sch"
       (λ tid,
-        'ors: option SAny.t <- ccallU SchName.join tid;;
+        'ors: option SAny.t <- ccallU SchHdr.join tid;;
         rs <- ors?;;
         Ret rs).
 End Sch. End Sch.

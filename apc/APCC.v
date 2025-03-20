@@ -11,13 +11,13 @@ Module APCC. Section APCC.
 
   Definition Spc : alist string fspec :=
     Seal.sealing CRIS
-      [(APCName.apc, APCA.apc_spec)].
+      [(APCHdr.apc, APCA.apc_spec)].
   
   Lemma Spc_nodup : List.NoDup (List.map fst Spc).
   Proof. unfold Spc. unseal CRIS. prove_nodup. Qed.
 
   Definition fnsems :=
-    [(APCName.apc, (scopes, mk_specbody APCA.apc_spec fbody_trivial))].
+    [(APCHdr.apc, (scopes, mk_specbody APCA.apc_spec fbody_trivial))].
 
   Program Definition Mod : SMod.t := {|
     SMod.scopes := scopes;

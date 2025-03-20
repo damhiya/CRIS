@@ -22,7 +22,7 @@ Module APCIA. Section APCIA.
   Local Transparent _APC.
 
   Lemma simF_apc :
-    HSim.sim_fun open APCAMod APCIMod Ist APCName.apc.
+    HSim.sim_fun open APCAMod APCIMod Ist APCHdr.apc.
   Proof.
     init_simF u 0.
     

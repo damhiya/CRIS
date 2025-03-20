@@ -171,7 +171,7 @@ Module SchIA. Section SchIA.
   Local Definition SchAMod := (SchA ★ SchAlink). 
   Local Definition SchIMod := (SchI.t).
   
-  Lemma simF__spawn : HSim.sim_fun open SchAMod SchIMod Ist SchName._spawn.
+  Lemma simF__spawn : HSim.sim_fun open SchAMod SchIMod Ist SchHdr._spawn.
   Proof.
     init_simF u_a 0.
 
@@ -340,7 +340,7 @@ Module SchIA. Section SchIA.
     Unshelve. all: ss.
   (*FAST*)Qed.
 
-  Lemma simF_spawn : HSim.sim_fun open SchAMod SchIMod Ist SchName.spawn.
+  Lemma simF_spawn : HSim.sim_fun open SchAMod SchIMod Ist SchHdr.spawn.
   Proof.
     init_simF u_a 0.
 
@@ -414,7 +414,7 @@ Module SchIA. Section SchIA.
     step. iFrame. iSplit; eauto. iExists _, _, _. esplits; eauto.
   (*FAST*)Qed.
 
-  Lemma simF_yield : HSim.sim_fun open SchAMod SchIMod Ist SchName.yield.
+  Lemma simF_yield : HSim.sim_fun open SchAMod SchIMod Ist SchHdr.yield.
   Proof.
     init_simF u_a 0.
 
@@ -448,7 +448,7 @@ Module SchIA. Section SchIA.
     step. iFrame. iSplit; eauto. iExists _, _, _. iSplit; eauto.
   (*FAST*)Qed.
 
-  Lemma simF_join : HSim.sim_fun open SchAMod SchIMod Ist SchName.join.
+  Lemma simF_join : HSim.sim_fun open SchAMod SchIMod Ist SchHdr.join.
   Proof.
     init_simF u_a 0.
 
@@ -546,7 +546,7 @@ Module SchIA. Section SchIA.
   Unshelve. all : ss.
   (*FAST*)Qed.
 
-  Lemma simF_get_tid : HSim.sim_fun open SchAMod SchIMod Ist SchName.get_tid.
+  Lemma simF_get_tid : HSim.sim_fun open SchAMod SchIMod Ist SchHdr.get_tid.
   Proof.
     init_simF u_a 0.
 

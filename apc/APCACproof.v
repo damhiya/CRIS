@@ -32,7 +32,7 @@ Module APCAC. Section APCAC.
   Local Transparent _APC.
 
   Lemma simF_apc :
-    HSim.sim_fun open APCCMod APCAMod IstFull APCName.apc.
+    HSim.sim_fun open APCCMod APCAMod IstFull APCHdr.apc.
   Proof.
     init_simF u 0.
     (* init_simF. *)

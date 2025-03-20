@@ -12,7 +12,7 @@ Module APCI. Section APCI.
     λ _, trigger (Choose _).
 
   Definition fnsems :=
-    [(APCName.apc, (scopes, trivial_body))].
+    [(APCHdr.apc, (scopes, trivial_body))].
   
   Program Definition Mod : PMod.t := {|
     PMod.scopes := scopes;

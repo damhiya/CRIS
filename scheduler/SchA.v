@@ -317,11 +317,11 @@ Module SchAS. Section SchAS.
 
     Definition spc : alist string fspec :=
       Seal.sealing CRIS 
-        [(SchName._spawn, _spawn_spec);
-         (SchName.spawn, spawn_spec);
-         (SchName.yield, yield_spec);
-         (SchName.join, join_spec);
-         (SchName.get_tid, get_tid_spec)].
+        [(SchHdr._spawn, _spawn_spec);
+         (SchHdr.spawn, spawn_spec);
+         (SchHdr.yield, yield_spec);
+         (SchHdr.join, join_spec);
+         (SchHdr.get_tid, get_tid_spec)].
 
   End SPEC.
 End SchAS. End SchAS.
@@ -350,7 +350,7 @@ Module SchA. Section SchA.
   Definition spawn : (string * SAny.t) -> itree hmodE nat :=
     fun '(fn, args) =>
       my_tid <- trigger (Choose nat);;
-      tid <- trigger (Spawn SchName._spawn (my_tid, fn, args)↑);;
+      tid <- trigger (Spawn SchHdr._spawn (my_tid, fn, args)↑);;
       _internal <- cgetU v_internal;;
       assume (_internal = true);;;
       cput v_internal false;;;
@@ -370,10 +370,10 @@ Module SchA. Section SchA.
   .
 
   Definition fnsems υ Spc_user :=
-    [(SchName._spawn, (scopes, mk_specbody (SchAS._spawn_spec υ Spc_user) (cfunN _spawn)));
-     (SchName.spawn, (scopes, mk_specbody (SchAS.spawn_spec υ Spc_user) (cfunU spawn)));
-     (SchName.yield, (scopes, mk_specbody (SchAS.yield_spec υ) (cfunU yield)));
-     (SchName.join, (scopes, mk_specbody (SchAS.join_spec υ) (cfunU join)))].
+    [(SchHdr._spawn, (scopes, mk_specbody (SchAS._spawn_spec υ Spc_user) (cfunN _spawn)));
+     (SchHdr.spawn, (scopes, mk_specbody (SchAS.spawn_spec υ Spc_user) (cfunU spawn)));
+     (SchHdr.yield, (scopes, mk_specbody (SchAS.yield_spec υ) (cfunU yield)));
+     (SchHdr.join, (scopes, mk_specbody (SchAS.join_spec υ) (cfunU join)))].
 
   Program Definition Mod υ Spc_user : SMod.t := {|
     SMod.scopes := scopes;
@@ -395,7 +395,7 @@ Module SchA_link. Section SchA_link.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !SchAGΣ Σ, !SchAGΓ Γ}.
   
   Definition fnsems υ :=
-    [(SchName.get_tid, (scopes, mk_specbody (SchAS.get_tid_spec υ) fbody_trivial))].
+    [(SchHdr.get_tid, (scopes, mk_specbody (SchAS.get_tid_spec υ) fbody_trivial))].
 
     Program Definition Mod υ : SMod.t := {|
     SMod.scopes := scopes;
