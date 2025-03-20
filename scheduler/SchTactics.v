@@ -253,13 +253,13 @@ Section wsim.
 End wsim.
 
 Ltac sch_yield_l :=
-  norm with (iApply wsim_yield_src; first eassumption).
+  norm with (iApply wsim_yield_src; try eassumption).
 
 Ltac sch_yield_r :=
-  norm with (first [(iApply wsim_yield_tgt_u0; first eassumption) | (iApply wsim_yield_tgt_uu; first eassumption)]).
+  norm with (first [(iApply wsim_yield_tgt_u0; try eassumption) | (iApply wsim_yield_tgt_uu; try eassumption)]).
 
 Ltac sch_spawn :=
-  norm with (iApply wsim_spawn; first eassumption).
+  norm with (iApply wsim_spawn; try eassumption).
 
 Ltac sch_join :=
-  norm with (iApply wsim_join; first eassumption).
+  norm with (iApply wsim_join; try eassumption).
