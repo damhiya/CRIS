@@ -210,20 +210,20 @@ Module MemA. Section MemA.
 
   Definition spc : alist string fspec :=  
     Seal.sealing CRIS
-      [(MemName.alloc, alloc_spec);
-       (MemName.free,  free_spec);
-       (MemName.load,  load_spec);
-       (MemName.store, store_spec);
-       (MemName.cmp,   cmp_spec);
-       (MemName.cas,   cas_spec)].
+      [(MemHdr.alloc, alloc_spec);
+       (MemHdr.free,  free_spec);
+       (MemHdr.load,  load_spec);
+       (MemHdr.store, store_spec);
+       (MemHdr.cmp,   cmp_spec);
+       (MemHdr.cas,   cas_spec)].
 
   Definition fnsems : alist string (list string * fspecbody ):=
-    [(MemName.alloc, (scopes, mk_specbody alloc_spec  fbody_trivial));
-     (MemName.free,  (scopes, mk_specbody free_spec   fbody_trivial));
-     (MemName.load,  (scopes, mk_specbody load_spec   fbody_trivial));
-     (MemName.store, (scopes, mk_specbody store_spec  fbody_trivial));
-     (MemName.cmp,   (scopes, mk_specbody cmp_spec    fbody_trivial));
-     (MemName.cas,   (scopes, mk_specbody cas_spec    fbody_trivial))].
+    [(MemHdr.alloc, (scopes, mk_specbody alloc_spec  fbody_trivial));
+     (MemHdr.free,  (scopes, mk_specbody free_spec   fbody_trivial));
+     (MemHdr.load,  (scopes, mk_specbody load_spec   fbody_trivial));
+     (MemHdr.store, (scopes, mk_specbody store_spec  fbody_trivial));
+     (MemHdr.cmp,   (scopes, mk_specbody cmp_spec    fbody_trivial));
+     (MemHdr.cas,   (scopes, mk_specbody cas_spec    fbody_trivial))].
 
   (* Module definition *)
   Program Definition Mod : SMod.t := {|

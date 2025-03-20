@@ -244,7 +244,7 @@ Module MemIA. Section MemIA.
   Local Definition MemI := (MemI.t csl genv).
   Local Definition IstFull := (IstProd (IstSB MemA.(HMod.scopes) Ist) IstEq).
 
-  Lemma simF_alloc : HSim.sim_fun open MemA MemI IstFull MemName.alloc.
+  Lemma simF_alloc : HSim.sim_fun open MemA MemI IstFull MemHdr.alloc.
   Proof.
     init_simF u_s 0.
     steps_l.
@@ -288,7 +288,7 @@ Module MemIA. Section MemIA.
       unfold AList.update in *. des_ifs. exploit WFTGT; et. i; des. r; lia.
   Qed.
 
-  Lemma simF_free : HSim.sim_fun open MemA MemI IstFull MemName.free.
+  Lemma simF_free : HSim.sim_fun open MemA MemI IstFull MemHdr.free.
   Proof.
     init_simF u_s 0.
   
@@ -376,7 +376,7 @@ Module MemIA. Section MemIA.
     - ii. ss. unfold AList.update in *. des_ifs; et.
   Qed.
 
-  Lemma simF_load : HSim.sim_fun open MemA MemI IstFull MemName.load.
+  Lemma simF_load : HSim.sim_fun open MemA MemI IstFull MemHdr.load.
   Proof.
     init_simF u_s 0.
 
@@ -410,7 +410,7 @@ Module MemIA. Section MemIA.
     iFrame. iExists _, [_], _, _. repeat iSplit; et.
   Qed.
 
-  Lemma simF_store : HSim.sim_fun open MemA MemI IstFull MemName.store.
+  Lemma simF_store : HSim.sim_fun open MemA MemI IstFull MemHdr.store.
   Proof.
     init_simF u_s 0.
 
@@ -520,7 +520,7 @@ Module MemIA. Section MemIA.
     unfold sim_loc in T. des_ifs; bsimpl; des; des_sumbool; try nia; subst; exploit WFTGT; et.
   Qed.
 
-  Lemma simF_cmp : HSim.sim_fun open MemA MemI IstFull MemName.cmp.
+  Lemma simF_cmp : HSim.sim_fun open MemA MemI IstFull MemHdr.cmp.
   Proof.
     init_simF u_s 0.
     
@@ -708,7 +708,7 @@ Module MemIA. Section MemIA.
     destruct x; ss.
   Qed.
 
-  Lemma simF_cas : HSim.sim_fun open MemA MemI IstFull MemName.cas.
+  Lemma simF_cas : HSim.sim_fun open MemA MemI IstFull MemHdr.cas.
   Proof.
     init_simF u_s 0.
 
