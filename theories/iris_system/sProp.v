@@ -66,9 +66,9 @@ Module ST. Section ST.
     }.
 End ST. End ST.
 
-Module GST.
+Module STτ.
   Class t (τ : TypG.t) := { #[global] inG :: @GAT.inG ST.t τ }.
-End GST.
+End STτ.
 
 (** Notations and Coercions. *)
 Coercion ST.baseT : Sortclass >-> ST.type.

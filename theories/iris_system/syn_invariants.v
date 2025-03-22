@@ -42,7 +42,7 @@ Class syn_invG (Σ : GRA) (Γ : HRA) (α : GAT.t) (β : GATIntp.t) (τ : TypG.t)
 }.
 
 Section syn_inv.
-  Context `{!invG α Σ Γ, !subG Γ Σ, !GST.t τ, !SL.G Σ Γ α β τ, !syn_invG Σ Γ α β τ}.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !STτ.t τ, !SL.G Σ Γ α β τ, !syn_invG Σ Γ α β τ}.
   Local Existing Instances invG_Σ invG_Γ invG_I invG_E invG_D.
 
   Local Definition syn_ownI u n i (p : GTerm.t n) : GTerm.t n :=
@@ -89,7 +89,7 @@ End syn_inv.
 
 Class sinvG (Σ : GRA) (Γ : HRA) (α : GAT.t) (β : GATIntp.t) (τ : TypG.t)
     `{!invG α Σ Γ, !subG Γ Σ} := sinvG_mk {
-  #[global] sinv_typG :: GST.t τ;
+  #[global] sinv_typG :: STτ.t τ;
   #[global] sinv_SLG :: SL.G Σ Γ α β τ;
   #[global] sinv_syn_invG :: syn_invG Σ Γ α β τ;
 }.
@@ -167,7 +167,7 @@ Ltac inv_red :=
 Module inv_instances.
   #[export] Instance τ : TypG.t := λ _, ST.t.
 
-  #[export] Instance typG : GST.t τ.
+  #[export] Instance typG : STτ.t τ.
   Proof. econs. econs. instantiate (1:=0); ss. Qed.
 
   #[export] Instance α {Γ : HRA} : GAT.t :=
