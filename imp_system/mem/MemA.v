@@ -120,7 +120,7 @@ End MemRA.
 
 Notation "loc '|={' q '}=>' v" := (mem_points_to_singleton loc q v) (at level 20).
 Notation "loc ↦ v" := (mem_points_to_singleton loc 1 v) (at level 20).
-Notation "loc ↦ v" := (<own> base_γ (mem_points_to_singleton_r loc 1 v))%SRF (at level 20) : SRF_scope.
+Notation "loc ↦ v" := (<own> base_γ (mem_points_to_singleton_r loc 1 v))%SAT (at level 20) : SRF_scope.
 Notation "loc |-> vs" := (mem_points_to loc 1 vs) (at level 20).
 
 Module MemA. Section MemA.

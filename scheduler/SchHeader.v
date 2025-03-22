@@ -26,7 +26,7 @@ Section FSpec.
       (body : X -> itree E Y) : SAny.t -> itree E SAny.t :=
     λ varg, varg <- varg↓↓?;; vret <- body varg;; Ret vret↑↑.
 
-  Definition interp_cond (s : {n & SRFSyn.t n}) :=
+  Definition interp_cond (s : {n & GTerm.t n}) :=
     match s with
     | existT n p => ⟦ p ⟧
     end.

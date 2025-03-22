@@ -5,21 +5,21 @@ From iris.algebra Require Import ofe auth agree coPset gset gmap_view.
 From iris Require Import bi.big_op.
 Require Import Coqlib.
 Require Import functions.
-Require Export SRF sProp own.
+Require Export SAT sProp own.
 
 Definition univ_id := nat.
 
 (* Resource algebra & initial resources for invariants *)
 Section invariants.
-  Context `{α : SRFCons.t}.
+  Context `{α : GAT.t}.
 
-  Canonical Structure SynO n : ofe := leibnizO (SRFSyn.t n).
+  Canonical Structure SynO n : ofe := leibnizO (GTerm.t n).
 
   Definition InvSetRA n : ucmra := gmap_viewUR positive (agreeR (SynO n)).
 
   (** IMPROVE : This is a temporary Proper typeclass to resolve rewrite lemmas for
-      SRFSyn.t types. TC resolution fails to apply general discrete_fun_singleton_proper
-      since SRFSyn.t types are also dependent on α. This can be generalized further. *)
+      GTerm.t types. TC resolution fails to apply general discrete_fun_singleton_proper
+      since GTerm.t types are also dependent on α. This can be generalized further. *)
   Global Instance discrete_fun_singleton_proper' (x : univ_id) :
     Proper
       ((≡) ==> (≡))
@@ -39,7 +39,7 @@ Section invariants.
   Definition ownDRA : ucmra :=
     univ_id -d> (authUR (gset_disjUR positive)).
 
-  Class invGΣ (α : SRFCons.t) (Σ : GRA) := {
+  Class invGΣ (α : GAT.t) (Σ : GRA) := {
     #[local] invG_I :: inG ownIRA Σ
   }.
   Class invGΓ (Γ : HRA) := {
@@ -47,7 +47,7 @@ Section invariants.
     #[local] invG_D :: inG ownDRA Γ;
   }.
 
-  Class invG (α : SRFCons.t) (Σ : GRA) (Γ : HRA) := {
+  Class invG (α : GAT.t) (Σ : GRA) (Γ : HRA) := {
     #[local] invG_Σ :: invGΣ α Σ;
     #[local] invG_Γ :: invGΓ Γ;
   }.
@@ -98,11 +98,11 @@ Section predicates.
   Local Existing Instances invG_Σ invG_Γ invG_I invG_E invG_D.
 
   (* owns an invariant *)
-  Definition ownIR (u : univ_id) (n : level) (i : positive) (p : SRFSyn.t n) : ownIRA :=
+  Definition ownIR (u : univ_id) (n : level) (i : positive) (p : GTerm.t n) : ownIRA :=
     discrete_fun_singleton u
       (discrete_fun_singleton n
         (gmap_view_frag i DfracDiscarded (to_agree p))).
-  Definition ownI (u : univ_id) (n : level) (i : positive) (p : SRFSyn.t n) : iProp Σ :=
+  Definition ownI (u : univ_id) (n : level) (i : positive) (p : GTerm.t n) : iProp Σ :=
     own base_γ (ownIR u n i p).
 
   Global Instance ownI_persistent
@@ -110,11 +110,11 @@ Section predicates.
   Proof. apply _. Qed.
 
   (* authorative resource *)
-  Definition ownI_authR (u : univ_id) (n : level) (I : gmap positive (SRFSyn.t n)) : ownIRA :=
+  Definition ownI_authR (u : univ_id) (n : level) (I : gmap positive (GTerm.t n)) : ownIRA :=
     discrete_fun_singleton u
       (discrete_fun_singleton n
         (gmap_view_auth (DfracOwn 1) (to_agree <$> I))).
-  Definition ownI_auth (u : univ_id) (n : level) (I : gmap positive (SRFSyn.t n)) :=
+  Definition ownI_auth (u : univ_id) (n : level) (I : gmap positive (GTerm.t n)) :=
     own base_γ (ownI_authR u n I).
 
   (* authorative resource for wsats *)
@@ -166,12 +166,12 @@ Section predicates.
 End predicates.
 
 Section wsat.
-  Context `{@SRFIntp.t (domain Σ) α, !invG α Σ Γ, !subG Γ Σ}.
+  Context `{@GATIntp.t (domain Σ) α, !invG α Σ Γ, !subG Γ Σ}.
 
   Variable u : univ_id.
   Variable n : level.
 
-  Definition inv_satall (I : gmap positive (SRFSyn.t n)) : iProp Σ :=
+  Definition inv_satall (I : gmap positive (GTerm.t n)) : iProp Σ :=
     [∗ map] i ↦ p ∈ I, (⟦p⟧ ∗ ownD u {[i]}) ∨ ownE u {[i]}.
 
   Definition wsat : iProp Σ := ∃ I, ownI_auth u n I ∗ inv_satall I.
@@ -269,7 +269,7 @@ Section wsat.
 End wsat.
 
 Section wsats.
-  Context `{@SRFIntp.t (domain Σ) α, !invG α Σ Γ, !subG Γ Σ}.
+  Context `{@GATIntp.t (domain Σ) α, !invG α Σ Γ, !subG Γ Σ}.
   Local Existing Instances invG_Σ invG_Γ invG_I invG_E invG_D.
 
   Lemma wsat_authR_valid u : ✓ (wsat_authR u 0).
@@ -456,7 +456,7 @@ Section wsats.
     @BiBUpdFUpd (iProp Σ) (uPred_bi_bupd Σ) (uPred_bi_fupd u n).
   Proof. rewrite /BiBUpdFUpd uPred_fupd_unseal. by iIntros (E P) ">? [$ [$ $]] !>". Qed.
 
-  Local Definition inv_def u (n : level) (N : namespace) (p : SRFSyn.t n) : iProp Σ :=
+  Local Definition inv_def u (n : level) (N : namespace) (p : GTerm.t n) : iProp Σ :=
     ∃ i, ⌜i ∈ (↑N : coPset)⌝ ∧ ownI u n i p.
   Local Definition inv_aux : seal (@inv_def). Proof. by eexists. Qed.
   Definition inv := inv_aux.(unseal).
@@ -482,7 +482,7 @@ Notation "'=|' u ',' n '|={' E '}=>' P" := (=|u, n|={E, E}=> P)%I (at level 90) 
 Notation "P '=|' u ',' n '|={' E '}=∗' Q" := (P -∗ =|u, n|={E, E}=> Q)%I (at level 90) : bi_scope.
 
 Section fancy_updates.
-  Context `{@SRFIntp.t (domain Σ) α, !invG α Σ Γ, !subG Γ Σ}.
+  Context `{@GATIntp.t (domain Σ) α, !invG α Σ Γ, !subG Γ Σ}.
   Implicit Types n m : level.
   Implicit Types N : namespace.
   Implicit Types E : coPset.
@@ -499,7 +499,7 @@ Section fancy_updates.
 End fancy_updates.
 
 Section inv.
-  Context `{@SRFIntp.t (domain Σ) α, !invG α Σ Γ, !subG Γ Σ}.
+  Context `{@GATIntp.t (domain Σ) α, !invG α Σ Γ, !subG Γ Σ}.
   Implicit Types n : level.
   Implicit Types N : namespace.
   Implicit Types E : coPset.
@@ -507,7 +507,7 @@ Section inv.
   Lemma fresh_inv_name N : pred_infinite (.∈ (↑N:coPset)).
   Proof. apply coPset_infinite_finite, nclose_infinite. Qed.
 
-  Lemma inv_alloc {n} (p : SRFSyn.t n) u m E N :
+  Lemma inv_alloc {n} (p : GTerm.t n) u m E N :
     n < m → ⟦p⟧ =|u, m|={E}=∗ inv u n N p.
   Proof.
     rewrite ?uPred_fupd_unseal /uPred_fupd_def ?inv_eq /inv_def.
@@ -521,7 +521,7 @@ Section inv.
     iModIntro; iExists _; iSplit; eauto.
   Qed.
 
-  Lemma inv_acc u n m N (p : SRFSyn.t n) E :
+  Lemma inv_acc u n m N (p : GTerm.t n) E :
     n < m → ↑N ⊆ E → inv u n N p =|u, m|={E, E∖↑N}=∗ (⟦p⟧ ∗ (⟦p⟧ =|u, m|={E∖↑N, E}=∗ True)).
   Proof.
     rewrite ?uPred_fupd_unseal /uPred_fupd_def ?inv_eq /inv_def.

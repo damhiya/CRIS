@@ -4,14 +4,14 @@ Require Import sflib.
 From iris Require Import bi.big_op.
 (* From iris Require base_logic.lib.invariants. *)
 From Coq Require Import Program Arith.
-Require Export Coqlib base_logic iprop own SRF.
+Require Export Coqlib base_logic iprop own SAT.
 
-Global Instance domain (Σ : GRA) : SRFDom.t := { dom := iProp Σ }.
+Global Instance domain (Σ : GRA) : SemDom.t := { dom := iProp Σ }.
 
 (* Note that the types in a group has the type PF.t *)
 (* The types in all groups *)
 Module TypG.
-  Class t: Type := __TYP : GPF.t.
+  Class t: Type := __TYP : GAT.t.
 End TypG.
 
 Class HRA : Type := HRA_mk : GRA.
@@ -60,42 +60,42 @@ Module ST. Section ST.
     | metaT => Type
     end.
 
-  Global Instance t : PF.t := {
-      shp := type;
-      deg := interp;
+  Global Instance t : SAT.t := {
+      ops := type;
+      arity := interp;
     }.
 End ST. End ST.
 
-Module CtxST.
-  Class t (τ : TypG.t) := { #[global] inG :: @GPF.inG ST.t τ }.
-End CtxST.
+Module GST.
+  Class t (τ : TypG.t) := { #[global] inG :: @GAT.inG ST.t τ }.
+End GST.
 
 (** Notations and Coercions. *)
 Coercion ST.baseT : Sortclass >-> ST.type.
 
-Notation "⇣ T" := (ST.baseT T) (at level 90) : SRF_scope.
-Notation "'Φ'" := (ST.sPropT) : SRF_scope.
-Infix "->" := (ST.funT) : SRF_scope.
-Infix "*" := (ST.prodT) : SRF_scope.
-Infix "+" := (ST.sumT) : SRF_scope.
+Notation "⇣ T" := (ST.baseT T) (at level 90) : SAT_scope.
+Notation "'Φ'" := (ST.sPropT) : SAT_scope.
+Infix "->" := (ST.funT) : SAT_scope.
+Infix "*" := (ST.prodT) : SAT_scope.
+Infix "+" := (ST.sumT) : SAT_scope.
 
-Notation "'τ{' t ',' n '}'" := (@PF.deg ST.t t (SRFSyn.t_prev n)) : SRF_scope.
-Notation "'τ{' t '}'" := (@PF.deg ST.t t (SRFSyn.t_prev _)) : SRF_scope.
+Notation "'τ{' t ',' n '}'" := (@SAT.arity ST.t t (GTerm.t_prev n)) : SAT_scope.
+Notation "'τ{' t '}'" := (@SAT.arity ST.t t (GTerm.t_prev _)) : SAT_scope.
 
 (* Separation Logic *)
 (* TODO : The functionalities below need to be separated! after coarse refactoring *)
 Module SL.
   Section syntax.
-    Context {τ : TypG.t} {α : @SRFCons.t} {Γ : HRA}.
+    Context {τ : TypG.t} {α : @GAT.t} {Γ : HRA}.
 
-    Variant shape : Type :=
+    Variant ops : Type :=
     | _own i (γ : positive) (r : (@GRA_lookup Γ) i)
     | _pure (P : Prop)
     | _and
     | _or
     | _impl
-    | _univ i (ty : (τ i).(PF.shp))
-    | _ex   i (ty : (τ i).(PF.shp))
+    | _univ i (ty : (τ i).(SAT.ops))
+    | _ex   i (ty : (τ i).(SAT.ops))
     | _empty
     | _sepconj
     | _wand
@@ -103,15 +103,15 @@ Module SL.
     | _plainly
     | _upd.
 
-    Definition degree (s : shape) (Prev : Type) : Type :=
-      match s with
+    Definition arity (op : ops) (term_prev : Type) : Type :=
+      match op with
       | _own γ i r => fin 0
       | _pure P => fin 0
       | _and => fin 2
       | _or => fin 2
       | _impl => fin 2
-      | _univ i ty => (τ i).(PF.deg) ty Prev
-      | _ex   i ty => (τ i).(PF.deg) ty Prev
+      | _univ i ty => (τ i).(SAT.arity) ty term_prev
+      | _ex   i ty => (τ i).(SAT.arity) ty term_prev
       | _empty => fin 0
       | _sepconj => fin 2
       | _wand => fin 2
@@ -120,17 +120,17 @@ Module SL.
       | _upd => fin 1
       end.
 
-    Global Instance syntax : PF.t := {
-        shp := shape;
-        deg := degree;
+    Global Instance syntax : SAT.t := {
+        ops := ops;
+        arity := arity;
     }.
   End syntax.
 
   Section semantics.
-    Context {τ : TypG.t} {α : @SRFCons.t} {Γ : HRA} {Σ : GRA} `{!subG Γ Σ}.
-    Definition interp_aux n (s : shape)
-        : (degree s (SRFSyn.t_prev n) → SRFSyn.t n) → (degree s (SRFSyn.t_prev n) → iProp Σ) → iProp Σ :=
-      match s with
+    Context {τ : TypG.t} {α : @GAT.t} {Γ : HRA} {Σ : GRA} `{!subG Γ Σ}.
+    Definition interp_aux n (op : ops)
+        : (arity op (GTerm.t_prev n) → GTerm.t n) → (arity op (GTerm.t_prev n) → iProp Σ) → iProp Σ :=
+      match op with
       | _own i γ r => λ _ _, @own _ _ _ γ r
       | _pure P => λ _ _, ⌜P⌝%I
       | _and => λ _ sem, ((sem 0%fin) ∧ (sem 1%fin))%I
@@ -146,118 +146,118 @@ Module SL.
       | _upd => λ _ sem, (|==> (sem 0%fin))%I
       end.
 
-    Global Instance interp : @SRFIntpM.t _ α syntax := interp_aux.
+    Global Instance interp : @SATIntp.t _ α syntax := interp_aux.
   End semantics.
 
-  Class G (Σ : GRA) (Γ : HRA) (α : SRFCons.t) (β : SRFIntp.t) (τ : TypG.t) `{!subG Γ Σ} := {
-    #[local] G_inG :: SRFIntp.inG SL.syntax α SL.interp β;
+  Class G (Σ : GRA) (Γ : HRA) (α : GAT.t) (β : GATIntp.t) (τ : TypG.t) `{!subG Γ Σ} := {
+    #[local] G_inG :: GATIntp.inG SL.syntax α SL.interp β;
   }.
 
   Section definitions.
     Context `{!subG (Γ : HRA) Σ, !G Σ Γ α β τ}.
     Local Existing Instances G_inG.
 
-    Definition own `{IN: !inG M Γ} {n} (γ : positive) (r : M) : SRFSyn.t n.
+    Definition own `{IN: !inG M Γ} {n} (γ : positive) (r : M) : GTerm.t n.
       destruct IN. subst.
-      refine ⟨ _own _ γ r, _ ⟩%SRF.
+      refine ⟨ _own _ γ r, _ ⟩%SAT.
       i. inv X.
     Defined.
 
-    Definition pure {n} (P : Prop) : SRFSyn.t n.
-      refine ⟨ _pure P, _ ⟩%SRF.
+    Definition pure {n} (P : Prop) : GTerm.t n.
+      refine ⟨ _pure P, _ ⟩%SAT.
       i. inv X.
     Defined.
 
-    Definition and {n} (p1 p2 : SRFSyn.t n) : SRFSyn.t n.
-      refine ⟨ _and, _ ⟩%SRF.
+    Definition and {n} (p1 p2 : GTerm.t n) : GTerm.t n.
+      refine ⟨ _and, _ ⟩%SAT.
       i. destruct X.
       - exact p1.
       - exact p2.
     Defined.
 
-    Definition or {n} (p1 p2 : SRFSyn.t n) : SRFSyn.t n.
-      refine ⟨ _or, _ ⟩%SRF.
+    Definition or {n} (p1 p2 : GTerm.t n) : GTerm.t n.
+      refine ⟨ _or, _ ⟩%SAT.
       i. destruct X.
       - exact p1.
       - exact p2.
     Defined.
 
-    Definition impl {n} (p1 p2 : SRFSyn.t n) : SRFSyn.t n.
-      refine ⟨ _impl, _ ⟩%SRF.
+    Definition impl {n} (p1 p2 : GTerm.t n) : GTerm.t n.
+      refine ⟨ _impl, _ ⟩%SAT.
       i. destruct X.
       - exact p1.
       - exact p2.
     Defined.
     
-    Definition univ `{IN: @GPF.inG T τ} {n} (ty: T.(PF.shp)) (p: T.(PF.deg) ty (SRFSyn.t_prev n) → SRFSyn.t n)
-        : SRFSyn.t n.
+    Definition univ `{IN: @GAT.inG T τ} {n} (ty: T.(SAT.ops)) (p: T.(SAT.arity) ty (GTerm.t_prev n) → GTerm.t n)
+        : GTerm.t n.
       destruct IN. subst.
-      exact ⟨ _univ _ ty, p ⟩%SRF.
+      exact ⟨ _univ _ ty, p ⟩%SAT.
     Defined.
 
-    Definition ex `{IN: @GPF.inG T τ} {n} (ty: T.(PF.shp)) (p: T.(PF.deg) ty (SRFSyn.t_prev n) → SRFSyn.t n)
-        : SRFSyn.t n.
+    Definition ex `{IN: @GAT.inG T τ} {n} (ty: T.(SAT.ops)) (p: T.(SAT.arity) ty (GTerm.t_prev n) → GTerm.t n)
+        : GTerm.t n.
       destruct IN. subst.
-      exact ⟨ _ex _ ty, p ⟩%SRF.
+      exact ⟨ _ex _ ty, p ⟩%SAT.
     Defined.
 
-    Definition empty {n} : SRFSyn.t n.
-      refine ⟨ _empty, _ ⟩%SRF.
+    Definition empty {n} : GTerm.t n.
+      refine ⟨ _empty, _ ⟩%SAT.
       i. inv X.
     Defined.
 
-    Definition sepconj {n} (p1 p2 : SRFSyn.t n) : SRFSyn.t n.
-      refine ⟨ _sepconj, _ ⟩%SRF.
+    Definition sepconj {n} (p1 p2 : GTerm.t n) : GTerm.t n.
+      refine ⟨ _sepconj, _ ⟩%SAT.
       i. destruct X.
       - exact p1.
       - exact p2.
     Defined.
 
-    Definition wand {n} (p1 p2 : SRFSyn.t n) : SRFSyn.t n.
-      refine ⟨ _wand, _ ⟩%SRF.
+    Definition wand {n} (p1 p2 : GTerm.t n) : GTerm.t n.
+      refine ⟨ _wand, _ ⟩%SAT.
       i. destruct X.
       - exact p1.
       - exact p2.
     Defined.
 
-    Definition persistently {n} (p : SRFSyn.t n) : SRFSyn.t n.
-      refine ⟨ _persistently, _ ⟩%SRF.
+    Definition persistently {n} (p : GTerm.t n) : GTerm.t n.
+      refine ⟨ _persistently, _ ⟩%SAT.
       i. inv X; [|inv H0].
       exact p.
     Defined.
 
-    Definition plainly {n} (p : SRFSyn.t n) : SRFSyn.t n.
-      refine ⟨ _plainly, _ ⟩%SRF.
+    Definition plainly {n} (p : GTerm.t n) : GTerm.t n.
+      refine ⟨ _plainly, _ ⟩%SAT.
       i. inv X; [|inv H0].
       exact p.
     Defined.
 
-    Definition upd {n} (p : SRFSyn.t n) : SRFSyn.t n.
-      refine ⟨ _upd, _ ⟩%SRF.
+    Definition upd {n} (p : GTerm.t n) : GTerm.t n.
+      refine ⟨ _upd, _ ⟩%SAT.
       i. inv X; [|inv H0].
       exact p.
     Defined.
 
-    Definition affinely {n} (p : SRFSyn.t n) : SRFSyn.t n :=
+    Definition affinely {n} (p : GTerm.t n) : GTerm.t n :=
       and empty p.
 
     Definition sepM
               n {K} {H1 : EqDecision K} {H2 : Countable K}
               {A} (I : @gmap K H1 H2 A)
-              (f : K → A → SRFSyn.t n)
-      : SRFSyn.t n :=
+              (f : K → A → GTerm.t n)
+      : GTerm.t n :=
       fold_right (fun hd tl => sepconj (uncurry f hd) tl) empty (map_to_list I).
 
     Definition sepS n {K} {H1 : EqDecision K} {H2 : Countable K}
         (I : @gset K H1 H2)
-        (f : K → SRFSyn.t n)
-        : SRFSyn.t n :=
+        (f : K → GTerm.t n)
+        : GTerm.t n :=
       fold_right (fun hd tl => sepconj (f hd) tl) empty (elements I).
 
     Definition sepL1
               n {A} (I : list A)
-              (f : A → SRFSyn.t n)
-      : SRFSyn.t n :=
+              (f : A → GTerm.t n)
+      : GTerm.t n :=
       fold_right (fun hd tl => sepconj (f hd) tl) empty I.
 
   End definitions.
@@ -265,123 +265,123 @@ End SL.
 
 (* Module CtxSL.
   Class t (Σ : GRA) (Γ : HRA) α β τ 
-    `{!subG Γ Σ} `{!CtxST.t τ} `{!SRFIntp.inG SL.syntax α SL.t β} := mk_t : unit.
+    `{!subG Γ Σ} `{!CtxST.t τ} `{!SATIntp.inG SL.syntax α SL.t β} := mk_t : unit.
 End CtxSL. *)
 
 (** Notations *)
-Local Open Scope SRF_scope.
+Local Open Scope SAT_scope.
 
-Notation "'⌜' P '⌝'" := (SL.pure P) : SRF_scope.
-Notation "'⊤'" := ⌜True⌝ : SRF_scope.
-Notation "'⊥'" := ⌜False⌝ : SRF_scope.
+Notation "'⌜' P '⌝'" := (SL.pure P) : SAT_scope.
+Notation "'⊤'" := ⌜True⌝ : SAT_scope.
+Notation "'⊥'" := ⌜False⌝ : SAT_scope.
 
-Notation "<own>" := (SL.own) (at level 20) : SRF_scope.
-Notation "'<pers>' P" := (SL.persistently P) : SRF_scope.
-Notation "'<affine>' P" := (SL.affinely P) : SRF_scope.
-Notation "□ P" := (<affine> <pers> P) : SRF_scope.
-Notation "■ P" := (SL.plainly P) : SRF_scope.
-Notation "|==> P" := (SL.upd P) : SRF_scope.
-Infix "∧" := (SL.and) : SRF_scope.
-Infix "∨" := (SL.or) : SRF_scope.
-Infix "→" := (SL.impl) : SRF_scope.
-Notation "¬ P" := (P → False) : SRF_scope.
-Infix "∗" := (SL.sepconj) : SRF_scope.
-Infix "-∗" := (SL.wand) : SRF_scope.
-Notation "P ==∗ Q" := (P -∗ |==> Q) : SRF_scope.
+Notation "<own>" := (SL.own) (at level 20) : SAT_scope.
+Notation "'<pers>' P" := (SL.persistently P) : SAT_scope.
+Notation "'<affine>' P" := (SL.affinely P) : SAT_scope.
+Notation "□ P" := (<affine> <pers> P) : SAT_scope.
+Notation "■ P" := (SL.plainly P) : SAT_scope.
+Notation "|==> P" := (SL.upd P) : SAT_scope.
+Infix "∧" := (SL.and) : SAT_scope.
+Infix "∨" := (SL.or) : SAT_scope.
+Infix "→" := (SL.impl) : SAT_scope.
+Notation "¬ P" := (P → False) : SAT_scope.
+Infix "∗" := (SL.sepconj) : SAT_scope.
+Infix "-∗" := (SL.wand) : SAT_scope.
+Notation "P ==∗ Q" := (P -∗ |==> Q) : SAT_scope.
 Notation f_forall A := (SL.univ A).
-Notation "∀'" := (f_forall _) (only parsing) : SRF_scope.
-Notation "∀ a .. z , P" := (f_forall _ (λ a, .. (f_forall _ (λ z, P%SRF)) ..)) : SRF_scope.
+Notation "∀'" := (f_forall _) (only parsing) : SAT_scope.
+Notation "∀ a .. z , P" := (f_forall _ (λ a, .. (f_forall _ (λ z, P%SAT)) ..)) : SAT_scope.
 Notation f_exist A := (SL.ex A).
-Notation "∃'" := (f_exist _) (only parsing) : SRF_scope.
-Notation "∃ a .. z , P" := (f_exist _ (λ a, .. (f_exist _ (λ z, P%SRF)) ..)) : SRF_scope.
-Notation "'emp'" := (SL.empty) : SRF_scope.
+Notation "∃'" := (f_exist _) (only parsing) : SAT_scope.
+Notation "∃ a .. z , P" := (f_exist _ (λ a, .. (f_exist _ (λ z, P%SAT)) ..)) : SAT_scope.
+Notation "'emp'" := (SL.empty) : SAT_scope.
 
 Notation "'[∗' n 'map]' k ↦ x ∈ m , P" :=
   (SL.sepM n m (fun k x => P))
     (at level 200, n at level 1, m at level 10, k, x at level 1, right associativity,
-      format "[∗  n  map]  k  ↦  x  ∈  m ,  P") : SRF_scope.
+      format "[∗  n  map]  k  ↦  x  ∈  m ,  P") : SAT_scope.
 Notation "'[∗' n , A 'map]' k ↦ x ∈ m , P" :=
   (SL.sepM n (A:=A) m (fun k x => P))
     (at level 200, n at level 1, m at level 10, k, x, A at level 1, right associativity,
-      format "[∗  n  ,  A  map]  k  ↦  x  ∈  m ,  P") : SRF_scope.
+      format "[∗  n  ,  A  map]  k  ↦  x  ∈  m ,  P") : SAT_scope.
 Notation "'[∗' n 'set]' x ∈ X , P" :=
   (SL.sepS n X (fun x => P))
     (at level 200, n at level 1, X at level 10, x at level 1, right associativity,
-      format "[∗  n  set]  x  ∈  X ,  P") : SRF_scope.
+      format "[∗  n  set]  x  ∈  X ,  P") : SAT_scope.
 Notation "'[∗' n 'list]' x ∈ l , P" :=
   (SL.sepL1 n l (fun x => P))
     (at level 200, n at level 1, l at level 10, x at level 1, right associativity,
-      format "[∗  n  list]  x  ∈  l ,  P") : SRF_scope.
+      format "[∗  n  list]  x  ∈  l ,  P") : SAT_scope.
 Notation "'[∗' n , A 'list]' x ∈ l , P" :=
   (SL.sepL1 n (A:=A) l (fun x => P))
     (at level 200, n at level 1, l at level 10, x, A at level 1, right associativity,
-      format "[∗  n ,  A  list]  x  ∈  l ,  P") : SRF_scope.
+      format "[∗  n ,  A  list]  x  ∈  l ,  P") : SAT_scope.
 
 Module SLRed. Section RED.
   Context `{!subG (Γ : HRA) Σ, !SL.G Σ Γ α β τ}.
-  Notation interp := (SRFSem.t (Δ := domain Σ)).
+  Notation interp := (GTermSem.t (Δ := domain Σ)).
 
   Lemma own `{!inG M Γ} n γ (r : M) :
     interp n (SL.own γ r) = own γ r.
   Proof.
     depdes inG0. subst. unfold SL.own, eq_rect_r. ss.
-    rewrite @SRFRed.cur. ss.
+    rewrite @SATRed.cur. ss.
   Qed.
 
   Lemma pure n P : interp n (SL.pure P) = ⌜P⌝%I.
-  Proof. unfold SL.pure. rewrite @SRFRed.cur. reflexivity. Qed.
+  Proof. unfold SL.pure. rewrite @SATRed.cur. reflexivity. Qed.
 
   Lemma and n p q :
     interp n (SL.and p q) = (interp n p ∧ interp n q)%I.
-  Proof. unfold SL.and. rewrite @SRFRed.cur. reflexivity. Qed.
+  Proof. unfold SL.and. rewrite @SATRed.cur. reflexivity. Qed.
 
   Lemma or n p q :
     interp n (SL.or p q) = (interp n p ∨ interp n q)%I.
-  Proof. unfold SL.or. rewrite @SRFRed.cur. reflexivity. Qed.
+  Proof. unfold SL.or. rewrite @SATRed.cur. reflexivity. Qed.
 
   Lemma impl n p q :
     interp n (SL.impl p q) = (interp n p → interp n q)%I.
-  Proof. unfold SL.impl. rewrite @SRFRed.cur. reflexivity. Qed.
+  Proof. unfold SL.impl. rewrite @SATRed.cur. reflexivity. Qed.
 
-  Lemma univ `{T : PF.t} `{@GPF.inG T τ} n (ty: T.(PF.shp)) p :
-    interp n (SL.univ ty p) = (∀ x : (T.(PF.deg) ty (SRFSyn.t_prev n)), interp n (p x))%I.
+  Lemma univ `{T : SAT.t} `{@GAT.inG T τ} n (ty: T.(SAT.ops)) p :
+    interp n (SL.univ ty p) = (∀ x : (T.(SAT.arity) ty (GTerm.t_prev n)), interp n (p x))%I.
   Proof.
     destruct H0 eqn : EQ. subst.
     unfold SL.univ, eq_rect_r. ss.
-    rewrite @SRFRed.cur. reflexivity.
+    rewrite @SATRed.cur. reflexivity.
   Qed.
 
-  Lemma ex `{@GPF.inG T τ} n ty p :
+  Lemma ex `{@GAT.inG T τ} n ty p :
     interp n (SL.ex ty p) = (∃ x, interp n (p x))%I.
   Proof.
     destruct H0 eqn : EQ. subst.
     unfold SL.ex, eq_rect_r. ss.
-    rewrite @SRFRed.cur. reflexivity.
+    rewrite @SATRed.cur. reflexivity.
   Qed.
 
   Lemma empty n :
     interp n SL.empty = emp%I.
-  Proof. unfold SL.empty. rewrite @SRFRed.cur. reflexivity. Qed.
+  Proof. unfold SL.empty. rewrite @SATRed.cur. reflexivity. Qed.
 
   Lemma sepconj n p q :
     interp n (SL.sepconj p q) = (interp n p ∗ interp n q)%I.
-  Proof. unfold SL.sepconj. rewrite @SRFRed.cur. reflexivity. Qed.
+  Proof. unfold SL.sepconj. rewrite @SATRed.cur. reflexivity. Qed.
 
   Lemma wand n p q :
     interp n (SL.wand p q) = (interp n p -∗ interp n q)%I.
-  Proof. unfold SL.wand. rewrite @SRFRed.cur. reflexivity. Qed.
+  Proof. unfold SL.wand. rewrite @SATRed.cur. reflexivity. Qed.
 
   Lemma persistently n p :
     interp n (SL.persistently p) = (<pers> interp n p)%I.
-  Proof. unfold SL.persistently. rewrite @SRFRed.cur. reflexivity. Qed.
+  Proof. unfold SL.persistently. rewrite @SATRed.cur. reflexivity. Qed.
 
   Lemma plainly n p :
     interp n (SL.plainly p) = (■ (interp n p))%I.
-  Proof. unfold SL.plainly. rewrite @SRFRed.cur. reflexivity. Qed.
+  Proof. unfold SL.plainly. rewrite @SATRed.cur. reflexivity. Qed.
 
   Lemma upd n p :
     interp n (SL.upd p) = (|==> interp n p)%I.
-  Proof. unfold SL.upd. rewrite @SRFRed.cur. reflexivity. Qed.
+  Proof. unfold SL.upd. rewrite @SATRed.cur. reflexivity. Qed.
 
   Lemma affinely n p :
     interp n (SL.affinely p) = (<affine> interp n p)%I.
@@ -437,7 +437,7 @@ Global Opaque SL.persistently.
 Global Opaque SL.plainly.
 Global Opaque SL.upd.
 
-Global Opaque SRFSem.t.
+Global Opaque GTermSem.t.
 
 (* Simple sProp reduction tactics. *)
 From stdpp Require Import ssreflect.
@@ -461,7 +461,7 @@ Ltac SL_red :=
     tryany (do 1 rewrite ! @SLRed.sepS)
     tryany (do 1 rewrite ! @SLRed.sepL1)
     tryany (do 1 rewrite ! @SLRed.own)
-           (try (change (SRFSyn.t_prev (S ?n)) with (); fail 1);
-            change (SRFSyn.t_prev (S ?n)) with (SRFSyn.t n)));
+           (try (change (GTerm.t_prev (S ?n)) with (); fail 1);
+            change (GTerm.t_prev (S ?n)) with (GTerm.t n)));
     simpl);
   simpl.

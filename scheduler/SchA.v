@@ -11,7 +11,7 @@ Local Open Scope Qp.
 Section SchRA.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
 
-  Canonical Structure SynDepO : ofe := leibnizO {n & SRFSyn.t n}.
+  Canonical Structure SynDepO : ofe := leibnizO {n & GTerm.t n}.
 
   Definition thst : ucmra := (SAny.t -d> SAny.t -d> optionUR (agreeR SynDepO)).
   Definition fragreeUR := optionUR (prodR fracR (agreeR thst)).
@@ -89,12 +89,12 @@ Module SchAS. Section SchAS.
 
   (** initial resource *)
   Definition ir_threadsRA : DRA_mk threadsRA := 
-    ● ((λ tid: nat, if tid =? 0 then Some (1, to_agree (λ _ _, (Some (to_agree (existT 0 ⊤%SRF))))) else None): threadsF)
-    ⋅ ◯ ((λ tid: nat, if tid =? 0 then Some (1/4, to_agree (λ _ _, (Some (to_agree (existT 0 ⊤%SRF))))) else None): threadsF).
+    ● ((λ tid: nat, if tid =? 0 then Some (1, to_agree (λ _ _, (Some (to_agree (existT 0 ⊤%SAT))))) else None): threadsF)
+    ⋅ ◯ ((λ tid: nat, if tid =? 0 then Some (1/4, to_agree (λ _ _, (Some (to_agree (existT 0 ⊤%SAT))))) else None): threadsF).
   Definition ir_threadsRA_valid : ✓ ir_threadsRA.
   Proof.
     rewrite /ir_threadsRA. apply auth_both_valid_discrete. split.
-    { exists (λ tid: nat, if tid =? 0 then Some (3/4, to_agree (λ _ _, (Some (to_agree (existT 0 ⊤%SRF))))) else None).
+    { exists (λ tid: nat, if tid =? 0 then Some (3/4, to_agree (λ _ _, (Some (to_agree (existT 0 ⊤%SAT))))) else None).
       intros i; des_ifs; rewrite discrete_fun_lookup_op.
       { eapply Nat.eqb_eq in Heq; subst; des_ifs.
         rewrite -Some_op -pair_op frac_op; repeat f_equiv; ss.
