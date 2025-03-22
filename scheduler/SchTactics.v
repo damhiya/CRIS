@@ -159,6 +159,71 @@ Section wsim.
     Unshelve. all: revert NODSS NODDT; unseal ""; ss.
   (*FAST*)Qed.
 
+  Lemma wsim_yield_tgt_uv r g scp_s scp_t ginv_s ginv_t spc_s spc_t spc_user_s spc_user_t k_s k_t
+      (SchInSpcs : spc_incl (SchAS.spc υ spc_user_s) spc_s)
+      (SchInSpct : spc_incl (SchAS.spc ν spc_user_t) spc_t)
+      `{υ > ν} :
+    Ist nths st_s st_t ∗
+    (∀ nths st_s st_t
+        (NODS: List.NoDup (List.map fst st_s)) (NODD: List.NoDup (List.map fst st_t)),
+      Ist nths st_s st_t -∗
+      wsim fl_s fl_t Ist (Some false) υ ν ⊤ r g R_s R_t RR ps true nths
+        (st_s, (HMod.sandbox scp_s (interp_smod ginv_s spc_s Sch.yield)) >>= k_s)
+        (st_t, k_t tt))
+    ⊢ wsim fl_s fl_t Ist (Some false) υ ν ⊤ r g R_s R_t RR ps pt nths
+      (st_s, (HMod.sandbox scp_s (interp_smod ginv_s spc_s Sch.yield)) >>= k_s)
+      (st_t, (HMod.sandbox scp_t (interp_smod ginv_t spc_t Sch.yield)) >>= k_t).
+  Proof.
+    rewrite !WSim.wsim_eq /WSim.wsim_def.
+    iIntros "SIM P".
+    iApply isim_nodup. iIntros (? ? ? ?). hss.
+    rewrite /Sch.yield; unseal "Sch".
+    (* iApply isim_reset. *)
+    iStopProof.
+    revert nths.
+    combine_quant NODS; combine_quant NODD.
+    combine_quant st_s. combine_quant st_t. combine_quant ps. combine_quant pt.
+    eapply isim_coind.
+    iIntros (g' [pt [ps [st_t' [st_s' [NODD [NODS nths']]]]]]) "%MON [[[IST SIM] P] #CIH]". s.
+
+    unfold_iter_r.
+    steps_r. destruct q.
+    { steps_r. iPoseProof ("SIM" $! nths' _ _ NODS NODD with "IST P") as "SIM".
+      iPoseProof (isim_mono_knowledge with "SIM") as "SIM"; cycle 2.
+      { iApply "SIM". }
+      { iIntros (????????) "$"; done. }
+      { iIntros (????????) "P !>"; iApply MON; ss. }
+    }
+
+    steps_r.
+    unfold_iter_l; steps_l.
+    force_l false; steps_l. iDestruct "GRT" as "[P' [[-> TID] _]]".
+    iDestruct "P" as "[O [W W']]"; iPoseProof ("W'" with "P'") as "> P".
+    forces_l. iFrame. iSplit; eauto.
+    iApply isim_progress.
+    steps_l.
+
+    iApply isim_call. iSplitL "IST"; iFrame.
+    iIntros "% % % % % %"; iIntros "IST".
+    assert (NODSS: Seal.sealing "" (List.NoDup (List.map fst st_src0))).
+    { unseal ""; eauto. }
+    assert (NODDT: Seal.sealing "" (List.NoDup (List.map fst st_tgt0))).
+    { unseal ""; eauto. }
+
+    steps_l. iDestruct "ASM" as "[P' [[-> TID] ->]]". hss. steps_l.
+    iPoseProof (wsim_ginv_split with "P'") as "> [U V]"; first eauto.
+    steps_r. forces_r. iFrame; iSplit; eauto. steps_r. hss. steps_r.
+    iApply isim_base.
+    iSpecialize ("CIH" $! _);
+    (hrepeat do 1 first[instantiate (1:= (_,_))|instantiate (1:= existT _ _)]); s.
+    iApply "CIH".
+    iFrame.
+    iIntros (nths st_s st_t NODS1 NODD1) "IST GINV".
+    iPoseProof ("SIM" $! nths _ _ NODS1 NODD1 with "IST GINV") as "SIM".
+    iApply (isim_flag_mon with "SIM"); eauto.
+    Unshelve. all: revert NODSS NODDT; unseal ""; ss.
+  (*FAST*)Qed.
+
   Lemma wsim_yield_src r g scp_s ginv spc spc_user k_s i_t
       (SchInSpc : spc_incl (SchAS.spc υ spc_user) spc) :
     wsim fl_s fl_t Ist t υ ν E r g R_s R_t RR true pt nths
@@ -254,7 +319,10 @@ Ltac sch_yield_l :=
   norm with (iApply wsim_yield_src; try eassumption).
 
 Ltac sch_yield_r :=
-  norm with (first [(iApply wsim_yield_tgt_u0; try eassumption) | (iApply wsim_yield_tgt_uu; try eassumption)]).
+  norm with (first [
+    (iApply wsim_yield_tgt_u0; try eassumption)
+    | (iApply wsim_yield_tgt_uu; try eassumption)
+    | (iApply wsim_yield_tgt_uv; try eassumption)]).
 
 Ltac sch_spawn :=
   norm with (iApply wsim_spawn; try eassumption).
