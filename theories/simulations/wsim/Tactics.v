@@ -14,7 +14,7 @@ Tactic Notation "norm_l" "with" tactic(tac) := iwcase (do 1 inorm_l with tac) (d
 Ltac norm_r := iwcase (do 1 inorm_r) (do 1 wnorm_r).
 Tactic Notation "norm_r" "with" tactic(tac) := iwcase (do 1 inorm_r with tac) (do 1 wnorm_r with tac).
 
-Tactic Notation "norm" "with" tactic(tac) := iwcase (do 1 inorm with tac) (wnorm with tac).
+Tactic Notation "norm" "with" tactic(tac) := iwcase (do 1 inorm with tac) (do 1 wnorm with tac).
 
 Ltac step_l := iwcase (do 1 istep_l) (do 1 wstep_l).
 Ltac steps_l := iwcase (do 1 isteps_l) (do 1 wsteps_l).
