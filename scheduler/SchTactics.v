@@ -315,17 +315,31 @@ Section wsim.
   Qed.
 End wsim.
 
+Ltac solve_sch_spc :=
+  match goal with
+  | H : spc_incl (SchAS.spc ?u ?user) ?spc |- spc_incl (SchAS.spc ?u _) ?spc => exact H
+  end.
+
+Ltac sch_yield_r_aux :=
+  match goal with
+  | |- context [wsim _ _ _ ?t] =>
+    match t with
+    | Some true => iApply wsim_yield_tgt_u0
+    | Some false => iApply wsim_yield_tgt_uv
+    | None => iApply wsim_yield_tgt_uu
+    end;
+    try solve_sch_spc;
+    eauto
+  end.
+
 Ltac sch_yield_l :=
-  norm with (iApply wsim_yield_src; try eassumption).
+  norm with (do 1 (iApply wsim_yield_src; try solve_sch_spc)).
 
 Ltac sch_yield_r :=
-  norm with (first [
-    (iApply wsim_yield_tgt_u0; try eassumption)
-    | (iApply wsim_yield_tgt_uu; try eassumption)
-    | (iApply wsim_yield_tgt_uv; try eassumption)]).
+  norm with (do 1 sch_yield_r_aux).
 
 Ltac sch_spawn :=
-  norm with (iApply wsim_spawn; try eassumption).
+  norm with (do 1 (iApply wsim_spawn; try solve_sch_spc)).
 
 Ltac sch_join :=
-  norm with (iApply wsim_join; try eassumption).
+  norm with (do 1 (iApply wsim_join; try solve_sch_spc)).
