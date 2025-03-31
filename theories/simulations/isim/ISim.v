@@ -30,7 +30,7 @@ Section SIM.
 
   (***** isim lemmas *****)
   Lemma iunlift_ibot : iunlift ibot <9= bot9.
-  Proof.
+  Proof using.
     rewrite /ibot; i; inv PR.
     assert (CON : Own x8 ⊢ False).
     { iIntros "H". iPoseProof (REL with "H") as "F". iMod "F". done. }
@@ -41,7 +41,7 @@ Section SIM.
       (ENTAIL : iP ⊢ (@isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, i_tgt)))
       (CUR : Own fmr ⊢ iP) :
     gpaco9 _hpsim (cpn9 _hpsim) (iunlift r) (iunlift g) Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, i_tgt) fmr.
-  Proof.
+  Proof using.
     guclo hpsim_wfC_spec; econs; ii; esplits; eauto.
     assert (SIM : Own fmr ⊢ isim r g RR ps pt nths (st_src, i_src) (st_tgt, i_tgt)).
     { etrans; eauto. }
@@ -52,7 +52,7 @@ Section SIM.
       (MON : ∀ Rs Rt RR ps pt nths sti_src sti_tgt,
         @r0 Rs Rt RR ps pt nths sti_src sti_tgt ⊢ |==> @r1 Rs Rt RR ps pt nths sti_src sti_tgt) :
     iunlift r0 <9= iunlift r1.
-  Proof.
+  Proof using.
     i. destruct PR. econs; eauto.
     iIntros "H". iPoseProof (REL with "H") as "H".
     iMod "H". iPoseProof (MON with "H") as "H". eauto.
@@ -64,7 +64,7 @@ Section SIM.
       (MON1 : ∀ Rs Rt RR ps pt nths sti_src sti_tgt,
         @g0 Rs Rt RR ps pt nths sti_src sti_tgt ⊢ |==> @g1 Rs Rt RR ps pt nths sti_src sti_tgt) :
     @isim r0 g0 Rs Rt RR ps pt nths sti_src sti_tgt ⊢ @isim r1 g1 Rs Rt RR ps pt nths sti_src sti_tgt.
-  Proof.
+  Proof using.
     split; intros x wfx SIM.
     eapply gpaco9_mon; first eapply SIM; eauto using iunlift_mon.
   Qed.
@@ -76,14 +76,14 @@ Section SIM.
        (NODD : List.NoDup (List.map fst sti_tgt.1)),
      @isim r g Rs Rt RR ps pt nths sti_src sti_tgt)
     ⊢ @isim r g Rs Rt RR ps pt nths sti_src sti_tgt.
-  Proof.
+  Proof using.
     uPred.unseal. split. intros x wfx SIM. rr. rr in SIM.
     guclo hpsim_nodupC_spec. econs. eauto.
   Qed.
   
   Lemma isim_upd r g ps pt {Rs Rt} RR nths sti_src sti_tgt :
     ( |==> @isim r g Rs Rt RR ps pt nths sti_src sti_tgt) ⊢ @isim r g Rs Rt RR ps pt nths sti_src sti_tgt.
-  Proof.
+  Proof using.
     uPred.unseal; split; intros x wfx SIM; destruct SIM as [x' SIM].
     guclo hpsim_updateC_spec; econs; intros ?; exists x'; split.
     { by apply (SIM ε); rewrite right_id; done. }
@@ -94,7 +94,7 @@ Section SIM.
     ElimModal True p false ( |==> P)%I P
       (@isim r g Rs Rt RR ps pt nths sti_src sti_tgt) 
       (isim r g RR ps pt nths sti_src sti_tgt).
-  Proof.
+  Proof using.
     unfold ElimModal. rewrite bi.intuitionistically_if_elim.
     i. iIntros "[H0 H1]".
     iApply isim_upd. iMod "H0". iModIntro.
@@ -105,7 +105,7 @@ Section SIM.
       (MONO : ∀ nths st_src st_tgt ret_src ret_tgt,
         RR0 nths (st_src, ret_src) (st_tgt, ret_tgt) ⊢ RR1 nths (st_src, ret_src) (st_tgt, ret_tgt)) :
     @isim r g Rs Rt RR0 ps pt nths sti_src sti_tgt ⊢ @isim r g Rs Rt RR1 ps pt nths sti_src sti_tgt.
-  Proof.
+  Proof using.
     split; intros x wfx H0; destruct sti_src, sti_tgt.
     rewrite <-(bind_ret_r i); rewrite <-(bind_ret_r i0).
     guclo hpsim_bindC_spec; econs; first apply H0.
@@ -118,7 +118,7 @@ Section SIM.
         ((RR' nths0 (st_src, ret_src) (st_tgt, ret_tgt)) -∗ (RR nths0 (st_src, ret_src) (st_tgt, ret_tgt))))
     ∗ (@isim r g Rs Rt RR' ps pt nths sti_src sti_tgt)
     ⊢ isim r g RR ps pt nths sti_src sti_tgt.
-  Proof.
+  Proof using.
     uPred.unseal; split; intros x wfx H; destruct H as [x1 [x2 [-> [HRR SIM]]]].
     destruct sti_src as [st_src i_src]; destruct sti_tgt as [st_tgt i_tgt].
     rewrite <-(bind_ret_r i_src); rewrite <-(bind_ret_r i_tgt).
@@ -138,7 +138,7 @@ Section SIM.
   Lemma isim_frame r g {Rs Rt} RR ps pt nths sti_src sti_tgt P :
     P ∗ @isim r g Rs Rt RR ps pt nths sti_src sti_tgt
     ⊢ isim r g (fun nths0 str_src str_tgt => P ∗ RR nths0 str_src str_tgt) ps pt nths sti_src sti_tgt.
-  Proof. iIntros "[H0 H1]". iApply isim_wand. iFrame. eauto. Qed.
+  Proof using. iIntros "[H0 H1]". iApply isim_wand. iFrame. eauto. Qed.
 
   Lemma isim_bind r g ps pt {Rs Rt Qs Qt} RR QQ nths st_src st_tgt i_src i_tgt k_src k_tgt :
     @isim r g Qs Qt QQ ps pt nths (st_src, i_src) (st_tgt, i_tgt)
@@ -146,7 +146,7 @@ Section SIM.
         QQ nths0 (st_src0, ret_src) (st_tgt0, ret_tgt)
         -∗ isim r g RR false false nths0 (st_src0, k_src ret_src) (st_tgt0, k_tgt ret_tgt))%I
     ⊢ (@isim r g Rs Rt RR ps pt nths (st_src, i_src >>= k_src) (st_tgt, i_tgt >>= k_tgt)).
-  Proof.
+  Proof using.
     rewrite {3}/isim; split; intros x wfx BINDSIM; r.
     uPred.unseal_once_in BINDSIM; destruct BINDSIM as [x1 [x2 [Heq [RET BINDSIM]]]].
     eapply Own_general_completeness in RET, BINDSIM.
@@ -168,7 +168,7 @@ Section SIM.
     :
     @isim r g Rs Rt RR ps pt nths (st_src, i_src0) (st_tgt, i_tgt)
     ⊢ isim r g RR ps pt nths (st_src, i_src1) (st_tgt, i_tgt).
-  Proof.
+  Proof using.
     split; intros x wfx RRx.
     guclo hpsim_eqitC_src_spec; econs; esplits; i; eauto; econs; eauto.
   Qed.
@@ -178,7 +178,7 @@ Section SIM.
     :
     @isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, i_tgt0)
     ⊢ isim r g RR ps pt nths (st_src, i_src) (st_tgt, i_tgt1).
-  Proof.
+  Proof using.
     split; intros x wfx RRx.
     guclo hpsim_eqitC_tgt_spec; econs; esplits; i; eauto; econs; eauto.
   Qed.
@@ -188,7 +188,7 @@ Section SIM.
   Lemma isim_ret r g ps pt {Rs Rt} RR nths st_src st_tgt v_src v_tgt :
     RR nths (st_src, v_src) (st_tgt, v_tgt)
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, Ret v_src) (st_tgt, Ret v_tgt).
-  Proof.
+  Proof using.
     split; intros x wfx RRx.
     guclo hpsimC_spec; econs; esplits; i; eauto; econs; eauto.
     split; intros x' wfx'; rewrite own.Own_eq /own.Own_def; uPred.unseal; intros xx'.
@@ -198,14 +198,14 @@ Section SIM.
   Lemma isim_tau_src r g ps pt {Rs Rt} RR nths st_src st_tgt i_src i_tgt :
     @isim r g Rs Rt RR true pt nths (st_src, i_src) (st_tgt, i_tgt)
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, tau;; i_src) (st_tgt, i_tgt).
-  Proof.
+  Proof using.
     by split; intros x wfx sim; guclo hpsimC_spec; econs; esplits; eauto; econs; eauto.
   Qed.
 
   Lemma isim_tau_tgt r g ps pt {Rs Rt} RR nths st_src st_tgt i_src i_tgt :
     @isim r g Rs Rt RR ps true nths (st_src, i_src) (st_tgt, i_tgt)
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, tau;; i_tgt).
-  Proof. 
+  Proof using. 
     by split; intros x wfx sim; guclo hpsimC_spec; econs; esplits; eauto; econs; eauto.
   Qed.
 
@@ -216,7 +216,7 @@ Section SIM.
           (NODD : List.NoDup (List.map fst st_tgt0)),
         (Ist nths0 st_src0 st_tgt0) -∗ @isim r g Rs Rt RR true true nths0 (st_src0, k_src vret) (st_tgt0, k_tgt vret))
     ⊢ isim r g RR ps pt nths (st_src, trigger (Call fn varg) >>= k_src) (st_tgt, trigger (Call fn varg) >>= k_tgt).
-  Proof.
+  Proof using.
     split; intros x wfx Hx. uPred.unseal_once_in Hx. destruct Hx as [x1 [x2 [-> [Hx1 Hx2]]]].
     guclo hpsimC_spec. econs; esplits; eauto.
     econs; eauto; i; subst.
@@ -237,7 +237,7 @@ Section SIM.
   Lemma isim_io r g ps pt {Rs Rt} RR nths st_src st_tgt I O k_src k_tgt fn (varg : I) :
     (∀ (vret : O), @isim r g Rs Rt RR true true nths (st_src, k_src vret) (st_tgt, k_tgt vret))
     ⊢ isim r g RR ps pt nths (st_src, trigger (IO fn varg) >>= k_src) (st_tgt, trigger (IO fn varg) >>= k_tgt).
-  Proof.
+  Proof using.
     split; intros x wfx SIM.
     guclo hpsimC_spec. econs; esplits; eauto. econs; eauto. intros vret.
     eapply Own_general_completeness in SIM; eauto.
@@ -249,7 +249,7 @@ Section SIM.
       (FIND : alist_find fn fl_src = Some f) :
     @isim r g Rs Rt RR true pt nths (st_src, f varg >>= (λ ret, tau;; tau;; Ret ret) >>= k_src) (st_tgt, i_tgt)
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, trigger (Call fn varg) >>= k_src) (st_tgt, i_tgt).
-  Proof.
+  Proof using.
     split; intros x wfx SIM; guclo hpsimC_spec; econs; esplits; eauto; econs; eauto.
   Qed.
 
@@ -257,7 +257,7 @@ Section SIM.
       (FIND : alist_find fn fl_src = Some f) :
     @isim r g Rs Rt RR true pt nths (st_src, f varg >>= k_src) (st_tgt, i_tgt)
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, trigger (Call fn varg) >>= k_src) (st_tgt, i_tgt).
-  Proof.
+  Proof using.
     iIntros. iApply isim_inline_src; eauto.
     iApply isim_eqit_src; [|eauto].
     ired. eapply eqit_bind; eauto using eqit_refl.
@@ -268,7 +268,7 @@ Section SIM.
       (FIND : alist_find fn fl_tgt = Some f) :
     @isim r g Rs Rt RR ps true nths (st_src, i_src) (st_tgt, f varg >>= (λ ret, tau;; tau;; Ret ret) >>= k_tgt)
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, trigger (Call fn varg) >>= k_tgt).
-  Proof. 
+  Proof using. 
     split; intros x wfx SIM; guclo hpsimC_spec; econs; esplits; eauto; econs; eauto.
   Qed.
 
@@ -276,7 +276,7 @@ Section SIM.
       (FIND : alist_find fn fl_tgt = Some f) :
     @isim r g Rs Rt RR ps true nths (st_src, i_src) (st_tgt, f varg >>= k_tgt)
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, trigger (Call fn varg) >>= k_tgt).
-  Proof.
+  Proof using.
     iIntros. iApply isim_inline_tgt; eauto.
     iApply isim_eqit_tgt; [|eauto].
     ired. eapply eqit_bind; eauto using eqit_refl.
@@ -286,7 +286,7 @@ Section SIM.
   Lemma isim_take_src X r g ps pt {Rs Rt} RR nths st_src st_tgt k_src i_tgt :
     (∀ x, @isim r g Rs Rt RR true pt nths (st_src, k_src x) (st_tgt, i_tgt))
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, trigger (Take X) >>= k_src) (st_tgt, i_tgt).
-  Proof.
+  Proof using.
     split; intros x wfx SIM; guclo hpsimC_spec; econs; esplits; eauto; econs; eauto; i.
     eapply Own_general_completeness in SIM; eauto.
     eapply isim_init; eauto.
@@ -296,7 +296,7 @@ Section SIM.
   Lemma isim_take_tgt X r g ps pt {Rs Rt} RR nths st_src st_tgt i_src k_tgt :
     (∃ x, @isim r g Rs Rt RR ps true nths (st_src, i_src) (st_tgt, k_tgt x))
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, trigger (Take X) >>= k_tgt).
-  Proof.
+  Proof using.
     split; intros x wfx SIM.
     uPred.unseal_once_in SIM. destruct SIM as [k SIM].
     eapply Own_general_completeness in SIM; eauto.
@@ -307,7 +307,7 @@ Section SIM.
   Lemma isim_choose_src X r g ps pt {Rs Rt} RR nths st_src st_tgt k_src i_tgt :
     (∃ x, @isim r g Rs Rt RR true pt nths (st_src, k_src x) (st_tgt, i_tgt))
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, trigger (Choose X) >>= k_src) (st_tgt, i_tgt).
-  Proof.
+  Proof using.
     split; intros x wfx SIM.
     uPred.unseal_once_in SIM. destruct SIM as [k SIM].
     eapply Own_general_completeness in SIM; eauto.
@@ -318,7 +318,7 @@ Section SIM.
   Lemma isim_choose_tgt X r g ps pt {Rs Rt} RR nths st_src st_tgt i_src k_tgt :
     (∀ x, @isim r g Rs Rt RR ps true nths (st_src, i_src) (st_tgt, k_tgt x))
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, trigger (Choose X) >>= k_tgt).
-  Proof. 
+  Proof using. 
     split; intros x wfx SIM; guclo hpsimC_spec; econs; esplits; eauto; econs; eauto; i.
     eapply Own_general_completeness in SIM; eauto.
     eapply isim_init; eauto.
@@ -328,7 +328,7 @@ Section SIM.
   Lemma isim_asm_src (P : Prop) r g ps pt {Rs Rt} RR nths st_src st_tgt k_src i_tgt :
     (∀ (_ : P), @isim r g Rs Rt RR true pt nths (st_src, k_src ()) (st_tgt, i_tgt))
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, assume P >>= k_src) (st_tgt, i_tgt).
-  Proof.
+  Proof using.
     i. iIntros "H". unfold assume. rewrite bind_bind.
     iApply isim_take_src. rewrite bind_ret_l. eauto.
   Qed.
@@ -337,7 +337,7 @@ Section SIM.
     P →
     @isim r g Rs Rt RR ps true nths (st_src, i_src) (st_tgt, k_tgt ())
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, assume P >>= k_tgt).
-  Proof.
+  Proof using.
     i. iIntros "H". unfold assume. rewrite bind_bind.
     iApply isim_take_tgt. rewrite bind_ret_l. eauto.
     Unshelve. eauto.
@@ -347,7 +347,7 @@ Section SIM.
     P →
     @isim r g Rs Rt RR true pt nths (st_src, k_src ()) (st_tgt, i_tgt)
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, guarantee P >>= k_src) (st_tgt, i_tgt).
-  Proof.
+  Proof using.
     i. iIntros "H". unfold guarantee. rewrite bind_bind.
     iApply isim_choose_src. rewrite bind_ret_l. eauto.
     Unshelve. eauto.
@@ -356,7 +356,7 @@ Section SIM.
   Lemma isim_guar_tgt (P : Prop) r g ps pt {Rs Rt} RR nths st_src st_tgt i_src k_tgt :
     (∀ (_:P), @isim r g Rs Rt RR ps true nths (st_src, i_src) (st_tgt, k_tgt ()))
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, guarantee P >>= k_tgt).
-  Proof. 
+  Proof using. 
     i. iIntros "H". unfold guarantee. rewrite bind_bind.
     iApply isim_choose_tgt. rewrite bind_ret_l. eauto.
   Qed.
@@ -364,7 +364,7 @@ Section SIM.
   Lemma isim_sput_src r g ps pt {Rs Rt} RR k v nths st_src st_tgt k_src i_tgt :
     @isim r g Rs Rt RR true pt nths (alist_upd k v st_src, k_src tt) (st_tgt, i_tgt)
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, trigger (SPut k v) >>= k_src) (st_tgt, i_tgt).
-  Proof.
+  Proof using.
     split; intros x wfx SIM; guclo hpsimC_spec; econs; esplits; eauto; econs; eauto.
   Qed.
 
@@ -372,7 +372,7 @@ Section SIM.
     In k.1 scopes →
     @isim r g Rs Rt RR true pt nths (alist_upd k v st_src, k_src tt) (st_tgt, i_tgt)
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, HMod.sandbox scopes (trigger (SPut k v)) >>= k_src) (st_tgt, i_tgt).
-  Proof.
+  Proof using.
     i. iIntros "ISIM".
     rewrite SBRed.put.
     des_ifs; ss.
@@ -386,7 +386,7 @@ Section SIM.
   Lemma isim_sput_tgt r g ps pt {Rs Rt} RR k v nths st_src st_tgt i_src k_tgt :
     @isim r g Rs Rt RR ps true nths (st_src, i_src) (alist_upd k v st_tgt, k_tgt tt)
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, trigger (SPut k v) >>= k_tgt).
-  Proof.
+  Proof using.
     split; intros x wfx SIM; guclo hpsimC_spec; econs; esplits; eauto; econs; eauto.
   Qed.
 
@@ -394,7 +394,7 @@ Section SIM.
     In k.1 scopes →
     @isim r g Rs Rt RR ps true nths (st_src, i_src) (alist_upd k v st_tgt, k_tgt tt)
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, HMod.sandbox scopes (trigger (SPut k v)) >>= k_tgt).
-  Proof.
+  Proof using.
     i. iIntros "ISIM".
     rewrite SBRed.put.
     des_ifs; ss.
@@ -408,7 +408,7 @@ Section SIM.
   Lemma isim_sget_src r g ps pt {Rs Rt} RR k nths st_src st_tgt k_src i_tgt :
     @isim r g Rs Rt RR true pt nths (st_src, k_src (or_else (alist_find k st_src) tt↑)) (st_tgt, i_tgt)
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, trigger (SGet k) >>= k_src) (st_tgt, i_tgt).
-  Proof.
+  Proof using.
     split; intros x wfx SIM; guclo hpsimC_spec; econs; esplits; eauto; econs; eauto.
   Qed.
 
@@ -416,7 +416,7 @@ Section SIM.
     In k.1 scopes →
     @isim r g Rs Rt RR true pt nths (st_src, k_src (or_else (alist_find k st_src) tt↑)) (st_tgt, i_tgt)
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, HMod.sandbox scopes (trigger (SGet k)) >>= k_src) (st_tgt, i_tgt).
-  Proof.
+  Proof using.
     i. iIntros "ISIM".
     rewrite SBRed.get.
     des_ifs; ss.
@@ -430,7 +430,7 @@ Section SIM.
   Lemma isim_sget_tgt r g ps pt {Rs Rt} RR k nths st_src st_tgt i_src k_tgt :
     @isim r g Rs Rt RR ps true nths (st_src, i_src) (st_tgt, k_tgt (or_else (alist_find k st_tgt) tt↑))
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, trigger (SGet k) >>= k_tgt).
-  Proof.
+  Proof using.
     split; intros x wfx SIM; guclo hpsimC_spec; econs; esplits; eauto; econs; eauto.
   Qed.
 
@@ -438,7 +438,7 @@ Section SIM.
     In k.1 scopes →
     @isim r g Rs Rt RR ps true nths (st_src, i_src) (st_tgt, k_tgt (or_else (alist_find k st_tgt) tt↑))
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, HMod.sandbox scopes (trigger (SGet k)) >>= k_tgt).
-  Proof.
+  Proof using.
     i. iIntros "ISIM".
     rewrite SBRed.get.
     des_ifs; ss.
@@ -452,7 +452,7 @@ Section SIM.
   Lemma isim_Assume_src r g ps pt {Rs Rt} RR iP nths st_src st_tgt k_src i_tgt :
     (iP -∗ (@isim r g Rs Rt RR true pt nths (st_src, k_src tt) (st_tgt, i_tgt)))
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, trigger (Assume iP) >>= k_src) (st_tgt, i_tgt).
-  Proof.
+  Proof using.
     split; intros x wfx Hx.
     guclo hpsimC_spec; econs; esplits; i; eauto; econs; eauto; intros x' Hx'.
     eapply Own_general_completeness in Hx.
@@ -464,7 +464,7 @@ Section SIM.
   Lemma isim_Assume_tgt r g ps pt {Rs Rt} RR iP nths st_src st_tgt i_src k_tgt :
     (iP ∗ (@isim r g Rs Rt RR ps true nths (st_src, i_src) (st_tgt, k_tgt tt)))
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, trigger (Assume iP) >>= k_tgt).
-  Proof.
+  Proof using.
     split; intros x wfx Hx.
     eapply Own_general_completeness in Hx.
     guclo hpsimC_spec; econs; esplits; i; eauto; econs; eauto.
@@ -475,7 +475,7 @@ Section SIM.
   Lemma isim_Guarantee_src r g ps pt {Rs Rt} RR iP nths st_src st_tgt k_src i_tgt :
     (iP ∗ (@isim r g Rs Rt RR true pt nths (st_src, k_src tt) (st_tgt, i_tgt)))
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, trigger (Guarantee iP) >>= k_src) (st_tgt, i_tgt).
-  Proof.
+  Proof using.
     split; intros x wfx Hx.
     eapply Own_general_completeness in Hx.
     guclo hpsimC_spec; econs; esplits; i; eauto; econs; eauto.
@@ -486,7 +486,7 @@ Section SIM.
   Lemma isim_Guarantee_tgt r g ps pt {Rs Rt} RR iP nths st_src st_tgt i_src k_tgt :
     (iP -∗ (@isim r g Rs Rt RR ps true nths (st_src, i_src) (st_tgt, k_tgt tt)))
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, trigger (Guarantee iP) >>= k_tgt).
-  Proof.
+  Proof using.
     split; intros x wfx Hx.
     guclo hpsimC_spec; econs; esplits; i; eauto; econs; eauto; intros x' Hx'.
     eapply Own_general_completeness in Hx.
@@ -498,7 +498,7 @@ Section SIM.
   Lemma isim_spawn r g ps pt {Rs Rt} RR nths st_src st_tgt k_src k_tgt fn arg :
     @isim r g Rs Rt RR true true (S nths) (st_src, k_src nths) (st_tgt, k_tgt nths)
     ⊢ isim r g RR ps pt nths (st_src, trigger (Spawn fn arg) >>= k_src) (st_tgt, trigger (Spawn fn arg) >>= k_tgt).
-  Proof.
+  Proof using.
     split; intros x wfx SIM; guclo hpsimC_spec; econs; esplits; eauto; econs; eauto.
   Qed.
 
@@ -509,7 +509,7 @@ Section SIM.
           (NODD : List.NoDup (List.map fst st_tgt0)),
         (Ist nths0 st_src0 st_tgt0) -∗ @isim r g Rs Rt RR true true nths0 (st_src0, k_src tt) (st_tgt0, k_tgt tt))
     ⊢ (isim r g RR ps pt nths (st_src, trigger (Yield tid) >>= k_src) (st_tgt, trigger (Yield tid) >>= k_tgt)).
-  Proof.
+  Proof using.
     split; intros x wfx Hx. uPred.unseal_once_in Hx. destruct Hx as [x1 [x2 [-> [Hx1 Hx2]]]].
     guclo hpsimC_spec. econs; esplits; eauto.
     econs; eauto; i; subst.
@@ -534,46 +534,46 @@ Section SIM.
   :
     (@isim r g Rs Rt RR true pt nths (st_src, x <- triggerUB;; tau;; tau;; k_src x) (st_tgt, i_tgt))
     ⊢ (@isim r g Rs Rt RR ps pt nths (st_src, trigger (Call fn varg) >>= k_src) (st_tgt, i_tgt)).
-  Proof.
+  Proof using.
     split; intros x wfx SIM; guclo hpsimC_spec. econs; esplits; eauto. econs 22; eauto.
   Qed.
 
   Lemma isim_progress r g {Rs Rt} RR nths st_src st_tgt i_src i_tgt :
     @isim g g Rs Rt RR false false nths (st_src, i_src) (st_tgt, i_tgt)
     ⊢ @isim r g Rs Rt RR true true nths (st_src, i_src) (st_tgt, i_tgt).
-  Proof.
+  Proof using.
     split; intros x wfx SIM; eapply hpsim_progress_flag; eauto.
   Qed.
 
   Lemma isim_triggerUB_src r g {Rs Rt} RR ps pt X nths st_src st_tgt (k_src : X -> _) i_tgt :
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, triggerUB >>= k_src) (st_tgt, i_tgt).
-  Proof. 
+  Proof using. 
     unfold triggerUB. hred_l. iApply isim_take_src.
     iIntros (x). destruct x.
   Qed.
 
   Lemma isim_triggerUB_src_trigger r g {Rs Rt} RR ps pt nths st_src st_tgt i_tgt :
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, triggerUB) (st_tgt, i_tgt).
-  Proof.
+  Proof using.
     rewrite (@idK_spec _ _ (triggerUB)). iApply isim_triggerUB_src.
   Qed.
 
   Lemma isim_triggerNB_tgt r g {Rs Rt} RR ps pt X nths st_src st_tgt i_src (k_tgt : X -> _) :
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, triggerNB >>= k_tgt).
-  Proof.
+  Proof using.
     unfold triggerNB. hred_r. iApply isim_choose_tgt. iIntros (x). destruct x.
   Qed.
 
   Lemma isim_triggerNB_trigger r g {Rs Rt} RR ps pt nths st_src st_tgt i_src :
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, triggerNB).
-  Proof.
+  Proof using.
     rewrite (@idK_spec _ _ (triggerNB)). iApply isim_triggerNB_tgt.
   Qed.
 
   Lemma isim_unwrapU_src r g {Rs Rt} RR ps pt nths st_src st_tgt X (x : option X) k_src i_tgt :
     (∀ x', ⌜x = Some x'⌝ -∗ isim r g RR ps pt nths (st_src, k_src x') (st_tgt, i_tgt))
     ⊢ (@isim r g Rs Rt RR ps pt nths (st_src, unwrapU x >>= k_src) (st_tgt, i_tgt)).
-  Proof.
+  Proof using.
     iIntros "H". unfold unwrapU. destruct x.
     { hred_l. iApply "H". auto. }
     { iApply isim_triggerUB_src. }
@@ -582,20 +582,20 @@ Section SIM.
   Lemma isim_unwrapN_src r g {Rs Rt} RR ps pt nths st_src st_tgt X (x : option X) k_src i_tgt :
     (∃ x', ⌜x = Some x'⌝ ∗ @isim r g Rs Rt RR ps pt nths (st_src, k_src x') (st_tgt, i_tgt))
     ⊢ isim r g RR ps pt nths (st_src, unwrapN x >>= k_src) (st_tgt, i_tgt).
-  Proof.
+  Proof using.
     iIntros "H". iDestruct "H" as (x') "[% H]". subst. hred_l. iApply "H". Qed.
 
   Lemma isim_unwrapU_tgt r g {Rs Rt} RR ps pt nths st_src st_tgt X (x : option X) i_src k_tgt :
     (∃ x', ⌜x = Some x'⌝ ∗ @isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, k_tgt x'))
     ⊢ isim r g RR ps pt nths (st_src, i_src) (st_tgt, unwrapU x >>= k_tgt).
-  Proof.
+  Proof using.
     iIntros "H". iDestruct "H" as (x') "[% H]". subst. hred_r. iApply "H".
   Qed.
 
   Lemma isim_unwrapN_tgt r g {Rs Rt} RR ps pt nths st_src st_tgt X (x : option X) i_src k_tgt :
     (∀ x', ⌜x = Some x'⌝ -∗ @isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, k_tgt x'))
     ⊢ isim r g RR ps pt nths (st_src, i_src) (st_tgt, unwrapN x >>= k_tgt).
-  Proof.
+  Proof using.
     iIntros "H". unfold unwrapN. destruct x.
     { hred_r. iApply "H". auto. }
     { iApply isim_triggerNB_tgt. }
@@ -604,7 +604,7 @@ Section SIM.
   Lemma isim_base r g Rs Rt RR ps pt nths sti_src sti_tgt :
     r Rs Rt RR ps pt nths sti_src sti_tgt
     ⊢ isim r g RR ps pt nths sti_src sti_tgt.
-  Proof.
+  Proof using.
     split; intros x wfx Hr.
     gfinal; left; econs; eauto.
     eapply Own_general_completeness in Hr; iIntros "X"; iModIntro; iApply Hr; done.
@@ -614,12 +614,12 @@ Section SIM.
       (PSLE : ps' → ps) (PTLE : pt' → pt) :
     @isim r g Rs Rt RR ps' pt' nths (st_src, i_src) (st_tgt, i_tgt)
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, i_tgt).
-  Proof. split; intros x wfx SIM. guclo hpsim_flagC_spec. econs; eauto. eapply SIM. Qed.
+  Proof using. split; intros x wfx SIM. guclo hpsim_flagC_spec. econs; eauto. eapply SIM. Qed.
 
   Lemma isim_reset r g {Rs Rt} RR ps pt nths sti_src sti_tgt :
     @isim r g Rs Rt RR false false nths sti_src sti_tgt
     ⊢ @isim r g Rs Rt RR ps pt nths sti_src sti_tgt.
-  Proof.
+  Proof using.
     split; intros x wfx SIM. eapply hpsim_flag_down. eauto. 
   Qed.
   
@@ -629,7 +629,7 @@ Section SIM.
         → (P a ∗ (□ ∀ a, P a -∗ g0 (RsA a) (RtA a) (RRA a) (psA a) (ptA a) (nthsA a) (srcA a) (tgtA a))
           ⊢ @isim r g0 (RsA a) (RtA a) (RRA a) (psA a) (ptA a) (nthsA a) (srcA a) (tgtA a))) :
     ∀ (a : A), P a ⊢ @isim r g (RsA a) (RtA a) (RRA a) (psA a) (ptA a) (nthsA a) (srcA a) (tgtA a).
-  Proof.
+  Proof using.
     i. iIntros "H". iPoseProof (bupd_intro with "H") as "H". iStopProof.
     split; intros x wfx Px.
     revert_until COIND. gcofix CIH. i. rename r0 into g0.
@@ -685,12 +685,12 @@ Section SIM.
   Lemma combine_quant A B (P : ∀ (a: A) (b: B), Prop)
       (PR : ∀ (ab : A * B), P (fst ab) (snd ab)) :
     ∀ a b, P a b.
-  Proof. i. eapply (PR (a,b)). Qed.
+  Proof using. i. eapply (PR (a,b)). Qed.
 
   Lemma combine_quant_dep A (B: A -> Type) (P: forall a (b: B a), Prop)
       (PR: ∀ (ab: sigT B), P (projT1 ab) (projT2 ab)):
     ∀ a b, P a b.
-  Proof. i. eapply (PR (existT a b)). Qed.
+  Proof using. i. eapply (PR (existT a b)). Qed.
 
 End SIM.
 

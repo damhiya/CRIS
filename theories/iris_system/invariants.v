@@ -24,7 +24,7 @@ Section invariants.
     Proper
       ((≡) ==> (≡))
       (discrete_fun_singleton (B := (λ _, discrete_funUR InvSetRA)) x).
-  Proof.
+  Proof using.
     intros x1 x2 H' u. destruct (decide (u = x)); last first.
     { rewrite ! discrete_fun_lookup_singleton_ne; eauto. }
     clarify; rewrite ! discrete_fun_lookup_singleton; eauto.
@@ -56,17 +56,17 @@ Section invariants.
   Definition invΣ : GRA := #[ownIRA].
 
   Global Instance subG_invΣ {α' Σ} : subG invΣ Σ → invGΣ α' Σ.
-  Proof. solve_inG. Defined.
+  Proof using. solve_inG. Defined.
   Global Instance subG_invΓ {Γ : HRA} : subG invΓ Γ → invGΓ Γ.
-  Proof. solve_inG. Defined.
+  Proof using. solve_inG. Defined.
   Global Instance invG_subG {α' Σ Γ} : invGΣ α' Σ → invGΓ Γ → invG α' Σ Γ.
-  Proof. i; ss. Defined.
+  Proof using. i; ss. Defined.
 
   (* Initial resources for invariants *)
   Definition ir_ownIRA u' : DRA_mk ownIRA :=
     λ u n, if (decide (u <= u')) then gmap_view_auth (DfracOwn 1) ∅ else ε.
   Lemma ir_ownIRA_valid u : ✓ ir_ownIRA u.
-  Proof.
+  Proof using.
     rewrite /ir_ownIRA; intros u' n'; des_ifs.
     { apply gmap_view_auth_valid. }
     { apply ucmra_unit_valid. }
@@ -75,12 +75,12 @@ Section invariants.
   Definition ir_ownERA u' : DRA_mk ownERA :=
     λ u, if (decide (u <= u')) then CoPset ⊤ else ε.
   Lemma ir_ownERA_valid u : ✓ ir_ownERA u.
-  Proof. rewrite /ir_ownERA; intros u'; des_ifs. Qed.
+  Proof using. rewrite /ir_ownERA; intros u'; des_ifs. Qed.
 
   Definition ir_ownDRA u' : DRA_mk ownDRA :=
     λ u, if (decide (u <= u')) then ● (GSet ∅) else ε.
   Lemma ir_ownDRA_valid u : ✓ ir_ownDRA u.
-  Proof.
+  Proof using.
     rewrite /ir_ownDRA; intros u'; des_ifs.
     { apply auth_auth_valid; ss. }
     { apply ucmra_unit_valid. }
@@ -107,7 +107,7 @@ Section predicates.
 
   Global Instance ownI_persistent
     u n i p : Persistent (ownI u n i p).
-  Proof. apply _. Qed.
+  Proof using. apply _. Qed.
 
   (* authorative resource *)
   Definition ownI_authR (u : univ_id) (n : level) (I : gmap positive (GTerm.t n)) : ownIRA :=
@@ -143,20 +143,20 @@ Section predicates.
   (* predicate rules *)
   Lemma ownE_exploit u (E1 E2 : coPset) :
     ownE u E1 ∗ ownE u E2 ⊢ ⌜E1 ## E2⌝.
-  Proof.
+  Proof using.
     iIntros "[H1 H2]". iCombine "H1 H2" gives %WF.
     by rewrite discrete_fun_singleton_op discrete_fun_singleton_valid coPset_disj_valid_op in WF.
   Qed.
 
   Lemma ownE_op u (E1 E2 : coPset) :
     E1 ## E2 → ownE u (E1 ∪ E2) ⊣⊢ ownE u E1 ∗ ownE u E2.
-  Proof.
+  Proof using.
     intros dis; rewrite -own_op discrete_fun_singleton_op coPset_disj_union; ss.
   Qed.
 
   Lemma ownE_subset u (E1 E2 : coPset) :
     E1 ⊆ E2 -> ownE u E2 ⊢ ownE u E1 ∗ (ownE u E1 -∗ ownE u E2).
-  Proof.
+  Proof using.
     iIntros (SUB) "E".
     rewrite (union_difference_L E1 E2); [|done].
     iPoseProof (ownE_op with "E") as "[E1 E2]"; [set_solver|].
@@ -178,7 +178,7 @@ Section wsat.
 
   Lemma alloc_name φ (INF : pred_infinite φ) :
     ownD_auth u ⊢ |==> ownD_auth u ∗ ∃ i, ⌜φ i⌝ ∧ ownD u {[i]}.
-  Proof.
+  Proof using.
     iIntros "[% DA]".
     rewrite (pred_infinite_set φ (C:=gset positive)) in INF.
     hexploit (INF D); intros [x [??]].
@@ -193,7 +193,7 @@ Section wsat.
 
   Lemma wsat_ownI_alloc_gen p φ (INF : pred_infinite φ) :
     ownD_auth u ∗ wsat ⊢ |==> (∃ i, ⌜φ i⌝ ∧ ownI u n i p) ∗ ownD_auth u ∗ (⟦p⟧ -∗ wsat).
-  Proof.
+  Proof using.
     iIntros "[DA [%I [IA INV]]]"; rewrite /ownI_auth /inv_satall.
     iMod (alloc_name (λ i, φ i ∧ i ∉ dom I) with "DA") as "[DA [% [% D]]]".
     { intros l; hexploit (INF (l ++ (elements (dom I)))); intros [x [H1 H2]]; exists x.
@@ -218,7 +218,7 @@ Section wsat.
 
   Lemma wsat_ownI_alloc p φ (INF : pred_infinite φ) :
     ownD_auth u ∗ wsat ∗ ⟦p⟧ ⊢ |==> (∃ i, ⌜φ i⌝ ∧ ownI u n i p) ∗ ownD_auth u ∗ wsat.
-  Proof.
+  Proof using.
     iIntros "(D & W & P)".
     iMod (wsat_ownI_alloc_gen with "[D W]") as "(I & D & W)". eauto. iFrame.
     iFrame. iModIntro. iApply "W". iFrame.
@@ -226,7 +226,7 @@ Section wsat.
 
   Lemma wsat_ownI_open i p :
     ownI u n i p ∗ wsat ∗ ownE u {[i]} ⊢ |==> ⟦p⟧ ∗ wsat ∗ ownD u {[i]}.
-  Proof.
+  Proof using.
     iIntros "(I & [% [AUTH SAT]] & EN)". iModIntro.
     iCombine "AUTH I" as "AUTH"; iPoseProof (own_valid with "AUTH") as "%WF".
     rewrite ?discrete_fun_singleton_op ?discrete_fun_singleton_valid in WF.
@@ -245,7 +245,7 @@ Section wsat.
 
   Lemma wsat_ownI_close i p :
     ownI u n i p ∗ wsat ∗ ⟦p⟧ ∗ ownD u {[i]} ⊢ |==> wsat ∗ ownE u {[i]}.
-  Proof.
+  Proof using.
     iIntros "(I & [% [AUTH SAT]] & P & DIS)". iModIntro.
     iCombine "AUTH I" as "AUTH"; iPoseProof (own_valid with "AUTH") as "%WF".
     rewrite ?discrete_fun_singleton_op ?discrete_fun_singleton_valid in WF.
@@ -265,7 +265,7 @@ Section wsat.
   Qed.
 
   Lemma wsat_init : ownI_auth u n ∅ ⊢ wsat.
-  Proof. iIntros "H"; iExists ∅; iFrame; iApply big_sepM_empty; ss. Qed.
+  Proof using. iIntros "H"; iExists ∅; iFrame; iApply big_sepM_empty; ss. Qed.
 End wsat.
 
 Section wsats.
@@ -273,13 +273,13 @@ Section wsats.
   Local Existing Instances invG_Σ invG_Γ invG_I invG_E invG_D.
 
   Lemma wsat_authR_valid u : ✓ (wsat_authR u 0).
-  Proof.
+  Proof using.
     rewrite /wsat_authR discrete_fun_singleton_valid.
     intros i; des_ifs; [lia | apply gmap_view_auth_valid].
   Qed.
 
   Lemma wsat_authR_S u n : wsat_authR u n ~~> wsat_authR u (S n) ⋅ ownI_authR u n ∅.
-  Proof.
+  Proof using.
     rewrite {1}/wsat_authR; etrans.
     { eapply discrete_fun_singleton_update; erewrite (discrete_fun_delete n); refl. }
     rewrite -discrete_fun_singleton_op; eapply cmra_update_op.
@@ -292,7 +292,7 @@ Section wsats.
   Lemma wsat_authR_alloc u n n' :
     n <= n' →
     wsat_authR u n ~~> (wsat_authR u n' ⋅ ([^ (⋅) list] x ∈ (seq n (n' - n)), ownI_authR u x ∅)).
-  Proof.
+  Proof using.
     intros LE; induction LE.
     { rewrite Nat.sub_diag /= right_id //. }
     { etrans; first apply IHLE.
@@ -307,7 +307,7 @@ Section wsats.
   Definition wsatl u n : iProp Σ := [∗ list] x ∈ (seq 0 n), wsat u x.
 
   Definition wsatl_split u n m : n < m → wsatl u m ⊣⊢ wsat u n ∗ (wsat u n -∗ wsatl u m).
-  Proof.
+  Proof using.
     rewrite /wsatl; intros LT; replace m with (n + S (m - S n)) by lia.
     rewrite seq_app big_sepL_app /=.
     iSplit.
@@ -318,7 +318,7 @@ Section wsats.
   Lemma wsatl_mon u n n' :
     n <= n' →
     wsat_auth u n ∗ wsatl u n ==∗ wsat_auth u n' ∗ wsatl u n'.
-  Proof.
+  Proof using.
     intros LE; iIntros "[AU WL]"; rewrite {1}/wsat_auth.
     iPoseProof (own_update with "AU") as "> [$ AU]"; first apply (wsat_authR_alloc _ _ n'); ss.
     iPoseProof (big_opL_own_1 with "AU") as "AU".
@@ -330,7 +330,7 @@ Section wsats.
   Qed.
 
   Lemma wsatl_alloc u n : wsat_auth u 0 ==∗ wsatl u n.
-  Proof.
+  Proof using.
     iIntros "A"; iMod (wsatl_mon u 0 n with "[A]") as "[A W]"; [lia|iFrame|iFrame]; ss.
     rewrite /wsatl //=.
   Qed.
@@ -338,14 +338,14 @@ Section wsats.
   Definition wsats u n E : iProp Σ := wsat_auth u n ∗ ownE u E ∗ ownD_auth u ∗ wsatl u n.
 
   Lemma wsats_mon u n n' E : n <= n' → wsats u n E ==∗ wsats u n' E.
-  Proof. iIntros "%LT [A [$ [$ W]]]"; iApply wsatl_mon; eauto; iFrame. Qed.
+  Proof using. iIntros "%LT [A [$ [$ W]]]"; iApply wsatl_mon; eauto; iFrame. Qed.
 
   Definition univs u n : iProp Σ := [∗ list] x ∈ (seq 0 u), wsats x n ⊤.
 
   Lemma univs_split u v n :
     v < u →
     univs u n ⊣⊢ univs v n ∗ wsats v n ⊤ ∗ (univs v n -∗ wsats v n ⊤ -∗ univs u n).
-  Proof.
+  Proof using.
     intros LT; iSplit; last (iIntros "[H1 [H2 H3]]"; iApply ("H3" with "H1 H2")).
     iIntros "H"; rewrite {1 4}/univs.
     replace u with (v + S (u - S v)) by lia.
@@ -354,14 +354,14 @@ Section wsats.
   Qed.
 
   Lemma univs_mon u n n' : n <= n' → univs u n ==∗ univs u n'.
-  Proof.
+  Proof using.
     iIntros "%LT U"; iApply big_sepL_bupd; iApply (big_sepL_impl with "U").
     iIntros "!> %k %x %IN W"; iApply wsats_mon; eauto.
   Qed.
 
   (* For cancellation *)
   Lemma ir_ownIRA_cons u : ir_ownIRA (S u) ≡ wsat_authR (S u) 0 ⋅ ir_ownIRA u.
-  Proof.
+  Proof using.
     rewrite (discrete_fun_delete (S u) (ir_ownIRA (S u))) comm.
     f_equiv.
     { rewrite /ir_ownIRA; des_ifs; try lia. }
@@ -371,7 +371,7 @@ Section wsats.
     }
   Qed.
   Lemma ir_ownERA_cons u : ir_ownERA (S u) ≡ ownER (S u) ⊤ ⋅ ir_ownERA u.
-  Proof.
+  Proof using.
     rewrite (discrete_fun_delete (S u) (ir_ownERA (S u))) comm.
     f_equiv.
     { rewrite /ir_ownERA; des_ifs; try lia. }
@@ -382,7 +382,7 @@ Section wsats.
   Qed.
 
   Lemma ir_ownDRA_cons u : ir_ownDRA (S u) ≡ ownD_authR (S u) ∅ ⋅ ir_ownDRA u.
-  Proof.
+  Proof using.
     rewrite (discrete_fun_delete (S u) (ir_ownDRA (S u))) comm.
     f_equiv.
     { rewrite /ir_ownDRA; des_ifs; try lia. }
@@ -397,7 +397,7 @@ Section wsats.
     ∗ own base_γ (ir_ownERA u)
     ∗ own base_γ (ir_ownDRA u)
     ⊢ univs u 0 ∗ wsats u 0 ⊤.
-  Proof.
+  Proof using.
     induction u; ss; iIntros "[I [E D]]".
     { iSplitR.
       { rewrite /univs //. }
@@ -422,14 +422,14 @@ Section wsats.
   (* Definitions for fancy updates & invariants *)
   Local Definition uPred_fupd_def u b (E1 E2 : coPset) (P : iProp Σ) : iProp Σ :=
     wsatl u b ∗ ownE u E1 ∗ ownD_auth u ==∗ (wsatl u b ∗ ownE u E2 ∗ ownD_auth u ∗ P).
-  Local Definition uPred_fupd_aux : seal (@uPred_fupd_def). Proof. by eexists. Qed.
+  Local Definition uPred_fupd_aux : seal (@uPred_fupd_def). Proof using. by eexists. Qed.
   Definition uPred_fupd := uPred_fupd_aux.(unseal).
   Local Definition uPred_fupd_eq : @uPred_fupd = @uPred_fupd_def := uPred_fupd_aux.(seal_eq).
   Local Lemma uPred_fupd_unseal u b : @fupd _ (uPred_fupd u b) = (uPred_fupd_def u b).
-  Proof. rewrite -uPred_fupd_eq //. Qed.
+  Proof using. rewrite -uPred_fupd_eq //. Qed.
 
   Lemma uPred_fupd_mixin u n : BiFUpdMixin (iProp Σ) (uPred_fupd u n).
-  Proof.
+  Proof using.
     split.
     - rewrite /updates.fupd uPred_fupd_eq. solve_proper.
     - intros E1 E2 (E1''&->&?)%subseteq_disjoint_union_L.
@@ -454,16 +454,16 @@ Section wsats.
     {| bi_fupd_mixin := (uPred_fupd_mixin u n) |}.
   Global Instance uPred_bi_bupd_fupd u n :
     @BiBUpdFUpd (iProp Σ) (uPred_bi_bupd Σ) (uPred_bi_fupd u n).
-  Proof. rewrite /BiBUpdFUpd uPred_fupd_unseal. by iIntros (E P) ">? [$ [$ $]] !>". Qed.
+  Proof using. rewrite /BiBUpdFUpd uPred_fupd_unseal. by iIntros (E P) ">? [$ [$ $]] !>". Qed.
 
   Local Definition inv_def u (n : level) (N : namespace) (p : GTerm.t n) : iProp Σ :=
     ∃ i, ⌜i ∈ (↑N : coPset)⌝ ∧ ownI u n i p.
-  Local Definition inv_aux : seal (@inv_def). Proof. by eexists. Qed.
+  Local Definition inv_aux : seal (@inv_def). Proof using. by eexists. Qed.
   Definition inv := inv_aux.(unseal).
   Local Definition inv_eq : @inv = @inv_def := inv_aux.(seal_eq).
 
   Global Instance inv_persistent u n N p : Persistent (inv u n N p).
-  Proof. rewrite inv_eq /inv_def. apply _. Qed.
+  Proof using. rewrite inv_eq /inv_def. apply _. Qed.
 End wsats.
 
 Notation fupd_ex u n :=
@@ -488,7 +488,7 @@ Section fancy_updates.
   Implicit Types E : coPset.
 
   Lemma fupd_mon u n m E1 E2 P : n <= m → =|u, n|={E1, E2}=> P -∗ =|u, m|={E1, E2}=> P.
-  Proof.
+  Proof using.
     intros LT; rewrite ?uPred_fupd_unseal /uPred_fupd_def ?inv_eq /inv_def.
     iIntros "P [W [E D]]".
     rewrite {3}/wsatl; replace m with (n + (m - n)) at 1 by lia; rewrite seq_app big_sepL_app.
@@ -505,11 +505,11 @@ Section inv.
   Implicit Types E : coPset.
 
   Lemma fresh_inv_name N : pred_infinite (.∈ (↑N:coPset)).
-  Proof. apply coPset_infinite_finite, nclose_infinite. Qed.
+  Proof using. apply coPset_infinite_finite, nclose_infinite. Qed.
 
   Lemma inv_alloc {n} (p : GTerm.t n) u m E N :
     n < m → ⟦p⟧ =|u, m|={E}=∗ inv u n N p.
-  Proof.
+  Proof using.
     rewrite ?uPred_fupd_unseal /uPred_fupd_def ?inv_eq /inv_def.
     iIntros (LT) "P [W [E D]]".
     iPoseProof (wsatl_split u n with "W") as "[W A]"; first done.
@@ -523,7 +523,7 @@ Section inv.
 
   Lemma inv_acc u n m N (p : GTerm.t n) E :
     n < m → ↑N ⊆ E → inv u n N p =|u, m|={E, E∖↑N}=∗ (⟦p⟧ ∗ (⟦p⟧ =|u, m|={E∖↑N, E}=∗ True)).
-  Proof.
+  Proof using.
     rewrite ?uPred_fupd_unseal /uPred_fupd_def ?inv_eq /inv_def.
     iDestruct 1 as (i) "[Hi #HiP]".
     iDestruct "Hi" as % ?%elem_of_subseteq_singleton.
@@ -542,7 +542,7 @@ Section inv.
 
   Global Instance from_modal_fupd u n E1 E2 P :
     FromModal (E2 ⊆ E1) modality_id (=|u, n|={E1,E2}=> P) (=|u, n|={E1,E2}=> P) P.
-  Proof.
+  Proof using.
     rewrite /FromModal ?uPred_fupd_unseal /uPred_fupd_def ?inv_eq /inv_def /=.
     iIntros (IN) "$ W !>".
     rewrite (union_difference_L E2 E1) // /wsats ownE_op; last set_solver.
@@ -554,7 +554,7 @@ Section inv.
             (fupd_ex u m E (E ∖ ↑N))
             (fupd_ex u m (E ∖ ↑N) E)
             (λ _ : (), ⟦p⟧) (λ _ : (), ⟦p⟧) (λ _ : (), None).
-  Proof.
+  Proof using.
     rewrite /IntoAcc /accessor bi.exist_unit.
     iIntros ((? & ?)) "#INV _". by iApply inv_acc.
   Qed.
@@ -563,7 +563,7 @@ Section inv.
     ElimModal (n <= m ∧ E0 ⊆ E2) p false
               (=|u, n|={E0,E1}=> P) P
               (=|u, m|={E2,E3}=> Q) (=|u, m|={E1 ∪ E2 ∖ E0, E3}=> Q) | 10.
-  Proof.
+  Proof using.
     rewrite /ElimModal bi.intuitionistically_if_elim.
     iIntros ([LE SUB]) "[P K]".
     iPoseProof (fupd_mon u n m with "P") as "P"; ss.
@@ -579,7 +579,7 @@ Section inv.
 
   Global Instance elim_modal_fupd_fupd_simple p u n m E1 E2 E3 P Q :
     ElimModal (n <= m) p false (=|u, n|={E1,E2}=> P) P (=|u, m|={E1,E3}=> Q) (=|u, m|={E2,E3}=> Q).
-  Proof.
+  Proof using.
     rewrite /ElimModal bi.intuitionistically_if_elim.
     iIntros (LE) "[P K]".
     iPoseProof (fupd_mon u n m with "P") as "P"; ss.

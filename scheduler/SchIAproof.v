@@ -64,7 +64,7 @@ Module SchIA. Section SchIA.
 
     Lemma ths_wf_nths_none ths_tgt nths:
       ths_wf nths ths_tgt -> alist_find nths ths_tgt = None.
-    Proof.
+    Proof using.
       intro WF. induction ths_tgt; ss.
       destruct a. des. des_ifs; et. ss.
       rewrite eq_rel_dec_correct in Heq. des_ifs; try nia.
@@ -72,7 +72,7 @@ Module SchIA. Section SchIA.
 
     Lemma ths_wf_replace ths_tgt t o nths:
       ths_wf nths ths_tgt -> ths_wf nths (alist_replace t o ths_tgt).
-    Proof.
+    Proof using.
       i. induction ths_tgt; ss. destruct a. rewrite eq_rel_dec_correct. des_ifs.
       des. split; ss. eauto.
     Qed.
@@ -81,12 +81,12 @@ Module SchIA. Section SchIA.
       (SIM: ∀ tid, ∃ vrv, sim_ths tid vrv (alist_find tid ths_tgt) (ths_src_b tid) (ths_src_w tid) (ths_cond !! tid))
     :
       ✓ ths_src_b ∧ ✓ ths_src_w.
-    Proof. split; intros x; specialize (SIM x); des; inv SIM; ss. Qed.
+    Proof using. split; intros x; specialize (SIM x); des; inv SIM; ss. Qed.
 
     Lemma big_sepM_replace (m: gmap nat (iProp Σ)) i (Q: iProp Σ) :
       ([∗ map] P ∈ m, P) ∗ Q
       ⊢ [∗ map] P ∈ <[i:=Q]> m, P.
-    Proof.
+    Proof using.
       iIntros "[M Q]". destruct (m !! i) eqn:L.
       - iApply big_sepM_insert_delete. iFrame. 
         iPoseProof (big_sepM_delete with "M") as "[_ D]"; et.
@@ -102,7 +102,7 @@ Module SchIA. Section SchIA.
       (NONE: alist_find k l = None)
     :
       (alist_replace k v' l) = l.
-    Proof.
+    Proof using.
       induction l; ss. destruct a. des_ifs. f_equal. et.
     Qed.
 
@@ -110,7 +110,7 @@ Module SchIA. Section SchIA.
       (SOME: alist_find k l = Some v)
     :
       alist_find k (alist_replace k v' l) = Some v'.
-    Proof.
+    Proof using.
       induction l; ss. destruct a. des_ifs.
       - rewrite eq_rel_dec_correct in Heq. des_ifs. ss. des_ifs.
         rewrite eq_rel_dec_correct in Heq0. des_ifs.
@@ -122,7 +122,7 @@ Module SchIA. Section SchIA.
       (NONE: alist_find k l = None)
     :
       alist_find k (alist_replace k v' l) = None.
-    Proof.
+    Proof using.
       induction l; ss. destruct a. des_ifs.
       rewrite alist_replace_find_None; et. ss. des_ifs.
     Qed.
@@ -132,7 +132,7 @@ Module SchIA. Section SchIA.
       (SOME: alist_find k' l = ov)
     :
       alist_find k' (alist_replace k v' l) = ov.
-    Proof.
+    Proof using.
       induction l; ss. destruct a. rewrite eq_rel_dec_correct. 
       rewrite eq_rel_dec_correct in SOME.
       des_ifs; ss; des_ifs; rewrite eq_rel_dec_correct in Heq1; des_ifs; et.
@@ -142,7 +142,7 @@ Module SchIA. Section SchIA.
       (NONE: alist_find k l = None)
     :
       alist_remove k l = l.
-    Proof.
+    Proof using.
       induction l; ss. destruct a; ss. rewrite eq_rel_dec_correct in NONE.
       rewrite eq_rel_dec_correct. des_ifs. f_equal. et.
     Qed.
@@ -170,9 +170,9 @@ Module SchIA. Section SchIA.
   Local Definition SchAlink := (SchA_link.t u_a Spc_global).
   Local Definition SchAMod := (SchA ★ SchAlink). 
   Local Definition SchIMod := (SchI.t).
-  
+
   Lemma simF__spawn : HSim.sim_fun open SchAMod SchIMod Ist SchHdr._spawn.
-  Proof.
+  Proof using FunInSpc SchInSpc.
     init_simF u_a 0.
 
     rewrite /SchA.trigger_Yield /SchI.trigger_Yield.
@@ -341,7 +341,7 @@ Module SchIA. Section SchIA.
   (*FAST*)Qed.
 
   Lemma simF_spawn : HSim.sim_fun open SchAMod SchIMod Ist SchHdr.spawn.
-  Proof.
+  Proof using FunInSpc SchInSpc.
     init_simF u_a 0.
 
     step_l. step_l.
@@ -415,7 +415,7 @@ Module SchIA. Section SchIA.
   (*FAST*)Qed.
 
   Lemma simF_yield : HSim.sim_fun open SchAMod SchIMod Ist SchHdr.yield.
-  Proof.
+  Proof using FunInSpc SchInSpc.
     init_simF u_a 0.
 
     rewrite /SchA.trigger_Yield /SchI.trigger_Yield.
@@ -449,7 +449,7 @@ Module SchIA. Section SchIA.
   (*FAST*)Qed.
 
   Lemma simF_join : HSim.sim_fun open SchAMod SchIMod Ist SchHdr.join.
-  Proof.
+  Proof using FunInSpc SchInSpc.
     init_simF u_a 0.
 
     step_l. step_l.
@@ -547,7 +547,7 @@ Module SchIA. Section SchIA.
   (*FAST*)Qed.
 
   Lemma simF_get_tid : HSim.sim_fun open SchAMod SchIMod Ist SchHdr.get_tid.
-  Proof.
+  Proof using FunInSpc SchInSpc.
     init_simF u_a 0.
 
     steps_l. iDestruct "ASM" as "[[-> tid] ->]"; hss.
@@ -560,7 +560,7 @@ Module SchIA. Section SchIA.
   (*FAST*)Qed.
 
   Lemma sim : HSim.t open SchAMod SchIMod SchA.init_cond Ist.
-  Proof.
+  Proof using FunInSpc SchInSpc.
     init_sim.
     - rewrite /SchA.init_cond /init_threads /init_tid. unseal "SchA".
       iIntros "[[THB THW] tid]". iExists _, _, _, ∅, 0, false.
@@ -595,5 +595,5 @@ Module SchIA. Section SchIA.
       ctx_refines
         ((SchA.t u spc_global spc_user) ★ (SchA_link.t u spc_global), SchA.init_cond)
         (SchI.t, emp%I).
-    Proof. eapply main_adequacy, sim; eauto. Qed.
+    Proof using. eapply main_adequacy, sim; eauto. Qed.
 End ctxr. End SchIA.

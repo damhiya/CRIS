@@ -87,7 +87,7 @@ Module HIRed.
     ITree.iter (handle_callE (prog ms)) (i >>= k)
     =
     x <- (ITree.iter (handle_callE (prog ms)) i);; ITree.iter (handle_callE (prog ms)) (k x).
-  Proof. 
+  Proof using. 
     eapply bisim_is_eq.
     eapply (@gpaco2_init _ _ _ _ (eqitC eq false false)); eauto with paco.
     revert i k. gcofix CIH. i.
@@ -136,7 +136,7 @@ Module HIRed.
     prog (x: Any.t)
   :
     inline_hp prog (Ret x) = Ret x.
-  Proof.
+  Proof using.
     rewrite/inline_hp unfold_iter_eq. grind.
   Qed.
 
@@ -144,7 +144,7 @@ Module HIRed.
     prog t
   :
     inline_hp prog (tau;; t) = tau;; tau;; inline_hp prog t.
-  Proof.
+  Proof using.
     rewrite/inline_hp unfold_iter_eq. grind.
   Qed.
 
@@ -154,7 +154,7 @@ Module HIRed.
     inline_hp (prog ms) (itr >>= ktr)
     =
     x <- inline_hp (prog ms) itr;; inline_hp (prog ms) (ktr x).
-  Proof.
+  Proof using.
     rewrite/inline_hp iter_handle_bind. refl.
   Qed.
 
@@ -164,7 +164,7 @@ Module HIRed.
     inline_hp prog (x <- trigger e;; ktr x) 
     =
     x <- trigger e;; tau;; inline_hp prog (ktr x).
-  Proof.
+  Proof using.
     rewrite/inline_hp unfold_iter_eq. grind.
   Qed.
 
@@ -174,7 +174,7 @@ Module HIRed.
     inline_hp prog (x <- trigger e;; ktr x) 
     =
     x <- trigger e;; tau;; inline_hp prog (ktr x).
-  Proof.
+  Proof using.
     rewrite/inline_hp unfold_iter_eq. grind.
   Qed.
 
@@ -184,7 +184,7 @@ Module HIRed.
     inline_hp prog (x <- trigger e;; ktr x) 
     =
     x <- trigger e;; tau;; inline_hp prog (ktr x).
-  Proof.
+  Proof using.
     rewrite/inline_hp unfold_iter_eq. grind.
   Qed.
 
@@ -194,7 +194,7 @@ Module HIRed.
     inline_hp prog (x <- trigger e;; ktr x) 
     =
     x <- trigger e;; tau;; inline_hp prog (ktr x).
-  Proof.
+  Proof using.
     rewrite/inline_hp unfold_iter_eq. grind.
   Qed.
 
@@ -204,7 +204,7 @@ Module HIRed.
     inline_hp prog (trigger (Call fn arg) >>= ktr)
     =
     tau;; inline_hp prog (x <- prog Any.t (resum IFun Any.t (Call fn arg));; tau;; ITree.subst ktr (Ret x)).
-  Proof.
+  Proof using.
     rewrite/inline_hp unfold_iter_eq. ired. refl.
   Qed.
 
@@ -219,7 +219,7 @@ Lemma wrap_elimI_well_scoped `{Σ: GRA}
   HMod.sandbox_body (wrap_elimI ms sb)
   = 
   inline_hp_fun (prog ms) (HMod.sandbox_body sb).
-Proof.
+Proof using.
   extensionality args. 
   unfold wrap_elimI, inline_hp_fbody. s.
   unfold HMod.sandbox_body, inline_hp_fun. destruct sb. s.
@@ -353,7 +353,7 @@ Lemma isim_RR_frame `{Σ: GRA}
           ps pt nths sti_src sti_tgt)  
     ⊢ isim contextual fls flt Ist r g 
        (bindRR (IstRR Ist) P) ps pt nths sti_src sti_tgt.
-Proof.
+Proof using.
   iIntros "[H0 H1]". iApply isim_wand. iFrame. eauto.
 Qed.
 

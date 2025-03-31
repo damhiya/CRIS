@@ -65,13 +65,13 @@ Section HEADER.
 
   Global Program Instance fspec_weaker_PreOrder : PreOrder fspec_weaker.
   Next Obligation.
-  Proof.
+  Proof using.
     ii. exists x_src. esplits; ii.
     { iStartProof. iIntros "H". iApply "H". }
     { iStartProof. iIntros "H". iApply "H". }
   Qed.
   Next Obligation.
-  Proof.
+  Proof using.
     ii. hexploit (H x_src). i. des.
     hexploit (H0 x_tgt). i. des. esplits; ii.
     { iStartProof. iIntros "H".
@@ -92,7 +92,7 @@ Section HEADER.
       (SPEC : fn_has_spec spc fn fsp1)
       (WEAK : fspec_weaker fsp0 fsp1) :
     fn_has_spec spc fn fsp0.
-  Proof. inv SPEC. econs; eauto. etrans; eauto. Qed.
+  Proof using. inv SPEC. econs; eauto. etrans; eauto. Qed.
 
   Definition spc_sub (spc0 spc1 : string -> option fspec) : Prop :=
     ∀ fn fsp (FIND : spc0 fn = Some fsp), spc1 fn = Some fsp.
@@ -102,14 +102,14 @@ Section HEADER.
 
   Global Program Instance spc_sub_PreOrder : PreOrder spc_sub.
   Next Obligation.
-  Proof. ii. ss. Qed.
+  Proof using. ii. ss. Qed.
   Next Obligation.
-  Proof. ii. eapply H0, H, FIND. Qed.
+  Proof using. ii. eapply H0, H, FIND. Qed.
 
   Lemma incl_to_spc spc0 spc1 (INCL : List.incl spc0 spc1)
         (NODUP : List.NoDup (List.map fst spc1)) :
       spc_sub (to_spc spc0) (to_spc spc1).
-  Proof.
+  Proof using.
     unfold to_spc. ii.
     eapply alist_find_some in FIND. eapply INCL in FIND.
     eapply alist_find_some_iff in FIND; et.
@@ -119,7 +119,7 @@ Section HEADER.
       (INCL : List.incl spck spcall)
       (NODUP : List.NoDup (spcu ++ (List.map fst spcall))) :
     spc_sub (to_spc_context spcu spck) (to_closed_spc spcall).
-  Proof.
+  Proof using.
     unfold to_spc_context, to_spc, to_closed_spc. ii.
     rewrite alist_find_app_o in FIND. 
     destruct (alist_find fn (List.map (fun fn => (fn, fspec_trivial)) spcu)) eqn:EQ; clarify.
@@ -145,14 +145,14 @@ Section HEADER.
   Qed.
 
   Lemma spc_sub_weaker : spc_sub <2= spc_weaker.
-  Proof.
+  Proof using.
     ii. eapply PR in FINDTGT. esplits; et. refl.
   Qed.
 
   Lemma incl_spc_sub :
     ∀ spc0 spc1 (NODUP : List.NoDup (List.map fst spc1)) (INCL : List.incl spc0 spc1),
       spc_sub (to_spc spc0) (to_spc spc1).
-  Proof.
+  Proof using.
     unfold to_spc.
     ii. eapply alist_find_some in FIND.
     destruct (alist_find fn spc1) eqn:T.
@@ -173,20 +173,20 @@ Section HEADER.
   Lemma incl_weaker :
     ∀ spc0 spc1 (NODUP : List.NoDup (List.map fst spc1)) (INCL : List.incl spc0 spc1),
       spc_weaker (to_spc spc0) (to_spc spc1).
-  Proof. i. eapply spc_sub_weaker. eapply incl_spc_sub; et. Qed.
+  Proof using. i. eapply spc_sub_weaker. eapply incl_spc_sub; et. Qed.
 
   Lemma app_sub : ∀ spc0 spc1, spc_sub (to_spc spc0) (to_spc (spc0 ++ spc1)).
-  Proof. unfold to_spc. ii. eapply alist_find_app in FIND. esplits; eauto. Qed.
+  Proof using. unfold to_spc. ii. eapply alist_find_app in FIND. esplits; eauto. Qed.
 
   Lemma app_weaker : ∀ spc0 spc1, spc_weaker (to_spc spc0) (to_spc (spc0 ++ spc1)).
-  Proof. i. eapply spc_sub_weaker. eapply app_sub. Qed.
+  Proof using. i. eapply spc_sub_weaker. eapply app_sub. Qed.
 
   Lemma to_closed_spc_weaker spc : spc_sub (to_spc spc) (to_closed_spc spc).
-  Proof. unfold to_closed_spc, to_spc. ii. rewrite FIND. auto. Qed.
+  Proof using. unfold to_closed_spc, to_spc. ii. rewrite FIND. auto. Qed.
 
   Lemma incl_to_closed_spc spc0 spc1 (INCL : List.incl spc0 spc1) (NODUP : List.NoDup (List.map fst spc1)) :
     spc_sub (to_spc spc0) (to_closed_spc spc1).
-  Proof.
+  Proof using.
     unfold to_spc, to_closed_spc. ii.
     eapply alist_find_some in FIND. eapply INCL in FIND.
     eapply alist_find_some_iff in FIND; et.

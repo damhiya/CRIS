@@ -49,7 +49,7 @@ Section wsim.
     ⊢ wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR ps pt nths
       (st_s, (HMod.sandbox scp_s (interp_smod ginv spc Sch.yield)) >>= k_s)
       (st_t, (HMod.sandbox scp_t (PMod.interp Sch.yield)) >>= k_t).
-  Proof.
+  Proof using.
     rewrite !WSim.wsim_eq /WSim.wsim_def.
     iIntros "SIM P".
     iApply isim_nodup. iIntros (? ? ? ?). hss.
@@ -111,7 +111,7 @@ Section wsim.
     ⊢ wsim fl_s fl_t Ist None υ ν ⊤ r g R_s R_t RR ps pt nths
       (st_s, (HMod.sandbox scp_s (interp_smod ginv spc_s Sch.yield)) >>= k_s)
       (st_t, (HMod.sandbox scp_t (interp_smod ginv spc_t Sch.yield)) >>= k_t).
-  Proof.
+  Proof using.
     rewrite !WSim.wsim_eq /WSim.wsim_def.
     iIntros "SIM P".
     iApply isim_nodup. iIntros (? ? ? ?). hss.
@@ -174,7 +174,7 @@ Section wsim.
     ⊢ wsim fl_s fl_t Ist (Some false) υ ν ⊤ r g R_s R_t RR ps pt nths
       (st_s, (HMod.sandbox scp_s (interp_smod ginv_s spc_s Sch.yield)) >>= k_s)
       (st_t, (HMod.sandbox scp_t (interp_smod ginv_t spc_t Sch.yield)) >>= k_t).
-  Proof.
+  Proof using.
     rewrite !WSim.wsim_eq /WSim.wsim_def.
     iIntros "SIM P".
     iApply isim_nodup. iIntros (? ? ? ?). hss.
@@ -233,7 +233,7 @@ Section wsim.
     ⊢ wsim fl_s fl_t Ist t υ ν E r g R_s R_t RR ps pt nths
       (st_s, (HMod.sandbox scp_s (interp_smod ginv spc Sch.yield)) >>= k_s)
       (st_t, i_t).
-  Proof.
+  Proof using.
     iIntros "SIM".
     rewrite /Sch.yield; unseal "Sch".
     unfold_iter_l; steps_l.
@@ -257,7 +257,7 @@ Section wsim.
     ⊢ wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR ps pt nths
       (st_s, (HMod.sandbox scp_s (interp_smod ginv spc (Sch.spawn (fn, vargs)))) >>= k_s)
       (st_t, (HMod.sandbox scp_t (PMod.interp (Sch.spawn (fn, args)))) >>= k_t).
-  Proof.
+  Proof using.
     iIntros "(I & TID & P & SIM)". rewrite /Sch.spawn; unseal "Sch".
     steps_l. forces_l. iSplitL "P TID".
     { iExists (fn, vargs); iSplit; eauto.
@@ -295,7 +295,7 @@ Section wsim.
     ⊢ wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR ps pt nths
       (st_s, (HMod.sandbox scp_s (interp_smod ginv spc (Sch.join tid))) >>= k_s)
       (st_t, (HMod.sandbox scp_t (PMod.interp (Sch.join tid))) >>= k_t).
-  Proof.
+  Proof using.
     iIntros "(IST & TID & TK & SIM)". rewrite /Sch.join; unseal "Sch".
     steps_l. force_l (tid, Q, my_tid). steps_l. force_l (tid↑). steps_l. force_l.
     iFrame; iSplit; eauto. steps_l.

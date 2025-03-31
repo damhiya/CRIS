@@ -25,9 +25,9 @@ Section SchRA.
   Definition SchAΣ : GRA := #[threadsRA].
   Definition SchAΓ : HRA := #[tidRA].
   Global Instance subG_GΣ {Σ'} : subG SchAΣ Σ' → SchAGΣ Σ'.
-  Proof. solve_inG. Defined.
+  Proof using. solve_inG. Defined.
   Global Instance subG_GΓ {Γ' : HRA} : subG SchAΓ Γ' → SchAGΓ Γ'.
-  Proof. solve_inG. Defined.
+  Proof using. solve_inG. Defined.
 End SchRA.
 Hint Unfold RA_inG RA_inG0 subG_GΣ SchAΣ subG_GΓ SchAΓ : GRA_index.
 
@@ -92,7 +92,7 @@ Module SchAS. Section SchAS.
     ● ((λ tid: nat, if tid =? 0 then Some (1, to_agree (λ _ _, (Some (to_agree (existT 0 ⊤%SAT))))) else None): threadsF)
     ⋅ ◯ ((λ tid: nat, if tid =? 0 then Some (1/4, to_agree (λ _ _, (Some (to_agree (existT 0 ⊤%SAT))))) else None): threadsF).
   Definition ir_threadsRA_valid : ✓ ir_threadsRA.
-  Proof.
+  Proof using.
     rewrite /ir_threadsRA. apply auth_both_valid_discrete. split.
     { exists (λ tid: nat, if tid =? 0 then Some (3/4, to_agree (λ _ _, (Some (to_agree (existT 0 ⊤%SAT))))) else None).
       intros i; des_ifs; rewrite discrete_fun_lookup_op.
@@ -126,7 +126,7 @@ Module SchAS. Section SchAS.
 
     Lemma fragree_incl_false x:
       (Some x: fragreeUR) ≼ (None: fragreeUR) → False.
-    Proof.
+    Proof using.
       i. inv H. destruct x0.
       - rewrite -Some_op in H0. inv H0.
       - rewrite right_id in H0. inv H0.
@@ -134,7 +134,7 @@ Module SchAS. Section SchAS.
 
     Lemma split_thread (ths: threadsF) tid:
       ths ≡ ((λ n, if (tid =? n) then ths tid else ε): threadsF) ⋅ ((λ n, if (tid =? n) then ε else ths n): threadsF).
-    Proof.
+    Proof using.
       intros x.
       rewrite discrete_fun_lookup_op. des_ifs.
       - rewrite Nat.eqb_eq in Heq. subst. rewrite right_id. ss.
@@ -143,7 +143,7 @@ Module SchAS. Section SchAS.
 
     Lemma token_quarter_quarter tid (Q: SAny.t → SAny.t → SynDepO):
       token_half_r tid Q ≡ (token_quarter_r tid Q) ⋅ (token_quarter_r tid Q).
-    Proof.
+    Proof using.
       unfold token_half_r, token_quarter_r.
       rewrite -auth_frag_op. f_equiv.
       intros x. rewrite discrete_fun_lookup_op. des_ifs.
@@ -152,7 +152,7 @@ Module SchAS. Section SchAS.
 
     Lemma token_quarter_half tid (Q: SAny.t → SAny.t → SynDepO):
       token_three_quarter_r tid Q ≡ (token_quarter_r tid Q) ⋅ (token_half_r tid Q).
-    Proof.
+    Proof using.
       unfold token_half_r, token_quarter_r, token_three_quarter_r.
       rewrite -auth_frag_op. f_equiv. intros x. 
       rewrite discrete_fun_lookup_op. des_ifs.
@@ -163,7 +163,7 @@ Module SchAS. Section SchAS.
 
     Lemma token_half_half tid (Q: SAny.t → SAny.t → SynDepO):
       token_one_r tid Q ≡ (token_half_r tid Q) ⋅ (token_half_r tid Q).
-    Proof.
+    Proof using.
       unfold token_one_r, token_half_r.
       rewrite -auth_frag_op. f_equiv. intros x.
       rewrite discrete_fun_lookup_op. des_ifs.
@@ -180,7 +180,7 @@ Module SchAS. Section SchAS.
           ⋅ (token_half_r tid Q)
           ⋅ (token_quarter_r tid Q)
           ⋅ (token_quarter_r tid Q).
-    Proof.
+    Proof using.
       rewrite -assoc -token_quarter_quarter -assoc -token_half_half -assoc.
       rewrite -auth_frag_op.
       apply auth_update.
@@ -200,7 +200,7 @@ Module SchAS. Section SchAS.
 
     Lemma tid_admin_none_user t :
       tid_admin None ∗ tid_user t ⊢ False.
-    Proof.
+    Proof using.
       rewrite /tid_admin /tid_user. unseal "SchA".
       iIntros "[A U]". iCombine "A U" gives %wf.
       rewrite /tid_admin_r /tid_user_r in wf.
@@ -211,7 +211,7 @@ Module SchAS. Section SchAS.
 
     Lemma tid_admin_some_user t0 t1 :
       tid_admin (Some t0) ∗ tid_user t1 ⊢ ⌜t0 = t1⌝.
-    Proof.
+    Proof using.
       rewrite /tid_admin /tid_user. unseal "SchA".
       iIntros "[F U]". iCombine "F U" gives %wf.
       rewrite /tid_admin_r /tid_user_r in wf.
@@ -222,14 +222,14 @@ Module SchAS. Section SchAS.
 
     Lemma tid_admin_none_split_r t :
       (tid_admin_r (Some t): tidRA) ⋅ (tid_user_r t: tidRA) = (tid_admin_r None: tidRA).
-    Proof.
+    Proof using.
       rewrite /tid_admin_r /tid_user_r. extensionalities x.
       rewrite !discrete_fun_lookup_op. des_ifs.
     Qed.
 
     Lemma tid_admin_some_user_merge t :
       tid_admin (Some t) ∗ tid_user t ⊢ tid_admin None.
-    Proof.
+    Proof using.
       iIntros "[A U]".
       iPoseProof (tid_admin_some_user with "[A U]") as "%"; iFrame. des.
       rewrite /tid_admin /tid_user. unseal "SchA".
@@ -239,7 +239,7 @@ Module SchAS. Section SchAS.
 
     Lemma tid_admin_none_split t :
       tid_admin None ⊢ tid_admin (Some t) ∗ tid_user t.
-    Proof.
+    Proof using.
       iIntros "N".
       rewrite /tid_admin /tid_user. unseal "SchA".
       rewrite -(tid_admin_none_split_r t); eauto.

@@ -160,17 +160,17 @@ Module SATRed.
 
   Lemma cur `{A: SAT.t} `{B: @SATIntp.t Δ α A} `{IN: @GATIntp.inG Δ A α B β} n op args:
     GTermSem.t n (GTermSem.cur op args) = B n op args (compose (GTermSem.t n) args).
-  Proof.
+  Proof using.
     destruct IN eqn : EQ. subst. dependent destruction inG_prf. reflexivity.
   Qed.
 
   Lemma lift_0 t d:
     GTermSem.t_prev 1 (GTerm._lift t) = d.
-  Proof. destruct t. Qed.
+  Proof using. destruct t. Qed.
 
   Lemma lift n (t : GTerm.t n) :
     GTermSem.t (S n) (GTerm.lift t) = GTermSem.t n t.
-  Proof. reflexivity. Qed.
+  Proof using. reflexivity. Qed.
 
   End RED.
 

@@ -259,7 +259,7 @@ Section HPSIM.
                  hsupd (@_hpsim' hpsim Rs Rt RR rel ps pt nths sti_src sti_tgt) fmr),
         rel ps pt nths sti_src sti_tgt fmr) :
     _hpsim hpsim Rs Rt RR <6= rel.
-  Proof.
+  Proof using.
     fix self 7. i.
     destruct PR. apply FIX. i. intros wf.
     specialize (IN NODFS NODFT NODS NODD wf); des.
@@ -268,7 +268,7 @@ Section HPSIM.
   Qed.
 
   Lemma hsupd_mon P Q r (IN : hsupd P r) (LE : P <1= Q) : hsupd Q r.
-  Proof. by intros wf; specialize (IN wf); inv IN; exists x; split; des; eauto. Qed.
+  Proof using. by intros wf; specialize (IN wf); inv IN; exists x; split; des; eauto. Qed.
 
   Lemma _hpsim'_mon r r' Rs Rt RR s s'
       ps pt nths sti_src sti_tgt fmr
@@ -276,13 +276,13 @@ Section HPSIM.
       (LEr : r <9= r')
       (LEs : s <6= s') :
     @_hpsim' r' Rs Rt RR s' ps pt nths sti_src sti_tgt fmr.
-  Proof. 
+  Proof using. 
     ii. destruct REL.
     all: des; esplits; eauto using _hpsim'.
   Qed.
 
   Lemma _hpsim_mon : monotone9 _hpsim.
-  Proof.
+  Proof using.
     ii. eapply _hpsim_tarski, IN.
     i. econs. eauto using hsupd_mon, _hpsim'_mon.
   Qed.
@@ -292,7 +292,7 @@ Section HPSIM.
       (REL : _hpsim r Rs Rt RR ps pt nths sti_src sti_tgt fmr)
       (LEr : r <9= r') :
     _hpsim r' Rs Rt RR ps pt nths sti_src sti_tgt fmr.
-  Proof. eapply _hpsim_mon; eauto. Qed.
+  Proof using. eapply _hpsim_mon; eauto. Qed.
 
   Hint Constructors _hpsim' _hpsim : core.
   Hint Unfold hpsim : core.
@@ -311,12 +311,12 @@ Section HPSIM.
       hpsim_body false false nths (st_src, i_src) (st_tgt, i_tgt) fmr.
 
   Lemma hsupd_incl P : P <1= hsupd P.
-  Proof.
+  Proof using.
     ii; esplits; eauto.
   Qed.
   
   Lemma hsupd_merge P r (REL : hsupd (hsupd P) r) : hsupd P r.
-  Proof.
+  Proof using.
     intros wf; specialize (REL wf); destruct REL as [r1 [??]].
     hexploit Own_wand_valid; eauto.
     intros wf1; hexploit (H wf1); intros [fmr0 [??]]; exists fmr0; esplits; eauto.
@@ -325,7 +325,7 @@ Section HPSIM.
 
   Lemma hsupd_update P r r' (IN : hsupd P r) (UPD : r' ~~> r) :
     hsupd P r'.
-  Proof.
+  Proof using.
     dup UPD; rewrite cmra_discrete_update in UPD; specialize (UPD (Some ε)); ss; rewrite ?right_id in UPD.
     intros wfr'; hexploit (IN (UPD wfr')); i; des; eexists; split; eauto.
     iIntros "H"; iPoseProof (Own_Upd with "H") as "> H"; first eauto.
@@ -334,18 +334,18 @@ Section HPSIM.
 
   Lemma hsupd_extends P r r' (IN : hsupd P r) (UPD : r ≼ r') :
     hsupd P r'.
-  Proof. eapply hsupd_update; eauto; eapply cmra_update_included; eauto. Qed.
+  Proof using. eapply hsupd_update; eauto; eapply cmra_update_included; eauto. Qed.
 
   Lemma hsupd_wf P r (IN : ✓ r → hsupd P r) :
     hsupd P r.
-  Proof. intros wf; hexploit (IN wf wf); i; des; clarify; esplits; eauto. Qed.
+  Proof using. intros wf; hexploit (IN wf wf); i; des; clarify; esplits; eauto. Qed.
 
   Lemma _hpsim_flag_mon r Rs Rt RR (ps pt ps' pt' : bool) nths st_src st_tgt fmr
       (SIM : _hpsim r Rs Rt RR ps pt nths st_src st_tgt fmr)
       (LES : ps → ps')
       (LET : pt → pt') :
     _hpsim r Rs Rt RR ps' pt' nths st_src st_tgt fmr.
-  Proof.
+  Proof using.
     move SIM before r. revert_until SIM.
     pattern ps, pt, nths, st_src, st_tgt, fmr.
     eapply _hpsim_tarski, SIM. i. econs.
@@ -361,7 +361,7 @@ Section HPSIM.
       (LES : ps → ps')
       (LET : pt → pt') :
     hpsim RR ps' pt' nths st_src st_tgt fmr.
-  Proof.
+  Proof using.
     move SIM before RR. revert_until SIM. pcofix CIH. i.
     pstep. eapply _hpsim_flag_mon; eauto.
     eapply paco9_mon_bot in SIM; eauto. punfold SIM.
@@ -370,7 +370,7 @@ Section HPSIM.
   Lemma hpsim_progress_flag Rs Rt RR r g nths st_src st_tgt fmr
       (SIM : gpaco9 _hpsim (cpn9 _hpsim) g g Rs Rt RR false false nths st_src st_tgt fmr) :
     gpaco9 _hpsim (cpn9 _hpsim) r g Rs Rt RR true true nths st_src st_tgt fmr.
-  Proof.
+  Proof using.
     gstep. econs. r; esplits; eauto.
   Qed.
 
@@ -378,13 +378,13 @@ Section HPSIM.
     hsupd (@_hpsim' hpsim Rs Rt RR (hpsim Rs Rt RR) ps pt nths sti_src sti_tgt) fmr.
   
   Lemma hpsimC_mon : monotone9 hpsimC.
-  Proof.
+  Proof using.
     ii. specialize (IN H). des.
     destruct IN; econs; esplits; eauto; try by esplits; eauto.
   Qed.
 
   Lemma hpsimC_spec : hpsimC <10= gupaco9 _hpsim (cpn9 _hpsim).
-  Proof.
+  Proof using.
     eapply wrespect9_uclo; eauto with paco.
     econs; eauto using hpsimC_mon; i.
     econs. ii. destruct PR; eauto. des. esplits; eauto.
@@ -402,12 +402,12 @@ Section HPSIM.
 
   Lemma hpsim_flagC_mon r1 r2 (LE : r1 <9= r2) :
     hpsim_flagC r1 <9= hpsim_flagC r2.
-  Proof. ii. destruct PR; econs; et. Qed.
+  Proof using. ii. destruct PR; econs; et. Qed.
 
   Hint Resolve hpsim_flagC_mon : paco.
   
   Lemma hpsim_flagC_spec : hpsim_flagC <10= gupaco9 _hpsim (cpn9 _hpsim).
-  Proof.
+  Proof using.
     eapply wrespect9_uclo; eauto with paco.
     econs; eauto with paco. i. inv PR.
     eauto using _hpsim_flag_mon, _hpsim_mon_auto, rclo9.
@@ -416,7 +416,7 @@ Section HPSIM.
   Lemma hpsim_flag_down Rs Rt RR r g ps pt nths st_src st_tgt fmr
       (SIM : gpaco9 _hpsim (cpn9 _hpsim) r g Rs Rt RR false false nths st_src st_tgt fmr) :
     gpaco9 _hpsim (cpn9 _hpsim) r g Rs Rt RR ps pt nths st_src st_tgt fmr.
-  Proof. 
+  Proof using. 
     guclo hpsim_flagC_spec. econs; et. 
   Qed.
 
@@ -436,11 +436,11 @@ Section HPSIM.
     hpsim_bindC r Rs Rt RR ps pt nths (st_src, i_src >>= k_src) (st_tgt, i_tgt >>= k_tgt) fmr.
 
   Lemma hpsim_bindC_mon r1 r2 (LEr : r1 <9= r2) : hpsim_bindC r1 <9= hpsim_bindC r2.
-  Proof. ii. destruct PR; econs; et. Qed.
+  Proof using. ii. destruct PR; econs; et. Qed.
 
   (* Local Hint Resolve Own_wand_valid : core. *)
   Lemma hpsim_bindC_wrespectful : wrespectful9 _hpsim hpsim_bindC.
-  Proof.
+  Proof using.
     econs; eauto using hpsim_bindC_mon; i.
     destruct PR. apply GF in SIM.
     remember (st_src, i_src) as sti_src. remember (st_tgt, i_tgt) as sti_tgt.
@@ -465,7 +465,7 @@ Section HPSIM.
   Qed.
 
   Lemma hpsim_bindC_spec : hpsim_bindC <10= gupaco9 _hpsim (cpn9 _hpsim).
-  Proof.
+  Proof using.
     intros. eapply wrespect9_uclo; eauto with paco.
     apply hpsim_bindC_wrespectful.
   Qed.
@@ -481,11 +481,11 @@ Section HPSIM.
     hpsim_extendC r Rs Rt RR ps pt nths sti_src sti_tgt fmr'.
 
   Lemma hpsim_extendC_mon r1 r2 (LEr : r1 <9= r2) : hpsim_extendC r1 <9= hpsim_extendC r2.
-  Proof. ii. destruct PR; econs; et. Qed.
+  Proof using. ii. destruct PR; econs; et. Qed.
 
   Lemma hpsim_extendC_compatible :
     compatible9 _hpsim hpsim_extendC.
-  Proof.
+  Proof using.
     econs; eauto using hpsim_extendC_mon.
     intros. destruct PR. destruct SIM. econs. i.
     eapply hsupd_extends; eauto.
@@ -494,7 +494,7 @@ Section HPSIM.
   Qed.
   
   Lemma hpsim_extendC_spec : hpsim_extendC <10= gupaco9 _hpsim (cpn9 _hpsim).
-  Proof.
+  Proof using.
     intros. gclo. econs; eauto using hpsim_extendC_compatible.
     eapply hpsim_extendC_mon, PR; eauto with paco.
   Qed.
@@ -508,17 +508,17 @@ Section HPSIM.
     hpsim_wfC r Rs Rt RR ps pt nths sti_src sti_tgt fmr.
 
   Lemma hpsim_wfC_mon r1 r2 (LEr : r1 <9= r2) : hpsim_wfC r1 <9= hpsim_wfC r2 .
-  Proof. ii. destruct PR. econs; eauto using hsupd_mon. Qed.
+  Proof using. ii. destruct PR. econs; eauto using hsupd_mon. Qed.
 
   Lemma hpsim_wfC_compatible : compatible9 _hpsim hpsim_wfC.
-  Proof.
+  Proof using.
     econs; eauto using hpsim_wfC_mon.
     i. destruct PR. econs. i. eapply hsupd_wf. i.
     eapply _hpsim_mon_auto; eauto 10 using hpsim_wfC, hsupd_incl with paco.
   Qed.
   
   Lemma hpsim_wfC_spec : hpsim_wfC <10= gupaco9 _hpsim (cpn9 _hpsim).
-  Proof.
+  Proof using.
     intros. gclo. econs; eauto using hpsim_wfC_compatible.
     eapply hpsim_wfC_mon, PR; eauto with paco.
   Qed.
@@ -532,10 +532,10 @@ Section HPSIM.
     hpsim_updateC r Rs Rt RR ps pt nths sti_src sti_tgt fmr.
 
   Lemma hpsim_updateC_mon r1 r2 (LEr : r1 <9= r2) : hpsim_updateC r1 <9= hpsim_updateC r2.
-  Proof. ii. destruct PR. econs; eauto using hsupd_mon. Qed.
+  Proof using. ii. destruct PR. econs; eauto using hsupd_mon. Qed.
 
   Lemma hpsim_updateC_compatible : compatible9 _hpsim hpsim_updateC.
-  Proof.
+  Proof using.
     econs; eauto using hpsim_updateC_mon.
     i. destruct PR. econs. i. eapply hsupd_merge.
     eapply hsupd_mon; eauto.
@@ -544,7 +544,7 @@ Section HPSIM.
   Qed.
   
   Lemma hpsim_updateC_spec : hpsim_updateC <10= gupaco9 _hpsim (cpn9 _hpsim).
-  Proof.
+  Proof using.
     intros. gclo. econs; eauto using hpsim_updateC_compatible.
     eapply hpsim_updateC_mon, PR; eauto with paco.
   Qed.
@@ -560,10 +560,10 @@ Section HPSIM.
     hpsim_frameC r Rs Rt RR ps pt nths sti_src sti_tgt fmrc.
 
   Lemma hpsim_frameC_mon r1 r2 (LEr : r1 <9= r2) : hpsim_frameC r1 <9= hpsim_frameC r2.
-  Proof. ii. destruct PR. econs; eauto using hsupd_mon. Qed.
+  Proof using. ii. destruct PR. econs; eauto using hsupd_mon. Qed.
   
   Lemma hpsim_frameC_compatible : compatible9 _hpsim hpsim_frameC.
-  Proof.
+  Proof using.
     econs; first by eauto using hpsim_frameC_mon. ii.
     destruct PR. move SIM before r. revert_until SIM.
     pattern ps, pt, nths, sti_src, sti_tgt, fmr.
@@ -644,7 +644,7 @@ Section HPSIM.
   Qed.
   
   Lemma hpsim_frameC_spec : hpsim_frameC <10= gupaco9 _hpsim (cpn9 _hpsim).
-  Proof.
+  Proof using.
     intros. gclo. econs; eauto using hpsim_frameC_compatible.
     eapply hpsim_frameC_mon, PR; eauto with paco.
   Qed.
@@ -664,10 +664,10 @@ Section HPSIM.
     hpsim_eqitC_src r Rs Rt RR ps pt nths (st_src, isrc1) sti_tgt fmr.
 
   Lemma hpsim_eqitC_src_mon r1 r2 (LEr : r1 <9= r2) : hpsim_eqitC_src r1 <9= hpsim_eqitC_src r2.
-  Proof. ii. destruct PR. econs; eauto using hsupd_mon. Qed.
+  Proof using. ii. destruct PR. econs; eauto using hsupd_mon. Qed.
 
   Lemma hpsim_eqitC_src_compatible : compatible9 _hpsim hpsim_eqitC_src.
-  Proof.
+  Proof using.
     econs; first by eauto using hpsim_eqitC_src_mon. unfold rel9. ii.
     destruct PR. remember (st_src, isrc0) as sti_src0.
     move SIM before r. revert_until SIM.
@@ -708,7 +708,7 @@ Section HPSIM.
   Qed.
   
   Lemma hpsim_eqitC_src_spec : hpsim_eqitC_src <10= gupaco9 _hpsim (cpn9 _hpsim).
-  Proof.
+  Proof using.
     intros. gclo. econs; eauto using hpsim_eqitC_src_compatible.
     eapply hpsim_eqitC_src_mon, PR; eauto with paco.
   Qed.
@@ -729,10 +729,10 @@ Section HPSIM.
     hpsim_eqitC_tgt r Rs Rt RR ps pt nths sti_src (st_tgt, itgt1) fmr.
 
   Lemma hpsim_eqitC_tgt_mon r1 r2 (LEr : r1 <9= r2) : hpsim_eqitC_tgt r1 <9= hpsim_eqitC_tgt r2.
-  Proof. ii. destruct PR. econs; eauto using hsupd_mon. Qed.
+  Proof using. ii. destruct PR. econs; eauto using hsupd_mon. Qed.
 
   Lemma hpsim_eqitC_tgt_compatible : compatible9 _hpsim hpsim_eqitC_tgt.
-  Proof.
+  Proof using.
     econs; first by eauto using hpsim_eqitC_tgt_mon. unfold rel9. ii.
     destruct PR. remember (st_tgt, itgt0) as sti_tgt0.
     move SIM before r. revert_until SIM.
@@ -771,7 +771,7 @@ Section HPSIM.
   Qed.
   
   Lemma hpsim_eqitC_tgt_spec : hpsim_eqitC_tgt <10= gupaco9 _hpsim (cpn9 _hpsim).
-  Proof.
+  Proof using.
     intros. gclo. econs; eauto using hpsim_eqitC_tgt_compatible.
     eapply hpsim_eqitC_tgt_mon, PR; eauto with paco.
   Qed.
@@ -790,10 +790,10 @@ Section HPSIM.
     hpsim_nodupC r Rs Rt RR ps pt nths sti_src sti_tgt fmr.
 
   Lemma hpsim_nodupC_mon r1 r2 (LEr : r1 <9= r2) : hpsim_nodupC r1 <9= hpsim_nodupC r2.
-  Proof. ii. destruct PR. econs; eauto using hsupd_mon. Qed.
+  Proof using. ii. destruct PR. econs; eauto using hsupd_mon. Qed.
 
   Lemma hpsim_nodupC_compatible : compatible9 _hpsim hpsim_nodupC.
-  Proof.
+  Proof using.
     econs; eauto using hpsim_nodupC_mon.
     i. destruct PR. econs. ii.
     edestruct SIM; eauto. edestruct IN; des; eauto.
@@ -802,7 +802,7 @@ Section HPSIM.
   Qed.
   
   Lemma hpsim_nodupC_spec : hpsim_nodupC <10= gupaco9 _hpsim (cpn9 _hpsim).
-  Proof.
+  Proof using.
     intros. gclo. econs; eauto using hpsim_nodupC_compatible.
     eapply hpsim_nodupC_mon, PR; eauto with paco.
   Qed.

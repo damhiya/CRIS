@@ -75,14 +75,14 @@ Section syn_inv.
   (* Interface for the user *)
   Local Definition syn_inv_def (u : univ_id) (n : level) (N : namespace) p :=
     (∃ i : τ{⇣positive}, ⌜i ∈ (↑N : coPset)⌝ ∧ syn_ownI u n i p)%SAT.
-  Local Definition syn_inv_aux : seal (@syn_inv_def). Proof. by eexists. Qed.
+  Local Definition syn_inv_aux : seal (@syn_inv_def). Proof using. by eexists. Qed.
   Definition syn_inv := syn_inv_aux.(unseal).
   Local Definition syn_inv_eq : @syn_inv = @syn_inv_def := syn_inv_aux.(seal_eq).
 
   Local Definition syn_fupd_def u b (E1 E2 : coPset) (P : GTerm.t b) : GTerm.t b :=
     syn_wsatl u b ∗ syn_ownE u b E1 ∗ syn_ownD_auth u b
     ==∗ (syn_wsatl u b ∗ syn_ownE u b E2 ∗ syn_ownD_auth u b ∗ P).
-  Local Definition syn_fupd_aux : seal (@syn_fupd_def). Proof. by eexists. Qed.
+  Local Definition syn_fupd_aux : seal (@syn_fupd_def). Proof using. by eexists. Qed.
   Definition syn_fupd := syn_fupd_aux.(unseal).
   Local Definition syn_fupd_eq : @syn_fupd = @syn_fupd_def := syn_fupd_aux.(seal_eq).
 End syn_inv.
@@ -98,7 +98,7 @@ Section reduction.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
   Lemma ownI_auth_red u n I :
     ⟦syn_ownI_auth u n I⟧ = ownI_auth u n I.
-  Proof.
+  Proof using.
     SAT_red; ss.
     f_equal. apply map_eq; intros i.
     destruct (decide (i ∈ dom I)).
@@ -111,7 +111,7 @@ Section reduction.
   Qed.
 
   Lemma wsat_red u n : ⟦syn_wsat u n⟧ ≡ wsat u n.
-  Proof.
+  Proof using.
     rewrite /syn_wsat /wsat; SAT_red; SL_red.
     iSplit; iIntros "[%I H]"; SL_red.
     { rewrite @SATRed.lift ownI_auth_red. SAT_red. rewrite /syn_inv_satall; SL_red.
@@ -127,7 +127,7 @@ Section reduction.
   Qed.
 
   Lemma wsatl_red u n : ⟦syn_wsatl u n⟧ ≡ wsatl u n.
-  Proof.
+  Proof using.
     induction n.
     { SAT_red; SL_red; ss. }
     { simpl syn_wsatl. SAT_red; ss. rewrite /wsatl seq_S big_sepL_app //=.
@@ -137,21 +137,21 @@ Section reduction.
   Qed.
   
   Lemma wsats_red u n E : ⟦syn_wsats u n E⟧ ≡ wsats u n E.
-  Proof.
+  Proof using.
     rewrite /syn_wsats /syn_ownE /syn_ownD_auth. SAT_red. SL_red.
     rewrite wsatl_red; SAT_red; ss; rewrite /wsats /ownD_auth.
     iSplit; iIntros "($ & $ & [%x H] & $)"; iExists x; SL_red; iFrame.
   Qed.
 
   Lemma inv_red u n N p : ⟦syn_inv u n N p⟧ ≡ inv u n N p.
-  Proof.
+  Proof using.
     rewrite syn_inv_eq /syn_inv_def. SL_red.
     rewrite /inv invariants.inv_aux.(seal_eq) /invariants.inv_def.
     iSplit; iIntros "[%x H]"; iExists x; SL_red; SAT_red; ss.
   Qed.
 
   Lemma fupd_red u n E1 E2 P : ⟦syn_fupd u n E1 E2 P⟧ ≡ uPred_fupd u n E1 E2 ⟦P⟧.
-  Proof.
+  Proof using.
     rewrite syn_fupd_eq /uPred_fupd invariants.uPred_fupd_aux.(seal_eq) /invariants.uPred_fupd_def.
     rewrite /syn_fupd_def SLRed.wand SLRed.upd. repeat SAT_red.
     rewrite wsatl_red /wsatl /syn_ownE /syn_ownD_auth; SL_red.
@@ -168,7 +168,7 @@ Module inv_instances.
   #[export] Instance τ : TypG.t := λ _, ST.t.
 
   #[export] Instance typG : STτ.t τ.
-  Proof. econs. econs. instantiate (1:=0); ss. Qed.
+  Proof using. econs. econs. instantiate (1:=0); ss. Qed.
 
   #[export] Instance α {Γ : HRA} : GAT.t :=
     λ n,
@@ -186,114 +186,37 @@ Module inv_instances.
 
   #[export] Instance intpG {Σ : GRA} {Γ : HRA} `{!subG Γ Σ, !invG α Σ Γ} :
     GATIntp.inG (@SL.syntax τ Γ) α (@SL.interp τ α Γ Σ _) β.
-  Proof. econs; instantiate (1:=0); ss. Qed.
+  Proof using. econs; instantiate (1:=0); ss. Qed.
 
   #[export] Instance invintpG {Σ : GRA} {Γ : HRA} `{!subG Γ Σ, !invG α Σ Γ} :
     GATIntp.inG inv_syntax α inv_interp β.
-  Proof. econs; instantiate (1:=1); ss. Qed.
+  Proof using. econs; instantiate (1:=1); ss. Qed.
 
   #[export] Instance sinvg {Σ : GRA} {Γ : HRA} `{!subG Γ Σ, !invG α Σ Γ} : sinvG Σ Γ α β τ.
-  Proof.
+  Proof using.
     econs; econs; try typeclasses eauto.
   Qed.
 
   #[export] Instance subG_refl (Γ : HRA) : subG Γ Γ.
-  Proof. move=> i; by exists i. Defined.
+  Proof using. move=> i; by exists i. Defined.
   Hint Unfold subG_refl : GRA_index.
 
   #[export] Instance subG_app_l_HRA (Γ : HRA) (Σ1 Σ2 : GRA) : subG Γ Σ1 → subG Γ (GRAs.app Σ1 Σ2).
-  Proof. move=> H i; move: H=> /(_ i) [j ?]. exists (Fin.L _ j). by rewrite /= fin_add_inv_l. Defined.
-  (* Lemma subG_app_l_HRA_inG_id Γ Σ1 Σ2 subGins i :
-    (subG_app_l_HRA Γ Σ1 Σ2 subGins) i
-    = let '(exist _ j jprf) := subGins i in
-      exist _ (Fin.L _ j)
-      (eq_ind_r (λ p : DRA, GRA_lookup i = p) jprf (fin_add_inv_l (λ _ : fin (GRA_len + GRA_len), DRA) GRA_lookup GRA_lookup j)).
-  Proof. unfold subG_app_l_HRA. destruct (subGins i). reflexivity. Qed. *)
+  Proof using. move=> H i; move: H=> /(_ i) [j ?]. exists (Fin.L _ j). by rewrite /= fin_add_inv_l. Defined.
 
   #[export] Instance subG_app_r_HRA (Γ : HRA) (Σ1 Σ2 : GRA) : subG Γ Σ2 → subG Γ (GRAs.app Σ1 Σ2).
-  Proof. move=> H i; move: H=> /(_ i) [j ?]. exists (Fin.R _ j). by rewrite /= fin_add_inv_r. Defined.
-  (* Lemma subG_app_r_HRA_inG_id Γ Σ1 Σ2 subGins i :
-      (subG_app_r_HRA Γ Σ1 Σ2 subGins) i
-      = let '(exist _ j jprf) := subGins i in
-        exist _ (Fin.R _ j)
-        (eq_ind_r (λ p : DRA, GRA_lookup i = p) jprf (fin_add_inv_r (λ _ : fin (GRA_len + GRA_len), DRA) GRA_lookup GRA_lookup j)).
-  Proof. unfold subG_app_r_HRA. destruct (subGins i). reflexivity. Qed. *)
+  Proof using. move=> H i; move: H=> /(_ i) [j ?]. exists (Fin.R _ j). by rewrite /= fin_add_inv_r. Defined.
 
   #[export] Instance subG_app_l_HRA' (Γ Σ1 : HRA) (Σ2 : GRA) : subG Γ Σ1 → subG Γ (GRAs.app Σ1 Σ2).
-  Proof. move=> H i; move: H=> /(_ i) [j ?]. exists (Fin.L _ j). by rewrite /= fin_add_inv_l. Defined.
-  (* Lemma subG_app_l_HRA'_inG_id Γ Σ1 Σ2 subGins i :
-    (subG_app_l_HRA' Γ Σ1 Σ2 subGins) i
-    = let '(exist _ j jprf) := subGins i in
-      exist _ (Fin.L _ j)
-      (eq_ind_r (λ p : DRA, GRA_lookup i = p) jprf (fin_add_inv_l (λ _ : fin (GRA_len + GRA_len), DRA) GRA_lookup GRA_lookup j)).
-  Proof. unfold subG_app_l_HRA'. destruct (subGins i). reflexivity. Qed. *)
+  Proof using. move=> H i; move: H=> /(_ i) [j ?]. exists (Fin.L _ j). by rewrite /= fin_add_inv_l. Defined.
 
   #[export] Instance subG_app_r_HRA' (Γ Σ2 : HRA) (Σ1 : GRA) : subG Γ Σ2 → subG Γ (GRAs.app Σ1 Σ2).
-  Proof. move=> H i; move: H=> /(_ i) [j ?]. exists (Fin.R _ j). by rewrite /= fin_add_inv_r. Defined.
-  (* Lemma subG_app_r_HRA'_inG_id Γ Σ1 Σ2 subGins i :
-      (subG_app_r_HRA' Γ Σ1 Σ2 subGins) i
-      = let '(exist _ j jprf) := subGins i in
-        exist _ (Fin.R _ j)
-        (eq_ind_r (λ p : DRA, GRA_lookup i = p) jprf (fin_add_inv_r (λ _ : fin (GRA_len + GRA_len), DRA) GRA_lookup GRA_lookup j)).
-  Proof. unfold subG_app_r_HRA'. destruct (subGins i). reflexivity. Qed. *)
+  Proof using. move=> H i; move: H=> /(_ i) [j ?]. exists (Fin.R _ j). by rewrite /= fin_add_inv_r. Defined.
 
   #[export] Instance subG_app_l_HRA'' (Γ Σ2 : HRA) (Σ1 : GRA) : subG Γ Σ1 → subG Γ (GRAs.app Σ1 Σ2).
-  Proof. move=> H i; move: H=> /(_ i) [j ?]. exists (Fin.L _ j). by rewrite /= fin_add_inv_l. Defined.
-  (* Lemma subG_app_l_HRA''_inG_id Γ Σ1 Σ2 subGins i :
-    (subG_app_l_HRA'' Γ Σ1 Σ2 subGins) i
-    = let '(exist _ j jprf) := subGins i in
-      exist _ (Fin.L _ j)
-      (eq_ind_r (λ p : DRA, GRA_lookup i = p) jprf (fin_add_inv_l (λ _ : fin (GRA_len + GRA_len), DRA) GRA_lookup GRA_lookup j)).
-  Proof. unfold subG_app_l_HRA''. destruct (subGins i). reflexivity. Qed. *)
+  Proof using. move=> H i; move: H=> /(_ i) [j ?]. exists (Fin.L _ j). by rewrite /= fin_add_inv_l. Defined.
 
   #[export] Instance subG_app_r_HRA'' (Γ Σ1 : HRA) (Σ2 : GRA) : subG Γ Σ2 → subG Γ (GRAs.app Σ1 Σ2).
-  Proof. move=> H i; move: H=> /(_ i) [j ?]. exists (Fin.R _ j). by rewrite /= fin_add_inv_r. Defined.
-  (* Lemma subG_app_r_HRA''_inG_id Γ Σ1 Σ2 subGins i :
-    (subG_app_r_HRA'' Γ Σ1 Σ2 subGins) i
-    = let '(exist _ j jprf) := subGins i in
-      exist _ (Fin.R _ j)
-      (eq_ind_r (λ p : DRA, GRA_lookup i = p) jprf (fin_add_inv_r (λ _ : fin (GRA_len + GRA_len), DRA) GRA_lookup GRA_lookup j)).
-  Proof. unfold subG_app_r_HRA''. destruct (subGins i). reflexivity. Qed. *)
+  Proof using. move=> H i; move: H=> /(_ i) [j ?]. exists (Fin.R _ j). by rewrite /= fin_add_inv_r. Defined.
 
-  (* Ltac solve_in_subG_goal :=
-    autounfold with GRA_index;
-    hrepeat do 1 match goal with
-    | [|- context [inG_id (in_subG _ _ _)]] => rewrite inG_id_in_subG
-    | [|- context [subG_app_l _ _ _ _ _]] => rewrite subG_app_l_inG_id
-    | [|- context [subG_app_r _ _ _ _ _] ]=> rewrite subG_app_r_inG_id
-    | [|- context [subG_app_r_HRA _ _ _ _ _]] => rewrite subG_app_r_HRA_inG_id
-    | [|- context [subG_app_r_HRA' _ _ _ _ _]] => rewrite subG_app_r_HRA'_inG_id
-    | [|- context [subG_app_r_HRA'' _ _ _ _ _]] => rewrite subG_app_r_HRA''_inG_id
-    | [|- context [subG_app_l_HRA _ _ _ _ _]] => rewrite subG_app_l_HRA_inG_id
-    | [|- context [subG_app_l_HRA' _ _ _ _ _]] => rewrite subG_app_l_HRA'_inG_id
-    | [|- context [subG_app_l_HRA'' _ _ _ _ _]] => rewrite subG_app_l_HRA''_inG_id
-    | [|- context [subG_refl _ _]] => unfold subG_refl
-    | [|- context [inG_id (subG_inG _ _ _)]] => rewrite (inG_id_subG_inG _)
-    end. *)
-
-  (* Ltac solve_eq_index :=
-    match goal with
-    | H : eq_index ?r ?r2 |- _ => rewrite /r /r2 /eq_index in H
-    end; des_ifs;
-    match goal with
-    | H1 : @eq (inG _ _) ?a _, H2 : @eq (inG _ _) ?b _ |- _ =>
-        let H := fresh "H" in assert (H : inG_id a = inG_id b) by rewrite H1 H2 //=;
-        repeat match goal with
-        | H : inG_id ?a = inG_id ?b |- _ => rewrite /a /b in H
-        end;
-        (* rewrite /a /b in H *)
-        revert H; autounfold with GRA_index; inv_instances.solve_in_subG_goal;
-        rewrite /eq_rec_r /eq_rec -!eq_rect_eq //=
-    end.
-  Ltac solve_nin_aux :=
-    match goal with
-    | H : r_In ?RES (r_cons ?RA ?RES' ?tl) |- _ => destruct H as [EQ | IN]; [solve_eq_index| solve_nin_aux]
-    | H : r_In ?RES (r_nil) |- _ => inv H
-    end.
-  Ltac solve_nin := ii; solve_nin_aux.
-  Ltac dfs_solve :=
-    match goal with
-    | |- r_NoDup (r_cons ?RA ?RES ?tl) => econs; [solve_nin|solve]
-    | |- r_NoDup (r_nil) => econs
-    end. *)
 End inv_instances.

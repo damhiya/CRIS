@@ -16,22 +16,22 @@ Section upred.
   Notation "⊢ Q" := (bi_emp_valid (PROP:=uPredI M) Q).
 
   Lemma prod_validI {A B : cmra} (x : A * B) : ✓ x ⊣⊢ ✓ x.1 ∧ ✓ x.2.
-  Proof. by uPred.unseal. Qed.
+  Proof using. by uPred.unseal. Qed.
   Lemma option_validI {A : cmra} (mx : option A) :
     ✓ mx ⊣⊢ match mx with Some x => ✓ x | None => True : uPred M end.
-  Proof. uPred.unseal. by destruct mx. Qed.
+  Proof using. uPred.unseal. by destruct mx. Qed.
   Lemma discrete_fun_validI {A} {B : A → ucmra} (g : discrete_fun B) :
     ✓ g ⊣⊢ ∀ i, ✓ g i.
-  Proof. by uPred.unseal. Qed.
+  Proof using. by uPred.unseal. Qed.
 
   Section gmap_cmra.
     Context `{Countable K} {A : cmra}.
     Implicit Types m : gmap K A.
 
     Lemma gmap_validI m : ✓ m ⊣⊢ ∀ i, ✓ (m !! i).
-    Proof. by uPred.unseal. Qed.
+    Proof using. by uPred.unseal. Qed.
     Lemma singleton_validI i x : ✓ ({[ i := x ]} : gmap K A) ⊣⊢ ✓ x.
-    Proof.
+    Proof using.
       rewrite gmap_validI. apply: anti_symm.
       - rewrite (bi.forall_elim i) lookup_singleton option_validI. done.
       - apply bi.forall_intro=>j. destruct (decide (i = j)) as [<-|Hne].
@@ -52,7 +52,7 @@ Section upred.
                       | Cinr b => ✓ b
                       | CsumBot => False
                       end.
-  Proof. uPred.unseal. by destruct x. Qed.
+  Proof using. uPred.unseal. by destruct x. Qed.
 End csum_cmra.
 End upred.
 

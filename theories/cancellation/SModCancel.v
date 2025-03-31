@@ -62,7 +62,7 @@ Module SCancelRed.
       interp_smod_cancel (s >>= k)
       =
       st <- interp_smod_cancel s;; interp_smod_cancel (k st).
-  Proof.
+  Proof using.
     unfold interp_smod_cancel in *. grind.
   Qed.
 
@@ -74,7 +74,7 @@ Module SCancelRed.
       interp_smod_cancel (tau;; t)
       =
       tau;; (interp_smod_cancel t).
-  Proof.
+  Proof using.
     unfold interp_smod_cancel in *. grind.
   Qed.
 
@@ -86,7 +86,7 @@ Module SCancelRed.
       interp_smod_cancel (Ret t)
       =
       Ret t.
-  Proof.
+  Proof using.
     unfold interp_smod_cancel in *. grind.
   Qed.
 
@@ -98,7 +98,7 @@ Module SCancelRed.
       interp_smod_cancel (trigger i)
       =
       r <- handle_schE_hmodE_cancel i;; tau;; Ret r.
-  Proof.
+  Proof using.
     unfold interp_smod_cancel in *. rewrite interp_trigger. grind.
   Qed.
   
@@ -110,7 +110,7 @@ Module SCancelRed.
       interp_smod_cancel (trigger i)
       =
       r <- trigger i;; tau;; Ret r.
-  Proof.
+  Proof using.
     unfold interp_smod_cancel in *. rewrite interp_trigger. grind.
   Qed.
 
@@ -122,7 +122,7 @@ Module SCancelRed.
       interp_smod_cancel (trigger i)
       =
       r <- trigger i;; tau;; Ret r.
-  Proof.
+  Proof using.
     unfold interp_smod_cancel. rewrite interp_trigger. grind.
   Qed.
 
@@ -134,7 +134,7 @@ Module SCancelRed.
       interp_smod_cancel (trigger i)
       =
       r <- trigger i;; tau;; Ret r.
-  Proof.
+  Proof using.
     unfold interp_smod_cancel. rewrite interp_trigger. grind.
   Qed.
 
@@ -144,7 +144,7 @@ Module SCancelRed.
       interp_smod_cancel (trigger e)
       =
       x <- trigger e ;; tau;; Ret x.
-  Proof.
+  Proof using.
     unfold interp_smod_cancel. rewrite interp_trigger. grind.
   Qed.
   
@@ -156,7 +156,7 @@ Module SCancelRed.
       interp_smod_cancel (@unwrapU hmodE _ _ i)
       =
       r <- (unwrapU i);; Ret r.
-  Proof.
+  Proof using.
     unfold interp_smod_cancel, unwrapU in *. des_ifs; grind.
     unfold triggerUB in *. rewrite unfold_interp. grind.
   Qed.
@@ -169,7 +169,7 @@ Module SCancelRed.
       interp_smod_cancel (@unwrapN hmodE _ _ i)
       =
       r <- (unwrapN i);; Ret r.
-  Proof.
+  Proof using.
     unfold interp_smod_cancel, unwrapN in *. des_ifs; grind.
     unfold triggerNB in *. rewrite unfold_interp. grind.
   Qed.
@@ -180,7 +180,7 @@ Module SCancelRed.
       interp_smod_cancel (assume P)
       =
       r <- assume P;; tau;; Ret r.
-  Proof.
+  Proof using.
     unfold assume. rewrite bind. rewrite core. grind. rewrite ret. refl.
   Qed. 
 
@@ -190,7 +190,7 @@ Module SCancelRed.
       interp_smod_cancel (guarantee P)
       =
       r <- guarantee P;; tau;; Ret r.
-  Proof.
+  Proof using.
     unfold guarantee. rewrite bind. rewrite core. grind. rewrite ret. refl.
   Qed.
 

@@ -19,7 +19,7 @@ Class HRA : Type := HRA_mk : GRA.
 (* Global Instance subG_subG (Γ : HRA) (Σ : GRA) : subG Γ Σ → subG Γ Σ. auto. Qed. *)
 
 Global Instance index_inG (Γ : HRA) (i : gid Γ) : inG (GRA_lookup i) Γ.
-Proof.
+Proof using.
   econstructor; eauto.
 Defined.
 Global Program Instance in_subG (Γ : HRA) (Σ : GRA) `{emb : !inG M Γ} : subG Γ Σ → inG M Σ.
@@ -31,7 +31,7 @@ Next Obligation.
 Defined.
 Lemma inG_id_in_subG (Γ : HRA) (Σ : GRA) (RA : cmra) inΓ ΓinΣ :
   @inG_id RA Σ (@in_subG Γ Σ RA inΓ ΓinΣ) = let '(exist _ id _) := (ΓinΣ (inG_id inΓ)) in id.
-Proof.
+Proof using.
   unfold in_subG; simpl. unfold sProp.in_subG_obligation_1. destruct inΓ. simpl. reflexivity.
 Qed.
 
@@ -323,29 +323,29 @@ Module SLRed. Section RED.
 
   Lemma own `{!inG M Γ} n γ (r : M) :
     interp n (SL.own γ r) = own γ r.
-  Proof.
+  Proof using.
     depdes inG0. subst. unfold SL.own, eq_rect_r. ss.
     rewrite @SATRed.cur. ss.
   Qed.
 
   Lemma pure n P : interp n (SL.pure P) = ⌜P⌝%I.
-  Proof. unfold SL.pure. rewrite @SATRed.cur. reflexivity. Qed.
+  Proof using. unfold SL.pure. rewrite @SATRed.cur. reflexivity. Qed.
 
   Lemma and n p q :
     interp n (SL.and p q) = (interp n p ∧ interp n q)%I.
-  Proof. unfold SL.and. rewrite @SATRed.cur. reflexivity. Qed.
+  Proof using. unfold SL.and. rewrite @SATRed.cur. reflexivity. Qed.
 
   Lemma or n p q :
     interp n (SL.or p q) = (interp n p ∨ interp n q)%I.
-  Proof. unfold SL.or. rewrite @SATRed.cur. reflexivity. Qed.
+  Proof using. unfold SL.or. rewrite @SATRed.cur. reflexivity. Qed.
 
   Lemma impl n p q :
     interp n (SL.impl p q) = (interp n p → interp n q)%I.
-  Proof. unfold SL.impl. rewrite @SATRed.cur. reflexivity. Qed.
+  Proof using. unfold SL.impl. rewrite @SATRed.cur. reflexivity. Qed.
 
   Lemma univ `{T : SAT.t} `{@GAT.inG T τ} n (ty: T.(SAT.ops)) p :
     interp n (SL.univ ty p) = (∀ x : (T.(SAT.arity) ty (GTerm.t_prev n)), interp n (p x))%I.
-  Proof.
+  Proof using.
     destruct H0 eqn : EQ. subst.
     unfold SL.univ, eq_rect_r. ss.
     rewrite @SATRed.cur. reflexivity.
@@ -353,7 +353,7 @@ Module SLRed. Section RED.
 
   Lemma ex `{@GAT.inG T τ} n ty p :
     interp n (SL.ex ty p) = (∃ x, interp n (p x))%I.
-  Proof.
+  Proof using.
     destruct H0 eqn : EQ. subst.
     unfold SL.ex, eq_rect_r. ss.
     rewrite @SATRed.cur. reflexivity.
@@ -361,39 +361,39 @@ Module SLRed. Section RED.
 
   Lemma empty n :
     interp n SL.empty = emp%I.
-  Proof. unfold SL.empty. rewrite @SATRed.cur. reflexivity. Qed.
+  Proof using. unfold SL.empty. rewrite @SATRed.cur. reflexivity. Qed.
 
   Lemma sepconj n p q :
     interp n (SL.sepconj p q) = (interp n p ∗ interp n q)%I.
-  Proof. unfold SL.sepconj. rewrite @SATRed.cur. reflexivity. Qed.
+  Proof using. unfold SL.sepconj. rewrite @SATRed.cur. reflexivity. Qed.
 
   Lemma wand n p q :
     interp n (SL.wand p q) = (interp n p -∗ interp n q)%I.
-  Proof. unfold SL.wand. rewrite @SATRed.cur. reflexivity. Qed.
+  Proof using. unfold SL.wand. rewrite @SATRed.cur. reflexivity. Qed.
 
   Lemma persistently n p :
     interp n (SL.persistently p) = (<pers> interp n p)%I.
-  Proof. unfold SL.persistently. rewrite @SATRed.cur. reflexivity. Qed.
+  Proof using. unfold SL.persistently. rewrite @SATRed.cur. reflexivity. Qed.
 
   Lemma plainly n p :
     interp n (SL.plainly p) = (■ (interp n p))%I.
-  Proof. unfold SL.plainly. rewrite @SATRed.cur. reflexivity. Qed.
+  Proof using. unfold SL.plainly. rewrite @SATRed.cur. reflexivity. Qed.
 
   Lemma upd n p :
     interp n (SL.upd p) = (|==> interp n p)%I.
-  Proof. unfold SL.upd. rewrite @SATRed.cur. reflexivity. Qed.
+  Proof using. unfold SL.upd. rewrite @SATRed.cur. reflexivity. Qed.
 
   Lemma affinely n p :
     interp n (SL.affinely p) = (<affine> interp n p)%I.
-  Proof. unfold SL.affinely. rewrite ->and, empty. reflexivity. Qed.
+  Proof using. unfold SL.affinely. rewrite ->and, empty. reflexivity. Qed.
 
   Lemma intuitionistically n p :
     interp n (SL.affinely (SL.persistently p)) = (□ interp n p)%I.
-  Proof. rewrite ->affinely, persistently. reflexivity. Qed.
+  Proof using. rewrite ->affinely, persistently. reflexivity. Qed.
 
   Lemma sepM n K {H1 : EqDecision K} {H2 : Countable K} A I f :
     interp n (SL.sepM n I f (K:=K) (A:=A)) = ([∗ map] i ↦ a ∈ I, interp n (f i a))%I.
-  Proof.
+  Proof using.
     ss. unfold big_opM. rewrite seal_eq. unfold big_op.big_opM_def.
     unfold SL.sepM. simpl. remember (map_to_list I) as L.
     clear HeqL I. induction L.
@@ -404,7 +404,7 @@ Module SLRed. Section RED.
 
   Lemma sepS n K {H1 : EqDecision K} {H2 : Countable K} I f :
     interp n (SL.sepS n I f (K:=K)) = ([∗ set] i ∈ I, interp n (f i))%I.
-  Proof.
+  Proof using.
     ss. unfold big_opS. rewrite seal_eq. unfold big_op.big_opS_def.
     unfold SL.sepS. remember (elements I) as L.
     clear HeqL I. induction L.
@@ -414,7 +414,7 @@ Module SLRed. Section RED.
 
   Lemma sepL1 n A I f :
     interp n (SL.sepL1 n I f (A:=A)) = ([∗ list] a ∈ I, interp n (f a))%I.
-  Proof.
+  Proof using.
     ss. induction I; ss.
     { rewrite empty. ss. }
     rewrite sepconj. rewrite IHI. f_equal.

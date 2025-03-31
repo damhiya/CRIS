@@ -14,7 +14,7 @@ Module APCC. Section APCC.
       [(APCHdr.apc, APCA.apc_spec)].
   
   Lemma Spc_nodup : List.NoDup (List.map fst Spc).
-  Proof. unfold Spc. unseal CRIS. prove_nodup. Qed.
+  Proof using. unfold Spc. unseal CRIS. prove_nodup. Qed.
 
   Definition fnsems :=
     [(APCHdr.apc, (scopes, mk_specbody APCA.apc_spec fbody_trivial))].

@@ -25,33 +25,33 @@ Section derived.
 
   (** Own and valid derived *)
   Lemma persistently_cmra_valid_1 {A : cmra} (a : A) : ✓ a ⊢@{uPredI M} <pers> (✓ a).
-  Proof. by rewrite {1}plainly_cmra_valid_1 plainly_elim_persistently. Qed.
+  Proof using. by rewrite {1}plainly_cmra_valid_1 plainly_elim_persistently. Qed.
   Lemma intuitionistically_ownM (a : M) : CoreId a → □ uPred_ownM a ⊣⊢ uPred_ownM a.
-  Proof.
+  Proof using.
     rewrite /bi_intuitionistically affine_affinely=>?; apply (anti_symm _);
       [by rewrite persistently_elim|].
     by rewrite {1}persistently_ownM_core core_id_core.
   Qed.
   Lemma ownM_invalid (a : M) : ¬ ✓{0} a → uPred_ownM a ⊢ False.
-  Proof. intros. rewrite ownM_valid cmra_valid_elim. by apply pure_elim'. Qed.
+  Proof using. intros. rewrite ownM_valid cmra_valid_elim. by apply pure_elim'. Qed.
   Global Instance ownM_mono : Proper (flip (≼) ==> (⊢)) (@uPred_ownM M).
-  Proof. intros a b [b' ->]. by rewrite ownM_op sep_elim_l. Qed.
+  Proof using. intros a b [b' ->]. by rewrite ownM_op sep_elim_l. Qed.
   Lemma ownM_unit' : uPred_ownM ε ⊣⊢ True.
-  Proof. apply (anti_symm _); first by apply pure_intro. apply ownM_unit. Qed.
+  Proof using. apply (anti_symm _); first by apply pure_intro. apply ownM_unit. Qed.
   Lemma plainly_cmra_valid {A : cmra} (a : A) : ■ ✓ a ⊣⊢ ✓ a.
-  Proof. apply (anti_symm _), plainly_cmra_valid_1. apply plainly_elim, _. Qed.
+  Proof using. apply (anti_symm _), plainly_cmra_valid_1. apply plainly_elim, _. Qed.
   Lemma intuitionistically_cmra_valid {A : cmra} (a : A) : □ ✓ a ⊣⊢ ✓ a.
-  Proof.
+  Proof using.
     rewrite /bi_intuitionistically affine_affinely. intros; apply (anti_symm _);
       first by rewrite persistently_elim.
     apply:persistently_cmra_valid_1.
   Qed.
   Lemma discrete_valid {A : cmra} (a : A) : ✓ a ⊣⊢ ⌜✓ a⌝.
-  Proof. apply discrete_valid. Qed.
+  Proof using. apply discrete_valid. Qed.
 
   (** Timeless instances *)
   Global Instance upred_timeless (P : uPredI M) : Timeless P.
-  Proof.
+  Proof using.
     rewrite /Timeless. etrans; [apply later_eq|].
     apply (except_0_intro P).
   Qed.
@@ -59,21 +59,21 @@ Section derived.
   (** Plainness *)
   Global Instance cmra_valid_plain {A : cmra} (a : A) :
     Plain (✓ a : uPred M)%I.
-  Proof. rewrite /Persistent. apply plainly_cmra_valid_1. Qed.
+  Proof using. rewrite /Persistent. apply plainly_cmra_valid_1. Qed.
 
   (** Persistence *)
   Global Instance cmra_valid_persistent {A : cmra} (a : A) :
     Persistent (✓ a : uPred M)%I.
-  Proof. rewrite /Persistent. apply persistently_cmra_valid_1. Qed.
+  Proof using. rewrite /Persistent. apply persistently_cmra_valid_1. Qed.
   Global Instance ownM_persistent a : CoreId a → Persistent (@uPred_ownM M a).
-  Proof.
+  Proof using.
     intros. rewrite /Persistent -{2}(core_id_core a). apply persistently_ownM_core.
   Qed.
 
   (** For big ops *)
   Global Instance uPred_ownM_sep_homomorphism `{CmraDiscrete M}:
     MonoidHomomorphism op uPred_sep (≡) (@uPred_ownM M).
-  Proof.
+  Proof using.
     split; [split|]; try apply _; [apply ownM_op | apply ownM_unit'].
   Qed.
 
@@ -81,10 +81,10 @@ Section derived.
   the empty context also without the modalities.
   For basic updates, soundness only holds for plain propositions. *)
   Lemma bupd_soundness P `{!Plain P} : (⊢ |==> P) → ⊢ P.
-  Proof. rewrite bupd_elim. done. Qed.
+  Proof using. rewrite bupd_elim. done. Qed.
 
   Lemma laterN_soundness P n : (⊢ ▷^n P) → ⊢ P.
-  Proof. induction n; eauto using later_soundness. Qed.
+  Proof using. induction n; eauto using later_soundness. Qed.
 
   (** As pure demonstration, we also show that this holds for an arbitrary nesting
   of modalities. We have to do a bit of work to be able to state this theorem
@@ -104,7 +104,7 @@ Section derived.
   propositions. This is probably not a lemma you want to actually use. *)
   Corollary modal_soundness P `{!Plain P} (ms : list modality) :
     (⊢ denote_modalities ms P) → ⊢ P.
-  Proof.
+  Proof using.
     intros H. apply (laterN_soundness _ (length ms)).
     move : H. apply bi_emp_valid_mono.
     induction ms as [|m ms IH]; first done; simpl.
@@ -119,6 +119,6 @@ Section derived.
   modalities. Again this is just for demonstration and probably not practically
   useful. *)
   Corollary consistency : ¬ ⊢@{uPredI M} False.
-  Proof. intros H. by eapply pure_soundness. Qed.
+  Proof using. intros H. by eapply pure_soundness. Qed.
 End derived.
 End uPred.

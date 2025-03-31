@@ -50,7 +50,7 @@ Section MID.
 
   Lemma alist_encode_decode st :
     alist_decode (alist_encode st) = st.
-  Proof.
+  Proof using.
     unfold alist_encode, alist_decode.
     rewrite Any.pair_split; rewrite Any.upcast_downcast; eauto.
     induction st; s; eauto.
@@ -113,7 +113,7 @@ Section MID.
       end.
 
   Definition interp_hp : itree hmodE ~> itree modE.
-  Proof.
+  Proof using.
     intros T; eapply interp; intros Te e.
     destruct e as [|[|[|[|]]]].
     { apply (handle_agE a). }
@@ -136,75 +136,75 @@ Section RED.
 
   Lemma bind (R S : Type) (s : itree hmodE R) (k : R -> itree hmodE S) :
     interp_hp (s >>= k) = st <- interp_hp s;; interp_hp (k st).
-  Proof. rewrite /interp_hp interp_bind //. Qed.
+  Proof using. rewrite /interp_hp interp_bind //. Qed.
 
   (* Lemma interp_hp_body_bind R (s : itree hmodE R) (k : R -> itree hmodE Any.t) fmr :
     interp_hp_body (s >>= k) fmr = '(fr,r) <- interp_hp s fmr;; interp_hp_body (Σ:=Σ) (k r) fr.
-  Proof. unfold interp_hp_body. rewrite interp_hp_bind. grind. destruct x. eauto. Qed. *)
+  Proof using. unfold interp_hp_body. rewrite interp_hp_bind. grind. destruct x. eauto. Qed. *)
 
   Lemma tau (R : Type) (t : itree _ R) :
     interp_hp (tau;; t) = tau;; (interp_hp t).
-  Proof. rewrite /interp_hp interp_tau //. Qed.
+  Proof using. rewrite /interp_hp interp_tau //. Qed.
 
   Lemma ret (R : Type) (t : R) :
     interp_hp (Ret t) = Ret t.
-  Proof. rewrite /interp_hp interp_ret //. Qed.
+  Proof using. rewrite /interp_hp interp_ret //. Qed.
 
   Lemma call (R : Type) (c : callE R) :
     interp_hp (trigger c) = r <- trigger c;; tau;; Ret r.
-  Proof. rewrite /interp_hp interp_trigger //. Qed.
+  Proof using. rewrite /interp_hp interp_trigger //. Qed.
 
   Lemma spawn fn arg :
     interp_hp (trigger (Spawn fn arg)) = r <- trigger (Spawn fn arg);; tau;; Ret r.
-  Proof. rewrite /interp_hp interp_trigger //. Qed.
+  Proof using. rewrite /interp_hp interp_trigger //. Qed.
 
   Lemma yield tid :
     interp_hp (trigger (Yield tid)) = r <- trigger (Yield tid);; tau;; Ret r.
-  Proof. rewrite /interp_hp interp_trigger //. Qed.
+  Proof using. rewrite /interp_hp interp_trigger //. Qed.
 
   Lemma pg (R : Type) (i : pgE R) :
     interp_hp (trigger i) = r <- handle_pgE i;; tau;; Ret r.
-  Proof. rewrite /interp_hp interp_trigger //. Qed.
+  Proof using. rewrite /interp_hp interp_trigger //. Qed.
 
   Lemma core (R : Type) (i : coreE R) :
     interp_hp (trigger i) = r <- trigger i;; tau;; Ret r.
-  Proof. rewrite /interp_hp interp_trigger //. Qed.
+  Proof using. rewrite /interp_hp interp_trigger //. Qed.
 
   Lemma triggerUB (R : Type) :
     interp_hp (triggerUB) = triggerUB (A:=R).
-  Proof.
+  Proof using.
     rewrite /interp_hp /triggerUB interp_bind interp_trigger; grind.
   Qed.
 
   Lemma triggerNB (R : Type) :
     interp_hp (triggerNB) = triggerNB (A:=R).
-  Proof.
+  Proof using.
     rewrite /interp_hp /triggerNB interp_bind interp_trigger; grind.
   Qed.
 
   Lemma unwrapU (R : Type) (i : option R) :
     interp_hp (@unwrapU hmodE _ _ i) = r <- (unwrapU i);; Ret r.
-  Proof.
+  Proof using.
     rewrite /interp_hp /unwrapU; des_ifs; grind; eauto using triggerUB.
   Qed.
 
   Lemma unwrapN (R : Type) (i : option R) :
     interp_hp (@unwrapN hmodE _ _ i) = r <- (unwrapN i);; Ret r.
-  Proof.
+  Proof using.
     rewrite /interp_hp /unwrapN; des_ifs; grind; eauto using triggerNB.
   Qed.
 
   Lemma Assume P :
     interp_hp (trigger (Assume P)) = x <- handle_Assume P;; tau;; Ret x.
-  Proof. rewrite /interp_hp interp_trigger //. Qed.
+  Proof using. rewrite /interp_hp interp_trigger //. Qed.
 
   Lemma Guarantee P :
     interp_hp (trigger (Guarantee P)) = x <- handle_Guarantee P;; tau;; Ret x.
-  Proof. rewrite /interp_hp interp_trigger //. Qed.
+  Proof using. rewrite /interp_hp interp_trigger //. Qed.
 
   Lemma ext R (itr0 itr1 : itree _ R) (EQ : itr0 = itr1) :
     interp_hp itr0 = interp_hp itr1.
-  Proof. subst; et. Qed.
+  Proof using. subst; et. Qed.
 
   (* TODO : Same lemmas for other interps ( not defined yet. ) *)
 

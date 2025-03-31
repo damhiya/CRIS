@@ -63,7 +63,7 @@ Section apc.
       guarantee (is_Some (SpcPure fn) ∧ (o < dep_ord)%ord);;;
       trigger (Call fn o↑);;;
       _APC wid_next.
-  Proof.
+  Proof using.
     i. unfold _APC. rewrite Fix_eq; eauto.
     { ii. repeat f_equal. extensionality break. destruct break; ss.
       do 7 (repeat f_equal; extensionalities). eapply H. }
@@ -77,7 +77,7 @@ Section aux.
 
   Lemma map_fst_map_map_snd_refl {A B C} (f: B → C) (l: list (A * B)):
     map fst (map (map_snd f) l) = map fst l.
-  Proof.
+  Proof using.
     induction l; ss.
     destruct a; ss. f_equal; et.
   Qed.

@@ -23,7 +23,7 @@ Module APCIA. Section APCIA.
 
   Lemma simF_apc :
     HSim.sim_fun open APCAMod APCIMod Ist APCHdr.apc.
-  Proof.
+  Proof using.
     init_simF u 0.
     
     steps_l. iDestruct "ASM" as "[-> ->]"; hss.
@@ -34,7 +34,7 @@ Module APCIA. Section APCIA.
   Qed.
 
   Theorem sim : HSim.t open APCAMod APCIMod emp%I Ist.
-  Proof.
+  Proof using.
     init_sim.
     - eauto.
     - eapply simF_apc.
@@ -48,5 +48,5 @@ Section ctxr.
     ctx_refines
       (APCA.t u SpcPure SpcA, emp%I)
       (APCI.t, emp%I).
-  Proof. eapply main_adequacy, sim. Qed.
+  Proof using. eapply main_adequacy, sim. Qed.
 End ctxr. End APCIA.

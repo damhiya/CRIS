@@ -6,7 +6,7 @@ Section EXEC.
 
   Lemma unfold_interp_state: forall {E F} {S R} (h: E ~> stateT S (itree F)) (t: itree E R) (s: S),
     interp_state h t s = _interp_state h (observe t) s.
-  Proof. i. f. apply unfold_interp_state. Qed.
+  Proof using. i. f. apply unfold_interp_state. Qed.
 
   Definition handle_stateE {E} : stateE ~> stateT Any.t (itree E) :=
     fun _ e glob =>

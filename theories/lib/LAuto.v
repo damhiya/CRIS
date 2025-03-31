@@ -57,7 +57,7 @@ End TEST.
 (*
 Lemma perm_normalize_elmt {T} (x : T) l:
   Permutation (l++[x]) (x::l).
-Proof.
+Proof using.
   induction l; eauto.
   simpl. rewrite IHl. eauto using Permutation.
 Qed.

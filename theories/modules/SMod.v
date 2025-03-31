@@ -110,7 +110,7 @@ Section ADD.
       (ms0 ms1: SMod.t)
     :
     SMod.to_hmod ginv spc (SMod.add ms0 ms1) = HMod.add (SMod.to_hmod ginv spc ms0) (SMod.to_hmod ginv spc ms1).
-  Proof.
+  Proof using.
     eapply hmod_extensionality; ss; eauto.
     rewrite map_app. ss.
   Qed.
@@ -120,7 +120,7 @@ Section ADD.
       (md0 md1: SMod.t)
     :
     SMod.to_hmod ginv spc (SMod.add md0 md1) = HMod.add (SMod.to_hmod ginv spc md0) (SMod.to_hmod ginv spc md1).
-  Proof.
+  Proof using.
     unfold SMod.to_hmod. unfold "★". s. 
     f_equal. extensionalities.
     eapply smod_add_interp_comm.
@@ -130,7 +130,7 @@ Section ADD.
       ginv spc
     :
     SMod.to_hmod ginv spc SMod.empty = HMod.empty.
-  Proof.
+  Proof using.
     unfold SMod.to_hmod, HMod.empty.
     eapply hmod_extensionality; eauto.
   Qed.
@@ -140,7 +140,7 @@ Section ADD.
       (mds: list SMod.t)
     :
     SMod.to_hmod ginv spc (SMod.addL mds) = HMod.addL (List.map (SMod.to_hmod ginv spc) mds).
-  Proof.
+  Proof using.
     induction mds; [eapply interp_empty|].
     s. rewrite add_interp_comm.
     f_equal. eauto.

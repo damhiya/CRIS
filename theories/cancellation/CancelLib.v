@@ -59,7 +59,7 @@ Section CANCEL.
     (REL: Forall2i R i xs ys)
   :
     List.length xs = List.length ys.
-  Proof.
+  Proof using.
     induction REL; s; eauto.
   Qed.
 
@@ -73,7 +73,7 @@ Section CANCEL.
     xs !! k = Some x /\
     ys !! k = Some y /\
     R (i + k) x y.
-  Proof.
+  Proof using.
     revert k NTH.
     induction REL; s; i; eauto.
     - nia.
@@ -88,7 +88,7 @@ Section CANCEL.
       (REL: Forall2i R i xs ys)
     :
     ∀k x y (LKX: xs !! k = Some x) (LKY: ys !! k = Some y), R (i + k) x y.
-  Proof.
+  Proof using.
     i. hexploit (lookup_lt_Some _ _ _ LKX).
     i. hexploit Forall2i_nth; eauto.
     i. des. rewrite LKX in H0. rewrite LKY in H1.
@@ -117,27 +117,27 @@ Section CANCEL.
 
   Lemma valid_solve (a b c: Σ) :
     ✓ a -> a ≡  b ⋅ c -> ✓ b.
-  Proof.
+  Proof using.
     i. eapply cmra_valid_op_l. setoid_rewrite <- H0. eauto.
   Qed.
 
   Lemma valid_extends (r a b: Σ):
     b ≼ a -> ✓(r ⋅ a) -> ✓ (r ⋅ b).
-  Proof.
+  Proof using.
     i. apply cmra_mono_l with (z:=r) in H.
     eapply cmra_valid_included; eauto.
   Qed.
 
   Lemma Own_bupd_valid (r a b: Σ):
     (Own r ⊢|==> Own a ∗ Own b) -> ✓ r -> ✓ (a ⋅ b).
-  Proof.
+  Proof using.
     i. eapply Own_wand_valid with (a1 := r); eauto.
     iIntros "H". iApply Own_op. iStopProof. eauto.
   Qed.
 
   Lemma list_lookup_length {X} (x: X) l:
     (l ++ [x]) !! (base.length l) = Some x.
-  Proof.
+  Proof using.
     eapply lookup_snoc_Some; right; eauto.
   Qed.
 

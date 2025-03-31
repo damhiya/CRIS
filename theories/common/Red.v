@@ -11,7 +11,7 @@ Lemma _equal_f (A B : Type) (f g : A -> B)
       (EQ : f = g)
   :
     f x = g x.
-Proof.
+Proof using.
   subst. apply eq_refl.
 Qed.
 
@@ -19,7 +19,7 @@ Lemma _einit (P Q : Prop)
       (EQ : P = Q)
   :
     Q -> P.
-Proof.
+Proof using.
   subst. apply id.
 Qed.
 

@@ -199,7 +199,7 @@ Section SIM_ITREE.
     (LE : P <6= P')
     :
     @sim_itree_def sim_itree R_src R_tgt RR P <6= sim_itree_def sim_itree' RR P'.
-  Proof.
+  Proof using.
     i. destruct PR; eauto using sim_itree_def.
   Defined.
 
@@ -207,7 +207,7 @@ Section SIM_ITREE.
     (SIM : @sim_itree_def sim_itree R_src R_tgt RR P <6= P)
     :
     _sim_itree sim_itree RR <6= P.
-  Proof.
+  Proof using.
     fix IH 7. i. destruct PR. eapply SIM.
     eapply sim_itree_def_mon, SAT; i.
     - apply PR.
@@ -215,7 +215,7 @@ Section SIM_ITREE.
   Qed.
   
   Lemma sim_itree_mon : monotone9 _sim_itree.
-  Proof.
+  Proof using.
     ii. eapply sim_itree_tarski; eauto.
     econs; inv PR. 
     all: eauto using sim_itree_def.
@@ -227,18 +227,18 @@ Section SIM_ITREE.
   Hint Resolve cpn9_wcompat : paco.
 
   Lemma le_mine_refl : Reflexive le_mine.
-  Proof. ii. eexists; eauto. Qed.
+  Proof using le_refl. ii. eexists; eauto. Qed.
 
   Lemma le_mine_trans : Transitive le_mine.
-  Proof.
+  Proof using le_trans.
     ii. eapply H in IN. des. eapply H0 in IN. des. eauto.
   Qed.
 
   Lemma le_others_refl : Reflexive le_others.
-  Proof. rr. esplits; eauto. Qed.
+  Proof using. rr. esplits; eauto. Qed.
 
   Lemma le_others_trans : Transitive le_others.
-  Proof.
+  Proof using.
     rr. unfold le_others. i; des. split; i.
     - etrans; eauto.
     - etrans; try apply H2; eauto.
@@ -246,7 +246,7 @@ Section SIM_ITREE.
 
   Lemma le_others_inc w1 w2 x:
     le_others w1 w2 -> le_others (w1++[x]) (w2++[x]).
-  Proof.
+  Proof using.
     i. rdes H. split.
     - rewrite !length_app. nia.
     - i. assert (i < List.length w1 \/ i >= List.length w1) by nia; des.
@@ -259,7 +259,7 @@ Section SIM_ITREE.
     (WLE : le_others w1 w2)
     :
     _sim_itree self RR ps pt w1 nths src tgt.
-  Proof.
+  Proof using.
     move SIM before RR. revert_until SIM.
     pattern ps, pt, w2, nths, src, tgt.
     eapply sim_itree_tarski, SIM.
@@ -278,7 +278,7 @@ Section SIM_ITREE.
         (SIM : @sim_itree_def (paco9 _sim_itree bot9) R_src R_tgt RR (paco9 _sim_itree bot9 R_src R_tgt RR /6\ P) <6= P)
     :
     paco9 _sim_itree bot9 _ _ RR <6= P.
-  Proof.
+  Proof using.
     i. punfold PR.
     assert (SIM' : sim_itree_def (paco9 _sim_itree bot9) RR (paco9 _sim_itree bot9 R_src R_tgt RR /6\ P) <6= (paco9 _sim_itree bot9 R_src R_tgt RR /6\ P)).
     { i. split; eauto. pstep. econs.
@@ -293,14 +293,14 @@ Section SIM_ITREE.
     @sim_itree_def bot9 R_src R_tgt RR (sim_itree R_src R_tgt RR).
     
   Lemma sim_itree_indC_mon : monotone9 sim_itree_indC.
-  Proof.
+  Proof using.
     ii. inv IN; try (sfby des; econs; et).
   Qed.
   Hint Resolve sim_itree_indC_mon : paco.
   
   Lemma sim_itree_indC_spec:
     sim_itree_indC <10= gupaco9 (_sim_itree) (cpn9 _sim_itree).
-  Proof.
+  Proof using.
     eapply wrespect9_uclo; eauto with paco.
     econs; eauto with paco. i. inv PR; econs.
     { econs 1; eauto. }
@@ -327,7 +327,7 @@ Section SIM_ITREE.
 
   Lemma sim_itreeC_spec_aux:
     sim_itreeC <11= gpaco9 (_sim_itree) (cpn9 _sim_itree).
-  Proof.
+  Proof using.
     i. inv PR.
     { gstep. econs; econs 1; eauto. }
     { guclo sim_itree_indC_spec. econs 2; et. i. gbase. et. }
@@ -353,7 +353,7 @@ Section SIM_ITREE.
       @sim_itreeC (gpaco9 (_sim_itree) (cpn9 _sim_itree) r g) (gpaco9 (_sim_itree) (cpn9 _sim_itree) g g)
       <9=
       gpaco9 (_sim_itree) (cpn9 _sim_itree) r g.
-  Proof.
+  Proof using.
     i. eapply gpaco9_gpaco; [eauto with paco|].
     eapply gpaco9_mon.
     { eapply sim_itreeC_spec_aux. eauto. }
@@ -365,7 +365,7 @@ Section SIM_ITREE.
         (SIM : gpaco9 _sim_itree (cpn9 _sim_itree) g g R0 R1 RR false false w nths st_src st_tgt)
     :
       gpaco9 _sim_itree (cpn9 _sim_itree) r g R0 R1 RR true true w nths st_src st_tgt.
-  Proof.
+  Proof using.
     gstep. destruct st_src, st_tgt. econs; econs; eauto using le_others_refl. 
   Qed.
   
@@ -377,7 +377,7 @@ Section SIM_ITREE.
         (TGT : pt0 = true -> pt1 = true)
     :
       _sim_itree sim_itree RR ps1 pt1 w nths st_src st_tgt.
-  Proof.
+  Proof using.
     move SIM before sim_itree. revert_until SIM.
     pattern ps0, pt0, w, nths, st_src, st_tgt.
     eapply sim_itree_tarski, SIM.
@@ -414,12 +414,12 @@ Section SIM_ITREE.
     :
       @lflagC r1 <9= @lflagC r2
   .
-  Proof. ii. destruct PR; econs; et. Qed.
+  Proof using. ii. destruct PR; econs; et. Qed.
 
   Hint Resolve lflagC_mon : paco.
 
   Lemma lflagC_spec : lflagC <10= gupaco9 (_sim_itree) (cpn9 _sim_itree).
-  Proof.
+  Proof using.
     eapply wrespect9_uclo; eauto with paco.
     econs; eauto with paco. i. inv PR.
     eapply GF in SIM.
@@ -436,7 +436,7 @@ Section SIM_ITREE.
         (SIM : gpaco9 _sim_itree (cpn9 _sim_itree) r g R0 R1 RR false false w nths st_src st_tgt)
     :
       gpaco9 _sim_itree (cpn9 _sim_itree) r g R0 R1 RR ps pt w nths st_src st_tgt.
-  Proof.
+  Proof using.
     guclo lflagC_spec. econs; eauto using le_others_refl.
   Qed.
 
@@ -444,7 +444,7 @@ Section SIM_ITREE.
         (SIM : paco9 _sim_itree bot9 _ _ (final_rel w0) true true w nths st_src st_tgt)
     :
       paco9 _sim_itree bot9 _ _ (final_rel w0) ps pt w nths st_src st_tgt.
-  Proof.
+  Proof using.
     ginit. remember true in SIM at 1. remember true in SIM at 1.
     clear Heqb Heqb0. revert w nths st_src st_tgt ps pt b b0 SIM.
     gcofix CIH. 
@@ -479,14 +479,14 @@ Section SIM_ITREE.
     :
       lbindR r1 s1 <9= lbindR r2 s2
   .
-  Proof. ii. destruct PR; econs; et. Qed.
+  Proof using. ii. destruct PR; econs; et. Qed.
 
   Definition lbindC r := lbindR r r.
   Hint Unfold lbindC : core.
   Hint Resolve lbindR_mon : paco.
 
   Lemma lbindC_wrespectful : wrespectful9 (_sim_itree) lbindC.
-  Proof.
+  Proof using.
     econs; eauto with paco.
     i. inv PR; csc.
     remember (st_src, i_src). remember(st_tgt, i_tgt).
@@ -517,7 +517,7 @@ Section SIM_ITREE.
   Qed.
 
   Lemma lbindC_spec : lbindC <10= gupaco9 (_sim_itree) (cpn9 (_sim_itree)).
-  Proof.
+  Proof using.
     intros. eapply wrespect9_uclo; eauto with paco. eapply lbindC_wrespectful.
   Qed.
 
@@ -560,7 +560,7 @@ Section MODSEMR.
     :
     forall fn (MISS : alist_find fn fl_tgt = None),
       alist_find fn fl_src = None.
-  Proof.
+  Proof using.
     i. destruct (alist_find fn fl_src) eqn: EQ; eauto.
     apply SIM in EQ. des. rewrite MISS in EQ. ss.
   Qed.

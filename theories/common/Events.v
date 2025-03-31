@@ -100,77 +100,77 @@ Section WRAP.
 
   Lemma assume_assumeK (P : Prop) :
     assume P = assumeK P (Ret tt).
-  Proof.
+  Proof using.
     eapply observe_eta; ss. f_equal. extensionality x.
     eapply observe_eta; ss.
   Qed.
 
   Lemma assumeK_assume {R} (P : Prop) (itr : itree E R) :
     assumeK P itr = assume P;;; itr.
-  Proof.
+  Proof using.
     eapply observe_eta; ss. f_equal. extensionality x.
     eapply observe_eta; ss.
   Qed.
 
   Lemma assumeK_bind {U T} (P : Prop) (k1 : itree E U) (k2 : U -> itree E T) :
     (assumeK P k1 >>= k2) = assumeK P (k1 >>= k2).
-  Proof.
+  Proof using.
     eapply observe_eta; ss.
   Qed.
 
   Lemma guarantee_guaranteeK (P : Prop) :
     guarantee P = guaranteeK P (Ret tt).
-  Proof.
+  Proof using.
     eapply observe_eta; ss. f_equal. extensionality x.
     eapply observe_eta; ss.
   Qed.
 
   Lemma guaranteeK_guarantee {R} (P : Prop) (k : itree E R) :
     guaranteeK P k = guarantee P;;; k.
-  Proof.
+  Proof using.
     eapply observe_eta; ss. f_equal. extensionality x.
     eapply observe_eta; ss.
   Qed.
 
   Lemma guaranteeK_bind {U T} (P : Prop) (k1 : itree E U) (k2 : U -> itree E T) :
     (guaranteeK P k1 >>= k2) = guaranteeK P (k1 >>= k2).
-  Proof.
+  Proof using.
     eapply observe_eta; ss.
   Qed.
 
   Lemma unwrapU_unwrapUK {X} (x : option X) :
     unwrapU x = unwrapUK x (fun x => Ret x).
-  Proof.
+  Proof using.
     eapply observe_eta; ss.
   Qed.
 
   Lemma unwrapUK_unwrapU {X R} (x : option X) (k : X -> itree E R) :
     unwrapUK x k = unwrapU x >>= k.
-  Proof.
+  Proof using.
     eapply observe_eta; destruct x; ss. f_equal. extensionality x. ss.
   Qed.
 
   Lemma unwrapUK_bind {X U T} (x : option X) (k1 : X -> itree E U) (k2 : U -> itree E T) :
     (unwrapUK x k1 >>= k2) = unwrapUK x (fun x => k1 x >>= k2).
-  Proof.
+  Proof using.
     eapply observe_eta; destruct x; ss. f_equal. extensionality x. ss.
   Qed.
 
   Lemma unwrapN_unwrapNK {X} (x : option X) :
     unwrapN x = unwrapNK x (fun x => Ret x).
-  Proof.
+  Proof using.
     eapply observe_eta; ss.
   Qed.
 
   Lemma unwrapNK_unwrapN {X R} (x : option X) (k : X -> itree E R) :
     unwrapNK x k = unwrapN x >>= k.
-  Proof.
+  Proof using.
     eapply observe_eta; destruct x; ss. f_equal. extensionality x. ss.
   Qed.
 
   Lemma unwrapNK_bind {X U T} (x : option X) (k1 : X -> itree E U) (k2 : U -> itree E T) :
     (unwrapNK x k1 >>= k2) = unwrapNK x (fun x => k1 x >>= k2).
-  Proof.
+  Proof using.
     eapply observe_eta; destruct x; ss. f_equal. extensionality x. ss.
   Qed.
 

@@ -58,7 +58,7 @@ Section BEHAVES.
   Definition state_spin : _ -> Prop := paco1 _state_spin bot1.
 
   Lemma state_spin_mon : monotone1 _state_spin.
-  Proof.
+  Proof using.
     ii. inv IN; try (sfby econs; eauto).
     des. econs; et.
   Qed.
@@ -123,7 +123,7 @@ Section BEHAVES.
     (FIX: _of_itreeF coself rel <2= rel)
     :
     _of_itree coself <2= rel.
-  Proof.
+  Proof using.
     fix IH 3.
     i. destruct PR.
     destruct REL; apply FIX; econs; des; esplits; try apply IH; try eassumption.
@@ -131,7 +131,7 @@ Section BEHAVES.
   Qed.
 
   Lemma of_itree_mon: monotone2 _of_itree.
-  Proof.
+  Proof using.
     ii. eapply of_itree_tarski, IN.
     i. destruct PR; eauto using _of_itree, _of_itreeF.
   Qed.
@@ -146,7 +146,7 @@ Section BEHAVES.
     (SIM: _of_itreeF of_itree (of_itree /2\ P) <2= P)
     :
     of_itree <2= P.
-  Proof.
+  Proof using.
     i. punfold PR. revert x0 x1 PR.
     fix IH 3. i.
     destruct PR, REL; try sfby eapply SIM; pclearbot; des; econs; esplits; eauto.

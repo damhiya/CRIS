@@ -23,16 +23,16 @@ Section AUX.
     | xhd :: xtl =>
       (∃ lhd ltl, ⌜ll = Vptr lhd 0⌝ ∗ (lhd, 0%Z) |-> [xhd; ltl] ∗ is_list ltl xtl)%I
     end.
-  Proof. destruct xs; ss. Qed.
+  Proof using. destruct xs; ss. Qed.
 
   Lemma unfold_is_list_cons ll xhd xtl:
     is_list ll (xhd :: xtl) =
     (∃ lhd ltl, ⌜ll = Vptr lhd 0⌝ ∗ (lhd, 0%Z) |-> [xhd; ltl] ∗ is_list ltl xtl)%I.
-  Proof. eapply unfold_is_list. Qed.
+  Proof using. eapply unfold_is_list. Qed.
 
   Lemma is_list_wf ll xs:
     (is_list ll xs) -∗ (⌜(ll = Vnullptr) ∨ (match ll with | Vptr _ 0 => True | _ => False end)⌝).
-  Proof.
+  Proof using.
     iIntros "L". destruct xs; ss; et.
     { iPure "L" as L. iPureIntro. et. }
     iDestruct "L" as (? ?) "(% & P & L)".
@@ -64,7 +64,7 @@ Section AUX2.
     :
     nth_error (repeat x sz) ofs = None
     .
-    Proof.
+    Proof using.
     generalize dependent ofs. induction sz; ii; ss.
     - destruct ofs; ss.
     - destruct ofs; ss. { lia. } hexploit (IHsz ofs); et. lia.
@@ -132,7 +132,7 @@ Section RA.
     own γ ((● mem_src): memRA)
     ⊢ |==> own γ ((● (mem_src ⋅ _points_to_r (blk, 0%Z) 1 (repeat Vundef sz))): memRA)
            ∗ own γ ((◯ _points_to_r (blk, 0%Z) 1 (repeat Vundef sz)): memRA).
-  Proof.
+  Proof using sinvG0 invG0.
     iIntros "S".
     iAssert _ with "[S]" as "B".
     { iApply (own_update with "S"). apply auth_update_alloc.
@@ -165,7 +165,7 @@ Section RA.
   Lemma split_points_to_r blk ofs q a l :
     _points_to_r (blk, ofs) q (a :: l)
     ≡ (_points_to_r (blk, ofs) q [a]) ⋅ (_points_to_r (blk, (ofs+1)%Z) q l).
-  Proof.
+  Proof using sinvG0 invG0 memGΓ0.
     intros b o. rewrite !discrete_fun_lookup_op. ss.
     destruct (dec b blk).
     - subst. destruct (dec o ofs).
@@ -189,7 +189,7 @@ Section RA.
   Lemma points_to_singleton blk ofs q a :
     _points_to_r (blk, ofs) q [a]
     ≡ (discrete_fun_singleton blk (discrete_fun_singleton ofs (Some (q, Excl a)))).
-  Proof.
+  Proof using sinvG0 invG0 memGΓ0.
     intros b o. ss. des_ifs; destruct dec; bsimpl; des; Ztac; try nia.
     - replace o with ofs in * by nia. rewrite Z.sub_diag in Heq0. ss. inv Heq0.
       rewrite !discrete_fun_lookup_singleton //.
@@ -204,7 +204,7 @@ Section RA.
   Lemma points_to_transform blk ofs q l :
     own base_γ ((◯ _points_to_r (blk, ofs) q l): memRA)
     ⊢ [∗ list] i↦v ∈ l, (blk, (ofs + i)%Z) |={q}=> v.
-  Proof.
+  Proof using sinvG0 invG0.
     gen ofs. induction l.
     - iIntros; eauto.
     - i. rewrite split_points_to_r. iIntros "[P L]".
@@ -245,7 +245,7 @@ Module MemIA. Section MemIA.
   Local Definition IstFull := (IstProd (IstSB MemA.(HMod.scopes) Ist) IstEq).
 
   Lemma simF_alloc : HSim.sim_fun open MemA MemI IstFull MemHdr.alloc.
-  Proof.
+  Proof using MemInSpcMem.
     init_simF u_s 0.
     steps_l.
     iDestruct "ASM" as "(% & %)". des; subst; hss.
@@ -289,7 +289,7 @@ Module MemIA. Section MemIA.
   Qed.
 
   Lemma simF_free : HSim.sim_fun open MemA MemI IstFull MemHdr.free.
-  Proof.
+  Proof using MemInSpcMem.
     init_simF u_s 0.
   
     steps_l. iDestruct "ASM" as "((% & % & P) & %)". des; subst; hss.
@@ -377,7 +377,7 @@ Module MemIA. Section MemIA.
   Qed.
 
   Lemma simF_load : HSim.sim_fun open MemA MemI IstFull MemHdr.load.
-  Proof.
+  Proof using MemInSpcMem.
     init_simF u_s 0.
 
     steps_l. iDestruct "ASM" as "([% P] & %)". subst; hss.
@@ -411,7 +411,7 @@ Module MemIA. Section MemIA.
   Qed.
 
   Lemma simF_store : HSim.sim_fun open MemA MemI IstFull MemHdr.store.
-  Proof.
+  Proof using MemInSpcMem.
     init_simF u_s 0.
 
     steps_l. iDestruct "ASM" as "((% & % & P) & %)". subst; hss.
@@ -521,7 +521,7 @@ Module MemIA. Section MemIA.
   Qed.
 
   Lemma simF_cmp : HSim.sim_fun open MemA MemI IstFull MemHdr.cmp.
-  Proof.
+  Proof using MemInSpcMem.
     init_simF u_s 0.
     
     steps_l. destruct q. destruct x.
@@ -709,7 +709,7 @@ Module MemIA. Section MemIA.
   Qed.
 
   Lemma simF_cas : HSim.sim_fun open MemA MemI IstFull MemHdr.cas.
-  Proof.
+  Proof using MemInSpcMem.
     init_simF u_s 0.
 
     steps_l.
@@ -836,7 +836,7 @@ Module MemIA. Section MemIA.
   Qed.
 
   Theorem sim : HSim.t open MemA MemI (MemA.init_cond csl genv) IstFull.
-  Proof.
+  Proof using MemInSpcMem.
     init_sim.
     - rewrite /IstFull /MemA /MemI. unfold_hmod. s.
       iIntros "P". iExists [], [_], [], []. repeat iSplit; et. et. { iPureIntro. ss. }
@@ -865,5 +865,5 @@ Section ctxr.
     ctx_refines
       (MemA.t u_s spc, MemA.init_cond csl genv)
       (MemI.t csl genv, emp%I).
-  Proof. eapply main_adequacy, sim; eauto. Qed.
+  Proof using. eapply main_adequacy, sim; eauto. Qed.
 End ctxr. End MemIA.

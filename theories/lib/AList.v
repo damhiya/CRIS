@@ -20,7 +20,7 @@ Global Program Instance nat_Dec : Dec nat. Next Obligation. apply Nat.eq_dec. De
 Global Program Instance Z_Dec : Dec Z. Next Obligation. apply Z.eq_dec. Defined.
 Global Program Instance option_Dec A `{Dec A} : Dec (option A).
 Next Obligation.
-Proof.
+Proof using.
   i. destruct a0, a1.
   - destruct (H a a0).
     + left. f_equal. apply e.
@@ -54,7 +54,7 @@ Global Instance Dec_RelDec K `{Dec K} : @RelDec K eq :=
   { rel_dec := dec }.
 
 Global Instance Dec_RelDec_Correct K `{Dec K} : RelDec_Correct Dec_RelDec.
-Proof.
+Proof using.
   unfold Dec_RelDec. ss.
   econs. ii. ss. unfold Dec_RelDec. split; ii.
   - unfold rel_dec in *. unfold sumbool_to_bool in *. des_ifs.
@@ -124,7 +124,7 @@ Lemma eq_rel_dec_correct T `{DEC : Dec T}
       x0 x1
   :
     x0 ?[eq] x1 = if (DEC x0 x1) then true else false.
-Proof.
+Proof using.
   des_ifs.
 Qed.
 
@@ -135,7 +135,7 @@ Section ALIST.
         (FIND : alist_find k l = Some v)
   :
     In (k, v) l.
-  Proof.
+  Proof using.
     revert FIND. induction l; ss.
     i. destruct a. ss. rewrite eq_rel_dec_correct in *. des_ifs; auto.
   Qed.
@@ -145,7 +145,7 @@ Section ALIST.
         (IN : In (k, v) l)
   :
     alist_find k l = Some v.
-  Proof.
+  Proof using.
     revert ND IN. induction l; ss.
     i. destruct a. ss. inv ND. des.
     { clarify. rewrite eq_rel_dec_correct in *. des_ifs. }
@@ -158,7 +158,7 @@ Section ALIST.
         v
     :
       ~ In (k, v) l.
-  Proof.
+  Proof using.
     revert FIND. induction l; ss.
     i. destruct a. ss. rewrite eq_rel_dec_correct in *. des_ifs; auto.
     ii. des; clarify. eapply IHl; et.
@@ -168,7 +168,7 @@ Section ALIST.
         (FIND : alist_find k l0 = Some v)
     :
       alist_find k (l0 ++ l1) = Some v.
-  Proof.
+  Proof using.
     revert FIND. induction l0; ss.
     i. destruct a. ss. rewrite eq_rel_dec_correct in *. des_ifs; auto.
   Qed.
@@ -176,7 +176,7 @@ Section ALIST.
   Lemma alist_find_map K `{Dec K} V0 V1 (f : V0 -> V1) (k : K) (l : alist K V0)
     :
       alist_find k (List.map (fun '(k, v) => (k, f v)) l) = o_map (alist_find k l) f.
-  Proof.
+  Proof using.
     induction l; ss. uo. destruct a. rewrite eq_rel_dec_correct in *.
     des_ifs.
   Qed.
@@ -184,7 +184,7 @@ Section ALIST.
   Lemma alist_find_find_some K `{Dec K} V (k : K) (l : alist K V) v
     :
       alist_find k l = Some v <-> find (fun '(k2, _) => rel_dec k k2) l = Some (k, v).
-  Proof.
+  Proof using.
     induction l; ss. destruct a. rewrite eq_rel_dec_correct in *. des_ifs.
     split; i; clarify.
   Qed.
@@ -192,21 +192,21 @@ Section ALIST.
   Lemma alist_find_find_none K `{Dec K} V (k : K) (l : alist K V)
     :
       alist_find k l = None <-> find (fun '(k2, _) => rel_dec k k2) l = None.
-  Proof.
+  Proof using.
     induction l; ss. destruct a. rewrite eq_rel_dec_correct in *. des_ifs.
   Qed.
 
   Lemma alist_add_find_eq K `{Dec K} V (k : K) (l : alist K V) (v : V)
     :
       alist_find k (alist_add k v l) = Some v.
-  Proof.
+  Proof using.
     ss. rewrite eq_rel_dec_correct. des_ifs.
   Qed.
 
   Lemma alist_remove_find_eq K `{Dec K} V (k : K) (l : alist K V)
     :
       alist_find k (alist_remove k l) = None.
-  Proof.
+  Proof using.
     induction l; ss. rewrite eq_rel_dec_correct. des_ifs.
     ss. destruct a. ss. rewrite eq_rel_dec_correct. des_ifs.
   Qed.
@@ -215,7 +215,7 @@ Section ALIST.
         (NEQ : k0 <> k1)
     :
       alist_find k0 (alist_remove k1 l) = alist_find k0 l.
-  Proof.
+  Proof using.
     induction l; ss.
     destruct a. ss. rewrite ! eq_rel_dec_correct. des_ifs.
     { ss. rewrite eq_rel_dec_correct. des_ifs. }
@@ -226,7 +226,7 @@ Section ALIST.
         (NEQ : k0 <> k1)
     :
       alist_find k0 (alist_add k1 v l) = alist_find k0 l.
-  Proof.
+  Proof using.
     ss. rewrite eq_rel_dec_correct. des_ifs.
     eapply alist_remove_find_neq; auto.
   Qed.
@@ -236,7 +236,7 @@ Section ALIST.
         (ND : List.NoDup (List.map fst l))
     :
       alist_find k l = Some v.
-  Proof.
+  Proof using.
     revert FIND ND. induction l; ss. i.
     destruct a. erewrite eq_rel_dec_correct. ss. inv ND. des_ifs.
     - ss. rewrite eq_rel_dec_correct in *. des_ifs.
@@ -251,7 +251,7 @@ Section ALIST.
         (ND : List.NoDup (List.map fst l))
     :
       List.NoDup (List.map fst (alist_add k v l)).
-  Proof.
+  Proof using.
     revert ND. induction l; ss.
     { i. econs; et. }
     i. inv ND. spc IHl. destruct a. ss.
@@ -269,7 +269,7 @@ Section ALIST.
     :
       alist_filter f (alist_remove k l) =
       alist_remove k (alist_filter f l).
-  Proof.
+  Proof using.
     induction l; ss. destruct a. ss.
     rewrite eq_rel_dec_correct. des_ifs; ss.
     { rewrite Heq0. rewrite eq_rel_dec_correct. des_ifs. f_equal; et. }
@@ -282,7 +282,7 @@ Section ALIST.
     :
       alist_filter f (alist_add k v l) =
       alist_add k v (alist_filter f l).
-  Proof.
+  Proof using.
     unfold alist_add in *. ss. des_ifs.
     f_equal. eapply alist_remove_filter.
   Qed.
@@ -292,7 +292,7 @@ Section ALIST.
     :
       alist_filter f (alist_add k v l) =
       alist_filter f l.
-  Proof.
+  Proof using.
     induction l; ss.
     { i. rewrite NIN. ss. }
     { i. destruct a. ss. rewrite NIN in *.
@@ -308,7 +308,7 @@ Section ALIST.
         k
     :
       alist_find k l0 = alist_find k l1.
-  Proof.
+  Proof using.
     revert ND k. induction PERM; ss.
     { i. inv ND. destruct x. rewrite eq_rel_dec_correct. des_ifs. et. }
     { i. inv ND. inv H3. destruct x, y. rewrite eq_rel_dec_correct. des_ifs.
@@ -326,7 +326,7 @@ Section ALIST.
       | Some v => Some v
       | _ => alist_find k l1
       end.
-  Proof.
+  Proof using.
     induction l0; ss. destruct a. rewrite eq_rel_dec_correct. des_ifs.
   Qed.
 
@@ -335,7 +335,7 @@ Section ALIST.
       alist_find k (map (map_snd f) l)
       =
       o_map (alist_find k l) f.
-  Proof.
+  Proof using.
     induction l; ss. destruct a. ss. uo. des_ifs.
   Qed.
 End ALIST.
@@ -358,14 +358,14 @@ Section ALIST.
   Lemma alist_find_fst_some:
     forall [K : Type] {H : Dec K} [V : Type] (k : K) (l : alist K V) [v : V],
     alist_find k l = Some v -> In k (List.map fst l).
-  Proof.
+  Proof using.
     i. apply alist_find_some in H0. eapply (in_map fst) in H0. eauto.
   Qed.
 
   Lemma alist_find_fst_none:
     forall [K : Type] {H : Dec K} [V : Type] (k : K) (l : alist K V),
     alist_find k l = None -> ~ In k (List.map fst l).
-  Proof.
+  Proof using.
     ii. apply (in_map_iff fst) in H1. des; subst. destruct x. ss.
     eapply alist_find_none in H0. apply H0. eauto.
   Qed.
@@ -373,7 +373,7 @@ Section ALIST.
   Lemma alist_find_fst_notin:
     forall [K : Type] {H : Dec K} [V : Type] (k : K) (l : alist K V),
     ~ In k (List.map fst l) -> alist_find k l = None.
-  Proof.
+  Proof using.
     ii. destruct (alist_find k l) eqn : EQ; eauto.
     apply alist_find_fst_some in EQ. ss.
   Qed.
@@ -381,7 +381,7 @@ Section ALIST.
   Lemma alist_find_fst_in:
     forall [K : Type] {H : Dec K} [V : Type] (k : K) (l : alist K V),
     In k (List.map fst l) -> exists v, alist_find k l = Some v.
-  Proof.
+  Proof using.
     ii. destruct (alist_find k l) eqn : EQ; eauto.
     apply alist_find_fst_none in EQ. ss.
   Qed.
@@ -393,7 +393,7 @@ Section ALIST.
     (MEM : forall x (IN : In x l1), In x l2)
     :
     forall x (IN : In x l2), In x l1.
-  Proof.
+  Proof using.
     revert_until l1. induction l1; i.
     { destruct l2; ss. }
 
@@ -414,7 +414,7 @@ Section ALIST.
     (MEM : forall x (IN : In x l1), In x l2)
     :
     NoDup l2.
-  Proof.
+  Proof using.
     revert_until l1. induction l1; i.
     { destruct l2; ss. }
 
@@ -439,7 +439,7 @@ Section ALIST.
 
   Lemma alist_add_incl {K V} `{DEC : Dec K} (k : K) (v:V) db:
     incl (List.map fst db) (List.map fst (alist_add k v db)).
-  Proof.
+  Proof using.
     induction db; ss.
     destruct a. ss.
     ii. unfold rel_dec, Dec_RelDec, sumbool_to_bool, dec.
@@ -454,7 +454,7 @@ Section ALIST.
     (NODUP : List.NoDup (List.map fst (l1 ++ [(k,v)] ++ l2)))
     :
     alist_find k (l1 ++ [(k,v)] ++ l2) = Some v.
-  Proof.
+  Proof using.
     induction l1; ss.
     { rewrite eq_rel_dec_correct. des_ifs. }
     destruct a. rewrite eq_rel_dec_correct. inv NODUP. des_ifs; s.
@@ -466,7 +466,7 @@ Section ALIST.
     (IN : In kv (alist_upd k v l))
     :
     kv = (k, v) \/ In kv l.
-  Proof.
+  Proof using.
     unfold alist_upd in *.
     revert kv IN. induction l; ss; i; des; eauto.
     rewrite eq_rel_dec_correct in IN.
@@ -478,7 +478,7 @@ Section ALIST.
     (ND : List.NoDup (List.map fst l))
     :
     List.NoDup (List.map fst (alist_upd k v l)).
-  Proof.
+  Proof using.
     unfold alist_upd in *.
     revert ND. induction l; ss; i; eauto using NoDup.
     i. inv ND. spc IHl. destruct a.
@@ -494,7 +494,7 @@ Section ALIST.
   Lemma List_filter_none {A} (f : A -> bool) (l : list A)
     (NOTIN : forall a, In a l -> f a = true):
     List.filter f l = l.
-  Proof.
+  Proof using.
     induction l; eauto.
     s. des_ifs; cycle 1.
     { rewrite NOTIN in Heq; ss. eauto. }
@@ -505,7 +505,7 @@ Section ALIST.
     (NODUP : List.NoDup (List.map fst (l1 ++ [(k,v)] ++ l2)))
     :
     alist_upd k v' (l1 ++ [(k,v)] ++ l2) = l1 ++ [(k,v')] ++ l2.
-  Proof.
+  Proof using.
     unfold alist_upd in *.
     induction l1; ss.
     { rewrite eq_rel_dec_correct. des_ifs. }
@@ -518,7 +518,7 @@ Section ALIST.
     (NODUP : In k (List.map fst l1))
     :
     alist_upd k v (l1 ++ l2) = alist_upd k v l1 ++ l2.
-  Proof.
+  Proof using.
     unfold alist_upd.
     induction l1; ss.
     destruct a. ss. rewrite eq_rel_dec_correct. des_ifs; s.
@@ -530,7 +530,7 @@ Section ALIST.
     (NODUP : ~ In k (List.map fst l1))
     :
     alist_upd k v (l1 ++ l2) = l1 ++ alist_upd k v l2.
-  Proof.
+  Proof using.
     unfold alist_upd.
     induction l1; eauto.
     destruct a. s. rewrite eq_rel_dec_correct. des_ifs; s.
@@ -541,7 +541,7 @@ Section ALIST.
   
   Lemma alist_upd_keys {K} `{Dec K} {V} (k : K) (v : V) (l : alist K V):
     List.map fst (alist_upd k v l) = List.map fst l.
-  Proof.
+  Proof using.
     i. induction l; ss.
     unfold alist_upd, _alist_upd. des_ifs.
     { rewrite eq_rel_dec_correct in Heq. des_ifs. }
@@ -552,7 +552,7 @@ Section ALIST.
     (NODUP : ~ In k (List.map fst l2))
     :
     alist_upd k v (l1 ++ l2) = alist_upd k v l1 ++ l2.
-  Proof.
+  Proof using.
     unfold alist_upd.
     induction l1; ss; cycle 1.
     {
@@ -569,7 +569,7 @@ Section ALIST.
         (NOTIN : ~ In k (map fst l))
       :
         alist_upd k v l = l.
-  Proof.
+  Proof using.
     induction l; ss. eapply not_or_and in NOTIN. des.
     unfold alist_upd. ss. des_ifs.
     { rewrite eq_rel_dec_correct in Heq. des_ifs. }

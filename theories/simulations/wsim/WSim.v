@@ -13,7 +13,7 @@ Lemma wsim_ginv_split (υ ν : univ_id) (E : coPset)
   (ν < υ) →
   wsim_ginv υ E
   ==∗ wsim_ginv ν ⊤ ∗ own_admin ∗ (∃ n, wsats υ n E) ∗ (wsim_ginv ν ⊤ ==∗ ∃ n, univs υ n).
-Proof.
+Proof using.
   iIntros "%LT [O [[%vn U] [%un W]]]".
   rewrite {1 2}/univs; replace υ with (ν + (S (υ - S ν))) by lia.
   rewrite ?seq_app /= ?big_sepL_app /=. iDestruct "U" as "[U1 [U2 U3]]".
@@ -73,7 +73,7 @@ Section wsim.
       : iProp Σ :=
     wsim_pre t υ ν E -∗
     @isim Σ open fl_s fl_t Ist r g R_s R_t RR ps pt nths st_s st_t.
-  Local Definition wsim_aux : seal (@wsim_def). Proof. by eexists. Qed.
+  Local Definition wsim_aux : seal (@wsim_def). Proof using. by eexists. Qed.
   Definition wsim := wsim_aux.(unseal).
   Local Definition wsim_eq : @wsim = @wsim_def := wsim_aux.(seal_eq).
   Local Ltac unseal := rewrite wsim_eq /wsim_def.
@@ -97,7 +97,7 @@ Section wsim.
     fl_s fl_t Ist b υ ν R_s R_t RR ps pt nths r g E st_s st_t i_s i_t :
     ((∃ γ, own γ a) -∗ wsim fl_s fl_t Ist (Some b) υ ν E r g R_s R_t RR ps pt nths (st_s, i_s) (st_t, i_t))
     ⊢ wsim fl_s fl_t Ist (Some b) υ ν E r g R_s R_t RR ps pt nths (st_s, i_s) (st_t, i_t).
-  Proof.
+  Proof using.
     destruct b; unseal; iIntros "SIM [O PRE]"; iMod (own_alloc a with "O") as "[O o]"; ss.
     all: iApply ("SIM" with "o"); iFrame.
   Qed.
@@ -119,7 +119,7 @@ Section wsim.
     Lemma wsim_ret r g rs rt :
       RR nths (st_s, rs) (st_t, rt) ⊢
       wsim t υ ν ⊤ r g R_s R_t RR ps pt nths (st_s, Ret rs) (st_t, Ret rt).
-    Proof. unseal; iIntros "RR I". iApply isim_ret. iFrame. Qed.
+    Proof using. unseal; iIntros "RR I". iApply isim_ret. iFrame. Qed.
 
     Lemma wsim_call r g E k_s k_t fn arg :
       Ist nths st_s st_t ∗
@@ -130,7 +130,7 @@ Section wsim.
         wsim t υ ν E r g R_s R_t RR true true nths' (st_s', k_s ret) (st_t', k_t ret)) ⊢
       wsim t υ ν E r g R_s R_t RR ps pt nths
         (st_s, trigger (Call fn arg) >>= k_s) (st_t, trigger (Call fn arg) >>= k_t).
-    Proof.
+    Proof using.
       unseal; iIntros "[IST CONT] I".
       rewrite -isim_call; iFrame.
       iIntros (??????) "IST"; iApply ("CONT" with "[] [] [IST]"); iFrame; try iPureIntro; ss.
@@ -142,17 +142,17 @@ Section wsim.
       wsim t υ ν E r g R_s R_t RR ps pt nths
         (st_s, trigger (IO fn arg) >>= k_s)
         (st_t, trigger (IO fn arg) >>= k_t).
-    Proof. unseal; iIntros "RR I". iApply isim_io. iIntros (ret); iApply "RR"; iFrame. Qed.
+    Proof using. unseal; iIntros "RR I". iApply isim_io. iIntros (ret); iApply "RR"; iFrame. Qed.
 
     Lemma wsim_tau_src r g i_s i_t E :
       wsim t υ ν E r g R_s R_t RR true pt nths (st_s, i_s) (st_t, i_t) ⊢
       wsim t υ ν E r g R_s R_t RR ps pt nths (st_s, tau;; i_s) (st_t, i_t).
-    Proof. unseal; iIntros "RR I". iApply isim_tau_src; iApply "RR"; iFrame. Qed.
+    Proof using. unseal; iIntros "RR I". iApply isim_tau_src; iApply "RR"; iFrame. Qed.
 
     Lemma wsim_tau_tgt r g i_s i_t E :
       wsim t υ ν E r g R_s R_t RR ps true nths (st_s, i_s) (st_t, i_t) ⊢
       wsim t υ ν E r g R_s R_t RR ps pt nths (st_s, i_s) (st_t, tau;; i_t).
-    Proof. unseal; iIntros "RR I". iApply isim_tau_tgt; iApply "RR"; iFrame. Qed.
+    Proof using. unseal; iIntros "RR I". iApply isim_tau_tgt; iApply "RR"; iFrame. Qed.
 
     Lemma wsim_inline_src r g fn arg f_s k_s i_t E :
       alist_find fn fl_s = Some f_s →
@@ -160,7 +160,7 @@ Section wsim.
         (st_s, x <- (ret <- (f_s arg);; (tau;; tau;; Ret ret));; (k_s x))
         (st_t, i_t) ⊢
       wsim t υ ν E r g R_s R_t RR ps pt nths (st_s, trigger (Call fn arg) >>= k_s) (st_t, i_t).
-    Proof. i; unseal; iIntros "RR I". iApply isim_inline_src; eauto. iApply "RR"; iFrame. Qed.
+    Proof using. i; unseal; iIntros "RR I". iApply isim_inline_src; eauto. iApply "RR"; iFrame. Qed.
 
     Lemma wsim_inline_tgt r g fn arg i_s f_t k_t E :
       alist_find fn fl_t = Some f_t →
@@ -168,14 +168,14 @@ Section wsim.
         (st_s, i_s)
         (st_t, x <- (ret <- (f_t arg);; (tau;; tau;; Ret ret));; (k_t x)) ⊢
       wsim t υ ν E r g R_s R_t RR ps pt nths (st_s, i_s) (st_t, trigger (Call fn arg) >>= k_t).
-    Proof. i; unseal; iIntros "RR I". iApply isim_inline_tgt; eauto. iApply "RR"; iFrame. Qed.
+    Proof using. i; unseal; iIntros "RR I". iApply isim_inline_tgt; eauto. iApply "RR"; iFrame. Qed.
 
     Lemma wsim_take_src X r g k_s i_t E :
       (∀ x, wsim t υ ν E r g R_s R_t RR true pt nths
         (st_s, k_s x) (st_t, i_t)) ⊢
       wsim t υ ν E r g R_s R_t RR ps pt nths
         (st_s, trigger (Take X) >>= k_s) (st_t, i_t).
-    Proof.
+    Proof using.
       unseal; iIntros "RR I". iApply isim_take_src; eauto. iIntros (x); iApply "RR"; iFrame.
     Qed.
 
@@ -184,7 +184,7 @@ Section wsim.
         wsim t υ ν E r g R_s R_t RR ps true nths (st_s, i_s) (st_t, k_t x)) ⊢
       wsim t υ ν E r g R_s R_t RR ps pt nths
         (st_s, i_s) (st_t, trigger (Take X) >>= k_t).
-    Proof.
+    Proof using.
       unseal; iIntros "[%x RR] I". iApply isim_take_tgt; eauto. iExists _; iApply "RR"; iFrame.
     Qed.
 
@@ -193,7 +193,7 @@ Section wsim.
         wsim t υ ν E r g R_s R_t RR true pt nths (st_s, k_s x) (st_t, i_t)) ⊢
       wsim t υ ν E r g R_s R_t RR ps pt nths
         (st_s, trigger (Choose X) >>= k_s) (st_t, i_t).
-    Proof.
+    Proof using.
       unseal; iIntros "[%x RR] I". iApply isim_choose_src; eauto. iExists _; iApply "RR"; iFrame.
     Qed.
 
@@ -202,7 +202,7 @@ Section wsim.
         wsim t υ ν E r g R_s R_t RR ps true nths (st_s, i_s) (st_t, k_t x)) ⊢
       wsim t υ ν E r g R_s R_t RR ps pt nths
         (st_s, i_s) (st_t, trigger (Choose X) >>= k_t).
-    Proof.
+    Proof using.
       unseal; iIntros "RR I". iApply isim_choose_tgt; eauto. iIntros (x); iApply "RR"; iFrame.
     Qed.
 
@@ -211,35 +211,35 @@ Section wsim.
         (alist_upd k v st_s, k_s tt) (st_t, i_t) ⊢
       wsim t υ ν E r g R_s R_t RR ps pt nths
         (st_s, trigger (SPut k v) >>= k_s) (st_t, i_t).
-    Proof. unseal; iIntros "RR I". iApply isim_sput_src; eauto. iApply "RR"; iFrame. Qed.
+    Proof using. unseal; iIntros "RR I". iApply isim_sput_src; eauto. iApply "RR"; iFrame. Qed.
 
     Lemma wsim_sput_tgt k v r g i_s k_t E :
       wsim t υ ν E r g R_s R_t RR ps true nths
         (st_s, i_s) (alist_upd k v st_t, k_t tt) ⊢
       wsim t υ ν E r g R_s R_t RR ps pt nths
         (st_s, i_s) (st_t, trigger (SPut k v) >>= k_t).
-    Proof. unseal; iIntros "RR I". iApply isim_sput_tgt; eauto. iApply "RR"; iFrame. Qed.
+    Proof using. unseal; iIntros "RR I". iApply isim_sput_tgt; eauto. iApply "RR"; iFrame. Qed.
 
     Lemma wsim_sget_src k r g k_s i_t E :
       wsim t υ ν E r g R_s R_t RR true pt nths
         (st_s, k_s (or_else (alist_find k st_s) tt↑)) (st_t, i_t) ⊢
       wsim t υ ν E r g R_s R_t RR ps pt nths
         (st_s, trigger (SGet k) >>= k_s) (st_t, i_t).
-    Proof. unseal; iIntros "RR I". iApply isim_sget_src; eauto. iApply "RR"; iFrame. Qed.
+    Proof using. unseal; iIntros "RR I". iApply isim_sget_src; eauto. iApply "RR"; iFrame. Qed.
 
     Lemma wsim_sget_tgt k r g i_s k_t E :
       wsim t υ ν E r g R_s R_t RR ps true nths
         (st_s, i_s) (st_t, k_t (or_else (alist_find k st_t) tt↑)) ⊢
       wsim t υ ν E r g R_s R_t RR ps pt nths
         (st_s, i_s) (st_t, trigger (SGet k) >>= k_t).
-    Proof. unseal; iIntros "RR I". iApply isim_sget_tgt; eauto. iApply "RR"; iFrame. Qed.
+    Proof using. unseal; iIntros "RR I". iApply isim_sget_tgt; eauto. iApply "RR"; iFrame. Qed.
 
     Lemma wsim_assume_src (P : iProp Σ) r g k_s i_t E :
       (P -∗ wsim t υ ν E r g R_s R_t RR true pt nths
         (st_s, k_s tt) (st_t, i_t)) ⊢
       wsim t υ ν E r g R_s R_t RR ps pt nths
         (st_s, trigger (Assume P) >>= k_s) (st_t, i_t).
-    Proof.
+    Proof using.
       unseal; iIntros "RR I". iApply isim_Assume_src; eauto. iIntros "P".
       iApply ("RR" with "P"); iFrame.
     Qed.
@@ -249,14 +249,14 @@ Section wsim.
         (st_s, i_s) (st_t, k_t tt) ⊢
       wsim t υ ν E r g R_s R_t RR ps pt nths
         (st_s, i_s) (st_t, trigger (Assume P) >>= k_t).
-    Proof. unseal; iIntros "[P RR] I". iApply isim_Assume_tgt; eauto. iFrame. iApply "RR". ss. Qed.
+    Proof using. unseal; iIntros "[P RR] I". iApply isim_Assume_tgt; eauto. iFrame. iApply "RR". ss. Qed.
 
     Lemma wsim_guarantee_src (P : iProp Σ) r g k_s i_t E :
       P ∗ wsim t υ ν E r g R_s R_t RR true pt nths
         (st_s, k_s tt) (st_t, i_t) ⊢
       wsim t υ ν E r g R_s R_t RR ps pt nths
         (st_s, trigger (Guarantee P) >>= k_s) (st_t, i_t).
-    Proof.
+    Proof using.
       unseal; iIntros "[P RR] I". iApply isim_Guarantee_src; eauto. iFrame. iApply "RR"; ss.
     Qed.
 
@@ -265,7 +265,7 @@ Section wsim.
         (st_s, i_s) (st_t, k_t tt)) ⊢
       wsim t υ ν E r g R_s R_t RR ps pt nths
         (st_s, i_s) (st_t, trigger (Guarantee P) >>= k_t).
-    Proof.
+    Proof using.
       unseal; iIntros "RR I". iApply isim_Guarantee_tgt; eauto.
       iIntros "P"; iApply ("RR" with "P"); done.
     Qed.
@@ -276,7 +276,7 @@ Section wsim.
       wsim t υ ν E r g R_s R_t RR ps pt nths
         (st_s, trigger (Spawn fn args) >>= k_s)
         (st_t, trigger (Spawn fn args) >>= k_t).
-    Proof. unseal; iIntros "C I". iApply isim_spawn; eauto. iApply "C". ss. Qed.
+    Proof using. unseal; iIntros "C I". iApply isim_spawn; eauto. iApply "C". ss. Qed.
 
     Lemma wsim_yield r g tid k_s k_t E :
       Ist nths st_s st_t ∗
@@ -287,7 +287,7 @@ Section wsim.
       wsim t υ ν E r g R_s R_t RR ps pt nths
         (st_s, trigger (Yield tid) >>= k_s)
         (st_t, trigger (Yield tid) >>= k_t).
-    Proof.
+    Proof using.
       unseal; iIntros "[IST C] I". iApply isim_yield; eauto. iFrame.
       iIntros (?????) "IST"; iApply ("C" with "[] [] [IST] [I]"); iFrame; iPureIntro; ss.
     Qed.
@@ -295,24 +295,24 @@ Section wsim.
     Lemma wsim_reset r g i_s i_t E :
       wsim t υ ν E r g R_s R_t RR false false nths (st_s, i_s) (st_t, i_t) ⊢
       wsim t υ ν E r g R_s R_t RR ps pt nths (st_s, i_s) (st_t, i_t).
-    Proof. unseal; iIntros "RR I". iApply isim_reset; iApply "RR"; iFrame. Qed.
+    Proof using. unseal; iIntros "RR I". iApply isim_reset; iApply "RR"; iFrame. Qed.
 
     Lemma wsim_progress r g i_s i_t E :
       wsim t υ ν E g g R_s R_t RR false false nths (st_s, i_s) (st_t, i_t) ⊢
       wsim t υ ν E r g R_s R_t RR true true nths (st_s, i_s) (st_t, i_t).
-    Proof. unseal; iIntros "RR I". iApply isim_progress; iApply "RR"; iFrame. Qed.
+    Proof using. unseal; iIntros "RR I". iApply isim_progress; iApply "RR"; iFrame. Qed.
 
     (* Lemma wsim_base r g i_s i_t :
       r R_s R_t RR ps pt nths (st_s, i_s) (st_t, i_t) ⊢
       wsim t υ ν ⊤ r g R_s R_t RR ps pt nths
         (st_s, i_s) (st_t, i_t).
-    Proof. unseal; iIntros "RR I". iApply isim_base; iFrame. Qed. *)
+    Proof using. unseal; iIntros "RR I". iApply isim_base; iFrame. Qed. *)
 
     Lemma wsim_base_t r g i_s i_t :
       (wsim_pre t υ ν ⊤ -∗ r R_s R_t RR ps pt nths (st_s, i_s) (st_t, i_t)) ⊢
       wsim t υ ν ⊤ r g R_s R_t RR ps pt nths
         (st_s, i_s) (st_t, i_t).
-    Proof. unseal; iIntros "RR I". iApply isim_base; iRevert "I"; iFrame. Qed.
+    Proof using. unseal; iIntros "RR I". iApply isim_base; iRevert "I"; iFrame. Qed.
 
     Lemma wsim_coind (r g : rel) A P RA_s RA_t RRA psA ptA nthsA srcA tgtA :
       (∀ (g' : rel) (a : A),
@@ -325,7 +325,7 @@ Section wsim.
           (RA_s a) (RA_t a) (RRA a) (psA a) (ptA a) (nthsA a) (srcA a) (tgtA a)) →
       ∀ (a : A), P a ⊢
         wsim t υ ν ⊤ r g (RA_s a) (RA_t a) (RRA a) (psA a) (ptA a) (nthsA a) (srcA a) (tgtA a).
-    Proof.
+    Proof using.
       unseal; intros H a; iIntros "P I"; iCombine "P I" as "P". iStopProof.
       (* rewrite /wsim_retcond *)
       revert a. eapply isim_coind.
@@ -348,7 +348,7 @@ Section wsim.
           QQ nths (st_s', r_s) (st_t', r_t)
           -∗ wsim None υ ν E r g R_s R_t RR false false nths (st_s', k_s r_s) (st_t', k_t r_t))%I
       ⊢ (wsim t υ ν E r g R_s R_t RR ps pt nths (st_s, i_s >>= k_s) (st_t, i_t >>= k_t)).
-    Proof.
+    Proof using.
       rewrite wsim.wsim_eq /wsim.wsim_def /wsim.wsim_pre.
       iIntros "[W SIM] INV". iApply isim_bind.
       iSplitL "W INV". { iApply "W"; eauto. }
@@ -361,7 +361,7 @@ Section wsim.
       wsim None υ ν E r g R_s R_t RR true pt nths (st_s, k_s tt) (st_t, i_t)) ⊢
       wsim (Some true) υ ν E r g R_s R_t RR ps pt nths
         (st_s, trigger (Guarantee P) >>= k_s) (st_t, i_t).
-    Proof.
+    Proof using.
       unseal; iIntros "[P SIM] I". iApply isim_Guarantee_src; eauto.
       iSplitR "SIM".
       { iApply WP_iff; iFrame. }
@@ -374,7 +374,7 @@ Section wsim.
         (st_s, k_s tt) (st_t, i_t)) ⊢
       wsim (Some true) υ ν E r g R_s R_t RR ps pt nths
         (st_s, trigger (Guarantee P) >>= k_s) (st_t, i_t).
-    Proof.
+    Proof using.
       unseal; iIntros "[P SIM] I".
       iPoseProof ("P" with "I") as ">P".
       iApply isim_Guarantee_src; eauto.
@@ -387,7 +387,7 @@ Section wsim.
         (st_s, k_s tt) (st_t, i_t)) ⊢
       wsim (Some true) υ ν E r g R_s R_t RR ps pt nths
         (st_s, trigger (Guarantee P) >>= k_s) (st_t, i_t).
-    Proof.
+    Proof using.
       unseal; iIntros "[P SIM] I". iApply isim_Guarantee_src; eauto.
       iSplitR "SIM"; iFrame. iApply "P"; iFrame. iApply "SIM"; done.
     Qed.
@@ -397,7 +397,7 @@ Section wsim.
         (st_s, k_s tt) (st_t, i_t)) ⊢
       wsim None υ ν E r g R_s R_t RR ps pt nths
         (st_s, trigger (Assume P) >>= k_s) (st_t, i_t).
-    Proof.
+    Proof using.
       unseal; iIntros "SIM _". iApply isim_Assume_src; eauto.
       iIntros "P". iPoseProof (WP_iff with "P") as "[I Q]".
       iApply ("SIM" with "Q I").
@@ -409,7 +409,7 @@ Section wsim.
         (st_s, k_s tt) (st_t, i_t))) ⊢
       wsim None υ ν E r g R_s R_t RR ps pt nths
         (st_s, trigger (Assume P) >>= k_s) (st_t, i_t).
-    Proof.
+    Proof using.
       unseal; iIntros "[P SIM] I". iApply isim_Assume_src; eauto.
       iIntros "P'". iPoseProof ("P" with "P'") as "[GINV P]".
       iApply ("SIM" with "P GINV").
@@ -421,7 +421,7 @@ Section wsim.
         (st_s, k_s tt) (st_t, i_t))) ⊢
       wsim None υ ν E r g R_s R_t RR ps pt nths
         (st_s, trigger (Assume P) >>= k_s) (st_t, i_t).
-    Proof.
+    Proof using.
       unseal; iIntros "[P SIM] I". iApply isim_Assume_src; eauto.
       iIntros "P'". iPoseProof ("P" with "P'") as ">[GINV P]".
       iPoseProof ("SIM" with "P") as ">SIM".
@@ -434,7 +434,7 @@ Section wsim.
         (st_s, i_s) (st_t, k_t tt)) ⊢
       wsim (Some true) υ ν E r g R_s R_t RR ps pt nths
         (st_s, i_s) (st_t, trigger (Assume P) >>= k_t).
-    Proof.
+    Proof using.
       unseal; iIntros "[P SIM] I". iApply isim_Assume_tgt; eauto.
       iSplitR "SIM"; iFrame.
       { iApply WP_iff; iFrame. }
@@ -447,7 +447,7 @@ Section wsim.
         (st_s, i_s) (st_t, k_t tt)) ⊢
       wsim None υ ν E r g R_s R_t RR ps pt nths
         (st_s, i_s) (st_t, trigger (Guarantee P) >>= k_t).
-    Proof.
+    Proof using.
       unseal. iIntros "SIM I".
       iApply isim_Guarantee_tgt; iIntros "P"; iPoseProof (WP_iff with "P") as "[P1 P2]".
       iSpecialize ("SIM" with "P2 P1").
@@ -460,7 +460,7 @@ Section wsim.
         (st_s, i_s) (st_t, k_t tt)) ⊢
       wsim (Some true) υ ν E r g R_s R_t RR ps pt nths
         (st_s, i_s) (st_t, trigger (Assume P) >>= k_t).
-    Proof.
+    Proof using.
       unseal; iIntros "[P SIM] I".
       iPoseProof (wsim_ginv_split with "I") as "> [I1 I2]".
       { eapply H. }
@@ -476,7 +476,7 @@ Section wsim.
         (st_s, i_s) (st_t, k_t tt)) ⊢
       wsim (Some false) υ ν E r g R_s R_t RR ps pt nths
         (st_s, i_s) (st_t, trigger (Guarantee P) >>= k_t).
-    Proof.
+    Proof using.
       unseal. iIntros "SIM I".
       iApply isim_Guarantee_tgt; iIntros "P"; iPoseProof (WP_iff with "P") as "[P1 P2]".
       iSpecialize ("SIM" with "P2").
@@ -491,7 +491,7 @@ Section wsim.
         (st_s, k_s x') (st_t, i_t)) ⊢
       wsim t υ ν E r g R_s R_t RR ps pt nths
         (st_s, unwrapU x >>= k_s) (st_t, i_t).
-    Proof.
+    Proof using.
       iIntros "H". unfold unwrapU. destruct x.
       { hred_l. iApply "H". auto. }
       { unseal; iIntros "P". iApply isim_triggerUB_src. }
@@ -503,7 +503,7 @@ Section wsim.
           (st_s, k_s x') (st_t, i_t)) ⊢
       wsim t υ ν E r g R_s R_t RR ps pt nths
         (st_s, unwrapN x >>= k_s) (st_t, i_t).
-    Proof. iIntros "H". iDestruct "H" as (x') "[% H]". subst. hred_l. iApply "H". Qed.
+    Proof using. iIntros "H". iDestruct "H" as (x') "[% H]". subst. hred_l. iApply "H". Qed.
 
     Lemma wsim_sput_src_sandbox scopes k v r g k_s i_t E :
       In k.1 scopes →
@@ -511,7 +511,7 @@ Section wsim.
         (alist_upd k v st_s, k_s tt) (st_t, i_t) ⊢
       wsim t υ ν E r g R_s R_t RR ps pt nths
         (st_s, HMod.sandbox scopes (trigger (SPut k v)) >>= k_s) (st_t, i_t).
-    Proof.
+    Proof using.
       intros IN; iIntros "SIM".
       rewrite SBRed.put; des_ifs; ss.
       { iApply wsim_sput_src; ss. }
@@ -528,7 +528,7 @@ Section wsim.
         (st_s, k_s (or_else (alist_find k st_s) tt↑)) (st_t, i_t) ⊢
       wsim t υ ν E r g R_s R_t RR ps pt nths
         (st_s, HMod.sandbox scopes (trigger (SGet k)) >>= k_s) (st_t, i_t).
-    Proof.
+    Proof using.
       intros IN; iIntros "SIM".
       rewrite SBRed.get; des_ifs; ss.
       { iApply wsim_sget_src; ss. }
@@ -545,7 +545,7 @@ Section wsim.
         (st_s, i_s) (alist_upd k v st_t, k_t tt) ⊢
       wsim t υ ν E r g R_s R_t RR ps pt nths
         (st_s, i_s) (st_t, HMod.sandbox scopes (trigger (SPut k v)) >>= k_t).
-    Proof.
+    Proof using.
       intros IN; iIntros "SIM".
       rewrite SBRed.put; des_ifs; ss.
       { iApply wsim_sput_tgt; ss. }
@@ -562,7 +562,7 @@ Section wsim.
         (st_s, i_s) (st_t, k_t (or_else (alist_find k st_t) tt↑)) ⊢
       wsim t υ ν E r g R_s R_t RR ps pt nths
         (st_s, i_s) (st_t, HMod.sandbox scopes (trigger (SGet k)) >>= k_t).
-    Proof.
+    Proof using.
       intros IN; iIntros "SIM".
       rewrite SBRed.get; des_ifs; ss.
       { iApply wsim_sget_tgt; ss. }
@@ -578,7 +578,7 @@ Section wsim.
         (st_s, k_s tt) (st_t, i_t))) ⊢
       wsim t υ ν E r g R_s R_t RR ps pt nths
         (st_s, assume P >>= k_s) (st_t, i_t).
-    Proof.
+    Proof using.
       unseal; iIntros "RR I". iApply isim_asm_src; eauto.
       iIntros "%H"; iApply ("RR" $! H with "I"); iFrame.
     Qed.
@@ -589,7 +589,7 @@ Section wsim.
         (st_s, i_s) (st_t, k_t tt) ⊢
       wsim t υ ν E r g R_s R_t RR ps pt nths
         (st_s, i_s) (st_t, assume P >>= k_t).
-    Proof.
+    Proof using.
       intros H; unseal; iIntros "P I". iApply isim_asm_tgt; eauto. iApply ("P" with "I").
     Qed.
 
@@ -599,7 +599,7 @@ Section wsim.
         (st_s, k_s tt) (st_t, i_t) ⊢
       wsim t υ ν E r g R_s R_t RR ps pt nths
         (st_s, guarantee P >>= k_s) (st_t, i_t).
-    Proof.
+    Proof using.
       intros H; unseal; iIntros "P I". iApply isim_guar_src; eauto. iApply ("P" with "I").
     Qed.
 
@@ -608,7 +608,7 @@ Section wsim.
         (st_s, i_s) (st_t, k_t tt)) ⊢
       wsim t υ ν E r g R_s R_t RR ps pt nths
         (st_s, i_s) (st_t, guarantee P >>= k_t).
-    Proof.
+    Proof using.
       unseal; iIntros "RR I". iApply isim_guar_tgt; eauto.
       iIntros "%H"; iApply ("RR" $! H with "I"); iFrame.
     Qed.
@@ -616,7 +616,7 @@ Section wsim.
     Lemma wsim_fupd m E1 E2 b r g i_s i_t :
       =|υ, m|={E2, E1}=> wsim (Some b) υ ν E1 r g R_s R_t RR ps pt nths (st_s, i_s) (st_t, i_t)
       ⊢ wsim (Some b) υ ν E2 r g R_s R_t RR ps pt nths (st_s, i_s) (st_t, i_t).
-    Proof.
+    Proof using.
       unseal; rewrite ?{2}invariants.uPred_fupd_unseal /invariants.uPred_fupd_def.
       iIntros "SIM P"; ss. rewrite /wsim_ginv.
       destruct b; iDestruct "P" as "[O [H1 H2]]".
@@ -641,7 +641,7 @@ Section wsim.
       ElimModal True p false ( |==> P)%I P
         (wsim t υ ν E r g R_s R_t RR ps pt nths (st_s, i_s) (st_t, i_t))
         (wsim t υ ν E r g R_s R_t RR ps pt nths (st_s, i_s) (st_t, i_t)).
-    Proof.
+    Proof using.
       unseal.
       unfold ElimModal. rewrite bi.intuitionistically_if_elim.
       i. iIntros "[H0 H1] HPRE".
@@ -656,7 +656,7 @@ Section wsim.
         P
         (wsim (Some b) υ ν E2 r g R_s R_t RR ps pt nths (st_s, i_s) (st_t, i_t))
         (wsim (Some b) υ ν (E1 ∪ (E2 ∖ E0)) r g R_s R_t RR ps pt nths (st_s, i_s) (st_t, i_t)) | 10.
-    Proof.
+    Proof using.
       rewrite /ElimModal bi.intuitionistically_if_elim.
       intros SUB. iIntros "[H0 H1]".
       iApply (wsim_fupd y).
@@ -671,7 +671,7 @@ Section wsim.
         P
         (wsim (Some b) υ ν E2 r g R_s R_t RR ps pt nths (st_s, i_s) (st_t, i_t))
         (wsim (Some b) υ ν E2 r g R_s R_t RR ps pt nths (st_s, i_s) (st_t, i_t)).
-    Proof.
+    Proof using.
       rewrite /ElimModal bi.intuitionistically_if_elim.
       iIntros "%SUB [H0 H1]".
       iApply (wsim_fupd n).
@@ -686,7 +686,7 @@ Section wsim.
         P
         (wsim (Some b) υ ν E0 r g R_s R_t RR ps pt nths (st_s, i_s) (st_t, i_t))
         (wsim (Some b) υ ν E1 r g R_s R_t RR ps pt nths (st_s, i_s) (st_t, i_t)).
-    Proof.
+    Proof using.
       rewrite /ElimModal bi.intuitionistically_if_elim.
       iIntros "_ [H0 H1]".
       iApply (wsim_fupd n).
@@ -698,7 +698,7 @@ Section wsim.
       AddModal (=|υ, n|={E}=> P)
                P
                (wsim (Some b) υ ν E r g R_s R_t RR ps pt nths (st_s, i_s) (st_t, i_t)).
-    Proof.
+    Proof using.
       unfold AddModal. iIntros "[H0 H1]". iMod "H0". iApply ("H1" with "H0").
     Qed.
 
@@ -706,7 +706,7 @@ Section wsim.
     Lemma wsim_init sti_s sti_t :
       wsim None υ ν ⊤ ibot ibot R_s R_t RR ps pt nths sti_s sti_t ⊢
       @isim Σ open fl_s fl_t Ist ibot ibot R_s R_t RR ps pt nths sti_s sti_t.
-    Proof.
+    Proof using.
       unseal; iIntros "SIM"; ss; iPoseProof ("SIM" with "[]") as "SIM"; first done.
       iPoseProof (isim_mono_knowledge with "SIM") as "SIM".
       { instantiate (1:=ibot); i; iIntros "H"; rewrite /wsim_rel /ibot; destruct sti_src, sti_tgt.
@@ -721,7 +721,7 @@ Section wsim.
     Lemma wsim_split sti_s sti_t :
       (wsim_pre t υ ν ⊤ -∗ wsim None υ ν ⊤ ibot ibot R_s R_t RR ps pt nths sti_s sti_t) ⊢
       wsim t υ ν ⊤ ibot ibot R_s R_t RR ps pt nths sti_s sti_t.
-    Proof.
+    Proof using.
       unseal.
       iIntros "SIM PRE"; ss. iApply ("SIM" with "PRE"). done.
     Qed.
@@ -729,7 +729,7 @@ Section wsim.
     Lemma wsim_merge sti_s sti_t :
       wsim_pre t υ ν ⊤ ∗ wsim t υ ν ⊤ ibot ibot R_s R_t RR ps pt nths sti_s sti_t ⊢
       wsim None υ ν ⊤ ibot ibot R_s R_t RR ps pt nths sti_s sti_t.
-    Proof.
+    Proof using.
       unseal.
       iIntros "[PRE SIM] _"; ss. iApply ("SIM" with "PRE").
     Qed.

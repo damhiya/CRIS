@@ -121,7 +121,7 @@ Module HMod. Section HMod.
   Definition modc : Type := (t * iProp Σ)%type.
   Global Instance modc_equiv : Equiv modc := λ m1 m2, m1.1 = m2.1 ∧ m1.2 ≡ m2.2.
   Global Instance modc_equiv_equiv : Equivalence modc_equiv.
-  Proof.
+  Proof using.
     split; ss; ii.
     { inv H; split; clarify. }
     { inv H; inv H0; split; clarify; ss.
@@ -136,7 +136,7 @@ Module HMod. Section HMod.
   Global Instance pair_equiv : Equiv pair :=
     λ m1 m2, ∀ υ, (m1.1 υ, m1.2) ≡ (m2.1 υ, m2.2).
   Global Instance pair_equiv_equiv : Equivalence pair_equiv.
-  Proof.
+  Proof using.
     split; ss; ii.
     { specialize (H υ). inv H; split; clarify. }
     { specialize (H υ). specialize (H0 υ). inv H; inv H0; split; clarify; ss.
@@ -164,25 +164,25 @@ Section HModProperties.
       (INITS : HMod.initial_st ms1 = HMod.initial_st ms2)
        :
     ms1 = ms2.
-  Proof. destruct ms1, ms2; ss. subst. f_equal; apply proof_irrelevance. Qed.
+  Proof using. destruct ms1, ms2; ss. subst. f_equal; apply proof_irrelevance. Qed.
 
   Lemma hmod_add_assoc (md1 md2 md3 : HMod.t) :
     (md1 ★ md2) ★ md3 = md1 ★ md2 ★ md3.
-  Proof.
+  Proof using.
     destruct md1, md2, md3.
     apply hmod_extensionality; s; try rewrite app_assoc; eauto.
   Qed.
 
   Lemma hmod_add_empty_l (md : HMod.t) : ⌽ ★ md = md.
-  Proof. destruct md. apply hmod_extensionality; s; eauto. Qed.
+  Proof using. destruct md. apply hmod_extensionality; s; eauto. Qed.
 
   Lemma hmod_add_empty_r (md : HMod.t) : md ★ ⌽ = md.
-  Proof.
+  Proof using.
     destruct md. apply hmod_extensionality; s; try rewrite app_nil_r; eauto.
   Qed.
 
   Lemma hmod_addL_app l l' : HMod.addL (l ++ l') = (HMod.addL l) ★ (HMod.addL l').
-  Proof.
+  Proof using.
     induction l; s.
     - rewrite hmod_add_empty_l. eauto.
     - rewrite hmod_add_assoc. rewrite IHl. eauto.
@@ -190,7 +190,7 @@ Section HModProperties.
 
   Lemma hmod_addc_assoc (md : HMod.t) (P Q R : iProp Σ) :
     (md, (P ∗ Q) ∗ R)%I ≡ (md, P ∗ Q ∗ R)%I.
-  Proof.
+  Proof using.
     econs; ss.
     iSplit.
     { iIntros "[[P Q] R]"; iFrame. }
@@ -199,7 +199,7 @@ Section HModProperties.
 
   Lemma hmod_addc_empty_l (md : HMod.t) (P : iProp Σ) :
     (md, emp ∗ P)%I ≡ (md, P).
-  Proof.
+  Proof using.
     econs; ss.
     iSplit.
     { iIntros "[_ P]"; iFrame. }
@@ -208,7 +208,7 @@ Section HModProperties.
 
   Lemma hmod_addc_empty_r (md : HMod.t) (P : iProp Σ) :
     (md, P ∗ emp)%I ≡ (md, P).
-  Proof.
+  Proof using.
     econs; ss.
     iSplit.
     { iIntros "[P _]"; iFrame. }
@@ -223,41 +223,41 @@ Module SBRed. Section SBRed.
   Lemma bind A B scopes (itr : itree hmodE A) (ktr : A → itree hmodE B) :
     HMod.sandbox scopes (itr >>= ktr)
     = a <- (HMod.sandbox scopes itr);; (HMod.sandbox scopes (ktr a)).
-  Proof. unfold HMod.sandbox. rewrite (bisim_is_eq (translate_bind _ _ _)); eauto. Qed.
+  Proof using. unfold HMod.sandbox. rewrite (bisim_is_eq (translate_bind _ _ _)); eauto. Qed.
 
   Lemma tau A scopes (itr : itree hmodE A) :
     HMod.sandbox scopes (tau;; itr) = tau;; (HMod.sandbox scopes itr).
-  Proof. unfold HMod.sandbox. rewrite (bisim_is_eq (translate_tau _ _)); eauto. Qed.
+  Proof using. unfold HMod.sandbox. rewrite (bisim_is_eq (translate_tau _ _)); eauto. Qed.
 
   Lemma ret A (a : A) scopes :
     HMod.sandbox scopes (Ret a) = Ret a.
-  Proof. unfold HMod.sandbox. rewrite (bisim_is_eq (translate_ret _ _)); eauto. Qed.
+  Proof using. unfold HMod.sandbox. rewrite (bisim_is_eq (translate_ret _ _)); eauto. Qed.
 
   Lemma vis_ag {X R} scopes (e : agE X) (ktr : X -> itree hmodE R) :
     HMod.sandbox scopes (vis e ktr) = vis e (fun x => HMod.sandbox scopes (ktr x)).
-  Proof. eapply observe_eta; ss. Qed.
+  Proof using. eapply observe_eta; ss. Qed.
 
   Lemma vis_sch {X R} scopes (e : schE X) (ktr : X -> itree hmodE R) :
     HMod.sandbox scopes (vis e ktr) = vis e (fun x => HMod.sandbox scopes (ktr x)).
-  Proof. eapply observe_eta; ss. Qed.
+  Proof using. eapply observe_eta; ss. Qed.
 
   Lemma vis_call {X R} scopes (e : callE X) (ktr : X -> itree hmodE R) :
     HMod.sandbox scopes (vis e ktr) = vis e (fun x => HMod.sandbox scopes (ktr x)).
-  Proof. eapply observe_eta; ss. Qed.
+  Proof using. eapply observe_eta; ss. Qed.
 
   Lemma vis_put {R} scopes k v (ktr : () -> itree hmodE R) :
     HMod.sandbox scopes (vis (SPut k v) ktr)
     = if existsb (String.eqb k.1) scopes
       then vis (SPut k v) (fun x => HMod.sandbox scopes (ktr x))
       else vis (Choose ()) (fun x => HMod.sandbox scopes (ktr x)).
-  Proof. destruct k; ss. eapply observe_eta; ss. des_ifs. Qed.
+  Proof using. destruct k; ss. eapply observe_eta; ss. des_ifs. Qed.
 
   Lemma vis_get {R} k scopes (ktr : Any.t -> itree hmodE R) :
     HMod.sandbox scopes (vis (SGet k) ktr)
     = if existsb (String.eqb k.1) scopes
       then vis (SGet k) (fun x => HMod.sandbox scopes (ktr x))
       else vis (Choose Any.t) (fun x => HMod.sandbox scopes (ktr x)).
-  Proof. destruct k; ss. eapply observe_eta; ss. des_ifs. Qed.
+  Proof using. destruct k; ss. eapply observe_eta; ss. des_ifs. Qed.
 
   Definition putSB {R} scopes k v (itr : itree hmodE R) : itree hmodE R :=
     HMod.sandbox scopes (trigger (SPut k v));;; itr.
@@ -267,71 +267,71 @@ Module SBRed. Section SBRed.
 
   Lemma SPut_putSB {R} scopes k v (ktr : () -> itree hmodE R) :
     HMod.sandbox scopes (vis (SPut k v) ktr) = putSB scopes k v (HMod.sandbox scopes (ktr tt)).
-  Proof.
+  Proof using.
     eapply observe_eta; ss. f_equal. extensionality x. destruct x.
     eapply observe_eta; ss.
   Qed.
 
   Lemma putSB_SPut {R} scopes k v (itr : itree hmodE R) :
     putSB scopes k v itr = HMod.sandbox scopes (trigger (SPut k v));;; itr.
-  Proof.
+  Proof using.
     reflexivity.
   Qed.
 
   Lemma putSB_bind {T U} scopes k v (itr : itree hmodE T) (ktr : T -> itree hmodE U) :
     putSB scopes k v itr >>= ktr = putSB scopes k v (itr >>= ktr).
-  Proof.
+  Proof using.
     unfold putSB. rewrite bind_bind. reflexivity.
   Qed.
 
   Lemma SGet_getSB {R} scopes k (ktr : Any.t -> itree hmodE R) :
     HMod.sandbox scopes (vis (SGet k) ktr) = getSB scopes k (fun x => HMod.sandbox scopes (ktr x)).
-  Proof.
+  Proof using.
     eapply observe_eta; ss. f_equal. extensionality x.
     eapply observe_eta; ss.
   Qed.
 
   Lemma getSB_SGet {R} scopes k (ktr : Any.t -> itree hmodE R) :
     getSB scopes k ktr = x <- HMod.sandbox scopes (trigger (SGet k));; ktr x.
-  Proof.
+  Proof using.
     reflexivity.
   Qed.
 
   Lemma getSB_bind {T U} scopes k (ktr1 : Any.t -> itree hmodE T) (ktr2 : T -> itree hmodE U) :
     getSB scopes k ktr1 >>= ktr2 = getSB scopes k (fun x => ktr1 x >>= ktr2).
-  Proof.
+  Proof using.
     unfold getSB. rewrite bind_bind. reflexivity.
   Qed.
 
   Lemma vis_core {X R} (e : coreE X) scopes (k : X -> itree hmodE R) :
     HMod.sandbox scopes (vis e k) = vis e (fun x => HMod.sandbox scopes (k x)).
-  Proof. eapply observe_eta; ss. Qed.
+  Proof using. eapply observe_eta; ss. Qed.
 
   Lemma assumeK {R} scopes P (itr : itree hmodE R) :
     HMod.sandbox scopes (assumeK P itr) = assumeK P (HMod.sandbox scopes itr).
-  Proof. eapply observe_eta; ss. Qed.
+  Proof using. eapply observe_eta; ss. Qed.
 
   Lemma guaranteeK {R} scopes P (itr : itree hmodE R) :
     HMod.sandbox scopes (guaranteeK P itr) = guaranteeK P (HMod.sandbox scopes itr).
-  Proof. eapply observe_eta; ss. Qed.
+  Proof using. eapply observe_eta; ss. Qed.
 
   Lemma unwrapUK {X R} scopes x (ktr : X -> itree hmodE R) :
     HMod.sandbox scopes (unwrapUK x ktr) = unwrapUK x (fun x => HMod.sandbox scopes (ktr x)).
-  Proof.
+  Proof using.
     destruct x; ss.
     eapply observe_eta; ss. f_equal. extensionality x. ss.
   Qed.
 
   Lemma unwrapNK {X R} scopes x (ktr : X -> itree hmodE R) :
     HMod.sandbox scopes (unwrapNK x ktr) = unwrapNK x (fun x => HMod.sandbox scopes (ktr x)).
-  Proof.
+  Proof using.
     destruct x; ss.
     eapply observe_eta; ss. f_equal. extensionality x. ss.
   Qed.
 
   Lemma call {A} (e : callE A) scopes :
     HMod.sandbox scopes (trigger e) = trigger e.
-  Proof.
+  Proof using.
     unfold HMod.sandbox, trigger.
     rewrite (bisim_is_eq (translate_vis _ _ _ _)). ss.
     do 2 f_equal. extensionalities.
@@ -341,7 +341,7 @@ Module SBRed. Section SBRed.
   Lemma put scopes k v :
     HMod.sandbox scopes (trigger (SPut k v))
     = if existsb (String.eqb k.1) scopes then trigger (SPut k v) else trigger (Choose _).
-  Proof.
+  Proof using.
     unfold HMod.sandbox, trigger. destruct k. s.
     rewrite (bisim_is_eq (translate_vis _ _ _ _)). ss.
     des_ifs; s; do 2 f_equal; extensionalities; rewrite (bisim_is_eq (translate_ret _ _)); eauto.
@@ -350,7 +350,7 @@ Module SBRed. Section SBRed.
   Lemma get scopes k :
     HMod.sandbox scopes (trigger (SGet k))
     = if existsb (String.eqb k.1) scopes then trigger (SGet k) else trigger (Choose Any.t).
-  Proof.
+  Proof using.
     unfold HMod.sandbox, trigger. destruct k. s.
     rewrite (bisim_is_eq (translate_vis _ _ _ _)). ss.
     des_ifs; s; do 2 f_equal; extensionalities; rewrite (bisim_is_eq (translate_ret _ _)); eauto.
@@ -358,7 +358,7 @@ Module SBRed. Section SBRed.
 
   Lemma core T scopes (e : coreE T) :
     HMod.sandbox scopes (trigger e) = trigger e.
-  Proof.
+  Proof using.
     unfold HMod.sandbox, trigger.
     rewrite (bisim_is_eq (translate_vis _ _ _ _)). ss.
     des_ifs; s; do 2 f_equal; extensionalities;
@@ -367,7 +367,7 @@ Module SBRed. Section SBRed.
 
   Lemma ag {A} (e : agE A) scopes :
     HMod.sandbox scopes (trigger e) = trigger e.
-  Proof.
+  Proof using.
     unfold HMod.sandbox, trigger.
     rewrite (bisim_is_eq (translate_vis _ _ _ _)). ss.
     do 2 f_equal. extensionalities.
@@ -376,7 +376,7 @@ Module SBRed. Section SBRed.
 
   Lemma sch {A} (e : schE A) scopes :
     HMod.sandbox scopes (trigger e) = trigger e.
-  Proof.
+  Proof using.
     unfold HMod.sandbox, trigger.
     rewrite (bisim_is_eq (translate_vis _ _ _ _)). ss.
     do 2 f_equal. extensionalities.
@@ -385,7 +385,7 @@ Module SBRed. Section SBRed.
 
   Lemma unwrapU R scopes (r : option R) :
     HMod.sandbox scopes (unwrapU r) = unwrapU r.
-  Proof.
+  Proof using.
     unfold unwrapU. destruct r.
     - apply ret.
     - unfold triggerUB. rewrite !bind !core.
@@ -394,7 +394,7 @@ Module SBRed. Section SBRed.
 
   Lemma unwrapN R scopes (r : option R) :
     HMod.sandbox scopes (unwrapN r) = unwrapN r.
-  Proof.
+  Proof using.
     unfold unwrapN. destruct r.
     - apply ret.
     - unfold triggerNB. rewrite !bind !core.
@@ -403,13 +403,13 @@ Module SBRed. Section SBRed.
 
   Lemma asm scopes P :
     HMod.sandbox scopes (assume P) = assume P.
-  Proof.
+  Proof using.
     unfold assume. rewrite bind core ret. eauto.
   Qed.
 
   Lemma guar scopes P :
     HMod.sandbox scopes (guarantee P) = guarantee P.
-  Proof. rewrite /guarantee bind core ret. eauto. Qed.
+  Proof using. rewrite /guarantee bind core ret. eauto. Qed.
 End SBRed. End SBRed.
 
 Section HModProp.
@@ -424,7 +424,7 @@ Section HModProp.
     (exists R (c : callE R) ktrH', itrH = (trigger c >>= ktrH')) \/
     (exists R (s : pgE R) ktrH', itrH = (trigger s >>= ktrH')) \/
     (exists R (e : coreE R) ktrH', itrH = (trigger e >>= ktrH')).
-  Proof.
+  Proof using.
     ides itrH; eauto.
     right; right.
     destruct e; [destruct a|destruct p; [|destruct s; [|destruct s]]].

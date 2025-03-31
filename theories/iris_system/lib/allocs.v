@@ -22,26 +22,26 @@ Section allocs.
   Implicit Types γ : K.
 
   Global Instance allocs_frag_ne γ : NonExpansive (@allocs_frag _ _ A γ).
-  Proof. intros n x y eq. apply discrete_fun_singleton_ne. f_equiv. solve_proper. Qed.
+  Proof using. intros n x y eq. apply discrete_fun_singleton_ne. f_equiv. solve_proper. Qed.
   Global Instance allocs_frag_proper γ : Proper ((≡) ==> (≡)) (@allocs_frag _ _ A γ) := ne_proper _.
 
   (** Operation *)
   Lemma allocs_frag_op γ a b : allocs_frag γ a ⋅ allocs_frag γ b ≡ allocs_frag γ (a ⋅ b).
-  Proof. by rewrite discrete_fun_singleton_op -Some_op -Cinr_op. Qed.
+  Proof using. by rewrite discrete_fun_singleton_op -Some_op -Cinr_op. Qed.
 
   (** Validity *)
   Lemma allocs_frag_valid γ a : ✓ allocs_frag γ a ↔ ✓ a.
-  Proof. by rewrite discrete_fun_singleton_valid Some_valid Cinr_valid. Qed.
+  Proof using. by rewrite discrete_fun_singleton_valid Some_valid Cinr_valid. Qed.
 
   (** Frame-preserving updates *)
   Lemma allocs_frag_update γ a b (UPD : a ~~> b) : allocs_frag γ a ~~> allocs_frag γ b.
-  Proof. by apply discrete_fun_singleton_update, option_update, csum_update_r. Qed.
+  Proof using. by apply discrete_fun_singleton_update, option_update, csum_update_r. Qed.
 
   Lemma allocs_alloc a (P Q : K → Prop) γ (WF : ✓ a) `{∀ k, Decision (P k)} `{∀ k, Decision (Q k)}
       (IMPL : ∀ k, Q k → P k)
       (DISJ : P γ ∧ ~ Q γ) :
     allocs_auth P ~~> allocs_auth Q ⋅ allocs_frag γ a.
-  Proof.
+  Proof using.
     eapply discrete_fun_update; intros k; rewrite /allocs_auth /allocs_frag discrete_fun_lookup_op.
     des_ifs; rewrite ?left_id.
     { destruct (decide (γ = k)); clarify; des; ss. rewrite discrete_fun_lookup_singleton_ne; ss. }

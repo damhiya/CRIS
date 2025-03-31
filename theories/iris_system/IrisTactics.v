@@ -188,7 +188,7 @@ Lemma excl_eq a b c :
   (Excl a ≡ Excl b) →
   Excl a ≡ Excl c
 .
-Proof. ii. excl_tac. cmra_tac. Qed. 
+Proof using. ii. excl_tac. cmra_tac. Qed. 
 
 
 End example_excl.
@@ -203,7 +203,7 @@ Implicit Types dq : dfrac.
 
 Lemma tmp a1 a2: 
 ✓ (● a1 ⋅ ● a2) -> False .
-Proof.
+Proof using.
  ii. auth_tac. ss.  
 Qed.
 

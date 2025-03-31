@@ -128,12 +128,12 @@ Lemma bind_ext E X Y itr0 itr1 (ktr : ktree E X Y) : itr0 = itr1 -> itr0 >>= ktr
 Lemma bind_extk : forall [E : Type -> Type] [X Y : Type] [itr : itree E X] (ktr0 ktr1 : ktree E X Y),
     (forall x, ktr0 x = ktr1 x) -> (itr >>= ktr0) = (itr >>= ktr1)
 .
-Proof. i. f_equiv. eapply func_ext. et. Qed.
+Proof using. i. f_equiv. eapply func_ext. et. Qed.
 
 Lemma tau_ext : forall [E : Type -> Type] [X : Type] [itr0 itr1 : itree E X],
     itr0 = itr1 -> (tau;; itr0) = (tau;; itr1)
 .
-Proof. i. grind. Qed.
+Proof using. i. grind. Qed.
 
 
 (* Tactic Notation "debug" string(str) := idtac str. (*** debug mode ***) *)
@@ -266,7 +266,7 @@ Lemma resum_itr_bind
     (resum_itr (s >>= k))
     =
     ((resum_itr (E:=E) (F:=F) s) >>= (fun r => resum_itr (k r))).
-Proof.
+Proof using.
   unfold resum_itr in *. grind.
 Qed.
 
@@ -291,7 +291,7 @@ Section RESUM.
   (*     (resum_itr (s >>= k)) *)
   (*     = *)
   (*     ((resum_itr (E:=E) (F:=F) s) >>= (fun r => resum_itr (k r))). *)
-  (* Proof. *)
+  (* Proof using. *)
   (*   unfold resum_itr in *. grind. *)
   (* Qed. *)
 
@@ -302,7 +302,7 @@ Section RESUM.
       (resum_itr (E:=E) (F:=F) (Tau t))
       =
       (Tau (resum_itr t)).
-  Proof.
+  Proof using.
     unfold resum_itr in *. grind.
   Qed.
 
@@ -313,7 +313,7 @@ Section RESUM.
       ((resum_itr (E:=E) (F:=F) (Ret t)))
       =
       Ret t.
-  Proof.
+  Proof using.
     unfold resum_itr in *. grind.
   Qed.
 
@@ -324,7 +324,7 @@ Section RESUM.
       (resum_itr (E:=E) (F:=F) (trigger i))
       =
       (trigger i >>= (fun r => tau;; Ret r)).
-  Proof.
+  Proof using.
     unfold resum_itr in *.
     repeat rewrite interp_trigger. grind.
   Qed.
@@ -336,7 +336,7 @@ Section RESUM.
       (resum_itr (E:=E) (F:=F) (ITree.trigger i))
       =
       (trigger i >>= (fun r => tau;; Ret r)).
-  Proof.
+  Proof using.
     unfold resum_itr in *.
     repeat rewrite interp_trigger. grind.
   Qed.
@@ -347,7 +347,7 @@ Section RESUM.
       (resum_itr (E:=E) (F:=F) (triggerUB))
       =
       triggerUB (A:=R).
-  Proof.
+  Proof using.
     unfold resum_itr, triggerUB in *. rewrite unfold_interp. cbn. grind.
   Qed.
 
@@ -357,7 +357,7 @@ Section RESUM.
       (resum_itr (E:=E) (F:=F) (triggerNB))
       =
       triggerNB (A:=R).
-  Proof.
+  Proof using.
     unfold resum_itr, triggerNB in *. rewrite unfold_interp. cbn. grind.
   Qed.
 
@@ -368,7 +368,7 @@ Section RESUM.
       (resum_itr (E:=E) (F:=F) (unwrapU i))
       =
       (unwrapU i).
-  Proof.
+  Proof using.
     unfold resum_itr. unfold unwrapU. des_ifs; grind. eapply resum_itr_triggerUB.
   Qed.
 
@@ -379,7 +379,7 @@ Section RESUM.
       (resum_itr (E:=E) (F:=F) (unwrapN i))
       =
       (unwrapN i).
-  Proof.
+  Proof using.
     unfold resum_itr. unfold unwrapN. des_ifs; grind. eapply resum_itr_triggerNB.
   Qed.
 
@@ -390,7 +390,7 @@ Section RESUM.
       =
       (assume P;;; tau;; Ret tt)
   .
-  Proof.
+  Proof using.
     unfold resum_itr, assume. grind. rewrite unfold_interp; cbn. grind.
   Qed.
 
@@ -400,7 +400,7 @@ Section RESUM.
       (resum_itr (E:=E) (F:=F) (guarantee P))
       =
       (guarantee P;;; tau;; Ret tt).
-  Proof.
+  Proof using.
     unfold resum_itr, guarantee. grind. rewrite unfold_interp; cbn. grind.
   Qed.
 
@@ -412,7 +412,7 @@ Section RESUM.
       =
       (resum_itr itr1)
   .
-  Proof. subst; et. Qed.
+  Proof using. subst; et. Qed.
 
   Global Program Instance resum_itr_rdb : red_database (mk_box (@resum_itr E F PRF)) :=
     mk_rdb
