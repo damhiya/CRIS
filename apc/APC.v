@@ -23,7 +23,7 @@ Section apc.
   Context {Σ: GRA}.  
 
   Variable dep_ord: Ord.t.
-  Variable SpcPure: string → option fspec.
+  Variable SpPure: string → option fspec.
 
   Program Fixpoint _APC (wid_ord: Ord.t) {wf Ord.lt wid_ord}: itree hmodE () :=
     break <- trigger (Choose _);;
@@ -36,7 +36,7 @@ Section apc.
       'fn:_ <- trigger (Choose _);;
       (* depth ordinal *)
       o <- trigger (Choose Ord.t);;
-      guarantee (is_Some (SpcPure fn) ∧ (o < dep_ord)%ord);;;
+      guarantee (is_Some (SpPure fn) ∧ (o < dep_ord)%ord);;;
       trigger (Call fn o↑);;;
       _APC wid_next
   .
@@ -60,7 +60,7 @@ Section apc.
       trigger (Choose (wid_next < wid_ord)%ord);;;
       'fn:_ <- trigger (Choose _);;
       o <- trigger (Choose Ord.t);;
-      guarantee (is_Some (SpcPure fn) ∧ (o < dep_ord)%ord);;;
+      guarantee (is_Some (SpPure fn) ∧ (o < dep_ord)%ord);;;
       trigger (Call fn o↑);;;
       _APC wid_next.
   Proof using.
@@ -85,10 +85,10 @@ Section aux.
   Definition find_body md fn :=
     alist_find fn (map (map_snd (λ (kb : list string * (Any.t → itree hmodE Any.t)) (arg : Any.t), HMod.sandbox (fst kb) ((snd kb) arg))) (HMod.fnsems md)).
 
-  Definition pure_specbody scopes (u: univ_id) spc fsp :=
+  Definition pure_specbody scopes (u: univ_id) sp fsp :=
     (λ arg : Any.t,
       HMod.sandbox scopes
-        (interp_sb_hp (wsim_ginv u ⊤) spc
+        (interp_sb_hp (wsim_ginv u ⊤) sp
            {| fsb_fspec := fsp; fsb_body := pure_body |} arg)).
 
   Definition pure: itree hmodE Any.t :=

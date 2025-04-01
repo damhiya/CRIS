@@ -10,7 +10,7 @@ Import APC.
 (* useful apc lemmas - require IST *)
 
 Lemma wsim_apc_src `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}
-  is_closed fl fr Ist u0 u1 cP r g {Rs Rt} RR ps pt nths st_src st_tgt k_src i_tgt spc spc_pure
+  is_closed fl fr Ist u0 u1 cP r g {Rs Rt} RR ps pt nths st_src st_tgt k_src i_tgt sp sp_pure
   scopes ginv (ow od: Ord.t)
   :
     (wsim fl fr Ist is_closed u0 u1 cP r g Rs Rt RR true pt nths
@@ -18,7 +18,7 @@ Lemma wsim_apc_src `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}
       (st_tgt, i_tgt))
   ⊢
     (wsim fl fr Ist is_closed u0 u1 cP r g Rs Rt RR ps pt nths
-      (st_src, ((HMod.sandbox scopes (interp_smod ginv spc (_APC od spc_pure ow))) >>= k_src))
+      (st_src, ((HMod.sandbox scopes (interp_smod ginv sp (_APC od sp_pure ow))) >>= k_src))
       (st_tgt, i_tgt)).
 Proof.
   iIntros "ISIM".
@@ -27,7 +27,7 @@ Proof.
 Qed.
 
 (* Lemma wsim_apc_tgt `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}
-  fl fr Ist is_closed u0 u1 r g {Rs Rt} RR ps pt nths st_src st_tgt i_src i_tgt spc spc_pure
+  fl fr Ist is_closed u0 u1 r g {Rs Rt} RR ps pt nths st_src st_tgt i_src i_tgt sp sp_pure
   scopes ginv (ow_src ow_tgt od_src od_tgt : Ord.t)
   (WIDTH: (ow_tgt < ow_src)%ord)
   (DEPTH: (od_tgt <= od_src)%ord)
@@ -36,12 +36,12 @@ Qed.
       (∀ nths0 st_src0 st_tgt0 ow_src_nxt,
         (Ist nths0 st_src0 st_tgt0)
         -∗ wsim fl fr Ist is_closed u0 u1 ⊤ r g Rs Rt RR false false nths0
-            (st_src0, ((HMod.sandbox scopes (interp_smod ginv spc (_APC od_src spc_pure ow_src_nxt)));;; i_src))
+            (st_src0, ((HMod.sandbox scopes (interp_smod ginv sp (_APC od_src sp_pure ow_src_nxt)));;; i_src))
             (st_tgt0, i_tgt)))
   ⊢
     (wsim fl fr Ist is_closed u0 u1 ⊤ r g Rs Rt RR ps pt nths 
-      (st_src, ((HMod.sandbox scopes (interp_smod ginv spc (_APC od_src spc_pure ow_src)));;; i_src))
-      (st_tgt, ((HMod.sandbox scopes (interp_smod ginv spc (_APC od_tgt spc_pure ow_tgt)));;; i_tgt))).
+      (st_src, ((HMod.sandbox scopes (interp_smod ginv sp (_APC od_src sp_pure ow_src)));;; i_src))
+      (st_tgt, ((HMod.sandbox scopes (interp_smod ginv sp (_APC od_tgt sp_pure ow_tgt)));;; i_tgt))).
 Proof.
   iIntros "[IST ISIM]". iApply wsim_reset.
   iStopProof.
@@ -70,10 +70,10 @@ Proof.
     
     w_force_l false. w_steps_l. w_force_l ow_tgt. w_steps_l.
     w_force_l WIDTH. w_steps_l. w_force_l q1. w_steps_l. w_force_l q2. w_steps_l.
-    assert (PO: is_Some (spc_pure q1) ∧ (q2 < od_src)%ord).
+    assert (PO: is_Some (sp_pure q1) ∧ (q2 < od_src)%ord).
     { des. split; eauto. eapply Ord.lt_le_lt; eauto. }
     unfold guarantee. w_force_l PO. w_steps_l.
-    destruct (spc q1). 2:{ w_steps_r. des_ifs. }
+    destruct (sp q1). 2:{ w_steps_r. des_ifs. }
     hss. w_steps_l. w_steps_r. w_force_l.
     w_steps_l. w_force_l q4. w_steps_l. w_force_l. iSplitL "GRT"; et. w_steps_l.
     w_call "IST"; iFrame.
@@ -86,12 +86,12 @@ Qed. *)
 
 
 Lemma wsim_apc_src_call_tgt_weaker `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}
-  fl fr Ist is_closed u0 u1 cP r g {Rs Rt} RR ps pt nths st_src st_tgt k_src k_tgt spc spc_pure
+  fl fr Ist is_closed u0 u1 cP r g {Rs Rt} RR ps pt nths st_src st_tgt k_src k_tgt sp sp_pure
   scopes ginv fn args fsp' fsp X (spec_arg: X) o P Q (ow_src ow_fn od_src od_fn : Ord.t)
   (WIDTH: (ow_fn < ow_src)%ord)
   (DEPTH: (od_fn < od_src)%ord)
-  (SpcPureInSpc: spc_sub spc_pure spc)
-  (fnInSpcPure: spc_pure fn = Some fsp')
+  (SpPureInSp: sp_sub sp_pure sp)
+  (fnInSpPure: sp_pure fn = Some fsp')
   (WEAK: fspec_weaker fsp fsp')
   (fspIsfspecapc: fsp = (@fspec_apc Σ X o (λ x, (P x, Q x))))
   :
@@ -99,20 +99,20 @@ Lemma wsim_apc_src_call_tgt_weaker `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ �
     (∀ nths0 st_src0 st_tgt0 (vret ret: Any.t),
       ((Ist nths0 st_src0 st_tgt0) ∗ (Q spec_arg ret))
       -∗ wsim fl fr Ist is_closed u0 u1 cP r g Rs Rt RR false false nths0
-          (st_src0, ((HMod.sandbox scopes (interp_smod ginv spc (_APC od_src spc_pure ow_fn))) >>= k_src))
+          (st_src0, ((HMod.sandbox scopes (interp_smod ginv sp (_APC od_src sp_pure ow_fn))) >>= k_src))
           (st_tgt0, k_tgt ret)))
   ⊢
     (wsim fl fr Ist is_closed u0 u1 cP r g Rs Rt RR ps pt nths
-      (st_src, ((HMod.sandbox scopes (interp_smod ginv spc (_APC od_src spc_pure ow_src))) >>= k_src))
+      (st_src, ((HMod.sandbox scopes (interp_smod ginv sp (_APC od_src sp_pure ow_src))) >>= k_src))
       (st_tgt, (trigger (Call fn args) >>= k_tgt))).
 Proof.
   iIntros "[[[PRE %] IST] ISIM]".
   des. set_marker m. hide_ihyps. rewrite unfold_APC. show_until m.
   force_l false. steps_l. force_l ow_fn. steps_l. force_l WIDTH. steps_l.
   force_l fn. steps_l. force_l od_fn. steps_l.
-  assert (PO: (is_Some (spc_pure fn) ∧ (od_fn < od_src)%ord)); et. 
+  assert (PO: (is_Some (sp_pure fn) ∧ (od_fn < od_src)%ord)); et. 
   unfold guarantee. force_l PO. steps_l.
-  assert (spc fn = Some fsp'); et. force_l. iSplit; et. steps_l.
+  assert (sp fn = Some fsp'); et. force_l. iSplit; et. steps_l.
   specialize (WEAK spec_arg). des.
   force_l x_tgt. force_l args. steps_l.
   iPoseProof ((PRE od_fn ↑ args) with "[PRE]") as ">PRE". { unfold precond, fspec_apc; ss. iFrame. by iExists _. }
@@ -125,23 +125,23 @@ Proof.
 Qed.
 
 Lemma wsim_apc_src_call_tgt `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}
-  fl fr Ist is_closed u0 u1 cP r g {Rs Rt} RR ps pt nths st_src st_tgt k_src k_tgt spc spc_pure
+  fl fr Ist is_closed u0 u1 cP r g {Rs Rt} RR ps pt nths st_src st_tgt k_src k_tgt sp sp_pure
   scopes ginv fn args fsp X (spec_arg: X) o P Q (ow_src ow_fn od_src od_fn : Ord.t)
   (WIDTH: (ow_fn < ow_src)%ord)
   (DEPTH: (od_fn < od_src)%ord)
-  (SpcPureInSpc: spc_sub spc_pure spc)
-  (fnInSpcPure: spc_pure fn = Some fsp)
+  (SpPureInSp: sp_sub sp_pure sp)
+  (fnInSpPure: sp_pure fn = Some fsp)
   (fspIsfspecapc: fsp = (@fspec_apc Σ X o (λ x, (P x, Q x))))
   :
   (((P spec_arg args ∗ ⌜∃ vo : Ord.t, od_fn ↑ = vo ↑ ∧ (o spec_arg <= vo)%ord⌝) ∗ (Ist nths st_src st_tgt)) ∗
     (∀ nths0 st_src0 st_tgt0 (vret ret: Any.t),
       ((Ist nths0 st_src0 st_tgt0) ∗ (Q spec_arg ret))
       -∗ wsim fl fr Ist is_closed u0 u1 cP r g Rs Rt RR false false nths0
-          (st_src0, ((HMod.sandbox scopes (interp_smod ginv spc (_APC od_src spc_pure ow_fn))) >>= k_src))
+          (st_src0, ((HMod.sandbox scopes (interp_smod ginv sp (_APC od_src sp_pure ow_fn))) >>= k_src))
           (st_tgt0, k_tgt ret)))
   ⊢
     (wsim fl fr Ist is_closed u0 u1 cP r g Rs Rt RR ps pt nths
-      (st_src, ((HMod.sandbox scopes (interp_smod ginv spc (_APC od_src spc_pure ow_src))) >>= k_src))
+      (st_src, ((HMod.sandbox scopes (interp_smod ginv sp (_APC od_src sp_pure ow_src))) >>= k_src))
       (st_tgt, (trigger (Call fn args) >>= k_tgt))).
 Proof.
   eapply wsim_apc_src_call_tgt_weaker; et. 
@@ -152,13 +152,13 @@ Qed.
 
 (* Lemma wsim_apc_tgt_noist `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}
   is_closed fl fr Ist u0 u1 cP r g {Rs Rt} RR ps pt nths st_src st_tgt i_src i_tgt
-  (spc spc_pure: string → option fspec) (od ow: Ord.t) (scopes: list string)
-  (SUB: spc_sub spc_pure spc)
-  (SUBA: spc_incl APCA.Spc spc)
-  (FIND: alist_find APCHdr.apc fr = Some (HMod.sandbox_body (APCA.scopes, interp_sb_hp (wsim_ginv u0 cP) spc
-      {| fsb_fspec := APCA.apc_spec; fsb_body := cfunN (APCA.apc_body spc_pure) |})))
-  (BODY: ∀ fn fsp, spc_pure fn = Some fsp 
-          → ∃ sc, alist_find fn fr = Some (pure_specbody sc u0 spc fsp))
+  (sp sp_pure: string → option fspec) (od ow: Ord.t) (scopes: list string)
+  (SUB: sp_sub sp_pure sp)
+  (SUBA: sp_incl APCA.Sp sp)
+  (FIND: alist_find APCHdr.apc fr = Some (HMod.sandbox_body (APCA.scopes, interp_sb_hp (wsim_ginv u0 cP) sp
+      {| fsb_fspec := APCA.apc_spec; fsb_body := cfunN (APCA.apc_body sp_pure) |})))
+  (BODY: ∀ fn fsp, sp_pure fn = Some fsp 
+          → ∃ sc, alist_find fn fr = Some (pure_specbody sc u0 sp fsp))
   :
     (wsim fl fr Ist is_closed u0 u1 cP r g Rs Rt RR false false nths
       (st_src, i_src)
@@ -166,7 +166,7 @@ Qed.
   ⊢
     (wsim fl fr Ist is_closed u0 u1 cP r g Rs Rt RR ps pt nths 
       (st_src, i_src)
-      (st_tgt, ((HMod.sandbox scopes (interp_smod (wsim_ginv u1 cP) spc (_APC od spc_pure ow)));;; i_tgt))).
+      (st_tgt, ((HMod.sandbox scopes (interp_smod (wsim_ginv u1 cP) sp (_APC od sp_pure ow)));;; i_tgt))).
   Proof.
   iIntros "ISIM".
   set (E:=environments.envs_entails _).

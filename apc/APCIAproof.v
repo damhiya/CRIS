@@ -10,13 +10,13 @@ Module APCIA. Section APCIA.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
   
   Context (u: univ_id).
-  Context (SpcA : string → option fspec).
-  Context (SpcPure : string → option fspec).
+  Context (SpA : string → option fspec).
+  Context (SpPure : string → option fspec).
 
   Definition Ist : nat → alist key Any.t → alist key Any.t → iProp Σ :=
     (λ _ _ _, True)%I.
 
-  Local Definition APCAMod := (APCA.t u SpcPure SpcA).
+  Local Definition APCAMod := (APCA.t u SpPure SpA).
   Local Definition APCIMod := (APCI.t).
 
   Local Transparent _APC.
@@ -44,9 +44,9 @@ End APCIA.
 Section ctxr.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
 
-  Theorem ctxr (u: univ_id) (SpcA SpcPure: string → option fspec):
+  Theorem ctxr (u: univ_id) (SpA SpPure: string → option fspec):
     ctx_refines
-      (APCA.t u SpcPure SpcA, emp%I)
+      (APCA.t u SpPure SpA, emp%I)
       (APCI.t, emp%I).
   Proof using. eapply main_adequacy, sim. Qed.
 End ctxr. End APCIA.

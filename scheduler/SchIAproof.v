@@ -13,9 +13,9 @@ Module SchIA. Section SchIA.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !SchAGΣ Σ, !SchAGΓ Γ}.
   Context (u_a : univ_id).
 
-  Context (Spc_global Spc_user : string -> option fspec).
-  Context (SchInSpc : spc_incl (spc u_a Spc_user) Spc_global).
-  Context (FunInSpc : spc_sub Spc_user Spc_global).
+  Context (Sp_global Sp_user : string -> option fspec).
+  Context (SchInSp : sp_incl (sp u_a Sp_user) Sp_global).
+  Context (FunInSp : sp_sub Sp_user Sp_global).
 
   Fixpoint ths_wf (nths: nat) (ths_tgt: SchI.thslist): Prop :=
     match ths_tgt with
@@ -166,13 +166,13 @@ Module SchIA. Section SchIA.
           ∗ ((tid_admin (Some tid) ∧ ⌜_internal = false⌝) 
               ∨ (tid_admin None ∧ ⌜_internal = true⌝)))%I.
 
-  Local Definition SchA := (SchA.t u_a Spc_global Spc_user).
-  Local Definition SchAlink := (SchA_link.t u_a Spc_global).
+  Local Definition SchA := (SchA.t u_a Sp_global Sp_user).
+  Local Definition SchAlink := (SchA_link.t u_a Sp_global).
   Local Definition SchAMod := (SchA ★ SchAlink). 
   Local Definition SchIMod := (SchI.t).
 
   Lemma simF__spawn : HSim.sim_fun open SchAMod SchIMod Ist SchHdr._spawn.
-  Proof using FunInSpc SchInSpc.
+  Proof using FunInSp SchInSp.
     init_simF u_a 0.
 
     rewrite /SchA.trigger_Yield /SchI.trigger_Yield.
@@ -207,7 +207,7 @@ Module SchIA. Section SchIA.
     
     (* Call the spawnee *)
     prep. inv H. rename x into userfspec. force_l userfspec; iFrame.
-    iSplit; first (iPureIntro; apply FunInSpc; done).
+    iSplit; first (iPureIntro; apply FunInSp; done).
     steps_l. 
 
     iPoseProof (tid_admin_none_split with "TA") as "[TA tid]".
@@ -341,7 +341,7 @@ Module SchIA. Section SchIA.
   (*FAST*)Qed.
 
   Lemma simF_spawn : HSim.sim_fun open SchAMod SchIMod Ist SchHdr.spawn.
-  Proof using FunInSpc SchInSpc.
+  Proof using FunInSp SchInSp.
     init_simF u_a 0.
 
     step_l. step_l.
@@ -351,7 +351,7 @@ Module SchIA. Section SchIA.
     iDestruct "ASM" as "[[-> [-> [% %]]] [PRE tid]]". hss. inv H. rename x into userfspec.
     steps_l. force_l q. steps_l.
     force_l. iSplit.
-    { iPureIntro. apply SchInSpc; ss. rewrite /spc; unseal CRIS; ss. }
+    { iPureIntro. apply SchInSp; ss. rewrite /sp; unseal CRIS; ss. }
 
     (* spawn _spawn *)
     rename q into my_tid. rename q1 into farg.
@@ -415,7 +415,7 @@ Module SchIA. Section SchIA.
   (*FAST*)Qed.
 
   Lemma simF_yield : HSim.sim_fun open SchAMod SchIMod Ist SchHdr.yield.
-  Proof using FunInSpc SchInSpc.
+  Proof using FunInSp SchInSp.
     init_simF u_a 0.
 
     rewrite /SchA.trigger_Yield /SchI.trigger_Yield.
@@ -449,7 +449,7 @@ Module SchIA. Section SchIA.
   (*FAST*)Qed.
 
   Lemma simF_join : HSim.sim_fun open SchAMod SchIMod Ist SchHdr.join.
-  Proof using FunInSpc SchInSpc.
+  Proof using FunInSp SchInSp.
     init_simF u_a 0.
 
     step_l. step_l.
@@ -547,7 +547,7 @@ Module SchIA. Section SchIA.
   (*FAST*)Qed.
 
   Lemma simF_get_tid : HSim.sim_fun open SchAMod SchIMod Ist SchHdr.get_tid.
-  Proof using FunInSpc SchInSpc.
+  Proof using FunInSp SchInSp.
     init_simF u_a 0.
 
     steps_l. iDestruct "ASM" as "[[-> tid] ->]"; hss.
@@ -560,7 +560,7 @@ Module SchIA. Section SchIA.
   (*FAST*)Qed.
 
   Lemma sim : HSim.t open SchAMod SchIMod SchA.init_cond Ist.
-  Proof using FunInSpc SchInSpc.
+  Proof using FunInSp SchInSp.
     init_sim.
     - rewrite /SchA.init_cond /init_threads /init_tid. unseal "SchA".
       iIntros "[[THB THW] tid]". iExists _, _, _, ∅, 0, false.
@@ -589,11 +589,11 @@ Module SchIA. Section SchIA.
   Section ctxr.
     Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
     Context `{!SchAGΣ Σ, !SchAGΓ Γ}.
-    Lemma ctxr (u : univ_id) (spc_global spc_user : string → option fspec)
-        (SchInGlobal : spc_incl (SchAS.spc u spc_user) spc_global)
-        (UserInGlobal : spc_sub spc_user spc_global) :
+    Lemma ctxr (u : univ_id) (sp_global sp_user : string → option fspec)
+        (SchInGlobal : sp_incl (SchAS.sp u sp_user) sp_global)
+        (UserInGlobal : sp_sub sp_user sp_global) :
       ctx_refines
-        ((SchA.t u spc_global spc_user) ★ (SchA_link.t u spc_global), SchA.init_cond)
+        ((SchA.t u sp_global sp_user) ★ (SchA_link.t u sp_global), SchA.init_cond)
         (SchI.t, emp%I).
     Proof using. eapply main_adequacy, sim; eauto. Qed.
 End ctxr. End SchIA.

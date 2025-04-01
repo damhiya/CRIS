@@ -249,7 +249,7 @@ Module SchAS. Section SchAS.
   End RA.
 
   Variable υ : univ_id.
-  Variable Spc_user : string -> option fspec.
+  Variable Sp_user : string -> option fspec.
 
   Section SPEC.
 
@@ -270,8 +270,8 @@ Module SchAS. Section SchAS.
           (λ '(my_tid, pa_tid, fargs, fvargs, pre, postS, fn) varg arg,
             (⌜varg = ((pa_tid, fn, fvargs) : nat * string * SAny.t) 
               ∧ arg = ((pa_tid, fn, fargs) : nat * string * SAny.t)↑ 
-              ∧ is_Some (Spc_user fn)
-              ∧ fspec_spawnable υ (find_fsp Spc_user fn) pre postS⌝
+              ∧ is_Some (Sp_user fn)
+              ∧ fspec_spawnable υ (find_fsp Sp_user fn) pre postS⌝
             ∗ (pre fvargs fargs) ∗ (token_half my_tid postS) ∗ (tid_user my_tid))%I)
           (λ _ (_: SAny.t) _, (False)%I))
     .
@@ -282,8 +282,8 @@ Module SchAS. Section SchAS.
           (λ '(my_tid, fargs, fvargs, pre, postS, fn) varg arg,
             (⌜varg = ((fn, fvargs): string * SAny.t) 
               ∧ arg = ((fn, fargs): string * SAny.t)↑
-              ∧ is_Some (Spc_user fn)
-              ∧ (fspec_spawnable υ (find_fsp Spc_user fn) pre postS)⌝
+              ∧ is_Some (Sp_user fn)
+              ∧ (fspec_spawnable υ (find_fsp Sp_user fn) pre postS)⌝
              ∗ (pre fvargs fargs) ∗ tid_user my_tid)%I)
           (λ '(my_tid, fargs, fvargs, pre, postS, fn) vret ret,
             ((∃ tid: nat, ⌜vret = tid ∧ ret = tid↑⌝ ∗ (token_th tid postS)) ∗ tid_user my_tid)%I))
@@ -315,7 +315,7 @@ Module SchAS. Section SchAS.
             (λ vret, (⌜vret = tid↑⌝ ∗ tid_user tid))))
         )%I.
 
-    Definition spc : alist string fspec :=
+    Definition sp : alist string fspec :=
       Seal.sealing CRIS 
         [(SchHdr._spawn, _spawn_spec);
          (SchHdr.spawn, spawn_spec);
@@ -369,15 +369,15 @@ Module SchA. Section SchA.
       trigger (Choose (option SAny.t))
   .
 
-  Definition fnsems υ Spc_user :=
-    [(SchHdr._spawn, (scopes, mk_specbody (SchAS._spawn_spec υ Spc_user) (cfunN _spawn)));
-     (SchHdr.spawn, (scopes, mk_specbody (SchAS.spawn_spec υ Spc_user) (cfunU spawn)));
+  Definition fnsems υ Sp_user :=
+    [(SchHdr._spawn, (scopes, mk_specbody (SchAS._spawn_spec υ Sp_user) (cfunN _spawn)));
+     (SchHdr.spawn, (scopes, mk_specbody (SchAS.spawn_spec υ Sp_user) (cfunU spawn)));
      (SchHdr.yield, (scopes, mk_specbody (SchAS.yield_spec υ) (cfunU yield)));
      (SchHdr.join, (scopes, mk_specbody (SchAS.join_spec υ) (cfunU join)))].
 
-  Program Definition Mod υ Spc_user : SMod.t := {|
+  Program Definition Mod υ Sp_user : SMod.t := {|
     SMod.scopes := scopes;
-    SMod.fnsems := fnsems υ Spc_user;
+    SMod.fnsems := fnsems υ Sp_user;
     SMod.initial_st := [(v_internal, false↑)];
   |}.
   Solve All Obligations with prove_scope.
@@ -385,8 +385,8 @@ Module SchA. Section SchA.
 
   Definition init_cond : iProp Σ := SchAS.init_threads ∗ SchAS.init_tid.
   
-  Definition t υ Spc_global Spc_user :=
-    Seal.sealing CRIS (SMod.to_hmod (wsim_ginv υ ⊤) Spc_global (Mod υ Spc_user)).
+  Definition t υ Sp_global Sp_user :=
+    Seal.sealing CRIS (SMod.to_hmod (wsim_ginv υ ⊤) Sp_global (Mod υ Sp_user)).
 End SchA. End SchA.
 
 Module SchA_link. Section SchA_link.
@@ -408,7 +408,7 @@ Module SchA_link. Section SchA_link.
 
   Definition InitCond : iProp Σ := SchAS.init_threads ∗ SchAS.init_tid.
   
-  Definition t υ Spc_global :=
-    Seal.sealing CRIS (SMod.to_hmod (wsim_ginv υ ⊤) Spc_global (Mod υ)).
+  Definition t υ Sp_global :=
+    Seal.sealing CRIS (SMod.to_hmod (wsim_ginv υ ⊤) Sp_global (Mod υ)).
 
   End SchA_link. End SchA_link.

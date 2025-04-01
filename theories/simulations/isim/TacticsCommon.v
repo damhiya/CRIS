@@ -1,7 +1,7 @@
 Require Import Common.
 Require Import LAuto.
 
-Require Import Spc Mod SMod HMod PMod.
+Require Import Sp Mod SMod HMod PMod.
 Require Import HPSim ISim.
 (* Require Import SchHeader. *)
 
@@ -75,7 +75,7 @@ Ltac move_aux :=
   (hrepeat do 1 match goal with [H: Ist_monotone _ |- _ ] => guardH H; move H at top end);
   (hrepeat do 1 match goal with [H: incl _ (HMod.scopes _ _) |- _] => guardH H; move H at top end);
   (hrepeat do 1 match goal with [H: HMod.wf _ |- _ ] => guardH H; move H at top end);
-  (hrepeat do 1 match goal with [H: ∀ _, spc_incl _ _ |- _ ] => guardH H; move H at top end);
+  (hrepeat do 1 match goal with [H: ∀ _, sp_incl _ _ |- _ ] => guardH H; move H at top end);
   (hrepeat do 1 match goal with [H:=_:list (_ * (Any.t -> itree hmodE Any.t)) |- _ ] => guardH H; move H at top end);
   unguard.
 
@@ -250,14 +250,14 @@ Tactic Notation "red_SB" hyp(prg) :=
       end
   end.
 
-Ltac unfold_spc_exact spc name :=
+Ltac unfold_sp_exact sp name :=
   try match goal with
-      [ H : spc_incl _ spc |- _ ] =>
+      [ H : sp_incl _ sp |- _ ] =>
         let RW := fresh "_RW" in
         let ND := fresh "_ND" in
         edestruct H as [ND RW];
         erewrite (RW name);
-        [| revert ND; unfold to_spc;
+        [| revert ND; unfold to_sp;
            match goal with [|-context[alist_find _ ?x]] => rewrite /x end;
            unseal CRIS; i;
            alist_find_simpl;
@@ -296,7 +296,7 @@ Tactic Notation "red_S" hyp(prg) tactic(tac) :=
           [ eapply SRed.vis_call
           | unfold handle_callE_hmodE;
             unfold HoareCall;
-            unfold_spc_exact stb fn;
+            unfold_sp_exact stb fn;
             tac
           ]
       | vis (SPut _ _) _ =>
@@ -655,15 +655,15 @@ Ltac unfold_iter_r :=
  Rewriting-based normalization
  ***)
 
-Ltac unfold_spc :=
+Ltac unfold_sp :=
   try match goal with
-    [|-context[unwrapN (?spc ?name)]] =>
+    [|-context[unwrapN (?sp ?name)]] =>
       try match goal with
-        [H: context[spc_incl _ spc]|-_] =>
+        [H: context[sp_incl _ sp]|-_] =>
           let RW := fresh "_RW" in let ND := fresh "_ND" in
           edestruct H as [ND RW];
           erewrite (RW name);
-          [|revert ND; unfold to_spc;
+          [|revert ND; unfold to_sp;
             match goal with [|-context[alist_find _ ?x]] => rewrite /x end;
             unseal CRIS; i;
             alist_find_simpl;
@@ -825,7 +825,7 @@ Ltac unwrapP :=
 Ltac _prep :=
   first
     [ unwrapSB
-    | unwrapS; unfold_spc; unwrapSB
+    | unwrapS; unfold_sp; unwrapSB
     | unwrapP; unwrapSB
     | idtac].
 

@@ -1,7 +1,7 @@
 Require Import Common.
 Require Import LAuto.
 
-Require Import Spc Mod SMod HMod PMod.
+Require Import Sp Mod SMod HMod PMod.
 Require Import ISim TacticsCommon.
 
 (**** TODO ****)

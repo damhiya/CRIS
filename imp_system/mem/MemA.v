@@ -208,7 +208,7 @@ Module MemA. Section MemA.
 
   Definition cas_spec : fspec := app_fspec [cas_spec0; cas_spec1].
 
-  Definition spc : alist string fspec :=  
+  Definition sp : alist string fspec :=  
     Seal.sealing CRIS
       [(MemHdr.alloc, alloc_spec);
        (MemHdr.free,  free_spec);
@@ -236,7 +236,7 @@ Module MemA. Section MemA.
 
   Definition init_cond csl genv : iProp := mem_init_auth csl genv.
 
-  Definition t u Spc := Seal.sealing CRIS (SMod.to_hmod (wsim_ginv u ⊤) Spc Mod).
+  Definition t u Sp := Seal.sealing CRIS (SMod.to_hmod (wsim_ginv u ⊤) Sp Mod).
 End MemA. End MemA.
 Global Opaque mem_points_to_singleton_r.
 Arguments mem_points_to_singleton_r : simpl never.

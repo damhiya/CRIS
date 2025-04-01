@@ -9,7 +9,7 @@ Section SMOD.
 
   Context `{Σ : GRA}.
   Variable ginv : iProp Σ.
-  Variable spc : string -> option fspec.
+  Variable sp : string -> option fspec.
 
   Record t : Type := mk {
     scopes : list string;
@@ -86,7 +86,7 @@ Section SMOD.
 
   Program Definition to_hmod (ms : t) : HMod.t := {|
     HMod.scopes := ms.(scopes);
-    HMod.fnsems := List.map (map_snd (λ ksb, (ksb.1, interp_sb_hp ginv spc ksb.2))) ms.(fnsems);
+    HMod.fnsems := List.map (map_snd (λ ksb, (ksb.1, interp_sb_hp ginv sp ksb.2))) ms.(fnsems);
     HMod.initial_st := ms.(initial_st);
   |}.
   Next Obligation.
@@ -106,20 +106,20 @@ Section ADD.
   Context `{Σ : GRA}.
     
   Lemma smod_add_interp_comm
-      ginv spc
+      ginv sp
       (ms0 ms1: SMod.t)
     :
-    SMod.to_hmod ginv spc (SMod.add ms0 ms1) = HMod.add (SMod.to_hmod ginv spc ms0) (SMod.to_hmod ginv spc ms1).
+    SMod.to_hmod ginv sp (SMod.add ms0 ms1) = HMod.add (SMod.to_hmod ginv sp ms0) (SMod.to_hmod ginv sp ms1).
   Proof using.
     eapply hmod_extensionality; ss; eauto.
     rewrite map_app. ss.
   Qed.
 
   Lemma add_interp_comm
-      ginv spc
+      ginv sp
       (md0 md1: SMod.t)
     :
-    SMod.to_hmod ginv spc (SMod.add md0 md1) = HMod.add (SMod.to_hmod ginv spc md0) (SMod.to_hmod ginv spc md1).
+    SMod.to_hmod ginv sp (SMod.add md0 md1) = HMod.add (SMod.to_hmod ginv sp md0) (SMod.to_hmod ginv sp md1).
   Proof using.
     unfold SMod.to_hmod. unfold "★". s. 
     f_equal. extensionalities.
@@ -127,19 +127,19 @@ Section ADD.
   Qed.
 
   Lemma interp_empty
-      ginv spc
+      ginv sp
     :
-    SMod.to_hmod ginv spc SMod.empty = HMod.empty.
+    SMod.to_hmod ginv sp SMod.empty = HMod.empty.
   Proof using.
     unfold SMod.to_hmod, HMod.empty.
     eapply hmod_extensionality; eauto.
   Qed.
 
   Lemma addL_interp_comm
-      ginv spc
+      ginv sp
       (mds: list SMod.t)
     :
-    SMod.to_hmod ginv spc (SMod.addL mds) = HMod.addL (List.map (SMod.to_hmod ginv spc) mds).
+    SMod.to_hmod ginv sp (SMod.addL mds) = HMod.addL (List.map (SMod.to_hmod ginv sp) mds).
   Proof using.
     induction mds; [eapply interp_empty|].
     s. rewrite add_interp_comm.

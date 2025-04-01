@@ -15,16 +15,16 @@ Module APCAC. Section APCAC.
   (* context *)
   Context (md : HMod.t).
   Context (u : univ_id).
-  Context (spc_c spc_a spc_pure : string → option fspec).
-  Context (APCInSpcA : spc_incl APCA.Spc spc_a).
-  Context (PureInSpcA : spc_sub spc_pure spc_a).
+  Context (sp_c sp_a sp_pure : string → option fspec).
+  Context (APCInSpA : sp_incl APCA.Sp sp_a).
+  Context (PureInSpA : sp_sub sp_pure sp_a).
   Context (PureIsPure :
             ∀ fn pfsp, 
-            spc_pure fn = Some pfsp 
-              → ∃ scopes, find_body md fn = Some (pure_specbody scopes u spc_a pfsp)).
+            sp_pure fn = Some pfsp 
+              → ∃ scopes, find_body md fn = Some (pure_specbody scopes u sp_a pfsp)).
 
-  Local Definition APCC := (APCC.t u spc_c).
-  Local Definition APCA := (APCA.t u spc_pure spc_a).
+  Local Definition APCC := (APCC.t u sp_c).
+  Local Definition APCA := (APCA.t u sp_pure sp_a).
   Local Definition APCCMod := (APCC ★ md).
   Local Definition APCAMod := (APCA ★ md).
   Local Definition IstFull := (IstProd (IstSB APCC.(HMod.scopes) Ist) IstEq).
@@ -33,7 +33,7 @@ Module APCAC. Section APCAC.
 
   Lemma simF_apc :
     HSim.sim_fun open APCCMod APCAMod IstFull APCHdr.apc.
-  Proof using PureIsPure PureInSpcA APCInSpcA.
+  Proof using PureIsPure PureInSpA APCInSpA.
     init_simF u 0.
     (* init_simF. *)
     steps_l. iDestruct "ASM" as "%"; des; subst.
@@ -76,7 +76,7 @@ Module APCAC. Section APCAC.
     rename Heq into G, f into q3. steps_r. 
     
     (* inlining *)
-    unfold is_Some in *. des. dup grt. apply PureInSpcA in grt. rewrite grt in G. inv G; ss.
+    unfold is_Some in *. des. dup grt. apply PureInSpA in grt. rewrite grt in G. inv G; ss.
     apply PureIsPure in grt1. ss. destruct grt1. unfold find_body in H1.
     hide_itree_l; prep; iApply wsim_inline_tgt.
     { subst FLT. rewrite map_app. apply alist_find_comm.
@@ -117,7 +117,7 @@ Module APCAC. Section APCAC.
   (*FAST*)Qed.
 
   Theorem sim : HSim.t open APCCMod APCAMod emp%I IstFull.
-  Proof using PureIsPure PureInSpcA APCInSpcA.
+  Proof using PureIsPure PureInSpA APCInSpA.
     init_sim.
     - iIntros "_". iExists [], [], _, _. 
       iSplit; ss.
@@ -130,15 +130,15 @@ End APCAC.
 Section ctxr.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
 
-  Definition ctxr (md : HMod.t) (u : univ_id) (spc_c spc_a spc_pure : string → option fspec)
-      (APCInSpcA : spc_incl APCA.Spc spc_a)
-      (PureInSpcA : spc_sub spc_pure spc_a)
+  Definition ctxr (md : HMod.t) (u : univ_id) (sp_c sp_a sp_pure : string → option fspec)
+      (APCInSpA : sp_incl APCA.Sp sp_a)
+      (PureInSpA : sp_sub sp_pure sp_a)
       (PureIsPure : 
                   ∀ fn pfsp, 
-                    spc_pure fn = Some pfsp 
-                    → ∃ scopes, find_body md fn = Some (pure_specbody scopes u spc_a pfsp)) :
+                    sp_pure fn = Some pfsp 
+                    → ∃ scopes, find_body md fn = Some (pure_specbody scopes u sp_a pfsp)) :
     ctx_refines
-      ((APCC.t u spc_c)           ★ md, emp%I)
-      ((APCA.t u spc_pure spc_a)  ★ md, emp%I).
+      ((APCC.t u sp_c)           ★ md, emp%I)
+      ((APCA.t u sp_pure sp_a)  ★ md, emp%I).
   Proof using. eapply main_adequacy, sim; eauto. Qed.
 End ctxr. End APCAC.

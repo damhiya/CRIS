@@ -325,7 +325,7 @@ Proof.
 Abort.
 *)
 
-Ltac spc H :=
+Ltac sp H :=
   let TAC := ss; eauto in
   let ty := type of H in
   match eval hnf in ty with
@@ -349,7 +349,7 @@ Ltac spc H :=
   | _ => fail 1 "Nothing to specialize!"
   end.
 
-Ltac spcN n H :=
+Ltac spN n H :=
   let TAC := ss; eauto in
   let ty := type of H in
   match type of n with
@@ -431,7 +431,7 @@ Ltac spcN n H :=
 Goal let my_nat := nat in
      let my_f := my_nat -> Prop in
      forall (f : my_f) (g : nat -> Prop) (x : nat) (y : my_nat), False.
-  i. spc f. spc g.
+  i. sp f. sp g.
 Abort.
 *)
 
@@ -633,7 +633,7 @@ Lemma last_none
       X (xs : list X)
       (NONE : last_opt xs = None):
     xs = [].
-Proof. ginduction xs; ii; ss. des_ifs. spc IHxs. ss. Qed.
+Proof. ginduction xs; ii; ss. des_ifs. sp IHxs. ss. Qed.
 
 Lemma last_some
       X (xs : list X) x

@@ -120,7 +120,7 @@ Qed.
 Lemma cancel_main `{Σ: GRA} md
     P ginv fsp meta rs rt r
     (WF: HMod.wf (SModCancel.to_hmod md))
-    (SPC: spc_from md "CRIS_init" = Some fsp)
+    (SPC: sp_from md "CRIS_init" = Some fsp)
     (VALID: ✓ rs)
     (EQUIV: rs ≡ r ⋅ rt)
     (PRE: Own r ⊢ fsp.(precond) meta tt↑ tt↑)
@@ -129,7 +129,7 @@ Lemma cancel_main `{Σ: GRA} md
   :  
   refines_mod
     (HMod.to_mod (HModInline.inline (SModCancel.to_hmod md)) rs)
-    (HMod.to_mod (HModInline.inline (SMod.to_hmod ginv (spc_from md) md)) rt).
+    (HMod.to_mod (HModInline.inline (SMod.to_hmod ginv (sp_from md) md)) rt).
 Proof.
   r. eapply adequacy_global.
   instantiate (1:= smj_top).
@@ -138,7 +138,7 @@ Proof.
   destruct (alist_find "CRIS_init" (SMod.fnsems md)) eqn:E; cycle 1.
   {
     rewrite !alist_find_map/o_map E. s.
-    rewrite /spc_from E in SPC. ss.
+    rewrite /sp_from E in SPC. ss.
   }
   rewrite !alist_find_map/o_map E. s. 
   erewrite !wrap_elimI_well_scoped; cycle 1.
@@ -151,7 +151,7 @@ Proof.
   
   unfold interp_modE, interp_schE_callE. 
   destruct f.
-  assert (TMP:=SPC). unfold spc_from in TMP. rewrite E in TMP. depdes TMP.
+  assert (TMP:=SPC). unfold sp_from in TMP. rewrite E in TMP. depdes TMP.
   hide_l.
   ginit.
   rewrite SBRed.bind SBRed.core HIRed.bind_core HRed.bind HRed.core. ired.
@@ -196,12 +196,12 @@ Qed.
 
 (*** Final Theorem ***)
 Theorem cancellation `{Σ: GRA} md ginv P fsp meta
-  (SPC: spc_from md "CRIS_init" = Some fsp)
+  (SPC: sp_from md "CRIS_init" = Some fsp)
   (POST: ∀ vret ret,
          ((fsp).(postcond) (meta) vret ret) -∗ ⌜vret = ret⌝)
   :
   refines (SModCancel.to_hmod md, P ∗ ((fsp).(precond) (meta) tt↑ tt↑))%I
-          (SMod.to_hmod ginv (spc_from md) md, P).
+          (SMod.to_hmod ginv (sp_from md) md, P).
 Proof. 
   etrans.
   { eapply cancel_call_rev. }

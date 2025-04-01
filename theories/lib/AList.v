@@ -254,7 +254,7 @@ Section ALIST.
   Proof using.
     revert ND. induction l; ss.
     { i. econs; et. }
-    i. inv ND. spc IHl. destruct a. ss.
+    i. inv ND. sp IHl. destruct a. ss.
     rewrite eq_rel_dec_correct in *. des_ifs.
     inv IHl. ss. econs; et.
     { ii. ss. des; clarify. }
@@ -481,7 +481,7 @@ Section ALIST.
   Proof using.
     unfold alist_upd in *.
     revert ND. induction l; ss; i; eauto using NoDup.
-    i. inv ND. spc IHl. destruct a.
+    i. inv ND. sp IHl. destruct a.
     rewrite eq_rel_dec_correct in *.
     des_ifs; ss; eauto using NoDup.
     econs; eauto.

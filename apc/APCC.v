@@ -9,12 +9,12 @@ Module APCC. Section APCC.
 
   Definition scopes := ["APC"].
 
-  Definition Spc : alist string fspec :=
+  Definition Sp : alist string fspec :=
     Seal.sealing CRIS
       [(APCHdr.apc, APCA.apc_spec)].
   
-  Lemma Spc_nodup : List.NoDup (List.map fst Spc).
-  Proof using. unfold Spc. unseal CRIS. prove_nodup. Qed.
+  Lemma Sp_nodup : List.NoDup (List.map fst Sp).
+  Proof using. unfold Sp. unseal CRIS. prove_nodup. Qed.
 
   Definition fnsems :=
     [(APCHdr.apc, (scopes, mk_specbody APCA.apc_spec fbody_trivial))].
@@ -27,5 +27,5 @@ Module APCC. Section APCC.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition t u Spc := Seal.sealing CRIS (SMod.to_hmod (wsim_ginv u ⊤) Spc Mod).
+  Definition t u Sp := Seal.sealing CRIS (SMod.to_hmod (wsim_ginv u ⊤) Sp Mod).
 End APCC. End APCC.
