@@ -1,6 +1,6 @@
 Require Export Common.
 
-Require Export Spc.
+Require Export FSpec Spc.
 Require Export SMod HMod PMod.
 Require Export ISim ISimInit WSim ISimNotations WSimNotations.
 Require Export Tactics TacticsInit IrisTactics.

@@ -1,6 +1,6 @@
 Require Import Common.
 Require Import HMod.
-Require Export SMod2HMod.
+Require Export FSpec SMod2HMod.
 
 Set Implicit Arguments.
 
