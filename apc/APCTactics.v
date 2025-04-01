@@ -158,7 +158,7 @@ Qed.
   (FIND: alist_find APCHdr.apc fr = Some (HMod.sandbox_body (APCA.scopes, interp_sb_hp (wsim_ginv u0 cP) spc
       {| fsb_fspec := APCA.apc_spec; fsb_body := cfunN (APCA.apc_body spc_pure) |})))
   (BODY: ∀ fn fsp, spc_pure fn = Some fsp 
-          → ∃ scp, alist_find fn fr = Some (pure_specbody scp u0 spc fsp))
+          → ∃ sc, alist_find fn fr = Some (pure_specbody sc u0 spc fsp))
   :
     (wsim fl fr Ist is_closed u0 u1 cP r g Rs Rt RR false false nths
       (st_src, i_src)

@@ -38,17 +38,17 @@ Section wsim.
   Context (nths : nat).
   Context (st_s st_t : state).
 
-  Lemma wsim_yield_tgt_u0 r g scp_s scp_t ginv spc spc_user k_s k_t my_tid
+  Lemma wsim_yield_tgt_u0 r g sc_s sc_t ginv spc spc_user k_s k_t my_tid
       (SchInSpc : spc_incl (SchAS.spc υ spc_user) spc) :
     Ist nths st_s st_t ∗ tid_user my_tid ∗
     (∀ nths st_s st_t (NODS: List.NoDup (List.map fst st_s)) (NODT: List.NoDup (List.map fst st_t)),
       Ist nths st_s st_t -∗ tid_user my_tid -∗
       wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR ps true nths
-        (st_s, (HMod.sandbox scp_s (interp_smod ginv spc Sch.yield)) >>= k_s)
+        (st_s, (HMod.sandbox sc_s (interp_smod ginv spc Sch.yield)) >>= k_s)
         (st_t, k_t tt))
     ⊢ wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR ps pt nths
-      (st_s, (HMod.sandbox scp_s (interp_smod ginv spc Sch.yield)) >>= k_s)
-      (st_t, (HMod.sandbox scp_t (PMod.interp Sch.yield)) >>= k_t).
+      (st_s, (HMod.sandbox sc_s (interp_smod ginv spc Sch.yield)) >>= k_s)
+      (st_t, (HMod.sandbox sc_t (PMod.interp Sch.yield)) >>= k_t).
   Proof using.
     rewrite !WSim.wsim_eq /WSim.wsim_def.
     iIntros "SIM P".
@@ -99,18 +99,18 @@ Section wsim.
     Unshelve. all: revert NODSS NODDT; unseal ""; ss.
   (*FAST*)Qed.
 
-  Lemma wsim_yield_tgt_uu r g scp_s scp_t ginv spc_s spc_t spc_user_s spc_user_t k_s k_t
+  Lemma wsim_yield_tgt_uu r g sc_s sc_t ginv spc_s spc_t spc_user_s spc_user_t k_s k_t
       (SchInSpcS : spc_incl (SchAS.spc υ spc_user_s) spc_s)
       (SchInSpcT : spc_incl (SchAS.spc υ spc_user_t) spc_t) :
     Ist nths st_s st_t ∗
     (∀ nths st_s st_t (NODS: List.NoDup (List.map fst st_s)) (NODD: List.NoDup (List.map fst st_t)),
       Ist nths st_s st_t -∗
       wsim fl_s fl_t Ist None υ ν ⊤ r g R_s R_t RR ps true nths
-        (st_s, (HMod.sandbox scp_s (interp_smod ginv spc_s Sch.yield)) >>= k_s)
+        (st_s, (HMod.sandbox sc_s (interp_smod ginv spc_s Sch.yield)) >>= k_s)
         (st_t, k_t tt))
     ⊢ wsim fl_s fl_t Ist None υ ν ⊤ r g R_s R_t RR ps pt nths
-      (st_s, (HMod.sandbox scp_s (interp_smod ginv spc_s Sch.yield)) >>= k_s)
-      (st_t, (HMod.sandbox scp_t (interp_smod ginv spc_t Sch.yield)) >>= k_t).
+      (st_s, (HMod.sandbox sc_s (interp_smod ginv spc_s Sch.yield)) >>= k_s)
+      (st_t, (HMod.sandbox sc_t (interp_smod ginv spc_t Sch.yield)) >>= k_t).
   Proof using.
     rewrite !WSim.wsim_eq /WSim.wsim_def.
     iIntros "SIM P".
@@ -160,7 +160,7 @@ Section wsim.
     Unshelve. all: revert NODSS NODDT; unseal ""; ss.
   (*FAST*)Qed.
 
-  Lemma wsim_yield_tgt_uv r g scp_s scp_t ginv_s ginv_t spc_s spc_t spc_user_s spc_user_t k_s k_t
+  Lemma wsim_yield_tgt_uv r g sc_s sc_t ginv_s ginv_t spc_s spc_t spc_user_s spc_user_t k_s k_t
       (SchInSpcs : spc_incl (SchAS.spc υ spc_user_s) spc_s)
       (SchInSpct : spc_incl (SchAS.spc ν spc_user_t) spc_t)
       `{υ > ν} :
@@ -169,11 +169,11 @@ Section wsim.
         (NODS: List.NoDup (List.map fst st_s)) (NODD: List.NoDup (List.map fst st_t)),
       Ist nths st_s st_t -∗
       wsim fl_s fl_t Ist (Some false) υ ν ⊤ r g R_s R_t RR ps true nths
-        (st_s, (HMod.sandbox scp_s (interp_smod ginv_s spc_s Sch.yield)) >>= k_s)
+        (st_s, (HMod.sandbox sc_s (interp_smod ginv_s spc_s Sch.yield)) >>= k_s)
         (st_t, k_t tt))
     ⊢ wsim fl_s fl_t Ist (Some false) υ ν ⊤ r g R_s R_t RR ps pt nths
-      (st_s, (HMod.sandbox scp_s (interp_smod ginv_s spc_s Sch.yield)) >>= k_s)
-      (st_t, (HMod.sandbox scp_t (interp_smod ginv_t spc_t Sch.yield)) >>= k_t).
+      (st_s, (HMod.sandbox sc_s (interp_smod ginv_s spc_s Sch.yield)) >>= k_s)
+      (st_t, (HMod.sandbox sc_t (interp_smod ginv_t spc_t Sch.yield)) >>= k_t).
   Proof using.
     rewrite !WSim.wsim_eq /WSim.wsim_def.
     iIntros "SIM P".
@@ -225,13 +225,13 @@ Section wsim.
     Unshelve. all: revert NODSS NODDT; unseal ""; ss.
   (*FAST*)Qed.
 
-  Lemma wsim_yield_src r g scp_s ginv spc spc_user k_s i_t
+  Lemma wsim_yield_src r g sc_s ginv spc spc_user k_s i_t
       (SchInSpc : spc_incl (SchAS.spc υ spc_user) spc) :
     wsim fl_s fl_t Ist t υ ν E r g R_s R_t RR true pt nths
       (st_s, k_s tt)
       (st_t, i_t)
     ⊢ wsim fl_s fl_t Ist t υ ν E r g R_s R_t RR ps pt nths
-      (st_s, (HMod.sandbox scp_s (interp_smod ginv spc Sch.yield)) >>= k_s)
+      (st_s, (HMod.sandbox sc_s (interp_smod ginv spc Sch.yield)) >>= k_s)
       (st_t, i_t).
   Proof using.
     iIntros "SIM".
@@ -241,7 +241,7 @@ Section wsim.
   Qed.
 
   Lemma wsim_spawn fn vargs args fn_spec (P : SAny.t → SAny.t → iProp Σ) (Q : SAny.t → SAny.t → SynDepO)
-      r g scp_s scp_t ginv spc spc_user k_s k_t my_tid
+      r g sc_s sc_t ginv spc spc_user k_s k_t my_tid
       (SchInSpc : spc_incl (SchAS.spc υ spc_user) spc)
       (CalleeInSpc : spc_user fn = Some fn_spec)
       (Spawnable : SchAS.fspec_spawnable υ fn_spec P Q) :
@@ -255,8 +255,8 @@ Section wsim.
         -∗ wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR true true nths
             (st_s, k_s tid) (st_t, k_t tid))
     ⊢ wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR ps pt nths
-      (st_s, (HMod.sandbox scp_s (interp_smod ginv spc (Sch.spawn (fn, vargs)))) >>= k_s)
-      (st_t, (HMod.sandbox scp_t (PMod.interp (Sch.spawn (fn, args)))) >>= k_t).
+      (st_s, (HMod.sandbox sc_s (interp_smod ginv spc (Sch.spawn (fn, vargs)))) >>= k_s)
+      (st_t, (HMod.sandbox sc_t (PMod.interp (Sch.spawn (fn, args)))) >>= k_t).
   Proof using.
     iIntros "(I & TID & P & SIM)". rewrite /Sch.spawn; unseal "Sch".
     steps_l. forces_l. iSplitL "P TID".
@@ -281,7 +281,7 @@ Section wsim.
   Qed.
 
   Lemma wsim_join tid (Q : SAny.t → SAny.t → SynDepO)
-      r g scp_s scp_t ginv spc spc_user k_s k_t my_tid
+      r g sc_s sc_t ginv spc spc_user k_s k_t my_tid
       (SchInSpc : spc_incl (SchAS.spc υ spc_user) spc) :
     Ist nths st_s st_t ∗
     tid_user my_tid ∗
@@ -293,8 +293,8 @@ Section wsim.
         -∗ wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR true true nths
             (st_s, k_s vret) (st_t, k_t ret))
     ⊢ wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR ps pt nths
-      (st_s, (HMod.sandbox scp_s (interp_smod ginv spc (Sch.join tid))) >>= k_s)
-      (st_t, (HMod.sandbox scp_t (PMod.interp (Sch.join tid))) >>= k_t).
+      (st_s, (HMod.sandbox sc_s (interp_smod ginv spc (Sch.join tid))) >>= k_s)
+      (st_t, (HMod.sandbox sc_t (PMod.interp (Sch.join tid))) >>= k_t).
   Proof using.
     iIntros "(IST & TID & TK & SIM)". rewrite /Sch.join; unseal "Sch".
     steps_l. force_l (tid, Q, my_tid). steps_l. force_l (tid↑). steps_l. force_l.

@@ -266,8 +266,8 @@ Proof.
 Qed.
 
 Lemma HoareCall_inline_cancel `{Σ: GRA} md
-  ginv scopes fn varg scp fsp fbody 
-  (FIND: alist_find fn (SMod.fnsems md) = Some (scp, {|fsb_fspec := fsp; fsb_body := fbody|}))
+  ginv scopes fn varg sc fsp fbody 
+  (FIND: alist_find fn (SMod.fnsems md) = Some (sc, {|fsb_fspec := fsp; fsb_body := fbody|}))
   :
   inline_hp (prog (SMod.to_hmod ginv (spc_from md) md)) (HMod.sandbox scopes (HoareCall fsp fn varg))
   =
@@ -280,7 +280,7 @@ Lemma HoareCall_inline_cancel `{Σ: GRA} md
   trigger (Assume (precond fsp m' varg' arg));;; tau;; 
   (* body *)
   vret' <- inline_hp (prog (SMod.to_hmod ginv (spc_from md) md)) 
-                     (HMod.sandbox scp (interp_smod ginv (spc_from md) (fbody varg')));;
+                     (HMod.sandbox sc (interp_smod ginv (spc_from md) (fbody varg')));;
   (* tail *)
   ret <- trigger (Choose Any.t);; tau;;
   trigger (Guarantee (postcond fsp m' vret' ret));;; tau;; tau;; tau;;
@@ -323,8 +323,8 @@ Proof.
 Qed.
 
 Lemma HoareCall_inline `{Σ: GRA} md
-  ginv scopes fn varg scp fsp fbody 
-  (FIND: alist_find fn (SMod.fnsems md) = Some (scp, {|fsb_fspec := fsp; fsb_body := fbody|}))
+  ginv scopes fn varg sc fsp fbody 
+  (FIND: alist_find fn (SMod.fnsems md) = Some (sc, {|fsb_fspec := fsp; fsb_body := fbody|}))
   :
   inline_hp (prog (SMod.to_hmod  ginv (spc_from md) md)) (HMod.sandbox scopes (HoareCall fsp fn varg))
   =
@@ -332,7 +332,7 @@ Lemma HoareCall_inline `{Σ: GRA} md
   '((x, x'), varg'):_ <- (hmod_elim_head (meta fsp) (precond fsp) varg);;
   (* body *)
   vret' <- inline_hp (prog (SMod.to_hmod  ginv (spc_from md) md)) 
-                     (HMod.sandbox scp (interp_smod  ginv (spc_from md) (fbody varg')));;
+                     (HMod.sandbox sc (interp_smod  ginv (spc_from md) (fbody varg')));;
   (* tail *)
   hmod_elim_tail (meta fsp) (postcond fsp) (x, x') vret'. 
 Proof.
@@ -342,23 +342,23 @@ Proof.
 Qed.
 
 Definition elim_head_body `{Σ: GRA} md
-  ginv scp fsp fbody varg
+  ginv sc fsp fbody varg
   :=
   ('((x, x'), varg'):_ <- (hmod_elim_head (meta fsp) (precond fsp) varg);;
   (* body *)
   vret' <- inline_hp (prog (SMod.to_hmod  ginv (spc_from md) md)) 
-                     (HMod.sandbox scp (interp_smod  ginv (spc_from md) (fbody varg')));;
+                     (HMod.sandbox sc (interp_smod  ginv (spc_from md) (fbody varg')));;
   Ret ((x, x'), vret')).
 
 Lemma HoareCall_inline2 `{Σ: GRA} md
-  ginv scopes fn varg scp fsp fbody 
-  (FIND: alist_find fn (SMod.fnsems md) = Some (scp, {|fsb_fspec := fsp; fsb_body := fbody|}))
+  ginv scopes fn varg sc fsp fbody 
+  (FIND: alist_find fn (SMod.fnsems md) = Some (sc, {|fsb_fspec := fsp; fsb_body := fbody|}))
   :
   inline_hp (prog (SMod.to_hmod  ginv (spc_from md) md)) 
     (HMod.sandbox scopes (HoareCall fsp fn varg))
   =
   (* head *)
-  RET <- elim_head_body md ginv scp fsp fbody varg;;
+  RET <- elim_head_body md ginv sc fsp fbody varg;;
   (* tail *)
   (fun RET =>
     let '((x, x'), vret') := RET in

@@ -72,26 +72,26 @@ Proof.
     gstep. econs. i. r. gbase. eauto.
 Qed.
 
-Lemma inv_sandbox_tau `{Σ: GRA} {X} scp (itr : itree hmodE X)
-    (SB : HMod.sandbox scp (tau;; itr) = tau;; itr) :
-  HMod.sandbox scp itr = itr.
+Lemma inv_sandbox_tau `{Σ: GRA} {X} sc (itr : itree hmodE X)
+    (SB : HMod.sandbox sc (tau;; itr) = tau;; itr) :
+  HMod.sandbox sc itr = itr.
 Proof.
   rewrite SBRed.tau in SB. inv SB.
   rewrite sandbox_well_scoped; refl.
 Qed.
 
-Lemma inv_sandbox_core `{Σ: GRA} {X Y} x scp (ktr : X -> itree hmodE Y) (c : coreE X)
-    (SB : HMod.sandbox scp (trigger c >>= ktr) = trigger c >>= ktr) :
-  HMod.sandbox scp (ktr x) = ktr x.
+Lemma inv_sandbox_core `{Σ: GRA} {X Y} x sc (ktr : X -> itree hmodE Y) (c : coreE X)
+    (SB : HMod.sandbox sc (trigger c >>= ktr) = trigger c >>= ktr) :
+  HMod.sandbox sc (ktr x) = ktr x.
 Proof.
   rewrite SBRed.bind SBRed.core in SB.
   rewrite! bind_trigger in SB. inv SB.
   eapply inj_pair2, equal_f in H0. eauto.
 Qed.
 
-Lemma inv_sandbox_call `{Σ: GRA} {X Y} x scp (ktr : X -> itree hmodE Y) (c : callE X)
-    (SB : HMod.sandbox scp (trigger c >>= ktr) = trigger c >>= ktr) :
-  HMod.sandbox scp (ktr x) = ktr x.
+Lemma inv_sandbox_call `{Σ: GRA} {X Y} x sc (ktr : X -> itree hmodE Y) (c : callE X)
+    (SB : HMod.sandbox sc (trigger c >>= ktr) = trigger c >>= ktr) :
+  HMod.sandbox sc (ktr x) = ktr x.
 Proof.
   destruct c.
   rewrite SBRed.bind SBRed.call in SB.
@@ -99,9 +99,9 @@ Proof.
   eapply inj_pair2, equal_f in H0. eauto.
 Qed.
 
-Lemma inv_sandbox_pg `{Σ: GRA} {X Y} x scp (ktr : X -> itree hmodE Y) (pg : pgE X)
-    (SB : HMod.sandbox scp (trigger pg >>= ktr) = trigger pg >>= ktr) :
-  HMod.sandbox scp (ktr x) = ktr x.
+Lemma inv_sandbox_pg `{Σ: GRA} {X Y} x sc (ktr : X -> itree hmodE Y) (pg : pgE X)
+    (SB : HMod.sandbox sc (trigger pg >>= ktr) = trigger pg >>= ktr) :
+  HMod.sandbox sc (ktr x) = ktr x.
 Proof.
   destruct pg.
   { rewrite SBRed.bind SBRed.put in SB.
@@ -114,9 +114,9 @@ Proof.
   }
 Qed.
 
-Lemma inv_sandbox_ag `{Σ: GRA} {X} scp (ktr : unit -> itree hmodE X) (ag : agE unit)
-    (SB : HMod.sandbox scp (trigger ag >>= ktr) = trigger ag >>= ktr) :
-  HMod.sandbox scp (ktr tt) = ktr tt.
+Lemma inv_sandbox_ag `{Σ: GRA} {X} sc (ktr : unit -> itree hmodE X) (ag : agE unit)
+    (SB : HMod.sandbox sc (trigger ag >>= ktr) = trigger ag >>= ktr) :
+  HMod.sandbox sc (ktr tt) = ktr tt.
 Proof.
   rewrite SBRed.bind SBRed.ag in SB.
   rewrite! bind_trigger in SB. inv SB.
@@ -511,9 +511,9 @@ Proof.
       rewrite map_app in NODUPFT.
       eapply NoDup_app_disjoint; eauto.
     }
-    destruct fs as [scp itr].
+    destruct fs as [sc itr].
     inv WFT. eapply isim_reflR; ss; i; eauto.
-    - replace scp with (fnsems_scopes fn ctx.(HMod.fnsems)).
+    - replace sc with (fnsems_scopes fn ctx.(HMod.fnsems)).
       { eapply ctx.(HMod.well_scoped_fns). }
       { unfold fnsems_scopes. des_ifs. }
     - iIntros "%". des; subst; eauto.

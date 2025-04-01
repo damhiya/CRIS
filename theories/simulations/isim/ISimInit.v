@@ -156,8 +156,8 @@ Proof.
   - s. rewrite ?map_app. apply sub_perm_cancel_tail. eauto.
   - s. i. rewrite map_app in IN. apply in_app_or in IN. des.
     { eapply SIM; eauto. }
-    ii. exists fs. destruct fs as [scp f].
-    assert (FND : alist_find fn (HMod.fnsems C) = Some (scp,f)).
+    ii. exists fs. destruct fs as [sc f].
+    assert (FND : alist_find fn (HMod.fnsems C) = Some (sc,f)).
     { s in FIND. rewrite alist_find_app_o in FIND. des_ifs.
       exfalso. assert (ND:= HMod.wf_fns WFS). s in ND. rewrite map_app in ND.
       eapply NoDup_app_disjoint; try apply ND; eauto.
