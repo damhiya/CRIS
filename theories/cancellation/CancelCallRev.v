@@ -1,3 +1,4 @@
+From iris.proofmode Require Import proofmode.
 Require Import Common.
 Require Import SMod2HMod SMod HMod ITactics.
 Require Import ISim ISimInit CtxRefine CtxRefineFacts ClosedAdequacy.

@@ -9,22 +9,21 @@ Module APCIA. Section APCIA.
   Import APCA.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
   
-  Context (u: univ_id).
   Context (SpA : string → option fspec).
   Context (SpPure : string → option fspec).
 
   Definition Ist : nat → alist key Any.t → alist key Any.t → iProp Σ :=
     (λ _ _ _, True)%I.
 
-  Local Definition APCAMod := (APCA.t u SpPure SpA).
+  Local Definition APCAMod := (APCA.t SpPure SpA).
   Local Definition APCIMod := (APCI.t).
 
   Local Transparent _APC.
 
   Lemma simF_apc :
     HSim.sim_fun open APCAMod APCIMod Ist APCHdr.apc.
-  Proof using.
-    init_simF u 0.
+  Proof using invG0 sinvG0 subG0.
+    init_simF 0 0.
     
     steps_l. iDestruct "ASM" as "[-> ->]"; hss.
     steps_r. steps_l. rewrite /APC. force_l. steps_l.
@@ -34,7 +33,7 @@ Module APCIA. Section APCIA.
   Qed.
 
   Theorem sim : HSim.t open APCAMod APCIMod emp%I Ist.
-  Proof using.
+  Proof using invG0 sinvG0 subG0.
     init_sim.
     - eauto.
     - eapply simF_apc.
@@ -44,9 +43,9 @@ End APCIA.
 Section ctxr.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
 
-  Theorem ctxr (u: univ_id) (SpA SpPure: string → option fspec):
+  Theorem ctxr (SpA SpPure: string → option fspec):
     ctx_refines
-      (APCA.t u SpPure SpA, emp%I)
+      (APCA.t SpPure SpA, emp%I)
       (APCI.t, emp%I).
-  Proof using. eapply main_adequacy, sim. Qed.
+  Proof. eapply main_adequacy, sim. Qed.
 End ctxr. End APCIA.

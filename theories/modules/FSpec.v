@@ -37,11 +37,6 @@ Section FSPEC.
     mk_fspec (λ x y a, (((fst ∘ DPQ) x a) ∗ ⌜y = a⌝)%I)
              (λ x z a, (((snd ∘ DPQ) x a) ∗ ⌜z = a⌝)%I).
 
-  Definition fspec_simple_tid {X : Type}
-      (DPQ: X → (Any.t → iProp Σ) * (Any.t → iProp Σ)) : fspec :=
-    mk_fspec (λ x y a, (((fst ∘ DPQ) x a) ∗ ⌜y = a⌝)%I)
-             (λ x z a, (((snd ∘ DPQ) x a) ∗ ⌜z = a⌝)%I).
-
   Definition fspec_false : fspec := {|
     meta := Empty_set;
     precond := λ _ _ _, False%I;

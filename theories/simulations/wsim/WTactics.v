@@ -1,3 +1,4 @@
+From iris.proofmode Require Import proofmode.
 Require Import Common HMod ltac2_lib.
 Require Import WSim TacticsCommon.
 

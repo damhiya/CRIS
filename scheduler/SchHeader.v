@@ -13,7 +13,6 @@ End SchHdr.
 (* Wrapping fspecs *)
 Section FSpec.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
-  Notation iProp := (iProp Σ).
 
   Variable univ: positive.
   Variable StbFun: string → option fspec.

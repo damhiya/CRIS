@@ -1,3 +1,4 @@
+From iris.proofmode Require Import proofmode.
 Require Import Common.
 Require Import Mod HMod.
 Require Import ModSim HPSimFacts ISim.

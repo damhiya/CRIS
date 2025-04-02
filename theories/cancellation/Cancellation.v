@@ -1,3 +1,4 @@
+From iris.proofmode Require Import proofmode.
 Require Import Common.
 
 Require Import SMod2HMod HMod2Mod Mod2ITree SMod HMod Mod.
@@ -11,13 +12,13 @@ Set Implicit Arguments.
 Import CancelTAC.
 
 Lemma cancel_aux `{Σ: GRA} md rs0 rt0
-  ginv rs rt srcs tgts cid st ps pt
+  rs rt srcs tgts cid st ps pt
   (WF: ✓ rs)       
   (LEN: cid < List.length srcs)
-  (REL: Forall2i (thread_rel md ginv cid) 0 srcs tgts)
+  (REL: Forall2i (thread_rel md cid) 0 srcs tgts)
   (UPD: Own rs ==∗ Own rt)
   :
-  CANCEL_GOAL md (gpaco7 _simg (cpn7 _simg) bot7 bot7) ginv rs0 rt0 ps pt srcs tgts cid st rs rt.
+  CANCEL_GOAL md (gpaco7 _simg (cpn7 _simg) bot7 bot7) rs0 rt0 ps pt srcs tgts cid st rs rt.
 Proof.
   exploit Forall2i_nth; eauto. i. des.
   rename x into src, y into tgt.
@@ -27,13 +28,12 @@ Proof.
   assert (RELS: forall k x y (NEQ: cid ≠ k)
                   (LKX: srcs !! k = Some x)
                   (LKY: tgts !! k = Some y),
-                    thread_rel md ginv cid k x y). 
+                    thread_rel md cid k x y). 
   { i. eapply Forall2i_forall in REL; eauto. }
   clear REL. rename REL0 into REL. unfold elim_rel in REL.
   simpl plus in *. subst.
   destruct (Nat.eq_dec cid cid); ss. clear e.
   rename x0 into SRC, x1 into TGT.
-  rewrite HRed.bind HRed.ret in TGT.
   revert_until md. gcofix CIH. i.
   
   assert (RT: ✓ rt). { eapply Own_wand_valid with (a1:=rs); eauto. }
@@ -118,7 +118,7 @@ Proof.
 Qed.
 
 Lemma cancel_main `{Σ: GRA} md
-    P ginv fsp meta rs rt r
+    P fsp meta rs rt r
     (WF: HMod.wf (SModCancel.to_hmod md))
     (SPC: sp_from md "CRIS_init" = Some fsp)
     (VALID: ✓ rs)
@@ -129,7 +129,7 @@ Lemma cancel_main `{Σ: GRA} md
   :  
   refines_mod
     (HMod.to_mod (HModInline.inline (SModCancel.to_hmod md)) rs)
-    (HMod.to_mod (HModInline.inline (SMod.to_hmod ginv (sp_from md) md)) rt).
+    (HMod.to_mod (HModInline.inline (SMod.to_hmod (sp_from md) md)) rt).
 Proof.
   r. eapply adequacy_global.
   instantiate (1:= smj_top).
@@ -195,13 +195,13 @@ Proof.
 Qed.
 
 (*** Final Theorem ***)
-Theorem cancellation `{Σ: GRA} md ginv P fsp meta
+Theorem cancellation `{Σ: GRA} md P fsp meta
   (SPC: sp_from md "CRIS_init" = Some fsp)
   (POST: ∀ vret ret,
          ((fsp).(postcond) (meta) vret ret) -∗ ⌜vret = ret⌝)
   :
   refines (SModCancel.to_hmod md, P ∗ ((fsp).(precond) (meta) tt↑ tt↑))%I
-          (SMod.to_hmod ginv (sp_from md) md, P).
+          (SMod.to_hmod (sp_from md) md, P).
 Proof. 
   etrans.
   { eapply cancel_call_rev. }

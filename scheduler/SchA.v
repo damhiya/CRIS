@@ -257,7 +257,7 @@ Module SchAS. Section SchAS.
     Definition fspec_spawnable (u : univ_id) (fsp : fspec)
         (pre : SAny.t → SAny.t → iProp Σ) (postS: SAny.t → SAny.t -> SynDepO) : Prop :=
       fspec_weaker
-        (w_fspec u (fspec_virtual 
+        (wsim_fspec u (fspec_virtual 
           (λ (tid: nat) (varg: SAny.t) arg,
             tid_user tid ∗ ∃ sarg, ⌜arg = sarg↑⌝ ∗ pre varg sarg)%I
           (λ (tid: nat) (vret: SAny.t) ret,
@@ -265,7 +265,7 @@ Module SchAS. Section SchAS.
         fsp.
 
     Definition _spawn_spec : fspec := 
-      w_fspec υ
+      wsim_fspec υ
         (fspec_virtual
           (λ '(my_tid, pa_tid, fargs, fvargs, pre, postS, fn) varg arg,
             (⌜varg = ((pa_tid, fn, fvargs) : nat * string * SAny.t) 
@@ -277,7 +277,7 @@ Module SchAS. Section SchAS.
     .
 
     Definition spawn_spec : fspec :=
-      w_fspec υ
+      wsim_fspec υ
         (fspec_virtual
           (λ '(my_tid, fargs, fvargs, pre, postS, fn) varg arg,
             (⌜varg = ((fn, fvargs): string * SAny.t) 
@@ -290,7 +290,7 @@ Module SchAS. Section SchAS.
     .
 
     Definition yield_spec: fspec :=
-      w_fspec υ
+      wsim_fspec υ
         (fspec_simple 
           (λ (tid: nat),
             ((λ varg, ⌜varg = tt↑⌝ ∗ tid_user tid),
@@ -298,7 +298,7 @@ Module SchAS. Section SchAS.
         )%I.
 
     Definition join_spec: fspec :=
-      w_fspec υ
+      wsim_fspec υ
         (fspec_virtual
           (λ '(tid, postS, my_tid) varg arg,
             ⌜arg = tid↑ ∧ varg = tid⌝ ∗ token_th tid postS ∗ tid_user my_tid)
@@ -308,7 +308,7 @@ Module SchAS. Section SchAS.
         )%I.
 
     Definition get_tid_spec: fspec :=
-      w_fspec υ
+      wsim_fspec υ
         (fspec_simple
           (λ (tid: nat),
             ((λ varg, (⌜varg = tt↑⌝ ∗ tid_user tid)),
@@ -386,7 +386,7 @@ Module SchA. Section SchA.
   Definition init_cond : iProp Σ := SchAS.init_threads ∗ SchAS.init_tid.
   
   Definition t υ Sp_global Sp_user :=
-    Seal.sealing CRIS (SMod.to_hmod (wsim_ginv υ ⊤) Sp_global (Mod υ Sp_user)).
+    Seal.sealing CRIS (SMod.to_hmod Sp_global (Mod υ Sp_user)).
 End SchA. End SchA.
 
 Module SchA_link. Section SchA_link.
@@ -409,6 +409,6 @@ Module SchA_link. Section SchA_link.
   Definition InitCond : iProp Σ := SchAS.init_threads ∗ SchAS.init_tid.
   
   Definition t υ Sp_global :=
-    Seal.sealing CRIS (SMod.to_hmod (wsim_ginv υ ⊤) Sp_global (Mod υ)).
+    Seal.sealing CRIS (SMod.to_hmod Sp_global (Mod υ)).
 
-  End SchA_link. End SchA_link.
+End SchA_link. End SchA_link.

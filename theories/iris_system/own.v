@@ -1,5 +1,5 @@
 From iris.algebra Require Import proofmode_classes functions coPset excl csum.
-From iris.proofmode Require Export proofmode.
+From iris.proofmode Require Import proofmode.
 Require Export base_logic.
 Require Import allocs.
 Require Import Coqlib.
@@ -292,7 +292,6 @@ End proofmode_instances.
 Section Own.
   Context `{Σ : GRA}.
   Implicit Types a b : Σ.
-  Notation iProp Σ := (iProp Σ Σ).
 
   Local Ltac unseal := rewrite Own_eq /Own_def.
 

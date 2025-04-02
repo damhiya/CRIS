@@ -1,3 +1,4 @@
+From iris.proofmode Require Import proofmode.
 Require Import Common.
 Require Import LAuto.
 
@@ -65,7 +66,7 @@ Ltac alist_upd_simpl :=
       end;
       erewrite (@ereplace _ l); [intros ?|Lauto_prepare; Lauto_find (k,v0); refl];
       eassert (NODUP := alist_upd_nodup k v _ TMP); revert NODUP;
-      rewrite !alist_upd_with_nodup; [|exact TMP]; clear TMP;
+      rewrite !(alist_upd_with_nodup _ _ _ _ _ TMP); clear TMP;
       Lauto_finish; intros ?
     end
   end.
@@ -267,7 +268,7 @@ Ltac unfold_sp_exact sp name :=
 
 Tactic Notation "red_S" hyp(prg) tactic(tac) :=
   lazymatch goal with
-  | [ |- @interp_smod ?Σ ?ginv ?stb ?R ?itr = _ ] =>
+  | [ |- @interp_smod ?Σ ?stb ?R ?itr = _ ] =>
       lazymatch itr with
       | Ret _ =>
           _hprogress prg; eapply SRed.ret
@@ -288,7 +289,6 @@ Tactic Notation "red_S" hyp(prg) tactic(tac) :=
           _hprogress prg; etransitivity;
           [ eapply SRed.vis_sch
           | unfold handle_schE_hmodE;
-            unfold HoareYield;
             tac
           ]
       | vis (Call ?fn _) _ =>
@@ -377,9 +377,9 @@ Ltac _hnorm_itr prg :=
   | [ |- @HMod.sandbox ?Σ ?R ?scopes ?itr = _ ] =>
       etransitivity;
       [ cong (@HMod.sandbox Σ R scopes); _hnorm_itr prg | red_SB prg ]
-  | [ |- @interp_smod ?Σ ?ginv ?stb ?R ?itr = _ ] =>
+  | [ |- @interp_smod ?Σ ?stb ?R ?itr = _ ] =>
       etransitivity;
-      [ cong (@interp_smod Σ ginv stb R); _hnorm_itr prg | red_S prg (do 1 _hnorm_itr prg) ]
+      [ cong (@interp_smod Σ stb R); _hnorm_itr prg | red_S prg (do 1 _hnorm_itr prg) ]
   | [ |- @PMod.interp ?Σ ?R ?itr = _ ] =>
       etransitivity;
       [ cong (@PMod.interp Σ R); _hnorm_itr prg | red_P prg ]
@@ -398,9 +398,6 @@ Ltac _hnorm_itr prg :=
       _hnorm_itr prg
   | [ |- HoareSpawn _ _ _ _ = _ ] =>
       _hprogress prg; unfold HoareSpawn;
-      _hnorm_itr prg
-  | [ |- HoareYield _ _ = _ ] =>
-      _hprogress prg; unfold HoareYield;
       _hnorm_itr prg
   | [ |- fbody_trivial _ = _ ] =>
       _hprogress prg; unfold fbody_trivial;
@@ -503,12 +500,8 @@ Ltac unfold_precond_postcond term := let TM := fresh "_term" in
   set (TM := term) at 1;
   (hrepeat do 1 (has_precond_in TM; unfold precond in TM; simpl in TM));
   (hrepeat do 1 (has_postcond_in TM; unfold postcond in TM; simpl in TM));
-  subst TM.
-Ltac unfold_pre_post :=
-  repeat match goal with
-  | |- context [postcond ?P] => rewrite /P /postcond /=
-  | |- context [precond ?P] => rewrite /P /precond /=
-  end.
+  subst TM;
+  try rewrite -/(precond _); try rewrite -/(postcond _).
 
 Ltac set_marker marker :=
   assert (marker: True) by exact I.
@@ -677,7 +670,6 @@ Ltac desugar itr :=
   | fbody_trivial _ => rewrite {1}/itr
   | HoareCall _ _ _ => rewrite {1}/itr
   | HoareSpawn _ _ _ => rewrite {1}/itr
-  | HoareYield _ _ => rewrite {1}/itr
   | cput _ _ => rewrite{1}/itr
   | cgetU _ => rewrite{1}/itr
   | cgetN _ => rewrite{1}/itr

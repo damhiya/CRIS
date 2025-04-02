@@ -1,5 +1,5 @@
+From iris.proofmode Require Import proofmode.
 Require Import Common.
-
 Require Import ISim SMod SMod2HMod HMod.
 
 From stdpp Require Import coPset.
@@ -78,18 +78,18 @@ Section wsim.
   Local Definition wsim_eq : @wsim = @wsim_def := wsim_aux.(seal_eq).
   Local Ltac unseal := rewrite wsim_eq /wsim_def.
 
-  Definition w_fspec (υ : univ_id) (fsp : fspec) : fspec :=
+  Definition wsim_fspec (υ : univ_id) (fsp : fspec) : fspec :=
     mk_fspec (meta := fsp.(meta))
       (λ x varg arg, wsim_ginv υ ⊤ ∗ fsp.(precond) x varg arg)%I
       (λ x vret ret, wsim_ginv υ ⊤ ∗ fsp.(postcond) x vret ret)%I.
   
   Program Global Instance wsim_fspec_precond (fsp : fspec) (υ : univ_id) m arg varg :
-    WP (precond (w_fspec υ fsp) m arg varg) υ ⊤ :=
-    mk_WP (precond (w_fspec υ fsp) m arg varg) υ ⊤ (precond fsp m arg varg) _.
+    WP (precond (wsim_fspec υ fsp) m arg varg) υ ⊤ :=
+    mk_WP (precond (wsim_fspec υ fsp) m arg varg) υ ⊤ (precond fsp m arg varg) _.
   Next Obligation. intros; iSplit; iIntros "[$ $]". Qed.
 
   Program Global Instance wsim_fspec_postcond (fsp : fspec) (υ : univ_id) m arg varg :
-    WP (postcond (w_fspec υ fsp) m arg varg) υ ⊤ :=
+    WP (postcond (wsim_fspec υ fsp) m arg varg) υ ⊤ :=
     {| WP_remainder := (postcond fsp m arg varg) |}.
   Next Obligation. intros; iSplit; iIntros "[$ $]". Qed.
 

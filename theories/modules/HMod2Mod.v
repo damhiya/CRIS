@@ -132,7 +132,6 @@ Module HRed.
 Section RED.
   (* itree reduction lemmas *)
   Context `{Σ : GRA}.
-  Notation iProp := (iProp Σ).
 
   Lemma bind (R S : Type) (s : itree hmodE R) (k : R -> itree hmodE S) :
     interp_hp (s >>= k) = st <- interp_hp s;; interp_hp (k st).

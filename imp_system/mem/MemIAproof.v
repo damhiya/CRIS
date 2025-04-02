@@ -225,7 +225,6 @@ Module MemIA. Section MemIA.
 
   Context (csl : string → bool).
   Context (genv : GEnv.t).
-  Context (u_s : univ_id).
   Context (sp : string → option fspec).
   Context (MemInSpMem: sp_incl MemA.sp sp).
 
@@ -240,13 +239,13 @@ Module MemIA. Section MemIA.
         (own base_γ ((● (memk_src : _memRA)): memRA))
       ))%I.
 
-  Local Definition MemA := (MemA.t u_s sp).
+  Local Definition MemA := (MemA.t sp).
   Local Definition MemI := (MemI.t csl genv).
   Local Definition IstFull := (IstProd (IstSB MemA.(HMod.scopes) Ist) IstEq).
 
   Lemma simF_alloc : HSim.sim_fun open MemA MemI IstFull MemHdr.alloc.
-  Proof using MemInSpMem.
-    init_simF u_s 0.
+  Proof using invG0 sinvG0 MemInSpMem.
+    init_simF 0 0.
     steps_l.
     iDestruct "ASM" as "(% & %)". des; subst; hss.
 
@@ -289,8 +288,8 @@ Module MemIA. Section MemIA.
   Qed.
 
   Lemma simF_free : HSim.sim_fun open MemA MemI IstFull MemHdr.free.
-  Proof using MemInSpMem.
-    init_simF u_s 0.
+  Proof using invG0 sinvG0 MemInSpMem.
+    init_simF 0 0.
   
     steps_l. iDestruct "ASM" as "((% & % & P) & %)". des; subst; hss.
     steps_r.
@@ -377,8 +376,8 @@ Module MemIA. Section MemIA.
   Qed.
 
   Lemma simF_load : HSim.sim_fun open MemA MemI IstFull MemHdr.load.
-  Proof using MemInSpMem.
-    init_simF u_s 0.
+  Proof using invG0 sinvG0 MemInSpMem.
+    init_simF 0 0.
 
     steps_l. iDestruct "ASM" as "([% P] & %)". subst; hss.
     rename q5 into b, q6 into ofs.
@@ -411,8 +410,8 @@ Module MemIA. Section MemIA.
   Qed.
 
   Lemma simF_store : HSim.sim_fun open MemA MemI IstFull MemHdr.store.
-  Proof using MemInSpMem.
-    init_simF u_s 0.
+  Proof using invG0 sinvG0 MemInSpMem.
+    init_simF 0 0.
 
     steps_l. iDestruct "ASM" as "((% & % & P) & %)". subst; hss.
     rename q3 into b, q4 into ofs.
@@ -521,8 +520,8 @@ Module MemIA. Section MemIA.
   Qed.
 
   Lemma simF_cmp : HSim.sim_fun open MemA MemI IstFull MemHdr.cmp.
-  Proof using MemInSpMem.
-    init_simF u_s 0.
+  Proof using invG0 sinvG0 MemInSpMem.
+    init_simF 0 0.
     
     steps_l. destruct q. destruct x.
     { (* cmp spec 0 *)
@@ -709,8 +708,8 @@ Module MemIA. Section MemIA.
   Qed.
 
   Lemma simF_cas : HSim.sim_fun open MemA MemI IstFull MemHdr.cas.
-  Proof using MemInSpMem.
-    init_simF u_s 0.
+  Proof using invG0 sinvG0 MemInSpMem.
+    init_simF 0 0.
 
     steps_l.
     destruct q. 
@@ -836,7 +835,7 @@ Module MemIA. Section MemIA.
   Qed.
 
   Theorem sim : HSim.t open MemA MemI (MemA.init_cond csl genv) IstFull.
-  Proof using MemInSpMem.
+  Proof using invG0 sinvG0 MemInSpMem.
     init_sim.
     - rewrite /IstFull /MemA /MemI. unfold_hmod. s.
       iIntros "P". iExists [], [_], [], []. repeat iSplit; et. et. { iPureIntro. ss. }
@@ -860,10 +859,10 @@ Section ctxr.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
   Context `{!memGΓ Γ}.
 
-  Theorem ctxr csl genv (u_s: univ_id) (sp : string → option fspec)
+  Theorem ctxr csl genv (sp : string → option fspec)
       (MemInSpMem: sp_incl MemA.sp sp) :
     ctx_refines
-      (MemA.t u_s sp, MemA.init_cond csl genv)
+      (MemA.t sp, MemA.init_cond csl genv)
       (MemI.t csl genv, emp%I).
   Proof using. eapply main_adequacy, sim; eauto. Qed.
 End ctxr. End MemIA.

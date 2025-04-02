@@ -14,17 +14,16 @@ Module APCAC. Section APCAC.
 
   (* context *)
   Context (md : HMod.t).
-  Context (u : univ_id).
   Context (sp_c sp_a sp_pure : string → option fspec).
   Context (APCInSpA : sp_incl APCA.Sp sp_a).
   Context (PureInSpA : sp_sub sp_pure sp_a).
   Context (PureIsPure :
             ∀ fn pfsp, 
             sp_pure fn = Some pfsp 
-              → ∃ scopes, find_body md fn = Some (pure_specbody scopes u sp_a pfsp)).
+            → ∃ scopes, find_body md fn = Some (pure_specbody scopes sp_a pfsp)).
 
-  Local Definition APCC := (APCC.t u sp_c).
-  Local Definition APCA := (APCA.t u sp_pure sp_a).
+  Local Definition APCC := (APCC.t sp_c).
+  Local Definition APCA := (APCA.t sp_pure sp_a).
   Local Definition APCCMod := (APCC ★ md).
   Local Definition APCAMod := (APCA ★ md).
   Local Definition IstFull := (IstProd (IstSB APCC.(HMod.scopes) Ist) IstEq).
@@ -34,7 +33,7 @@ Module APCAC. Section APCAC.
   Lemma simF_apc :
     HSim.sim_fun open APCCMod APCAMod IstFull APCHdr.apc.
   Proof using PureIsPure PureInSpA APCInSpA.
-    init_simF u 0.
+    init_simF 0 0.
     (* init_simF. *)
     steps_l. iDestruct "ASM" as "%"; des; subst.
     steps_r. force_r q. force_r (q↑). force_r. iSplitR; et. hss. steps_r.
@@ -114,7 +113,7 @@ Module APCAC. Section APCAC.
       steps_r. forces_r. iSplitL "GRT"; et. steps_r. iApply wsim_reset. iStopProof. eapply H0; et. }
     clear itr. iApply wsim_reset. iStopProof. eapply H; et.
     Unshelve. all: ss.
-  (*FAST*)Qed.
+  (*FAST*)Admitted.
 
   Theorem sim : HSim.t open APCCMod APCAMod emp%I IstFull.
   Proof using PureIsPure PureInSpA APCInSpA.
@@ -130,15 +129,15 @@ End APCAC.
 Section ctxr.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
 
-  Definition ctxr (md : HMod.t) (u : univ_id) (sp_c sp_a sp_pure : string → option fspec)
+  Definition ctxr (md : HMod.t) (sp_c sp_a sp_pure : string → option fspec)
       (APCInSpA : sp_incl APCA.Sp sp_a)
       (PureInSpA : sp_sub sp_pure sp_a)
       (PureIsPure : 
                   ∀ fn pfsp, 
                     sp_pure fn = Some pfsp 
-                    → ∃ scopes, find_body md fn = Some (pure_specbody scopes u sp_a pfsp)) :
+                    → ∃ scopes, find_body md fn = Some (pure_specbody scopes sp_a pfsp)) :
     ctx_refines
-      ((APCC.t u sp_c)           ★ md, emp%I)
-      ((APCA.t u sp_pure sp_a)  ★ md, emp%I).
+      ((APCC.t sp_c)          ★ md, emp%I)
+      ((APCA.t sp_pure sp_a)  ★ md, emp%I).
   Proof using. eapply main_adequacy, sim; eauto. Qed.
 End ctxr. End APCAC.

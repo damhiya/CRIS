@@ -1,5 +1,6 @@
 From stdpp Require Import coPset gmap namespaces.
 From iris Require Import bi.big_op.
+From iris.proofmode Require Import proofmode.
 Require Export Coqlib own SAT sProp invariants.
 
 Local Notation level := nat.

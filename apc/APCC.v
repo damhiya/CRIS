@@ -27,5 +27,5 @@ Module APCC. Section APCC.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition t u Sp := Seal.sealing CRIS (SMod.to_hmod (wsim_ginv u ⊤) Sp Mod).
+  Definition t Sp := Seal.sealing CRIS (SMod.to_hmod Sp Mod).
 End APCC. End APCC.

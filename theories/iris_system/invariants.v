@@ -2,6 +2,7 @@ Require Import DecimalString.
 From stdpp Require Export namespaces coPset.
 Require Import sflib.
 From iris.algebra Require Import ofe auth agree coPset gset gmap_view.
+From iris.proofmode Require Import proofmode.
 From iris Require Import bi.big_op.
 Require Import Coqlib.
 Require Import functions.

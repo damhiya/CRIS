@@ -42,9 +42,8 @@ Module CancelTAC.
   
 End CancelTAC.
 
-Section CANCEL.
+Section CancelLib.
   Context `{Σ: GRA}.
-  Variable md: SMod.t.
 
   Inductive Forall2i X Y (R: nat -> X -> Y -> Prop): nat -> list X -> list Y -> Prop :=
   | Forall2i_nil i: Forall2i R i [] []
@@ -95,26 +94,6 @@ Section CANCEL.
     inv H0. eauto.
   Qed.
 
-  Definition yield_post (ginv: iProp Σ): itree hmodE _ :=
-      tau;; tau;; x <- (trigger (Assume ginv));; Ret ().
-
-  Variant thread_rel ginv cid tid src tgt : Prop :=
-  | thread_rel_body X (meta: X) (Q: X -> Any.t -> Any.t -> iProp Σ) l itrS itrT
-      (RET: ∀vret ret, 
-            tid = 0 -> Q meta vret ret ⊢ ⌜vret = ret⌝)
-      (REL: @elim_rel _ md ginv _ l itrS itrT)
-      (SRC: src = 
-          ((if Nat.eq_dec tid cid then Ret tt else tau;; Ret tt);;; interp_hp itrS))
-      (TGT: tgt =
-        (interp_hp
-            ((if Nat.eq_dec tid cid then Ret tt else yield_post ginv);;;
-              vret <- itrT;; 
-              (inline_hp (prog (SMod.to_hmod ginv (sp_from md) md))
-                (ret <- trigger (Choose Any.t);;
-                  trigger (Guarantee (Q meta vret ret));;;
-                  Ret ret))))) 
-  .
-
   Lemma valid_solve (a b c: Σ) :
     ✓ a -> a ≡  b ⋅ c -> ✓ b.
   Proof using.
@@ -141,9 +120,14 @@ Section CANCEL.
     eapply lookup_snoc_Some; right; eauto.
   Qed.
 
-  Definition CANCEL_GOAL
+End CancelLib.
+
+Section CancelDef.
+  Context `{Σ: GRA}.
+
+  Definition CANCEL_GOAL md
     (R: ∀ x0 x1, (x0→x1→Prop)→smj→smj→itree coreE x0→itree coreE x1→Prop)
-    ginv (rs0 rt0: Σ) ps pt srcs tgts cid st (rs rt: Σ) : Prop :=
+    (rs0 rt0: Σ) ps pt srcs tgts cid st (rs rt: Σ) : Prop :=
     R Any.t Any.t eq ps pt
     (x <-
      interp_stateE Any.t
@@ -161,17 +145,17 @@ Section CANCEL.
              (Mod.prog
                 (HMod.to_mod
                    (HModInline.inline
-                      (SMod.to_hmod ginv (sp_from md)
+                      (SMod.to_hmod (sp_from md)
                          md)) rt0)))
           (cid, tgts)) (Any.pair st rt ↑);; Ret x.2).
 
-  Definition cancel_term ginv X (meta: X) Q (itrT: itree hmodE Any.t) :=
+  Definition cancel_term md X (meta: X) Q (itrT: itree hmodE Any.t) :=
     (vret <- itrT;;
      inline_hp (prog
-          (SMod.to_hmod ginv
+          (SMod.to_hmod
              (sp_from md) md))
        (ret <- trigger (Choose Any.t);;
         trigger (Guarantee (Q meta vret ret));;; Ret ret))
   .
-  
-End CANCEL.
+
+End CancelDef.

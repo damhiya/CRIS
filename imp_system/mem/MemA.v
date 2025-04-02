@@ -67,7 +67,6 @@ Local Arguments Z.of_nat : simpl nomatch.
 
 Section MemRA.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !memGΓ Γ}.
-  Notation iProp := (iProp Σ).
 
   Definition mem_val : Type := Qp * val.
 
@@ -84,9 +83,9 @@ Section MemRA.
 
   Definition mem_points_to_singleton_r (loc : mblock * Z) (q: Qp) (v : val) : memRA :=
     ◯ (discrete_fun_singleton loc.1 (discrete_fun_singleton loc.2 (Some (q, Excl v)))).
-  Definition mem_points_to_singleton (loc : mblock * Z) (q: Qp) (v : val) : iProp :=
+  Definition mem_points_to_singleton (loc : mblock * Z) (q: Qp) (v : val) : iProp Σ :=
     own base_γ ((mem_points_to_singleton_r loc q v): memRA).
-  Definition mem_points_to : (mblock * Z) → Qp → list val → iProp :=
+  Definition mem_points_to : (mblock * Z) → Qp → list val → iProp Σ :=
     λ '(blk, ofs) q vs, ([∗ list] i ↦ v ∈ vs, mem_points_to_singleton (blk, ofs + i)%Z q v)%I.
 
   Lemma mem_init_auth_r_valid (csl : string → bool) (genv : GEnv.t) blk ofs v :
@@ -125,16 +124,15 @@ Notation "loc |-> vs" := (mem_points_to loc 1 vs) (at level 20).
 
 Module MemA. Section MemA.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !memGΓ Γ}.
-  Notation iProp := (iProp Σ).
 
   Definition scopes := ["Mem"].
 
   (* Function specifications *)
   Definition alloc_spec: fspec :=
       (fspec_simple (fun sz => (
-                      (fun varg => (⌜varg = [Vint (Z.of_nat sz)]↑ /\ (8 * (Z.of_nat sz) < modulus_64)%Z⌝: iProp)),
+                      (fun varg => (⌜varg = [Vint (Z.of_nat sz)]↑ /\ (8 * (Z.of_nat sz) < modulus_64)%Z⌝)),
                       (fun vret => (∃ b, (⌜vret = (Vptr b 0)↑⌝)
-                                          ∗ (b, 0%Z) |-> (List.repeat Vundef sz)): iProp)
+                                          ∗ (b, 0%Z) |-> (List.repeat Vundef sz)))
       )))%I.
 
   Definition free_spec: fspec :=
@@ -234,9 +232,9 @@ Module MemA. Section MemA.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition init_cond csl genv : iProp := mem_init_auth csl genv.
+  Definition init_cond csl genv : iProp Σ := mem_init_auth csl genv.
 
-  Definition t u Sp := Seal.sealing CRIS (SMod.to_hmod (wsim_ginv u ⊤) Sp Mod).
+  Definition t Sp := Seal.sealing CRIS (SMod.to_hmod Sp Mod).
 End MemA. End MemA.
 Global Opaque mem_points_to_singleton_r.
 Arguments mem_points_to_singleton_r : simpl never.

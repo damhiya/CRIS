@@ -10,7 +10,6 @@ Section HOARE.
 
   Context `{Σ: GRA}.
 
-  Variable ginv : iProp Σ.
   Variable sp: string → option fspec.
 
   Definition HoareCall (fsp: fspec): string → Any.t → (itree hmodE) Any.t 
@@ -31,17 +30,12 @@ Section HOARE.
 
       Ret vret.
 
-  Definition HoareYield (tid: nat) : itree hmodE unit :=
-    trigger (Guarantee ginv);;;
-    trigger (Yield tid);;;
-    trigger (Assume ginv).
-
   Definition HoareSpawn (fsp: fspec) (fn: string) (varg: Any.t) : itree hmodE nat :=
     x <- trigger (Choose fsp.(meta));; 
     arg <- trigger (Choose Any.t);;
     tid <- trigger (Spawn fn arg);;
-    trigger (Guarantee (ginv ==∗ fsp.(precond) x varg arg));;;
-    HoareYield tid;;;
+    trigger (Guarantee (fsp.(precond) x varg arg));;;
+    trigger (Yield tid);;;
     Ret tid.
   
   Definition handle_schE_hmodE : schE ~> itree hmodE :=
@@ -51,7 +45,7 @@ Section HOARE.
           fsp <- (sp fn)!;;
           HoareSpawn fsp fn arg
       | Yield tid =>
-          HoareYield tid
+          trigger (Yield tid)
       end.
   
   Definition handle_callE_hmodE: callE ~> itree hmodE :=
@@ -88,7 +82,7 @@ Section HOARE.
 
 End HOARE.
 
-Notation "↧ it" := (interp_smod _ _ it) (at level 59, only printing).
+Notation "↧ it" := (interp_smod _ it) (at level 59, only printing).
 
 Module SRed.
 Section RED.
@@ -97,12 +91,12 @@ Section RED.
 
   Lemma bind
         (R S: Type)
-        ginv sp
+        sp
         (s : itree hmodE R) (k : R → itree hmodE S)
     :
-      interp_smod ginv sp (s >>= k)
+      interp_smod sp (s >>= k)
       =
-      st <- interp_smod ginv sp s;; interp_smod ginv sp (k st).
+      st <- interp_smod sp s;; interp_smod sp (k st).
   Proof using.
     unfold interp_smod in *. grind.
   Qed.
@@ -110,11 +104,11 @@ Section RED.
   Lemma tau
         (U : Type)
         (t : itree _ U)
-        ginv sp
+        sp
     :
-      interp_smod ginv sp (tau;; t)
+      interp_smod sp (tau;; t)
       =
-      tau;; (interp_smod ginv sp t).
+      tau;; (interp_smod sp t).
   Proof using.
     unfold interp_smod in *. grind.
   Qed.
@@ -122,71 +116,71 @@ Section RED.
   Lemma ret
         (U: Type)
         (t: U)
-        ginv sp
+        sp
     :
-      interp_smod ginv sp (Ret t)
+      interp_smod sp (Ret t)
       =
       Ret t.
   Proof using.
     unfold interp_smod in *. grind.
   Qed.
 
-  Lemma vis_ag {X R} ginv sp (e : agE X) (ktr : X -> itree hmodE R) :
-    interp_smod ginv sp (vis e ktr) = vis e (fun x => tau;; interp_smod ginv sp (ktr x)).
+  Lemma vis_ag {X R} sp (e : agE X) (ktr : X -> itree hmodE R) :
+    interp_smod sp (vis e ktr) = vis e (fun x => tau;; interp_smod sp (ktr x)).
   Proof using.
     eapply observe_eta; ss. f_equal. extensionality x.
     eapply observe_eta; ss.
   Qed.
 
-  Lemma vis_sch {X R} ginv sp (e : schE X) (ktr : X -> itree hmodE R) :
-    interp_smod ginv sp (vis e ktr) = x <- handle_schE_hmodE ginv sp e;; tau;; interp_smod ginv sp (ktr x).
+  Lemma vis_sch {X R} sp (e : schE X) (ktr : X -> itree hmodE R) :
+    interp_smod sp (vis e ktr) = x <- handle_schE_hmodE sp e;; tau;; interp_smod sp (ktr x).
   Proof using.
     eapply bisim_is_eq. unfold interp_smod. rewrite interp_vis. reflexivity.
   Qed.
 
-  Lemma vis_call {X R} ginv sp (e : callE X) (ktr : X -> itree hmodE R) :
-    interp_smod ginv sp (vis e ktr) = x <- handle_callE_hmodE sp e;; tau;; interp_smod ginv sp (ktr x).
+  Lemma vis_call {X R} sp (e : callE X) (ktr : X -> itree hmodE R) :
+    interp_smod sp (vis e ktr) = x <- handle_callE_hmodE sp e;; tau;; interp_smod sp (ktr x).
   Proof using.
     eapply bisim_is_eq. unfold interp_smod. rewrite interp_vis. reflexivity.
   Qed.
 
-  Lemma vis_pg {X R} ginv sp (e : pgE X) (ktr : X -> itree hmodE R) :
-    interp_smod ginv sp (vis e ktr) = vis e (fun x => tau;; interp_smod ginv sp (ktr x)).
+  Lemma vis_pg {X R} sp (e : pgE X) (ktr : X -> itree hmodE R) :
+    interp_smod sp (vis e ktr) = vis e (fun x => tau;; interp_smod sp (ktr x)).
   Proof using.
     eapply observe_eta; ss. f_equal. extensionality x.
     eapply observe_eta; ss.
   Qed.
 
-  Lemma vis_core {X R} ginv sp (e : coreE X) (ktr : X -> itree hmodE R) :
-    interp_smod ginv sp (vis e ktr) = vis e (fun x => tau;; interp_smod ginv sp (ktr x)).
+  Lemma vis_core {X R} sp (e : coreE X) (ktr : X -> itree hmodE R) :
+    interp_smod sp (vis e ktr) = vis e (fun x => tau;; interp_smod sp (ktr x)).
   Proof using.
     eapply observe_eta; ss. f_equal. extensionality x.
     eapply observe_eta; ss.
   Qed.
 
-  Lemma assumeK {R} ginv sp P (itr : itree hmodE R) :
-    interp_smod ginv sp (assumeK P itr) = assumeK P (tau;; interp_smod ginv sp itr).
+  Lemma assumeK {R} sp P (itr : itree hmodE R) :
+    interp_smod sp (assumeK P itr) = assumeK P (tau;; interp_smod sp itr).
   Proof using.
     eapply observe_eta; ss. f_equal. extensionality x.
     eapply observe_eta; ss.
   Qed.
 
-  Lemma guaranteeK {R} ginv sp P (itr : itree hmodE R) :
-    interp_smod ginv sp (guaranteeK P itr) = guaranteeK P (tau;; interp_smod ginv sp itr).
+  Lemma guaranteeK {R} sp P (itr : itree hmodE R) :
+    interp_smod sp (guaranteeK P itr) = guaranteeK P (tau;; interp_smod sp itr).
   Proof using.
     eapply observe_eta; ss. f_equal. extensionality x.
     eapply observe_eta; ss.
   Qed.
 
-  Lemma unwrapUK {X R} ginv sp x (ktr : X -> itree hmodE R) :
-    interp_smod ginv sp (unwrapUK x ktr) = unwrapUK x (fun x => interp_smod ginv sp (ktr x)).
+  Lemma unwrapUK {X R} sp x (ktr : X -> itree hmodE R) :
+    interp_smod sp (unwrapUK x ktr) = unwrapUK x (fun x => interp_smod sp (ktr x)).
   Proof using.
     destruct x; ss.
     eapply observe_eta; ss. f_equal. extensionality x. ss.
   Qed.
 
-  Lemma unwrapNK {X R} ginv sp x (ktr : X -> itree hmodE R) :
-    interp_smod ginv sp (unwrapNK x ktr) = unwrapNK x (fun x => interp_smod ginv sp (ktr x)).
+  Lemma unwrapNK {X R} sp x (ktr : X -> itree hmodE R) :
+    interp_smod sp (unwrapNK x ktr) = unwrapNK x (fun x => interp_smod sp (ktr x)).
   Proof using.
     destruct x; ss.
     eapply observe_eta; ss. f_equal. extensionality x. ss.
@@ -195,11 +189,11 @@ Section RED.
   Lemma sch
         (R: Type)
         (i: schE R)
-        ginv sp
+        sp
     :
-      interp_smod ginv sp (trigger i)
+      interp_smod sp (trigger i)
       =
-      r <- handle_schE_hmodE ginv sp i;; tau;; Ret r.
+      r <- handle_schE_hmodE sp i;; tau;; Ret r.
   Proof using.
     unfold interp_smod in *. rewrite interp_trigger. grind.
   Qed.
@@ -207,9 +201,9 @@ Section RED.
   Lemma call
         (R: Type)
         (i: callE R)
-        ginv sp
+        sp
     :
-      interp_smod ginv sp (trigger i)
+      interp_smod sp (trigger i)
       =
       r <- handle_callE_hmodE sp i;; tau;; Ret r.
   Proof using.
@@ -219,9 +213,9 @@ Section RED.
   Lemma pg
         (R: Type)
         (i: pgE R)
-        ginv sp
+        sp
     :
-      interp_smod ginv sp (trigger i)
+      interp_smod sp (trigger i)
       =
       r <- trigger i;; tau;; Ret r.
   Proof using.
@@ -231,9 +225,9 @@ Section RED.
   Lemma core
         (R: Type)
         (i: coreE R)
-        ginv sp
+        sp
     :
-      interp_smod ginv sp (trigger i)
+      interp_smod sp (trigger i)
       =
       r <- trigger i;; tau;; Ret r.
   Proof using.
@@ -241,9 +235,9 @@ Section RED.
   Qed.
 
   Lemma ag {A} (e: agE A)
-        ginv sp
+        sp
     :
-      interp_smod ginv sp (trigger e)
+      interp_smod sp (trigger e)
       =
       x <- trigger e ;; tau;; Ret x.
   Proof using.
@@ -253,9 +247,9 @@ Section RED.
   Lemma unwrapU 
         (R: Type)
         (i: option R)
-        ginv sp
+        sp
     :
-      interp_smod ginv sp (@unwrapU hmodE _ _ i)
+      interp_smod sp (@unwrapU hmodE _ _ i)
       =
       r <- (unwrapU i);; Ret r.
   Proof using.
@@ -266,9 +260,9 @@ Section RED.
   Lemma unwrapN
         (R: Type)
         (i: option R)
-        ginv sp
+        sp
     :
-      interp_smod ginv sp (@unwrapN hmodE _ _ i)
+      interp_smod sp (@unwrapN hmodE _ _ i)
       =
       r <- (unwrapN i);; Ret r.
   Proof using.
@@ -277,9 +271,9 @@ Section RED.
   Qed.
   
   Lemma asm
-        ginv sp P
+        sp P
     : 
-      interp_smod ginv sp (assume P)
+      interp_smod sp (assume P)
       =
       r <- assume P;; tau;; Ret r.
   Proof using.
@@ -287,9 +281,9 @@ Section RED.
   Qed. 
 
   Lemma guar
-        ginv sp P
+        sp P
     : 
-      interp_smod ginv sp (guarantee P)
+      interp_smod sp (guarantee P)
       =
       r <- guarantee P;; tau;; Ret r.
   Proof using.

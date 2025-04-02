@@ -178,7 +178,6 @@ End WRAP.
 
 Section EVENTS_OTHER.
   Context {Σ : GRA}.
-  (* Notation iProp := (iProp Σ). *)
 
   Definition key := (string * string)%type.
 

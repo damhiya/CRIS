@@ -85,10 +85,10 @@ Section aux.
   Definition find_body md fn :=
     alist_find fn (map (map_snd (λ (kb : list string * (Any.t → itree hmodE Any.t)) (arg : Any.t), HMod.sandbox (fst kb) ((snd kb) arg))) (HMod.fnsems md)).
 
-  Definition pure_specbody scopes (u: univ_id) sp fsp :=
+  Definition pure_specbody scopes sp fsp :=
     (λ arg : Any.t,
       HMod.sandbox scopes
-        (interp_sb_hp (wsim_ginv u ⊤) sp
+        (interp_sb_hp sp
            {| fsb_fspec := fsp; fsb_body := pure_body |} arg)).
 
   Definition pure: itree hmodE Any.t :=

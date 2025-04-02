@@ -6,9 +6,7 @@ Require Export SAT own invariants sProp syn_invariants.
 Require Export Events Behavior.
 
 (* TODO: Move *)
-Section CONTEXT.
-  Variant contextuality : Type := 
-  | open 
-  | closed.
-  
-End CONTEXT.
+Variant contextuality : Type := 
+| open 
+| closed.
+
