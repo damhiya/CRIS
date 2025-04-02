@@ -32,7 +32,7 @@ Module APCAC. Section APCAC.
 
   Lemma simF_apc :
     HSim.sim_fun open APCCMod APCAMod IstFull APCHdr.apc.
-  Proof using PureIsPure PureInSpA APCInSpA.
+  Proof using invG0 sinvG0 subG0 PureIsPure PureInSpA APCInSpA.
     init_simF 0 0.
     (* init_simF. *)
     steps_l. iDestruct "ASM" as "%"; des; subst.
@@ -116,7 +116,7 @@ Module APCAC. Section APCAC.
   (*FAST*)Qed.
 
   Theorem sim : HSim.t open APCCMod APCAMod emp%I IstFull.
-  Proof using PureIsPure PureInSpA APCInSpA.
+  Proof using invG0 sinvG0 subG0 PureIsPure PureInSpA APCInSpA.
     init_sim.
     - iIntros "_". iExists [], [], _, _. 
       iSplit; ss.
@@ -139,5 +139,5 @@ Section ctxr.
     ctx_refines
       ((APCC.t sp_c)          ★ md, emp%I)
       ((APCA.t sp_pure sp_a)  ★ md, emp%I).
-  Proof using. eapply main_adequacy, sim; eauto. Qed.
+  Proof. eapply main_adequacy, sim; eauto. Qed.
 End ctxr. End APCAC.
