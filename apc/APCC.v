@@ -5,7 +5,7 @@ Require Import APCHeader APC APCA.
 Set Implicit Arguments.
 
 Module APCC. Section APCC.
-  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
+  Context `{!sinvG Γ Σ α β τ}.
 
   Definition scopes := ["APC"].
 

@@ -86,7 +86,7 @@ Notation "'τ{' t '}'" := (@SAT.arity ST.t t (GTerm.t_prev _)) : SAT_scope.
 (* TODO : The functionalities below need to be separated! after coarse refactoring *)
 Module SL.
   Section syntax.
-    Context {τ : TypG.t} {α : @GAT.t} {Γ : HRA}.
+    Context  {Γ : HRA} {α : @GAT.t} {τ : TypG.t}.
 
     Variant ops : Type :=
     | _own i (γ : positive) (r : (@GRA_lookup Γ) i)
@@ -127,7 +127,7 @@ Module SL.
   End syntax.
 
   Section semantics.
-    Context {τ : TypG.t} {α : @GAT.t} {Γ : HRA} {Σ : GRA} `{!subG Γ Σ}.
+    Context {Γ : HRA} {Σ : GRA} {α : @GAT.t} {τ : TypG.t} `{!subG Γ Σ}.
     Definition interp_aux n (op : ops)
         : (arity op (GTerm.t_prev n) → GTerm.t n) → (arity op (GTerm.t_prev n) → iProp Σ) → iProp Σ :=
       match op with
@@ -149,12 +149,12 @@ Module SL.
     Global Instance interp : @SATIntp.t _ α syntax := interp_aux.
   End semantics.
 
-  Class G (Σ : GRA) (Γ : HRA) (α : GAT.t) (β : GATIntp.t) (τ : TypG.t) `{!subG Γ Σ} := {
+  Class G (Γ : HRA) (Σ : GRA) (α : GAT.t) (β : GATIntp.t) (τ : TypG.t) `{!subG Γ Σ} := {
     #[local] G_inG :: GATIntp.inG SL.syntax α SL.interp β;
   }.
 
   Section definitions.
-    Context `{!subG (Γ : HRA) Σ, !G Σ Γ α β τ}.
+    Context `{!subG (Γ : HRA) Σ, !G Γ Σ α β τ}.
     Local Existing Instances G_inG.
 
     Definition own `{IN: !inG M Γ} {n} (γ : positive) (r : M) : GTerm.t n.
@@ -318,7 +318,7 @@ Notation "'[∗' n , A 'list]' x ∈ l , P" :=
       format "[∗  n ,  A  list]  x  ∈  l ,  P") : SAT_scope.
 
 Module SLRed. Section RED.
-  Context `{!subG (Γ : HRA) Σ, !SL.G Σ Γ α β τ}.
+  Context `{!subG (Γ : HRA) Σ, !SL.G Γ Σ α β τ}.
   Notation interp := (GTermSem.t (Δ := domain Σ)).
 
   Lemma own `{!inG M Γ} n γ (r : M) :

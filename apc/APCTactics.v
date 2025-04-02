@@ -9,7 +9,7 @@ Import APC.
 
 (* useful apc lemmas - require IST *)
 
-Lemma wsim_apc_src `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}
+Lemma wsim_apc_src `{!sinvG Γ Σ α β τ}
   is_closed fl fr Ist u0 u1 cP r g {Rs Rt} RR ps pt nths st_src st_tgt k_src i_tgt sp sp_pure
   scopes (ow od: Ord.t)
   :
@@ -26,7 +26,7 @@ Proof.
   iFrame.
 Qed.
 
-(* Lemma wsim_apc_tgt `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}
+(* Lemma wsim_apc_tgt `{!sinvG Γ Σ α β τ}
   fl fr Ist is_closed u0 u1 r g {Rs Rt} RR ps pt nths st_src st_tgt i_src i_tgt sp sp_pure
   scopes (ow_src ow_tgt od_src od_tgt : Ord.t)
   (WIDTH: (ow_tgt < ow_src)%ord)
@@ -85,7 +85,7 @@ Proof.
 Qed. *)
 
 
-Lemma wsim_apc_src_call_tgt_weaker `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}
+Lemma wsim_apc_src_call_tgt_weaker `{!sinvG Γ Σ α β τ}
   fl fr Ist is_closed u0 u1 cP r g {Rs Rt} RR ps pt nths st_src st_tgt k_src k_tgt sp sp_pure
   scopes fn args fsp' fsp X (spec_arg: X) o P Q (ow_src ow_fn od_src od_fn : Ord.t)
   (WIDTH: (ow_fn < ow_src)%ord)
@@ -124,7 +124,7 @@ Proof.
   iApply "ISIM". iFrame.
 Qed.
 
-Lemma wsim_apc_src_call_tgt `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}
+Lemma wsim_apc_src_call_tgt `{!sinvG Γ Σ α β τ}
   fl fr Ist is_closed u0 u1 cP r g {Rs Rt} RR ps pt nths st_src st_tgt k_src k_tgt sp sp_pure
   scopes fn args fsp X (spec_arg: X) o P Q (ow_src ow_fn od_src od_fn : Ord.t)
   (WIDTH: (ow_fn < ow_src)%ord)
@@ -150,7 +150,7 @@ Qed.
 
 (* useful apc lemmas cont. - don't require IST *)
 
-(* Lemma wsim_apc_tgt_noist `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}
+(* Lemma wsim_apc_tgt_noist `{!sinvG Γ Σ α β τ}
   is_closed fl fr Ist u0 u1 cP r g {Rs Rt} RR ps pt nths st_src st_tgt i_src i_tgt
   (sp sp_pure: string → option fspec) (od ow: Ord.t) (scopes: list string)
   (SUB: sp_sub sp_pure sp)

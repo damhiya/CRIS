@@ -24,7 +24,7 @@ Global Instance inv_syntax : SAT.t := {
 }.
 
 (* Invariant interpretations *)
-Local Definition inv_interp_aux `{!invG α Σ Γ, !subG Γ Σ} n (op : inv_ops) :
+Local Definition inv_interp_aux `{!invG Γ Σ α, !subG Γ Σ} n (op : inv_ops) :
     (inv_arity op (GTerm.t_prev n) → GTerm.t n) → (inv_arity op (GTerm.t_prev n) → iProp Σ)
     → iProp Σ :=
   match op with
@@ -33,18 +33,18 @@ Local Definition inv_interp_aux `{!invG α Σ Γ, !subG Γ Σ} n (op : inv_ops) 
   | _wsat_auth u => λ _ _, wsat_auth u n
   end.
 
-Global Instance inv_interp `{!invG α Σ Γ, !subG Γ Σ} :
+Global Instance inv_interp `{!invG Γ Σ α, !subG Γ Σ} :
     @SATIntp.t (@domain Σ) α _ :=
   inv_interp_aux.
 
-Class syn_invG (Σ : GRA) (Γ : HRA) (α : GAT.t) (β : GATIntp.t) (τ : TypG.t)
-    `{!invG α Σ Γ, !subG Γ Σ} := {
+Class syn_invG (Γ : HRA) (Σ : GRA) (α : GAT.t) (β : GATIntp.t) (τ : TypG.t)
+    `{!invG Γ Σ α, !subG Γ Σ} := {
   #[global] syn_invG_inG :: GATIntp.inG inv_syntax α inv_interp β;
 }.
 
 Section syn_inv.
-  Context `{!invG α Σ Γ, !subG Γ Σ, !STτ.t τ, !SL.G Σ Γ α β τ, !syn_invG Σ Γ α β τ}.
-  Local Existing Instances invG_Σ invG_Γ invG_I invG_E invG_D.
+  Context `{!invG Γ Σ α, !subG Γ Σ, !STτ.t τ, !SL.G Γ Σ α β τ, !syn_invG Γ Σ α β τ}.
+  Local Existing Instances invG_I invG_E invG_D.
 
   Local Definition syn_ownI u n i (p : GTerm.t n) : GTerm.t n :=
     ⟨ _ownI u i, λ _, p ⟩.
@@ -88,15 +88,26 @@ Section syn_inv.
   Local Definition syn_fupd_eq : @syn_fupd = @syn_fupd_def := syn_fupd_aux.(seal_eq).
 End syn_inv.
 
-Class sinvG (Σ : GRA) (Γ : HRA) (α : GAT.t) (β : GATIntp.t) (τ : TypG.t)
-    `{!invG α Σ Γ, !subG Γ Σ} := sinvG_mk {
+(* Class sinvG (Γ : HRA) (Σ : GRA) (α : GAT.t) (β : GATIntp.t) (τ : TypG.t) *)
+(*     `{!invG Γ Σ α, !subG Γ Σ} := sinvG_mk { *)
+(*   #[global] sinv_typG :: STτ.t τ; *)
+(*   #[global] sinv_SLG :: SL.G Γ Σ α β τ; *)
+(*   #[global] sinv_syn_invG :: syn_invG Γ Σ α β τ; *)
+(* }. *)
+
+Class sinvG (Γ : HRA) (Σ : GRA) (α : GAT.t) (β : GATIntp.t) (τ : TypG.t) :=
+sinvG_mk {
+  #[global] sinv_subG :: subG Γ Σ;
+  #[global] sinv_invG :: invG Γ Σ α;
   #[global] sinv_typG :: STτ.t τ;
-  #[global] sinv_SLG :: SL.G Σ Γ α β τ;
-  #[global] sinv_syn_invG :: syn_invG Σ Γ α β τ;
+  #[global] sinv_SLG :: SL.G Γ Σ α β τ;
+  #[global] sinv_syn_invG :: syn_invG Γ Σ α β τ;
 }.
 
 Section reduction.
-  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
+  (* Context `{!invG Γ Σ α, !subG Γ Σ, !sinvG Γ Σ α β τ}. *)
+  Context `{!sinvG Γ Σ α β τ}.
+
   Lemma ownI_auth_red u n I :
     ⟦syn_ownI_auth u n I⟧ = ownI_auth u n I.
   Proof using.
@@ -178,22 +189,22 @@ Module inv_instances.
       | _ => inv_syntax
       end.
 
-  #[export] Instance β {Σ : GRA} {Γ : HRA} `{!subG Γ Σ, !invG α Σ Γ} : GATIntp.t :=
+  #[export] Instance β {Γ : HRA} {Σ : GRA} `{!subG Γ Σ, !invG Γ Σ α} : GATIntp.t :=
     λ n,
       match n with
       | 0 => SL.interp
       | _ => inv_interp
       end.
 
-  #[export] Instance intpG {Σ : GRA} {Γ : HRA} `{!subG Γ Σ, !invG α Σ Γ} :
-    GATIntp.inG (@SL.syntax τ Γ) α (@SL.interp τ α Γ Σ _) β.
+  #[export] Instance intpG {Γ : HRA} {Σ : GRA} `{!subG Γ Σ, !invG Γ Σ α} :
+    GATIntp.inG (@SL.syntax Γ τ) α (@SL.interp Γ Σ α τ _) β.
   Proof using. econs; instantiate (1:=0); ss. Qed.
 
-  #[export] Instance invintpG {Σ : GRA} {Γ : HRA} `{!subG Γ Σ, !invG α Σ Γ} :
+  #[export] Instance invintpG {Σ : GRA} {Γ : HRA} `{!subG Γ Σ, !invG Γ Σ α} :
     GATIntp.inG inv_syntax α inv_interp β.
   Proof using. econs; instantiate (1:=1); ss. Qed.
 
-  #[export] Instance sinvg {Σ : GRA} {Γ : HRA} `{!subG Γ Σ, !invG α Σ Γ} : sinvG Σ Γ α β τ.
+  #[export] Instance sinvg {Σ : GRA} {Γ : HRA} `{!subG Γ Σ, !invG Γ Σ α} : sinvG Γ Σ α β τ.
   Proof using.
     econs; econs; try typeclasses eauto.
   Qed.

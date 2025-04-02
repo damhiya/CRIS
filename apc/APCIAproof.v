@@ -7,7 +7,7 @@ Set Implicit Arguments.
 
 Module APCIA. Section APCIA.
   Import APCA.
-  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
+  Context `{!sinvG Γ Σ α β τ}.
   
   Context (SpA : string → option fspec).
   Context (SpPure : string → option fspec).
@@ -22,7 +22,7 @@ Module APCIA. Section APCIA.
 
   Lemma simF_apc :
     HSim.sim_fun open APCAMod APCIMod Ist APCHdr.apc.
-  Proof using invG0 sinvG0 subG0.
+  Proof using sinvG0.
     init_simF 0 0.
     
     steps_l. iDestruct "ASM" as "[-> ->]"; hss.
@@ -33,7 +33,7 @@ Module APCIA. Section APCIA.
   Qed.
 
   Theorem sim : HSim.t open APCAMod APCIMod emp%I Ist.
-  Proof using invG0 sinvG0 subG0.
+  Proof using sinvG0.
     init_sim.
     - eauto.
     - eapply simF_apc.
@@ -41,7 +41,7 @@ Module APCIA. Section APCIA.
 End APCIA.
 
 Section ctxr.
-  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
+  Context `{!sinvG Γ Σ α β τ}.
 
   Theorem ctxr (SpA SpPure: string → option fspec):
     ctx_refines

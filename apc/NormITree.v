@@ -24,7 +24,7 @@ Proof.
   subst. eauto.
 Qed.
 
-Lemma wsim_congruence_tgt `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}
+Lemma wsim_congruence_tgt `{!sinvG Γ Σ α β τ}
   f fl fr Ist u0 u1 cP is_closed r g Rs Rt RR ps pt nths sti_src st_tgt t0 t1
   (EQ: t0 = t1):
   f (wsim fl fr Ist is_closed u0 u1 cP r g Rs Rt RR ps pt nths sti_src (st_tgt, t0) ) ->
@@ -33,7 +33,7 @@ Proof.
   subst. eauto.
 Qed.
 
-Lemma wsim_congruence_src `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}
+Lemma wsim_congruence_src `{!sinvG Γ Σ α β τ}
   f fl fr Ist u0 u1 cP is_closed r g Rs Rt RR ps pt nths st_src sti_tgt t0 t1
   (EQ: t0 = t1):
   f (wsim fl fr Ist is_closed u0 u1 cP r g Rs Rt RR ps pt nths (st_src, t0) sti_tgt) ->
@@ -42,7 +42,7 @@ Proof.
   subst. eauto.
 Qed.
 
-Lemma wsim_bind `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}
+Lemma wsim_bind `{!sinvG Γ Σ α β τ}
   fl fr Ist is_closed u0 u1 cP r g ps pt {Rs Rt Qs Qt} RR QQ nths st_src st_tgt i_src i_tgt k_src k_tgt :
   wsim fl fr Ist None u0 u1 cP r g Qs Qt QQ ps pt nths (st_src, i_src) (st_tgt, i_tgt)
   ∗ (∀ nths0 st_src0 ret_src st_tgt0 ret_tgt,
