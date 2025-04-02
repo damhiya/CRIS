@@ -3,7 +3,8 @@ Require Import ITactics.
 
 Section wsim.
   Import SchAS.
-  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !SchAGΣ Σ, !SchAGΓ Γ}.
+  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
+  Context `{_schG: !schG}.
 
   Local Definition state : Type := alist key Any.t.
   Local Definition post (R_s R_t : Type) : Type := nat → state * R_s → state * R_t → iProp Σ.
@@ -245,7 +246,7 @@ Section wsim.
     ⊢ wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR ps pt nths
       (st_s, (HMod.sandbox sc_s (interp_smod sp (Sch.spawn (fn, vargs)))) >>= k_s)
       (st_t, (HMod.sandbox sc_t (PMod.interp (Sch.spawn (fn, args)))) >>= k_t).
-  Proof using sinvG0.
+  Proof using.
     iIntros "(I & TID & P & SIM)". rewrite /Sch.spawn; unseal "Sch".
     steps_l. forces_l. iSplitL "P TID".
     { iExists (fn, vargs); iSplit; eauto.
@@ -283,7 +284,7 @@ Section wsim.
     ⊢ wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR ps pt nths
       (st_s, (HMod.sandbox sc_s (interp_smod sp (Sch.join tid))) >>= k_s)
       (st_t, (HMod.sandbox sc_t (PMod.interp (Sch.join tid))) >>= k_t).
-  Proof using sinvG0.
+  Proof using.
     iIntros "(IST & TID & TK & SIM)". rewrite /Sch.join; unseal "Sch".
     steps_l. force_l (tid, Q, my_tid). steps_l. force_l (tid↑). steps_l. force_l.
     iFrame; iSplit; eauto. steps_l.

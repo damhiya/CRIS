@@ -4,7 +4,7 @@ Require Import APCHeader.
 
 Set Implicit Arguments.
 
-Section wrapper.
+Section FSPEC.
 
   Context {Σ: GRA}.
   
@@ -16,7 +16,7 @@ Section wrapper.
   Definition pure_body : Any.t → itree hmodE Any.t :=
     cfunN (λ dep_ord: Ord.t, trigger (Call APCHdr.apc dep_ord↑);;; Ret ()).
 
-End wrapper.
+End FSPEC.
 
 Section apc.
 
@@ -73,7 +73,7 @@ Section apc.
 End apc.
 
 Section aux.
-  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
+  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
 
   Lemma map_fst_map_map_snd_refl {A B C} (f: B → C) (l: list (A * B)):
     map fst (map (map_snd f) l) = map fst l.

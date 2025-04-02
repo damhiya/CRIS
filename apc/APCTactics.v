@@ -9,7 +9,11 @@ Import APC.
 
 (* useful apc lemmas - require IST *)
 
-Lemma wsim_apc_src `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}
+Section LEMMAS.
+
+Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
+  
+Lemma wsim_apc_src
   is_closed fl fr Ist u0 u1 cP r g {Rs Rt} RR ps pt nths st_src st_tgt k_src i_tgt sp sp_pure
   scopes (ow od: Ord.t)
   :
@@ -20,13 +24,13 @@ Lemma wsim_apc_src `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}
     (wsim fl fr Ist is_closed u0 u1 cP r g Rs Rt RR ps pt nths
       (st_src, ((HMod.sandbox scopes (interp_smod sp (_APC od sp_pure ow))) >>= k_src))
       (st_tgt, i_tgt)).
-Proof.
+Proof using.
   iIntros "ISIM".
   rewrite unfold_APC. force_l true. steps_l.
   iFrame.
 Qed.
 
-(* Lemma wsim_apc_tgt `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}
+(* Lemma wsim_apc_tgt
   fl fr Ist is_closed u0 u1 r g {Rs Rt} RR ps pt nths st_src st_tgt i_src i_tgt sp sp_pure
   scopes (ow_src ow_tgt od_src od_tgt : Ord.t)
   (WIDTH: (ow_tgt < ow_src)%ord)
@@ -42,7 +46,7 @@ Qed.
     (wsim fl fr Ist is_closed u0 u1 ⊤ r g Rs Rt RR ps pt nths 
       (st_src, ((HMod.sandbox scopes (interp_smod sp (_APC od_src sp_pure ow_src)));;; i_src))
       (st_tgt, ((HMod.sandbox scopes (interp_smod sp (_APC od_tgt sp_pure ow_tgt)));;; i_tgt))).
-Proof.
+Proof using.
   iIntros "[IST ISIM]". iApply wsim_reset.
   iStopProof.
   revert nths st_src. apply combine_quant.
@@ -85,7 +89,7 @@ Proof.
 Qed. *)
 
 
-Lemma wsim_apc_src_call_tgt_weaker `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}
+Lemma wsim_apc_src_call_tgt_weaker
   fl fr Ist is_closed u0 u1 cP r g {Rs Rt} RR ps pt nths st_src st_tgt k_src k_tgt sp sp_pure
   scopes fn args fsp' fsp X (spec_arg: X) o P Q (ow_src ow_fn od_src od_fn : Ord.t)
   (WIDTH: (ow_fn < ow_src)%ord)
@@ -105,7 +109,7 @@ Lemma wsim_apc_src_call_tgt_weaker `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ �
     (wsim fl fr Ist is_closed u0 u1 cP r g Rs Rt RR ps pt nths
       (st_src, ((HMod.sandbox scopes (interp_smod sp (_APC od_src sp_pure ow_src))) >>= k_src))
       (st_tgt, (trigger (Call fn args) >>= k_tgt))).
-Proof.
+Proof using.
   iIntros "[[[PRE %] IST] ISIM]".
   des. set_marker m. hide_ihyps. rewrite unfold_APC. show_until m.
   force_l false. steps_l. force_l ow_fn. steps_l. force_l WIDTH. steps_l.
@@ -124,7 +128,7 @@ Proof.
   iApply "ISIM". iFrame.
 Qed.
 
-Lemma wsim_apc_src_call_tgt `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}
+Lemma wsim_apc_src_call_tgt
   fl fr Ist is_closed u0 u1 cP r g {Rs Rt} RR ps pt nths st_src st_tgt k_src k_tgt sp sp_pure
   scopes fn args fsp X (spec_arg: X) o P Q (ow_src ow_fn od_src od_fn : Ord.t)
   (WIDTH: (ow_fn < ow_src)%ord)
@@ -143,14 +147,14 @@ Lemma wsim_apc_src_call_tgt `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ
     (wsim fl fr Ist is_closed u0 u1 cP r g Rs Rt RR ps pt nths
       (st_src, ((HMod.sandbox scopes (interp_smod sp (_APC od_src sp_pure ow_src))) >>= k_src))
       (st_tgt, (trigger (Call fn args) >>= k_tgt))).
-Proof.
+Proof using.
   eapply wsim_apc_src_call_tgt_weaker; et. 
   do 2 (econs; et).
 Qed.
 
 (* useful apc lemmas cont. - don't require IST *)
 
-(* Lemma wsim_apc_tgt_noist `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}
+(* Lemma wsim_apc_tgt_noist
   is_closed fl fr Ist u0 u1 cP r g {Rs Rt} RR ps pt nths st_src st_tgt i_src i_tgt
   (sp sp_pure: string → option fspec) (od ow: Ord.t) (scopes: list string)
   (SUB: sp_sub sp_pure sp)
@@ -167,7 +171,7 @@ Qed.
     (wsim fl fr Ist is_closed u0 u1 cP r g Rs Rt RR ps pt nths 
       (st_src, i_src)
       (st_tgt, ((HMod.sandbox scopes (interp_smod (wsim_ginv u1 cP) sp (_APC od sp_pure ow)));;; i_tgt))).
-  Proof.
+  Proof using.
   iIntros "ISIM".
   set (E:=environments.envs_entails _).
   apply wsim_congruence_src with (Ret ();;; i_src).
@@ -231,6 +235,8 @@ Qed.
   }
   Unshelve. eauto.
 Qed. *)
+
+End LEMMAS.
 
 Ltac _prep_macro :=
   ired;

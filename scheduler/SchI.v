@@ -9,8 +9,9 @@ Definition thslist: Type := list thstat.
 
 Module SchI. Section SchI.
   Local Open Scope string_scope.
-  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
 
+  Context `{Σ: GRA}.
+   
   Definition scopes := ["Sch"; "Tid"].
   Definition v_ths := "Sch" ↯ "ths".
   Definition v_tid := "Tid" ↯ "tid".

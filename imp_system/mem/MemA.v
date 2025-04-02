@@ -5,68 +5,79 @@ Set Implicit Arguments.
 
 (* Memory resource algebra *)
 (* Coercion memGS >-> inG memRA Γ is global since it can be used in other modules *)
-Canonical Structure valO := leibnizO val.
-Definition frac_valO := prodR fracR (exclR valO).
-Definition _memRA := (mblock -d> Z -d> optionUR frac_valO).
-Definition memRA := authUR _memRA.
-Class memGΓ (Γ : HRA) := {
-  #[global] mem_inG :: inG memRA Γ;
-}.
-Definition memΓ : HRA := #[memRA].
-Global Instance subG_memΓ {Γ: HRA} : subG memΓ Γ → memGΓ Γ.
-Proof. solve_inG. Defined.
-Hint Unfold subG_memΓ mem_inG : GRA_index.
+Section MemRA.
+  Context `{!sinvG Γ Σ α β τ _I _S}.
 
-(* Initial resources for memory *)
-Definition mem_init_val (csl : string → bool) genv blk ofs : option Z :=
-  match List.nth_error genv blk with
-  | Some (g, gd) =>
-    match gd↓ with
-    | Some (Gvar gv) => if negb (csl g) && (decide (ofs = 0%Z)) then Some gv else None
-    | _ => None
-    end
-  | None => None
-  end.
+  Canonical Structure valO := leibnizO val.
+  Definition frac_valO := prodR fracR (exclR valO).
+  Definition _memRA := (mblock -d> Z -d> optionUR frac_valO).
+  Definition memRA := authUR _memRA.
+  Class memG `{!sinvG Γ Σ α β τ _I _S} := {
+    mem_inG :: inG memRA Γ;
+  }.
+  Definition memΓ : HRA := #[memRA].
+  Global Instance subG_memG : subG memΓ Γ → memG.
+  Proof. solve_inG. Defined.
+End MemRA.  
+Hint Unfold subG_memG mem_inG : GRA_index.
 
-Definition mem_init_auth_r (csl : string → bool) (genv: GEnv.t) : memRA :=
-  ● ((λ blk ofs,
-      match mem_init_val csl genv blk ofs with
-      | Some gv => Some (1%Qp, Excl (Vint gv))
-      | _ => ε
-      end) : _memRA).
+Section MEM.
+  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
+  Context `{_memG: !memG}.
+   
+  (* Initial resources for memory *)
+  Definition mem_init_val (csl : string → bool) genv blk ofs : option Z :=
+    match List.nth_error genv blk with
+    | Some (g, gd) =>
+      match gd↓ with
+      | Some (Gvar gv) => if negb (csl g) && (decide (ofs = 0%Z)) then Some gv else None
+      | _ => None
+      end
+    | None => None
+    end.
 
-Definition mem_init_frag_r (csl : string → bool) (genv : GEnv.t) : memRA :=
-  ◯ ((λ blk ofs,
-      match mem_init_val csl genv blk ofs with
-      | Some gv => Some (1%Qp, Excl (Vint gv))
-      | _ => ε
-      end) : _memRA).
+  Definition mem_init_auth_r (csl : string → bool) (genv: GEnv.t) : memRA :=
+    ● ((λ blk ofs,
+        match mem_init_val csl genv blk ofs with
+        | Some gv => Some (1%Qp, Excl (Vint gv))
+        | _ => ε
+        end) : _memRA).
 
-Definition mem_init_auth csl genv `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !memGΓ Γ} : iProp Σ :=
-  own base_γ (mem_init_auth_r csl genv).
+  Definition mem_init_frag_r (csl : string → bool) (genv : GEnv.t) : memRA :=
+    ◯ ((λ blk ofs,
+        match mem_init_val csl genv blk ofs with
+        | Some gv => Some (1%Qp, Excl (Vint gv))
+        | _ => ε
+        end) : _memRA).
 
-Definition mem_init_frag csl genv `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !memGΓ Γ} : iProp Σ :=
-  own base_γ (mem_init_auth_r csl genv).
+  Definition mem_init_auth csl genv : iProp Σ :=
+    own base_γ (mem_init_auth_r csl genv).
 
-Definition mem_init csl genv `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !memGΓ Γ} : iProp Σ :=
-  own base_γ (mem_init_auth_r csl genv ⋅ mem_init_frag_r csl genv).
+  Definition mem_init_frag csl genv : iProp Σ :=
+    own base_γ (mem_init_auth_r csl genv).
 
-Lemma mem_init_valid (csl : string → bool) (genv : GEnv.t) :
-  ✓ (mem_init_auth_r csl genv ⋅ mem_init_frag_r csl genv).
-Proof. rewrite /mem_init_auth_r /mem_init_frag_r auth_both_valid_discrete; split; ii; des_ifs. Qed.
+  Definition mem_init csl genv : iProp Σ :=
+    own base_γ (mem_init_auth_r csl genv ⋅ mem_init_frag_r csl genv).
 
-Definition ir_memRA csl genv : DRA_mk memRA :=
-  mem_init_auth_r csl genv ⋅ mem_init_frag_r csl genv.
-Lemma ir_memRA_valid csl genv : ✓ (ir_memRA csl genv).
-Proof. pose proof (mem_init_valid csl genv). rewrite /ir_memRA //. Qed.
+  Lemma mem_init_valid (csl : string → bool) (genv : GEnv.t) :
+    ✓ (mem_init_auth_r csl genv ⋅ mem_init_frag_r csl genv).
+  Proof. rewrite /mem_init_auth_r /mem_init_frag_r auth_both_valid_discrete; split; ii; des_ifs. Qed.
 
-Definition ir_memΓ csl genv : memΓ :=
-  *[Some (ir_memRA csl genv)].
+  Definition ir_memRA csl genv : DRA_mk memRA :=
+    mem_init_auth_r csl genv ⋅ mem_init_frag_r csl genv.
+  Lemma ir_memRA_valid csl genv : ✓ (ir_memRA csl genv).
+  Proof. pose proof (mem_init_valid csl genv). rewrite /ir_memRA //. Qed.
+
+  Definition ir_memΓ csl genv : memΓ :=
+    *[Some (ir_memRA csl genv)].
+
+End MEM.
 
 Local Arguments Z.of_nat : simpl nomatch.
 
 Section MemRA.
-  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !memGΓ Γ}.
+  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
+  Context `{_memG: !memG}.
 
   Definition mem_val : Type := Qp * val.
 
@@ -123,7 +134,8 @@ Notation "loc ↦ v" := (<own> base_γ (mem_points_to_singleton_r loc 1 v))%SAT 
 Notation "loc |-> vs" := (mem_points_to loc 1 vs) (at level 20).
 
 Module MemA. Section MemA.
-  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !memGΓ Γ}.
+  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
+  Context `{_memG: !memG}.
 
   Definition scopes := ["Mem"].
 

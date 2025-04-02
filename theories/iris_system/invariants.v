@@ -12,7 +12,9 @@ Definition univ_id := nat.
 
 (* Resource algebra & initial resources for invariants *)
 Section invariants.
-  Context `{α : GAT.t}.
+  Context `{Γ : HRA}.
+  Context `{Σ : GRA}.
+  Context `{α : GAT.t}.  
 
   Canonical Structure SynO n : ofe := leibnizO (GTerm.t n).
 
@@ -40,29 +42,18 @@ Section invariants.
   Definition ownDRA : ucmra :=
     univ_id -d> (authUR (gset_disjUR positive)).
 
-  Class invGΣ (α : GAT.t) (Σ : GRA) := {
-    #[local] invG_I :: inG ownIRA Σ
-  }.
-  Class invGΓ (Γ : HRA) := {
+  Class invG := {
     #[local] invG_E :: inG ownERA Γ;
     #[local] invG_D :: inG ownDRA Γ;
-  }.
-
-  Class invG (α : GAT.t) (Σ : GRA) (Γ : HRA) := {
-    #[local] invG_Σ :: invGΣ α Σ;
-    #[local] invG_Γ :: invGΓ Γ;
+    #[local] invG_I :: inG ownIRA Σ;
   }.
 
   Definition invΓ : HRA := #[ownERA; ownDRA].
   Definition invΣ : GRA := #[ownIRA].
 
-  Global Instance subG_invΣ {α' Σ} : subG invΣ Σ → invGΣ α' Σ.
+  Global Instance subG_invG : subG invΣ Σ → subG invΓ Γ → invG.
   Proof using. solve_inG. Defined.
-  Global Instance subG_invΓ {Γ : HRA} : subG invΓ Γ → invGΓ Γ.
-  Proof using. solve_inG. Defined.
-  Global Instance invG_subG {α' Σ Γ} : invGΣ α' Σ → invGΓ Γ → invG α' Σ Γ.
-  Proof using. i; ss. Defined.
-
+  
   (* Initial resources for invariants *)
   Definition ir_ownIRA u' : DRA_mk ownIRA :=
     λ u n, if (decide (u <= u')) then gmap_view_auth (DfracOwn 1) ∅ else ε.
@@ -92,11 +83,12 @@ Section invariants.
   Definition ir_invΣ u : invΣ :=
     *[Some (ir_ownIRA u)].
 End invariants.
-Hint Unfold invG_I invG_Σ invG_subG subG_invΣ subG_inG invG_E invG_Γ subG_invΓ invG_D : GRA_index.
+Global Arguments invG: clear implicits.
+Hint Unfold invG_I invG_E invG_D subG_invG subG_inG : GRA_index.
 
 Section predicates.
-  Context `{!subG (Γ : HRA) Σ, !invG α Σ Γ}.
-  Local Existing Instances invG_Σ invG_Γ invG_I invG_E invG_D.
+  Context `{!subG (Γ : HRA) Σ, !invG Γ Σ α}.
+  Local Existing Instances invG_I invG_E invG_D.
 
   (* owns an invariant *)
   Definition ownIR (u : univ_id) (n : level) (i : positive) (p : GTerm.t n) : ownIRA :=
@@ -167,7 +159,7 @@ Section predicates.
 End predicates.
 
 Section wsat.
-  Context `{@GATIntp.t (domain Σ) α, !invG α Σ Γ, !subG Γ Σ}.
+  Context `{@GATIntp.t (domain Σ) α, !invG Γ Σ α, !subG Γ Σ}.  
 
   Variable u : univ_id.
   Variable n : level.
@@ -270,8 +262,8 @@ Section wsat.
 End wsat.
 
 Section wsats.
-  Context `{@GATIntp.t (domain Σ) α, !invG α Σ Γ, !subG Γ Σ}.
-  Local Existing Instances invG_Σ invG_Γ invG_I invG_E invG_D.
+  Context `{@GATIntp.t (domain Σ) α, !invG Γ Σ α, !subG Γ Σ}.  
+  Local Existing Instances invG_I invG_E invG_D.
 
   Lemma wsat_authR_valid u : ✓ (wsat_authR u 0).
   Proof using.
@@ -483,7 +475,7 @@ Notation "'=|' u ',' n '|={' E '}=>' P" := (=|u, n|={E, E}=> P)%I (at level 90) 
 Notation "P '=|' u ',' n '|={' E '}=∗' Q" := (P -∗ =|u, n|={E, E}=> Q)%I (at level 90) : bi_scope.
 
 Section fancy_updates.
-  Context `{@GATIntp.t (domain Σ) α, !invG α Σ Γ, !subG Γ Σ}.
+  Context `{@GATIntp.t (domain Σ) α, !invG Γ Σ α, !subG Γ Σ}.  
   Implicit Types n m : level.
   Implicit Types N : namespace.
   Implicit Types E : coPset.
@@ -500,7 +492,7 @@ Section fancy_updates.
 End fancy_updates.
 
 Section inv.
-  Context `{@GATIntp.t (domain Σ) α, !invG α Σ Γ, !subG Γ Σ}.
+  Context `{@GATIntp.t (domain Σ) α, !invG Γ Σ α, !subG Γ Σ}.  
   Implicit Types n : level.
   Implicit Types N : namespace.
   Implicit Types E : coPset.

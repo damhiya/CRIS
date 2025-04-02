@@ -7,7 +7,8 @@ Set Implicit Arguments.
 Local Open Scope nat_scope.
 
 Section AUX.
-  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !memGΓ Γ}.
+  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
+  Context `{_memG: !memG}.
 
   Fixpoint is_list (ll: val) (xs: list val): iProp Σ :=
     match xs with
@@ -44,7 +45,8 @@ End AUX.
 Ltac Ztac := all_once_fast ltac:(fun H => first[apply Z.leb_le in H|apply Z.ltb_lt in H|apply Z.leb_gt in H|apply Z.ltb_ge in H|idtac]).
 
 Section AUX2.
-  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !memGΓ Γ}.
+  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
+  Context `{_memG: !memG}.
   
   Lemma repeat_nth_some
   X (x: X) sz ofs
@@ -52,10 +54,10 @@ Section AUX2.
   :
   nth_error (repeat x sz) ofs = Some x
   .
-  Proof.
-  ginduction sz; ii; ss.
-  - lia.
-  - destruct ofs; ss. exploit IHsz; et. lia.
+  Proof using _memG.
+    ginduction sz; ii; ss.
+    - lia.
+    - destruct ofs; ss. exploit IHsz; et. lia.
   Qed.
 
   Lemma repeat_nth_none
@@ -64,17 +66,17 @@ Section AUX2.
     :
     nth_error (repeat x sz) ofs = None
     .
-    Proof using.
+  Proof using.
     generalize dependent ofs. induction sz; ii; ss.
     - destruct ofs; ss.
     - destruct ofs; ss. { lia. } hexploit (IHsz ofs); et. lia.
-    Qed.
+  Qed.
 
   Lemma nth_error_empty
     {X: Type} ofs
     :
     nth_error ([]: list X) ofs = None.
-  Proof.
+  Proof using.
     unfold nth_error. destruct ofs; ss.
   Qed.
 
@@ -83,7 +85,7 @@ Section AUX2.
     (SZ: (0 < sz))
   :
     (Z.to_nat x0 < sz).
-  Proof.
+  Proof using.
     induction sz.
     - lia.
     - induction x0.
@@ -99,7 +101,7 @@ Section AUX2.
     (LE: (z1 <=? z2)%Z)
   :
     (z1 < z2)%Z.
-  Proof.
+  Proof using.
     apply Z.leb_le in LE.
     destruct (Z.eq_dec z1 z2) as [Heq | Hneq].
   - (* Case: z1 = z2 (contradiction) *)
@@ -111,7 +113,8 @@ Section AUX2.
 End AUX2.
 
 Section RA.
-  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !memGΓ Γ}.
+  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
+  Context `{_memG: !memG}.
 
   Definition mem_wf (m0: Mem.t): Prop :=
     forall b ofs v, m0.(Mem.cnts) b ofs = Some v -> <<NB: b < m0.(Mem.nb)>>
@@ -132,7 +135,7 @@ Section RA.
     own γ ((● mem_src): memRA)
     ⊢ |==> own γ ((● (mem_src ⋅ _points_to_r (blk, 0%Z) 1 (repeat Vundef sz))): memRA)
            ∗ own γ ((◯ _points_to_r (blk, 0%Z) 1 (repeat Vundef sz)): memRA).
-  Proof using sinvG0 invG0.
+  Proof using _memG.
     iIntros "S".
     iAssert _ with "[S]" as "B".
     { iApply (own_update with "S"). apply auth_update_alloc.
@@ -165,7 +168,7 @@ Section RA.
   Lemma split_points_to_r blk ofs q a l :
     _points_to_r (blk, ofs) q (a :: l)
     ≡ (_points_to_r (blk, ofs) q [a]) ⋅ (_points_to_r (blk, (ofs+1)%Z) q l).
-  Proof using sinvG0 invG0 memGΓ0.
+  Proof using _memG.
     intros b o. rewrite !discrete_fun_lookup_op. ss.
     destruct (dec b blk).
     - subst. destruct (dec o ofs).
@@ -189,7 +192,7 @@ Section RA.
   Lemma points_to_singleton blk ofs q a :
     _points_to_r (blk, ofs) q [a]
     ≡ (discrete_fun_singleton blk (discrete_fun_singleton ofs (Some (q, Excl a)))).
-  Proof using sinvG0 invG0 memGΓ0.
+  Proof using _memG.
     intros b o. ss. des_ifs; destruct dec; bsimpl; des; Ztac; try nia.
     - replace o with ofs in * by nia. rewrite Z.sub_diag in Heq0. ss. inv Heq0.
       rewrite !discrete_fun_lookup_singleton //.
@@ -204,7 +207,7 @@ Section RA.
   Lemma points_to_transform blk ofs q l :
     own base_γ ((◯ _points_to_r (blk, ofs) q l): memRA)
     ⊢ [∗ list] i↦v ∈ l, (blk, (ofs + i)%Z) |={q}=> v.
-  Proof using sinvG0 invG0.
+  Proof using _memG.
     gen ofs. induction l.
     - iIntros; eauto.
     - i. rewrite split_points_to_r. iIntros "[P L]".
@@ -221,7 +224,8 @@ Section RA.
 End RA.
 
 Module MemIA. Section MemIA.
-  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !memGΓ Γ}.
+  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
+  Context `{_memG: !memG}.
 
   Context (csl : string → bool).
   Context (genv : GEnv.t).
@@ -244,7 +248,7 @@ Module MemIA. Section MemIA.
   Local Definition IstFull := (IstProd (IstSB MemA.(HMod.scopes) Ist) IstEq).
 
   Lemma simF_alloc : HSim.sim_fun open MemA MemI IstFull MemHdr.alloc.
-  Proof using invG0 sinvG0 MemInSpMem.
+  Proof using MemInSpMem.
     init_simF 0 0.
     steps_l.
     iDestruct "ASM" as "(% & %)". des; subst; hss.
@@ -288,7 +292,7 @@ Module MemIA. Section MemIA.
   Qed.
 
   Lemma simF_free : HSim.sim_fun open MemA MemI IstFull MemHdr.free.
-  Proof using invG0 sinvG0 MemInSpMem.
+  Proof using MemInSpMem.
     init_simF 0 0.
   
     steps_l. iDestruct "ASM" as "((% & % & P) & %)". des; subst; hss.
@@ -376,7 +380,7 @@ Module MemIA. Section MemIA.
   Qed.
 
   Lemma simF_load : HSim.sim_fun open MemA MemI IstFull MemHdr.load.
-  Proof using invG0 sinvG0 MemInSpMem.
+  Proof using MemInSpMem.
     init_simF 0 0.
 
     steps_l. iDestruct "ASM" as "([% P] & %)". subst; hss.
@@ -410,7 +414,7 @@ Module MemIA. Section MemIA.
   Qed.
 
   Lemma simF_store : HSim.sim_fun open MemA MemI IstFull MemHdr.store.
-  Proof using invG0 sinvG0 MemInSpMem.
+  Proof using MemInSpMem.
     init_simF 0 0.
 
     steps_l. iDestruct "ASM" as "((% & % & P) & %)". subst; hss.
@@ -520,7 +524,7 @@ Module MemIA. Section MemIA.
   Qed.
 
   Lemma simF_cmp : HSim.sim_fun open MemA MemI IstFull MemHdr.cmp.
-  Proof using invG0 sinvG0 MemInSpMem.
+  Proof using MemInSpMem.
     init_simF 0 0.
     
     steps_l. destruct q. destruct x.
@@ -708,7 +712,7 @@ Module MemIA. Section MemIA.
   Qed.
 
   Lemma simF_cas : HSim.sim_fun open MemA MemI IstFull MemHdr.cas.
-  Proof using invG0 sinvG0 MemInSpMem.
+  Proof using MemInSpMem.
     init_simF 0 0.
 
     steps_l.
@@ -835,7 +839,7 @@ Module MemIA. Section MemIA.
   Qed.
 
   Theorem sim : HSim.t open MemA MemI (MemA.init_cond csl genv) IstFull.
-  Proof using invG0 sinvG0 MemInSpMem.
+  Proof using MemInSpMem.
     init_sim.
     - rewrite /IstFull /MemA /MemI. unfold_hmod. s.
       iIntros "P". iExists [], [_], [], []. repeat iSplit; et. et. { iPureIntro. ss. }
@@ -856,8 +860,8 @@ Module MemIA. Section MemIA.
 End MemIA.
 
 Section ctxr.
-  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
-  Context `{!memGΓ Γ}.
+  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
+  Context `{_memG: !memG}.
 
   Theorem ctxr csl genv (sp : string → option fspec)
       (MemInSpMem: sp_incl MemA.sp sp) :

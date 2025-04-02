@@ -9,7 +9,7 @@ Set Implicit Arguments.
 Local Open Scope Qp.
 
 Section SchRA.
-  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
+  Context `{!sinvG Γ Σ α β τ _I _S}.
 
   Canonical Structure SynDepO : ofe := leibnizO {n & GTerm.t n}.
 
@@ -20,20 +20,20 @@ Section SchRA.
 
   Definition tidRA : ucmra := nat -d> excl' unit.
 
-  Class SchAGΣ (Σ: GRA) := { #[local] RA_inG :: inG threadsRA Σ }.
-  Class SchAGΓ (Γ: HRA) := { #[local] RA_inG0 :: inG tidRA Γ }.
-  Definition SchAΣ : GRA := #[threadsRA].
-  Definition SchAΓ : HRA := #[tidRA].
-  Global Instance subG_GΣ {Σ'} : subG SchAΣ Σ' → SchAGΣ Σ'.
-  Proof using. solve_inG. Defined.
-  Global Instance subG_GΓ {Γ' : HRA} : subG SchAΓ Γ' → SchAGΓ Γ'.
+  Class schG `{!sinvG Γ Σ α β τ _I _S} := {
+      sch_inG_tid :: inG tidRA Γ;
+      sch_inG_ths :: inG threadsRA Σ;
+    }.
+  Definition schΓ : HRA := #[tidRA].
+  Definition schΣ : GRA := #[threadsRA].
+  Global Instance subG_schG : subG schΓ Γ → subG schΣ Σ → schG.
   Proof using. solve_inG. Defined.
 End SchRA.
-Hint Unfold RA_inG RA_inG0 subG_GΣ SchAΣ subG_GΓ SchAΓ : GRA_index.
+Hint Unfold sch_inG_tid sch_inG_ths subG_schG : GRA_index.
 
 Module SchAS. Section SchAS.
-  Local Existing Instances RA_inG RA_inG0.
-  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !SchAGΣ Σ, !SchAGΓ Γ}.
+  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
+  Context `{_schG: !schG}.
 
   (** thread **)
   Definition token_pending_r (tid: nat): threadsRA :=
@@ -110,10 +110,10 @@ Module SchAS. Section SchAS.
     tid_admin_r None.
   Lemma ir_tidRA_valid : ✓ (ir_tidRA). intro i; ss. Qed.
 
-  Definition ir_SchAΓ : SchAΓ :=
+  Definition ir_schΓ : schΓ :=
     *[Some ir_tidRA].
 
-  Definition ir_SchAΣ : SchAΣ :=
+  Definition ir_schΣ : schΣ :=
     *[Some ir_threadsRA].
 
   Definition init_threads : iProp Σ := 
@@ -327,7 +327,8 @@ Module SchAS. Section SchAS.
 End SchAS. End SchAS.
 
 Module SchA. Section SchA.
-  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !SchAGΣ Σ, !SchAGΓ Γ}.
+  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
+  Context `{_schG: !schG}.
 
   Definition scopes := ["Sch"].
   Definition v_internal := "Sch" ↯ "internal".
@@ -390,10 +391,11 @@ Module SchA. Section SchA.
 End SchA. End SchA.
 
 Module SchA_link. Section SchA_link.
-
+  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
+  Context `{_schG: !schG}.
+                    
   Definition scopes := ["Tid"].
-  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !SchAGΣ Σ, !SchAGΓ Γ}.
-  
+
   Definition fnsems υ :=
     [(SchHdr.get_tid, (scopes, mk_specbody (SchAS.get_tid_spec υ) fbody_trivial))].
 
@@ -414,8 +416,9 @@ Module SchA_link. Section SchA_link.
 End SchA_link. End SchA_link.
 
 Section FSPEC.
-  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
-  Context `{!SchAGΣ Σ, !SchAGΓ Γ}.
+
+  Context `{SINVG: !sinvG Γ Σ α β τ _I _S}.
+  Context `{SCHG: !schG}.
 
   Definition sch_fspec υ (fsp : fspec) : fspec :=
     wsim_fspec υ

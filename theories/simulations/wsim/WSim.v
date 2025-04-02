@@ -5,7 +5,7 @@ Require Import ISim SMod SMod2HMod HMod.
 From stdpp Require Import coPset.
 
 Section FSPEC.
-  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
+  Context `{!sinvG Γ Σ α β τ _I _S}.
 
   Definition wsim_ginv (u : univ_id) (E : coPset): iProp Σ :=
     own_admin ∗ (∃ n, univs u n) ∗ (∃ n, wsats u n E).
@@ -34,7 +34,7 @@ Section FSPEC.
   Qed.
 End FSPEC.
 
-Class WP `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ} 
+Class WP `{!sinvG Γ Σ α β τ _I _G} 
     (P : iProp Σ) (υ : univ_id) (E : coPset) := mk_WP {
   WP_remainder : iProp Σ;
   WP_iff : P ∗-∗ wsim_ginv υ E ∗ WP_remainder
@@ -44,7 +44,7 @@ Arguments WP_remainder {_ _ _ _ _ _ _ _} [_ _ _] _.
 Arguments WP_iff {_ _ _ _ _ _ _ _} [_ _ _] _.
 
 Section wsim.
-  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
+  Context `{!sinvG Γ Σ α β τ _I _G}.
 
   Local Definition state : Type := alist key Any.t.
   Local Definition post (R_s R_t : Type) : Type := nat → state * R_s → state * R_t → iProp Σ.

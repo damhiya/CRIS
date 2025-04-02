@@ -7,11 +7,13 @@ Set Implicit Arguments.
 
 Local Open Scope nat_scope.
 
-Module SchIA. Section SchIA.
+Module SchIA.
+Section SchIA.
   Import SchAS.
-  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !SchAGΣ Σ, !SchAGΓ Γ}.
-  Context (u_a : univ_id).
+  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
+  Context `{_schG: !schG}.
 
+  Context (u_a : univ_id).
   Context (Sp_global Sp_user : string -> option fspec).
   Context (SchInSp : sp_incl (sp u_a Sp_user) Sp_global).
   Context (FunInSp : sp_sub Sp_user Sp_global).
@@ -149,7 +151,6 @@ Module SchIA. Section SchIA.
   End ALIST.
 
   (**************************)
-  Local Existing Instances SchA.RA_inG SchA.RA_inG0.
 
   Definition Ist: nat -> alist key Any.t -> alist key Any.t -> iProp Σ :=
     fun numths st_src st_tgt =>
@@ -171,7 +172,7 @@ Module SchIA. Section SchIA.
   Local Definition SchIMod := (SchI.t).
 
   Lemma simF__spawn : HSim.sim_fun open SchAMod SchIMod Ist SchHdr._spawn.
-  Proof using sinvG0 FunInSp SchInSp.
+  Proof using FunInSp SchInSp.
     init_simF u_a 0.
 
     rewrite /SchA.trigger_Yield /SchI.trigger_Yield.
@@ -339,7 +340,7 @@ Module SchIA. Section SchIA.
   (*FAST*)Qed.
 
   Lemma simF_spawn : HSim.sim_fun open SchAMod SchIMod Ist SchHdr.spawn.
-  Proof using sinvG0 FunInSp SchInSp.
+  Proof using FunInSp SchInSp.
     init_simF u_a 0.
 
     step_l. step_l. destruct q as [[[[farg fvarg] pre] synpost] userf].
@@ -408,7 +409,7 @@ Module SchIA. Section SchIA.
   (*FAST*)Qed.
 
   Lemma simF_yield : HSim.sim_fun open SchAMod SchIMod Ist SchHdr.yield.
-  Proof using sinvG0 FunInSp SchInSp.
+  Proof using FunInSp SchInSp.
     init_simF u_a 0.
 
     rewrite /SchA.trigger_Yield /SchI.trigger_Yield.
@@ -441,7 +442,7 @@ Module SchIA. Section SchIA.
   (*FAST*)Qed.
 
   Lemma simF_join : HSim.sim_fun open SchAMod SchIMod Ist SchHdr.join.
-  Proof using sinvG0 FunInSp SchInSp.
+  Proof using FunInSp SchInSp.
     init_simF u_a 0.
 
     step_l. step_l.
@@ -540,7 +541,7 @@ Module SchIA. Section SchIA.
   (*FAST*)Qed.
 
   Lemma simF_get_tid : HSim.sim_fun open SchAMod SchIMod Ist SchHdr.get_tid.
-  Proof using sinvG0 FunInSp SchInSp.
+  Proof using FunInSp SchInSp.
     init_simF u_a 0.
 
     steps_l. iDestruct "ASM" as "[[-> tid] ->]"; hss.
@@ -553,7 +554,7 @@ Module SchIA. Section SchIA.
   (*FAST*)Qed.
 
   Lemma sim : HSim.t open SchAMod SchIMod SchA.init_cond Ist.
-  Proof using sinvG0 FunInSp SchInSp.
+  Proof using FunInSp SchInSp.
     init_sim.
     - rewrite /SchA.init_cond /init_threads /init_tid. unseal "SchA".
       iIntros "[[THB THW] tid]". iExists _, _, _, ∅, 0, false.
@@ -577,16 +578,18 @@ Module SchIA. Section SchIA.
     - eapply simF_join.
     - eapply simF_get_tid.
   Qed.
-  End SchIA.
+End SchIA.
 
-  Section ctxr.
-    Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
-    Context `{!SchAGΣ Σ, !SchAGΓ Γ}.
-    Lemma ctxr (u : univ_id) (sp_global sp_user : string → option fspec)
+Section ctxr.
+  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
+  Context `{_schG: !schG}.
+
+  Lemma ctxr (u : univ_id) (sp_global sp_user : string → option fspec)
         (SchInGlobal : sp_incl (SchAS.sp u sp_user) sp_global)
         (UserInGlobal : sp_sub sp_user sp_global) :
-      ctx_refines
-        ((SchA.t u sp_global sp_user) ★ (SchA_link.t u sp_global), SchA.init_cond)
-        (SchI.t, emp%I).
-    Proof using. eapply main_adequacy, sim; eauto. Qed.
-End ctxr. End SchIA.
+    ctx_refines
+      ((SchA.t u sp_global sp_user) ★ (SchA_link.t u sp_global), SchA.init_cond)
+      (SchI.t, emp%I).
+  Proof using. eapply main_adequacy, sim; eauto. Qed.
+End ctxr.
+End SchIA.

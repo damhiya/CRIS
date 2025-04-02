@@ -24,7 +24,7 @@ Global Instance inv_syntax : SAT.t := {
 }.
 
 (* Invariant interpretations *)
-Local Definition inv_interp_aux `{!invG α Σ Γ, !subG Γ Σ} n (op : inv_ops) :
+Local Definition inv_interp_aux `{!invG Γ Σ α, !subG Γ Σ} n (op : inv_ops) :
     (inv_arity op (GTerm.t_prev n) → GTerm.t n) → (inv_arity op (GTerm.t_prev n) → iProp Σ)
     → iProp Σ :=
   match op with
@@ -33,18 +33,18 @@ Local Definition inv_interp_aux `{!invG α Σ Γ, !subG Γ Σ} n (op : inv_ops) 
   | _wsat_auth u => λ _ _, wsat_auth u n
   end.
 
-Global Instance inv_interp `{!invG α Σ Γ, !subG Γ Σ} :
+Global Instance inv_interp `{!invG Γ Σ α, !subG Γ Σ} :
     @SATIntp.t (@domain Σ) α _ :=
   inv_interp_aux.
 
-Class syn_invG (Σ : GRA) (Γ : HRA) (α : GAT.t) (β : GATIntp.t) (τ : TypG.t)
-    `{!invG α Σ Γ, !subG Γ Σ} := {
+Class syn_invG (Γ : HRA) (Σ : GRA) (α : GAT.t) (β : GATIntp.t) (τ : TypG.t)
+    `{!invG Γ Σ α, !subG Γ Σ} := {
   #[global] syn_invG_inG :: GATIntp.inG inv_syntax α inv_interp β;
 }.
 
 Section syn_inv.
-  Context `{!invG α Σ Γ, !subG Γ Σ, !STτ.t τ, !SL.G Σ Γ α β τ, !syn_invG Σ Γ α β τ}.
-  Local Existing Instances invG_Σ invG_Γ invG_I invG_E invG_D.
+  Context `{!invG Γ Σ α, !subG Γ Σ, !STτ.t τ, !SL.G Γ Σ α β τ, !syn_invG Γ Σ α β τ}.
+  Local Existing Instances invG_I invG_E invG_D.
 
   Local Definition syn_ownI u n i (p : GTerm.t n) : GTerm.t n :=
     ⟨ _ownI u i, λ _, p ⟩.
@@ -88,15 +88,16 @@ Section syn_inv.
   Local Definition syn_fupd_eq : @syn_fupd = @syn_fupd_def := syn_fupd_aux.(seal_eq).
 End syn_inv.
 
-Class sinvG (Σ : GRA) (Γ : HRA) (α : GAT.t) (β : GATIntp.t) (τ : TypG.t)
-    `{!invG α Σ Γ, !subG Γ Σ} := sinvG_mk {
+Class sinvG (Γ : HRA) (Σ : GRA) (α : GAT.t) (β : GATIntp.t) (τ : TypG.t)
+    (INVG: invG Γ Σ α) (SUBG: subG Γ Σ) := sinvG_mk {
   #[global] sinv_typG :: STτ.t τ;
-  #[global] sinv_SLG :: SL.G Σ Γ α β τ;
-  #[global] sinv_syn_invG :: syn_invG Σ Γ α β τ;
+  #[global] sinv_SLG :: SL.G Γ Σ α β τ;
+  #[global] sinv_syn_invG :: syn_invG Γ Σ α β τ;
 }.
 
 Section reduction.
-  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
+  Context `{!sinvG Γ Σ α β τ _I _S}.
+
   Lemma ownI_auth_red u n I :
     ⟦syn_ownI_auth u n I⟧ = ownI_auth u n I.
   Proof using.
@@ -178,46 +179,37 @@ Module inv_instances.
       | _ => inv_syntax
       end.
 
-  #[export] Instance β {Σ : GRA} {Γ : HRA} `{!subG Γ Σ, !invG α Σ Γ} : GATIntp.t :=
+  #[export] Instance β {Γ : HRA} {Σ : GRA} `{!subG Γ Σ, !invG Γ Σ α} : GATIntp.t :=
     λ n,
       match n with
       | 0 => SL.interp
       | _ => inv_interp
       end.
 
-  #[export] Instance intpG {Σ : GRA} {Γ : HRA} `{!subG Γ Σ, !invG α Σ Γ} :
-    GATIntp.inG (@SL.syntax τ Γ) α (@SL.interp τ α Γ Σ _) β.
+  #[export] Instance intpG {Γ : HRA} {Σ : GRA} `{!subG Γ Σ, !invG Γ Σ α} :
+    GATIntp.inG (@SL.syntax Γ τ) α (@SL.interp Γ Σ α τ _) β.
   Proof using. econs; instantiate (1:=0); ss. Qed.
 
-  #[export] Instance invintpG {Σ : GRA} {Γ : HRA} `{!subG Γ Σ, !invG α Σ Γ} :
+  #[export] Instance invintpG {Σ : GRA} {Γ : HRA} `{!subG Γ Σ, !invG Γ Σ α} :
     GATIntp.inG inv_syntax α inv_interp β.
   Proof using. econs; instantiate (1:=1); ss. Qed.
 
-  #[export] Instance sinvg {Σ : GRA} {Γ : HRA} `{!subG Γ Σ, !invG α Σ Γ} : sinvG Σ Γ α β τ.
+  #[export] Instance sinvg {Σ : GRA} {Γ : HRA} `{!subG Γ Σ, !invG Γ Σ α} : sinvG Γ Σ α β τ _ _.
   Proof using.
     econs; econs; try typeclasses eauto.
   Qed.
 
-  #[export] Instance subG_refl (Γ : HRA) : subG Γ Γ.
+  #[export] Instance subH_refl (Γ : HRA) : subG Γ Γ.
   Proof using. move=> i; by exists i. Defined.
-  Hint Unfold subG_refl : GRA_index.
+  Hint Unfold subH_refl : GRA_index.
 
-  #[export] Instance subG_app_l_HRA (Γ : HRA) (Σ1 Σ2 : GRA) : subG Γ Σ1 → subG Γ (GRAs.app Σ1 Σ2).
+  #[export] Instance subHG_app_l (Γ Γ1 : HRA) (Σ2 : GRA) : subG Γ Γ1 → subG Γ (GRAs.app Γ1 Σ2).
   Proof using. move=> H i; move: H=> /(_ i) [j ?]. exists (Fin.L _ j). by rewrite /= fin_add_inv_l. Defined.
 
-  #[export] Instance subG_app_r_HRA (Γ : HRA) (Σ1 Σ2 : GRA) : subG Γ Σ2 → subG Γ (GRAs.app Σ1 Σ2).
+  #[export] Instance subHG_app_r (Γ Γ1 : HRA) (Σ2 : GRA) : subG Γ Σ2 → subG Γ (GRAs.app Γ1 Σ2).
   Proof using. move=> H i; move: H=> /(_ i) [j ?]. exists (Fin.R _ j). by rewrite /= fin_add_inv_r. Defined.
 
-  #[export] Instance subG_app_l_HRA' (Γ Σ1 : HRA) (Σ2 : GRA) : subG Γ Σ1 → subG Γ (GRAs.app Σ1 Σ2).
-  Proof using. move=> H i; move: H=> /(_ i) [j ?]. exists (Fin.L _ j). by rewrite /= fin_add_inv_l. Defined.
-
-  #[export] Instance subG_app_r_HRA' (Γ Σ2 : HRA) (Σ1 : GRA) : subG Γ Σ2 → subG Γ (GRAs.app Σ1 Σ2).
+  #[export] Instance subGH_app_r (Σ: GRA) (Γ1 : HRA) (Σ2 : GRA) : subG Σ Σ2 → subG Σ (GRAs.app Γ1 Σ2).
   Proof using. move=> H i; move: H=> /(_ i) [j ?]. exists (Fin.R _ j). by rewrite /= fin_add_inv_r. Defined.
-
-  #[export] Instance subG_app_l_HRA'' (Γ Σ2 : HRA) (Σ1 : GRA) : subG Γ Σ1 → subG Γ (GRAs.app Σ1 Σ2).
-  Proof using. move=> H i; move: H=> /(_ i) [j ?]. exists (Fin.L _ j). by rewrite /= fin_add_inv_l. Defined.
-
-  #[export] Instance subG_app_r_HRA'' (Γ Σ1 : HRA) (Σ2 : GRA) : subG Γ Σ2 → subG Γ (GRAs.app Σ1 Σ2).
-  Proof using. move=> H i; move: H=> /(_ i) [j ?]. exists (Fin.R _ j). by rewrite /= fin_add_inv_r. Defined.
-
+  
 End inv_instances.
