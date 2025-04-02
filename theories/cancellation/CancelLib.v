@@ -1,4 +1,5 @@
 Require Import Common.
+From iris.proofmode Require Import proofmode.
 
 Require Import SMod2HMod HMod2Mod SMod HMod Mod.
 Require Import SimGlobal ITactics TacticsCommon.

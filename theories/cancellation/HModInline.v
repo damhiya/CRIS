@@ -1,4 +1,5 @@
 Require Import Common.
+From iris.proofmode Require Import proofmode.
 
 Require Import HMod.
 Require Import ISim MainAdequacy.
@@ -297,7 +298,7 @@ Proof using.
         {
           rewrite HIRed.bind_pg SBRed.bind SBRed.put. des_ifs; cycle 1.
           {
-            exfalso. assert (existsb (eqb k0.1) (HMod.scopes ms) = true).
+            exfalso. assert (existsb (String.eqb k0.1) (HMod.scopes ms) = true).
             {
               eapply existsb_exists. eapply existsb_exists in Heq. des.
               esplits; eauto.
@@ -315,7 +316,7 @@ Proof using.
       {
         rewrite HIRed.bind_pg SBRed.bind SBRed.get. des_ifs; cycle 1.
         {
-          exfalso. assert (existsb (eqb k0.1) (HMod.scopes ms) = true).
+          exfalso. assert (existsb (String.eqb k0.1) (HMod.scopes ms) = true).
           {
             eapply existsb_exists. eapply existsb_exists in Heq. des.
             esplits; eauto.

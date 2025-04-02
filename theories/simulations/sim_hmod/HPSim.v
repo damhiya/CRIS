@@ -1,5 +1,5 @@
-From iris.proofmode Require Import proofmode.
 Require Import Common.
+From iris.proofmode Require Import proofmode.
 Require Import ModSim.
 
 Section HPSIM.
