@@ -171,7 +171,7 @@ Module SchIA. Section SchIA.
   Local Definition SchIMod := (SchI.t).
 
   Lemma simF__spawn : HSim.sim_fun open SchAMod SchIMod Ist SchHdr._spawn.
-  Proof using FunInSp SchInSp.
+  Proof using sinvG0 FunInSp SchInSp.
     init_simF u_a 0.
 
     rewrite /SchA.trigger_Yield /SchI.trigger_Yield.
@@ -339,7 +339,7 @@ Module SchIA. Section SchIA.
   (*FAST*)Qed.
 
   Lemma simF_spawn : HSim.sim_fun open SchAMod SchIMod Ist SchHdr.spawn.
-  Proof using FunInSp SchInSp.
+  Proof using sinvG0 FunInSp SchInSp.
     init_simF u_a 0.
 
     step_l. step_l. destruct q as [[[[farg fvarg] pre] synpost] userf].
@@ -408,7 +408,7 @@ Module SchIA. Section SchIA.
   (*FAST*)Qed.
 
   Lemma simF_yield : HSim.sim_fun open SchAMod SchIMod Ist SchHdr.yield.
-  Proof using FunInSp SchInSp.
+  Proof using sinvG0 FunInSp SchInSp.
     init_simF u_a 0.
 
     rewrite /SchA.trigger_Yield /SchI.trigger_Yield.
@@ -441,7 +441,7 @@ Module SchIA. Section SchIA.
   (*FAST*)Qed.
 
   Lemma simF_join : HSim.sim_fun open SchAMod SchIMod Ist SchHdr.join.
-  Proof using FunInSp SchInSp.
+  Proof using sinvG0 FunInSp SchInSp.
     init_simF u_a 0.
 
     step_l. step_l.
@@ -540,7 +540,7 @@ Module SchIA. Section SchIA.
   (*FAST*)Qed.
 
   Lemma simF_get_tid : HSim.sim_fun open SchAMod SchIMod Ist SchHdr.get_tid.
-  Proof using FunInSp SchInSp.
+  Proof using sinvG0 FunInSp SchInSp.
     init_simF u_a 0.
 
     steps_l. iDestruct "ASM" as "[[-> tid] ->]"; hss.
@@ -553,7 +553,7 @@ Module SchIA. Section SchIA.
   (*FAST*)Qed.
 
   Lemma sim : HSim.t open SchAMod SchIMod SchA.init_cond Ist.
-  Proof using FunInSp SchInSp.
+  Proof using sinvG0 FunInSp SchInSp.
     init_sim.
     - rewrite /SchA.init_cond /init_threads /init_tid. unseal "SchA".
       iIntros "[[THB THW] tid]". iExists _, _, _, ∅, 0, false.

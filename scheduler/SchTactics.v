@@ -245,7 +245,7 @@ Section wsim.
     ⊢ wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR ps pt nths
       (st_s, (HMod.sandbox sc_s (interp_smod sp (Sch.spawn (fn, vargs)))) >>= k_s)
       (st_t, (HMod.sandbox sc_t (PMod.interp (Sch.spawn (fn, args)))) >>= k_t).
-  Proof using.
+  Proof using sinvG0.
     iIntros "(I & TID & P & SIM)". rewrite /Sch.spawn; unseal "Sch".
     steps_l. forces_l. iSplitL "P TID".
     { iExists (fn, vargs); iSplit; eauto.
@@ -283,7 +283,7 @@ Section wsim.
     ⊢ wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR ps pt nths
       (st_s, (HMod.sandbox sc_s (interp_smod sp (Sch.join tid))) >>= k_s)
       (st_t, (HMod.sandbox sc_t (PMod.interp (Sch.join tid))) >>= k_t).
-  Proof using.
+  Proof using sinvG0.
     iIntros "(IST & TID & TK & SIM)". rewrite /Sch.join; unseal "Sch".
     steps_l. force_l (tid, Q, my_tid). steps_l. force_l (tid↑). steps_l. force_l.
     iFrame; iSplit; eauto. steps_l.
