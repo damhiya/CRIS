@@ -853,3 +853,9 @@ Ltac prep_r :=
   prep;
   show_until marker.
 
+Ltac unfold_pre_post :=
+  hrepeat do 1 match goal with
+  | |-context[precond] => rewrite /precond; s
+  | |-context[postcond] => rewrite /postcond; s
+  end.
+

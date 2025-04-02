@@ -15,7 +15,7 @@ Section FSpec.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
 
   Variable univ: positive.
-  Variable StbFun: string → option fspec.
+  Variable SpFun: string → option fspec.
 
   Definition sfunN {X Y} `{coreE -< E} `{callE -< E} `{pgE -< E}
       (body : X -> itree E Y) : SAny.t -> itree E SAny.t :=
@@ -33,7 +33,7 @@ Section FSpec.
   (* Definition wfspec_thread: fspec → fspec := (wfspec_inv) ∘ (wfspec_type SAny.t SAny.t). *)
 
   Definition find_fsp (fn : string) : fspec :=
-    match (StbFun fn) with
+    match (SpFun fn) with
     | Some fsp => fsp
     | None => fspec_trivial
     end.

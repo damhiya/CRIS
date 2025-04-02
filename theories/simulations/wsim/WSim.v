@@ -4,28 +4,35 @@ Require Import ISim SMod SMod2HMod HMod.
 
 From stdpp Require Import coPset.
 
-Definition wsim_ginv (u : univ_id) (E : coPset)
-    `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ} : iProp Σ :=
-  own_admin ∗ (∃ n, univs u n) ∗ (∃ n, wsats u n E).
+Section FSPEC.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
 
-Lemma wsim_ginv_split (υ ν : univ_id) (E : coPset)
-    `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ} :
-  (ν < υ) →
-  wsim_ginv υ E
-  ==∗ wsim_ginv ν ⊤ ∗ own_admin ∗ (∃ n, wsats υ n E) ∗ (wsim_ginv ν ⊤ ==∗ ∃ n, univs υ n).
-Proof using.
-  iIntros "%LT [O [[%vn U] [%un W]]]".
-  rewrite {1 2}/univs; replace υ with (ν + (S (υ - S ν))) by lia.
-  rewrite ?seq_app /= ?big_sepL_app /=. iDestruct "U" as "[U1 [U2 U3]]".
-  iMod (own_admin_split with "O") as "[O1 O2]".
-  iSplitL "U1 U2 O2"; iFrame; ss.
-  iIntros "!> [_ [[%n U] [%n' W]]]".
-  remember ((n `max` n') `max` vn) as n''. iExists n''.
-  iPoseProof (univs_mon ν n n'' with "U") as "> U"; first lia.
-  iPoseProof (wsats_mon ν n' n'' with "W") as "> W"; first lia.
-  iFrame. iApply big_sepL_bupd. iApply (big_sepL_impl with "U3").
-  iModIntro; iIntros "%k %x %IN W"; iApply wsats_mon; last iFrame; lia.
-Qed.
+  Definition wsim_ginv (u : univ_id) (E : coPset): iProp Σ :=
+    own_admin ∗ (∃ n, univs u n) ∗ (∃ n, wsats u n E).
+
+  Definition wsim_fspec (υ : univ_id) (fsp : fspec) : fspec :=
+    mk_fspec (meta := fsp.(meta))
+      (λ x varg arg, wsim_ginv υ ⊤ ∗ fsp.(precond) x varg arg)%I
+      (λ x vret ret, wsim_ginv υ ⊤ ∗ fsp.(postcond) x vret ret)%I.
+
+  Lemma wsim_ginv_split (υ ν : univ_id) (E : coPset):
+    (ν < υ) →
+    wsim_ginv υ E
+    ==∗ wsim_ginv ν ⊤ ∗ own_admin ∗ (∃ n, wsats υ n E) ∗ (wsim_ginv ν ⊤ ==∗ ∃ n, univs υ n).
+  Proof using.
+    iIntros "%LT [O [[%vn U] [%un W]]]".
+    rewrite {1 2}/univs; replace υ with (ν + (S (υ - S ν))) by lia.
+    rewrite ?seq_app /= ?big_sepL_app /=. iDestruct "U" as "[U1 [U2 U3]]".
+    iMod (own_admin_split with "O") as "[O1 O2]".
+    iSplitL "U1 U2 O2"; iFrame; ss.
+    iIntros "!> [_ [[%n U] [%n' W]]]".
+    remember ((n `max` n') `max` vn) as n''. iExists n''.
+    iPoseProof (univs_mon ν n n'' with "U") as "> U"; first lia.
+    iPoseProof (wsats_mon ν n' n'' with "W") as "> W"; first lia.
+    iFrame. iApply big_sepL_bupd. iApply (big_sepL_impl with "U3").
+    iModIntro; iIntros "%k %x %IN W"; iApply wsats_mon; last iFrame; lia.
+  Qed.
+End FSPEC.
 
 Class WP `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ} 
     (P : iProp Σ) (υ : univ_id) (E : coPset) := mk_WP {
@@ -35,11 +42,6 @@ Class WP `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}
 Arguments mk_WP {_ _ _ _ _ _ _ _} _ _ _ _ _.
 Arguments WP_remainder {_ _ _ _ _ _ _ _} [_ _ _] _.
 Arguments WP_iff {_ _ _ _ _ _ _ _} [_ _ _] _.
-
-Program Global Instance WP_refl `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}
-    (υ : univ_id) (E : coPset)
-  : WP (wsim_ginv υ E) υ E := mk_WP (wsim_ginv υ E) υ E True _.
-Next Obligation. ii; iSplit; first iIntros "$"; iIntros "[$ _]". Qed.
 
 Section wsim.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
@@ -78,10 +80,10 @@ Section wsim.
   Local Definition wsim_eq : @wsim = @wsim_def := wsim_aux.(seal_eq).
   Local Ltac unseal := rewrite wsim_eq /wsim_def.
 
-  Definition wsim_fspec (υ : univ_id) (fsp : fspec) : fspec :=
-    mk_fspec (meta := fsp.(meta))
-      (λ x varg arg, wsim_ginv υ ⊤ ∗ fsp.(precond) x varg arg)%I
-      (λ x vret ret, wsim_ginv υ ⊤ ∗ fsp.(postcond) x vret ret)%I.
+  Program Global Instance WP_refl
+      (υ : univ_id) (E : coPset)
+    : WP (wsim_ginv υ E) υ E := mk_WP (wsim_ginv υ E) υ E True _.
+  Next Obligation. ii; iSplit; first iIntros "$"; iIntros "[$ _]". Qed.
   
   Program Global Instance wsim_fspec_precond (fsp : fspec) (υ : univ_id) m arg varg :
     WP (precond (wsim_fspec υ fsp) m arg varg) υ ⊤ :=

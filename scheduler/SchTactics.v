@@ -1,18 +1,6 @@
 Require Import CRIS SchHeader SchA.
 Require Import ITactics.
 
-Section wrapper.
-  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
-  Context `{!SchAGΣ Σ, !SchAGΓ Γ}.
-  Definition sch_fspec (υ: univ_id) (fsp : fspec) : fspec :=
-    wsim_fspec υ
-     (mk_fspec (meta := nat * (fsp).(meta))
-        (fun '(tid, x) varg arg =>
-          SchAS.tid_user tid ∗ fsp.(precond) x varg arg)%I
-        (fun '(tid, x) vret ret =>
-          SchAS.tid_user tid ∗ fsp.(postcond) x vret ret)%I).
-End wrapper.
-
 Section wsim.
   Import SchAS.
   Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ, !SchAGΣ Σ, !SchAGΓ Γ}.

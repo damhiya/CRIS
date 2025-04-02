@@ -248,10 +248,10 @@ Module SchAS. Section SchAS.
 
   End RA.
 
-  Variable υ : univ_id.
-  Variable Sp_user : string -> option fspec.
-
   Section SPEC.
+
+    Variable υ : univ_id.
+    Variable Sp_user : string -> option fspec.
 
     (* TODO : clarify with WP tc *)
     Definition fspec_spawnable (u : univ_id) (fsp : fspec)
@@ -412,3 +412,17 @@ Module SchA_link. Section SchA_link.
     Seal.sealing CRIS (SMod.to_hmod Sp_global (Mod υ)).
 
 End SchA_link. End SchA_link.
+
+Section FSPEC.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
+  Context `{!SchAGΣ Σ, !SchAGΓ Γ}.
+
+  Definition sch_fspec υ (fsp : fspec) : fspec :=
+    wsim_fspec υ
+     (mk_fspec (meta := nat * (fsp).(meta))
+        (fun '(tid, x) varg arg =>
+          SchAS.tid_user tid ∗ fsp.(precond) x varg arg)%I
+        (fun '(tid, x) vret ret =>
+          SchAS.tid_user tid ∗ fsp.(postcond) x vret ret)%I).
+
+End FSPEC.
