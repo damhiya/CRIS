@@ -7,7 +7,7 @@ Set Implicit Arguments.
 
 Module APCAC. Section APCAC.
   Import APCA.
-  Context `{!sinvG Γ Σ α β τ}.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
 
   Definition Ist : nat → alist key Any.t → alist key Any.t → iProp Σ :=
     (λ _ _ _, True)%I.
@@ -32,7 +32,7 @@ Module APCAC. Section APCAC.
 
   Lemma simF_apc :
     HSim.sim_fun open APCCMod APCAMod IstFull APCHdr.apc.
-  Proof using sinvG0 PureIsPure PureInSpA APCInSpA.
+  Proof using invG0 sinvG0 subG0 PureIsPure PureInSpA APCInSpA.
     init_simF 0 0.
     (* init_simF. *)
     steps_l. iDestruct "ASM" as "%"; des; subst.
@@ -116,7 +116,7 @@ Module APCAC. Section APCAC.
   (*FAST*)Qed.
 
   Theorem sim : HSim.t open APCCMod APCAMod emp%I IstFull.
-  Proof using sinvG0 PureIsPure PureInSpA APCInSpA.
+  Proof using invG0 sinvG0 subG0 PureIsPure PureInSpA APCInSpA.
     init_sim.
     - iIntros "_". iExists [], [], _, _. 
       iSplit; ss.
@@ -127,7 +127,7 @@ Module APCAC. Section APCAC.
 End APCAC.
 
 Section ctxr.
-  Context `{!sinvG Γ Σ α β τ}.
+  Context `{!invG α Σ Γ, !subG Γ Σ, !sinvG Σ Γ α β τ}.
 
   Definition ctxr (md : HMod.t) (sp_c sp_a sp_pure : string → option fspec)
       (APCInSpA : sp_incl APCA.Sp sp_a)
