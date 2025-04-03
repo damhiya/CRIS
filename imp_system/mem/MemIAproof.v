@@ -249,7 +249,7 @@ Module MemIA. Section MemIA.
 
   Lemma simF_alloc : HSim.sim_fun open MemA MemI IstFull MemHdr.alloc.
   Proof using MemInSpMem.
-    init_simF 0 0.
+    init_simF.
     steps_l.
     iDestruct "ASM" as "(% & %)". des; subst; hss.
 
@@ -293,7 +293,7 @@ Module MemIA. Section MemIA.
 
   Lemma simF_free : HSim.sim_fun open MemA MemI IstFull MemHdr.free.
   Proof using MemInSpMem.
-    init_simF 0 0.
+    init_simF.
   
     steps_l. iDestruct "ASM" as "((% & % & P) & %)". des; subst; hss.
     steps_r.
@@ -381,7 +381,7 @@ Module MemIA. Section MemIA.
 
   Lemma simF_load : HSim.sim_fun open MemA MemI IstFull MemHdr.load.
   Proof using MemInSpMem.
-    init_simF 0 0.
+    init_simF.
 
     steps_l. iDestruct "ASM" as "([% P] & %)". subst; hss.
     rename q5 into b, q6 into ofs.
@@ -415,7 +415,7 @@ Module MemIA. Section MemIA.
 
   Lemma simF_store : HSim.sim_fun open MemA MemI IstFull MemHdr.store.
   Proof using MemInSpMem.
-    init_simF 0 0.
+    init_simF.
 
     steps_l. iDestruct "ASM" as "((% & % & P) & %)". subst; hss.
     rename q3 into b, q4 into ofs.
@@ -525,7 +525,7 @@ Module MemIA. Section MemIA.
 
   Lemma simF_cmp : HSim.sim_fun open MemA MemI IstFull MemHdr.cmp.
   Proof using MemInSpMem.
-    init_simF 0 0.
+    init_simF.
     
     steps_l. destruct q. destruct x.
     { (* cmp spec 0 *)
@@ -713,7 +713,7 @@ Module MemIA. Section MemIA.
 
   Lemma simF_cas : HSim.sim_fun open MemA MemI IstFull MemHdr.cas.
   Proof using MemInSpMem.
-    init_simF 0 0.
+    init_simF.
 
     steps_l.
     destruct q. 

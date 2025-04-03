@@ -33,7 +33,7 @@ Module APCAC. Section APCAC.
   Lemma simF_apc :
     HSim.sim_fun open APCCMod APCAMod IstFull APCHdr.apc.
   Proof using _sinvG PureIsPure PureInSpA APCInSpA.
-    init_simF 0 0.
+    init_simF.
     (* init_simF. *)
     steps_l. iDestruct "ASM" as "%"; des; subst.
     steps_r. force_r q. force_r (q↑). force_r. iSplitR; et. hss. steps_r.
