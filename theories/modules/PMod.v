@@ -308,28 +308,34 @@ End RED.
 End PRed.
 
 Module PMWrap.
+  (*
+    The parameter 'ar' determines
+    whether we accept calls to the functions in the list 'fns',
+    or we reject calls to the functions in the list 'fns'.
+   *)
 
-  Definition handler (fns: list string) : Handler callE pmodE :=
+  Definition handler (ar: bool) (fns: list string) : Handler callE pmodE :=
     fun _ e =>
       match e with
       | Call fn args =>
-          if existsb (eqb fn) fns
-          then trigger (Call fn args)
-          else triggerUB
+          let in_fns := existsb (eqb fn) fns in
+          if (ar && negb in_fns) || (negb ar && in_fns)
+          then triggerUB
+          else trigger (Call fn args)
       end.
 
-  Definition body (fns: list string) (code: Any.t -> itree pmodE Any.t) :
+  Definition wrap (ar: bool) (fns: list string) (code: Any.t -> itree pmodE Any.t) :
     Any.t -> itree pmodE Any.t
     :=
     fun x => interp
       (case_ (bif:=sum1) trivial_Handler
-      (case_ (bif:=sum1) (handler fns)
+      (case_ (bif:=sum1) (handler ar fns)
       (case_ (bif:=sum1) trivial_Handler
          trivial_Handler))) (code x).
 
-  Program Definition pmod fns (m: PMod.t) : PMod.t :=
+  Program Definition pmod (ar: bool) fns (m: PMod.t) : PMod.t :=
     {|PMod.scopes := m.(PMod.scopes)
-    ; PMod.fnsems := List.map (map_snd (map_snd (body fns))) m.(PMod.fnsems)
+    ; PMod.fnsems := List.map (map_snd (map_snd (wrap ar fns))) m.(PMod.fnsems)
     ; PMod.initial_st := m.(PMod.initial_st)
     |}.
   Next Obligation.

@@ -146,3 +146,48 @@ Section ADD.
   Qed. 
 
 End ADD.
+
+Module SMWrap. Section SMWrap.
+  Context `{Σ: GRA}.
+
+  (*
+    The parameter 'ar' determines
+    whether we accept calls to the functions in the list 'fns',
+    or we reject calls to the functions in the list 'fns'.
+   *)
+
+  Definition handler (ar: bool) (fns: list string) : Handler callE hmodE :=
+    fun _ e =>
+      match e with
+      | Call fn args =>
+          let in_fns := existsb (eqb fn) fns in
+          if (ar && negb in_fns) || (negb ar && in_fns)
+          then triggerUB
+          else trigger (Call fn args)
+      end.
+
+  Definition wrap ar fns (code: Any.t -> itree hmodE Any.t) :
+    Any.t -> itree hmodE Any.t
+    :=
+    fun x => interp
+      (case_ (bif:=sum1) trivial_Handler
+      (case_ (bif:=sum1) trivial_Handler
+      (case_ (bif:=sum1) (handler ar fns)
+         trivial_Handler))) (code x).
+
+  Definition wrap_sb ar fns (sb: fspecbody) : fspecbody :=
+    {| fsb_fspec := sb.(fsb_fspec); fsb_body := wrap ar fns sb.(fsb_body) |}.
+
+  Program Definition smod (ar: bool) fns (m: SMod.t) : SMod.t :=
+    {|SMod.scopes := m.(SMod.scopes)
+    ; SMod.fnsems := List.map (map_snd (map_snd (wrap_sb ar fns))) m.(SMod.fnsems)
+    ; SMod.initial_st := m.(SMod.initial_st)
+    |}.
+  Next Obligation.
+    ii. eapply (m.(SMod.well_scoped_fns) fn). unfold fnsems_scopes in *.
+    rewrite !alist_find_map_snd in H. des_ifs; eauto.
+  Qed.
+  Next Obligation. ii. eapply (m.(SMod.well_scoped_init)). eauto. Qed.
+  Next Obligation. ii. eapply (m.(SMod.nodup_fns)). eauto. Qed.
+
+End SMWrap. End SMWrap.
