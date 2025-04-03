@@ -537,4 +537,4 @@ Proof.
     gstep. econs. i. gstep. econs. ired. 
     rewrite !SBRed.tau !HIRed.tau.
     gstep. econs. i. gstep. econs. eauto with paco.
-Qed.
+(*FAST*)Qed.

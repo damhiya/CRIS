@@ -61,4 +61,4 @@ Proof.
     iSplitL "A1"; eauto. iApply H1. eauto.
   }
   i. rewrite !list_lookup_insert_ne in H3, H4; eauto.
-Qed.
+(*FAST*)Qed.

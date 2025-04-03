@@ -83,4 +83,4 @@ Proof.
   rewrite list_lookup_insert in H5; eauto.
   inv H4.
   econs; grind; eauto.
-Qed.
+(*FAST*)Qed.

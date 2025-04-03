@@ -40,7 +40,7 @@ Section apc.
       trigger (Call fn o↑);;;
       _APC wid_next
   .
-  Next Obligation. ii. auto.  Qed.
+  Next Obligation. ii. auto.  Defined.
   Next Obligation. eapply Ord.lt_well_founded. Qed.
 
   Definition APC: itree hmodE unit :=
