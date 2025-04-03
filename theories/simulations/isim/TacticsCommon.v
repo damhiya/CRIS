@@ -117,44 +117,6 @@ Tactic Notation "alist_find_simpl_with" tactic(simpl_tac) :=
 
 Ltac alist_find_simpl := alist_find_simpl_with (do 1 _alist_find_simpl).
 
-Ltac hss_des :=
-  ss; des_safe; subst;
-  (hrepeat do 1 match goal with
-    | [v: () |- _] => destruct v
-    | [H: (_,_) = (_,_) |- _] => inv H
-    end);
-  ss.
-
-Ltac hss :=
-  (hrepeat do 1 match goal with [|- context[environments.Esnoc _ ?H (bi_pure True)]] => iClear H end);
-  hss_des;
-  try (rewrite -> !Any.pair_split in * );
-  try (rewrite -> !Any.upcast_downcast in * );
-  try (rewrite -> !SAny.pair_split in * );
-  try (rewrite -> !SAny.upcast_downcast in * );
-  (hrepeat do 1 match goal with [G: Any.downcast _ = Some _ |-_] =>
-    apply Any.downcast_upcast in G; inv G; ss
-   end);
-  (hrepeat do 1 match goal with [G: Any.upcast _ = Any.upcast _ |-_] =>
-    apply Any.upcast_inj in G; destruct G as [_ G]; red in G; depdes G; ss
-   end);
-  (hrepeat do 1 match goal with [G: SAny.downcast _ = Some _ |-_] =>
-    apply SAny.downcast_upcast in G; inv G; ss
-   end);
-  (hrepeat do 1 match goal with [G: SAny.upcast _ = SAny.upcast _ |-_] =>
-    apply SAny.upcast_inj in G; destruct G as [_ G]; red in G; depdes G; ss
-   end);
-  (hrepeat do 1 match goal with [G: Some _ = Some _ |- _] =>
-    depdes G; ss
-   end);
-  try (rewrite -> !Any.pair_split in * );
-  try (rewrite -> !Any.upcast_downcast in * );
-  try (rewrite -> !SAny.pair_split in * );
-  try (rewrite -> !SAny.upcast_downcast in * );
-  (hrepeat do 1 alist_upd_simpl);
-  hss_des;
-  move_aux.
-
 (*** head normalization tactic ***)
 (*
   itree term        t
@@ -859,3 +821,45 @@ Ltac unfold_pre_post :=
   | |-context[postcond] => rewrite /postcond; s
   end.
 
+(** hss, hss_l, hss_r : simplify itrees **)
+
+Ltac hss_des :=
+  ss; des_safe; subst;
+  (hrepeat do 1 match goal with
+    | [v: () |- _] => destruct v
+    | [H: (_,_) = (_,_) |- _] => inv H
+    end);
+  ss.
+
+Ltac hss :=
+  (hrepeat do 1 match goal with [|- context[environments.Esnoc _ ?H (bi_pure True)]] => iClear H end);
+  hss_des;
+  try (rewrite -> !Any.pair_split in * );
+  try (rewrite -> !Any.upcast_downcast in * );
+  try (rewrite -> !SAny.pair_split in * );
+  try (rewrite -> !SAny.upcast_downcast in * );
+  (hrepeat do 1 match goal with [G: Any.downcast _ = Some _ |-_] =>
+    apply Any.downcast_upcast in G; inv G; ss
+   end);
+  (hrepeat do 1 match goal with [G: Any.upcast _ = Any.upcast _ |-_] =>
+    apply Any.upcast_inj in G; destruct G as [_ G]; red in G; depdes G; ss
+   end);
+  (hrepeat do 1 match goal with [G: SAny.downcast _ = Some _ |-_] =>
+    apply SAny.downcast_upcast in G; inv G; ss
+   end);
+  (hrepeat do 1 match goal with [G: SAny.upcast _ = SAny.upcast _ |-_] =>
+    apply SAny.upcast_inj in G; destruct G as [_ G]; red in G; depdes G; ss
+   end);
+  (hrepeat do 1 match goal with [G: Some _ = Some _ |- _] =>
+    depdes G; ss
+   end);
+  try (rewrite -> !Any.pair_split in * );
+  try (rewrite -> !Any.upcast_downcast in * );
+  try (rewrite -> !SAny.pair_split in * );
+  try (rewrite -> !SAny.upcast_downcast in * );
+  (hrepeat do 1 alist_upd_simpl);
+  hss_des;
+  move_aux.
+
+Ltac hss_l := hide_itree_r; hss; show_itree.
+Ltac hss_r := hide_itree_l; hss; show_itree.
