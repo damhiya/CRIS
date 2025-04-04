@@ -156,7 +156,7 @@ Module SMWrap. Section SMWrap.
     or we reject calls to the functions in the list 'fns'.
    *)
 
-  Definition handler (ar: bool) (fns: list string) : Handler callE hmodE :=
+  Definition handler_call (ar: bool) (fns: list string) : Handler callE hmodE :=
     fun _ e =>
       match e with
       | Call fn args =>
@@ -166,13 +166,24 @@ Module SMWrap. Section SMWrap.
           else trigger (Call fn args)
       end.
 
+  Definition handler_sch (ar: bool) (fns: list string) : Handler schE hmodE :=
+    fun _ e =>
+      match e with
+      | Spawn fn args =>
+          let in_fns := existsb (eqb fn) fns in
+          if (ar && negb in_fns) || (negb ar && in_fns)
+          then triggerUB
+          else trigger (Spawn fn args)
+      | Yield tid => trigger (Yield tid)
+      end.
+
   Definition wrap ar fns (code: Any.t -> itree hmodE Any.t) :
     Any.t -> itree hmodE Any.t
     :=
     fun x => interp
       (case_ (bif:=sum1) trivial_Handler
-      (case_ (bif:=sum1) trivial_Handler
-      (case_ (bif:=sum1) (handler ar fns)
+      (case_ (bif:=sum1) (handler_sch ar fns)
+      (case_ (bif:=sum1) (handler_call ar fns)
          trivial_Handler))) (code x).
 
   Definition wrap_sb ar fns (sb: fspecbody) : fspecbody :=

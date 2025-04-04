@@ -60,9 +60,9 @@ Section PMOD.
   |}.
   
   Program Definition to_smod (ms: t) : SMod.t := {|
-  SMod.scopes := ms.(scopes);
-  SMod.fnsems := List.map (map_snd (λ kb, (kb.1, wrap_trivial_spec kb.2))) ms.(fnsems);
-  SMod.initial_st := ms.(initial_st);
+    SMod.scopes := ms.(scopes);
+    SMod.fnsems := List.map (map_snd (λ kb, (kb.1, wrap_trivial_spec kb.2))) ms.(fnsems);
+    SMod.initial_st := ms.(initial_st);
   |}.
   Next Obligation.
   i. destruct ms. s. ii.
@@ -314,7 +314,7 @@ Module PMWrap.
     or we reject calls to the functions in the list 'fns'.
    *)
 
-  Definition handler (ar: bool) (fns: list string) : Handler callE pmodE :=
+  Definition handler_call (ar: bool) (fns: list string) : Handler callE pmodE :=
     fun _ e =>
       match e with
       | Call fn args =>
@@ -324,12 +324,23 @@ Module PMWrap.
           else trigger (Call fn args)
       end.
 
+  Definition handler_sch (ar: bool) (fns: list string) : Handler schE pmodE :=
+    fun _ e =>
+      match e with
+      | Spawn fn args =>
+          let in_fns := existsb (eqb fn) fns in
+          if (ar && negb in_fns) || (negb ar && in_fns)
+          then triggerUB
+          else trigger (Spawn fn args)
+      | Yield tid => trigger (Yield tid)
+      end.
+
   Definition wrap (ar: bool) (fns: list string) (code: Any.t -> itree pmodE Any.t) :
     Any.t -> itree pmodE Any.t
     :=
     fun x => interp
-      (case_ (bif:=sum1) trivial_Handler
-      (case_ (bif:=sum1) (handler ar fns)
+      (case_ (bif:=sum1) (handler_sch ar fns)
+      (case_ (bif:=sum1) (handler_call ar fns)
       (case_ (bif:=sum1) trivial_Handler
          trivial_Handler))) (code x).
 
