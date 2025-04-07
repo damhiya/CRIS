@@ -735,4 +735,29 @@ Section wsim.
       unseal.
       iIntros "[PRE SIM] _"; ss. iApply ("SIM" with "PRE").
     Qed.
+
+    Lemma wsim_eqit_src E r g st_src st_tgt i_src0 i_src1 i_tgt
+      (EQIT: eqit eq false true i_src0 i_src1)
+      :
+      wsim t υ ν E r g R_s R_t RR ps pt nths (st_src, i_src0) (st_tgt, i_tgt)
+      ⊢ wsim t υ ν E r g R_s R_t RR ps pt nths (st_src, i_src1) (st_tgt, i_tgt).
+    Proof using.
+      rewrite wsim_eq /wsim_def /wsim_pre. des_ifs.
+      all: iIntros "sim w"; iPoseProof ("sim" with "w") as "sim";
+        iStopProof;
+        eapply isim_eqit_src; eauto.
+    Qed.
+
+    Lemma wsim_eqit_tgt E r g st_src st_tgt i_src i_tgt0 i_tgt1
+      (EQIT: eqit eq false true i_tgt0 i_tgt1)
+      :
+      wsim t υ ν E r g R_s R_t RR ps pt nths (st_src, i_src) (st_tgt, i_tgt0)
+      ⊢ wsim t υ ν E r g R_s R_t RR ps pt nths (st_src, i_src) (st_tgt, i_tgt1).
+    Proof using.
+      rewrite wsim_eq /wsim_def /wsim_pre. des_ifs.
+      all: iIntros "sim w"; iPoseProof ("sim" with "w") as "sim";
+        iStopProof;
+        eapply isim_eqit_tgt; eauto.
+    Qed.
+    
 End lemmas. End wsim.
