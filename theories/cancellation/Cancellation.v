@@ -115,7 +115,7 @@ Proof.
   - eapply cancel_aux_tail; eauto. i; eapply CIH; eauto.
   - eapply cancel_aux_spawn; eauto. i; eapply CIH; eauto.
   - eapply cancel_aux_yield; eauto. i; eapply CIH; eauto.
-(*FAST*)Qed.
+(*SLOW*)Qed.
 
 Lemma cancel_main `{Σ: GRA} md
     P fsp meta rs rt r
@@ -192,7 +192,7 @@ Proof.
   rewrite SBRed.bind SBRed.ag. do 2 f_equal.
   extensionalities.
   rewrite SBRed.ret. ss.
-(*FAST*)Qed.
+(*SLOW*)Qed.
 
 (*** Final Theorem ***)
 Theorem cancellation `{Σ: GRA} md P fsp meta
@@ -224,4 +224,4 @@ Proof.
     do 2 rewrite List.map_map fst_map_snd in wf_fns. eauto.
   - rewrite SRC. rewrite comm. eauto.
   - iIntros (? ?) "H". iModIntro. iApply POST; eauto.
-(*FAST*)Qed.
+(*SLOW*)Qed.

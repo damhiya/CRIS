@@ -145,4 +145,4 @@ Proof.
   eapply lookup_snoc_Some in H5, H6. des; try nia.
   specialize (RELS k x4 y n H8 H7).
   inv RELS. econs; eauto; des_ifs.
-(*FAST*)Qed.
+(*SLOW*)Qed.
