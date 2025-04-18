@@ -3,7 +3,6 @@ From iris.proofmode Require Import proofmode.
 Require Export base_logic.
 Require Import allocs.
 Require Import Coqlib.
-Require Import Level.
 Require Export base_logic iprop.
 Import uPred.
 
