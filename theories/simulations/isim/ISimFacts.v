@@ -1,7 +1,7 @@
 From iris.proofmode Require Import proofmode.
 Require Import Common.
 Require Import Mod HMod.
-Require Import ModSim HPSimFacts ISim.
+Require Import ModSim HModSimFacts ISim.
 
 (* HSIM_ADEQUACY *)
 
@@ -63,15 +63,15 @@ Proof.
     { apply WFT. }
     ii. des; subst.
     rewrite Heq in x0. inv x0. inv SIMMRS.
-    eapply hpsim_adequacy; eauto; cycle 4.
+    eapply hsim_adequacy; eauto; cycle 4.
     { apply le_mine_refl. ii; eauto. }
     { ginit; cycle 2; i.
       eapply gpaco9_mon with (r := iunlift ibot) (rg:= iunlift ibot); eauto using iunlift_ibot.
       eapply isim_init; eauto.
       iIntros "H". iApply isim_upd. iPoseProof (MR with "H") as ">H".
       iModIntro. iApply x1; eauto.
-      { eapply HPSim._hpsim_mon. }
-      { eapply cpn9_wcompat, HPSim._hpsim_mon. }
+      { eapply HModSim._hsim_mon. }
+      { eapply cpn9_wcompat, HModSim._hsim_mon. }
     }
     { inv WFS. rewrite List.map_map.
       eapply eq_ind; [apply wf_fns|].

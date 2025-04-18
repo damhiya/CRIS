@@ -1,11 +1,6 @@
 Require Import Common.
-Require Import SMod HMod SMod2HMod.
+Require Import SMod HMod SModTr.
 Require Import SModCancel HModInline.
-
-(* Context `{Σ: GRA}. *)
-(* Variable md: SMod.t. *)
-
-(* REL *)
 
 Definition sp_from `{Σ: GRA} md : string -> option fspec :=
   fun fn =>
@@ -192,10 +187,10 @@ Variant thread_rel `{Σ: GRA} md cid tid src tgt : Prop :=
     (REL: @elim_rel _ md _ l itrS itrT)
     (SRC: src =
             (if Nat.eq_dec tid cid then Ret tt else tau;; Ret tt);;;
-            interp_hp itrS)
+            HModTr.trans itrS)
     (TGT: tgt =
             (if Nat.eq_dec tid cid then Ret tt else tau;; Ret tt);;;
-            interp_hp
+            HModTr.trans
              (vret <- itrT;; 
               (inline_hp (prog (SMod.to_hmod (sp_from md) md))
                (ret <- trigger (Choose Any.t);;
@@ -208,7 +203,7 @@ Variant thread_rel `{Σ: GRA} md cid tid src tgt : Prop :=
 Lemma HoareYield_sandbox `{Σ: GRA}
     scopes tid
   :
-  HMod.sandbox scopes (trigger (Yield tid)) = trigger (Yield tid).
+  HModTr.sandbox scopes (trigger (Yield tid)) = trigger (Yield tid).
 Proof.
   rewrite SBRed.sch. eauto.
 Qed. 
@@ -227,9 +222,9 @@ Qed.
 Lemma HoareSpawn_sandbox `{Σ: GRA}
     scopes f fn args
   :
-  HMod.sandbox scopes (HoareSpawn f fn args) = HoareSpawn f fn args.
+  HModTr.sandbox scopes (SModTr.HoareSpawn f fn args) = SModTr.HoareSpawn f fn args.
 Proof.
-  unfold HoareSpawn.
+  unfold SModTr.HoareSpawn.
   rewrite SBRed.bind SBRed.core. f_equal. extensionalities.
   rewrite SBRed.bind SBRed.core. f_equal. extensionalities.
   rewrite SBRed.bind SBRed.sch. f_equal. extensionalities.
@@ -241,11 +236,11 @@ Qed.
 Lemma HoareSpawn_hpI `{Σ: GRA}
     prog f fn args ktr
   :
-  inline_hp prog (HoareSpawn f fn args >>= ktr)
+  inline_hp prog (SModTr.HoareSpawn f fn args >>= ktr)
   =
   x <- HoareSpawnE f fn args;; tau;; inline_hp prog (ktr x).
 Proof.
-  unfold HoareSpawn, HoareSpawnE. ired.
+  unfold SModTr.HoareSpawn, HoareSpawnE. ired.
   rewrite HIRed.bind_core. f_equal. extensionalities. ired. do 2 f_equal.
   rewrite HIRed.bind_core. f_equal. extensionalities. ired. do 2 f_equal.
   rewrite HIRed.bind_sch. f_equal. extensionalities. ired. do 2 f_equal.
@@ -256,9 +251,9 @@ Qed.
 Lemma Spawn_cancel_sandbox `{Σ: GRA}
     scopes fn args
   :
-  HMod.sandbox scopes (Spawn_cancel fn args) = Spawn_cancel fn args.
+  HModTr.sandbox scopes (SModCancel.HoareSpawn fn args) = SModCancel.HoareSpawn fn args.
 Proof.
-  unfold Spawn_cancel.
+  unfold SModCancel.HoareSpawn.
   rewrite SBRed.bind SBRed.sch. f_equal. extensionalities.
   rewrite SBRed.bind SBRed.sch. f_equal. extensionalities.
   rewrite SBRed.ret. ss.
@@ -267,11 +262,11 @@ Qed.
 Lemma Spawn_cancel_hpI `{Σ: GRA}
     prog fn args ktr
   :
-  inline_hp prog (Spawn_cancel fn args >>= ktr)
+  inline_hp prog (SModCancel.HoareSpawn fn args >>= ktr)
   =
   x <- SpawnCancelE fn args;; tau;; inline_hp prog (ktr x).
 Proof.
-  unfold Spawn_cancel, SpawnCancelE. ired.
+  unfold SModCancel.HoareSpawn, SpawnCancelE. ired.
   rewrite HIRed.bind_sch. f_equal. extensionalities. ired. do 2 f_equal.
   rewrite HIRed.bind_sch. f_equal.
 Qed.
@@ -280,7 +275,7 @@ Lemma HoareCall_inline_cancel `{Σ: GRA} md
   scopes fn varg sc fsp fbody 
   (FIND: alist_find fn (SMod.fnsems md) = Some (sc, {|fsb_fspec := fsp; fsb_body := fbody|}))
   :
-  inline_hp (prog (SMod.to_hmod (sp_from md) md)) (HMod.sandbox scopes (HoareCall fsp fn varg))
+  inline_hp (prog (SMod.to_hmod (sp_from md) md)) (HModTr.sandbox scopes (SModTr.HoareCall fsp fn varg))
   =
   (* head *)
   m <- trigger (Choose (meta fsp));; tau;;
@@ -291,7 +286,7 @@ Lemma HoareCall_inline_cancel `{Σ: GRA} md
   trigger (Assume (precond fsp m' varg' arg));;; tau;; 
   (* body *)
   vret' <- inline_hp (prog (SMod.to_hmod (sp_from md) md)) 
-                     (HMod.sandbox sc (interp_smod (sp_from md) (fbody varg')));;
+                     (HModTr.sandbox sc (SModTr.trans (sp_from md) (fbody varg')));;
   (* tail *)
   ret <- trigger (Choose Any.t);; tau;;
   trigger (Guarantee (postcond fsp m' vret' ret));;; tau;; tau;; tau;;
@@ -299,7 +294,7 @@ Lemma HoareCall_inline_cancel `{Σ: GRA} md
   trigger (Assume (postcond fsp m vret ret));;; tau;;
   Ret vret.
 Proof.
-  unfold HoareCall.
+  unfold SModTr.HoareCall.
   (* head *)
   rewrite SBRed.bind SBRed.core HIRed.bind_core.
   f_equal. extensionality m. do 2 f_equal.
@@ -310,7 +305,7 @@ Proof.
   rewrite SBRed.bind SBRed.call HIRed.call.
   do 2 f_equal. ired.
   rewrite alist_find_map_snd FIND. ired.
-  unfold HMod.sandbox_body, interp_sb_hp, HoareFun. s.
+  unfold HModTr.sandbox_body, SModTr.trans_ktree, SModTr.HoareFun. s.
   rewrite SBRed.bind SBRed.core. ired. rewrite HIRed.bind_core.
   f_equal. extensionality m'. do 2 f_equal.
   rewrite SBRed.bind SBRed.core. ired. rewrite HIRed.bind_core.
@@ -337,13 +332,13 @@ Lemma HoareCall_inline `{Σ: GRA} md
   scopes fn varg sc fsp fbody 
   (FIND: alist_find fn (SMod.fnsems md) = Some (sc, {|fsb_fspec := fsp; fsb_body := fbody|}))
   :
-  inline_hp (prog (SMod.to_hmod  (sp_from md) md)) (HMod.sandbox scopes (HoareCall fsp fn varg))
+  inline_hp (prog (SMod.to_hmod  (sp_from md) md)) (HModTr.sandbox scopes (SModTr.HoareCall fsp fn varg))
   =
   (* head *)
   '((x, x'), varg'):_ <- (hmod_elim_head (meta fsp) (precond fsp) varg);;
   (* body *)
   vret' <- inline_hp (prog (SMod.to_hmod  (sp_from md) md)) 
-                     (HMod.sandbox sc (interp_smod  (sp_from md) (fbody varg')));;
+                     (HModTr.sandbox sc (SModTr.trans (sp_from md) (fbody varg')));;
   (* tail *)
   hmod_elim_tail (meta fsp) (postcond fsp) (x, x') vret'. 
 Proof.
@@ -358,7 +353,7 @@ Definition elim_head_body `{Σ: GRA} md
   ('((x, x'), varg'):_ <- (hmod_elim_head (meta fsp) (precond fsp) varg);;
   (* body *)
   vret' <- inline_hp (prog (SMod.to_hmod  (sp_from md) md)) 
-                     (HMod.sandbox sc (interp_smod  (sp_from md) (fbody varg')));;
+                     (HModTr.sandbox sc (SModTr.trans (sp_from md) (fbody varg')));;
   Ret ((x, x'), vret')).
 
 Lemma HoareCall_inline2 `{Σ: GRA} md
@@ -366,7 +361,7 @@ Lemma HoareCall_inline2 `{Σ: GRA} md
   (FIND: alist_find fn (SMod.fnsems md) = Some (sc, {|fsb_fspec := fsp; fsb_body := fbody|}))
   :
   inline_hp (prog (SMod.to_hmod (sp_from md) md)) 
-    (HMod.sandbox scopes (HoareCall fsp fn varg))
+    (HModTr.sandbox scopes (SModTr.HoareCall fsp fn varg))
   =
   (* head *)
   RET <- elim_head_body md sc fsp fbody varg;;
@@ -397,9 +392,9 @@ Lemma elim_rel_refl `{Σ: GRA} md
   :
   @elim_rel _ md _ []
     (inline_hp (prog (SModCancel.to_hmod md)) 
-        (HMod.sandbox scopes (interp_smod_cancel itr)))
+        (HModTr.sandbox scopes (SModCancel.trans itr)))
     (inline_hp (prog (SMod.to_hmod  (sp_from md) md)) 
-        (HMod.sandbox scopes (interp_smod  (sp_from md) itr))).
+        (HModTr.sandbox scopes (SModTr.trans (sp_from md) itr))).
 Proof. 
   unfold elim_rel.
   ginit. revert itr scopes. gcofix CIH. i.
@@ -417,7 +412,7 @@ Proof.
     rewrite SBRed.tau SBRed.ret. ired. rewrite !HIRed.tau.  
     gstep. econs. gstep. econs. eauto with paco.
   - rewrite SRed.bind SRed.sch SCancelRed.bind SCancelRed.sch. ired. 
-    unfold handle_schE_hmodE, handle_schE_hmodE_cancel. depdes s.
+    unfold SModTr.handle_schE_hmodE, SModCancel.handle_schE_hmodE. depdes s.
     + destruct (sp_from md fn) eqn:STB; ired; cycle 1.
       { 
         unfold triggerNB. ired. 
@@ -436,7 +431,7 @@ Proof.
       rewrite !SBRed.tau !HIRed.tau.
       gstep. econs. gstep. econs. eauto with paco.
   - rewrite SRed.bind SRed.call SCancelRed.bind SCancelRed.call.
-    unfold handle_callE_hmodE. depdes c. 
+    unfold SModTr.handle_callE_hmodE. depdes c. 
     destruct (sp_from md fn) eqn: STB; ired; cycle 1.
     { 
       unfold triggerNB. 
@@ -448,12 +443,12 @@ Proof.
     
     assert (FIND := sp_in_alist_find).
     specialize (FIND md fn f STB). des.
-    destruct (alist_find fn (List.map (map_snd (λ ksb : list string * fspecbody, (ksb.1, interp_sb_hp_cancel ksb.2))) (SMod.fnsems md))) eqn: FINDS; cycle 1.
+    destruct (alist_find fn (List.map (map_snd (λ ksb : list string * fspecbody, (ksb.1, SModCancel.trans_ktree ksb.2))) (SMod.fnsems md))) eqn: FINDS; cycle 1.
     { exfalso. rewrite alist_find_map_snd FIND in FINDS. clarify.  }
     ired. rewrite FINDS. destruct p. rewrite alist_find_map_snd FIND in FINDS. s in FINDS. inv FINDS. 
-    ired. unfold HMod.sandbox_body. s. 
+    ired. unfold HModTr.sandbox_body. s. 
     set_l. 
-    eassert (ITREE = tau;; x <- (a <- inline_hp _ (HMod.sandbox l0 (x <- _ args;; tau;; Ret x));; tau;; Ret a);; tau;; _).
+    eassert (ITREE = tau;; x <- (a <- inline_hp _ (HModTr.sandbox l0 (x <- _ args;; tau;; Ret x));; tau;; Ret a);; tau;; _).
     {
       unfold ITREE. do 2 f_equal. 
       instantiate (3:= prog (SModCancel.to_hmod md)).
@@ -466,7 +461,7 @@ Proof.
     set_r.
     eassert (ITREE0 = x <- (a <- inline_hp _ _;; tau;; Ret a);; tau;; _ x).
     {
-      instantiate (2:= HMod.sandbox scopes (HoareCall f fn args)).
+      instantiate (2:= HModTr.sandbox scopes (SModTr.HoareCall f fn args)).
       instantiate (2:= prog (SMod.to_hmod  (sp_from md) md)).
       rewrite /ITREE0 !HIRed.bind. ired. f_equal.
       extensionalities. ired. rewrite SBRed.tau HIRed.tau.
@@ -481,7 +476,7 @@ Proof.
       rewrite SBRed.bind HIRed.bind.
       set (inline_hp _ _ ). eassert (i = _ args).
       { unfold i. instantiate (1:= fun x => inline_hp _ (_ (_ x))). refl. }
-      remember (λ x : Any.t, inline_hp (prog (SModCancel.to_hmod md)) (HMod.sandbox l0 (_ x))).
+      remember (λ x : Any.t, inline_hp (prog (SModCancel.to_hmod md)) (HModTr.sandbox l0 (_ x))).
       rewrite H. clear i H.
       ired. gstep. econs. 
       { 
@@ -494,7 +489,7 @@ Proof.
       (* rewrite [i1 varg]add_dummy_ret. *)
       guclo elim_rel_bindC_spec.
       eapply elim_rel_bindC_intro with (l1 := []).
-      { rewrite Heqi0. unfold interp_sb_hp_cancel. s. eauto with paco. }
+      { rewrite Heqi0. unfold SModCancel.trans_ktree. s. eauto with paco. }
       i.
       set_r. eassert (ITREE = a <- hmod_elim_tail (meta f) (postcond f) (m, m) v;; (tau;; Ret a)).
       { unfold ITREE, hmod_elim_tail. refl. }

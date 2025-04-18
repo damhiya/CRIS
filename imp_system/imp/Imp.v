@@ -1,7 +1,7 @@
 (** * The Imp language  *)
 Require Import CRIS.
 
-Require Import ImpPrelude.
+Require Import ImpPrelude ModTr.
 
 Set Implicit Arguments.
 
@@ -476,7 +476,7 @@ Section Interp.
       end.
 
   Definition interp_ImpState {eff} `{coreE -< eff}: itree (ImpState +' eff) ~> stateT lenv (itree eff) :=
-    State.interp_state (case_ handle_ImpState Mod2ITree.pure_state).
+    State.interp_state (case_ handle_ImpState ModTr.pure_state).
 
   (* Definition interp_imp ge le (itr : itree effs val) := *)
   (*   interp_ImpState (interp_GlobEnv ge itr) le. *)

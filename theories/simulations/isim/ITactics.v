@@ -67,9 +67,9 @@ Ltac _istep_l :=
       iApply isim_tau_src
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, Ret _ >>= _) _) ] =>
       rewrite bind_ret_l
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, (HMod.sandbox _ (trigger (SPut _ _))) >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, (HModTr.sandbox _ (trigger (SPut _ _))) >>= _) _) ] =>
       iApply isim_sput_src_sandbox; [s;eauto|]
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, (HMod.sandbox _ (trigger (SGet _))) >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, (HModTr.sandbox _ (trigger (SGet _))) >>= _) _) ] =>
       iApply isim_sget_src_sandbox; [s;eauto|]
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _) _) ] =>
       let name := fresh "q" in
@@ -105,9 +105,9 @@ Ltac _istep_r :=
       rewrite bind_ret_l
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, tau;; _)) ] =>
       iApply isim_tau_tgt
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, (HMod.sandbox _ (trigger (SPut _ _))) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, (HModTr.sandbox _ (trigger (SPut _ _))) >>= _)) ] =>
       iApply isim_sput_tgt_sandbox; [s; eauto|]
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, (HMod.sandbox _ (trigger (SGet _))) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, (HModTr.sandbox _ (trigger (SGet _))) >>= _)) ] =>
       iApply isim_sget_tgt_sandbox; [s; eauto|]
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose _) >>= _)) ] =>
       let name := fresh "q" in

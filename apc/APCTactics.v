@@ -22,7 +22,7 @@ Lemma wsim_apc_src
       (st_tgt, i_tgt))
   ⊢
     (wsim fl fr Ist is_closed u0 u1 cP r g Rs Rt RR ps pt nths
-      (st_src, ((HMod.sandbox scopes (interp_smod sp (_APC od sp_pure ow))) >>= k_src))
+      (st_src, ((HModTr.sandbox scopes (SModTr.trans sp (_APC od sp_pure ow))) >>= k_src))
       (st_tgt, i_tgt)).
 Proof using.
   iIntros "ISIM".
@@ -103,11 +103,11 @@ Lemma wsim_apc_src_call_tgt_weaker
     (∀ nths0 st_src0 st_tgt0 (vret ret: Any.t),
       ((Ist nths0 st_src0 st_tgt0) ∗ (Q spec_arg ret))
       -∗ wsim fl fr Ist is_closed u0 u1 cP r g Rs Rt RR false false nths0
-          (st_src0, ((HMod.sandbox scopes (interp_smod sp (_APC od_src sp_pure ow_fn))) >>= k_src))
+          (st_src0, ((HModTr.sandbox scopes (SModTr.trans sp (_APC od_src sp_pure ow_fn))) >>= k_src))
           (st_tgt0, k_tgt ret)))
   ⊢
     (wsim fl fr Ist is_closed u0 u1 cP r g Rs Rt RR ps pt nths
-      (st_src, ((HMod.sandbox scopes (interp_smod sp (_APC od_src sp_pure ow_src))) >>= k_src))
+      (st_src, ((HModTr.sandbox scopes (SModTr.trans sp (_APC od_src sp_pure ow_src))) >>= k_src))
       (st_tgt, (trigger (Call fn args) >>= k_tgt))).
 Proof using.
   iIntros "[[[PRE %] IST] ISIM]".
@@ -141,11 +141,11 @@ Lemma wsim_apc_src_call_tgt
     (∀ nths0 st_src0 st_tgt0 (vret ret: Any.t),
       ((Ist nths0 st_src0 st_tgt0) ∗ (Q spec_arg ret))
       -∗ wsim fl fr Ist is_closed u0 u1 cP r g Rs Rt RR false false nths0
-          (st_src0, ((HMod.sandbox scopes (interp_smod sp (_APC od_src sp_pure ow_fn))) >>= k_src))
+          (st_src0, ((HModTr.sandbox scopes (SModTr.trans sp (_APC od_src sp_pure ow_fn))) >>= k_src))
           (st_tgt0, k_tgt ret)))
   ⊢
     (wsim fl fr Ist is_closed u0 u1 cP r g Rs Rt RR ps pt nths
-      (st_src, ((HMod.sandbox scopes (interp_smod sp (_APC od_src sp_pure ow_src))) >>= k_src))
+      (st_src, ((HModTr.sandbox scopes (SModTr.trans sp (_APC od_src sp_pure ow_src))) >>= k_src))
       (st_tgt, (trigger (Call fn args) >>= k_tgt))).
 Proof using.
   eapply wsim_apc_src_call_tgt_weaker; et. 
@@ -159,7 +159,7 @@ Qed.
   (sp sp_pure: string → option fspec) (od ow: Ord.t) (scopes: list string)
   (SUB: sp_sub sp_pure sp)
   (SUBA: sp_incl APCA.Sp sp)
-  (FIND: alist_find APCHdr.apc fr = Some (HMod.sandbox_body (APCA.scopes, interp_sb_hp (wsim_ginv u0 cP) sp
+  (FIND: alist_find APCHdr.apc fr = Some (HModTr.sandbox_body (APCA.scopes, interp_sb_hp (wsim_ginv u0 cP) sp
       {| fsb_fspec := APCA.apc_spec; fsb_body := cfunN (APCA.apc_body sp_pure) |})))
   (BODY: ∀ fn fsp, sp_pure fn = Some fsp 
           → ∃ sc, alist_find fn fr = Some (pure_specbody sc u0 sp fsp))
@@ -170,7 +170,7 @@ Qed.
   ⊢
     (wsim fl fr Ist is_closed u0 u1 cP r g Rs Rt RR ps pt nths 
       (st_src, i_src)
-      (st_tgt, ((HMod.sandbox scopes (interp_smod (wsim_ginv u1 cP) sp (_APC od sp_pure ow)));;; i_tgt))).
+      (st_tgt, ((HModTr.sandbox scopes (SModTr.trans (wsim_ginv u1 cP) sp (_APC od sp_pure ow)));;; i_tgt))).
   Proof using.
   iIntros "ISIM".
   set (E:=environments.envs_entails _).
@@ -217,7 +217,7 @@ Qed.
     steps_r. unfold pure_body, cfunN. hss. steps_r.
     iDestruct "GRT" as "%"; des; subst; hss.
     iApply wsim_inline_tgt; eauto.
-    unfold HMod.sandbox_body, interp_sb_hp, HoareFun; hss.
+    unfold HModTr.sandbox_body, interp_sb_hp, HoareFun; hss.
     steps_r. force_r q5. force_r (q5↑). forces_r. iSplit; et.
     steps_r. hss. unfold APCA.apc_body, APC. steps_r.
 
@@ -241,16 +241,16 @@ End LEMMAS.
 Ltac _prep_macro :=
   ired;
   match goal with
-  | [|- context[HMod.sandbox _ (interp_smod _ _ (_APC _ _ _)) >>= _]] => fail 1
-  | [|- context[HMod.sandbox _ (interp_smod _ _ (_APC _ _ _) >>= _)]] =>
-      rewrite// [in HMod.sandbox _ (interp_smod _ _ (_APC _ _ _) >>= _)] SBRed.bind
-  | [|- context[interp_smod _ _ (_APC _ _ _ >>= _)]] =>
-      rewrite// [in (interp_smod _ _ (_APC _ _ _ >>= _))] SRed.bind; _prep_macro
-  | [|- context[HMod.sandbox _ (PMod.interp (_APC _ _ _)) >>= _]] => fail 1
-  | [|- context[HMod.sandbox _ (PMod.interp (_APC _ _ _) >>= _)]] =>
-      rewrite// [in HMod.sandbox _ (PMod.interp (_APC _ _ _) >>= _)] SBRed.bind
-  | [|- context[PMod.interp (_APC _ _ _ >>= _)]] =>
-      rewrite// [in (PMod.interp (_APC _ _ _ >>= _))] PRed.bind; _prep_macro
+  | [|- context[HModTr.sandbox _ (SModTr.trans _ _ (_APC _ _ _)) >>= _]] => fail 1
+  | [|- context[HModTr.sandbox _ (SModTr.trans _ _ (_APC _ _ _) >>= _)]] =>
+      rewrite// [in HModTr.sandbox _ (SModTr.trans _ _ (_APC _ _ _) >>= _)] SBRed.bind
+  | [|- context[SModTr.trans _ _ (_APC _ _ _ >>= _)]] =>
+      rewrite// [in (SModTr.trans _ _ (_APC _ _ _ >>= _))] SRed.bind; _prep_macro
+  | [|- context[HModTr.sandbox _ (PModTr.trans (_APC _ _ _)) >>= _]] => fail 1
+  | [|- context[HModTr.sandbox _ (PModTr.trans (_APC _ _ _) >>= _)]] =>
+      rewrite// [in HModTr.sandbox _ (PModTr.trans (_APC _ _ _) >>= _)] SBRed.bind
+  | [|- context[PModTr.trans (_APC _ _ _ >>= _)]] =>
+      rewrite// [in (PModTr.trans (_APC _ _ _ >>= _))] PRed.bind; _prep_macro
   end.
 
 Ltac prep_macro_l :=

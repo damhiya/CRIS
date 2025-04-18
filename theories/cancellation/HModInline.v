@@ -42,7 +42,7 @@ Section INTERP.
   Definition prog (ms: HMod.t) : callE ~> itree hmodE :=
     fun _ '(Call fn args) =>
       lbody <- (alist_find fn ms.(HMod.fnsems))?;;
-      HMod.sandbox_body lbody args.
+      HModTr.sandbox_body lbody args.
       
   Definition inline_hp_fbody (ms: HMod.t)
     : (list string * (Any.t -> itree hmodE Any.t)) -> (list string * (Any.t -> itree hmodE Any.t))
@@ -51,7 +51,7 @@ Section INTERP.
 
   Definition wrap_sandbox scopeS: list string * (Any.t -> itree hmodE Any.t) -> list string * (Any.t -> itree hmodE Any.t)
     := 
-    fun kb => (scopeS, HMod.sandbox_body kb).
+    fun kb => (scopeS, HModTr.sandbox_body kb).
 
   Definition wrap_elimI ms: list string * (Any.t -> itree hmodE Any.t) -> list string * (Any.t -> itree hmodE Any.t)
     :=
@@ -217,13 +217,13 @@ Lemma wrap_elimI_well_scoped `{Σ: GRA}
     ms fn sb
     (FIND: alist_find fn ms.(HMod.fnsems) = Some sb)
   :
-  HMod.sandbox_body (wrap_elimI ms sb)
+  HModTr.sandbox_body (wrap_elimI ms sb)
   = 
-  inline_hp_fun (prog ms) (HMod.sandbox_body sb).
+  inline_hp_fun (prog ms) (HModTr.sandbox_body sb).
 Proof using.
   extensionality args. 
   unfold wrap_elimI, inline_hp_fbody. s.
-  unfold HMod.sandbox_body, inline_hp_fun. destruct sb. s.
+  unfold HModTr.sandbox_body, inline_hp_fun. destruct sb. s.
   assert(SCP := ms.(HMod.well_scoped_fns)).
   specialize (SCP fn). rewrite/fnsems_scopes FIND in SCP.
   
@@ -261,10 +261,10 @@ Proof using.
       destruct (alist_find fn (HMod.fnsems ms)) eqn: FIND.
       { 
         ired. assert (X:=@sandbox_well_scoped). 
-        unfold HMod.sandbox_body. destruct p. s.
+        unfold HModTr.sandbox_body. destruct p. s.
         gbase.
         match goal with
-        [|- _ _ (_ _ ?itr)] => assert (EX: exists itr', itr = HMod.sandbox (HMod.scopes ms) itr')
+        [|- _ _ (_ _ ?itr)] => assert (EX: exists itr', itr = HModTr.sandbox (HMod.scopes ms) itr')
         end.
         {
           eexists. instantiate (1:= _ >>= _). 
@@ -280,7 +280,7 @@ Proof using.
           rewrite SBRed.tau. do 2 f_equal.
           ired.
           erewrite <-(@sandbox_well_scoped _ _ scopeT); eauto. 
-          instantiate (1:= fun x => HMod.sandbox scopeT (k x)). 
+          instantiate (1:= fun x => HModTr.sandbox scopeT (k x)). 
           s. refl.
         }
         des. rewrite EX. eapply CIH. refl.

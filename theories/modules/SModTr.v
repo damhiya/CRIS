@@ -6,6 +6,7 @@ Set Implicit Arguments.
 Arguments precond : simpl never.
 Arguments postcond : simpl never.
 
+Module SModTr.
 Section HOARE.
 
   Context `{Σ: GRA}.
@@ -53,7 +54,7 @@ Section HOARE.
         fsp <- (sp fn)!;;
         HoareCall fsp fn varg.
 
-  Definition interp_smod R (it : itree hmodE R) : itree hmodE R :=
+  Definition trans R (it : itree hmodE R) : itree hmodE R :=
     interp (case_ (bif:=sum1) trivial_Handler
            (case_ (bif:=sum1) handle_schE_hmodE
            (case_ (bif:=sum1) handle_callE_hmodE
@@ -69,20 +70,21 @@ Section HOARE.
       varg <- trigger (Take _);;
       trigger (Assume (P x varg arg));;; (*** precondition ***)
 
-      vret <- interp_smod (body varg);;
+      vret <- trans (body varg);;
 
       ret <- trigger (Choose Any.t);;
       trigger (Guarantee (Q x vret ret));;; (*** postcondition ***)
 
       Ret ret.
   
-  Definition interp_sb_hp (sb: fspecbody): (Any.t → itree hmodE Any.t) :=
+  Definition trans_ktree (sb: fspecbody): (Any.t → itree hmodE Any.t) :=
     let fs: fspec := sb.(fsb_fspec) in
     HoareFun fs.(precond) fs.(postcond) sb.(fsb_body).
 
 End HOARE.
+End SModTr.
 
-Notation "↧ it" := (interp_smod _ it) (at level 59, only printing).
+Notation "↧ it" := (SModTr.trans _ it) (at level 59, only printing).
 
 Module SRed.
 Section RED.
@@ -94,11 +96,11 @@ Section RED.
         sp
         (s : itree hmodE R) (k : R → itree hmodE S)
     :
-      interp_smod sp (s >>= k)
+      SModTr.trans sp (s >>= k)
       =
-      st <- interp_smod sp s;; interp_smod sp (k st).
+      st <- SModTr.trans sp s;; SModTr.trans sp (k st).
   Proof using.
-    unfold interp_smod in *. grind.
+    unfold SModTr.trans in *. grind.
   Qed.
 
   Lemma tau
@@ -106,11 +108,11 @@ Section RED.
         (t : itree _ U)
         sp
     :
-      interp_smod sp (tau;; t)
+      SModTr.trans sp (tau;; t)
       =
-      tau;; (interp_smod sp t).
+      tau;; (SModTr.trans sp t).
   Proof using.
-    unfold interp_smod in *. grind.
+    unfold SModTr.trans in *. grind.
   Qed.
 
   Lemma ret
@@ -118,69 +120,69 @@ Section RED.
         (t: U)
         sp
     :
-      interp_smod sp (Ret t)
+      SModTr.trans sp (Ret t)
       =
       Ret t.
   Proof using.
-    unfold interp_smod in *. grind.
+    unfold SModTr.trans in *. grind.
   Qed.
 
   Lemma vis_ag {X R} sp (e : agE X) (ktr : X -> itree hmodE R) :
-    interp_smod sp (vis e ktr) = vis e (fun x => tau;; interp_smod sp (ktr x)).
+    SModTr.trans sp (vis e ktr) = vis e (fun x => tau;; SModTr.trans sp (ktr x)).
   Proof using.
     eapply observe_eta; ss. f_equal. extensionality x.
     eapply observe_eta; ss.
   Qed.
 
   Lemma vis_sch {X R} sp (e : schE X) (ktr : X -> itree hmodE R) :
-    interp_smod sp (vis e ktr) = x <- handle_schE_hmodE sp e;; tau;; interp_smod sp (ktr x).
+    SModTr.trans sp (vis e ktr) = x <- SModTr.handle_schE_hmodE sp e;; tau;; SModTr.trans sp (ktr x).
   Proof using.
-    eapply bisim_is_eq. unfold interp_smod. rewrite interp_vis. reflexivity.
+    eapply bisim_is_eq. unfold SModTr.trans. rewrite interp_vis. reflexivity.
   Qed.
 
   Lemma vis_call {X R} sp (e : callE X) (ktr : X -> itree hmodE R) :
-    interp_smod sp (vis e ktr) = x <- handle_callE_hmodE sp e;; tau;; interp_smod sp (ktr x).
+    SModTr.trans sp (vis e ktr) = x <- SModTr.handle_callE_hmodE sp e;; tau;; SModTr.trans sp (ktr x).
   Proof using.
-    eapply bisim_is_eq. unfold interp_smod. rewrite interp_vis. reflexivity.
+    eapply bisim_is_eq. unfold SModTr.trans. rewrite interp_vis. reflexivity.
   Qed.
 
   Lemma vis_pg {X R} sp (e : pgE X) (ktr : X -> itree hmodE R) :
-    interp_smod sp (vis e ktr) = vis e (fun x => tau;; interp_smod sp (ktr x)).
+    SModTr.trans sp (vis e ktr) = vis e (fun x => tau;; SModTr.trans sp (ktr x)).
   Proof using.
     eapply observe_eta; ss. f_equal. extensionality x.
     eapply observe_eta; ss.
   Qed.
 
   Lemma vis_core {X R} sp (e : coreE X) (ktr : X -> itree hmodE R) :
-    interp_smod sp (vis e ktr) = vis e (fun x => tau;; interp_smod sp (ktr x)).
+    SModTr.trans sp (vis e ktr) = vis e (fun x => tau;; SModTr.trans sp (ktr x)).
   Proof using.
     eapply observe_eta; ss. f_equal. extensionality x.
     eapply observe_eta; ss.
   Qed.
 
   Lemma assumeK {R} sp P (itr : itree hmodE R) :
-    interp_smod sp (assumeK P itr) = assumeK P (tau;; interp_smod sp itr).
+    SModTr.trans sp (assumeK P itr) = assumeK P (tau;; SModTr.trans sp itr).
   Proof using.
     eapply observe_eta; ss. f_equal. extensionality x.
     eapply observe_eta; ss.
   Qed.
 
   Lemma guaranteeK {R} sp P (itr : itree hmodE R) :
-    interp_smod sp (guaranteeK P itr) = guaranteeK P (tau;; interp_smod sp itr).
+    SModTr.trans sp (guaranteeK P itr) = guaranteeK P (tau;; SModTr.trans sp itr).
   Proof using.
     eapply observe_eta; ss. f_equal. extensionality x.
     eapply observe_eta; ss.
   Qed.
 
   Lemma unwrapUK {X R} sp x (ktr : X -> itree hmodE R) :
-    interp_smod sp (unwrapUK x ktr) = unwrapUK x (fun x => interp_smod sp (ktr x)).
+    SModTr.trans sp (unwrapUK x ktr) = unwrapUK x (fun x => SModTr.trans sp (ktr x)).
   Proof using.
     destruct x; ss.
     eapply observe_eta; ss. f_equal. extensionality x. ss.
   Qed.
 
   Lemma unwrapNK {X R} sp x (ktr : X -> itree hmodE R) :
-    interp_smod sp (unwrapNK x ktr) = unwrapNK x (fun x => interp_smod sp (ktr x)).
+    SModTr.trans sp (unwrapNK x ktr) = unwrapNK x (fun x => SModTr.trans sp (ktr x)).
   Proof using.
     destruct x; ss.
     eapply observe_eta; ss. f_equal. extensionality x. ss.
@@ -191,11 +193,11 @@ Section RED.
         (i: schE R)
         sp
     :
-      interp_smod sp (trigger i)
+      SModTr.trans sp (trigger i)
       =
-      r <- handle_schE_hmodE sp i;; tau;; Ret r.
+      r <- SModTr.handle_schE_hmodE sp i;; tau;; Ret r.
   Proof using.
-    unfold interp_smod in *. rewrite interp_trigger. grind.
+    unfold SModTr.trans in *. rewrite interp_trigger. grind.
   Qed.
   
   Lemma call
@@ -203,11 +205,11 @@ Section RED.
         (i: callE R)
         sp
     :
-      interp_smod sp (trigger i)
+      SModTr.trans sp (trigger i)
       =
-      r <- handle_callE_hmodE sp i;; tau;; Ret r.
+      r <- SModTr.handle_callE_hmodE sp i;; tau;; Ret r.
   Proof using.
-    unfold interp_smod in *. rewrite interp_trigger. grind.
+    unfold SModTr.trans in *. rewrite interp_trigger. grind.
   Qed.
 
   Lemma pg
@@ -215,11 +217,11 @@ Section RED.
         (i: pgE R)
         sp
     :
-      interp_smod sp (trigger i)
+      SModTr.trans sp (trigger i)
       =
       r <- trigger i;; tau;; Ret r.
   Proof using.
-    unfold interp_smod. rewrite interp_trigger. grind.
+    unfold SModTr.trans. rewrite interp_trigger. grind.
   Qed.
 
   Lemma core
@@ -227,21 +229,21 @@ Section RED.
         (i: coreE R)
         sp
     :
-      interp_smod sp (trigger i)
+      SModTr.trans sp (trigger i)
       =
       r <- trigger i;; tau;; Ret r.
   Proof using.
-    unfold interp_smod. rewrite interp_trigger. grind.
+    unfold SModTr.trans. rewrite interp_trigger. grind.
   Qed.
 
   Lemma ag {A} (e: agE A)
         sp
     :
-      interp_smod sp (trigger e)
+      SModTr.trans sp (trigger e)
       =
       x <- trigger e ;; tau;; Ret x.
   Proof using.
-    unfold interp_smod. rewrite interp_trigger. grind.
+    unfold SModTr.trans. rewrite interp_trigger. grind.
   Qed.
   
   Lemma unwrapU 
@@ -249,11 +251,11 @@ Section RED.
         (i: option R)
         sp
     :
-      interp_smod sp (@unwrapU hmodE _ _ i)
+      SModTr.trans sp (@unwrapU hmodE _ _ i)
       =
       r <- (unwrapU i);; Ret r.
   Proof using.
-    unfold interp_smod, unwrapU in *. des_ifs; grind.
+    unfold SModTr.trans, unwrapU in *. des_ifs; grind.
     unfold triggerUB in *. rewrite unfold_interp. grind.
   Qed.
 
@@ -262,18 +264,18 @@ Section RED.
         (i: option R)
         sp
     :
-      interp_smod sp (@unwrapN hmodE _ _ i)
+      SModTr.trans sp (@unwrapN hmodE _ _ i)
       =
       r <- (unwrapN i);; Ret r.
   Proof using.
-    unfold interp_smod, unwrapN in *. des_ifs; grind.
+    unfold SModTr.trans, unwrapN in *. des_ifs; grind.
     unfold triggerNB in *. rewrite unfold_interp. grind.
   Qed.
   
   Lemma asm
         sp P
     : 
-      interp_smod sp (assume P)
+      SModTr.trans sp (assume P)
       =
       r <- assume P;; tau;; Ret r.
   Proof using.
@@ -283,7 +285,7 @@ Section RED.
   Lemma guar
         sp P
     : 
-      interp_smod sp (guarantee P)
+      SModTr.trans sp (guarantee P)
       =
       r <- guarantee P;; tau;; Ret r.
   Proof using.

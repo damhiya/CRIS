@@ -1,6 +1,6 @@
 From iris.proofmode Require Import proofmode.
 Require Import Common.
-Require Import SMod2HMod HMod2Mod Mod2ITree SMod HMod Mod.
+Require Import SModTr HModTr ModTr SMod HMod Mod.
 Require Import SimGlobal.
 Require Import SModCancel HModInline ElimRel StRed CancelLib.
 
@@ -17,14 +17,14 @@ Lemma cancel_aux_yield `{Σ: GRA} md
   (RET: ∀ vret ret : Any.t, cid = 0 → Q meta vret ret ⊢ ⌜vret = ret⌝)
   (RELS: ∀ k x y, cid ≠ k → srcs !! k = Some x → tgts !! k = Some y → thread_rel md cid k x y)
   (KTR: ∀ x, upaco3 (@elim_rel_def _ md _) bot3 l (ktrS x) (ktrT x))
-  (SRC : srcs !! cid = Some (Ret ();;; interp_hp (x <- trigger (Yield tid);; ktrS x)))
-  (TGT : tgts !! cid = Some (Ret ();;; interp_hp (cancel_term md meta Q (x <- HoareYieldE tid;; ktrT x))))
+  (SRC : srcs !! cid = Some (Ret ();;; HModTr.trans (x <- trigger (Yield tid);; ktrS x)))
+  (TGT : tgts !! cid = Some (Ret ();;; HModTr.trans (cancel_term md meta Q (x <- HoareYieldE tid;; ktrT x))))
   (CIH: ∀ rs rt srcs tgts cid st ps pt X (meta : X) Q itrS itrT l,
       ✓ rs → (Own rs ==∗ Own rt) →
       List.length srcs = List.length tgts →
       cid < List.length srcs → cid < List.length tgts → 
-      srcs !! cid = Some (Ret ();;; interp_hp itrS) →
-      tgts !! cid = Some (Ret ();;; interp_hp (cancel_term md meta Q itrT)) →
+      srcs !! cid = Some (Ret ();;; HModTr.trans itrS) →
+      tgts !! cid = Some (Ret ();;; HModTr.trans (cancel_term md meta Q itrT)) →
       (∀ vret ret, cid = 0 → Q meta vret ret ⊢ ⌜vret = ret⌝) →
       paco3 (@elim_rel_def _ md _) bot3 l itrS itrT →
       (∀ k x y, cid ≠ k → srcs !! k = Some x → tgts !! k = Some y → thread_rel md cid k x y)

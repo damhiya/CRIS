@@ -1,4 +1,4 @@
-Require Export HPSim ISim.
+Require Export HModSim ISim.
 From iris.proofmode Require Import coq_tactics environments.
 
 Global Arguments Envs _ _%_proof_scope _%_proof_scope _.

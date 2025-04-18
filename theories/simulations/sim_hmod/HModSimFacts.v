@@ -1,11 +1,11 @@
 Require Import Common.
 From iris.proofmode Require Import proofmode.
 Require Import HMod.
-Require Import HPSim ModSim ModSimTactics.
+Require Import HModSim ModSim ModSimTactics.
 
-(* HPSIM_ADEQUACY *)
+(* HSIM_ADEQUACY *)
 
-(*** Used only in hpsim_adequacy. ***)
+(*** Used only in hsim_adequacy. ***)
 Lemma own_upd_in_middle `{Σ: GRA} mr_src mr_tgt ctx fmr fmr0
     (UPD : Own mr_src ⊢ |==> Own (ctx ⋅ fmr ⋅ mr_tgt))
     (FMR : Own fmr ⊢ |==> Own fmr0) :
@@ -86,10 +86,10 @@ Variant interp_inv `{Σ: GRA} Ist : list Σ -> nat * Any.t * Any.t -> Prop :=
     (MR : Own mr ⊢ |==> Ist nths st_src st_tgt)
     (NODUPS : List.NoDup (List.map fst st_src))
     (NODUPT : List.NoDup (List.map fst st_tgt)) :
-  interp_inv Ist ctx (nths, Any.pair (alist_encode st_src) mr_src↑, Any.pair (alist_encode st_tgt) mr_tgt↑).
+  interp_inv Ist ctx (nths, Any.pair (HModTr.alist_encode st_src) mr_src↑, Any.pair (HModTr.alist_encode st_tgt) mr_tgt↑).
 
 (* Adequacy requires 'contextual = closed'*)
-Lemma hpsim_adequacy
+Lemma hsim_adequacy
   `{Σ : GRA}
   (fl_src : alist string (Any.t -> itree hmodE Any.t))
   (fl_tgt : alist string (Any.t -> itree hmodE Any.t))
@@ -98,26 +98,26 @@ Lemma hpsim_adequacy
   (NODUPFS : List.NoDup (List.map fst fl_src))
   (NODUPFT : List.NoDup (List.map fst fl_tgt))
   (fl_src0 fl_tgt0 : alist string (Any.t -> itree modE Any.t))
-  (FLS : fl_src0 = List.map (fun '(s, f) => (s, interp_hp_fun f)) fl_src)
-  (FLT : fl_tgt0 = List.map (fun '(s, f) => (s, interp_hp_fun f)) fl_tgt)
+  (FLS : fl_src0 = List.map (fun '(s, f) => (s, HModTr.trans_ktree f)) fl_src)
+  (FLT : fl_tgt0 = List.map (fun '(s, f) => (s, HModTr.trans_ktree f)) fl_tgt)
   ps pt nths st_src st_tgt itr_src itr_tgt
   (NODUPS : List.NoDup (List.map fst st_src))
   (NODUPT : List.NoDup (List.map fst st_tgt))
   (ctx0 ctx : list Σ) (mr_src mr_tgt fmr : Σ)
   (CTXLE : @le_mine Σ eq my_tid ctx0 ctx)
   (TID : my_tid < List.length ctx0)
-  (SIM : hpsim_body closed fl_src fl_tgt Ist ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr)
+  (SIM : hsim_body closed fl_src fl_tgt Ist ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr)
   (WF : ✓ mr_src)
   (FMR : Own mr_src ⊢ |==> Own ((ctx_sem ctx) ⋅ fmr ⋅ mr_tgt)) :
 @sim_itree fl_src0 fl_tgt0 Σ ε (interp_inv Ist) eq my_tid ctx0 ps pt ctx nths
-  (Any.pair (alist_encode st_src) mr_src↑, interp_hp itr_src)
-  (Any.pair (alist_encode st_tgt) mr_tgt↑, interp_hp itr_tgt).
+  (Any.pair (HModTr.alist_encode st_src) mr_src↑, HModTr.trans itr_src)
+  (Any.pair (HModTr.alist_encode st_tgt) mr_tgt↑, HModTr.trans itr_tgt).
 Proof.
   revert_until FLT. ginit. gcofix CIH. i.
   remember (st_src, itr_src). remember (st_tgt, itr_tgt).
   move SIM before FLT. revert_until SIM. punfold SIM.
   pattern ps, pt, nths, p, p0, fmr.
-  eapply _hpsim_tarski, SIM; i. clear SIM fmr. rename fmr0 into fmr.
+  eapply _hsim_tarski, SIM; i. clear SIM fmr. rename fmr0 into fmr.
   assert (wffmr : ✓ fmr).
   { hexploit Own_wand_valid; eauto; intros wf.
     apply cmra_valid_op_l, cmra_valid_op_r in wf; ss.
@@ -172,9 +172,9 @@ Proof.
     rewrite /ctx_add /ctx_set list_lookup_insert; eauto using le_mine_in.
   - clarify. do 3 step; prep. eapply K; eauto.
   - clarify. step; eauto.
-    { instantiate (1:= interp_hp_fun f). rewrite alist_find_map FUN. et. }
+    { instantiate (1:= HModTr.trans_ktree f). rewrite alist_find_map FUN. et. }
 
-    rewrite /interp_hp_fun.
+    rewrite /HModTr.trans_ktree.
     exploit (K _ _ st_src st_tgt _ _ _ _ _ _ mr_src mr_tgt); eauto.
     clear K CIH; intros K.
 
@@ -184,9 +184,9 @@ Proof.
     repeat f_equal. extensionalities x.
     grind. rewrite !HRed.tau ?bind_tau. repeat f_equal. rewrite HRed.ret; grind.
   - clarify. step; eauto.
-    { instantiate (1:= interp_hp_fun f). rewrite alist_find_map FUN. et. }
+    { instantiate (1:= HModTr.trans_ktree f). rewrite alist_find_map FUN. et. }
 
-    rewrite /interp_hp_fun.
+    rewrite /HModTr.trans_ktree.
     exploit (K _ _ st_src st_tgt _ _ _ _ _ _ mr_src mr_tgt); eauto.
     clear K CIH; intros K.
 
@@ -201,22 +201,22 @@ Proof.
   - clarify; steps; eapply K; eauto.
   - clarify; steps; eapply K; eauto.
   - clarify; steps.
-    rewrite /mput_kv; steps.
-    rewrite Any.pair_split /= alist_encode_decode; steps; eapply K; eauto.
+    rewrite /HModTr.mput_kv; steps.
+    rewrite Any.pair_split /= HModTr.alist_encode_decode; steps; eapply K; eauto.
     eapply alist_upd_nodup; eauto.
   - clarify; steps.
-    rewrite /mput_kv; steps.
-    rewrite Any.pair_split /= alist_encode_decode; steps; eapply K; eauto.
+    rewrite /HModTr.mput_kv; steps.
+    rewrite Any.pair_split /= HModTr.alist_encode_decode; steps; eapply K; eauto.
     eapply alist_upd_nodup; eauto.
   - clarify; steps.
-    rewrite /mget_kv; steps.
-    rewrite Any.pair_split /= alist_encode_decode; steps; eapply K; eauto.
+    rewrite /HModTr.mget_kv; steps.
+    rewrite Any.pair_split /= HModTr.alist_encode_decode; steps; eapply K; eauto.
   - clarify; steps.
-    rewrite /mget_kv; steps.
-    rewrite Any.pair_split /= alist_encode_decode; steps; eapply K; eauto.
+    rewrite /HModTr.mget_kv; steps.
+    rewrite Any.pair_split /= HModTr.alist_encode_decode; steps; eapply K; eauto.
   - clarify; steps.
-    rewrite HRed.Assume /handle_Assume; steps.
-    rewrite /get_res /put_res; steps. des.
+    rewrite HRed.Assume /HModTr.handle_Assume; steps.
+    rewrite /HModTr.get_res /HModTr.put_res; steps. des.
     apply bi.wand_entails, Own_bupd_split in _ASSUME0. des.
     eapply (K (fmr0 ⋅ a1)); eauto.
     { iIntros "[FMR X]"; iMod (CUR with "FMR") as "FMR". iFrame.
@@ -230,8 +230,8 @@ Proof.
     }
     { eauto. }
   - clarify; steps.
-    rewrite HRed.Guarantee /handle_Guarantee; steps.
-    rewrite /get_res /put_res; steps. des.
+    rewrite HRed.Guarantee /HModTr.handle_Guarantee; steps.
+    rewrite /HModTr.get_res /HModTr.put_res; steps. des.
     hexploit (Own_bupd_split); eauto.
     { hexploit (Own_wand_valid _ _ FMR); eauto using cmra_valid_op_r. }
     intros [rP [frt [UPD [HP Hx]]]]; eapply (K (fmr0 ⋅ rP)); eauto.
@@ -244,8 +244,8 @@ Proof.
     }
   - clarify; steps.
     hexploit (Own_bupd_split fmr0); eauto; intros [rP [rFMR [SPLIT [HP HFMR]]]].
-    rewrite HRed.Guarantee /handle_Guarantee; steps.
-    rewrite /get_res /put_res; steps.
+    rewrite HRed.Guarantee /HModTr.handle_Guarantee; steps.
+    rewrite /HModTr.get_res /HModTr.put_res; steps.
     instantiate (1 := (ctx_sem ctx ⋅ rFMR ⋅ mr_tgt)).
     rewrite /guarantee; force_l; [split|].
     { eapply (Own_wand_valid mr_src); eauto.
@@ -265,8 +265,8 @@ Proof.
     }
   - clarify; steps.
     hexploit (Own_bupd_split fmr0); eauto; intros [rP [rFMR [SPLIT [HP HFMR]]]].
-    rewrite HRed.Assume /handle_Assume; steps.
-    rewrite /get_res /put_res; steps.
+    rewrite HRed.Assume /HModTr.handle_Assume; steps.
+    rewrite /HModTr.get_res /HModTr.put_res; steps.
     instantiate (1 := rP ⋅ mr_tgt).
     rewrite /assume; force_r; [split|].
     { eapply (Own_wand_valid mr_src); eauto.
@@ -325,10 +325,10 @@ Proof.
     rewrite /ctx_add /ctx_set list_lookup_insert; eauto using le_mine_in.
   - clarify. prep. guclo sim_itree_indC_spec. econs 16.
     { rewrite alist_find_map FUN. et. }
-    rewrite /interp_hp_fun.
+    rewrite /HModTr.trans_ktree.
     exploit (K _ _ st_src st_tgt _ _ _ _ _ _ mr_src mr_tgt); eauto.
     clear K CIH; intros K.
-      pattern (x <- triggerUB;; (tau;; x_ <- (tau;; Ret x);; interp_hp (k_src x_))).
+      pattern (x <- triggerUB;; (tau;; x_ <- (tau;; Ret x);; HModTr.trans (k_src x_))).
     eapply eq_ind; eauto.
     rewrite HRed.bind.
     repeat f_equal. 

@@ -1,28 +1,8 @@
 Require Import Common.
 
-Require Export Mod2ITree.
+Require Export ModTr.
 
 Set Implicit Arguments.
-
-Section ADD.
-
-  Definition RUN : Type := forall V, (Any.t -> Any.t * V) -> (Any.t -> Any.t * V).
-
-  Definition run_l : RUN := 
-    fun _ run st =>
-      match Any.split st with
-      | Some (a, b) => let (a', v) := run a in (Any.pair a' b, v)
-      | None => run tt↑
-      end.
-
-  Definition run_r : RUN := 
-    fun _ run st =>
-      match Any.split st with
-      | Some (a, b) => let (b', v) := run b in (Any.pair a b', v)
-      | None => run tt↑
-      end.
-
-End ADD.
 
 Module Mod.
 
@@ -52,7 +32,7 @@ Module Mod.
         sem args.
 
     Definition compile : itree coreE Any.t :=
-      snd <$> interp_modE prog (prog (Call init_fun ()↑)) (initial_st ms).
+      snd <$> ModTr.trans prog (prog (Call init_fun ()↑)) (initial_st ms).
 
   End COMPILE.
 End Mod.

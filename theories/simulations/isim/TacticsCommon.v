@@ -3,7 +3,7 @@ Require Import Common.
 Require Import LAuto.
 
 Require Import Sp Mod SMod HMod PMod.
-Require Import HPSim ISim.
+Require Import HModSim ISim.
 (* Require Import SchHeader. *)
 
 (************ User Tactics **************)
@@ -166,7 +166,7 @@ Tactic Notation "red_bind" hyp(prg) tactic(tac) :=
 
 Tactic Notation "red_SB" hyp(prg) :=
   lazymatch goal with
-  | [ |- @HMod.sandbox _ _ _ ?itr = _ ] =>
+  | [ |- @HModTr.sandbox _ _ _ ?itr = _ ] =>
       lazymatch itr with
       | Ret _ =>
           _hprogress prg; eapply SBRed.ret
@@ -230,7 +230,7 @@ Ltac unfold_sp_exact sp name :=
 
 Tactic Notation "red_S" hyp(prg) tactic(tac) :=
   lazymatch goal with
-  | [ |- @interp_smod ?Σ ?stb ?R ?itr = _ ] =>
+  | [ |- @SModTr.trans ?Σ ?stb ?R ?itr = _ ] =>
       lazymatch itr with
       | Ret _ =>
           _hprogress prg; eapply SRed.ret
@@ -243,21 +243,21 @@ Tactic Notation "red_S" hyp(prg) tactic(tac) :=
       | vis (Spawn _ _) _ =>
           _hprogress prg; etransitivity;
           [ eapply SRed.vis_sch
-          | unfold handle_schE_hmodE;
-            unfold HoareSpawn;
+          | unfold SModTr.handle_schE_hmodE;
+            unfold SModTr.HoareSpawn;
             tac
           ]
       | vis (Yield _) _ =>
           _hprogress prg; etransitivity;
           [ eapply SRed.vis_sch
-          | unfold handle_schE_hmodE;
+          | unfold SModTr.handle_schE_hmodE;
             tac
           ]
       | vis (Call ?fn _) _ =>
           _hprogress prg; etransitivity;
           [ eapply SRed.vis_call
-          | unfold handle_callE_hmodE;
-            unfold HoareCall;
+          | unfold SModTr.handle_callE_hmodE;
+            unfold SModTr.HoareCall;
             unfold_sp_exact stb fn;
             tac
           ]
@@ -288,7 +288,7 @@ Tactic Notation "red_S" hyp(prg) tactic(tac) :=
 
 Tactic Notation "red_P" hyp(prg) :=
   lazymatch goal with
-  | [ |- @PMod.interp _ _ ?itr = _ ] =>
+  | [ |- @PModTr.trans _ _ ?itr = _ ] =>
       lazymatch itr with
       | Ret _ =>
           _hprogress prg; eapply PRed.ret
@@ -336,15 +336,15 @@ Ltac _hnorm_itr prg :=
   | [ |- @ITree.bind ?E ?T ?U ?itr ?ktr = _ ] =>
       etransitivity;
       [ let itr' := fresh "itr" in cong (fun itr' => @ITree.bind E T U itr' ktr); _hnorm_itr prg | red_bind prg (do 1 _hnorm_itr prg) ]
-  | [ |- @HMod.sandbox ?Σ ?R ?scopes ?itr = _ ] =>
+  | [ |- @HModTr.sandbox ?Σ ?R ?scopes ?itr = _ ] =>
       etransitivity;
-      [ cong (@HMod.sandbox Σ R scopes); _hnorm_itr prg | red_SB prg ]
-  | [ |- @interp_smod ?Σ ?stb ?R ?itr = _ ] =>
+      [ cong (@HModTr.sandbox Σ R scopes); _hnorm_itr prg | red_SB prg ]
+  | [ |- @SModTr.trans ?Σ ?stb ?R ?itr = _ ] =>
       etransitivity;
-      [ cong (@interp_smod Σ stb R); _hnorm_itr prg | red_S prg (do 1 _hnorm_itr prg) ]
-  | [ |- @PMod.interp ?Σ ?R ?itr = _ ] =>
+      [ cong (@SModTr.trans Σ stb R); _hnorm_itr prg | red_S prg (do 1 _hnorm_itr prg) ]
+  | [ |- @PModTr.trans ?Σ ?R ?itr = _ ] =>
       etransitivity;
-      [ cong (@PMod.interp Σ R); _hnorm_itr prg | red_P prg ]
+      [ cong (@PModTr.trans Σ R); _hnorm_itr prg | red_P prg ]
   | [ |- trigger _ = _ ] =>
       eapply trigger_vis
   | [ |- assume _ = _ ] =>
@@ -355,11 +355,11 @@ Ltac _hnorm_itr prg :=
       eapply unwrapU_unwrapUK
   | [ |- unwrapN _ = _ ] =>
       eapply unwrapN_unwrapNK
-  | [ |- HoareCall _ _ _ = _ ] =>
-      _hprogress prg; unfold HoareCall;
+  | [ |- SModTr.HoareCall _ _ _ = _ ] =>
+      _hprogress prg; unfold SModTr.HoareCall;
       _hnorm_itr prg
-  | [ |- HoareSpawn _ _ _ _ = _ ] =>
-      _hprogress prg; unfold HoareSpawn;
+  | [ |- SModTr.HoareSpawn _ _ _ _ = _ ] =>
+      _hprogress prg; unfold SModTr.HoareSpawn;
       _hnorm_itr prg
   | [ |- fbody_trivial _ = _ ] =>
       _hprogress prg; unfold fbody_trivial;
@@ -398,8 +398,8 @@ Ltac _hnorm_itr prg :=
 Ltac hnorm_itr :=
   try match goal with
   | [ |- @ITree.bind _ _ _ (trigger _) _ = _ ] => fail 2
-  | [ |- @ITree.bind _ _ _ (@HMod.sandbox _ _ _ (trigger (SPut _ _))) _ = _ ] => fail 2
-  | [ |- @ITree.bind _ _ _ (@HMod.sandbox _ _ _ (trigger (SGet _))) _ = _ ] => fail 2
+  | [ |- @ITree.bind _ _ _ (@HModTr.sandbox _ _ _ (trigger (SPut _ _))) _ = _ ] => fail 2
+  | [ |- @ITree.bind _ _ _ (@HModTr.sandbox _ _ _ (trigger (SGet _))) _ = _ ] => fail 2
   end;
   let prg := fresh "Progress" in
   epose (prg := _ : _hprogress);
@@ -510,11 +510,11 @@ Ltac unfold_cris_defs :=
   | [|- context[{| fsb_body := cfunU ?x |}]] => rewrite {1}/x
   | [|- context[{| fsb_body := cfunN ?x |}]] => rewrite {1}/x
   | [|- context[{| fsb_body := ?x |}]] => rewrite {1}/x
-  | [|- context[PMod.interp (?x _)]] => unfold x
+  | [|- context[PModTr.trans (?x _)]] => unfold x
   | [|- context[cfunU ?x]] => rewrite {1}/x
   | [|- context[cfunN ?x]] => rewrite {1}/x
   end);
-  unfold interp_sb_hp, HoareFun, cfunU, cfunN, HMod.sandbox_body; s.  
+  unfold SModTr.trans_ktree, SModTr.HoareFun, cfunU, cfunN, HModTr.sandbox_body; s.  
 
 Ltac hide_flist :=
   let FLS := fresh "FLS" in let FLT := fresh "FLT" in
@@ -630,8 +630,8 @@ Ltac unfold_sp :=
 Ltac desugar itr :=
   match itr with
   | fbody_trivial _ => rewrite {1}/itr
-  | HoareCall _ _ _ => rewrite {1}/itr
-  | HoareSpawn _ _ _ => rewrite {1}/itr
+  | SModTr.HoareCall _ _ _ => rewrite {1}/itr
+  | SModTr.HoareSpawn _ _ _ => rewrite {1}/itr
   | cput _ _ => rewrite{1}/itr
   | cgetU _ => rewrite{1}/itr
   | cgetN _ => rewrite{1}/itr
@@ -678,12 +678,12 @@ Ltac _unwrapSB itr :=
 
 Ltac unwrapSB :=
   try match goal with
-  | [|-context[HMod.sandbox _ ?itr]] => first [desugar itr|fail 2]
+  | [|-context[HModTr.sandbox _ ?itr]] => first [desugar itr|fail 2]
   end;
   match goal with
-  | [|-context[HMod.sandbox _ (?itr >>= _)]] =>
+  | [|-context[HModTr.sandbox _ (?itr >>= _)]] =>
       rewrite SBRed.bind; unwrapSB
-  | [|-context[HMod.sandbox _ ?itr]] => first [_unwrapSB itr|fail 2]
+  | [|-context[HModTr.sandbox _ ?itr]] => first [_unwrapSB itr|fail 2]
   end.
 
 Ltac _unwrapS itr :=
@@ -699,11 +699,11 @@ Ltac _unwrapS itr :=
   | trigger (IO _ _) =>
       rewrite SRed.core
   | trigger (Call _ _) =>
-      rewrite SRed.call {1}/handle_callE_hmodE
+      rewrite SRed.call {1}/SModTr.handle_callE_hmodE
   | trigger (Spawn _ _) =>
-      rewrite SRed.sch {1}/handle_schE_hmodE
+      rewrite SRed.sch {1}/SModTr.handle_schE_hmodE
   | trigger (Yield _) =>
-      rewrite SRed.sch {1}/handle_schE_hmodE
+      rewrite SRed.sch {1}/SModTr.handle_schE_hmodE
   | trigger (SPut _ _) =>
       rewrite SRed.pg
   | trigger (SGet _) =>
@@ -725,12 +725,12 @@ Ltac _unwrapS itr :=
 
 Ltac unwrapS :=
   try match goal with
-    | [|-context[interp_smod _ _ ?itr]] => first [desugar itr|fail 2]
+    | [|-context[SModTr.trans _ _ ?itr]] => first [desugar itr|fail 2]
   end;
   match goal with
-  | [|-context[interp_smod _ _ (?itr >>= _)]] =>
+  | [|-context[SModTr.trans _ _ (?itr >>= _)]] =>
       rewrite SRed.bind; unwrapS
-  | [|-context[interp_smod _ _ ?itr]] => first [_unwrapS itr|fail 2]
+  | [|-context[SModTr.trans _ _ ?itr]] => first [_unwrapS itr|fail 2]
   end.
 
 Ltac _unwrapP itr :=
@@ -768,12 +768,12 @@ Ltac _unwrapP itr :=
 
 Ltac unwrapP :=
   try match goal with
-  | [|-context[PMod.interp ?itr]] => first [desugar itr|fail 2]
+  | [|-context[PModTr.trans ?itr]] => first [desugar itr|fail 2]
   end;
   match goal with
-  | [|-context[PMod.interp (?itr >>= _)]] =>
+  | [|-context[PModTr.trans (?itr >>= _)]] =>
       rewrite PRed.bind; unwrapP
-  | [|-context[PMod.interp ?itr]] => first [_unwrapP itr|fail 2]
+  | [|-context[PModTr.trans ?itr]] => first [_unwrapP itr|fail 2]
   end.
 
 Ltac _prep :=
@@ -786,15 +786,15 @@ Ltac _prep :=
 Ltac prep :=
   try rewrite !bind_bind;
   try match goal with
-  | [|-context[interp_smod _ _ (?f ?arg)]] =>
+  | [|-context[SModTr.trans _ _ (?f ?arg)]] =>
     match type of arg with Any.t => rewrite {1}/f end
-  | [|-context[PMod.interp (?f ?arg)]] =>
+  | [|-context[PModTr.trans (?f ?arg)]] =>
     match type of arg with Any.t => rewrite {1}/f end
   end;
   unfold ccallU, ccallN;
   try match goal with
-      | [|-context[(_, HMod.sandbox _ _)]] => _prep
-      | [|-context[(_, HMod.sandbox _ _ >>= _)]] => _prep
+      | [|-context[(_, HModTr.sandbox _ _)]] => _prep
+      | [|-context[(_, HModTr.sandbox _ _ >>= _)]] => _prep
       end;
   try rewrite !bind_bind;
   try rewrite !bind_tau.

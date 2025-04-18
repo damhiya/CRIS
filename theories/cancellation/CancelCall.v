@@ -1,6 +1,6 @@
 From iris.proofmode Require Import proofmode.
 Require Import Common.
-Require Import SMod2HMod SMod HMod ITactics.
+Require Import SModTr SMod HMod ITactics.
 Require Import ISim ISimInit CtxRefine CtxRefineFacts ClosedAdequacy.
 Require Import HModInline.
 
@@ -21,7 +21,7 @@ Proof.
   specialize (SCP fn). rewrite/fnsems_scopes FINDT in SCP.
   remember (HMod.scopes md) as scopeS. i.
   rename l into scopeT. 
-  unfold wrap_elimI. s. unfold HMod.sandbox_body, inline_hp_fun. s.
+  unfold wrap_elimI. s. unfold HModTr.sandbox_body, inline_hp_fun. s.
   generalize false at 1 as ps.
   generalize false at 1 as pt. intros pt ps.
   generalize (i y) as it. clear IN fn FINDT i y NODD NODS.

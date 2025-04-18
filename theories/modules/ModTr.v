@@ -1,12 +1,9 @@
 Require Import Common.
 
+Module ModTr.
 Section EXEC.
 
   Definition pure_state {S E} : E ~> stateT S (itree E) := fun _ e s => x <- trigger e;; Ret (s, x).
-
-  Lemma unfold_interp_state: forall {E F} {S R} (h: E ~> stateT S (itree F)) (t: itree E R) (s: S),
-    interp_state h t s = _interp_state h (observe t) s.
-  Proof using. i. f. apply unfold_interp_state. Qed.
 
   Definition handle_stateE {E} : stateE ~> stateT Any.t (itree E) :=
     fun _ e glob =>
@@ -46,7 +43,8 @@ Section EXEC.
       : itree (stateE +' coreE) Any.t :=
     ITree.iter (handle_schE_callE prog) (0, [itr0]).
 
-  Definition interp_modE (prog: callE ~> itree modE) (itr0: itree modE Any.t) (st0: Any.t): itree coreE _ :=
+  Definition trans (prog: callE ~> itree modE) (itr0: itree modE Any.t) (st0: Any.t): itree coreE _ :=
     interp_stateE Any.t (interp_schE_callE prog itr0) st0.
 
 End EXEC.
+End ModTr.

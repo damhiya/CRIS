@@ -19,7 +19,7 @@ Lemma hcall_clo Σ
       (Q x vret ret ∗ I nths0 st_src0 st_tgt0)
       -∗ @isim Σ contextual fls flt I r g Rs Rt RR true true nths0 (st_src0, k_src vret) (st_tgt0, k_tgt ret)))
   ⊢ @isim _ contextual fls flt I r g Rs Rt RR ps pt nths
-      (st_src, HoareCall (mk_fspec P Q) fn varg >>= k_src)
+      (st_src, SModTr.HoareCall (mk_fspec P Q) fn varg >>= k_src)
       (st_tgt, trigger (Call fn arg) >>= k_tgt).
 Proof.
   iIntros "(P & IST & K)".
@@ -62,9 +62,9 @@ Lemma isim_reflR `{Σ : GRA} Ist contextual fl_src fl_tgt scopesL scopesR scopes
     (EQSET : ∀ nths st_src st_tgt nths0 (k : key) v,
         EqR nths st_src st_tgt -∗ EqR nths0 (alist_upd k v st_src) (alist_upd k v st_tgt)) :
   isim_fsem fl_src fl_tgt (IstProd (IstSB scopesL Ist) EqR) contextual
-    (HMod.sandbox_body (scopesF,itr)) (HMod.sandbox_body (scopesF,itr)).
+    (HModTr.sandbox_body (scopesF,itr)) (HModTr.sandbox_body (scopesF,itr)).
 Proof.
-  ii. subst. unfold HMod.sandbox_body. s.
+  ii. subst. unfold HModTr.sandbox_body. s.
   generalize (itr y) as it; clear itr y.
   combine_quant NODD.
   combine_quant NODS.

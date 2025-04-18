@@ -59,12 +59,12 @@ Lemma sim_itree_simg
     exists ww, sim_itree ms_src.(Mod.fnsems) ms_tgt.(Mod.fnsems) sim.(MSim.winit) sim.(MSim.wf) sim.(MSim.wle) tid ww ps0 pt0 w0 nths0 (st_src0, itr_src) (st_tgt0, itr_tgt))
   :
   simg (fun '(st_src, ret_src) '(st_tgt, ret_tgt) => ret_src = ret_tgt) (Some ps) (Some pt)
-  (interp_stateE Any.t
-     (ITree.iter (handle_schE_callE (Mod.prog ms_src)) (my_tid, itrs_src)) st_src)
-  (interp_stateE Any.t
-     (ITree.iter (handle_schE_callE (Mod.prog ms_tgt)) (my_tid, itrs_tgt)) st_tgt).
+  (ModTr.interp_stateE Any.t
+     (ITree.iter (ModTr.handle_schE_callE (Mod.prog ms_src)) (my_tid, itrs_src)) st_src)
+  (ModTr.interp_stateE Any.t
+     (ITree.iter (ModTr.handle_schE_callE (Mod.prog ms_tgt)) (my_tid, itrs_tgt)) st_tgt).
 Proof.
-  unfold interp_stateE.
+  unfold ModTr.interp_stateE.
   ginit. revert_until WFS. gcofix CIH. i.
   destruct (base.lookup my_tid itrs_src) eqn : LKS; cycle 1.
   { exfalso. exploit list.lookup_ge_None_1; eauto. i. nia. }
@@ -82,7 +82,7 @@ Proof.
   - rewrite !unfold_iter_eq. s. rewrite LKS LKT.
     grind. des_ifs.
     + grind. steps. rr in RET. des; subst; eauto.
-    + unfold triggerUB. grind. unfold Mod2ITree.pure_state. grind. steps. ss.
+    + unfold triggerUB. grind. unfold ModTr.pure_state. grind. steps. ss.
 
   - rewrite !unfold_iter_eq. s. rewrite LKS LKT.
     grind. gstep. econs. do 5 (econs; eauto using smj_lt_mid_top).
@@ -118,7 +118,7 @@ Proof.
     gfinal. right. eapply K; eauto.
 
   - rewrite !unfold_iter_eq. s. rewrite LKS LKT.
-    grind. unfold Mod2ITree.pure_state. grind. do 3 step. grind. do 2 step.
+    grind. unfold ModTr.pure_state. grind. do 3 step. grind. do 2 step.
     eapply K;
       try rewrite length_insert;
       try rewrite list.list_lookup_insert; eauto; try nia.
@@ -195,7 +195,7 @@ Proof.
       eapply SIM; eauto; des_ifs.
 
   - rewrite unfold_iter_eq. s. rewrite LKS.
-    grind. unfold Mod2ITree.pure_state at 1.
+    grind. unfold ModTr.pure_state at 1.
     grind. step. esplits. step. grind. step.
     eapply K;
       try rewrite length_insert;
@@ -211,7 +211,7 @@ Proof.
       eapply SIM; eauto; des_ifs.
 
   - rewrite (unfold_iter_eq _ (_, itrs_tgt)). s. rewrite LKT.
-    grind. unfold Mod2ITree.pure_state at 2.
+    grind. unfold ModTr.pure_state at 2.
     grind. do 2 step. grind. step.
     eapply K;
       try rewrite length_insert;
@@ -227,7 +227,7 @@ Proof.
       eapply SIM; eauto; des_ifs.
 
   - rewrite unfold_iter_eq. s. rewrite LKS.
-    grind. unfold Mod2ITree.pure_state at 1.
+    grind. unfold ModTr.pure_state at 1.
     grind. do 2 step. grind. step.
     eapply K;
       try rewrite length_insert;
@@ -243,7 +243,7 @@ Proof.
       eapply SIM; eauto; des_ifs.
 
   - rewrite (unfold_iter_eq _ (_, itrs_tgt)). s. rewrite LKT.
-    grind. unfold Mod2ITree.pure_state at 2.
+    grind. unfold ModTr.pure_state at 2.
     grind. step. esplits. step. grind. step.
     eapply K;
       try rewrite length_insert;
@@ -338,7 +338,7 @@ Proof.
     des; cycle 1.
     { rewrite unfold_iter_eq. s.
       rewrite list.lookup_ge_None_2; try (rewrite length_insert; nia).
-      s. grind. unfold triggerUB. grind. unfold Mod2ITree.pure_state. grind.
+      s. grind. unfold triggerUB. grind. unfold ModTr.pure_state. grind.
       step. ss. }
 
     gbase. eapply (CIH w1); eauto.
@@ -422,10 +422,9 @@ Proof.
 
   ss. unfold ITree.map.
   destruct (alist_find fn (Mod.fnsems ms_src)) eqn: EQ; cycle 1.
-  { s. unfold interp_modE, interp_stateE, interp_schE_callE.
-    (* rewrite [ITree.iter (_ (Mod.prog ms_tgt)) _]unfold_iter_eq. grind. *)
-      rewrite unfold_iter_eq. grind.
-    ired_both; guclo simg_indC_spec. unfold Mod2ITree.pure_state. grind.
+  { s. unfold ModTr.trans, ModTr.interp_stateE, ModTr.interp_schE_callE.
+    rewrite unfold_iter_eq. grind.
+    ired_both; guclo simg_indC_spec. unfold ModTr.pure_state. grind.
     eapply simg_takeL. ss.
   }
 
@@ -457,4 +456,3 @@ Lemma adequacy_modsem
 Proof.
   ii. eapply adequacy_local_aux; eauto.
 Qed.
-  

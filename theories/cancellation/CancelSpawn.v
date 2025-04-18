@@ -1,6 +1,6 @@
 From iris.proofmode Require Import proofmode.
 Require Import Common.
-Require Import SMod2HMod HMod2Mod Mod2ITree SMod HMod Mod.
+Require Import SModTr HModTr ModTr SMod HMod Mod.
 Require Import SimGlobal.
 Require Import SModCancel HModInline ElimRel StRed CancelLib.
 
@@ -18,14 +18,14 @@ Lemma cancel_aux_spawn `{Σ: GRA} md
   (RELS: ∀ k x y, cid ≠ k → srcs !! k = Some x → tgts !! k = Some y → thread_rel md cid k x y)
   (STB: sp_from md fn = Some f)
   (KTR: ∀ tid, upaco3 (@elim_rel_def _ md _) bot3 l (ktrS tid) (ktrT tid))
-  (SRC : srcs !! cid = Some (Ret ();;; interp_hp (x <- SpawnCancelE fn args;; ktrS x)))
-  (TGT : tgts !! cid = Some (Ret ();;; interp_hp (cancel_term md meta Q (x <- HoareSpawnE f fn args;; ktrT x))))
+  (SRC : srcs !! cid = Some (Ret ();;; HModTr.trans (x <- SpawnCancelE fn args;; ktrS x)))
+  (TGT : tgts !! cid = Some (Ret ();;; HModTr.trans (cancel_term md meta Q (x <- HoareSpawnE f fn args;; ktrT x))))
   (CIH: ∀ rs rt srcs tgts cid st ps pt X (meta : X) Q itrS itrT l,
       ✓ rs → (Own rs ==∗ Own rt) →
       List.length srcs = List.length tgts →
       cid < List.length srcs → cid < List.length tgts → 
-      srcs !! cid = Some (Ret ();;; interp_hp itrS) →
-      tgts !! cid = Some (Ret ();;; interp_hp (cancel_term md meta Q itrT)) →
+      srcs !! cid = Some (Ret ();;; HModTr.trans itrS) →
+      tgts !! cid = Some (Ret ();;; HModTr.trans (cancel_term md meta Q itrT)) →
       (∀ vret ret, cid = 0 → Q meta vret ret ⊢ ⌜vret = ret⌝) →
       paco3 (@elim_rel_def _ md _) bot3 l itrS itrT →
       (∀ k x y, cid ≠ k → srcs !! k = Some x → tgts !! k = Some y → thread_rel md cid k x y)
@@ -60,18 +60,18 @@ Proof.
   erewrite wrap_elimI_well_scoped; cycle 1.
   {
     instantiate (1:= fn).
-    s. unfold interp_sb_hp_cancel. s.
+    s. unfold SModCancel.trans_ktree. s.
     rewrite alist_find_map_snd H. ss.
   }
   erewrite wrap_elimI_well_scoped; cycle 1.
   {
     instantiate (1:= fn).
-    s. unfold interp_sb_hp. s.
+    s. unfold SModTr.trans_ktree. s.
     rewrite alist_find_map_snd H. ss.
   }
   ired.
-  unfold interp_hp_fun, inline_hp_fun, HMod.sandbox_body. s.
-  unfold interp_sb_hp, interp_sb_hp_cancel. s.
+  unfold SModTr.trans_ktree, inline_hp_fun, HModTr.sandbox_body. s.
+  unfold SModTr.trans_ktree, SModCancel.trans_ktree. s.
   hide_l. _iter.
   rewrite list_lookup_insert_ne; try nia.
   rewrite list_lookup_length. ired.
@@ -114,7 +114,7 @@ Proof.
     { rewrite length_insert length_app. s. nia. }
     grind. unfold cancel_term, inline_hp.
     match goal with [|-context[translate (_ ?scopes) ?itr]]=>
-      fold (HMod.sandbox scopes itr)
+      fold (HModTr.sandbox scopes itr)
     end.
     rewrite -HIRed.iter_handle_bind SBRed.bind.
     do 4 f_equal. extensionalities.

@@ -84,7 +84,7 @@ Module APCAC. Section APCAC.
       apply alist_find_app. et. }
     s; show_itree.
 
-    unfold pure_specbody, interp_sb_hp, HoareFun. steps_r.
+    unfold pure_specbody, SModTr.trans_ktree, SModTr.HoareFun. steps_r.
     force_r q4. forces_r. iSplitR "IST"; et.
 
     steps_r. unfold pure_body.

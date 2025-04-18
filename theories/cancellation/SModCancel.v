@@ -1,44 +1,39 @@
 Require Import Common.
 Require Import SMod HMod.
-Require Import SMod2HMod.
+Require Import SModTr.
 
 Set Implicit Arguments.
-
-Section Cancel.
-  Context {Σ: GRA}.
-
-  Definition Spawn_cancel (fn: string) (varg: Any.t) : itree hmodE nat :=
-    tid <- trigger (Spawn fn varg);;
-    trigger (Yield tid);;;
-    Ret tid.
-
-  Definition handle_schE_hmodE_cancel : schE ~> itree hmodE :=
-    fun _ e =>
-      match e in schE T return itree hmodE T with
-      | Spawn fn varg => Spawn_cancel fn varg
-      | Yield tid => trigger (Yield tid)
-      end.
-
-  Definition interp_smod_cancel R (it : itree hmodE R) : itree hmodE R :=
-    interp (case_ (bif:=sum1) trivial_Handler
-           (case_ (bif:=sum1) handle_schE_hmodE_cancel
-           (case_ (bif:=sum1) trivial_Handler
-                              trivial_Handler))) it.
-
-  Definition interp_sb_hp_cancel (sb: fspecbody): Any.t -> itree hmodE Any.t :=
-    fun arg =>
-      interp_smod_cancel (sb.(fsb_body) arg).
-
-End Cancel.
 
 Module SModCancel.
 Section Cancel.
   Import SMod.
   Context `{Σ: GRA}.
 
+  Definition HoareSpawn (fn: string) (varg: Any.t) : itree hmodE nat :=
+    tid <- trigger (Spawn fn varg);;
+    trigger (Yield tid);;;
+    Ret tid.
+
+  Definition handle_schE_hmodE : schE ~> itree hmodE :=
+    fun _ e =>
+      match e in schE T return itree hmodE T with
+      | Spawn fn varg => HoareSpawn fn varg
+      | Yield tid => trigger (Yield tid)
+      end.
+
+  Definition trans R (it : itree hmodE R) : itree hmodE R :=
+    interp (case_ (bif:=sum1) trivial_Handler
+           (case_ (bif:=sum1) handle_schE_hmodE
+           (case_ (bif:=sum1) trivial_Handler
+                              trivial_Handler))) it.
+
+  Definition trans_ktree (sb: fspecbody): Any.t -> itree hmodE Any.t :=
+    fun arg =>
+      trans (sb.(fsb_body) arg).
+  
   Program Definition to_hmod (ms: t): HMod.t := {|
     HMod.scopes := ms.(scopes);
-    HMod.fnsems := List.map (map_snd (λ ksb, (ksb.1, interp_sb_hp_cancel ksb.2))) (ms.(fnsems));
+    HMod.fnsems := List.map (map_snd (λ ksb, (ksb.1, trans_ktree ksb.2))) (ms.(fnsems));
     HMod.initial_st := ms.(initial_st);
   |}.
   Next Obligation.
@@ -59,11 +54,11 @@ Module SCancelRed.
         
         (s : itree hmodE R) (k : R -> itree hmodE S)
     :
-      interp_smod_cancel (s >>= k)
+      SModCancel.trans (s >>= k)
       =
-      st <- interp_smod_cancel s;; interp_smod_cancel (k st).
+      st <- SModCancel.trans s;; SModCancel.trans (k st).
   Proof using.
-    unfold interp_smod_cancel in *. grind.
+    unfold SModCancel.trans in *. grind.
   Qed.
 
   Lemma tau `{Σ : GRA}
@@ -71,11 +66,11 @@ Module SCancelRed.
         (t : itree _ U)
         
     :
-      interp_smod_cancel (tau;; t)
+      SModCancel.trans (tau;; t)
       =
-      tau;; (interp_smod_cancel t).
+      tau;; (SModCancel.trans t).
   Proof using.
-    unfold interp_smod_cancel in *. grind.
+    unfold SModCancel.trans in *. grind.
   Qed.
 
   Lemma ret `{Σ : GRA}
@@ -83,11 +78,11 @@ Module SCancelRed.
         (t: U)
         
     :
-      interp_smod_cancel (Ret t)
+      SModCancel.trans (Ret t)
       =
       Ret t.
   Proof using.
-    unfold interp_smod_cancel in *. grind.
+    unfold SModCancel.trans in *. grind.
   Qed.
 
   Lemma sch `{Σ : GRA}
@@ -95,11 +90,11 @@ Module SCancelRed.
         (i: schE R)
         
     :
-      interp_smod_cancel (trigger i)
+      SModCancel.trans (trigger i)
       =
-      r <- handle_schE_hmodE_cancel i;; tau;; Ret r.
+      r <- SModCancel.handle_schE_hmodE i;; tau;; Ret r.
   Proof using.
-    unfold interp_smod_cancel in *. rewrite interp_trigger. grind.
+    unfold SModCancel.trans in *. rewrite interp_trigger. grind.
   Qed.
   
   Lemma call `{Σ : GRA}
@@ -107,11 +102,11 @@ Module SCancelRed.
         (i: callE R)
         
     :
-      interp_smod_cancel (trigger i)
+      SModCancel.trans (trigger i)
       =
       r <- trigger i;; tau;; Ret r.
   Proof using.
-    unfold interp_smod_cancel in *. rewrite interp_trigger. grind.
+    unfold SModCancel.trans in *. rewrite interp_trigger. grind.
   Qed.
 
   Lemma pg `{Σ : GRA}
@@ -119,11 +114,11 @@ Module SCancelRed.
         (i: pgE R)
         
     :
-      interp_smod_cancel (trigger i)
+      SModCancel.trans (trigger i)
       =
       r <- trigger i;; tau;; Ret r.
   Proof using.
-    unfold interp_smod_cancel. rewrite interp_trigger. grind.
+    unfold SModCancel.trans. rewrite interp_trigger. grind.
   Qed.
 
   Lemma core `{Σ : GRA}
@@ -131,21 +126,21 @@ Module SCancelRed.
         (i: coreE R)
         
     :
-      interp_smod_cancel (trigger i)
+      SModCancel.trans (trigger i)
       =
       r <- trigger i;; tau;; Ret r.
   Proof using.
-    unfold interp_smod_cancel. rewrite interp_trigger. grind.
+    unfold SModCancel.trans. rewrite interp_trigger. grind.
   Qed.
 
   Lemma ag `{Σ : GRA} {A} (e: agE A)
         
     :
-      interp_smod_cancel (trigger e)
+      SModCancel.trans (trigger e)
       =
       x <- trigger e ;; tau;; Ret x.
   Proof using.
-    unfold interp_smod_cancel. rewrite interp_trigger. grind.
+    unfold SModCancel.trans. rewrite interp_trigger. grind.
   Qed.
   
   Lemma unwrapU `{Σ : GRA}
@@ -153,11 +148,11 @@ Module SCancelRed.
         (i: option R)
         
     :
-      interp_smod_cancel (@unwrapU hmodE _ _ i)
+      SModCancel.trans (@unwrapU hmodE _ _ i)
       =
       r <- (unwrapU i);; Ret r.
   Proof using.
-    unfold interp_smod_cancel, unwrapU in *. des_ifs; grind.
+    unfold SModCancel.trans, unwrapU in *. des_ifs; grind.
     unfold triggerUB in *. rewrite unfold_interp. grind.
   Qed.
 
@@ -166,18 +161,18 @@ Module SCancelRed.
         (i: option R)
         
     :
-      interp_smod_cancel (@unwrapN hmodE _ _ i)
+      SModCancel.trans (@unwrapN hmodE _ _ i)
       =
       r <- (unwrapN i);; Ret r.
   Proof using.
-    unfold interp_smod_cancel, unwrapN in *. des_ifs; grind.
+    unfold SModCancel.trans, unwrapN in *. des_ifs; grind.
     unfold triggerNB in *. rewrite unfold_interp. grind.
   Qed.
   
   Lemma asm `{Σ : GRA}
         P
     : 
-      interp_smod_cancel (assume P)
+      SModCancel.trans (assume P)
       =
       r <- assume P;; tau;; Ret r.
   Proof using.
@@ -187,7 +182,7 @@ Module SCancelRed.
   Lemma grt `{Σ : GRA}
         P
     : 
-      interp_smod_cancel (guarantee P)
+      SModCancel.trans (guarantee P)
       =
       r <- guarantee P;; tau;; Ret r.
   Proof using.

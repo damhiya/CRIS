@@ -33,11 +33,11 @@ Section wsim.
     (∀ nths st_s st_t (NODS: List.NoDup (List.map fst st_s)) (NODT: List.NoDup (List.map fst st_t)),
       Ist nths st_s st_t -∗ tid_user my_tid -∗
       wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR ps true nths
-        (st_s, (HMod.sandbox sc_s (interp_smod sp Sch.yield)) >>= k_s)
+        (st_s, (HModTr.sandbox sc_s (SModTr.trans sp Sch.yield)) >>= k_s)
         (st_t, k_t tt))
     ⊢ wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR ps pt nths
-      (st_s, (HMod.sandbox sc_s (interp_smod sp Sch.yield)) >>= k_s)
-      (st_t, (HMod.sandbox sc_t (PMod.interp Sch.yield)) >>= k_t).
+      (st_s, (HModTr.sandbox sc_s (SModTr.trans sp Sch.yield)) >>= k_s)
+      (st_t, (HModTr.sandbox sc_t (PModTr.trans Sch.yield)) >>= k_t).
   Proof using.
     rewrite !WSim.wsim_eq /WSim.wsim_def.
     iIntros "SIM P".
@@ -95,11 +95,11 @@ Section wsim.
     (∀ nths st_s st_t (NODS: List.NoDup (List.map fst st_s)) (NODD: List.NoDup (List.map fst st_t)),
       Ist nths st_s st_t -∗
       wsim fl_s fl_t Ist None υ ν ⊤ r g R_s R_t RR ps true nths
-        (st_s, (HMod.sandbox sc_s (interp_smod sp_s Sch.yield)) >>= k_s)
+        (st_s, (HModTr.sandbox sc_s (SModTr.trans sp_s Sch.yield)) >>= k_s)
         (st_t, k_t tt))
     ⊢ wsim fl_s fl_t Ist None υ ν ⊤ r g R_s R_t RR ps pt nths
-      (st_s, (HMod.sandbox sc_s (interp_smod sp_s Sch.yield)) >>= k_s)
-      (st_t, (HMod.sandbox sc_t (interp_smod sp_t Sch.yield)) >>= k_t).
+      (st_s, (HModTr.sandbox sc_s (SModTr.trans sp_s Sch.yield)) >>= k_s)
+      (st_t, (HModTr.sandbox sc_t (SModTr.trans sp_t Sch.yield)) >>= k_t).
   Proof using.
     rewrite !WSim.wsim_eq /WSim.wsim_def.
     iIntros "SIM P".
@@ -158,11 +158,11 @@ Section wsim.
         (NODS: List.NoDup (List.map fst st_s)) (NODD: List.NoDup (List.map fst st_t)),
       Ist nths st_s st_t -∗
       wsim fl_s fl_t Ist (Some false) υ ν ⊤ r g R_s R_t RR ps true nths
-        (st_s, (HMod.sandbox sc_s (interp_smod sp_s Sch.yield)) >>= k_s)
+        (st_s, (HModTr.sandbox sc_s (SModTr.trans sp_s Sch.yield)) >>= k_s)
         (st_t, k_t tt))
     ⊢ wsim fl_s fl_t Ist (Some false) υ ν ⊤ r g R_s R_t RR ps pt nths
-      (st_s, (HMod.sandbox sc_s (interp_smod sp_s Sch.yield)) >>= k_s)
-      (st_t, (HMod.sandbox sc_t (interp_smod sp_t Sch.yield)) >>= k_t).
+      (st_s, (HModTr.sandbox sc_s (SModTr.trans sp_s Sch.yield)) >>= k_s)
+      (st_t, (HModTr.sandbox sc_t (SModTr.trans sp_t Sch.yield)) >>= k_t).
   Proof using.
     rewrite !WSim.wsim_eq /WSim.wsim_def.
     iIntros "SIM P".
@@ -220,7 +220,7 @@ Section wsim.
       (st_s, k_s tt)
       (st_t, i_t)
     ⊢ wsim fl_s fl_t Ist t υ ν E r g R_s R_t RR ps pt nths
-      (st_s, (HMod.sandbox sc_s (interp_smod sp Sch.yield)) >>= k_s)
+      (st_s, (HModTr.sandbox sc_s (SModTr.trans sp Sch.yield)) >>= k_s)
       (st_t, i_t).
   Proof using.
     iIntros "SIM".
@@ -244,8 +244,8 @@ Section wsim.
         -∗ wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR true true nths
             (st_s, k_s tid) (st_t, k_t tid))
     ⊢ wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR ps pt nths
-      (st_s, (HMod.sandbox sc_s (interp_smod sp (Sch.spawn (fn, vargs)))) >>= k_s)
-      (st_t, (HMod.sandbox sc_t (PMod.interp (Sch.spawn (fn, args)))) >>= k_t).
+      (st_s, (HModTr.sandbox sc_s (SModTr.trans sp (Sch.spawn (fn, vargs)))) >>= k_s)
+      (st_t, (HModTr.sandbox sc_t (PModTr.trans (Sch.spawn (fn, args)))) >>= k_t).
   Proof using.
     iIntros "(I & TID & P & SIM)". rewrite /Sch.spawn; unseal "Sch".
     steps_l. forces_l. iSplitL "P TID".
@@ -282,8 +282,8 @@ Section wsim.
         -∗ wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR true true nths
             (st_s, k_s vret) (st_t, k_t ret))
     ⊢ wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR ps pt nths
-      (st_s, (HMod.sandbox sc_s (interp_smod sp (Sch.join tid))) >>= k_s)
-      (st_t, (HMod.sandbox sc_t (PMod.interp (Sch.join tid))) >>= k_t).
+      (st_s, (HModTr.sandbox sc_s (SModTr.trans sp (Sch.join tid))) >>= k_s)
+      (st_t, (HModTr.sandbox sc_t (PModTr.trans (Sch.join tid))) >>= k_t).
   Proof using.
     iIntros "(IST & TID & TK & SIM)". rewrite /Sch.join; unseal "Sch".
     steps_l. force_l (tid, Q, my_tid). steps_l. force_l (tid↑). steps_l. force_l.

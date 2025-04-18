@@ -1,6 +1,6 @@
 From iris.proofmode Require Import proofmode.
 Require Import Common.
-Require Import ISim SMod SMod2HMod HMod.
+Require Import ISim SMod SModTr HMod.
 
 From stdpp Require Import coPset.
 
@@ -512,7 +512,7 @@ Section wsim.
       wsim t υ ν E r g R_s R_t RR true pt nths
         (alist_upd k v st_s, k_s tt) (st_t, i_t) ⊢
       wsim t υ ν E r g R_s R_t RR ps pt nths
-        (st_s, HMod.sandbox scopes (trigger (SPut k v)) >>= k_s) (st_t, i_t).
+        (st_s, HModTr.sandbox scopes (trigger (SPut k v)) >>= k_s) (st_t, i_t).
     Proof using.
       intros IN; iIntros "SIM".
       rewrite SBRed.put; des_ifs; ss.
@@ -529,7 +529,7 @@ Section wsim.
       wsim t υ ν E r g R_s R_t RR true pt nths
         (st_s, k_s (or_else (alist_find k st_s) tt↑)) (st_t, i_t) ⊢
       wsim t υ ν E r g R_s R_t RR ps pt nths
-        (st_s, HMod.sandbox scopes (trigger (SGet k)) >>= k_s) (st_t, i_t).
+        (st_s, HModTr.sandbox scopes (trigger (SGet k)) >>= k_s) (st_t, i_t).
     Proof using.
       intros IN; iIntros "SIM".
       rewrite SBRed.get; des_ifs; ss.
@@ -546,7 +546,7 @@ Section wsim.
       wsim t υ ν E r g R_s R_t RR ps true nths
         (st_s, i_s) (alist_upd k v st_t, k_t tt) ⊢
       wsim t υ ν E r g R_s R_t RR ps pt nths
-        (st_s, i_s) (st_t, HMod.sandbox scopes (trigger (SPut k v)) >>= k_t).
+        (st_s, i_s) (st_t, HModTr.sandbox scopes (trigger (SPut k v)) >>= k_t).
     Proof using.
       intros IN; iIntros "SIM".
       rewrite SBRed.put; des_ifs; ss.
@@ -563,7 +563,7 @@ Section wsim.
       wsim t υ ν E r g R_s R_t RR ps true nths
         (st_s, i_s) (st_t, k_t (or_else (alist_find k st_t) tt↑)) ⊢
       wsim t υ ν E r g R_s R_t RR ps pt nths
-        (st_s, i_s) (st_t, HMod.sandbox scopes (trigger (SGet k)) >>= k_t).
+        (st_s, i_s) (st_t, HModTr.sandbox scopes (trigger (SGet k)) >>= k_t).
     Proof using.
       intros IN; iIntros "SIM".
       rewrite SBRed.get; des_ifs; ss.

@@ -1,7 +1,7 @@
 Require Import Common.
 From iris.proofmode Require Import proofmode.
 
-Require Import SMod2HMod HMod2Mod SMod HMod Mod.
+Require Import SModTr HModTr SMod HMod Mod.
 Require Import SimGlobal ITactics TacticsCommon.
 Require Import ElimRel SModCancel StRed HModInline.
 
@@ -131,18 +131,18 @@ Section CancelDef.
     (rs0 rt0: Σ) ps pt srcs tgts cid st (rs rt: Σ) : Prop :=
     R Any.t Any.t eq ps pt
     (x <-
-     interp_stateE Any.t
+     ModTr.interp_stateE Any.t
        (ITree.iter
-          (handle_schE_callE
+          (ModTr.handle_schE_callE
              (Mod.prog
                 (HMod.to_mod
                    (HModInline.inline
                       (SModCancel.to_hmod md)) rs0)))
           (cid, srcs)) (Any.pair st rs ↑);; Ret x.2)
     (x <-
-     interp_stateE Any.t
+     ModTr.interp_stateE Any.t
        (ITree.iter
-          (handle_schE_callE
+          (ModTr.handle_schE_callE
              (Mod.prog
                 (HMod.to_mod
                    (HModInline.inline

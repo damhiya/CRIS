@@ -2,9 +2,9 @@ Require Import Common.
 From iris.proofmode Require Import proofmode.
 
 Require Import ModSim ModSimFacts.
-Require Import HPSim HPSimFacts.
+Require Import HModSim HModSimFacts.
 
-Require Import HMod Mod HMod2Mod Events.
+Require Import HMod Mod HModTr Events.
 Require Import SubPerm.
 
 Require Import ISim ISimInit ISimFacts.
@@ -19,36 +19,36 @@ From ExtLib Require Import
 
 Set Implicit Arguments.
 
-Ltac hstep := guclo hpsimC_spec; econs; econs; eauto; econs; eauto.
+Ltac hstep := guclo hsimC_spec; econs; econs; eauto; econs; eauto.
 
-Lemma _hpsim_close `{Σ: GRA} fls flt Ist:
-  @_hpsim _ open fls flt Ist <10= @_hpsim _ closed fls flt Ist.
+Lemma _hsim_close `{Σ: GRA} fls flt Ist:
+  @_hsim _ open fls flt Ist <10= @_hsim _ closed fls flt Ist.
 Proof.
   i. ss. 
-  eapply _hpsim_tarski; eauto. i. 
+  eapply _hsim_tarski; eauto. i. 
   econs. ii. exploit IN; eauto. i. des.
   esplits; eauto. clear IN.
   destruct x10; ss; econs; eauto.
 Qed.
 
-Lemma hpsim_close `{Σ: GRA}
+Lemma hsim_close `{Σ: GRA}
   fl_src fl_tgt Ist
   ps pt nths st_src st_tgt itr_src itr_tgt fmr
-  (SIM: hpsim_body open fl_src fl_tgt Ist ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr)
+  (SIM: hsim_body open fl_src fl_tgt Ist ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr)
 :
-  hpsim_body closed fl_src fl_tgt Ist ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr.
+  hsim_body closed fl_src fl_tgt Ist ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr.
 Proof.
   ginit. s. revert_until Ist. gcofix CIH. i.
   remember (st_src, itr_src). remember (st_tgt, itr_tgt).
   move SIM before CIH. revert_until SIM. punfold SIM.
   pattern ps, pt, nths, p, p0, fmr.
-  eapply _hpsim_tarski, SIM; i. clear SIM fmr. rename fmr0 into fmr.
-  guclo hpsim_wfC_spec. econs. i.
-  guclo hpsim_nodupC_spec. econs. i.
+  eapply _hsim_tarski, SIM; i. clear SIM fmr. rename fmr0 into fmr.
+  guclo hsim_wfC_spec. econs. i.
+  guclo hsim_nodupC_spec. econs. i.
   exploit IN; i; des; eauto. clear IN.
   destruct x0; i; des; inv Heqp; try inv Heqp0; clarify; hstep.
   pclearbot. gfinal. right. eapply paco9_mon_bot; eauto.
-  i. eapply _hpsim_close. eauto.
+  i. eapply _hsim_close. eauto.
 Qed. 
 
 Lemma valid_solve_eq `{Σ: GRA} (a b : Σ) :

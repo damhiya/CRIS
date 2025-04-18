@@ -1,6 +1,6 @@
 Require Import Common.
 Require Import HMod.
-Require Export FSpec SMod2HMod.
+Require Export FSpec SModTr.
 
 Set Implicit Arguments.
 
@@ -85,7 +85,7 @@ Section SMOD.
 
   Program Definition to_hmod (ms : t) : HMod.t := {|
     HMod.scopes := ms.(scopes);
-    HMod.fnsems := List.map (map_snd (λ ksb, (ksb.1, interp_sb_hp sp ksb.2))) ms.(fnsems);
+    HMod.fnsems := List.map (map_snd (λ ksb, (ksb.1, SModTr.trans_ktree sp ksb.2))) ms.(fnsems);
     HMod.initial_st := ms.(initial_st);
   |}.
   Next Obligation.

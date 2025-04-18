@@ -1,7 +1,7 @@
 From iris.proofmode Require Import proofmode.
 Require Import Common.
 
-Require Import SMod2HMod HMod2Mod Mod2ITree SMod HMod Mod.
+Require Import SModTr HModTr ModTr SMod HMod Mod.
 Require Import ITactics TacticsCommon SimGlobal SimGlobalFacts CtxRefine ClosedAdequacy.
 Require Import SModCancel HModInline ElimRel StRed.
 Require Import CancelLib CancelCall CancelCallRev.
@@ -145,11 +145,11 @@ Proof.
   { unfold SMod.to_hmod. s. rewrite alist_find_map_snd. instantiate (1:= "CRIS_init"). rewrite E. ss. }
   { unfold SModCancel.to_hmod. s. rewrite alist_find_map_snd. instantiate (1:= "CRIS_init"). rewrite E. ss. }
   ired. destruct p. s.
-  unfold HMod.sandbox_body, interp_hp_fun. s.
-  unfold inline_hp_fun, interp_sb_hp. s.
-  unfold HoareFun.
+  unfold HModTr.sandbox_body, HModTr.trans_ktree. s.
+  unfold inline_hp_fun, SModTr.trans_ktree. s.
+  unfold SModTr.HoareFun.
   
-  unfold interp_modE, interp_schE_callE. 
+  unfold ModTr.trans, ModTr.interp_schE_callE. 
   destruct f.
   assert (TMP:=SPC). unfold sp_from in TMP. rewrite E in TMP. depdes TMP.
   hide_l.
