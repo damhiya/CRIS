@@ -207,13 +207,13 @@ Module MemA. Section MemA.
   Definition cas_spec0 : fspec :=
       (fspec_simple (fun '(b, ofs, v_old, v_new) => (
                       (fun varg => (⌜varg = [Vptr (b, ofs); v_old; v_new]↑⌝) ∗ (b, ofs) ↦ v_old),
-                      (fun vret => ((b, ofs) ↦ v_new ∗ ⌜vret = (Vint 1)↑⌝))
+                      (fun vret => ((b, ofs) ↦ v_new ∗ ⌜vret = v_old↑⌝))
       )))%I.
 
   Definition cas_spec1 : fspec :=
       (fspec_simple (fun '(b, ofs, v_old, v_new, v_real) => (
                       (fun varg => (⌜varg = [Vptr (b, ofs); v_old; v_new]↑ ∧ v_old <> v_real⌝ ∗ (b, ofs) ↦ v_real)),
-                      (fun vret => ((b, ofs) ↦ v_real ∗ ⌜vret = (Vint 0)↑⌝))
+                      (fun vret => ((b, ofs) ↦ v_real ∗ ⌜vret = v_real↑⌝))
       )))%I.
 
   Definition cas_spec : fspec := app_fspec [cas_spec0; cas_spec1].

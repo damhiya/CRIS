@@ -72,9 +72,9 @@ Module MemI. Section MemI.
       then
         mem1 <- (Mem.store mem b ofs v_new)?;;
         _ <- trigger (SPut v_mem mem1↑);;
-        Ret (Vint 1%Z)
+        Ret d
       else
-        Ret (Vint 0%Z)
+        Ret d
   .
   
   Definition fnsems : alist string (list string * (Any.t -> itree pmodE Any.t)) :=
