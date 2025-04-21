@@ -20,7 +20,7 @@ Module MemI. Section MemI.
             let mem0 : Mem.t := Mem.mem_pad mem delta in
             let (blk, mem1) := Mem.alloc mem0 sz in
             trigger (SPut v_mem mem1↑);;;
-            Ret (Vptr blk 0))
+            Ret (Vptr (blk, 0%Z)))
       else triggerUB
 . 
 
@@ -97,4 +97,3 @@ Module MemI. Section MemI.
 
   Definition t csl genv : HMod.t := Seal.sealing CRIS (PMod.to_hmod (Mem csl genv)).
 End MemI. End MemI.
-   

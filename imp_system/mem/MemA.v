@@ -143,54 +143,54 @@ Module MemA. Section MemA.
   Definition alloc_spec: fspec :=
       (fspec_simple (fun sz => (
                       (fun varg => (⌜varg = [Vint (Z.of_nat sz)]↑ /\ (8 * (Z.of_nat sz) < modulus_64)%Z⌝)),
-                      (fun vret => (∃ b, (⌜vret = (Vptr b 0)↑⌝)
+                      (fun vret => (∃ b, (⌜vret = (Vptr (b, 0%Z))↑⌝)
                                           ∗ (b, 0%Z) |-> (List.repeat Vundef sz)))
       )))%I.
 
   Definition free_spec: fspec :=
       (fspec_simple (fun '(b, ofs) => (
-                      (fun varg => (∃ v, (⌜varg = [Vptr b ofs]↑⌝) ∗ (b, ofs) ↦ v)),
+                      (fun varg => (∃ v, (⌜varg = [Vptr (b, ofs)]↑⌝) ∗ (b, ofs) ↦ v)),
                       (fun vret => ⌜vret = (Vint 0)↑⌝)
       )))%I.
 
   Definition load_spec: fspec :=
       (fspec_simple (fun '(b, ofs, v, q) => (
-                      (fun varg => (⌜varg = [Vptr b ofs]↑⌝) ∗ (b, ofs) |={q}=> v),
+                      (fun varg => (⌜varg = [Vptr (b, ofs)]↑⌝) ∗ (b, ofs) |={q}=> v),
                       (fun vret => (b, ofs) |={q}=> v ∗ ⌜vret = v↑⌝)
       )))%I.
 
   Definition store_spec: fspec :=
       (fspec_simple
         (fun '(b, ofs, v_new) => (
-              (fun varg => (∃ v_old, (⌜varg = [Vptr b ofs ; v_new]↑⌝) ∗ (b, ofs) ↦ v_old)),
+              (fun varg => (∃ v_old, (⌜varg = [Vptr (b, ofs) ; v_new]↑⌝) ∗ (b, ofs) ↦ v_old)),
               (fun vret => (b, ofs) ↦ v_new ∗ ⌜vret = (Vint 0)↑⌝)
       )))%I.
 
   Definition cmp_spec0: fspec :=
       (fspec_simple
         (fun '(b, ofs, v, q) => (
-              (fun varg => (⌜varg = [Vptr b ofs; Vnullptr]↑⌝ ∗ (b, ofs) |={q}=> v)),
+              (fun varg => (⌜varg = [Vptr (b, ofs); Vnullptr]↑⌝ ∗ (b, ofs) |={q}=> v)),
               (fun vret => ((b, ofs) |={q}=> v) ∗ ⌜vret = (Vint 0)↑⌝)
       )))%I.
 
   Definition cmp_spec1: fspec :=
       (fspec_simple
           (fun '(b, ofs, v, q) => (
-              (fun varg => (⌜varg = [Vnullptr; Vptr b ofs]↑⌝ ∗ (b, ofs) |={q}=> v)),
+              (fun varg => (⌜varg = [Vnullptr; Vptr (b, ofs)]↑⌝ ∗ (b, ofs) |={q}=> v)),
               (fun vret => ((b, ofs) |={q}=> v) ∗ ⌜vret = (Vint 0)↑⌝)
       )))%I.
   
   Definition cmp_spec2: fspec :=
       (fspec_simple
           (fun '(b0, ofs0, v0, q0, b1, ofs1, v1, q1) => (
-              (fun varg => (⌜varg = [Vptr b0 ofs0; Vptr b1 ofs1]↑ ∧ (b0 <> b1 ∨ ofs0 <> ofs1)⌝ ∗ (b0, ofs0) |={q0}=> v0 ∗ (b1, ofs1) |={q1}=> v1)),
+              (fun varg => (⌜varg = [Vptr (b0, ofs0); Vptr (b1, ofs1)]↑ ∧ (b0 <> b1 ∨ ofs0 <> ofs1)⌝ ∗ (b0, ofs0) |={q0}=> v0 ∗ (b1, ofs1) |={q1}=> v1)),
               (fun vret => (b0, ofs0) |={q0}=> v0 ∗ (b1, ofs1) |={q1}=> v1 ∗ ⌜vret = (Vint 0)↑⌝)
       )))%I.
 
   Definition cmp_spec3: fspec :=
       (fspec_simple
           (fun '(b, ofs, v, q) => (
-              (fun varg => (⌜varg = [Vptr b ofs; Vptr b ofs]↑⌝ ∗ (b, ofs) |={q}=> v)),
+              (fun varg => (⌜varg = [Vptr (b, ofs); Vptr (b, ofs)]↑⌝ ∗ (b, ofs) |={q}=> v)),
               (fun vret => (b, ofs) |={q}=> v ∗ ⌜vret = (Vint 1)↑⌝)
       )))%I.
 
@@ -206,13 +206,13 @@ Module MemA. Section MemA.
   
   Definition cas_spec0 : fspec :=
       (fspec_simple (fun '(b, ofs, v_old, v_new) => (
-                      (fun varg => (⌜varg = [Vptr b ofs; v_old; v_new]↑⌝) ∗ (b, ofs) ↦ v_old),
+                      (fun varg => (⌜varg = [Vptr (b, ofs); v_old; v_new]↑⌝) ∗ (b, ofs) ↦ v_old),
                       (fun vret => ((b, ofs) ↦ v_new ∗ ⌜vret = (Vint 1)↑⌝))
       )))%I.
 
   Definition cas_spec1 : fspec :=
       (fspec_simple (fun '(b, ofs, v_old, v_new, v_real) => (
-                      (fun varg => (⌜varg = [Vptr b ofs; v_old; v_new]↑ ∧ v_old <> v_real⌝ ∗ (b, ofs) ↦ v_real)),
+                      (fun varg => (⌜varg = [Vptr (b, ofs); v_old; v_new]↑ ∧ v_old <> v_real⌝ ∗ (b, ofs) ↦ v_real)),
                       (fun vret => ((b, ofs) ↦ v_real ∗ ⌜vret = (Vint 0)↑⌝))
       )))%I.
 

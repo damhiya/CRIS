@@ -455,10 +455,10 @@ Section Interp.
     fun _ e =>
       match e with
       | GetPtr X =>
-        r <- (ge.(CEnv.id2blk) X)?;; Ret (Vptr r 0)
+        r <- (ge.(CEnv.id2blk) X)?;; Ret (Vptr (r, 0%Z))
       | GetName p =>
         match p with
-        | Vptr n 0 => x <- (ge.(CEnv.blk2id) n)?;; Ret (x)
+        | Vptr (n, 0%Z) => x <- (ge.(CEnv.blk2id) n)?;; Ret (x)
         | _ => triggerUB
         end
       end.

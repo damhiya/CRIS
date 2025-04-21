@@ -14,7 +14,7 @@ Section AUX.
     match xs with
     | [] => (⌜ll = Vnullptr⌝)%I
     | xhd :: xtl =>
-      (∃ lhd ltl, ⌜ll = Vptr lhd 0⌝ ∗ (lhd, 0%Z) |-> [xhd; ltl] ∗ is_list ltl xtl)%I
+      (∃ lhd ltl, ⌜ll = Vptr (lhd, 0%Z)⌝ ∗ (lhd, 0%Z) |-> [xhd; ltl] ∗ is_list ltl xtl)%I
     end.
 
   Lemma unfold_is_list ll xs:
@@ -22,17 +22,17 @@ Section AUX.
     match xs with
     | [] => (⌜ll = Vnullptr⌝)%I
     | xhd :: xtl =>
-      (∃ lhd ltl, ⌜ll = Vptr lhd 0⌝ ∗ (lhd, 0%Z) |-> [xhd; ltl] ∗ is_list ltl xtl)%I
+      (∃ lhd ltl, ⌜ll = Vptr (lhd, 0%Z)⌝ ∗ (lhd, 0%Z) |-> [xhd; ltl] ∗ is_list ltl xtl)%I
     end.
   Proof using. destruct xs; ss. Qed.
 
   Lemma unfold_is_list_cons ll xhd xtl:
     is_list ll (xhd :: xtl) =
-    (∃ lhd ltl, ⌜ll = Vptr lhd 0⌝ ∗ (lhd, 0%Z) |-> [xhd; ltl] ∗ is_list ltl xtl)%I.
+    (∃ lhd ltl, ⌜ll = Vptr (lhd, 0%Z)⌝ ∗ (lhd, 0%Z) |-> [xhd; ltl] ∗ is_list ltl xtl)%I.
   Proof using. eapply unfold_is_list. Qed.
 
   Lemma is_list_wf ll xs:
-    (is_list ll xs) -∗ (⌜(ll = Vnullptr) ∨ (match ll with | Vptr _ 0 => True | _ => False end)⌝).
+    (is_list ll xs) -∗ (⌜(ll = Vnullptr) ∨ (match ll with | Vptr (_, 0%Z) => True | _ => False end)⌝).
   Proof using.
     iIntros "L". destruct xs; ss; et.
     { iPure "L" as L. iPureIntro. et. }
@@ -265,7 +265,7 @@ Module MemIA. Section MemIA.
     iDestruct "B" as "[BLK WHT]".
     forces_l.
     steps_l. force_l. steps_l. forces_l. iSplitL "WHT". 
-    { instantiate (1:= (Vptr blk 0) ↑). instantiate (1:= (Vptr blk 0) ↑). iSplitL; et.
+    { instantiate (1:= (Vptr (blk, 0%Z)) ↑). instantiate (1:= (Vptr (blk, 0%Z)) ↑). iSplitL; et.
       iExists blk. iSplitR; et. instantiate (1:=sz). instantiate (1:=pad).
       iPoseProof (points_to_transform with "WHT") as "WHT". iFrame. }
     steps_l.

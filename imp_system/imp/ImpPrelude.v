@@ -15,7 +15,7 @@ Inductive gdef :=
 
 Inductive val : Type :=
 | Vint (n : Z) : val
-| Vptr (blk : mblock) (ofs : ptrofs) : val
+| Vptr (blkofs : mblock * ptrofs) : val
 | Vundef
 .
 
@@ -44,7 +44,7 @@ Definition scale_ofs (ofs : Z) := (8 * ofs)%Z.
 Definition wf_val (v : val) :=
   match v with
   | Vint z => intrange_64 z
-  | Vptr _ z => modrange_64 (scale_ofs z)
+  | Vptr (_, z) => modrange_64 (scale_ofs z)
   | Vundef => false
   end.
 
@@ -58,10 +58,10 @@ Definition scale_int (n : Z) : option Z :=
 Definition vadd (x y : val) : option val :=
   match x, y with
   | Vint n, Vint m => Some (Vint (Z.add n m))
-  | Vptr blk ofs, Vint n =>
-    do scaled_n <- scale_int n; Some (Vptr blk (Z.add ofs scaled_n))
-  | Vint n, Vptr blk ofs =>
-    do scaled_n <- scale_int n; Some (Vptr blk (Z.add ofs scaled_n))
+  | Vptr (blk, ofs), Vint n =>
+    do scaled_n <- scale_int n; Some (Vptr (blk, Z.add ofs scaled_n))
+  | Vint n, Vptr (blk, ofs) =>
+    do scaled_n <- scale_int n; Some (Vptr (blk, Z.add ofs scaled_n))
   | _, _ => None
   end
 .
@@ -69,9 +69,9 @@ Definition vadd (x y : val) : option val :=
 Definition vsub (x y : val) : option val :=
   match x, y with
   | Vint n, Vint m => Some (Vint (Z.sub n m))
-  | Vptr blk ofs, Vint n =>
-    do scaled_n <- scale_int n; Some (Vptr blk (Z.sub ofs scaled_n))
-  | Vptr blk1 ofs1, Vptr blk2 ofs2 =>
+  | Vptr (blk, ofs), Vint n =>
+    do scaled_n <- scale_int n; Some (Vptr (blk, Z.sub ofs scaled_n))
+  | Vptr (blk1, ofs1), Vptr (blk2, ofs2) =>
     if (Nat.eqb blk1 blk2) then Some (Vint (scale_ofs (ofs1 - ofs2))) else None
   | _, _ => None
   end
@@ -187,15 +187,15 @@ End Mem.
 Definition vcmp (m0 : Mem.t) (x y : val) : option bool :=
   match x, y with
   | Vint x, Vint y => Some (dec x y : bool)
-  | Vptr x xofs, Vptr y yofs =>
+  | Vptr (x, xofs), Vptr (y, yofs) =>
     if Mem.valid_ptr m0 x xofs && Mem.valid_ptr m0 y yofs
     then Some (dec x y && dec xofs yofs)
     else None
-  | Vptr x xofs, Vint y =>
+  | Vptr (x, xofs), Vint y =>
     if Mem.valid_ptr m0 x xofs && dec y 0%Z
     then Some false
     else None
-  | Vint x, Vptr y yofs =>
+  | Vint x, Vptr (y, yofs) =>
     if Mem.valid_ptr m0 y yofs && dec x 0%Z
     then Some false
     else None
@@ -206,7 +206,7 @@ Definition vcmp (m0 : Mem.t) (x y : val) : option bool :=
 
 Definition unptr (v : val) : option (mblock * ptrofs) :=
   match v with
-  | Vptr b ofs => Some (b, ofs)
+  | Vptr (b, ofs) => Some (b, ofs)
   | _ => None
   end.
 
@@ -224,7 +224,7 @@ Definition unbool (v : val) : option bool :=
 
 Definition unblk (v : val) : option mblock :=
   match v with
-  | Vptr b ofs =>
+  | Vptr (b, ofs) =>
     if (Z.eq_dec ofs 0) then Some b else None
   | _ => None
   end.
