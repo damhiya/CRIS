@@ -863,3 +863,39 @@ Ltac hss :=
 
 Ltac hss_l := hide_itree_r; hss; show_itree.
 Ltac hss_r := hide_itree_l; hss; show_itree.
+
+Ltac red_ret_l :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  hide_itree_r;
+  rewrite ?PRed.bind ?PRed.ret ?SRed.bind ?SRed.ret SBRed.bind SBRed.ret bind_ret_l;
+  show_until marker.
+ 
+Ltac red_ret_r :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  hide_itree_l;
+  rewrite ?PRed.bind ?PRed.ret ?SRed.bind ?SRed.ret SBRed.bind SBRed.ret bind_ret_l;
+  show_until marker.
+
+Tactic Notation "add_ret_l" uconstr(r) :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  hide_itree_r;
+  match goal with [|-_ _ (_ (_,?t) _)] =>
+    rewrite -(bind_ret_l r (fun _ => t))
+  end;
+  show_until marker.
+
+Tactic Notation "add_ret_r" uconstr(r) :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  hide_itree_l;
+  match goal with [|-_ _ (_ _ (_,?t))] =>
+    rewrite -(bind_ret_l r (fun _ => t))
+  end;
+  show_until marker.
