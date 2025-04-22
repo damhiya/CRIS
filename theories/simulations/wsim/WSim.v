@@ -615,6 +615,16 @@ Section wsim.
       iIntros "%H"; iApply ("RR" $! H with "I"); iFrame.
     Qed.
 
+    Lemma wsim_nodup E r g i_s i_t:
+      (∀ (NODS : List.NoDup (List.map fst st_s))
+         (NODD : List.NoDup (List.map fst st_t)),
+       wsim t υ ν E r g R_s R_t RR ps pt nths (st_s, i_s) (st_t, i_t))
+      ⊢ wsim t υ ν E r g R_s R_t RR ps pt nths (st_s, i_s) (st_t, i_t).
+    Proof using.
+      unseal; iIntros "SIM I". iApply isim_nodup; eauto.
+      iIntros (? ? ? ?). iApply "SIM"; eauto.
+    Qed.
+    
     Lemma wsim_fupd m E1 E2 b r g i_s i_t :
       =|υ, m|={E2, E1}=> wsim (Some b) υ ν E1 r g R_s R_t RR ps pt nths (st_s, i_s) (st_t, i_t)
       ⊢ wsim (Some b) υ ν E2 r g R_s R_t RR ps pt nths (st_s, i_s) (st_t, i_t).

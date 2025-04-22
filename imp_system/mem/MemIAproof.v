@@ -6,6 +6,43 @@ Set Implicit Arguments.
 
 Local Open Scope nat_scope.
 
+Ltac red_ret_l :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  hide_itree_r;
+  rewrite ?PRed.bind ?PRed.ret ?SRed.bind ?SRed.ret SBRed.bind SBRed.ret bind_ret_l;
+  show_until marker.
+    
+Ltac red_ret_r :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  hide_itree_l;
+  rewrite ?PRed.bind ?PRed.ret ?SRed.bind ?SRed.ret SBRed.bind SBRed.ret bind_ret_l;
+  show_until marker.
+
+Tactic Notation "add_ret_l" uconstr(r) :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  hide_itree_r;
+  match goal with [|-_ _ (_ (_,?t) _)] =>
+    rewrite -(bind_ret_l r (fun _ => t))
+  end;
+  show_until marker.
+
+Tactic Notation "add_ret_r" uconstr(r) :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  hide_itree_l;
+  match goal with [|-_ _ (_ _ (_,?t))] =>
+    rewrite -(bind_ret_l r (fun _ => t))
+  end;
+  show_until marker.
+
+
 Section AUX.
   Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
   Context `{_memG: !memG}.
@@ -379,19 +416,21 @@ Module MemIA. Section MemIA.
     - ii. ss. unfold AList.update in *. des_ifs; et.
   Qed.
 
-  Lemma simF_load : HSim.sim_fun open MemA MemI IstFull MemHdr.load.
+  Lemma sim_load fls flt υ ν r g ps pt nths st_s st_t bofs q v:
+    IstFull nths st_s st_t ∗ bofs |={q}=> v
+    ⊢ wsim fls flt IstFull None υ ν ⊤ r g _ _
+      (fun nths '(st_s,_) '(st_t,r) => IstFull nths st_s st_t ∗ bofs |={q}=> v ∗ ⌜r = v⌝)
+      ps pt nths (st_s, Ret ()) (st_t, HModTr.sandbox MemI.scopes (PModTr.trans (MemI.load [Vptr bofs]))).
   Proof using MemInSpMem.
-    init_simF.
+    intros. iIntros "(IST & P)".
+    unfold MemI.load. destruct bofs as [b ofs].
 
-    steps_l. iDestruct "ASM" as "([% P] & %)". subst; hss.
-    rename q5 into b, q6 into ofs.
- 
     steps_r. iDestruct "IST" as (? ? ? ?) "(% & [% IST] & %)".
     unfold Ist. iDestruct "IST" as (? ?) "[% B]". des; subst; hss.
     steps_r.
 
     iCombine "B P" as "P". iPoseProof (own_valid with "P") as "%WF". 
-    assert (HIT: memk_src b ofs ≡ Some (q2%Qp, Excl q4)).
+    assert (HIT: memk_src b ofs ≡ Some (q%Qp, Excl v)).
     { clear - WF.
       dup WF. rewrite auth_both_valid_discrete in WF. ss. des.
       unfold included in *. des.
@@ -405,23 +444,39 @@ Module MemIA. Section MemIA.
     des. hexploit (SIM b ofs). intro T. 
     
     iDestruct "P" as "[BLK WHT]".
-    unfold Mem.load.
-    unfold sim_loc in T. des_ifs; bsimpl; des; des_sumbool; Ztac; inv HIT. iris_tac. 
-    steps_r. force_l. steps_l. forces_l. iSplitL "WHT"; iFrame; et. steps_l.
-
-    step. iSplit; et.
-    iFrame. iExists _, [_], _, _. repeat iSplit; et.
+    unfold sim_loc in T. des_ifs; bsimpl; des; des_sumbool; Ztac; inv HIT. hss.
+    steps_r.
+    step. iFrame. iSplit; et.
+    iExists _, [_], _, _. repeat iSplit; et.
   Qed.
 
-  Lemma simF_store : HSim.sim_fun open MemA MemI IstFull MemHdr.store.
+  Lemma simF_load : HSim.sim_fun open MemA MemI IstFull MemHdr.load.
   Proof using MemInSpMem.
     init_simF.
 
-    steps_l. iDestruct "ASM" as "((% & % & P) & %)". subst; hss.
-    rename q3 into b, q4 into ofs.
+    steps_l. iDestruct "ASM" as "([% P] & %)". subst; hss.
+    rename q5 into b, q6 into ofs.
 
-    steps_r.
+    add_ret_l (). red_ret_r. rewrite PRed.bind SBRed.bind.
+    iApply wsim_bind. iSplitL "IST P".
+    { iApply sim_load; eauto; iFrame. }
+    clear nths NODS st_src NODD st_tgt.
+    iIntros (nths st_s r_s st_t r). hss.
+    iIntros "(IST & P & <-)".
     
+    force_l. steps_l. forces_l. iSplitL "P"; iFrame; et. steps_l.
+    step. iFrame. eauto.
+  Qed.
+
+  Lemma sim_store fls flt υ ν r g ps pt nths st_s st_t bofs v_old v:
+    IstFull nths st_s st_t ∗ bofs ↦ v_old
+    ⊢ wsim fls flt IstFull None υ ν ⊤ r g _ _
+      (fun nths '(st_s,_) '(st_t,r) => IstFull nths st_s st_t ∗ bofs ↦ v ∗ ⌜r = Vint 0⌝)
+      ps pt nths (st_s, Ret ()) (st_t, HModTr.sandbox MemI.scopes (PModTr.trans (MemI.store [Vptr bofs; v]))).
+  Proof using MemInSpMem.
+    intros. iIntros "(IST & P)".
+    unfold MemI.store. destruct bofs as [b ofs].
+
     steps_r. iDestruct "IST" as (? ? ? ?) "(% & [% IST] & %)".
     unfold Ist. iDestruct "IST" as (? ?) "[% B]". des; subst; hss.
     steps_r.
@@ -445,7 +500,7 @@ Module MemIA. Section MemIA.
     (* memory after storing *)
     set (memk_src1 := 
       fun _b _ofs => if Nat.eq_dec _b b && Z.eq_dec _ofs ofs 
-                     then (Some(1%Qp, Excl q2)) 
+                     then (Some(1%Qp, Excl v)) 
                      else (memk_src _b _ofs)).
     assert (WF': ✓ (memk_src1 : _memRA)).
     { clear -WF. subst memk_src1.  ii. dup WF. rewrite auth_both_valid_discrete in WF.
@@ -454,7 +509,7 @@ Module MemIA. Section MemIA.
     iAssert _ with "[P]" as "P".
     { (* update resource according to storing *)
       iApply (own_update with "P"). ss.
-      apply auth_update with (a':=memk_src1) (b':=_points_to_r (b, ofs) 1%Qp [q2]).
+      apply auth_update with (a':=memk_src1) (b':=_points_to_r (b, ofs) 1%Qp [v]).
       apply local_update_discrete. 
       ss; des_ifs; des; subst.
       clear - WF WF'. ii. ss. split. hss.
@@ -503,24 +558,36 @@ Module MemIA. Section MemIA.
         { hexploit (H0 b0 ofs0). i. des_ifs. ss. rewrite discrete_fun_lookup_singleton_ne in H1; et. }
     }
 
-    iMod "P".
-
-    iDestruct "P" as "[BLK WHT]".
+    iMod "P". iDestruct "P" as "[BLK WHT]".
     unfold Mem.store. des_ifs; unfold sim_loc in T; des_ifs; inv HIT.
-    steps_r. 
-
-    force_l. steps_l. forces_l. iSplitL "WHT"; et.
-    { iSplitL; et. iSplitL; et. iPoseProof (points_to_transform with "WHT") as "WHT".
-      ss. rewrite Z.add_0_r. iDestruct "WHT" as "[WHT _]"; et. }
-    steps_l.
-    
-    step. iSplit; et.
-
-    iFrame. iExists _, [_], _, _. repeat iSplit; et.
-    iExists _. iFrame. iSplit; et. iPureIntro. esplits; et.
-    - i. cbn. des_ifs; bsimpl; des; des_sumbool; subst memk_src1; ss; des_ifs; bsimpl; des; des_sumbool; try nia.
-    - ii. r. cbn in *. 
+    steps_r. step.
+    iFrame. iSplitR "WHT".
+    { iExists _, [_], _, _. repeat iSplit; et.
+      iExists _. iPureIntro. esplits; et.
+      - i. cbn. des_ifs; bsimpl; des; des_sumbool; subst memk_src1; ss; des_ifs; bsimpl; des; des_sumbool; try nia.
+      - ii. r. cbn in *. 
     unfold sim_loc in T. des_ifs; bsimpl; des; des_sumbool; try nia; subst; exploit WFTGT; et.
+    }
+    iPoseProof (points_to_transform with "WHT") as "WHT".
+    ss. rewrite Z.add_0_r. iDestruct "WHT" as "[WHT _]"; et.
+  Qed.
+
+  Lemma simF_store : HSim.sim_fun open MemA MemI IstFull MemHdr.store.
+  Proof using MemInSpMem.
+    init_simF.
+
+    steps_l. iDestruct "ASM" as "((% & % & P) & %)". subst; hss.
+    rename q3 into b, q4 into ofs.
+
+    add_ret_l (). red_ret_r. rewrite PRed.bind SBRed.bind.
+    iApply wsim_bind. iSplitL "IST P".
+    { iApply sim_store; eauto; iFrame. }
+    clear nths NODS st_src NODD st_tgt.
+    iIntros (nths st_s r_s st_t r). hss.
+    iIntros "(IST & P & ->)".
+    
+    force_l. steps_l. forces_l. iSplitL "P"; et.
+    step. eauto.
   Qed.
 
   Lemma simF_cmp : HSim.sim_fun open MemA MemI IstFull MemHdr.cmp.
@@ -690,7 +757,6 @@ Module MemIA. Section MemIA.
         step. iSplit; et.
         { iFrame. iExists _, [_], _, _. repeat iSplit; et. }
       - inversion HIT.
-      - inversion HIT.
     }
 
     destruct x.
@@ -715,126 +781,52 @@ Module MemIA. Section MemIA.
   Proof using MemInSpMem.
     init_simF.
 
-    steps_l.
-    destruct q. 
+    steps_l. destruct q.
     destruct x; [|destruct x; [| des_ifs]]; ss; unfold precond; 
     ss; destruct m; destruct p; destruct p; try destruct p; ss.
 
     { (* cas spec 0 - when cas succeeded *)
       iDestruct "ASM" as "([% P] & %)"; subst; hss.
       rename n into b, z into ofs, v0 into v_old, v into v_new.
-
-      steps_r.
-      
-      steps_r. iDestruct "IST" as (? ? ? ?) "(% & [% IST] & %)".
-      unfold Ist. iDestruct "IST" as (? ?) "[% B]". des; subst; hss.
       steps_r.
 
-      iCombine "B P" as "P". iPoseProof (own_valid with "P") as "%WF". 
-      assert (HIT: memk_src b ofs ≡ Some (1%Qp, Excl v_old)).
-      { clear - WF.
-        dup WF. rewrite auth_both_valid_discrete in WF. ss. des.
-        inv WF. specialize (H b ofs). 
-        rewrite ! discrete_fun_lookup_op in H.
-        rewrite !discrete_fun_lookup_singleton in H.
-        destruct (x b ofs).
-        - destruct c. specialize (WF1 b ofs). rewrite H in WF1. inv WF1; ss.
-        - rewrite H right_id //.
-      }
-      hexploit (SIM b ofs). intro T.  unfold sim_loc in T.
+      inline_r. hss. red_ret_r. rewrite PRed.bind SBRed.bind. ired. add_ret_l ().
+      iApply wsim_bind. iSplitL "IST P".
+      { iApply sim_load; eauto; iFrame. }
+      clear nths NODS st_src NODD st_tgt.
+      iIntros (nths st_s r_s st_t r). hss.
+      iIntros "(IST & P & ->)".
 
-      assert (UW: Mem.load mem_tgt b ofs = Some v_old).
-      { des_ifs; des; subst; et; inv HIT. eauto. }
-      rewrite UW. hss. steps_r. destruct (dec v_old v_old) eqn:S; ss.
+      steps_r. hss. steps_r. des_ifs.
 
-      set (memk_src1 := 
-        fun _b _ofs => if Nat.eq_dec _b b && Z.eq_dec _ofs ofs 
-                      then (Some (1%Qp, Excl v_new)) 
-                      else ((memk_src: _memRA) _b _ofs)).
-      assert (WF': ✓ (memk_src1: _memRA)).
-      { clear -WF. subst memk_src1. ii. dup WF. apply auth_both_valid_discrete in WF0. des. 
-        des_ifs. apply WF1.
-      }
-      
-      iAssert _ with "[P]" as "P".
-      { (* update resource according to storing *)
-        iApply (own_update with "P").
-        apply auth_update with (a':=memk_src1) (b':= _points_to_r (b, ofs) 1 [v_new]).
-        apply local_update_discrete. 
-        ss; des_ifs; des; subst.
-        { clear - WF WF'. ii. ss. split. hss. unfold memk_src1. ii.
-          destruct mz; ss.
-          { rewrite ! discrete_fun_lookup_op.
-            des_ifs; hss; bsimpl; des; des_sumbool; Ztac; try nia; try lia; try rewrite left_id; 
-            try hexploit (H0 x x0); i; try (rewrite ! discrete_fun_lookup_op in H1); try rewrite H1; 
-            try rewrite unfold_points_to_r; des_ifs; bsimpl; des; des_sumbool; hss; try rewrite left_id; ss.
-            { rewrite (@UIP _ _ _ e eq_refl) in H1. ss.
-              rewrite discrete_fun_lookup_singleton in H1. destruct (c b ofs).
-              { specialize (H b ofs). rewrite H1 in H. inv H; ss. }
-              { rewrite Z.sub_diag in Heq1; ss. inv Heq1. rewrite right_id //. } }
-            { rewrite (@UIP _ _ _ e eq_refl) in H1. ss.
-              rewrite discrete_fun_lookup_singleton in H1. destruct (c b ofs).
-              { specialize (H b ofs). rewrite H1 in H. inv H; ss. }
-              { rewrite Z.sub_diag in Heq1; ss. } }
-            { rewrite discrete_fun_lookup_singleton_ne; rewrite ?left_id //. }
-            { rewrite discrete_fun_lookup_singleton_ne; rewrite ?left_id //. }
-          }
-          { des_ifs; hss; bsimpl; des; des_sumbool; Ztac; try nia; try lia; try rewrite left_id; 
-            try hexploit (H0 x x0); i; try (rewrite ! discrete_fun_lookup_op in H1); try rewrite H1; 
-            try rewrite unfold_points_to_r; des_ifs; bsimpl; des; des_sumbool; hss; try rewrite left_id; ss.
-            { rewrite Z.sub_diag in Heq1; ss. inv Heq1; ss. }
-            { rewrite Z.sub_diag in Heq1; ss. }
-            { rewrite discrete_fun_lookup_singleton_ne; rewrite ?left_id //. }
-            { rewrite discrete_fun_lookup_singleton_ne; rewrite ?left_id //. }
-          }
-        }
-        ii. inversion HIT.      
-      }
-      iMod "P".
+      inline_r. hss. red_ret_r. rewrite PRed.bind SBRed.bind. ired. add_ret_l ().
+      iApply wsim_bind. iSplitL "IST P".
+      { iApply sim_store; eauto; iFrame. }
+      clear nths st_s st_t.
+      iIntros (nths st_s r_s st_t r). hss.
+      iIntros "(IST & P & ->)".
 
-      iDestruct "P" as "[BLK WHT]".
-      des_ifs; inv HIT. unfold Mem.store. des_ifs.
+      steps_r. hss. steps_r.
+      force_l. steps_l. forces_l. iSplitL "P"; iFrame; et.
 
-      steps_r. force_l. steps_l. forces_l. iSplitL "WHT"; iFrame; et.
-      { iSplit; et. iSplit; et. iPoseProof (points_to_transform with "WHT") as "[WHT _]".
-        rewrite Z.add_0_r. iFrame. }
-
-      step. iSplit; et.
-      { iFrame. iExists _, [_], _, _. repeat iSplit; et.
-        iExists _. iFrame. iSplit; et. iPureIntro. esplits; et.
-        - i. cbn. des_ifs; bsimpl; des; des_sumbool; subst memk_src1; ss; des_ifs; bsimpl; des; des_sumbool; try nia.
-        - ii. r. cbn in *. des_ifs; bsimpl; des; des_sumbool; try nia; subst; exploit WFTGT; et.
-      }
+      step. eauto.
     }
     { (* cas spec 1 - when cas failed *)
       iDestruct "ASM" as "([% P] & %)"; des; subst; hss.
       rename n into b, z into ofs, v into v_real, v1 into v_old, v0 into v_new.
-
-      steps_r. iDestruct "IST" as (? ? ? ?) "(% & [% IST] & %)".
-      unfold Ist. iDestruct "IST" as (? ?) "[% B]". des; subst; hss.
       steps_r.
 
-      iCombine "B P" as "P". iPoseProof (own_valid with "P") as "%WF".
-      assert (HIT: memk_src b ofs ≡ Some (1%Qp, Excl v_real)).
-      { clear - WF.
-        dup WF. rewrite auth_both_valid_discrete in WF. ss. des.
-        inv WF. specialize (H b ofs).
-        rewrite ! discrete_fun_lookup_op in H.
-        rewrite !discrete_fun_lookup_singleton in H.
-        destruct (x b ofs).
-        - destruct c. specialize (WF1 b ofs). rewrite H in WF1. inv WF1; ss.
-        - rewrite H right_id //.
-      }
-      hexploit (SIM b ofs). i. unfold sim_loc in H.
-      assert (UW: Mem.load mem_tgt b ofs = Some v_real).
-      { des_ifs; des; subst; unfold Mem.load; inv HIT; eauto. }
-      rewrite UW; hss. steps_r.
-      des_ifs; inv HIT.
-      iDestruct "P" as "[BLK WHT]".
-      steps_r.
-      steps_l. force_l. steps_l. forces_l. iSplitL "WHT"; iFrame; et.
-      steps_l. step. iSplit; et.
-      iFrame. iExists _, [_], _, _. repeat iSplit; et.
+      inline_r. hss. red_ret_r. rewrite PRed.bind SBRed.bind. ired. add_ret_l ().
+      iApply wsim_bind. iSplitL "IST P".
+      { iApply sim_load; eauto; iFrame. }
+      clear nths NODS st_src NODD st_tgt.
+      iIntros (nths st_s r_s st_t r). hss.
+      iIntros "(IST & P & ->)".
+
+      steps_r. hss. steps_r. des_ifs.
+      force_l. steps_l. forces_l. iSplitL "P"; iFrame; et.
+
+      step. eauto.
     }
   Qed.
 
