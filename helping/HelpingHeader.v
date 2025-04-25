@@ -1,0 +1,39 @@
+Require Import CRIS.
+
+Require Export ImpPrelude.
+
+(* Section RA. *)
+(*   Context `{!sinvG Γ Σ α β τ _I _S}. *)
+
+(*   Definition helpingRA : ucmra :=  optionUR (exclR (leibnizO (string * SAny.t))). *)
+  
+(*   Class helpingG `{!sinvG Γ Σ α β τ _I _S} := { *)
+(*     helping_inG :: inG helpingRA Γ; *)
+(*   }. *)
+(*   Definition helpingΓ : HRA := #[helpingRA]. *)
+(*   Global Instance helping_subG : subG helpingΓ Γ → helpingG. *)
+(*   Proof. solve_inG. Defined. *)
+(* End RA. *)
+(* Hint Unfold helping_subG helping_inG : GRA_index. *)
+
+Module Helping.
+Section Helping.
+
+  Definition mn := "Helping".
+  
+  Definition run  := "Helping.run".
+  Definition help  := "Helping.help".
+    
+  (* Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}. *)
+  (* Context `{_helpingG: !helpingG}. *)
+
+  (* Definition has_fun_r f arg : helpingRA := Some (Excl (f, arg)). *)
+  (* Definition has_fun γ f arg : iProp Σ := own γ (has_fun_r f arg). *)
+  
+  (* Definition has_none_r : helpingRA := None. *)
+  (* Definition has_non γ : iProp Σ := own γ has_none_r. *)
+  
+End Helping.
+End Helping.
+
+
