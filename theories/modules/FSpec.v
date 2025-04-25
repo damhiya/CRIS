@@ -23,8 +23,14 @@ Section FSPEC.
              (λ _ argh argl, (⌜argh = argl⌝)%I)
              (λ _ reth retl, (⌜reth = retl⌝)%I).
 
-  Definition fbody_trivial : Any.t → itree hmodE Any.t :=
+  Definition fbody_trivial {E} `{coreE -< E} : Any.t → itree E Any.t :=
     λ _, trigger (Choose _).
+
+  Definition fbody_ub {E} `{coreE -< E} : Any.t → itree E Any.t :=
+    λ _, triggerUB.
+
+  Definition fbody_nb {E} `{coreE -< E} : Any.t → itree E Any.t :=
+    λ _, triggerNB.
 
   Definition fspec_virtual (M VA VR : Type)
       (precond: M → VA → Any.t → iProp Σ)
