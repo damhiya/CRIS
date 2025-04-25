@@ -390,7 +390,7 @@ Module SchA. Section SchA.
     Seal.sealing CRIS (SMod.to_hmod Sp_global (Mod υ Sp_user)).
 End SchA. End SchA.
 
-Module SchA_link. Section SchA_link.
+Module SchAPure. Section SchAPure.
   Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
   Context `{_schG: !schG}.
                     
@@ -413,7 +413,7 @@ Module SchA_link. Section SchA_link.
   Definition t υ Sp_global :=
     Seal.sealing CRIS (SMod.to_hmod Sp_global (Mod υ)).
 
-End SchA_link. End SchA_link.
+End SchAPure. End SchAPure.
 
 Section FSPEC.
 
