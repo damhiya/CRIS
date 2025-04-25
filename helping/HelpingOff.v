@@ -7,7 +7,9 @@ Module HelpingOff.
 Section HelpingOff.
   Context `{Σ: GRA}.
 
-  Definition scopes := [Helping.mn].
+  Variable mn: string.
+  
+  Definition scopes := [mn].
 
   Definition run: Any.t -> itree hmodE Any.t :=
     fun arg =>
@@ -22,8 +24,8 @@ Section HelpingOff.
       Ret ()↑.
       
   Definition fnsems :=
-    [(Helping.run,  (scopes, mk_specbody fspec_trivial run));
-     (Helping.help, (scopes, mk_specbody fspec_trivial help))].
+    [(Helping.run mn,  (scopes, mk_specbody fspec_trivial run));
+     (Helping.help mn, (scopes, mk_specbody fspec_trivial help))].
 
   Program Definition Mod: SMod.t := {|
     SMod.scopes := scopes;

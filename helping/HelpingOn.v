@@ -7,29 +7,41 @@ Module HelpingOn.
 Section HelpingOn.
   Context `{Σ: GRA}.
 
-  Definition scopes := [Helping.mn].
-  Definition v_reqs := Helping.mn ↯ "reqs".
+  Definition pureE := agE +' coreE.
 
-  Definition joblist : Type := list (nat * (string * SAny.t)).
+  Definition trans {R} (itr: itree pureE R) : itree hmodE R
+    :=
+    interp (case_ (bif:=sum1) trivial_Handler
+                              trivial_Handler)
+      itr.  
+  
+  Variable mn: string.
+  Variable jobID : Type.
+  Variable jobcode : jobID -> itree pureE unit.
+
+  Definition joblist : Type := list (nat * jobID).
+  
+  Definition scopes := [mn].
+  Definition v_reqs := mn ↯ "reqs".
 
   Definition try_run tid : itree hmodE Any.t :=
     'reqs: joblist <- cgetU v_reqs;;
     match alist_find tid reqs with
     | None => Ret ()↑
-    | Some (f,a) =>
+    | Some jid =>
         cput v_reqs (alist_remove tid reqs : joblist);;;
-        trigger (Call f a↑);;;
+        trans (jobcode jid);;;
         Ret ()↑
     end.
 
   Definition run: Any.t -> itree hmodE Any.t :=
     fun arg =>
-      '(f,a): _ <- arg↓?;;
+      'jid: jobID <- arg↓?;;
       'tid: nat <- ccallU SchHdr.get_tid ();;
       'reqs: joblist <- cgetU v_reqs;;
-      cput v_reqs (alist_add tid (f,a) reqs : joblist);;;
+      cput v_reqs (alist_add tid jid reqs : joblist);;;
       𝒴;;;
-      try_run tid.        
+      try_run tid.
 
   Definition help: Any.t -> itree hmodE Any.t :=
     fun _ =>
@@ -38,8 +50,8 @@ Section HelpingOn.
       try_run tid.
       
   Definition fnsems :=
-    [(Helping.run,  (scopes, mk_specbody fspec_trivial run));
-     (Helping.help, (scopes, mk_specbody fspec_trivial help))].
+    [(Helping.run mn,  (scopes, mk_specbody fspec_trivial run));
+     (Helping.help mn, (scopes, mk_specbody fspec_trivial help))].
 
   Program Definition Mod: SMod.t := {|
     SMod.scopes := scopes;
