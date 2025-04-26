@@ -22,7 +22,7 @@ Module CancelTAC.
 
   Ltac reveal ITR := unfold ITR; clear ITR.
 
-  Ltac st := prep; guclo simg_indC_spec; econs; try instantiate (1:= smj_top).
+  Ltac st := try rewrite !bind_bind; try rewrite !bind_tau; guclo simg_indC_spec; econs; try instantiate (1:= smj_top).
   Ltac prb := gstep; econs; econs; try instantiate (1:= smj_bot); try instantiate (1:= smj_bot); eauto.  
   Ltac _iter := rewrite {1}unfold_iter_eq; ired.
   Ltac _tau := rewrite !StRed.tau.
@@ -31,7 +31,7 @@ Module CancelTAC.
   Ltac iterL := _iter; rewrite list_lookup_insert;[|try rewrite !length_insert; auto]; ired.
   Tactic Notation "tau" integer(n) := _tau; do n st.
   Tactic Notation "iterT" integer(n) := do n (iterL; ls; tau 2).
-  Ltac _core := rewrite StRed.bind StRed.core; prep.
+  Ltac _core := rewrite StRed.bind StRed.core; try rewrite !bind_bind; try rewrite !bind_tau.
   Ltac _coreA := _core; st; i; st; grind; _tau; st.
   Ltac _coreE x := _core; st; exists x; st; grind; _tau; st.
 

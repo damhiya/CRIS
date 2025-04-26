@@ -1,5 +1,4 @@
 Require Import CRIS.
-
 Require Import NormITree.
 Require Import APCHeader APC APCA APCC.
 
@@ -39,10 +38,7 @@ Module APCAC. Section APCAC.
     steps_r. force_r q. force_r (q↑). force_r. iSplitR; et. hss. steps_r.
 
     (* normalize itree - remove all interpretations and sandboxes except APC *)
-    (* SRC *)
-    wbind_expand_l.
-    (* TGT *)
-    wbind_expand_r. steps_r.
+    unfold APC at 1. steps_r.
 
     (* add meaningless return in src *)
     set (itr:=(ITree.bind _ _)).
@@ -75,14 +71,15 @@ Module APCAC. Section APCAC.
     rename Heq into G, f into q3. steps_r. 
     
     (* inlining *)
-    unfold is_Some in *. des. dup grt. apply PureInSpA in grt. rewrite grt in G. inv G; ss.
+    unfold is_Some in *. des. dup grt.
+    apply PureInSpA in grt. rewrite grt in G. inv G; ss.
     apply PureIsPure in grt1. ss. destruct grt1. unfold find_body in H1.
-    hide_itree_l; prep; iApply wsim_inline_tgt.
+    inline_r.
     { subst FLT. rewrite map_app. apply alist_find_comm.
-      { rewrite map_app. rewrite !map_fst_map_map_snd_refl.
-        apply nodup_comm. rewrite -map_app. eauto. }
-      apply alist_find_app. et. }
-    s; show_itree.
+      - rewrite map_app. rewrite !map_fst_map_map_snd_refl.
+        apply nodup_comm. rewrite -map_app. eauto.
+      - apply alist_find_app. et.
+    }
 
     unfold pure_specbody, SModTr.trans_ktree, SModTr.HoareFun. steps_r.
     force_r q4. forces_r. iSplitR "IST"; et.
@@ -100,8 +97,8 @@ Module APCAC. Section APCAC.
     hss. steps_r.
 
     (* normalize itree *)
-    wbind_expand_r.
-
+    unfold APC at 1.
+    
     (* add meaningless return in src *)
     set (itr:=(λ _: unit, _)). steps_r.
     eapply wsim_congruence_src.

@@ -228,11 +228,11 @@ Ltac wforces_r :=
 
 Ltac winline_l :=
   wnorm_l with
-    do 1 iApply wsim_inline_src; [prove_inline_cond|]; unfold_cris_defs.
+    do 1 iApply wsim_inline_src; [try prove_inline_cond|]; unfold_cris_defs.
 
 Ltac winline_r :=
   wnorm_r with
-    do 1 iApply wsim_inline_tgt; [prove_inline_cond|]; unfold_cris_defs.
+    do 1 iApply wsim_inline_tgt; [try prove_inline_cond|]; unfold_cris_defs.
 
 Ltac wcall hyps :=
   (wnorm with do 1 iApply wsim_call);

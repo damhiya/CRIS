@@ -1,7 +1,5 @@
 Require Import CRIS.
 Require Import APCHeader APC APCA.
-Require Import NormITree.
-Require Import TacticsCommon.
 
 Set Implicit Arguments.
 
@@ -30,7 +28,8 @@ Proof using.
   iFrame.
 Qed.
 
-(* Lemma wsim_apc_tgt
+(*
+Lemma wsim_apc_tgt
   fl fr Ist is_closed u0 u1 r g {Rs Rt} RR ps pt nths st_src st_tgt i_src i_tgt sp sp_pure
   scopes (ow_src ow_tgt od_src od_tgt : Ord.t)
   (WIDTH: (ow_tgt < ow_src)%ord)
@@ -86,8 +85,8 @@ Proof using.
     iFrame.
   }
   Unshelve. eauto.
-Qed. *)
-
+Qed.
+*)
 
 Lemma wsim_apc_src_call_tgt_weaker
   fl fr Ist is_closed u0 u1 cP r g {Rs Rt} RR ps pt nths st_src st_tgt k_src k_tgt sp sp_pure
@@ -154,7 +153,8 @@ Qed.
 
 (* useful apc lemmas cont. - don't require IST *)
 
-(* Lemma wsim_apc_tgt_noist
+(*
+Lemma wsim_apc_tgt_noist
   is_closed fl fr Ist u0 u1 cP r g {Rs Rt} RR ps pt nths st_src st_tgt i_src i_tgt
   (sp sp_pure: string → option fspec) (od ow: Ord.t) (scopes: list string)
   (SUB: sp_sub sp_pure sp)
@@ -234,7 +234,8 @@ Qed.
     w_steps_r. iApply wsim_reset. iStopProof. eapply H0. eauto.
   }
   Unshelve. eauto.
-Qed. *)
+Qed.
+*)
 
 End LEMMAS.
 

@@ -1,6 +1,4 @@
 Require Import CRIS.
-
-Require Import NormITree.
 Require Import APCHeader APC APCI APCA.
 
 Set Implicit Arguments.
