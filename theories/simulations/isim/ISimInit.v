@@ -84,7 +84,7 @@ Proof.
   - destruct c. call "IST"; eauto. by_coind "CIH". eauto.
   - depdes s.
     + rewrite !SBRed.bind !SBRed.put. des_ifs; cycle 1.
-      { steps_r. force_l q. steps_l. by_coind "CIH". eauto. }
+      { steps_l. ss. }
       iApply isim_sput_src. iApply isim_sput_tgt.
       by_coind "CIH". unfold IstProd.
       iDestruct "IST" as (? ? ? ?) "(% & (% & IST) & EQR)". des; subst.
@@ -100,7 +100,7 @@ Proof.
         eapply NoDup_app_disjoint; try apply DISJ; eauto.
         apply H1. eapply in_map in H. rewrite List.map_map in H. apply H.
     + rewrite !SBRed.bind !SBRed.get. des_ifs; cycle 1.
-      { steps_r. force_l q. steps_l. by_coind "CIH". eauto. }
+      { steps_l. ss. }
       iApply isim_sget_src. iApply isim_sget_tgt.
       apply existsb_exists in Heq. des. apply String.eqb_eq in Heq0. subst.
       iAssert (⌜alist_find k st_src = alist_find k st_tgt⌝ ∗

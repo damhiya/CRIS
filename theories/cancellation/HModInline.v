@@ -308,9 +308,9 @@ Proof using.
           rewrite !bind_trigger. gstep. econs. i.
           rewrite SBRed.tau. gstep. econs. gbase; eauto. 
         }
+        unfold triggerUB. ired.
         rewrite HIRed.bind_core SBRed.bind SBRed.core !bind_trigger. 
-        gstep. econs. i. r. 
-        rewrite SBRed.tau. gstep. econs. gbase; eauto.
+        gstep. econs. i. ss.
       }
       rewrite !SBRed.get. des_ifs.
       {
@@ -326,9 +326,9 @@ Proof using.
         rewrite !bind_trigger. gstep. econs. i.
         rewrite SBRed.tau. gstep. econs. gbase; eauto. 
       }
+      unfold triggerUB. ired.
       rewrite HIRed.bind_core SBRed.bind SBRed.core !bind_trigger. 
-      gstep. econs. i. r. 
-      rewrite SBRed.tau. gstep. econs. gbase; eauto.
+      gstep. econs. i. ss.
     }
     assert ((@ITree.trigger (@hmodE Σ) X (inr1 (inr1 (inr1 (inr1 c))))) = trigger c) by grind.
     rewrite H SBRed.core HIRed.bind_core SBRed.bind SBRed.core !bind_trigger.

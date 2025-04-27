@@ -56,8 +56,8 @@ Proof.
             eapply SCP in Heq. 
             assert (XEQ:=existsb_exists).
             hdes. rewrite XEQ1 in Heq0; ss; eauto.
-        + rewrite SBRed.core.
-          rewrite! bind_trigger. gstep. econs. i. r. gbase. eauto.
+        + unfold triggerUB. rewrite SBRed.bind SBRed.core.
+          ired; rewrite !bind_trigger. gstep. econs. i. ss.
       - rewrite! SBRed.get. des_ifs.
         + rewrite! SBRed.get. des_ifs.
           * rewrite! bind_trigger. gstep. econs. i. r. gbase. eauto.
@@ -65,8 +65,8 @@ Proof.
             eapply SCP in Heq. 
             assert (XEQ:=existsb_exists).
             hdes. rewrite XEQ1 in Heq0; ss; eauto.
-        + rewrite SBRed.core.
-          rewrite! bind_trigger. gstep. econs. i. r. gbase. eauto.
+        + unfold triggerUB. rewrite SBRed.bind SBRed.core.
+          ired; rewrite !bind_trigger. gstep. econs. i. ss.
     }
     assert ((@ITree.trigger (@hmodE Σ) X (inr1 (inr1 (inr1 (inr1 c))))) = trigger c) by grind.
     rewrite H. rewrite! SBRed.core. rewrite! bind_trigger.
@@ -106,12 +106,14 @@ Lemma inv_sandbox_pg `{Σ: GRA} {X Y} x sc (ktr : X -> itree hmodE Y) (pg : pgE 
 Proof.
   destruct pg.
   { rewrite SBRed.bind SBRed.put in SB.
-    des_ifs; rewrite! bind_trigger in SB; inv SB.
-    eapply inj_pair2, equal_f in H0. eauto.
+    des_ifs; rewrite! bind_trigger in SB; depdes SB.
+    - eapply equal_f in x. eauto.
+    - rewrite bind_bind bind_vis in x. depdes x.
   }
   { rewrite SBRed.bind SBRed.get in SB.
-    des_ifs; rewrite! bind_trigger in SB; inv SB.
-    eapply inj_pair2, equal_f in H0. eauto.
+    des_ifs; rewrite! bind_trigger in SB; depdes SB.
+    - eapply equal_f in x. eauto.
+    - rewrite bind_bind bind_vis in x. depdes x.
   }
 Qed.
 
@@ -301,13 +303,7 @@ Lemma hsim_ctx `{Σ: GRA} fnsems_src fnsems_tgt fl_src fl_tgt fl_ctx Ist context
         { rewrite state_scopes_update. eauto. }
         { eapply sandbox_well_scoped. refl. }
         { f_equal. symmetry. eapply inv_sandbox_pg. eauto. }
-      + hstep. eapply K; try refl; eauto.
-        { eapply sandbox_well_scoped. refl. }
-        { 
-          f_equal. 
-          { eapply alist_upd_not_exists; eauto. }
-          { symmetry. eapply inv_sandbox_pg. eauto. }
-        }
+      + unfold triggerUB. ired. hstep. ss.
 
   - assert (H1:=ITRT).
     rewrite -ITRT SBRed.bind SBRed.put. des_ifs.
@@ -327,7 +323,7 @@ Lemma hsim_ctx `{Σ: GRA} fnsems_src fnsems_tgt fl_src fl_tgt fl_ctx Ist context
       { eapply sandbox_well_scoped. refl. }
       { f_equal. symmetry. eapply inv_sandbox_pg. eauto. }
     + rewrite SBRed.bind SBRed.put Heq !bind_trigger in H1.
-    exfalso. ss.   
+      exfalso. unfold triggerUB in H1. rewrite bind_bind bind_vis in H1. ss.
 
   - assert (H1:=ITRS). 
     rewrite  -ITRS SBRed.bind SBRed.get. des_ifs.
@@ -335,11 +331,7 @@ Lemma hsim_ctx `{Σ: GRA} fnsems_src fnsems_tgt fl_src fl_tgt fl_ctx Ist context
       { eapply sandbox_well_scoped. refl. }
       erewrite alist_find_exists_l; eauto.
       repeat f_equal. symmetry. eapply inv_sandbox_pg; eauto. 
-    + hstep. eapply K; try refl; eauto.
-      { eapply sandbox_well_scoped. refl. }
-      repeat f_equal. symmetry. unfold or_else. 
-      erewrite alist_find_not_exists; eauto.
-      eapply inv_sandbox_pg; eauto.
+    + unfold triggerUB. ired. hstep. ss.
 
   - assert (H1:=ITRT). 
     rewrite  -ITRT SBRed.bind SBRed.get. des_ifs.
@@ -348,7 +340,7 @@ Lemma hsim_ctx `{Σ: GRA} fnsems_src fnsems_tgt fl_src fl_tgt fl_ctx Ist context
       erewrite alist_find_exists_l; eauto.
       repeat f_equal. symmetry. eapply inv_sandbox_pg; eauto. 
     + rewrite SBRed.bind SBRed.get Heq !bind_trigger in H1.
-      exfalso. ss.
+      exfalso. unfold triggerUB in H1. rewrite bind_bind bind_vis in H1. ss.
 
   - hstep. i. eapply K; try refl; eauto using inv_sandbox_ag.
   - hstep. i. eapply K; try refl; eauto using inv_sandbox_ag.
@@ -664,14 +656,14 @@ Proof.
   - destruct c. call "IST"; eauto. by_coind "CIH". eauto.
   - depdes s.
     + rewrite !SBRed.bind !SBRed.put. des_ifs; cycle 1.
-      { steps_r. force_l. instantiate (1:=q). steps_l. by_coind "CIH". eauto. }
+      { steps_l. ss. }
       iApply isim_sput_src. iApply isim_sput_tgt.
       by_coind "CIH". unfold perm_Ist. 
       iDestruct "IST" as "%". des. 
       iPureIntro. rewrite !state_scopes_update. esplits; eauto. 
       eapply alist_upd_perm; eauto.
     + rewrite !SBRed.bind !SBRed.get. des_ifs; cycle 1.
-      { steps_r. force_l. instantiate (1:=q). steps_l. by_coind "CIH". eauto. }
+      { steps_l. ss. }
       iApply isim_sget_src. iApply isim_sget_tgt.
       apply existsb_exists in Heq. des. apply String.eqb_eq in Heq0. subst.
       iAssert (⌜alist_find k st_src = alist_find k st_tgt⌝)%I with "[IST]" as "%".

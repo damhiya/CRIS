@@ -62,7 +62,8 @@ Proof.
     by_coind "CIH". auto.
   - depdes s.
     + rewrite !SBRed.bind !SBRed.put. des_ifs; cycle 1. 
-      { steps_r. rewrite HIRed.bind_core. force_l. steps_l. instantiate (1:= q). by_coind "CIH". eauto. }
+      { steps_r. unfold triggerUB; ired.
+        rewrite HIRed.bind_core. steps_l. ss. }
       rewrite HIRed.bind_pg SBRed.bind SBRed.put. des_ifs; cycle 1.
       { 
         exfalso. eapply existsb_exists in Heq. des. 
@@ -72,7 +73,8 @@ Proof.
       iApply isim_sput_src. iApply isim_sput_tgt.
       steps_l. by_coind "CIH". iDestruct "Ist" as "%". subst. eauto.
     + rewrite !SBRed.bind !SBRed.get. des_ifs; cycle 1.
-      { steps_r. rewrite HIRed.bind_core. force_l. steps_l. instantiate (1:= q). by_coind "CIH". eauto. }
+      { steps_r. unfold triggerUB; ired.
+        rewrite HIRed.bind_core. steps_l. ss. }
       rewrite HIRed.bind_pg SBRed.bind SBRed.get. des_ifs; cycle 1.
       { 
         exfalso. eapply existsb_exists in Heq. des. 

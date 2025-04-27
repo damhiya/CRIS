@@ -509,11 +509,9 @@ Proof.
         rewrite SBRed.tau SBRed.ret. ired.
         rewrite !HIRed.tau.
         gstep. econs. i. gstep. econs. eauto with paco. 
-      * rewrite !HIRed.bind_core.
-        gstep. econs. i. gstep. econs.
-        rewrite SBRed.tau SBRed.ret. ired.
-        rewrite !HIRed.tau.
-        gstep. econs. i. gstep. econs. eauto with paco.  
+      * unfold triggerUB; ired.
+        rewrite !HIRed.bind_core.
+        gstep. econs. i. ss.
     + rewrite SRed.bind SRed.pg SCancelRed.bind SCancelRed.pg. 
       rewrite !SBRed.bind SBRed.get. ired.
       des_ifs.
@@ -522,11 +520,9 @@ Proof.
         rewrite SBRed.tau SBRed.ret. ired.
         rewrite !HIRed.tau.
         gstep. econs. i. gstep. econs. eauto with paco. 
-      * rewrite !HIRed.bind_core.
-        gstep. econs. i. gstep. econs.
-        rewrite SBRed.tau SBRed.ret. ired.
-        rewrite !HIRed.tau.
-        gstep. econs. i. gstep. econs. eauto with paco.  
+      * unfold triggerUB; ired.
+        rewrite !HIRed.bind_core.
+        gstep. econs. i. ss.
   - rewrite SRed.bind SRed.core SCancelRed.bind SCancelRed.core. ired. 
     rewrite !SBRed.bind SBRed.core !HIRed.bind_core. 
     gstep. econs. i. gstep. econs. ired. 

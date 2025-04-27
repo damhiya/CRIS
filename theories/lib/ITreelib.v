@@ -599,3 +599,53 @@ Proof.
   rewrite ! vis_trigger.
   apply bind_bind.
 Qed.
+
+(***
+ [interpV] : same as [interp] but does not introduce tau by only taking productive handlers.
+ ***)
+
+CoFixpoint interpV {E F R} (handler: forall T, E T -> {X: Type & F X * (X -> itree F T)}%type) (itr: itree E R) : itree F R :=
+  match (_observe itr) with
+  | RetF r => Ret r
+  | TauF t => tau;; interpV handler t
+  | VisF e k => let '(existT _ _ (e', k')) := handler _ e in
+                vis e' (fun x' => x <- k' x';; interpV handler (k x))
+  end.
+
+Lemma interpV_ret {E F R} f x:
+  @interpV E F R f (Ret x) = Ret x.
+Proof.
+  eapply observe_eta. eauto.
+Qed.
+
+Lemma interpV_tau {E F R} f t:
+  @interpV E F R f (tau;; t) = tau;; interpV f t.
+Proof.
+  eapply observe_eta. eauto.
+Qed.
+
+Lemma interpV_vis {E F R} f U e k:
+  @interpV E F R f (Vis e k) =
+    let '(existT _ _ (e', k')) := f U e in
+    x' <- trigger e';; x <- k' x';; interpV f (k x).
+Proof.
+  eapply observe_eta. s. destruct (f U e) as [? []]. s.
+  f_equal. extensionalities. ired. eauto.
+Qed.
+
+Lemma interpV_bind {E F R S} f t k:
+  @interpV E F S f ('x: R <- t;; k x) = x <- interpV f t;; interpV f (k x).
+Proof.
+  eapply bisim_is_eq.
+  eapply gpaco2_init with (clo:=eqitC _ _ _); eauto with paco.
+  revert R t k. gcofix CIH. i.
+  rewrite (bisim_is_eq (itree_eta t)). destruct (observe t).
+  - rewrite interpV_ret. ired. eapply Reflexive_eqit_gen. eauto.
+  - ired. rewrite !interpV_tau. ired.
+    gstep. econs. gbase. eauto.
+  - rewrite bind_vis, !interpV_vis. destruct (f X e) as [? []].
+    ired. unfold trigger. rewrite !bind_vis.
+    gstep. econs. i. ired.
+    guclo eqit_clo_bind. econs; try refl.
+    i. subst. gbase. eauto.
+Qed.
