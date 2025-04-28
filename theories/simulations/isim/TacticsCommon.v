@@ -592,7 +592,7 @@ Ltac unfold_iter_l :=
   set_marker marker;
   hide_ihyps;
   hide_itree_r;
-  rewrite unfold_iter_eq;
+  rewrite unfold_iterC;
   show_until marker.
 
 Ltac unfold_iter_r :=
@@ -600,7 +600,7 @@ Ltac unfold_iter_r :=
   set_marker marker;
   hide_ihyps;
   hide_itree_l;
-  rewrite unfold_iter_eq;
+  rewrite unfold_iterC;
   show_until marker.
 
 Ltac unfold_pre_post :=

@@ -56,7 +56,7 @@ Module SchI. Section SchI.
 
   Definition join: nat -> itree pmodE (option SAny.t) :=
     fun tid =>
-      orv <- (ITree.iter (fun _ =>
+      orv <- (iterC (fun _ =>
         'ths: thslist <- cgetU v_ths;;
         match alist_find tid ths with
         | None => Ret (inr None)

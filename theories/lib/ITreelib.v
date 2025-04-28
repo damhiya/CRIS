@@ -554,17 +554,6 @@ Proof.
   f_equal. auto.
 Qed.
 
-Lemma unfold_iter_eq (E : Type -> Type) (A B : Type) (f : A -> itree E (A + B)) (x : A)
-  :
-  ITree.iter f x = lr <- f x;;
-                   match lr with
-                   | inl l => tau;; ITree.iter f l
-                   | inr r => Ret r
-                   end.
-Proof.
-  eapply bisim_is_eq. eapply unfold_iter.
-Qed.
-
 Lemma bind_ret_l_eta A {E R} (k : A -> itree E R):
   (fun x : A => x0 <- Ret x;; k x0) = k.
 Proof. extensionality x. grind. Qed.
@@ -658,4 +647,30 @@ Proof.
       gstep. econs. i. ired.
       guclo eqit_clo_bind. econs; try refl.
       i. subst. gbase. eauto.
+Qed.
+
+(***
+ [iterC] : same as [ITree.iter] but inserts tau at the beginning
+ ***)
+
+Definition iterC {E R I} (f: I -> itree E (I + R)) : I -> itree E R :=
+  fun i => tau;; ITree.iter f i.
+
+Lemma unfold_iterC {E R I} (f: I -> itree E (I + R)) i:
+  iterC f i =
+    tau;; res <- f i;; match res with inl i' => iterC f i' | inr r => Ret r end.
+Proof.
+  unfold iterC. apply bisim_is_eq.
+  rewrite unfold_iter. refl.
+Qed.
+
+Lemma unfold_iter_eq (E : Type -> Type) (A B : Type) (f : A -> itree E (A + B)) (x : A)
+  :
+  ITree.iter f x = lr <- f x;;
+                   match lr with
+                   | inl l => tau;; ITree.iter f l
+                   | inr r => Ret r
+                   end.
+Proof.
+  eapply bisim_is_eq. eapply unfold_iter.
 Qed.
