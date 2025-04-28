@@ -549,7 +549,7 @@ Section SchIA.
     iDestruct "IST" as (??????) "(% & THB & THW & COND & [[TA %]|[TA _]])"; des; subst; hss.
     2:{ iExFalso. iApply (tid_admin_none_user with "[TA tid]"); iFrame. }
     iPoseProof (tid_admin_some_user with "[TA tid]") as "%"; iFrame; subst.
-    steps_r. forces_l. steps_l. force_l. steps_l. force_l; iSplitL "tid"; eauto.
+    steps_r. forces_l. iSplitL "tid"; eauto.
     step. iSplit; eauto. iFrame. iExists _, _, _. iSplit; eauto.
   (*SLOW*)Qed.
 

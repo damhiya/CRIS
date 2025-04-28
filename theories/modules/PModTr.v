@@ -8,8 +8,9 @@ Section PMOD.
 
   Context `{Σ : GRA}.
 
-  Definition handle: ∀ T, pmodE T -> {X: Type & hmodE X * (X -> itree hmodE T)}%type :=
+  Definition handle: ∀ T, pmodE T -> (itree hmodE T + {X: Type & hmodE X * (X -> itree hmodE T)})%type :=
     fun T e =>
+      inr
       match e with
       | inr1 (inr1 (inr1 (Take X))) =>
           if excluded_middle_informative (∃ P: Prop, X = P)

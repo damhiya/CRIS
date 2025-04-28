@@ -242,22 +242,19 @@ Tactic Notation "red_S" hyp(prg) tactic(tac) :=
           _hprogress prg; eapply SRed.vis_ag
       | vis (Spawn _ _) _ =>
           _hprogress prg; etransitivity;
-          [ eapply SRed.vis_sch
-          | unfold SModTr.handle_schE_hmodE;
-            unfold SModTr.HoareSpawn;
+          [ eapply SRed.vis_spawn
+          | unfold SModTr.HoareSpawn;
             tac
           ]
       | vis (Yield _) _ =>
           _hprogress prg; etransitivity;
-          [ eapply SRed.vis_sch
-          | unfold SModTr.handle_schE_hmodE;
-            tac
+          [ eapply SRed.vis_yield
+          | tac
           ]
       | vis (Call ?fn _) _ =>
           _hprogress prg; etransitivity;
           [ eapply SRed.vis_call
-          | unfold SModTr.handle_callE_hmodE;
-            unfold SModTr.HoareCall;
+          | unfold SModTr.HoareCall;
             unfold_sp_exact stb fn;
             tac
           ]

@@ -604,12 +604,17 @@ Qed.
  [interpV] : same as [interp] but does not introduce tau by only taking productive handlers.
  ***)
 
-CoFixpoint interpV {E F R} (handler: forall T, E T -> {X: Type & F X * (X -> itree F T)}%type) (itr: itree E R) : itree F R :=
+CoFixpoint interpV {E F R} (handler: forall T, E T -> (itree F T +{X: Type & F X * (X -> itree F T)})%type) (itr: itree E R) : itree F R :=
   match (_observe itr) with
   | RetF r => Ret r
   | TauF t => tau;; interpV handler t
-  | VisF e k => let '(existT _ _ (e', k')) := handler _ e in
-                vis e' (fun x' => x <- k' x';; interpV handler (k x))
+  | VisF e k =>
+      match handler _ e with
+      | inl t =>
+          tau;; x <- t;; interpV handler (k x)
+      | inr (existT _ _ (e', k')) =>
+          vis e' (fun x' => x <- k' x';; interpV handler (k x))
+      end
   end.
 
 Lemma interpV_ret {E F R} f x:
@@ -626,10 +631,12 @@ Qed.
 
 Lemma interpV_vis {E F R} f U e k:
   @interpV E F R f (Vis e k) =
-    let '(existT _ _ (e', k')) := f U e in
-    x' <- trigger e';; x <- k' x';; interpV f (k x).
+  match f U e with
+  | inl t => tau;; x <- t;; interpV f (k x)
+  | inr (existT _ _ (e', k')) => x' <- trigger e';; x <- k' x';; interpV f (k x)
+  end.
 Proof.
-  eapply observe_eta. s. destruct (f U e) as [? []]. s.
+  eapply observe_eta. s. destruct (f U e) as [|[? []]]; s; eauto.
   f_equal. extensionalities. ired. eauto.
 Qed.
 
@@ -643,9 +650,12 @@ Proof.
   - rewrite interpV_ret. ired. eapply Reflexive_eqit_gen. eauto.
   - ired. rewrite !interpV_tau. ired.
     gstep. econs. gbase. eauto.
-  - rewrite bind_vis, !interpV_vis. destruct (f X e) as [? []].
-    ired. unfold trigger. rewrite !bind_vis.
-    gstep. econs. i. ired.
-    guclo eqit_clo_bind. econs; try refl.
-    i. subst. gbase. eauto.
+  - rewrite bind_vis, !interpV_vis. destruct (f _ e) as [|[? []]]; s; eauto.
+    + ired. gstep. econs.
+      guclo eqit_clo_bind. econs; try refl.
+      i. subst. gbase. eauto.
+    + ired. unfold trigger. rewrite !bind_vis.
+      gstep. econs. i. ired.
+      guclo eqit_clo_bind. econs; try refl.
+      i. subst. gbase. eauto.
 Qed.

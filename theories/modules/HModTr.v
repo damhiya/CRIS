@@ -128,8 +128,8 @@ Section MID.
     λ x, trans (f x).
 
   (**** Sandboxing ****)
-  Definition handle_sandbox scopes : ∀ T, hmodE T -> {X: Type & hmodE X * (X -> itree hmodE T)}%type :=
-    λ T e,
+  Definition handle_sandbox scopes : ∀ T, hmodE T -> (itree hmodE T + {X: Type & hmodE X * (X -> itree hmodE T)})%type :=
+    λ T e, inr
       match e with
       | inr1 (inr1 (inr1 (inl1 (SPut (s, _) _)))) =>
           if existsb (String.eqb s) scopes
