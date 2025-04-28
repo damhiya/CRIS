@@ -575,5 +575,44 @@ Section ALIST.
     { rewrite eq_rel_dec_correct in Heq. des_ifs. }
     f_equal. eauto.
   Qed.
-  
+
+  Lemma alist_find_upd
+      K `{Dec K} V (k : K) (l : alist K V) (v : V)
+      (FIND: alist_find k l = Some v) :
+    alist_upd k v l = l.
+  Proof.
+    induction l; ss. des_ifs; ss.
+    - unfold alist_upd. ss. des_ifs. rewrite rel_dec_correct in Heq. clarify.
+    - unfold alist_upd. ss. rewrite Heq. f_equal. apply IHl; et.
+  Qed.
+
+  Lemma alist_upd_find
+      K `{Dec K} V (k : K) (l : alist K V) (v' v : V)
+      (FIND: alist_find k l = Some v') :
+    alist_find k (alist_upd k v l) = Some v.
+  Proof.
+    induction l; ss. des_ifs; ss.
+    - unfold alist_upd. ss. des_ifs. ss. des_ifs.
+      unfold rel_dec in Heq0. ss. destruct dec; clarify.
+    - unfold alist_upd. ss. rewrite Heq. ss. rewrite Heq. et.
+  Qed.
+
+  Lemma alist_shadow
+      K `{Dec K} V (k : K) (l : alist K V) (v1 v2 : V) :
+    alist_upd k v2 (alist_upd k v1 l) = alist_upd k v2 l.
+  Proof.
+    induction l; ss. i. unfold alist_upd. ss.
+    des_ifs; ss; des_ifs. { unfold rel_dec in Heq0. ss. destruct dec; clarify. }
+    f_equal. et.
+  Qed.
+
 End ALIST.
+
+Lemma existsb_incl A f l1 l2
+    (INCL: incl l1 l2)
+    (IN: @existsb A f l1 = true):
+  existsb f l2 = true.
+Proof.
+  apply existsb_exists in IN. des.
+  eapply existsb_exists; eauto.
+Qed.
