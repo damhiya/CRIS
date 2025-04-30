@@ -18,13 +18,10 @@ Section Cancel.
     :=
     fun T e =>
       match e with
-      | inr1 (inr1 (inl1 c)) =>
+      | inr1 (inl1 c) =>
           match c in callE T with
           | Call fn args =>
               inl (trigger (Call fn args))
-          end
-      | inr1 (inl1 s) =>
-          match s in schE T with
           | Spawn fn args => inl (HoareSpawn fn args)
           | _ => inr (existT _ (e, fun v => Ret v))
           end

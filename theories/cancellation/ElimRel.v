@@ -203,7 +203,7 @@ Lemma HoareYield_sandbox `{Σ: GRA}
   :
   HModTr.sandbox scopes (trigger (Yield tid)) = trigger (Yield tid).
 Proof.
-  rewrite SBRed.sch. eauto.
+  rewrite SBRed.yield. eauto.
 Qed. 
 
 Lemma HoareYield_hpI `{Σ: GRA}
@@ -214,7 +214,7 @@ Lemma HoareYield_hpI `{Σ: GRA}
   x <- HoareYieldE tid;; tau;; inline_hp prog (ktr x).
 Proof. 
   unfold HoareYieldE.
-  rewrite HIRed.bind_sch. eauto.
+  rewrite HIRed.bind_yield. eauto.
 Qed.
 
 Lemma HoareSpawn_sandbox `{Σ: GRA}
@@ -225,11 +225,11 @@ Proof.
   unfold SModTr.HoareSpawn.
   rewrite SBRed.bind SBRed.core. f_equal. extensionalities.
   rewrite SBRed.bind SBRed.core. f_equal. extensionalities.
-  rewrite SBRed.bind SBRed.sch. f_equal. extensionalities.
+  rewrite SBRed.bind SBRed.spawn. f_equal. extensionalities.
   rewrite SBRed.bind SBRed.ag. f_equal. extensionalities.
   rewrite SBRed.bind HoareYield_sandbox. f_equal. extensionalities.
   rewrite SBRed.ret. ss.
-Qed. 
+Qed.
 
 Lemma HoareSpawn_hpI `{Σ: GRA}
     prog f fn args ktr
@@ -241,7 +241,7 @@ Proof.
   unfold SModTr.HoareSpawn, HoareSpawnE. ired.
   rewrite HIRed.bind_core. f_equal. extensionalities. ired. do 2 f_equal.
   rewrite HIRed.bind_core. f_equal. extensionalities. ired. do 2 f_equal.
-  rewrite HIRed.bind_sch. f_equal. extensionalities. ired. do 2 f_equal.
+  rewrite HIRed.bind_spawn. f_equal. extensionalities. ired. do 2 f_equal.
   rewrite HIRed.bind_ag. f_equal. extensionalities. ired. do 2 f_equal.
   rewrite HoareYield_hpI. f_equal. 
 Qed.
@@ -252,8 +252,8 @@ Lemma Spawn_cancel_sandbox `{Σ: GRA}
   HModTr.sandbox scopes (SModCancel.HoareSpawn fn args) = SModCancel.HoareSpawn fn args.
 Proof.
   unfold SModCancel.HoareSpawn.
-  rewrite SBRed.bind SBRed.sch. f_equal. extensionalities.
-  rewrite SBRed.bind SBRed.sch. f_equal. extensionalities.
+  rewrite SBRed.bind SBRed.spawn. f_equal. extensionalities.
+  rewrite SBRed.bind SBRed.yield. f_equal. extensionalities.
   rewrite SBRed.ret. ss.
 Qed. 
 
@@ -265,8 +265,8 @@ Lemma Spawn_cancel_hpI `{Σ: GRA}
   x <- SpawnCancelE fn args;; tau;; inline_hp prog (ktr x).
 Proof.
   unfold SModCancel.HoareSpawn, SpawnCancelE. ired.
-  rewrite HIRed.bind_sch. f_equal. extensionalities. ired. do 2 f_equal.
-  rewrite HIRed.bind_sch. f_equal.
+  rewrite HIRed.bind_spawn. f_equal. extensionalities. ired. do 2 f_equal.
+  rewrite HIRed.bind_yield. f_equal.
 Qed.
 
 Lemma HoareCall_inline_cancel `{Σ: GRA} md
@@ -405,8 +405,58 @@ Proof.
     rewrite !HIRed.bind_ag. gstep. econs. gstep. econs. gbase. eauto.
   - rewrite SRed.bind SRed.ag SCancelRed.bind SCancelRed.ag !SBRed.bind SBRed.ag. ired.
     rewrite !HIRed.bind_ag. gstep. econs. gstep. econs. gbase. eauto.
-  - depdes s; s.
-    + rewrite SRed.bind SRed.spawn SCancelRed.bind SCancelRed.spawn. ired.
+  - depdes c; s.
+    {
+      rewrite SRed.bind SRed.call SCancelRed.bind SCancelRed.call.
+      destruct (sp_from md fn) eqn: STB; ired; cycle 1.
+      {
+        unfold triggerNB. ired.
+        rewrite !SBRed.tau !HIRed.tau.
+        gstep. econs. gstep. econs.
+        rewrite !SBRed.bind. ired. rewrite SBRed.core HIRed.bind_core.
+        gstep. econs.
+      }
+      do 2 rewrite SBRed.tau HIRed.tau. do 2 (gstep; econs).
+      do 2 rewrite SBRed.bind.
+      rewrite SBRed.call HIRed.call HIRed.bind.
+      
+      assert (FIND := sp_in_alist_find).
+      specialize (FIND md fn f STB). des.
+      destruct (alist_find fn (List.map (map_snd (λ ksb, (ksb.1, SModCancel.trans_ktree ksb.2))) (SMod.fnsems md))) eqn: FINDS; cycle 1.
+      { exfalso. rewrite alist_find_map_snd FIND in FINDS. clarify. }
+      ired. rewrite FINDS. destruct p as [sc bd].
+      rewrite alist_find_map_snd FIND in FINDS. s in FINDS. inv FINDS.
+      ired. unfold HModTr.sandbox_body. s.
+
+      set_l. eassert (EQ: ITREE = x <- (tau;; x' <- _;; tau;; tau;; Ret x');; _).
+      { unfold ITREE. erewrite bind_tau. do 2 eapply f_equal.
+        erewrite bind_bind. eapply f_equal. extensionalities.
+        rewrite HIRed.tau. erewrite !bind_tau.
+        do 4 eapply f_equal. erewrite bind_ret_l.
+        rewrite subst_bind. rewrite bind_ret_l. refl.
+      }
+      rewrite EQ. clear EQ ITREE.
+
+      rewrite HIRed.bind. guclo elim_rel_bindC_spec.    
+      eapply elim_rel_bindC_intro with (l1 := []); cycle 1.
+      { i. gbase. eauto. }
+
+      erewrite HoareCall_inline; eauto.
+      gstep. econs.
+      { instantiate (1:= fun args => (_ (_ (_ args))) >>=  _). refl. }
+      i. s.
+      
+      guclo elim_rel_bindC_spec.
+      eapply elim_rel_bindC_intro with (l1 := []).
+      { unfold SModCancel.trans_ktree. s. gbase. eauto. }
+      
+      i. rewrite -(bind_ret_r (_ >>= _)).
+      gstep. econs.
+      + instantiate (1:= fun x => Ret x). refl.
+      + i. gstep. econs.
+    }
+    {
+      rewrite SRed.bind SRed.spawn SCancelRed.bind SCancelRed.spawn. ired.
       destruct (sp_from md fn) eqn:STB; ired; cycle 1.
       { 
         unfold triggerNB. ired.
@@ -419,58 +469,12 @@ Proof.
       do 2 rewrite SBRed.bind. rewrite HoareSpawn_sandbox Spawn_cancel_sandbox.
       rewrite HoareSpawn_hpI Spawn_cancel_hpI.
       gstep. econs; eauto. i. gstep. econs. gbase. et.
-    + rewrite SRed.bind SRed.yield SCancelRed.bind SCancelRed.yield.
-      do 2 rewrite SBRed.bind.
-      rewrite {2}HoareYield_sandbox HoareYield_hpI SBRed.sch HIRed.bind_sch.
-      gstep. econs. i. gstep. econs. gbase. eauto.
-  - destruct c.
-    rewrite SRed.bind SRed.call SCancelRed.bind SCancelRed.call.
-    destruct (sp_from md fn) eqn: STB; ired; cycle 1.
+    }
     {
-      unfold triggerNB. ired.
-      rewrite !SBRed.tau !HIRed.tau SBRed.bind SBRed.call HIRed.call.
-      gstep. econs. gstep. econs.
-      rewrite !SBRed.bind. ired. rewrite SBRed.core HIRed.bind_core.
-      gstep. econs.
+      rewrite SRed.bind SRed.yield SCancelRed.bind SCancelRed.yield.
+      rewrite !SBRed.bind !SBRed.yield !HIRed.bind_yield.
+      gstep. econs; eauto. i. gstep. econs; eauto. gbase. eauto.
     }
-    do 2 rewrite SBRed.tau HIRed.tau. do 2 (gstep; econs).
-    do 2 rewrite SBRed.bind.
-    rewrite SBRed.call HIRed.call HIRed.bind.
-    
-    assert (FIND := sp_in_alist_find).
-    specialize (FIND md fn f STB). des.
-    destruct (alist_find fn (List.map (map_snd (λ ksb : list string * fspecbody, (ksb.1, SModCancel.trans_ktree ksb.2))) (SMod.fnsems md))) eqn: FINDS; cycle 1.
-    { exfalso. rewrite alist_find_map_snd FIND in FINDS. clarify. }
-    ired. rewrite FINDS. destruct p. rewrite alist_find_map_snd FIND in FINDS. s in FINDS. inv FINDS. 
-    ired. unfold HModTr.sandbox_body. s.
-
-    set_l. eassert (EQ: ITREE = x <- (tau;; x' <- _;; tau;; tau;; Ret x');; _).
-    { unfold ITREE. erewrite bind_tau. do 2 eapply f_equal.
-      erewrite bind_bind. eapply f_equal. extensionalities.
-      rewrite HIRed.tau. erewrite !bind_tau.
-      do 4 eapply f_equal. erewrite bind_ret_l.
-      rewrite subst_bind. rewrite bind_ret_l. refl.
-    }
-    rewrite EQ. clear EQ ITREE.
-
-    rewrite HIRed.bind. guclo elim_rel_bindC_spec.    
-    eapply elim_rel_bindC_intro with (l1 := []); cycle 1.
-    { i. gbase. eauto. }
-    
-    erewrite HoareCall_inline; eauto.
-    gstep. econs.
-    { instantiate (1:= fun args => (_ (_ (_ args))) >>=  _). refl. }
-    i. s.
-    
-    guclo elim_rel_bindC_spec.
-    eapply elim_rel_bindC_intro with (l1 := []).
-    { unfold SModCancel.trans_ktree. s. gbase. eauto. }
-    
-    i. rewrite -(bind_ret_r (_ >>= _)).
-    gstep. econs.
-    + instantiate (1:= fun x => Ret x). refl.
-    + i. gstep. econs.
-
   - depdes s.
     + rewrite SRed.bind SRed.pg SCancelRed.bind SCancelRed.pg. 
       rewrite !SBRed.bind SBRed.put. ired.

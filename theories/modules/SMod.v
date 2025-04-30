@@ -164,11 +164,6 @@ Module SMWrap. Section SMWrap.
           if (ar && negb in_fns) || (negb ar && in_fns)
           then triggerUB
           else trigger (Call fn args)
-      end.
-
-  Definition handler_sch (ar: bool) (fns: list string) : Handler schE hmodE :=
-    fun _ e =>
-      match e with
       | Spawn fn args =>
           let in_fns := existsb (eqb fn) fns in
           if (ar && negb in_fns) || (negb ar && in_fns)
@@ -182,9 +177,8 @@ Module SMWrap. Section SMWrap.
     :=
     fun x => interp
       (case_ (bif:=sum1) trivial_Handler
-      (case_ (bif:=sum1) (handler_sch ar fns)
       (case_ (bif:=sum1) (handler_call ar fns)
-         trivial_Handler))) (code x).
+         trivial_Handler)) (code x).
 
   Definition wrap_sb ar fns (sb: fspecbody) : fspecbody :=
     {| fsb_fspec := sb.(fsb_fspec); fsb_body := wrap ar fns sb.(fsb_body) |}.

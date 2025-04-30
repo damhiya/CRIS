@@ -33,43 +33,41 @@ Proof.
       rewrite! SBRed.ag. rewrite! bind_trigger.
       gstep. econs. i. r. gbase. eauto.
     }
-    destruct p.
+    destruct p; [destruct c|].
     {
-      assert ((@ITree.trigger (@hmodE Σ) X (inr1 (inl1 s))) = trigger s) by grind.
-      rewrite H. rewrite! SBRed.sch. rewrite! bind_trigger.
-      gstep. econs. i. r. gbase. eauto.     
+      rewrite !SBRed.call !bind_trigger.
+      gstep. econs. i. r. gbase. eauto.
     }
-    destruct s.
     {
-      assert ((@ITree.trigger (@hmodE Σ) X (inr1 (inr1 (inl1 c)))) = trigger c) by grind.
-      rewrite H. rewrite! SBRed.call. rewrite! bind_trigger.
-      gstep. econs. i. r. gbase. eauto.     
+      rewrite !SBRed.spawn !bind_trigger.
+      gstep. econs. i. r. gbase. eauto.
     }
-    destruct s.
     {
-      assert ((@ITree.trigger (@hmodE Σ) X (inr1 (inr1 (inr1 (inl1 p))))) = trigger p) by grind.
-      rewrite H. destruct p.
-      - rewrite! SBRed.put. des_ifs.
-        + rewrite SBRed.put. des_ifs. 
-          * rewrite! bind_trigger. gstep. econs. i. r. gbase. eauto.
-          * exfalso. eapply existsb_exists in Heq. des.
-            eapply SCP in Heq. 
-            assert (XEQ:=existsb_exists).
-            hdes. rewrite XEQ1 in Heq0; ss; eauto.
-        + unfold triggerUB. rewrite SBRed.bind SBRed.core.
-          ired; rewrite !bind_trigger. gstep. econs. i. ss.
-      - rewrite! SBRed.get. des_ifs.
-        + rewrite! SBRed.get. des_ifs.
-          * rewrite! bind_trigger. gstep. econs. i. r. gbase. eauto.
-          * exfalso. eapply existsb_exists in Heq. des.
-            eapply SCP in Heq. 
-            assert (XEQ:=existsb_exists).
-            hdes. rewrite XEQ1 in Heq0; ss; eauto.
-        + unfold triggerUB. rewrite SBRed.bind SBRed.core.
-          ired; rewrite !bind_trigger. gstep. econs. i. ss.
+      rewrite !SBRed.yield !bind_trigger.
+      gstep. econs. i. r. gbase. eauto.
     }
-    assert ((@ITree.trigger (@hmodE Σ) X (inr1 (inr1 (inr1 (inr1 c))))) = trigger c) by grind.
-    rewrite H. rewrite! SBRed.core. rewrite! bind_trigger.
+    destruct s; [destruct p|].
+    {
+      rewrite! SBRed.put. des_ifs.
+      + rewrite SBRed.put. des_ifs. 
+        * rewrite! bind_trigger. gstep. econs. i. r. gbase. eauto.
+        * exfalso. eapply existsb_exists in Heq. des. eapply SCP in Heq. 
+          assert (XEQ:=existsb_exists).
+          hdes. rewrite XEQ1 in Heq0; ss; eauto.
+      + unfold triggerUB. rewrite SBRed.bind SBRed.core.
+        ired; rewrite !bind_trigger. gstep. econs. i. ss.
+    }
+    {
+      rewrite! SBRed.get. des_ifs.
+      + rewrite! SBRed.get. des_ifs.
+        * rewrite! bind_trigger. gstep. econs. i. r. gbase. eauto.
+        * exfalso. eapply existsb_exists in Heq. des. eapply SCP in Heq. 
+          assert (XEQ:=existsb_exists).
+          hdes. rewrite XEQ1 in Heq0; ss; eauto.
+      + unfold triggerUB. rewrite SBRed.bind SBRed.core.
+        ired; rewrite !bind_trigger. gstep. econs. i. ss.
+    }
+    rewrite! SBRed.core. rewrite! bind_trigger.
     gstep. econs. i. r. gbase. eauto.
 Qed.
 
@@ -90,11 +88,10 @@ Proof.
   eapply inj_pair2, equal_f in H0. eauto.
 Qed.
 
-Lemma inv_sandbox_call `{Σ: GRA} {X Y} x sc (ktr : X -> itree hmodE Y) (c : callE X)
-    (SB : HModTr.sandbox sc (trigger c >>= ktr) = trigger c >>= ktr) :
+Lemma inv_sandbox_call `{Σ: GRA} {Y} x sc (ktr : _ -> itree hmodE Y) f a
+    (SB : HModTr.sandbox sc (trigger (Call f a) >>= ktr) = trigger (Call f a) >>= ktr) :
   HModTr.sandbox sc (ktr x) = ktr x.
 Proof.
-  destruct c.
   rewrite SBRed.bind SBRed.call in SB.
   rewrite! bind_trigger in SB. inv SB.
   eapply inj_pair2, equal_f in H0. eauto.
@@ -347,9 +344,9 @@ Lemma hsim_ctx `{Σ: GRA} fnsems_src fnsems_tgt fl_src fl_tgt fl_ctx Ist context
   - hstep. i. eapply K; try refl; eauto using inv_sandbox_ag.
   - hstep. i. eapply K; try refl; eauto using inv_sandbox_ag.
   - hstep. eapply K; try refl; eauto.
-    + rewrite SBRed.bind SBRed.sch !bind_trigger in ITRT.
+    + rewrite SBRed.bind SBRed.spawn !bind_trigger in ITRT.
       depdes ITRT. eapply equal_f in x. eauto.
-    + rewrite SBRed.bind SBRed.sch !bind_trigger in ITRS.
+    + rewrite SBRed.bind SBRed.spawn !bind_trigger in ITRS.
       depdes ITRS. eapply equal_f in x. eauto.
   - hstep.
     { instantiate (1:= FR). iIntros "H". iPoseProof (INV with "H") as ">[H FR]".
@@ -371,9 +368,9 @@ Lemma hsim_ctx `{Σ: GRA} fnsems_src fnsems_tgt fl_src fl_tgt fl_ctx Ist context
       ctx state should maintain its own scope.
     *)
     eapply K; try refl; eauto; cycle 3.
-    { rewrite SBRed.bind SBRed.sch !bind_trigger in ITRT.
+    { rewrite SBRed.bind SBRed.yield !bind_trigger in ITRT.
       depdes ITRT. eapply equal_f in x. eauto. }
-    { rewrite SBRed.bind SBRed.sch !bind_trigger in ITRS.
+    { rewrite SBRed.bind SBRed.yield !bind_trigger in ITRS.
       depdes ITRS. eapply equal_f in x. eauto. }
     { eapply nodup_app_l. rewrite <- map_app. eauto. }
     { eapply nodup_app_l. rewrite <- map_app. eauto. }
@@ -650,10 +647,10 @@ Proof.
   - steps_l. steps_r. by_coind "CIH". eauto.
   - steps_l. force_r. iFrame. steps_r. by_coind "CIH". eauto.
   - steps_r. force_l. iFrame. steps_l. by_coind "CIH". eauto.
-  - destruct s.
-    + step. by_coind "CIH". eauto.
+  - destruct c.
+    + call "IST"; et. steps_l. steps_r. by_coind "CIH". eauto.
+    + step. steps_l. steps_r. by_coind "CIH". eauto.
     + yield "IST"; eauto. by_coind "CIH". eauto.
-  - destruct c. call "IST"; eauto. by_coind "CIH". eauto.
   - depdes s.
     + rewrite !SBRed.bind !SBRed.put. des_ifs; cycle 1.
       { steps_l. ss. }

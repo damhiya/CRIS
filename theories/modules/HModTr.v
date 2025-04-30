@@ -116,12 +116,11 @@ Section MID.
   Definition trans : itree hmodE ~> itree modE.
   Proof using.
     intros T; eapply interp; intros Te e.
-    destruct e as [|[|[|[|]]]].
+    destruct e as [|[|[|]]].
     { apply (handle_agE a). }
-    { exact (trigger (inl1 s)). }
-    { exact (trigger (inr1 (inl1 c))). }
+    { exact (trigger c). }
     { exact (handle_pgE p). }
-    { exact (trigger (inr1 (inr1 (inr1 c)))). }
+    { exact (trigger c). }
   Defined.
 
   Definition trans_ktree (f : Any.t -> itree hmodE Any.t) : Any.t -> itree modE Any.t :=
@@ -131,11 +130,11 @@ Section MID.
   Definition handle_sandbox scopes : ∀ T, hmodE T -> (itree hmodE T + {X: Type & hmodE X * (X -> itree hmodE T)})%type :=
     λ T e, inr
       match e with
-      | inr1 (inr1 (inr1 (inl1 (SPut (s, _) _)))) =>
+      | inr1 (inr1 (inl1 (SPut (s, _) _))) =>
           if existsb (String.eqb s) scopes
           then existT _ (e, fun v => Ret v)
           else existT _ (subevent _ (Take False), fun v => Ret (False_rect _ v))
-      | inr1 (inr1 (inr1 (inl1 (SGet (s, _))))) =>
+      | inr1 (inr1 (inl1 (SGet (s, _)))) =>
           if existsb (String.eqb s) scopes
           then existT _ (e, fun v => Ret v)
           else existT _ (subevent _ (Take False), fun v => Ret (False_rect _ v))
@@ -235,7 +234,6 @@ Section RED.
       (mk_box call)
       (* (mk_box spawn) *)
       (mk_box yield)
-      (* (mk_box tid) *)
       (mk_box core)
       (mk_box pg)
       (mk_box triggerUB)
@@ -280,8 +278,15 @@ Module SBRed. Section SBRed.
     eapply observe_eta. ss. f_equal. extensionalities. ired. eauto.
   Qed.
 
-  Lemma vis_sch {X R} scopes (e : schE X) (ktr : X -> itree hmodE R) :
-    HModTr.sandbox scopes (vis e ktr) = vis e (fun x => HModTr.sandbox scopes (ktr x)).
+  Lemma vis_yield {R} scopes tid (ktr : () -> itree hmodE R) :
+    HModTr.sandbox scopes (vis (Yield tid) ktr) = vis (Yield tid) (fun x => HModTr.sandbox scopes (ktr x)).
+  Proof using.
+    unfold HModTr.sandbox. rewrite interpV_vis.
+    eapply observe_eta. ss. f_equal. extensionalities. ired. eauto.
+  Qed.
+
+  Lemma vis_spawn {R} scopes f a (ktr : nat -> itree hmodE R) :
+    HModTr.sandbox scopes (vis (Spawn f a) ktr) = vis (Spawn f a) (fun x => HModTr.sandbox scopes (ktr x)).
   Proof using.
     unfold HModTr.sandbox. rewrite interpV_vis.
     eapply observe_eta. ss. f_equal. extensionalities. ired. eauto.
@@ -435,10 +440,17 @@ Module SBRed. Section SBRed.
     eapply observe_eta; ss. f_equal. extensionalities. rewrite ret. eauto.
   Qed.
 
-  Lemma sch {A} (e : schE A) scopes :
-    HModTr.sandbox scopes (trigger e) = trigger e.
+  Lemma yield tid scopes :
+    HModTr.sandbox scopes (trigger (Yield tid)) = trigger (Yield tid).
   Proof using.
-    rewrite vis_sch.
+    rewrite vis_yield.
+    eapply observe_eta; ss. f_equal. extensionalities. rewrite ret. eauto.
+  Qed.
+
+  Lemma spawn f a scopes :
+    HModTr.sandbox scopes (trigger (Spawn f a)) = trigger (Spawn f a).
+  Proof using.
+    rewrite vis_spawn.
     eapply observe_eta; ss. f_equal. extensionalities. rewrite ret. eauto.
   Qed.
 

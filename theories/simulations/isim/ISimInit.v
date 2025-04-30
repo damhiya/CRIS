@@ -78,10 +78,11 @@ Proof.
   - steps_l. steps_r. by_coind "CIH"; eauto.
   - steps_l. forces_r. iFrame. steps_r. by_coind "CIH". eauto.
   - steps_r. forces_l. iFrame. steps_l. by_coind "CIH". eauto.
-  - depdes s.
+  - depdes c.
+    + call "IST"; et.
+      by_coind "CIH". iApply IMON; [|eauto]; nia.
     + step. by_coind "CIH". iApply IMON; [|eauto]; nia.
     + yield "IST"; eauto. by_coind "CIH". eauto.
-  - destruct c. call "IST"; eauto. by_coind "CIH". eauto.
   - depdes s.
     + rewrite !SBRed.bind !SBRed.put. des_ifs; cycle 1.
       { steps_l. ss. }

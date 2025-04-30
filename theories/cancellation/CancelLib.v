@@ -133,7 +133,7 @@ Section CancelDef.
     (x <-
      ModTr.interp_stateE Any.t
        (ITree.iter
-          (ModTr.handle_schE_callE
+          (ModTr.handle_callE
              (Mod.prog
                 (HMod.to_mod
                    (HModInline.inline
@@ -142,7 +142,7 @@ Section CancelDef.
     (x <-
      ModTr.interp_stateE Any.t
        (ITree.iter
-          (ModTr.handle_schE_callE
+          (ModTr.handle_callE
              (Mod.prog
                 (HMod.to_mod
                    (HModInline.inline

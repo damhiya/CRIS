@@ -281,9 +281,7 @@ Proof.
         iMod (SPLIT with "FMR") as "[P FMR]";
         iModIntro; iSplitR "P MRT"; [iSplitR "FMR"; iFrame|]; iSplitL "P"; iFrame.
     }
-  - clarify; steps.
-    rewrite HRed.spawn; do 3 step; prep.
-    eapply K; eauto.
+  - clarify. do 3 step; prep. eapply K; eauto.
     { eapply le_mine_trans; eauto; first ii; subst; ss.
       ii; esplits; ss; rewrite lookup_app_l; eauto using le_mine_in.
     }

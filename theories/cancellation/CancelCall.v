@@ -41,25 +41,34 @@ Proof.
   - rewrite SBRed.tau HIRed.tau. steps_l. steps_r. by_coind "CIH". eauto.
   - rewrite SBRed.bind SBRed.ag HIRed.bind_ag. steps_l. force_r. iFrame. steps_r. by_coind "CIH". eauto.
   - rewrite SBRed.bind SBRed.ag HIRed.bind_ag. steps_r. force_l. iFrame. steps_l. by_coind "CIH". eauto.
-  - rewrite SBRed.bind SBRed.sch HIRed.bind_sch. depdes s.
-    + step. steps_l. steps_r. by_coind "CIH". auto.
-    + rewrite !SBRed.bind !SBRed.sch.
+  - destruct c.
+    {
+      rewrite SBRed.bind SBRed.call.
+      rewrite HIRed.call. steps_l.
+      destruct (alist_find fn (HMod.fnsems md)) eqn:FIND; cycle 1.
+      { ss. unfold triggerUB. ired. rewrite HIRed.bind_core. steps_l. ss. }
+      destruct p. iApply isim_inline_tgt.
+      { rewrite alist_find_map_snd FIND. ss. }
+      s. ired. rewrite HIRed.bind SBRed.bind.
+      iApply isim_bind; iSplitL.
+      {
+        iApply isim_RR_frame. 
+        iSplitR; [iApply "CIH"|]. by_coind "CIH". eauto.  
+      }
+      unfold bindRR. iIntros (? ? ? ? ?) "(_ & % & IST)". des. subst.
+      rewrite HIRed.tau. steps_l. steps_r. ired.
+      by_coind "CIH". auto.
+    }    
+    {
+      rewrite !SBRed.bind !SBRed.spawn.
+      rewrite HIRed.bind_spawn SBRed.bind SBRed.spawn.
+      iApply isim_spawn. steps_l. by_coind "CIH". auto.
+    }
+    {
+      rewrite SBRed.bind SBRed.yield HIRed.bind_yield !SBRed.bind !SBRed.yield.
       iApply isim_yield. iFrame. iIntros (? ? ? ? ?) "IST".
       steps_l. by_coind "CIH". auto.
-  - destruct c. rewrite SBRed.bind SBRed.call HIRed.call. steps_l. 
-    destruct (alist_find fn (HMod.fnsems md)) eqn:FIND; cycle 1.
-    { ss. unfold triggerUB. ired. rewrite HIRed.bind_core. steps_l. ss. }
-    destruct p. iApply isim_inline_tgt.
-    { rewrite alist_find_map_snd FIND. ss. }
-    s. ired. rewrite HIRed.bind SBRed.bind.
-    iApply isim_bind; iSplitL.
-    {
-      iApply isim_RR_frame. 
-      iSplitR; [iApply "CIH"|]. by_coind "CIH". eauto.  
     }
-    unfold bindRR. iIntros (? ? ? ? ?) "(_ & % & IST)". des. subst.
-    rewrite HIRed.tau. steps_l. steps_r. ired.
-    by_coind "CIH". auto.
   - depdes s.
     + rewrite !SBRed.bind !SBRed.put. des_ifs; cycle 1. 
       { steps_r. unfold triggerUB; ired.

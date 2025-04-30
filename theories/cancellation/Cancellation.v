@@ -149,7 +149,7 @@ Proof.
   unfold inline_hp_fun, SModTr.trans_ktree. s.
   unfold SModTr.HoareFun.
   
-  unfold ModTr.trans, ModTr.interp_schE_callE. 
+  unfold ModTr.trans, ModTr.interp_callE. 
   destruct f.
   assert (TMP:=SPC).
   rewrite /sp_from /Sp.to_sp alist_find_map E in TMP. depdes TMP.

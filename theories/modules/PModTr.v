@@ -12,7 +12,7 @@ Section PMOD.
     fun T e =>
       inr
       match e with
-      | inr1 (inr1 (inr1 (Take X))) =>
+      | inr1 (inr1 (Take X)) =>
           if excluded_middle_informative (∃ P: Prop, X = P)
           then existT _ (inr1 e, fun v => Ret v)
           else existT _ (subevent _ (Take False), fun v => Ret (False_rect _ v))
@@ -65,14 +65,6 @@ Section RED.
       Ret t.
   Proof using.
     unfold PModTr.trans. rewrite interpV_ret. eauto.
-  Qed.
-
-  Lemma vis_sch {X R} (e : schE X) (ktr : X -> itree pmodE R) :
-    PModTr.trans (vis e ktr) = vis e (fun x => PModTr.trans (ktr x)).
-  Proof using.
-    unfold PModTr.trans. rewrite interpV_vis.
-    eapply observe_eta; ss. f_equal. extensionality x.
-    eapply observe_eta; ss.
   Qed.
 
   Lemma vis_call {X R} (e : callE X) (ktr : X -> itree pmodE R) :
@@ -160,18 +152,6 @@ Section RED.
     rewrite ret. eauto.
   Qed.
 
-  Lemma sch
-        (R: Type)
-        (i: schE R)
-    :
-      PModTr.trans (trigger i)
-      =
-      trigger i.
-  Proof using.
-    rewrite vis_sch. eapply observe_eta; ss. f_equal. extensionalities.
-    rewrite ret. eauto.
-  Qed.
-  
   Lemma pg
         (R: Type)
         (i: pgE R)

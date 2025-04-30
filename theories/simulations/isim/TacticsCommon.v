@@ -177,9 +177,9 @@ Tactic Notation "red_SB" hyp(prg) :=
       | vis (Guarantee _) _ =>
           _hprogress prg; eapply SBRed.vis_ag
       | vis (Spawn _ _) _ =>
-          _hprogress prg; eapply SBRed.vis_sch
+          _hprogress prg; eapply SBRed.vis_spawn
       | vis (Yield _) _ =>
-          _hprogress prg; eapply SBRed.vis_sch
+          _hprogress prg; eapply SBRed.vis_yield
       | vis (Call _ _) _ =>
           _hprogress prg; eapply SBRed.vis_call
       | vis (SPut _ _) _ =>
@@ -292,9 +292,9 @@ Tactic Notation "red_P" hyp(prg) :=
       | Tau _ =>
           _hprogress prg; eapply PRed.tau
       | vis (Spawn _ _) _ =>
-          _hprogress prg; eapply PRed.vis_sch
+          _hprogress prg; eapply PRed.vis_call
       | vis (Yield _) _ =>
-          _hprogress prg; eapply PRed.vis_sch
+          _hprogress prg; eapply PRed.vis_call
       | vis (Call _ _) _ =>
           _hprogress prg; eapply PRed.vis_call
       | vis (SPut _ _) _ =>
