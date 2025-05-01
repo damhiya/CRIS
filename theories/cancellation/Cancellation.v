@@ -4,7 +4,7 @@ Require Import Common.
 Require Import SModTr HModTr ModTr SMod HMod Mod.
 Require Import ITactics TacticsCommon SimGlobal SimGlobalFacts CtxRefine ClosedAdequacy.
 Require Import SModCancel HModInline ElimRel StRed.
-Require Import CancelLib CancelCall CancelCallRev.
+Require Import CancelLib InlineIntro InlineElim.
 Require Import CancelHead CancelTail CancelSpawn CancelYield.
 
 Set Implicit Arguments.

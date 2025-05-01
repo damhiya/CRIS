@@ -345,7 +345,7 @@ Proof using.
   rewrite SBRed.tau. gstep. econs. gbase; eauto.
 Unshelve.
   eapply eqit__mono; eauto.
-(*SLOW*)Admitted.
+(*SLOW*)Qed.
 
 Definition bindRR `{Σ: GRA} {R} RR P : nat -> alist key Any.t * R-> alist key Any.t * R -> iProp Σ :=
   fun nths '(st0, ret0) '(st1, ret1) => (P ∗ RR nths (st0, ret0) (st1, ret1))%I.
