@@ -17,8 +17,8 @@ Lemma cancel_aux_tail `{Σ: GRA} md
   (RET: ∀ vret ret : Any.t, cid = 0 → Q meta vret ret ⊢ ⌜vret = ret⌝)
   (RELS: ∀ k x y, cid ≠ k → srcs !! k = Some x → tgts !! k = Some y → thread_rel md cid k x y)
   (KTR: ∀ vret, upaco3 (@elim_rel_def _ md _) bot3 l (ktrS vret) (ktrT vret))
-  (SRC : srcs !! cid = Some (Ret ();;; HModTr.trans (tau;; tau;; tau;; ktrS vret)))
-  (TGT : tgts !! cid = Some (Ret ();;; HModTr.trans (cancel_term md meta Q (x <- hmod_elim_tail X0 Q0 (m, m) vret;; (tau;; ktrT x)))))
+  (SRC : srcs !! cid = Some (Ret ();;; HModTr.trans (tau;; tau;; ktrS vret)))
+  (TGT : tgts !! cid = Some (Ret ();;; HModTr.trans (cancel_term md meta Q (x <- hmod_elim_tail X0 Q0 (m, m) vret;; ktrT x))))
   (CIH: ∀ rs rt srcs tgts cid st ps pt X (meta : X) Q itrS itrT l,
       ✓ rs → (Own rs ==∗ Own rt) →
       List.length srcs = List.length tgts →
@@ -33,7 +33,7 @@ Lemma cancel_aux_tail `{Σ: GRA} md
   CANCEL_GOAL md (gpaco7 _simg (cpn7 _simg) bot7 r) rs0 rt0 ps pt srcs tgts cid st rs rt.
 Proof.
   r. _iter. _iter. rewrite SRC TGT. ired.
-  hide_r. tau 2. iterT 2.
+  hide_r. tau 2. iterT 1.
   reveal ITREE. hide_l. _coreA.
   iterT 2. iterL. _supd.
   iterL. _coreA. iterL. _coreA. ls.
@@ -54,7 +54,7 @@ Proof.
   }
   iterL. _coreE VALID. ls.
   iterL. _supd. iterL. _supd.
-  iterT 3.
+  iterT 2.
   reveal ITREE.
   done_by_CIH CIH LKX LKY.
   { iIntros "RS". iMod (UPD with "RS") as "RS". iMod (H with "RS") as "[A1 A2]".

@@ -16,7 +16,7 @@ Section EXEC.
 
   Definition ths_state : Type := nat * list (itree modE Any.t).
 
-  Definition handle_schE_callE (prog: callE ~> itree modE)
+  Definition handle_callE (prog: string * Any.t -> itree modE Any.t)
       : ths_state -> itree (stateE +' coreE) (ths_state + Any.t) :=
     fun '(tid, ths) =>
       itr <- (base.lookup tid ths)? ;;
@@ -25,26 +25,26 @@ Section EXEC.
           if Nat.eq_dec tid 0 then Ret (inr rv) else triggerUB
       | TauF itr' =>
           tau;; Ret (inl (tid, base.insert tid itr' ths))
-      | VisF (inr1 (inr1 e)) k =>
+      | VisF (inr1 e) k =>
           v <- trigger e;;
           Ret (inl (tid, base.insert tid (k v) ths))
-      | VisF (inr1 (inl1 e)) k =>
-          Ret (inl (tid, base.insert tid (x <- prog _ e;; tau;; k x) ths))
       | VisF (inl1 e) k =>
-          match e in schE T return (T -> _) -> _ with
+          match e in callE T return (T -> _) -> _ with
+          | Call fn arg => fun k =>
+            Ret (inl (tid, base.insert tid (x <- prog (fn, arg);; tau;; k x) ths))
           | Spawn fn arg => fun k =>
-                              Ret (inl (tid, (base.insert tid (k (List.length ths)) ths) ++ [prog _ (Call fn arg)]))
+            Ret (inl (tid, (base.insert tid (k (List.length ths)) ths) ++ [prog (fn, arg)]))
           | Yield tid' => fun k =>
-                            Ret (inl (tid', base.insert tid (k tt) ths))
+            Ret (inl (tid', base.insert tid (k tt) ths))
           end k
       end.
 
-  Definition interp_schE_callE (prog: callE ~> itree modE) (itr0: itree modE Any.t)
+  Definition interp_callE prog (itr0: itree modE Any.t)
       : itree (stateE +' coreE) Any.t :=
-    ITree.iter (handle_schE_callE prog) (0, [itr0]).
+    ITree.iter (handle_callE prog) (0, [itr0]).
 
-  Definition trans (prog: callE ~> itree modE) (itr0: itree modE Any.t) (st0: Any.t): itree coreE _ :=
-    interp_stateE Any.t (interp_schE_callE prog itr0) st0.
+  Definition trans prog (itr0: itree modE Any.t) (st0: Any.t): itree coreE _ :=
+    interp_stateE Any.t (interp_callE prog itr0) st0.
 
 End EXEC.
 End ModTr.

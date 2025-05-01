@@ -75,11 +75,6 @@ Module PMWrap.
           if (ar && negb in_fns) || (negb ar && in_fns)
           then triggerUB
           else trigger (Call fn args)
-      end.
-
-  Definition handler_sch (ar: bool) (fns: list string) : Handler schE pmodE :=
-    fun _ e =>
-      match e with
       | Spawn fn args =>
           let in_fns := existsb (eqb fn) fns in
           if (ar && negb in_fns) || (negb ar && in_fns)
@@ -92,10 +87,9 @@ Module PMWrap.
     Any.t -> itree pmodE Any.t
     :=
     fun x => interp
-      (case_ (bif:=sum1) (handler_sch ar fns)
       (case_ (bif:=sum1) (handler_call ar fns)
       (case_ (bif:=sum1) trivial_Handler
-         trivial_Handler))) (code x).
+         trivial_Handler)) (code x).
 
   Program Definition pmod (ar: bool) fns (m: PMod.t) : PMod.t :=
     {|PMod.scopes := m.(PMod.scopes)

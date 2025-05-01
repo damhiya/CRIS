@@ -177,9 +177,9 @@ Tactic Notation "red_SB" hyp(prg) :=
       | vis (Guarantee _) _ =>
           _hprogress prg; eapply SBRed.vis_ag
       | vis (Spawn _ _) _ =>
-          _hprogress prg; eapply SBRed.vis_sch
+          _hprogress prg; eapply SBRed.vis_spawn
       | vis (Yield _) _ =>
-          _hprogress prg; eapply SBRed.vis_sch
+          _hprogress prg; eapply SBRed.vis_yield
       | vis (Call _ _) _ =>
           _hprogress prg; eapply SBRed.vis_call
       | vis (SPut _ _) _ =>
@@ -242,22 +242,19 @@ Tactic Notation "red_S" hyp(prg) tactic(tac) :=
           _hprogress prg; eapply SRed.vis_ag
       | vis (Spawn _ _) _ =>
           _hprogress prg; etransitivity;
-          [ eapply SRed.vis_sch
-          | unfold SModTr.handle_schE_hmodE;
-            unfold SModTr.HoareSpawn;
+          [ eapply SRed.vis_spawn
+          | unfold SModTr.HoareSpawn;
             tac
           ]
       | vis (Yield _) _ =>
           _hprogress prg; etransitivity;
-          [ eapply SRed.vis_sch
-          | unfold SModTr.handle_schE_hmodE;
-            tac
+          [ eapply SRed.vis_yield
+          | tac
           ]
       | vis (Call ?fn _) _ =>
           _hprogress prg; etransitivity;
           [ eapply SRed.vis_call
-          | unfold SModTr.handle_callE_hmodE;
-            unfold SModTr.HoareCall;
+          | unfold SModTr.HoareCall;
             unfold_sp_exact stb fn;
             tac
           ]
@@ -295,9 +292,9 @@ Tactic Notation "red_P" hyp(prg) :=
       | Tau _ =>
           _hprogress prg; eapply PRed.tau
       | vis (Spawn _ _) _ =>
-          _hprogress prg; eapply PRed.vis_sch
+          _hprogress prg; eapply PRed.vis_call
       | vis (Yield _) _ =>
-          _hprogress prg; eapply PRed.vis_sch
+          _hprogress prg; eapply PRed.vis_call
       | vis (Call _ _) _ =>
           _hprogress prg; eapply PRed.vis_call
       | vis (SPut _ _) _ =>
@@ -595,7 +592,7 @@ Ltac unfold_iter_l :=
   set_marker marker;
   hide_ihyps;
   hide_itree_r;
-  rewrite unfold_iter_eq;
+  rewrite unfold_iterC;
   show_until marker.
 
 Ltac unfold_iter_r :=
@@ -603,216 +600,7 @@ Ltac unfold_iter_r :=
   set_marker marker;
   hide_ihyps;
   hide_itree_l;
-  rewrite unfold_iter_eq;
-  show_until marker.
-
-(***
- Rewriting-based normalization
- ***)
-
-Ltac unfold_sp :=
-  try match goal with
-    [|-context[unwrapN (?sp ?name)]] =>
-      try match goal with
-        [H: context[sp_incl _ sp]|-_] =>
-          let RW := fresh "_RW" in let ND := fresh "_ND" in
-          edestruct H as [ND RW];
-          erewrite (RW name);
-          [|revert ND; unfold to_sp;
-            match goal with [|-context[alist_find _ ?x]] => rewrite /x end;
-            unseal CRIS; i;
-            alist_find_simpl;
-            refl];
-          simpl unwrapN; clear ND RW
-      end
-  end.
-
-Ltac desugar itr :=
-  match itr with
-  | fbody_trivial _ => rewrite {1}/itr
-  | SModTr.HoareCall _ _ _ => rewrite {1}/itr
-  | SModTr.HoareSpawn _ _ _ => rewrite {1}/itr
-  | cput _ _ => rewrite{1}/itr
-  | cgetU _ => rewrite{1}/itr
-  | cgetN _ => rewrite{1}/itr
-  | triggerUB => rewrite{1}/itr
-  | triggerNB => rewrite{1}/itr
-  end.
-
-Ltac _unwrapSB itr :=
-  match itr with
-  | Ret _ =>
-      rewrite SBRed.ret
-  | tau;; _ =>
-      rewrite SBRed.tau
-  | trigger (Choose _) =>
-      rewrite SBRed.core
-  | trigger (Take _) =>
-      rewrite SBRed.core
-  | trigger (IO _ _) =>
-      rewrite SBRed.core
-  | trigger (Call _ _) =>
-      rewrite SBRed.call
-  | trigger (SPut _ _) =>
-      idtac
-  | trigger (SGet _) =>
-      idtac
-  | trigger (Assume _) =>
-      rewrite SBRed.ag
-  | trigger (Guarantee _) =>
-      rewrite SBRed.ag
-  | unwrapU _ =>
-      rewrite SBRed.unwrapU
-  | unwrapN _ =>
-      rewrite SBRed.unwrapN
-  | assume _ =>
-      rewrite SBRed.asm
-  | guarantee _ =>
-      rewrite SBRed.guar
-  | trigger (Spawn _ _) =>
-      rewrite SBRed.sch
-  | trigger (Yield _) =>
-      rewrite SBRed.sch
-  | _ => fail
-  end.
-
-Ltac unwrapSB :=
-  try match goal with
-  | [|-context[HModTr.sandbox _ ?itr]] => first [desugar itr|fail 2]
-  end;
-  match goal with
-  | [|-context[HModTr.sandbox _ (?itr >>= _)]] =>
-      rewrite SBRed.bind; unwrapSB
-  | [|-context[HModTr.sandbox _ ?itr]] => first [_unwrapSB itr|fail 2]
-  end.
-
-Ltac _unwrapS itr :=
-  match itr with
-  | Ret _ =>
-      rewrite SRed.ret
-  | tau;; _ =>
-      rewrite SRed.tau
-  | trigger (Choose _) =>
-      rewrite SRed.core
-  | trigger (Take _) =>
-      rewrite SRed.core
-  | trigger (IO _ _) =>
-      rewrite SRed.core
-  | trigger (Call _ _) =>
-      rewrite SRed.call {1}/SModTr.handle_callE_hmodE
-  | trigger (Spawn _ _) =>
-      rewrite SRed.sch {1}/SModTr.handle_schE_hmodE
-  | trigger (Yield _) =>
-      rewrite SRed.sch {1}/SModTr.handle_schE_hmodE
-  | trigger (SPut _ _) =>
-      rewrite SRed.pg
-  | trigger (SGet _) =>
-      rewrite SRed.pg
-  | trigger (Assume _) =>
-      rewrite SRed.ag
-  | trigger (Guarantee _) =>
-      rewrite SRed.ag
-  | unwrapU _ =>
-      rewrite SRed.unwrapU
-  | unwrapN _ =>
-      rewrite SRed.unwrapN
-  | assume _ =>
-      rewrite SRed.asm
-  | guarantee _ =>
-      rewrite SRed.guar
-  | _ => fail
-  end.
-
-Ltac unwrapS :=
-  try match goal with
-    | [|-context[SModTr.trans _ _ ?itr]] => first [desugar itr|fail 2]
-  end;
-  match goal with
-  | [|-context[SModTr.trans _ _ (?itr >>= _)]] =>
-      rewrite SRed.bind; unwrapS
-  | [|-context[SModTr.trans _ _ ?itr]] => first [_unwrapS itr|fail 2]
-  end.
-
-Ltac _unwrapP itr :=
-  match itr with
-  | Ret _ =>
-      rewrite PRed.ret
-  | tau;; _ =>
-      rewrite PRed.tau
-  | trigger (Choose _) =>
-      rewrite PRed.choose
-  | trigger (Take _) =>
-      rewrite PRed.take
-  | trigger (IO _ _) =>
-      rewrite PRed.io
-  | trigger (Call _ _) =>
-      rewrite PRed.call
-  | trigger (Spawn _ _) =>
-      rewrite PRed.sch
-  | trigger (Yield _) =>
-      rewrite PRed.sch
-  | trigger (SPut _ _) =>
-      rewrite PRed.pg
-  | trigger (SGet _) =>
-      rewrite PRed.pg
-  | unwrapU _ =>
-      rewrite PRed.unwrapU
-  | unwrapN _ =>
-      rewrite PRed.unwrapN
-  | assume _ =>
-      rewrite PRed.asm
-  | guarantee _ =>
-      rewrite PRed.guar
-  | _ => fail
-  end.
-
-Ltac unwrapP :=
-  try match goal with
-  | [|-context[PModTr.trans ?itr]] => first [desugar itr|fail 2]
-  end;
-  match goal with
-  | [|-context[PModTr.trans (?itr >>= _)]] =>
-      rewrite PRed.bind; unwrapP
-  | [|-context[PModTr.trans ?itr]] => first [_unwrapP itr|fail 2]
-  end.
-
-Ltac _prep :=
-  first
-    [ unwrapSB
-    | unwrapS; unfold_sp; unwrapSB
-    | unwrapP; unwrapSB
-    | idtac].
-
-Ltac prep :=
-  try rewrite !bind_bind;
-  try match goal with
-  | [|-context[SModTr.trans _ _ (?f ?arg)]] =>
-    match type of arg with Any.t => rewrite {1}/f end
-  | [|-context[PModTr.trans (?f ?arg)]] =>
-    match type of arg with Any.t => rewrite {1}/f end
-  end;
-  unfold ccallU, ccallN;
-  try match goal with
-      | [|-context[(_, HModTr.sandbox _ _)]] => _prep
-      | [|-context[(_, HModTr.sandbox _ _ >>= _)]] => _prep
-      end;
-  try rewrite !bind_bind;
-  try rewrite !bind_tau.
-
-Ltac prep_l :=
-  let marker := fresh "MARKER" in
-  set_marker marker;
-  hide_ihyps;
-  hide_itree_r;
-  prep;
-  show_until marker.
-
-Ltac prep_r :=
-  let marker := fresh "MARKER" in
-  set_marker marker;
-  hide_ihyps;
-  hide_itree_l;
-  prep;
+  rewrite unfold_iterC;
   show_until marker.
 
 Ltac unfold_pre_post :=

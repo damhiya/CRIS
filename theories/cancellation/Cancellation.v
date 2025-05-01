@@ -4,7 +4,7 @@ Require Import Common.
 Require Import SModTr HModTr ModTr SMod HMod Mod.
 Require Import ITactics TacticsCommon SimGlobal SimGlobalFacts CtxRefine ClosedAdequacy.
 Require Import SModCancel HModInline ElimRel StRed.
-Require Import CancelLib CancelCall CancelCallRev.
+Require Import CancelLib InlineIntro InlineElim.
 Require Import CancelHead CancelTail CancelSpawn CancelYield.
 
 Set Implicit Arguments.
@@ -138,7 +138,7 @@ Proof.
   destruct (alist_find "CRIS_init" (SMod.fnsems md)) eqn:E; cycle 1.
   {
     rewrite !alist_find_map/o_map E. s.
-    rewrite /sp_from E in SPC. ss.
+    rewrite /sp_from /Sp.to_sp alist_find_map E in SPC. ss.
   }
   rewrite !alist_find_map/o_map E. s. 
   erewrite !wrap_elimI_well_scoped; cycle 1.
@@ -149,9 +149,10 @@ Proof.
   unfold inline_hp_fun, SModTr.trans_ktree. s.
   unfold SModTr.HoareFun.
   
-  unfold ModTr.trans, ModTr.interp_schE_callE. 
+  unfold ModTr.trans, ModTr.interp_callE. 
   destruct f.
-  assert (TMP:=SPC). unfold sp_from in TMP. rewrite E in TMP. depdes TMP.
+  assert (TMP:=SPC).
+  rewrite /sp_from /Sp.to_sp alist_find_map E in TMP. depdes TMP.
   hide_l.
   ginit.
   rewrite SBRed.bind SBRed.core HIRed.bind_core HRed.bind HRed.core. ired.

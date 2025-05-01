@@ -16,20 +16,18 @@ Section EVENTS.
   | Take X : coreE X
   | IO {I : Type} {O : Type} (fn : string) (args : I) : coreE O.
 
-  Inductive callE : Type -> Type :=
-  | Call (fn : string) (args : Any.t) : callE Any.t.
-
   Variant stateE (V : Type) : Type :=
   | SUpdate (run : Any.t -> Any.t * V) : stateE V.
 
-  Variant schE : Type -> Type :=
-  | Spawn (fn : string) (args : Any.t) : schE nat
-  | Yield (tid : nat) : schE unit.
+  Variant callE : Type -> Type :=
+  | Call (fn : string) (args : Any.t) : callE Any.t
+  | Spawn (fn : string) (args : Any.t) : callE nat
+  | Yield (tid : nat) : callE unit.
 
   Definition sPut x : stateE unit := SUpdate (fun _ => (x, tt)).
   Definition sGet : stateE Any.t := SUpdate (fun x => (x, x)).
 
-  Definition modE : Type -> Type := schE +' callE +' stateE +' coreE.
+  Definition modE : Type -> Type := callE +' stateE +' coreE.
 
 End EVENTS.
 
@@ -193,7 +191,7 @@ Section EVENTS_OTHER.
 
   Definition sf (s : string) (f : string) := (s,f).
 
-  Inductive pgE : Type -> Type :=
+  Variant pgE : Type -> Type :=
   | SPut (k : key) (v : Any.t) : pgE unit
   | SGet (k : key) : pgE Any.t.
 
@@ -201,7 +199,7 @@ Section EVENTS_OTHER.
   | Assume (P : iProp Σ) : agE unit
   | Guarantee (P : iProp Σ) : agE unit.
 
-  Definition pmodE := schE +' callE +' pgE +' coreE.
+  Definition pmodE := callE +' pgE +' coreE.
 
   Definition hmodE := agE +' pmodE.
 

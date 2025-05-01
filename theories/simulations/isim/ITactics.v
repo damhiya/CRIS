@@ -201,11 +201,11 @@ Ltac iforces_r := hrepeat do 1 iforce_r.
 
 Ltac iinline_l :=
   inorm_l with
-    do 1 iApply isim_inline_src; [prove_inline_cond|]; unfold_cris_defs.
+    do 1 iApply isim_inline_src; [try prove_inline_cond|]; unfold_cris_defs.
 
 Ltac iinline_r :=
   inorm_r with
-    do 1 iApply isim_inline_tgt; [prove_inline_cond|]; unfold_cris_defs.
+    do 1 iApply isim_inline_tgt; [try prove_inline_cond|]; unfold_cris_defs.
 
 Ltac icall hyps :=
   (inorm with do 1 iApply isim_call);

@@ -24,17 +24,13 @@ Lemma itree_modE_inv R (itr : itree modE R) :
   (exists r, itr = Ret r) \/
   (exists itr', itr = tau;; itr') \/
   (exists V (e : coreE V) ktr, itr = v <- trigger e;; ktr v) \/
-  (exists fn args ktr, itr = v <- trigger (Call fn args);; ktr v) \/
   (exists V run ktr, itr = v <- trigger (@SUpdate V run);; ktr v) \/
-  (exists V (e : schE V) ktr, itr = v <- trigger e;; ktr v).
+  (exists V (e : callE V) ktr, itr = v <- trigger e;; ktr v).
 Proof.
   ides itr; eauto.
-  right. right. destruct e as [s | [c|[s'|e']]].
-  - do 3 right. exists X, s, k. rewrite bind_trigger. eauto.
-  - destruct c. right. left.
-    esplits. rewrite bind_trigger. eauto.
-  - destruct s'. right. right. left.
-    esplits. rewrite bind_trigger. eauto.
+  right. right. destruct e as [e | [e | e] ].
+  - do 2 right. esplits. rewrite bind_trigger. eauto.
+  - destruct e. right. left. esplits. rewrite bind_trigger. eauto.
   - left. esplits. rewrite bind_trigger. eauto.
 Qed.
 
@@ -60,11 +56,11 @@ Lemma sim_itree_simg
   :
   simg (fun '(st_src, ret_src) '(st_tgt, ret_tgt) => ret_src = ret_tgt) (Some ps) (Some pt)
   (ModTr.interp_stateE Any.t
-     (ITree.iter (ModTr.handle_schE_callE (Mod.prog ms_src)) (my_tid, itrs_src)) st_src)
+     (ITree.iter (ModTr.handle_callE (Mod.prog ms_src)) (my_tid, itrs_src)) st_src)
   (ModTr.interp_stateE Any.t
-     (ITree.iter (ModTr.handle_schE_callE (Mod.prog ms_tgt)) (my_tid, itrs_tgt)) st_tgt).
+     (ITree.iter (ModTr.handle_callE (Mod.prog ms_tgt)) (my_tid, itrs_tgt)) st_tgt).
 Proof.
-  unfold ModTr.interp_stateE.
+  unfold ModTr.interp_stateE. 
   ginit. revert_until WFS. gcofix CIH. i.
   destruct (base.lookup my_tid itrs_src) eqn : LKS; cycle 1.
   { exfalso. exploit list.lookup_ge_None_1; eauto. i. nia. }
@@ -422,7 +418,7 @@ Proof.
 
   ss. unfold ITree.map.
   destruct (alist_find fn (Mod.fnsems ms_src)) eqn: EQ; cycle 1.
-  { s. unfold ModTr.trans, ModTr.interp_stateE, ModTr.interp_schE_callE.
+  { s. unfold ModTr.trans, ModTr.interp_stateE, ModTr.interp_callE.
     rewrite unfold_iter_eq. grind.
     ired_both; guclo simg_indC_spec. unfold ModTr.pure_state. grind.
     eapply simg_takeL. ss.

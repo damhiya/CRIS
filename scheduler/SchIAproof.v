@@ -331,7 +331,7 @@ Section SchIA.
     steps_l. force_l my_tid. force_l (tt↑).
     force_l. iSplitL "WI TU". { iFrame. eauto. }
 
-    call "IST".
+    steps_r. call "IST".
     steps_l. iDestruct "ASM" as "[[-> TU] ->]". hss.
     steps_l.
     steps_r. hss. steps_r.
@@ -475,7 +475,7 @@ Section SchIA.
       hexploit (SIM tid). intro T. des. rewrite LU in T. inv T.
       { (* done(O) *)
         iClear "CIH". steps_r.
-        force_l true. steps_l. force_l (Some vrv0).
+        steps_l. force_l true. steps_l. force_l (Some vrv0).
         steps_l.
         iPoseProof (big_sepM_delete with "COND") as "[POST COND]"; et.
 
@@ -549,7 +549,7 @@ Section SchIA.
     iDestruct "IST" as (??????) "(% & THB & THW & COND & [[TA %]|[TA _]])"; des; subst; hss.
     2:{ iExFalso. iApply (tid_admin_none_user with "[TA tid]"); iFrame. }
     iPoseProof (tid_admin_some_user with "[TA tid]") as "%"; iFrame; subst.
-    steps_r. forces_l. steps_l. force_l. steps_l. force_l; iSplitL "tid"; eauto.
+    steps_r. forces_l. iSplitL "tid"; eauto.
     step. iSplit; eauto. iFrame. iExists _, _, _. iSplit; eauto.
   (*SLOW*)Qed.
 

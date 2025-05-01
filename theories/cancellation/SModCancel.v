@@ -14,18 +14,23 @@ Section Cancel.
     trigger (Yield tid);;;
     Ret tid.
 
-  Definition handle_schE_hmodE : schE ~> itree hmodE :=
-    fun _ e =>
-      match e in schE T return itree hmodE T with
-      | Spawn fn varg => HoareSpawn fn varg
-      | Yield tid => trigger (Yield tid)
+  Definition handle: ∀ T, hmodE T -> (itree hmodE T+{X: Type & hmodE X * (X -> itree hmodE T)})%type
+    :=
+    fun T e =>
+      match e with
+      | inr1 (inl1 c) =>
+          match c in callE T with
+          | Call fn args =>
+              inl (trigger (Call fn args))
+          | Spawn fn args => inl (HoareSpawn fn args)
+          | _ => inr (existT _ (e, fun v => Ret v))
+          end
+      | _ =>
+          inr (existT _ (e, fun v => Ret v))
       end.
-
+  
   Definition trans R (it : itree hmodE R) : itree hmodE R :=
-    interp (case_ (bif:=sum1) trivial_Handler
-           (case_ (bif:=sum1) handle_schE_hmodE
-           (case_ (bif:=sum1) trivial_Handler
-                              trivial_Handler))) it.
+    interpV handle it.
 
   Definition trans_ktree (sb: fspecbody): Any.t -> itree hmodE Any.t :=
     fun arg =>
@@ -58,7 +63,7 @@ Module SCancelRed.
       =
       st <- SModCancel.trans s;; SModCancel.trans (k st).
   Proof using.
-    unfold SModCancel.trans in *. grind.
+    unfold SModCancel.trans in *. rewrite interpV_bind. eauto.
   Qed.
 
   Lemma tau `{Σ : GRA}
@@ -70,7 +75,7 @@ Module SCancelRed.
       =
       tau;; (SModCancel.trans t).
   Proof using.
-    unfold SModCancel.trans in *. grind.
+    unfold SModCancel.trans in *. rewrite interpV_tau. eauto.
   Qed.
 
   Lemma ret `{Σ : GRA}
@@ -82,31 +87,44 @@ Module SCancelRed.
       =
       Ret t.
   Proof using.
-    unfold SModCancel.trans in *. grind.
+    unfold SModCancel.trans in *. rewrite interpV_ret. eauto.
   Qed.
 
-  Lemma sch `{Σ : GRA}
-        (R: Type)
-        (i: schE R)
-        
+  Lemma yield `{Σ : GRA}
+    tid
     :
-      SModCancel.trans (trigger i)
-      =
-      r <- SModCancel.handle_schE_hmodE i;; tau;; Ret r.
+    SModCancel.trans (trigger (Yield tid))
+    =
+    trigger (Yield tid).
   Proof using.
-    unfold SModCancel.trans in *. rewrite interp_trigger. grind.
+    unfold SModCancel.trans in *. unfold trigger. rewrite interpV_vis. s.
+    eapply observe_eta; ss. f_equal. extensionalities. ired.
+    rewrite interpV_ret. et.
+  Qed.
+
+  Lemma spawn `{Σ : GRA}
+    fn args
+    :
+    SModCancel.trans (trigger (Spawn fn args))
+    =
+    tau;; SModCancel.HoareSpawn fn args.
+  Proof using.
+    unfold SModCancel.trans in *. unfold trigger. rewrite interpV_vis. s.
+    do 2 f_equal. eapply observe_eta; ss. f_equal. extensionalities.
+    ired. f_equal. extensionalities. rewrite interpV_ret. et.
   Qed.
   
   Lemma call `{Σ : GRA}
-        (R: Type)
-        (i: callE R)
-        
+    fn args
     :
-      SModCancel.trans (trigger i)
-      =
-      r <- trigger i;; tau;; Ret r.
+    SModCancel.trans (trigger (Call fn args))
+    =
+    tau;; trigger (Call fn args).
   Proof using.
-    unfold SModCancel.trans in *. rewrite interp_trigger. grind.
+    unfold SModCancel.trans, trigger in *. rewrite interpV_vis. s.
+    eapply observe_eta; ss. f_equal.
+    eapply observe_eta; ss. f_equal. extensionalities. ired.
+    rewrite interpV_ret. eauto.
   Qed.
 
   Lemma pg `{Σ : GRA}
@@ -116,9 +134,11 @@ Module SCancelRed.
     :
       SModCancel.trans (trigger i)
       =
-      r <- trigger i;; tau;; Ret r.
+      trigger i.
   Proof using.
-    unfold SModCancel.trans. rewrite interp_trigger. grind.
+    unfold SModCancel.trans, trigger. rewrite interpV_vis. s.
+    eapply observe_eta; ss. f_equal. extensionalities. ired.
+    rewrite interpV_ret. eauto.
   Qed.
 
   Lemma core `{Σ : GRA}
@@ -128,9 +148,11 @@ Module SCancelRed.
     :
       SModCancel.trans (trigger i)
       =
-      r <- trigger i;; tau;; Ret r.
+      trigger i.
   Proof using.
-    unfold SModCancel.trans. rewrite interp_trigger. grind.
+    unfold SModCancel.trans, trigger. rewrite interpV_vis. s.
+    eapply observe_eta; ss. f_equal. extensionalities. ired.
+    rewrite interpV_ret. eauto.
   Qed.
 
   Lemma ag `{Σ : GRA} {A} (e: agE A)
@@ -138,9 +160,11 @@ Module SCancelRed.
     :
       SModCancel.trans (trigger e)
       =
-      x <- trigger e ;; tau;; Ret x.
+      trigger e.
   Proof using.
-    unfold SModCancel.trans. rewrite interp_trigger. grind.
+    unfold SModCancel.trans, trigger. rewrite interpV_vis. s.
+    eapply observe_eta; ss. f_equal. extensionalities. ired.
+    rewrite interpV_ret. eauto.
   Qed.
   
   Lemma unwrapU `{Σ : GRA}
@@ -150,10 +174,13 @@ Module SCancelRed.
     :
       SModCancel.trans (@unwrapU hmodE _ _ i)
       =
-      r <- (unwrapU i);; Ret r.
+      unwrapU i.
   Proof using.
     unfold SModCancel.trans, unwrapU in *. des_ifs; grind.
-    unfold triggerUB in *. rewrite unfold_interp. grind.
+    - rewrite interpV_ret. et.
+    - unfold triggerUB. rewrite !interpV_bind !interpV_vis. s.
+      ired. eapply observe_eta; ss. f_equal. extensionalities.
+      ired. ss.
   Qed.
 
   Lemma unwrapN `{Σ : GRA}
@@ -163,10 +190,13 @@ Module SCancelRed.
     :
       SModCancel.trans (@unwrapN hmodE _ _ i)
       =
-      r <- (unwrapN i);; Ret r.
+      unwrapN i.
   Proof using.
     unfold SModCancel.trans, unwrapN in *. des_ifs; grind.
-    unfold triggerNB in *. rewrite unfold_interp. grind.
+    - rewrite interpV_ret. et.
+    - unfold triggerUB. rewrite !interpV_bind !interpV_vis. s.
+      ired. eapply observe_eta; ss. f_equal. extensionalities.
+      ired. ss.
   Qed.
   
   Lemma asm `{Σ : GRA}
@@ -174,7 +204,7 @@ Module SCancelRed.
     : 
       SModCancel.trans (assume P)
       =
-      r <- assume P;; tau;; Ret r.
+      assume P.
   Proof using.
     unfold assume. rewrite bind. rewrite core. grind. rewrite ret. refl.
   Qed. 
@@ -184,7 +214,7 @@ Module SCancelRed.
     : 
       SModCancel.trans (guarantee P)
       =
-      r <- guarantee P;; tau;; Ret r.
+      guarantee P.
   Proof using.
     unfold guarantee. rewrite bind. rewrite core. grind. rewrite ret. refl.
   Qed.

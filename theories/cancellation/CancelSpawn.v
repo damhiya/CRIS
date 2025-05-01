@@ -112,14 +112,14 @@ Proof.
   {
     rewrite list_lookup_insert; eauto; cycle 1.
     { rewrite length_insert length_app. s. nia. }
-    grind. unfold cancel_term, inline_hp.
-    match goal with [|-context[translate (_ ?scopes) ?itr]]=>
+    match goal with [|-context[interpV (_ ?scopes) ?itr]]=>
       fold (HModTr.sandbox scopes itr)
     end.
-    rewrite -HIRed.iter_handle_bind SBRed.bind.
-    do 4 f_equal. extensionalities.
+    unfold cancel_term, inline_hp.
+    rewrite SBRed.bind HIRed.iter_handle_bind. ired.
+    do 3 f_equal. extensionalities.
     rewrite SBRed.bind SBRed.core.
-    f_equal. extensionalities.
+    do 2 f_equal. extensionalities.
     rewrite SBRed.bind SBRed.ag SBRed.ret.
     refl.
   }

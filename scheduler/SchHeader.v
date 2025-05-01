@@ -53,7 +53,7 @@ Module Sch. Section Sch.
 
   Definition yield : itree E unit :=
     Seal.sealing "Sch"
-      (ITree.iter ((fun (_: unit) =>
+      (iterC ((fun (_: unit) =>
         b <- trigger (Choose bool);;
         if b: bool
         then Ret (inr tt: () + ())
@@ -64,7 +64,7 @@ Module Sch. Section Sch.
 
   Definition terminate : itree E unit :=
     Seal.sealing "Sch"
-      (ITree.iter ((fun (_: unit) =>
+      (iterC ((fun (_: unit) =>
         '():_ <- ccallU SchHdr.yield tt;;
         Ret (inl tt: () + ())
       )) tt).

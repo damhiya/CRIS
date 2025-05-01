@@ -10,39 +10,40 @@ Set Implicit Arguments.
 Section INTERP.
   Context `{Σ: GRA}.
 
-  Definition handle_callE (prog: callE ~> itree hmodE): itree hmodE Any.t -> itree hmodE (_ + Any.t)
-  :=
-    fun itr =>
-      match observe (itr: itree hmodE Any.t) with
-      | RetF rv => Ret (inr rv)
-      | TauF itr' => tau;; Ret (inl itr')
-      | VisF (inr1 (inr1 (inr1 (inr1 e)))) k =>
-          v <- trigger e;; Ret (inl (k v))
-      | VisF (inr1 (inr1 (inr1 (inl1 e)))) k => 
-          v <- trigger e;; Ret (inl (k v))
-      | VisF (inr1 (inr1 (inl1 c))) k =>
-          Ret (inl (x <- prog _ c;; tau;; (k x)))
-      | VisF (inr1 (inl1 e)) k =>
-          v <- trigger e;; Ret (inl (k v))
-      | VisF (inl1 e) k =>
-          v <- trigger e;; Ret (inl (k v))
-      end.
+  Definition handle_callE (prog: string * Any.t -> itree hmodE Any.t) (itr: itree hmodE Any.t)
+    : itree hmodE (itree hmodE Any.t + Any.t)
+    :=
+    match observe itr with
+    | RetF r => Ret (inr r)
+    | TauF itr' => tau;; Ret (inl itr')
+    | VisF (inr1 (inl1 c)) k =>
+        match c in (callE T) return ((T → _) → _)
+        with
+        | Call fn args =>
+            λ k, Ret (inl (x <- prog (fn, args);; (tau;; k x)))
+        | Spawn fn args =>
+            λ k, v <- trigger (Spawn fn args);; Ret (inl (k v))
+        | Yield tid =>
+            λ k, v <- trigger (Yield tid);; Ret (inl (k v))
+        end k
+    | VisF e k =>
+        v <- trigger e;; Ret (inl (k v))
+    end.
 
-  Definition inline_hp (prog: callE ~> itree hmodE) (itr: itree hmodE Any.t)
-    : itree hmodE Any.t
+  Definition inline_hp prog itr
     :=
     ITree.iter (handle_callE prog) itr.
 
-  Definition inline_hp_fun (prog: callE ~> itree hmodE) (body: Any.t -> itree hmodE Any.t)
+  Definition inline_hp_fun prog (body: Any.t -> itree hmodE Any.t)
     : Any.t -> itree hmodE Any.t
     :=
     fun args =>
       inline_hp prog (body args).
 
-  Definition prog (ms: HMod.t) : callE ~> itree hmodE :=
-    fun _ '(Call fn args) =>
-      lbody <- (alist_find fn ms.(HMod.fnsems))?;;
-      HModTr.sandbox_body lbody args.
+  Definition prog (ms: HMod.t) :=
+    fun '(fn, args) =>
+    lbody <- (alist_find fn ms.(HMod.fnsems))?;;
+    HModTr.sandbox_body lbody args.
       
   Definition inline_hp_fbody (ms: HMod.t)
     : (list string * (Any.t -> itree hmodE Any.t)) -> (list string * (Any.t -> itree hmodE Any.t))
@@ -84,10 +85,10 @@ End HModInline.
 
 Module HIRed.
 
-  Lemma iter_handle_bind `{Σ: GRA} ms i k:
-    ITree.iter (handle_callE (prog ms)) (i >>= k)
+  Lemma iter_handle_bind `{Σ: GRA} prg i k:
+    ITree.iter (handle_callE prg) (i >>= k)
     =
-    x <- (ITree.iter (handle_callE (prog ms)) i);; ITree.iter (handle_callE (prog ms)) (k x).
+    x <- (ITree.iter (handle_callE prg) i);; ITree.iter (handle_callE prg) (k x).
   Proof using. 
     eapply bisim_is_eq.
     eapply (@gpaco2_init _ _ _ _ (eqitC eq false false)); eauto with paco.
@@ -104,12 +105,7 @@ Module HIRed.
         grind. rewrite! bind_trigger. gstep. econs. i.
         r. grind. gstep. econs. gbase. eauto.
       }
-      destruct p.
-      {
-        grind. rewrite! bind_trigger. gstep. econs. i.
-        r. grind. gstep. econs. gbase. eauto.  
-      }
-      destruct s.
+      destruct p; [destruct c|].
       {
         grind. gstep. econs. 
         guclo eqit_clo_trans; eauto.
@@ -118,12 +114,15 @@ Module HIRed.
         { gbase. eapply CIH. }
         { instantiate (1:= eq). i. subst. refl. }
         { i. subst. refl. }
-        grind. 
-        replace (' x : X <- prog ms c;; (tau;; ITree.subst k (k0 x)))
-        with (' r0 : X <- prog ms c;; ' x : Any.t <- (tau;; k0 r0);; k x) by grind.
+        grind.
+        replace (' x :_ <- prg (fn, args);; (tau;; ITree.subst k (k0 x)))
+        with (' r0 : _ <- prg (fn, args);; ' x : _ <- (tau;; k0 r0);; k x) by grind.
         refl.
       } 
-      destruct s.
+      {
+        grind. rewrite! bind_trigger. gstep. econs. i.
+        r. grind. gstep. econs. gbase. eauto.  
+      }
       {
         grind. rewrite! bind_trigger. gstep. econs. i.
         r. grind. gstep. econs. gbase. eauto.
@@ -149,26 +148,36 @@ Module HIRed.
     rewrite/inline_hp unfold_iter_eq. grind.
   Qed.
 
-  Lemma bind `{Σ: GRA} ms
+  Lemma bind `{Σ: GRA} prg
     itr ktr
   :
-    inline_hp (prog ms) (itr >>= ktr)
+    inline_hp prg (itr >>= ktr)
     =
-    x <- inline_hp (prog ms) itr;; inline_hp (prog ms) (ktr x).
+    x <- inline_hp prg itr;; inline_hp prg (ktr x).
   Proof using.
     rewrite/inline_hp iter_handle_bind. refl.
   Qed.
 
-  Lemma bind_sch `{Σ: GRA}
-    X prog (e: schE X) ktr
+  Lemma bind_spawn `{Σ: GRA}
+    prog fn args ktr
   :
-    inline_hp prog (x <- trigger e;; ktr x) 
+    inline_hp prog (x <- trigger (Spawn fn args);; ktr x) 
     =
-    x <- trigger e;; tau;; inline_hp prog (ktr x).
+    x <- trigger (Spawn fn args);; tau;; inline_hp prog (ktr x).
   Proof using.
     rewrite/inline_hp unfold_iter_eq. grind.
   Qed.
 
+  Lemma bind_yield `{Σ: GRA}
+    prog tid ktr
+  :
+    inline_hp prog (x <- trigger (Yield tid);; ktr x) 
+    =
+    x <- trigger (Yield tid);; tau;; inline_hp prog (ktr x).
+  Proof using.
+    rewrite/inline_hp unfold_iter_eq. grind.
+  Qed.
+  
   Lemma bind_core `{Σ: GRA}
     X prog (e: coreE X) ktr
   :
@@ -204,7 +213,7 @@ Module HIRed.
   :
     inline_hp prog (trigger (Call fn arg) >>= ktr)
     =
-    tau;; inline_hp prog (x <- prog Any.t (resum IFun Any.t (Call fn arg));; tau;; ITree.subst ktr (Ret x)).
+    tau;; inline_hp prog (x <- prog (fn, arg);; tau;; ITree.subst ktr (Ret x)).
   Proof using.
     rewrite/inline_hp unfold_iter_eq. ired. refl.
   Qed.
@@ -228,114 +237,114 @@ Proof using.
   specialize (SCP fn). rewrite/fnsems_scopes FIND in SCP.
   
   (* remember (HMod.scopes ms) as scopeS. i. *)
-  rename l into scopeT. 
-  apply bisim_is_eq. move scopeT at bottom.
+  rename l into sc. 
+  apply bisim_is_eq. move sc at bottom.
   eapply (@gpaco2_init _ _ _ _ (eqitC eq false false)); eauto with paco.
   generalize (i args) as itr. clear FIND fn i args.
   revert_until ms. gcofix CIH. i.
   ides itr.
-  - rewrite !SBRed.ret HIRed.ret SBRed.ret. gstep. econs. refl.
-  - rewrite !SBRed.tau HIRed.tau !SBRed.tau. 
-    gstep. econs. gstep. econs. gbase. eauto.
-  - rewrite -bind_trigger !SBRed.bind.
-    destruct e.
+  { rewrite !SBRed.ret HIRed.ret SBRed.ret. gstep. econs. refl. }
+  { rewrite !SBRed.tau HIRed.tau !SBRed.tau. 
+    gstep. econs. gstep. econs. gbase. eauto. }
+  rewrite -bind_trigger !SBRed.bind.
+  destruct e.
+  {
+    assert ((@ITree.trigger (@hmodE Σ) X (inl1 a)) = trigger a) by grind. 
+    rewrite H !SBRed.ag HIRed.bind_ag SBRed.bind SBRed.ag !bind_trigger.
+    gstep. econs. i. r.
+    rewrite SBRed.tau. gstep. econs. gbase. eauto.
+  }
+  destruct p; [destruct c|].
+  {
+    rewrite !SBRed.call.
+
+    rewrite HIRed.call SBRed.tau. s.
+    gstep. econs.
+    destruct (alist_find fn (HMod.fnsems ms)) eqn: FIND'; cycle 1.
     {
-      assert ((@ITree.trigger (@hmodE Σ) X (inl1 a)) = trigger a) by grind. 
-      rewrite H !SBRed.ag HIRed.bind_ag SBRed.bind SBRed.ag !bind_trigger.
-      gstep. econs. i. r.
-      rewrite SBRed.tau. gstep. econs. gbase. eauto.
-    }
-    destruct p.
-    {
-      assert ((@ITree.trigger (@hmodE Σ) X (inr1 (inl1 s))) = trigger s) by grind.
-      rewrite H !SBRed.sch HIRed.bind_sch SBRed.bind SBRed.sch !bind_trigger.
-      gstep. econs. i. r.
-      rewrite SBRed.tau. gstep. econs. gbase. eauto.
-    }
-    destruct s.
-    {
-      assert ((@ITree.trigger (@hmodE Σ) X (inr1 (inr1 (inl1 c)))) = trigger c) by grind.
-      destruct c. rewrite H.
-      rewrite !SBRed.call HIRed.call SBRed.tau. s.
-      gstep. econs.
-      destruct (alist_find fn (HMod.fnsems ms)) eqn: FIND.
-      { 
-        ired. assert (X:=@sandbox_well_scoped). 
-        unfold HModTr.sandbox_body. destruct p. s.
-        gbase.
-        match goal with
-        [|- _ _ (_ _ ?itr)] => assert (EX: exists itr', itr = HModTr.sandbox (HMod.scopes ms) itr')
-        end.
-        {
-          eexists. instantiate (1:= _ >>= _). 
-          rewrite SBRed.bind. f_equal.
-          { 
-            erewrite <-(@sandbox_well_scoped _ _ l); eauto. 
-            assert(SCP0 := ms.(HMod.well_scoped_fns)).
-            specialize (SCP0 fn). rewrite/fnsems_scopes FIND in SCP0.
-            eauto.
-          }
-          extensionality x.
-          instantiate (1:= fun x => tau;;(_ x)). s.
-          rewrite SBRed.tau. do 2 f_equal.
-          ired.
-          erewrite <-(@sandbox_well_scoped _ _ scopeT); eauto. 
-          instantiate (1:= fun x => HModTr.sandbox scopeT (k x)). 
-          s. refl.
-        }
-        des. rewrite EX. eapply CIH. refl.
-      }
       ired. unfold triggerUB. ired. 
       rewrite !HIRed.bind_core !SBRed.bind SBRed.core !bind_trigger.
       gstep. econs. i. ss.
     }
-    destruct s.
+
+    ired. unfold HModTr.sandbox_body. destruct p as [sc0 bd0]. s.
+    match goal with
+      [|- _ _ (_ _ ?itr)] => assert (EX: exists itr', itr = HModTr.sandbox (HMod.scopes ms) itr')
+    end.
     {
-      assert ((@ITree.trigger (@hmodE Σ) X (inr1 (inr1 (inr1 (inl1 p))))) = trigger p) by grind.
-      destruct p; rewrite H.
+      eexists. instantiate (1:= _ >>= _). 
+      rewrite SBRed.bind. f_equal.
       {
-        rewrite !SBRed.put. des_ifs.
-        {
-          rewrite HIRed.bind_pg SBRed.bind SBRed.put. des_ifs; cycle 1.
-          {
-            exfalso. assert (existsb (String.eqb k0.1) (HMod.scopes ms) = true).
-            {
-              eapply existsb_exists. eapply existsb_exists in Heq. des.
-              esplits; eauto.
-            }
-            rewrite H0 in Heq0. ss.
-          }
-          rewrite !bind_trigger. gstep. econs. i.
-          rewrite SBRed.tau. gstep. econs. gbase; eauto. 
-        }
-        rewrite HIRed.bind_core SBRed.bind SBRed.core !bind_trigger. 
-        gstep. econs. i. r. 
-        rewrite SBRed.tau. gstep. econs. gbase; eauto.
+        erewrite <-(@sandbox_well_scoped _ _ sc0); try refl; eauto.
+        assert(SCP0 := ms.(HMod.well_scoped_fns)).
+        specialize (SCP0 fn). rewrite/fnsems_scopes FIND' in SCP0.
+        eauto.
       }
-      rewrite !SBRed.get. des_ifs.
-      {
-        rewrite HIRed.bind_pg SBRed.bind SBRed.get. des_ifs; cycle 1.
-        {
-          exfalso. assert (existsb (String.eqb k0.1) (HMod.scopes ms) = true).
-          {
-            eapply existsb_exists. eapply existsb_exists in Heq. des.
-            esplits; eauto.
-          }
-          rewrite H0 in Heq0. ss.
-        }
-        rewrite !bind_trigger. gstep. econs. i.
-        rewrite SBRed.tau. gstep. econs. gbase; eauto. 
-      }
-      rewrite HIRed.bind_core SBRed.bind SBRed.core !bind_trigger. 
-      gstep. econs. i. r. 
-      rewrite SBRed.tau. gstep. econs. gbase; eauto.
+      extensionality x.
+      instantiate (1:= fun x => tau;;(_ x)). s.
+      rewrite SBRed.tau. do 2 f_equal.
+      ired.
+      erewrite <-(@sandbox_well_scoped _ _ sc); eauto. 
+      instantiate (1:= fun x => HModTr.sandbox sc (k x)). s. refl.
     }
-    assert ((@ITree.trigger (@hmodE Σ) X (inr1 (inr1 (inr1 (inr1 c))))) = trigger c) by grind.
-    rewrite H SBRed.core HIRed.bind_core SBRed.bind SBRed.core !bind_trigger.
+    des. rewrite EX. gbase. eapply CIH; try refl.
+  }
+  {
+    rewrite !SBRed.spawn.
+    rewrite HIRed.bind_spawn SBRed.bind SBRed.spawn.
+    rewrite !bind_trigger.
     gstep. econs. i. r.
-    rewrite SBRed.tau. gstep. econs. gbase; eauto.
-  Unshelve.
-    eapply eqit__mono; eauto.
+    rewrite SBRed.tau. gstep. econs. gbase. eauto.
+  }
+  {
+    rewrite !SBRed.yield HIRed.bind_yield SBRed.bind SBRed.yield !bind_trigger.
+    gstep. econs. i. r.
+    rewrite SBRed.tau. gstep. econs. gbase. eauto.
+  }
+  destruct s; [destruct p|].
+  {
+    rewrite !SBRed.put. des_ifs.
+    {
+      rewrite HIRed.bind_pg SBRed.bind SBRed.put. des_ifs; cycle 1.
+      {
+        exfalso. assert (existsb (String.eqb k0.1) (HMod.scopes ms) = true).
+        {
+          eapply existsb_exists. eapply existsb_exists in Heq. des.
+          esplits; eauto.
+        }
+        rewrite H in Heq0. ss.
+      }
+      rewrite !bind_trigger. gstep. econs. i.
+      rewrite SBRed.tau. gstep. econs. gbase; eauto. 
+    }
+    unfold triggerUB. ired.
+    rewrite HIRed.bind_core SBRed.bind SBRed.core !bind_trigger. 
+    gstep. econs. i. ss.
+  }
+  {
+    rewrite !SBRed.get. des_ifs.
+    {
+      rewrite HIRed.bind_pg SBRed.bind SBRed.get. des_ifs; cycle 1.
+      {
+        exfalso. assert (existsb (String.eqb k0.1) (HMod.scopes ms) = true).
+        {
+          eapply existsb_exists. eapply existsb_exists in Heq. des.
+          esplits; eauto.
+        }
+        rewrite H in Heq0. ss.
+      }
+      rewrite !bind_trigger. gstep. econs. i.
+      rewrite SBRed.tau. gstep. econs. gbase; eauto. 
+    }
+    unfold triggerUB. ired.
+    rewrite HIRed.bind_core SBRed.bind SBRed.core !bind_trigger. 
+    gstep. econs. i. ss.
+  }
+  rewrite SBRed.core HIRed.bind_core SBRed.bind SBRed.core !bind_trigger.
+  gstep. econs. i. r.
+  rewrite SBRed.tau. gstep. econs. gbase; eauto.
+Unshelve.
+  eapply eqit__mono; eauto.
 (*SLOW*)Qed.
 
 Definition bindRR `{Σ: GRA} {R} RR P : nat -> alist key Any.t * R-> alist key Any.t * R -> iProp Σ :=
@@ -357,8 +366,3 @@ Lemma isim_RR_frame `{Σ: GRA}
 Proof using.
   iIntros "[H0 H1]". iApply isim_wand. iFrame. eauto.
 Qed.
-
-Definition progI `{Σ: GRA} fl : callE ~> itree hmodE :=
-  fun _ '(Call fn args) =>
-    lbody <- (alist_find fn fl)?;;
-    lbody args.
