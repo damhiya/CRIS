@@ -3,6 +3,7 @@ Require Import Common.
 Require Import Mod HMod.
 Require Import ModSim ModSimFacts ISim ISimInit ISimFacts.
 Require Import CtxRefine MainAdequacy.
+Require Import Tactics TacticsInit.
 
 Global Program Instance refines_mod_PreOrder : PreOrder refines_mod.
 Next Obligation. ii. ss. Qed.
@@ -153,4 +154,74 @@ Proof.
     eapply ctxr_frameR, ctxr_cond_frameR. apply REFA. }
   rewrite hmod_add_assoc.
   apply ctxr_frameL, ctxr_comm.
+Qed.
+
+(*** elimination of a module ***)
+Lemma ctxr_elim_module `{Σ : GRA} m mc:
+  ctx_refines (m, emp)%I (m ★ mc, emp)%I.
+Proof.
+  eapply main_adequacy with (Ist := IstProd (IstSB m.(HMod.scopes) IstEq) (IstSB mc.(HMod.scopes) IstTrue)).
+  init_sim; s; eauto.
+  { iIntros "_". unfold IstProd, IstSB, IstEq, IstTrue, state_scopes.
+    iPureIntro. esplits; eauto using List.app_nil_r, HMod.well_scoped_init.
+    ii. ss.
+  }
+  { eauto using sub_perm_remove_tail. }
+  { rewrite List.map_app. eauto using sub_perm_remove_tail. }
+
+  econs. s. erewrite alist_find_app; et. esplits; et.
+  destruct fs as [sc bd].
+  r. r. i. subst y. unfold HModTr.sandbox_body. s.
+  generalize (bd x) as itr. clear x NODS NODD.
+  combine_quant st_src; combine_quant st_tgt; combine_quant nths.
+  eapply isim_coind.
+  iIntros (g' [nths [st_tgt [st_ssrc itr]]] MON) "[#IST #CIH]". s.
+
+  assert (CASE:= case_itrH itr). des; subst; s.
+  - step; et.
+  - steps_l. steps_r. by_coind "CIH"; et.
+  - steps_l. force_r. iSplitL "ASM"; et. steps_r. by_coind "CIH"; et.
+  - steps_r. force_l. iSplitL "GRT"; et. steps_l. by_coind "CIH"; et.
+  - destruct c; s; steps_l; steps_r.
+    + call "IST"; et. steps_l. steps_r. by_coind "CIH"; et.
+    + step; et. steps_l. steps_r. by_coind "CIH"; et.
+    + yield "IST"; et. steps_l. steps_r. by_coind "CIH"; et.
+  - destruct s; s.
+    + rewrite SBRed.bind SBRed.put. des_ifs; cycle 1.
+      { steps_l. ss. }
+      iApply isim_sput_src. iApply isim_sput_tgt. by_coind "CIH"; et.
+      iDestruct "IST" as "%". des; subst. iPureIntro.
+      eapply existsb_exists in Heq. des. apply String.eqb_eq in Heq0. subst.
+      esplits; try rewrite alist_upd_not_tail; et; 
+        try rewrite state_scopes_update; et.
+      { ii. eapply NoDup_app_disjoint; try apply WFT.
+        - eapply HMod.well_scoped_fns. unfold fnsems_scopes. erewrite FIND. eauto.
+        - eapply H1. eapply in_map in H. rewrite List.map_map in H. et.
+      }
+      { ii. eapply NoDup_app_disjoint; try apply WFT.
+        - eapply HMod.well_scoped_fns. unfold fnsems_scopes. erewrite FIND. eauto.
+        - eapply H3. eapply in_map in H. rewrite List.map_map in H. et.
+      }
+    + rewrite SBRed.bind SBRed.get. des_ifs; cycle 1.
+      { steps_l. ss. }
+      iApply isim_sget_src. iApply isim_sget_tgt.
+      iDestruct "IST" as "%". des; subst.
+      eapply existsb_exists in Heq. des. apply String.eqb_eq in Heq0. subst.
+      rewrite !alist_find_app_o.
+      rewrite (alist_find_fst_notin _ x1); cycle 1.
+      { ii. eapply NoDup_app_disjoint; try apply WFT.
+        - eapply HMod.well_scoped_fns. unfold fnsems_scopes. erewrite FIND. eauto.
+        - eapply H1. eapply in_map in H. rewrite List.map_map in H. et.
+      }
+      rewrite (alist_find_fst_notin _ x2); cycle 1.
+      { ii. eapply NoDup_app_disjoint; try apply WFT.
+        - eapply HMod.well_scoped_fns. unfold fnsems_scopes. erewrite FIND. eauto.
+        - eapply H3. eapply in_map in H. rewrite List.map_map in H. et.
+      }
+      by_coind "CIH"; et.
+      iPureIntro. esplits; eauto.
+  - destruct e.
+    + steps_r. force_l q. steps_l. by_coind "CIH"; et.
+    + steps_l. force_r q. steps_r. by_coind "CIH"; et.
+    + step. steps_l. steps_r. by_coind "CIH"; et.
 Qed.

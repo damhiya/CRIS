@@ -49,6 +49,9 @@ Definition IstSB `{Σ : GRA} scopes (Ist : nat -> alist key Any.t -> alist key A
 Definition IstEq `{Σ : GRA} : nat -> alist key Any.t -> alist key Any.t -> iProp Σ :=
   (fun _ st_src st_tgt => ⌜st_src = st_tgt⌝)%I.
 
+Definition IstTrue `{Σ : GRA} : nat -> alist key Any.t -> alist key Any.t -> iProp Σ :=
+  (fun _ _ _ => ⌜True⌝)%I.
+
 Lemma state_scopes_update k v st:
   state_scopes (alist_upd k v st) = state_scopes st.
 Proof.
