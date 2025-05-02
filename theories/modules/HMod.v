@@ -223,39 +223,3 @@ Section HModFacts.
       repeat f_equal. extensionality x. rewrite bind_ret_l. eauto.
   Qed.
 End HModFacts.
-
-Module HMWrap. Section HMWrap.
-  Context `{Σ: GRA}.
-
-  Definition handler (fns: list string) : ∀ T, hmodE T -> (itree hmodE T + {X: Type & hmodE X * (X -> itree hmodE T)})%type :=
-    λ T e, inr
-      match e with
-      | inr1 (inl1 (Call fn args)) =>
-          if existsb (String.eqb fn) fns
-          then existT _ (e, fun v => Ret v)
-          else existT _ (subevent _ (Take False), fun v => Ret (False_rect _ v))
-      | inr1 (inl1 (Spawn fn args)) =>
-          if existsb (String.eqb fn) fns
-          then existT _ (e, fun v => Ret v)
-          else existT _ (subevent _ (Take False), fun v => Ret (False_rect _ v))
-      | _ => existT _ (e, fun v => Ret v)
-      end.
-
-  Definition wrap fns (code: Any.t -> itree hmodE Any.t) :
-    Any.t -> itree hmodE Any.t
-    :=
-    fun x => interpV (handler fns) (code x).
-
-  Program Definition hmod fns (m: HMod.t) : HMod.t :=
-    {|HMod.scopes := m.(HMod.scopes)
-    ; HMod.fnsems := List.map (map_snd (map_snd (wrap fns))) m.(HMod.fnsems)
-    ; HMod.initial_st := m.(HMod.initial_st)
-    |}.
-  Next Obligation.
-    ii. eapply (m.(HMod.well_scoped_fns) fn). unfold fnsems_scopes in *.
-    rewrite !alist_find_map_snd in H. des_ifs; eauto.
-  Qed.
-  Next Obligation. ii. eapply (m.(HMod.well_scoped_init)). eauto. Qed.
-  Next Obligation. ii. eapply (m.(HMod.nodup_fns)). eauto. Qed.
-
-End HMWrap. End HMWrap.
