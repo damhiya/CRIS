@@ -34,9 +34,19 @@ Lemma cancel_aux_spawn `{Σ: GRA} md
   CANCEL_GOAL md (gpaco7 _simg (cpn7 _simg) bot7 r) rs0 rt0 ps pt srcs tgts cid st rs rt.
 Proof.
   r. _iter. _iter. rewrite SRC TGT. ired.
+  hide_r.
+  rewrite !alist_find_map_snd. remember wrap_elimI as WRAP; guardH HeqWRAP.
+  destruct (alist_find fn (SMod.fnsems md)) eqn: EQ; s; cycle 1.
+  { unfold ModTr.interp_stateE, triggerUB, ModTr.pure_state. ired.
+    gstep. econs. econs. ss. }
+  ired.
+  reveal ITREE.
   hide_l. _coreA.
   iterT 2. iterL. _coreA. ls.
-  iterT 2. iterL. tau 1. ls.
+  iterT 2. iterL.
+  rewrite !alist_find_map_snd EQ. remember wrap_elimI as WRAP'; guardH HeqWRAP'.
+  s. ired.
+  tau 1. ls.
   rewrite !length_insert.
   rewrite <- insert_app_l; eauto.
   match goal with [|-context[tgts ++ ?t]] =>
@@ -56,20 +66,19 @@ Proof.
   iterL. tau 1. ls.
   hexploit sp_in_alist_find; eauto. i. des.
   reveal ITREE.
-  rewrite !alist_find_map_snd !H. s.
+  unguard. subst.
   erewrite wrap_elimI_well_scoped; cycle 1.
   {
     instantiate (1:= fn).
-    s. unfold SModCancel.trans_ktree. s.
-    rewrite alist_find_map_snd H. ss.
+    s. unfold SModCancel.trans_ktree.
+    rewrite alist_find_map_snd EQ. ss.
   }
   erewrite wrap_elimI_well_scoped; cycle 1.
   {
     instantiate (1:= fn).
     s. unfold SModTr.trans_ktree. s.
-    rewrite alist_find_map_snd H. ss.
+    rewrite alist_find_map_snd EQ. ss.
   }
-  ired.
   unfold SModTr.trans_ktree, inline_hp_fun, HModTr.sandbox_body. s.
   unfold SModTr.trans_ktree, SModCancel.trans_ktree. s.
   hide_l. _iter.
@@ -78,6 +87,7 @@ Proof.
   assert (forall x, List.length tgts < List.length (tgts ++ [x])).
   { i. rewrite length_app. s. nia. }
   hexploit (Own_bupd_split rt); eauto. i. des.
+  rewrite EQ in H. depdes H.
   _coreE x.
   iterT 2. iterL. _coreE args. ls.
   iterT 2. iterL. _supd. iterL. _coreE (a1 ⋅ x1). ls.
@@ -124,14 +134,14 @@ Proof.
     refl.
   }
   { i. nia. }
-  i. rewrite list_lookup_insert_ne in H6; eauto.
+  i. rewrite list_lookup_insert_ne in H5; eauto.
   destruct (Nat.eq_dec cid k).
   {
-    subst k. rewrite list_lookup_insert in H6; cycle 1.
+    subst k. rewrite list_lookup_insert in H5; cycle 1.
     { rewrite length_app. s. nia. }
-    rewrite list_lookup_insert in H5; cycle 1.
+    rewrite list_lookup_insert in H4; cycle 1.
     { rewrite length_app. s. nia. }
-    inv H6. econs; eauto; cycle 1.
+    inv H5. econs; eauto; cycle 1.
     { destruct (Nat.eq_dec cid (base.length tgts)); try nia. grind. }
     {
       destruct (Nat.eq_dec cid (base.length tgts)); try nia.
@@ -141,8 +151,9 @@ Proof.
     }
     eapply KTR.
   }
-  rewrite !list_lookup_insert_ne in H5, H6; try nia.
-  eapply lookup_snoc_Some in H5, H6. des; try nia.
-  specialize (RELS k x4 y n H8 H7).
+  rewrite !list_lookup_insert_ne in H4, H5; try nia.
+  eapply lookup_snoc_Some in H4, H5. des; try nia.
+  specialize (RELS k x4 y n H7 H6).
   inv RELS. econs; eauto; des_ifs.
+Unshelve. all: eauto.
 (*SLOW*)Qed.

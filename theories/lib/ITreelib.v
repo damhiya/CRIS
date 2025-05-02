@@ -629,6 +629,21 @@ Proof.
   f_equal. extensionalities. ired. eauto.
 Qed.
 
+Lemma interpV_trigger (E F : Type -> Type) (R : Type) (e : E R) f:
+  interpV f (ITree.trigger e) =
+  match f R e with
+  | inl t => tau;; t
+  | inr (existT _ X (e', k')) => x' <- trigger (e': F X) ;; k' x'
+  end.
+Proof.
+  unfold ITree.trigger. rewrite interpV_vis. des_ifs; s; ired.
+  - do 2 f_equal. rewrite <-(bind_ret_r i) at 2. f_equal. extensionalities.
+    rewrite interpV_ret. et.
+  - unfold ITree.trigger. f_equal. extensionalities.
+    rewrite <-(bind_ret_r (i H)) at 2. f_equal. extensionalities.
+    rewrite interpV_ret. et.
+Qed.
+
 Lemma interpV_bind {E F R S} f t k:
   @interpV E F S f ('x: R <- t;; k x) = x <- interpV f t;; interpV f (k x).
 Proof.

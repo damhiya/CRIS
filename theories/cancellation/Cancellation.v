@@ -134,16 +134,15 @@ Proof.
   r. eapply adequacy_global.
   instantiate (1:= smj_top).
   instantiate (1:= smj_top).
-  unfold Mod.compile. s. unfold ITree.map.
+  unfold Mod.compile. s. unfold ITree.map. unfold Mod.prog at 1 2 3.
   destruct (alist_find "CRIS_init" (SMod.fnsems md)) eqn:E; cycle 1.
-  {
-    rewrite !alist_find_map/o_map E. s.
-    rewrite /sp_from /Sp.to_sp alist_find_map E in SPC. ss.
-  }
-  rewrite !alist_find_map/o_map E. s. 
+  { rewrite !alist_find_map /o_map E.
+    rewrite /sp_from /Sp.to_sp alist_find_map E in SPC. ss. }
+  rewrite !alist_find_map/o_map E. s.
   erewrite !wrap_elimI_well_scoped; cycle 1.
   { unfold SMod.to_hmod. s. rewrite alist_find_map_snd. instantiate (1:= "CRIS_init"). rewrite E. ss. }
-  { unfold SModCancel.to_hmod. s. rewrite alist_find_map_snd. instantiate (1:= "CRIS_init"). rewrite E. ss. }
+  { unfold SModCancel.to_hmod. s.
+    rewrite alist_find_map_snd. instantiate (1:= "CRIS_init"). rewrite E. ss. }
   ired. destruct p. s.
   unfold HModTr.sandbox_body, HModTr.trans_ktree. s.
   unfold inline_hp_fun, SModTr.trans_ktree. s.
@@ -175,9 +174,11 @@ Proof.
   exists VALID'. ired. _tau. st. st.
   _iter. _supd. _iter. _supd.
   _iter. _tau. st. st. rewrite HRed.tau. _iter. _tau. st. st.
-
-  (* CRIS_init's precond all executed. *)
   reveal ITREE. 
+
+  assert (XXX := @cancel_aux). r in XXX.
+  
+  (* CRIS_init's precond all executed. *)
   eapply cancel_aux; eauto; cycle 1.
   { eapply Own_equiv in EQUIV. iIntros "H". iModIntro. iApply EQUIV. eauto. }
   econs; eauto using Forall2i.
@@ -193,6 +194,7 @@ Proof.
   rewrite SBRed.bind SBRed.ag. do 2 f_equal.
   extensionalities.
   rewrite SBRed.ret. ss.
+Unshelve. all: eauto.  
 (*SLOW*)Qed.
 
 (*** Final Theorem ***)

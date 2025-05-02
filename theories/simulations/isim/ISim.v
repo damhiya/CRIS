@@ -539,6 +539,17 @@ Section SIM.
     split; intros x wfx SIM; guclo hsimC_spec. econs; esplits; eauto. econs 22; eauto.
   Qed.
 
+  Lemma isim_spawn_none
+    r g ps pt {Rs Rt} RR nths st_src st_tgt k_src i_tgt fn varg
+    (CLOSED: contextual = closed)
+    (FIND: alist_find fn fl_src = None)
+  :
+    (@isim r g Rs Rt RR true pt nths (st_src, x <- triggerUB;; tau;; tau;; k_src x) (st_tgt, i_tgt))
+    ⊢ (@isim r g Rs Rt RR ps pt nths (st_src, trigger (Spawn fn varg) >>= k_src) (st_tgt, i_tgt)).
+  Proof using.
+    split; intros x wfx SIM; guclo hsimC_spec. econs; esplits; eauto. econs 23; eauto.
+  Qed.
+  
   Lemma isim_progress r g {Rs Rt} RR nths st_src st_tgt i_src i_tgt :
     @isim g g Rs Rt RR false false nths (st_src, i_src) (st_tgt, i_tgt)
     ⊢ @isim r g Rs Rt RR true true nths (st_src, i_src) (st_tgt, i_tgt).

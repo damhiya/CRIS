@@ -322,16 +322,9 @@ Proof.
     { eapply le_mine_in; eauto; rewrite length_insert; eauto using le_mine_in. }
     rewrite /ctx_add /ctx_set list_lookup_insert; eauto using le_mine_in.
   - clarify. prep. guclo sim_itree_indC_spec. econs 16.
-    { rewrite alist_find_map FUN. et. }
-    rewrite /HModTr.trans_ktree.
-    exploit (K _ _ st_src st_tgt _ _ _ _ _ _ mr_src mr_tgt); eauto.
-    clear K CIH; intros K.
-      pattern (x <- triggerUB;; (tau;; x_ <- (tau;; Ret x);; HModTr.trans (k_src x_))).
-    eapply eq_ind; eauto.
-    rewrite HRed.bind.
-    repeat f_equal. 
-    { rewrite HRed.triggerUB. eauto. }
-    extensionalities x. grind. rewrite !HRed.tau. eauto.
+    rewrite alist_find_map FUN. et.
+  - clarify. prep. guclo sim_itree_indC_spec. econs 17.
+    rewrite alist_find_map FUN. et.
   - clarify. pclearbot. gstep; econs; econs; eauto; cycle 1.
     { gfinal; left; eapply CIH; eauto. }
     by apply le_others_refl.

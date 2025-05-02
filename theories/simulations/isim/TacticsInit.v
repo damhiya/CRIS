@@ -20,4 +20,4 @@ Ltac init_sim :=
   |eauto
   |try prove_sub_perm
   |try prove_sub_perm
-  |unfold_hmod_fn; i; des; subst; ss].
+  |try unfold_hmod_fn; i; des; subst; ss].

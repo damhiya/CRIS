@@ -66,21 +66,15 @@ Module HModInline.
   Program Definition inline `{Σ: GRA} (ms: HMod.t): HMod.t := {|
     HMod.scopes := ms.(scopes);
     HMod.fnsems := List.map (map_snd (wrap_elimI ms)) (ms.(fnsems));
-    (* HMod.fnsems := List.map (map_snd (λ ksb, (ksb.1, inline_hp_fun (prog ms) ksb.2))) (ms.(fnsems)); *)
     HMod.initial_st := ms.(initial_st);
   |}.
   Next Obligation.
     i. depdes ms. ss. ii. unfold fnsems_scopes in *. unfold map_snd in*.
     rewrite! alist_find_map in H. unfold o_map in H.
     des_ifs; ss. 
-    (* inv Heq0.
-    specialize (well_scoped_fns0 fn a).
-    des_ifs; ss. inv Heq. eauto. *)
   Qed.
   Next Obligation. ii. destruct ms. ss. eauto. Qed.
   Next Obligation. ii. destruct ms. ss. eauto. Qed.
-
-  (* Definition to_elim ms := to_hmod ((interp_sb_hp_elim) ∘ fsb_body) ms. *)
 End HModInline.
 
 Module HIRed.

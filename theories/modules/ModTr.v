@@ -16,7 +16,7 @@ Section EXEC.
 
   Definition ths_state : Type := nat * list (itree modE Any.t).
 
-  Definition handle_callE (prog: string * Any.t -> itree modE Any.t)
+  Definition handle_callE (prog: string -> option (Any.t -> itree modE Any.t))
       : ths_state -> itree (stateE +' coreE) (ths_state + Any.t) :=
     fun '(tid, ths) =>
       itr <- (base.lookup tid ths)? ;;
@@ -31,9 +31,11 @@ Section EXEC.
       | VisF (inl1 e) k =>
           match e in callE T return (T -> _) -> _ with
           | Call fn arg => fun k =>
-            Ret (inl (tid, base.insert tid (x <- prog (fn, arg);; tau;; k x) ths))
+            bd <- (prog fn)? ;;
+            Ret (inl (tid, base.insert tid (x <- bd arg;; tau;; k x) ths))
           | Spawn fn arg => fun k =>
-            Ret (inl (tid, (base.insert tid (k (List.length ths)) ths) ++ [prog (fn, arg)]))
+            bd <- (prog fn)? ;;
+            Ret (inl (tid, (base.insert tid (k (List.length ths)) ths) ++ [bd arg]))
           | Yield tid' => fun k =>
             Ret (inl (tid', base.insert tid (k tt) ths))
           end k
