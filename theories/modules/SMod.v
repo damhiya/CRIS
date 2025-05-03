@@ -12,7 +12,7 @@ Section SMOD.
 
   Record t : Type := mk {
     scopes : list string;
-    fnsems : alist string (list string * fspecbody);
+    fnsems : alist string ((string->bool) * list string * fspecbody);
     initial_st : alist key Any.t;
 
     well_scoped_fns:

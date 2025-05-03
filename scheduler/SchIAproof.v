@@ -363,7 +363,7 @@ Section SchIA.
     iPoseProof (tid_admin_some_user with "[TA tid]") as "%"; iFrame; subst.
     steps_r. hss. steps_r.
 
-    step. steps_r. hss. steps_l.
+    spawn. steps_r. hss. steps_l.
 
     iApply wsim_split; iIntros "WI".
     

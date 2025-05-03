@@ -225,7 +225,6 @@ Section HSIM.
       fn varg k_src i_tgt
       (CLOSED: contextual = closed)
       (FUN: alist_find fn fl_src = None)
-      (K: hsimi true pt nths (st_src, triggerUB >>= (λ ret, tau;; tau;; k_src ret)) (st_tgt, i_tgt) fmr)
     :
     _hsim' hsimc hsimi ps pt nths (st_src, trigger (Call fn varg) >>= k_src) (st_tgt, i_tgt) fmr
 
@@ -235,7 +234,6 @@ Section HSIM.
       fn varg k_src i_tgt
       (CLOSED: contextual = closed)
       (FUN: alist_find fn fl_src = None)
-      (K: hsimi true pt nths (st_src, triggerUB >>= (λ ret, tau;; tau;; k_src ret)) (st_tgt, i_tgt) fmr)
     :
     _hsim' hsimc hsimi ps pt nths (st_src, trigger (Spawn fn varg) >>= k_src) (st_tgt, i_tgt) fmr
            
@@ -468,12 +466,6 @@ Section HSIM.
       destruct x0. eapply hsupd_update in IN; eauto.
       eapply _hsim_mon_auto; eauto using rclo9.
       eapply Own_bupd_update; eauto.
-    - esplits; eauto. eapply hsim_call_none; eauto.
-      unfold triggerUB. ired. econs. econs. esplits; eauto.
-      econs; eauto. i. ss.
-    - esplits; eauto. eapply hsim_spawn_none; eauto.
-      unfold triggerUB. ired. econs. econs. esplits; eauto.
-      econs; eauto. i. ss.
   Qed.
 
   Lemma hsim_bindC_spec : hsim_bindC <10= gupaco9 _hsim (cpn9 _hsim).
@@ -710,10 +702,6 @@ Section HSIM.
       eauto using _hsim', hsim_eqitC_src, eqit_Vis.
       + eapply hsim_inline_src; eauto. eapply K; eauto.
         eapply eqit_bind; eauto using eqit_refl.
-      + eapply hsim_call_none; eauto. eapply K; eauto.
-        eapply eqit_bind; ii; eauto using eqit_refl.
-      + eapply hsim_spawn_none; eauto. eapply K; eauto.
-        eapply eqit_bind; ii; eauto using eqit_refl.
     - ides isrc0.
     - ides isrc1. destruct sti_tgt0 as [st_tgt itgt0].
       eapply hsim_tau_src; eauto.

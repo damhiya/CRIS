@@ -83,11 +83,11 @@ Section aux.
   Qed.
 
   Definition find_body md fn :=
-    alist_find fn (map (map_snd (λ (kb : list string * (Any.t → itree hmodE Any.t)) (arg : Any.t), HModTr.sandbox (fst kb) ((snd kb) arg))) (HMod.fnsems md)).
+    alist_find fn (map (map_snd (λ kb arg, HModTr.sandbox kb.1.1 kb.1.2 (kb.2 arg))) (HMod.fnsems md)).
 
   Definition pure_specbody scopes sp fsp :=
     (λ arg : Any.t,
-      HModTr.sandbox scopes
+      HModTr.sandbox mask_all scopes
         (SModTr.trans_ktree sp
            {| fsb_fspec := fsp; fsb_body := pure_body |} arg)).
 

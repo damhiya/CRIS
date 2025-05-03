@@ -68,15 +68,6 @@ Ltac fold_eutt :=
          end
 .
 
-Lemma map_vis {E R1 R2 X} (e : E X) (k : X -> itree E R1) (f : R1 -> R2) :
-  ITree.map f (Vis e k) = Vis e (fun x => f <$> (k x)).
-Proof.
-  f.
-  cbn.
-  unfold ITree.map.
-  autorewrite with itree. refl.
-Qed.
-
 Lemma eqit_refl {E R} bs bt t:
   @eqit E R R eq bs bt t t.
 Proof.
@@ -144,6 +135,22 @@ forall {E : Type -> Type} {R S : Type} (t : itree E R) (k : R -> itree E S),
   | @VisF _ _ _ X e ke => Vis e (fun x : X => ' x : _ <- ke x;; k x)
   end.
 Proof. i. f. apply unfold_bind. Qed.
+
+Lemma map_vis {E R1 R2 X} (e : E X) (k : X -> itree E R1) (f : R1 -> R2) :
+  ITree.map f (Vis e k) = Vis e (fun x => f <$> (k x)).
+Proof.
+  f.
+  cbn.
+  unfold ITree.map.
+  autorewrite with itree. refl.
+Qed.
+
+Lemma map_trigger `{E -< F} {R S: Type} (f: R -> S) (e : E R)
+  :
+  @ITree.map F R S f (trigger e) = x <- trigger e;; Ret (f x).
+Proof.
+  unfold trigger. rewrite map_vis. s. rewrite bind_vis. refl.
+Qed.
 
 Lemma interp_mrec_bind:
   forall (D E : Type -> Type) (ctx : forall T : Type, D T -> itree (D +' E) T)

@@ -1,5 +1,5 @@
-From iris.proofmode Require Import proofmode.
 Require Import Common.
+From iris.proofmode Require Import proofmode.
 Require Import SModTr HModTr ModTr SMod HMod Mod.
 Require Import SimGlobal.
 Require Import SModCancel HModInline ElimRel StRed CancelLib.

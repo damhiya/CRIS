@@ -1,23 +1,13 @@
 Require Import Common.
 Require Import Mod.
 Require Import SimGlobal SimGlobalFacts.
-Require Import ModSim.
+Require Import ModSim ModTactics.
 
 Set Implicit Arguments.
 
 Local Open Scope nat_scope.
 
-Module TAC.
-  Ltac ired_l := try (prw _red_gen 2 0).
-  Ltac ired_r := try (prw _red_gen 1 0).
-
-  Ltac ired_both := ired_l; ired_r.
-
-  Ltac step := ired_both; guclo simg_indC_spec; econs; et; i.
-  Ltac steps := (hrepeat do 1 step); ired_both.
-
-End TAC.
-Import TAC.
+Import ModTac.
 
 (* Adequacy - Part 1. ( Divided to resolve the dependency issue. ) *)
 Lemma itree_modE_inv R (itr : itree modE R) :

@@ -67,9 +67,9 @@ Ltac _istep_l :=
       iApply isim_tau_src
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, Ret _ >>= _) _) ] =>
       rewrite bind_ret_l
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, (HModTr.sandbox _ (trigger (SPut _ _))) >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, (HModTr.sandbox _ _ (trigger (SPut _ _))) >>= _) _) ] =>
       iApply isim_sput_src_sandbox; [s;eauto|]
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, (HModTr.sandbox _ (trigger (SGet _))) >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, (HModTr.sandbox _ _ (trigger (SGet _))) >>= _) _) ] =>
       iApply isim_sget_src_sandbox; [s;eauto|]
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _) _) ] =>
       let name := fresh "q" in
@@ -105,9 +105,9 @@ Ltac _istep_r :=
       rewrite bind_ret_l
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, tau;; _)) ] =>
       iApply isim_tau_tgt
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, (HModTr.sandbox _ (trigger (SPut _ _))) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, (HModTr.sandbox _ _ (trigger (SPut _ _))) >>= _)) ] =>
       iApply isim_sput_tgt_sandbox; [s; eauto|]
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, (HModTr.sandbox _ (trigger (SGet _))) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, (HModTr.sandbox _ _ (trigger (SGet _))) >>= _)) ] =>
       iApply isim_sget_tgt_sandbox; [s; eauto|]
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose _) >>= _)) ] =>
       let name := fresh "q" in
@@ -143,8 +143,6 @@ Ltac _istep :=
       iApply isim_ret
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger (IO _ _) >>= _) (_, trigger (IO _ _) >>= _)) ] =>
       iApply isim_io; iIntros "%"
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger (Spawn _ _) >>= _) (_, trigger (Spawn _ _) >>= _)) ] =>
-      iApply isim_spawn
   end.
 
 Ltac istep :=
@@ -201,20 +199,23 @@ Ltac iforces_r := hrepeat do 1 iforce_r.
 
 Ltac iinline_l :=
   inorm_l with
-    do 1 iApply isim_inline_src; [try prove_inline_cond|]; unfold_cris_defs.
+    do 1 iApply isim_inline_src_sandbox; [try prove_inline_cond|try prove_sb_cond|unfold_cris_defs]. 
 
 Ltac iinline_r :=
   inorm_r with
-    do 1 iApply isim_inline_tgt; [try prove_inline_cond|]; unfold_cris_defs.
+    do 1 iApply isim_inline_tgt_sandbox; [try prove_inline_cond|try prove_sb_cond|unfold_cris_defs].
 
 Ltac icall hyps :=
-  (inorm with do 1 iApply isim_call);
-  iSplitL hyps; [ |iIntros "% % % % % %"; iIntrosFresh "IST"];
-  move_aux.
+  (inorm with do 1 iApply isim_call_sandbox); [try prove_sb_cond|try prove_sb_cond|
+  iSplitL hyps; [try done|iIntros "% % % % % %"; iIntrosFresh "IST"];
+  move_aux].
+
+Ltac ispawn :=
+  (inorm with do 1 iApply isim_spawn_sandbox); [try prove_sb_cond|try prove_sb_cond|].
 
 Ltac iyield hyps :=
   (inorm with do 1 iApply isim_yield);
-  iSplitL hyps; [ |iIntros "% % % % %"; iIntrosFresh "IST"];
+  iSplitL hyps; [try done|iIntros "% % % % %"; iIntrosFresh "IST"];
   move_aux.
 
 Ltac iby_coind CIH :=

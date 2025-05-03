@@ -1,12 +1,12 @@
-From iris.proofmode Require Import proofmode.
 Require Import Common.
+From iris.proofmode Require Import proofmode.
 Require Import SModTr SMod HMod ITactics.
 Require Import ISim ISimInit CtxRefine CtxRefineFacts ClosedAdequacy.
 Require Import HModInline.
 
 Set Implicit Arguments.
 
-Lemma cancel_call `{Σ: GRA} md P
+Lemma inline_intro `{Σ: GRA} md P
 :
   refines (HModInline.inline md, P) (md, P).
 Proof.
@@ -19,21 +19,24 @@ Proof.
   ii. subst. destruct ft.
   assert(SCP := md.(HMod.well_scoped_fns)).
   specialize (SCP fn). rewrite/fnsems_scopes FINDT in SCP.
-  remember (HMod.scopes md) as scopeS. i.
-  rename l into scopeT. 
-  unfold wrap_elimI. s. unfold HModTr.sandbox_body, inline_hp_fun. s.
+  remember (HMod.scopes md) as scopeS. i. destruct p as [msk sc]. subst.
+  unfold wrap_elimI. s.
+  unfold HModTr.sandbox_body, inline_hp_fun. s.
+  unfold HModTr.sandbox_body, inline_hp_fun. s.
   generalize false at 1 as ps.
   generalize false at 1 as pt. intros pt ps.
-  generalize (i y) as it. clear IN fn FINDT i y NODD NODS.
+  generalize (i y) as it.
+  clear IN fn FINDT i y NODD NODS.
   combine_quant st_tgt.
   combine_quant st_src.
   combine_quant SCP.
-  combine_quant scopeT.
+  combine_quant sc.
   combine_quant pt.
   combine_quant ps.
   combine_quant nths.
+  combine_quant msk.
   eapply isim_coind. i.
-  destruct a as [nths [ps [pt [scopeT [SCP [st_src [st_tgt it]]]]]]]. s.
+  destruct a as [msk [nths [ps [pt [sc [SCP [st_src [st_tgt it]]]]]]]]. s.
   iIntros "(Ist & #CIH)".
   
   assert (CASE := case_itrH it); des; subst.
@@ -43,11 +46,13 @@ Proof.
   - rewrite SBRed.bind SBRed.ag HIRed.bind_ag. steps_r. force_l. iFrame. steps_l. by_coind "CIH". eauto.
   - destruct c.
     {
-      rewrite SBRed.bind SBRed.call.
+      rewrite SBRed.bind SBRed.call. des_ifs; cycle 1.
+      { unfold triggerUB. ired. rewrite HIRed.bind_core. steps_l. ss. }
+
       rewrite HIRed.call. steps_l.
       destruct (alist_find fn (HMod.fnsems md)) eqn:FIND; cycle 1.
       { ss. unfold triggerUB. ired. rewrite HIRed.bind_core. steps_l. ss. }
-      destruct p. iApply isim_inline_tgt.
+      destruct p as [[] ]. iApply isim_inline_tgt.
       { rewrite alist_find_map_snd FIND. ss. }
       s. ired. rewrite HIRed.bind SBRed.bind.
       iApply isim_bind; iSplitL.
@@ -58,11 +63,13 @@ Proof.
       unfold bindRR. iIntros (? ? ? ? ?) "(_ & % & IST)". des. subst.
       rewrite HIRed.tau. steps_l. steps_r. ired.
       by_coind "CIH". auto.
-    }    
+    }      
     {
-      rewrite !SBRed.bind !SBRed.spawn.
+      rewrite !SBRed.bind !SBRed.spawn. des_ifs; cycle 1.
+      { unfold triggerUB. ired. rewrite HIRed.bind_core. steps_l. ss. }
       rewrite HIRed.bind_spawn SBRed.bind SBRed.spawn.
-      iApply isim_spawn. steps_l. by_coind "CIH". auto.
+      iApply isim_spawn.
+      steps_l. by_coind "CIH". auto.
     }
     {
       rewrite SBRed.bind SBRed.yield HIRed.bind_yield !SBRed.bind !SBRed.yield.
@@ -71,8 +78,7 @@ Proof.
     }
   - depdes s.
     + rewrite !SBRed.bind !SBRed.put. des_ifs; cycle 1. 
-      { steps_r. unfold triggerUB; ired.
-        rewrite HIRed.bind_core. steps_l. ss. }
+      { unfold triggerUB; ired. rewrite HIRed.bind_core. steps_l. ss. }
       rewrite HIRed.bind_pg SBRed.bind SBRed.put. des_ifs; cycle 1.
       { 
         exfalso. eapply existsb_exists in Heq. des. 
@@ -82,8 +88,7 @@ Proof.
       iApply isim_sput_src. iApply isim_sput_tgt.
       steps_l. by_coind "CIH". iDestruct "Ist" as "%". subst. eauto.
     + rewrite !SBRed.bind !SBRed.get. des_ifs; cycle 1.
-      { steps_r. unfold triggerUB; ired.
-        rewrite HIRed.bind_core. steps_l. ss. }
+      { unfold triggerUB; ired. rewrite HIRed.bind_core. steps_l. ss. }
       rewrite HIRed.bind_pg SBRed.bind SBRed.get. des_ifs; cycle 1.
       { 
         exfalso. eapply existsb_exists in Heq. des. 
@@ -105,4 +110,3 @@ Proof.
     rewrite/fnsems_scopes FIND in SCP0. eauto.
   }
 (*SLOW*)Qed.
-

@@ -1,5 +1,5 @@
-From iris.proofmode Require Import proofmode.
 Require Import Common.
+From iris.proofmode Require Import proofmode.
 Require Import SModTr HModTr ModTr SMod HMod Mod.
 Require Import SimGlobal.
 Require Import SModCancel HModInline ElimRel StRed CancelLib.
@@ -122,8 +122,8 @@ Proof.
   {
     rewrite list_lookup_insert; eauto; cycle 1.
     { rewrite length_insert length_app. s. nia. }
-    match goal with [|-context[interpV (_ ?scopes) ?itr]]=>
-      fold (HModTr.sandbox scopes itr)
+    match goal with [|-context[interpV (_ ?mask ?scopes) ?itr]]=>
+      fold (HModTr.sandbox mask scopes itr)
     end.
     unfold cancel_term, inline_hp.
     rewrite SBRed.bind HIRed.iter_handle_bind. ired.
@@ -157,3 +157,9 @@ Proof.
   inv RELS. econs; eauto; des_ifs.
 Unshelve. all: eauto.
 (*SLOW*)Qed.
+
+
+
+
+
+  

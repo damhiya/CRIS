@@ -1,5 +1,5 @@
-From iris.proofmode Require Import proofmode.
 Require Import Common.
+From iris.proofmode Require Import proofmode.
 
 Require Import SModTr HModTr ModTr SMod HMod Mod.
 Require Import ITactics TacticsCommon SimGlobal SimGlobalFacts CtxRefine ClosedAdequacy.
@@ -40,6 +40,8 @@ Proof.
   punfold REL. depdes REL; subst.
   - _iter. _iter. rewrite SRC TGT. ired.
     hide_l. _coreA.
+  - _iter. _iter. rewrite SRC TGT. ired.
+    hide_r. _coreA.
   - _iter. _iter. rewrite SRC TGT. ired.
     hide_r. des_ifs; cycle 1.
     { unfold triggerUB. ired. _coreA. }
@@ -207,9 +209,9 @@ Theorem cancellation `{Σ: GRA} md P fsp meta
           (SMod.to_hmod (sp_from md) md, P).
 Proof. 
   etrans.
-  { eapply cancel_call_rev. }
+  { eapply inline_elim. }
   etrans; cycle 1.
-  { eapply cancel_call. }
+  { eapply inline_intro. }
   ii; split.
   {
     inv WFM. econs; eauto. s.

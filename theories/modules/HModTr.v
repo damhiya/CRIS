@@ -127,7 +127,7 @@ Section MID.
     λ x, trans (f x).
 
   (**** Sandboxing ****)
-  Definition handle_sandbox scopes : ∀ T, hmodE T -> (itree hmodE T + {X: Type & hmodE X * (X -> itree hmodE T)})%type :=
+  Definition handle_sandbox (mask: string->bool) scopes : ∀ T, hmodE T -> (itree hmodE T + {X: Type & hmodE X * (X -> itree hmodE T)})%type :=
     λ T e, inr
       match e with
       | inr1 (inr1 (inl1 (SPut (s, _) _))) =>
@@ -138,14 +138,22 @@ Section MID.
           if existsb (String.eqb s) scopes
           then existT _ (e, fun v => Ret v)
           else existT _ (subevent _ (Take False), fun v => Ret (False_rect _ v))
+      | inr1 (inl1 (Call f _)) =>
+          if mask f
+          then existT _ (e, fun v => Ret v)
+          else existT _ (subevent _ (Take False), fun v => Ret (False_rect _ v))
+      | inr1 (inl1 (Spawn f _)) =>
+          if mask f
+          then existT _ (e, fun v => Ret v)
+          else existT _ (subevent _ (Take False), fun v => Ret (False_rect _ v))
       | _ => existT _ (e, fun v => Ret v)
       end.
-  
-  Definition sandbox {T} scopes (itr : itree hmodE T) :=
-    interpV (handle_sandbox scopes) itr.
 
-  Definition sandbox_body (kb : list string * (Any.t → itree hmodE Any.t)) :=
-    λ arg, sandbox kb.1 (kb.2 arg).
+  Definition sandbox {T} mask scopes (itr : itree hmodE T) :=
+    interpV (handle_sandbox mask scopes) itr.
+
+  Definition sandbox_body (kb : (string->bool) * list string * (Any.t → itree hmodE Any.t)) :=
+    λ arg, sandbox kb.1.1 kb.1.2 (kb.2 arg).
 
 End MID.
 End HModTr.
@@ -251,58 +259,66 @@ End HRed.
 Module SBRed. Section SBRed.
   Context `{Σ : GRA}.
 
-  Lemma bind A B scopes (itr : itree hmodE A) (ktr : A → itree hmodE B) :
-    HModTr.sandbox scopes (itr >>= ktr)
-    = a <- (HModTr.sandbox scopes itr);; (HModTr.sandbox scopes (ktr a)).
+  Lemma bind A B mask scopes (itr : itree hmodE A) (ktr : A → itree hmodE B) :
+    HModTr.sandbox mask scopes (itr >>= ktr)
+    = a <- (HModTr.sandbox mask scopes itr);; (HModTr.sandbox mask scopes (ktr a)).
   Proof using. unfold HModTr.sandbox. rewrite interpV_bind; eauto. Qed.
 
-  Lemma tau A scopes (itr : itree hmodE A) :
-    HModTr.sandbox scopes (tau;; itr) = tau;; (HModTr.sandbox scopes itr).
+  Lemma tau A mask scopes (itr : itree hmodE A) :
+    HModTr.sandbox mask scopes (tau;; itr) = tau;; (HModTr.sandbox mask scopes itr).
   Proof using. unfold HModTr.sandbox. rewrite interpV_tau; eauto. Qed.
 
-  Lemma ret A (a : A) scopes :
-    HModTr.sandbox scopes (Ret a) = Ret a.
+  Lemma ret A (a : A) mask scopes :
+    HModTr.sandbox mask scopes (Ret a) = Ret a.
   Proof using. unfold HModTr.sandbox. rewrite interpV_ret; eauto. Qed.
 
-  Lemma vis_core {X R} (e : coreE X) scopes (k : X -> itree hmodE R) :
-    HModTr.sandbox scopes (vis e k) = vis e (fun x => HModTr.sandbox scopes (k x)).
+  Lemma vis_core {X R} (e : coreE X) mask scopes (k : X -> itree hmodE R) :
+    HModTr.sandbox mask scopes (vis e k) = vis e (fun x => HModTr.sandbox mask scopes (k x)).
   Proof using.
     unfold HModTr.sandbox. rewrite interpV_vis.
     eapply observe_eta. ss. f_equal. extensionalities. ired. eauto.
   Qed.
 
-  Lemma vis_ag {X R} scopes (e : agE X) (ktr : X -> itree hmodE R) :
-    HModTr.sandbox scopes (vis e ktr) = vis e (fun x => HModTr.sandbox scopes (ktr x)).
+  Lemma vis_ag {X R} mask scopes (e : agE X) (ktr : X -> itree hmodE R) :
+    HModTr.sandbox mask scopes (vis e ktr) = vis e (fun x => HModTr.sandbox mask scopes (ktr x)).
   Proof using.
     unfold HModTr.sandbox. rewrite interpV_vis.
     eapply observe_eta. ss. f_equal. extensionalities. ired. eauto.
   Qed.
 
-  Lemma vis_yield {R} scopes tid (ktr : () -> itree hmodE R) :
-    HModTr.sandbox scopes (vis (Yield tid) ktr) = vis (Yield tid) (fun x => HModTr.sandbox scopes (ktr x)).
+  Lemma vis_yield {R} mask scopes tid (ktr : () -> itree hmodE R) :
+    HModTr.sandbox mask scopes (vis (Yield tid) ktr) = vis (Yield tid) (fun x => HModTr.sandbox mask scopes (ktr x)).
   Proof using.
     unfold HModTr.sandbox. rewrite interpV_vis.
     eapply observe_eta. ss. f_equal. extensionalities. ired. eauto.
   Qed.
-
-  Lemma vis_spawn {R} scopes f a (ktr : nat -> itree hmodE R) :
-    HModTr.sandbox scopes (vis (Spawn f a) ktr) = vis (Spawn f a) (fun x => HModTr.sandbox scopes (ktr x)).
+               
+  Lemma vis_spawn {R} mask scopes f a (ktr : nat -> itree hmodE R) :
+    HModTr.sandbox mask scopes (vis (Spawn f a) ktr) =
+      if mask f
+      then vis (Spawn f a) (fun x => HModTr.sandbox mask scopes (ktr x))
+      else vis (Take False) (fun x => Ret (False_rect _ x)).
   Proof using.
-    unfold HModTr.sandbox. rewrite interpV_vis.
-    eapply observe_eta. ss. f_equal. extensionalities. ired. eauto.
+    unfold HModTr.sandbox. rewrite interpV_vis. s. des_ifs; depdes H0.
+    - eapply observe_eta. ss. f_equal. extensionalities. ired. eauto.
+    - eapply observe_eta. ss. f_equal. extensionalities. ss.
   Qed.
 
-  Lemma vis_call {X R} scopes (e : callE X) (ktr : X -> itree hmodE R) :
-    HModTr.sandbox scopes (vis e ktr) = vis e (fun x => HModTr.sandbox scopes (ktr x)).
+  Lemma vis_call {R} mask scopes f a (ktr : Any.t -> itree hmodE R) :
+    HModTr.sandbox mask scopes (vis (Call f a) ktr) =
+      if mask f
+      then vis (Call f a) (fun x => HModTr.sandbox mask scopes (ktr x))
+      else vis (Take False) (fun x => Ret (False_rect _ x)).
   Proof using.
-    unfold HModTr.sandbox. rewrite interpV_vis.
-    eapply observe_eta. ss. f_equal. extensionalities. ired. eauto.
+    unfold HModTr.sandbox. rewrite interpV_vis. s. des_ifs; depdes H0.
+    - eapply observe_eta. ss. f_equal. extensionalities. ired. eauto.
+    - eapply observe_eta. ss. f_equal. extensionalities. ss.
   Qed.
 
-  Lemma vis_put {R} scopes k v (ktr : () -> itree hmodE R) :
-    HModTr.sandbox scopes (vis (SPut k v) ktr) =
+  Lemma vis_put {R} mask scopes k v (ktr : () -> itree hmodE R) :
+    HModTr.sandbox mask scopes (vis (SPut k v) ktr) =
       if existsb (String.eqb k.1) scopes
-      then vis (SPut k v) (fun x => HModTr.sandbox scopes (ktr x))
+      then vis (SPut k v) (fun x => HModTr.sandbox mask scopes (ktr x))
       else vis (Take False) (fun x => Ret (False_rect _ x)).
   Proof using.
     destruct k.
@@ -311,10 +327,10 @@ Module SBRed. Section SBRed.
     - eapply observe_eta. ss. f_equal. extensionalities. ss.
   Qed.
 
-  Lemma vis_get {R} k scopes (ktr : Any.t -> itree hmodE R) :
-    HModTr.sandbox scopes (vis (SGet k) ktr) =
+  Lemma vis_get {R} k mask scopes (ktr : Any.t -> itree hmodE R) :
+    HModTr.sandbox mask scopes (vis (SGet k) ktr) =
       if existsb (String.eqb k.1) scopes
-      then vis (SGet k) (fun x => HModTr.sandbox scopes (ktr x))
+      then vis (SGet k) (fun x => HModTr.sandbox mask scopes (ktr x))
       else vis (Take False) (fun x => Ret (False_rect _ x)).
   Proof using.
     destruct k.
@@ -323,14 +339,14 @@ Module SBRed. Section SBRed.
     - eapply observe_eta. ss. f_equal. extensionalities. ss.
   Qed.
 
-  Definition putSB {R} scopes k v (itr : itree hmodE R) : itree hmodE R :=
-    HModTr.sandbox scopes (trigger (SPut k v));;; itr.
+  Definition putSB {R} mask scopes k v (itr : itree hmodE R) : itree hmodE R :=
+    HModTr.sandbox mask scopes (trigger (SPut k v));;; itr.
 
-  Definition getSB {R} scopes k (ktr : Any.t -> itree hmodE R) : itree hmodE R :=
-    HModTr.sandbox scopes (trigger (SGet k)) >>= ktr.
+  Definition getSB {R} mask scopes k (ktr : Any.t -> itree hmodE R) : itree hmodE R :=
+    HModTr.sandbox mask scopes (trigger (SGet k)) >>= ktr.
 
-  Lemma SPut_putSB {R} scopes k v (ktr : () -> itree hmodE R) :
-    HModTr.sandbox scopes (vis (SPut k v) ktr) = putSB scopes k v (HModTr.sandbox scopes (ktr tt)).
+  Lemma SPut_putSB {R} mask scopes k v (ktr : () -> itree hmodE R) :
+    HModTr.sandbox mask scopes (vis (SPut k v) ktr) = putSB mask scopes k v (HModTr.sandbox mask scopes (ktr tt)).
   Proof using.
     destruct k. unfold putSB, trigger. rewrite !vis_put. des_ifs.
     - eapply observe_eta; ss. f_equal. extensionalities x. destruct x.
@@ -338,20 +354,20 @@ Module SBRed. Section SBRed.
     - eapply observe_eta; ss. f_equal. extensionalities. ss.
   Qed.
 
-  Lemma putSB_SPut {R} scopes k v (itr : itree hmodE R) :
-    putSB scopes k v itr = HModTr.sandbox scopes (trigger (SPut k v));;; itr.
+  Lemma putSB_SPut {R} mask scopes k v (itr : itree hmodE R) :
+    putSB mask scopes k v itr = HModTr.sandbox mask scopes (trigger (SPut k v));;; itr.
   Proof using.
     reflexivity.
   Qed.
 
-  Lemma putSB_bind {T U} scopes k v (itr : itree hmodE T) (ktr : T -> itree hmodE U) :
-    putSB scopes k v itr >>= ktr = putSB scopes k v (itr >>= ktr).
+  Lemma putSB_bind {T U} mask scopes k v (itr : itree hmodE T) (ktr : T -> itree hmodE U) :
+    putSB mask scopes k v itr >>= ktr = putSB mask scopes k v (itr >>= ktr).
   Proof using.
     unfold putSB. rewrite bind_bind. reflexivity.
   Qed.
 
-  Lemma SGet_getSB {R} scopes k (ktr : Any.t -> itree hmodE R) :
-    HModTr.sandbox scopes (vis (SGet k) ktr) = getSB scopes k (fun x => HModTr.sandbox scopes (ktr x)).
+  Lemma SGet_getSB {R} mask scopes k (ktr : Any.t -> itree hmodE R) :
+    HModTr.sandbox mask scopes (vis (SGet k) ktr) = getSB mask scopes k (fun x => HModTr.sandbox mask scopes (ktr x)).
   Proof using.
     destruct k. unfold getSB, trigger. rewrite !vis_get. des_ifs.
     - eapply observe_eta; ss. f_equal. extensionalities.
@@ -359,53 +375,105 @@ Module SBRed. Section SBRed.
     - eapply observe_eta; ss. f_equal. extensionalities. ss.
   Qed.
 
-  Lemma getSB_SGet {R} scopes k (ktr : Any.t -> itree hmodE R) :
-    getSB scopes k ktr = x <- HModTr.sandbox scopes (trigger (SGet k));; ktr x.
+  Lemma getSB_SGet {R} mask scopes k (ktr : Any.t -> itree hmodE R) :
+    getSB mask scopes k ktr = x <- HModTr.sandbox mask scopes (trigger (SGet k));; ktr x.
   Proof using.
     reflexivity.
   Qed.
 
-  Lemma getSB_bind {T U} scopes k (ktr1 : Any.t -> itree hmodE T) (ktr2 : T -> itree hmodE U) :
-    getSB scopes k ktr1 >>= ktr2 = getSB scopes k (fun x => ktr1 x >>= ktr2).
+  Lemma getSB_bind {T U} mask scopes k (ktr1 : Any.t -> itree hmodE T) (ktr2 : T -> itree hmodE U) :
+    getSB mask scopes k ktr1 >>= ktr2 = getSB mask scopes k (fun x => ktr1 x >>= ktr2).
   Proof using.
     unfold getSB. rewrite bind_bind. reflexivity.
   Qed.
 
-  Lemma assumeK {R} scopes P (itr : itree hmodE R) :
-    HModTr.sandbox scopes (assumeK P itr) = assumeK P (HModTr.sandbox scopes itr).
+  Definition callSB {R} mask scopes f a (ktr : Any.t -> itree hmodE R) : itree hmodE R :=
+    HModTr.sandbox mask scopes (trigger (Call f a)) >>= ktr.
+
+  Lemma Call_callSB {R} mask scopes f a (ktr : Any.t -> itree hmodE R) :
+    HModTr.sandbox mask scopes (vis (Call f a) ktr) = callSB mask scopes f a (fun x => HModTr.sandbox mask scopes (ktr x)).
+  Proof using.
+    unfold callSB, trigger. rewrite !vis_call. des_ifs.
+    - eapply observe_eta; ss. f_equal. extensionalities.
+      rewrite ret. ired. eauto.
+    - eapply observe_eta; ss. f_equal. extensionalities. ss.
+  Qed.
+
+  Lemma callSB_Call {R} mask scopes f a (ktr : Any.t -> itree hmodE R) :
+    callSB mask scopes f a ktr = x <- HModTr.sandbox mask scopes (trigger (Call f a));; ktr x.
+  Proof using.
+    reflexivity.
+  Qed.
+
+  Lemma callSB_bind {T U} mask scopes f a (ktr1 : Any.t -> itree hmodE T) (ktr2 : T -> itree hmodE U) :
+    callSB mask scopes f a ktr1 >>= ktr2 = callSB mask scopes f a (fun x => ktr1 x >>= ktr2).
+  Proof using.
+    unfold callSB. rewrite bind_bind. reflexivity.
+  Qed.
+
+  Definition spawnSB {R} mask scopes f a (ktr : _ -> itree hmodE R) : itree hmodE R :=
+    HModTr.sandbox mask scopes (trigger (Spawn f a)) >>= ktr.
+
+  Lemma Spawn_spawnSB {R} mask scopes f a (ktr : _ -> itree hmodE R) :
+    HModTr.sandbox mask scopes (vis (Spawn f a) ktr) = spawnSB mask scopes f a (fun x => HModTr.sandbox mask scopes (ktr x)).
+  Proof using.
+    unfold spawnSB, trigger. rewrite !vis_spawn. des_ifs.
+    - eapply observe_eta; ss. f_equal. extensionalities.
+      rewrite ret. ired. eauto.
+    - eapply observe_eta; ss. f_equal. extensionalities. ss.
+  Qed.
+
+  Lemma spawnSB_Spawn {R} mask scopes f a (ktr : _ -> itree hmodE R) :
+    spawnSB mask scopes f a ktr = x <- HModTr.sandbox mask scopes (trigger (Spawn f a));; ktr x.
+  Proof using.
+    reflexivity.
+  Qed.
+
+  Lemma spawnSB_bind {T U} mask scopes f a (ktr1 : _ -> itree hmodE T) (ktr2 : T -> itree hmodE U) :
+    spawnSB mask scopes f a ktr1 >>= ktr2 = spawnSB mask scopes f a (fun x => ktr1 x >>= ktr2).
+  Proof using.
+    unfold spawnSB. rewrite bind_bind. reflexivity.
+  Qed.
+
+  Lemma assumeK {R} mask scopes P (itr : itree hmodE R) :
+    HModTr.sandbox mask scopes (assumeK P itr) = assumeK P (HModTr.sandbox mask scopes itr).
   Proof using.
     eapply observe_eta; ss. f_equal. extensionalities. ired. eauto.
   Qed.
 
-  Lemma guaranteeK {R} scopes P (itr : itree hmodE R) :
-    HModTr.sandbox scopes (guaranteeK P itr) = guaranteeK P (HModTr.sandbox scopes itr).
+  Lemma guaranteeK {R} mask scopes P (itr : itree hmodE R) :
+    HModTr.sandbox mask scopes (guaranteeK P itr) = guaranteeK P (HModTr.sandbox mask scopes itr).
   Proof using.
     eapply observe_eta; ss. f_equal. extensionalities. ired. eauto.
   Qed.
 
-  Lemma unwrapUK {X R} scopes x (ktr : X -> itree hmodE R) :
-    HModTr.sandbox scopes (unwrapUK x ktr) = unwrapUK x (fun x => HModTr.sandbox scopes (ktr x)).
+  Lemma unwrapUK {X R} mask scopes x (ktr : X -> itree hmodE R) :
+    HModTr.sandbox mask scopes (unwrapUK x ktr) = unwrapUK x (fun x => HModTr.sandbox mask scopes (ktr x)).
   Proof using.
     destruct x; ss.
     eapply observe_eta; ss. f_equal. extensionality x. ss.
   Qed.
 
-  Lemma unwrapNK {X R} scopes x (ktr : X -> itree hmodE R) :
-    HModTr.sandbox scopes (unwrapNK x ktr) = unwrapNK x (fun x => HModTr.sandbox scopes (ktr x)).
+  Lemma unwrapNK {X R} mask scopes x (ktr : X -> itree hmodE R) :
+    HModTr.sandbox mask scopes (unwrapNK x ktr) = unwrapNK x (fun x => HModTr.sandbox mask scopes (ktr x)).
   Proof using.
     destruct x; ss.
     eapply observe_eta; ss. f_equal. extensionality x. ss.
   Qed.
 
-  Lemma call {A} (e : callE A) scopes :
-    HModTr.sandbox scopes (trigger e) = trigger e.
+  Lemma call f a mask scopes :
+    HModTr.sandbox mask scopes (trigger (Call f a)) =
+      if mask f
+      then trigger (Call f a)
+      else triggerUB.
   Proof using.
-    rewrite vis_call.
-    eapply observe_eta; ss. f_equal. extensionalities. rewrite ret. eauto.
+    rewrite vis_call. des_ifs.
+    - eapply observe_eta; ss. f_equal. extensionalities. rewrite ret. eauto.
+    - eapply observe_eta; ss. f_equal. extensionalities. ss.
   Qed.
 
-  Lemma put scopes k v :
-    HModTr.sandbox scopes (trigger (SPut k v)) =
+  Lemma put mask scopes k v :
+    HModTr.sandbox mask scopes (trigger (SPut k v)) =
       if existsb (String.eqb k.1) scopes
       then trigger (SPut k v)
       else triggerUB.
@@ -415,8 +483,8 @@ Module SBRed. Section SBRed.
     - eapply observe_eta; ss. f_equal. extensionalities. ss.
   Qed.
 
-  Lemma get scopes k :
-    HModTr.sandbox scopes (trigger (SGet k)) =
+  Lemma get mask scopes k :
+    HModTr.sandbox mask scopes (trigger (SGet k)) =
       if existsb (String.eqb k.1) scopes
       then trigger (SGet k)
       else triggerUB.
@@ -426,36 +494,40 @@ Module SBRed. Section SBRed.
     - eapply observe_eta; ss. f_equal. extensionalities. ss.
   Qed.
 
-  Lemma core T scopes (e : coreE T) :
-    HModTr.sandbox scopes (trigger e) = trigger e.
+  Lemma core T mask scopes (e : coreE T) :
+    HModTr.sandbox mask scopes (trigger e) = trigger e.
   Proof using.
     rewrite vis_core.
     eapply observe_eta; ss. f_equal. extensionalities. rewrite ret. eauto.
   Qed.
 
-  Lemma ag {A} (e : agE A) scopes :
-    HModTr.sandbox scopes (trigger e) = trigger e.
+  Lemma ag {A} (e : agE A) mask scopes :
+    HModTr.sandbox mask scopes (trigger e) = trigger e.
   Proof using.
     rewrite vis_ag.
     eapply observe_eta; ss. f_equal. extensionalities. rewrite ret. eauto.
   Qed.
 
-  Lemma yield tid scopes :
-    HModTr.sandbox scopes (trigger (Yield tid)) = trigger (Yield tid).
+  Lemma yield mask scopes tid:
+    HModTr.sandbox mask scopes (trigger (Yield tid)) = trigger (Yield tid).
   Proof using.
     rewrite vis_yield.
     eapply observe_eta; ss. f_equal. extensionalities. rewrite ret. eauto.
   Qed.
 
-  Lemma spawn f a scopes :
-    HModTr.sandbox scopes (trigger (Spawn f a)) = trigger (Spawn f a).
+  Lemma spawn f a mask scopes :
+    HModTr.sandbox mask scopes (trigger (Spawn f a)) =
+      if mask f
+      then trigger (Spawn f a)
+      else triggerUB.
   Proof using.
-    rewrite vis_spawn.
-    eapply observe_eta; ss. f_equal. extensionalities. rewrite ret. eauto.
+    rewrite vis_spawn. des_ifs.
+    - eapply observe_eta; ss. f_equal. extensionalities. rewrite ret. eauto.
+    - eapply observe_eta; ss. f_equal. extensionalities. ss.
   Qed.
-
-  Lemma unwrapU R scopes (r : option R) :
-    HModTr.sandbox scopes (unwrapU r) = unwrapU r.
+  
+  Lemma unwrapU R mask scopes (r : option R) :
+    HModTr.sandbox mask scopes (unwrapU r) = unwrapU r.
   Proof using.
     unfold unwrapU. destruct r.
     - apply ret.
@@ -463,8 +535,8 @@ Module SBRed. Section SBRed.
       f_equal. extensionalities. ss.
   Qed.
 
-  Lemma unwrapN R scopes (r : option R) :
-    HModTr.sandbox scopes (unwrapN r) = unwrapN r.
+  Lemma unwrapN R mask scopes (r : option R) :
+    HModTr.sandbox mask scopes (unwrapN r) = unwrapN r.
   Proof using.
     unfold unwrapN. destruct r.
     - apply ret.
@@ -472,14 +544,14 @@ Module SBRed. Section SBRed.
       f_equal. extensionalities. ss.
   Qed.
 
-  Lemma asm scopes P :
-    HModTr.sandbox scopes (assume P) = assume P.
+  Lemma asm mask scopes P :
+    HModTr.sandbox mask scopes (assume P) = assume P.
   Proof using.
     unfold assume. rewrite bind core ret. eauto.
   Qed.
 
-  Lemma guar scopes P :
-    HModTr.sandbox scopes (guarantee P) = guarantee P.
+  Lemma guar mask scopes P :
+    HModTr.sandbox mask scopes (guarantee P) = guarantee P.
   Proof using.
     unfold guarantee. rewrite bind core ret. eauto.
   Qed.
