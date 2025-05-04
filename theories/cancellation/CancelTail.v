@@ -72,4 +72,4 @@ Proof.
   }
   { intros k t1 t2 NEQ. do 2 zlookup_insert_ne. i. eauto. }
 Unshelve. all: eauto.
-(*SLOW*)Admitted.
+(*SLOW*)Qed.

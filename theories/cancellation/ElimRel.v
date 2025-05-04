@@ -522,4 +522,4 @@ Proof.
   - rewrite SRed.bind SRed.core SCancelRed.bind SCancelRed.core. ired. 
     rewrite !SBRed.bind SBRed.core !HIRed.bind_core. 
     gstep. econs. i. gstep. econs. gbase. eauto.
-(*SLOW*)Admitted.
+(*SLOW*)Qed.

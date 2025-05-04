@@ -109,4 +109,4 @@ Proof.
     assert(SCP0 := md.(HMod.well_scoped_fns) fn).
     rewrite/fnsems_scopes FIND in SCP0. eauto.
   }
-(*SLOW*)Admitted.
+(*SLOW*)Qed.
