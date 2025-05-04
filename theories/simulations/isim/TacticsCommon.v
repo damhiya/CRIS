@@ -489,15 +489,15 @@ Ltac hide_ihyps :=
       hide_ihyps_env env
   end.
 
-Ltac hide_itree_l :=
-  let ITREE := fresh "ITREE" in
-  match goal with [|- _ (_ (_, ?it) _)] => set (ITREE := it) at 1 end.
-
-Ltac hide_itree_r :=
+Ltac only_itree_l :=
   let ITREE := fresh "ITREE" in
   match goal with
   [|- _ (_ _ (_, ?it))] => first [set (ITREE := it) at 2|set (ITREE := it) at 1]
   end.
+
+Ltac only_itree_r :=
+  let ITREE := fresh "ITREE" in
+  match goal with [|- _ (_ (_, ?it) _)] => set (ITREE := it) at 1 end.
 
 Ltac show_itree :=
   match goal with [H:_|-_] => unfold H; clear H end.
@@ -610,7 +610,7 @@ Ltac unfold_iter_l :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  hide_itree_r;
+  only_itree_l;
   rewrite unfold_iterC;
   show_until marker.
 
@@ -618,7 +618,7 @@ Ltac unfold_iter_r :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  hide_itree_l;
+  only_itree_r;
   rewrite unfold_iterC;
   show_until marker.
 
@@ -668,14 +668,14 @@ Ltac hss :=
   hss_des;
   move_aux.
 
-Ltac hss_l := hide_itree_r; hss; show_itree.
-Ltac hss_r := hide_itree_l; hss; show_itree.
+Ltac hss_l := only_itree_l; hss; show_itree.
+Ltac hss_r := only_itree_r; hss; show_itree.
 
 Ltac red_ret_l :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  hide_itree_r;
+  only_itree_l;
   rewrite ?PRed.bind ?PRed.ret ?SRed.bind ?SRed.ret SBRed.bind SBRed.ret bind_ret_l;
   show_until marker.
  
@@ -683,7 +683,7 @@ Ltac red_ret_r :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  hide_itree_l;
+  only_itree_r;
   rewrite ?PRed.bind ?PRed.ret ?SRed.bind ?SRed.ret SBRed.bind SBRed.ret bind_ret_l;
   show_until marker.
 
@@ -691,7 +691,7 @@ Tactic Notation "add_ret_l" uconstr(r) :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  hide_itree_r;
+  only_itree_l;
   match goal with [|-_ _ (_ (_,?t) _)] =>
     rewrite -(bind_ret_l r (fun _ => t))
   end;
@@ -701,7 +701,7 @@ Tactic Notation "add_ret_r" uconstr(r) :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  hide_itree_l;
+  only_itree_r;
   match goal with [|-_ _ (_ _ (_,?t))] =>
     rewrite -(bind_ret_l r (fun _ => t))
   end;

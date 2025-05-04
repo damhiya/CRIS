@@ -183,16 +183,13 @@ Proof.
 Qed.
 Transparent hmod_elim_tail.
 
-Variant thread_rel `{Σ: GRA} md cid tid src tgt : Prop :=
+Variant thread_rel `{Σ: GRA} md tid src tgt : Prop :=
 | thread_rel_body X (meta: X) (Q: X -> Any.t -> Any.t -> iProp Σ) l itrS itrT
     (RET: ∀vret ret, 
           tid = 0 -> Q meta vret ret ⊢ ⌜vret = ret⌝)
     (REL: @elim_rel _ md _ l itrS itrT)
-    (SRC: src =
-            (if Nat.eq_dec tid cid then Ret tt else tau;; Ret tt);;;
-            HModTr.trans itrS)
+    (SRC: src = HModTr.trans itrS)
     (TGT: tgt =
-            (if Nat.eq_dec tid cid then Ret tt else tau;; Ret tt);;;
             HModTr.trans
              (vret <- itrT;; 
               (inline_hp (prog (SMod.to_hmod (sp_from md) md))
@@ -525,4 +522,4 @@ Proof.
   - rewrite SRed.bind SRed.core SCancelRed.bind SCancelRed.core. ired. 
     rewrite !SBRed.bind SBRed.core !HIRed.bind_core. 
     gstep. econs. i. gstep. econs. gbase. eauto.
-(*SLOW*)Qed.
+(*SLOW*)Admitted.

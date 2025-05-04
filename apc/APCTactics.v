@@ -55,7 +55,7 @@ Proof using.
   revert ow_tgt. apply combine_quant_dep.
   eapply wsim_coind. i. iIntros "(IST & ISIM) %MON #CIH".
   destruct a as [ow_tgt [ow_src [st_tgt [WIDTH [nths st_src]]]]]; ss.
-  set_marker marker. hide_ihyps. hide_itree_l.
+  set_marker marker. hide_ihyps. only_itree_r.
   rewrite !unfold_APC.
   show_until marker.
   steps_r. des_ifs.
@@ -68,7 +68,7 @@ Proof using.
     iApply ("ISIM" with "IST"); iFrame.
   }
   { (* continue *)
-    w_steps_r. set_marker marker. hide_ihyps. hide_itree_r.
+    w_steps_r. set_marker marker. hide_ihyps. only_itree_l.
     rewrite !unfold_APC. show_until marker.
     
     w_force_l false. w_steps_l. w_force_l ow_tgt. w_steps_l.
@@ -261,7 +261,7 @@ Ltac prep_macro_l :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  hide_itree_r;
+  only_itree_l;
   try _prep_macro; ired;
   show_until marker.  
 
@@ -269,7 +269,7 @@ Ltac prep_macro_r :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  hide_itree_l;
+  only_itree_r;
   try _prep_macro; ired;
   show_until marker.
 
@@ -277,8 +277,8 @@ Ltac prep_macro :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  hide_itree_r; try _prep_macro; ired; show_itree;
-  hide_itree_l; try _prep_macro; ired; show_itree;
+  only_itree_l; try _prep_macro; ired; show_itree;
+  only_itree_r; try _prep_macro; ired; show_itree;
   show_until marker.
 
 Ltac apc_l :=

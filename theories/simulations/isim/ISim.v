@@ -263,7 +263,7 @@ Section SIM.
 
   Lemma isim_inline_src r g ps pt {Rs Rt} RR nths st_src st_tgt k_src i_tgt f fn varg
       (FIND : alist_find fn fl_src = Some f) :
-    @isim r g Rs Rt RR true pt nths (st_src, f varg >>= (λ ret, tau;; tau;; Ret ret) >>= k_src) (st_tgt, i_tgt)
+    @isim r g Rs Rt RR true pt nths (st_src, f varg >>= (λ ret, tau;; Ret ret) >>= k_src) (st_tgt, i_tgt)
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, trigger (Call fn varg) >>= k_src) (st_tgt, i_tgt).
   Proof using.
     split; intros x wfx SIM; guclo hsimC_spec; econs; esplits; eauto; econs; eauto.
@@ -272,7 +272,7 @@ Section SIM.
   Lemma isim_inline_src_sandbox r g ps pt {Rs Rt} RR nths st_src st_tgt k_src i_tgt f fn varg (mask:_→bool) scopes
     (FIND : alist_find fn fl_src = Some f) :
     (mask fn) →
-    @isim r g Rs Rt RR true pt nths (st_src, f varg >>= (λ ret, tau;; tau;; Ret ret) >>= k_src) (st_tgt, i_tgt)
+    @isim r g Rs Rt RR true pt nths (st_src, f varg >>= (λ ret, tau;; Ret ret) >>= k_src) (st_tgt, i_tgt)
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, HModTr.sandbox mask scopes (trigger (Call fn varg)) >>= k_src) (st_tgt, i_tgt).
   Proof using.
     i. iIntros "ISIM".
@@ -283,7 +283,7 @@ Section SIM.
 
   Lemma isim_inline_tgt r g ps pt {Rs Rt} RR nths st_src st_tgt i_src k_tgt f fn varg
       (FIND : alist_find fn fl_tgt = Some f) :
-    @isim r g Rs Rt RR ps true nths (st_src, i_src) (st_tgt, f varg >>= (λ ret, tau;; tau;; Ret ret) >>= k_tgt)
+    @isim r g Rs Rt RR ps true nths (st_src, i_src) (st_tgt, f varg >>= (λ ret, tau;; Ret ret) >>= k_tgt)
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, trigger (Call fn varg) >>= k_tgt).
   Proof using. 
     split; intros x wfx SIM; guclo hsimC_spec; econs; esplits; eauto; econs; eauto.
@@ -292,7 +292,7 @@ Section SIM.
   Lemma isim_inline_tgt_sandbox r g ps pt {Rs Rt} RR nths st_src st_tgt i_src k_tgt f fn varg (mask:_→bool) scopes
     (FIND : alist_find fn fl_tgt = Some f) :
     (mask fn) →
-    @isim r g Rs Rt RR ps true nths (st_src, i_src) (st_tgt, f varg >>= (λ ret, tau;; tau;; Ret ret) >>= k_tgt)
+    @isim r g Rs Rt RR ps true nths (st_src, i_src) (st_tgt, f varg >>= (λ ret, tau;; Ret ret) >>= k_tgt)
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, HModTr.sandbox mask scopes (trigger (Call fn varg)) >>= k_tgt).
   Proof using.
     i. iIntros "ISIM".

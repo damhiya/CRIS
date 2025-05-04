@@ -187,10 +187,6 @@ Lemma flagC_wrespectful : wrespectful7 (_simg) flagC.
 Proof.
   econs; eauto with paco.
   ii. inv PR. 
-  
-     
-
-  
   clarify. csc.
   eapply GF in SIM.
   move SIM before GF. revert_until SIM.

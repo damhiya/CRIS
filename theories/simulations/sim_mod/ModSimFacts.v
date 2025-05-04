@@ -1,13 +1,11 @@
 Require Import Common.
 Require Import Mod.
 Require Import SimGlobal SimGlobalFacts.
-Require Import ModSim ModTactics.
+Require Import ModSim SimGTactics.
 
 Set Implicit Arguments.
 
 Local Open Scope nat_scope.
-
-Import ModTac.
 
 (* Adequacy - Part 1. ( Divided to resolve the dependency issue. ) *)
 Lemma itree_modE_inv R (itr : itree modE R) :
@@ -46,9 +44,9 @@ Lemma sim_itree_simg
   :
   simg (fun '(st_src, ret_src) '(st_tgt, ret_tgt) => ret_src = ret_tgt) (Some ps) (Some pt)
   (ModTr.interp_stateE Any.t
-     (ITree.iter (ModTr.handle_callE (Mod.prog ms_src)) (my_tid, itrs_src)) st_src)
+     (iterV (ModTr.handle_callE (Mod.prog ms_src)) (my_tid, itrs_src)) st_src)
   (ModTr.interp_stateE Any.t
-     (ITree.iter (ModTr.handle_callE (Mod.prog ms_tgt)) (my_tid, itrs_tgt)) st_tgt).
+     (iterV (ModTr.handle_callE (Mod.prog ms_tgt)) (my_tid, itrs_tgt)) st_tgt).
 Proof.
   unfold ModTr.interp_stateE. 
   ginit. revert_until WFS. gcofix CIH. i.
@@ -65,14 +63,12 @@ Proof.
 
   inv PR.
 
-  - rewrite !unfold_iter_eq. s. rewrite LKS LKT. grind. des_ifs.
-    + grind. steps. rr in RET. des; subst; eauto.
-    + unfold triggerUB. grind. unfold ModTr.pure_state. grind. steps. ss.
-
-  - rewrite !unfold_iter_eq. s. rewrite LKS LKT. grind.
-
+  - rewrite !unfold_iterV. s. rewrite LKS LKT. grind. des_ifs.
+    + grind. zstep_l. zstep_r. zstep. rr in RET. des; subst; eauto.
+    + unfold triggerUB, ModTr.pure_state. do 2 zstep_l.
+  - rewrite !unfold_iterV. s. rewrite LKS LKT. grind.
     unfold Mod.prog, unwrapU at 1. des_ifs; cycle 1.
-    { unfold triggerUB, ModTr.pure_state. grind. step. ss. }
+    { unfold triggerUB, ModTr.pure_state. grind. do 2 zstep_l. }
     unfold Mod.prog, unwrapU at 1. des_ifs; cycle 1.
     { unshelve eapply MSim.sim_fnsems in Heq; et. des.
       erewrite Heq0 in Heq. ss.
@@ -80,14 +76,11 @@ Proof.
     grind. rename Heq into FIND.
     
     gstep. econs. do 5 (econs; eauto using smj_lt_mid_top).
-    gbase. eapply (CIH w1); eauto.
-    { rewrite !length_insert. eauto. }
-    { rewrite !length_insert. eauto. }
-    { rewrite !length_insert. inv WLE. nia. }
+    gbase. eapply (CIH w1); eauto; try by inv WLE; zsimpl_len.
 
     i. guardH FLG. des_ifs; des; subst; cycle 1.
-    { rewrite list.list_lookup_insert_ne in INS; try nia. inv INS.
-      rewrite list.list_lookup_insert_ne in INT; try nia. inv INT.
+    { rewrite list.list_lookup_insert_ne in INS; try nia.
+      rewrite list.list_lookup_insert_ne in INT; try nia.
       eapply SIM; eauto; des_ifs.
       eapply le_mine_trans; [apply sim| |eauto].
       rr in WLE. des. rr. i. rewrite <-WLE1; try nia. rewrite IN.
@@ -109,8 +102,8 @@ Proof.
     do 2 (guclo sim_itree_indC_spec; econs). grind.
     gfinal. right. eapply K; eauto.
 
-  - rewrite !unfold_iter_eq. s. rewrite LKS LKT. grind.
-    unfold ModTr.pure_state. grind. do 3 step. grind. do 2 step.
+  - rewrite !unfold_iterV. s. rewrite LKS LKT. grind.
+    unfold ModTr.pure_state. grind. zstep. zstep_l. zstep_r. subst.
     eapply K;
       try rewrite length_insert;
       try rewrite list.list_lookup_insert; eauto; try nia.
@@ -122,9 +115,9 @@ Proof.
       rewrite list.list_lookup_insert_ne in INT; try nia. inv INT.
       eapply SIM; des_ifs; eauto.
 
-  - rewrite unfold_iter_eq. s. rewrite LKS. grind.
+  - rewrite unfold_iterV. s. rewrite LKS. grind.
     unfold Mod.prog, unwrapU at 1.
-    rewrite FUN. grind. step.
+    rewrite FUN. grind. zstep_l.
     eapply K;
       try rewrite length_insert;
       try rewrite list.list_lookup_insert; eauto; try nia.
@@ -140,9 +133,9 @@ Proof.
     + rewrite !list.list_lookup_insert_ne in INS; try nia. inv INS.
       eapply SIM; eauto; des_ifs.
 
-  - rewrite (unfold_iter_eq _ (_, itrs_tgt)). s. rewrite LKT. grind.
+  - rewrite (unfold_iterV _ (_, itrs_tgt)). s. rewrite LKT. grind.
     unfold Mod.prog, unwrapU at 1.
-    rewrite FUN. grind. step.
+    rewrite FUN. grind. zstep_r.
     eapply K;
       try rewrite length_insert;
       try rewrite list.list_lookup_insert; eauto; try nia.
@@ -158,7 +151,7 @@ Proof.
     + rewrite !list.list_lookup_insert_ne in INT; try nia. inv INT.
       eapply SIM; eauto; des_ifs.
 
-  - rewrite unfold_iter_eq. s. rewrite LKS. grind. do 2 step.
+  - rewrite unfold_iterV. s. rewrite LKS. grind. zstep_l.
     eapply K;
       try rewrite length_insert;
       try rewrite list.list_lookup_insert; eauto; try nia.
@@ -172,7 +165,7 @@ Proof.
     + rewrite !list.list_lookup_insert_ne in INS; try nia. inv INS.
       eapply SIM; eauto; des_ifs.
 
-  - rewrite (unfold_iter_eq _ (_, itrs_tgt)). s. rewrite LKT. grind. do 2 step.
+  - rewrite (unfold_iterV _ (_, itrs_tgt)). s. rewrite LKT. grind. zstep_r.
     eapply K;
       try rewrite length_insert;
       try rewrite list.list_lookup_insert; eauto; try nia.
@@ -186,9 +179,9 @@ Proof.
     + rewrite !list.list_lookup_insert_ne in INT; try nia. inv INT.
       eapply SIM; eauto; des_ifs.
 
-  - rewrite unfold_iter_eq. s. rewrite LKS. grind.
+  - rewrite unfold_iterV. s. rewrite LKS. grind.
     unfold ModTr.pure_state at 1.
-    grind. step. esplits. step. grind. step.
+    grind. zstep_l. esplits. zstep_l.
     eapply K;
       try rewrite length_insert;
       try rewrite list.list_lookup_insert; eauto; try nia.
@@ -202,9 +195,9 @@ Proof.
     + rewrite !list.list_lookup_insert_ne in INS; try nia. inv INS.
       eapply SIM; eauto; des_ifs.
 
-  - rewrite (unfold_iter_eq _ (_, itrs_tgt)). s. rewrite LKT.
+  - rewrite (unfold_iterV _ (_, itrs_tgt)). s. rewrite LKT.
     grind. unfold ModTr.pure_state at 2.
-    grind. do 2 step. grind. step.
+    grind. zstep_r. zstep_r.
     eapply K;
       try rewrite length_insert;
       try rewrite list.list_lookup_insert; eauto; try nia.
@@ -218,9 +211,9 @@ Proof.
     + rewrite !list.list_lookup_insert_ne in INT; try nia. inv INT.
       eapply SIM; eauto; des_ifs.
 
-  - rewrite unfold_iter_eq. s. rewrite LKS.
+  - rewrite unfold_iterV. s. rewrite LKS.
     grind. unfold ModTr.pure_state at 1.
-    grind. do 2 step. grind. step.
+    grind. zstep_l. zstep_l. grind.
     eapply K;
       try rewrite length_insert;
       try rewrite list.list_lookup_insert; eauto; try nia.
@@ -234,9 +227,9 @@ Proof.
     + rewrite !list.list_lookup_insert_ne in INS; try nia. inv INS.
       eapply SIM; eauto; des_ifs.
 
-  - rewrite (unfold_iter_eq _ (_, itrs_tgt)). s. rewrite LKT.
+  - rewrite (unfold_iterV _ (_, itrs_tgt)). s. rewrite LKT.
     grind. unfold ModTr.pure_state at 2.
-    grind. step. esplits. step. grind. step.
+    grind. zstep_r. esplits. zstep_r.
     eapply K;
       try rewrite length_insert;
       try rewrite list.list_lookup_insert; eauto; try nia.
@@ -250,7 +243,7 @@ Proof.
     + rewrite !list.list_lookup_insert_ne in INT; try nia. inv INT.
       eapply SIM; eauto; des_ifs.
 
-  - rewrite unfold_iter_eq. s. rewrite LKS. grind. do 2 step.
+  - rewrite unfold_iterV. s. rewrite LKS. grind. zstep_l.
     eapply K;
       try rewrite length_insert;
       try rewrite list.list_lookup_insert; eauto; try nia.
@@ -264,7 +257,7 @@ Proof.
     + rewrite !list.list_lookup_insert_ne in INS; try nia. inv INS.
       eapply SIM; eauto; des_ifs.
 
-  - rewrite (unfold_iter_eq _ (_, itrs_tgt)). s. rewrite LKT. grind. do 2 step.
+  - rewrite (unfold_iterV _ (_, itrs_tgt)). s. rewrite LKT. grind. zstep_r.
     eapply K;
       try rewrite length_insert;
       try rewrite list.list_lookup_insert; eauto; try nia.
@@ -278,17 +271,18 @@ Proof.
     + rewrite !list.list_lookup_insert_ne in INT; try nia. inv INT.
       eapply SIM; eauto; des_ifs.
 
-  - rewrite !unfold_iter_eq. s. rewrite LKS LKT. grind.
+  - rewrite !unfold_iterV. s. rewrite LKS LKT. grind.
 
     unfold Mod.prog, unwrapU at 1. des_ifs; cycle 1.
-    { unfold triggerUB, ModTr.pure_state. grind. step. ss. }
+    { unfold triggerUB, ModTr.pure_state. grind. do 2 zstep_l. }
     unfold Mod.prog, unwrapU at 1. des_ifs; cycle 1.
     { unshelve eapply MSim.sim_fnsems in Heq; et. des.
       erewrite Heq0 in Heq. ss.
     }
     grind. rename Heq into FIND.
     
-    do 2 step. gstep. econs. econs; eauto using smj_lt_mid_top.
+    zstep_l. zstep_r.
+    gstep. econs. econs; eauto using smj_lt_mid_top.
     gbase. eapply CIH.
     { rewrite !length_app. s. rewrite !length_insert. eauto. }
     { rewrite !length_app. s. rewrite !length_insert. nia. }
@@ -328,14 +322,15 @@ Proof.
       ginit. eapply sim_itree_flag_down. gfinal. right.
       eapply FIND0; eauto.
 
-  - rewrite !unfold_iter_eq. s. rewrite LKS LKT. grind.
-    do 2 step. gstep. econs. econs; eauto using smj_lt_mid_top.
+  - rewrite !unfold_iterV. s. rewrite LKS LKT. grind.
+    zstep_l. zstep_r.
+    gstep. econs. econs; eauto using smj_lt_mid_top.
     assert (DEC : tid < List.length itrs_src \/ tid >= List.length itrs_src) by nia.
     des; cycle 1.
-    { rewrite unfold_iter_eq. s.
+    { rewrite unfold_iterV. s.
       rewrite list.lookup_ge_None_2; try (rewrite length_insert; nia).
       s. grind. unfold triggerUB. grind. unfold ModTr.pure_state. grind.
-      step. ss. }
+      do 2 zstep_l. }
 
     gbase. eapply (CIH w1); eauto.
     { rewrite !length_insert. nia. }
@@ -367,15 +362,15 @@ Proof.
         esplits; eauto. apply sim. eauto.
     }
 
-  - rewrite unfold_iter_eq; s. rewrite LKS. grind.
+  - rewrite unfold_iterV; s. rewrite LKS. grind.
     unfold Mod.prog, unwrapU at 1. 
     rewrite FUN. grind. unfold triggerUB, ModTr.pure_state. grind.
-    step. ss.
+    do 2 zstep_l.
 
-  - rewrite unfold_iter_eq; s. rewrite LKS. grind.
+  - rewrite unfold_iterV; s. rewrite LKS. grind.
     unfold Mod.prog, unwrapU at 1. 
     rewrite FUN. grind. unfold triggerUB, ModTr.pure_state. grind.
-    step. ss.
+    do 2 zstep_l.
 
   - gstep. econs. econs; cycle 1.
     { instantiate (1:= Some false). ss. }
@@ -405,7 +400,7 @@ Proof.
   unfold Mod.compile, assume. generalize Mod.init_fun as fn. i.
 
   ss. unfold Mod.prog, unwrapU at 1. des_ifs; cycle 1.
-  { unfold triggerUB, ModTr.pure_state. grind. step. ss. }
+  { unfold triggerUB, ModTr.pure_state. zstep_l. }
   unfold Mod.prog, unwrapU at 1. des_ifs; cycle 1.
   { unshelve eapply MSim.sim_fnsems in Heq; et. des.
     erewrite Heq0 in Heq. ss.
@@ -422,7 +417,7 @@ Proof.
       eexists. r. eapply H0; eauto.
     + exfalso. exploit lookup_lt_is_Some_1; eauto.
       s. nia.
-  - i. steps.
+  - i. zstep.
     destruct vret_src, vret_tgt. des; subst; eauto.
 Unshelve. all : exact smj_bot.
 Qed.

@@ -1,6 +1,6 @@
 Require Import Common.
 From iris.proofmode Require Export proofmode.
-Require Import Mod ModSim ModTactics HMod ISim ISimInit.
+Require Import Mod ModSim SimGTactics HMod ISim ISimInit.
 Require Export CtxRefine CtxRefineFacts ClosedAdequacy MainAdequacy.
 Require Import TacticsInit.
 Require Import SimGlobal SimGlobalFacts.

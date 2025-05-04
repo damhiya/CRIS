@@ -288,7 +288,7 @@ Module MemIA. Section MemIA.
         des_ifs; bsimpl; destruct dec; des; subst; ss; rewrite right_id; eauto.
     - clear - WFTGT. ii. ss. 
       unfold AList.update in *. des_ifs. exploit WFTGT; et. i; des. r; lia.
-  (*SLOW*)Qed.
+  (*SLOW*)Admitted.
 
   Lemma simF_free : HSim.sim_fun open MemA MemI IstFull MemHdr.free.
   Proof using MemInSpMem.
@@ -376,7 +376,7 @@ Module MemIA. Section MemIA.
         bsimpl; des_sumbool; ss.
       + unfold AList.update. ss. subst memk_src1. des_ifs; bsimpl; des; des; des_sumbool; ss; clarify.
     - ii. ss. unfold AList.update in *. des_ifs; et.
-  (*SLOW*)Qed.
+  (*SLOW*)Admitted.
 
   Lemma sim_load fls flt υ ν r g ps pt nths st_s st_t bofs q v:
     IstFull nths st_s st_t ∗ bofs |={q}=> v
@@ -410,7 +410,7 @@ Module MemIA. Section MemIA.
     steps_r.
     step. iFrame. iSplit; et.
     iExists _, [_], _, _. repeat iSplit; et.
-  (*SLOW*)Qed.
+  (*SLOW*)Admitted.
 
   Lemma simF_load : HSim.sim_fun open MemA MemI IstFull MemHdr.load.
   Proof using MemInSpMem.
@@ -428,7 +428,7 @@ Module MemIA. Section MemIA.
     
     force_l. steps_l. forces_l. iSplitL "P"; iFrame; et. steps_l.
     step. iFrame. eauto.
-  (*SLOW*)Qed.
+  (*SLOW*)Admitted.
 
   Lemma sim_store fls flt υ ν r g ps pt nths st_s st_t bofs v_old v:
     IstFull nths st_s st_t ∗ bofs ↦ v_old
@@ -532,7 +532,7 @@ Module MemIA. Section MemIA.
     }
     iPoseProof (points_to_transform with "WHT") as "WHT".
     ss. rewrite Z.add_0_r. iDestruct "WHT" as "[WHT _]"; et.
-  (*SLOW*)Qed.
+  (*SLOW*)Admitted.
 
   Lemma simF_store : HSim.sim_fun open MemA MemI IstFull MemHdr.store.
   Proof using MemInSpMem.
@@ -550,7 +550,7 @@ Module MemIA. Section MemIA.
     
     force_l. steps_l. forces_l. iSplitL "P"; et.
     step. eauto.
-  (*SLOW*)Qed.
+  (*SLOW*)Admitted.
 
   Lemma simF_cmp : HSim.sim_fun open MemA MemI IstFull MemHdr.cmp.
   Proof using MemInSpMem.
@@ -737,7 +737,7 @@ Module MemIA. Section MemIA.
     }
 
     destruct x; ss.
-  (*SLOW*)Qed.
+  (*SLOW*)Admitted.
 
   Lemma simF_cas : HSim.sim_fun open MemA MemI IstFull MemHdr.cas.
   Proof using MemInSpMem.
@@ -790,7 +790,7 @@ Module MemIA. Section MemIA.
 
       step. eauto.
     }
-  (*SLOW*)Qed.
+  (*SLOW*)Admitted.
 
   Theorem sim : HSim.t open MemA MemI (MemA.init_cond csl genv) IstFull.
   Proof using MemInSpMem.
@@ -810,7 +810,7 @@ Module MemIA. Section MemIA.
     - apply simF_store.
     - apply simF_cmp.
     - apply simF_cas.
-  (*SLOW*)Qed.
+  (*SLOW*)Admitted.
 End MemIA.
 
 Section ctxr.

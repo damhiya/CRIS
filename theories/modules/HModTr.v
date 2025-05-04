@@ -60,68 +60,71 @@ Section MID.
     rewrite IHst. eauto.
   Qed.
 
-  Definition put_res `{stateE -< E} `{coreE -< E} (mr : Σ) : itree E unit :=
+  Definition put_res (mr : Σ) : itree modE unit :=
     st <- trigger sGet;; '(mp, _) :_ <- (Any.split st)?;;
     trigger (sPut (Any.pair mp mr↑)).
 
-  Definition get_res `{stateE -< E} `{coreE -< E} : itree E Σ :=
-    st <- trigger sGet;; '(_, mr) : _ <- (Any.split st)?;;
-    mr↓?.
+  Definition get_res {R} (k: Σ → itree modE R) : itreeV modE R :=
+    inr (existT Any.t (subevent _ sGet, fun st =>
+      '(_, mr) : _ <- (Any.split st)?;;
+      r <- mr↓?;; k r)).
 
-  Definition mput_kv E `{stateE -< E} `{coreE -< E} (k: key) (v: Any.t) : itree E unit :=
-    st <- trigger sGet;;
-    or_else (
+  Definition mput_kv (k: key) (v: Any.t) : itreeV modE unit :=
+    inr (existT Any.t (subevent _ sGet, fun st =>
+      or_else (
         do '(mp, mr) <- Any.split st;
         Some (trigger (sPut (Any.pair (alist_encode (alist_upd k v (alist_decode mp))) mr)))
       )
-      (Ret tt)
+      ( Ret tt )))
   .
 
-  Definition mget_kv E `{stateE -< E} `{coreE -< E} (k: key) : itree E Any.t :=
-    st <- trigger sGet;;
-    or_else (
+  Definition mget_kv (k: key) : itreeV modE Any.t :=
+    inr (existT Any.t (subevent _ sGet, fun st =>
+      or_else (
         do '(mp, _) <- Any.split st;
         Some (Ret (or_else (alist_find k (alist_decode mp)) tt↑))
       )
-      (Ret tt↑)
+      ( Ret tt↑ )))
   .
 
   (* mid to tgt code *)
-  Definition handle_pgE : pgE ~> itree modE :=
+  Definition handle_pgE : pgE ~> itreeV modE :=
     fun _ e =>
       match e with
       | SPut k v => mput_kv k v
       | SGet k => mget_kv k
       end.
 
-  Definition handle_Assume (P : iProp Σ) : itree modE unit :=
-    mr <- get_res;;
+  Definition handle_Assume (P : iProp Σ) : itreeV modE unit :=
+    get_res (fun mr =>
     mr' <- trigger (Take Σ);;
     assume (✓ mr' ∧ (Own mr' ==∗ P ∗ Own mr));;;
-    put_res mr'.
+    put_res mr').
 
-  Definition handle_Guarantee (P : iProp Σ) : itree modE unit :=
-    mr <- get_res;;
+  Definition handle_Guarantee (P : iProp Σ) : itreeV modE unit :=
+    get_res (fun mr =>
     mr' <- trigger (Choose Σ);;
     guarantee (✓ mr' ∧ (Own mr ==∗ P ∗ Own mr'));;;
-    put_res mr'.
+    put_res mr').
 
-  Definition handle_agE : agE ~> itree modE :=
+  Definition handle_agE : agE ~> itreeV modE :=
     λ _ e,
       match e with
       | Assume P => handle_Assume P
       | Guarantee P => handle_Guarantee P
       end.
 
-  Definition trans : itree hmodE ~> itree modE.
-  Proof using.
-    intros T; eapply interp; intros Te e.
-    destruct e as [|[|[|]]].
-    { apply (handle_agE a). }
-    { exact (trigger c). }
-    { exact (handle_pgE p). }
-    { exact (trigger c). }
-  Defined.
+  Definition handle_hmodE : hmodE ~> itreeV modE :=
+    λ T e,
+      match e with
+      | inl1 ag => handle_agE ag
+      | inr1 (inl1 c) => inr (existT T (subevent _ c, fun r => Ret r))
+      | inr1 (inr1 (inl1 pg)) => handle_pgE pg
+      | inr1 (inr1 (inr1 c)) => inr (existT T (subevent _ c, fun r => Ret r))
+      end.
+
+  Definition trans : itree hmodE ~> itree modE :=
+    interpV handle_hmodE.
 
   Definition trans_ktree (f : Any.t -> itree hmodE Any.t) : Any.t -> itree modE Any.t :=
     λ x, trans (f x).
@@ -165,67 +168,67 @@ Section RED.
 
   Lemma bind (R S : Type) (s : itree hmodE R) (k : R -> itree hmodE S) :
     HModTr.trans (s >>= k) = st <- HModTr.trans s;; HModTr.trans (k st).
-  Proof using. rewrite /HModTr.trans interp_bind //. Qed.
+  Proof using. rewrite /HModTr.trans interpV_bind //. Qed.
 
   Lemma tau (R : Type) (t : itree _ R) :
     HModTr.trans (tau;; t) = tau;; (HModTr.trans t).
-  Proof using. rewrite /HModTr.trans interp_tau //. Qed.
+  Proof using. rewrite /HModTr.trans interpV_tau //. Qed.
 
   Lemma ret (R : Type) (t : R) :
     HModTr.trans (Ret t) = Ret t.
-  Proof using. rewrite /HModTr.trans interp_ret //. Qed.
+  Proof using. rewrite /HModTr.trans interpV_ret //. Qed.
 
   Lemma call (R : Type) (c : callE R) :
-    HModTr.trans (trigger c) = r <- trigger c;; tau;; Ret r.
-  Proof using. rewrite /HModTr.trans interp_trigger //. Qed.
+    HModTr.trans (trigger c) = trigger c.
+  Proof using. rewrite /HModTr.trans interpV_trigger. s. ired. et. Qed.
 
   Lemma spawn fn arg :
-    HModTr.trans (trigger (Spawn fn arg)) = r <- trigger (Spawn fn arg);; tau;; Ret r.
-  Proof using. rewrite /HModTr.trans interp_trigger //. Qed.
+    HModTr.trans (trigger (Spawn fn arg)) = trigger (Spawn fn arg).
+  Proof using. rewrite /HModTr.trans interpV_trigger. s. ired. et. Qed.
 
   Lemma yield tid :
-    HModTr.trans (trigger (Yield tid)) = r <- trigger (Yield tid);; tau;; Ret r.
-  Proof using. rewrite /HModTr.trans interp_trigger //. Qed.
+    HModTr.trans (trigger (Yield tid)) = trigger (Yield tid).
+  Proof using. rewrite /HModTr.trans interpV_trigger. s. ired. et. Qed.
 
   Lemma pg (R : Type) (i : pgE R) :
-    HModTr.trans (trigger i) = r <- HModTr.handle_pgE i;; tau;; Ret r.
-  Proof using. rewrite /HModTr.trans interp_trigger //. Qed.
+    HModTr.trans (trigger i) = itreeV_itree (HModTr.handle_pgE i).
+  Proof using. rewrite /HModTr.trans interpV_trigger //. Qed.
 
   Lemma core (R : Type) (i : coreE R) :
-    HModTr.trans (trigger i) = r <- trigger i;; tau;; Ret r.
-  Proof using. rewrite /HModTr.trans interp_trigger //. Qed.
+    HModTr.trans (trigger i) = trigger i.
+  Proof using. rewrite /HModTr.trans interpV_trigger. s. ired. et. Qed.
 
   Lemma triggerUB (R : Type) :
     HModTr.trans (triggerUB) = triggerUB (A:=R).
   Proof using.
-    rewrite /HModTr.trans /triggerUB interp_bind interp_trigger; grind.
+    rewrite /HModTr.trans /triggerUB interpV_bind interpV_trigger; grind.
   Qed.
 
   Lemma triggerNB (R : Type) :
     HModTr.trans (triggerNB) = triggerNB (A:=R).
   Proof using.
-    rewrite /HModTr.trans /triggerNB interp_bind interp_trigger; grind.
+    rewrite /HModTr.trans /triggerNB interpV_bind interpV_trigger; grind.
   Qed.
 
   Lemma unwrapU (R : Type) (i : option R) :
-    HModTr.trans (@unwrapU hmodE _ _ i) = r <- (unwrapU i);; Ret r.
+    HModTr.trans (@unwrapU hmodE _ _ i) = unwrapU i.
   Proof using.
-    rewrite /HModTr.trans /unwrapU; des_ifs; grind; eauto using triggerUB.
+    rewrite /HModTr.trans /unwrapU; des_ifs; s; try rewrite interpV_ret; eauto using triggerUB.
   Qed.
 
   Lemma unwrapN (R : Type) (i : option R) :
-    HModTr.trans (@unwrapN hmodE _ _ i) = r <- (unwrapN i);; Ret r.
+    HModTr.trans (@unwrapN hmodE _ _ i) = unwrapN i.
   Proof using.
-    rewrite /HModTr.trans /unwrapN; des_ifs; grind; eauto using triggerNB.
+    rewrite /HModTr.trans /unwrapN; des_ifs; s; try rewrite interpV_ret; eauto using triggerNB.
   Qed.
 
   Lemma Assume P :
-    HModTr.trans (trigger (Assume P)) = x <- HModTr.handle_Assume P;; tau;; Ret x.
-  Proof using. rewrite /HModTr.trans interp_trigger //. Qed.
+    HModTr.trans (trigger (Assume P)) = itreeV_itree (HModTr.handle_Assume P).
+  Proof using. rewrite /HModTr.trans interpV_trigger //. Qed.
 
   Lemma Guarantee P :
-    HModTr.trans (trigger (Guarantee P)) = x <- HModTr.handle_Guarantee P;; tau;; Ret x.
-  Proof using. rewrite /HModTr.trans interp_trigger //. Qed.
+    HModTr.trans (trigger (Guarantee P)) = itreeV_itree (HModTr.handle_Guarantee P).
+  Proof using. rewrite /HModTr.trans interpV_trigger //. Qed.
 
   Lemma ext R (itr0 itr1 : itree _ R) (EQ : itr0 = itr1) :
     HModTr.trans itr0 = HModTr.trans itr1.

@@ -597,10 +597,24 @@ Proof.
 Qed.
 
 (***
+ [itreeV E R] : same as [itree E R] but productive
+ ***)
+
+Definition itreeV E R :=
+  (itree E R + {X: Type & E X * (X -> itree E R)})%type.
+
+Definition itreeV_itree {E R} (i: itreeV E R) : itree E R :=
+  match i with
+  | inl t => tau;; t
+  | inr (existT _ _ (e, k)) => ITree.trigger e >>= k
+  end.
+
+(***
  [interpV] : same as [interp] but does not introduce tau by only taking productive handlers.
  ***)
 
-CoFixpoint interpV {E F R} (handler: forall T, E T -> (itree F T +{X: Type & F X * (X -> itree F T)})%type) (itr: itree E R) : itree F R :=
+CoFixpoint interpV {E F} (handler: E ~> itreeV F) : itree E ~> itree F :=
+  fun _ itr =>
   match (_observe itr) with
   | RetF r => Ret r
   | TauF t => tau;; interpV handler t
@@ -620,39 +634,28 @@ Proof.
 Qed.
 
 Lemma interpV_tau {E F R} f t:
-  @interpV E F R f (tau;; t) = tau;; interpV f t.
+  @interpV E F f R (tau;; t) = tau;; interpV f t.
 Proof.
   eapply observe_eta. eauto.
 Qed.
 
 Lemma interpV_vis {E F R} f U e k:
-  @interpV E F R f (Vis e k) =
-  match f U e with
-  | inl t => tau;; x <- t;; interpV f (k x)
-  | inr (existT _ _ (e', k')) => x' <- trigger e';; x <- k' x';; interpV f (k x)
-  end.
+  @interpV E F f R (Vis e k) = x <- itreeV_itree (f U e);; interpV f (k x).
 Proof.
   eapply observe_eta. s. destruct (f U e) as [|[? []]]; s; eauto.
   f_equal. extensionalities. ired. eauto.
 Qed.
 
-Lemma interpV_trigger (E F : Type -> Type) (R : Type) (e : E R) f:
-  interpV f (ITree.trigger e) =
-  match f R e with
-  | inl t => tau;; t
-  | inr (existT _ X (e', k')) => x' <- trigger (e': F X) ;; k' x'
-  end.
+Lemma interpV_trigger (E F: Type -> Type) (R : Type) (e : E R) f:
+  @interpV E F f R (ITree.trigger e) = itreeV_itree (f R e).
 Proof.
-  unfold ITree.trigger. rewrite interpV_vis. des_ifs; s; ired.
-  - do 2 f_equal. rewrite <-(bind_ret_r i) at 2. f_equal. extensionalities.
-    rewrite interpV_ret. et.
-  - unfold ITree.trigger. f_equal. extensionalities.
-    rewrite <-(bind_ret_r (i H)) at 2. f_equal. extensionalities.
-    rewrite interpV_ret. et.
+  unfold ITree.trigger. rewrite interpV_vis.
+  rewrite <-(bind_ret_r (_ (f R e))) at 2.
+  f_equal. extensionalities. rewrite interpV_ret. et.
 Qed.
 
 Lemma interpV_bind {E F R S} f t k:
-  @interpV E F S f ('x: R <- t;; k x) = x <- interpV f t;; interpV f (k x).
+  @interpV E F f S ('x: R <- t;; k x) = x <- interpV f t;; interpV f (k x).
 Proof.
   eapply bisim_is_eq.
   eapply gpaco2_init with (clo:=eqitC _ _ _); eauto with paco.
@@ -669,6 +672,77 @@ Proof.
       gstep. econs. i. ired.
       guclo eqit_clo_bind. econs; try refl.
       i. subst. gbase. eauto.
+Qed.
+
+(***
+ [iterV] : same as [iter] but does not introduce tau by only taking productive handlers.
+ ***)
+
+CoFixpoint _iterV {E: Type -> Type} {R I} (f: I -> itreeV E (I + R)) (itr: itree E (I + R)) : itree E R :=
+  match (_observe itr) with
+  | RetF (inl i) =>
+      match f i with
+      | inl t => tau;; _iterV f t
+      | inr (existT _ _ (e, k)) => vis e (fun x => _iterV f (k x))
+      end
+  | RetF (inr r) =>
+      Ret r
+  | TauF t => tau;; _iterV f t
+  | VisF e k =>
+      vis e (fun x => _iterV f (k x))
+  end.
+
+Definition iterV {E: Type -> Type} {R I} (f: I -> itreeV E (I + R)) (i: I) : itree E R :=
+  _iterV f (itreeV_itree (f i)).
+
+Lemma _iterV_ret_r {E R I} f r:
+  @_iterV E R I f (Ret (inr r)) = Ret r.
+Proof.
+  eapply observe_eta. s. eauto.
+Qed.
+
+Lemma _iterV_ret_l {E R I} f i:
+  @_iterV E R I f (Ret (inl i)) = _iterV f (itreeV_itree (f i)).
+Proof.
+  eapply observe_eta. s. destruct (f i); s; et.
+  destruct s as [X [e k]]; s.
+  f_equal. extensionalities.
+  rewrite bind_ret_l. et.
+Qed.
+
+Lemma _iterV_tau {E R I} f t:
+  @_iterV E R I f (tau;; t) = tau;; _iterV f t.
+Proof.
+  eapply observe_eta. s. eauto.
+Qed.
+
+Lemma _iterV_vis {E R I X} f (e: E X) k:
+  @_iterV E R I f (Vis e k) = Vis e (fun x => _iterV f (k x)).
+Proof.
+  eapply observe_eta. s. eauto.
+Qed.
+
+Lemma unfold_iterV {E R I} f i:
+  @iterV E R I f i =
+    lr <- itreeV_itree (f i);;
+    match lr with
+    | inl l => iterV f l
+    | inr r => Ret r
+    end.
+Proof.
+  eapply bisim_is_eq. unfold iterV.
+  eapply gpaco2_init with (clo:=eqitC _ _ _); eauto with paco.
+  generalize (itreeV_itree (f i)) as t. clear i.
+  gcofix CIH. i.
+  rewrite (bisim_is_eq (itree_eta t)). destruct (observe t).
+  - destruct r0 as [i|rv].
+    + rewrite _iterV_ret_l. ired.
+      gfinal. right. eapply paco2_mon.
+      * eapply Reflexive_eqit. eauto.
+      * ss.
+    + rewrite _iterV_ret_r. ired. gstep. econs. eauto.
+  - rewrite _iterV_tau. ired. gstep. econs. gbase. eauto.
+  - rewrite _iterV_vis, bind_vis. gstep. econs. i. gbase. eauto.    
 Qed.
 
 (***

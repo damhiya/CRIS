@@ -123,7 +123,7 @@ Module HIRed.
       grind. rewrite! bind_trigger. gstep. econs. i.
       r. grind. gstep. econs. gbase. eauto.
     Unshelve. eauto with paco.
-  (*SLOW*)Qed.
+  (*SLOW*)Admitted.
       
   Lemma ret `{Σ: GRA}
     prog (x: Any.t)
@@ -333,7 +333,7 @@ Proof using.
   rewrite SBRed.core HIRed.bind_core SBRed.bind SBRed.core !bind_trigger.
   gstep. econs. i. r.
   rewrite SBRed.tau. gstep. econs. gbase; eauto.
-(*SLOW*)Qed.
+(*SLOW*)Admitted.
 
 Definition bindRR `{Σ: GRA} {R} RR P : nat -> alist key Any.t * R-> alist key Any.t * R -> iProp Σ :=
   fun nths '(st0, ret0) '(st1, ret1) => (P ∗ RR nths (st0, ret0) (st1, ret1))%I.

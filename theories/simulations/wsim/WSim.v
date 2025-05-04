@@ -176,7 +176,7 @@ Section wsim.
     Lemma wsim_inline_src r g fn arg f_s k_s i_t E :
       alist_find fn fl_s = Some f_s →
       wsim t υ ν E r g R_s R_t RR true pt nths
-        (st_s, x <- (ret <- (f_s arg);; (tau;; tau;; Ret ret));; (k_s x))
+        (st_s, x <- (ret <- (f_s arg);; (tau;; Ret ret));; (k_s x))
         (st_t, i_t) ⊢
       wsim t υ ν E r g R_s R_t RR ps pt nths (st_s, trigger (Call fn arg) >>= k_s) (st_t, i_t).
     Proof using. i; unseal; iIntros "RR I". iApply isim_inline_src; eauto. iApply "RR"; iFrame. Qed.
@@ -185,7 +185,7 @@ Section wsim.
       alist_find fn fl_s = Some f_s →
       (mask fn) →
       wsim t υ ν E r g R_s R_t RR true pt nths
-        (st_s, x <- (ret <- (f_s arg);; (tau;; tau;; Ret ret));; (k_s x))
+        (st_s, x <- (ret <- (f_s arg);; (tau;; Ret ret));; (k_s x))
         (st_t, i_t) ⊢
       wsim t υ ν E r g R_s R_t RR ps pt nths (st_s, HModTr.sandbox mask scopes (trigger (Call fn arg)) >>= k_s) (st_t, i_t).
     Proof using.
@@ -199,7 +199,7 @@ Section wsim.
       alist_find fn fl_t = Some f_t →
       wsim t υ ν E r g R_s R_t RR ps true nths
         (st_s, i_s)
-        (st_t, x <- (ret <- (f_t arg);; (tau;; tau;; Ret ret));; (k_t x)) ⊢
+        (st_t, x <- (ret <- (f_t arg);; (tau;; Ret ret));; (k_t x)) ⊢
       wsim t υ ν E r g R_s R_t RR ps pt nths (st_s, i_s) (st_t, trigger (Call fn arg) >>= k_t).
     Proof using. i; unseal; iIntros "RR I". iApply isim_inline_tgt; eauto. iApply "RR"; iFrame. Qed.
 
@@ -208,7 +208,7 @@ Section wsim.
       (mask fn) →
       wsim t υ ν E r g R_s R_t RR ps true nths
         (st_s, i_s)
-        (st_t, x <- (ret <- (f_t arg);; (tau;; tau;; Ret ret));; (k_t x)) ⊢
+        (st_t, x <- (ret <- (f_t arg);; (tau;; Ret ret));; (k_t x)) ⊢
       wsim t υ ν E r g R_s R_t RR ps pt nths (st_s, i_s) (st_t, HModTr.sandbox mask scopes (trigger (Call fn arg)) >>= k_t).
     Proof using.
     i. iIntros "ISIM".

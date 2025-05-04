@@ -57,7 +57,7 @@ Section HSIM.
       ps pt nths st_src st_tgt fmr
       fn f varg k_src i_tgt
       (FUN : alist_find fn fl_src = Some f)
-      (K : hsimi true pt nths (st_src, f varg >>= (λ ret, tau;; tau;; Ret ret) >>= k_src) (st_tgt, i_tgt) fmr)
+      (K : hsimi true pt nths (st_src, f varg >>= (λ ret, tau;; Ret ret) >>= k_src) (st_tgt, i_tgt) fmr)
     :
     _hsim' hsimc hsimi ps pt nths (st_src, trigger (Call fn varg) >>= k_src) (st_tgt, i_tgt) fmr
 
@@ -66,7 +66,7 @@ Section HSIM.
       ps pt nths st_src st_tgt fmr
       fn f varg i_src k_tgt
       (FUN : alist_find fn fl_tgt = Some f)
-      (K : hsimi ps true nths (st_src, i_src) (st_tgt, f varg >>= (λ ret, tau;; tau;; Ret ret) >>= k_tgt) fmr)
+      (K : hsimi ps true nths (st_src, i_src) (st_tgt, f varg >>= (λ ret, tau;; Ret ret) >>= k_tgt) fmr)
     :
     _hsim' hsimc hsimi ps pt nths (st_src, i_src) (st_tgt, trigger (Call fn varg) >>= k_tgt) fmr
 

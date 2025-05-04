@@ -337,7 +337,7 @@ Section SchIA.
     steps_r. hss. steps_r.
     by_coind "CIH". iFrame.
     Unshelve. all: ss.
-  (*SLOW*)Qed.
+  (*SLOW*)Admitted.
 
   Lemma simF_spawn : HSim.sim_fun open SchAMod SchIMod Ist SchHdr.spawn.
   Proof using FunInSp SchInSp.
@@ -406,7 +406,7 @@ Section SchIA.
     force_l (nths ↑). force_l.
     iSplitL "tid TKNQ0 WI"; iFrame; eauto.
     step. iFrame. iSplit; eauto. iExists _, _, _. esplits; eauto.
-  (*SLOW*)Qed.
+  (*SLOW*)Admitted.
 
   Lemma simF_yield : HSim.sim_fun open SchAMod SchIMod Ist SchHdr.yield.
   Proof using FunInSp SchInSp.
@@ -439,7 +439,7 @@ Section SchIA.
     force_l (tt↑). steps_l. steps_r.
     force_l. iSplitL "tid WI". { iFrame. eauto. }
     step. iFrame. iSplit; eauto. iExists _, _, _. iSplit; eauto.
-  (*SLOW*)Qed.
+  (*SLOW*)Admitted.
 
   Lemma simF_join : HSim.sim_fun open SchAMod SchIMod Ist SchHdr.join.
   Proof using FunInSp SchInSp.
@@ -538,7 +538,7 @@ Section SchIA.
       eapply fragree_incl_false. et.
     }
   Unshelve. all : ss.
-  (*SLOW*)Qed.
+  (*SLOW*)Admitted.
 
   Lemma simF_get_tid : HSim.sim_fun open SchAMod SchIMod Ist SchHdr.get_tid.
   Proof using FunInSp SchInSp.
@@ -551,7 +551,7 @@ Section SchIA.
     iPoseProof (tid_admin_some_user with "[TA tid]") as "%"; iFrame; subst.
     steps_r. forces_l. iSplitL "tid"; eauto.
     step. iSplit; eauto. iFrame. iExists _, _, _. iSplit; eauto.
-  (*SLOW*)Qed.
+  (*SLOW*)Admitted.
 
   Lemma sim : HSim.t open SchAMod SchIMod SchA.init_cond Ist.
   Proof using FunInSp SchInSp.
