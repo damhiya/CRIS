@@ -133,7 +133,7 @@ Proof.
   rewrite SBRed.bind SBRed.core. f_equal. extensionalities.
   rewrite SBRed.bind SBRed.ag. f_equal. extensionalities.
   rewrite SBRed.ret. ss.
-Unshelve. all: eauto.  
+Unshelve. all: et; try exact smj_bot.
 (*SLOW*)Qed.
 
 (*** Final Theorem ***)
