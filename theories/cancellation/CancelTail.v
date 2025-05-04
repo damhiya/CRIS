@@ -65,7 +65,7 @@ Proof.
   ziter_r. zstep_r.
   ziter_r. zstep_r.
 
-  gstep. econs; econs; eauto using smj_lt_mid_top.
+  zprogress.
   gbase. eapply CIH; zsimpl_len; try zlookup_insert; ired; et.
   { iIntros "RS". iMod (UPD with "RS") as "RS". iMod (H with "RS") as "[A1 A2]".
     iSplitL "A1"; eauto. iApply H1. eauto.

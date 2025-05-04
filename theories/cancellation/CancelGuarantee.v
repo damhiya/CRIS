@@ -45,8 +45,8 @@ Proof.
   ziter_l. zstep_l. exists VALID. zstep_l.
   ziter_l. zstep_l.
   ziter_l. zstep_l.
-  
-  gstep. econs; econs; eauto using smj_lt_mid_top.
+
+  zprogress.
   gbase. eapply CIH; zsimpl_len; try zlookup_insert; et.
   intros ? ? ? ?. do 2 zlookup_insert_ne. eauto.
 Unshelve. all: eauto.

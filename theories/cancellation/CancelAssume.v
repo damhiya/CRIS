@@ -56,8 +56,8 @@ Proof.
   ziter_r. zstep_r. exists VALID. zstep_r.
   ziter_r. zstep_r.
   ziter_r. zstep_r.
-  
-  gstep. econs; econs; eauto using smj_lt_mid_top.
+
+  zprogress.
   gbase. eapply CIH; zsimpl_len; try zlookup_insert; et.
   { iIntros "X"; iMod (x1 with "X") as "[A1 A2]". 
     iApply UPD'. iSplitL "A1"; eauto. }

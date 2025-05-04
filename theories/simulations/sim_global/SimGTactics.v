@@ -86,3 +86,10 @@ Ltac ziter_r := zonly_r; ziter; zshow.
 
 Ltac zstep_l := zonly_l; zstep; zshow.
 Ltac zstep_r := zonly_r; zstep; zshow.
+
+Ltac zprogress :=
+  gstep; econs; eapply simg_progress; eauto using smj_lt_mid_top.
+
+Tactic Notation "zprogress" "with" uconstr(ps0) uconstr(pt0) uconstr(ps) uconstr(pt) :=
+  gstep; econs; eapply (simg_progress _ _ _ ps pt ps0 pt0); eauto.
+

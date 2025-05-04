@@ -44,7 +44,7 @@ Proof.
   - (* Tau case *)
     ziter_l. ziter_r. rewrite SRC TGT.
     zstep_l. zstep_r.
-    gstep. econs; econs; eauto using smj_lt_mid_top.
+    zprogress.
     gbase. eapply CIH; zsimpl_len; try zlookup_insert; et.
     intros ? ? ? ?. do 2 zlookup_insert_ne. eauto.
   - eapply cancel_aux_core; try eassumption; et. i; eapply CIH; eauto.

@@ -38,8 +38,7 @@ Proof.
   zonly_l.
   rewrite !alist_find_map_snd.
   destruct (alist_find fn (SMod.fnsems md)) eqn: EQ; s; cycle 1.
-  { unfold ModTr.interp_stateE, triggerUB, ModTr.pure_state. ired.
-    gstep. do 4 econs. ss. }
+  { unfold triggerUB. do 3 zstep_l. }
   destruct p as [[msk sc] [sp bd]]. ired.
   rewrite /sp_from /Sp.to_sp alist_find_map EQ in STB. inv STB.
   zshow.
@@ -108,7 +107,7 @@ Proof.
   ziter_r. zstep_r.
 
   rewrite LEN.
-  gstep. econs; econs; eauto using smj_lt_mid_top.
+  zprogress.
   gbase. eapply CIH; zsimpl_len; try eapply elim_rel_refl; et; zsimpl_len.
   { zsimpl_lookup. zlookup_insert. rewrite -LEN. zsimpl_len. ired. et. }
   { zsimpl_lookup. zlookup_insert.
