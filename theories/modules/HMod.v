@@ -7,21 +7,54 @@ Require Export HModTr.
 
 Set Implicit Arguments.
 
-Definition fnsems_scopes {T} (fn : string) (fnsems : alist string (list string * T)) :=
+Definition mask_all : string->bool := fun _ => true.
+
+Definition mask_list (fns: list string) : string->bool :=
+  fun f => (existsb (String.eqb f) fns).
+
+Definition mask_or (msk1 msk2: string->bool) :=
+  fun fn => msk1 fn || msk2 fn.
+
+Definition mask_and (msk1 msk2: string->bool) :=
+  fun fn => msk1 fn && msk2 fn.
+
+Definition fnsems_exports {T} (fnsems : alist string ((string->bool) * list string * T)) : list string :=
+  List.map fst fnsems.
+
+Definition fnsems_mask {T} (fn : string) (fnsems : alist string ((string->bool) * list string * T)) :=
   match (alist_find fn fnsems) with
-  | Some (keys, body) => keys
+  | Some (mask, scopes, body) => mask
+  | None => mask_all
+  end.
+
+Definition fnsems_mask_all {T} (fnsems : alist string ((string→bool) * list string * T)) : string→bool :=
+  foldr (fun fs mask => mask_or fs.2.1.1 mask) mask_all fnsems.
+
+Definition fnsems_scopes {T} (fn : string) (fnsems : alist string ((string->bool) * list string * T)) :=
+  match (alist_find fn fnsems) with
+  | Some (mask, scopes, body) => scopes
   | None => []
   end.
 
 Definition state_scopes (st : alist key Any.t) :=
   List.map (fst ∘ fst) st.
 
+Lemma fnsems_mask_incl_all {T} fnsems fn:
+  ∀ x, @fnsems_mask T fn fnsems x → fnsems_mask_all fnsems x.
+Proof.
+  unfold fnsems_mask_all. revert fn.
+  induction fnsems; try refl.
+  i. s. destruct a as [fna [[msk sc] bd]]. ss. unfold mask_or.
+  unfold fnsems_mask in H. ss. rewrite eq_rel_dec_correct in H.
+  destruct (string_Dec fn fna) eqn: EQ; destruct (msk x); ss; et.
+Qed.
+
 Module HMod. Section HMod.
   Context {Σ : GRA}.
 
   Record t : Type := mk {
-    scopes : list string;
-    fnsems : alist string (list string * (Any.t → itree hmodE Any.t));
+    scopes : list string; (* scopes of the module local variables *)
+    fnsems : alist string ((string->bool) (*mask*) * list string (*scopes*) * (Any.t → itree hmodE Any.t));
     initial_st : alist key Any.t;
 
     well_scoped_fns :
@@ -137,7 +170,7 @@ End HMod. End HMod.
 Infix "★" := HMod.add (at level 60, right associativity).
 Notation "⌽" := HMod.empty (at level 9).
 
-Notation "░ it" := (HModTr.sandbox _ it) (at level 60, only printing).
+Notation "░ it" := (HModTr.sandbox _ _ it) (at level 60, only printing).
 
 Section HModFacts.
   Context `{Σ : GRA}.

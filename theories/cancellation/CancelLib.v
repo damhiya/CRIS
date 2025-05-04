@@ -3,45 +3,9 @@ From iris.proofmode Require Import proofmode.
 
 Require Import SModTr HModTr SMod HMod Mod.
 Require Import SimGlobal ITactics TacticsCommon.
-Require Import ElimRel SModCancel StRed HModInline.
+Require Import ElimRel SModCancel HModInline.
 
 Set Implicit Arguments.
-
-Module CancelTAC.
-  Ltac hide_l := let IT := fresh "ITREE" in
-  match goal with 
-    | [|- simg _ _ _ ?it _] => set (IT := it) 
-    | [|- gpaco7 _ _ _ _ _ _ _ _ _ ?it _] => set (IT := it)
-    end; try unfold IT at 2; move IT at top.
-
-  Ltac hide_r := let IT := fresh "ITREE" in
-  match goal with 
-    | [|- simg _ _ _ _ ?it] => set (IT := it) 
-    | [|- gpaco7 _ _ _ _ _ _ _ _ _ _ ?it] => set (IT := it)
-    end; try unfold IT at 2; move IT at top.
-
-  Ltac reveal ITR := unfold ITR; clear ITR.
-
-  Ltac st := try rewrite !bind_bind; try rewrite !bind_tau; guclo simg_indC_spec; econs; try instantiate (1:= smj_top).
-  Ltac prb := gstep; econs; econs; try instantiate (1:= smj_bot); try instantiate (1:= smj_bot); eauto.  
-  Ltac _iter := rewrite {1}unfold_iter_eq; ired.
-  Ltac _tau := rewrite !StRed.tau.
-  Ltac ls := rewrite !list_insert_insert.
-  Ltac _supd := rewrite !StRed.bind StRed.state; grind; try ls; _tau; st; st; try (rewrite Any.pair_split; ired); try (rewrite Any.upcast_downcast; ired).
-  Ltac iterL := _iter; rewrite list_lookup_insert;[|try rewrite !length_insert; auto]; ired.
-  Tactic Notation "tau" integer(n) := _tau; do n st.
-  Tactic Notation "iterT" integer(n) := do n (iterL; ls; tau 2).
-  Ltac _core := rewrite StRed.bind StRed.core; try rewrite !bind_bind; try rewrite !bind_tau.
-  Ltac _coreA := _core; st; i; st; grind; _tau; st.
-  Ltac _coreE x := _core; st; exists x; st; grind; _tau; st.
-
-  Ltac done_by_CIH CIH LKX LKY :=
-    prb; gbase; pclearbot; eapply CIH; eauto;
-    try (rewrite !length_insert; nia);
-    try (rewrite list_lookup_insert; grind);
-    try (i; rewrite !list_lookup_insert_ne in LKX, LKY; eauto).
-  
-End CancelTAC.
 
 Section CancelLib.
   Context `{Σ: GRA}.
@@ -132,7 +96,7 @@ Section CancelDef.
     R Any.t Any.t eq ps pt
     (x <-
      ModTr.interp_stateE Any.t
-       (ITree.iter
+       (iterV
           (ModTr.handle_callE
              (Mod.prog
                 (HMod.to_mod
@@ -141,7 +105,7 @@ Section CancelDef.
           (cid, srcs)) (Any.pair st rs ↑);; Ret x.2)
     (x <-
      ModTr.interp_stateE Any.t
-       (ITree.iter
+       (iterV
           (ModTr.handle_callE
              (Mod.prog
                 (HMod.to_mod

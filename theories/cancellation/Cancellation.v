@@ -1,21 +1,21 @@
-From iris.proofmode Require Import proofmode.
 Require Import Common.
+From iris.proofmode Require Import proofmode.
 
 Require Import SModTr HModTr ModTr SMod HMod Mod.
 Require Import ITactics TacticsCommon SimGlobal SimGlobalFacts CtxRefine ClosedAdequacy.
-Require Import SModCancel HModInline ElimRel StRed.
+Require Import SModCancel HModInline ElimRel.
 Require Import CancelLib InlineIntro InlineElim.
+Require Import SimGlobal SimGTactics.
+Require Import CancelRet CancelCore CancelPG CancelAssume CancelGuarantee.
 Require Import CancelHead CancelTail CancelSpawn CancelYield.
 
 Set Implicit Arguments.
-
-Import CancelTAC.
 
 Lemma cancel_aux `{Σ: GRA} md rs0 rt0
   rs rt srcs tgts cid st ps pt
   (WF: ✓ rs)       
   (LEN: cid < List.length srcs)
-  (REL: Forall2i (thread_rel md cid) 0 srcs tgts)
+  (REL: Forall2i (thread_rel md) 0 srcs tgts)
   (UPD: Own rs ==∗ Own rt)
   :
   CANCEL_GOAL md (gpaco7 _simg (cpn7 _simg) bot7 bot7) rs0 rt0 ps pt srcs tgts cid st rs rt.
@@ -28,93 +28,34 @@ Proof.
   assert (RELS: forall k x y (NEQ: cid ≠ k)
                   (LKX: srcs !! k = Some x)
                   (LKY: tgts !! k = Some y),
-                    thread_rel md cid k x y). 
+                    thread_rel md k x y).
   { i. eapply Forall2i_forall in REL; eauto. }
   clear REL. rename REL0 into REL. unfold elim_rel in REL.
   simpl plus in *. subst.
-  destruct (Nat.eq_dec cid cid); ss. clear e.
   rename x0 into SRC, x1 into TGT.
   revert_until md. gcofix CIH. i.
   
   assert (RT: ✓ rt). { eapply Own_wand_valid with (a1:=rs); eauto. }
-  punfold REL. depdes REL; subst.
-  - _iter. _iter. rewrite SRC TGT. ired.
-    hide_l. _coreA.
-  - _iter. _iter. rewrite SRC TGT. ired.
-    hide_r. des_ifs; cycle 1.
-    { unfold triggerUB. ired. _coreA. }
-    ired. reveal ITREE.
-    _coreA. iterT 2.
-    iterL. _supd. iterL. _coreA. iterL. _coreA. ls.
-    iterL. _supd. iterL. _supd.
-    iterT 2. iterL. rewrite !StRed.ret. ired. st. des.
-    hexploit Own_bupd_split; eauto. i. des.
-    specialize (RET v x eq_refl).
-    eapply Own_pure_soundness with (a := a1).
-    + eapply Own_bupd_valid in H; eauto.
-      eapply cmra_valid_op_l; eauto.
-    + etrans; eauto.
-  - _iter. _iter. rewrite SRC TGT. ired. tau 4.
-    done_by_CIH CIH LKX LKY.
-  - _iter. _iter. rewrite SRC TGT. ired.
-    depdes e.
-    + hide_l. _coreA. iterT 1. reveal ITREE.
-      hide_r. _coreE x. iterT 1. reveal ITREE.
-      done_by_CIH CIH LKX LKY.
-    + hide_r. _coreA. iterT 1. reveal ITREE.
-      hide_l. _coreE x. iterT 1. reveal ITREE.
-      done_by_CIH CIH LKX LKY.
-    + hide_l. _core. reveal ITREE.
-      hide_r. _core. reveal ITREE.
-      st. instantiate (1:= smj_top). i. subst.
-      hide_l. st. ired. tau 1. iterT 1. reveal ITREE.
-      hide_r. st. ired. tau 1. iterT 1. reveal ITREE.
-      done_by_CIH CIH LKX LKY.
-  - _iter. _iter. rewrite SRC TGT. ired.
-    depdes e.
-    + hide_l. grind. _supd. iterL. _supd. iterT 1. reveal ITREE.
-      hide_r. grind. _supd. iterL. _supd. iterT 1. reveal ITREE.
-      done_by_CIH CIH LKX LKY.
-    + hide_l. grind. _supd. iterT 1. reveal ITREE.
-      hide_r. grind. _supd. iterT 1. reveal ITREE.
-      done_by_CIH CIH LKX LKY.
-  - _iter. _iter. rewrite SRC TGT. ired.
-    hide_r. _supd. iterL. _coreA. iterL. _coreA.
-    iterL. _supd. iterL. _supd. iterT 1. reveal ITREE. des.
-    eapply bi.wand_entails, Own_bupd_split in x1. des.
-    hide_l. _supd. iterL. _coreE (a1 ⋅ rt).
-    assert (UPD': Own (a1 ⋅ a2) ==∗ Own (a1 ⋅ rt)).
-    { iIntros "[A1 A2]". iSplitL "A1"; eauto.
-      iApply UPD. iApply x3. eauto.
-    }
-    assert (VALID: ✓ (a1 ⋅ rt) ∧ (Own (a1 ⋅ rt) ==∗ P ∗ Own rt)). 
-    { split.
-      - eapply bi.wand_entails in UPD'.
-        eapply Own_wand_valid; eauto.
-        eapply Own_wand_valid, x0.
-        iIntros "X"; iMod (x1 with "X") as "[A1 A2]". iSplitL "A1"; eauto.
-      - iIntros "[H0 H1]". iFrame. iApply x2. eauto.
-    }
-    iterL. _coreE VALID. ls.
-    iterL. _supd. iterL. _supd.
-    iterT 1. reveal ITREE.
-    done_by_CIH CIH LKX LKY.
-    + iIntros "X"; iMod (x1 with "X") as "[A1 A2]". 
-      iApply UPD'. iSplitL "A1"; eauto.
-    + eauto.
-  - _iter. _iter. rewrite SRC TGT. ired.
-    hide_l. _supd. iterL. _coreA. iterL. _coreA. ls. des.
-    iterL. _supd. iterL. _supd. iterT 1. reveal ITREE.
-    hide_r. _supd. iterL. _coreE x.
-    assert (VALID: ✓ x ∧ (Own rs ==∗ P ∗ Own x)).
-    { split; eauto. iIntros "H". iMod (UPD with "H") as "H". iApply x1; eauto. }
-    iterL. _coreE VALID.
-    iterL. _supd. iterL. _supd. iterT 1. reveal ITREE.
-    done_by_CIH CIH LKX LKY.
-  - eapply cancel_aux_head; eauto. i; eapply CIH; eauto.
-  - eapply cancel_aux_tail; eauto. i; eapply CIH; eauto.
-  - eapply cancel_aux_spawn; eauto. i; eapply CIH; eauto.
-  - eapply cancel_aux_yield; eauto. i; eapply CIH; eauto.
+
+  punfold REL. depdes REL; subst; i; pclearbot.
+  - ziter_r. rewrite TGT. zstep_r.
+  - ziter_l. rewrite SRC. zstep_l.
+  - eapply cancel_aux_ret; try eassumption; et. i; eapply CIH; eauto.
+  - (* Tau case *)
+    ziter_l. ziter_r. rewrite SRC TGT.
+    zstep_l. zstep_r.
+    gstep. econs; econs; eauto using smj_lt_mid_top.
+    gbase. eapply CIH; zsimpl_len; try zlookup_insert; et.
+    intros ? ? ? ?. do 2 zlookup_insert_ne. eauto.
+  - eapply cancel_aux_core; try eassumption; et. i; eapply CIH; eauto.
+  - eapply cancel_aux_pg; try eassumption; et. i; eapply CIH; eauto.
+  - eapply cancel_aux_Assume; try eassumption; et. i; eapply CIH; eauto.
+  - eapply cancel_aux_Guarantee; try eassumption; et. i; eapply CIH; eauto.
+  - eapply cancel_aux_head; try eassumption; et. i; eapply CIH; eauto.
+  - eapply cancel_aux_tail; try eassumption; et. i; eapply CIH; eauto.
+  - eapply cancel_aux_spawn; try eassumption; et. i; eapply CIH; eauto.
+  - eapply cancel_aux_yield; try eassumption; et. i; eapply CIH; eauto.
+Unshelve. all: eauto.
 (*SLOW*)Qed.
 
 Lemma cancel_main `{Σ: GRA} md
@@ -134,50 +75,49 @@ Proof.
   r. eapply adequacy_global.
   instantiate (1:= smj_top).
   instantiate (1:= smj_top).
-  unfold Mod.compile. s. unfold ITree.map.
+  unfold Mod.compile. s. unfold ITree.map. unfold Mod.prog at 1 2 3.
   destruct (alist_find "CRIS_init" (SMod.fnsems md)) eqn:E; cycle 1.
-  {
-    rewrite !alist_find_map/o_map E. s.
-    rewrite /sp_from /Sp.to_sp alist_find_map E in SPC. ss.
-  }
-  rewrite !alist_find_map/o_map E. s. 
+  { rewrite !alist_find_map /o_map E.
+    rewrite /sp_from /Sp.to_sp alist_find_map E in SPC. ss. }
+  rewrite !alist_find_map/o_map E. s.
   erewrite !wrap_elimI_well_scoped; cycle 1.
   { unfold SMod.to_hmod. s. rewrite alist_find_map_snd. instantiate (1:= "CRIS_init"). rewrite E. ss. }
-  { unfold SModCancel.to_hmod. s. rewrite alist_find_map_snd. instantiate (1:= "CRIS_init"). rewrite E. ss. }
+  { unfold SModCancel.to_hmod. s.
+    rewrite alist_find_map_snd. instantiate (1:= "CRIS_init"). rewrite E. ss. }
   ired. destruct p. s.
   unfold HModTr.sandbox_body, HModTr.trans_ktree. s.
   unfold inline_hp_fun, SModTr.trans_ktree. s.
   unfold SModTr.HoareFun.
+  unfold ModTr.trans, ModTr.interp_callE.
   
-  unfold ModTr.trans, ModTr.interp_callE. 
-  destruct f.
+  destruct f as [sp bd].
   assert (TMP:=SPC).
   rewrite /sp_from /Sp.to_sp alist_find_map E in TMP. depdes TMP.
-  hide_l.
+
   ginit.
-  rewrite SBRed.bind SBRed.core HIRed.bind_core HRed.bind HRed.core. ired.
-  _iter. _core. st. exists meta. st. ired. 
-  _tau. st. _iter. _tau. st. st.
-  rewrite HRed.tau. _iter. _tau. st. st.
-  rewrite SBRed.bind SBRed.core HIRed.bind_core HRed.bind HRed.core. ired.
-  _iter. _core. st. exists (tt↑). st. ired.
-  _iter. _tau. st. st. st.
-  rewrite HRed.tau. _iter. _tau. st. st.
-  rewrite SBRed.bind SBRed.ag HIRed.bind_ag HRed.bind HRed.Assume. ired.
-  _iter. _supd. hss. ired. hss. ired.
-  _iter. _core. st. exists (r ⋅ rt). st. ired. _tau. st. 
-  _iter. _core. st.
+  zonly_r.
+  rewrite SBRed.bind SBRed.core HIRed.bind_core HRed.bind HRed.core.
+  zshow.
+
+  ziter_r. zstep_r. exists meta. zstep_r.
+  ziter_r. zstep_r.
+  ziter_r. zstep_r. exists (tt↑). zstep_r.
+  ziter_r. zstep_r.
+  ziter_r. zstep_r.
+  ziter_r. zstep_r. exists (r ⋅ rt). zstep_r.
+
   assert (VALID': ✓(r ⋅ rt) ∧ (Own (r ⋅ rt) ==∗ precond fsp meta () ↑ () ↑ ∗ Own rt)).
   { split.
     - rewrite -EQUIV. eauto.
     - iIntros "[R RT]". iFrame. iModIntro. iStopProof. eauto.
   }
-  exists VALID'. ired. _tau. st. st.
-  _iter. _supd. _iter. _supd.
-  _iter. _tau. st. st. rewrite HRed.tau. _iter. _tau. st. st.
+  
+  ziter_r. zstep_r. exists VALID'. zstep_r.
+  ziter_r. zstep_r.
+  ziter_r. zstep_r.
+  ziter_r. zstep_r.
 
   (* CRIS_init's precond all executed. *)
-  reveal ITREE. 
   eapply cancel_aux; eauto; cycle 1.
   { eapply Own_equiv in EQUIV. iIntros "H". iModIntro. iApply EQUIV. eauto. }
   econs; eauto using Forall2i.
@@ -186,13 +126,14 @@ Proof.
     iIntros "H". iMod (POST with "H") as "H". eauto.
   }
   { eapply elim_rel_refl; eauto. }
-  rewrite SBRed.bind HIRed.bind. 
-  do 2 f_equal. extensionalities.
-  rewrite SBRed.bind SBRed.core. do 2 f_equal.
-  extensionalities.
-  rewrite SBRed.bind SBRed.ag. do 2 f_equal.
-  extensionalities.
+
+  rewrite -/(HModTr.sandbox _ _ _) -HIRed.iter_handle_bind.
+  do 2 f_equal. s.
+  rewrite SBRed.bind. f_equal. extensionalities.
+  rewrite SBRed.bind SBRed.core. f_equal. extensionalities.
+  rewrite SBRed.bind SBRed.ag. f_equal. extensionalities.
   rewrite SBRed.ret. ss.
+Unshelve. all: eauto.  
 (*SLOW*)Qed.
 
 (*** Final Theorem ***)
@@ -205,9 +146,9 @@ Theorem cancellation `{Σ: GRA} md P fsp meta
           (SMod.to_hmod (sp_from md) md, P).
 Proof. 
   etrans.
-  { eapply cancel_call_rev. }
+  { eapply inline_elim. }
   etrans; cycle 1.
-  { eapply cancel_call. }
+  { eapply inline_intro. }
   ii; split.
   {
     inv WFM. econs; eauto. s.

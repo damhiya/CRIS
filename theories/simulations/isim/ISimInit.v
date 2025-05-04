@@ -1,36 +1,10 @@
-From iris.proofmode Require Import proofmode.
 Require Import Common.
+From iris.proofmode Require Import proofmode.
 
 Require Import HMod SMod.
 Require Export ISim Tactics.
 
 Set Implicit Arguments.
-
-(* LEMMAS *)
-
-(***** Move and rename: HoareCall LEMMAS *****)
-
-Lemma hcall_clo Σ
-  fls flt I contextual r g ps pt {Rs Rt} RR nths st_src st_tgt k_src k_tgt
-  fn varg arg X (x: shelve__ X) P Q :
-  (P x varg arg
-  ∗ I nths st_src st_tgt
-  ∗ (∀ nths0 st_src0 st_tgt0 vret ret,
-      (Q x vret ret ∗ I nths0 st_src0 st_tgt0)
-      -∗ @isim Σ contextual fls flt I r g Rs Rt RR true true nths0 (st_src0, k_src vret) (st_tgt0, k_tgt ret)))
-  ⊢ @isim _ contextual fls flt I r g Rs Rt RR ps pt nths
-      (st_src, SModTr.HoareCall (mk_fspec P Q) fn varg >>= k_src)
-      (st_tgt, trigger (Call fn arg) >>= k_tgt).
-Proof.
-  iIntros "(P & IST & K)".
-  steps_l.
-  force_l x.
-  force_l arg.
-  forces_l. iSplitL "P"; [eauto|]. steps_l.
-
-  call "IST"; [eauto|].
-  steps_l. steps_r. iApply "K". iFrame.
-Qed.
 
 (* HModProd *)
 
@@ -49,20 +23,23 @@ Definition IstSB `{Σ : GRA} scopes (Ist : nat -> alist key Any.t -> alist key A
 Definition IstEq `{Σ : GRA} : nat -> alist key Any.t -> alist key Any.t -> iProp Σ :=
   (fun _ st_src st_tgt => ⌜st_src = st_tgt⌝)%I.
 
+Definition IstTrue `{Σ : GRA} : nat -> alist key Any.t -> alist key Any.t -> iProp Σ :=
+  (fun _ _ _ => ⌜True⌝)%I.
+
 Lemma state_scopes_update k v st:
   state_scopes (alist_upd k v st) = state_scopes st.
 Proof.
   rewrite /state_scopes -!List.map_map alist_upd_keys. eauto.
 Qed.
 
-Lemma isim_reflR `{Σ : GRA} Ist contextual fl_src fl_tgt scopesL scopesR scopesF (EqR : _ → _ → _ → iProp Σ) itr
+Lemma isim_reflR `{Σ : GRA} Ist contextual fl_src fl_tgt mask scopesL scopesR scopesF (EqR : _ → _ → _ → iProp Σ) itr
     (DISJ : List.NoDup (scopesL ++ scopesR))
     (INCL : incl scopesF scopesR)
     (EQGET : ∀ nths st_src st_tgt, EqR nths st_src st_tgt -∗ ⌜st_src = st_tgt⌝)
     (EQSET : ∀ nths st_src st_tgt nths0 (k : key) v,
         EqR nths st_src st_tgt -∗ EqR nths0 (alist_upd k v st_src) (alist_upd k v st_tgt)) :
   isim_fsem fl_src fl_tgt (IstProd (IstSB scopesL Ist) EqR) contextual
-    (HModTr.sandbox_body (scopesF,itr)) (HModTr.sandbox_body (scopesF,itr)).
+    (HModTr.sandbox_body (mask,scopesF,itr)) (HModTr.sandbox_body (mask,scopesF,itr)).
 Proof.
   ii. subst. unfold HModTr.sandbox_body. s.
   generalize (itr y) as it; clear itr y.
@@ -79,9 +56,14 @@ Proof.
   - steps_l. forces_r. iFrame. steps_r. by_coind "CIH". eauto.
   - steps_r. forces_l. iFrame. steps_l. by_coind "CIH". eauto.
   - depdes c.
-    + call "IST"; et.
-      by_coind "CIH". iApply IMON; [|eauto]; nia.
-    + step. by_coind "CIH". iApply IMON; [|eauto]; nia.
+    + steps_l. steps_r. rewrite SBRed.call. des_ifs.
+      * iApply isim_call. iSplitL "IST"; et.
+        iIntros (? ? ? ? ? ?) "IST".
+        by_coind "CIH". iApply IMON; [|eauto]; nia.
+      * steps_l. ss.
+    + steps_l. steps_r. rewrite SBRed.spawn. des_ifs.
+      * iApply isim_spawn. by_coind "CIH". iApply IMON; [|eauto]; nia.
+      * steps_l. ss.
     + yield "IST"; eauto. by_coind "CIH". eauto.
   - depdes s.
     + rewrite !SBRed.bind !SBRed.put. des_ifs; cycle 1.

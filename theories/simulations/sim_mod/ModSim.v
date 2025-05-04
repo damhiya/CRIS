@@ -169,10 +169,18 @@ Section SIM_ITREE.
       ps pt w nths st_src st_tgt
       fn varg k_src i_tgt
       (FUN: alist_find fn fl_src = None)
-      (K: self true pt w nths (st_src, x <- triggerUB;; tau;; k_src x) (st_tgt, i_tgt))
     :
     sim_itree_def sim_itree RR self ps pt w nths
       (st_src, trigger (Call fn varg) >>= k_src)
+      (st_tgt, i_tgt)
+
+  | sim_itree_spawn_none
+      ps pt w nths st_src st_tgt
+      fn varg k_src i_tgt
+      (FUN: alist_find fn fl_src = None)
+    :
+    sim_itree_def sim_itree RR self ps pt w nths
+      (st_src, trigger (Spawn fn varg) >>= k_src)
       (st_tgt, i_tgt)
 
   | sim_itree_progress
@@ -318,7 +326,8 @@ Section SIM_ITREE.
     { econs 13; eauto. des. esplits; eauto. eapply sim_itree_mon; eauto. i. eapply rclo9_base. eauto.  }
     { econs 14; eauto. des. esplits; eauto. eapply sim_itree_mon; eauto. i. eapply rclo9_base. eauto.  }
     { econs 15; eauto. des. esplits; eauto. eapply sim_itree_mon; eauto. i. eapply rclo9_base. eauto.  }
-    { econs 16; eauto. des. esplits; eauto. eapply sim_itree_mon; eauto. i. eapply rclo9_base. eauto.  }
+    { econs 16; eauto. }
+    { econs 17; eauto. }
     { ss. }
   Qed.
 
@@ -344,8 +353,9 @@ Section SIM_ITREE.
     { guclo sim_itree_indC_spec. econs 13; eauto. gbase. eauto. }
     { guclo sim_itree_indC_spec. econs 14; eauto. gbase. eauto. }
     { guclo sim_itree_indC_spec. econs 15; eauto. gbase. eauto. }
-    { guclo sim_itree_indC_spec. econs 16; eauto. gbase. eauto. }
+    { guclo sim_itree_indC_spec. econs 16; eauto. }
     { guclo sim_itree_indC_spec. econs 17; eauto. }
+    { guclo sim_itree_indC_spec. econs 18; eauto. }
   Qed.
 
   Lemma sim_itreeC_spec r g
@@ -508,11 +518,6 @@ Section SIM_ITREE.
       exploit K; et. i. rewrite ->!bind_bind in *.
       erewrite f_equal; eauto. do 2 eapply f_equal.
       extensionalities. rewrite bind_tau. eauto.
-    - eapply sim_itree_call_none; eauto.
-      exploit K; et. i. rewrite ->!bind_bind in *.
-      pattern (x <- triggerUB;; (tau;; x_ <- k_src0 x;; k_src x_)).
-      eapply eq_ind; eauto. do 2 f_equal.
-      extensionalities. grind.
     - econs; eauto. eapply rclo9_clo_base. eauto.
   Qed.
 

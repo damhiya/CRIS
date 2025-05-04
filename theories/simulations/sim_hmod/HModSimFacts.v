@@ -138,7 +138,7 @@ Proof.
     }
     econs; et; cycle 1.
     { iIntros "H". iMod (x1 with "H") as "H"; iPoseProof (RET with "H") as "[_ H]"; ss. }
-  - clarify; prep.
+  - clarify; ired.
     hexploit (Own_bupd_split fmr0); eauto; intros [ist [frame [UPD [Hist Hframe]]]].
     guclo lflagC_spec; econs; try instantiate (1:=ctx_add my_tid ctx frame); eauto using ctx_set_le_others.
     step.
@@ -150,8 +150,7 @@ Proof.
       }
       iIntros "H"; iModIntro; iApply Hist; done.
     }
-    do 2 step; prep.
-    inv WF0.
+    ired. inv WF0.
     guclo lflagC_spec; econs; try instantiate (1:=ctx_set w1 (or_else (ctx !! my_tid) ε));
       eauto using ctx_set_le_others.
     eapply (K _ _ st_src1 st_tgt1) with (fmr0:=(frame ⋅ mr)); eauto.
@@ -170,7 +169,7 @@ Proof.
     rewrite -ctx_set_sem; cycle 1.
     { eapply le_mine_in; eauto; rewrite length_insert; eauto using le_mine_in. }
     rewrite /ctx_add /ctx_set list_lookup_insert; eauto using le_mine_in.
-  - clarify. do 3 step; prep. eapply K; eauto.
+  - clarify. step. ired. eapply K; eauto.
   - clarify. step; eauto.
     { instantiate (1:= HModTr.trans_ktree f). rewrite alist_find_map FUN. et. }
 
@@ -281,7 +280,7 @@ Proof.
         iMod (SPLIT with "FMR") as "[P FMR]";
         iModIntro; iSplitR "P MRT"; [iSplitR "FMR"; iFrame|]; iSplitL "P"; iFrame.
     }
-  - clarify. do 3 step; prep. eapply K; eauto.
+  - clarify. step. ired. eapply K; eauto.
     { eapply le_mine_trans; eauto; first ii; subst; ss.
       ii; esplits; ss; rewrite lookup_app_l; eauto using le_mine_in.
     }
@@ -289,7 +288,7 @@ Proof.
         iModIntro; iSplitR "MRT"; [iSplitR "FMR"|]; iFrame.
       rewrite /ctx_sem big_opL_app /= ?right_id; eauto.
     }
-  - clarify; prep.
+  - clarify.
     hexploit (Own_bupd_split fmr0); eauto; intros [ist [frame [UPD [Hist Hframe]]]].
     guclo lflagC_spec; econs; try instantiate (1:=ctx_add my_tid ctx frame); eauto using ctx_set_le_others.
     step.
@@ -301,8 +300,7 @@ Proof.
       }
       iIntros "H"; iModIntro; iApply Hist; done.
     }
-    do 2 step; prep.
-    inv WF0.
+    ired. inv WF0.
     guclo lflagC_spec; econs; try instantiate (1:=ctx_set w1 (or_else (ctx !! my_tid) ε));
       eauto using ctx_set_le_others.
     eapply (K _ st_src1 st_tgt1) with (fmr0:=(frame ⋅ mr)); eauto.
@@ -322,16 +320,9 @@ Proof.
     { eapply le_mine_in; eauto; rewrite length_insert; eauto using le_mine_in. }
     rewrite /ctx_add /ctx_set list_lookup_insert; eauto using le_mine_in.
   - clarify. prep. guclo sim_itree_indC_spec. econs 16.
-    { rewrite alist_find_map FUN. et. }
-    rewrite /HModTr.trans_ktree.
-    exploit (K _ _ st_src st_tgt _ _ _ _ _ _ mr_src mr_tgt); eauto.
-    clear K CIH; intros K.
-      pattern (x <- triggerUB;; (tau;; x_ <- (tau;; Ret x);; HModTr.trans (k_src x_))).
-    eapply eq_ind; eauto.
-    rewrite HRed.bind.
-    repeat f_equal. 
-    { rewrite HRed.triggerUB. eauto. }
-    extensionalities x. grind. rewrite !HRed.tau. eauto.
+    rewrite alist_find_map FUN. et.
+  - clarify. prep. guclo sim_itree_indC_spec. econs 17.
+    rewrite alist_find_map FUN. et.
   - clarify. pclearbot. gstep; econs; econs; eauto; cycle 1.
     { gfinal; left; eapply CIH; eauto. }
     by apply le_others_refl.

@@ -37,6 +37,8 @@ Ltac inline_r := iwcase (do 1 iinline_r) (do 1 winline_r).
 
 Ltac call hyps := iwcase (do 1 icall hyps) (do 1 wcall hyps).
 
+Ltac spawn := iwcase (do 1 ispawn) (do 1 wspawn).
+
 Ltac yield hyps := iwcase (do 1 iyield hyps) (do 1 wyield hyps).
 
 Ltac by_coind CIH := iwcase (do 1 iby_coind CIH) (do 1 wby_coind CIH).

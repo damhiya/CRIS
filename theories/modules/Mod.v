@@ -26,13 +26,12 @@ Module Mod.
 
     Definition init_fun := "CRIS_init".
 
-    Definition prog: (string * Any.t) -> itree modE Any.t :=
-      fun '(fn, args) =>
-        sem <- (alist_find fn ms.(fnsems))?;;
-        sem args.
+    Definition prog: string -> option (Any.t -> itree modE Any.t) :=
+      fun fn => alist_find fn ms.(fnsems).
 
     Definition compile : itree coreE Any.t :=
-      snd <$> ModTr.trans prog (prog (init_fun, ()↑)) (initial_st ms).
+      bd <- (prog init_fun)?;;
+      snd <$> ModTr.trans prog (bd ()↑) (initial_st ms).
 
   End COMPILE.
 End Mod.

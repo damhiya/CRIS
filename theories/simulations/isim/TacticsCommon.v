@@ -133,8 +133,10 @@ Ltac alist_find_simpl := alist_find_simpl_with (do 1 _alist_find_simpl).
                         | guaranteeK P t
                         | unwrapUK x k
                         | unwrapNK x k
-                        | HModSB.putSB scopes k v t
-                        | HModSB.getSB scopes k k
+                        | HModSB.putSB imports scopes k v cont
+                        | HModSB.getSB imports scopes k cont
+                        | HModSB.callSB imports scopes f a cont
+                        | HModSB.spawnSB imports scopes f a cont
                         | s
  *)
 
@@ -157,8 +159,10 @@ Tactic Notation "red_bind" hyp(prg) tactic(tac) :=
       | guaranteeK _ _ => eapply guaranteeK_bind
       | unwrapUK _ _ => eapply unwrapUK_bind
       | unwrapNK _ _ => eapply unwrapNK_bind
-      | SBRed.putSB _ _ _ _ => eapply SBRed.putSB_bind
-      | SBRed.getSB _ _ _ => eapply SBRed.getSB_bind
+      | SBRed.putSB _ _ _ _ _ => eapply SBRed.putSB_bind
+      | SBRed.getSB _ _ _ _ => eapply SBRed.getSB_bind
+      | SBRed.callSB _ _ _ _ _ => eapply SBRed.callSB_bind
+      | SBRed.spawnSB _ _ _ _ _ => eapply SBRed.spawnSB_bind
       | @ITree.bind _ _ _ _ _ => eapply bind_bind
       | _ => reflexivity
       end
@@ -166,7 +170,7 @@ Tactic Notation "red_bind" hyp(prg) tactic(tac) :=
 
 Tactic Notation "red_SB" hyp(prg) :=
   lazymatch goal with
-  | [ |- @HModTr.sandbox _ _ _ ?itr = _ ] =>
+  | [ |- @HModTr.sandbox _ _ _ _ ?itr = _ ] =>
       lazymatch itr with
       | Ret _ =>
           _hprogress prg; eapply SBRed.ret
@@ -177,11 +181,11 @@ Tactic Notation "red_SB" hyp(prg) :=
       | vis (Guarantee _) _ =>
           _hprogress prg; eapply SBRed.vis_ag
       | vis (Spawn _ _) _ =>
-          _hprogress prg; eapply SBRed.vis_spawn
+          _hprogress prg; eapply SBRed.Spawn_spawnSB
       | vis (Yield _) _ =>
           _hprogress prg; eapply SBRed.vis_yield
       | vis (Call _ _) _ =>
-          _hprogress prg; eapply SBRed.vis_call
+          _hprogress prg; eapply SBRed.Call_callSB
       | vis (SPut _ _) _ =>
           _hprogress prg; eapply SBRed.SPut_putSB
       | vis (SGet _) _ =>
@@ -206,8 +210,6 @@ Tactic Notation "red_SB" hyp(prg) :=
           _hprogress prg; eapply Sch.yieldK_S_transl *)
       | @ITree.bind _ _ _ _ _ =>
           _hprogress prg; eapply SBRed.bind
-      (* | Sch.joinK_S _ _ _ _ =>
-          _hprogress prg; eapply Sch.joinK_S_transl *)
       | _ =>
           reflexivity
       end
@@ -333,9 +335,9 @@ Ltac _hnorm_itr prg :=
   | [ |- @ITree.bind ?E ?T ?U ?itr ?ktr = _ ] =>
       etransitivity;
       [ let itr' := fresh "itr" in cong (fun itr' => @ITree.bind E T U itr' ktr); _hnorm_itr prg | red_bind prg (do 1 _hnorm_itr prg) ]
-  | [ |- @HModTr.sandbox ?Σ ?R ?scopes ?itr = _ ] =>
+  | [ |- @HModTr.sandbox ?Σ ?R ?imports ?scopes ?itr = _ ] =>
       etransitivity;
-      [ cong (@HModTr.sandbox Σ R scopes); _hnorm_itr prg | red_SB prg ]
+      [ cong (@HModTr.sandbox Σ R imports scopes); _hnorm_itr prg | red_SB prg ]
   | [ |- @SModTr.trans ?Σ ?stb ?R ?itr = _ ] =>
       etransitivity;
       [ cong (@SModTr.trans Σ stb R); _hnorm_itr prg | red_S prg (do 1 _hnorm_itr prg) ]
@@ -395,8 +397,10 @@ Ltac _hnorm_itr prg :=
 Ltac hnorm_itr :=
   try match goal with
   | [ |- @ITree.bind _ _ _ (trigger _) _ = _ ] => fail 2
-  | [ |- @ITree.bind _ _ _ (@HModTr.sandbox _ _ _ (trigger (SPut _ _))) _ = _ ] => fail 2
-  | [ |- @ITree.bind _ _ _ (@HModTr.sandbox _ _ _ (trigger (SGet _))) _ = _ ] => fail 2
+  | [ |- @ITree.bind _ _ _ (@HModTr.sandbox _ _ _ _ (trigger (SPut _ _))) _ = _ ] => fail 2
+  | [ |- @ITree.bind _ _ _ (@HModTr.sandbox _ _ _ _ (trigger (SGet _))) _ = _ ] => fail 2
+  | [ |- @ITree.bind _ _ _ (@HModTr.sandbox _ _ _ _ (trigger (Call _ _))) _ = _ ] => fail 2
+  | [ |- @ITree.bind _ _ _ (@HModTr.sandbox _ _ _ _ (trigger (Spawn _ _))) _ = _ ] => fail 2
   end;
   let prg := fresh "Progress" in
   epose (prg := _ : _hprogress);
@@ -418,10 +422,14 @@ Ltac hnorm_itr :=
         eapply unwrapUK_unwrapU
     | [ |- unwrapNK _ _ = _ ] =>
         eapply unwrapNK_unwrapN
-    | [ |- SBRed.putSB _ _ _ _ = _ ] =>
+    | [ |- SBRed.putSB _ _ _ _ _ = _ ] =>
         eapply SBRed.putSB_SPut
-    | [ |- SBRed.getSB _ _ _ = _ ] =>
+    | [ |- SBRed.getSB _ _ _ _ = _ ] =>
         eapply SBRed.getSB_SGet
+    | [ |- SBRed.callSB _ _ _ _ _ = _ ] =>
+        eapply SBRed.callSB_Call
+    | [ |- SBRed.spawnSB _ _ _ _ _ = _ ] =>
+        eapply SBRed.spawnSB_Spawn
     | [ |- _ = _ ] =>
         reflexivity
     end
@@ -481,15 +489,15 @@ Ltac hide_ihyps :=
       hide_ihyps_env env
   end.
 
-Ltac hide_itree_l :=
-  let ITREE := fresh "ITREE" in
-  match goal with [|- _ (_ (_, ?it) _)] => set (ITREE := it) at 1 end.
-
-Ltac hide_itree_r :=
+Ltac only_itree_l :=
   let ITREE := fresh "ITREE" in
   match goal with
   [|- _ (_ _ (_, ?it))] => first [set (ITREE := it) at 2|set (ITREE := it) at 1]
   end.
+
+Ltac only_itree_r :=
+  let ITREE := fresh "ITREE" in
+  match goal with [|- _ (_ (_, ?it) _)] => set (ITREE := it) at 1 end.
 
 Ltac show_itree :=
   match goal with [H:_|-_] => unfold H; clear H end.
@@ -587,11 +595,22 @@ Ltac prove_inline_cond :=
     simpl List.map; alist_find_simpl; eauto
   end].
 
+Lemma mask_app (l m: list string) fn:
+  mask_list (l ++ m) fn = mask_list l fn || mask_list m fn.
+Proof.
+  unfold mask_list. rewrite existsb_app. eauto.
+Qed.
+
+Ltac prove_sb_cond :=
+  by s; eauto; try rewrite !mask_app; s; eauto 10.
+
+(* unfold tactics *)
+
 Ltac unfold_iter_l :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  hide_itree_r;
+  only_itree_l;
   rewrite unfold_iterC;
   show_until marker.
 
@@ -599,7 +618,7 @@ Ltac unfold_iter_r :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  hide_itree_l;
+  only_itree_r;
   rewrite unfold_iterC;
   show_until marker.
 
@@ -649,14 +668,14 @@ Ltac hss :=
   hss_des;
   move_aux.
 
-Ltac hss_l := hide_itree_r; hss; show_itree.
-Ltac hss_r := hide_itree_l; hss; show_itree.
+Ltac hss_l := only_itree_l; hss; show_itree.
+Ltac hss_r := only_itree_r; hss; show_itree.
 
 Ltac red_ret_l :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  hide_itree_r;
+  only_itree_l;
   rewrite ?PRed.bind ?PRed.ret ?SRed.bind ?SRed.ret SBRed.bind SBRed.ret bind_ret_l;
   show_until marker.
  
@@ -664,7 +683,7 @@ Ltac red_ret_r :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  hide_itree_l;
+  only_itree_r;
   rewrite ?PRed.bind ?PRed.ret ?SRed.bind ?SRed.ret SBRed.bind SBRed.ret bind_ret_l;
   show_until marker.
 
@@ -672,7 +691,7 @@ Tactic Notation "add_ret_l" uconstr(r) :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  hide_itree_r;
+  only_itree_l;
   match goal with [|-_ _ (_ (_,?t) _)] =>
     rewrite -(bind_ret_l r (fun _ => t))
   end;
@@ -682,7 +701,7 @@ Tactic Notation "add_ret_r" uconstr(r) :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  hide_itree_l;
+  only_itree_r;
   match goal with [|-_ _ (_ _ (_,?t))] =>
     rewrite -(bind_ret_l r (fun _ => t))
   end;

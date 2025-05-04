@@ -235,6 +235,21 @@ Section SIM.
     iApply "B". eauto.
   Qed.
 
+  Lemma isim_call_sandbox r g ps pt {Rs Rt} RR nths st_src st_tgt k_src k_tgt fn varg (mask_src mask_tgt:_→bool) scopes_src scopes_tgt:
+    (mask_src fn) → (mask_tgt fn) →
+    Ist nths st_src st_tgt
+    ∗ (∀ nths0 st_src0 st_tgt0 vret
+          (NODS : List.NoDup (List.map fst st_src0))
+          (NODD : List.NoDup (List.map fst st_tgt0)),
+        (Ist nths0 st_src0 st_tgt0) -∗ @isim r g Rs Rt RR true true nths0 (st_src0, k_src vret) (st_tgt0, k_tgt vret))
+    ⊢ isim r g RR ps pt nths (st_src, HModTr.sandbox mask_src scopes_src (trigger (Call fn varg)) >>= k_src) (st_tgt, HModTr.sandbox mask_tgt scopes_tgt (trigger (Call fn varg)) >>= k_tgt).
+  Proof using.
+    i. iIntros "ISIM".
+    rewrite !SBRed.call.
+    des_ifs; ss.
+    iApply isim_call. iFrame.
+  Qed.
+
   Lemma isim_io r g ps pt {Rs Rt} RR nths st_src st_tgt I O k_src k_tgt fn (varg : I) :
     (∀ (vret : O), @isim r g Rs Rt RR true true nths (st_src, k_src vret) (st_tgt, k_tgt vret))
     ⊢ isim r g RR ps pt nths (st_src, trigger (IO fn varg) >>= k_src) (st_tgt, trigger (IO fn varg) >>= k_tgt).
@@ -248,42 +263,44 @@ Section SIM.
 
   Lemma isim_inline_src r g ps pt {Rs Rt} RR nths st_src st_tgt k_src i_tgt f fn varg
       (FIND : alist_find fn fl_src = Some f) :
-    @isim r g Rs Rt RR true pt nths (st_src, f varg >>= (λ ret, tau;; tau;; Ret ret) >>= k_src) (st_tgt, i_tgt)
+    @isim r g Rs Rt RR true pt nths (st_src, f varg >>= (λ ret, tau;; Ret ret) >>= k_src) (st_tgt, i_tgt)
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, trigger (Call fn varg) >>= k_src) (st_tgt, i_tgt).
   Proof using.
     split; intros x wfx SIM; guclo hsimC_spec; econs; esplits; eauto; econs; eauto.
   Qed.
 
-  Lemma isim_inline_src_simpl r g ps pt {Rs Rt} RR nths st_src st_tgt k_src i_tgt f fn varg
-      (FIND : alist_find fn fl_src = Some f) :
-    @isim r g Rs Rt RR true pt nths (st_src, f varg >>= k_src) (st_tgt, i_tgt)
-    ⊢ @isim r g Rs Rt RR ps pt nths (st_src, trigger (Call fn varg) >>= k_src) (st_tgt, i_tgt).
+  Lemma isim_inline_src_sandbox r g ps pt {Rs Rt} RR nths st_src st_tgt k_src i_tgt f fn varg (mask:_→bool) scopes
+    (FIND : alist_find fn fl_src = Some f) :
+    (mask fn) →
+    @isim r g Rs Rt RR true pt nths (st_src, f varg >>= (λ ret, tau;; Ret ret) >>= k_src) (st_tgt, i_tgt)
+    ⊢ @isim r g Rs Rt RR ps pt nths (st_src, HModTr.sandbox mask scopes (trigger (Call fn varg)) >>= k_src) (st_tgt, i_tgt).
   Proof using.
-    iIntros. iApply isim_inline_src; eauto.
-    iApply isim_eqit_src; [|eauto].
-    ired. eapply eqit_bind; eauto using eqit_refl.
-    ii. ired. eauto using eqit_Tau_r, eqit_refl.
+    i. iIntros "ISIM".
+    rewrite SBRed.call.
+    des_ifs; ss.
+    iApply isim_inline_src; eauto.
   Qed.
 
   Lemma isim_inline_tgt r g ps pt {Rs Rt} RR nths st_src st_tgt i_src k_tgt f fn varg
       (FIND : alist_find fn fl_tgt = Some f) :
-    @isim r g Rs Rt RR ps true nths (st_src, i_src) (st_tgt, f varg >>= (λ ret, tau;; tau;; Ret ret) >>= k_tgt)
+    @isim r g Rs Rt RR ps true nths (st_src, i_src) (st_tgt, f varg >>= (λ ret, tau;; Ret ret) >>= k_tgt)
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, trigger (Call fn varg) >>= k_tgt).
   Proof using. 
     split; intros x wfx SIM; guclo hsimC_spec; econs; esplits; eauto; econs; eauto.
   Qed.
 
-  Lemma isim_inline_tgt_simpl r g ps pt {Rs Rt} RR nths st_src st_tgt i_src k_tgt f fn varg
-      (FIND : alist_find fn fl_tgt = Some f) :
-    @isim r g Rs Rt RR ps true nths (st_src, i_src) (st_tgt, f varg >>= k_tgt)
-    ⊢ @isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, trigger (Call fn varg) >>= k_tgt).
+  Lemma isim_inline_tgt_sandbox r g ps pt {Rs Rt} RR nths st_src st_tgt i_src k_tgt f fn varg (mask:_→bool) scopes
+    (FIND : alist_find fn fl_tgt = Some f) :
+    (mask fn) →
+    @isim r g Rs Rt RR ps true nths (st_src, i_src) (st_tgt, f varg >>= (λ ret, tau;; Ret ret) >>= k_tgt)
+    ⊢ @isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, HModTr.sandbox mask scopes (trigger (Call fn varg)) >>= k_tgt).
   Proof using.
-    iIntros. iApply isim_inline_tgt; eauto.
-    iApply isim_eqit_tgt; [|eauto].
-    ired. eapply eqit_bind; eauto using eqit_refl.
-    ii. ired. eauto using eqit_Tau_r, eqit_refl.
+    i. iIntros "ISIM".
+    rewrite SBRed.call.
+    des_ifs; ss.
+    iApply isim_inline_tgt; eauto.
   Qed.
-
+  
   Lemma isim_take_src X r g ps pt {Rs Rt} RR nths st_src st_tgt k_src i_tgt :
     (∀ x, @isim r g Rs Rt RR true pt nths (st_src, k_src x) (st_tgt, i_tgt))
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, trigger (Take X) >>= k_src) (st_tgt, i_tgt).
@@ -369,10 +386,10 @@ Section SIM.
     split; intros x wfx SIM; guclo hsimC_spec; econs; esplits; eauto; econs; eauto.
   Qed.
 
-  Lemma isim_sput_src_sandbox r g ps pt {Rs Rt} RR  k v nths st_src st_tgt k_src i_tgt scopes :
+  Lemma isim_sput_src_sandbox r g ps pt {Rs Rt} RR  k v nths st_src st_tgt k_src i_tgt mask scopes :
     In k.1 scopes →
     @isim r g Rs Rt RR true pt nths (alist_upd k v st_src, k_src tt) (st_tgt, i_tgt)
-    ⊢ @isim r g Rs Rt RR ps pt nths (st_src, HModTr.sandbox scopes (trigger (SPut k v)) >>= k_src) (st_tgt, i_tgt).
+    ⊢ @isim r g Rs Rt RR ps pt nths (st_src, HModTr.sandbox mask scopes (trigger (SPut k v)) >>= k_src) (st_tgt, i_tgt).
   Proof using.
     i. iIntros "ISIM".
     rewrite SBRed.put.
@@ -391,10 +408,10 @@ Section SIM.
     split; intros x wfx SIM; guclo hsimC_spec; econs; esplits; eauto; econs; eauto.
   Qed.
 
-  Lemma isim_sput_tgt_sandbox r g ps pt {Rs Rt} RR k v nths st_src st_tgt i_src k_tgt scopes :
+  Lemma isim_sput_tgt_sandbox r g ps pt {Rs Rt} RR k v nths st_src st_tgt i_src k_tgt mask scopes :
     In k.1 scopes →
     @isim r g Rs Rt RR ps true nths (st_src, i_src) (alist_upd k v st_tgt, k_tgt tt)
-    ⊢ @isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, HModTr.sandbox scopes (trigger (SPut k v)) >>= k_tgt).
+    ⊢ @isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, HModTr.sandbox mask scopes (trigger (SPut k v)) >>= k_tgt).
   Proof using.
     i. iIntros "ISIM".
     rewrite SBRed.put.
@@ -413,10 +430,10 @@ Section SIM.
     split; intros x wfx SIM; guclo hsimC_spec; econs; esplits; eauto; econs; eauto.
   Qed.
 
-  Lemma isim_sget_src_sandbox r g ps pt {Rs Rt} RR k nths st_src st_tgt k_src i_tgt scopes :
+  Lemma isim_sget_src_sandbox r g ps pt {Rs Rt} RR k nths st_src st_tgt k_src i_tgt mask scopes :
     In k.1 scopes →
     @isim r g Rs Rt RR true pt nths (st_src, k_src (or_else (alist_find k st_src) tt↑)) (st_tgt, i_tgt)
-    ⊢ @isim r g Rs Rt RR ps pt nths (st_src, HModTr.sandbox scopes (trigger (SGet k)) >>= k_src) (st_tgt, i_tgt).
+    ⊢ @isim r g Rs Rt RR ps pt nths (st_src, HModTr.sandbox mask scopes (trigger (SGet k)) >>= k_src) (st_tgt, i_tgt).
   Proof using.
     i. iIntros "ISIM".
     rewrite SBRed.get.
@@ -435,10 +452,10 @@ Section SIM.
     split; intros x wfx SIM; guclo hsimC_spec; econs; esplits; eauto; econs; eauto.
   Qed.
 
-  Lemma isim_sget_tgt_sandbox r g ps pt {Rs Rt} RR k nths st_src st_tgt i_src k_tgt scopes :
+  Lemma isim_sget_tgt_sandbox r g ps pt {Rs Rt} RR k nths st_src st_tgt i_src k_tgt mask scopes :
     In k.1 scopes →
     @isim r g Rs Rt RR ps true nths (st_src, i_src) (st_tgt, k_tgt (or_else (alist_find k st_tgt) tt↑))
-    ⊢ @isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, HModTr.sandbox scopes (trigger (SGet k)) >>= k_tgt).
+    ⊢ @isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, HModTr.sandbox mask scopes (trigger (SGet k)) >>= k_tgt).
   Proof using.
     i. iIntros "ISIM".
     rewrite SBRed.get.
@@ -503,6 +520,17 @@ Section SIM.
     split; intros x wfx SIM; guclo hsimC_spec; econs; esplits; eauto; econs; eauto.
   Qed.
 
+  Lemma isim_spawn_sandbox r g ps pt {Rs Rt} RR nths st_src st_tgt k_src k_tgt fn arg (mask_src mask_tgt:_→bool) scopes_src scopes_tgt:
+    (mask_src fn) → (mask_tgt fn) →
+    @isim r g Rs Rt RR true true (S nths) (st_src, k_src nths) (st_tgt, k_tgt nths)
+    ⊢ isim r g RR ps pt nths (st_src, HModTr.sandbox mask_src scopes_src (trigger (Spawn fn arg)) >>= k_src) (st_tgt, HModTr.sandbox mask_tgt scopes_tgt (trigger (Spawn fn arg)) >>= k_tgt).
+  Proof using.
+    i. iIntros "ISIM".
+    rewrite !SBRed.spawn.
+    des_ifs; ss.
+    iApply isim_spawn. iFrame.
+  Qed.
+  
   Lemma isim_yield r g ps pt {Rs Rt} RR nths st_src st_tgt k_src k_tgt tid :
     (Ist nths st_src st_tgt)
     ∗ (∀ nths0 st_src0 st_tgt0
@@ -533,12 +561,47 @@ Section SIM.
     (CLOSED: contextual = closed)
     (FIND: alist_find fn fl_src = None)
   :
-    (@isim r g Rs Rt RR true pt nths (st_src, x <- triggerUB;; tau;; tau;; k_src x) (st_tgt, i_tgt))
-    ⊢ (@isim r g Rs Rt RR ps pt nths (st_src, trigger (Call fn varg) >>= k_src) (st_tgt, i_tgt)).
+  ⊢ (@isim r g Rs Rt RR ps pt nths (st_src, trigger (Call fn varg) >>= k_src) (st_tgt, i_tgt)).
   Proof using.
     split; intros x wfx SIM; guclo hsimC_spec. econs; esplits; eauto. econs 22; eauto.
   Qed.
 
+  Lemma isim_call_none_sandbox
+    r g ps pt {Rs Rt} RR nths st_src st_tgt k_src i_tgt fn varg mask scopes
+    (CLOSED: contextual = closed)
+    (FIND: alist_find fn fl_src = None)
+    :
+    ⊢ (@isim r g Rs Rt RR ps pt nths (st_src, HModTr.sandbox mask scopes (trigger (Call fn varg)) >>= k_src) (st_tgt, i_tgt)).
+  Proof using.
+    i. rewrite SBRed.call.
+    des_ifs; ss.
+    - iApply isim_call_none; eauto.
+    - unfold triggerUB. grind. iApply isim_take_src. iIntros (?). ss.
+  Qed.
+  
+  Lemma isim_spawn_none
+    r g ps pt {Rs Rt} RR nths st_src st_tgt k_src i_tgt fn varg
+    (CLOSED: contextual = closed)
+    (FIND: alist_find fn fl_src = None)
+  :
+  ⊢ (@isim r g Rs Rt RR ps pt nths (st_src, trigger (Spawn fn varg) >>= k_src) (st_tgt, i_tgt)).
+  Proof using.
+    split; intros x wfx SIM; guclo hsimC_spec. econs; esplits; eauto. econs 23; eauto.
+  Qed.
+
+  Lemma isim_spawn_none_sandbox
+    r g ps pt {Rs Rt} RR nths st_src st_tgt k_src i_tgt fn varg mask scopes
+    (CLOSED: contextual = closed)
+    (FIND: alist_find fn fl_src = None)
+    :
+    ⊢ (@isim r g Rs Rt RR ps pt nths (st_src, HModTr.sandbox mask scopes (trigger (Spawn fn varg)) >>= k_src) (st_tgt, i_tgt)).
+  Proof using.
+    i. rewrite SBRed.spawn.
+    des_ifs; ss.
+    - iApply isim_spawn_none; eauto.
+    - unfold triggerUB. grind. iApply isim_take_src. iIntros (?). ss.
+  Qed.
+  
   Lemma isim_progress r g {Rs Rt} RR nths st_src st_tgt i_src i_tgt :
     @isim g g Rs Rt RR false false nths (st_src, i_src) (st_tgt, i_tgt)
     ⊢ @isim r g Rs Rt RR true true nths (st_src, i_src) (st_tgt, i_tgt).

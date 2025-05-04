@@ -8,13 +8,13 @@ Section PMOD.
 
   Context `{Σ : GRA}.
 
-  Definition handle: ∀ T, pmodE T -> (itree hmodE T + {X: Type & hmodE X * (X -> itree hmodE T)})%type :=
+  Definition handle: pmodE ~> itreeV hmodE :=
     fun T e =>
       inr
       match e with
       | inr1 (inr1 (Take X)) =>
           if excluded_middle_informative (∃ P: Prop, X = P)
-          then existT _ (inr1 e, fun v => Ret v)
+          then existT _ (subevent _ e, fun v => Ret v)
           else existT _ (subevent _ (Take False), fun v => Ret (False_rect _ v))
       | _ => existT _ (inr1 e, fun v => Ret v)
       end.
@@ -158,7 +158,7 @@ Section RED.
     :
       PModTr.trans (trigger i)
       =
-      r <- trigger i;; Ret r.
+      trigger i.
   Proof using.
     rewrite vis_pg. eapply observe_eta; ss. f_equal. extensionalities.
     rewrite ret. ired. eauto.
@@ -169,7 +169,7 @@ Section RED.
     :
       PModTr.trans (trigger (Take P))
       =
-      r <- trigger (Take P);; Ret r.
+      trigger (Take P).
   Proof using.
     rewrite vis_take. eapply observe_eta; ss. f_equal. extensionalities.
     rewrite ret. ired. eauto.
@@ -180,7 +180,7 @@ Section RED.
     :
       PModTr.trans (trigger (Choose X))
       =
-      r <- trigger (Choose X);; Ret r.
+      trigger (Choose X).
   Proof using.
     rewrite vis_choose. eapply observe_eta; ss. f_equal. extensionalities.
     rewrite ret. ired. eauto.
@@ -191,7 +191,7 @@ Section RED.
     :
       PModTr.trans (trigger (@IO I O fn args))
       =
-      r <- trigger (IO fn args);; Ret r.
+      trigger (IO fn args).
   Proof using.
     rewrite vis_io. eapply observe_eta; ss. f_equal. extensionalities.
     rewrite ret. ired. eauto.
@@ -228,7 +228,7 @@ Section RED.
     : 
       PModTr.trans (assume P)
       =
-      assume P;;; Ret ().
+      assume P.
   Proof using.
     rewrite /assume !bind !take !ret. grind.
   Qed. 
@@ -238,7 +238,7 @@ Section RED.
     : 
       PModTr.trans (guarantee P)
       =
-      guarantee P;;; Ret ().
+      guarantee P.
   Proof using.
     rewrite /guarantee !bind !choose !ret. grind.
   Qed.

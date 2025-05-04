@@ -1,8 +1,9 @@
-From iris.proofmode Require Import proofmode.
 Require Import Common.
+From iris.proofmode Require Import proofmode.
 Require Import Mod HMod.
 Require Import ModSim ModSimFacts ISim ISimInit ISimFacts.
 Require Import CtxRefine MainAdequacy.
+Require Import Tactics TacticsInit.
 
 Global Program Instance refines_mod_PreOrder : PreOrder refines_mod.
 Next Obligation. ii. ss. Qed.

@@ -14,8 +14,7 @@ Section Cancel.
     trigger (Yield tid);;;
     Ret tid.
 
-  Definition handle: ∀ T, hmodE T -> (itree hmodE T+{X: Type & hmodE X * (X -> itree hmodE T)})%type
-    :=
+  Definition handle: hmodE ~> itreeV hmodE :=
     fun T e =>
       match e with
       | inr1 (inl1 c) =>
@@ -23,7 +22,7 @@ Section Cancel.
           | Call fn args =>
               inl (trigger (Call fn args))
           | Spawn fn args => inl (HoareSpawn fn args)
-          | _ => inr (existT _ (e, fun v => Ret v))
+          | Yield tid => inr (existT _ (subevent _ (Yield tid), fun v => Ret v))
           end
       | _ =>
           inr (existT _ (e, fun v => Ret v))
@@ -110,7 +109,7 @@ Module SCancelRed.
     tau;; SModCancel.HoareSpawn fn args.
   Proof using.
     unfold SModCancel.trans in *. unfold trigger. rewrite interpV_vis. s.
-    do 2 f_equal. eapply observe_eta; ss. f_equal. extensionalities.
+    ired. do 2 f_equal. eapply observe_eta; ss. f_equal. extensionalities.
     ired. f_equal. extensionalities. rewrite interpV_ret. et.
   Qed.
   
@@ -121,7 +120,7 @@ Module SCancelRed.
     =
     tau;; trigger (Call fn args).
   Proof using.
-    unfold SModCancel.trans, trigger in *. rewrite interpV_vis. s.
+    unfold SModCancel.trans, trigger in *. rewrite interpV_vis. s. ired.
     eapply observe_eta; ss. f_equal.
     eapply observe_eta; ss. f_equal. extensionalities. ired.
     rewrite interpV_ret. eauto.
@@ -136,7 +135,7 @@ Module SCancelRed.
       =
       trigger i.
   Proof using.
-    unfold SModCancel.trans, trigger. rewrite interpV_vis. s.
+    unfold SModCancel.trans, trigger. rewrite interpV_vis. s. ired.
     eapply observe_eta; ss. f_equal. extensionalities. ired.
     rewrite interpV_ret. eauto.
   Qed.
@@ -150,7 +149,7 @@ Module SCancelRed.
       =
       trigger i.
   Proof using.
-    unfold SModCancel.trans, trigger. rewrite interpV_vis. s.
+    unfold SModCancel.trans, trigger. rewrite interpV_vis. s. ired.
     eapply observe_eta; ss. f_equal. extensionalities. ired.
     rewrite interpV_ret. eauto.
   Qed.
@@ -162,7 +161,7 @@ Module SCancelRed.
       =
       trigger e.
   Proof using.
-    unfold SModCancel.trans, trigger. rewrite interpV_vis. s.
+    unfold SModCancel.trans, trigger. rewrite interpV_vis. s. ired.
     eapply observe_eta; ss. f_equal. extensionalities. ired.
     rewrite interpV_ret. eauto.
   Qed.

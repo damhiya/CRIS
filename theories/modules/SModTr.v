@@ -39,17 +39,28 @@ Section HOARE.
     trigger (Yield tid);;;
     Ret tid.
 
-  Definition handle: ∀ T, hmodE T -> (itree hmodE T+{X: Type & hmodE X * (X -> itree hmodE T)})%type
-    :=
+  Definition handle': hmodE ~> itreeV hmodE.
+    intros T e.
+    destruct e.
+    - exact (inr (existT _ (subevent _ a, fun v => Ret v))).
+    - destruct p.
+      + destruct c.
+        * exact (inl (fsp <- (sp fn)!;; HoareCall fsp fn args)).
+        * exact (inl (fsp <- (sp fn)!;; HoareSpawn fsp fn args)).
+        * exact (inr (existT _ (subevent _ (Yield tid), fun v => Ret v))).
+      + exact (inr (existT _ (subevent _ s, fun v => Ret v))).
+  Defined.
+
+  Definition handle: hmodE ~> itreeV hmodE :=
     fun T e =>
       match e with
       | inr1 (inl1 c) =>
-          match c in callE T with
+          match c in callE T return itreeV hmodE T with
           | Call fn args =>
               inl (fsp <- (sp fn)!;; HoareCall fsp fn args)
           | Spawn fn args =>
               inl (fsp <- (sp fn)!;; HoareSpawn fsp fn args)
-          | _ => inr (existT _ (e, fun v => Ret v))
+          | Yield tid => inr (existT _ (subevent _ (Yield tid), fun v => Ret v))
           end
       | _ =>
           inr (existT _ (e, fun v => Ret v))

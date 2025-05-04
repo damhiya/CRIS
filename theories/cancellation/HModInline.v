@@ -45,18 +45,17 @@ Section INTERP.
     lbody <- (alist_find fn ms.(HMod.fnsems))?;;
     HModTr.sandbox_body lbody args.
       
-  Definition inline_hp_fbody (ms: HMod.t)
-    : (list string * (Any.t -> itree hmodE Any.t)) -> (list string * (Any.t -> itree hmodE Any.t))
+  Definition inline_hp_fbody (ms: HMod.t) (kb: (string→bool) * list string * (Any.t -> itree hmodE Any.t)) : (string→bool) * list string * (Any.t -> itree hmodE Any.t)
     :=
-    fun '(k, b) => (k, inline_hp_fun (prog ms) b).
+    (mask_all, kb.1.2, inline_hp_fun (prog ms) kb.2).
 
-  Definition wrap_sandbox scopeS: list string * (Any.t -> itree hmodE Any.t) -> list string * (Any.t -> itree hmodE Any.t)
-    := 
-    fun kb => (scopeS, HModTr.sandbox_body kb).
-
-  Definition wrap_elimI ms: list string * (Any.t -> itree hmodE Any.t) -> list string * (Any.t -> itree hmodE Any.t)
+  Definition wrap_sandbox scopes kb : (string→bool) * list string * (Any.t -> itree hmodE Any.t)
     :=
-    fun kb => inline_hp_fbody ms (wrap_sandbox ms.(HMod.scopes) kb). 
+    (mask_all, scopes, HModTr.sandbox_body kb).
+
+  Definition wrap_elimI ms kb : (string→bool)* list string * (Any.t -> itree hmodE Any.t)
+    :=
+    inline_hp_fbody ms (wrap_sandbox ms.(HMod.scopes) kb). 
 
 End INTERP.
 
@@ -66,21 +65,15 @@ Module HModInline.
   Program Definition inline `{Σ: GRA} (ms: HMod.t): HMod.t := {|
     HMod.scopes := ms.(scopes);
     HMod.fnsems := List.map (map_snd (wrap_elimI ms)) (ms.(fnsems));
-    (* HMod.fnsems := List.map (map_snd (λ ksb, (ksb.1, inline_hp_fun (prog ms) ksb.2))) (ms.(fnsems)); *)
     HMod.initial_st := ms.(initial_st);
   |}.
   Next Obligation.
     i. depdes ms. ss. ii. unfold fnsems_scopes in *. unfold map_snd in*.
     rewrite! alist_find_map in H. unfold o_map in H.
     des_ifs; ss. 
-    (* inv Heq0.
-    specialize (well_scoped_fns0 fn a).
-    des_ifs; ss. inv Heq. eauto. *)
   Qed.
   Next Obligation. ii. destruct ms. ss. eauto. Qed.
   Next Obligation. ii. destruct ms. ss. eauto. Qed.
-
-  (* Definition to_elim ms := to_hmod ((interp_sb_hp_elim) ∘ fsb_body) ms. *)
 End HModInline.
 
 Module HIRed.
@@ -221,7 +214,6 @@ Module HIRed.
 End HIRed.
 
 (* CANCEL *)
-
 Lemma wrap_elimI_well_scoped `{Σ: GRA}
     ms fn sb
     (FIND: alist_find fn ms.(HMod.fnsems) = Some sb)
@@ -230,17 +222,13 @@ Lemma wrap_elimI_well_scoped `{Σ: GRA}
   = 
   inline_hp_fun (prog ms) (HModTr.sandbox_body sb).
 Proof using.
-  extensionality args. 
+  extensionality args.
   unfold wrap_elimI, inline_hp_fbody. s.
-  unfold HModTr.sandbox_body, inline_hp_fun. destruct sb. s.
+  unfold HModTr.sandbox_body, inline_hp_fun. destruct sb as [[msk sc] bd]. s.
   assert(SCP := ms.(HMod.well_scoped_fns)).
   specialize (SCP fn). rewrite/fnsems_scopes FIND in SCP.
-  
-  (* remember (HMod.scopes ms) as scopeS. i. *)
-  rename l into sc. 
   apply bisim_is_eq. move sc at bottom.
-  eapply (@gpaco2_init _ _ _ _ (eqitC eq false false)); eauto with paco.
-  generalize (i args) as itr. clear FIND fn i args.
+  ginit. generalize (bd args) as itr. clear FIND bd fn args.
   revert_until ms. gcofix CIH. i.
   ides itr.
   { rewrite !SBRed.ret HIRed.ret SBRed.ret. gstep. econs. refl. }
@@ -256,7 +244,11 @@ Proof using.
   }
   destruct p; [destruct c|].
   {
-    rewrite !SBRed.call.
+    rewrite !SBRed.call. des_ifs; cycle 1.
+    { unfold triggerUB. ired. 
+      rewrite !HIRed.bind_core !SBRed.bind SBRed.core !bind_trigger.
+      gstep. econs. i. ss.
+    }
 
     rewrite HIRed.call SBRed.tau. s.
     gstep. econs.
@@ -267,34 +259,32 @@ Proof using.
       gstep. econs. i. ss.
     }
 
-    ired. unfold HModTr.sandbox_body. destruct p as [sc0 bd0]. s.
+    ired. unfold HModTr.sandbox_body. destruct p as [[imp0 sc0] bd0]. s.
     match goal with
-      [|- _ _ (_ _ ?itr)] => assert (EX: exists itr', itr = HModTr.sandbox (HMod.scopes ms) itr')
+    [|- _ _ (_ _ ?itr)] => assert (EX: exists itr', itr = HModTr.sandbox mask_all (HMod.scopes ms) itr'); cycle 1
     end.
-    {
-      eexists. instantiate (1:= _ >>= _). 
-      rewrite SBRed.bind. f_equal.
-      {
-        erewrite <-(@sandbox_well_scoped _ _ sc0); try refl; eauto.
-        assert(SCP0 := ms.(HMod.well_scoped_fns)).
-        specialize (SCP0 fn). rewrite/fnsems_scopes FIND' in SCP0.
-        eauto.
-      }
-      extensionality x.
-      instantiate (1:= fun x => tau;;(_ x)). s.
-      rewrite SBRed.tau. do 2 f_equal.
-      ired.
-      erewrite <-(@sandbox_well_scoped _ _ sc); eauto. 
-      instantiate (1:= fun x => HModTr.sandbox sc (k x)). s. refl.
+    { des. rewrite EX. gbase. eapply CIH; try refl. }
+    
+    eexists. instantiate (1:= _ >>= _). 
+    rewrite SBRed.bind. f_equal.
+    { 
+      erewrite <-(@sandbox_well_scoped _ _ _ _ sc0); try refl; eauto.
+      ii. eapply HMod.well_scoped_fns. unfold fnsems_scopes.
+      erewrite FIND'. et.
     }
-    des. rewrite EX. gbase. eapply CIH; try refl.
+    extensionality x.
+    rewrite subst_bind bind_ret_l -SBRed.tau.
+    erewrite <-(@sandbox_well_scoped _ _ _ _ sc); eauto.
   }
   {
-    rewrite !SBRed.spawn.
-    rewrite HIRed.bind_spawn SBRed.bind SBRed.spawn.
-    rewrite !bind_trigger.
-    gstep. econs. i. r.
-    rewrite SBRed.tau. gstep. econs. gbase. eauto.
+    rewrite !SBRed.spawn. des_ifs.
+    + rewrite HIRed.bind_spawn SBRed.bind SBRed.spawn. s.
+      rewrite !bind_trigger.
+      gstep. econs. i. r.
+      rewrite SBRed.tau. gstep. econs. gbase. eauto.
+    + unfold triggerUB. ired. 
+      rewrite !HIRed.bind_core !SBRed.bind SBRed.core !bind_trigger.
+      gstep. econs. ss.
   }
   {
     rewrite !SBRed.yield HIRed.bind_yield SBRed.bind SBRed.yield !bind_trigger.
@@ -343,8 +333,6 @@ Proof using.
   rewrite SBRed.core HIRed.bind_core SBRed.bind SBRed.core !bind_trigger.
   gstep. econs. i. r.
   rewrite SBRed.tau. gstep. econs. gbase; eauto.
-Unshelve.
-  eapply eqit__mono; eauto.
 (*SLOW*)Qed.
 
 Definition bindRR `{Σ: GRA} {R} RR P : nat -> alist key Any.t * R-> alist key Any.t * R -> iProp Σ :=
