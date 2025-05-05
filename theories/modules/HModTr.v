@@ -3,6 +3,24 @@ Require Import Mod.
 
 Set Implicit Arguments.
 
+Section WMask.
+
+  Definition wmask_all : string->bool := fun _ => true.
+
+  Definition wmask_list (fns: list string) : string->bool :=
+    fun f => (existsb (String.eqb f) fns).
+
+  Definition wmask_or (msk1 msk2: string->bool) :=
+    fun fn => msk1 fn || msk2 fn.
+
+  Definition wmask_and (msk1 msk2: string->bool) :=
+    fun fn => msk1 fn && msk2 fn.
+
+  Definition wmask_sub (msk1 msk2: string→bool) :=
+    ∀ fn, msk1 fn → msk2 fn.
+
+End WMask.
+
 Module HModTr.
 Section MID.
 
@@ -567,7 +585,7 @@ Section Properties.
 
   Lemma sandbox_sandbox {R} (t: itree hmodE R) (msk msk':_→bool) sc sc'
     (INCL: incl sc sc')
-    (SUB: ∀ fn, msk fn → msk' fn)
+    (SUB: wmask_sub msk msk')
     :
     HModTr.sandbox msk' sc' (HModTr.sandbox msk sc t) = HModTr.sandbox msk sc t.
   Proof using.

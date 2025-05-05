@@ -280,7 +280,7 @@ Module CFilter. Section CFilter.
       esplits. erewrite sandbox_sandbox; et; try refl.
       - etrans; [|eapply HMod.well_scoped_fns].
         unfold fnsems_scopes. erewrite Heq0. refl.
-      - i. eapply andb_prop in H. des. et. }
+      - ii. eapply andb_prop in H. des. et. }
     clear Heqths.
     generalize 0 as cid.
 
@@ -383,10 +383,10 @@ Module CFilter. Section CFilter.
       erewrite SBRed.tau, HRed.tau.
       do 2 f_equal. ired. erewrite sandbox_sandbox. refl.
       - refl.
-      - et.
+      - ii. et.
       - s. etrans; [|eapply HMod.well_scoped_fns].
         unfold fnsems_scopes. erewrite Heq1. refl.
-      - s. i. eapply andb_prop in H. des; et.
+      - s. ii. eapply andb_prop in H. des; et.
     }
     { (* Spawn *)
       s. destruct (mask fn) eqn: Hmask; cycle 1.
@@ -415,7 +415,7 @@ Module CFilter. Section CFilter.
       erewrite <-sandbox_sandbox. refl.
       - etrans; [|eapply HMod.well_scoped_fns].
         unfold fnsems_scopes. erewrite Heq1. refl.
-      - i. apply andb_prop in H. des; et.
+      - ii. apply andb_prop in H. des; et.
     }
     { (* Yield *)
       zstep_l. zstep_r.
