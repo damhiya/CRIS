@@ -225,4 +225,11 @@ Section HModFacts.
     - do 4 right. exists X, c, k. unfold trigger. rewrite bind_vis.
       repeat f_equal. extensionality x. rewrite bind_ret_l. eauto.
   Qed.
+
+  Lemma hmod_exports_app m1 m2:
+    HMod.exports (m1 ★ m2) = HMod.exports m1 ++ HMod.exports m2.
+  Proof.
+    destruct m1, m2. unfold HMod.exports. s. rewrite List.map_app. et.
+  Qed.
+  
 End HModFacts.

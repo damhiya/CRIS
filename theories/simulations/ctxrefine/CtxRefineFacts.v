@@ -155,3 +155,62 @@ Proof.
   rewrite hmod_add_assoc.
   apply ctxr_frameL, ctxr_comm.
 Qed.
+
+(*** Corollaries for tactics ***)
+
+Corollary ctxr_compose_hor_simpl `{Σ : GRA} msa mta msb mtb Pa Pb
+    (REFA : ctx_refines (msa, Pa) (mta, emp%I))
+    (REFB : ctx_refines (msb, Pb) (mtb, emp%I)) :
+  ctx_refines (msa ★ msb, Pa ∗ Pb)%I
+              (mta ★ mtb, emp%I)%I.
+Proof.
+  rewrite -(hmod_addc_empty_l _ emp).
+  eapply ctxr_compose_hor; et.
+Qed.
+
+Corollary ctxr_cond_frameR_simpl `{Σ : GRA} (ms mt : HMod.t) P Q
+  (REF : ctx_refines (ms, P) (mt, emp%I))
+  :
+  ctx_refines (ms, P ∗ Q)%I (mt, Q)%I.
+Proof.
+  rewrite -(hmod_addc_empty_l _ Q).
+  eapply ctxr_cond_frameR. et.
+Qed.
+
+(*** tactics for composing ctx_refines ***)
+
+Ltac ctxr_norm :=
+  try rewrite -!hmod_add_assoc;
+  try rewrite !hmod_add_assoc;
+  (hrepeat do 1 first [rewrite !hmod_addc_empty_l|rewrite !hmod_addc_empty_r]);
+  try(try (match goal with [|-_ (_,emp%I)] => fail 2 end);
+      eapply ctxr_cond_frameR_simpl).
+
+Ltac _ctxr_swap :=
+  try (rewrite -hmod_add_assoc; eapply ctxr_compose_hor_simpl; [|refl]);
+  eapply ctxr_comm.
+  
+Ltac ctxr_swap :=
+  ctxr_norm;
+  etrans; [|_ctxr_swap];
+  ctxr_norm.
+
+Ltac ctxr_rotate :=
+  ctxr_norm;
+  (etrans; [|eapply ctxr_comm]);
+  ctxr_norm.
+
+Tactic Notation "ctxr_apply" tactic(tac) :=
+  ctxr_norm;
+  (etrans; [|try (eapply ctxr_compose_hor_simpl; [|refl]); tac]);
+  ctxr_norm.
+
+Ltac ctxr_drop :=
+  ctxr_norm;
+  eapply ctxr_frameL.
+
+Ltac ctxr_refl :=
+  ctxr_norm;
+  refl.
+
+
