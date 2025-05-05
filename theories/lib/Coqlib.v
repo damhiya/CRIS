@@ -1,3 +1,5 @@
+Require Import String.
+
 Require Export ZArith.
 Require Export Znumtheory.
 Require Export List.
@@ -1587,3 +1589,10 @@ Lemma Forall2_eq
 Proof. induction EQ; ss. des; subst. refl. Qed.
 
 Global Open Scope nat_scope.
+
+Lemma string_length_app (s1 s2: string):
+  String.length (String.append s1 s2) = String.length s1 + String.length s2.
+Proof.
+  revert s2. induction s1; i; ss.
+  fold append. rewrite IHs1. et.
+Qed.

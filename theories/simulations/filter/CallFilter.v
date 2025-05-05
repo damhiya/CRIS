@@ -20,6 +20,16 @@ Module CFilter. Section CFilter.
   Next Obligation. ii. eapply (m.(HMod.well_scoped_init)). eauto. Qed.
   Next Obligation. ii. eapply (m.(HMod.nodup_fns)). eauto. Qed.
 
+  (* Lemmas *)
+
+  Lemma filter_app m1 m2 msk:
+    CFilter.filter msk (m1 ★ m2) = CFilter.filter msk m1 ★ CFilter.filter msk m2.
+  Proof.
+    destruct m1, m2. eapply hmod_extensionality; s; et.
+    unfold map_fst, map_snd.
+    rewrite !List.map_app. et.
+  Qed.
+
   (* Key theorems *)
 
   Lemma sim_filter_intro mask (m: HMod.t):
@@ -137,24 +147,28 @@ Module CFilter. Section CFilter.
       + step. steps_l. steps_r. by_coind "CIH"; et.
   Qed.
 
-  Theorem intro_filter fns (m: HMod.t):
-    ctx_refines (filter fns m, emp)%I (m, emp)%I.
+  Theorem intro_filter fns (m: HMod.t) P:
+    ctx_refines (filter fns m, P)%I (m, P)%I.
   Proof.
+    rewrite -!(hmod_addc_empty_r _ P).
+    eapply ctxr_cond_frameL.
     eapply main_adequacy, sim_filter_intro.
   Qed.
 
-  Theorem elim_filter (mask:_→bool) (m: HMod.t)
+  Theorem elim_filter (mask:_→bool) (m: HMod.t) P
     (SUB: ∀fn, In fn (List.map fst m.(HMod.fnsems)) → mask fn)
     :
-    refines (m, emp)%I (filter mask m, emp)%I.
+    refines (m, P)%I (filter mask m, P)%I.
   Proof.
     eapply closed_adequacy2, sim_filter_elim. eauto.
   Qed.
 
   (*** elimination of a module ***)
-  Theorem elim_module m mc:
-    ctx_refines (m, emp)%I (m ★ mc, emp)%I.
+  Theorem elim_module m mc P:
+    ctx_refines (m, P)%I (m ★ mc, P)%I.
   Proof.
+    rewrite -!(hmod_addc_empty_r _ P).
+    eapply ctxr_cond_frameL.
     eapply main_adequacy with (Ist := IstProd (IstSB m.(HMod.scopes) IstEq) (IstSB mc.(HMod.scopes) IstTrue)).
     init_sim; s; eauto.
     { iIntros "_". unfold IstProd, IstSB, IstEq, IstTrue, state_scopes.
@@ -226,13 +240,13 @@ Module CFilter. Section CFilter.
   Qed.
 
   (*** introduction of a module ***)
-  Theorem intro_module (mask:_→bool) m mc
+  Theorem intro_module (mask:_→bool) m mc P
     (WF: HMod.wf mc)
     (SUB: ∀fn, In fn (List.map fst m.(HMod.fnsems)) → mask fn)
     (FRESH: ∀fn, In fn (List.map fst mc.(HMod.fnsems)) → (~ mask fn) ∧ (fn ≠ Mod.init_fun))
     (DISJ: List.NoDup (m.(HMod.scopes) ++ mc.(HMod.scopes)))
     :
-    refines ((filter mask m) ★ mc, emp)%I (filter mask m, emp)%I .
+    refines ((filter mask m) ★ mc, P)%I (filter mask m, P)%I .
   Proof.
     ii. hdes.
     split.
@@ -482,7 +496,7 @@ Module CFilter. Section CFilter.
       gbase. eapply CIH; et.
       i. eapply list_lookup_insert_Some in IN. des; subst; et.
     }
-Unshelve. all: exact smj_top.
-Qed.
-  
+  Unshelve. all: exact smj_top.
+  Qed.
+
 End CFilter. End CFilter.
