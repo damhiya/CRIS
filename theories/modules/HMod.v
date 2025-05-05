@@ -7,29 +7,6 @@ Require Export HModTr.
 
 Set Implicit Arguments.
 
-Definition wmask_all : string->bool := fun _ => true.
-
-Definition wmask_list (fns: list string) : string->bool :=
-  fun f => (existsb (String.eqb f) fns).
-
-Definition wmask_or (msk1 msk2: string->bool) :=
-  fun fn => msk1 fn || msk2 fn.
-
-Definition wmask_and (msk1 msk2: string->bool) :=
-  fun fn => msk1 fn && msk2 fn.
-
-Definition fnsems_exports {T} (fnsems : alist string ((string->bool) * list string * T)) : list string :=
-  List.map fst fnsems.
-
-Definition fnsems_mask {T} (fn : string) (fnsems : alist string ((string->bool) * list string * T)) :=
-  match (alist_find fn fnsems) with
-  | Some (mask, scopes, body) => mask
-  | None => wmask_all
-  end.
-
-Definition fnsems_wmask_all {T} (fnsems : alist string ((string→bool) * list string * T)) : string→bool :=
-  foldr (fun fs mask => wmask_or fs.2.1.1 mask) wmask_all fnsems.
-
 Definition fnsems_scopes {T} (fn : string) (fnsems : alist string ((string->bool) * list string * T)) :=
   match (alist_find fn fnsems) with
   | Some (mask, scopes, body) => scopes
@@ -38,16 +15,6 @@ Definition fnsems_scopes {T} (fn : string) (fnsems : alist string ((string->bool
 
 Definition state_scopes (st : alist key Any.t) :=
   List.map (fst ∘ fst) st.
-
-Lemma fnsems_mask_incl_all {T} fnsems fn:
-  ∀ x, @fnsems_mask T fn fnsems x → fnsems_wmask_all fnsems x.
-Proof.
-  unfold fnsems_wmask_all. revert fn.
-  induction fnsems; try refl.
-  i. s. destruct a as [fna [[msk sc] bd]]. ss. unfold wmask_or.
-  unfold fnsems_mask in H. ss. rewrite eq_rel_dec_correct in H.
-  destruct (string_Dec fn fna) eqn: EQ; destruct (msk x); ss; et.
-Qed.
 
 Module HMod. Section HMod.
   Context {Σ : GRA}.
@@ -69,6 +36,9 @@ Module HMod. Section HMod.
     wf_fns : List.NoDup (List.map fst ms.(fnsems));
     wf_scopes : List.NoDup ms.(scopes);
   }.
+
+  Definition exports (m: t) : list string :=
+    List.map fst m.(fnsems).
 
   (**** Linking ****)
   Program Definition empty : t := {|
