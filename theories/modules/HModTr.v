@@ -560,3 +560,68 @@ Module SBRed. Section SBRed.
   Qed.
 
 End SBRed. End SBRed.
+
+Section Properties.
+
+  Context `{Σ: GRA}.
+
+  Lemma sandbox_sandbox {R} (t: itree hmodE R) (msk msk':_→bool) sc sc'
+    (INCL: incl sc sc')
+    (SUB: ∀ fn, msk fn → msk' fn)
+    :
+    HModTr.sandbox msk' sc' (HModTr.sandbox msk sc t) = HModTr.sandbox msk sc t.
+  Proof using.
+    eapply bisim_is_eq.
+    eapply gpaco2_init with (clo:=eqitC _ _ _); eauto with paco.
+    revert R t sc sc' INCL. gcofix CIH. i.
+    rewrite (bisim_is_eq (itree_eta t)). destruct (observe t).
+    { rewrite !SBRed.ret. eapply Reflexive_eqit_gen. et. }
+    { rewrite !SBRed.tau. gstep. econs. gbase. et. }
+
+    rewrite -bind_trigger !SBRed.bind.
+    destruct e; [ |destruct p;
+                   [destruct c|destruct s; [destruct p|]]].
+    + rewrite !SBRed.ag. gstep. rewrite !bind_trigger. econs.
+      i. gbase. et.
+    + rewrite !SBRed.call. des_ifs; cycle 1.
+      { unfold triggerUB. ired. rewrite !SBRed.bind !SBRed.core. ired.
+        gstep. rewrite !bind_trigger. econs. ss. }
+      rewrite !SBRed.call. des_ifs; cycle 1.
+      { eapply SUB in Heq. rewrite Heq0 in Heq. ss. }
+      gstep. rewrite !bind_trigger. econs. i. gbase. et.
+    + rewrite !SBRed.spawn. des_ifs; cycle 1.
+      { unfold triggerUB. ired. rewrite !SBRed.bind !SBRed.core. ired.
+        gstep. rewrite !bind_trigger. econs. ss. }
+      rewrite !SBRed.spawn. des_ifs; cycle 1.
+      { eapply SUB in Heq. rewrite Heq0 in Heq. ss. }
+      gstep. rewrite !bind_trigger. econs. i. gbase. et.
+    + rewrite !SBRed.yield.
+      gstep. rewrite !bind_trigger. econs. i. gbase. et.
+    + rewrite !SBRed.put. des_ifs; cycle 1.
+      { unfold triggerUB. ired. rewrite !SBRed.bind !SBRed.core. ired.
+        gstep. rewrite !bind_trigger. econs. ss. }
+      rewrite !SBRed.put. des_ifs; cycle 1.
+      { exfalso. eapply existsb_exists in Heq. des.
+        eapply String.eqb_eq in Heq1. subst.
+        apply INCL in Heq.
+        hexploit (proj2 (existsb_exists (String.eqb k0.1) sc')).
+        { esplits; et. apply String.eqb_eq. et. }
+        i. rewrite H in Heq0. ss.
+      }
+      gstep. rewrite !bind_trigger. econs. i. gbase. et.
+    + rewrite !SBRed.get. des_ifs; cycle 1.
+      { unfold triggerUB. ired. rewrite !SBRed.bind !SBRed.core. ired.
+        gstep. rewrite !bind_trigger. econs. ss. }
+      rewrite !SBRed.get. des_ifs; cycle 1.
+      { exfalso. eapply existsb_exists in Heq. des.
+        eapply String.eqb_eq in Heq1. subst.
+        apply INCL in Heq.
+        hexploit (proj2 (existsb_exists (String.eqb k0.1) sc')).
+        { esplits; et. apply String.eqb_eq. et. }
+        i. rewrite H in Heq0. ss.
+      }
+      gstep. rewrite !bind_trigger. econs. i. gbase. et.
+    + rewrite !SBRed.core.
+      gstep. rewrite !bind_trigger. econs. i. gbase. et.
+  Qed.
+End Properties.

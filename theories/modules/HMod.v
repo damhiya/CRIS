@@ -7,15 +7,15 @@ Require Export HModTr.
 
 Set Implicit Arguments.
 
-Definition mask_all : string->bool := fun _ => true.
+Definition wmask_all : string->bool := fun _ => true.
 
-Definition mask_list (fns: list string) : string->bool :=
+Definition wmask_list (fns: list string) : string->bool :=
   fun f => (existsb (String.eqb f) fns).
 
-Definition mask_or (msk1 msk2: string->bool) :=
+Definition wmask_or (msk1 msk2: string->bool) :=
   fun fn => msk1 fn || msk2 fn.
 
-Definition mask_and (msk1 msk2: string->bool) :=
+Definition wmask_and (msk1 msk2: string->bool) :=
   fun fn => msk1 fn && msk2 fn.
 
 Definition fnsems_exports {T} (fnsems : alist string ((string->bool) * list string * T)) : list string :=
@@ -24,11 +24,11 @@ Definition fnsems_exports {T} (fnsems : alist string ((string->bool) * list stri
 Definition fnsems_mask {T} (fn : string) (fnsems : alist string ((string->bool) * list string * T)) :=
   match (alist_find fn fnsems) with
   | Some (mask, scopes, body) => mask
-  | None => mask_all
+  | None => wmask_all
   end.
 
-Definition fnsems_mask_all {T} (fnsems : alist string ((string→bool) * list string * T)) : string→bool :=
-  foldr (fun fs mask => mask_or fs.2.1.1 mask) mask_all fnsems.
+Definition fnsems_wmask_all {T} (fnsems : alist string ((string→bool) * list string * T)) : string→bool :=
+  foldr (fun fs mask => wmask_or fs.2.1.1 mask) wmask_all fnsems.
 
 Definition fnsems_scopes {T} (fn : string) (fnsems : alist string ((string->bool) * list string * T)) :=
   match (alist_find fn fnsems) with
@@ -40,11 +40,11 @@ Definition state_scopes (st : alist key Any.t) :=
   List.map (fst ∘ fst) st.
 
 Lemma fnsems_mask_incl_all {T} fnsems fn:
-  ∀ x, @fnsems_mask T fn fnsems x → fnsems_mask_all fnsems x.
+  ∀ x, @fnsems_mask T fn fnsems x → fnsems_wmask_all fnsems x.
 Proof.
-  unfold fnsems_mask_all. revert fn.
+  unfold fnsems_wmask_all. revert fn.
   induction fnsems; try refl.
-  i. s. destruct a as [fna [[msk sc] bd]]. ss. unfold mask_or.
+  i. s. destruct a as [fna [[msk sc] bd]]. ss. unfold wmask_or.
   unfold fnsems_mask in H. ss. rewrite eq_rel_dec_correct in H.
   destruct (string_Dec fn fna) eqn: EQ; destruct (msk x); ss; et.
 Qed.

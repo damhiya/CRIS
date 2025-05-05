@@ -78,11 +78,11 @@ Module SchI. Section SchI.
   Local Definition scopes_tid := ["Tid"].
 
   Definition fnsems :=
-    [(SchHdr._spawn, (mask_all, scopes, cfunU _spawn));
-     (SchHdr.spawn, (mask_all, scopes, cfunU spawn));
-     (SchHdr.yield, (mask_all, scopes, cfunU yield));
-     (SchHdr.join, (mask_all, scopes, cfunU join));
-     (SchHdr.get_tid, (mask_all, scopes_tid, cfunU get_tid))].
+    [(SchHdr._spawn, (wmask_all, scopes, cfunU _spawn));
+     (SchHdr.spawn, (wmask_all, scopes, cfunU spawn));
+     (SchHdr.yield, (wmask_all, scopes, cfunU yield));
+     (SchHdr.join, (wmask_all, scopes, cfunU join));
+     (SchHdr.get_tid, (wmask_all, scopes_tid, cfunU get_tid))].
   
   Program Definition Mod: PMod.t :=
   {|
