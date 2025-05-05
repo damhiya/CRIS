@@ -382,7 +382,7 @@ Module MemIA. Section MemIA.
     IstFull nths st_s st_t ∗ bofs |={q}=> v
     ⊢ wsim fls flt IstFull None υ ν ⊤ r g _ _
       (fun nths '(st_s,_) '(st_t,r) => IstFull nths st_s st_t ∗ bofs |={q}=> v ∗ ⌜r = v⌝)
-      ps pt nths (st_s, Ret ()) (st_t, HModTr.sandbox mask_all MemI.scopes (PModTr.trans (MemI.load [Vptr bofs]))).
+      ps pt nths (st_s, Ret ()) (st_t, HModTr.sandbox wmask_all MemI.scopes (PModTr.trans (MemI.load [Vptr bofs]))).
   Proof using MemInSpMem.
     intros. iIntros "(IST & P)".
     unfold MemI.load. destruct bofs as [b ofs].
@@ -434,7 +434,7 @@ Module MemIA. Section MemIA.
     IstFull nths st_s st_t ∗ bofs ↦ v_old
     ⊢ wsim fls flt IstFull None υ ν ⊤ r g _ _
       (fun nths '(st_s,_) '(st_t,r) => IstFull nths st_s st_t ∗ bofs ↦ v ∗ ⌜r = Vint 0⌝)
-      ps pt nths (st_s, Ret ()) (st_t, HModTr.sandbox mask_all MemI.scopes (PModTr.trans (MemI.store [Vptr bofs; v]))).
+      ps pt nths (st_s, Ret ()) (st_t, HModTr.sandbox wmask_all MemI.scopes (PModTr.trans (MemI.store [Vptr bofs; v]))).
   Proof using MemInSpMem.
     intros. iIntros "(IST & P)".
     unfold MemI.store. destruct bofs as [b ofs].

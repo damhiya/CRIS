@@ -47,11 +47,11 @@ Section INTERP.
       
   Definition inline_hp_fbody (ms: HMod.t) (kb: (string→bool) * list string * (Any.t -> itree hmodE Any.t)) : (string→bool) * list string * (Any.t -> itree hmodE Any.t)
     :=
-    (mask_all, kb.1.2, inline_hp_fun (prog ms) kb.2).
+    (wmask_all, kb.1.2, inline_hp_fun (prog ms) kb.2).
 
   Definition wrap_sandbox scopes kb : (string→bool) * list string * (Any.t -> itree hmodE Any.t)
     :=
-    (mask_all, scopes, HModTr.sandbox_body kb).
+    (wmask_all, scopes, HModTr.sandbox_body kb).
 
   Definition wrap_elimI ms kb : (string→bool)* list string * (Any.t -> itree hmodE Any.t)
     :=
@@ -261,7 +261,7 @@ Proof using.
 
     ired. unfold HModTr.sandbox_body. destruct p as [[imp0 sc0] bd0]. s.
     match goal with
-    [|- _ _ (_ _ ?itr)] => assert (EX: exists itr', itr = HModTr.sandbox mask_all (HMod.scopes ms) itr'); cycle 1
+    [|- _ _ (_ _ ?itr)] => assert (EX: exists itr', itr = HModTr.sandbox wmask_all (HMod.scopes ms) itr'); cycle 1
     end.
     { des. rewrite EX. gbase. eapply CIH; try refl. }
     

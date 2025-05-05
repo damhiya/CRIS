@@ -228,12 +228,12 @@ Module MemA. Section MemA.
        (MemHdr.cas,   cas_spec)].
 
   Definition fnsems : alist string (_ * list string * fspecbody ):=
-    [(MemHdr.alloc, (mask_all, scopes, mk_specbody alloc_spec  fbody_trivial));
-     (MemHdr.free,  (mask_all, scopes, mk_specbody free_spec   fbody_trivial));
-     (MemHdr.load,  (mask_all, scopes, mk_specbody load_spec   fbody_trivial));
-     (MemHdr.store, (mask_all, scopes, mk_specbody store_spec  fbody_trivial));
-     (MemHdr.cmp,   (mask_all, scopes, mk_specbody cmp_spec    fbody_trivial));
-     (MemHdr.cas,   (mask_all, scopes, mk_specbody cas_spec    fbody_trivial))].
+    [(MemHdr.alloc, (wmask_all, scopes, mk_specbody alloc_spec  fbody_trivial));
+     (MemHdr.free,  (wmask_all, scopes, mk_specbody free_spec   fbody_trivial));
+     (MemHdr.load,  (wmask_all, scopes, mk_specbody load_spec   fbody_trivial));
+     (MemHdr.store, (wmask_all, scopes, mk_specbody store_spec  fbody_trivial));
+     (MemHdr.cmp,   (wmask_all, scopes, mk_specbody cmp_spec    fbody_trivial));
+     (MemHdr.cas,   (wmask_all, scopes, mk_specbody cas_spec    fbody_trivial))].
 
   (* Module definition *)
   Program Definition Mod : SMod.t := {|

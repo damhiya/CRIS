@@ -74,8 +74,9 @@ Proof.
       erewrite Heq0 in Heq. ss.
     }
     grind. rename Heq into FIND.
+    zstep_l. zstep_r.
     
-    gstep. econs. do 5 (econs; eauto using smj_lt_mid_top).
+    zprogress.
     gbase. eapply (CIH w1); eauto; try by inv WLE; zsimpl_len.
 
     i. guardH FLG. des_ifs; des; subst; cycle 1.
@@ -282,7 +283,7 @@ Proof.
     grind. rename Heq into FIND.
     
     zstep_l. zstep_r.
-    gstep. econs. econs; eauto using smj_lt_mid_top.
+    zprogress.
     gbase. eapply CIH.
     { rewrite !length_app. s. rewrite !length_insert. eauto. }
     { rewrite !length_app. s. rewrite !length_insert. nia. }
@@ -324,7 +325,7 @@ Proof.
 
   - rewrite !unfold_iterV. s. rewrite LKS LKT. grind.
     zstep_l. zstep_r.
-    gstep. econs. econs; eauto using smj_lt_mid_top.
+    zprogress.
     assert (DEC : tid < List.length itrs_src \/ tid >= List.length itrs_src) by nia.
     des; cycle 1.
     { rewrite unfold_iterV. s.
@@ -372,10 +373,7 @@ Proof.
     rewrite FUN. grind. unfold triggerUB, ModTr.pure_state. grind.
     do 2 zstep_l.
 
-  - gstep. econs. econs; cycle 1.
-    { instantiate (1:= Some false). ss. }
-    { instantiate (1:= Some false). ss. }
-
+  - zprogress with smj_bot smj_bot _ _.
     gbase. eapply CIH; eauto.
     i. des_ifs; cycle 1; des; subst.
     { eapply SIM; eauto; des_ifs; eauto. }

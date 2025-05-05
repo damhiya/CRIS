@@ -371,10 +371,10 @@ Module SchA. Section SchA.
   .
 
   Definition fnsems υ Sp_user :=
-    [(SchHdr._spawn, (mask_all, scopes, mk_specbody (SchAS._spawn_spec υ Sp_user) (cfunN _spawn)));
-     (SchHdr.spawn, (mask_all, scopes, mk_specbody (SchAS.spawn_spec υ Sp_user) (cfunU spawn)));
-     (SchHdr.yield, (mask_all, scopes, mk_specbody (SchAS.yield_spec υ) (cfunU yield)));
-     (SchHdr.join, (mask_all, scopes, mk_specbody (SchAS.join_spec υ) (cfunU join)))].
+    [(SchHdr._spawn, (wmask_all, scopes, mk_specbody (SchAS._spawn_spec υ Sp_user) (cfunN _spawn)));
+     (SchHdr.spawn, (wmask_all, scopes, mk_specbody (SchAS.spawn_spec υ Sp_user) (cfunU spawn)));
+     (SchHdr.yield, (wmask_all, scopes, mk_specbody (SchAS.yield_spec υ) (cfunU yield)));
+     (SchHdr.join, (wmask_all, scopes, mk_specbody (SchAS.join_spec υ) (cfunU join)))].
 
   Program Definition Mod υ Sp_user : SMod.t := {|
     SMod.scopes := scopes;
@@ -397,7 +397,7 @@ Module SchAPure. Section SchAPure.
   Definition scopes := ["Tid"].
 
   Definition fnsems υ :=
-    [(SchHdr.get_tid, (mask_all, scopes, mk_specbody (SchAS.get_tid_spec υ) fbody_trivial))].
+    [(SchHdr.get_tid, (wmask_all, scopes, mk_specbody (SchAS.get_tid_spec υ) fbody_trivial))].
 
     Program Definition Mod υ : SMod.t := {|
     SMod.scopes := scopes;

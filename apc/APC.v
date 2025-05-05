@@ -87,7 +87,7 @@ Section aux.
 
   Definition pure_specbody scopes sp fsp :=
     (λ arg : Any.t,
-      HModTr.sandbox mask_all scopes
+      HModTr.sandbox wmask_all scopes
         (SModTr.trans_ktree sp
            {| fsb_fspec := fsp; fsb_body := pure_body |} arg)).
 

@@ -17,7 +17,7 @@ Module APCC. Section APCC.
   Proof using. unfold Sp. unseal CRIS. prove_nodup. Qed.
 
   Definition fnsems :=
-    [(APCHdr.apc, (mask_all, scopes, mk_specbody APCA.apc_spec fbody_trivial))].
+    [(APCHdr.apc, (wmask_all, scopes, mk_specbody APCA.apc_spec fbody_trivial))].
 
   Program Definition Mod : SMod.t := {|
     SMod.scopes := scopes;

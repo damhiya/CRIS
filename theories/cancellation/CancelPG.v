@@ -37,11 +37,11 @@ Proof.
   + zstep_l. zstep_r.
     ziter_l. zstep_l.
     ziter_r. zstep_r.
-    gstep. econs; econs; eauto using smj_lt_mid_top.
+    zprogress.
     gbase. eapply CIH; zsimpl_len; try zlookup_insert; et.
     intros ? ? ? ?. do 2 zlookup_insert_ne. eauto.
   + zstep_l. zstep_r. s. grind.
-    gstep. econs; econs; eauto using smj_lt_mid_top.
+    zprogress.
     gbase. eapply CIH; zsimpl_len; try zlookup_insert; et.
     intros ? ? ? ?. do 2 zlookup_insert_ne. eauto.
 Unshelve. all: eauto.

@@ -25,7 +25,7 @@ Module APCA. Section APCA.
   Proof using. unfold Sp. unseal CRIS. prove_nodup. Qed.
 
   Definition fnsems SpPure :=
-    [(APCHdr.apc, (mask_all, scopes, mk_specbody apc_spec (cfunN (apc_body SpPure))))].
+    [(APCHdr.apc, (wmask_all, scopes, mk_specbody apc_spec (cfunN (apc_body SpPure))))].
 
   Program Definition Mod SpPure : SMod.t := {|
     SMod.scopes := scopes;

@@ -537,7 +537,7 @@ Section MODSEM.
   (* Instance Initial_void1 : @Initial (Type -> Type) IFun void1 := @elim_void1. (*** TODO : move to ITreelib ***) *)
 
   Definition to_itree (ge : GEnv.t) : (string*_) -> (string * (_ * list string * (Any.t -> itree pmodE Any.t)))%type :=
-    (fun '(fn, f) => (fn, (mask_all, [], cfunU (eval_imp ge f)))).
+    (fun '(fn, f) => (fn, (wmask_all, [], cfunU (eval_imp ge f)))).
   
   Program Definition get_mod (m : program) (ge : GEnv.t) : PMod.t :=
     {|PMod.scopes := [];

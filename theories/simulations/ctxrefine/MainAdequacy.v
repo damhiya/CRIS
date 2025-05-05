@@ -446,7 +446,7 @@ Proof.
   assert (EQ : (λ x, (map_snd HModTr.sandbox_body x).1) = @fst string _).
   { extensionalities. destruct H. eauto. }
   eapply hsim_ctx; eauto; ss.
-  { instantiate (1:= mask_all).
+  { instantiate (1:= wmask_all).
     i. destruct p as [[msk sc] f]. s. split; et.
     etrans; cycle 1.
     { eapply sub_perm_incl; eauto. }

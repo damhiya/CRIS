@@ -37,8 +37,8 @@ Proof.
 
   destruct (Nat.eq_dec cid tid).
   {
-    subst tid.
-    gstep. econs; econs; eauto using smj_lt_mid_top.
+    subst.
+    zprogress.
     gbase. eapply CIH; zsimpl_len; et; zsimpl_len.
     { zlookup_insert. ired. et. }
     { zlookup_insert. ired. et. }
@@ -60,7 +60,7 @@ Proof.
   hexploit RELS; eauto. i.
   depdes H3. subst.
 
-  gstep. econs; econs; eauto using smj_lt_mid_top.
+  zprogress.
   gbase. eapply CIH; zsimpl_len; et; zsimpl_len.
   { zlookup_insert_ne. ired. et. }
   { zlookup_insert_ne. ired. et. }

@@ -189,12 +189,12 @@ Module MemI. Section MemI.
   .
   
   Definition fnsems : alist string (_ * list string * (Any.t -> itree pmodE Any.t)) :=
-    [(MemHdr.alloc, (mask_all, scopes, cfunU alloc)) ;
-     (MemHdr.free,  (mask_all, scopes, cfunU free)) ;
-     (MemHdr.load,  (mask_all, scopes, cfunU load)) ;
-     (MemHdr.store, (mask_all, scopes, cfunU store)) ;
-     (MemHdr.cmp,   (mask_all, scopes, cfunU cmp)) ;
-     (MemHdr.cas,   (mask_all, scopes, cfunU cas))].
+    [(MemHdr.alloc, (wmask_all, scopes, cfunU alloc)) ;
+     (MemHdr.free,  (wmask_all, scopes, cfunU free)) ;
+     (MemHdr.load,  (wmask_all, scopes, cfunU load)) ;
+     (MemHdr.store, (wmask_all, scopes, cfunU store)) ;
+     (MemHdr.cmp,   (wmask_all, scopes, cfunU cmp)) ;
+     (MemHdr.cas,   (wmask_all, scopes, cfunU cas))].
 
   Program Definition Mem csl genv : PMod.t :=
     {|

@@ -10,7 +10,7 @@ Module CFilter. Section CFilter.
 
   Program Definition filter mask (m: HMod.t) : HMod.t :=
     {|HMod.scopes := m.(HMod.scopes)
-    ; HMod.fnsems := List.map (map_snd (map_fst (map_fst (mask_and mask)))) m.(HMod.fnsems)
+    ; HMod.fnsems := List.map (map_snd (map_fst (map_fst (wmask_and mask)))) m.(HMod.fnsems)
     ; HMod.initial_st := m.(HMod.initial_st)
     |}.
   Next Obligation.
@@ -43,16 +43,16 @@ Module CFilter. Section CFilter.
     - steps_l. force_r. iSplitL "ASM"; et. steps_r. by_coind "CIH"; et.
     - steps_r. force_l. iSplitL "GRT"; et. steps_l. by_coind "CIH"; et.
     - destruct c; s.
-      + destruct (mask_and mask msk fn0) eqn: EQ; cycle 1.
+      + destruct (wmask_and mask msk fn0) eqn: EQ; cycle 1.
         { rewrite SBRed.bind SBRed.call EQ. steps_l. ss. }
         call "IST"; et.
-        { unfold mask_and in EQ. destruct (msk fn0) eqn: EQ'; ss.
+        { unfold wmask_and in EQ. destruct (msk fn0) eqn: EQ'; ss.
           destruct (mask fn0); ss. }
         steps_l. steps_r. by_coind "CIH"; et.
-      + destruct (mask_and mask msk fn0) eqn: EQ; cycle 1.
+      + destruct (wmask_and mask msk fn0) eqn: EQ; cycle 1.
         { rewrite SBRed.bind SBRed.spawn EQ. steps_l. ss. }
         spawn; et.
-        { unfold mask_and in EQ. destruct (msk fn0) eqn: EQ'; ss.
+        { unfold wmask_and in EQ. destruct (msk fn0) eqn: EQ'; ss.
           destruct (mask fn0); ss. }
         steps_l. steps_r. by_coind "CIH"; et.
       + yield "IST"; et. steps_l. steps_r. by_coind "CIH"; et.
@@ -105,7 +105,7 @@ Module CFilter. Section CFilter.
           rewrite EQ' in FIND'. ss.
         }
         call "IST"; et.
-        { unfold mask_and. rewrite EQ EQ'. et. }
+        { unfold wmask_and. rewrite EQ EQ'. et. }
         steps_l. steps_r. by_coind "CIH"; et.
       + destruct (msk fn0) eqn: EQ; cycle 1.
         { rewrite SBRed.bind SBRed.spawn EQ. steps_l. ss. }
@@ -117,7 +117,7 @@ Module CFilter. Section CFilter.
           rewrite EQ' in FIND'. ss.
         }
         spawn; et.
-        { unfold mask_and. rewrite EQ EQ'. et. }
+        { unfold wmask_and. rewrite EQ EQ'. et. }
         steps_l. steps_r. by_coind "CIH"; et.
       + yield "IST"; et. steps_l. steps_r. by_coind "CIH"; et.
     - destruct s.
@@ -137,13 +137,13 @@ Module CFilter. Section CFilter.
       + step. steps_l. steps_r. by_coind "CIH"; et.
   Qed.
 
-  Corollary intro_filter fns (m: HMod.t):
+  Theorem intro_filter fns (m: HMod.t):
     ctx_refines (filter fns m, emp)%I (m, emp)%I.
   Proof.
     eapply main_adequacy, sim_filter_intro.
   Qed.
 
-  Corollary elim_filter (mask:_→bool) (m: HMod.t)
+  Theorem elim_filter (mask:_→bool) (m: HMod.t)
     (SUB: ∀fn, In fn (List.map fst m.(HMod.fnsems)) → mask fn)
     :
     refines (m, emp)%I (filter mask m, emp)%I.
@@ -152,7 +152,7 @@ Module CFilter. Section CFilter.
   Qed.
 
   (*** elimination of a module ***)
-  Lemma elim_module m mc:
+  Theorem elim_module m mc:
     ctx_refines (m, emp)%I (m ★ mc, emp)%I.
   Proof.
     eapply main_adequacy with (Ist := IstProd (IstSB m.(HMod.scopes) IstEq) (IstSB mc.(HMod.scopes) IstTrue)).
@@ -225,11 +225,8 @@ Module CFilter. Section CFilter.
       + step. steps_l. steps_r. by_coind "CIH"; et.
   Qed.
 
-(*  
-  Import ModTac.
-
   (*** introduction of a module ***)
-  Lemma intro_module (mask:_→bool) m mc
+  Theorem intro_module (mask:_→bool) m mc
     (WF: HMod.wf mc)
     (SUB: ∀fn, In fn (List.map fst m.(HMod.fnsems)) → mask fn)
     (FRESH: ∀fn, In fn (List.map fst mc.(HMod.fnsems)) → (~ mask fn) ∧ (fn ≠ Mod.init_fun))
@@ -237,11 +234,12 @@ Module CFilter. Section CFilter.
     :
     refines ((filter mask m) ★ mc, emp)%I (filter mask m, emp)%I .
   Proof.
-    ii. split.
+    ii. hdes.
+    split.
     { depdes WFM. econs; s.
       - rewrite List.map_app. eapply List.NoDup_app; et; try apply WF.
         ii. rewrite List.map_map fst_map_snd in H.
-        eapply SUB in H. eapply FRESH in H0. des. ss.
+        eapply SUB in H. eapply FRESH0 in H0. des. ss.
       - eapply List.NoDup_app; eauto using NoDup_app_disjoint; try apply WF.
     }
 
@@ -259,7 +257,7 @@ Module CFilter. Section CFilter.
     { destruct (alist_find _ (_ (_ mc))) eqn:EQ; ss.
       eapply alist_find_some, (List.in_map fst) in EQ.
       ss. rewrite List.map_map fst_map_snd in EQ.
-      eapply FRESH in EQ. des. ss.
+      eapply FRESH1 in EQ. des. ss.
     }
     unfold unwrapU.
     des_ifs; cycle 1;
@@ -267,119 +265,224 @@ Module CFilter. Section CFilter.
     { exfalso. rewrite Heq0 in Heq. ss. }
     ired. ss.
     des_ifs. rewrite !alist_find_map in Heq1. unfold o_map in Heq1. des_ifs.
-    destruct p0 as [[msk sc] bd].
     unfold HModTr.sandbox_body, HModTr.trans_ktree. s.
+    unfold ModTr.trans, ModTr.interp_callE, ITree.map.
 
-    clear NONE.
-    generalize (bd ()↑) as it.
+    move NONE at top.
+
+    match goal with
+      [|-context [HModTr.trans ?t]] => remember [HModTr.trans t] as ths
+    end.
+    assert(WFTHS:
+      ∀ tid t (IN: ths !! tid = Some t),
+      ∃ ht, t = HModTr.trans (HModTr.sandbox mask m.(HMod.scopes) ht)).
+    { i. subst. destruct tid; ss. inv IN. destruct p0 as [[] ?]. ss.
+      esplits. erewrite sandbox_sandbox; et; try refl.
+      - etrans; [|eapply HMod.well_scoped_fns].
+        unfold fnsems_scopes. erewrite Heq0. refl.
+      - i. eapply andb_prop in H. des. et. }
+    clear Heqths.
+    generalize 0 as cid.
+
+    rename rs into rs0.
+    generalize rs0 at 2 4 as rs.
+
     assert (SCP := m.(HMod.well_scoped_init)). revert SCP.
     generalize (HMod.initial_st m) as st.
     assert (SCPc := mc.(HMod.well_scoped_init)). revert SCPc.
     generalize (HMod.initial_st mc) as stc.
-    revert_until WFM. unfold ModTr.trans, ModTr.interp_callE, ModTr.interp_stateE.
-    ginit. gcofix CIH. i.
 
-    assert (CASE:=case_itrH it). des; subst.
-    - rewrite !unfold_iter_eq. s. grind.
-      rewrite !(bisim_is_eq (map_ret _ _)).
-      steps.
-    - rewrite !unfold_iter_eq. s. grind.
-      rewrite !(bisim_is_eq (map_tau _ _)).
-      gstep. do 8 econs.
-      do 2 econs; eauto using smj_lt_mid_top.
-      gbase; et. 
-    -
-      rewrite !unfold_iter_eq. s. grind.
-      rewrite !(bisim_is_eq (map_tau _ _)).
-      gstep. do 8 econs.
-      do 2 econs; eauto using smj_lt_mid_top.
-      hss. grind. hss. grind.
+    generalize (eq_refl ths) as Heqths.
+    generalize ths at 1 3 as ths0.
+
+    revert_until SRC.
+    ginit. gcofix CIH. i. subst.
+
+    ziter_l. ziter_r.
+    destruct (ths !! cid) eqn: EQ; cycle 1.
+    { unfold triggerUB. do 2 zstep_l. }
+    assert (WFLEN := lookup_lt_Some _ _ _ EQ).
+
+    eapply WFTHS in EQ. des. subst.
+    ides ht.
+    {
+      des_ifs; cycle 1.
+      { unfold triggerUB. do 2 zstep_l. }
+      zstep_l. zstep_r. zstep.
+    }
+    {
+      zstep_l. zstep_r.
+      zprogress.
+      gbase. eapply CIH; et.
+      i. eapply list_lookup_insert_Some in IN. des; subst; et.
+    }
+
+    destruct e; [destruct a | destruct p;
+                              [destruct c|destruct s; [destruct p|destruct c]]].
+    { (* Assume *)
+      zstep_l.
+      ziter_l. zstep_l. zstep_l.
+      ziter_l. zstep_l. zstep_l. 
+      ziter_l. zstep_l.
+      ziter_l. zstep_l.
+
+      zstep_r.
+      ziter_r. zstep_r. exists x. zstep_r.
+      ziter_r. zstep_r. exists x0. zstep_r.
+      ziter_r. zstep_r.
+      ziter_r. zstep_r.
+
+      zprogress.
+      gbase. eapply CIH; et.
+      i. eapply list_lookup_insert_Some in IN. des; subst; et.
+    }
+    { (* Guarantee *)
+      zstep_r.
+      ziter_r. zstep_r. zstep_r.
+      ziter_r. zstep_r. zstep_r. 
+      ziter_r. zstep_r.
+      ziter_r. zstep_r.
       
-      rewrite !unfold_iter_eq. s. grind.
-      try unfold ModTr.pure_state. grind.
-      rewrite !(bisim_is_eq (map_bind _ _ _)).
-      gstep. do 2 econs. i. do 2 econs. esplits.
-      do 2 econs; eauto using smj_lt_mid_top.
-      hss. grind.
-      rewrite !(bisim_is_eq (map_tau _ _)).
-      gstep. do 8 econs.
-      do 2 econs; eauto using smj_lt_mid_top.
-      hss. grind. hss. grind.
+      zstep_l.
+      ziter_l. zstep_l. exists x. zstep_l.
+      ziter_l. zstep_l. exists x0. zstep_l.
+      ziter_l. zstep_l.
+      ziter_l. zstep_l.
 
-      rewrite !unfold_iter_eq. s. grind.
-      try unfold ModTr.pure_state. grind.
-      rewrite !(bisim_is_eq (map_bind _ _ _)).
-      gstep. do 2 econs. i. do 2 econs. esplits.
-      do 2 econs; eauto using smj_lt_mid_top.
-      hss. grind.
-      rewrite !(bisim_is_eq (map_tau _ _)).
-      gstep. do 8 econs.
-      do 2 econs; eauto using smj_lt_mid_top.
-      hss. grind. hss. grind.
+      zprogress.
+      gbase. eapply CIH; et.
+      i. eapply list_lookup_insert_Some in IN. des; subst; et.
+    }
+    { (* Call *)
+      s. destruct (mask fn) eqn: Hmask; cycle 1.
+      { zstep_l. }
+      s. unfold unwrapU at 1. des_ifs; cycle 1.
+      { unfold triggerUB. do 2 zstep_l. }
+      s. unfold unwrapU at 1. des_ifs; cycle 1.
+      { exfalso. rewrite !List.map_app alist_find_app_o Heq1 in Heq.
+        eapply alist_find_some, (in_map fst) in Heq.
+        rewrite List.map_map fst_map_snd in Heq. ss.
+        eapply FRESH0; et.
+      }
+      zstep_l. zstep_r.
 
-      rewrite !unfold_iter_eq. s. grind.
-      try unfold ModTr.pure_state. grind.
-      rewrite !(bisim_is_eq (map_tau _ _)).
-      gstep. do 8 econs.
-      do 2 econs; eauto using smj_lt_mid_top.
-      hss. grind. hss. grind.
+      rewrite !List.map_app alist_find_app_o Heq1 in Heq. depdes Heq.
 
-      rewrite !unfold_iter_eq. s. grind.
-      try unfold ModTr.pure_state. grind.
-      rewrite !(bisim_is_eq (map_tau _ _)).
-      gstep. do 8 econs.
-      do 2 econs; eauto using smj_lt_mid_top.
-      hss. grind. hss. grind.
+      zprogress.
+      gbase. eapply CIH; et.
+
+      i. eapply list_lookup_insert_Some in IN. des; subst; et.
+
+      rewrite alist_find_map_snd /o_map in Heq1. des_ifs.
+      rewrite alist_find_map_snd /o_map in Heq. des_ifs.
+      destruct p1 as [[msk1 sc1] bd1]. s.
+
+      esplits.
+      erewrite SBRed.bind, HRed.bind, sandbox_sandbox.
+      f_equal. extensionalities.
+      erewrite SBRed.tau, HRed.tau.
+      do 2 f_equal. ired. erewrite sandbox_sandbox. refl.
+      - refl.
+      - et.
+      - s. etrans; [|eapply HMod.well_scoped_fns].
+        unfold fnsems_scopes. erewrite Heq1. refl.
+      - s. i. eapply andb_prop in H. des; et.
+    }
+    { (* Spawn *)
+      s. destruct (mask fn) eqn: Hmask; cycle 1.
+      { zstep_l. }
+      s. unfold unwrapU at 1. des_ifs; cycle 1.
+      { unfold triggerUB. do 2 zstep_l. }
+      s. unfold unwrapU at 1. des_ifs; cycle 1.
+      { exfalso. rewrite !List.map_app alist_find_app_o Heq1 in Heq.
+        eapply alist_find_some, (in_map fst) in Heq.
+        rewrite List.map_map fst_map_snd in Heq. ss.
+        eapply FRESH0; et.
+      }
+      zstep_l. zstep_r.
+
+      rewrite !List.map_app alist_find_app_o Heq1 in Heq. depdes Heq.
+
+      zprogress.
+      gbase. eapply CIH; et.
+
+      i. eapply lookup_snoc_Some in IN. des.
+      { eapply list_lookup_insert_Some in IN0. des; subst; et. }
       
-      rewrite !unfold_iter_eq. s. grind.
-      try unfold ModTr.pure_state. grind.
-      rewrite !(bisim_is_eq (map_tau _ _)).
-      gstep. do 8 econs.
-      do 2 econs; eauto using smj_lt_mid_top.
-      hss. grind. hss. grind.
+      subst. rewrite !alist_find_map /o_map in Heq1. des_ifs.
+      destruct p1 as [[msk1 sc1] bd1]. s.
+      esplits. unfold HModTr.sandbox_body, HModTr.trans_ktree. s.
+      erewrite <-sandbox_sandbox. refl.
+      - etrans; [|eapply HMod.well_scoped_fns].
+        unfold fnsems_scopes. erewrite Heq1. refl.
+      - i. apply andb_prop in H. des; et.
+    }
+    { (* Yield *)
+      zstep_l. zstep_r.
+      zprogress.
+      gbase. eapply CIH; et.
+      i. eapply list_lookup_insert_Some in IN. des; subst; et.
+    }
+    { (* Put *)
+      destruct k0 as [key var]. s.
+      destruct (existsb (String.eqb key) (HMod.scopes m)) eqn: Heq; cycle 1.
+      { zstep_l. }
+      zstep_l. zstep_r.
+      ziter_l. zstep_l.
+      ziter_r. zstep_r.
+      rewrite !HModTr.alist_encode_decode.
+      rewrite alist_upd_not_tail; cycle 1.
+      { eapply existsb_exists in Heq. des. eapply String.eqb_eq in Heq1; subst.
+        ii. eapply NoDup_app_disjoint; et.
+        eapply SCPc. eapply (List.in_map fst) in H. ss.
+        rewrite List.map_map in H. et.
+      }
 
-      gbase. move CIH at bottom.
-      
-
-      
-      rewrite !unfold_iter_eq. s. grind.
-      try unfold ModTr.pure_state. grind.
-      rewrite !(bisim_is_eq (map_bind _ _ _)).
-      hss.
-
-
-      
-      gstep. do 2 econs. i. do 2 econs. esplits.
-      do 2 econs; eauto using smj_lt_mid_top.
-
-      do 2 econs.
-      hss. grind.
-      rewrite !(bisim_is_eq (map_tau _ _)).
-      gstep. do 10 econs.
-      hss. grind. hss. grind.
-      
-
-
-      rewrite (map_vis _ _ _).
-
-      
-
-      
-
-      rewrite SBRed.bind SBRed.ag HRed.bind HRed.Assume.
-      unfold HModTr.handle_Assume.
-      
-      
-
-      !unfold_iter_eq. s. ired.
-      
-
-
-      HRed.tau !unfold_iter_eq. s. ired.
-
-    eapply alist_find_some, (in_map fst) in Heq1.
-    
-  Qed.
-*)
+      zprogress.
+      gbase. eapply CIH; et.
+      - i. eapply list_lookup_insert_Some in IN. des; subst; et.
+      - unfold state_scopes. ii.
+        rewrite -List.map_map alist_upd_keys List.map_map in H. et.
+    }
+    { (* Get *)
+      destruct k0 as [key var]. s.
+      destruct (existsb (String.eqb key) (HMod.scopes m)) eqn: Heq; cycle 1.
+      { zstep_l. }
+      zstep_l. zstep_r. s. ired.   
+      rewrite !HModTr.alist_encode_decode.
+      rewrite alist_find_app_o (alist_find_fst_notin _ stc); cycle 1.
+      { eapply existsb_exists in Heq. des. eapply String.eqb_eq in Heq1; subst.
+        ii. eapply (List.in_map fst) in H. ss.
+        rewrite List.map_map in H. eapply SCPc in H.
+        eapply NoDup_app_disjoint; et.
+      }
+      zprogress.
+      gbase. eapply CIH; et.
+      - i. eapply list_lookup_insert_Some in IN. des; subst; et.
+      - do 5 f_equal. des_ifs.
+    }
+    { (* Choose *)
+      zstep_r. zstep_r.
+      zstep_l. exists x. zstep_l.
+      zprogress.
+      gbase. eapply CIH; et.
+      i. eapply list_lookup_insert_Some in IN. des; subst; et.
+    }
+    { (* Take *)
+      zstep_l. zstep_l.
+      zstep_r. exists x. zstep_r.
+      zprogress.
+      gbase. eapply CIH; et.
+      i. eapply list_lookup_insert_Some in IN. des; subst; et.
+    }
+    { (* IO *)
+      zstep. subst.
+      zstep_l. zstep_r.
+      zprogress.
+      gbase. eapply CIH; et.
+      i. eapply list_lookup_insert_Some in IN. des; subst; et.
+    }
+Unshelve. all: exact smj_top.
+Qed.
   
 End CFilter. End CFilter.

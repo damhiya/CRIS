@@ -36,16 +36,16 @@ Proof.
   depdes e.
   + zstep_r. zstep_r.
     zstep_l. exists x. zstep_l.
-    gstep. econs; econs; eauto using smj_lt_mid_top.
+    zprogress.
     gbase. eapply CIH; zsimpl_len; try zlookup_insert; et.
     intros ? ? ? ?. do 2 zlookup_insert_ne. eauto.
   + zstep_l. zstep_l.
     zstep_r. exists x. zstep_r.
-    gstep. econs; econs; eauto using smj_lt_mid_top.
+    zprogress.
     gbase. eapply CIH; zsimpl_len; try zlookup_insert; et.
     intros ? ? ? ?. do 2 zlookup_insert_ne. eauto.
   + zstep. zstep_l. zstep_r. subst.
-    gstep. econs; econs; eauto using smj_lt_mid_top.
+    zprogress.
     gbase. eapply CIH; zsimpl_len; try zlookup_insert; et.
     intros ? ? ? ?. do 2 zlookup_insert_ne. eauto.
 Unshelve. all: eauto.
