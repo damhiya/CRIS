@@ -8,14 +8,16 @@ Section HelpingOff.
   Context `{Σ: GRA}.
 
   Variable mn: string.
+  Variable jobID : Type.
+  Variable jobcode : jobID -> itree Helping.pureE unit.
   
   Definition scopes := [mn].
 
   Definition run: Any.t -> itree hmodE Any.t :=
     fun arg =>
-      '(f,a): (string*SAny.t) <- arg↓?;;
+      'jid: jobID <- arg↓?;;
       𝒴;;;
-      trigger (Call f a↑);;;
+      Helping.trans (jobcode jid);;;
       Ret ()↑.
 
   Definition help: Any.t -> itree hmodE Any.t :=
@@ -24,8 +26,8 @@ Section HelpingOff.
       Ret ()↑.
       
   Definition fnsems :=
-    [(Helping.run mn,  (scopes, mk_specbody fspec_trivial run));
-     (Helping.help mn, (scopes, mk_specbody fspec_trivial help))].
+    [(Helping.run mn,  (wmask_all, scopes, mk_specbody fspec_trivial run));
+     (Helping.help mn, (wmask_all, scopes, mk_specbody fspec_trivial help))].
 
   Program Definition Mod: SMod.t := {|
     SMod.scopes := scopes;

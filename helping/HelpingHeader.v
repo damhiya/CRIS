@@ -10,10 +10,18 @@ Section Helping.
   Definition run  := mn +:+ ".run".
   Definition help  := mn +:+ ".help".
 
+  Context `{Σ: GRA}.
+  
+  Definition pureE := agE +' coreE.
+
+  Definition trans {R} (itr: itree pureE R) : itree hmodE R
+    :=
+    translate (case_ (bif:=sum1) subevent subevent) itr.
+
+  Definition exports := [run; help].
+  
 End Helping.
 End Helping.
-
-
 
 
 (* Section RA. *)

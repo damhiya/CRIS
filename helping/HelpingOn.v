@@ -7,17 +7,9 @@ Module HelpingOn.
 Section HelpingOn.
   Context `{Σ: GRA}.
 
-  Definition pureE := agE +' coreE.
-
-  Definition trans {R} (itr: itree pureE R) : itree hmodE R
-    :=
-    interp (case_ (bif:=sum1) trivial_Handler
-                              trivial_Handler)
-      itr.  
-  
   Variable mn: string.
   Variable jobID : Type.
-  Variable jobcode : jobID -> itree pureE unit.
+  Variable jobcode : jobID -> itree Helping.pureE unit.
 
   Definition joblist : Type := list (nat * jobID).
   
@@ -30,7 +22,7 @@ Section HelpingOn.
     | None => Ret ()↑
     | Some jid =>
         cput v_reqs (alist_remove tid reqs : joblist);;;
-        trans (jobcode jid);;;
+        Helping.trans (jobcode jid);;;
         Ret ()↑
     end.
 
@@ -50,8 +42,8 @@ Section HelpingOn.
       try_run tid.
       
   Definition fnsems :=
-    [(Helping.run mn,  (scopes, mk_specbody fspec_trivial run));
-     (Helping.help mn, (scopes, mk_specbody fspec_trivial help))].
+    [(Helping.run mn,  (wmask_all, scopes, mk_specbody fspec_trivial run));
+     (Helping.help mn, (wmask_all, scopes, mk_specbody fspec_trivial help))].
 
   Program Definition Mod: SMod.t := {|
     SMod.scopes := scopes;
