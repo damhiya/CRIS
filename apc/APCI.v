@@ -8,11 +8,8 @@ Module APCI. Section APCI.
 
   Definition scopes := ["APC"].
 
-  Definition trivial_body : Any.t → itree pmodE Any.t :=
-    λ _, trigger (Choose _).
-
   Definition fnsems :=
-    [(APCHdr.apc, (wmask_all, scopes, trivial_body))].
+    [(APCHdr.apc, (wmask_all, scopes, @fbody_trivial pmodE _))].
   
   Program Definition Mod : PMod.t := {|
     PMod.scopes := scopes;
