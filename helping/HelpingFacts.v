@@ -72,8 +72,8 @@ Section Helping.
                 (DISJ: ∀ fn, In fn (Helping.exports mn) → In fn imp → False)
                 (SUB: wmask_sub (wmask_list imp) msk),
         ctx_refines
-          ((mM mn ★                 (HelpingOn.t mn jobs sp) ★ (SchAPure.t u sp_s)) ★ CFilter.filter msk (SchA.t u sp_s sp_u), P1)
-          ((CFilter.filter msk mI ★ (HelpingOn.t mn jobs sp) ★ (SchAPure.t u sp_s)) ★ CFilter.filter msk (SchA.t u sp_s sp_u), emp%I))
+          (mM mn ★                 (HelpingOn.t mn jobs sp) ★ (SchAPure.t u sp_s) ★ CFilter.filter msk (SchA.t u sp_s sp_u), P1)
+          (CFilter.filter msk mI ★ (HelpingOn.t mn jobs sp) ★ (SchAPure.t u sp_s) ★ CFilter.filter msk (SchA.t u sp_s sp_u), emp%I))
     (CANCEL: ∀ mn msk
                 (DISJ: ∀ fn, In fn (Helping.exports mn) → In fn imp → False)
                 (SUB: wmask_sub (wmask_list imp) msk),
@@ -164,52 +164,57 @@ Section Helping.
     etrans; cycle 1.
     {
       eapply ctxr_refines.
-      do 4 ctxr_rotate.
-      ctxr_swap.
-      do 2 ctxr_rotate.
-      ctxr_apply do 1 eapply sch_pure_elim_filter.
-      do 2 ctxr_rotate.
-      ctxr_drop.
-      etrans; [eapply MAIN|]; et.
-      ctxr_refl.
+      do 2 ctxr_rotate. do 4 ctxr_drop.
+      eapply sch_pure_elim_filter.
+    }
+
+    etrans; cycle 1.
+    {
+      eapply ctxr_refines.
+      ctxr_rotate. ctxr_drop. ctxr_swap.
+      eapply MAIN; et.
     }
 
     etrans; cycle 1.
     {
       eapply ctxr_refines.
       do 2 ctxr_drop.
-      etrans; [eapply helping_onoff_correct|]; et.
-      ctxr_refl.
+      eapply helping_onoff_correct; et.
     }
 
     etrans; cycle 1.
     {
       eapply ctxr_refines.
       ctxr_drop.
-      etrans; [eapply CANCEL|]; et.
-      ctxr_refl.
+      eapply CANCEL; et.
     }
 
     etrans; cycle 1.
     {
       eapply ctxr_refines.
-      ctxr_rotate. ctxr_apply do 1 eapply CFilter.intro_filter.
-      ctxr_rotate. ctxr_apply do 1 eapply CFilter.intro_filter.
-      do 3 ctxr_rotate.
-      ctxr_refl.
+      do 2 ctxr_rotate. do 3 ctxr_drop. eapply CFilter.intro_filter.
     }
 
-    erewrite <-!CFilter.filter_app.    
-    etrans; [|etrans; [eapply CFilter.elim_filter|]]; cycle 2.
-    - ctxr_refl.
-    - eapply ctxr_refines.
-      ctxr_norm.
-      eapply ctxr_cond_strengthen.
-      iIntros "[[P1 P2] P]". iFrame.
-    - i. unfold mask, wmask_list. eapply existsb_exists.
+    etrans; cycle 1.
+    {
+      eapply ctxr_refines.
+      ctxr_rotate. do 3 ctxr_drop. eapply CFilter.intro_filter.
+    }
+
+    etrans; cycle 1.
+    { eapply ctxr_refines. do 2 ctxr_rotate. ctxr_refl. }
+    
+    erewrite <-!CFilter.filter_app.
+    etrans; [|eapply CFilter.elim_filter]; cycle 1.
+    { i. unfold mask, wmask_list. eapply existsb_exists.
       esplits; [|eapply String.eqb_eq]; et.
       eapply in_or_app; right.
       eapply in_or_app; et.
+    }
+
+    eapply ctxr_refines.
+    eapply ctxr_cond_strengthen.
+    iIntros "[[P1 P2] P]". iFrame.
   Qed.
 
 End Helping.  
