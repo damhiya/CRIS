@@ -1634,3 +1634,12 @@ Proof.
   - unfold strings_maxlen in LONG. ss. nia.
   - eapply IHl; et. unfold strings_maxlen in *. ss. nia.
 Qed.
+
+Lemma string_ex_not_in (l: list string):
+  exists s, ~ In s l.
+Proof.
+  exists (string_repeat "H" (1 + strings_maxlen l)).
+  ii. eapply strings_maxlen_notin; cycle 1.
+  - eapply existsb_exists. esplits; [apply H|apply String.eqb_refl].
+  - rewrite string_repeat_length. s. nia.
+Qed.

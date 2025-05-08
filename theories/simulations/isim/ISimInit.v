@@ -193,15 +193,6 @@ Unshelve. all : eauto.
 { eapply alist_upd_nodup. eauto. }
 Qed.
 
-Lemma string_ex_not_in (l: list string):
-  ∃ s, ¬ In s l.
-Proof.
-  exists (string_repeat "H" (1 + strings_maxlen l)).
-  ii. eapply strings_maxlen_notin; cycle 1.
-  - eapply existsb_exists. esplits; [apply H|apply String.eqb_refl].
-  - rewrite string_repeat_length. s. nia.
-Qed.
-
 Lemma hmod_sim_reflL `{Σ : GRA} A B C init_cond scopes Ist contextual (EqL : _ → _ → _ → iProp Σ)
   (SCOPES: scopes = HMod.scopes B)
   (EQGET : ∀ nths st_src st_tgt, EqL nths st_src st_tgt -∗ ⌜st_src = st_tgt⌝)
