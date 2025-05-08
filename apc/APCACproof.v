@@ -1,5 +1,4 @@
 Require Import CRIS.
-Require Import NormITree.
 Require Import APCHeader APC APCA APCC.
 
 Set Implicit Arguments.
@@ -41,15 +40,12 @@ Module APCAC. Section APCAC.
     unfold APC at 1. steps_r.
 
     (* add meaningless return in src *)
-    set (itr:=(ITree.bind _ _)).
-    eapply wsim_congruence_src.
-    { instantiate (1:=Ret ();;; itr). rewrite bind_ret_l. refl. }
+    add_ret_l ().
 
     iApply wsim_bind. iSplitL; cycle 1.
     { iIntros (? ? ? ? ?) "R".
       instantiate (1:=(λ nths '(st_src, _) '(st_tgt, _), IstFull nths st_src st_tgt)%I).
-      subst itr. steps_r. force_l. steps_l. forces_l. iSplitR; et. step. iSplit; et. }
-    clear itr.
+      steps_r. force_l. steps_l. forces_l. iSplitR; et. step. iSplit; et. }
 
     (* well founded induction on depth ordinal *)
     iApply wsim_reset. iStopProof. 
@@ -100,15 +96,13 @@ Module APCAC. Section APCAC.
     unfold APC at 1.
     
     (* add meaningless return in src *)
-    set (itr:=(λ _: unit, _)). steps_r.
-    eapply wsim_congruence_src.
-    { instantiate (1:=Ret ();;; Ret ()). grind. }
+    add_ret_l ().
 
     iApply wsim_bind. iSplitL; cycle 1.
     { iIntros (? ? ? ? ?) "R". instantiate (1:=(λ nths '(st_src, _) '(st_tgt, _), IstFull nths st_src st_tgt)%I).
-      subst itr. steps_r. forces_r. iSplitL "GRT"; et.
+      steps_r. forces_r. iSplitL "GRT"; et.
       steps_r. forces_r. iSplitL "GRT"; et. steps_r. iApply wsim_reset. iStopProof. eapply H0; et. }
-    clear itr. iApply wsim_reset. iStopProof. eapply H; et.
+    steps_r. iApply wsim_reset. iStopProof. eapply H; et.
     Unshelve. all: ss.
   (*SLOW*)Qed.
 
