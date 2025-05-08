@@ -1590,9 +1590,47 @@ Proof. induction EQ; ss. des; subst. refl. Qed.
 
 Global Open Scope nat_scope.
 
+(* Lemmas about string *)
+
 Lemma string_length_app (s1 s2: string):
   String.length (String.append s1 s2) = String.length s1 + String.length s2.
 Proof.
   revert s2. induction s1; i; ss.
   fold append. rewrite IHs1. et.
+Qed.
+  
+Definition strings_maxlen (l: list string) : nat :=
+  list_max (List.map String.length l).
+
+Fixpoint string_repeat (s: string) (n: nat) : string :=
+  match n with
+  | 0 => ""
+  | S n' => String.append s (string_repeat s n')
+  end.
+
+Lemma string_repeat_length s n:
+  String.length (string_repeat s n) = n * String.length s.
+Proof.
+  induction n; ss.
+  rewrite string_length_app. rewrite IHn. et.
+Qed.
+
+Lemma strings_maxlen_app l1 l2:
+  strings_maxlen (l1++l2) = max (strings_maxlen l1) (strings_maxlen l2).
+Proof.
+  revert l2. induction l1; et.
+  i. s. unfold strings_maxlen in *. ss.
+  rewrite IHl1. nia.
+Qed.
+
+Lemma strings_maxlen_notin s l
+  (LONG: String.length s > strings_maxlen l)
+  :
+  ~ existsb (String.eqb s) l.
+Proof.
+  ii. eapply existsb_exists in H. des. eapply String.eqb_eq in H0; subst.
+  revert_until l. induction l; i; ss.
+  des; subst.
+  - unfold strings_maxlen in LONG. ss. nia.
+  - eapply IHl; et. unfold strings_maxlen in *. ss. nia.
 Qed.

@@ -34,7 +34,7 @@ Module CFilter. Section CFilter.
 
   Lemma sim_filter_intro mask (m: HMod.t):
     HSim.t open (filter mask m) m emp%I IstEq.
-  Proof.
+  Proof using.
     econs; s; et; try rewrite List.map_map fst_map_snd; try refl.
     ii. unfold filter in FIND. ss.
     rewrite alist_find_map_snd in FIND. unfold o_map in FIND.
@@ -81,13 +81,13 @@ Module CFilter. Section CFilter.
       + steps_r. force_l q. steps_l. by_coind "CIH"; et.
       + steps_l. force_r q. steps_r. by_coind "CIH"; et.
       + step. steps_l. steps_r. by_coind "CIH"; et.
-  Qed.
+  (*SLOW*)Qed.
   
   Lemma sim_filter_elim (mask:_→bool) (m: HMod.t)
     (SUB: ∀fn, In fn (List.map fst m.(HMod.fnsems)) → mask fn)
     :
     HSim.t closed m (filter mask m) emp%I IstEq.
-  Proof.
+  Proof using.
     econs; s; et; try rewrite List.map_map fst_map_snd; try refl.
     ii. unfold filter. s.
     rewrite alist_find_map_snd. unfold o_map. rewrite FIND.
@@ -145,7 +145,7 @@ Module CFilter. Section CFilter.
       + steps_r. force_l q. steps_l. by_coind "CIH"; et.
       + steps_l. force_r q. steps_r. by_coind "CIH"; et.
       + step. steps_l. steps_r. by_coind "CIH"; et.
-  Qed.
+  (*SLOW*)Qed.
 
   Theorem intro_filter fns (m: HMod.t) P:
     ctx_refines (filter fns m, P)%I (m, P)%I.
@@ -164,80 +164,14 @@ Module CFilter. Section CFilter.
   Qed.
 
   (*** elimination of a module ***)
-  Theorem elim_module m mc P:
-    ctx_refines (m, P)%I (m ★ mc, P)%I.
-  Proof.
-    rewrite -!(hmod_addc_empty_r _ P).
-    eapply ctxr_cond_frameL.
-    eapply main_adequacy with (Ist := IstProd (IstSB m.(HMod.scopes) IstEq) (IstSB mc.(HMod.scopes) IstTrue)).
-    init_sim; s; eauto.
-    { iIntros "_". unfold IstProd, IstSB, IstEq, IstTrue, state_scopes.
-      iPureIntro. esplits; eauto using List.app_nil_r, HMod.well_scoped_init.
-      ii. ss.
-    }
-    { eauto using sub_perm_remove_tail. }
-    { rewrite List.map_app. eauto using sub_perm_remove_tail. }
-
-    econs. s. erewrite alist_find_app; et. esplits; et.
-    destruct fs as [sc bd].
-    r. r. i. subst y. unfold HModTr.sandbox_body. s.
-    generalize (bd x) as itr. clear x NODS NODD.
-    combine_quant st_src; combine_quant st_tgt; combine_quant nths.
-    eapply isim_coind.
-    iIntros (g' [nths [st_tgt [st_ssrc itr]]] MON) "[#IST #CIH]". s.
-
-    assert (CASE:= case_itrH itr). des; subst; s.
-    - step; et.
-    - steps_l. steps_r. by_coind "CIH"; et.
-    - steps_l. force_r. iSplitL "ASM"; et. steps_r. by_coind "CIH"; et.
-    - steps_r. force_l. iSplitL "GRT"; et. steps_l. by_coind "CIH"; et.
-    - destruct c; s; steps_l; steps_r.
-      + destruct (sc.1 fn0) eqn: EQ; cycle 1.
-        { rewrite SBRed.call EQ. step_l. ss. }
-        call "IST". steps_l. steps_r. by_coind "CIH"; et.
-      + destruct (sc.1 fn0) eqn: EQ; cycle 1.
-        { rewrite SBRed.spawn EQ. step_l. ss. }
-        spawn; et. steps_l. steps_r. by_coind "CIH"; et.
-      + yield "IST"; et. steps_l. steps_r. by_coind "CIH"; et.
-    - destruct s; s.
-      + rewrite SBRed.bind SBRed.put. des_ifs; cycle 1.
-        { steps_l. ss. }
-        iApply isim_sput_src. iApply isim_sput_tgt. by_coind "CIH"; et.
-        iDestruct "IST" as "%". des; subst. iPureIntro.
-        eapply existsb_exists in Heq. des. apply String.eqb_eq in Heq0. subst.
-        esplits; try rewrite alist_upd_not_tail; et; 
-          try rewrite state_scopes_update; et.
-        { ii. eapply NoDup_app_disjoint; try apply WFT.
-          - eapply HMod.well_scoped_fns. unfold fnsems_scopes. erewrite FIND. eauto.
-          - eapply H1. eapply in_map in H. rewrite List.map_map in H. et.
-        }
-        { ii. eapply NoDup_app_disjoint; try apply WFT.
-          - eapply HMod.well_scoped_fns. unfold fnsems_scopes. erewrite FIND. eauto.
-          - eapply H3. eapply in_map in H. rewrite List.map_map in H. et.
-        }
-      + rewrite SBRed.bind SBRed.get. des_ifs; cycle 1.
-        { steps_l. ss. }
-        iApply isim_sget_src. iApply isim_sget_tgt.
-        iDestruct "IST" as "%". des; subst.
-        eapply existsb_exists in Heq. des. apply String.eqb_eq in Heq0. subst.
-        rewrite !alist_find_app_o.
-        rewrite (alist_find_fst_notin _ x1); cycle 1.
-        { ii. eapply NoDup_app_disjoint; try apply WFT.
-          - eapply HMod.well_scoped_fns. unfold fnsems_scopes. erewrite FIND. eauto.
-          - eapply H1. eapply in_map in H. rewrite List.map_map in H. et.
-        }
-        rewrite (alist_find_fst_notin _ x2); cycle 1.
-        { ii. eapply NoDup_app_disjoint; try apply WFT.
-          - eapply HMod.well_scoped_fns. unfold fnsems_scopes. erewrite FIND. eauto.
-          - eapply H3. eapply in_map in H. rewrite List.map_map in H. et.
-        }
-        by_coind "CIH"; et.
-        iPureIntro. esplits; eauto.
-    - destruct e.
-      + steps_r. force_l q. steps_l. by_coind "CIH"; et.
-      + steps_l. force_r q. steps_r. by_coind "CIH"; et.
-      + step. steps_l. steps_r. by_coind "CIH"; et.
-  Qed.
+  Theorem elim_module mc P:
+    ctx_refines (⌽, P) (mc, P).
+  Proof using.
+    do 2 rewrite -(hmod_addc_empty_l _ P).
+    eapply ctxr_cond_frameR.
+    eapply main_adequacy with (Ist := fun _ _ _ => emp%I).
+    init_sim; et.
+  (*SLOW*)Qed.
 
   (*** introduction of a module ***)
   Theorem intro_module (mask:_→bool) m mc P
@@ -247,7 +181,7 @@ Module CFilter. Section CFilter.
     (DISJ: List.NoDup (m.(HMod.scopes) ++ mc.(HMod.scopes)))
     :
     refines ((filter mask m) ★ mc, P)%I (filter mask m, P)%I .
-  Proof.
+  Proof using.
     ii. hdes.
     split.
     { depdes WFM. econs; s.
@@ -497,6 +431,6 @@ Module CFilter. Section CFilter.
       i. eapply list_lookup_insert_Some in IN. des; subst; et.
     }
   Unshelve. all: exact smj_top.
-  Qed.
+  (*SLOW*)Qed.
 
 End CFilter. End CFilter.

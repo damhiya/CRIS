@@ -1,8 +1,8 @@
 Require Import CRIS.
+From iris Require Import frac_auth.
 
 Require Import SchHeader.
-
-From iris Require Import frac_auth.
+Require Import CallFilter.
 
 Set Implicit Arguments.
 
@@ -413,6 +413,22 @@ Module SchAPure. Section SchAPure.
   Definition t υ Sp_global :=
     Seal.sealing CRIS (SMod.to_hmod Sp_global (Mod υ)).
 
+  (* Lemmas *)
+
+  Lemma elim_filter msk u sp_s:
+    ctx_refines
+      (t u sp_s, emp%I)
+      (CFilter.filter msk (t u sp_s), emp%I).
+  Proof.
+    eapply main_adequacy with (Ist := fun _ _ _ => emp%I).
+    init_sim; et.
+    init_simF u u.
+
+    steps_l. forces_r. iSplitL "ASM"; et.
+    steps_r. forces_l. iSplitL "GRT"; et.
+    step; et.
+  Qed.
+  
 End SchAPure. End SchAPure.
 
 Section FSPEC.
