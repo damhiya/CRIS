@@ -20,8 +20,8 @@ Section FSPEC.
 
   Definition fspec_trivial : fspec :=
     mk_fspec (meta:=unit)
-             (λ _ argh argl, (⌜argh = argl⌝)%I)
-             (λ _ reth retl, (⌜reth = retl⌝)%I).
+             (λ _ varg arg, (⌜varg = arg⌝)%I)
+             (λ _ vret ret, (⌜vret = ret⌝)%I).
 
   Definition fbody_trivial {E} `{coreE -< E} : Any.t → itree E Any.t :=
     λ _, trigger (Choose _).
@@ -40,8 +40,8 @@ Section FSPEC.
       (λ x vret ret, (∃ vr: VR, ⌜vret = vr↑⌝ ∗ postcond x vr ret)%I).
 
   Definition fspec_simple {X : Type} (DPQ: X → (Any.t → iProp Σ) * (Any.t → iProp Σ)) : fspec :=
-    mk_fspec (λ x y a, (((fst ∘ DPQ) x a) ∗ ⌜y = a⌝)%I)
-             (λ x z a, (((snd ∘ DPQ) x a) ∗ ⌜z = a⌝)%I).
+    mk_fspec (λ x varg arg, (((fst ∘ DPQ) x arg) ∗ ⌜varg = arg⌝)%I)
+             (λ x vret ret, (((snd ∘ DPQ) x ret) ∗ ⌜vret = ret⌝)%I).
 
   Definition fspec_false : fspec := {|
     meta := Empty_set;

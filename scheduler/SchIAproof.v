@@ -220,8 +220,8 @@ Section SchIA.
     specialize (H0 my_tid). des.
 
     (* Choose the metavariables *)
-    force_l x_tgt. steps_l. force_l (fargs↑). steps_l.
-    iAssert (wsim_ginv u_a ⊤ ==∗ precond userfspec x_tgt fvargs↑ fargs↑)%I with "[pre tid]" as "PRE".
+    force_l x1. steps_l. force_l (fargs↑). steps_l.
+    iAssert (wsim_ginv u_a ⊤ ==∗ precond userfspec x1 fvargs↑ fargs↑)%I with "[pre tid]" as "PRE".
     { iIntros "I". iApply PRE. rewrite /fspec_virtual /wsim_fspec /precond /=.
       iFrame. eauto. }
 

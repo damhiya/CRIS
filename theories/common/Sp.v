@@ -55,26 +55,31 @@ Section HEADER.
 
   Context `{Σ: GRA}.
   
-  Definition fspec_weaker (fsp_src fsp_tgt: fspec): Prop :=
-    forall x_src,
-    exists x_tgt,
-      (<<PRE: forall arg_src arg_tgt,
-          (fsp_src.(precond) x_src arg_src arg_tgt) ==∗ (fsp_tgt.(precond) x_tgt arg_src arg_tgt)>>) ∧
-      (<<POST: forall ret_src ret_tgt,
-          (fsp_tgt.(postcond) x_tgt ret_src ret_tgt) ==∗ (fsp_src.(postcond) x_src ret_src ret_tgt)>>)
+  (** fspec_weaker fsp0 fsp1 means that [fsp0] is weaker spec than [fsp1]
+      For the notion of a weaker spec, consider the consequence rule of Hoare triple:
+        if P0 ⊢ P1 and Q1 ⊢ Q0 and { P1 } e { Q1 }
+        then { P0 } e { Q0 }
+      Therefore (P0, Q0) is weaker than (P1, Q1) if P0 ⊢ P1 and Q1 ⊢ Q0 *)
+  Definition fspec_weaker (fsp0 fsp1: fspec): Prop :=
+    forall x0,
+    exists x1,
+      (<<PRE: forall varg arg,
+          (fsp0.(precond) x0 varg arg) ==∗ (fsp1.(precond) x1 varg arg)>>) ∧
+      (<<POST: forall vret ret,
+          (fsp1.(postcond) x1 vret ret) ==∗ (fsp0.(postcond) x0 vret ret)>>)
   .
 
   Global Program Instance fspec_weaker_PreOrder : PreOrder fspec_weaker.
   Next Obligation.
   Proof using.
-    ii. exists x_src. esplits; ii.
+    ii. exists x0. esplits; ii.
     { iStartProof. iIntros "H". iApply "H". }
     { iStartProof. iIntros "H". iApply "H". }
   Qed.
   Next Obligation.
   Proof using.
-    ii. hexploit (H x_src). i. des.
-    hexploit (H0 x_tgt). i. des. esplits; ii.
+    ii. hexploit (H x0). i. des.
+    hexploit (H0 x1). i. des. esplits; ii.
     { iStartProof. iIntros "H".
       iApply bupd_idemp. iApply PRE0.
       iApply bupd_idemp. iApply PRE. iApply "H". }

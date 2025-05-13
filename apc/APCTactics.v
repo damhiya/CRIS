@@ -118,7 +118,7 @@ Proof using.
   unfold guarantee. force_l PO. steps_l.
   assert (sp fn = Some fsp'); et. force_l. iSplit; et. steps_l.
   specialize (WEAK spec_arg). des.
-  force_l x_tgt. force_l args. steps_l.
+  force_l x1. force_l args. steps_l.
   iPoseProof ((PRE od_fn ↑ args) with "[PRE]") as ">PRE". { unfold precond, fspec_apc; ss. iFrame. by iExists _. }
   force_l. iFrame. steps_l.
 
