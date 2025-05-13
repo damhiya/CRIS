@@ -1,6 +1,4 @@
-Require Import CRIS.
-Require Import MemHeader MemA MemI.
-Require Import ImpPrelude.
+From CRIS Require Import CRIS MemHeader MemA MemI ImpPrelude.
 
 Set Implicit Arguments.
 

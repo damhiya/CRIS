@@ -1,6 +1,4 @@
-Require Import CRIS.
-
-Require Export MemHeader.
+From CRIS Require Import CRIS MemHeader.
 
 Set Implicit Arguments.
 Set Typeclasses Depth 5.

@@ -1,6 +1,4 @@
-Require Import sProp.
-Require Import CRIS.
-Require Import MemHeader.
+From CRIS Require Import sProp CRIS MemHeader.
 Set Implicit Arguments.
 
 (* Memory resource algebra *)
