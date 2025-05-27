@@ -1,7 +1,7 @@
 Require Import Common.
 From iris.proofmode Require Import proofmode.
-Require Import HMod.
-Require Import HModSim.
+Require Import HMod FSpec.
+Require Import HModSim TacticsCommon.
 
 Set Implicit Arguments.
 
@@ -184,7 +184,6 @@ Section SIM.
     guclo hsim_eqitC_tgt_spec; econs; esplits; i; eauto; econs; eauto.
   Qed.
 
-
   (* Simulation rules *)
   Lemma isim_ret r g ps pt {Rs Rt} RR nths st_src st_tgt v_src v_tgt :
     RR nths (st_src, v_src) (st_tgt, v_tgt)
@@ -362,11 +361,10 @@ Section SIM.
   Qed.
   
   Lemma isim_guar_src (P : Prop) r g ps pt {Rs Rt} RR nths st_src st_tgt k_src i_tgt :
-    P →
-    @isim r g Rs Rt RR true pt nths (st_src, k_src ()) (st_tgt, i_tgt)
+    ⌜P⌝ ∗ @isim r g Rs Rt RR true pt nths (st_src, k_src ()) (st_tgt, i_tgt)
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, guarantee P >>= k_src) (st_tgt, i_tgt).
   Proof using.
-    i. iIntros "H". unfold guarantee. rewrite bind_bind.
+    iIntros "[% H]". unfold guarantee. rewrite bind_bind.
     iApply isim_choose_src. rewrite bind_ret_l. eauto.
     Unshelve. eauto.
   Qed.
@@ -467,7 +465,7 @@ Section SIM.
       + i. rewrite Heq in H2. ss.
   Qed.
   
-  Lemma isim_Assume_src r g ps pt {Rs Rt} RR iP nths st_src st_tgt k_src i_tgt :
+  Lemma isim_assume_src r g ps pt {Rs Rt} RR iP nths st_src st_tgt k_src i_tgt :
     (iP -∗ (@isim r g Rs Rt RR true pt nths (st_src, k_src tt) (st_tgt, i_tgt)))
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, trigger (Assume iP) >>= k_src) (st_tgt, i_tgt).
   Proof using.
@@ -479,7 +477,22 @@ Section SIM.
     { done. }
   Qed.
 
-  Lemma isim_Assume_tgt r g ps pt {Rs Rt} RR iP nths st_src st_tgt i_src k_tgt :
+  Lemma isim_assume_precise_src r g ps pt {Rs Rt} RR iP nths st_src st_tgt k_src i_tgt
+    :
+    precise iP
+    ∗ (iP -∗ @isim r g Rs Rt RR true pt nths (st_src, k_src ()) (st_tgt, i_tgt))
+    ⊢ @isim r g Rs Rt RR ps pt nths (st_src, trigger (AssumePrecise iP) >>= k_src) (st_tgt, i_tgt).
+  Proof using.
+    split; intros x wfx Hx. eapply Own_general_completeness in Hx.
+    guclo hsimC_spec; econs; esplits; i; eauto. econs; eauto.
+    { iIntros "H". iPoseProof (Hx with "H") as "H". et. }
+    intros x' Hx'.
+    eapply isim_init.
+    { iIntros "X". iMod (Hx' with "X") as "[P X]". iApply "X". et. }
+    { done. }
+  Qed.
+  
+  Lemma isim_assume_tgt r g ps pt {Rs Rt} RR iP nths st_src st_tgt i_src k_tgt :
     (iP ∗ (@isim r g Rs Rt RR ps true nths (st_src, i_src) (st_tgt, k_tgt tt)))
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, trigger (Assume iP) >>= k_tgt).
   Proof using.
@@ -490,7 +503,31 @@ Section SIM.
     { intros x' Hx'; eapply isim_init; eauto. iIntros "X"; iMod (Hx' with "X") as "X"; done. }
   Qed.
 
-  Lemma isim_Guarantee_src r g ps pt {Rs Rt} RR iP nths st_src st_tgt k_src i_tgt :
+  Lemma isim_assume_precise_tgt r g ps pt {Rs Rt} RR iP nths st_src st_tgt i_src k_tgt :
+    (precise iP -∗ iP ∗ @isim r g Rs Rt RR ps true nths (st_src, i_src) (st_tgt, k_tgt ()))
+    ⊢ @isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, trigger (AssumePrecise iP) >>= k_tgt).
+  Proof using.
+    split; intros a wfa Ha.
+    eapply Own_general_completeness in Ha.
+    guclo hsimC_spec; econs; esplits; i; eauto. econs; eauto.
+    i. esplits.
+    { rewrite NEW Ha. iIntros ">[P H]". iApply "H". et. }
+    { intros x' Hx'; eapply isim_init; eauto.
+      rewrite Hx'. iIntros ">H". et. }
+  Qed.
+
+  Lemma isim_assume_precise_both r g ps pt {Rs Rt} RR iP nths st_src st_tgt k_src k_tgt :
+    @isim r g Rs Rt RR true true nths (st_src, k_src ()) (st_tgt, k_tgt ())
+    ⊢ @isim r g Rs Rt RR ps pt nths (st_src, trigger (AssumePrecise iP) >>= k_src) (st_tgt, trigger (AssumePrecise iP) >>= k_tgt).
+  Proof using.
+    split; intros a wfa Ha.
+    eapply Own_general_completeness in Ha.
+    guclo hsimC_spec. econs; esplits; et.
+    eapply hsim_assume_precise_both; et.
+    eapply isim_init. et. iIntros "H"; et.
+  Qed.
+
+  Lemma isim_guarantee_src r g ps pt {Rs Rt} RR iP nths st_src st_tgt k_src i_tgt :
     (iP ∗ (@isim r g Rs Rt RR true pt nths (st_src, k_src tt) (st_tgt, i_tgt)))
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, trigger (Guarantee iP) >>= k_src) (st_tgt, i_tgt).
   Proof using.
@@ -501,7 +538,7 @@ Section SIM.
     { intros x' Hx'; eapply isim_init; eauto. iIntros "X"; iMod (Hx' with "X") as "X"; done. }
   Qed.
 
-  Lemma isim_Guarantee_tgt r g ps pt {Rs Rt} RR iP nths st_src st_tgt i_src k_tgt :
+  Lemma isim_guarantee_tgt r g ps pt {Rs Rt} RR iP nths st_src st_tgt i_src k_tgt :
     (iP -∗ (@isim r g Rs Rt RR ps true nths (st_src, i_src) (st_tgt, k_tgt tt)))
     ⊢ @isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, trigger (Guarantee iP) >>= k_tgt).
   Proof using.
@@ -532,7 +569,7 @@ Section SIM.
   Qed.
   
   Lemma isim_yield r g ps pt {Rs Rt} RR nths st_src st_tgt k_src k_tgt tid :
-    (Ist nths st_src st_tgt)
+    Ist nths st_src st_tgt
     ∗ (∀ nths0 st_src0 st_tgt0
           (NODS : List.NoDup (List.map fst st_src0))
           (NODD : List.NoDup (List.map fst st_tgt0)),
@@ -563,7 +600,8 @@ Section SIM.
   :
   ⊢ (@isim r g Rs Rt RR ps pt nths (st_src, trigger (Call fn varg) >>= k_src) (st_tgt, i_tgt)).
   Proof using.
-    split; intros x wfx SIM; guclo hsimC_spec. econs; esplits; eauto. econs 22; eauto.
+    split; intros x wfx SIM; guclo hsimC_spec. econs; esplits; eauto.
+    eapply hsim_call_none; et.
   Qed.
 
   Lemma isim_call_none_sandbox
@@ -586,7 +624,8 @@ Section SIM.
   :
   ⊢ (@isim r g Rs Rt RR ps pt nths (st_src, trigger (Spawn fn varg) >>= k_src) (st_tgt, i_tgt)).
   Proof using.
-    split; intros x wfx SIM; guclo hsimC_spec. econs; esplits; eauto. econs 23; eauto.
+    split; intros x wfx SIM; guclo hsimC_spec. econs; esplits; eauto.
+    eapply hsim_spawn_none; et.
   Qed.
 
   Lemma isim_spawn_none_sandbox
@@ -746,24 +785,121 @@ Section SIM.
     }
   Qed.
 
-  Lemma combine_quant A B (P : ∀ (a: A) (b: B), Prop)
-      (PR : ∀ (ab : A * B), P (fst ab) (snd ab)) :
-    ∀ a b, P a b.
-  Proof using. i. eapply (PR (a,b)). Qed.
-
-  Lemma combine_quant_dep A (B: A -> Type) (P: forall a (b: B a), Prop)
-      (PR: ∀ (ab: sigT B), P (projT1 ab) (projT2 ab)):
-    ∀ a b, P a b.
-  Proof using. i. eapply (PR (existT a b)). Qed.
-
 End SIM.
 
 Global Opaque isim.
+
+Section Proph.
+  Context `{Σ: GRA}.
+
+  Context (ctx: contextuality).
+  Context (fl_s fl_t : alist string (Any.t → itree hmodE Any.t)).
+  Context (Ist : nat → alist key Any.t → alist key Any.t → iProp Σ).
+
+
+  Local Notation isim := (isim ctx fl_s fl_t Ist).
+
+  Context (R_s R_t : Type).
+  Context (RR : nat → alist key Any.t * R_s → alist key Any.t * R_t → iProp Σ).
+  Context (ps pt : bool).
+  Context (nths : nat).
+  Context (st_s st_t : alist key Any.t).
+  
+  (** Precise Pre & Post conditions **)
+
+  Lemma isim_assume_proph_src {X R} Pre (Post: _→R→_) r g k_s i_t
+    :
+    (∃ P Q,
+      (precise P) ∗
+      (∀ x:X, Pre x ==∗ P ∗ (∀ ret, Q ret ==∗ Post x ret)) ∗
+      (P -∗ isim r g RR true pt nths (st_s, k_s Q) (st_t, i_t)))
+    ⊢
+    isim r g RR ps pt nths (st_s, (AssumeProph Pre Post) >>= k_s) (st_t, i_t).
+  Proof.
+    rewrite /AssumeProph. Coqlib.unseal CRIS_PROPH.
+    iIntros "[% [% [#PR [G H]]]]".
+    norm_l. iApply isim_choose_src. iExists P.
+    norm_l. iApply isim_choose_src. iExists Q.
+    norm_l. iApply isim_guarantee_src. iFrame.
+    norm_l. iApply isim_assume_precise_src. iSplit; et.
+    ired. et.
+  Qed.
+
+  Lemma isim_assume_proph_src_advanced {X R} (Pre: X→_) Post r g k_s i_t
+    :
+    (∃ I P Q,
+      I ∗ (precise P) ∗
+      (∀ x, ∃ T, (I ∗ Pre x -∗ □ T) ∗ ((□ T) ∗ Pre x ==∗ P ∗
+                 (∀ ret: R, Q ret ==∗ Post x ret))) ∗
+      (I ∗ P -∗ isim r g RR true pt nths (st_s, k_s Q) (st_t, i_t)))
+    ⊢
+    isim r g RR ps pt nths (st_s, (AssumeProph Pre Post) >>= k_s) (st_t, i_t).
+  Proof.
+    iIntros "[% [% [% [I [PR [G H]]]]]]".
+    iApply isim_assume_proph_src.
+    iRevert "PR G H". iStopProof. eapply entails_pointwise. i.
+    iIntros "I #PR G H".
+    iExists (Own res ∗ P)%I, Q.
+    iSplit. { iApply precise_sep. iSplit; [iApply precise_Own|]; et. }
+    iSplitL "I G"; cycle 1.
+    { iIntros "P". rewrite H. iApply "H"; et. }
+    iIntros (?) "P".
+    iSpecialize ("G" $! x). iDestruct "G" as "[% [G1 G2]]".
+    iAssert (Own res ∗ Pre x -∗ □ T)%I with "[G1]" as "G1".
+    { iIntros "[I P]". rewrite H. iApply ("G1" with "[I P]"). iFrame. }
+    iCombine "I P" as "P". iPoseProof ("G1" with "P") as "#T".
+    iDestruct "P" as "[I P]". iFrame.
+    iApply ("G2" with "[T P]"). iFrame. et.
+  Qed.
+
+  Lemma isim_assume_proph_src_simple {X R} Pre (Post: _→R→_) r g k_s i_t
+    :
+    (∃ x: X, precise (Pre x) ∗
+      ∀ x', Pre x' -∗
+        ⌜x' = x⌝ ∗ isim r g RR true pt nths (st_s, k_s (Post x)) (st_t, i_t))
+    ⊢
+    isim r g RR ps pt nths (st_s, (AssumeProph Pre Post) >>= k_s) (st_t, i_t).
+  Proof.
+    iIntros "[% [#PR H]]".
+    iApply isim_assume_proph_src_advanced.
+    iExists _, (Pre x), (Post x). iSplitL "H"; [iApply "H"|]. iSplit; et.
+    iSplitL "".
+    - iIntros (?). iExists (⌜x0 = x⌝)%I.
+      iSplitL "".
+      + iIntros "[H P]". iPoseProof ("H" with "P") as "[% _]". subst. et.
+      + iIntros "[% P]". subst. iFrame. et.
+    - iIntros "[H P]".  iSpecialize ("H" with "P"). iDestruct "H" as "[_ H]". et.
+  Qed.
+
+  Lemma isim_assume_proph_tgt {X R} Pre (Post: _→R→_) r g i_s k_t
+    :
+    (∃ x: X, Pre x
+       ∗
+       ∀ Q, (∀ ret, Q ret ==∗ Post x ret) -∗
+       isim r g RR ps true nths (st_s, i_s) (st_t, k_t Q))
+    ⊢
+    isim r g RR ps pt nths (st_s, i_s) (st_t, (AssumeProph Pre Post) >>= k_t).
+  Proof.
+    rewrite /AssumeProph. unseal CRIS_PROPH.
+    iIntros "[% [P H]]".
+    norm_r. iApply isim_choose_tgt. iIntros (?).
+    norm_r. iApply isim_choose_tgt. iIntros (?).
+    norm_r. iApply isim_guarantee_tgt. iIntros "GRT".
+    iSpecialize ("H" $! x1). iMod ("GRT" with "P") as "[I Q]".
+    norm_r. iApply isim_assume_precise_tgt. iIntros "#PR". iFrame.
+    ired. iApply "H". et.
+  Qed.
+
+End Proph.
 
 Definition Ist_monotone `{Σ : GRA} (Ist: nat → alist key Any.t → alist key Any.t → iProp Σ) : Prop :=
   ∀ nths nths' (LE : nths <= nths') st_src st_tgt,
   Ist nths st_src st_tgt -∗ Ist nths' st_src st_tgt.
 
+Definition ist_with_eq `{Σ : GRA} {R} (Ist: nat → alist key Any.t → alist key Any.t → iProp Σ) :=
+  fun nths '(st_src, v_src) '(st_tgt, v_tgt) =>
+    (⌜v_src = (v_tgt: R)⌝ ∗ Ist nths st_src st_tgt)%I.
+             
 Definition isim_fsem `{Σ : GRA} fl_src fl_tgt Ist contextual : relation (Any.t -> itree hmodE Any.t) :=
   (eq ==> (fun itr_src itr_tgt =>
   ∀ nths st_src st_tgt
@@ -771,8 +907,7 @@ Definition isim_fsem `{Σ : GRA} fl_src fl_tgt Ist contextual : relation (Any.t 
     (NODS : List.NoDup (List.map fst st_src))
     (NODD : List.NoDup (List.map fst st_tgt)),
   Ist nths st_src st_tgt ⊢
-    @isim Σ contextual fl_src fl_tgt Ist ibot ibot Any.t Any.t
-      (fun nths '(st_src, v_src) '(st_tgt, v_tgt) => (⌜v_src = v_tgt⌝ ∗ Ist nths st_src st_tgt))%I
+    @isim Σ contextual fl_src fl_tgt Ist ibot ibot Any.t Any.t (ist_with_eq Ist)
       false false nths (st_src, itr_src) (st_tgt, itr_tgt)))%signature.
 
 Module HSim. Section HSim.

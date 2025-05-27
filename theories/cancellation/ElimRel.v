@@ -91,6 +91,11 @@ Variant elim_rel_def `{Σ: GRA} md {A}
   :
   elim_rel_def md self l (trigger (Assume P) >>= ktrS) (a <- trigger (Assume P);; ktrT a)
 
+| elim_rel_asm_precise P l ktrS ktrT
+    (KTR: self l (ktrS tt) (ktrT tt))
+  :
+  elim_rel_def md self l (trigger (AssumePrecise P) >>= ktrS) (a <- trigger (AssumePrecise P);; ktrT a)
+               
 | elim_rel_grt P l ktrS ktrT
     (KTR: self l (ktrS tt) (ktrT tt))
   :
@@ -424,6 +429,8 @@ Proof.
     gstep. econs. 
   - rewrite SRed.tau SCancelRed.tau !SBRed.tau !HIRed.tau.
     gstep; econs. gstep; econs. eauto with paco.
+  - rewrite SRed.bind SRed.ag SCancelRed.bind SCancelRed.ag !SBRed.bind SBRed.ag. ired.
+    rewrite !HIRed.bind_ag. gstep. econs. gstep. econs. gbase. eauto.
   - rewrite SRed.bind SRed.ag SCancelRed.bind SCancelRed.ag !SBRed.bind SBRed.ag. ired.
     rewrite !HIRed.bind_ag. gstep. econs. gstep. econs. gbase. eauto.
   - rewrite SRed.bind SRed.ag SCancelRed.bind SCancelRed.ag !SBRed.bind SBRed.ag. ired.

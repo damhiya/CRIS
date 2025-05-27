@@ -128,6 +128,7 @@ Proof.
   { by eapply Own_wand_valid. }
 
   destruct x0; i; des.
+
   - clear CIH; clarify.
     step.
     econs; eauto.
@@ -138,6 +139,7 @@ Proof.
     }
     econs; et; cycle 1.
     { iIntros "H". iMod (x1 with "H") as "H"; iPoseProof (RET with "H") as "[_ H]"; ss. }
+
   - clarify; ired.
     hexploit (Own_bupd_split fmr0); eauto; intros [ist [frame [UPD [Hist Hframe]]]].
     guclo lflagC_spec; econs; try instantiate (1:=ctx_add my_tid ctx frame); eauto using ctx_set_le_others.
@@ -169,7 +171,9 @@ Proof.
     rewrite -ctx_set_sem; cycle 1.
     { eapply le_mine_in; eauto; rewrite length_insert; eauto using le_mine_in. }
     rewrite /ctx_add /ctx_set list_lookup_insert; eauto using le_mine_in.
+
   - clarify. step. ired. eapply K; eauto.
+
   - clarify. step; eauto.
     { instantiate (1:= HModTr.trans_ktree f). rewrite alist_find_map FUN. et. }
 
@@ -182,6 +186,7 @@ Proof.
     rewrite ?HRed.bind bind_bind.
     repeat f_equal. extensionalities x.
     grind. rewrite !HRed.tau ?bind_tau. repeat f_equal. rewrite HRed.ret; grind.
+
   - clarify. step; eauto.
     { instantiate (1:= HModTr.trans_ktree f). rewrite alist_find_map FUN. et. }
 
@@ -193,29 +198,35 @@ Proof.
     rewrite ?HRed.bind bind_bind.
     repeat f_equal. extensionalities x.
     grind. rewrite !HRed.tau ?bind_tau. repeat f_equal. rewrite HRed.ret; grind.
+
   - clarify; steps; eapply K; eauto.
   - clarify; steps; eapply K; eauto.
   - clarify; steps; eapply K; eauto.
   - clarify; steps; eapply K; eauto.
   - clarify; steps; eapply K; eauto.
   - clarify; steps; eapply K; eauto.
+
   - clarify; steps.
     rewrite /HModTr.mput_kv; steps.
     rewrite Any.pair_split /= HModTr.alist_encode_decode; steps; eapply K; eauto.
     eapply alist_upd_nodup; eauto.
+
   - clarify; steps.
     rewrite /HModTr.mput_kv; steps.
     rewrite Any.pair_split /= HModTr.alist_encode_decode; steps; eapply K; eauto.
     eapply alist_upd_nodup; eauto.
+
   - clarify; steps.
     rewrite /HModTr.mget_kv; steps.
     rewrite Any.pair_split /= HModTr.alist_encode_decode; steps; eapply K; eauto.
+
   - clarify; steps.
     rewrite /HModTr.mget_kv; steps.
     rewrite Any.pair_split /= HModTr.alist_encode_decode; steps; eapply K; eauto.
+
   - clarify; steps.
     rewrite HRed.Assume /HModTr.handle_Assume; steps.
-    rewrite /HModTr.get_res /HModTr.put_res; steps. des.
+    rewrite /HModTr.put_res; steps. des.
     apply bi.wand_entails, Own_bupd_split in _ASSUME0. des.
     eapply (K (fmr0 ⋅ a1)); eauto.
     { iIntros "[FMR X]"; iMod (CUR with "FMR") as "FMR". iFrame.
@@ -228,9 +239,40 @@ Proof.
       iSplitL "CTX"; eauto. iSplitL "FMR"; eauto.
     }
     { eauto. }
+
+  - clarify; steps.
+    rewrite HRed.AssumePrecise /HModTr.handle_AssumePrecise /guarantee.
+    move FMR at bottom. move CUR at bottom.
+    rewrite !Own_op in FMR.
+
+    eapply Own_bupd_split in CUR; et. i; des.
+    rewrite /precise bi.intuitionistically_exist in CUR0.
+    rewrite {1}/Own {1}seal_eq in CUR0.
+    assert (Va1: ✓ a1).
+    { eapply Own_wand_valid in wffmr0; et. rewrite CUR. iIntros "[H1 _]"; et. }
+    eapply uPred.ownM_general_soundness in CUR0; et.
+    rr in CUR0. rewrite seal_eq in CUR0. ss. des.
+    eapply Own_general_completeness in CUR0.
+    eapply own_core_completeness in CUR0; et.
+
+    steps; et.
+    { clear K. rewrite FMR x1 CUR.
+      iIntros ">[[C >>[H A]] T]".
+      rewrite -{1}(cmra_core_l a1) Own_op. iDestruct "H" as "[AC A1]".
+      rewrite CUR0. iCombine "A1 A C T" as "R". iFrame. et.
+    }
+    { rewrite /HModTr.put_res; steps. eapply K; et; cycle 1.
+      - iIntros "(A & A1 & A2 & C & T)". rewrite !Own_op.
+        iCombine "A A1 A2" as "H". iFrame. et.
+      - rewrite !Own_op CUR1 -(cmra_core_l a1).
+        iIntros "(A & [AC _] & F)". iFrame.
+        iPoseProof (CUR0 with "AC") as "[#IMP _]".
+        iApply "IMP". et.
+    }
+
   - clarify; steps.
     rewrite HRed.Guarantee /HModTr.handle_Guarantee; steps.
-    rewrite /HModTr.get_res /HModTr.put_res; steps. des.
+    rewrite /HModTr.put_res; steps. des.
     hexploit (Own_bupd_split); eauto.
     { hexploit (Own_wand_valid _ _ FMR); eauto using cmra_valid_op_r. }
     intros [rP [frt [UPD [HP Hx]]]]; eapply (K (fmr0 ⋅ rP)); eauto.
@@ -241,10 +283,11 @@ Proof.
         iPoseProof (Hx with "FRT") as "X"; iModIntro;
         iSplitR "X"; [iSplitL "CTX"; [|iSplitL "FMR"]|]; iFrame.
     }
+
   - clarify; steps.
     hexploit (Own_bupd_split fmr0); eauto; intros [rP [rFMR [SPLIT [HP HFMR]]]].
     rewrite HRed.Guarantee /HModTr.handle_Guarantee; steps.
-    rewrite /HModTr.get_res /HModTr.put_res; steps.
+    rewrite /HModTr.put_res.
     instantiate (1 := (ctx_sem ctx ⋅ rFMR ⋅ mr_tgt)).
     rewrite /guarantee; force_l; [split|].
     { eapply (Own_wand_valid mr_src); eauto.
@@ -262,6 +305,7 @@ Proof.
       iIntros "MRS"; iMod (FMR with "MRS") as "[[CTX FMR] MRT]"; iMod (x1 with "FMR") as "FMR";
         iMod (SPLIT with "FMR") as "[_ FMR]"; iModIntro; iSplitR "MRT"; [iSplitL "CTX"|]; iFrame.
     }
+
   - clarify; steps.
     hexploit (Own_bupd_split fmr0); eauto; intros [rP [rFMR [SPLIT [HP HFMR]]]].
     rewrite HRed.Assume /HModTr.handle_Assume; steps.
@@ -280,6 +324,70 @@ Proof.
         iMod (SPLIT with "FMR") as "[P FMR]";
         iModIntro; iSplitR "P MRT"; [iSplitR "FMR"; iFrame|]; iSplitL "P"; iFrame.
     }
+
+  - clarify; steps.
+    rewrite HRed.AssumePrecise /HModTr.handle_AssumePrecise; steps.
+    (* hexploit (Own_bupd_split fmr0); eauto. intros [rP [rFMR [SPLIT [HP HFMR]]]]. *)
+
+    rename _GUARANTEE into G. apply bi.wand_entails in G.    
+    eapply Own_bupd_split in G; cycle 1; i; des.
+    { eapply Own_wand_valid in WF; et. rewrite FMR. iIntros ">[_ H]". et. }
+    assert (Va1: ✓ a1).
+    { eapply Own_wand_valid in WF; et.
+      rewrite FMR !Own_op G. iIntros ">[_ >[H _]]". et. }
+    eapply own_core_completeness in G0; et.
+
+    hexploit (K (a1 ⋅ fmr0)); clear K; i; des.
+    { eapply Own_wand_valid in WF; et.
+      rewrite FMR !Own_op x1 G. iIntros ">[[_ >?] >[? _]]". iFrame. et. }
+    { rewrite !Own_op CUR -(cmra_core_l a1) Own_op G0.
+      rewrite /precise bi.intuitionistically_exist.
+      iIntros "[[H _] >F]". iFrame. et.
+    }
+    rename H0 into K.
+
+    eapply Own_bupd_split in H; cycle 1; i; des.
+    { clear K. eapply Own_wand_valid in WF; et.
+      rewrite FMR !Own_op G x1. iIntros ">[[_ >?] [>? _]]". iFrame. et. }
+
+    assert (VALID: ✓ (x ⋅ x0)).
+    { clear K. eapply (Own_wand_valid mr_src); eauto.
+      rewrite FMR !Own_op G G1 x1 -(cmra_core_l a1) Own_op G0.
+      iIntros ">[[C >F] >[[[#PR1 #PR2] A] X]]". iFrame.
+      iCombine "A F" as "H". rewrite H H0. iMod "H" as "[P F]".
+      iApply "PR2"; et.
+    }
+    rewrite /assume /HModTr.get_res /HModTr.put_res; steps.
+
+    eapply K; clear K; eauto; cycle 1.
+    { instantiate (1:= a3).
+      rewrite FMR !Own_op G G1 -{1}(cmra_core_l a1) Own_op G0 x1.
+      iIntros ">[[C >F] >[[[#PR1 #PR2] A] X]]".
+      iCombine "A F" as "H". rewrite H H0. iMod "H" as "[P F1]".
+      iFrame. iApply "PR2"; et.
+    }
+    { rewrite H1. et. }
+
+  - clarify; steps.
+    rewrite HRed.AssumePrecise /HModTr.handle_AssumePrecise /guarantee /assume.
+    set (_HIDE:=itreeV_itree) at 1. remember _HIDE as HIDE. subst _HIDE. guardH HeqHIDE.
+    do 4 step. ired.
+    unguard. subst HIDE.
+    set (_HIDE:=Take) at 2. remember _HIDE as HIDE. subst _HIDE. guardH HeqHIDE.
+    do 2 step. instantiate (1:= x).
+    step. instantiate (1:= ctx_sem ctx ⋅ fmr ⋅ x0).
+    apply bi.wand_entails in x2.
+    step.
+    { clear K. rewrite FMR !Own_op x2.
+      iIntros ">[[C F] >[P X]]". iFrame. et. }
+    step. unguard. subst HIDE. step.
+    { eapply Own_wand_valid in x3; et. rewrite !Own_op.
+      iIntros "[? [_ ?]]"; iFrame. et. }
+    rewrite /HModTr.put_res.
+    do 4 step.
+    eapply K; et.
+    rewrite !Own_op x1. iIntros "[? [[? >?] ?]]". iFrame. et.
+
   - clarify. step. ired. eapply K; eauto.
     { eapply le_mine_trans; eauto; first ii; subst; ss.
       ii; esplits; ss; rewrite lookup_app_l; eauto using le_mine_in.
@@ -288,6 +396,7 @@ Proof.
         iModIntro; iSplitR "MRT"; [iSplitR "FMR"|]; iFrame.
       rewrite /ctx_sem big_opL_app /= ?right_id; eauto.
     }
+
   - clarify.
     hexploit (Own_bupd_split fmr0); eauto; intros [ist [frame [UPD [Hist Hframe]]]].
     guclo lflagC_spec; econs; try instantiate (1:=ctx_add my_tid ctx frame); eauto using ctx_set_le_others.
@@ -319,10 +428,13 @@ Proof.
     rewrite -ctx_set_sem; cycle 1.
     { eapply le_mine_in; eauto; rewrite length_insert; eauto using le_mine_in. }
     rewrite /ctx_add /ctx_set list_lookup_insert; eauto using le_mine_in.
+
   - clarify. prep. guclo sim_itree_indC_spec. econs 16.
     rewrite alist_find_map FUN. et.
+
   - clarify. prep. guclo sim_itree_indC_spec. econs 17.
     rewrite alist_find_map FUN. et.
+
   - clarify. pclearbot. gstep; econs; econs; eauto; cycle 1.
     { gfinal; left; eapply CIH; eauto. }
     by apply le_others_refl.

@@ -16,13 +16,13 @@ Module SchI. Section SchI.
   Definition v_ths := "Sch" ↯ "ths".
   Definition v_tid := "Tid" ↯ "tid".
 
-  Definition trigger_Yield (nxt_tid : nat) : itree pmodE unit :=
+  Definition trigger_Yield (nxt_tid : nat) : itree hmodE unit :=
     'my_tid: nat <- cgetU v_tid;;
     trigger (Yield nxt_tid);;;
     cput v_tid my_tid
   .
 
-  Definition _spawn: (nat * string * SAny.t) -> itree pmodE unit :=
+  Definition _spawn: (nat * string * SAny.t) -> itree hmodE unit :=
     fun '(pa_tid, fn, arg) =>
       trigger_Yield pa_tid;;;
       'rv: SAny.t <- ccallU fn arg;;
@@ -33,7 +33,7 @@ Module SchI. Section SchI.
       Sch.terminate
   .
 
-  Definition spawn: (string * SAny.t) -> itree pmodE nat :=
+  Definition spawn: (string * SAny.t) -> itree hmodE nat :=
     fun '(fn, arg) =>
       'ths: thslist <- cgetU v_ths;;
       'my_tid: nat <- cgetU v_tid;;
@@ -46,7 +46,7 @@ Module SchI. Section SchI.
       Ret new_tid
   .
 
-  Definition yield: unit -> itree pmodE unit :=
+  Definition yield: unit -> itree hmodE unit :=
     fun _ =>
       'ths: thslist <- cgetU v_ths;;
       'ntid: nat <- trigger (Choose nat);;
@@ -54,7 +54,7 @@ Module SchI. Section SchI.
       trigger_Yield ntid
   .
 
-  Definition join: nat -> itree pmodE (option SAny.t) :=
+  Definition join: nat -> itree hmodE (option SAny.t) :=
     fun tid =>
       orv <- (iterC (fun _ =>
         'ths: thslist <- cgetU v_ths;;
@@ -69,7 +69,7 @@ Module SchI. Section SchI.
       Ret orv
   .
 
-  Definition get_tid: unit -> itree pmodE nat :=
+  Definition get_tid: unit -> itree hmodE nat :=
     fun _ =>
       'my_tid : nat <- cgetU v_tid;;
       Ret my_tid

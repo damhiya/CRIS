@@ -11,7 +11,7 @@ Section PMOD.
 
   Record t : Type := mk {
     scopes : list string;
-    fnsems : alist string ((string->bool) * list string * (Any.t -> itree pmodE Any.t));
+    fnsems : alist string ((string->bool) * list string * (Any.t -> itree hmodE Any.t));
     initial_st : alist key Any.t;
 
     well_scoped_fns:
@@ -37,7 +37,7 @@ Section PMOD.
   Next Obligation. i. destruct ms. s. eauto. Qed.
   Next Obligation. i. destruct ms. eauto. Qed.
 
-  Definition wrap_trivial_spec (body: Any.t -> itree pmodE Any.t): fspecbody := {|
+  Definition wrap_trivial_spec (body: Any.t -> itree hmodE Any.t): fspecbody := {|
     fsb_fspec := fspec_trivial;
     fsb_body := λ i, PModTr.trans (body i);
   |}.

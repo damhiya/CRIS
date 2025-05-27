@@ -39,18 +39,6 @@ Section HOARE.
     trigger (Yield tid);;;
     Ret tid.
 
-  Definition handle': hmodE ~> itreeV hmodE.
-    intros T e.
-    destruct e.
-    - exact (inr (existT _ (subevent _ a, fun v => Ret v))).
-    - destruct p.
-      + destruct c.
-        * exact (inl (fsp <- (sp fn)!;; HoareCall fsp fn args)).
-        * exact (inl (fsp <- (sp fn)!;; HoareSpawn fsp fn args)).
-        * exact (inr (existT _ (subevent _ (Yield tid), fun v => Ret v))).
-      + exact (inr (existT _ (subevent _ s, fun v => Ret v))).
-  Defined.
-
   Definition handle: hmodE ~> itreeV hmodE :=
     fun T e =>
       match e with
@@ -79,7 +67,7 @@ Section HOARE.
       varg <- trigger (Take _);;
       trigger (Assume (P x varg arg));;; (*** precondition ***)
 
-      vret <- trans (body varg);;
+      vret <- body varg;;
 
       ret <- trigger (Choose Any.t);;
       trigger (Guarantee (Q x vret ret));;; (*** postcondition ***)
@@ -88,7 +76,7 @@ Section HOARE.
   
   Definition trans_ktree (sb: fspecbody): (Any.t → itree hmodE Any.t) :=
     let fs: fspec := sb.(fsb_fspec) in
-    HoareFun fs.(precond) fs.(postcond) sb.(fsb_body).
+    HoareFun fs.(precond) fs.(postcond) (λ arg, trans (sb.(fsb_body) arg)).
 
 End HOARE.
 End SModTr.
@@ -100,9 +88,10 @@ Section RED.
 
   Context `{Σ : GRA}.
 
+  Variable sp: string → option fspec.
+
   Lemma bind
         (R S: Type)
-        sp
         (s : itree hmodE R) (k : R → itree hmodE S)
     :
       SModTr.trans sp (s >>= k)
@@ -115,7 +104,6 @@ Section RED.
   Lemma tau
         (U : Type)
         (t : itree _ U)
-        sp
     :
       SModTr.trans sp (tau;; t)
       =
@@ -127,7 +115,6 @@ Section RED.
   Lemma ret
         (U: Type)
         (t: U)
-        sp
     :
       SModTr.trans sp (Ret t)
       =
@@ -136,21 +123,21 @@ Section RED.
     unfold SModTr.trans in *. rewrite interpV_ret. et.
   Qed.
 
-  Lemma vis_ag {X R} sp (e : agE X) (ktr : X -> itree hmodE R) :
+  Lemma vis_ag {X R} (e : agE X) (ktr : X -> itree hmodE R) :
     SModTr.trans sp (vis e ktr) = vis e (fun x => SModTr.trans sp (ktr x)).
   Proof using.
     eapply observe_eta; ss. f_equal. extensionality x.
     eapply observe_eta; ss.
   Qed.
 
-  Lemma vis_yield {R} sp tid (ktr : () -> itree hmodE R) :
+  Lemma vis_yield {R} tid (ktr : () -> itree hmodE R) :
     SModTr.trans sp (vis (Yield tid) ktr) = vis (Yield tid) (fun x => SModTr.trans sp (ktr x)).
   Proof using.
     unfold SModTr.trans. rewrite interpV_vis.
     eapply observe_eta; ss. f_equal. extensionalities. ired. eauto.
   Qed.
 
-  Lemma vis_spawn {R} sp fn args (ktr : nat -> itree hmodE R) :
+  Lemma vis_spawn {R} fn args (ktr : nat -> itree hmodE R) :
     SModTr.trans sp (vis (Spawn fn args) ktr) =
       tau;; fsp <- (sp fn)!;; x <- SModTr.HoareSpawn fsp fn args;; SModTr.trans sp (ktr x).
   Proof using.
@@ -158,7 +145,7 @@ Section RED.
     eapply observe_eta; ss. f_equal. ired. eauto.
   Qed.
   
-  Lemma vis_call {R} sp fn args (ktr : Any.t -> itree hmodE R) :
+  Lemma vis_call {R} fn args (ktr : Any.t -> itree hmodE R) :
     SModTr.trans sp (vis (Call fn args) ktr) =
       tau;; fsp <- (sp fn)!;; x <- SModTr.HoareCall fsp fn args;; SModTr.trans sp (ktr x).
   Proof using.
@@ -166,50 +153,49 @@ Section RED.
     eapply observe_eta; ss. f_equal. ired. eauto.
   Qed.
 
-  Lemma vis_pg {X R} sp (e : pgE X) (ktr : X -> itree hmodE R) :
+  Lemma vis_pg {X R} (e : pgE X) (ktr : X -> itree hmodE R) :
     SModTr.trans sp (vis e ktr) = vis e (fun x => SModTr.trans sp (ktr x)).
   Proof using.
     eapply observe_eta; ss. f_equal. extensionality x.
     eapply observe_eta; ss.
   Qed.
 
-  Lemma vis_core {X R} sp (e : coreE X) (ktr : X -> itree hmodE R) :
+  Lemma vis_core {X R} (e : coreE X) (ktr : X -> itree hmodE R) :
     SModTr.trans sp (vis e ktr) = vis e (fun x => SModTr.trans sp (ktr x)).
   Proof using.
     eapply observe_eta; ss. f_equal. extensionality x.
     eapply observe_eta; ss.
   Qed.
 
-  Lemma assumeK {R} sp P (itr : itree hmodE R) :
+  Lemma assumeK {R} P (itr : itree hmodE R) :
     SModTr.trans sp (assumeK P itr) = assumeK P (SModTr.trans sp itr).
   Proof using.
     eapply observe_eta; ss. f_equal. extensionality x.
     eapply observe_eta; ss.
   Qed.
 
-  Lemma guaranteeK {R} sp P (itr : itree hmodE R) :
+  Lemma guaranteeK {R} P (itr : itree hmodE R) :
     SModTr.trans sp (guaranteeK P itr) = guaranteeK P (SModTr.trans sp itr).
   Proof using.
     eapply observe_eta; ss. f_equal. extensionality x.
     eapply observe_eta; ss.
   Qed.
 
-  Lemma unwrapUK {X R} sp x (ktr : X -> itree hmodE R) :
+  Lemma unwrapUK {X R} x (ktr : X -> itree hmodE R) :
     SModTr.trans sp (unwrapUK x ktr) = unwrapUK x (fun x => SModTr.trans sp (ktr x)).
   Proof using.
     destruct x; ss.
     eapply observe_eta; ss. f_equal. extensionality x. ss.
   Qed.
 
-  Lemma unwrapNK {X R} sp x (ktr : X -> itree hmodE R) :
+  Lemma unwrapNK {X R} x (ktr : X -> itree hmodE R) :
     SModTr.trans sp (unwrapNK x ktr) = unwrapNK x (fun x => SModTr.trans sp (ktr x)).
   Proof using.
     destruct x; ss.
     eapply observe_eta; ss. f_equal. extensionality x. ss.
   Qed.
 
-  Lemma yield
-        sp tid
+  Lemma yield tid
     :
       SModTr.trans sp (trigger (Yield tid))
       =
@@ -219,8 +205,7 @@ Section RED.
     eapply observe_eta; ss. f_equal. extensionalities. rewrite ret. eauto.
   Qed.
 
-  Lemma spawn
-    sp fn args
+  Lemma spawn fn args
     :
     SModTr.trans sp (trigger (Spawn fn args))
     =
@@ -232,8 +217,7 @@ Section RED.
     - f_equal. extensionalities. rewrite ret. eauto.
   Qed.
   
-  Lemma call
-        sp fn args
+  Lemma call fn args
     :
       SModTr.trans sp (trigger (Call fn args))
       =
@@ -248,7 +232,6 @@ Section RED.
   Lemma pg
         (R: Type)
         (i: pgE R)
-        sp
     :
       SModTr.trans sp (trigger i)
       =
@@ -260,23 +243,17 @@ Section RED.
 
   Lemma core
         (R: Type)
-        (i: coreE R)
-        sp
+        (e: coreE R)
     :
-      SModTr.trans sp (trigger i)
-      =
-      trigger i.
+    SModTr.trans sp (trigger e) = trigger e.
   Proof using.
     rewrite vis_core. unfold trigger.
     eapply observe_eta; ss. f_equal. extensionalities. rewrite ret. eauto.
   Qed.
 
   Lemma ag {A} (e: agE A)
-        sp
     :
-      SModTr.trans sp (trigger e)
-      =
-      trigger e.
+    SModTr.trans sp (trigger e) = trigger e.
   Proof using.
     rewrite vis_ag. unfold trigger.
     eapply observe_eta; ss. f_equal. extensionalities. rewrite ret. eauto.
@@ -285,7 +262,6 @@ Section RED.
   Lemma unwrapU 
         (R: Type)
         (i: option R)
-        sp
     :
       SModTr.trans sp (@unwrapU hmodE _ _ i)
       =
@@ -293,15 +269,12 @@ Section RED.
   Proof using.
     unfold unwrapU. des_ifs; grind.
     - rewrite ret. eauto.
-    - unfold triggerUB. rewrite bind vis_core.
-      eapply observe_eta; ss. f_equal. extensionalities.
-      rewrite ret. ired. ss.
+    - rewrite /triggerUB bind core. f_equal. extensionalities. ss.
   Qed.
 
   Lemma unwrapN
         (R: Type)
         (i: option R)
-        sp
     :
       SModTr.trans sp (@unwrapN hmodE _ _ i)
       =
@@ -309,29 +282,49 @@ Section RED.
   Proof using.
     unfold unwrapN. des_ifs; grind.
     - rewrite ret. eauto.
-    - unfold triggerUB. rewrite bind vis_core.
+    - unfold triggerNB. rewrite bind vis_core.
       eapply observe_eta; ss. f_equal. extensionalities.
       rewrite ret. ired. ss.
   Qed.
   
-  Lemma asm
-        sp P
+  Lemma asm P
     : 
       SModTr.trans sp (assume P)
       =
       assume P.
   Proof using.
-    unfold assume. rewrite bind. rewrite core. grind. rewrite ret. refl.
+    unfold assume. rewrite bind core. grind. rewrite ret. refl.
   Qed. 
 
-  Lemma guar
-        sp P
+  Lemma guar P
     : 
       SModTr.trans sp (guarantee P)
       =
       guarantee P.
   Proof using.
-    unfold guarantee. rewrite bind. rewrite core. grind. rewrite ret. refl.
+    unfold guarantee. rewrite bind core. grind. rewrite ret. refl.
   Qed.
 
+  Lemma assume_proph {X R} Pre Post:
+    SModTr.trans sp (@AssumeProph _ X R Pre Post) = AssumeProph Pre Post.
+  Proof.
+    rewrite /AssumeProph; unseal CRIS_PROPH.
+    repeat (rewrite bind core; f_equal; extensionalities).
+    repeat (rewrite bind ag; f_equal; extensionalities).
+    rewrite ret. et.
+  Qed.
+
+  Lemma assume_prophK {X S R} Pre Post ktr :
+    SModTr.trans sp (@AssumeProphK _ X S R Pre Post ktr)
+    = AssumeProphK Pre Post (fun x => SModTr.trans sp (ktr x)).
+  Proof using.
+    rewrite /AssumeProphK. rewrite bind assume_proph. et.
+  Qed.
+
+  Lemma fbody_trivial arg:
+    SModTr.trans sp (fbody_trivial arg) = fbody_trivial arg.
+  Proof.
+    rewrite /fbody_trivial. s. rewrite core. et.
+  Qed.
+  
 End RED. End SRed.

@@ -1,20 +1,13 @@
+From iris.proofmode Require Import proofmode.
 Require Import Common.
-Require Import ISim WSim ITactics WTactics.
-Require Export TacticsCommon.
+Require Import ISim WSim.
+Require Export TacticsCommon ITactics WTactics.
 
 Tactic Notation "iwcase" tactic(itac) tactic(wtac) :=
   match goal with
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ _) ] => itac
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _) ] => wtac
   end.
-
-Ltac norm_l := iwcase (do 1 inorm_l) (do 1 wnorm_l).
-Tactic Notation "norm_l" "with" tactic(tac) := iwcase (do 1 inorm_l with tac) (do 1 wnorm_l with tac).
-
-Ltac norm_r := iwcase (do 1 inorm_r) (do 1 wnorm_r).
-Tactic Notation "norm_r" "with" tactic(tac) := iwcase (do 1 inorm_r with tac) (do 1 wnorm_r with tac).
-
-Tactic Notation "norm" "with" tactic(tac) := iwcase (do 1 inorm with tac) (do 1 wnorm with tac).
 
 Ltac step_l := iwcase (do 1 istep_l) (do 1 wstep_l).
 Ltac steps_l := iwcase (do 1 isteps_l) (do 1 wsteps_l).
@@ -45,3 +38,17 @@ Ltac by_coind CIH := iwcase (do 1 iby_coind CIH) (do 1 wby_coind CIH).
 
 Tactic Notation "init_simF" := winit_simF 0 0. (* for isim mode, use iinit_simF directly *)
 Tactic Notation "init_simF" open_constr(u_src) open_constr(u_tgt) := winit_simF u_src u_tgt.
+
+(** Special Tactics for AssumeProph in Source **)
+
+Tactic Notation "asmproph_simple" :=
+  iwcase (do 1 iasmproph_simple) (do 1 wasmproph_simple).
+                 
+Tactic Notation "asmproph_simple" uconstr(p) :=
+  iwcase (do 1 iasmproph_simple p) (do 1 wasmproph_simple p).
+
+Ltac asmproph_standard :=
+  iwcase (do 1 iasmproph_standard) (do 1 wasmproph_standard).
+  
+Ltac asmproph_advanced :=
+  iwcase (do 1 iasmproph_advanced) (do 1 wasmproph_advanced).

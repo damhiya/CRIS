@@ -28,7 +28,7 @@ Proof.
   eapply _hsim_tarski; eauto. i. 
   econs. ii. exploit IN; eauto. i. des.
   esplits; eauto. clear IN.
-  destruct x10; ss; econs; eauto.
+  destruct x10; ss; try by econs; eauto.
 Qed.
 
 Lemma hsim_close `{Σ: GRA}
@@ -46,9 +46,11 @@ Proof.
   guclo hsim_wfC_spec. econs. i.
   guclo hsim_nodupC_spec. econs. i.
   exploit IN; i; des; eauto. clear IN.
-  destruct x0; i; des; inv Heqp; try inv Heqp0; clarify; hstep.
-  pclearbot. gfinal. right. eapply paco9_mon_bot; eauto.
-  i. eapply _hsim_close. eauto.
+  destruct x0; i; des; try by inv Heqp; try inv Heqp0; clarify; hstep.
+  { guclo hsimC_spec. econs. econs; et. econs; et. i.
+    hexploit K; et. i; des. esplits; et. }
+  pclearbot. gstep. econs. ii. esplits; et. econs; et.
+  gfinal. right. eapply paco9_mon_bot; eauto using _hsim_close.
 Qed. 
 
 Lemma valid_solve_eq `{Σ: GRA} (a b : Σ) :

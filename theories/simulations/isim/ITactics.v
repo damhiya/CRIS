@@ -15,45 +15,6 @@ Require Import ISim TacticsCommon.
           Simplify (hide) k-trees
 
 ***)
-Ltac ireplace_l :=
-  lazymatch goal with
-  | [ |- environments.envs_entails ?env (isim ?is_closed ?fl_src ?tl_tgt ?Ist ?r ?g ?RR ?ps ?pt ?nths (?st_src, ?itr_src) (?st_tgt, ?itr_tgt)) ] =>
-      refine (eq_ind_r (fun itr_src' => environments.envs_entails env (isim is_closed fl_src tl_tgt Ist r g RR ps pt nths (st_src, itr_src') (st_tgt, itr_tgt))) _ _); cycle 1
-  end.
-
-Ltac ireplace_r :=
-  lazymatch goal with
-  | [ |- environments.envs_entails ?env (isim ?is_closed ?fl_src ?tl_tgt ?Ist ?r ?g ?RR ?ps ?pt ?nths (?st_src, ?itr_src) (?st_tgt, ?itr_tgt)) ] =>
-      refine (eq_ind_r (fun itr_tgt' => environments.envs_entails env (isim is_closed fl_src tl_tgt Ist r g RR ps pt nths (st_src, itr_src) (st_tgt, itr_tgt'))) _ _); cycle 1
-  end.
-
-Ltac inorm_l := ireplace_l; [s; hnorm_itr|].
-Ltac inorm_r := ireplace_r; [s; hnorm_itr|].
-
-Tactic Notation "inorm_l" "with" tactic(tac) :=
-  let marker := fresh "MARKER" in
-  set_marker marker;
-  hide_ihyps;
-  (hrepeat do 1 inorm_l);  
-  tac;
-  show_until marker.
-
-Tactic Notation "inorm_r" "with" tactic(tac) :=
-  let marker := fresh "MARKER" in
-  set_marker marker;
-  hide_ihyps;
-  (hrepeat do 1 inorm_r);  
-  tac;
-  show_until marker.
-
-Tactic Notation "inorm" "with" tactic(tac) :=
-  let marker := fresh "MARKER" in
-  set_marker marker;
-  hide_ihyps;
-  (hrepeat do 1 inorm_l);
-  (hrepeat do 1 inorm_r);
-  tac;
-  show_until marker.
 
 (***
   Step-level tactics
@@ -75,7 +36,7 @@ Ltac _istep_l :=
       let name := fresh "q" in
       iApply isim_take_src; iIntros (name)
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _  (_, trigger (Assume ?P) >>= _) _) ] =>
-      unfold_precond_postcond P; iApply isim_Assume_src; iIntrosFresh "ASM"
+      unfold_precond_postcond P; iApply isim_assume_src; iIntrosFresh "ASM"
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, unwrapU ?ox >>= _) _) ] =>
       let name := fresh "q" in
       iApply isim_unwrapU_src; iIntros (name) "%";
@@ -88,13 +49,13 @@ Ltac istep_l_core :=
   _istep_l; try alist_find_simpl; s; des_pairs; s.
 
 Ltac istep_l :=
-  inorm_l with do 1 try istep_l_core.
+  norm_l with do 1 try istep_l_core.
 
 Ltac isteps_l :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  (hrepeat do 1 tryany (do 1 inorm_l) (do 1 istep_l_core)); try inorm_l;
+  (hrepeat do 1 tryany (do 1 norm_l) (do 1 istep_l_core)); try norm_l;
   show_until marker.
 
 Ltac _istep_r :=
@@ -113,7 +74,7 @@ Ltac _istep_r :=
       let name := fresh "q" in
       iApply isim_choose_tgt; iIntros (name)
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _)) ] =>
-      unfold_precond_postcond P; iApply isim_Guarantee_tgt; iIntrosFresh "GRT"
+      unfold_precond_postcond P; iApply isim_guarantee_tgt; iIntrosFresh "GRT"
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, unwrapN ?ox >>= _)) ] =>
       let name := fresh "q" in
       iApply isim_unwrapN_tgt; iIntros (name) "%";
@@ -126,13 +87,13 @@ Ltac istep_r_core :=
   _istep_r; try alist_find_simpl; s; des_pairs; s.
 
 Ltac istep_r :=
-  inorm_r with do 1 try istep_r_core.
+  norm_r with do 1 try istep_r_core.
 
 Ltac isteps_r :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  (hrepeat do 1 tryany (do 1 inorm_r) (do 1 istep_r_core)); try inorm_r;
+  (hrepeat do 1 tryany (do 1 norm_r) (do 1 istep_r_core)); try norm_r;
   show_until marker.
 
 Ltac _istep :=
@@ -143,17 +104,21 @@ Ltac _istep :=
       iApply isim_ret
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger (IO _ _) >>= _) (_, trigger (IO _ _) >>= _)) ] =>
       iApply isim_io; iIntros "%"
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger (AssumePrecise _) >>= _) (_, trigger (AssumePrecise _) >>= _)) ] =>
+      iApply isim_assume_precise_both
   end.
 
 Ltac istep :=
-  inorm with do 1 _istep; s; des_pairs; s.
+  norm with do 1 _istep; s; des_pairs; s.
 
 Ltac _iforce_l :=
   match goal with
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose ?T) >>= _) _) ] =>
       iApply isim_choose_src
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _) _) ] =>
-      unfold_precond_postcond P; iApply isim_Guarantee_src
+      unfold_precond_postcond P; iApply isim_guarantee_src
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger (AssumePrecise ?P) >>= _) _) ] =>
+      iApply isim_assume_precise_src; iSplitL "";[|iIntrosFresh "ASM"]
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, unwrapN _ >>= _) _) ] =>
       iApply isim_unwrapN_src; iExists _
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, guarantee _ >>= _) _) ] =>
@@ -162,13 +127,13 @@ Ltac _iforce_l :=
 .
 
 Ltac iforce_l_core :=
-  inorm_l with do 1 _iforce_l; s.
+  norm_l with do 1 _iforce_l; s.
 
 Tactic Notation "iforce_l" :=
-  iforce_l_core; try (iExists _).
+  iforce_l_core; [..|try iExists _].
 
 Tactic Notation "iforce_l" uconstr(p) :=
-  iforce_l_core; iExists p.
+  iforce_l_core; [..|try iExists p].
 
 Ltac iforces_l :=
   hrepeat do 1 iforce_l.
@@ -178,16 +143,20 @@ Ltac _iforce_r :=
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _)) ] =>
       iApply isim_take_tgt
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Assume ?P) >>= _)) ] =>
-      unfold_precond_postcond P; iApply isim_Assume_tgt
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, unwrapU _ >>= _)) ] =>
-      iApply isim_unwrapU_tgt; iExists _
+      unfold_precond_postcond P; iApply isim_assume_tgt
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (AssumePrecise ?P) >>= _)) ] =>
+      unfold_precond_postcond P; iApply isim_assume_precise_tgt; [..|iIntrosFresh "PRECISE"]
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, AssumeProph _ _ >>= _)) ] =>
+      iApply isim_assume_proph_tgt
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _)) ] =>
       iApply isim_asm_tgt
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, unwrapU _ >>= _)) ] =>
+      iApply isim_unwrapU_tgt; iExists _
   end
 .
 
 Ltac iforce_r_core :=
-  inorm_r with do 1 _iforce_r; s.
+  norm_r with do 1 _iforce_r; s.
 
 Tactic Notation "iforce_r" :=
   iforce_r_core; try (iExists _).
@@ -198,23 +167,23 @@ Tactic Notation "iforce_r" uconstr(p) :=
 Ltac iforces_r := hrepeat do 1 iforce_r.
 
 Ltac iinline_l :=
-  inorm_l with
+  norm_l with
     do 1 iApply isim_inline_src_sandbox; [try prove_inline_cond|try prove_sb_cond|unfold_cris_defs]. 
 
 Ltac iinline_r :=
-  inorm_r with
+  norm_r with
     do 1 iApply isim_inline_tgt_sandbox; [try prove_inline_cond|try prove_sb_cond|unfold_cris_defs].
 
 Ltac icall hyps :=
-  (inorm with do 1 iApply isim_call_sandbox); [try prove_sb_cond|try prove_sb_cond|
+  (norm with do 1 iApply isim_call_sandbox); [try prove_sb_cond|try prove_sb_cond|
   iSplitL hyps; [try done|iIntros "% % % % % %"; iIntrosFresh "IST"];
   move_aux].
 
 Ltac ispawn :=
-  (inorm with do 1 iApply isim_spawn_sandbox); [try prove_sb_cond|try prove_sb_cond|].
+  (norm with do 1 iApply isim_spawn_sandbox); [try prove_sb_cond|try prove_sb_cond|].
 
 Ltac iyield hyps :=
-  (inorm with do 1 iApply isim_yield);
+  (norm with do 1 iApply isim_yield);
   iSplitL hyps; [try done|iIntros "% % % % %"; iIntrosFresh "IST"];
   move_aux.
 
@@ -224,4 +193,19 @@ Ltac iby_coind CIH :=
   (hrepeat do 1 first[instantiate (1:= (_,_))|instantiate (1:= existT _ _)]); s;
   iApply CIH.
 
-Ltac iinit_simF := initialize_simF.
+(** Special Tactics for AssumeProph in Source **)
+
+Ltac iasmproph_simple_core :=
+  norm_l; iApply isim_assume_proph_src_simple.
+
+Tactic Notation "iasmproph_simple" :=
+  iasmproph_simple_core; iExists _; iSplit; [|iIntros (?); iIntrosFresh "ASM"].
+                 
+Tactic Notation "iasmproph_simple" uconstr(p) :=
+  iasmproph_simple_core; iExists p; iSplit; [|iIntros (?); iIntrosFresh "ASM"].
+
+Ltac iasmproph_standard :=
+  norm_l; iApply isim_assume_proph_src.
+
+Ltac iasmproph_advanced :=
+  norm_l; iApply isim_assume_proph_src_advanced.

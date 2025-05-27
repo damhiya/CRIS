@@ -3,8 +3,7 @@ Require Import Common.
 Require Import LAuto.
 
 Require Import Sp Mod SMod HMod PMod.
-Require Import HModSim ISim.
-(* Require Import SchHeader. *)
+Require Import HModSim.
 
 (************ User Tactics **************)
 
@@ -36,6 +35,16 @@ Ltac prove_nodup :=
   (hrepeat do 1 (econs; [ii; ss; des; try match goal with [H: _ |- _] => inv_string H end|]));
   try (econs; fail).
 
+Lemma combine_quant A B (P : ∀ (a: A) (b: B), Prop)
+    (PR : ∀ (ab : A * B), P (fst ab) (snd ab)) :
+  ∀ a b, P a b.
+Proof using. i. eapply (PR (a,b)). Qed.
+
+Lemma combine_quant_dep A (B: A -> Type) (P: forall a (b: B a), Prop)
+    (PR: ∀ (ab: sigT B), P (projT1 ab) (projT2 ab)):
+  ∀ a b, P a b.
+Proof using. i. eapply (PR (existT a b)). Qed.
+
 Ltac combine_quant tm :=
   revert tm; first [apply combine_quant | apply combine_quant_dep].
 
@@ -49,6 +58,20 @@ Ltac unfold_hmod :=
       rewrite {1}/x; try unseal CRIS
     end
   end.
+
+Ltac unfold_cris_defs :=
+  rewrite /HModTr.sandbox_body; s;
+  (hrepeat do 1 match goal with |- context[cfunU ?x] => rewrite {1}/x end);
+  rewrite /cfunU;
+  (hrepeat do 1 match goal with |- context[cfunN ?x] => rewrite {1}/x end);
+  rewrite /cfunN;
+  (hrepeat do 1 match goal with |- context[PModTr.trans (?x _)] =>
+     match type of x with Any.t → _ => rewrite /x end
+  end);
+  rewrite /SModTr.trans_ktree /SModTr.HoareFun; s;
+  (hrepeat do 1 match goal with |- context[SModTr.trans _ (?x _)] =>
+     match type of x with Any.t → _ => rewrite /x end
+  end).
 
 Lemma ereplace T (x y: T):
   x = y -> x = y.
@@ -73,7 +96,6 @@ Ltac alist_upd_simpl :=
 
 Ltac move_aux :=
   (hrepeat do 1 match goal with [H: List.NoDup _ |- _ ] => guardH H; move H at top end);
-  (hrepeat do 1 match goal with [H: Ist_monotone _ |- _ ] => guardH H; move H at top end);
   (hrepeat do 1 match goal with [H: incl _ (HMod.scopes _ _) |- _] => guardH H; move H at top end);
   (hrepeat do 1 match goal with [H: HMod.wf _ |- _ ] => guardH H; move H at top end);
   (hrepeat do 1 match goal with [H: ∀ _, sp_incl _ _ |- _ ] => guardH H; move H at top end);
@@ -133,6 +155,7 @@ Ltac alist_find_simpl := alist_find_simpl_with (do 1 _alist_find_simpl).
                         | guaranteeK P t
                         | unwrapUK x k
                         | unwrapNK x k
+                        | AssumeProphK Pre Post k
                         | HModSB.putSB imports scopes k v cont
                         | HModSB.getSB imports scopes k cont
                         | HModSB.callSB imports scopes f a cont
@@ -159,6 +182,7 @@ Tactic Notation "red_bind" hyp(prg) tactic(tac) :=
       | guaranteeK _ _ => eapply guaranteeK_bind
       | unwrapUK _ _ => eapply unwrapUK_bind
       | unwrapNK _ _ => eapply unwrapNK_bind
+      | AssumeProphK _ _ _ => eapply AssumeProphK_bind
       | SBRed.putSB _ _ _ _ _ => eapply SBRed.putSB_bind
       | SBRed.getSB _ _ _ _ => eapply SBRed.getSB_bind
       | SBRed.callSB _ _ _ _ _ => eapply SBRed.callSB_bind
@@ -177,6 +201,8 @@ Tactic Notation "red_SB" hyp(prg) :=
       | Tau _ =>
           _hprogress prg; eapply SBRed.tau
       | vis (Assume _) _ =>
+          _hprogress prg; eapply SBRed.vis_ag
+      | vis (AssumePrecise _) _ =>
           _hprogress prg; eapply SBRed.vis_ag
       | vis (Guarantee _) _ =>
           _hprogress prg; eapply SBRed.vis_ag
@@ -204,6 +230,8 @@ Tactic Notation "red_SB" hyp(prg) :=
           _hprogress prg; eapply SBRed.unwrapUK
       | unwrapNK _ _ =>
           _hprogress prg; eapply SBRed.unwrapNK
+      | AssumeProphK _ _ _ =>
+          _hprogress prg; eapply SBRed.assume_prophK
       (* | Sch.spawnK_S _ _ _ _ =>
           _hprogress prg; eapply Sch.spawnK_S_transl
       | Sch.yieldK_S _ _ _ =>
@@ -239,6 +267,8 @@ Tactic Notation "red_S" hyp(prg) tactic(tac) :=
       | Tau _ =>
           _hprogress prg; eapply SRed.tau
       | vis (Assume _) _ =>
+          _hprogress prg; eapply SRed.vis_ag
+      | vis (AssumePrecise _) _ =>
           _hprogress prg; eapply SRed.vis_ag
       | vis (Guarantee _) _ =>
           _hprogress prg; eapply SRed.vis_ag
@@ -278,6 +308,8 @@ Tactic Notation "red_S" hyp(prg) tactic(tac) :=
           _hprogress prg; eapply SRed.unwrapUK
       | unwrapNK _ _ =>
           _hprogress prg; eapply SRed.unwrapNK
+      | AssumeProphK _ _ _ =>
+          _hprogress prg; eapply SRed.assume_prophK
       | @ITree.bind _ _ _ _ _ =>
           _hprogress prg; eapply SRed.bind
       | _ =>
@@ -293,6 +325,10 @@ Tactic Notation "red_P" hyp(prg) :=
           _hprogress prg; eapply PRed.ret
       | Tau _ =>
           _hprogress prg; eapply PRed.tau
+      | vis (AssumePrecise _) _ =>
+          _hprogress prg; eapply PRed.vis_ag; et
+      | vis (Guarantee _) _ =>
+          _hprogress prg; eapply PRed.vis_ag; et
       | vis (Spawn _ _) _ =>
           _hprogress prg; eapply PRed.vis_call
       | vis (Yield _) _ =>
@@ -317,6 +353,8 @@ Tactic Notation "red_P" hyp(prg) :=
           _hprogress prg; eapply PRed.unwrapUK
       | unwrapNK _ _ =>
           _hprogress prg; eapply PRed.unwrapNK
+      | AssumeProphK _ _ _ =>
+          _hprogress prg; eapply PRed.assume_prophK
       | @ITree.bind _ _ _ _ _ =>
           _hprogress prg; eapply PRed.bind
       | _ =>
@@ -354,6 +392,8 @@ Ltac _hnorm_itr prg :=
       eapply unwrapU_unwrapUK
   | [ |- unwrapN _ = _ ] =>
       eapply unwrapN_unwrapNK
+  | [ |- AssumeProph _ _ = _ ] =>
+      eapply AssumeProph_AssumeProphK
   | [ |- SModTr.HoareCall _ _ _ = _ ] =>
       _hprogress prg; unfold SModTr.HoareCall;
       _hnorm_itr prg
@@ -422,6 +462,8 @@ Ltac hnorm_itr :=
         eapply unwrapUK_unwrapU
     | [ |- unwrapNK _ _ = _ ] =>
         eapply unwrapNK_unwrapN
+    | [ |- AssumeProphK _ _ _ = _ ] =>
+        eapply AssumeProphK_AssumeProph
     | [ |- SBRed.putSB _ _ _ _ _ = _ ] =>
         eapply SBRed.putSB_SPut
     | [ |- SBRed.getSB _ _ _ _ = _ ] =>
@@ -435,7 +477,10 @@ Ltac hnorm_itr :=
     end
   ].
 
-Ltac iIntrosFresh H := iIntros H || iIntrosFresh (H ++ "'")%string.
+Ltac iIntrosFresh H :=
+  iIntros H
+  ||
+  let H' := eval compute in (H ++ "'")%string in iIntrosFresh H'.
 
 Ltac des_pairs :=
   (hrepeat do 1
@@ -510,56 +555,6 @@ Ltac show_until marker :=
     end);
   clear marker; i.
 
-Ltac unfold_cris_defs :=
-  (hrepeat do 1 match goal with
-  | [|- context[{| fsb_body := cfunU ?x |}]] => rewrite {1}/x
-  | [|- context[{| fsb_body := cfunN ?x |}]] => rewrite {1}/x
-  | [|- context[{| fsb_body := ?x |}]] => rewrite {1}/x
-  | [|- context[PModTr.trans (?x _)]] => unfold x
-  | [|- context[cfunU ?x]] => rewrite {1}/x
-  | [|- context[cfunN ?x]] => rewrite {1}/x
-  end);
-  unfold SModTr.trans_ktree, SModTr.HoareFun, cfunU, cfunN, HModTr.sandbox_body; s.  
-
-Ltac hide_flist :=
-  let FLS := fresh "FLS" in let FLT := fresh "FLT" in
-  match goal with [|- context[(isim_fsem ?fls ?flt _ _)]] =>
-    set (FLS := fls); set (FLT := flt)
-  end.
-
-Ltac kill_trivial :=
-  match goal with |-?T => match type of T with Prop => econs; fail end end.
-
-Ltac clear_trivials :=
-  (hrepeat do 1
-   lazymatch goal with H: ?T |-_ =>
-     revert H; 
-     try match type of T with Prop =>
-       let TMP := fresh "TMP" in
-       assert (TMP: T) by (econs; fail); clear TMP; intros []; []
-     end
-   end);
-  i.
-
-Ltac pre_simF :=
-  clear_trivials;
-  unfold HSim.sim_fun; i;
-  match goal with [H: _|-_] => revert H end;
-  hide_flist.
-
-Ltac post_simF :=
-  eexists; split; [eauto|];
-  unfold_cris_defs;
-  ii; subst; iIntros "IST";
-  move_aux.
-
-Ltac initialize_simF :=
-  pre_simF;
-  alist_find_simpl;
-  let H := fresh "H" in intro H; inv H;
-  alist_find_simpl;
-  post_simF.
-
 Ltac prove_sub_perm :=  
   i; try rewrite /HMod.scopes; s; (hrepeat do 1 unfold_hmod); s;
   match goal with
@@ -603,6 +598,48 @@ Qed.
 
 Ltac prove_sb_cond :=
   by s; eauto; try rewrite !mask_app; s; eauto 10.
+
+(* Normalization tactics *)
+
+Ltac replace_l :=
+  lazymatch goal with
+  | [ |- environments.envs_entails ?env (?rel (?st_src, ?itr_src) (?st_tgt, ?itr_tgt)) ] =>
+      refine (eq_ind_r (fun itr_src' => environments.envs_entails env (rel (st_src, itr_src') (st_tgt, itr_tgt))) _ _); cycle 1
+  end.
+
+Ltac replace_r :=
+  lazymatch goal with
+  | [ |- environments.envs_entails ?env (?rel (?st_src, ?itr_src) (?st_tgt, ?itr_tgt)) ] =>
+      refine (eq_ind_r (fun itr_tgt' => environments.envs_entails env (rel (st_src, itr_src) (st_tgt, itr_tgt'))) _ _); cycle 1
+  end.
+
+Ltac norm_l := replace_l; [s; hnorm_itr|].
+Ltac norm_r := replace_r; [s; hnorm_itr|].
+
+Tactic Notation "norm_l" "with" tactic(tac) :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  (hrepeat do 1 norm_l);  
+  tac;
+  show_until marker.
+
+Tactic Notation "norm_r" "with" tactic(tac) :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  (hrepeat do 1 norm_r);  
+  tac;
+  show_until marker.
+
+Tactic Notation "norm" "with" tactic(tac) :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  (hrepeat do 1 norm_l);
+  (hrepeat do 1 norm_r);
+  tac;
+  show_until marker.
 
 (* unfold tactics *)
 

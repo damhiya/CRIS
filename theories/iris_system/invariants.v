@@ -6,7 +6,7 @@ From iris.proofmode Require Import proofmode.
 From iris Require Import bi.big_op.
 Require Import Coqlib.
 Require Import functions.
-Require Export SAT sProp own.
+Require Export SAT sProp own precise.
 
 Definition univ_id := nat.
 
@@ -457,6 +457,45 @@ Section wsats.
 
   Global Instance inv_persistent u n N p : Persistent (inv u n N p).
   Proof using. rewrite inv_eq /inv_def. apply _. Qed.
+
+  (** Turns a pure proposition into a resource **)
+  
+  Definition pure_res (P : Prop) : Σ :=
+    if excluded_middle_informative P
+    then ε
+    else own.iRes_singleton base_γ (ownER 0 ⊤ ⋅ ownER 0 ⊤).
+
+  Lemma pure_res_spec (P : Prop) :
+    Own (pure_res P) ⊣⊢ ⌜P⌝.
+  Proof.
+    econs. i. rewrite /pure_res. des_ifs.
+    { split; i; eapply Own_general_completeness in H1; eapply Own_general_soundness; et.
+      iIntros "_". iApply Own_unit.
+    }
+
+    split; i; eapply Own_general_completeness in H1; exfalso; cycle 1.
+    { eapply n, Own_pure_soundness; et. }
+  
+    eapply Own_wand_valid in H0; cycle 1.
+    { iIntros "X". iApply H1. et. }
+    assert (F := own.iRes_singleton_validI base_γ (ownER 0 ⊤ ⋅ ownER 0 ⊤)).
+    assert (Own ε ⊢ ✓ (ownER 0 ⊤ ⋅ ownER 0 ⊤ ))%I.
+    { iIntros "_". iApply F. et. }
+    exploit (uPred_primitive.ownM_general_soundness ε (✓ (ownER 0 ⊤ ⋅ ownER 0 ⊤))); eauto using ucmra_unit_valid.
+    { rr in H2. rewrite own.Own_eq /own.Own_def in H2. et. }
+    intro V. rr in V. revert V. rewrite seal_eq. ss.
+    rewrite /ownER discrete_fun_singleton_op discrete_fun_singleton_valid.
+    intros V. eapply coPset_disj_valid_inv_l in V. des. depdes V.
+    rewrite elem_of_disjoint in V0. eapply (V0 1%positive); ss.
+  Qed.
+
+  Lemma precise_pure (P: Prop) :
+    ⊢ precise (⌜P⌝).
+  Proof.
+    rewrite /precise. iIntros. iExists (pure_res P).
+    rewrite pure_res_spec. et.
+  Qed.
+
 End wsats.
 
 Notation fupd_ex u n :=
@@ -579,7 +618,6 @@ Section inv.
     iMod "P". iMod ("K" with "P") as "K"; iModIntro; ss.
   Qed.
 End inv.
-
 
 Ltac unfold_own :=
   match goal with
@@ -704,3 +742,4 @@ Ltac solve_res :=
     |- context[environments.Esnoc _ (INamed ?H) _] =>
       solve_index H; f_equal
   end.
+ 

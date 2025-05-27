@@ -1,6 +1,6 @@
 Require Import Common.
 From iris.proofmode Require Import proofmode.
-Require Import SModTr SMod HMod ITactics.
+Require Import SModTr SMod HMod Tactics.
 Require Import ISim ISimInit CtxRefine CtxRefineFacts ClosedAdequacy.
 Require Import HModInline.
 
@@ -51,6 +51,8 @@ Proof.
   - rewrite SBRed.ret HIRed.ret. step. eauto.
   - rewrite SBRed.tau HIRed.tau. steps_l. steps_r. by_coind "CIH". eauto.
   - rewrite SBRed.bind SBRed.ag HIRed.bind_ag. steps_l. force_r. iFrame. steps_r. by_coind "CIH". eauto.
+  - rewrite SBRed.bind SBRed.ag HIRed.bind_ag. steps_r.
+    step. steps_r. by_coind "CIH". eauto.
   - rewrite SBRed.bind SBRed.ag HIRed.bind_ag. steps_r. force_l. iFrame. steps_l. by_coind "CIH". eauto.
   - destruct c.
     {

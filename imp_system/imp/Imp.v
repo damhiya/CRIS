@@ -449,7 +449,9 @@ End Denote.
 
 Section Interp.
 
-  Definition effs := GlobEnv +' ImpState +' pmodE.
+  Context `{Σ: GRA}.
+
+  Definition effs := GlobEnv +' ImpState +' hmodE.
 
   Definition handle_GlobEnv {eff} `{coreE -< eff} (ge : GEnv.t) : GlobEnv ~> (itree eff) :=
     fun _ e =>
@@ -481,7 +483,7 @@ Section Interp.
   (* Definition interp_imp ge le (itr : itree effs val) := *)
   (*   interp_ImpState (interp_GlobEnv ge itr) le. *)
 
-  Definition interp_imp ge : itree effs ~> stateT lenv (itree pmodE) :=
+  Definition interp_imp ge : itree effs ~> stateT lenv (itree hmodE) :=
     fun _ itr le => interp_ImpState (interp_GlobEnv ge itr) le.
 
   Fixpoint init_lenv xs : lenv :=
@@ -512,7 +514,7 @@ Section Interp.
 
   (* 'return' is a fixed register, holding the return value of this function. *)
   (* '_' is a black hole register, holding garbage *)
-  Definition eval_imp (ge : GEnv.t) (f : function) (args : list val) : itree pmodE val :=
+  Definition eval_imp (ge : GEnv.t) (f : function) (args : list val) : itree hmodE val :=
     let vars := f.(fn_vars) ++ ["return"; "_"] in
     let params := f.(fn_params) in
     (if (ListDec.NoDup_dec string_dec (params ++ vars)) then Ret tt else triggerUB);;;
@@ -536,7 +538,9 @@ Section MODSEM.
   Set Typeclasses Depth 5.
   (* Instance Initial_void1 : @Initial (Type -> Type) IFun void1 := @elim_void1. (*** TODO : move to ITreelib ***) *)
 
-  Definition to_itree (ge : GEnv.t) : (string*_) -> (string * (_ * list string * (Any.t -> itree pmodE Any.t)))%type :=
+  Context `{Σ: GRA}.
+
+  Definition to_itree (ge : GEnv.t) : (string*_) -> (string * (_ * list string * (Any.t -> itree hmodE Any.t)))%type :=
     (fun '(fn, f) => (fn, (wmask_all, [], cfunU (eval_imp ge f)))).
   
   Program Definition get_mod (m : program) (ge : GEnv.t) : PMod.t :=

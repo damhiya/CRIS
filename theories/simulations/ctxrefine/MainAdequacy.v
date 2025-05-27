@@ -1,7 +1,8 @@
 Require Import Common.
 From iris.proofmode Require Import proofmode.
 Require Import Mod HMod.
-Require Import ModSim ModSimFacts HModSim HModSimFacts ISim ISimInit ISimFacts.
+Require Import ModSim ModSimFacts HModSim HModSimFacts.
+Require Import ISim ISimInit ISimFacts Tactics.
 Require Import CtxRefine.
 
 Set Implicit Arguments.
@@ -34,7 +35,7 @@ Proof.
       rewrite! SBRed.ag. rewrite! bind_trigger.
       gstep. econs. i. r. gbase. eauto.
     }
-    destruct p; [destruct c|].
+    destruct s; [destruct c|].
     {
       rewrite! SBRed.call. des_ifs; ss.
       + rewrite SBRed.call. des_ifs.
@@ -136,9 +137,9 @@ Proof.
   }
 Qed.
 
-Lemma inv_sandbox_ag `{Σ: GRA} {X} msk sc (ktr : unit -> itree hmodE X) (ag : agE unit)
+Lemma inv_sandbox_ag `{Σ: GRA} {X R} x msk sc (ktr : X -> itree hmodE R) (ag : agE X)
     (SB : HModTr.sandbox msk sc (trigger ag >>= ktr) = trigger ag >>= ktr) :
-  HModTr.sandbox msk sc (ktr tt) = ktr tt.
+  HModTr.sandbox msk sc (ktr x) = ktr x.
 Proof.
   rewrite SBRed.bind SBRed.ag in SB.
   rewrite! bind_trigger in SB. inv SB.
@@ -367,6 +368,12 @@ Lemma hsim_ctx `{Σ: GRA} fnsems_src fnsems_tgt fl_src fl_tgt fl_ctx Ist context
   - hstep. i. eapply K; try refl; eauto using inv_sandbox_ag.
   - hstep. i. eapply K; try refl; eauto using inv_sandbox_ag.
   - hstep. i. eapply K; try refl; eauto using inv_sandbox_ag.
+  - hstep. i. eapply K; try refl; eauto using inv_sandbox_ag.
+  - hstep. i. hexploit K; et; i; des. esplits; et. i.
+    eapply H2; try refl; eauto using inv_sandbox_ag.
+  - guclo @hsimC_spec. econs; esplits; et.
+    eapply hsim_assume_precise_both; et.
+    i. eapply K; try refl; eauto using inv_sandbox_ag.
   - hstep. eapply K; try refl; eauto.
     + eapply inv_sandbox_spawn in ITRT. eauto.
     + eapply inv_sandbox_spawn in ITRS. eauto.
@@ -673,6 +680,7 @@ Proof.
   - step. iFrame. eauto.
   - steps_l. steps_r. by_coind "CIH". eauto.
   - steps_l. force_r. iFrame. steps_r. by_coind "CIH". eauto.
+  - steps_l. steps_r. step. by_coind "CIH". eauto.
   - steps_r. force_l. iFrame. steps_l. by_coind "CIH". eauto.
   - destruct c.
     + norm_l. norm_r. rewrite! SBRed.call. des_ifs; ss.

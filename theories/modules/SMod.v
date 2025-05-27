@@ -8,7 +8,6 @@ Module SMod.
 Section SMOD.
 
   Context `{Σ : GRA}.
-  Variable sp : string -> option fspec.
 
   Record t : Type := mk {
     scopes : list string;
@@ -83,7 +82,7 @@ Section SMOD.
   Definition addL (ms : list t) : t :=
     foldr add empty ms.
 
-  Program Definition to_hmod (ms : t) : HMod.t := {|
+  Program Definition to_hmod (sp : string -> option fspec) (ms : t) : HMod.t := {|
     HMod.scopes := ms.(scopes);
     HMod.fnsems := List.map (map_snd (λ ksb, (ksb.1, SModTr.trans_ktree sp ksb.2))) ms.(fnsems);
     HMod.initial_st := ms.(initial_st);

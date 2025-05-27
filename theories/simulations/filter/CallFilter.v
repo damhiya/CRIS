@@ -2,8 +2,8 @@ Require Import Common.
 From iris.proofmode Require Export proofmode.
 Require Import Mod ModSim SimGTactics HMod ISim ISimInit.
 Require Export CtxRefine CtxRefineFacts ClosedAdequacy MainAdequacy.
-Require Import TacticsInit.
-Require Import SimGlobal SimGlobalFacts.
+Require Import TacticsInit Tactics.
+Require Import HModSim SimGlobal SimGlobalFacts.
 
 Module CFilter. Section CFilter.
   Context `{Σ: GRA}.
@@ -51,6 +51,7 @@ Module CFilter. Section CFilter.
     - step; et.
     - steps_l. steps_r. by_coind "CIH"; et.
     - steps_l. force_r. iSplitL "ASM"; et. steps_r. by_coind "CIH"; et.
+    - steps_l. steps_r. step. steps_l. steps_r. by_coind "CIH"; et.
     - steps_r. force_l. iSplitL "GRT"; et. steps_l. by_coind "CIH"; et.
     - destruct c; s.
       + destruct (wmask_and mask msk fn0) eqn: EQ; cycle 1.
@@ -103,6 +104,7 @@ Module CFilter. Section CFilter.
     - step; et.
     - steps_l. steps_r. by_coind "CIH"; et.
     - steps_l. force_r. iSplitL "ASM"; et. steps_r. by_coind "CIH"; et.
+    - steps_l. steps_r. step. steps_l. steps_r. by_coind "CIH"; et.
     - steps_r. force_l. iSplitL "GRT"; et. steps_l. by_coind "CIH"; et.
     - destruct c; s.
       + destruct (msk fn0) eqn: EQ; cycle 1.
@@ -265,7 +267,7 @@ Module CFilter. Section CFilter.
       i. eapply list_lookup_insert_Some in IN. des; subst; et.
     }
 
-    destruct e; [destruct a | destruct p;
+    destruct e; [destruct a | destruct s;
                               [destruct c|destruct s; [destruct p|destruct c]]].
     { (* Assume *)
       zstep_l.
@@ -277,6 +279,29 @@ Module CFilter. Section CFilter.
       zstep_r.
       ziter_r. zstep_r. exists x. zstep_r.
       ziter_r. zstep_r. exists x0. zstep_r.
+      ziter_r. zstep_r.
+      ziter_r. zstep_r.
+
+      zprogress.
+      gbase. eapply CIH; et.
+      i. eapply list_lookup_insert_Some in IN. des; subst; et.
+    }
+    { (* AssumePrecise  *)
+      zstep_r.
+      ziter_r. zstep_r. zstep_r.
+      ziter_r. zstep_r. zstep_r. 
+      ziter_r. zstep_r. zstep_r.
+
+      zstep_l.
+      ziter_l. zstep_l. exists x. zstep_l.
+      ziter_l. zstep_l. exists x0. zstep_l.
+      ziter_l. zstep_l. exists x1. zstep_l.
+
+      ziter_l. zstep_l. zstep_l.
+      ziter_l. zstep_l.
+      ziter_l. zstep_l.
+      
+      ziter_r. zstep_r. exists x2. zstep_r.
       ziter_r. zstep_r.
       ziter_r. zstep_r.
 

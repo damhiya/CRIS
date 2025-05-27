@@ -1,8 +1,8 @@
 Require Import Common.
 From iris.proofmode Require Import proofmode.
 
-Require Import HMod SMod.
-Require Export ISim Tactics.
+Require Import HMod SMod PMod.
+Require Export ISim TacticsCommon ITactics ISimNotations.
 
 Set Implicit Arguments.
 
@@ -32,6 +32,62 @@ Proof.
   rewrite /state_scopes -!List.map_map alist_upd_keys. eauto.
 Qed.
 
+Lemma isim_refl `{Σ : GRA} r g Ist contextual fl_src fl_tgt mask scopes
+  ps pt nths st_src st_tgt {R} (it: itree hmodE R)
+  (MON: Ist_monotone Ist)
+  (EQGET : ∀ nths st_src st_tgt (k: key) (IN: In k.1 scopes),
+      Ist nths st_src st_tgt -∗ ⌜alist_find k st_src = alist_find k st_tgt⌝)
+  (EQSET : ∀ nths st_src st_tgt (k: key) v (IN: In k.1 scopes),
+      Ist nths st_src st_tgt -∗ Ist nths (alist_upd k v st_src) (alist_upd k v st_tgt))
+  :
+  Ist nths st_src st_tgt
+  ⊢ isim contextual fl_src fl_tgt Ist r g (ist_with_eq Ist) ps pt nths
+    (st_src, HModTr.sandbox mask scopes it)
+    (st_tgt, HModTr.sandbox mask scopes it).
+Proof.
+  revert it.
+  combine_quant st_tgt.
+  combine_quant st_src.
+  combine_quant nths.
+  combine_quant ps.
+  combine_quant pt.
+  eapply isim_coind. intros g0 a _.
+  destruct a as [pt [ps [nths [st_src [st_tgt it]]]]]. s.
+  iIntros "[IST CIH]".
+  assert (CASE := case_itrH it); des; subst.
+  - istep. iFrame. eauto.
+  - isteps_l. isteps_r. iby_coind "CIH"; eauto.
+  - isteps_l. iforces_r. iFrame. isteps_r. iby_coind "CIH". eauto.
+  - isteps_l. isteps_r. istep. isteps_l. isteps_r. iby_coind "CIH". eauto.
+  - isteps_r. iforces_l. iFrame. isteps_l. iby_coind "CIH". eauto.
+  - depdes c.
+    + isteps_l. isteps_r. rewrite SBRed.call. des_ifs.
+      * iApply isim_call. iSplitL "IST"; et.
+        iIntros (? ? ? ? ? ?) "IST".
+        iby_coind "CIH". et.
+      * isteps_l. ss.
+    + isteps_l. isteps_r. rewrite SBRed.spawn. des_ifs.
+      * iApply isim_spawn. iby_coind "CIH". iApply MON; [|eauto]; nia.
+      * isteps_l. ss.
+    + iyield "IST"; eauto. iby_coind "CIH". eauto.
+  - depdes s.
+    + rewrite !SBRed.bind !SBRed.put. des_ifs; cycle 1.
+      { isteps_l. ss. }
+      iApply isim_sput_src. iApply isim_sput_tgt.
+      iby_coind "CIH". iApply EQSET; et.
+      apply existsb_exists in Heq. des. apply String.eqb_eq in Heq0. subst. et.
+    + rewrite !SBRed.bind !SBRed.get. des_ifs; cycle 1.
+      { isteps_l. ss. }
+      iApply isim_sget_src. iApply isim_sget_tgt.
+      apply existsb_exists in Heq. des. apply String.eqb_eq in Heq0. subst.
+      iPoseProof (EQGET with "IST") as "%"; et. rewrite H.
+      iby_coind "CIH". eauto.
+  - destruct e.
+    + isteps_r. iforce_l q. isteps_l. iby_coind "CIH". eauto.
+    + isteps_l. iforce_r q. isteps_r. iby_coind "CIH". eauto.
+    + istep. iby_coind "CIH". eauto.
+Qed.
+
 Lemma isim_reflL `{Σ : GRA} Ist contextual fl_src fl_tgt mask scopesL scopesR scopesF (EqL : _ → _ → _ → iProp Σ) itr
     (DISJ : List.NoDup (scopesL ++ scopesR))
     (INCL : incl scopesF scopesL)
@@ -42,74 +98,28 @@ Lemma isim_reflL `{Σ : GRA} Ist contextual fl_src fl_tgt mask scopesL scopesR s
     (HModTr.sandbox_body (mask,scopesF,itr)) (HModTr.sandbox_body (mask,scopesF,itr)).
 Proof.
   ii. subst. unfold HModTr.sandbox_body. s.
-  generalize (itr y) as it; clear itr y.
-  combine_quant NODD.
-  combine_quant NODS.
-  combine_quant st_tgt.
-  combine_quant st_src.
-  combine_quant nths.
-  eapply isim_coind. intros g0 a _. destruct a as [nths [st_src [st_tgt [NODS [NODD it]]]]]. s.
-  iIntros "[IST CIH]".
-  assert (CASE := case_itrH it); des; subst.
-  - step. iFrame. eauto.
-  - steps_l. steps_r. by_coind "CIH"; eauto.
-  - steps_l. forces_r. iFrame. steps_r. by_coind "CIH". eauto.
-  - steps_r. forces_l. iFrame. steps_l. by_coind "CIH". eauto.
-  - depdes c.
-    + steps_l. steps_r. rewrite SBRed.call. des_ifs.
-      * iApply isim_call. iSplitL "IST"; et.
-        iIntros (? ? ? ? ? ?) "IST".
-        by_coind "CIH". iApply IMON; [|eauto]; nia.
-      * steps_l. ss.
-    + steps_l. steps_r. rewrite SBRed.spawn. des_ifs.
-      * iApply isim_spawn. by_coind "CIH". iApply IMON; [|eauto]; nia.
-      * steps_l. ss.
-    + yield "IST"; eauto. by_coind "CIH". eauto.
-  - depdes s.
-    + rewrite !SBRed.bind !SBRed.put. des_ifs; cycle 1.
-      { steps_l. ss. }
-      iApply isim_sput_src. iApply isim_sput_tgt.
-      by_coind "CIH". unfold IstProd.
-      iDestruct "IST" as (? ? ? ?) "(% & EQL & (% & IST))". des; subst.
-      apply existsb_exists in Heq. des. apply String.eqb_eq in Heq0. subst.
-      iExists (alist_upd k v st_srcL), (alist_upd k v st_tgtL), st_srcR, st_tgtR.
-      iSplitR; cycle 1.
-      { iFrame. iSplit; eauto. iApply EQSET. eauto. }
-      iPureIntro. esplits; eauto.
-      * eapply alist_upd_not_tail. ii.
-        eapply NoDup_app_disjoint; try apply DISJ; eauto.
-        eapply H0. eapply in_map in H. rewrite List.map_map in H. apply H.
-      * eapply alist_upd_not_tail. ii.
-        eapply NoDup_app_disjoint; try apply DISJ; eauto.
-        apply H1. eapply in_map in H. rewrite List.map_map in H. apply H.
-    + rewrite !SBRed.bind !SBRed.get. des_ifs; cycle 1.
-      { steps_l. ss. }
-      iApply isim_sget_src. iApply isim_sget_tgt.
-      apply existsb_exists in Heq. des. apply String.eqb_eq in Heq0. subst.
-      iAssert (⌜alist_find k st_src = alist_find k st_tgt⌝ ∗
-               IstProd EqL (IstSB scopesR Ist) nths st_src st_tgt)%I
-        with "[IST]" as "(% & IST)".
-      { iDestruct "IST" as (? ? ? ?) "(% & EQL & (% & IST))". des; subst.
-        iPoseProof (EQGET with "EQL") as "%". subst.
-        iSplitR; cycle 1.
-        { repeat iExists _. iFrame. eauto. }
-        rewrite !alist_find_app_o. des_ifs.
-        erewrite alist_find_fst_notin; cycle 1.
-        { ii. eapply NoDup_app_disjoint; try apply DISJ; eauto.
-          apply H0. eapply in_map in H. rewrite List.map_map in H. apply H. }
-        erewrite alist_find_fst_notin; cycle 1.
-        { ii. eapply NoDup_app_disjoint; try apply DISJ; eauto.
-          apply H1. eapply in_map in H. rewrite List.map_map in H. apply H. }
-        et.
-      }
-      rewrite H. by_coind "CIH". eauto.
-  - destruct e.
-    + steps_r. force_l q. steps_l. by_coind "CIH". eauto.
-    + steps_l. force_r q. steps_r. by_coind "CIH". eauto.
-    + step. by_coind "CIH". eauto.
-Unshelve. all : eauto.
-{ eapply alist_upd_nodup. eauto. }
-{ eapply alist_upd_nodup. eauto. }
+  eapply isim_refl; i; et.
+  - iIntros "[% [% [% [% [% [EQ [% IST]]]]]]]". des; subst.
+    iPoseProof (EQGET with "EQ") as "%". subst.
+    rewrite !alist_find_app_o. des_ifs.
+    erewrite alist_find_fst_notin; cycle 1.
+    { ii. eapply NoDup_app_disjoint; try apply DISJ; eauto.
+      apply H0. eapply in_map in H. rewrite List.map_map in H. apply H. }
+    erewrite alist_find_fst_notin; cycle 1.
+    { ii. eapply NoDup_app_disjoint; try apply DISJ; eauto.
+      apply H1. eapply in_map in H. rewrite List.map_map in H. apply H. }
+    et.
+  - iIntros "[% [% [% [% [% [EQ [% IST]]]]]]]". des; subst.
+    iExists (alist_upd k v st_srcL), (alist_upd k v st_tgtL), st_srcR, st_tgtR.
+    iSplitR; cycle 1.
+    { iFrame. iSplit; eauto. iApply EQSET. eauto. }
+    iPureIntro. esplits; eauto.
+    * eapply alist_upd_not_tail. ii.
+      eapply NoDup_app_disjoint; try apply DISJ; eauto.
+      eapply H0. eapply in_map in H. rewrite List.map_map in H. apply H.
+    * eapply alist_upd_not_tail. ii.
+      eapply NoDup_app_disjoint; try apply DISJ; eauto.
+      apply H1. eapply in_map in H. rewrite List.map_map in H. apply H.
 Qed.
 
 Lemma isim_reflR `{Σ : GRA} Ist contextual fl_src fl_tgt mask scopesL scopesR scopesF (EqR : _ → _ → _ → iProp Σ) itr
@@ -122,75 +132,29 @@ Lemma isim_reflR `{Σ : GRA} Ist contextual fl_src fl_tgt mask scopesL scopesR s
     (HModTr.sandbox_body (mask,scopesF,itr)) (HModTr.sandbox_body (mask,scopesF,itr)).
 Proof.
   ii. subst. unfold HModTr.sandbox_body. s.
-  generalize (itr y) as it; clear itr y.
-  combine_quant NODD.
-  combine_quant NODS.
-  combine_quant st_tgt.
-  combine_quant st_src.
-  combine_quant nths.
-  eapply isim_coind. intros g0 a _. destruct a as [nths [st_src [st_tgt [NODS [NODD it]]]]]. s.
-  iIntros "[IST CIH]".
-  assert (CASE := case_itrH it); des; subst.
-  - step. iFrame. eauto.
-  - steps_l. steps_r. by_coind "CIH"; eauto.
-  - steps_l. forces_r. iFrame. steps_r. by_coind "CIH". eauto.
-  - steps_r. forces_l. iFrame. steps_l. by_coind "CIH". eauto.
-  - depdes c.
-    + steps_l. steps_r. rewrite SBRed.call. des_ifs.
-      * iApply isim_call. iSplitL "IST"; et.
-        iIntros (? ? ? ? ? ?) "IST".
-        by_coind "CIH". iApply IMON; [|eauto]; nia.
-      * steps_l. ss.
-    + steps_l. steps_r. rewrite SBRed.spawn. des_ifs.
-      * iApply isim_spawn. by_coind "CIH". iApply IMON; [|eauto]; nia.
-      * steps_l. ss.
-    + yield "IST"; eauto. by_coind "CIH". eauto.
-  - depdes s.
-    + rewrite !SBRed.bind !SBRed.put. des_ifs; cycle 1.
-      { steps_l. ss. }
-      iApply isim_sput_src. iApply isim_sput_tgt.
-      by_coind "CIH". unfold IstProd.
-      iDestruct "IST" as (? ? ? ?) "(% & (% & IST) & EQR)". des; subst.
-      apply existsb_exists in Heq. des. apply String.eqb_eq in Heq0. subst.
-      iExists st_srcL, st_tgtL, (alist_upd k v st_srcR), (alist_upd k v st_tgtR).
-      iSplitR; cycle 1.
-      { iFrame. iSplit; eauto. iApply EQSET. eauto. }
-      iPureIntro. esplits; eauto.
-      * eapply alist_upd_tail. ii. 
-        eapply NoDup_app_disjoint; try apply DISJ; eauto.
-        eapply H0. eapply in_map in H. rewrite List.map_map in H. apply H.
-      * eapply alist_upd_tail. ii.
-        eapply NoDup_app_disjoint; try apply DISJ; eauto.
-        apply H1. eapply in_map in H. rewrite List.map_map in H. apply H.
-    + rewrite !SBRed.bind !SBRed.get. des_ifs; cycle 1.
-      { steps_l. ss. }
-      iApply isim_sget_src. iApply isim_sget_tgt.
-      apply existsb_exists in Heq. des. apply String.eqb_eq in Heq0. subst.
-      iAssert (⌜alist_find k st_src = alist_find k st_tgt⌝ ∗
-               IstProd (IstSB scopesL Ist) EqR nths st_src st_tgt)%I
-        with "[IST]" as "(% & IST)".
-      { iDestruct "IST" as (? ? ? ?) "(% & (% & IST) & EQR)". des; subst.
-        iPoseProof (EQGET with "EQR") as "%". subst.
-        iSplitR; cycle 1.
-        { repeat iExists _. iFrame. eauto. }
-        rewrite alist_find_app_o; des_ifs.
-        { exfalso. apply alist_find_fst_some in Heq0.
-          eapply NoDup_app_disjoint; try apply DISJ; eauto.
-          apply H0. eapply in_map in Heq0. rewrite List.map_map in Heq0. eauto.
-        }
-        rewrite alist_find_app_o; des_ifs.
-        exfalso. apply alist_find_fst_some in Heq1.
-        eapply NoDup_app_disjoint; try apply DISJ; eauto.
-        apply H1. eapply in_map in Heq1. rewrite List.map_map in Heq1. eauto.
-      }
-      rewrite H. by_coind "CIH". eauto.
-  - destruct e.
-    + steps_r. force_l q. steps_l. by_coind "CIH". eauto.
-    + steps_l. force_r q. steps_r. by_coind "CIH". eauto.
-    + step. by_coind "CIH". eauto.
-Unshelve. all : eauto.
-{ eapply alist_upd_nodup. eauto. }
-{ eapply alist_upd_nodup. eauto. }
+  eapply isim_refl; i; et.
+  - iIntros "[% [% [% [% [% [[% IST] EQ]]]]]]". des; subst.
+    iPoseProof (EQGET with "EQ") as "%". subst.
+    rewrite alist_find_app_o; des_ifs.
+    { exfalso. apply alist_find_fst_some in Heq.
+      eapply NoDup_app_disjoint; try apply DISJ; eauto.
+      apply H0. eapply in_map in Heq. rewrite List.map_map in Heq. eauto.
+    }
+    rewrite alist_find_app_o; des_ifs.
+    exfalso. apply alist_find_fst_some in Heq0.
+    eapply NoDup_app_disjoint; try apply DISJ; eauto.
+    apply H1. eapply in_map in Heq0. rewrite List.map_map in Heq0. eauto.
+  - iIntros "[% [% [% [% [% [[% IST] EQ]]]]]]". des; subst.
+    iExists st_srcL, st_tgtL, (alist_upd k v st_srcR), (alist_upd k v st_tgtR).
+    iSplitR; cycle 1.
+    { iFrame. iSplit; eauto. iApply EQSET. eauto. }
+    iPureIntro. esplits; eauto.
+    * eapply alist_upd_tail. ii. 
+      eapply NoDup_app_disjoint; try apply DISJ; eauto.
+      eapply H0. eapply in_map in H. rewrite List.map_map in H. apply H.
+    * eapply alist_upd_tail. ii.
+      eapply NoDup_app_disjoint; try apply DISJ; eauto.
+      apply H1. eapply in_map in H. rewrite List.map_map in H. apply H.
 Qed.
 
 Lemma hmod_sim_reflL `{Σ : GRA} A B C init_cond scopes Ist contextual (EqL : _ → _ → _ → iProp Σ)
@@ -308,3 +272,45 @@ Proof.
       unfold fnsems_scopes. erewrite FND. refl.
 Unshelve. all: exact( ()↑).
 Qed.
+
+Section Proph.
+  Context `{Σ : GRA}.
+
+  Lemma isim_proph_to_normal fsp fbody_s fbody_t arg mask scopes
+    ctx fls flt r g ps pt nths st
+    :
+    isim ctx fls flt IstEq r g (ist_with_eq IstEq) true true nths
+      (st, HModTr.sandbox mask scopes (fbody_s arg))
+      (st, HModTr.sandbox mask scopes (fbody_t arg))
+    ⊢
+    isim ctx fls flt IstEq r g (ist_with_eq IstEq) ps pt nths
+      (st, HModTr.sandbox mask scopes
+           (SModTr.HoareFun (to_fspec fsp).(precond) (to_fspec fsp).(postcond) fbody_s arg))
+      (st, HModTr.sandbox mask scopes (fspec_proph fsp fbody_t arg)).
+  Proof.
+    rewrite /SModTr.HoareFun /fspec_proph. iIntros "H". s.
+    isteps_l. iDestruct "ASM" as "[P %]"; subst.
+    iforce_r. iFrame. iIntros (?) "Q". isteps_r.
+    iApply isim_bind. iSplitR "Q"; iFrame.
+    iIntros (? ? ? ? ?) "[% %]". subst.
+    isteps_r. iMod ("Q" with "GRT") as "Q".
+    iforce_l. iforce_l. iFrame. iSplit; et.
+    istep. iSplit; et.
+  Qed.
+
+  Lemma isim_fsem_proph_to_normal fsp fbody_s fbody_t mask sp scopes ctx fls flt
+    (SIM: ∀ arg nths st,
+        ⊢ isim ctx fls flt IstEq ibot ibot (ist_with_eq IstEq) true true nths
+          (st, HModTr.sandbox mask scopes (SModTr.trans sp (fbody_s arg)))
+          (st, HModTr.sandbox mask scopes (PModTr.trans (fbody_t arg))))
+    :
+    isim_fsem fls flt IstEq ctx
+      (HModTr.sandbox_body (mask,scopes, SModTr.HoareFun (to_fspec fsp).(precond) (to_fspec fsp).(postcond) (λ arg, SModTr.trans sp (fbody_s arg))))
+      (HModTr.sandbox_body (mask,scopes, (λ arg, PModTr.trans (fspec_proph fsp fbody_t arg)))).
+  Proof.
+    ii. iIntros "%". subst. rewrite /HModTr.sandbox_body. s.
+    rewrite PRed.fspec_proph.
+    iApply isim_proph_to_normal. iApply SIM.
+  Qed.
+  
+End Proph.

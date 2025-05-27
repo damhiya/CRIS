@@ -9,7 +9,7 @@ Module APCI. Section APCI.
   Definition scopes := ["APC"].
 
   Definition fnsems :=
-    [(APCHdr.apc, (wmask_all, scopes, @fbody_trivial pmodE _))].
+    [(APCHdr.apc, (wmask_all, scopes, fbody_trivial))].
   
   Program Definition Mod : PMod.t := {|
     PMod.scopes := scopes;

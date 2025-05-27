@@ -9,7 +9,7 @@ Require Import iprop.
 
 Set Implicit Arguments.
 
-Section EVENTS.
+Section EVENTS_MOD.
 
   Variant coreE : Type -> Type :=
   | Choose (X : Type) : coreE X
@@ -29,7 +29,38 @@ Section EVENTS.
 
   Definition modE : Type -> Type := callE +' stateE +' coreE.
 
-End EVENTS.
+End EVENTS_MOD.
+
+Section EVENTS_HMOD.
+  Context {Σ : GRA}.
+
+  Definition key := (string * string)%type.
+
+  Global Program Instance dec_key `{Dec string} : Dec key.
+  Next Obligation.
+    intro DEC. i. destruct a0, a1.
+    destruct (DEC s0 s2).
+    - subst. destruct (DEC s s1).
+      + subst. left. refl.
+      + right. ii. apply n. inv H.
+    - right. ii. apply n. inv H.
+  Defined.
+
+  Definition sf (s : string) (f : string) := (s,f).
+
+  Variant pgE : Type -> Type :=
+  | SPut (k : key) (v : Any.t) : pgE unit
+  | SGet (k : key) : pgE Any.t.
+
+  Variant agE : Type -> Type :=
+  | Assume (P : iProp Σ) : agE unit
+  | AssumePrecise (P : iProp Σ) : agE unit
+  | Guarantee (P : iProp Σ) : agE unit
+  .
+
+  Definition hmodE := agE +' callE +' pgE +' coreE.
+
+End EVENTS_HMOD.
 
 Section WRAP.
 
@@ -174,40 +205,45 @@ Section WRAP.
 
 End WRAP.
 
-Section EVENTS_OTHER.
-  Context {Σ : GRA}.
-
-  Definition key := (string * string)%type.
-
-  Global Program Instance dec_key `{Dec string} : Dec key.
-  Next Obligation.
-    intro DEC. i. destruct a0, a1.
-    destruct (DEC s0 s2).
-    - subst. destruct (DEC s s1).
-      + subst. left. refl.
-      + right. ii. apply n. inv H.
-    - right. ii. apply n. inv H.
-  Defined.
-
-  Definition sf (s : string) (f : string) := (s,f).
-
-  Variant pgE : Type -> Type :=
-  | SPut (k : key) (v : Any.t) : pgE unit
-  | SGet (k : key) : pgE Any.t.
-
-  Variant agE : Type -> Type :=
-  | Assume (P : iProp Σ) : agE unit
-  | Guarantee (P : iProp Σ) : agE unit.
-
-  Definition pmodE := callE +' pgE +' coreE.
-
-  Definition hmodE := agE +' pmodE.
-
-End EVENTS_OTHER.
-
 Notation "f '?'" := (unwrapU f) (at level 9).
 Notation "f '!'" := (unwrapN f) (at level 9).
 Notation "s ↯ f" := (sf s f) (at level 9).
+
+Section AssumeProph.
+  Context `{Σ: GRA}.
+
+  Definition CRIS_PROPH := "CRIS-PROPH".
+  Global Opaque CRIS_PROPH.
+ 
+  Definition AssumeProph {X R} (Pre: X → iProp Σ) (Post: X → R → iProp Σ) : itree hmodE (R → iProp Σ) :=
+    Seal.sealing CRIS_PROPH (
+      P <- trigger (Choose (iProp Σ));;
+      Q <- trigger (Choose (R → iProp Σ));;
+      trigger (Guarantee(∀ x, Pre x ==∗ P ∗ (∀ ret, Q ret ==∗ Post x ret)));;;
+      trigger (AssumePrecise P);;;
+      Ret Q).
+
+  Definition AssumeProphK {X S R} Pre Post ktr : itree hmodE R :=
+    (@AssumeProph X S Pre Post) >>= ktr.
+  
+  Lemma AssumeProph_AssumeProphK {X R} Pre Post :
+    @AssumeProph X R Pre Post = AssumeProphK Pre Post (fun x => Ret x).
+  Proof using.
+    rewrite /AssumeProphK. ired. et.
+  Qed.
+
+  Lemma AssumeProphK_AssumeProph {X S R} Pre Post k :
+    @AssumeProphK X S R Pre Post k = AssumeProph Pre Post >>= k.
+  Proof using. refl. Qed.
+
+  Lemma AssumeProphK_bind {X S R T} Pre Post k1 k2 :
+    @AssumeProphK X S R Pre Post k1 >>= k2
+    = @AssumeProphK X S T Pre Post (fun x => k1 x >>= k2).
+  Proof using.
+    rewrite /AssumeProphK. ired. et.
+  Qed.
+
+End AssumeProph.
 
 Section SYNTAX.
 
@@ -237,3 +273,48 @@ Section SYNTAX.
     v <- trigger (SGet k);; (v↓!).
 
 End SYNTAX.
+
+Section Inversion.
+
+  Lemma itree_modE_inv R (itr : itree modE R) :
+    (exists r, itr = Ret r) \/
+    (exists itr', itr = tau;; itr') \/
+    (exists V (e : coreE V) ktr, itr = v <- trigger e;; ktr v) \/
+    (exists V run ktr, itr = v <- trigger (@SUpdate V run);; ktr v) \/
+    (exists V (e : callE V) ktr, itr = v <- trigger e;; ktr v).
+  Proof.
+    ides itr; eauto.
+    right. right. destruct e as [e | [e | e] ].
+    - do 2 right. esplits. rewrite bind_trigger. eauto.
+    - destruct e. right. left. esplits. rewrite bind_trigger. eauto.
+    - left. esplits. rewrite bind_trigger. eauto.
+  Qed.
+
+  Lemma case_itrH `{Σ : GRA} R (itrH : itree hmodE R) :
+    (exists v, itrH = Ret v) \/
+    (exists itrH', itrH = tau;; itrH') \/
+    (exists P itrH', itrH = (trigger (Assume P);;; itrH')) \/
+    (exists P itrH', itrH = (trigger (AssumePrecise P) >>= itrH')) \/
+    (exists P itrH', itrH = (trigger (Guarantee P);;; itrH')) \/
+    (exists R (c : callE R) ktrH', itrH = (trigger c >>= ktrH')) \/
+    (exists R (s : pgE R) ktrH', itrH = (trigger s >>= ktrH')) \/
+    (exists R (e : coreE R) ktrH', itrH = (trigger e >>= ktrH')).
+  Proof using.
+    ides itrH; eauto.
+    right; right.
+    destruct e; [destruct a|destruct s; [|destruct s]].
+    - left. exists P, (k()). unfold trigger. rewrite bind_vis.
+      repeat f_equal. extensionality x. destruct x. rewrite bind_ret_l. eauto.
+    - do 1 right; left. exists P, k. unfold trigger. rewrite bind_vis.
+      repeat f_equal. extensionality x. rewrite bind_ret_l. eauto.
+    - do 2 right; left. exists P, (k()). unfold trigger. rewrite bind_vis.
+      repeat f_equal. extensionality x. destruct x. rewrite bind_ret_l. eauto.
+    - do 3 right; left. exists X, c, k. unfold trigger. rewrite bind_vis.
+      repeat f_equal. extensionality x. rewrite bind_ret_l. eauto.
+    - do 4 right; left. exists X, p, k. unfold trigger. rewrite bind_vis.
+      repeat f_equal. extensionality x. rewrite bind_ret_l. eauto.
+    - do 5 right. exists X, c, k. unfold trigger. rewrite bind_vis.
+      repeat f_equal. extensionality x. rewrite bind_ret_l. eauto.
+  Qed.
+
+End Inversion.

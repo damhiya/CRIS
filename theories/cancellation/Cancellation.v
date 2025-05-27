@@ -6,7 +6,8 @@ Require Import ITactics TacticsCommon SimGlobal SimGlobalFacts CtxRefine ClosedA
 Require Import SModCancel HModInline ElimRel.
 Require Import CancelLib InlineIntro InlineElim.
 Require Import SimGlobal SimGTactics.
-Require Import CancelRet CancelCore CancelPG CancelAssume CancelGuarantee.
+Require Import CancelRet CancelCore CancelPG.
+Require Import CancelAssume CancelAssume CancelAssumePrecise CancelGuarantee.
 Require Import CancelHead CancelTail CancelSpawn CancelYield.
 
 Set Implicit Arguments.
@@ -50,6 +51,7 @@ Proof.
   - eapply cancel_aux_core; try eassumption; et. i; eapply CIH; eauto.
   - eapply cancel_aux_pg; try eassumption; et. i; eapply CIH; eauto.
   - eapply cancel_aux_Assume; try eassumption; et. i; eapply CIH; eauto.
+  - eapply cancel_aux_AssumePrecise; try eassumption; et. i; eapply CIH; eauto.
   - eapply cancel_aux_Guarantee; try eassumption; et. i; eapply CIH; eauto.
   - eapply cancel_aux_head; try eassumption; et. i; eapply CIH; eauto.
   - eapply cancel_aux_tail; try eassumption; et. i; eapply CIH; eauto.

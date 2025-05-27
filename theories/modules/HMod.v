@@ -202,30 +202,6 @@ Section HModFacts.
     { iIntros "P"; iFrame. }
   Qed.
 
-  Lemma case_itrH R (itrH : itree hmodE R) :
-    (exists v, itrH = Ret v) \/
-    (exists itrH', itrH = tau;; itrH') \/
-    (exists P itrH', itrH = (trigger (Assume P);;; itrH')) \/
-    (exists P itrH', itrH = (trigger (Guarantee P);;; itrH')) \/
-    (exists R (c : callE R) ktrH', itrH = (trigger c >>= ktrH')) \/
-    (exists R (s : pgE R) ktrH', itrH = (trigger s >>= ktrH')) \/
-    (exists R (e : coreE R) ktrH', itrH = (trigger e >>= ktrH')).
-  Proof using.
-    ides itrH; eauto.
-    right; right.
-    destruct e; [destruct a|destruct p; [|destruct s]].
-    - left. exists P, (k()). unfold trigger. rewrite bind_vis.
-      repeat f_equal. extensionality x. destruct x. rewrite bind_ret_l. eauto.
-    - right; left. exists P, (k()). unfold trigger. rewrite bind_vis.
-      repeat f_equal. extensionality x. destruct x. rewrite bind_ret_l. eauto.
-    - do 2 right; left. exists X, c, k. unfold trigger. rewrite bind_vis.
-      repeat f_equal. extensionality x. rewrite bind_ret_l. eauto.
-    - do 3 right; left. exists X, p, k. unfold trigger. rewrite bind_vis.
-      repeat f_equal. extensionality x. rewrite bind_ret_l. eauto.
-    - do 4 right. exists X, c, k. unfold trigger. rewrite bind_vis.
-      repeat f_equal. extensionality x. rewrite bind_ret_l. eauto.
-  Qed.
-
   Lemma hmod_exports_app m1 m2:
     HMod.exports (m1 ★ m2) = HMod.exports m1 ++ HMod.exports m2.
   Proof.

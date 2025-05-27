@@ -123,9 +123,9 @@ Module MemI. Section MemI.
   Definition scopes := ["Mem"].
   Definition v_mem := "Mem" ↯ "mem".
 
-  Definition alloc : list val → itree pmodE val :=
-    fun varg =>
-      'sz : Z <- (pargs [Tint] varg)?;;
+  Definition alloc : list val → itree hmodE val :=
+    fun arg =>
+      'sz : Z <- (pargs [Tint] arg)?;;
       mem <- trigger (SGet v_mem);; mem <- mem↓?;;
       if (Z_le_gt_dec 0 sz && Z_lt_ge_dec (8 * sz) modulus_64)
       then (delta <- trigger (Choose _);;
@@ -136,57 +136,52 @@ Module MemI. Section MemI.
       else triggerUB
 . 
 
-  Definition free : list val → itree pmodE val :=
-    λ varg,
-      bofs <- (pargs [Tptr] varg)?;;
+  Definition free : list val → itree hmodE val :=
+    λ arg,
+      bofs <- (pargs [Tptr] arg)?;;
       mem <- trigger (SGet v_mem);; mem <- mem↓?;;
       mem1 <- (Mem.free mem bofs)?;;
       trigger (SPut v_mem mem1↑);;;
       Ret (Vint 0)
   . 
 
-  Definition load: list val -> itree pmodE val :=
-    fun varg =>      
-      bofs <- (pargs [Tptr] varg)?;;        
+  Definition load: list val -> itree hmodE val :=
+    fun arg =>      
+      bofs <- (pargs [Tptr] arg)?;;        
       mem <- trigger (SGet v_mem);; mem <- mem↓?;;
       v <- (Mem.load mem bofs)?;;
       Ret v
   .
 
-  Definition store : list val → itree pmodE val :=
-    fun varg =>
-      '(bofs, v): _ <- (pargs [Tptr; Tuntyped] varg)?;;
+  Definition store : list val → itree hmodE val :=
+    fun arg =>
+      '(bofs, v): _ <- (pargs [Tptr; Tuntyped] arg)?;;
       mem <- trigger (SGet v_mem);; mem <- mem↓?;;
       mem1 <- (Mem.store mem bofs v)?;;
       trigger (SPut v_mem mem1↑);;;
       Ret (Vint 0)
   .
 
-  Definition cmp : list val → itree pmodE val :=
-    fun varg =>
-      '(v0, v1): _ <- (pargs [Tuntyped; Tuntyped] varg)?;;
+  Definition cmp : list val → itree hmodE val :=
+    fun arg =>
+      '(v0, v1): _ <- (pargs [Tuntyped; Tuntyped] arg)?;;
       mem <- trigger (SGet v_mem);; mem <- mem↓?;;
       'b: bool <- (Mem.vcmp mem v0 v1)?;;
-      if b
-      then 
-        Ret (Vint 1%Z)
-      else
-        Ret (Vint 0%Z)
+      Ret (Vint (if b then 1 else 0))
   .
 
-  Definition cas: list val -> itree pmodE val :=
-    fun varg =>
-      ' (bofs, (v_old, v_new)): _ <- (pargs [Tptr; Tuntyped; Tuntyped] varg)?;;
-      'd: val <- ccallU MemHdr.load [Vptr bofs];;
-      if (dec d v_old)
-      then
-        '_: val <- ccallU MemHdr.store [Vptr bofs; v_new];;
-        Ret d
-      else
-        Ret d
+  Definition cas: list val -> itree hmodE val :=
+    fun arg =>
+      ' (bofs, (v_old, v_new)): _ <- (pargs [Tptr; Tuntyped; Tuntyped] arg)?;;
+      'v_cur: val <- ccallU MemHdr.load [Vptr bofs];;
+      'succ: val <- ccallU MemHdr.cmp [v_cur; v_old];;
+      (if (dec succ (Vint 1))
+       then ccallU MemHdr.store [Vptr bofs; v_new]
+       else Ret Vundef);;;
+      Ret v_cur
   .
   
-  Definition fnsems : alist string (_ * list string * (Any.t -> itree pmodE Any.t)) :=
+  Definition fnsems : alist string (_ * list string * (Any.t -> itree hmodE Any.t)) :=
     [(MemHdr.alloc, (wmask_all, scopes, cfunU alloc)) ;
      (MemHdr.free,  (wmask_all, scopes, cfunU free)) ;
      (MemHdr.load,  (wmask_all, scopes, cfunU load)) ;

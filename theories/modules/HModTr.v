@@ -1,5 +1,5 @@
 Require Import Common.
-Require Import Mod.
+Require Import FSpec Mod.
 
 Set Implicit Arguments.
 
@@ -119,6 +119,14 @@ Section MID.
     assume (✓ mr' ∧ (Own mr' ==∗ P ∗ Own mr));;;
     put_res mr').
 
+  Definition handle_AssumePrecise (P : iProp Σ) : itreeV modE unit :=
+    get_res (fun mr =>
+    pr <- trigger (Choose Σ);;
+    mr' <- trigger (Choose Σ);;
+    guarantee (Own mr ==∗ □ ((Own pr ==∗ P) ∗ (P ==∗ Own pr)) ∗ Own mr');;;
+    assume (✓ (pr ⋅ mr'));;;
+    put_res (pr ⋅ mr')).
+
   Definition handle_Guarantee (P : iProp Σ) : itreeV modE unit :=
     get_res (fun mr =>
     mr' <- trigger (Choose Σ);;
@@ -129,6 +137,7 @@ Section MID.
     λ _ e,
       match e with
       | Assume P => handle_Assume P
+      | AssumePrecise P => handle_AssumePrecise P
       | Guarantee P => handle_Guarantee P
       end.
 
@@ -244,6 +253,10 @@ Section RED.
     HModTr.trans (trigger (Assume P)) = itreeV_itree (HModTr.handle_Assume P).
   Proof using. rewrite /HModTr.trans interpV_trigger //. Qed.
 
+  Lemma AssumePrecise P :
+    HModTr.trans (trigger (AssumePrecise P)) = itreeV_itree (HModTr.handle_AssumePrecise P).
+  Proof using. rewrite /HModTr.trans interpV_trigger //. Qed.
+  
   Lemma Guarantee P :
     HModTr.trans (trigger (Guarantee P)) = itreeV_itree (HModTr.handle_Guarantee P).
   Proof using. rewrite /HModTr.trans interpV_trigger //. Qed.
@@ -577,6 +590,22 @@ Module SBRed. Section SBRed.
     unfold guarantee. rewrite bind core ret. eauto.
   Qed.
 
+  Lemma assume_proph {X R} Pre Post mask scopes:
+    HModTr.sandbox mask scopes (@AssumeProph _ X R Pre Post) = AssumeProph Pre Post.
+  Proof.
+    rewrite /AssumeProph. unseal CRIS_PROPH.
+    repeat (rewrite bind core; f_equal; extensionalities).
+    repeat (rewrite bind ag; f_equal; extensionalities).
+    rewrite ret. et.
+  Qed.
+
+  Lemma assume_prophK {X S R} mask scopes Pre Post k :
+    HModTr.sandbox mask scopes (@AssumeProphK _ X S R Pre Post k)
+    = AssumeProphK Pre Post (fun x => HModTr.sandbox mask scopes (k x)).
+  Proof using.
+    rewrite /AssumeProphK. rewrite bind assume_proph. et.
+  Qed.
+
 End SBRed. End SBRed.
 
 Section Properties.
@@ -597,7 +626,7 @@ Section Properties.
     { rewrite !SBRed.tau. gstep. econs. gbase. et. }
 
     rewrite -bind_trigger !SBRed.bind.
-    destruct e; [ |destruct p;
+    destruct e; [ |destruct s;
                    [destruct c|destruct s; [destruct p|]]].
     + rewrite !SBRed.ag. gstep. rewrite !bind_trigger. econs.
       i. gbase. et.

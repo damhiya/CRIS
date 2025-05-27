@@ -1,4 +1,5 @@
 From CRIS Require Import sProp CRIS MemHeader.
+From iris.algebra Require Import auth excl agree csum functions dfrac_agree.
 Set Implicit Arguments.
 
 (* Memory resource algebra *)
@@ -7,7 +8,7 @@ Section MemRA.
   Context `{!sinvG Γ Σ α β τ _I _S}.
 
   Canonical Structure valO := leibnizO val.
-  Definition frac_valO := prodR fracR (exclR valO).
+  Definition frac_valO := dfrac_agreeR valO.
   Definition _memRA := (mblock -d> Z -d> optionUR frac_valO).
   Definition memRA := authUR _memRA.
   Class memG `{!sinvG Γ Σ α β τ _I _S} := {
@@ -37,14 +38,14 @@ Section MEM.
   Definition mem_init_auth_r (csl : string → bool) (genv: GEnv.t) : memRA :=
     ● ((λ blk ofs,
         match mem_init_val csl genv blk ofs with
-        | Some gv => Some (1%Qp, Excl (Vint gv))
+        | Some gv => Some (to_frac_agree 1 (Vint gv))
         | _ => ε
         end) : _memRA).
 
   Definition mem_init_frag_r (csl : string → bool) (genv : GEnv.t) : memRA :=
     ◯ ((λ blk ofs,
         match mem_init_val csl genv blk ofs with
-        | Some gv => Some (1%Qp, Excl (Vint gv))
+        | Some gv => Some (to_frac_agree 1 (Vint gv))
         | _ => ε
         end) : _memRA).
 
@@ -84,14 +85,14 @@ Section MemRA.
     fun _b _ofs => 
       if (dec _b b) && ((ofs <=? _ofs) && (_ofs <? (ofs + Z.of_nat (List.length mvs))))%Z 
       then match (List.nth_error mvs (Z.to_nat (_ofs - ofs))) with
-        | Some v => Some (q, Excl v)
+        | Some v => Some (to_frac_agree q v)
         | None => ε
         end
       else ε
   .
 
   Definition mem_points_to_singleton_r (loc : mblock * Z) (q: Qp) (v : val) : memRA :=
-    ◯ (discrete_fun_singleton loc.1 (discrete_fun_singleton loc.2 (Some (q, Excl v)))).
+    ◯ (discrete_fun_singleton loc.1 (discrete_fun_singleton loc.2 (Some (to_frac_agree q v)))).
   Definition mem_points_to_singleton (loc : mblock * Z) (q: Qp) (v : val) : iProp Σ :=
     own base_γ ((mem_points_to_singleton_r loc q v): memRA).
   Definition mem_points_to : (mblock * Z) → Qp → list val → iProp Σ :=
@@ -131,107 +132,142 @@ Notation "loc ↦ v" := (mem_points_to_singleton loc 1 v) (at level 20).
 Notation "loc ↦ v" := (<own> base_γ (mem_points_to_singleton_r loc 1 v))%SAT (at level 20) : SAT_scope.
 Notation "loc |-> vs" := (mem_points_to loc 1 vs) (at level 20).
 
-Module MemA. Section MemA.
+Global Opaque mem_points_to_singleton_r.
+Arguments mem_points_to_singleton_r : simpl never.
+
+Module MemSpec. Section MemSpec.
+  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
+  Context `{_memG: !memG}.
+
+  Definition alloc := 
+    (make_fspecS (fun sz =>
+       (fun arg =>
+          ⌜arg = [Vint (Z.of_nat sz)]↑ /\ (8 * (Z.of_nat sz) < modulus_64)%Z⌝,
+        fun ret =>
+          ∃ b, ⌜ret = (Vptr (b, 0%Z))↑⌝ ∗ (b, 0%Z) |-> List.repeat Vundef sz)
+    ))%I.
+
+  Definition free :=
+    (make_fspecS (fun '(b, ofs, v) =>
+       (fun arg => ⌜arg = [Vptr (b, ofs)]↑⌝ ∗ (b, ofs) ↦ v,
+        fun ret => ⌜ret = (Vint 0)↑⌝)
+    ))%I.
+
+  Definition load :=
+    (make_fspecS (fun '(b, ofs, q, v) =>
+       (fun arg => ⌜arg = [Vptr (b, ofs)]↑⌝ ∗ (b, ofs) |={q}=> v,
+        fun ret => (b, ofs) |={q}=> v ∗ ⌜ret = v↑⌝)
+    ))%I.
+
+  Definition store :=
+    (make_fspecS (fun '(b, ofs, v_old, v_new) =>
+       (fun arg => ⌜arg = [Vptr (b, ofs) ; v_new]↑⌝ ∗ (b, ofs) ↦ v_old,
+        fun ret => (b, ofs) ↦ v_new ∗ ⌜ret = (Vint 0)↑⌝)
+    ))%I.
+
+  Definition val_r (arg: val) q v : iProp Σ :=
+    match arg with
+    | Vptr (b,ofs) => (b, ofs) |={q}=> v
+    | _ => True%I
+    end.
+
+  Definition compare_val (v0 v1: val) : val :=
+    match v0, v1 with
+    | Vint i0, Vint i1 => Vint (if dec i0 i1 then 1 else 0)
+    | Vint 0, Vptr _ => Vint 0
+    | Vptr _, Vint 0 => Vint 0
+    | Vptr (b0,ofs0), Vptr (b1,ofs1) =>
+        if dec b0 b1 && dec ofs0 ofs1 then Vint 1 else Vint 0
+    | _, _ => Vundef
+    end.
+
+  Definition cmp :=
+    (make_fspecS (fun '(arg0, q0, v0, arg1, q1, v1, succ) =>
+       (fun arg => ⌜arg = [arg0; arg1]↑ ∧ compare_val arg0 arg1 = Vint succ⌝ ∗
+                   val_r arg0 q0 v0 ∗ val_r arg1 q1 v1,
+        fun ret => ⌜ret = (Vint succ)↑⌝ ∗
+                   val_r arg0 q0 v0 ∗ val_r arg1 q1 v1)
+    ))%I.
+
+  Definition cas :=
+    (make_fspecS (fun '(b, ofs, v_cur, q0, v0, v_old, q1, v1, v_new, succ) =>
+       (fun arg => ⌜arg = [Vptr (b, ofs); v_old; v_new]↑ ∧
+                    compare_val v_cur v_old = Vint succ⌝ ∗
+                   (b, ofs) ↦ v_cur ∗
+                   val_r v_cur q0 v0 ∗ val_r v_old q1 v1,
+        fun ret => ⌜ret = v_cur↑⌝ ∗
+                   (b, ofs) ↦ (if dec succ 1 then v_new else v_cur) ∗
+                   val_r v_cur q0 v0 ∗ val_r v_old q1 v1)
+    ))%I.
+                  
+End MemSpec. End MemSpec.
+
+Module MemP. Section MemP.
   Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
   Context `{_memG: !memG}.
 
   Definition scopes := ["Mem"].
 
   (* Function specifications *)
-  Definition alloc_spec: fspec :=
-      (fspec_simple (fun sz => (
-                      (fun varg => (⌜varg = [Vint (Z.of_nat sz)]↑ /\ (8 * (Z.of_nat sz) < modulus_64)%Z⌝)),
-                      (fun vret => (∃ b, (⌜vret = (Vptr (b, 0%Z))↑⌝)
-                                          ∗ (b, 0%Z) |-> (List.repeat Vundef sz)))
-      )))%I.
+  Definition alloc := fspec_proph MemSpec.alloc fbody_trivial.
+  Definition free := fspec_proph MemSpec.free fbody_trivial.
+  Definition load := fspec_proph MemSpec.load fbody_trivial.
+  Definition store := fspec_proph MemSpec.store fbody_trivial.
+  Definition cmp := fspec_proph MemSpec.cmp fbody_trivial.
+  Definition cas := fspec_proph MemSpec.cas fbody_trivial.
 
-  Definition free_spec: fspec :=
-      (fspec_simple (fun '(b, ofs) => (
-                      (fun varg => (∃ v, (⌜varg = [Vptr (b, ofs)]↑⌝) ∗ (b, ofs) ↦ v)),
-                      (fun vret => ⌜vret = (Vint 0)↑⌝)
-      )))%I.
+  Definition fnsems :=
+    [(MemHdr.alloc, (wmask_all, scopes, alloc));
+     (MemHdr.free,  (wmask_all, scopes, free));
+     (MemHdr.load,  (wmask_all, scopes, load));
+     (MemHdr.store, (wmask_all, scopes, store));
+     (MemHdr.cmp,   (wmask_all, scopes, cmp));
+     (MemHdr.cas,   (wmask_all, scopes, cas))].
 
-  Definition load_spec: fspec :=
-      (fspec_simple (fun '(b, ofs, v, q) => (
-                      (fun varg => (⌜varg = [Vptr (b, ofs)]↑⌝) ∗ (b, ofs) |={q}=> v),
-                      (fun vret => (b, ofs) |={q}=> v ∗ ⌜vret = v↑⌝)
-      )))%I.
+  (* Module definition *)
+  Program Definition Mod : PMod.t := {|
+    PMod.scopes := scopes;
+    PMod.fnsems := fnsems;
+    PMod.initial_st := [];
+  |}.
+  Solve All Obligations with prove_scope.
+  Next Obligation. prove_nodup. Qed.
 
-  Definition store_spec: fspec :=
-      (fspec_simple
-        (fun '(b, ofs, v_new) => (
-              (fun varg => (∃ v_old, (⌜varg = [Vptr (b, ofs) ; v_new]↑⌝) ∗ (b, ofs) ↦ v_old)),
-              (fun vret => (b, ofs) ↦ v_new ∗ ⌜vret = (Vint 0)↑⌝)
-      )))%I.
+  Definition init_cond csl genv : iProp Σ := mem_init_auth csl genv.
 
-  Definition cmp_spec0: fspec :=
-      (fspec_simple
-        (fun '(b, ofs, v, q) => (
-              (fun varg => (⌜varg = [Vptr (b, ofs); Vnullptr]↑⌝ ∗ (b, ofs) |={q}=> v)),
-              (fun vret => ((b, ofs) |={q}=> v) ∗ ⌜vret = (Vint 0)↑⌝)
-      )))%I.
+  Definition t := Seal.sealing CRIS (PMod.to_hmod Mod).
 
-  Definition cmp_spec1: fspec :=
-      (fspec_simple
-          (fun '(b, ofs, v, q) => (
-              (fun varg => (⌜varg = [Vnullptr; Vptr (b, ofs)]↑⌝ ∗ (b, ofs) |={q}=> v)),
-              (fun vret => ((b, ofs) |={q}=> v) ∗ ⌜vret = (Vint 0)↑⌝)
-      )))%I.
-  
-  Definition cmp_spec2: fspec :=
-      (fspec_simple
-          (fun '(b0, ofs0, v0, q0, b1, ofs1, v1, q1) => (
-              (fun varg => (⌜varg = [Vptr (b0, ofs0); Vptr (b1, ofs1)]↑ ∧ (b0 <> b1 ∨ ofs0 <> ofs1)⌝ ∗ (b0, ofs0) |={q0}=> v0 ∗ (b1, ofs1) |={q1}=> v1)),
-              (fun vret => (b0, ofs0) |={q0}=> v0 ∗ (b1, ofs1) |={q1}=> v1 ∗ ⌜vret = (Vint 0)↑⌝)
-      )))%I.
+End MemP. End MemP.
 
-  Definition cmp_spec3: fspec :=
-      (fspec_simple
-          (fun '(b, ofs, v, q) => (
-              (fun varg => (⌜varg = [Vptr (b, ofs); Vptr (b, ofs)]↑⌝ ∗ (b, ofs) |={q}=> v)),
-              (fun vret => (b, ofs) |={q}=> v ∗ ⌜vret = (Vint 1)↑⌝)
-      )))%I.
+Module MemA. Section MemA.
+  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
+  Context `{_memG: !memG}.
 
-  Definition cmp_spec4: fspec :=
-      (fspec_simple
-          (fun (_: unit) => (
-              (fun varg => (⌜varg = [Vnullptr; Vnullptr]↑⌝)),
-              (fun vret => ⌜vret = (Vint 1)↑⌝)
-      )))%I.
+  Definition scopes := ["Mem"].
 
-  Definition cmp_spec: fspec :=
-    app_fspec [cmp_spec0; cmp_spec1; cmp_spec2; cmp_spec3; cmp_spec4].
-  
-  Definition cas_spec0 : fspec :=
-      (fspec_simple (fun '(b, ofs, v_old, v_new) => (
-                      (fun varg => (⌜varg = [Vptr (b, ofs); v_old; v_new]↑⌝) ∗ (b, ofs) ↦ v_old),
-                      (fun vret => ((b, ofs) ↦ v_new ∗ ⌜vret = v_old↑⌝))
-      )))%I.
+  Definition alloc := mk_specbody (to_fspec MemSpec.alloc) fbody_trivial.
+  Definition free := mk_specbody (to_fspec MemSpec.free) fbody_trivial.
+  Definition load := mk_specbody (to_fspec MemSpec.load) fbody_trivial.
+  Definition store := mk_specbody (to_fspec MemSpec.store) fbody_trivial.
+  Definition cmp := mk_specbody (to_fspec MemSpec.cmp) fbody_trivial.
+  Definition cas := mk_specbody (to_fspec MemSpec.cas) fbody_trivial.
 
-  Definition cas_spec1 : fspec :=
-      (fspec_simple (fun '(b, ofs, v_old, v_new, v_real) => (
-                      (fun varg => (⌜varg = [Vptr (b, ofs); v_old; v_new]↑ ∧ v_old <> v_real⌝ ∗ (b, ofs) ↦ v_real)),
-                      (fun vret => ((b, ofs) ↦ v_real ∗ ⌜vret = v_real↑⌝))
-      )))%I.
-
-  Definition cas_spec : fspec := app_fspec [cas_spec0; cas_spec1].
-
-  Definition sp : alist string fspec :=  
+  Definition sp : alist string fspec :=
     Seal.sealing CRIS
-      [(MemHdr.alloc, alloc_spec);
-       (MemHdr.free,  free_spec);
-       (MemHdr.load,  load_spec);
-       (MemHdr.store, store_spec);
-       (MemHdr.cmp,   cmp_spec);
-       (MemHdr.cas,   cas_spec)].
+      [(MemHdr.alloc, to_fspec MemSpec.alloc);
+       (MemHdr.free,  to_fspec MemSpec.free);
+       (MemHdr.load,  to_fspec MemSpec.load);
+       (MemHdr.store, to_fspec MemSpec.store);
+       (MemHdr.cmp,   to_fspec MemSpec.cmp);
+       (MemHdr.cas,   to_fspec MemSpec.cas)].
 
-  Definition fnsems : alist string (_ * list string * fspecbody ):=
-    [(MemHdr.alloc, (wmask_all, scopes, mk_specbody alloc_spec  fbody_trivial));
-     (MemHdr.free,  (wmask_all, scopes, mk_specbody free_spec   fbody_trivial));
-     (MemHdr.load,  (wmask_all, scopes, mk_specbody load_spec   fbody_trivial));
-     (MemHdr.store, (wmask_all, scopes, mk_specbody store_spec  fbody_trivial));
-     (MemHdr.cmp,   (wmask_all, scopes, mk_specbody cmp_spec    fbody_trivial));
-     (MemHdr.cas,   (wmask_all, scopes, mk_specbody cas_spec    fbody_trivial))].
+  Definition fnsems :=
+    [(MemHdr.alloc, (wmask_all, scopes, alloc));
+     (MemHdr.free,  (wmask_all, scopes, free));
+     (MemHdr.load,  (wmask_all, scopes, load));
+     (MemHdr.store, (wmask_all, scopes, store));
+     (MemHdr.cmp,   (wmask_all, scopes, cmp));
+     (MemHdr.cas,   (wmask_all, scopes, cas))].
 
   (* Module definition *)
   Program Definition Mod : SMod.t := {|
@@ -244,7 +280,6 @@ Module MemA. Section MemA.
 
   Definition init_cond csl genv : iProp Σ := mem_init_auth csl genv.
 
-  Definition t Sp := Seal.sealing CRIS (SMod.to_hmod Sp Mod).
+  Definition t sp := Seal.sealing CRIS (SMod.to_hmod sp Mod).
+
 End MemA. End MemA.
-Global Opaque mem_points_to_singleton_r.
-Arguments mem_points_to_singleton_r : simpl never.

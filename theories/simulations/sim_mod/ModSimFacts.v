@@ -8,19 +8,6 @@ Set Implicit Arguments.
 Local Open Scope nat_scope.
 
 (* Adequacy - Part 1. ( Divided to resolve the dependency issue. ) *)
-Lemma itree_modE_inv R (itr : itree modE R) :
-  (exists r, itr = Ret r) \/
-  (exists itr', itr = tau;; itr') \/
-  (exists V (e : coreE V) ktr, itr = v <- trigger e;; ktr v) \/
-  (exists V run ktr, itr = v <- trigger (@SUpdate V run);; ktr v) \/
-  (exists V (e : callE V) ktr, itr = v <- trigger e;; ktr v).
-Proof.
-  ides itr; eauto.
-  right. right. destruct e as [e | [e | e] ].
-  - do 2 right. esplits. rewrite bind_trigger. eauto.
-  - destruct e. right. left. esplits. rewrite bind_trigger. eauto.
-  - left. esplits. rewrite bind_trigger. eauto.
-Qed.
 
 Lemma sim_itree_simg
   ms_src ms_tgt

@@ -1,5 +1,5 @@
 Require Import Common.
-Require Import HMod.
+Require Import FSpec HMod.
 
 Set Implicit Arguments.
 
@@ -8,18 +8,20 @@ Section PMOD.
 
   Context `{Σ : GRA}.
 
-  Definition handle: pmodE ~> itreeV hmodE :=
+  Definition handle: hmodE ~> itreeV hmodE :=
     fun T e =>
       inr
       match e with
-      | inr1 (inr1 (Take X)) =>
+      | inr1 (inr1 (inr1 (Take X))) =>
           if excluded_middle_informative (∃ P: Prop, X = P)
           then existT _ (subevent _ e, fun v => Ret v)
           else existT _ (subevent _ (Take False), fun v => Ret (False_rect _ v))
-      | _ => existT _ (inr1 e, fun v => Ret v)
+      | inl1 (Assume P) =>
+          existT _ (subevent _ (Take False), fun v => Ret (False_rect _ v))
+      | _ => existT _ (e, fun v => Ret v)
       end.
 
-  Definition trans {R} (itr: itree pmodE R) : itree hmodE R
+  Definition trans {R} (itr: itree hmodE R) : itree hmodE R
     :=
     interpV handle itr.
 
@@ -33,10 +35,10 @@ Section RED.
 
   Context `{Σ : GRA}.
 
-(* itree reduction *)
+  (* itree reduction *)
   Lemma bind
         (R S: Type)
-        (s : itree pmodE R) (k : R -> itree pmodE S)
+        (s : itree hmodE R) (k : R -> itree hmodE S)
     :
     PModTr.trans (s >>= k)
     =
@@ -67,7 +69,7 @@ Section RED.
     unfold PModTr.trans. rewrite interpV_ret. eauto.
   Qed.
 
-  Lemma vis_call {X R} (e : callE X) (ktr : X -> itree pmodE R) :
+  Lemma vis_call {X R} (e : callE X) (ktr : X -> itree hmodE R) :
     PModTr.trans (vis e ktr) = vis e (fun x => PModTr.trans (ktr x)).
   Proof using.
     unfold PModTr.trans. rewrite interpV_vis.
@@ -75,7 +77,17 @@ Section RED.
     eapply observe_eta; ss.
   Qed.
 
-  Lemma vis_pg {X R} (e : pgE X) (ktr : X -> itree pmodE R) :
+  Lemma vis_ag {X R} (e : agE X) (ktr : X -> itree hmodE R)
+    :
+    match e with | Assume _ => False | _ => True end →
+    PModTr.trans (vis e ktr) = vis e (fun x => PModTr.trans (ktr x)).
+  Proof using.
+    i. eapply observe_eta; ss. destruct e; ss.
+    - f_equal. extensionality x. eapply observe_eta; ss.
+    - f_equal. extensionality x. eapply observe_eta; ss.
+  Qed.
+
+  Lemma vis_pg {X R} (e : pgE X) (ktr : X -> itree hmodE R) :
     PModTr.trans (vis e ktr) = vis e (fun x => PModTr.trans (ktr x)).
   Proof using.
     unfold PModTr.trans. rewrite interpV_vis.
@@ -83,7 +95,7 @@ Section RED.
     eapply observe_eta; ss.
   Qed.
 
-  Lemma vis_choose {X R} (ktr : X -> itree pmodE R) :
+  Lemma vis_choose {X R} (ktr : X -> itree hmodE R) :
     PModTr.trans (vis (Choose X) ktr) = vis (Choose X) (fun x => PModTr.trans (ktr x)).
   Proof using.
     unfold PModTr.trans. rewrite interpV_vis.
@@ -91,7 +103,7 @@ Section RED.
     eapply observe_eta; ss.
   Qed.
 
-  Lemma vis_take {X : Prop} {R} (ktr : X -> itree pmodE R) :
+  Lemma vis_take {X : Prop} {R} (ktr : X -> itree hmodE R) :
     PModTr.trans (vis (Take X) ktr) = vis (Take X) (fun x => PModTr.trans (ktr x)).
   Proof using.
     unfold PModTr.trans. rewrite interpV_vis.
@@ -100,7 +112,7 @@ Section RED.
     - exfalso. apply H. exists X. reflexivity.
   Qed.
 
-  Lemma vis_io {I O R} fn args (ktr : O -> itree pmodE R) :
+  Lemma vis_io {I O R} fn args (ktr : O -> itree hmodE R) :
     PModTr.trans (vis (@IO I O fn args) ktr) = vis (IO fn args) (fun x => PModTr.trans (ktr x)).
   Proof using.
     unfold PModTr.trans. rewrite interpV_vis.    
@@ -108,7 +120,7 @@ Section RED.
     eapply observe_eta; ss.
   Qed.
 
-  Lemma assumeK {R} P (itr : itree pmodE R) :
+  Lemma assumeK {R} P (itr : itree hmodE R) :
     PModTr.trans (assumeK P itr) = assumeK P (PModTr.trans itr).
   Proof using.
     unfold PModTr.trans. rewrite interpV_vis.    
@@ -117,7 +129,7 @@ Section RED.
     - exfalso. apply H. exists P. reflexivity.
   Qed.
 
-  Lemma guaranteeK {R} P (itr : itree pmodE R) :
+  Lemma guaranteeK {R} P (itr : itree hmodE R) :
     PModTr.trans (guaranteeK P itr) = guaranteeK P (PModTr.trans itr).
   Proof using.
     unfold PModTr.trans. rewrite interpV_vis.    
@@ -125,7 +137,7 @@ Section RED.
     eapply observe_eta; ss.
   Qed.
 
-  Lemma unwrapUK {X R} x (ktr : X -> itree pmodE R) :
+  Lemma unwrapUK {X R} x (ktr : X -> itree hmodE R) :
     PModTr.trans (unwrapUK x ktr) = unwrapUK x (fun x => PModTr.trans (ktr x)).
   Proof using.
     destruct x; ss. eapply observe_eta; cbn. destruct excluded_middle_informative as [H|H]; ss.
@@ -133,7 +145,7 @@ Section RED.
     - exfalso. apply H. exists False. reflexivity.
   Qed.
 
-  Lemma unwrapNK {X R} x (ktr : X -> itree pmodE R) :
+  Lemma unwrapNK {X R} x (ktr : X -> itree hmodE R) :
     PModTr.trans (unwrapNK x ktr) = unwrapNK x (fun x => PModTr.trans (ktr x)).
   Proof using.
     destruct x; ss.
@@ -150,6 +162,15 @@ Section RED.
   Proof using.
     rewrite vis_call. eapply observe_eta; ss. f_equal. extensionalities.
     rewrite ret. eauto.
+  Qed.
+
+  Lemma ag {A} (e: agE A)
+    :
+    match e with | Assume _ => False | _ => True end →
+    PModTr.trans (trigger e) = trigger e.
+  Proof using.
+    i. rewrite vis_ag; et. unfold trigger.
+    eapply observe_eta; ss. f_equal. extensionalities. rewrite ret. eauto.
   Qed.
 
   Lemma pg
@@ -201,7 +222,7 @@ Section RED.
         (R: Type)
         (i: option R)
     :
-    PModTr.trans (@unwrapU pmodE _ _ i)
+    PModTr.trans (@unwrapU hmodE _ _ i)
     =
     unwrapU i.
   Proof using.
@@ -214,7 +235,7 @@ Section RED.
         (R: Type)
         (i: option R)
     :
-      PModTr.trans (@unwrapN pmodE _ _ i)
+      PModTr.trans (@unwrapN hmodE _ _ i)
       =
       unwrapN i.
   Proof using.
@@ -241,6 +262,43 @@ Section RED.
       guarantee P.
   Proof using.
     rewrite /guarantee !bind !choose !ret. grind.
+  Qed.
+
+  Lemma assume_proph {X R} Pre Post:
+    PModTr.trans (@AssumeProph _ X R Pre Post) = AssumeProph Pre Post.
+  Proof.
+    rewrite /AssumeProph. unseal CRIS_PROPH.
+    repeat (rewrite bind choose; f_equal; extensionalities).
+    repeat (rewrite bind ag; f_equal; extensionalities).
+    rewrite ret. et.
+  Qed.
+
+  Lemma assume_prophK {X S R} Pre Post ktr :
+    PModTr.trans (@AssumeProphK _ X S R Pre Post ktr)
+    = AssumeProphK Pre Post (fun x => PModTr.trans (ktr x)).
+  Proof using.
+    rewrite /AssumeProphK. rewrite bind assume_proph. et.
+  Qed.
+
+  Lemma fspec_proph fsp fbody arg
+    :
+    PModTr.trans (fspec_proph fsp fbody arg) =
+    fspec_proph fsp (λ arg, PModTr.trans (fbody arg)) arg.
+  Proof.
+    rewrite /fspec_proph /AssumeProph.
+    unseal CRIS_PROPH. rewrite !bind !choose. repeat f_equal.
+    - extensionalities. rewrite !bind !choose. repeat f_equal.
+      extensionalities. rewrite !bind !ag; et. repeat f_equal.
+      extensionalities. f_equal. rewrite ret. et.
+    - extensionalities. rewrite !bind. f_equal.
+      extensionalities. rewrite !bind !ag; et. repeat f_equal.
+      extensionalities. rewrite ret. et.
+  Qed.
+
+  Lemma fbody_trivial arg:
+    PModTr.trans (fbody_trivial arg) = fbody_trivial arg.
+  Proof.
+    rewrite /fbody_trivial. extensionalities. s. rewrite choose. et.
   Qed.
   
 End RED.

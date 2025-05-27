@@ -98,7 +98,7 @@ Module HIRed.
         grind. rewrite! bind_trigger. gstep. econs. i.
         r. grind. gstep. econs. gbase. eauto.
       }
-      destruct p; [destruct c|].
+      destruct s; [destruct c|].
       {
         grind. gstep. econs. 
         guclo eqit_clo_trans; eauto.
@@ -242,7 +242,7 @@ Proof using.
     gstep. econs. i. r.
     rewrite SBRed.tau. gstep. econs. gbase. eauto.
   }
-  destruct p; [destruct c|].
+  destruct s; [destruct c|].
   {
     rewrite !SBRed.call. des_ifs; cycle 1.
     { unfold triggerUB. ired. 

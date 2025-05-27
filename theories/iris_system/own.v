@@ -367,6 +367,30 @@ Section Own.
   Lemma Own_general_completeness a P (HOLDS : uPred_holds P a) : Own a ⊢ P.
   Proof using. split; unseal; uPred.unseal; i; eapply uPred_mono; eauto. Qed.
 
+  Lemma own_core_completeness a P
+    (VALID: ✓ a)
+    (OWN: Own a ⊢ □ P)
+    :
+    Own (core a) ⊢ □ P.
+  Proof.
+    rewrite {1}/Own {1}seal_eq in OWN.
+    eapply uPred.ownM_general_soundness in OWN; et.
+    rr in OWN. rewrite seal_eq in OWN. ss. des.
+    rr in OWN0. rewrite seal_eq in OWN0. ss.
+    eapply Own_general_completeness.
+    rr. rewrite seal_eq. s. split.
+    - eapply uPred.ownM_general_soundness; et. eapply cmra_core_valid; et.
+    - rr. rewrite seal_eq. s. rewrite cmra_core_idemp. et.
+  Qed.
+
+  Lemma entails_pointwise (P Q: iProp Σ):
+    (∀ res: Σ, (Own res ⊢ P) → (Own res ⊢ Q)) -> P ⊢ Q.
+  Proof.
+    i. rr. econs. i. eapply uPred.ownM_general_soundness; et.
+    eapply Own_general_completeness in H1. eapply H in H1.
+    rewrite own.Own_eq in H1. et.
+  Qed.
+  
   Global Instance into_sep_Own (a b1 b2 : Σ) :
     IsOp a b1 b2 → IntoSep (Own a) (Own b1) (Own b2).
   Proof using. intros. by rewrite /IntoSep (is_op a) Own_op. Qed.

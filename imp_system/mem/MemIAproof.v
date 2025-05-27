@@ -1,4 +1,5 @@
 From CRIS Require Import CRIS MemHeader MemA MemI ImpPrelude.
+From iris.algebra Require Import auth excl agree csum functions dfrac_agree.
 
 Set Implicit Arguments.
 
@@ -115,53 +116,18 @@ Section RA.
   Context `{_memG: !memG}.
 
   Definition mem_wf (m0: Mem.t): Prop :=
-    forall b ofs v, m0.(Mem.cnts) b ofs = Some v -> <<NB: b < m0.(Mem.nb)>>
+    forall b ofs v, m0.(Mem.cnts) b ofs = Some v -> b < m0.(Mem.nb)
   .
 
-  Definition sim_loc (loc_res: option (frac_valO)) (v: option val) : Prop :=
-    match loc_res, v with
-    | Some (q, Excl v'), Some v'' => q = 1%Qp ∧ v' = v''
-    | None, None => True
-    | _, _ => False
-    end.
+  Definition sim_mem (mem_s: _memRA) (mem_t: Mem.t) : Prop :=
+    ∀ b ofs,
+    (mem_s b ofs = None ∧ Mem.cnts mem_t b ofs = None) ∨
+    (∃ v, mem_s b ofs = Some (to_frac_agree 1 v) ∧
+          Mem.cnts mem_t b ofs = Some v).
 
-  Lemma mem_alloc γ (mem_src : _memRA) mem_tgt blk sz pad
-    (BLK: blk = Mem.nb mem_tgt + pad)
-    (WF: mem_wf mem_tgt)
-    (SIM: ∀ b ofs, sim_loc (mem_src b ofs) (Mem.cnts mem_tgt b ofs))
-  :
-    own γ ((● mem_src): memRA)
-    ⊢ |==> own γ ((● (mem_src ⋅ _points_to_r (blk, 0%Z) 1 (repeat Vundef sz))): memRA)
-           ∗ own γ ((◯ _points_to_r (blk, 0%Z) 1 (repeat Vundef sz)): memRA).
-  Proof using _memG.
-    iIntros "S".
-    iAssert _ with "[S]" as "B".
-    { iApply (own_update with "S"). apply auth_update_alloc.
-      instantiate (1:=_points_to_r (blk, 0%Z) 1 (repeat Vundef sz)).
-      instantiate (1:=mem_src ⋅ _points_to_r (blk, 0%Z) 1 (repeat Vundef sz)).
-      apply local_update_discrete.
-      ii. split; ii; rewrite ! discrete_fun_lookup_op; rewrite /_points_to_r; ss; des_ifs.
-      - bsimpl. des. des_sumbool. subst. hexploit (SIM (Mem.nb mem_tgt + pad) x0).
-        intro T. unfold sim_loc in T.
-        des_ifs. des. hss. exploit WF; et. i; des. lia.
-      - rewrite right_id. specialize (H x x0); et.
-      - rewrite right_id. specialize (H x x0); et.
-      - i. destruct mz. 
-        { ss. rewrite left_id in H0. specialize (H0 x x0).
-          rewrite !discrete_fun_lookup_op H0 comm //. des_ifs. }
-        { ss. specialize (H0 x x0). rewrite H0 left_id //. des_ifs. }
-      - rewrite right_id. destruct mz.
-        { ss. rewrite left_id in H0. specialize (H0 x x0).
-          rewrite !discrete_fun_lookup_op H0 comm //. des_ifs. rewrite right_id //. }
-        { ss. specialize (H0 x x0). rewrite H0 left_id //. des_ifs. }
-      - rewrite right_id. destruct mz.
-        { ss. rewrite left_id in H0. specialize (H0 x x0).
-          rewrite !discrete_fun_lookup_op H0 comm //. des_ifs. rewrite right_id //. }
-        { ss. specialize (H0 x x0). rewrite H0 left_id //. des_ifs.
-          destruct dec; bsimpl; des; Ztac; ss; try nia. }
-    }
-    iDestruct "B" as ">[B W]". iFrame; et.
-  Qed.
+  Definition mem_ra_upd (mem: _memRA) b ofs r : _memRA :=
+    fun b0 ofs0 =>
+      if dec b b0 && dec ofs ofs0 then r else mem b0 ofs0.
 
   Lemma split_points_to_r blk ofs q a l :
     _points_to_r (blk, ofs) q (a :: l)
@@ -189,7 +155,7 @@ Section RA.
 
   Lemma points_to_singleton blk ofs q a :
     _points_to_r (blk, ofs) q [a]
-    ≡ (discrete_fun_singleton blk (discrete_fun_singleton ofs (Some (q, Excl a)))).
+    ≡ (discrete_fun_singleton blk (discrete_fun_singleton ofs (Some (to_frac_agree q a)))).
   Proof using _memG.
     intros b o. ss. des_ifs; destruct dec; bsimpl; des; Ztac; try nia.
     - replace o with ofs in * by nia. rewrite Z.sub_diag in Heq0. ss. inv Heq0.
@@ -219,589 +185,422 @@ Section RA.
       rewrite Z.add_0_r. iFrame.
   Qed. 
 
+  Lemma to_frac_agree_inv A q (v: leibnizO A) f
+    (EQ: to_frac_agree q v ≡ f)
+    :
+    f.1 = DfracOwn q ∧ ∃ tl, f.2.(agree_car) = v :: tl.
+  Proof.
+    rr in EQ. des. ss. rr in EQ. rewrite EQ; split; et.
+    specialize (EQ0 0). rr in EQ0. des.
+    edestruct EQ0; s; eauto using elem_of_list.
+    des. ss. destruct (agree_car f.2) eqn: E.
+    - rewrite E in H. rr in H. inv H.
+    - exists l. f_equal. rr in H0. depdes H0. rewrite E in EQ1.
+      edestruct (EQ1 o); eauto using elem_of_list. des.
+      rr in H1. depdes H1. rr in H0. depdes H0; ss. rr in H0. depdes H0.
+  Qed.
+
+  Lemma to_frac_full_valid_inv A c (v: leibnizO A)
+    (VALID: ✓ (Some (to_frac_agree 1 v) ⋅ c))
+    :
+    c = None.
+  Proof.
+    destruct c; et. rewrite -?Some_op in VALID.
+    rr in VALID. des. ss. exfalso. eapply dfrac_full_exclusive; et.
+  Qed.
+
+  Lemma mem_ra_alloc γ (mem_src : _memRA) mem_tgt blk sz pad
+    (SIM: sim_mem mem_src mem_tgt)
+    (BLK: blk = Mem.nb mem_tgt + pad)
+    (WF: mem_wf mem_tgt)
+    :
+    own γ ((● mem_src): memRA)
+    ⊢ |==>
+    own γ ((● (mem_src ⋅ _points_to_r (blk, 0%Z) 1 (repeat Vundef sz))): memRA)
+    ∗ own γ ((◯ _points_to_r (blk, 0%Z) 1 (repeat Vundef sz)): memRA).
+  Proof using _memG.
+    iIntros "P". rewrite -own_op.
+    iApply (own_update with "P"). apply auth_update_alloc.
+    apply local_update_discrete. i. rewrite H0.
+    split; cycle 1.
+    - destruct mz; simpl opM in *.
+      + rewrite left_id (comm _ c). et.
+      + rewrite left_id. et.
+    - rewrite -H0. ii. rewrite !discrete_fun_lookup_op /_points_to_r.
+      destruct (dec _ _); s; cycle 1.
+      { rewrite right_id. apply H. }
+      hexploit (SIM blk x0). i; subst; des; rewrite H1.
+      + des_ifs.
+      + exploit WF; et. nia.
+  Qed.
+
+  Lemma mem_ra_lookup (mem_s: _memRA) mem_t b ofs q v
+    (SIM: sim_mem mem_s mem_t)
+    :
+    own base_γ (● mem_s) ∗ (b, ofs) |={ q }=> v
+    ⊢
+    ⌜mem_s b ofs ≡ Some (to_frac_agree 1 v) ∧
+     Mem.cnts mem_t b ofs = Some v⌝.
+  Proof.
+    iIntros "P". rewrite -own_op.
+    iPoseProof (own_valid with "P") as "%WF".
+    dup WF. rewrite auth_both_valid_discrete in WF. ss. des.
+    unfold included in *. des. specialize (WF b ofs). iris_tac.
+    rewrite ->!discrete_fun_lookup_singleton in *.
+    destruct (SIM b ofs); des; rewrite H in WF.
+    { destruct (z b ofs); ss; rewrite -?Some_op ?right_id in WF; inv WF. }
+    rewrite -WF. destruct (z b ofs); rr in WF; depdes WF.
+    - assert (EXT: to_frac_agree q v ≼ to_frac_agree 1 v0) by (rewrite H1; et).
+      eapply dfrac_agree_included in EXT. des; subst. rr in EXT0. subst. et.
+    - eapply to_frac_agree_inv in H1. ss. des. depdes H2. et.
+  Qed.
+
+  Lemma mem_ra_update v_new v (mem_s: _memRA) mem_t b ofs
+    (SIM: sim_mem mem_s mem_t)
+    :
+    own base_γ (● mem_s) ∗ (b, ofs) |={ 1 }=> v
+    ⊢ |==>
+    own base_γ (● mem_ra_upd mem_s b ofs (Some (to_frac_agree 1 v_new))) ∗ (b, ofs) |={ 1 }=> v_new.
+  Proof.
+    iIntros "P".
+    iPoseProof ((mem_ra_lookup _ _ _ _ SIM) with "P") as "%H"; iFrame.
+    des. clear H0.
+    rewrite -!own_op. iApply (own_update with "P").
+    apply auth_update, local_update_discrete. s. i.
+    rewrite /mem_ra_upd. split; ii.
+    { des_ifs. eapply H0. }
+    destruct (dec b x); s; subst; cycle 1.
+    - rewrite (H1 x x0). destruct mz; s;
+        try rewrite !discrete_fun_lookup_op;
+        rewrite !discrete_fun_lookup_singleton_ne; et.
+    - destruct (dec ofs x0); s; subst; cycle 1.
+      + rewrite (H1 x x0). destruct mz; s;
+          try rewrite !discrete_fun_lookup_op;
+          rewrite !discrete_fun_lookup_singleton;
+          rewrite !discrete_fun_lookup_singleton_ne; et.
+      + specialize (H1 x x0). revert H1.
+        destruct mz; s;
+          try rewrite !discrete_fun_lookup_op;
+          rewrite !discrete_fun_lookup_singleton; et.
+        i. specialize (H0 x x0). rewrite H1 in H0.
+        eapply to_frac_full_valid_inv in H0. rewrite H0 right_id. et.
+  Qed.
+
+  Lemma mem_ra_free (mem_s : _memRA) mem_t b ofs v
+    (SIM: sim_mem mem_s mem_t)
+    (WF: mem_wf mem_t)
+    :
+    own base_γ (● mem_s) ∗ (b, ofs) |={ 1 }=> v
+    ⊢ |==>
+    own base_γ (● mem_ra_upd mem_s b ofs None).
+  Proof using _memG.
+    iIntros "P". rewrite -own_op. iApply (own_update with "P").
+    eapply auth_update_dealloc, local_update_discrete.
+    i. split.
+    { ii. rewrite /mem_ra_upd. des_ifs. apply H. }
+    ss. ii. dup H. rewrite H0 in H. rewrite /mem_ra_upd.
+    specialize (H x x0). specialize (H0 x x0). specialize (H1 x x0).
+    destruct mz; ss; try rewrite !discrete_fun_lookup_op in H, H0 |- *.
+    - destruct dec; ss; subst; cycle 1.
+      { rewrite discrete_fun_lookup_singleton_ne in H0; et. }
+      rewrite discrete_fun_lookup_singleton in H, H0.
+      destruct dec; ss; subst; cycle 1.
+      { rewrite discrete_fun_lookup_singleton_ne in H0; et. }
+      rewrite discrete_fun_lookup_singleton in H, H0.
+      apply to_frac_full_valid_inv in H. rewrite H. et.
+    - destruct dec; ss; subst; cycle 1.
+      { rewrite discrete_fun_lookup_singleton_ne in H0; et. }
+      rewrite discrete_fun_lookup_singleton in H, H0.
+      destruct dec; ss.
+      rewrite discrete_fun_lookup_singleton_ne in H0; et.
+  Qed.
+
+  Lemma mem_ra_cmp (mem_s: _memRA) mem_t p0 q0 v0 p1 q1 v1 succ
+    (SIM: sim_mem mem_s mem_t)
+    (CMP: MemSpec.compare_val p0 p1 = Vint succ)
+    :
+    (own base_γ (● mem_s) ∗ MemSpec.val_r p0 q0 v0 ∗ MemSpec.val_r p1 q1 v1)
+    ⊢
+    ⌜Mem.vcmp mem_t p0 p1 = Some (dec succ 1 : bool)⌝.
+  Proof.
+    iIntros "(B & P1 & P2)".
+    destruct p0, p1; try destruct blkofs; try destruct blkofs0; ss.
+    - des_ifs.
+    - iPoseProof (mem_ra_lookup with "[B P2]") as "%"; et; iFrame.
+      specialize (SIM n0 z). des; subst; ss.
+      + rewrite SIM in H. r in H. depdes H.
+      + rewrite SIM0. iPureIntro. des_ifs.
+    - destruct n; ss.
+    - iPoseProof (mem_ra_lookup with "[B P1]") as "%"; et; iFrame.
+      specialize (SIM n0 z). des; subst; ss.
+      + rewrite SIM in H. rr in H. depdes H.
+      + rewrite SIM0. iPureIntro. des_ifs.
+    - iPoseProof (mem_ra_lookup with "[B P1]") as "%"; et; iFrame.
+      iPoseProof (mem_ra_lookup with "[B P2]") as "%"; et; iFrame.
+      dup SIM. specialize (SIM n z). des; subst; ss.
+      { rewrite SIM in H. rr in H. depdes H. }
+      specialize (SIM0 n0 z0). des; subst; ss.
+      { rewrite SIM0 in H0. rr in H0. depdes H0. }
+      rewrite SIM1 SIM2. s. des_ifs.
+  Qed.
+
 End RA.
 
-Module MemIA. Section MemIA.
+Module MemIP. Section MemIP.
   Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
   Context `{_memG: !memG}.
 
   Context (csl : string → bool).
   Context (genv : GEnv.t).
-  Context (sp : string → option fspec).
-  Context (MemInSpMem: sp_incl MemA.sp sp).
 
   Definition Ist: nat -> alist key Any.t -> alist key Any.t -> iProp Σ :=
     fun _ st_src st_tgt =>
-      ( (∃ (mem_tgt: Mem.t) (memk_src: _memRA),
-        (⌜(<<TGT: st_tgt = [(MemI.v_mem, mem_tgt↑)] >>) ∧
-        (<<SIM: forall (b: mblock) (ofs: Z),
-              sim_loc (memk_src b ofs) (mem_tgt.(Mem.cnts) b ofs)>>) ∧
-        (<<WFTGT: mem_wf mem_tgt>>)⌝)
+      ( (∃ (mem_tgt: Mem.t) (mem_src: _memRA),
+        ⌜st_tgt = [(MemI.v_mem, mem_tgt↑)] ∧
+         sim_mem mem_src mem_tgt ∧
+         mem_wf mem_tgt⌝
       ∗
-        (own base_γ ((● (memk_src : _memRA)): memRA))
+         ( |==> own base_γ (● mem_src) )
       ))%I.
 
-  Local Definition MemA := (MemA.t sp).
+  Local Definition MemP := (MemP.t).
   Local Definition MemI := (MemI.t csl genv).
-  Local Definition IstFull := (IstProd (IstSB MemA.(HMod.scopes) Ist) IstEq).
+  Local Definition IstFull := (IstProd (IstSB MemP.(HMod.scopes) Ist) IstEq).
 
-  Lemma simF_alloc : HSim.sim_fun open MemA MemI IstFull MemHdr.alloc.
-  Proof using MemInSpMem.
+  Definition mem_get (mem: _memRA) b ofs :=
+    match or_else (mem b ofs) (to_frac_agree 1 Vundef) with
+    | (_,v) => or_else (nth_error v.(agree_car) 0) Vundef
+    end.
+
+  Lemma mem_get_sound mem b ofs v
+    (HIT : mem b ofs ≡ Some (to_frac_agree 1 v))
+    :
+    mem_get mem b ofs = v.
+  Proof.
+    rr in HIT. depdes HIT. rewrite /mem_get -x. s. destruct x0.
+    symmetry in H. eapply to_frac_agree_inv in H. des. ss. subst.
+    rewrite H0. et.
+  Qed.
+  
+  Lemma simF_alloc : HSim.sim_fun open MemP MemI IstFull MemHdr.alloc.
+  Proof using.
     init_simF.
-    steps_l.
-    iDestruct "ASM" as "(% & %)". des; subst; hss.
+    iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
 
-    steps_r.  iDestruct "IST" as (? ? ? ?) "(% & [% IST] & %)".
-    unfold Ist. iDestruct "IST" as (? ?) "[% B]". des; subst; hss.
+    asmproph_simple (Z.to_nat (or_else (pargs [Tint] (or_else (y↓) [])) 0%Z)).
+    { iApply precise_pure. }
+
+    iDestruct "ASM" as "[% %]". subst; hss. rewrite Nat2Z.id. iSplit; et.
     steps_r. des_ifs.
-    2:{ rewrite andb_false_iff in Heq. des; des_sumbool; nia. }
+    2:{ rewrite andb_false_iff in Heq. des; des_sumbool; try nia. }
 
-    steps_r. unfold alist_upd, _alist_upd. ss.
-    rename q0 into pad. rename q into sz. set (blk := Mem.nb mem_tgt + pad).
+    hss. steps_r.
+    rename x' into size, q into pad. set (blk := Mem.nb mem_tgt + pad).
     iPoseProof (own_valid with "B") as "%".
-    iPoseProof (mem_alloc with "B") as ">B"; et.
+    iPoseProof (mem_ra_alloc with "B") as ">B"; et.
     iDestruct "B" as "[BLK WHT]".
-    forces_l. iSplitL "WHT". 
-    { instantiate (1:= (Vptr (blk, 0%Z)) ↑). instantiate (1:= (Vptr (blk, 0%Z)) ↑). iSplitL; et.
-      iExists blk. iSplitR; et. instantiate (1:=sz). instantiate (1:=pad).
+
+    force_l ((Vptr (blk, 0%Z)) ↑). force_l. iSplitL "WHT".
+    { iExists blk. iSplit; et.
       iPoseProof (points_to_transform with "WHT") as "WHT". iFrame. }
     steps_l.
     step. iSplit; et.
-    iExists st_srcL, [_], st_tgtR, st_tgtR. iSplit; et; iSplit; et.
-    iSplit; et. iExists _, _. iFrame. esplits; et. iPureIntro. splits; et.
-    - ii. destruct (mem_tgt.(Mem.cnts) blk ofs) eqn:E.
-      { exfalso. exploit WFTGT; et. i; des. lia. }
-      ss. exploit SIM; et. instantiate (2:= blk). instantiate (1:= ofs).
-      rewrite E. intro U. unfold sim_loc in U. des_ifs.
-      rewrite /_points_to_r. rewrite !discrete_fun_lookup_op.
-      destruct (AList.dec b blk); subst; ss.
-      * rewrite repeat_length. rewrite Z.add_0_l.
-        unfold AList.update. des_ifs_safe. rewrite Heq0.
-        rewrite left_id. des_ifs; bsimpl; hss; des_sumbool.
-        rewrite repeat_nth_some in Heq2.
-        hss. Ztac; nia. Ztac.
-        rewrite repeat_nth_some in Heq2; ss; nia.
-        subst blk; ss.
-      * unfold AList.update in *. destruct (dec blk b); subst; ss.
-        des_ifs; bsimpl; destruct dec; des; subst; ss; rewrite right_id; eauto.
-    - clear - WFTGT. ii. ss. 
-      unfold AList.update in *. des_ifs. exploit WFTGT; et. i; des. r; lia.
+    iExists _, [_], _, _. repeat (iSplit; et).
+    iExists _, _. iFrame. iPureIntro.
+    esplits; et; ii; cycle 1.
+    { ss. unfold update in *. des_ifs. exploit H4; et. nia. }
+    
+    destruct (mem_tgt.(Mem.cnts) blk ofs) eqn:E.
+    { exfalso. exploit H4; et. nia. }
+    ss. hexploit (H3 blk ofs); et.
+    rewrite E. intro U. des; ss.
+    rewrite !discrete_fun_lookup_op.
+    destruct (AList.dec b blk); subst; ss.
+    - rewrite repeat_length. rewrite Z.add_0_l.
+      unfold AList.update. des_ifs_safe. rewrite U left_id.
+      Ztac. destruct (dec _ _); ss.
+      destruct ((_ <=? _)%Z && (_ <? _)%Z) eqn: E0; et.
+      rewrite repeat_nth_some; et.
+      bsimpl; des; des_sumbool. Ztac. nia.
+    - unfold update in *. destruct (dec blk b); subst; ss.
+      des_ifs; bsimpl; destruct dec; des; subst; ss; rewrite right_id; eauto.
   (*SLOW*)Qed.
 
-  Lemma simF_free : HSim.sim_fun open MemA MemI IstFull MemHdr.free.
-  Proof using MemInSpMem.
+  Lemma simF_free : HSim.sim_fun open MemP MemI IstFull MemHdr.free.
+  Proof using.
     init_simF.
-  
-    steps_l. iDestruct "ASM" as "((% & % & P) & %)". des; subst; hss.
-    steps_r.
-    
-    iDestruct "IST" as (? ? ? ?) "(% & [% IST] & %)".
-    unfold Ist. iDestruct "IST" as (? ?) "[% B]". des; subst; hss.
-    steps_r.
-    rename q1 into b. rename q2 into ofs.
-  
-    iCombine "B P" as "P". 
-    iPoseProof (own_valid with "P") as "%WF".
-    assert (HIT: memk_src b ofs ≡ Some (1%Qp, Excl v)).
-    { clear - WF.
-      dup WF. rewrite auth_both_valid_discrete in WF. ss. des.
-      
-      unfold included in *. des.
-      specialize (WF b ofs). 
-      iris_tac.
-      rewrite ->!discrete_fun_lookup_singleton in *.
-      unfold base.length in WF. ss.
-      destruct z.
-      - des_ifs; bsimpl; des; des_sumbool; hss; iris_tac. 
-        destruct c. specialize (WF1 b ofs). rewrite WF in WF1.
-        rewrite Some_op_opM in WF1.
-        ss. cmra_tac. destruct c. ss. 
-        cmra_tac. iris_tac.  
-      - rewrite right_id //.
-    }
-    (* memory after free *)
-    set (memk_src1 := fun _b _ofs => if eq_dec _b b && eq_dec _ofs ofs 
-                                     then (ε)
-                                     else memk_src _b _ofs).
-  
-    assert (✓ (memk_src1: _memRA)).
-    { clear -WF. subst memk_src1. ii. des_ifs. ss.
-      apply cmra_valid_op_l in WF. iris_tac. apply WF.
-    }
-  
-    hexploit (SIM b ofs). intro B.
-    unfold Mem.free. des_ifs; unfold sim_loc in B; des_ifs; inv HIT. hss.
-    steps_r.
-  
-    iAssert _ with "[P]" as "P".
-    { (* update resource according to freeing *)
-      iApply (own_update with "P").
-      eapply auth_update_dealloc. hss.
-      instantiate (1:=memk_src1).
-      apply local_update_discrete.
-      i. ss. split. ss. 
-      destruct mz.
-      { ss. subst memk_src1. rewrite left_id. intros b0 ofs0.
-        specialize (H3 b0 ofs0). des_ifs; bsimpl; des; des_sumbool; subst.
-        { rewrite !discrete_fun_lookup_op in H3.
-          des_ifs. rewrite (@UIP _ _ _ e eq_refl) in H3. ss.
-          rewrite discrete_fun_lookup_singleton in H3.
-          destruct (c b ofs); ss. destruct c0; ss.
-          rewrite -Some_op -pair_op frac_op in H3.
-          specialize (H1 b ofs). rewrite H3 in H1. inv H1.
-        }
-        { rewrite !discrete_fun_lookup_op in H3. des_ifs. rewrite H3 left_id //. }
-        { rewrite !discrete_fun_lookup_op in H3. des_ifs.
-          { ss. rewrite discrete_fun_lookup_singleton_ne in H3; et. rewrite H3 left_id //. }
-          { rewrite H3 left_id //. }
-        }
-      }
-      { ss. subst memk_src1. intros b0 ofs0.
-        specialize (H3 b0 ofs0). des_ifs; bsimpl; des; des_sumbool; subst.
-        { des_ifs. }
-        { des_ifs. ss. rewrite discrete_fun_lookup_singleton_ne in H3; et. }
-      }
-    }
-    iMod "P".
-    
-    force_l. steps_l. forces_l. iSplitR; et. steps_l.
-    step. iSplit; et.
-  
-    iFrame. iExists st_srcL, [_], st_tgtR, st_tgtR. iSplit; et. iSplit; et.
-    iSplit; et. iExists _. iFrame. iPureIntro. esplits; et.
-    - i. destruct (classic (b = b0 ∧ ofs = ofs0)); des; clarify.
-      + unfold AList.update. ss. subst memk_src1. des_ifs.
-        bsimpl; des_sumbool; ss.
-      + unfold AList.update. ss. subst memk_src1. des_ifs; bsimpl; des; des; des_sumbool; ss; clarify.
-    - ii. ss. unfold AList.update in *. des_ifs; et.
+    iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
+
+    destruct (or_else(pargs [Tptr] (or_else (y↓) [])) (0,0%Z)) as [b ofs] eqn: EQ.
+    asmproph_simple (b, ofs, mem_get mem_src b ofs); s.
+    { iApply precise_sep. iSplit; [iApply precise_pure | iApply precise_own]. }
+
+    destruct x' as [[b' ofs'] v']. s.
+    iDestruct "ASM" as "[% P]". des; subst; hss.
+
+    iPoseProof (mem_ra_lookup with "[B P]") as "%HIT"; et; iFrame. des.
+    iSplit. { erewrite mem_get_sound; et. }
+
+    steps_r. hss. steps_r. rewrite HIT0. steps_r.
+    force_l. force_l. iSplit; et. step. repeat (iSplit; et).
+    iExists st_srcL, [_], _, _. repeat (iSplit; et).
+    iExists _, (mem_ra_upd mem_src b ofs None). iSplit; cycle 1.
+    { iMod (mem_ra_free with "[B P]") as "H"; et; iFrame. }
+    iPureIntro. esplits; et.
+    - ii. s. rewrite /mem_ra_upd /update.
+      destruct dec; ss; subst. des_ifs. left. et.
+    - rewrite /update. ii. ss. destruct dec; ss; subst; et.
   (*SLOW*)Qed.
 
-  Lemma sim_load fls flt υ ν r g ps pt nths st_s st_t bofs q v:
-    IstFull nths st_s st_t ∗ bofs |={q}=> v
-    ⊢ wsim fls flt IstFull None υ ν ⊤ r g _ _
-      (fun nths '(st_s,_) '(st_t,r) => IstFull nths st_s st_t ∗ bofs |={q}=> v ∗ ⌜r = v⌝)
-      ps pt nths (st_s, Ret ()) (st_t, HModTr.sandbox wmask_all MemI.scopes (PModTr.trans (MemI.load [Vptr bofs]))).
-  Proof using MemInSpMem.
-    intros. iIntros "(IST & P)".
-    unfold MemI.load. destruct bofs as [b ofs].
-
-    steps_r. iDestruct "IST" as (? ? ? ?) "(% & [% IST] & %)".
-    unfold Ist. iDestruct "IST" as (? ?) "[% B]". des; subst; hss.
-    steps_r.
-
-    iCombine "B P" as "P". iPoseProof (own_valid with "P") as "%WF". 
-    assert (HIT: memk_src b ofs ≡ Some (q%Qp, Excl v)).
-    { clear - WF.
-      dup WF. rewrite auth_both_valid_discrete in WF. ss. des.
-      unfold included in *. des.
-      specialize (WF b ofs). 
-      iris_tac.
-      rewrite ->!discrete_fun_lookup_singleton in *.
-      destruct (z b ofs).
-      - destruct c. specialize (WF1 b ofs). rewrite WF in WF1. inv WF1; ss.
-      - rewrite right_id //.
-    }
-    des. hexploit (SIM b ofs). intro T. 
-    
-    iDestruct "P" as "[BLK WHT]".
-    unfold sim_loc in T. des_ifs; bsimpl; des; des_sumbool; Ztac; inv HIT. hss.
-    steps_r.
-    step. iFrame. iSplit; et.
-    iExists _, [_], _, _. repeat iSplit; et.
-  (*SLOW*)Qed.
-
-  Lemma simF_load : HSim.sim_fun open MemA MemI IstFull MemHdr.load.
-  Proof using MemInSpMem.
+  Lemma simF_load : HSim.sim_fun open MemP MemI IstFull MemHdr.load.
+  Proof using.
     init_simF.
+    iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
 
-    steps_l. iDestruct "ASM" as "([% P] & %)". subst; hss.
-    rename q5 into b, q6 into ofs.
+    destruct (or_else (pargs [Tptr] (or_else (y↓) []))(0,0%Z)) as [b ofs] eqn: EQ.
+    asmproph_standard.
+    iExists (⌜y = [Vptr (b,ofs)]↑ ∧
+              mem_tgt.(Mem.cnts) b ofs = Some (mem_get mem_src b ofs)⌝
+             ∗ own base_γ (● mem_src))%I.
+    iExists (λ ret, ⌜ret = (mem_get mem_src b ofs)↑⌝%I).
+    iSplit.
+    { iApply precise_sep; iSplit; [iApply precise_pure|iApply precise_own]. }
+    iSplitL "B".
+    { iIntros (?). destruct x as [[[b0 ofs0] ] ]. s. iIntros "[% P]". subst. hss.
+      iPoseProof (mem_ra_lookup with "[B P]") as "%"; et; iFrame. des.
+      rewrite H1. erewrite mem_get_sound; et.
+    }
 
-    add_ret_l (). red_ret_r. rewrite PRed.bind SBRed.bind.
-    iApply wsim_bind. iSplitL "IST P".
-    { iApply sim_load; eauto; iFrame. }
-    clear nths NODS st_src NODD st_tgt.
-    iIntros (nths st_s r_s st_t r). hss.
-    iIntros "(IST & P & <-)".
-    
-    force_l. steps_l. forces_l. iSplitL "P"; iFrame; et. steps_l.
-    step. iFrame. eauto.
+    iIntros "[% B]". des; subst; hss.
+    steps_r. hss. steps_r. rewrite H1. s. steps_r.
+    force_l. force_l. iSplit; et. step. iSplit; et.
+    iExists _, [_], _, _. repeat (iSplit; et). iExists _, _. iSplit; et.
   (*SLOW*)Qed.
 
-  Lemma sim_store fls flt υ ν r g ps pt nths st_s st_t bofs v_old v:
-    IstFull nths st_s st_t ∗ bofs ↦ v_old
-    ⊢ wsim fls flt IstFull None υ ν ⊤ r g _ _
-      (fun nths '(st_s,_) '(st_t,r) => IstFull nths st_s st_t ∗ bofs ↦ v ∗ ⌜r = Vint 0⌝)
-      ps pt nths (st_s, Ret ()) (st_t, HModTr.sandbox wmask_all MemI.scopes (PModTr.trans (MemI.store [Vptr bofs; v]))).
-  Proof using MemInSpMem.
-    intros. iIntros "(IST & P)".
-    unfold MemI.store. destruct bofs as [b ofs].
-
-    steps_r. iDestruct "IST" as (? ? ? ?) "(% & [% IST] & %)".
-    unfold Ist. iDestruct "IST" as (? ?) "[% B]". des; subst; hss.
-    steps_r.
-
-    iCombine "B P" as "P". 
-    iPoseProof (own_valid with "P") as "%WF".
-    assert (HIT: memk_src b ofs ≡ Some(1%Qp, Excl v_old)).
-    { clear - WF.
-      dup WF. rewrite auth_both_valid_discrete in WF. ss. des.
-      
-      unfold included in *. des.
-      specialize (WF b ofs). 
-      iris_tac.
-      rewrite ->!discrete_fun_lookup_singleton in *.
-      destruct (z b ofs).
-      - destruct c. specialize (WF1 b ofs). rewrite WF in WF1. inv WF1; ss.
-      - rewrite right_id //.
-    }
-    hexploit (SIM b ofs). intro T.  
-
-    (* memory after storing *)
-    set (memk_src1 := 
-      fun _b _ofs => if Nat.eq_dec _b b && Z.eq_dec _ofs ofs 
-                     then (Some(1%Qp, Excl v)) 
-                     else (memk_src _b _ofs)).
-    assert (WF': ✓ (memk_src1 : _memRA)).
-    { clear -WF. subst memk_src1.  ii. dup WF. rewrite auth_both_valid_discrete in WF.
-      ss. des. des_ifs. bsimpl; ss; des; subst; apply WF1. }
-    
-    iAssert _ with "[P]" as "P".
-    { (* update resource according to storing *)
-      iApply (own_update with "P"). ss.
-      apply auth_update with (a':=memk_src1) (b':=_points_to_r (b, ofs) 1%Qp [v]).
-      apply local_update_discrete. 
-      ss; des_ifs; des; subst.
-      clear - WF WF'. ii. ss. split. hss.
-      destruct mz; ss. 
-      - intros b0 ofs0. rewrite !discrete_fun_lookup_op. subst memk_src1. ss.
-        des_ifs; bsimpl; ss; des; subst; des_sumbool;
-        hss; Ztac; try rewrite Z.sub_diag in Heq1;
-        try rewrite left_id; try lia; hss; try hexploit (H0 x x0); i; try rewrite H1;
-        try rewrite ! discrete_fun_lookup_op;
-        try rewrite unfold_points_to_r; des_ifs; hss;
-        bsimpl; des; des_sumbool; Ztac; hss; try rewrite Z.sub_diag in Heq0; ss; hss; try rewrite left_id; try lia; ss.
-        { rewrite H0 in H.
-          hexploit (H b ofs). i. rewrite ! discrete_fun_lookup_op in H1.
-          des_ifs. rewrite (@UIP _ _ _ e eq_refl) in H1. ss.
-          rewrite discrete_fun_lookup_singleton in H1. destruct (c b ofs); inv H1; ss. }
-        { hexploit (H0 b0 ofs0). i. rewrite !discrete_fun_lookup_op in H1.
-          des_ifs. rewrite H1 left_id //. }
-        { hexploit (H0 b0 ofs0). i. rewrite !discrete_fun_lookup_op in H1.
-          des_ifs. rewrite H1 left_id //. }
-        { hexploit (H0 b0 ofs0). i. rewrite !discrete_fun_lookup_op in H1.
-          des_ifs. rewrite H1 left_id //. }
-        { hexploit (H0 b0 ofs0). i. rewrite !discrete_fun_lookup_op in H1.
-          des_ifs; ss.
-          { rewrite H1 discrete_fun_lookup_singleton_ne // left_id //. }
-          { rewrite H1 left_id //. }
-        }
-        { hexploit (H0 b0 ofs0). i. rewrite !discrete_fun_lookup_op in H1.
-          des_ifs. rewrite H1 left_id //. }
-        { hexploit (H0 b0 ofs0). i. rewrite !discrete_fun_lookup_op in H1.
-          des_ifs; ss.
-          { rewrite H1 discrete_fun_lookup_singleton_ne // left_id //. }
-          { rewrite H1 left_id //. }
-        }
-      - unfold discrete_fun_singleton, discrete_fun_insert. des_ifs; ss; des_ifs; ss;
-        subst memk_src1; ss; des_ifs; bsimpl; des; des_sumbool; Ztac; hss; 
-        try rewrite Z.sub_diag in Heq0; ss; hss; try lia; 
-        try hexploit (H0 x x0); i; try rewrite H1; intros b0 ofs0; des_ifs; hss; 
-        bsimpl; des; des_sumbool; Ztac; hss; try rewrite Z.sub_diag in Heq0; ss; hss; try lia.
-        { rewrite Z.sub_diag in Heq1. ss. inv Heq1; ss. }
-        { rewrite Z.sub_diag in Heq1; ss. }
-        { hexploit (H0 b0 ofs0). i. des_ifs. }
-        { hexploit (H0 b0 ofs0). i. des_ifs. }
-        { hexploit (H0 b0 ofs0). i. des_ifs. }
-        { hexploit (H0 b0 ofs0). i. des_ifs. ss. rewrite discrete_fun_lookup_singleton_ne in H1; et. }
-        { hexploit (H0 b0 ofs0). i. des_ifs. }
-        { hexploit (H0 b0 ofs0). i. des_ifs. ss. rewrite discrete_fun_lookup_singleton_ne in H1; et. }
-    }
-
-    iMod "P". iDestruct "P" as "[BLK WHT]".
-    unfold Mem.store. des_ifs; unfold sim_loc in T; des_ifs; inv HIT.
-    steps_r. step.
-    iFrame. iSplitR "WHT".
-    { iExists _, [_], _, _. repeat iSplit; et.
-      iExists _. iPureIntro. esplits; et.
-      - i. cbn. des_ifs; bsimpl; des; des_sumbool; subst memk_src1; ss; des_ifs; bsimpl; des; des_sumbool; try nia.
-      - ii. r. cbn in *. 
-    unfold sim_loc in T. des_ifs; bsimpl; des; des_sumbool; try nia; subst; exploit WFTGT; et.
-    }
-    iPoseProof (points_to_transform with "WHT") as "WHT".
-    ss. rewrite Z.add_0_r. iDestruct "WHT" as "[WHT _]"; et.
-  (*SLOW*)Qed.
-
-  Lemma simF_store : HSim.sim_fun open MemA MemI IstFull MemHdr.store.
-  Proof using MemInSpMem.
+  Lemma simF_store : HSim.sim_fun open MemP MemI IstFull MemHdr.store.
+  Proof using.
     init_simF.
+    iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
 
-    steps_l. iDestruct "ASM" as "((% & % & P) & %)". subst; hss.
-    rename q3 into b, q4 into ofs.
+    destruct (or_else(pargs [Tptr; Tuntyped] (or_else (y↓) [])) (0,0%Z,Vundef))
+      as [[b ofs] v_new] eqn: EQ.
+    asmproph_simple (b, ofs, mem_get mem_src b ofs, v_new); ss.
+    { iApply precise_sep. iSplit; [iApply precise_pure | iApply precise_own]. }
+    destruct x' as [[[b' ofs'] v'] v_new']. ss.
+    iDestruct "ASM" as "(% & P)". subst; hss.
+    iPoseProof (mem_ra_lookup with "[B P]") as "%"; et; iFrame. des.
+    erewrite mem_get_sound; et. iSplit; et.
 
-    add_ret_l (). red_ret_r. rewrite PRed.bind SBRed.bind.
-    iApply wsim_bind. iSplitL "IST P".
-    { iApply sim_store; eauto; iFrame. }
-    clear nths NODS st_src NODD st_tgt.
-    iIntros (nths st_s r_s st_t r). hss.
-    iIntros "(IST & P & ->)".
-    
-    force_l. steps_l. forces_l. iSplitL "P"; et.
-    step. eauto.
+    steps_r. hss. steps_r. rewrite H1. steps_r.
+
+    iMod (mem_ra_update with "[B P]") as "[B P]"; et; iFrame.
+    force_l. force_l. iSplitL "P"; et. step. repeat (iSplit; et).
+    iExists st_srcL, [_], _, _. repeat (iSplit; et).
+    iExists _, (mem_ra_upd mem_src b ofs _). iSplit; et.
+    iPureIntro. esplits; et.
+    - ii. s. rewrite /mem_ra_upd /update.
+      destruct dec; ss; subst. des_ifs. right. et.
+    - ii. ss. destruct dec; ss; subst; et.
   (*SLOW*)Qed.
 
-  Lemma simF_cmp : HSim.sim_fun open MemA MemI IstFull MemHdr.cmp.
-  Proof using MemInSpMem.
+  Lemma simF_cmp : HSim.sim_fun open MemP MemI IstFull MemHdr.cmp.
+  Proof using.
     init_simF.
-    
-    steps_l. destruct q. destruct x.
-    { (* cmp spec 0 *)
-      ss. unfold precond. ss. destruct m. destruct p. destruct p. cbn.
-      iDestruct "ASM" as "([% P] & %)". subst; hss.
-      rename n into b, z into ofs.
-      
-      steps_r. 
+    iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
 
-      steps_r. iDestruct "IST" as (? ? ? ?) "(% & [% IST] & %)".
-      unfold Ist. iDestruct "IST" as (? ?) "[% B]". des; subst; hss.
-      steps_r.
-
-      iCombine "B P" as "P". iPoseProof (own_valid with "P") as "%WF".
-      assert (HIT: ∃ q, memk_src b ofs ≡ Some (q, Excl v)).
-      { clear - WF.
-        dup WF. rewrite auth_both_valid_discrete in WF. ss. des.
-        unfold included in *. des.
-        unfold cmra.op in WF. unfold cmra_op in WF. hss. unfold ucmra_op in WF.
-        hss. 
-        unfold discrete_fun_op_instance in WF. 
-        specialize (WF b ofs). 
-        rewrite ! discrete_fun_lookup_op in WF.
-        rewrite !discrete_fun_lookup_singleton in WF.
-        destruct (z b ofs).
-        - destruct c. specialize (WF1 b ofs). rewrite WF in WF1. inv WF1; ss.
-        - rewrite right_id in WF. eauto.
+    destruct (or_else (pargs [Tuntyped; Tuntyped] (or_else (y↓) []))(Vundef,Vundef)) as [p1 p2] eqn: EQ.
+    asmproph_standard.
+    iExists (⌜y = [p1; p2]↑ ∧ MemSpec.compare_val p1 p2 ≠ Vundef ∧
+              Mem.vcmp mem_tgt p1 p2 ≠ None⌝ ∗
+             own base_γ (● mem_src))%I.
+    iExists (λ ret, ⌜ret = (MemSpec.compare_val p1 p2)↑⌝%I).
+    iSplit.
+    { iApply precise_sep; iSplit; [iApply precise_pure|iApply precise_own]. }
+    iSplitL "B".
+    { iIntros (?). destruct x as [[[[[[arg0 q0] v0] arg1] q1] v1] succ]. s.
+      iIntros "[% [P1 P2]]". des. subst. hss. iModIntro.
+      rewrite -(assoc (∗))%I. iSplit.
+      { iSplit; et. rewrite H1. iSplit; et.
+        iPoseProof (mem_ra_cmp with "[B P1 P2]") as "%"; et; [iFrame|].
+        rewrite H. et.
       }
-      des. hexploit (SIM b ofs). intro T.  unfold sim_loc in T.
+      rewrite H1. iFrame; et.
+    }      
 
-      des_ifs; bsimpl; des; des_sumbool; unfold Mem.valid_ptr, is_some in *; des_ifs.
-      - steps_r. force_l. steps_l. forces_l.
-        iDestruct "P" as "[P Q]".
-        iSplitL "Q".
-        { iFrame. iSplit; et. }
-        steps_l. step. iSplit; et.
-        { iFrame. iExists _, [_], _, _. repeat iSplit; et. }
-      - inv HIT.
-    }
-
-    destruct x.
-    { (* cmp spec 1 *)
-      ss. unfold precond. ss. destruct m. destruct p. destruct p. cbn.
-      iDestruct "ASM" as "([% P] & %)". subst; hss.
-      rename n into b, z into ofs.
-      
-      steps_r.
-
-      steps_r. iDestruct "IST" as (? ? ? ?) "(% & [% IST] & %)".
-      unfold Ist. iDestruct "IST" as (? ?) "[% B]". des; subst; hss.
-      steps_r.
-
-      iCombine "B P" as "P". iPoseProof (own_valid with "P") as "%WF".
-      assert (HIT: ∃ q, memk_src b ofs ≡ Some(q, Excl v)).
-      { clear - WF.
-        dup WF. rewrite auth_both_valid_discrete in WF. ss. des.
-        unfold included in *. des.
-        unfold cmra.op in WF. unfold cmra_op in WF. hss. unfold ucmra_op in WF.
-        hss. 
-        unfold discrete_fun_op_instance in WF. 
-        specialize (WF b ofs). 
-        rewrite ! discrete_fun_lookup_op in WF.
-        rewrite !discrete_fun_lookup_singleton in WF.
-        destruct (z b ofs).
-        - destruct c. specialize (WF1 b ofs). rewrite WF in WF1. inv WF1; ss.
-        - rewrite right_id in WF. eauto.
-      }
-      des. hexploit (SIM b ofs). intro T.  unfold sim_loc in T.
-
-      des_ifs; bsimpl; des; des_sumbool; unfold Mem.valid_ptr, is_some in *; des_ifs.
-      - steps_r. force_l. steps_l. forces_l. iDestruct "P" as "[P Q]".
-        iSplitL "Q". { iFrame. iSplit; et. }
-        steps_l. step. iSplit; et.
-        { iFrame. iExists _, [_], _, _. repeat iSplit; et. }
-      - inv HIT.
-    }
-
-    destruct x.
-    { (* cmp spec 2 *)
-      ss. unfold precond. ss. destruct m. do 6 destruct p. cbn.
-      iDestruct "ASM" as "((% & P0 & P1) & %)". des_safe; subst; hss.
-      rename n0 into b0, z0 into ofs0, n into b1, z into ofs1.
-      rename q1 into q0, q into q1, v0 into v0, v into v1.
-
-      steps_r. iDestruct "IST" as (? ? ? ?) "(% & [% IST] & %)".
-      unfold Ist. iDestruct "IST" as (? ?) "[% B]". des_safe; subst; hss.
-      steps_r.
-
-      iCombine "B P0" as "P0". iPoseProof (own_valid with "P0") as "%WF".
-      assert (HIT: ∃ q, memk_src b0 ofs0 ≡ Some (q, Excl v0)).
-      { clear - WF.
-        dup WF. rewrite auth_both_valid_discrete in WF. ss. des.
-        inv WF. specialize (H b0 ofs0). 
-        rewrite ! discrete_fun_lookup_op in H.
-        rewrite !discrete_fun_lookup_singleton in H.
-        destruct (x b0 ofs0).
-        - destruct c. specialize (WF1 b0 ofs0). rewrite H in WF1. inv WF1; ss.
-        - eexists. rewrite H right_id //.
-      }
-      des_safe. hexploit (SIM b0 ofs0). intro T.  unfold sim_loc in T.
-      
-      iDestruct "P0" as "[B P0]".
-      iCombine "B P1" as "P1". iPoseProof (own_valid with "P1") as "%WF1". 
-      assert (HIT1: ∃ q, memk_src b1 ofs1 ≡ Some (q, Excl v1)).
-      { clear - WF1.
-        dup WF1. rewrite auth_both_valid_discrete in WF1. ss. des.
-        inv WF1. specialize (H b1 ofs1). 
-        rewrite ! discrete_fun_lookup_op in H.
-        rewrite !discrete_fun_lookup_singleton in H.
-        destruct (x b1 ofs1).
-        - destruct c. specialize (WF2 b1 ofs1). rewrite H in WF2. inv WF2; ss.
-        - eexists. rewrite H right_id //.
-      }
-      des_safe. hexploit (SIM b1 ofs1). intro H.  unfold sim_loc in H.
-
-      iDestruct "P1" as "[B P1]".
-      des_ifs_safe; bsimpl; des_safe; des_sumbool; unfold Mem.valid_ptr, is_some in *; des_ifs_safe.
-
-      des_ifs; bsimpl; des_safe; des_sumbool; des; ss; inv HIT.
-      { steps_r. des_ifs; bsimpl; des; des_sumbool; ss. 
-        { force_l; steps_l; forces_l. iSplitL "P0 P1"; iFrame; et.
-          steps_r. steps_l. step. iSplit; et. iFrame; try (iExists _, [_], _, _; repeat iSplit; et). }
-        { force_l; steps_l; forces_l. iSplitL "P0 P1"; iFrame; et.
-          steps_r. steps_l. step. iSplit; et. iFrame; try (iExists _, [_], _, _; repeat iSplit; et). }
-      }
-      { steps_r. des_ifs; bsimpl; des; des_sumbool; ss. 
-        { force_l; steps_l; forces_l. iSplitL "P0 P1"; iFrame; et.
-          steps_r. steps_l. step. iSplit; et. iFrame; try (iExists _, [_], _, _; repeat iSplit; et). }
-        { force_l; steps_l; forces_l. iSplitL "P0 P1"; iFrame; et.
-          steps_r. steps_l. step. iSplit; et. iFrame; try (iExists _, [_], _, _; repeat iSplit; et). }
-      }
-    }
-
-    destruct x.
-    { (* cmp spec 3 *)
-      ss. unfold precond. ss. destruct m. destruct p. destruct p. cbn.
-      iDestruct "ASM" as "([% P] & %)". subst; hss.
-      rename n into b, z into ofs.
-
-      steps_r. iDestruct "IST" as (? ? ? ?) "(% & [% IST] & %)".
-      unfold Ist. iDestruct "IST" as (? ?) "[% B]". des; subst; hss.
-      steps_r.
-
-      iCombine "B P" as "P". iPoseProof (own_valid with "P") as "%WF".
-      assert (HIT: ∃ q, memk_src b ofs ≡ Some (q, Excl v)).
-      { clear - WF.
-        dup WF. rewrite auth_both_valid_discrete in WF. ss. des.
-        inv WF. specialize (H b ofs). 
-        rewrite ! discrete_fun_lookup_op in H.
-        rewrite !discrete_fun_lookup_singleton in H.
-        destruct (x b ofs).
-        - destruct c. specialize (WF1 b ofs). rewrite H in WF1. inv WF1; ss.
-        - eexists. rewrite H right_id //.
-      }
-      des. hexploit (SIM b ofs). intro T.  unfold sim_loc in T. 
-
-      des_ifs; bsimpl; des; des_sumbool; unfold Mem.valid_ptr, is_some in *; des_ifs.
-      - steps_r. destruct dec; destruct dec; try congruence. steps_r.
-        iDestruct "P" as "[BLK WHT]".
-
-        steps_r. force_l; steps_l; forces_l. iSplitL "WHT"; iFrame; et.
-        step. iSplit; et.
-        { iFrame. iExists _, [_], _, _. repeat iSplit; et. }
-      - inversion HIT.
-    }
-
-    destruct x.
-    { (* cmp spec 4 *)
-      ss. unfold precond. ss. destruct m.
-      iDestruct "ASM" as "(% & %)". subst; hss.
-      
-      steps_r. 
-
-      steps_r. iDestruct "IST" as (? ? ? ?) "(% & [% IST] & %)".
-      unfold Ist. iDestruct "IST" as (? ?) "[% B]". des; subst; hss.
-
-      steps_r. force_l; steps_l; forces_l. iSplitR. iFrame; et.
-      step. iSplit; et.
-      { iFrame. iExists _, [_], _, _. repeat iSplit; et. }
-    }
-
-    destruct x; ss.
+    iIntros "[% B]". des; subst; hss.
+    steps_r. hss. steps_r. destruct (Mem.vcmp mem_tgt p1 p2) as [r|] eqn: E; ss.
+    steps_r. force_l. force_l. iSplit; et. step. iSplit.
+    { destruct p1, p2; depdes E; try destruct blkofs; try destruct blkofs0; ss;
+        try by destruct n; ss; des_ifs. }
+    iExists _, [_], _, _. repeat (iSplit; et). iExists _, _. iSplit; et.
   (*SLOW*)Qed.
 
-  Lemma simF_cas : HSim.sim_fun open MemA MemI IstFull MemHdr.cas.
-  Proof using MemInSpMem.
+  Lemma simF_cas : HSim.sim_fun open MemP MemI IstFull MemHdr.cas.
+  Proof using.
     init_simF.
+    iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
+    
+    destruct (or_else (pargs [Tptr; Tuntyped; Tuntyped] (or_else (y↓) [])) ((0,0%Z),(Vundef,Vundef))) as [[b ofs] [v_old v_new]] eqn: EQ.
+    set (v_cur := mem_get mem_src b ofs).
+    set (is_succ := dec (MemSpec.compare_val v_cur v_old) (Vint 1) : bool).
+    set (v_upd := if is_succ then v_new else v_cur).
 
-    steps_l. destruct q.
-    destruct x; [|destruct x; [| des_ifs]]; ss; unfold precond; 
-    ss; destruct m; destruct p; destruct p; try destruct p; ss.
-
-    { (* cas spec 0 - when cas succeeded *)
-      iDestruct "ASM" as "([% P] & %)"; subst; hss.
-      rename n into b, z into ofs, v0 into v_old, v into v_new.
-      steps_r.
-
-      inline_r. hss. red_ret_r. rewrite PRed.bind SBRed.bind. ired. add_ret_l ().
-      iApply wsim_bind. iSplitL "IST P".
-      { iApply sim_load; eauto; iFrame. }
-      clear nths NODS st_src NODD st_tgt.
-      iIntros (nths st_s r_s st_t r). hss.
-      iIntros "(IST & P & ->)".
-
-      steps_r. hss. steps_r. des_ifs.
-
-      inline_r. hss. red_ret_r. rewrite PRed.bind SBRed.bind. ired. add_ret_l ().
-      iApply wsim_bind. iSplitL "IST P".
-      { iApply sim_store; eauto; iFrame. }
-      clear nths st_s st_t.
-      iIntros (nths st_s r_s st_t r). hss.
-      iIntros "(IST & P & ->)".
-
-      steps_r. hss. steps_r.
-      force_l. steps_l. forces_l. iSplitL "P"; iFrame; et.
-
-      step. eauto.
+    asmproph_standard.
+    iExists (⌜y = [Vptr (b,ofs); v_old; v_new]↑ ∧
+              Mem.cnts mem_tgt b ofs = Some v_cur ∧
+              Mem.vcmp mem_tgt v_cur v_old = Some is_succ⌝ ∗
+             own base_γ (● (mem_ra_upd mem_src b ofs (Some (to_frac_agree 1 v_upd)))))%I.
+    iExists (λ ret, ⌜ret = v_cur↑⌝%I).
+    iSplit.
+    { iApply precise_sep; iSplit; [iApply precise_pure|iApply precise_own]. }
+    iSplitL "B".
+    { iIntros (?).
+      destruct x as [[[[[[[[[b' ofs'] v_cur']q0]v0]v_old']q1]v1]v_new']succ]. s.
+      iIntros "[% [P [V1 V2]]]". des. subst. hss.
+      iPoseProof (mem_ra_lookup with "[B P]") as "%"; et; [iFrame|]. des.
+      iPoseProof (mem_ra_cmp with "[B V1 V2]") as "%"; et; [iFrame|].
+      iMod ((mem_ra_update v_upd) with "[B P]") as "[B P]"; et; [iFrame|].
+      subst v_cur v_upd is_succ. erewrite mem_get_sound; et.
+      rewrite H1 H2 H6. des_ifs; iFrame; et.
+      exfalso. eapply n. destruct dec; ss. depdes e. et.
     }
-    { (* cas spec 1 - when cas failed *)
-      iDestruct "ASM" as "([% P] & %)"; des; subst; hss.
-      rename n into b, z into ofs, v into v_real, v1 into v_old, v0 into v_new.
-      steps_r.
 
-      inline_r. hss. red_ret_r. rewrite PRed.bind SBRed.bind. ired. add_ret_l ().
-      iApply wsim_bind. iSplitL "IST P".
-      { iApply sim_load; eauto; iFrame. }
-      clear nths NODS st_src NODD st_tgt.
-      iIntros (nths st_s r_s st_t r). hss.
-      iIntros "(IST & P & ->)".
+    iIntros "[% B]". des; subst; hss. steps_r.
+    inline_r. repeat (steps_r; hss). rewrite H1. steps_r; hss. steps_r.
+    inline_r. repeat (steps_r; hss). rewrite H2. steps_r; hss. steps_r.
 
-      steps_r. hss. steps_r. des_ifs.
-      force_l. steps_l. forces_l. iSplitL "P"; iFrame; et.
-
-      step. eauto.
+    add_ret_l (). iApply wsim_bind.
+    instantiate (1:= λ nths0 '(st_s,_) '(st_t,_), ⌜nths0 = _ ∧ st_s = _ ∧
+      st_t = (_, (or_else (Mem.store mem_tgt (b,ofs) v_upd) mem_tgt)↑) :: _⌝%I).
+    iSplitL "".
+    { des_ifs; cycle 1.
+      - step. iPureIntro; esplits; et. repeat f_equal.
+        rewrite H1. s. destruct mem_tgt. f_equal. extensionalities b' ofs'.
+        des_ifs. bsimpl; des; des_sumbool. subst. et.
+      - inline_r. repeat (steps_r; hss). rewrite H1. steps_r. hss. steps_r.
+        step. et.
     }
+    iIntros (? ? _ ? _ ?). des; subst.
+
+    steps_r. do 2 force_l. iSplit; et. steps_l. step. iSplit; et. rewrite H1; s.
+    iExists _, [_], _, _. repeat (iSplit; et). iExists _, _.
+    iFrame. iSplit; et. iPureIntro; esplits; et.
+    - ii. rewrite /mem_ra_upd. s. des_ifs; et.
+    - ii. ss. des_ifs; et. bsimpl; des; des_sumbool; subst. eapply H4; et.
   (*SLOW*)Qed.
 
-  Theorem sim : HSim.t open MemA MemI (MemA.init_cond csl genv) IstFull.
-  Proof using MemInSpMem.
+  Theorem sim : HSim.t open MemP MemI (MemP.init_cond csl genv) IstFull.
+  Proof using.
     init_sim.
-    - rewrite /IstFull /MemA /MemI. unfold_hmod. s.
-      iIntros "P". iExists [], [_], [], []. repeat iSplit; et. et. { iPureIntro. ss. }
+    - rewrite /IstFull /MemP /MemI. unfold_hmod. s.
+      iIntros "P". iExists [], [_], [], [].
+      repeat iSplit; et. et. { iPureIntro. ss. }
       iExists _, _. iFrame. iPureIntro. esplits; et.
-      + ii. unfold mem_init_val, sim_loc. des_ifs; hss; uo. des_ifs; hss; ii; try econs; des_ifs; hss.
-        des_ifs; hss. destruct ofs; ss. des_ifs. hss. des_ifs; hss. des_ifs. des_ifs.          
-      + unfold Mem.load_mem, mem_wf. ii. cbn. uo. r. unfold Mem.cnts in H. des_ifs.
-        destruct (nth_error genv b) eqn:E; ss. destruct p. r. gen genv. induction b.
-        * i. destruct genv0; ss. nia.
-        * i. apply nth_error_Some. rewrite E. ss.  
+      + ii. rewrite /mem_init_val /Mem.load_mem.
+        uo; des_ifs; bsimpl; des; des_sumbool; subst; ss;
+          rewrite ?Heq0 ?Heq1 ?Heq2; des_ifs; et.
+      + ii. revert H. rewrite /Mem.load_mem; uo; s. des_ifs.
+        i. inv H. eapply nth_error_Some. rewrite Heq0. ss.
     - apply simF_alloc.
     - apply simF_free.
     - apply simF_load.
@@ -809,16 +608,48 @@ Module MemIA. Section MemIA.
     - apply simF_cmp.
     - apply simF_cas.
   (*SLOW*)Qed.
-End MemIA.
 
-Section ctxr.
+  Theorem ctxr:
+    ctx_refines
+      (MemP, MemP.init_cond csl genv)
+      (MemI, emp%I).
+  Proof using. eapply main_adequacy, sim; eauto. Qed.
+
+End MemIP. End MemIP.
+
+Module MemPA. Section MemPA.
   Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
   Context `{_memG: !memG}.
 
-  Theorem ctxr csl genv (sp : string → option fspec)
-      (MemInSpMem: sp_incl MemA.sp sp) :
+  Theorem sim sp:
+    HSim.t open (MemA.t sp) MemP.t emp%I IstEq.
+  Proof using.
+    init_sim; prove_proph_sim.
+  (*SLOW*)Qed.
+
+  Theorem ctxr sp:
+    ctx_refines
+      (MemA.t sp, emp%I)
+      (MemP.t, emp%I).
+  Proof using. eapply main_adequacy, sim; eauto. Qed.
+
+End MemPA. End MemPA.
+
+Module MemIA. Section MemIA.
+  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
+  Context `{_memG: !memG}.
+
+  Theorem ctxr csl genv sp:
     ctx_refines
       (MemA.t sp, MemA.init_cond csl genv)
       (MemI.t csl genv, emp%I).
-  Proof using. eapply main_adequacy, sim; eauto. Qed.
-End ctxr. End MemIA.
+  Proof using.
+    etrans; cycle 1.
+    { eapply MemIP.ctxr. }
+    etrans; cycle 1.
+    { ctxr_norm. eapply MemPA.ctxr. }
+    eapply ctxr_cond_strengthen. et.
+  Qed.
+
+End MemIA. End MemIA.
+

@@ -343,7 +343,7 @@ Section PROOFS.
   Lemma interp_imp_GetVar
         ge le0 x
     :
-      (interp_imp ge (trigger (GetVar x)) le0 : itree pmodE _) =
+      (interp_imp ge (trigger (GetVar x)) le0 : itree hmodE _) =
       r <- unwrapU (alist_find x le0);; tau;; tau;; Ret (le0, r).
   Proof using.
     unfold interp_imp, interp_ImpState, interp_GlobEnv, trivial_Handler.
