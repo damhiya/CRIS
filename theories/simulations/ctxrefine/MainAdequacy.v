@@ -438,7 +438,7 @@ Lemma isim_ctx `{Σ: GRA}
       (IstProd (IstSB (HMod.scopes mt) Ist) (IstSB (HMod.scopes ctx) IstEq)) contextual
       (HModTr.sandbox_body fs) (HModTr.sandbox_body ft).
 Proof.
-  ii. specialize (SIM x y H). subst.
+  ii. specialize (SIM arg).
   iIntros "H". iDestruct "H" as (? ? ? ?) "(% & (% & IST) & %)". des. subst.
   move: NODUPFS NODUPFT NODS NODD; rewrite ?map_app; intros NODUPFS NODUPFT NODS NODD.
   assert (NODA := NODS). assert (NODB := NODD). assert (NODC:= NODS).
@@ -667,7 +667,7 @@ Proof.
 
   (* simulation *)
   ii. subst. destruct fs. unfold HModTr.sandbox_body. s.
-  generalize (i y) as it. clear FIND i y.
+  generalize (i arg) as it. clear FIND i arg.
   combine_quant NODD.
   combine_quant NODS.
   combine_quant st_tgt.

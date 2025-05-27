@@ -27,10 +27,10 @@ Proof.
   unfold HModTr.sandbox_body, inline_hp_fun. s.
   generalize false at 1 as ps.
   generalize false at 1 as pt. intros pt ps.
-  generalize (f y) as it.
+  generalize (f arg) as it.
   assert (IMPSC: exists fn f, alist_find fn (HMod.fnsems md) = Some (msk,sc,f)).
   { eauto. }
-  clear IN y NODD NODS FINDT fn f. i.
+  clear IN arg NODD NODS FINDT fn f. i.
 
   revert SCP.
   combine_quant IMPSC.

@@ -387,7 +387,7 @@ Module MemIP. Section MemIP.
     init_simF.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
 
-    asmproph_simple (Z.to_nat (or_else (pargs [Tint] (or_else (y↓) [])) 0%Z)).
+    asmproph_simple (Z.to_nat (or_else (pargs [Tint] (or_else (arg↓) [])) 0%Z)).
     { iApply precise_pure. }
 
     iDestruct "ASM" as "[% %]". subst; hss. rewrite Nat2Z.id. iSplit; et.
@@ -431,7 +431,7 @@ Module MemIP. Section MemIP.
     init_simF.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
 
-    destruct (or_else(pargs [Tptr] (or_else (y↓) [])) (0,0%Z)) as [b ofs] eqn: EQ.
+    destruct (or_else(pargs [Tptr] (or_else (arg↓) [])) (0,0%Z)) as [b ofs] eqn: EQ.
     asmproph_simple (b, ofs, mem_get mem_src b ofs); s.
     { iApply precise_sep. iSplit; [iApply precise_pure | iApply precise_own]. }
 
@@ -457,9 +457,9 @@ Module MemIP. Section MemIP.
     init_simF.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
 
-    destruct (or_else (pargs [Tptr] (or_else (y↓) []))(0,0%Z)) as [b ofs] eqn: EQ.
+    destruct (or_else (pargs [Tptr] (or_else (arg↓) []))(0,0%Z)) as [b ofs] eqn: EQ.
     asmproph_standard.
-    iExists (⌜y = [Vptr (b,ofs)]↑ ∧
+    iExists (⌜arg = [Vptr (b,ofs)]↑ ∧
               mem_tgt.(Mem.cnts) b ofs = Some (mem_get mem_src b ofs)⌝
              ∗ own base_γ (● mem_src))%I.
     iExists (λ ret, ⌜ret = (mem_get mem_src b ofs)↑⌝%I).
@@ -482,7 +482,7 @@ Module MemIP. Section MemIP.
     init_simF.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
 
-    destruct (or_else(pargs [Tptr; Tuntyped] (or_else (y↓) [])) (0,0%Z,Vundef))
+    destruct (or_else(pargs [Tptr; Tuntyped] (or_else (arg↓) [])) (0,0%Z,Vundef))
       as [[b ofs] v_new] eqn: EQ.
     asmproph_simple (b, ofs, mem_get mem_src b ofs, v_new); ss.
     { iApply precise_sep. iSplit; [iApply precise_pure | iApply precise_own]. }
@@ -508,9 +508,9 @@ Module MemIP. Section MemIP.
     init_simF.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
 
-    destruct (or_else (pargs [Tuntyped; Tuntyped] (or_else (y↓) []))(Vundef,Vundef)) as [p1 p2] eqn: EQ.
+    destruct (or_else (pargs [Tuntyped; Tuntyped] (or_else (arg↓) []))(Vundef,Vundef)) as [p1 p2] eqn: EQ.
     asmproph_standard.
-    iExists (⌜y = [p1; p2]↑ ∧ MemSpec.compare_val p1 p2 ≠ Vundef ∧
+    iExists (⌜arg = [p1; p2]↑ ∧ MemSpec.compare_val p1 p2 ≠ Vundef ∧
               Mem.vcmp mem_tgt p1 p2 ≠ None⌝ ∗
              own base_γ (● mem_src))%I.
     iExists (λ ret, ⌜ret = (MemSpec.compare_val p1 p2)↑⌝%I).
@@ -540,13 +540,13 @@ Module MemIP. Section MemIP.
     init_simF.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
     
-    destruct (or_else (pargs [Tptr; Tuntyped; Tuntyped] (or_else (y↓) [])) ((0,0%Z),(Vundef,Vundef))) as [[b ofs] [v_old v_new]] eqn: EQ.
+    destruct (or_else (pargs [Tptr; Tuntyped; Tuntyped] (or_else (arg↓) [])) ((0,0%Z),(Vundef,Vundef))) as [[b ofs] [v_old v_new]] eqn: EQ.
     set (v_cur := mem_get mem_src b ofs).
     set (is_succ := dec (MemSpec.compare_val v_cur v_old) (Vint 1) : bool).
     set (v_upd := if is_succ then v_new else v_cur).
 
     asmproph_standard.
-    iExists (⌜y = [Vptr (b,ofs); v_old; v_new]↑ ∧
+    iExists (⌜arg = [Vptr (b,ofs); v_old; v_new]↑ ∧
               Mem.cnts mem_tgt b ofs = Some v_cur ∧
               Mem.vcmp mem_tgt v_cur v_old = Some is_succ⌝ ∗
              own base_γ (● (mem_ra_upd mem_src b ofs (Some (to_frac_agree 1 v_upd)))))%I.
