@@ -901,14 +901,14 @@ Definition ist_with_eq `{Σ : GRA} {R} (Ist: nat → alist key Any.t → alist k
     (⌜v_src = (v_tgt: R)⌝ ∗ Ist nths st_src st_tgt)%I.
              
 Definition isim_fsem `{Σ : GRA} fl_src fl_tgt Ist contextual : relation (Any.t -> itree hmodE Any.t) :=
-  (eq ==> (fun itr_src itr_tgt =>
-  ∀ nths st_src st_tgt
+  fun itr_src itr_tgt =>
+  ∀ arg nths st_src st_tgt
     (IMON : Ist_monotone Ist)
     (NODS : List.NoDup (List.map fst st_src))
     (NODD : List.NoDup (List.map fst st_tgt)),
   Ist nths st_src st_tgt ⊢
     @isim Σ contextual fl_src fl_tgt Ist ibot ibot Any.t Any.t (ist_with_eq Ist)
-      false false nths (st_src, itr_src) (st_tgt, itr_tgt)))%signature.
+      false false nths (st_src, itr_src arg) (st_tgt, itr_tgt arg).
 
 Module HSim. Section HSim.
     Import HMod.

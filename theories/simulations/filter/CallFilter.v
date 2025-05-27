@@ -41,8 +41,8 @@ Module CFilter. Section CFilter.
     destruct (alist_find fn _); ss. inv FIND. destruct p as [[msk sc] bd].
     esplits; eauto.
 
-    r. r. i. subst y. unfold HModTr.sandbox_body. s.
-    generalize (bd x) as itr. clear bd x NODS NODD.
+    r. r. i. unfold HModTr.sandbox_body. s.
+    generalize (bd arg) as itr. clear bd arg NODS NODD.
     combine_quant st_src; combine_quant st_tgt; combine_quant nths.
     eapply isim_coind.
     iIntros (g' [nths [st_tgt [st_src itr]]] MON) "[IST #CIH]".
@@ -94,8 +94,8 @@ Module CFilter. Section CFilter.
     rewrite alist_find_map_snd. unfold o_map. rewrite FIND.
     destruct fs as [[msk sc] bd]. esplits; eauto.
 
-    r. r. i. subst y. unfold HModTr.sandbox_body. s.
-    generalize (bd x) as itr. clear x NODS NODD.
+    r. r. i. unfold HModTr.sandbox_body. s.
+    generalize (bd arg) as itr. clear arg NODS NODD.
     combine_quant st_src; combine_quant st_tgt; combine_quant nths.
     eapply isim_coind.
     iIntros (g' [nths [st_tgt [st_src itr]]] MON) "[IST #CIH]".

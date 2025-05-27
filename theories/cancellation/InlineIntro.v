@@ -25,8 +25,8 @@ Proof.
   unfold HModTr.sandbox_body, inline_hp_fun. s.
   generalize false at 1 as ps.
   generalize false at 1 as pt. intros pt ps.
-  generalize (i y) as it.
-  clear IN fn FINDT i y NODD NODS.
+  generalize (i arg) as it.
+  clear IN fn FINDT i arg NODD NODS.
   combine_quant st_tgt.
   combine_quant st_src.
   combine_quant SCP.
