@@ -1,10 +1,45 @@
 Require Import Common.
 From iris.proofmode Require Import proofmode.
-Require Import ModSim.
+Require Import ModSim Sandbox HMod.
 
 Variant contextuality : Type := 
 | open 
 | closed.
+
+Section IST.
+
+  Context `{Σ: GRA}.
+
+  Definition Ist_monotone (Ist: nat → alist key Any.t → alist key Any.t → iProp Σ) : Prop :=
+    ∀ nths nths' (LE : nths <= nths') st_src st_tgt,
+      Ist nths st_src st_tgt ⊢ Ist nths' st_src st_tgt.
+
+  Definition IstProd (IstL IstR : nat -> alist key Any.t -> alist key Any.t -> iProp Σ) :=
+  fun nths (st_src st_tgt : alist key Any.t) =>
+    (∃ st_srcL st_tgtL st_srcR st_tgtR,
+     ⌜st_src = st_srcL ++ st_srcR /\ st_tgt = st_tgtL ++ st_tgtR⌝ ∗
+     IstL nths st_srcL st_tgtL ∗ IstR nths st_srcR st_tgtR)%I.
+
+  Definition IstSB scopes (Ist : nat -> alist key Any.t -> alist key Any.t -> iProp Σ) :=
+    fun nths st_src st_tgt =>
+      (⌜incl (HMod.state_scopes st_src) scopes ∧
+         incl (HMod.state_scopes st_tgt) scopes⌝
+           ∗ Ist nths st_src st_tgt)%I.
+
+  Definition IstEq : nat -> alist key Any.t -> alist key Any.t -> iProp Σ :=
+    (fun _ st_src st_tgt => ⌜st_src = st_tgt⌝)%I.
+
+  Definition ist_with_eq (Ist : nat -> alist key Any.t -> alist key Any.t -> iProp Σ) {R} :=
+    fun nths '(st_src, v_src) '(st_tgt, v_tgt) =>
+      (⌜v_src = (v_tgt: R)⌝ ∗ Ist nths st_src st_tgt)%I.
+
+  Definition IstTrue : nat → alist key Any.t → alist key Any.t → iProp Σ
+    := λ _ _ _, True%I.
+
+  Definition IstFalse : nat → alist key Any.t → alist key Any.t → iProp Σ
+    := λ _ _ _, False%I.
+
+End IST.
 
 Section HSIM.
 
@@ -253,7 +288,7 @@ Section HSIM.
         hsimi true true nths0 (st_src0, k_src tt) (st_tgt0, k_tgt tt) fmr0)
     :
     _hsim' hsimc hsimi ps pt nths (st_src, trigger (Yield tid) >>= k_src) (st_tgt, trigger (Yield tid) >>= k_tgt) fmr
-        
+
   | hsim_call_none
       (HSIM_CALL_NONE: True)
       ps pt nths st_src st_tgt fmr
@@ -344,11 +379,8 @@ Section HSIM.
   Hint Resolve hsupd_mon _hsim'_mon _hsim_mon_auto : paco.
   Hint Resolve cpn9_wcompat : paco.
 
-  Definition hsim_tail : nat → (alist key Any.t) * Any.t → (alist key Any.t) * Any.t → iProp Σ :=
-    fun nths '(st_src, v_src) '(st_tgt, v_tgt) => (⌜v_src = v_tgt⌝ ∗ Ist nths st_src st_tgt)%I.
-
   Definition hsim_body ps pt nths sti_src sti_tgt fmr :=
-    @hsim _ _ hsim_tail ps pt nths sti_src sti_tgt fmr.
+    @hsim _ _ (@ist_with_eq _ Ist Any.t) ps pt nths sti_src sti_tgt fmr.
 
   Lemma hsupd_incl P : P <1= hsupd P.
   Proof using.
@@ -796,12 +828,12 @@ Section HSIM.
       + destruct x6. econs; eauto using eqit_refl.
       + ss. destruct x3. eauto using eqit_refl.
     - ides isrc0. ides isrc1.
-      inv IN; [..|guardH CLOSED|]; try itree_clarify H5; eauto using _hsim', hsim_eqitC_src.
+      inv IN; try itree_clarify H5; eauto using _hsim', hsim_eqitC_src.
       + eapply hsim_assume_precise_tgt; et. i. hexploit K; et. i; des.
         esplits; et.
     - ides isrc0. ides isrc1. depdes H1.
       Local Hint Unfold eqit: core.
-      inv IN; [..|guardH CLOSED|]; try itree_clarify H5;
+      inv IN; try itree_clarify H5;
         try (assert (REL' := bind_ret_l_forall (fun v t => _ t (k0 v)) k_src REL);
              s in REL');
         try(match goal with [|-context[vis ?e ?k]] =>
@@ -865,7 +897,7 @@ Section HSIM.
       depdes IN; try itree_clarify x; eauto using _hsim', hsim_eqitC_tgt.
     - ides itgt0. ides itgt1. depdes H1.
       Local Hint Unfold eqit: core.
-      inv IN; [..|guardH CLOSED|]; try itree_clarify H6;
+      inv IN; try itree_clarify H6;
         try (assert (REL' := bind_ret_l_forall (fun v t => _ t (k0 v)) k_tgt REL);
              s in REL');
         try(match goal with [|-context[vis ?e ?k]] =>

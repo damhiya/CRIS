@@ -196,11 +196,11 @@ Section SIM_ITREE.
   | _sim_itree_intro (SAT : @sim_itree_def sim_itree R_src R_tgt RR (_sim_itree sim_itree RR) ps pt w nths src tgt)
   .
   
-  Definition final_rel w0 w1 (nths : nat) (st_src st_tgt ret_src ret_tgt : Any.t) :=
-    le_mine w0 w1 /\ wf w1 (nths, st_src, st_tgt) /\ ret_src = ret_tgt.
+  Definition final_rel RR w0 w1 (nths : nat) (st_src st_tgt ret_src ret_tgt : Any.t) :=
+    le_mine w0 w1 /\ RR w1 (nths, st_src, st_tgt) /\ ret_src = ret_tgt.
 
-  Definition sim_itree w0 ps pt w nths src tgt :=
-    paco9 _sim_itree bot9 _ _ (final_rel w0) ps pt w nths src tgt.
+  Definition sim_itree RR w0 ps pt w nths src tgt :=
+    paco9 _sim_itree bot9 _ _ (final_rel RR w0) ps pt w nths src tgt.
 
   Lemma sim_itree_def_mon sim_itree sim_itree' R_src R_tgt RR P P'
     (LESIM : sim_itree <9= sim_itree')
@@ -295,6 +295,17 @@ Section SIM_ITREE.
 
     eapply sim_itree_tarski in SIM'; des; eauto.
     eapply sim_itree_mon; eauto. i. pclearbot. eauto.
+  Qed.
+
+  Lemma sim_itree_mon_rr RR RR'
+    (LER: RR <2= RR')
+    :
+    sim_itree RR <7= sim_itree RR'.
+  Proof.
+    pcofix CIH. i.
+    punfold PR. eapply sim_itree_tarski, PR. i. pstep. econs.
+    depdes PR0; pclearbot; try by econs; et; i; pstep_reverse.
+    econs; et. r; r in RET; des. subst; esplits; et.
   Qed.
 
   Definition sim_itree_indC sim_itree {R_src R_tgt} RR :=
@@ -396,12 +407,11 @@ Section SIM_ITREE.
   Qed.
 
   Definition sim_fsem : relation (Any.t -> itree modE Any.t) :=
-    (eq ==> (fun it_src it_tgt =>
-               forall w nths mrs_src mrs_tgt
-                      (TID : my_tid < List.length w)
-                      (SIMMRS : wf w (nths, mrs_src, mrs_tgt)),
-                 sim_itree w false false w nths (mrs_src, it_src)
-                           (mrs_tgt, it_tgt)))%signature
+    fun it_src it_tgt =>
+      forall w nths mrs_src mrs_tgt arg
+             (TID : my_tid < List.length w)
+             (SIMMRS : wf w (nths, mrs_src, mrs_tgt)),
+        sim_itree wf w false false w nths (mrs_src, it_src arg) (mrs_tgt, it_tgt arg)
   .
 
   Variant lflagC (r : forall (R_src R_tgt : Type)
@@ -451,9 +461,9 @@ Section SIM_ITREE.
   Qed.
 
   Lemma sim_itree_bot_flag_up w0 w nths st_src st_tgt ps pt
-        (SIM : paco9 _sim_itree bot9 _ _ (final_rel w0) true true w nths st_src st_tgt)
+        (SIM : paco9 _sim_itree bot9 _ _ (final_rel wf w0) true true w nths st_src st_tgt)
     :
-      paco9 _sim_itree bot9 _ _ (final_rel w0) ps pt w nths st_src st_tgt.
+      paco9 _sim_itree bot9 _ _ (final_rel wf w0) ps pt w nths st_src st_tgt.
   Proof using.
     ginit. remember true in SIM at 1. remember true in SIM at 1.
     clear Heqb Heqb0. revert w nths st_src st_tgt ps pt b b0 SIM.
@@ -542,6 +552,8 @@ Section MODSEMR.
   Let fl_tgt := ms_tgt.(Mod.fnsems).
   Let st_src := ms_src.(Mod.initial_st).
   Let st_tgt := ms_tgt.(Mod.initial_st).
+  Let it_src := ms_src.(Mod.initial_code).
+  Let it_tgt := ms_tgt.(Mod.initial_code).
 
   Inductive t : Type := mk {
     world : Type;
@@ -553,7 +565,8 @@ Section MODSEMR.
     wf_mon : forall w n n0 st_src st_tgt (LE : n <= n0) (WF : wf w (n,st_src,st_tgt)), wf w (n0,st_src,st_tgt);
     wf_winit : forall w n st_src st_tgt (WF : wf w (n,st_src,st_tgt)), wf (w++[winit]) (n,st_src,st_tgt);
     sim_initial:
-      exists w, wf [w] (1, st_src, st_tgt);
+      ∀ arg, ∃ w0 w,
+      sim_itree fl_src fl_tgt winit wf wle 0 top2 [w0] false false [w] 1 (st_src, it_src arg) (st_tgt, it_tgt arg);
     sim_fnsems:
       forall fn fs (FIND : alist_find fn fl_src = Some fs),
       exists ft, alist_find fn fl_tgt = Some ft /\

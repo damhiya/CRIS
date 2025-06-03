@@ -82,6 +82,7 @@ Section aux.
     destruct a; ss. f_equal; et.
   Qed.
 
+  TODO
   Definition find_body md fn :=
     alist_find fn (map (map_snd (λ kb arg, HModTr.sandbox kb.1.1 kb.1.2 (kb.2 arg))) (HMod.fnsems md)).
 

@@ -2,7 +2,7 @@ From iris.proofmode Require Import proofmode.
 Require Import Common.
 Require Import LAuto.
 
-Require Import Sp Mod SMod HMod PMod.
+Require Import Sp Mod SMod HMod.
 Require Import ISim TacticsCommon.
 
 (**** TODO ****)
@@ -28,9 +28,9 @@ Ltac _istep_l :=
       iApply isim_tau_src
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, Ret _ >>= _) _) ] =>
       rewrite bind_ret_l
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, (HModTr.sandbox _ _ (trigger (SPut _ _))) >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, (SB.sandbox _ _ _ (trigger (SPut _ _))) >>= _) _) ] =>
       iApply isim_sput_src_sandbox; [s;eauto|]
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, (HModTr.sandbox _ _ (trigger (SGet _))) >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, (SB.sandbox _ _ _ (trigger (SGet _))) >>= _) _) ] =>
       iApply isim_sget_src_sandbox; [s;eauto|]
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _) _) ] =>
       let name := fresh "q" in
@@ -66,9 +66,9 @@ Ltac _istep_r :=
       rewrite bind_ret_l
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, tau;; _)) ] =>
       iApply isim_tau_tgt
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, (HModTr.sandbox _ _ (trigger (SPut _ _))) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, (SB.sandbox _ _ _ (trigger (SPut _ _))) >>= _)) ] =>
       iApply isim_sput_tgt_sandbox; [s; eauto|]
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, (HModTr.sandbox _ _ (trigger (SGet _))) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, (SB.sandbox _ _ _ (trigger (SGet _))) >>= _)) ] =>
       iApply isim_sget_tgt_sandbox; [s; eauto|]
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose _) >>= _)) ] =>
       let name := fresh "q" in
@@ -168,19 +168,19 @@ Ltac iforces_r := hrepeat do 1 iforce_r.
 
 Ltac iinline_l :=
   norm_l with
-    do 1 iApply isim_inline_src_sandbox; [try prove_inline_cond|try prove_sb_cond|unfold_cris_defs]. 
+    do 1 iApply isim_inline_src_sandbox; [try prove_inline_cond|unfold_cris_defs]. 
 
 Ltac iinline_r :=
   norm_r with
     do 1 iApply isim_inline_tgt_sandbox; [try prove_inline_cond|try prove_sb_cond|unfold_cris_defs].
 
 Ltac icall hyps :=
-  (norm with do 1 iApply isim_call_sandbox); [try prove_sb_cond|try prove_sb_cond|
+  (norm with do 1 iApply isim_call_sandbox); [try prove_sb_cond|
   iSplitL hyps; [try done|iIntros "% % % % % %"; iIntrosFresh "IST"];
   move_aux].
 
 Ltac ispawn :=
-  (norm with do 1 iApply isim_spawn_sandbox); [try prove_sb_cond|try prove_sb_cond|].
+  (norm with do 1 iApply isim_spawn_sandbox); [try prove_sb_cond|].
 
 Ltac iyield hyps :=
   (norm with do 1 iApply isim_yield);

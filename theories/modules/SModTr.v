@@ -1,5 +1,5 @@
 Require Import Common.
-Require Import HMod FSpec.
+Require Import HMod FSpec Sp.
 
 Set Implicit Arguments.
 
@@ -11,72 +11,91 @@ Section HOARE.
 
   Context `{Σ: GRA}.
 
-  Variable sp: string → option fspec.
-
-  Definition HoareCall (fsp: fspec): string → Any.t → (itree hmodE) Any.t 
+  Definition HoareCall fn (varg: Any.t) (fsp: _fspec): itree hmodE Any.t
     := 
-    λ fn varg,
-      x <- trigger (Choose fsp.(meta));; 
+      x <- trigger (Choose (_meta fsp));; 
 
       (*** precondition ***)
       arg <- trigger (Choose Any.t);;
-      trigger (Guarantee (fsp.(precond) x varg arg));;;
+      trigger (Guarantee (_precond fsp x varg arg));;;
 
       (*** call ***)
       ret <- trigger (Call fn arg);;
 
       (*** postcondition ***)
       vret <- trigger (Take Any.t);;
-      trigger (Assume (fsp.(postcond) x vret ret));;;
+      trigger (Assume (_postcond fsp x vret ret));;;
 
       Ret vret.
 
-  Definition HoareSpawn (fsp: fspec) (fn: string) (varg: Any.t) : itree hmodE nat :=
-    x <- trigger (Choose fsp.(meta));; 
+  Definition HoareSpawn fn (varg: Any.t) (fsp: _fspec) : itree hmodE nat
+    :=
+    x <- trigger (Choose (_meta fsp));; 
     arg <- trigger (Choose Any.t);;
     tid <- trigger (Spawn fn arg);;
-    trigger (Guarantee (fsp.(precond) x varg arg));;;
+    trigger (Guarantee (_precond fsp x varg arg));;;
     trigger (Yield tid);;;
     Ret tid.
 
-  Definition handle: hmodE ~> itreeV hmodE :=
-    fun T e =>
-      match e with
-      | inr1 (inl1 c) =>
-          match c in callE T return itreeV hmodE T with
-          | Call fn args =>
-              inl (fsp <- (sp fn)!;; HoareCall fsp fn args)
-          | Spawn fn args =>
-              inl (fsp <- (sp fn)!;; HoareSpawn fsp fn args)
-          | Yield tid => inr (existT _ (subevent _ (Yield tid), fun v => Ret v))
-          end
-      | _ =>
-          inr (existT _ (e, fun v => Ret v))
-      end.
-  
-  Definition trans R (it : itree hmodE R) : itree hmodE R :=
-    interpV handle it.
+  Definition NativeSpawn `{Σ: GRA} (fn: string) (varg: Any.t) : itree hmodE nat :=
+    tid <- trigger (Spawn fn varg);;
+    trigger (Yield tid);;;
+    Ret tid.
 
-  Definition HoareFun {X: Type}
-      (P: X → Any.t → Any.t → iProp Σ)
-      (Q: X → Any.t → Any.t → iProp Σ)
-      (body: Any.t → itree hmodE Any.t): Any.t → itree hmodE Any.t :=
+  Definition handle (sp: string → option fspec): hmodE ~> itreeV hmodE.
+  Proof.
+    intros T e. destruct e.
+    { exact (inr (existT _ (subevent _ a, fun v => Ret v))). }
+    destruct s.
+    { destruct c.
+      - (* Call *)
+        exact
+        (inl (fsp <- (sp fn)!;;
+         map_or_else fsp (HoareCall fn args) (trigger (Call fn args)))).
+      - (* Spawn *)
+        exact
+        (inl (fsp <- (sp fn)!;;
+         map_or_else fsp (HoareSpawn fn args) (NativeSpawn fn args))).
+      - (* Yield *)
+        exact (inr (existT _ (subevent _ (Yield tid), fun v => Ret v))).
+    }
+    destruct s.
+    { exact (inr (existT _ (subevent _ p, fun v => Ret v))). }
+    { exact (inr (existT _ (subevent _ c, fun v => Ret v))). }
+  Defined.
+
+  Definition trans sp {R} (it : itree hmodE R) : itree hmodE R :=
+    interpV (handle sp) it.
+
+  Definition HoareFun (fsp: _fspec) (body: Any.t → itree hmodE Any.t)
+    : Any.t → itree hmodE Any.t
+    :=
     λ arg,
-      x <- trigger (Take X);;
+      x <- trigger (Take (_meta fsp));;
 
       varg <- trigger (Take _);;
-      trigger (Assume (P x varg arg));;; (*** precondition ***)
+      trigger (Assume (_precond fsp x varg arg));;; (*** precondition ***)
 
       vret <- body varg;;
 
       ret <- trigger (Choose Any.t);;
-      trigger (Guarantee (Q x vret ret));;; (*** postcondition ***)
+      trigger (Guarantee (_postcond fsp x vret ret));;; (*** postcondition ***)
 
       Ret ret.
-  
-  Definition trans_ktree (sb: fspecbody): (Any.t → itree hmodE Any.t) :=
-    let fs: fspec := sb.(fsb_fspec) in
-    HoareFun fs.(precond) fs.(postcond) (λ arg, trans (sb.(fsb_body) arg)).
+
+  Definition classify sp (kb: option fspec * fbody) : bool * fbody :=
+    let spec := if kb.1 then sp else sp_none in
+    let deco := map_or_else (o2flat kb.1) HoareFun id in
+    (is_some kb.1, deco (trans spec ∘ kb.2)).
+
+  Definition trans_ktree sp (sb: fnsem_type (option fspec)): fnsem_type bool :=
+    map_snd (classify sp) sb.
+
+  Definition b2s (b: bool) : option fspec :=
+    if b then Some fspec_none else None.
+
+  Definition trans_initcode sp (sb: fnsem_type bool) : fnsem_type bool :=
+    map_snd (classify sp ∘ map_fst b2s) sb.
 
 End HOARE.
 End SModTr.
@@ -139,7 +158,12 @@ Section RED.
 
   Lemma vis_spawn {R} fn args (ktr : nat -> itree hmodE R) :
     SModTr.trans sp (vis (Spawn fn args) ktr) =
-      tau;; fsp <- (sp fn)!;; x <- SModTr.HoareSpawn fsp fn args;; SModTr.trans sp (ktr x).
+      tau;;
+      fsp <- (sp fn)!;;
+      x <- map_or_else fsp (SModTr.HoareSpawn fn args)
+                            (tid <- trigger (Spawn fn args);;
+                             trigger (Yield tid);;; Ret tid);;
+      SModTr.trans sp (ktr x).
   Proof using.
     unfold SModTr.trans. rewrite interpV_vis.
     eapply observe_eta; ss. f_equal. ired. eauto.
@@ -147,7 +171,11 @@ Section RED.
   
   Lemma vis_call {R} fn args (ktr : Any.t -> itree hmodE R) :
     SModTr.trans sp (vis (Call fn args) ktr) =
-      tau;; fsp <- (sp fn)!;; x <- SModTr.HoareCall fsp fn args;; SModTr.trans sp (ktr x).
+      tau;;
+      fsp <- (sp fn)!;;
+      x <- map_or_else fsp (SModTr.HoareCall fn args)
+                           (trigger (Call fn args)) ;;
+      SModTr.trans sp (ktr x).
   Proof using.
     unfold SModTr.trans. rewrite interpV_vis.
     eapply observe_eta; ss. f_equal. ired. eauto.
@@ -209,24 +237,29 @@ Section RED.
     :
     SModTr.trans sp (trigger (Spawn fn args))
     =
-    tau;; fsp <- (sp fn)!;; SModTr.HoareSpawn fsp fn args.
+    tau;;
+    fsp <- (sp fn)!;;
+    map_or_else fsp (SModTr.HoareSpawn fn args)
+                     (tid <- trigger (Spawn fn args);;
+                      trigger (Yield tid);;; Ret tid).
   Proof using.
     rewrite vis_spawn. do 3 f_equal. extensionalities.
-    etrans; cycle 1.
-    - rewrite -(bind_ret_r (SModTr.HoareSpawn _ _ _)). refl.
-    - f_equal. extensionalities. rewrite ret. eauto.
+    rewrite -{2}(bind_ret_r (map_or_else _ _ _)).
+    f_equal. extensionalities. rewrite ret. et.
   Qed.
   
   Lemma call fn args
     :
-      SModTr.trans sp (trigger (Call fn args))
-      =
-      tau;; fsp <- (sp fn)!;; SModTr.HoareCall fsp fn args.
+    SModTr.trans sp (trigger (Call fn args))
+    =
+    tau;;
+    fsp <- (sp fn)!;;
+    map_or_else fsp (SModTr.HoareCall fn args)
+                    (trigger (Call fn args)).
   Proof using.
     rewrite vis_call. do 3 f_equal. extensionalities.
-    etrans; cycle 1.
-    - rewrite -(bind_ret_r (SModTr.HoareCall _ _ _)). refl.
-    - f_equal. extensionalities. rewrite ret. eauto.
+    rewrite -{2}(bind_ret_r (map_or_else _ _ _)).
+    f_equal. extensionalities. rewrite ret. et.
   Qed.
 
   Lemma pg
@@ -319,6 +352,21 @@ Section RED.
     = AssumeProphK Pre Post (fun x => SModTr.trans sp (ktr x)).
   Proof using.
     rewrite /AssumeProphK. rewrite bind assume_proph. et.
+  Qed.
+
+  Lemma fspec_proph fsp bd arg
+    :
+    SModTr.trans sp (fspec_proph fsp bd arg) =
+    fspec_proph fsp ((SModTr.trans sp) ∘ bd) arg.
+  Proof.
+    rewrite /fspec_proph /AssumeProph. s. unseal CRIS_PROPH.
+    rewrite !bind !core. repeat f_equal.
+    - extensionalities. rewrite !bind !core. repeat f_equal.
+      extensionalities. rewrite !bind !ag; et. repeat f_equal.
+      extensionalities. f_equal. rewrite ret. et.
+    - extensionalities. rewrite !bind. f_equal.
+      extensionalities. rewrite !bind !ag; et. repeat f_equal.
+      extensionalities. rewrite ret. et.
   Qed.
 
   Lemma fbody_trivial arg:

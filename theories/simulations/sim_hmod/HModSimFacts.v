@@ -101,17 +101,20 @@ Lemma hsim_adequacy
   (FLS : fl_src0 = List.map (fun '(s, f) => (s, HModTr.trans_ktree f)) fl_src)
   (FLT : fl_tgt0 = List.map (fun '(s, f) => (s, HModTr.trans_ktree f)) fl_tgt)
   ps pt nths st_src st_tgt itr_src itr_tgt
+  RR
   (NODUPS : List.NoDup (List.map fst st_src))
   (NODUPT : List.NoDup (List.map fst st_tgt))
   (ctx0 ctx : list Σ) (mr_src mr_tgt fmr : Σ)
   (CTXLE : @le_mine Σ eq my_tid ctx0 ctx)
   (TID : my_tid < List.length ctx0)
-  (SIM : hsim_body closed fl_src fl_tgt Ist ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr)
+  (SIM : hsim closed fl_src fl_tgt Ist (ist_with_eq RR) ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr)
   (WF : ✓ mr_src)
-  (FMR : Own mr_src ⊢ |==> Own ((ctx_sem ctx) ⋅ fmr ⋅ mr_tgt)) :
-@sim_itree fl_src0 fl_tgt0 Σ ε (interp_inv Ist) eq my_tid ctx0 ps pt ctx nths
-  (Any.pair (HModTr.alist_encode st_src) mr_src↑, HModTr.trans itr_src)
-  (Any.pair (HModTr.alist_encode st_tgt) mr_tgt↑, HModTr.trans itr_tgt).
+  (FMR : Own mr_src ⊢ |==> Own ((ctx_sem ctx) ⋅ fmr ⋅ mr_tgt))
+  :
+  sim_itree fl_src0 fl_tgt0 ε (interp_inv Ist) eq my_tid
+    (interp_inv RR) ctx0 ps pt ctx nths
+    (Any.pair (HModTr.alist_encode st_src) mr_src ↑, HModTr.trans itr_src)
+    (Any.pair (HModTr.alist_encode st_tgt) mr_tgt ↑, HModTr.trans itr_tgt).
 Proof.
   revert_until FLT. ginit. gcofix CIH. i.
   remember (st_src, itr_src). remember (st_tgt, itr_tgt).

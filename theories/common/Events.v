@@ -75,33 +75,33 @@ Section WRAP.
 
   Definition guarantee (P : Prop) : itree E unit := trigger (Choose P) ;;; Ret tt.
 
-  Definition triggerUB {A} : itree E A := v <- trigger (Take False);; match v: False with end.
-
-  Definition triggerNB {A} : itree E A := v <- trigger (Choose False);; match v: False with end.
-
   Definition unwrapUK {X R} (x : option X) (ktr : X -> itree E R) : itree E R :=
     match x with
     | Some x => ktr x
-    | None => triggerUB
+    | None => v <- trigger (Take False);; match v: False with end
     end.
 
   Definition unwrapNK {X R} (x : option X) (ktr : X -> itree E R) : itree E R :=
     match x with
     | Some x => ktr x
-    | None => triggerNB
+    | None => v <- trigger (Choose False);; match v: False with end
     end.
 
   Definition unwrapU {X} (x : option X) : itree E X :=
     match x with
     | Some x => Ret x
-    | None => triggerUB
+    | None => v <- trigger (Take False);; match v: False with end
     end.
 
   Definition unwrapN {X} (x : option X) : itree E X :=
     match x with
     | Some x => Ret x
-    | None => triggerNB
+    | None => v <- trigger (Choose False);; match v: False with end
     end.
+
+  Definition triggerUB {A} : itree E A := unwrapU None.
+
+  Definition triggerNB {A} : itree E A := unwrapN None.
 
   Definition unleftU {X Y} (xy : X + Y) : itree E X :=
     match xy with

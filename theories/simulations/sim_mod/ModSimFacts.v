@@ -11,7 +11,7 @@ Local Open Scope nat_scope.
 
 Lemma sim_itree_simg
   ms_src ms_tgt
-  (sim : MSim.t ms_src ms_tgt)
+  (MSIM : MSim.t ms_src ms_tgt)
   (WFS : Mod.wf ms_src)
   w my_tid ps pt nths itrs_src itrs_tgt st_src st_tgt
   (EQS : nths = List.length itrs_src)
@@ -24,16 +24,18 @@ Lemma sim_itree_simg
           (TID : tid < nths0)
           (WLEN : nths0 = List.length w0)
           (FLG : if Nat.eq_dec tid my_tid then ps0 = ps /\ pt0 = pt else ps0 = true /\ pt0 = true)
-          (WLE : if Nat.eq_dec tid my_tid then w0 = w else le_mine sim.(MSim.wle) tid w w0)
-          (WF : if Nat.eq_dec tid my_tid then nths0 = nths /\ st_src0 = st_src /\ st_tgt0 = st_tgt else sim.(MSim.wf) w0 (nths0, st_src0, st_tgt0))
+          (WLE : if Nat.eq_dec tid my_tid then w0 = w else le_mine MSIM.(MSim.wle) tid w w0)
+          (WF : if Nat.eq_dec tid my_tid then nths0 = nths /\ st_src0 = st_src /\ st_tgt0 = st_tgt else MSIM.(MSim.wf) w0 (nths0, st_src0, st_tgt0))
     ,
-    exists ww, sim_itree ms_src.(Mod.fnsems) ms_tgt.(Mod.fnsems) sim.(MSim.winit) sim.(MSim.wf) sim.(MSim.wle) tid ww ps0 pt0 w0 nths0 (st_src0, itr_src) (st_tgt0, itr_tgt))
+    exists wany,
+      sim_itree (Mod.fnsems ms_src) (Mod.fnsems ms_tgt) (MSim.winit MSIM) (MSim.wf MSIM) (MSim.wle MSIM)
+        tid top2 wany ps0 pt0 w0 nths0 (st_src0, itr_src) (st_tgt0, itr_tgt))
   :
   simg (fun '(st_src, ret_src) '(st_tgt, ret_tgt) => ret_src = ret_tgt) (Some ps) (Some pt)
-  (ModTr.interp_stateE Any.t
-     (iterV (ModTr.handle_callE (Mod.prog ms_src)) (my_tid, itrs_src)) st_src)
-  (ModTr.interp_stateE Any.t
-     (iterV (ModTr.handle_callE (Mod.prog ms_tgt)) (my_tid, itrs_tgt)) st_tgt).
+    (ModTr.interp_stateE Any.t
+       (iterV (ModTr.handle_callE (Mod.prog ms_src)) (my_tid, itrs_src)) st_src)
+    (ModTr.interp_stateE Any.t
+       (iterV (ModTr.handle_callE (Mod.prog ms_tgt)) (my_tid, itrs_tgt)) st_tgt).
 Proof.
   unfold ModTr.interp_stateE. 
   ginit. revert_until WFS. gcofix CIH. i.
@@ -70,16 +72,16 @@ Proof.
     { rewrite list.list_lookup_insert_ne in INS; try nia.
       rewrite list.list_lookup_insert_ne in INT; try nia.
       eapply SIM; eauto; des_ifs.
-      eapply le_mine_trans; [apply sim| |eauto].
+      eapply le_mine_trans; [apply MSIM| |eauto].
       rr in WLE. des. rr. i. rewrite <-WLE1; try nia. rewrite IN.
-      esplits; eauto. apply sim.
+      esplits; eauto. apply MSIM.
     }
 
     rewrite !list.list_lookup_insert in INS; try nia. inv INS.
     rewrite !list.list_lookup_insert in INT; try nia. inv INT.
     esplits. ginit. 
     guclo lbindC_spec. econs.
-    { eapply sim in FIND. des.
+    { eapply MSIM in FIND. des.
       rewrite FIND in Heq0. inv Heq0.
       eapply sim_itree_flag_down. gfinal. right.
       rewrite WF0. rewrite length_insert.
@@ -269,13 +271,12 @@ Proof.
     }
     grind. rename Heq into FIND.
     
-    zstep_l. zstep_r.
-    zprogress.
+    zstep_l. zstep_r. zprogress.
     gbase. eapply CIH.
     { rewrite !length_app. s. rewrite !length_insert. eauto. }
     { rewrite !length_app. s. rewrite !length_insert. nia. }
     { nia. }
-    { instantiate (1:=(x2 ++ [MSim.winit sim])). rewrite length_app. s. nia. }
+    { instantiate (1:=(x2 ++ [MSim.winit MSIM])). rewrite length_app. s. nia. }
     i. des_ifs; des; subst.
     + rewrite lookup_app_l in INS; cycle 1.
       { rewrite length_insert. nia. }
@@ -306,13 +307,12 @@ Proof.
       inv INT.
       
       esplits.
-      eapply sim in FIND. des. rewrite FIND in Heq0. inv Heq0.
+      eapply MSIM in FIND. des. rewrite FIND in Heq0. inv Heq0.
       ginit. eapply sim_itree_flag_down. gfinal. right.
-      eapply FIND0; eauto.
+      eapply sim_itree_mon_rr, FIND0; et.
 
   - rewrite !unfold_iterV. s. rewrite LKS LKT. grind.
-    zstep_l. zstep_r.
-    zprogress.
+    zstep_l. zstep_r. zprogress.
     assert (DEC : tid < List.length itrs_src \/ tid >= List.length itrs_src) by nia.
     des; cycle 1.
     { rewrite unfold_iterV. s.
@@ -330,12 +330,12 @@ Proof.
       - rewrite !list.list_lookup_insert in INS; try nia. inv INS.
         rewrite !list.list_lookup_insert in INT; try nia. inv INT.
         rewrite WF0 length_insert. eexists. eapply K; eauto.
-        apply le_mine_refl. apply sim.
+        apply le_mine_refl. apply MSIM.
       - rewrite list.list_lookup_insert_ne in INS; try nia.
         rewrite list.list_lookup_insert_ne in INT; try nia.
         eapply SIM; eauto; des_ifs; eauto.
         + ii. red in WLE. des. rewrite <-WLE0. rewrite IN.
-          esplits; eauto. apply sim. eauto.
+          esplits; eauto. apply MSIM. eauto.
         + rewrite WF0 length_insert. eauto.
     }
     { assert (DEC' : tid0 = my_tid \/ tid0 ≠ my_tid) by nia; des; subst.
@@ -345,9 +345,9 @@ Proof.
       - rewrite list.list_lookup_insert_ne in INS; try nia.
         rewrite list.list_lookup_insert_ne in INT; try nia.
         eapply SIM; eauto; des_ifs; eauto.
-        eapply le_mine_trans; [apply sim| |eauto].
+        eapply le_mine_trans; [apply MSIM| |eauto].
         ii. red in WLE. des. rewrite <-WLE1. rewrite IN.
-        esplits; eauto. apply sim. eauto.
+        esplits; eauto. apply MSIM. eauto.
     }
 
   - rewrite unfold_iterV; s. rewrite LKS. grind.
@@ -372,51 +372,41 @@ Unshelve. all : try exact smj_bot.
 Qed.
 
 Lemma adequacy_local_aux
-  ms_src ms_tgt
-  (sim : MSim.t ms_src ms_tgt)
+  ms_src ms_tgt arg
+  (MSIM : MSim.t ms_src ms_tgt)
   (WFS : Mod.wf ms_src)
   :
-  (Beh.of_itree (Mod.compile ms_tgt))
+  (Beh.of_itree (Mod.compile ms_tgt arg))
   <1=
-  (Beh.of_itree (Mod.compile ms_src)).
+  (Beh.of_itree (Mod.compile ms_src arg)).
 Proof.
-  eapply adequacy_global; ss.
-  ginit.
-  unfold Mod.compile, assume. generalize Mod.init_fun as fn. i.
+  hexploit (MSim.sim_initial MSIM arg). intro SIMI. des.
+  hexploit (sim_itree_simg MSIM WFS).
+  { instantiate (1:= [Mod.initial_code ms_src arg]). s; et. }
+  { instantiate (1:= [Mod.initial_code ms_tgt arg]). s; et. }
+  { instantiate (1:=0). et. }
+  { instantiate (1:=[w]). et. }
+  { i. destruct tid; ss; inv INS. des; subst. eexists.
+    eapply SIMI. }
 
-  ss. unfold Mod.prog, unwrapU at 1. des_ifs; cycle 1.
-  { unfold triggerUB, ModTr.pure_state. zstep_l. }
-  unfold Mod.prog, unwrapU at 1. des_ifs; cycle 1.
-  { unshelve eapply MSim.sim_fnsems in Heq; et. des.
-    erewrite Heq0 in Heq. ss.
-  }
-  grind.
-  
-  hexploit (MSim.sim_fnsems sim); eauto. i; des. rr in H0. grind.
-  guclo bindC_spec. econs.
-  - edestruct (MSim.sim_initial sim).
-    gfinal. right. eapply sim_itree_simg; eauto.
-    { instantiate (1:= [_]). s. eauto. }
-    i. des_ifs.
-    + des; subst. ss. inv INS.
-      eexists. r. eapply H0; eauto.
-    + exfalso. exploit lookup_lt_is_Some_1; eauto.
-      s. nia.
+  intro SIMG. eapply adequacy_global.
+  rewrite /Mod.compile /ModTr.trans /ModTr.interp_callE.
+  ginit. guclo bindC_spec. econs.
+  - gfinal. et.
   - i. zstep.
     destruct vret_src, vret_tgt. des; subst; eauto.
-Unshelve. all : exact smj_bot.
 Qed.
   
 (* ADEQUACY *)
 
 Lemma adequacy_modsem
-  ms_src ms_tgt
+  ms_src ms_tgt arg
   (SIM : MSim.t ms_src ms_tgt)
   (WF : Mod.wf ms_src)
   :
-  Beh.of_itree (Mod.compile ms_tgt)
+  Beh.of_itree (Mod.compile ms_tgt arg)
   <1=
-  Beh.of_itree (Mod.compile ms_src).
+  Beh.of_itree (Mod.compile ms_src arg).
 Proof.
   ii. eapply adequacy_local_aux; eauto.
 Qed.

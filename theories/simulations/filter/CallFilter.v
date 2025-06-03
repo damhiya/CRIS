@@ -11,14 +11,20 @@ Module CFilter. Section CFilter.
   Program Definition filter mask (m: HMod.t) : HMod.t :=
     {|HMod.scopes := m.(HMod.scopes)
     ; HMod.fnsems := List.map (map_snd (map_fst (map_fst (wmask_and mask)))) m.(HMod.fnsems)
+    ; HMod.initial_code := o2map (map_fst (map_fst (wmask_and mask))) m.(HMod.initial_code)
     ; HMod.initial_st := m.(HMod.initial_st)
     |}.
   Next Obligation.
     ii. eapply (m.(HMod.well_scoped_fns) fn). unfold fnsems_scopes in *.
-    rewrite !alist_find_map_snd in H. des_ifs; eauto.
+    rewrite !alist_find_map_snd in H.
+    destruct (alist_find _ ); ss. destruct p, p0, p. ss.
+  Qed.
+  Next Obligation.
+    ii. eapply (m.(HMod.well_scoped_initcode)); et.
+    destruct (HMod.initial_code _); ss. destruct o; ss. destruct f, p0, p. ss.
   Qed.
   Next Obligation. ii. eapply (m.(HMod.well_scoped_init)). eauto. Qed.
-  Next Obligation. ii. eapply (m.(HMod.nodup_fns)). eauto. Qed.
+  Next Obligation. ii. eapply (m.(HMod.nodup_init)). eauto. Qed.
 
   (* Lemmas *)
 
@@ -26,62 +32,86 @@ Module CFilter. Section CFilter.
     CFilter.filter msk (m1 ★ m2) = CFilter.filter msk m1 ★ CFilter.filter msk m2.
   Proof.
     destruct m1, m2. eapply hmod_extensionality; s; et.
-    unfold map_fst, map_snd.
-    rewrite !List.map_app. et.
+    - rewrite /map_fst /map_snd !List.map_app. et.
+    - rewrite /o2map /o2add. des_ifs.
   Qed.
 
   (* Key theorems *)
 
   Lemma sim_filter_intro mask (m: HMod.t):
-    HSim.t open (filter mask m) m emp%I IstEq.
+    HSim.t (filter mask m) m emp%I IstEq.
   Proof using.
-    econs; s; et; try rewrite List.map_map fst_map_snd; try refl.
-    ii. unfold filter in FIND. ss.
-    rewrite alist_find_map_snd in FIND. unfold o_map in FIND.
-    destruct (alist_find fn _); ss. inv FIND. destruct p as [[msk sc] bd].
-    esplits; eauto.
-
-    r. r. i. unfold HModTr.sandbox_body. s.
-    generalize (bd arg) as itr. clear bd arg NODS NODD.
-    combine_quant st_src; combine_quant st_tgt; combine_quant nths.
-    eapply isim_coind.
-    iIntros (g' [nths [st_tgt [st_src itr]]] MON) "[IST #CIH]".
+    assert (SIM: ∀ msk scp img ps pt nths st (itr: itree hmodE Any.t),
+     ⊢ isim
+      (map (map_snd SB.sandbox_body)
+         (map (map_snd (map_fst (map_fst (wmask_and mask)))) (HMod.fnsems m)))
+      (map (map_snd SB.sandbox_body) (HMod.fnsems m)) IstEq ibot ibot
+      (ist_with_eq IstEq) ps pt nths
+      (st, SB.sandbox (wmask_and mask msk) scp img itr)
+      (st, SB.sandbox msk scp img itr)).
+    {
+      i. revert itr. combine_quant st; combine_quant nths.
+      combine_quant ps. combine_quant pt. combine_quant img.
+      combine_quant scp. combine_quant msk.
+      eapply isim_coind. i.
+      destruct a as [msk [scp [img [pt [ps [nths [st itr]]]]]]]. s.
+      iIntros "[_ #CIH]".
+      assert (CASE:= case_itrH itr). des; subst; s.
+      - step; et.
+      - steps_l. steps_r. by_coind "CIH"; et.
+      - destruct img.
+        + steps_l. force_r. iSplitL "ASM"; et. steps_r. by_coind "CIH"; et.
+        + rewrite SBRed.bind SBRed.Assume. steps_l. ss.
+      - steps_l. steps_r. step. steps_l. steps_r. by_coind "CIH"; et.
+      - steps_r. force_l. iSplitL "GRT"; et. steps_l. by_coind "CIH"; et.
+      - destruct c; s.
+        + destruct (wmask_and mask msk fn) eqn: EQ; cycle 1.
+          { rewrite SBRed.bind SBRed.call EQ. steps_l. ss. }
+          call ""; et.
+          { unfold wmask_and in EQ. destruct (msk fn) eqn: EQ'; ss.
+            destruct (mask fn); ss. }
+          iDestruct "IST" as "%". subst.
+          steps_l. steps_r. by_coind "CIH"; et.
+        + destruct (wmask_and mask msk fn) eqn: EQ; cycle 1.
+          { rewrite SBRed.bind SBRed.spawn EQ. steps_l. ss. }
+          spawn; et.
+          { unfold wmask_and in EQ. destruct (msk fn) eqn: EQ'; ss.
+            destruct (mask fn); ss. }
+          steps_l. steps_r. by_coind "CIH"; et.
+        + yield ""; et. iDestruct "IST" as "%". subst.
+          steps_l. steps_r. by_coind "CIH"; et.
+      - destruct s.
+        + ired. rewrite !SBRed.bind !SBRed.put. des_ifs; cycle 1.
+          { steps_l. ss. }
+          iApply isim_sput_src. iApply isim_sput_tgt.
+          steps_l. by_coind "CIH"; et.
+        + ired. rewrite !SBRed.bind !SBRed.get. des_ifs; cycle 1.
+          { steps_l. ss. }
+          iApply isim_sget_src. iApply isim_sget_tgt.
+          by_coind "CIH"; et.
+      - destruct e.
+        + steps_r. force_l q. steps_l. by_coind "CIH"; et.
+        + destruct img; s.
+          { steps_l. force_r q. steps_r. by_coind "CIH"; et. }
+          rewrite !SBRed.bind !SBRed.take; s. des_ifs.
+          * steps_l. force_r q. by_coind "CIH"; et.
+          * steps_l. ss.
+        + step. steps_l. steps_r. by_coind "CIH"; et.
+    }
     
-    assert (CASE:= case_itrH itr). des; subst; s.
-    - step; et.
-    - steps_l. steps_r. by_coind "CIH"; et.
-    - steps_l. force_r. iSplitL "ASM"; et. steps_r. by_coind "CIH"; et.
-    - steps_l. steps_r. step. steps_l. steps_r. by_coind "CIH"; et.
-    - steps_r. force_l. iSplitL "GRT"; et. steps_l. by_coind "CIH"; et.
-    - destruct c; s.
-      + destruct (wmask_and mask msk fn0) eqn: EQ; cycle 1.
-        { rewrite SBRed.bind SBRed.call EQ. steps_l. ss. }
-        call "IST"; et.
-        { unfold wmask_and in EQ. destruct (msk fn0) eqn: EQ'; ss.
-          destruct (mask fn0); ss. }
-        steps_l. steps_r. by_coind "CIH"; et.
-      + destruct (wmask_and mask msk fn0) eqn: EQ; cycle 1.
-        { rewrite SBRed.bind SBRed.spawn EQ. steps_l. ss. }
-        spawn; et.
-        { unfold wmask_and in EQ. destruct (msk fn0) eqn: EQ'; ss.
-          destruct (mask fn0); ss. }
-        steps_l. steps_r. by_coind "CIH"; et.
-      + yield "IST"; et. steps_l. steps_r. by_coind "CIH"; et.
-    - destruct s.
-      + ired. rewrite !SBRed.bind !SBRed.put. des_ifs; cycle 1.
-        { steps_l. ss. }
-        iApply isim_sput_src. iApply isim_sput_tgt.
-        steps_l. by_coind "CIH"; et.
-        iPoseProof "IST" as "%"; subst. et.
-      + ired. rewrite !SBRed.bind !SBRed.get. des_ifs; cycle 1.
-        { steps_l. ss. }
-        iApply isim_sget_src. iApply isim_sget_tgt.
-        steps_l. steps_r. iPoseProof "IST" as "%"; subst.
-        by_coind "CIH"; et.
-    - destruct e.
-      + steps_r. force_l q. steps_l. by_coind "CIH"; et.
-      + steps_l. force_r q. steps_r. by_coind "CIH"; et.
-      + step. steps_l. steps_r. by_coind "CIH"; et.
+    econs; s; ii; et; try rewrite List.map_map fst_map_snd; try refl.
+    { r; s. destruct (HMod.initial_code m); ss; et. destruct o; ss; et. i.
+      rewrite {3 4}/SB.sandbox_body. destruct f as [[msk scp] [img bd]]. s.
+      iIntros "_". iApply isim_mono; cycle 1.
+      - iApply SIM.
+      - i. iIntros "%". iPureIntro. des; subst. et.
+    }
+    
+    unfold filter in FIND. ss.
+    rewrite alist_find_map_snd in FIND. unfold o_map in FIND.
+    destruct (alist_find fn _); ss. inv FIND. destruct p as [[msk sc] [img bd]].
+    esplits; eauto.
+    ii. iIntros "%". subst. iApply SIM.
   (*SLOW*)Qed.
   
   Lemma sim_filter_elim (mask:_→bool) (m: HMod.t)
@@ -92,9 +122,9 @@ Module CFilter. Section CFilter.
     econs; s; et; try rewrite List.map_map fst_map_snd; try refl.
     ii. unfold filter. s.
     rewrite alist_find_map_snd. unfold o_map. rewrite FIND.
-    destruct fs as [[msk sc] bd]. esplits; eauto.
+    destruct fs as [[msk sc] [img bd]]. esplits; eauto.
 
-    r. r. i. unfold HModTr.sandbox_body. s.
+    r. r. i. unfold SB.sandbox_body. s.
     generalize (bd arg) as itr. clear arg NODS NODD.
     combine_quant st_src; combine_quant st_tgt; combine_quant nths.
     eapply isim_coind.
@@ -103,7 +133,9 @@ Module CFilter. Section CFilter.
     assert (CASE:= case_itrH itr). des; subst; s.
     - step; et.
     - steps_l. steps_r. by_coind "CIH"; et.
-    - steps_l. force_r. iSplitL "ASM"; et. steps_r. by_coind "CIH"; et.
+    - destruct img.
+      + steps_l. force_r. iSplitL "ASM"; et. steps_r. by_coind "CIH"; et.
+      + rewrite SBRed.bind SBRed.Assume. steps_l. ss.
     - steps_l. steps_r. step. steps_l. steps_r. by_coind "CIH"; et.
     - steps_r. force_l. iSplitL "GRT"; et. steps_l. by_coind "CIH"; et.
     - destruct c; s.
@@ -145,7 +177,11 @@ Module CFilter. Section CFilter.
         by_coind "CIH"; et.
     - destruct e.
       + steps_r. force_l q. steps_l. by_coind "CIH"; et.
-      + steps_l. force_r q. steps_r. by_coind "CIH"; et.
+      + destruct img.
+        * steps_l. force_r q. steps_r. by_coind "CIH"; et.
+        * rewrite !SBRed.bind !SBRed.take. des_ifs.
+          { steps_l. force_r q. steps_r. by_coind "CIH"; et. }
+          steps_l. ss.
       + step. steps_l. steps_r. by_coind "CIH"; et.
   (*SLOW*)Qed.
 
@@ -202,7 +238,7 @@ Module CFilter. Section CFilter.
     i. unfold Mod.compile. rewrite {1}/Mod.prog {1}/unwrapU. des_ifs; cycle 1.
     { unfold triggerUB. ired. pstep. econs. econs. ss. }
     assert (NONE: alist_find Mod.init_fun
-                    (map (map_snd (HModTr.trans_ktree ∘ HModTr.sandbox_body))
+                    (map (map_snd (HModTr.trans_ktree ∘ SB.sandbox_body))
                        (HMod.fnsems mc)) = None).
     { destruct (alist_find _ (_ (_ mc))) eqn:EQ; ss.
       eapply alist_find_some, (List.in_map fst) in EQ.
@@ -215,18 +251,18 @@ Module CFilter. Section CFilter.
     { exfalso. rewrite Heq0 in Heq. ss. }
     ired. ss.
     des_ifs. rewrite !alist_find_map in Heq1. unfold o_map in Heq1. des_ifs.
-    unfold HModTr.sandbox_body, HModTr.trans_ktree. s.
+    unfold SB.sandbox_body, HModTr.trans_ktree. s.
     unfold ModTr.trans, ModTr.interp_callE, ITree.map.
 
     move NONE at top.
-
     match goal with
       [|-context [HModTr.trans ?t]] => remember [HModTr.trans t] as ths
     end.
+    destruct p0 as [[msk0 sc0] [img0 bd0]].
     assert(WFTHS:
       ∀ tid t (IN: ths !! tid = Some t),
-      ∃ ht, t = HModTr.trans (HModTr.sandbox mask m.(HMod.scopes) ht)).
-    { i. subst. destruct tid; ss. inv IN. destruct p0 as [[] ?]. ss.
+      ∃ ht, t = HModTr.trans (SB.sandbox true mask m.(HMod.scopes) ht)).
+    { i. subst. destruct tid; ss. inv IN. ss.
       esplits. erewrite sandbox_sandbox; et; try refl.
       - etrans; [|eapply HMod.well_scoped_fns].
         unfold fnsems_scopes. erewrite Heq0. refl.
@@ -244,7 +280,6 @@ Module CFilter. Section CFilter.
 
     generalize (eq_refl ths) as Heqths.
     generalize ths at 1 3 as ths0.
-
     revert_until SRC.
     ginit. gcofix CIH. i. subst.
 
@@ -270,6 +305,7 @@ Module CFilter. Section CFilter.
     destruct e; [destruct a | destruct s;
                               [destruct c|destruct s; [destruct p|destruct c]]].
     { (* Assume *)
+      rewrite SBRed.vis_Assume.
       zstep_l.
       ziter_l. zstep_l. zstep_l.
       ziter_l. zstep_l. zstep_l. 
@@ -348,18 +384,17 @@ Module CFilter. Section CFilter.
 
       rewrite alist_find_map_snd /o_map in Heq1. des_ifs.
       rewrite alist_find_map_snd /o_map in Heq. des_ifs.
-      destruct p1 as [[msk1 sc1] bd1]. s.
+      destruct p0 as [[msk1 sc1] [img1 bd1]]. s.
 
-      esplits.
-      erewrite SBRed.bind, HRed.bind, sandbox_sandbox.
-      f_equal. extensionalities.
-      erewrite SBRed.tau, HRed.tau.
-      do 2 f_equal. ired. erewrite sandbox_sandbox. refl.
-      - refl.
-      - ii. et.
+      esplits. rewrite /SB.sandbox_body /HModTr.trans_ktree.
+      erewrite SBRed.bind, HRed.bind, sandbox_sandbox; s.
+      - f_equal. extensionalities.
+        erewrite SBRed.tau, HRed.tau.
+        do 2 f_equal. ired. erewrite sandbox_sandbox; ii; et; try refl.
+      - et.
       - s. etrans; [|eapply HMod.well_scoped_fns].
         unfold fnsems_scopes. erewrite Heq1. refl.
-      - s. ii. eapply andb_prop in H. des; et.
+      - ii. eapply andb_prop in H. des; et.
     }
     { (* Spawn *)
       s. destruct (mask fn) eqn: Hmask; cycle 1.
@@ -383,9 +418,9 @@ Module CFilter. Section CFilter.
       { eapply list_lookup_insert_Some in IN0. des; subst; et. }
       
       subst. rewrite !alist_find_map /o_map in Heq1. des_ifs.
-      destruct p1 as [[msk1 sc1] bd1]. s.
-      esplits. unfold HModTr.sandbox_body, HModTr.trans_ktree. s.
-      erewrite <-sandbox_sandbox. refl.
+      destruct p0 as [[msk1 sc1] [img1 bd1]]. s.
+      esplits. unfold SB.sandbox_body, HModTr.trans_ktree. s.
+      erewrite <-sandbox_sandbox; try refl.
       - etrans; [|eapply HMod.well_scoped_fns].
         unfold fnsems_scopes. erewrite Heq1. refl.
       - ii. apply andb_prop in H. des; et.

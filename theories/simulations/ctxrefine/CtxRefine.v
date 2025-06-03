@@ -2,8 +2,9 @@ Require Import Common.
 Require Import Mod HMod.
 
 Definition refines_mod (ms_src ms_tgt: Mod.t) : Prop :=
-  Beh.of_itree (Mod.compile ms_tgt) <1=
-  Beh.of_itree (Mod.compile ms_src).
+  ∀ arg,
+  Beh.of_itree (Mod.compile ms_tgt arg) <1=
+  Beh.of_itree (Mod.compile ms_src arg).
 
 Section CTX_REFINE.
   (* Definition of ctx refinement in HMod Level. *)

@@ -1,8 +1,8 @@
 Require Import Common.
 From iris.proofmode Require Import proofmode.
-Require Import Mod HMod.
+Require Import Mod HMod SMod Sp.
 Require Import ModSim ModSimFacts HModSim HModSimFacts.
-Require Import ISim ISimInit ISimFacts Tactics.
+Require Import ISim ISimInit ISimFacts Tactics TacticsInit.
 Require Import CtxRefine.
 
 Set Implicit Arguments.
@@ -17,92 +17,128 @@ Proof.
   induction l; ss; i; rewrite eq_rel_dec_correct; des_ifs; ss; des; eauto.
 Qed.
 
-Lemma sandbox_well_scoped `{Σ: GRA} {A} (mask0 mask1: _->bool) scopes0 scopes1 (itr : itree hmodE A)
-    (MASK : ∀ fn, mask0 fn → mask1 fn)
-    (SCP : incl scopes0 scopes1) :
-  HModTr.sandbox mask1 scopes1 (HModTr.sandbox mask0 scopes0 itr) = HModTr.sandbox mask0 scopes0 itr.
+Lemma sandbox_well_scoped `{Σ: GRA} {A} (img0 img1: bool) (msk0 msk1: _->bool) scp0 scp1 (itr : itree hmodE A)
+    (IMPL: img0 → img1)
+    (MASK : ∀ fn, msk0 fn → msk1 fn)
+    (SCP : incl scp0 scp1) :
+  SB.sandbox msk1 scp1 img1 (SB.sandbox msk0 scp0 img0 itr) = SB.sandbox msk0 scp0 img0 itr.
 Proof.
   apply bisim_is_eq.
   revert_until Σ. ginit. gcofix CIH. i.
   ides itr.
-  - rewrite! SBRed.ret. gstep. econs. eauto.
-  - rewrite! SBRed.tau. gstep. econs. gbase. eauto.
-  - rewrite <- bind_trigger. rewrite! SBRed.bind.
-    destruct e.
-    {
-      assert ((@ITree.trigger (@hmodE Σ) X (inl1 a)) = trigger a) by grind.
-      rewrite H.
-      rewrite! SBRed.ag. rewrite! bind_trigger.
-      gstep. econs. i. r. gbase. eauto.
-    }
-    destruct s; [destruct c|].
-    {
-      rewrite! SBRed.call. des_ifs; ss.
-      + rewrite SBRed.call. des_ifs.
-        * rewrite! bind_trigger.
-          gstep. econs. i. r. gbase. eauto.
-        * exfalso. rewrite (MASK fn) in Heq0; ss.
-      + unfold triggerUB. rewrite SBRed.bind SBRed.core.
-        ired; rewrite !bind_trigger. gstep. econs. i. ss.
-    }
-    {
-      rewrite! SBRed.spawn. des_ifs; ss.
-      + rewrite SBRed.spawn. des_ifs.
-        * rewrite! bind_trigger.
-          gstep. econs. i. r. gbase. eauto.
-        * exfalso. rewrite (MASK fn) in Heq0; ss.
-      + unfold triggerUB. rewrite SBRed.bind SBRed.core.
-        ired; rewrite !bind_trigger. gstep. econs. i. ss.
-    }
-    {
-      rewrite! SBRed.yield. rewrite! bind_trigger.
-      gstep. econs. i. r. gbase. eauto.
-    }
-    destruct s; [destruct p|].
-    {
-      rewrite! SBRed.put. des_ifs.
-      + rewrite SBRed.put. des_ifs. 
-        * rewrite! bind_trigger. gstep. econs. i. r. gbase. eauto.
-        * exfalso. eapply existsb_exists in Heq. des. eapply SCP in Heq. 
-          assert (XEQ:=existsb_exists).
-          hdes. rewrite XEQ1 in Heq0; ss; eauto.
-      + unfold triggerUB. rewrite SBRed.bind SBRed.core.
-        ired; rewrite !bind_trigger. gstep. econs. i. ss.
-    }
-    {
-      rewrite! SBRed.get. des_ifs.
-      + rewrite! SBRed.get. des_ifs.
-        * rewrite! bind_trigger. gstep. econs. i. r. gbase. eauto.
-        * exfalso. eapply existsb_exists in Heq. des. eapply SCP in Heq. 
-          assert (XEQ:=existsb_exists).
-          hdes. rewrite XEQ1 in Heq0; ss; eauto.
-      + unfold triggerUB. rewrite SBRed.bind SBRed.core.
-        ired; rewrite !bind_trigger. gstep. econs. i. ss.
-    }
-    rewrite! SBRed.core. rewrite! bind_trigger.
+  { rewrite! SBRed.ret. gstep. econs. eauto. }
+  { rewrite! SBRed.tau. gstep. econs. gbase. eauto. }
+  rewrite <- bind_trigger. rewrite! SBRed.bind.
+  destruct e.
+  {
+    assert ((@ITree.trigger (@hmodE Σ) X (inl1 a)) = trigger a) by grind.
+    rewrite H. destruct a.
+    - rewrite !SBRed.Assume !bind_trigger. des_ifs.
+      + rewrite SBRed.Assume. des_ifs.
+        * gstep. r; s. econs. i. ired. gbase; eauto.
+        * exploit IMPL; et; i; inv x0.
+      + rewrite SBRed.vis_take. des_ifs.
+        * gstep. r; s. econs. ss.
+        * gstep. r; s. econs. ss.
+    - rewrite !SBRed.AssumePrecise !bind_trigger.
+      gstep. econs. i. gbase. eauto.
+    - rewrite !SBRed.Guarantee !bind_trigger.
+      gstep. econs. i. gbase. eauto.
+  }
+  destruct s; [destruct c|].
+  {
+    rewrite! SBRed.call. des_ifs; ss.
+    + rewrite SBRed.call. des_ifs.
+      * rewrite! bind_trigger.
+        gstep. econs. i. r. gbase. eauto.
+      * exfalso. rewrite (MASK fn) in Heq0; ss.
+    + rewrite /triggerUB SBRed.unwrapU.
+      ired; rewrite !bind_trigger. gstep. econs. i. ss.
+  }
+  {
+    rewrite! SBRed.spawn. des_ifs; ss.
+    + rewrite SBRed.spawn. des_ifs.
+      * rewrite! bind_trigger.
+        gstep. econs. i. r. gbase. eauto.
+      * exfalso. rewrite (MASK fn) in Heq0; ss.
+    + rewrite /triggerUB SBRed.unwrapU.
+      ired; rewrite !bind_trigger. gstep. econs. i. ss.
+  }
+  {
+    rewrite! SBRed.yield. rewrite! bind_trigger.
     gstep. econs. i. r. gbase. eauto.
+  }
+  destruct s; [destruct p|].
+  {
+    rewrite! SBRed.put. des_ifs.
+    + rewrite SBRed.put. des_ifs. 
+      * rewrite! bind_trigger. gstep. econs. i. r. gbase. eauto.
+      * exfalso. eapply existsb_exists in Heq. des. eapply SCP in Heq. 
+        assert (XEQ:=existsb_exists).
+        hdes. rewrite XEQ1 in Heq0; ss; eauto.
+    + rewrite /triggerUB SBRed.unwrapU.
+      ired; rewrite !bind_trigger. gstep. econs. i. ss.
+  }
+  {
+    rewrite! SBRed.get. des_ifs.
+    + rewrite! SBRed.get. des_ifs.
+      * rewrite! bind_trigger. gstep. econs. i. r. gbase. eauto.
+      * exfalso. eapply existsb_exists in Heq. des. eapply SCP in Heq. 
+        assert (XEQ:=existsb_exists).
+        hdes. rewrite XEQ1 in Heq0; ss; eauto.
+    + rewrite /triggerUB SBRed.unwrapU.
+      ired; rewrite !bind_trigger. gstep. econs. i. ss.
+  }
+  {
+    destruct c.
+    - rewrite! SBRed.choose. rewrite! bind_trigger.
+      gstep. econs. i. r. gbase. eauto.
+    - rewrite !SBRed.take !bind_trigger.
+      destruct (excluded_middle_informative _) eqn: E; s.
+      + rewrite orb_true_r SBRed.take E orb_true_r.
+        gstep. r; s. econs. i. ired. gbase. eauto.
+      + destruct img0; s.
+        * rewrite SBRed.take. destruct img1; s.
+          { gstep. r; s. econs. i. ired. gbase. et. }
+          { exploit IMPL; et; i. inv x0. }
+        * rewrite SBRed.vis_take. des_ifs.
+          { gstep. r; s. econs. ss. }
+          { gstep. r; s. econs. ss. }
+    - rewrite! SBRed.io. rewrite! bind_trigger.
+      gstep. econs. i. r. gbase. eauto.
+  }
 Qed.
 
-Lemma inv_sandbox_tau `{Σ: GRA} {X} msk sc (itr : itree hmodE X)
-    (SB : HModTr.sandbox msk sc (tau;; itr) = tau;; itr) :
-  HModTr.sandbox msk sc itr = itr.
+Lemma inv_sandbox_tau `{Σ: GRA} {X} img msk sc (itr : itree hmodE X)
+    (SB : SB.sandbox img msk sc (tau;; itr) = tau;; itr) :
+  SB.sandbox img msk sc itr = itr.
 Proof.
   rewrite SBRed.tau in SB. inv SB.
   rewrite sandbox_well_scoped; ss.
 Qed.
 
-Lemma inv_sandbox_core `{Σ: GRA} {X Y} x msk sc (ktr : X -> itree hmodE Y) (c : coreE X)
-    (SB : HModTr.sandbox msk sc (trigger c >>= ktr) = trigger c >>= ktr) :
-  HModTr.sandbox msk sc (ktr x) = ktr x.
+Lemma inv_sandbox_core `{Σ: GRA} {X Y} x img msk sc (ktr : X -> itree hmodE Y) (e: coreE X)
+    (SB : SB.sandbox img msk sc (trigger e >>= ktr) = trigger e >>= ktr) :
+  SB.sandbox img msk sc (ktr x) = ktr x.
 Proof.
-  rewrite SBRed.bind SBRed.core in SB.
-  rewrite! bind_trigger in SB. inv SB.
-  eapply inj_pair2, equal_f in H0. eauto.
+  destruct e.
+  - rewrite SBRed.bind SBRed.choose in SB.
+    rewrite! bind_trigger in SB. inv SB.
+    eapply inj_pair2, equal_f in H0. eauto.
+  - rewrite SBRed.bind SBRed.take in SB. des_ifs.
+    + rewrite! bind_trigger in SB. inv SB.
+      eapply inj_pair2, equal_f in H0. eauto.
+    + bsimpl. des; subst; ss.
+      rewrite !bind_trigger bind_vis in SB. depdes SB.
+      exfalso. destruct (excluded_middle_informative _); ss.
+  - rewrite SBRed.bind SBRed.io in SB.
+    rewrite! bind_trigger in SB. inv SB.
+    eapply inj_pair2, equal_f in H0. eauto.
 Qed.
 
-Lemma inv_sandbox_call `{Σ: GRA} {Y} x msk sc (ktr : _ -> itree hmodE Y) f a
-    (SB : HModTr.sandbox msk sc (trigger (Call f a) >>= ktr) = trigger (Call f a) >>= ktr) :
-  HModTr.sandbox msk sc (ktr x) = ktr x.
+Lemma inv_sandbox_call `{Σ: GRA} {Y} x img msk sc (ktr : _ -> itree hmodE Y) f a
+    (SB : SB.sandbox img msk sc (trigger (Call f a) >>= ktr) = trigger (Call f a) >>= ktr) :
+  SB.sandbox img msk sc (ktr x) = ktr x.
 Proof.
   rewrite SBRed.bind SBRed.call in SB.
   des_ifs; rewrite! bind_trigger in SB; depdes SB.
@@ -110,9 +146,9 @@ Proof.
   - rewrite bind_bind bind_vis in x. depdes x.
 Qed.
 
-Lemma inv_sandbox_spawn `{Σ: GRA} {Y} x msk sc (ktr : _ -> itree hmodE Y) f a
-    (SB : HModTr.sandbox msk sc (trigger (Spawn f a) >>= ktr) = trigger (Spawn f a) >>= ktr) :
-  HModTr.sandbox msk sc (ktr x) = ktr x.
+Lemma inv_sandbox_spawn `{Σ: GRA} {Y} x img msk sc (ktr : _ -> itree hmodE Y) f a
+    (SB : SB.sandbox img msk sc (trigger (Spawn f a) >>= ktr) = trigger (Spawn f a) >>= ktr) :
+  SB.sandbox img msk sc (ktr x) = ktr x.
 Proof.
   rewrite SBRed.bind SBRed.spawn in SB.
   des_ifs; rewrite! bind_trigger in SB; depdes SB.
@@ -120,9 +156,9 @@ Proof.
   - rewrite bind_bind bind_vis in x. depdes x.
 Qed.
 
-Lemma inv_sandbox_pg `{Σ: GRA} {X Y} x msk sc (ktr : X -> itree hmodE Y) (pg : pgE X)
-    (SB : HModTr.sandbox msk sc (trigger pg >>= ktr) = trigger pg >>= ktr) :
-  HModTr.sandbox msk sc (ktr x) = ktr x.
+Lemma inv_sandbox_pg `{Σ: GRA} {X Y} x img msk sc (ktr : X -> itree hmodE Y) (pg : pgE X)
+    (SB : SB.sandbox img msk sc (trigger pg >>= ktr) = trigger pg >>= ktr) :
+  SB.sandbox img msk sc (ktr x) = ktr x.
 Proof.
   destruct pg.
   { rewrite SBRed.bind SBRed.put in SB.
@@ -137,13 +173,21 @@ Proof.
   }
 Qed.
 
-Lemma inv_sandbox_ag `{Σ: GRA} {X R} x msk sc (ktr : X -> itree hmodE R) (ag : agE X)
-    (SB : HModTr.sandbox msk sc (trigger ag >>= ktr) = trigger ag >>= ktr) :
-  HModTr.sandbox msk sc (ktr x) = ktr x.
+Lemma inv_sandbox_ag `{Σ: GRA} {X R} x img msk sc (ktr : X -> itree hmodE R) (e: agE X)
+    (SB : SB.sandbox img msk sc (trigger e >>= ktr) = trigger e >>= ktr) :
+  SB.sandbox img msk sc (ktr x) = ktr x.
 Proof.
-  rewrite SBRed.bind SBRed.ag in SB.
-  rewrite! bind_trigger in SB. inv SB.
-  eapply inj_pair2, equal_f in H0. eauto.
+  destruct e.
+  - rewrite SBRed.bind SBRed.Assume in SB. des_ifs.
+    + rewrite! bind_trigger in SB. inv SB.
+      eapply inj_pair2, equal_f in H0. eauto.
+    + rewrite !bind_trigger bind_vis in SB. depdes SB.
+  - rewrite SBRed.bind SBRed.AssumePrecise in SB.
+    rewrite! bind_trigger in SB. inv SB.
+    eapply inj_pair2, equal_f in H0. eauto.
+  - rewrite SBRed.bind SBRed.Guarantee in SB.
+    rewrite! bind_trigger in SB. inv SB.
+    eapply inj_pair2, equal_f in H0. eauto.
 Qed.    
 
 Lemma alist_upd_not_exists k v st scopes
@@ -212,27 +256,30 @@ Qed.
 
 Ltac hstep := guclo hsimC_spec; econs; econs; eauto; econs; eauto.
 
-Lemma hsim_ctx `{Σ: GRA} fnsems_src fnsems_tgt fl_src fl_tgt fl_ctx Ist contextual (mask: _->bool) scopes scopeC
-    (FLS : fl_src = (List.map (map_snd HModTr.sandbox_body) fnsems_src))
-    (FLT : fl_tgt = (List.map (map_snd HModTr.sandbox_body) fnsems_tgt))
-    (WS : ∀ (fn : string) p (IN : alist_find fn fnsems_src = Some p), (∀ fn, p.1.1 fn → mask fn) ∧ incl p.1.2 scopes)
-    (WT : ∀ (fn : string) p (IN : alist_find fn fnsems_tgt = Some p), (∀ fn, p.1.1 fn → mask fn) ∧ incl p.1.2 scopes)
-    (DISJ : List.NoDup (scopes ++ scopeC))
+Lemma hsim_ctx `{Σ: GRA} contextual fnsems_src fnsems_tgt fl_src fl_tgt fl_ctx Ist (img:bool) (msk: _->bool) scp scpC RR
+    (FLS : fl_src = (List.map (map_snd SB.sandbox_body) fnsems_src))
+    (FLT : fl_tgt = (List.map (map_snd SB.sandbox_body) fnsems_tgt))
+    (WS : ∀ (fn : string) p (IN : alist_find fn fnsems_src = Some p), (p.2.1 → img) ∧ (∀ fn, p.1.1 fn → msk fn) ∧ incl p.1.2 scp)
+    (WT : ∀ (fn : string) p (IN : alist_find fn fnsems_tgt = Some p), (p.2.1 → img) ∧ (∀ fn, p.1.1 fn → msk fn) ∧ incl p.1.2 scp)
+    (DISJ : List.NoDup (scp ++ scpC))
 
     ps pt nths st_src st_tgt st_ctx itr_src itr_tgt fmr
-    (SCPT : incl (state_scopes st_tgt) scopes)
-    (SCPS : incl (state_scopes st_src) scopes)
-    (SCPC : incl (state_scopes st_ctx) scopeC)
-    (ITRT : HModTr.sandbox mask scopes itr_tgt = itr_tgt)
-    (ITRS : HModTr.sandbox mask scopes itr_src = itr_src)
-    (SIM : hsim_body open fl_src fl_tgt Ist ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr)
-    :
-    hsim_body contextual (fl_src ++ fl_ctx) (fl_tgt ++ fl_ctx) 
-    (IstProd (IstSB scopes Ist) (IstSB scopeC IstEq))
-    ps pt nths (st_src ++ st_ctx, itr_src) (st_tgt ++ st_ctx, itr_tgt) fmr.
+    (SCPT : incl (state_scopes st_tgt) scp)
+    (SCPS : incl (state_scopes st_src) scp)
+    (SCPC : incl (state_scopes st_ctx) scpC)
+    (ITRT : SB.sandbox msk scp img itr_tgt = itr_tgt)
+    (ITRS : SB.sandbox msk scp img itr_src = itr_src)
+    (SIM : hsim open fl_src fl_tgt Ist (ist_with_eq RR) ps pt nths
+             (st_src, itr_src) (st_tgt, itr_tgt) fmr)
+  :
+  @hsim _ contextual (fl_src ++ fl_ctx) (fl_tgt ++ fl_ctx)
+    (IstProd (IstSB scp Ist) (IstSB scpC IstEq)) Any.t Any.t
+    (ist_with_eq (IstProd (IstSB scp RR) (IstSB scpC IstEq))) ps pt nths
+    (st_src ++ st_ctx, itr_src) (st_tgt ++ st_ctx, itr_tgt) fmr.
   Proof.
     guardH FLS. guardH FLT. hdes.
-    move WS0 at top. move WS1 at top. move WT0 at top. move WT1 at top.
+    move WS0 at top. move WS2 at top. move WS3 at top.
+    move WT0 at top. move WT2 at top. move WT3 at top.
     ginit. s. revert_until DISJ. gcofix CIH. i.
     remember (st_src, itr_src). remember (st_tgt, itr_tgt).
     move SIM before CIH. revert_until SIM. punfold SIM.
@@ -246,9 +293,9 @@ Lemma hsim_ctx `{Σ: GRA} fnsems_src fnsems_tgt fl_src fl_tgt fl_ctx Ist context
     { subst. rewrite map_app in NODS. eapply NoDup_app_remove_r. eauto. }
     { subst. rewrite map_app in NODD. eapply NoDup_app_remove_r. eauto. }
     clear IN. destruct x0; i; des; inv Heqp; try inv Heqp0.
-    - hstep. iIntros "H". iPoseProof (RET with "H") as ">[% H]".
+    - hstep. iIntros "H". rewrite RET. iMod "H" as "[% H]". subst.
       iModIntro. iSplit; eauto. iExists st_src, st_tgt, st_ctx, st_ctx.
-      iSplit; eauto. iFrame. eauto.
+      repeat (iSplit; et).
     - hstep.
       { instantiate (1:= FR). iIntros "H". iPoseProof (INV with "H") as ">[H FR]".
         iModIntro. iFrame. iExists st_ctx, st_ctx.
@@ -283,8 +330,7 @@ Lemma hsim_ctx `{Σ: GRA} fnsems_src fnsems_tgt fl_src fl_tgt fl_ctx Ist context
       move FLS at bottom. move FUN at bottom.
       rewrite FLS in FUN.
       rewrite alist_find_map_snd in FUN.
-      unfold o_map in FUN. des_ifs.
-      unfold HModTr.sandbox_body.
+      unfold o_map in FUN. des_ifs. unfold SB.sandbox_body.
       rewrite sandbox_well_scoped; eauto; cycle 1.
       f_equal. extensionalities.
       rewrite ?SBRed.bind !SBRed.tau SBRed.ret.
@@ -295,8 +341,7 @@ Lemma hsim_ctx `{Σ: GRA} fnsems_src fnsems_tgt fl_src fl_tgt fl_ctx Ist context
       move FLT at bottom. move FUN at bottom.
       rewrite FLT in FUN.
       rewrite alist_find_map_snd in FUN.
-      unfold o_map in FUN. des_ifs.
-      unfold HModTr.sandbox_body.
+      unfold o_map in FUN. des_ifs. unfold SB.sandbox_body.
       rewrite sandbox_well_scoped; eauto.
       f_equal. extensionalities.
       rewrite ?SBRed.bind !SBRed.tau SBRed.ret.
@@ -408,82 +453,71 @@ Lemma hsim_ctx `{Σ: GRA} fnsems_src fnsems_tgt fl_src fl_tgt fl_ctx Ist context
     { rewrite INV1 INV1'' H2; iDestruct "H1" as "[_ [[_ H] _]]";
         iPoseProof (Own_general_completeness with "H") as "H"; eauto. }
     { iApply INV2; done. }
+
   - gstep. econs. econs. econs; eauto. econs; eauto. 
     gbase. pclearbot. eapply CIH; try refl; eauto.
 Qed.
 
-Lemma isim_ctx `{Σ: GRA}
-  fs ft ms mt ctx Ist fn contextual
+Lemma isim_ctx `{Σ: GRA} contextual RR
+  fs ft ms mt ctx Ist
   (WFS : HMod.wf (HMod.add ms ctx))
   (WFT : HMod.wf (HMod.add mt ctx))
-  (FINDT : alist_find fn (HMod.fnsems mt) = Some ft)
-  (FINDS : alist_find fn (HMod.fnsems ms) = Some fs)
   (SCOPES : sub_perm (HMod.scopes ms) (HMod.scopes mt))
   (NODUPFT : List.NoDup (List.map fst (HMod.fnsems mt ++ HMod.fnsems ctx)))
   (NODUPFS : List.NoDup (List.map fst (HMod.fnsems ms ++ HMod.fnsems ctx)))
   (IMON : ∀ nths0 nths', nths0 <= nths' → ∀ st_src st_tgt,
-         Ist nths0 st_src st_tgt -∗ Ist nths' st_src st_tgt)
-  (SIM : isim_fsem
-     (List.map (map_snd HModTr.sandbox_body) (HMod.fnsems ms))
-     (List.map (map_snd HModTr.sandbox_body) (HMod.fnsems mt))
-     Ist open
-     (HModTr.sandbox_body fs)
-     (HModTr.sandbox_body ft))
+          Ist nths0 st_src st_tgt ⊢ Ist nths' st_src st_tgt)
+  (MON: Ist_monotone Ist)
   :
-    isim_fsem
-      (List.map (map_snd HModTr.sandbox_body)
-         (HMod.fnsems ms ++ HMod.fnsems ctx))
-      (List.map (map_snd HModTr.sandbox_body)
-         (HMod.fnsems mt ++ HMod.fnsems ctx))
-      (IstProd (IstSB (HMod.scopes mt) Ist) (IstSB (HMod.scopes ctx) IstEq)) contextual
-      (HModTr.sandbox_body fs) (HModTr.sandbox_body ft).
+  ∀ (arg : Any.t) (nths : nat) (st_src st_tgt st_ctx : list (key * Any.t))
+    (SCOPEFS: incl fs.1.2 (HMod.scopes mt))
+    (SCOPEFT: incl ft.1.2 (HMod.scopes mt))
+    (SCOPES: incl (map (fst∘fst) st_src) (HMod.scopes mt))
+    (SCOPET: incl (map (fst∘fst) st_tgt) (HMod.scopes mt))
+    (SCOPEC: incl (map (fst∘fst) st_ctx) (HMod.scopes ctx)),
+      isim open (map (map_snd SB.sandbox_body) (HMod.fnsems ms))
+           (map (map_snd SB.sandbox_body) (HMod.fnsems mt)) Ist ibot ibot
+           (ist_with_eq RR) false false nths
+           (st_src, SB.sandbox_body fs arg)
+           (st_tgt, SB.sandbox_body ft arg)
+      ⊢ @isim _ contextual
+          (map (map_snd SB.sandbox_body) (HMod.fnsems ms ++ HMod.fnsems ctx))
+         (map (map_snd SB.sandbox_body) (HMod.fnsems mt ++ HMod.fnsems ctx))
+         (IstProd (IstSB (HMod.scopes mt) Ist) (IstSB (HMod.scopes ctx) IstEq))
+         ibot ibot Any.t Any.t
+         (ist_with_eq
+           (IstProd (IstSB (HMod.scopes mt) RR) (IstSB (HMod.scopes ctx) IstEq)))
+         false false nths
+         (st_src ++ st_ctx, SB.sandbox_body fs arg) (st_tgt ++ st_ctx, SB.sandbox_body ft arg).
 Proof.
-  ii. specialize (SIM arg).
-  iIntros "H". iDestruct "H" as (? ? ? ?) "(% & (% & IST) & %)". des. subst.
-  move: NODUPFS NODUPFT NODS NODD; rewrite ?map_app; intros NODUPFS NODUPFT NODS NODD.
-  assert (NODA := NODS). assert (NODB := NODD). assert (NODC:= NODS).
-  eapply nodup_app_l in NODA, NODB. eapply nodup_app_r in NODC.
-  specialize (SIM nths st_srcL st_tgtL IMON NODA NODB).
-  rewrite <- map_app in *.
-  iPoseProof (SIM with "IST") as "SIM".
-  iStopProof. Local Transparent isim.
-  split; intros x wfx ISIM.
-  gfinal. right. eapply paco9_mon_bot; eauto.
-  rewrite! List.map_app.
-  assert (EQ : (λ x, (map_snd HModTr.sandbox_body x).1) = @fst string _).
-  { extensionalities. destruct H. eauto. }
-  eapply hsim_ctx; eauto; ss.
-  { instantiate (1:= wmask_all).
-    i. destruct p as [[msk sc] f]. s. split; et.
-    etrans; cycle 1.
-    { eapply sub_perm_incl; eauto. }
-    ii. eapply ms.(HMod.well_scoped_fns).
-    unfold fnsems_scopes. erewrite IN. ss.
-  }
-  { 
-    i. destruct p as [[msk sc] f]. split; et.
-    etrans; [|eapply mt.(HMod.well_scoped_fns)].
-    unfold fnsems_scopes. erewrite IN. ss.
-  }
-  { eapply WFT. }
-  {
-    eapply sandbox_well_scoped; et.
-    ii. eapply mt.(HMod.well_scoped_fns). 
-    unfold fnsems_scopes. erewrite FINDT.
-    destruct ft as [[] ]. eauto.
-  }
-  { 
-    eapply sandbox_well_scoped; et.
-    etrans; cycle 1.
-    { eapply sub_perm_incl; eauto. }
-    ii. eapply ms.(HMod.well_scoped_fns). 
-    unfold fnsems_scopes. erewrite FINDS.
-    destruct fs as [[] ]. eauto.
-  }
-  ginit. i. eapply gpaco9_mon; first eapply ISIM; eauto using iunlift_ibot.
+  ii. rewrite /SB.sandbox_body.
+  eapply entails_pointwise. intros fmr SIM.
+  eapply isim_init in SIM; cycle 1; et.
+  eapply gpaco9_mon in SIM; try apply iunlift_ibot.
+  eapply gpaco9_init in SIM; eauto with paco.
+  eapply isim_final, gpaco9_final; eauto with paco. right.
+  eapply paco9_mon_bot; et.
+  rewrite !map_app. eapply hsim_ctx; try apply SIM; cycle 8; i.
+  - instantiate (1:= true).
+    instantiate (1:= wmask_all).
+    rewrite sandbox_well_scoped; i; bsimpl; et.
+  - rewrite sandbox_well_scoped; i; bsimpl; et.
+  - refl.
+  - refl.
+  - bsimpl. esplits; et.
+    etrans; [|eapply sub_perm_incl; et].
+    etrans; [|eapply HMod.well_scoped_fns].
+    unfold fnsems_scopes. erewrite IN. destruct fs, p. refl.
+  - bsimpl. esplits; et.
+    etrans; [|eapply HMod.well_scoped_fns].
+    unfold fnsems_scopes. erewrite IN. destruct ft, p. refl.
+  - destruct WFT. et.
+  - et.
+  - etrans; [apply SCOPES0|]. refl. 
+  - et.
 Qed.
 
-Lemma hmod_sim_ctx `{Σ: GRA} (ms mt ctx : HMod.t) IC Ist contextual
+Lemma hmod_sim_ctx `{Σ: GRA} contextual (ms mt ctx : HMod.t) IC Ist
   (SIM : HSim.t open ms mt IC Ist)
   :
   HSim.t contextual (ms ★ ctx) (mt ★ ctx) IC 
@@ -491,42 +525,105 @@ Lemma hmod_sim_ctx `{Σ: GRA} (ms mt ctx : HMod.t) IC Ist contextual
              (IstSB ctx.(HMod.scopes) IstEq)).
 Proof.
   inv SIM.
-  econs; ss.
-  { 
-    iIntros "H". iPoseProof (sim_initial with "H") as "H".
-    unfold IstProd. iExists _, _, _, _. iFrame. iPureIntro.
-    esplits; eauto; try eapply HMod.well_scoped_init.
-    etrans; [eapply HMod.well_scoped_init|].
-    eapply sub_perm_incl, sim_scopes.
+  econs; intro WFTC; dup WFTC; eapply wf_inv_l in WFTC0; rename WFTC0 into WFT;
+    assert (WFS: HMod.wf ms) by (eapply Hsim_wf; et; econs; et).
+  {
+    assert (WFSC: HMod.wf (ms ★ ctx)).
+    { econs.
+      * eapply sub_perm_nodup; [|eapply HMod.wf_fns, WFTC].
+        s. rewrite !map_app. eapply sub_perm_cancel_tail. et.
+      * eapply sub_perm_nodup; [|eapply HMod.wf_scopes, WFTC].
+        s. eapply sub_perm_cancel_tail. et.
+    }
+
+    specialize (sim_initial WFT).
+    r. r in sim_initial. revert sim_initial.
+    destruct (HMod.initial_code _) eqn: E0; [destruct o|]; cycle 1.
+    - destruct (HMod.initial_code mt) eqn: E1; ss. destruct o; ss; i.
+      rewrite E0 E1; ss. destruct (HMod.initial_code ctx) eqn: E2; ss.
+    - destruct (HMod.initial_code mt) eqn: E1; ss. i.
+      rewrite E0 E1; ss. destruct (HMod.initial_code ctx) eqn: E2; ss.
+      { destruct o; ss. i.
+        iIntros "H". iApply isim_mono; cycle 1.
+        { iApply isim_reflR; cycle 7; et.
+          - rewrite /IstProd. iExists _,_,_,_. iSplit; et.
+            rewrite /IstSB. iSplit; cycle 1.
+            + iPureIntro. esplits; et; eapply (HMod.well_scoped_init ctx).
+            + iSplit.
+              * iPureIntro. esplits; cycle 1.
+                { eapply (HMod.well_scoped_init mt). }
+                etrans; [eapply (HMod.well_scoped_init ms)|].
+                eapply sub_perm_incl; et.
+              * rewrite sim_initial. et.
+          - eapply WFTC.
+          - etrans; [|eapply (HMod.well_scoped_initcode ctx)].
+            rewrite E2. s. refl.
+          - i. iIntros "%". des. subst. et.
+          - i. iIntros "%". des. subst. iPureIntro. esplits; et.
+            + rewrite state_scopes_update. et.
+            + rewrite state_scopes_update. et.
+        }
+        i. iIntros "[% H]". subst. iSplit; et.
+      }
+      rewrite sim_initial. iIntros "H".
+      unfold IstProd. iExists _, _, _, _. iFrame. iPureIntro.
+      esplits; eauto; try eapply HMod.well_scoped_init.
+      etrans; [eapply HMod.well_scoped_init|].
+      eapply sub_perm_incl, sim_scopes; et.
+    - destruct (HMod.initial_code mt) eqn: E1; ss.
+      destruct o; ss. i. rewrite E0 E1. s.
+      destruct (HMod.initial_code ctx) eqn: E2; ss.
+      i. iIntros "H".
+      exploit sim_initial; et; i.
+      { rewrite map_app in NODS. eapply NoDup_app_remove_r; et. }
+      { rewrite map_app in NODD. eapply NoDup_app_remove_r; et. }
+      i. rewrite x0.
+      rewrite isim_ctx.
+      + rewrite !map_app. iApply isim_mono; cycle 1.
+        * iApply "H".
+        * i. iIntros "%". des; subst. iPureIntro. et.
+      + et.
+      + et.
+      + et.
+      + eapply WFTC.
+      + eapply WFSC.
+      + eapply sim_mon; et.
+      + eapply sim_mon; et.
+      + etrans; [|eapply sub_perm_incl; et].
+        etrans; [|eapply HMod.well_scoped_initcode].
+        rewrite E0. s. refl.
+      + etrans; [|eapply HMod.well_scoped_initcode].
+        rewrite E1. s. refl.
+      + etrans; [|eapply sub_perm_incl; et].
+        eapply HMod.well_scoped_init.
+      + eapply HMod.well_scoped_init.
+      + eapply HMod.well_scoped_init.
   }
-  { i. iIntros "H". iDestruct "H" as (? ? ? ?) "(% & (% & H) & %)". des; subst.
-    iPoseProof ((sim_mon _ _ LE) with "H") as "H".
+  {
+    ii. iIntros "H". iDestruct "H" as (? ? ? ?) "(% & (% & H) & %)".
+    des; subst. rewrite (sim_mon WFT _ _ LE).
     repeat iExists _. iFrame. iPureIntro. esplits; eauto.
   }
-  { eapply sub_perm_cancel_tail. eauto. }
+  { eapply sub_perm_cancel_tail. et. }
   { rewrite ?map_app. eapply sub_perm_cancel_tail. eauto. }
+
   r. i. ss. rewrite alist_find_app_o in FIND. des_ifs.
   {
     (* find in src/tgt module *)
-    hexploit sim_fnsems; i.
-    { eapply alist_find_fst_some. eauto. }
-    r in H. hexploit H; eauto; i.
-    { 
-      inv WFS; ss. econs.  
-      { rewrite map_app in wf_fns. eapply nodup_app_l. eauto. }
-      { eapply nodup_app_l; eauto. }
-    }
-    { 
-      inv WFT; ss. econs.  
-      { rewrite map_app in wf_fns. eapply nodup_app_l. eauto. }
-      { eapply nodup_app_l; eauto. }
-    }
-    { eapply nodup_app_l. rewrite <- map_app. eauto. }
-    { eapply nodup_app_l. rewrite <- map_app. eauto. }
-    des. esplits.
+    exploit sim_fnsems; et; try eapply WFS; try eapply WFT. i; des.
+    esplits.
     { rewrite alist_find_app_o. des_ifs. }
-    eapply isim_ctx; eauto.
-  } 
+    ii. iIntros "[% [% [% [% [% [[% H] %]]]]]]". des; subst.
+    iApply (isim_ctx with "[H]"); [..|rewrite x1]; et; i.
+    - eapply sim_mon; et.
+    - etrans; [|eapply sub_perm_incl; et].
+      etrans; [|eapply HMod.well_scoped_fns].
+      unfold fnsems_scopes. erewrite Heq. destruct fs, p. refl.
+    - etrans; [|eapply HMod.well_scoped_fns].
+      unfold fnsems_scopes. erewrite x0. destruct ft, p. refl.
+    - rewrite map_app in NODS. eapply NoDup_app_remove_r; et.
+    - rewrite map_app in NODD. eapply NoDup_app_remove_r; et.
+  }    
   {
     exists fs. esplits; ss.
     { rewrite alist_find_app_o. des_ifs. exfalso.
@@ -535,8 +632,8 @@ Proof.
       rewrite map_app in NODUPFT.
       eapply NoDup_app_disjoint; eauto.
     }
-    destruct fs as [[msk sc] itr].
-    inv WFT. eapply isim_reflR; ss; i; eauto.
+    destruct fs as [[msk sc] [img itr]].
+    inv WFTC. eapply isim_reflR; ss; i; eauto.
     - replace sc with (fnsems_scopes fn ctx.(HMod.fnsems)).
       { eapply ctx.(HMod.well_scoped_fns). }
       { unfold fnsems_scopes. des_ifs. }
@@ -556,22 +653,24 @@ Proof.
   assert (SIMC := SIM).
   ii. ss. eapply hmod_sim_ctx with (ctx := ctx) in SIMC.
   split.
-  { eapply hsim_wf; eauto. }
+  { eapply Hsim_wf; eauto. }
   ii. hexploit Own_split; eauto; intros [a1 [a2 [Ha [H1 H2]]]].
   exists a2; splits; eauto.
   { eapply cmra_valid_op_r; erewrite <- Ha; ss. }
   { iIntros "H"; iSplitR "H"; ss; iApply H2; done. }
+  assert (WFT: HMod.wf mt) by (eapply wf_inv_l; et).
+  
   ii. subst. eapply adequacy_modsem, PR.
-  - eapply (hsim_adequacy _ _ rs a1 a2); eauto.
+  - eapply (Hsim_adequacy _ _ rs a1 a2); eauto.
     { rewrite Ha; iIntros "[H1 H2]"; iFrame. }
-    { eapply hsim_wf; eauto. }
+    { eapply Hsim_wf; eauto. }
   - inv WFM. econs. ss. unfold map_snd.
-    rewrite !List.map_map.
     eapply eq_ind; [|].
-    { inv SIM. eapply sub_perm_nodup. eapply sub_perm_cancel_tail. eapply sim_match.
+    { inv SIM. eapply sub_perm_nodup. eapply sub_perm_cancel_tail.
+      eapply sim_match; et. 
       rewrite map_app in wf_fns. eapply wf_fns. }
-    rewrite -map_app.
-    f_equal. extensionalities. destruct H. ss.
+    rewrite -map_app map_map. f_equal.
+    extensionalities. destruct H. ss.
 Qed.
 
 (* COMM *)
@@ -643,30 +742,72 @@ Lemma hmod_add_scopes `{Σ: GRA} md0 md1:
   HMod.scopes (md0 ★ md1) = HMod.scopes md0 ++ HMod.scopes md1.
 Proof. ss. Qed.
 
-Lemma hmod_add_comm `{Σ: GRA} ms0 ms1 contextual:
+Lemma hmod_add_comm `{Σ: GRA} contextual ms0 ms1:
   HSim.t contextual (ms0 ★ ms1) (ms1 ★ ms0) (emp%I)
     (IstSB (HMod.scopes (ms0 ★ ms1)) perm_Ist).
 Proof.
-  econs; ss.
+  econs; ss; i.
   {
-    iIntros "_". iPureIntro. esplits.
-    { eapply (ms0 ★ ms1).(HMod.well_scoped_init). }
-    { ii. eapply (ms0 ★ ms1).(HMod.well_scoped_init); ss.
-      move: H; rewrite /state_scopes ?map_app; intros H.
-      eapply in_app_or in H. eapply in_or_app. des; eauto.
+    r; s. destruct (HMod.initial_code ms0); s.
+    { destruct (HMod.initial_code ms1); ss. destruct o; ss.
+      i. iIntros. iApply isim_mono; cycle 1.
+      - iApply isim_nodup. iIntros (? ? ? ?).
+        iApply isim_refl.
+        + ii. iIntros "%". iPureIntro. des. esplits; et.
+        + ii. iIntros "%". iPureIntro. des. eapply alist_permutation_find; et.
+        + ii. iIntros "%". iPureIntro. des. esplits; et.
+          * rewrite state_scopes_update. et.
+          * rewrite state_scopes_update. et.
+          * eapply alist_upd_perm; et.
+        + iPureIntro. esplits; et.
+          * rewrite /state_scopes map_app.
+            eapply incl_app; [apply incl_appl|apply incl_appr];
+              eapply HMod.well_scoped_init.
+          * rewrite /state_scopes map_app.
+            eapply incl_app; [apply incl_appr|apply incl_appl];
+              eapply HMod.well_scoped_init.
+          * eapply Permutation_app_comm.
+      - i. iIntros "%". iPureIntro. des; et.
     }
-    { eapply Permutation.Permutation_app_comm. }
+    { destruct (HMod.initial_code ms1); ss.
+      { destruct o; ss. i.
+        i. iIntros. iApply isim_mono; cycle 1.
+        - iApply isim_nodup. iIntros (? ? ? ?).
+          iApply isim_refl.
+          + ii. iIntros "%". iPureIntro. des. esplits; et.
+          + ii. iIntros "%". iPureIntro. des. eapply alist_permutation_find; et.
+          + ii. iIntros "%". iPureIntro. des. esplits; et.
+            * rewrite state_scopes_update. et.
+            * rewrite state_scopes_update. et.
+            * eapply alist_upd_perm; et.
+          + iPureIntro. esplits; et.
+            * rewrite /state_scopes map_app.
+              eapply incl_app; [apply incl_appl|apply incl_appr];
+                eapply HMod.well_scoped_init.
+            * rewrite /state_scopes map_app.
+              eapply incl_app; [apply incl_appr|apply incl_appl];
+                eapply HMod.well_scoped_init.
+            * eapply Permutation_app_comm.
+        - i. iIntros "%". iPureIntro. des; et.
+      }
+      iIntros. iPureIntro. esplits; et.
+      - rewrite /state_scopes map_app.
+        eapply incl_app; [apply incl_appl|apply incl_appr];
+          eapply HMod.well_scoped_init.
+      - rewrite /state_scopes map_app.
+        eapply incl_app; [apply incl_appr|apply incl_appl];
+          eapply HMod.well_scoped_init.
+      - eapply Permutation_app_comm.
+    }
   }
-  { i. r. rewrite /IstSB /perm_Ist; iIntros "_ [% %]". iSplit; iPureIntro; eauto. }
   { apply sub_perm_comm. }
   { rewrite ?map_app; i. apply sub_perm_comm. }
-
   ii. eapply alist_find_comm in FIND; cycle 1. 
   { inv WFT; ss. }
   esplits; eauto.
 
   (* simulation *)
-  ii. subst. destruct fs. unfold HModTr.sandbox_body. s.
+  ii. destruct fs as [[msk scp] [img i]]. unfold SB.sandbox_body. s.
   generalize (i arg) as it. clear FIND i arg.
   combine_quant NODD.
   combine_quant NODS.
@@ -675,42 +816,44 @@ Proof.
   combine_quant nths.
   eapply isim_coind. i.
   destruct a as [nths [st_src [st_tgt [NODS [NODD it]]]]]. s.
-  iIntros "(#IST & CIH)".
+  iIntros "(%IST & #CIH)". des.
   assert (CASE := case_itrH it); des; subst.
-  - step. iFrame. eauto.
+  - step. eauto.
   - steps_l. steps_r. by_coind "CIH". eauto.
-  - steps_l. force_r. iFrame. steps_r. by_coind "CIH". eauto.
+  - destruct img.
+    + steps_l. force_r. iFrame. steps_r. by_coind "CIH". eauto.
+    + rewrite SBRed.bind SBRed.Assume. s. steps_l. ss.
   - steps_l. steps_r. step. by_coind "CIH". eauto.
   - steps_r. force_l. iFrame. steps_l. by_coind "CIH". eauto.
   - destruct c.
     + norm_l. norm_r. rewrite! SBRed.call. des_ifs; ss.
-      * iApply isim_call. iSplitL "IST"; eauto. iIntros (? ? ? ? ? ?) "IST0".
+      * iApply isim_call. iSplit; eauto. iIntros (? ? ? ? ? ?) "IST0".
         steps_l. steps_r. by_coind "CIH". eauto.
       * steps_l. ss.
     + norm_l. norm_r. rewrite! SBRed.spawn. des_ifs; ss.
       * iApply isim_spawn.
         steps_l. steps_r. by_coind "CIH". eauto.
       * steps_l. ss.
-    + yield "IST"; eauto. by_coind "CIH". eauto.
+    + yield ""; eauto. by_coind "CIH". eauto.
   - depdes s.
     + rewrite !SBRed.bind !SBRed.put. des_ifs; cycle 1.
       { steps_l. ss. }
       iApply isim_sput_src. iApply isim_sput_tgt.
       by_coind "CIH". unfold perm_Ist. 
-      iDestruct "IST" as "%". des. 
       iPureIntro. rewrite !state_scopes_update. esplits; eauto. 
       eapply alist_upd_perm; eauto.
     + rewrite !SBRed.bind !SBRed.get. des_ifs; cycle 1.
       { steps_l. ss. }
       iApply isim_sget_src. iApply isim_sget_tgt.
       apply existsb_exists in Heq. des. apply String.eqb_eq in Heq0. subst.
-      iAssert (⌜alist_find k st_src = alist_find k st_tgt⌝)%I with "[IST]" as "%".
-      { iDestruct "IST" as "%". des. iPureIntro.
-        eapply alist_permutation_find; eauto. }
-      rewrite H0. by_coind "CIH". eauto.
+      iAssert (⌜alist_find k st_src = alist_find k st_tgt⌝)%I as "%".
+      { iPureIntro. eapply alist_permutation_find; eauto. }
+      rewrite H1. by_coind "CIH". eauto.
   - destruct e.
     + steps_r. force_l. instantiate (1:= q). steps_l. by_coind "CIH". eauto. 
-    + steps_l. force_r. instantiate (1:= q). steps_r. by_coind "CIH". eauto.
+    + rewrite SBRed.bind SBRed.take. des_ifs.
+      * steps_l. force_r. instantiate (1:= q). steps_r. by_coind "CIH". eauto.
+      * steps_l. ss.
     + step. by_coind "CIH". eauto. 
   Unshelve. all : eauto. 
   { eapply alist_upd_nodup. eauto. }

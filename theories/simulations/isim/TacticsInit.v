@@ -1,6 +1,6 @@
 Require Import Common.
 From iris.proofmode Require Export proofmode.
-Require Import ISimInit PModTr SModTr.
+Require Import ISimInit SModTr.
 Require Import TacticsCommon.
 
 (***
@@ -77,5 +77,5 @@ Ltac prove_proph_sim :=
   match goal with [H: _|-_] => revert H; alist_find_simpl; i; depdes H end;
   alist_find_simpl; esplits; et;
   eapply isim_fsem_proph_to_normal; i;
-  rewrite PRed.fbody_trivial SRed.fbody_trivial;
+  rewrite SRed.fbody_trivial;
   iIntros; iApply isim_refl; et; i; iIntros "%"; subst; et.

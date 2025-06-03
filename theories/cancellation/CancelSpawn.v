@@ -66,10 +66,10 @@ Proof.
   ziter_r. zstep_r.
   ziter_r. zstep_r.
 
-  erewrite (wrap_elimI_well_scoped _ fn); cycle 1.
+  erewrite (sandbox_inline_commute _ fn); cycle 1.
   { s. rewrite /SModCancel.trans_ktree alist_find_map_snd EQ. ss. }
   
-  erewrite (wrap_elimI_well_scoped _ fn); cycle 1.
+  erewrite (sandbox_inline_commute _ fn); cycle 1.
   { s. rewrite /SModCancel.trans_ktree alist_find_map_snd EQ. ss. }
 
   unfold SModTr.trans_ktree, inline_hp_fun.

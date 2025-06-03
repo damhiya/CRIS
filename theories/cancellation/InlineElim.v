@@ -11,95 +11,124 @@ Lemma inline_elim `{Σ: GRA} md P
   refines (md, P) (HModInline.inline md, P).
 Proof. 
   eapply closed_adequacy2.
-  econs; ss; try refl; eauto.
-  { i. rewrite List.map_map fst_map_snd. exists []. ss. }
-  ii.
-  destruct (alist_find fn (HMod.fnsems md)) eqn:FINDT; ss.
-    
-  inv FIND.
-  esplits; eauto.
-  { rewrite alist_find_map_snd. rewrite FINDT. ss. }
-  ii. subst. destruct fs as [[msk sc] f].
-  assert(SCP := md.(HMod.well_scoped_fns)).
-  specialize (SCP fn). rewrite/fnsems_scopes FINDT in SCP.
-  remember (HMod.scopes md) as scopes. i.
-  unfold wrap_elimI, HModTr.sandbox_body, inline_hp_fbody. s.
-  unfold HModTr.sandbox_body, inline_hp_fun. s.
-  generalize false at 1 as ps.
-  generalize false at 1 as pt. intros pt ps.
-  generalize (f arg) as it.
-  assert (IMPSC: exists fn f, alist_find fn (HMod.fnsems md) = Some (msk,sc,f)).
-  { eauto. }
-  clear IN arg NODD NODS FINDT fn f. i.
 
-  revert SCP.
-  combine_quant IMPSC.
-  combine_quant msk.
-  combine_quant sc.
-  combine_quant it.
-  combine_quant st_tgt.
-  combine_quant st_src.
+  cut (∀ f (WF: HMod.wf md) (SCP: incl f.1.2 md.(HMod.scopes)),
+  isim_fsem
+    (map (map_snd SB.sandbox_body) (HMod.fnsems md))            
+    (map (map_snd SB.sandbox_body)
+       (map (map_snd (inline_fsem md)) (HMod.fnsems md)))
+     IstEq closed
+    (SB.sandbox_body f) (SB.sandbox_body (inline_fsem md f))).
+  {
+    econs; ss; try refl; eauto; i.
+    { r. s. destruct (HMod.initial_code md) eqn: E; ss.
+      - destruct o; ss. i. r in H.
+        iIntros "_". iApply isim_nodup. iIntros (? ? ? ?).
+        iApply isim_mono; cycle 1.
+        + iApply H; et.
+          { destruct H0. ss. econs; et.
+            rewrite map_map /inline_fsem in wf_fns.
+            eapply eq_ind; et. f_equal. extensionalities.
+            destruct H0 as [? [[][]]]. et.
+          }
+          ss. ii. exploit HMod.well_scoped_initcode; et. rewrite E. s. et.
+        + i. iIntros "%". iPureIntro. des; subst; et.
+      - iIntros "_". iPureIntro. et.
+    }
+    { i. rewrite List.map_map fst_map_snd. exists []. ss. }
+    { ii. s. rewrite !alist_find_map_snd FIND. esplits; eauto.
+      ii. iIntros "%". subst. iApply H; et.
+      ss. ii. exploit HMod.well_scoped_fns; et.
+      rewrite /fnsems_scopes. erewrite FIND. destruct fs as [[][]]. et.
+    }
+  }
+
+  ii. iIntros "%". subst.
+  destruct f as [[msk scp][img bd]].
+  rewrite /SB.sandbox_body; s.
+  rewrite /SB.sandbox_body /inline_hfun; s.
+
+  generalize false at 1 as ps. generalize false at 1 as pt.
+  generalize (bd arg) as it. i.
+  ss. clear bd arg NODD NODS. rename st_tgt into st.
+
+  iStopProof. revert it.
+  combine_quant st.
   combine_quant pt.
   combine_quant ps.
   combine_quant nths.
+  combine_quant msk.
+  combine_quant img.
+  combine_quant SCP.
+  combine_quant scp.
+  
   eapply isim_coind. i.
-  destruct a as [nths [ps [pt [st_src [st_tgt [it [sc [msk [IMPSC SCP]]]]]]]]]. s.
+  destruct a as [scp [SCP [img [msk [nths [ps [pt [st it]]]]]]]]. s.
 
-  iIntros "(Ist & #CIH)".
+  iIntros "(_ & #CIH)". destruct_quant.
 
   assert (CASE := case_itrH it); des; subst.
   - rewrite SBRed.ret HIRed.ret. step. eauto.
-  - rewrite SBRed.tau HIRed.tau. steps_l. steps_r. by_coind "CIH". eauto.
-  - rewrite SBRed.bind SBRed.ag HIRed.bind_ag. steps_l. force_r. iFrame. steps_r. by_coind "CIH". eauto.
-  - rewrite SBRed.bind SBRed.ag HIRed.bind_ag. steps_r.
-    step. steps_r. by_coind "CIH". eauto.
-  - rewrite SBRed.bind SBRed.ag HIRed.bind_ag. steps_r. force_l. iFrame. steps_l. by_coind "CIH". eauto.
+  - rewrite SBRed.tau HIRed.tau. steps_l. steps_r. by_coind "CIH"; et.
+  - rewrite SBRed.bind SBRed.Assume. destruct img; cycle 1.
+    { s. rewrite bind_bind HIRed.bind_core. steps_l. ss. }
+    rewrite HIRed.bind_ag. steps_l. force_r. iFrame.
+    steps_r. by_coind "CIH"; et.
+  - rewrite SBRed.bind SBRed.AssumePrecise HIRed.bind_ag. steps_r.
+    step. steps_r. by_coind "CIH"; et.
+  - rewrite SBRed.bind SBRed.Guarantee HIRed.bind_ag.
+    steps_r. force_l. iFrame. by_coind "CIH"; et.
   - destruct c.
     {
       rewrite SBRed.bind SBRed.call. des_ifs; cycle 1.
-      { steps_l. ss. }
-      rewrite HIRed.call. steps_r.
-      destruct (alist_find fn0 (HMod.fnsems md)) eqn:FIND; cycle 1.
-      { s. iApply isim_call_none; ss.
-        rewrite alist_find_map_snd FIND. ss.
-      }
-      destruct p. iApply isim_inline_src.
+      { unfold triggerUB. ired. rewrite HIRed.bind_core. steps_l. ss. }
+
+      rewrite HIRed.call. steps_r. rewrite {3}/sandboxed_prog.
+      destruct (alist_find fn (HMod.fnsems md)) eqn:FIND; cycle 1.
+      { iApply isim_call_none; et. rewrite !alist_find_map_snd FIND. et. }
+      destruct f as [[msk0 spc0][img0 bd0]]. iApply isim_inline_src.
       { rewrite alist_find_map_snd FIND. ss. }
-      s. ired. rewrite HIRed.bind SBRed.bind.
+      s. ired. rewrite /SB.sandbox_body. s.
+
+      rewrite HIRed.bind SBRed.bind.
       iApply isim_bind; iSplitL.
       {
-        iApply isim_RR_frame.
-        iSplitR; [iApply "CIH"|]. by_coind "CIH". eauto.  
+        iApply isim_RR_frame. 
+        iSplitR; [iApply "CIH"|]. by_coind "CIH"; et.
+        iPureIntro. ii. exploit HMod.well_scoped_fns; et.
+        rewrite /fnsems_scopes. erewrite FIND. et.
       }
-      i. iIntros (? ? ? ? ?) "(_ & % & IST)". des. subst.
+      unfold bindRR. iIntros (? ? ? ? ?) "(_ & % & %)". subst.
       rewrite HIRed.tau. steps_l. steps_r. ired.
-      by_coind "CIH". auto.
+      by_coind "CIH"; et.
     }
-    { rewrite SBRed.bind SBRed.spawn. des_ifs; cycle 1.
-      { steps_l. ss. }
-      rewrite HIRed.bind_spawn SBRed.bind SBRed.spawn. s.
-      iApply isim_spawn. steps_r. by_coind "CIH". auto.
+    {
+      rewrite !SBRed.bind !SBRed.spawn. des_ifs; cycle 1.
+      { unfold triggerUB. ired. rewrite HIRed.bind_core. steps_l. ss. }
+      rewrite HIRed.bind_spawn SBRed.bind SBRed.spawn.
+      iApply isim_spawn.
+      steps_r. by_coind "CIH"; et.
     }
-    { rewrite !SBRed.bind SBRed.yield HIRed.bind_yield SBRed.bind SBRed.yield.
-      iApply isim_yield. iFrame. iIntros (? ? ? ? ?) "IST".
-      steps_r. by_coind "CIH". auto.
+    {
+      rewrite SBRed.bind SBRed.yield HIRed.bind_yield !SBRed.bind !SBRed.yield.
+      iApply isim_yield. iSplit; et. iIntros (? ? ? ? ?) "%". subst.
+      steps_r. by_coind "CIH"; et.
     }
-
   - depdes s.
     + rewrite !SBRed.bind !SBRed.put. des_ifs; cycle 1. 
-      { unfold triggerUB; ired.
-        rewrite HIRed.bind_core. steps_l. ss. }
+      { unfold triggerUB; ired. rewrite HIRed.bind_core. steps_l. ss. }
       rewrite HIRed.bind_pg SBRed.bind SBRed.put. des_ifs; cycle 1.
       { 
-        exfalso. eapply existsb_exists in Heq. des. 
-        eapply SCP in Heq. assert (XEQ:= existsb_exists). hdes.
-        rewrite XEQ1 in Heq0; ss; eauto.
+        exfalso. eapply existsb_exists in Heq. des.
+        eapply String.eqb_eq in Heq1. subst.
+        eapply SCP in Heq. edestruct existsb_exists.
+        erewrite Heq0 in H1. exploit H1; ss. esplits; et.
+        eapply String.eqb_eq. et.
       } 
       iApply isim_sput_src. iApply isim_sput_tgt.
-      steps_r. by_coind "CIH". iDestruct "Ist" as "%". subst. eauto.
+      steps_r. by_coind "CIH"; et.
     + rewrite !SBRed.bind !SBRed.get. des_ifs; cycle 1.
-      { unfold triggerUB; ired.
-        rewrite HIRed.bind_core. steps_l. ss. }
+      { unfold triggerUB; ired. rewrite HIRed.bind_core. steps_l. ss. }
       rewrite HIRed.bind_pg SBRed.bind SBRed.get. des_ifs; cycle 1.
       { 
         exfalso. eapply existsb_exists in Heq. des. 
@@ -107,16 +136,15 @@ Proof.
         rewrite XEQ1 in Heq0; ss; eauto.
       } 
       iApply isim_sget_src. iApply isim_sget_tgt.
-      steps_r. iDestruct "Ist" as "%". subst. 
-      by_coind "CIH". eauto.
-  - rewrite SBRed.bind SBRed.core HIRed.bind_core. depdes e.
-    + steps_r. force_l. instantiate (1:= q). steps_l. by_coind "CIH". eauto.
-    + steps_l. force_r. steps_r. instantiate (1:= q). by_coind "CIH". auto.
-    + step. steps_l. steps_r. by_coind "CIH". auto.
-  Unshelve. all: try refl; eauto.
-  { destruct p. eauto. }
-  {
-    assert(SCP0 := md.(HMod.well_scoped_fns) fn0).
-    rewrite/fnsems_scopes FIND in SCP0. eauto.
-  }
-(*SLOW*)Qed.
+      steps_r. by_coind "CIH"; et.
+  - depdes e.
+    + rewrite SBRed.bind SBRed.choose HIRed.bind_core. 
+      steps_r. force_l. steps_l. by_coind "CIH"; et.
+    + rewrite SBRed.bind SBRed.take.
+      des_ifs; cycle 1.
+      { rewrite bind_bind HIRed.bind_core. steps_l; ss. }
+      rewrite HIRed.bind_core. steps_l. steps_r. force_r. steps_r.
+      by_coind "CIH"; et.
+    + rewrite SBRed.bind SBRed.io HIRed.bind_core.
+      step. steps_r. by_coind "CIH"; et.
+Qed.

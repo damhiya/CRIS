@@ -82,7 +82,7 @@ Proof.
   { rewrite !alist_find_map /o_map E.
     rewrite /sp_from /Sp.to_sp alist_find_map E in SPC. ss. }
   rewrite !alist_find_map/o_map E. s.
-  erewrite !wrap_elimI_well_scoped; cycle 1.
+  erewrite !sandbox_inline_commute; cycle 1.
   { unfold SMod.to_hmod. s. rewrite alist_find_map_snd. instantiate (1:= "CRIS_init"). rewrite E. ss. }
   { unfold SModCancel.to_hmod. s.
     rewrite alist_find_map_snd. instantiate (1:= "CRIS_init"). rewrite E. ss. }
