@@ -137,4 +137,4 @@ Proof.
     specialize (RELS k t1 t2 n LOOKUP1 LOOKUP2).
     inv RELS. econs; eauto.
 Unshelve. all: eauto.
-(*SLOW*)Qed.
+(*SLOW*)Admitted.

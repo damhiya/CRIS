@@ -8,7 +8,7 @@ Local Open Scope nat_scope.
 
 Section SIM_ITREE.
 
-  Variable fl_src fl_tgt : alist string (Any.t -> itree modE Any.t).
+  Variable fl_src fl_tgt : alist (option string) (Any.t -> itree modE Any.t).
   
   Variable world : Type.
   Variable winit : world.
@@ -66,7 +66,7 @@ Section SIM_ITREE.
   | sim_itree_inline_src
       ps pt w nths st_src st_tgt
       f fn varg k_src i_tgt
-      (FUN : alist_find fn fl_src = Some f)
+      (FUN : alist_find (Some fn) fl_src = Some f)
       (K : self true pt w nths (st_src, x <- f varg;; tau;; k_src x) (st_tgt, i_tgt))
     :
     sim_itree_def sim_itree RR self ps pt w nths
@@ -76,7 +76,7 @@ Section SIM_ITREE.
   | sim_itree_inline_tgt
       ps pt w nths st_src st_tgt
       f fn varg i_src k_tgt
-      (FUN : alist_find fn fl_tgt = Some f)
+      (FUN : alist_find (Some fn) fl_tgt = Some f)
       (K : self ps true w nths (st_src, i_src) (st_tgt, x <- f varg;; tau;; k_tgt x))
     :
     sim_itree_def sim_itree RR self ps pt w nths
@@ -168,7 +168,7 @@ Section SIM_ITREE.
   | sim_itree_call_none
       ps pt w nths st_src st_tgt
       fn varg k_src i_tgt
-      (FUN: alist_find fn fl_src = None)
+      (FUN: alist_find (Some fn) fl_src = None)
     :
     sim_itree_def sim_itree RR self ps pt w nths
       (st_src, trigger (Call fn varg) >>= k_src)
@@ -177,7 +177,7 @@ Section SIM_ITREE.
   | sim_itree_spawn_none
       ps pt w nths st_src st_tgt
       fn varg k_src i_tgt
-      (FUN: alist_find fn fl_src = None)
+      (FUN: alist_find (Some fn) fl_src = None)
     :
     sim_itree_def sim_itree RR self ps pt w nths
       (st_src, trigger (Spawn fn varg) >>= k_src)
@@ -552,8 +552,6 @@ Section MODSEMR.
   Let fl_tgt := ms_tgt.(Mod.fnsems).
   Let st_src := ms_src.(Mod.initial_st).
   Let st_tgt := ms_tgt.(Mod.initial_st).
-  Let it_src := ms_src.(Mod.initial_code).
-  Let it_tgt := ms_tgt.(Mod.initial_code).
 
   Inductive t : Type := mk {
     world : Type;
@@ -565,11 +563,13 @@ Section MODSEMR.
     wf_mon : forall w n n0 st_src st_tgt (LE : n <= n0) (WF : wf w (n,st_src,st_tgt)), wf w (n0,st_src,st_tgt);
     wf_winit : forall w n st_src st_tgt (WF : wf w (n,st_src,st_tgt)), wf (w++[winit]) (n,st_src,st_tgt);
     sim_initial:
+      ∀ it_src (FIND: alist_find None fl_src = Some it_src),
+      ∃ it_tgt, alist_find None fl_tgt = Some it_tgt ∧                              
       ∀ arg, ∃ w0 w,
       sim_itree fl_src fl_tgt winit wf wle 0 top2 [w0] false false [w] 1 (st_src, it_src arg) (st_tgt, it_tgt arg);
     sim_fnsems:
-      forall fn fs (FIND : alist_find fn fl_src = Some fs),
-      exists ft, alist_find fn fl_tgt = Some ft /\
+      forall fn fs (FIND : alist_find (Some fn) fl_src = Some fs),
+      exists ft, alist_find (Some fn) fl_tgt = Some ft /\
         forall my_tid, sim_fsem fl_src fl_tgt winit wf wle my_tid fs ft;
   }.
 
@@ -580,9 +580,12 @@ Section MODSEMR.
       alist_find fn fl_src = None.
   Proof using.
     i. destruct (alist_find fn fl_src) eqn: EQ; eauto.
-    apply SIM in EQ. des. rewrite MISS in EQ. ss.
+    destruct fn.
+    - apply SIM in EQ. des. rewrite MISS in EQ. ss.
+    - destruct SIM. exploit sim_initial0; et. i; des.
+      rewrite x0 in MISS. ss.
   Qed.
-  
+
 End MODSEMR.
 
 End MSim.

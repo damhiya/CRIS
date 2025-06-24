@@ -1,62 +1,44 @@
 Require Import Common.
 From iris.proofmode Require Import proofmode.
-
-Require Import SModTr HModTr SMod HMod Mod.
-Require Import SimGlobal ITactics TacticsCommon.
-Require Import ElimRel SModCancel HModInline.
+Require Import SMod.
 
 Set Implicit Arguments.
 
 Section CancelLib.
   Context `{Σ: GRA}.
 
-  Inductive Forall2i X Y (R: nat -> X -> Y -> Prop): nat -> list X -> list Y -> Prop :=
-  | Forall2i_nil i: Forall2i R i [] []
-  | Forall2i_cons
-      i x y xs ys
-      (REL: R i x y)
-      (TAIL: Forall2i R (S i) xs ys):
-      Forall2i R i (x :: xs) (y :: ys).
+  Definition sp_from (md: SMod.t) : string -> option fspec :=
+    to_sp (List.map (map_snd (o2flat ∘ fst ∘ snd)) md.(SMod.fnsems)).
 
-  Lemma Forall2i_len 
-    X Y (R: nat -> X -> Y -> Prop) i xs ys
-    (REL: Forall2i R i xs ys)
-  :
-    List.length xs = List.length ys.
-  Proof using.
-    induction REL; s; eauto.
-  Qed.
+  Definition valid_params (md: SMod.t) msk scp img : Prop :=
+    (∃ bd, SMod.initial_code md = Some (msk, scp, (img, bd))) ∨
+    (∃ fn fspo bd, alist_find fn (SMod.fnsems md) = Some (msk, scp, (fspo, bd)) ∧ is_some fspo = img).
+
+  Definition has_real_spec (md: SMod.t) (fn: string) : Prop :=
+    ∃ msk scp, valid_params md msk scp false ∧ msk fn.
+
+  Definition sp_wf md : Prop :=
+    ∀ fn (NS: has_real_spec md fn), sp_from md fn = None2.
+
+  Definition Forall2i X Y (R: nat -> X -> Y -> Prop) (xs: list X) (ys: list Y) :=
+    length xs = length ys ∧
+    ∀ i x y (EQx: xs !! i = Some x) (EQy: ys !! i = Some y),
+      R i x y.
 
   Lemma Forall2i_nth
-    X Y (R: nat -> X -> Y -> Prop) (i k: nat) 
-    (xs: list X) (ys: list Y)
-    (REL: Forall2i R i xs ys)
-    (NTH: k < List.length xs)
-  :
-    ∃ x y,
-    xs !! k = Some x /\
-    ys !! k = Some y /\
-    R (i + k) x y.
-  Proof using.
-    revert k NTH.
-    induction REL; s; i; eauto.
-    - nia.
-    - destruct k; s.
-      + replace (i + 0) with i by nia. eauto 7.
-      + replace (i + S k) with (S i + k) by nia.
-      eapply IHREL; nia.
-  Qed.
-
-  Lemma Forall2i_forall
-      X Y (R: nat -> X -> Y -> Prop) i xs ys
-      (REL: Forall2i R i xs ys)
+    X Y (xs: list X) (ys: list Y) (R: nat -> X -> Y -> Prop) i
+    (REL: Forall2i R xs ys)
+    (NTH: i < List.length xs)
     :
-    ∀k x y (LKX: xs !! k = Some x) (LKY: ys !! k = Some y), R (i + k) x y.
+    ∃ x y,
+    xs !! i = Some x /\
+    ys !! i = Some y /\
+    R i x y.
   Proof using.
-    i. hexploit (lookup_lt_Some _ _ _ LKX).
-    i. hexploit Forall2i_nth; eauto.
-    i. des. rewrite LKX in H0. rewrite LKY in H1.
-    inv H0. eauto.
+    destruct REL. revert_until xs. induction xs; i.
+    - destruct ys; ss. destruct i; try nia.
+    - destruct ys; ss. destruct i; s. { esplits; et. }
+      eapply (IHxs ys (λ i, R (S i))); et; nia.
   Qed.
 
   Lemma valid_solve (a b c: Σ) :
@@ -86,41 +68,3 @@ Section CancelLib.
   Qed.
 
 End CancelLib.
-
-Section CancelDef.
-  Context `{Σ: GRA}.
-
-  Definition CANCEL_GOAL md
-    (R: ∀ x0 x1, (x0→x1→Prop)→smj→smj→itree coreE x0→itree coreE x1→Prop)
-    (rs0 rt0: Σ) ps pt srcs tgts cid st (rs rt: Σ) : Prop :=
-    R Any.t Any.t eq ps pt
-    (x <-
-     ModTr.interp_stateE Any.t
-       (iterV
-          (ModTr.handle_callE
-             (Mod.prog
-                (HMod.to_mod
-                   (HModInline.inline
-                      (SModCancel.to_hmod md)) rs0)))
-          (cid, srcs)) (Any.pair st rs ↑);; Ret x.2)
-    (x <-
-     ModTr.interp_stateE Any.t
-       (iterV
-          (ModTr.handle_callE
-             (Mod.prog
-                (HMod.to_mod
-                   (HModInline.inline
-                      (SMod.to_hmod (sp_from md)
-                         md)) rt0)))
-          (cid, tgts)) (Any.pair st rt ↑);; Ret x.2).
-
-  Definition cancel_term md X (meta: X) Q (itrT: itree hmodE Any.t) :=
-    (vret <- itrT;;
-     inline_hp (prog
-          (SMod.to_hmod
-             (sp_from md) md))
-       (ret <- trigger (Choose Any.t);;
-        trigger (Guarantee (Q meta vret ret));;; Ret ret))
-  .
-
-End CancelDef.

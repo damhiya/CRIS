@@ -100,7 +100,23 @@ Proof.
   - eapply PRE; eauto.
     destruct LT; subst; eauto using smj_ltb_trans.
 Qed.
-         
+
+Lemma smj_ltb_not_three ps ps0 ps1 ps2
+  (LT0 : smj_ltb ps0 ps)
+  (LT1 : smj_ltb ps1 ps0)
+  (LT2 : smj_ltb ps2 ps1)
+  :
+  False.
+Proof.
+  destruct ps; ss; cycle 1.
+  { destruct ps0; [destruct b|]; ss. }
+  destruct ps0; ss; cycle 1.
+  { destruct ps1; [destruct b0|]; ss. }
+  destruct b0, b; ss.
+  destruct ps1; [destruct b|]; ss.
+  destruct ps2; [destruct b|]; ss.
+Qed.
+
 Lemma simg_adequacy_spin
   ps pt itr_src itr_tgt
   (SIM: simg eq ps pt itr_src itr_tgt)
@@ -111,8 +127,7 @@ Proof.
   pstep. do 2 econs.
   ginit. revert_until ps. revert ps. gcofix CIH. i.
   do 3 (eapply simg_adequacy_spin_aux; try (by left; refl); eauto; i).
-  exfalso. destruct ps2; ss. destruct b, ps1; ss.
-  destruct b; ss. destruct ps0; ss.
+  exfalso. eauto using smj_ltb_not_three.
 Qed.
 
 Local Ltac auto_simg SIM0 SIM1 x x0 x1 :=
@@ -149,8 +164,7 @@ Lemma simg_adequacy_ret
   Beh.of_itree itr_src (Tr.done retv).
 Proof.
   do 3 (eapply simg_adequacy_ret_aux; try (by left; refl); eauto; i).
-  exfalso. destruct pt2; ss. destruct b, pt1; ss.
-  destruct b; ss. destruct pt0; ss.
+  exfalso. eauto using smj_ltb_not_three.
 Qed.
 
 Lemma simg_adequacy_tau_aux
@@ -188,8 +202,7 @@ Lemma simg_adequacy_tau
   paco2 Beh._of_itree r itr_src tr.
 Proof.
   do 3 (eapply simg_adequacy_tau_aux; try (by left; refl); eauto; i).
-  exfalso. destruct pt2; ss. destruct b, pt1; ss.
-  destruct b; ss. destruct pt0; ss.
+  exfalso. eauto using smj_ltb_not_three.
 Qed.
 
 Lemma simg_adequacy_hang_aux
@@ -227,8 +240,7 @@ Lemma simg_adequacy_hang
   paco2 Beh._of_itree r itr_src (Tr.hang (obs_out fn args)).
 Proof.
   do 3 (eapply simg_adequacy_hang_aux; try (by left; refl); eauto; i).
-  exfalso. destruct pt2; ss. destruct b, pt1; ss.
-  destruct b; ss. destruct pt0; ss.
+  exfalso. eauto using smj_ltb_not_three.
 Qed.
 
 Lemma simg_adequacy_interact_aux
@@ -268,8 +280,7 @@ Lemma simg_adequacy_interact
   paco2 Beh._of_itree r itr_src (Tr.interact (obs_io fn args retv) tr).
 Proof.
   do 3 (eapply simg_adequacy_interact_aux; try (by left; refl); eauto; i).
-  exfalso. destruct pt2; ss. destruct b, pt1; ss.
-  destruct b; ss. destruct pt0; ss.
+  exfalso. eauto using smj_ltb_not_three.
 Qed.
 
 Lemma simg_adequacy_choose_aux
@@ -309,8 +320,7 @@ Lemma simg_adequacy_choose
   paco2 Beh._of_itree r itr_src tr.
 Proof.
   do 3 (eapply simg_adequacy_choose_aux; try (by left; refl); eauto; i).
-  exfalso. destruct pt2; ss. destruct b, pt1; ss.
-  destruct b; ss. destruct pt0; ss.
+  exfalso. eauto using smj_ltb_not_three.
 Qed.
 
 Lemma simg_adequacy_take_aux
@@ -350,8 +360,7 @@ Lemma simg_adequacy_take
   paco2 Beh._of_itree r itr_src tr.
 Proof.
   do 3 (eapply simg_adequacy_take_aux; try (by left; refl); eauto; i).
-  exfalso. destruct pt2; ss. destruct b, pt1; ss.
-  destruct b; ss. destruct pt0; ss.
+  exfalso. eauto using smj_ltb_not_three.
 Qed.
 
 Theorem adequacy_global ps pt itr_src itr_tgt
@@ -372,4 +381,3 @@ Proof.
   - eapply paco2_mon; try eapply simg_adequacy_choose; eauto; ss.
   - eapply paco2_mon; try eapply simg_adequacy_take; eauto; ss.
 Qed.
-

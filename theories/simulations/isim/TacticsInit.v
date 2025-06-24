@@ -61,14 +61,14 @@ Ltac prove_ist :=
 Ltac init_sim :=
   clear_trivials;
   (first
-   [ eapply hmod_sim_reflR; [ hrepeat do 1 unfold_hmod; et | prove_ist | prove_ist | .. ]
+   [ eapply hmod_sim_reflR; [ hrepeat do 1 unfold_hmod; et | .. ]
    | econs ]
-  );
-  [ i; s; hrepeat do 1 unfold_hmod; s
-  | eauto
+  ); i;
+  [ try rewrite /Ist_monotone; eauto
   | try prove_sub_perm
   | try prove_sub_perm
-  | try unfold_hmod_fn; i; des; subst; ss ].
+  | r; hrepeat do 1 unfold_hmod; s; i
+  | eapply HSim.sim_fun_strong; try unfold_hmod_fn; i; des; subst; ss ].
 
 Ltac iinit_simF := initialize_simF.
 

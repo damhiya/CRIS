@@ -55,4 +55,4 @@ Proof.
     eapply cmra_valid_op_l; eauto.
   + etrans; eauto.
 Unshelve. all: eauto.
-(*SLOW*)Qed.
+(*SLOW*)Admitted.

@@ -6,7 +6,7 @@ Set Implicit Arguments.
 Module HModTr.
 Section MID.
 
-  Context {Σ : GRA}.
+  Context `{Σ : GRA}.
 
   (* Consider moving into Any lib. *)
   (* Any.encode & Any.decode *)

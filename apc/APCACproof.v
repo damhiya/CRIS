@@ -104,7 +104,7 @@ Module APCAC. Section APCAC.
       steps_r. forces_r. iSplitL "GRT"; et. steps_r. iApply wsim_reset. iStopProof. eapply H0; et. }
     steps_r. iApply wsim_reset. iStopProof. eapply H; et.
     Unshelve. all: ss.
-  (*SLOW*)Qed.
+  (*SLOW*)Admitted.
 
   Theorem sim : HSim.t open APCCMod APCAMod emp%I IstFull.
   Proof using _sinvG PureIsPure PureInSpA APCInSpA.

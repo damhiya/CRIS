@@ -251,42 +251,48 @@ Module SchAS. Section SchAS.
   Section SPEC.
 
     Variable υ : univ_id.
-    Variable Sp_user : string -> option fspec.
+    Variable Sp_user : spl_type.
 
     (* TODO : clarify with WP tc *)
-    Definition fspec_spawnable (u : univ_id) (fsp : fspec)
-        (pre : SAny.t → SAny.t → iProp Σ) (postS: SAny.t → SAny.t -> SynDepO) : Prop :=
-      fspec_weaker
+    Definition fspec_spawnable (u : univ_id) fn
+      (pre : SAny.t → SAny.t → iProp Σ) (postS: SAny.t → SAny.t -> SynDepO) : Prop
+      :=
+      ∃ fsp, alist_find fn Sp_user = Some (Some fsp) ∧
+      fspec_imply fsp
         (wsim_fspec u (fspec_virtual 
           (λ (tid: nat) (varg: SAny.t) arg,
             tid_user tid ∗ ∃ sarg, ⌜arg = sarg↑⌝ ∗ pre varg sarg)%I
           (λ (tid: nat) (vret: SAny.t) ret,
             tid_user tid ∗ ∃ sret, ⌜ret = sret↑⌝ ∗ interp_cond (postS vret sret)))%I)
-        fsp.
+    .
 
     Definition _spawn_spec : fspec := 
       wsim_fspec υ
         (fspec_virtual
-          (λ '(my_tid, pa_tid, fargs, fvargs, pre, postS, fn) varg arg,
-            (⌜varg = ((pa_tid, fn, fvargs) : nat * string * SAny.t) 
-              ∧ arg = ((pa_tid, fn, fargs) : nat * string * SAny.t)↑ 
-              ∧ is_Some (Sp_user fn)
-              ∧ fspec_spawnable υ (find_fsp Sp_user fn) pre postS⌝
-            ∗ (pre fvargs fargs) ∗ (token_half my_tid postS) ∗ (tid_user my_tid))%I)
-          (λ _ (_: SAny.t) _, (False)%I))
+           (λ '(my_tid, pre, postS) varg arg,
+             tid_user my_tid ∗
+             ∃ pa_tid farg fvarg fn,
+               ⌜varg = ((pa_tid, fn, fvarg) : nat * string * SAny.t)
+               ∧ arg = ((pa_tid, fn, farg) : nat * string * SAny.t)↑
+               ∧ fspec_spawnable υ fn pre postS⌝
+               ∗ pre fvarg farg ∗ token_half my_tid postS)%I
+           (λ _ (_: SAny.t) _, False%I))
     .
 
     Definition spawn_spec : fspec :=
       wsim_fspec υ
         (fspec_virtual
-          (λ '(my_tid, fargs, fvargs, pre, postS, fn) varg arg,
-            (⌜varg = ((fn, fvargs): string * SAny.t) 
-              ∧ arg = ((fn, fargs): string * SAny.t)↑
-              ∧ is_Some (Sp_user fn)
-              ∧ (fspec_spawnable υ (find_fsp Sp_user fn) pre postS)⌝
-             ∗ (pre fvargs fargs) ∗ tid_user my_tid)%I)
-          (λ '(my_tid, fargs, fvargs, pre, postS, fn) vret ret,
-            ((∃ tid: nat, ⌜vret = tid ∧ ret = tid↑⌝ ∗ (token_th tid postS)) ∗ tid_user my_tid)%I))
+          (λ '(my_tid, pre, postS) varg arg,
+            tid_user my_tid ∗
+            ∃ farg fvarg fn,
+              ⌜varg = ((fn, fvarg): string * SAny.t) 
+              ∧ arg = ((fn, farg): string * SAny.t)↑
+              ∧ fspec_spawnable υ fn pre postS⌝
+              ∗ pre fvarg farg)%I
+          (λ '(my_tid, pre, postS) vret ret,
+            tid_user my_tid ∗
+            ∃ tid: nat,
+              ⌜vret = tid ∧ ret = tid↑⌝ ∗ token_th tid postS)%I)
     .
 
     Definition yield_spec: fspec :=
@@ -315,13 +321,13 @@ Module SchAS. Section SchAS.
             (λ vret, (⌜vret = tid↑⌝ ∗ tid_user tid))))
         )%I.
 
-    Definition sp : alist string fspec :=
+    Definition sp : alist string (option fspec) :=
       Seal.sealing CRIS 
-        [(SchHdr._spawn, _spawn_spec);
-         (SchHdr.spawn, spawn_spec);
-         (SchHdr.yield, yield_spec);
-         (SchHdr.join, join_spec);
-         (SchHdr.get_tid, get_tid_spec)].
+        [(SchHdr._spawn,  Some _spawn_spec);
+         (SchHdr.spawn,   Some spawn_spec);
+         (SchHdr.yield,   Some yield_spec);
+         (SchHdr.join,    Some join_spec);
+         (SchHdr.get_tid, Some get_tid_spec)].
 
   End SPEC.
 End SchAS. End SchAS.
@@ -342,16 +348,16 @@ Module SchA. Section SchA.
   .
 
   Definition _spawn : (nat * string * SAny.t) -> itree hmodE unit :=
-    fun '(pa_tid, fn, args) =>
+    fun '(pa_tid, fn, varg) =>
       trigger_Yield pa_tid;;;
-      trigger (Call fn args↑);;;
+      trigger (Call fn varg↑);;;
       Sch.terminate
   .
 
   Definition spawn : (string * SAny.t) -> itree hmodE nat :=
-    fun '(fn, args) =>
+    fun '(fn, varg) =>
       my_tid <- trigger (Choose nat);;
-      tid <- trigger (Spawn SchHdr._spawn (my_tid, fn, args)↑);;
+      tid <- trigger (Spawn SchHdr._spawn (my_tid, fn, varg)↑);;
       _internal <- cgetU v_internal;;
       assume (_internal = true);;;
       cput v_internal false;;;
@@ -370,11 +376,11 @@ Module SchA. Section SchA.
       trigger (Choose (option SAny.t))
   .
 
-  Definition fnsems υ Sp_user :=
-    [(SchHdr._spawn, (wmask_all, scopes, mk_specbody (SchAS._spawn_spec υ Sp_user) (cfunN _spawn)));
-     (SchHdr.spawn, (wmask_all, scopes, mk_specbody (SchAS.spawn_spec υ Sp_user) (cfunU spawn)));
-     (SchHdr.yield, (wmask_all, scopes, mk_specbody (SchAS.yield_spec υ) (cfunU yield)));
-     (SchHdr.join, (wmask_all, scopes, mk_specbody (SchAS.join_spec υ) (cfunU join)))].
+  Definition fnsems υ Sp_user : alist (option string) (fnsem_type (option fspec * fbody)) :=
+    [(Some SchHdr._spawn, (true, wmask_all, scopes, (Some (SchAS._spawn_spec υ Sp_user), (cfunN _spawn))));
+     (Some SchHdr.spawn,  (true, wmask_all, scopes, (Some (SchAS.spawn_spec υ Sp_user),  (cfunU spawn))));
+     (Some SchHdr.yield,  (true, wmask_all, scopes, (Some (SchAS.yield_spec υ),          (cfunU yield))));
+     (Some SchHdr.join,   (true, wmask_all, scopes, (Some (SchAS.join_spec υ),           (cfunU join))))].
 
   Program Definition Mod υ Sp_user : SMod.t := {|
     SMod.scopes := scopes;
@@ -386,8 +392,9 @@ Module SchA. Section SchA.
 
   Definition init_cond : iProp Σ := SchAS.init_threads ∗ SchAS.init_tid.
   
-  Definition t υ Sp_global Sp_user :=
-    Seal.sealing CRIS (SMod.to_hmod Sp_global (Mod υ Sp_user)).
+  Definition t υ sp sp_user :=
+    Seal.sealing CRIS (SMod.to_hmod sp (Mod υ sp_user)).
+
 End SchA. End SchA.
 
 Module SchAPure. Section SchAPure.
@@ -396,10 +403,10 @@ Module SchAPure. Section SchAPure.
                     
   Definition scopes := ["Tid"].
 
-  Definition fnsems υ :=
-    [(SchHdr.get_tid, (wmask_all, scopes, mk_specbody (SchAS.get_tid_spec υ) fbody_trivial))].
+  Definition fnsems υ : alist (option string) (fnsem_type (option fspec * fbody)) :=
+    [(Some SchHdr.get_tid, (true, wmask_all, scopes, (Some (SchAS.get_tid_spec υ), fbody_trivial)))].
 
-    Program Definition Mod υ : SMod.t := {|
+  Program Definition Mod υ : SMod.t := {|
     SMod.scopes := scopes;
     SMod.fnsems := fnsems υ;
     SMod.initial_st := [];
@@ -407,11 +414,10 @@ Module SchAPure. Section SchAPure.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-
   Definition InitCond : iProp Σ := SchAS.init_threads ∗ SchAS.init_tid.
   
-  Definition t υ Sp_global :=
-    Seal.sealing CRIS (SMod.to_hmod Sp_global (Mod υ)).
+  Definition t υ sp :=
+    Seal.sealing CRIS (SMod.to_hmod sp (Mod υ)).
 
   (* Lemmas *)
 
@@ -438,10 +444,10 @@ Section FSPEC.
 
   Definition sch_fspec υ (fsp : fspec) : fspec :=
     wsim_fspec υ
-     (mk_fspec (meta := nat * (fsp).(meta))
+     (mk_fspec (meta := nat * (meta fsp))
         (fun '(tid, x) varg arg =>
-          SchAS.tid_user tid ∗ fsp.(precond) x varg arg)%I
+          SchAS.tid_user tid ∗ (precond fsp) x varg arg)%I
         (fun '(tid, x) vret ret =>
-          SchAS.tid_user tid ∗ fsp.(postcond) x vret ret)%I).
+          SchAS.tid_user tid ∗ (postcond fsp) x vret ret)%I).
 
 End FSPEC.

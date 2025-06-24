@@ -1,6 +1,6 @@
 From iris.proofmode Require Import proofmode.
 Require Import Common.
-Require Import LAuto.
+Require Export LAuto.
 
 Require Import Sp Mod SMod HMod.
 Require Import HModSim.
@@ -133,7 +133,8 @@ Ltac _alist_find_simpl :=
     end;
     erewrite (@ereplace _ l); [intros ?
     | Lauto_normalize; try rewrite !List.map_app; simpl List.map; Lauto_prepare;
-      match goal with [|-context[(?k',?v)]] => change k' with k; Lauto_find (k,v) end; refl];
+      let KV := fresh "KV" in                                
+      match goal with [|-context[(?k',?v)]] => change k' with k; set (KV:=(k,v)); try change (k,v) with KV; Lauto_find KV end; refl];
     rewrite !alist_find_with_nodup; [|exact TMP]; clear TMP;
     Lauto_finish
   end.
@@ -267,7 +268,7 @@ Ltac unfold_sp_exact sp name :=
 
 Tactic Notation "red_S" hyp(prg) tactic(tac) :=
   lazymatch goal with
-  | [ |- @SModTr.trans ?Σ ?stb ?R ?itr = _ ] =>
+  | [ |- @SModTr.trans ?Σ ?sp ?R ?itr = _ ] =>
       lazymatch itr with
       | Ret _ =>
           _hprogress prg; eapply SRed.ret
@@ -279,11 +280,11 @@ Tactic Notation "red_S" hyp(prg) tactic(tac) :=
           _hprogress prg; eapply SRed.vis_ag
       | vis (Guarantee _) _ =>
           _hprogress prg; eapply SRed.vis_ag
-      | vis (Spawn _ _) _ =>
+      | vis (Spawn ?fn _) _ =>
           _hprogress prg; etransitivity;
           [ eapply SRed.vis_spawn
-          | simpl map_or_else;
-            try unfold SModTr.HoareSpawn; try unfold SModTr.NativeSpawn;
+          | unfold map_or_else, SModTr.HoareSpawn;
+            unfold_sp_exact sp fn; s;
             tac
           ]
       | vis (Yield _) _ =>
@@ -294,8 +295,8 @@ Tactic Notation "red_S" hyp(prg) tactic(tac) :=
       | vis (Call ?fn _) _ =>
           _hprogress prg; etransitivity;
           [ eapply SRed.vis_call
-          | simpl map_or_else; try unfold SModTr.HoareCall;
-            unfold_sp_exact stb fn;
+          | unfold map_or_else, SModTr.HoareCall;
+            unfold_sp_exact sp fn; s;
             tac
           ]
       | vis (SPut _ _) _ =>
@@ -339,9 +340,9 @@ Ltac _hnorm_itr prg :=
   | [ |- @SB.sandbox ?Σ ?R ?img ?imports ?scopes ?itr = _ ] =>
       etransitivity;
       [ cong (@SB.sandbox Σ R img imports scopes); _hnorm_itr prg | red_SB prg ]
-  | [ |- @SModTr.trans ?Σ ?stb ?R ?itr = _ ] =>
+  | [ |- @SModTr.trans ?Σ ?sp ?R ?itr = _ ] =>
       etransitivity;
-      [ cong (@SModTr.trans Σ stb R); _hnorm_itr prg | red_S prg (do 1 _hnorm_itr prg) ]
+      [ cong (@SModTr.trans Σ sp R); _hnorm_itr prg | red_S prg (do 1 _hnorm_itr prg) ]
   | [ |- trigger _ = _ ] =>
       eapply trigger_vis
   | [ |- assume _ = _ ] =>
@@ -360,9 +361,6 @@ Ltac _hnorm_itr prg :=
   | [ |- SModTr.HoareSpawn _ _ _ _ = _ ] =>
       _hprogress prg; unfold SModTr.HoareSpawn;
       _hnorm_itr prg
-  | [ |- SModTr.NativeSpawn _ _ _ _ = _ ] =>
-      _hprogress prg; unfold SModTr.NativeSpawn;
-      _hnorm_itr prg                 
   | [ |- fbody_trivial _ = _ ] =>
       _hprogress prg; unfold fbody_trivial;
       _hnorm_itr prg
@@ -473,11 +471,11 @@ Ltac has_postcond_in TM :=
   match goal with [H := ?P |- _] => match H with TM => match P with context[postcond] => idtac end end end.
 Ltac unfold_precond_postcond term := let TM := fresh "_term" in
   set (TM := term) at 1;
-  (hrepeat do 1 (has_precond_in TM; unfold precond, _precond in TM; simpl in TM));
-  (hrepeat do 1 (has_postcond_in TM; unfold postcond, _precond in TM; simpl in TM));
-  subst TM;
-  try rewrite -/(precond _); try rewrite -/(_precond _);
-  try rewrite -/(postcond _); try rewrite -/(_postcond _).
+  (hrepeat do 1 (has_precond_in TM; unfold precond in TM; simpl in TM));
+  (hrepeat do 1 (has_postcond_in TM; unfold postcond in TM; simpl in TM));
+  subst TM.
+  (* try rewrite -/(precond _); *)
+  (* try rewrite -/(postcond _). *)
 
 Ltac set_marker marker :=
   assert (marker: True) by exact I.

@@ -2,7 +2,7 @@ Require Import Common.
 From iris.proofmode Require Import proofmode.
 
 Require Import HMod FSpec.
-Require Import ISim MainAdequacy.
+Require Import ISim MainAdequacy CancelLib.
 
 Set Implicit Arguments.
 
@@ -10,8 +10,8 @@ Set Implicit Arguments.
 Section INTERP.
   Context `{Σ: GRA}.
 
-  Definition handle_callE (prog: string -> fbody) (itr: itree hmodE Any.t)
-    : itree hmodE (itree hmodE Any.t + Any.t)
+  Definition handle_callE {R} (prog: string -> fbody) (itr: itree hmodE R)
+    : itree hmodE (itree hmodE R + R)
     :=
     match observe itr with
     | RetF r => Ret (inr r)
@@ -34,13 +34,10 @@ Section INTERP.
     kb <- (alist_find fn ms.(HMod.fnsems))?;;
     SB.sandbox_body kb arg.
 
-  Definition inline_hp prog := ITree.iter (handle_callE prog).
+  Definition inline_hp {R} prog := ITree.iter (@handle_callE R prog).
   
-  Definition inline_hfun prog (body: fbody) : fbody :=
-    inline_hp prog ∘ body.
-
   Definition inline_fsem ms kb : fnsem_type bool :=
-    (wmask_all, ms.(HMod.scopes), (true, inline_hfun (sandboxed_prog ms) (SB.sandbox_body kb))).
+    (wmask_all, ms.(HMod.scopes), (true, inline_hp (sandboxed_prog ms) ∘ (SB.sandbox_body kb))).
       
 End INTERP.
 
@@ -50,7 +47,7 @@ Module HModInline.
   Program Definition inline `{Σ: GRA} (ms: HMod.t): HMod.t := {|
     scopes := ms.(scopes);
     fnsems := List.map (map_snd (inline_fsem ms)) (ms.(fnsems));
-    initial_code := o2map (inline_fsem ms) ms.(initial_code);
+    initial_code := option_map (inline_fsem ms) ms.(initial_code);
     initial_st := ms.(initial_st);
   |}.
   Next Obligation.
@@ -59,7 +56,7 @@ Module HModInline.
     des_ifs; ss. 
   Qed.
   Next Obligation.
-    i. destruct (initial_code ms); ss. destruct o; ss.
+    i. destruct (initial_code ms); ss.
   Qed.
   Next Obligation. ii. destruct ms. ss. eauto. Qed.
   Next Obligation. ii. destruct ms. ss. eauto. Qed.
@@ -67,24 +64,24 @@ End HModInline.
 
 Module HIRed.
 
-  Lemma ret `{Σ: GRA}
-    prog (x: Any.t)
+  Lemma ret `{Σ: GRA} {T}
+    prog (x: T)
   :
     inline_hp prog (Ret x) = Ret x.
   Proof using.
     rewrite/inline_hp unfold_iter_eq. grind.
   Qed.
 
-  Lemma tau `{Σ: GRA}
-    prog t
+  Lemma tau `{Σ: GRA} {T}
+    prog (t: itree _ T)
   :
     inline_hp prog (tau;; t) = tau;; tau;; inline_hp prog t.
   Proof using.
     rewrite/inline_hp unfold_iter_eq. grind.
   Qed.
 
-  Lemma bind `{Σ: GRA} prg
-    i k
+  Lemma bind `{Σ: GRA} {R T} prg
+    i (k: R → itree _ T)
   :
     inline_hp prg (i >>= k)
     =
@@ -132,8 +129,8 @@ Module HIRed.
     Unshelve. eauto with paco.
   Qed.
 
-  Lemma bind_spawn `{Σ: GRA}
-    prog fn args ktr
+  Lemma spawn `{Σ: GRA} {T}
+    prog fn args (ktr: _ → itree _ T)
   :
     inline_hp prog (x <- trigger (Spawn fn args);; ktr x) 
     =
@@ -142,8 +139,8 @@ Module HIRed.
     rewrite/inline_hp unfold_iter_eq. grind.
   Qed.
 
-  Lemma bind_yield `{Σ: GRA}
-    prog tid ktr
+  Lemma yield `{Σ: GRA} {T}
+    prog tid (ktr: _ → itree _ T)
   :
     inline_hp prog (x <- trigger (Yield tid);; ktr x) 
     =
@@ -152,8 +149,8 @@ Module HIRed.
     rewrite/inline_hp unfold_iter_eq. grind.
   Qed.
   
-  Lemma bind_core `{Σ: GRA}
-    X prog (e: coreE X) ktr
+  Lemma core `{Σ: GRA} {T}
+    X prog (e: coreE X) (ktr: _ → itree _ T)
   :
     inline_hp prog (x <- trigger e;; ktr x) 
     =
@@ -162,8 +159,8 @@ Module HIRed.
     rewrite/inline_hp unfold_iter_eq. grind.
   Qed.
 
-  Lemma bind_pg `{Σ: GRA}
-    X prog (e: pgE X) ktr
+  Lemma pg `{Σ: GRA} {T}
+    X prog (e: pgE X) (ktr: _ → itree _ T)
   :
     inline_hp prog (x <- trigger e;; ktr x) 
     =
@@ -172,8 +169,8 @@ Module HIRed.
     rewrite/inline_hp unfold_iter_eq. grind.
   Qed.
 
-  Lemma bind_ag `{Σ: GRA}
-    X prog (e: agE X) ktr
+  Lemma ag `{Σ: GRA} {T}
+    X prog (e: agE X) (ktr: _ → itree _ T)
   :
     inline_hp prog (x <- trigger e;; ktr x) 
     =
@@ -182,8 +179,8 @@ Module HIRed.
     rewrite/inline_hp unfold_iter_eq. grind.
   Qed.
 
-  Lemma call `{Σ: GRA}
-    prog ktr (fn: string) arg 
+  Lemma call `{Σ: GRA} {T}
+    prog (ktr: _ → itree _ T) (fn: string) arg 
   :
     inline_hp prog (trigger (Call fn arg) >>= ktr)
     =
@@ -196,20 +193,17 @@ End HIRed.
 
 (* CANCEL *)
 Lemma sandbox_inline_commute `{Σ: GRA}
-    ms fn sb
-    (FIND: alist_find fn ms.(HMod.fnsems) = Some sb)
+  ms sb arg
+  (SCP : incl sb.1.2 (HMod.scopes ms))
   :
-  SB.sandbox_body (inline_fsem ms sb)
-  = 
-  inline_hfun (sandboxed_prog ms) (SB.sandbox_body sb).
+  SB.sandbox_body (inline_fsem ms sb) arg
+  =
+  inline_hp (sandboxed_prog ms) (SB.sandbox_body sb arg).
 Proof using.
-  extensionality args.
   unfold inline_fsem. s.
-  unfold SB.sandbox_body, inline_hfun. destruct sb as [[msk sc] [img bd]]. s.
-  assert(SCP := ms.(HMod.well_scoped_fns)).
-  specialize (SCP fn). rewrite/fnsems_scopes FIND in SCP.
+  unfold SB.sandbox_body. destruct sb as [[msk sc] [img bd]]. ss.
   apply bisim_is_eq. move sc at bottom.
-  ginit. generalize (bd args) as itr. clear FIND bd fn args.
+  ginit. generalize (bd arg) as itr. clear bd arg.
   revert_until ms. gcofix CIH. i.
   ides itr.
   { rewrite !SBRed.ret HIRed.ret SBRed.ret. gstep. econs. refl. }
@@ -221,19 +215,19 @@ Proof using.
     assert ((@ITree.trigger (@hmodE Σ) X (inl1 a)) = trigger a) by grind.
     destruct a.
     - rewrite H !SBRed.Assume. des_ifs.
-      + rewrite HIRed.bind_ag SBRed.bind SBRed.Assume !bind_trigger.
+      + rewrite HIRed.ag SBRed.bind SBRed.Assume !bind_trigger.
         gstep. econs. i. r. rewrite SBRed.tau. gstep. econs. gbase. eauto.
-      + ired. rewrite !HIRed.bind_core SBRed.bind SBRed.take. s.
+      + ired. rewrite !HIRed.core SBRed.bind SBRed.take. s.
         gstep. r; s; econs. ss.
-    - rewrite H !SBRed.AssumePrecise HIRed.bind_ag SBRed.bind SBRed.AssumePrecise !bind_trigger.
+    - rewrite H !SBRed.AssumePrecise HIRed.ag SBRed.bind SBRed.AssumePrecise !bind_trigger.
       gstep. econs. i. r. rewrite SBRed.tau. gstep. econs. gbase. eauto.
-    - rewrite H !SBRed.Guarantee HIRed.bind_ag SBRed.bind SBRed.Guarantee !bind_trigger.
+    - rewrite H !SBRed.Guarantee HIRed.ag SBRed.bind SBRed.Guarantee !bind_trigger.
       gstep. econs. i. r. rewrite SBRed.tau. gstep. econs. gbase. eauto.
   }
   destruct s; [destruct c|].
   {
     rewrite !SBRed.call. des_ifs; cycle 1.
-    { ired. rewrite !HIRed.bind_core !SBRed.bind SBRed.take !bind_trigger.
+    { ired. rewrite !HIRed.core !SBRed.bind SBRed.take !bind_trigger.
       gstep. econs. ss.
     }
 
@@ -241,18 +235,17 @@ Proof using.
     gstep. econs.
     destruct (alist_find fn (HMod.fnsems ms)) eqn: FIND; cycle 1.
     { ired. rewrite {2 4}/sandboxed_prog FIND. s. ired.
-      rewrite !HIRed.bind_core !SBRed.bind SBRed.take !bind_trigger.
+      rewrite !HIRed.core !SBRed.bind SBRed.take !bind_trigger.
       gstep. econs. ss.
     }
 
-    rewrite /sandboxed_prog /SB.sandbox_body. ired.
+    rewrite {2 4}/sandboxed_prog /SB.sandbox_body FIND. s. ired.
     destruct f as [[msk0 sc0] [img0 bd0]]. s.
     match goal with
     [|- _ _ (_ _ ?itr)] => assert (EX: exists itr', itr = SB.sandbox wmask_all (HMod.scopes ms) true itr'); cycle 1
     end.
     { des. rewrite EX. gbase. eapply CIH; try refl. }
 
-    rewrite FIND. s. ired.
     eexists. instantiate (1:= _ >>= _).
     rewrite SBRed.bind. f_equal.
     { 
@@ -266,26 +259,26 @@ Proof using.
   }
   {
     rewrite !SBRed.spawn. des_ifs.
-    + rewrite HIRed.bind_spawn SBRed.bind SBRed.spawn. s.
+    + rewrite HIRed.spawn SBRed.bind SBRed.spawn. s.
       rewrite !bind_trigger.
       gstep. econs. i. r.
       rewrite SBRed.tau. gstep. econs. gbase. eauto.
-    + ired. rewrite !HIRed.bind_core !SBRed.bind SBRed.take !bind_trigger.
+    + ired. rewrite !HIRed.core !SBRed.bind SBRed.take !bind_trigger.
       gstep. econs. ss.
   }
   {
-    rewrite !SBRed.yield HIRed.bind_yield SBRed.bind SBRed.yield !bind_trigger.
+    rewrite !SBRed.yield HIRed.yield SBRed.bind SBRed.yield !bind_trigger.
     gstep. econs. i. r.
     rewrite SBRed.tau. gstep. econs. gbase. eauto.
   }
   destruct s; [destruct p|].
   {
     rewrite !SBRed.put. des_ifs; cycle 1.
-    { ired. rewrite !HIRed.bind_core !SBRed.bind SBRed.take !bind_trigger.
+    { ired. rewrite !HIRed.core !SBRed.bind SBRed.take !bind_trigger.
       gstep. econs. ss.
     }
 
-    rewrite HIRed.bind_pg SBRed.bind SBRed.put. des_ifs; cycle 1.
+    rewrite HIRed.pg SBRed.bind SBRed.put. des_ifs; cycle 1.
     {
       exfalso. assert (existsb (String.eqb k0.1) (HMod.scopes ms) = true).
       {
@@ -299,11 +292,11 @@ Proof using.
   }
   {
     rewrite !SBRed.get. des_ifs; cycle 1.
-    { ired. rewrite !HIRed.bind_core !SBRed.bind SBRed.take !bind_trigger.
+    { ired. rewrite !HIRed.core !SBRed.bind SBRed.take !bind_trigger.
       gstep. econs. ss.
     }
 
-    rewrite HIRed.bind_pg SBRed.bind SBRed.get. des_ifs; cycle 1.
+    rewrite HIRed.pg SBRed.bind SBRed.get. des_ifs; cycle 1.
     {
       exfalso. assert (existsb (String.eqb k0.1) (HMod.scopes ms) = true).
       {
@@ -317,34 +310,14 @@ Proof using.
   }
   {
     destruct c.
-    - rewrite SBRed.choose HIRed.bind_core SBRed.bind SBRed.choose !bind_trigger.
+    - rewrite SBRed.choose HIRed.core SBRed.bind SBRed.choose !bind_trigger.
       gstep. econs. i. r. rewrite SBRed.tau. gstep. econs. gbase; eauto.
     - rewrite SBRed.take. des_ifs.
-      + rewrite HIRed.bind_core SBRed.bind SBRed.take !bind_trigger.
+      + rewrite HIRed.core SBRed.bind SBRed.take !bind_trigger.
         gstep. econs. i. gstep. r; s. econs. gbase. et.
-      + ired. rewrite HIRed.bind_core SBRed.bind SBRed.take. s.
+      + ired. rewrite HIRed.core SBRed.bind SBRed.take. s.
         gstep. r; s; econs. ss.
-    - rewrite SBRed.io HIRed.bind_core SBRed.bind SBRed.io !bind_trigger.
+    - rewrite SBRed.io HIRed.core SBRed.bind SBRed.io !bind_trigger.
       gstep. econs. i. r. rewrite SBRed.tau. gstep. econs. gbase; eauto.
   }
-(*SLOW*)Qed.
-
-Definition bindRR `{Σ: GRA} {R} RR P : nat -> alist key Any.t * R-> alist key Any.t * R -> iProp Σ :=
-  fun nths '(st0, ret0) '(st1, ret1) => (P ∗ RR nths (st0, ret0) (st1, ret1))%I.
-
-Definition IstRR `{Σ: GRA} {R} Ist : nat -> alist key Any.t * R-> alist key Any.t * R -> iProp Σ :=
-  fun nths '(st0, ret0) '(st1, ret1) => (⌜ret0 = ret1⌝ ∗ Ist nths st0 st1)%I.
-
-Lemma isim_RR_frame `{Σ: GRA}
-    fls flt contextual r g nths
-    {R} Ist (P: iProp Σ)
-    ps pt sti_src sti_tgt
-  :
-    (P ∗ @isim _ contextual fls flt Ist r g R R 
-          (fun nths '(sts, vs) '(stt, vt) => ⌜vs = vt⌝ ∗ Ist nths sts stt)%I
-          ps pt nths sti_src sti_tgt)  
-    ⊢ isim contextual fls flt Ist r g 
-       (bindRR (IstRR Ist) P) ps pt nths sti_src sti_tgt.
-Proof using.
-  iIntros "[H0 H1]". iApply isim_wand. iFrame. eauto.
-Qed.
+(*SLOW*)Admitted.

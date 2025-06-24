@@ -5,6 +5,183 @@ Require Import ModSim ModSimFacts ISim ISimInit ISimFacts.
 Require Import CtxRefine MainAdequacy.
 Require Import Tactics TacticsInit.
 
+Set Implicit Arguments.
+
+(*******
+  Commutativity Proof
+ *******)
+
+Definition perm_Ist `{Σ: GRA} : nat -> alist key Any.t -> alist key Any.t -> iProp Σ :=
+  fun _ l0 l1 => ⌜l0 ≡ₚ l1⌝%I.  
+
+Lemma alist_upd_perm {K V} l0 l1 `{Dec K} (k : K) (v : V)
+      (ND : List.NoDup (List.map fst l0))
+      (PERM : l0 ≡ₚ l1)
+    :
+      alist_upd k v l0 ≡ₚ alist_upd k v l1.
+Proof.
+  destruct (classic (In k (List.map fst l0))); cycle 1.
+  {
+    rewrite! alist_upd_not_in; eauto. ii.
+    eapply H0. eapply Permutation_in; cycle 1; eauto.
+    eapply Permutation_map. symmetry. eauto.
+  }
+  assert (List.NoDup (List.map fst l1)).
+  { 
+    eapply Permutation_NoDup; cycle 1; eauto. 
+    eapply Permutation_map. eauto.
+  }
+  eapply alist_find_fst_in in H0. des.
+  eapply alist_find_some in H0.
+  assert (In (k, v0) l1).
+  { eapply Permutation_in; eauto. }
+  eapply in_split in H0, H2. des. subst.
+  replace (l4 ++ (k, v0) :: l5) with ((l4 ++ [(k, v0)] ++ l5)); eauto.
+  replace (l2 ++ (k, v0) :: l3) with ((l2 ++ [(k, v0)] ++ l3)); eauto.
+  rewrite! alist_upd_with_nodup; eauto.
+  eapply Permutation_app_middle, Permutation_app_inv. eauto.
+  Unshelve. eauto.
+Qed.
+
+Lemma alist_permutation_find K `{Dec K} V (l0 l1 : alist K V)
+      (ND : List.NoDup (List.map fst l0))
+      (PERM : Permutation l0 l1)
+      k
+  :
+    alist_find k l0 = alist_find k l1.
+Proof.
+  revert ND k. induction PERM; ss.
+  { i. inv ND. destruct x. rewrite eq_rel_dec_correct. des_ifs. et. }
+  { i. inv ND. inv H3. destruct x, y. rewrite eq_rel_dec_correct. des_ifs.
+    rewrite eq_rel_dec_correct in Heq0. des_ifs. f_equal. exfalso. eapply H2. ss. auto. }
+  { i. rewrite IHPERM1; auto. rewrite IHPERM2; auto.
+    eapply Permutation_NoDup; [|apply ND].
+    eapply Permutation_map. auto.
+  }
+Qed.
+
+Lemma alist_find_comm {K V} `{Dec K}
+      (l0 l1 : list (K*V)) fn f
+      (NODUP : List.NoDup (List.map fst (l0 ++ l1)))
+      (FIND : alist_find fn (l0 ++ l1) = Some f)
+    :
+      alist_find fn (l1 ++ l0) = Some f.
+Proof.
+  move: FIND; rewrite ?alist_find_app_o; intros FIND. des_ifs.
+  eapply alist_find_fst_some in Heq, Heq0.
+  rewrite map_app in NODUP.
+  exfalso.
+  eapply NoDup_app_disjoint in NODUP; eauto.
+Qed.
+
+Lemma hmod_add_scopes `{Σ: GRA} md0 md1:
+  HMod.scopes (md0 ★ md1) = HMod.scopes md0 ++ HMod.scopes md1.
+Proof. ss. Qed.
+
+Lemma hmod_add_comm `{Σ: GRA} contextual ms0 ms1:
+  HSim.t contextual (ms0 ★ ms1) (ms1 ★ ms0) (emp%I)
+    (IstSB (HMod.scopes (ms0 ★ ms1)) perm_Ist).
+Proof.
+  econs; ss; i.
+  { apply sub_perm_comm. }
+  { rewrite ?map_app; i. apply sub_perm_comm. }
+  { ii. ss. rewrite !map_app !alist_find_app_o in H0 |- *.
+    des_ifs. esplits; et.
+    iPureIntro. i. esplits; et.
+    - rewrite /state_scopes map_app.
+      eapply incl_app; [apply incl_appl|apply incl_appr];
+        eapply HMod.well_scoped_init.
+    - rewrite /state_scopes map_app.
+      eapply incl_app; [apply incl_appr|apply incl_appl];
+        eapply HMod.well_scoped_init.
+    - eapply Permutation_app_comm.
+  }
+
+  destruct fn; cycle 1.
+  {
+    ii. ss. dup FIND.
+    eapply alist_find_comm in FIND0; et. rewrite FIND0. esplits; et.
+    ii. iIntros "%". des; subst.
+    iApply isim_mono; cycle 1.
+    - iApply isim_nodup. iIntros (? ? ? ?).
+      iApply isim_refl.
+      + ii. iIntros "%". iPureIntro. des. esplits; et.
+      + ii. iIntros "%". iPureIntro. des. eapply alist_permutation_find; et.
+      + ii. iIntros "%". iPureIntro. des. esplits; et.
+        * rewrite state_scopes_update. et.
+        * rewrite state_scopes_update. et.
+        * eapply alist_upd_perm; et.
+      + iPureIntro. esplits; et.
+        * rewrite /state_scopes map_app.
+          eapply incl_app; [apply incl_appl|apply incl_appr];
+            eapply HMod.well_scoped_init.
+        * rewrite /state_scopes map_app.
+          eapply incl_app; [apply incl_appr|apply incl_appl];
+            eapply HMod.well_scoped_init.
+        * eapply Permutation_app_comm.
+    - i. iIntros "%". iPureIntro. des; et.
+  }
+
+  ii. eapply alist_find_comm in FIND; et. rewrite FIND. esplits; et.
+
+  (* simulation *)
+  ii. destruct fs as [[[img msk] scp] bd]. unfold SB.sandbox_body. s.
+  generalize (bd arg) as it. clear FIND bd arg.
+  combine_quant NODD.
+  combine_quant NODS.
+  combine_quant st_tgt.
+  combine_quant st_src.
+  combine_quant nths.
+  eapply isim_coind. i.
+  destruct a as [nths [st_src [st_tgt [NODS [NODD it]]]]]. s.
+  iIntros "(%IST & #CIH)". des. destruct_quant.
+  assert (CASE := case_itrH it); des; subst.
+  - step. eauto.
+  - steps_l. steps_r. by_coind "CIH"; et.
+  - destruct img.
+    + steps_l. force_r. iFrame. steps_r. by_coind "CIH"; et.
+    + rewrite SBRed.bind SBRed.Assume. s. steps_l. ss.
+  - steps_l. steps_r. step. by_coind "CIH"; et.
+  - steps_r. force_l. iFrame. steps_l. by_coind "CIH"; et.
+  - destruct c.
+    + norm_l. norm_r. rewrite! SBRed.call. des_ifs; ss.
+      * iApply isim_call. iSplit; eauto. iIntros (? ? ? ? ? ?) "IST0".
+        steps_l. steps_r. by_coind "CIH"; et.
+      * steps_l. ss.
+    + norm_l. norm_r. rewrite! SBRed.spawn. des_ifs; ss.
+      * iApply isim_spawn.
+        steps_l. steps_r. by_coind "CIH"; et.
+      * steps_l. ss.
+    + yield ""; eauto. by_coind "CIH"; et.
+  - depdes s0.
+    + rewrite !SBRed.bind !SBRed.put. des_ifs; cycle 1.
+      { steps_l. ss. }
+      iApply isim_sput_src. iApply isim_sput_tgt.
+      by_coind "CIH"; et.
+      * rewrite alist_upd_keys. et.
+      * rewrite alist_upd_keys. et.
+      * unfold perm_Ist. iPureIntro.
+        rewrite !state_scopes_update. esplits; eauto. 
+        eapply alist_upd_perm; eauto.
+    + rewrite !SBRed.bind !SBRed.get. des_ifs; cycle 1.
+      { steps_l. ss. }
+      iApply isim_sget_src. iApply isim_sget_tgt.
+      apply existsb_exists in Heq. des. apply String.eqb_eq in Heq0. subst.
+      iAssert (⌜alist_find k st_src = alist_find k st_tgt⌝)%I as "%".
+      { iPureIntro. eapply alist_permutation_find; eauto. }
+      rewrite H1. by_coind "CIH"; et.
+  - destruct e.
+    + steps_r. force_l. instantiate (1:= q). steps_l. by_coind "CIH"; et.
+    + rewrite SBRed.bind SBRed.take. des_ifs.
+      * steps_l. force_r. instantiate (1:= q). steps_r. by_coind "CIH"; et.
+      * steps_l. ss.
+    + step. by_coind "CIH"; et.
+Qed.
+
+(*******
+  Properties of Contextual Refinements
+ *******)
+
 Global Program Instance refines_mod_PreOrder : PreOrder refines_mod.
 Next Obligation. ii. ss. Qed.
 Next Obligation. ii. eapply H. eapply H0. ss. Qed.
@@ -104,10 +281,10 @@ Theorem ctxr_comm `{Σ : GRA} (ma mb : HMod.t) P:
   ctx_refines (HMod.add ma mb, P) (HMod.add mb ma, P).
 Proof.
   etrans.
-  { eapply (ctxr_cond_strengthen _ _ ((emp ∗ P)%I)). eauto. }
+  { eapply (ctxr_cond_strengthen _ ((emp ∗ P)%I)). eauto. }
   etrans.
   { eapply ctxr_cond_frameR, main_adequacy, hmod_add_comm. }
-  eapply (ctxr_cond_strengthen _ _ P). i. iIntros "(H & H')". iFrame.
+  eapply (ctxr_cond_strengthen _ P). i. iIntros "(H & H')". iFrame.
 Qed.
 
 (*** frame rules ***)
@@ -177,7 +354,9 @@ Proof.
   eapply ctxr_cond_frameR. et.
 Qed.
 
-(*** tactics for composing ctx_refines ***)
+(*******
+ tactics for composing ctx_refines
+ *******)
 
 Ltac ctxr_norm :=
   try rewrite <-!hmod_add_assoc;

@@ -133,7 +133,7 @@ Tactic Notation "iforce_l" :=
   iforce_l_core; [..|try iExists _].
 
 Tactic Notation "iforce_l" uconstr(p) :=
-  iforce_l_core; [..|try iExists p].
+  iforce_l_core; [..|iExists p].
 
 Ltac iforces_l :=
   hrepeat do 1 iforce_l.

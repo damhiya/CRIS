@@ -3,11 +3,11 @@ From iris.proofmode Require Import proofmode.
 Require Import PropExtensionality.
 
 Require Import Mod.
-Require Export HModTr Sandbox.
+Require Export FSpec HModTr Sandbox.
 
 Set Implicit Arguments.
 
-Definition fnsems_scopes `{Σ:GRA} {T} (fn : string) (fnsems : alist string (fnsem_type T)) :=
+Definition fnsems_scopes `{Σ: GRA} {T} (fn : option string) (fnsems : alist (option string) (fnsem_type T)) :=
   match (alist_find fn fnsems) with
   | Some (mask, scopes, body) => scopes
   | None => []
@@ -21,16 +21,13 @@ Module HMod. Section HMod.
   
   Record t : Type := mk {
     scopes : list string; (* scopes of the module local variables *)
-    fnsems : alist string (fnsem_type bool);
+    fnsems : alist (option string) (fnsem_type fbody);
     initial_st : alist key Any.t;
-    initial_code: option2 (fnsem_type bool);
 
     well_scoped_fns :
       ∀ fn, incl (fnsems_scopes fn fnsems) scopes;
-    well_scoped_initcode :
-      incl (map_or_else (o2flat initial_code) (snd ∘ fst) []) scopes;
     well_scoped_init :
-      incl (state_scopes initial_st) scopes;
+      incl (state_scopes initial_st) scopes;                         
     nodup_init :
       List.NoDup scopes → List.NoDup (List.map fst initial_st);
   }.
@@ -40,7 +37,7 @@ Module HMod. Section HMod.
     wf_scopes : List.NoDup ms.(scopes);
   }.
 
-  Definition exports (m: t) : list string :=
+  Definition exports (m: t) : list (option string) :=
     List.map fst m.(fnsems).
 
   (**** Linking ****)
@@ -48,9 +45,7 @@ Module HMod. Section HMod.
     scopes := [];
     fnsems := [];
     initial_st := [];
-    initial_code := None;
   |}.
-  Next Obligation. ii; ss. Qed.
   Next Obligation. ii; ss. Qed.
   Next Obligation. ii; ss. Qed.
   Next Obligation. econs. Qed.
@@ -60,34 +55,24 @@ Module HMod. Section HMod.
       fnsems := ms1.(fnsems) ++ ms2.(fnsems);
       scopes := ms1.(scopes) ++ ms2.(scopes);
       initial_st := ms1.(initial_st) ++ ms2.(initial_st);
-      initial_code := o2add ms1.(initial_code) ms2.(initial_code);
     |}.
   Next Obligation.
     ii. unfold fnsems_scopes in H. des_ifs.
     rewrite alist_find_app_o in Heq. des_ifs.
-    {
-      hexploit (ms1.(well_scoped_fns) fn a).
+    { hexploit (ms1.(well_scoped_fns) fn a).
       { unfold fnsems_scopes. des_ifs. }
       i. eapply in_or_app. eauto.
     }
-    {
-      hexploit (ms2.(well_scoped_fns) fn a).
+    { hexploit (ms2.(well_scoped_fns) fn a).
       { unfold fnsems_scopes. des_ifs. }
       i. eapply in_or_app. eauto.
     }
-  Qed.
-  Next Obligation.
-    ii. rewrite /o2add in H; des_ifs.
-    - destruct o; ss. eapply in_or_app. left.
-      eapply well_scoped_initcode. rewrite Heq. et.
-    - destruct o; ss. eapply in_or_app. right.
-      eapply well_scoped_initcode. rewrite Heq0. et.
   Qed.
   Next Obligation.
     unfold state_scopes. ii. destruct ms1, ms2. ss.
     rewrite map_app in H. apply in_or_app. apply in_app_or in H.
     destruct H; eauto.
-  Qed.
+  Qed.  
   Next Obligation.
     ii. exploit nodup_app_l; eauto. i.
     exploit nodup_app_r; eauto; i.
@@ -115,7 +100,6 @@ Module HMod. Section HMod.
   {|
     Mod.fnsems := List.map (map_snd (HModTr.trans_ktree ∘ SB.sandbox_body)) ms.(fnsems);
     Mod.initial_st := Any.pair (HModTr.alist_encode ms.(initial_st)) r↑;
-    Mod.initial_code := map_or_else (o2flat ms.(initial_code)) (HModTr.trans_ktree ∘ SB.sandbox_body) (λ _, triggerUB);
   |}.
 
   Definition addL (ms : list t) : t :=
@@ -160,11 +144,10 @@ Section HModFacts.
   Context `{Σ : GRA}.
 
   Lemma hmod_extensionality (ms1 ms2 : HMod.t)
-      (SCOPE : HMod.scopes ms1 = HMod.scopes ms2)
-      (FNSEM : HMod.fnsems ms1 = HMod.fnsems ms2)
-      (INITS : HMod.initial_st ms1 = HMod.initial_st ms2)
-      (INITC : HMod.initial_code ms1 = HMod.initial_code ms2)
-       :
+    (SCOPE : HMod.scopes ms1 = HMod.scopes ms2)
+    (FNSEM : HMod.fnsems ms1 = HMod.fnsems ms2)
+    (INITS : HMod.initial_st ms1 = HMod.initial_st ms2)
+    :
     ms1 = ms2.
   Proof using. destruct ms1, ms2; ss. subst. f_equal; apply proof_irrelevance. Qed.
 
@@ -173,20 +156,16 @@ Section HModFacts.
   Proof using.
     destruct md1, md2, md3.
     apply hmod_extensionality; s; try rewrite app_assoc; eauto.
-    destruct initial_code, initial_code0, initial_code1; ss.
-
   Qed.
 
   Lemma hmod_add_empty_l (md : HMod.t) : ⌽ ★ md = md.
   Proof using.
     destruct md. apply hmod_extensionality; s; eauto.
-    destruct initial_code; et.
   Qed.
 
   Lemma hmod_add_empty_r (md : HMod.t) : md ★ ⌽ = md.
   Proof using.
     destruct md. apply hmod_extensionality; s; try rewrite app_nil_r; eauto.
-    destruct initial_code; et.
   Qed.
 
   Lemma hmod_addL_app l l' : HMod.addL (l ++ l') = (HMod.addL l) ★ (HMod.addL l').

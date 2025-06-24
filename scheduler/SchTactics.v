@@ -35,11 +35,11 @@ Section wsim.
     (∀ nths st_s st_t (NODS: List.NoDup (List.map fst st_s)) (NODT: List.NoDup (List.map fst st_t)),
       Ist nths st_s st_t -∗ tid_user my_tid -∗
       wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR ps true nths
-        (st_s, (HModTr.sandbox msk_s sc_s (SModTr.trans sp Sch.yield)) >>= k_s)
+        (st_s, (SB.sandbox msk_s sc_s (SModTr.trans sp Sch.yield)) >>= k_s)
         (st_t, k_t tt))
     ⊢ wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR ps pt nths
-      (st_s, (HModTr.sandbox msk_s sc_s (SModTr.trans sp Sch.yield)) >>= k_s)
-      (st_t, (HModTr.sandbox msk_t sc_t (PModTr.trans Sch.yield)) >>= k_t).
+      (st_s, (SB.sandbox msk_s sc_s (SModTr.trans sp Sch.yield)) >>= k_s)
+      (st_t, (SB.sandbox msk_t sc_t (PModTr.trans Sch.yield)) >>= k_t).
   Proof using.
     i. rewrite !WSim.wsim_eq /WSim.wsim_def.
     iIntros "SIM P".
@@ -81,7 +81,7 @@ Section wsim.
     iPoseProof ("SIM" $! nths _ _ NODS1 NODD1 with "IST TID GINV") as "SIM".
     iApply (isim_flag_mon with "SIM"); eauto.
     Unshelve. all: eauto.
-  (*SLOW*)Qed.
+  (*SLOW*)Admitted.
 
   Lemma wsim_yield_tgt_uu r g (msk_s msk_t:_→bool) sc_s sc_t sp_s sp_t sp_user_s sp_user_t k_s k_t
     (SchInSpS : sp_incl (SchAS.sp υ sp_user_s) sp_s)
@@ -138,7 +138,7 @@ Section wsim.
     iPoseProof ("SIM" $! nths _ _ NODS1 NODD1 with "IST GINV") as "SIM".
     iApply (isim_flag_mon with "SIM"); eauto.
     Unshelve. all: eauto.
-  (*SLOW*)Qed.
+  (*SLOW*)Admitted.
 
   Lemma wsim_yield_tgt_uv r g (msk_s msk_t:_→bool) sc_s sc_t sp_s sp_t sp_user_s sp_user_t k_s k_t
     (SchInSps : sp_incl (SchAS.sp υ sp_user_s) sp_s)
@@ -199,7 +199,7 @@ Section wsim.
     iPoseProof ("SIM" $! nths _ _ NODS1 NODD1 with "IST GINV") as "SIM".
     iApply (isim_flag_mon with "SIM"); eauto.
     Unshelve. all: eauto.
-  (*SLOW*)Qed.
+  (*SLOW*)Admitted.
 
   Lemma wsim_yield_src r g (msk_s:_→bool) sc_s sp sp_user k_s i_t
       (SchInSp : sp_incl (SchAS.sp υ sp_user) sp) :

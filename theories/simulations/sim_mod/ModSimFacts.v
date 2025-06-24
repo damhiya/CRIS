@@ -9,11 +9,14 @@ Local Open Scope nat_scope.
 
 (* Adequacy - Part 1. ( Divided to resolve the dependency issue. ) *)
 
+Definition b2smj (b: bool) : smj :=
+  if b then smj_mid else smj_bot.
+
 Lemma sim_itree_simg
   ms_src ms_tgt
   (MSIM : MSim.t ms_src ms_tgt)
   (WFS : Mod.wf ms_src)
-  w my_tid ps pt nths itrs_src itrs_tgt st_src st_tgt
+  w ps pt my_tid nths itrs_src itrs_tgt st_src st_tgt
   (EQS : nths = List.length itrs_src)
   (EQT : nths = List.length itrs_tgt)
   (TID : my_tid < nths)
@@ -31,7 +34,7 @@ Lemma sim_itree_simg
       sim_itree (Mod.fnsems ms_src) (Mod.fnsems ms_tgt) (MSim.winit MSIM) (MSim.wf MSIM) (MSim.wle MSIM)
         tid top2 wany ps0 pt0 w0 nths0 (st_src0, itr_src) (st_tgt0, itr_tgt))
   :
-  simg (fun '(st_src, ret_src) '(st_tgt, ret_tgt) => ret_src = ret_tgt) (Some ps) (Some pt)
+  simg (fun '(st_src, ret_src) '(st_tgt, ret_tgt) => ret_src = ret_tgt) (b2smj ps) (b2smj pt)
     (ModTr.interp_stateE Any.t
        (iterV (ModTr.handle_callE (Mod.prog ms_src)) (my_tid, itrs_src)) st_src)
     (ModTr.interp_stateE Any.t
@@ -66,7 +69,7 @@ Proof.
     zstep_l. zstep_r.
     
     zprogress.
-    gbase. eapply (CIH w1); eauto; try by inv WLE; zsimpl_len.
+    gbase. eapply (CIH w1 true true); eauto; try by inv WLE; zsimpl_len.
 
     i. guardH FLG. des_ifs; des; subst; cycle 1.
     { rewrite list.list_lookup_insert_ne in INS; try nia.
@@ -272,7 +275,7 @@ Proof.
     grind. rename Heq into FIND.
     
     zstep_l. zstep_r. zprogress.
-    gbase. eapply CIH.
+    gbase. eapply (CIH _ true true).
     { rewrite !length_app. s. rewrite !length_insert. eauto. }
     { rewrite !length_app. s. rewrite !length_insert. nia. }
     { nia. }
@@ -284,7 +287,8 @@ Proof.
       rewrite lookup_app_l in INT; cycle 1.
       { rewrite length_insert. nia. }
       rewrite !list.list_lookup_insert in INT; try nia. inv INT.
-      eexists. rewrite WF Nat.add_comm. s. move: K; rewrite !EQT; intros K; eapply K.
+      eexists. rewrite WF Nat.add_comm. s.
+      move: K; rewrite !EQT; intros K; eapply K.
     + assert (DEC : tid < List.length itrs_tgt \/ tid = List.length itrs_tgt).
       { apply lookup_lt_Some in INS. rewrite length_app in INS. ss.
         rewrite length_insert in INS. nia. }
@@ -320,7 +324,7 @@ Proof.
       s. grind. unfold triggerUB. grind. unfold ModTr.pure_state. grind.
       do 2 zstep_l. }
 
-    gbase. eapply (CIH w1); eauto.
+    gbase. eapply (CIH w1 true true); eauto.
     { rewrite !length_insert. nia. }
     { rewrite !length_insert. nia. }
     { rewrite !length_insert. inv WLE. nia. }
@@ -361,7 +365,7 @@ Proof.
     do 2 zstep_l.
 
   - zprogress with smj_bot smj_bot _ _.
-    gbase. eapply CIH; eauto.
+    gbase. eapply (CIH _ false false); eauto.
     i. des_ifs; cycle 1; des; subst.
     { eapply SIM; eauto; des_ifs; eauto. }
 
@@ -371,7 +375,7 @@ Proof.
 Unshelve. all : try exact smj_bot.
 Qed.
 
-Lemma adequacy_local_aux
+Lemma adequacy_aux
   ms_src ms_tgt arg
   (MSIM : MSim.t ms_src ms_tgt)
   (WFS : Mod.wf ms_src)
@@ -380,21 +384,27 @@ Lemma adequacy_local_aux
   <1=
   (Beh.of_itree (Mod.compile ms_src arg)).
 Proof.
-  hexploit (MSim.sim_initial MSIM arg). intro SIMI. des.
-  hexploit (sim_itree_simg MSIM WFS).
-  { instantiate (1:= [Mod.initial_code ms_src arg]). s; et. }
-  { instantiate (1:= [Mod.initial_code ms_tgt arg]). s; et. }
-  { instantiate (1:=0). et. }
-  { instantiate (1:=[w]). et. }
-  { i. destruct tid; ss; inv INS. des; subst. eexists.
-    eapply SIMI. }
-
-  intro SIMG. eapply adequacy_global.
+  eapply adequacy_global.
   rewrite /Mod.compile /ModTr.trans /ModTr.interp_callE.
-  ginit. guclo bindC_spec. econs.
-  - gfinal. et.
-  - i. zstep.
-    destruct vret_src, vret_tgt. des; subst; eauto.
+  ginit.
+  destruct (alist_find _ _) eqn: E; s; cycle 1.
+  { zstep_l. }
+  ired. hexploit (MSim.sim_initial MSIM); et. i; des.
+  rewrite H. s. ired. specialize (H0 arg). des.
+  erewrite <-(bind_ret_r (ITree.map snd _)), (bisim_is_eq (bind_map _ _ _)).
+  erewrite <-(bind_ret_r (ITree.map snd _)), (bisim_is_eq (bind_map _ _ _)).
+  
+  guclo bindC_spec. econs; i; s.
+  { gfinal. right. eapply (sim_itree_simg MSIM WFS); cycle 4.
+    - i. destruct tid; ss; inv INS. des; subst. eexists.
+      instantiate (1:= [_]). eapply H0.
+    - et.
+    - et.
+    - et.
+    - et.
+  }
+  { zstep. destruct vret_src, vret_tgt; ss. }
+Unshelve. all: exact smj_top.  
 Qed.
   
 (* ADEQUACY *)
@@ -408,5 +418,5 @@ Lemma adequacy_modsem
   <1=
   Beh.of_itree (Mod.compile ms_src arg).
 Proof.
-  ii. eapply adequacy_local_aux; eauto.
+  ii. eapply adequacy_aux; eauto.
 Qed.

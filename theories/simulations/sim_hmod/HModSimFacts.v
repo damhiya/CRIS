@@ -91,13 +91,13 @@ Variant interp_inv `{Σ: GRA} Ist : list Σ -> nat * Any.t * Any.t -> Prop :=
 (* Adequacy requires 'contextual = closed'*)
 Lemma hsim_adequacy
   `{Σ : GRA}
-  (fl_src : alist string (Any.t -> itree hmodE Any.t))
-  (fl_tgt : alist string (Any.t -> itree hmodE Any.t))
+  (fl_src : alist (option string) (Any.t -> itree hmodE Any.t))
+  (fl_tgt : alist (option string) (Any.t -> itree hmodE Any.t))
   (Ist : nat -> alist key Any.t -> alist key Any.t -> iProp Σ)
   (my_tid : nat)
   (NODUPFS : List.NoDup (List.map fst fl_src))
   (NODUPFT : List.NoDup (List.map fst fl_tgt))
-  (fl_src0 fl_tgt0 : alist string (Any.t -> itree modE Any.t))
+  (fl_src0 fl_tgt0 : alist (option string) (Any.t -> itree modE Any.t))
   (FLS : fl_src0 = List.map (fun '(s, f) => (s, HModTr.trans_ktree f)) fl_src)
   (FLT : fl_tgt0 = List.map (fun '(s, f) => (s, HModTr.trans_ktree f)) fl_tgt)
   ps pt nths st_src st_tgt itr_src itr_tgt

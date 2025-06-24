@@ -107,7 +107,7 @@ Section wsim.
 
   Section lemmas.
 
-  Context (fl_s fl_t : alist string (Any.t → itree hmodE Any.t)).
+  Context (fl_s fl_t : alist (option string) (Any.t → itree hmodE Any.t)).
   Context (Ist : nat → alist key Any.t → alist key Any.t → iProp Σ).
 
   Local Notation wsim := (wsim fl_s fl_t Ist).
@@ -149,8 +149,8 @@ Section wsim.
       Ist nths' st_s' st_t' -∗
       wsim t υ ν E r g R_s R_t RR true true nths' (st_s', k_s ret) (st_t', k_t ret)) ⊢
     wsim t υ ν E r g R_s R_t RR ps pt nths
-      (st_s, SB.sandbox msk_src scp_src img_src (trigger (Call fn arg)) >>= k_s)
-      (st_t, SB.sandbox msk_tgt scp_tgt img_tgt (trigger (Call fn arg)) >>= k_t).
+      (st_s, SB.sandbox img_src msk_src scp_src (trigger (Call fn arg)) >>= k_s)
+      (st_t, SB.sandbox img_tgt msk_tgt scp_tgt (trigger (Call fn arg)) >>= k_t).
   Proof using.
     i. unseal. iIntros "[IST RR] I". iApply isim_call_sandbox; et. iFrame.
     iIntros (? ? ? ? ? ?) "IST".
@@ -176,7 +176,7 @@ Section wsim.
   Proof using. unseal; iIntros "RR I". iApply isim_tau_tgt; iApply "RR"; iFrame. Qed.
 
   Lemma wsim_inline_src r g fn arg f_s k_s i_t E :
-    alist_find fn fl_s = Some f_s →
+    alist_find (Some fn) fl_s = Some f_s →
     wsim t υ ν E r g R_s R_t RR true pt nths
       (st_s, x <- (ret <- (f_s arg);; (tau;; Ret ret));; (k_s x))
       (st_t, i_t) ⊢
@@ -184,18 +184,18 @@ Section wsim.
   Proof using. i; unseal; iIntros "RR I". iApply isim_inline_src; eauto. iApply "RR"; iFrame. Qed.
 
   Lemma wsim_inline_src_sandbox r g fn arg f_s k_s i_t E img (msk:_→bool) scp:
-    alist_find fn fl_s = Some f_s →
+    alist_find (Some fn) fl_s = Some f_s →
     wsim t υ ν E r g R_s R_t RR true pt nths
       (st_s, x <- (ret <- (f_s arg);; (tau;; Ret ret));; (k_s x))
       (st_t, i_t) ⊢
-    wsim t υ ν E r g R_s R_t RR ps pt nths (st_s, SB.sandbox msk scp img (trigger (Call fn arg)) >>= k_s) (st_t, i_t).
+    wsim t υ ν E r g R_s R_t RR ps pt nths (st_s, SB.sandbox img msk scp (trigger (Call fn arg)) >>= k_s) (st_t, i_t).
   Proof using.
     i. unseal. iIntros "RR I". iApply isim_inline_src_sandbox; et.
     iApply ("RR" with "I").
   Qed.
 
   Lemma wsim_inline_tgt r g fn arg i_s f_t k_t E :
-    alist_find fn fl_t = Some f_t →
+    alist_find (Some fn) fl_t = Some f_t →
     wsim t υ ν E r g R_s R_t RR ps true nths
       (st_s, i_s)
       (st_t, x <- (ret <- (f_t arg);; (tau;; Ret ret));; (k_t x)) ⊢
@@ -203,12 +203,12 @@ Section wsim.
   Proof using. i; unseal; iIntros "RR I". iApply isim_inline_tgt; eauto. iApply "RR"; iFrame. Qed.
 
   Lemma wsim_inline_tgt_sandbox r g fn arg i_s f_t k_t E img (msk:_→bool) scp:
-    alist_find fn fl_t = Some f_t →
+    alist_find (Some fn) fl_t = Some f_t →
     (msk fn) →
     wsim t υ ν E r g R_s R_t RR ps true nths
       (st_s, i_s)
       (st_t, x <- (ret <- (f_t arg);; (tau;; Ret ret));; (k_t x)) ⊢
-    wsim t υ ν E r g R_s R_t RR ps pt nths (st_s, i_s) (st_t, SB.sandbox msk scp img (trigger (Call fn arg)) >>= k_t).
+    wsim t υ ν E r g R_s R_t RR ps pt nths (st_s, i_s) (st_t, SB.sandbox img msk scp (trigger (Call fn arg)) >>= k_t).
   Proof using.
   i. iIntros "ISIM".
   rewrite SBRed.call.
@@ -363,8 +363,8 @@ Section wsim.
     wsim t υ ν E r g R_s R_t RR true true (S nths)
       (st_s, k_s nths) (st_t, k_t nths) ⊢
     wsim t υ ν E r g R_s R_t RR ps pt nths
-      (st_s, SB.sandbox msk_src scp_src img_src (trigger (Spawn fn args)) >>= k_s)
-      (st_t, SB.sandbox msk_tgt scp_tgt img_tgt (trigger (Spawn fn args)) >>= k_t).
+      (st_s, SB.sandbox img_src msk_src scp_src (trigger (Spawn fn args)) >>= k_s)
+      (st_t, SB.sandbox img_tgt msk_tgt scp_tgt (trigger (Spawn fn args)) >>= k_t).
   Proof using.
     i. unseal. iIntros "RR I". iApply isim_spawn_sandbox; et.
     iApply ("RR" with "I").
@@ -629,12 +629,12 @@ Section wsim.
       (st_s, unwrapN x >>= k_s) (st_t, i_t).
   Proof using. iIntros "H". iDestruct "H" as (x') "[% H]". subst. ired. iApply "H". Qed.
 
-  Lemma wsim_sput_src_sandbox msk scp img k v r g k_s i_t E :
+  Lemma wsim_sput_src_sandbox img msk scp k v r g k_s i_t E :
     In k.1 scp →
     wsim t υ ν E r g R_s R_t RR true pt nths
       (alist_upd k v st_s, k_s tt) (st_t, i_t) ⊢
     wsim t υ ν E r g R_s R_t RR ps pt nths
-      (st_s, SB.sandbox msk scp img (trigger (SPut k v)) >>= k_s) (st_t, i_t).
+      (st_s, SB.sandbox img msk scp (trigger (SPut k v)) >>= k_s) (st_t, i_t).
   Proof using.
     intros IN; iIntros "SIM".
     rewrite SBRed.put; des_ifs; ss.
@@ -646,12 +646,12 @@ Section wsim.
     }
   Qed.
 
-  Lemma wsim_sget_src_sandbox msk scp img k r g k_s i_t E :
+  Lemma wsim_sget_src_sandbox img msk scp k r g k_s i_t E :
     In k.1 scp →
     wsim t υ ν E r g R_s R_t RR true pt nths
       (st_s, k_s (or_else (alist_find k st_s) tt↑)) (st_t, i_t) ⊢
     wsim t υ ν E r g R_s R_t RR ps pt nths
-      (st_s, SB.sandbox msk scp img (trigger (SGet k)) >>= k_s) (st_t, i_t).
+      (st_s, SB.sandbox img msk scp (trigger (SGet k)) >>= k_s) (st_t, i_t).
   Proof using.
     intros IN; iIntros "SIM".
     rewrite SBRed.get; des_ifs; ss.
@@ -663,12 +663,12 @@ Section wsim.
     }
   Qed.
 
-  Lemma wsim_sput_tgt_sandbox msk scp img k v r g i_s k_t E :
+  Lemma wsim_sput_tgt_sandbox img msk scp k v r g i_s k_t E :
     In k.1 scp →
     wsim t υ ν E r g R_s R_t RR ps true nths
       (st_s, i_s) (alist_upd k v st_t, k_t tt) ⊢
     wsim t υ ν E r g R_s R_t RR ps pt nths
-      (st_s, i_s) (st_t, SB.sandbox msk scp img (trigger (SPut k v)) >>= k_t).
+      (st_s, i_s) (st_t, SB.sandbox img msk scp (trigger (SPut k v)) >>= k_t).
   Proof using.
     intros IN; iIntros "SIM".
     rewrite SBRed.put; des_ifs; ss.
@@ -680,12 +680,12 @@ Section wsim.
     }
   Qed.
 
-  Lemma wsim_sget_tgt_sandbox msk scp img k r g i_s k_t E :
+  Lemma wsim_sget_tgt_sandbox img msk scp k r g i_s k_t E :
     In k.1 scp →
     wsim t υ ν E r g R_s R_t RR ps true nths
       (st_s, i_s) (st_t, k_t (or_else (alist_find k st_t) tt↑)) ⊢
     wsim t υ ν E r g R_s R_t RR ps pt nths
-      (st_s, i_s) (st_t, SB.sandbox msk scp img (trigger (SGet k)) >>= k_t).
+      (st_s, i_s) (st_t, SB.sandbox img msk scp (trigger (SGet k)) >>= k_t).
   Proof using.
     intros IN; iIntros "SIM".
     rewrite SBRed.get; des_ifs; ss.
@@ -897,7 +897,7 @@ End lemmas. End wsim.
 Section Proph.
   Context `{!sinvG Γ Σ α β τ _I _G}.
 
-  Context (fl_s fl_t : alist string (Any.t → itree hmodE Any.t)).
+  Context (fl_s fl_t : alist (option string) (Any.t → itree hmodE Any.t)).
   Context (Ist : nat → alist key Any.t → alist key Any.t → iProp Σ).
 
   Local Notation wsim := (wsim fl_s fl_t Ist).

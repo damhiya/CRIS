@@ -11,14 +11,11 @@ Section SMOD.
 
   Record t : Type := mk {
     scopes : list string;
-    fnsems : alist string (fnsem_type (option fspec));
+    fnsems : alist (option string) (fnsem_type (option fspec * fbody));
     initial_st : alist key Any.t;
-    initial_code: option2 (fnsem_type bool);
 
     well_scoped_fns:
       forall fn, incl (fnsems_scopes fn fnsems) scopes;
-    well_scoped_initcode :
-      incl (map_or_else (o2flat initial_code) (snd ∘ fst) []) scopes;
     well_scoped_init:
       incl (state_scopes initial_st) scopes;
     nodup_init:
@@ -30,9 +27,7 @@ Section SMOD.
     scopes := [];
     fnsems := [];
     initial_st := [];
-    initial_code := None;
   |}.
-  Next Obligation. ii; ss. Qed.
   Next Obligation. ii; ss. Qed.
   Next Obligation. ii; ss. Qed.
   Next Obligation. econs. Qed.
@@ -41,7 +36,6 @@ Section SMOD.
     scopes := ms1.(scopes) ++ ms2.(scopes);
     fnsems := ms1.(fnsems) ++ ms2.(fnsems);
     initial_st := ms1.(initial_st) ++ ms2.(initial_st);
-    initial_code := o2add ms1.(initial_code) ms2.(initial_code);
   |}.
   Next Obligation.
     ii. unfold fnsems_scopes in H. des_ifs.
@@ -56,13 +50,6 @@ Section SMOD.
       { unfold fnsems_scopes. des_ifs. }
       i. eapply in_or_app. eauto.
     }
-  Qed.
-  Next Obligation.
-    ii. rewrite /o2add in H; des_ifs.
-    - destruct o; ss. eapply in_or_app. left.
-      eapply well_scoped_initcode. rewrite Heq. et.
-    - destruct o; ss. eapply in_or_app. right.
-      eapply well_scoped_initcode. rewrite Heq0. et.
   Qed.
   Next Obligation.
     unfold state_scopes. ii. destruct ms1, ms2. ss.
@@ -95,11 +82,10 @@ Section SMOD.
   Definition addL (ms : list t) : t :=
     foldr add empty ms.
 
-  Program Definition to_hmod (sp : string -> option fspec) (ms : t) : HMod.t := {|
+  Program Definition to_hmod (sp : sp_type) (ms : t) : HMod.t := {|
     HMod.scopes := ms.(scopes);
     HMod.fnsems := List.map (map_snd (SModTr.trans_ktree sp)) ms.(fnsems);
     HMod.initial_st := ms.(initial_st);
-    HMod.initial_code := o2map (SModTr.trans_initcode sp) ms.(initial_code);
     |}.
   Next Obligation.
     i. destruct ms. ss. ii. unfold fnsems_scopes in *. unfold map_snd in*.
@@ -107,22 +93,13 @@ Section SMOD.
     destruct (alist_find fn fnsems0) eqn: E; ss. 
     destruct f. destruct p. et.
   Qed.
-  Next Obligation.
-    ii. destruct ms. ss. eapply well_scoped_initcode0.
-    destruct initial_code0; ss. destruct o;  ss.
-    destruct f as [[] []]. ss.
-  Qed.
   Next Obligation. ii. destruct ms. ss. eauto. Qed.
   Next Obligation. ii. destruct ms. ss. eauto. Qed.
-
-  Definition fspec_cancel (fsp: option fspec) : option fspec :=
-    option_map (const fspec_none) fsp.
 
   Program Definition cancel (ms : t) : t := {|
     scopes := ms.(scopes);
-    fnsems := List.map (map_snd (map_snd (map_fst fspec_cancel))) ms.(fnsems);
+    fnsems := List.map (map_snd (map_snd (map_fst (const None)))) ms.(fnsems);
     initial_st := ms.(initial_st);
-    initial_code := ms.(initial_code);
   |}.
   Next Obligation.
     i. destruct ms. ss. ii. unfold fnsems_scopes in *. unfold map_snd in*.
@@ -130,7 +107,6 @@ Section SMOD.
     destruct (alist_find fn fnsems0) eqn: E; try rewrite E in H; ss.
     destruct f. destruct p. et.
   Qed.
-  Next Obligation. ii. destruct ms. ss. eauto. Qed.
   Next Obligation. ii. destruct ms. ss. eauto. Qed.
   Next Obligation. ii. destruct ms. ss. eauto. Qed.
 
@@ -149,8 +125,7 @@ Section ADD.
     SMod.to_hmod sp (SMod.add ms0 ms1) = HMod.add (SMod.to_hmod sp ms0) (SMod.to_hmod sp ms1).
   Proof using.
     eapply hmod_extensionality; ss; eauto.
-    - rewrite map_app. ss.
-    - rewrite /o2map /option_map /o2add; des_ifs.
+    rewrite map_app. ss.
   Qed.
 
   Lemma add_interp_comm

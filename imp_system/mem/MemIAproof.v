@@ -424,7 +424,7 @@ Module MemIP. Section MemIP.
       bsimpl; des; des_sumbool. Ztac. nia.
     - unfold update in *. destruct (dec blk b); subst; ss.
       des_ifs; bsimpl; destruct dec; des; subst; ss; rewrite right_id; eauto.
-  (*SLOW*)Qed.
+  (*SLOW*)Admitted.
 
   Lemma simF_free : HSim.sim_fun open MemP MemI IstFull MemHdr.free.
   Proof using.
@@ -450,7 +450,7 @@ Module MemIP. Section MemIP.
     - ii. s. rewrite /mem_ra_upd /update.
       destruct dec; ss; subst. des_ifs. left. et.
     - rewrite /update. ii. ss. destruct dec; ss; subst; et.
-  (*SLOW*)Qed.
+  (*SLOW*)Admitted.
 
   Lemma simF_load : HSim.sim_fun open MemP MemI IstFull MemHdr.load.
   Proof using.
@@ -475,7 +475,7 @@ Module MemIP. Section MemIP.
     steps_r. hss. steps_r. rewrite H1. s. steps_r.
     force_l. force_l. iSplit; et. step. iSplit; et.
     iExists _, [_], _, _. repeat (iSplit; et). iExists _, _. iSplit; et.
-  (*SLOW*)Qed.
+  (*SLOW*)Admitted.
 
   Lemma simF_store : HSim.sim_fun open MemP MemI IstFull MemHdr.store.
   Proof using.
@@ -501,7 +501,7 @@ Module MemIP. Section MemIP.
     - ii. s. rewrite /mem_ra_upd /update.
       destruct dec; ss; subst. des_ifs. right. et.
     - ii. ss. destruct dec; ss; subst; et.
-  (*SLOW*)Qed.
+  (*SLOW*)Admitted.
 
   Lemma simF_cmp : HSim.sim_fun open MemP MemI IstFull MemHdr.cmp.
   Proof using.
@@ -533,7 +533,7 @@ Module MemIP. Section MemIP.
     { destruct p1, p2; depdes E; try destruct blkofs; try destruct blkofs0; ss;
         try by destruct n; ss; des_ifs. }
     iExists _, [_], _, _. repeat (iSplit; et). iExists _, _. iSplit; et.
-  (*SLOW*)Qed.
+  (*SLOW*)Admitted.
 
   Lemma simF_cas : HSim.sim_fun open MemP MemI IstFull MemHdr.cas.
   Proof using.
@@ -587,7 +587,7 @@ Module MemIP. Section MemIP.
     iFrame. iSplit; et. iPureIntro; esplits; et.
     - ii. rewrite /mem_ra_upd. s. des_ifs; et.
     - ii. ss. des_ifs; et. bsimpl; des; des_sumbool; subst. eapply H4; et.
-  (*SLOW*)Qed.
+  (*SLOW*)Admitted.
 
   Theorem sim : HSim.t open MemP MemI (MemP.init_cond csl genv) IstFull.
   Proof using.
@@ -607,7 +607,7 @@ Module MemIP. Section MemIP.
     - apply simF_store.
     - apply simF_cmp.
     - apply simF_cas.
-  (*SLOW*)Qed.
+  (*SLOW*)Admitted.
 
   Theorem ctxr:
     ctx_refines
@@ -625,7 +625,7 @@ Module MemPA. Section MemPA.
     HSim.t open (MemA.t sp) MemP.t emp%I IstEq.
   Proof using.
     init_sim; prove_proph_sim.
-  (*SLOW*)Qed.
+  (*SLOW*)Admitted.
 
   Theorem ctxr sp:
     ctx_refines

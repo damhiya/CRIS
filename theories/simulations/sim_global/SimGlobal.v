@@ -4,13 +4,13 @@ Set Implicit Arguments.
 
 Definition smj : Type := option bool.
 
-Definition smj_top :smj := None.
-Definition smj_mid :smj := Some true.
-Definition smj_bot :smj := Some false.
+Definition smj_top :smj := Some true.
+Definition smj_mid :smj := Some false.
+Definition smj_bot :smj := None.
 
 Definition smj_ltb (m1 m2 : smj) : bool :=
   match m1, m2 with
-  | Some _, None => true
+  | None, Some _ => true
   | Some false, Some true => true
   | _, _ => false
   end.

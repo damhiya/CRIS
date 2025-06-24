@@ -4,8 +4,7 @@ Require Import SchHeader.
 
 Set Implicit Arguments.
 
-Definition thstat : Type := nat * (option SAny.t).
-Definition thslist: Type := list thstat.
+Definition thslist: Type := list (option SAny.t).
 
 Module SchI. Section SchI.
   Local Open Scope string_scope.
@@ -77,21 +76,22 @@ Module SchI. Section SchI.
 
   Local Definition scopes_tid := ["Tid"].
 
-  Definition fnsems :=
-    [(SchHdr._spawn, (wmask_all, scopes, cfunU _spawn));
-     (SchHdr.spawn, (wmask_all, scopes, cfunU spawn));
-     (SchHdr.yield, (wmask_all, scopes, cfunU yield));
-     (SchHdr.join, (wmask_all, scopes, cfunU join));
-     (SchHdr.get_tid, (wmask_all, scopes_tid, cfunU get_tid))].
-  
-  Program Definition Mod: PMod.t :=
+  Definition fnsems : alist (option string) (fnsem_type (option fspec * fbody)) :=
+    [(Some SchHdr._spawn,  (false, wmask_all, scopes,     (None, cfunU _spawn)));
+     (Some SchHdr.spawn,   (false, wmask_all, scopes,     (None, cfunU spawn)));
+     (Some SchHdr.yield,   (false, wmask_all, scopes,     (None, cfunU yield)));
+     (Some SchHdr.join,    (false, wmask_all, scopes,     (None, cfunU join)));
+     (Some SchHdr.get_tid, (false, wmask_all, scopes_tid, (None, cfunU get_tid)))].
+
+  Program Definition Mod: SMod.t :=
   {|
-    PMod.scopes := scopes;
-    PMod.fnsems := fnsems;
-    PMod.initial_st := [(v_ths, ([(0, None)]: thslist)↑); (v_tid, 0↑)];
+    SMod.scopes := scopes;
+    SMod.fnsems := fnsems;
+    SMod.initial_st := [(v_ths, ([(0, None)]: thslist)↑); (v_tid, 0↑)];
   |}.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition t := Seal.sealing CRIS (PMod.to_hmod Mod).
+  Definition t := Seal.sealing CRIS (SMod.to_hmod sp_none Mod).
+
 End SchI. End SchI.

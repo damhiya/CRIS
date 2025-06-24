@@ -3,16 +3,18 @@ Require Import FSpec Mod.
 
 Set Implicit Arguments.
 
-Definition fnsem_type `{Σ:GRA} (T: Type) : Type :=
-  ((string -> bool) *   (* mask *)
-   (list string) *      (* scope *)
-   (T *                 (* imaginary or real spec *)
-    fbody))%type.       (* function semantics *)
+Definition fnsem_type `{Σ:GRA} T : Type :=
+  bool *               (* imaginary or real spec *)  
+  (string -> bool) *   (* mask *)
+  (list string) *      (* scope *)
+  T.                   (* function semantics *)
 
 Section WMask.
 
   Definition wmask_all : string->bool := fun _ => true.
 
+  Definition wmask_none : string->bool := fun _ => false.
+  
   Definition wmask_list (fns: list string) : string->bool :=
     fun f => (existsb (String.eqb f) fns).
 
@@ -31,7 +33,7 @@ Module SB. Section SB.
   Context `{Σ: GRA}.
   
   (**** Sandboxing ****)
-  Definition handle_sandbox (msk: string->bool) (scp: list string) (img: bool)
+  Definition handle_sandbox (img: bool) (msk: string->bool) (scp: list string)
     : ∀ T, hmodE T -> (itree hmodE T + {X: Type & hmodE X * (X -> itree hmodE T)})%type.
   Proof.
     intros T e. right. destruct e.
@@ -86,11 +88,11 @@ Module SB. Section SB.
       exact (existT _ (subevent _ (@IO I O fn args), fun v => Ret v)).
   Defined.
 
-  Definition sandbox {T} msk scp img (itr : itree hmodE T) :=
-    interpV (handle_sandbox msk scp img) itr.
+  Definition sandbox {T} img msk scp (itr : itree hmodE T) :=
+    interpV (handle_sandbox img msk scp) itr.
 
-  Definition sandbox_body (kb : fnsem_type bool) :=
-    λ arg, sandbox kb.1.1 kb.1.2 kb.2.1 (kb.2.2 arg).
+  Definition sandbox_body (kb : fnsem_type fbody) :=
+    λ arg, sandbox kb.1.1.1 kb.1.1.2 kb.1.2 (kb.2 arg).
 
 End SB. End SB.
 
@@ -98,30 +100,30 @@ End SB. End SB.
 Module SBRed. Section SBRed.
   Context `{Σ : GRA}.
 
-  Lemma bind A B msk scp img (itr : itree hmodE A) (ktr : A → itree hmodE B) :
-    SB.sandbox msk scp img (itr >>= ktr)
-    = a <- (SB.sandbox msk scp img itr);; (SB.sandbox msk scp img (ktr a)).
+  Lemma bind A B img msk scp (itr : itree hmodE A) (ktr : A → itree hmodE B) :
+    SB.sandbox img msk scp (itr >>= ktr)
+    = a <- (SB.sandbox img msk scp itr);; (SB.sandbox img msk scp (ktr a)).
   Proof using. unfold SB.sandbox. rewrite interpV_bind; eauto. Qed.
 
-  Lemma tau A msk scp img (itr : itree hmodE A) :
-    SB.sandbox msk scp img (tau;; itr) = tau;; (SB.sandbox msk scp img itr).
+  Lemma tau A img msk scp (itr : itree hmodE A) :
+    SB.sandbox img msk scp (tau;; itr) = tau;; (SB.sandbox img msk scp itr).
   Proof using. unfold SB.sandbox. rewrite interpV_tau; eauto. Qed.
 
-  Lemma ret A (a : A) msk scp img :
-    SB.sandbox msk scp img (Ret a) = Ret a.
+  Lemma ret A (a : A) img msk scp :
+    SB.sandbox img msk scp (Ret a) = Ret a.
   Proof using. unfold SB.sandbox. rewrite interpV_ret; eauto. Qed.
 
-  Lemma vis_choose X {R} msk scp img (k : X -> itree hmodE R) :
-    SB.sandbox msk scp img (vis (Choose X) k) = vis (Choose X) (fun x => SB.sandbox msk scp img (k x)).
+  Lemma vis_choose X {R} img msk scp (k : X -> itree hmodE R) :
+    SB.sandbox img msk scp (vis (Choose X) k) = vis (Choose X) (fun x => SB.sandbox img msk scp (k x)).
   Proof using.
     unfold SB.sandbox. rewrite interpV_vis.
     eapply observe_eta. ss. f_equal. extensionalities. ired. eauto.
   Qed.
 
-  Lemma vis_take X {R} msk scp img (k : X -> itree hmodE R) :
-    SB.sandbox msk scp img (vis (Take X) k) =
+  Lemma vis_take X {R} img msk scp (k : X -> itree hmodE R) :
+    SB.sandbox img msk scp (vis (Take X) k) =
       if img || excluded_middle_informative (∃ P: Prop, X = P)
-      then vis (Take X) (fun x => SB.sandbox msk scp img (k x))
+      then vis (Take X) (fun x => SB.sandbox img msk scp (k x))
       else vis (Take False) (fun v => Ret (False_rect _ v)).
   Proof using.
     unfold SB.sandbox. rewrite interpV_vis. s. des_ifs.
@@ -131,25 +133,25 @@ Module SBRed. Section SBRed.
       eapply observe_eta. s. f_equal. extensionalities. ss.
   Qed.
 
-  Lemma vis_take_img X {R} mask scopes (k : X -> itree hmodE R) :
-    SB.sandbox mask scopes true (vis (Take X) k) =
-      vis (Take X) (fun x => SB.sandbox mask scopes true (k x)).
+  Lemma vis_take_img X {R} msk scp (k : X -> itree hmodE R) :
+    SB.sandbox true msk scp (vis (Take X) k) =
+      vis (Take X) (fun x => SB.sandbox true msk scp (k x)).
   Proof using.
     rewrite vis_take. et.
   Qed.
-  
-  Lemma vis_io {I O R} f arg msk scp img (k : O -> itree hmodE R) :
-    SB.sandbox msk scp img (vis (@IO I O f arg) k) =
-      vis (IO f arg) (fun x => SB.sandbox msk scp img (k x)).
+
+  Lemma vis_io {I O R} f arg img msk scp (k : O -> itree hmodE R) :
+    SB.sandbox img msk scp (vis (@IO I O f arg) k) =
+      vis (IO f arg) (fun x => SB.sandbox img msk scp (k x)).
   Proof using.
     unfold SB.sandbox. rewrite interpV_vis.
     eapply observe_eta. ss. f_equal. extensionalities. ired. eauto.
   Qed.
 
-  Lemma vis_Assume {R} P msk scp img (ktr : () -> itree hmodE R) :
-    SB.sandbox msk scp img (vis (Assume P) ktr) =
+  Lemma vis_Assume {R} P img msk scp (ktr : () -> itree hmodE R) :
+    SB.sandbox img msk scp (vis (Assume P) ktr) =
       if img
-      then vis (Assume P) (fun x => SB.sandbox msk scp img (ktr x))
+      then vis (Assume P) (fun x => SB.sandbox img msk scp (ktr x))
       else vis (Take False) (fun v => Ret (False_rect _ v)).
   Proof using.
     unfold SB.sandbox. rewrite interpV_vis. s. des_ifs.
@@ -159,40 +161,40 @@ Module SBRed. Section SBRed.
       eapply observe_eta. s. f_equal. extensionalities. ss.
   Qed.
 
-  Lemma vis_Assume_img {R} P mask scopes (ktr : () -> itree hmodE R) :
-    SB.sandbox mask scopes true (vis (Assume P) ktr) =
-      vis (Assume P) (fun x => SB.sandbox mask scopes true (ktr x)).
+  Lemma vis_Assume_img {R} P msk scp (ktr : () -> itree hmodE R) :
+    SB.sandbox true msk scp (vis (Assume P) ktr) =
+      vis (Assume P) (fun x => SB.sandbox true msk scp (ktr x)).
   Proof using.
     rewrite vis_Assume. et.
   Qed.
   
-  Lemma vis_AssumePrecise {R} P msk scp img (ktr : () -> itree hmodE R) :
-    SB.sandbox msk scp img (vis (AssumePrecise P) ktr) =
-      vis (AssumePrecise P) (fun x => SB.sandbox msk scp img (ktr x)).
+  Lemma vis_AssumePrecise {R} P img msk scp (ktr : () -> itree hmodE R) :
+    SB.sandbox img msk scp (vis (AssumePrecise P) ktr) =
+      vis (AssumePrecise P) (fun x => SB.sandbox img msk scp (ktr x)).
   Proof using.
     unfold SB.sandbox. rewrite interpV_vis.
     eapply observe_eta. ss. f_equal. extensionalities. ired. eauto.
   Qed.
   
-  Lemma vis_Guarantee {R} P msk scp img (ktr : () -> itree hmodE R) :
-    SB.sandbox msk scp img (vis (Guarantee P) ktr) =
-      vis (Guarantee P) (fun x => SB.sandbox msk scp img (ktr x)).
+  Lemma vis_Guarantee {R} P img msk scp (ktr : () -> itree hmodE R) :
+    SB.sandbox img msk scp (vis (Guarantee P) ktr) =
+      vis (Guarantee P) (fun x => SB.sandbox img msk scp (ktr x)).
   Proof using.
     unfold SB.sandbox. rewrite interpV_vis.
     eapply observe_eta. ss. f_equal. extensionalities. ired. eauto.
   Qed.
   
-  Lemma vis_yield {R} msk scp img tid (ktr : () -> itree hmodE R) :
-    SB.sandbox msk scp img (vis (Yield tid) ktr) = vis (Yield tid) (fun x => SB.sandbox msk scp img (ktr x)).
+  Lemma vis_yield {R} img msk scp tid (ktr : () -> itree hmodE R) :
+    SB.sandbox img msk scp (vis (Yield tid) ktr) = vis (Yield tid) (fun x => SB.sandbox img msk scp (ktr x)).
   Proof using.
     unfold SB.sandbox. rewrite interpV_vis.
     eapply observe_eta. ss. f_equal. extensionalities. ired. eauto.
   Qed.
                
-  Lemma vis_spawn {R} msk scp img f a (ktr : nat -> itree hmodE R) :
-    SB.sandbox msk scp img (vis (Spawn f a) ktr) =
+  Lemma vis_spawn {R} img msk scp f a (ktr : nat -> itree hmodE R) :
+    SB.sandbox img msk scp (vis (Spawn f a) ktr) =
       if msk f
-      then vis (Spawn f a) (fun x => SB.sandbox msk scp img (ktr x))
+      then vis (Spawn f a) (fun x => SB.sandbox img msk scp (ktr x))
       else vis (Take False) (fun x => Ret (False_rect _ x)).
   Proof using.
     unfold SB.sandbox. rewrite interpV_vis. s. des_ifs; depdes H0.
@@ -200,10 +202,10 @@ Module SBRed. Section SBRed.
     - eapply observe_eta. ss. f_equal. extensionalities. ss.
   Qed.
 
-  Lemma vis_call {R} msk scp img f a (ktr : Any.t -> itree hmodE R) :
-    SB.sandbox msk scp img (vis (Call f a) ktr) =
+  Lemma vis_call {R} img msk scp f a (ktr : Any.t -> itree hmodE R) :
+    SB.sandbox img msk scp (vis (Call f a) ktr) =
       if msk f
-      then vis (Call f a) (fun x => SB.sandbox msk scp img (ktr x))
+      then vis (Call f a) (fun x => SB.sandbox img msk scp (ktr x))
       else vis (Take False) (fun x => Ret (False_rect _ x)).
   Proof using.
     unfold SB.sandbox. rewrite interpV_vis. s. des_ifs; depdes H0.
@@ -211,10 +213,10 @@ Module SBRed. Section SBRed.
     - eapply observe_eta. ss. f_equal. extensionalities. ss.
   Qed.
 
-  Lemma vis_put {R} msk scp img k v (ktr : () -> itree hmodE R) :
-    SB.sandbox msk scp img (vis (SPut k v) ktr) =
+  Lemma vis_put {R} img msk scp k v (ktr : () -> itree hmodE R) :
+    SB.sandbox img msk scp (vis (SPut k v) ktr) =
       if existsb (String.eqb k.1) scp
-      then vis (SPut k v) (fun x => SB.sandbox msk scp img (ktr x))
+      then vis (SPut k v) (fun x => SB.sandbox img msk scp (ktr x))
       else vis (Take False) (fun x => Ret (False_rect _ x)).
   Proof using.
     destruct k.
@@ -223,10 +225,10 @@ Module SBRed. Section SBRed.
     - eapply observe_eta. ss. f_equal. extensionalities. ss.
   Qed.
 
-  Lemma vis_get {R} k msk scp img (ktr : Any.t -> itree hmodE R) :
-    SB.sandbox msk scp img (vis (SGet k) ktr) =
+  Lemma vis_get {R} k img msk scp (ktr : Any.t -> itree hmodE R) :
+    SB.sandbox img msk scp (vis (SGet k) ktr) =
       if existsb (String.eqb k.1) scp
-      then vis (SGet k) (fun x => SB.sandbox msk scp img (ktr x))
+      then vis (SGet k) (fun x => SB.sandbox img msk scp (ktr x))
       else vis (Take False) (fun x => Ret (False_rect _ x)).
   Proof using.
     destruct k.
@@ -235,14 +237,14 @@ Module SBRed. Section SBRed.
     - eapply observe_eta. ss. f_equal. extensionalities. ss.
   Qed.
 
-  Definition putSB {R} msk scp img k v (itr : itree hmodE R) : itree hmodE R :=
-    SB.sandbox msk scp img (trigger (SPut k v));;; itr.
+  Definition putSB {R} img msk scp k v (itr : itree hmodE R) : itree hmodE R :=
+    SB.sandbox img msk scp (trigger (SPut k v));;; itr.
 
-  Definition getSB {R} msk scp img k (ktr : Any.t -> itree hmodE R) : itree hmodE R :=
-    SB.sandbox msk scp img (trigger (SGet k)) >>= ktr.
+  Definition getSB {R} img msk scp k (ktr : Any.t -> itree hmodE R) : itree hmodE R :=
+    SB.sandbox img msk scp (trigger (SGet k)) >>= ktr.
 
-  Lemma SPut_putSB {R} msk scp img k v (ktr : () -> itree hmodE R) :
-    SB.sandbox msk scp img (vis (SPut k v) ktr) = putSB msk scp img k v (SB.sandbox msk scp img (ktr tt)).
+  Lemma SPut_putSB {R} img msk scp k v (ktr : () -> itree hmodE R) :
+    SB.sandbox img msk scp (vis (SPut k v) ktr) = putSB img msk scp k v (SB.sandbox img msk scp (ktr tt)).
   Proof using.
     destruct k. unfold putSB, trigger. rewrite !vis_put. des_ifs.
     - eapply observe_eta; ss. f_equal. extensionalities x. destruct x.
@@ -250,20 +252,20 @@ Module SBRed. Section SBRed.
     - eapply observe_eta; ss. f_equal. extensionalities. ss.
   Qed.
 
-  Lemma putSB_SPut {R} msk scp img k v (itr : itree hmodE R) :
-    putSB msk scp img k v itr = SB.sandbox msk scp img (trigger (SPut k v));;; itr.
+  Lemma putSB_SPut {R} img msk scp k v (itr : itree hmodE R) :
+    putSB img msk scp k v itr = SB.sandbox img msk scp (trigger (SPut k v));;; itr.
   Proof using.
     reflexivity.
   Qed.
 
-  Lemma putSB_bind {T U} msk scp img k v (itr : itree hmodE T) (ktr : T -> itree hmodE U) :
-    putSB msk scp img k v itr >>= ktr = putSB msk scp img k v (itr >>= ktr).
+  Lemma putSB_bind {T U} img msk scp k v (itr : itree hmodE T) (ktr : T -> itree hmodE U) :
+    putSB img msk scp k v itr >>= ktr = putSB img msk scp k v (itr >>= ktr).
   Proof using.
     unfold putSB. rewrite bind_bind. reflexivity.
   Qed.
 
-  Lemma SGet_getSB {R} msk scp img k (ktr : Any.t -> itree hmodE R) :
-    SB.sandbox msk scp img (vis (SGet k) ktr) = getSB msk scp img k (fun x => SB.sandbox msk scp img (ktr x)).
+  Lemma SGet_getSB {R} img msk scp k (ktr : Any.t -> itree hmodE R) :
+    SB.sandbox img msk scp (vis (SGet k) ktr) = getSB img msk scp k (fun x => SB.sandbox img msk scp (ktr x)).
   Proof using.
     destruct k. unfold getSB, trigger. rewrite !vis_get. des_ifs.
     - eapply observe_eta; ss. f_equal. extensionalities.
@@ -271,23 +273,23 @@ Module SBRed. Section SBRed.
     - eapply observe_eta; ss. f_equal. extensionalities. ss.
   Qed.
 
-  Lemma getSB_SGet {R} msk scp img k (ktr : Any.t -> itree hmodE R) :
-    getSB msk scp img k ktr = x <- SB.sandbox msk scp img (trigger (SGet k));; ktr x.
+  Lemma getSB_SGet {R} img msk scp k (ktr : Any.t -> itree hmodE R) :
+    getSB img msk scp k ktr = x <- SB.sandbox img msk scp (trigger (SGet k));; ktr x.
   Proof using.
     reflexivity.
   Qed.
 
-  Lemma getSB_bind {T U} msk scp img k (ktr1 : Any.t -> itree hmodE T) (ktr2 : T -> itree hmodE U) :
-    getSB msk scp img k ktr1 >>= ktr2 = getSB msk scp img k (fun x => ktr1 x >>= ktr2).
+  Lemma getSB_bind {T U} img msk scp k (ktr1 : Any.t -> itree hmodE T) (ktr2 : T -> itree hmodE U) :
+    getSB img msk scp k ktr1 >>= ktr2 = getSB img msk scp k (fun x => ktr1 x >>= ktr2).
   Proof using.
     unfold getSB. rewrite bind_bind. reflexivity.
   Qed.
 
-  Definition callSB {R} msk scp img f a (ktr : Any.t -> itree hmodE R) : itree hmodE R :=
-    SB.sandbox msk scp img (trigger (Call f a)) >>= ktr.
+  Definition callSB {R} img msk scp f a (ktr : Any.t -> itree hmodE R) : itree hmodE R :=
+    SB.sandbox img msk scp (trigger (Call f a)) >>= ktr.
 
-  Lemma Call_callSB {R} msk scp img f a (ktr : Any.t -> itree hmodE R) :
-    SB.sandbox msk scp img (vis (Call f a) ktr) = callSB msk scp img f a (fun x => SB.sandbox msk scp img (ktr x)).
+  Lemma Call_callSB {R} img msk scp f a (ktr : Any.t -> itree hmodE R) :
+    SB.sandbox img msk scp (vis (Call f a) ktr) = callSB img msk scp f a (fun x => SB.sandbox img msk scp (ktr x)).
   Proof using.
     unfold callSB, trigger. rewrite !vis_call. des_ifs.
     - eapply observe_eta; ss. f_equal. extensionalities.
@@ -295,23 +297,23 @@ Module SBRed. Section SBRed.
     - eapply observe_eta; ss. f_equal. extensionalities. ss.
   Qed.
 
-  Lemma callSB_Call {R} msk scp img f a (ktr : Any.t -> itree hmodE R) :
-    callSB msk scp img f a ktr = x <- SB.sandbox msk scp img (trigger (Call f a));; ktr x.
+  Lemma callSB_Call {R} img msk scp f a (ktr : Any.t -> itree hmodE R) :
+    callSB img msk scp f a ktr = x <- SB.sandbox img msk scp (trigger (Call f a));; ktr x.
   Proof using.
     reflexivity.
   Qed.
 
-  Lemma callSB_bind {T U} msk scp img f a (ktr1 : Any.t -> itree hmodE T) (ktr2 : T -> itree hmodE U) :
-    callSB msk scp img f a ktr1 >>= ktr2 = callSB msk scp img f a (fun x => ktr1 x >>= ktr2).
+  Lemma callSB_bind {T U} img msk scp f a (ktr1 : Any.t -> itree hmodE T) (ktr2 : T -> itree hmodE U) :
+    callSB img msk scp f a ktr1 >>= ktr2 = callSB img msk scp f a (fun x => ktr1 x >>= ktr2).
   Proof using.
     unfold callSB. rewrite bind_bind. reflexivity.
   Qed.
 
-  Definition spawnSB {R} msk scp img f a (ktr : _ -> itree hmodE R) : itree hmodE R :=
-    SB.sandbox msk scp img (trigger (Spawn f a)) >>= ktr.
+  Definition spawnSB {R} img msk scp f a (ktr : _ -> itree hmodE R) : itree hmodE R :=
+    SB.sandbox img msk scp (trigger (Spawn f a)) >>= ktr.
 
-  Lemma Spawn_spawnSB {R} msk scp img f a (ktr : _ -> itree hmodE R) :
-    SB.sandbox msk scp img (vis (Spawn f a) ktr) = spawnSB msk scp img f a (fun x => SB.sandbox msk scp img (ktr x)).
+  Lemma Spawn_spawnSB {R} img msk scp f a (ktr : _ -> itree hmodE R) :
+    SB.sandbox img msk scp (vis (Spawn f a) ktr) = spawnSB img msk scp f a (fun x => SB.sandbox img msk scp (ktr x)).
   Proof using.
     unfold spawnSB, trigger. rewrite !vis_spawn. des_ifs.
     - eapply observe_eta; ss. f_equal. extensionalities.
@@ -319,34 +321,34 @@ Module SBRed. Section SBRed.
     - eapply observe_eta; ss. f_equal. extensionalities. ss.
   Qed.
 
-  Lemma spawnSB_Spawn {R} msk scp img f a (ktr : _ -> itree hmodE R) :
-    spawnSB msk scp img f a ktr = x <- SB.sandbox msk scp img (trigger (Spawn f a));; ktr x.
+  Lemma spawnSB_Spawn {R} img msk scp f a (ktr : _ -> itree hmodE R) :
+    spawnSB img msk scp f a ktr = x <- SB.sandbox img msk scp (trigger (Spawn f a));; ktr x.
   Proof using.
     reflexivity.
   Qed.
 
-  Lemma spawnSB_bind {T U} msk scp img f a (ktr1 : _ -> itree hmodE T) (ktr2 : T -> itree hmodE U) :
-    spawnSB msk scp img f a ktr1 >>= ktr2 = spawnSB msk scp img f a (fun x => ktr1 x >>= ktr2).
+  Lemma spawnSB_bind {T U} img msk scp f a (ktr1 : _ -> itree hmodE T) (ktr2 : T -> itree hmodE U) :
+    spawnSB img msk scp f a ktr1 >>= ktr2 = spawnSB img msk scp f a (fun x => ktr1 x >>= ktr2).
   Proof using.
     unfold spawnSB. rewrite bind_bind. reflexivity.
   Qed.
 
-  Lemma assumeK {R} msk scp img P (itr : itree hmodE R) :
-    SB.sandbox msk scp img (assumeK P itr) = assumeK P (SB.sandbox msk scp img itr).
+  Lemma assumeK {R} img msk scp P (itr : itree hmodE R) :
+    SB.sandbox img msk scp (assumeK P itr) = assumeK P (SB.sandbox img msk scp itr).
   Proof using.
     eapply observe_eta; ss. des_ifs; depdes H1; depdes H0; cycle 1.
     { exfalso. destruct (excluded_middle_informative _); destruct img; ss; et. }
     s. f_equal. extensionalities. ired. eauto.
   Qed.
 
-  Lemma guaranteeK {R} msk scp img P (itr : itree hmodE R) :
-    SB.sandbox msk scp img (guaranteeK P itr) = guaranteeK P (SB.sandbox msk scp img itr).
+  Lemma guaranteeK {R} img msk scp P (itr : itree hmodE R) :
+    SB.sandbox img msk scp (guaranteeK P itr) = guaranteeK P (SB.sandbox img msk scp itr).
   Proof using.
     eapply observe_eta; ss. f_equal. extensionalities. ired. eauto.
   Qed.
 
-  Lemma unwrapUK {X R} msk scp img x (ktr : X -> itree hmodE R) :
-    SB.sandbox msk scp img (unwrapUK x ktr) = unwrapUK x (fun x => SB.sandbox msk scp img (ktr x)).
+  Lemma unwrapUK {X R} img msk scp x (ktr : X -> itree hmodE R) :
+    SB.sandbox img msk scp (unwrapUK x ktr) = unwrapUK x (fun x => SB.sandbox img msk scp (ktr x)).
   Proof using.
     destruct x; ss.
     eapply observe_eta; ss. des_ifs; depdes H1; depdes H0.
@@ -354,15 +356,15 @@ Module SBRed. Section SBRed.
     - exfalso. destruct (excluded_middle_informative _); destruct img; ss; et.
   Qed.
 
-  Lemma unwrapNK {X R} msk scp img x (ktr : X -> itree hmodE R) :
-    SB.sandbox msk scp img (unwrapNK x ktr) = unwrapNK x (fun x => SB.sandbox msk scp img (ktr x)).
+  Lemma unwrapNK {X R} img msk scp x (ktr : X -> itree hmodE R) :
+    SB.sandbox img msk scp (unwrapNK x ktr) = unwrapNK x (fun x => SB.sandbox img msk scp (ktr x)).
   Proof using.
     destruct x; ss.
     eapply observe_eta; ss. f_equal. extensionality x. ss.
   Qed.
 
-  Lemma call f a msk scp img :
-    SB.sandbox msk scp img (trigger (Call f a)) =
+  Lemma call f a img msk scp :
+    SB.sandbox img msk scp (trigger (Call f a)) =
       if msk f
       then trigger (Call f a)
       else triggerUB.
@@ -372,8 +374,8 @@ Module SBRed. Section SBRed.
     - eapply observe_eta; ss. f_equal. extensionalities. ss.
   Qed.
 
-  Lemma put msk scp img k v :
-    SB.sandbox msk scp img (trigger (SPut k v)) =
+  Lemma put img msk scp k v :
+    SB.sandbox img msk scp (trigger (SPut k v)) =
       if existsb (String.eqb k.1) scp
       then trigger (SPut k v)
       else triggerUB.
@@ -383,8 +385,8 @@ Module SBRed. Section SBRed.
     - eapply observe_eta; ss. f_equal. extensionalities. ss.
   Qed.
 
-  Lemma get msk scp img k :
-    SB.sandbox msk scp img (trigger (SGet k)) =
+  Lemma get img msk scp k :
+    SB.sandbox img msk scp (trigger (SGet k)) =
       if existsb (String.eqb k.1) scp
       then trigger (SGet k)
       else triggerUB.
@@ -394,15 +396,15 @@ Module SBRed. Section SBRed.
     - eapply observe_eta; ss. f_equal. extensionalities. ss.
   Qed.
 
-  Lemma choose T msk scp img :
-    SB.sandbox msk scp img (trigger (Choose T)) = trigger (Choose T).
+  Lemma choose T img msk scp :
+    SB.sandbox img msk scp (trigger (Choose T)) = trigger (Choose T).
   Proof using.
     rewrite vis_choose.
     eapply observe_eta; ss. f_equal. extensionalities. rewrite ret. eauto.
   Qed.
 
-  Lemma take T msk scp img :
-    SB.sandbox msk scp img (trigger (Take T)) =
+  Lemma take T img msk scp :
+    SB.sandbox img msk scp (trigger (Take T)) =
       if img || excluded_middle_informative (∃ P: Prop, T = P)
       then trigger (Take T)
       else v <- trigger (Take False);; Ret (False_rect _ v).
@@ -412,15 +414,15 @@ Module SBRed. Section SBRed.
     - eapply observe_eta; ss. f_equal. extensionalities. ss.
   Qed.
 
-  Lemma io I O f arg msk scp img :
-    SB.sandbox msk scp img (trigger (@IO I O f arg)) = trigger (IO f arg).
+  Lemma io I O f arg img msk scp :
+    SB.sandbox img msk scp (trigger (@IO I O f arg)) = trigger (IO f arg).
   Proof using.
     rewrite vis_io.
     eapply observe_eta; ss. f_equal. extensionalities. rewrite ret. eauto.
   Qed.
 
-  Lemma Assume P msk scp img :
-    SB.sandbox msk scp img (trigger (Assume P)) =
+  Lemma Assume P img msk scp :
+    SB.sandbox img msk scp (trigger (Assume P)) =
       if img
       then trigger (Assume P)
       else v <- trigger (Take False);; Ret (False_rect _ v).
@@ -431,36 +433,36 @@ Module SBRed. Section SBRed.
     - eapply observe_eta; ss. f_equal. extensionalities. ss.
   Qed.
 
-  Lemma Assume_img (P: iProp Σ) mask scopes :
-    SB.sandbox mask scopes true (trigger (Events.Assume P)) =
+  Lemma Assume_img (P: iProp Σ) msk scp :
+    SB.sandbox true msk scp (trigger (Events.Assume P)) =
       trigger (Events.Assume P).
   Proof using.
     rewrite Assume. et.
   Qed.
   
-  Lemma AssumePrecise P msk scp img :
-    SB.sandbox msk scp img (trigger (AssumePrecise P)) = trigger (AssumePrecise P).
+  Lemma AssumePrecise P img msk scp :
+    SB.sandbox img msk scp (trigger (AssumePrecise P)) = trigger (AssumePrecise P).
   Proof using.
     rewrite vis_AssumePrecise.
     eapply observe_eta; ss. f_equal. extensionalities. rewrite ret. eauto.
   Qed.
   
-  Lemma Guarantee P msk scp img :
-    SB.sandbox msk scp img (trigger (Guarantee P)) = trigger (Guarantee P).
+  Lemma Guarantee P img msk scp :
+    SB.sandbox img msk scp (trigger (Guarantee P)) = trigger (Guarantee P).
   Proof using.
     rewrite vis_Guarantee.
     eapply observe_eta; ss. f_equal. extensionalities. rewrite ret. eauto.
   Qed.
   
-  Lemma yield msk scp img tid:
-    SB.sandbox msk scp img (trigger (Yield tid)) = trigger (Yield tid).
+  Lemma yield img msk scp tid:
+    SB.sandbox img msk scp (trigger (Yield tid)) = trigger (Yield tid).
   Proof using.
     rewrite vis_yield.
     eapply observe_eta; ss. f_equal. extensionalities. rewrite ret. eauto.
   Qed.
 
-  Lemma spawn f a msk scp img :
-    SB.sandbox msk scp img (trigger (Spawn f a)) =
+  Lemma spawn f a img msk scp :
+    SB.sandbox img msk scp (trigger (Spawn f a)) =
       if msk f
       then trigger (Spawn f a)
       else triggerUB.
@@ -470,8 +472,8 @@ Module SBRed. Section SBRed.
     - eapply observe_eta; ss. f_equal. extensionalities. ss.
   Qed.
   
-  Lemma unwrapU R msk scp img (r : option R) :
-    SB.sandbox msk scp img (unwrapU r) = unwrapU r.
+  Lemma unwrapU R img msk scp (r : option R) :
+    SB.sandbox img msk scp (unwrapU r) = unwrapU r.
   Proof using.
     unfold unwrapU. destruct r.
     - apply ret.
@@ -480,8 +482,8 @@ Module SBRed. Section SBRed.
       + ired. f_equal. extensionalities. ss.
   Qed.
 
-  Lemma unwrapN R msk scp img (r : option R) :
-    SB.sandbox msk scp img (unwrapN r) = unwrapN r.
+  Lemma unwrapN R img msk scp (r : option R) :
+    SB.sandbox img msk scp (unwrapN r) = unwrapN r.
   Proof using.
     unfold unwrapN. destruct r.
     - apply ret.
@@ -489,21 +491,21 @@ Module SBRed. Section SBRed.
       f_equal. extensionalities. ss.
   Qed.
 
-  Lemma asm msk scp img P :
-    SB.sandbox msk scp img (assume P) = assume P.
+  Lemma asm img msk scp P :
+    SB.sandbox img msk scp (assume P) = assume P.
   Proof using.
     unfold assume. rewrite bind take ret. des_ifs; et.
     exfalso. destruct img; ss. destruct (excluded_middle_informative _); ss; et.
   Qed.
 
-  Lemma guar msk scp img P :
-    SB.sandbox msk scp img (guarantee P) = guarantee P.
+  Lemma guar img msk scp P :
+    SB.sandbox img msk scp (guarantee P) = guarantee P.
   Proof using.
     unfold guarantee. rewrite bind choose ret. eauto.
   Qed.
 
-  Lemma assume_proph {X R} Pre Post msk scp img:
-    SB.sandbox msk scp img (@AssumeProph _ X R Pre Post) = AssumeProph Pre Post.
+  Lemma assume_proph {X R} Pre Post img msk scp:
+    SB.sandbox img msk scp (@AssumeProph _ X R Pre Post) = AssumeProph Pre Post.
   Proof.
     rewrite /AssumeProph. unseal CRIS_PROPH.
     repeat (rewrite bind choose; f_equal; extensionalities).
@@ -512,9 +514,9 @@ Module SBRed. Section SBRed.
     rewrite ret. et.
   Qed.
 
-  Lemma assume_prophK {X S R} msk scp img Pre Post k :
-    SB.sandbox msk scp img (@AssumeProphK _ X S R Pre Post k)
-    = AssumeProphK Pre Post (fun x => SB.sandbox msk scp img (k x)).
+  Lemma assume_prophK {X S R} img msk scp Pre Post k :
+    SB.sandbox img msk scp (@AssumeProphK _ X S R Pre Post k)
+    = AssumeProphK Pre Post (fun x => SB.sandbox img msk scp (k x)).
   Proof using.
     rewrite /AssumeProphK. rewrite bind assume_proph. et.
   Qed.
@@ -527,10 +529,10 @@ Section Properties.
 
   Lemma sandbox_sandbox {R} (t: itree hmodE R) (img img': bool) (msk msk':_→bool) scp scp'
     (IMPL: img → img')
-    (INCL: incl scp scp')
     (SUB: wmask_sub msk msk')
+    (INCL: incl scp scp')
     :
-    SB.sandbox msk' scp' img' (SB.sandbox msk scp img t) = SB.sandbox msk scp img t.
+    SB.sandbox img' msk' scp' (SB.sandbox img msk scp t) = SB.sandbox img msk scp t.
   Proof using.
     eapply bisim_is_eq.
     eapply gpaco2_init with (clo:=eqitC _ _ _); eauto with paco.

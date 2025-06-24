@@ -32,11 +32,6 @@ Section FSpec.
 
   (* Definition wfspec_thread: fspec → fspec := (wfspec_inv) ∘ (wfspec_type SAny.t SAny.t). *)
 
-  Definition find_fsp (fn : string) : fspec :=
-    match (SpFun fn) with
-    | Some fsp => fsp
-    | None => fspec_trivial
-    end.
 End FSpec.
 
 Module Sch. Section Sch.

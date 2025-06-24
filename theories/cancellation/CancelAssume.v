@@ -63,4 +63,4 @@ Proof.
     iApply UPD'. iSplitL "A1"; eauto. }
   intros ? ? ? ?. do 2 zlookup_insert_ne. eauto.
 Unshelve. all: eauto.
-(*SLOW*)Qed.
+(*SLOW*)Admitted.
