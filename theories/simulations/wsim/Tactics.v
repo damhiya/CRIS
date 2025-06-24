@@ -36,8 +36,8 @@ Ltac yield hyps := iwcase (do 1 iyield hyps) (do 1 wyield hyps).
 
 Ltac by_coind CIH := iwcase (do 1 iby_coind CIH) (do 1 wby_coind CIH).
 
-Tactic Notation "init_simF" := winit_simF 0 0. (* for isim mode, use iinit_simF directly *)
-Tactic Notation "init_simF" open_constr(u_src) open_constr(u_tgt) := winit_simF u_src u_tgt.
+Tactic Notation "init_simF" := winit_simF. (* for isim mode, use iinit_simF directly *)
+(* Tactic Notation "init_simF" open_constr(u_src) open_constr(u_tgt) := winit_simF u_src u_tgt. *)
 
 (** Special Tactics for AssumeProph in Source **)
 

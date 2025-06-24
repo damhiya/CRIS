@@ -1,115 +1,92 @@
 Require Import CRIS.
 Require Import SchHeader SchI SchA.
+(* Require Import ltac2_lib. *)
 
-Require Import ltac2_lib.
-
-Set Implicit Arguments.
+(* Set Implicit Arguments. *)
 
 Local Open Scope nat_scope.
 
-Module SchIA.
-Section SchIA.
+Module SchIA. Section SchIA.
   Import SchAS.
   Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
   Context `{_schG: !schG}.
 
-  Context (u_a : univ_id).
-  Context (Sp_global Sp_user : string -> option fspec).
-  Context (SchInSp : sp_incl (sp u_a Sp_user) Sp_global).
-  Context (FunInSp : sp_sub Sp_user Sp_global).
+  Context (E_sch : coPset) (sp_global sp_user : string → option fspec).
+  Context (SchInSp : sp_incl (SchAS.sp E_sch sp_user) sp_global).
+  Context (FunInSp : sp_sub sp_user sp_global).
 
-  Fixpoint ths_wf (nths: nat) (ths_tgt: SchI.thslist): Prop :=
+  Fixpoint ths_wf (nths : nat) (ths_tgt : SchI.thslist) : Prop :=
     match ths_tgt with
     | (tid, _) :: tl => (tid < nths) ∧ (ths_wf nths tl)
     | [] => True
     end.
 
-  Inductive sim_ths (tid: nat): 
-    (option (option SAny.t)) -> (option (option SAny.t))
-    -> fragreeUR -> fragreeUR -> option (iProp Σ) -> Prop :=
-  | sim_ths_idle
-    :
-      sim_ths tid None None None None None
-
-  | sim_ths_active Q
-    : 
+  Inductive sim_ths (tid : nat) :
+    (option (option SAny.t)) → (option (option SAny.t)) →
+    fragreeUR → fragreeUR → option (iProp Σ) → Prop :=
+  | sim_ths_idle : sim_ths tid None None None None None
+  | sim_ths_active Q :
       sim_ths tid
         (Some None)
         (Some None)
         (Some (1%Qp, to_agree (λ vs s, Some (to_agree (Q vs s)))))
         (Some ((1/4)%Qp, to_agree (λ vs s, Some (to_agree (Q vs s)))))
         None
-
-  | sim_ths_done vrv rv Q
-    : 
+  | sim_ths_done vrv rv Q :
       sim_ths tid
         (Some (Some vrv))
         (Some (Some rv))
         (Some (1%Qp, to_agree (λ vs s, Some (to_agree (Q vs s)))))
         (Some ((3/4)%Qp, to_agree (λ vs s, Some (to_agree (Q vs s)))))
         (Some (interp_cond (Q vrv rv)))%I
-
-  | sim_ths_joined vrv rv Q
-    :
+  | sim_ths_joined vrv rv Q :
       sim_ths tid
         (Some (Some vrv))
         (Some (Some rv))
         (Some (1%Qp, to_agree (λ vs s, Some (to_agree (Q vs s)))))
         (Some (1%Qp, to_agree (λ vs s, Some (to_agree (Q vs s)))))
-        None
-  .
+        None.
 
   (**************************)
-
   Section AUX.
-
-    Lemma ths_wf_nths_none ths_tgt nths:
-      ths_wf nths ths_tgt -> alist_find nths ths_tgt = None.
+    Lemma ths_wf_nths_none ths_tgt nths : ths_wf nths ths_tgt → alist_find nths ths_tgt = None.
     Proof using.
-      intro WF. induction ths_tgt; ss.
-      destruct a. des. des_ifs; et. ss.
+      intro WF. induction ths_tgt; ss. destruct a. des. des_ifs; et. ss.
       rewrite eq_rel_dec_correct in Heq. des_ifs; try nia.
     Qed.
 
-    Lemma ths_wf_replace ths_tgt t o nths:
-      ths_wf nths ths_tgt -> ths_wf nths (alist_replace t o ths_tgt).
+    Lemma ths_wf_replace ths_tgt t o nths :
+      ths_wf nths ths_tgt → ths_wf nths (alist_replace t o ths_tgt).
     Proof using.
       i. induction ths_tgt; ss. destruct a. rewrite eq_rel_dec_correct. des_ifs.
       des. split; ss. eauto.
     Qed.
 
-    Lemma wf_ths_src ths_tgt (ths_src_b ths_src_w: threadsF) (ths_cond: gmap nat (iProp Σ ))
-      (SIM: ∀ tid, ∃ vrv, sim_ths tid vrv (alist_find tid ths_tgt) (ths_src_b tid) (ths_src_w tid) (ths_cond !! tid))
-    :
+    Lemma wf_ths_src ths_tgt (ths_src_b ths_src_w : threadsF) (ths_cond : gmap nat (iProp Σ))
+        (SIM: ∀ tid, ∃ vrv, sim_ths tid vrv (alist_find tid ths_tgt) (ths_src_b tid) (ths_src_w tid) (ths_cond !! tid)) :
       ✓ ths_src_b ∧ ✓ ths_src_w.
     Proof using. split; intros x; specialize (SIM x); des; inv SIM; ss. Qed.
 
     Lemma big_sepM_replace (m: gmap nat (iProp Σ)) i (Q: iProp Σ) :
-      ([∗ map] P ∈ m, P) ∗ Q
-      ⊢ [∗ map] P ∈ <[i:=Q]> m, P.
+      ([∗ map] P ∈ m, P) ∗ Q ⊢
+      [∗ map] P ∈ <[i:=Q]> m, P.
     Proof using.
       iIntros "[M Q]". destruct (m !! i) eqn:L.
       - iApply big_sepM_insert_delete. iFrame. 
         iPoseProof (big_sepM_delete with "M") as "[_ D]"; et.
       - iApply big_sepM_insert; et. iFrame.
     Qed.
-
   End AUX.
 
   Section ALIST.
-
     (* alist lemmas *)
     Lemma alist_replace_find_None {K V} `{Dec K} (k: K) (v v': V) (l: alist K V)
-      (NONE: alist_find k l = None)
-    :
+        (NONE: alist_find k l = None) :
       (alist_replace k v' l) = l.
-    Proof using.
-      induction l; ss. destruct a. des_ifs. f_equal. et.
-    Qed.
+    Proof using. induction l; ss. destruct a. des_ifs. f_equal. et. Qed.
 
     Lemma alist_replace_find_eq_Some {K V} `{Dec K} (k: K) (v v': V) (l: alist K V)
-      (SOME: alist_find k l = Some v)
-    :
+        (SOME: alist_find k l = Some v) :
       alist_find k (alist_replace k v' l) = Some v'.
     Proof using.
       induction l; ss. destruct a. des_ifs.
@@ -152,7 +129,7 @@ Section SchIA.
 
   (**************************)
 
-  Definition Ist: nat -> alist key Any.t -> alist key Any.t -> iProp Σ :=
+  Definition Ist: nat → alist key Any.t → alist key Any.t → iProp Σ :=
     fun numths st_src st_tgt =>
       (∃ ths_tgt (ths_src_b ths_src_w: SchA.threadsF) (ths_cond: gmap nat (iProp Σ)) (tid: nat) (_internal: bool),
           ⌜st_tgt = [(SchI.v_ths, ths_tgt↑); (SchI.v_tid, tid↑)]
@@ -164,16 +141,25 @@ Section SchIA.
           ∗ own base_γ (◯ ths_src_w : threadsRA)
           ∗ ([∗ map] tid↦P ∈ ths_cond, P)
           ∗ ((tid_admin (Some tid) ∗ ⌜_internal = false⌝) 
-             ∨ (tid_admin None ∗ wsim_ginv u_a ⊤ ∗ ⌜_internal = true⌝)))%I.
+             ∨ (tid_admin None ∗ wsim_ginv (Some (E_sch, E_sch)) ∗ ⌜_internal = true⌝)))%I.
 
-  Local Definition SchA := (SchA.t u_a Sp_global Sp_user).
-  Local Definition SchAPure := (SchAPure.t u_a Sp_global).
+  Local Definition SchA := (SchA.t E_sch sp_global sp_user).
+  Local Definition SchAPure := (SchAPure.t E_sch sp_global).
   Local Definition SchAMod := (SchA ★ SchAPure). 
   Local Definition SchIMod := (SchI.t).
 
+Tactic Notation "iwcase" tactic(itac) tactic(wtac) :=
+  match goal with
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ _) ] => itac
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _) ] => wtac
+  end.
+
+Ltac step_l := iwcase (do 1 istep_l) (do 1 wstep_l).
+Ltac steps_l := iwcase (do 1 isteps_l) (do 1 wsteps_l).
+
   Lemma simF__spawn : HSim.sim_fun open SchAMod SchIMod Ist SchHdr._spawn.
   Proof using FunInSp SchInSp.
-    init_simF u_a 0.
+    init_simF.
 
     rewrite /SchA.trigger_Yield /SchI.trigger_Yield.
 
@@ -193,7 +179,7 @@ Section SchIA.
     steps_r; hss.
 
     iPoseProof (tid_admin_some_user with "[TA tid]") as "%"; iFrame; des; subst.    
-    iApply wsim_split; iIntros "WI".
+    iApply wsim_unfold; iIntros "WI".
     yield "THB THW COND TA tid WI".
     { 
       iPoseProof (tid_admin_some_user with "[TA tid]") as "%"; iFrame; des; subst.
@@ -222,7 +208,7 @@ Section SchIA.
     (* Choose the metavariables *)
     force_l x1. steps_l. force_l (fargs↑). steps_l.
     iAssert (wsim_ginv u_a ⊤ ==∗ precond userfspec x1 fvargs↑ fargs↑)%I with "[pre tid]" as "PRE".
-    { iIntros "I". iApply PRE. rewrite /fspec_virtual /wsim_fspec /precond /=.
+    { iIntros "I". iApply PRE. rewrite /fspec_virtual /fspec_wsim /precond /=.
       iFrame. eauto. }
 
     iMod ("PRE" with "WI") as "PRE".
@@ -234,7 +220,7 @@ Section SchIA.
 
     steps_l. rename q into vret.
     iMod (POST $ vret with "[ASM]") as "I"; eauto.
-    rewrite /wsim_fspec /fspec_virtual. do 2 rewrite {1}/postcond.
+    rewrite /fspec_wsim /fspec_virtual. do 2 rewrite {1}/postcond.
     iDestruct "I" as "[WI I]".
     iDestruct "I" as (vsret) "[-> [tid [%sret [-> POST]]]]".
 
@@ -365,7 +351,7 @@ Section SchIA.
 
     spawn. steps_r. hss. steps_l.
 
-    iApply wsim_split; iIntros "WI".
+    iApply wsim_unfold; iIntros "WI".
     
     (* create new token *)
     dup THWF. apply ths_wf_nths_none in THWF. hexploit (SIM nths). i. rewrite THWF in H. des. inv H.
@@ -426,7 +412,7 @@ Section SchIA.
     force_l q0. steps_l. hss.
 
     iPoseProof (tid_admin_some_user_merge with "[TA tid]") as "TA"; iFrame.
-    iApply wsim_split; iIntros "WI".
+    iApply wsim_unfold; iIntros "WI".
     
     yield "THB THW COND TA WI".
     { iExists _, _, _, _, _, _. iSplit; et. s. iFrame. iRight. iFrame. eauto. }
@@ -452,7 +438,7 @@ Section SchIA.
     steps_r.
     rewrite !/Sch.yield /ccallU. unseal "Sch".
 
-    iApply wsim_split; iIntros "WI".
+    iApply wsim_unfold; iIntros "WI".
     iApply wsim_reset. iStopProof.
     revert NODD.
     combine_quant NODS.
