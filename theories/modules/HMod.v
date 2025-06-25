@@ -1,7 +1,6 @@
 Require Import Common.
 From iris.proofmode Require Import proofmode.
 Require Import PropExtensionality.
-
 Require Import Mod.
 Require Export HModTr.
 
@@ -118,23 +117,6 @@ Module HMod. Section HMod.
   Qed.
 
   Definition empty_mc : modc := (empty, emp%I).
-
-  Definition pair : Type := (univ_id → t) * iProp Σ.
-  Global Instance pair_equiv : Equiv pair :=
-    λ m1 m2, ∀ υ, (m1.1 υ, m1.2) ≡ (m2.1 υ, m2.2).
-  Global Instance pair_equiv_equiv : Equivalence pair_equiv.
-  Proof using.
-    split; ss; ii.
-    { specialize (H υ). inv H; split; clarify. }
-    { specialize (H υ). specialize (H0 υ). inv H; inv H0; split; clarify; ss.
-      { rewrite H1 H; ss. }
-      { i; rewrite H2 H3; ss. }
-    }
-  Qed.
-
-  Definition pair_included (p1 p2 : pair) : Prop :=
-    (∀ u, p1.1 u = p2.1 u) ∧ (p2.2 ⊢ p1.2)%I.
-  Global Instance pair_subseteq : SubsetEq pair := pair_included.
 End HMod. End HMod.
 
 Infix "★" := HMod.add (at level 60, right associativity).
@@ -148,8 +130,7 @@ Section HModFacts.
   Lemma hmod_extensionality (ms1 ms2 : HMod.t)
       (SCOPE : HMod.scopes ms1 = HMod.scopes ms2)
       (FNSEM : HMod.fnsems ms1 = HMod.fnsems ms2)
-      (INITS : HMod.initial_st ms1 = HMod.initial_st ms2)
-       :
+      (INITS : HMod.initial_st ms1 = HMod.initial_st ms2) :
     ms1 = ms2.
   Proof using. destruct ms1, ms2; ss. subst. f_equal; apply proof_irrelevance. Qed.
 
@@ -207,5 +188,4 @@ Section HModFacts.
   Proof.
     destruct m1, m2. unfold HMod.exports. s. rewrite List.map_app. et.
   Qed.
-  
 End HModFacts.

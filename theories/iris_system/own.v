@@ -156,18 +156,18 @@ Section properties.
     { iExists (coPpick X); rewrite own_eq /own_def; done. }
   Qed.
 
-  Lemma own_admin_split : own_admin ==∗ own_admin ∗ own_admin.
+  Lemma own_admin_split : own_admin -∗ own_admin ∗ own_admin.
   Proof using.
     rewrite ?own_admin_eq /own_admin_def; iIntros "[%X [%H OWN]]".
     apply coPset_split_infinite in H as [X1 [X2 [-> [H [H1 H2]]]]].
-    iMod (bupd_ownM_update with "OWN") as "[OWN1 OWN2]".
-    { eapply discrete_fun_update; intros a; etrans;
-        first eapply (allocs_auth_split (.∈X1∪X2)(.∈X1)(.∈X2)); try set_solver.
-      instantiate (1:=(λ x, allocs_auth (GRA_lookup x) (.∈X2))).
-      instantiate (1:=((λ x, allocs_auth (GRA_lookup x) (.∈X1)) : GRAUR Σ)).
-      rewrite discrete_fun_lookup_op; eapply cmra_update_op; ss.
+    iAssert (uPred_ownM
+      ((λ i, allocs_auth (GRA_lookup i) (.∈X1)) ⋅ (λ i, allocs_auth (GRA_lookup i) (.∈X2)) : GRAUR Σ))%I
+      with "[OWN]" as "O".
+    { eapply eq_ind; first iExact "OWN"; f_equiv; extensionalities x.
+      instantiate (1:=discrete_fun_op_instance).
+      rewrite discrete_fun_lookup_op; apply allocs_auth_split_2_L; set_solver.
     }
-    iSplitL "OWN1"; [iExists X1|iExists X2]; iModIntro; iSplit; easy.
+    iDestruct "O" as "[$ $]"; done.
   Qed.
 
   Lemma own_update γ a a' : a ~~> a' → own γ a ⊢ |==> own γ a'.

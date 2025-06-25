@@ -8,8 +8,6 @@ Require Import functions allocs.
 Require Import Coqlib.
 Require Export SAT sProp own precise.
 
-Definition univ_id := nat.
-
 (* Resource algebra & initial resources for invariants *)
 Section invariants.
   Context `{Γ : HRA, Σ : GRA, α : GAT.t}.
@@ -58,9 +56,9 @@ Section invariants.
   Lemma ir_ownERA_valid : ✓ ir_ownERA.
   Proof using. rewrite /ir_ownERA //. Qed.
 
-  Definition ir_ownDRA : DRA_mk ownDRA := CoPset ⊤.
+  (* Definition ir_ownDRA : DRA_mk ownDRA := CoPset ⊤.
   Lemma ir_ownDRA_valid : ✓ ir_ownDRA.
-  Proof using. rewrite /ir_ownDRA //. Qed.
+  Proof using. rewrite /ir_ownDRA //. Qed. *)
 
   (* Definition ir_invΓ : invΓ := *[Some (ir_ownERA); Some (ir_ownDRA)]. *)
   Definition ir_invΓ : invΓ := *[Some (ir_ownERA)].
@@ -448,9 +446,21 @@ Section wsats.
     iIntros "[[W1 W2] W]".
     rewrite -difference_union_L wsats_split; first iFrame; set_solver.
   Qed.
+  Lemma wsats_exploit n1 n2 E1 E2 : wsats n1 E1 ∗ wsats n2 E2 -∗ ⌜E1 ## E2⌝.
+  Proof.
+    rewrite /wsats /wsat_auth; iIntros "[[W1 _] [W2 _]]"; iCombine "W1" "W2" gives %WF.
+    rewrite /wsat_authR in WF; specialize (WF (n1 `max` n2)); rewrite discrete_fun_lookup_op in WF.
+    iPureIntro; apply elem_of_disjoint; intros x??.
+    des_ifs; try lia; rewrite /allocs_auth in WF; des_ifs.
+    specialize (WF x); rewrite discrete_fun_lookup_op in WF; des_ifs.
+  Qed.
 
   (* TODO : take care of cancellation lemmas *)
   (* For cancellation *)
+  Lemma make_wsats : own base_γ (ir_ownIRA) ∗ own base_γ ir_ownERA ⊢ wsats 0 ⊤ ∗ ownE ⊤.
+  Proof.
+    rewrite /ir_ownIRA /wsats; iIntros "[I E]"; iSplitL "I"; ss. rewrite /wsatl //=. iFrame.
+  Qed.
   (* Lemma ir_ownIRA_cons u : ir_ownIRA (S u) ≡ wsat_authR (S u) 0 ⋅ ir_ownIRA u.
   Proof using.
     rewrite (discrete_fun_delete (S u) (ir_ownIRA (S u))) comm.
@@ -563,10 +573,10 @@ Section wsats.
   Proof using. rewrite inv_eq /inv_def. apply _. Qed.
 
   (** Turns a pure proposition into a resource **)
-  (* Definition pure_res (P : Prop) : Σ :=
+  Definition pure_res (P : Prop) : Σ :=
     if excluded_middle_informative P
     then ε
-    else own.iRes_singleton base_γ (ownER 0 ⊤ ⋅ ownER 0 ⊤).
+    else own.iRes_singleton base_γ (CoPset ⊤ ⋅ CoPset ⊤).
 
   Lemma pure_res_spec (P : Prop) :
     Own (pure_res P) ⊣⊢ ⌜P⌝.
@@ -581,23 +591,20 @@ Section wsats.
   
     eapply Own_wand_valid in H0; cycle 1.
     { iIntros "X". iApply H1. et. }
-    assert (F := own.iRes_singleton_validI base_γ (ownER 0 ⊤ ⋅ ownER 0 ⊤)).
-    assert (Own ε ⊢ ✓ (ownER 0 ⊤ ⋅ ownER 0 ⊤ ))%I.
+    assert (F := own.iRes_singleton_validI base_γ (CoPset ⊤ ⋅ CoPset ⊤)).
+    assert (Own ε ⊢ ✓ (CoPset ⊤ ⋅ CoPset ⊤ ))%I.
     { iIntros "_". iApply F. et. }
-    exploit (uPred_primitive.ownM_general_soundness ε (✓ (ownER 0 ⊤ ⋅ ownER 0 ⊤))); eauto using ucmra_unit_valid.
+    exploit (uPred_primitive.ownM_general_soundness ε (✓ (CoPset ⊤ ⋅ CoPset ⊤))); eauto using ucmra_unit_valid.
     { rr in H2. rewrite own.Own_eq /own.Own_def in H2. et. }
     intro V. rr in V. revert V. rewrite seal_eq. ss.
-    rewrite /ownER discrete_fun_singleton_op discrete_fun_singleton_valid.
-    intros V. eapply coPset_disj_valid_inv_l in V. des. depdes V.
-    rewrite elem_of_disjoint in V0. eapply (V0 1%positive); ss.
   Qed.
 
   Lemma precise_pure (P: Prop) :
     ⊢ precise (⌜P⌝).
-  Proof using.
+  Proof.
     rewrite /precise. iIntros. iExists (pure_res P).
     rewrite pure_res_spec. et.
-  Qed. *)
+  Qed.
 End wsats.
 
 Notation fupd_ex n E :=
@@ -777,9 +784,9 @@ Ltac _solve_ir_valid :=
 
 Ltac solve_ir_valid :=
   (hrepeat do 1 _solve_ir_valid);
-  try match goal with |- ✓ ir_ownIRA _ => apply ir_ownIRA_valid end;
-  try match goal with |- ✓ ir_ownERA _ => apply ir_ownERA_valid end;
-  try match goal with |- ✓ ir_ownDRA _ => apply ir_ownDRA_valid end.
+  try match goal with |- ✓ ir_ownIRA => apply ir_ownIRA_valid end;
+  try match goal with |- ✓ ir_ownERA => apply ir_ownERA_valid end.
+  (* try match goal with |- ✓ ir_ownDRA => apply ir_ownDRA_valid end. *)
 
 Ltac _unfold_res :=
   match goal with
@@ -829,19 +836,17 @@ Ltac _simplify_res :=
       end
   end.
 
-Ltac _wsats_res :=
+Ltac _wsats_res := 
   lazymatch goal with
-  |- context[environments.Esnoc _ (INamed ?I) (own base_γ (ir_ownIRA _))] =>
+  |- context[environments.Esnoc _ (INamed ?I) (own base_γ (ir_ownIRA))] =>
   lazymatch goal with 
-  |- context[environments.Esnoc _ (INamed ?E) (own base_γ (ir_ownERA _))] =>
-  lazymatch goal with 
-  |- context[environments.Esnoc _ (INamed ?D) (own base_γ (ir_ownDRA _))] =>
+  |- context[environments.Esnoc _ (INamed ?E) (own base_γ (ir_ownERA))] =>
     let Pat := fresh "Pat" in      
-    pose (Pat := ("[" ++ I ++ " " ++ E ++ " " ++ D ++ "]")%string);
+    pose (Pat := ("[" ++ I ++ " " ++ E  ++ "]")%string);
     compute in Pat;
-    (* iPoseProof (make_wsats _ with Pat) as "[U W]"; [by iFrame|]; *)
+    iPoseProof (make_wsats with Pat) as "[U W]"; [by iFrame|];
     clear Pat
-  end end end.
+  end end.
 
 Ltac simplify_res :=
   _unfold_res;

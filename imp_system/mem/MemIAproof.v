@@ -47,12 +47,8 @@ Section AUX2.
   Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
   Context `{_memG: !memG}.
   
-  Lemma repeat_nth_some
-  X (x: X) sz ofs
-  (IN: ofs < sz)
-  :
-  nth_error (repeat x sz) ofs = Some x
-  .
+  Lemma repeat_nth_some X (x: X) sz ofs (IN: ofs < sz) :
+    nth_error (repeat x sz) ofs = Some x.
   Proof using _memG.
     ginduction sz; ii; ss.
     - lia.
@@ -431,7 +427,7 @@ Module MemIP. Section MemIP.
     init_simF.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
 
-    destruct (or_else(pargs [Tptr] (or_else (arg↓) [])) (0,0%Z)) as [b ofs] eqn: EQ.
+    destruct (or_else (pargs [Tptr] (or_else (arg↓) [])) (0,0%Z)) as [b ofs] eqn: EQ.
     asmproph_simple (b, ofs, mem_get mem_src b ofs); s.
     { iApply precise_sep. iSplit; [iApply precise_pure | iApply precise_own]. }
 
@@ -609,20 +605,18 @@ Module MemIP. Section MemIP.
     - apply simF_cas.
   (*SLOW*)Qed.
 
-  Theorem ctxr:
+  Theorem ctxr :
     ctx_refines
       (MemP, MemP.init_cond csl genv)
       (MemI, emp%I).
   Proof using. eapply main_adequacy, sim; eauto. Qed.
-
 End MemIP. End MemIP.
 
 Module MemPA. Section MemPA.
   Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
   Context `{_memG: !memG}.
 
-  Theorem sim sp:
-    HSim.t open (MemA.t sp) MemP.t emp%I IstEq.
+  Theorem sim sp : HSim.t open (MemA.t sp) MemP.t emp%I IstEq.
   Proof using.
     init_sim; prove_proph_sim.
   (*SLOW*)Qed.
@@ -632,14 +626,13 @@ Module MemPA. Section MemPA.
       (MemA.t sp, emp%I)
       (MemP.t, emp%I).
   Proof using. eapply main_adequacy, sim; eauto. Qed.
-
 End MemPA. End MemPA.
 
 Module MemIA. Section MemIA.
   Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
   Context `{_memG: !memG}.
 
-  Theorem ctxr csl genv sp:
+  Theorem ctxr csl genv sp :
     ctx_refines
       (MemA.t sp, MemA.init_cond csl genv)
       (MemI.t csl genv, emp%I).
@@ -648,8 +641,6 @@ Module MemIA. Section MemIA.
     { eapply MemIP.ctxr. }
     etrans; cycle 1.
     { ctxr_norm. eapply MemPA.ctxr. }
-    eapply ctxr_cond_strengthen. et.
+    eapply ctxr_cond_strengthen; et.
   Qed.
-
 End MemIA. End MemIA.
-

@@ -1,6 +1,8 @@
 Require Import CRIS.
 Require Import APCHeader APC APCA APCC.
 
+Require Import ltac2_lib.
+
 Set Implicit Arguments.
 
 Module APCAC. Section APCAC.
@@ -28,13 +30,12 @@ Module APCAC. Section APCAC.
 
   Local Transparent _APC.
 
-  Lemma simF_apc :
-    HSim.sim_fun open APCCMod APCAMod IstFull APCHdr.apc.
+  Lemma simF_apc : HSim.sim_fun open APCCMod APCAMod IstFull APCHdr.apc.
   Proof using _sinvG PureIsPure PureInSpA APCInSpA.
     init_simF.
     (* init_simF. *)
     steps_l. iDestruct "ASM" as "%"; des; subst.
-    steps_r. force_r q. force_r (q↑). force_r. iSplitR; et. hss. steps_r.
+    steps_r. wforce_r q. wforce_r (q↑). wforce_r. iSplitR; et. hss. steps_r.
 
     (* normalize itree - remove all interpretations and sandboxes except APC *)
     unfold APC at 1. steps_r.
@@ -45,7 +46,7 @@ Module APCAC. Section APCAC.
     iApply wsim_bind. iSplitL; cycle 1.
     { iIntros (? ? ? ? ?) "R".
       instantiate (1:=(λ nths '(st_src, _) '(st_tgt, _), IstFull nths st_src st_tgt)%I).
-      steps_r. force_l. steps_l. forces_l. iSplitR; et. step. iSplit; et. }
+      wsteps_r. force_l. steps_l. forces_l. iSplitR; et. step. iSplit; et. }
 
     (* well founded induction on depth ordinal *)
     iApply wsim_reset. iStopProof. 
@@ -123,10 +124,9 @@ Section ctxr.
   Definition ctxr (md : HMod.t) (sp_c sp_a sp_pure : string → option fspec)
       (APCInSpA : sp_incl APCA.Sp sp_a)
       (PureInSpA : sp_sub sp_pure sp_a)
-      (PureIsPure : 
-                  ∀ fn pfsp, 
-                    sp_pure fn = Some pfsp 
-                    → ∃ scopes, find_body md fn = Some (pure_specbody scopes sp_a pfsp)) :
+      (PureIsPure :
+        ∀ fn pfsp, sp_pure fn = Some pfsp →
+          ∃ scopes, find_body md fn = Some (pure_specbody scopes sp_a pfsp)) :
     ctx_refines
       ((APCC.t sp_c)          ★ md, emp%I)
       ((APCA.t sp_pure sp_a)  ★ md, emp%I).

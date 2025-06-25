@@ -5,46 +5,69 @@ Require Import TacticsCommon.
 
 From stdpp Require Import coPset.
 
-Section FSPEC.
+Section ginv.
   Context `{!sinvG Γ Σ α β τ _I _S}.
 
-  Definition wsim_ginv (Ep : option (coPset * coPset)): iProp Σ :=
+  Definition wsim_ginv (Ep : option (coPset * coPset)) : iProp Σ :=
     match Ep with
     | Some (Ew, E) => own_admin ∗ ownE E ∗ (∃ n, wsats n Ew)
     | None => emp
     end.
 
+  Lemma wsim_ginv_merge Ew1 Ew2 E1 E2 :
+    wsim_ginv (Some (Ew1, E1)) ∗ wsim_ginv (Some (Ew2, E2)) ==∗
+    wsim_ginv (Some (Ew1 ∪ Ew2, E1 ∪ E2)) ∗ ⌜Ew1 ## Ew2 ∧ E1 ## E2⌝.
+  Proof.
+    iIntros "[[O [E1 [%n1 W1]]] [_ [E2 [%n2 W2]]]]".
+    iPoseProof (ownE_exploit with "[E1 E2]") as "%"; first iFrame.
+    iPoseProof (wsats_exploit with "[W1 W2]") as "%"; first iFrame.
+    iMod (wsats_mon _ (max n1 n2) with "W1") as "W1"; first lia.
+    iMod (wsats_mon _ (max n1 n2) with "W2") as "W2"; first lia.
+    iPoseProof (ownE_op with "[E1 E2]") as "E"; cycle 1; first iFrame; ss.
+    iPoseProof (wsats_merge with "[W1 W2]") as "W"; iFrame.
+    do 2 (rewrite {1}comm_L; iFrame); ss.
+  Qed.
+
+  Lemma wsim_ginv_split Ew1 Ew2 E1 E2 :
+    Ew1 ## Ew2 → E1 ## E2 →
+    wsim_ginv (Some (Ew1 ∪ Ew2, E1 ∪ E2)) -∗
+    wsim_ginv (Some (Ew1, E1)) ∗ wsim_ginv (Some (Ew2, E2)).
+  Proof.
+    iIntros (??) "[O [E [% W]]]"; iPoseProof (own_admin_split with "O") as "[$ $]".
+    rewrite ownE_op //; iDestruct "E" as "[$ $]".
+    rewrite wsats_split //; iDestruct "W" as "[$ $]".
+  Qed.
+
   Definition fspec_wsim (E : coPset) (fsp : fspec) : fspec :=
     mk_fspec (meta := fsp.(meta))
       (λ x varg arg, wsim_ginv (Some (E, E)) ∗ fsp.(precond) x varg arg)%I
       (λ x vret ret, wsim_ginv (Some (E, E)) ∗ fsp.(postcond) x vret ret)%I.
+End ginv.
 
-  (* Lemma wsim_ginv_split (υ ν : univ_id) (E : coPset):
-    (ν < υ) →
-    wsim_ginv υ E
-    ==∗ wsim_ginv ν ⊤ ∗ own_admin ∗ (∃ n, wsats υ n E) ∗ (wsim_ginv ν ⊤ ==∗ ∃ n, univs υ n).
-  Proof using.
-    iIntros "%LT [O [[%vn U] [%un W]]]".
-    rewrite {1 2}/univs; replace υ with (ν + (S (υ - S ν))) by lia.
-    rewrite ?seq_app /= ?big_sepL_app /=. iDestruct "U" as "[U1 [U2 U3]]".
-    iMod (own_admin_split with "O") as "[O1 O2]".
-    iSplitL "U1 U2 O2"; iFrame; ss.
-    iIntros "!> [_ [[%n U] [%n' W]]]".
-    remember ((n `max` n') `max` vn) as n''. iExists n''.
-    iPoseProof (univs_mon ν n n'' with "U") as "> U"; first lia.
-    iPoseProof (wsats_mon ν n' n'' with "W") as "> W"; first lia.
-    iFrame. iApply big_sepL_bupd. iApply (big_sepL_impl with "U3").
-    iModIntro; iIntros "%k %x %IN W"; iApply wsats_mon; last iFrame; lia.
-  Qed. *)
-End FSPEC.
-
-Class WP `{!sinvG Γ Σ α β τ _I _G} (P : iProp Σ) (Ew E : coPset) := mk_WP {
+(* Typeclass definition to streamline assume/guarantee processing *)
+Class WP `{!sinvG Γ Σ α β τ _I _G} (P : iProp Σ) := mk_WP {
+  WP_space : coPset;
   WP_remainder : iProp Σ;
-  WP_iff : P ∗-∗ wsim_ginv (Some (Ew, E)) ∗ WP_remainder
+  WP_iff : P ∗-∗ wsim_ginv (Some (WP_space, WP_space)) ∗ WP_remainder
 }.
-Arguments mk_WP {_ _ _ _ _ _ _ _} _ _ _ _ _.
-Arguments WP_remainder {_ _ _ _ _ _ _ _} [_ _ _] _.
-Arguments WP_iff {_ _ _ _ _ _ _ _} [_ _ _] _.
+Arguments mk_WP {_ _ _ _ _ _ _ _ _} _ _ _.
+Arguments WP_remainder {_ _ _ _ _ _ _ _} [_] _.
+Arguments WP_space {_ _ _ _ _ _ _ _} [_] _.
+Arguments WP_iff {_ _ _ _ _ _ _ _} [_] _.
+
+Program Global Instance WP_refl E `{!sinvG Γ Σ α β τ _I _G}
+  : WP (wsim_ginv (Some (E, E))) := mk_WP E True _.
+Next Obligation. ii; iSplit; first iIntros "$"; iIntros "[$ _]". Qed.
+
+Program Global Instance fspec_wsim_precond `{!sinvG Γ Σ α β τ _I _G} (fsp : fspec) E m arg varg :
+  WP (precond (fspec_wsim E fsp) m arg varg) :=
+  {| WP_space := E; WP_remainder := (precond fsp m arg varg) |}.
+Next Obligation. intros; iSplit; iIntros "[$ $]". Qed.
+
+Program Global Instance fspec_wsim_postcond `{!sinvG Γ Σ α β τ _I _G} (fsp : fspec) E m arg varg :
+  WP (postcond (fspec_wsim E fsp) m arg varg) :=
+  {| WP_space := E; WP_remainder := (postcond fsp m arg varg) |}.
+Next Obligation. intros; iSplit; iIntros "[$ $]". Qed.
 
 Section wsim.
   Context `{!sinvG Γ Σ α β τ _I _G}.
@@ -54,25 +77,6 @@ Section wsim.
   Local Definition rel : Type := ∀ R_s R_t : Type,
     post R_s R_t → bool → bool → nat → state * itree hmodE R_s → state * itree hmodE R_t → iProp Σ.
 
-  (* Implicit Types r g : rel.
-  Implicit Types ps pt : bool.
-  Implicit Types nths : nat.
-  Implicit Types E : coPset. *)
-
-  (* TODO : abstraction into mixins *)
-  (* Local Definition wsim_pre Ep : iProp Σ :=
-    wsim_ginv  
-  Local Definition wsim_pre t υ ν E : iProp Σ :=
-    match t with
-    | None => True
-    | Some false => own_admin ∗ (∃ n, wsats υ n E) ∗ (wsim_ginv ν ⊤ ==∗ ∃ n, univs υ n)
-    | Some true => wsim_ginv υ E
-    end. *)
-
-  (* Definition wsim_rel t υ ν E (r : rel) : rel :=
-    λ R_s R_t RR ps pt nths '(st_s, i_s) '(st_t, i_t),
-      (wsim_pre t υ ν E ∗ r R_s R_t RR ps pt nths (st_s, i_s) (st_t, i_t))%I. *)
-
   Local Definition wsim_def fl_s fl_t Ist Ep r g R_s R_t RR ps pt nths st_s st_t : iProp Σ :=
     wsim_ginv Ep -∗
     @isim Σ open fl_s fl_t Ist r g R_s R_t RR ps pt nths st_s st_t.
@@ -80,21 +84,6 @@ Section wsim.
   Definition wsim := wsim_aux.(unseal).
   Local Definition wsim_eq : @wsim = @wsim_def := wsim_aux.(seal_eq).
   Local Ltac unseal := rewrite wsim_eq /wsim_def.
-
-  (* Program Global Instance WP_refl
-      (υ : univ_id) (E : coPset)
-    : WP (wsim_ginv υ E) υ E := mk_WP (wsim_ginv υ E) υ E True _.
-  Next Obligation. ii; iSplit; first iIntros "$"; iIntros "[$ _]". Qed.
-  
-  Program Global Instance fspec_wsim_precond (fsp : fspec) (υ : univ_id) m arg varg :
-    WP (precond (fspec_wsim υ fsp) m arg varg) υ ⊤ :=
-    mk_WP (precond (fspec_wsim υ fsp) m arg varg) υ ⊤ (precond fsp m arg varg) _.
-  Next Obligation. intros; iSplit; iIntros "[$ $]". Qed.
-
-  Program Global Instance fspec_wsim_postcond (fsp : fspec) (υ : univ_id) m arg varg :
-    WP (postcond (fspec_wsim υ fsp) m arg varg) υ ⊤ :=
-    {| WP_remainder := (postcond fsp m arg varg) |}.
-  Next Obligation. intros; iSplit; iIntros "[$ $]". Qed. *)
 
   Context (fl_s fl_t : alist string (Any.t → itree hmodE Any.t)).
   Context (Ist : nat → alist key Any.t → alist key Any.t → iProp Σ).
@@ -118,6 +107,7 @@ Section wsim.
   Context (nths : nat).
   Context (st_s st_t : state).
 
+  (* Basic simulation rules *)
   Lemma wsim_ret rs rt :
     RR nths (st_s, rs) (st_t, rt) ⊢
     sim Ep r g RR ps pt nths (st_s, Ret rs) (st_t, Ret rt).
@@ -358,13 +348,7 @@ Section wsim.
     sim Ep r g RR true true nths (st_s, i_s) (st_t, i_t).
   Proof using. unseal; iIntros "RR I". iApply isim_progress; iApply "RR"; iFrame. Qed.
 
-  (* Lemma wsim_base r g i_s i_t :
-    r RR ps pt nths (st_s, i_s) (st_t, i_t) ⊢
-    sim ⊤ r g RR ps pt nths
-      (st_s, i_s) (st_t, i_t).
-  Proof using. unseal; iIntros "RR I". iApply isim_base; iFrame. Qed. *)
-
-  Lemma wsim_base_t i_s i_t :
+  Lemma wsim_base i_s i_t :
     (wsim_ginv Ep -∗ r R_s R_t RR ps pt nths (st_s, i_s) (st_t, i_t)) ⊢
     sim Ep r g RR ps pt nths (st_s, i_s) (st_t, i_t).
   Proof using. unseal; iIntros "RR I". iApply isim_base; iRevert "I"; iFrame. Qed.
@@ -372,7 +356,7 @@ Section wsim.
   Lemma wsim_coind A P RA_s RA_t RRA psA ptA nthsA srcA tgtA :
     (∀ (g' : rel) (a : A),
       P a -∗
-      (⌜∀ RR ps pt nths0 src tgt,
+      (⌜∀ R_s R_t RR ps pt nths0 src tgt,
         g R_s R_t RR ps pt nths0 src tgt -∗ g' R_s R_t RR ps pt nths0 src tgt⌝) -∗
       (□ ∀ a, (P a ∗ wsim_ginv Ep) -∗
         g' (RA_s a) (RA_t a) (RRA a) (psA a) (ptA a) (nthsA a) (srcA a) (tgtA a)) -∗
@@ -388,7 +372,7 @@ Section wsim.
     intros g' a Himpl; iIntros "[[P I] #CIH]".
     iPoseProof (H with "P [] [] I") as "H".
     { instantiate (1 := g').
-      iPureIntro; iIntros (??????) "G"; destruct src, tgt. iApply Himpl. iFrame.
+      iPureIntro; iIntros (????????) "G"; destruct src, tgt. iApply Himpl. iFrame.
     }
     { iModIntro; iIntros (a') "[P I]"; iSpecialize ("CIH" $! a'); destruct (srcA a'), (tgtA a').
       iApply "CIH"; iFrame.
@@ -411,45 +395,30 @@ Section wsim.
     iIntros (? ? ? ? ?) "Q". iApply ("SIM" with "Q"). done.
   Qed.
 
-  (* ginv related lemmas *)
-  Lemma wsim_guarantee_src_WP `{i : !WP P Ew' E'} k_s i_t Ew E :
-    Ew' ⊆ Ew → E' ⊆ E →
+  (* Lemmas that use WP typeclasses *)
+  Lemma wsim_guarantee_src_WP `{i : !WP P} k_s i_t Ew E :
+    let EP := WP_space i in
+    EP ⊆ Ew → EP ⊆ E →
     (WP_remainder i ∗
-    sim (Some (Ew ∖ Ew', E ∖ E')) r g RR true pt nths (st_s, k_s tt) (st_t, i_t)) ⊢
+    sim (Some (Ew ∖ EP, E ∖ EP)) r g RR true pt nths (st_s, k_s tt) (st_t, i_t)) ⊢
     sim (Some (Ew, E)) r g RR ps pt nths (st_s, trigger (Guarantee P) >>= k_s) (st_t, i_t).
   Proof using.
-    unseal; iIntros (??) "[P SIM] [O [E [%n W]]]".
-    iMod (own_admin_split with "O") as "[O1 O2]".
+    unseal; iIntros (??) "[P SIM] I".
+    iPoseProof (wsim_ginv_split (WP_space i) (Ew ∖ WP_space i) (WP_space i) (E ∖ WP_space i)
+      with "[I]") as "[I1 I2]".
+    { set_solver. }
+    { set_solver. }
+    { rewrite -?union_difference_L //. }
     iApply isim_guarantee_src; eauto.
-    rewrite /wsim_ginv {2}(union_difference_L Ew' Ew) // wsats_split; last set_solver.
-    rewrite {2}(union_difference_L E' E) // ownE_op; last set_solver.
-    iDestruct "W" as "[W1 W2]"; iDestruct "E" as "[E1 E2]".
-    iSplitR "E2 W2 O2 SIM".
+    iSplitR "SIM I2".
     { iApply WP_iff; iFrame. }
     { iApply "SIM"; iFrame. }
   Qed.
 
-  (* Lemma wsim_full_guarantee_src (P : iProp Σ) k_s i_t Ew E :
-    ((wsim_ginv (Some (Ew, E)) ==∗ P) ∗ sim None r g RR true pt nths (st_s, k_s tt) (st_t, i_t)) ⊢
-    sim (Some (Ew, E)) r g RR ps pt nths (st_s, trigger (Guarantee P) >>= k_s) (st_t, i_t).
-  Proof using.
-    unseal; iIntros "[P SIM] I". iPoseProof ("P" with "I") as ">P".
-    iApply isim_guarantee_src; eauto. iSplitR "SIM"; iFrame. iApply "SIM"; done.
-  Qed. *)
-
-  (* Lemma wsim_full_guarantee_src (P : iProp Σ) r g k_s i_t E :
-    ((wsim_ginv υ E -∗ P) ∗
-    wsim None υ ν E r g RR true pt nths (st_s, k_s tt) (st_t, i_t)) ⊢
-    wsim (Some true) υ ν E r g RR ps pt nths (st_s, trigger (Guarantee P) >>= k_s) (st_t, i_t).
-  Proof using.
-    unseal; iIntros "[P SIM] I". iApply isim_guarantee_src; eauto.
-    iSplitR "SIM"; iFrame. iApply "P"; iFrame. iApply "SIM"; done.
-  Qed. *)
-
-  (* let Ep' := match Ep with | Some (Ew, Ee) => Some (Ew ∪ E, Ee ∪ E) | None => Some (E, E) end in *)
-  Lemma wsim_assume_src_WP `{i : !WP P Ew' E'} k_s i_t :
+  Lemma wsim_assume_src_WP `{i : !WP P} k_s i_t :
+    let EP := WP_space i in
     let Ep' :=
-      match Ep with | Some (Ew, E) => Some (Ew ∪ Ew', E ∪ E') | None => Some (Ew', E') end
+      match Ep with | Some (Ew, E) => Some (Ew ∪ EP, E ∪ EP) | None => Some (EP, EP) end
     in
     (WP_remainder i -∗ sim Ep' r g RR true pt nths (st_s, k_s tt) (st_t, i_t)) ⊢
     sim Ep r g RR ps pt nths (st_s, trigger (Assume P) >>= k_s) (st_t, i_t).
@@ -457,69 +426,30 @@ Section wsim.
     unseal; iIntros "SIM I1". iApply isim_assume_src; eauto. iIntros "P".
     destruct Ep as [[??]|]; iPoseProof (WP_iff with "P") as "[I Q]";
       try iApply ("SIM" with "Q I").
-    rewrite /wsim_ginv; iPoseProof ("SIM" with "Q") as "SIM".
-    iDestruct "I1" as "[O [E [%n1 W]]]". iDestruct "I" as "[_ [E2 [%n2 W2]]]".
-    iPoseProof (ownE_exploit with "[E E2]") as "%"; first iFrame.
-    iMod (wsats_mon _ (max n1 n2) with "W") as "W"; first lia.
-    iMod (wsats_mon _ (max n1 n2) with "W2") as "W2"; first lia.
-    iApply "SIM"; iFrame. rewrite ownE_op //; iFrame "E E2".
-    iPoseProof (wsats_merge with "[W W2]") as "$"; iFrame.
+    iMod (wsim_ginv_merge with "[I I1]") as "[I _]"; iFrame.
+    iApply ("SIM" with "Q"); iFrame.
   Qed.
-    (* iApply ("SIM" with "Q"); rewrite /wsim_ginv. *)
-  (* Qed. *)
 
-  (* Lemma wsim_full_assume_src (P P' : iProp Σ) r g k_s i_t E :
-    ((P -∗ (wsim_ginv υ E ∗ P')) ∗
-    (P' -∗ wsim (Some true) υ ν E r g RR true pt nths
-      (st_s, k_s tt) (st_t, i_t))) ⊢
-    wsim None υ ν E r g RR ps pt nths
-      (st_s, trigger (Assume P) >>= k_s) (st_t, i_t).
-  Proof using.
-    unseal; iIntros "[P SIM] I". iApply isim_assume_src; eauto.
-    iIntros "P'". iPoseProof ("P" with "P'") as "[GINV P]".
-    iApply ("SIM" with "P GINV").
-  Qed. *)
-
-  (* Lemma wsim_full_assume_src (P P' : iProp Σ) k_s i_t E :
-    ((P ==∗ (wsim_ginv (Some (E, E)) ∗ P')) ∗
-    (P' ==∗ sim (Some (E, E)) r g RR true pt nths (st_s, k_s tt) (st_t, i_t))) ⊢
-    sim None r g RR ps pt nths (st_s, trigger (Assume P) >>= k_s) (st_t, i_t).
-  Proof using.
-    unseal; iIntros "[P SIM] I". iApply isim_assume_src; eauto.
-    iIntros "P'". iPoseProof ("P" with "P'") as ">[GINV P]".
-    iPoseProof ("SIM" with "P") as ">SIM". iApply ("SIM" with "GINV").
-  Qed. *)
-
-  Lemma wsim_assume_tgt_WP `{i : !WP P Ew' E'} i_s k_t Ew E :
-    Ew' ⊆ Ew → E' ⊆ E →
-    (WP_remainder i ∗ sim (Some (Ew ∖ Ew', E ∖ E')) r g RR ps true nths (st_s, i_s) (st_t, k_t tt)) ⊢
+  Lemma wsim_assume_tgt_WP `{i : !WP P} i_s k_t Ew E :
+    let EP := WP_space i in
+    EP ⊆ Ew → EP ⊆ E →
+    (WP_remainder i ∗ sim (Some (Ew ∖ EP, E ∖ EP)) r g RR ps true nths (st_s, i_s) (st_t, k_t tt)) ⊢
     sim (Some (Ew, E)) r g RR ps pt nths (st_s, i_s) (st_t, trigger (Assume P) >>= k_t).
   Proof using.
     unseal; iIntros (??) "[P SIM] [O [E [%n W]]]".
-    iMod (own_admin_split with "O") as "[O1 O2]". iApply isim_assume_tgt; eauto.
-    rewrite /wsim_ginv {2}(union_difference_L Ew' Ew) // wsats_split; last set_solver.
-    rewrite {2}(union_difference_L E' E) // ownE_op; last set_solver.
+    iPoseProof (own_admin_split with "O") as "[O1 O2]". iApply isim_assume_tgt; eauto.
+    rewrite /wsim_ginv {2}(union_difference_L (WP_space i) Ew) // wsats_split; last set_solver.
+    rewrite {2}(union_difference_L (WP_space i) E) // ownE_op; last set_solver.
     iDestruct "W" as "[W1 W2]"; iDestruct "E" as "[E1 E2]".
     iSplitR "SIM E2 W2 O2".
     { iApply WP_iff; iFrame. }
     { iApply "SIM"; iFrame. }
   Qed.
 
-  (* Lemma wsim_full_assume_precise_tgt_WP P `{i : !WP P υ E} r g i_s k_t :
-    (precise P -∗
-      WP_remainder i ∗ wsim None υ ν E r g RR ps true nths (st_s, i_s) (st_t, k_t tt)) ⊢
-    wsim (Some true) υ ν E r g RR ps pt nths
-      (st_s, i_s) (st_t, trigger (AssumePrecise P) >>= k_t).
-  Proof using.
-    unseal; iIntros "H I". iApply isim_assume_precise_tgt; eauto.
-    iIntros "P". iPoseProof ("H" with "P") as "[R H]".
-    iSplitR "H"; iFrame.
-    { iApply WP_iff; iFrame. }
-    { iApply "H". et. }
-  Qed. *)
-  Lemma wsim_guarantee_tgt_WP `{i : !WP P Ew' E'} i_s k_t :
+  Lemma wsim_guarantee_tgt_WP `{i : !WP P} i_s k_t :
+    let EP := WP_space i in
     let Ep' :=
-      match Ep with | Some (Ew, E) => Some (Ew ∪ Ew', E ∪ E') | None => Some (Ew', E') end
+      match Ep with | Some (Ew, E) => Some (Ew ∪ EP, E ∪ EP) | None => Some (EP, EP) end
     in
     (WP_remainder i -∗ sim Ep' r g RR ps true nths (st_s, i_s) (st_t, k_t tt)) ⊢
     sim Ep r g RR ps pt nths (st_s, i_s) (st_t, trigger (Guarantee P) >>= k_t).
@@ -529,65 +459,12 @@ Section wsim.
     unseal; iIntros "I".
     iAssert ( |==> wsim_ginv
       (match Ep with
-      | Some (Ew, E) => Some (Ew ∪ Ew', E ∪ E')
-      | None => Some (Ew', E')
+      | Some (Ew, E) => Some (Ew ∪ WP_space i, E ∪ WP_space i)
+      | None => Some (WP_space i, WP_space i)
       end))%I with "[I P1]" as "> I".
-    { destruct Ep as [[??]|]; ss.
-      iDestruct "I" as "[$ [E1 [%n1 W1]]]"; iDestruct "P1" as "[_ [E2 [%n2 W2]]]".
-      iPoseProof (ownE_exploit with "[E1 E2]") as "%"; first iFrame; rewrite ownE_op //; iFrame.
-      iMod (wsats_mon _ (max n1 n2) with "W1") as "W1"; first lia.
-      iMod (wsats_mon _ (max n1 n2) with "W2") as "W2"; first lia.
-      iPoseProof (wsats_merge with "[W1 W2]") as "$"; iFrame; ss.
-    }
+    { destruct Ep as [[??]|]; ss; iPoseProof (wsim_ginv_merge with "[I P1]") as "[$ _]"; iFrame. }
     iApply ("SIM" with "P2"); ss.
   Qed.
-
-  (* Lemma wsim_half_assume_tgt_WP `{i : !WP P ν ⊤, υ > ν} r g i_s k_t E :
-    (WP_remainder i ∗
-    wsim (Some false) υ ν E r g RR ps true nths
-      (st_s, i_s) (st_t, k_t tt)) ⊢
-    wsim (Some true) υ ν E r g RR ps pt nths
-      (st_s, i_s) (st_t, trigger (Assume P) >>= k_t).
-  Proof using.
-    unseal; iIntros "[P SIM] I".
-    iPoseProof (wsim_ginv_split with "I") as "> [I1 I2]".
-    { eapply H. }
-    iApply isim_assume_tgt; eauto.
-    iSplitL "P I1".
-    { iApply (WP_iff i); iFrame. }
-    { iApply "SIM"; iFrame. }
-  Qed.
-
-  Lemma wsim_half_assume_precise_tgt_WP P `{i : !WP P ν ⊤, υ > ν} r g i_s k_t E :
-    (precise P -∗
-       WP_remainder i ∗
-       wsim (Some false) υ ν E r g RR ps true nths
-         (st_s, i_s) (st_t, k_t tt)) ⊢
-    wsim (Some true) υ ν E r g RR ps pt nths
-      (st_s, i_s) (st_t, trigger (AssumePrecise P) >>= k_t).
-  Proof using.
-    unseal; iIntros "H I".
-    iPoseProof (wsim_ginv_split with "I") as "> [I1 I2]"; et.
-    iApply isim_assume_precise_tgt; eauto.
-    iIntros "P". iPoseProof ("H" with "P") as "[P H]".
-    iSplitL "P I1".
-    { iApply (WP_iff i); iFrame. }
-    { iApply ("H" with "I2"); iFrame. }
-  Qed.
-  
-  Lemma wsim_half_guarantee_tgt_WP `{i : !WP P ν ⊤, υ > ν} r g i_s k_t E :
-    (WP_remainder i -∗
-    wsim (Some true) υ ν E r g RR ps true nths
-      (st_s, i_s) (st_t, k_t tt)) ⊢
-    wsim (Some false) υ ν E r g RR ps pt nths
-      (st_s, i_s) (st_t, trigger (Guarantee P) >>= k_t).
-  Proof using.
-    unseal. iIntros "SIM I".
-    iApply isim_guarantee_tgt; iIntros "P"; iPoseProof (WP_iff with "P") as "[P1 P2]".
-    iSpecialize ("SIM" with "P2").
-    iDestruct "I" as "[O [W I]]". iPoseProof ("I" with "P1") as "> I".
-    iApply "SIM"; iFrame.
-  Qed. *)
 
   (* Derived lemmas *)
   Lemma wsim_unwrapU_src X (x : option X) k_s i_t :
@@ -727,20 +604,6 @@ Section wsim.
   Qed.
 
   (* Proofmode instances *)
-  (* Global Instance from_modal_wsim_fup n Ew E1 E2 i_s i_t :
-    FromModal True modality_id
-      (=|n, Ew|={E1,E2}=> sim (Some (Ew, E2)) r g RR ps pt nths (st_s, i_s) (st_t, i_t))
-      (=|n, Ew|={E1,E2}=> sim (Some (Ew, E2)) r g RR ps pt nths (st_s, i_s) (st_t, i_t))
-      (sim (Some (Ew, E1)) r g RR ps pt nths (st_s, i_s) (st_t, i_t)) | 0.
-  Proof using.
-    rewrite /FromModal invariants.uPred_fupd_unseal /invariants.uPred_fupd_def /=.
-    unseal; iIntros (SUB) "SIM [$ E] !>".
-    rewrite (union_difference_L E2 E1) // /wsats ownE_op; last set_solver.
-    iDestruct "E" as "[$ E]".
-    iIntros "[O [E' [%n' W]]]"; iApply ("SIM" with "[-]").
-    iFrame. iApply (ownE_op with "[-]"); last iFrame; set_solver.
-  Qed. *)
-
   Global Instance wsim_elim_upd P p i_s i_t :
     ElimModal True p false ( |==> P)%I P
       (sim Ep r g RR ps pt nths (st_s, i_s) (st_t, i_t))
@@ -839,7 +702,8 @@ Section wsim.
     iIntros (?) "S W"; iPoseProof ("S" with "W") as "S"; iStopProof; eapply isim_eqit_tgt; eauto.
   Qed.
 End wsim.
-
+Global Arguments wsim_own_alloc {_ _ _ _ _ _ _ _ _ _ _ _ _} _.
+(* Lemmas for prophecies *)
 Section Proph.
   Context `{!sinvG Γ Σ α β τ _I _G}.
 

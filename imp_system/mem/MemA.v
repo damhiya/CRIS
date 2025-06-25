@@ -3,7 +3,6 @@ From iris.algebra Require Import auth excl agree csum functions dfrac_agree.
 Set Implicit Arguments.
 
 (* Memory resource algebra *)
-(* Coercion memGS >-> inG memRA Γ is global since it can be used in other modules *)
 Section MemRA.
   Context `{!sinvG Γ Σ α β τ _I _S}.
 

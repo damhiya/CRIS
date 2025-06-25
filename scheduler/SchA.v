@@ -253,15 +253,15 @@ Module SchAS. Section SchAS.
     Context (sp_user : string → option fspec).
 
     (* TODO : clarify with WP tc *)
-    (* Definition fspec_spawnable (u : univ_id) (fsp : fspec)
+    Definition fspec_spawnable (fsp : fspec)
         (pre : SAny.t → SAny.t → iProp Σ) (postS: SAny.t → SAny.t → SynDepO) : Prop :=
       fspec_weaker
-        (fspec_wsim u (fspec_virtual 
+        (fspec_wsim E_sch (fspec_virtual 
           (λ (tid: nat) (varg: SAny.t) arg,
             tid_user tid ∗ ∃ sarg, ⌜arg = sarg↑⌝ ∗ pre varg sarg)%I
           (λ (tid: nat) (vret: SAny.t) ret,
             tid_user tid ∗ ∃ sret, ⌜ret = sret↑⌝ ∗ interp_cond (postS vret sret)))%I)
-        fsp. *)
+        fsp.
 
     Definition _spawn_spec : fspec := 
       fspec_wsim E_sch
@@ -269,11 +269,11 @@ Module SchAS. Section SchAS.
           (λ '(my_tid, pa_tid, fargs, fvargs, pre, postS, fn) varg arg,
             (⌜varg = ((pa_tid, fn, fvargs) : nat * string * SAny.t) ∧
               arg = ((pa_tid, fn, fargs) : nat * string * SAny.t)↑ ∧
-              is_Some (sp_user fn)⌝ ∗
-              (* ∧ fspec_spawnable υ (find_fsp sp_user fn) pre postS⌝ *)
-            pre fvargs fargs ∗ token_half my_tid postS ∗ tid_user my_tid)%I)
-          (λ _ (_: SAny.t) _, False%I)
-        ).
+              is_Some (sp_user fn) ∧
+              fspec_spawnable (find_fsp sp_user fn) pre postS⌝ ∗
+            pre fvargs fargs ∗ token_half my_tid postS ∗ tid_user my_tid))
+          (λ _ (_: SAny.t) _, False)
+        )%I.
 
     Definition spawn_spec : fspec :=
       fspec_wsim E_sch
@@ -281,12 +281,11 @@ Module SchAS. Section SchAS.
           (λ '(my_tid, fargs, fvargs, pre, postS, fn) varg arg,
             (⌜varg = ((fn, fvargs): string * SAny.t) ∧
               arg = ((fn, fargs): string * SAny.t)↑ ∧
-              is_Some (sp_user fn)⌝ ∗
-              (* (fspec_spawnable υ (find_fsp sp_user fn) pre postS) *)
+              is_Some (sp_user fn) ∧
+              (fspec_spawnable (find_fsp sp_user fn) pre postS)⌝ ∗
              pre fvargs fargs ∗ tid_user my_tid)%I)
           (λ '(my_tid, fargs, fvargs, pre, postS, fn) vret ret,
-            ((∃ tid: nat, ⌜vret = tid ∧ ret = tid↑⌝ ∗ (token_th tid postS)) ∗ tid_user my_tid)%I))
-    .
+            ((∃ tid: nat, ⌜vret = tid ∧ ret = tid↑⌝ ∗ (token_th tid postS)) ∗ tid_user my_tid)%I)).
 
     Definition yield_spec: fspec :=
       fspec_wsim E_sch

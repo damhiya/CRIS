@@ -1,8 +1,7 @@
 Require Import CRIS.
 Require Import SchHeader SchI SchA.
-(* Require Import ltac2_lib. *)
+Require Import ltac2_lib.
 
-(* Set Implicit Arguments. *)
 
 Local Open Scope nat_scope.
 
@@ -148,25 +147,13 @@ Module SchIA. Section SchIA.
   Local Definition SchAMod := (SchA ★ SchAPure). 
   Local Definition SchIMod := (SchI.t).
 
-Tactic Notation "iwcase" tactic(itac) tactic(wtac) :=
-  match goal with
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ _) ] => itac
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _) ] => wtac
-  end.
-
-Ltac step_l := iwcase (do 1 istep_l) (do 1 wstep_l).
-Ltac steps_l := iwcase (do 1 isteps_l) (do 1 wsteps_l).
-
   Lemma simF__spawn : HSim.sim_fun open SchAMod SchIMod Ist SchHdr._spawn.
   Proof using FunInSp SchInSp.
     init_simF.
 
-    rewrite /SchA.trigger_Yield /SchI.trigger_Yield.
-
-    steps_l.
-    
-    iDestruct "ASM" as "[%va [-> ASM]]"; hss.
     (* destruct q2 as [userf userm]. *)
+    rewrite /SchA.trigger_Yield /SchI.trigger_Yield.
+    steps_l. iDestruct "ASM" as "[%va [-> ASM]]"; hss.
     iDestruct "ASM" as "[[-> [-> [% %]]] [pre [token tid]]]"; hss.
     rename q6 into pre. rename q4 into synpost. rename q8 into fvargs. rename q10 into fargs.
     rename q11 into my_tid. rename q12 into pa_tid. rename q2 into userf.
@@ -181,8 +168,7 @@ Ltac steps_l := iwcase (do 1 isteps_l) (do 1 wsteps_l).
     iPoseProof (tid_admin_some_user with "[TA tid]") as "%"; iFrame; des; subst.    
     iApply wsim_unfold; iIntros "WI".
     yield "THB THW COND TA tid WI".
-    { 
-      iPoseProof (tid_admin_some_user with "[TA tid]") as "%"; iFrame; des; subst.
+    { iPoseProof (tid_admin_some_user with "[TA tid]") as "%"; iFrame; des; subst.
       iPoseProof (tid_admin_some_user_merge with "[TA tid]") as "TA"; iFrame.
       iExists _, _, _. iSplit; eauto.
       iRight. iFrame. eauto.
@@ -190,16 +176,15 @@ Ltac steps_l := iwcase (do 1 isteps_l) (do 1 wsteps_l).
 
     iDestruct "IST" as (??????) "(% & THB & THW & COND & TA)"; subst; hss.
     steps_l. hss.
-    iDestruct "TA" as "[[TA %] | [TA [WI %]]]"; hss. clear H1.
-    steps_r. rewrite /alist_upd /_alist_upd /=.
+    iDestruct "TA" as "[[TA %] | [TA [WI _]]]"; hss.
+    steps_r. hss.
     
     (* Call the spawnee *)
     inv H. rename x into userfspec. force_l userfspec; iFrame.
     iSplit; first (iPureIntro; apply FunInSp; done).
     steps_l. 
 
-    iPoseProof (tid_admin_none_split with "TA") as "[TA tid]".
-    instantiate (1:=my_tid).
+    iPoseProof (tid_admin_none_split my_tid with "TA") as "[TA tid]".
 
     unfold find_fsp in *. rewrite H1 in H0.
     unfold fspec_spawnable, fspec_weaker in H0.
@@ -207,12 +192,11 @@ Ltac steps_l := iwcase (do 1 isteps_l) (do 1 wsteps_l).
 
     (* Choose the metavariables *)
     force_l x1. steps_l. force_l (fargs↑). steps_l.
-    iAssert (wsim_ginv u_a ⊤ ==∗ precond userfspec x1 fvargs↑ fargs↑)%I with "[pre tid]" as "PRE".
-    { iIntros "I". iApply PRE. rewrite /fspec_virtual /fspec_wsim /precond /=.
-      iFrame. eauto. }
+    iAssert (wsim_ginv (Some (E_sch, E_sch)) ==∗ precond userfspec x1 fvargs↑ fargs↑)%I with "[pre tid]" as "PRE".
+    { iIntros "I". iApply PRE. rewrite /fspec_virtual /fspec_wsim /precond /=. iFrame. eauto. }
 
     iMod ("PRE" with "WI") as "PRE".
-    force_l. iFrame.
+    force_l; iFrame "PRE".
     steps_l.
 
     call "THB THW COND TA".
@@ -322,12 +306,12 @@ Ltac steps_l := iwcase (do 1 isteps_l) (do 1 wsteps_l).
     steps_l.
     steps_r. hss. steps_r.
     by_coind "CIH". iFrame.
-    Unshelve. all: ss.
+    Unshelve. all: eauto. all: apply nat.
   (*SLOW*)Qed.
 
   Lemma simF_spawn : HSim.sim_fun open SchAMod SchIMod Ist SchHdr.spawn.
   Proof using FunInSp SchInSp.
-    init_simF u_a 0.
+    init_simF.
 
     step_l. step_l. destruct q as [[[[farg fvarg] pre] synpost] userf].
     steps_l.
@@ -396,7 +380,7 @@ Ltac steps_l := iwcase (do 1 isteps_l) (do 1 wsteps_l).
 
   Lemma simF_yield : HSim.sim_fun open SchAMod SchIMod Ist SchHdr.yield.
   Proof using FunInSp SchInSp.
-    init_simF u_a 0.
+    init_simF.
 
     rewrite /SchA.trigger_Yield /SchI.trigger_Yield.
 
@@ -429,7 +413,7 @@ Ltac steps_l := iwcase (do 1 isteps_l) (do 1 wsteps_l).
 
   Lemma simF_join : HSim.sim_fun open SchAMod SchIMod Ist SchHdr.join.
   Proof using FunInSp SchInSp.
-    init_simF u_a 0.
+    init_simF.
 
     step_l. step_l.
     destruct q as [[tid postS] my_tid]; s. steps_l.
@@ -523,12 +507,33 @@ Ltac steps_l := iwcase (do 1 isteps_l) (do 1 wsteps_l).
       ss. rewrite Nat.eqb_refl in WF. rewrite -H0 in WF.
       eapply fragree_incl_false. et.
     }
-  Unshelve. all : ss.
+  Unshelve. all : ss. all: apply nat.
   (*SLOW*)Qed.
-
+Ltac _wforce_l :=
+  match goal with
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose ?T) >>= _) _) ] =>
+      iApply wsim_choose_src
+  | [ |- environments.envs_entails _ (wsim _ _ _ (Some (?Ew, ?E)) _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _) _) ] =>
+      first [
+        tcsearch constr:(WP P)
+          ltac:(fun c =>
+          iApply (wsim_guarantee_src_WP _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); simpl);
+        match goal with
+        | [ |- environments.envs_entails _ (?P' ∗ _)] =>
+          unfold_precond_postcond P'
+        end
+      | unfold_precond_postcond P; iApply wsim_guarantee_src
+      ]
+  | [ |- environments.envs_entails _ (wsim _ _ _ None _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _) _) ] =>
+      unfold_precond_postcond P; iApply wsim_guarantee_src
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (AssumePrecise _) >>= _) _) ] =>
+      iApply wsim_assume_precise_src; iSplit; [|iIntrosFresh "ASM"]
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, unwrapN _ >>= _) _) ] =>
+      iApply wsim_unwrapN_src
+  end.
   Lemma simF_get_tid : HSim.sim_fun open SchAMod SchIMod Ist SchHdr.get_tid.
   Proof using FunInSp SchInSp.
-    init_simF u_a 0.
+    init_simF.
 
     steps_l. iDestruct "ASM" as "[[-> tid] ->]"; hss.
     steps_r.
@@ -545,8 +550,7 @@ Ltac steps_l := iwcase (do 1 isteps_l) (do 1 wsteps_l).
     - rewrite /SchA.init_cond /init_threads /init_tid. unseal "SchA".
       iIntros "[[THB THW] tid]". iExists _, _, _, ∅, 0, false.
       iFrame. rewrite big_sepM_empty. iSplitR; et.
-      2:{ rewrite /tid_admin. iSplitR; eauto. iLeft. rewrite /tid_admin.
-          unseal "SchA". eauto. }
+      2:{ rewrite /tid_admin. iSplitR; eauto. iLeft. rewrite /tid_admin. unseal "SchA". eauto. }
       iPureIntro. esplits; et; ss; [split; nia |]. i. 
       rewrite// eq_rel_dec_correct. des_ifs.
       + rewrite lookup_empty. eexists; econs 2.
@@ -570,11 +574,11 @@ Section ctxr.
   Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
   Context `{_schG: !schG}.
 
-  Lemma ctxr (u : univ_id) (sp_global sp_user : string → option fspec)
-        (SchInGlobal : sp_incl (SchAS.sp u sp_user) sp_global)
+  Lemma ctxr (E_sch : coPset) (sp_global sp_user : string → option fspec)
+        (SchInGlobal : sp_incl (SchAS.sp E_sch sp_user) sp_global)
         (UserInGlobal : sp_sub sp_user sp_global) :
     ctx_refines
-      ((SchA.t u sp_global sp_user) ★ (SchAPure.t u sp_global), SchA.init_cond)
+      ((SchA.t E_sch sp_global sp_user) ★ (SchAPure.t E_sch sp_global), SchA.init_cond)
       (SchI.t, emp%I).
   Proof using. eapply main_adequacy, sim; eauto. Qed.
 End ctxr.

@@ -4,30 +4,30 @@ Require Import WSim TacticsCommon TacticsInit.
 
 Ltac _wstep_l :=
   match goal with
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, tau;; _) _) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, tau;; _) _) ] =>
       iApply wsim_tau_src
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, Ret _ >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, Ret _ >>= _) _) ] =>
       rewrite bind_ret_l
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _) _) ] =>
       let name := fresh "q" in iApply wsim_take_src; iIntros (name)
-  (* | [ |- environments.envs_entails _ (wsim _ _ _ _ ?υ _ _ _ _ _ _ _ _ _ _ (_, trigger (Assume ?P) >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Assume ?P) >>= _) _) ] =>
       first [
-        tcsearch constr:(WP P υ ⊤)
+        tcsearch constr:(WP P)
           ltac:(fun c =>
-            iApply (wsim_full_assume_src_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); simpl);
+            iApply (wsim_assume_src_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); simpl);
         match goal with
         | [ |- environments.envs_entails _ (?P' -∗ _)] =>
           unfold_precond_postcond P'; iIntrosFresh "ASM"
         end
       | unfold_precond_postcond P; iApply wsim_assume_src; iIntrosFresh "ASM"
-      ] *)
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _) _) ] =>
+      ]
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _) _) ] =>
       let name := fresh "asm" in iApply wsim_asm_src; iIntros (name)
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, (HModTr.sandbox _ _ (trigger (SPut _ _))) >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, (HModTr.sandbox _ _ (trigger (SPut _ _))) >>= _) _) ] =>
       iApply wsim_sput_src_sandbox; [s;eauto|]
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, (HModTr.sandbox _ _ (trigger (SGet _))) >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, (HModTr.sandbox _ _ (trigger (SGet _))) >>= _) _) ] =>
       iApply wsim_sget_src_sandbox; [s;eauto|]
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, unwrapU ?ox >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, unwrapU ?ox >>= _) _) ] =>
       let name := fresh "q" in
       iApply wsim_unwrapU_src; iIntros (name) "%";
       match goal with [ H: ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite -> G in * end
@@ -48,42 +48,33 @@ Ltac wsteps_l :=
 
 Ltac _wstep_r :=
   match goal with
-  (******* isim ******)
-  (** tgt **)
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, tau;; _)) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ (_, tau;; _)) ] =>
       iApply wsim_tau_tgt
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, Ret _ >>= _) ) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ (_, Ret _ >>= _)) ] =>
       rewrite bind_ret_l
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose _) >>= _) ) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose _) >>= _)) ] =>
       let name := fresh "q" in iApply wsim_choose_tgt; iIntros (name)
-  (* | [ |- environments.envs_entails _ (wsim _ _ _ _ ?u ?ν _ _ _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _) ) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _)) ] =>
       first [
-        tcsearch constr:(WP P ν ⊤)
+        tcsearch constr:(WP P)
           ltac:(fun c =>
-            unshelve iApply (wsim_half_guarantee_tgt_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); eauto);
+          iApply (wsim_guarantee_tgt_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); simpl);
         match goal with
         | [ |- environments.envs_entails _ (?P' -∗ _)] =>
-          unfold_precond_postcond P'; iIntrosFresh "GRT"
-        end
-      | tcsearch constr:(WP P u ⊤)
-          ltac:(fun c =>
-            unshelve iApply (wsim_full_guarantee_tgt_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); eauto);
-        match goal with
-        | [ |- environments.envs_entails _ (?P' -∗ _)] =>
-          unfold_precond_postcond P'; iIntrosFresh "GRT"
+          unfold_precond_postcond P'; iIntrosFresh "GRT";
+          match goal with
+          | |- environments.envs_entails _ (wsim _ _ _ (Some (?E ∖ ?E' ∪ ?E', ?E ∖ ?E' ∪ ?E')) _ _ _ _ _ _ _ _ _ _) =>
+            try (replace (E ∖ E' ∪ E') with E by set_solver)
+          end
         end
       | unfold_precond_postcond P; iApply wsim_guarantee_tgt; iIntrosFresh "GRT"
-      ] *)
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, guarantee _ >>= _)) ] =>
+      ]
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ (_, guarantee _ >>= _)) ] =>
       let name := fresh "grt" in iApply wsim_guar_tgt; iIntros (name)
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, (HModTr.sandbox _ _ (trigger (SPut _ _))) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ (_, (HModTr.sandbox _ _ (trigger (SPut _ _))) >>= _)) ] =>
       iApply wsim_sput_tgt_sandbox; [s; eauto|]
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, (HModTr.sandbox _ _ (trigger (SGet _))) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ (_, (HModTr.sandbox _ _ (trigger (SGet _))) >>= _)) ] =>
       iApply wsim_sget_tgt_sandbox; [s; eauto|]
-  (* | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, unwrapN ?ox >>= _)) ] => *)
-  (*     let name := fresh "q" in *)
-  (*     iApply isim_unwrapN_tgt; iIntros (name) "%"; *)
-  (*     match goal with [ H: ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite -> G in * end *)
   end.
 
 Ltac wstep_r_core :=
@@ -101,11 +92,11 @@ Ltac wsteps_r :=
 
 Ltac _wstep :=
   match goal with
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, Ret _) (_, Ret _))] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, Ret _) (_, Ret _))] =>
       iApply wsim_ret
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (IO _ _) >>= _) (_, trigger (IO _ _) >>= _))] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (IO _ _) >>= _) (_, trigger (IO _ _) >>= _))] =>
       iApply wsim_io; iIntros "%"
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (AssumePrecise _) >>= _) (_, trigger (AssumePrecise _) >>= _))] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (AssumePrecise _) >>= _) (_, trigger (AssumePrecise _) >>= _))] =>
       iApply wsim_assume_precise_both
   end.
 
@@ -114,22 +105,24 @@ Ltac wstep :=
 
 Ltac _wforce_l :=
   match goal with
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose ?T) >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose ?T) >>= _) _) ] =>
       iApply wsim_choose_src
-  (* | [ |- environments.envs_entails _ (wsim _ _ _ _ ?υ _ _ _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ (Some (?Ew, ?E)) _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _) _) ] =>
       first [
-        tcsearch constr:(WP P υ ⊤)
+        tcsearch constr:(WP P)
           ltac:(fun c =>
-            iApply (wsim_full_guarantee_src_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); simpl);
+          iApply (wsim_guarantee_src_WP _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); [try set_solver|try set_solver|simpl]);
         match goal with
         | [ |- environments.envs_entails _ (?P' ∗ _)] =>
           unfold_precond_postcond P'
         end
       | unfold_precond_postcond P; iApply wsim_guarantee_src
-      ] *)
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (AssumePrecise _) >>= _) _) ] =>
+      ]
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _) _) ] =>
+      unfold_precond_postcond P; iApply wsim_guarantee_src
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (AssumePrecise _) >>= _) _) ] =>
       iApply wsim_assume_precise_src; iSplit; [|iIntrosFresh "ASM"]
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, unwrapN _ >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, unwrapN _ >>= _) _) ] =>
       iApply wsim_unwrapN_src
   end.
 
@@ -147,47 +140,25 @@ Ltac wforces_l :=
 
 Ltac _wforce_r :=
   match goal with
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _)) ] =>
       iApply wsim_take_tgt
-  (* | [ |- environments.envs_entails _ (wsim _ _ _ _ ?u ?ν _ _ _ _ _ _ _ _ _ _ (_, trigger (Assume ?P) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Assume ?P) >>= _)) ] =>
       first [
-        tcsearch constr:(WP P ν ⊤)
+        tcsearch constr:(WP P)
           ltac:(fun c =>
-            unshelve iApply (wsim_half_assume_tgt_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); eauto);
-        match goal with
-        | [ |- environments.envs_entails _ (?P' ∗ _)] =>
-          unfold_precond_postcond P'
-        end
-      | tcsearch constr:(WP P u ⊤)
-          ltac:(fun c =>
-            unshelve iApply (wsim_full_assume_tgt_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); eauto);
+            unshelve iApply (wsim_assume_tgt_WP _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); s; [try set_solver|try set_solver|]
+          );
         match goal with
         | [ |- environments.envs_entails _ (?P' ∗ _)] =>
           unfold_precond_postcond P'
         end
       | unfold_precond_postcond P; iApply wsim_assume_tgt
-      ] *)
-  (* | [ |- environments.envs_entails _ (wsim _ _ _ _ ?u ?ν _ _ _ _ _ _ _ _ _ _ (_, trigger (AssumePrecise ?P) >>= _)) ] =>
-      first [
-        tcsearch constr:(WP P ν ⊤)
-          ltac:(fun c =>
-            unshelve iApply (wsim_half_assume_precise_tgt_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); [..|iIntrosFresh "PRECISE"]; eauto);
-            | [ |- environments.envs_entails _ (?P' ∗ _)] =>
-            match goal with
-          unfold_precond_postcond P'
-        end
-      | tcsearch constr:(WP P u ⊤)
-          ltac:(fun c =>
-            unshelve iApply (wsim_full_assume_precise_tgt_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); [..|iIntrosFresh "PRECISE"]; eauto);
-        match goal with
-        | [ |- environments.envs_entails _ (?P' ∗ _)] =>
-          unfold_precond_postcond P'
-        end
-      | unfold_precond_postcond P; iApply wsim_assume_precise_tgt; iIntrosFresh "PRECISE"
-      ] *)
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, AssumeProph _ _ >>= _)) ] =>
+      ]
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (AssumePrecise ?P) >>= _)) ] =>
+      unfold_precond_postcond P; iApply wsim_assume_precise_tgt; iIntrosFresh "PRECISE"
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ (_, AssumeProph _ _ >>= _)) ] =>
       iApply wsim_assume_proph_tgt
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _)) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _)) ] =>
       iApply wsim_asm_tgt
   (* | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, unwrapU _ >>= _)) ] => *)
   (*     iApply isim_unwrapU_tgt; iExists _ *)
@@ -228,7 +199,7 @@ Ltac wyield hyps :=
   move_aux.
 
 Ltac wby_coind CIH :=
-  (iApply wsim_progress; iApply wsim_base_t;
+  (iApply wsim_progress; iApply wsim_base;
   iSpecialize (CIH $! _);
   (hrepeat do 1 first[instantiate (1:= (_,_))|instantiate (1:= existT _ _)]); s; grind);
   iIntrosFresh "I";

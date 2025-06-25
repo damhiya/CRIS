@@ -6,6 +6,8 @@ Require Import sflib.
 
 Definition allocsUR (K : Type) (A : cmra) : ucmra :=
   K -d> optionUR (csumR (exclR unitO) A).
+Lemma allocsUR_lookup_op {K A} (f g : allocsUR K A) x : (f ⋅ g) x = f x ⋅ g x.
+Proof. rewrite discrete_fun_lookup_op //. Qed.
 
 (* TODO : SEAL *)
 Definition allocs_auth {K} (A : cmra) (P : K → Prop) `{∀ k, Decision (P k)} : allocsUR K A :=
@@ -46,7 +48,6 @@ Section allocs.
     by des_ifs; ss.
   Qed.
     
-
   (** Frame-preserving updates *)
   Lemma allocs_frag_update γ a b (UPD : a ~~> b) : allocs_frag γ a ~~> allocs_frag γ b.
   Proof using. by apply discrete_fun_singleton_update, option_update, csum_update_r. Qed.

@@ -7,6 +7,8 @@ Set Implicit Arguments.
 Create HintDb sp.
 Hint Rewrite (Seal.sealing_eq "sp") : sp.
 
+Definition sp_empty `{Σ : GRA} : string → option fspec := λ _, None.
+
 Definition to_sp `{Σ : GRA} (l : alist string fspec) : string -> option fspec :=
   fun fn => alist_find fn l.
 
