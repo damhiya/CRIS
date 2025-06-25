@@ -81,7 +81,7 @@ Section wsim.
     iPoseProof ("SIM" $! nths _ _ NODS1 NODD1 with "IST TID GINV") as "SIM".
     iApply (isim_flag_mon with "SIM"); eauto.
     Unshelve. all: eauto.
-  (*SLOW*)Admitted.
+  (*SLOW*)Qed.
 
   Lemma wsim_yield_tgt_uu r g (msk_s msk_t:_→bool) sc_s sc_t sp_s sp_t sp_user_s sp_user_t k_s k_t
     (SchInSpS : sp_incl (SchAS.sp υ sp_user_s) sp_s)
@@ -138,7 +138,7 @@ Section wsim.
     iPoseProof ("SIM" $! nths _ _ NODS1 NODD1 with "IST GINV") as "SIM".
     iApply (isim_flag_mon with "SIM"); eauto.
     Unshelve. all: eauto.
-  (*SLOW*)Admitted.
+  (*SLOW*)Qed.
 
   Lemma wsim_yield_tgt_uv r g (msk_s msk_t:_→bool) sc_s sc_t sp_s sp_t sp_user_s sp_user_t k_s k_t
     (SchInSps : sp_incl (SchAS.sp υ sp_user_s) sp_s)
@@ -199,7 +199,7 @@ Section wsim.
     iPoseProof ("SIM" $! nths _ _ NODS1 NODD1 with "IST GINV") as "SIM".
     iApply (isim_flag_mon with "SIM"); eauto.
     Unshelve. all: eauto.
-  (*SLOW*)Admitted.
+  (*SLOW*)Qed.
 
   Lemma wsim_yield_src r g (msk_s:_→bool) sc_s sp sp_user k_s i_t
       (SchInSp : sp_incl (SchAS.sp υ sp_user) sp) :

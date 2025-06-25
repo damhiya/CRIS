@@ -20,6 +20,7 @@ Section SIM_ITREE.
   Hypothesis le_trans : Transitive wle.
 
   Definition le_mine (w w' : list world) :=
+    List.length w <= List.length w' /\
     forall wi (IN : base.lookup my_tid w = Some wi),
     exists wi', base.lookup my_tid w' = Some wi' /\ wle wi wi'.
   
@@ -46,7 +47,7 @@ Section SIM_ITREE.
       fn varg k_src k_tgt
       (WLE : le_others w w0)
       (WF : wf w0 (nths, st_src, st_tgt))
-      (K : forall w1 vret nths0 st_src0 st_tgt0 (WLE : le_mine w0 w1) (WF : wf w1 (nths0, st_src0, st_tgt0)),
+      (K : forall w1 vret nths0 st_src0 st_tgt0 (WLE : le_mine w0 w1) (WF : wf w1 (nths0, st_src0, st_tgt0)) (NTHS: nths <= nths0),
           self true true w1 nths0 (st_src0, k_src vret) (st_tgt0, k_tgt vret))
     :
     sim_itree_def sim_itree RR self ps pt w nths
@@ -159,8 +160,8 @@ Section SIM_ITREE.
       tid k_src k_tgt
       (WLE : le_others w w0)
       (WF : wf w0 (nths, st_src, st_tgt))
-      (K : forall w1 nths0 st_src0 st_tgt0 (WLE : le_mine w0 w1) (WF : wf w1 (nths0, st_src0, st_tgt0)),
-          self true true w1 nths0 (st_src0, k_src tt) (st_tgt0, k_tgt tt))
+      (K : forall w1 nths0 st_src0 st_tgt0 (WLE : le_mine w0 w1) (WF : wf w1 (nths0, st_src0, st_tgt0)) (NTHS: nths <= nths0),
+          self true true w1 nths0 (st_src0, k_src my_tid) (st_tgt0, k_tgt my_tid))
     :
     sim_itree_def sim_itree RR self ps pt w nths (st_src, trigger (Yield tid) >>= k_src)
       (st_tgt, trigger (Yield tid) >>= k_tgt)
@@ -239,7 +240,8 @@ Section SIM_ITREE.
 
   Lemma le_mine_trans : Transitive le_mine.
   Proof using le_trans.
-    ii. eapply H in IN. des. eapply H0 in IN. des. eauto.
+    ii. destruct H, H0. split; try nia.
+    i. eapply H1 in IN. des. eapply H2 in IN. des. eauto.
   Qed.
 
   Lemma le_others_refl : Reflexive le_others.
@@ -410,6 +412,7 @@ Section SIM_ITREE.
     fun it_src it_tgt =>
       forall w nths mrs_src mrs_tgt arg
              (TID : my_tid < List.length w)
+             (TID' : my_tid < nths)
              (SIMMRS : wf w (nths, mrs_src, mrs_tgt)),
         sim_itree wf w false false w nths (mrs_src, it_src arg) (mrs_tgt, it_tgt arg)
   .
@@ -486,7 +489,7 @@ Section SIM_ITREE.
       (SIM : r R_src R_tgt RR ps pt w nths (st_src, i_src) (st_tgt, i_tgt))
 
       S_src S_tgt SS (k_src : ktree modE R_src S_src) (k_tgt : ktree modE R_tgt S_tgt)
-      (SIMK : forall w0 nths0 st_src0 st_tgt0 vret_src vret_tgt (SIM : RR w0 nths0 st_src0 st_tgt0 vret_src vret_tgt), s _ _ SS false false w0 nths0 (st_src0, k_src vret_src) (st_tgt0, k_tgt vret_tgt))
+      (SIMK : forall w0 nths0 st_src0 st_tgt0 vret_src vret_tgt (SIM : RR w0 nths0 st_src0 st_tgt0 vret_src vret_tgt) (NTHS: nths <= nths0), s _ _ SS false false w0 nths0 (st_src0, k_src vret_src) (st_tgt0, k_tgt vret_tgt))
     :
       lbindR r s SS ps pt w nths (st_src, ITree.bind i_src k_src) (st_tgt, ITree.bind i_tgt k_tgt)
   .
@@ -514,7 +517,7 @@ Section SIM_ITREE.
     pattern x3, x4, x5, x6, p, p0.
     eapply sim_itree_tarski, SIM.
     i. inv PR; clarify; grind; try econs. 
-    all: try by econs; eauto.
+    all: try by econs; eauto with arith.
     - exploit SIMK; eauto. i.
       eapply sim_itree_flag_mon with (ps0 := false) (pt0 := false); ss.
       eapply sim_itree_mon.

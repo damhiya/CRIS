@@ -78,6 +78,7 @@ Section HSIM.
       (K : ∀ vret nths0 st_src0 st_tgt0 fmr0
             (NODS : List.NoDup (List.map fst st_src0))
             (NODD : List.NoDup (List.map fst st_tgt0))
+            (NTHS: nths <= nths0)
             (INV : Own fmr0 ⊢ |==> (Ist nths0 st_src0 st_tgt0 ∗ FR)),
         hsimi true true nths0 (st_src0, k_src vret) (st_tgt0, k_tgt vret) fmr0)
     :
@@ -284,8 +285,9 @@ Section HSIM.
       (K : ∀ nths0 st_src0 st_tgt0 fmr0
           (NODS : List.NoDup (List.map fst st_src0))
           (NODD : List.NoDup (List.map fst st_tgt0))
+          (NTHS: nths <= nths0)
           (INV : Own fmr0 ⊢ |==> (Ist nths0 st_src0 st_tgt0 ∗ FR)),
-        hsimi true true nths0 (st_src0, k_src tt) (st_tgt0, k_tgt tt) fmr0)
+        hsimi true true nths0 (st_src0, k_src my_tid) (st_tgt0, k_tgt my_tid) fmr0)
     :
     _hsim' hsimc hsimi ps pt nths (st_src, trigger (Yield tid) >>= k_src) (st_tgt, trigger (Yield tid) >>= k_tgt) fmr
 
@@ -322,7 +324,8 @@ Section HSIM.
         ∀ (NODFS : List.NoDup (List.map fst fl_src))
           (NODFT : List.NoDup (List.map fst fl_tgt))
           (NODS : List.NoDup (List.map fst sti_src.1))
-          (NODD : List.NoDup (List.map fst sti_tgt.1)),
+          (NODD : List.NoDup (List.map fst sti_tgt.1))
+          (TID: my_tid < nths),
         hsupd (@_hsim' hsim Rs Rt RR (@_hsim hsim Rs Rt RR) ps pt nths sti_src sti_tgt) fmr).
 
   Definition hsim {Rs Rt} RR := paco9 _hsim bot9 Rs Rt RR.
@@ -332,14 +335,15 @@ Section HSIM.
              (IN : ∀ (NODFS : List.NoDup (List.map fst fl_src))
                      (NODFT : List.NoDup (List.map fst fl_tgt))
                      (NODS : List.NoDup (List.map fst sti_src.1))
-                     (NODD : List.NoDup (List.map fst sti_tgt.1)),
-                 hsupd (@_hsim' hsim Rs Rt RR rel ps pt nths sti_src sti_tgt) fmr),
+                     (NODD : List.NoDup (List.map fst sti_tgt.1))
+                     (TID: my_tid < nths),
+              hsupd (@_hsim' hsim Rs Rt RR rel ps pt nths sti_src sti_tgt) fmr),
         rel ps pt nths sti_src sti_tgt fmr) :
     _hsim hsim Rs Rt RR <6= rel.
   Proof using.
     fix self 7. i.
     destruct PR. apply FIX. i. intros wf.
-    specialize (IN NODFS NODFT NODS NODD wf); des.
+    specialize (IN NODFS NODFT NODS NODD TID wf); des.
     exists fmr0; split; eauto.
     destruct IN;
       try by econs; et; i; hexploit K; et; i; des; esplits;
@@ -421,7 +425,7 @@ Section HSIM.
     move SIM before r. revert_until SIM.
     pattern ps, pt, nths, st_src, st_tgt, fmr.
     eapply _hsim_tarski, SIM. i. econs.
-    ii. specialize (IN NODFS NODFT NODS NODD H). des.
+    ii. specialize (IN NODFS NODFT NODS NODD TID H). des.
     destruct IN;
       try by esplits; et; econs; et; i; hexploit K; et; i; des; esplits; et.
     
@@ -517,6 +521,7 @@ Section HSIM.
       (SIM : r Qs Qt QQ ps pt nths (st_src, i_src) (st_tgt, i_tgt) fmr)
       Rs Rt RR k_src k_tgt
       (SIMK : ∀ nths0 st_src0 st_tgt0 vret_src vret_tgt fmr0
+          (NTHS: nths <= nths0)
           (RET : Own fmr0 ⊢ |==> QQ nths0 (st_src0, vret_src) (st_tgt0, vret_tgt)),
         r Rs Rt RR false false nths0 (st_src0, k_src vret_src) (st_tgt0, k_tgt vret_tgt) fmr0)
     :
@@ -535,10 +540,10 @@ Section HSIM.
     pattern ps, pt, nths, sti_src, sti_tgt, fmr.
     eapply _hsim_tarski, SIM. econs. i. apply hsupd_merge.
     econs; esplits; eauto.
-    subst. specialize (IN NODFS NODFT NODS NODD H). des.
+    subst. specialize (IN NODFS NODFT NODS NODD TID H). des.
     depdes IN; grind;
-      try (by rr; i; esplits; eauto with paco);
-      try (by do 2 (econs; esplits; eauto with paco);
+      try (by rr; i; esplits; eauto with paco arith);
+      try (by do 2 (econs; esplits; eauto with paco arith);
               repeat rewrite <-bind_bind;
               eauto 7 using rclo9, hsim_bindC).
     - exploit SIMK; eauto.
@@ -817,7 +822,7 @@ Section HSIM.
     move SIM before r. revert_until SIM.
     pattern Rs, Rt, RR, ps, pt, nths, sti_src0, sti_tgt, fmr.
     eapply _hsim_tarski, SIM. i.
-    econs. ii. subst. specialize (IN NODFS NODFT NODS NODD H). des.
+    econs. ii. subst. specialize (IN NODFS NODFT NODS NODD TID H). des.
     esplits; eauto.
     punfold EQIT. subst. rr in EQIT.
     remember (observe isrc0) as otgt0. remember (observe isrc1) as otgt1.
@@ -883,7 +888,7 @@ Section HSIM.
     move SIM before r. revert_until SIM.
     pattern Rs, Rt, RR, ps, pt, nths, sti_src, sti_tgt0, fmr.
     eapply _hsim_tarski, SIM. i.
-    econs. ii. subst. specialize (IN NODFS NODFT NODS NODD H). des.
+    econs. ii. subst. specialize (IN NODFS NODFT NODS NODD TID H). des.
     esplits; eauto.
     punfold EQIT. subst. rr in EQIT.
     remember (observe itgt0) as otgt0. remember (observe itgt1) as otgt1.

@@ -10,8 +10,9 @@ Section SIM.
   Variable contextual: contextuality.
   Variable fl_src fl_tgt : alist (option string) (Any.t → itree hmodE Any.t).
   Variable Ist : nat → alist key Any.t → alist key Any.t → iProp Σ.
+  Variable my_tid : nat.
 
-  Let _hsim := _hsim contextual fl_src fl_tgt Ist.
+  Let _hsim := _hsim contextual fl_src fl_tgt Ist my_tid.
   Let rel := ∀ Rs Rt, (nat → alist key Any.t * Rs → alist key Any.t * Rt → iProp Σ) → bool → bool → nat → alist key Any.t * itree hmodE Rs → alist key Any.t * itree hmodE Rt → iProp Σ.
 
   Variant iunlift (r : rel) Rs Rt RR ps pt nths sti_src sti_tgt res : Prop :=
@@ -125,8 +126,8 @@ Section SIM.
   Qed.
 
   Lemma isim_wand r g ps pt {Rs Rt} RR RR' nths sti_src sti_tgt :
-    (∀ nths0 st_src ret_src st_tgt ret_tgt,
-        ((RR' nths0 (st_src, ret_src) (st_tgt, ret_tgt)) -∗ (RR nths0 (st_src, ret_src) (st_tgt, ret_tgt))))
+    (∀ nths st_src ret_src st_tgt ret_tgt,
+        ((RR' nths (st_src, ret_src) (st_tgt, ret_tgt)) -∗ (RR nths (st_src, ret_src) (st_tgt, ret_tgt))))
     ∗ (@isim r g Rs Rt RR' ps pt nths sti_src sti_tgt)
     ⊢ isim r g RR ps pt nths sti_src sti_tgt.
   Proof using.
@@ -148,12 +149,12 @@ Section SIM.
 
   Lemma isim_frame r g {Rs Rt} RR ps pt nths sti_src sti_tgt P :
     P ∗ @isim r g Rs Rt RR ps pt nths sti_src sti_tgt
-    ⊢ isim r g (fun nths0 str_src str_tgt => P ∗ RR nths0 str_src str_tgt) ps pt nths sti_src sti_tgt.
+    ⊢ isim r g (fun nths str_src str_tgt => P ∗ RR nths str_src str_tgt) ps pt nths sti_src sti_tgt.
   Proof using. iIntros "[H0 H1]". iApply isim_wand. iFrame. eauto. Qed.
 
   Lemma isim_bind r g ps pt {Rs Rt Qs Qt} RR QQ nths st_src st_tgt i_src i_tgt k_src k_tgt :
     @isim r g Qs Qt QQ ps pt nths (st_src, i_src) (st_tgt, i_tgt)
-    ∗ (∀ nths0 st_src0 ret_src st_tgt0 ret_tgt,
+    ∗ (∀ nths0 st_src0 ret_src st_tgt0 ret_tgt (NTHS: nths <= nths0),
         QQ nths0 (st_src0, ret_src) (st_tgt0, ret_tgt)
         -∗ isim r g RR false false nths0 (st_src0, k_src ret_src) (st_tgt0, k_tgt ret_tgt))%I
     ⊢ (@isim r g Rs Rt RR ps pt nths (st_src, i_src >>= k_src) (st_tgt, i_tgt >>= k_tgt)).
@@ -170,7 +171,7 @@ Section SIM.
     }
     eapply isim_init; et.
     iIntros "FMR"; iMod (RET0 with "FMR") as "[H2 QQ]".
-    iApply (BINDSIM with "H2"); iFrame.
+    iApply (BINDSIM with "H2"); iFrame. et.
   Qed.
 
   Lemma isim_eqit_src r g ps pt {Rs Rt} RR nths st_src st_tgt i_src0 i_src1 i_tgt
@@ -534,12 +535,13 @@ Section SIM.
     { norm_r. iApply "H". auto. }
     { iApply isim_triggerNB_tgt. }
   Qed.
-  
+
   Lemma isim_call r g ps pt {Rs Rt} RR nths st_src st_tgt k_src k_tgt fn varg :
     Ist nths st_src st_tgt
     ∗ (∀ nths0 st_src0 st_tgt0 vret
           (NODS : List.NoDup (List.map fst st_src0))
-          (NODD : List.NoDup (List.map fst st_tgt0)),
+          (NODD : List.NoDup (List.map fst st_tgt0))
+          (NTHS: nths <= nths0),
         (Ist nths0 st_src0 st_tgt0) -∗ @isim r g Rs Rt RR true true nths0 (st_src0, k_src vret) (st_tgt0, k_tgt vret))
     ⊢ isim r g RR ps pt nths (st_src, trigger (Call fn varg) >>= k_src) (st_tgt, trigger (Call fn varg) >>= k_tgt).
   Proof using.
@@ -557,7 +559,7 @@ Section SIM.
     iIntros "H". iPoseProof (INV with "H") as "H". iApply isim_upd.
     iMod "H". iDestruct "H" as "[X B]".
     iSpecialize ("B" $! nths0 st_src0 st_tgt0 vret NODS NODD).
-    iApply "B". eauto.
+    iApply "B"; eauto.
   Qed.
 
   Lemma isim_call_sandbox r g ps pt {Rs Rt} RR nths st_src st_tgt k_src k_tgt fn varg (msk_src msk_tgt:_→bool) scp_src scp_tgt img_src img_tgt:
@@ -565,7 +567,8 @@ Section SIM.
     Ist nths st_src st_tgt
     ∗ (∀ nths0 st_src0 st_tgt0 vret
           (NODS : List.NoDup (List.map fst st_src0))
-          (NODD : List.NoDup (List.map fst st_tgt0)),
+          (NODD : List.NoDup (List.map fst st_tgt0))
+          (NTHS: nths <= nths0),
         (Ist nths0 st_src0 st_tgt0) -∗ @isim r g Rs Rt RR true true nths0 (st_src0, k_src vret) (st_tgt0, k_tgt vret))
     ⊢ isim r g RR ps pt nths (st_src, SB.sandbox img_src msk_src scp_src (trigger (Call fn varg)) >>= k_src) (st_tgt, SB.sandbox img_tgt msk_tgt scp_tgt (trigger (Call fn varg)) >>= k_tgt).
   Proof using.
@@ -643,8 +646,9 @@ Section SIM.
     Ist nths st_src st_tgt
     ∗ (∀ nths0 st_src0 st_tgt0
           (NODS : List.NoDup (List.map fst st_src0))
-          (NODD : List.NoDup (List.map fst st_tgt0)),
-        (Ist nths0 st_src0 st_tgt0) -∗ @isim r g Rs Rt RR true true nths0 (st_src0, k_src tt) (st_tgt0, k_tgt tt))
+          (NODD : List.NoDup (List.map fst st_tgt0))
+          (NTHS: nths <= nths0),
+        (Ist nths0 st_src0 st_tgt0) -∗ @isim r g Rs Rt RR true true nths0 (st_src0, k_src my_tid) (st_tgt0, k_tgt my_tid))
     ⊢ (isim r g RR ps pt nths (st_src, trigger (Yield tid) >>= k_src) (st_tgt, trigger (Yield tid) >>= k_tgt)).
   Proof using.
     split; intros x wfx Hx. uPred.unseal_once_in Hx. destruct Hx as [x1 [x2 [-> [Hx1 Hx2]]]].
@@ -661,7 +665,7 @@ Section SIM.
     iIntros "H". iPoseProof (INV with "H") as "H". iApply isim_upd.
     iMod "H". iDestruct "H" as "[X B]".
     iSpecialize ("B" $! nths0 st_src0 st_tgt0 NODS NODD).
-    iApply "B". eauto.
+    iApply "B"; eauto.
   Qed.
 
   Lemma isim_call_none
@@ -828,8 +832,9 @@ Section Proph.
   Context (contextual: contextuality).
   Context (fl_s fl_t : alist (option string) (Any.t → itree hmodE Any.t)).
   Context (Ist : nat → alist key Any.t → alist key Any.t → iProp Σ).
+  Context (my_tid: nat).
 
-  Local Notation isim := (isim contextual fl_s fl_t Ist).
+  Local Notation isim := (isim contextual fl_s fl_t Ist my_tid).
 
   Context (R_s R_t : Type).
   Context (RR : nat → alist key Any.t * R_s → alist key Any.t * R_t → iProp Σ).
@@ -926,12 +931,13 @@ End Proph.
 
 Definition isim_fsem `{Σ : GRA} fl_src fl_tgt Ist contextual IstS IstE : relation (Any.t -> itree hmodE Any.t) :=
   fun itr_src itr_tgt =>
-  ∀ arg nths st_src st_tgt
+  ∀ arg my_tid nths st_src st_tgt
     (IMON : Ist_monotone Ist)
     (NODS : List.NoDup (List.map fst st_src))
-    (NODD : List.NoDup (List.map fst st_tgt)),
+    (NODD : List.NoDup (List.map fst st_tgt))
+    (TID: my_tid < nths),
   IstS nths st_src st_tgt ⊢
-    @isim Σ contextual fl_src fl_tgt Ist ibot ibot Any.t Any.t (ist_with_eq IstE)
+    @isim Σ contextual fl_src fl_tgt Ist my_tid ibot ibot Any.t Any.t (ist_with_eq IstE)
       false false nths (st_src, itr_src arg) (st_tgt, itr_tgt arg).
 
 Module HSim. Section HSim.

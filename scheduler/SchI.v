@@ -4,20 +4,20 @@ Require Import SchHeader.
 
 Set Implicit Arguments.
 
-Definition thslist: Type := list (option SAny.t).
+Definition thslist: Type := list (nat * option SAny.t).
 
 Module SchI. Section SchI.
   Local Open Scope string_scope.
 
-  Context `{Σ: GRA}.
-   
-  Definition scopes := ["Sch"; "Tid"].
+  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
+  Context `{_stidG: !stidG}.
+
+  Definition scopes := ["Sch"].
   Definition v_ths := "Sch" ↯ "ths".
-  Definition v_tid := "Tid" ↯ "tid".
+  Definition v_tid := "Sch" ↯ "tid".
 
   Definition trigger_Yield (nxt_tid : nat) : itree hmodE unit :=
-    'my_tid: nat <- cgetU v_tid;;
-    trigger (Yield nxt_tid);;;
+    my_tid <- trigger (Yield nxt_tid);;
     cput v_tid my_tid
   .
 
@@ -25,8 +25,8 @@ Module SchI. Section SchI.
     fun '(pa_tid, fn, arg) =>
       trigger_Yield pa_tid;;;
       'rv: SAny.t <- ccallU fn arg;;
-      'my_tid: nat <- cgetU v_tid;;
       'ths: thslist <- cgetU v_ths;;
+      'my_tid: nat <- cgetU v_tid;;
       let newths: thslist := alist_replace my_tid (Some rv) ths in
       cput v_ths newths;;;
       Sch.terminate
@@ -39,9 +39,6 @@ Module SchI. Section SchI.
       new_tid <- trigger (Spawn SchHdr._spawn (my_tid, fn, arg)↑);;
       let newths: thslist := alist_add new_tid None ths in
       cput v_ths newths;;;
-      cput v_tid new_tid;;;
-      trigger (Yield new_tid);;;
-      cput v_tid my_tid;;;
       Ret new_tid
   .
 
@@ -74,14 +71,12 @@ Module SchI. Section SchI.
       Ret my_tid
   .
 
-  Local Definition scopes_tid := ["Tid"].
-
   Definition fnsems : alist (option string) (fnsem_type (option fspec * fbody)) :=
-    [(Some SchHdr._spawn,  (false, wmask_all, scopes,     (None, cfunU _spawn)));
-     (Some SchHdr.spawn,   (false, wmask_all, scopes,     (None, cfunU spawn)));
-     (Some SchHdr.yield,   (false, wmask_all, scopes,     (None, cfunU yield)));
-     (Some SchHdr.join,    (false, wmask_all, scopes,     (None, cfunU join)));
-     (Some SchHdr.get_tid, (false, wmask_all, scopes_tid, (None, cfunU get_tid)))].
+    [(Some SchHdr._spawn,  (false, wmask_all, scopes, (None, cfunU _spawn)));
+     (Some SchHdr.spawn,   (false, wmask_all, scopes, (None, cfunU spawn)));
+     (Some SchHdr.yield,   (false, wmask_all, scopes, (None, cfunU yield)));
+     (Some SchHdr.join,    (false, wmask_all, scopes, (None, cfunU join)));
+     (Some SchHdr.get_tid, (false, wmask_all, scopes, (None, cfunU get_tid)))].
 
   Program Definition Mod: SMod.t :=
   {|

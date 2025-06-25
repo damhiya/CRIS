@@ -184,7 +184,7 @@ Module SBRed. Section SBRed.
     eapply observe_eta. ss. f_equal. extensionalities. ired. eauto.
   Qed.
   
-  Lemma vis_yield {R} img msk scp tid (ktr : () -> itree hmodE R) :
+  Lemma vis_yield {R} img msk scp tid (ktr : nat -> itree hmodE R) :
     SB.sandbox img msk scp (vis (Yield tid) ktr) = vis (Yield tid) (fun x => SB.sandbox img msk scp (ktr x)).
   Proof using.
     unfold SB.sandbox. rewrite interpV_vis.

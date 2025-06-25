@@ -268,7 +268,7 @@ Ltac unfold_sp_exact sp name :=
 
 Tactic Notation "red_S" hyp(prg) tactic(tac) :=
   lazymatch goal with
-  | [ |- @SModTr.trans ?Σ ?sp ?R ?itr = _ ] =>
+  | [ |- SModTr.trans ?sp ?itr = _ ] =>
       lazymatch itr with
       | Ret _ =>
           _hprogress prg; eapply SRed.ret
@@ -340,9 +340,9 @@ Ltac _hnorm_itr prg :=
   | [ |- @SB.sandbox ?Σ ?R ?img ?imports ?scopes ?itr = _ ] =>
       etransitivity;
       [ cong (@SB.sandbox Σ R img imports scopes); _hnorm_itr prg | red_SB prg ]
-  | [ |- @SModTr.trans ?Σ ?sp ?R ?itr = _ ] =>
+  | [ |- @SModTr.trans ?Γ ?Σ ?α ?β ?τ ?_I ?_S ?_sinvG ?_stidG ?sp ?R ?itr = _ ] =>
       etransitivity;
-      [ cong (@SModTr.trans Σ sp R); _hnorm_itr prg | red_S prg (do 1 _hnorm_itr prg) ]
+      [ cong (@SModTr.trans Γ Σ α β τ _I _S _sinvG _stidG sp R); _hnorm_itr prg | red_S prg (do 1 _hnorm_itr prg) ]
   | [ |- trigger _ = _ ] =>
       eapply trigger_vis
   | [ |- assume _ = _ ] =>

@@ -50,9 +50,9 @@ Lemma le_mine_in `{Σ: GRA} (my_tid : nat) (ctx0 ctx : list Σ)
     (IN : my_tid < List.length ctx0) :
   my_tid < List.length ctx.
 Proof.
-  unfold le_mine in *.
+  destruct CTXLE.
   eapply lookup_lt_is_Some_2 in IN. rdes IN.
-  eapply CTXLE in IN. des. subst.
+  eapply H0 in IN. des. subst.
   eapply lookup_lt_is_Some_1. eauto.
 Qed.
 
@@ -73,9 +73,11 @@ Proof.
   move w1 before Σ. revert_until w1.
   induction w1; i; eauto.
   destruct w0; ss; try nia.
+  destruct LE.
   destruct my_tid; ss.
-  - exploit LE; ss. i; des. inv x0. eauto.
-  - erewrite IHw1; eauto. nia.
+  - exploit H0; ss. i; des. inv x0. eauto.
+  - erewrite IHw1; eauto; try nia.
+    split; et. nia.
 Qed.
 
 Variant interp_inv `{Σ: GRA} Ist : list Σ -> nat * Any.t * Any.t -> Prop :=
@@ -107,7 +109,8 @@ Lemma hsim_adequacy
   (ctx0 ctx : list Σ) (mr_src mr_tgt fmr : Σ)
   (CTXLE : @le_mine Σ eq my_tid ctx0 ctx)
   (TID : my_tid < List.length ctx0)
-  (SIM : hsim closed fl_src fl_tgt Ist (ist_with_eq RR) ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr)
+  (TID' : my_tid < nths)
+  (SIM : hsim closed fl_src fl_tgt Ist my_tid (ist_with_eq RR) ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr)
   (WF : ✓ mr_src)
   (FMR : Own mr_src ⊢ |==> Own ((ctx_sem ctx) ⋅ fmr ⋅ mr_tgt))
   :
@@ -125,7 +128,7 @@ Proof.
   { hexploit Own_wand_valid; eauto; intros wf.
     apply cmra_valid_op_l, cmra_valid_op_r in wf; ss.
   }
-  exploit IN; i; try (subst sti_src sti_tgt; eauto; fail). 
+  exploit IN; i; try (subst sti_src sti_tgt; eauto; fail).
   des; clear IN.
   assert (wffmr0 : ✓ fmr0).
   { by eapply Own_wand_valid. }
@@ -158,12 +161,15 @@ Proof.
     ired. inv WF0.
     guclo lflagC_spec; econs; try instantiate (1:=ctx_set w1 (or_else (ctx !! my_tid) ε));
       eauto using ctx_set_le_others.
-    eapply (K _ _ st_src1 st_tgt1) with (fmr0:=(frame ⋅ mr)); eauto.
+    eapply (K _ _ st_src1 st_tgt1) with (fmr0:=(frame ⋅ mr)); eauto; try nia.
     { iIntros "[F M]"; iMod (MR with "M") as "M"; iSplitL "M"; iModIntro; eauto. iApply Hframe; done. }
     { instantiate (1:= or_else (ctx !! my_tid) ε).
       eapply le_mine_trans; first by ii; subst.
       { apply CTXLE. }
-      { ii; esplits; eauto; rewrite IN /ctx_set list_lookup_insert; ss; eauto.
+      { split.
+        { destruct WLE. unfold ctx_add, ctx_set in *.
+          rewrite !length_insert in H |- *. nia. }
+        ii; esplits; eauto; rewrite IN /ctx_set list_lookup_insert; ss; eauto.
         eapply le_mine_in; eauto; rewrite /ctx_add /ctx_set length_insert; eauto using le_mine_in.
       }
     }
@@ -393,6 +399,8 @@ Proof.
 
   - clarify. step. ired. eapply K; eauto.
     { eapply le_mine_trans; eauto; first ii; subst; ss.
+      split.
+      { rewrite length_app. s. nia. }
       ii; esplits; ss; rewrite lookup_app_l; eauto using le_mine_in.
     }
     { iIntros "MRS"; iMod (FMR with "MRS") as "[[CTX FMR] MRT]"; iMod (x1 with "FMR") as "FMR";
@@ -415,11 +423,14 @@ Proof.
     ired. inv WF0.
     guclo lflagC_spec; econs; try instantiate (1:=ctx_set w1 (or_else (ctx !! my_tid) ε));
       eauto using ctx_set_le_others.
-    eapply (K _ st_src1 st_tgt1) with (fmr0:=(frame ⋅ mr)); eauto.
+    eapply (K _ st_src1 st_tgt1) with (fmr0:=(frame ⋅ mr)); eauto; try nia.
     { iIntros "[F M]"; iMod (MR with "M") as "M"; iSplitL "M"; iModIntro; eauto. iApply Hframe; done. }
     { eapply le_mine_trans; first by ii; subst.
       { apply CTXLE. }
       { instantiate (1:= or_else (ctx !! my_tid) ε).
+        split.
+        { destruct WLE. unfold ctx_add, ctx_set in *.
+          rewrite !length_insert in H |- *. nia. }
         ii; esplits; eauto; rewrite IN /ctx_set list_lookup_insert; ss; eauto.
         eapply le_mine_in; eauto; rewrite /ctx_add /ctx_set length_insert; eauto using le_mine_in.
       }

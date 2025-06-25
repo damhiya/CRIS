@@ -437,7 +437,7 @@ Proof.
       { ired. rewrite HIRed.core. estep 1. }
       rewrite !HIRed.core. estep 2. edone.
     + rewrite SBRed.io !HIRed.core. estep 2. edone.
-(*SLOW*)Admitted.
+(*SLOW*)Qed.
 
 End ELIM_REL.
 Hint Resolve cpn3_wcompat: paco.

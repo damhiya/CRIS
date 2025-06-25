@@ -35,10 +35,10 @@ Module CFilter. Section CFilter.
   Lemma sim_filter_intro mask (m: HMod.t):
     HSim.t open (filter mask m) m emp%I IstEq.
   Proof using.
-    assert (SIM: ∀ img msk scp ps pt nths st (itr: itree hmodE Any.t),
+    assert (SIM: ∀ my_tid img msk scp ps pt nths st (itr: itree hmodE Any.t),
     ⊢ isim open
       (map (map_snd SB.sandbox_body) (HMod.fnsems (filter mask m)))
-      (map (map_snd SB.sandbox_body) (HMod.fnsems m)) IstEq ibot ibot
+      (map (map_snd SB.sandbox_body) (HMod.fnsems m)) IstEq my_tid ibot ibot
       (ist_with_eq IstEq) ps pt nths
       (st, SB.sandbox img (wmask_and mask msk) scp itr)
       (st, SB.sandbox img msk scp itr)).
@@ -106,18 +106,18 @@ Module CFilter. Section CFilter.
     iApply isim_mono; cycle 1.
     + iApply SIM; et.
     + i. iIntros "%". des; subst. iSplit; et. destruct fn; et.
-  (*SLOW*)Admitted.
+  (*SLOW*)Qed.
   
   Lemma sim_filter_elim (mask:_→bool) (m: HMod.t)
     (SUB: ∀fn, In (Some fn) (List.map fst m.(HMod.fnsems)) → mask fn)
     :
     HSim.t closed m (filter mask m) emp%I IstEq.
   Proof using.
-    assert (SIM: ∀ img msk scp ps pt nths st (itr: itree hmodE Any.t),
+    assert (SIM: ∀ my_tid img msk scp ps pt nths st (itr: itree hmodE Any.t),
     ⊢ isim closed
       (map (map_snd SB.sandbox_body) (HMod.fnsems m))
       (map (map_snd SB.sandbox_body) (HMod.fnsems (filter mask m)))
-      IstEq ibot ibot
+      IstEq my_tid ibot ibot
       (ist_with_eq IstEq) ps pt nths
       (st, SB.sandbox img msk scp itr)
       (st, SB.sandbox img (wmask_and mask msk) scp itr)).
@@ -195,7 +195,7 @@ Module CFilter. Section CFilter.
     iApply isim_mono; cycle 1.
     - iApply SIM.
     - i. iIntros "%". des; subst. iSplit; et. destruct fn; et.
-  (*SLOW*)Admitted.
+  (*SLOW*)Qed.
 
   (*** introduction of a module ***)
   Theorem intro_filter fns (m: HMod.t) P:
@@ -223,7 +223,7 @@ Module CFilter. Section CFilter.
     eapply ctxr_cond_frameR.
     eapply main_adequacy with (Ist := fun _ _ _ => emp%I).
     init_sim; ii; et.
-  (*SLOW*)Admitted.
+  (*SLOW*)Qed.
 
   (*** introduction of a module ***)
   Theorem intro_module (mask:_→bool) m mc P
@@ -498,6 +498,6 @@ Module CFilter. Section CFilter.
       i. eapply list_lookup_insert_Some in IN. des; subst; et.
     }
   Unshelve. all: exact smj_top.
-  (*SLOW*)Admitted.
+  (*SLOW*)Qed.
 
 End CFilter. End CFilter.

@@ -71,4 +71,4 @@ Proof.
   revert H4 H5. zlookup_insert. zlookup_insert. i. inv H5.
   econs; grind; eauto.
 Unshelve. all: eauto.
-(*SLOW*)Admitted.
+(*SLOW*)Qed.

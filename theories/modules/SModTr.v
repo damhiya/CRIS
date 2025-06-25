@@ -1,4 +1,5 @@
 Require Import Common.
+From iris.algebra Require Export auth excl excl_auth functions frac agree gmap big_op.
 Require Import HMod FSpec Sp.
 
 Set Implicit Arguments.
@@ -6,10 +7,31 @@ Set Implicit Arguments.
 Arguments precond : simpl never.
 Arguments postcond : simpl never.
 
+Section RA.
+  Context `{!sinvG Γ Σ α β τ _I _S}.
+
+  Definition stidRA : ucmra := nat -d> excl' unit.
+
+  Class stidG `{!sinvG Γ Σ α β τ _I _S} := {
+      stid_inG :: inG stidRA Γ;
+    }.
+  Definition stidΓ : HRA := #[stidRA].
+  Global Instance subG_stidG : subG stidΓ Γ → stidG.
+  Proof using. solve_inG. Defined.
+
+End RA.
+Hint Unfold subG_stidG stid_inG : GRA_index.
+
 Module SModTr.
 Section HOARE.
+  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
+  Context `{_stidG: !stidG}.
 
-  Context `{Σ: GRA}.
+  Definition stid_r (tid: nat) : stidRA :=
+    (λ t, if t =? tid then Excl' tt else ε).
+
+  Definition stid (tid: nat): iProp Σ :=
+    own base_γ (stid_r tid).
 
   Definition HoareCall fn (varg: Any.t) (fsp: fspec): itree hmodE Any.t
     :=
@@ -43,8 +65,15 @@ Section HOARE.
 
       Ret ret.
 
+  Definition HoareYield (tid: nat) : itree hmodE nat :=
+    trigger (Guarantee (stid tid));;;
+    my_tid <- trigger (Yield tid);;
+    trigger (Assume (stid my_tid));;;
+    Ret my_tid.
+  
   Definition HoareSpawn fn (varg: Any.t) (fsp: fspec) : itree hmodE nat
     :=
+    
     x <- trigger (Choose (meta fsp));; 
     arg <- trigger (Choose Any.t);; 
     trigger (Guarantee (precond fsp x varg arg));;;
@@ -72,7 +101,7 @@ Section HOARE.
           (inl (map_or_else (sp fn) (HoareSpawn fn args)
                                     (NativeSpawn fn args))).
       - (* Yield *)
-        exact (inr (existT _ (subevent _ (Yield tid), fun v => Ret v))).
+        exact (inl (HoareYield tid)).
     }
     destruct s.
     { exact (inr (existT _ (subevent _ p, fun v => Ret v))). }
@@ -95,8 +124,8 @@ Notation "↧ it" := (SModTr.trans _ it) (at level 59, only printing).
 
 Module SRed.
 Section RED.
-
-  Context `{Σ : GRA}.
+  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
+  Context `{_stidG: !stidG}.
 
   Variable sp: sp_type.
 
@@ -140,11 +169,11 @@ Section RED.
     eapply observe_eta; ss.
   Qed.
 
-  Lemma vis_yield {R} tid (ktr : () -> itree hmodE R) :
-    SModTr.trans sp (vis (Yield tid) ktr) = vis (Yield tid) (fun x => SModTr.trans sp (ktr x)).
+  Lemma vis_yield {R} tid (ktr : nat -> itree hmodE R) :
+    SModTr.trans sp (vis (Yield tid) ktr) = tau;; my_tid <- SModTr.HoareYield tid;; SModTr.trans sp (ktr my_tid).
   Proof using.
     unfold SModTr.trans. rewrite interpV_vis.
-    eapply observe_eta; ss. f_equal. extensionalities. ired. eauto.
+    eapply observe_eta; ss.
   Qed.
 
   Lemma vis_spawn {R} fn args (ktr : nat -> itree hmodE R) :
@@ -215,10 +244,11 @@ Section RED.
     :
       SModTr.trans sp (trigger (Yield tid))
       =
-      trigger (Yield tid).
+      tau;; SModTr.HoareYield tid.
   Proof using.
-    rewrite vis_yield. unfold trigger.
-    eapply observe_eta; ss. f_equal. extensionalities. rewrite ret. eauto.
+    rewrite vis_yield. f_equal. f_equal.
+    eapply observe_eta; ss. f_equal. extensionalities. ired.
+    f_equal. extensionalities. ired. f_equal. extensionalities. rewrite ret. et.
   Qed.
 
   Lemma spawn fn args

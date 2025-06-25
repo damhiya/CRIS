@@ -139,4 +139,4 @@ Proof.
       by_coind "CIH"; et.
     + rewrite SBRed.bind SBRed.io HIRed.core.
       step. steps_l. by_coind "CIH"; et.
-(*SLOW*)Admitted.
+(*SLOW*)Qed.

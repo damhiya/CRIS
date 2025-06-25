@@ -72,10 +72,10 @@ Section wsim.
 
   (* Simulation relation that corresponds to iris' weakest precondition *)
   Local Definition wsim_def
-      fl_s fl_t Ist (t : option bool) υ ν E r g R_s R_t RR ps pt nths st_s st_t
+      fl_s fl_t Ist my_tid (t : option bool) υ ν E r g R_s R_t RR ps pt nths st_s st_t
       : iProp Σ :=
     wsim_pre t υ ν E -∗
-    @isim Σ open fl_s fl_t Ist r g R_s R_t RR ps pt nths st_s st_t.
+    @isim Σ open fl_s fl_t Ist my_tid r g R_s R_t RR ps pt nths st_s st_t.
   Local Definition wsim_aux : seal (@wsim_def). Proof using. by eexists. Qed.
   Definition wsim := wsim_aux.(unseal).
   Local Definition wsim_eq : @wsim = @wsim_def := wsim_aux.(seal_eq).
@@ -97,9 +97,9 @@ Section wsim.
   Next Obligation. intros; iSplit; iIntros "[$ $]". Qed.
 
   Lemma wsim_own_alloc `{!inG A Σ} (a : A) (VAL : ✓ a)
-    fl_s fl_t Ist b υ ν R_s R_t RR ps pt nths r g E st_s st_t i_s i_t :
-    ((∃ γ, own γ a) -∗ wsim fl_s fl_t Ist (Some b) υ ν E r g R_s R_t RR ps pt nths (st_s, i_s) (st_t, i_t))
-    ⊢ wsim fl_s fl_t Ist (Some b) υ ν E r g R_s R_t RR ps pt nths (st_s, i_s) (st_t, i_t).
+    fl_s fl_t Ist my_tid b υ ν R_s R_t RR ps pt nths r g E st_s st_t i_s i_t :
+    ((∃ γ, own γ a) -∗ wsim fl_s fl_t Ist my_tid (Some b) υ ν E r g R_s R_t RR ps pt nths (st_s, i_s) (st_t, i_t))
+    ⊢ wsim fl_s fl_t Ist my_tid (Some b) υ ν E r g R_s R_t RR ps pt nths (st_s, i_s) (st_t, i_t).
   Proof using.
     destruct b; unseal; iIntros "SIM [O PRE]"; iMod (own_alloc a with "O") as "[O o]"; ss.
     all: iApply ("SIM" with "o"); iFrame.
@@ -109,8 +109,9 @@ Section wsim.
 
   Context (fl_s fl_t : alist (option string) (Any.t → itree hmodE Any.t)).
   Context (Ist : nat → alist key Any.t → alist key Any.t → iProp Σ).
+  Context (my_tid : nat).
 
-  Local Notation wsim := (wsim fl_s fl_t Ist).
+  Local Notation wsim := (wsim fl_s fl_t Ist my_tid).
 
   Context (t : option bool).
   Context (υ ν : univ_id).
@@ -129,7 +130,8 @@ Section wsim.
     Ist nths st_s st_t ∗
     (∀ ret nths' st_s' st_t'
       (NODS : List.NoDup (List.map fst st_s'))
-      (NODD : List.NoDup (List.map fst st_t')),
+      (NODD : List.NoDup (List.map fst st_t'))
+      (NTHS: nths <= nths'),
       Ist nths' st_s' st_t' -∗
       wsim t υ ν E r g R_s R_t RR true true nths' (st_s', k_s ret) (st_t', k_t ret)) ⊢
     wsim t υ ν E r g R_s R_t RR ps pt nths
@@ -137,7 +139,7 @@ Section wsim.
   Proof using.
     unseal; iIntros "[IST CONT] I".
     rewrite -isim_call; iFrame.
-    iIntros (??????) "IST"; iApply ("CONT" with "[] [] [IST]"); iFrame; try iPureIntro; ss.
+    iIntros (???????) "IST". iApply ("CONT" with "[] [] [] [IST]"); et; iFrame.
   Qed.
 
   Lemma wsim_call_sandbox r g E k_s k_t fn arg img_src img_tgt (msk_src msk_tgt:_→bool) scp_src scp_tgt:
@@ -145,7 +147,8 @@ Section wsim.
     Ist nths st_s st_t ∗
     (∀ ret nths' st_s' st_t'
       (NODS : List.NoDup (List.map fst st_s'))
-      (NODD : List.NoDup (List.map fst st_t')),
+      (NODD : List.NoDup (List.map fst st_t'))
+      (NTHS: nths <= nths'),
       Ist nths' st_s' st_t' -∗
       wsim t υ ν E r g R_s R_t RR true true nths' (st_s', k_s ret) (st_t', k_t ret)) ⊢
     wsim t υ ν E r g R_s R_t RR ps pt nths
@@ -153,8 +156,9 @@ Section wsim.
       (st_t, SB.sandbox img_tgt msk_tgt scp_tgt (trigger (Call fn arg)) >>= k_t).
   Proof using.
     i. unseal. iIntros "[IST RR] I". iApply isim_call_sandbox; et. iFrame.
-    iIntros (? ? ? ? ? ?) "IST".
-    iSpecialize ("RR" $! vret nths0 _ _ NODS NODD). iApply ("RR" with "IST I").
+    iIntros (? ? ? ? ? ? ?) "IST".
+    iSpecialize ("RR" $! vret nths0 _ _ NODS NODD NTHS).
+    iApply ("RR" with "IST I").
   Qed.
 
   Lemma wsim_io r g fn I O (arg : I) k_s k_t E :
@@ -369,19 +373,19 @@ Section wsim.
     i. unseal. iIntros "RR I". iApply isim_spawn_sandbox; et.
     iApply ("RR" with "I").
   Qed.
-  
+
   Lemma wsim_yield r g tid k_s k_t E :
     Ist nths st_s st_t ∗
-    (∀ nths' st_s' st_t' (NODS : List.NoDup (map fst st_s')) (NODT : List.NoDup (map fst st_t')),
+    (∀ nths' st_s' st_t' (NODS : List.NoDup (map fst st_s')) (NODT : List.NoDup (map fst st_t')) (NTHS: nths <= nths'),
       Ist nths' st_s' st_t' -∗
       wsim t υ ν E r g R_s R_t RR true true nths'
-        (st_s', k_s tt) (st_t', k_t tt)) ⊢
+        (st_s', k_s my_tid) (st_t', k_t my_tid)) ⊢
     wsim t υ ν E r g R_s R_t RR ps pt nths
       (st_s, trigger (Yield tid) >>= k_s)
       (st_t, trigger (Yield tid) >>= k_t).
   Proof using.
     unseal; iIntros "[IST C] I". iApply isim_yield; eauto. iFrame.
-    iIntros (?????) "IST"; iApply ("C" with "[] [] [IST] [I]"); iFrame; iPureIntro; ss.
+    iIntros (??????) "IST"; iApply ("C" with "[] [] [] [IST] [I]"); iFrame; et.
   Qed.
 
   Lemma wsim_reset r g i_s i_t E :
@@ -436,15 +440,16 @@ Section wsim.
 
   Lemma wsim_bind r g {Qs Qt} QQ i_s i_t k_s k_t E :
     wsim t υ ν E r g Qs Qt QQ ps pt nths (st_s, i_s) (st_t, i_t)
-    ∗ (∀ nths st_s' r_s st_t' r_t,
-        QQ nths (st_s', r_s) (st_t', r_t)
-        -∗ wsim None υ ν E r g R_s R_t RR false false nths (st_s', k_s r_s) (st_t', k_t r_t))%I
+    ∗ (∀ nths' st_s' r_s st_t' r_t (NTHS: nths <= nths'),
+        QQ nths' (st_s', r_s) (st_t', r_t)
+        -∗ wsim None υ ν E r g R_s R_t RR false false nths' (st_s', k_s r_s) (st_t', k_t r_t))%I
     ⊢ (wsim t υ ν E r g R_s R_t RR ps pt nths (st_s, i_s >>= k_s) (st_t, i_t >>= k_t)).
   Proof using.
     rewrite wsim.wsim_eq /wsim.wsim_def /wsim.wsim_pre.
     iIntros "[W SIM] INV". iApply isim_bind.
     iSplitL "W INV". { iApply "W"; eauto. }
-    iIntros (? ? ? ? ?) "Q". iApply ("SIM" with "Q"). done.
+    iIntros (? ? ? ? ? ?) "Q". iSpecialize ("SIM" $! _ _ _ _ _ NTHS).
+    iApply ("SIM" with "Q"). done.
   Qed.
 
   (* ginv related lemmas *)
@@ -840,13 +845,13 @@ Section wsim.
   (* Primitive simulation rules *)
   Lemma wsim_init sti_s sti_t :
     wsim None υ ν ⊤ ibot ibot R_s R_t RR ps pt nths sti_s sti_t ⊢
-    @isim Σ open fl_s fl_t Ist ibot ibot R_s R_t RR ps pt nths sti_s sti_t.
+    @isim Σ open fl_s fl_t Ist my_tid ibot ibot R_s R_t RR ps pt nths sti_s sti_t.
   Proof using.
     unseal. s. iIntros "H". iApply "H"; et.
   Qed.
 
   Lemma wsim_final sti_s sti_t :
-    @isim Σ open fl_s fl_t Ist ibot ibot R_s R_t RR ps pt nths sti_s sti_t ⊢
+    @isim Σ open fl_s fl_t Ist my_tid ibot ibot R_s R_t RR ps pt nths sti_s sti_t ⊢
     wsim None υ ν ⊤ ibot ibot R_s R_t RR ps pt nths sti_s sti_t.
   Proof using.
     unseal. iIntros "H _". et.
@@ -899,8 +904,9 @@ Section Proph.
 
   Context (fl_s fl_t : alist (option string) (Any.t → itree hmodE Any.t)).
   Context (Ist : nat → alist key Any.t → alist key Any.t → iProp Σ).
+  Context (my_tid: nat).
 
-  Local Notation wsim := (wsim fl_s fl_t Ist).
+  Local Notation wsim := (wsim fl_s fl_t Ist my_tid).
 
   Context (t : option bool).
   Context (υ ν : univ_id).

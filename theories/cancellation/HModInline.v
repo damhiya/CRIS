@@ -320,4 +320,4 @@ Proof using.
     - rewrite SBRed.io HIRed.core SBRed.bind SBRed.io !bind_trigger.
       gstep. econs. i. r. rewrite SBRed.tau. gstep. econs. gbase; eauto.
   }
-(*SLOW*)Admitted.
+(*SLOW*)Qed.

@@ -1,7 +1,7 @@
 Require Import CRIS.
 From iris Require Import frac_auth.
 
-Require Import SchHeader.
+Require Import SchHeader SchI.
 Require Import CallFilter.
 
 Set Implicit Arguments.
@@ -9,7 +9,7 @@ Set Implicit Arguments.
 Local Open Scope Qp.
 
 Section SchRA.
-  Context `{!sinvG Γ Σ α β τ _I _S}.
+  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
 
   Canonical Structure SynDepO : ofe := leibnizO {n & GTerm.t n}.
 
@@ -334,58 +334,47 @@ End SchAS. End SchAS.
 
 Module SchA. Section SchA.
   Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
+  Context `{_stidG: !stidG}.
   Context `{_schG: !schG}.
 
   Definition scopes := ["Sch"].
-  Definition v_internal := "Sch" ↯ "internal".
 
-  Definition trigger_Yield (nxt_tid: nat) : itree hmodE unit :=
-    cput v_internal true;;;
-    trigger (Yield nxt_tid);;;
-    _internal <- cgetU v_internal;;
-    assume (_internal = true);;;
-    cput v_internal false
-  .
+  (* Definition _spawn : (nat * string * SAny.t) -> itree hmodE unit := *)
+  (*   fun '(pa_tid, fn, varg) => *)
+  (*     trigger (Yield pa_tid);;; *)
+  (*     trigger (Call fn varg↑);;; *)
+  (*     Sch.terminate *)
+  (* . *)
 
-  Definition _spawn : (nat * string * SAny.t) -> itree hmodE unit :=
-    fun '(pa_tid, fn, varg) =>
-      trigger_Yield pa_tid;;;
-      trigger (Call fn varg↑);;;
-      Sch.terminate
-  .
+  (* Definition spawn : (string * SAny.t) -> itree hmodE nat := *)
+  (*   fun '(fn, varg) => *)
+  (*     my_tid <- trigger (Choose nat);; *)
+  (*     tid <- trigger (Spawn SchHdr._spawn (my_tid, fn, varg)↑);; *)
+  (*     Ret tid *)
+  (* . *)
 
-  Definition spawn : (string * SAny.t) -> itree hmodE nat :=
-    fun '(fn, varg) =>
-      my_tid <- trigger (Choose nat);;
-      tid <- trigger (Spawn SchHdr._spawn (my_tid, fn, varg)↑);;
-      _internal <- cgetU v_internal;;
-      assume (_internal = true);;;
-      cput v_internal false;;;
-      Ret tid
-  .
+  (* Definition yield: unit -> itree hmodE unit := *)
+  (*   fun _ => *)
+  (*     tid <- trigger (Choose nat);; *)
+  (*     trigger_Yield tid *)
+  (* . *)
 
-  Definition yield: unit -> itree hmodE unit :=
-    fun _ =>
-      tid <- trigger (Choose nat);;
-      trigger_Yield tid
-  .
-
-  Definition join: nat -> itree hmodE (option SAny.t) :=
-    fun _ =>
-      Sch.yield;;;
-      trigger (Choose (option SAny.t))
-  .
+  (* Definition join: nat -> itree hmodE (option SAny.t) := *)
+  (*   fun _ => *)
+  (*     Sch.yield;;; *)
+  (*     trigger (Choose (option SAny.t)) *)
+  (* . *)
 
   Definition fnsems υ Sp_user : alist (option string) (fnsem_type (option fspec * fbody)) :=
-    [(Some SchHdr._spawn, (true, wmask_all, scopes, (Some (SchAS._spawn_spec υ Sp_user), (cfunN _spawn))));
-     (Some SchHdr.spawn,  (true, wmask_all, scopes, (Some (SchAS.spawn_spec υ Sp_user),  (cfunU spawn))));
-     (Some SchHdr.yield,  (true, wmask_all, scopes, (Some (SchAS.yield_spec υ),          (cfunU yield))));
-     (Some SchHdr.join,   (true, wmask_all, scopes, (Some (SchAS.join_spec υ),           (cfunU join))))].
+    [(Some SchHdr._spawn, (true, wmask_all, scopes, (Some (SchAS._spawn_spec υ Sp_user), (cfunN SchI._spawn))));
+     (Some SchHdr.spawn,  (true, wmask_all, scopes, (Some (SchAS.spawn_spec υ Sp_user),  (cfunU SchI.spawn))));
+     (Some SchHdr.yield,  (true, wmask_all, scopes, (Some (SchAS.yield_spec υ),          (cfunU SchI.yield))));
+     (Some SchHdr.join,   (true, wmask_all, scopes, (Some (SchAS.join_spec υ),           (cfunU SchI.join))))].
 
   Program Definition Mod υ Sp_user : SMod.t := {|
     SMod.scopes := scopes;
     SMod.fnsems := fnsems υ Sp_user;
-    SMod.initial_st := [(v_internal, false↑)];
+    SMod.initial_st := SchI.Mod.(SMod.initial_st);
   |}.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
@@ -399,9 +388,10 @@ End SchA. End SchA.
 
 Module SchAPure. Section SchAPure.
   Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
+  Context `{_stidG: !stidG}.
   Context `{_schG: !schG}.
                     
-  Definition scopes := ["Tid"].
+  Definition scopes : list string := [].
 
   Definition fnsems υ : alist (option string) (fnsem_type (option fspec * fbody)) :=
     [(Some SchHdr.get_tid, (true, wmask_all, scopes, (Some (SchAS.get_tid_spec υ), fbody_trivial)))].

@@ -35,11 +35,11 @@ Section EXEC.
                  | Call fn arg => fun k =>
                                     bd <- (prog fn)? ;;
                                     Ret (inl (tid, base.insert tid (x <- bd arg;; tau;; k x) ths))
-                 | Spawn fn arg => fun k =>
+                 | Spawn fn arg => fun k => let new_tid := List.length ths in
                                      bd <- (prog fn)? ;;
-                                     Ret (inl (tid, (base.insert tid (k (List.length ths)) ths) ++ [bd arg]))
+                                     Ret (inl (tid, (base.insert tid (k new_tid) ths) ++ [bd arg]))
                  | Yield tid' => fun k =>
-                                   Ret (inl (tid', base.insert tid (k tt) ths))
+                                   Ret (inl (tid', base.insert tid (k tid) ths))
                  end k)
           end
       end.

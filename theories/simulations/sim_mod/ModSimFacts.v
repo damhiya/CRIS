@@ -76,8 +76,8 @@ Proof.
       rewrite list.list_lookup_insert_ne in INT; try nia.
       eapply SIM; eauto; des_ifs.
       eapply le_mine_trans; [apply MSIM| |eauto].
-      rr in WLE. des. rr. i. rewrite <-WLE1; try nia. rewrite IN.
-      esplits; eauto. apply MSIM.
+      rr in WLE. des. rr. split; try nia. i. rewrite <-WLE1; try nia.
+      rewrite IN. esplits; eauto. apply MSIM.
     }
 
     rewrite !list.list_lookup_insert in INS; try nia. inv INS.
@@ -94,6 +94,7 @@ Proof.
     i. rr in SIM0. des; subst.
     do 2 (guclo sim_itree_indC_spec; econs). grind.
     gfinal. right. eapply K; eauto.
+    rewrite length_insert in WF0. nia.
 
   - rewrite !unfold_iterV. s. rewrite LKS LKT. grind.
     unfold ModTr.pure_state. grind. zstep. zstep_l. zstep_r. subst.
@@ -299,8 +300,9 @@ Proof.
         rewrite lookup_app_l in INT; cycle 1.
         { rewrite length_insert. nia. }
         rewrite list.list_lookup_insert_ne in INT; try nia.
-        eapply SIM; eauto; des_ifs.
-        ii. eapply WLE. rewrite lookup_app_l; eauto using lookup_lt_Some.
+        eapply SIM; eauto; des_ifs. destruct WLE. split.
+        { rewrite length_app in H. ss. nia. }
+        ii. eapply H0. rewrite lookup_app_l; eauto using lookup_lt_Some.
       }
       subst.
       rewrite (list_lookup_middle _ []) in INS; cycle 1.
@@ -338,7 +340,8 @@ Proof.
       - rewrite list.list_lookup_insert_ne in INS; try nia.
         rewrite list.list_lookup_insert_ne in INT; try nia.
         eapply SIM; eauto; des_ifs; eauto.
-        + ii. red in WLE. des. rewrite <-WLE0. rewrite IN.
+        + rewrite length_insert in WF0. split; try nia.
+          ii. red in WLE. des. rewrite <-WLE0. rewrite IN.
           esplits; eauto. apply MSIM. eauto.
         + rewrite WF0 length_insert. eauto.
     }
@@ -346,11 +349,13 @@ Proof.
       - rewrite !list.list_lookup_insert in INS; try nia. inv INS.
         rewrite !list.list_lookup_insert in INT; try nia. inv INT.
         eexists. eapply K; eauto.
+        destruct WLE, WLE0. nia.
       - rewrite list.list_lookup_insert_ne in INS; try nia.
         rewrite list.list_lookup_insert_ne in INT; try nia.
         eapply SIM; eauto; des_ifs; eauto.
         eapply le_mine_trans; [apply MSIM| |eauto].
-        ii. red in WLE. des. rewrite <-WLE1. rewrite IN.
+        destruct WLE. split; try nia.
+        ii. rewrite <-H0. rewrite IN.
         esplits; eauto. apply MSIM. eauto.
     }
 

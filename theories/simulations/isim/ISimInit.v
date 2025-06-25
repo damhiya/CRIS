@@ -14,7 +14,7 @@ Proof.
   rewrite /state_scopes -!List.map_map alist_upd_keys. eauto.
 Qed.
 
-Lemma isim_refl `{Σ : GRA} r g contextual Ist fl_src fl_tgt img msk scp
+Lemma isim_refl `{Σ : GRA} r g contextual Ist my_tid fl_src fl_tgt img msk scp
   ps pt nths st_src st_tgt {R} (it: itree hmodE R)
   (MON: Ist_monotone Ist)
   (EQGET : ∀ nths st_src st_tgt (k: key) (IN: In k.1 scp)
@@ -27,7 +27,7 @@ Lemma isim_refl `{Σ : GRA} r g contextual Ist fl_src fl_tgt img msk scp
       Ist nths st_src st_tgt -∗ Ist nths (alist_upd k v st_src) (alist_upd k v st_tgt))
   :
   Ist nths st_src st_tgt
-  ⊢ isim contextual fl_src fl_tgt Ist r g (ist_with_eq Ist) ps pt nths
+  ⊢ isim contextual fl_src fl_tgt Ist my_tid r g (ist_with_eq Ist) ps pt nths
     (st_src, SB.sandbox img msk scp it)
     (st_tgt, SB.sandbox img msk scp it).
 Proof.
@@ -52,13 +52,13 @@ Proof.
   - depdes c.
     + isteps_l. isteps_r. rewrite SBRed.call. des_ifs.
       * iApply isim_call. iSplitL "IST"; et.
-        iIntros (? ? ? ? ? ?) "IST".
+        iIntros (? ? ? ? ? ? ?) "IST".
         iby_coind "CIH". et.
       * isteps_l. ss.
     + isteps_l. isteps_r. rewrite SBRed.spawn. des_ifs.
       * iApply isim_spawn. iby_coind "CIH". iApply MON; [|eauto]; nia.
       * isteps_l. ss.
-    + iyield "IST"; eauto. iby_coind "CIH". eauto.
+    + iyield "IST".  eauto. iby_coind "CIH". eauto.
   - depdes s.
     + rewrite !SBRed.bind !SBRed.put. des_ifs; cycle 1.
       { isteps_l. ss. }
@@ -347,12 +347,14 @@ Proof.
 Qed.
 
 Section Proph.
-  Context `{Σ : GRA}.
+  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
+  Context `{_stidG: !stidG}.
+  
   Variable contextual: contextuality.
 
   Lemma isim_fsem_proph_to_normal fsp bd_s bd_t msk sp scp fls flt
-    (SIM: ∀ arg nths st,
-        ⊢ isim contextual fls flt IstEq ibot ibot (ist_with_eq IstEq) true true nths
+    (SIM: ∀ arg my_tid nths st (TID: my_tid < nths),
+        ⊢ isim contextual fls flt IstEq my_tid ibot ibot (ist_with_eq IstEq) true true nths
           (st, SB.sandbox true  msk scp (SModTr.trans sp      (bd_s arg)))
           (st, SB.sandbox false msk scp (SModTr.trans sp_none (bd_t arg))))
     :
@@ -365,8 +367,8 @@ Section Proph.
     rewrite /SModTr.HoareFun. s.
     isteps_l. iDestruct "ASM" as "[P %]"; subst.
     iforce_r. iFrame. iIntros (?) "Q". isteps_r.
-    iApply isim_bind. iSplitR "Q"; [iApply SIM|].
-    iIntros (? ? ? ? ?) "[% %]". subst.
+    iApply isim_bind. iSplitR "Q"; [iApply SIM|]; try nia.
+    iIntros (? ? ? ? ? ?) "[% %]". subst.
     isteps_r. iMod ("Q" with "GRT") as "Q".
     iforce_l. iforce_l. iFrame. iSplit; et.
     istep. iSplit; et.

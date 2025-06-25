@@ -203,7 +203,7 @@ Proof.
 
 
     
-(*SLOW*)Admitted.
+(*SLOW*)Qed.
 
 Lemma cancel_main md rs
     (WFSP: sp_wf md)
@@ -243,7 +243,7 @@ Proof.
   - eapply (@elim_rel_refl _ true); et.
     left. esplits; et.
 Unshelve. all: exact smj_top.
-(*SLOW*)Admitted.
+(*SLOW*)Qed.
 
 (*** Final Theorem ***)
 Theorem cancellation md P
@@ -265,4 +265,4 @@ Proof.
   }
   inv WFM. s; i. exists rs. esplits; et.
   eapply cancel_main; eauto.
-(*SLOW*)Admitted.
+(*SLOW*)Qed.
