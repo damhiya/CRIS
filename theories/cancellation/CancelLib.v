@@ -10,15 +10,21 @@ Section CancelLib.
   Definition sp_from (md: SMod.t) : sp_type :=
     to_sp (List.map (map_snd (fst ∘ snd)) md.(SMod.fnsems)).
 
-  (* Definition valid_params (md: SMod.t) img msk scp : Prop := *)
-  (*   (∃ fno fspo bd, alist_find fno (SMod.fnsems md) = Some (img, msk, scp, (fspo, bd))). *)
+  Definition smod_wf (md: SMod.t) :=
+    ∀ fn msk scp fspo bd
+      (FIND: alist_find (Some fn) (SMod.fnsems md) = Some (false, msk, scp, (fspo, bd))),
+    fspo = None.
 
-  (* Definition has_real_spec (md: SMod.t) (fn: string) : Prop := *)
-  (*   ∃ msk scp, valid_params md false msk scp ∧ msk fn. *)
+  Definition valid_param (md: SMod.t) img msk scp :=
+    ∃ fno sbd, alist_find fno (SMod.fnsems md) = Some (img, msk, scp, sbd).
 
-  (* Definition sp_wf md : Prop := *)
-  (*   ∀ fn (NS: has_real_spec md fn), sp_from md fn = None. *)
+  Definition has_real_spec (md: SMod.t) (fn: string) : Prop :=
+    ∃ msk scp, valid_param md false msk scp ∧ msk fn.
 
+  Definition valid_sp (md: SMod.t) (sp: sp_type) : Prop :=
+    sp_imply (sp_from md) sp ∧
+    ∀ fn (NS: has_real_spec md fn), sp fn = None.
+  
   Definition Forall2i X Y (R: nat -> X -> Y -> Prop) (xs: list X) (ys: list Y) :=
     length xs = length ys ∧
     ∀ i x y (EQx: xs !! i = Some x) (EQy: ys !! i = Some y),

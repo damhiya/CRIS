@@ -3,7 +3,7 @@ From iris.proofmode Require Import proofmode.
 
 Require Import SModTr HModTr ModTr SMod HMod Mod.
 Require Import ITactics TacticsCommon SimGlobal SimGlobalFacts CtxRefine ClosedAdequacy.
-Require Import CancelLib HModInline InlineIntro InlineElim ElimRel.
+Require Import CancelLib HModInline HModInlineIntro HInlineElim ElimRel.
 Require Import SimGlobal SimGTactics.
 
 Set Implicit Arguments.

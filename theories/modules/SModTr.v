@@ -11,8 +11,10 @@ Module SModTr.
 Section HOARE.
   Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
 
-  Definition HoareCall fn (varg: Any.t) (fsp: fspec): itree hmodE Any.t
+  Definition HoareCall fn (varg: Any.t) (fspo: option fspec): itree hmodE Any.t
     :=
+    match fspo with
+    | Some fsp =>
       x <- trigger (Choose (meta fsp));;
     
       (*** precondition ***)
@@ -26,12 +28,17 @@ Section HOARE.
       vret <- trigger (Take Any.t);;
       trigger (Assume (postcond fsp x vret ret));;;
 
-      Ret vret.
+      Ret vret
+    | None =>
+      trigger (Call fn varg)
+    end.
 
-  Definition HoareFun (fsp: fspec) (body: Any.t → itree hmodE Any.t)
+  Definition HoareFun (fspo: option fspec) (body: Any.t → itree hmodE Any.t)
     : Any.t → itree hmodE Any.t
     :=
-    λ arg,
+    match fspo with
+    | Some fsp =>
+      λ arg,
       x <- trigger (Take (meta fsp));;
       varg <- trigger (Take Any.t);;
       trigger (Assume (precond fsp x varg arg));;; (*** precondition ***)
@@ -41,27 +48,35 @@ Section HOARE.
       ret <- trigger (Choose Any.t);;
       trigger (Guarantee (postcond fsp x vret ret));;; (*** postcondition ***)
 
-      Ret ret.
+      Ret ret
+    | None =>
+      body
+    end.             
 
   Definition HoareYield (tid: nat) : itree hmodE nat :=
     trigger (Guarantee (stid tid));;;
     my_tid <- trigger (Yield tid);;
     trigger (Assume (stid my_tid));;;
     Ret my_tid.
-  
-  Definition HoareSpawn fn (varg: Any.t) (fsp: fspec) : itree hmodE nat :=
-    x <- trigger (Choose (meta fsp));; 
-    arg <- trigger (Choose Any.t);; 
-    trigger (Guarantee (precond fsp x varg arg));;;
-    tid <- trigger (Spawn fn arg);;
-    trigger (Yield tid);;;
-    trigger (Assume (stid tid));;;
-    Ret tid.
 
   Definition NativeSpawn `{Σ: GRA} (fn: string) (arg: Any.t) : itree hmodE nat :=
     tid <- trigger (Spawn fn arg);;
     trigger (Yield tid);;;
     Ret tid.
+  
+  Definition HoareSpawn fn (varg: Any.t) (fspo: option fspec) : itree hmodE nat :=
+    match fspo with
+    | Some fsp =>
+      x <- trigger (Choose (meta fsp));; 
+      arg <- trigger (Choose Any.t);; 
+      trigger (Guarantee (precond fsp x varg arg));;;
+      tid <- trigger (Spawn fn arg);;
+      trigger (Yield tid);;;
+      trigger (Assume (stid tid));;;
+      Ret tid
+    | None =>
+      NativeSpawn fn varg
+    end.
 
   Definition handle (sp: sp_type): hmodE ~> itreeV hmodE.
   Proof.
@@ -71,12 +86,10 @@ Section HOARE.
     { destruct c.
       - (* Call *)
         exact
-          (inl (map_or_else (sp fn) (HoareCall fn args)
-                                    (trigger (Call fn args)))).
+          (inl (HoareCall fn args (sp fn))).
       - (* Spawn *)
         exact
-          (inl (map_or_else (sp fn) (HoareSpawn fn args)
-                                    (NativeSpawn fn args))).
+          (inl ((HoareSpawn fn args) (sp fn))).
       - (* Yield *)
         exact (inl (HoareYield tid)).
     }
@@ -89,7 +102,7 @@ Section HOARE.
     interpV (handle sp) it.
 
   Definition trans_body : (sp_type * option fspec) → fbody → fbody :=
-    λ '(sp,fsp) bd, map_or_else fsp HoareFun id (trans sp ∘ bd).
+    λ '(sp,fsp) bd, HoareFun fsp (trans sp ∘ bd).
 
   Definition trans_ktree sp (sb: fnsem_type (option fspec * fbody)) : fnsem_type fbody :=
     map_snd (λ '(fsp,bd), trans_body (if sb.1.1.1 then (sp, fsp) else (sp_none, None)) bd) sb.
@@ -155,8 +168,7 @@ Section RED.
   Lemma vis_spawn {R} fn args (ktr : nat -> itree hmodE R) :
     SModTr.trans sp (vis (Spawn fn args) ktr) =
       tau;;
-      x <- map_or_else (sp fn) (SModTr.HoareSpawn fn args)
-                               (SModTr.NativeSpawn fn args) ;;
+      x <- SModTr.HoareSpawn fn args (sp fn);;
       SModTr.trans sp (ktr x).
   Proof using.
     unfold SModTr.trans. rewrite interpV_vis.
@@ -166,8 +178,7 @@ Section RED.
   Lemma vis_call {R} fn args (ktr : Any.t -> itree hmodE R) :
     SModTr.trans sp (vis (Call fn args) ktr) =
       tau;;
-      x <- map_or_else (sp fn) (SModTr.HoareCall fn args)
-                               (trigger (Call fn args)) ;;
+      x <- SModTr.HoareCall fn args (sp fn);;
       SModTr.trans sp (ktr x).
   Proof using.
     unfold SModTr.trans. rewrite interpV_vis.
@@ -232,11 +243,10 @@ Section RED.
     SModTr.trans sp (trigger (Spawn fn args))
     =
     tau;;
-    map_or_else (sp fn) (SModTr.HoareSpawn fn args)
-                        (SModTr.NativeSpawn fn args).
+    SModTr.HoareSpawn fn args (sp fn).
   Proof using.
     rewrite vis_spawn. do 3 f_equal.
-    rewrite -{2}(bind_ret_r (map_or_else _ _ _)).
+    rewrite -{2}(bind_ret_r (SModTr.HoareSpawn _ _ _)).
     f_equal. extensionalities. rewrite ret. et.
   Qed.
   
@@ -245,11 +255,10 @@ Section RED.
     SModTr.trans sp (trigger (Call fn args))
     =
     tau;;
-    map_or_else (sp fn) (SModTr.HoareCall fn args)
-                        (trigger (Call fn args)).
+    SModTr.HoareCall fn args (sp fn).
   Proof using.
     rewrite vis_call. do 3 f_equal.
-    rewrite -{2}(bind_ret_r (map_or_else _ _ _)).
+    rewrite -{2}(bind_ret_r (SModTr.HoareCall _ _ _)).
     f_equal. extensionalities. rewrite ret. et.
   Qed.
 

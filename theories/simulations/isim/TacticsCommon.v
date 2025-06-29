@@ -283,7 +283,7 @@ Tactic Notation "red_S" hyp(prg) tactic(tac) :=
       | vis (Spawn ?fn _) _ =>
           _hprogress prg; etransitivity;
           [ eapply SRed.vis_spawn
-          | unfold map_or_else, SModTr.HoareSpawn, SModTr.NativeSpawn;
+          | unfold SModTr.HoareSpawn, SModTr.NativeSpawn;
             unfold_sp_exact sp fn; s;
             tac
           ]
@@ -296,7 +296,7 @@ Tactic Notation "red_S" hyp(prg) tactic(tac) :=
       | vis (Call ?fn _) _ =>
           _hprogress prg; etransitivity;
           [ eapply SRed.vis_call
-          | unfold map_or_else, SModTr.HoareCall;
+          | unfold SModTr.HoareCall;
             unfold_sp_exact sp fn; s;
             tac
           ]
