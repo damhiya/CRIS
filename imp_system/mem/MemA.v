@@ -3,15 +3,14 @@ From iris.algebra Require Import auth excl agree csum functions dfrac_agree.
 Set Implicit Arguments.
 
 (* Memory resource algebra *)
-(* Coercion memGS >-> inG memRA Γ is global since it can be used in other modules *)
 Section MemRA.
-  Context `{!sinvG Γ Σ α β τ _I _S}.
+  Context `{!crisG  Γ Σ α β τ _S _I _T}.
 
   Canonical Structure valO := leibnizO val.
   Definition frac_valO := dfrac_agreeR valO.
   Definition _memRA := (mblock -d> Z -d> optionUR frac_valO).
   Definition memRA := authUR _memRA.
-  Class memG `{!sinvG Γ Σ α β τ _I _S} := {
+  Class memG `{!crisG  Γ Σ α β τ _S _I _T} := {
     mem_inG :: inG memRA Γ;
   }.
   Definition memΓ : HRA := #[memRA].
@@ -21,7 +20,7 @@ End MemRA.
 Hint Unfold subG_memG mem_inG : GRA_index.
 
 Section MEM.
-  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
+  Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
   Context `{_memG: !memG}.
    
   (* Initial resources for memory *)
@@ -75,7 +74,7 @@ End MEM.
 Local Arguments Z.of_nat : simpl nomatch.
 
 Section MemRA.
-  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
+  Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
   Context `{_memG: !memG}.
 
   Definition mem_val : Type := Qp * val.
@@ -136,7 +135,7 @@ Global Opaque mem_points_to_singleton_r.
 Arguments mem_points_to_singleton_r : simpl never.
 
 Module MemSpec. Section MemSpec.
-  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
+  Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
   Context `{_memG: !memG}.
 
   Definition alloc := 
@@ -203,7 +202,7 @@ Module MemSpec. Section MemSpec.
 End MemSpec. End MemSpec.
 
 Module MemP. Section MemP.
-  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
+  Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
   Context `{_memG: !memG}.
 
   Definition scopes := ["Mem"].
@@ -240,7 +239,7 @@ Module MemP. Section MemP.
 End MemP. End MemP.
 
 Module MemA. Section MemA.
-  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
+  Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
   Context `{_memG: !memG}.
 
   Definition scopes := ["Mem"].

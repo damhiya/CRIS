@@ -6,7 +6,7 @@ Set Implicit Arguments.
 
 Module APCA. Section APCA.
   Import APC.
-  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
+  Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
 
   Definition scopes := ["APC"].
 

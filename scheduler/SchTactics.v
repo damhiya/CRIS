@@ -3,7 +3,7 @@ Require Import ITactics.
 
 Section wsim.
   Import SchAS.
-  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
+  Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
   Context `{_schG: !schG}.
 
   Local Definition state : Type := alist key Any.t.
@@ -19,27 +19,33 @@ Section wsim.
   Context (fl_s fl_t : alist string (Any.t → itree hmodE Any.t)).
   Context (Ist : nat → alist key Any.t → alist key Any.t → iProp Σ).
   Context (t : option bool).
-  Context (υ ν : univ_id).
-  Context (E : coPset).
   Context (R_s R_t : Type).
   Context (RR : post R_s R_t).
   Context (ps pt : bool).
   Context (nths : nat).
   Context (st_s st_t : state).
 
-  Lemma wsim_yield_tgt_u0 r g (msk_s msk_t:_→bool) sc_s sc_t sp sp_user k_s k_t my_tid
-    (SchInSp : sp_incl (SchAS.sp υ sp_user) sp)
-    :
+  Lemma wsim_yield_sp E_s r g (msk_s msk_t : _ → bool) sc_s sc_t sp sp_user k_s k_t my_tid :
+    sp_incl (SchAS.sp E_s sp_user) sp →
     msk_s SchHdr.yield → msk_t SchHdr.yield →
     Ist nths st_s st_t ∗ tid_user my_tid ∗
     (∀ nths st_s st_t (NODS: List.NoDup (List.map fst st_s)) (NODT: List.NoDup (List.map fst st_t)),
       Ist nths st_s st_t -∗ tid_user my_tid -∗
+(* <<<<<<< HEAD *)
       wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR ps true nths
         (st_s, (SB.sandbox msk_s sc_s (SModTr.trans sp Sch.yield)) >>= k_s)
         (st_t, k_t tt))
     ⊢ wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR ps pt nths
       (st_s, (SB.sandbox msk_s sc_s (SModTr.trans sp Sch.yield)) >>= k_s)
       (st_t, (SB.sandbox msk_t sc_t (PModTr.trans Sch.yield)) >>= k_t).
+(* ======= *)
+(*       wsim fl_s fl_t Ist (Some (E_s, E_s)) r g R_s R_t RR ps true nths *)
+(*         (st_s, (HModTr.sandbox msk_s sc_s (SModTr.trans sp Sch.yield)) >>= k_s) *)
+(*         (st_t, k_t tt)) *)
+(*     ⊢ wsim fl_s fl_t Ist (Some (E_s, E_s)) r g R_s R_t RR ps pt nths *)
+(*       (st_s, (HModTr.sandbox msk_s sc_s (SModTr.trans sp Sch.yield)) >>= k_s) *)
+(*       (st_t, (HModTr.sandbox msk_t sc_t (PModTr.trans Sch.yield)) >>= k_t). *)
+(* >>>>>>> master *)
   Proof using.
     i. rewrite !WSim.wsim_eq /WSim.wsim_def.
     iIntros "SIM P".
@@ -83,18 +89,17 @@ Section wsim.
     Unshelve. all: eauto.
   (*SLOW*)Qed.
 
-  Lemma wsim_yield_tgt_uu r g (msk_s msk_t:_→bool) sc_s sc_t sp_s sp_t sp_user_s sp_user_t k_s k_t
-    (SchInSpS : sp_incl (SchAS.sp υ sp_user_s) sp_s)
-    (SchInSpT : sp_incl (SchAS.sp υ sp_user_t) sp_t)
-    :
+  Lemma wsim_yield_tgt_ss E_s Ep r g (msk_s msk_t : _ → bool) sc_s sc_t sp_s sp_t sp_user_s sp_user_t k_s k_t :
+    sp_incl (SchAS.sp E_s sp_user_s) sp_s →
+    sp_incl (SchAS.sp E_s sp_user_t) sp_t →
     msk_s SchHdr.yield → msk_t SchHdr.yield →
     Ist nths st_s st_t ∗
     (∀ nths st_s st_t (NODS: List.NoDup (List.map fst st_s)) (NODD: List.NoDup (List.map fst st_t)),
       Ist nths st_s st_t -∗
-      wsim fl_s fl_t Ist None υ ν ⊤ r g R_s R_t RR ps true nths
+      wsim fl_s fl_t Ist Ep r g R_s R_t RR ps true nths
         (st_s, (HModTr.sandbox msk_s sc_s (SModTr.trans sp_s Sch.yield)) >>= k_s)
         (st_t, k_t tt))
-    ⊢ wsim fl_s fl_t Ist None υ ν ⊤ r g R_s R_t RR ps pt nths
+    ⊢ wsim fl_s fl_t Ist Ep r g R_s R_t RR ps pt nths
       (st_s, (HModTr.sandbox msk_s sc_s (SModTr.trans sp_s Sch.yield)) >>= k_s)
       (st_t, (HModTr.sandbox msk_t sc_t (SModTr.trans sp_t Sch.yield)) >>= k_t).
   Proof using.
@@ -140,20 +145,20 @@ Section wsim.
     Unshelve. all: eauto.
   (*SLOW*)Qed.
 
-  Lemma wsim_yield_tgt_uv r g (msk_s msk_t:_→bool) sc_s sc_t sp_s sp_t sp_user_s sp_user_t k_s k_t
-    (SchInSps : sp_incl (SchAS.sp υ sp_user_s) sp_s)
-    (SchInSpt : sp_incl (SchAS.sp ν sp_user_t) sp_t)
-    `{υ > ν}
-    :
+  Lemma wsim_yield_tgt_uv E_s E_s' E_t r g (msk_s msk_t : _ → bool) sc_s sc_t
+      sp_s sp_t sp_user_s sp_user_t k_s k_t :
+    sp_incl (SchAS.sp E_s sp_user_s) sp_s →
+    sp_incl (SchAS.sp E_t sp_user_t) sp_t →
     msk_s SchHdr.yield → msk_t SchHdr.yield →
+    E_s = E_t ∪ E_s' →
     Ist nths st_s st_t ∗
     (∀ nths st_s st_t
         (NODS: List.NoDup (List.map fst st_s)) (NODD: List.NoDup (List.map fst st_t)),
       Ist nths st_s st_t -∗
-      wsim fl_s fl_t Ist (Some false) υ ν ⊤ r g R_s R_t RR ps true nths
+      wsim fl_s fl_t Ist (Some (E_s', E_s')) r g R_s R_t RR ps true nths
         (st_s, (HModTr.sandbox msk_s sc_s (SModTr.trans sp_s Sch.yield)) >>= k_s)
         (st_t, k_t tt))
-    ⊢ wsim fl_s fl_t Ist (Some false) υ ν ⊤ r g R_s R_t RR ps pt nths
+    ⊢ wsim fl_s fl_t Ist (Some (E_s', E_s')) r g R_s R_t RR ps pt nths
       (st_s, (HModTr.sandbox msk_s sc_s (SModTr.trans sp_s Sch.yield)) >>= k_s)
       (st_t, (HModTr.sandbox msk_t sc_t (SModTr.trans sp_t Sch.yield)) >>= k_t).
   Proof using.
@@ -181,14 +186,16 @@ Section wsim.
     steps_r.
     unfold_iter_l; steps_l.
     force_l false; steps_l. iDestruct "GRT" as "[P' [[-> TID] _]]".
-    iDestruct "P" as "[O [W W']]"; iPoseProof ("W'" with "P'") as "> P".
-    forces_l. iFrame. iSplit; eauto.
+    iMod (wsim_ginv_merge with "[P P']") as "[P %]"; iFrame.
+
+    forces_l. iSplitL "P TID"; eauto.
+    { iFrame. iSplit; ss. }
     iApply isim_progress.
     steps_l.
 
     call "IST".
     steps_l. iDestruct "ASM" as "[P' [[-> TID] ->]]". hss. steps_l.
-    iPoseProof (wsim_ginv_split with "P'") as "> [U V]"; first eauto.
+    iPoseProof (wsim_ginv_split with "P'") as "[U V]"; ss.
     steps_r. forces_r. iFrame; iSplit; eauto. steps_r. hss. steps_r.
     iApply isim_base.
     iSpecialize ("CIH" $! _);
@@ -201,14 +208,10 @@ Section wsim.
     Unshelve. all: eauto.
   (*SLOW*)Qed.
 
-  Lemma wsim_yield_src r g (msk_s:_→bool) sc_s sp sp_user k_s i_t
-      (SchInSp : sp_incl (SchAS.sp υ sp_user) sp) :
-    wsim fl_s fl_t Ist t υ ν E r g R_s R_t RR true pt nths
-      (st_s, k_s tt)
-      (st_t, i_t)
-    ⊢ wsim fl_s fl_t Ist t υ ν E r g R_s R_t RR ps pt nths
-      (st_s, (HModTr.sandbox msk_s sc_s (SModTr.trans sp Sch.yield)) >>= k_s)
-      (st_t, i_t).
+  Lemma wsim_yield_src Ep r g (msk_s : _ → bool) sc_s sp k_s i_t :
+    wsim fl_s fl_t Ist Ep r g R_s R_t RR true pt nths (st_s, k_s tt) (st_t, i_t)
+    ⊢ wsim fl_s fl_t Ist Ep r g R_s R_t RR ps pt nths
+      (st_s, (HModTr.sandbox msk_s sc_s (SModTr.trans sp Sch.yield)) >>= k_s) (st_t, i_t).
   Proof using.
     iIntros "SIM".
     rewrite /Sch.yield; unseal "Sch".
@@ -216,12 +219,12 @@ Section wsim.
     force_l true; steps_l. iApply "SIM".
   Qed.
 
-  Lemma wsim_spawn fn vargs args fn_spec (P : SAny.t → SAny.t → iProp Σ) (Q : SAny.t → SAny.t → SynDepO)
-    r g (msk_s msk_t:_→bool) sc_s sc_t sp sp_user k_s k_t my_tid
-    (SchInSp : sp_incl (SchAS.sp υ sp_user) sp)
-    (CalleeInSp : sp_user fn = Some fn_spec)
-    (Spawnable : SchAS.fspec_spawnable υ fn_spec P Q)
-    :
+  Lemma wsim_spawn E_s fn vargs args fn_spec
+      (P : SAny.t → SAny.t → iProp Σ) (Q : SAny.t → SAny.t → SynDepO)
+      r g (msk_s msk_t : _ → bool) sc_s sc_t sp sp_user k_s k_t my_tid :
+    sp_incl (SchAS.sp E_s sp_user) sp →
+    sp_user fn = Some fn_spec →
+    SchAS.fspec_spawnable E_s fn_spec P Q →
     msk_s SchHdr.spawn  → msk_t SchHdr.spawn →
     Ist nths st_s st_t ∗
     tid_user my_tid ∗
@@ -230,13 +233,13 @@ Section wsim.
         Ist nths st_s st_t
         -∗ tid_user my_tid
         -∗ token_th tid Q
-        -∗ wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR true true nths
+        -∗ wsim fl_s fl_t Ist (Some (E_s, E_s)) r g R_s R_t RR true true nths
             (st_s, k_s tid) (st_t, k_t tid))
-    ⊢ wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR ps pt nths
+    ⊢ wsim fl_s fl_t Ist (Some (E_s, E_s)) r g R_s R_t RR ps pt nths
       (st_s, (HModTr.sandbox msk_s sc_s (SModTr.trans sp (Sch.spawn (fn, vargs)))) >>= k_s)
       (st_t, (HModTr.sandbox msk_t sc_t (PModTr.trans (Sch.spawn (fn, args)))) >>= k_t).
   Proof using.
-    i. iIntros "(I & TID & P & SIM)". rewrite /Sch.spawn; unseal "Sch".
+    iIntros (??CalleeInSp???) "(I & TID & P & SIM)". rewrite /Sch.spawn; unseal "Sch".
     steps_l. forces_l. iSplitL "P TID".
     { iExists (fn, vargs); iSplit; eauto.
       instantiate (1:=(fn, args)↑).
@@ -246,15 +249,14 @@ Section wsim.
     steps_l. steps_r.
 
     call "I".
-    steps_l. steps_r.
+    steps_l. steps_r. replace (E_s ∖ E_s ∪ E_s) with E_s by set_solver. 
     iDestruct "ASM" as (vr) "[% [[%tid [[-> ->] TKN]] TID]]". hss. steps_r.
     iApply ("SIM" $! _ nths' _ _ NODS NODD with "IST TID TKN").
   Qed.
 
-  Lemma wsim_join tid (Q : SAny.t → SAny.t → SynDepO)
-    r g (msk_s msk_t:_→bool) sc_s sc_t sp sp_user k_s k_t my_tid
-    (SchInSp : sp_incl (SchAS.sp υ sp_user) sp)
-    :
+  Lemma wsim_join E_s tid (Q : SAny.t → SAny.t → SynDepO)
+      r g (msk_s msk_t : _ → bool) sc_s sc_t sp sp_user k_s k_t my_tid
+      (SchInSp : sp_incl (SchAS.sp E_s sp_user) sp) :
     msk_s SchHdr.join  → msk_t SchHdr.join →
     Ist nths st_s st_t ∗
     tid_user my_tid ∗
@@ -263,9 +265,9 @@ Section wsim.
         Ist nths st_s st_t
         -∗ tid_user my_tid
         -∗ interp_cond (Q vret ret)
-        -∗ wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR true true nths
+        -∗ wsim fl_s fl_t Ist (Some (E_s, E_s)) r g R_s R_t RR true true nths
             (st_s, k_s vret) (st_t, k_t ret))
-    ⊢ wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR ps pt nths
+    ⊢ wsim fl_s fl_t Ist (Some (E_s, E_s)) r g R_s R_t RR ps pt nths
       (st_s, (HModTr.sandbox msk_s sc_s (SModTr.trans sp (Sch.join tid))) >>= k_s)
       (st_t, (HModTr.sandbox msk_t sc_t (PModTr.trans (Sch.join tid))) >>= k_t).
   Proof using.
@@ -278,6 +280,7 @@ Section wsim.
     call "IST".
     steps_l. iDestruct "ASM" as "(% & % & (% & % & % & Q) & TID)".
     subst; hss. steps_r. hss. steps_r. hss. step_r.
+    replace (E_s ∖ E_s ∪ E_s) with E_s by set_solver.
     iApply ("SIM" $! nths' _ _ _ _ NODS NODD with "IST TID Q").
   Qed.
 End wsim.
@@ -289,12 +292,11 @@ Ltac solve_sch_sp :=
 
 Ltac sch_yield_r_aux :=
   match goal with
-  | |- context [wsim _ _ _ ?t] =>
-    match t with
-    | Some true => iApply wsim_yield_tgt_u0
-    | Some false => iApply wsim_yield_tgt_uv
-    | None => iApply wsim_yield_tgt_uu
-    end;
+  | |- context [wsim _ _ _] =>
+    first [
+      iApply wsim_yield_sp |
+      iApply wsim_yield_tgt_uv; [eauto|eauto|eauto|eauto|try set_solver|idtac]
+    ];
     try solve_sch_sp;
     eauto
   end.

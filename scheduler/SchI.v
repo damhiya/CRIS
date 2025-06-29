@@ -9,8 +9,7 @@ Definition thslist: Type := list (nat * option SAny.t).
 Module SchI. Section SchI.
   Local Open Scope string_scope.
 
-  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
-  Context `{_stidG: !stidG}.
+  Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
 
   Definition scopes := ["Sch"].
   Definition v_ths := "Sch" ↯ "ths".

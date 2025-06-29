@@ -136,7 +136,7 @@ Export ListNotations.
 (* ************************************************************************** *)
 
 (** Coersion of bools into Prop *)
-Coercion is_true (b : bool) : Prop := b = true.
+Coercion is_true : bool >-> Sortclass.
 
 (** Hints for auto *)
 Lemma sflib__true_is_true : true.

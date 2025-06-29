@@ -9,23 +9,17 @@ Import APC.
 
 Section LEMMAS.
 
-Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
-  
+Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
+
 Lemma wsim_apc_src
-  is_closed fl fr Ist u0 u1 cP r g {Rs Rt} RR ps pt nths st_src st_tgt k_src i_tgt sp sp_pure
-  mask scopes (ow od: Ord.t)
-  :
-    (wsim fl fr Ist is_closed u0 u1 cP r g Rs Rt RR true pt nths
-      (st_src, k_src ())
-      (st_tgt, i_tgt))
-  ⊢
-    (wsim fl fr Ist is_closed u0 u1 cP r g Rs Rt RR ps pt nths
-      (st_src, ((HModTr.sandbox mask scopes (SModTr.trans sp (_APC od sp_pure ow))) >>= k_src))
-      (st_tgt, i_tgt)).
+    fl fr Ist cP r g {Rs Rt} RR ps pt nths st_src st_tgt k_src i_tgt sp sp_pure
+    mask scopes (ow od: Ord.t) :
+  wsim fl fr Ist cP r g Rs Rt RR true pt nths (st_src, k_src ()) (st_tgt, i_tgt) ⊢
+  wsim fl fr Ist cP r g Rs Rt RR ps pt nths
+    (st_src, ((HModTr.sandbox mask scopes (SModTr.trans sp (_APC od sp_pure ow))) >>= k_src))
+    (st_tgt, i_tgt).
 Proof using.
-  iIntros "ISIM".
-  rewrite unfold_APC. force_l true. steps_l.
-  iFrame.
+  iIntros "ISIM". rewrite unfold_APC. force_l true. steps_l. iFrame.
 Qed.
 
 (*
@@ -89,7 +83,7 @@ Qed.
 *)
 
 Lemma wsim_apc_src_call_tgt_weaker
-  fl fr Ist is_closed u0 u1 cP r g {Rs Rt} RR ps pt nths st_src st_tgt k_src k_tgt sp sp_pure
+  fl fr Ist Ep r g {Rs Rt} RR ps pt nths st_src st_tgt k_src k_tgt sp sp_pure
   (msk_s msk_t:_→bool) sc_s sc_t fn args fsp' fsp X (spec_arg: X) o P Q (ow_src ow_fn od_src od_fn : Ord.t)
   (WIDTH: (ow_fn < ow_src)%ord)
   (DEPTH: (od_fn < od_src)%ord)
@@ -102,11 +96,11 @@ Lemma wsim_apc_src_call_tgt_weaker
   (((P spec_arg args ∗ ⌜∃ vo : Ord.t, od_fn ↑ = vo ↑ ∧ (o spec_arg <= vo)%ord⌝) ∗ (Ist nths st_src st_tgt)) ∗
     (∀ nths0 st_src0 st_tgt0 (vret ret: Any.t),
       ((Ist nths0 st_src0 st_tgt0) ∗ (Q spec_arg ret))
-      -∗ wsim fl fr Ist is_closed u0 u1 cP r g Rs Rt RR false false nths0
+      -∗ wsim fl fr Ist Ep r g Rs Rt RR false false nths0
           (st_src0, ((HModTr.sandbox msk_s sc_s (SModTr.trans sp (_APC od_src sp_pure ow_fn))) >>= k_src))
           (st_tgt0, k_tgt ret)))
   ⊢
-    wsim fl fr Ist is_closed u0 u1 cP r g Rs Rt RR ps pt nths
+    wsim fl fr Ist Ep r g Rs Rt RR ps pt nths
       (st_src, (HModTr.sandbox msk_s sc_s (SModTr.trans sp (_APC od_src sp_pure ow_src))) >>= k_src)
       (st_tgt, (HModTr.sandbox msk_t sc_t (trigger (Call fn args))) >>= k_tgt).
 Proof using.
@@ -130,7 +124,7 @@ Proof using.
 Qed.
 
 Lemma wsim_apc_src_call_tgt
-  fl fr Ist is_closed u0 u1 cP r g {Rs Rt} RR ps pt nths st_src st_tgt k_src k_tgt sp sp_pure
+  fl fr Ist cP r g {Rs Rt} RR ps pt nths st_src st_tgt k_src k_tgt sp sp_pure
   (msk_s msk_t:_→bool) sc_s sc_t fn args fsp X (spec_arg: X) o P Q (ow_src ow_fn od_src od_fn : Ord.t)
   (WIDTH: (ow_fn < ow_src)%ord)
   (DEPTH: (od_fn < od_src)%ord)
@@ -142,11 +136,11 @@ Lemma wsim_apc_src_call_tgt
   (((P spec_arg args ∗ ⌜∃ vo : Ord.t, od_fn ↑ = vo ↑ ∧ (o spec_arg <= vo)%ord⌝) ∗ (Ist nths st_src st_tgt)) ∗
     (∀ nths0 st_src0 st_tgt0 (vret ret: Any.t),
       ((Ist nths0 st_src0 st_tgt0) ∗ (Q spec_arg ret))
-      -∗ wsim fl fr Ist is_closed u0 u1 cP r g Rs Rt RR false false nths0
+      -∗ wsim fl fr Ist cP r g Rs Rt RR false false nths0
           (st_src0, ((HModTr.sandbox msk_s sc_s (SModTr.trans sp (_APC od_src sp_pure ow_fn))) >>= k_src))
           (st_tgt0, k_tgt ret)))
   ⊢
-    wsim fl fr Ist is_closed u0 u1 cP r g Rs Rt RR ps pt nths
+    wsim fl fr Ist cP r g Rs Rt RR ps pt nths
       (st_src, (HModTr.sandbox msk_s sc_s (SModTr.trans sp (_APC od_src sp_pure ow_src))) >>= k_src)
       (st_tgt, (HModTr.sandbox msk_t sc_t (trigger (Call fn args))) >>= k_tgt).
 Proof using.

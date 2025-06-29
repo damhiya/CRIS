@@ -283,14 +283,15 @@ Tactic Notation "red_S" hyp(prg) tactic(tac) :=
       | vis (Spawn ?fn _) _ =>
           _hprogress prg; etransitivity;
           [ eapply SRed.vis_spawn
-          | unfold map_or_else, SModTr.HoareSpawn;
+          | unfold map_or_else, SModTr.HoareSpawn, SModTr.NativeSpawn;
             unfold_sp_exact sp fn; s;
             tac
           ]
       | vis (Yield _) _ =>
           _hprogress prg; etransitivity;
           [ eapply SRed.vis_yield
-          | tac
+          | unfold SModTr.HoareYield;
+            tac
           ]
       | vis (Call ?fn _) _ =>
           _hprogress prg; etransitivity;
@@ -340,9 +341,9 @@ Ltac _hnorm_itr prg :=
   | [ |- @SB.sandbox ?Σ ?R ?img ?imports ?scopes ?itr = _ ] =>
       etransitivity;
       [ cong (@SB.sandbox Σ R img imports scopes); _hnorm_itr prg | red_SB prg ]
-  | [ |- @SModTr.trans ?Γ ?Σ ?α ?β ?τ ?_I ?_S ?_sinvG ?_stidG ?sp ?R ?itr = _ ] =>
+  | [ |- @SModTr.trans ?Γ ?Σ ?_S ?_T ?sp ?R ?itr = _ ] =>
       etransitivity;
-      [ cong (@SModTr.trans Γ Σ α β τ _I _S _sinvG _stidG sp R); _hnorm_itr prg | red_S prg (do 1 _hnorm_itr prg) ]
+      [ cong (@SModTr.trans Γ Σ _S _T sp R); _hnorm_itr prg | red_S prg (do 1 _hnorm_itr prg) ]
   | [ |- trigger _ = _ ] =>
       eapply trigger_vis
   | [ |- assume _ = _ ] =>
@@ -360,6 +361,12 @@ Ltac _hnorm_itr prg :=
       _hnorm_itr prg
   | [ |- SModTr.HoareSpawn _ _ _ _ = _ ] =>
       _hprogress prg; unfold SModTr.HoareSpawn;
+      _hnorm_itr prg
+  | [ |- SModTr.NativeSpawn _ _ = _ ] =>
+      _hprogress prg; unfold SModTr.NativeSpawn;
+      _hnorm_itr prg
+  | [ |- SModTr.HoareYield _ = _ ] =>
+      _hprogress prg; unfold SModTr.HoareYield;
       _hnorm_itr prg
   | [ |- fbody_trivial _ = _ ] =>
       _hprogress prg; unfold fbody_trivial;
@@ -559,7 +566,7 @@ Proof.
 Qed.
 
 Ltac prove_sb_cond :=
-  by s; i; eauto; try rewrite !mask_app; s; eauto 10.
+  by s; i; eauto; try rewrite !mask_app; s; eauto.
 
 (* Normalization tactics *)
 

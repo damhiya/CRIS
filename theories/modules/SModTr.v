@@ -7,31 +7,9 @@ Set Implicit Arguments.
 Arguments precond : simpl never.
 Arguments postcond : simpl never.
 
-Section RA.
-  Context `{!sinvG Γ Σ α β τ _I _S}.
-
-  Definition stidRA : ucmra := nat -d> excl' unit.
-
-  Class stidG `{!sinvG Γ Σ α β τ _I _S} := {
-      stid_inG :: inG stidRA Γ;
-    }.
-  Definition stidΓ : HRA := #[stidRA].
-  Global Instance subG_stidG : subG stidΓ Γ → stidG.
-  Proof using. solve_inG. Defined.
-
-End RA.
-Hint Unfold subG_stidG stid_inG : GRA_index.
-
 Module SModTr.
 Section HOARE.
-  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
-  Context `{_stidG: !stidG}.
-
-  Definition stid_r (tid: nat) : stidRA :=
-    (λ t, if t =? tid then Excl' tt else ε).
-
-  Definition stid (tid: nat): iProp Σ :=
-    own base_γ (stid_r tid).
+  Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
 
   Definition HoareCall fn (varg: Any.t) (fsp: fspec): itree hmodE Any.t
     :=
@@ -71,14 +49,13 @@ Section HOARE.
     trigger (Assume (stid my_tid));;;
     Ret my_tid.
   
-  Definition HoareSpawn fn (varg: Any.t) (fsp: fspec) : itree hmodE nat
-    :=
-    
+  Definition HoareSpawn fn (varg: Any.t) (fsp: fspec) : itree hmodE nat :=
     x <- trigger (Choose (meta fsp));; 
     arg <- trigger (Choose Any.t);; 
     trigger (Guarantee (precond fsp x varg arg));;;
     tid <- trigger (Spawn fn arg);;
     trigger (Yield tid);;;
+    trigger (Assume (stid tid));;;
     Ret tid.
 
   Definition NativeSpawn `{Σ: GRA} (fn: string) (arg: Any.t) : itree hmodE nat :=
@@ -124,8 +101,7 @@ Notation "↧ it" := (SModTr.trans _ it) (at level 59, only printing).
 
 Module SRed.
 Section RED.
-  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
-  Context `{_stidG: !stidG}.
+  Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
 
   Variable sp: sp_type.
 

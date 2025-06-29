@@ -135,7 +135,7 @@ Section MID.
   Definition trans : itree hmodE ~> itree modE :=
     interpV handle_hmodE.
 
-  Definition trans_ktree (f : Any.t -> itree hmodE Any.t) : Any.t -> itree modE Any.t :=
+  Definition trans_ktree (f : Any.t → itree hmodE Any.t) : Any.t → itree modE Any.t :=
     λ x, trans (f x).
 
 End MID.
@@ -146,7 +146,7 @@ Section RED.
   (* itree reduction lemmas *)
   Context `{Σ : GRA}.
 
-  Lemma bind (R S : Type) (s : itree hmodE R) (k : R -> itree hmodE S) :
+  Lemma bind (R S : Type) (s : itree hmodE R) (k : R → itree hmodE S) :
     HModTr.trans (s >>= k) = st <- HModTr.trans s;; HModTr.trans (k st).
   Proof using. rewrite /HModTr.trans interpV_bind //. Qed.
 

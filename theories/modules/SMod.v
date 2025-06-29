@@ -6,8 +6,7 @@ Set Implicit Arguments.
 
 Module SMod.
 Section SMOD.
-  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
-  Context `{_stidG: !stidG}.
+  Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
 
   Record t : Type := mk {
     scopes : list string;
@@ -116,8 +115,7 @@ End SMod.
 Infix "☆" := SMod.add (at level 60, right associativity).
 
 Section ADD.
-  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
-  Context `{_stidG: !stidG}.
+  Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
     
   Lemma smod_add_interp_comm
       sp

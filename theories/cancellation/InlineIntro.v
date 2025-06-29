@@ -16,32 +16,32 @@ Proof.
    isim_fsem
     (map (map_snd SB.sandbox_body)
        (map (map_snd (inline_fsem md)) (HMod.fnsems md)))
-    (map (map_snd SB.sandbox_body) (HMod.fnsems md)) IstEq closed
+    (map (map_snd SB.sandbox_body) (HMod.fnsems md))
+    IstEq closed IstEq IstEq
     (SB.sandbox_body (inline_fsem md f)) (SB.sandbox_body f)).
   {
     econs; ss; try refl; eauto; i.
-    { r. s. destruct (HMod.initial_code md) eqn: E; ss.
-      - i. r in H.
-        iIntros "_". iApply isim_nodup. iIntros (? ? ? ?).
-        iApply isim_mono; cycle 1.
-        + iApply H; et.
-          ss. ii. exploit HMod.well_scoped_initcode; et. rewrite E. s. et.
-        + i. iIntros "%". iPureIntro. des; subst; et.
-      - iIntros "_". iPureIntro. et.
-    }
     { i. rewrite List.map_map fst_map_snd. exists []. ss. }
+    { ii. split.
+      - rewrite !alist_find_map_snd !/o_map in H1 |- *. des_ifs.
+      - iIntros. iPureIntro. et.
+    }
     { ii. rewrite alist_find_map_snd in FIND.
       destruct (alist_find fn (HMod.fnsems md)) eqn:FINDT; ss.
       inv FIND. esplits; eauto.
-      ii. iIntros "%". subst. iApply H; et.
-      ss. ii. exploit HMod.well_scoped_fns; et.
-      rewrite /fnsems_scopes. erewrite FINDT. destruct f as [[][]]. et.
+      ii. iIntros "H". iAssert (⌜st_src = st_tgt⌝)%I as "%EQ".
+      { destruct fn; iDestruct "H" as "%"; des; subst; et. }
+      subst. iApply isim_mono; cycle 1.
+      - iApply H; et.
+        ii. exploit HMod.well_scoped_fns; et.
+        rewrite /fnsems_scopes. erewrite FINDT. destruct f as [[[] ?] ?]. et.
+      - i. iIntros "%". des; subst. destruct fn; et.
     }
   }
-  
+
   ii. iIntros "%". subst.
-  destruct f as [[msk scp][img bd]].
-  rewrite /SB.sandbox_body; s. rewrite /SB.sandbox_body; s.
+  destruct f as [[[img msk] scp] bd].
+  do 2 (rewrite /SB.sandbox_body; s).
 
   generalize false at 1 as ps. generalize false at 1 as pt.
   generalize (bd arg) as it. i.
@@ -51,16 +51,17 @@ Proof.
   combine_quant st.
   combine_quant pt.
   combine_quant ps.
-  combine_quant nths.
   combine_quant msk.
   combine_quant img.
+  combine_quant TID.
+  combine_quant nths.
   combine_quant SCP.
   combine_quant scp.
   
   eapply isim_coind. i.
-  destruct a as [scp [SCP [img [msk [nths [ps [pt [st it]]]]]]]]. s.
-
-  iIntros "(_ & #CIH)". destruct_quant.
+  destruct a as [scp [SCP [nths [TID [img [msk [ps [pt [st it]]]]]]]]]; s.
+  destruct_quant.
+  iIntros "(_ & #CIH)".
 
   assert (CASE := case_itrH it); des; subst.
   - rewrite SBRed.ret HIRed.ret. step. eauto.
@@ -79,9 +80,9 @@ Proof.
       { unfold triggerUB. ired. rewrite HIRed.core. steps_l. ss. }
 
       rewrite HIRed.call. steps_l. rewrite {3}/sandboxed_prog.
-      destruct (alist_find fn (HMod.fnsems md)) eqn:FIND; cycle 1.
+      destruct (alist_find (Some fn) (HMod.fnsems md)) eqn:FIND; cycle 1.
       { s. ired. rewrite HIRed.core. steps_l. ss. }
-      destruct f as [[msk0 scp0][img0 bd0]]. iApply isim_inline_tgt.
+      destruct f as [[[img0 msk0] scp0] bd0]. iApply isim_inline_tgt.
       { rewrite alist_find_map_snd FIND. ss. }
       s. ired. rewrite /SB.sandbox_body. s.
 
@@ -90,9 +91,10 @@ Proof.
       - by_coind "CIH"; et.
         iPureIntro. ii. exploit HMod.well_scoped_fns; et.
         rewrite /fnsems_scopes. erewrite FIND. et.
-      - iIntros (? ? ? ? ?) "%". des; subst.
+      - iIntros (? ? ? ? ? ?) "%". des; subst.
         rewrite HIRed.tau. steps_l. steps_r. ired.
         by_coind "CIH"; et.
+        iPureIntro. nia.
     }
     {
       rewrite !SBRed.bind !SBRed.spawn. des_ifs; cycle 1.
@@ -103,8 +105,9 @@ Proof.
     }
     {
       rewrite SBRed.bind SBRed.yield HIRed.yield !SBRed.bind !SBRed.yield.
-      iApply isim_yield. iSplit; et. iIntros (? ? ? ? ?) "%". subst.
+      iApply isim_yield. iSplit; et. iIntros (? ? ? ? ? ?) "%". subst.
       steps_l. by_coind "CIH"; et.
+      iPureIntro. nia.
     }
   - depdes s.
     + rewrite !SBRed.bind !SBRed.put. des_ifs; cycle 1. 

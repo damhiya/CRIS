@@ -1,15 +1,14 @@
 Require Import CRIS.
-From iris Require Import frac_auth.
-
 Require Import SchHeader SchI.
 Require Import CallFilter.
+From iris Require Import frac_auth.
 
 Set Implicit Arguments.
 
 Local Open Scope Qp.
 
 Section SchRA.
-  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
+  Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
 
   Canonical Structure SynDepO : ofe := leibnizO {n & GTerm.t n}.
 
@@ -20,10 +19,10 @@ Section SchRA.
 
   Definition tidRA : ucmra := nat -d> excl' unit.
 
-  Class schG `{!sinvG Γ Σ α β τ _I _S} := {
+  Class schG `{!crisG  Γ Σ α β τ _S _I _T} := {
       sch_inG_tid :: inG tidRA Γ;
       sch_inG_ths :: inG threadsRA Σ;
-    }.
+  }.
   Definition schΓ : HRA := #[tidRA].
   Definition schΣ : GRA := #[threadsRA].
   Global Instance subG_schG : subG schΓ Γ → subG schΣ Σ → schG.
@@ -32,23 +31,22 @@ End SchRA.
 Hint Unfold sch_inG_tid sch_inG_ths subG_schG : GRA_index.
 
 Module SchAS. Section SchAS.
-  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
+  Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
   Context `{_schG: !schG}.
 
   (** thread **)
   Definition token_pending_r (tid: nat): threadsRA :=
     ◯ ((λ n, if (tid =? n) then None else ε): threadsF).
 
-  Definition token_quarter_r (tid: nat) (st: SAny.t → SAny.t → SynDepO): threadsRA := 
+  Definition token_quarter_r (tid: nat) (st: SAny.t → SAny.t → SynDepO): threadsRA :=
     ◯ ((λ n, if (tid =? n) then Some (1/4, to_agree (λ vs s, Some (to_agree (st vs s)))) else ε): threadsF).
   Definition token_th (tid: nat) (st: SAny.t → SAny.t → SynDepO): iProp Σ :=
     own base_γ (token_quarter_r tid st).
 
-  Definition token_half_r (tid: nat) (st: SAny.t → SAny.t → SynDepO): threadsRA := 
+  Definition token_half_r (tid: nat) (st: SAny.t → SAny.t → SynDepO): threadsRA :=
     ◯ ((λ n, if (tid =? n) then Some (1/2, to_agree (λ vs s, Some (to_agree (st vs s)))) else ε): threadsF).
-  Definition token_half (tid: nat) (st: SAny.t → SAny.t → SynDepO): iProp Σ := 
-    Seal.sealing "SchA"
-      (own base_γ (token_half_r tid st)).
+  Definition token_half (tid: nat) (st: SAny.t → SAny.t → SynDepO): iProp Σ :=
+    Seal.sealing "SchA" (own base_γ (token_half_r tid st)).
 
   Definition token_three_quarter_r (tid: nat) (st: SAny.t → SAny.t → SynDepO): threadsRA := 
     ◯ ((λ n, if (tid =? n) then Some (3/4, to_agree (λ vs s, Some (to_agree (st vs s)))) else ε): threadsF).
@@ -248,18 +246,17 @@ Module SchAS. Section SchAS.
 
   End RA.
 
+  (* Scheduler specifications *)
   Section SPEC.
-
-    Variable υ : univ_id.
-    Variable Sp_user : spl_type.
+    Variable sp_user : spl_type.
 
     (* TODO : clarify with WP tc *)
-    Definition fspec_spawnable (u : univ_id) fn
+    Definition fspec_spawnable fn
       (pre : SAny.t → SAny.t → iProp Σ) (postS: SAny.t → SAny.t -> SynDepO) : Prop
       :=
-      ∃ fsp, alist_find fn Sp_user = Some (Some fsp) ∧
+      ∃ fsp, alist_find fn sp_user = Some (Some fsp) ∧
       fspec_imply fsp
-        (wsim_fspec u (fspec_virtual 
+        (fspec_wsim ⊤ (fspec_virtual
           (λ (tid: nat) (varg: SAny.t) arg,
             tid_user tid ∗ ∃ sarg, ⌜arg = sarg↑⌝ ∗ pre varg sarg)%I
           (λ (tid: nat) (vret: SAny.t) ret,
@@ -267,27 +264,27 @@ Module SchAS. Section SchAS.
     .
 
     Definition _spawn_spec : fspec := 
-      wsim_fspec υ
+      fspec_wsim ⊤
         (fspec_virtual
            (λ '(my_tid, pre, postS) varg arg,
              tid_user my_tid ∗
              ∃ pa_tid farg fvarg fn,
                ⌜varg = ((pa_tid, fn, fvarg) : nat * string * SAny.t)
                ∧ arg = ((pa_tid, fn, farg) : nat * string * SAny.t)↑
-               ∧ fspec_spawnable υ fn pre postS⌝
+               ∧ fspec_spawnable fn pre postS⌝
                ∗ pre fvarg farg ∗ token_half my_tid postS)%I
            (λ _ (_: SAny.t) _, False%I))
     .
 
     Definition spawn_spec : fspec :=
-      wsim_fspec υ
+      fspec_wsim ⊤
         (fspec_virtual
           (λ '(my_tid, pre, postS) varg arg,
             tid_user my_tid ∗
             ∃ farg fvarg fn,
               ⌜varg = ((fn, fvarg): string * SAny.t) 
               ∧ arg = ((fn, farg): string * SAny.t)↑
-              ∧ fspec_spawnable υ fn pre postS⌝
+              ∧ fspec_spawnable fn pre postS⌝
               ∗ pre fvarg farg)%I
           (λ '(my_tid, pre, postS) vret ret,
             tid_user my_tid ∗
@@ -296,15 +293,15 @@ Module SchAS. Section SchAS.
     .
 
     Definition yield_spec: fspec :=
-      wsim_fspec υ
-        (fspec_simple 
-          (λ (tid: nat),
-            ((λ varg, ⌜varg = tt↑⌝ ∗ tid_user tid),
-            (λ vret, ⌜vret = tt↑⌝ ∗ tid_user tid)))
+      fspec_wsim ⊤
+        (fspec_simple (λ (tid: nat),
+          ((λ varg, ⌜varg = tt↑⌝ ∗ tid_user tid),
+           (λ vret, ⌜vret = tt↑⌝ ∗ tid_user tid)
+          ))
         )%I.
 
     Definition join_spec: fspec :=
-      wsim_fspec υ
+      fspec_wsim ⊤
         (fspec_virtual
           (λ '(tid, postS, my_tid) varg arg,
             ⌜arg = tid↑ ∧ varg = tid⌝ ∗ token_th tid postS ∗ tid_user my_tid)
@@ -314,12 +311,10 @@ Module SchAS. Section SchAS.
         )%I.
 
     Definition get_tid_spec: fspec :=
-      wsim_fspec υ
-        (fspec_simple
-          (λ (tid: nat),
-            ((λ varg, (⌜varg = tt↑⌝ ∗ tid_user tid)),
-            (λ vret, (⌜vret = tid↑⌝ ∗ tid_user tid))))
-        )%I.
+      fspec_simple
+        (λ (tid: nat),
+          ((λ varg, (⌜varg = tt↑⌝ ∗ tid_user tid)),
+          (λ vret, (⌜vret = tid↑⌝ ∗ tid_user tid))))%I.
 
     Definition sp : alist string (option fspec) :=
       Seal.sealing CRIS 
@@ -333,47 +328,21 @@ Module SchAS. Section SchAS.
 End SchAS. End SchAS.
 
 Module SchA. Section SchA.
-  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
-  Context `{_stidG: !stidG}.
+  Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
   Context `{_schG: !schG}.
 
   Definition scopes := ["Sch"].
 
-  (* Definition _spawn : (nat * string * SAny.t) -> itree hmodE unit := *)
-  (*   fun '(pa_tid, fn, varg) => *)
-  (*     trigger (Yield pa_tid);;; *)
-  (*     trigger (Call fn varg↑);;; *)
-  (*     Sch.terminate *)
-  (* . *)
+  Definition fnsems sp_user : alist (option string) (fnsem_type (option fspec * fbody)) :=
+    [(Some SchHdr._spawn, (true, wmask_all, scopes, (Some (SchAS._spawn_spec sp_user), (cfunN SchI._spawn))));
+     (Some SchHdr.spawn,  (true, wmask_all, scopes, (Some (SchAS.spawn_spec sp_user),  (cfunU SchI.spawn))));
+     (Some SchHdr.yield,  (true, wmask_all, scopes, (Some (SchAS.yield_spec),          (cfunU SchI.yield))));
+     (Some SchHdr.join,   (true, wmask_all, scopes, (Some (SchAS.join_spec),           (cfunU SchI.join))));
+     (Some SchHdr.get_tid,(true, wmask_all, scopes, (Some (SchAS.get_tid_spec),        (cfunU SchI.get_tid))))].
 
-  (* Definition spawn : (string * SAny.t) -> itree hmodE nat := *)
-  (*   fun '(fn, varg) => *)
-  (*     my_tid <- trigger (Choose nat);; *)
-  (*     tid <- trigger (Spawn SchHdr._spawn (my_tid, fn, varg)↑);; *)
-  (*     Ret tid *)
-  (* . *)
-
-  (* Definition yield: unit -> itree hmodE unit := *)
-  (*   fun _ => *)
-  (*     tid <- trigger (Choose nat);; *)
-  (*     trigger_Yield tid *)
-  (* . *)
-
-  (* Definition join: nat -> itree hmodE (option SAny.t) := *)
-  (*   fun _ => *)
-  (*     Sch.yield;;; *)
-  (*     trigger (Choose (option SAny.t)) *)
-  (* . *)
-
-  Definition fnsems υ Sp_user : alist (option string) (fnsem_type (option fspec * fbody)) :=
-    [(Some SchHdr._spawn, (true, wmask_all, scopes, (Some (SchAS._spawn_spec υ Sp_user), (cfunN SchI._spawn))));
-     (Some SchHdr.spawn,  (true, wmask_all, scopes, (Some (SchAS.spawn_spec υ Sp_user),  (cfunU SchI.spawn))));
-     (Some SchHdr.yield,  (true, wmask_all, scopes, (Some (SchAS.yield_spec υ),          (cfunU SchI.yield))));
-     (Some SchHdr.join,   (true, wmask_all, scopes, (Some (SchAS.join_spec υ),           (cfunU SchI.join))))].
-
-  Program Definition Mod υ Sp_user : SMod.t := {|
+  Program Definition Mod sp_user : SMod.t := {|
     SMod.scopes := scopes;
-    SMod.fnsems := fnsems υ Sp_user;
+    SMod.fnsems := fnsems sp_user;
     SMod.initial_st := SchI.Mod.(SMod.initial_st);
   |}.
   Solve All Obligations with prove_scope.
@@ -381,63 +350,7 @@ Module SchA. Section SchA.
 
   Definition init_cond : iProp Σ := SchAS.init_threads ∗ SchAS.init_tid.
   
-  Definition t υ sp sp_user :=
-    Seal.sealing CRIS (SMod.to_hmod sp (Mod υ sp_user)).
+  Definition t sp sp_user :=
+    Seal.sealing CRIS (SMod.to_hmod sp (Mod sp_user)).
 
 End SchA. End SchA.
-
-Module SchAPure. Section SchAPure.
-  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
-  Context `{_stidG: !stidG}.
-  Context `{_schG: !schG}.
-                    
-  Definition scopes : list string := [].
-
-  Definition fnsems υ : alist (option string) (fnsem_type (option fspec * fbody)) :=
-    [(Some SchHdr.get_tid, (true, wmask_all, scopes, (Some (SchAS.get_tid_spec υ), fbody_trivial)))].
-
-  Program Definition Mod υ : SMod.t := {|
-    SMod.scopes := scopes;
-    SMod.fnsems := fnsems υ;
-    SMod.initial_st := [];
-  |}.
-  Solve All Obligations with prove_scope.
-  Next Obligation. prove_nodup. Qed.
-
-  Definition InitCond : iProp Σ := SchAS.init_threads ∗ SchAS.init_tid.
-  
-  Definition t υ sp :=
-    Seal.sealing CRIS (SMod.to_hmod sp (Mod υ)).
-
-  (* Lemmas *)
-
-  Lemma elim_filter msk u sp_s:
-    ctx_refines
-      (t u sp_s, emp%I)
-      (CFilter.filter msk (t u sp_s), emp%I).
-  Proof.
-    eapply main_adequacy with (Ist := fun _ _ _ => emp%I).
-    init_sim; et.
-    init_simF u u.
-
-    steps_l. forces_r. iSplitL "ASM"; et.
-    steps_r. forces_l. iSplitL "GRT"; et.
-    step; et.
-  Qed.
-  
-End SchAPure. End SchAPure.
-
-Section FSPEC.
-
-  Context `{SINVG: !sinvG Γ Σ α β τ _I _S}.
-  Context `{SCHG: !schG}.
-
-  Definition sch_fspec υ (fsp : fspec) : fspec :=
-    wsim_fspec υ
-     (mk_fspec (meta := nat * (meta fsp))
-        (fun '(tid, x) varg arg =>
-          SchAS.tid_user tid ∗ (precond fsp) x varg arg)%I
-        (fun '(tid, x) vret ret =>
-          SchAS.tid_user tid ∗ (postcond fsp) x vret ret)%I).
-
-End FSPEC.

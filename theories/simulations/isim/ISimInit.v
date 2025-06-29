@@ -347,9 +347,8 @@ Proof.
 Qed.
 
 Section Proph.
-  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
-  Context `{_stidG: !stidG}.
-  
+  Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
+
   Variable contextual: contextuality.
 
   Lemma isim_fsem_proph_to_normal fsp bd_s bd_t msk sp scp fls flt

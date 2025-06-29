@@ -17,6 +17,9 @@ Module SAT.
     arity : ops -> forall (term_prev: Type), Type;
   }.
 
+  Program Definition emp : t := Build_t Empty_set _.
+  Next Obligation. ss. Qed.
+
 End SAT.
 
 (* Global Algebraic Theory *)
@@ -28,6 +31,8 @@ Module GAT.
     inG_id : nat;
     inG_prf : F = GF inG_id;
   }.
+
+  Program Definition emp : t := fun _ => SAT.emp.
 
 End GAT.
 

@@ -6,6 +6,8 @@ Require Import sflib.
 
 Definition allocsUR (K : Type) (A : cmra) : ucmra :=
   K -d> optionUR (csumR (exclR unitO) A).
+Lemma allocsUR_lookup_op {K A} (f g : allocsUR K A) x : (f ⋅ g) x = f x ⋅ g x.
+Proof. rewrite discrete_fun_lookup_op //. Qed.
 
 (* TODO : SEAL *)
 Definition allocs_auth {K} (A : cmra) (P : K → Prop) `{∀ k, Decision (P k)} : allocsUR K A :=
@@ -30,9 +32,22 @@ Section allocs.
   Proof using. by rewrite discrete_fun_singleton_op -Some_op -Cinr_op. Qed.
 
   (** Validity *)
-  Lemma allocs_frag_valid γ a : ✓ allocs_frag γ a ↔ ✓ a.
-  Proof using. by rewrite discrete_fun_singleton_valid Some_valid Cinr_valid. Qed.
+  Lemma allocs_auth_valid P `{∀ k, Decision (P k)} : ✓ allocs_auth P.
+  Proof. rewrite /allocs_auth; intros k; des_ifs. Qed.
 
+  Lemma allocs_frag_valid γ a : ✓ allocs_frag γ a ↔ ✓ a.
+  Proof. by rewrite discrete_fun_singleton_valid Some_valid Cinr_valid. Qed.
+
+  Lemma allocs_both_valid `{∀ k, Decision (P k)} γ a :
+    ✓ (allocs_auth P ⋅ allocs_frag γ a) →
+    ¬ P γ ∧ ✓ a.
+  Proof.
+    rewrite /allocs_auth /allocs_frag.
+    intros Hv; specialize (Hv γ);
+      rewrite discrete_fun_lookup_op discrete_fun_lookup_singleton in Hv.
+    by des_ifs; ss.
+  Qed.
+    
   (** Frame-preserving updates *)
   Lemma allocs_frag_update γ a b (UPD : a ~~> b) : allocs_frag γ a ~~> allocs_frag γ b.
   Proof using. by apply discrete_fun_singleton_update, option_update, csum_update_r. Qed.
@@ -67,5 +82,25 @@ Section allocs.
     }
     { hexploit IMPL; eauto; i; ss. }
     { hexploit IMPL; eauto; i; ss. }
+  Qed.
+
+  Lemma allocs_auth_split_2 (P Q R : K → Prop)
+      `{∀ k, Decision (P k)} `{∀ k, Decision (Q k)} `{∀ k, Decision (R k)} :
+    (∀ k, P k ↔ Q k ∨ R k) →
+    (∀ k, ¬ (Q k ∧ R k)) →
+    allocs_auth P ≡ allocs_auth Q ⋅ allocs_auth R.
+  Proof.
+    intros Hiff Hdisj; rewrite /allocs_auth => i.
+    by rewrite discrete_fun_lookup_op; des_ifs; naive_solver.
+  Qed.
+
+  Lemma allocs_auth_split_2_L (P Q R : K → Prop)
+      `{∀ k, Decision (P k)} `{∀ k, Decision (Q k)} `{∀ k, Decision (R k)} :
+    (∀ k, P k ↔ Q k ∨ R k) →
+    (∀ k, ¬ (Q k ∧ R k)) →
+    allocs_auth P = allocs_auth Q ⋅ allocs_auth R.
+  Proof.
+    intros Hiff Hdisj; rewrite /allocs_auth; extensionalities i.
+    by rewrite discrete_fun_lookup_op; des_ifs; naive_solver.
   Qed.
 End allocs.

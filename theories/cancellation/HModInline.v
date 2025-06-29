@@ -2,7 +2,7 @@ Require Import Common.
 From iris.proofmode Require Import proofmode.
 
 Require Import HMod FSpec.
-Require Import ISim MainAdequacy CancelLib.
+Require Import ISim MainAdequacy.
 
 Set Implicit Arguments.
 
@@ -31,13 +31,14 @@ Section INTERP.
     end.
 
   Definition sandboxed_prog (ms: HMod.t) fn (arg: Any.t) : itree hmodE Any.t :=
-    kb <- (alist_find fn ms.(HMod.fnsems))?;;
+    kb <- (alist_find (Some fn) ms.(HMod.fnsems))?;;
     SB.sandbox_body kb arg.
 
-  Definition inline_hp {R} prog := ITree.iter (@handle_callE R prog).
-  
-  Definition inline_fsem ms kb : fnsem_type bool :=
-    (wmask_all, ms.(HMod.scopes), (true, inline_hp (sandboxed_prog ms) ∘ (SB.sandbox_body kb))).
+  Definition inline_body {R} prog := ITree.iter (@handle_callE R prog).
+
+  Definition inline_fsem ms (kb: fnsem_type fbody) : fnsem_type fbody :=
+    (true, wmask_all, ms.(HMod.scopes),
+     inline_body (sandboxed_prog ms) ∘ (SB.sandbox_body kb)).
       
 End INTERP.
 
@@ -47,16 +48,12 @@ Module HModInline.
   Program Definition inline `{Σ: GRA} (ms: HMod.t): HMod.t := {|
     scopes := ms.(scopes);
     fnsems := List.map (map_snd (inline_fsem ms)) (ms.(fnsems));
-    initial_code := option_map (inline_fsem ms) ms.(initial_code);
     initial_st := ms.(initial_st);
   |}.
   Next Obligation.
     i. depdes ms. ss. ii. unfold fnsems_scopes in *. unfold map_snd in*.
     rewrite! alist_find_map in H. unfold o_map in H.
     des_ifs; ss. 
-  Qed.
-  Next Obligation.
-    i. destruct (initial_code ms); ss.
   Qed.
   Next Obligation. ii. destruct ms. ss. eauto. Qed.
   Next Obligation. ii. destruct ms. ss. eauto. Qed.
@@ -67,27 +64,27 @@ Module HIRed.
   Lemma ret `{Σ: GRA} {T}
     prog (x: T)
   :
-    inline_hp prog (Ret x) = Ret x.
+    inline_body prog (Ret x) = Ret x.
   Proof using.
-    rewrite/inline_hp unfold_iter_eq. grind.
+    rewrite/inline_body unfold_iter_eq. grind.
   Qed.
 
   Lemma tau `{Σ: GRA} {T}
     prog (t: itree _ T)
   :
-    inline_hp prog (tau;; t) = tau;; tau;; inline_hp prog t.
+    inline_body prog (tau;; t) = tau;; tau;; inline_body prog t.
   Proof using.
-    rewrite/inline_hp unfold_iter_eq. grind.
+    rewrite/inline_body unfold_iter_eq. grind.
   Qed.
 
   Lemma bind `{Σ: GRA} {R T} prg
     i (k: R → itree _ T)
   :
-    inline_hp prg (i >>= k)
+    inline_body prg (i >>= k)
     =
-    x <- inline_hp prg i;; inline_hp prg (k x).
+    x <- inline_body prg i;; inline_body prg (k x).
   Proof using.
-    rewrite /inline_hp. eapply bisim_is_eq.
+    rewrite /inline_body. eapply bisim_is_eq.
     eapply (@gpaco2_init _ _ _ _ (eqitC eq false false)); eauto with paco.
     revert i k. gcofix CIH. i.
     ides i.
@@ -132,76 +129,74 @@ Module HIRed.
   Lemma spawn `{Σ: GRA} {T}
     prog fn args (ktr: _ → itree _ T)
   :
-    inline_hp prog (x <- trigger (Spawn fn args);; ktr x) 
+    inline_body prog (x <- trigger (Spawn fn args);; ktr x) 
     =
-    x <- trigger (Spawn fn args);; tau;; inline_hp prog (ktr x).
+    x <- trigger (Spawn fn args);; tau;; inline_body prog (ktr x).
   Proof using.
-    rewrite/inline_hp unfold_iter_eq. grind.
+    rewrite/inline_body unfold_iter_eq. grind.
   Qed.
 
   Lemma yield `{Σ: GRA} {T}
     prog tid (ktr: _ → itree _ T)
   :
-    inline_hp prog (x <- trigger (Yield tid);; ktr x) 
+    inline_body prog (x <- trigger (Yield tid);; ktr x) 
     =
-    x <- trigger (Yield tid);; tau;; inline_hp prog (ktr x).
+    x <- trigger (Yield tid);; tau;; inline_body prog (ktr x).
   Proof using.
-    rewrite/inline_hp unfold_iter_eq. grind.
+    rewrite/inline_body unfold_iter_eq. grind.
   Qed.
   
   Lemma core `{Σ: GRA} {T}
     X prog (e: coreE X) (ktr: _ → itree _ T)
   :
-    inline_hp prog (x <- trigger e;; ktr x) 
+    inline_body prog (x <- trigger e;; ktr x) 
     =
-    x <- trigger e;; tau;; inline_hp prog (ktr x).
+    x <- trigger e;; tau;; inline_body prog (ktr x).
   Proof using.
-    rewrite/inline_hp unfold_iter_eq. grind.
+    rewrite/inline_body unfold_iter_eq. grind.
   Qed.
 
   Lemma pg `{Σ: GRA} {T}
     X prog (e: pgE X) (ktr: _ → itree _ T)
   :
-    inline_hp prog (x <- trigger e;; ktr x) 
+    inline_body prog (x <- trigger e;; ktr x) 
     =
-    x <- trigger e;; tau;; inline_hp prog (ktr x).
+    x <- trigger e;; tau;; inline_body prog (ktr x).
   Proof using.
-    rewrite/inline_hp unfold_iter_eq. grind.
+    rewrite/inline_body unfold_iter_eq. grind.
   Qed.
 
   Lemma ag `{Σ: GRA} {T}
     X prog (e: agE X) (ktr: _ → itree _ T)
   :
-    inline_hp prog (x <- trigger e;; ktr x) 
+    inline_body prog (x <- trigger e;; ktr x) 
     =
-    x <- trigger e;; tau;; inline_hp prog (ktr x).
+    x <- trigger e;; tau;; inline_body prog (ktr x).
   Proof using.
-    rewrite/inline_hp unfold_iter_eq. grind.
+    rewrite/inline_body unfold_iter_eq. grind.
   Qed.
 
   Lemma call `{Σ: GRA} {T}
     prog (ktr: _ → itree _ T) (fn: string) arg 
   :
-    inline_hp prog (trigger (Call fn arg) >>= ktr)
+    inline_body prog (trigger (Call fn arg) >>= ktr)
     =
-    tau;; inline_hp prog (x <- prog fn arg;; tau;; ITree.subst ktr (Ret x)).
+    tau;; inline_body prog (x <- prog fn arg;; tau;; ITree.subst ktr (Ret x)).
   Proof using.
-    rewrite/inline_hp unfold_iter_eq. ired. refl.
+    rewrite/inline_body unfold_iter_eq. ired. refl.
   Qed.
 
 End HIRed.
 
-(* CANCEL *)
 Lemma sandbox_inline_commute `{Σ: GRA}
   ms sb arg
   (SCP : incl sb.1.2 (HMod.scopes ms))
   :
   SB.sandbox_body (inline_fsem ms sb) arg
   =
-  inline_hp (sandboxed_prog ms) (SB.sandbox_body sb arg).
+  inline_body (sandboxed_prog ms) (SB.sandbox_body sb arg).
 Proof using.
-  unfold inline_fsem. s.
-  unfold SB.sandbox_body. destruct sb as [[msk sc] [img bd]]. ss.
+  unfold inline_fsem, SB.sandbox_body. destruct sb as [[[img msk] sc] bd]. ss.
   apply bisim_is_eq. move sc at bottom.
   ginit. generalize (bd arg) as itr. clear bd arg.
   revert_until ms. gcofix CIH. i.
@@ -233,16 +228,16 @@ Proof using.
 
     rewrite HIRed.call SBRed.tau. s.
     gstep. econs.
-    destruct (alist_find fn (HMod.fnsems ms)) eqn: FIND; cycle 1.
+    destruct (alist_find (Some fn) (HMod.fnsems ms)) eqn: FIND; cycle 1.
     { ired. rewrite {2 4}/sandboxed_prog FIND. s. ired.
       rewrite !HIRed.core !SBRed.bind SBRed.take !bind_trigger.
       gstep. econs. ss.
     }
 
     rewrite {2 4}/sandboxed_prog /SB.sandbox_body FIND. s. ired.
-    destruct f as [[msk0 sc0] [img0 bd0]]. s.
+    destruct f as [[[img0 msk0] sc0] bd0]. s.
     match goal with
-    [|- _ _ (_ _ ?itr)] => assert (EX: exists itr', itr = SB.sandbox wmask_all (HMod.scopes ms) true itr'); cycle 1
+    [|- _ _ (_ _ ?itr)] => assert (EX: exists itr', itr = SB.sandbox true wmask_all (HMod.scopes ms) itr'); cycle 1
     end.
     { des. rewrite EX. gbase. eapply CIH; try refl. }
 

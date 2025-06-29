@@ -25,14 +25,17 @@ Module SNorm.
   Next Obligation. ii. destruct ms. ss. eauto. Qed.
 End SNorm.
 
+Section SNormalize.
+Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
+
 Lemma smod_norm_correct_main
-  `{Σ: GRA} (ms: SMod.t) sp T ps pt nths img msk scp st (it: itree hmodE T)
+  (ms: SMod.t) my_tid sp T ps pt nths img msk scp st (it: itree hmodE T)
   :
   ⊢ isim open
       (map (map_snd SB.sandbox_body)
        (HMod.fnsems (SMod.to_hmod (Some ∘ fspec_flat ∘ sp) (SNorm.normalize ms))))
       (map (map_snd SB.sandbox_body) (HMod.fnsems (SMod.to_hmod sp ms)))
-      IstEq ibot ibot (ist_with_eq IstEq) ps pt nths
+      IstEq my_tid ibot ibot (ist_with_eq IstEq) ps pt nths
       (st, SB.sandbox img msk scp (SModTr.trans (Some ∘ fspec_flat ∘ sp) it))
       (st, SB.sandbox img msk scp (SModTr.trans sp it)).
 Proof.
@@ -71,64 +74,53 @@ Proof.
         }
         s. steps_l. iDestruct "IST" as "%". iDestruct "ASM" as "%".
         subst. by_coind "CIH"; et.
-    + steps_l. steps_r.  destruct (sp fn).
+    + steps_l. steps_r. destruct (sp fn).
       * steps_r. destruct f. s. forces_l. iFrame. steps_l.
         spawn. ired. yield "".
-        steps_l. steps_r.
+        destruct img; cycle 1.
+        { ired. rewrite SBRed.bind SBRed.Assume. steps_l. ss. }
+        steps_l. force_r. iFrame. steps_r.
         iDestruct "IST" as "%". subst. by_coind "CIH"; et.
       * forces_l. iSplit; et. steps_l.
-        spawn. ired.
-        call "". ired. rewrite SBRed.bind SBRed.take.
+        spawn. yield "".
         destruct img; cycle 1.
-        { destruct (excluded_middle_informative _); s.
-          - des. assert (IP:=proof_irrelevance P). rewrite -e in IP.
-            specialize (IP 0↑ 1↑). eapply (f_equal Any.downcast) in IP. hss.
-          - steps_l. ss.
-        }
-        s. steps_l. iDestruct "IST" as "%". iDestruct "ASM" as "%".
-        subst. by_coind "CIH"; et.
-
-
-
-
-
-
-
-
-      rewrite SBRed.spawn. des_ifs.
-      * iApply isim_spawn. iby_coind "CIH". iApply MON; [|eauto]; nia.
-      * isteps_l. ss.
-    + iyield "IST"; eauto. iby_coind "CIH". eauto.
+        { ired. rewrite SBRed.bind SBRed.Assume. steps_l. ss. }
+        steps_l. steps_r.
+        iDestruct "IST" as "%". subst. by_coind "CIH"; et.
+    + steps_r. steps_l. forces_l. iFrame. steps_l.
+      yield "".
+      destruct img; cycle 1.
+      { ired. rewrite SBRed.bind SBRed.Assume. steps_l. ss. }
+      steps_l. force_r. iFrame. steps_r.
+      iDestruct "IST" as "%". subst. by_coind "CIH"; et.
   - depdes s.
-    + rewrite !SBRed.bind !SBRed.put. des_ifs; cycle 1.
-      { isteps_l. ss. }
-      iApply isim_nodup. iIntros (? ? ? ?).
-      iApply isim_sput_src. iApply isim_sput_tgt.
-      iby_coind "CIH". iApply EQSET; et.
-      apply existsb_exists in Heq. des. apply String.eqb_eq in Heq0. subst. et.
-    + rewrite !SBRed.bind !SBRed.get. des_ifs; cycle 1.
-      { isteps_l. ss. }
-      iApply isim_nodup. iIntros (? ? ? ?).
-      iApply isim_sget_src. iApply isim_sget_tgt.
-      apply existsb_exists in Heq. des. apply String.eqb_eq in Heq0. subst.
-      iPoseProof (EQGET with "IST") as "%"; et. rewrite H.
-      iby_coind "CIH". eauto.
+    + destruct (classic (In k.1 scp)).
+      * steps_l. steps_r. by_coind "CIH"; et.
+      * rewrite !SRed.bind !SRed.pg !SBRed.bind !SBRed.put.
+        des_ifs; steps_l; ss. eapply existsb_exists in Heq. des.
+        eapply String.eqb_eq in Heq0. subst. ss.
+    + destruct (classic (In k.1 scp)).
+      * steps_l. steps_r. by_coind "CIH"; et.
+      * rewrite !SRed.bind !SRed.pg !SBRed.bind !SBRed.get.
+        des_ifs; steps_l; ss. eapply existsb_exists in Heq. des.
+        eapply String.eqb_eq in Heq0. subst. ss.
   - destruct e.
-    + isteps_r. iforce_l q. isteps_l. iby_coind "CIH". eauto.
-    + destruct img.
-      * isteps_l. iforce_r q. isteps_r. iby_coind "CIH". eauto.
-      * rewrite SBRed.bind SBRed.take. s. des_ifs; isteps_l; ss.
-        isteps_l. iforce_r q. isteps_r. iby_coind "CIH". eauto.
-    + istep. iby_coind "CIH". eauto.
-  
-  
-
-  
-
-  
+    + steps_r. forces_l. steps_l. by_coind "CIH". eauto.
+    + rewrite !SRed.bind !SRed.core !SBRed.bind !SBRed.take.
+      des_ifs.
+      * steps_l. forces_r. by_coind "CIH". eauto.
+      * steps_l. ss.
+    + step. steps_l. steps_r. by_coind "CIH". eauto.
+Unshelve. all: exact ().
 Qed.
 
-Lemma smod_norm_correct `{Σ: GRA} (ms: SMod.t) sp:
+(* Due to a bug of Coq *)
+End SNormalize.
+Section SNormalize.
+Context `{_crisG: !crisG Γ Σ α β τ _S _I _T}.
+(* Due to a bug of Coq *)
+
+Lemma smod_norm_correct (ms: SMod.t) sp:
   HSim.t open
     (SMod.to_hmod (Some ∘ fspec_flat ∘ sp) (SNorm.normalize ms))
     (SMod.to_hmod sp ms)
@@ -165,8 +157,7 @@ Proof.
     forces_r. iFrame. steps_r.
     iApply isim_bind. iSplitL "".
     { iApply smod_norm_correct_main. }
-
-    iIntros (? ? ? ? ?) "[% IST]". subst.
+    iIntros (? ? ? ? ? ?) "[% IST]". subst.
     steps_r. forces_l. iFrame.
     step. destruct fn; et.
   - steps_l. iDestruct "ASM" as "%". subst.
@@ -174,7 +165,9 @@ Proof.
     iApply isim_bind. iSplitL "".
     { iApply smod_norm_correct_main. }
 
-    iIntros (? ? ? ? ?) "[% IST]". subst.
+    iIntros (? ? ? ? ? ?) "[% IST]". subst.
     forces_l. iSplit; et.
     step. destruct fn; et.
 Qed.
+
+End SNormalize.

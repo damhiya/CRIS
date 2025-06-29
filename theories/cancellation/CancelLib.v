@@ -7,18 +7,17 @@ Set Implicit Arguments.
 Section CancelLib.
   Context `{Σ: GRA}.
 
-  Definition sp_from (md: SMod.t) : string -> option fspec :=
-    to_sp (List.map (map_snd (o2flat ∘ fst ∘ snd)) md.(SMod.fnsems)).
+  Definition sp_from (md: SMod.t) : sp_type :=
+    to_sp (List.map (map_snd (fst ∘ snd)) md.(SMod.fnsems)).
 
-  Definition valid_params (md: SMod.t) msk scp img : Prop :=
-    (∃ bd, SMod.initial_code md = Some (msk, scp, (img, bd))) ∨
-    (∃ fn fspo bd, alist_find fn (SMod.fnsems md) = Some (msk, scp, (fspo, bd)) ∧ is_some fspo = img).
+  (* Definition valid_params (md: SMod.t) img msk scp : Prop := *)
+  (*   (∃ fno fspo bd, alist_find fno (SMod.fnsems md) = Some (img, msk, scp, (fspo, bd))). *)
 
-  Definition has_real_spec (md: SMod.t) (fn: string) : Prop :=
-    ∃ msk scp, valid_params md msk scp false ∧ msk fn.
+  (* Definition has_real_spec (md: SMod.t) (fn: string) : Prop := *)
+  (*   ∃ msk scp, valid_params md false msk scp ∧ msk fn. *)
 
-  Definition sp_wf md : Prop :=
-    ∀ fn (NS: has_real_spec md fn), sp_from md fn = None2.
+  (* Definition sp_wf md : Prop := *)
+  (*   ∀ fn (NS: has_real_spec md fn), sp_from md fn = None. *)
 
   Definition Forall2i X Y (R: nat -> X -> Y -> Prop) (xs: list X) (ys: list Y) :=
     length xs = length ys ∧
