@@ -7,7 +7,7 @@ Set Implicit Arguments.
 
 Module APCAC. Section APCAC.
   Import APCA.
-  Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
 
   Definition Ist : nat → alist key Any.t → alist key Any.t → iProp Σ :=
     (λ _ _ _, True)%I.
@@ -119,7 +119,7 @@ Module APCAC. Section APCAC.
 End APCAC.
 
 Section ctxr.
-  Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
 
   Definition ctxr (md : HMod.t) (sp_c sp_a sp_pure : string → option fspec)
       (APCInSpA : sp_incl APCA.Sp sp_a)

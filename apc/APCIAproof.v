@@ -5,7 +5,7 @@ Set Implicit Arguments.
 
 Module APCIA. Section APCIA.
   Import APCA.
-  Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
   
   Context (SpA : string → option fspec).
   Context (SpPure : string → option fspec).
@@ -39,7 +39,7 @@ Module APCIA. Section APCIA.
 End APCIA.
 
 Section ctxr.
-  Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
 
   Theorem ctxr (SpA SpPure: string → option fspec):
     ctx_refines

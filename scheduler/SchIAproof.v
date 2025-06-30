@@ -7,7 +7,7 @@ Local Open Scope nat_scope.
 
 Module SchIA. Section SchIA.
   Import SchAS.
-  Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
   Context `{_schG: !schG}.
 
   Context (E_sch : coPset) (sp_global sp_user : string → option fspec).
@@ -571,7 +571,7 @@ Ltac _wforce_l :=
 End SchIA.
 
 Section ctxr.
-  Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
   Context `{_schG: !schG}.
 
   Lemma ctxr (E_sch : coPset) (sp_global sp_user : string → option fspec)

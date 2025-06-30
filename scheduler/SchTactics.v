@@ -3,7 +3,7 @@ Require Import ITactics.
 
 Section wsim.
   Import SchAS.
-  Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
   Context `{_schG: !schG}.
 
   Local Definition state : Type := alist key Any.t.

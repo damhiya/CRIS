@@ -8,7 +8,7 @@ Set Implicit Arguments.
 Local Open Scope Qp.
 
 Section SchRA.
-  Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
 
   Canonical Structure SynDepO : ofe := leibnizO {n & GTerm.t n}.
 
@@ -19,7 +19,7 @@ Section SchRA.
 
   Definition tidRA : ucmra := nat -d> excl' unit.
 
-  Class schG `{!crisG  Γ Σ α β τ _S _I _T} := {
+  Class schG `{!crisG Γ Σ α β τ _S _I} := {
       sch_inG_tid :: inG tidRA Γ;
       sch_inG_ths :: inG threadsRA Σ;
   }.
@@ -31,7 +31,7 @@ End SchRA.
 Hint Unfold sch_inG_tid sch_inG_ths subG_schG : GRA_index.
 
 Module SchAS. Section SchAS.
-  Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
   Context `{_schG: !schG}.
 
   (** thread **)
@@ -328,7 +328,7 @@ Module SchAS. Section SchAS.
 End SchAS. End SchAS.
 
 Module SchA. Section SchA.
-  Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
   Context `{_schG: !schG}.
 
   Definition scopes := ["Sch"].

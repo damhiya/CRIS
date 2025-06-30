@@ -4,28 +4,6 @@ From iris.proofmode Require Import proofmode.
 From iris.algebra Require Export auth excl excl_auth functions frac agree gmap big_op.
 Require Export Coqlib own SAT sProp invariants.
 
-Section stid_RA.
-  Context `{Γ : HRA}. 
-  
-  Definition stidRA : ucmra := nat -d> excl' unit.
-
-  Class stidG := {
-    #[global] stid_inG :: inG stidRA Γ;
-  }.
-
-  Definition stidΓ : HRA := #[stidRA].
-  Global Instance subG_stidG : subG stidΓ Γ → stidG.
-  Proof using. solve_inG. Defined.
-End stid_RA.
-Global Arguments stidG : clear implicits.
-Hint Unfold subG_stidG stid_inG : GRA_index.
-
-Definition stid_r (tid: nat) : stidRA :=
-  (λ t, if t =? tid then Excl' tt else ε).
-
-Definition stid `{Γ : HRA} `{Σ: GRA} `{!subG Γ Σ, !stidG Γ} (tid: nat): iProp Σ :=
-  own base_γ (stid_r tid).
-
 Local Notation level := nat.
 
 (* Syntactic invariants *)
@@ -114,14 +92,14 @@ Section syn_inv.
 End syn_inv.
 
 Class crisG (Γ : HRA) (Σ : GRA) (α : GAT.t) (β : GATIntp.t) (τ : TypG.t)
-    (SUBG: subG Γ Σ) (INVG: invG Γ Σ α) (STIDG: stidG Γ) := crisG_mk {
+    (SUBG: subG Γ Σ) (INVG: invG Γ Σ α) := crisG_mk {
   #[global] cris_typG :: STτ.t τ;
   #[global] cris_SLG :: SL.G Γ Σ α β τ;
   #[global] cris_syn_invG :: syn_invG Γ Σ α β τ;
 }.
 
 Section reduction.
-  Context `{!crisG Γ Σ α β τ _S _I _T}.
+  Context `{!crisG Γ Σ α β τ _S _I}.
 
   Implicit Types (n : level) (X : coPset).
   Lemma wsat_red n X : ⟦syn_wsat n X⟧ ≡ wsat n X.
@@ -215,7 +193,7 @@ Module inv_instances.
     GATIntp.inG inv_syntax (α uα) inv_interp (β uβ).
   Proof using. econs; instantiate (1:=1); ss. Qed.
 
-  #[export] Instance crisg {Σ : GRA} {Γ : HRA} `{uτ: TypG.t} `{uα: GAT.t} `{uβ: @GATIntp.t _ (α uα)} `{!subG Γ Σ, !invG Γ Σ (α uα), !stidG Γ} : crisG Γ Σ (α uα) (β uβ) (τ uτ) _ _ _.
+  #[export] Instance crisg {Σ : GRA} {Γ : HRA} `{uτ: TypG.t} `{uα: GAT.t} `{uβ: @GATIntp.t _ (α uα)} `{!subG Γ Σ, !invG Γ Σ (α uα)} : crisG Γ Σ (α uα) (β uβ) (τ uτ) _ _.
   Proof using.
     econs; econs; try typeclasses eauto.
   Qed.

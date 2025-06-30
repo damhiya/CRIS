@@ -1,140 +1,249 @@
 Require Import Common.
 From iris.proofmode Require Import proofmode.
 Require Import SModTr HModTr ModTr SMod HMod Mod.
+Require Import ITactics TacticsCommon SimGlobal SimGlobalFacts CtxRefine ClosedAdequacy.
+Require Import HModInline HModInlineIntro HModInlineElim ElimRel.
 Require Import SimGlobal SimGTactics.
-Require Import SModCancel HModInline ElimRel CancelLib.
 
-Lemma cancel_aux_spawn `{Σ: GRA} md
-  r ps pt srcs tgts cid st (rs rt rs0 rt0: Σ) l X (meta: X) Q ktrS ktrT
-  (WFS: ✓ rs) (WFT: ✓ rt)
-  (UPD: Own rs ==∗ Own rt)
-  (LENS: cid < List.length srcs)
-  (LENT: cid < List.length tgts)
-  (LEN: List.length srcs = Datatypes.length tgts)
-  (RET: ∀ vret ret : Any.t, cid = 0 → Q meta vret ret ⊢ ⌜vret = ret⌝)
-  (RELS: ∀ k x y, cid ≠ k → srcs !! k = Some x → tgts !! k = Some y → thread_rel md k x y)
-  (KTR: ∀ tid, paco3 (@elim_rel_def _ md _) bot3 l (ktrS tid) (ktrT tid))
-  (CIH: ∀ rs rt srcs tgts cid st ps pt X (meta : X) Q itrS itrT l,
-      ✓ rs → (Own rs ==∗ Own rt) →
-      List.length srcs = List.length tgts →
-      cid < List.length srcs → cid < List.length tgts → 
-      srcs !! cid = Some (HModTr.trans itrS) →
-      tgts !! cid = Some (HModTr.trans (cancel_term md meta Q itrT)) →
-      (∀ vret ret, cid = 0 → Q meta vret ret ⊢ ⌜vret = ret⌝) →
-      paco3 (@elim_rel_def _ md _) bot3 l itrS itrT →
-      (∀ k x y, cid ≠ k → srcs !! k = Some x → tgts !! k = Some y → thread_rel md k x y)
-      → CANCEL_GOAL md r rs0 rt0 ps pt srcs tgts cid st rs rt)
-
-  f fn args  
-  (STB: sp_from md fn = Some f)
-  (SRC : srcs !! cid = Some (HModTr.trans (x <- SpawnCancelE fn args;; ktrS x)))
-  (TGT : tgts !! cid = Some (HModTr.trans (cancel_term md meta Q (x <- HoareSpawnE f fn args;; ktrT x))))
-  :
-  CANCEL_GOAL md (gpaco7 _simg (cpn7 _simg) bot7 r) rs0 rt0 ps pt srcs tgts cid st rs rt.
+Lemma cancel_spawn `{Σ: GRA} md sp fn args:
+  CANCEL_GOAL md sp (NativeSpawnE fn args) (HoareSpawnE fn args (sp fn)).
 Proof.
-  r.
-  ziter_l. rewrite SRC. ired.
-  
-  zonly_l.
+  r; i. assert (VP0:=VP). destruct VP0 as [VP1 VP2]. r in VP1.
+  rewrite /sp_from /to_sp in VP1. setoid_rewrite alist_find_map_snd in VP1.
+  ziter_l. ziter_r. rewrite x0 x1. s. zstep_l.
   rewrite !alist_find_map_snd.
-  destruct (alist_find fn (SMod.fnsems md)) eqn: EQ; s; cycle 1.
-  { unfold triggerUB. do 3 zstep_l. }
-  destruct p as [[msk sc] [sp bd]]. ired.
-  rewrite /sp_from /Sp.to_sp alist_find_map EQ in STB. inv STB.
-  zshow.
-
-  zstep_l.
-  ziter_l. zstep_l.
-  ziter_l. zstep_l.
-
-  ziter_r. rewrite TGT. ired. zstep_r. zstep_r.
-  ziter_r. zstep_r.
-  ziter_r. zstep_r. zstep_r.
-  ziter_r. zstep_r.
-  ziter_r. zstep_r.
+  destruct (alist_find (Some fn) (SMod.fnsems md)) eqn: FIND; rewrite FIND; cycle 1.
+  { s. zstep_l. }
+  destruct f as [[[img msk] scp] [fspo bd]].
+  assert (WFSCP: incl scp (SMod.scopes md)).
+  { etrans; [|apply SMod.well_scoped_fns].
+    rewrite /fnsems_scopes. erewrite FIND. refl. }
   
-  zonly_r.
-  rewrite !alist_find_map_snd EQ. ired.
-  zshow.
-  
-  ziter_r. zstep_r.
-  ziter_r. zstep_r.
-  ziter_r. zstep_r. zstep_r.
-  ziter_r. zstep_r. zstep_r.
-  ziter_r. zstep_r.
-  ziter_r. zstep_r.
-  ziter_r. zstep_r.
-  ziter_r. zstep_r.
-
-  erewrite (sandbox_inline_commute _ fn); cycle 1.
-  { s. rewrite /SModCancel.trans_ktree alist_find_map_snd EQ. ss. }
-  
-  erewrite (sandbox_inline_commute _ fn); cycle 1.
-  { s. rewrite /SModCancel.trans_ktree alist_find_map_snd EQ. ss. }
-
-  unfold SModTr.trans_ktree, inline_hp_fun.
-  unfold HModTr.sandbox_body, SModCancel.trans_ktree. s.
-
-  ziter_r. s. zstep_r. exists x. zstep_r.
-  ziter_r. zstep_r.
-  ziter_r. zstep_r. eexists args. zstep_r.
-  ziter_r. zstep_r.
-  ziter_r. zstep_r.
-
-  hexploit (Own_bupd_split rt); i; des; et.
-
-  ziter_r. zstep_r. eexists (a1 ⋅ x1). zstep_r.
-
-  assert (UPD': Own rs ==∗ Own (a1 ⋅ x1)).
+  destruct (sp fn) eqn: E; s.
   {
-    iIntros "H". iPoseProof (UPD with "H") as ">H".
-    iPoseProof (H with "H") as ">[H0 H1]".
-    iPoseProof (H1 with "H1") as "H1".
-    iModIntro. rewrite !Own_op. iFrame.
-  }
-  
-  assert (VALID: ✓(a1 ⋅ x1) ∧ (Own (a1 ⋅ x1) ==∗ precond f x args x0 ∗ Own x1)).
-  { split.
-    - eapply Own_wand_valid with (a1 := rs); eauto.
-    - iIntros "(H1 & H2)". iFrame.
-      iPoseProof (H0 with "H1") as "H1".
-      iApply "H1".
-  }
-  
-  ziter_r. zstep_r. exists VALID. zstep_r.
-  ziter_r. zstep_r.
-  ziter_r. zstep_r.
-  ziter_r. zstep_r.
+    zstep_r. zstep_r.
+    ziter_r. zstep_r. ziter_r. zstep_r. zstep_r.
+    ziter_r. zstep_r. ziter_r. zstep_r.
+    ziter_r. zstep_r. zstep_r.
+    ziter_r. zstep_r. zstep_r.
+    ziter_r. zstep_r. ziter_r. zstep_r.
+    ziter_r. zstep_r. ziter_r. zstep_r. 
 
-  rewrite LEN.
-  zprogress.
-  gbase. eapply CIH; zsimpl_len; try eapply elim_rel_refl; et; zsimpl_len.
-  { zsimpl_lookup. zlookup_insert. rewrite -LEN. zsimpl_len. ired. et. }
-  { zsimpl_lookup. zlookup_insert.
-    rewrite -/(HModTr.sandbox _ _ _).
-    rewrite /cancel_term /inline_hp /HModTr.trans.
-    rewrite SBRed.bind HIRed.iter_handle_bind.
-    do 3 f_equal. extensionalities.
-    rewrite SBRed.bind SBRed.core.
-    do 2 f_equal. extensionalities.
-    rewrite SBRed.bind SBRed.ag SBRed.ret. refl.
-  }
+    rewrite !alist_find_map_snd FIND; s. ired.
+    rewrite /HModTr.trans_ktree !sandbox_inline_commute; cycle 1.
+    { destruct img; ss. }
+    { destruct img; ss. }
+    ziter_l. zstep_l. ziter_l. zstep_l. 
+    ziter_r. zstep_r. ziter_r. zstep_r.
 
-  intros k t1 t2 NEQ LOOKUP1 LOOKUP2.
-  rewrite list_lookup_insert_ne in LOOKUP2; eauto.
-  destruct (Nat.eq_dec cid k).
-  - subst k.
-    revert LOOKUP1. zsimpl_lookup. zlookup_insert. i. depdes LOOKUP1.
-    revert LOOKUP2. zsimpl_lookup. zlookup_insert. i. depdes LOOKUP2.
-    econs; eauto.
-    eapply KTR.
-  - assert (L1 := LOOKUP1). eapply lookup_snoc_Some in L1. des; cycle 1.
-    { subst. revert NEQ. zsimpl_len. }
-    revert LOOKUP1. zsimpl_lookup. zlookup_insert_ne. i.
-    assert (L2 := LOOKUP2). eapply lookup_snoc_Some in L2. des; cycle 1.
-    { subst. revert NEQ. zsimpl_len. }
-    revert LOOKUP2. zsimpl_lookup. zlookup_insert_ne. i.
-    specialize (RELS k t1 t2 n LOOKUP1 LOOKUP2).
-    inv RELS. econs; eauto.
-Unshelve. all: eauto.
+    rewrite if_simpl.
+    destruct (classic (img = false ∨ fspo = None)); cycle 1.
+    { destruct img; [|exfalso; et]. destruct fspo; [|exfalso; et].
+      ziter_r. zstep_r.
+      specialize (VP1 fn). rewrite FIND E in VP1. specialize (VP1 x).
+      des. exists x5. zstep_r.
+      ziter_r. zstep_r.
+      ziter_r. zstep_r. eexists. zstep_r.
+      ziter_r. zstep_r. ziter_r. zstep_r.
+      ziter_r. zstep_r. eexists r_t. zstep_r.
+      ziter_r. zstep_r. unshelve eexists.
+      { split; eauto using Own_wand_valid.
+        iIntros "H". iMod (x6 with "H") as "[P O]". iFrame. iApply PRE. et.
+      }
+      zstep_r. ziter_r. zstep_r. ziter_r. zstep_r. ziter_r. zstep_r.
+
+      zprogress. gbase. rewrite EQLEN. eapply CIH; et.
+      split.
+      { rewrite !length_insert !length_app !length_insert. s. et. }
+
+      i. destruct (Nat.eq_dec i cid); subst.
+      { rewrite lookup_app list_lookup_insert in EQx; try nia. inv EQx.
+        rewrite list_lookup_insert_ne in EQy; try nia.
+        rewrite lookup_app list_lookup_insert in EQy; try nia. inv EQy.
+        econs; et. pstep. econs. et.
+      }
+      destruct (Nat.eq_dec i (length tgts)); subst.
+      { rewrite list_lookup_insert in EQy; cycle 1.
+        { rewrite length_app length_insert. s. nia. }
+        rewrite lookup_app lookup_ge_None_2 in EQx; cycle 1.
+        { rewrite length_insert. nia. }
+        rewrite length_insert EQLEN Nat.sub_diag in EQx.
+        inv EQx.
+        econs; cycle 3.
+        - rewrite /HModTr.trans interpV_bind HIRed.bind interpV_bind. refl.
+        - i. nia.
+        - eapply elim_rel_cancel; et. r. esplits; et.
+        - refl.
+      }
+      rewrite lookup_app list_lookup_insert_ne in EQx; try nia.
+      rewrite list_lookup_insert_ne in EQy; try nia.
+      rewrite lookup_app list_lookup_insert_ne in EQy; try nia.
+      destruct (srcs !! i) eqn: E0; cycle 1.
+      { eapply lookup_ge_None_1 in E0.
+        eapply lookup_lt_Some in EQx. ss. rewrite length_insert in EQx.
+        nia.
+      }
+      destruct (tgts !! i) eqn: E1; cycle 1.
+      { eapply lookup_ge_None_1 in E1.
+        eapply lookup_lt_Some in EQy. ss. rewrite length_insert in EQy.
+        nia.
+      }
+      inv EQx. et.
+    }
+    { rewrite if_prod_comm. destruct fspo.
+      { exfalso. des; ss. subst. exploit WFS; et. ss. }
+      rewrite !if_simpl. clear H.
+
+      zprogress. gbase. rewrite EQLEN. eapply CIH; et; cycle 1.
+      { des_safe. rewrite RS. iIntros ">H". iMod (x5 with "H") as "[P O]".
+        iFrame. et. }
+      split.
+      { rewrite !length_app !length_insert. s. et. }
+
+      i. destruct (Nat.eq_dec i cid); subst.
+      { rewrite lookup_app list_lookup_insert in EQx; try nia. inv EQx.
+        rewrite lookup_app list_lookup_insert in EQy; try nia. inv EQy.
+        econs; et. pstep. econs. et.
+      }
+      destruct (Nat.eq_dec i (length tgts)); subst.
+      { rewrite lookup_app lookup_ge_None_2 in EQx; cycle 1.
+        { rewrite length_insert. nia. }
+        rewrite length_insert EQLEN Nat.sub_diag in EQx.
+        rewrite lookup_app lookup_ge_None_2 in EQy; cycle 1.
+        { rewrite length_insert. nia. }
+        rewrite length_insert Nat.sub_diag in EQy.
+        inv EQx. inv EQy.
+        assert (args = x2).
+        { specialize (VP1 fn). rewrite FIND E in VP1. specialize (VP1 x). des; ss.
+          eapply Own_pure_soundness; try apply WFR.
+          rewrite RS. iIntros ">H". iMod (x6 with "H") as "[P O]".
+          rewrite PRE. iMod "P" as "P". iApply "P".
+        }
+        subst. econs; cycle 3.
+        - rewrite /SB.sandbox_body. s. erewrite bind_ret_r. refl.
+        - i. nia.
+        - eapply elim_rel_cancel; et. r. esplits; et.
+        - rewrite /SB.sandbox_body. s. refl.
+      }
+      rewrite lookup_app list_lookup_insert_ne in EQx; try nia.
+      rewrite lookup_app list_lookup_insert_ne in EQy; try nia.
+      destruct (srcs !! i) eqn: E0; cycle 1.
+      { eapply lookup_ge_None_1 in E0.
+        eapply lookup_lt_Some in EQx. ss. rewrite length_insert in EQx.
+        nia.
+      }
+      destruct (tgts !! i) eqn: E1; cycle 1.
+      { eapply lookup_ge_None_1 in E1.
+        eapply lookup_lt_Some in EQy. ss. rewrite length_insert in EQy.
+        nia.
+      }
+      inv EQx. et.
+    }
+  }
+  { zstep_r.
+    rewrite !alist_find_map_snd FIND; s. ired.
+    rewrite /HModTr.trans_ktree !sandbox_inline_commute; cycle 1.
+    { destruct img; ss. }
+    { destruct img; ss. }
+    ziter_l. zstep_l. ziter_l. zstep_l. 
+    ziter_r. zstep_r. ziter_r. zstep_r.
+
+    rewrite if_simpl.
+    destruct (classic (img = false ∨ fspo = None)); cycle 1.
+    { destruct img; [|exfalso; et]. destruct fspo; [|exfalso; et].
+      ziter_r. zstep_r.
+      specialize (VP1 fn). rewrite FIND E in VP1. specialize (VP1 ()).
+      des. exists x2. zstep_r.
+      ziter_r. zstep_r.
+      ziter_r. zstep_r. eexists. zstep_r.
+      ziter_r. zstep_r. ziter_r. zstep_r.
+      ziter_r. zstep_r. eexists r_t. zstep_r.
+      ziter_r. zstep_r. unshelve eexists.
+      { split; eauto using Own_wand_valid.
+        iIntros "H". iFrame. iApply PRE. et.
+      }
+      zstep_r. ziter_r. zstep_r. ziter_r. zstep_r. ziter_r. zstep_r.
+
+      zprogress. gbase. rewrite EQLEN. eapply CIH; et.
+      split.
+      { rewrite !length_insert !length_app !length_insert. s. et. }
+      i. 
+
+      destruct (Nat.eq_dec i cid); subst.
+      { rewrite lookup_app list_lookup_insert in EQx; try nia. inv EQx.
+        rewrite list_lookup_insert_ne in EQy; try nia.
+        rewrite lookup_app list_lookup_insert in EQy; try nia. inv EQy.
+        econs; et. pstep. econs. et.
+      }
+      destruct (Nat.eq_dec i (length tgts)); subst.
+      { rewrite list_lookup_insert in EQy; cycle 1.
+        { rewrite length_app length_insert. s. nia. }
+        rewrite lookup_app lookup_ge_None_2 in EQx; cycle 1.
+        { rewrite length_insert. nia. }
+        rewrite length_insert EQLEN Nat.sub_diag in EQx.
+        inv EQx.
+        econs; cycle 3.
+        - rewrite /HModTr.trans interpV_bind HIRed.bind interpV_bind. refl.
+        - i. nia.
+        - eapply elim_rel_cancel; et. r. esplits; et.
+        - refl.
+      }
+      rewrite lookup_app list_lookup_insert_ne in EQx; try nia.
+      rewrite list_lookup_insert_ne in EQy; try nia.
+      rewrite lookup_app list_lookup_insert_ne in EQy; try nia.
+      destruct (srcs !! i) eqn: E0; cycle 1.
+      { eapply lookup_ge_None_1 in E0.
+        eapply lookup_lt_Some in EQx. ss. rewrite length_insert in EQx.
+        nia.
+      }
+      destruct (tgts !! i) eqn: E1; cycle 1.
+      { eapply lookup_ge_None_1 in E1.
+        eapply lookup_lt_Some in EQy. ss. rewrite length_insert in EQy.
+        nia.
+      }
+      inv EQx. et.
+    }
+    { rewrite if_prod_comm. destruct fspo.
+      { exfalso. des; ss. subst. exploit WFS; et. ss. }
+      rewrite !if_simpl. clear H.
+
+      zprogress. gbase. rewrite EQLEN. eapply CIH; et.
+      split.
+      { rewrite !length_app !length_insert. s. et. }
+
+      i. destruct (Nat.eq_dec i cid); subst.
+      { rewrite lookup_app list_lookup_insert in EQx; try nia. inv EQx.
+        rewrite lookup_app list_lookup_insert in EQy; try nia. inv EQy.
+        econs; et. pstep. econs. et.
+      }
+      destruct (Nat.eq_dec i (length tgts)); subst.
+      { rewrite lookup_app lookup_ge_None_2 in EQx; cycle 1.
+        { rewrite length_insert. nia. }
+        rewrite length_insert EQLEN Nat.sub_diag in EQx.
+        rewrite lookup_app lookup_ge_None_2 in EQy; cycle 1.
+        { rewrite length_insert. nia. }
+        rewrite length_insert Nat.sub_diag in EQy.
+        inv EQx. inv EQy.
+        econs; cycle 3.
+        - rewrite /SB.sandbox_body. s. erewrite bind_ret_r. refl.
+        - i. nia.
+        - eapply elim_rel_cancel; et. r. esplits; et.
+        - rewrite /SB.sandbox_body. s. refl.
+      }
+      rewrite lookup_app list_lookup_insert_ne in EQx; try nia.
+      rewrite lookup_app list_lookup_insert_ne in EQy; try nia.
+      destruct (srcs !! i) eqn: E0; cycle 1.
+      { eapply lookup_ge_None_1 in E0.
+        eapply lookup_lt_Some in EQx. ss. rewrite length_insert in EQx.
+        nia.
+      }
+      destruct (tgts !! i) eqn: E1; cycle 1.
+      { eapply lookup_ge_None_1 in E1.
+        eapply lookup_lt_Some in EQy. ss. rewrite length_insert in EQy.
+        nia.
+      }
+      inv EQx. et.
+    }
+  }
+Unshelve. all: try exact smj_top.  
 (*SLOW*)Qed.

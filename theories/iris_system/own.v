@@ -6,25 +6,6 @@ Require Import Coqlib.
 Require Export base_logic iprop.
 Import uPred.
 
-(* Section uPredI.
-  (** extra BI instances *)
-
-  Global Instance uPredI_absorbing {M : ucmra} (P : uPredI M) : Absorbing P.
-  Proof. apply _. Qed.
-
-  Global Instance uPredI_affine {M : ucmra} (P : uPredI M) : Affine P.
-  Proof. apply _. Qed.
-
-  Global Instance uPredI_except_0 {M : ucmra} (P : uPredI M) : IsExcept0 P.
-  Proof.
-    rewrite /IsExcept0 /bi_except_0. uPred.unseal.
-    split=> x WFn. intros [|]; done.
-  Qed.+
-
-End uPredI.
-(* uPredI_affine is added so that IPM can also resolve pure predicates with evars. *)
-Global Hint Immediate uPredI_affine : core. *)
-
 Local Definition iRes_singleton `{i : !inG A Σ} (γ : gname) (a : A) : Σ :=
   discrete_fun_singleton (inG_id i) (allocs_frag γ (cmra_transport inG_prf a)).
 Global Instance: Params (@iRes_singleton) 4 := {}.
@@ -630,3 +611,28 @@ Notation "*[ Σ1 ; .. ; Σn ]" :=
 Notation "**[ Σ1 ; .. ; Σn ]" := (InitRes.app Σ1 .. (InitRes.app Σn InitRes.nil) ..).
 Notation "'L'" := InitRes.L (at level 50, only printing).
 Notation "'R'" := InitRes.R (at level 50, only printing).
+
+Section Lemmas.
+  Context `{Σ: GRA}.
+
+  Lemma valid_solve (a b c: Σ) :
+    ✓ a -> a ≡  b ⋅ c -> ✓ b.
+  Proof using.
+    i. eapply cmra_valid_op_l. setoid_rewrite <- H0. eauto.
+  Qed.
+
+  Lemma valid_extends (r a b: Σ):
+    b ≼ a -> ✓(r ⋅ a) -> ✓ (r ⋅ b).
+  Proof using.
+    i. apply cmra_mono_l with (z:=r) in H.
+    eapply cmra_valid_included; eauto.
+  Qed.
+
+  Lemma Own_bupd_valid (r a b: Σ):
+    (Own r ⊢|==> Own a ∗ Own b) -> ✓ r -> ✓ (a ⋅ b).
+  Proof using.
+    i. eapply Own_wand_valid with (a1 := r); eauto.
+    iIntros "H". iApply Own_op. iStopProof. eauto.
+  Qed.
+
+End Lemmas.  

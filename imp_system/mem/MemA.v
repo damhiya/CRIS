@@ -4,13 +4,13 @@ Set Implicit Arguments.
 
 (* Memory resource algebra *)
 Section MemRA.
-  Context `{!crisG  Γ Σ α β τ _S _I _T}.
+  Context `{!crisG Γ Σ α β τ _S _I}.
 
   Canonical Structure valO := leibnizO val.
   Definition frac_valO := dfrac_agreeR valO.
   Definition _memRA := (mblock -d> Z -d> optionUR frac_valO).
   Definition memRA := authUR _memRA.
-  Class memG `{!crisG  Γ Σ α β τ _S _I _T} := {
+  Class memG `{!crisG Γ Σ α β τ _S _I} := {
     mem_inG :: inG memRA Γ;
   }.
   Definition memΓ : HRA := #[memRA].
@@ -20,7 +20,7 @@ End MemRA.
 Hint Unfold subG_memG mem_inG : GRA_index.
 
 Section MEM.
-  Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
   Context `{_memG: !memG}.
    
   (* Initial resources for memory *)
@@ -74,7 +74,7 @@ End MEM.
 Local Arguments Z.of_nat : simpl nomatch.
 
 Section MemRA.
-  Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
   Context `{_memG: !memG}.
 
   Definition mem_val : Type := Qp * val.
@@ -135,7 +135,7 @@ Global Opaque mem_points_to_singleton_r.
 Arguments mem_points_to_singleton_r : simpl never.
 
 Module MemSpec. Section MemSpec.
-  Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
   Context `{_memG: !memG}.
 
   Definition alloc := 
@@ -202,7 +202,7 @@ Module MemSpec. Section MemSpec.
 End MemSpec. End MemSpec.
 
 Module MemP. Section MemP.
-  Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
   Context `{_memG: !memG}.
 
   Definition scopes := ["Mem"].
@@ -239,7 +239,7 @@ Module MemP. Section MemP.
 End MemP. End MemP.
 
 Module MemA. Section MemA.
-  Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
   Context `{_memG: !memG}.
 
   Definition scopes := ["Mem"].

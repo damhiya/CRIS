@@ -12,7 +12,7 @@ End SchHdr.
 
 (* Wrapping fspecs *)
 Section FSpec.
-  Context `{!crisG  Γ Σ α β τ _S _I _T}.
+  Context `{!crisG Γ Σ α β τ _S _I}.
 
   Variable univ: positive.
   Variable SpFun: string → option fspec.

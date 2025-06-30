@@ -6,7 +6,7 @@ Set Implicit Arguments.
 Local Open Scope nat_scope.
 
 Section AUX.
-  Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
   Context `{_memG: !memG}.
 
   Fixpoint is_list (ll: val) (xs: list val): iProp Σ :=
@@ -44,7 +44,7 @@ End AUX.
 Ltac Ztac := all_once_fast ltac:(fun H => first[apply Z.leb_le in H|apply Z.ltb_lt in H|apply Z.leb_gt in H|apply Z.ltb_ge in H|idtac]).
 
 Section AUX2.
-  Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
   Context `{_memG: !memG}.
   
   Lemma repeat_nth_some X (x: X) sz ofs (IN: ofs < sz) :
@@ -108,7 +108,7 @@ Section AUX2.
 End AUX2.
 
 Section RA.
-  Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
   Context `{_memG: !memG}.
 
   Definition mem_wf (m0: Mem.t): Prop :=
@@ -343,7 +343,7 @@ Section RA.
 End RA.
 
 Module MemIP. Section MemIP.
-  Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
   Context `{_memG: !memG}.
 
   Context (csl : string → bool).
@@ -613,7 +613,7 @@ Module MemIP. Section MemIP.
 End MemIP. End MemIP.
 
 Module MemPA. Section MemPA.
-  Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
   Context `{_memG: !memG}.
 
   Theorem sim sp : HSim.t open (MemA.t sp) MemP.t emp%I IstEq.
@@ -629,7 +629,7 @@ Module MemPA. Section MemPA.
 End MemPA. End MemPA.
 
 Module MemIA. Section MemIA.
-  Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
   Context `{_memG: !memG}.
 
   Theorem ctxr csl genv sp :

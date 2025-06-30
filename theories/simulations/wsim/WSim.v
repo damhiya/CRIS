@@ -5,7 +5,7 @@ From iris.proofmode Require Import proofmode.
 From stdpp Require Import coPset.
 
 Section ginv.
-  Context `{!crisG  Γ Σ α β τ _S _I _T}.
+  Context `{!crisG  Γ Σ α β τ _S _I}.
 
   Definition wsim_ginv (Ep : option (coPset * coPset)) : iProp Σ :=
     match Ep with
@@ -44,32 +44,32 @@ Section ginv.
 End ginv.
 
 (* Typeclass definition to streamline assume/guarantee processing *)
-Class WP `{!crisG Γ Σ α β τ _S _I _T} (P : iProp Σ) := mk_WP {
+Class WP `{!crisG Γ Σ α β τ _S _I} (P : iProp Σ) := mk_WP {
   WP_space : coPset;
   WP_remainder : iProp Σ;
   WP_iff : P ∗-∗ wsim_ginv (Some (WP_space, WP_space)) ∗ WP_remainder
 }.
-Arguments mk_WP {_ _ _ _ _ _ _ _ _ _} _ _ _.
-Arguments WP_remainder {_ _ _ _ _ _ _ _ _} [_] _.
-Arguments WP_space {_ _ _ _ _ _ _ _ _} [_] _.
-Arguments WP_iff {_ _ _ _ _ _ _ _ _} [_] _.
+Arguments mk_WP {_ _ _ _ _ _ _ _ _} _ _ _.
+Arguments WP_remainder {_ _ _ _ _ _ _ _} [_] _.
+Arguments WP_space {_ _ _ _ _ _ _ _} [_] _.
+Arguments WP_iff {_ _ _ _ _ _ _ _} [_] _.
 
-Program Global Instance WP_refl E `{!crisG Γ Σ α β τ _S _I _T}
+Program Global Instance WP_refl E `{!crisG Γ Σ α β τ _S _I}
   : WP (wsim_ginv (Some (E, E))) := mk_WP E True _.
 Next Obligation. ii; iSplit; first iIntros "$"; iIntros "[$ _]". Qed.
 
-Program Global Instance fspec_wsim_precond `{!crisG Γ Σ α β τ _S _I _T} (fsp : fspec) E m arg varg :
+Program Global Instance fspec_wsim_precond `{!crisG Γ Σ α β τ _S _I} (fsp : fspec) E m arg varg :
   WP (precond (fspec_wsim E fsp) m arg varg) :=
   {| WP_space := E; WP_remainder := (precond fsp m arg varg) |}.
 Next Obligation. intros; iSplit; iIntros "[$ $]". Qed.
 
-Program Global Instance fspec_wsim_postcond `{!crisG Γ Σ α β τ _S _I _T} (fsp : fspec) E m arg varg :
+Program Global Instance fspec_wsim_postcond `{!crisG Γ Σ α β τ _S _I} (fsp : fspec) E m arg varg :
   WP (postcond (fspec_wsim E fsp) m arg varg) :=
   {| WP_space := E; WP_remainder := (postcond fsp m arg varg) |}.
 Next Obligation. intros; iSplit; iIntros "[$ $]". Qed.
 
 Section wsim.
-  Context `{!crisG Γ Σ α β τ _S _I _T}.
+  Context `{!crisG Γ Σ α β τ _S _I}.
 
   Local Definition state : Type := alist key Any.t.
   Local Definition post (R_s R_t : Type) : Type := nat → state * R_s → state * R_t → iProp Σ.
@@ -742,7 +742,7 @@ Global Arguments wsim_own_alloc {_ _ _ _ _ _ _ _ _ _ _ _ _} _.
 
 (* Lemmas for prophecies *)
 Section Proph.
-  Context `{!crisG Γ Σ α β τ _S _I _T}.
+  Context `{!crisG Γ Σ α β τ _S _I}.
 
   Context (fl_s fl_t : alist (option string) (Any.t → itree hmodE Any.t)).
   Context (Ist : nat → alist key Any.t → alist key Any.t → iProp Σ).

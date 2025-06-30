@@ -347,7 +347,7 @@ Proof.
 Qed.
 
 Section Proph.
-  Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
+  Context `{Σ: GRA}.
 
   Variable contextual: contextuality.
 

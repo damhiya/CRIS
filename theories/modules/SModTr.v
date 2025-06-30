@@ -9,7 +9,7 @@ Arguments postcond : simpl never.
 
 Module SModTr.
 Section HOARE.
-  Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
+  Context `{Σ: GRA}.
 
   Definition HoareCall fn (varg: Any.t) (fspo: option fspec): itree hmodE Any.t
     :=
@@ -53,12 +53,6 @@ Section HOARE.
       body
     end.             
 
-  Definition HoareYield (tid: nat) : itree hmodE nat :=
-    trigger (Guarantee (stid tid));;;
-    my_tid <- trigger (Yield tid);;
-    trigger (Assume (stid my_tid));;;
-    Ret my_tid.
-
   Definition NativeSpawn `{Σ: GRA} (fn: string) (arg: Any.t) : itree hmodE nat :=
     tid <- trigger (Spawn fn arg);;
     trigger (Yield tid);;;
@@ -72,7 +66,6 @@ Section HOARE.
       trigger (Guarantee (precond fsp x varg arg));;;
       tid <- trigger (Spawn fn arg);;
       trigger (Yield tid);;;
-      trigger (Assume (stid tid));;;
       Ret tid
     | None =>
       NativeSpawn fn varg
@@ -91,7 +84,7 @@ Section HOARE.
         exact
           (inl ((HoareSpawn fn args) (sp fn))).
       - (* Yield *)
-        exact (inl (HoareYield tid)).
+        exact (inl (trigger (Yield tid))).
     }
     destruct s.
     { exact (inr (existT _ (subevent _ p, fun v => Ret v))). }
@@ -114,7 +107,7 @@ Notation "↧ it" := (SModTr.trans _ it) (at level 59, only printing).
 
 Module SRed.
 Section RED.
-  Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
+  Context `{Σ: GRA}.
 
   Variable sp: sp_type.
 
@@ -159,7 +152,7 @@ Section RED.
   Qed.
 
   Lemma vis_yield {R} tid (ktr : nat -> itree hmodE R) :
-    SModTr.trans sp (vis (Yield tid) ktr) = tau;; my_tid <- SModTr.HoareYield tid;; SModTr.trans sp (ktr my_tid).
+    SModTr.trans sp (vis (Yield tid) ktr) = tau;; my_tid <- trigger (Yield tid);; SModTr.trans sp (ktr my_tid).
   Proof using.
     unfold SModTr.trans. rewrite interpV_vis.
     eapply observe_eta; ss.
@@ -231,7 +224,7 @@ Section RED.
     :
       SModTr.trans sp (trigger (Yield tid))
       =
-      tau;; SModTr.HoareYield tid.
+      tau;; trigger (Yield tid).
   Proof using.
     rewrite vis_yield. f_equal. f_equal.
     eapply observe_eta; ss. f_equal. extensionalities. ired.

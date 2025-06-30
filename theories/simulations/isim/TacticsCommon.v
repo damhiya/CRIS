@@ -206,7 +206,7 @@ Tactic Notation "red_bind" hyp(prg) tactic(tac) :=
 
 Tactic Notation "red_SB" hyp(prg) :=
   lazymatch goal with
-  | [ |- @SB.sandbox _ _ _ _ _ ?itr = _ ] =>
+  | [ |- SB.sandbox _ _ _ ?itr = _ ] =>
       lazymatch itr with
       | Ret _ =>
           _hprogress prg; eapply SBRed.ret
@@ -290,8 +290,7 @@ Tactic Notation "red_S" hyp(prg) tactic(tac) :=
       | vis (Yield _) _ =>
           _hprogress prg; etransitivity;
           [ eapply SRed.vis_yield
-          | unfold SModTr.HoareYield;
-            tac
+          | tac
           ]
       | vis (Call ?fn _) _ =>
           _hprogress prg; etransitivity;
@@ -341,9 +340,9 @@ Ltac _hnorm_itr prg :=
   | [ |- @SB.sandbox ?Σ ?R ?img ?imports ?scopes ?itr = _ ] =>
       etransitivity;
       [ cong (@SB.sandbox Σ R img imports scopes); _hnorm_itr prg | red_SB prg ]
-  | [ |- @SModTr.trans ?Γ ?Σ ?_S ?_T ?sp ?R ?itr = _ ] =>
+  | [ |- @SModTr.trans ?Σ ?sp ?R ?itr = _ ] =>
       etransitivity;
-      [ cong (@SModTr.trans Γ Σ _S _T sp R); _hnorm_itr prg | red_S prg (do 1 _hnorm_itr prg) ]
+      [ cong (@SModTr.trans Σ sp R); _hnorm_itr prg | red_S prg (do 1 _hnorm_itr prg) ]
   | [ |- trigger _ = _ ] =>
       eapply trigger_vis
   | [ |- assume _ = _ ] =>
@@ -359,14 +358,8 @@ Ltac _hnorm_itr prg :=
   | [ |- SModTr.HoareCall _ _ _ = _ ] =>
       _hprogress prg; unfold SModTr.HoareCall;
       _hnorm_itr prg
-  | [ |- SModTr.HoareSpawn _ _ _ _ = _ ] =>
-      _hprogress prg; unfold SModTr.HoareSpawn;
-      _hnorm_itr prg
   | [ |- SModTr.NativeSpawn _ _ = _ ] =>
       _hprogress prg; unfold SModTr.NativeSpawn;
-      _hnorm_itr prg
-  | [ |- SModTr.HoareYield _ = _ ] =>
-      _hprogress prg; unfold SModTr.HoareYield;
       _hnorm_itr prg
   | [ |- fbody_trivial _ = _ ] =>
       _hprogress prg; unfold fbody_trivial;
@@ -405,10 +398,10 @@ Ltac _hnorm_itr prg :=
 Ltac hnorm_itr :=
   try match goal with
   | [ |- @ITree.bind _ _ _ (trigger _) _ = _ ] => fail 2
-  | [ |- @ITree.bind _ _ _ (@SB.sandbox _ _ _ _ _ (trigger (SPut _ _))) _ = _ ] => fail 2
-  | [ |- @ITree.bind _ _ _ (@SB.sandbox _ _ _ _ _ (trigger (SGet _))) _ = _ ] => fail 2
-  | [ |- @ITree.bind _ _ _ (@SB.sandbox _ _ _ _ _ (trigger (Call _ _))) _ = _ ] => fail 2
-  | [ |- @ITree.bind _ _ _ (@SB.sandbox _ _ _ _ _ (trigger (Spawn _ _))) _ = _ ] => fail 2
+  | [ |- @ITree.bind _ _ _ (SB.sandbox _ _ _ (trigger (SPut _ _))) _ = _ ] => fail 2
+  | [ |- @ITree.bind _ _ _ (SB.sandbox _ _ _ (trigger (SGet _))) _ = _ ] => fail 2
+  | [ |- @ITree.bind _ _ _ (SB.sandbox _ _ _ (trigger (Call _ _))) _ = _ ] => fail 2
+  | [ |- @ITree.bind _ _ _ (SB.sandbox _ _ _ (trigger (Spawn _ _))) _ = _ ] => fail 2
   end;
   let prg := fresh "Progress" in
   epose (prg := _ : _hprogress);

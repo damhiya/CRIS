@@ -9,7 +9,7 @@ Import APC.
 
 Section LEMMAS.
 
-Context `{_crisG: !crisG  Γ Σ α β τ _S _I _T}.
+Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
 
 Lemma wsim_apc_src
     fl fr Ist cP r g {Rs Rt} RR ps pt nths st_src st_tgt k_src i_tgt sp sp_pure
