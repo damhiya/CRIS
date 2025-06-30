@@ -10,16 +10,16 @@ Variant inv_ops : Type :=
 | _ownI (i : positive)
 | _ownI_reserve (X : coPset)
 | _ownD (i : positive)
-(* | _ownI_auth (keys : gmap positive unit) *)
-| _wsat_auth (X : coPset).
+| _wsat_auth (X : coPset)
+| _own_admin.
 
 Local Definition inv_arity (op : inv_ops) (sProp : Type) : Type :=
   match op with
   | _ownI i => fin 1
   | _ownI_reserve X => fin 0
   | _ownD i => fin 1
-  (* | _ownI_auth keys => positive *)
   | _wsat_auth X => fin 0
+  | _own_admin => fin 0
   end.
 
 Global Instance inv_syntax : SAT.t := {
@@ -36,8 +36,8 @@ Local Definition inv_interp_aux `{!invG Γ Σ α, !subG Γ Σ} n (op : inv_ops) 
   | _ownI i => λ syn _, ownI i (syn 0%fin)
   | _ownI_reserve X => λ _ _, ownI_reserve n X
   | _ownD i => λ syn _, ownD i (syn 0%fin)
-  (* | _ownI_auth keys => λ syn _, ownI_auth n (map_imap (λ k v, Some (syn k)) keys) *)
   | _wsat_auth X => λ _ _, wsat_auth n X
+  | _own_admin => λ _ _, own_admin
   end.
 
 Global Instance inv_interp `{!invG Γ Σ α, !subG Γ Σ} :
@@ -59,17 +59,13 @@ Section syn_inv.
     ⟨ _ownI_reserve X, λ e, match e with end⟩.
   Local Definition syn_ownD {n} i (p : GTerm.t n) : GTerm.t n :=
     ⟨ _ownD i, λ _, p ⟩.
-  (* Local Definition syn_ownI_auth u n (I : gmap positive (GTerm.t n)) : GTerm.t n :=
-    ⟨ _ownI_auth u (gset_to_gmap tt (dom I)), λ i, or_else (I !! i) emp%SAT⟩. *)
   Local Definition syn_wsat_auth n X : GTerm.t n :=
     ⟨ _wsat_auth X, λ e, match e with end ⟩.
+  Local Definition syn_own_admin n : GTerm.t n :=
+    ⟨ _own_admin, λ e, match e with end ⟩.
 
   Local Definition syn_ownE n (E : coPset) : GTerm.t n :=
     <own> base_γ (CoPset E).
-  (* Local Definition syn_ownD n (D : gset positive) : GTerm.t n :=
-    <own> base_γ (ownDR u D).
-  Local Definition syn_ownD_auth n : GTerm.t n :=
-    (∃ D : τ{⇣gset positive}, <own> base_γ (ownD_authR u D))%SAT. *)
 
   Local Definition syn_inv_satall {n} (I : gmap positive (GTerm.t n)) : GTerm.t n :=
     ([∗ n map] i ↦ p ∈ I, syn_ownI i p ∗ ((syn_ownD i p ∗ p) ∨ syn_ownE n {[i]}))%SAT.
@@ -93,7 +89,8 @@ Section syn_inv.
   Local Definition syn_inv_eq : @syn_inv = @syn_inv_def := syn_inv_aux.(seal_eq).
 
   Local Definition syn_fupd_def {n} (Ew E1 E2 : coPset) (P : GTerm.t n) : GTerm.t n :=
-    syn_wsatl n Ew ∗ syn_ownE n E1 ==∗ (syn_wsatl n Ew ∗ syn_ownE n E2 ∗ P).
+    syn_wsatl n Ew ∗ syn_ownE n E1 ∗ syn_own_admin n ==∗
+      (syn_wsatl n Ew ∗ syn_ownE n E2 ∗ syn_own_admin n ∗ P).
   Local Definition syn_fupd_aux : seal (@syn_fupd_def). Proof using. by eexists. Qed.
   Definition syn_fupd := syn_fupd_aux.(unseal).
   Local Definition syn_fupd_eq : @syn_fupd = @syn_fupd_def := syn_fupd_aux.(seal_eq).
@@ -109,19 +106,6 @@ Class sinvG (Γ : HRA) (Σ : GRA) (α : GAT.t) (β : GATIntp.t) (τ : TypG.t)
 Section reduction.
   Context `{!sinvG Γ Σ α β τ _I _S}.
 
-  (* Lemma ownI_auth_red n I :
-    ⟦syn_ownI_auth n I⟧ = ownI_auth n I.
-  Proof using.
-    SAT_red; ss.
-    f_equal. apply map_eq; intros i.
-    destruct (decide (i ∈ dom I)).
-    { rewrite map_lookup_imap lookup_gset_to_gmap //=. case_guard; ss. apply elem_of_dom in e; ss.
-      destruct (I !! i); ss; inv e.
-    }
-    { rewrite map_lookup_imap lookup_gset_to_gmap //=. case_guard; ss.
-      rewrite not_elem_of_dom_1; eauto.
-    }
-  Qed. *)
   Implicit Types (n : level) (X : coPset).
   Lemma wsat_red n X : ⟦syn_wsat n X⟧ ≡ wsat n X.
   Proof using.

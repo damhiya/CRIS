@@ -120,7 +120,7 @@ Section properties.
 
   (* TODO : Find a way to hide own_admin using fancy-update-like modalities *)
   (* Note : There is no way to impose restrictions on ghost locs for now. *)
-  Lemma own_alloc a : ✓ a → own_admin ⊢ |==> own_admin ∗ ∃ γ, own γ a.
+  Lemma own_admin_alloc a : ✓ a → own_admin ⊢ |==> own_admin ∗ ∃ γ, own γ a.
   Proof using.
     intros hwf. rewrite ?own_admin_eq /own_admin_def.
     iIntros "[%X [%INF OWN]]".
