@@ -58,6 +58,7 @@ Section wsim.
     combine_quant st_s. combine_quant st_t. combine_quant ps. combine_quant pt.
     eapply isim_coind.
     iIntros (g' [pt [ps [st_t' [st_s' [NODD [NODS nths']]]]]]) "%MON [[[IST [TID SIM]] P] #CIH]". s.
+    destruct_quant.
 
     unfold_iter_r.
     steps_r. destruct q.
@@ -114,6 +115,7 @@ Section wsim.
     combine_quant st_s. combine_quant st_t. combine_quant ps. combine_quant pt.
     eapply isim_coind.
     iIntros (g' [pt [ps [st_t' [st_s' [NODD [NODS nths']]]]]]) "%MON [[[IST SIM] P] #CIH]". s.
+    destruct_quant.
 
     unfold_iter_r.
     steps_r. destruct q.
@@ -173,6 +175,7 @@ Section wsim.
     combine_quant st_s. combine_quant st_t. combine_quant ps. combine_quant pt.
     eapply isim_coind.
     iIntros (g' [pt [ps [st_t' [st_s' [NODD [NODS nths']]]]]]) "%MON [[[IST SIM] P] #CIH]". s.
+    destruct_quant.
 
     unfold_iter_r.
     steps_r. destruct q.

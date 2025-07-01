@@ -980,9 +980,10 @@ Module HSim. Section HSim.
         (SB.sandbox_body fs) (SB.sandbox_body ft).
 
   Definition initial_valid : Prop :=
-    alist_find None fl_tgt = None →
-    alist_find None fl_src = None ∧
-    (init_cond ⊢ Ist 1 init_src init_tgt).
+    alist_find None fl_tgt = None
+    →
+    ((alist_find None fl_src = None) ∧
+     (init_cond ⊢ Ist 1 init_src init_tgt)).
 
   Inductive t : Prop := mk {
     sim_mon : HMod.wf ms_tgt →

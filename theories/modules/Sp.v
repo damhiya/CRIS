@@ -11,6 +11,7 @@ Section HEADER.
 
   Context `{Σ: GRA}.
 
+  (* we use "option string" instead of "string" in spl_type for an engineering purpose. *)
   Definition spl_type := alist (option string) (option fspec).
   Definition sp_type := (string -> option fspec).
   

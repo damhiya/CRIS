@@ -38,7 +38,7 @@ Proof.
   combine_quant ps.
   combine_quant pt.
   eapply isim_coind. intros g0 a _.
-  destruct a as [pt [ps [nths [st_src [st_tgt it]]]]]. s.
+  destruct a as [pt [ps [nths [st_src [st_tgt it]]]]]. s. destruct_quant.
   iIntros "[IST CIH]".
   assert (CASE := case_itrH it); des; subst.
   - istep. iFrame. eauto.

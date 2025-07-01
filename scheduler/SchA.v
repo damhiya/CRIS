@@ -335,18 +335,20 @@ Module SchA. Section SchA.
   Definition scopes := ["Sch"].
   Definition v_internal := "Sch" ↯ "internal".
 
-  Definition trigger_Yield (nxt_tid: nat) : itree hmodE unit :=
-    cput v_internal true;;;
-         
+  Definition trigger_Yield_half (nxt_tid: nat) : itree hmodE unit :=
     SchI.trigger_Yield nxt_tid;;;
-      
+
     _internal <- cgetU v_internal;;
     assume (_internal = true);;;
     cput v_internal false
   .
   
+  Definition trigger_Yield (nxt_tid: nat) : itree hmodE unit :=
+    cput v_internal true;;;
+    trigger_Yield_half nxt_tid.
+  
   Definition fnsems sp_user : alist (option string) (fnsem_type (option fspec * fbody)) :=
-    [(Some SchHdr._spawn, (true, wmask_all, scopes, (Some (SchAS._spawn_spec sp_user), (cfunN (SchI._spawn trigger_Yield)))));
+    [(Some SchHdr._spawn, (true, wmask_all, scopes, (Some (SchAS._spawn_spec sp_user), (cfunN (SchI._spawn trigger_Yield_half)))));
      (Some SchHdr.spawn,  (true, wmask_all, scopes, (Some (SchAS.spawn_spec sp_user),  (cfunN SchI.spawn))));
      (Some SchHdr.yield,  (true, wmask_all, scopes, (Some (SchAS.yield_spec),          (cfunN (SchI.yield trigger_Yield)))));
      (Some SchHdr.join,   (true, wmask_all, scopes, (Some (SchAS.join_spec),           (cfunN SchI.join))));

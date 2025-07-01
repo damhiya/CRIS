@@ -49,6 +49,7 @@ Proof using.
   revert ow_tgt. apply combine_quant_dep.
   eapply wsim_coind. i. iIntros "(IST & ISIM) %MON #CIH".
   destruct a as [ow_tgt [ow_src [st_tgt [WIDTH [nths st_src]]]]]; ss.
+  destruct_quant.
   set_marker marker. hide_ihyps. only_itree_r.
   rewrite !unfold_APC.
   show_until marker.

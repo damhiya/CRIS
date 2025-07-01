@@ -15,14 +15,10 @@ Module SchI. Section SchI.
   Definition v_ths := "Sch" ↯ "ths".
   Definition v_tid := "Sch" ↯ "tid".
 
-  Section Impl.
-
-  Variable trigger_yield : nat -> itree hmodE unit.    
-
-  Definition _spawn : (nat * string * SAny.t) -> itree hmodE unit
+  Definition _spawn (trigger_yield_half : nat -> itree hmodE unit) : (nat * string * SAny.t) -> itree hmodE unit
     :=
     fun '(pa_tid, fn, arg) =>
-      trigger_yield pa_tid;;;
+      trigger_yield_half pa_tid;;;
       'rv: SAny.t <- ccallU fn arg;;
       'ths: thslist <- cgetU v_ths;;
       'my_tid: nat <- cgetU v_tid;;
@@ -35,13 +31,13 @@ Module SchI. Section SchI.
     fun '(fn, arg) =>
       'ths: thslist <- cgetU v_ths;;
       'my_tid: nat <- cgetU v_tid;;
-      new_tid <- trigger (Spawn SchHdr._spawn (my_tid, fn, arg)↑);;
+       new_tid <- trigger (Spawn SchHdr._spawn (my_tid, fn, arg)↑);;
       let newths: thslist := alist_add new_tid None ths in
       cput v_ths newths;;;
       Ret new_tid
   .
 
-  Definition yield: unit -> itree hmodE unit :=
+  Definition yield (trigger_yield : nat -> itree hmodE unit): unit -> itree hmodE unit :=
     fun _ =>
       'ths: thslist <- cgetU v_ths;;
       'ntid: nat <- trigger (Choose nat);;
@@ -69,8 +65,6 @@ Module SchI. Section SchI.
       'my_tid : nat <- cgetU v_tid;;
       Ret my_tid
   .
-
-  End Impl.
 
   Definition trigger_Yield (nxt_tid : nat) : itree hmodE unit :=
     my_tid <- trigger (Yield nxt_tid);;

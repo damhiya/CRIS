@@ -121,7 +121,7 @@ Proof.
   eapply cancel_elim; et. econs; et.
   i. destruct i; ss. inv EQx.
   exploit WFS; et. i. subst.
-  rewrite !if_prod_comm !if_simpl.
+  rewrite !if_simpl.
   econs; et; cycle 1.
   { rewrite bind_ret_r. et. }
 

@@ -47,7 +47,7 @@ Module CFilter. Section CFilter.
       combine_quant ps. combine_quant pt. combine_quant img.
       combine_quant scp. combine_quant msk.
       eapply isim_coind. i.
-      destruct a as [msk [scp [img [pt [ps [nths [st itr]]]]]]]. s.
+      destruct a as [msk [scp [img [pt [ps [nths [st itr]]]]]]]. s. destruct_quant.
       iIntros "[_ #CIH]".
       assert (CASE:= case_itrH itr). des; subst; s.
       - step; et.
@@ -125,7 +125,7 @@ Module CFilter. Section CFilter.
     i. revert itr.
     combine_quant st. combine_quant nths. combine_quant ps. combine_quant pt.
     eapply isim_coind.
-    iIntros (g' [pt [ps [nths [st itr]]]] MON) "[_ #CIH]". s.
+    iIntros (g' [pt [ps [nths [st itr]]]] MON) "[_ #CIH]". s. destruct_quant.
     assert (CASE:= case_itrH itr). des; subst; s.
     - step; et.
     - steps_l. steps_r. by_coind "CIH"; et.

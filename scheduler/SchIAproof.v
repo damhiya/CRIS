@@ -293,6 +293,7 @@ Module SchIA. Section SchIA.
     combine_quant nths'0.
     eapply wsim_coind. i.
     destruct a as [nths1 [st_src1 [st_tgt1 [NODS1 NODD1]]]]. s.
+    destruct_quant.
     iIntros "(WI & TU & IST) _ #CIH".
     unfold_iter_l. unfold_iter_r.
 
@@ -429,6 +430,7 @@ Module SchIA. Section SchIA.
     combine_quant nths.
     eapply wsim_coind. intros g' a.
     destruct a as [nths [st_src [st_tgt [NODS NODD]]]]. s.
+    destruct_quant.
     iIntros "[IST [TKN [tid WI]]] _ #CIH".
 
     unfold_iter_l; unfold_iter_r.

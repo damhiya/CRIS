@@ -20,12 +20,12 @@ Section CancelLib.
   Definition valid_param (md: SMod.t) img msk scp :=
     ∃ fno sbd, alist_find fno (SMod.fnsems md) = Some (img, msk, scp, sbd).
 
-  Definition has_real_spec (md: SMod.t) (fn: string) : Prop :=
+  Definition has_trivial_spec (md: SMod.t) (fn: string) : Prop :=
     ∃ msk scp, valid_param md false msk scp ∧ msk fn.
 
   Definition valid_sp (md: SMod.t) (sp: sp_type) : Prop :=
     sp_imply (sp_from md) sp ∧
-    ∀ fn (NS: has_real_spec md fn), sp fn = None.
+    ∀ fn (NS: has_trivial_spec md fn), fspec_imply (fspec_flat (sp fn)) fspec_trivial.
   
   Definition Forall2i X Y (R: nat -> X -> Y -> Prop) (xs: list X) (ys: list Y) :=
     length xs = length ys ∧
@@ -179,9 +179,10 @@ Variant elim_rel_def (sp: sp_type)
 
 (* handling cancellation *)
 
-| elim_rel_spawn fn args ktrS ktrT itrS itrT
+| elim_rel_spawn fn args img ktrS ktrT itrS itrT
+    (IMG: img = false → fspec_imply (fspec_flat (sp fn)) fspec_trivial)
     (EQS: itrS = NativeSpawnE fn args >>= ktrS)
-    (EQT: itrT = HoareSpawnE fn args (sp fn) >>= ktrT)
+    (EQT: itrT = HoareSpawnE fn args ((if img then sp else sp_none) fn) >>= ktrT)
     (KTR: forall x, self _ (ktrS x) (ktrT x))
   :
   elim_rel_def sp self itrS itrT
@@ -344,16 +345,14 @@ Definition fspo_post (fspo: option fspec) : option ((meta (fspec_flat fspo))→_
   | None => None
   end.
 
-Lemma if_prod_comm X Y (b: bool) (x x0: X) (y y0: Y):
-  (if b then (x,y) else (x0,y0)) = (if b then x else x0, if b then y else y0).
-Proof. destruct b; ss. Qed.
-
 Lemma if_simpl X (b: bool) (x: X):
   (if b then x else x) = x.
 Proof. destruct b; et. Qed.
 
 Lemma HIRed_HoareCall md sp fn varg
   (img img0: bool) (msk msk0:_→bool) scp scp0 fspo fspo0 bd0
+  (WF: smod_wf md)
+  (VP: valid_sp md sp)
   (IN: msk fn)
   (SP: fspo = if img then sp fn else None)
   (FIND: alist_find (Some fn) (SMod.fnsems md) = Some (img0, msk0, scp0, (fspo0, bd0)))
@@ -361,12 +360,12 @@ Lemma HIRed_HoareCall md sp fn varg
   inline_body (sandboxed_prog (SMod.to_hmod sp md)) (SB.sandbox img msk scp (SModTr.HoareCall fn varg fspo))
   =
   (* head *)
-  '(x,x0,arg):_ <- elim_precond (fspo_pre fspo) (fspo_pre (if img0 then fspo0 else None)) varg ;;
+  '(x,x0,arg):_ <- elim_precond (fspo_pre fspo) (fspo_pre fspo0) varg ;;
   (* body *)
   vret0 <- inline_body (sandboxed_prog (SMod.to_hmod sp md)) 
                        (SB.sandbox img0 msk0 scp0 (SModTr.trans (if img0 then sp else sp_none) (bd0 arg)));;
   (* tail *)
-  elim_postcond (fspo_post fspo) (fspo_post (if img0 then fspo0 else None)) x x0 vret0.
+  elim_postcond (fspo_post fspo) (fspo_post fspo0) x x0 vret0.
 Proof.
   unfold SModTr.HoareCall.
   rewrite /elim_precond /elim_postcond.
@@ -380,10 +379,11 @@ Proof.
     rewrite SBRed.bind SBRed.call. destruct (msk fn); ss.
     rewrite HIRed.call {2}/sandboxed_prog.
     ired. rewrite alist_find_map_snd FIND. s. ired.
-    rewrite /SB.sandbox_body /SModTr.trans_body if_prod_comm. s. do 2 f_equal.
+    rewrite /SB.sandbox_body /SModTr.trans_body. s. do 2 f_equal.
     rewrite /SModTr.HoareFun.
-    destruct (if img0 then _ else _) eqn: E1; ss; ired.
-    { destruct img0; ss. subst.
+    destruct fspo0; ss; ired.
+    { destruct img0; cycle 1.
+      { exploit WF; et. ss. }
       rewrite SBRed.bind SBRed.take. s. ired. rewrite HIRed.core.
       f_equal. extensionalities. ired. do 2 f_equal.
       rewrite SBRed.bind SBRed.take. s. ired. rewrite HIRed.core.
@@ -417,10 +417,11 @@ Proof.
     rewrite SBRed.call. destruct (msk fn); ss.
     rewrite -(bind_ret_r (trigger _)) HIRed.call {2}/sandboxed_prog.
     ired. rewrite alist_find_map_snd FIND. s. ired.
-    rewrite /SB.sandbox_body /SModTr.trans_body /SModTr.HoareFun if_prod_comm.
+    rewrite /SB.sandbox_body /SModTr.trans_body /SModTr.HoareFun.
     s. do 2 f_equal.
-    destruct (if img0 then _ else _) eqn: E1; ss; ired.
-    { destruct img0; ss.
+    destruct fspo0; ss; ired.
+    { destruct img0; cycle 1.
+      { exploit WF; et. ss. }
       rewrite SBRed.bind SBRed.take. s. ired. rewrite HIRed.core.
       f_equal. extensionalities. ired. do 2 f_equal.
       rewrite SBRed.bind SBRed.take. s. ired. rewrite HIRed.core.
@@ -446,15 +447,7 @@ Proof.
 Local Tactic Notation "estep" integer(n) := do n (gstep; econs; i).
 Local Ltac edone := eauto 6 with paco.
 
-Local Definition meta_if (img: bool) fsp (x: meta (fspec_flat fsp)) :
-  meta (fspec_flat (if img then fsp else None)).
-Proof.
-  destruct img.
-  - exact x.
-  - exact ().
-Defined.
-
-Hint Unfold valid_param has_real_spec: core.
+Hint Unfold valid_param has_trivial_spec: core.
 
 Lemma elim_rel_cancel (md: SMod.t) T sp img msk scp (itr: itree _ T)
   (WF: smod_wf md)
@@ -494,32 +487,29 @@ Proof.
       rewrite SBRed.call E -(bind_ret_r (trigger _)) HIRed.call.
       rewrite {2}/sandboxed_prog. s. rewrite !alist_find_map_snd E0. s. ired.
       rewrite /SB.sandbox_body /SModTr.trans_body. s.
-      rewrite !if_prod_comm !if_simpl. s. rewrite HIRed.bind. ired.
+      rewrite !if_simpl. s. rewrite HIRed.bind. ired.
       gstep. eapply elim_rel_precond; et.
       exists (precond (fspec_flat ((if img then sp else sp_none) fn))). split.
       { destruct img; et. destruct (sp fn); et. }
-      exists (precond (fspec_flat (if img0 then fsp0 else None))). split.
-      { destruct img0; et. destruct fsp0; et. }
-      replace ((if img then sp else sp_none) fn) with (sp fn); cycle 1.
-      { destruct img; et. eapply VP. et. }
-      i. assert (VP0:= VP); destruct VP0 as [VP1 VP2].
-      assert (X := VP1 fn x). des.
+      exists (precond (fspec_flat fsp0)). split.
+      { destruct fsp0; et. }
+      assert (I: fspec_imply (fspec_flat (sp_from md fn)) (fspec_flat ((if img then sp else sp_none) fn))).
+      { etrans; [eapply VP|]. destruct img; try refl. eapply VP; et. }
+      i. specialize (I x). des.
       revert x0 PRE POST.
       rewrite {1 2 3}/sp_from /to_sp !alist_find_map_snd !E0. s. i.
-      exists (meta_if img0 fsp0 x0). split.
-      { i. destruct img0; et. s. exploit WF; et. i. subst. et. }
+      exists x0. split; et.
       ired. guclo elim_rel_bindC_spec. econs.
       { edone. }
 
       i. ired. rewrite HIRed.tau HIRed.ret. ired.
       gstep. eapply elim_rel_postcond; et.
-      exists (postcond (fspec_flat (sp fn))). split.
-      { destruct (sp fn); et. }
-      exists (postcond (fspec_flat (if img0 then fsp0 else None))). split.
-      { destruct img0; et. destruct fsp0; et. }
+      exists (postcond (fspec_flat ((if img then sp else sp_none) fn))). split.
+      { destruct img; et. destruct (sp fn); et. }
+      exists (postcond (fspec_flat fsp0)). split.
+      { destruct fsp0; et. }
       split.
-      { i. destruct img0; et. s. rewrite -POST.
-        exploit WF; et. i. subst. s. et. }
+      { i. rewrite -POST. et. }
 
       edone.
     }
@@ -534,8 +524,7 @@ Proof.
       { i. destruct img; ss. }
       rewrite HIRed_HoareSpawn.
       gstep. eapply elim_rel_spawn; et.
-      { replace ((if img then sp else sp_none) fn) with (sp fn); et.
-        destruct img; et. destruct VP. rewrite H0; s; et. }
+      { i. subst. eapply VP. et. }
       i. edone.
     }
 

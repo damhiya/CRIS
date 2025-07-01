@@ -5,8 +5,10 @@ Require Import ITactics TacticsCommon SimGlobal SimGlobalFacts CtxRefine ClosedA
 Require Import HModInline HModInlineIntro HModInlineElim ElimRel.
 Require Import SimGlobal SimGTactics.
 
-Lemma cancel_spawn `{Σ: GRA} md sp fn args:
-  CANCEL_GOAL md sp (NativeSpawnE fn args) (HoareSpawnE fn args (sp fn)).
+Lemma cancel_spawn `{Σ: GRA} md sp fn args img0
+  (IMG: img0 = false → fspec_imply (fspec_flat (sp fn)) fspec_trivial)
+  :
+  CANCEL_GOAL md sp (NativeSpawnE fn args) (HoareSpawnE fn args ((if img0 then sp else sp_none) fn)).
 Proof.
   r; i. assert (VP0:=VP). destruct VP0 as [VP1 VP2]. r in VP1.
   rewrite /sp_from /to_sp in VP1. setoid_rewrite alist_find_map_snd in VP1.
@@ -18,8 +20,8 @@ Proof.
   assert (WFSCP: incl scp (SMod.scopes md)).
   { etrans; [|apply SMod.well_scoped_fns].
     rewrite /fnsems_scopes. erewrite FIND. refl. }
-  
-  destruct (sp fn) eqn: E; s.
+
+  destruct ((if img0 then sp else sp_none) fn) eqn: E; s.
   {
     zstep_r. zstep_r.
     ziter_r. zstep_r. ziter_r. zstep_r. zstep_r.
@@ -40,8 +42,13 @@ Proof.
     destruct (classic (img = false ∨ fspo = None)); cycle 1.
     { destruct img; [|exfalso; et]. destruct fspo; [|exfalso; et].
       ziter_r. zstep_r.
-      specialize (VP1 fn). rewrite FIND E in VP1. specialize (VP1 x).
-      des. exists x5. zstep_r.
+      assert (I: fspec_imply f0 f).
+      { etrans; [etrans; [|eapply (VP1 fn)]|].
+        - rewrite FIND; s. refl.
+        - destruct img0; ss. rewrite E; refl.
+      }
+      specialize (I x). des.
+      exists x5. zstep_r.
       ziter_r. zstep_r.
       ziter_r. zstep_r. eexists. zstep_r.
       ziter_r. zstep_r. ziter_r. zstep_r.
@@ -90,9 +97,9 @@ Proof.
       }
       inv EQx. et.
     }
-    { rewrite if_prod_comm. destruct fspo.
+    { destruct fspo.
       { exfalso. des; ss. subst. exploit WFS; et. ss. }
-      rewrite !if_simpl. clear H.
+      clear H.
 
       zprogress. gbase. rewrite EQLEN. eapply CIH; et; cycle 1.
       { des_safe. rewrite RS. iIntros ">H". iMod (x5 with "H") as "[P O]".
@@ -114,7 +121,15 @@ Proof.
         rewrite length_insert Nat.sub_diag in EQy.
         inv EQx. inv EQy.
         assert (args = x2).
-        { specialize (VP1 fn). rewrite FIND E in VP1. specialize (VP1 x). des; ss.
+        {
+          assert (I: fspec_imply fspec_trivial f).
+          { 
+            specialize (VP1 fn). rewrite FIND in VP1. ss.
+            etrans; [eapply VP1|].
+            destruct img0; ss.
+            rewrite E; refl.
+          }
+          specialize (I x). des.
           eapply Own_pure_soundness; try apply WFR.
           rewrite RS. iIntros ">H". iMod (x6 with "H") as "[P O]".
           rewrite PRE. iMod "P" as "P". iApply "P".
@@ -152,8 +167,14 @@ Proof.
     destruct (classic (img = false ∨ fspo = None)); cycle 1.
     { destruct img; [|exfalso; et]. destruct fspo; [|exfalso; et].
       ziter_r. zstep_r.
-      specialize (VP1 fn). rewrite FIND E in VP1. specialize (VP1 ()).
-      des. exists x2. zstep_r.
+      
+      assert (I: fspec_imply f fspec_trivial).
+      { specialize (VP1 fn). rewrite FIND in VP1. ss.
+        etrans; [eapply VP1|].
+        destruct img0; et. rewrite E. refl.
+      }
+      specialize (I ()). des.
+      exists x2. zstep_r.
       ziter_r. zstep_r.
       ziter_r. zstep_r. eexists. zstep_r.
       ziter_r. zstep_r. ziter_r. zstep_r.
@@ -203,9 +224,9 @@ Proof.
       }
       inv EQx. et.
     }
-    { rewrite if_prod_comm. destruct fspo.
+    { destruct fspo.
       { exfalso. des; ss. subst. exploit WFS; et. ss. }
-      rewrite !if_simpl. clear H.
+      clear H.
 
       zprogress. gbase. rewrite EQLEN. eapply CIH; et.
       split.
