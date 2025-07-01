@@ -15,14 +15,14 @@ Module SchI. Section SchI.
   Definition v_ths := "Sch" ↯ "ths".
   Definition v_tid := "Sch" ↯ "tid".
 
-  Definition trigger_Yield (nxt_tid : nat) : itree hmodE unit :=
-    my_tid <- trigger (Yield nxt_tid);;
-    cput v_tid my_tid
-  .
+  Section Impl.
 
-  Definition _spawn: (nat * string * SAny.t) -> itree hmodE unit :=
+  Variable trigger_yield : nat -> itree hmodE unit.    
+
+  Definition _spawn : (nat * string * SAny.t) -> itree hmodE unit
+    :=
     fun '(pa_tid, fn, arg) =>
-      trigger_Yield pa_tid;;;
+      trigger_yield pa_tid;;;
       'rv: SAny.t <- ccallU fn arg;;
       'ths: thslist <- cgetU v_ths;;
       'my_tid: nat <- cgetU v_tid;;
@@ -31,7 +31,7 @@ Module SchI. Section SchI.
       Sch.terminate
   .
 
-  Definition spawn: (string * SAny.t) -> itree hmodE nat :=
+  Definition spawn : (string * SAny.t) -> itree hmodE nat :=
     fun '(fn, arg) =>
       'ths: thslist <- cgetU v_ths;;
       'my_tid: nat <- cgetU v_tid;;
@@ -46,7 +46,7 @@ Module SchI. Section SchI.
       'ths: thslist <- cgetU v_ths;;
       'ntid: nat <- trigger (Choose nat);;
       guarantee (is_Some (alist_find ntid ths));;;
-      trigger_Yield ntid
+      trigger_yield ntid
   .
 
   Definition join: nat -> itree hmodE (option SAny.t) :=
@@ -70,10 +70,17 @@ Module SchI. Section SchI.
       Ret my_tid
   .
 
+  End Impl.
+
+  Definition trigger_Yield (nxt_tid : nat) : itree hmodE unit :=
+    my_tid <- trigger (Yield nxt_tid);;
+    cput v_tid my_tid
+  .
+  
   Definition fnsems : alist (option string) (fnsem_type (option fspec * fbody)) :=
-    [(Some SchHdr._spawn,  (false, wmask_all, scopes, (None, cfunU _spawn)));
+    [(Some SchHdr._spawn,  (false, wmask_all, scopes, (None, cfunU (_spawn trigger_Yield))));
      (Some SchHdr.spawn,   (false, wmask_all, scopes, (None, cfunU spawn)));
-     (Some SchHdr.yield,   (false, wmask_all, scopes, (None, cfunU yield)));
+     (Some SchHdr.yield,   (false, wmask_all, scopes, (None, cfunU (yield trigger_Yield))));
      (Some SchHdr.join,    (false, wmask_all, scopes, (None, cfunU join)));
      (Some SchHdr.get_tid, (false, wmask_all, scopes, (None, cfunU get_tid)))].
 

@@ -10,9 +10,9 @@ Section SIM.
   Variable contextual: contextuality.
   Variable fl_src fl_tgt : alist (option string) (Any.t → itree hmodE Any.t).
   Variable Ist : nat → alist key Any.t → alist key Any.t → iProp Σ.
-  Variable my_tid : nat.
+  Variable stid : nat.
 
-  Let _hsim := _hsim contextual fl_src fl_tgt Ist my_tid.
+  Let _hsim := _hsim contextual fl_src fl_tgt Ist stid.
   Let rel := ∀ Rs Rt, (nat → alist key Any.t * Rs → alist key Any.t * Rt → iProp Σ) → bool → bool → nat → alist key Any.t * itree hmodE Rs → alist key Any.t * itree hmodE Rt → iProp Σ.
 
   Variant iunlift (r : rel) Rs Rt RR ps pt nths sti_src sti_tgt res : Prop :=
@@ -648,7 +648,7 @@ Section SIM.
           (NODS : List.NoDup (List.map fst st_src0))
           (NODD : List.NoDup (List.map fst st_tgt0))
           (NTHS: nths <= nths0),
-        (Ist nths0 st_src0 st_tgt0) -∗ @isim r g Rs Rt RR true true nths0 (st_src0, k_src my_tid) (st_tgt0, k_tgt my_tid))
+        (Ist nths0 st_src0 st_tgt0) -∗ @isim r g Rs Rt RR true true nths0 (st_src0, k_src stid) (st_tgt0, k_tgt stid))
     ⊢ (isim r g RR ps pt nths (st_src, trigger (Yield tid) >>= k_src) (st_tgt, trigger (Yield tid) >>= k_tgt)).
   Proof using.
     split; intros x wfx Hx. uPred.unseal_once_in Hx. destruct Hx as [x1 [x2 [-> [Hx1 Hx2]]]].
@@ -832,9 +832,9 @@ Section Proph.
   Context (contextual: contextuality).
   Context (fl_s fl_t : alist (option string) (Any.t → itree hmodE Any.t)).
   Context (Ist : nat → alist key Any.t → alist key Any.t → iProp Σ).
-  Context (my_tid: nat).
+  Context (stid: nat).
 
-  Local Notation isim := (isim contextual fl_s fl_t Ist my_tid).
+  Local Notation isim := (isim contextual fl_s fl_t Ist stid).
 
   Context (R_s R_t : Type).
   Context (RR : nat → alist key Any.t * R_s → alist key Any.t * R_t → iProp Σ).
@@ -931,13 +931,13 @@ End Proph.
 
 Definition isim_fsem `{Σ : GRA} fl_src fl_tgt Ist contextual IstS IstE : relation (Any.t -> itree hmodE Any.t) :=
   fun itr_src itr_tgt =>
-  ∀ arg my_tid nths st_src st_tgt
+  ∀ arg stid nths st_src st_tgt
     (IMON : Ist_monotone Ist)
     (NODS : List.NoDup (List.map fst st_src))
     (NODD : List.NoDup (List.map fst st_tgt))
-    (TID: my_tid < nths),
+    (TID: stid < nths),
   IstS nths st_src st_tgt ⊢
-    @isim Σ contextual fl_src fl_tgt Ist my_tid ibot ibot Any.t Any.t (ist_with_eq IstE)
+    @isim Σ contextual fl_src fl_tgt Ist stid ibot ibot Any.t Any.t (ist_with_eq IstE)
       false false nths (st_src, itr_src arg) (st_tgt, itr_tgt arg).
 
 Module HSim. Section HSim.

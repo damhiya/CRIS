@@ -10,9 +10,10 @@ Module SchIA. Section SchIA.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
   Context `{_schG: !schG}.
 
-  Context (E_sch : coPset) (sp_global sp_user : string → option fspec).
-  Context (SchInSp : sp_incl (SchAS.sp E_sch sp_user) sp_global).
-  Context (FunInSp : sp_sub sp_user sp_global).
+  Context (sp: sp_type).
+  Context (sp_user : spl_type).
+  Context (SchInSp : sp_incl (SchAS.sp sp_user) sp).
+  Context (FunInSp : sp_incl sp_user sp).
 
   Fixpoint ths_wf (nths : nat) (ths_tgt : SchI.thslist) : Prop :=
     match ths_tgt with
@@ -130,39 +131,36 @@ Module SchIA. Section SchIA.
 
   Definition Ist: nat → alist key Any.t → alist key Any.t → iProp Σ :=
     fun numths st_src st_tgt =>
-      (∃ ths_tgt (ths_src_b ths_src_w: SchA.threadsF) (ths_cond: gmap nat (iProp Σ)) (tid: nat) (_internal: bool),
+      (∃ ths_tgt (ths_src_b ths_src_w: SchA.threadsF) (ths_cond: gmap nat (iProp Σ)) (tid: nat) (intnl: bool),
           ⌜st_tgt = [(SchI.v_ths, ths_tgt↑); (SchI.v_tid, tid↑)]
-            ∧ <<THWF: ths_wf numths ths_tgt>>
-            ∧ <<SIM: (∀ tid, ∃ vrv, sim_ths tid vrv (alist_find tid ths_tgt) (ths_src_b tid) (ths_src_w tid) (ths_cond !! tid))>>
-            ∧ <<NTHS: 0 < numths>>
-            ∧ st_src = [(SchA.v_internal, _internal↑)]⌝
+          ∧ st_src = (SchA.v_internal, intnl↑) :: st_tgt
+          ∧ <<THWF: ths_wf numths ths_tgt>>
+          ∧ <<SIM: (∀ tid, ∃ vrv, sim_ths tid vrv (alist_find tid ths_tgt) (ths_src_b tid) (ths_src_w tid) (ths_cond !! tid))>>
+          ∧ <<NTHS: 0 < numths>>⌝
           ∗ own base_γ (● ths_src_b : threadsRA)
           ∗ own base_γ (◯ ths_src_w : threadsRA)
           ∗ ([∗ map] tid↦P ∈ ths_cond, P)
-          ∗ ((tid_admin (Some tid) ∗ ⌜_internal = false⌝) 
-             ∨ (tid_admin None ∗ wsim_ginv (Some (E_sch, E_sch)) ∗ ⌜_internal = true⌝)))%I.
+          ∗ ((⌜intnl = false⌝ ∗ tid_admin (Some tid)) 
+             ∨ (⌜intnl = true⌝ ∗ tid_admin None ∗ wsim_ginv (Some (⊤, ⊤)))))%I.
 
-  Local Definition SchA := (SchA.t E_sch sp_global sp_user).
-  Local Definition SchAPure := (SchAPure.t E_sch sp_global).
-  Local Definition SchAMod := (SchA ★ SchAPure). 
-  Local Definition SchIMod := (SchI.t).
+  Local Definition SchAMod := SchA.t sp sp_user.
+  Local Definition SchIMod := SchI.t.
 
-  Lemma simF__spawn : HSim.sim_fun open SchAMod SchIMod Ist SchHdr._spawn.
+  Lemma simF__spawn : HSim.sim_fun open SchAMod SchIMod SchA.init_cond Ist (Some SchHdr._spawn).
   Proof using FunInSp SchInSp.
     init_simF.
 
     (* destruct q2 as [userf userm]. *)
     rewrite /SchA.trigger_Yield /SchI.trigger_Yield.
-    steps_l. iDestruct "ASM" as "[%va [-> ASM]]"; hss.
-    iDestruct "ASM" as "[[-> [-> [% %]]] [pre [token tid]]]"; hss.
-    rename q6 into pre. rename q4 into synpost. rename q8 into fvargs. rename q10 into fargs.
-    rename q11 into my_tid. rename q12 into pa_tid. rename q2 into userf.
+    steps_l.
+    iDestruct "ASM" as "[%[->[tid [%[%[%[%[[->[->%]] [pre token]]]]]]]]]"; hss.
+    rename q4 into pre, q2 into synpost, q3 into my_tid.
     steps_l. steps_r.
 
     (* Process yield *)
-    iDestruct "IST" as (??????) "(% & THB & THW & COND & [[TA %]|[TA _]])"; subst; hss.
-    2:{ iExFalso. iApply (tid_admin_none_user with "[TA tid]"); iFrame. }
-    
+    iDestruct "IST" as (??????) "(% & THB & THW & COND & [[% TA]|[% [TA _]]])";
+      subst; hss; cycle 1.
+    { iExFalso. iApply (tid_admin_none_user with "[TA tid]"); iFrame. }
     steps_r; hss.
 
     iPoseProof (tid_admin_some_user with "[TA tid]") as "%"; iFrame; des; subst.    
@@ -176,7 +174,7 @@ Module SchIA. Section SchIA.
 
     iDestruct "IST" as (??????) "(% & THB & THW & COND & TA)"; subst; hss.
     steps_l. hss.
-    iDestruct "TA" as "[[TA %] | [TA [WI _]]]"; hss.
+    iDestruct "TA" as "[[% TA] | [% [TA [WI _]]]]"; hss.
     steps_r. hss.
     
     (* Call the spawnee *)
@@ -574,11 +572,11 @@ Section ctxr.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
   Context `{_schG: !schG}.
 
-  Lemma ctxr (E_sch : coPset) (sp_global sp_user : string → option fspec)
-        (SchInGlobal : sp_incl (SchAS.sp E_sch sp_user) sp_global)
-        (UserInGlobal : sp_sub sp_user sp_global) :
+  Lemma ctxr sp sp_user
+        (SchInGlobal : sp_incl (SchAS.sp E_sch sp_user) sp)
+        (UserInGlobal : sp_sub sp_user sp) :
     ctx_refines
-      ((SchA.t E_sch sp_global sp_user) ★ (SchAPure.t E_sch sp_global), SchA.init_cond)
+      ((SchA.t E_sch sp sp_user) ★ (SchAPure.t E_sch sp), SchA.init_cond)
       (SchI.t, emp%I).
   Proof using. eapply main_adequacy, sim; eauto. Qed.
 End ctxr.

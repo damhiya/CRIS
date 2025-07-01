@@ -151,3 +151,5 @@ Proof.
   inv WFM. s; i. exists rs. esplits; et.
   eapply cancel_main; eauto.
 (*SLOW*)Qed.
+
+End Cancel. End Cancel.

@@ -13,7 +13,7 @@ Section HEADER.
 
   Definition spl_type := alist (option string) (option fspec).
   Definition sp_type := (string -> option fspec).
-
+  
   Definition to_sp (l : spl_type) : sp_type :=
     (fun fn => or_else (alist_find (Some fn) l) (Some fspec_bot)).
 
