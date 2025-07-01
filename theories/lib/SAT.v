@@ -114,17 +114,10 @@ Module GATIntp.
   Class t `{α: GAT.t}: Type :=
     gsem : forall i, @SATIntp.t Δ α (α i).
 
-  Class inG (A: SAT.t) (α: GAT.t) (B: @SATIntp.t Δ α A) (β: t) :=
+  Class inG (A: SAT.t) (α: GAT.t) (B: @SATIntp.t Δ α A) (β: t) `{INA : !GAT.inG A α} :=
     {
-      inG_id: nat;
-      inG_prf: existT _ A B = existT _ (α inG_id) (β inG_id);
+      inG_prf : eq_rect _ (@SATIntp.t Δ α) B _ GAT.inG_prf = β GAT.inG_id
     }.
-  
-  #[global] Instance GATInG_GATIntpInG A α B β `{H : !inG A α B β} : GAT.inG A α :=
-    {|
-      GAT.inG_id := inG_id;
-      GAT.inG_prf := f_equal (projT1 (P := @SATIntp.t Δ α)) H.(inG_prf)
-    |}.
 
   End GSEM.
 
@@ -166,10 +159,12 @@ Module SATRed.
   Context `{α: GAT.t}.
   Context `{β: @GATIntp.t Δ α}.
 
-  Lemma cur `{A: SAT.t} `{B: @SATIntp.t Δ α A} `{IN: @GATIntp.inG Δ A α B β} n op args:
+  Lemma cur `{A: SAT.t} `{B: @SATIntp.t Δ α A} `{INA : @GAT.inG A α} `{INB: @GATIntp.inG Δ A α B β INA} n op args:
     GTermSem.t n (GTerm.cur op args) = B n op args (compose (GTermSem.t n) args).
   Proof using.
-    destruct IN. dependent destruction inG_prf. reflexivity.
+    destruct INA. ss. subst A.
+    destruct INB. ss. subst B.
+    ss.
   Qed.
 
   Lemma lift_0 t d:

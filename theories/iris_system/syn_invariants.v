@@ -46,7 +46,8 @@ Global Instance inv_interp `{!invG Γ Σ α, !subG Γ Σ} :
 
 Class syn_invG (Γ : HRA) (Σ : GRA) (α : GAT.t) (β : GATIntp.t) (τ : TypG.t)
     `{!invG Γ Σ α, !subG Γ Σ} := {
-  #[global] syn_invG_inG :: GATIntp.inG inv_syntax α inv_interp β;
+  #[global] syn_invG_syntax :: GAT.inG inv_syntax α;
+  #[global] syn_invG_interp :: GATIntp.inG inv_syntax α inv_interp β;
 }.
 
 Section syn_inv.
@@ -180,13 +181,21 @@ Module inv_instances.
       | _ => inv_interp
       end.
 
+  #[export] Instance synG {Γ : HRA} {Σ : GRA} `{!subG Γ Σ, !invG Γ Σ α} :
+    GAT.inG (@SL.syntax Γ τ) α.
+  Proof using. econs. instantiate (1 := 0); ss. Defined.
+
   #[export] Instance intpG {Γ : HRA} {Σ : GRA} `{!subG Γ Σ, !invG Γ Σ α} :
-    GATIntp.inG (@SL.syntax Γ τ) α (@SL.interp Γ Σ α τ _) β.
-  Proof using. econs; instantiate (1:=0); ss. Qed.
+    @GATIntp.inG _ (@SL.syntax Γ τ) α (@SL.interp Γ Σ α τ _) β synG.
+  Proof using. econs. ss. Qed.
+
+  #[export] Instance invsynG {Σ : GRA} {Γ : HRA} `{!subG Γ Σ, !invG Γ Σ α} :
+    GAT.inG inv_syntax α.
+  Proof using. econs. instantiate (1 := 1); ss. Defined.
 
   #[export] Instance invintpG {Σ : GRA} {Γ : HRA} `{!subG Γ Σ, !invG Γ Σ α} :
-    GATIntp.inG inv_syntax α inv_interp β.
-  Proof using. econs; instantiate (1:=1); ss. Qed.
+    @GATIntp.inG _ inv_syntax α inv_interp β invsynG.
+  Proof using. econs. ss. Qed.
 
   #[export] Instance sinvg {Σ : GRA} {Γ : HRA} `{!subG Γ Σ, !invG Γ Σ α} : sinvG Γ Σ α β τ _ _.
   Proof using.
