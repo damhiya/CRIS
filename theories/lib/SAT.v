@@ -68,6 +68,15 @@ Module GTerm. Section GTerm.
     | 0 => p
     | S k' => lift (liftn k' p)
     end.
+
+  Definition cur
+    `{A : SAT.t} `{!GAT.inG A α} {n}
+    (op: A.(SAT.ops)) (args: A.(SAT.arity) op (GTerm.t_prev n) -> GTerm.t n) : GTerm.t n.
+  Proof.
+    destruct H. subst A.
+    exact (GTerm._cur inG_id op args).
+  Defined.
+
 End GTerm. End GTerm.
 
 (* Semantic Domain *)
@@ -110,12 +119,11 @@ Module GATIntp.
   Class t `{α: GAT.t}: Type :=
     gsem : forall i, @SATIntp.t Δ α (α i).
 
-  Class inG (A: SAT.t) (α: GAT.t) (B: @SATIntp.t Δ α A) (β: t) :=
+  Class inG (A: SAT.t) (α: GAT.t) (B: @SATIntp.t Δ α A) (β: t) `{INA : !GAT.inG A α} :=
     {
-      inG_id: nat;
-      inG_prf: existT _ A B = existT _ (α inG_id) (β inG_id);
+      inG_prf : eq_rect _ (@SATIntp.t Δ α) B _ GAT.inG_prf = β GAT.inG_id
     }.
-  
+
   End GSEM.
 
 End GATIntp.
@@ -144,13 +152,6 @@ Module GTermSem.
   
   Definition t n : GTerm.t n -> SemDom.dom := t_prev (S n).
 
-  Program Definition cur
-    `{A: SAT.t} `{B: @SATIntp.t Δ α A} `{IN: @GATIntp.inG Δ A α B β} {n}
-    (op: A.(SAT.ops)) (args: A.(SAT.arity) op (GTerm.t_prev n) -> GTerm.t n) : GTerm.t n.
-    destruct IN. inversion inG_prf. subst.
-    exact (GTerm._cur inG_id op args).
-  Defined.
-  
   End SEM.
   
 End GTermSem.
@@ -163,10 +164,12 @@ Module SATRed.
   Context `{α: GAT.t}.
   Context `{β: @GATIntp.t Δ α}.
 
-  Lemma cur `{A: SAT.t} `{B: @SATIntp.t Δ α A} `{IN: @GATIntp.inG Δ A α B β} n op args:
-    GTermSem.t n (GTermSem.cur op args) = B n op args (compose (GTermSem.t n) args).
+  Lemma cur `{A: SAT.t} `{B: @SATIntp.t Δ α A} `{INA : @GAT.inG A α} `{INB: @GATIntp.inG Δ A α B β INA} n op args:
+    GTermSem.t n (GTerm.cur op args) = B n op args (compose (GTermSem.t n) args).
   Proof using.
-    destruct IN eqn : EQ. subst. dependent destruction inG_prf. reflexivity.
+    destruct INA. ss. subst A.
+    destruct INB. ss. subst B.
+    ss.
   Qed.
 
   Lemma lift_0 t d:
@@ -181,7 +184,7 @@ Module SATRed.
 
 End SATRed.
 
-Global Opaque GTermSem.cur.
+Global Opaque GTerm.cur.
 Global Opaque GTermSem.t.
 
 (** Notations *)
@@ -194,7 +197,7 @@ Local Open Scope SAT_scope.
 
 Notation "'⟦' F ',' n '⟧'" := (GTermSem.t n F).
 Notation "'⟦' F '⟧'" := (GTermSem.t _ F).
-Notation "'⟨' op ',' args '⟩'" := (GTermSem.cur op args) : SAT_scope.
+Notation "'⟨' op ',' args '⟩'" := (GTerm.cur op args) : SAT_scope.
 Notation "⤉ P" := (GTerm.lift P) (at level 20) : SAT_scope.
 
 (* Simple reduction tactics. *)

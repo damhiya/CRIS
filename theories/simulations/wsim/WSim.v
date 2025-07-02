@@ -90,15 +90,6 @@ Section wsim.
   Context (R_s R_t : Type).
 
   Local Notation sim Ep r g := (wsim fl_s fl_t Ist stid Ep r g R_s R_t).
-  
-  Lemma wsim_own_alloc `{!inG A Σ} (a : A) Ew E r g RR ps pt nths st_s st_t i_s i_t :
-    ✓ a →
-    ((∃ γ, own γ a) -∗ sim (Some (Ew, E)) r g RR ps pt nths (st_s, i_s) (st_t, i_t))
-    ⊢ sim (Some (Ew, E)) r g RR ps pt nths (st_s, i_s) (st_t, i_t).
-  Proof using.
-    unseal; iIntros (?) "SIM [O PRE]"; iMod (own_alloc a with "O") as "[O o]"; ss.
-    iApply ("SIM" with "o"); iFrame.
-  Qed.
 
   Context (Ep : option (coPset * coPset)).
   Context (r g : rel).
@@ -628,7 +619,7 @@ Section wsim.
     iPoseProof (fupd_mon _ nm with "SIM") as "SIM"; first lia.
     iMod (wsatl_mon n nm with "[WA W]") as "[WA W]"; first lia; iFrame.
     rewrite invariants.uPred_fupd_unseal /invariants.uPred_fupd_def.
-    iMod ("SIM" with "[W E]") as "[W [E SIM]]"; iFrame.
+    iMod ("SIM" with "[O W E]") as "[W [E [O SIM]]]"; iFrame.
     iApply "SIM"; iFrame.
   Qed.
 
@@ -688,6 +679,15 @@ Section wsim.
              (sim (Some (Ew, E)) r g RR ps pt nths (st_s, i_s) (st_t, i_t)).
   Proof using.
     unfold AddModal. iIntros "[H0 H1]". iMod "H0". iApply ("H1" with "H0").
+  Qed.
+
+  Lemma wsim_own_alloc `{!inG A Σ} (a : A) Ew E i_s i_t :
+    ✓ a →
+    ((∃ γ, own γ a) -∗ sim (Some (Ew, E)) r g RR ps pt nths (st_s, i_s) (st_t, i_t))
+    ⊢ sim (Some (Ew, E)) r g RR ps pt nths (st_s, i_s) (st_t, i_t).
+  Proof using.
+    iIntros (?) "SIM".
+    iMod (own_alloc a) as "O"; ss; iApply ("SIM" with "O"); iFrame.
   Qed.
 
   (* Primitive simulation rules *)
