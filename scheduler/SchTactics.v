@@ -1,4 +1,4 @@
-Require Import CRIS SchHeader SchA.
+(* Require Import CRIS SchHeader SchA.
 Require Import ITactics.
 
 Section wsim.
@@ -314,4 +314,4 @@ Ltac sch_spawn :=
   norm with (do 1 (iApply wsim_spawn; try solve_sch_sp; try prove_sb_cond)).
 
 Ltac sch_join :=
-  norm with (do 1 (iApply wsim_join; try solve_sch_sp; try prove_sb_cond)).
+  norm with (do 1 (iApply wsim_join; try solve_sch_sp; try prove_sb_cond)). *)

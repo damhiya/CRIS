@@ -378,10 +378,11 @@ Module MemIP. Section MemIP.
     rewrite H0. et.
   Qed.
   
-  Lemma simF_alloc : HSim.sim_fun open MemP MemI IstFull MemHdr.alloc.
+  Lemma simF_alloc : HSim.sim_fun open MemP MemI (MemP.init_cond csl genv) IstFull (Some MemHdr.alloc).
   Proof using.
     init_simF.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
+    unfold MemP.alloc, fspec_proph.
 
     asmproph_simple (Z.to_nat (or_else (pargs [Tint] (or_else (arg↓) [])) 0%Z)).
     { iApply precise_pure. }
@@ -422,10 +423,12 @@ Module MemIP. Section MemIP.
       des_ifs; bsimpl; destruct dec; des; subst; ss; rewrite right_id; eauto.
   (*SLOW*)Qed.
 
-  Lemma simF_free : HSim.sim_fun open MemP MemI IstFull MemHdr.free.
+  Lemma simF_free : HSim.sim_fun open MemP MemI (MemP.init_cond csl genv) IstFull (Some MemHdr.free).
   Proof using.
     init_simF.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
+
+    unfold MemP.free, fspec_proph.
 
     destruct (or_else (pargs [Tptr] (or_else (arg↓) [])) (0,0%Z)) as [b ofs] eqn: EQ.
     asmproph_simple (b, ofs, mem_get mem_src b ofs); s.
@@ -448,10 +451,12 @@ Module MemIP. Section MemIP.
     - rewrite /update. ii. ss. destruct dec; ss; subst; et.
   (*SLOW*)Qed.
 
-  Lemma simF_load : HSim.sim_fun open MemP MemI IstFull MemHdr.load.
+  Lemma simF_load : HSim.sim_fun open MemP MemI (MemP.init_cond csl genv) IstFull (Some MemHdr.load).
   Proof using.
     init_simF.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
+
+    unfold MemP.load, fspec_proph.
 
     destruct (or_else (pargs [Tptr] (or_else (arg↓) []))(0,0%Z)) as [b ofs] eqn: EQ.
     asmproph_standard.
@@ -473,10 +478,12 @@ Module MemIP. Section MemIP.
     iExists _, [_], _, _. repeat (iSplit; et). iExists _, _. iSplit; et.
   (*SLOW*)Qed.
 
-  Lemma simF_store : HSim.sim_fun open MemP MemI IstFull MemHdr.store.
+  Lemma simF_store : HSim.sim_fun open MemP MemI (MemP.init_cond csl genv) IstFull (Some MemHdr.store).
   Proof using.
     init_simF.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
+
+    unfold MemP.store, fspec_proph.
 
     destruct (or_else(pargs [Tptr; Tuntyped] (or_else (arg↓) [])) (0,0%Z,Vundef))
       as [[b ofs] v_new] eqn: EQ.
@@ -499,10 +506,12 @@ Module MemIP. Section MemIP.
     - ii. ss. destruct dec; ss; subst; et.
   (*SLOW*)Qed.
 
-  Lemma simF_cmp : HSim.sim_fun open MemP MemI IstFull MemHdr.cmp.
+  Lemma simF_cmp : HSim.sim_fun open MemP MemI (MemP.init_cond csl genv) IstFull (Some MemHdr.cmp).
   Proof using.
     init_simF.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
+
+    unfold MemP.cmp, fspec_proph.
 
     destruct (or_else (pargs [Tuntyped; Tuntyped] (or_else (arg↓) []))(Vundef,Vundef)) as [p1 p2] eqn: EQ.
     asmproph_standard.
@@ -531,10 +540,12 @@ Module MemIP. Section MemIP.
     iExists _, [_], _, _. repeat (iSplit; et). iExists _, _. iSplit; et.
   (*SLOW*)Qed.
 
-  Lemma simF_cas : HSim.sim_fun open MemP MemI IstFull MemHdr.cas.
+  Lemma simF_cas : HSim.sim_fun open MemP MemI (MemP.init_cond csl genv) IstFull (Some MemHdr.cas).
   Proof using.
     init_simF.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
+
+    unfold MemP.cas, fspec_proph.
     
     destruct (or_else (pargs [Tptr; Tuntyped; Tuntyped] (or_else (arg↓) [])) ((0,0%Z),(Vundef,Vundef))) as [[b ofs] [v_old v_new]] eqn: EQ.
     set (v_cur := mem_get mem_src b ofs).
@@ -573,10 +584,10 @@ Module MemIP. Section MemIP.
       - step. iPureIntro; esplits; et. repeat f_equal.
         rewrite H1. s. destruct mem_tgt. f_equal. extensionalities b' ofs'.
         des_ifs. bsimpl; des; des_sumbool. subst. et.
-      - inline_r. repeat (steps_r; hss). rewrite H1. steps_r. hss. steps_r.
+      - rewrite /ccallU. steps_r. inline_r. repeat (steps_r; hss). rewrite H1. steps_r. hss. steps_r.
         step. et.
     }
-    iIntros (? ? _ ? _ ?). des; subst.
+    iIntros (? ? _ ? _ ?) "%". des; subst.
 
     steps_r. do 2 force_l. iSplit; et. steps_l. step. iSplit; et. rewrite H1; s.
     iExists _, [_], _, _. repeat (iSplit; et). iExists _, _.
@@ -588,15 +599,17 @@ Module MemIP. Section MemIP.
   Theorem sim : HSim.t open MemP MemI (MemP.init_cond csl genv) IstFull.
   Proof using.
     init_sim.
-    - rewrite /IstFull /MemP /MemI. unfold_hmod. s.
+    - rewrite /IstFull /MemP /MemI. unfold_hmod. s. splits; eauto.
       iIntros "P". iExists [], [_], [], [].
-      repeat iSplit; et. et. { iPureIntro. ss. }
+      repeat iSplit; et.
+      { iPureIntro. ss. }
       iExists _, _. iFrame. iPureIntro. esplits; et.
       + ii. rewrite /mem_init_val /Mem.load_mem.
         uo; des_ifs; bsimpl; des; des_sumbool; subst; ss;
           rewrite ?Heq0 ?Heq1 ?Heq2; des_ifs; et.
       + ii. revert H. rewrite /Mem.load_mem; uo; s. des_ifs.
-        i. inv H. eapply nth_error_Some. rewrite Heq0. ss.
+        i. inv H. eapply nth_error_Some. unfold Mem.load_mem in H1; ss.
+        destruct (nth_error genv b); ss.
     - apply simF_alloc.
     - apply simF_free.
     - apply simF_load.
@@ -618,7 +631,67 @@ Module MemPA. Section MemPA.
 
   Theorem sim sp : HSim.t open (MemA.t sp) MemP.t emp%I IstEq.
   Proof using.
-    init_sim; prove_proph_sim.
+    init_sim; try prove_proph_sim.
+    - s; et; ii.
+      match goal with [H: _|-_] => revert H; alist_find_simpl; i; depdes H end.
+      alist_find_simpl; esplits; et. ss.
+      set (i:=_: Any.t → itree hmodE Any.t) at 2.
+      set (itr:=SB.sandbox_body _).
+      assert (EQ: itr = SB.sandbox_body (SModTr.trans_ktree sp (true, wmask_all, MemA.scopes, (Some (to_fspec MemSpec.alloc), fbody_trivial)))) by ss.
+      rewrite EQ. eapply isim_fsem_proph_to_normal. i.
+      rewrite SRed.fbody_trivial.
+      iIntros. unfold fbody_trivial. rewrite SRed.core.
+      steps_r. force_l q. step; eauto.
+    - s; et; ii.
+      match goal with [H: _|-_] => revert H; alist_find_simpl; i; depdes H end.
+      alist_find_simpl; esplits; et. ss.
+      set (i:=_: Any.t → itree hmodE Any.t) at 2.
+      set (itr:=SB.sandbox_body _).
+      assert (EQ: itr = SB.sandbox_body (SModTr.trans_ktree sp (true, wmask_all, MemA.scopes, (Some (to_fspec MemSpec.free), fbody_trivial)))) by ss.
+      rewrite EQ. eapply isim_fsem_proph_to_normal. i.
+      rewrite SRed.fbody_trivial.
+      iIntros. unfold fbody_trivial. rewrite SRed.core.
+      steps_r. force_l q. step; eauto.
+    - s; et; ii.
+      match goal with [H: _|-_] => revert H; alist_find_simpl; i; depdes H end.
+      alist_find_simpl; esplits; et. ss.
+      set (i:=_: Any.t → itree hmodE Any.t) at 2.
+      set (itr:=SB.sandbox_body _).
+      assert (EQ: itr = SB.sandbox_body (SModTr.trans_ktree sp (true, wmask_all, MemA.scopes, (Some (to_fspec MemSpec.load), fbody_trivial)))) by ss.
+      rewrite EQ. eapply isim_fsem_proph_to_normal. i.
+      rewrite SRed.fbody_trivial.
+      iIntros. unfold fbody_trivial. rewrite SRed.core.
+      steps_r. force_l q. step; eauto.
+    - s; et; ii.
+      match goal with [H: _|-_] => revert H; alist_find_simpl; i; depdes H end.
+      alist_find_simpl; esplits; et. ss.
+      set (i:=_: Any.t → itree hmodE Any.t) at 2.
+      set (itr:=SB.sandbox_body _).
+      assert (EQ: itr = SB.sandbox_body (SModTr.trans_ktree sp (true, wmask_all, MemA.scopes, (Some (to_fspec MemSpec.store), fbody_trivial)))) by ss.
+      rewrite EQ. eapply isim_fsem_proph_to_normal. i.
+      rewrite SRed.fbody_trivial.
+      iIntros. unfold fbody_trivial. rewrite SRed.core.
+      steps_r. force_l q. step; eauto.
+    - s; et; ii.
+      match goal with [H: _|-_] => revert H; alist_find_simpl; i; depdes H end.
+      alist_find_simpl; esplits; et. ss.
+      set (i:=_: Any.t → itree hmodE Any.t) at 2.
+      set (itr:=SB.sandbox_body _).
+      assert (EQ: itr = SB.sandbox_body (SModTr.trans_ktree sp (true, wmask_all, MemA.scopes, (Some (to_fspec MemSpec.cmp), fbody_trivial)))) by ss.
+      rewrite EQ. eapply isim_fsem_proph_to_normal. i.
+      rewrite SRed.fbody_trivial.
+      iIntros. unfold fbody_trivial. rewrite SRed.core.
+      steps_r. force_l q. step; eauto.
+    - s; et; ii.
+      match goal with [H: _|-_] => revert H; alist_find_simpl; i; depdes H end.
+      alist_find_simpl; esplits; et. ss.
+      set (i:=_: Any.t → itree hmodE Any.t) at 2.
+      set (itr:=SB.sandbox_body _).
+      assert (EQ: itr = SB.sandbox_body (SModTr.trans_ktree sp (true, wmask_all, MemA.scopes, (Some (to_fspec MemSpec.cas), fbody_trivial)))) by ss.
+      rewrite EQ. eapply isim_fsem_proph_to_normal. i.
+      rewrite SRed.fbody_trivial.
+      iIntros. unfold fbody_trivial. rewrite SRed.core.
+      steps_r. force_l q. step; eauto.
   (*SLOW*)Qed.
 
   Theorem ctxr sp:

@@ -181,23 +181,23 @@ Module MemI. Section MemI.
       Ret v_cur
   .
   
-  Definition fnsems : alist string (_ * list string * (Any.t -> itree hmodE Any.t)) :=
-    [(MemHdr.alloc, (wmask_all, scopes, cfunU alloc)) ;
-     (MemHdr.free,  (wmask_all, scopes, cfunU free)) ;
-     (MemHdr.load,  (wmask_all, scopes, cfunU load)) ;
-     (MemHdr.store, (wmask_all, scopes, cfunU store)) ;
-     (MemHdr.cmp,   (wmask_all, scopes, cfunU cmp)) ;
-     (MemHdr.cas,   (wmask_all, scopes, cfunU cas))].
+  Definition fnsems : alist (option string) (fnsem_type (option fspec * fbody)) :=
+    [(Some MemHdr.alloc, (false, wmask_all, scopes, (None, (cfunU alloc)))) ;
+     (Some MemHdr.free,  (false, wmask_all, scopes, (None, (cfunU free)))) ;
+     (Some MemHdr.load,  (false, wmask_all, scopes, (None, (cfunU load)))) ;
+     (Some MemHdr.store, (false, wmask_all, scopes, (None, (cfunU store)))) ;
+     (Some MemHdr.cmp,   (false, wmask_all, scopes, (None, (cfunU cmp)))) ;
+     (Some MemHdr.cas,   (false, wmask_all, scopes, (None, (cfunU cas))))].
 
-  Program Definition Mem csl genv : PMod.t :=
+  Program Definition Mem csl genv : SMod.t :=
     {|
-      PMod.scopes := scopes;
-      PMod.fnsems := fnsems ;
-      PMod.initial_st := [(v_mem, (Mem.load_mem csl genv)↑)];
+      SMod.scopes := scopes;
+      SMod.fnsems := fnsems ;
+      SMod.initial_st := [(v_mem, (Mem.load_mem csl genv)↑)];
     |}
   .
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition t csl genv : HMod.t := Seal.sealing CRIS (PMod.to_hmod (Mem csl genv)).
+  Definition t csl genv : HMod.t := Seal.sealing CRIS (SMod.to_hmod sp_none (Mem csl genv)).
 End MemI. End MemI.

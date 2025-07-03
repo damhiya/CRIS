@@ -215,26 +215,26 @@ Module MemP. Section MemP.
   Definition cmp := fspec_proph MemSpec.cmp fbody_trivial.
   Definition cas := fspec_proph MemSpec.cas fbody_trivial.
 
-  Definition fnsems :=
-    [(MemHdr.alloc, (wmask_all, scopes, alloc));
-     (MemHdr.free,  (wmask_all, scopes, free));
-     (MemHdr.load,  (wmask_all, scopes, load));
-     (MemHdr.store, (wmask_all, scopes, store));
-     (MemHdr.cmp,   (wmask_all, scopes, cmp));
-     (MemHdr.cas,   (wmask_all, scopes, cas))].
+  Definition fnsems : alist (option string) (fnsem_type (option fspec * fbody)) :=
+    [(Some MemHdr.alloc, (false, wmask_all, scopes, (None, alloc)));
+     (Some MemHdr.free,  (false, wmask_all, scopes, (None, free)));
+     (Some MemHdr.load,  (false, wmask_all, scopes, (None, load)));
+     (Some MemHdr.store, (false, wmask_all, scopes, (None, store)));
+     (Some MemHdr.cmp,   (false, wmask_all, scopes, (None, cmp)));
+     (Some MemHdr.cas,   (false, wmask_all, scopes, (None, cas)))].
 
   (* Module definition *)
-  Program Definition Mod : PMod.t := {|
-    PMod.scopes := scopes;
-    PMod.fnsems := fnsems;
-    PMod.initial_st := [];
+  Program Definition Mod : SMod.t := {|
+    SMod.scopes := scopes;
+    SMod.fnsems := fnsems;
+    SMod.initial_st := [];
   |}.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
   Definition init_cond csl genv : iProp Σ := mem_init_auth csl genv.
 
-  Definition t := Seal.sealing CRIS (PMod.to_hmod Mod).
+  Definition t := Seal.sealing CRIS (SMod.to_hmod sp_none Mod).
 
 End MemP. End MemP.
 
@@ -244,29 +244,22 @@ Module MemA. Section MemA.
 
   Definition scopes := ["Mem"].
 
-  Definition alloc := mk_specbody (to_fspec MemSpec.alloc) fbody_trivial.
-  Definition free := mk_specbody (to_fspec MemSpec.free) fbody_trivial.
-  Definition load := mk_specbody (to_fspec MemSpec.load) fbody_trivial.
-  Definition store := mk_specbody (to_fspec MemSpec.store) fbody_trivial.
-  Definition cmp := mk_specbody (to_fspec MemSpec.cmp) fbody_trivial.
-  Definition cas := mk_specbody (to_fspec MemSpec.cas) fbody_trivial.
-
-  Definition sp : alist string fspec :=
+  Definition sp : alist (option string) (option fspec) :=
     Seal.sealing CRIS
-      [(MemHdr.alloc, to_fspec MemSpec.alloc);
-       (MemHdr.free,  to_fspec MemSpec.free);
-       (MemHdr.load,  to_fspec MemSpec.load);
-       (MemHdr.store, to_fspec MemSpec.store);
-       (MemHdr.cmp,   to_fspec MemSpec.cmp);
-       (MemHdr.cas,   to_fspec MemSpec.cas)].
+      [(Some MemHdr.alloc, Some (to_fspec MemSpec.alloc));
+       (Some MemHdr.free,  Some (to_fspec MemSpec.free));
+       (Some MemHdr.load,  Some (to_fspec MemSpec.load));
+       (Some MemHdr.store, Some (to_fspec MemSpec.store));
+       (Some MemHdr.cmp,   Some (to_fspec MemSpec.cmp));
+       (Some MemHdr.cas,   Some (to_fspec MemSpec.cas))].
 
-  Definition fnsems :=
-    [(MemHdr.alloc, (wmask_all, scopes, alloc));
-     (MemHdr.free,  (wmask_all, scopes, free));
-     (MemHdr.load,  (wmask_all, scopes, load));
-     (MemHdr.store, (wmask_all, scopes, store));
-     (MemHdr.cmp,   (wmask_all, scopes, cmp));
-     (MemHdr.cas,   (wmask_all, scopes, cas))].
+  Definition fnsems : alist (option string) (fnsem_type (option fspec * fbody)) :=
+    [(Some MemHdr.alloc, (true, wmask_all, scopes, (Some (to_fspec MemSpec.alloc), fbody_trivial)));
+     (Some MemHdr.free,  (true, wmask_all, scopes, (Some (to_fspec MemSpec.free), fbody_trivial)));
+     (Some MemHdr.load,  (true, wmask_all, scopes, (Some (to_fspec MemSpec.load), fbody_trivial)));
+     (Some MemHdr.store, (true, wmask_all, scopes, (Some (to_fspec MemSpec.store), fbody_trivial)));
+     (Some MemHdr.cmp,   (true, wmask_all, scopes, (Some (to_fspec MemSpec.cmp), fbody_trivial)));
+     (Some MemHdr.cas,   (true, wmask_all, scopes, (Some (to_fspec MemSpec.cas), fbody_trivial)))].
 
   (* Module definition *)
   Program Definition Mod : SMod.t := {|

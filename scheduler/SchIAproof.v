@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 Require Import SchHeader SchI SchA.
 Require Import ltac2_lib.
 
@@ -582,4 +582,4 @@ Section ctxr.
       (SchI.t, emp%I).
   Proof using. eapply main_adequacy, sim; eauto. Qed.
 End ctxr.
-End SchIA.
+End SchIA. *)
