@@ -17,15 +17,15 @@ Module APCA. Section APCA.
     mk_fspec (λ (o: Ord.t) varg arg, ⌜varg = o↑ ∧ arg = varg⌝)%I
              (λ _ _ _, True)%I.
 
-  Definition Sp : alist string fspec :=
+  Definition Sp : spl_type :=
     Seal.sealing CRIS
-      [(APCHdr.apc, apc_spec)].
+      [(Some APCHdr.apc, Some apc_spec)].
   
   Lemma Sp_nodup : List.NoDup (List.map fst Sp).
   Proof using. unfold Sp. unseal CRIS. prove_nodup. Qed.
 
-  Definition fnsems SpPure :=
-    [(APCHdr.apc, (wmask_all, scopes, mk_specbody apc_spec (cfunN (apc_body SpPure))))].
+  Definition fnsems SpPure : alist (option string) (fnsem_type (option fspec * fbody)) :=
+    [(Some APCHdr.apc, (true, wmask_all, scopes, (Some apc_spec, (cfunN (apc_body SpPure)))))].
 
   Program Definition Mod SpPure : SMod.t := {|
     SMod.scopes := scopes;
@@ -35,7 +35,7 @@ Module APCA. Section APCA.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition InitCond : iProp Σ := emp%I.
+  Definition init_cond : iProp Σ := emp%I.
 
   Definition t SpPure Sp := Seal.sealing CRIS (SMod.to_hmod Sp (Mod SpPure)).
 End APCA. End APCA.

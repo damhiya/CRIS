@@ -23,7 +23,7 @@ Section apc.
   Context {Σ: GRA}.  
 
   Variable dep_ord: Ord.t.
-  Variable SpPure: string → option fspec.
+  Variable SpPure: spl_type.
 
   Program Fixpoint _APC (wid_ord: Ord.t) {wf Ord.lt wid_ord}: itree hmodE () :=
     break <- trigger (Choose _);;
@@ -36,7 +36,7 @@ Section apc.
       'fn:_ <- trigger (Choose _);;
       (* depth ordinal *)
       o <- trigger (Choose Ord.t);;
-      guarantee (is_Some (SpPure fn) ∧ (o < dep_ord)%ord);;;
+      guarantee (is_Some (alist_find (Some fn) SpPure) ∧ (o < dep_ord)%ord);;;
       trigger (Call fn o↑);;;
       _APC wid_next
   .
@@ -60,7 +60,7 @@ Section apc.
       trigger (Choose (wid_next < wid_ord)%ord);;;
       'fn:_ <- trigger (Choose _);;
       o <- trigger (Choose Ord.t);;
-      guarantee (is_Some (SpPure fn) ∧ (o < dep_ord)%ord);;;
+      guarantee (is_Some (alist_find (Some fn) SpPure) ∧ (o < dep_ord)%ord);;;
       trigger (Call fn o↑);;;
       _APC wid_next.
   Proof using.
@@ -82,15 +82,13 @@ Section aux.
     destruct a; ss. f_equal; et.
   Qed.
 
-  TODO
   Definition find_body md fn :=
-    alist_find fn (map (map_snd (λ kb arg, HModTr.sandbox kb.1.1 kb.1.2 (kb.2 arg))) (HMod.fnsems md)).
+    alist_find (Some fn) (map (map_snd SB.sandbox_body) (HMod.fnsems md)).
 
-  Definition pure_specbody scopes sp fsp :=
+  Definition pure_specbody sp img msk scp fspo :=
     (λ arg : Any.t,
-      HModTr.sandbox wmask_all scopes
-        (SModTr.trans_ktree sp
-           {| fsb_fspec := fsp; fsb_body := pure_body |} arg)).
+      SB.sandbox_body
+        (SModTr.trans_ktree sp (img, msk, scp, (fspo, pure_body))) arg).
 
   Definition pure: itree hmodE Any.t :=
     o <- trigger (Choose Ord.t);;

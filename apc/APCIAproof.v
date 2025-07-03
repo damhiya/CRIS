@@ -7,8 +7,8 @@ Module APCIA. Section APCIA.
   Import APCA.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
   
-  Context (SpA : string → option fspec).
-  Context (SpPure : string → option fspec).
+  Context (SpA : sp_type).
+  Context (SpPure : spl_type).
 
   Definition Ist : nat → alist key Any.t → alist key Any.t → iProp Σ :=
     (λ _ _ _, True)%I.
@@ -19,7 +19,7 @@ Module APCIA. Section APCIA.
   Local Transparent _APC.
 
   Lemma simF_apc :
-    HSim.sim_fun open APCAMod APCIMod Ist APCHdr.apc.
+    HSim.sim_fun open APCAMod APCIMod APCA.init_cond Ist (Some APCHdr.apc).
   Proof using _crisG.
     init_simF.
     
@@ -41,7 +41,7 @@ End APCIA.
 Section ctxr.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
 
-  Theorem ctxr (SpA SpPure: string → option fspec):
+  Theorem ctxr (SpA : sp_type) (SpPure : spl_type) :
     ctx_refines
       (APCA.t SpPure SpA, emp%I)
       (APCI.t, emp%I).

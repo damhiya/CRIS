@@ -12,11 +12,11 @@ Section LEMMAS.
 Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
 
 Lemma wsim_apc_src
-    fl fr Ist cP r g {Rs Rt} RR ps pt nths st_src st_tgt k_src i_tgt sp sp_pure
-    mask scopes (ow od: Ord.t) :
-  wsim fl fr Ist cP r g Rs Rt RR true pt nths (st_src, k_src ()) (st_tgt, i_tgt) ⊢
-  wsim fl fr Ist cP r g Rs Rt RR ps pt nths
-    (st_src, ((HModTr.sandbox mask scopes (SModTr.trans sp (_APC od sp_pure ow))) >>= k_src))
+    fl fr Ist cP r g {Rs Rt} RR ps pt nths st_src st_tgt k_src i_tgt sp sp_pure IS
+    img mask scopes (ow od: Ord.t) :
+  wsim fl fr Ist cP r g Rs Rt RR IS true pt nths (st_src, k_src ()) (st_tgt, i_tgt) ⊢
+  wsim fl fr Ist cP r g Rs Rt RR IS ps pt nths
+    (st_src, ((SB.sandbox img mask scopes (SModTr.trans sp (_APC od sp_pure ow))) >>= k_src))
     (st_tgt, i_tgt).
 Proof using.
   iIntros "ISIM". rewrite unfold_APC. force_l true. steps_l. iFrame.
@@ -85,37 +85,39 @@ Qed.
 
 Lemma wsim_apc_src_call_tgt_weaker
   fl fr Ist Ep r g {Rs Rt} RR ps pt nths st_src st_tgt k_src k_tgt sp sp_pure
-  (msk_s msk_t:_→bool) sc_s sc_t fn args fsp' fsp X (spec_arg: X) o P Q (ow_src ow_fn od_src od_fn : Ord.t)
+  img_t (msk_s msk_t:_→bool) sc_s sc_t (fn: string) args fsp' fsp X (spec_arg: X) o P Q (ow_src ow_fn od_src od_fn : Ord.t) IS
   (WIDTH: (ow_fn < ow_src)%ord)
   (DEPTH: (od_fn < od_src)%ord)
-  (SpPureInSp: sp_sub sp_pure sp)
-  (fnInSpPure: sp_pure fn = Some fsp')
-  (WEAK: fspec_weaker fsp fsp')
+  (SpPureInSp: sp_incl sp_pure sp)
+  (fnInSpPure: alist_find (Some fn) sp_pure = Some (Some fsp'))
+  (WEAK: fspec_imply fsp' fsp)
   (fspIsfspecapc: fsp = (@fspec_apc Σ X o (λ x, (P x, Q x))))
   :
   msk_s fn → msk_t fn →
   (((P spec_arg args ∗ ⌜∃ vo : Ord.t, od_fn ↑ = vo ↑ ∧ (o spec_arg <= vo)%ord⌝) ∗ (Ist nths st_src st_tgt)) ∗
     (∀ nths0 st_src0 st_tgt0 (vret ret: Any.t),
       ((Ist nths0 st_src0 st_tgt0) ∗ (Q spec_arg ret))
-      -∗ wsim fl fr Ist Ep r g Rs Rt RR false false nths0
-          (st_src0, ((HModTr.sandbox msk_s sc_s (SModTr.trans sp (_APC od_src sp_pure ow_fn))) >>= k_src))
+      -∗ wsim fl fr Ist Ep r g Rs Rt RR IS false false nths0
+          (st_src0, ((SB.sandbox true msk_s sc_s (SModTr.trans sp (_APC od_src sp_pure ow_fn))) >>= k_src))
           (st_tgt0, k_tgt ret)))
   ⊢
-    wsim fl fr Ist Ep r g Rs Rt RR ps pt nths
-      (st_src, (HModTr.sandbox msk_s sc_s (SModTr.trans sp (_APC od_src sp_pure ow_src))) >>= k_src)
-      (st_tgt, (HModTr.sandbox msk_t sc_t (trigger (Call fn args))) >>= k_tgt).
+    wsim fl fr Ist Ep r g Rs Rt RR IS ps pt nths
+      (st_src, (SB.sandbox true msk_s sc_s (SModTr.trans sp (_APC od_src sp_pure ow_src))) >>= k_src)
+      (st_tgt, (SB.sandbox img_t msk_t sc_t (trigger (Call fn args))) >>= k_tgt).
 Proof using.
   i. iIntros "[[[PRE %] IST] ISIM]".
   des. set_marker m. hide_ihyps. rewrite unfold_APC. show_until m.
   force_l false. steps_l. force_l ow_fn. steps_l. force_l WIDTH. steps_l.
   force_l fn. steps_l. force_l od_fn. steps_l.
-  assert (PO: (is_Some (sp_pure fn) ∧ (od_fn < od_src)%ord)); et. 
+  assert (PO: (is_Some (alist_find (Some fn) sp_pure) ∧ (od_fn < od_src)%ord)); et. 
   unfold guarantee. force_l PO. steps_l.
-  assert (sp fn = Some fsp'); et. force_l. iSplit; et. steps_l.
+  assert (sp fn = Some fsp').
+  { apply SpPureInSp. eauto. }
+  rewrite H3. des. rewrite /fspec_imply in WEAK. hss.
   specialize (WEAK spec_arg). des.
-  force_l x1. force_l args. steps_l.
-  iPoseProof ((PRE od_fn ↑ args) with "[PRE]") as ">PRE". { unfold precond, fspec_apc; ss. iFrame. by iExists _. }
-  force_l. iFrame. steps_l.
+  force_l x0. force_l args. steps_l.
+  iPoseProof ((PRE vo ↑ args) with "[PRE]") as ">PRE". { unfold precond, fspec_apc; ss. iFrame. by iExists _. }
+  iApply wsim_guarantee_src. iFrame. steps_l.
 
   call "IST"; et.
   steps_l. iApply wsim_reset.
@@ -125,25 +127,25 @@ Proof using.
 Qed.
 
 Lemma wsim_apc_src_call_tgt
-  fl fr Ist cP r g {Rs Rt} RR ps pt nths st_src st_tgt k_src k_tgt sp sp_pure
-  (msk_s msk_t:_→bool) sc_s sc_t fn args fsp X (spec_arg: X) o P Q (ow_src ow_fn od_src od_fn : Ord.t)
+  fl fr Ist cP r g {Rs Rt} RR ps pt nths st_src st_tgt k_src k_tgt sp (sp_pure : spl_type) IS
+  img_t (msk_s msk_t:_→bool) sc_s sc_t fn args fsp X (spec_arg: X) o P Q (ow_src ow_fn od_src od_fn : Ord.t)
   (WIDTH: (ow_fn < ow_src)%ord)
   (DEPTH: (od_fn < od_src)%ord)
-  (SpPureInSp: sp_sub sp_pure sp)
-  (fnInSpPure: sp_pure fn = Some fsp)
+  (SpPureInSp: sp_incl sp_pure sp)
+  (fnInSpPure: alist_find (Some fn) sp_pure = Some (Some fsp))
   (fspIsfspecapc: fsp = (@fspec_apc Σ X o (λ x, (P x, Q x))))
   :
   msk_s fn → msk_t fn →
   (((P spec_arg args ∗ ⌜∃ vo : Ord.t, od_fn ↑ = vo ↑ ∧ (o spec_arg <= vo)%ord⌝) ∗ (Ist nths st_src st_tgt)) ∗
     (∀ nths0 st_src0 st_tgt0 (vret ret: Any.t),
       ((Ist nths0 st_src0 st_tgt0) ∗ (Q spec_arg ret))
-      -∗ wsim fl fr Ist cP r g Rs Rt RR false false nths0
-          (st_src0, ((HModTr.sandbox msk_s sc_s (SModTr.trans sp (_APC od_src sp_pure ow_fn))) >>= k_src))
+      -∗ wsim fl fr Ist cP r g Rs Rt RR IS false false nths0
+          (st_src0, ((SB.sandbox true msk_s sc_s (SModTr.trans sp (_APC od_src sp_pure ow_fn))) >>= k_src))
           (st_tgt0, k_tgt ret)))
   ⊢
-    wsim fl fr Ist cP r g Rs Rt RR ps pt nths
-      (st_src, (HModTr.sandbox msk_s sc_s (SModTr.trans sp (_APC od_src sp_pure ow_src))) >>= k_src)
-      (st_tgt, (HModTr.sandbox msk_t sc_t (trigger (Call fn args))) >>= k_tgt).
+    wsim fl fr Ist cP r g Rs Rt RR IS ps pt nths
+      (st_src, (SB.sandbox true msk_s sc_s (SModTr.trans sp (_APC od_src sp_pure ow_src))) >>= k_src)
+      (st_tgt, (SB.sandbox img_t msk_t sc_t (trigger (Call fn args))) >>= k_tgt).
 Proof using.
   eapply wsim_apc_src_call_tgt_weaker; et. 
   do 2 (econs; et).
@@ -240,16 +242,11 @@ End LEMMAS.
 Ltac _prep_macro :=
   ired;
   match goal with
-  | [|- context[HModTr.sandbox _ (SModTr.trans _ _ (_APC _ _ _)) >>= _]] => fail 1
-  | [|- context[HModTr.sandbox _ (SModTr.trans _ _ (_APC _ _ _) >>= _)]] =>
-      rewrite// [in HModTr.sandbox _ (SModTr.trans _ _ (_APC _ _ _) >>= _)] SBRed.bind
+  | [|- context[SB.sandbox _ _ _ (SModTr.trans _ _ (_APC _ _ _)) >>= _]] => fail 1
+  | [|- context[SB.sandbox _ _ _ (SModTr.trans _ _ (_APC _ _ _) >>= _)]] =>
+      rewrite// [in SB.sandbox _ _ _ (SModTr.trans _ _ (_APC _ _ _) >>= _)] SBRed.bind
   | [|- context[SModTr.trans _ _ (_APC _ _ _ >>= _)]] =>
       rewrite// [in (SModTr.trans _ _ (_APC _ _ _ >>= _))] SRed.bind; _prep_macro
-  | [|- context[HModTr.sandbox _ (PModTr.trans (_APC _ _ _)) >>= _]] => fail 1
-  | [|- context[HModTr.sandbox _ (PModTr.trans (_APC _ _ _) >>= _)]] =>
-      rewrite// [in HModTr.sandbox _ (PModTr.trans (_APC _ _ _) >>= _)] SBRed.bind
-  | [|- context[PModTr.trans (_APC _ _ _ >>= _)]] =>
-      rewrite// [in (PModTr.trans (_APC _ _ _ >>= _))] PRed.bind; _prep_macro
   end.
 
 Ltac prep_macro_l :=
