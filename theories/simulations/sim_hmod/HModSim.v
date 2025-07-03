@@ -6,37 +6,41 @@ Variant contextuality : Type :=
 | open 
 | closed.
 
+Notation ist_type Σ := (nat → alist key Any.t → alist key Any.t → iProp Σ).
+Notation retr_type Σ Rs Rt := (nat → alist key Any.t * Rs → alist key Any.t * Rt → iProp Σ).
+Notation hsim_type Σ Rs Rt := (bool → bool → nat → alist key Any.t * itree hmodE Rs → alist key Any.t * itree hmodE Rt → Σ → Prop).
+
 Section IST.
 
   Context `{Σ: GRA}.
 
-  Definition Ist_monotone (Ist: nat → alist key Any.t → alist key Any.t → iProp Σ) : Prop :=
+  Definition Ist_monotone (Ist: ist_type Σ) : Prop :=
     ∀ nths nths' (LE : nths <= nths') st_src st_tgt,
       Ist nths st_src st_tgt ⊢ Ist nths' st_src st_tgt.
 
-  Definition IstProd (IstL IstR : nat -> alist key Any.t -> alist key Any.t -> iProp Σ) :=
+  Definition IstProd (IstL IstR : ist_type Σ) :=
   fun nths (st_src st_tgt : alist key Any.t) =>
     (∃ st_srcL st_tgtL st_srcR st_tgtR,
      ⌜st_src = st_srcL ++ st_srcR /\ st_tgt = st_tgtL ++ st_tgtR⌝ ∗
      IstL nths st_srcL st_tgtL ∗ IstR nths st_srcR st_tgtR)%I.
 
-  Definition IstSB scopes (Ist : nat -> alist key Any.t -> alist key Any.t -> iProp Σ) :=
+  Definition IstSB scopes (Ist : ist_type Σ) :=
     fun nths st_src st_tgt =>
       (⌜incl (HMod.state_scopes st_src) scopes ∧
          incl (HMod.state_scopes st_tgt) scopes⌝
            ∗ Ist nths st_src st_tgt)%I.
 
-  Definition IstEq : nat -> alist key Any.t -> alist key Any.t -> iProp Σ :=
+  Definition IstEq : ist_type Σ :=
     (fun _ st_src st_tgt => ⌜st_src = st_tgt⌝)%I.
 
-  Definition ist_with_eq (Ist : nat -> alist key Any.t -> alist key Any.t -> iProp Σ) {R} :=
+  Definition ist_with_eq (Ist : ist_type Σ) {R} :=
     fun nths '(st_src, v_src) '(st_tgt, v_tgt) =>
       (⌜v_src = (v_tgt: R)⌝ ∗ Ist nths st_src st_tgt)%I.
 
-  Definition IstTrue : nat → alist key Any.t → alist key Any.t → iProp Σ
+  Definition IstTrue : ist_type Σ
     := λ _ _ _, True%I.
 
-  Definition IstFalse : nat → alist key Any.t → alist key Any.t → iProp Σ
+  Definition IstFalse : ist_type Σ
     := λ _ _ _, False%I.
 
 End IST.
@@ -47,8 +51,7 @@ Section HSIM.
   Variable contextual: contextuality.
   Variable fl_src : alist (option string) (Any.t → itree hmodE Any.t).
   Variable fl_tgt : alist (option string) (Any.t → itree hmodE Any.t).
-  Variable Ist : nat → alist key Any.t → alist key Any.t → iProp Σ.
-  Variable my_tid : nat.
+  Variable Ist : ist_type Σ.
 
   (* Note : iProp-style definition of hsupd (λ fmr, Own fmr ⊢ ∃ fmr0, |==> ⌜P fmr0⌝)
       incurs positivity problem when defining _hsim. *)
@@ -56,11 +59,10 @@ Section HSIM.
     λ fmr, ✓ fmr → ∃ fmr0, P fmr0 ∧ (Own fmr ⊢ |==> Own fmr0).
 
   Variant _hsim'
-      (hsimc : ∀ Rs Rt (RR : nat → alist key Any.t * Rs → alist key Any.t * Rt → iProp Σ),
-          bool → bool → nat → alist key Any.t * itree hmodE Rs → alist key Any.t * itree hmodE Rt → Σ → Prop)
-      {Rs Rt} {RR : nat → alist key Any.t * Rs → alist key Any.t * Rt → iProp Σ}
-      (hsimi : bool → bool → nat → alist key Any.t * itree hmodE Rs → alist key Any.t * itree hmodE Rt → Σ → Prop)
-    : bool → bool → nat → alist key Any.t * itree hmodE Rs → alist key Any.t * itree hmodE Rt → Σ → Prop :=
+      (hsimc : ∀ Rs Rt (RR : retr_type Σ Rs Rt), hsim_type Σ Rs Rt)
+      {Rs Rt} {RR : retr_type Σ Rs Rt}
+      (hsimi : hsim_type Σ Rs Rt)
+    : hsim_type Σ Rs Rt :=
 
   | hsim_ret
       (HSIM_RET : True)
@@ -287,7 +289,7 @@ Section HSIM.
           (NODD : List.NoDup (List.map fst st_tgt0))
           (NTHS: nths <= nths0)
           (INV : Own fmr0 ⊢ |==> (Ist nths0 st_src0 st_tgt0 ∗ FR)),
-        hsimi true true nths0 (st_src0, k_src my_tid) (st_tgt0, k_tgt my_tid) fmr0)
+        hsimi true true nths0 (st_src0, k_src ()) (st_tgt0, k_tgt ()) fmr0)
     :
     _hsim' hsimc hsimi ps pt nths (st_src, trigger (Yield tid) >>= k_src) (st_tgt, trigger (Yield tid) >>= k_tgt) fmr
 
@@ -324,8 +326,7 @@ Section HSIM.
         ∀ (NODFS : List.NoDup (List.map fst fl_src))
           (NODFT : List.NoDup (List.map fst fl_tgt))
           (NODS : List.NoDup (List.map fst sti_src.1))
-          (NODD : List.NoDup (List.map fst sti_tgt.1))
-          (TID: my_tid < nths),
+          (NODD : List.NoDup (List.map fst sti_tgt.1)),
         hsupd (@_hsim' hsim Rs Rt RR (@_hsim hsim Rs Rt RR) ps pt nths sti_src sti_tgt) fmr).
 
   Definition hsim {Rs Rt} RR := paco9 _hsim bot9 Rs Rt RR.
@@ -335,15 +336,14 @@ Section HSIM.
              (IN : ∀ (NODFS : List.NoDup (List.map fst fl_src))
                      (NODFT : List.NoDup (List.map fst fl_tgt))
                      (NODS : List.NoDup (List.map fst sti_src.1))
-                     (NODD : List.NoDup (List.map fst sti_tgt.1))
-                     (TID: my_tid < nths),
+                     (NODD : List.NoDup (List.map fst sti_tgt.1)),
               hsupd (@_hsim' hsim Rs Rt RR rel ps pt nths sti_src sti_tgt) fmr),
         rel ps pt nths sti_src sti_tgt fmr) :
     _hsim hsim Rs Rt RR <6= rel.
   Proof using.
     fix self 7. i.
     destruct PR. apply FIX. i. intros wf.
-    specialize (IN NODFS NODFT NODS NODD TID wf); des.
+    specialize (IN NODFS NODFT NODS NODD wf); des.
     exists fmr0; split; eauto.
     destruct IN;
       try by econs; et; i; hexploit K; et; i; des; esplits;
@@ -425,7 +425,7 @@ Section HSIM.
     move SIM before r. revert_until SIM.
     pattern ps, pt, nths, st_src, st_tgt, fmr.
     eapply _hsim_tarski, SIM. i. econs.
-    ii. specialize (IN NODFS NODFT NODS NODD TID H). des.
+    ii. specialize (IN NODFS NODFT NODS NODD H). des.
     destruct IN;
       try by esplits; et; econs; et; i; hexploit K; et; i; des; esplits; et.
     
@@ -479,8 +479,8 @@ Section HSIM.
    **)
   
   Variant hsim_flagC 
-      (r : ∀ (Rs Rt : Type) (RR : nat → (alist key Any.t) * Rs → (alist key Any.t) * Rt → iProp Σ),
-        bool → bool → nat → (alist key Any.t) * itree hmodE Rs → (alist key Any.t) * itree hmodE Rt → Σ → Prop)
+      (r : ∀ (Rs Rt : Type) (RR : retr_type Σ Rs Rt),
+        hsim_type Σ Rs Rt)
       Rs Rt RR ps1 pt1 nths st_src st_tgt fmr : Prop :=
   | hsim_flagC_intro ps0 pt0
     (SIM : r Rs Rt RR ps0 pt0 nths st_src st_tgt fmr)
@@ -512,10 +512,10 @@ Section HSIM.
    **)
 
   Variant hsim_bindC
-      (r : ∀ Rs Rt (RR : nat → (alist key Any.t) * Rs → (alist key Any.t) * Rt → iProp Σ),
-        bool → bool → nat → (alist key Any.t) * itree hmodE Rs → (alist key Any.t) * itree hmodE Rt → Σ → Prop)
-    : ∀ Rs Rt (RR : nat → (alist key Any.t) * Rs → (alist key Any.t) * Rt → iProp Σ),
-        bool → bool → nat → (alist key Any.t) * itree hmodE Rs → (alist key Any.t) * itree hmodE Rt → Σ → Prop :=
+      (r : ∀ Rs Rt (RR : retr_type Σ Rs Rt),
+        hsim_type Σ Rs Rt)
+    : ∀ Rs Rt (RR : retr_type Σ Rs Rt),
+        hsim_type Σ Rs Rt :=
   | hsim_bindC_intro
       ps pt nths Qs Qt QQ st_src st_tgt i_src i_tgt fmr
       (SIM : r Qs Qt QQ ps pt nths (st_src, i_src) (st_tgt, i_tgt) fmr)
@@ -540,7 +540,7 @@ Section HSIM.
     pattern ps, pt, nths, sti_src, sti_tgt, fmr.
     eapply _hsim_tarski, SIM. econs. i. apply hsupd_merge.
     econs; esplits; eauto.
-    subst. specialize (IN NODFS NODFT NODS NODD TID H). des.
+    subst. specialize (IN NODFS NODFT NODS NODD H). des.
     depdes IN; grind;
       try (by rr; i; esplits; eauto with paco arith);
       try (by do 2 (econs; esplits; eauto with paco arith);
@@ -565,8 +565,8 @@ Section HSIM.
    **)
 
   Variant hsim_extendC
-    (r : ∀ Rs Rt (RR : nat → (alist key Any.t) * Rs → (alist key Any.t) * Rt → iProp Σ), bool → bool → nat → (alist key Any.t) * itree hmodE Rs → (alist key Any.t) * itree hmodE Rt → Σ → Prop) :
-    ∀ Rs Rt (RR : nat → (alist key Any.t) * Rs → (alist key Any.t) * Rt → iProp Σ), bool → bool → nat → (alist key Any.t) * itree hmodE Rs → (alist key Any.t) * itree hmodE Rt → Σ → Prop :=
+    (r : ∀ Rs Rt (RR : retr_type Σ Rs Rt), hsim_type Σ Rs Rt) :
+    ∀ Rs Rt (RR : retr_type Σ Rs Rt), hsim_type Σ Rs Rt :=
   | hsim_extendC_intro
       ps pt nths Rs Rt RR sti_src sti_tgt fmr fmr'
       (SIM : r Rs Rt RR ps pt nths sti_src sti_tgt fmr)
@@ -596,8 +596,8 @@ Section HSIM.
      hsim_wfC
    **)
 
-  Variant hsim_wfC (r : ∀ Rs Rt (RR : nat → (alist key Any.t) * Rs → (alist key Any.t) * Rt → iProp Σ), bool → bool → nat → (alist key Any.t) * itree hmodE Rs → (alist key Any.t) * itree hmodE Rt → Σ → Prop):
-    ∀ Rs Rt (RR : nat → (alist key Any.t) * Rs → (alist key Any.t) * Rt → iProp Σ), bool → bool → nat → (alist key Any.t) * itree hmodE Rs → (alist key Any.t) * itree hmodE Rt → Σ → Prop :=
+  Variant hsim_wfC (r : ∀ Rs Rt (RR : retr_type Σ Rs Rt), hsim_type Σ Rs Rt):
+    ∀ Rs Rt (RR : retr_type Σ Rs Rt), hsim_type Σ Rs Rt :=
   | hsim_wfC_intro
       ps pt nths Rs Rt RR sti_src sti_tgt fmr
       (SIM : ✓ fmr → r Rs Rt RR ps pt nths sti_src sti_tgt fmr) :
@@ -623,8 +623,8 @@ Section HSIM.
      hsim_updateC
    **)
 
-  Variant hsim_updateC (r : ∀ Rs Rt (RR : nat → (alist key Any.t) * Rs → (alist key Any.t) * Rt → iProp Σ), bool → bool → nat → (alist key Any.t) * itree hmodE Rs → (alist key Any.t) * itree hmodE Rt → Σ → Prop):
-    ∀ Rs Rt (RR : nat → (alist key Any.t) * Rs → (alist key Any.t) * Rt → iProp Σ), bool → bool → nat → (alist key Any.t) * itree hmodE Rs → (alist key Any.t) * itree hmodE Rt → Σ → Prop :=
+  Variant hsim_updateC (r : ∀ Rs Rt (RR : retr_type Σ Rs Rt), hsim_type Σ Rs Rt):
+    ∀ Rs Rt (RR : retr_type Σ Rs Rt), hsim_type Σ Rs Rt :=
   | hsim_updateC_intro
       ps pt nths Rs Rt RR sti_src sti_tgt fmr
       (SIM : hsupd (r Rs Rt RR ps pt nths sti_src sti_tgt) fmr) :
@@ -653,8 +653,8 @@ Section HSIM.
    **)
 
   Variant hsim_frameC
-      (r : ∀ Rs Rt (RR : nat → (alist key Any.t) * Rs → (alist key Any.t) * Rt → iProp Σ), bool → bool → nat → (alist key Any.t) * itree hmodE Rs → (alist key Any.t) * itree hmodE Rt → Σ → Prop) :
-    ∀ Rs Rt (RR : nat → (alist key Any.t) * Rs → (alist key Any.t) * Rt → iProp Σ), bool → bool → nat → (alist key Any.t) * itree hmodE Rs → (alist key Any.t) * itree hmodE Rt → Σ → Prop :=
+      (r : ∀ Rs Rt (RR : retr_type Σ Rs Rt), hsim_type Σ Rs Rt) :
+    ∀ Rs Rt (RR : retr_type Σ Rs Rt), hsim_type Σ Rs Rt :=
   | hsim_frameC_intro
       ps pt nths Rs Rt RR sti_src sti_tgt fmr fmrc (CTX : iProp Σ)
       (SIM : r Rs Rt (fun n s t => CTX -∗ RR n s t)%I ps pt nths sti_src sti_tgt fmr)
@@ -803,8 +803,8 @@ Section HSIM.
    **)
 
   Variant hsim_eqitC_src
-    (r : ∀ Rs Rt (RR : nat → (alist key Any.t) * Rs → (alist key Any.t) * Rt → iProp Σ), bool → bool → nat → (alist key Any.t) * itree hmodE Rs → (alist key Any.t) * itree hmodE Rt → Σ → Prop) :
-    ∀ Rs Rt (RR : nat → (alist key Any.t) * Rs → (alist key Any.t) * Rt → iProp Σ), bool → bool → nat → (alist key Any.t) * itree hmodE Rs → (alist key Any.t) * itree hmodE Rt → Σ → Prop :=
+    (r : ∀ Rs Rt (RR : retr_type Σ Rs Rt), hsim_type Σ Rs Rt) :
+    ∀ Rs Rt (RR : retr_type Σ Rs Rt), hsim_type Σ Rs Rt :=
   | hsim_eqitC_src_intro
       ps pt nths Rs Rt RR fmr st_src isrc0 isrc1 sti_tgt 
       (EQIT: eqit eq false true isrc0 isrc1)
@@ -822,7 +822,7 @@ Section HSIM.
     move SIM before r. revert_until SIM.
     pattern Rs, Rt, RR, ps, pt, nths, sti_src0, sti_tgt, fmr.
     eapply _hsim_tarski, SIM. i.
-    econs. ii. subst. specialize (IN NODFS NODFT NODS NODD TID H). des.
+    econs. ii. subst. specialize (IN NODFS NODFT NODS NODD H). des.
     esplits; eauto.
     punfold EQIT. subst. rr in EQIT.
     remember (observe isrc0) as otgt0. remember (observe isrc1) as otgt1.
@@ -869,8 +869,8 @@ Section HSIM.
    **)
 
   Variant hsim_eqitC_tgt
-    (r : ∀ Rs Rt (RR : nat → (alist key Any.t) * Rs → (alist key Any.t) * Rt → iProp Σ), bool → bool → nat → (alist key Any.t) * itree hmodE Rs → (alist key Any.t) * itree hmodE Rt → Σ → Prop) :
-    ∀ Rs Rt (RR : nat → (alist key Any.t) * Rs → (alist key Any.t) * Rt → iProp Σ), bool → bool → nat → (alist key Any.t) * itree hmodE Rs → (alist key Any.t) * itree hmodE Rt → Σ → Prop :=
+    (r : ∀ Rs Rt (RR : retr_type Σ Rs Rt), hsim_type Σ Rs Rt) :
+    ∀ Rs Rt (RR : retr_type Σ Rs Rt), hsim_type Σ Rs Rt :=
   | hsim_eqitC_tgt_intro
       ps pt nths Rs Rt RR fmr sti_src st_tgt itgt0 itgt1
       (EQIT: eqit eq false true itgt0 itgt1)
@@ -888,7 +888,7 @@ Section HSIM.
     move SIM before r. revert_until SIM.
     pattern Rs, Rt, RR, ps, pt, nths, sti_src, sti_tgt0, fmr.
     eapply _hsim_tarski, SIM. i.
-    econs. ii. subst. specialize (IN NODFS NODFT NODS NODD TID H). des.
+    econs. ii. subst. specialize (IN NODFS NODFT NODS NODD H). des.
     esplits; eauto.
     punfold EQIT. subst. rr in EQIT.
     remember (observe itgt0) as otgt0. remember (observe itgt1) as otgt1.
@@ -931,8 +931,8 @@ Section HSIM.
      hsim_nodupC
    **)
 
-  Variant hsim_nodupC (r : ∀ Rs Rt (RR : nat → (alist key Any.t) * Rs → (alist key Any.t) * Rt → iProp Σ), bool → bool → nat → (alist key Any.t) * itree hmodE Rs → (alist key Any.t) * itree hmodE Rt → Σ → Prop):
-    ∀ Rs Rt (RR : nat → (alist key Any.t) * Rs → (alist key Any.t) * Rt → iProp Σ), bool → bool → nat → (alist key Any.t) * itree hmodE Rs → (alist key Any.t) * itree hmodE Rt → Σ → Prop :=
+  Variant hsim_nodupC (r : ∀ Rs Rt (RR : retr_type Σ Rs Rt), hsim_type Σ Rs Rt):
+    ∀ Rs Rt (RR : retr_type Σ Rs Rt), hsim_type Σ Rs Rt :=
   | hsim_nodupC_intro
       ps pt nths Rs Rt RR sti_src sti_tgt fmr
       (SIM : ∀ (NODFS : List.NoDup (List.map fst fl_src))

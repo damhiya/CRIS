@@ -22,7 +22,7 @@ Section EVENTS_MOD.
   Variant callE : Type -> Type :=
   | Call (fn : string) (args : Any.t) : callE Any.t
   | Spawn (fn : string) (args : Any.t) : callE nat
-  | Yield (tid : nat) : callE nat.
+  | Yield (tid : nat) : callE unit.
 
   Definition sPut x : stateE unit := SUpdate (fun _ => (x, tt)).
   Definition sGet : stateE Any.t := SUpdate (fun x => (x, x)).

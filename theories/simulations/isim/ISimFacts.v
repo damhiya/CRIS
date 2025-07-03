@@ -53,7 +53,7 @@ Proof.
     destruct ft as [[[img0 msk0] scp0] bd0].
     i. exists ε, ε.
 
-    specialize (x1 arg 0 1 (HMod.initial_st ms) (HMod.initial_st mt)).
+    specialize (x1 arg 1 (HMod.initial_st ms) (HMod.initial_st mt)).
     rewrite /HModTr.trans_ktree /SB.sandbox_body. s.
     eapply sim_itree_mon_rr.
     { instantiate (1:= interp_inv IstTrue). et. }

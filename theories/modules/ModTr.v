@@ -39,7 +39,7 @@ Section EXEC.
                                      bd <- (prog fn)? ;;
                                      Ret (inl (tid, (base.insert tid (k new_tid) ths) ++ [bd arg]))
                  | Yield tid' => fun k =>
-                                   Ret (inl (tid', base.insert tid (k tid) ths))
+                                    Ret (inl (tid', base.insert tid (k tt) ths))
                  end k)
           end
       end.

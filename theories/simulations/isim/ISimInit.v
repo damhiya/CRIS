@@ -14,7 +14,7 @@ Proof.
   rewrite /state_scopes -!List.map_map alist_upd_keys. eauto.
 Qed.
 
-Lemma isim_refl `{Σ : GRA} r g contextual Ist stid fl_src fl_tgt img msk scp
+Lemma isim_refl `{Σ : GRA} r g contextual Ist fl_src fl_tgt img msk scp
   ps pt nths st_src st_tgt {R} (it: itree hmodE R)
   (MON: Ist_monotone Ist)
   (EQGET : ∀ nths st_src st_tgt (k: key) (IN: In k.1 scp)
@@ -27,7 +27,7 @@ Lemma isim_refl `{Σ : GRA} r g contextual Ist stid fl_src fl_tgt img msk scp
       Ist nths st_src st_tgt -∗ Ist nths (alist_upd k v st_src) (alist_upd k v st_tgt))
   :
   Ist nths st_src st_tgt
-  ⊢ isim contextual fl_src fl_tgt Ist stid r g (ist_with_eq Ist) ps pt nths
+  ⊢ isim contextual fl_src fl_tgt Ist r g (ist_with_eq Ist) ps pt nths
     (st_src, SB.sandbox img msk scp it)
     (st_tgt, SB.sandbox img msk scp it).
 Proof.
@@ -82,7 +82,7 @@ Proof.
     + istep. iby_coind "CIH". eauto.
 Qed.
 
-Lemma isim_reflL `{Σ : GRA} contextual Ist fl_src fl_tgt mask scopesL scopesR scopesF (EqL : _ → _ → _ → iProp Σ) itr
+Lemma isim_reflL `{Σ : GRA} contextual Ist fl_src fl_tgt mask scopesL scopesR scopesF (EqL : ist_type Σ) itr
     (DISJ : List.NoDup (scopesL ++ scopesR))
     (INCL : incl scopesF scopesL)
     (EQGET : ∀ nths st_src st_tgt
@@ -127,7 +127,7 @@ Proof.
       apply H1. eapply in_map in H. rewrite List.map_map in H. apply H.
 Qed.
 
-Lemma isim_reflR `{Σ : GRA} contextual Ist fl_src fl_tgt mask scopesL scopesR scopesF (EqR : _ → _ → _ → iProp Σ) itr
+Lemma isim_reflR `{Σ : GRA} contextual Ist fl_src fl_tgt mask scopesL scopesR scopesF (EqR : ist_type Σ) itr
     (DISJ : List.NoDup (scopesL ++ scopesR))
     (INCL : incl scopesF scopesR)
     (EQGET : ∀ nths st_src st_tgt, EqR nths st_src st_tgt -∗ ⌜st_src = st_tgt⌝)
@@ -163,7 +163,7 @@ Proof.
       apply H1. eapply in_map in H. rewrite List.map_map in H. apply H.
 Qed.
 
-Lemma hmod_sim_reflL `{Σ : GRA} contextual A B C init_cond scopes Ist
+Lemma hmod_sim_reflL `{Σ : GRA} contextual A B C init_cond scopes (Ist: ist_type Σ)
   (SCOPES: scopes = HMod.scopes B)
   (MON : ∀ nths nths' (LE : nths <= nths') st_src st_tgt,
            Ist nths st_src st_tgt -∗ Ist nths' st_src st_tgt)
@@ -352,8 +352,8 @@ Section Proph.
   Variable contextual: contextuality.
 
   Lemma isim_fsem_proph_to_normal fsp bd_s bd_t msk sp scp fls flt
-    (SIM: ∀ arg stid nths st (TID: stid < nths),
-        ⊢ isim contextual fls flt IstEq stid ibot ibot (ist_with_eq IstEq) true true nths
+    (SIM: ∀ arg nths st,
+        ⊢ isim contextual fls flt IstEq ibot ibot (ist_with_eq IstEq) true true nths
           (st, SB.sandbox true  msk scp (SModTr.trans sp      (bd_s arg)))
           (st, SB.sandbox false msk scp (SModTr.trans sp_none (bd_t arg))))
     :

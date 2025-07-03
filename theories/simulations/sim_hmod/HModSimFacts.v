@@ -80,7 +80,7 @@ Proof.
     split; et. nia.
 Qed.
 
-Variant interp_inv `{Σ: GRA} Ist : list Σ -> nat * Any.t * Any.t -> Prop :=
+Variant interp_inv `{Σ: GRA} (Ist: ist_type Σ) : list Σ -> nat * Any.t * Any.t -> Prop :=
 | interp_inv_intro
     (ctx : list Σ) (mr_src mr_tgt : Σ) nths st_src st_tgt mr
     (WF : ✓ mr_src)
@@ -95,7 +95,7 @@ Lemma hsim_adequacy
   `{Σ : GRA}
   (fl_src : alist (option string) (Any.t -> itree hmodE Any.t))
   (fl_tgt : alist (option string) (Any.t -> itree hmodE Any.t))
-  (Ist : nat -> alist key Any.t -> alist key Any.t -> iProp Σ)
+  (Ist : ist_type Σ)
   (my_tid : nat)
   (NODUPFS : List.NoDup (List.map fst fl_src))
   (NODUPFT : List.NoDup (List.map fst fl_tgt))
@@ -110,7 +110,7 @@ Lemma hsim_adequacy
   (CTXLE : @le_mine Σ eq my_tid ctx0 ctx)
   (TID : my_tid < List.length ctx0)
   (TID' : my_tid < nths)
-  (SIM : hsim closed fl_src fl_tgt Ist my_tid (ist_with_eq RR) ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr)
+  (SIM : hsim closed fl_src fl_tgt Ist (ist_with_eq RR) ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr)
   (WF : ✓ mr_src)
   (FMR : Own mr_src ⊢ |==> Own ((ctx_sem ctx) ⋅ fmr ⋅ mr_tgt))
   :
