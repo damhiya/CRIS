@@ -629,69 +629,18 @@ Module MemPA. Section MemPA.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
   Context `{_memG: !memG}.
 
+  (* TODO: updating lemmas or tactic is required, but now we use custom tactic. *)
+  Local Opaque SModTr.trans_ktree.
+  Ltac prove_proph_sim :=
+    s; et; ii;
+    match goal with
+    | H:_ |- _ => revert H; alist_find_simpl; i; depdes H
+    end; alist_find_simpl; esplits; et; eapply isim_fsem_proph_to_normal; i; iIntros;
+    rewrite SRed.fbody_trivial /fbody_trivial SRed.core; iIntros; steps_r; forces_l; step; eauto.
+
   Theorem sim sp : HSim.t open (MemA.t sp) MemP.t emp%I IstEq.
   Proof using.
-    init_sim; try prove_proph_sim.
-    - s; et; ii.
-      match goal with [H: _|-_] => revert H; alist_find_simpl; i; depdes H end.
-      alist_find_simpl; esplits; et. ss.
-      set (i:=_: Any.t → itree hmodE Any.t) at 2.
-      set (itr:=SB.sandbox_body _).
-      assert (EQ: itr = SB.sandbox_body (SModTr.trans_ktree sp (true, wmask_all, MemA.scopes, (Some (to_fspec MemSpec.alloc), fbody_trivial)))) by ss.
-      rewrite EQ. eapply isim_fsem_proph_to_normal. i.
-      rewrite SRed.fbody_trivial.
-      iIntros. unfold fbody_trivial. rewrite SRed.core.
-      steps_r. force_l q. step; eauto.
-    - s; et; ii.
-      match goal with [H: _|-_] => revert H; alist_find_simpl; i; depdes H end.
-      alist_find_simpl; esplits; et. ss.
-      set (i:=_: Any.t → itree hmodE Any.t) at 2.
-      set (itr:=SB.sandbox_body _).
-      assert (EQ: itr = SB.sandbox_body (SModTr.trans_ktree sp (true, wmask_all, MemA.scopes, (Some (to_fspec MemSpec.free), fbody_trivial)))) by ss.
-      rewrite EQ. eapply isim_fsem_proph_to_normal. i.
-      rewrite SRed.fbody_trivial.
-      iIntros. unfold fbody_trivial. rewrite SRed.core.
-      steps_r. force_l q. step; eauto.
-    - s; et; ii.
-      match goal with [H: _|-_] => revert H; alist_find_simpl; i; depdes H end.
-      alist_find_simpl; esplits; et. ss.
-      set (i:=_: Any.t → itree hmodE Any.t) at 2.
-      set (itr:=SB.sandbox_body _).
-      assert (EQ: itr = SB.sandbox_body (SModTr.trans_ktree sp (true, wmask_all, MemA.scopes, (Some (to_fspec MemSpec.load), fbody_trivial)))) by ss.
-      rewrite EQ. eapply isim_fsem_proph_to_normal. i.
-      rewrite SRed.fbody_trivial.
-      iIntros. unfold fbody_trivial. rewrite SRed.core.
-      steps_r. force_l q. step; eauto.
-    - s; et; ii.
-      match goal with [H: _|-_] => revert H; alist_find_simpl; i; depdes H end.
-      alist_find_simpl; esplits; et. ss.
-      set (i:=_: Any.t → itree hmodE Any.t) at 2.
-      set (itr:=SB.sandbox_body _).
-      assert (EQ: itr = SB.sandbox_body (SModTr.trans_ktree sp (true, wmask_all, MemA.scopes, (Some (to_fspec MemSpec.store), fbody_trivial)))) by ss.
-      rewrite EQ. eapply isim_fsem_proph_to_normal. i.
-      rewrite SRed.fbody_trivial.
-      iIntros. unfold fbody_trivial. rewrite SRed.core.
-      steps_r. force_l q. step; eauto.
-    - s; et; ii.
-      match goal with [H: _|-_] => revert H; alist_find_simpl; i; depdes H end.
-      alist_find_simpl; esplits; et. ss.
-      set (i:=_: Any.t → itree hmodE Any.t) at 2.
-      set (itr:=SB.sandbox_body _).
-      assert (EQ: itr = SB.sandbox_body (SModTr.trans_ktree sp (true, wmask_all, MemA.scopes, (Some (to_fspec MemSpec.cmp), fbody_trivial)))) by ss.
-      rewrite EQ. eapply isim_fsem_proph_to_normal. i.
-      rewrite SRed.fbody_trivial.
-      iIntros. unfold fbody_trivial. rewrite SRed.core.
-      steps_r. force_l q. step; eauto.
-    - s; et; ii.
-      match goal with [H: _|-_] => revert H; alist_find_simpl; i; depdes H end.
-      alist_find_simpl; esplits; et. ss.
-      set (i:=_: Any.t → itree hmodE Any.t) at 2.
-      set (itr:=SB.sandbox_body _).
-      assert (EQ: itr = SB.sandbox_body (SModTr.trans_ktree sp (true, wmask_all, MemA.scopes, (Some (to_fspec MemSpec.cas), fbody_trivial)))) by ss.
-      rewrite EQ. eapply isim_fsem_proph_to_normal. i.
-      rewrite SRed.fbody_trivial.
-      iIntros. unfold fbody_trivial. rewrite SRed.core.
-      steps_r. force_l q. step; eauto.
+    init_sim; prove_proph_sim.
   (*SLOW*)Qed.
 
   Theorem ctxr sp:

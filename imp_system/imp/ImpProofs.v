@@ -774,7 +774,12 @@ Section PROOFS.
   Proof using.
     rewrite interp_imp_bind. grind.
     des_ifs.
-    2:{ grind. hexploit (@interp_imp_triggerUB_bind unit val ge l (λ u, v <- trigger (IO f (map (λ v, match v with | Vint z => z | _ => 0%Z end) l0));; trigger (SetVar x (Vint v));;; (tau;; Ret Vundef))).
+    2:{ grind.
+        hexploit (@interp_imp_triggerUB_bind unit val ge l
+          (λ u,
+            v <- trigger (IO f (map (λ v, match v with | Vint z => z | _ => 0%Z end) l0));;
+            trigger (SetVar x (Vint v));;;
+            (tau;; Ret Vundef))).
         rewrite /triggerUB. i; ss. rewrite bind_bind in H. rewrite H. grind. }
     2:{ rewrite interp_imp_bind. rewrite interp_imp_triggerUB. unfold triggerUB; grind. }
     2:{ rewrite interp_imp_triggerUB_bind. unfold triggerUB; grind. }
