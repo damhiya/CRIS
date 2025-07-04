@@ -12,10 +12,10 @@ Section LEMMAS.
 Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
 
 Lemma wsim_apc_src
-    fl fr Ist cP r g {Rs Rt} RR ps pt nths st_src st_tgt k_src i_tgt sp sp_pure IS
+    fl fr Ist cP r g {Rs Rt} RR ps pt nths st_src st_tgt k_src i_tgt sp sp_pure
     img mask scopes (ow od: Ord.t) :
-  wsim fl fr Ist cP r g Rs Rt RR IS true pt nths (st_src, k_src ()) (st_tgt, i_tgt) ⊢
-  wsim fl fr Ist cP r g Rs Rt RR IS ps pt nths
+  wsim fl fr Ist cP r g Rs Rt RR true pt nths (st_src, k_src ()) (st_tgt, i_tgt) ⊢
+  wsim fl fr Ist cP r g Rs Rt RR ps pt nths
     (st_src, ((SB.sandbox img mask scopes (SModTr.trans sp (_APC od sp_pure ow))) >>= k_src))
     (st_tgt, i_tgt).
 Proof using.
@@ -85,7 +85,7 @@ Qed.
 
 Lemma wsim_apc_src_call_tgt_weaker
   fl fr Ist Ep r g {Rs Rt} RR ps pt nths st_src st_tgt k_src k_tgt sp sp_pure
-  img_t (msk_s msk_t:_→bool) sc_s sc_t (fn: string) args fsp' fsp X (spec_arg: X) o P Q (ow_src ow_fn od_src od_fn : Ord.t) IS
+  img_t (msk_s msk_t:_→bool) sc_s sc_t (fn: string) args fsp' fsp X (spec_arg: X) o P Q (ow_src ow_fn od_src od_fn : Ord.t)
   (WIDTH: (ow_fn < ow_src)%ord)
   (DEPTH: (od_fn < od_src)%ord)
   (SpPureInSp: sp_incl sp_pure sp)
@@ -97,11 +97,11 @@ Lemma wsim_apc_src_call_tgt_weaker
   (((P spec_arg args ∗ ⌜∃ vo : Ord.t, od_fn ↑ = vo ↑ ∧ (o spec_arg <= vo)%ord⌝) ∗ (Ist nths st_src st_tgt)) ∗
     (∀ nths0 st_src0 st_tgt0 (vret ret: Any.t),
       ((Ist nths0 st_src0 st_tgt0) ∗ (Q spec_arg ret))
-      -∗ wsim fl fr Ist Ep r g Rs Rt RR IS false false nths0
+      -∗ wsim fl fr Ist Ep r g Rs Rt RR false false nths0
           (st_src0, ((SB.sandbox true msk_s sc_s (SModTr.trans sp (_APC od_src sp_pure ow_fn))) >>= k_src))
           (st_tgt0, k_tgt ret)))
   ⊢
-    wsim fl fr Ist Ep r g Rs Rt RR IS ps pt nths
+    wsim fl fr Ist Ep r g Rs Rt RR ps pt nths
       (st_src, (SB.sandbox true msk_s sc_s (SModTr.trans sp (_APC od_src sp_pure ow_src))) >>= k_src)
       (st_tgt, (SB.sandbox img_t msk_t sc_t (trigger (Call fn args))) >>= k_tgt).
 Proof using.
@@ -127,7 +127,7 @@ Proof using.
 Qed.
 
 Lemma wsim_apc_src_call_tgt
-  fl fr Ist cP r g {Rs Rt} RR ps pt nths st_src st_tgt k_src k_tgt sp (sp_pure : spl_type) IS
+  fl fr Ist cP r g {Rs Rt} RR ps pt nths st_src st_tgt k_src k_tgt sp (sp_pure : spl_type)
   img_t (msk_s msk_t:_→bool) sc_s sc_t fn args fsp X (spec_arg: X) o P Q (ow_src ow_fn od_src od_fn : Ord.t)
   (WIDTH: (ow_fn < ow_src)%ord)
   (DEPTH: (od_fn < od_src)%ord)
@@ -139,11 +139,11 @@ Lemma wsim_apc_src_call_tgt
   (((P spec_arg args ∗ ⌜∃ vo : Ord.t, od_fn ↑ = vo ↑ ∧ (o spec_arg <= vo)%ord⌝) ∗ (Ist nths st_src st_tgt)) ∗
     (∀ nths0 st_src0 st_tgt0 (vret ret: Any.t),
       ((Ist nths0 st_src0 st_tgt0) ∗ (Q spec_arg ret))
-      -∗ wsim fl fr Ist cP r g Rs Rt RR IS false false nths0
+      -∗ wsim fl fr Ist cP r g Rs Rt RR false false nths0
           (st_src0, ((SB.sandbox true msk_s sc_s (SModTr.trans sp (_APC od_src sp_pure ow_fn))) >>= k_src))
           (st_tgt0, k_tgt ret)))
   ⊢
-    wsim fl fr Ist cP r g Rs Rt RR IS ps pt nths
+    wsim fl fr Ist cP r g Rs Rt RR ps pt nths
       (st_src, (SB.sandbox true msk_s sc_s (SModTr.trans sp (_APC od_src sp_pure ow_src))) >>= k_src)
       (st_tgt, (SB.sandbox img_t msk_t sc_t (trigger (Call fn args))) >>= k_tgt).
 Proof using.
