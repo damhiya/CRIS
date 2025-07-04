@@ -127,14 +127,13 @@ Proof.
   (* simulation *)
   ii. destruct fs as [[[img msk] scp] bd]. unfold SB.sandbox_body. s.
   generalize (bd arg) as it. clear FIND bd arg.
-  combine_quant TID.
   combine_quant NODD.
   combine_quant NODS.
   combine_quant st_tgt.
   combine_quant st_src.
   combine_quant nths.
   eapply isim_coind. i.
-  destruct a as [nths [st_src [st_tgt [NODS [NODD [TID it]]]]]]. s.
+  destruct a as [nths [st_src [st_tgt [NODS [NODD it]]]]]. s.
   destruct_quant.
   iIntros "(%IST & #CIH)". des.
   assert (CASE := case_itrH it); des; subst.
@@ -149,14 +148,12 @@ Proof.
     + norm_l. norm_r. rewrite! SBRed.call. des_ifs; ss.
       * iApply isim_call. iSplit; eauto. iIntros (? ? ? ? ? ? ?) "IST0".
         steps_l. steps_r. by_coind "CIH"; et.
-        iPureIntro. nia.
       * steps_l. ss.
     + norm_l. norm_r. rewrite! SBRed.spawn. des_ifs; ss.
       * iApply isim_spawn.
         steps_l. steps_r. by_coind "CIH"; et.
       * steps_l. ss.
     + yield ""; eauto. by_coind "CIH"; et.
-      iPureIntro. nia.
   - depdes s0.
     + rewrite !SBRed.bind !SBRed.put. des_ifs; cycle 1.
       { steps_l. ss. }

@@ -53,13 +53,12 @@ Proof.
   combine_quant ps.
   combine_quant msk.
   combine_quant img.
-  combine_quant TID.
   combine_quant nths.
   combine_quant SCP.
   combine_quant scp.
   
   eapply isim_coind. i.
-  destruct a as [scp [SCP [nths [TID [img [msk [ps [pt [st it]]]]]]]]]; s.
+  destruct a as [scp [SCP [nths [img [msk [ps [pt [st it]]]]]]]]; s.
   destruct_quant.
   iIntros "(_ & #CIH)".
 
@@ -94,7 +93,6 @@ Proof.
       - iIntros (? ? ? ? ? ?) "%". des; subst.
         rewrite HIRed.tau. steps_l. steps_r. ired.
         by_coind "CIH"; et.
-        iPureIntro. nia.
     }
     {
       rewrite !SBRed.bind !SBRed.spawn. des_ifs; cycle 1.
@@ -107,7 +105,6 @@ Proof.
       rewrite SBRed.bind SBRed.yield HIRed.yield !SBRed.bind !SBRed.yield.
       iApply isim_yield. iSplit; et. iIntros (? ? ? ? ? ?) "%". subst.
       steps_l. by_coind "CIH"; et.
-      iPureIntro. nia.
     }
   - depdes s.
     + rewrite !SBRed.bind !SBRed.put. des_ifs; cycle 1. 

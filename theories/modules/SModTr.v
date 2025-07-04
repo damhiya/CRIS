@@ -151,7 +151,7 @@ Section RED.
     eapply observe_eta; ss.
   Qed.
 
-  Lemma vis_yield {R} tid (ktr : nat -> itree hmodE R) :
+  Lemma vis_yield {R} tid (ktr : () -> itree hmodE R) :
     SModTr.trans sp (vis (Yield tid) ktr) = tau;; my_tid <- trigger (Yield tid);; SModTr.trans sp (ktr my_tid).
   Proof using.
     unfold SModTr.trans. rewrite interpV_vis.

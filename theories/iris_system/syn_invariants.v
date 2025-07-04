@@ -11,7 +11,8 @@ Variant inv_ops : Type :=
 | _ownI (i : positive)
 | _ownI_reserve (X : coPset)
 | _ownD (i : positive)
-| _wsat_auth (X : coPset).
+| _wsat_auth (X : coPset)
+| _own_admin.
 
 Local Definition inv_arity (op : inv_ops) (sProp : Type) : Type :=
   match op with
@@ -19,6 +20,7 @@ Local Definition inv_arity (op : inv_ops) (sProp : Type) : Type :=
   | _ownI_reserve X => fin 0
   | _ownD i => fin 1
   | _wsat_auth X => fin 0
+  | _own_admin => fin 0
   end.
 
 Global Instance inv_syntax : SAT.t := {
@@ -36,6 +38,7 @@ Local Definition inv_interp_aux `{!invG Γ Σ α, !subG Γ Σ} n (op : inv_ops) 
   | _ownI_reserve X => λ _ _, ownI_reserve n X
   | _ownD i => λ syn _, ownD i (syn 0%fin)
   | _wsat_auth X => λ _ _, wsat_auth n X
+  | _own_admin => λ _ _, own_admin
   end.
 
 Global Instance inv_interp `{!invG Γ Σ α, !subG Γ Σ} :
@@ -44,7 +47,8 @@ Global Instance inv_interp `{!invG Γ Σ α, !subG Γ Σ} :
 
 Class syn_invG (Γ : HRA) (Σ : GRA) (α : GAT.t) (β : GATIntp.t) (τ : TypG.t)
     `{!invG Γ Σ α, !subG Γ Σ} := {
-  #[global] syn_invG_inG :: GATIntp.inG inv_syntax α inv_interp β;
+  #[global] syn_invG_syntax :: GAT.inG inv_syntax α;
+  #[global] syn_invG_interp :: GATIntp.inG inv_syntax α inv_interp β;
 }.
 
 Section syn_inv.
@@ -59,6 +63,8 @@ Section syn_inv.
     ⟨ _ownD i, λ _, p ⟩.
   Local Definition syn_wsat_auth n X : GTerm.t n :=
     ⟨ _wsat_auth X, λ e, match e with end ⟩.
+  Local Definition syn_own_admin n : GTerm.t n :=
+    ⟨ _own_admin, λ e, match e with end ⟩.
 
   Local Definition syn_ownE n (E : coPset) : GTerm.t n :=
     <own> base_γ (CoPset E).
@@ -85,7 +91,8 @@ Section syn_inv.
   Local Definition syn_inv_eq : @syn_inv = @syn_inv_def := syn_inv_aux.(seal_eq).
 
   Local Definition syn_fupd_def {n} (Ew E1 E2 : coPset) (P : GTerm.t n) : GTerm.t n :=
-    syn_wsatl n Ew ∗ syn_ownE n E1 ==∗ (syn_wsatl n Ew ∗ syn_ownE n E2 ∗ P).
+    syn_wsatl n Ew ∗ syn_ownE n E1 ∗ syn_own_admin n ==∗
+      (syn_wsatl n Ew ∗ syn_ownE n E2 ∗ syn_own_admin n ∗ P).
   Local Definition syn_fupd_aux : seal (@syn_fupd_def). Proof using. by eexists. Qed.
   Definition syn_fupd := syn_fupd_aux.(unseal).
   Local Definition syn_fupd_eq : @syn_fupd = @syn_fupd_def := syn_fupd_aux.(seal_eq).
@@ -157,11 +164,11 @@ Ltac inv_red :=
 (* Module for constructing concrete structures for stratified propositions and global RAs *)
 Module inv_instances.
   #[export] Instance τ (uτ: TypG.t) : TypG.t :=
-  λ i,
-    match i with
-    | 0 => ST.t
-    | S i' => uτ i'
-    end.
+    λ i,
+      match i with
+      | 0 => ST.t
+      | S i' => uτ i'
+      end.
 
   #[export] Instance typG `{uτ: TypG.t} : STτ.t (τ uτ).
   Proof using. econs. econs. instantiate (1:=0); ss. Qed.
@@ -174,8 +181,12 @@ Module inv_instances.
       | S (S i') => uα i'
       end.
 
-  #[export] Instance user_subG {Γ : HRA} `{uτ: TypG.t} `{a: SAT.t} `{uα: GAT.t} `{ing: !GAT.inG a uα} : GAT.inG a (α uα).
+  #[export] Instance user_in_α {Γ : HRA} `{uτ: TypG.t} `{a: SAT.t} `{uα: GAT.t} `{ing: !GAT.inG a uα} : GAT.inG a (α uα).
   Proof. destruct ing. exists (S(S inG_id)). et. Defined.
+  #[export] Instance SL_in_α `{Γ : HRA, uτ : TypG.t, uα : GAT.t} : GAT.inG (@SL.syntax Γ (τ uτ)) (α uα).
+  Proof. exists O; ss. Defined.
+  #[export] Instance inv_in_α `{Γ : HRA, uτ : TypG.t, uα : GAT.t} : GAT.inG inv_syntax (α uα).
+  Proof. exists 1; ss. Defined.
 
   #[export] Instance β {Γ : HRA} {Σ : GRA} `{uτ: TypG.t} `{uα: GAT.t} (uβ: @GATIntp.t _ (α uα)) `{!subG Γ Σ, !invG Γ Σ (α uα)} : @GATIntp.t _ (α uα) :=
     λ i,
@@ -187,11 +198,11 @@ Module inv_instances.
 
   #[export] Instance intpg {Γ : HRA} {Σ : GRA} `{uτ: TypG.t} `{uα: GAT.t} `{uβ: @GATIntp.t _ (α uα)} `{!subG Γ Σ, !invG Γ Σ (α uα)}:
     GATIntp.inG (@SL.syntax Γ (τ uτ)) (α uα) (@SL.interp Γ Σ (α uα) (τ uτ) _) (β uβ).
-  Proof using. econs; instantiate (1:=0); ss. Qed.
+  Proof using. econs; ss. Qed.
 
-  #[export] Instance invintpg {Σ : GRA} {Γ : HRA} `{uτ: TypG.t} `{uα: GAT.t} `{uβ: @GATIntp.t _ (α uα)} `{!subG Γ Σ, !invG Γ Σ (α uα)} :
+  #[export] Instance invintpg {Σ : GRA} {Γ : HRA} `{uτ : TypG.t} `{uα : GAT.t} `{uβ : @GATIntp.t _ (α uα)} `{!subG Γ Σ, !invG Γ Σ (α uα)} :
     GATIntp.inG inv_syntax (α uα) inv_interp (β uβ).
-  Proof using. econs; instantiate (1:=1); ss. Qed.
+  Proof using. econs; ss. Qed.
 
   #[export] Instance crisg {Σ : GRA} {Γ : HRA} `{uτ: TypG.t} `{uα: GAT.t} `{uβ: @GATIntp.t _ (α uα)} `{!subG Γ Σ, !invG Γ Σ (α uα)} : crisG Γ Σ (α uα) (β uβ) (τ uτ) _ _.
   Proof using.

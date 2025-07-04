@@ -150,12 +150,12 @@ Module SL.
   End semantics.
 
   Class G (Γ : HRA) (Σ : GRA) (α : GAT.t) (β : GATIntp.t) (τ : TypG.t) `{!subG Γ Σ} := {
-    #[local] G_inG :: GATIntp.inG SL.syntax α SL.interp β;
+    #[global] G_inG_syntax :: GAT.inG SL.syntax α;
+    #[global] G_inG_interp :: GATIntp.inG SL.syntax α SL.interp β;
   }.
 
   Section definitions.
     Context `{!subG (Γ : HRA) Σ, !G Γ Σ α β τ}.
-    Local Existing Instances G_inG.
 
     Definition own `{IN: !inG M Γ} {n} (γ : positive) (r : M) : GTerm.t n.
       destruct IN. subst.

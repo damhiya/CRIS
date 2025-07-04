@@ -76,29 +76,19 @@ Section wsim.
   Local Definition rel : Type := ∀ R_s R_t : Type,
     post R_s R_t → bool → bool → nat → state * itree hmodE R_s → state * itree hmodE R_t → iProp Σ.
 
-  Local Definition wsim_def fl_s fl_t Ist stid Ep r g R_s R_t RR ps pt nths st_s st_t : iProp Σ :=
+  Local Definition wsim_def fl_s fl_t Ist Ep r g R_s R_t RR ps pt nths st_s st_t : iProp Σ :=
     wsim_ginv Ep -∗
-    @isim Σ open fl_s fl_t Ist stid r g R_s R_t RR ps pt nths st_s st_t.
+    @isim Σ open fl_s fl_t Ist r g R_s R_t RR ps pt nths st_s st_t.
   Local Definition wsim_aux : seal (@wsim_def). Proof using. by eexists. Qed.
   Definition wsim := wsim_aux.(unseal).
   Local Definition wsim_eq : @wsim = @wsim_def := wsim_aux.(seal_eq).
   Local Ltac unseal := rewrite wsim_eq /wsim_def.
 
   Context (fl_s fl_t : alist (option string) (Any.t → itree hmodE Any.t)).
-  Context (Ist : nat → alist key Any.t → alist key Any.t → iProp Σ).
-  Context (stid: nat).  
+  Context (Ist : ist_type Σ).
   Context (R_s R_t : Type).
 
-  Local Notation sim Ep r g := (wsim fl_s fl_t Ist stid Ep r g R_s R_t).
-  
-  Lemma wsim_own_alloc `{!inG A Σ} (a : A) Ew E r g RR ps pt nths st_s st_t i_s i_t :
-    ✓ a →
-    ((∃ γ, own γ a) -∗ sim (Some (Ew, E)) r g RR ps pt nths (st_s, i_s) (st_t, i_t))
-    ⊢ sim (Some (Ew, E)) r g RR ps pt nths (st_s, i_s) (st_t, i_t).
-  Proof using.
-    unseal; iIntros (?) "SIM [O PRE]"; iMod (own_alloc a with "O") as "[O o]"; ss.
-    iApply ("SIM" with "o"); iFrame.
-  Qed.
+  Local Notation sim Ep r g := (wsim fl_s fl_t Ist Ep r g R_s R_t).
 
   Context (Ep : option (coPset * coPset)).
   Context (r g : rel).
@@ -335,7 +325,7 @@ Section wsim.
     (∀ nths' st_s' st_t' (NODS : List.NoDup (map fst st_s')) (NODT : List.NoDup (map fst st_t')) (NTHS: nths <= nths'),
       Ist nths' st_s' st_t' -∗
       sim Ep r g RR true true nths'
-        (st_s', k_s stid) (st_t', k_t stid)) ⊢
+        (st_s', k_s ()) (st_t', k_t ())) ⊢
     sim Ep r g RR ps pt nths
       (st_s, trigger (Yield tid) >>= k_s)
       (st_t, trigger (Yield tid) >>= k_t).
@@ -366,10 +356,10 @@ Section wsim.
         g R_s R_t RR ps pt nths0 src tgt -∗ g' R_s R_t RR ps pt nths0 src tgt⌝) -∗
       (□ ∀ a, (P a ∗ wsim_ginv Ep) -∗
         g' (RA_s a) (RA_t a) (RRA a) (psA a) (ptA a) (nthsA a) (srcA a) (tgtA a)) -∗
-      wsim fl_s fl_t Ist stid Ep r g'
+      wsim fl_s fl_t Ist Ep r g'
         (RA_s a) (RA_t a) (RRA a) (psA a) (ptA a) (nthsA a) (srcA a) (tgtA a)) →
     ∀ (a : A), P a ⊢
-      wsim fl_s fl_t Ist stid Ep r g
+      wsim fl_s fl_t Ist Ep r g
         (RA_s a) (RA_t a) (RRA a) (psA a) (ptA a) (nthsA a) (srcA a) (tgtA a).
   Proof using.
     unseal; intros H a; iIntros "P I"; iCombine "P I" as "P". iStopProof.
@@ -389,7 +379,7 @@ Section wsim.
   Qed.
 
   Lemma wsim_bind {Qs Qt} QQ i_s i_t k_s k_t :
-    wsim fl_s fl_t Ist stid Ep r g Qs Qt QQ ps pt nths (st_s, i_s) (st_t, i_t)
+    wsim fl_s fl_t Ist Ep r g Qs Qt QQ ps pt nths (st_s, i_s) (st_t, i_t)
     ∗ (∀ nths' st_s' r_s st_t' r_t (NTHS: nths <= nths'),
         QQ nths' (st_s', r_s) (st_t', r_t)
         -∗ sim None r g RR false false nths' (st_s', k_s r_s) (st_t', k_t r_t))%I
@@ -628,7 +618,7 @@ Section wsim.
     iPoseProof (fupd_mon _ nm with "SIM") as "SIM"; first lia.
     iMod (wsatl_mon n nm with "[WA W]") as "[WA W]"; first lia; iFrame.
     rewrite invariants.uPred_fupd_unseal /invariants.uPred_fupd_def.
-    iMod ("SIM" with "[W E]") as "[W [E SIM]]"; iFrame.
+    iMod ("SIM" with "[O W E]") as "[W [E [O SIM]]]"; iFrame.
     iApply "SIM"; iFrame.
   Qed.
 
@@ -690,16 +680,25 @@ Section wsim.
     unfold AddModal. iIntros "[H0 H1]". iMod "H0". iApply ("H1" with "H0").
   Qed.
 
+  Lemma wsim_own_alloc `{!inG A Σ} (a : A) Ew E i_s i_t :
+    ✓ a →
+    ((∃ γ, own γ a) -∗ sim (Some (Ew, E)) r g RR ps pt nths (st_s, i_s) (st_t, i_t))
+    ⊢ sim (Some (Ew, E)) r g RR ps pt nths (st_s, i_s) (st_t, i_t).
+  Proof using.
+    iIntros (?) "SIM".
+    iMod (own_alloc a) as "O"; ss; iApply ("SIM" with "O"); iFrame.
+  Qed.
+
   (* Primitive simulation rules *)
   Lemma wsim_isim sti_s sti_t :
     sim None r g RR ps pt nths sti_s sti_t ⊢
-    @isim Σ open fl_s fl_t Ist stid r g R_s R_t RR ps pt nths sti_s sti_t.
+    @isim Σ open fl_s fl_t Ist r g R_s R_t RR ps pt nths sti_s sti_t.
   Proof using.
     unseal; iIntros "SIM"; ss. iApply "SIM"; et.
   Qed.
 
   Lemma isim_wsim sti_s sti_t :
-    @isim Σ open fl_s fl_t Ist stid r g R_s R_t RR ps pt nths sti_s sti_t ⊢
+    @isim Σ open fl_s fl_t Ist r g R_s R_t RR ps pt nths sti_s sti_t ⊢
     sim None r g RR ps pt nths sti_s sti_t.
   Proof using.
     unseal. iIntros "H _". et.
@@ -745,8 +744,7 @@ Section Proph.
   Context `{!crisG Γ Σ α β τ _S _I}.
 
   Context (fl_s fl_t : alist (option string) (Any.t → itree hmodE Any.t)).
-  Context (Ist : nat → alist key Any.t → alist key Any.t → iProp Σ).
-  Context (stid: nat).  
+  Context (Ist : ist_type Σ).
   Context (R_s R_t : Type).
 
   Context (Ep : option (coPset * coPset)).
@@ -756,7 +754,7 @@ Section Proph.
   Context (nths : nat).
   Context (st_s st_t : state).
 
-  Local Notation sim Ep r g := (wsim fl_s fl_t Ist stid Ep r g R_s R_t).
+  Local Notation sim Ep r g := (wsim fl_s fl_t Ist Ep r g R_s R_t).
 
   (** Precise Pre & Post conditions **)
   Lemma wsim_assume_proph_src {X R} Pre (Post: _ → R → _) k_s i_t :

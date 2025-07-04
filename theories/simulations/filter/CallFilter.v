@@ -35,10 +35,10 @@ Module CFilter. Section CFilter.
   Lemma sim_filter_intro mask (m: HMod.t):
     HSim.t open (filter mask m) m emp%I IstEq.
   Proof using.
-    assert (SIM: ∀ my_tid img msk scp ps pt nths st (itr: itree hmodE Any.t),
+    assert (SIM: ∀ img msk scp ps pt nths st (itr: itree hmodE Any.t),
     ⊢ isim open
       (map (map_snd SB.sandbox_body) (HMod.fnsems (filter mask m)))
-      (map (map_snd SB.sandbox_body) (HMod.fnsems m)) IstEq my_tid ibot ibot
+      (map (map_snd SB.sandbox_body) (HMod.fnsems m)) IstEq ibot ibot
       (ist_with_eq IstEq) ps pt nths
       (st, SB.sandbox img (wmask_and mask msk) scp itr)
       (st, SB.sandbox img msk scp itr)).
@@ -113,11 +113,11 @@ Module CFilter. Section CFilter.
     :
     HSim.t closed m (filter mask m) emp%I IstEq.
   Proof using.
-    assert (SIM: ∀ my_tid img msk scp ps pt nths st (itr: itree hmodE Any.t),
+    assert (SIM: ∀ img msk scp ps pt nths st (itr: itree hmodE Any.t),
     ⊢ isim closed
       (map (map_snd SB.sandbox_body) (HMod.fnsems m))
       (map (map_snd SB.sandbox_body) (HMod.fnsems (filter mask m)))
-      IstEq my_tid ibot ibot
+      IstEq ibot ibot
       (ist_with_eq IstEq) ps pt nths
       (st, SB.sandbox img msk scp itr)
       (st, SB.sandbox img (wmask_and mask msk) scp itr)).

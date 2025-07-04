@@ -5,8 +5,8 @@ Require Export TacticsCommon ITactics WTactics.
 
 Tactic Notation "iwcase" tactic(itac) tactic(wtac) :=
   match goal with
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ _ _) ] => itac
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _ _) ] => wtac
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ _) ] => itac
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ _) ] => wtac
   end.
 
 Ltac step_l := iwcase (do 1 istep_l) (do 1 wstep_l).

@@ -263,18 +263,17 @@ Lemma hsim_ctx `{Σ: GRA} contextual fnsems_src fnsems_tgt (fl_src fl_tgt fl_ctx
     (WT : ∀ fn img0 msk0 scp0 bd0 (IN : alist_find (Some fn) fnsems_tgt = Some (img0,msk0,scp0,bd0)), (img0 → img) ∧ (∀ fn, msk0 fn → msk fn) ∧ incl scp0 scp)
     (DISJ : List.NoDup (scp ++ scpC))
 
-    ps pt my_tid nths st_src st_tgt st_ctx itr_src itr_tgt fmr
+    ps pt nths st_src st_tgt st_ctx itr_src itr_tgt fmr
     (SCPT : incl (state_scopes st_tgt) scp)
     (SCPS : incl (state_scopes st_src) scp)
     (SCPC : incl (state_scopes st_ctx) scpC)
     (ITRT : SB.sandbox img msk scp itr_tgt = itr_tgt)
     (ITRS : SB.sandbox img msk scp itr_src = itr_src)
-    (TID: my_tid < nths)
-    (SIM : hsim open fl_src fl_tgt Ist my_tid (ist_with_eq RR) ps pt nths
+    (SIM : hsim open fl_src fl_tgt Ist (ist_with_eq RR) ps pt nths
              (st_src, itr_src) (st_tgt, itr_tgt) fmr)
   :
   @hsim _ contextual (fl_src ++ fl_ctx) (fl_tgt ++ fl_ctx)
-    (IstProd (IstSB scp Ist) (IstSB scpC IstEq)) my_tid Any.t Any.t
+    (IstProd (IstSB scp Ist) (IstSB scpC IstEq)) Any.t Any.t
     (ist_with_eq (IstProd (IstSB scp RR) (IstSB scpC IstEq))) ps pt nths
     (st_src ++ st_ctx, itr_src) (st_tgt ++ st_ctx, itr_tgt) fmr.
   Proof.
@@ -472,16 +471,15 @@ Lemma isim_ctx `{Σ: GRA} contextual RR
           Ist nths0 st_src st_tgt ⊢ Ist nths' st_src st_tgt)
   (MON: Ist_monotone Ist)
   :
-  ∀ (arg : Any.t) my_tid (nths : nat) (st_src st_tgt st_ctx : list (key * Any.t))
+  ∀ (arg : Any.t) (nths : nat) (st_src st_tgt st_ctx : list (key * Any.t))
     (SCOPEFS: incl fs.1.2 (HMod.scopes mt))
     (SCOPEFT: incl ft.1.2 (HMod.scopes mt))
     (SCOPES: incl (map (fst∘fst) st_src) (HMod.scopes mt))
     (SCOPET: incl (map (fst∘fst) st_tgt) (HMod.scopes mt))
-    (SCOPEC: incl (map (fst∘fst) st_ctx) (HMod.scopes ctx))
-    (TID: my_tid < nths),
+    (SCOPEC: incl (map (fst∘fst) st_ctx) (HMod.scopes ctx)),
     isim open
            (map (map_snd SB.sandbox_body) (HMod.fnsems ms))
-           (map (map_snd SB.sandbox_body) (HMod.fnsems mt)) Ist my_tid ibot ibot
+           (map (map_snd SB.sandbox_body) (HMod.fnsems mt)) Ist ibot ibot
            (ist_with_eq RR) false false nths
            (st_src, SB.sandbox_body fs arg)
            (st_tgt, SB.sandbox_body ft arg)
@@ -489,7 +487,7 @@ Lemma isim_ctx `{Σ: GRA} contextual RR
           (map (map_snd SB.sandbox_body) (HMod.fnsems ms ++ HMod.fnsems ctx))
          (map (map_snd SB.sandbox_body) (HMod.fnsems mt ++ HMod.fnsems ctx))
          (IstProd (IstSB (HMod.scopes mt) Ist) (IstSB (HMod.scopes ctx) IstEq))
-         my_tid ibot ibot Any.t Any.t
+         ibot ibot Any.t Any.t
          (ist_with_eq
            (IstProd (IstSB (HMod.scopes mt) RR) (IstSB (HMod.scopes ctx) IstEq)))
          false false nths
@@ -632,12 +630,11 @@ Proof.
       unfold fnsems_scopes. erewrite Heq. destruct fs, p. refl.
     - etrans; [|eapply HMod.well_scoped_fns].
       unfold fnsems_scopes. erewrite x0. destruct ft, p. refl.
-    - exploit x1; cycle 4; i.
+    - exploit x1; cycle 3; i.
       + iApply x2. et.
       + et.
       + rewrite map_app in NODS. eapply NoDup_app_remove_r; et.
       + rewrite map_app in NODD. eapply NoDup_app_remove_r; et.
-      + nia.
   }
   {
     exists fs. esplits; ss.

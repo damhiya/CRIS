@@ -77,7 +77,7 @@ Definition HoareSpawnE fn varg (fspo: option fspec) : itree hmodE nat :=
     NativeSpawnE fn varg
   end.
 
-Definition NativeYieldE tid : itree hmodE nat :=
+Definition NativeYieldE tid : itree hmodE () :=
   my_tid <- trigger (Yield tid);; tau;;
   Ret my_tid.
 

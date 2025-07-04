@@ -161,7 +161,7 @@ Section SIM_ITREE.
       (WLE : le_others w w0)
       (WF : wf w0 (nths, st_src, st_tgt))
       (K : forall w1 nths0 st_src0 st_tgt0 (WLE : le_mine w0 w1) (WF : wf w1 (nths0, st_src0, st_tgt0)) (NTHS: nths <= nths0),
-          self true true w1 nths0 (st_src0, k_src my_tid) (st_tgt0, k_tgt my_tid))
+          self true true w1 nths0 (st_src0, k_src ()) (st_tgt0, k_tgt ()))
     :
     sim_itree_def sim_itree RR self ps pt w nths (st_src, trigger (Yield tid) >>= k_src)
       (st_tgt, trigger (Yield tid) >>= k_tgt)
