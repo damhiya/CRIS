@@ -89,8 +89,8 @@ Lemma wsim_apc_src_call_tgt_weaker
   (WIDTH: (ow_fn < ow_src)%ord)
   (DEPTH: (od_fn < od_src)%ord)
   (SpPureInSp: sp_incl sp_pure sp)
-  (fnInSpPure: alist_find (Some fn) sp_pure = Some (Some fsp'))
-  (WEAK: fspec_imply fsp' fsp)
+  (fnInSpPure: alist_find (Some fn) sp_pure = Some fsp')
+  (WEAK: fspec_imply (fspec_flat fsp') fsp)
   (fspIsfspecapc: fsp = (@fspec_apc Σ X o (λ x, (P x, Q x))))
   :
   msk_s fn → msk_t fn →
@@ -109,21 +109,35 @@ Proof using.
   des. set_marker m. hide_ihyps. rewrite unfold_APC. show_until m.
   force_l false. steps_l. force_l ow_fn. steps_l. force_l WIDTH. steps_l.
   force_l fn. steps_l. force_l od_fn. steps_l.
-  assert (PO: (is_Some (alist_find (Some fn) sp_pure) ∧ (od_fn < od_src)%ord)); et. 
+  assert (PO: (is_Some (alist_find (Some fn) sp_pure) ∧ (od_fn < od_src)%ord)); et.
   unfold guarantee. force_l PO. steps_l.
-  assert (sp fn = Some fsp').
+  assert (sp fn = fsp').
   { apply SpPureInSp. eauto. }
-  rewrite H3. des. rewrite /fspec_imply in WEAK. hss.
-  specialize (WEAK spec_arg). des.
-  force_l x0. force_l args. steps_l.
-  iPoseProof ((PRE vo ↑ args) with "[PRE]") as ">PRE". { unfold precond, fspec_apc; ss. iFrame. by iExists _. }
-  iApply wsim_guarantee_src. iFrame. steps_l.
+  rewrite H3. des_ifs.
+  { des. rewrite /fspec_imply in WEAK. hss.
+    specialize (WEAK spec_arg). des.
+    force_l x0. force_l args. steps_l.
+    iPoseProof ((PRE vo ↑ args) with "[PRE]") as ">PRE". { unfold precond, fspec_apc; ss. iFrame. by iExists _. }
+    iApply wsim_guarantee_src. iFrame. steps_l.
 
-  call "IST"; et.
-  steps_l. iApply wsim_reset.
-  iPoseProof ((POST q ret) with "ASM") as ">POST".
-  iSpecialize ("ISIM" $! nths' st_s' st_t' q ret).
-  iApply "ISIM". iFrame.
+    call "IST"; et.
+    steps_l. iApply wsim_reset.
+    iPoseProof ((POST q ret) with "ASM") as ">POST".
+    iSpecialize ("ISIM" $! nths' st_s' st_t' q ret).
+    iApply "ISIM". iFrame.
+  }
+  { des; rewrite /fspec_imply in WEAK; hss.
+    specialize (WEAK spec_arg). des.
+    specialize (PRE (vo↑) args). rewrite /fspec_apc /fspec_trivial /precond in PRE; ss.
+    iPoseProof (PRE with "[PRE]") as ">%".
+    { iFrame. iPureIntro; eauto. }
+    subst. call "IST".
+    iPoseProof (POST with "[]") as ">POST"; eauto.
+    rewrite /fspec_apc /postcond; ss.
+    iApply wsim_reset.
+    grind. iSpecialize ("ISIM" $! nths' st_s' st_t' (tt↑) ret).
+    iApply "ISIM". iFrame.
+  }
 Qed.
 
 Lemma wsim_apc_src_call_tgt
