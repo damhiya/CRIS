@@ -162,7 +162,7 @@ Ltac inv_red :=
   hrepeat do 1 tryany (do 1 rewrite ! inv_red) (do 1 rewrite ! fupd_red).
 
 (* Module for constructing concrete structures for stratified propositions and global RAs *)
-Module inv_instances.
+(* Module inv_instances.
   #[export] Instance τ (uτ: TypG.t) : TypG.t :=
     λ i,
       match i with
@@ -208,6 +208,55 @@ Module inv_instances.
   Proof using.
     econs; econs; try typeclasses eauto.
   Qed.
+
+  #[export] Instance subH_refl (Γ : HRA) : subG Γ Γ.
+  Proof using. move=> i; by exists i. Defined.
+  Hint Unfold subH_refl : GRA_index.
+
+  #[export] Instance subHG_app_l (Γ Γ1 : HRA) (Σ2 : GRA) : subG Γ Γ1 → subG Γ (GRAs.app Γ1 Σ2).
+  Proof using. move=> H i; move: H=> /(_ i) [j ?]. exists (Fin.L _ j). by rewrite /= fin_add_inv_l. Defined.
+
+  #[export] Instance subHG_app_r (Γ Γ1 : HRA) (Σ2 : GRA) : subG Γ Σ2 → subG Γ (GRAs.app Γ1 Σ2).
+  Proof using. move=> H i; move: H=> /(_ i) [j ?]. exists (Fin.R _ j). by rewrite /= fin_add_inv_r. Defined.
+
+  #[export] Instance subGH_app_r (Σ: GRA) (Γ1 : HRA) (Σ2 : GRA) : subG Σ Σ2 → subG Σ (GRAs.app Γ1 Σ2).
+  Proof using. move=> H i; move: H=> /(_ i) [j ?]. exists (Fin.R _ j). by rewrite /= fin_add_inv_r. Defined.
+End inv_instances. *)
+Module inv_instances.
+  #[export] Instance τ : TypG.t :=
+    λ i,
+      match i with
+      | _ => ST.t
+      end.
+  #[export] Instance typG : STτ.t τ.
+  Proof using. econs. econs. instantiate (1:=0); ss. Qed.
+
+  #[export] Instance α {Γ : HRA} : GAT.t :=
+    λ i,
+      match i with
+      | 0 => @SL.syntax Γ τ
+      | _ => inv_syntax
+      end.
+  #[export] Instance SL_in_α `{Γ : HRA} : GAT.inG (@SL.syntax Γ τ) α.
+  Proof. exists O; ss. Defined.
+  #[export] Instance inv_in_α `{Γ : HRA} : GAT.inG inv_syntax α.
+  Proof. exists 1; ss. Defined.
+
+  #[export] Instance β {Γ : HRA} {Σ : GRA} `{!subG Γ Σ, !invG Γ Σ α} : @GATIntp.t _ α :=
+    λ i,
+      match i with
+      | 0 => @SL.interp Γ Σ α τ _
+      | _ => @inv_interp Γ Σ α _ _
+      end.
+  #[export] Instance intpg {Γ : HRA} {Σ : GRA} `{!subG Γ Σ, !invG Γ Σ α} :
+    GATIntp.inG (@SL.syntax Γ τ) α (@SL.interp Γ Σ α τ _) β.
+  Proof using. econs; ss. Qed.
+  #[export] Instance invintpg {Σ : GRA} {Γ : HRA} `{!subG Γ Σ, !invG Γ Σ α} :
+    GATIntp.inG inv_syntax α inv_interp β.
+  Proof using. econs; ss. Qed.
+
+  #[export] Instance crisg {Σ : GRA} {Γ : HRA} `{!subG Γ Σ, !invG Γ Σ α} : crisG Γ Σ α β τ _ _.
+  Proof using. econs; econs; try typeclasses eauto. Qed.
 
   #[export] Instance subH_refl (Γ : HRA) : subG Γ Γ.
   Proof using. move=> i; by exists i. Defined.
