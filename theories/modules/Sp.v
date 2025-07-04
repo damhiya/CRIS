@@ -46,6 +46,9 @@ Section HEADER.
   Definition sp_sub (sp0 sp: sp_type) : Prop :=
     ∀ fn, sp0 fn = Some fspec_bot ∨ sp0 fn = sp fn.
 
+  Definition spl_sub (spl0 spl: spl_type) : Prop :=
+    ∀ fno fsp, alist_find fno spl0 = Some fsp → alist_find fno spl = Some fsp.
+
   Definition sp_incl (l : spl_type) (sp : sp_type) : Prop :=
     List.NoDup (List.map fst l) ∧
     (∀ fn fsp, alist_find (Some fn) l = Some fsp → sp fn = fsp).
