@@ -48,8 +48,8 @@ Ltac initialize_simF :=
 
 Ltac unfold_hmod_fn :=
   s; match goal with
-     | |-context[_ \/ False] => idtac
-     | _ => unfold_hmod; unfold_hmod_fn
+     | |-context[_ \/ _] => idtac
+     | _ => unfold_hmod; ss; unfold_hmod_fn
      end.
 
 Ltac prove_ist :=
@@ -61,6 +61,26 @@ Ltac prove_ist :=
 Ltac init_sim :=
   clear_trivials;
   (first
+  [ eapply hmod_sim_reflR;
+    [ hrepeat do 1 unfold_hmod; et
+    | try rewrite /Ist_monotone; eauto
+    | try prove_sub_perm
+    | try prove_sub_perm
+    | r; hrepeat do 1 unfold_hmod; s; i
+    | try unfold_hmod_fn; i; des; subst; ss
+    ]
+  | econs; i;
+    [ hrepeat do 1 unfold_hmod; et
+    | try rewrite /Ist_monotone; eauto
+    | try prove_sub_perm
+    | try prove_sub_perm
+    | r; hrepeat do 1 unfold_hmod; s; i
+    | eapply HSim.sim_fun_strong; try unfold_hmod_fn; i; des; subst; ss
+    ]
+  ]).
+(* Ltac init_sim :=
+  clear_trivials;
+  (first
    [ eapply hmod_sim_reflR; [ hrepeat do 1 unfold_hmod; et | .. ]
    | econs ]
   ); i;
@@ -68,7 +88,7 @@ Ltac init_sim :=
   | try prove_sub_perm
   | try prove_sub_perm
   | r; hrepeat do 1 unfold_hmod; s; i
-  | eapply HSim.sim_fun_strong; try unfold_hmod_fn; i; des; subst; ss ].
+  | eapply HSim.sim_fun_strong; try unfold_hmod_fn; i; des; subst; ss ]. *)
 
 Ltac iinit_simF := initialize_simF.
 

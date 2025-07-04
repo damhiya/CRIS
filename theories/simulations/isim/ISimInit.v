@@ -14,6 +14,7 @@ Proof.
   rewrite /state_scopes -!List.map_map alist_upd_keys. eauto.
 Qed.
 
+(* Reflexivity of the isim relation *)
 Lemma isim_refl `{Σ : GRA} r g contextual Ist fl_src fl_tgt img msk scp
   ps pt nths st_src st_tgt {R} (it: itree hmodE R)
   (MON: Ist_monotone Ist)
@@ -170,9 +171,10 @@ Lemma hmod_sim_reflL `{Σ : GRA} contextual A B C init_cond scopes (Ist: ist_typ
   (SCOPE : sub_perm (HMod.scopes A) scopes)
   (MATCH : sub_perm (List.map fst (HMod.fnsems A)) (List.map fst (HMod.fnsems B)))
   (INIT : HSim.initial_valid A B init_cond (IstSB scopes Ist))
-  (SIM : ∀ fn, HSim.sim_fun contextual
-                 (HMod.add C A) (HMod.add C B) init_cond
-                 (IstProd IstEq (IstSB scopes Ist)) fn)
+  (SIM : ∀ fn, In fn (List.map fst (HMod.fnsems A)) →
+    HSim.sim_fun contextual
+    (HMod.add C A) (HMod.add C B) init_cond
+    (IstProd IstEq (IstSB scopes Ist)) fn)
   :
   HSim.t contextual (HMod.add C A) (HMod.add C B) init_cond
     (IstProd IstEq (IstSB scopes Ist)).
@@ -195,6 +197,7 @@ Proof.
     destruct (alist_find None (HMod.fnsems B)) eqn: E0; ss.
     destruct (alist_find None (HMod.fnsems A)) eqn: E1; ss.
     { exploit (SIM None); et.
+      - by eapply alist_find_fst_some.
       - eapply WFCA.
       - eapply WF.
       - s. rewrite alist_find_app_o E. et.
@@ -262,7 +265,8 @@ Lemma hmod_sim_reflR `{Σ : GRA} contextual A B C init_cond scopes Ist
   (SCOPE : sub_perm (HMod.scopes A) scopes)
   (MATCH : sub_perm (List.map fst (HMod.fnsems A)) (List.map fst (HMod.fnsems B)))
   (INIT : HSim.initial_valid A B init_cond (IstSB scopes Ist))
-  (SIM : ∀ fn, HSim.sim_fun contextual
+  (SIM : ∀ fn, In fn (map fst (HMod.fnsems A)) →
+    HSim.sim_fun contextual
                  (HMod.add A C) (HMod.add B C) init_cond
                  (IstProd (IstSB scopes Ist) IstEq) fn)
   :
@@ -286,6 +290,7 @@ Proof.
     destruct (alist_find None (HMod.fnsems C)) eqn: E0; ss.
     destruct (alist_find None (HMod.fnsems A)) eqn: E1; ss.
     { exploit (SIM None); et.
+      - by eapply alist_find_fst_some.
       - eapply WFCA.
       - eapply WF.
       - s. rewrite alist_find_app_o E1. et.
