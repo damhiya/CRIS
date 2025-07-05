@@ -129,63 +129,9 @@ Module APCAC. Section APCAC.
 
   Theorem sim : HSim.t open APCCMod APCAMod APCC.init_cond IstFull.
   Proof using _crisG PureIsPure PureInSpA APCInSpA.
-    eapply hmod_sim_reflR; [hrepeat do 1 unfold_hmod; et | ..]; i.
-    { rewrite /Ist_monotone; eauto. }
-    { prove_sub_perm. }
-    { prove_sub_perm. }
-    { r. hrepeat do 1 unfold_hmod; ss; i. split; eauto.
-      iIntros "_". iSplit; ss. iPureIntro. split; prove_scope. }
-    { eapply HSim.sim_fun_strong. i. rewrite /APCC /APCC.t in H.
-      revert H. unseal CRIS. i; ss; des.
-      { subst. hexploit simF_apc. i. rewrite /APCCMod /APCAMod. eapply simF_apc. }
-      { econs.
-        assert (fn <> Some APCHdr.apc).
-        { ii. subst. inv NODUPFS.
-          { rewrite map_app /APCC /APCC.t in H1. revert H1. unseal CRIS. i; ss. }
-          { rewrite map_app /APCC /APCC.t in H0. revert H0. unseal CRIS. i; ss.
-            inv H0. apply H1. eauto. }
-        }
-        split; eauto.
-        { instantiate (1:=fs).
-          rewrite /APCC /APCC.t in FIND. revert FIND. unseal CRIS. i; ss.
-          des_ifs.
-          { rewrite eq_rel_dec_correct /option_Dec in Heq. des_ifs. }
-          rewrite map_app in NODUPFT. eapply nodup_comm in NODUPFT.
-          rewrite -map_app in NODUPFT.
-          eapply alist_find_comm; eauto.
-          eapply alist_find_app; eauto.
-        }
-        ss. inv WFS. unfold APCC, APCC.t in *. revert_until fn. unseal CRIS. i.
-        destruct fs. do 2 destruct p.
-        hexploit isim_reflR; eauto.
-        { ss. replace ("APC" :: HMod.scopes md) with (["APC"] ++ HMod.scopes md) in wf_scopes by ss.
-          apply wf_scopes. }
-        { instantiate (1:=l). destruct md; ss. des_ifs.
-          { rewrite eq_rel_dec_correct in Heq. des_ifs. }
-          hexploit well_scoped_fns. instantiate (1:=fn).
-          i. rewrite /fnsems_scopes in H1. rewrite FIND in H1. eauto. }
-        { iIntros (??????) "->". eauto. }
-        instantiate (10:=(map (map_snd SB.sandbox_body) (HMod.fnsems (SMod.to_hmod sp_c APCC.Mod) ++ HMod.fnsems md))).
-        instantiate (9:=(map (map_snd SB.sandbox_body) (HMod.fnsems APCA ++ HMod.fnsems md))).
-        instantiate (8:=Ist).
-        instantiate (5:=open).
-        instantiate (2:=(b, b0)).
-        instantiate (1:=f).
-        i. rewrite /HSim.IstS /HSim.IstE.
-        destruct (is_some fn) eqn: E.
-        { unfold APCC.Mod; ss. }
-        rewrite /isim_fsem. i. iIntros "[% INIT]". des; subst.
-        unfold APCC.Mod, APCA, t; ss. unseal CRIS. ss.
-        rewrite /isim_fsem in H1.
-        iApply isim_wand.
-        { instantiate (1:=ist_with_eq (IstProd (IstSB APCC.scopes Ist) IstEq)).
-          iSplitR; eauto.
-          { iIntros (?????) "%". des; subst. eauto. }
-          rewrite /APCA /t in H1. revert H1. unseal CRIS. i.
-          iApply H1; eauto.
-          rewrite /IstProd /IstSB /Ist. iExists [], [], _, _. repeat iSplit; eauto; iPureIntro; ss. }
-      }
-    }
+    init_sim.
+    - split; eauto. iIntros "_". iSplit; ss. iPureIntro. split; prove_scope.
+    - eapply simF_apc.
   Qed.
 End APCAC.
 

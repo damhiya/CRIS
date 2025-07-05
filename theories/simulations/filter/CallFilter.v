@@ -222,6 +222,7 @@ Module CFilter. Section CFilter.
     do 2 rewrite -(hmod_addc_empty_l _ P).
     eapply ctxr_cond_frameR.
     eapply main_adequacy with (Ist := fun _ _ _ => emp%I).
+    clear_trivials.
     init_sim; ii; et.
   (*SLOW*)Qed.
 

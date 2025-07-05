@@ -70,8 +70,7 @@ Ltac init_sim :=
     | try unfold_hmod_fn; i; des; subst; ss
     ]
   | econs; i;
-    [ hrepeat do 1 unfold_hmod; et
-    | try rewrite /Ist_monotone; eauto
+    [ try rewrite /Ist_monotone; eauto
     | try prove_sub_perm
     | try prove_sub_perm
     | r; hrepeat do 1 unfold_hmod; s; i

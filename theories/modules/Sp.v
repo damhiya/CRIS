@@ -25,10 +25,23 @@ Section HEADER.
         (WEAK : fspec_imply (fspec_flat (sp fn)) fsp).
   Hint Constructors fn_has_spec : core.
 
+  Variant fn_has_spec_in (spl : spl_type) (fn : string) (fsp : fspec) : Prop :=
+    | fn_has_spec_in_intro
+        fsp_real
+        (SPEC: alist_find (Some fn) spl = Some fsp_real)
+        (WEAK : fspec_imply (fspec_flat fsp_real) fsp).
+  Hint Constructors fn_has_spec_in : core.
+
   Lemma fn_has_weaker_spec (sp : sp_type) (fn : string) (fsp0 fsp1 : fspec)
       (SPEC : fn_has_spec sp fn fsp0)
       (WEAK : fspec_imply fsp0 fsp1) :
     fn_has_spec sp fn fsp1.
+  Proof using. inv SPEC. econs; eauto. etrans; eauto. Qed.
+
+  Lemma fn_has_weaker_spec_in (spl : spl_type) (fn : string) (fsp0 fsp1 : fspec)
+      (SPEC : fn_has_spec_in spl fn fsp0)
+      (WEAK : fspec_imply fsp0 fsp1) :
+    fn_has_spec_in spl fn fsp1.
   Proof using. inv SPEC. econs; eauto. etrans; eauto. Qed.
 
   Definition sp_imply (sp0 sp1 : sp_type) : Prop :=

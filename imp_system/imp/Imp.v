@@ -177,6 +177,13 @@ Section FB_HAS_SPEC.
       (SPEC : fn_has_spec stb fn fsp)
   .
 
+  Variant fb_has_spec_in (stb : alist (option string) (option fspec)) (fb : mblock) (fsp : fspec) : Prop :=
+  | fb_has_spec_in_intro
+      fn
+      (FBLOCK : genvenv.(CEnv.blk2id) fb = Some fn)
+      (SPEC : fn_has_spec_in stb fn fsp)
+  .
+
   Lemma fb_has_weaker_spec (stb : string -> option fspec) (fb : mblock) (fsp0 fsp1 : fspec)
         (SPEC : fb_has_spec stb fb fsp1)
         (WEAK : fspec_imply fsp1 fsp0)
