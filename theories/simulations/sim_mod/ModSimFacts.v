@@ -43,9 +43,9 @@ Proof.
   unfold ModTr.interp_stateE. 
   ginit. revert_until WFS. gcofix CIH. i.
   destruct (base.lookup my_tid itrs_src) eqn : LKS; cycle 1.
-  { exfalso. exploit list.lookup_ge_None_1; eauto. i. nia. }
+  { exfalso. exploit lookup_ge_None_1; eauto. i. nia. }
   destruct (base.lookup my_tid itrs_tgt) eqn : LKT; cycle 1.
-  { exfalso. exploit list.lookup_ge_None_1; eauto. i. nia. }
+  { exfalso. exploit lookup_ge_None_1; eauto. i. nia. }
   hexploit (SIM my_tid ps pt); eauto; try by des_ifs.
   i. des.
   remember (st_src, i) as src. remember (st_tgt, i0) as tgt.
@@ -72,16 +72,16 @@ Proof.
     gbase. eapply (CIH w1 true true); eauto; try by inv WLE; zsimpl_len.
 
     i. guardH FLG. des_ifs; des; subst; cycle 1.
-    { rewrite list.list_lookup_insert_ne in INS; try nia.
-      rewrite list.list_lookup_insert_ne in INT; try nia.
+    { rewrite list_lookup_insert_ne in INS; try nia.
+      rewrite list_lookup_insert_ne in INT; try nia.
       eapply SIM; eauto; des_ifs.
       eapply le_mine_trans; [apply MSIM| |eauto].
       rr in WLE. des. rr. split; try nia. i. rewrite <-WLE1; try nia.
       rewrite IN. esplits; eauto. apply MSIM.
     }
 
-    rewrite !list.list_lookup_insert in INS; try nia. inv INS.
-    rewrite !list.list_lookup_insert in INT; try nia. inv INT.
+    rewrite !list_lookup_insert in INS; try nia. inv INS.
+    rewrite !list_lookup_insert in INT; try nia. inv INT.
     esplits. ginit. 
     guclo lbindC_spec. econs.
     { eapply MSIM in FIND. des.
@@ -100,13 +100,13 @@ Proof.
     unfold ModTr.pure_state. grind. zstep. zstep_l. zstep_r. subst.
     eapply K;
       try rewrite length_insert;
-      try rewrite list.list_lookup_insert; eauto; try nia.
+      try rewrite list_lookup_insert; eauto; try nia.
     i. des_ifs; des; subst.
-    + rewrite !list.list_lookup_insert in INS; try nia. inv INS.
-      rewrite !list.list_lookup_insert in INT; try nia. inv INT.
+    + rewrite !list_lookup_insert in INS; try nia. inv INS.
+      rewrite !list_lookup_insert in INT; try nia. inv INT.
       eexists. rewrite WF. eapply K.
-    + rewrite list.list_lookup_insert_ne in INS; try nia. inv INS.
-      rewrite list.list_lookup_insert_ne in INT; try nia. inv INT.
+    + rewrite list_lookup_insert_ne in INS; try nia. inv INS.
+      rewrite list_lookup_insert_ne in INT; try nia. inv INT.
       eapply SIM; des_ifs; eauto.
 
   - rewrite unfold_iterV. s. rewrite LKS. grind.
@@ -114,17 +114,17 @@ Proof.
     rewrite FUN. grind. zstep_l.
     eapply K;
       try rewrite length_insert;
-      try rewrite list.list_lookup_insert; eauto; try nia.
+      try rewrite list_lookup_insert; eauto; try nia.
     { do 2 f_equal. extensionalities. grind. }
     i. des_ifs; des; subst.
-    + rewrite !list.list_lookup_insert in INS; try nia. inv INS.
+    + rewrite !list_lookup_insert in INS; try nia. inv INS.
       eexists. ginit. guclo lflagC_spec. econs.
       { gfinal. right. rewrite WF.
         erewrite equal_f; eauto. do 3 f_equal. extensionalities. grind. }
       { apply le_others_refl. }
       { eauto. }
       { eauto. }
-    + rewrite !list.list_lookup_insert_ne in INS; try nia. inv INS.
+    + rewrite !list_lookup_insert_ne in INS; try nia. inv INS.
       eapply SIM; eauto; des_ifs.
 
   - rewrite (unfold_iterV _ (_, itrs_tgt)). s. rewrite LKT. grind.
@@ -132,45 +132,45 @@ Proof.
     rewrite FUN. grind. zstep_r.
     eapply K;
       try rewrite length_insert;
-      try rewrite list.list_lookup_insert; eauto; try nia.
+      try rewrite list_lookup_insert; eauto; try nia.
     { do 2 f_equal. extensionalities. grind. }
     i. des_ifs; des; subst.
-    + rewrite !list.list_lookup_insert in INT; try nia. inv INT.
+    + rewrite !list_lookup_insert in INT; try nia. inv INT.
       eexists. ginit. guclo lflagC_spec. econs.
       { gfinal. right. rewrite WF.
         erewrite f_equal; eauto. do 2 f_equal. extensionalities. grind. }
       { apply le_others_refl. }
       { eauto. }
       { eauto. }
-    + rewrite !list.list_lookup_insert_ne in INT; try nia. inv INT.
+    + rewrite !list_lookup_insert_ne in INT; try nia. inv INT.
       eapply SIM; eauto; des_ifs.
 
   - rewrite unfold_iterV. s. rewrite LKS. grind. zstep_l.
     eapply K;
       try rewrite length_insert;
-      try rewrite list.list_lookup_insert; eauto; try nia.
+      try rewrite list_lookup_insert; eauto; try nia.
     i. des_ifs; des; subst.
-    + rewrite !list.list_lookup_insert in INS; try nia. inv INS.
+    + rewrite !list_lookup_insert in INS; try nia. inv INS.
       eexists. rewrite WF. ginit. guclo lflagC_spec. econs.
       { gfinal. right. eapply K. }
       { apply le_others_refl. }
       { eauto. }
       { eauto. }
-    + rewrite !list.list_lookup_insert_ne in INS; try nia. inv INS.
+    + rewrite !list_lookup_insert_ne in INS; try nia. inv INS.
       eapply SIM; eauto; des_ifs.
 
   - rewrite (unfold_iterV _ (_, itrs_tgt)). s. rewrite LKT. grind. zstep_r.
     eapply K;
       try rewrite length_insert;
-      try rewrite list.list_lookup_insert; eauto; try nia.
+      try rewrite list_lookup_insert; eauto; try nia.
     i. des_ifs; des; subst.
-    + rewrite !list.list_lookup_insert in INT; try nia. inv INT.
+    + rewrite !list_lookup_insert in INT; try nia. inv INT.
       eexists. rewrite WF. ginit. guclo lflagC_spec. econs.
       { gfinal. right. eapply K. }
       { apply le_others_refl. }
       { eauto. }
       { eauto. }
-    + rewrite !list.list_lookup_insert_ne in INT; try nia. inv INT.
+    + rewrite !list_lookup_insert_ne in INT; try nia. inv INT.
       eapply SIM; eauto; des_ifs.
 
   - rewrite unfold_iterV. s. rewrite LKS. grind.
@@ -178,15 +178,15 @@ Proof.
     grind. zstep_l. esplits. zstep_l.
     eapply K;
       try rewrite length_insert;
-      try rewrite list.list_lookup_insert; eauto; try nia.
+      try rewrite list_lookup_insert; eauto; try nia.
     i. des_ifs; des; subst.
-    + rewrite !list.list_lookup_insert in INS; try nia. inv INS.
+    + rewrite !list_lookup_insert in INS; try nia. inv INS.
       eexists. rewrite WF. ginit. guclo lflagC_spec. econs.
       { gfinal. right. eapply K. }
       { apply le_others_refl. }
       { eauto. }
       { eauto. }
-    + rewrite !list.list_lookup_insert_ne in INS; try nia. inv INS.
+    + rewrite !list_lookup_insert_ne in INS; try nia. inv INS.
       eapply SIM; eauto; des_ifs.
 
   - rewrite (unfold_iterV _ (_, itrs_tgt)). s. rewrite LKT.
@@ -194,15 +194,15 @@ Proof.
     grind. zstep_r. zstep_r.
     eapply K;
       try rewrite length_insert;
-      try rewrite list.list_lookup_insert; eauto; try nia.
+      try rewrite list_lookup_insert; eauto; try nia.
     i. des_ifs; des; subst.
-    + rewrite !list.list_lookup_insert in INT; try nia. inv INT.
+    + rewrite !list_lookup_insert in INT; try nia. inv INT.
       eexists. rewrite WF. ginit. guclo lflagC_spec. econs.
       { gfinal. right. eapply K. }
       { apply le_others_refl. }
       { eauto. }
       { eauto. }
-    + rewrite !list.list_lookup_insert_ne in INT; try nia. inv INT.
+    + rewrite !list_lookup_insert_ne in INT; try nia. inv INT.
       eapply SIM; eauto; des_ifs.
 
   - rewrite unfold_iterV. s. rewrite LKS.
@@ -210,15 +210,15 @@ Proof.
     grind. zstep_l. zstep_l. grind.
     eapply K;
       try rewrite length_insert;
-      try rewrite list.list_lookup_insert; eauto; try nia.
+      try rewrite list_lookup_insert; eauto; try nia.
     i. des_ifs; des; subst.
-    + rewrite !list.list_lookup_insert in INS; try nia. inv INS.
+    + rewrite !list_lookup_insert in INS; try nia. inv INS.
       eexists. rewrite WF. ginit. guclo lflagC_spec. econs.
       { gfinal. right. eapply K. }
       { apply le_others_refl. }
       { eauto. }
       { eauto. }
-    + rewrite !list.list_lookup_insert_ne in INS; try nia. inv INS.
+    + rewrite !list_lookup_insert_ne in INS; try nia. inv INS.
       eapply SIM; eauto; des_ifs.
 
   - rewrite (unfold_iterV _ (_, itrs_tgt)). s. rewrite LKT.
@@ -226,43 +226,43 @@ Proof.
     grind. zstep_r. esplits. zstep_r.
     eapply K;
       try rewrite length_insert;
-      try rewrite list.list_lookup_insert; eauto; try nia.
+      try rewrite list_lookup_insert; eauto; try nia.
     i. des_ifs; des; subst.
-    + rewrite !list.list_lookup_insert in INT; try nia. inv INT.
+    + rewrite !list_lookup_insert in INT; try nia. inv INT.
       eexists. rewrite WF. ginit. guclo lflagC_spec. econs.
       { gfinal. right. eapply K. }
       { apply le_others_refl. }
       { eauto. }
       { eauto. }
-    + rewrite !list.list_lookup_insert_ne in INT; try nia. inv INT.
+    + rewrite !list_lookup_insert_ne in INT; try nia. inv INT.
       eapply SIM; eauto; des_ifs.
 
   - rewrite unfold_iterV. s. rewrite LKS. grind. zstep_l.
     eapply K;
       try rewrite length_insert;
-      try rewrite list.list_lookup_insert; eauto; try nia.
+      try rewrite list_lookup_insert; eauto; try nia.
     i. des_ifs; des; subst.
-    + rewrite !list.list_lookup_insert in INS; try nia. inv INS.
+    + rewrite !list_lookup_insert in INS; try nia. inv INS.
       eexists. rewrite WF. ginit. guclo lflagC_spec. econs.
       { gfinal. right. eapply K. }
       { apply le_others_refl. }
       { eauto. }
       { eauto. }
-    + rewrite !list.list_lookup_insert_ne in INS; try nia. inv INS.
+    + rewrite !list_lookup_insert_ne in INS; try nia. inv INS.
       eapply SIM; eauto; des_ifs.
 
   - rewrite (unfold_iterV _ (_, itrs_tgt)). s. rewrite LKT. grind. zstep_r.
     eapply K;
       try rewrite length_insert;
-      try rewrite list.list_lookup_insert; eauto; try nia.
+      try rewrite list_lookup_insert; eauto; try nia.
     i. des_ifs; des; subst.
-    + rewrite !list.list_lookup_insert in INT; try nia. inv INT.
+    + rewrite !list_lookup_insert in INT; try nia. inv INT.
       eexists. rewrite WF. ginit. guclo lflagC_spec. econs.
       { gfinal. right. eapply K. }
       { apply le_others_refl. }
       { eauto. }
       { eauto. }
-    + rewrite !list.list_lookup_insert_ne in INT; try nia. inv INT.
+    + rewrite !list_lookup_insert_ne in INT; try nia. inv INT.
       eapply SIM; eauto; des_ifs.
 
   - rewrite !unfold_iterV. s. rewrite LKS LKT. grind.
@@ -284,10 +284,10 @@ Proof.
     i. des_ifs; des; subst.
     + rewrite lookup_app_l in INS; cycle 1.
       { rewrite length_insert. nia. }
-      rewrite !list.list_lookup_insert in INS; try nia. inv INS.
+      rewrite !list_lookup_insert in INS; try nia. inv INS.
       rewrite lookup_app_l in INT; cycle 1.
       { rewrite length_insert. nia. }
-      rewrite !list.list_lookup_insert in INT; try nia. inv INT.
+      rewrite !list_lookup_insert in INT; try nia. inv INT.
       eexists. rewrite WF Nat.add_comm. s.
       move: K; rewrite !EQT; intros K; eapply K.
     + assert (DEC : tid < List.length itrs_tgt \/ tid = List.length itrs_tgt).
@@ -296,10 +296,10 @@ Proof.
       des.
       { rewrite lookup_app_l in INS; cycle 1.
         { rewrite length_insert. nia. }
-        rewrite list.list_lookup_insert_ne in INS; try nia.
+        rewrite list_lookup_insert_ne in INS; try nia.
         rewrite lookup_app_l in INT; cycle 1.
         { rewrite length_insert. nia. }
-        rewrite list.list_lookup_insert_ne in INT; try nia.
+        rewrite list_lookup_insert_ne in INT; try nia.
         eapply SIM; eauto; des_ifs. destruct WLE. split.
         { rewrite length_app in H. ss. nia. }
         ii. eapply H0. rewrite lookup_app_l; eauto using lookup_lt_Some.
@@ -322,7 +322,7 @@ Proof.
     assert (DEC : tid < List.length itrs_src \/ tid >= List.length itrs_src) by nia.
     des; cycle 1.
     { rewrite unfold_iterV. s.
-      rewrite list.lookup_ge_None_2; try (rewrite length_insert; nia).
+      rewrite lookup_ge_None_2; try (rewrite length_insert; nia).
       s. grind. unfold triggerUB. grind. unfold ModTr.pure_state. grind.
       do 2 zstep_l. }
 
@@ -333,12 +333,12 @@ Proof.
 
     i. des_ifs; des; subst.
     { assert (DEC' : tid = my_tid \/ tid ≠ my_tid) by nia; des; subst.
-      - rewrite !list.list_lookup_insert in INS; try nia. inv INS.
-        rewrite !list.list_lookup_insert in INT; try nia. inv INT.
+      - rewrite !list_lookup_insert in INS; try nia. inv INS.
+        rewrite !list_lookup_insert in INT; try nia. inv INT.
         rewrite WF0 length_insert. eexists. eapply K; eauto.
         apply le_mine_refl. apply MSIM.
-      - rewrite list.list_lookup_insert_ne in INS; try nia.
-        rewrite list.list_lookup_insert_ne in INT; try nia.
+      - rewrite list_lookup_insert_ne in INS; try nia.
+        rewrite list_lookup_insert_ne in INT; try nia.
         eapply SIM; eauto; des_ifs; eauto.
         + rewrite length_insert in WF0. split; try nia.
           ii. red in WLE. des. rewrite <-WLE0. rewrite IN.
@@ -346,12 +346,12 @@ Proof.
         + rewrite WF0 length_insert. eauto.
     }
     { assert (DEC' : tid0 = my_tid \/ tid0 ≠ my_tid) by nia; des; subst.
-      - rewrite !list.list_lookup_insert in INS; try nia. inv INS.
-        rewrite !list.list_lookup_insert in INT; try nia. inv INT.
+      - rewrite !list_lookup_insert in INS; try nia. inv INS.
+        rewrite !list_lookup_insert in INT; try nia. inv INT.
         eexists. eapply K; eauto.
         destruct WLE, WLE0. nia.
-      - rewrite list.list_lookup_insert_ne in INS; try nia.
-        rewrite list.list_lookup_insert_ne in INT; try nia.
+      - rewrite list_lookup_insert_ne in INS; try nia.
+        rewrite list_lookup_insert_ne in INT; try nia.
         eapply SIM; eauto; des_ifs; eauto.
         eapply le_mine_trans; [apply MSIM| |eauto].
         destruct WLE. split; try nia.

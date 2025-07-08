@@ -1,4 +1,5 @@
 From iris.algebra Require Export functions.
+From iris.algebra Require Export stepindex_finite.
 Require Import sflib.
 
 Section cmra.

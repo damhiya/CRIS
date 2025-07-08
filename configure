@@ -9,4 +9,4 @@
 
 opam repo add coq-released https://coq.inria.fr/opam/released
 opam remote add coq-sf -k git --rank=1 https://github.com/snu-sf/sf-opam-coq-archive
-opam install coq-paco coq-itree coq-sflib coq-ext-lib coq-ordinal coq-stdpp coq-iris
+opam install coq-paco coq-itree coq-sflib coq-ext-lib.0.13.0 coq-ordinal coq-stdpp coq-iris
