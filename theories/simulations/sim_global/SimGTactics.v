@@ -93,3 +93,7 @@ Ltac zprogress :=
 Tactic Notation "zprogress" "with" uconstr(ps0) uconstr(pt0) uconstr(ps) uconstr(pt) :=
   gstep; econs; eapply (simg_progress _ _ _ ps pt ps0 pt0); eauto.
 
+Ltac cziter_r := unshelve ziter_r; try match goal with | |- smj => exact smj_top end.
+Ltac cziter_l := unshelve ziter_l; try match goal with | |- smj => exact smj_top end.
+Ltac czstep_r := unshelve zstep_r; try match goal with | |- smj => exact smj_top end.
+Ltac czstep_l := unshelve zstep_l; try match goal with | |- smj => exact smj_top end.

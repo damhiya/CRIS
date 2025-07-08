@@ -370,7 +370,7 @@ Section Proph.
     rewrite /SB.sandbox_body /SModTr.trans_ktree /fspec_proph. s.
     rewrite /SModTr.HoareFun. s.
     isteps_l. iDestruct "ASM" as "[P %]"; subst.
-    iforce_r. iFrame. iIntros (?) "Q". isteps_r.
+    isteps_r; iforce_r. iFrame. iIntros (?) "Q". isteps_r.
     iApply isim_bind. iSplitR "Q"; [iApply SIM|]; try nia.
     iIntros (? ? ? ? ? ?) "[% %]". subst.
     isteps_r. iMod ("Q" with "GRT") as "Q".
