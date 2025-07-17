@@ -265,16 +265,14 @@ Module SchAS. Section SchAS.
     .
 
     Definition _spawn_spec : fspec := 
-      fspec_wsim ⊤
-        (fspec_virtual
-           (λ '(my_tid, pre, postS) varg arg,
-             tid_user my_tid ∗
-             ∃ pa_tid fvarg farg fn,
-               ⌜varg = ((pa_tid, fn, fvarg) : nat * string * SAny.t)
-               ∧ arg = ((pa_tid, fn, farg) : nat * string * SAny.t)↑
-               ∧ fspec_spawnable fn pre postS⌝
-               ∗ pre fvarg farg ∗ token_half my_tid postS)%I
-           (λ _ (_: SAny.t) _, False%I))
+      fspec_virtual
+        (λ '(my_tid, pre, postS) varg arg,
+            ∃ pa_tid fvarg farg fn,
+              ⌜varg = ((pa_tid, fn, fvarg) : nat * string * SAny.t)
+              ∧ arg = ((pa_tid, fn, farg) : nat * string * SAny.t)↑
+              ∧ fspec_spawnable fn pre postS⌝
+                  ∗ pre fvarg farg ∗ token_half my_tid postS)%I
+        (λ _ (_: SAny.t) _, False%I)
     .
 
     Definition spawn_spec : fspec :=
@@ -335,20 +333,19 @@ Module SchA. Section SchA.
   Definition scopes := ["Sch"].
   Definition v_internal := "Sch" ↯ "internal".
 
-  Definition trigger_Yield_half (nxt_tid: nat) : itree hmodE unit :=
-    SchI.trigger_Yield nxt_tid;;;
-
+  Definition check_internal : itree hmodE unit :=
     _internal <- cgetU v_internal;;
     assume (_internal = true);;;
     cput v_internal false
   .
-  
+
   Definition trigger_Yield (nxt_tid: nat) : itree hmodE unit :=
     cput v_internal true;;;
-    trigger_Yield_half nxt_tid.
+    check_internal
+  .
   
   Definition fnsems sp_user : alist (option string) (fnsem_type (option fspec * fbody)) :=
-    [(Some SchHdr._spawn, (true, wmask_all, scopes, (Some (SchAS._spawn_spec sp_user), (cfunN (SchI._spawn trigger_Yield_half)))));
+    [(Some SchHdr._spawn, (true, wmask_all, scopes, (Some (SchAS._spawn_spec sp_user), (cfunN (SchI._spawn check_internal)))));
      (Some SchHdr.spawn,  (true, wmask_all, scopes, (Some (SchAS.spawn_spec sp_user),  (cfunN SchI.spawn))));
      (Some SchHdr.yield,  (true, wmask_all, scopes, (Some (SchAS.yield_spec),          (cfunN (SchI.yield trigger_Yield)))));
      (Some SchHdr.join,   (true, wmask_all, scopes, (Some (SchAS.join_spec),           (cfunN SchI.join))));

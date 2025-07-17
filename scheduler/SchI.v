@@ -15,10 +15,10 @@ Module SchI. Section SchI.
   Definition v_ths := "Sch" ↯ "ths".
   Definition v_tid := "Sch" ↯ "tid".
 
-  Definition _spawn (trigger_yield_half : nat -> itree hmodE unit) : (nat * string * SAny.t) -> itree hmodE unit
+  Definition _spawn (check_internal : itree hmodE unit) : (nat * string * SAny.t) -> itree hmodE unit
     :=
     fun '(pa_tid, fn, arg) =>
-      trigger_yield_half pa_tid;;;
+      check_internal;;;
       'rv: SAny.t <- ccallU fn arg;;
       'ths: thslist <- cgetU v_ths;;
       'my_tid: nat <- cgetU v_tid;;
@@ -66,13 +66,16 @@ Module SchI. Section SchI.
       Ret my_tid
   .
 
+  Definition check_internal : itree hmodE unit := Ret tt.
+  
   Definition trigger_Yield (nxt_tid : nat) : itree hmodE unit :=
-    my_tid <- trigger (Yield nxt_tid);;
+    'my_tid : nat <- cgetU v_tid;;
+    trigger (Yield nxt_tid);;;
     cput v_tid my_tid
   .
   
   Definition fnsems : alist (option string) (fnsem_type (option fspec * fbody)) :=
-    [(Some SchHdr._spawn,  (false, wmask_all, scopes, (None, cfunU (_spawn trigger_Yield))));
+    [(Some SchHdr._spawn,  (false, wmask_all, scopes, (None, cfunU (_spawn check_internal))));
      (Some SchHdr.spawn,   (false, wmask_all, scopes, (None, cfunU spawn)));
      (Some SchHdr.yield,   (false, wmask_all, scopes, (None, cfunU (yield trigger_Yield))));
      (Some SchHdr.join,    (false, wmask_all, scopes, (None, cfunU join)));

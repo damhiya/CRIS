@@ -150,12 +150,22 @@ Module SchIA. Section SchIA.
   Proof using FunInSp SchInSp.
     init_simF.
 
-    (* destruct q2 as [userf userm]. *)
     rewrite /SchA.trigger_Yield /SchI.trigger_Yield.
     steps_l.
     iDestruct "ASM" as "[%[->[tid [%[%[%[%[[->[->%]] [pre token]]]]]]]]]"; hss.
     rename q4 into pre, q2 into synpost, q3 into my_tid.
     steps_l. steps_r.
+
+    (* find fspec in sp *)
+    dup H. rewrite /fspec_spawnable /fspec_imply /= in H0. des.    
+    assert (SPFN: sp fn = Some fsp).
+    { apply FunInSp. eauto. }
+    rewrite SPFN.
+    specialize (H1 nths). des. force_l x0. steps_l. force_l (farg↑).
+    iPoseProof (PRE with "[pre]") as "pre".
+    { rewrite /precond /fspec_wsim.
+    force_l. iSplitL "pre".
+    { 
 
     (* Process yield *)
     iDestruct "IST" as (??????) "(% & THB & THW & COND & [[% TA]|[% [TA _]]])";
@@ -582,4 +592,5 @@ Section ctxr.
       (SchI.t, emp%I).
   Proof using. eapply main_adequacy, sim; eauto. Qed.
 End ctxr.
-End SchIA. *)
+End SchIA.
+*)
