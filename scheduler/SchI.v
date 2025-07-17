@@ -5,48 +5,63 @@ Require Import SchHeader.
 Set Implicit Arguments.
 
 Definition thslist: Type := list (nat * option SAny.t).
+Definition tidslist: Type := list nat.
 
 Module SchI. Section SchI.
-  Local Open Scope string_scope.
-
   Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
 
   Definition scopes := ["Sch"].
   Definition v_ths := "Sch" ↯ "ths".
   Definition v_tid := "Sch" ↯ "tid".
+  Definition v_tids := "Sch" ↯ "tids".
 
-  Definition _spawn (trigger_yield_half : nat -> itree hmodE unit) : (nat * string * SAny.t) -> itree hmodE unit
+  Definition _spawn (check_internal : itree hmodE unit) : (nat * string * SAny.t) -> itree hmodE unit
     :=
-    fun '(pa_tid, fn, arg) =>
-      trigger_yield_half pa_tid;;;
+    fun '(my_tid, fn, arg) =>
+      (* check internal state (only for SRC) *)
+      check_internal;;;
+      (* set up tid for starting up *)
+      cput v_tid my_tid;;;
+      (* execute the spawnee *)
       'rv: SAny.t <- ccallU fn arg;;
+      (* update the list of results after executing *)
       'ths: thslist <- cgetU v_ths;;
-      'my_tid: nat <- cgetU v_tid;;
       let newths: thslist := alist_replace my_tid (Some rv) ths in
       cput v_ths newths;;;
+      (* infinite loop for termination *)
       Sch.terminate
   .
 
   Definition spawn : (string * SAny.t) -> itree hmodE nat :=
     fun '(fn, arg) =>
+      (* get internal states *)
       'ths: thslist <- cgetU v_ths;;
       'my_tid: nat <- cgetU v_tid;;
-       new_tid <- trigger (Spawn SchHdr._spawn (my_tid, fn, arg)↑);;
-      let newths: thslist := alist_add new_tid None ths in
+      'tids: tidslist <- cgetU v_tids;;
+      (* obtain next module-tid and give it to spawnee as an argument *)
+      let new_mtid: nat := length tids in
+      (* actual spawn using inner-spawn *)
+      new_stid <- trigger (Spawn SchHdr._spawn (new_mtid, fn, arg)↑);;
+      (* update internal states *)
+      let newtids: tidslist := tids ++ [new_stid] in
+      let newths: thslist := alist_add new_mtid None ths in
       cput v_ths newths;;;
-      Ret new_tid
+      cput v_tids newtids;;;
+      (* return module-tid *)
+      Ret new_mtid
   .
 
   Definition yield (trigger_yield : nat -> itree hmodE unit): unit -> itree hmodE unit :=
     fun _ =>
-      'ths: thslist <- cgetU v_ths;;
-      'ntid: nat <- trigger (Choose nat);;
-      guarantee (is_Some (alist_find ntid ths));;;
+      'tids: tidslist <- cgetU v_tids;;
+      (* choose one of the tids which is managed by scheduler *)
+      '(exist _ ntid _):_ <- trigger (Choose {ntid: nat | ntid < length tids});;
       trigger_yield ntid
   .
 
   Definition join: nat -> itree hmodE (option SAny.t) :=
     fun tid =>
+      (* possibly infinite loop while waiting for the thread to terminate *)
       orv <- (iterC (fun _ =>
         'ths: thslist <- cgetU v_ths;;
         match alist_find tid ths with
@@ -66,13 +81,22 @@ Module SchI. Section SchI.
       Ret my_tid
   .
 
-  Definition trigger_Yield (nxt_tid : nat) : itree hmodE unit :=
-    my_tid <- trigger (Yield nxt_tid);;
-    cput v_tid my_tid
+  Definition check_internal : itree hmodE unit := Ret tt. (* skip *)
+
+  (* provide conversion between module-tid and system-tid *)
+  Definition trigger_Yield (nxt_mtid : nat) : itree hmodE unit :=
+    'my_tid : nat <- cgetU v_tid;;
+    'tids : tidslist <- cgetU v_tids;;
+    match nth_error tids nxt_mtid with
+    | Some nxt_stid => 
+        trigger (Yield nxt_stid);;;
+        cput v_tid my_tid
+    | None => triggerUB
+    end
   .
   
   Definition fnsems : alist (option string) (fnsem_type (option fspec * fbody)) :=
-    [(Some SchHdr._spawn,  (false, wmask_all, scopes, (None, cfunU (_spawn trigger_Yield))));
+    [(Some SchHdr._spawn,  (false, wmask_all, scopes, (None, cfunU (_spawn check_internal))));
      (Some SchHdr.spawn,   (false, wmask_all, scopes, (None, cfunU spawn)));
      (Some SchHdr.yield,   (false, wmask_all, scopes, (None, cfunU (yield trigger_Yield))));
      (Some SchHdr.join,    (false, wmask_all, scopes, (None, cfunU join)));
@@ -82,7 +106,7 @@ Module SchI. Section SchI.
   {|
     SMod.scopes := scopes;
     SMod.fnsems := fnsems;
-    SMod.initial_st := [(v_ths, ([(0, None)]: thslist)↑); (v_tid, 0↑)];
+    SMod.initial_st := [(v_ths, ([(0, None)]: thslist)↑); (v_tid, 0↑); (v_tids, ([0]: tidslist)↑)];
   |}.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
