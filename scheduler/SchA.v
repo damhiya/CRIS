@@ -267,9 +267,9 @@ Module SchAS. Section SchAS.
     Definition _spawn_spec : fspec := 
       fspec_virtual
         (λ '(my_tid, pre, postS) varg arg,
-            ∃ pa_tid fvarg farg fn,
-              ⌜varg = ((pa_tid, fn, fvarg) : nat * string * SAny.t)
-              ∧ arg = ((pa_tid, fn, farg) : nat * string * SAny.t)↑
+            ∃ fvarg farg fn,
+              ⌜varg = ((my_tid, fn, fvarg) : nat * string * SAny.t)
+              ∧ arg = ((my_tid, fn, farg) : nat * string * SAny.t)↑
               ∧ fspec_spawnable fn pre postS⌝
                   ∗ pre fvarg farg ∗ token_half my_tid postS)%I
         (λ _ (_: SAny.t) _, False%I)
@@ -341,6 +341,7 @@ Module SchA. Section SchA.
 
   Definition trigger_Yield (nxt_tid: nat) : itree hmodE unit :=
     cput v_internal true;;;
+    SchI.trigger_Yield nxt_tid;;;
     check_internal
   .
   
