@@ -260,8 +260,8 @@ Section SIM_ITREE.
     i. rdes H. split.
     - rewrite !length_app. nia.
     - i. assert (i < List.length w1 \/ i >= List.length w1) by nia; des.
-      + rewrite !list.lookup_app_l; try nia. eauto.
-      + rewrite !list.lookup_app_r; try nia. f_equal. nia.
+      + rewrite !lookup_app_l; try nia. eauto.
+      + rewrite !lookup_app_r; try nia. f_equal. nia.
   Qed.    
 
   Lemma sim_itree_wmon self R_src R_tgt RR w1 w2 ps pt nths src tgt
@@ -278,9 +278,9 @@ Section SIM_ITREE.
     destruct WLE. split.
     { rewrite !length_app. s. nia. }
     i. assert (CASE : i < List.length w1 \/ i = List.length w1 \/ i > List.length w1) by nia. des.
-    - rewrite !list.lookup_app_l; try nia. eauto.
-    - rewrite !(list.list_lookup_middle _ [] winit); try nia. eauto.
-    - rewrite !list.lookup_ge_None_2; eauto; rewrite length_app; s; try nia.
+    - rewrite !lookup_app_l; try nia. eauto.
+    - rewrite !(list_lookup_middle _ [] winit); try nia. eauto.
+    - rewrite !lookup_ge_None_2; eauto; rewrite length_app; s; try nia.
   Qed.
 
   Lemma sim_itree_ind

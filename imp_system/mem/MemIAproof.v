@@ -383,6 +383,7 @@ Module MemIP. Section MemIP.
     init_simF.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
     unfold MemP.alloc, fspec_proph.
+    step_l; step_r.
 
     asmproph_simple (Z.to_nat (or_else (pargs [Tint] (or_else (arg↓) [])) 0%Z)).
     { iApply precise_pure. }
@@ -431,6 +432,7 @@ Module MemIP. Section MemIP.
     unfold MemP.free, fspec_proph.
 
     destruct (or_else (pargs [Tptr] (or_else (arg↓) [])) (0,0%Z)) as [b ofs] eqn: EQ.
+    step_l; step_r.
     asmproph_simple (b, ofs, mem_get mem_src b ofs); s.
     { iApply precise_sep. iSplit; [iApply precise_pure | iApply precise_own]. }
 
@@ -459,6 +461,7 @@ Module MemIP. Section MemIP.
     unfold MemP.load, fspec_proph.
 
     destruct (or_else (pargs [Tptr] (or_else (arg↓) []))(0,0%Z)) as [b ofs] eqn: EQ.
+    step_l; step_r.
     asmproph_standard.
     iExists (⌜arg = [Vptr (b,ofs)]↑ ∧
               mem_tgt.(Mem.cnts) b ofs = Some (mem_get mem_src b ofs)⌝
@@ -487,6 +490,7 @@ Module MemIP. Section MemIP.
 
     destruct (or_else(pargs [Tptr; Tuntyped] (or_else (arg↓) [])) (0,0%Z,Vundef))
       as [[b ofs] v_new] eqn: EQ.
+    step_l; step_r.
     asmproph_simple (b, ofs, mem_get mem_src b ofs, v_new); ss.
     { iApply precise_sep. iSplit; [iApply precise_pure | iApply precise_own]. }
     destruct x' as [[[b' ofs'] v'] v_new']. ss.
@@ -511,6 +515,7 @@ Module MemIP. Section MemIP.
     init_simF.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
 
+    step_l; step_r.
     unfold MemP.cmp, fspec_proph.
 
     destruct (or_else (pargs [Tuntyped; Tuntyped] (or_else (arg↓) []))(Vundef,Vundef)) as [p1 p2] eqn: EQ.
@@ -552,6 +557,7 @@ Module MemIP. Section MemIP.
     set (is_succ := dec (MemSpec.compare_val v_cur v_old) (Vint 1) : bool).
     set (v_upd := if is_succ then v_new else v_cur).
 
+    step_l; step_r.
     asmproph_standard.
     iExists (⌜arg = [Vptr (b,ofs); v_old; v_new]↑ ∧
               Mem.cnts mem_tgt b ofs = Some v_cur ∧

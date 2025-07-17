@@ -1,6 +1,7 @@
 (* A resource algebra for pointwise lifting.
 Designed as a workaround for CRIS's weak-update problems by reserving every indices upfront. *)
 From iris.algebra Require Import functions csum excl updates big_op.
+From iris.algebra Require Import stepindex_finite.
 From stdpp Require Import coPset.
 Require Import sflib.
 
@@ -18,7 +19,7 @@ Global Instance: Params (@allocs_frag) 4 := {}.
 Global Arguments allocs_frag {_ _ _} k a.
 
 Section allocs.
-  Context `{CmraDiscrete A} `{EqDecision K}.
+  Context `{!CmraDiscrete A} `{EqDecision K}.
   Local Notation allocs_auth := (@allocs_auth K A).
   Implicit Types a b : A.
   Implicit Types γ : K.

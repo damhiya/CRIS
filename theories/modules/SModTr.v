@@ -50,23 +50,19 @@ Section HOARE.
 
       Ret ret
     | None =>
-      body
-    end.             
+      λ arg, tau;; body arg
+    end.
 
   Definition NativeSpawn `{Σ: GRA} (fn: string) (arg: Any.t) : itree hmodE nat :=
-    tid <- trigger (Spawn fn arg);;
-    trigger (Yield tid);;;
-    Ret tid.
-  
+    trigger (Spawn fn arg).
+
   Definition HoareSpawn fn (varg: Any.t) (fspo: option fspec) : itree hmodE nat :=
     match fspo with
     | Some fsp =>
       x <- trigger (Choose (meta fsp));; 
       arg <- trigger (Choose Any.t);; 
       trigger (Guarantee (precond fsp x varg arg));;;
-      tid <- trigger (Spawn fn arg);;
-      trigger (Yield tid);;;
-      Ret tid
+      trigger (Spawn fn arg)
     | None =>
       NativeSpawn fn varg
     end.

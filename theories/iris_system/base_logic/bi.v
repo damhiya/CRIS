@@ -196,9 +196,9 @@ Section restate.
   Notation "P ⊢ Q" := (bi_entails (PROP:=uPredI M) P%I Q%I).
   Notation "P ⊣⊢ Q" := (equiv (A:=uPredI M) P%I Q%I).
 
-  Global Instance ownM_ne `{CmraDiscrete M} : NonExpansive (@uPred_ownM M) := uPred_primitive.ownM_ne.
+  Global Instance ownM_ne `{!CmraDiscrete M} : NonExpansive (@uPred_ownM M) := uPred_primitive.ownM_ne.
   Global Instance ownM_proper : Proper ((≡)==>(≡)) (@uPred_ownM M) := uPred_primitive.ownM_proper.
-  Global Instance cmra_valid_ne {A : cmra} `{CmraDiscrete A} : NonExpansive (@uPred_cmra_valid M A) :=
+  Global Instance cmra_valid_ne {A : cmra} `{!CmraDiscrete A} : NonExpansive (@uPred_cmra_valid M A) :=
     uPred_primitive.cmra_valid_ne.
   Global Instance cmra_valid_proper {A : cmra} : Proper ((≡)==>(≡)) (@uPred_cmra_valid M A) :=
     uPred_primitive.cmra_valid_proper.
