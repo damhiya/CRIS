@@ -4,13 +4,16 @@ Require Export FSpec SModTr Sp.
 
 Set Implicit Arguments.
 
+Definition fnsems_type `{Σ: GRA} :=
+  alist (option string) (fnsem_type (option fspec * fbody)).
+
 Module SMod.
 Section SMOD.
   Context `{_crisG: !crisG  Γ Σ α β τ _S _I}.
 
   Record t : Type := mk {
     scopes : list string;
-    fnsems : alist (option string) (fnsem_type (option fspec * fbody));
+    fnsems : fnsems_type;
     initial_st : alist key Any.t;
 
     well_scoped_fns:

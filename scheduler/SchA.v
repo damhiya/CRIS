@@ -345,7 +345,7 @@ Module SchA. Section SchA.
     check_internal
   .
   
-  Definition fnsems sp_user : alist (option string) (fnsem_type (option fspec * fbody)) :=
+  Definition fnsems sp_user : fnsems_type :=
     [(Some SchHdr._spawn, (true, wmask_all, scopes, (Some (SchAS._spawn_spec sp_user), (cfunN (SchI._spawn check_internal)))));
      (Some SchHdr.spawn,  (true, wmask_all, scopes, (Some (SchAS.spawn_spec sp_user),  (cfunN SchI.spawn))));
      (Some SchHdr.yield,  (true, wmask_all, scopes, (Some (SchAS.yield_spec),          (cfunN (SchI.yield trigger_Yield)))));

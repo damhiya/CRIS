@@ -95,7 +95,7 @@ Module SchI. Section SchI.
     end
   .
   
-  Definition fnsems : alist (option string) (fnsem_type (option fspec * fbody)) :=
+  Definition fnsems : fnsems_type :=
     [(Some SchHdr._spawn,  (false, wmask_all, scopes, (None, cfunU (_spawn check_internal))));
      (Some SchHdr.spawn,   (false, wmask_all, scopes, (None, cfunU spawn)));
      (Some SchHdr.yield,   (false, wmask_all, scopes, (None, cfunU (yield trigger_Yield))));

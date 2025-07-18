@@ -24,7 +24,7 @@ Module APCA. Section APCA.
   Lemma Sp_nodup : List.NoDup (List.map fst Sp).
   Proof using. unfold Sp. unseal CRIS. prove_nodup. Qed.
 
-  Definition fnsems SpPure : alist (option string) (fnsem_type (option fspec * fbody)) :=
+  Definition fnsems SpPure : fnsems_type :=
     [(Some APCHdr.apc, (true, wmask_all, scopes, (Some apc_spec, (cfunN (apc_body SpPure)))))].
 
   Program Definition Mod SpPure : SMod.t := {|

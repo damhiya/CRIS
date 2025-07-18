@@ -16,7 +16,7 @@ Module APCC. Section APCC.
   Lemma Sp_nodup : List.NoDup (List.map fst Sp).
   Proof using. unfold Sp. unseal CRIS. prove_nodup. Qed.
 
-  Definition fnsems : alist (option string) (fnsem_type (option fspec * fbody)):=
+  Definition fnsems : fnsems_type :=
     [(Some APCHdr.apc, (true, wmask_all, scopes, (Some APCA.apc_spec, fbody_trivial)))].
 
   Program Definition Mod : SMod.t := {|

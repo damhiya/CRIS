@@ -8,7 +8,7 @@ Module APCI. Section APCI.
 
   Definition scopes := ["APC"].
 
-  Definition fnsems : alist (option string) (fnsem_type (option fspec * fbody)) :=
+  Definition fnsems : fnsems_type :=
     [(Some APCHdr.apc, (false, wmask_all, scopes, (None, fbody_trivial)))].
   
   Program Definition Mod : SMod.t := {|
