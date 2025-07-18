@@ -12,12 +12,12 @@ Section SchRA.
 
   Canonical Structure SynDepO : ofe := leibnizO {n & GTerm.t n}.
 
-  Definition thst : ucmra := (SAny.t -d> SAny.t -d> optionUR (agreeR SynDepO)).
+  Definition thst := (SAny.t -d> SAny.t -d> optionUR (agreeR SynDepO)).
   Definition fragreeUR := optionUR (prodR fracR (agreeR thst)).
   Definition threadsF := nat -d> fragreeUR.
   Definition threadsRA := authUR threadsF.
 
-  Definition tidRA : ucmra := nat -d> excl' unit.
+  Definition tidRA := nat -d> excl' unit.
 
   Class schG `{!crisG Γ Σ α β τ _S _I} := {
       sch_inG_tid :: inG tidRA Γ;
