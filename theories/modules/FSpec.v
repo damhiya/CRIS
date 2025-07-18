@@ -14,7 +14,7 @@ Section FSPEC.
     postcond : meta → Any.t → Any.t → iProp Σ; 
   }.
 
-  Definition fbody : Type := (Any.t → itree hmodE Any.t).
+  Definition fbody : Type := (Any.t → itree crisE Any.t).
   
   Definition fspecbody : Type := (fspec * fbody)%type.
 
@@ -33,13 +33,13 @@ Section FSPEC.
   Definition fspec_flat (fspo: option fspec): fspec :=
     or_else fspo fspec_trivial.
     
-  Definition fbody_trivial : Any.t → itree hmodE Any.t :=
+  Definition fbody_trivial : Any.t → itree crisE Any.t :=
     λ _, trigger (Choose _).
 
-  Definition fbody_ub : Any.t → itree hmodE Any.t :=
+  Definition fbody_ub : Any.t → itree crisE Any.t :=
     λ _, triggerUB.
 
-  Definition fbody_nb : Any.t → itree hmodE Any.t :=
+  Definition fbody_nb : Any.t → itree crisE Any.t :=
     λ _, triggerNB.
 
   Definition fspec_virtual (M VA VR : Type)

@@ -27,7 +27,7 @@ Section EVENTS_MOD.
   Definition sPut x : stateE unit := SUpdate (fun _ => (x, tt)).
   Definition sGet : stateE Any.t := SUpdate (fun x => (x, x)).
 
-  Definition modE : Type -> Type := callE +' stateE +' coreE.
+  Definition lmodE : Type -> Type := callE +' stateE +' coreE.
 
 End EVENTS_MOD.
 
@@ -58,7 +58,7 @@ Section EVENTS_HMOD.
   | Guarantee (P : iProp Σ) : agE unit
   .
 
-  Definition hmodE := agE +' callE +' pgE +' coreE.
+  Definition crisE := agE +' callE +' pgE +' coreE.
 
 End EVENTS_HMOD.
 
@@ -215,7 +215,7 @@ Section AssumeProph.
   Definition CRIS_PROPH := "CRIS-PROPH".
   Global Opaque CRIS_PROPH.
  
-  Definition AssumeProph {X R} (Pre: X → iProp Σ) (Post: X → R → iProp Σ) : itree hmodE (R → iProp Σ) :=
+  Definition AssumeProph {X R} (Pre: X → iProp Σ) (Post: X → R → iProp Σ) : itree crisE (R → iProp Σ) :=
     Seal.sealing CRIS_PROPH (
       P <- trigger (Choose (iProp Σ));;
       Q <- trigger (Choose (R → iProp Σ));;
@@ -223,7 +223,7 @@ Section AssumeProph.
       trigger (AssumePrecise P);;;
       Ret Q).
 
-  Definition AssumeProphK {X S R} Pre Post ktr : itree hmodE R :=
+  Definition AssumeProphK {X S R} Pre Post ktr : itree crisE R :=
     (@AssumeProph X S Pre Post) >>= ktr.
   
   Lemma AssumeProph_AssumeProphK {X R} Pre Post :
@@ -276,7 +276,7 @@ End SYNTAX.
 
 Section Inversion.
 
-  Lemma itree_modE_inv R (itr : itree modE R) :
+  Lemma case_itrL R (itr : itree lmodE R) :
     (exists r, itr = Ret r) \/
     (exists itr', itr = tau;; itr') \/
     (exists V (e : coreE V) ktr, itr = v <- trigger e;; ktr v) \/
@@ -290,7 +290,7 @@ Section Inversion.
     - left. esplits. rewrite bind_trigger. eauto.
   Qed.
 
-  Lemma case_itrH `{Σ : GRA} R (itrH : itree hmodE R) :
+  Lemma case_itrH `{Σ : GRA} R (itrH : itree crisE R) :
     (exists v, itrH = Ret v) \/
     (exists itrH', itrH = tau;; itrH') \/
     (exists P itrH', itrH = (trigger (Assume P);;; itrH')) \/

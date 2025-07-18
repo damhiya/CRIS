@@ -2,7 +2,7 @@ From iris.proofmode Require Import proofmode.
 Require Import Common.
 Require Import LAuto.
 
-Require Import Sp Mod SMod HMod.
+Require Import Sp LMod SMod Mod.
 Require Import ISim TacticsCommon.
 
 (**** TODO ****)

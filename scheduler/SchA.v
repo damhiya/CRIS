@@ -333,13 +333,13 @@ Module SchA. Section SchA.
   Definition scopes := ["Sch"].
   Definition v_internal := "Sch" ↯ "internal".
 
-  Definition check_internal : itree hmodE unit :=
+  Definition check_internal : itree crisE unit :=
     _internal <- cgetU v_internal;;
     assume (_internal = true);;;
     cput v_internal false
   .
 
-  Definition trigger_Yield (nxt_tid: nat) : itree hmodE unit :=
+  Definition trigger_Yield (nxt_tid: nat) : itree crisE unit :=
     cput v_internal true;;;
     SchI.trigger_Yield nxt_tid;;;
     check_internal
@@ -363,6 +363,6 @@ Module SchA. Section SchA.
   Definition init_cond : iProp Σ := SchAS.init_threads ∗ SchAS.init_tid.
   
   Definition t sp sp_user :=
-    Seal.sealing CRIS (SMod.to_hmod sp (Mod sp_user)).
+    Seal.sealing CRIS (SMod.to_mod sp (Mod sp_user)).
 
 End SchA. End SchA.

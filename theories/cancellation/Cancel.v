@@ -1,11 +1,7 @@
-Require Import Common.
-From iris.proofmode Require Import proofmode.
-Require Import SModTr HModTr ModTr SMod HMod Mod.
-Require Import ITactics TacticsCommon SimGlobal SimGlobalFacts CtxRefine ClosedAdequacy.
-Require Import HModInline HModInlineIntro HModInlineElim ElimRel.
-Require Import SimGlobal SimGTactics.
+Require Import CRIS.
+Require Import LMod LModTr GSim GSimFacts GSimTactics.
+Require Import MInline MInlineIntro MInlineElim ElimRel.
 Require Import CancelCore CancelPG CancelAG CancelSpawn CancelPre CancelPost.
-(* Require Import CancelCore CancelPG CancelAG CancelSpawn CancelPre CancelPost. *)
 
 Set Implicit Arguments.
 
@@ -16,26 +12,26 @@ Context `{Σ: GRA}.
 Lemma cancel_elim md sp (r_i r_s r_t: Σ) rs_diff srcs tgts cid st ps pt
   (WFS: smod_wf md)
   (VP: valid_sp md sp)
-  (WF: HMod.wf (SMod.to_hmod sp_none (SMod.cancel md)))
+  (WF: Mod.wf (SMod.to_mod sp_none (SMod.cancel md)))
   (REL: Forall3i (thread_rel sp) rs_diff srcs tgts)
   (WFR: ✓ r_s)
   (RS: Own r_s ⊢ |==> ([∗ list] i ∈ rs_diff, Own i) ∗ Own r_t)
   :
-  simg cancel_eq ps pt
-    (ModTr.interp_stateE Any.t
-       (iterV (ModTr.handle_callE (Mod.prog (HMod.to_mod (HModInline.inline
-              (SMod.to_hmod sp_none (SMod.cancel md))) r_i))) (cid, srcs))
-       (Any.pair (HModTr.alist_encode st) r_s ↑))
-    (ModTr.interp_stateE Any.t
-       (iterV (ModTr.handle_callE (Mod.prog (HMod.to_mod (HModInline.inline
-              (SMod.to_hmod sp md)) r_i))) (cid, tgts))
-       (Any.pair (HModTr.alist_encode st) r_t ↑)).
+  gsim cancel_eq ps pt
+    (LModTr.interp_stateE Any.t
+       (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
+              (SMod.to_mod sp_none (SMod.cancel md))) r_i))) (cid, srcs))
+       (Any.pair (ModTr.alist_encode st) r_s ↑))
+    (LModTr.interp_stateE Any.t
+       (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
+              (SMod.to_mod sp md)) r_i))) (cid, tgts))
+       (Any.pair (ModTr.alist_encode st) r_t ↑)).
 Proof.
   ginit. move WFS at top. move WF at top. move VP at top.
   revert_until r_i. gcofix CIH. i.
   destruct (decide (cid < length srcs)) as [Hcid|]; cycle 1.
   { ziter_l. erewrite (proj2 (lookup_ge_None srcs cid)); try nia.
-    s. czstep_l. czstep_l.
+    s. zstep_l. zstep_l.
   }
   inversion REL as [Hlenxy [Hlenyz Hrel]].
   exploit (@Forall3i_nth _ _ _ cid); eauto; try lia; clear REL.
@@ -48,18 +44,18 @@ Proof.
     cid < List.length srcs →
     thread_rel sp cid r_diff itr_s itr_t →
     (* elim_rel sp r_diff itr_s itr_t → *)
-    gpaco7 _simg (cpn7 _simg) bot7 r (Any.t * Any.t)%type
+    gpaco7 _gsim (cpn7 _gsim) bot7 r (Any.t * Any.t)%type
       (Any.t * Any.t)%type cancel_eq smj_top smj_top
-      (ModTr.interp_stateE Any.t
-        (iterV (ModTr.handle_callE (Mod.prog (HMod.to_mod (HModInline.inline
-          (SMod.to_hmod sp_none (SMod.cancel md))) r_i)))
+      (LModTr.interp_stateE Any.t
+        (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
+          (SMod.to_mod sp_none (SMod.cancel md))) r_i)))
               (tid, <[cid:=itr_s]> srcs))
-       (Any.pair (HModTr.alist_encode st) r_s ↑))
-    (ModTr.interp_stateE Any.t
-       (iterV (ModTr.handle_callE (Mod.prog (HMod.to_mod (HModInline.inline
-              (SMod.to_hmod sp md)) r_i)))
+       (Any.pair (ModTr.alist_encode st) r_s ↑))
+    (LModTr.interp_stateE Any.t
+       (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
+              (SMod.to_mod sp md)) r_i)))
               (tid, <[cid:=itr_t]> tgts))
-       (Any.pair (HModTr.alist_encode st) r_t ↑))).
+       (Any.pair (ModTr.alist_encode st) r_t ↑))).
   { i. zprogress.
     gbase. eapply CIH; et.
     split.
@@ -78,25 +74,25 @@ Proof.
   }
 
   inversion_clear Hcidrel; subst; cycle 1.
-  { ziter_l; rewrite Hs /=. czstep_l. ziter_l. czstep_l.
+  { ziter_l; rewrite Hs /=. zstep_l. ziter_l. zstep_l.
     ziter_r; rewrite Ht /= /elim_spawnee_precond.
     destruct fspo as [fsp|]; ss.
-    { czstep_r. exists x; ired. czstep_r.
-      ziter_r. czstep_r.
-      ziter_r. czstep_r. exists varg. ired. czstep_r.
-      ziter_r. czstep_r.
-      ziter_r. czstep_r.
-      ziter_r. czstep_r.
+    { zstep_r. exists x; ired. zstep_r.
+      ziter_r. zstep_r.
+      ziter_r. zstep_r. exists varg. ired. zstep_r.
+      ziter_r. zstep_r.
+      ziter_r. zstep_r.
+      ziter_r. zstep_r.
       hexploit (Own_bupd_split); first apply RS; eauto.
-      intros [r_s1 [r_s2 [Hr_s [Hr_s1 Hr_s2]]]]; exists (r_t ⋅ r_diff). ired. czstep_r.
-      ziter_r. czstep_r. eexists. czstep_r.
-      ziter_r. czstep_r. ziter_r. czstep_r. ziter_r. czstep_r.
+      intros [r_s1 [r_s2 [Hr_s [Hr_s1 Hr_s2]]]]; exists (r_t ⋅ r_diff). ired. zstep_r.
+      ziter_r. zstep_r. eexists. zstep_r.
+      ziter_r. zstep_r. ziter_r. zstep_r. ziter_r. zstep_r.
       eapply Hkey; eauto; cycle 1.
       { econs; cycle 3.
         { rewrite interpV_bind; refl. }
         { by ii. }
         { eauto. }
-        { rewrite /HModTr.trans //. }
+        { rewrite /ModTr.trans //. }
       }
       { rewrite Hr_s Hr_s1 Hr_s2 Own_op.
         iIntros "> [RS $]"; iPoseProof (big_sepL_insert_acc with "RS") as "[$ RS]"; eauto.
@@ -110,10 +106,10 @@ Proof.
         iPoseProof (big_sepL_lookup_acc with "S") as "[$ S]"; eauto.
       }
     }
-    { czstep_r. ziter_r. czstep_r.
+    { zstep_r. ziter_r. zstep_r.
       eapply Hkey; eauto; cycle 1.
       { econs; eauto.
-        rewrite bind_ret_r /HModTr.trans.
+        rewrite bind_ret_r /ModTr.trans.
         hexploit (Own_bupd_split r_diff (⌜ arg = varg ⌝)).
         { rewrite H2; iIntros "> $"; iModIntro; iApply Own_unit. }
         { eapply Own_wand_valid; [iIntros "S"; iMod (RS with "S") as "[S _]"|]; eauto.
@@ -131,21 +127,21 @@ Proof.
     }
   }
   punfold REL; depdes REL; ii; subst; pclearbot.
-  - ziter_l; rewrite Hs /=; czstep_l.
-  - ziter_l; rewrite Hs /=; czstep_l; ziter_l; czstep_l.
+  - ziter_l; rewrite Hs /=; zstep_l.
+  - ziter_l; rewrite Hs /=; zstep_l; ziter_l; zstep_l.
   - ziter_l; rewrite Hs /=.
     ziter_r; rewrite Ht /=. destruct cid; s; cycle 1.
-    { czstep_l. czstep_l. }
-    specialize (RET eq_refl). subst. s. czstep_l. czstep_r.
+    { zstep_l. zstep_l. }
+    specialize (RET eq_refl). subst. s. zstep_l. zstep_r.
     gstep. econs. econs.
     r. esplits; et; hss.
-  - ziter_l. ziter_r. rewrite Hs Ht /=. czstep_l. czstep_r. eapply Hkey; et.
+  - ziter_l. ziter_r. rewrite Hs Ht /=. zstep_l. zstep_r. eapply Hkey; et.
     { rewrite list_insert_id //. }
     { econs; eauto. }
   - eapply cancel_core; eauto.
   - eapply cancel_pg; eauto.
   - eapply cancel_ag; eauto.
-  - ziter_l. ziter_r. rewrite Hs Ht /=. czstep_l. czstep_r. eapply Hkey; eauto.
+  - ziter_l. ziter_r. rewrite Hs Ht /=. zstep_l. zstep_r. eapply Hkey; eauto.
     { rewrite list_insert_id //. }
     { econs; eauto; eapply H. }
   - eapply cancel_spawn; et.
@@ -156,21 +152,21 @@ Proof.
 Lemma cancel_main md sp rs
   (WFS: smod_wf md)
   (VP: valid_sp md sp)
-  (WF: HMod.wf (SMod.to_hmod sp_none (SMod.cancel md)))
+  (WF: Mod.wf (SMod.to_mod sp_none (SMod.cancel md)))
   (VALID: ✓ rs)
   :  
-  refines_mod
-    (HMod.to_mod (HModInline.inline (SMod.to_hmod sp_none (SMod.cancel md))) rs)
-    (HMod.to_mod (HModInline.inline (SMod.to_hmod sp md)) rs).
+  refines_lmod
+    (Mod.to_lmod (MInline.inline (SMod.to_mod sp_none (SMod.cancel md))) rs)
+    (Mod.to_lmod (MInline.inline (SMod.to_mod sp md)) rs).
 Proof.
-  r. intro arg. eapply adequacy_global.
+  r. intro arg. eapply gsim_adequacy.
   instantiate (1:= smj_top). instantiate (1:= smj_top).
-  unfold Mod.compile. s. rewrite /ITree.map /ModTr.trans /ModTr.interp_callE.  
+  unfold LMod.compile. s. rewrite /ITree.map /LModTr.trans /LModTr.interp_callE.  
 
   rewrite !alist_find_map_snd.
   destruct (alist_find None (SMod.fnsems md)) eqn: FIND; rewrite FIND; cycle 1.
   { s. ired. ginit. gstep. econs. econs. ss. }
-  s. ired. rewrite /HModTr.trans_ktree.
+  s. ired. rewrite /ModTr.trans_ktree.
   destruct f as [[[img msk] scp] [fspo bd]]. s.
   assert (SCP: incl scp (SMod.scopes md)).
   { ii. eapply SMod.well_scoped_fns. rewrite /fnsems_scopes. erewrite FIND. et. }
@@ -181,10 +177,10 @@ Proof.
   ginit. guclo bindC_spec. econs; cycle 1.
   { instantiate (1:=cancel_eq). i. gstep. econs. econs.
     destruct SIM. des. et. }
-  ziter_l. czstep_l. ziter_l. czstep_l.
+  ziter_l. zstep_l. ziter_l. zstep_l.
   exploit WFS; et. i. subst. ss.
-  rewrite SBRed.tau HIRed.tau.
-  ziter_r. czstep_r. ziter_r. czstep_r.
+  rewrite SBRed.tau MIRed.tau.
+  ziter_r. zstep_r. ziter_r. zstep_r.
   gfinal. right.
 
   eapply (cancel_elim _ _ (rs_diff:=[ε])); eauto.
@@ -205,10 +201,10 @@ Unshelve. all: exact smj_top.
 Theorem cancellation md sp P
   (WFS: smod_wf md)
   (VP: valid_sp md sp)
-  (WF: HMod.wf (SMod.to_hmod sp_none (SMod.cancel md)))
+  (WF: Mod.wf (SMod.to_mod sp_none (SMod.cancel md)))
   :
-  refines (SMod.to_hmod sp_none (SMod.cancel md), P)
-          (SMod.to_hmod sp md, P).
+  refines (SMod.to_mod sp_none (SMod.cancel md), P)
+          (SMod.to_mod sp md, P).
 Proof. 
   etrans.
   { eapply inline_elim. }

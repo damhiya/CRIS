@@ -1,7 +1,7 @@
 (** * The Imp language  *)
 Require Import CRIS.
 
-Require Import ImpPrelude ModTr.
+Require Import ImpPrelude LModTr.
 
 Set Implicit Arguments.
 
@@ -458,7 +458,7 @@ Section Interp.
 
   Context `{Σ: GRA}.
 
-  Definition effs := GlobEnv +' ImpState +' hmodE.
+  Definition effs := GlobEnv +' ImpState +' crisE.
 
   Definition handle_GlobEnv {eff} `{coreE -< eff} (ge : GEnv.t) : GlobEnv ~> (itree eff) :=
     fun _ e =>
@@ -485,12 +485,12 @@ Section Interp.
       end.
 
   Definition interp_ImpState {eff} `{coreE -< eff}: itree (ImpState +' eff) ~> stateT lenv (itree eff) :=
-    State.interp_state (case_ handle_ImpState ModTr.pure_state).
+    State.interp_state (case_ handle_ImpState LModTr.pure_state).
 
   (* Definition interp_imp ge le (itr : itree effs val) := *)
   (*   interp_ImpState (interp_GlobEnv ge itr) le. *)
 
-  Definition interp_imp ge : itree effs ~> stateT lenv (itree hmodE) :=
+  Definition interp_imp ge : itree effs ~> stateT lenv (itree crisE) :=
     fun _ itr le => interp_ImpState (interp_GlobEnv ge itr) le.
 
   Fixpoint init_lenv xs : lenv :=
@@ -521,7 +521,7 @@ Section Interp.
 
   (* 'return' is a fixed register, holding the return value of this function. *)
   (* '_' is a black hole register, holding garbage *)
-  Definition eval_imp (ge : GEnv.t) (f : function) (args : list val) : itree hmodE val :=
+  Definition eval_imp (ge : GEnv.t) (f : function) (args : list val) : itree crisE val :=
     let vars := f.(fn_vars) ++ ["return"; "_"] in
     let params := f.(fn_params) in
     (if (ListDec.NoDup_dec string_dec (params ++ vars)) then Ret tt else triggerUB);;;
@@ -576,7 +576,7 @@ Section MODSEM.
   |}.
   Solve All Obligations with prove_scope.
   Next Obligation.
-    ii. unfold HMod.fnsems_scopes, to_itree in *.
+    ii. unfold Mod.fnsems_scopes, to_itree in *.
     destruct fn.
     - rewrite alist_find_omap_some in H.
       destruct (alist_find s (prog_funs m)); ss.

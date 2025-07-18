@@ -19,5 +19,5 @@ Module APCI. Section APCI.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition t := Seal.sealing CRIS (SMod.to_hmod sp_none Mod).
+  Definition t := Seal.sealing CRIS (SMod.to_mod sp_none Mod).
 End APCI. End APCI.

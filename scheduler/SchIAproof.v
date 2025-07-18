@@ -231,7 +231,7 @@ Module SchIA. Section SchIA.
   Local Definition SchAMod := SchA.t sp sp_user.
   Local Definition SchIMod := SchI.t.
 
-  Lemma simF__spawn : HSim.sim_fun open SchAMod SchIMod SchA.init_cond Ist (Some SchHdr._spawn).
+  Lemma simF__spawn : ISim.sim_fun open SchAMod SchIMod SchA.init_cond Ist (Some SchHdr._spawn).
   Proof using FunInSp SchInSp.
     init_simF.
 
@@ -372,7 +372,7 @@ Module SchIA. Section SchIA.
     Unshelve. all: eauto. iFrame.
   (*SLOW*)Qed.
 
-  Lemma simF_spawn : HSim.sim_fun open SchAMod SchIMod SchA.init_cond Ist (Some SchHdr.spawn).
+  Lemma simF_spawn : ISim.sim_fun open SchAMod SchIMod SchA.init_cond Ist (Some SchHdr.spawn).
   Proof using FunInSp SchInSp.
     init_simF.
 
@@ -420,7 +420,7 @@ Module SchIA. Section SchIA.
     }
   (*SLOW*)Qed.
 
-  Lemma simF_yield : HSim.sim_fun open SchAMod SchIMod SchA.init_cond Ist (Some SchHdr.yield).
+  Lemma simF_yield : ISim.sim_fun open SchAMod SchIMod SchA.init_cond Ist (Some SchHdr.yield).
   Proof using FunInSp SchInSp.
     init_simF.
 
@@ -454,7 +454,7 @@ Module SchIA. Section SchIA.
     step. iFrame. iSplit; eauto. iExists _, _, _, _, _. iSplit; eauto.
   (*SLOW*)Qed.
 
-  Lemma simF_join : HSim.sim_fun open SchAMod SchIMod SchA.init_cond Ist (Some SchHdr.join).
+  Lemma simF_join : ISim.sim_fun open SchAMod SchIMod SchA.init_cond Ist (Some SchHdr.join).
   Proof using FunInSp SchInSp.
     init_simF.
 
@@ -555,7 +555,7 @@ Module SchIA. Section SchIA.
     }
   (*SLOW*)Qed.
 
-  Lemma simF_get_tid : HSim.sim_fun open SchAMod SchIMod SchA.init_cond Ist (Some SchHdr.get_tid).
+  Lemma simF_get_tid : ISim.sim_fun open SchAMod SchIMod SchA.init_cond Ist (Some SchHdr.get_tid).
   Proof using FunInSp SchInSp.
     init_simF.
 
@@ -568,7 +568,7 @@ Module SchIA. Section SchIA.
     step. iSplit; eauto. iFrame. iExists _, _, _, _, _. iSplit; eauto.
   (*SLOW*)Qed.
 
-  Lemma sim : HSim.t open SchAMod SchIMod SchA.init_cond Ist.
+  Lemma sim : ISim.t open SchAMod SchIMod SchA.init_cond Ist.
   Proof using FunInSp SchInSp.
     init_sim.
     - ii. iIntros "IST".

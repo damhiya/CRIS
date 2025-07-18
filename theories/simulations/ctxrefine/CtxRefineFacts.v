@@ -1,7 +1,7 @@
 Require Import Common.
 From iris.proofmode Require Import proofmode.
-Require Import Mod HMod.
-Require Import ModSim ModSimFacts ISim ISimInit ISimFacts.
+Require Import Mod.
+Require Import ISim ISimInit ISimFacts.
 Require Import CtxRefine MainAdequacy.
 Require Import Tactics TacticsInit.
 
@@ -74,13 +74,13 @@ Proof.
   eapply NoDup_app_disjoint in NODUP; eauto.
 Qed.
 
-Lemma hmod_add_scopes `{Σ: GRA} md0 md1:
-  HMod.scopes (md0 ★ md1) = HMod.scopes md0 ++ HMod.scopes md1.
+Lemma mod_add_scopes `{Σ: GRA} md0 md1:
+  Mod.scopes (md0 ★ md1) = Mod.scopes md0 ++ Mod.scopes md1.
 Proof. ss. Qed.
 
-Lemma hmod_add_comm `{Σ: GRA} contextual ms0 ms1:
-  HSim.t contextual (ms0 ★ ms1) (ms1 ★ ms0) (emp%I)
-    (IstSB (HMod.scopes (ms0 ★ ms1)) perm_Ist).
+Lemma mod_add_comm `{Σ: GRA} contextual ms0 ms1:
+  ISim.t contextual (ms0 ★ ms1) (ms1 ★ ms0) (emp%I)
+    (IstSB (Mod.scopes (ms0 ★ ms1)) perm_Ist).
 Proof.
   econs; ss; i.
   { apply sub_perm_comm. }
@@ -90,10 +90,10 @@ Proof.
     iPureIntro. i. esplits; et.
     - rewrite /state_scopes map_app.
       eapply incl_app; [apply incl_appl|apply incl_appr];
-        eapply HMod.well_scoped_init.
+        eapply Mod.well_scoped_init.
     - rewrite /state_scopes map_app.
       eapply incl_app; [apply incl_appr|apply incl_appl];
-        eapply HMod.well_scoped_init.
+        eapply Mod.well_scoped_init.
     - eapply Permutation_app_comm.
   }
 
@@ -114,10 +114,10 @@ Proof.
       + iPureIntro. esplits; et.
         * rewrite /state_scopes map_app.
           eapply incl_app; [apply incl_appl|apply incl_appr];
-            eapply HMod.well_scoped_init.
+            eapply Mod.well_scoped_init.
         * rewrite /state_scopes map_app.
           eapply incl_app; [apply incl_appr|apply incl_appl];
-            eapply HMod.well_scoped_init.
+            eapply Mod.well_scoped_init.
         * eapply Permutation_app_comm.
     - i. iIntros "%". iPureIntro. des; et.
   }
@@ -183,7 +183,7 @@ Qed.
   Properties of Contextual Refinements
  *******)
 
-Global Program Instance refines_mod_PreOrder : PreOrder refines_mod.
+Global Program Instance refines_mod_PreOrder : PreOrder refines_lmod.
 Next Obligation. ii. ss. Qed.
 Next Obligation. ii. eapply H. eapply H0. ss. Qed.
 
@@ -232,9 +232,9 @@ Qed.
 Lemma ctxr_refines `{Σ : GRA} mcs mct (REF : ctx_refines mcs mct) :
   refines mcs mct.
 Proof.
-  i. specialize (REF HMod.empty_mc).
+  i. specialize (REF Mod.empty_mc).
   destruct mcs, mct. ss.
-  rewrite !hmod_add_empty_r in REF.
+  rewrite !mod_add_empty_r in REF.
   ii; split; ii; des; ss; red in REF; hexploit REF; eauto; i; des; ss.
   hexploit (H0 rs); ss; first (iIntros "H"; iSplit; eauto; iApply SRC; eauto).
   i; des; esplits; eauto.
@@ -242,7 +242,7 @@ Proof.
 Qed.
 
 (*** weakening for initial condition ***)
-Lemma ctxr_cond_strengthen `{Σ : GRA} (m : HMod.t) (P Q : iProp Σ) (IMPL : P -∗ Q) :
+Lemma ctxr_cond_strengthen `{Σ : GRA} (m : Mod.t) (P Q : iProp Σ) (IMPL : P -∗ Q) :
   ctx_refines (m, P) (m, Q).
 Proof.
   ii. ss; split; first done. ii; ss; exists rs. esplits; eauto.
@@ -252,7 +252,7 @@ Proof.
 Qed.
 
 (*** frame rule for initial condition ***)
-Lemma ctxr_cond_frameR `{Σ : GRA} (ms mt : HMod.t) Ps Pt Q (REF : ctx_refines (ms, Ps) (mt, Pt)) :
+Lemma ctxr_cond_frameR `{Σ : GRA} (ms mt : Mod.t) Ps Pt Q (REF : ctx_refines (ms, Ps) (mt, Pt)) :
   ctx_refines (ms, Ps ∗ Q)%I (mt, Pt ∗ Q)%I.
 Proof.
   ii. specialize (REF (ctx.1, Q ∗ ctx.2)%I).
@@ -268,7 +268,7 @@ Proof.
     iFrame. }
 Qed.
 
-Lemma ctxr_cond_frameL `{Σ : GRA} (ms mt : HMod.t) Ps Pt Q (REF : ctx_refines (ms, Ps) (mt, Pt)) :
+Lemma ctxr_cond_frameL `{Σ : GRA} (ms mt : Mod.t) Ps Pt Q (REF : ctx_refines (ms, Ps) (mt, Pt)) :
   ctx_refines (ms, Q ∗ Ps)%I (mt, Q ∗ Pt)%I.
 Proof.
   etrans; [|etrans]; cycle 1.
@@ -278,13 +278,13 @@ Proof.
 Qed.
 
 (*** commutativity ***)
-Theorem ctxr_comm `{Σ : GRA} (ma mb : HMod.t) P:
-  ctx_refines (HMod.add ma mb, P) (HMod.add mb ma, P).
+Theorem ctxr_comm `{Σ : GRA} (ma mb : Mod.t) P:
+  ctx_refines (Mod.add ma mb, P) (Mod.add mb ma, P).
 Proof.
   etrans.
   { eapply (ctxr_cond_strengthen _ ((emp ∗ P)%I)). eauto. }
   etrans.
-  { eapply ctxr_cond_frameR, main_adequacy, hmod_add_comm. }
+  { eapply ctxr_cond_frameR, main_adequacy, mod_add_comm. }
   eapply (ctxr_cond_strengthen _ P). i. iIntros "(H & H')". iFrame.
 Qed.
 
@@ -292,8 +292,8 @@ Qed.
 Lemma ctxr_frameR `{Σ : GRA} ms Ps mt Pt mc (REFA : ctx_refines (ms, Ps) (mt, Pt)) :
   ctx_refines (ms ★ mc, Ps) (mt ★ mc, Pt).
 Proof.
-  intro. specialize (REFA (HMod.add mc ctx.1, ctx.2)). ss.
-  move: REFA; rewrite !hmod_add_assoc; eauto.
+  intro. specialize (REFA (Mod.add mc ctx.1, ctx.2)). ss.
+  move: REFA; rewrite !mod_add_assoc; eauto.
 Qed.
 
 Lemma ctxr_frameL `{Σ : GRA} ms Ps mt Pt mc (REFA : ctx_refines (ms, Ps) (mt, Pt)) :
@@ -328,9 +328,9 @@ Proof.
   etrans.
   { eapply ctxr_frameL, ctxr_comm. }
   etrans.
-  { rewrite <-hmod_add_assoc.
+  { rewrite <-mod_add_assoc.
     eapply ctxr_frameR, ctxr_cond_frameR. apply REFA. }
-  rewrite hmod_add_assoc.
+  rewrite mod_add_assoc.
   apply ctxr_frameL, ctxr_comm.
 Qed.
 
@@ -342,16 +342,16 @@ Corollary ctxr_compose_hor_simplR `{Σ : GRA} msa mta msb mtb P Pa
   ctx_refines (msa ★ msb, Pa)%I
               (mta ★ mtb, P)%I.
 Proof.
-  rewrite -(hmod_addc_empty_r _ P) -(hmod_addc_empty_r _ Pa).
+  rewrite -(mod_addc_empty_r _ P) -(mod_addc_empty_r _ Pa).
   eapply ctxr_compose_hor; et.
 Qed.
 
-Corollary ctxr_cond_frameR_simpl `{Σ : GRA} (ms mt : HMod.t) P Q
+Corollary ctxr_cond_frameR_simpl `{Σ : GRA} (ms mt : Mod.t) P Q
   (REF : ctx_refines (ms, P) (mt, emp%I))
   :
   ctx_refines (ms, P ∗ Q)%I (mt, Q)%I.
 Proof.
-  rewrite -(hmod_addc_empty_l _ Q).
+  rewrite -(mod_addc_empty_l _ Q).
   eapply ctxr_cond_frameR. et.
 Qed.
 
@@ -360,14 +360,14 @@ Qed.
  *******)
 
 Ltac ctxr_norm :=
-  try rewrite <-!hmod_add_assoc;
-  try rewrite ->!hmod_add_assoc;
-  (hrepeat do 1 first [rewrite !hmod_addc_empty_l|rewrite !hmod_addc_empty_r]);
+  try rewrite <-!mod_add_assoc;
+  try rewrite ->!mod_add_assoc;
+  (hrepeat do 1 first [rewrite !mod_addc_empty_l|rewrite !mod_addc_empty_r]);
   try(try (match goal with [|-_ (_,emp%I)] => fail 2 end);
       eapply ctxr_cond_frameR_simpl).
 
 Ltac _ctxr_swap :=
-  try (rewrite -hmod_add_assoc; eapply ctxr_compose_hor_simplR; [|refl]);
+  try (rewrite -mod_add_assoc; eapply ctxr_compose_hor_simplR; [|refl]);
   eapply ctxr_comm.
 
 Ltac ctxr_swap :=

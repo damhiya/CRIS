@@ -1,5 +1,5 @@
 Require Export Common.
-Require Export SMod HMod.
+Require Export SMod Mod.
 Require Import ImpPrelude.
 
 Module SchHdr.

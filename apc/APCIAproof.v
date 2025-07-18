@@ -19,7 +19,7 @@ Module APCIA. Section APCIA.
   Local Transparent _APC.
 
   Lemma simF_apc :
-    HSim.sim_fun open APCAMod APCIMod APCA.init_cond Ist (Some APCHdr.apc).
+    ISim.sim_fun open APCAMod APCIMod APCA.init_cond Ist (Some APCHdr.apc).
   Proof using _crisG.
     init_simF.
     
@@ -30,7 +30,7 @@ Module APCIA. Section APCIA.
     Unshelve. all: ss.
   Qed.
 
-  Theorem sim : HSim.t open APCAMod APCIMod emp%I Ist.
+  Theorem sim : ISim.t open APCAMod APCIMod emp%I Ist.
   Proof using _crisG.
     init_sim.
     - eauto.

@@ -234,7 +234,7 @@ Module MemP. Section MemP.
 
   Definition init_cond csl genv : iProp Σ := mem_init_auth csl genv.
 
-  Definition t := Seal.sealing CRIS (SMod.to_hmod sp_none Mod).
+  Definition t := Seal.sealing CRIS (SMod.to_mod sp_none Mod).
 
 End MemP. End MemP.
 
@@ -272,6 +272,6 @@ Module MemA. Section MemA.
 
   Definition init_cond csl genv : iProp Σ := mem_init_auth csl genv.
 
-  Definition t sp := Seal.sealing CRIS (SMod.to_hmod sp Mod).
+  Definition t sp := Seal.sealing CRIS (SMod.to_mod sp Mod).
 
 End MemA. End MemA.

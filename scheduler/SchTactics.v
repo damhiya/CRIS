@@ -1,4 +1,5 @@
-(* Require Import CRIS SchHeader SchA.
+(*
+Require Import CRIS SchHeader SchA.
 Require Import ITactics.
 
 Section wsim.
@@ -9,14 +10,14 @@ Section wsim.
   Local Definition state : Type := alist key Any.t.
   Local Definition post (R_s R_t : Type) : Type := nat → state * R_s → state * R_t → iProp Σ.
   Local Definition rel : Type := ∀ R_s R_t : Type,
-    post R_s R_t → bool → bool → nat → state * itree hmodE R_s → state * itree hmodE R_t → iProp Σ.
+    post R_s R_t → bool → bool → nat → state * itree crisE R_s → state * itree crisE R_t → iProp Σ.
 
   Implicit Types r g : rel.
   Implicit Types ps pt : bool.
   Implicit Types nths : nat.
   Implicit Types E : coPset.
 
-  Context (fl_s fl_t : alist string (Any.t → itree hmodE Any.t)).
+  Context (fl_s fl_t : alist string (Any.t → itree crisE Any.t)).
   Context (Ist : nat → alist key Any.t → alist key Any.t → iProp Σ).
   Context (t : option bool).
   Context (R_s R_t : Type).
@@ -314,4 +315,5 @@ Ltac sch_spawn :=
   norm with (do 1 (iApply wsim_spawn; try solve_sch_sp; try prove_sb_cond)).
 
 Ltac sch_join :=
-  norm with (do 1 (iApply wsim_join; try solve_sch_sp; try prove_sb_cond)). *)
+  norm with (do 1 (iApply wsim_join; try solve_sch_sp; try prove_sb_cond)).
+*)

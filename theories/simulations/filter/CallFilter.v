@@ -1,44 +1,43 @@
 Require Import Common.
 From iris.proofmode Require Export proofmode.
-Require Import Mod ModSim SimGTactics HMod ISim ISimInit.
+Require Import LMod LSim MSim GSim GSimFacts GSimTactics Mod ISim ISimInit.
 Require Export CtxRefine CtxRefineFacts ClosedAdequacy MainAdequacy.
 Require Import TacticsInit Tactics.
-Require Import HModSim SimGlobal SimGlobalFacts.
 
 Module CFilter. Section CFilter.
   Context `{Σ: GRA}.
 
-  Program Definition filter mask (m: HMod.t) : HMod.t :=
-    {|HMod.scopes := m.(HMod.scopes)
-    ; HMod.fnsems := List.map (map_snd (map_fst (map_fst (map_snd (wmask_and mask))))) m.(HMod.fnsems)
-    ; HMod.initial_st := m.(HMod.initial_st)
+  Program Definition filter mask (m: Mod.t) : Mod.t :=
+    {|Mod.scopes := m.(Mod.scopes)
+    ; Mod.fnsems := List.map (map_snd (map_fst (map_fst (map_snd (wmask_and mask))))) m.(Mod.fnsems)
+    ; Mod.initial_st := m.(Mod.initial_st)
     |}.
   Next Obligation.
-    ii. eapply (m.(HMod.well_scoped_fns) fn). unfold fnsems_scopes in *.
+    ii. eapply (m.(Mod.well_scoped_fns) fn). unfold fnsems_scopes in *.
     rewrite !alist_find_map_snd in H.
     destruct (alist_find _ ); ss. destruct p as [[[img msk] scp] bd]. et.
   Qed.
-  Next Obligation. ii. eapply (m.(HMod.well_scoped_init)). eauto. Qed.
-  Next Obligation. ii. eapply (m.(HMod.nodup_init)). eauto. Qed.
+  Next Obligation. ii. eapply (m.(Mod.well_scoped_init)). eauto. Qed.
+  Next Obligation. ii. eapply (m.(Mod.nodup_init)). eauto. Qed.
 
   (* Lemmas *)
 
   Lemma filter_app m1 m2 msk:
     CFilter.filter msk (m1 ★ m2) = CFilter.filter msk m1 ★ CFilter.filter msk m2.
   Proof.
-    destruct m1, m2. eapply hmod_extensionality; s; et.
+    destruct m1, m2. eapply mod_extensionality; s; et.
     rewrite /map_fst /map_snd !List.map_app. et.
   Qed.
 
   (* Key theorems *)
 
-  Lemma sim_filter_intro mask (m: HMod.t):
-    HSim.t open (filter mask m) m emp%I IstEq.
+  Lemma sim_filter_intro mask (m: Mod.t):
+    ISim.t open (filter mask m) m emp%I IstEq.
   Proof using.
-    assert (SIM: ∀ img msk scp ps pt nths st (itr: itree hmodE Any.t),
+    assert (SIM: ∀ img msk scp ps pt nths st (itr: itree crisE Any.t),
     ⊢ isim open
-      (map (map_snd SB.sandbox_body) (HMod.fnsems (filter mask m)))
-      (map (map_snd SB.sandbox_body) (HMod.fnsems m)) IstEq ibot ibot
+      (map (map_snd SB.sandbox_body) (Mod.fnsems (filter mask m)))
+      (map (map_snd SB.sandbox_body) (Mod.fnsems m)) IstEq ibot ibot
       (ist_with_eq IstEq) ps pt nths
       (st, SB.sandbox img (wmask_and mask msk) scp itr)
       (st, SB.sandbox img msk scp itr)).
@@ -108,15 +107,15 @@ Module CFilter. Section CFilter.
     + i. iIntros "%". des; subst. iSplit; et. destruct fn; et.
   (*SLOW*)Qed.
   
-  Lemma sim_filter_elim (mask:_→bool) (m: HMod.t)
-    (SUB: ∀fn, In (Some fn) (List.map fst m.(HMod.fnsems)) → mask fn)
+  Lemma sim_filter_elim (mask:_→bool) (m: Mod.t)
+    (SUB: ∀fn, In (Some fn) (List.map fst m.(Mod.fnsems)) → mask fn)
     :
-    HSim.t closed m (filter mask m) emp%I IstEq.
+    ISim.t closed m (filter mask m) emp%I IstEq.
   Proof using.
-    assert (SIM: ∀ img msk scp ps pt nths st (itr: itree hmodE Any.t),
+    assert (SIM: ∀ img msk scp ps pt nths st (itr: itree crisE Any.t),
     ⊢ isim closed
-      (map (map_snd SB.sandbox_body) (HMod.fnsems m))
-      (map (map_snd SB.sandbox_body) (HMod.fnsems (filter mask m)))
+      (map (map_snd SB.sandbox_body) (Mod.fnsems m))
+      (map (map_snd SB.sandbox_body) (Mod.fnsems (filter mask m)))
       IstEq ibot ibot
       (ist_with_eq IstEq) ps pt nths
       (st, SB.sandbox img msk scp itr)
@@ -198,28 +197,28 @@ Module CFilter. Section CFilter.
   (*SLOW*)Qed.
 
   (*** introduction of a module ***)
-  Theorem intro_filter fns (m: HMod.t) P:
+  Theorem intro_filter fns (m: Mod.t) P:
     ctx_refines (filter fns m, P)%I (m, P)%I.
   Proof.
-    rewrite -!(hmod_addc_empty_r _ P).
+    rewrite -!(mod_addc_empty_r _ P).
     eapply ctxr_cond_frameL.
     eapply main_adequacy, sim_filter_intro.
   Qed.
 
   (*** elimination of a module ***)
-  Theorem elim_filter (mask:_→bool) (m: HMod.t) P
-    (SUB: ∀fn, In (Some fn) (List.map fst m.(HMod.fnsems)) → mask fn)
+  Theorem elim_filter (mask:_→bool) (m: Mod.t) P
+    (SUB: ∀fn, In (Some fn) (List.map fst m.(Mod.fnsems)) → mask fn)
     :
     refines (m, P)%I (filter mask m, P)%I.
   Proof.
-    eapply closed_adequacy2, sim_filter_elim. eauto.
+    eapply closed_adequacy_emp, sim_filter_elim. eauto.
   Qed.
 
   (*** elimination of a module ***)
   Theorem elim_module mc P:
     ctx_refines (⌽, P) (mc, P).
   Proof using.
-    do 2 rewrite -(hmod_addc_empty_l _ P).
+    do 2 rewrite -(mod_addc_empty_l _ P).
     eapply ctxr_cond_frameR.
     eapply main_adequacy with (Ist := fun _ _ _ => emp%I).
     clear_trivials.
@@ -228,11 +227,11 @@ Module CFilter. Section CFilter.
 
   (*** introduction of a module ***)
   Theorem intro_module (mask:_→bool) m mc P
-    (WF: HMod.wf mc)
-    (SUB: ∀fn, In (Some fn) (List.map fst m.(HMod.fnsems)) → mask fn)
-    (FRESH: ∀fn, In (Some fn) (List.map fst mc.(HMod.fnsems)) → (~ mask fn))
-    (FRESHI: ~ In None (List.map fst mc.(HMod.fnsems)))
-    (DISJ: List.NoDup (m.(HMod.scopes) ++ mc.(HMod.scopes)))
+    (WF: Mod.wf mc)
+    (SUB: ∀fn, In (Some fn) (List.map fst m.(Mod.fnsems)) → mask fn)
+    (FRESH: ∀fn, In (Some fn) (List.map fst mc.(Mod.fnsems)) → (~ mask fn))
+    (FRESHI: ~ In None (List.map fst mc.(Mod.fnsems)))
+    (DISJ: List.NoDup (m.(Mod.scopes) ++ mc.(Mod.scopes)))
     :
     refines ((filter mask m) ★ mc, P)%I (filter mask m, P)%I .
   Proof using.
@@ -248,11 +247,11 @@ Module CFilter. Section CFilter.
 
     s. i. exists rs. esplits; eauto.
     cut (∀ ps pt arg,
-         simg eq ps pt (Mod.compile (HMod.to_mod (filter mask m ★ mc) rs) arg)
-           (Mod.compile (HMod.to_mod (filter mask m) rs) arg)).
-    { ii. eapply adequacy_global; et. }
+         gsim eq ps pt (LMod.compile (Mod.to_lmod (filter mask m ★ mc) rs) arg)
+           (LMod.compile (Mod.to_lmod (filter mask m) rs) arg)).
+    { ii. eapply gsim_adequacy; et. }
 
-    i. ginit. rewrite /Mod.compile. s.
+    i. ginit. rewrite /LMod.compile. s.
     rewrite !map_app alist_find_app_o !alist_find_map_snd.
     destruct (alist_find _ _) eqn: E; cycle 1.
     { s. destruct (alist_find _ (_ mc)) eqn: E0.
@@ -261,31 +260,31 @@ Module CFilter. Section CFilter.
     }
 
     s. ired.
-    rewrite /ModTr.trans /ModTr.interp_callE /HModTr.trans_ktree /SB.sandbox_body.
+    rewrite /LModTr.trans /LModTr.interp_callE /ModTr.trans_ktree /SB.sandbox_body.
     erewrite <-(bind_ret_r (ITree.map snd _)), (bisim_is_eq (bind_map _ _ _)).
     erewrite <-(bind_ret_r (ITree.map snd _)), (bisim_is_eq (bind_map _ _ _)).
     
     match goal with
-      [|-context [HModTr.trans ?t]] => remember [HModTr.trans t] as ths
+      [|-context [ModTr.trans ?t]] => remember [ModTr.trans t] as ths
     end.
     destruct p as [[[img msk] sc] bd].
     assert(WFTHS:
       ∀ tid t (IN: ths !! tid = Some t),
-      ∃ ht, t = HModTr.trans (SB.sandbox true mask m.(HMod.scopes) ht)).
+      ∃ ht, t = ModTr.trans (SB.sandbox true mask m.(Mod.scopes) ht)).
     { i. subst. destruct tid; ss. inv IN.
       esplits. erewrite sandbox_sandbox; et; try refl.
       - ii. eapply andb_prop in H. des. et.
-      - etrans; [|eapply HMod.well_scoped_fns; et].
+      - etrans; [|eapply Mod.well_scoped_fns; et].
         rewrite /fnsems_scopes. instantiate (1:= None). rewrite E. refl.
     }
     clear Heqths.
     generalize 0 as cid.
     rename rs into rs0.
     generalize rs0 at 2 4 as rs.
-    assert (SCP := m.(HMod.well_scoped_init)). revert SCP.
-    generalize (HMod.initial_st m) as st.
-    assert (SCPc := mc.(HMod.well_scoped_init)). revert SCPc.
-    generalize (HMod.initial_st mc) as stc.
+    assert (SCP := m.(Mod.well_scoped_init)). revert SCP.
+    generalize (Mod.initial_st m) as st.
+    assert (SCPc := mc.(Mod.well_scoped_init)). revert SCPc.
+    generalize (Mod.initial_st mc) as stc.
     generalize (eq_refl ths) as Heqths.
     generalize ths at 1 3 as ths0.
     revert_until SRC.
@@ -394,14 +393,14 @@ Module CFilter. Section CFilter.
       rewrite alist_find_map_snd /o_map in Heq. des_ifs.
       destruct p as [[[img1 msk1] sc1] bd1]. s.
 
-      esplits. rewrite /SB.sandbox_body /HModTr.trans_ktree.
-      erewrite SBRed.bind, HRed.bind, sandbox_sandbox; s.
+      esplits. rewrite /SB.sandbox_body /ModTr.trans_ktree.
+      erewrite SBRed.bind, Red.bind, sandbox_sandbox; s.
       - f_equal. extensionalities.
-        erewrite SBRed.tau, HRed.tau.
+        erewrite SBRed.tau, Red.tau.
         do 2 f_equal. ired. erewrite sandbox_sandbox; ii; et; try refl.
       - et.
       - ii. eapply andb_prop in H. des; et.
-      - s. etrans; [|eapply HMod.well_scoped_fns].
+      - s. etrans; [|eapply Mod.well_scoped_fns].
         unfold fnsems_scopes. instantiate (1:=Some fn). rewrite Heq0. refl.
     }
     { (* Spawn *)
@@ -427,10 +426,10 @@ Module CFilter. Section CFilter.
       
       subst. rewrite !alist_find_map /o_map in Heq0. des_ifs.
       destruct p as [[[img1 msk1] sc1] bd1]. s.
-      esplits. unfold SB.sandbox_body, HModTr.trans_ktree. s.
+      esplits. unfold SB.sandbox_body, ModTr.trans_ktree. s.
       erewrite <-sandbox_sandbox; try refl.
       - ii. apply andb_prop in H. des; et.
-      - etrans; [|eapply HMod.well_scoped_fns].
+      - etrans; [|eapply Mod.well_scoped_fns].
         unfold fnsems_scopes. instantiate (1:=Some fn). rewrite Heq0. refl.
     }
     { (* Yield *)
@@ -441,12 +440,12 @@ Module CFilter. Section CFilter.
     }
     { (* Put *)
       destruct k0 as [key var]. s.
-      destruct (existsb (String.eqb key) (HMod.scopes m)) eqn: Heq; cycle 1.
+      destruct (existsb (String.eqb key) (Mod.scopes m)) eqn: Heq; cycle 1.
       { zstep_l. }
       zstep_l. zstep_r.
       ziter_l. zstep_l.
       ziter_r. zstep_r.
-      rewrite !HModTr.alist_encode_decode.
+      rewrite !ModTr.alist_encode_decode.
       rewrite alist_upd_not_tail; cycle 1.
       { eapply existsb_exists in Heq. des. eapply String.eqb_eq in Heq0; subst.
         ii. eapply NoDup_app_disjoint; et.
@@ -462,10 +461,10 @@ Module CFilter. Section CFilter.
     }
     { (* Get *)
       destruct k0 as [key var]. s.
-      destruct (existsb (String.eqb key) (HMod.scopes m)) eqn: Heq; cycle 1.
+      destruct (existsb (String.eqb key) (Mod.scopes m)) eqn: Heq; cycle 1.
       { zstep_l. }
       zstep_l. zstep_r. s. ired.   
-      rewrite !HModTr.alist_encode_decode.
+      rewrite !ModTr.alist_encode_decode.
       rewrite alist_find_app_o (alist_find_fst_notin _ stc); cycle 1.
       { eapply existsb_exists in Heq. des. eapply String.eqb_eq in Heq0; subst.
         ii. eapply (List.in_map fst) in H. ss.

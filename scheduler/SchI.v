@@ -15,7 +15,7 @@ Module SchI. Section SchI.
   Definition v_tid := "Sch" ↯ "tid".
   Definition v_tids := "Sch" ↯ "tids".
 
-  Definition _spawn (check_internal : itree hmodE unit) : (nat * string * SAny.t) -> itree hmodE unit
+  Definition _spawn (check_internal : itree crisE unit) : (nat * string * SAny.t) -> itree crisE unit
     :=
     fun '(my_tid, fn, arg) =>
       (* check internal state (only for SRC) *)
@@ -32,7 +32,7 @@ Module SchI. Section SchI.
       Sch.terminate
   .
 
-  Definition spawn : (string * SAny.t) -> itree hmodE nat :=
+  Definition spawn : (string * SAny.t) -> itree crisE nat :=
     fun '(fn, arg) =>
       (* get internal states *)
       'ths: thslist <- cgetU v_ths;;
@@ -51,7 +51,7 @@ Module SchI. Section SchI.
       Ret new_mtid
   .
 
-  Definition yield (trigger_yield : nat -> itree hmodE unit): unit -> itree hmodE unit :=
+  Definition yield (trigger_yield : nat -> itree crisE unit): unit -> itree crisE unit :=
     fun _ =>
       'tids: tidslist <- cgetU v_tids;;
       (* choose one of the tids which is managed by scheduler *)
@@ -59,7 +59,7 @@ Module SchI. Section SchI.
       trigger_yield ntid
   .
 
-  Definition join: nat -> itree hmodE (option SAny.t) :=
+  Definition join: nat -> itree crisE (option SAny.t) :=
     fun tid =>
       (* possibly infinite loop while waiting for the thread to terminate *)
       orv <- (iterC (fun _ =>
@@ -75,16 +75,16 @@ Module SchI. Section SchI.
       Ret orv
   .
 
-  Definition get_tid: unit -> itree hmodE nat :=
+  Definition get_tid: unit -> itree crisE nat :=
     fun _ =>
       'my_tid : nat <- cgetU v_tid;;
       Ret my_tid
   .
 
-  Definition check_internal : itree hmodE unit := Ret tt. (* skip *)
+  Definition check_internal : itree crisE unit := Ret tt. (* skip *)
 
   (* provide conversion between module-tid and system-tid *)
-  Definition trigger_Yield (nxt_mtid : nat) : itree hmodE unit :=
+  Definition trigger_Yield (nxt_mtid : nat) : itree crisE unit :=
     'my_tid : nat <- cgetU v_tid;;
     'tids : tidslist <- cgetU v_tids;;
     match nth_error tids nxt_mtid with
@@ -111,6 +111,6 @@ Module SchI. Section SchI.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition t := Seal.sealing CRIS (SMod.to_hmod sp_none Mod).
+  Definition t := Seal.sealing CRIS (SMod.to_mod sp_none Mod).
 
 End SchI. End SchI.

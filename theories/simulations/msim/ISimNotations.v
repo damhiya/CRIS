@@ -1,7 +1,7 @@
 Require Import Common.
 From iris.proofmode Require Import coq_tactics environments.
 
-Require Export HModSim ISim.
+Require Export MSim ISim.
 
 Global Arguments Envs _ _%_proof_scope _%_proof_scope _.
 Global Arguments Enil {_}.

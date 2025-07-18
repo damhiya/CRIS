@@ -29,5 +29,5 @@ Module APCC. Section APCC.
 
   Definition init_cond : iProp Σ := emp%I.
 
-  Definition t Sp := Seal.sealing CRIS (SMod.to_hmod Sp Mod).
+  Definition t Sp := Seal.sealing CRIS (SMod.to_mod Sp Mod).
 End APCC. End APCC.

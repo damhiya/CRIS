@@ -1,12 +1,6 @@
-Require Import Common.
-From iris.proofmode Require Import proofmode.
-Require Import SModTr HModTr ModTr SMod HMod Mod.
-Require Import ITactics TacticsCommon SimGlobal SimGlobalFacts CtxRefine ClosedAdequacy.
-Require Import HModInline HModInlineIntro HModInlineElim ElimRel.
-Require Import SimGlobal SimGTactics.
-
-Hint Resolve cpn4_wcompat: paco.
-Hint Resolve elim_rel_def_mon: paco.
+Require Import CRIS.
+Require Import LMod LModTr GSim GSimFacts GSimTactics.
+Require Import MInline MInlineIntro MInlineElim ElimRel.
 
 Lemma cancel_spawn `{Σ : GRA} md sp fn args img0 :
   (img0 = false → fspec_imply (fspec_flat (sp fn)) fspec_trivial) →
@@ -19,7 +13,7 @@ Proof.
   ziter_l. ziter_r. rewrite x0 x1 /=. zstep_l.
   rewrite !alist_find_map_snd.
   destruct (alist_find (Some fn) (SMod.fnsems md)) eqn: FIND; rewrite !FIND; cycle 1.
-  { s. czstep_l. }
+  { s. zstep_l. }
   destruct f as [[[img msk] scp] [fspo bd]].
   assert (WFSCP: incl scp (SMod.scopes md)).
   { etrans; [|apply SMod.well_scoped_fns].
@@ -28,18 +22,18 @@ Proof.
 
   destruct ((if img0 then sp else sp_none) fn) eqn: E; s.
   { (* the spawnee has a non-trivial spec *)
-    ired. ziter_l. czstep_l.
-    do 2 czstep_r.
-    ziter_r; czstep_r.
-    ziter_r; do 2 czstep_r.
-    ziter_r; czstep_r.
-    ziter_r; czstep_r. ired.
-    ziter_r; do 2 czstep_r.
-    ziter_r; do 2 czstep_r.
-    ziter_r; czstep_r. ziter_r; czstep_r.
-    ziter_r; czstep_r. ziter_r; czstep_r.
+    ired. ziter_l. zstep_l.
+    do 2 zstep_r.
+    ziter_r; zstep_r.
+    ziter_r; do 2 zstep_r.
+    ziter_r; zstep_r.
+    ziter_r; zstep_r. ired.
+    ziter_r; do 2 zstep_r.
+    ziter_r; do 2 zstep_r.
+    ziter_r; zstep_r. ziter_r; zstep_r.
+    ziter_r; zstep_r. ziter_r; zstep_r.
     rewrite !alist_find_map_snd FIND /=. ired.
-    ziter_r; czstep_r.
+    ziter_r; zstep_r.
     zprogress. gbase.
     des; hexploit (Own_bupd_split); first (eapply bi.wand_entails; eauto).
     { eapply Own_wand_valid; [iIntros "X"; iMod (RS with "X") as "[? $]"; done|]; done. }
@@ -62,8 +56,8 @@ Proof.
       subst; rewrite list_lookup_length EQLEN list_lookup_length -EQLEN -EQLEN2 list_lookup_length.
       do 3 (intros INV; inv INV).
 
-      rewrite /HModTr.trans_ktree !sandbox_inline_commute /SB.sandbox_body //=.
-      rewrite (HIRed_HoareFun _ _ fn) //= if_simpl SBRed.tau HIRed.tau.
+      rewrite /ModTr.trans_ktree !sandbox_inline_commute /SB.sandbox_body //=.
+      rewrite (MIRed_HoareFun _ _ fn) //= if_simpl SBRed.tau MIRed.tau.
       hexploit (VP1 fn); rewrite FIND /=; revert E; destruct img0; ss; intros ->; ss; intros Himp.
       hexploit (Himp x); intros [x' [PRE ?]].
       eapply thread_rel_spawn; eauto.
@@ -88,8 +82,8 @@ Proof.
         rewrite interpV_bind.
         (* Set Printing All. *)
         instantiate (1:= λ x,
-          vret <- interpV HModTr.handle_hmodE (inline_body (sandboxed_prog (SMod.to_hmod sp md)) (SB.sandbox img msk scp (SModTr.trans (if img then sp else sp_none) (bd x.2))));;
-          interpV HModTr.handle_hmodE (elim_spawnee_postcond (fspo_post fspo) x.1 vret)).
+          vret <- interpV ModTr.handle_hmodE (inline_body (sandboxed_prog (SMod.to_hmod sp md)) (SB.sandbox img msk scp (SModTr.trans (if img then sp else sp_none) (bd x.2))));;
+          interpV ModTr.handle_hmodE (elim_spawnee_postcond (fspo_post fspo) x.1 vret)).
         ss.
       }
         subst ktr.
@@ -114,10 +108,10 @@ Proof.
     iIntros "> [$ > [$ $]]"; done.
   } *)
   { (* fn has a trivial spec in sp *)
-    ired. czstep_r.
-    ziter_l; czstep_l.
+    ired. zstep_r.
+    ziter_l; zstep_l.
     rewrite !alist_find_map_snd FIND /=; ired.
-    ziter_r; czstep_r.
+    ziter_r; zstep_r.
     zprogress. gbase.
     eapply CIH.
     { rewrite -!insert_app_l; try lia.
@@ -136,12 +130,12 @@ Proof.
       { rewrite ?lookup_ge_None_2; ss; rewrite ?length_app /=; lia. }
       subst; rewrite list_lookup_length EQLEN list_lookup_length -EQLEN -EQLEN2 list_lookup_length.
       do 3 (intros INV; inv INV).
-      rewrite /HModTr.trans_ktree !sandbox_inline_commute /SB.sandbox_body //=.
-      rewrite (HIRed_HoareFun _ _ fn) //= if_simpl SBRed.tau HIRed.tau.
+      rewrite /ModTr.trans_ktree !sandbox_inline_commute /SB.sandbox_body //=.
+      rewrite (MIRed_HoareFun _ _ fn) //= if_simpl SBRed.tau MIRed.tau.
       (* econs; eauto; cycle 1.
       { rewrite bind_ret_r //. } *)
       (* rewrite !sandbox_inline_commute //.
-      rewrite !if_simpl /SB.sandbox_body /= (HIRed_HoareFun _ _ fn) //. *)
+      rewrite !if_simpl /SB.sandbox_body /= (MIRed_HoareFun _ _ fn) //. *)
 
       assert (Himpl : fspec_imply (fspec_flat fspo) fspec_trivial).
       { hexploit (VP1 fn); rewrite FIND /=; intros Himpl.

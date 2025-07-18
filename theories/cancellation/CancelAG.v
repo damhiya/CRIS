@@ -1,27 +1,24 @@
-Require Import Common.
-From iris.proofmode Require Import proofmode.
-Require Import SModTr HModTr ModTr SMod HMod Mod.
-Require Import ITactics TacticsCommon SimGlobal SimGlobalFacts CtxRefine ClosedAdequacy.
-Require Import HModInline HModInlineIntro HModInlineElim ElimRel.
-Require Import SimGlobal SimGTactics.
+Require Import CRIS.
+Require Import LMod LModTr GSim GSimFacts GSimTactics.
+Require Import MInline MInlineIntro MInlineElim ElimRel.
 
 Lemma cancel_ag `{Σ: GRA} md sp R (e : agE R):
   CANCEL_GOAL md sp (trigger e) (trigger e).
 Proof.
   r; i. destruct e.
-  + ziter_l; rewrite x0 /=; czstep_l. ired.
-    ziter_r; rewrite x1 /=; czstep_r. ired. hss.
-    ziter_l; do 2 czstep_l; ziter_l; do 2 czstep_l.
-    ziter_l; czstep_l; ziter_l; czstep_l; des.
+  + ziter_l; rewrite x0 /=; zstep_l. ired.
+    ziter_r; rewrite x1 /=; zstep_r. ired. hss.
+    ziter_l; do 2 zstep_l; ziter_l; do 2 zstep_l.
+    ziter_l; zstep_l; ziter_l; zstep_l; des.
     hexploit (Own_bupd_split); first eapply bi.wand_entails; eauto.
     intros [x5 [x6 [Himpl [Hx5 Hx6]]]].
-    ziter_r; czstep_r; exists (r_t ⋅ x5). czstep_r; ziter_r; czstep_r.
-    eexists; czstep_r; ziter_r; czstep_r; ziter_r; czstep_r.
+    ziter_r; zstep_r; exists (r_t ⋅ x5). zstep_r; ziter_r; zstep_r.
+    eexists; zstep_r; ziter_r; zstep_r; ziter_r; zstep_r.
     eapply KEY; des; eauto.
     { rewrite list_insert_id //= Himpl Own_op. iIntros "> [$ X]"; rewrite Hx6 RS //. }
     { econs; eauto; eapply KTR. }
-  + ziter_r; rewrite x1 /=; czstep_r; ired; hss.
-    ziter_r; do 2 czstep_r; ziter_r; czstep_r; czstep_r; ziter_r; do 2 czstep_r.
+  + ziter_r; rewrite x1 /=; zstep_r; ired; hss.
+    ziter_r; do 2 zstep_r; ziter_r; zstep_r; zstep_r; ziter_r; do 2 zstep_r.
     hexploit (Own_bupd_split); first (eapply RS); eauto.
     intros [r_s1 [r_s2 [Hr_S [Hr_s1 Hr_s2]]]].
     hexploit (Own_bupd_split); first eapply bi.wand_entails, x4.
@@ -29,24 +26,24 @@ Proof.
       hexploit Own_bupd_valid; eauto using cmra_valid_op_r.
     }
     intros [r_t1 [r_t2 [Hr_t [Hr_t1 Hr_t2]]]].
-    ziter_l; rewrite x0 /=. czstep_l; ired; hss.
-    ziter_l; czstep_l. exists x.
-    czstep_l; ziter_l; czstep_l.
-    exists (r_s1 ⋅ x3). czstep_l. ziter_l. czstep_l.
-    eexists. czstep_l. ziter_l. do 2 czstep_l. cziter_l. czstep_l.
-    ziter_l. czstep_l.
-    ziter_r. czstep_r. eexists. czstep_r. ziter_r; czstep_r. ziter_r; czstep_r.
+    ziter_l; rewrite x0 /=. zstep_l; ired; hss.
+    ziter_l; zstep_l. exists x.
+    zstep_l; ziter_l; zstep_l.
+    exists (r_s1 ⋅ x3). zstep_l. ziter_l. zstep_l.
+    eexists. zstep_l. ziter_l. do 2 zstep_l. ziter_l. zstep_l.
+    ziter_l. zstep_l.
+    ziter_r. zstep_r. eexists. zstep_r. ziter_r; zstep_r. ziter_r; zstep_r.
     eapply KEY; eauto.
     { rewrite list_insert_id // ?Own_op Hr_s1; iIntros "[$ [$ $]]"; done. }
     { econs; eauto; eapply KTR. }
-  + ziter_r; rewrite x1 /=; czstep_r; ired; hss.
-    ziter_r; do 2 czstep_r. ziter_r; do 2 czstep_r.
-    ziter_r; czstep_r. ziter_r; czstep_r.
+  + ziter_r; rewrite x1 /=; zstep_r; ired; hss.
+    ziter_r; do 2 zstep_r. ziter_r; do 2 zstep_r.
+    ziter_r; zstep_r. ziter_r; zstep_r.
     hexploit Own_bupd_split; eauto; intros [r_s1 [r_s2 [Hr_s [Hr_s1 Hr_s2]]]].
-    ziter_l; rewrite x0 /=; czstep_l; ired; hss.
-    ziter_l; czstep_l; exists (r_s1 ⋅ x).
-    czstep_l. ziter_l; czstep_l; eexists; czstep_l.
-    ziter_l; czstep_l. ziter_l; czstep_l.
+    ziter_l; rewrite x0 /=; zstep_l; ired; hss.
+    ziter_l; zstep_l; exists (r_s1 ⋅ x).
+    zstep_l. ziter_l; zstep_l; eexists; zstep_l.
+    ziter_l; zstep_l. ziter_l; zstep_l.
     eapply KEY; eauto.
     { eapply Own_wand_valid.
       { rewrite Own_op. iIntros "X"; iMod (Hr_s with "X") as "[$ X2]".

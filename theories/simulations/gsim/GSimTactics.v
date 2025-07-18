@@ -1,6 +1,6 @@
 Require Import Common.
-Require Import Mod ModSim.
-Require Import SimGlobal SimGlobalFacts.
+Require Import LMod LSim.
+Require Import GSim GSimFacts.
 
 Definition ztac_id {X: Type} (x: X) : X := x.
 Global Opaque ztac_id.
@@ -69,31 +69,31 @@ Ltac zlookup_insert_ne :=
 
 Ltac ziter :=
   rewrite unfold_iterV; ired;
-  try rewrite /ModTr.interp_stateE;
-  try rewrite /ModTr.pure_state;
+  try rewrite /LModTr.interp_stateE;
+  try rewrite /LModTr.pure_state;
   zsimpl_lookup;
   zlookup_insert;
   zsimpl_ths;
   zss.
 
 Ltac zstep :=
-  ired; guclo simg_indC_spec; econs; et; i;
+  ired; guclo gsim_indC_spec; econs; et; i;
   zsimpl_ths;
   zss.
+
+Ltac zinst := try match goal with | |- smj => exact smj_top end.
 
 Ltac ziter_l := zonly_l; ziter; zshow.
 Ltac ziter_r := zonly_r; ziter; zshow.
 
-Ltac zstep_l := zonly_l; zstep; zshow.
-Ltac zstep_r := zonly_r; zstep; zshow.
+Ltac zostep_l := zonly_l; zstep; zshow.
+Ltac zostep_r := zonly_r; zstep; zshow.
+  
+Ltac zstep_l := unshelve zostep_l; zinst.
+Ltac zstep_r := unshelve zostep_r; zinst.
 
 Ltac zprogress :=
-  gstep; econs; eapply simg_progress; eauto using smj_lt_mid_top.
+  gstep; econs; eapply gsim_progress; eauto using smj_lt_mid_top.
 
 Tactic Notation "zprogress" "with" uconstr(ps0) uconstr(pt0) uconstr(ps) uconstr(pt) :=
-  gstep; econs; eapply (simg_progress _ _ _ ps pt ps0 pt0); eauto.
-
-Ltac cziter_r := unshelve ziter_r; try match goal with | |- smj => exact smj_top end.
-Ltac cziter_l := unshelve ziter_l; try match goal with | |- smj => exact smj_top end.
-Ltac czstep_r := unshelve zstep_r; try match goal with | |- smj => exact smj_top end.
-Ltac czstep_l := unshelve zstep_l; try match goal with | |- smj => exact smj_top end.
+  gstep; econs; eapply (gsim_progress _ _ _ ps pt ps0 pt0); eauto.

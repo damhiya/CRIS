@@ -1,5 +1,5 @@
 Require Import Common.
-Require Import ISim SMod SModTr HMod HModSim.
+Require Import ISim SMod SModTr Mod MSim.
 Require Import TacticsCommon.
 From iris.proofmode Require Import proofmode.
 From stdpp Require Import coPset.
@@ -74,7 +74,7 @@ Section wsim.
   Local Definition state : Type := alist key Any.t.
   Local Definition post (R_s R_t : Type) : Type := nat → state * R_s → state * R_t → iProp Σ.
   Local Definition rel : Type := ∀ R_s R_t : Type,
-    post R_s R_t → bool → bool → nat → state * itree hmodE R_s → state * itree hmodE R_t → iProp Σ.
+    post R_s R_t → bool → bool → nat → state * itree crisE R_s → state * itree crisE R_t → iProp Σ.
 
   Local Definition wsim_def fl_s fl_t Ist Ep r g R_s R_t RR ps pt nths st_s st_t : iProp Σ :=
     wsim_ginv Ep -∗
@@ -84,7 +84,7 @@ Section wsim.
   Local Definition wsim_eq : @wsim = @wsim_def := wsim_aux.(seal_eq).
   Local Ltac unseal := rewrite wsim_eq /wsim_def.
 
-  Context (fl_s fl_t : alist (option string) (Any.t → itree hmodE Any.t)).
+  Context (fl_s fl_t : alist (option string) (Any.t → itree crisE Any.t)).
   Context (Ist : ist_type Σ).
   Context (R_s R_t : Type).
 
@@ -743,7 +743,7 @@ Global Arguments wsim_own_alloc {_ _ _ _ _ _ _ _ _ _ _ _ _} _.
 Section Proph.
   Context `{!crisG Γ Σ α β τ _S _I}.
 
-  Context (fl_s fl_t : alist (option string) (Any.t → itree hmodE Any.t)).
+  Context (fl_s fl_t : alist (option string) (Any.t → itree crisE Any.t)).
   Context (Ist : ist_type Σ).
   Context (R_s R_t : Type).
 

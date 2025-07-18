@@ -2,8 +2,7 @@ From iris.proofmode Require Import proofmode.
 Require Import Common.
 Require Export LAuto.
 
-Require Import Sp Mod SMod HMod.
-Require Import HModSim.
+Require Import Sp Mod SMod LMod.
 
 (************ User Tactics **************)
 
@@ -28,7 +27,7 @@ Ltac inv_string X :=
   ss.
 
 Ltac prove_scope :=
-  try unfold HMod.fnsems; try unfold SMod.fnsems; try unfold fnsems_scopes;
+  try unfold Mod.fnsems; try unfold SMod.fnsems; try unfold fnsems_scopes;
   s; ii; des_ifs; ss; des; ss; eauto.
 
 Ltac prove_nodup :=
@@ -71,10 +70,10 @@ Ltac destruct_quant :=
 Definition CRIS := "cris".
 Global Opaque CRIS.
 
-Ltac unfold_hmod :=
+Ltac unfold_mod :=
   match goal with
   | [|-context[?x]] => 
-    match type of x with HMod.t =>
+    match type of x with Mod.t =>
       rewrite {1}/x; try unseal CRIS
     end
   end.
@@ -113,14 +112,14 @@ Ltac alist_upd_simpl :=
 
 Ltac move_aux :=
   (hrepeat do 1 match goal with [H: List.NoDup _ |- _ ] => guardH H; move H at top end);
-  (hrepeat do 1 match goal with [H: incl _ (HMod.scopes _ _) |- _] => guardH H; move H at top end);
-  (hrepeat do 1 match goal with [H: HMod.wf _ |- _ ] => guardH H; move H at top end);
+  (hrepeat do 1 match goal with [H: incl _ (Mod.scopes _ _) |- _] => guardH H; move H at top end);
+  (hrepeat do 1 match goal with [H: Mod.wf _ |- _ ] => guardH H; move H at top end);
   (hrepeat do 1 match goal with [H: ∀ _, sp_incl _ _ |- _ ] => guardH H; move H at top end);
-  (hrepeat do 1 match goal with [H:=_:list (_ * (Any.t -> itree hmodE Any.t)) |- _ ] => guardH H; move H at top end);
+  (hrepeat do 1 match goal with [H:=_:list (_ * (Any.t -> itree crisE Any.t)) |- _ ] => guardH H; move H at top end);
   unguard.
 
 Ltac fnsems_nodup H :=
-  revert H; simpl HMod.fnsems; (hrepeat do 1 unfold_hmod); simpl List.map;
+  revert H; simpl Mod.fnsems; (hrepeat do 1 unfold_mod); simpl List.map;
   try rewrite !List.map_map; try rewrite !fst_map_snd; eauto; fail.
 
 Ltac _alist_find_simpl :=
@@ -145,7 +144,7 @@ Tactic Notation "alist_find_simpl_with" tactic(simpl_tac) :=
     pattern (alist_find n x) at 1;
     match goal with [|- ?G _] => set (GOAL := G) end
   end;
-  simpl HMod.fnsems; (hrepeat do 1 unfold_hmod; simpl HMod.fnsems);
+  simpl Mod.fnsems; (hrepeat do 1 unfold_mod; simpl Mod.fnsems);
   simpl_tac;
   unfold GOAL; clear GOAL.
 
@@ -168,10 +167,10 @@ Ltac alist_find_simpl := alist_find_simpl_with (do 1 _alist_find_simpl).
                         | unwrapUK x k
                         | unwrapNK x k
                         | AssumeProphK Pre Post k
-                        | HModSB.putSB imports scopes k v cont
-                        | HModSB.getSB imports scopes k cont
-                        | HModSB.callSB imports scopes f a cont
-                        | HModSB.spawnSB imports scopes f a cont
+                        | SBRed.putSB imports scopes k v cont
+                        | SBRed.getSB imports scopes k cont
+                        | SBRed.callSB imports scopes f a cont
+                        | SBRed.spawnSB imports scopes f a cont
                         | s
  *)
 
@@ -518,7 +517,7 @@ Ltac show_until marker :=
   clear marker; i.
 
 Ltac prove_sub_perm :=  
-  i; try rewrite /HMod.scopes; s; (hrepeat do 1 unfold_hmod); s;
+  i; try rewrite /Mod.scopes; s; (hrepeat do 1 unfold_mod); s;
   match goal with
     [|-sub_perm ?x ?y] =>
       match x with
@@ -548,7 +547,7 @@ Ltac prove_inline_cond :=
   first [eassumption |
   match goal with [|- alist_find _ ?FL = _] =>
     rewrite /FL;
-    simpl HMod.fnsems; (hrepeat do 1 unfold_hmod);
+    simpl Mod.fnsems; (hrepeat do 1 unfold_mod);
     simpl List.map; alist_find_simpl; eauto
   end].
 

@@ -361,7 +361,7 @@ Module MemIP. Section MemIP.
 
   Local Definition MemP := (MemP.t).
   Local Definition MemI := (MemI.t csl genv).
-  Local Definition IstFull := (IstProd (IstSB MemP.(HMod.scopes) Ist) IstEq).
+  Local Definition IstFull := (IstProd (IstSB MemP.(Mod.scopes) Ist) IstEq).
 
   Definition mem_get (mem: _memRA) b ofs :=
     match or_else (mem b ofs) (to_frac_agree 1 Vundef) with
@@ -378,7 +378,7 @@ Module MemIP. Section MemIP.
     rewrite H0. et.
   Qed.
   
-  Lemma simF_alloc : HSim.sim_fun open MemP MemI (MemP.init_cond csl genv) IstFull (Some MemHdr.alloc).
+  Lemma simF_alloc : ISim.sim_fun open MemP MemI (MemP.init_cond csl genv) IstFull (Some MemHdr.alloc).
   Proof using.
     init_simF.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
@@ -424,7 +424,7 @@ Module MemIP. Section MemIP.
       des_ifs; bsimpl; destruct dec; des; subst; ss; rewrite right_id; eauto.
   (*SLOW*)Qed.
 
-  Lemma simF_free : HSim.sim_fun open MemP MemI (MemP.init_cond csl genv) IstFull (Some MemHdr.free).
+  Lemma simF_free : ISim.sim_fun open MemP MemI (MemP.init_cond csl genv) IstFull (Some MemHdr.free).
   Proof using.
     init_simF.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
@@ -453,7 +453,7 @@ Module MemIP. Section MemIP.
     - rewrite /update. ii. ss. destruct dec; ss; subst; et.
   (*SLOW*)Qed.
 
-  Lemma simF_load : HSim.sim_fun open MemP MemI (MemP.init_cond csl genv) IstFull (Some MemHdr.load).
+  Lemma simF_load : ISim.sim_fun open MemP MemI (MemP.init_cond csl genv) IstFull (Some MemHdr.load).
   Proof using.
     init_simF.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
@@ -481,7 +481,7 @@ Module MemIP. Section MemIP.
     iExists _, [_], _, _. repeat (iSplit; et). iExists _, _. iSplit; et.
   (*SLOW*)Qed.
 
-  Lemma simF_store : HSim.sim_fun open MemP MemI (MemP.init_cond csl genv) IstFull (Some MemHdr.store).
+  Lemma simF_store : ISim.sim_fun open MemP MemI (MemP.init_cond csl genv) IstFull (Some MemHdr.store).
   Proof using.
     init_simF.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
@@ -510,7 +510,7 @@ Module MemIP. Section MemIP.
     - ii. ss. destruct dec; ss; subst; et.
   (*SLOW*)Qed.
 
-  Lemma simF_cmp : HSim.sim_fun open MemP MemI (MemP.init_cond csl genv) IstFull (Some MemHdr.cmp).
+  Lemma simF_cmp : ISim.sim_fun open MemP MemI (MemP.init_cond csl genv) IstFull (Some MemHdr.cmp).
   Proof using.
     init_simF.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
@@ -545,7 +545,7 @@ Module MemIP. Section MemIP.
     iExists _, [_], _, _. repeat (iSplit; et). iExists _, _. iSplit; et.
   (*SLOW*)Qed.
 
-  Lemma simF_cas : HSim.sim_fun open MemP MemI (MemP.init_cond csl genv) IstFull (Some MemHdr.cas).
+  Lemma simF_cas : ISim.sim_fun open MemP MemI (MemP.init_cond csl genv) IstFull (Some MemHdr.cas).
   Proof using.
     init_simF.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
@@ -602,10 +602,10 @@ Module MemIP. Section MemIP.
     - ii. ss. des_ifs; et. bsimpl; des; des_sumbool; subst. eapply H4; et.
   (*SLOW*)Qed.
 
-  Theorem sim : HSim.t open MemP MemI (MemP.init_cond csl genv) IstFull.
+  Theorem sim : ISim.t open MemP MemI (MemP.init_cond csl genv) IstFull.
   Proof using.
     init_sim.
-    - rewrite /IstFull /MemP /MemI. unfold_hmod. s. splits; eauto.
+    - rewrite /IstFull /MemP /MemI. unfold_mod. s. splits; eauto.
       iIntros "P". iExists [], [_], [], [].
       repeat iSplit; et.
       { iPureIntro. ss. }
@@ -644,7 +644,7 @@ Module MemPA. Section MemPA.
     end; alist_find_simpl; esplits; et; eapply isim_fsem_proph_to_normal; i; iIntros;
     rewrite SRed.fbody_trivial /fbody_trivial SRed.core; iIntros; steps_r; forces_l; step; eauto.
 
-  Theorem sim sp : HSim.t open (MemA.t sp) MemP.t emp%I IstEq.
+  Theorem sim sp : ISim.t open (MemA.t sp) MemP.t emp%I IstEq.
   Proof using.
     init_sim; prove_proph_sim.
   (*SLOW*)Qed.

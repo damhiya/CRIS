@@ -1,38 +1,38 @@
 Require Import Common.
 From iris.proofmode Require Import proofmode.
-Require Import Mod HMod.
-Require Import ModSim HModSim HModSimFacts ISim ModSimTactics.
+Require Import LMod Mod.
+Require Import LSim MSim MSimFacts ISim LSimTactics.
 
-(* HSIM_ADEQUACY *)
-Lemma Hsim_wf `{Σ: GRA} contextual ms mt cond Ist
-  (SIM: HSim.t contextual ms mt cond Ist)
-  (WF: HMod.wf mt)
+(* ISIM_ADEQUACY *)
+Lemma ISim_wf `{Σ: GRA} contextual ms mt cond Ist
+  (SIM: ISim.t contextual ms mt cond Ist)
+  (WF: Mod.wf mt)
   :
-  HMod.wf ms.
+  Mod.wf ms.
 Proof.
   inv SIM. dup WF. inv WF. econs.
   - eapply sub_perm_nodup; eauto.
   - eapply sub_perm_nodup; eauto.
 Qed.
 
-Lemma Hsim_match `{Σ: GRA} contextual ms mt cond Ist fn
-  (SIM: HSim.t contextual ms mt cond Ist)
-  (WF: HMod.wf mt)
-  (IN: In fn (List.map fst (HMod.fnsems ms)))
+Lemma ISim_match `{Σ: GRA} contextual ms mt cond Ist fn
+  (SIM: ISim.t contextual ms mt cond Ist)
+  (WF: Mod.wf mt)
+  (IN: In fn (List.map fst (Mod.fnsems ms)))
   :
-  In fn (List.map fst (HMod.fnsems mt)).
+  In fn (List.map fst (Mod.fnsems mt)).
 Proof.
   dup WF. destruct WF. eapply sub_perm_incl; eauto. apply SIM; et.
 Qed.
 
-Lemma Hsim_adequacy `{Σ: GRA} (ms mt : HMod.t) (rs rm rt : Σ) (IC : iProp Σ) Ist
+Lemma ISim_adequacy `{Σ: GRA} (ms mt : Mod.t) (rs rm rt : Σ) (IC : iProp Σ) Ist
     (SUB : Own rs ⊢ Own rt ∗ Own rm)
     (WF : ✓ rs)
     (COND : Own rm ⊢ IC)
-    (WFS : HMod.wf ms)
-    (WFT : HMod.wf mt)
-    (SIM : HSim.t closed ms mt IC Ist) :
-  MSim.t (HMod.to_mod ms rs) (HMod.to_mod mt rt).
+    (WFS : Mod.wf ms)
+    (WFT : Mod.wf mt)
+    (SIM : ISim.t closed ms mt IC Ist) :
+  LSim.t (Mod.to_lmod ms rs) (Mod.to_lmod mt rt).
 Proof.
   dup SIM. dup WFS. dup WFT. destruct SIM0, WFS0, WFT0.
   econs; i; ss.
@@ -53,17 +53,17 @@ Proof.
     destruct ft as [[[img0 msk0] scp0] bd0].
     i. exists ε, ε.
 
-    specialize (x1 arg 1 (HMod.initial_st ms) (HMod.initial_st mt)).
-    rewrite /HModTr.trans_ktree /SB.sandbox_body. s.
-    eapply sim_itree_mon_rr.
+    specialize (x1 arg 1 (Mod.initial_st ms) (Mod.initial_st mt)).
+    rewrite /ModTr.trans_ktree /SB.sandbox_body. s.
+    eapply lsim_mon_rr.
     { instantiate (1:= interp_inv IstTrue). et. }
-    assert (NDS:= ms.(HMod.nodup_init) wf_scopes).
-    assert (NDT:= mt.(HMod.nodup_init) wf_scopes0).
+    assert (NDS:= ms.(Mod.nodup_init) wf_scopes).
+    assert (NDT:= mt.(Mod.nodup_init) wf_scopes0).
     
-    eapply hsim_adequacy; et.
-    + instantiate (1:=List.map (map_snd SB.sandbox_body) (HMod.fnsems ms)).
+    eapply msim_adequacy; et.
+    + instantiate (1:=List.map (map_snd SB.sandbox_body) (Mod.fnsems ms)).
       rewrite map_map fst_map_snd. et.
-    + instantiate (1:=List.map (map_snd SB.sandbox_body) (HMod.fnsems mt)).
+    + instantiate (1:=List.map (map_snd SB.sandbox_body) (Mod.fnsems mt)).
       rewrite map_map fst_map_snd. et.
     + rewrite map_map. f_equal. extensionalities. destruct H. et.
     + rewrite map_map. f_equal. extensionalities. destruct H. et.
@@ -77,10 +77,10 @@ Proof.
       eapply alist_find_fst_in in Heq0. des. rewrite Heq0 in Heq. ss.
     }
     esplits; eauto.
-    exploit sim_fnsems; eauto using alist_find_fst_some, HMod.wf.
+    exploit sim_fnsems; eauto using alist_find_fst_some, Mod.wf.
     ii. des; subst.
     rewrite Heq in x0. inv x0. inv SIMMRS.
-    eapply hsim_adequacy; eauto; cycle 4.
+    eapply msim_adequacy; eauto; cycle 4.
     { apply le_mine_refl. ii; eauto. }
     { ginit; cycle 2; i.
       eapply gpaco9_mon with (r := iunlift ibot) (rg:= iunlift ibot); eauto using iunlift_ibot.

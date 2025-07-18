@@ -29,7 +29,7 @@ Ltac clear_trivials :=
 
 Ltac pre_simF :=
   clear_trivials;
-  unfold HSim.sim_fun; i;
+  unfold ISim.sim_fun; i;
   match goal with [H: _|-_] => revert H end;
   hide_flist.
 
@@ -46,10 +46,10 @@ Ltac initialize_simF :=
   alist_find_simpl;
   post_simF.
 
-Ltac unfold_hmod_fn :=
+Ltac unfold_mod_fn :=
   s; match goal with
      | |-context[_ \/ _] => idtac
-     | _ => unfold_hmod; ss; unfold_hmod_fn
+     | _ => unfold_mod; ss; unfold_mod_fn
      end.
 
 Ltac prove_ist :=
@@ -61,33 +61,22 @@ Ltac prove_ist :=
 Ltac init_sim :=
   clear_trivials;
   (first
-  [ eapply hmod_sim_reflR;
-    [ hrepeat do 1 unfold_hmod; et
+  [ eapply ISim_reflR;
+    [ hrepeat do 1 unfold_mod; et
     | try rewrite /Ist_monotone; eauto
     | try prove_sub_perm
     | try prove_sub_perm
-    | r; hrepeat do 1 unfold_hmod; s; i
-    | try unfold_hmod_fn; i; des; subst; ss
+    | r; hrepeat do 1 unfold_mod; s; i
+    | try unfold_mod_fn; i; des; subst; ss
     ]
   | econs; i;
     [ try rewrite /Ist_monotone; eauto
     | try prove_sub_perm
     | try prove_sub_perm
-    | r; hrepeat do 1 unfold_hmod; s; i
-    | eapply HSim.sim_fun_strong; try unfold_hmod_fn; i; des; subst; ss
+    | r; hrepeat do 1 unfold_mod; s; i
+    | eapply ISim.sim_fun_strong; try unfold_mod_fn; i; des; subst; ss
     ]
   ]).
-(* Ltac init_sim :=
-  clear_trivials;
-  (first
-   [ eapply hmod_sim_reflR; [ hrepeat do 1 unfold_hmod; et | .. ]
-   | econs ]
-  ); i;
-  [ try rewrite /Ist_monotone; eauto
-  | try prove_sub_perm
-  | try prove_sub_perm
-  | r; hrepeat do 1 unfold_hmod; s; i
-  | eapply HSim.sim_fun_strong; try unfold_hmod_fn; i; des; subst; ss ]. *)
 
 Ltac iinit_simF := initialize_simF.
 

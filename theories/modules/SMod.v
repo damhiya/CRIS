@@ -1,5 +1,5 @@
 Require Import Common.
-Require Import HMod.
+Require Import Mod.
 Require Export FSpec SModTr Sp.
 
 Set Implicit Arguments.
@@ -84,10 +84,10 @@ Section SMOD.
   Definition addL (ms : list t) : t :=
     foldr add empty ms.
 
-  Program Definition to_hmod (sp : sp_type) (ms : t) : HMod.t := {|
-    HMod.scopes := ms.(scopes);
-    HMod.fnsems := List.map (map_snd (SModTr.trans_ktree sp)) ms.(fnsems);
-    HMod.initial_st := ms.(initial_st);
+  Program Definition to_mod (sp : sp_type) (ms : t) : Mod.t := {|
+    Mod.scopes := ms.(scopes);
+    Mod.fnsems := List.map (map_snd (SModTr.trans_ktree sp)) ms.(fnsems);
+    Mod.initial_st := ms.(initial_st);
     |}.
   Next Obligation.
     i. destruct ms. ss. ii. unfold fnsems_scopes in *. unfold map_snd in*.
@@ -124,9 +124,9 @@ Section ADD.
       sp
       (ms0 ms1: SMod.t)
     :
-    SMod.to_hmod sp (SMod.add ms0 ms1) = HMod.add (SMod.to_hmod sp ms0) (SMod.to_hmod sp ms1).
+    SMod.to_mod sp (SMod.add ms0 ms1) = Mod.add (SMod.to_mod sp ms0) (SMod.to_mod sp ms1).
   Proof using.
-    eapply hmod_extensionality; ss; eauto.
+    eapply mod_extensionality; ss; eauto.
     rewrite map_app. ss.
   Qed.
 
@@ -134,9 +134,9 @@ Section ADD.
       sp
       (md0 md1: SMod.t)
     :
-    SMod.to_hmod sp (SMod.add md0 md1) = HMod.add (SMod.to_hmod sp md0) (SMod.to_hmod sp md1).
+    SMod.to_mod sp (SMod.add md0 md1) = Mod.add (SMod.to_mod sp md0) (SMod.to_mod sp md1).
   Proof using.
-    unfold SMod.to_hmod. unfold "★". s. 
+    unfold SMod.to_mod. unfold "★". s. 
     f_equal. extensionalities.
     eapply smod_add_interp_comm.
   Qed.
@@ -144,17 +144,17 @@ Section ADD.
   Lemma interp_empty
       sp
     :
-    SMod.to_hmod sp SMod.empty = HMod.empty.
+    SMod.to_mod sp SMod.empty = Mod.empty.
   Proof using.
-    unfold SMod.to_hmod, HMod.empty.
-    eapply hmod_extensionality; eauto.
+    unfold SMod.to_mod, Mod.empty.
+    eapply mod_extensionality; eauto.
   Qed.
 
   Lemma addL_interp_comm
       sp
       (mds: list SMod.t)
     :
-    SMod.to_hmod sp (SMod.addL mds) = HMod.addL (List.map (SMod.to_hmod sp) mds).
+    SMod.to_mod sp (SMod.addL mds) = Mod.addL (List.map (SMod.to_mod sp) mds).
   Proof using.
     induction mds; [eapply interp_empty|].
     s. rewrite add_interp_comm.

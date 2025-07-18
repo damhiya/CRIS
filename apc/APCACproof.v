@@ -13,7 +13,7 @@ Module APCAC. Section APCAC.
     (λ _ _ _, True)%I.
 
   (* context *)
-  Context (md : HMod.t).
+  Context (md : Mod.t).
   Context (sp_c sp_a : sp_type).
   Context (sp_pure : spl_type).
   Context (APCInSpA : sp_incl APCA.Sp sp_a).
@@ -27,11 +27,11 @@ Module APCAC. Section APCAC.
   Local Definition APCA := (APCA.t sp_pure sp_a).
   Local Definition APCCMod := (APCC ★ md).
   Local Definition APCAMod := (APCA ★ md).
-  Local Definition IstFull := (IstProd (IstSB APCC.(HMod.scopes) Ist) IstEq).
+  Local Definition IstFull := (IstProd (IstSB APCC.(Mod.scopes) Ist) IstEq).
 
   Local Transparent _APC.
 
-  Lemma simF_apc : HSim.sim_fun open APCCMod APCAMod APCC.init_cond IstFull (Some APCHdr.apc).
+  Lemma simF_apc : ISim.sim_fun open APCCMod APCAMod APCC.init_cond IstFull (Some APCHdr.apc).
   Proof using _crisG PureIsPure PureInSpA APCInSpA.
     init_simF.
     (* init_simF. *)
@@ -127,7 +127,7 @@ Module APCAC. Section APCAC.
     Unshelve. all: ss.
   (*SLOW*)Qed.
 
-  Theorem sim : HSim.t open APCCMod APCAMod APCC.init_cond IstFull.
+  Theorem sim : ISim.t open APCCMod APCAMod APCC.init_cond IstFull.
   Proof using _crisG PureIsPure PureInSpA APCInSpA.
     init_sim.
     - split; eauto. iIntros "_". iSplit; ss. iPureIntro. split; prove_scope.
@@ -138,7 +138,7 @@ End APCAC.
 Section ctxr.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
 
-  Definition ctxr (md : HMod.t) (sp_c sp_a : sp_type) (sp_pure : spl_type)
+  Definition ctxr (md : Mod.t) (sp_c sp_a : sp_type) (sp_pure : spl_type)
       (APCInSpA : sp_incl APCA.Sp sp_a)
       (PureInSpA : sp_incl sp_pure sp_a)
       (PureIsPure :

@@ -10,7 +10,7 @@ Module APCA. Section APCA.
 
   Definition scopes := ["APC"].
 
-  Definition apc_body SpPure : Ord.t → itree hmodE () :=
+  Definition apc_body SpPure : Ord.t → itree crisE () :=
     λ dep_ord, APC dep_ord SpPure.
 
   Definition apc_spec : fspec :=
@@ -37,5 +37,5 @@ Module APCA. Section APCA.
 
   Definition init_cond : iProp Σ := emp%I.
 
-  Definition t SpPure Sp := Seal.sealing CRIS (SMod.to_hmod Sp (Mod SpPure)).
+  Definition t SpPure Sp := Seal.sealing CRIS (SMod.to_mod Sp (Mod SpPure)).
 End APCA. End APCA.

@@ -13,7 +13,7 @@ Section FSPEC.
     mk_fspec (λ x y a, (((fst ∘ DPQ) x a: iProp Σ) ∗ ⌜∃ vo: Ord.t, y = vo↑ ∧ ((o x) <= vo)%ord⌝)%I)
              (λ x _ a, (((snd ∘ DPQ) x a: iProp Σ))%I).
 
-  Definition pure_body : Any.t → itree hmodE Any.t :=
+  Definition pure_body : Any.t → itree crisE Any.t :=
     cfunN (λ dep_ord: Ord.t, trigger (Call APCHdr.apc dep_ord↑);;; Ret ()).
 
 End FSPEC.
@@ -25,7 +25,7 @@ Section apc.
   Variable dep_ord: Ord.t.
   Variable SpPure: spl_type.
 
-  Program Fixpoint _APC (wid_ord: Ord.t) {wf Ord.lt wid_ord}: itree hmodE () :=
+  Program Fixpoint _APC (wid_ord: Ord.t) {wf Ord.lt wid_ord}: itree crisE () :=
     break <- trigger (Choose _);;
     if break: bool
     then Ret tt
@@ -43,7 +43,7 @@ Section apc.
   Next Obligation. ii. auto.  Defined.
   Next Obligation. eapply Ord.lt_well_founded. Qed.
 
-  Definition APC: itree hmodE unit :=
+  Definition APC: itree crisE unit :=
     wid_ord <- trigger (Choose _);;
     _APC wid_ord
   .
@@ -83,14 +83,14 @@ Section aux.
   Qed.
 
   Definition find_body md fn :=
-    alist_find (Some fn) (map (map_snd SB.sandbox_body) (HMod.fnsems md)).
+    alist_find (Some fn) (map (map_snd SB.sandbox_body) (Mod.fnsems md)).
 
   Definition pure_specbody sp img msk scp fspo :=
     (λ arg : Any.t,
       SB.sandbox_body
         (SModTr.trans_ktree sp (img, msk, scp, (fspo, pure_body))) arg).
 
-  Definition pure: itree hmodE Any.t :=
+  Definition pure: itree crisE Any.t :=
     o <- trigger (Choose Ord.t);;
     trigger (Call APCHdr.apc o↑).
 

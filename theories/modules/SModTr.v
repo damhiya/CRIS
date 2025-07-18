@@ -1,6 +1,6 @@
 Require Import Common.
 From iris.algebra Require Export auth excl excl_auth functions frac agree gmap big_op.
-Require Import HMod FSpec Sp.
+Require Import Mod FSpec Sp.
 
 Set Implicit Arguments.
 
@@ -11,7 +11,7 @@ Module SModTr.
 Section HOARE.
   Context `{Σ: GRA}.
 
-  Definition HoareCall fn (varg: Any.t) (fspo: option fspec): itree hmodE Any.t
+  Definition HoareCall fn (varg: Any.t) (fspo: option fspec): itree crisE Any.t
     :=
     match fspo with
     | Some fsp =>
@@ -33,8 +33,8 @@ Section HOARE.
       trigger (Call fn varg)
     end.
 
-  Definition HoareFun (fspo: option fspec) (body: Any.t → itree hmodE Any.t)
-    : Any.t → itree hmodE Any.t
+  Definition HoareFun (fspo: option fspec) (body: Any.t → itree crisE Any.t)
+    : Any.t → itree crisE Any.t
     :=
     match fspo with
     | Some fsp =>
@@ -53,10 +53,10 @@ Section HOARE.
       λ arg, tau;; body arg
     end.
 
-  Definition NativeSpawn `{Σ: GRA} (fn: string) (arg: Any.t) : itree hmodE nat :=
+  Definition NativeSpawn `{Σ: GRA} (fn: string) (arg: Any.t) : itree crisE nat :=
     trigger (Spawn fn arg).
 
-  Definition HoareSpawn fn (varg: Any.t) (fspo: option fspec) : itree hmodE nat :=
+  Definition HoareSpawn fn (varg: Any.t) (fspo: option fspec) : itree crisE nat :=
     match fspo with
     | Some fsp =>
       x <- trigger (Choose (meta fsp));; 
@@ -67,7 +67,7 @@ Section HOARE.
       NativeSpawn fn varg
     end.
 
-  Definition handle (sp: sp_type): hmodE ~> itreeV hmodE.
+  Definition handle (sp: sp_type): crisE ~> itreeV crisE.
   Proof.
     intros T e. destruct e.
     { exact (inr (existT _ (subevent _ a, fun v => Ret v))). }
@@ -87,7 +87,7 @@ Section HOARE.
     { exact (inr (existT _ (subevent _ c, fun v => Ret v))). }
   Defined.
 
-  Definition trans sp {R} (it : itree hmodE R) : itree hmodE R :=
+  Definition trans sp {R} (it : itree crisE R) : itree crisE R :=
     interpV (handle sp) it.
 
   Definition trans_body : (sp_type * option fspec) → fbody → fbody :=
@@ -109,7 +109,7 @@ Section RED.
 
   Lemma bind
         (R S: Type)
-        (s : itree hmodE R) (k : R → itree hmodE S)
+        (s : itree crisE R) (k : R → itree crisE S)
     :
       SModTr.trans sp (s >>= k)
       =
@@ -140,21 +140,21 @@ Section RED.
     unfold SModTr.trans in *. rewrite interpV_ret. et.
   Qed.
 
-  Lemma vis_ag {X R} (e : agE X) (ktr : X -> itree hmodE R) :
+  Lemma vis_ag {X R} (e : agE X) (ktr : X -> itree crisE R) :
     SModTr.trans sp (vis e ktr) = vis e (fun x => SModTr.trans sp (ktr x)).
   Proof using.
     eapply observe_eta; ss. f_equal. extensionality x.
     eapply observe_eta; ss.
   Qed.
 
-  Lemma vis_yield {R} tid (ktr : () -> itree hmodE R) :
+  Lemma vis_yield {R} tid (ktr : () -> itree crisE R) :
     SModTr.trans sp (vis (Yield tid) ktr) = tau;; my_tid <- trigger (Yield tid);; SModTr.trans sp (ktr my_tid).
   Proof using.
     unfold SModTr.trans. rewrite interpV_vis.
     eapply observe_eta; ss.
   Qed.
 
-  Lemma vis_spawn {R} fn args (ktr : nat -> itree hmodE R) :
+  Lemma vis_spawn {R} fn args (ktr : nat -> itree crisE R) :
     SModTr.trans sp (vis (Spawn fn args) ktr) =
       tau;;
       x <- SModTr.HoareSpawn fn args (sp fn);;
@@ -164,7 +164,7 @@ Section RED.
     eapply observe_eta; ss.
   Qed.
   
-  Lemma vis_call {R} fn args (ktr : Any.t -> itree hmodE R) :
+  Lemma vis_call {R} fn args (ktr : Any.t -> itree crisE R) :
     SModTr.trans sp (vis (Call fn args) ktr) =
       tau;;
       x <- SModTr.HoareCall fn args (sp fn);;
@@ -174,42 +174,42 @@ Section RED.
     eapply observe_eta; ss.
   Qed.
 
-  Lemma vis_pg {X R} (e : pgE X) (ktr : X -> itree hmodE R) :
+  Lemma vis_pg {X R} (e : pgE X) (ktr : X -> itree crisE R) :
     SModTr.trans sp (vis e ktr) = vis e (fun x => SModTr.trans sp (ktr x)).
   Proof using.
     eapply observe_eta; ss. f_equal. extensionality x.
     eapply observe_eta; ss.
   Qed.
 
-  Lemma vis_core {X R} (e : coreE X) (ktr : X -> itree hmodE R) :
+  Lemma vis_core {X R} (e : coreE X) (ktr : X -> itree crisE R) :
     SModTr.trans sp (vis e ktr) = vis e (fun x => SModTr.trans sp (ktr x)).
   Proof using.
     eapply observe_eta; ss. f_equal. extensionality x.
     eapply observe_eta; ss.
   Qed.
 
-  Lemma assumeK {R} P (itr : itree hmodE R) :
+  Lemma assumeK {R} P (itr : itree crisE R) :
     SModTr.trans sp (assumeK P itr) = assumeK P (SModTr.trans sp itr).
   Proof using.
     eapply observe_eta; ss. f_equal. extensionality x.
     eapply observe_eta; ss.
   Qed.
 
-  Lemma guaranteeK {R} P (itr : itree hmodE R) :
+  Lemma guaranteeK {R} P (itr : itree crisE R) :
     SModTr.trans sp (guaranteeK P itr) = guaranteeK P (SModTr.trans sp itr).
   Proof using.
     eapply observe_eta; ss. f_equal. extensionality x.
     eapply observe_eta; ss.
   Qed.
 
-  Lemma unwrapUK {X R} x (ktr : X -> itree hmodE R) :
+  Lemma unwrapUK {X R} x (ktr : X -> itree crisE R) :
     SModTr.trans sp (unwrapUK x ktr) = unwrapUK x (fun x => SModTr.trans sp (ktr x)).
   Proof using.
     destruct x; ss.
     eapply observe_eta; ss. f_equal. extensionality x. ss.
   Qed.
 
-  Lemma unwrapNK {X R} x (ktr : X -> itree hmodE R) :
+  Lemma unwrapNK {X R} x (ktr : X -> itree crisE R) :
     SModTr.trans sp (unwrapNK x ktr) = unwrapNK x (fun x => SModTr.trans sp (ktr x)).
   Proof using.
     destruct x; ss.
@@ -285,7 +285,7 @@ Section RED.
         (R: Type)
         (i: option R)
     :
-      SModTr.trans sp (@unwrapU hmodE _ _ i)
+      SModTr.trans sp (@unwrapU crisE _ _ i)
       =
       unwrapU i.
   Proof using.
@@ -298,7 +298,7 @@ Section RED.
         (R: Type)
         (i: option R)
     :
-      SModTr.trans sp (@unwrapN hmodE _ _ i)
+      SModTr.trans sp (@unwrapN crisE _ _ i)
       =
       unwrapN i.
   Proof using.

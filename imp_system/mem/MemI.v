@@ -123,7 +123,7 @@ Module MemI. Section MemI.
   Definition scopes := ["Mem"].
   Definition v_mem := "Mem" ↯ "mem".
 
-  Definition alloc : list val → itree hmodE val :=
+  Definition alloc : list val → itree crisE val :=
     fun arg =>
       'sz : Z <- (pargs [Tint] arg)?;;
       mem <- trigger (SGet v_mem);; mem <- mem↓?;;
@@ -136,7 +136,7 @@ Module MemI. Section MemI.
       else triggerUB
 . 
 
-  Definition free : list val → itree hmodE val :=
+  Definition free : list val → itree crisE val :=
     λ arg,
       bofs <- (pargs [Tptr] arg)?;;
       mem <- trigger (SGet v_mem);; mem <- mem↓?;;
@@ -145,7 +145,7 @@ Module MemI. Section MemI.
       Ret (Vint 0)
   . 
 
-  Definition load: list val -> itree hmodE val :=
+  Definition load: list val -> itree crisE val :=
     fun arg =>      
       bofs <- (pargs [Tptr] arg)?;;        
       mem <- trigger (SGet v_mem);; mem <- mem↓?;;
@@ -153,7 +153,7 @@ Module MemI. Section MemI.
       Ret v
   .
 
-  Definition store : list val → itree hmodE val :=
+  Definition store : list val → itree crisE val :=
     fun arg =>
       '(bofs, v): _ <- (pargs [Tptr; Tuntyped] arg)?;;
       mem <- trigger (SGet v_mem);; mem <- mem↓?;;
@@ -162,7 +162,7 @@ Module MemI. Section MemI.
       Ret (Vint 0)
   .
 
-  Definition cmp : list val → itree hmodE val :=
+  Definition cmp : list val → itree crisE val :=
     fun arg =>
       '(v0, v1): _ <- (pargs [Tuntyped; Tuntyped] arg)?;;
       mem <- trigger (SGet v_mem);; mem <- mem↓?;;
@@ -170,7 +170,7 @@ Module MemI. Section MemI.
       Ret (Vint (if b then 1 else 0))
   .
 
-  Definition cas: list val -> itree hmodE val :=
+  Definition cas: list val -> itree crisE val :=
     fun arg =>
       ' (bofs, (v_old, v_new)): _ <- (pargs [Tptr; Tuntyped; Tuntyped] arg)?;;
       'v_cur: val <- ccallU MemHdr.load [Vptr bofs];;
@@ -199,5 +199,5 @@ Module MemI. Section MemI.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition t csl genv : HMod.t := Seal.sealing CRIS (SMod.to_hmod sp_none (Mem csl genv)).
+  Definition t csl genv := Seal.sealing CRIS (SMod.to_mod sp_none (Mem csl genv)).
 End MemI. End MemI.

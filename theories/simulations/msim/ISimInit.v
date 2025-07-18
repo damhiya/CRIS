@@ -1,12 +1,12 @@
 Require Import Common.
 From iris.proofmode Require Import proofmode.
 
-Require Import HMod SMod Sp.
+Require Import Mod SMod Sp.
 Require Export ISim TacticsCommon ITactics ISimNotations.
 
 Set Implicit Arguments.
 
-(* HModProd *)
+(* ModProd *)
 
 Lemma state_scopes_update k v st:
   state_scopes (alist_upd k v st) = state_scopes st.
@@ -16,7 +16,7 @@ Qed.
 
 (* Reflexivity of the isim relation *)
 Lemma isim_refl `{Σ : GRA} r g contextual Ist fl_src fl_tgt img msk scp
-  ps pt nths st_src st_tgt {R} (it: itree hmodE R)
+  ps pt nths st_src st_tgt {R} (it: itree crisE R)
   (MON: Ist_monotone Ist)
   (EQGET : ∀ nths st_src st_tgt (k: key) (IN: In k.1 scp)
               (NODS: List.NoDup (map fst st_src))
@@ -164,19 +164,19 @@ Proof.
       apply H1. eapply in_map in H. rewrite List.map_map in H. apply H.
 Qed.
 
-Lemma hmod_sim_reflL `{Σ : GRA} contextual A B C init_cond scopes (Ist: ist_type Σ)
-  (SCOPES: scopes = HMod.scopes B)
+Lemma ISim_reflL `{Σ : GRA} contextual A B C init_cond scopes (Ist: ist_type Σ)
+  (SCOPES: scopes = Mod.scopes B)
   (MON : ∀ nths nths' (LE : nths <= nths') st_src st_tgt,
            Ist nths st_src st_tgt -∗ Ist nths' st_src st_tgt)
-  (SCOPE : sub_perm (HMod.scopes A) scopes)
-  (MATCH : sub_perm (List.map fst (HMod.fnsems A)) (List.map fst (HMod.fnsems B)))
-  (INIT : HSim.initial_valid A B init_cond (IstSB scopes Ist))
-  (SIM : ∀ fn, In fn (List.map fst (HMod.fnsems A)) →
-    HSim.sim_fun contextual
-    (HMod.add C A) (HMod.add C B) init_cond
+  (SCOPE : sub_perm (Mod.scopes A) scopes)
+  (MATCH : sub_perm (List.map fst (Mod.fnsems A)) (List.map fst (Mod.fnsems B)))
+  (INIT : ISim.initial_valid A B init_cond (IstSB scopes Ist))
+  (SIM : ∀ fn, In fn (List.map fst (Mod.fnsems A)) →
+    ISim.sim_fun contextual
+    (Mod.add C A) (Mod.add C B) init_cond
     (IstProd IstEq (IstSB scopes Ist)) fn)
   :
-  HSim.t contextual (HMod.add C A) (HMod.add C B) init_cond
+  ISim.t contextual (Mod.add C A) (Mod.add C B) init_cond
     (IstProd IstEq (IstSB scopes Ist)).
 Proof.
   subst. econs; intro WF.
@@ -185,7 +185,7 @@ Proof.
     iSplitL "HL"; et. iSplit; et. iApply MON; [|eauto]; nia.
   - s. apply sub_perm_cancel_head. eapply SCOPE.
   - s. rewrite ?map_app. apply sub_perm_cancel_head. eauto.
-  - assert (WFCA: HMod.wf (C ★ A)).
+  - assert (WFCA: Mod.wf (C ★ A)).
     { destruct WF. econs.
       - eapply sub_perm_nodup; et. s. rewrite !map_app.
         eapply sub_perm_cancel_head. et.
@@ -193,9 +193,9 @@ Proof.
         eapply sub_perm_cancel_head. et.
     }
     ii. ss. rewrite alist_find_map alist_find_app_o in H.
-    destruct (alist_find None (HMod.fnsems C)) eqn: E; ss.
-    destruct (alist_find None (HMod.fnsems B)) eqn: E0; ss.
-    destruct (alist_find None (HMod.fnsems A)) eqn: E1; ss.
+    destruct (alist_find None (Mod.fnsems C)) eqn: E; ss.
+    destruct (alist_find None (Mod.fnsems B)) eqn: E0; ss.
+    destruct (alist_find None (Mod.fnsems A)) eqn: E1; ss.
     { exploit (SIM None); et.
       - by eapply alist_find_fst_some.
       - eapply WFCA.
@@ -209,13 +209,13 @@ Proof.
     + rewrite E0. et.
     + i; des. rewrite x1. iIntros "[% H]". iExists _, _, _, _.
       do 3 (iSplit; et).
-  - i. eapply HSim.sim_fun_strong. intro IN.
+  - i. eapply ISim.sim_fun_strong. intro IN.
     rewrite map_app in IN. apply in_app_or in IN. des; cycle 1.
     { eapply SIM; eauto. }
     ii. exists fs. destruct fs as [[[img msk] scp] bd].
-    assert (FND : alist_find fn (HMod.fnsems C) = Some (img,msk,scp,bd)).
+    assert (FND : alist_find fn (Mod.fnsems C) = Some (img,msk,scp,bd)).
     { s in FIND. rewrite alist_find_app_o in FIND. des_ifs.
-      exfalso. assert (ND:= HMod.wf_fns WFS). s in ND. rewrite map_app in ND.
+      exfalso. assert (ND:= Mod.wf_fns WFS). s in ND. rewrite map_app in ND.
       eapply NoDup_app_disjoint; try apply ND; eauto.
       eapply alist_find_some, (in_map fst) in FIND. eauto.
     }
@@ -228,7 +228,7 @@ Proof.
     { eapply isim_reflL; et; cycle 2.
       + i. iIntros "%". subst. et.
       + apply WFT.
-      + etrans; [|eapply HMod.well_scoped_fns].
+      + etrans; [|eapply Mod.well_scoped_fns].
         unfold fnsems_scopes. erewrite FND. refl.
     }
 
@@ -237,8 +237,8 @@ Proof.
     { iApply isim_reflL; et; cycle 3.
       - iExists _, _, _, _. do 3 (iSplit; et).
         + iPureIntro. split; cycle 1.
-          * eapply (HMod.well_scoped_init B).
-          * etrans; [eapply (HMod.well_scoped_init A)|].
+          * eapply (Mod.well_scoped_init B).
+          * etrans; [eapply (Mod.well_scoped_init A)|].
             eapply sub_perm_incl. et.
         + exploit INIT.
           { rewrite alist_find_map_snd.
@@ -250,7 +250,7 @@ Proof.
           }
           i. des. rewrite x1. iDestruct "H" as "[% H]". et.
       - eapply WFT.
-      - ii. exploit (HMod.well_scoped_fns C None).
+      - ii. exploit (Mod.well_scoped_fns C None).
         { rewrite /fnsems_scopes FND. et. }
         i. et.
       - i. iIntros "%". subst. et.
@@ -258,19 +258,19 @@ Proof.
     i. iIntros "[% H]". subst. et.
 Qed.
 
-Lemma hmod_sim_reflR `{Σ : GRA} contextual A B C init_cond scopes Ist
-  (SCOPES: scopes = HMod.scopes B)
+Lemma ISim_reflR `{Σ : GRA} contextual A B C init_cond scopes Ist
+  (SCOPES: scopes = Mod.scopes B)
   (MON : ∀ nths nths' (LE : nths <= nths') st_src st_tgt,
       Ist nths st_src st_tgt -∗ Ist nths' st_src st_tgt)
-  (SCOPE : sub_perm (HMod.scopes A) scopes)
-  (MATCH : sub_perm (List.map fst (HMod.fnsems A)) (List.map fst (HMod.fnsems B)))
-  (INIT : HSim.initial_valid A B init_cond (IstSB scopes Ist))
-  (SIM : ∀ fn, In fn (map fst (HMod.fnsems A)) →
-    HSim.sim_fun contextual
-                 (HMod.add A C) (HMod.add B C) init_cond
+  (SCOPE : sub_perm (Mod.scopes A) scopes)
+  (MATCH : sub_perm (List.map fst (Mod.fnsems A)) (List.map fst (Mod.fnsems B)))
+  (INIT : ISim.initial_valid A B init_cond (IstSB scopes Ist))
+  (SIM : ∀ fn, In fn (map fst (Mod.fnsems A)) →
+    ISim.sim_fun contextual
+                 (Mod.add A C) (Mod.add B C) init_cond
                  (IstProd (IstSB scopes Ist) IstEq) fn)
   :
-  HSim.t contextual (HMod.add A C) (HMod.add B C) init_cond (IstProd (IstSB scopes Ist) IstEq).
+  ISim.t contextual (Mod.add A C) (Mod.add B C) init_cond (IstProd (IstSB scopes Ist) IstEq).
 Proof.
   subst. econs; intro WF.
   - ii. iIntros "H". iDestruct "H" as (? ? ? ?) "(% & (% & HL) & HR)"; des; subst.
@@ -278,7 +278,7 @@ Proof.
     iSplitL "HL"; et. iSplit; et. iApply MON; [|eauto]; nia.
   - s. apply sub_perm_cancel_tail. eapply SCOPE.
   - s. rewrite ?map_app. apply sub_perm_cancel_tail. eauto.
-  - assert (WFCA: HMod.wf (A ★ C)).
+  - assert (WFCA: Mod.wf (A ★ C)).
     { destruct WF. econs.
       - eapply sub_perm_nodup; et. s. rewrite !map_app.
         eapply sub_perm_cancel_tail. et.
@@ -286,9 +286,9 @@ Proof.
         eapply sub_perm_cancel_tail. et.
     }
     ii. ss. rewrite alist_find_map alist_find_app_o in H.
-    destruct (alist_find None (HMod.fnsems B)) eqn: E; ss.
-    destruct (alist_find None (HMod.fnsems C)) eqn: E0; ss.
-    destruct (alist_find None (HMod.fnsems A)) eqn: E1; ss.
+    destruct (alist_find None (Mod.fnsems B)) eqn: E; ss.
+    destruct (alist_find None (Mod.fnsems C)) eqn: E0; ss.
+    destruct (alist_find None (Mod.fnsems A)) eqn: E1; ss.
     { exploit (SIM None); et.
       - by eapply alist_find_fst_some.
       - eapply WFCA.
@@ -302,13 +302,13 @@ Proof.
     + rewrite E. et.
     + i; des. rewrite x1. iIntros "[% H]". iExists _, _, _, _.
       do 3 (iSplit; et).
-  - i. eapply HSim.sim_fun_strong. intro IN.
+  - i. eapply ISim.sim_fun_strong. intro IN.
     rewrite map_app in IN. apply in_app_or in IN. des.
     { eapply SIM; eauto. }
     ii. exists fs. destruct fs as [[[img msk] scp] bd].
-    assert (FND : alist_find fn (HMod.fnsems C) = Some (img,msk,scp,bd)).
+    assert (FND : alist_find fn (Mod.fnsems C) = Some (img,msk,scp,bd)).
     { s in FIND. rewrite alist_find_app_o in FIND. des_ifs.
-      exfalso. assert (ND:= HMod.wf_fns WFS). s in ND. rewrite map_app in ND.
+      exfalso. assert (ND:= Mod.wf_fns WFS). s in ND. rewrite map_app in ND.
       eapply NoDup_app_disjoint; try apply ND; eauto.
       eapply alist_find_some, (in_map fst) in Heq. eauto.
     }
@@ -321,7 +321,7 @@ Proof.
     { eapply isim_reflR; et; cycle 2.
       + i. iIntros "%". subst. et.
       + apply WFT.
-      + etrans; [|eapply HMod.well_scoped_fns].
+      + etrans; [|eapply Mod.well_scoped_fns].
         unfold fnsems_scopes. erewrite FND. refl.
     }
 
@@ -330,8 +330,8 @@ Proof.
     { iApply isim_reflR; et; cycle 3.
       - iExists _, _, _, _. do 3 (iSplit; et).
         + iPureIntro. split; cycle 1.
-          * eapply (HMod.well_scoped_init B).
-          * etrans; [eapply (HMod.well_scoped_init A)|].
+          * eapply (Mod.well_scoped_init B).
+          * etrans; [eapply (Mod.well_scoped_init A)|].
             eapply sub_perm_incl. et.
         + exploit INIT.
           { rewrite alist_find_map_snd.
@@ -343,7 +343,7 @@ Proof.
           }
           i. des. rewrite x1. iDestruct "H" as "[% H]". et.
       - eapply WFT.
-      - ii. exploit (HMod.well_scoped_fns C None).
+      - ii. exploit (Mod.well_scoped_fns C None).
         { rewrite /fnsems_scopes FND. et. }
         i. et.
       - i. iIntros "%". subst. et.
