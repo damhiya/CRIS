@@ -1,45 +1,445 @@
 Require Import Common.
 From iris.proofmode Require Import proofmode.
-Require Import LMod Mod.
-Require Import LSim MSim MSimFacts ISim LSimTactics.
+Require Import LMod Mod SMod Sp.
+Require Import LSim LSimTactics MSim MSimFacts ISim TacticsCommon ITactics ISimNotations.
 
-(* ISIM_ADEQUACY *)
-Lemma ISim_wf `{Σ: GRA} contextual ms mt cond Ist
+Set Implicit Arguments.
+
+Section ISIM_FRAME.
+Context `{_crisG: !crisG Γ Σ α β τ _S _I}.  
+
+Lemma isim_ist_frame contextual Ist P Rs Rt RR fl_src fl_tgt
+  ps pt nths (sti_s: _ * itree crisE Rs) (sti_t: _ * itree crisE Rt)
+  (MON: Ist_monotone Ist)
+  :
+  P ∗ isim contextual fl_src fl_tgt Ist ibot ibot RR ps pt nths sti_s sti_t
+  ⊢
+  isim contextual fl_src fl_tgt (λ x y z, P ∗ Ist x y z)%I ibot ibot (λ x y z, P ∗ RR x y z) ps pt nths sti_s sti_t.
+Proof using.
+  eapply entails_pointwise. i.
+  destruct sti_s, sti_t. eapply isim_final.
+  destruct (classic (✓ res)); [| gstep; econs; ii; ss].
+  eapply Own_split in H; et; des.
+  eapply isim_init in H2; et.
+  gfinal. right.
+  eapply paco9_mon; [eapply msim_ist_frame|]; ss.
+  - ginit. eapply gpaco9_mon; eauto using iunlift_ibot.
+  - rewrite H Own_op H1. et.
+Qed.
+
+End ISIM_FRAME.
+
+Section ISIM_REFL.
+Context `{_crisG: !crisG Γ Σ α β τ _S _I}.  
+
+(* Reflexivity of the isim relation *)
+Lemma isim_refl r g contextual Ist fl_src fl_tgt img msk scp
+  ps pt nths st_src st_tgt {R} (it: itree crisE R)
+  (MON: Ist_monotone Ist)
+  (EQGET : ∀ nths st_src st_tgt (k: key) (IN: In k.1 scp)
+              (NODS: List.NoDup (map fst st_src))
+              (NODT: List.NoDup (map fst st_tgt)),
+      Ist nths st_src st_tgt -∗ ⌜alist_find k st_src = alist_find k st_tgt⌝)
+  (EQSET : ∀ nths st_src st_tgt (k: key) v (IN: In k.1 scp)
+              (NODS: List.NoDup (map fst st_src))
+              (NODT: List.NoDup (map fst st_tgt)),
+      Ist nths st_src st_tgt -∗ Ist nths (alist_upd k v st_src) (alist_upd k v st_tgt))
+  :
+  Ist nths st_src st_tgt
+  ⊢ isim contextual fl_src fl_tgt Ist r g (ist_with_eq Ist) ps pt nths
+    (st_src, SB.sandbox img msk scp it)
+    (st_tgt, SB.sandbox img msk scp it).
+Proof using.
+  revert it.
+  combine_quant st_tgt.
+  combine_quant st_src.
+  combine_quant nths.
+  combine_quant ps.
+  combine_quant pt.
+  eapply isim_coind. intros g0 a _.
+  destruct a as [pt [ps [nths [st_src [st_tgt it]]]]]. s. destruct_quant.
+  iIntros "[IST CIH]".
+  assert (CASE := case_itrH it); des; subst.
+  - istep. iFrame. eauto.
+  - isteps_l. isteps_r. iby_coind "CIH"; eauto.
+  - destruct img.
+    + isteps_l. iforces_r. iFrame. isteps_r. iby_coind "CIH". eauto.
+    + rewrite SBRed.bind SBRed.Assume. ired.
+      iApply isim_take_src. iIntros (?). ss.
+  - isteps_l. isteps_r. istep. isteps_l. isteps_r. iby_coind "CIH". eauto.
+  - isteps_r. iforces_l. iFrame. isteps_l. iby_coind "CIH". eauto.
+  - depdes c.
+    + isteps_l. isteps_r. rewrite SBRed.call. des_ifs.
+      * iApply isim_call. iSplitL "IST"; et.
+        iIntros (? ? ? ? ? ? ?) "IST".
+        iby_coind "CIH". et.
+      * isteps_l. ss.
+    + isteps_l. isteps_r. rewrite SBRed.spawn. des_ifs.
+      * iApply isim_spawn. iby_coind "CIH". iApply MON; [|eauto]; nia.
+      * isteps_l. ss.
+    + iyield "IST".  eauto. iby_coind "CIH". eauto.
+  - depdes s.
+    + rewrite !SBRed.bind !SBRed.put. des_ifs; cycle 1.
+      { isteps_l. ss. }
+      iApply isim_nodup. iIntros (? ? ? ?).
+      iApply isim_sput_src. iApply isim_sput_tgt.
+      iby_coind "CIH". iApply EQSET; et.
+      apply existsb_exists in Heq. des. apply String.eqb_eq in Heq0. subst. et.
+    + rewrite !SBRed.bind !SBRed.get. des_ifs; cycle 1.
+      { isteps_l. ss. }
+      iApply isim_nodup. iIntros (? ? ? ?).
+      iApply isim_sget_src. iApply isim_sget_tgt.
+      apply existsb_exists in Heq. des. apply String.eqb_eq in Heq0. subst.
+      iPoseProof (EQGET with "IST") as "%"; et. rewrite H.
+      iby_coind "CIH". eauto.
+  - destruct e.
+    + isteps_r. iforce_l q. isteps_l. iby_coind "CIH". eauto.
+    + destruct img.
+      * isteps_l. iforce_r q. isteps_r. iby_coind "CIH". eauto.
+      * rewrite SBRed.bind SBRed.take. s. des_ifs; isteps_l; ss.
+        isteps_l. iforce_r q. isteps_r. iby_coind "CIH". eauto.
+    + istep. iby_coind "CIH". eauto.
+Qed.
+
+Lemma isim_reflL contextual Ist fl_src fl_tgt mask scopesL scopesR scopesF (EqL : ist_type Σ) itr
+    (DISJ : List.NoDup (scopesL ++ scopesR))
+    (INCL : incl scopesF scopesL)
+    (EQGET : ∀ nths st_src st_tgt
+                (NODS: List.NoDup (map fst st_src))
+                (NODT: List.NoDup (map fst st_tgt)),
+        EqL nths st_src st_tgt -∗ ⌜st_src = st_tgt⌝)
+    (EQSET : ∀ nths st_src st_tgt nths0 (k : key) v
+                (NODS: List.NoDup (map fst st_src))
+                (NODT: List.NoDup (map fst st_tgt)),
+        EqL nths st_src st_tgt -∗ EqL nths0 (alist_upd k v st_src) (alist_upd k v st_tgt)) :
+  isim_fsem fl_src fl_tgt (IstProd EqL (IstSB scopesR Ist)) contextual
+    (IstProd EqL (IstSB scopesR Ist)) (IstProd EqL (IstSB scopesR Ist))
+    (SB.sandbox_body (mask,scopesF,itr)) (SB.sandbox_body (mask,scopesF,itr)).
+Proof using.
+  ii. subst. unfold SB.sandbox_body. s.
+  iIntros "IST _". iStopProof.
+  eapply isim_refl; i; et.
+  - iIntros "[% [% [% [% [% [EQ [% IST]]]]]]]". des; subst.
+    iPoseProof (EQGET with "EQ") as "%".
+    { rewrite map_app in NODS0. eapply NoDup_app_remove_r. et. }
+    { rewrite map_app in NODT. eapply NoDup_app_remove_r. et. }
+    rewrite !alist_find_app_o. des_ifs.
+    erewrite alist_find_fst_notin; cycle 1.
+    { ii. eapply NoDup_app_disjoint; try apply DISJ; eauto.
+      apply H0. eapply in_map in H. rewrite List.map_map in H. apply H. }
+    erewrite alist_find_fst_notin; cycle 1.
+    { ii. eapply NoDup_app_disjoint; try apply DISJ; eauto.
+      apply H1. eapply in_map in H. rewrite List.map_map in H. apply H. }
+    et.
+  - iIntros "[% [% [% [% [% [EQ [% IST]]]]]]]". des; subst.
+    iExists (alist_upd k v st_srcL), (alist_upd k v st_tgtL), st_srcR, st_tgtR.
+    iSplitR; cycle 1.
+    { iFrame. iSplit; eauto. iApply EQSET; eauto.
+      - rewrite map_app in NODS0. eapply NoDup_app_remove_r. et.
+      - rewrite map_app in NODT. eapply NoDup_app_remove_r. et.
+    }
+    iPureIntro. esplits; eauto.
+    * eapply alist_upd_not_tail. ii.
+      eapply NoDup_app_disjoint; try apply DISJ; eauto.
+      eapply H0. eapply in_map in H. rewrite List.map_map in H. apply H.
+    * eapply alist_upd_not_tail. ii.
+      eapply NoDup_app_disjoint; try apply DISJ; eauto.
+      apply H1. eapply in_map in H. rewrite List.map_map in H. apply H.
+Qed.
+
+Lemma isim_reflR contextual Ist fl_src fl_tgt mask scopesL scopesR scopesF (EqR : ist_type Σ) itr
+    (DISJ : List.NoDup (scopesL ++ scopesR))
+    (INCL : incl scopesF scopesR)
+    (EQGET : ∀ nths st_src st_tgt, EqR nths st_src st_tgt -∗ ⌜st_src = st_tgt⌝)
+    (EQSET : ∀ nths st_src st_tgt nths0 (k : key) v,
+        EqR nths st_src st_tgt -∗ EqR nths0 (alist_upd k v st_src) (alist_upd k v st_tgt)) :
+  isim_fsem fl_src fl_tgt (IstProd (IstSB scopesL Ist) EqR) contextual
+    (IstProd (IstSB scopesL Ist) EqR) (IstProd (IstSB scopesL Ist) EqR)
+    (SB.sandbox_body (mask,scopesF,itr)) (SB.sandbox_body (mask,scopesF,itr)).
+Proof using.
+  ii. subst. unfold SB.sandbox_body. s.
+  iIntros "IST _". iStopProof.
+  eapply isim_refl; i; et.
+  - iIntros "[% [% [% [% [% [[% IST] EQ]]]]]]". des; subst.
+    iPoseProof (EQGET with "EQ") as "%". subst.
+    rewrite alist_find_app_o; des_ifs.
+    { exfalso. apply alist_find_fst_some in Heq.
+      eapply NoDup_app_disjoint; try apply DISJ; eauto.
+      apply H0. eapply in_map in Heq. rewrite List.map_map in Heq. eauto.
+    }
+    rewrite alist_find_app_o; des_ifs.
+    exfalso. apply alist_find_fst_some in Heq0.
+    eapply NoDup_app_disjoint; try apply DISJ; eauto.
+    apply H1. eapply in_map in Heq0. rewrite List.map_map in Heq0. eauto.
+  - iIntros "[% [% [% [% [% [[% IST] EQ]]]]]]". des; subst.
+    iExists st_srcL, st_tgtL, (alist_upd k v st_srcR), (alist_upd k v st_tgtR).
+    iSplitR; cycle 1.
+    { iFrame. iSplit; eauto. iApply EQSET. eauto. }
+    iPureIntro. esplits; eauto.
+    * eapply alist_upd_tail. ii. 
+      eapply NoDup_app_disjoint; try apply DISJ; eauto.
+      eapply H0. eapply in_map in H. rewrite List.map_map in H. apply H.
+    * eapply alist_upd_tail. ii.
+      eapply NoDup_app_disjoint; try apply DISJ; eauto.
+      apply H1. eapply in_map in H. rewrite List.map_map in H. apply H.
+Qed.
+
+Lemma ISim_reflL contextual A B C init_cond scopes (Ist: ist_type Σ)
+  (SCOPES: scopes = Mod.scopes B)
+  (MON : ∀ nths nths' (LE : nths <= nths') st_src st_tgt,
+           Ist nths st_src st_tgt -∗ Ist nths' st_src st_tgt)
+  (SCOPE : sub_perm (Mod.scopes A) scopes)
+  (MATCH : sub_perm (List.map fst (Mod.fnsems A)) (List.map fst (Mod.fnsems B)))
+  (INIT : ISim.initial_valid A B init_cond (IstSB scopes Ist))
+  (SIM : ∀ fn, In fn (List.map fst (Mod.fnsems A)) →
+    ISim.sim_fun contextual
+    (Mod.add C A) (Mod.add C B) init_cond
+    (IstProd IstEq (IstSB scopes Ist)) fn)
+  :
+  ISim.t contextual (Mod.add C A) (Mod.add C B) init_cond
+    (IstProd IstEq (IstSB scopes Ist)).
+Proof using.
+  subst. econs; intro WF.
+  - ii. iIntros "H". iDestruct "H" as (? ? ? ?) "(% & HL & (% & HR))"; des; subst.
+    do 4 (iExists _). iSplitR; eauto.
+    iSplitL "HL"; et. iSplit; et. iApply MON; [|eauto]; nia.
+  - s. apply sub_perm_cancel_head. eapply SCOPE.
+  - s. rewrite ?map_app. apply sub_perm_cancel_head. eauto.
+  - assert (WFCA: Mod.wf (C ★ A)).
+    { destruct WF. econs.
+      - eapply sub_perm_nodup; et. s. rewrite !map_app.
+        eapply sub_perm_cancel_head. et.
+      - eapply sub_perm_nodup; et. s.
+        eapply sub_perm_cancel_head. et.
+    }
+    ii. ss. rewrite alist_find_map alist_find_app_o in H.
+    destruct (alist_find None (Mod.fnsems C)) eqn: E; ss.
+    destruct (alist_find None (Mod.fnsems B)) eqn: E0; ss.
+    destruct (alist_find None (Mod.fnsems A)) eqn: E1; ss.
+    { exploit (SIM None); et.
+      - by eapply alist_find_fst_some.
+      - eapply WFCA.
+      - eapply WF.
+      - s. rewrite alist_find_app_o E. et.
+      - i; des. rewrite alist_find_app_o E E0 in x0. ss.
+    }
+    rewrite map_app alist_find_app_o !alist_find_map_snd E. s.
+    rewrite E1. s. split; et.
+    exploit INIT; try rewrite !alist_find_map_snd.
+    + rewrite E0. et.
+    + i; des. rewrite x1. iIntros "[% H]". iExists _, _, _, _.
+      do 3 (iSplit; et).
+  - i. eapply ISim.sim_fun_strong. intro IN.
+    rewrite map_app in IN. apply in_app_or in IN. des; cycle 1.
+    { eapply SIM; eauto. }
+    ii. exists fs. destruct fs as [[[img msk] scp] bd].
+    assert (FND : alist_find fn (Mod.fnsems C) = Some (img,msk,scp,bd)).
+    { s in FIND. rewrite alist_find_app_o in FIND. des_ifs.
+      exfalso. assert (ND:= Mod.wf_fns WFS). s in ND. rewrite map_app in ND.
+      eapply NoDup_app_disjoint; try apply ND; eauto.
+      eapply alist_find_some, (in_map fst) in FIND. eauto.
+    }
+
+    split.
+    { eapply alist_find_some_iff; eauto.
+      apply in_or_app. left. eapply alist_find_some. eauto. }
+
+    destruct fn; ss.
+    { eapply isim_reflL; et; cycle 2.
+      + i. iIntros "%". subst. et.
+      + apply WFT.
+      + etrans; [|eapply Mod.well_scoped_fns].
+        unfold fnsems_scopes. erewrite FND. refl.
+    }
+
+    ii. iIntros "[% H] INV". des; subst.
+    iApply isim_mono; cycle 1.
+    { iApply (isim_reflL with "[H]"); et; cycle 3.
+      - iExists _, _, _, _. do 3 (iSplit; et).
+        + iPureIntro. split; cycle 1.
+          * eapply (Mod.well_scoped_init B).
+          * etrans; [eapply (Mod.well_scoped_init A)|].
+            eapply sub_perm_incl. et.
+        + exploit INIT.
+          { rewrite alist_find_map_snd.
+            destruct (alist_find None (_ B)) eqn: E; et.
+            rewrite map_app in NODUPFT.
+            eapply NoDup_app_disjoint in NODUPFT; ss.
+            - eapply (in_map fst), alist_find_some. et.
+            - s. eapply alist_find_some, (in_map fst) in E. et.
+          }
+          i. des. rewrite x1. iDestruct "H" as "[% H]". et.
+      - eapply WFT.
+      - ii. exploit (Mod.well_scoped_fns C None).
+        { rewrite /fnsems_scopes FND. et. }
+        i. et.
+      - i. iIntros "%". subst. et.
+    }
+    i. iIntros "[% H]". subst. et.
+Qed.
+
+Lemma ISim_reflR contextual A B C init_cond scopes Ist
+  (SCOPES: scopes = Mod.scopes B)
+  (MON : ∀ nths nths' (LE : nths <= nths') st_src st_tgt,
+      Ist nths st_src st_tgt -∗ Ist nths' st_src st_tgt)
+  (SCOPE : sub_perm (Mod.scopes A) scopes)
+  (MATCH : sub_perm (List.map fst (Mod.fnsems A)) (List.map fst (Mod.fnsems B)))
+  (INIT : ISim.initial_valid A B init_cond (IstSB scopes Ist))
+  (SIM : ∀ fn, In fn (map fst (Mod.fnsems A)) →
+    ISim.sim_fun contextual
+                 (Mod.add A C) (Mod.add B C) init_cond
+                 (IstProd (IstSB scopes Ist) IstEq) fn)
+  :
+  ISim.t contextual (Mod.add A C) (Mod.add B C) init_cond (IstProd (IstSB scopes Ist) IstEq).
+Proof using.
+  subst. econs; intro WF.
+  - ii. iIntros "H". iDestruct "H" as (? ? ? ?) "(% & (% & HL) & HR)"; des; subst.
+    do 4 (iExists _). iSplitR; eauto.
+    iSplitL "HL"; et. iSplit; et. iApply MON; [|eauto]; nia.
+  - s. apply sub_perm_cancel_tail. eapply SCOPE.
+  - s. rewrite ?map_app. apply sub_perm_cancel_tail. eauto.
+  - assert (WFCA: Mod.wf (A ★ C)).
+    { destruct WF. econs.
+      - eapply sub_perm_nodup; et. s. rewrite !map_app.
+        eapply sub_perm_cancel_tail. et.
+      - eapply sub_perm_nodup; et. s.
+        eapply sub_perm_cancel_tail. et.
+    }
+    ii. ss. rewrite alist_find_map alist_find_app_o in H.
+    destruct (alist_find None (Mod.fnsems B)) eqn: E; ss.
+    destruct (alist_find None (Mod.fnsems C)) eqn: E0; ss.
+    destruct (alist_find None (Mod.fnsems A)) eqn: E1; ss.
+    { exploit (SIM None); et.
+      - by eapply alist_find_fst_some.
+      - eapply WFCA.
+      - eapply WF.
+      - s. rewrite alist_find_app_o E1. et.
+      - i; des. rewrite alist_find_app_o E E0 in x0. ss.
+    }
+    rewrite map_app alist_find_app_o !alist_find_map_snd E1. s.
+    rewrite E0. s. split; et.
+    exploit INIT; try rewrite !alist_find_map_snd.
+    + rewrite E. et.
+    + i; des. rewrite x1. iIntros "[% H]". iExists _, _, _, _.
+      do 3 (iSplit; et).
+  - i. eapply ISim.sim_fun_strong. intro IN.
+    rewrite map_app in IN. apply in_app_or in IN. des.
+    { eapply SIM; eauto. }
+    ii. exists fs. destruct fs as [[[img msk] scp] bd].
+    assert (FND : alist_find fn (Mod.fnsems C) = Some (img,msk,scp,bd)).
+    { s in FIND. rewrite alist_find_app_o in FIND. des_ifs.
+      exfalso. assert (ND:= Mod.wf_fns WFS). s in ND. rewrite map_app in ND.
+      eapply NoDup_app_disjoint; try apply ND; eauto.
+      eapply alist_find_some, (in_map fst) in Heq. eauto.
+    }
+
+    split.
+    { eapply alist_find_some_iff; eauto.
+      apply in_or_app. right. eapply alist_find_some. eauto. }
+
+    destruct fn; ss.
+    { eapply isim_reflR; et; cycle 2.
+      + i. iIntros "%". subst. et.
+      + apply WFT.
+      + etrans; [|eapply Mod.well_scoped_fns].
+        unfold fnsems_scopes. erewrite FND. refl.
+    }
+
+    ii. iIntros "[% H] INV". des; subst.
+    iApply isim_mono; cycle 1.
+    { iApply (isim_reflR with "[H]"); et; cycle 3.
+      - iExists _, _, _, _. do 3 (iSplit; et).
+        + iPureIntro. split; cycle 1.
+          * eapply (Mod.well_scoped_init B).
+          * etrans; [eapply (Mod.well_scoped_init A)|].
+            eapply sub_perm_incl. et.
+        + exploit INIT.
+          { rewrite alist_find_map_snd.
+            destruct (alist_find None (_ B)) eqn: E; et.
+            rewrite map_app in NODUPFT.
+            eapply NoDup_app_disjoint in NODUPFT; ss.
+            - eapply (in_map fst), alist_find_some. et.
+            - s. eapply alist_find_some, (in_map fst) in E. et.
+          }
+          i. des. rewrite x1. iDestruct "H" as "[% H]". et.
+      - eapply WFT.
+      - ii. exploit (Mod.well_scoped_fns C None).
+        { rewrite /fnsems_scopes FND. et. }
+        i. et.
+      - i. iIntros "%". subst. et.
+    }
+    i. iIntros "[% H]". subst. et.
+Qed.
+
+End ISIM_REFL.
+
+Section Proph.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.  
+
+  Lemma isim_fsem_proph_to_normal contextual fsp bd_s bd_t msk sp scp fls flt
+    (SIM: ∀ arg nths st,
+     ⊢ (winv (∅,∅) -∗
+        isim contextual fls flt IstEq ibot ibot (ist_with_eq IstEq) true true nths
+          (st, SB.sandbox true  msk scp (SModTr.trans sp      (bd_s arg)))
+          (st, SB.sandbox false msk scp (SModTr.trans sp_none (bd_t arg)))))
+    :
+    isim_fsem fls flt IstEq contextual IstEq IstEq
+      (SB.sandbox_body (SModTr.trans_ktree sp      (true ,msk,scp, (Some (to_fspec fsp), bd_s))))
+      (SB.sandbox_body (SModTr.trans_ktree sp_none (false,msk,scp, (None, fspec_proph fsp bd_t)))).
+  Proof using.
+    ii. iIntros "% INV". subst.
+    rewrite /SB.sandbox_body /SModTr.trans_ktree /fspec_proph. s.
+    rewrite /SModTr.HoareFun. s.
+    isteps_l. iDestruct "ASM" as "[P %]"; subst.
+    isteps_r; iforce_r. iFrame. iIntros (?) "Q". isteps_r.
+    iApply isim_bind. iSplitR "Q"; [iApply SIM|]; try nia; et.
+    iIntros (? ? ? ? ? ?) "[% %]". subst.
+    isteps_r. iMod ("Q" with "GRT") as "Q".
+    iforce_l. iforce_l. iFrame. iSplit; et.
+    istep. iSplit; et.
+  Qed.
+  
+End Proph.
+
+Section ISIM_ADEQUACY.
+Context `{_crisG: !crisG Γ Σ α β τ _S _I}.  
+
+Lemma ISim_wf contextual ms mt cond Ist
   (SIM: ISim.t contextual ms mt cond Ist)
   (WF: Mod.wf mt)
   :
   Mod.wf ms.
-Proof.
+Proof using.
   inv SIM. dup WF. inv WF. econs.
   - eapply sub_perm_nodup; eauto.
   - eapply sub_perm_nodup; eauto.
 Qed.
 
-Lemma ISim_match `{Σ: GRA} contextual ms mt cond Ist fn
+Lemma ISim_match contextual ms mt cond Ist fn
   (SIM: ISim.t contextual ms mt cond Ist)
   (WF: Mod.wf mt)
   (IN: In fn (List.map fst (Mod.fnsems ms)))
   :
   In fn (List.map fst (Mod.fnsems mt)).
-Proof.
+Proof using.
   dup WF. destruct WF. eapply sub_perm_incl; eauto. apply SIM; et.
 Qed.
 
-Lemma ISim_adequacy `{Σ: GRA} (ms mt : Mod.t) (rs rm rt : Σ) (IC : iProp Σ) Ist
+Lemma ISim_adequacy (ms mt : Mod.t) (rs rm rt : Σ) (IC : iProp Σ) Ist
     (SUB : Own rs ⊢ Own rt ∗ Own rm)
     (WF : ✓ rs)
-    (COND : Own rm ⊢ IC)
+    (COND : Own rm ⊢ IC ∗ winv (∅,∅))
     (WFS : Mod.wf ms)
     (WFT : Mod.wf mt)
     (SIM : ISim.t closed ms mt IC Ist) :
   LSim.t (Mod.to_lmod ms rs) (Mod.to_lmod mt rt).
-Proof.
+Proof using.
   dup SIM. dup WFS. dup WFT. destruct SIM0, WFS0, WFT0.
   econs; i; ss.
   - ii; subst; eauto.
-  - instantiate (1:= interp_inv Ist).
+  - instantiate (1:= interp_inv (λ x y z, winv (∅,∅) ∗ Ist x y z)%I).
     inv WF0. econs; eauto.
-    iIntros "H". iMod (MR with "H") as "H". iModIntro.
+    rewrite MR. iIntros ">[I H]". iFrame. iModIntro.
     iApply sim_mon; eauto.
   - instantiate (1:= ε).
     inv WF0. econs; eauto.
@@ -59,7 +459,7 @@ Proof.
     { instantiate (1:= interp_inv IstTrue). et. }
     assert (NDS:= ms.(Mod.nodup_init) wf_scopes).
     assert (NDT:= mt.(Mod.nodup_init) wf_scopes0).
-    
+
     eapply msim_adequacy; et.
     + instantiate (1:=List.map (map_snd SB.sandbox_body) (Mod.fnsems ms)).
       rewrite map_map fst_map_snd. et.
@@ -68,8 +468,16 @@ Proof.
     + rewrite map_map. f_equal. extensionalities. destruct H. et.
     + rewrite map_map. f_equal. extensionalities. destruct H. et.
     + eapply le_mine_refl. et.
-    + ginit. eapply isim_init; [eapply x1|..]; eauto using iunlift_ibot.
-      erewrite COND. iIntros "H". iSplit; et.
+    + ginit. eapply isim_init.
+      * iIntros "P". iApply isim_mono; cycle 1; i.
+        { iApply isim_ist_frame; et. }
+        { instantiate (1:= (ist_with_eq IstTrue)). s.
+          iIntros "[? [? ?]]". iFrame. }
+      * erewrite COND. iIntros "[H I]".
+        iPoseProof (winv_split_empty with "[I]") as "[I I']"; et. iFrame.
+        iApply (x1 with "[H]"); et. iSplit; et.
+      * eauto using iunlift_ibot.
+      * eauto using iunlift_ibot.
     + rewrite SUB !Own_op -!Own_unit. iIntros "[? ?]"; iFrame. et.
   - move: FIND; rewrite ?alist_find_map_snd /o_map; intros FIND.
     clear sim_initial. des_ifs; cycle 1.
@@ -85,8 +493,13 @@ Proof.
     { ginit; cycle 2; i.
       eapply gpaco9_mon with (r := iunlift ibot) (rg:= iunlift ibot); eauto using iunlift_ibot.
       eapply isim_init; eauto.
-      iIntros "H". iApply isim_upd. iMod (MR with "H") as "H".
-      iModIntro. iApply x1; eauto.
+      iIntros "H". iApply isim_upd. iMod (MR with "H") as "[I H]".
+      iPoseProof (x1 with "[H]") as "SIM"; cycle 3; s; et.
+      iPoseProof (winv_split_empty with "[I]") as "[I I']"; et.
+      iPoseProof ("SIM" with "I") as "SIM".
+      iModIntro. iApply isim_mono; cycle 1; i.
+      { iApply isim_ist_frame; et. iFrame. }
+      { s. iIntros "[? [? ?]]". iFrame. }
     }
     { rewrite List.map_map.
       eapply eq_ind; [apply wf_fns|].
@@ -100,3 +513,5 @@ Proof.
     { rewrite List.map_map. f_equal. extensionalities. destruct H. eauto. }
 Unshelve. eapply option_Dec, string_Dec.
 Qed.
+
+End ISIM_ADEQUACY.

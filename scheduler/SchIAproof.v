@@ -2,7 +2,6 @@ Require Import CRIS.
 Require Import SchHeader SchI SchA.
 Require Import ltac2_lib.
 
-
 Local Open Scope nat_scope.
 
 Module SchIA. Section SchIA.
@@ -12,7 +11,7 @@ Module SchIA. Section SchIA.
 
   Context (sp: sp_type).
   Context (sp_user : spl_type).
-  Context (SchInSp : sp_incl (SchAS.sp sp_user) sp).
+  Context (SchInSp : sp_incl (SchAS.sp sp_user ⊤ 1) sp).
   Context (FunInSp : sp_incl sp_user sp).
 
   Fixpoint ths_wf (nths : nat) (ths_tgt : SchI.thslist) : Prop :=
@@ -253,7 +252,7 @@ Module SchIA. Section SchIA.
 
     (* SRC: guarantee a precondition of user fspec *)
     iPoseProof (PRE with "[WI pre tid]") as ">pre".
-    { rewrite /precond /fspec_wsim. iFrame. iSplit; eauto. }
+    { rewrite /precond /fspec_winv. iFrame. iSplit; eauto. }
     force_l. iSplitL "pre"; iFrame.
     steps_l.
 
@@ -263,7 +262,7 @@ Module SchIA. Section SchIA.
 
     steps_l. rename q into vret.
     iMod (POST $ vret with "[ASM]") as "I"; eauto.
-    rewrite /fspec_wsim /fspec_virtual. do 2 rewrite {1}/postcond.
+    rewrite /fspec_winv /fspec_virtual. do 2 rewrite {1}/postcond.
     iDestruct "I" as "[WI I]".
     iDestruct "I" as (vsret) "[-> [tid [%sret [-> POST]]]]".
 
@@ -596,7 +595,7 @@ Section ctxr.
   Context `{_schG: !schG}.
 
   Lemma ctxr sp sp_user
-        (SchInGlobal : sp_incl (SchAS.sp sp_user) sp)
+        (SchInGlobal : sp_incl (SchAS.sp sp_user ⊤ 1) sp)
         (UserInGlobal : sp_incl sp_user sp) :
     ctx_refines
       (SchA.t sp sp_user, SchA.init_cond)

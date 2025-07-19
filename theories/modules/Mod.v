@@ -15,6 +15,12 @@ Definition fnsems_scopes `{Σ: GRA} {T} (fn : option string) (fnsems : alist (op
 Definition state_scopes (st : alist key Any.t) :=
   List.map (fst ∘ fst) st.
 
+Lemma state_scopes_update k v st:
+  state_scopes (alist_upd k v st) = state_scopes st.
+Proof.
+  rewrite /state_scopes -!List.map_map alist_upd_keys. eauto.
+Qed.
+
 Module Mod. Section Mod.
   Context {Σ : GRA}.
   

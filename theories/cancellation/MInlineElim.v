@@ -1,15 +1,18 @@
 Require Import Common.
 From iris.proofmode Require Import proofmode.
 Require Import SModTr SMod Mod Tactics.
-Require Import ISim ISimInit CtxRefine CtxRefineFacts ClosedAdequacy.
+Require Import ISim ISimFacts CtxRefine CtxRefineFacts ClosedAdequacy.
 Require Import MInline.
 
 Set Implicit Arguments.
 
-Lemma inline_elim `{Σ: GRA} md P
+Section INLINE.
+Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
+
+Lemma inline_elim md P
 :
   refines (md, P) (MInline.inline md, P).
-Proof. 
+Proof using.
   eapply closed_adequacy_emp.
 
   cut (∀ f (WF: Mod.wf md) (SCP: incl f.1.2 md.(Mod.scopes)),
@@ -27,7 +30,7 @@ Proof.
       - iIntros. iPureIntro. et.
     }
     { ii. s. rewrite !alist_find_map_snd FIND. esplits; eauto.
-      ii. iIntros "H". iAssert (⌜st_src = st_tgt⌝)%I as "%EQ".
+      ii. iIntros "H I". iAssert (⌜st_src = st_tgt⌝)%I as "%EQ".
       { destruct fn; iDestruct "H" as "%"; des; subst; et. }
       subst. iApply isim_mono; cycle 1.
       - iApply H; et.
@@ -37,7 +40,7 @@ Proof.
     }
   }
 
-  ii. iIntros "%". subst.
+  ii. iIntros "% I". subst. iStopProof. 
   destruct f as [[[img msk] scp] bd].
   rewrite /SB.sandbox_body; s. rewrite /SB.sandbox_body; s.
 
@@ -45,7 +48,7 @@ Proof.
   generalize (bd arg) as it. i.
   ss. clear bd arg NODD NODS. rename st_tgt into st.
 
-  iStopProof. revert it.
+  revert it.
   combine_quant st.
   combine_quant pt.
   combine_quant ps.
@@ -58,7 +61,7 @@ Proof.
   eapply isim_coind. i.
   destruct a as [scp [SCP [nths [img [msk [ps [pt [st it]]]]]]]]; s.
   destruct_quant.
-  iIntros "(_ & #CIH)".
+  iIntros "(I & #CIH)".
 
   assert (CASE := case_itrH it); des; subst.
   - rewrite SBRed.ret MIRed.ret. step. eauto.
@@ -84,7 +87,8 @@ Proof.
       s. ired. rewrite /SB.sandbox_body. s.
 
       rewrite MIRed.bind SBRed.bind.
-      iApply isim_bind; iSplitL.
+      iPoseProof (winv_split_empty with "[I]") as "[I I']"; et.
+      iApply isim_bind. iSplitL "I".
       - by_coind "CIH"; et.
         iPureIntro. ii. exploit Mod.well_scoped_fns; et.
         rewrite /fnsems_scopes. erewrite FIND. et.
@@ -138,3 +142,5 @@ Proof.
     + rewrite SBRed.bind SBRed.io MIRed.core.
       step. steps_r. by_coind "CIH"; et.
 Qed.
+
+End INLINE.

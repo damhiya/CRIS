@@ -129,3 +129,13 @@ Section FSPEC.
   Qed.
 
 End FSPEC.
+
+Section FSPEC_WINV.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
+ 
+  Definition fspec_winv (E : coPset) (fsp : fspec) : fspec :=
+    mk_fspec (meta := fsp.(meta))
+      (λ x varg arg, winv (E, E) ∗ fsp.(precond) x varg arg)%I
+      (λ x vret ret, winv (E, E) ∗ fsp.(postcond) x vret ret)%I.
+
+End FSPEC_WINV.  

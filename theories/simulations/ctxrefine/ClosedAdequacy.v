@@ -3,7 +3,7 @@ From iris.proofmode Require Import proofmode.
 
 Require Import Mod.
 Require Import LSim LSimFacts.
-Require Import ISim ISimInit ISimFacts.
+Require Import ISim ISimFacts.
 Require Import CtxRefine.
 Require Import ITactics.
 Require Import syn_invariants.
@@ -14,40 +14,6 @@ From ExtLib Require Import
      Data.Map.FMapAList.
 
 Set Implicit Arguments.
-
-(* Ltac mstep := guclo msimC_spec; econs; econs; eauto; econs; eauto. *)
-
-(* Lemma _msim_close `{Σ: GRA} fls flt Ist: *)
-(*   @_msim _ fls flt Ist <10= @_msim _ closed fls flt Ist. *)
-(* Proof. *)
-(*   i. ss.  *)
-(*   eapply _msim_tarski; eauto. i.  *)
-(*   econs. ii. exploit IN; eauto. i. des. *)
-(*   esplits; eauto. clear IN. *)
-(*   destruct x10; ss; try by econs; eauto. *)
-(* Qed. *)
-
-(* Lemma msim_close `{Σ: GRA} *)
-(*   fl_src fl_tgt Ist *)
-(*   ps pt nths st_src st_tgt itr_src itr_tgt fmr *)
-(*   (SIM: msim_body open fl_src fl_tgt Ist ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr) *)
-(* : *)
-(*   msim_body closed fl_src fl_tgt Ist ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr. *)
-(* Proof. *)
-(*   ginit. s. revert_until Ist. gcofix CIH. i. *)
-(*   remember (st_src, itr_src). remember (st_tgt, itr_tgt). *)
-(*   move SIM before CIH. revert_until SIM. punfold SIM. *)
-(*   pattern ps, pt, nths, p, p0, fmr. *)
-(*   eapply _msim_tarski, SIM; i. clear SIM fmr. rename fmr0 into fmr. *)
-(*   guclo msim_wfC_spec. econs. i. *)
-(*   guclo msim_nodupC_spec. econs. i. *)
-(*   exploit IN; i; des; eauto. clear IN. *)
-(*   destruct x0; i; des; try by inv Heqp; try inv Heqp0; clarify; mstep. *)
-(*   { guclo msimC_spec. econs. econs; et. econs; et. i. *)
-(*     hexploit K; et. i; des. esplits; et. } *)
-(*   pclearbot. gstep. econs. ii. esplits; et. econs; et. *)
-(*   gfinal. right. eapply paco9_mon_bot; eauto using _msim_close. *)
-(* Qed.  *)
 
 Lemma valid_solve_eq `{Σ: GRA} (a b : Σ) :
   ✓ a -> a ≡ b -> ✓ b.
@@ -62,21 +28,32 @@ Proof.
   symmetry. eauto.
 Qed.
 
-Theorem closed_adequacy `{Σ: GRA} (ms mt: Mod.t) IC Ist P
+Section ADEQUACY.
+Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
+
+Theorem closed_adequacy (ms mt: Mod.t) IC Ist P
   (SIM: ISim.t closed ms mt IC Ist)
   :
   refines (ms, IC ∗ P)%I (mt, P).
-Proof.
+Proof using.
   split.
   { eapply ISim_wf; eauto. }
-  ii. eapply Own_split in SRC; eauto. des.
-  i. ss. des. exists a2.
+  ii. ss. eapply Own_split in SRC; eauto. des.
+  eapply Own_split in SRC1; et; des; cycle 1.
+  { eapply Own_wand_valid, WFR. rewrite SRC Own_op. iIntros "[_ ?]". iFrame; et. }
+  rewrite winv_split_empty in SRC0.
+  eapply Own_split in SRC0; et; des; cycle 1.
+  { eapply Own_wand_valid, WFR. rewrite SRC Own_op. iIntros "[? _]". iFrame; et. }
+  exists (a4 ⋅ a3).
   esplits; eauto.
-  { eapply cmra_valid_op_r. eapply valid_solve_eq; eauto. }
-  ii. subst. eapply lsim_adequacy, PR.
-  - eapply ISim_adequacy; try eapply SRC0; eauto.
-    + rewrite -Own_op. eapply Own_equiv. 
-      etrans; eauto. rewrite comm; ss.
+  { eapply Own_wand_valid, WFR. rewrite SRC SRC1 SRC0 !Own_op.
+    iIntros "[[? ?] [? ?]]". iFrame. et. }
+  { rewrite Own_op SRC4 SRC3. et. }
+  ii. eapply lsim_adequacy, PR.
+  - eapply ISim_adequacy; et.
+    + instantiate (1:= a0⋅a5). rewrite SRC SRC0 SRC1 !Own_op.
+      iIntros "[[? ?] [? ?]]". iFrame.
+    + rewrite Own_op SRC2 SRC5. et.
     + eapply ISim_wf; eauto.
   - dup WFM. inv WFM. econs. ss. unfold map_snd.
     rewrite !List.map_map.
@@ -85,12 +62,14 @@ Proof.
     f_equal; et. extensionalities. destruct H; et.
 Qed.
 
-Theorem closed_adequacy_emp `{Σ: GRA} (ms mt: Mod.t) P
+Theorem closed_adequacy_emp (ms mt: Mod.t) P
   (SIM: ISim.t closed ms mt emp%I IstEq)
   :
   refines (ms, P) (mt, P).
-Proof.
+Proof using.
   eapply (closed_adequacy P) in SIM.
   ii. exploit SIM; et. i; des. esplits; et.
   i. exploit x1; et. ss. rewrite -bi.emp_sep_1. et.
 Qed.
+
+End ADEQUACY.

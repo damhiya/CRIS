@@ -2,6 +2,7 @@ Require Import Common.
 From iris.proofmode Require Import proofmode.
 Require Import Mod LMod FSpec.
 Require Import MSim TacticsCommon.
+Require Export MSimCommon.
 
 Set Implicit Arguments.
 
@@ -850,7 +851,7 @@ Section Proph.
       (P -∗ isim r g RR true pt nths (st_s, k_s Q) (st_t, i_t)))
     ⊢
     isim r g RR ps pt nths (st_s, (AssumeProph Pre Post) >>= k_s) (st_t, i_t).
-  Proof.
+  Proof using.
     rewrite /AssumeProph. Coqlib.unseal CRIS_PROPH.
     iIntros "[% [% [#PR [G H]]]]".
     norm_l. iApply isim_choose_src. iExists P.
@@ -869,7 +870,7 @@ Section Proph.
       (I ∗ P -∗ isim r g RR true pt nths (st_s, k_s Q) (st_t, i_t)))
     ⊢
     isim r g RR ps pt nths (st_s, (AssumeProph Pre Post) >>= k_s) (st_t, i_t).
-  Proof.
+  Proof using.
     iIntros "[% [% [% [I [PR [G H]]]]]]".
     iApply isim_assume_proph_src.
     iRevert "PR G H". iStopProof. eapply entails_pointwise. i.
@@ -894,7 +895,7 @@ Section Proph.
         ⌜x' = x⌝ ∗ isim r g RR true pt nths (st_s, k_s (Post x)) (st_t, i_t))
     ⊢
     isim r g RR ps pt nths (st_s, (AssumeProph Pre Post) >>= k_s) (st_t, i_t).
-  Proof.
+  Proof using.
     iIntros "[% [#PR H]]".
     iApply isim_assume_proph_src_advanced.
     iExists _, (Pre x), (Post x). iSplitL "H"; [iApply "H"|]. iSplit; et.
@@ -914,7 +915,7 @@ Section Proph.
        isim r g RR ps true nths (st_s, i_s) (st_t, k_t Q))
     ⊢
     isim r g RR ps pt nths (st_s, i_s) (st_t, (AssumeProph Pre Post) >>= k_t).
-  Proof.
+  Proof using.
     rewrite /AssumeProph. unseal CRIS_PROPH.
     iIntros "[% [P H]]".
     norm_r. iApply isim_choose_tgt. iIntros (?).
@@ -927,19 +928,24 @@ Section Proph.
 
 End Proph.
 
-Definition isim_fsem `{Σ : GRA} fl_src fl_tgt Ist contextual IstS IstE : relation (Any.t -> itree crisE Any.t) :=
+Section FSEM.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.  
+
+  Definition isim_fsem fl_src fl_tgt Ist contextual IstS IstE : relation (Any.t -> itree crisE Any.t) :=
   fun itr_src itr_tgt =>
   ∀ arg nths st_src st_tgt
     (IMON : Ist_monotone Ist)
     (NODS : List.NoDup (List.map fst st_src))
     (NODD : List.NoDup (List.map fst st_tgt)),
   IstS nths st_src st_tgt ⊢
-    @isim Σ contextual fl_src fl_tgt Ist ibot ibot Any.t Any.t (ist_with_eq IstE)
-      false false nths (st_src, itr_src arg) (st_tgt, itr_tgt arg).
+    (winv (∅,∅) -∗ @isim Σ contextual fl_src fl_tgt Ist ibot ibot Any.t Any.t (ist_with_eq IstE)
+      false false nths (st_src, itr_src arg) (st_tgt, itr_tgt arg)).
+
+End FSEM.
 
 Module ISim. Section ISim.
   Import Mod.
-  Context `{Σ : GRA}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.  
 
   Variable contextual: contextuality.
   Variable (ms_src ms_tgt : Mod.t).
@@ -997,7 +1003,7 @@ Module ISim. Section ISim.
 
   Lemma sim_fun_strong fno:
     (In fno (List.map fst fnsems_src) → sim_fun fno) → sim_fun fno.
-  Proof.
+  Proof using.
     ii. dup FIND. eapply alist_find_some, (in_map fst) in FIND0. eapply H; et.
   Qed.
 

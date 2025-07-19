@@ -1,7 +1,7 @@
 Require Import Common.
 From iris.proofmode Require Import proofmode.
 Require Import Mod.
-Require Import ISim ISimInit ISimFacts.
+Require Import ISim ISimFacts.
 Require Import CtxRefine MainAdequacy.
 Require Import Tactics TacticsInit.
 
@@ -74,14 +74,17 @@ Proof.
   eapply NoDup_app_disjoint in NODUP; eauto.
 Qed.
 
-Lemma mod_add_scopes `{Σ: GRA} md0 md1:
-  Mod.scopes (md0 ★ md1) = Mod.scopes md0 ++ Mod.scopes md1.
-Proof. ss. Qed.
+Section CtxRefineFacts.
+Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
 
-Lemma mod_add_comm `{Σ: GRA} contextual ms0 ms1:
+Lemma mod_add_scopes md0 md1:
+  Mod.scopes (md0 ★ md1) = Mod.scopes md0 ++ Mod.scopes md1.
+Proof using. ss. Qed.
+
+Lemma mod_add_comm contextual ms0 ms1:
   ISim.t contextual (ms0 ★ ms1) (ms1 ★ ms0) (emp%I)
     (IstSB (Mod.scopes (ms0 ★ ms1)) perm_Ist).
-Proof.
+Proof using.
   econs; ss; i.
   { apply sub_perm_comm. }
   { rewrite ?map_app; i. apply sub_perm_comm. }
@@ -101,7 +104,7 @@ Proof.
   {
     ii. ss. dup FIND.
     eapply alist_find_comm in FIND0; et. rewrite FIND0. esplits; et.
-    ii. iIntros "%". des; subst.
+    ii. iIntros "% I". des; subst.
     iApply isim_mono; cycle 1.
     - iApply isim_nodup. iIntros (? ? ? ?).
       iApply isim_refl.
@@ -125,7 +128,8 @@ Proof.
   ii. eapply alist_find_comm in FIND; et. rewrite FIND. esplits; et.
 
   (* simulation *)
-  ii. destruct fs as [[[img msk] scp] bd]. unfold SB.sandbox_body. s.
+  ii. iIntros "S I". iStopProof.
+  destruct fs as [[[img msk] scp] bd]. unfold SB.sandbox_body. s.
   generalize (bd arg) as it. clear FIND bd arg.
   combine_quant NODD.
   combine_quant NODS.
@@ -135,7 +139,7 @@ Proof.
   eapply isim_coind. i.
   destruct a as [nths [st_src [st_tgt [NODS [NODD it]]]]]. s.
   destruct_quant.
-  iIntros "(%IST & #CIH)". des.
+  iIntros "((%IST & I) & #CIH)". des.
   assert (CASE := case_itrH it); des; subst.
   - step. eauto.
   - steps_l. steps_r. by_coind "CIH"; et.
@@ -161,7 +165,7 @@ Proof.
       by_coind "CIH"; et.
       * rewrite alist_upd_keys. et.
       * rewrite alist_upd_keys. et.
-      * unfold perm_Ist. iPureIntro.
+      * iFrame. unfold perm_Ist. iPureIntro.
         rewrite !state_scopes_update. esplits; eauto. 
         eapply alist_upd_perm; eauto.
     + rewrite !SBRed.bind !SBRed.get. des_ifs; cycle 1.
@@ -183,11 +187,11 @@ Qed.
   Properties of Contextual Refinements
  *******)
 
-Global Program Instance refines_mod_PreOrder : PreOrder refines_lmod.
+Global Program Instance refines_mod_PreOrder : PreOrder (@refines_lmod).
 Next Obligation. ii. ss. Qed.
 Next Obligation. ii. eapply H. eapply H0. ss. Qed.
 
-Global Program Instance refines_PreOrder `{Σ : GRA} : PreOrder refines.
+Global Program Instance refines_PreOrder : PreOrder refines.
 Next Obligation.
   ii. esplits; eauto. ii. esplits; eauto. refl.
 Qed.
@@ -202,7 +206,7 @@ Next Obligation.
 Qed.
 
 (*** vertical composition ***)
-Global Program Instance ctx_refines_PreOrder `{Σ : GRA} : PreOrder ctx_refines.
+Global Program Instance ctx_refines_PreOrder : PreOrder ctx_refines.
 Next Obligation. r. r. i. refl. Qed.
 Next Obligation.
   r. r. i. etrans.
@@ -210,67 +214,70 @@ Next Obligation.
   - apply H0.
 Qed.
 
-Global Program Instance ctx_refines_Proper `{Σ : GRA} : Proper ((≡) ==> (≡) ==> iff) (@ctx_refines Σ).
+Global Program Instance ctx_refines_Proper : Proper ((≡) ==> (≡) ==> iff) ctx_refines.
 Next Obligation.
-    intros Σ ms1 ms2 mseq mt1 mt2 mteq; split; intros CTXR.
-    { destruct ms1, ms2, mt1, mt2; inv mseq; inv mteq; ii; ss; split; auto; clarify.
-      { apply CTXR; s; eauto. }
-      { ii. destruct (CTXR _ WFM). hexploit (H1 rs); eauto; ss.
-        { rewrite H0; done. }
-        { intros [rt Hrt]; rewrite H2 in Hrt; des; exists rt; esplits; eauto. }
-      }
+  intros ms1 ms2 mseq mt1 mt2 mteq; split; intros CTXR.
+  { destruct ms1, ms2, mt1, mt2; inv mseq; inv mteq; ii; ss; split; auto; clarify.
+    { apply CTXR; s; eauto. }
+    { ii. destruct (CTXR _ WFM). hexploit (H1 rs); eauto; ss.
+      { rewrite H0; done. }
+      { intros [rt Hrt]; rewrite H2 in Hrt; des; exists rt; esplits; eauto. }
     }
-    { destruct ms1, ms2, mt1, mt2; inv mseq; inv mteq; ii; ss; split; auto; clarify.
-      { apply CTXR; s; eauto. }
-      { ii. destruct (CTXR _ WFM). hexploit (H1 rs); eauto; ss.
-        { rewrite -H0; done. }
-        { intros [rt Hrt]; rewrite -H2 in Hrt; des; exists rt; esplits; eauto. }
-      }
+  }
+  { destruct ms1, ms2, mt1, mt2; inv mseq; inv mteq; ii; ss; split; auto; clarify.
+    { apply CTXR; s; eauto. }
+    { ii. destruct (CTXR _ WFM). hexploit (H1 rs); eauto; ss.
+      { rewrite -H0; done. }
+      { intros [rt Hrt]; rewrite -H2 in Hrt; des; exists rt; esplits; eauto. }
     }
+  }
 Qed.
 
-Lemma ctxr_refines `{Σ : GRA} mcs mct (REF : ctx_refines mcs mct) :
+Global Program Instance ctx_refines_Proper2 mc : Proper ((≡) ==> iff) (ctx_refines mc).
+Next Obligation.
+  i. eapply ctx_refines_Proper. et.
+Qed.
+
+Lemma ctxr_refines mcs mct (REF : ctx_refines mcs mct) :
   refines mcs mct.
-Proof.
+Proof using.
   i. specialize (REF Mod.empty_mc).
   destruct mcs, mct. ss.
   rewrite !mod_add_empty_r in REF.
   ii; split; ii; des; ss; red in REF; hexploit REF; eauto; i; des; ss.
-  hexploit (H0 rs); ss; first (iIntros "H"; iSplit; eauto; iApply SRC; eauto).
+  hexploit (H0 rs); ss.
+  { rewrite SRC. iIntros "[? ?]"; iFrame; et. }
   i; des; esplits; eauto.
-  iIntros "H". iPoseProof (H2 with "H") as "(? & _)". eauto.
+  rewrite H2. iIntros "[? [? ?]]". iFrame.
 Qed.
 
 (*** weakening for initial condition ***)
-Lemma ctxr_cond_strengthen `{Σ : GRA} (m : Mod.t) (P Q : iProp Σ) (IMPL : P -∗ Q) :
+Lemma ctxr_cond_strengthen (m : Mod.t) (P Q : iProp Σ) (IMPL : P ⊢ Q) :
   ctx_refines (m, P) (m, Q).
-Proof.
+Proof using.
   ii. ss; split; first done. ii; ss; exists rs. esplits; eauto.
-  + iIntros "H". iPoseProof (SRC with "H") as "(X & Y)".
-    iFrame. iApply IMPL. eauto.
+  + rewrite SRC IMPL. et.
   + refl.
 Qed.
 
 (*** frame rule for initial condition ***)
-Lemma ctxr_cond_frameR `{Σ : GRA} (ms mt : Mod.t) Ps Pt Q (REF : ctx_refines (ms, Ps) (mt, Pt)) :
+Lemma ctxr_cond_frameR (ms mt : Mod.t) Ps Pt Q (REF : ctx_refines (ms, Ps) (mt, Pt)) :
   ctx_refines (ms, Ps ∗ Q)%I (mt, Pt ∗ Q)%I.
-Proof.
+Proof using.
   ii. specialize (REF (ctx.1, Q ∗ ctx.2)%I).
   destruct ctx. ss.
   split.
   { red in REF. hexploit REF; ss; i; des; eauto. }
   ii. ss. des. red in REF. hexploit REF; ss; i; des; eauto.
   hexploit (H0 rs); ss.
-  { iIntros "H". iPoseProof (SRC with "H") as "((? & ?) & ?)".
-    iFrame. }
+  { rewrite SRC. iIntros "[? [[? ?] ?]]". iFrame. }
   i; des; esplits; eauto.
-  { iIntros "H". iPoseProof (H2 with "H") as "(? & (? & ?))".
-    iFrame. }
+  rewrite H2. iIntros "[? [? [? ?]]]". iFrame.
 Qed.
 
-Lemma ctxr_cond_frameL `{Σ : GRA} (ms mt : Mod.t) Ps Pt Q (REF : ctx_refines (ms, Ps) (mt, Pt)) :
+Lemma ctxr_cond_frameL (ms mt : Mod.t) Ps Pt Q (REF : ctx_refines (ms, Ps) (mt, Pt)) :
   ctx_refines (ms, Q ∗ Ps)%I (mt, Q ∗ Pt)%I.
-Proof.
+Proof using.
   etrans; [|etrans]; cycle 1.
   { apply ctxr_cond_frameR with (Q:=Q) in REF. apply REF. }
   { eapply ctxr_cond_strengthen. i. iIntros "(H1 & H2)". iFrame. }
@@ -278,51 +285,52 @@ Proof.
 Qed.
 
 (*** commutativity ***)
-Theorem ctxr_comm `{Σ : GRA} (ma mb : Mod.t) P:
+Theorem ctxr_comm (ma mb : Mod.t) P:
   ctx_refines (Mod.add ma mb, P) (Mod.add mb ma, P).
-Proof.
+Proof using.
   etrans.
-  { eapply (ctxr_cond_strengthen _ ((emp ∗ P)%I)). eauto. }
+  { eapply ctxr_cond_strengthen.
+    instantiate (1:= ((emp ∗ P)%I)). eauto. }
   etrans.
   { eapply ctxr_cond_frameR, main_adequacy, mod_add_comm. }
-  eapply (ctxr_cond_strengthen _ P). i. iIntros "(H & H')". iFrame.
+  eapply ctxr_cond_strengthen. iIntros "[_ ?]"; et.
 Qed.
 
 (*** frame rules ***)
-Lemma ctxr_frameR `{Σ : GRA} ms Ps mt Pt mc (REFA : ctx_refines (ms, Ps) (mt, Pt)) :
+Lemma ctxr_frameR ms Ps mt Pt mc (REFA : ctx_refines (ms, Ps) (mt, Pt)) :
   ctx_refines (ms ★ mc, Ps) (mt ★ mc, Pt).
-Proof.
+Proof using.
   intro. specialize (REFA (Mod.add mc ctx.1, ctx.2)). ss.
   move: REFA; rewrite !mod_add_assoc; eauto.
 Qed.
 
-Lemma ctxr_frameL `{Σ : GRA} ms Ps mt Pt mc (REFA : ctx_refines (ms, Ps) (mt, Pt)) :
+Lemma ctxr_frameL ms Ps mt Pt mc (REFA : ctx_refines (ms, Ps) (mt, Pt)) :
   ctx_refines (mc ★ ms, Ps) (mc ★ mt, Pt).
-Proof.
+Proof using.
   etrans. { eapply ctxr_comm. }
   etrans. { eapply ctxr_frameR. apply REFA. }
   apply ctxr_comm.
 Qed.
 
 (*** horizontal composition ***)
-Lemma ctxr_compose_hor `{Σ : GRA} msa Psa mta Pta msb Psb mtb Ptb
+Lemma ctxr_compose_hor msa Psa mta Pta msb Psb mtb Ptb
     (REFA : ctx_refines (msa, Psa) (mta, Pta))
     (REFB : ctx_refines (msb, Psb) (mtb, Ptb)) :
   ctx_refines (msa ★ msb, Psa ∗ Psb)%I
               (mta ★ mtb, Pta ∗ Ptb)%I.
-Proof.
+Proof using.
   etrans.
   - eapply ctxr_frameR, ctxr_cond_frameR. apply REFA.
   - eapply ctxr_frameL, ctxr_cond_frameL. apply REFB. 
 Qed.
 
 (*** mixed composition ***)
-Lemma ctxr_compose_mix `{Σ : GRA} msa Psa mta Pta msb Psb mtb Ptb mc
+Lemma ctxr_compose_mix msa Psa mta Pta msb Psb mtb Ptb mc
     (REFA : ctx_refines (msa ★ mc, Psa) (mta ★ mc, Pta))
     (REFB : ctx_refines (msb ★ mc, Psb) (mtb ★ mc, Ptb)) :
   ctx_refines (msa ★ msb ★ mc, Psa ∗ Psb)%I
               (mta ★ mtb ★ mc, Pta ∗ Ptb)%I.
-Proof.
+Proof using.
   etrans.
   { eapply ctxr_frameL, ctxr_cond_frameL. apply REFB. }
   etrans.
@@ -336,24 +344,26 @@ Qed.
 
 (*** Corollaries for tactics ***)
 
-Corollary ctxr_compose_hor_simplR `{Σ : GRA} msa mta msb mtb P Pa
+Corollary ctxr_compose_hor_simplR msa mta msb mtb P Pa
     (REFA : ctx_refines (msa, Pa) (mta, P))
     (REFB : ctx_refines (msb, emp%I) (mtb, emp%I)) :
   ctx_refines (msa ★ msb, Pa)%I
               (mta ★ mtb, P)%I.
-Proof.
+Proof using.
   rewrite -(mod_addc_empty_r _ P) -(mod_addc_empty_r _ Pa).
   eapply ctxr_compose_hor; et.
 Qed.
 
-Corollary ctxr_cond_frameR_simpl `{Σ : GRA} (ms mt : Mod.t) P Q
+Corollary ctxr_cond_frameR_simpl (ms mt : Mod.t) P Q
   (REF : ctx_refines (ms, P) (mt, emp%I))
   :
   ctx_refines (ms, P ∗ Q)%I (mt, Q)%I.
-Proof.
+Proof using.
   rewrite -(mod_addc_empty_l _ Q).
   eapply ctxr_cond_frameR. et.
 Qed.
+
+End CtxRefineFacts.
 
 (*******
  tactics for composing ctx_refines

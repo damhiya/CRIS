@@ -9,7 +9,7 @@ Definition fnsems_type `{Σ: GRA} :=
 
 Module SMod.
 Section SMOD.
-  Context `{_crisG: !crisG  Γ Σ α β τ _S _I}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
 
   Record t : Type := mk {
     scopes : list string;
@@ -118,7 +118,7 @@ End SMod.
 Infix "☆" := SMod.add (at level 60, right associativity).
 
 Section ADD.
-  Context `{_crisG: !crisG  Γ Σ α β τ _S _I}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
     
   Lemma smod_add_interp_comm
       sp

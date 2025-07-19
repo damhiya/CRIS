@@ -65,7 +65,7 @@ Ltac _wstep_r :=
         | [ |- environments.envs_entails _ (?P' -∗ _)] =>
           unfold_precond_postcond P'; iIntrosFresh "GRT";
           match goal with
-          | |- environments.envs_entails _ (wsim _ _ (Some (?E ∖ ?E' ∪ ?E', ?E ∖ ?E' ∪ ?E')) _ _ _ _ _ _ _ _ _ _) =>
+          | |- environments.envs_entails _ (wsim _ _ (?E ∖ ?E' ∪ ?E', ?E ∖ ?E' ∪ ?E') _ _ _ _ _ _ _ _ _ _) =>
             try (replace (E ∖ E' ∪ E') with E by set_solver)
           end
         end
@@ -109,7 +109,7 @@ Ltac _wforce_l :=
   match goal with
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose ?T) >>= _) _) ] =>
       iApply wsim_choose_src
-  | [ |- environments.envs_entails _ (wsim _ _ _ (Some (?Ew, ?E)) _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ (?Ew, ?E) _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _) _) ] =>
       first [
         tcsearch constr:(WP P)
           ltac:(fun c =>
@@ -120,8 +120,6 @@ Ltac _wforce_l :=
         end
       | unfold_precond_postcond P; iApply wsim_guarantee_src
       ]
-  | [ |- environments.envs_entails _ (wsim _ _ _ None _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _) _) ] =>
-      unfold_precond_postcond P; iApply wsim_guarantee_src
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (AssumePrecise _) >>= _) _) ] =>
       iApply wsim_assume_precise_src; iSplit; [|iIntrosFresh "ASM"]
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, unwrapN _ >>= _) _) ] =>

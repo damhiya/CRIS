@@ -650,6 +650,55 @@ Section inv.
   Qed.
 End inv.
 
+Section winv.
+  Context `{@GATIntp.t (domain Σ) α, !invG Γ Σ α, !subG Γ Σ}.  
+
+  Definition winv (Ep : coPset * coPset) : iProp Σ :=
+    match Ep with
+    | (Ew, E) => own_admin ∗ ownE E ∗ (∃ n, wsats n Ew)
+    end.
+
+  Lemma winv_merge Ew1 Ew2 E1 E2 :
+    winv (Ew1, E1) ∗ winv (Ew2, E2) ==∗
+    winv (Ew1 ∪ Ew2, E1 ∪ E2) ∗ ⌜Ew1 ## Ew2 ∧ E1 ## E2⌝.
+  Proof.
+    iIntros "[[O [E1 [%n1 W1]]] [_ [E2 [%n2 W2]]]]".
+    iPoseProof (ownE_exploit with "[E1 E2]") as "%"; first iFrame.
+    iPoseProof (wsats_exploit with "[W1 W2]") as "%"; first iFrame.
+    iMod (wsats_mon _ (max n1 n2) with "W1") as "W1"; first lia.
+    iMod (wsats_mon _ (max n1 n2) with "W2") as "W2"; first lia.
+    iPoseProof (ownE_op with "[E1 E2]") as "E"; cycle 1; first iFrame; ss.
+    iPoseProof (wsats_merge with "[W1 W2]") as "W"; iFrame.
+    do 2 (rewrite {1}comm_L; iFrame); ss.
+  Qed.
+
+  Lemma winv_split Ew1 Ew2 E1 E2 :
+    Ew1 ## Ew2 → E1 ## E2 →
+    winv (Ew1 ∪ Ew2, E1 ∪ E2) ⊢
+    winv (Ew1, E1) ∗ winv (Ew2, E2).
+  Proof.
+    iIntros (??) "[O [E [% W]]]"; iPoseProof (own_admin_split with "O") as "[$ $]".
+    rewrite ownE_op //; iDestruct "E" as "[$ $]".
+    rewrite wsats_split //; iDestruct "W" as "[$ $]".
+  Qed.
+
+  Lemma winv_split_empty Ep :
+    winv Ep ⊢
+    winv Ep ∗ winv (∅, ∅).
+  Proof.
+    iIntros "INV".
+    iPoseProof (winv_split Ep.1 ∅ Ep.2 ∅ with "[INV]") as "[INV INV']".
+    { set_solver. }
+    { set_solver. }
+    { replace (Ep.1 ∪ ∅, Ep.2 ∪ ∅) with Ep; et.
+      destruct Ep. s. eapply pair_eq. split; set_solver. }
+    rewrite -surjective_pairing. iFrame.
+  Qed.
+
+End winv.
+
+Arguments winv : simpl never.
+
 (* tactics for cancellation *)
 Ltac unfold_own :=
   match goal with
@@ -772,4 +821,3 @@ Ltac solve_res :=
     |- context[environments.Esnoc _ (INamed ?H) _] =>
       solve_index H; f_equal
   end.
- 

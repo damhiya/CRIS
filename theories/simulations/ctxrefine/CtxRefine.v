@@ -7,8 +7,9 @@ Definition refines_lmod (ms_src ms_tgt: LMod.t) : Prop :=
   Beh.of_itree (LMod.compile ms_src arg).
 
 Section CTX_REFINE.
-  (* Definition of ctx refinement in HMod Level. *)
-  Context `{Σ : GRA}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
+  
+  (* Definition of ctx refinement in Mod Level. *)
 
   Definition refines (mps : Mod.modc) (mpt : Mod.modc) : Prop :=
     let ms := mps.1 in let Ps := mps.2 in
@@ -17,9 +18,9 @@ Section CTX_REFINE.
     ∀ (WFM : Mod.wf mt),
       Mod.wf ms /\
       ∀ rs
-        (WFR : ✓ rs) (SRC : Own rs ⊢ Ps),
+        (WFR : ✓ rs) (SRC : Own rs ⊢ winv (∅,∅) ∗ Ps),
         ∃ rt,
-          ✓ rt /\ (Own rt ⊢ Pt)%I /\
+          ✓ rt /\ (Own rt ⊢ winv (∅,∅) ∗ Pt)%I /\
           refines_lmod
             (Mod.to_lmod ms rs)
             (Mod.to_lmod mt rt).

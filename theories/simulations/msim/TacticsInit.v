@@ -1,6 +1,6 @@
 Require Import Common.
 From iris.proofmode Require Export proofmode.
-Require Import ISimInit SModTr.
+Require Import Mod ISim ISimFacts SModTr.
 Require Import TacticsCommon.
 
 (***
@@ -9,7 +9,7 @@ Require Import TacticsCommon.
 
 Ltac hide_flist :=
   let FLS := fresh "FLS" in let FLT := fresh "FLT" in
-  match goal with [|- context[(isim_fsem ?fls ?flt _ _)]] =>
+  match goal with [|- context[(isim_fsem ?fls ?flt)]] =>
     set (FLS := fls); set (FLT := flt)
   end.
 

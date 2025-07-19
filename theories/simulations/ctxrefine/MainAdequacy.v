@@ -2,7 +2,7 @@ Require Import Common.
 From iris.proofmode Require Import proofmode.
 Require Import LMod Mod SMod Sp.
 Require Import LSim LSimFacts MSim MSimFacts.
-Require Import ISim ISimInit ISimFacts Tactics TacticsInit.
+Require Import ISim ISimFacts Tactics TacticsInit.
 Require Import CtxRefine.
 
 Set Implicit Arguments.
@@ -521,12 +521,15 @@ Proof.
   - et.
 Qed.
 
-Lemma ISim_ctx `{Σ: GRA} contextual (ms mt ctx : Mod.t) IC Ist
+Section ADEQUACY.
+Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
+
+Lemma ISim_ctx contextual (ms mt ctx : Mod.t) IC Ist
   (SIM : ISim.t open ms mt IC Ist)
   :
   ISim.t contextual (ms ★ ctx) (mt ★ ctx) IC 
     (IstProd (IstSB mt.(Mod.scopes) Ist) (IstSB ctx.(Mod.scopes) IstEq)).
-Proof.
+Proof using.
   inv SIM.
   econs; intro WFTC; dup WFTC; eapply wf_inv_l in WFTC0; rename WFTC0 into WFT;
     assert (WFS: Mod.wf ms) by (eapply ISim_wf; et; econs; et).
@@ -571,7 +574,7 @@ Proof.
       i; des. rewrite x0. esplits; et.
       ii. destruct fs as [[[img msk] scp] bd].
       destruct ft as [[[img0 msk0] scp0] bd0].
-      iIntros "[% H]". des; subst.
+      iIntros "[% H] I". des; subst.
       iApply isim_mono; cycle 1.
       { iApply isim_ctx; et; try apply Mod.well_scoped_init.
         - eapply sim_mon; et.
@@ -583,7 +586,8 @@ Proof.
           rewrite /fnsems_scopes. erewrite x0. refl.
         - etrans; [eapply Mod.well_scoped_init|].
           eapply sub_perm_incl; et.
-        - exploit x1; et. i. iApply x2. iSplit; et.
+        - exploit x1; et. i. 
+          iApply (x2 with "[H]"); et. iSplit; et.
       }
       i. iIntros "%". des; subst. iPureIntro. et.
 
@@ -595,9 +599,9 @@ Proof.
       }
       rewrite H0. esplits; et. ii.
       destruct fs as [[[img msk] scp] bd].
-      iIntros "[% H]". des; subst.
+      iIntros "[% H] I". des; subst.
       iApply isim_mono; cycle 1.
-      { iApply isim_reflR; et.
+      { iApply (isim_reflR with "[H]"); et.
         - eapply WFT0.
         - s. etrans; [|eapply Mod.well_scoped_fns].
           rewrite /fnsems_scopes. erewrite H0. refl.
@@ -622,8 +626,8 @@ Proof.
     exploit sim_fnsems; et; try eapply WFS; try eapply WFT. i; des.
     esplits.
     { rewrite alist_find_app_o. des_ifs. }
-    ii. iIntros "[% [% [% [% [% [[% H] %]]]]]]". des; subst.
-    iApply (isim_ctx with "[H]"); et; i.
+    ii. iIntros "[% [% [% [% [% [[% H] %]]]]]] I". des; subst.
+    iApply (isim_ctx with "[H I]"); et; i.
     - eapply sim_mon; et.
     - etrans; [|eapply sub_perm_incl; et].
       etrans; [|eapply Mod.well_scoped_fns].
@@ -631,7 +635,7 @@ Proof.
     - etrans; [|eapply Mod.well_scoped_fns].
       unfold fnsems_scopes. erewrite x0. destruct ft, p. refl.
     - exploit x1; cycle 3; i.
-      + iApply x2. et.
+      + iApply (x2 with "[H]"); et.
       + et.
       + rewrite map_app in NODS. eapply NoDup_app_remove_r; et.
       + rewrite map_app in NODD. eapply NoDup_app_remove_r; et.
@@ -658,26 +662,33 @@ Unshelve. all: et.
 - rewrite map_app in NODD. eapply NoDup_app_remove_r. et.
 Qed.
 
-Theorem main_adequacy `{Σ: GRA} (ms mt : Mod.t) IC Ist
+Theorem main_adequacy (ms mt : Mod.t) IC Ist
     (SIM : ISim.t open ms mt IC Ist) :
   ctx_refines (ms, IC) (mt, emp%I).
-Proof.
+Proof using.
   ii. s.
   destruct ctx as [ctx cond].
   assert (SIMC := SIM).
   ii. ss. eapply ISim_ctx with (ctx := ctx) in SIMC.
   split.
   { eapply ISim_wf; eauto. }
-  ii. hexploit Own_split; eauto; intros [a1 [a2 [Ha [H1 H2]]]].
-  exists a2; splits; eauto.
-  { eapply cmra_valid_op_r; erewrite <- Ha; ss. }
-  { iIntros "H"; iSplitR "H"; ss; iApply H2; done. }
+  ii. ss. eapply Own_split in SRC; eauto. des.
+  eapply Own_split in SRC1; et; des; cycle 1.
+  { eapply Own_wand_valid, WFR. rewrite SRC Own_op. iIntros "[_ ?]". iFrame; et. }
+  rewrite winv_split_empty in SRC0.
+  eapply Own_split in SRC0; et; des; cycle 1.
+  { eapply Own_wand_valid, WFR. rewrite SRC Own_op. iIntros "[? _]". iFrame; et. }
+  exists (a4 ⋅ a3); splits.
+  { eapply Own_wand_valid, WFR. rewrite SRC SRC1 SRC0 !Own_op.
+    iIntros "[[? ?] [? ?]]". iFrame. et. }
+  { rewrite Own_op SRC4 SRC3. iIntros "[? ?]"; iFrame; et. }
   assert (WFT: Mod.wf mt) by (eapply wf_inv_l; et).
-  
-  ii. subst. eapply lsim_adequacy, PR.
-  - eapply (ISim_adequacy _ _ rs a1 a2); eauto.
-    { rewrite Ha; iIntros "[H1 H2]"; iFrame. }
-    { eapply ISim_wf; eauto. }
+  ii. eapply lsim_adequacy, PR.
+  - eapply ISim_adequacy; et.
+    + instantiate (1:= a0⋅a5). rewrite SRC SRC0 SRC1 !Own_op.
+      iIntros "[[? ?] [? ?]]". iFrame.
+    + rewrite Own_op SRC2 SRC5. et.
+    + eapply ISim_wf; eauto.
   - inv WFM. econs. ss. unfold map_snd.
     eapply eq_ind; [|].
     { inv SIM. eapply sub_perm_nodup. eapply sub_perm_cancel_tail.
@@ -686,3 +697,5 @@ Proof.
     rewrite -map_app map_map. f_equal.
     extensionalities. destruct H. ss.
 Qed.
+
+End ADEQUACY.

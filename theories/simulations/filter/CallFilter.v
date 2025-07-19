@@ -1,11 +1,11 @@
 Require Import Common.
 From iris.proofmode Require Export proofmode.
-Require Import LMod LSim MSim GSim GSimFacts GSimTactics Mod ISim ISimInit.
+Require Import LMod LSim GSim GSimFacts GSimTactics Mod ISim ISimFacts.
 Require Export CtxRefine CtxRefineFacts ClosedAdequacy MainAdequacy.
 Require Import TacticsInit Tactics.
 
 Module CFilter. Section CFilter.
-  Context `{Σ: GRA}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
 
   Program Definition filter mask (m: Mod.t) : Mod.t :=
     {|Mod.scopes := m.(Mod.scopes)
@@ -24,7 +24,7 @@ Module CFilter. Section CFilter.
 
   Lemma filter_app m1 m2 msk:
     CFilter.filter msk (m1 ★ m2) = CFilter.filter msk m1 ★ CFilter.filter msk m2.
-  Proof.
+  Proof using.
     destruct m1, m2. eapply mod_extensionality; s; et.
     rewrite /map_fst /map_snd !List.map_app. et.
   Qed.
@@ -100,7 +100,7 @@ Module CFilter. Section CFilter.
     destruct (alist_find fn _) eqn: E; ss. inv FIND. esplits; et.
     destruct p as [[[img msk] scp] bd].
     ii. rewrite {3 4}/SB.sandbox_body. s.
-    iIntros "H". iAssert (⌜st_src = st_tgt⌝%I) as "%"; subst.
+    iIntros "H I". iAssert (⌜st_src = st_tgt⌝%I) as "%"; subst.
     { destruct fn; et. iDestruct "H" as "%". des; subst. et. }
     iApply isim_mono; cycle 1.
     + iApply SIM; et.
@@ -187,7 +187,7 @@ Module CFilter. Section CFilter.
       destruct (alist_find _ _) eqn: E; ss. split; et. }
 
     s. rewrite !alist_find_map_snd FIND. esplits; et.
-    ii. iIntros "H". destruct fs as [[[img msk] scp] bd].
+    ii. iIntros "H I". destruct fs as [[[img msk] scp] bd].
     rewrite {3 4}/SB.sandbox_body. s.
     iAssert (⌜st_src = st_tgt⌝%I) as "%"; subst.
     { destruct fn; et. iDestruct "H" as "%". des; subst. et. }
@@ -199,7 +199,7 @@ Module CFilter. Section CFilter.
   (*** introduction of a module ***)
   Theorem intro_filter fns (m: Mod.t) P:
     ctx_refines (filter fns m, P)%I (m, P)%I.
-  Proof.
+  Proof using.
     rewrite -!(mod_addc_empty_r _ P).
     eapply ctxr_cond_frameL.
     eapply main_adequacy, sim_filter_intro.
@@ -210,14 +210,14 @@ Module CFilter. Section CFilter.
     (SUB: ∀fn, In (Some fn) (List.map fst m.(Mod.fnsems)) → mask fn)
     :
     refines (m, P)%I (filter mask m, P)%I.
-  Proof.
+  Proof using.
     eapply closed_adequacy_emp, sim_filter_elim. eauto.
   Qed.
 
   (*** elimination of a module ***)
   Theorem elim_module mc P:
     ctx_refines (⌽, P) (mc, P).
-  Proof using.
+  Proof using _crisG.
     do 2 rewrite -(mod_addc_empty_l _ P).
     eapply ctxr_cond_frameR.
     eapply main_adequacy with (Ist := fun _ _ _ => emp%I).
@@ -234,7 +234,7 @@ Module CFilter. Section CFilter.
     (DISJ: List.NoDup (m.(Mod.scopes) ++ mc.(Mod.scopes)))
     :
     refines ((filter mask m) ★ mc, P)%I (filter mask m, P)%I .
-  Proof using.
+  Proof using _crisG.
     ii. ss.
     split.
     { depdes WFM. econs; s.

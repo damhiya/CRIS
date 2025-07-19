@@ -1,9 +1,103 @@
 Require Import Common.
 From iris.proofmode Require Import proofmode.
 Require Import Mod.
-Require Import MSim LSim LSimTactics.
+Require Import MSimCommon MSim LSim LSimTactics.
 
-(* HSIM_ADEQUACY *)
+(* MSIM_FRAME *)
+Lemma msim_ist_frame `{Σ: GRA} contextual fl_src fl_tgt Rs Rt RR Ist P ps pt nths (sti_s: _ * itree crisE Rs) (sti_t: _ * itree crisE Rt) fmr0 fmr
+  (SIM : msim contextual fl_src fl_tgt Ist RR ps pt nths sti_s sti_t fmr0)
+  (FMR: Own fmr ⊢ |==> P ∗ Own fmr0)
+  :
+  msim contextual fl_src fl_tgt (λ x y z, P ∗ Ist x y z)%I (λ x y z, P ∗ RR x y z)%I ps pt nths sti_s sti_t fmr.
+Proof.
+  ginit. revert_until P. gcofix CIH. i.
+  gstep.
+  punfold SIM. move SIM before CIH. revert_until SIM.
+  pattern ps, pt, nths, sti_s, sti_t, fmr0.
+  eapply _msim_tarski, SIM. i.
+  econs. ii.
+  exploit IN; et.
+  { eapply Own_wand_valid, H. rewrite FMR. iIntros "[_ H]". et. }
+  i; des. esplits; et.
+  destruct x0;
+    try by econs; et; i; eapply K; et;
+           rewrite FMR x1; iIntros ">[? >?]"; iFrame; et.
+  - econs; et. rewrite FMR x1 RET. iIntros ">[? >>?]". iFrame. et.
+  - econs; et.
+    { rewrite FMR x1 INV. iIntros ">[? >>[? ?]]". iFrame. et. }
+    i. rewrite -assoc in INV0.
+    destruct (classic (✓ fmr3)); [| econs; ii; ss].
+    eapply Own_bupd_split in INV0; et. des.
+    eapply K; et; cycle 1.
+    + rewrite INV0 INV1. et.
+    + rewrite INV2. et.
+  - econs; et; i.
+    destruct (classic (✓ fmr3)); [| econs; ii; ss].
+    rewrite comm -assoc in NEW.
+    eapply Own_bupd_split in NEW; et. des.
+    eapply K; et; cycle 1.
+    + rewrite NEW NEW0. et.
+    + rewrite NEW1 x1 CUR. iIntros "[>>? ?]". iFrame. et.
+  - econs; et; i.
+    { rewrite FMR x1 CUR. iIntros ">[? >>[? ?]]".
+      instantiate (1:= (P ∗ FMR0)%I). iFrame. et. }
+    destruct (classic (✓ fmr3)); [| econs; ii; ss].
+    rewrite comm -assoc in NEW.
+    eapply Own_bupd_split in NEW; et. des.
+    eapply K; et; cycle 1.
+    + rewrite NEW NEW0. et.
+    + rewrite NEW1. iIntros "[? ?]". iFrame. et.
+  - econs; et; i.
+    destruct (classic (✓ fmr3)); [| econs; ii; ss].
+    rewrite comm -assoc in NEW.
+    eapply Own_bupd_split in NEW; et. des.
+    eapply K; et; cycle 1.
+    + rewrite NEW NEW0. et.
+    + rewrite NEW1 x1 CUR. iIntros "[>>? ?]". iFrame. et.
+  - econs; et; i.
+    { rewrite FMR x1 CUR. iIntros ">[? >>[? ?]]".
+      instantiate (1:= (P ∗ FMR0)%I). iFrame. et. }
+    destruct (classic (✓ fmr3)); [| econs; ii; ss].
+    eapply Own_bupd_split in NEW; et. des.
+    eapply K; et; cycle 1.
+    + rewrite NEW NEW0. et.
+    + rewrite NEW1. et.
+  - econs; et; i.
+    { rewrite FMR x1 CUR. iIntros ">[? >>[? ?]]".
+      instantiate (1:= (P ∗ FMR0)%I). iFrame. et. }
+    destruct (classic (✓ fmr3)); [| econs; ii; ss].
+    eapply Own_bupd_split in NEW; et. des.
+    eapply K; et; cycle 1.
+    + rewrite NEW NEW0. et.
+    + rewrite NEW1. et.
+  - econs; et; i.
+    rewrite comm -assoc in NEW.
+    eapply Own_bupd_split in NEW; et. des.
+    assert (V2: ✓ a2).
+    { eapply Own_wand_valid, VALID. rewrite NEW. iIntros ">[_ ?]". et. }
+    exploit K; et; i; des.
+    { erewrite NEW1, x1, CUR. iIntros "[>>? ?]". iFrame. et. }
+    eapply Own_bupd_split in x0; et. des.
+    esplits.
+    { rewrite NEW x0 x3. instantiate (1:= (Own a1 ∗ Own a3)%I).
+      iIntros ">[? >[? ?]]". iFrame. et. }
+    i. eapply x2; cycle 1.
+    + rewrite NEW2 NEW0. et.
+    + rewrite x4. et.
+  - econs; et; i.
+    { rewrite FMR x1 INV. iIntros ">[? >>[? ?]]". iFrame. et. }
+    rewrite -assoc in INV0.
+    destruct (classic (✓ fmr3)); [| econs; ii; ss].
+    eapply Own_bupd_split in INV0; et. des.
+    eapply K; et; cycle 1.
+    + rewrite INV0 INV1. et.
+    + rewrite INV2. et.
+  - pclearbot. econs; et; i.
+    gbase. eapply CIH; et.
+    rewrite FMR x1. iIntros ">[? >?]". iFrame. et.
+Qed.
+
+(* MSIM_ADEQUACY *)
 
 (*** Used only in hsim_adequacy. ***)
 Lemma own_upd_in_middle `{Σ: GRA} mr_src mr_tgt ctx fmr fmr0
@@ -453,3 +547,37 @@ Proof.
     { gfinal; left; eapply CIH; eauto. }
     by apply le_others_refl.
 Qed.
+
+(* Ltac mstep := guclo msimC_spec; econs; econs; eauto; econs; eauto. *)
+
+(* Lemma _msim_close `{Σ: GRA} fls flt Ist: *)
+(*   @_msim _ fls flt Ist <10= @_msim _ closed fls flt Ist. *)
+(* Proof. *)
+(*   i. ss.  *)
+(*   eapply _msim_tarski; eauto. i.  *)
+(*   econs. ii. exploit IN; eauto. i. des. *)
+(*   esplits; eauto. clear IN. *)
+(*   destruct x10; ss; try by econs; eauto. *)
+(* Qed. *)
+
+(* Lemma msim_close `{Σ: GRA} *)
+(*   fl_src fl_tgt Ist *)
+(*   ps pt nths st_src st_tgt itr_src itr_tgt fmr *)
+(*   (SIM: msim_body open fl_src fl_tgt Ist ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr) *)
+(* : *)
+(*   msim_body closed fl_src fl_tgt Ist ps pt nths (st_src, itr_src) (st_tgt, itr_tgt) fmr. *)
+(* Proof. *)
+(*   ginit. s. revert_until Ist. gcofix CIH. i. *)
+(*   remember (st_src, itr_src). remember (st_tgt, itr_tgt). *)
+(*   move SIM before CIH. revert_until SIM. punfold SIM. *)
+(*   pattern ps, pt, nths, p, p0, fmr. *)
+(*   eapply _msim_tarski, SIM; i. clear SIM fmr. rename fmr0 into fmr. *)
+(*   guclo msim_wfC_spec. econs. i. *)
+(*   guclo msim_nodupC_spec. econs. i. *)
+(*   exploit IN; i; des; eauto. clear IN. *)
+(*   destruct x0; i; des; try by inv Heqp; try inv Heqp0; clarify; mstep. *)
+(*   { guclo msimC_spec. econs. econs; et. econs; et. i. *)
+(*     hexploit K; et. i; des. esplits; et. } *)
+(*   pclearbot. gstep. econs. ii. esplits; et. econs; et. *)
+(*   gfinal. right. eapply paco9_mon_bot; eauto using _msim_close. *)
+(* Qed.  *)
