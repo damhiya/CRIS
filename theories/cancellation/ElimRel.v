@@ -235,7 +235,7 @@ Definition elim_rel sp T r_diff itrS itrT :=
 Lemma elim_rel_def_mon sp r1 r2 :
   r1 <4= r2 →
   @elim_rel_def sp r1 <4= elim_rel_def sp r2.
-Proof.
+Proof using.
   intros ??????PR; destruct PR; eauto using @elim_rel_def.
   - eapply elim_rel_precond; eauto; des_safe.
     esplits; eauto; i; specialize (H2 x). des; eauto.
@@ -255,11 +255,11 @@ Variant elim_rel_bindC
      elim_rel_bindC r r_diff (itrS >>= ktrS) (itrT >>= ktrT).
 
 Lemma elim_rel_bindC_mon : monotone4 elim_rel_bindC.
-Proof. ii. destruct IN; econs; eauto. Qed.
+Proof using. ii. destruct IN; econs; eauto. Qed.
 
 Lemma elim_rel_bindC_spec sp :
   elim_rel_bindC <5= gupaco4 (@elim_rel_def sp) (cpn4 (@elim_rel_def sp)).
-Proof.
+Proof using.
   eapply wrespect4_uclo; eauto with paco.
   econs; [apply elim_rel_bindC_mon|].
   i. inv PR. apply GF in H.
@@ -285,7 +285,7 @@ Qed.
 Lemma SBRed_NativeSpawn img msk scp fn varg :
   SB.sandbox img msk scp (SModTr.NativeSpawn fn varg) =
     if msk fn then SModTr.NativeSpawn fn varg else triggerUB.
-Proof. rewrite /SModTr.NativeSpawn SBRed.spawn. des_ifs; cycle 1. Qed.
+Proof using. rewrite /SModTr.NativeSpawn SBRed.spawn. des_ifs; cycle 1. Qed.
 
 Lemma SBRed_HoareSpawn (img: bool) (msk : _ → bool) scp fn varg fspo
   (MSK: msk fn)
@@ -293,7 +293,7 @@ Lemma SBRed_HoareSpawn (img: bool) (msk : _ → bool) scp fn varg fspo
   :
   SB.sandbox img msk scp (SModTr.HoareSpawn fn varg fspo) =
     SModTr.HoareSpawn fn varg fspo.
-Proof.
+Proof using.
   rewrite /SModTr.HoareSpawn. destruct fspo; cycle 1.
   { rewrite SBRed_NativeSpawn MSK. et. }
   destruct img; cycle 1.
@@ -307,7 +307,7 @@ Qed.
 
 Lemma MIRed_NativeSpawn prog fn varg :
   inline_body prog (SModTr.NativeSpawn fn varg) = NativeSpawnE fn varg.
-Proof.
+Proof using.
   rewrite /SModTr.NativeSpawn /NativeSpawnE.
   rewrite -(bind_ret_r (trigger _)).
   rewrite MIRed.spawn. f_equal.
@@ -318,7 +318,7 @@ Qed.
 
 Lemma MIRed_HoareSpawn prog fspo fn varg :
   inline_body prog (SModTr.HoareSpawn fn varg fspo) = HoareSpawnE fn varg fspo.
-Proof.
+Proof using.
   destruct fspo; cycle 1.
   { s. rewrite MIRed_NativeSpawn. et. }
   rewrite /SModTr.HoareSpawn /HoareSpawnE. ired.
@@ -333,7 +333,7 @@ Qed.
 
 Lemma MIRed_NativeYield prog tid :
   inline_body prog (trigger (Yield tid)) = NativeYieldE tid.
-Proof.
+Proof using.
   rewrite -(bind_ret_r (trigger _)) /NativeYieldE.
   rewrite MIRed.yield. f_equal. extensionalities. do 2 f_equal.
   rewrite MIRed.ret. et.
@@ -353,7 +353,7 @@ Definition fspo_post (fspo: option fspec) : option ((meta (fspec_flat fspo)) →
 
 Lemma if_simpl X (b: bool) (x: X):
   (if b then x else x) = x.
-Proof. destruct b; et. Qed.
+Proof using. destruct b; et. Qed.
 
 Lemma MIRed_HoareFun
     (md : SMod.t) (sp : sp_type) (img : bool) (msk : string → bool) (scp : list string)
@@ -371,7 +371,7 @@ Lemma MIRed_HoareFun
       (sandboxed_prog (SMod.to_mod sp md))
       (SB.sandbox img msk scp (SModTr.trans (if img then sp else sp_none) (bd varg)));;
   elim_spawnee_postcond (fspo_post fspo) x vret.
-Proof.
+Proof using.
   intros Hwf Hfind.
   rewrite /SModTr.HoareFun /elim_spawnee_precond /elim_spawnee_postcond /=.
   destruct fspo as [fsp|]; subst; ired.
@@ -415,7 +415,7 @@ Lemma MIRed_HoareCall md sp fn varg
                        (SB.sandbox img0 msk0 scp0 (SModTr.trans (if img0 then sp else sp_none) (bd0 arg)));;
   (* tail *)
   elim_postcond (fspo_post fspo) (fspo_post fspo0) x x0 vret0.
-Proof.
+Proof using.
   unfold SModTr.HoareCall.
   rewrite /elim_precond /elim_postcond.
   destruct fspo eqn: E; subst; s; ired.
@@ -508,7 +508,7 @@ Lemma elim_rel_cancel (md: SMod.t) T sp img msk scp (itr: itree _ T)
       (SB.sandbox img msk scp (SModTr.trans sp_none itr)))
     (inline_body (sandboxed_prog (SMod.to_mod sp md)) 
       (SB.sandbox img msk scp (SModTr.trans (if img then sp else sp_none) itr))).
-Proof.
+Proof using.
   ginit. revert T itr img msk scp VP PARAM. gcofix CIH. i.
   assert (CASE:= case_itrH itr). des; subst.
   - rewrite !SRed.ret !SBRed.ret !MIRed.ret. estep 1.

@@ -291,7 +291,7 @@ Lemma msim_ctx `{Σ: GRA} contextual fnsems_src fnsems_tgt (fl_src fl_tgt fl_ctx
     { rewrite map_app in NODFS. eapply NoDup_app_remove_r. eauto. }
     { rewrite map_app in NODFT. eapply NoDup_app_remove_r. eauto. }
     { subst. rewrite map_app in NODS. eapply NoDup_app_remove_r. eauto. }
-    { subst. rewrite map_app in NODD. eapply NoDup_app_remove_r. eauto. }
+    { subst. rewrite map_app in NODT. eapply NoDup_app_remove_r. eauto. }
     clear IN. destruct x0; i; des; inv Heqp; try inv Heqp0.
     - mstep. iIntros "H". rewrite RET. iMod "H" as "[% H]". subst.
       iModIntro. iSplit; eauto. iExists st_src, st_tgt, st_ctx, st_ctx.
@@ -638,7 +638,7 @@ Proof using.
       + iApply (x2 with "[H]"); et.
       + et.
       + rewrite map_app in NODS. eapply NoDup_app_remove_r; et.
-      + rewrite map_app in NODD. eapply NoDup_app_remove_r; et.
+      + rewrite map_app in NODT. eapply NoDup_app_remove_r; et.
   }
   {
     exists fs. esplits; ss.
@@ -659,7 +659,7 @@ Proof using.
   }
 Unshelve. all: et.
 - rewrite map_app in NODS. eapply NoDup_app_remove_r. et.
-- rewrite map_app in NODD. eapply NoDup_app_remove_r. et.
+- rewrite map_app in NODT. eapply NoDup_app_remove_r. et.
 Qed.
 
 Theorem main_adequacy (ms mt : Mod.t) IC Ist

@@ -36,7 +36,7 @@ Section MSIM.
       (INV : Own fmr ⊢ |==> (Ist nths st_src st_tgt ∗ FR))
       (K : ∀ vret nths0 st_src0 st_tgt0 fmr0
             (NODS : List.NoDup (List.map fst st_src0))
-            (NODD : List.NoDup (List.map fst st_tgt0))
+            (NODT : List.NoDup (List.map fst st_tgt0))
             (NTHS: nths <= nths0)
             (INV : Own fmr0 ⊢ |==> (Ist nths0 st_src0 st_tgt0 ∗ FR)),
         msimi true true nths0 (st_src0, k_src vret) (st_tgt0, k_tgt vret) fmr0)
@@ -243,7 +243,7 @@ Section MSIM.
       (INV : Own fmr ⊢ |==> (Ist nths st_src st_tgt ∗ FR))
       (K : ∀ nths0 st_src0 st_tgt0 fmr0
           (NODS : List.NoDup (List.map fst st_src0))
-          (NODD : List.NoDup (List.map fst st_tgt0))
+          (NODT : List.NoDup (List.map fst st_tgt0))
           (NTHS: nths <= nths0)
           (INV : Own fmr0 ⊢ |==> (Ist nths0 st_src0 st_tgt0 ∗ FR)),
         msimi true true nths0 (st_src0, k_src ()) (st_tgt0, k_tgt ()) fmr0)
@@ -283,7 +283,7 @@ Section MSIM.
         ∀ (NODFS : List.NoDup (List.map fst fl_src))
           (NODFT : List.NoDup (List.map fst fl_tgt))
           (NODS : List.NoDup (List.map fst sti_src.1))
-          (NODD : List.NoDup (List.map fst sti_tgt.1)),
+          (NODT : List.NoDup (List.map fst sti_tgt.1)),
         hsupd (@_msim' msim Rs Rt RR (@_msim msim Rs Rt RR) ps pt nths sti_src sti_tgt) fmr).
 
   Definition msim {Rs Rt} RR := paco9 _msim bot9 Rs Rt RR.
@@ -293,14 +293,14 @@ Section MSIM.
              (IN : ∀ (NODFS : List.NoDup (List.map fst fl_src))
                      (NODFT : List.NoDup (List.map fst fl_tgt))
                      (NODS : List.NoDup (List.map fst sti_src.1))
-                     (NODD : List.NoDup (List.map fst sti_tgt.1)),
+                     (NODT : List.NoDup (List.map fst sti_tgt.1)),
               hsupd (@_msim' msim Rs Rt RR rel ps pt nths sti_src sti_tgt) fmr),
         rel ps pt nths sti_src sti_tgt fmr) :
     _msim msim Rs Rt RR <6= rel.
   Proof using.
     fix self 7. i.
     destruct PR. apply FIX. i. intros wf.
-    specialize (IN NODFS NODFT NODS NODD wf); des.
+    specialize (IN NODFS NODFT NODS NODT wf); des.
     exists fmr0; split; eauto.
     destruct IN;
       try by econs; et; i; hexploit K; et; i; des; esplits;
@@ -382,7 +382,7 @@ Section MSIM.
     move SIM before r. revert_until SIM.
     pattern ps, pt, nths, st_src, st_tgt, fmr.
     eapply _msim_tarski, SIM. i. econs.
-    ii. specialize (IN NODFS NODFT NODS NODD H). des.
+    ii. specialize (IN NODFS NODFT NODS NODT H). des.
     destruct IN;
       try by esplits; et; econs; et; i; hexploit K; et; i; des; esplits; et.
     
@@ -497,7 +497,7 @@ Section MSIM.
     pattern ps, pt, nths, sti_src, sti_tgt, fmr.
     eapply _msim_tarski, SIM. econs. i. apply hsupd_merge.
     econs; esplits; eauto.
-    subst. specialize (IN NODFS NODFT NODS NODD H). des.
+    subst. specialize (IN NODFS NODFT NODS NODT H). des.
     depdes IN; grind;
       try (by rr; i; esplits; eauto with paco arith);
       try (by do 2 (econs; esplits; eauto with paco arith);
@@ -779,7 +779,7 @@ Section MSIM.
     move SIM before r. revert_until SIM.
     pattern Rs, Rt, RR, ps, pt, nths, sti_src0, sti_tgt, fmr.
     eapply _msim_tarski, SIM. i.
-    econs. ii. subst. specialize (IN NODFS NODFT NODS NODD H). des.
+    econs. ii. subst. specialize (IN NODFS NODFT NODS NODT H). des.
     esplits; eauto.
     punfold EQIT. subst. rr in EQIT.
     remember (observe isrc0) as otgt0. remember (observe isrc1) as otgt1.
@@ -845,7 +845,7 @@ Section MSIM.
     move SIM before r. revert_until SIM.
     pattern Rs, Rt, RR, ps, pt, nths, sti_src, sti_tgt0, fmr.
     eapply _msim_tarski, SIM. i.
-    econs. ii. subst. specialize (IN NODFS NODFT NODS NODD H). des.
+    econs. ii. subst. specialize (IN NODFS NODFT NODS NODT H). des.
     esplits; eauto.
     punfold EQIT. subst. rr in EQIT.
     remember (observe itgt0) as otgt0. remember (observe itgt1) as otgt1.
@@ -895,7 +895,7 @@ Section MSIM.
       (SIM : ∀ (NODFS : List.NoDup (List.map fst fl_src))
                (NODFT : List.NoDup (List.map fst fl_tgt))
                (NODS : List.NoDup (List.map fst sti_src.1))
-               (NODD : List.NoDup (List.map fst sti_tgt.1)),
+               (NODT : List.NoDup (List.map fst sti_tgt.1)),
              r Rs Rt RR ps pt nths sti_src sti_tgt fmr) :
     msim_nodupC r Rs Rt RR ps pt nths sti_src sti_tgt fmr.
 

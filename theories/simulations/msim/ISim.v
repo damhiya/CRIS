@@ -97,7 +97,7 @@ Section SIM.
     (∀ (NODFS : List.NoDup (List.map fst fl_src))
        (NODFT : List.NoDup (List.map fst fl_tgt))
        (NODS : List.NoDup (List.map fst sti_src.1))
-       (NODD : List.NoDup (List.map fst sti_tgt.1)),
+       (NODT : List.NoDup (List.map fst sti_tgt.1)),
      @isim r g Rs Rt RR ps pt nths sti_src sti_tgt)
     ⊢ @isim r g Rs Rt RR ps pt nths sti_src sti_tgt.
   Proof using.
@@ -540,7 +540,7 @@ Section SIM.
     Ist nths st_src st_tgt
     ∗ (∀ nths0 st_src0 st_tgt0 vret
           (NODS : List.NoDup (List.map fst st_src0))
-          (NODD : List.NoDup (List.map fst st_tgt0))
+          (NODT : List.NoDup (List.map fst st_tgt0))
           (NTHS: nths <= nths0),
         (Ist nths0 st_src0 st_tgt0) -∗ @isim r g Rs Rt RR true true nths0 (st_src0, k_src vret) (st_tgt0, k_tgt vret))
     ⊢ isim r g RR ps pt nths (st_src, trigger (Call fn varg) >>= k_src) (st_tgt, trigger (Call fn varg) >>= k_tgt).
@@ -558,7 +558,7 @@ Section SIM.
     eapply isim_init; eauto.
     iIntros "H". iPoseProof (INV with "H") as "H". iApply isim_upd.
     iMod "H". iDestruct "H" as "[X B]".
-    iSpecialize ("B" $! nths0 st_src0 st_tgt0 vret NODS NODD).
+    iSpecialize ("B" $! nths0 st_src0 st_tgt0 vret NODS NODT).
     iApply "B"; eauto.
   Qed.
 
@@ -567,7 +567,7 @@ Section SIM.
     Ist nths st_src st_tgt
     ∗ (∀ nths0 st_src0 st_tgt0 vret
           (NODS : List.NoDup (List.map fst st_src0))
-          (NODD : List.NoDup (List.map fst st_tgt0))
+          (NODT : List.NoDup (List.map fst st_tgt0))
           (NTHS: nths <= nths0),
         (Ist nths0 st_src0 st_tgt0) -∗ @isim r g Rs Rt RR true true nths0 (st_src0, k_src vret) (st_tgt0, k_tgt vret))
     ⊢ isim r g RR ps pt nths (st_src, SB.sandbox img_src msk_src scp_src (trigger (Call fn varg)) >>= k_src) (st_tgt, SB.sandbox img_tgt msk_tgt scp_tgt (trigger (Call fn varg)) >>= k_tgt).
@@ -646,7 +646,7 @@ Section SIM.
     Ist nths st_src st_tgt
     ∗ (∀ nths0 st_src0 st_tgt0
           (NODS : List.NoDup (List.map fst st_src0))
-          (NODD : List.NoDup (List.map fst st_tgt0))
+          (NODT : List.NoDup (List.map fst st_tgt0))
           (NTHS: nths <= nths0),
         (Ist nths0 st_src0 st_tgt0) -∗ @isim r g Rs Rt RR true true nths0 (st_src0, k_src ()) (st_tgt0, k_tgt ()))
     ⊢ (isim r g RR ps pt nths (st_src, trigger (Yield tid) >>= k_src) (st_tgt, trigger (Yield tid) >>= k_tgt)).
@@ -664,7 +664,7 @@ Section SIM.
     eapply isim_init; eauto.
     iIntros "H". iPoseProof (INV with "H") as "H". iApply isim_upd.
     iMod "H". iDestruct "H" as "[X B]".
-    iSpecialize ("B" $! nths0 st_src0 st_tgt0 NODS NODD).
+    iSpecialize ("B" $! nths0 st_src0 st_tgt0 NODS NODT).
     iApply "B"; eauto.
   Qed.
 
@@ -936,7 +936,7 @@ Section FSEM.
   ∀ arg nths st_src st_tgt
     (IMON : Ist_monotone Ist)
     (NODS : List.NoDup (List.map fst st_src))
-    (NODD : List.NoDup (List.map fst st_tgt)),
+    (NODT : List.NoDup (List.map fst st_tgt)),
   IstS nths st_src st_tgt ⊢
     (winv (∅,∅) -∗ @isim Σ contextual fl_src fl_tgt Ist ibot ibot Any.t Any.t (ist_with_eq IstE)
       false false nths (st_src, itr_src arg) (st_tgt, itr_tgt arg)).

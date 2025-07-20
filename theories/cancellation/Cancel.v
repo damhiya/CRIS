@@ -26,7 +26,7 @@ Lemma cancel_elim md sp (r_i r_s r_t: Σ) rs_diff srcs tgts cid st ps pt
        (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
               (SMod.to_mod sp md)) r_i))) (cid, tgts))
        (Any.pair (ModTr.alist_encode st) r_t ↑)).
-Proof.
+Proof using.
   ginit. move WFS at top. move WF at top. move VP at top.
   revert_until r_i. gcofix CIH. i.
   destruct (decide (cid < length srcs)) as [Hcid|]; cycle 1.
@@ -158,7 +158,7 @@ Lemma cancel_main md sp rs
   refines_lmod
     (Mod.to_lmod (MInline.inline (SMod.to_mod sp_none (SMod.cancel md))) rs)
     (Mod.to_lmod (MInline.inline (SMod.to_mod sp md)) rs).
-Proof.
+Proof using.
   r. intro arg. eapply gsim_adequacy.
   instantiate (1:= smj_top). instantiate (1:= smj_top).
   unfold LMod.compile. s. rewrite /ITree.map /LModTr.trans /LModTr.interp_callE.  
@@ -197,6 +197,11 @@ Proof.
 Unshelve. all: exact smj_top.
 (*SLOW*)Qed.
 
+End Cancel.
+
+Section Cancel.
+Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
+
 (*** Final Theorem ***)
 Theorem cancellation md sp P
   (WFS: smod_wf md)
@@ -205,7 +210,7 @@ Theorem cancellation md sp P
   :
   refines (SMod.to_mod sp_none (SMod.cancel md), P)
           (SMod.to_mod sp md, P).
-Proof. 
+Proof using. 
   etrans.
   { eapply inline_elim. }
   etrans; cycle 1.

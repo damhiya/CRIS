@@ -46,7 +46,7 @@ Proof using.
 
   generalize false at 1 as ps. generalize false at 1 as pt.
   generalize (bd arg) as it. i.
-  ss. clear bd arg NODD NODS. rename st_tgt into st.
+  ss. clear bd arg NODT NODS. rename st_tgt into st.
 
   revert it.
   combine_quant st.

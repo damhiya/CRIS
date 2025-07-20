@@ -122,7 +122,7 @@ Proof using.
   - iIntros "[% [% [% [% [% [EQ [% IST]]]]]]]". des; subst.
     iPoseProof (EQGET with "EQ") as "%".
     { rewrite map_app in NODS0. eapply NoDup_app_remove_r. et. }
-    { rewrite map_app in NODT. eapply NoDup_app_remove_r. et. }
+    { rewrite map_app in NODT0. eapply NoDup_app_remove_r. et. }
     rewrite !alist_find_app_o. des_ifs.
     erewrite alist_find_fst_notin; cycle 1.
     { ii. eapply NoDup_app_disjoint; try apply DISJ; eauto.
@@ -136,7 +136,7 @@ Proof using.
     iSplitR; cycle 1.
     { iFrame. iSplit; eauto. iApply EQSET; eauto.
       - rewrite map_app in NODS0. eapply NoDup_app_remove_r. et.
-      - rewrite map_app in NODT. eapply NoDup_app_remove_r. et.
+      - rewrite map_app in NODT0. eapply NoDup_app_remove_r. et.
     }
     iPureIntro. esplits; eauto.
     * eapply alist_upd_not_tail. ii.

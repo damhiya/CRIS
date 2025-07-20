@@ -71,7 +71,7 @@ Section wsim.
     Ist nths st_s st_t ∗
     (∀ ret nths' st_s' st_t'
       (NODS : List.NoDup (List.map fst st_s'))
-      (NODD : List.NoDup (List.map fst st_t'))
+      (NODT : List.NoDup (List.map fst st_t'))
       (NTHS: nths <= nths'),
       Ist nths' st_s' st_t' -∗
       sim Ep r g RR true true nths' (st_s', k_s ret) (st_t', k_t ret)) ⊢
@@ -88,7 +88,7 @@ Section wsim.
     Ist nths st_s st_t ∗
     (∀ ret nths' st_s' st_t'
       (NODS : List.NoDup (List.map fst st_s'))
-      (NODD : List.NoDup (List.map fst st_t'))
+      (NODT : List.NoDup (List.map fst st_t'))
       (NTHS: nths <= nths'),
       Ist nths' st_s' st_t' -∗
       sim Ep r g RR true true nths' (st_s', k_s ret) (st_t', k_t ret)) ⊢
@@ -98,7 +98,7 @@ Section wsim.
   Proof using.
     i. unseal. iIntros "[IST RR] I". iApply isim_call_sandbox; et. iFrame.
     iIntros (? ? ? ? ? ? ?) "IST".
-    iSpecialize ("RR" $! vret nths0 _ _ NODS NODD NTHS).
+    iSpecialize ("RR" $! vret nths0 _ _ NODS NODT NTHS).
     iApply ("RR" with "IST I").
   Qed.
 
@@ -312,6 +312,14 @@ Section wsim.
     (winv Ep -∗ r R_s R_t RR ps pt nths (st_s, i_s) (st_t, i_t)) ⊢
     sim Ep r g RR ps pt nths (st_s, i_s) (st_t, i_t).
   Proof using. unseal; iIntros "RR I". iApply isim_base; iRevert "I"; iFrame. Qed.
+
+  Lemma wsim_flag_mon i_s i_t (ps0 pt0 : bool)
+      (PSLE : ps0 → ps) (PTLE : pt0 → pt) :
+    sim Ep r g RR ps0 pt0 nths (st_s, i_s) (st_t, i_t)
+    ⊢ sim Ep r g RR ps pt nths (st_s, i_s) (st_t, i_t).
+  Proof using.
+    unseal. iIntros "SIM I". iApply isim_flag_mon; et. iApply "SIM"; et.
+  Qed.
 
   Lemma wsim_coind A P RA_s RA_t RRA psA ptA nthsA srcA tgtA :
     (∀ (g' : rel) (a : A),
@@ -558,9 +566,27 @@ Section wsim.
     iIntros "%H"; iApply ("RR" $! H with "I"); iFrame.
   Qed.
 
+  Lemma wsim_mono_knowledge r0 g0 i_s i_t
+      (MON0 : ∀ Rs Rt RR ps pt nths sti_src sti_tgt,
+        @r0 Rs Rt RR ps pt nths sti_src sti_tgt ⊢ |==> @r Rs Rt RR ps pt nths sti_src sti_tgt)
+      (MON1 : ∀ Rs Rt RR ps pt nths sti_src sti_tgt,
+        @g0 Rs Rt RR ps pt nths sti_src sti_tgt ⊢ |==> @g Rs Rt RR ps pt nths sti_src sti_tgt) :
+    sim Ep r0 g0 RR ps pt nths (st_s, i_s) (st_t, i_t) ⊢ sim Ep r g RR ps pt nths (st_s, i_s) (st_t, i_t).
+  Proof using.
+    unseal. iIntros "SIM I". iApply isim_mono_knowledge; et. iApply "SIM". et.
+  Qed.
+
+  Lemma wsim_mono RR0 i_s i_t
+      (MONO : ∀ nths st_src st_tgt ret_src ret_tgt,
+        RR0 nths (st_src, ret_src) (st_tgt, ret_tgt) ⊢ RR nths (st_src, ret_src) (st_tgt, ret_tgt)) :
+    sim Ep r g RR0 ps pt nths (st_s, i_s) (st_t, i_t) ⊢ sim Ep r g RR ps pt nths (st_s, i_s) (st_t, i_t).
+  Proof using.
+    unseal. iIntros "SIM I". iApply isim_mono; et. iApply "SIM". et.
+  Qed.
+  
   Lemma wsim_nodup i_s i_t:
     (∀ (NODS : List.NoDup (List.map fst st_s))
-       (NODD : List.NoDup (List.map fst st_t)),
+       (NODT : List.NoDup (List.map fst st_t)),
       sim Ep r g RR ps pt nths (st_s, i_s) (st_t, i_t))
     ⊢ sim Ep r g RR ps pt nths (st_s, i_s) (st_t, i_t).
   Proof using.

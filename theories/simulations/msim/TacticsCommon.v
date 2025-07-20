@@ -628,6 +628,33 @@ Ltac unfold_pre_post :=
 
 (** hss, hss_l, hss_r : simplify itrees **)
 
+Lemma copset_diff_union (E E': coPset)
+  (SUB: E' ⊆ E)
+  :
+  (E ∖ E') ∪ E' = E.
+Proof.
+  eapply leibniz_equiv.
+  rewrite difference_union comm subseteq_union_1; et.
+Qed.
+
+Lemma copset_union_diff (E E': coPset)
+  (SUB: E ## E')
+  :
+  (E ∪ E') ∖ E'  = E.
+Proof.
+  eapply leibniz_equiv.
+  rewrite difference_union_distr_l difference_diag right_id.
+  rewrite difference_disjoint_L; et.
+Qed.
+
+Ltac hss_copset :=
+  match goal with
+  | |- context[(@union coPset coPset_union (@difference coPset coPset_difference ?E ?E') ?E')] =>
+    replace ((E ∖ E') ∪ E') with E by (rewrite copset_diff_union; et; set_solver)
+  | |- context[(@difference coPset coPset_difference (@union coPset coPset_union ?E ?E') ?E')] =>
+    replace ((E ∪ E') ∖ E') with E by (rewrite copset_union_diff; et; set_solver)
+  end.
+
 Ltac hss_des :=
   ss; des_safe; subst;
   (hrepeat do 1 match goal with
@@ -664,6 +691,7 @@ Ltac hss :=
   try (rewrite -> !SAny.upcast_downcast in * );
   (hrepeat do 1 alist_upd_simpl);
   hss_des;
+  (hrepeat do 1 hss_copset);
   move_aux.
 
 Ltac hss_l := only_itree_l; hss; show_itree.

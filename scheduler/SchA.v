@@ -249,6 +249,47 @@ Module SchAS. Section SchAS.
       iDestruct "N" as "[A U]". iFrame.
     Qed.
 
+    Lemma tid_user_shrink q0 q tid
+      (LE: q ≤ q0)
+      :
+      tid_user q0 tid ⊢ tid_user q tid.
+    Proof.
+      rewrite /tid_user /tid_user_r. unseal "SchA".
+      eapply own_mono.
+      destruct (q0 - q) eqn: E.
+      - exists (λ t : nat, if t =? tid then Some q1 else ε).
+        ii. rewrite discrete_fun_lookup_op. des_ifs.
+        apply Qp.sub_Some in E. subst. et.
+      - eapply Qp.sub_None in E. exists ε. rewrite right_id.
+        ii. des_ifs. eapply Qp.le_lteq in LE. eapply Qp.le_ngt in E.
+        des; subst; ss.
+    Qed.
+    
+    Lemma tid_user_merge (q0 q1: Qp) tid
+      :
+      tid_user q0 tid ∗ tid_user q1 tid ⊢ tid_user (q0+q1) tid.
+    Proof.
+      rewrite /tid_user /tid_user_r. unseal "SchA".
+      rewrite -own_op. eapply own_mono. exists ε. rewrite right_id.
+      ii. rewrite discrete_fun_lookup_op. des_ifs.
+    Qed.
+
+    Lemma tid_user_split (q0 q1: Qp) tid
+      :
+      tid_user (q0+q1) tid ⊢ tid_user q0 tid ∗ tid_user q1 tid.
+    Proof.
+      rewrite /tid_user /tid_user_r. unseal "SchA".
+      rewrite -own_op. eapply own_mono. exists ε. rewrite right_id.
+      ii. rewrite discrete_fun_lookup_op. des_ifs.
+    Qed.
+
+    (* need to update the definition [tid_user] *)
+    Lemma tid_user_unique (q0 q1: Qp) tid0 tid1
+      :
+      tid_user q0 tid0 ∗ tid_user q1 tid1 ⊢ ⌜tid0 = tid1⌝.
+    Proof.
+    Admitted.
+    
   End RA.
 
   (* Scheduler specifications *)

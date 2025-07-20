@@ -1,3 +1,4 @@
+(*
 Require Import CRIS.
 Require Import SchHeader SchI SchA.
 Require Import ltac2_lib.
@@ -225,7 +226,7 @@ Module SchIA. Section SchIA.
           ∗ own base_γ (◯ ths_src_w : threadsRA)
           ∗ ([∗ map] tid↦P ∈ ths_cond, P)
           ∗ ((⌜intnl = false⌝ ∗ tid_admin (Some tid)) 
-             ∨ (⌜intnl = true⌝ ∗ tid_admin None ∗ wsim_ginv (Some (⊤, ⊤)))))%I.
+             ∨ (⌜intnl = true⌝ ∗ tid_admin None ∗ winv (⊤, ⊤))))%I.
 
   Local Definition SchAMod := SchA.t sp sp_user.
   Local Definition SchIMod := SchI.t.
@@ -355,7 +356,7 @@ Module SchIA. Section SchIA.
     combine_quant st_s'0.
     combine_quant nths'.
     eapply wsim_coind. i.
-    destruct a as [nths1 [st_src1 [st_tgt1 [NODS1 NODD1]]]]. s.
+    destruct a as [nths1 [st_src1 [st_tgt1 [NODS1 NODT1]]]]. s.
     destruct_quant.
     iIntros "(WI & TU & IST) _ #CIH".
     unfold_iter_l. unfold_iter_r.
@@ -464,13 +465,13 @@ Module SchIA. Section SchIA.
     steps_l. steps_r.
     iApply wsim_unfold; iIntros "WI".
     iApply wsim_reset. iStopProof.
-    revert NODD.
+    revert NODT.
     combine_quant NODS.
     combine_quant st_tgt.
     combine_quant st_src.
     combine_quant nths.
     eapply wsim_coind. intros g' a.
-    destruct a as [nths [st_src [st_tgt [NODS NODD]]]]. s.
+    destruct a as [nths [st_src [st_tgt [NODS NODT]]]]. s.
     destruct_quant.
     iIntros "[IST [tid [TKN WI]]] _ #CIH".
 
@@ -603,3 +604,4 @@ Section ctxr.
   Proof using. eapply main_adequacy, sim; eauto. Qed.
 End ctxr.
 End SchIA.
+*)

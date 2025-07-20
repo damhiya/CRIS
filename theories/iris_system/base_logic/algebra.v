@@ -50,7 +50,7 @@ Section upred.
     ✓ x ⊣⊢ match x with
                       | Cinl a => ✓ a
                       | Cinr b => ✓ b
-                      | CsumBot => False
+                      | _ => False
                       end.
   Proof using. uPred.unseal. by destruct x. Qed.
 End csum_cmra.
