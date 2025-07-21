@@ -93,7 +93,7 @@ Lemma ereplace T (x y: T):
   x = y -> x = y.
 Proof. eauto. Qed.
 
-Ltac alist_upd_simpl :=
+Ltac alist_upd_simpl_lauto :=
   match goal with
   [ |- context[alist_upd ?k ?v ?l]] =>
     match l with
@@ -110,6 +110,23 @@ Ltac alist_upd_simpl :=
     end
   end.
 
+Tactic Notation "alist_upd_simpl_with" tactic(simpl_tac) :=
+  let GOAL := fresh "GOAL" in
+  match goal with [|-context [alist_upd ?k ?v ?l]] =>
+    pattern (alist_upd k v l) at 1;
+    match goal with [|- ?G _] => set (GOAL := G) end
+  end;
+  simpl_tac;
+  unfold GOAL; clear GOAL.
+
+Ltac alist_upd_simpl :=
+  alist_upd_simpl_with (do 1 alist_upd_simpl_lauto).
+  (* alist_upd_simpl_with ( *)
+  (*     first *)
+  (*       [ (timeout 1 simpl alist_upd); *)
+  (*         try match goal with [|- _ (alist_upd _ _ _)] => fail 2 end *)
+  (*       | alist_upd_simpl_lauto]). *)
+
 Ltac move_aux :=
   (hrepeat do 1 match goal with [H: List.NoDup _ |- _ ] => guardH H; move H at top end);
   (hrepeat do 1 match goal with [H: incl _ (Mod.scopes _ _) |- _] => guardH H; move H at top end);
@@ -122,7 +139,7 @@ Ltac fnsems_nodup H :=
   revert H; simpl Mod.fnsems; (hrepeat do 1 unfold_mod); simpl List.map;
   try rewrite !List.map_map; try rewrite !fst_map_snd; eauto; fail.
 
-Ltac _alist_find_simpl :=
+Ltac alist_find_simpl_lauto :=
   match goal with
   [ |- context[alist_find ?k ?l]] =>
     let TMP := fresh "_TMP" in
@@ -148,7 +165,12 @@ Tactic Notation "alist_find_simpl_with" tactic(simpl_tac) :=
   simpl_tac;
   unfold GOAL; clear GOAL.
 
-Ltac alist_find_simpl := alist_find_simpl_with (do 1 _alist_find_simpl).
+Ltac alist_find_simpl :=
+  alist_find_simpl_with (
+      first
+        [ (timeout 1 simpl alist_find);
+           match goal with [|- _ (Some _)] => idtac end
+        | alist_find_simpl_lauto]).
 
 (*** head normalization tactic ***)
 (*
