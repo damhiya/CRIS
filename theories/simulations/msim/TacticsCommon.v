@@ -649,6 +649,10 @@ Qed.
 
 Ltac hss_copset :=
   match goal with
+  | |- context[(@union coPset coPset_union ∅ ?E)] =>
+      replace (∅ ∪ E) with E by set_solver
+  | |- context[(@union coPset coPset_union ?E ∅)] =>
+      replace (E ∪ ∅) with E by set_solver
   | |- context[(@union coPset coPset_union (@difference coPset coPset_difference ?E ?E') ?E')] =>
     replace ((E ∖ E') ∪ E') with E by (rewrite copset_diff_union; et; set_solver)
   | |- context[(@difference coPset coPset_difference (@union coPset coPset_union ?E ?E') ?E')] =>
