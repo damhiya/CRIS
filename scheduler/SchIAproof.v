@@ -367,10 +367,8 @@ Module SchIA. Section SchIA.
     steps_l. iDestruct "ASM" as "[[-> TU] ->]". hss.
     steps_l.
     steps_r. hss. steps_r.
-    iApply wsim_progress. iApply wsim_base. iSpecialize ("CIH" $! _).
-    replace (∅ ∪ ⊤) with (⊤: coPset) by set_solver.
-    ss. grind. iIntros "I". iPoseProof (winv_split_empty with "I") as "[I E]". iApply "CIH"; iFrame.
-    Unshelve. all: eauto.
+    by_coind "CIH"; eauto.
+    iPoseProof (winv_split_empty with "I") as "[I E]". iFrame.
   (*SLOW*)Qed.
 
   Lemma simF_spawn : ISim.sim_fun open SchAMod SchIMod SchA.init_cond Ist (Some SchHdr.spawn).
@@ -440,7 +438,6 @@ Module SchIA. Section SchIA.
 
     iPoseProof (tid_admin_some_user_merge with "[TA tid]") as ">TA"; iFrame.
     iApply wsim_unfold; iIntros "WI".
-    replace (∅ ∪ ⊤) with (⊤: coPset) by set_solver.
     steps_l; steps_r.
     
     yield "THB THW COND TA WI".
@@ -466,7 +463,6 @@ Module SchIA. Section SchIA.
 
     steps_l. steps_r.
     iApply wsim_unfold; iIntros "WI".
-    replace (∅ ∪ ⊤) with (⊤: coPset) by set_solver.
     iApply wsim_reset. iStopProof.
     revert NODT.
     combine_quant NODS.
@@ -546,10 +542,8 @@ Module SchIA. Section SchIA.
       steps_r. hss. steps_r.
       rewrite /cgetU.
       iApply wsim_nodup; iIntros "% %".
-      iApply wsim_progress. iApply wsim_base. iSpecialize ("CIH" $! _).
-      replace (∅ ∪ ⊤) with (⊤: coPset) by set_solver.
-      ss. grind. iIntros "I". iPoseProof (winv_split_empty with "I") as "[I E]".
-      iApply "CIH"; iFrame; eauto.
+      by_coind "CIH"; eauto.
+      iPoseProof (winv_split_empty with "I") as "[I E]"; iFrame.
     }
     { (* idle(X) *)
       iCombine "THB TKN" gives %WF. exfalso.
