@@ -146,7 +146,7 @@ Proof using.
   - destruct img.
     + steps_l. force_r. iFrame. steps_r. by_coind "CIH"; et.
     + rewrite SBRed.bind SBRed.Assume. s. steps_l. ss.
-  - steps_l. steps_r. step. by_coind "CIH"; et.
+  - steps_l. steps_r. step. norm_l. norm_r. by_coind "CIH"; et.
   - steps_r. force_l. iFrame. steps_l. by_coind "CIH"; et.
   - destruct c.
     + norm_l. norm_r. rewrite! SBRed.call. des_ifs; ss.

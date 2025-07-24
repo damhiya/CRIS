@@ -569,8 +569,8 @@ Module MemIP. Section MemIP.
     }
 
     iIntros "[% B]". des; subst; hss. steps_r.
-    inline_r. repeat (steps_r; hss). rewrite H1. steps_r; hss. steps_r.
-    inline_r. repeat (steps_r; hss). rewrite H2. steps_r; hss. steps_r.
+    inline_r. steps_r. hss. steps_r. hss. steps_r. rewrite H1. steps_r; hss. steps_r.
+    inline_r. steps_r. hss. steps_r. hss. steps_r. rewrite H2. steps_r; hss. steps_r.
 
     add_ret_l (). iApply wsim_bind.
     instantiate (1:= λ nths0 '(st_s,_) '(st_t,_), ⌜nths0 = _ ∧ st_s = _ ∧
@@ -580,7 +580,7 @@ Module MemIP. Section MemIP.
       - step. iPureIntro; esplits; et. repeat f_equal.
         rewrite H1. s. destruct mem_tgt. f_equal. extensionalities b' ofs'.
         des_ifs. bsimpl; des; des_sumbool. subst. et.
-      - rewrite /ccallU. steps_r. inline_r. repeat (steps_r; hss). rewrite H1. steps_r. hss. steps_r.
+      - rewrite /ccallU. steps_r. inline_r. steps_r. hss. steps_r. hss. steps_r. rewrite H1. steps_r. hss. steps_r.
         step. et.
     }
     iIntros (? ? _ ? _ ?) "%". des; subst.

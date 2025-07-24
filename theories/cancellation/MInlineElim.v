@@ -71,9 +71,9 @@ Proof using.
     rewrite MIRed.ag. steps_l. force_r. iFrame.
     steps_r. by_coind "CIH"; et.
   - rewrite SBRed.bind SBRed.AssumePrecise MIRed.ag. steps_r.
-    step. steps_r. by_coind "CIH"; et.
+    step. steps_r. norm_l. by_coind "CIH"; et.
   - rewrite SBRed.bind SBRed.Guarantee MIRed.ag.
-    steps_r. force_l. iFrame. by_coind "CIH"; et.
+    steps_r. force_l. iFrame. norm_l. by_coind "CIH"; et.
   - destruct c.
     {
       rewrite SBRed.bind SBRed.call. des_ifs; cycle 1.
@@ -140,7 +140,7 @@ Proof using.
       rewrite MIRed.core. steps_l. steps_r. force_r. steps_r.
       by_coind "CIH"; et.
     + rewrite SBRed.bind SBRed.io MIRed.core.
-      step. steps_r. by_coind "CIH"; et.
+      step. steps_r. norm_l. by_coind "CIH"; et.
 Qed.
 
 End INLINE.

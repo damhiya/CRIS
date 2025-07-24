@@ -55,7 +55,8 @@ Ltac isteps_l :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  (hrepeat do 1 tryany (do 1 norm_l) (do 1 istep_l_core)); try norm_l;
+  norm_l;
+  (hrepeat (do 1 istep_l_core; norm_l));
   show_until marker.
 
 Ltac _istep_r :=
@@ -93,7 +94,8 @@ Ltac isteps_r :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  (hrepeat do 1 tryany (do 1 norm_r) (do 1 istep_r_core)); try norm_r;
+  norm_r;
+  (hrepeat (do 1 istep_r_core; norm_r));
   show_until marker.
 
 Ltac _istep :=

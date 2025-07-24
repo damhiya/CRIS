@@ -43,7 +43,8 @@ Ltac wsteps_l :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  (hrepeat do 1 tryany (do 1 norm_l) (do 1 wstep_l_core)); try norm_l;
+  norm_l;
+  (hrepeat (do 1 wstep_l_core; norm_l));
   show_until marker.
 
 Ltac _wstep_r :=
@@ -85,7 +86,8 @@ Ltac wsteps_r :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  (hrepeat do 1 tryany (do 1 norm_r) (do 1 wstep_r_core)); try norm_r;
+  norm_r;
+  (hrepeat (do 1 wstep_r_core; norm_r));
   show_until marker.
 
 Ltac _wstep :=

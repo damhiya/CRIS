@@ -86,7 +86,7 @@ Module CFilter. Section CFilter.
         + destruct img; s.
           { steps_l. force_r _q. steps_r. by_coind "CIH"; et. }
           rewrite !SBRed.bind !SBRed.take; s. des_ifs.
-          * steps_l. force_r _q. by_coind "CIH"; et.
+          * steps_l. force_r _q. norm_r. by_coind "CIH"; et.
           * steps_l. ss.
         + step. steps_l. steps_r. by_coind "CIH"; et.
     }

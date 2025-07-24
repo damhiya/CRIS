@@ -120,7 +120,7 @@ Proof using.
     iPoseProof ((PRE vo ↑ args) with "[PRE]") as ">PRE". { unfold precond, fspec_apc; ss. iFrame. by iExists _. }
     iApply wsim_guarantee_src. iFrame. steps_l.
 
-    call "IST"; et.
+    call "IST"; et. norm_r.
     steps_l. iApply wsim_reset.
     iPoseProof ((POST _q ret) with "ASM") as ">POST".
     iSpecialize ("ISIM" $! nths' st_s' st_t' _q ret).
@@ -135,7 +135,7 @@ Proof using.
     iPoseProof (POST with "[]") as ">POST"; eauto.
     rewrite /fspec_apc /postcond; ss.
     iApply wsim_reset.
-    grind. iSpecialize ("ISIM" $! nths' st_s' st_t' (tt↑) ret).
+    norm_l. norm_r. iSpecialize ("ISIM" $! nths' st_s' st_t' (tt↑) ret).
     iApply "ISIM". iFrame.
   }
 Qed.
@@ -297,12 +297,12 @@ Ltac apc_l :=
   [| |iSplitL hyps; [|iIntros "% % % %"; iIntrosFresh "IST"]]. *)
 
 Ltac apc_call hyps :=
-  prep_macro_l; (hrepeat do 1 norm_r);
+  prep_macro_l; norm_r;
   iApply wsim_apc_src_call_tgt; des_pairs; s;
   [| | | | |try prove_sb_cond|try prove_sb_cond|iSplitL hyps; [ |iIntros "% % % % %"; iIntrosFresh "ISTPOST"]].
 
 Ltac apc_call_weaker hyps :=
-  prep_macro_l; (hrepeat do 1 norm_r);
+  prep_macro_l; norm_r;
   iApply wsim_apc_src_call_tgt_weaker; des_pairs; s;
   [| | | | | |try prove_sb_cond|try prove_sb_cond|iSplitL hyps; [ |iIntros "% % % % %"; iIntrosFresh "ISTPOST"]].
 
