@@ -212,15 +212,13 @@ Module SchIA. Section SchIA.
   (**************************)
 
   Definition Ist: nat → alist key Any.t → alist key Any.t → iProp Σ :=
-    fun numths st_src st_tgt =>
+    fun _ st_src st_tgt =>
       (∃ (ths_src ths_tgt: SchI.thslist) (ths_src_b ths_src_w: SchA.threadsF) (ths_cond: gmap nat (iProp Σ)) (tids: SchI.tidslist) (tid: nat) (intnl: bool),
           ⌜st_tgt = [(SchI.v_ths, ths_tgt↑); (SchI.v_tid, tid↑); (SchI.v_tids, tids↑)]
           ∧ st_src = [(SchA.v_internal, intnl↑); (SchI.v_ths, ths_src↑); (SchI.v_tid, tid↑); (SchI.v_tids, tids↑)]
           ∧ <<THWF: ths_wf (length tids) ths_tgt>>
           ∧ <<THSEQ: ths_rel_wf ths_src ths_tgt>>
-          ∧ <<TSWF: length tids <= numths>>
           ∧ <<SIM: (∀ tid, sim_ths tid (alist_find tid ths_src) (alist_find tid ths_tgt) (ths_src_b tid) (ths_src_w tid) (ths_cond !! tid))>>⌝
-          (* ∧ <<NTHS: 0 < numths>> *)
           ∗ own base_γ (● ths_src_b : threadsRA)
           ∗ own base_γ (◯ ths_src_w : threadsRA)
           ∗ ([∗ map] tid↦P ∈ ths_cond, P)
@@ -346,7 +344,7 @@ Module SchIA. Section SchIA.
 
     (* Coinduction on yield loop *)
     rewrite !/Sch.terminate /ccallU. unseal "Sch".
-    clear THWF THWF0 TSWF TSWF0 THSEQ THSEQ0 SIM SIM0 NTHS.
+    clear THWF THWF0 THSEQ THSEQ0 SIM SIM0 NTHS.
     clearbody st_t'0 st_s'0.
     iApply wsim_reset.
     iStopProof. revert NODUPFS.
@@ -408,7 +406,6 @@ Module SchIA. Section SchIA.
     { rewrite last_length. econs; [nia|]. rewrite alist_remove_find_None; eauto.
       eapply ths_wf_mon; eauto. }
     { econs; ss. split; eauto. rewrite !alist_remove_find_None; eauto. }
-    { rewrite last_length. nia. }
     { i. destruct (tid =? length q1) eqn:EQ.
       { rewrite Nat.eqb_eq in EQ; subst. rewrite discrete_fun_lookup_op Nat.eqb_refl.
         rewrite !alist_add_find_eq -H4 -H5 left_id. econs. }
@@ -571,9 +568,6 @@ Module SchIA. Section SchIA.
   Lemma sim : ISim.t open SchAMod SchIMod SchA.init_cond Ist.
   Proof using FunInSp SchInSp.
     init_sim.
-    - ii. iIntros "IST".
-      iDestruct "IST" as (????????) "(% & THB & THW & COND & TA)"; des; subst.
-      iFrame. iExists _, _, _. iPureIntro. esplits; eauto; nia.
     - split; eauto. rewrite /SchA.init_cond /init_threads /init_tid. unseal "SchA".
       iIntros "[[THB THW] tid]". iExists _, _, _, _, ∅, _, 0, false.
       iFrame. rewrite big_sepM_empty. iSplitR; et.
