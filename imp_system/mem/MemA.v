@@ -208,23 +208,16 @@ Module MemP. Section MemP.
   Definition scopes := ["Mem"].
 
   (* Function specifications *)
-  Definition alloc := fspec_proph MemSpec.alloc fbody_trivial.
-  Definition free := fspec_proph MemSpec.free fbody_trivial.
-  Definition load := fspec_proph MemSpec.load fbody_trivial.
-  Definition store := fspec_proph MemSpec.store fbody_trivial.
-  Definition cmp := fspec_proph MemSpec.cmp fbody_trivial.
-  Definition cas := fspec_proph MemSpec.cas fbody_trivial.
-
   Definition fnsems : alist (option string) (fnsem_type (option fspec * fbody)) :=
-    [(Some MemHdr.alloc, (false, wmask_all, scopes, (None, alloc)));
-     (Some MemHdr.free,  (false, wmask_all, scopes, (None, free)));
-     (Some MemHdr.load,  (false, wmask_all, scopes, (None, load)));
-     (Some MemHdr.store, (false, wmask_all, scopes, (None, store)));
-     (Some MemHdr.cmp,   (false, wmask_all, scopes, (None, cmp)));
-     (Some MemHdr.cas,   (false, wmask_all, scopes, (None, cas)))].
+  [(Some MemHdr.alloc, (false, wmask_all, scopes, (None, fspec_proph MemSpec.alloc fbody_trivial)));
+   (Some MemHdr.free,  (false, wmask_all, scopes, (None, fspec_proph MemSpec.free fbody_trivial)));
+   (Some MemHdr.load,  (false, wmask_all, scopes, (None, fspec_proph MemSpec.load fbody_trivial)));
+   (Some MemHdr.store, (false, wmask_all, scopes, (None, fspec_proph MemSpec.store fbody_trivial)));
+   (Some MemHdr.cmp,   (false, wmask_all, scopes, (None, fspec_proph MemSpec.cmp fbody_trivial)));
+   (Some MemHdr.cas,   (false, wmask_all, scopes, (None, fspec_proph MemSpec.cas fbody_trivial)))].
 
   (* Module definition *)
-  Program Definition Mod : SMod.t := {|
+  Program Definition smod : SMod.t := {|
     SMod.scopes := scopes;
     SMod.fnsems := fnsems;
     SMod.initial_st := [];
@@ -234,7 +227,7 @@ Module MemP. Section MemP.
 
   Definition init_cond csl genv : iProp Σ := mem_init_auth csl genv.
 
-  Definition t := Seal.sealing CRIS (SMod.to_mod sp_none Mod).
+  Definition t := Seal.sealing CRIS (SMod.to_mod sp_none smod).
 
 End MemP. End MemP.
 
@@ -262,7 +255,7 @@ Module MemA. Section MemA.
      (Some MemHdr.cas,   (true, wmask_all, scopes, (Some (to_fspec MemSpec.cas), fbody_trivial)))].
 
   (* Module definition *)
-  Program Definition Mod : SMod.t := {|
+  Program Definition smod : SMod.t := {|
     SMod.scopes := scopes;
     SMod.fnsems := fnsems;
     SMod.initial_st := [];
@@ -272,6 +265,6 @@ Module MemA. Section MemA.
 
   Definition init_cond csl genv : iProp Σ := mem_init_auth csl genv.
 
-  Definition t sp := Seal.sealing CRIS (SMod.to_mod sp Mod).
+  Definition t := Seal.sealing CRIS (SMod.to_mod sp_none smod).
 
 End MemA. End MemA.

@@ -185,7 +185,7 @@ Section RA.
     (EQ: to_frac_agree q v ≡ f)
     :
     f.1 = DfracOwn q ∧ ∃ tl, f.2.(agree_car) = v :: tl.
-  Proof.
+  Proof using.
     rr in EQ. des. ss. rr in EQ. rewrite EQ; split; et.
     specialize (EQ0 0). rr in EQ0. des.
     edestruct EQ0; s; eauto using elem_of_list.
@@ -200,7 +200,7 @@ Section RA.
     (VALID: ✓ (Some (to_frac_agree 1 v) ⋅ c))
     :
     c = None.
-  Proof.
+  Proof using.
     destruct c; et. rewrite -?Some_op in VALID.
     rr in VALID. des. ss. exfalso. eapply dfrac_full_exclusive; et.
   Qed.
@@ -237,7 +237,7 @@ Section RA.
     ⊢
     ⌜mem_s b ofs ≡ Some (to_frac_agree 1 v) ∧
      Mem.cnts mem_t b ofs = Some v⌝.
-  Proof.
+  Proof using.
     iIntros "P". rewrite -own_op.
     iPoseProof (own_valid with "P") as "%WF".
     dup WF. rewrite auth_both_valid_discrete in WF. ss. des.
@@ -257,7 +257,7 @@ Section RA.
     own base_γ (● mem_s) ∗ (b, ofs) |={ 1 }=> v
     ⊢ |==>
     own base_γ (● mem_ra_upd mem_s b ofs (Some (to_frac_agree 1 v_new))) ∗ (b, ofs) |={ 1 }=> v_new.
-  Proof.
+  Proof using.
     iIntros "P".
     iPoseProof ((mem_ra_lookup _ _ _ _ SIM) with "P") as "%H"; iFrame.
     des. clear H0.
@@ -318,7 +318,7 @@ Section RA.
     (own base_γ (● mem_s) ∗ MemSpec.val_r p0 q0 v0 ∗ MemSpec.val_r p1 q1 v1)
     ⊢
     ⌜Mem.vcmp mem_t p0 p1 = Some (dec succ 1 : bool)⌝.
-  Proof.
+  Proof using.
     iIntros "(B & P1 & P2)".
     destruct p0, p1; try destruct blkofs; try destruct blkofs0; ss.
     - des_ifs.
@@ -372,7 +372,7 @@ Module MemIP. Section MemIP.
     (HIT : mem b ofs ≡ Some (to_frac_agree 1 v))
     :
     mem_get mem b ofs = v.
-  Proof.
+  Proof using.
     rr in HIT. depdes HIT. rewrite /mem_get -x. s. destruct x0.
     symmetry in H. eapply to_frac_agree_inv in H. des. ss. subst.
     rewrite H0. et.
@@ -382,7 +382,6 @@ Module MemIP. Section MemIP.
   Proof using.
     init_simF.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
-    unfold MemP.alloc, fspec_proph.
     step_l; step_r.
 
     asmproph_simple (Z.to_nat (or_else (pargs [Tint] (or_else (arg↓) [])) 0%Z)).
@@ -393,7 +392,7 @@ Module MemIP. Section MemIP.
     2:{ rewrite andb_false_iff in Heq. des; des_sumbool; try nia. }
 
     hss. steps_r.
-    rename x' into size, q into pad. set (blk := Mem.nb mem_tgt + pad).
+    rename x' into size, _q into pad. set (blk := Mem.nb mem_tgt + pad).
     iPoseProof (own_valid with "B") as "%".
     iPoseProof (mem_ra_alloc with "B") as ">B"; et.
     iDestruct "B" as "[BLK WHT]".
@@ -429,8 +428,6 @@ Module MemIP. Section MemIP.
     init_simF.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
 
-    unfold MemP.free, fspec_proph.
-
     destruct (or_else (pargs [Tptr] (or_else (arg↓) [])) (0,0%Z)) as [b ofs] eqn: EQ.
     step_l; step_r.
     asmproph_simple (b, ofs, mem_get mem_src b ofs); s.
@@ -458,8 +455,6 @@ Module MemIP. Section MemIP.
     init_simF.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
 
-    unfold MemP.load, fspec_proph.
-
     destruct (or_else (pargs [Tptr] (or_else (arg↓) []))(0,0%Z)) as [b ofs] eqn: EQ.
     step_l; step_r.
     asmproph_standard.
@@ -485,8 +480,6 @@ Module MemIP. Section MemIP.
   Proof using.
     init_simF.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
-
-    unfold MemP.store, fspec_proph.
 
     destruct (or_else(pargs [Tptr; Tuntyped] (or_else (arg↓) [])) (0,0%Z,Vundef))
       as [[b ofs] v_new] eqn: EQ.
@@ -516,7 +509,6 @@ Module MemIP. Section MemIP.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
 
     step_l; step_r.
-    unfold MemP.cmp, fspec_proph.
 
     destruct (or_else (pargs [Tuntyped; Tuntyped] (or_else (arg↓) []))(Vundef,Vundef)) as [p1 p2] eqn: EQ.
     asmproph_standard.
@@ -550,8 +542,6 @@ Module MemIP. Section MemIP.
     init_simF.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
 
-    unfold MemP.cas, fspec_proph.
-    
     destruct (or_else (pargs [Tptr; Tuntyped; Tuntyped] (or_else (arg↓) [])) ((0,0%Z),(Vundef,Vundef))) as [[b ofs] [v_old v_new]] eqn: EQ.
     set (v_cur := mem_get mem_src b ofs).
     set (is_succ := dec (MemSpec.compare_val v_cur v_old) (Vint 1) : bool).
@@ -642,16 +632,16 @@ Module MemPA. Section MemPA.
     match goal with
     | H:_ |- _ => revert H; alist_find_simpl; i; depdes H
     end; alist_find_simpl; esplits; et; eapply isim_fsem_proph_to_normal; i; iIntros;
-    rewrite SRed.fbody_trivial /fbody_trivial SRed.core; iIntros; steps_r; forces_l; step; eauto.
+    rewrite SRed.fbody_trivial /fbody_trivial ?SRed.core; iIntros; steps_r; forces_l; step; eauto.
 
-  Theorem sim sp : ISim.t open (MemA.t sp) MemP.t emp%I IstEq.
+  Theorem sim : ISim.t open MemA.t MemP.t emp%I IstEq.
   Proof using.
     init_sim; prove_proph_sim.
   (*SLOW*)Qed.
 
-  Theorem ctxr sp:
+  Theorem ctxr:
     ctx_refines
-      (MemA.t sp, emp%I)
+      (MemA.t, emp%I)
       (MemP.t, emp%I).
   Proof using. eapply main_adequacy, sim; eauto. Qed.
 End MemPA. End MemPA.
@@ -660,9 +650,9 @@ Module MemIA. Section MemIA.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
   Context `{_memG: !memG}.
 
-  Theorem ctxr csl genv sp :
+  Theorem ctxr csl genv :
     ctx_refines
-      (MemA.t sp, MemA.init_cond csl genv)
+      (MemA.t, MemA.init_cond csl genv)
       (MemI.t csl genv, emp%I).
   Proof using.
     etrans; cycle 1.

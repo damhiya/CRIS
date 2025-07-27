@@ -102,7 +102,7 @@ Module SchI. Section SchI.
      (Some SchHdr.join,    (false, wmask_all, scopes, (None, cfunU join)));
      (Some SchHdr.get_tid, (false, wmask_all, scopes, (None, cfunU get_tid)))].
 
-  Program Definition Mod: SMod.t :=
+  Program Definition smod: SMod.t :=
   {|
     SMod.scopes := scopes;
     SMod.fnsems := fnsems;
@@ -111,6 +111,6 @@ Module SchI. Section SchI.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition t := Seal.sealing CRIS (SMod.to_mod sp_none Mod).
+  Definition t := Seal.sealing CRIS (SMod.to_mod sp_none smod).
 
 End SchI. End SchI.

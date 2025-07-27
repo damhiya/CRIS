@@ -176,9 +176,9 @@ Proof using.
       { iPureIntro. eapply alist_permutation_find; eauto. }
       rewrite H1. by_coind "CIH"; et.
   - destruct e.
-    + steps_r. force_l. instantiate (1:= q). steps_l. by_coind "CIH"; et.
+    + steps_r. force_l. instantiate (1:= _q). steps_l. by_coind "CIH"; et.
     + rewrite SBRed.bind SBRed.take. des_ifs.
-      * steps_l. force_r. instantiate (1:= q). steps_r. by_coind "CIH"; et.
+      * steps_l. force_r. instantiate (1:= _q). steps_r. by_coind "CIH"; et.
       * steps_l. ss.
     + step. by_coind "CIH"; et.
 Qed.
@@ -243,12 +243,12 @@ Lemma ctxr_refines mcs mct (REF : ctx_refines mcs mct) :
 Proof using.
   i. specialize (REF Mod.empty_mc).
   destruct mcs, mct. ss.
-  rewrite !mod_add_empty_r in REF.
+  rewrite -!mod_add_empty_r in REF.
   ii; split; ii; des; ss; red in REF; hexploit REF; eauto; i; des; ss.
   hexploit (H0 rs); ss.
-  { rewrite SRC. iIntros "[? ?]"; iFrame; et. }
+  { rewrite SRC. iIntros ">[? ?]"; iFrame; et. }
   i; des; esplits; eauto.
-  rewrite H2. iIntros "[? [? ?]]". iFrame.
+  rewrite H2. iIntros ">[? [? ?]]". iFrame. et.
 Qed.
 
 (*** weakening for initial condition ***)
@@ -270,9 +270,9 @@ Proof using.
   { red in REF. hexploit REF; ss; i; des; eauto. }
   ii. ss. des. red in REF. hexploit REF; ss; i; des; eauto.
   hexploit (H0 rs); ss.
-  { rewrite SRC. iIntros "[? [[? ?] ?]]". iFrame. }
+  { rewrite SRC. iIntros ">[? [[? ?] ?]]". iFrame. et. }
   i; des; esplits; eauto.
-  rewrite H2. iIntros "[? [? [? ?]]]". iFrame.
+  rewrite H2. iIntros ">[? [? [? ?]]]". iFrame. et.
 Qed.
 
 Lemma ctxr_cond_frameL (ms mt : Mod.t) Ps Pt Q (REF : ctx_refines (ms, Ps) (mt, Pt)) :
@@ -350,7 +350,7 @@ Corollary ctxr_compose_hor_simplR msa mta msb mtb P Pa
   ctx_refines (msa ★ msb, Pa)%I
               (mta ★ mtb, P)%I.
 Proof using.
-  rewrite -(mod_addc_empty_r _ P) -(mod_addc_empty_r _ Pa).
+  rewrite (mod_addc_empty_r _ P) (mod_addc_empty_r _ Pa).
   eapply ctxr_compose_hor; et.
 Qed.
 
@@ -359,7 +359,7 @@ Corollary ctxr_cond_frameR_simpl (ms mt : Mod.t) P Q
   :
   ctx_refines (ms, P ∗ Q)%I (mt, Q)%I.
 Proof using.
-  rewrite -(mod_addc_empty_l _ Q).
+  rewrite (mod_addc_empty_l _ Q).
   eapply ctxr_cond_frameR. et.
 Qed.
 
@@ -372,7 +372,7 @@ End CtxRefineFacts.
 Ltac ctxr_norm :=
   try rewrite <-!mod_add_assoc;
   try rewrite ->!mod_add_assoc;
-  (hrepeat do 1 first [rewrite !mod_addc_empty_l|rewrite !mod_addc_empty_r]);
+  (hrepeat do 1 first [rewrite -!mod_addc_empty_l|rewrite -!mod_addc_empty_r]);
   try(try (match goal with [|-_ (_,emp%I)] => fail 2 end);
       eapply ctxr_cond_frameR_simpl).
 

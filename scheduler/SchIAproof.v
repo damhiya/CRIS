@@ -237,14 +237,14 @@ Module SchIA. Section SchIA.
     rewrite /SchA.trigger_Yield /SchI.trigger_Yield /SchA.check_internal /SchI.check_internal.
     steps_l.
     iDestruct "ASM" as "[%[->[%[%[%[[->[->%]] [pre token]]]]]]]"; hss.
-    rename q4 into pre, q2 into synpost, q3 into my_tid.
+    rename _q4 into pre, _q2 into synpost, _q3 into my_tid.
     steps_l. steps_r.
 
     iDestruct "IST" as (????????) "(% & THB & THW & COND & [[% TA]|[% [TA WI]]])"; subst; hss.
     iPoseProof (tid_admin_none_split my_tid with "TA") as ">[TA tid]".
 
     (* SRC: find fspec in sp *)
-    dup H. rewrite /fspec_spawnable /fspec_imply /= in H0. des.    
+    dup H. rewrite /fn_spawnable /fspec_spawnable /fspec_imply /= in H0. des.    
     assert (SPFN: sp fn = Some fsp).
     { apply FunInSp. eauto. }
     rewrite SPFN.
@@ -260,7 +260,7 @@ Module SchIA. Section SchIA.
     call "THB THW COND TA".
     { iFrame. iExists _, _, _, _, _. iSplitR; eauto. }
 
-    steps_l. rename q into vret.
+    steps_l. rename _q into vret, _q0 into rv, _q1 into thsl.
     iMod (POST $ vret with "[ASM]") as "I"; eauto.
     rewrite /fspec_winv /fspec_virtual. do 2 rewrite {1}/postcond.
     iDestruct "I" as "[WI I]".
@@ -315,8 +315,8 @@ Module SchIA. Section SchIA.
         apply agree_op_inv in THW0.
 
         remember (λ vs s: SAny.t, Some (to_agree (synpost vs s)))%I as POSTF.
-        iAssert (interp_cond (Q q0 sret))%I with "[POST]" as "POST".
-        { subst. apply (inj to_agree) in THW0. specialize (THW0 q0 sret). ss. inv THW0.
+        iAssert (interp_cond (Q rv sret))%I with "[POST]" as "POST".
+        { subst. apply (inj to_agree) in THW0. specialize (THW0 rv sret). ss. inv THW0.
           apply (inj to_agree) in H7. unfold interp_cond. rewrite H7. et. }
 
         assert (((((λ n : nat, if my_tid =? n then Some ((1/2)%Qp, to_agree POSTF) else ε) : threadsF) ⋅ ths_src_w0): threadsF) ≡ ((λ n : nat, if my_tid =? n then Some ((3/4)%Qp, to_agree (λ (vs s: SAny.t), Some (to_agree (Q vs s)))) else ths_src_w0 n): threadsF)).
@@ -327,7 +327,7 @@ Module SchIA. Section SchIA.
         rewrite H5.
 
         clear SIM.
-        iExists _, (alist_replace my_tid (Some sret) ths_tgt0), _, _, (<[my_tid:=(interp_cond (Q q0 sret))%I]> ths_cond0), _, my_tid, false.
+        iExists _, (alist_replace my_tid (Some sret) ths_tgt0), _, _, (<[my_tid:=(interp_cond (Q rv sret))%I]> ths_cond0), _, my_tid, false.
         iFrame. iSplitR "POST COND TA".
         - iPureIntro. esplits; et.
           + eapply ths_wf_replace; eauto.
@@ -375,7 +375,7 @@ Module SchIA. Section SchIA.
   Proof using FunInSp SchInSp.
     init_simF.
 
-    step_l. step_l. destruct q as [[my_tid pre] post].
+    step_l. step_l. destruct _q as [[my_tid pre] post]. rename _q0 into varg.
     steps_l.
     iDestruct "ASM" as "[%va [-> [tid ASM]]]".
     iDestruct "ASM" as (???) "[[-> [-> %]] PRE]"; hss. dup H. inv H0; des.
@@ -386,10 +386,11 @@ Module SchIA. Section SchIA.
     iPoseProof (tid_admin_some_user with "[TA tid]") as "%"; iFrame; subst.
     steps_r. hss. steps_r.
 
-    steps_l; hss. force_l (length q1, pre, post). steps_l.
+    steps_l; hss. rename _q into ths_src, _q0 into my_tid, _q1 into tids. 
+    force_l (length tids, pre, post). steps_l.
 
     (* create new token *)
-    dup THWF. apply ths_wf_nths_none in THWF. hexploit (SIM (length q1)). i.
+    dup THWF. apply ths_wf_nths_none in THWF. hexploit (SIM (length tids)). i.
     rewrite THWF in H0. des. inv H0.
 
     iCombine "THB THW" as "TH".
@@ -402,15 +403,16 @@ Module SchIA. Section SchIA.
 
     steps_l. steps_r. hss. steps_r.
     spawn. steps_r. hss. steps_l. hss.
-    force_l ((length q1)↑). forces_l. iSplitL "tid TKNQ0"; iFrame; eauto.
+    force_l ((length tids)↑). forces_l. iSplitL "tid TKNQ0"; iFrame; eauto.
     step. iSplit; eauto. iCombine "THW TKNQ1" as "THW". iFrame.
     iExists _, _, _, _, _. iSplit; eauto. iPureIntro. esplits; eauto.
     { rewrite last_length. econs; [nia|]. rewrite alist_remove_find_None; eauto.
       eapply ths_wf_mon; eauto. }
     { econs; ss. split; eauto. rewrite !alist_remove_find_None; eauto. }
     { rewrite last_length. nia. }
-    { i. destruct (tid =? length q1) eqn:EQ.
-      { rewrite Nat.eqb_eq in EQ; subst. rewrite discrete_fun_lookup_op Nat.eqb_refl.
+    { i. destruct (tid =? length tids) eqn:EQ.
+      { rewrite Nat.eqb_eq in EQ; subst.
+        rewrite discrete_fun_lookup_op Nat.eqb_refl.
         rewrite !alist_add_find_eq -H4 -H5 left_id. econs. }
       { rewrite Nat.eqb_neq in EQ. des_ifs.
         { rewrite Nat.eqb_eq in Heq; subst; ss. }
@@ -426,14 +428,16 @@ Module SchIA. Section SchIA.
     rewrite /SchA.trigger_Yield /SchI.trigger_Yield /triggerUB.
     rewrite /SchA.check_internal /SchI.check_internal.
 
-    steps_l.
+    steps_l. rename _q into my_tid.
     iDestruct "ASM" as "[[-> tid] ->]". hss. steps_r.
     iDestruct "IST" as (????????) "(% & THB & THW & COND & [[% TA]|[% [TA WI]]])"; subst; hss.
     2:{ iExFalso. iApply (tid_admin_none_user with "[TA tid]"); iFrame. }
     iPoseProof (tid_admin_some_user with "[TA tid]") as "%"; iFrame; subst.
-    steps_l. hss. steps_r. depdes q1. do 3 (steps_r; hss).
+    steps_l. hss. steps_r. depdes _q0. do 3 (steps_r; hss).
+    rename _q into tids.
 
-    force_l (exist _ x l). steps_l. hss. des_ifs; cycle 1.
+    force_l (exist _ x l). steps_l. hss. rename _q into tid, _q0 into tids.
+    des_ifs; cycle 1.
     { steps_l. ss. }
 
     iPoseProof (tid_admin_some_user_merge with "[TA tid]") as ">TA"; iFrame.
@@ -446,7 +450,8 @@ Module SchIA. Section SchIA.
     steps_l.
 
     iDestruct "IST" as (????????) "(% & THB & THW & COND & [[% TA]|[% [TA WI]]])"; subst; hss.
-    iPoseProof (tid_admin_none_split with "TA") as ">[TA tid]". instantiate (1:=q1).
+    iPoseProof (tid_admin_none_split with "TA") as ">[TA tid]".
+    instantiate (1:= tid).
 
     force_l (tt↑). steps_l. steps_r.
     force_l. iSplitL "tid WI". { iFrame. eauto. }
@@ -458,7 +463,7 @@ Module SchIA. Section SchIA.
     init_simF.
 
     step_l. step_l.
-    destruct q as [[tid postS] my_tid]; s. steps_l.
+    destruct _q as [[tid postS] my_tid]; s. rename _q0 into varg. steps_l.
     iDestruct "ASM" as (vargs) "[-> [[-> ->] [TOK tid]]]". hss. 
 
     steps_l. steps_r.
@@ -480,6 +485,7 @@ Module SchIA. Section SchIA.
     2:{ iExFalso. iApply (tid_admin_none_user with "[TA tid]"); iFrame. }
     iPoseProof (tid_admin_some_user with "[TA tid]") as "%"; iFrame; subst.
     steps_r. hss. steps_r. steps_l. hss.
+    rename _q into ths_src.
     
     destruct (alist_find tid ths_tgt) eqn:LU; [destruct o|].
     { (* done(O) | joined(X) *)
@@ -559,7 +565,7 @@ Module SchIA. Section SchIA.
   Proof using FunInSp SchInSp.
     init_simF.
 
-    steps_l. iDestruct "ASM" as "[[-> tid] ->]"; hss.
+    steps_l. iDestruct "ASM" as "[[-> tid] ->]"; hss. rename _q into my_tid.
     steps_r.
     iDestruct "IST" as (????????) "(% & THB & THW & COND & [[% TA]|[% [TA WI]]])"; des; subst; hss.
     2:{ iExFalso. iApply (tid_admin_none_user with "[TA tid]"); iFrame. }

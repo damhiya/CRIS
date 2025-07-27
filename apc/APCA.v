@@ -27,7 +27,7 @@ Module APCA. Section APCA.
   Definition fnsems SpPure : fnsems_type :=
     [(Some APCHdr.apc, (true, wmask_all, scopes, (Some apc_spec, (cfunN (apc_body SpPure)))))].
 
-  Program Definition Mod SpPure : SMod.t := {|
+  Program Definition smod SpPure : SMod.t := {|
     SMod.scopes := scopes;
     SMod.fnsems := fnsems SpPure;
     SMod.initial_st := [];
@@ -37,5 +37,5 @@ Module APCA. Section APCA.
 
   Definition init_cond : iProp Σ := emp%I.
 
-  Definition t SpPure Sp := Seal.sealing CRIS (SMod.to_mod Sp (Mod SpPure)).
+  Definition t SpPure Sp := Seal.sealing CRIS (SMod.to_mod Sp (smod SpPure)).
 End APCA. End APCA.

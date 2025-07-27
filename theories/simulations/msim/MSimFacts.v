@@ -330,7 +330,7 @@ Proof.
   - clarify; steps.
     rewrite Red.Assume /ModTr.handle_Assume; steps.
     rewrite /ModTr.put_res; steps. des.
-    apply bi.wand_entails, Own_bupd_split in _ASSUME0. des.
+    apply Own_bupd_split in _ASSUME0. des.
     eapply (K (fmr0 ⋅ a1)); eauto.
     { iIntros "[FMR X]"; iMod (CUR with "FMR") as "FMR". iFrame.
       iModIntro. iApply _ASSUME1. eauto.
@@ -432,7 +432,7 @@ Proof.
     rewrite Red.AssumePrecise /ModTr.handle_AssumePrecise; steps.
     (* hexploit (Own_bupd_split fmr0); eauto. intros [rP [rFMR [SPLIT [HP HFMR]]]]. *)
 
-    rename _GUARANTEE into G. apply bi.wand_entails in G.    
+    rename _GUARANTEE into G.
     eapply Own_bupd_split in G; cycle 1; i; des.
     { eapply Own_wand_valid in WF; et. rewrite FMR. iIntros ">[_ H]". et. }
     assert (Va1: ✓ a1).
@@ -479,7 +479,6 @@ Proof.
     set (_HIDE:=Take) at 2. remember _HIDE as HIDE. subst _HIDE. guardH HeqHIDE.
     do 2 step. instantiate (1:= x).
     step. instantiate (1:= ctx_sem ctx ⋅ fmr ⋅ x0).
-    apply bi.wand_entails in x2.
     step.
     { clear K. rewrite FMR !Own_op x2.
       iIntros ">[[C F] >[P X]]". iFrame. et. }

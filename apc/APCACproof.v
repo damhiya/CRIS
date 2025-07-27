@@ -35,11 +35,11 @@ Module APCAC. Section APCAC.
   Proof using _crisG PureIsPure PureInSpA APCInSpA.
     init_simF.
     (* init_simF. *)
-    steps_l. iDestruct "ASM" as "%"; des; subst.
-    steps_r. wforce_r q. wforce_r (q↑). wforce_r. iSplitR; et. hss. steps_r.
+    steps_l. iDestruct "ASM" as "%"; des; subst. rename _q into o.
+    steps_r. wforce_r o. wforce_r (o↑). wforce_r. iSplitR; et. hss. steps_r.
 
     (* normalize itree - remove all interpretations and sandboxes except APC *)
-    unfold APC at 1. steps_r.
+    unfold APC at 1. steps_r. rename _q into o'.
 
     (* add meaningless return in src *)
     add_ret_l ().
@@ -51,22 +51,22 @@ Module APCAC. Section APCAC.
 
     (* well founded induction on depth ordinal *)
     iApply wsim_reset. iStopProof. 
-    generalize scopes st_tgt st_src nths. revert q0. pattern q. set (GOAL:=λ _, _).
-    revert q. apply (well_founded_induction Ord.lt_well_founded).
+    generalize scopes st_tgt st_src nths. revert o'. pattern o. set (GOAL:=λ _, _).
+    revert o. apply (well_founded_induction Ord.lt_well_founded).
     i. subst GOAL. ss. iIntros (? ? ? ? ?) "IST".
 
     (* well founded induction on width ordinal *)
     iApply wsim_reset. iStopProof. 
-    generalize st_tgt0 st_src0 nths0. pattern q0. set (GOAL:=λ _, _).
-    revert q0. apply (well_founded_induction Ord.lt_well_founded).
+    generalize st_tgt0 st_src0 nths0. pattern o'. set (GOAL:=λ _, _).
+    revert o'. apply (well_founded_induction Ord.lt_well_founded).
     i. subst GOAL. ss. iIntros (? ? ?) "IST".
 
     rewrite unfold_APC. steps_r. des_ifs. { step. iFrame. }
-    steps_r.
+    steps_r. rename _q into o, _q2 into o', _q1 into fn, _q0 into LT.
 
     rewrite /is_Some in grt. des.
     dup PureInSpA. rename PureInSpA0 into PIS.
-    assert (SP: sp_a q1 = x1).
+    assert (SP: sp_a fn = x1).
     { apply PIS; eauto. }
     rewrite SP. destruct x1; cycle 1.
     { (* inlining *)
@@ -78,10 +78,10 @@ Module APCAC. Section APCAC.
       }
       unfold pure_specbody, SB.sandbox_body, SModTr.trans_ktree, SModTr.trans_body, SModTr.HoareFun.
       steps_r; ss. rewrite /pure_body /cfunN. hss. steps_r.
-      iDestruct "GRT" as "%"; des; hss.
+      iDestruct "GRT" as "%"; des; hss. rename _q into o'.
 
       (* inlining *)
-      inline_r. force_r q3. steps_r. forces_r. iSplitR; eauto. hss. steps_r.
+      inline_r. force_r o'. steps_r. forces_r. iSplitR; eauto. hss. steps_r.
       
       (* normalize itree *)
       unfold APC at 1. steps_r.
@@ -97,7 +97,8 @@ Module APCAC. Section APCAC.
 
     (* inlining *)
     hexploit PureIsPure; eauto. i. des. rewrite /find_body in H1.
-    steps_r. inline_r.
+    steps_r. rename _q into x', _q0 into ret'.
+    inline_r.
     { unfold FLT. rewrite map_app. apply alist_find_comm.
       { rewrite map_app. rewrite !map_fst_map_map_snd_refl.
         apply nodup_comm. rewrite -map_app. eauto. }
@@ -105,12 +106,12 @@ Module APCAC. Section APCAC.
     }
 
     unfold pure_specbody, SB.sandbox_body, SModTr.trans_ktree, SModTr.trans_body, SModTr.HoareFun. ss.
-    force_r q3. steps_r. force_r (q2↑). steps_r. forces_r. iSplitL "GRT"; eauto.
+    force_r x'. steps_r. force_r (_↑). steps_r. forces_r. iSplitL "GRT"; eauto.
     steps_r. rewrite /pure_body /cfunN. hss. steps_r.
     iDestruct "GRT" as "%"; des; hss.
 
     (* inlining *)
-    inline_r. force_r q5. steps_r. forces_r. iSplitR; eauto. hss. steps_r.
+    inline_r. force_r. steps_r. forces_r. iSplitR; eauto. hss. steps_r.
     
     (* normalize itree *)
     unfold APC at 1. steps_r. 

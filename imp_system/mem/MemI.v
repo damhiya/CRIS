@@ -189,7 +189,7 @@ Module MemI. Section MemI.
      (Some MemHdr.cmp,   (false, wmask_all, scopes, (None, (cfunU cmp)))) ;
      (Some MemHdr.cas,   (false, wmask_all, scopes, (None, (cfunU cas))))].
 
-  Program Definition Mem csl genv : SMod.t :=
+  Program Definition smod csl genv : SMod.t :=
     {|
       SMod.scopes := scopes;
       SMod.fnsems := fnsems ;
@@ -199,5 +199,5 @@ Module MemI. Section MemI.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition t csl genv := Seal.sealing CRIS (SMod.to_mod sp_none (Mem csl genv)).
+  Definition t csl genv := Seal.sealing CRIS (SMod.to_mod sp_none (smod csl genv)).
 End MemI. End MemI.

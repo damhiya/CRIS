@@ -672,22 +672,21 @@ Proof using.
   ii. ss. eapply ISim_ctx with (ctx := ctx) in SIMC.
   split.
   { eapply ISim_wf; eauto. }
-  ii. ss. eapply Own_split in SRC; eauto. des.
+  ii. ss. eapply Own_bupd_split in SRC; eauto. des.
   eapply Own_split in SRC1; et; des; cycle 1.
-  { eapply Own_wand_valid, WFR. rewrite SRC Own_op. iIntros "[_ ?]". iFrame; et. }
+  { eapply Own_wand_valid, WFR. rewrite SRC. iIntros ">[_ ?]". iFrame; et. }
   rewrite winv_split_empty in SRC0.
   eapply Own_split in SRC0; et; des; cycle 1.
-  { eapply Own_wand_valid, WFR. rewrite SRC Own_op. iIntros "[? _]". iFrame; et. }
+  { eapply Own_wand_valid, WFR. rewrite SRC. iIntros ">[? _]". iFrame; et. }
   exists (a4 ⋅ a3); splits.
   { eapply Own_wand_valid, WFR. rewrite SRC SRC1 SRC0 !Own_op.
-    iIntros "[[? ?] [? ?]]". iFrame. et. }
+    iIntros ">[[? ?] [? ?]]". iFrame. et. }
   { rewrite Own_op SRC4 SRC3. iIntros "[? ?]"; iFrame; et. }
   assert (WFT: Mod.wf mt) by (eapply wf_inv_l; et).
   ii. eapply lsim_adequacy, PR.
   - eapply ISim_adequacy; et.
-    + instantiate (1:= a0⋅a5). rewrite SRC SRC0 SRC1 !Own_op.
-      iIntros "[[? ?] [? ?]]". iFrame.
-    + rewrite Own_op SRC2 SRC5. et.
+    + rewrite SRC SRC0 SRC1 !Own_op SRC2 SRC5.
+      iIntros ">[[? ?] [? ?]]". iFrame. et.
     + eapply ISim_wf; eauto.
   - inv WFM. econs. ss. unfold map_snd.
     eapply eq_ind; [|].

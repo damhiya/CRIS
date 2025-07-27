@@ -25,7 +25,7 @@ Local Definition own_admin_aux : seal (@own_admin_def). Proof using. by eexists.
 Definition own_admin := own_admin_aux.(unseal).
 Local Definition own_admin_eq : @own_admin = @own_admin_def := own_admin_aux.(seal_eq).
 Global Arguments own_admin {_}.
-Definition initial_resource_own_admin {Σ : GRA} : GRAUR Σ :=
+Definition ir_own_admin {Σ : GRA} : GRAUR Σ :=
   λ i, allocs_auth (@GRA_lookup Σ i) (.∈ (⊤ ∖ {[base_γ]} : coPset)).
 
 (** * Definitions of resource ownership - for metatheoretical uses only *)
@@ -35,13 +35,13 @@ Definition Own := Own_aux.(unseal).
 Local Definition Own_eq : @Own = @Own_def := Own_aux.(seal_eq).
 Global Arguments Own {Σ} a.
 
-Lemma make_own_admin {Σ : GRA} : Own initial_resource_own_admin ⊢ own_admin.
+Lemma make_own_admin {Σ : GRA} : Own ir_own_admin ⊢ own_admin.
 Proof using.
   rewrite own.own_admin_eq /own.own_admin_def.
   iIntros "H". iExists (⊤ ∖ {[base_γ]}).
   iSplit.
   { iPureIntro. eapply difference_infinite, singleton_finite. eapply top_infinite. }
-  { rewrite /initial_resource_own_admin own.Own_eq /own.Own_def. iFrame. }
+  { rewrite /ir_own_admin own.Own_eq /own.Own_def. iFrame. }
 Qed.
 
 Section properties.
@@ -505,40 +505,40 @@ Module InitRes.
 
   Lemma singleton_some_valid {A : DRA} (a : A)
       (VALID : ✓ a) :
-    ✓ (singleton (Some a) ⋅ initial_resource_own_admin).
+    ✓ (singleton (Some a) ⋅ ir_own_admin).
   Proof using.
     intros i γ. inv_fin i; ss; des_ifs.
-    { rewrite ?discrete_fun_lookup_op /singleton /initial_resource_own_admin.
+    { rewrite ?discrete_fun_lookup_op /singleton /ir_own_admin.
       des_ifs. ss. rewrite left_id /allocs.allocs_auth; des_ifs; ss.
     }
     { intros i; inv i. }
   Qed.
 
   Lemma singleton_none_valid {A : DRA} :
-    ✓ (@singleton A None ⋅ initial_resource_own_admin).
+    ✓ (@singleton A None ⋅ ir_own_admin).
   Proof using.
     intros i γ. inv_fin i; ss; des_ifs.
-    { rewrite ?discrete_fun_lookup_op /singleton /initial_resource_own_admin.
+    { rewrite ?discrete_fun_lookup_op /singleton /ir_own_admin.
       des_ifs; ss; rewrite left_id /allocs.allocs_auth; des_ifs.
     }
     { intros i; inv i. }
   Qed.
 
   Definition app_valid {Σ1 Σ2 : GRA} (r1 : Σ1) (r2 : Σ2)
-      (VALID1 : ✓ (r1 ⋅ initial_resource_own_admin))
-      (VALID2 : ✓ (r2 ⋅ initial_resource_own_admin)) :
-    ✓ (app r1 r2 ⋅ initial_resource_own_admin).
+      (VALID1 : ✓ (r1 ⋅ ir_own_admin))
+      (VALID2 : ✓ (r2 ⋅ ir_own_admin)) :
+    ✓ (app r1 r2 ⋅ ir_own_admin).
   Proof using.
     intros i; apply fin_add_inv with (i:=i).
     { intros i1. rewrite /app ?discrete_fun_lookup_op.
       rewrite /L fin_add_inv_l /R fin_add_inv_l right_id.
-      rewrite /initial_resource_own_admin.
+      rewrite /ir_own_admin.
       match goal with | |- ?A => gen_eq A end.
       rewrite /GRAs.app /= fin_add_inv_l. remove_eq_aux. ss.
     }
     { intros i2. rewrite /app ?discrete_fun_lookup_op.
       rewrite /L fin_add_inv_r /R fin_add_inv_r left_id.
-      rewrite /initial_resource_own_admin.
+      rewrite /ir_own_admin.
       match goal with | |- ?A => gen_eq A end.
       rewrite /GRAs.app /= fin_add_inv_r. remove_eq_aux. ss.
     }

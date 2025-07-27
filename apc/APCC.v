@@ -19,7 +19,7 @@ Module APCC. Section APCC.
   Definition fnsems : fnsems_type :=
     [(Some APCHdr.apc, (true, wmask_all, scopes, (Some APCA.apc_spec, fbody_trivial)))].
 
-  Program Definition Mod : SMod.t := {|
+  Program Definition smod : SMod.t := {|
     SMod.scopes := scopes;
     SMod.fnsems := fnsems;
     SMod.initial_st := [];
@@ -29,5 +29,5 @@ Module APCC. Section APCC.
 
   Definition init_cond : iProp Σ := emp%I.
 
-  Definition t Sp := Seal.sealing CRIS (SMod.to_mod Sp Mod).
+  Definition t Sp := Seal.sealing CRIS (SMod.to_mod Sp smod).
 End APCC. End APCC.

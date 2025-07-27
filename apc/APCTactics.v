@@ -122,8 +122,8 @@ Proof using.
 
     call "IST"; et.
     steps_l. iApply wsim_reset.
-    iPoseProof ((POST q ret) with "ASM") as ">POST".
-    iSpecialize ("ISIM" $! nths' st_s' st_t' q ret).
+    iPoseProof ((POST _q ret) with "ASM") as ">POST".
+    iSpecialize ("ISIM" $! nths' st_s' st_t' _q ret).
     iApply "ISIM". iFrame.
   }
   { des; rewrite /fspec_imply in WEAK; hss.

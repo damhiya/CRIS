@@ -412,6 +412,9 @@ Ltac _hnorm_itr prg :=
   | [ |- triggerNB = _ ] =>
       _hprogress prg; unfold triggerNB;
       _hnorm_itr prg
+  | [ |- fspec_proph _ _ _ = _ ] =>
+      _hprogress prg; unfold fspec_proph;
+      _hnorm_itr prg
   | [ |- ?itr = _ ] =>
       reflexivity
   end.
@@ -471,7 +474,7 @@ Ltac des_pairs :=
         match type of x with
         | () => destruct x
         | (_ * _)%type =>
-            let n0 := fresh "q" in let n1 := fresh "q" in
+            let n0 := fresh "_q" in let n1 := fresh "_q" in
             let EQ := fresh "EQq" in
             destruct x as [n0 n1] eqn: EQ
         end
@@ -479,7 +482,7 @@ Ltac des_pairs :=
         match type of x with
         | () => destruct x
         | (_ * _)%type =>
-            let n0 := fresh "q" in let n1 := fresh "q" in
+            let n0 := fresh "_q" in let n1 := fresh "_q" in
             let EQ := fresh "EQq" in
             destruct x as [n0 n1] eqn: EQ
         end

@@ -122,7 +122,7 @@ Module SchAS. Section SchAS.
     *[Some ir_threadsRA].
 
   Definition init_threads : iProp Σ := 
-    Seal.sealing "SchA" (own base_γ ir_threadsRA).
+    (* Seal.sealing "SchA" *) (own base_γ ir_threadsRA).
   Definition init_tid : iProp Σ :=
     Seal.sealing "SchA" (own base_γ (tid_admin_r (Some 0), None))%I.
 
@@ -200,6 +200,12 @@ Module SchAS. Section SchAS.
           rewrite IDLE. ss.
         + intros x. rewrite discrete_fun_lookup_op. des_ifs; [|rewrite right_id //].
           des. rewrite Nat.eqb_eq in Heq. subst. rewrite IDLE0. ss.
+    Qed.
+
+    Lemma make_tid_admin:
+      own base_γ SchAS.ir_tidRA ⊢ SchAS.tid_admin None.
+    Proof.
+      rewrite /tid_admin. unseal "SchA". et.
     Qed.
 
     Lemma tid_admin_none_user q t :
@@ -342,82 +348,89 @@ Module SchAS. Section SchAS.
   Section SPEC.
     Variable sp_user : spl_type.
     Variable E_full : coPset.
+    Variable q_full : Qp.
+
+    Definition fspec_spawnable fsp
+      (pre : SAny.t → SAny.t → iProp Σ) (postS: SAny.t → SAny.t -> SynDepO) : Prop
+      :=
+      fspec_imply fsp
+        (fspec_winv E_full 
+           (fspec_virtual (λ (my_tid: nat),
+              ((λ (varg: SAny.t) arg,
+                tid_user q_full my_tid ∗ ∃ sarg, ⌜arg = sarg↑⌝ ∗ pre varg sarg)%I,
+               (λ (vret: SAny.t) ret,
+                tid_user q_full my_tid ∗ ∃ sret, ⌜ret = sret↑⌝ ∗ interp_cond (postS vret sret)))%I)))
+    .
     
     (* TODO : clarify with WP tc *)
-    Definition fspec_spawnable fn
+    Definition fn_spawnable fn
       (pre : SAny.t → SAny.t → iProp Σ) (postS: SAny.t → SAny.t -> SynDepO) : Prop
       :=
       ∃ fsp, alist_find (Some fn) sp_user = Some (Some fsp) ∧
-      fspec_imply fsp
-        (fspec_winv E_full
-           (fspec_virtual
-              (λ (my_tid: nat) (varg: SAny.t) arg,
-                tid_user 1 my_tid ∗ ∃ sarg, ⌜arg = sarg↑⌝ ∗ pre varg sarg)%I
-              (λ (my_tid: nat) (vret: SAny.t) ret,
-                tid_user 1 my_tid ∗ ∃ sret, ⌜ret = sret↑⌝ ∗ interp_cond (postS vret sret)))%I)
-    .
+      fspec_spawnable fsp pre postS.
 
     Definition _spawn_spec : fspec := 
-      fspec_virtual
-        (λ '(my_tid, pre, postS) varg arg,
+      fspec_virtual (λ '(my_tid, pre, postS),
+        ((λ varg arg,
             ∃ fvarg farg fn,
               ⌜varg = ((my_tid, fn, fvarg) : nat * string * SAny.t)
               ∧ arg = ((my_tid, fn, farg) : nat * string * SAny.t)↑
-              ∧ fspec_spawnable fn pre postS⌝
-                  ∗ pre fvarg farg ∗ token_half my_tid postS)%I
-        (λ _ (_: SAny.t) _, False%I)
+              ∧ fn_spawnable fn pre postS⌝
+                  ∗ pre fvarg farg ∗ token_half my_tid postS)%I,
+         (λ (_: SAny.t) _, False%I)))
     .
 
-    Definition spawn_spec q : fspec :=
+    Definition spawn_spec : fspec :=
       fspec_winv E_full
-        (fspec_virtual
-          (λ '(my_tid, pre, postS) varg arg,
-            tid_user q my_tid ∗
+        (fspec_virtual (λ '(my_tid, pre, postS),
+          ((λ varg arg,
+            tid_user q_full my_tid ∗
             ∃ fvarg farg fn,
               ⌜varg = ((fn, fvarg): string * SAny.t) 
               ∧ arg = ((fn, farg): string * SAny.t)↑
-              ∧ fspec_spawnable fn pre postS⌝
-              ∗ pre fvarg farg)%I
-          (λ '(my_tid, pre, postS) vret ret,
-            tid_user q my_tid ∗
+              ∧ fn_spawnable fn pre postS⌝
+              ∗ pre fvarg farg)%I,
+           (λ vret ret,
+            tid_user q_full my_tid ∗
             ∃ tid: nat,
-              ⌜vret = tid ∧ ret = tid↑⌝ ∗ token_th tid postS)%I)
+              ⌜vret = tid ∧ ret = tid↑⌝ ∗ token_th tid postS)%I)))
     .
 
-    Definition yield_spec q : fspec :=
+    Definition yield_spec : fspec :=
       fspec_winv E_full
         (fspec_simple (λ my_tid,
-          ((λ varg, ⌜varg = tt↑⌝ ∗ tid_user q my_tid),
-           (λ vret, ⌜vret = tt↑⌝ ∗ tid_user q my_tid)
+          ((λ varg, ⌜varg = tt↑⌝ ∗ tid_user q_full my_tid),
+           (λ vret, ⌜vret = tt↑⌝ ∗ tid_user q_full my_tid)
           ))
         )%I.
 
-    Definition join_spec q : fspec :=
+    Definition join_spec : fspec :=
       fspec_winv E_full
-        (fspec_virtual
-          (λ '(tid, postS, my_tid) varg arg,
-            ⌜arg = tid↑ ∧ varg = tid⌝ ∗ tid_user q my_tid ∗ token_th tid postS)
-          (λ '(tid, postS, my_tid) vret ret, 
-            (∃ vsret sret, ⌜vret = (Some vsret) ∧ ret = (Some sret)↑⌝
-              ∗ tid_user q my_tid ∗ interp_cond (postS vsret sret)))%I
-        )%I.
+        (fspec_virtual (λ '(tid, postS, my_tid),
+          ((λ varg arg,
+            ⌜arg = tid↑ ∧ varg = tid⌝ ∗
+            tid_user q_full my_tid ∗ token_th tid postS),
+           (λ vret ret, 
+            (∃ vsret sret, ⌜vret = (Some vsret) ∧ ret = (Some sret)↑⌝ ∗
+            tid_user q_full my_tid ∗ interp_cond (postS vsret sret)))))%I).
 
-    Definition get_tid_spec q : fspec :=
-      fspec_simple
-        (λ (tid: nat),
-          ((λ varg, (⌜varg = tt↑⌝ ∗ tid_user q tid)),
-           (λ vret, (⌜vret = tid↑⌝ ∗ tid_user q tid))))%I.
+    Definition get_tid_spec : fspec :=
+      fspec_simple (λ (tid: nat),
+       ((λ varg, (⌜varg = tt↑⌝ ∗ tid_user q_full tid)),
+        (λ vret, (⌜vret = tid↑⌝ ∗ tid_user q_full tid))))%I.
 
-    Definition sp q : spl_type :=
+    Definition sp : spl_type :=
       Seal.sealing CRIS 
         [(Some SchHdr._spawn,  Some _spawn_spec);
-         (Some SchHdr.spawn,   Some (spawn_spec q));
-         (Some SchHdr.yield,   Some (yield_spec q));
-         (Some SchHdr.join,    Some (join_spec q));
-         (Some SchHdr.get_tid, Some (get_tid_spec q))].
+         (Some SchHdr.spawn,   Some (spawn_spec));
+         (Some SchHdr.yield,   Some (yield_spec));
+         (Some SchHdr.join,    Some (join_spec));
+         (Some SchHdr.get_tid, Some (get_tid_spec))].
 
   End SPEC.
 End SchAS. End SchAS.
+
+Global Arguments SchAS.init_threads : simpl never.
 
 Module SchA. Section SchA.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
@@ -439,16 +452,16 @@ Module SchA. Section SchA.
   .
   
   Definition fnsems sp_user : fnsems_type :=
-    [(Some SchHdr._spawn, (true, wmask_all, scopes, (Some (SchAS._spawn_spec sp_user ⊤),   (cfunN (SchI._spawn check_internal)))));
+    [(Some SchHdr._spawn, (true, wmask_all, scopes, (Some (SchAS._spawn_spec sp_user ⊤ 1),   (cfunN (SchI._spawn check_internal)))));
      (Some SchHdr.spawn,  (true, wmask_all, scopes, (Some (SchAS.spawn_spec sp_user ⊤ 1),  (cfunN SchI.spawn))));
      (Some SchHdr.yield,  (true, wmask_all, scopes, (Some (SchAS.yield_spec ⊤ 1),          (cfunN (SchI.yield trigger_Yield)))));
      (Some SchHdr.join,   (true, wmask_all, scopes, (Some (SchAS.join_spec ⊤ 1),           (cfunN SchI.join))));
      (Some SchHdr.get_tid,(true, wmask_all, scopes, (Some (SchAS.get_tid_spec 1),          (cfunN SchI.get_tid))))].
 
-  Program Definition Mod sp_user : SMod.t := {|
+  Program Definition smod sp_user : SMod.t := {|
     SMod.scopes := scopes;
     SMod.fnsems := fnsems sp_user;
-    SMod.initial_st := (v_internal, false↑) :: SchI.Mod.(SMod.initial_st);
+    SMod.initial_st := (v_internal, false↑) :: SchI.smod.(SMod.initial_st);
   |}.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
@@ -456,6 +469,20 @@ Module SchA. Section SchA.
   Definition init_cond : iProp Σ := SchAS.init_threads ∗ SchAS.init_tid.
   
   Definition t sp sp_user :=
-    Seal.sealing CRIS (SMod.to_mod sp (Mod sp_user)).
+    Seal.sealing CRIS (SMod.to_mod sp (smod sp_user)).
 
 End SchA. End SchA.
+
+Section FSPEC_SCH.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
+  Context `{_schG: !schG}.
+
+  Definition fspec_sch q_full (fsp: fspec) : fspec :=
+    mk_fspec (meta := nat * fsp.(meta))
+    (λ '(my_tid,x) varg arg, SchAS.tid_user q_full my_tid ∗ fsp.(precond) x varg arg)%I
+    (λ '(my_tid,x) vret ret, SchAS.tid_user q_full my_tid ∗ fsp.(postcond) x vret ret)%I.
+
+  Definition icond_sch q_full (I: iProp Σ) : iProp Σ :=
+    SchAS.tid_user q_full 0 ∗ I.
+
+End FSPEC_SCH.

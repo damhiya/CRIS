@@ -234,6 +234,7 @@ Section wsat.
       set_solver.
     }
   Qed.
+
   Lemma wsat_merge n X Y :
     wsat n X ∗ wsat n Y -∗ wsat n (X ∪ Y).
   Proof using.
@@ -735,11 +736,11 @@ Ltac solve_index H :=
 
 Ltac _solve_ir_valid :=
   lazymatch goal with
-  | |- ✓ ( (InitRes.app _ _) ⋅ initial_resource_own_admin ) => eapply InitRes.app_valid
-  | |- ✓ ( InitRes.nil ⋅ initial_resource_own_admin ) => let i := fresh "i" in intros i; inv_fin i
-  | |- ✓ ( InitRes.singleton None ⋅ initial_resource_own_admin ) => eapply InitRes.singleton_none_valid
-  | |- ✓ ( InitRes.singleton _ ⋅ initial_resource_own_admin ) => eapply InitRes.singleton_some_valid
-  | |- ✓ ( ?r ⋅ initial_resource_own_admin ) => rewrite /r; eapply InitRes.app_valid
+  | |- ✓ ( (InitRes.app _ _) ⋅ ir_own_admin ) => eapply InitRes.app_valid
+  | |- ✓ ( InitRes.nil ⋅ ir_own_admin ) => let i := fresh "i" in intros i; inv_fin i
+  | |- ✓ ( InitRes.singleton None ⋅ ir_own_admin ) => eapply InitRes.singleton_none_valid
+  | |- ✓ ( InitRes.singleton _ ⋅ ir_own_admin ) => eapply InitRes.singleton_some_valid
+  | |- ✓ ( ?r ⋅ ir_own_admin ) => rewrite /r; eapply InitRes.app_valid
   end.
 
 Ltac solve_ir_valid :=
@@ -750,7 +751,7 @@ Ltac solve_ir_valid :=
 
 Ltac _unfold_res :=
   match goal with
-    |- context[Own(?r ⋅ initial_resource_own_admin)] =>
+    |- context[Own(?r ⋅ ir_own_admin)] =>
       rewrite /r /InitRes.app;
       repeat (rewrite ?InitRes.L_distr ?InitRes.R_distr)
   end.

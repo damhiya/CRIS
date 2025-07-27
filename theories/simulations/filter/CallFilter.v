@@ -82,11 +82,11 @@ Module CFilter. Section CFilter.
           iApply isim_sget_src. iApply isim_sget_tgt.
           by_coind "CIH"; et.
       - destruct e.
-        + steps_r. force_l q. steps_l. by_coind "CIH"; et.
+        + steps_r. force_l _q. steps_l. by_coind "CIH"; et.
         + destruct img; s.
-          { steps_l. force_r q. steps_r. by_coind "CIH"; et. }
+          { steps_l. force_r _q. steps_r. by_coind "CIH"; et. }
           rewrite !SBRed.bind !SBRed.take; s. des_ifs.
-          * steps_l. force_r q. by_coind "CIH"; et.
+          * steps_l. force_r _q. by_coind "CIH"; et.
           * steps_l. ss.
         + step. steps_l. steps_r. by_coind "CIH"; et.
     }
@@ -171,11 +171,11 @@ Module CFilter. Section CFilter.
         iApply isim_sget_src. iApply isim_sget_tgt.
         steps_r. by_coind "CIH"; et.
     - destruct e.
-      + steps_r. force_l q. steps_l. by_coind "CIH"; et.
+      + steps_r. force_l _q. steps_l. by_coind "CIH"; et.
       + destruct img.
-        * steps_l. force_r q. steps_r. by_coind "CIH"; et.
+        * steps_l. force_r _q. steps_r. by_coind "CIH"; et.
         * rewrite !SBRed.bind !SBRed.take. des_ifs.
-          { steps_l. force_r q. steps_r. by_coind "CIH"; et. }
+          { steps_l. force_r _q. steps_r. by_coind "CIH"; et. }
           steps_l. ss.
       + step. steps_l. steps_r. by_coind "CIH"; et.
     }
@@ -200,7 +200,7 @@ Module CFilter. Section CFilter.
   Theorem intro_filter fns (m: Mod.t) P:
     ctx_refines (filter fns m, P)%I (m, P)%I.
   Proof using.
-    rewrite -!(mod_addc_empty_r _ P).
+    rewrite !(mod_addc_empty_r _ P).
     eapply ctxr_cond_frameL.
     eapply main_adequacy, sim_filter_intro.
   Qed.
@@ -218,7 +218,7 @@ Module CFilter. Section CFilter.
   Theorem elim_module mc P:
     ctx_refines (⌽, P) (mc, P).
   Proof using _crisG.
-    do 2 rewrite -(mod_addc_empty_l _ P).
+    do 2 rewrite (mod_addc_empty_l _ P).
     eapply ctxr_cond_frameR.
     eapply main_adequacy with (Ist := fun _ _ _ => emp%I).
     clear_trivials.

@@ -24,6 +24,12 @@ Section SMOD.
       List.NoDup scopes -> List.NoDup (List.map fst initial_st);
   }.
 
+  Definition wf (ms : t) : Prop := 
+    ∀ fno img msk scp fspo bd
+       (FIND: alist_find fno (fnsems ms) = Some (img, msk, scp, (fspo, bd)))
+       (COND: fno = None ∨ img = false),
+      fspo = None.
+
   (**** Linking ****)
   Program Definition empty : t := {|
     scopes := [];
@@ -162,3 +168,43 @@ Section ADD.
   Qed. 
 
 End ADD.
+
+Section Aux.
+
+  Context {Σ : GRA}.
+
+  Definition sp_from (md: SMod.t) : sp_type :=
+    to_sp (List.map (map_snd (fst ∘ snd)) md.(SMod.fnsems)).
+  
+  Definition has_param (md: SMod.t) fno img msk scp :=
+    ∃ sbd, alist_find fno (SMod.fnsems md) = Some (img, msk, scp, sbd).
+
+  Definition has_trivial_spec (md: SMod.t) (fn: string) : Prop :=
+    ∃ fno msk scp, has_param md fno false msk scp ∧ msk fn.
+
+  Definition valid_sp (md: SMod.t) (sp: sp_type) : Prop :=
+    sp_imply (sp_from md) sp ∧
+    ∀ fn (NS: has_trivial_spec md fn), fspec_imply (fspec_flat (sp fn)) fspec_trivial.
+
+  Definition real_smod (md: SMod.t) : Prop :=
+    ∀ fno img msk scp, has_param md fno img msk scp → img = false.
+
+  Lemma real_smod_ignores_sp md sp
+    (REAL: real_smod md)
+    (WF: Mod.wf (SMod.to_mod sp_none md))
+    :
+    SMod.to_mod sp md = SMod.to_mod sp_none md.
+  Proof.
+    rewrite /SMod.to_mod. eapply mod_extensionality; s; et.
+    eapply map_ext_Forall. eapply List.Forall_forall. i.
+    destruct x as [fno [[[img msk] scp] [fsp bd]]]. s. repeat f_equal.
+    destruct WF; ss. rewrite map_map fst_map_snd in wf_fns.
+    eapply alist_find_some_iff in H; et.
+    exploit REAL; [r; et|].
+    i; subst; et.
+  Qed.
+
+End Aux.  
+
+Global Hint Unfold has_param : core.
+Global Hint Unfold has_trivial_spec : core.

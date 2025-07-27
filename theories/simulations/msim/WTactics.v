@@ -9,7 +9,7 @@ Ltac _wstep_l :=
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, Ret _ >>= _) _) ] =>
       rewrite bind_ret_l
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _) _) ] =>
-      let name := fresh "q" in iApply wsim_take_src; iIntros (name)
+      let name := fresh "_q" in iApply wsim_take_src; iIntros (name)
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Assume ?P) >>= _) _) ] =>
       first [
         tcsearch constr:(WP P)
@@ -28,7 +28,7 @@ Ltac _wstep_l :=
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, (SB.sandbox _ _ _ (trigger (SGet _))) >>= _) _) ] =>
       iApply wsim_sget_src_sandbox; [s;eauto|]
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, unwrapU ?ox >>= _) _) ] =>
-      let name := fresh "q" in
+      let name := fresh "_q" in
       iApply wsim_unwrapU_src; iIntros (name) "%";
       match goal with [ H: ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite -> G in * end
   end.
@@ -55,7 +55,7 @@ Ltac _wstep_r :=
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ (_, Ret _ >>= _) ) ] =>
       rewrite bind_ret_l
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose _) >>= _) ) ] =>
-      let name := fresh "q" in iApply wsim_choose_tgt; iIntros (name)
+      let name := fresh "_q" in iApply wsim_choose_tgt; iIntros (name)
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _) ) ] =>
       first [
         tcsearch constr:(WP P)
@@ -211,7 +211,12 @@ Ltac wby_coind CIH :=
   iApply CIH.
 
 Ltac winit_simF :=
-  initialize_simF; iApply wsim_isim.
+  initialize_simF;
+  iApply wsim_isim;
+  try (
+      iDestruct "IST" as "[% [W [TID IST]]]"; des; subst;
+      iApply wsim_init_winv; iSplitL "W"; [et; fail|]; hss_copset;
+      hrepeat do 1 (unfold_mod; s)).
 
 (** Special Tactics for AssumeProph in Source **)
 

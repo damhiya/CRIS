@@ -18,9 +18,9 @@ Section CTX_REFINE.
     ∀ (WFM : Mod.wf mt),
       Mod.wf ms /\
       ∀ rs
-        (WFR : ✓ rs) (SRC : Own rs ⊢ winv (∅,∅) ∗ Ps),
+        (WFR : ✓ rs) (SRC : Own rs ⊢ |==> winv (∅,∅) ∗ Ps),
         ∃ rt,
-          ✓ rt /\ (Own rt ⊢ winv (∅,∅) ∗ Pt)%I /\
+          ✓ rt /\ (Own rt ⊢ |==> winv (∅,∅) ∗ Pt)%I /\
           refines_lmod
             (Mod.to_lmod ms rs)
             (Mod.to_lmod mt rt).

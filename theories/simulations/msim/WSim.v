@@ -593,7 +593,26 @@ Section wsim.
     unseal; iIntros "SIM I". iApply isim_nodup; eauto.
     iIntros (????). iApply "SIM"; eauto.
   Qed.
-  
+
+  Lemma wsim_init_winv i_s i_t Ew E Ew' E':
+    (winv (Ew', E') ∗
+     sim (Ew ∪ Ew', E ∪ E') r g RR ps pt nths (st_s, i_s) (st_t, i_t))
+    ⊢
+    sim (Ew, E) r g RR ps pt nths (st_s, i_s) (st_t, i_t).
+  Proof using.
+    unseal; iIntros "[P SIM] I".
+    iApply isim_upd. iApply "SIM".
+    iPoseProof (winv_merge with "[P I]") as "[I _]"; iFrame.
+  Qed.
+
+  Lemma wsim_upd i_s i_t:
+    ( |==> sim Ep r g RR ps pt nths (st_s, i_s) (st_t, i_t))
+    ⊢ sim Ep r g RR ps pt nths (st_s, i_s) (st_t, i_t).
+  Proof using.
+    unseal. iIntros "SIM W". iApply isim_upd.
+    iMod "SIM". iModIntro. iApply "SIM"; et.
+  Qed.
+
   Lemma wsim_fupd m Ew E1 E2 i_s i_t :
     =|m, Ew|={E2, E1}=> sim (Ew, E1) r g RR ps pt nths (st_s, i_s) (st_t, i_t)
     ⊢ sim (Ew, E2) r g RR ps pt nths (st_s, i_s) (st_t, i_t).
@@ -727,7 +746,8 @@ Section wsim.
     iIntros (?) "S W"; iPoseProof ("S" with "W") as "S"; iStopProof; eapply isim_eqit_tgt; eauto.
   Qed.
 End wsim.
-Global Arguments wsim_own_alloc {_ _ _ _ _ _ _ _ _ _ _ _ _} _.
+
+Global Arguments wsim_own_alloc {Γ Σ α β _S _I fl_s fl_t Ist R_s R_t r g RR ps pt nths st_s st_t A inG0}.
 
 (* Lemmas for prophecies *)
 Section Proph.

@@ -10,7 +10,7 @@ Proof.
     ziter_r; rewrite x1 /=; zstep_r. ired. hss.
     ziter_l; do 2 zstep_l; ziter_l; do 2 zstep_l.
     ziter_l; zstep_l; ziter_l; zstep_l; des.
-    hexploit (Own_bupd_split); first eapply bi.wand_entails; eauto.
+    hexploit (Own_bupd_split); eauto.
     intros [x5 [x6 [Himpl [Hx5 Hx6]]]].
     ziter_r; zstep_r; exists (r_t ⋅ x5). zstep_r; ziter_r; zstep_r.
     eexists; zstep_r; ziter_r; zstep_r; ziter_r; zstep_r.
@@ -21,7 +21,7 @@ Proof.
     ziter_r; do 2 zstep_r; ziter_r; zstep_r; zstep_r; ziter_r; do 2 zstep_r.
     hexploit (Own_bupd_split); first (eapply RS); eauto.
     intros [r_s1 [r_s2 [Hr_S [Hr_s1 Hr_s2]]]].
-    hexploit (Own_bupd_split); first eapply bi.wand_entails, x4.
+    hexploit (Own_bupd_split); first eapply x4.
     { eapply Own_wand_valid; first (etrans; last eapply bupd_intro); eauto.
       hexploit Own_bupd_valid; eauto using cmra_valid_op_r.
     }

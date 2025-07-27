@@ -40,36 +40,32 @@ Module Sch. Section Sch.
   Context {E : Type → Type}.
   Context `{coreE -< E, callE -< E}.
 
-  Definition spawn : (string * SAny.t) → itree E nat :=
-    Seal.sealing "Sch"
-      (λ fnarg,
-        'tid: nat <- ccallU SchHdr.spawn fnarg;;
-        Ret tid).
+  Definition spawn (fnarg : (string * SAny.t)) : itree E nat :=
+    'tid: nat <- ccallU SchHdr.spawn fnarg;; Ret tid.
 
   Definition yield : itree E unit :=
     Seal.sealing "Sch"
-      (iterC ((fun (_: unit) =>
-        b <- trigger (Choose bool);;
-        if b: bool
-        then Ret (inr tt: () + ())
-        else
-          '():_ <- ccallU SchHdr.yield tt;;
-          Ret (inl tt: () + ())
-      )) tt).
+     (iterC ((fun (_: unit) =>
+        b <- trigger (Choose (option bool));;
+        match b with
+        | None => Ret (inr tt: () + ())
+        | Some false => Ret (inl tt: () + ())
+        | Some true => 
+            trigger (Call SchHdr.yield tt↑);;;
+            Ret (inl tt: () + ())
+        end)) tt).
 
   Definition terminate : itree E unit :=
     Seal.sealing "Sch"
       (iterC ((fun (_: unit) =>
-        '():_ <- ccallU SchHdr.yield tt;;
+        trigger (Call SchHdr.yield tt↑);;;
         Ret (inl tt: () + ())
       )) tt).
 
-  Definition join : nat → itree E SAny.t :=
-    Seal.sealing "Sch"
-      (λ tid,
-        'ors: option SAny.t <- ccallU SchHdr.join tid;;
-        rs <- ors?;;
-        Ret rs).
+  Definition join (tid: nat) : itree E SAny.t :=
+    'ors: option SAny.t <- ccallU SchHdr.join tid;;
+    rs <- ors?;;
+    Ret rs.
 End Sch. End Sch.
 
 Notation 𝒴 := (Sch.yield).

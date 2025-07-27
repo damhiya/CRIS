@@ -42,12 +42,11 @@ Section FSPEC.
   Definition fbody_nb : Any.t → itree crisE Any.t :=
     λ _, triggerNB.
 
-  Definition fspec_virtual (M VA VR : Type)
-      (precond: M → VA → Any.t → iProp Σ)
-      (postcond: M → VR → Any.t → iProp Σ) :=
+  Definition fspec_virtual {M VA VR : Type}
+      (DPQ: M → (VA → Any.t → iProp Σ) * (VR → Any.t → iProp Σ)) :=
     mk_fspec (meta:=M)
-      (λ x varg arg, (∃ va: VA, ⌜varg = va↑⌝ ∗ precond x va arg)%I)
-      (λ x vret ret, (∃ vr: VR, ⌜vret = vr↑⌝ ∗ postcond x vr ret)%I).
+      (λ x varg arg, (∃ va: VA, ⌜varg = va↑⌝ ∗ (DPQ x).1 va arg)%I)
+      (λ x vret ret, (∃ vr: VR, ⌜vret = vr↑⌝ ∗ (DPQ x).2 vr ret)%I).
 
   Definition app_fspec (fspecs : list fspec) : fspec :=
     @mk_fspec { i : nat & meta (nth i fspecs fspec_top) }
@@ -138,4 +137,7 @@ Section FSPEC_WINV.
       (λ x varg arg, winv (E, E) ∗ fsp.(precond) x varg arg)%I
       (λ x vret ret, winv (E, E) ∗ fsp.(postcond) x vret ret)%I.
 
+  Definition icond_winv (E : coPset) (I : iProp Σ) : iProp Σ :=
+    winv (E, E) ∗ I.
+  
 End FSPEC_WINV.  

@@ -98,21 +98,21 @@ Section MID.
   Definition handle_Assume (P : iProp Σ) : itreeV lmodE unit :=
     get_res (fun mr =>
     mr' <- trigger (Take Σ);;
-    assume (✓ mr' ∧ (Own mr' ==∗ P ∗ Own mr));;;
+    assume (✓ mr' ∧ (Own mr' ⊢ |==> P ∗ Own mr));;;
     put_res mr').
 
   Definition handle_AssumePrecise (P : iProp Σ) : itreeV lmodE unit :=
     get_res (fun mr =>
     pr <- trigger (Choose Σ);;
     mr' <- trigger (Choose Σ);;
-    guarantee (Own mr ==∗ □ ((Own pr ==∗ P) ∗ (P ==∗ Own pr)) ∗ Own mr');;;
+    guarantee (Own mr ⊢ |==> □ ((Own pr ==∗ P) ∗ (P ==∗ Own pr)) ∗ Own mr');;;
     assume (✓ (pr ⋅ mr'));;;
     put_res (pr ⋅ mr')).
 
   Definition handle_Guarantee (P : iProp Σ) : itreeV lmodE unit :=
     get_res (fun mr =>
     mr' <- trigger (Choose Σ);;
-    guarantee (✓ mr' ∧ (Own mr ==∗ P ∗ Own mr'));;;
+    guarantee (✓ mr' ∧ (Own mr ⊢ |==> P ∗ Own mr'));;;
     put_res mr').
 
   Definition handle_agE : agE ~> itreeV lmodE :=

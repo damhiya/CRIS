@@ -5,7 +5,7 @@ Require Import MInline MInlineIntro MInlineElim ElimRel.
 Lemma cancel_post `{Σ: GRA} md sp:
   ∀ (rs0 : Σ) r_s r_t srcs tgts cid st ps pt vret X X' x x' Qo Qo' itrS ktrT k rs_diff
     (r : ∀ x x0, (x→x0→Prop)→smj→smj→itree coreE x→itree coreE x0→Prop)
-    (WFS: smod_wf md)
+    (WFS: SMod.wf md)
     (VP: valid_sp md sp)
     (WF: Mod.wf (SMod.to_mod sp_none (SMod.cancel md)))
     (KEY: ∀ itr_s itr_t st (r_s r_t r_diff : Σ) tid

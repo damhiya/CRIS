@@ -6,26 +6,6 @@ From iris.proofmode Require Export proofmode.
 Set Implicit Arguments.
 
 Section CancelLib.
-  Context {Σ : GRA}.
-
-  Definition sp_from (md: SMod.t) : sp_type :=
-    to_sp (List.map (map_snd (fst ∘ snd)) md.(SMod.fnsems)).
-
-  Definition smod_wf (md: SMod.t) :=
-    ∀ fno img msk scp fspo bd
-        (FIND: alist_find fno (SMod.fnsems md) = Some (img, msk, scp, (fspo, bd)))
-        (COND: fno = None ∨ img = false),
-      fspo = None.
-
-  Definition valid_param (md: SMod.t) img msk scp :=
-    ∃ fno sbd, alist_find fno (SMod.fnsems md) = Some (img, msk, scp, sbd).
-
-  Definition has_trivial_spec (md: SMod.t) (fn: string) : Prop :=
-    ∃ msk scp, valid_param md false msk scp ∧ msk fn.
-
-  Definition valid_sp (md: SMod.t) (sp: sp_type) : Prop :=
-    sp_imply (sp_from md) sp ∧
-    ∀ fn (NS: has_trivial_spec md fn), fspec_imply (fspec_flat (sp fn)) fspec_trivial.
 
   Definition Forall2i X Y (R: nat -> X -> Y -> Prop) (xs: list X) (ys: list Y) :=
     length xs = length ys ∧
@@ -359,7 +339,7 @@ Lemma MIRed_HoareFun
     (md : SMod.t) (sp : sp_type) (img : bool) (msk : string → bool) (scp : list string)
     (bd : fbody) (fspo : option fspec) (arg : Any.t)
     (fn : string) :
-  smod_wf md →
+  SMod.wf md →
   alist_find (Some fn) (SMod.fnsems md) = Some (img, msk, scp, (fspo, bd)) →
   inline_body
     (sandboxed_prog (SMod.to_mod sp md))
@@ -400,7 +380,7 @@ Qed.
 
 Lemma MIRed_HoareCall md sp fn varg
   (img img0: bool) (msk msk0:_→bool) scp scp0 fspo fspo0 bd0
-  (WF: smod_wf md)
+  (WF: SMod.wf md)
   (VP: valid_sp md sp)
   (IN: msk fn)
   (SP: fspo = if img then sp fn else None)
@@ -496,12 +476,10 @@ Proof using.
 Local Tactic Notation "estep" integer(n) := do n (gstep; econs; i).
 Local Ltac edone := eauto 6 with paco.
 
-Hint Unfold valid_param has_trivial_spec: core.
-
 Lemma elim_rel_cancel (md: SMod.t) T sp img msk scp (itr: itree _ T)
-  (WF: smod_wf md)
+  (WF: SMod.wf md)
   (VP: valid_sp md sp)
-  (PARAM: valid_param md img msk scp)
+  (PARAM: ∃ fno, has_param md fno img msk scp)
   :
   @elim_rel sp T ε
     (inline_body (sandboxed_prog (SMod.to_mod sp_none (SMod.cancel md))) 
@@ -544,7 +522,7 @@ Proof using.
       exists (precond (fspec_flat fsp0)). split.
       { destruct fsp0; et. }
       assert (I: fspec_imply (fspec_flat (sp_from md fn)) (fspec_flat ((if img then sp else sp_none) fn))).
-      { etrans; [eapply VP|]. destruct img; try refl. eapply VP; et. }
+      { etrans; [eapply VP|]. destruct img; try refl. eapply VP; eauto 6. }
       i. specialize (I x). des.
       revert x0 PRE POST.
       rewrite {1 2 3}/sp_from /to_sp !alist_find_map_snd !E0. s. i.
@@ -576,7 +554,7 @@ Proof using.
       { i. destruct img; ss. }
       rewrite MIRed_HoareSpawn.
       gstep. eapply elim_rel_spawn; et.
-      { i. subst. eapply VP. et. }
+      { i. subst. eapply VP. eauto 6. }
       i. edone.
     }
 
@@ -641,7 +619,7 @@ Section CancelDef.
       (ps pt : smj)
       ktrS k ktrT
       (r : ∀ x x0, (x → x0 → Prop) → smj → smj → itree coreE x → itree coreE x0 → Prop)
-      (WFS: smod_wf md)
+      (WFS: SMod.wf md)
       (VP: valid_sp md sp)
       (WF: Mod.wf (SMod.to_mod sp_none (SMod.cancel md)))
       (CIH :

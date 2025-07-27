@@ -10,7 +10,7 @@ Module Cancel. Section Cancel.
 Context `{Σ: GRA}.
 
 Lemma cancel_elim md sp (r_i r_s r_t: Σ) rs_diff srcs tgts cid st ps pt
-  (WFS: smod_wf md)
+  (WFS: SMod.wf md)
   (VP: valid_sp md sp)
   (WF: Mod.wf (SMod.to_mod sp_none (SMod.cancel md)))
   (REL: Forall3i (thread_rel sp) rs_diff srcs tgts)
@@ -150,7 +150,7 @@ Proof using.
 (*SLOW*) Qed.
 
 Lemma cancel_main md sp rs
-  (WFS: smod_wf md)
+  (WFS: SMod.wf md)
   (VP: valid_sp md sp)
   (WF: Mod.wf (SMod.to_mod sp_none (SMod.cancel md)))
   (VALID: ✓ rs)
@@ -191,7 +191,7 @@ Proof using.
     rewrite !if_simpl.
     econs; et; cycle 1.
     { rewrite bind_ret_r. et. }
-    s. eapply elim_rel_cancel; try r; et.
+    s. eapply elim_rel_cancel; et.
   }
   ss; rewrite right_id -Own_op left_id; iIntros "$"; done.
 Unshelve. all: exact smj_top.
@@ -204,7 +204,7 @@ Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
 
 (*** Final Theorem ***)
 Theorem cancellation md sp P
-  (WFS: smod_wf md)
+  (WFS: SMod.wf md)
   (VP: valid_sp md sp)
   (WF: Mod.wf (SMod.to_mod sp_none (SMod.cancel md)))
   :

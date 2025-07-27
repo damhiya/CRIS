@@ -35,7 +35,7 @@ Proof.
     rewrite !alist_find_map_snd FIND /=. ired.
     ziter_r; zstep_r.
     zprogress. gbase.
-    des; hexploit (Own_bupd_split); first (eapply bi.wand_entails; eauto).
+    des; hexploit (Own_bupd_split); et.
     { eapply Own_wand_valid; [iIntros "X"; iMod (RS with "X") as "[? $]"; done|]; done. }
     intros [r_t1 [r_t2 [Hr_t [Hr_t1 Hr_t2]]]].
     eapply CIH; eauto.
@@ -68,7 +68,7 @@ Proof.
           iMod (PRE with "X") as "%"; done.
         }
       }
-      { ss; eapply elim_rel_cancel; eauto. r; esplits; eauto. }
+      { ss; eapply elim_rel_cancel; eauto. }
     }
     rewrite insert_app_l; last lia.
     rewrite list_insert_id // big_sepL_app /= right_id RS Hr_t Hr_t2.
@@ -150,7 +150,7 @@ Proof.
         { iIntros "X //". iApply PRE; done. }
         { iIntros "X //". }
       }
-      { ss; eapply elim_rel_cancel; eauto. r; esplits; eauto. }
+      { ss; eapply elim_rel_cancel; eauto. }
     }
     { eauto. }
     { rewrite insert_app_l; last lia.

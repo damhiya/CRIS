@@ -93,11 +93,11 @@ Proof using.
       iPoseProof (EQGET with "IST") as "%"; et. rewrite H.
       iby_coind "CIH". eauto.
   - destruct e.
-    + isteps_r. iforce_l q. isteps_l. iby_coind "CIH". eauto.
+    + isteps_r. iforce_l _q. isteps_l. iby_coind "CIH". eauto.
     + destruct img.
-      * isteps_l. iforce_r q. isteps_r. iby_coind "CIH". eauto.
+      * isteps_l. iforce_r _q. isteps_r. iby_coind "CIH". eauto.
       * rewrite SBRed.bind SBRed.take. s. des_ifs; isteps_l; ss.
-        isteps_l. iforce_r q. isteps_r. iby_coind "CIH". eauto.
+        isteps_l. iforce_r _q. isteps_r. iby_coind "CIH". eauto.
     + istep. iby_coind "CIH". eauto.
 Qed.
 
@@ -425,10 +425,9 @@ Proof using.
   dup WF. destruct WF. eapply sub_perm_incl; eauto. apply SIM; et.
 Qed.
 
-Lemma ISim_adequacy (ms mt : Mod.t) (rs rm rt : Σ) (IC : iProp Σ) Ist
-    (SUB : Own rs ⊢ Own rt ∗ Own rm)
+Lemma ISim_adequacy (ms mt : Mod.t) (rs rt : Σ) (IC : iProp Σ) Ist
+    (SUB : Own rs ⊢ |==> Own rt ∗ (IC ∗ winv (∅,∅)))
     (WF : ✓ rs)
-    (COND : Own rm ⊢ IC ∗ winv (∅,∅))
     (WFS : Mod.wf ms)
     (WFT : Mod.wf mt)
     (SIM : ISim.t closed ms mt IC Ist) :
@@ -460,6 +459,10 @@ Proof using.
     assert (NDS:= ms.(Mod.nodup_init) wf_scopes).
     assert (NDT:= mt.(Mod.nodup_init) wf_scopes0).
 
+    exploit Own_bupd_split; et. i; des.
+    exploit Own_split; i; des; et.
+    { eapply Own_wand_valid, WF. rewrite x2. iIntros ">[_ ?]". et. }
+    
     eapply msim_adequacy; et.
     + instantiate (1:=List.map (map_snd SB.sandbox_body) (Mod.fnsems ms)).
       rewrite map_map fst_map_snd. et.
@@ -473,12 +476,13 @@ Proof using.
         { iApply isim_ist_frame; et. }
         { instantiate (1:= (ist_with_eq IstTrue)). s.
           iIntros "[? [? ?]]". iFrame. }
-      * erewrite COND. iIntros "[H I]".
-        iPoseProof (winv_split_empty with "[I]") as "[I I']"; et. iFrame.
+      * instantiate (1:= a0 ⋅ a3). rewrite !Own_op x6 x7.
+        iIntros "[H I]".
+        iPoseProof (winv_split_empty with "[I]") as "[I I']"; et; iFrame.
         iApply (x1 with "[H]"); et. iSplit; et.
       * eauto using iunlift_ibot.
       * eauto using iunlift_ibot.
-    + rewrite SUB !Own_op -!Own_unit. iIntros "[? ?]"; iFrame. et.
+    + rewrite x2 x3 x5 !Own_op -Own_unit. iIntros ">[? [? ?]]"; iFrame. et.
   - move: FIND; rewrite ?alist_find_map_snd /o_map; intros FIND.
     clear sim_initial. des_ifs; cycle 1.
     { eapply alist_find_fst_some, sub_perm_incl in Heq0; [|apply sim_match]; et.

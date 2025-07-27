@@ -146,12 +146,12 @@ Section ModFacts.
     apply mod_extensionality; s; try rewrite app_assoc; eauto.
   Qed.
 
-  Lemma mod_add_empty_l (md : Mod.t) : ⌽ ★ md = md.
+  Lemma mod_add_empty_l (md : Mod.t) : md = ⌽ ★ md.
   Proof using.
     destruct md. apply mod_extensionality; s; eauto.
   Qed.
 
-  Lemma mod_add_empty_r (md : Mod.t) : md ★ ⌽ = md.
+  Lemma mod_add_empty_r (md : Mod.t) : md = md ★ ⌽.
   Proof using.
     destruct md. apply mod_extensionality; s; try rewrite app_nil_r; eauto.
   Qed.
@@ -159,7 +159,7 @@ Section ModFacts.
   Lemma mod_addL_app l l' : Mod.addL (l ++ l') = (Mod.addL l) ★ (Mod.addL l').
   Proof using.
     induction l; s.
-    - rewrite mod_add_empty_l. eauto.
+    - rewrite -mod_add_empty_l. eauto.
     - rewrite mod_add_assoc. rewrite IHl. eauto.
   Qed.
 
@@ -173,21 +173,21 @@ Section ModFacts.
   Qed.
 
   Lemma mod_addc_empty_l (md : Mod.t) (P : iProp Σ) :
-    (md, emp ∗ P)%I ≡ (md, P).
+    (md, P) ≡ (md, emp ∗ P)%I.
   Proof using.
     econs; ss.
     iSplit.
-    { iIntros "[_ P]"; iFrame. }
     { iIntros "P"; iFrame. }
+    { iIntros "[_ P]"; iFrame. }
   Qed.
 
   Lemma mod_addc_empty_r (md : Mod.t) (P : iProp Σ) :
-    (md, P ∗ emp)%I ≡ (md, P).
+   (md, P) ≡ (md, P ∗ emp)%I.
   Proof using.
     econs; ss.
     iSplit.
-    { iIntros "[P _]"; iFrame. }
     { iIntros "P"; iFrame. }
+    { iIntros "[P _]"; iFrame. }
   Qed.
 
   Lemma mod_exports_app m1 m2:
