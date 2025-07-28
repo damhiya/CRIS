@@ -86,6 +86,10 @@ Section FSPEC.
   Definition to_fspec (fsp: fspecS) : fspec :=
     mk_fspec (λ x varg arg, (fsp.(precondS) x arg ∗ ⌜varg = arg⌝)%I)
              (λ x vret ret, (fsp.(postcondS) x ret ∗ ⌜vret = ret⌝)%I).
+
+  Definition from_fspec (fsp: fspec) : fspecS :=
+    mk_fspecS (λ x arg, (fsp.(precond) x arg arg)%I)
+              (λ x ret, (fsp.(postcond) x ret ret)%I).
   
   Definition fspec_simple {X} (DPQ: X → (Any.t → iProp Σ) * (Any.t → iProp Σ)) : fspec :=
     to_fspec (make_fspecS DPQ).
