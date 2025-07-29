@@ -50,12 +50,6 @@ prophecy: Makefile.coq $(prophecy_files)
 prophecy-quick: Makefile.coq $(prophecy_files)
 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(prophecy_files))
 
-prophecy_examples_files  := $(shell find prophecy_examples -iname '*.v')
-prophecy_examples: Makefile.coq $(prophecy_examples_files)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(prophecy_examples_files))
-prophecy_examples-quick: Makefile.coq $(prophecy_examples_files)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(prophecy_examples_files))
-
 Makefile.coq: Makefile $(COQTHEORIES)
 	(echo "-arg -w -arg -deprecated-hint-without-locality"; \
 	 echo "-arg -w -arg -deprecated-instance-without-locality"; \
