@@ -272,11 +272,9 @@ Section GuaranteeProph.
   Definition UpdateProph {X A R} pre post (arg : A) : itree crisE R :=
     Seal.sealing CRIS_PROPH (
       pr <- trigger (Choose Σ);;
-      Q <- trigger (Choose (iProp Σ));;
       ret <- trigger (Choose R);;
-      trigger (Guarantee (∀ (x : X), pre x arg ==∗ Own pr ∗ (Q ==∗ post x ret)));;;
+      trigger (Guarantee (∀ (x : X), pre x arg ==∗ Own pr ∗ post x ret));;;
       trigger (AssumeRes pr);;;
-      trigger (Guarantee Q);;;
       Ret ret).
 
   Definition UpdateProphK {X A R R'} pre (post : X → R → _) (arg : A) ktr : itree crisE R' :=

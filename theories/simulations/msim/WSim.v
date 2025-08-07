@@ -854,34 +854,34 @@ Section Proph.
   Qed.
 
   Lemma wsim_update_proph_src_advanced {X A R} pre (post : X → R → iProp Σ) (arg : A) k_s i_t :
-    (∃ (I P Q : iProp Σ) (ret : R),
+    (∃ (I P : iProp Σ) (ret : R),
       I ∗ precise P ∗
-      (∀ x, ∃ T, (I ∗ pre x arg -∗ □ T) ∗ (□ T -∗ pre x arg ==∗ P ∗ (Q ==∗ post x ret))) ∗
-      (P ∗ I ==∗ Q ∗ sim Ep r g RR true pt nths (st_s, k_s ret) (st_t, i_t))) ⊢
+      (∀ x, ∃ T, (I ∗ pre x arg -∗ □ T) ∗ (□ T -∗ pre x arg ==∗ P ∗ post x ret)) ∗
+      (P ∗ I ==∗ sim Ep r g RR true pt nths (st_s, k_s ret) (st_t, i_t))) ⊢
     sim Ep r g RR ps pt nths (st_s, UpdateProph pre post arg >>= k_s) (st_t, i_t).
   Proof.
     rewrite wsim_eq /wsim_def.
-    iIntros "[%I [%P [%Q [%ret [I [#[%pr [Pre ?]] [Hsplit Hsim]]]]]]] W".
+    iIntros "[%I [%P [%ret [I [#[%pr [Pre ?]] [Hsplit Hsim]]]]]] W".
     iApply isim_update_proph_src_advanced; iFrame.
     iSplit; [iModIntro; iExists pr; iSplitR; done|].
-    by iIntros "PI"; iMod ("Hsim" with "PI") as "[$ SIM]"; iApply "SIM".
+    by iIntros "PI"; iMod ("Hsim" with "PI") as "SIM"; iApply "SIM".
   Qed.
 
   Lemma wsim_update_proph_src {X A R} pre (post : X → R → iProp Σ) (arg : A) k_s i_t :
-    (∃ (P Q : iProp Σ) (ret : R),
+    (∃ (P : iProp Σ) (ret : R),
       precise P ∗
-      (∀ x, pre x arg ==∗ P ∗ (Q ==∗ post x ret)) ∗
-      (P ==∗ Q ∗ sim Ep r g RR true pt nths (st_s, k_s ret) (st_t, i_t))) ⊢
+      (∀ x, pre x arg ==∗ P ∗ post x ret) ∗
+      (P ==∗ sim Ep r g RR true pt nths (st_s, k_s ret) (st_t, i_t))) ⊢
     sim Ep r g RR ps pt nths (st_s, UpdateProph pre post arg >>= k_s) (st_t, i_t).
   Proof using.
     rewrite wsim_eq /wsim_def.
-    iIntros "[%P [%Q [%ret [Hprecise [Hsplit Hsim]]]]] W".
+    iIntros "[%P [%ret [Hprecise [Hsplit Hsim]]]] W".
     iApply isim_update_proph_src.
-    iExists P, Q, ret; iFrame.
-    by iIntros "P"; iMod ("Hsim" with "P") as "[$ SIM]"; iApply "SIM".
+    iExists P, ret; iFrame.
+    by iIntros "P"; iMod ("Hsim" with "P") as "SIM"; iApply "SIM".
   Qed.
 
-  Lemma wsim_update_proph_src_simple {X A R} pre (post : X → R → iProp Σ) (arg : A) k_s i_t :
+  (* Lemma wsim_update_proph_src_simple {X A R} pre (post : X → R → iProp Σ) (arg : A) k_s i_t :
     (∃ (x : X) (ret : R),
       precise (pre x arg) ∗
       (∀ x', pre x' arg ==∗
@@ -895,7 +895,7 @@ Section Proph.
     iFrame "Hprecise".
     iExists ret; iIntros "% Pre"; iMod ("Hsim" with "Pre") as "[-> [$ Hsim]]".
     iPoseProof ("Hsim" with "W") as "$"; done.
-  Qed.
+  Qed. *)
 
   Lemma wsim_update_proph_tgt {X A R} pre (post : X → R → iProp Σ) (arg : A) k_t i_s :
     (∃ x, pre x arg ∗
@@ -912,13 +912,12 @@ Section Proph.
       (pre_s : X_s → A_s → iProp Σ) (post_s : X_s → R2_s → iProp Σ) (arg_s : A_s)
       (pre_t : X_t → A_t → iProp Σ) (post_t : X_t → R2_t → iProp Σ) (arg_t : A_t)
       k_s k_t :
-    (∀ ret_t P_t Q_t, precise P_t -∗
-      (∀ x, pre_t x arg_t ==∗ P_t ∗ (Q_t ==∗ post_t x ret_t)) -∗
-      ∃ (P_s Q_s : iProp Σ) ret_s,
+    (∀ ret_t P_t, precise P_t -∗
+      (∀ x, pre_t x arg_t ==∗ P_t ∗ post_t x ret_t) -∗
+      ∃ (P_s : iProp Σ) ret_s,
         precise P_s ∗
-        (∀ x, pre_s x arg_s ==∗ P_s ∗ (Q_s ==∗ post_s x ret_s)) ∗
-        (P_s ==∗ P_t ∗
-          (Q_t ==∗ Q_s ∗ sim Ep r g RR true true nths (st_s, k_s ret_s) (st_t, k_t ret_t)))) ⊢
+        (∀ x, pre_s x arg_s ==∗ P_s ∗ post_s x ret_s) ∗
+        (P_s ==∗ P_t ∗ sim Ep r g RR true true nths (st_s, k_s ret_s) (st_t, k_t ret_t))) ⊢
     sim Ep r g RR ps pt nths
       (st_s, UpdateProph pre_s post_s arg_s >>= k_s)
       (st_t, UpdateProph pre_t post_t arg_t >>= k_t).
@@ -926,8 +925,8 @@ Section Proph.
     rewrite wsim_eq /wsim_def.
     iIntros "H W".
     iApply isim_update_proph_both.
-    iIntros "% % % P1 P2"; iPoseProof ("H" with "P1 P2") as "[% [% [% [$ [$ H]]]]]".
-    iIntros "A"; iMod ("H" with "A") as "[$ H]"; iIntros "!> Q"; iMod ("H" with "Q") as "[$ H]".
+    iIntros "% % P1 P2"; iPoseProof ("H" with "P1 P2") as "[% [% [$ [$ H]]]]".
+    iIntros "A"; iMod ("H" with "A") as "[$ H]"; iIntros "!>".
     iApply "H"; done.
   Qed.
 End Proph.
