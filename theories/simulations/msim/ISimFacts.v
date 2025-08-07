@@ -66,7 +66,7 @@ Proof using.
     + isteps_l. iforces_r. iFrame. isteps_r. iby_coind "CIH". eauto.
     + rewrite SBRed.bind SBRed.Assume. ired.
       iApply isim_take_src. iIntros (?). ss.
-  - isteps_l. isteps_r. istep. isteps_l. isteps_r. iby_coind "CIH". eauto.
+  - isteps_l. iforce_r; iFrame. isteps_l. isteps_r. iby_coind "CIH". eauto.
   - isteps_r. iforces_l. iFrame. isteps_l. iby_coind "CIH". eauto.
   - depdes c.
     + isteps_l. isteps_r. rewrite SBRed.call. des_ifs.
@@ -376,7 +376,7 @@ End ISIM_REFL.
 Section Proph.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I}.  
 
-  Lemma isim_fsem_proph_to_normal contextual fsp bd_s bd_t msk sp scp fls flt
+  (* Lemma isim_fsem_proph_to_normal contextual fsp bd_s bd_t msk sp scp fls flt
     (SIM: ∀ arg nths st,
      ⊢ (winv (∅,∅) -∗
         isim contextual fls flt IstEq ibot ibot (ist_with_eq IstEq) true true nths
@@ -397,7 +397,7 @@ Section Proph.
     isteps_r. iMod ("Q" with "GRT") as "Q".
     iforce_l. iforce_l. iFrame. iSplit; et.
     istep. iSplit; et.
-  Qed.
+  Qed. *)
   
 End Proph.
 

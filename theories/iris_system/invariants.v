@@ -369,6 +369,7 @@ Section wsats.
     { iIntros "[$ [$ $]] $". }
     { iIntros "[H1 H2]"; iApply "H2"; iFrame. }
   Qed.
+
   Lemma wsatl_split n X Y :
     X ## Y →
     wsatl n (X ∪ Y) ⊣⊢ wsatl n X ∗ wsatl n Y.
@@ -696,6 +697,37 @@ Section winv.
     rewrite -surjective_pairing. iFrame.
   Qed.
 
+  Lemma winv_fupd n Ew E1 E2 P :
+    =|n, Ew|={E1, E2}=> P ⊢ winv (Ew, E1) ==∗ winv (Ew, E2) ∗ P.
+  Proof.
+    rewrite uPred_fupd_unseal /uPred_fupd_def; iIntros "F [O [E [%n' W]]]".
+    destruct (decide (n < n')).
+    { iDestruct "W" as "[A L]".
+      replace n' with (n + (n' - n)) at 2 by lia.
+      rewrite {3}/wsatl seq_app /=.
+      iPoseProof (big_sepL_app with "L") as "[W R]"; eauto.
+      iMod ("F" with "[W E O]") as "[W [E [O P]]]"; first iFrame.
+      iCombine "W" "R" as "W"; rewrite -big_sepL_app -seq_app /=.
+      iFrame. replace (n + (n' - n)) with n' by lia; done.
+    }
+    { iPoseProof (wsats_mon n' n with "W") as "> [W L]"; first lia.
+      iMod ("F" with "[L E O]") as "[$ [$ [$ $]]]"; iFrame; done.
+    }
+  Qed.
+  (* TODO : move to invariants.v *)
+  Global Instance elim_winv_simple Ew Ew' E0 E1 n P Q p :
+    ElimModal
+      (Ew' ⊆ Ew) p false
+      (=|n, Ew|={E0, E1}=> P)%I
+      P
+      (winv (Ew, E0) ==∗ Q)
+      (winv (Ew, E1) ==∗ Q).
+  Proof using.
+    rewrite /ElimModal bi.intuitionistically_if_elim.
+    iIntros (?) "[P Q] W".
+    iPoseProof (winv_fupd with "P") as "P".
+    iMod ("P" with "W") as "[W P]"; iApply ("Q" with "P W").
+  Qed.
 End winv.
 
 Arguments winv : simpl never.

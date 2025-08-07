@@ -39,14 +39,14 @@ Proof.
     + rewrite NEW NEW0. et.
     + rewrite NEW1 x1 CUR. iIntros "[>>? ?]". iFrame. et.
   - econs; et; i.
-    { rewrite FMR x1 CUR. iIntros ">[? >>[? ?]]".
-      instantiate (1:= (P ∗ FMR0)%I). iFrame. et. }
+    (* { rewrite FMR x1 CUR. iIntros ">[? >>[? ?]]".
+      instantiate (1:= (P ∗ FMR0)%I). iFrame. et. } *)
     destruct (classic (✓ fmr3)); [| econs; ii; ss].
     rewrite comm -assoc in NEW.
     eapply Own_bupd_split in NEW; et. des.
     eapply K; et; cycle 1.
     + rewrite NEW NEW0. et.
-    + rewrite NEW1. iIntros "[? ?]". iFrame. et.
+    + rewrite NEW1 x1 CUR. iIntros "[> > ? ?]". iFrame. et.
   - econs; et; i.
     destruct (classic (✓ fmr3)); [| econs; ii; ss].
     rewrite comm -assoc in NEW.
@@ -71,19 +71,15 @@ Proof.
     + rewrite NEW NEW0. et.
     + rewrite NEW1. et.
   - econs; et; i.
-    rewrite comm -assoc in NEW.
+    { rewrite FMR x1 CUR //. iIntros ">[? >>[? ?]]".
+      instantiate (1:= (P ∗ FMR0)%I). iFrame. et.
+    }
+    destruct (classic (✓ fmr3)); [| econs; ii; ss].
     eapply Own_bupd_split in NEW; et. des.
-    assert (V2: ✓ a2).
-    { eapply Own_wand_valid, VALID. rewrite NEW. iIntros ">[_ ?]". et. }
-    exploit K; et; i; des.
-    { erewrite NEW1, x1, CUR. iIntros "[>>? ?]". iFrame. et. }
-    eapply Own_bupd_split in x0; et. des.
-    esplits.
-    { rewrite NEW x0 x3. instantiate (1:= (Own a1 ∗ Own a3)%I).
-      iIntros ">[? >[? ?]]". iFrame. et. }
-    i. eapply x2; cycle 1.
-    + rewrite NEW2 NEW0. et.
-    + rewrite x4. et.
+    eapply (K a2); et; cycle 1.
+    + rewrite NEW1; iIntros "$ //".
+    + rewrite NEW NEW0. et.
+    + eapply Own_wand_valid; [iIntros "H"; iMod (NEW with "H") as "[_ $]"|]; ss.
   - econs; et; i.
     { rewrite FMR x1 INV. iIntros ">[? >>[? ?]]". iFrame. et. }
     rewrite -assoc in INV0.
@@ -344,34 +340,51 @@ Proof.
     { eauto. }
 
   - clarify; steps.
-    rewrite Red.AssumePrecise /ModTr.handle_AssumePrecise /guarantee.
+    rewrite Red.AssumeRes /ModTr.handle_AssumeRes /assume /ModTr.put_res.
     move FMR at bottom. move CUR at bottom.
+    steps.
     rewrite !Own_op in FMR.
+    eapply (K (fmr0 ⋅ r0)); eauto.
+    { rewrite !Own_op CUR; iIntros "[> $ $] //". }
+    { rewrite !Own_op FMR x1; iIntros "[$ > [[$ > $] $]] //". }
 
-    eapply Own_bupd_split in CUR; et. i; des.
-    rewrite /precise bi.intuitionistically_exist in CUR0.
-    rewrite {1}/Own {1}seal_eq in CUR0.
-    assert (Va1: ✓ a1).
-    { eapply Own_wand_valid in wffmr0; et. rewrite CUR. iIntros "[H1 _]"; et. }
-    eapply uPred.ownM_general_soundness in CUR0; et.
-    rr in CUR0. rewrite seal_eq in CUR0. ss. des.
-    eapply Own_general_completeness in CUR0.
-    eapply own_core_completeness in CUR0; et.
+
+    (* assert (PRE' : Own ε ⊢ precise iP).
+    { iIntros "_"; iApply PRE. }
+    eapply Own_general_soundness in PRE'; rr in PRE'.
+    rewrite seal_eq /= in PRE'.
+    destruct PRE' as [_ PRE']; rr in PRE'.
+    do 2 (rewrite seal_eq /= in PRE'; rr in PRE').
+    destruct PRE' as [a PRE'].
+    eapply Own_general_completeness in PRE'.
+    (* eapply Own_bupd_split in CUR; et. i; des. *)
+    (* rewrite /precise bi.intuitionistically_exist in CUR0. *)
+    (* rewrite {1}/Own {1}seal_eq in CUR0. *)
+    (* assert (Va1: ✓ a1).
+    { eapply Own_wand_valid in wffmr0; et. rewrite CUR. iIntros "[H1 _]"; et. } *)
+    (* eapply uPred.ownM_general_soundness in CUR0; et. *)
+    (* rr in CUR0. rewrite seal_eq in CUR0. ss. des. *)
+    (* eapply Own_general_completeness in CUR0.
+    eapply own_core_completeness in CUR0; et. *)
 
     steps; et.
-    { clear K. rewrite FMR x1 CUR.
-      iIntros ">[[C >>[H A]] T]".
-      rewrite -{1}(cmra_core_l a1) Own_op. iDestruct "H" as "[AC A1]".
-      rewrite CUR0. iCombine "A1 A C T" as "R". iFrame. et.
+    { instantiate (1:=a).
+      iPoseProof (PRE') as "P".
+      iModIntro; iModIntro; iApply "P".
+      iPoseProof (Own_unit) as "$".
     }
     { rewrite /ModTr.put_res; steps. eapply K; et; cycle 1.
-      - iIntros "(A & A1 & A2 & C & T)". rewrite !Own_op.
-        iCombine "A A1 A2" as "H". iFrame. et.
-      - rewrite !Own_op CUR1 -(cmra_core_l a1).
-        iIntros "(A & [AC _] & F)". iFrame.
-        iPoseProof (CUR0 with "AC") as "[#IMP _]".
-        iApply "IMP". et.
+      - rewrite ?Own_op FMR.
+        iIntros "[A > [[C FMR] T]]".
+        iCombine "A" "FMR" as "A".
+        iFrame. done.
+      - rewrite !Own_op x1 CUR.
+        iIntros "(A & > > AC)". iFrame.
+        iPoseProof (PRE' with "[]") as "[EQ _]".
+        { iApply Own_unit. }
+        iApply "EQ"; done.
     }
+    ss. *)
 
   - clarify; steps.
     rewrite Red.Guarantee /ModTr.handle_Guarantee; steps.
@@ -429,18 +442,45 @@ Proof.
     }
 
   - clarify; steps.
-    rewrite Red.AssumePrecise /ModTr.handle_AssumePrecise; steps.
+    rewrite Red.AssumeRes /ModTr.handle_AssumeRes /assume /ModTr.get_res; steps.
+    { eapply Own_wand_valid; [|apply WF].
+      rewrite FMR !Own_op x1 CUR; iIntros "> [[_ > > [$ ?]] $] //".
+    }
+    { rewrite /ModTr.put_res; steps.
+      hexploit Own_bupd_split; first apply CUR; eauto.
+      intros [fmr1 [fmr2 [Hfmr [? Hfmr2]]]].
+      eapply (K fmr2); eauto.
+      { eapply Own_wand_valid; [iIntros "H"; iMod (Hfmr with "H") as "[_ $]"|]; ss. }
+      { rewrite Hfmr2; iIntros "$ //". }
+      { rewrite FMR !Own_op x1 Hfmr H.
+        iIntros "> [[$ > > [$ $]] $] //".
+      }
+    }
+    (* rename _GUARANTEE into G.
+    assert (PRE : ⊢ precise iP).
+    { iExists x. iPoseProof (G) as "G"; iModIntro; iSplitL.
+      { iIntros "X"; iMod ("G") as "[G _]"; iApply "G"; done. }
+      { iIntros "X"; iMod ("G") as "[_ G]"; iApply "G"; done. }
+    }
+    hexploit CUR; eauto; intros [cur1 [cur2 [Hcur [Hcur1 Hcur2]]]]%Own_bupd_split.
     (* hexploit (Own_bupd_split fmr0); eauto. intros [rP [rFMR [SPLIT [HP HFMR]]]]. *)
 
-    rename _GUARANTEE into G.
-    eapply Own_bupd_split in G; cycle 1; i; des.
+    rewrite /assume. steps.
+    { eapply Own_wand_valid; [|eapply WF].
+      rewrite FMR !Own_op x1 CUR //.
+      iIntros "> [[_ > > [P _]] $]".
+      iMod G as "#[_ G]"; iApply "G"; done.
+    }
+    rewrite /ModTr.put_res; steps.
+    (* _force_r. *)
+    
+    (* eapply Own_bupd_split in G; cycle 1; i; des.
     { eapply Own_wand_valid in WF; et. rewrite FMR. iIntros ">[_ H]". et. }
     assert (Va1: ✓ a1).
     { eapply Own_wand_valid in WF; et.
-      rewrite FMR !Own_op G. iIntros ">[_ >[H _]]". et. }
-    eapply own_core_completeness in G0; et.
-
-    hexploit (K (a1 ⋅ fmr0)); clear K; i; des.
+      rewrite FMR !Own_op G. iIntros ">[_ >[H _]]". et. } *)
+    (* eapply (own_core_completeness ε (⊢ |==> □ ((Own )))) in G; et. *)
+    (* hexploit (K (x ⋅ mr_tgt)). clear K; i; des.
     { eapply Own_wand_valid in WF; et.
       rewrite FMR !Own_op x1 G. iIntros ">[[_ >?] >[? _]]". iFrame. et. }
     { rewrite !Own_op CUR -(cmra_core_l a1) Own_op G0.
@@ -460,19 +500,19 @@ Proof.
       iCombine "A F" as "H". rewrite H H0. iMod "H" as "[P F]".
       iApply "PR2"; et.
     }
-    rewrite /assume /ModTr.get_res /ModTr.put_res; steps.
+    rewrite /assume /ModTr.get_res /ModTr.put_res; steps. *)
 
-    eapply K; clear K; eauto; cycle 1.
-    { instantiate (1:= a3).
-      rewrite FMR !Own_op G G1 -{1}(cmra_core_l a1) Own_op G0 x1.
-      iIntros ">[[C >F] >[[[#PR1 #PR2] A] X]]".
-      iCombine "A F" as "H". rewrite H H0. iMod "H" as "[P F1]".
-      iFrame. iApply "PR2"; et.
+    eapply (K cur2); clear K; eauto.
+    { eapply Own_wand_valid; [iIntros "H"; iMod (Hcur with "H") as "[_ $]"|]; ss. }
+    { rewrite Hcur2; iIntros "$ //". }
+    { rewrite FMR !Own_op x1 Hcur Hcur1.
+      iIntros "> [[$ > > [P $]] $]".
+      iMod G as "#[_ G]"; iApply "G"; done.
     }
-    { rewrite H1. et. }
+    { done. } *)
 
-  - clarify; steps.
-    rewrite Red.AssumePrecise /ModTr.handle_AssumePrecise /guarantee /assume.
+  (* - clarify; steps.
+    rewrite Red.AssumeRes /ModTr.handle_AssumeRes /guarantee /assume.
     set (_HIDE:=itreeV_itree) at 1. remember _HIDE as HIDE. subst _HIDE. guardH HeqHIDE.
     do 4 step. ired.
     unguard. subst HIDE.
@@ -488,7 +528,7 @@ Proof.
     rewrite /ModTr.put_res.
     do 4 step.
     eapply K; et.
-    rewrite !Own_op x1. iIntros "[? [[? >?] ?]]". iFrame. et.
+    rewrite !Own_op x1. iIntros "[? [[? >?] ?]]". iFrame. et. *)
 
   - clarify. step. ired. eapply K; eauto.
     { eapply le_mine_trans; eauto; first ii; subst; ss.

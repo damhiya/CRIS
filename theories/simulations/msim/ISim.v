@@ -406,18 +406,17 @@ Section SIM.
     iIntros "X"; iMod (Hx' with "X") as "[P X]"; iPoseProof (Hx with "X P") as "I"; done.
   Qed.
 
-  Lemma isim_assume_precise_src r g ps pt {Rs Rt} RR iP nths st_src st_tgt k_src i_tgt
-    :
-    precise iP
-    ∗ (iP -∗ @isim r g Rs Rt RR true pt nths (st_src, k_src ()) (st_tgt, i_tgt))
-    ⊢ @isim r g Rs Rt RR ps pt nths (st_src, trigger (AssumePrecise iP) >>= k_src) (st_tgt, i_tgt).
+  Lemma isim_assume_res_src r g ps pt {Rs Rt} RR a nths st_src st_tgt k_src i_tgt :
+    (Own a -∗ @isim r g Rs Rt RR true pt nths (st_src, k_src ()) (st_tgt, i_tgt))
+    ⊢ @isim r g Rs Rt RR ps pt nths (st_src, trigger (AssumeRes a) >>= k_src) (st_tgt, i_tgt).
   Proof using.
     split; intros x wfx Hx. eapply Own_general_completeness in Hx.
-    guclo msimC_spec; econs; esplits; i; eauto. econs; eauto.
-    { iIntros "H". iPoseProof (Hx with "H") as "H". et. }
+    guclo msimC_spec; econs; esplits; i; eauto.
+    econs; eauto.
     intros x' Hx'.
     eapply isim_init; et.
-    iIntros "X". iMod (Hx' with "X") as "[P X]". iApply "X". et.
+    iIntros "X". iMod (Hx' with "X") as "[P X]". iPoseProof (Hx with "X P") as "SIM".
+    iApply "SIM"; eauto.
   Qed.
   
   Lemma isim_assume_tgt r g ps pt {Rs Rt} RR iP nths st_src st_tgt i_src k_tgt :
@@ -432,29 +431,27 @@ Section SIM.
       iIntros "X"; iMod (Hx' with "X") as "X"; done. }
   Qed.
 
-  Lemma isim_assume_precise_tgt r g ps pt {Rs Rt} RR iP nths st_src st_tgt i_src k_tgt :
-    (precise iP -∗ iP ∗ @isim r g Rs Rt RR ps true nths (st_src, i_src) (st_tgt, k_tgt ()))
-    ⊢ @isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, trigger (AssumePrecise iP) >>= k_tgt).
+  Lemma isim_assume_res_tgt r g ps pt {Rs Rt} RR a nths st_src st_tgt i_src k_tgt :
+    ((Own a ∗ @isim r g Rs Rt RR ps true nths (st_src, i_src) (st_tgt, k_tgt ()))%I) ⊢
+    @isim r g Rs Rt RR ps pt nths (st_src, i_src) (st_tgt, trigger (AssumeRes a) >>= k_tgt).
   Proof using.
-    split; intros a wfa Ha.
-    eapply Own_general_completeness in Ha.
+    split; intros x wfx Hx.
+    eapply Own_general_completeness in Hx.
     guclo msimC_spec; econs; esplits; i; eauto. econs; eauto.
-    i. esplits.
-    { rewrite NEW Ha. iIntros ">[P H]". iApply "H". et. }
-    { intros x' Hx'; eapply isim_init; eauto.
-      rewrite Hx'. iIntros ">H". et. }
+    { iIntros "A"; iPoseProof (Hx with "A") as "$"; ss. }
+    intros ???. eapply isim_init; eauto. rewrite NEW. iIntros ">H". et.
   Qed.
 
-  Lemma isim_assume_precise_both r g ps pt {Rs Rt} RR iP nths st_src st_tgt k_src k_tgt :
+  (* Lemma isim_assume_res_both r g ps pt {Rs Rt} RR iP nths st_src st_tgt k_src k_tgt :
     @isim r g Rs Rt RR true true nths (st_src, k_src ()) (st_tgt, k_tgt ())
-    ⊢ @isim r g Rs Rt RR ps pt nths (st_src, trigger (AssumePrecise iP) >>= k_src) (st_tgt, trigger (AssumePrecise iP) >>= k_tgt).
+    ⊢ @isim r g Rs Rt RR ps pt nths (st_src, trigger (AssumeRes iP) >>= k_src) (st_tgt, trigger (AssumeRes iP) >>= k_tgt).
   Proof using.
     split; intros a wfa Ha.
     eapply Own_general_completeness in Ha.
     guclo msimC_spec. econs; esplits; et.
-    eapply msim_assume_precise_both; et.
+    eapply msim_assume_res_both; et.
     eapply isim_init; et.
-  Qed.
+  Qed. *)
 
   Lemma isim_guarantee_src r g ps pt {Rs Rt} RR iP nths st_src st_tgt k_src i_tgt :
     (iP ∗ (@isim r g Rs Rt RR true pt nths (st_src, k_src tt) (st_tgt, i_tgt)))
@@ -827,6 +824,7 @@ End SIM.
 Global Opaque isim.
 
 Section Proph.
+
   Context `{Σ: GRA}.
 
   Context (contextual: contextuality).
@@ -840,28 +838,380 @@ Section Proph.
   Context (ps pt : bool).
   Context (nths : nat).
   Context (st_s st_t : alist key Any.t).
-  
-  (** Precise Pre & Post conditions **)
 
-  Lemma isim_assume_proph_src {X R} Pre (Post: _→R→_) r g k_s i_t
-    :
-    (∃ P Q,
-      (precise P) ∗
-      (∀ x:X, Pre x ==∗ P ∗ (∀ ret, Q ret ==∗ Post x ret)) ∗
-      (P -∗ isim r g RR true pt nths (st_s, k_s Q) (st_t, i_t)))
-    ⊢
-    isim r g RR ps pt nths (st_s, (AssumeProph Pre Post) >>= k_s) (st_t, i_t).
-  Proof using.
-    rewrite /AssumeProph. Coqlib.unseal CRIS_PROPH.
-    iIntros "[% [% [#PR [G H]]]]".
-    norm_l. iApply isim_choose_src. iExists P.
-    norm_l. iApply isim_choose_src. iExists Q.
-    norm_l. iApply isim_guarantee_src. iFrame.
-    norm_l. iApply isim_assume_precise_src. iSplit; et.
-    ired. et.
+  (* Precise Pre & Post conditions *)
+  Lemma isim_assume_proph_src_advanced {X} pre r g k_s i_t :
+    (∃ (I P : iProp Σ) (Q : X → iProp Σ),
+      I ∗ precise P ∗
+      (∀ x, ∃ T, (I ∗ pre x -∗ □ T) ∗ (□ T -∗ pre x ==∗ P ∗ Q x)) ∗
+      (P ∗ I ==∗
+        isim r g RR true pt nths (st_s, k_s Q) (st_t, i_t))) ⊢
+    isim r g RR ps pt nths (st_s, (AssumeProph pre) >>= k_s) (st_t, i_t).
+  Proof.
+    rewrite /AssumeProph; unseal CRIS_PROPH.
+    iIntros "[%I [%P [%Q [I [#[%pr [PRP PPR]] [G H]]]]]]".
+    iRevert "G H PRP PPR".
+    iStopProof; eapply entails_pointwise; iIntros (res Hres) "R I K #PRP #PPR".
+    norm_l; iApply isim_choose_src; iExists (pr ⋅ res).
+    norm_l; iApply isim_choose_src; iExists Q.
+    norm_l; iApply isim_guarantee_src; iSplitL "R I".
+    { iIntros (x) "Hpre". iPoseProof ("I" $! x) as "[%T [Ht1 Ht2]]".
+      iPoseProof ("Ht1" with "[R Hpre]") as "#T"; [rewrite Hres; iFrame|].
+      iMod ("Ht2" with "T Hpre") as "[P $]"; rewrite Own_op; iFrame "R".
+      iApply "PPR"; done.
+    }
+    norm_l; iApply isim_assume_res_src; iIntros "[P I]"; rewrite Hres.
+    iMod ("PRP" with "P") as "P".
+    iMod ("K" with "[P I]") as "K"; first iFrame.
+    norm_l; iApply "K".
   Qed.
 
-  Lemma isim_assume_proph_src_advanced {X R} (Pre: X→_) Post r g k_s i_t
+  Lemma isim_assume_proph_src {X} pre r g k_s i_t :
+    (∃ (P : iProp Σ) (Q : X → iProp Σ),
+      precise P ∗
+      (∀ x, pre x ==∗ P ∗ Q x) ∗
+      (P ==∗ isim r g RR true pt nths (st_s, (k_s Q)) (st_t, i_t))) ⊢
+    isim r g RR ps pt nths (st_s, (AssumeProph pre) >>= k_s) (st_t, i_t).
+  Proof using.
+    iIntros "[%P [%Q [#Pre [Hsplit Hpost]]]]".
+    iApply isim_assume_proph_src_advanced.
+    iExists emp%I, P, Q; iSplit; first by done.
+    iSplit; first by eauto.
+    iSplitL "Hsplit".
+    { iIntros (x); iExists emp%I; iSplitR; [iIntros "_"; done|].
+      iIntros "_ Hpre"; iApply "Hsplit"; done.
+    }
+    by iIntros "[P _]"; iApply "Hpost".
+  Qed.
+
+  Lemma isim_assume_proph_src_simple {X} pre r g k_s i_t :
+    (∃ (x : X), precise (pre x) ∗
+      ∀ x', pre x' -∗ ⌜x' = x⌝ ∗ isim r g RR true pt nths (st_s, k_s (λ x', ⌜x' = x⌝)) (st_t, i_t)) ⊢
+    isim r g RR ps pt nths (st_s, AssumeProph pre >>= k_s) (st_t, i_t).
+  Proof using.
+    iIntros "[%x [#Hprecise K]]".
+    iApply isim_assume_proph_src_advanced.
+    set (K := (∀ x : X, _ -∗ _ ∗ _)%I).
+    iExists K, (pre x).
+    iFrame "K".
+    iExists (λ x', ⌜x' = x⌝%I).
+    iSplitL; [by eauto|].
+    iSplitL.
+    { iIntros (x'); iExists ⌜x' = x⌝%I; iSplitL.
+      { subst K; iIntros "[H P]"; iPoseProof ("H" with "P") as "[$ _]". }
+      { iIntros "->"; iIntros "$"; done. }
+    }
+    iIntros "[P K]"; iPoseProof ("K" with "P") as "[_ ?]". done.
+  Qed.
+
+  Lemma isim_assume_proph_both
+      {X_s X_t} (pre_s : X_s → iProp Σ) (pre_t : X_t → iProp Σ) r g k_s k_t :
+    (∀ pr_t Q_t, (∀ x, pre_t x ==∗ Own pr_t ∗ Q_t x) -∗
+      ∃ (P : iProp Σ) (Q : X_s → iProp Σ),
+        precise P ∗
+        (∀ x, pre_s x ==∗ P ∗ Q x) ∗
+        (P ==∗ (Own pr_t ∗ (isim r g RR true true nths (st_s, k_s Q) (st_t, k_t Q_t))))) ⊢
+    isim r g RR ps pt nths (st_s, AssumeProph pre_s >>= k_s) (st_t, AssumeProph pre_t >>= k_t).
+  Proof.
+    iIntros "P".
+    rewrite /AssumeProph; unseal CRIS_PROPH.
+    norm_r; iApply isim_choose_tgt; iIntros (pr_t).
+    norm_r; iApply isim_choose_tgt; iIntros (Q_t).
+    norm_r; iApply isim_guarantee_tgt; iIntros "Q".
+    iPoseProof ("P" with "Q") as "[%P [%Q_s [#[%pr_s [Hpre Hpre2]] [Hsplit HP]]]]".
+    norm_l; iApply isim_choose_src; iExists pr_s.
+    norm_l; iApply isim_choose_src; iExists Q_s.
+    norm_l; iApply isim_guarantee_src; iSplitL "Hsplit".
+    { iIntros (x) "PRE"; iMod ("Hsplit" with "PRE") as "[P $]"; iApply "Hpre2"; done. }
+    norm_l; iApply isim_assume_res_src; iIntros "P"; iMod ("Hpre" with "P") as "P".
+    iMod ("HP" with "P") as "[P K]". norm_r; iApply isim_assume_res_tgt; iFrame "P".
+    norm_l; norm_r; done.
+  Qed.
+
+  Lemma isim_assume_proph_tgt {X} (pre : X → iProp Σ) r g k_t i_s :
+    (∃ x, pre x ∗ (∀ Q, Q x ==∗ isim r g RR ps true nths (st_s, i_s) (st_t, k_t Q))) ⊢
+    isim r g RR ps pt nths (st_s, i_s) (st_t, AssumeProph pre >>= k_t).
+  Proof using.
+    iIntros "[%x [Hpre Hpost]]".
+    rewrite /AssumeProph; unseal CRIS_PROPH.
+    norm_r; iApply isim_choose_tgt; iIntros (pr).
+    norm_r; iApply isim_choose_tgt; iIntros (Q).
+    norm_r; iApply isim_guarantee_tgt; iIntros "Hpost'".
+    iPoseProof ("Hpost'" with "Hpre") as "> [P Q]".
+    norm_r; iApply isim_assume_res_tgt; iFrame "P".
+    norm_r. iPoseProof ("Hpost" with "Q") as "> SIM"; done.
+  Qed.
+
+  Lemma isim_guarantee_proph_src {X R} (post : X → R → iProp Σ) (Q : X → iProp Σ) r g k_s i_t :
+    (∃ (ret : R), (∀ x, Q x ==∗ post x ret) ∗
+      isim r g RR true pt nths (st_s, k_s ret) (st_t, i_t)) ⊢
+    isim r g RR ps pt nths (st_s, (GuaranteeProph post Q) >>= k_s) (st_t, i_t).
+  Proof using.
+    rewrite /GuaranteeProph; unseal CRIS_PROPH.
+    iIntros "[%ret [HQ H]]".
+    norm_l. iApply isim_choose_src. iExists ret.
+    norm_l. iApply isim_guarantee_src; iFrame "HQ".
+    norm_l. done.
+  Qed.
+
+  Lemma isim_guarantee_proph_tgt {X R} (post : X → R → iProp Σ) (Q : X → iProp Σ) r g i_s k_t :
+    (∀ (ret : R), (∀ x, Q x ==∗ post x ret) ==∗
+      isim r g RR ps true nths (st_s, i_s) (st_t, k_t ret)) ⊢
+    isim r g RR ps pt nths (st_s, i_s) (st_t, GuaranteeProph post Q >>= k_t).
+  Proof using.
+    rewrite /GuaranteeProph; unseal CRIS_PROPH.
+    iIntros "H".
+    norm_r. iApply isim_choose_tgt. iIntros (x).
+    norm_r. iApply isim_guarantee_tgt; iIntros "P".
+    norm_r. iPoseProof ("H" with "P") as "> H". done.
+  Qed.
+
+  Lemma isim_update_proph_src_advanced {X A R} pre (post : X → R → iProp Σ) (arg : A) r g k_s i_t :
+    (∃ (I P Q : iProp Σ) (ret : R),
+      I ∗ precise P ∗
+      (∀ x, ∃ T, (I ∗ pre x arg -∗ □ T) ∗ (□ T -∗ pre x arg ==∗ P ∗ (Q ==∗ post x ret))) ∗
+      (P ∗ I ==∗ Q ∗ isim r g RR true pt nths (st_s, k_s ret) (st_t, i_t))) ⊢
+    isim r g RR ps pt nths (st_s, UpdateProph pre post arg >>= k_s) (st_t, i_t).
+  Proof.
+    iIntros "[%I [%P [%Q [%ret [I [#[%pr Pre] [Hsplit Hsim]]]]]]]".
+    iRevert "Hsplit Hsim Pre"; iStopProof.
+    eapply entails_pointwise; iIntros (res Hres) "I Hsplit Hsim #[Hpre1 Hpre2]".
+    rewrite /UpdateProph; unseal CRIS_PROPH.
+    norm_l; iApply isim_choose_src; iExists (pr ⋅ res).
+    norm_l; iApply isim_choose_src; iExists (Q).
+    norm_l; iApply isim_choose_src; iExists ret.
+    norm_l; iApply isim_guarantee_src; iSplitL "I Hsplit".
+    { iIntros (x) "Pre"; iPoseProof ("Hsplit" $! x) as "[%T [HT Hsplit]]".
+      iPoseProof ("HT" with "[I Pre]") as "#T".
+      { rewrite Hres; iFrame. }
+      iMod ("Hsplit" with "T Pre") as "[P $]".
+      rewrite Own_op; iFrame "I". iApply "Hpre2"; done.
+    }
+    norm_l; iApply isim_assume_res_src; iIntros "[P R]"; rewrite Hres.
+    iMod ("Hpre1" with "P") as "P"; iMod ("Hsim" with "[P R]") as "[Q SIM]"; iFrame.
+    norm_l; iApply isim_guarantee_src; iFrame "Q"; norm_l; iApply "SIM".
+  Qed.
+
+  Lemma isim_update_proph_src {X A R} pre (post : X → R → iProp Σ) (arg : A) r g k_s i_t :
+    (∃ (P Q : iProp Σ) (ret : R),
+      precise P ∗
+      (∀ x, pre x arg ==∗ P ∗ (Q ==∗ post x ret)) ∗
+      (P ==∗ Q ∗ isim r g RR true pt nths (st_s, k_s ret) (st_t, i_t))) ⊢
+    isim r g RR ps pt nths (st_s, UpdateProph pre post arg >>= k_s) (st_t, i_t).
+  Proof using.
+    iIntros "[%P [%Q [%ret [Hprecise [Hsplit Hsim]]]]]".
+    iApply isim_update_proph_src_advanced.
+    iExists True%I, P, Q, ret.
+    iSplit; [done|iSplit; [done|]].
+    iSplitL "Hsplit".
+    { iIntros (?); iExists emp%I; iSplitR; [iIntros "_"; done|].
+      by iIntros "_ Pre"; iApply "Hsplit".
+    }
+    by iIntros "[P _]"; iApply "Hsim".
+  Qed.
+
+  Lemma isim_update_proph_src_simple {X A R} pre (post : X → R → iProp Σ) (arg : A) r g k_s i_t :
+    (∃ (x : X) (ret : R),
+      precise (pre x arg) ∗
+      ∀ x', pre x' arg ==∗
+        ⌜x' = x⌝ ∗ post x ret ∗
+        isim r g RR true pt nths (st_s, k_s ret) (st_t, i_t)) ⊢
+    isim r g RR ps pt nths (st_s, UpdateProph pre post arg >>= k_s) (st_t, i_t).
+  Proof using.
+    iIntros "[%x [%ret [Hprecise Hsim]]]".
+    iApply isim_update_proph_src_advanced.
+    iExists _, (pre x arg), (post x ret), ret.
+    iSplitR "Hprecise"; [iExact "Hsim"|iSplit; [done|]].
+    iSplitL.
+    { iIntros (x'); iExists ⌜x = x'⌝%I; iSplitL.
+      { iIntros "[Hsplit Hpre]"; iMod ("Hsplit" with "Hpre") as "[-> Post]"; done. }
+      { iIntros "-> $ !> $ //". }
+    }
+    iIntros "[Hpre Hpost]"; iMod ("Hpost" with "Hpre") as "[% $]"; done.
+  Qed.
+
+  Lemma isim_update_proph_tgt {X A R} pre (post : X → R → iProp Σ) (arg : A) r g k_t i_s :
+    (∃ x, pre x arg ∗
+      ∀ ret, post x ret -∗ isim r g RR ps true nths (st_s, i_s) (st_t, k_t ret)) ⊢
+    isim r g RR ps pt nths (st_s, i_s) (st_t, UpdateProph pre post arg >>= k_t).
+  Proof using.
+    iIntros "[%x [Hpre Hsim]]".
+    rewrite /UpdateProph; unseal CRIS_PROPH.
+    norm_r; iApply isim_choose_tgt; iIntros (pr).
+    norm_r; iApply isim_choose_tgt; iIntros (Q).
+    norm_r; iApply isim_choose_tgt; iIntros (ret).
+    norm_r; iApply isim_guarantee_tgt; iIntros "P".
+    iMod ("P" with "Hpre") as "[Hpr Hpost]".
+    norm_r; iApply isim_assume_res_tgt; iFrame "Hpr".
+    norm_r; iApply isim_guarantee_tgt; iIntros "Q"; iMod ("Hpost" with "Q").
+    norm_r; iApply "Hsim"; done.
+  Qed.
+
+  Lemma isim_update_proph_both
+      {X_s A_s R2_s X_t A_t R2_t}
+      (pre_s : X_s → A_s → iProp Σ) (post_s : X_s → R2_s → iProp Σ) (arg_s : A_s)
+      (pre_t : X_t → A_t → iProp Σ) (post_t : X_t → R2_t → iProp Σ) (arg_t : A_t)
+      r g k_s k_t :
+    (∀ ret_t P_t Q_t, precise P_t -∗
+      (∀ x, pre_t x arg_t ==∗ P_t ∗ (Q_t ==∗ post_t x ret_t)) -∗
+      ∃ (P_s Q_s : iProp Σ) ret_s,
+        precise P_s ∗
+        (∀ x, pre_s x arg_s ==∗ P_s ∗ (Q_s ==∗ post_s x ret_s)) ∗
+        (P_s ==∗ P_t ∗
+          (Q_t ==∗ Q_s ∗ isim r g RR true true nths (st_s, k_s ret_s) (st_t, k_t ret_t)))) ⊢
+    isim r g RR ps pt nths
+      (st_s, UpdateProph pre_s post_s arg_s >>= k_s)
+      (st_t, UpdateProph pre_t post_t arg_t >>= k_t).
+  Proof.
+    iIntros "H".
+    rewrite /UpdateProph; unseal CRIS_PROPH.
+    norm_r; iApply isim_choose_tgt; iIntros (pr).
+    norm_r; iApply isim_choose_tgt; iIntros (Q).
+    norm_r; iApply isim_choose_tgt; iIntros (ret).
+    norm_r; iApply isim_guarantee_tgt; iIntros "P".
+    iPoseProof ("H" $! ret (Own pr) Q with "[] P") as "[% [% [% [[% #Hprecise] [Hsplit Hrest]]]]]".
+    { iApply precise_Own. }
+    do 3 (norm_l; iApply isim_choose_src; iExists _).
+    norm_l; iApply isim_guarantee_src; iSplitL "Hsplit".
+    { iIntros "% P"; iMod ("Hsplit" with "P") as "[P $]".
+      iDestruct "Hprecise" as "[? H]"; iApply "H"; done.
+    }
+    norm_l; iApply isim_assume_res_src; iIntros "P".
+    iDestruct "Hprecise" as "[H ?]"; iMod ("H" with "P") as "P".
+    iMod ("Hrest" with "P") as "[P SIM]".
+    norm_r; iApply isim_assume_res_tgt; iFrame "P".
+    norm_r; iApply isim_guarantee_tgt; iIntros "Qt".
+    iMod ("SIM" with "Qt") as "[Q SIM]".
+    norm_l; iApply isim_guarantee_src; iFrame "Q".
+    norm_l; norm_r; done.
+  Qed.
+
+(* 
+  Lemma isim_guarantee_proph_src_advanced {X} Pre r g k_s i_t :
+    (∃ (I P : iProp Σ) (Q : X → iProp Σ),
+      I ∗ precise P ∗
+      (∀ (x : X), ∃ (T : iProp Σ), (I ∗ Pre x -∗ □ T) ∗ (□ T -∗ Pre x ==∗ P ∗ Q x)) ∗
+      (∀ a, □ (Own a ==∗ P ∗ I) -∗
+        isim r g RR true pt nths (st_s, k_s (a, Q)) (st_t, i_t))) ⊢
+    isim r g RR ps pt nths (st_s, (GuaranteeProph Pre) >>= k_s) (st_t, i_t).
+  Proof using.
+    iIntros "[%I [%P [%Q [I [#[%pr [PRP PPR]] [G H]]]]]]".
+    iRevert "G H PRP PPR". iStopProof.
+    eapply entails_pointwise; iIntros (res Hres) "R I K #PRP #PPR".
+    iApply isim_guarantee_proph_src.
+    iExists (P ∗ Own res)%I, Q.
+    iSplitR;
+      [iApply precise_sep; iSplit; [iExists pr; iModIntro; iSplitL; done|iApply precise_Own]|].
+    iSplitR "K".
+    { iIntros (x) "P"; iDestruct ("I" $! x) as "[%T [HT HPQ]]".
+      iPoseProof ("HT" with "[R P]") as "#T".
+      { iSplitR "P"; [rewrite Hres|]; done. }
+      iFrame "R"; iMod ("HPQ" with "T P") as "[$ $]"; done.
+    }
+    iIntros (?) "#[PRP2 PPR2]"; iApply "K"; iModIntro.
+    iIntros "A"; iMod ("PPR2" with "A") as "[$ H]"; iApply Hres; done.
+  Qed.
+
+  Lemma isim_update_proph_src_advanced {X R} pre post (choice : R → bool) arg r g k_s i_t :
+    (∃ (I P : iProp Σ) (Q : X → iProp Σ),
+      I ∗ precise P ∗
+      (∀ x, ∃ T, (I ∗ pre x arg -∗ □ T) ∗ (□ T -∗ pre x arg ==∗ P ∗ Q x)) ∗
+      (P ∗ I ==∗ ∃ ret,
+        (∀ x, Q x ==∗ if choice ret then post x ret↑ else pre x arg) ∗
+        isim r g RR true pt nths
+          (st_s, (if choice ret then Ret (inr ret↑) else Ret (inl ())) >>= k_s) (st_t, i_t))) ⊢
+    isim r g RR ps pt nths (st_s, (UpdateProph pre post choice arg) >>= k_s) (st_t, i_t).
+  Proof using.
+    iIntros "[%I [%P [%Q [I [#[%pr [Pre1 Pre2]] [Hsplit Hpost]]]]]]".
+    rewrite /UpdateProph /GuaranteeProph; unseal CRIS_PROPH.
+    iRevert "Pre1 Pre2 Hsplit Hpost"; iStopProof; eapply entails_pointwise; intros res Hres.
+    iIntros "I #Pre1 #Pre2 Hsplit Hpost".
+    norm_l; iApply isim_choose_src; iExists (res ⋅ pr).
+    norm_l; iApply isim_choose_src; iExists Q.
+    norm_l; iApply isim_guarantee_src; iSplitL "Hsplit I".
+    { iIntros (x) "Hpre". iPoseProof ("Hsplit" $! x) as "[%T [Ht1 Ht2]]".
+      iPoseProof ("Ht1" with "[I Hpre]") as "#T"; [rewrite Hres; iFrame|].
+      iMod ("Ht2" with "T Hpre") as "[P $]"; rewrite Own_op; iFrame "I".
+      iApply "Pre2"; done.
+    }
+    norm_l; iApply isim_assume_res_src; iIntros "[Hres Hp]".
+    rewrite Hres. iMod ("Pre1" with "Hp") as "Hp".
+    iMod ("Hpost" with "[Hp Hres]") as "[%ret [Hpost Hsim]]"; first iFrame.
+    norm_l; iApply isim_choose_src; iExists ret.
+    norm_l; iApply isim_guarantee_src; iFrame "Hpost".
+    norm_l; done.
+  Qed.
+
+  Lemma isim_update_proph_src {X R} pre post (choice : R → bool) arg r g k_s i_t :
+    (∃ (P : iProp Σ) (Q : X → iProp Σ),
+      precise P ∗
+      (∀ x, pre x arg ==∗ P ∗ Q x) ∗
+      (P ==∗ ∃ ret,
+        (∀ x, Q x ==∗ if choice ret then post x ret↑ else pre x arg) ∗
+        isim r g RR true pt nths
+          (st_s, (if choice ret then Ret (inr ret↑) else Ret (inl ())) >>= k_s) (st_t, i_t))) ⊢
+    isim r g RR ps pt nths (st_s, (UpdateProph pre post choice arg) >>= k_s) (st_t, i_t).
+  Proof using.
+    iIntros "[%P [%Q [#Pre [Hsplit Hpost]]]]".
+    iApply isim_update_proph_src_advanced.
+    iExists emp%I, P, Q; iSplit; first by done.
+    iSplit; first by eauto.
+    iSplitL "Hsplit".
+    { iIntros (x); iExists emp%I; iSplitR; [iIntros "_"; done|].
+      iIntros "_ Hpre"; iApply "Hsplit"; done.
+    }
+    by iIntros "[P _]"; iApply "Hpost".
+  Qed.
+
+  Lemma isim_update_proph_src_simple {X R} pre post (choice : R → bool) arg r g k_s i_t :
+    (∃ (x : X), precise (pre x arg) ∗
+      ∀ x', pre x' arg -∗
+        ⌜x' = x⌝ ∗
+        ∃ ret, (if choice ret then post x ret↑ else pre x arg) ∗
+          isim r g RR true pt nths
+            (st_s, (if choice ret then Ret (inr ret↑) else Ret (inl ())) >>= k_s) (st_t, i_t)) ⊢
+    isim r g RR ps pt nths (st_s, (UpdateProph pre post choice arg) >>= k_s) (st_t, i_t).
+  Proof using.
+    iIntros "[%x [#Hprecise K]]".
+    iApply isim_update_proph_src_advanced.
+    set (K := (∀ x : X, _ -∗ _ ∗ _)%I).
+    iExists K, (pre x arg), (λ x', ⌜x' = x⌝%I).
+    iFrame "K".
+    iSplitL; [by eauto|].
+    iSplitL.
+    { iIntros (x'); iExists ⌜x' = x⌝%I; iSplitL.
+      { subst K; iIntros "[H P]"; iPoseProof ("H" with "P") as "[$ _]". }
+      { iIntros "->"; iIntros "$"; done. }
+    }
+    iIntros "[P K]"; iPoseProof ("K" with "P") as "[_ [%ret [K Hsim]]]".
+    iExists ret; iSplitL "K".
+    { iIntros "!> % -> !> //". }
+    done.
+  Qed. *)
+
+  (* Lemma isim_update_proph_tgt {X R} pre post (choice : R → bool) arg r g k_t i_s :
+    (∃ (x : X), pre x arg ∗
+      ∀ ret, (if choice ret then post x ret↑ else pre x arg) -∗
+        isim r g RR ps true nths
+          (st_s, i_s) (st_t, (if choice ret then Ret (inr ret↑) else Ret (inl ())) >>= k_t)) ⊢
+    isim r g RR ps pt nths (st_s, i_s) (st_t, UpdateProph pre post choice arg >>= k_t).
+  Proof using.
+    iIntros "[%x [P Post]]".
+    rewrite /UpdateProph; unseal CRIS_PROPH.
+    rewrite bind_bind /GuaranteeProph; unseal CRIS_PROPH.
+    norm_r; iApply isim_choose_tgt; iIntros (pr).
+    norm_r; iApply isim_choose_tgt; iIntros (Q).
+    norm_r; iApply isim_guarantee_tgt; iIntros "Q".
+    iMod ("Q" with "P") as "[P Q]".
+    norm_r; iApply isim_assume_res_tgt; iFrame "P".
+    norm_r; iApply isim_choose_tgt; iIntros (ret).
+    norm_r; iApply isim_guarantee_tgt; iIntros "Post'".
+    iMod ("Post'" with "Q") as "Q"; norm_r; iApply "Post"; done.
+  Qed. *)
+
+
+  (* TODO : make isim_update_proph_src_advanced & isim_update_proph_src_simple *)
+  (*  Lemma isim_guarantee_proph_src_advanced {X R} (Pre: X→_) Post r g k_s i_t
     :
     (∃ I P Q,
       I ∗ (precise P) ∗
@@ -872,7 +1222,7 @@ Section Proph.
     isim r g RR ps pt nths (st_s, (AssumeProph Pre Post) >>= k_s) (st_t, i_t).
   Proof using.
     iIntros "[% [% [% [I [PR [G H]]]]]]".
-    iApply isim_assume_proph_src.
+    iApply isim_guarantee_proph_src.
     iRevert "PR G H". iStopProof. eapply entails_pointwise. i.
     iIntros "I #PR G H".
     iExists (Own res ∗ P)%I, Q.
@@ -888,7 +1238,7 @@ Section Proph.
     iApply ("G2" with "[T P]"). iFrame. et.
   Qed.
 
-  Lemma isim_assume_proph_src_simple {X R} Pre (Post: _→R→_) r g k_s i_t
+  Lemma isim_guarantee_proph_src_simple {X R} Pre (Post: _→R→_) r g k_s i_t
     :
     (∃ x: X, precise (Pre x) ∗
       ∀ x', Pre x' -∗
@@ -897,7 +1247,7 @@ Section Proph.
     isim r g RR ps pt nths (st_s, (AssumeProph Pre Post) >>= k_s) (st_t, i_t).
   Proof using.
     iIntros "[% [#PR H]]".
-    iApply isim_assume_proph_src_advanced.
+    iApply isim_guarantee_proph_src_advanced.
     iExists _, (Pre x), (Post x). iSplitL "H"; [iApply "H"|]. iSplit; et.
     iSplitL "".
     - iIntros (?). iExists (⌜x0 = x⌝)%I.
@@ -907,7 +1257,7 @@ Section Proph.
     - iIntros "[H P]".  iSpecialize ("H" with "P"). iDestruct "H" as "[_ H]". et.
   Qed.
 
-  Lemma isim_assume_proph_tgt {X R} Pre (Post: _→R→_) r g i_s k_t
+  Lemma isim_guarantee_proph_tgt {X R} Pre (Post: _→R→_) r g i_s k_t
     :
     (∃ x: X, Pre x
        ∗
@@ -922,9 +1272,9 @@ Section Proph.
     norm_r. iApply isim_choose_tgt. iIntros (?).
     norm_r. iApply isim_guarantee_tgt. iIntros "GRT".
     iSpecialize ("H" $! x1). iMod ("GRT" with "P") as "[I Q]".
-    norm_r. iApply isim_assume_precise_tgt. iIntros "#PR". iFrame.
+    norm_r. iApply isim_assume_res_tgt. iIntros "#PR". iFrame.
     ired. iApply "H". et.
-  Qed.
+  Qed. *)
 
 End Proph.
 

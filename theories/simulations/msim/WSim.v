@@ -217,12 +217,11 @@ Section wsim.
     iApply ("RR" with "P"); iFrame.
   Qed.
 
-  Lemma wsim_assume_precise_src P k_s i_t :
-    precise P ∗
-    (P -∗ sim Ep r g RR true pt nths (st_s, k_s tt) (st_t, i_t)) ⊢
-    sim Ep r g RR ps pt nths (st_s, trigger (AssumePrecise P) >>= k_s) (st_t, i_t).
+  Lemma wsim_assume_res_src a k_s i_t :
+    (Own a -∗ sim Ep r g RR true pt nths (st_s, k_s tt) (st_t, i_t)) ⊢
+    sim Ep r g RR ps pt nths (st_s, trigger (AssumeRes a) >>= k_s) (st_t, i_t).
   Proof using.
-    unseal. iIntros "[P H] I". iApply isim_assume_precise_src; eauto.
+    unseal. iIntros "H I". iApply isim_assume_res_src; eauto.
     iFrame. iIntros "P". iApply ("H" with "P I").
   Qed.
 
@@ -233,22 +232,22 @@ Section wsim.
     unseal; iIntros "[P RR] I". iApply isim_assume_tgt; eauto. iFrame. iApply "RR". ss.
   Qed.
 
-  Lemma wsim_assume_precise_tgt P i_s k_t :
-    (precise P -∗ P ∗ sim Ep r g RR ps true nths (st_s, i_s) (st_t, k_t tt)) ⊢
-    sim Ep r g RR ps pt nths (st_s, i_s) (st_t, trigger (AssumePrecise P) >>= k_t).
+  Lemma wsim_assume_res_tgt a i_s k_t :
+    (Own a ∗ sim Ep r g RR ps true nths (st_s, i_s) (st_t, k_t tt)) ⊢
+    sim Ep r g RR ps pt nths (st_s, i_s) (st_t, trigger (AssumeRes a) >>= k_t).
   Proof using.
-    unseal; iIntros "H I". iApply isim_assume_precise_tgt; eauto.
-    iIntros "P". iPoseProof ("H" with "P") as "[P H]". iFrame. iApply "H". done.
+    unseal; iIntros "[A H] I". iApply isim_assume_res_tgt; eauto.
+    iPoseProof ("H" with "I") as "$". iFrame.
   Qed.
 
-  Lemma wsim_assume_precise_both P k_s k_t :
+  (* Lemma wsim_assume_res_both P k_s k_t :
     (sim Ep r g RR true true nths (st_s, k_s tt) (st_t, k_t tt)) ⊢
     sim Ep r g RR ps pt nths
-      (st_s, trigger (AssumePrecise P) >>= k_s)
-      (st_t, trigger (AssumePrecise P) >>= k_t).
+      (st_s, trigger (AssumeRes P) >>= k_s)
+      (st_t, trigger (AssumeRes P) >>= k_t).
   Proof using.
-    unseal. iIntros "RR I". iApply isim_assume_precise_both; eauto. by iApply "RR".
-  Qed.
+    unseal. iIntros "RR I". iApply isim_assume_res_both; eauto. by iApply "RR".
+  Qed. *)
 
   Lemma wsim_guarantee_src (P : iProp Σ) k_s i_t :
     P ∗ sim Ep r g RR true pt nths (st_s, k_s tt) (st_t, i_t) ⊢
@@ -414,16 +413,16 @@ Section wsim.
     { iApply "SIM"; iFrame. }
   Qed.
 
-  Lemma wsim_assume_precise_tgt_WP `{i : !WP P} i_s k_t Ew E :
+  (* Lemma wsim_assume_res_tgt_WP `{i : !WP P} i_s k_t Ew E :
     let EP := WP_space i in
     EP ⊆ Ew → EP ⊆ E →
-    (precise P -∗
+    (⌜⊢ precise P⌝ -∗
      WP_remainder i ∗ sim (Ew ∖ EP, E ∖ EP) r g RR ps true nths (st_s, i_s) (st_t, k_t tt)) ⊢
     sim (Ew, E) r g RR ps pt nths
-      (st_s, i_s) (st_t, trigger (AssumePrecise P) >>= k_t).
+      (st_s, i_s) (st_t, trigger (AssumeRes P) >>= k_t).
   Proof using.
     unseal; i; iIntros "H [O [E [%n W]]]".
-    iPoseProof (own_admin_split with "O") as "[O1 O2]". iApply isim_assume_precise_tgt; eauto.
+    iPoseProof (own_admin_split with "O") as "[O1 O2]". iApply isim_assume_res_tgt; eauto.
     iIntros "P". iPoseProof ("H" with "P") as "[P SIM]".
     rewrite /winv {1}(union_difference_L (WP_space i) Ew) // wsats_split; last set_solver.
     rewrite {1}(union_difference_L (WP_space i) E) // ownE_op; last set_solver.
@@ -431,7 +430,7 @@ Section wsim.
     iSplitR "SIM E2 W2 O2".
     { iApply WP_iff; iFrame. }
     { iApply "SIM"; iFrame. }
-  Qed.
+  Qed. *)
 
   Lemma wsim_guarantee_tgt_WP `{i : !WP P} i_s k_t :
     let EP := WP_space i in
@@ -766,56 +765,169 @@ Section Proph.
 
   Local Notation sim Ep r g := (wsim fl_s fl_t Ist Ep r g R_s R_t).
 
-  (** Precise Pre & Post conditions **)
-  Lemma wsim_assume_proph_src {X R} Pre (Post: _ → R → _) k_s i_t :
-    (∃ P Q,
-      precise P ∗
-      (∀ (x : X), Pre x ==∗ P ∗ (∀ ret, Q ret ==∗ Post x ret)) ∗
-      (P -∗ sim Ep r g RR true pt nths (st_s, k_s Q) (st_t, i_t))) ⊢
-    sim Ep r g RR ps pt nths (st_s, (AssumeProph Pre Post) >>= k_s) (st_t, i_t).
-  Proof using.
-    rewrite wsim_eq /wsim_def.
-    iIntros "[% [% [#PR [G H]]]] W".
-    iApply isim_assume_proph_src. iFrame. iSplit; et.
-    iIntros "P". iApply ("H" with "P W").
-  Qed.
-
-  Lemma wsim_assume_proph_src_advanced {X R} (Pre : X → _) Post k_s i_t :
-    (∃ I P Q,
+  (** Precise Pre & Post conditions **)  (* Precise Pre & Post conditions *)
+  Lemma wsim_assume_proph_src_advanced {X} pre k_s i_t :
+    (∃ (I P : iProp Σ) (Q : X → iProp Σ),
       I ∗ precise P ∗
-      (∀ x, ∃ T, (I ∗ Pre x -∗ □ T) ∗ ((□ T) ∗ Pre x ==∗ P ∗ (∀ ret: R, Q ret ==∗ Post x ret))) ∗
-      (I ∗ P -∗ sim Ep r g RR true pt nths (st_s, k_s Q) (st_t, i_t))) ⊢
-    sim Ep r g RR ps pt nths (st_s, (AssumeProph Pre Post) >>= k_s) (st_t, i_t).
-  Proof using.
+      (∀ x, ∃ T, (I ∗ pre x -∗ □ T) ∗ (□ T -∗ pre x ==∗ P ∗ Q x)) ∗
+      (P ∗ I ==∗
+        sim Ep r g RR true pt nths (st_s, k_s Q) (st_t, i_t))) ⊢
+    sim Ep r g RR ps pt nths (st_s, (AssumeProph pre) >>= k_s) (st_t, i_t).
+  Proof.
     rewrite wsim_eq /wsim_def.
-    iIntros "[% [% [% [I [#PR [G H]]]]]] W".
-    iApply isim_assume_proph_src_advanced. iFrame. iSplit; et.
-    iIntros "P". iApply ("H" with "P W").
+    iIntros "[%I [%P [%Q [I [Pre [G H]]]]]] W".
+    iApply isim_assume_proph_src_advanced; iFrame.
+    iIntros "PI"; iApply ("H" with "PI"); done.
   Qed.
 
-  Lemma wsim_assume_proph_src_simple {X R} Pre (Post : _ → R → _) k_s i_t :
-    (∃ (x : X), precise (Pre x) ∗
-      ∀ x', Pre x' -∗
-        ⌜x' = x⌝ ∗
-        sim Ep r g RR true pt nths (st_s, k_s (Post x)) (st_t, i_t)) ⊢
-    sim Ep r g RR ps pt nths (st_s, (AssumeProph Pre Post) >>= k_s) (st_t, i_t).
+  Lemma wsim_assume_proph_src {X} pre k_s i_t :
+    (∃ (P : iProp Σ) (Q : X → iProp Σ),
+      precise P ∗
+      (∀ x, pre x ==∗ P ∗ Q x) ∗
+      (P ==∗ sim Ep r g RR true pt nths (st_s, (k_s Q)) (st_t, i_t))) ⊢
+    sim Ep r g RR ps pt nths (st_s, (AssumeProph pre) >>= k_s) (st_t, i_t).
   Proof using.
     rewrite wsim_eq /wsim_def.
-    iIntros "[% [#PR H]] W".
-    iApply isim_assume_proph_src_simple. iExists _. iSplit; et.
-    iIntros (?) "P". iPoseProof ("H" with "P") as "[%E' H]". subst.
-    iSplit; et. iApply ("H" with "W").
+    iIntros "[%P [%Q [#Pre [Hsplit Hpost]]]] W".
+    iApply isim_assume_proph_src; iFrame.
+    iSplit; first by done.
+    iIntros "P"; iApply ("Hpost" with "P"); done.
   Qed.
 
-  Lemma wsim_assume_proph_tgt {X R} Pre (Post : _ → R → _) i_s k_t :
-    (∃ x: X, Pre x ∗
-       ∀ Q, (∀ ret, Q ret ==∗ Post x ret) -∗
-       sim Ep r g RR ps true nths (st_s, i_s) (st_t, k_t Q)) ⊢
-    sim Ep r g RR ps pt nths (st_s, i_s) (st_t, (AssumeProph Pre Post) >>= k_t).
+  Lemma wsim_assume_proph_src_simple {X} pre k_s i_t :
+    (∃ (x : X), precise (pre x) ∗
+      ∀ x', pre x' -∗ ⌜x' = x⌝ ∗
+        sim Ep r g RR true pt nths (st_s, k_s (λ x', ⌜x' = x⌝)%I) (st_t, i_t)) ⊢
+    sim Ep r g RR ps pt nths (st_s, AssumeProph pre >>= k_s) (st_t, i_t).
   Proof using.
     rewrite wsim_eq /wsim_def.
-    iIntros "[% [P H]] W".
-    iApply isim_assume_proph_tgt. iExists _. iFrame.
-    iIntros (?) "R". iApply ("H" with "R W").
+    iIntros "[%x [#Hprecise K]] W".
+    iApply isim_assume_proph_src_simple.
+    iExists x; iSplitR; [done|].
+    iIntros (?) "P"; iPoseProof ("K" with "P") as "[-> SIM]"; iSplit; [done|].
+    iApply "SIM"; done.
+  Qed.
+
+  Lemma wsim_assume_proph_both {X_s X_t} (pre_s : X_s → iProp Σ) (pre_t : X_t → iProp Σ) k_s k_t :
+    (∀ pr_t Q_t, (∀ x, pre_t x ==∗ Own pr_t ∗ Q_t x) -∗
+      ∃ (P : iProp Σ) (Q : X_s → iProp Σ),
+        precise P ∗
+        (∀ x, pre_s x ==∗ P ∗ Q x) ∗
+        (P ==∗ (Own pr_t ∗ (sim Ep r g RR true true nths (st_s, k_s Q) (st_t, k_t Q_t))))) ⊢
+    sim Ep r g RR ps pt nths (st_s, AssumeProph pre_s >>= k_s) (st_t, AssumeProph pre_t >>= k_t).
+  Proof.
+    rewrite wsim_eq /wsim_def.
+    iIntros "P W".
+    iApply isim_assume_proph_both.
+    iIntros "% % H"; iPoseProof ("P" with "H") as "[% [% [$ [$ P]]]]"; iIntros "Hp".
+    iMod ("P" with "Hp") as "[$ S]"; iApply "S"; done.
+  Qed.
+
+  Lemma wsim_assume_proph_tgt {X} (pre : X → iProp Σ) k_t i_s :
+    (∃ x, pre x ∗ (∀ Q, Q x ==∗ sim Ep r g RR ps true nths (st_s, i_s) (st_t, k_t Q))) ⊢
+    sim Ep r g RR ps pt nths (st_s, i_s) (st_t, AssumeProph pre >>= k_t).
+  Proof using.
+    rewrite wsim_eq /wsim_def.
+    iIntros "[%x [Hpre Hpost]] W".
+    iApply isim_assume_proph_tgt; iFrame.
+    iIntros (?) "Q"; iMod ("Hpost" with "Q") as "Q"; iApply "Q"; done.
+  Qed.
+
+  Lemma wsim_guarantee_proph_src {X R} (post : X → R → iProp Σ) (Q : X → iProp Σ) k_s i_t :
+    (∃ (ret : R), (∀ x, Q x ==∗ post x ret) ∗
+      sim Ep r g RR true pt nths (st_s, k_s ret) (st_t, i_t)) ⊢
+    sim Ep r g RR ps pt nths (st_s, (GuaranteeProph post Q) >>= k_s) (st_t, i_t).
+  Proof using.
+    rewrite wsim_eq /wsim_def.
+    iIntros "[%ret [HQ H]] W".
+    iApply isim_guarantee_proph_src; iFrame. iApply "H"; done.
+  Qed.
+
+  Lemma wsim_guarantee_proph_tgt {X R} (post : X → R → iProp Σ) (Q : X → iProp Σ) i_s k_t :
+    (∀ (ret : R), (∀ x, Q x ==∗ post x ret) ==∗
+      sim Ep r g RR ps true nths (st_s, i_s) (st_t, k_t ret)) ⊢
+    sim Ep r g RR ps pt nths (st_s, i_s) (st_t, GuaranteeProph post Q >>= k_t).
+  Proof using.
+    rewrite wsim_eq /wsim_def.
+    iIntros "H W"; iApply isim_guarantee_proph_tgt; iIntros (?) "A"; iMod ("H" with "A") as "H".
+    iApply "H"; done.
+  Qed.
+
+  Lemma wsim_update_proph_src_advanced {X A R} pre (post : X → R → iProp Σ) (arg : A) k_s i_t :
+    (∃ (I P Q : iProp Σ) (ret : R),
+      I ∗ precise P ∗
+      (∀ x, ∃ T, (I ∗ pre x arg -∗ □ T) ∗ (□ T -∗ pre x arg ==∗ P ∗ (Q ==∗ post x ret))) ∗
+      (P ∗ I ==∗ Q ∗ sim Ep r g RR true pt nths (st_s, k_s ret) (st_t, i_t))) ⊢
+    sim Ep r g RR ps pt nths (st_s, UpdateProph pre post arg >>= k_s) (st_t, i_t).
+  Proof.
+    rewrite wsim_eq /wsim_def.
+    iIntros "[%I [%P [%Q [%ret [I [#[%pr [Pre ?]] [Hsplit Hsim]]]]]]] W".
+    iApply isim_update_proph_src_advanced; iFrame.
+    iSplit; [iModIntro; iExists pr; iSplitR; done|].
+    by iIntros "PI"; iMod ("Hsim" with "PI") as "[$ SIM]"; iApply "SIM".
+  Qed.
+
+  Lemma wsim_update_proph_src {X A R} pre (post : X → R → iProp Σ) (arg : A) k_s i_t :
+    (∃ (P Q : iProp Σ) (ret : R),
+      precise P ∗
+      (∀ x, pre x arg ==∗ P ∗ (Q ==∗ post x ret)) ∗
+      (P ==∗ Q ∗ sim Ep r g RR true pt nths (st_s, k_s ret) (st_t, i_t))) ⊢
+    sim Ep r g RR ps pt nths (st_s, UpdateProph pre post arg >>= k_s) (st_t, i_t).
+  Proof using.
+    rewrite wsim_eq /wsim_def.
+    iIntros "[%P [%Q [%ret [Hprecise [Hsplit Hsim]]]]] W".
+    iApply isim_update_proph_src.
+    iExists P, Q, ret; iFrame.
+    by iIntros "P"; iMod ("Hsim" with "P") as "[$ SIM]"; iApply "SIM".
+  Qed.
+
+  Lemma wsim_update_proph_src_simple {X A R} pre (post : X → R → iProp Σ) (arg : A) k_s i_t :
+    (∃ (x : X) (ret : R),
+      precise (pre x arg) ∗
+      (∀ x', pre x' arg ==∗
+        ⌜x' = x⌝ ∗ post x ret ∗
+        sim Ep r g RR true pt nths (st_s, k_s ret) (st_t, i_t))) ⊢
+    sim Ep r g RR ps pt nths (st_s, UpdateProph pre post arg >>= k_s) (st_t, i_t).
+  Proof using.
+    rewrite wsim_eq /wsim_def.
+    iIntros "[%x [%ret [Hprecise Hsim]]] W".
+    iApply isim_update_proph_src_simple.
+    iFrame "Hprecise".
+    iExists ret; iIntros "% Pre"; iMod ("Hsim" with "Pre") as "[-> [$ Hsim]]".
+    iPoseProof ("Hsim" with "W") as "$"; done.
+  Qed.
+
+  Lemma wsim_update_proph_tgt {X A R} pre (post : X → R → iProp Σ) (arg : A) k_t i_s :
+    (∃ x, pre x arg ∗
+      ∀ ret, post x ret -∗ sim Ep r g RR ps true nths (st_s, i_s) (st_t, k_t ret)) ⊢
+    sim Ep r g RR ps pt nths (st_s, i_s) (st_t, UpdateProph pre post arg >>= k_t).
+  Proof using.
+    rewrite wsim_eq /wsim_def.
+    iIntros "[%x [Hpre Hsim]] W".
+    iApply isim_update_proph_tgt; iFrame "Hpre"; iIntros "% ?"; iApply ("Hsim" with "[$] [$]").
+  Qed.
+
+  Lemma wsim_update_proph_both
+      {X_s A_s R2_s X_t A_t R2_t}
+      (pre_s : X_s → A_s → iProp Σ) (post_s : X_s → R2_s → iProp Σ) (arg_s : A_s)
+      (pre_t : X_t → A_t → iProp Σ) (post_t : X_t → R2_t → iProp Σ) (arg_t : A_t)
+      k_s k_t :
+    (∀ ret_t P_t Q_t, precise P_t -∗
+      (∀ x, pre_t x arg_t ==∗ P_t ∗ (Q_t ==∗ post_t x ret_t)) -∗
+      ∃ (P_s Q_s : iProp Σ) ret_s,
+        precise P_s ∗
+        (∀ x, pre_s x arg_s ==∗ P_s ∗ (Q_s ==∗ post_s x ret_s)) ∗
+        (P_s ==∗ P_t ∗
+          (Q_t ==∗ Q_s ∗ sim Ep r g RR true true nths (st_s, k_s ret_s) (st_t, k_t ret_t)))) ⊢
+    sim Ep r g RR ps pt nths
+      (st_s, UpdateProph pre_s post_s arg_s >>= k_s)
+      (st_t, UpdateProph pre_t post_t arg_t >>= k_t).
+  Proof.
+    rewrite wsim_eq /wsim_def.
+    iIntros "H W".
+    iApply isim_update_proph_both.
+    iIntros "% % % P1 P2"; iPoseProof ("H" with "P1 P2") as "[% [% [% [$ [$ H]]]]]".
+    iIntros "A"; iMod ("H" with "A") as "[$ H]"; iIntros "!> Q"; iMod ("H" with "Q") as "[$ H]".
+    iApply "H"; done.
   Qed.
 End Proph.

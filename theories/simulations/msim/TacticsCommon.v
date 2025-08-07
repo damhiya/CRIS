@@ -65,8 +65,6 @@ Ltac destruct_quant :=
   repeat
     first [setoid_rewrite destruct_quant | setoid_rewrite destruct_quant_dep]; s.
 
-
-
 Definition CRIS := "cris".
 Global Opaque CRIS.
 
@@ -188,7 +186,9 @@ Ltac alist_find_simpl :=
                         | guaranteeK P t
                         | unwrapUK x k
                         | unwrapNK x k
-                        | AssumeProphK Pre Post k
+                        | GuaranteeProphK post Q k
+                        | AssumeProphK pre
+                        | UpdateProphK pre post arg k
                         | SBRed.putSB imports scopes k v cont
                         | SBRed.getSB imports scopes k cont
                         | SBRed.callSB imports scopes f a cont
@@ -215,7 +215,9 @@ Tactic Notation "red_bind" hyp(prg) tactic(tac) :=
       | guaranteeK _ _ => eapply guaranteeK_bind
       | unwrapUK _ _ => eapply unwrapUK_bind
       | unwrapNK _ _ => eapply unwrapNK_bind
-      | AssumeProphK _ _ _ => eapply AssumeProphK_bind
+      | GuaranteeProphK _ _ _ => eapply GuaranteeProphK_bind
+      | AssumeProphK _ _ => eapply AssumeProphK_bind
+      | UpdateProphK _ _ _ _ => eapply UpdateProphK_bind
       | SBRed.putSB _ _ _ _ _ _ => eapply SBRed.putSB_bind
       | SBRed.getSB _ _ _ _ _ => eapply SBRed.getSB_bind
       | SBRed.callSB _ _ _ _ _ _ => eapply SBRed.callSB_bind
@@ -235,8 +237,8 @@ Tactic Notation "red_SB" hyp(prg) :=
           _hprogress prg; eapply SBRed.tau
       | vis (Assume _) _ =>
           _hprogress prg; eapply SBRed.vis_Assume_img
-      | vis (AssumePrecise _) _ =>
-          _hprogress prg; eapply SBRed.vis_AssumePrecise
+      | vis (AssumeRes _) _ =>
+          _hprogress prg; eapply SBRed.vis_AssumeRes
       | vis (Guarantee _) _ =>
           _hprogress prg; eapply SBRed.vis_Guarantee
       | vis (Spawn _ _) _ =>
@@ -252,7 +254,7 @@ Tactic Notation "red_SB" hyp(prg) :=
       | vis (Choose _) _ =>
           _hprogress prg; eapply SBRed.vis_choose
       | vis (Take _) _ =>
-          _hprogress prg; eapply SBRed.vis_take_img
+          _hprogress prg; first [eapply SBRed.vis_take_img | eapply SBRed.vis_take]
       | vis (IO _ _) _ =>
           _hprogress prg; eapply SBRed.vis_io
       | assumeK _ _ =>
@@ -263,8 +265,12 @@ Tactic Notation "red_SB" hyp(prg) :=
           _hprogress prg; eapply SBRed.unwrapUK
       | unwrapNK _ _ =>
           _hprogress prg; eapply SBRed.unwrapNK
-      | AssumeProphK _ _ _ =>
+      | GuaranteeProphK _ _ _ =>
+          _hprogress prg; eapply SBRed.guarantee_prophK
+      | AssumeProphK _ _ =>
           _hprogress prg; eapply SBRed.assume_prophK
+      | UpdateProphK _ _ _ _ =>
+          _hprogress prg; eapply SBRed.update_prophK
       | @ITree.bind _ _ _ _ _ =>
           _hprogress prg; eapply SBRed.bind
       | _ =>
@@ -297,7 +303,7 @@ Tactic Notation "red_S" hyp(prg) tactic(tac) :=
           _hprogress prg; eapply SRed.tau
       | vis (Assume _) _ =>
           _hprogress prg; eapply SRed.vis_ag
-      | vis (AssumePrecise _) _ =>
+      | vis (AssumeRes _) _ =>
           _hprogress prg; eapply SRed.vis_ag
       | vis (Guarantee _) _ =>
           _hprogress prg; eapply SRed.vis_ag
@@ -338,8 +344,12 @@ Tactic Notation "red_S" hyp(prg) tactic(tac) :=
           _hprogress prg; eapply SRed.unwrapUK
       | unwrapNK _ _ =>
           _hprogress prg; eapply SRed.unwrapNK
-      | AssumeProphK _ _ _ =>
+      | GuaranteeProphK _ _ _ =>
+          _hprogress prg; eapply SRed.guarantee_prophK
+      | AssumeProphK _ _ =>
           _hprogress prg; eapply SRed.assume_prophK
+      | UpdateProphK _ _ _ _ =>
+          _hprogress prg; eapply SRed.update_prophK
       | @ITree.bind _ _ _ _ _ =>
           _hprogress prg; eapply SRed.bind
       | _ =>
@@ -374,8 +384,12 @@ Ltac _hnorm_itr prg :=
       eapply unwrapU_unwrapUK
   | [ |- unwrapN _ = _ ] =>
       eapply unwrapN_unwrapNK
-  | [ |- AssumeProph _ _ = _ ] =>
+  | [ |- GuaranteeProph _ _ = _ ] =>
+      eapply GuaranteeProph_GuaranteeProphK
+  | [ |- AssumeProph _ = _ ] =>
       eapply AssumeProph_AssumeProphK
+  | [ |- UpdateProph _ _ _ = _ ] =>
+      eapply UpdateProph_UpdateProphK
   | [ |- SModTr.HoareCall _ _ _ = _ ] =>
       _hprogress prg; unfold SModTr.HoareCall;
       _hnorm_itr prg
@@ -447,8 +461,12 @@ Ltac hnorm_itr :=
         eapply unwrapUK_unwrapU
     | [ |- unwrapNK _ _ = _ ] =>
         eapply unwrapNK_unwrapN
-    | [ |- AssumeProphK _ _ _ = _ ] =>
+    | [ |- GuaranteeProphK _ _ _ = _ ] =>
+        eapply GuaranteeProphK_GuaranteeProph
+    | [ |- AssumeProphK _ _ = _ ] =>
         eapply AssumeProphK_AssumeProph
+    | [ |- UpdateProphK _ _ _ _ = _ ] =>
+        eapply UpdateProphK_UpdateProph
     | [ |- SBRed.putSB _ _ _ _ _ _ = _ ] =>
         eapply SBRed.putSB_SPut
     | [ |- SBRed.getSB _ _ _ _ _ = _ ] =>

@@ -494,7 +494,7 @@ Proof using.
   - rewrite !SRed.bind !SRed.ag !SBRed.bind SBRed.Assume. des_ifs; ired.
     + rewrite !MIRed.ag. estep 2; edone.
     + rewrite !MIRed.core. estep 1.
-  - rewrite !SRed.bind !SRed.ag !SBRed.bind SBRed.AssumePrecise.
+  - rewrite !SRed.bind !SRed.ag !SBRed.bind SBRed.AssumeRes.
     rewrite !MIRed.ag. estep 2. edone.
   - rewrite !SRed.bind !SRed.ag !SBRed.bind SBRed.Guarantee !MIRed.ag.
     estep 2. edone.

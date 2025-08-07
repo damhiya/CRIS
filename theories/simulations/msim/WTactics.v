@@ -21,6 +21,8 @@ Ltac _wstep_l :=
         end
       | unfold_precond_postcond P; iApply wsim_assume_src; iIntrosFresh "ASM"
       ]
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (AssumeRes _) >>= _) _) ] =>
+      iApply wsim_assume_res_src
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _) _) ] =>
       let name := fresh "asm" in iApply wsim_asm_src; iIntros (name)
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, (SB.sandbox _ _ _ (trigger (SPut _ _))) >>= _) _) ] =>
@@ -94,8 +96,8 @@ Ltac _wstep :=
       iApply wsim_ret
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (IO _ _) >>= _) (_, trigger (IO _ _) >>= _))] =>
       iApply wsim_io; iIntros "%"
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (AssumePrecise _) >>= _) (_, trigger (AssumePrecise _) >>= _))] =>
-      iApply wsim_assume_precise_both
+  (* | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (AssumeRes _) >>= _) (_, trigger (AssumeRes _) >>= _))] =>
+      iApply wsim_assume_res_both *)
   end.
 
 Ltac wstep :=
@@ -116,8 +118,8 @@ Ltac _wforce_l :=
         end
       | unfold_precond_postcond P; iApply wsim_guarantee_src
       ]
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (AssumePrecise _) >>= _) _) ] =>
-      iApply wsim_assume_precise_src; iSplit; [|iIntrosFresh "ASM"]
+  (* | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (AssumeRes _) >>= _) _) ] =>
+      iApply wsim_assume_res_src; iSplit; [|iIntrosFresh "ASM"] *)
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, unwrapN _ >>= _) _) ] =>
       iApply wsim_unwrapN_src
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, guarantee _ >>= _) _) ] =>
@@ -152,19 +154,10 @@ Ltac _wforce_r :=
         end
       | unfold_precond_postcond P; iApply wsim_assume_tgt
       ]
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (AssumePrecise ?P) >>= _)) ] =>
-      first [
-        tcsearch constr:(WP P)
-          ltac:(fun c =>
-            unshelve iApply (wsim_assume_precise_tgt_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); s; [try set_solver|try set_solver|..|iIntrosFresh "PRECISE"]; eauto; simpl WP_space);
-        match goal with
-        | [ |- environments.envs_entails _ (?P' ∗ _)] =>
-          unfold_precond_postcond P'
-        end
-      | unfold_precond_postcond P; iApply wsim_assume_precise_tgt; iIntrosFresh "PRECISE"
-      ]
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ (_, AssumeProph _ _ >>= _)) ] =>
-      iApply wsim_assume_proph_tgt
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (AssumeRes ?P) >>= _)) ] =>
+      unfold_precond_postcond P; iApply wsim_assume_res_tgt
+  (* | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ (_, AssumeProph _ _ >>= _)) ] =>
+      iApply wsim_assume_proph_tgt *)
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _)) ] =>
       iApply wsim_asm_tgt
   end
@@ -220,7 +213,7 @@ Ltac winit_simF :=
 
 (** Special Tactics for AssumeProph in Source **)
 
-Ltac wasmproph_simple_core :=
+(* Ltac wasmproph_simple_core :=
   norm_l; iApply wsim_assume_proph_src_simple.
 
 Tactic Notation "wasmproph_simple" :=
@@ -233,4 +226,4 @@ Ltac wasmproph_standard :=
   norm_l; iApply wsim_assume_proph_src.
 
 Ltac wasmproph_advanced :=
-  norm_l; iApply wsim_assume_proph_src_advanced.
+  norm_l; iApply wsim_assume_proph_src_advanced. *)
