@@ -238,12 +238,12 @@ Ltac apc_l :=
 Ltac apc_call hyps :=
   prep_macro_l; norm_r;
   iApply wsim_apc_src_call_tgt; des_pairs; s;
-  [| | | | |try prove_sb_cond|try prove_sb_cond|iSplitL hyps; [ |iIntros "% % % % %"; iIntrosFresh "ISTPOST"]].
+  [| | | | |try prove_sb_cond|try prove_sb_cond|iSplitL hyps; [ |iIntros "% % % %"; iIntrosFresh "ISTPOST"]].
 
 Ltac apc_call_weaker hyps :=
   prep_macro_l; norm_r;
   iApply wsim_apc_src_call_tgt_weaker; des_pairs; s;
-  [| | | | | |try prove_sb_cond|try prove_sb_cond|iSplitL hyps; [ |iIntros "% % % % %"; iIntrosFresh "ISTPOST"]].
+  [| | | | | |try prove_sb_cond|try prove_sb_cond|iSplitL hyps; [ |iIntros "% % % %"; iIntrosFresh "ISTPOST"]].
 
 (* Ltac apc_tgt_noist :=
   prep_macro_r;

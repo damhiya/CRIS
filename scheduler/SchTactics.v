@@ -143,4 +143,4 @@ Ltac sch_intros :=
   try match goal with [H: nat |- _] => clear H end;
   (do 2 try match goal with [H: List.NoDup (map fst _) |- _] => clear H end);
   (do 2 try match goal with [H: list (key * Any.t) |- _] => clear H end);
-  iIntros (?????); iIntrosFresh "IST"; iIntrosFresh "TID".
+  iIntros (????); iIntrosFresh "IST"; iIntrosFresh "TID".
