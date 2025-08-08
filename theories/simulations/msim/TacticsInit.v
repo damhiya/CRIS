@@ -80,10 +80,10 @@ Ltac init_sim :=
 
 Ltac iinit_simF := initialize_simF.
 
-Ltac prove_proph_sim :=
+(* Ltac prove_proph_sim :=
   s; et; ii;
   match goal with [H: _|-_] => revert H; alist_find_simpl; i; depdes H end;
   alist_find_simpl; esplits; et;
   eapply isim_fsem_proph_to_normal; i;
   rewrite SRed.fbody_trivial;
-  iIntros; iApply isim_refl; et; i; iIntros "%"; subst; et.
+  iIntros; iApply isim_refl; et; i; iIntros "%"; subst; et. *)

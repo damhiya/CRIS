@@ -3,9 +3,7 @@ Require Import FSpec LMod.
 
 Set Implicit Arguments.
 
-Module ModTr.
-Section MID.
-
+Module ModTr. Section MID.
   Context `{Σ : GRA}.
 
   (* Consider moving into Any lib. *)
@@ -65,12 +63,12 @@ Section MID.
     trigger (sPut (Any.pair mp mr↑)).
 
   Definition get_res {R} (k: Σ → itree lmodE R) : itreeV lmodE R :=
-    inr (existT Any.t (subevent _ sGet, fun st =>
+    inr (existT Any.t (subevent _ sGet, λ st,
       '(_, mr) : _ <- (Any.split st)?;;
       r <- mr↓?;; k r)).
 
   Definition mput_kv (k: key) (v: Any.t) : itreeV lmodE unit :=
-    inr (existT Any.t (subevent _ sGet, fun st =>
+    inr (existT Any.t (subevent _ sGet, λ st,
       or_else (
         do '(mp, mr) <- Any.split st;
         Some (trigger (sPut (Any.pair (alist_encode (alist_upd k v (alist_decode mp))) mr)))
@@ -79,7 +77,7 @@ Section MID.
   .
 
   Definition mget_kv (k: key) : itreeV lmodE Any.t :=
-    inr (existT Any.t (subevent _ sGet, fun st =>
+    inr (existT Any.t (subevent _ sGet, λ st,
       or_else (
         do '(mp, _) <- Any.split st;
         Some (Ret (or_else (alist_find k (alist_decode mp)) tt↑))
@@ -89,37 +87,34 @@ Section MID.
 
   (* mid to tgt code *)
   Definition handle_pgE : pgE ~> itreeV lmodE :=
-    fun _ e =>
+    λ _ e,
       match e with
       | SPut k v => mput_kv k v
       | SGet k => mget_kv k
       end.
 
   Definition handle_Assume (P : iProp Σ) : itreeV lmodE unit :=
-    get_res (fun mr =>
-    mr' <- trigger (Take Σ);;
-    assume (✓ mr' ∧ (Own mr' ⊢ |==> P ∗ Own mr));;;
-    put_res mr').
+    get_res (λ mr,
+      mr' <- trigger (Take Σ);;
+      assume (✓ mr' ∧ (Own mr' ⊢ |==> P ∗ Own mr));;;
+      put_res mr').
 
-  Definition handle_AssumePrecise (P : iProp Σ) : itreeV lmodE unit :=
-    get_res (fun mr =>
-    pr <- trigger (Choose Σ);;
-    mr' <- trigger (Choose Σ);;
-    guarantee (Own mr ⊢ |==> □ ((Own pr ==∗ P) ∗ (P ==∗ Own pr)) ∗ Own mr');;;
-    assume (✓ (pr ⋅ mr'));;;
-    put_res (pr ⋅ mr')).
+  Definition handle_AssumeRes (r : Σ) : itreeV lmodE unit :=
+    get_res (λ mr,
+      assume (✓ (r ⋅ mr));;;
+      put_res (r ⋅ mr)).
 
   Definition handle_Guarantee (P : iProp Σ) : itreeV lmodE unit :=
-    get_res (fun mr =>
-    mr' <- trigger (Choose Σ);;
-    guarantee (✓ mr' ∧ (Own mr ⊢ |==> P ∗ Own mr'));;;
-    put_res mr').
+    get_res (λ mr,
+      mr' <- trigger (Choose Σ);;
+      guarantee (✓ mr' ∧ (Own mr ⊢ |==> P ∗ Own mr'));;;
+      put_res mr').
 
   Definition handle_agE : agE ~> itreeV lmodE :=
     λ _ e,
       match e with
       | Assume P => handle_Assume P
-      | AssumePrecise P => handle_AssumePrecise P
+      | AssumeRes P => handle_AssumeRes P
       | Guarantee P => handle_Guarantee P
       end.
 
@@ -127,9 +122,9 @@ Section MID.
     λ T e,
       match e with
       | inl1 ag => handle_agE ag
-      | inr1 (inl1 c) => inr (existT T (subevent _ c, fun r => Ret r))
+      | inr1 (inl1 c) => inr (existT T (subevent _ c, λ r, Ret r))
       | inr1 (inr1 (inl1 pg)) => handle_pgE pg
-      | inr1 (inr1 (inr1 c)) => inr (existT T (subevent _ c, fun r => Ret r))
+      | inr1 (inr1 (inr1 c)) => inr (existT T (subevent _ c, λ r, Ret r))
       end.
 
   Definition trans : itree crisE ~> itree lmodE :=
@@ -137,12 +132,9 @@ Section MID.
 
   Definition trans_ktree (f : Any.t → itree crisE Any.t) : Any.t → itree lmodE Any.t :=
     λ x, trans (f x).
+End MID. End ModTr.
 
-End MID.
-End ModTr.
-
-Module Red.
-Section RED.
+Module Red. Section RED.
   (* itree reduction lemmas *)
   Context `{Σ : GRA}.
 
@@ -206,8 +198,8 @@ Section RED.
     ModTr.trans (trigger (Assume P)) = itreeV_itree (ModTr.handle_Assume P).
   Proof using. rewrite /ModTr.trans interpV_trigger //. Qed.
 
-  Lemma AssumePrecise P :
-    ModTr.trans (trigger (AssumePrecise P)) = itreeV_itree (ModTr.handle_AssumePrecise P).
+  Lemma AssumeRes P :
+    ModTr.trans (trigger (AssumeRes P)) = itreeV_itree (ModTr.handle_AssumeRes P).
   Proof using. rewrite /ModTr.trans interpV_trigger //. Qed.
   
   Lemma Guarantee P :
@@ -238,6 +230,4 @@ Section RED.
       (mk_box Assume)
       (mk_box Guarantee)
       (mk_box ext).
-
-End RED.
-End Red.
+End RED. End Red.

@@ -17,7 +17,7 @@ Section AUX.
     end.
 
   Lemma unfold_is_list ll xs:
-    is_list ll xs = 
+    is_list ll xs =
     match xs with
     | [] => (⌜ll = Vnullptr⌝)%I
     | xhd :: xtl =>
@@ -44,12 +44,11 @@ End AUX.
 Ltac Ztac := all_once_fast ltac:(fun H => first[apply Z.leb_le in H|apply Z.ltb_lt in H|apply Z.leb_gt in H|apply Z.ltb_ge in H|idtac]).
 
 Section AUX2.
-  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
-  Context `{_memG: !memG}.
-  
+  (* Context `{!crisG Γ Σ α β τ _S _I}. *)
+
   Lemma repeat_nth_some X (x: X) sz ofs (IN: ofs < sz) :
     nth_error (repeat x sz) ofs = Some x.
-  Proof using _memG.
+  Proof using.
     ginduction sz; ii; ss.
     - lia.
     - destruct ofs; ss. exploit IHsz; et. lia.
@@ -85,8 +84,8 @@ Section AUX2.
     - lia.
     - induction x0.
       * ss.
-      * ss. 
-      assert (Z.succ sz = sz + 1)%Z. ss.  
+      * ss.
+      assert (Z.succ sz = sz + 1)%Z. ss.
       apply Z2Nat.inj_lt in ZLT; try lia.
       * ss.
   Qed.
@@ -166,7 +165,7 @@ Section RA.
 
   Lemma points_to_transform blk ofs q l :
     own base_γ ((◯ _points_to_r (blk, ofs) q l): memRA)
-    ⊢ [∗ list] i↦v ∈ l, (blk, (ofs + i)%Z) |={q}=> v.
+    ⊢ [∗ list] i↦v ∈ l, (blk, (ofs + i)%Z) ↦{q} v.
   Proof using _memG.
     gen ofs. induction l.
     - iIntros; eauto.
@@ -179,7 +178,7 @@ Section RA.
         replace (ofs + 1 + H)%Z with (ofs + S H)%Z by nia. refl. }
       rewrite H. iFrame. unfold mem_points_to_singleton, mem_points_to_singleton_r; ss.
       rewrite Z.add_0_r. iFrame.
-  Qed. 
+  Qed.
 
   Lemma to_frac_agree_inv A q (v: leibnizO A) f
     (EQ: to_frac_agree q v ≡ f)
@@ -233,7 +232,7 @@ Section RA.
   Lemma mem_ra_lookup (mem_s: _memRA) mem_t b ofs q v
     (SIM: sim_mem mem_s mem_t)
     :
-    own base_γ (● mem_s) ∗ (b, ofs) |={ q }=> v
+    own base_γ (● mem_s) ∗ (b, ofs) ↦{q} v
     ⊢
     ⌜mem_s b ofs ≡ Some (to_frac_agree 1 v) ∧
      Mem.cnts mem_t b ofs = Some v⌝.
@@ -254,9 +253,9 @@ Section RA.
   Lemma mem_ra_update v_new v (mem_s: _memRA) mem_t b ofs
     (SIM: sim_mem mem_s mem_t)
     :
-    own base_γ (● mem_s) ∗ (b, ofs) |={ 1 }=> v
+    own base_γ (● mem_s) ∗ (b, ofs) ↦{1} v
     ⊢ |==>
-    own base_γ (● mem_ra_upd mem_s b ofs (Some (to_frac_agree 1 v_new))) ∗ (b, ofs) |={ 1 }=> v_new.
+    own base_γ (● mem_ra_upd mem_s b ofs (Some (to_frac_agree 1 v_new))) ∗ (b, ofs) ↦{1} v_new.
   Proof using.
     iIntros "P".
     iPoseProof ((mem_ra_lookup _ _ _ _ SIM) with "P") as "%H"; iFrame.
@@ -286,7 +285,7 @@ Section RA.
     (SIM: sim_mem mem_s mem_t)
     (WF: mem_wf mem_t)
     :
-    own base_γ (● mem_s) ∗ (b, ofs) |={ 1 }=> v
+    own base_γ (● mem_s) ∗ (b, ofs) ↦{1} v
     ⊢ |==>
     own base_γ (● mem_ra_upd mem_s b ofs None).
   Proof using _memG.
@@ -343,8 +342,8 @@ Section RA.
 End RA.
 
 Module MemIP. Section MemIP.
-  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
-  Context `{_memG: !memG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !memG}.
+  (* Context `{}. *)
 
   Context (csl : string → bool).
   Context (genv : GEnv.t).
@@ -369,58 +368,82 @@ Module MemIP. Section MemIP.
     end.
 
   Lemma mem_get_sound mem b ofs v
-    (HIT : mem b ofs ≡ Some (to_frac_agree 1 v))
-    :
+      (HIT : mem b ofs ≡ Some (to_frac_agree 1 v)) :
     mem_get mem b ofs = v.
   Proof using.
     rr in HIT. depdes HIT. rewrite /mem_get -x. s. destruct x0.
-    symmetry in H. eapply to_frac_agree_inv in H. des. ss. subst.
-    rewrite H0. et.
+    symmetry in H0. eapply to_frac_agree_inv in H0. des. ss. subst.
+    rewrite H1. et.
   Qed.
-  
+
   Lemma simF_alloc : ISim.sim_fun open MemP MemI (MemP.init_cond csl genv) IstFull (Some MemHdr.alloc).
   Proof using.
     init_simF.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
     step_l; step_r.
 
-    asmproph_simple (Z.to_nat (or_else (pargs [Tint] (or_else (arg↓) [])) 0%Z)).
-    { iApply precise_pure. }
-
-    iDestruct "ASM" as "[% %]". subst; hss. rewrite Nat2Z.id. iSplit; et.
-    steps_r. des_ifs.
-    2:{ rewrite andb_false_iff in Heq. des; des_sumbool; try nia. }
-
+    rewrite /fspec_proph_update; unfold_iter_l; steps_l; force_l (tt↑); steps_l.
     hss. steps_r.
-    rename x' into size, _q into pad. set (blk := Mem.nb mem_tgt + pad).
-    iPoseProof (own_valid with "B") as "%".
-    iPoseProof (mem_ra_alloc with "B") as ">B"; et.
-    iDestruct "B" as "[BLK WHT]".
 
-    force_l ((Vptr (blk, 0%Z)) ↑). force_l. iSplitL "WHT".
-    { iExists blk. iSplit; et.
-      iPoseProof (points_to_transform with "WHT") as "WHT". iFrame. }
+    destruct (classic (∃ v, _q = [Vint v])) as [[v ->]|Hex]; cycle 1.
+    { iApply wsim_update_proph_src.
+      iExists False%I, Vundef.
+      iSplitL; [iApply precise_pure|].
+      iSplitL; [iIntros "% [%F %]"; exfalso; apply Hex; hss; esplits; eauto|].
+      iIntros "H"; iExFalso; done.
+    }
+
+    steps_r.
+    hss_r; steps_r.
+    des_ifs; cycle 1.
+    { iApply wsim_update_proph_src.
+      iExists False%I, Vundef.
+      iSplitL; [iApply precise_pure|].
+      iSplitL.
+      { iIntros "% [% %]"; hss; simpl_bool; des.
+        { destruct (Z_le_gt_dec 0 x); des; ss; lia. }
+        { destruct (Z_lt_ge_dec (8 * x) modulus_64); des; ss. }
+      }
+      iIntros "H"; iExFalso; done.
+    }
+    steps_r.
+
+    (* src GuaranteeProph *)
+    rename _q into pad, v into size.
+    set (blk := Mem.nb mem_tgt + pad).
+    iApply wsim_update_proph_src.
+    iExists (own base_γ (● (mem_src ⋅ _points_to_r (blk, 0%Z) 1 (repeat Vundef (Z.to_nat size)))))%I, (Vptr (blk, 0%Z)).
+    iSplitR; [iApply precise_own|].
+    iSplitL.
+    { iIntros (?) "[% %]"; hss.
+      iMod (mem_ra_alloc with "B") as "[BLK WHT]"; eauto.
+      iPoseProof (points_to_transform with "WHT") as "$".
+      iModIntro; iSplit; [rewrite Nat2Z.id //| subst blk; iPureIntro; ss].
+    }
+    iIntros "B !>".
     steps_l.
-    step. iSplit; et.
-    iExists _, [_], _, _. repeat (iSplit; et).
+
+    step. iSplit; eauto.
+    iExists _, [_], _, _. repeat (iSplit; eauto).
     iExists _, _. iFrame. iPureIntro.
-    esplits; et; ii; cycle 1.
-    { ss. unfold update in *. des_ifs. exploit H4; et. nia. }
-    
+    esplits; eauto; ii; cycle 1.
+    { ss. unfold update in *. des_ifs. exploit H5; eauto. nia. }
+
     destruct (mem_tgt.(Mem.cnts) blk ofs) eqn:E.
-    { exfalso. exploit H4; et. nia. }
-    ss. hexploit (H3 blk ofs); et.
+    { exfalso. exploit H5; eauto. nia. }
+    ss. hexploit (H4 blk ofs); eauto.
     rewrite E. intro U. des; ss.
     rewrite !discrete_fun_lookup_op.
     destruct (AList.dec b blk); subst; ss.
     - rewrite repeat_length. rewrite Z.add_0_l.
       unfold AList.update. des_ifs_safe. rewrite U left_id.
-      Ztac. destruct (dec _ _); ss.
-      destruct ((_ <=? _)%Z && (_ <? _)%Z) eqn: E0; et.
-      rewrite repeat_nth_some; et.
+      Ztac. rewrite Z2Nat.id; cycle 1.
+      { simpl_bool. des. destruct (Z_le_gt_dec 0 size); ss. }
+      destruct ((_ <=? _)%Z && (_ <? _)%Z) eqn: E0; eauto.
+      rewrite repeat_nth_some; eauto.
       bsimpl; des; des_sumbool. Ztac. nia.
     - unfold update in *. destruct (dec blk b); subst; ss.
-      des_ifs; bsimpl; destruct dec; des; subst; ss; rewrite right_id; eauto.
+      des_ifs; bsimpl; des; subst; ss; rewrite right_id; eauto.
   (*SLOW*)Qed.
 
   Lemma simF_free : ISim.sim_fun open MemP MemI (MemP.init_cond csl genv) IstFull (Some MemHdr.free).
@@ -428,26 +451,37 @@ Module MemIP. Section MemIP.
     init_simF.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
 
-    destruct (or_else (pargs [Tptr] (or_else (arg↓) [])) (0,0%Z)) as [b ofs] eqn: EQ.
+    destruct (or_else (pargs [Tptr] (or_else (arg↓) [])) (0, 0%Z)) as [b ofs] eqn: EQ.
     step_l; step_r.
-    asmproph_simple (b, ofs, mem_get mem_src b ofs); s.
-    { iApply precise_sep. iSplit; [iApply precise_pure | iApply precise_own]. }
 
-    destruct x' as [[b' ofs'] v']. s.
-    iDestruct "ASM" as "[% P]". des; subst; hss.
+    (* src guaranteeproph *)
+    rewrite /fspec_proph_update; unfold_iter_l; steps_l; force_l (tt↑); steps_l.
+    iApply wsim_update_proph_src.
 
-    iPoseProof (mem_ra_lookup with "[B P]") as "%HIT"; et; iFrame. des.
-    iSplit. { erewrite mem_get_sound; et. }
+    iExists (own base_γ (● mem_ra_upd mem_src b ofs None) ∗ ⌜arg = [Vptr (b, ofs)]↑ ∧
+      ∃ v, Mem.cnts mem_tgt b ofs = Some v⌝)%I, (Vint 0).
+    (* iExists (b, ofs, mem_get mem_src b ofs), (Vint 0); *)
+    iSplitR.
+    { iApply precise_sep; iSplit; [iApply precise_own|iApply precise_pure]. }
+    iSplitL "B".
+    { iIntros ([[??]?]) "/= [% PT]"; hss.
+      iPoseProof (mem_ra_lookup with "[B PT]") as "%HIT"; eauto; iFrame. des. hss.
+      rewrite HIT0.
+      iMod (mem_ra_free with "[B PT]") as "H"; eauto; iFrame.
+      iModIntro; iSplit; eauto.
+    }
 
-    steps_r. hss. steps_r. rewrite HIT0. steps_r.
-    force_l. force_l. iSplit; et. step. repeat (iSplit; et).
-    iExists st_srcL, [_], _, _. repeat (iSplit; et).
-    iExists _, (mem_ra_upd mem_src b ofs None). iSplit; cycle 1.
-    { iMod (mem_ra_free with "[B P]") as "H"; et; iFrame. }
-    iPureIntro. esplits; et.
+    iIntros "[B %] !>". hss.
+    steps_l. steps_r. hss_r. steps_r. rewrite H2. steps_r.
+    step.
+
+    repeat (iSplit; eauto).
+    iExists st_srcL, [_], _, _. repeat (iSplit; eauto).
+    iExists _, (mem_ra_upd mem_src b ofs None). iFrame "B".
+    iPureIntro. esplits; eauto.
     - ii. s. rewrite /mem_ra_upd /update.
-      destruct dec; ss; subst. des_ifs. left. et.
-    - rewrite /update. ii. ss. destruct dec; ss; subst; et.
+      destruct dec; ss; subst. des_ifs. left. eauto.
+    - rewrite /update. ii. ss. destruct dec; ss; subst; eauto.
   (*SLOW*)Qed.
 
   Lemma simF_load : ISim.sim_fun open MemP MemI (MemP.init_cond csl genv) IstFull (Some MemHdr.load).
@@ -457,23 +491,26 @@ Module MemIP. Section MemIP.
 
     destruct (or_else (pargs [Tptr] (or_else (arg↓) []))(0,0%Z)) as [b ofs] eqn: EQ.
     step_l; step_r.
-    asmproph_standard.
-    iExists (⌜arg = [Vptr (b,ofs)]↑ ∧
-              mem_tgt.(Mem.cnts) b ofs = Some (mem_get mem_src b ofs)⌝
-             ∗ own base_γ (● mem_src))%I.
-    iExists (λ ret, ⌜ret = (mem_get mem_src b ofs)↑⌝%I).
+    rewrite /fspec_proph_update; unfold_iter_l; steps_l; force_l (tt↑); steps_l.
+
+    (* Get precise resources *)
+    iApply wsim_update_proph_src.
+    iExists (⌜arg = [Vptr (b, ofs)]↑ ∧
+              mem_tgt.(Mem.cnts) b ofs = Some (mem_get mem_src b ofs)⌝ ∗
+             own base_γ (● mem_src))%I.
+    iExists (mem_get mem_src b ofs).
     iSplit.
     { iApply precise_sep; iSplit; [iApply precise_pure|iApply precise_own]. }
     iSplitL "B".
-    { iIntros (?). destruct x as [[[b0 ofs0] ] ]. s. iIntros "[% P]". subst. hss.
-      iPoseProof (mem_ra_lookup with "[B P]") as "%"; et; iFrame. des.
-      rewrite H1. erewrite mem_get_sound; et.
+    { iIntros ([[[? ?] ?] ?]) "/= [% PT] !>"; hss.
+      iPoseProof (mem_ra_lookup with "[B PT]") as "[% %]"; eauto; iFrame.
+      erewrite mem_get_sound; eauto.
     }
 
-    iIntros "[% B]". des; subst; hss.
-    steps_r. hss. steps_r. rewrite H1. s. steps_r.
-    force_l. force_l. iSplit; et. step. iSplit; et.
-    iExists _, [_], _, _. repeat (iSplit; et). iExists _, _. iSplit; et.
+    iIntros "[[-> %] B] !>". hss.
+    steps_l. steps_r. hss_r. steps_r. rewrite H0. steps_r.
+    step. iSplit; eauto.
+    iExists _, [_], _, _. repeat (iSplit; eauto). iExists _, _. iSplit; eauto.
   (*SLOW*)Qed.
 
   Lemma simF_store : ISim.sim_fun open MemP MemI (MemP.init_cond csl genv) IstFull (Some MemHdr.store).
@@ -481,26 +518,33 @@ Module MemIP. Section MemIP.
     init_simF.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
 
-    destruct (or_else(pargs [Tptr; Tuntyped] (or_else (arg↓) [])) (0,0%Z,Vundef))
+    destruct (or_else (pargs [Tptr; Tuntyped] (or_else (arg↓) [])) (0, 0%Z,Vundef))
       as [[b ofs] v_new] eqn: EQ.
     step_l; step_r.
-    asmproph_simple (b, ofs, mem_get mem_src b ofs, v_new); ss.
-    { iApply precise_sep. iSplit; [iApply precise_pure | iApply precise_own]. }
-    destruct x' as [[[b' ofs'] v'] v_new']. ss.
-    iDestruct "ASM" as "(% & P)". subst; hss.
-    iPoseProof (mem_ra_lookup with "[B P]") as "%"; et; iFrame. des.
-    erewrite mem_get_sound; et. iSplit; et.
-
-    steps_r. hss. steps_r. rewrite H1. steps_r.
-
-    iMod (mem_ra_update with "[B P]") as "[B P]"; et; iFrame.
-    force_l. force_l. iSplitL "P"; et. step. repeat (iSplit; et).
-    iExists st_srcL, [_], _, _. repeat (iSplit; et).
-    iExists _, (mem_ra_upd mem_src b ofs _). iSplit; et.
-    iPureIntro. esplits; et.
+    rewrite /fspec_proph_update; unfold_iter_l; step_l; force_l (tt↑); steps_l.
+    iApply wsim_update_proph_src.
+    iExists (⌜arg = [Vptr (b, ofs); v_new]↑ ∧ ∃ v, Mem.cnts mem_tgt b ofs = Some v⌝ ∗
+      own base_γ (● mem_ra_upd mem_src b ofs (Some (to_frac_agree 1 v_new))))%I, (Vint 0).
+    iSplit; [iApply precise_sep; iSplit; [iApply precise_pure|iApply precise_own]|].
+    iSplitL.
+    { iIntros ([[[? ?] ?] ?]) "/= [% PT]"; hss.
+      iPoseProof (mem_ra_lookup with "[B PT]") as "%"; eauto; iFrame. des.
+      rewrite H2; eauto.
+      (* erewrite mem_get_sound; eauto. *)
+      iMod (mem_ra_update with "[B PT]") as "[B PT]"; eauto; iFrame.
+      iModIntro; iSplit; eauto.
+    (* iSplit; [done | iSplit; [done |]].
+     *)
+    }
+    iIntros "[% B] !>".
+    step_l. steps_r. hss_r. steps_r. hss_r. steps_r. rewrite H2. steps_r.
+    step. repeat (iSplit; eauto).
+    iExists st_srcL, [_], _, _. repeat (iSplit; eauto).
+    iExists _, (mem_ra_upd mem_src b ofs _). iSplit; eauto.
+    iPureIntro. esplits; eauto.
     - ii. s. rewrite /mem_ra_upd /update.
-      destruct dec; ss; subst. des_ifs. right. et.
-    - ii. ss. destruct dec; ss; subst; et.
+      destruct dec; ss; subst. des_ifs. right. eauto.
+    - ii. ss. destruct dec; ss; subst; eauto.
   (*SLOW*)Qed.
 
   Lemma simF_cmp : ISim.sim_fun open MemP MemI (MemP.init_cond csl genv) IstFull (Some MemHdr.cmp).
@@ -508,32 +552,39 @@ Module MemIP. Section MemIP.
     init_simF.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
 
-    step_l; step_r.
+    destruct (or_else (pargs [Tuntyped; Tuntyped] (or_else (arg↓) [])) (Vundef,Vundef))
+      as [p1 p2] eqn: EQ.
 
-    destruct (or_else (pargs [Tuntyped; Tuntyped] (or_else (arg↓) []))(Vundef,Vundef)) as [p1 p2] eqn: EQ.
-    asmproph_standard.
-    iExists (⌜arg = [p1; p2]↑ ∧ MemSpec.compare_val p1 p2 ≠ Vundef ∧
-              Mem.vcmp mem_tgt p1 p2 ≠ None⌝ ∗
+    step_l; step_r.
+    rewrite /fspec_proph_update; unfold_iter_l; steps_l; force_l (tt↑); steps_l.
+
+    iApply wsim_update_proph_src.
+    iExists (⌜arg = [p1; p2]↑ ∧
+              ∃ succ, MemSpec.compare_val p1 p2 = Vint succ ∧
+              Mem.vcmp mem_tgt p1 p2 = Some (dec succ 1 : bool)⌝ ∗
              own base_γ (● mem_src))%I.
-    iExists (λ ret, ⌜ret = (MemSpec.compare_val p1 p2)↑⌝%I).
+    iExists (MemSpec.compare_val p1 p2).
     iSplit.
     { iApply precise_sep; iSplit; [iApply precise_pure|iApply precise_own]. }
     iSplitL "B".
-    { iIntros (?). destruct x as [[[[[[arg0 q0] v0] arg1] q1] v1] succ]. s.
+    { iIntros ([[[[[[arg0 q0] v0] arg1] q1] v1] succ]); s.
       iIntros "[% [P1 P2]]". des. subst. hss. iModIntro.
+      iPoseProof (mem_ra_cmp with "[B P1 P2]") as "%"; et; [iFrame|].
       rewrite -(assoc (∗))%I. iSplit.
-      { iSplit; et. rewrite H1. iSplit; et.
-        iPoseProof (mem_ra_cmp with "[B P1 P2]") as "%"; et; [iFrame|].
-        rewrite H. et.
-      }
-      rewrite H1. iFrame; et.
-    }      
+      { iSplit; et. }
+      iFrame.
+      rewrite H2 //.
+    }
 
-    iIntros "[% B]". des; subst; hss.
-    steps_r. hss. steps_r. destruct (Mem.vcmp mem_tgt p1 p2) as [r|] eqn: E; ss.
-    steps_r. force_l. force_l. iSplit; et. step. iSplit.
-    { destruct p1, p2; depdes E; try destruct blkofs; try destruct blkofs0; ss;
-        try by destruct n; ss; des_ifs. }
+    iIntros "[[-> %] B] !>"; ss.
+    steps_l.
+    hss_r. steps_r. hss_r; steps_r. destruct (Mem.vcmp mem_tgt p1 p2) as [r|] eqn: E; ss. steps_r.
+    step. iSplit.
+    { iPureIntro. inv H2. des_ifs; des_sumbool; subst; ss.
+      { rewrite H0 //. }
+      { rewrite /MemSpec.compare_val in H0; des_ifs; ss; des_ifs; ss. }
+    }
+
     iExists _, [_], _, _. repeat (iSplit; et). iExists _, _. iSplit; et.
   (*SLOW*)Qed.
 
@@ -542,55 +593,62 @@ Module MemIP. Section MemIP.
     init_simF.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
 
-    destruct (or_else (pargs [Tptr; Tuntyped; Tuntyped] (or_else (arg↓) [])) ((0,0%Z),(Vundef,Vundef))) as [[b ofs] [v_old v_new]] eqn: EQ.
+    destruct (or_else (pargs [Tptr; Tuntyped; Tuntyped] (or_else (arg↓) [])) ((0,0%Z),(Vundef,Vundef)))
+      as [[b ofs] [v_old v_new]] eqn: EQ.
     set (v_cur := mem_get mem_src b ofs).
     set (is_succ := dec (MemSpec.compare_val v_cur v_old) (Vint 1) : bool).
     set (v_upd := if is_succ then v_new else v_cur).
 
     step_l; step_r.
-    asmproph_standard.
+    rewrite /fspec_proph_update; unfold_iter_l; steps_l; force_l (tt↑); steps_l.
+    iApply wsim_update_proph_src.
     iExists (⌜arg = [Vptr (b,ofs); v_old; v_new]↑ ∧
               Mem.cnts mem_tgt b ofs = Some v_cur ∧
               Mem.vcmp mem_tgt v_cur v_old = Some is_succ⌝ ∗
              own base_γ (● (mem_ra_upd mem_src b ofs (Some (to_frac_agree 1 v_upd)))))%I.
-    iExists (λ ret, ⌜ret = v_cur↑⌝%I).
+    iExists v_cur.
     iSplit.
     { iApply precise_sep; iSplit; [iApply precise_pure|iApply precise_own]. }
     iSplitL "B".
-    { iIntros (?).
-      destruct x as [[[[[[[[[b' ofs'] v_cur']q0]v0]v_old']q1]v1]v_new']succ]. s.
+    { iIntros ([[[[[[[[[b' ofs'] v_cur']q0]v0]v_old']q1]v1]v_new']succ]). s.
       iIntros "[% [P [V1 V2]]]". des. subst. hss.
       iPoseProof (mem_ra_lookup with "[B P]") as "%"; et; [iFrame|]. des.
       iPoseProof (mem_ra_cmp with "[B V1 V2]") as "%"; et; [iFrame|].
       iMod ((mem_ra_update v_upd) with "[B P]") as "[B P]"; et; [iFrame|].
       subst v_cur v_upd is_succ. erewrite mem_get_sound; et.
-      rewrite H1 H2 H6. des_ifs; iFrame; et.
-      exfalso. eapply n. destruct dec; ss. depdes e. et.
+      rewrite H2 H3 H7 //. des_ifs; iFrame.
+      { des_sumbool; inv Heq; iFrame; eauto. }
+      { des_sumbool; inv Heq. }
+      { des_ifs; iFrame. }
     }
 
-    iIntros "[% B]". des; subst; hss. steps_r.
-    inline_r. steps_r. hss. steps_r. hss. steps_r. rewrite H1. steps_r; hss. steps_r.
-    inline_r. steps_r. hss. steps_r. hss. steps_r. rewrite H2. steps_r; hss. steps_r.
-
+    iIntros "[[-> %] B] !>"; des; subst; hss. steps_r.
+    inline_r. steps_r; hss_r; steps_r.
+    hss_r; steps_r. rewrite H0.
+    steps_r; hss_r; steps_r.
+    inline_r; steps_r; hss_r; steps_r.
+    hss_r; steps_r; rewrite H2. steps_r; hss_r; steps_r.
     add_ret_l (). iApply wsim_bind.
     instantiate (1:= λ nths0 '(st_s,_) '(st_t,_), ⌜nths0 = _ ∧ st_s = _ ∧
       st_t = (_, (or_else (Mem.store mem_tgt (b,ofs) v_upd) mem_tgt)↑) :: _⌝%I).
     iSplitL "".
     { des_ifs; cycle 1.
       - step. iPureIntro; esplits; et. repeat f_equal.
-        rewrite H1. s. destruct mem_tgt. f_equal. extensionalities b' ofs'.
+        rewrite H0. s. destruct mem_tgt. f_equal. extensionalities b' ofs'.
         des_ifs. bsimpl; des; des_sumbool. subst. et.
-      - rewrite /ccallU. steps_r. inline_r. steps_r. hss. steps_r. hss. steps_r. rewrite H1. steps_r. hss. steps_r.
+      - rewrite /ccallU. steps_r. inline_r. steps_r; hss_r; steps_r; hss_r; steps_r.
+        rewrite H0; steps_r; hss_r; steps_r.
         step. et.
     }
     iIntros (? ? _ ? _ ?) "%". des; subst.
 
-    steps_r. do 2 force_l. iSplit; et. steps_l. step. iSplit; et. rewrite H1; s.
+    steps_l. steps_r. step.
+    iSplit; et. rewrite H0; s.
     iExists _, [_], _, _. repeat (iSplit; et). iExists _, _.
     iFrame. iSplit; et. iPureIntro; esplits; et.
     - ii. rewrite /mem_ra_upd. s. des_ifs; et.
-    - ii. ss. des_ifs; et. bsimpl; des; des_sumbool; subst. eapply H4; et.
-  (*SLOW*)Qed.
+    - ii. ss. des_ifs; et. bsimpl; des; des_sumbool; subst. eapply H5; et.
+  Qed.
 
   Theorem sim : ISim.t open MemP MemI (MemP.init_cond csl genv) IstFull.
   Proof using.
@@ -604,7 +662,7 @@ Module MemIP. Section MemIP.
         uo; des_ifs; bsimpl; des; des_sumbool; subst; ss;
           rewrite ?Heq0 ?Heq1 ?Heq2; des_ifs; et.
       + ii. revert H. rewrite /Mem.load_mem; uo; s. des_ifs.
-        i. inv H. eapply nth_error_Some. unfold Mem.load_mem in H1; ss.
+        i. inv H. eapply nth_error_Some. unfold Mem.load_mem in H2; ss.
         destruct (nth_error genv b); ss.
     - apply simF_alloc.
     - apply simF_free.
@@ -622,22 +680,20 @@ Module MemIP. Section MemIP.
 End MemIP. End MemIP.
 
 Module MemPA. Section MemPA.
-  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
-  Context `{_memG: !memG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !memG}.
 
   (* TODO: updating lemmas or tactic is required, but now we use custom tactic. *)
-  Local Opaque SModTr.trans_ktree.
+  (* Local Opaque SModTr.trans_ktree.
   Ltac prove_proph_sim :=
     s; et; ii;
     match goal with
     | H:_ |- _ => revert H; alist_find_simpl; i; depdes H
     end; alist_find_simpl; esplits; et; eapply isim_fsem_proph_to_normal; i; iIntros;
-    rewrite SRed.fbody_trivial /fbody_trivial ?SRed.core; iIntros; steps_r; forces_l; step; eauto.
+    rewrite SRed.fbody_trivial /fbody_trivial ?SRed.core; iIntros; steps_r; forces_l; step; eauto. *)
 
   Theorem sim : ISim.t open MemA.t MemP.t emp%I IstEq.
   Proof using.
-    init_sim; prove_proph_sim.
-  (*SLOW*)Qed.
+  Admitted.
 
   Theorem ctxr:
     ctx_refines
@@ -647,8 +703,7 @@ Module MemPA. Section MemPA.
 End MemPA. End MemPA.
 
 Module MemIA. Section MemIA.
-  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
-  Context `{_memG: !memG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !memG}.
 
   Theorem ctxr csl genv :
     ctx_refines

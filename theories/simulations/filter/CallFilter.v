@@ -54,7 +54,7 @@ Module CFilter. Section CFilter.
       - destruct img.
         + steps_l. force_r. iSplitL "ASM"; et. steps_r. by_coind "CIH"; et.
         + rewrite SBRed.bind SBRed.Assume. steps_l. ss.
-      - steps_l. steps_r. step. steps_l. steps_r. by_coind "CIH"; et.
+      - steps_l. force_r; iFrame. steps_l. steps_r. by_coind "CIH"; et.
       - steps_r. force_l. iSplitL "GRT"; et. steps_l. by_coind "CIH"; et.
       - destruct c; s.
         + destruct (wmask_and mask msk fn) eqn: EQ; cycle 1.
@@ -131,7 +131,7 @@ Module CFilter. Section CFilter.
     - destruct img.
       + steps_l. force_r. iSplitL "ASM"; et. steps_r. by_coind "CIH"; et.
       + rewrite SBRed.bind SBRed.Assume. steps_l. ss.
-    - steps_l. steps_r. step. steps_l. steps_r. by_coind "CIH"; et.
+    - steps_l. force_r; iFrame. steps_l. steps_r. by_coind "CIH"; et.
     - steps_r. force_l. iSplitL "GRT"; et. steps_l. by_coind "CIH"; et.
     - destruct c; s.
       + destruct (msk fn) eqn: EQ; cycle 1.
@@ -329,24 +329,31 @@ Module CFilter. Section CFilter.
       gbase. eapply CIH; et.
       i. eapply list_lookup_insert_Some in IN. des; subst; et.
     }
-    { (* AssumePrecise  *)
-      zstep_r.
+    { (* AssumeRes  *)
+      (* zstep_r.
       ziter_r. zstep_r. zstep_r.
       ziter_r. zstep_r. zstep_r. 
-      ziter_r. zstep_r. zstep_r.
+      ziter_r. zstep_r. zstep_r. *)
 
       zstep_l.
-      ziter_l. zstep_l. exists x. zstep_l.
-      ziter_l. zstep_l. exists x0. zstep_l.
-      ziter_l. zstep_l. exists x1. zstep_l.
-
       ziter_l. zstep_l. zstep_l.
+      (* exists x. zstep_l. *)
       ziter_l. zstep_l.
+      (* exists x0. zstep_l. *)
       ziter_l. zstep_l.
+
+      zstep_r. ziter_r. zstep_r. exists x.
+      zstep_r. ziter_r; zstep_r.
+      ziter_r; zstep_r.
+      (* exists x1. zstep_l. *)
+
+      (* ziter_l. zstep_l. zstep_l.
+      ziter_l. zstep_l.
+      ziter_l. zstep_l. *)
       
-      ziter_r. zstep_r. exists x2. zstep_r.
+      (* ziter_r. zstep_r. exists x2. zstep_r.
       ziter_r. zstep_r.
-      ziter_r. zstep_r.
+      ziter_r. zstep_r. *)
 
       zprogress.
       gbase. eapply CIH; et.

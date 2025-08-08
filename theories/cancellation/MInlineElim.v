@@ -9,9 +9,7 @@ Set Implicit Arguments.
 Section INLINE.
 Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
 
-Lemma inline_elim md P
-:
-  refines (md, P) (MInline.inline md, P).
+Lemma inline_elim md P : refines (md, P) (MInline.inline md, P).
 Proof using.
   eapply closed_adequacy_emp.
 
@@ -70,8 +68,8 @@ Proof using.
     { s. rewrite bind_bind MIRed.core. steps_l. ss. }
     rewrite MIRed.ag. steps_l. force_r. iFrame.
     steps_r. by_coind "CIH"; et.
-  - rewrite SBRed.bind SBRed.AssumePrecise MIRed.ag. steps_r.
-    step. steps_r. norm_l. by_coind "CIH"; et.
+  - rewrite SBRed.bind SBRed.AssumeRes MIRed.ag. steps_l. force_r; iFrame.
+    steps_l. steps_r. by_coind "CIH"; et.
   - rewrite SBRed.bind SBRed.Guarantee MIRed.ag.
     steps_r. force_l. iFrame. norm_l. by_coind "CIH"; et.
   - destruct c.

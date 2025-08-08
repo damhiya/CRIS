@@ -9,8 +9,7 @@ Set Implicit Arguments.
 Section INLINE.
 Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
 
-Lemma inline_intro md P
-  :
+Lemma inline_intro md P :
   refines (MInline.inline md, P) (md, P).
 Proof using.
   eapply closed_adequacy_emp. clear P.
@@ -67,15 +66,15 @@ Proof using.
 
   assert (CASE := case_itrH it); des; subst.
   - rewrite SBRed.ret MIRed.ret. step. eauto.
-  - rewrite SBRed.tau MIRed.tau. steps_l. steps_r. by_coind "CIH"; et.
+  - rewrite SBRed.tau MIRed.tau. steps_l. steps_r. by_coind "CIH"; eauto.
   - rewrite SBRed.bind SBRed.Assume. destruct img; cycle 1.
     { s. rewrite bind_bind MIRed.core. steps_l. ss. }
     rewrite MIRed.ag. steps_l. force_r. iFrame.
-    steps_r. by_coind "CIH"; et.
-  - rewrite SBRed.bind SBRed.AssumePrecise MIRed.ag. steps_l.
-    step. steps_l. norm_r. by_coind "CIH"; et.
+    steps_r. by_coind "CIH"; eauto.
+  - rewrite SBRed.bind SBRed.AssumeRes MIRed.ag. steps_l. force_r; iFrame.
+    steps_l; steps_r. by_coind "CIH"; eauto.
   - rewrite SBRed.bind SBRed.Guarantee MIRed.ag.
-    steps_r. force_l. iFrame. steps_l. by_coind "CIH"; et.
+    steps_r. force_l. iFrame. steps_l. by_coind "CIH"; eauto.
   - destruct c.
     {
       rewrite SBRed.bind SBRed.call. des_ifs; cycle 1.

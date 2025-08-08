@@ -214,7 +214,7 @@ Proof using.
         gstep. econs. i. r. rewrite SBRed.tau. gstep. econs. gbase. eauto.
       + ired. rewrite !MIRed.core SBRed.bind SBRed.take. s.
         gstep. r; s; econs. ss.
-    - rewrite H !SBRed.AssumePrecise MIRed.ag SBRed.bind SBRed.AssumePrecise !bind_trigger.
+    - rewrite H !SBRed.AssumeRes MIRed.ag SBRed.bind SBRed.AssumeRes !bind_trigger.
       gstep. econs. i. r. rewrite SBRed.tau. gstep. econs. gbase. eauto.
     - rewrite H !SBRed.Guarantee MIRed.ag SBRed.bind SBRed.Guarantee !bind_trigger.
       gstep. econs. i. r. rewrite SBRed.tau. gstep. econs. gbase. eauto.

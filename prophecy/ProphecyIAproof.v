@@ -22,7 +22,7 @@ Module ProphIA.
   Variant _take_is_prop (coself : itree lmodE Any.t -> Prop) : itree lmodE Any.t -> Prop :=
   | take_is_prop_ret retv
   : _take_is_prop coself (Ret retv)
-  
+
   | take_is_prop_tau itr
     (NEXT: coself itr)
   : _take_is_prop coself (tau;; itr)
@@ -41,7 +41,7 @@ Module ProphIA.
 
   | take_is_prop_take (X : Type) ktr
     (e : ∃ P : Prop, X = P)
-    (NEXT: forall x : X, coself (ktr x))                                    
+    (NEXT: forall x : X, coself (ktr x))
   : _take_is_prop coself (p <- trigger (Take X);; ktr p)
 
   | take_is_prop_io I O fn (args : I) ktr
@@ -86,7 +86,7 @@ Module ProphIA.
   Proof using Type.
     induction WF; i; ss. destruct n; ss; clarify; et.
   Qed.
-  
+
   Lemma take_is_prop_bind itr ktr
       (F : take_is_prop itr)
       (S : forall x, take_is_prop (ktr x)) :
@@ -139,27 +139,26 @@ Module ProphIA.
     - rewrite ! interpV_ret. pfold. econs.
     - rewrite ! interpV_tau. pfold. econs. right. et.
     - rewrite ! interpV_vis. rewrite !interpV_bind. destruct e; simpl.
-      + destruct a; des_ifs; ss. 
-        * rewrite interpV_bind interpV_trigger. grind.  
+      + destruct a; des_ifs; ss.
+        * rewrite interpV_bind interpV_trigger. grind.
           rewrite interpV_bind interpV_trigger. grind.
           pfold. econs; et. i. clarify.
-        * rewrite interpV_bind interpV_trigger. grind.  
+        * rewrite interpV_bind interpV_trigger. grind.
           rewrite interpV_bind interpV_trigger. grind.
           pfold. econs. i. left. grind. destruct (Any.split x); ss; cycle 1.
           { unfold triggerUB. grind. pfold. econs; et. i. clarify. }
           grind. unfold unwrapU. des_ifs; ss; cycle 1.
           { unfold triggerUB. grind. pfold. econs; et. i. clarify. }
           grind. unfold guarantee, assume.
-          pfold. econs. i. left. grind.
-          pfold. econs. i. left. grind.
-          pfold. econs. i. left. grind.
-          pfold. econs; et. i. left. unfold ModTr.put_res. grind.
+          pfold. grind. econs.
+          { esplits; eauto. }
+          i. left. unfold ModTr.put_res. grind.
           pfold. econs. i. left. grind.
           unfold unwrapU. des_ifs; ss; cycle 1.
           { unfold triggerUB. grind. pfold. econs; et. i. clarify. }
           grind. pfold. econs. i. right. grind.
           rewrite !interpV_ret. grind.
-        * rewrite interpV_bind interpV_trigger. grind.  
+        * rewrite interpV_bind interpV_trigger. grind.
           rewrite interpV_bind interpV_trigger. grind.
           pfold. econs. i. left. grind. unfold unwrapU. des_ifs; cycle 1.
           { unfold triggerUB. grind. pfold. econs; et. i. clarify. }
@@ -218,7 +217,7 @@ Module ProphIA.
           grind. rewrite interpV_trigger. ss. grind.
           pfold. econs; et. i. right. grind.
   Qed.
-  
+
   Lemma map_fst_snd {A B C: Type} (l : list (A * B)) (f: B -> C):
     List.map fst (List.map (map_snd f) l)
      = List.map fst l.
@@ -227,7 +226,7 @@ Module ProphIA.
   Lemma mod_proph_comp_sim
       (WF : Mod.wf (md ★ ProphecyI.t)) :
     forall arg r,
-      comp_sim 
+      comp_sim
         (LMod.compile (Mod.to_lmod (md ★ ProphecyI.t) r) arg)
         (proph_compile (Mod.to_lmod (md ★ ProphecyI.t) r) arg).
   Proof using PHYS.
@@ -244,12 +243,12 @@ Module ProphIA.
     { econs; last econs. eapply mod_take_is_prop; et. }
     assert (Forall take_is_prop (snd <$> [(false, i arg)])%stdpp).
     { econs; last econs. ss. eapply mod_take_is_prop; et. }
-    clear Heq. 
+    clear Heq.
     set (Any.pair (ModTr.alist_encode (Mod.initial_st md ++ Mod.initial_st ProphecyI.t)) r↑). clearbody t. revert H H0 H1.
     generalize [i arg]. generalize [(false, i arg)].
     generalize 0. revert t. clear -WF PHYS.
     pcofix CIH. i. do 2 rewrite unfold_iterV. ss.
-    destruct (l0 !! n) eqn:E; cycle 1. 
+    destruct (l0 !! n) eqn:E; cycle 1.
     { ired. apply List.Forall2_length in H0.
       assert (l !! n = None).
       { apply lookup_ge_None_1 in E. rewrite H0 in E. apply lookup_ge_None_2 in E. ss. }
@@ -257,19 +256,19 @@ Module ProphIA.
       econs. pfold. unfold LModTr.pure_state. grind. econs. i; ss. }
     dup H0.
     eapply thread_rel_load in H0; et. des. rewrite TGTITR. destruct bitr_tgt.
-    red in WFITR. destruct b. des. 
-    - clarify. ss. grind. pfold. 
+    red in WFITR. destruct b. des.
+    - clarify. ss. grind. pfold.
       rewrite /LModTr.pure_state. ired.
       under ( bind_extk (λ (_: unit), ITree.bind _ _) ) => m.
       { rewrite bind_ret_l. rewrite bind_tau. rewrite bind_ret_l.
-        rewrite ! bind_ret_l. ss. rewrite unfold_iterV. 
-        ss. rewrite list_lookup_insert. 
+        rewrite ! bind_ret_l. ss. rewrite unfold_iterV.
+        ss. rewrite list_lookup_insert.
         2:{ apply lookup_lt_is_Some. et. }
         ss. rewrite bind_tau.
         rewrite interp_state_tau. rewrite bind_tau.
         over. }
-      econs. ss. grind. 
-      rewrite list_insert_insert. right. eapply CIH. 
+      econs. ss. grind.
+      rewrite list_insert_insert. right. eapply CIH.
       apply Forall2_insert. ss.
       ss.
       apply Forall_insert; ss.
@@ -277,20 +276,20 @@ Module ProphIA.
       specialize (H2 n).
       hexploit H2. { rewrite list_lookup_fmap_Some. et. } ss. i.
       punfold H. inv H; itree_clarify H4. specialize (NEXT tt).
-      pclearbot. punfold NEXT. inv NEXT; try itree_clarify H0. pclearbot. 
-      apply NEXT0. rewrite list_fmap_insert. ss. 
+      pclearbot. punfold NEXT. inv NEXT; try itree_clarify H0. pclearbot.
+      apply NEXT0. rewrite list_fmap_insert. ss.
       apply Forall_insert; ss. rewrite Forall_lookup in H2.
       specialize (H2 n).
       hexploit H2. { rewrite list_lookup_fmap_Some. et. } ss. i.
       punfold H. inv H; itree_clarify H4. specialize (NEXT tt).
-      pclearbot. punfold NEXT. inv NEXT; try itree_clarify H0. pclearbot. 
+      pclearbot. punfold NEXT. inv NEXT; try itree_clarify H0. pclearbot.
       apply NEXT0.
-    - clarify. ss. grind. pfold. 
-      rewrite /LModTr.pure_state. ired. 
+    - clarify. ss. grind. pfold.
+      rewrite /LModTr.pure_state. ired.
       under ( bind_extk (λ (_: unit), ITree.bind _ _) ) => m.
       { rewrite bind_ret_l. rewrite bind_tau. rewrite bind_ret_l.
-        rewrite ! bind_ret_l. ss. rewrite unfold_iterV. 
-        ss. rewrite list_lookup_insert. 
+        rewrite ! bind_ret_l. ss. rewrite unfold_iterV.
+        ss. rewrite list_lookup_insert.
         2:{ apply lookup_lt_is_Some. et. }
         ss. rewrite bind_tau.
         rewrite interp_state_tau. rewrite bind_tau.
@@ -309,87 +308,87 @@ Module ProphIA.
         (* UB *) unfold triggerUB. rewrite interp_state_bind interp_state_trigger.
         grind. econs. rewrite /LModTr.pure_state.
         grind. pfold; econs. i; ss.
-      + (* tau *) 
+      + (* tau *)
         right. eapply CIH; et.
         apply Forall2_insert; et; ss.
         apply Forall_insert; et; ss.
         exploit Forall_lookup_1. apply H1. apply E.
-        i. punfold x0. inv x0; et; hss; try itree_clarify H0. 
+        i. punfold x0. inv x0; et; hss; try itree_clarify H0.
         pclearbot. eapply NEXT.
         rewrite list_fmap_insert; ss.
         apply Forall_insert; et; ss.
-        rewrite Forall_lookup in H2. 
-        exploit (H2). rewrite list_lookup_fmap_Some. et. hss. 
-        i. punfold x0. inv x0; et; hss; try itree_clarify H0. 
+        rewrite Forall_lookup in H2.
+        exploit (H2). rewrite list_lookup_fmap_Some. et. hss.
+        i. punfold x0. inv x0; et; hss; try itree_clarify H0.
         pclearbot. eapply NEXT.
-      + (* Vis *) destruct e; try destruct c; try destruct s; hss; cycle 2; grind. 
+      + (* Vis *) destruct e; try destruct c; try destruct s; hss; cycle 2; grind.
         3: destruct c.
-        * (* Yield *) 
+        * (* Yield *)
           econs. right. eapply CIH; et.
           apply Forall2_insert; et; ss.
           apply Forall_insert; et; ss.
           exploit Forall_lookup_1. apply H1. apply E.
-          i. punfold x0. inv x0; et; hss; try itree_clarify H0. 
+          i. punfold x0. inv x0; et; hss; try itree_clarify H0.
           pclearbot. ired.
           eapply NEXT.
           rewrite list_fmap_insert; ss.
           apply Forall_insert; et; ss.
-          rewrite Forall_lookup in H2. 
-          exploit (H2). rewrite list_lookup_fmap_Some. et. hss. 
-          i. punfold x0. inv x0; et; hss; try itree_clarify H0. 
+          rewrite Forall_lookup in H2.
+          exploit (H2). rewrite list_lookup_fmap_Some. et. hss.
+          i. punfold x0. inv x0; et; hss; try itree_clarify H0.
           pclearbot. ired. eapply NEXT.
         *  (* StateE *)
-          destruct s. 
-          ired. econs. right. eapply CIH; et. 
+          destruct s.
+          ired. econs. right. eapply CIH; et.
           apply Forall2_insert; et; ss.
           apply Forall_insert; et; ss.
           exploit Forall_lookup_1. apply H1. apply E.
-          i. punfold x0. inv x0; et; hss; try itree_clarify H0. 
+          i. punfold x0. inv x0; et; hss; try itree_clarify H0.
           pclearbot. ired.
           eapply NEXT.
           rewrite list_fmap_insert; ss.
           apply Forall_insert; et; ss.
-          rewrite Forall_lookup in H2. 
-          exploit (H2). rewrite list_lookup_fmap_Some. et. hss. 
-          i. punfold x0. inv x0; et; hss; try itree_clarify H0. 
+          rewrite Forall_lookup in H2.
+          exploit (H2). rewrite list_lookup_fmap_Some. et. hss.
+          i. punfold x0. inv x0; et; hss; try itree_clarify H0.
           pclearbot. ired. eapply NEXT.
         * (* Choose *)
-          ired. unfold LModTr.pure_state at 1 4. 
+          ired. unfold LModTr.pure_state at 1 4.
           grind. econs. i. ired. econs. pfold; econs.
           right. eapply CIH.
           apply Forall2_insert; et; ss.
           apply Forall_insert; et; ss.
           exploit Forall_lookup_1. apply H1. apply E.
-          i. punfold x1. inv x1; et; hss; try itree_clarify H0. 
+          i. punfold x1. inv x1; et; hss; try itree_clarify H0.
           pclearbot. ired.
           eapply NEXT.
           rewrite list_fmap_insert; ss.
           apply Forall_insert; et; ss.
-          rewrite Forall_lookup in H2. 
-          exploit (H2). rewrite list_lookup_fmap_Some. et. hss. 
-          i. punfold x1. inv x1; et; hss; try itree_clarify H0. 
+          rewrite Forall_lookup in H2.
+          exploit (H2). rewrite list_lookup_fmap_Some. et. hss.
+          i. punfold x1. inv x1; et; hss; try itree_clarify H0.
           pclearbot. ired. eapply NEXT.
         * (* Take *)
           unfold LModTr.pure_state at 1 4.
           grind. exploit Forall_lookup_1. apply H1. apply E. i.
-          punfold x0. rewrite <- bind_trigger in x0. 
+          punfold x0. rewrite <- bind_trigger in x0.
           assert (∃ (P : Prop), X = P).
           { inv x0; try itree_clarify H0. et. }
-          des. hss. econs. i. 
+          des. hss. econs. i.
           ired. econs; pfold; econs.
           right. eapply CIH.
           apply Forall2_insert; et; ss.
           apply Forall_insert; et; ss.
           exploit Forall_lookup_1. apply H1. apply E.
-          i. punfold x2. inv x2; et; hss; try itree_clarify H0. 
-          pclearbot. ired. 
+          i. punfold x2. inv x2; et; hss; try itree_clarify H0.
+          pclearbot. ired.
           eapply inj_pair2 in H. hss.
           rewrite list_fmap_insert; ss.
           apply Forall_insert; et; ss.
-          rewrite Forall_lookup in H2. 
-          exploit (H2). rewrite list_lookup_fmap_Some. et. hss. 
-          i. punfold x2. inv x2; et; hss; try itree_clarify H0. 
-          pclearbot. ired. 
+          rewrite Forall_lookup in H2.
+          exploit (H2). rewrite list_lookup_fmap_Some. et. hss.
+          i. punfold x2. inv x2; et; hss; try itree_clarify H0.
+          pclearbot. ired.
           eapply inj_pair2 in H. hss.
         * (* IO *)
           unfold LModTr.pure_state at 1 4.
@@ -399,13 +398,13 @@ Module ProphIA.
           apply Forall2_insert; et; ss.
           apply Forall_insert; et; ss.
           exploit Forall_lookup_1. apply H1. apply E.
-          i. punfold x1. inv x1; et; hss; try itree_clarify H0. 
+          i. punfold x1. inv x1; et; hss; try itree_clarify H0.
           pclearbot. ired. eapply NEXT.
           rewrite list_fmap_insert; ss.
           apply Forall_insert; et; ss.
-          rewrite Forall_lookup in H2. 
-          exploit (H2). rewrite list_lookup_fmap_Some. et. hss. 
-          i. punfold x1. inv x1; et; hss; try itree_clarify H0. 
+          rewrite Forall_lookup in H2.
+          exploit (H2). rewrite list_lookup_fmap_Some. et. hss.
+          i. punfold x1. inv x1; et; hss; try itree_clarify H0.
           pclearbot. ired. eapply NEXT.
         * (* Call *)
           econs.
@@ -438,7 +437,7 @@ Module ProphIA.
             punfold H1. inv H1; try itree_clarify H0. pclearbot.
             destruct decide; ss.
             - pfold. econs. i. left. apply take_is_prop_bind.
-              eapply mod_take_is_prop; et. i. pfold. econs. left. grind. 
+              eapply mod_take_is_prop; et. i. pfold. econs. left. grind.
             - apply take_is_prop_bind. eapply mod_take_is_prop; et.
               i. pfold. econs. left. grind. }
         * (* Spawn *)
@@ -497,7 +496,7 @@ Module ProphIA.
   Variant _wf_sim (coself : itree lmodE Any.t -> (bool * itree lmodE Any.t) -> Prop) : itree lmodE Any.t -> (bool * itree lmodE Any.t) -> Prop :=
   | wf_ret retv
   : _wf_sim coself (Ret retv) (false, Ret retv)
-  
+
   | wf_tau itr_src itr_tgt
     (NEXT: coself itr_src (false, itr_tgt))
   : _wf_sim coself (tau;; itr_src) (false, tau;; itr_tgt)
@@ -540,9 +539,9 @@ Module ProphIA.
     (NEXT: coself (ktr_src tt) (false, ktr_tgt tt))
   : _wf_sim coself (x <- (itreeV_itree (ModTr.handle_crisE (Guarantee iP|)%sum));; ktr_src x) (false, x <- (itreeV_itree (ModTr.handle_crisE (Guarantee iP|)%sum));; ktr_tgt x)
 
-  | wf_AssumePrecise iP ktr_src ktr_tgt
+  | wf_AssumePrecise r ktr_src ktr_tgt
     (NEXT: coself (ktr_src tt) (false, ktr_tgt tt))
-  : _wf_sim coself (x <- (itreeV_itree (ModTr.handle_crisE (AssumePrecise iP|)%sum));; ktr_src x) (false, x <- (itreeV_itree (ModTr.handle_crisE (AssumePrecise iP|)%sum));; ktr_tgt x).
+  : _wf_sim coself (x <- (itreeV_itree (ModTr.handle_crisE (AssumeRes r|)%sum));; ktr_src x) (false, x <- (itreeV_itree (ModTr.handle_crisE (AssumeRes r|)%sum));; ktr_tgt x).
 
   Definition wf_sim := paco2 _wf_sim bot2.
 
@@ -729,7 +728,7 @@ Module ProphIA.
                    (LMod.prog
                       (Mod.to_lmod (md ★ ProphecyI.t) rs_prog_tgt)))
                 (thidx, thl_tgt)) (Any.pair pstore (rs_tgt : Σ) ↑);; Ret x_.2) extr) :
-    
+
     simg_ex false false extr
       (x <-
          LModTr.interp_stateE Any.t
@@ -747,7 +746,7 @@ Module ProphIA.
     Local Opaque wsimg.
     hexploit src_mod_wf; et. intro WFMODS.
     move WFMODS at top. move WFMODT at top.
-    move rs_proph at bottom. move rs_tgt at bottom. revert_until proph_closeA. pcofix CIH. i. 
+    move rs_proph at bottom. move rs_tgt at bottom. revert_until proph_closeA. pcofix CIH. i.
     revert TBEH. set (ITree.bind _ _). set (ITree.bind _ _).
     assert (wsimg r false false extr i0 i); et. unfold i0, i. clearbody i i0.
     rewrite /LModTr.interp_stateE unfold_iterV /itreeV_itree {1}/LModTr.handle_callE.
@@ -941,7 +940,7 @@ Module ProphIA.
       unfold LModTr.pure_state at 1. grind. steps_l.
       exists (tt↑). grind. rewrite !list_insert_insert. steps_l.
       rewrite !interpV_bind interpV_trigger. simpl.
-      rewrite bind_ret_r interpV_trigger. simpl. 
+      rewrite bind_ret_r interpV_trigger. simpl.
       rewrite bind_ret_r. grind.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind.
@@ -963,13 +962,13 @@ Module ProphIA.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind.
       unfold LModTr.pure_state at 1. grind. steps_l.
-      exists (rs_tgt ⋅ (own.iRes_singleton base_γ (has_proph_auth_r (Ensembles.Subtract _ free_ids i1) proph_map') 
+      exists (rs_tgt ⋅ (own.iRes_singleton base_γ (has_proph_auth_r (Ensembles.Subtract _ free_ids i1) proph_map')
                 ⋅ own.iRes_singleton base_γ (free_id_auth_r (Ensembles.Subtract _ free_ids i1)))).
       grind. steps_l. rewrite !list_insert_insert.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind.
       unfold LModTr.pure_state at 1. grind. steps_l.
-      assert 
+      assert
         (Own p0 ⊢ |==>
            ((∃ p4 : Prophecy.Pro t, ⌜tt ↑ = tt ↑⌝ ∗
              has_proph i1 (existT t (p4, []))) ∗ ⌜
@@ -1029,18 +1028,18 @@ Module ProphIA.
           rewrite discrete_fun_lookup_singleton.
           destruct excluded_middle_informative.
           { exfalso. inv s. apply H2. econs. }
-          unfold proph_map'. 
+          unfold proph_map'.
           destruct excluded_middle_informative; clarify.
           apply (@auth_update_alloc _ (optionUR (exclR ProphInstO))).
           apply alloc_option_local_update. done. }
-      assert 
+      assert
         (✓ (rs_tgt ⋅ (own.iRes_singleton base_γ
               (has_proph_auth_r
                  (Ensembles.Subtract Prophecy.ID free_ids i1) proph_map')
               ⋅ own.iRes_singleton base_γ
               (free_id_auth_r
                  (Ensembles.Subtract Prophecy.ID free_ids i1))))).
-      { assert 
+      { assert
           (p0 ~~>
              (rs_tgt ⋅ (own.iRes_singleton base_γ
                 (has_proph_auth_r
@@ -1160,7 +1159,7 @@ Module ProphIA.
         rewrite discrete_fun_lookup_singleton in H.
         rewrite comm auth_both_valid_discrete in H. des.
         red in H. des. destruct z. { rewrite -Some_op in H. inv H. }
-        inv H. et. } 
+        inv H. et. }
       clear H. rename H0 into FREE. rename H1 into PROPH.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind. steps_l.
@@ -1176,7 +1175,7 @@ Module ProphIA.
       unfold LModTr.pure_state at 1. grind. steps_l. grind. steps_l.
       exists (tt↑). grind. rewrite !list_insert_insert. steps_l.
       rewrite !interpV_bind interpV_trigger. simpl.
-      rewrite bind_ret_r interpV_trigger. simpl. 
+      rewrite bind_ret_r interpV_trigger. simpl.
       rewrite bind_ret_r. grind.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind.
@@ -1218,7 +1217,7 @@ Module ProphIA.
       apply (f_equal (@Any.downcast (Prophecy.ID * SAny.t))) in H3.
       rewrite !Any.upcast_downcast in H3. fclarify. pclearbot.
       replace (stream_map SAny.upcast (sfold (scons o0 obs))) with (sfold (scons (o0↑↑) (stream_map SAny.upcast obs))) in H0.
-      2:{ 
+      2:{
         assert (forall {T} (s : stream T), s = match s with sfold (scons hd tl) => sfold (scons hd tl) end).
         { i. destruct s. destruct s. refl. }
         rewrite (H1 _ (stream_map SAny.upcast (sfold (scons o0 obs)))).
@@ -1244,7 +1243,7 @@ Module ProphIA.
         rewrite !SAny.upcast_downcast in H0. clarify. f_equal. et. }
       rewrite H in CCC1. clear CCC0 H l0.
 
-      assert 
+      assert
         (Own p1 ⊢ |==>
            ((⌜tt ↑ = tt ↑ /\ Prophecy.consistent (projT1 (proph_map i1)) (o :: l) p⌝ ∗
              has_proph i1 (existT (projT1 (proph_map i1)) (p, o :: l))) ∗ ⌜tt ↑ = tt ↑⌝) ∗
@@ -1283,14 +1282,14 @@ Module ProphIA.
         apply (@auth_update _ (optionUR (exclR ProphInstO))).
         apply option_local_update. apply replace_local_update.
         { typeclasses eauto. } done. }
-      assert 
+      assert
         (✓ (rs_tgt ⋅
               (own.iRes_singleton base_γ
                  (has_proph_auth_r free_ids proph_map')
                  ⋅
                  own.iRes_singleton base_γ
                    (free_id_auth_r free_ids)))).
-      { assert 
+      { assert
           (p1 ~~>
              (rs_tgt ⋅
                 (own.iRes_singleton base_γ
@@ -1336,7 +1335,7 @@ Module ProphIA.
           rewrite !Any.upcast_downcast in H4. clarify. }
         { subst. apply inj_pair2 in H4.
           apply (f_equal (@Any.downcast (Prophecy.ID * SAny.t))) in H4.
-          rewrite !Any.upcast_downcast in H4. 
+          rewrite !Any.upcast_downcast in H4.
           inversion H4. subst. destruct r1. fclarify. pclearbot.
           punfold STEP0. inv STEP0. fclarify. pclearbot.
           punfold STEP1. inv STEP1. fclarify. pclearbot.
@@ -1381,7 +1380,7 @@ Module ProphIA.
       assert (Own p1 ⊢ |==> ((⌜i1 ↑ = i1 ↑⌝ ∗ has_proph i1 (existT x (p0, l))) ∗ ⌜p = i1 ↑⌝) ∗ Own (rs_tgt ⋅ rs_proph)).
       { iIntros "A". iPoseProof (p3 with "A") as ">[A B]". iFrame.
         iStopProof. apply Own_Upd. et. }
-      clear p3. rename H into p3. 
+      clear p3. rename H into p3.
       assert (✓ (has_proph_r i1 (existT x (p0, l)) ⋅ has_proph_auth_r free_ids proph_map)).
       { eapply Own_pure_soundness; et.
         iIntros "A". iPoseProof (p3 with "A") as ">[[[A B] C] [D E]]".
@@ -1410,7 +1409,7 @@ Module ProphIA.
         rewrite discrete_fun_lookup_singleton in H.
         rewrite comm auth_both_valid_discrete in H. des.
         red in H. des. destruct z. { rewrite -Some_op in H. inv H. }
-        inv H. et. } 
+        inv H. et. }
       clear H. rename H0 into FREE. rename H1 into PROPH.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind. steps_l.
@@ -1426,7 +1425,7 @@ Module ProphIA.
       unfold LModTr.pure_state at 1. grind. steps_l. grind. steps_l.
       exists (tt↑). grind. rewrite !list_insert_insert. steps_l.
       rewrite !interpV_bind interpV_trigger. simpl.
-      rewrite bind_ret_r interpV_trigger. simpl. 
+      rewrite bind_ret_r interpV_trigger. simpl.
       rewrite bind_ret_r. grind.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind.
@@ -1441,13 +1440,13 @@ Module ProphIA.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind.
       unfold LModTr.pure_state at 1. grind. steps_l.
-      exists (rs_tgt ⋅ (own.iRes_singleton base_γ (has_proph_auth_r (Ensembles.Add _ free_ids i1) proph_map) 
+      exists (rs_tgt ⋅ (own.iRes_singleton base_γ (has_proph_auth_r (Ensembles.Add _ free_ids i1) proph_map)
                 ⋅ own.iRes_singleton base_γ (free_id_auth_r (Ensembles.Add _ free_ids i1)))).
       grind. steps_l. rewrite !list_insert_insert.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind.
       unfold LModTr.pure_state at 1. grind. steps_l.
-      assert 
+      assert
         (Own p1 ⊢ |==>
            ((⌜tt ↑ = tt ↑⌝ ∗
              free_id (λ y, y = i1)) ∗ ⌜
@@ -1507,14 +1506,14 @@ Module ProphIA.
           apply cancel_local_update_unit.
           { typeclasses eauto. }
           rewrite right_id. et. }
-      assert 
+      assert
         (✓ (rs_tgt ⋅ (own.iRes_singleton base_γ
               (has_proph_auth_r
                  (Ensembles.Add Prophecy.ID free_ids i1) proph_map)
               ⋅ own.iRes_singleton base_γ
               (free_id_auth_r
                  (Ensembles.Add Prophecy.ID free_ids i1))))).
-      { assert 
+      { assert
           (p1 ~~>
              (rs_tgt ⋅ (own.iRes_singleton base_γ
                 (has_proph_auth_r
@@ -1628,19 +1627,31 @@ Module ProphIA.
       rewrite !list_lookup_insert; et; cycle 1.
       { erewrite <- Forall2_length; et. }
       grind. unfold LModTr.pure_state at 1 4. grind.
-      steps_r. steps_l. exists x. grind.
+      steps_l. steps_r. unshelve eexists.
+      { rewrite comm. eapply cmra_discrete_total_update.
+        { etrans; last apply cmra_update_op_l; apply REQ. }
+        rewrite comm //.
+      }
+      grind.
       steps_r. steps_l. rewrite !list_insert_insert.
       do 2 rewrite unfold_iterV. grind.
       rewrite !list_lookup_insert; et; cycle 1.
       { erewrite <- Forall2_length; et. }
-      grind. unfold LModTr.pure_state at 1 4. grind.
+      grind.
+      steps_l; steps_r.
+      rewrite !Any.pair_split /=; grind.
+      rewrite !list_insert_insert.
+      (* unfold LModTr.pure_state at 1 4. grind.
       steps_r. steps_l. exists (x0 ⋅ rs_proph). grind.
-      steps_r. steps_l. rewrite !list_insert_insert.
+      steps_r. steps_l. rewrite !list_insert_insert. *)
       do 2 rewrite unfold_iterV. grind.
       rewrite !list_lookup_insert; et; cycle 1.
       { erewrite <- Forall2_length; et. }
-      grind. unfold LModTr.pure_state at 1 4. grind.
+      grind.
       steps_r. steps_l.
+      rewrite !list_insert_insert.
+      (* do 2 rewrite unfold_iterV.
+      rewrite !list_list_insert; et; cycle 1.
       assert (Own rs_src ⊢ |==> □ ((Own x ==∗ iP) ∗ (iP ==∗ Own x)) ∗ Own (x0 ⋅ rs_proph)).
       { iIntros "A". apply Own_Upd in REQ. iPoseProof (REQ with "A") as ">[A B]".
         iPoseProof (x1 with "A") as ">[A C]". iModIntro. iFrame.
@@ -1661,28 +1672,20 @@ Module ProphIA.
       rewrite !Any.pair_split. grind.
       do 2 rewrite unfold_iterV. grind.
       rewrite !list_lookup_insert; et; cycle 1.
-      { erewrite <- Forall2_length; et. }
-      grind. steps_r. steps_l. rewrite !list_insert_insert.
+      { erewrite <- Forall2_length; et. } *)
+      (* grind. steps_r. steps_l. rewrite !list_insert_insert. *)
       endsim. { apply Forall2_insert; et. }
-      2:{ rewrite assoc. refl. }
+      2:{ rewrite REQ assoc //. }
       i. hexploit INV; et. i. des. esplits; et. clear - H0.
       punfold H0. inv H0. fclarify. pclearbot.
       punfold STEP. inversion STEP. clexteq.
-      apply (f_equal (fun y => y 0%fin)) in H2; clarify. pclearbot.
+      apply (f_equal (fun y => y 0%fin)) in H1; clarify. pclearbot.
       punfold STEP0. inversion STEP0. clexteq.
       apply (f_equal (fun y => y 0%fin)) in H0; clarify. pclearbot.
       punfold STEP1. inversion STEP1. clexteq.
-      apply (f_equal (fun y => y 0%fin)) in H2; clarify. pclearbot.
-      punfold STEP2. inv STEP2. fclarify. pclearbot.
-      punfold STEP3. inversion STEP3. clexteq.
-      apply (f_equal (fun y => y 0%fin)) in H2; clarify. pclearbot.
-      punfold STEP2. inv STEP2. fclarify. pclearbot.
-      punfold STEP4. inversion STEP4. clexteq.
-      apply (f_equal (fun y => y 0%fin)) in H1; clarify. pclearbot.
-      punfold STEP2. inv STEP2. fclarify. pclearbot.
-      punfold STEP5. inversion STEP5. clexteq.
       apply (f_equal (fun y => y 0%fin)) in H0; clarify. pclearbot.
-      punfold STEP2. inv STEP2. fclarify. pclearbot. et.
+      punfold STEP2. inv STEP2. fclarify. pclearbot.
+      punfold STEP3. pfold. eauto.
   Qed.
 
   Theorem adequacy_refines_mod sp
@@ -1741,7 +1744,7 @@ Module ProphIA.
     rewrite -assoc in WFR, SRC2. exists (z⋅ a1). splits.
     - apply cmra_valid_op_r in WFR. et.
     - iIntros "[A B]". iModIntro. iApply SRC0. et.
-    - rewrite comm in SRC2.  
+    - rewrite comm in SRC2.
       eapply adequacy_refines_mod; et.
     - eapply cmra_valid_op_r. et.
   Qed.

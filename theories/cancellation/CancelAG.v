@@ -17,24 +17,18 @@ Proof.
     eapply KEY; des; eauto.
     { rewrite list_insert_id //= Himpl Own_op. iIntros "> [$ X]"; rewrite Hx6 RS //. }
     { econs; eauto; eapply KTR. }
-  + ziter_r; rewrite x1 /=; zstep_r; ired; hss.
-    ziter_r; do 2 zstep_r; ziter_r; zstep_r; zstep_r; ziter_r; do 2 zstep_r.
-    hexploit (Own_bupd_split); first (eapply RS); eauto.
-    intros [r_s1 [r_s2 [Hr_S [Hr_s1 Hr_s2]]]].
-    hexploit (Own_bupd_split); first eapply x4.
-    { eapply Own_wand_valid; first (etrans; last eapply bupd_intro); eauto.
-      hexploit Own_bupd_valid; eauto using cmra_valid_op_r.
+  + ziter_l; rewrite x0 /=. zstep_l; ired; hss.
+    ziter_l; zstep_l. zstep_l.
+    ziter_l; zstep_l. ziter_l; zstep_l.
+    ziter_r; rewrite x1 /=; zstep_r; ired; hss.
+    ziter_r; zstep_r. unshelve eexists.
+    { eapply Own_wand_valid; last apply x.
+      rewrite !Own_op RS; iIntros "[$ > [_ $]] //".
     }
-    intros [r_t1 [r_t2 [Hr_t [Hr_t1 Hr_t2]]]].
-    ziter_l; rewrite x0 /=. zstep_l; ired; hss.
-    ziter_l; zstep_l. exists x.
-    zstep_l; ziter_l; zstep_l.
-    exists (r_s1 ⋅ x3). zstep_l. ziter_l. zstep_l.
-    eexists. zstep_l. ziter_l. do 2 zstep_l. ziter_l. zstep_l.
-    ziter_l. zstep_l.
-    ziter_r. zstep_r. eexists. zstep_r. ziter_r; zstep_r. ziter_r; zstep_r.
+    zstep_r.
+    ziter_r; zstep_r. ziter_r; zstep_r.
     eapply KEY; eauto.
-    { rewrite list_insert_id // ?Own_op Hr_s1; iIntros "[$ [$ $]]"; done. }
+    { rewrite list_insert_id // ?Own_op RS; iIntros "[$ > [$ $]]"; done. }
     { econs; eauto; eapply KTR. }
   + ziter_r; rewrite x1 /=; zstep_r; ired; hss.
     ziter_r; do 2 zstep_r. ziter_r; do 2 zstep_r.
@@ -61,8 +55,6 @@ Unshelve.
   { done. }
   rewrite Own_op; rewrite Hx5 comm; iIntros "[$ $]"; done.
 }
-{ rewrite Hr_S Own_op; iIntros "> [$ S]"; rewrite Hr_s2 Hr_t Hr_t1 Hr_t2 //. }
-{ revert x5; rewrite (comm _ r_s1 x3) assoc; eauto using cmra_valid_op_l. }
 { split; first eapply Own_wand_valid.
   { rewrite Own_op; iIntros "X"; iMod (Hr_s with "X") as "[$ X]"; rewrite Hr_s2.
     iMod (x4 with "X") as "[? $]"; done.

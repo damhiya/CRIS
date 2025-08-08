@@ -41,8 +41,10 @@ Ltac _istep_l :=
       let name := fresh "_q" in
       iApply isim_unwrapU_src; iIntros (name) "%";
       match goal with [ H: ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite -> G in * end
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, assume _ >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _) _) ] =>
       let name := fresh "asm" in iApply isim_asm_src; iIntros (name)
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger (AssumeRes ?P) >>= _) _) ] =>
+      iApply isim_assume_res_src; iIntrosFresh "ASM"
   end.
 
 Ltac istep_l_core :=
@@ -106,8 +108,8 @@ Ltac _istep :=
       iApply isim_ret
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger (IO _ _) >>= _) (_, trigger (IO _ _) >>= _)) ] =>
       iApply isim_io; iIntros "%"
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger (AssumePrecise _) >>= _) (_, trigger (AssumePrecise _) >>= _)) ] =>
-      iApply isim_assume_precise_both
+  (* | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger (AssumeRes _) >>= _) (_, trigger (AssumeRes _) >>= _)) ] =>
+      iApply isim_assume_res_both *)
   end.
 
 Ltac istep :=
@@ -119,8 +121,6 @@ Ltac _iforce_l :=
       iApply isim_choose_src
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _) _) ] =>
       unfold_precond_postcond P; iApply isim_guarantee_src
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger (AssumePrecise ?P) >>= _) _) ] =>
-      iApply isim_assume_precise_src; iSplitL "";[|iIntrosFresh "ASM"]
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, unwrapN _ >>= _) _) ] =>
       iApply isim_unwrapN_src; iExists _
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, guarantee _ >>= _) _) ] =>
@@ -146,14 +146,14 @@ Ltac _iforce_r :=
       iApply isim_take_tgt
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Assume ?P) >>= _)) ] =>
       unfold_precond_postcond P; iApply isim_assume_tgt
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (AssumePrecise ?P) >>= _)) ] =>
-      unfold_precond_postcond P; iApply isim_assume_precise_tgt; [..|iIntrosFresh "PRECISE"]
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, AssumeProph _ _ >>= _)) ] =>
-      iApply isim_assume_proph_tgt
+  (* | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, AssumeProph _ _ >>= _)) ] =>
+      iApply isim_assume_proph_tgt *)
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _)) ] =>
       iApply isim_asm_tgt
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, unwrapU _ >>= _)) ] =>
       iApply isim_unwrapU_tgt; iExists _
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (AssumeRes ?P) >>= _)) ] =>
+      unfold_precond_postcond P; iApply isim_assume_res_tgt
   end
 .
 
@@ -197,10 +197,10 @@ Ltac iby_coind CIH :=
 
 (** Special Tactics for AssumeProph in Source **)
 
-Ltac iasmproph_simple_core :=
-  norm_l; iApply isim_assume_proph_src_simple.
+(* Ltac iasmproph_simple_core :=
+  norm_l; iApply isim_assume_proph_src_simple. *)
 
-Tactic Notation "iasmproph_simple" :=
+(* Tactic Notation "iasmproph_simple" :=
   iasmproph_simple_core; iExists _; iSplit; [|iIntros (?); iIntrosFresh "ASM"].
                  
 Tactic Notation "iasmproph_simple" uconstr(p) :=
@@ -210,4 +210,4 @@ Ltac iasmproph_standard :=
   norm_l; iApply isim_assume_proph_src.
 
 Ltac iasmproph_advanced :=
-  norm_l; iApply isim_assume_proph_src_advanced.
+  norm_l; iApply isim_assume_proph_src_advanced. *)

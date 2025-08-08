@@ -40,7 +40,7 @@ Proof.
       + rewrite SBRed.vis_take. des_ifs.
         * gstep. r; s. econs. ss.
         * gstep. r; s. econs. ss.
-    - rewrite !SBRed.AssumePrecise !bind_trigger.
+    - rewrite !SBRed.AssumeRes !bind_trigger.
       gstep. econs. i. gbase. eauto.
     - rewrite !SBRed.Guarantee !bind_trigger.
       gstep. econs. i. gbase. eauto.
@@ -182,7 +182,7 @@ Proof.
     + rewrite! bind_trigger in SB. inv SB.
       eapply inj_pair2, equal_f in H0. eauto.
     + rewrite !bind_trigger bind_vis in SB. depdes SB.
-  - rewrite SBRed.bind SBRed.AssumePrecise in SB.
+  - rewrite SBRed.bind SBRed.AssumeRes in SB.
     rewrite! bind_trigger in SB. inv SB.
     eapply inj_pair2, equal_f in H0. eauto.
   - rewrite SBRed.bind SBRed.Guarantee in SB.
@@ -416,11 +416,11 @@ Lemma msim_ctx `{Σ: GRA} contextual fnsems_src fnsems_tgt (fl_src fl_tgt fl_ctx
   - mstep. i. eapply K; try refl; eauto using inv_sandbox_ag.
   - mstep. i. eapply K; try refl; eauto using inv_sandbox_ag.
   - mstep. i. eapply K; try refl; eauto using inv_sandbox_ag.
-  - mstep. i. hexploit K; et; i; des. esplits; et. i.
-    eapply H2; try refl; eauto using inv_sandbox_ag.
-  - guclo @msimC_spec. econs; esplits; et.
-    eapply msim_assume_precise_both; et.
-    i. eapply K; try refl; eauto using inv_sandbox_ag.
+  - mstep. i. eapply (K fmr1); et; i; des.
+    try refl; eauto using inv_sandbox_ag.
+  (* - guclo @msimC_spec. econs; esplits; et.
+    eapply msim_assume_res_both; et.
+    i. eapply K; try refl; eauto using inv_sandbox_ag. *)
   - mstep. eapply K; try refl; eauto.
     + eapply inv_sandbox_spawn in ITRT. eauto.
     + eapply inv_sandbox_spawn in ITRS. eauto.

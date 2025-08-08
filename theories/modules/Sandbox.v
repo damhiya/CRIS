@@ -1,5 +1,5 @@
-Require Import Common.
 Require Import FSpec.
+Require Import Common.
 
 Set Implicit Arguments.
 
@@ -43,8 +43,8 @@ Module SB. Section SB.
         (if img
          then existT _ (subevent _ (Assume P), fun v => Ret v)
          else existT _ (subevent _ (Take False), fun v => Ret (False_rect _ v))).
-      - (* AssumePrecise P *)
-        exact (existT _ (subevent _ (AssumePrecise P), fun v => Ret v)).
+      - (* AssumeRes P *)
+        exact (existT _ (subevent _ (AssumeRes r), fun v => Ret v)).
       - (* Guarantee P *)
         exact (existT _ (subevent _ (Guarantee P), fun v => Ret v)).
     }
@@ -168,9 +168,9 @@ Module SBRed. Section SBRed.
     rewrite vis_Assume. et.
   Qed.
   
-  Lemma vis_AssumePrecise {R} P img msk scp (ktr : () -> itree crisE R) :
-    SB.sandbox img msk scp (vis (AssumePrecise P) ktr) =
-      vis (AssumePrecise P) (fun x => SB.sandbox img msk scp (ktr x)).
+  Lemma vis_AssumeRes {R} P img msk scp (ktr : () -> itree crisE R) :
+    SB.sandbox img msk scp (vis (AssumeRes P) ktr) =
+      vis (AssumeRes P) (fun x => SB.sandbox img msk scp (ktr x)).
   Proof using.
     unfold SB.sandbox. rewrite interpV_vis.
     eapply observe_eta. ss. f_equal. extensionalities. ired. eauto.
@@ -440,10 +440,10 @@ Module SBRed. Section SBRed.
     rewrite Assume. et.
   Qed.
   
-  Lemma AssumePrecise P img msk scp :
-    SB.sandbox img msk scp (trigger (AssumePrecise P)) = trigger (AssumePrecise P).
+  Lemma AssumeRes P img msk scp :
+    SB.sandbox img msk scp (trigger (AssumeRes P)) = trigger (AssumeRes P).
   Proof using.
-    rewrite vis_AssumePrecise.
+    rewrite vis_AssumeRes.
     eapply observe_eta; ss. f_equal. extensionalities. rewrite ret. eauto.
   Qed.
   
@@ -504,34 +504,62 @@ Module SBRed. Section SBRed.
     unfold guarantee. rewrite bind choose ret. eauto.
   Qed.
 
-  Lemma assume_proph {X R} Pre Post img msk scp:
-    SB.sandbox img msk scp (@AssumeProph _ X R Pre Post) = AssumeProph Pre Post.
+  Lemma guarantee_proph {X R} post Q img msk scp :
+    SB.sandbox img msk scp (@GuaranteeProph _ X R post Q) =
+    GuaranteeProph post Q.
+  Proof.
+    rewrite /GuaranteeProph. unseal CRIS_PROPH.
+    repeat (rewrite bind choose; f_equal; extensionalities).
+    repeat (rewrite bind Guarantee; f_equal; extensionalities).
+    des_ifs; rewrite ret //.
+  Qed.
+
+  Lemma guarantee_prophK {X R R'} img msk scp post Q (k : _ → itree _ R') :
+    SB.sandbox img msk scp (GuaranteeProphK post Q k) =
+    @GuaranteeProphK _ X R R' post Q (λ x, SB.sandbox img msk scp (k x)).
+  Proof using. rewrite /GuaranteeProphK bind guarantee_proph //. Qed.
+
+  Lemma assume_proph {X} (pre : X → iProp Σ) img msk scp :
+    SB.sandbox img msk scp (AssumeProph pre) = AssumeProph pre.
   Proof.
     rewrite /AssumeProph. unseal CRIS_PROPH.
     repeat (rewrite bind choose; f_equal; extensionalities).
     repeat (rewrite bind Guarantee; f_equal; extensionalities).
-    repeat (rewrite bind AssumePrecise; f_equal; extensionalities).
-    rewrite ret. et.
+    repeat (rewrite bind AssumeRes; f_equal; extensionalities).
+    rewrite ret //.
   Qed.
 
-  Lemma assume_prophK {X S R} img msk scp Pre Post k :
-    SB.sandbox img msk scp (@AssumeProphK _ X S R Pre Post k)
-    = AssumeProphK Pre Post (fun x => SB.sandbox img msk scp (k x)).
-  Proof using.
-    rewrite /AssumeProphK. rewrite bind assume_proph. et.
+  Lemma assume_prophK {X R} (pre : X → iProp Σ) (k : _ → itree crisE R) img msk scp :
+    SB.sandbox img msk scp (AssumeProphK pre k) =
+    AssumeProphK pre (λ x, SB.sandbox img msk scp (k x)).
+  Proof using. rewrite /AssumeProphK bind assume_proph //. Qed.
+
+  Lemma update_proph {X A R} pre (post : X → R → iProp Σ) (arg : A) img msk scp :
+    SB.sandbox img msk scp (UpdateProph pre post arg) = UpdateProph pre post arg.
+  Proof.
+    rewrite /UpdateProph. unseal CRIS_PROPH.
+    repeat (rewrite bind choose; f_equal; extensionalities).
+    repeat (rewrite bind Guarantee; f_equal; extensionalities).
+    repeat (rewrite bind AssumeRes; f_equal; extensionalities).
+    repeat (rewrite bind Guarantee; f_equal; extensionalities).
+    rewrite ret //.
   Qed.
 
+  Lemma update_prophK
+      {X A R R2} pre (post : X → R → iProp Σ) (arg : A) (k : _ → itree crisE R2) img msk scp :
+    SB.sandbox img msk scp (UpdateProphK pre post arg k) =
+    UpdateProphK pre post arg (λ x, SB.sandbox img msk scp (k x)).
+  Proof using. rewrite /UpdateProphK bind update_proph //. Qed.
 End SBRed. End SBRed.
 
 Section Properties.
 
   Context `{Σ: GRA}.
 
-  Lemma sandbox_sandbox {R} (t: itree crisE R) (img img': bool) (msk msk':_→bool) scp scp'
-    (IMPL: img → img')
-    (SUB: wmask_sub msk msk')
-    (INCL: incl scp scp')
-    :
+  Lemma sandbox_sandbox {R} (t: itree crisE R) (img img': bool) (msk msk' : _ → bool) scp scp'
+      (IMPL: img → img')
+      (SUB: wmask_sub msk msk')
+      (INCL: incl scp scp') :
     SB.sandbox img' msk' scp' (SB.sandbox img msk scp t) = SB.sandbox img msk scp t.
   Proof using.
     eapply bisim_is_eq.
@@ -550,7 +578,7 @@ Section Properties.
           gstep. rewrite SBRed.Assume !bind_trigger. econs. i. gbase. et. }
         { gstep. rewrite SBRed.bind SBRed.take.
           des_ifs; ired; rr; s; econs; ss. }
-      * rewrite !SBRed.AssumePrecise.
+      * rewrite !SBRed.AssumeRes.
         gstep. rewrite !bind_trigger. econs. i. gbase. et.
       * rewrite !SBRed.Guarantee.
         gstep. rewrite !bind_trigger. econs. i. gbase. et.
