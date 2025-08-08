@@ -186,8 +186,6 @@ Ltac alist_find_simpl :=
                         | guaranteeK P t
                         | unwrapUK x k
                         | unwrapNK x k
-                        | GuaranteeProphK post Q k
-                        | AssumeProphK pre
                         | UpdateProphK pre post arg k
                         | SBRed.putSB imports scopes k v cont
                         | SBRed.getSB imports scopes k cont
@@ -207,8 +205,6 @@ Tactic Notation "red_bind" tactic(tac) :=
       | guaranteeK _ _ => eapply guaranteeK_bind
       | unwrapUK _ _ => eapply unwrapUK_bind
       | unwrapNK _ _ => eapply unwrapNK_bind
-      (* | GuaranteeProphK _ _ _ => eapply GuaranteeProphK_bind *)
-      (* | AssumeProphK _ _ => eapply AssumeProphK_bind *)
       | UpdateProphK _ _ _ _ => eapply UpdateProphK_bind
       | SBRed.putSB _ _ _ _ _ _ => eapply SBRed.putSB_bind
       | SBRed.getSB _ _ _ _ _ => eapply SBRed.getSB_bind
@@ -257,10 +253,6 @@ Tactic Notation "red_SB" :=
           eapply SBRed.unwrapUK
       | unwrapNK _ _ =>
           eapply SBRed.unwrapNK
-      (* | GuaranteeProphK _ _ _ =>
-          eapply SBRed.guarantee_prophK
-      | AssumeProphK _ _ =>
-          eapply SBRed.assume_prophK *)
       | UpdateProphK _ _ _ _ =>
           eapply SBRed.update_prophK
       | @ITree.bind _ _ _ _ _ =>
@@ -336,10 +328,6 @@ Tactic Notation "red_S" tactic(tac) :=
           eapply SRed.unwrapUK
       | unwrapNK _ _ =>
           eapply SRed.unwrapNK
-      (* | GuaranteeProphK _ _ _ =>
-          eapply SRed.guarantee_prophK
-      | AssumeProphK _ _ =>
-          eapply SRed.assume_prophK *)
       | UpdateProphK _ _ _ _ =>
           eapply SRed.update_prophK
       | @ITree.bind _ _ _ _ _ =>
@@ -376,10 +364,6 @@ Ltac _hnorm_itr :=
       eapply unwrapU_unwrapUK
   | [ |- unwrapN _ = _ ] =>
       eapply unwrapN_unwrapNK
-  (* | [ |- GuaranteeProph _ _ = _ ] =>
-      eapply GuaranteeProph_GuaranteeProphK
-  | [ |- AssumeProph _ = _ ] =>
-      eapply AssumeProph_AssumeProphK *)
   | [ |- UpdateProph _ _ _ = _ ] =>
       eapply UpdateProph_UpdateProphK
   | [ |- SModTr.HoareCall _ _ _ = _ ] =>
@@ -444,10 +428,6 @@ Ltac hnorm_itr :=
         eapply unwrapUK_unwrapU
     | [ |- unwrapNK _ _ = _ ] =>
         eapply unwrapNK_unwrapN
-    (* | [ |- GuaranteeProphK _ _ _ = _ ] =>
-        eapply GuaranteeProphK_GuaranteeProph *)
-    (* | [ |- AssumeProphK _ _ = _ ] =>
-        eapply AssumeProphK_AssumeProph *)
     | [ |- UpdateProphK _ _ _ _ = _ ] =>
         eapply UpdateProphK_UpdateProph
     | [ |- SBRed.putSB _ _ _ _ _ _ = _ ] =>

@@ -38,10 +38,10 @@ Lemma smj_le_bot m :
 Proof. destruct m as [[] | ]; ss; eauto. Qed.
 
 Variant gsim_def
-    (gsim : forall R0 R1 (RR : R0 -> R1 -> Prop), smj -> smj -> (itree coreE R0) -> (itree coreE R1) -> Prop)
-    {R0 R1} (RR : R0 -> R1 -> Prop)           
-    (self :  smj -> smj -> (itree coreE R0) -> (itree coreE R1) -> Prop)
-    : smj -> smj -> (itree coreE R0) -> (itree coreE R1) -> Prop :=
+    (gsim : forall R0 R1 (RR : R0 → R1 → Prop), smj → smj → (itree coreE R0) → (itree coreE R1) → Prop)
+    {R0 R1} (RR : R0 → R1 → Prop)           
+    (self :  smj → smj → (itree coreE R0) → (itree coreE R1) → Prop)
+    : smj → smj → (itree coreE R0) → (itree coreE R1) → Prop :=
 
   | gsim_ret ps pt r_src r_tgt
       (SIM : RR r_src r_tgt)
@@ -104,9 +104,9 @@ Inductive _gsim gsim {R0 R1} RR ps pt isrc itgt : Prop :=
 .
 
 Lemma gsim_tarski
-    (gsim : forall R0 R1 (RR : R0 -> R1 -> Prop), smj -> smj -> (itree coreE R0) -> (itree coreE R1) -> Prop)
-    R0 R1 (RR : R0 -> R1 -> Prop)
-    (P : smj -> smj -> (itree coreE R0) -> (itree coreE R1) -> Prop)
+    (gsim : forall R0 R1 (RR : R0 → R1 → Prop), smj → smj → (itree coreE R0) → (itree coreE R1) → Prop)
+    R0 R1 (RR : R0 → R1 → Prop)
+    (P : smj → smj → (itree coreE R0) → (itree coreE R1) → Prop)
     (SIM : gsim_def gsim RR P <4= P)
   :
   _gsim gsim RR <4= P.
@@ -114,7 +114,7 @@ Proof.
   fix IH 5. i. inv PR; inv SIM0; eapply SIM; des; econs; try eapply IH; eauto.
 Qed.
 
-Definition gsim : forall R0 R1 (RR : R0 -> R1 -> Prop),  smj -> smj -> (itree coreE R0) -> (itree coreE R1) -> Prop :=
+Definition gsim : forall R0 R1 (RR : R0 → R1 → Prop),  smj → smj → (itree coreE R0) → (itree coreE R1) → Prop :=
   paco7 _gsim bot7.
 
 Lemma gsim_mon : monotone7 _gsim.
@@ -125,8 +125,8 @@ Hint Resolve gsim_mon : paco.
 Hint Resolve cpn7_wcompat : paco.
 
 Lemma gsim_ind
-    R0 R1 (RR : R0 -> R1 -> Prop)
-    (P : smj -> smj -> (itree coreE R0) -> (itree coreE R1) -> Prop)
+    R0 R1 (RR : R0 → R1 → Prop)
+    (P : smj → smj → (itree coreE R0) → (itree coreE R1) → Prop)
     (SIM : gsim_def gsim RR (gsim RR /4\ P) <4= P)
   :
   gsim RR <4= P.
@@ -162,10 +162,10 @@ Qed.
 Hint Constructors _gsim : core.
 Hint Unfold gsim : core.
 
-Variant flagC (r : forall S0 S1 (SS : S0 -> S1 -> Prop),  smj -> smj -> (itree coreE S0) -> (itree coreE S1) -> Prop):
-  forall S0 S1 (SS : S0 -> S1 -> Prop),  smj -> smj -> (itree coreE S0) -> (itree coreE S1) -> Prop :=
+Variant flagC (r : forall S0 S1 (SS : S0 → S1 → Prop),  smj → smj → (itree coreE S0) → (itree coreE S1) → Prop):
+  forall S0 S1 (SS : S0 → S1 → Prop),  smj → smj → (itree coreE S0) → (itree coreE S1) → Prop :=
   | flagC_intro
-      ps0 ps1 pt0 pt1 R0 R1 (RR : R0 -> R1 -> Prop) itr_src itr_tgt
+      ps0 ps1 pt0 pt1 R0 R1 (RR : R0 → R1 → Prop) itr_src itr_tgt
       (SRC : smj_le ps0 ps1)
       (TGT : smj_le pt0 pt1)
       (SIM : r _ _ RR ps0 pt0 itr_src itr_tgt)
@@ -218,8 +218,8 @@ Proof.
   - destruct TGT; subst; eauto using smj_ltb_trans.
 Qed.
 
-Variant bindR (r s : forall S0 S1 (SS : S0 -> S1 -> Prop),  smj -> smj -> (itree coreE S0) -> (itree coreE S1) -> Prop):
-  forall S0 S1 (SS : S0 -> S1 -> Prop), smj -> smj -> (itree coreE S0) -> (itree coreE S1) -> Prop :=
+Variant bindR (r s : forall S0 S1 (SS : S0 → S1 → Prop),  smj → smj → (itree coreE S0) → (itree coreE S1) → Prop):
+  forall S0 S1 (SS : S0 → S1 → Prop), smj → smj → (itree coreE S0) → (itree coreE S1) → Prop :=
   | bindR_intro ps pt
       R0 R1 RR
       (i_src : itree coreE R0) (i_tgt : itree coreE R1)

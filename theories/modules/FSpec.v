@@ -75,38 +75,6 @@ Section FSPEC.
     postcondS := λ '(existT i meta_i), (nth i fspecs fspecS_bot).(postcondS) meta_i
   |}.
 
-  (* Prologue for propheciable specification: extracts the exact resource from precondition *)
-  (* Definition UpdateProph
-      {X R} (pre : X → Any.t → iProp Σ) (post : X → Any.t → iProp Σ) (choice : R → bool)
-      : Any.t → itree crisE (unit + Any.t) :=
-    Seal.sealing CRIS_PROPH (λ arg,
-      let pre := λ x, pre x arg in
-      let post := λ x ret, post x ret↑ in
-      '(r, Q) : Σ * (_ → iProp Σ) <- GuaranteeProph pre;;
-      trigger (AssumeRes r);;;
-      ret <- trigger (Choose R);;
-      trigger (Guarantee (∀ x, Q x ==∗ (if choice ret then post x ret else pre x)));;;
-      if choice ret then Ret (inr ret↑) else Ret (inl tt)).
-
-  Definition UpdateProphK
-      {X R R'} (pre post : X → Any.t → iProp Σ) (choice : R → bool) arg ktr : itree crisE R' :=
-    UpdateProph pre post choice arg >>= ktr.
-
-  Lemma UpdateProph_UpdateProphK {X R} (pre post : X → Any.t → iProp Σ) (choice : R → bool) arg :
-    UpdateProph pre post choice arg = UpdateProphK pre post choice arg (λ x, Ret x).
-  Proof using. rewrite /UpdateProphK. by ired. Qed.
-
-  Lemma UpdateProphK_UpdateProph
-      {X R R'} (pre post : X → Any.t → iProp Σ) (choice : R → bool) arg (k : _ → itree crisE R') :
-    UpdateProphK pre post choice arg k = UpdateProph pre post choice arg >>= k.
-  Proof using. refl. Qed.
-
-  Lemma UpdateProphK_bind
-      {X R R' T} (pre post : X → Any.t → iProp Σ) (choice : R → bool) arg k1 k2 :
-    @UpdateProphK X R R' pre post choice arg k1 >>= k2 =
-    @UpdateProphK X R T pre post choice arg (λ x, k1 x >>= k2).
-  Proof using. rewrite /UpdateProphK. by ired. Qed. *)
-
   (* Iterating wrapper for propheciable specification *)
   Definition fspec_proph_update (A R : Type) (fsp : fspecS) (body : fbody) : fbody :=
     let pre := λ x r, precondS fsp x r↑ in
@@ -129,24 +97,6 @@ Section FSPEC.
       'ret : option R <- UpdateProph pre post (Some arg);;
       Ret (match ret with | Some r => inr r↑ | None => inl () end)
     ) ().
-
-  (* Definition fspec_proph (R : Type) (fsp : fspecS) (body : fbody) : fbody :=
-    λ arg, iterC (λ _,
-      let pre := λ x, precondS fsp x arg in
-      let post := λ x ret, postcondS fsp x ret↑ in
-      body arg;;;
-      Q <- AssumeProph pre;;
-      'r : R <- GuaranteeProph post Q;;
-      Ret (inr r↑)) ().
-
-  Definition fspec_proph_option (R : Type) (fsp : fspecS) (body : fbody) : fbody :=
-    λ arg, iterC (λ _,
-      let pre := λ x, precondS fsp x arg in
-      let post := λ x ret, match ret with | Some r => postcondS fsp x r↑ | None => pre x end in
-      body arg;;;
-      Q <- AssumeProph pre;;
-      'ret : option R <- GuaranteeProph post Q;;
-      Ret (match ret with | Some r => inr r↑ | None => inl () end)) (). *)
 
   Definition to_fspec (fsp : fspecS) : fspec :=
     mk_fspec (λ x varg arg, (fsp.(precondS) x arg ∗ ⌜varg = arg⌝)%I)

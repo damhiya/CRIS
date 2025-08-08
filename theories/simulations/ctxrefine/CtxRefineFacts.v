@@ -11,14 +11,13 @@ Set Implicit Arguments.
   Commutativity Proof
  *******)
 
-Definition perm_Ist `{Σ: GRA} : nat -> alist key Any.t -> alist key Any.t -> iProp Σ :=
-  fun _ l0 l1 => ⌜l0 ≡ₚ l1⌝%I.  
+Definition perm_Ist `{Σ: GRA} : alist key Any.t -> alist key Any.t -> iProp Σ :=
+  λ l0 l1, ⌜l0 ≡ₚ l1⌝%I.  
 
 Lemma alist_upd_perm {K V} l0 l1 `{Dec K} (k : K) (v : V)
-      (ND : List.NoDup (List.map fst l0))
-      (PERM : l0 ≡ₚ l1)
-    :
-      alist_upd k v l0 ≡ₚ alist_upd k v l1.
+    (ND : List.NoDup (List.map fst l0))
+    (PERM : l0 ≡ₚ l1) :
+  alist_upd k v l0 ≡ₚ alist_upd k v l1.
 Proof.
   destruct (classic (In k (List.map fst l0))); cycle 1.
   {
@@ -108,7 +107,6 @@ Proof using.
     iApply isim_mono; cycle 1.
     - iApply isim_nodup. iIntros (? ? ? ?).
       iApply isim_refl.
-      + ii. iIntros "%". iPureIntro. des. esplits; et.
       + ii. iIntros "%". iPureIntro. des. eapply alist_permutation_find; et.
       + ii. iIntros "%". iPureIntro. des. esplits; et.
         * rewrite state_scopes_update. et.
@@ -135,9 +133,8 @@ Proof using.
   combine_quant NODS.
   combine_quant st_tgt.
   combine_quant st_src.
-  combine_quant nths.
   eapply isim_coind. i.
-  destruct a as [nths [st_src [st_tgt [NODS [NODT it]]]]]. s.
+  destruct a as [st_src [st_tgt [NODS [NODT it]]]]. s.
   destruct_quant.
   iIntros "((%IST & I) & #CIH)". des.
   assert (CASE := case_itrH it); des; subst.
@@ -150,11 +147,11 @@ Proof using.
   - steps_r. force_l. iFrame. steps_l. by_coind "CIH"; et.
   - destruct c.
     + norm_l. norm_r. rewrite! SBRed.call. des_ifs; ss.
-      * iApply isim_call. iSplit; eauto. iIntros (? ? ? ? ? ? ?) "IST0".
+      * iApply isim_call. iSplit; eauto. iIntros (? ? ? ? ?) "IST0".
         steps_l. steps_r. by_coind "CIH"; et.
       * steps_l. ss.
     + norm_l. norm_r. rewrite! SBRed.spawn. des_ifs; ss.
-      * iApply isim_spawn.
+      * iApply isim_spawn. iIntros "%".
         steps_l. steps_r. by_coind "CIH"; et.
       * steps_l. ss.
     + yield ""; eauto. by_coind "CIH"; et.
@@ -164,7 +161,7 @@ Proof using.
       iApply isim_sput_src. iApply isim_sput_tgt.
       by_coind "CIH"; et.
       * rewrite alist_upd_keys. et.
-      * rewrite alist_upd_keys. et.
+      * rewrite ?alist_upd_keys. et.
       * iFrame. unfold perm_Ist. iPureIntro.
         rewrite !state_scopes_update. esplits; eauto. 
         eapply alist_upd_perm; eauto.

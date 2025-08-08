@@ -9,8 +9,8 @@ Module APCAC. Section APCAC.
   Import APCA.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
 
-  Definition Ist : nat → alist key Any.t → alist key Any.t → iProp Σ :=
-    (λ _ _ _, True)%I.
+  Definition Ist : alist key Any.t → alist key Any.t → iProp Σ :=
+    (λ _ _, True)%I.
 
   (* context *)
   Context (md : Mod.t).
@@ -45,21 +45,21 @@ Module APCAC. Section APCAC.
     add_ret_l ().
 
     iApply wsim_bind. iSplitL; cycle 1.
-    { iIntros (? ? ? ? ? ?) "R".
-      instantiate (1:=(λ nths '(st_src, _) '(st_tgt, _), IstFull nths st_src st_tgt)%I).
+    { iIntros (? ? ? ?) "R".
+      instantiate (1:=(λ '(st_src, _) '(st_tgt, _), IstFull st_src st_tgt)%I).
       wsteps_r. force_l. steps_l. forces_l. iSplitR; et. step. iSplit; et. }
 
     (* well founded induction on depth ordinal *)
     iApply wsim_reset. iStopProof. 
-    generalize scopes st_tgt st_src nths. revert o'. pattern o. set (GOAL:=λ _, _).
+    generalize scopes st_tgt st_src. revert o'. pattern o. set (GOAL:=λ _, _).
     revert o. apply (well_founded_induction Ord.lt_well_founded).
-    i. subst GOAL. ss. iIntros (? ? ? ? ?) "IST".
+    i. subst GOAL. ss. iIntros (? ? ? ?) "IST".
 
     (* well founded induction on width ordinal *)
     iApply wsim_reset. iStopProof. 
-    generalize st_tgt0 st_src0 nths0. pattern o'. set (GOAL:=λ _, _).
+    generalize st_tgt0 st_src0. pattern o'. set (GOAL:=λ _, _).
     revert o'. apply (well_founded_induction Ord.lt_well_founded).
-    i. subst GOAL. ss. iIntros (? ? ?) "IST".
+    i. subst GOAL. ss. iIntros (? ?) "IST".
 
     rewrite unfold_APC. steps_r. des_ifs. { step. iFrame. }
     steps_r. rename _q into o, _q2 into o', _q1 into fn, _q0 into LT.
@@ -89,7 +89,8 @@ Module APCAC. Section APCAC.
       (* add meaningleses return in src *)
       add_ret_l ().
       iApply wsim_bind. iSplitL; cycle 1.
-      { iIntros (? ? ? ? ? ?) "R". instantiate (1:=(λ nths '(st_src, _) '(st_tgt, _), IstFull nths st_src st_tgt)%I).
+      { iIntros (? ? ? ?) "R".
+        instantiate (1:=(λ '(st_src, _) '(st_tgt, _), IstFull st_src st_tgt)%I).
         steps_r. forces_r. iSplitL "GRT"; eauto.
         steps_r. iApply wsim_reset. iStopProof. eapply H0; et. }
       steps_r. iApply wsim_reset. iStopProof. eapply H; et.
@@ -120,7 +121,8 @@ Module APCAC. Section APCAC.
     add_ret_l ().
 
     iApply wsim_bind. iSplitL; cycle 1.
-    { iIntros (? ? ? ? ? ?) "R". instantiate (1:=(λ nths '(st_src, _) '(st_tgt, _), IstFull nths st_src st_tgt)%I).
+    { iIntros (? ? ? ?) "R".
+      instantiate (1:=(λ '(st_src, _) '(st_tgt, _), IstFull st_src st_tgt)%I).
       steps_r. forces_r. iSplitL "GRT"; eauto.
       steps_r. force_r (tt↑). steps_r. force_r. iSplitL "GRT"; eauto. steps_r. iApply wsim_reset. iStopProof. eapply H0; et. }
     steps_r. iApply wsim_reset. iStopProof. eapply H; et.

@@ -211,62 +211,6 @@ Section GuaranteeProph.
 
   Definition CRIS_PROPH := "CRIS-PROPH".
   Global Opaque CRIS_PROPH.
-(* 
-  (* Prologue for propheciable specification: extracts the exact resource from precondition *)
-  Definition AssumeProph {X} (pre : X → iProp Σ) : itree crisE (X → iProp Σ) :=
-    Seal.sealing CRIS_PROPH (
-      r <- trigger (Choose Σ);;
-      Q <- trigger (Choose (X → iProp Σ));;
-      trigger (Guarantee (∀ x, pre x ==∗ Own r ∗ Q x));;;
-      trigger (AssumeRes r);;;
-      Ret Q).
-
-  Definition AssumeProphK {X R} (Pre : X → _) ktr : itree crisE R :=
-    (AssumeProph Pre) >>= ktr.
-
-  Lemma AssumeProph_AssumeProphK {X} Pre :
-    @AssumeProph X Pre = AssumeProphK Pre (λ x, Ret x).
-  Proof using. rewrite /AssumeProphK. by ired. Qed.
-
-  Lemma AssumeProphK_AssumeProph {X R} Pre k :
-    @AssumeProphK X R Pre k = AssumeProph Pre >>= k.
-  Proof using. refl. Qed.
-
-  Lemma AssumeProphK_bind {X S T} Pre k1 k2 :
-    @AssumeProphK X S Pre k1 >>= k2 =
-    @AssumeProphK X T Pre (λ x, k1 x >>= k2).
-  Proof using. rewrite /AssumeProphK. by ired. Qed.
-
-  Definition GuaranteeProph
-      {X R} (post : X → R → iProp Σ) (Q : X → iProp Σ)
-      : itree crisE R :=
-    Seal.sealing CRIS_PROPH (
-      ret <- trigger (Choose R);;
-      trigger (Guarantee (∀ x, Q x ==∗ post x ret));;;
-      Ret ret).
-
-  (* Definition GuaranteeProphOption
-    {X R} (pre : X → iProp Σ) (post : X → R → iProp Σ) (Q : X → iProp Σ) 
-    : itree crisE (() + R) :=
-    ret <- @GuaranteeProph X (option R) (λ x ret, match ret with | Some r => post x r | None => pre x end) Q;;
-    Ret (match ret with | Some r => inr r | None => inl () end). *)
-
-  Definition GuaranteeProphK {X R R'} (post : X → R → _) Q ktr : itree crisE R' :=
-    (GuaranteeProph post Q) >>= ktr.
-
-  Lemma GuaranteeProph_GuaranteeProphK {X R} (post : X → R → _) Q :
-    GuaranteeProph post Q = GuaranteeProphK post Q (λ x, Ret x).
-  Proof using. rewrite /GuaranteeProphK. by ired. Qed.
-
-  Lemma GuaranteeProphK_GuaranteeProph {X R R'} (post : X → R → _) Q (k : R → itree crisE R') :
-    GuaranteeProphK post Q k = GuaranteeProph post Q >>= k.
-  Proof using. refl. Qed.
-
-  Lemma GuaranteeProphK_bind
-      {X R R1 R2} (post : X → R → iProp Σ) Q (k1 : _ → itree crisE R1) (k2 : _ → itree crisE R2) :
-    GuaranteeProphK post Q k1 >>= k2 =
-    GuaranteeProphK post Q (λ x, k1 x >>= k2).
-  Proof using. rewrite /GuaranteeProphK. by ired. Qed. *)
 
   (* Prologue for propheciable specification: extracts the exact resource from precondition *)
   Definition UpdateProph {X A R} pre post (arg : A) : itree crisE R :=
@@ -294,38 +238,6 @@ Section GuaranteeProph.
     UpdateProphK pre post arg k1 >>= k2 =
     UpdateProphK pre post arg (λ x, k1 x >>= k2).
   Proof using. rewrite /UpdateProphK. by ired. Qed.
-  (* Definition GuaranteeProph {X R} (Pre: X → iProp Σ) (Post: X → R → iProp Σ) : itree crisE (R → iProp Σ) :=
-    Seal.sealing CRIS_PROPH (
-      r <- trigger (Choose Σ);;
-      Q <- trigger (Choose (R → iProp Σ));;
-      trigger (Guarantee (∀ x, Pre x ==∗ Own r ∗ (∀ ret, Q ret ==∗ Post x ret)));;;
-      trigger (AssumeRes r);;;
-      Ret Q). *)
-(*
-  (* Propheciable assumption that enables aborting *)
-  Definition GuaranteeProphAbort {X R} (Pre : X → iProp Σ) (Post : X → R → iProp Σ) (Choice : R → bool)
-      : itree crisE (iProp Σ * (R → iProp Σ) * (R → iProp Σ)) :=
-    r <- trigger (Choose R);;
-    P <- trigger (Choose (iProp Σ));;
-    trigger (Guarantee (∀ x, Pre x ==∗ P ∗ (if Choice r then Post x r else Pre x)));;;
-    trigger (AssumeRes P);;;
-    if Choice r then Ret (inr r) else Ret (inl tt).
-
-  Definition GuaranteeProphAbortK {X S R} Pre Post ktr : itree crisE R :=
-    (@GuaranteeProphAbort X S Pre Post) >>= ktr.
-
-  Lemma GuaranteeProphAbort_GuaranteeProphAbortK {X R} Pre Post :
-    @GuaranteeProphAbort X R Pre Post = GuaranteeProphAbortK Pre Post (λ x, Ret x).
-  Proof using. rewrite /GuaranteeProphAbortK; by ired. Qed.
-
-  Lemma GuaranteeProphAbortK_GuaranteeProphAbort {X S R} Pre Post k :
-    @GuaranteeProphAbortK X S R Pre Post k = GuaranteeProphAbort Pre Post >>= k.
-  Proof using. refl. Qed.
-
-  Lemma GuaranteeProphAbortK_bind {X S R T} Pre Post k1 k2 :
-    @GuaranteeProphAbortK X S R Pre Post k1 >>= k2 =
-    @GuaranteeProphAbortK X S T Pre Post (λ x, k1 x >>= k2).
-  Proof using. rewrite /GuaranteeProphAbortK; by ired. Qed. *)
 End GuaranteeProph.
 
 Section SYNTAX.

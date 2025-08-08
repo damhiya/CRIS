@@ -10,8 +10,8 @@ Module APCIA. Section APCIA.
   Context (SpA : sp_type).
   Context (SpPure : spl_type).
 
-  Definition Ist : nat → alist key Any.t → alist key Any.t → iProp Σ :=
-    (λ _ _ _, True)%I.
+  Definition Ist : alist key Any.t → alist key Any.t → iProp Σ :=
+    (λ _ _, True)%I.
 
   Local Definition APCAMod := (APCA.t SpPure SpA).
   Local Definition APCIMod := (APCI.t).
@@ -38,7 +38,7 @@ Module APCIA. Section APCIA.
 End APCIA.
 
 Section ctxr.
-  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
+  Context `{!crisG Γ Σ α β τ _S _I}.
 
   Theorem ctxr (SpA : sp_type) (SpPure : spl_type) :
     ctx_refines

@@ -343,20 +343,15 @@ End RA.
 
 Module MemIP. Section MemIP.
   Context `{!crisG Γ Σ α β τ _S _I, !memG}.
-  (* Context `{}. *)
 
   Context (csl : string → bool).
   Context (genv : GEnv.t).
 
-  Definition Ist: nat -> alist key Any.t -> alist key Any.t -> iProp Σ :=
-    fun _ st_src st_tgt =>
-      ( (∃ (mem_tgt: Mem.t) (mem_src: _memRA),
-        ⌜st_tgt = [(MemI.v_mem, mem_tgt↑)] ∧
-         sim_mem mem_src mem_tgt ∧
-         mem_wf mem_tgt⌝
-      ∗
-         ( |==> own base_γ (● mem_src) )
-      ))%I.
+  Definition Ist: alist key Any.t -> alist key Any.t -> iProp Σ :=
+    λ st_src st_tgt,
+      ((∃ (mem_tgt: Mem.t) (mem_src: _memRA),
+      ⌜st_tgt = [(MemI.v_mem, mem_tgt↑)] ∧ sim_mem mem_src mem_tgt ∧ mem_wf mem_tgt⌝ ∗
+      ( |==> own base_γ (● mem_src))))%I.
 
   Local Definition MemP := (MemP.t).
   Local Definition MemI := (MemI.t csl genv).
@@ -629,7 +624,7 @@ Module MemIP. Section MemIP.
     inline_r; steps_r; hss_r; steps_r.
     hss_r; steps_r; rewrite H2. steps_r; hss_r; steps_r.
     add_ret_l (). iApply wsim_bind.
-    instantiate (1:= λ nths0 '(st_s,_) '(st_t,_), ⌜nths0 = _ ∧ st_s = _ ∧
+    instantiate (1:= λ '(st_s,_) '(st_t,_), ⌜st_s = _ ∧
       st_t = (_, (or_else (Mem.store mem_tgt (b,ofs) v_upd) mem_tgt)↑) :: _⌝%I).
     iSplitL "".
     { des_ifs; cycle 1.
@@ -640,7 +635,7 @@ Module MemIP. Section MemIP.
         rewrite H0; steps_r; hss_r; steps_r.
         step. et.
     }
-    iIntros (? ? _ ? _ ?) "%". des; subst.
+    iIntros (? ? ? ?) "%". des; subst.
 
     steps_l. steps_r. step.
     iSplit; et. rewrite H0; s.

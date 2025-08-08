@@ -55,12 +55,11 @@ Proof using.
   combine_quant ps.
   combine_quant msk.
   combine_quant img.
-  combine_quant nths.
   combine_quant SCP.
   combine_quant scp.
   
   eapply isim_coind. i.
-  destruct a as [scp [SCP [nths [img [msk [ps [pt [st it]]]]]]]]; s.
+  destruct a as [scp [SCP [img [msk [ps [pt [st it]]]]]]]; s.
   destruct_quant.
   iIntros "(I & #CIH)".
 
@@ -93,7 +92,7 @@ Proof using.
       - by_coind "CIH"; et.
         iPureIntro. ii. exploit Mod.well_scoped_fns; et.
         rewrite /fnsems_scopes. erewrite FIND. et.
-      - iIntros (? ? ? ? ? ?) "%". des; subst.
+      - iIntros (? ? ? ?) "%". des; subst.
         rewrite MIRed.tau. steps_l. steps_r. ired.
         by_coind "CIH"; et.
     }
@@ -102,11 +101,11 @@ Proof using.
       { unfold triggerUB. ired. rewrite MIRed.core. steps_l. ss. }
       rewrite MIRed.spawn SBRed.bind SBRed.spawn.
       iApply isim_spawn.
-      steps_l. by_coind "CIH"; et.
+      iIntros (?); steps_l. by_coind "CIH"; et.
     }
     {
       rewrite SBRed.bind SBRed.yield MIRed.yield !SBRed.bind !SBRed.yield.
-      iApply isim_yield. iSplit; et. iIntros (? ? ? ? ? ?) "%". subst.
+      iApply isim_yield. iSplit; et. iIntros (? ? ? ?) "%". subst.
       steps_l. by_coind "CIH"; et.
     }
   - depdes s.

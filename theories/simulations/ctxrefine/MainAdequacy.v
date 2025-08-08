@@ -2,7 +2,7 @@ Require Import Common.
 From iris.proofmode Require Import proofmode.
 Require Import LMod Mod SMod Sp.
 Require Import LSim LSimFacts MSim MSimFacts.
-Require Import ISim ISimFacts Tactics TacticsInit.
+Require Import ISim ISimFacts TacticsInit.
 Require Import CtxRefine.
 
 Set Implicit Arguments.
@@ -256,25 +256,27 @@ Qed.
 
 Ltac mstep := guclo msimC_spec; econs; econs; eauto; econs; eauto.
 
-Lemma msim_ctx `{Σ: GRA} contextual fnsems_src fnsems_tgt (fl_src fl_tgt fl_ctx: alist (option string) _) Ist (img:bool) (msk: _->bool) scp scpC RR
+Lemma msim_ctx
+    `{Σ: GRA} contextual fnsems_src fnsems_tgt (fl_src fl_tgt fl_ctx: alist (option string) _)
+    Ist (img : bool) (msk : _ -> bool) scp scpC RR
     (FLS : fl_src = (List.map (map_snd SB.sandbox_body) fnsems_src))
     (FLT : fl_tgt = (List.map (map_snd SB.sandbox_body) fnsems_tgt))
     (WS : ∀ fn img0 msk0 scp0 bd0 (IN : alist_find (Some fn) fnsems_src = Some (img0,msk0,scp0,bd0)), (img0 → img) ∧ (∀ fn, msk0 fn → msk fn) ∧ incl scp0 scp)
     (WT : ∀ fn img0 msk0 scp0 bd0 (IN : alist_find (Some fn) fnsems_tgt = Some (img0,msk0,scp0,bd0)), (img0 → img) ∧ (∀ fn, msk0 fn → msk fn) ∧ incl scp0 scp)
     (DISJ : List.NoDup (scp ++ scpC))
 
-    ps pt nths st_src st_tgt st_ctx itr_src itr_tgt fmr
+    ps pt st_src st_tgt st_ctx itr_src itr_tgt fmr
     (SCPT : incl (state_scopes st_tgt) scp)
     (SCPS : incl (state_scopes st_src) scp)
     (SCPC : incl (state_scopes st_ctx) scpC)
     (ITRT : SB.sandbox img msk scp itr_tgt = itr_tgt)
     (ITRS : SB.sandbox img msk scp itr_src = itr_src)
-    (SIM : msim open fl_src fl_tgt Ist (ist_with_eq RR) ps pt nths
+    (SIM : msim open fl_src fl_tgt Ist (ist_with_eq RR) ps pt
              (st_src, itr_src) (st_tgt, itr_tgt) fmr)
   :
   @msim _ contextual (fl_src ++ fl_ctx) (fl_tgt ++ fl_ctx)
     (IstProd (IstSB scp Ist) (IstSB scpC IstEq)) Any.t Any.t
-    (ist_with_eq (IstProd (IstSB scp RR) (IstSB scpC IstEq))) ps pt nths
+    (ist_with_eq (IstProd (IstSB scp RR) (IstSB scpC IstEq))) ps pt
     (st_src ++ st_ctx, itr_src) (st_tgt ++ st_ctx, itr_tgt) fmr.
   Proof.
     guardH FLS. guardH FLT. hdes.
@@ -283,7 +285,7 @@ Lemma msim_ctx `{Σ: GRA} contextual fnsems_src fnsems_tgt (fl_src fl_tgt fl_ctx
     ginit. s. revert_until DISJ. gcofix CIH. i.
     remember (st_src, itr_src). remember (st_tgt, itr_tgt).
     move SIM before CIH. revert_until SIM. punfold SIM.
-    pattern ps, pt, nths, p, p0, fmr.
+    pattern ps, pt, p, p0, fmr.
     eapply _msim_tarski, SIM; i. clear SIM fmr. rename fmr0 into fmr.
     guclo msim_wfC_spec. econs. i.
     guclo msim_nodupC_spec. econs. i.
@@ -421,7 +423,7 @@ Lemma msim_ctx `{Σ: GRA} contextual fnsems_src fnsems_tgt (fl_src fl_tgt fl_ctx
   (* - guclo @msimC_spec. econs; esplits; et.
     eapply msim_assume_res_both; et.
     i. eapply K; try refl; eauto using inv_sandbox_ag. *)
-  - mstep. eapply K; try refl; eauto.
+  - mstep. intros tid; eapply (K tid); try refl; eauto.
     + eapply inv_sandbox_spawn in ITRT. eauto.
     + eapply inv_sandbox_spawn in ITRS. eauto.
   - mstep.
@@ -467,11 +469,8 @@ Lemma isim_ctx `{Σ: GRA} contextual RR
   (SCOPES : sub_perm (Mod.scopes ms) (Mod.scopes mt))
   (NODUPFT : List.NoDup (List.map fst (Mod.fnsems mt ++ Mod.fnsems ctx)))
   (NODUPFS : List.NoDup (List.map fst (Mod.fnsems ms ++ Mod.fnsems ctx)))
-  (IMON : ∀ nths0 nths', nths0 <= nths' → ∀ st_src st_tgt,
-          Ist nths0 st_src st_tgt ⊢ Ist nths' st_src st_tgt)
-  (MON: Ist_monotone Ist)
   :
-  ∀ (arg : Any.t) (nths : nat) (st_src st_tgt st_ctx : list (key * Any.t))
+  ∀ (arg : Any.t) (st_src st_tgt st_ctx : list (key * Any.t))
     (SCOPEFS: incl fs.1.2 (Mod.scopes mt))
     (SCOPEFT: incl ft.1.2 (Mod.scopes mt))
     (SCOPES: incl (map (fst∘fst) st_src) (Mod.scopes mt))
@@ -480,7 +479,7 @@ Lemma isim_ctx `{Σ: GRA} contextual RR
     isim open
            (map (map_snd SB.sandbox_body) (Mod.fnsems ms))
            (map (map_snd SB.sandbox_body) (Mod.fnsems mt)) Ist ibot ibot
-           (ist_with_eq RR) false false nths
+           (ist_with_eq RR) false false
            (st_src, SB.sandbox_body fs arg)
            (st_tgt, SB.sandbox_body ft arg)
       ⊢ @isim _ contextual
@@ -490,16 +489,16 @@ Lemma isim_ctx `{Σ: GRA} contextual RR
          ibot ibot Any.t Any.t
          (ist_with_eq
            (IstProd (IstSB (Mod.scopes mt) RR) (IstSB (Mod.scopes ctx) IstEq)))
-         false false nths
+         false false
          (st_src ++ st_ctx, SB.sandbox_body fs arg) (st_tgt ++ st_ctx, SB.sandbox_body ft arg).
 Proof.
   ii. rewrite /SB.sandbox_body.
   eapply entails_pointwise. intros fmr SIM.
   eapply isim_init in SIM; cycle 1; et.
-  eapply gpaco9_mon in SIM; try apply iunlift_ibot.
-  eapply gpaco9_init in SIM; eauto with paco.
-  eapply isim_final, gpaco9_final; eauto with paco. right.
-  eapply paco9_mon_bot; et.
+  eapply gpaco8_mon in SIM; try apply iunlift_ibot.
+  eapply gpaco8_init in SIM; eauto with paco.
+  eapply isim_final, gpaco8_final; eauto with paco. right.
+  eapply paco8_mon_bot; et.
   destruct fs as [[[img msk] scp] bd].
   destruct ft as [[[img0 msk0] scp0] bd0]. ss.
   rewrite !map_app. eapply msim_ctx; try apply SIM; try nia; cycle 8; i.
@@ -524,24 +523,16 @@ Qed.
 Section ADEQUACY.
 Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
 
-Lemma ISim_ctx contextual (ms mt ctx : Mod.t) IC Ist
-  (SIM : ISim.t open ms mt IC Ist)
-  :
+Lemma ISim_ctx contextual (ms mt ctx : Mod.t) IC Ist (SIM : ISim.t open ms mt IC Ist) :
   ISim.t contextual (ms ★ ctx) (mt ★ ctx) IC 
     (IstProd (IstSB mt.(Mod.scopes) Ist) (IstSB ctx.(Mod.scopes) IstEq)).
 Proof using.
   inv SIM.
   econs; intro WFTC; dup WFTC; eapply wf_inv_l in WFTC0; rename WFTC0 into WFT;
     assert (WFS: Mod.wf ms) by (eapply ISim_wf; et; econs; et).
-  {
-    ii. iIntros "H". iDestruct "H" as (? ? ? ?) "(% & (% & H) & %)".
-    des; subst. rewrite (sim_mon WFT _ _ LE).
-    repeat iExists _. iFrame. iPureIntro. esplits; eauto.
-  }
   { eapply sub_perm_cancel_tail. et. }
   { rewrite ?map_app. eapply sub_perm_cancel_tail. eauto. }
-  {
-    assert (WFSC: Mod.wf (ms ★ ctx)).
+  { assert (WFSC: Mod.wf (ms ★ ctx)).
     { econs.
       * eapply sub_perm_nodup; [|eapply Mod.wf_fns, WFTC].
         s. rewrite !map_app. eapply sub_perm_cancel_tail. et.
@@ -577,7 +568,6 @@ Proof using.
       iIntros "[% H] I". des; subst.
       iApply isim_mono; cycle 1.
       { iApply isim_ctx; et; try apply Mod.well_scoped_init.
-        - eapply sim_mon; et.
         - s. etrans; cycle 1.
           { eapply sub_perm_incl. et. }
           etrans; [|eapply Mod.well_scoped_fns].
@@ -628,15 +618,13 @@ Proof using.
     { rewrite alist_find_app_o. des_ifs. }
     ii. iIntros "[% [% [% [% [% [[% H] %]]]]]] I". des; subst.
     iApply (isim_ctx with "[H I]"); et; i.
-    - eapply sim_mon; et.
     - etrans; [|eapply sub_perm_incl; et].
       etrans; [|eapply Mod.well_scoped_fns].
       unfold fnsems_scopes. erewrite Heq. destruct fs, p. refl.
     - etrans; [|eapply Mod.well_scoped_fns].
       unfold fnsems_scopes. erewrite x0. destruct ft, p. refl.
-    - exploit x1; cycle 3; i.
+    - exploit x1; cycle 2; i.
       + iApply (x2 with "[H]"); et.
-      + et.
       + rewrite map_app in NODS. eapply NoDup_app_remove_r; et.
       + rewrite map_app in NODT. eapply NoDup_app_remove_r; et.
   }

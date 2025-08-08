@@ -504,36 +504,6 @@ Module SBRed. Section SBRed.
     unfold guarantee. rewrite bind choose ret. eauto.
   Qed.
 
-  (* Lemma guarantee_proph {X R} post Q img msk scp :
-    SB.sandbox img msk scp (@GuaranteeProph _ X R post Q) =
-    GuaranteeProph post Q.
-  Proof.
-    rewrite /GuaranteeProph. unseal CRIS_PROPH.
-    repeat (rewrite bind choose; f_equal; extensionalities).
-    repeat (rewrite bind Guarantee; f_equal; extensionalities).
-    des_ifs; rewrite ret //.
-  Qed. *)
-
-  (* Lemma guarantee_prophK {X R R'} img msk scp post Q (k : _ → itree _ R') :
-    SB.sandbox img msk scp (GuaranteeProphK post Q k) =
-    @GuaranteeProphK _ X R R' post Q (λ x, SB.sandbox img msk scp (k x)).
-  Proof using. rewrite /GuaranteeProphK bind guarantee_proph //. Qed. *)
-
-  (* Lemma assume_proph {X} (pre : X → iProp Σ) img msk scp :
-    SB.sandbox img msk scp (AssumeProph pre) = AssumeProph pre.
-  Proof.
-    rewrite /AssumeProph. unseal CRIS_PROPH.
-    repeat (rewrite bind choose; f_equal; extensionalities).
-    repeat (rewrite bind Guarantee; f_equal; extensionalities).
-    repeat (rewrite bind AssumeRes; f_equal; extensionalities).
-    rewrite ret //.
-  Qed. *)
-
-  (* Lemma assume_prophK {X R} (pre : X → iProp Σ) (k : _ → itree crisE R) img msk scp :
-    SB.sandbox img msk scp (AssumeProphK pre k) =
-    AssumeProphK pre (λ x, SB.sandbox img msk scp (k x)).
-  Proof using. rewrite /AssumeProphK bind assume_proph //. Qed. *)
-
   Lemma update_proph {X A R} pre (post : X → R → iProp Σ) (arg : A) img msk scp :
     SB.sandbox img msk scp (UpdateProph pre post arg) = UpdateProph pre post arg.
   Proof.

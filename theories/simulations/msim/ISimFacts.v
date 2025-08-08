@@ -9,12 +9,10 @@ Section ISIM_FRAME.
 Context `{_crisG: !crisG Γ Σ α β τ _S _I}.  
 
 Lemma isim_ist_frame contextual Ist P Rs Rt RR fl_src fl_tgt
-  ps pt nths (sti_s: _ * itree crisE Rs) (sti_t: _ * itree crisE Rt)
-  (MON: Ist_monotone Ist)
-  :
-  P ∗ isim contextual fl_src fl_tgt Ist ibot ibot RR ps pt nths sti_s sti_t
-  ⊢
-  isim contextual fl_src fl_tgt (λ x y z, P ∗ Ist x y z)%I ibot ibot (λ x y z, P ∗ RR x y z) ps pt nths sti_s sti_t.
+    ps pt (sti_s: _ * itree crisE Rs) (sti_t: _ * itree crisE Rt) :
+  P ∗ isim contextual fl_src fl_tgt Ist ibot ibot RR ps pt sti_s sti_t ⊢
+  isim contextual fl_src fl_tgt
+    (λ x y, P ∗ Ist x y)%I ibot ibot (λ x y, P ∗ RR x y) ps pt sti_s sti_t.
 Proof using.
   eapply entails_pointwise. i.
   destruct sti_s, sti_t. eapply isim_final.
@@ -22,8 +20,8 @@ Proof using.
   eapply Own_split in H; et; des.
   eapply isim_init in H2; et.
   gfinal. right.
-  eapply paco9_mon; [eapply msim_ist_frame|]; ss.
-  - ginit. eapply gpaco9_mon; eauto using iunlift_ibot.
+  eapply paco8_mon; [eapply msim_ist_frame|]; ss.
+  - ginit. eapply gpaco8_mon; eauto using iunlift_ibot.
   - rewrite H Own_op H1. et.
 Qed.
 
@@ -34,31 +32,28 @@ Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
 
 (* Reflexivity of the isim relation *)
 Lemma isim_refl r g contextual Ist fl_src fl_tgt img msk scp
-  ps pt nths st_src st_tgt {R} (it: itree crisE R)
-  (MON: Ist_monotone Ist)
-  (EQGET : ∀ nths st_src st_tgt (k: key) (IN: In k.1 scp)
+  ps pt st_src st_tgt {R} (it: itree crisE R)
+  (EQGET : ∀ st_src st_tgt (k: key) (IN: In k.1 scp)
               (NODS: List.NoDup (map fst st_src))
               (NODT: List.NoDup (map fst st_tgt)),
-      Ist nths st_src st_tgt -∗ ⌜alist_find k st_src = alist_find k st_tgt⌝)
-  (EQSET : ∀ nths st_src st_tgt (k: key) v (IN: In k.1 scp)
+      Ist st_src st_tgt -∗ ⌜alist_find k st_src = alist_find k st_tgt⌝)
+  (EQSET : ∀ st_src st_tgt (k: key) v (IN: In k.1 scp)
               (NODS: List.NoDup (map fst st_src))
               (NODT: List.NoDup (map fst st_tgt)),
-      Ist nths st_src st_tgt -∗ Ist nths (alist_upd k v st_src) (alist_upd k v st_tgt))
-  :
-  Ist nths st_src st_tgt
-  ⊢ isim contextual fl_src fl_tgt Ist r g (ist_with_eq Ist) ps pt nths
+      Ist st_src st_tgt -∗ Ist (alist_upd k v st_src) (alist_upd k v st_tgt)) :
+  Ist st_src st_tgt ⊢
+  isim contextual fl_src fl_tgt Ist r g (ist_with_eq Ist) ps pt
     (st_src, SB.sandbox img msk scp it)
     (st_tgt, SB.sandbox img msk scp it).
 Proof using.
   revert it.
   combine_quant st_tgt.
   combine_quant st_src.
-  combine_quant nths.
   combine_quant ps.
   combine_quant pt.
   eapply isim_coind. intros g0 a _.
-  destruct a as [pt [ps [nths [st_src [st_tgt it]]]]]. s. destruct_quant.
-  iIntros "[IST CIH]".
+  destruct a as [pt [ps [st_src [st_tgt it]]]]. s. destruct_quant.
+  iIntros "[IST #CIH]".
   assert (CASE := case_itrH it); des; subst.
   - istep. iFrame. eauto.
   - isteps_l. isteps_r. iby_coind "CIH"; eauto.
@@ -71,13 +66,13 @@ Proof using.
   - depdes c.
     + isteps_l. isteps_r. rewrite SBRed.call. des_ifs.
       * iApply isim_call. iSplitL "IST"; et.
-        iIntros (? ? ? ? ? ? ?) "IST".
+        iIntros (? ? ? ? ?) "IST".
         iby_coind "CIH". et.
       * isteps_l. ss.
     + isteps_l. isteps_r. rewrite SBRed.spawn. des_ifs.
-      * iApply isim_spawn. iby_coind "CIH". iApply MON; [|eauto]; nia.
+      * iApply isim_spawn. iIntros "%"; iby_coind "CIH". done.
       * isteps_l. ss.
-    + iyield "IST".  eauto. iby_coind "CIH". eauto.
+    + iyield "IST". iby_coind "CIH". eauto.
   - depdes s.
     + rewrite !SBRed.bind !SBRed.put. des_ifs; cycle 1.
       { isteps_l. ss. }
@@ -104,14 +99,14 @@ Qed.
 Lemma isim_reflL contextual Ist fl_src fl_tgt mask scopesL scopesR scopesF (EqL : ist_type Σ) itr
     (DISJ : List.NoDup (scopesL ++ scopesR))
     (INCL : incl scopesF scopesL)
-    (EQGET : ∀ nths st_src st_tgt
+    (EQGET : ∀ st_src st_tgt
                 (NODS: List.NoDup (map fst st_src))
                 (NODT: List.NoDup (map fst st_tgt)),
-        EqL nths st_src st_tgt -∗ ⌜st_src = st_tgt⌝)
-    (EQSET : ∀ nths st_src st_tgt nths0 (k : key) v
+        EqL st_src st_tgt -∗ ⌜st_src = st_tgt⌝)
+    (EQSET : ∀ st_src st_tgt (k : key) v
                 (NODS: List.NoDup (map fst st_src))
                 (NODT: List.NoDup (map fst st_tgt)),
-        EqL nths st_src st_tgt -∗ EqL nths0 (alist_upd k v st_src) (alist_upd k v st_tgt)) :
+        EqL st_src st_tgt -∗ EqL (alist_upd k v st_src) (alist_upd k v st_tgt)) :
   isim_fsem fl_src fl_tgt (IstProd EqL (IstSB scopesR Ist)) contextual
     (IstProd EqL (IstSB scopesR Ist)) (IstProd EqL (IstSB scopesR Ist))
     (SB.sandbox_body (mask,scopesF,itr)) (SB.sandbox_body (mask,scopesF,itr)).
@@ -150,9 +145,9 @@ Qed.
 Lemma isim_reflR contextual Ist fl_src fl_tgt mask scopesL scopesR scopesF (EqR : ist_type Σ) itr
     (DISJ : List.NoDup (scopesL ++ scopesR))
     (INCL : incl scopesF scopesR)
-    (EQGET : ∀ nths st_src st_tgt, EqR nths st_src st_tgt -∗ ⌜st_src = st_tgt⌝)
-    (EQSET : ∀ nths st_src st_tgt nths0 (k : key) v,
-        EqR nths st_src st_tgt -∗ EqR nths0 (alist_upd k v st_src) (alist_upd k v st_tgt)) :
+    (EQGET : ∀ st_src st_tgt, EqR st_src st_tgt -∗ ⌜st_src = st_tgt⌝)
+    (EQSET : ∀ st_src st_tgt (k : key) v,
+        EqR st_src st_tgt -∗ EqR (alist_upd k v st_src) (alist_upd k v st_tgt)) :
   isim_fsem fl_src fl_tgt (IstProd (IstSB scopesL Ist) EqR) contextual
     (IstProd (IstSB scopesL Ist) EqR) (IstProd (IstSB scopesL Ist) EqR)
     (SB.sandbox_body (mask,scopesF,itr)) (SB.sandbox_body (mask,scopesF,itr)).
@@ -186,8 +181,6 @@ Qed.
 
 Lemma ISim_reflL contextual A B C init_cond scopes (Ist: ist_type Σ)
   (SCOPES: scopes = Mod.scopes B)
-  (MON : ∀ nths nths' (LE : nths <= nths') st_src st_tgt,
-           Ist nths st_src st_tgt -∗ Ist nths' st_src st_tgt)
   (SCOPE : sub_perm (Mod.scopes A) scopes)
   (MATCH : sub_perm (List.map fst (Mod.fnsems A)) (List.map fst (Mod.fnsems B)))
   (INIT : ISim.initial_valid A B init_cond (IstSB scopes Ist))
@@ -200,9 +193,7 @@ Lemma ISim_reflL contextual A B C init_cond scopes (Ist: ist_type Σ)
     (IstProd IstEq (IstSB scopes Ist)).
 Proof using.
   subst. econs; intro WF.
-  - ii. iIntros "H". iDestruct "H" as (? ? ? ?) "(% & HL & (% & HR))"; des; subst.
-    do 4 (iExists _). iSplitR; eauto.
-    iSplitL "HL"; et. iSplit; et. iApply MON; [|eauto]; nia.
+
   - s. apply sub_perm_cancel_head. eapply SCOPE.
   - s. rewrite ?map_app. apply sub_perm_cancel_head. eauto.
   - assert (WFCA: Mod.wf (C ★ A)).
@@ -279,23 +270,17 @@ Proof using.
 Qed.
 
 Lemma ISim_reflR contextual A B C init_cond scopes Ist
-  (SCOPES: scopes = Mod.scopes B)
-  (MON : ∀ nths nths' (LE : nths <= nths') st_src st_tgt,
-      Ist nths st_src st_tgt -∗ Ist nths' st_src st_tgt)
-  (SCOPE : sub_perm (Mod.scopes A) scopes)
-  (MATCH : sub_perm (List.map fst (Mod.fnsems A)) (List.map fst (Mod.fnsems B)))
-  (INIT : ISim.initial_valid A B init_cond (IstSB scopes Ist))
-  (SIM : ∀ fn, In fn (map fst (Mod.fnsems A)) →
-    ISim.sim_fun contextual
-                 (Mod.add A C) (Mod.add B C) init_cond
-                 (IstProd (IstSB scopes Ist) IstEq) fn)
-  :
+    (SCOPES: scopes = Mod.scopes B)
+    (SCOPE : sub_perm (Mod.scopes A) scopes)
+    (MATCH : sub_perm (List.map fst (Mod.fnsems A)) (List.map fst (Mod.fnsems B)))
+    (INIT : ISim.initial_valid A B init_cond (IstSB scopes Ist))
+    (SIM : ∀ fn, In fn (map fst (Mod.fnsems A)) →
+      ISim.sim_fun contextual
+                  (Mod.add A C) (Mod.add B C) init_cond
+                  (IstProd (IstSB scopes Ist) IstEq) fn) :
   ISim.t contextual (Mod.add A C) (Mod.add B C) init_cond (IstProd (IstSB scopes Ist) IstEq).
 Proof using.
   subst. econs; intro WF.
-  - ii. iIntros "H". iDestruct "H" as (? ? ? ?) "(% & (% & HL) & HR)"; des; subst.
-    do 4 (iExists _). iSplitR; eauto.
-    iSplitL "HL"; et. iSplit; et. iApply MON; [|eauto]; nia.
   - s. apply sub_perm_cancel_tail. eapply SCOPE.
   - s. rewrite ?map_app. apply sub_perm_cancel_tail. eauto.
   - assert (WFCA: Mod.wf (A ★ C)).
@@ -416,10 +401,9 @@ Proof using.
 Qed.
 
 Lemma ISim_match contextual ms mt cond Ist fn
-  (SIM: ISim.t contextual ms mt cond Ist)
-  (WF: Mod.wf mt)
-  (IN: In fn (List.map fst (Mod.fnsems ms)))
-  :
+    (SIM: ISim.t contextual ms mt cond Ist)
+    (WF: Mod.wf mt)
+    (IN: In fn (List.map fst (Mod.fnsems ms))) :
   In fn (List.map fst (Mod.fnsems mt)).
 Proof using.
   dup WF. destruct WF. eapply sub_perm_incl; eauto. apply SIM; et.
@@ -436,11 +420,13 @@ Proof using.
   dup SIM. dup WFS. dup WFT. destruct SIM0, WFS0, WFT0.
   econs; i; ss.
   - ii; subst; eauto.
-  - instantiate (1:= interp_inv (λ x y z, winv (∅,∅) ∗ Ist x y z)%I).
+  (* - instantiate (1:= interp_inv (λ x y, winv (∅, ∅) ∗ Ist x y)%I).
     inv WF0. econs; eauto.
     rewrite MR. iIntros ">[I H]". iFrame. iModIntro.
-    iApply sim_mon; eauto.
-  - instantiate (1:= ε).
+    iApply sim_mon; eauto. *)
+  - instantiate (1 := Σ).
+    instantiate (2 := interp_inv (λ x y, winv (∅, ∅) ∗ Ist x y)%I).
+    instantiate (1 := ε).
     inv WF0. econs; eauto.
     iIntros "H". iMod (MRS with "H") as "H". iModIntro.
     unfold ctx_sem. rewrite big_opL_app. s. rewrite ?right_id; eauto.
@@ -452,7 +438,7 @@ Proof using.
     destruct ft as [[[img0 msk0] scp0] bd0].
     i. exists ε, ε.
 
-    specialize (x1 arg 1 (Mod.initial_st ms) (Mod.initial_st mt)).
+    specialize (x1 arg (Mod.initial_st ms) (Mod.initial_st mt)).
     rewrite /ModTr.trans_ktree /SB.sandbox_body. s.
     eapply lsim_mon_rr.
     { instantiate (1:= interp_inv IstTrue). et. }
@@ -495,10 +481,10 @@ Proof using.
     eapply msim_adequacy; eauto; cycle 4.
     { apply le_mine_refl. ii; eauto. }
     { ginit; cycle 2; i.
-      eapply gpaco9_mon with (r := iunlift ibot) (rg:= iunlift ibot); eauto using iunlift_ibot.
+      eapply gpaco8_mon with (r := iunlift ibot) (rg:= iunlift ibot); eauto using iunlift_ibot.
       eapply isim_init; eauto.
       iIntros "H". iApply isim_upd. iMod (MR with "H") as "[I H]".
-      iPoseProof (x1 with "[H]") as "SIM"; cycle 3; s; et.
+      iPoseProof (x1 with "[H]") as "SIM"; cycle 2; s; et.
       iPoseProof (winv_split_empty with "[I]") as "[I I']"; et.
       iPoseProof ("SIM" with "I") as "SIM".
       iModIntro. iApply isim_mono; cycle 1; i.

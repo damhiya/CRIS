@@ -63,15 +63,13 @@ Ltac init_sim :=
   (first
   [ eapply ISim_reflR;
     [ hrepeat do 1 unfold_mod; et
-    | try rewrite /Ist_monotone; eauto
     | try prove_sub_perm
     | try prove_sub_perm
     | r; (hrepeat do 1 unfold_mod; s); i; ss
     | try unfold_mod_fn; i; des; subst; ss
     ]
   | econs; i;
-    [ try rewrite /Ist_monotone; eauto
-    | try prove_sub_perm
+    [ try prove_sub_perm
     | try prove_sub_perm
     | r; (hrepeat do 1 unfold_mod; s); i; ss
     | eapply ISim.sim_fun_strong; try unfold_mod_fn; i; des; subst; ss

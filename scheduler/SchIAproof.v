@@ -211,8 +211,8 @@ Module SchIA. Section SchIA.
 
   (**************************)
 
-  Definition Ist: nat → alist key Any.t → alist key Any.t → iProp Σ :=
-    fun _ st_src st_tgt =>
+  Definition Ist: alist key Any.t → alist key Any.t → iProp Σ :=
+    λ st_src st_tgt,
       (∃ (ths_src ths_tgt: SchI.thslist) (ths_src_b ths_src_w: SchA.threadsF) (ths_cond: gmap nat (iProp Σ)) (tids: SchI.tidslist) (tid: nat) (intnl: bool),
           ⌜st_tgt = [(SchI.v_ths, ths_tgt↑); (SchI.v_tid, tid↑); (SchI.v_tids, tids↑)]
           ∧ st_src = [(SchA.v_internal, intnl↑); (SchI.v_ths, ths_src↑); (SchI.v_tid, tid↑); (SchI.v_tids, tids↑)]
@@ -272,7 +272,7 @@ Module SchIA. Section SchIA.
 
     set (st_s'0 := [_;_;_;_]).
     set (st_t'0 := [_;_;_]).
-    iAssert (Ist nths' st_s'0 st_t'0) with "[token THB THW COND POST TA]" as "IST".
+    iAssert (Ist st_s'0 st_t'0) with "[token THB THW COND POST TA]" as "IST".
     { subst st_s'0 st_t'0. destruct (alist_find my_tid ths_tgt0) eqn:LU; cycle 1; [|destruct o].
       { (* idle case - impossible *)
         dup SIM0. specialize (SIM0 my_tid). rewrite LU in SIM0. inv SIM0.
@@ -344,16 +344,15 @@ Module SchIA. Section SchIA.
 
     (* Coinduction on yield loop *)
     rewrite !/Sch.terminate /ccallU. unseal "Sch".
-    clear THWF THWF0 THSEQ THSEQ0 SIM SIM0 NTHS.
+    clear THWF THWF0 THSEQ THSEQ0 SIM SIM0.
     clearbody st_t'0 st_s'0.
     iApply wsim_reset.
     iStopProof. revert NODUPFS.
     combine_quant NODUPFT.
     combine_quant st_t'0.
     combine_quant st_s'0.
-    combine_quant nths'.
     eapply wsim_coind. i.
-    destruct a as [nths1 [st_src1 [st_tgt1 [NODS1 NODT1]]]]. s.
+    destruct a as [st_src1 [st_tgt1 [NODS1 NODT1]]]. s.
     destruct_quant.
     iIntros "(WI & TU & IST) _ #CIH".
     unfold_iter_l. unfold_iter_r.
@@ -362,6 +361,7 @@ Module SchIA. Section SchIA.
     force_l. iSplitL "WI TU". { iFrame. eauto. }
 
     steps_r. call "IST".
+
     steps_l. iDestruct "ASM" as "[[-> TU] ->]". hss.
     steps_l.
     steps_r. hss. steps_r.
@@ -400,14 +400,14 @@ Module SchIA. Section SchIA.
     { rewrite /token_half. unseal "SchA". iFrame. iExists _. iSplit; eauto. }
 
     steps_l. steps_r. hss. steps_r.
-    spawn. steps_r. hss. steps_l. hss.
+    spawn. iIntros (tid); steps_r. hss. steps_l. hss.
     force_l ((length tids)↑). forces_l. iSplitL "tid TKNQ0"; iFrame; eauto.
     step. iSplit; eauto. iCombine "THW TKNQ1" as "THW". iFrame.
     iExists _, _, _, _, _. iSplit; eauto. iPureIntro. esplits; eauto.
     { rewrite last_length. econs; [nia|]. rewrite alist_remove_find_None; eauto.
       eapply ths_wf_mon; eauto. }
     { econs; ss. split; eauto. rewrite !alist_remove_find_None; eauto. }
-    { i. destruct (tid =? length tids) eqn:EQ.
+    { i. destruct (tid0 =? length tids) eqn:EQ.
       { rewrite Nat.eqb_eq in EQ; subst. rewrite discrete_fun_lookup_op Nat.eqb_refl.
         rewrite !alist_add_find_eq -H4 -H5 left_id. econs. }
       { rewrite Nat.eqb_neq in EQ. des_ifs.
@@ -469,9 +469,8 @@ Module SchIA. Section SchIA.
     combine_quant NODS.
     combine_quant st_tgt.
     combine_quant st_src.
-    combine_quant nths.
     eapply wsim_coind. intros g' a.
-    destruct a as [nths [st_src [st_tgt [NODS NODT]]]]. s.
+    destruct a as [st_src [st_tgt [NODS NODT]]]. s.
     destruct_quant.
     iIntros "[IST [tid [TKN WI]]] _ #CIH".
 

@@ -225,32 +225,6 @@ Module SRed. Section RED.
   Lemma guar P : SModTr.trans sp (guarantee P) = guarantee P.
   Proof using. unfold guarantee. rewrite bind core. grind. rewrite ret. refl. Qed.
 
-  (* Lemma guarantee_proph {X R} post Q :
-    SModTr.trans sp (@GuaranteeProph _ X R post Q) = GuaranteeProph post Q.
-  Proof.
-    rewrite /GuaranteeProph; unseal CRIS_PROPH.
-    repeat (rewrite bind core; f_equal; extensionalities).
-    repeat (rewrite bind ag; f_equal; extensionalities).
-    rewrite ret //.
-  Qed. *)
-
-  (* Lemma guarantee_prophK {X R R'} post Q k :
-    SModTr.trans sp (@GuaranteeProphK _ X R R' post Q k) =
-    GuaranteeProphK post Q (λ x, SModTr.trans sp (k x)).
-  Proof using. rewrite /GuaranteeProphK bind guarantee_proph //. Qed. *)
-
-  (* Lemma assume_proph {X} (pre : X → iProp Σ) :
-    SModTr.trans sp (AssumeProph pre) = AssumeProph pre.
-  Proof.
-    rewrite /AssumeProph; unseal CRIS_PROPH.
-    repeat (rewrite bind core; f_equal; extensionalities).
-    repeat (rewrite bind ag; f_equal; extensionalities). rewrite ret //.
-  Qed. *)
-
-  (* Lemma assume_prophK {X R} (pre : X → iProp Σ) (k : _ → itree _ R) :
-    SModTr.trans sp (AssumeProphK pre k) = AssumeProphK pre (λ x, SModTr.trans sp (k x)).
-  Proof using. rewrite /AssumeProphK bind assume_proph //. Qed. *)
-
   Lemma update_proph {X A R} (pre : X → A → iProp Σ) (post : X → R → iProp Σ) (arg : A) :
     SModTr.trans sp (UpdateProph pre post arg) = UpdateProph pre post arg.
   Proof.
@@ -263,19 +237,6 @@ Module SRed. Section RED.
     SModTr.trans sp (UpdateProphK pre post arg k) =
     UpdateProphK pre post arg (λ x, SModTr.trans sp (k x)).
   Proof using. rewrite /UpdateProphK bind update_proph //. Qed.
-  (* Lemma fspec_proph {R} fsp bd (choice : R → bool) arg :
-    SModTr.trans sp (fspec_proph fsp bd choice arg) =
-    fspec_proph fsp ((SModTr.trans sp) ∘ bd) choice arg.
-  Proof.
-    rewrite /fspec_proph /GuaranteeProph. s. unseal CRIS_PROPH.
-    rewrite !bind !core. repeat f_equal.
-    - extensionalities. rewrite !bind !core. repeat f_equal.
-      extensionalities. rewrite !bind !ag; et. repeat f_equal.
-      extensionalities. f_equal. rewrite ret. et.
-    - extensionalities. rewrite !bind. f_equal.
-      extensionalities. rewrite !bind !ag; et. repeat f_equal.
-      extensionalities. rewrite ret. et.
-  Qed. *)
 
   Lemma fbody_trivial arg : SModTr.trans sp (fbody_trivial arg) = fbody_trivial arg.
   Proof. rewrite /fbody_trivial /= core //. Qed.

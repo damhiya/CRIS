@@ -34,19 +34,19 @@ Module CFilter. Section CFilter.
   Lemma sim_filter_intro mask (m: Mod.t):
     ISim.t open (filter mask m) m emp%I IstEq.
   Proof using.
-    assert (SIM: ∀ img msk scp ps pt nths st (itr: itree crisE Any.t),
+    assert (SIM: ∀ img msk scp ps pt st (itr: itree crisE Any.t),
     ⊢ isim open
       (map (map_snd SB.sandbox_body) (Mod.fnsems (filter mask m)))
       (map (map_snd SB.sandbox_body) (Mod.fnsems m)) IstEq ibot ibot
-      (ist_with_eq IstEq) ps pt nths
+      (ist_with_eq IstEq) ps pt
       (st, SB.sandbox img (wmask_and mask msk) scp itr)
       (st, SB.sandbox img msk scp itr)).
     {
-      i. revert itr. combine_quant st; combine_quant nths.
+      i. revert itr. combine_quant st.
       combine_quant ps. combine_quant pt. combine_quant img.
       combine_quant scp. combine_quant msk.
       eapply isim_coind. i.
-      destruct a as [msk [scp [img [pt [ps [nths [st itr]]]]]]]. s. destruct_quant.
+      destruct a as [msk [scp [img [pt [ps [st itr]]]]]]. s. destruct_quant.
       iIntros "[_ #CIH]".
       assert (CASE:= case_itrH itr). des; subst; s.
       - step; et.
@@ -69,7 +69,7 @@ Module CFilter. Section CFilter.
           spawn; et.
           { unfold wmask_and in EQ. destruct (msk fn) eqn: EQ'; ss.
             destruct (mask fn); ss. }
-          steps_l. steps_r. by_coind "CIH"; et.
+          iIntros "%"; steps_l. steps_r. by_coind "CIH"; et.
         + yield ""; et. iDestruct "IST" as "%". subst.
           steps_l. steps_r. by_coind "CIH"; et.
       - destruct s.
@@ -112,72 +112,71 @@ Module CFilter. Section CFilter.
     :
     ISim.t closed m (filter mask m) emp%I IstEq.
   Proof using.
-    assert (SIM: ∀ img msk scp ps pt nths st (itr: itree crisE Any.t),
+    assert (SIM: ∀ img msk scp ps pt st (itr: itree crisE Any.t),
     ⊢ isim closed
       (map (map_snd SB.sandbox_body) (Mod.fnsems m))
       (map (map_snd SB.sandbox_body) (Mod.fnsems (filter mask m)))
       IstEq ibot ibot
-      (ist_with_eq IstEq) ps pt nths
+      (ist_with_eq IstEq) ps pt
       (st, SB.sandbox img msk scp itr)
       (st, SB.sandbox img (wmask_and mask msk) scp itr)).
-    {
-    i. revert itr.
-    combine_quant st. combine_quant nths. combine_quant ps. combine_quant pt.
-    eapply isim_coind.
-    iIntros (g' [pt [ps [nths [st itr]]]] MON) "[_ #CIH]". s. destruct_quant.
-    assert (CASE:= case_itrH itr). des; subst; s.
-    - step; et.
-    - steps_l. steps_r. by_coind "CIH"; et.
-    - destruct img.
-      + steps_l. force_r. iSplitL "ASM"; et. steps_r. by_coind "CIH"; et.
-      + rewrite SBRed.bind SBRed.Assume. steps_l. ss.
-    - steps_l. force_r; iFrame. steps_l. steps_r. by_coind "CIH"; et.
-    - steps_r. force_l. iSplitL "GRT"; et. steps_l. by_coind "CIH"; et.
-    - destruct c; s.
-      + destruct (msk fn) eqn: EQ; cycle 1.
-        { rewrite SBRed.bind SBRed.call EQ. steps_l. ss. }
-        destruct (mask fn) eqn: EQ'; cycle 1.
-        { rewrite SBRed.bind. iApply isim_call_none_sandbox; et.
-          rewrite alist_find_map_snd.
-          destruct (alist_find (Some fn) _) eqn: FIND'; ss.
-          eapply alist_find_some, (in_map fst), SUB in FIND'.
-          rewrite EQ' in FIND'. ss.
-        }
-        call ""; et.
-        { unfold wmask_and. rewrite EQ EQ'. et. }
-        iDestruct "IST" as "%". subst.
-        steps_l. steps_r. by_coind "CIH"; et.
-      + destruct (msk fn) eqn: EQ; cycle 1.
-        { rewrite SBRed.bind SBRed.spawn EQ. steps_l. ss. }
-        destruct (mask fn) eqn: EQ'; cycle 1.
-        { rewrite SBRed.bind. iApply isim_spawn_none_sandbox; et.
-          rewrite alist_find_map_snd.
-          destruct (alist_find (Some fn) _) eqn: FIND'; ss.
-          eapply alist_find_some, (in_map fst), SUB in FIND'.
-          rewrite EQ' in FIND'. ss.
-        }
-        spawn; et.
-        { unfold wmask_and. rewrite EQ EQ'. et. }
-        steps_l. steps_r. by_coind "CIH"; et.
-      + yield ""; et. iDestruct "IST" as "%". subst.
-        steps_l. steps_r. by_coind "CIH"; et.
-    - destruct s.
-      + rewrite !SBRed.bind !SBRed.put. des_ifs; cycle 1.
-        { steps_l. ss. }
-        iApply isim_sput_src. iApply isim_sput_tgt.
-        steps_r. by_coind "CIH"; et.
-      + ired. rewrite !SBRed.bind !SBRed.get. des_ifs; cycle 1.
-        { steps_l. ss. }
-        iApply isim_sget_src. iApply isim_sget_tgt.
-        steps_r. by_coind "CIH"; et.
-    - destruct e.
-      + steps_r. force_l _q. steps_l. by_coind "CIH"; et.
-      + destruct img.
-        * steps_l. force_r _q. steps_r. by_coind "CIH"; et.
-        * rewrite !SBRed.bind !SBRed.take. des_ifs.
-          { steps_l. force_r _q. steps_r. by_coind "CIH"; et. }
-          steps_l. ss.
-      + step. steps_l. steps_r. by_coind "CIH"; et.
+    { i. revert itr.
+      combine_quant st. combine_quant ps. combine_quant pt.
+      eapply isim_coind.
+      iIntros (g' [pt [ps [st itr]]] MON) "[_ #CIH]". s. destruct_quant.
+      assert (CASE:= case_itrH itr). des; subst; s.
+      - step; et.
+      - steps_l. steps_r. by_coind "CIH"; et.
+      - destruct img.
+        + steps_l. force_r. iSplitL "ASM"; et. steps_r. by_coind "CIH"; et.
+        + rewrite SBRed.bind SBRed.Assume. steps_l. ss.
+      - steps_l. force_r; iFrame. steps_l. steps_r. by_coind "CIH"; et.
+      - steps_r. force_l. iSplitL "GRT"; et. steps_l. by_coind "CIH"; et.
+      - destruct c; s.
+        + destruct (msk fn) eqn: EQ; cycle 1.
+          { rewrite SBRed.bind SBRed.call EQ. steps_l. ss. }
+          destruct (mask fn) eqn: EQ'; cycle 1.
+          { rewrite SBRed.bind. iApply isim_call_none_sandbox; et.
+            rewrite alist_find_map_snd.
+            destruct (alist_find (Some fn) _) eqn: FIND'; ss.
+            eapply alist_find_some, (in_map fst), SUB in FIND'.
+            rewrite EQ' in FIND'. ss.
+          }
+          call ""; et.
+          { unfold wmask_and. rewrite EQ EQ'. et. }
+          iDestruct "IST" as "%". subst.
+          steps_l. steps_r. by_coind "CIH"; et.
+        + destruct (msk fn) eqn: EQ; cycle 1.
+          { rewrite SBRed.bind SBRed.spawn EQ. steps_l. ss. }
+          destruct (mask fn) eqn: EQ'; cycle 1.
+          { rewrite SBRed.bind. iApply isim_spawn_none_sandbox; et.
+            rewrite alist_find_map_snd.
+            destruct (alist_find (Some fn) _) eqn: FIND'; ss.
+            eapply alist_find_some, (in_map fst), SUB in FIND'.
+            rewrite EQ' in FIND'. ss.
+          }
+          spawn; et.
+          { unfold wmask_and. rewrite EQ EQ'. et. }
+          iIntros (tid); steps_l. steps_r. by_coind "CIH"; et.
+        + yield ""; et. iDestruct "IST" as "%". subst.
+          steps_l. steps_r. by_coind "CIH"; et.
+      - destruct s.
+        + rewrite !SBRed.bind !SBRed.put. des_ifs; cycle 1.
+          { steps_l. ss. }
+          iApply isim_sput_src. iApply isim_sput_tgt.
+          steps_r. by_coind "CIH"; et.
+        + ired. rewrite !SBRed.bind !SBRed.get. des_ifs; cycle 1.
+          { steps_l. ss. }
+          iApply isim_sget_src. iApply isim_sget_tgt.
+          steps_r. by_coind "CIH"; et.
+      - destruct e.
+        + steps_r. force_l _q. steps_l. by_coind "CIH"; et.
+        + destruct img.
+          * steps_l. force_r _q. steps_r. by_coind "CIH"; et.
+          * rewrite !SBRed.bind !SBRed.take. des_ifs.
+            { steps_l. force_r _q. steps_r. by_coind "CIH"; et. }
+            steps_l. ss.
+        + step. steps_l. steps_r. by_coind "CIH"; et.
     }
 
     econs; ii ; et.
@@ -220,7 +219,7 @@ Module CFilter. Section CFilter.
   Proof using _crisG.
     do 2 rewrite (mod_addc_empty_l _ P).
     eapply ctxr_cond_frameR.
-    eapply main_adequacy with (Ist := fun _ _ _ => emp%I).
+    eapply main_adequacy with (Ist := λ _ _, emp%I).
     clear_trivials.
     init_sim; ii; et.
   (*SLOW*)Qed.
@@ -330,30 +329,15 @@ Module CFilter. Section CFilter.
       i. eapply list_lookup_insert_Some in IN. des; subst; et.
     }
     { (* AssumeRes  *)
-      (* zstep_r.
-      ziter_r. zstep_r. zstep_r.
-      ziter_r. zstep_r. zstep_r. 
-      ziter_r. zstep_r. zstep_r. *)
 
       zstep_l.
       ziter_l. zstep_l. zstep_l.
-      (* exists x. zstep_l. *)
       ziter_l. zstep_l.
-      (* exists x0. zstep_l. *)
       ziter_l. zstep_l.
 
       zstep_r. ziter_r. zstep_r. exists x.
       zstep_r. ziter_r; zstep_r.
       ziter_r; zstep_r.
-      (* exists x1. zstep_l. *)
-
-      (* ziter_l. zstep_l. zstep_l.
-      ziter_l. zstep_l.
-      ziter_l. zstep_l. *)
-      
-      (* ziter_r. zstep_r. exists x2. zstep_r.
-      ziter_r. zstep_r.
-      ziter_r. zstep_r. *)
 
       zprogress.
       gbase. eapply CIH; et.
