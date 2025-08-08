@@ -228,7 +228,7 @@ Tactic Notation "red_SB" :=
       | Tau _ =>
           eapply SBRed.tau
       | vis (Assume _) _ =>
-          eapply SBRed.vis_Assume_img
+          first [eapply SBRed.vis_Assume_img|eapply SBRed.vis_Assume]
       | vis (AssumeRes _) _ =>
           eapply SBRed.vis_AssumeRes
       | vis (Guarantee _) _ =>
@@ -246,7 +246,7 @@ Tactic Notation "red_SB" :=
       | vis (Choose _) _ =>
           eapply SBRed.vis_choose
       | vis (Take _) _ =>
-          eapply SBRed.vis_take_img
+          first [eapply SBRed.vis_take_img|eapply SBRed.vis_take]
       | vis (IO _ _) _ =>
           eapply SBRed.vis_io
       | assumeK _ _ =>
