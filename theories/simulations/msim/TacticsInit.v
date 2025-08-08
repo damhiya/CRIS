@@ -42,7 +42,7 @@ Ltac post_simF :=
 Ltac initialize_simF :=
   pre_simF;
   alist_find_simpl;
-  let H := fresh "H" in intro H; inv H;
+  let H := fresh "H" in intro H; eapply some_injective in H; subst;
   alist_find_simpl;
   post_simF.
 

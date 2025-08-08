@@ -195,7 +195,7 @@ Section Aux.
     :
     SMod.to_mod sp md = SMod.to_mod sp_none md.
   Proof.
-    rewrite /SMod.to_mod. eapply mod_extensionality; s; et.
+    eapply mod_extensionality; s; et. unfold SModTr.trans_ktree.
     eapply map_ext_Forall. eapply List.Forall_forall. i.
     destruct x as [fno [[[img msk] scp] [fsp bd]]]. s. repeat f_equal.
     destruct WF; ss. rewrite map_map fst_map_snd in wf_fns.

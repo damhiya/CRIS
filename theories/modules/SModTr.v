@@ -96,6 +96,8 @@ Module SModTr. Section HOARE.
 
 End HOARE. End SModTr.
 
+Global Arguments SModTr.trans_ktree: simpl never.
+
 Notation "↧ it" := (SModTr.trans _ it) (at level 59, only printing).
 
 Module SRed. Section RED.

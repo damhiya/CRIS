@@ -166,7 +166,7 @@ Tactic Notation "alist_find_simpl_with" tactic(simpl_tac) :=
 Ltac alist_find_simpl :=
   alist_find_simpl_with (
       first
-        [ (timeout 1 simpl alist_find);
+        [ (timeout 1 simpl alist_find at 1);
            match goal with [|- _ (Some _)] => idtac end
         | alist_find_simpl_lauto]).
 

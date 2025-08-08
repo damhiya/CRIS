@@ -424,8 +424,8 @@ Module ProphIA.
             revert EE. unfold ProphecyI.t. unseal CRIS. ss.
             unfold ProphecyI.new, ProphecyI.resolve, ProphecyI.close.
             unfold ModTr.trans_ktree, SB.sandbox_body.
-            unfold ModTr.trans, SB.sandbox, SModTr.trans.
-            i. des; clarify; ss; clarify; rewrite ! interpV_tau ! interpV_ret; grind; et. }
+            unfold ModTr.trans, SB.sandbox, SModTr.trans, SModTr.trans_ktree.
+            i. des; clarify; ss; clarify; rewrite !interpV_tau !SRed.ret !interpV_ret; grind; et. }
           { apply Forall_insert; et. apply take_is_prop_bind.
             eapply mod_take_is_prop; et. i. pfold. econs. left.
             eapply Forall_lookup_1 in H2; cycle 1.
@@ -459,8 +459,8 @@ Module ProphIA.
             revert EE. unfold ProphecyI.t. unseal CRIS. ss.
             unfold ProphecyI.new, ProphecyI.resolve, ProphecyI.close.
             unfold ModTr.trans_ktree, SB.sandbox_body.
-            unfold ModTr.trans, SB.sandbox, SModTr.trans.
-            i. des; clarify; ss; clarify; rewrite ! interpV_tau ! interpV_ret; grind; et. }
+            unfold ModTr.trans, SB.sandbox, SModTr.trans, SModTr.trans_ktree.
+            i. des; clarify; ss; clarify; rewrite !interpV_tau !SRed.ret !interpV_ret; grind; et. }
           { eapply Forall_lookup_1 in E; et. punfold E.
             inv E; try itree_clarify H0. pclearbot. grind.
             apply Forall_app. split. apply Forall_insert; et.
@@ -901,7 +901,7 @@ Module ProphIA.
       assert (Own p0 ⊢ ⌜arg = i1↑⌝).
       { iIntros "A". iPoseProof (p2 with "A") as ">[[[A B] C] D]". iFrame. }
       apply Own_pure_soundness in H; et. clarify.
-      rewrite !interpV_ret. grind.
+      rewrite !SRed.ret.
       assert (Own p0 ⊢ |==> ((⌜i1 ↑ = i1 ↑⌝ ∗ free_id (λ y : Prophecy.ID, y = i1)) ∗ ⌜p = i1 ↑⌝) ∗ Own (rs_tgt ⋅ rs_proph)).
       { iIntros "A". iPoseProof (p2 with "A") as ">[A B]". iFrame.
         iStopProof. apply Own_Upd. et. }
@@ -1103,7 +1103,7 @@ Module ProphIA.
       unfold proph_resolveI, ProphecyI.resolve, ProphecyA.resolve_spec, fspec_simple.
       unfold precond, postcond. destruct p. ss. destruct s, p, p. ss.
       unfold cfunU, SB.sandbox_body, SB.sandbox, ModTr.trans_ktree, ModTr.trans, SModTr.trans.
-      simpl. rewrite !interpV_ret. grind.
+      simpl. rewrite !SRed.ret. grind.
       rewrite !interpV_bind !interpV_trigger. simpl.
       rewrite bind_ret_r interpV_trigger. simpl.
       rewrite bind_ret_r. grind. rewrite unfold_iterV. simpl.
@@ -1376,7 +1376,7 @@ Module ProphIA.
       assert (Own p1 ⊢ ⌜arg = i1↑⌝).
       { iIntros "A". iPoseProof (p3 with "A") as ">[[[A B] C] D]". iFrame. }
       apply Own_pure_soundness in H; et. clarify.
-      rewrite !interpV_ret. grind.
+      rewrite !SRed.ret. grind.
       assert (Own p1 ⊢ |==> ((⌜i1 ↑ = i1 ↑⌝ ∗ has_proph i1 (existT x (p0, l))) ∗ ⌜p = i1 ↑⌝) ∗ Own (rs_tgt ⋅ rs_proph)).
       { iIntros "A". iPoseProof (p3 with "A") as ">[A B]". iFrame.
         iStopProof. apply Own_Upd. et. }
