@@ -766,7 +766,7 @@ Section Proph.
   Local Notation sim Ep r g := (wsim fl_s fl_t Ist Ep r g R_s R_t).
 
   (** Precise Pre & Post conditions **)  (* Precise Pre & Post conditions *)
-  Lemma wsim_assume_proph_src_advanced {X} pre k_s i_t :
+  (* Lemma wsim_assume_proph_src_advanced {X} pre k_s i_t :
     (∃ (I P : iProp Σ) (Q : X → iProp Σ),
       I ∗ precise P ∗
       (∀ x, ∃ T, (I ∗ pre x -∗ □ T) ∗ (□ T -∗ pre x ==∗ P ∗ Q x)) ∗
@@ -851,7 +851,7 @@ Section Proph.
     rewrite wsim_eq /wsim_def.
     iIntros "H W"; iApply isim_guarantee_proph_tgt; iIntros (?) "A"; iMod ("H" with "A") as "H".
     iApply "H"; done.
-  Qed.
+  Qed. *)
 
   Lemma wsim_update_proph_src_advanced {X A R} pre (post : X → R → iProp Σ) (arg : A) k_s i_t :
     (∃ (I P : iProp Σ) (ret : R),

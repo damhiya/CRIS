@@ -840,7 +840,7 @@ Section Proph.
   Context (st_s st_t : alist key Any.t).
 
   (* Precise Pre & Post conditions *)
-  Lemma isim_assume_proph_src_advanced {X} pre r g k_s i_t :
+  (* Lemma isim_assume_proph_src_advanced {X} pre r g k_s i_t :
     (∃ (I P : iProp Σ) (Q : X → iProp Σ),
       I ∗ precise P ∗
       (∀ x, ∃ T, (I ∗ pre x -∗ □ T) ∗ (□ T -∗ pre x ==∗ P ∗ Q x)) ∗
@@ -864,9 +864,9 @@ Section Proph.
     iMod ("PRP" with "P") as "P".
     iMod ("K" with "[P I]") as "K"; first iFrame.
     norm_l; iApply "K".
-  Qed.
+  Qed. *)
 
-  Lemma isim_assume_proph_src {X} pre r g k_s i_t :
+  (* Lemma isim_assume_proph_src {X} pre r g k_s i_t :
     (∃ (P : iProp Σ) (Q : X → iProp Σ),
       precise P ∗
       (∀ x, pre x ==∗ P ∗ Q x) ∗
@@ -882,9 +882,9 @@ Section Proph.
       iIntros "_ Hpre"; iApply "Hsplit"; done.
     }
     by iIntros "[P _]"; iApply "Hpost".
-  Qed.
+  Qed. *)
 
-  Lemma isim_assume_proph_src_simple {X} pre r g k_s i_t :
+  (* Lemma isim_assume_proph_src_simple {X} pre r g k_s i_t :
     (∃ (x : X), precise (pre x) ∗
       ∀ x', pre x' -∗ ⌜x' = x⌝ ∗ isim r g RR true pt nths (st_s, k_s (λ x', ⌜x' = x⌝)) (st_t, i_t)) ⊢
     isim r g RR ps pt nths (st_s, AssumeProph pre >>= k_s) (st_t, i_t).
@@ -902,9 +902,9 @@ Section Proph.
       { iIntros "->"; iIntros "$"; done. }
     }
     iIntros "[P K]"; iPoseProof ("K" with "P") as "[_ ?]". done.
-  Qed.
+  Qed. *)
 
-  Lemma isim_assume_proph_both
+  (* Lemma isim_assume_proph_both
       {X_s X_t} (pre_s : X_s → iProp Σ) (pre_t : X_t → iProp Σ) r g k_s k_t :
     (∀ pr_t Q_t, (∀ x, pre_t x ==∗ Own pr_t ∗ Q_t x) -∗
       ∃ (P : iProp Σ) (Q : X_s → iProp Σ),
@@ -926,9 +926,9 @@ Section Proph.
     norm_l; iApply isim_assume_res_src; iIntros "P"; iMod ("Hpre" with "P") as "P".
     iMod ("HP" with "P") as "[P K]". norm_r; iApply isim_assume_res_tgt; iFrame "P".
     norm_l; norm_r; done.
-  Qed.
+  Qed. *)
 
-  Lemma isim_assume_proph_tgt {X} (pre : X → iProp Σ) r g k_t i_s :
+  (* Lemma isim_assume_proph_tgt {X} (pre : X → iProp Σ) r g k_t i_s :
     (∃ x, pre x ∗ (∀ Q, Q x ==∗ isim r g RR ps true nths (st_s, i_s) (st_t, k_t Q))) ⊢
     isim r g RR ps pt nths (st_s, i_s) (st_t, AssumeProph pre >>= k_t).
   Proof using.
@@ -964,7 +964,7 @@ Section Proph.
     norm_r. iApply isim_choose_tgt. iIntros (x).
     norm_r. iApply isim_guarantee_tgt; iIntros "P".
     norm_r. iPoseProof ("H" with "P") as "> H". done.
-  Qed.
+  Qed. *)
 
   Lemma isim_update_proph_src_advanced {X A R} pre (post : X → R → iProp Σ) (arg : A) r g k_s i_t :
     (∃ (I P : iProp Σ) (ret : R),

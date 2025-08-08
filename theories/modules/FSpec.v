@@ -130,7 +130,7 @@ Section FSPEC.
       Ret (match ret with | Some r => inr r↑ | None => inl () end)
     ) ().
 
-  Definition fspec_proph (R : Type) (fsp : fspecS) (body : fbody) : fbody :=
+  (* Definition fspec_proph (R : Type) (fsp : fspecS) (body : fbody) : fbody :=
     λ arg, iterC (λ _,
       let pre := λ x, precondS fsp x arg in
       let post := λ x ret, postcondS fsp x ret↑ in
@@ -146,7 +146,7 @@ Section FSPEC.
       body arg;;;
       Q <- AssumeProph pre;;
       'ret : option R <- GuaranteeProph post Q;;
-      Ret (match ret with | Some r => inr r↑ | None => inl () end)) ().
+      Ret (match ret with | Some r => inr r↑ | None => inl () end)) (). *)
 
   Definition to_fspec (fsp : fspecS) : fspec :=
     mk_fspec (λ x varg arg, (fsp.(precondS) x arg ∗ ⌜varg = arg⌝)%I)

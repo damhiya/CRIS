@@ -211,7 +211,7 @@ Section GuaranteeProph.
 
   Definition CRIS_PROPH := "CRIS-PROPH".
   Global Opaque CRIS_PROPH.
-
+(* 
   (* Prologue for propheciable specification: extracts the exact resource from precondition *)
   Definition AssumeProph {X} (pre : X → iProp Σ) : itree crisE (X → iProp Σ) :=
     Seal.sealing CRIS_PROPH (
@@ -266,7 +266,7 @@ Section GuaranteeProph.
       {X R R1 R2} (post : X → R → iProp Σ) Q (k1 : _ → itree crisE R1) (k2 : _ → itree crisE R2) :
     GuaranteeProphK post Q k1 >>= k2 =
     GuaranteeProphK post Q (λ x, k1 x >>= k2).
-  Proof using. rewrite /GuaranteeProphK. by ired. Qed.
+  Proof using. rewrite /GuaranteeProphK. by ired. Qed. *)
 
   (* Prologue for propheciable specification: extracts the exact resource from precondition *)
   Definition UpdateProph {X A R} pre post (arg : A) : itree crisE R :=
