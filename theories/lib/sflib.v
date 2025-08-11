@@ -136,7 +136,7 @@ Export ListNotations.
 (* ************************************************************************** *)
 
 (** Coersion of bools into Prop *)
-Coercion is_true (b : bool) : Prop := b = true.
+Coercion is_true : bool >-> Sortclass.
 
 (** Hints for auto *)
 Lemma sflib__true_is_true : true.
@@ -283,8 +283,8 @@ Ltac autos   := clarsimp; auto with sflib.
 Definition  NW A (P : () -> A) : A := P ().
 
 Notation "<< x : t >>" := (NW (fun x => (t):Prop)) (at level 80, x name, no associativity).
-(* Notation "<< t >>" := (NW (fun _ => t)) (at level 79, no associativity, only printing). *)
-(* Notation "<< t >>" := (NW (fun _ => (t):Prop)) (at level 79, no associativity, only printing). *)
+Notation "<< t >>" := (NW (fun _ => t)) (at level 79, no associativity, only printing). 
+Notation "<< t >>" := (NW (fun _ => (t):Prop)) (at level 79, no associativity, only printing). 
 
 Ltac unnw := unfold NW in *.
 Ltac rednw := red; unnw.

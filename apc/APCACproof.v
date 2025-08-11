@@ -1,138 +1,153 @@
 Require Import CRIS.
-Require Import NormITree.
 Require Import APCHeader APC APCA APCC.
+
+Require Import ltac2_lib.
 
 Set Implicit Arguments.
 
 Module APCAC. Section APCAC.
   Import APCA.
-  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
 
-  Definition Ist : nat → alist key Any.t → alist key Any.t → iProp Σ :=
-    (λ _ _ _, True)%I.
+  Definition Ist : alist key Any.t → alist key Any.t → iProp Σ :=
+    (λ _ _, True)%I.
 
   (* context *)
-  Context (md : HMod.t).
-  Context (sp_c sp_a sp_pure : string → option fspec).
+  Context (md : Mod.t).
+  Context (sp_c sp_a : sp_type).
+  Context (sp_pure : spl_type).
   Context (APCInSpA : sp_incl APCA.Sp sp_a).
-  Context (PureInSpA : sp_sub sp_pure sp_a).
+  Context (PureInSpA : sp_incl sp_pure sp_a).
   Context (PureIsPure :
-            ∀ fn pfsp, 
-            sp_pure fn = Some pfsp 
-            → ∃ scopes, find_body md fn = Some (pure_specbody scopes sp_a pfsp)).
+            ∀ fn pfsp,
+            alist_find (Some fn) sp_pure = Some pfsp
+            → ∃ msk scp, (find_body md fn = Some (pure_specbody sp_a true msk scp pfsp)) ∧ msk APCHdr.apc = true).
 
   Local Definition APCC := (APCC.t sp_c).
   Local Definition APCA := (APCA.t sp_pure sp_a).
   Local Definition APCCMod := (APCC ★ md).
   Local Definition APCAMod := (APCA ★ md).
-  Local Definition IstFull := (IstProd (IstSB APCC.(HMod.scopes) Ist) IstEq).
+  Local Definition IstFull := (IstProd (IstSB APCC.(Mod.scopes) Ist) IstEq).
 
   Local Transparent _APC.
 
-  Lemma simF_apc :
-    HSim.sim_fun open APCCMod APCAMod IstFull APCHdr.apc.
-  Proof using _sinvG PureIsPure PureInSpA APCInSpA.
+  Lemma simF_apc : ISim.sim_fun open APCCMod APCAMod APCC.init_cond IstFull (Some APCHdr.apc).
+  Proof using _crisG PureIsPure PureInSpA APCInSpA.
     init_simF.
     (* init_simF. *)
-    steps_l. iDestruct "ASM" as "%"; des; subst.
-    steps_r. force_r q. force_r (q↑). force_r. iSplitR; et. hss. steps_r.
+    steps_l. iDestruct "ASM" as "%"; des; subst. rename _q into o.
+    steps_r. wforce_r o. wforce_r (o↑). wforce_r. iSplitR; et. hss. steps_r.
 
     (* normalize itree - remove all interpretations and sandboxes except APC *)
-    unfold APC at 1. steps_r.
+    unfold APC at 1. steps_r. rename _q into o'.
 
     (* add meaningless return in src *)
-    set (itr:=(ITree.bind _ _)).
-    eapply wsim_congruence_src.
-    { instantiate (1:=Ret ();;; itr). rewrite bind_ret_l. refl. }
+    add_ret_l ().
 
     iApply wsim_bind. iSplitL; cycle 1.
-    { iIntros (? ? ? ? ?) "R".
-      instantiate (1:=(λ nths '(st_src, _) '(st_tgt, _), IstFull nths st_src st_tgt)%I).
-      subst itr. steps_r. force_l. steps_l. forces_l. iSplitR; et. step. iSplit; et. }
-    clear itr.
+    { iIntros (? ? ? ?) "R".
+      instantiate (1:=(λ '(st_src, _) '(st_tgt, _), IstFull st_src st_tgt)%I).
+      wsteps_r. force_l. steps_l. forces_l. iSplitR; et. step. iSplit; et. }
 
     (* well founded induction on depth ordinal *)
     iApply wsim_reset. iStopProof. 
-    generalize scopes st_tgt st_src nths. revert q0. pattern q. set (GOAL:=λ _, _).
-    revert q. apply (well_founded_induction Ord.lt_well_founded).
-    i. subst GOAL. ss. iIntros (? ? ? ? ?) "IST".
+    generalize scopes st_tgt st_src. revert o'. pattern o. set (GOAL:=λ _, _).
+    revert o. apply (well_founded_induction Ord.lt_well_founded).
+    i. subst GOAL. ss. iIntros (? ? ? ?) "IST".
 
     (* well founded induction on width ordinal *)
     iApply wsim_reset. iStopProof. 
-    generalize st_tgt0 st_src0 nths0. pattern q0. set (GOAL:=λ _, _).
-    revert q0. apply (well_founded_induction Ord.lt_well_founded).
-    i. subst GOAL. ss. iIntros (? ? ?) "IST".
+    generalize st_tgt0 st_src0. pattern o'. set (GOAL:=λ _, _).
+    revert o'. apply (well_founded_induction Ord.lt_well_founded).
+    i. subst GOAL. ss. iIntros (? ?) "IST".
 
     rewrite unfold_APC. steps_r. des_ifs. { step. iFrame. }
-    steps_r.
+    steps_r. rename _q into o, _q2 into o', _q1 into fn, _q0 into LT.
 
-    (* manually do what wsim_unwrapN_tgt does *)
-    unfold unwrapN. des_ifs. 2:{ unfold triggerNB. steps_r. des_ifs. }
-    rename Heq into G, f into q3. steps_r. 
-    
-    (* inlining *)
-    unfold is_Some in *. des. dup grt.
-    apply PureInSpA in grt. rewrite grt in G. inv G; ss.
-    apply PureIsPure in grt1. ss. destruct grt1. unfold find_body in H1.
-    inline_r.
-    { subst FLT. rewrite map_app. apply alist_find_comm.
-      - rewrite map_app. rewrite !map_fst_map_map_snd_refl.
-        apply nodup_comm. rewrite -map_app. eauto.
-      - apply alist_find_app. et.
+    rewrite /is_Some in grt. des.
+    dup PureInSpA. rename PureInSpA0 into PIS.
+    assert (SP: sp_a fn = x1).
+    { apply PIS; eauto. }
+    rewrite SP. destruct x1; cycle 1.
+    { (* inlining *)
+      hexploit PureIsPure; eauto. i. des. rewrite /find_body in H1. inline_r.
+      { unfold FLT. rewrite map_app. apply alist_find_comm.
+        { rewrite map_app. rewrite !map_fst_map_map_snd_refl.
+          apply nodup_comm. rewrite -map_app. eauto. }
+        { apply alist_find_app. apply H1. }
+      }
+      unfold pure_specbody, SB.sandbox_body, SModTr.trans_ktree, SModTr.trans_body, SModTr.HoareFun.
+      steps_r; ss. rewrite /pure_body /cfunN. hss. steps_r.
+      iDestruct "GRT" as "%"; des; hss. rename _q into o'.
+
+      (* inlining *)
+      inline_r. force_r o'. steps_r. forces_r. iSplitR; eauto. hss. steps_r.
+      
+      (* normalize itree *)
+      unfold APC at 1. steps_r.
+      
+      (* add meaningleses return in src *)
+      add_ret_l ().
+      iApply wsim_bind. iSplitL; cycle 1.
+      { iIntros (? ? ? ?) "R".
+        instantiate (1:=(λ '(st_src, _) '(st_tgt, _), IstFull st_src st_tgt)%I).
+        steps_r. forces_r. iSplitL "GRT"; eauto.
+        steps_r. iApply wsim_reset. iStopProof. eapply H0; et. }
+      steps_r. iApply wsim_reset. iStopProof. eapply H; et.
     }
 
-    unfold pure_specbody, SModTr.trans_ktree, SModTr.HoareFun. steps_r.
-    force_r q4. forces_r. iSplitR "IST"; et.
+    (* inlining *)
+    hexploit PureIsPure; eauto. i. des. rewrite /find_body in H1.
+    steps_r. rename _q into x', _q0 into ret'.
+    inline_r.
+    { unfold FLT. rewrite map_app. apply alist_find_comm.
+      { rewrite map_app. rewrite !map_fst_map_map_snd_refl.
+        apply nodup_comm. rewrite -map_app. eauto. }
+      { apply alist_find_app. apply H1. }
+    }
 
-    steps_r. unfold pure_body.
-    (* manually do what wsim_unwrapN_tgt does *)
-    step_r. hss. steps_r. rename q7 into q8, q6 into q7.
-
-    steps_r. iDestruct "GRT" as "%". hss.
+    unfold pure_specbody, SB.sandbox_body, SModTr.trans_ktree, SModTr.trans_body, SModTr.HoareFun. ss.
+    force_r x'. steps_r. force_r (_↑). steps_r. forces_r. iSplitL "GRT"; eauto.
+    steps_r. rewrite /pure_body /cfunN. hss. steps_r.
+    iDestruct "GRT" as "%"; des; hss.
 
     (* inlining *)
-    inline_r. steps_r. force_r q7. forces_r. iSplitR; et. steps_r.
-
-    (* manually do what wsim_unwrapN_tgt does *)
-    hss. steps_r.
-
+    inline_r. force_r. steps_r. forces_r. iSplitR; eauto. hss. steps_r.
+    
     (* normalize itree *)
-    unfold APC at 1.
+    unfold APC at 1. steps_r. 
     
     (* add meaningless return in src *)
-    set (itr:=(λ _: unit, _)). steps_r.
-    eapply wsim_congruence_src.
-    { instantiate (1:=Ret ();;; Ret ()). grind. }
+    add_ret_l ().
 
     iApply wsim_bind. iSplitL; cycle 1.
-    { iIntros (? ? ? ? ?) "R". instantiate (1:=(λ nths '(st_src, _) '(st_tgt, _), IstFull nths st_src st_tgt)%I).
-      subst itr. steps_r. forces_r. iSplitL "GRT"; et.
-      steps_r. forces_r. iSplitL "GRT"; et. steps_r. iApply wsim_reset. iStopProof. eapply H0; et. }
-    clear itr. iApply wsim_reset. iStopProof. eapply H; et.
+    { iIntros (? ? ? ?) "R".
+      instantiate (1:=(λ '(st_src, _) '(st_tgt, _), IstFull st_src st_tgt)%I).
+      steps_r. forces_r. iSplitL "GRT"; eauto.
+      steps_r. force_r (tt↑). steps_r. force_r. iSplitL "GRT"; eauto. steps_r. iApply wsim_reset. iStopProof. eapply H0; et. }
+    steps_r. iApply wsim_reset. iStopProof. eapply H; et.
+
     Unshelve. all: ss.
   (*SLOW*)Qed.
 
-  Theorem sim : HSim.t open APCCMod APCAMod emp%I IstFull.
-  Proof using _sinvG PureIsPure PureInSpA APCInSpA.
+  Theorem sim : ISim.t open APCCMod APCAMod APCC.init_cond IstFull.
+  Proof using _crisG PureIsPure PureInSpA APCInSpA.
     init_sim.
-    - iIntros "_". iExists [], [], _, _. 
-      iSplit; ss.
-      iSplit; [iSplit|]; eauto.
-      iPureIntro. split; prove_scope.
-    - eapply simF_apc; eauto.
+    - split; eauto. iIntros "_". iSplit; ss. iPureIntro. split; prove_scope.
+    - eapply simF_apc.
   Qed.
 End APCAC.
 
 Section ctxr.
-  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
 
-  Definition ctxr (md : HMod.t) (sp_c sp_a sp_pure : string → option fspec)
+  Definition ctxr (md : Mod.t) (sp_c sp_a : sp_type) (sp_pure : spl_type)
       (APCInSpA : sp_incl APCA.Sp sp_a)
-      (PureInSpA : sp_sub sp_pure sp_a)
-      (PureIsPure : 
-                  ∀ fn pfsp, 
-                    sp_pure fn = Some pfsp 
-                    → ∃ scopes, find_body md fn = Some (pure_specbody scopes sp_a pfsp)) :
+      (PureInSpA : sp_incl sp_pure sp_a)
+      (PureIsPure :
+        ∀ fn pfsp,
+          alist_find (Some fn) sp_pure = Some pfsp
+          → ∃ msk scp, (find_body md fn = Some (pure_specbody sp_a true msk scp pfsp)) ∧ msk APCHdr.apc = true) :
     ctx_refines
       ((APCC.t sp_c)          ★ md, emp%I)
       ((APCA.t sp_pure sp_a)  ★ md, emp%I).

@@ -1,37 +1,198 @@
 Require Import Common.
-
-Require Export ModTr.
+From iris.proofmode Require Import proofmode.
+Require Import PropExtensionality.
+Require Import LMod.
+Require Export FSpec ModTr Sandbox.
 
 Set Implicit Arguments.
 
-Module Mod.
+Definition fnsems_scopes `{Σ: GRA} {T} (fn : option string) (fnsems : alist (option string) (fnsem_type T)) :=
+  match (alist_find fn fnsems) with
+  | Some (mask, scopes, body) => scopes
+  | None => []
+  end.
 
+Definition state_scopes (st : alist key Any.t) :=
+  List.map (fst ∘ fst) st.
+
+Lemma state_scopes_update k v st:
+  state_scopes (alist_upd k v st) = state_scopes st.
+Proof.
+  rewrite /state_scopes -!List.map_map alist_upd_keys. eauto.
+Qed.
+
+Module Mod. Section Mod.
+  Context {Σ : GRA}.
+  
   Record t : Type := mk {
-    initial_st : Any.t;
-    fnsems : alist string (Any.t -> itree modE Any.t);
+    scopes : list string; (* scopes of the module local variables *)
+    fnsems : alist (option string) (fnsem_type fbody);
+    initial_st : alist key Any.t;
+
+    well_scoped_fns :
+      ∀ fn, incl (fnsems_scopes fn fnsems) scopes;
+    well_scoped_init :
+      incl (state_scopes initial_st) scopes;                         
+    nodup_init :
+      List.NoDup scopes → List.NoDup (List.map fst initial_st);
   }.
 
   Record wf (ms : t) : Prop := mk_wf {
-    wf_fnsems : List.NoDup (List.map fst ms.(fnsems));
+    wf_fns : List.NoDup (List.map fst ms.(fnsems));
+    wf_scopes : List.NoDup ms.(scopes);
   }.
 
-  Definition empty: t := {|
-    initial_st := tt↑;
+  Definition exports (m: t) : list (option string) :=
+    List.map fst m.(fnsems).
+
+  (**** Linking ****)
+  Program Definition empty : t := {|
+    scopes := [];
     fnsems := [];
+    initial_st := [];
+  |}.
+  Next Obligation. ii; ss. Qed.
+  Next Obligation. ii; ss. Qed.
+  Next Obligation. econs. Qed.
+
+  Program Definition add ms1 ms2 : t :=
+    {|
+      fnsems := ms1.(fnsems) ++ ms2.(fnsems);
+      scopes := ms1.(scopes) ++ ms2.(scopes);
+      initial_st := ms1.(initial_st) ++ ms2.(initial_st);
+    |}.
+  Next Obligation.
+    ii. unfold fnsems_scopes in H. des_ifs.
+    rewrite alist_find_app_o in Heq. des_ifs.
+    { hexploit (ms1.(well_scoped_fns) fn a).
+      { unfold fnsems_scopes. des_ifs. }
+      i. eapply in_or_app. eauto.
+    }
+    { hexploit (ms2.(well_scoped_fns) fn a).
+      { unfold fnsems_scopes. des_ifs. }
+      i. eapply in_or_app. eauto.
+    }
+  Qed.
+  Next Obligation.
+    unfold state_scopes. ii. destruct ms1, ms2. ss.
+    rewrite map_app in H. apply in_or_app. apply in_app_or in H.
+    destruct H; eauto.
+  Qed.  
+  Next Obligation.
+    ii. exploit nodup_app_l; eauto. i.
+    exploit nodup_app_r; eauto; i.
+    apply ms1 in x0. apply ms2 in x1.
+    assert (INCL1:= ms1.(well_scoped_init)).
+    assert (INCL2:= ms2.(well_scoped_init)).
+    revert_until ms2. unfold state_scopes.
+    generalize (initial_st ms1) as l1.
+    generalize (initial_st ms2) as l2.
+    i. revert_until l1. induction l1; ss.
+    i. econs; cycle 1.
+    {
+      eapply IHl1; eauto.
+      { eapply NoDup_cons_iff in x0. des. eauto. }
+      { ss. ii. eapply INCL1. ss. eauto. }
+    }
+    ii. rewrite map_app in H0. eapply in_app_or in H0. des.
+    { eapply NoDup_cons_iff in x0. des. eauto. }
+    eapply NoDup_app_disjoint; eauto.
+    { eapply INCL1. s. left. eauto. }
+    { eapply INCL2. rewrite - List.map_map. eapply in_map. eauto. }
+  Qed.
+
+  Definition to_lmod (ms : t) (r : Σ) : LMod.t :=
+  {|
+    LMod.fnsems := List.map (map_snd (ModTr.trans_ktree ∘ SB.sandbox_body)) ms.(fnsems);
+    LMod.initial_st := Any.pair (ModTr.alist_encode ms.(initial_st)) r↑;
   |}.
 
-  Section COMPILE.
+  Definition addL (ms : list t) : t :=
+    foldr add empty ms.
 
-    Variable ms: t.
+  Definition modc : Type := (t * iProp Σ)%type.
+  Global Instance modc_equiv : Equiv modc := λ m1 m2, m1.1 = m2.1 ∧ m1.2 ≡ m2.2.
+  Global Instance modc_equiv_equiv : Equivalence modc_equiv.
+  Proof using.
+    split; ss; ii.
+    { inv H; split; clarify. }
+    { inv H; inv H0; split; clarify; ss.
+      { rewrite H1 H; ss. }
+      { i; rewrite H2 H3; ss. }
+    }
+  Qed.
 
-    Definition init_fun := "CRIS_init".
+  Definition empty_mc : modc := (empty, emp%I).
+End Mod. End Mod.
 
-    Definition prog: string -> option (Any.t -> itree modE Any.t) :=
-      fun fn => alist_find fn ms.(fnsems).
+Infix "★" := Mod.add (at level 60, right associativity).
+Notation "⌽" := Mod.empty (at level 9).
 
-    Definition compile : itree coreE Any.t :=
-      bd <- (prog init_fun)?;;
-      snd <$> ModTr.trans prog (bd ()↑) (initial_st ms).
+Section ModFacts.
+  Context `{Σ : GRA}.
 
-  End COMPILE.
-End Mod.
+  Lemma mod_extensionality (ms1 ms2 : Mod.t)
+    (SCOPE : Mod.scopes ms1 = Mod.scopes ms2)
+    (FNSEM : Mod.fnsems ms1 = Mod.fnsems ms2)
+    (INITS : Mod.initial_st ms1 = Mod.initial_st ms2)
+    :
+    ms1 = ms2.
+  Proof using. destruct ms1, ms2; ss. subst. f_equal; apply proof_irrelevance. Qed.
+
+  Lemma mod_add_assoc (md1 md2 md3 : Mod.t) :
+    (md1 ★ md2) ★ md3 = md1 ★ md2 ★ md3.
+  Proof using.
+    destruct md1, md2, md3.
+    apply mod_extensionality; s; try rewrite app_assoc; eauto.
+  Qed.
+
+  Lemma mod_add_empty_l (md : Mod.t) : md = ⌽ ★ md.
+  Proof using.
+    destruct md. apply mod_extensionality; s; eauto.
+  Qed.
+
+  Lemma mod_add_empty_r (md : Mod.t) : md = md ★ ⌽.
+  Proof using.
+    destruct md. apply mod_extensionality; s; try rewrite app_nil_r; eauto.
+  Qed.
+
+  Lemma mod_addL_app l l' : Mod.addL (l ++ l') = (Mod.addL l) ★ (Mod.addL l').
+  Proof using.
+    induction l; s.
+    - rewrite -mod_add_empty_l. eauto.
+    - rewrite mod_add_assoc. rewrite IHl. eauto.
+  Qed.
+
+  Lemma mod_addc_assoc (md : Mod.t) (P Q R : iProp Σ) :
+    (md, (P ∗ Q) ∗ R)%I ≡ (md, P ∗ Q ∗ R)%I.
+  Proof using.
+    econs; ss.
+    iSplit.
+    { iIntros "[[P Q] R]"; iFrame. }
+    { iIntros "[P [Q R]]"; iFrame. }
+  Qed.
+
+  Lemma mod_addc_empty_l (md : Mod.t) (P : iProp Σ) :
+    (md, P) ≡ (md, emp ∗ P)%I.
+  Proof using.
+    econs; ss.
+    iSplit.
+    { iIntros "P"; iFrame. }
+    { iIntros "[_ P]"; iFrame. }
+  Qed.
+
+  Lemma mod_addc_empty_r (md : Mod.t) (P : iProp Σ) :
+   (md, P) ≡ (md, P ∗ emp)%I.
+  Proof using.
+    econs; ss.
+    iSplit.
+    { iIntros "P"; iFrame. }
+    { iIntros "[P _]"; iFrame. }
+  Qed.
+
+  Lemma mod_exports_app m1 m2:
+    Mod.exports (m1 ★ m2) = Mod.exports m1 ++ Mod.exports m2.
+  Proof.
+    destruct m1, m2. unfold Mod.exports. s. rewrite List.map_app. et.
+  Qed.
+End ModFacts.

@@ -4,12 +4,12 @@
    - no step indices and later modalities *)
 From iris.algebra Require Export cmra updates.
 From iris.bi Require Import notation.
+From iris.algebra Require Export stepindex_finite.
 From iris.prelude Require Import options.
 
 Local Hint Extern 1 (_ ≼ _) => etrans; [eassumption|] : core.
 Local Hint Extern 1 (_ ≼ _) => etrans; [|eassumption] : core.
 Local Hint Extern 10 (_ ≤ _) => lia : core.
-
 
 Record uPred (M : ucmra) : Type := UPred {
   uPred_holds : M → Prop;
@@ -57,11 +57,12 @@ Section cofe.
     - eapply HP, cmra_valid_included=>//.
     - done.
   Qed.
-  Global Program Instance uPred_cofe : Cofe uPredO := {| compl := uPred_compl |}.
+  Global Program Instance uPred_cofe : Cofe uPredO := cofe_finite uPred_compl _.
   Next Obligation.
-    intros n c.
-    etrans; [|by symmetry; apply (chain_cauchy c 0 n); lia]. split=> x H. split=>H'; [by apply H'|].
-    repeat intro. done.
+    intros n c; split=>i Hv.
+    etrans; [|symmetry; apply (chain_cauchy c 0)]; eauto using SIdx.le_0_l.
+    split=>H; [by apply H|].
+    repeat intro; done.
   Qed.
 End cofe.
 Global Arguments uPredO : clear implicits.
@@ -384,12 +385,12 @@ Module uPred_primitive.
       - intros HPQ; split; split=> x; apply HPQ.
       - intros [??]. exact : entails_anti_sym.
     Qed.
-    Lemma entails_lim (cP cQ : chain (uPredO M)) :
+    (* Lemma entails_lim (cP cQ : chain (uPredO M)) :
       (∀ n, cP n ⊢ cQ n) → compl cP ⊢ compl cQ.
     Proof using.
       intros Hlim; split=> n m Hyp HP.
       eapply uPred_holds_ne, Hlim, Hyp, HP; eauto.
-    Qed.
+    Qed. *)
 
     (** Non-expansiveness and setoid morphisms *)
     Lemma pure_ne n : Proper (iff ==> dist n) (@uPred_pure M).
@@ -475,7 +476,7 @@ Module uPred_primitive.
       unseal; split=> x; split; apply HP; eauto using cmra_core_valid.
     Qed.
 
-    Lemma ownM_ne `{CmraDiscrete M} : NonExpansive (@uPred_ownM M).
+    Lemma ownM_ne `{!CmraDiscrete M} : NonExpansive (@uPred_ownM M).
     Proof using.
       intros n a b Ha%discrete_iff; try apply _;
       unseal; split=> x ? /=. by rewrite Ha.
@@ -487,7 +488,7 @@ Module uPred_primitive.
       unseal; split=> x ? /=. by rewrite Ha.
     Qed.
 
-    Lemma cmra_valid_ne {A : cmra} `{CmraDiscrete A} :
+    Lemma cmra_valid_ne {A : cmra} `{!CmraDiscrete A} :
       NonExpansive (@uPred_cmra_valid M A).
     Proof using.
       intros n a b Ha%discrete_iff; try apply _; unseal; split=> x ? /=.

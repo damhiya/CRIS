@@ -1,6 +1,4 @@
-Require Import CRIS.
-
-Require Export MemHeader.
+From CRIS Require Import CRIS MemHeader.
 
 Set Implicit Arguments.
 Set Typeclasses Depth 5.
@@ -125,9 +123,9 @@ Module MemI. Section MemI.
   Definition scopes := ["Mem"].
   Definition v_mem := "Mem" ↯ "mem".
 
-  Definition alloc : list val → itree pmodE val :=
-    fun varg =>
-      'sz : Z <- (pargs [Tint] varg)?;;
+  Definition alloc : list val → itree crisE val :=
+    fun arg =>
+      'sz : Z <- (pargs [Tint] arg)?;;
       mem <- trigger (SGet v_mem);; mem <- mem↓?;;
       if (Z_le_gt_dec 0 sz && Z_lt_ge_dec (8 * sz) modulus_64)
       then (delta <- trigger (Choose _);;
@@ -138,73 +136,68 @@ Module MemI. Section MemI.
       else triggerUB
 . 
 
-  Definition free : list val → itree pmodE val :=
-    λ varg,
-      bofs <- (pargs [Tptr] varg)?;;
+  Definition free : list val → itree crisE val :=
+    λ arg,
+      bofs <- (pargs [Tptr] arg)?;;
       mem <- trigger (SGet v_mem);; mem <- mem↓?;;
       mem1 <- (Mem.free mem bofs)?;;
       trigger (SPut v_mem mem1↑);;;
       Ret (Vint 0)
   . 
 
-  Definition load: list val -> itree pmodE val :=
-    fun varg =>      
-      bofs <- (pargs [Tptr] varg)?;;        
+  Definition load: list val -> itree crisE val :=
+    fun arg =>      
+      bofs <- (pargs [Tptr] arg)?;;        
       mem <- trigger (SGet v_mem);; mem <- mem↓?;;
       v <- (Mem.load mem bofs)?;;
       Ret v
   .
 
-  Definition store : list val → itree pmodE val :=
-    fun varg =>
-      '(bofs, v): _ <- (pargs [Tptr; Tuntyped] varg)?;;
+  Definition store : list val → itree crisE val :=
+    fun arg =>
+      '(bofs, v): _ <- (pargs [Tptr; Tuntyped] arg)?;;
       mem <- trigger (SGet v_mem);; mem <- mem↓?;;
       mem1 <- (Mem.store mem bofs v)?;;
       trigger (SPut v_mem mem1↑);;;
       Ret (Vint 0)
   .
 
-  Definition cmp : list val → itree pmodE val :=
-    fun varg =>
-      '(v0, v1): _ <- (pargs [Tuntyped; Tuntyped] varg)?;;
+  Definition cmp : list val → itree crisE val :=
+    fun arg =>
+      '(v0, v1): _ <- (pargs [Tuntyped; Tuntyped] arg)?;;
       mem <- trigger (SGet v_mem);; mem <- mem↓?;;
       'b: bool <- (Mem.vcmp mem v0 v1)?;;
-      if b
-      then 
-        Ret (Vint 1%Z)
-      else
-        Ret (Vint 0%Z)
+      Ret (Vint (if b then 1 else 0))
   .
 
-  Definition cas: list val -> itree pmodE val :=
-    fun varg =>
-      ' (bofs, (v_old, v_new)): _ <- (pargs [Tptr; Tuntyped; Tuntyped] varg)?;;
-      'd: val <- ccallU MemHdr.load [Vptr bofs];;
-      if (dec d v_old)
-      then
-        '_: val <- ccallU MemHdr.store [Vptr bofs; v_new];;
-        Ret d
-      else
-        Ret d
+  Definition cas: list val -> itree crisE val :=
+    fun arg =>
+      ' (bofs, (v_old, v_new)): _ <- (pargs [Tptr; Tuntyped; Tuntyped] arg)?;;
+      'v_cur: val <- ccallU MemHdr.load [Vptr bofs];;
+      'succ: val <- ccallU MemHdr.cmp [v_cur; v_old];;
+      (if (dec succ (Vint 1))
+       then ccallU MemHdr.store [Vptr bofs; v_new]
+       else Ret Vundef);;;
+      Ret v_cur
   .
   
-  Definition fnsems : alist string (_ * list string * (Any.t -> itree pmodE Any.t)) :=
-    [(MemHdr.alloc, (wmask_all, scopes, cfunU alloc)) ;
-     (MemHdr.free,  (wmask_all, scopes, cfunU free)) ;
-     (MemHdr.load,  (wmask_all, scopes, cfunU load)) ;
-     (MemHdr.store, (wmask_all, scopes, cfunU store)) ;
-     (MemHdr.cmp,   (wmask_all, scopes, cfunU cmp)) ;
-     (MemHdr.cas,   (wmask_all, scopes, cfunU cas))].
+  Definition fnsems : alist (option string) (fnsem_type (option fspec * fbody)) :=
+    [(Some MemHdr.alloc, (false, wmask_all, scopes, (None, (cfunU alloc)))) ;
+     (Some MemHdr.free,  (false, wmask_all, scopes, (None, (cfunU free)))) ;
+     (Some MemHdr.load,  (false, wmask_all, scopes, (None, (cfunU load)))) ;
+     (Some MemHdr.store, (false, wmask_all, scopes, (None, (cfunU store)))) ;
+     (Some MemHdr.cmp,   (false, wmask_all, scopes, (None, (cfunU cmp)))) ;
+     (Some MemHdr.cas,   (false, wmask_all, scopes, (None, (cfunU cas))))].
 
-  Program Definition Mem csl genv : PMod.t :=
+  Program Definition smod csl genv : SMod.t :=
     {|
-      PMod.scopes := scopes;
-      PMod.fnsems := fnsems ;
-      PMod.initial_st := [(v_mem, (Mem.load_mem csl genv)↑)];
+      SMod.scopes := scopes;
+      SMod.fnsems := fnsems ;
+      SMod.initial_st := [(v_mem, (Mem.load_mem csl genv)↑)];
     |}
   .
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition t csl genv : HMod.t := Seal.sealing CRIS (PMod.to_hmod (Mem csl genv)).
+  Definition t csl genv := Seal.sealing CRIS (SMod.to_mod sp_none (smod csl genv)).
 End MemI. End MemI.

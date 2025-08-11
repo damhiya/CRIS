@@ -1478,14 +1478,14 @@ Ltac unshelve_goal :=
 
 Notation "f ∘ g" := (fun x => (f (g x))).
 
-
-
-
-
 Definition map_fst A B C (f : A -> C) : A * B -> C * B := fun '(a, b) => (f a, b).
 Definition map_snd A B C (f : B -> C) : A * B -> A * C := fun '(a, b) => (a, f b).
 
-
+Lemma fst_map_snd {A B C} f:
+  (fst ∘ @map_snd A B C f) = fst.
+Proof.
+  extensionalities. destruct H. s. eauto.
+Qed.
 
 (* Definition is_zero (v : Z) : bool := (dec v 0%Z)%Z. *)
 
@@ -1590,9 +1590,89 @@ Proof. induction EQ; ss. des; subst. refl. Qed.
 
 Global Open Scope nat_scope.
 
+(* Lemmas about string *)
+
 Lemma string_length_app (s1 s2: string):
   String.length (String.append s1 s2) = String.length s1 + String.length s2.
 Proof.
   revert s2. induction s1; i; ss.
   fold append. rewrite IHs1. et.
 Qed.
+  
+Definition strings_maxlen (l: list string) : nat :=
+  list_max (List.map String.length l).
+
+Fixpoint string_repeat (s: string) (n: nat) : string :=
+  match n with
+  | 0 => ""
+  | S n' => String.append s (string_repeat s n')
+  end.
+
+Lemma string_repeat_length s n:
+  String.length (string_repeat s n) = n * String.length s.
+Proof.
+  induction n; ss.
+  rewrite string_length_app. rewrite IHn. et.
+Qed.
+
+Lemma strings_maxlen_app l1 l2:
+  strings_maxlen (l1++l2) = max (strings_maxlen l1) (strings_maxlen l2).
+Proof.
+  revert l2. induction l1; et.
+  i. s. unfold strings_maxlen in *. ss.
+  rewrite IHl1. nia.
+Qed.
+
+Lemma strings_maxlen_notin s l
+  (LONG: String.length s > strings_maxlen l)
+  :
+  ~ existsb (String.eqb s) l.
+Proof.
+  ii. eapply existsb_exists in H. des. eapply String.eqb_eq in H0; subst.
+  revert_until l. induction l; i; ss.
+  des; subst.
+  - unfold strings_maxlen in LONG. ss. nia.
+  - eapply IHl; et. unfold strings_maxlen in *. ss. nia.
+Qed.
+
+Lemma string_ex_not_in (l: list string):
+  exists s, ~ In s l.
+Proof.
+  exists (string_repeat "H" (1 + strings_maxlen l)).
+  ii. eapply strings_maxlen_notin; cycle 1.
+  - eapply existsb_exists. esplits; [apply H|apply String.eqb_refl].
+  - rewrite string_repeat_length. s. nia.
+Qed.
+
+(* has three kind of values: None, None2, Some2(a)
+   None means identity
+   None2 means invalid
+   Some means valid
+ *)
+Definition option2 A : Type := option (option A).
+Definition None2 {A} : option2 A := Some (None).
+Definition Some2 {A} (a:A) : option2 A := Some (Some (a)).
+
+Definition o2add {A} (c1 c2: option2 A) : option2 A :=
+  match c1, c2 with
+  | _, None => c1
+  | None, _ => c2
+  | _, _ => None2
+  end.
+
+Definition o2flat {A} (c: option2 A) : option A :=
+  match c with
+  | Some (Some a) => Some a
+  | _ => None
+  end.
+
+Definition o2map {A B} (f: A -> B) (c: option2 A) : option2 B :=
+  option_map (option_map f) c.
+
+Lemma o2add_assoc {A} (c1 c2 c3: option2 A):
+  o2add (o2add c1 c2) c3 = o2add c1 (o2add c2 c3).
+Proof. destruct c1, c2, c3; ss. Qed.
+
+Lemma o2add_comm {A} (c1 c2: option2 A):
+  o2add c1 c2 = o2add c2 c1.
+Proof. destruct c1, c2; ss. Qed.

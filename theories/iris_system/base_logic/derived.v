@@ -71,7 +71,7 @@ Section derived.
   Qed.
 
   (** For big ops *)
-  Global Instance uPred_ownM_sep_homomorphism `{CmraDiscrete M}:
+  Global Instance uPred_ownM_sep_homomorphism `{!CmraDiscrete M}:
     MonoidHomomorphism op uPred_sep (≡) (@uPred_ownM M).
   Proof using.
     split; [split|]; try apply _; [apply ownM_op | apply ownM_unit'].
