@@ -2,8 +2,8 @@ Require Export Common.
 From iris.proofmode Require Export proofmode.
 
 Require Export FSpec Sp.
-Require Export SMod HMod PMod.
-Require Export ISim ISimInit WSim ISimNotations WSimNotations.
+Require Export SMod Mod.
+Require Export ISim ISimFacts WSim ISimNotations WSimNotations.
 Require Export Tactics TacticsInit IrisTactics.
 
 Require Export CallFilter CtxRefine CtxRefineFacts ClosedAdequacy MainAdequacy.

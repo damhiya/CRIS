@@ -9,17 +9,17 @@ Module APCC. Section APCC.
 
   Definition scopes := ["APC"].
 
-  Definition Sp : alist string fspec :=
+  Definition Sp : spl_type :=
     Seal.sealing CRIS
-      [(APCHdr.apc, APCA.apc_spec)].
+      [(Some APCHdr.apc, Some APCA.apc_spec)].
   
   Lemma Sp_nodup : List.NoDup (List.map fst Sp).
   Proof using. unfold Sp. unseal CRIS. prove_nodup. Qed.
 
-  Definition fnsems :=
-    [(APCHdr.apc, (wmask_all, scopes, mk_specbody APCA.apc_spec fbody_trivial))].
+  Definition fnsems : fnsems_type :=
+    [(Some APCHdr.apc, (true, wmask_all, scopes, (Some APCA.apc_spec, fbody_trivial)))].
 
-  Program Definition Mod : SMod.t := {|
+  Program Definition smod : SMod.t := {|
     SMod.scopes := scopes;
     SMod.fnsems := fnsems;
     SMod.initial_st := [];
@@ -27,5 +27,7 @@ Module APCC. Section APCC.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition t Sp := Seal.sealing CRIS (SMod.to_hmod Sp Mod).
+  Definition init_cond : iProp Σ := emp%I.
+
+  Definition t Sp := Seal.sealing CRIS (SMod.to_mod Sp smod).
 End APCC. End APCC.

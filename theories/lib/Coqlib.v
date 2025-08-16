@@ -1478,14 +1478,14 @@ Ltac unshelve_goal :=
 
 Notation "f ∘ g" := (fun x => (f (g x))).
 
-
-
-
-
 Definition map_fst A B C (f : A -> C) : A * B -> C * B := fun '(a, b) => (f a, b).
 Definition map_snd A B C (f : B -> C) : A * B -> A * C := fun '(a, b) => (a, f b).
 
-
+Lemma fst_map_snd {A B C} f:
+  (fst ∘ @map_snd A B C f) = fst.
+Proof.
+  extensionalities. destruct H. s. eauto.
+Qed.
 
 (* Definition is_zero (v : Z) : bool := (dec v 0%Z)%Z. *)
 
@@ -1643,3 +1643,36 @@ Proof.
   - eapply existsb_exists. esplits; [apply H|apply String.eqb_refl].
   - rewrite string_repeat_length. s. nia.
 Qed.
+
+(* has three kind of values: None, None2, Some2(a)
+   None means identity
+   None2 means invalid
+   Some means valid
+ *)
+Definition option2 A : Type := option (option A).
+Definition None2 {A} : option2 A := Some (None).
+Definition Some2 {A} (a:A) : option2 A := Some (Some (a)).
+
+Definition o2add {A} (c1 c2: option2 A) : option2 A :=
+  match c1, c2 with
+  | _, None => c1
+  | None, _ => c2
+  | _, _ => None2
+  end.
+
+Definition o2flat {A} (c: option2 A) : option A :=
+  match c with
+  | Some (Some a) => Some a
+  | _ => None
+  end.
+
+Definition o2map {A B} (f: A -> B) (c: option2 A) : option2 B :=
+  option_map (option_map f) c.
+
+Lemma o2add_assoc {A} (c1 c2 c3: option2 A):
+  o2add (o2add c1 c2) c3 = o2add c1 (o2add c2 c3).
+Proof. destruct c1, c2, c3; ss. Qed.
+
+Lemma o2add_comm {A} (c1 c2: option2 A):
+  o2add c1 c2 = o2add c2 c1.
+Proof. destruct c1, c2; ss. Qed.

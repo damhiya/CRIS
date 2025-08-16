@@ -5,13 +5,13 @@ Set Implicit Arguments.
 
 Module APCIA. Section APCIA.
   Import APCA.
-  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
   
-  Context (SpA : string → option fspec).
-  Context (SpPure : string → option fspec).
+  Context (SpA : sp_type).
+  Context (SpPure : spl_type).
 
-  Definition Ist : nat → alist key Any.t → alist key Any.t → iProp Σ :=
-    (λ _ _ _, True)%I.
+  Definition Ist : alist key Any.t → alist key Any.t → iProp Σ :=
+    (λ _ _, True)%I.
 
   Local Definition APCAMod := (APCA.t SpPure SpA).
   Local Definition APCIMod := (APCI.t).
@@ -19,8 +19,8 @@ Module APCIA. Section APCIA.
   Local Transparent _APC.
 
   Lemma simF_apc :
-    HSim.sim_fun open APCAMod APCIMod Ist APCHdr.apc.
-  Proof using _sinvG.
+    ISim.sim_fun open APCAMod APCIMod APCA.init_cond Ist (Some APCHdr.apc).
+  Proof using _crisG.
     init_simF.
     
     steps_l. iDestruct "ASM" as "[-> ->]"; hss.
@@ -30,18 +30,17 @@ Module APCIA. Section APCIA.
     Unshelve. all: ss.
   Qed.
 
-  Theorem sim : HSim.t open APCAMod APCIMod emp%I Ist.
-  Proof using _sinvG.
+  Theorem sim : ISim.t open APCAMod APCIMod emp%I Ist.
+  Proof using _crisG.
     init_sim.
-    - eauto.
     - eapply simF_apc.
   Qed.
 End APCIA.
 
 Section ctxr.
-  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
+  Context `{!crisG Γ Σ α β τ _S _I}.
 
-  Theorem ctxr (SpA SpPure: string → option fspec):
+  Theorem ctxr (SpA : sp_type) (SpPure : spl_type) :
     ctx_refines
       (APCA.t SpPure SpA, emp%I)
       (APCI.t, emp%I).

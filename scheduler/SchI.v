@@ -4,58 +4,64 @@ Require Import SchHeader.
 
 Set Implicit Arguments.
 
-Definition thstat : Type := nat * (option SAny.t).
-Definition thslist: Type := list thstat.
+Definition thslist: Type := list (nat * option SAny.t).
+Definition tidslist: Type := list nat.
 
 Module SchI. Section SchI.
-  Local Open Scope string_scope.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
 
-  Context `{Σ: GRA}.
-   
-  Definition scopes := ["Sch"; "Tid"].
+  Definition scopes := ["Sch"].
   Definition v_ths := "Sch" ↯ "ths".
-  Definition v_tid := "Tid" ↯ "tid".
+  Definition v_tid := "Sch" ↯ "tid".
+  Definition v_tids := "Sch" ↯ "tids".
 
-  Definition trigger_Yield (nxt_tid : nat) : itree hmodE unit :=
-    'my_tid: nat <- cgetU v_tid;;
-    trigger (Yield nxt_tid);;;
-    cput v_tid my_tid
-  .
-
-  Definition _spawn: (nat * string * SAny.t) -> itree hmodE unit :=
-    fun '(pa_tid, fn, arg) =>
-      trigger_Yield pa_tid;;;
+  Definition _spawn (check_internal : itree crisE unit) : (nat * string * SAny.t) -> itree crisE unit
+    :=
+    fun '(my_tid, fn, arg) =>
+      (* check internal state (only for SRC) *)
+      check_internal;;;
+      (* set up tid for starting up *)
+      cput v_tid my_tid;;;
+      (* execute the spawnee *)
       'rv: SAny.t <- ccallU fn arg;;
-      'my_tid: nat <- cgetU v_tid;;
+      (* update the list of results after executing *)
       'ths: thslist <- cgetU v_ths;;
       let newths: thslist := alist_replace my_tid (Some rv) ths in
       cput v_ths newths;;;
+      (* infinite loop for termination *)
       Sch.terminate
   .
 
-  Definition spawn: (string * SAny.t) -> itree hmodE nat :=
+  Definition spawn : (string * SAny.t) -> itree crisE nat :=
     fun '(fn, arg) =>
+      (* get internal states *)
       'ths: thslist <- cgetU v_ths;;
       'my_tid: nat <- cgetU v_tid;;
-      new_tid <- trigger (Spawn SchHdr._spawn (my_tid, fn, arg)↑);;
-      let newths: thslist := alist_add new_tid None ths in
+      'tids: tidslist <- cgetU v_tids;;
+      (* obtain next module-tid and give it to spawnee as an argument *)
+      let new_mtid: nat := length tids in
+      (* actual spawn using inner-spawn *)
+      new_stid <- trigger (Spawn SchHdr._spawn (new_mtid, fn, arg)↑);;
+      (* update internal states *)
+      let newtids: tidslist := tids ++ [new_stid] in
+      let newths: thslist := alist_add new_mtid None ths in
       cput v_ths newths;;;
-      cput v_tid new_tid;;;
-      trigger (Yield new_tid);;;
-      cput v_tid my_tid;;;
-      Ret new_tid
+      cput v_tids newtids;;;
+      (* return module-tid *)
+      Ret new_mtid
   .
 
-  Definition yield: unit -> itree hmodE unit :=
+  Definition yield (trigger_yield : nat -> itree crisE unit): unit -> itree crisE unit :=
     fun _ =>
-      'ths: thslist <- cgetU v_ths;;
-      'ntid: nat <- trigger (Choose nat);;
-      guarantee (is_Some (alist_find ntid ths));;;
-      trigger_Yield ntid
+      'tids: tidslist <- cgetU v_tids;;
+      (* choose one of the tids which is managed by scheduler *)
+      '(exist _ ntid _):_ <- trigger (Choose {ntid: nat | ntid < length tids});;
+      trigger_yield ntid
   .
 
-  Definition join: nat -> itree hmodE (option SAny.t) :=
+  Definition join: nat -> itree crisE (option SAny.t) :=
     fun tid =>
+      (* possibly infinite loop while waiting for the thread to terminate *)
       orv <- (iterC (fun _ =>
         'ths: thslist <- cgetU v_ths;;
         match alist_find tid ths with
@@ -69,29 +75,42 @@ Module SchI. Section SchI.
       Ret orv
   .
 
-  Definition get_tid: unit -> itree hmodE nat :=
+  Definition get_tid: unit -> itree crisE nat :=
     fun _ =>
       'my_tid : nat <- cgetU v_tid;;
       Ret my_tid
   .
 
-  Local Definition scopes_tid := ["Tid"].
+  Definition check_internal : itree crisE unit := Ret tt. (* skip *)
 
-  Definition fnsems :=
-    [(SchHdr._spawn, (wmask_all, scopes, cfunU _spawn));
-     (SchHdr.spawn, (wmask_all, scopes, cfunU spawn));
-     (SchHdr.yield, (wmask_all, scopes, cfunU yield));
-     (SchHdr.join, (wmask_all, scopes, cfunU join));
-     (SchHdr.get_tid, (wmask_all, scopes_tid, cfunU get_tid))].
+  (* provide conversion between module-tid and system-tid *)
+  Definition trigger_Yield (nxt_mtid : nat) : itree crisE unit :=
+    'my_tid : nat <- cgetU v_tid;;
+    'tids : tidslist <- cgetU v_tids;;
+    match nth_error tids nxt_mtid with
+    | Some nxt_stid => 
+        trigger (Yield nxt_stid);;;
+        cput v_tid my_tid
+    | None => triggerUB
+    end
+  .
   
-  Program Definition Mod: PMod.t :=
+  Definition fnsems : fnsems_type :=
+    [(Some SchHdr._spawn,  (false, wmask_all, scopes, (None, cfunU (_spawn check_internal))));
+     (Some SchHdr.spawn,   (false, wmask_all, scopes, (None, cfunU spawn)));
+     (Some SchHdr.yield,   (false, wmask_all, scopes, (None, cfunU (yield trigger_Yield))));
+     (Some SchHdr.join,    (false, wmask_all, scopes, (None, cfunU join)));
+     (Some SchHdr.get_tid, (false, wmask_all, scopes, (None, cfunU get_tid)))].
+
+  Program Definition smod: SMod.t :=
   {|
-    PMod.scopes := scopes;
-    PMod.fnsems := fnsems;
-    PMod.initial_st := [(v_ths, ([(0, None)]: thslist)↑); (v_tid, 0↑)];
+    SMod.scopes := scopes;
+    SMod.fnsems := fnsems;
+    SMod.initial_st := [(v_ths, ([(0, None)]: thslist)↑); (v_tid, 0↑); (v_tids, ([0]: tidslist)↑)];
   |}.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition t := Seal.sealing CRIS (PMod.to_hmod Mod).
+  Definition t := Seal.sealing CRIS (SMod.to_mod sp_none smod).
+
 End SchI. End SchI.

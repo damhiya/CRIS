@@ -1,26 +1,34 @@
 Require Import Common.
-Require Import HMod.
-Require Export FSpec SModTr.
+Require Import Mod.
+Require Export FSpec SModTr Sp.
 
 Set Implicit Arguments.
 
+Definition fnsems_type `{Σ: GRA} :=
+  alist (option string) (fnsem_type (option fspec * fbody)).
+
 Module SMod.
 Section SMOD.
-
-  Context `{Σ : GRA}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
 
   Record t : Type := mk {
     scopes : list string;
-    fnsems : alist string ((string->bool) * list string * fspecbody);
+    fnsems : fnsems_type;
     initial_st : alist key Any.t;
 
     well_scoped_fns:
       forall fn, incl (fnsems_scopes fn fnsems) scopes;
     well_scoped_init:
       incl (state_scopes initial_st) scopes;
-    nodup_fns:
+    nodup_init:
       List.NoDup scopes -> List.NoDup (List.map fst initial_st);
   }.
+
+  Definition wf (ms : t) : Prop := 
+    ∀ fno img msk scp fspo bd
+       (FIND: alist_find fno (fnsems ms) = Some (img, msk, scp, (fspo, bd)))
+       (COND: fno = None ∨ img = false),
+      fspo = None.
 
   (**** Linking ****)
   Program Definition empty : t := {|
@@ -82,15 +90,30 @@ Section SMOD.
   Definition addL (ms : list t) : t :=
     foldr add empty ms.
 
-  Program Definition to_hmod (sp : string -> option fspec) (ms : t) : HMod.t := {|
-    HMod.scopes := ms.(scopes);
-    HMod.fnsems := List.map (map_snd (λ ksb, (ksb.1, SModTr.trans_ktree sp ksb.2))) ms.(fnsems);
-    HMod.initial_st := ms.(initial_st);
+  Program Definition to_mod (sp : sp_type) (ms : t) : Mod.t := {|
+    Mod.scopes := ms.(scopes);
+    Mod.fnsems := List.map (map_snd (SModTr.trans_ktree sp)) ms.(fnsems);
+    Mod.initial_st := ms.(initial_st);
+    |}.
+  Next Obligation.
+    i. destruct ms. ss. ii. unfold fnsems_scopes in *. unfold map_snd in*.
+    rewrite alist_find_map in H. specialize (well_scoped_fns0 fn a).
+    destruct (alist_find fn fnsems0) eqn: E; ss. 
+    destruct f. destruct p. et.
+  Qed.
+  Next Obligation. ii. destruct ms. ss. eauto. Qed.
+  Next Obligation. ii. destruct ms. ss. eauto. Qed.
+
+  Program Definition cancel (ms : t) : t := {|
+    scopes := ms.(scopes);
+    fnsems := List.map (map_snd (map_snd (map_fst (const None)))) ms.(fnsems);
+    initial_st := ms.(initial_st);
   |}.
   Next Obligation.
     i. destruct ms. ss. ii. unfold fnsems_scopes in *. unfold map_snd in*.
     rewrite alist_find_map in H. specialize (well_scoped_fns0 fn a).
-    des_ifs; ss. inv Heq. eauto.
+    destruct (alist_find fn fnsems0) eqn: E; try rewrite E in H; ss.
+    destruct f. destruct p. et.
   Qed.
   Next Obligation. ii. destruct ms. ss. eauto. Qed.
   Next Obligation. ii. destruct ms. ss. eauto. Qed.
@@ -101,15 +124,15 @@ End SMod.
 Infix "☆" := SMod.add (at level 60, right associativity).
 
 Section ADD.
-  Context `{Σ : GRA}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
     
   Lemma smod_add_interp_comm
       sp
       (ms0 ms1: SMod.t)
     :
-    SMod.to_hmod sp (SMod.add ms0 ms1) = HMod.add (SMod.to_hmod sp ms0) (SMod.to_hmod sp ms1).
+    SMod.to_mod sp (SMod.add ms0 ms1) = Mod.add (SMod.to_mod sp ms0) (SMod.to_mod sp ms1).
   Proof using.
-    eapply hmod_extensionality; ss; eauto.
+    eapply mod_extensionality; ss; eauto.
     rewrite map_app. ss.
   Qed.
 
@@ -117,9 +140,9 @@ Section ADD.
       sp
       (md0 md1: SMod.t)
     :
-    SMod.to_hmod sp (SMod.add md0 md1) = HMod.add (SMod.to_hmod sp md0) (SMod.to_hmod sp md1).
+    SMod.to_mod sp (SMod.add md0 md1) = Mod.add (SMod.to_mod sp md0) (SMod.to_mod sp md1).
   Proof using.
-    unfold SMod.to_hmod. unfold "★". s. 
+    unfold SMod.to_mod. unfold "★". s. 
     f_equal. extensionalities.
     eapply smod_add_interp_comm.
   Qed.
@@ -127,17 +150,17 @@ Section ADD.
   Lemma interp_empty
       sp
     :
-    SMod.to_hmod sp SMod.empty = HMod.empty.
+    SMod.to_mod sp SMod.empty = Mod.empty.
   Proof using.
-    unfold SMod.to_hmod, HMod.empty.
-    eapply hmod_extensionality; eauto.
+    unfold SMod.to_mod, Mod.empty.
+    eapply mod_extensionality; eauto.
   Qed.
 
   Lemma addL_interp_comm
       sp
       (mds: list SMod.t)
     :
-    SMod.to_hmod sp (SMod.addL mds) = HMod.addL (List.map (SMod.to_hmod sp) mds).
+    SMod.to_mod sp (SMod.addL mds) = Mod.addL (List.map (SMod.to_mod sp) mds).
   Proof using.
     induction mds; [eapply interp_empty|].
     s. rewrite add_interp_comm.
@@ -145,3 +168,43 @@ Section ADD.
   Qed. 
 
 End ADD.
+
+Section Aux.
+
+  Context {Σ : GRA}.
+
+  Definition sp_from (md: SMod.t) : sp_type :=
+    to_sp (List.map (map_snd (fst ∘ snd)) md.(SMod.fnsems)).
+  
+  Definition has_param (md: SMod.t) fno img msk scp :=
+    ∃ sbd, alist_find fno (SMod.fnsems md) = Some (img, msk, scp, sbd).
+
+  Definition has_trivial_spec (md: SMod.t) (fn: string) : Prop :=
+    ∃ fno msk scp, has_param md fno false msk scp ∧ msk fn.
+
+  Definition valid_sp (md: SMod.t) (sp: sp_type) : Prop :=
+    sp_imply (sp_from md) sp ∧
+    ∀ fn (NS: has_trivial_spec md fn), fspec_imply (fspec_flat (sp fn)) fspec_trivial.
+
+  Definition real_smod (md: SMod.t) : Prop :=
+    ∀ fno img msk scp, has_param md fno img msk scp → img = false.
+
+  Lemma real_smod_ignores_sp md sp
+    (REAL: real_smod md)
+    (WF: Mod.wf (SMod.to_mod sp_none md))
+    :
+    SMod.to_mod sp md = SMod.to_mod sp_none md.
+  Proof.
+    eapply mod_extensionality; s; et. unfold SModTr.trans_ktree.
+    eapply map_ext_Forall. eapply List.Forall_forall. i.
+    destruct x as [fno [[[img msk] scp] [fsp bd]]]. s. repeat f_equal.
+    destruct WF; ss. rewrite map_map fst_map_snd in wf_fns.
+    eapply alist_find_some_iff in H; et.
+    exploit REAL; [r; et|].
+    i; subst; et.
+  Qed.
+
+End Aux.  
+
+Global Hint Unfold has_param : core.
+Global Hint Unfold has_trivial_spec : core.

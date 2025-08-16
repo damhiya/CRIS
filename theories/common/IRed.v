@@ -369,7 +369,7 @@ Section RESUM.
       =
       (unwrapU i).
   Proof using.
-    unfold resum_itr. unfold unwrapU. des_ifs; grind. eapply resum_itr_triggerUB.
+    unfold resum_itr, unwrapU. des_ifs; grind. rewrite unfold_interp. grind.
   Qed.
 
   Lemma resum_itr_unwrapN
@@ -380,7 +380,7 @@ Section RESUM.
       =
       (unwrapN i).
   Proof using.
-    unfold resum_itr. unfold unwrapN. des_ifs; grind. eapply resum_itr_triggerNB.
+    unfold resum_itr, unwrapN. des_ifs; grind. rewrite unfold_interp. grind.
   Qed.
 
   Lemma resum_itr_assume

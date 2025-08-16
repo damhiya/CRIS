@@ -105,7 +105,7 @@ Ltac excl_valid :=
 Ltac excl_included :=
   match goal with
   | [H: context[(Excl' ?a ≼ Excl' ?b)] |- _] => rewrite Excl_included in H
-  | [|- context[?ea ≼ ExclBot]] => apply ExclBot_included
+  | [|- context[?ea ≼ ExclInvalid]] => apply ExclInvalid_included
   end 
 .
 
