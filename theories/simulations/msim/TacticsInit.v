@@ -1,7 +1,7 @@
 Require Import Common.
 From iris.proofmode Require Export proofmode.
 Require Import Mod ISim ISimFacts SModTr.
-Require Import TacticsCommon.
+Require Import TacticsCommon ITactics.
 
 (***
  Module-level tactics
@@ -78,10 +78,9 @@ Ltac init_sim :=
 
 Ltac iinit_simF := initialize_simF.
 
-(* Ltac prove_proph_sim :=
-  s; et; ii;
-  match goal with [H: _|-_] => revert H; alist_find_simpl; i; depdes H end;
-  alist_find_simpl; esplits; et;
-  eapply isim_fsem_proph_to_normal; i;
-  rewrite SRed.fbody_trivial;
-  iIntros; iApply isim_refl; et; i; iIntros "%"; subst; et. *)
+Ltac prove_fr_to_img :=
+  iinit_simF; iDestruct "IST" as "->"; iIntros "_"; isteps_r;
+  match goal with |- context[fancy_real_update ?fsp _] =>
+    iApply (isim_fr_to_img fsp)
+  end;
+  rewrite !SRed.core !SBRed.choose; refl.

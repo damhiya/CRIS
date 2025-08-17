@@ -155,6 +155,8 @@ Ltac _wforce_r :=
       unfold_precond_postcond P; iApply wsim_assume_res_tgt
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _)) ] =>
       iApply wsim_asm_tgt
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, FRPrePost ?P ?Q >>= _)) ] =>
+      unfold_precond_postcond P; unfold_precond_postcond Q; iApply wsim_fr_prepost_tgt
   end
 .
 
@@ -208,17 +210,13 @@ Ltac winit_simF :=
 
 (** Special Tactics for AssumeProph in Source **)
 
-(* Ltac wasmproph_simple_core :=
-  norm_l; iApply wsim_assume_proph_src_simple.
+Tactic Notation "wfancy_real_l_advanced" uconstr(P) :=
+  norm_l; iApply wsim_fr_prepost_src_advanced;
+  iExists P; iSplit; [try prove_precise|].
 
-Tactic Notation "wasmproph_simple" :=
-  wasmproph_simple_core; iExists _; iSplit; [|iIntros (?); iIntrosFresh "ASM"].
-                 
-Tactic Notation "wasmproph_simple" uconstr(p) :=
-  wasmproph_simple_core; iExists p; iSplit; [|iIntros (?); iIntrosFresh "ASM"].
+Tactic Notation "wfancy_real_l" uconstr(P) :=
+  norm_l; iApply wsim_fr_prepost_src;
+  iExists P; iSplit; [try prove_precise|].
 
-Ltac wasmproph_standard :=
-  norm_l; iApply wsim_assume_proph_src.
-
-Ltac wasmproph_advanced :=
-  norm_l; iApply wsim_assume_proph_src_advanced. *)
+Ltac wfancy_real_both :=
+  norm_l; norm_r; iApply wsim_fr_prepost_both.

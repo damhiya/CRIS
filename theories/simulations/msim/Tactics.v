@@ -41,14 +41,11 @@ Tactic Notation "init_simF" := winit_simF. (* for isim mode, use iinit_simF dire
 
 (** Special Tactics for AssumeProph in Source **)
 
-(* Tactic Notation "asmproph_simple" :=
-  iwcase (do 1 iasmproph_simple) (do 1 wasmproph_simple).
-                 
-Tactic Notation "asmproph_simple" uconstr(p) :=
-  iwcase (do 1 iasmproph_simple p) (do 1 wasmproph_simple p).
+Tactic Notation "fancy_real_l_advanced" uconstr(P) :=
+  iwcase (do 1 ifancy_real_l_advanced P) (do 1 wfancy_real_l_advanced P).
 
-Ltac asmproph_standard :=
-  iwcase (do 1 iasmproph_standard) (do 1 wasmproph_standard).
-  
-Ltac asmproph_advanced :=
-  iwcase (do 1 iasmproph_advanced) (do 1 wasmproph_advanced). *)
+Tactic Notation "fancy_real_l" uconstr(P) :=
+  iwcase (do 1 ifancy_real_l P) (do 1 wfancy_real_l P).
+
+Ltac fancy_real_both :=
+  iwcase (do 1 ifancy_real_both) (do 1 wfancy_real_both).

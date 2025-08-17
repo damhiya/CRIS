@@ -34,6 +34,10 @@ Ltac prove_nodup :=
   (hrepeat do 1 (econs; [ii; ss; des; try match goal with [H: _ |- _] => inv_string H end|]));
   try (econs; fail).
 
+Ltac prove_precise :=
+  (hrepeat do 1 (iApply precise_sep; iSplit));
+  first [iApply precise_pure|iApply precise_own].
+
 (* Tactic for coinduction *)
 
 Lemma destruct_quant `{Σ: GRA} {A B} (P: A*B → iProp Σ):
@@ -186,7 +190,7 @@ Ltac alist_find_simpl :=
                         | guaranteeK P t
                         | unwrapUK x k
                         | unwrapNK x k
-                        | UpdateProphK pre post arg k
+                        | FRPrePostK pre post k
                         | SBRed.putSB imports scopes k v cont
                         | SBRed.getSB imports scopes k cont
                         | SBRed.callSB imports scopes f a cont
@@ -205,7 +209,7 @@ Tactic Notation "red_bind" tactic(tac) :=
       | guaranteeK _ _ => eapply guaranteeK_bind
       | unwrapUK _ _ => eapply unwrapUK_bind
       | unwrapNK _ _ => eapply unwrapNK_bind
-      | UpdateProphK _ _ _ _ => eapply UpdateProphK_bind
+      | FRPrePostK _ _ _ => eapply FRPrePostK_bind
       | SBRed.putSB _ _ _ _ _ _ => eapply SBRed.putSB_bind
       | SBRed.getSB _ _ _ _ _ => eapply SBRed.getSB_bind
       | SBRed.callSB _ _ _ _ _ _ => eapply SBRed.callSB_bind
@@ -253,8 +257,8 @@ Tactic Notation "red_SB" :=
           eapply SBRed.unwrapUK
       | unwrapNK _ _ =>
           eapply SBRed.unwrapNK
-      | UpdateProphK _ _ _ _ =>
-          eapply SBRed.update_prophK
+      | FRPrePostK _ _ _ =>
+          eapply SBRed.fr_prepostK
       | @ITree.bind _ _ _ _ _ =>
           eapply SBRed.bind
       | _ =>
@@ -328,8 +332,8 @@ Tactic Notation "red_S" tactic(tac) :=
           eapply SRed.unwrapUK
       | unwrapNK _ _ =>
           eapply SRed.unwrapNK
-      | UpdateProphK _ _ _ _ =>
-          eapply SRed.update_prophK
+      | FRPrePostK _ _ _ =>
+          eapply SRed.fr_prepostK
       | @ITree.bind _ _ _ _ _ =>
           eapply SRed.bind
       | _ =>
@@ -364,8 +368,8 @@ Ltac _hnorm_itr :=
       eapply unwrapU_unwrapUK
   | [ |- unwrapN _ = _ ] =>
       eapply unwrapN_unwrapNK
-  | [ |- UpdateProph _ _ _ = _ ] =>
-      eapply UpdateProph_UpdateProphK
+  | [ |- FRPrePost _ _ = _ ] =>
+      eapply FRPrePost_FRPrePostK
   | [ |- SModTr.HoareCall _ _ _ = _ ] =>
       unfold SModTr.HoareCall;
       _hnorm_itr
@@ -428,8 +432,8 @@ Ltac hnorm_itr :=
         eapply unwrapUK_unwrapU
     | [ |- unwrapNK _ _ = _ ] =>
         eapply unwrapNK_unwrapN
-    | [ |- UpdateProphK _ _ _ _ = _ ] =>
-        eapply UpdateProphK_UpdateProph
+    | [ |- FRPrePostK _ _ _ = _ ] =>
+        eapply FRPrePostK_FRPrePost
     | [ |- SBRed.putSB _ _ _ _ _ _ = _ ] =>
         eapply SBRed.putSB_SPut
     | [ |- SBRed.getSB _ _ _ _ _ = _ ] =>

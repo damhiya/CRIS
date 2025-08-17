@@ -706,7 +706,7 @@ End wsim.
 Global Arguments wsim_own_alloc {Γ Σ α β _S _I fl_s fl_t Ist R_s R_t r g RR ps pt st_s st_t A inG0}.
 
 (* Lemmas for prophecies *)
-Section Proph.
+Section FancyReal.
   Context `{!crisG Γ Σ α β τ _S _I}.
 
   Context (fl_s fl_t : alist (option string) (Any.t → itree crisE Any.t)).
@@ -722,64 +722,66 @@ Section Proph.
   Local Notation sim Ep r g := (wsim fl_s fl_t Ist Ep r g R_s R_t).
 
   (* Precise Pre & Post conditions *)
-  Lemma wsim_update_proph_src_advanced {X A R} pre (post : X → R → iProp Σ) (arg : A) k_s i_t :
-    (∃ (I P : iProp Σ) (ret : R),
+  Lemma wsim_fr_prepost_src_advanced {X} (pre post : X → _) k_s i_t :
+    (∃ (I P : iProp Σ),
       I ∗ precise P ∗
-      (∀ x, ∃ T, (I ∗ pre x arg -∗ □ T) ∗ (□ T -∗ pre x arg ==∗ P ∗ post x ret)) ∗
-      (P ∗ I ==∗ sim Ep r g RR true pt (st_s, k_s ret) (st_t, i_t))) ⊢
-    sim Ep r g RR ps pt (st_s, UpdateProph pre post arg >>= k_s) (st_t, i_t).
+      (∀ x, ∃ T, (I ∗ pre x -∗ □ T) ∗ (□ T -∗ pre x ==∗ P ∗ post x)) ∗
+      (P ∗ I ==∗ sim Ep r g RR true pt (st_s, k_s ()) (st_t, i_t))) ⊢
+    sim Ep r g RR ps pt (st_s, FRPrePost pre post >>= k_s) (st_t, i_t).
   Proof.
     rewrite wsim_eq /wsim_def.
-    iIntros "[%I [%P [%ret [I [#[%pr [Pre ?]] [Hsplit Hsim]]]]]] W".
-    iApply isim_update_proph_src_advanced; iFrame.
+    iIntros "[%I [%P [I [#[%pr [Pre ?]] [Hsplit Hsim]]]]] W".
+    iApply isim_fr_prepost_src_advanced; iFrame.
     iSplit; [iModIntro; iExists pr; iSplitR; done|].
     by iIntros "PI"; iMod ("Hsim" with "PI") as "SIM"; iApply "SIM".
   Qed.
 
-  Lemma wsim_update_proph_src {X A R} pre (post : X → R → iProp Σ) (arg : A) k_s i_t :
-    (∃ (P : iProp Σ) (ret : R),
+  Lemma wsim_fr_prepost_src {X} (pre post : X → _) k_s i_t :
+    (∃ (P : iProp Σ),
       precise P ∗
-      (∀ x, pre x arg ==∗ P ∗ post x ret) ∗
-      (P ==∗ sim Ep r g RR true pt (st_s, k_s ret) (st_t, i_t))) ⊢
-    sim Ep r g RR ps pt (st_s, UpdateProph pre post arg >>= k_s) (st_t, i_t).
+      (∀ x, pre x ==∗ P ∗ post x) ∗
+      (P ==∗ sim Ep r g RR true pt (st_s, k_s()) (st_t, i_t))) ⊢
+    sim Ep r g RR ps pt (st_s, FRPrePost pre post >>= k_s) (st_t, i_t).
   Proof using.
     rewrite wsim_eq /wsim_def.
-    iIntros "[%P [%ret [Hprecise [Hsplit Hsim]]]] W".
-    iApply isim_update_proph_src.
-    iExists P, ret; iFrame.
+    iIntros "[%P [Hprecise [Hsplit Hsim]]] W".
+    iApply isim_fr_prepost_src.
+    iExists P; iFrame.
     by iIntros "P"; iMod ("Hsim" with "P") as "SIM"; iApply "SIM".
   Qed.
 
-  Lemma wsim_update_proph_tgt {X A R} pre (post : X → R → iProp Σ) (arg : A) k_t i_s :
-    (∃ x, pre x arg ∗
-      ∀ ret, post x ret -∗ sim Ep r g RR ps true (st_s, i_s) (st_t, k_t ret)) ⊢
-    sim Ep r g RR ps pt (st_s, i_s) (st_t, UpdateProph pre post arg >>= k_t).
+  Lemma wsim_fr_prepost_tgt {X} (pre post : X → _) i_s k_t :
+    (∃ x, pre x ∗ (post x -∗ sim Ep r g RR ps true (st_s, i_s) (st_t, k_t ())))
+    ⊢
+    sim Ep r g RR ps pt (st_s, i_s) (st_t, FRPrePost pre post >>= k_t).
   Proof using.
     rewrite wsim_eq /wsim_def.
     iIntros "[%x [Hpre Hsim]] W".
-    iApply isim_update_proph_tgt; iFrame "Hpre"; iIntros "% ?"; iApply ("Hsim" with "[$] [$]").
+    iApply isim_fr_prepost_tgt; iFrame "Hpre"; iIntros "?"; iApply ("Hsim" with "[$] [$]").
   Qed.
 
-  Lemma wsim_update_proph_both
-      {X_s A_s R2_s X_t A_t R2_t}
-      (pre_s : X_s → A_s → iProp Σ) (post_s : X_s → R2_s → iProp Σ) (arg_s : A_s)
-      (pre_t : X_t → A_t → iProp Σ) (post_t : X_t → R2_t → iProp Σ) (arg_t : A_t)
+  Lemma wsim_fr_prepost_both
+      {X_s X_t}
+      (pre_s post_s: X_s → _) (pre_t post_t: X_t → _)
       k_s k_t :
-    (∀ ret_t P_t, precise P_t -∗
-      (∀ x, pre_t x arg_t ==∗ P_t ∗ post_t x ret_t) -∗
-      ∃ (P_s : iProp Σ) ret_s,
-        precise P_s ∗
-        (∀ x, pre_s x arg_s ==∗ P_s ∗ post_s x ret_s) ∗
-        (P_s ==∗ P_t ∗ sim Ep r g RR true true (st_s, k_s ret_s) (st_t, k_t ret_t))) ⊢
+    (∀ P_t,
+       precise P_t -∗
+       (∀ x, pre_t x ==∗ P_t ∗ post_t x) -∗
+       ∃ P_s,
+         precise P_s ∗
+         (∀ x, pre_s x ==∗ P_s ∗ post_s x) ∗
+         (P_s ==∗ P_t ∗ sim Ep r g RR true true (st_s, k_s ()) (st_t, k_t ())))
+    ⊢
     sim Ep r g RR ps pt
-      (st_s, UpdateProph pre_s post_s arg_s >>= k_s)
-      (st_t, UpdateProph pre_t post_t arg_t >>= k_t).
+      (st_s, FRPrePost pre_s post_s >>= k_s)
+      (st_t, FRPrePost pre_t post_t >>= k_t).
   Proof.
     rewrite wsim_eq /wsim_def.
     iIntros "H W".
-    iApply isim_update_proph_both.
-    iIntros "% % P1 P2"; iPoseProof ("H" with "P1 P2") as "[% [% [$ [$ H]]]]".
+    iApply isim_fr_prepost_both.
+    iIntros "% P1 P2"; iPoseProof ("H" with "P1 P2") as "[% [$ [$ H]]]".
     iIntros "A"; iMod ("H" with "A") as "[$ H]"; iIntros "!>".
     iApply "H"; done.
   Qed.
-End Proph.
+
+End FancyReal.

@@ -152,6 +152,8 @@ Ltac _iforce_r :=
       iApply isim_unwrapU_tgt; iExists _
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger (AssumeRes ?P) >>= _)) ] =>
       unfold_precond_postcond P; iApply isim_assume_res_tgt
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, FRPrePost ?P ?Q >>= _)) ] =>
+      unfold_precond_postcond P; unfold_precond_postcond Q; iApply isim_fr_prepost_tgt
   end
 .
 
@@ -195,17 +197,13 @@ Ltac iby_coind CIH :=
 
 (** Special Tactics for AssumeProph in Source **)
 
-(* Ltac iasmproph_simple_core :=
-  norm_l; iApply isim_assume_proph_src_simple. *)
+Tactic Notation "ifancy_real_l_advanced" uconstr(P) :=
+  norm_l; iApply isim_fr_prepost_src_advanced;
+  iExists P; iSplit; [try prove_precise|].
 
-(* Tactic Notation "iasmproph_simple" :=
-  iasmproph_simple_core; iExists _; iSplit; [|iIntros (?); iIntrosFresh "ASM"].
-                 
-Tactic Notation "iasmproph_simple" uconstr(p) :=
-  iasmproph_simple_core; iExists p; iSplit; [|iIntros (?); iIntrosFresh "ASM"].
+Tactic Notation "ifancy_real_l" uconstr(P) :=
+  norm_l; iApply isim_fr_prepost_src;
+  iExists P; iSplit; [try prove_precise|].
 
-Ltac iasmproph_standard :=
-  norm_l; iApply isim_assume_proph_src.
-
-Ltac iasmproph_advanced :=
-  norm_l; iApply isim_assume_proph_src_advanced. *)
+Ltac ifancy_real_both :=
+  norm_l; norm_r; iApply isim_fr_prepost_both.

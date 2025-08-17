@@ -75,27 +75,19 @@ Section FSPEC.
     postcondS := λ '(existT i meta_i), (nth i fspecs fspecS_bot).(postcondS) meta_i
   |}.
 
-  (* Iterating wrapper for propheciable specification *)
-  Definition fspec_proph_update (A R : Type) (fsp : fspecS) (body : fbody) : fbody :=
-    let pre := λ x r, precondS fsp x r↑ in
-    let post := λ x r, postcondS fsp x r↑ in
-    λ arg, iterC (λ _,
-      body arg;;;
-      'arg : A <- arg↓?;;
-      'ret : R <- UpdateProph pre post arg;;
-      Ret (inr ret↑)
-    ) ().
+  Definition fancy_real_update (fsp : fspecS) (body: fbody) : fbody :=
+    λ arg,
+      ret <- body arg;;
+      FRPrePost (λ x, precondS fsp x arg) (λ x, postcondS fsp x ret);;;
+      Ret ret.
 
-  Definition fspec_proph_update_option (A R : Type) (fsp : fspecS) (body : fbody) : fbody :=
-    λ arg, iterC (λ _,
-      let pre := λ x r,
-        match r with | Some arg => precondS fsp x arg↑ | None => False%I end in
-      let post := λ x r,
-        match r with | Some ret => postcondS fsp x ret↑ | None => precondS fsp x arg end in
-      body arg;;;
-      'arg : A <- arg↓?;;
-      'ret : option R <- UpdateProph pre post (Some arg);;
-      Ret (match ret with | Some r => inr r↑ | None => inl () end)
+  Definition fancy_real_peek {X} (cond : X → iProp Σ) (body: itree crisE ()) : itree crisE () :=
+    iterC (λ _,
+      body;;;
+      'b: bool <- trigger (Choose bool);;
+      if b
+      then FRPrePost cond cond;;; Ret (inl ())
+      else Ret (inr ())
     ) ().
 
   Definition to_fspec (fsp : fspecS) : fspec :=

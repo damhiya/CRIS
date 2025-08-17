@@ -36,11 +36,11 @@ Lemma isim_refl r g contextual Ist fl_src fl_tgt img msk scp
   (EQGET : ∀ st_src st_tgt (k: key) (IN: In k.1 scp)
               (NODS: List.NoDup (map fst st_src))
               (NODT: List.NoDup (map fst st_tgt)),
-      Ist st_src st_tgt -∗ ⌜alist_find k st_src = alist_find k st_tgt⌝)
+      Ist st_src st_tgt ⊢ ⌜alist_find k st_src = alist_find k st_tgt⌝)
   (EQSET : ∀ st_src st_tgt (k: key) v (IN: In k.1 scp)
               (NODS: List.NoDup (map fst st_src))
               (NODT: List.NoDup (map fst st_tgt)),
-      Ist st_src st_tgt -∗ Ist (alist_upd k v st_src) (alist_upd k v st_tgt)) :
+      Ist st_src st_tgt ⊢ Ist (alist_upd k v st_src) (alist_upd k v st_tgt)) :
   Ist st_src st_tgt ⊢
   isim contextual fl_src fl_tgt Ist r g (ist_with_eq Ist) ps pt
     (st_src, SB.sandbox img msk scp it)
@@ -102,11 +102,11 @@ Lemma isim_reflL contextual Ist fl_src fl_tgt mask scopesL scopesR scopesF (EqL 
     (EQGET : ∀ st_src st_tgt
                 (NODS: List.NoDup (map fst st_src))
                 (NODT: List.NoDup (map fst st_tgt)),
-        EqL st_src st_tgt -∗ ⌜st_src = st_tgt⌝)
+        EqL st_src st_tgt ⊢ ⌜st_src = st_tgt⌝)
     (EQSET : ∀ st_src st_tgt (k : key) v
                 (NODS: List.NoDup (map fst st_src))
                 (NODT: List.NoDup (map fst st_tgt)),
-        EqL st_src st_tgt -∗ EqL (alist_upd k v st_src) (alist_upd k v st_tgt)) :
+        EqL st_src st_tgt ⊢ EqL (alist_upd k v st_src) (alist_upd k v st_tgt)) :
   isim_fsem fl_src fl_tgt (IstProd EqL (IstSB scopesR Ist)) contextual
     (IstProd EqL (IstSB scopesR Ist)) (IstProd EqL (IstSB scopesR Ist))
     (SB.sandbox_body (mask,scopesF,itr)) (SB.sandbox_body (mask,scopesF,itr)).
@@ -145,9 +145,9 @@ Qed.
 Lemma isim_reflR contextual Ist fl_src fl_tgt mask scopesL scopesR scopesF (EqR : ist_type Σ) itr
     (DISJ : List.NoDup (scopesL ++ scopesR))
     (INCL : incl scopesF scopesR)
-    (EQGET : ∀ st_src st_tgt, EqR st_src st_tgt -∗ ⌜st_src = st_tgt⌝)
+    (EQGET : ∀ st_src st_tgt, EqR st_src st_tgt ⊢ ⌜st_src = st_tgt⌝)
     (EQSET : ∀ st_src st_tgt (k : key) v,
-        EqR st_src st_tgt -∗ EqR (alist_upd k v st_src) (alist_upd k v st_tgt)) :
+        EqR st_src st_tgt ⊢ EqR (alist_upd k v st_src) (alist_upd k v st_tgt)) :
   isim_fsem fl_src fl_tgt (IstProd (IstSB scopesL Ist) EqR) contextual
     (IstProd (IstSB scopesL Ist) EqR) (IstProd (IstSB scopesL Ist) EqR)
     (SB.sandbox_body (mask,scopesF,itr)) (SB.sandbox_body (mask,scopesF,itr)).
@@ -358,34 +358,6 @@ Qed.
 
 End ISIM_REFL.
 
-Section Proph.
-  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.  
-
-  (* Lemma isim_fsem_proph_to_normal contextual fsp bd_s bd_t msk sp scp fls flt
-    (SIM: ∀ arg nths st,
-     ⊢ (winv (∅,∅) -∗
-        isim contextual fls flt IstEq ibot ibot (ist_with_eq IstEq) true true nths
-          (st, SB.sandbox true  msk scp (SModTr.trans sp      (bd_s arg)))
-          (st, SB.sandbox false msk scp (SModTr.trans sp_none (bd_t arg)))))
-    :
-    isim_fsem fls flt IstEq contextual IstEq IstEq
-      (SB.sandbox_body (SModTr.trans_ktree sp      (true ,msk,scp, (Some (to_fspec fsp), bd_s))))
-      (SB.sandbox_body (SModTr.trans_ktree sp_none (false,msk,scp, (None, fspec_proph fsp bd_t)))).
-  Proof using.
-    ii. iIntros "% INV". subst.
-    rewrite /SB.sandbox_body /SModTr.trans_ktree /fspec_proph. s.
-    rewrite /SModTr.HoareFun. s.
-    isteps_l. iDestruct "ASM" as "[P %]"; subst.
-    isteps_r; iforce_r. iFrame. iIntros (?) "Q". isteps_r.
-    iApply isim_bind. iSplitR "Q"; [iApply SIM|]; try nia; et.
-    iIntros (? ? ? ? ? ?) "[% %]". subst.
-    isteps_r. iMod ("Q" with "GRT") as "Q".
-    iforce_l. iforce_l. iFrame. iSplit; et.
-    istep. iSplit; et.
-  Qed. *)
-  
-End Proph.
-
 Section ISIM_ADEQUACY.
 Context `{_crisG: !crisG Γ Σ α β τ _S _I}.  
 
@@ -505,3 +477,29 @@ Unshelve. eapply option_Dec, string_Dec.
 Qed.
 
 End ISIM_ADEQUACY.
+
+Section FANCY_REAL.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.  
+
+  Lemma isim_fr_to_img fsp body_s body_t fl_s fl_t msk scp ps pt st arg
+    (EQIT: eqit eq false true 
+            (SB.sandbox true msk scp (body_s arg))
+            (SB.sandbox false msk scp (SModTr.trans sp_none (body_t arg)))) :
+    ⊢
+    isim open fl_s fl_t IstEq ibot ibot (ist_with_eq IstEq) ps pt
+      (st, SB.sandbox true msk scp (SModTr.HoareFun (Some (to_fspec fsp)) body_s arg))
+      (st, SB.sandbox false msk scp (SModTr.trans sp_none (fancy_real_update fsp body_t arg))).
+  Proof using.
+    iIntros. isteps_l. rewrite /fancy_real_update. isteps_r.
+    iDestruct "ASM" as "[P %]"; subst.
+    iApply isim_bind. iSplitL "".
+    { iApply isim_eqit_tgt; et.
+      iApply isim_refl; et; i; iIntros "%"; subst; et.
+    }
+    iIntros (?????). des; subst.
+    iforce_r. iFrame.
+    iIntros "Q". iforce_l. isteps_l. iforce_l. iSplitR ""; et.
+    istep_l. istep_r. istep. et.
+  Qed.
+
+End FANCY_REAL.  

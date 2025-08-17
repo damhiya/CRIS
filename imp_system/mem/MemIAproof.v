@@ -377,48 +377,40 @@ Module MemIP. Section MemIP.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
     step_l; step_r.
 
-    rewrite /fspec_proph_update; unfold_iter_l; steps_l; force_l (tt↑); steps_l.
-    hss. steps_r.
-
-    destruct (classic (∃ v, _q = [Vint v])) as [[v ->]|Hex]; cycle 1.
-    { iApply wsim_update_proph_src.
-      iExists False%I, Vundef.
-      iSplitL; [iApply precise_pure|].
-      iSplitL; [iIntros "% [%F %]"; exfalso; apply Hex; hss; esplits; eauto|].
-      iIntros "H"; iExFalso; done.
-    }
-
-    steps_r.
-    hss_r; steps_r.
-    des_ifs; cycle 1.
-    { iApply wsim_update_proph_src.
-      iExists False%I, Vundef.
-      iSplitL; [iApply precise_pure|].
+    destruct (classic (∃ v:nat, arg = [Vint v]↑)) as [[v ->]|Hex]; cycle 1.
+    {
+      rewrite /fancy_real_update; steps_l; force_l (tt↑); steps_l.
+      fancy_real_l False%I.
       iSplitL.
-      { iIntros "% [% %]"; hss; simpl_bool; des.
-        { destruct (Z_le_gt_dec 0 x); des; ss; lia. }
-        { destruct (Z_lt_ge_dec (8 * x) modulus_64); des; ss. }
-      }
-      iIntros "H"; iExFalso; done.
+      - iIntros (?) "[% %]"; exfalso; subst; et.
+      - iIntros "H"; iExFalso; done.
     }
-    steps_r.
 
-    (* src GuaranteeProph *)
-    rename _q into pad, v into size.
-    set (blk := Mem.nb mem_tgt + pad).
-    iApply wsim_update_proph_src.
-    iExists (own base_γ (● (mem_src ⋅ _points_to_r (blk, 0%Z) 1 (repeat Vundef (Z.to_nat size)))))%I, (Vptr (blk, 0%Z)).
-    iSplitR; [iApply precise_own|].
+    do 2 (hss_r; steps_r).
+    des_ifs; cycle 1.
+    {
+      rewrite /fancy_real_update; steps_l; force_l (tt↑); steps_l.
+      fancy_real_l False%I.
+      iSplitL.
+      - iIntros (?) "[% %]". exfalso; hss; rewrite -x in H2. simpl_bool; des.
+        { destruct (Z_le_gt_dec 0 v); des; ss; lia. }
+        { destruct (Z_lt_ge_dec (8 * v) modulus_64); des; ss. }
+      - iIntros "H"; iExFalso; done.
+    }
+
+    steps_r. rename _q into pad, v into size. set (blk := Mem.nb mem_tgt + pad).
+    rewrite /fancy_real_update; steps_l.
+    force_l ((Vptr (blk, 0%Z))↑); steps_l.
+    fancy_real_l (own base_γ (● (mem_src ⋅ _points_to_r (blk, 0%Z) 1 (repeat Vundef (Z.to_nat size)))))%I.
     iSplitL.
-    { iIntros (?) "[% %]"; hss.
+    { iIntros (?) "[% %]"; hss; apply Nat2Z.inj in x; subst.
       iMod (mem_ra_alloc with "B") as "[BLK WHT]"; eauto.
       iPoseProof (points_to_transform with "WHT") as "$".
       iModIntro; iSplit; [rewrite Nat2Z.id //| subst blk; iPureIntro; ss].
     }
-    iIntros "B !>".
-    steps_l.
 
-    step. iSplit; eauto.
+    iIntros "B !>". steps_l. step.
+    iSplit; eauto.
     iExists _, [_], _, _. repeat (iSplit; eauto).
     iExists _, _. iFrame. iPureIntro.
     esplits; eauto; ii; cycle 1.
@@ -448,19 +440,13 @@ Module MemIP. Section MemIP.
 
     destruct (or_else (pargs [Tptr] (or_else (arg↓) [])) (0, 0%Z)) as [b ofs] eqn: EQ.
     step_l; step_r.
-
-    (* src guaranteeproph *)
-    rewrite /fspec_proph_update; unfold_iter_l; steps_l; force_l (tt↑); steps_l.
-    iApply wsim_update_proph_src.
-
-    iExists (own base_γ (● mem_ra_upd mem_src b ofs None) ∗ ⌜arg = [Vptr (b, ofs)]↑ ∧
-      ∃ v, Mem.cnts mem_tgt b ofs = Some v⌝)%I, (Vint 0).
-    (* iExists (b, ofs, mem_get mem_src b ofs), (Vint 0); *)
-    iSplitR.
-    { iApply precise_sep; iSplit; [iApply precise_own|iApply precise_pure]. }
-    iSplitL "B".
+    rewrite /fancy_real_update; steps_l.
+    force_l ((Vint 0)↑); steps_l.
+    fancy_real_l (own base_γ (● mem_ra_upd mem_src b ofs None) ∗ ⌜arg = [Vptr (b, ofs)]↑ ∧
+      ∃ v, Mem.cnts mem_tgt b ofs = Some v⌝)%I.
+    iSplitL.
     { iIntros ([[??]?]) "/= [% PT]"; hss.
-      iPoseProof (mem_ra_lookup with "[B PT]") as "%HIT"; eauto; iFrame. des. hss.
+      iPoseProof (mem_ra_lookup with "[B PT]") as "%HIT"; eauto; iFrame. des.
       rewrite HIT0.
       iMod (mem_ra_free with "[B PT]") as "H"; eauto; iFrame.
       iModIntro; iSplit; eauto.
@@ -486,16 +472,11 @@ Module MemIP. Section MemIP.
 
     destruct (or_else (pargs [Tptr] (or_else (arg↓) []))(0,0%Z)) as [b ofs] eqn: EQ.
     step_l; step_r.
-    rewrite /fspec_proph_update; unfold_iter_l; steps_l; force_l (tt↑); steps_l.
-
-    (* Get precise resources *)
-    iApply wsim_update_proph_src.
-    iExists (⌜arg = [Vptr (b, ofs)]↑ ∧
-              mem_tgt.(Mem.cnts) b ofs = Some (mem_get mem_src b ofs)⌝ ∗
-             own base_γ (● mem_src))%I.
-    iExists (mem_get mem_src b ofs).
-    iSplit.
-    { iApply precise_sep; iSplit; [iApply precise_pure|iApply precise_own]. }
+    rewrite /fancy_real_update; steps_l.
+    force_l ((mem_get mem_src b ofs)↑); steps_l.
+    fancy_real_l (⌜arg = [Vptr (b, ofs)]↑ ∧
+                   mem_tgt.(Mem.cnts) b ofs = Some (mem_get mem_src b ofs)⌝ ∗
+                  own base_γ (● mem_src))%I.
     iSplitL "B".
     { iIntros ([[[? ?] ?] ?]) "/= [% PT] !>"; hss.
       iPoseProof (mem_ra_lookup with "[B PT]") as "[% %]"; eauto; iFrame.
@@ -516,11 +497,12 @@ Module MemIP. Section MemIP.
     destruct (or_else (pargs [Tptr; Tuntyped] (or_else (arg↓) [])) (0, 0%Z,Vundef))
       as [[b ofs] v_new] eqn: EQ.
     step_l; step_r.
-    rewrite /fspec_proph_update; unfold_iter_l; step_l; force_l (tt↑); steps_l.
-    iApply wsim_update_proph_src.
-    iExists (⌜arg = [Vptr (b, ofs); v_new]↑ ∧ ∃ v, Mem.cnts mem_tgt b ofs = Some v⌝ ∗
-      own base_γ (● mem_ra_upd mem_src b ofs (Some (to_frac_agree 1 v_new))))%I, (Vint 0).
-    iSplit; [iApply precise_sep; iSplit; [iApply precise_pure|iApply precise_own]|].
+    rewrite /fancy_real_update; steps_l.
+    force_l ((Vint 0)↑); steps_l.
+    fancy_real_l
+      (⌜arg = [Vptr (b, ofs); v_new]↑ ∧ ∃ v, Mem.cnts mem_tgt b ofs = Some v⌝ ∗
+       own base_γ (● mem_ra_upd mem_src b ofs (Some (to_frac_agree 1 v_new))))%I.
+    
     iSplitL.
     { iIntros ([[[? ?] ?] ?]) "/= [% PT]"; hss.
       iPoseProof (mem_ra_lookup with "[B PT]") as "%"; eauto; iFrame. des.
@@ -549,18 +531,15 @@ Module MemIP. Section MemIP.
 
     destruct (or_else (pargs [Tuntyped; Tuntyped] (or_else (arg↓) [])) (Vundef,Vundef))
       as [p1 p2] eqn: EQ.
-
     step_l; step_r.
-    rewrite /fspec_proph_update; unfold_iter_l; steps_l; force_l (tt↑); steps_l.
+    rewrite /fancy_real_update; steps_l.
+    force_l ((MemSpec.compare_val p1 p2)↑); steps_l.
+    fancy_real_l
+      (⌜arg = [p1; p2]↑ ∧
+        ∃ succ, MemSpec.compare_val p1 p2 = Vint succ ∧
+                Mem.vcmp mem_tgt p1 p2 = Some (dec succ 1 : bool)⌝ ∗
+       own base_γ (● mem_src))%I.
 
-    iApply wsim_update_proph_src.
-    iExists (⌜arg = [p1; p2]↑ ∧
-              ∃ succ, MemSpec.compare_val p1 p2 = Vint succ ∧
-              Mem.vcmp mem_tgt p1 p2 = Some (dec succ 1 : bool)⌝ ∗
-             own base_γ (● mem_src))%I.
-    iExists (MemSpec.compare_val p1 p2).
-    iSplit.
-    { iApply precise_sep; iSplit; [iApply precise_pure|iApply precise_own]. }
     iSplitL "B".
     { iIntros ([[[[[[arg0 q0] v0] arg1] q1] v1] succ]); s.
       iIntros "[% [P1 P2]]". des. subst. hss. iModIntro.
@@ -595,15 +574,14 @@ Module MemIP. Section MemIP.
     set (v_upd := if is_succ then v_new else v_cur).
 
     step_l; step_r.
-    rewrite /fspec_proph_update; unfold_iter_l; steps_l; force_l (tt↑); steps_l.
-    iApply wsim_update_proph_src.
-    iExists (⌜arg = [Vptr (b,ofs); v_old; v_new]↑ ∧
-              Mem.cnts mem_tgt b ofs = Some v_cur ∧
-              Mem.vcmp mem_tgt v_cur v_old = Some is_succ⌝ ∗
-             own base_γ (● (mem_ra_upd mem_src b ofs (Some (to_frac_agree 1 v_upd)))))%I.
-    iExists v_cur.
-    iSplit.
-    { iApply precise_sep; iSplit; [iApply precise_pure|iApply precise_own]. }
+    rewrite /fancy_real_update; steps_l.
+    force_l (v_cur↑); steps_l.
+    fancy_real_l
+      (⌜arg = [Vptr (b,ofs); v_old; v_new]↑ ∧
+        Mem.cnts mem_tgt b ofs = Some v_cur ∧
+        Mem.vcmp mem_tgt v_cur v_old = Some is_succ⌝ ∗
+      own base_γ (● (mem_ra_upd mem_src b ofs (Some (to_frac_agree 1 v_upd)))))%I.
+
     iSplitL "B".
     { iIntros ([[[[[[[[[b' ofs'] v_cur']q0]v0]v_old']q1]v1]v_new']succ]). s.
       iIntros "[% [P [V1 V2]]]". des. subst. hss.
@@ -677,18 +655,10 @@ End MemIP. End MemIP.
 Module MemPA. Section MemPA.
   Context `{!crisG Γ Σ α β τ _S _I, !memG}.
 
-  (* TODO: updating lemmas or tactic is required, but now we use custom tactic. *)
-  (* Local Opaque SModTr.trans_ktree.
-  Ltac prove_proph_sim :=
-    s; et; ii;
-    match goal with
-    | H:_ |- _ => revert H; alist_find_simpl; i; depdes H
-    end; alist_find_simpl; esplits; et; eapply isim_fsem_proph_to_normal; i; iIntros;
-    rewrite SRed.fbody_trivial /fbody_trivial ?SRed.core; iIntros; steps_r; forces_l; step; eauto. *)
-
   Theorem sim : ISim.t open MemA.t MemP.t emp%I IstEq.
   Proof using.
-  Admitted.
+    init_sim; et; prove_fr_to_img.
+  Qed.
 
   Theorem ctxr:
     ctx_refines
