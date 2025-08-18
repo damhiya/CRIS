@@ -56,6 +56,12 @@ prophecy: Makefile.coq $(prophecy_files)
 prophecy-quick: Makefile.coq $(prophecy_files)
 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(prophecy_files))
 
+helping_files  := $(shell find helping -iname '*.v')
+helping: Makefile.coq $(helping_files)
+	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(helping_files))
+helping-quick: Makefile.coq $(helping_files)
+	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(helping_files))
+
 Makefile.coq: Makefile $(COQTHEORIES)
 	(echo "-arg -w -arg -deprecated-hint-without-locality"; \
 	 echo "-arg -w -arg -deprecated-instance-without-locality"; \
@@ -67,7 +73,7 @@ Makefile.coq: Makefile $(COQTHEORIES)
 	 echo "-R theories $(COQMODULE)"; \
 	 echo "-R scheduler $(COQMODULE)"; \
 	 echo "-R apc $(COQMODULE)"; \
-	 echo "-R helping $(COQMODULE)"; \
+	 echo "-R helping $(COQMODULE).helping"; \
 	 echo "-R imp_system $(COQMODULE)"; \
 	 echo "-R extract $(COQMODULE)"; \
 	 echo "-R prophecy $(COQMODULE)"; \

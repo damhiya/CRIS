@@ -1,35 +1,32 @@
 Require Import CRIS SchHeader.
-Require Import HelpingHeader.
+From CRIS.helping Require Import Header.
 
 Set Implicit Arguments.
 
-Module HelpingOff.
-Section HelpingOff.
-  Context `{Σ: GRA}.
+Module HelpingOff. Section HelpingOff.
 
-  Variable mn: string.
-  Variable jobID : Type.
-  Variable jobcode : jobID -> itree Helping.pureE unit.
-  
+  Context `{Σ : GRA}.
+
+  Context (mn : string).
+  Context {jobID : Type} (jobcode : jobID → itree Helping.pureE unit).
+
   Definition scopes := [mn].
 
-  Definition run: Any.t -> itree hmodE Any.t :=
-    fun arg =>
-      'jid: jobID <- arg↓?;;
+  Definition run : Any.t → itree crisE Any.t :=
+    λ arg,
+      'jid : jobID <- arg↓?;;
       𝒴;;;
       Helping.trans (jobcode jid);;;
       Ret ()↑.
 
-  Definition help: Any.t -> itree hmodE Any.t :=
-    fun _ =>
-      𝒴;;;
-      Ret ()↑.
+  Definition help : Any.t → itree crisE Any.t :=
+    λ _, 𝒴;;; Ret ()↑.
       
-  Definition fnsems :=
-    [(Helping.run mn,  (wmask_all, scopes, mk_specbody fspec_trivial run));
-     (Helping.help mn, (wmask_all, scopes, mk_specbody fspec_trivial help))].
+  Definition fnsems : alist (option string) (fnsem_type (option fspec * fbody)) :=
+    [(Some (Helping.run mn),  (false, wmask_all, scopes, (None, run)));
+     (Some (Helping.help mn), (false, wmask_all, scopes, (None, help)))].
 
-  Program Definition Mod: SMod.t := {|
+  Program Definition Mod : SMod.t := {|
     SMod.scopes := scopes;
     SMod.fnsems := fnsems;
     SMod.initial_st := [];
@@ -37,7 +34,6 @@ Section HelpingOff.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition t sp := Seal.sealing CRIS (SMod.to_hmod sp Mod).  
-  
-End HelpingOff.
-End HelpingOff.
+  Definition t sp := Seal.sealing CRIS (SMod.to_mod sp Mod).  
+
+End HelpingOff. End HelpingOff.

@@ -1,20 +1,548 @@
 Require Import CRIS.
+Require Import LMod.
+Require Import GSim GSimFacts GSimTactics.
 Require Import SchHeader SchA.
-Require Import HelpingHeader HelpingOn HelpingOff.
-Require Import CallFilter.
+From CRIS.helping Require Import Header HelpingOn HelpingOff.
 
 Section Helping.
-  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
-  Context `{_schG: !schG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !schG}.
+  Context (sp : sp_type) (mn : string). (* sp, module name for the helping module *)
+  Context {jobID : Type} (jobs : jobID → itree Helping.pureE unit).
+  Context (sp_s : sp_type) (sp_u : spl_type).
+  Context (msk : string → bool). (* mask for the user module *)
 
-  Theorem helping_onoff_correct mn jobID (jobs: jobID -> _) msk u sp sp_s sp_u
-    (UserInSp: sp_sub sp_u sp_s)
-    (SchInSp : sp_incl (SchAS.sp u sp_u) sp_s)
-    :
-    ctx_refines
-      ((HelpingOff.t mn jobs sp) ★ (SchAPure.t u sp_s) ★ (CFilter.filter msk (SchA.t u sp_s sp_u)), emp%I)
-      ((HelpingOn.t  mn jobs sp) ★ (SchAPure.t u sp_s) ★ (CFilter.filter msk (SchA.t u sp_s sp_u)), emp%I).
+  Local Definition mod_on :=  (HelpingOn.t mn jobs sp)  ★ (CFilter.filter msk (SchA.t sp_s sp_u)).
+  Local Definition mod_off := (HelpingOff.t mn jobs sp) ★ (CFilter.filter msk (SchA.t sp_s sp_u)).
+
+
+  Lemma Red_vis_Assume {R} P (ktr : () → itree crisE R) :
+    ModTr.trans (vis (Events.Assume P) ktr) =
+    a <- itreeV_itree (ModTr.handle_Assume P);; ModTr.trans (ktr a).
+  Proof using. rewrite vis_trigger Red.bind Red.Assume; ss. Qed.
+
+  Lemma Red_vis_Take {R} X (ktr : X → itree crisE R) :
+    ModTr.trans (vis (Events.Take X) ktr) =
+    x <- trigger (Take X);; ModTr.trans (ktr x).
+  Proof using. rewrite /ModTr.trans interpV_vis /itreeV_itree /=. grind. Qed.
+
+  Lemma Red_unwrapUK {X R} x (ktr : X -> itree crisE R) :
+    ModTr.trans (unwrapUK x ktr) = unwrapUK x (fun x => ModTr.trans (ktr x)).
+  Proof using.
+    destruct x; ss.
+    eapply observe_eta; ss. f_equal. extensionality x. ss.
+  Qed.
+
+  Tactic Notation "red_bind" tactic(tac) :=
+    lazymatch goal with
+    | [ |- @ITree.bind _ _ _ ?itr _ = _ ] =>
+        lazymatch itr with
+        | Ret _ => etransitivity; [ eapply bind_ret_l | s; tac ]
+        | Tau _ => eapply bind_tau
+        | vis _ _ => eapply vis_bind
+        | assumeK _ _ => eapply assumeK_bind
+        | guaranteeK _ _ => eapply guaranteeK_bind
+        | unwrapUK _ _ => eapply unwrapUK_bind
+        | unwrapNK _ _ => eapply unwrapNK_bind
+        | UpdateProphK _ _ _ _ => eapply UpdateProphK_bind
+        | SBRed.putSB _ _ _ _ _ _ => eapply SBRed.putSB_bind
+        | SBRed.getSB _ _ _ _ _ => eapply SBRed.getSB_bind
+        | SBRed.callSB _ _ _ _ _ _ => eapply SBRed.callSB_bind
+        | SBRed.spawnSB _ _ _ _ _ _ => eapply SBRed.spawnSB_bind
+        | @ITree.bind _ _ _ _ _ => eapply bind_bind
+        | _ => reflexivity
+        end
+    end.
+
+  Tactic Notation "red_SB" :=
+    lazymatch goal with
+    | [ |- @SB.sandbox _ _ _ _ _ ?itr = _ ] =>
+        lazymatch itr with
+        | Ret _ =>
+            eapply SBRed.ret
+        | Tau _ =>
+            eapply SBRed.tau
+        | vis (Assume _) _ =>
+            first [eapply SBRed.vis_Assume_img|eapply SBRed.vis_Assume]
+        | vis (AssumeRes _) _ =>
+            eapply SBRed.vis_AssumeRes
+        | vis (Guarantee _) _ =>
+            eapply SBRed.vis_Guarantee
+        | vis (Spawn _ _) _ =>
+            eapply SBRed.Spawn_spawnSB
+        | vis (Yield _) _ =>
+            eapply SBRed.vis_yield
+        | vis (Call _ _) _ =>
+            eapply SBRed.Call_callSB
+        | vis (SPut _ _) _ =>
+            eapply SBRed.SPut_putSB
+        | vis (SGet _) _ =>
+            eapply SBRed.SGet_getSB
+        | vis (Choose _) _ =>
+            eapply SBRed.vis_choose
+        | vis (Take _) _ =>
+            first [eapply SBRed.vis_take_img|eapply SBRed.vis_take]
+        | vis (IO _ _) _ =>
+            eapply SBRed.vis_io
+        | assumeK _ _ =>
+            eapply SBRed.assumeK
+        | guaranteeK _ _ =>
+            eapply SBRed.guaranteeK
+        | unwrapUK _ _ =>
+            eapply SBRed.unwrapUK
+        | unwrapNK _ _ =>
+            eapply SBRed.unwrapNK
+        | UpdateProphK _ _ _ _ =>
+            eapply SBRed.update_prophK
+        | @ITree.bind _ _ _ _ _ =>
+            eapply SBRed.bind
+        | _ =>
+            reflexivity
+        end
+    end.
+
+  Tactic Notation "red_S" tactic(tac) :=
+    lazymatch goal with
+    | [ |- @SModTr.trans _ ?sp _ ?itr = _ ] =>
+        lazymatch itr with
+        | Ret _ =>
+            eapply SRed.ret
+        | Tau _ =>
+            eapply SRed.tau
+        | vis (Assume _) _ =>
+            eapply SRed.vis_ag
+        | vis (AssumeRes _) _ =>
+            eapply SRed.vis_ag
+        | vis (Guarantee _) _ =>
+            eapply SRed.vis_ag
+        | vis (Spawn ?fn _) _ =>
+            etransitivity;
+            [ eapply SRed.vis_spawn
+            | unfold SModTr.HoareSpawn, SModTr.NativeSpawn;
+              unfold_sp_exact sp fn; s;
+              tac
+            ]
+        | vis (Yield _) _ =>
+            etransitivity;
+            [ eapply SRed.vis_yield
+            | tac
+            ]
+        | vis (Call ?fn _) _ =>
+            etransitivity;
+            [ eapply SRed.vis_call
+            | unfold SModTr.HoareCall;
+              unfold_sp_exact sp fn; s;
+              tac
+            ]
+        | vis (SPut _ _) _ =>
+            eapply SRed.vis_pg
+        | vis (SGet _) _ =>
+            eapply SRed.vis_pg
+        | vis (Choose _) _ =>
+            eapply SRed.vis_core
+        | vis (Take _) _ =>
+            eapply SRed.vis_core
+        | vis (IO _ _) _ =>
+            eapply SRed.vis_core
+        | assumeK _ _ =>
+            eapply SRed.assumeK
+        | guaranteeK _ _ =>
+            eapply SRed.guaranteeK
+        | unwrapUK _ _ =>
+            eapply SRed.unwrapUK
+        | unwrapNK _ _ =>
+            eapply SRed.unwrapNK
+        | UpdateProphK _ _ _ _ =>
+            eapply SRed.update_prophK
+        | @ITree.bind _ _ _ _ _ =>
+            eapply SRed.bind
+        | _ =>
+            reflexivity
+        end
+    end.
+
+  Ltac replace_l :=
+    match goal with
+    | |- gpaco7 _ _ _ _ _ _ _ _ _ ?itr _ =>
+      pattern itr;
+      match goal with
+      | |- ?f ?a =>
+        refine (eq_ind_r f _ _); cycle 1
+      end
+    end.
+
+  Ltac replace_r :=
+    match goal with
+    | |- gpaco7 _ _ _ _ _ _ _ _ _ _ ?itr =>
+      pattern itr;
+      match goal with
+      | |- ?f ?a =>
+        refine (eq_ind_r f _ _); cycle 1
+      end
+    end.
+Tactic Notation "red_LModTr" tactic(tac) :=
+  match goal with
+  | |- ?H => idtac H
+  end.
+
+Tactic Notation "red_ModTr" tactic(tac) :=
+  lazymatch goal with
+  | [ |- @ModTr.trans _ _ ?itr = _ ] =>
+      lazymatch itr with
+      | Ret _ =>
+          eapply Red.ret
+      | Tau _ =>
+          eapply Red.tau
+      | vis (Assume _) _ =>
+          eapply Red_vis_Assume
+      | vis (Take _) _ =>
+          eapply Red_vis_Take
+      | unwrapUK _ _ =>
+          eapply Red_unwrapUK
+      (* | vis (Red_AssumeRes _) _ =>
+          eapply SRed.vis_ag
+      | vis (Guarantee _) _ =>
+          eapply SRed.vis_ag
+      | vis (Spawn ?fn _) _ =>
+          etransitivity;
+          [ eapply SRed.vis_spawn
+          | unfold SModTr.HoareSpawn, SModTr.NativeSpawn;
+            unfold_sp_exact sp fn; s;
+            tac
+          ]
+      | vis (Yield _) _ =>
+          etransitivity;
+          [ eapply SRed.vis_yield
+          | tac
+          ]
+      | vis (Call ?fn _) _ =>
+          etransitivity;
+          [ eapply SRed.vis_call
+          | unfold SModTr.HoareCall;
+            unfold_sp_exact sp fn; s;
+            tac
+          ]
+      | vis (SPut _ _) _ =>
+          eapply SRed.vis_pg
+      | vis (SGet _) _ =>
+          eapply SRed.vis_pg
+      | vis (Choose _) _ =>
+          eapply SRed.vis_core
+      | vis (IO _ _) _ =>
+          eapply SRed.vis_core
+      | assumeK _ _ =>
+          eapply SRed.assumeK
+      | guaranteeK _ _ =>
+          eapply SRed.guaranteeK
+      | unwrapNK _ _ =>
+          eapply SRed.unwrapNK
+      | UpdateProphK _ _ _ _ =>
+          eapply SRed.update_prophK
+      | @ITree.bind _ _ _ _ _ =>
+          eapply SRed.bind *)
+      | _ =>
+          reflexivity
+      end
+  end.
+
+  (* Local Lemma LModTr_interp_stateE_bind {A B} itr state : *)
+    
+  Tactic Notation "red_LModTr_state" tactic(tac) :=
+    lazymatch goal with
+    | [ |- @LModTr.interp_stateE ?A ?B ?itr ?state = _] =>
+      match itr with
+      | @iterV ?A ?B ?C ?handle ?itr => reflexivity
+      | _ =>
+        etransitivity;
+        [rewrite /= /LModTr.interp_stateE;
+          lazymatch itr with
+          | @ITree.bind _ _ _ _ _ =>
+            eapply interp_state_bind
+          | Ret _ =>
+            eapply interp_state_ret
+          | vis _ _ =>
+            etransitivity; [eapply interp_state_vis|tac; refl]
+          | Tau _ =>
+            eapply interp_state_tau
+          | unwrapUK _ _ =>
+            etransitivity; [rewrite /unwrapUK; refl|tac]
+          | _ =>
+            reflexivity
+          end
+        | fold (@LModTr.interp_stateE coreE); refl]
+      end
+    end.
+
+  Ltac _gnorm_itr :=
+    lazymatch goal with
+    | [ |- Ret _ = _ ] =>
+        reflexivity
+    | [ |- Tau _ = _ ] =>
+        reflexivity
+    | [ |- vis _ _ = _ ] =>
+        reflexivity
+    | [ |- @ITree.bind ?E ?T ?U ?itr ?ktr = _ ] =>
+        etransitivity;
+        [ let itr' := fresh "itr" in cong (fun (itr' : itree E T) => @ITree.bind E T U itr' ktr); _gnorm_itr
+        | s; red_bind (do 1 _gnorm_itr) ]
+    | [ |- @SB.sandbox ?Σ ?R ?img ?imports ?scopes ?itr = _ ] =>
+        etransitivity;
+        [ cong (@SB.sandbox Σ R img imports scopes); _gnorm_itr | red_SB ]
+    | [ |- @SModTr.trans ?Σ ?sp ?R ?itr = _ ] =>
+        etransitivity;
+        [ cong (@SModTr.trans Σ sp R); _gnorm_itr | red_S (do 1 _gnorm_itr) ]
+    | [ |- @LModTr.interp_stateE ?E ?T ?itr ?st = _] =>
+        etransitivity;
+        [ cong (λ i, @LModTr.interp_stateE E T i st); _gnorm_itr | red_LModTr_state (do 1 _gnorm_itr)]
+    (* | [ |- @iterV ?A ?B ?C ?handle ?itr = _ ] =>
+        idtac "iterV "; idtac itr;
+        (rewrite unfold_iterV /itreeV_itree;
+        lazymatch goal with
+        | |- context [@LModTr.handle_callE ?A ?B] =>
+          pattern (LModTr.handle_callE A B);
+          lazymatch goal with
+          | [ |- ?f ?a] =>
+            refine (eq_ind_r f _ _); cycle 1;
+            [_gnorm_itr
+            | lazymatch goal with
+              | |- context [_observe ?f] => idtac f; fail
+              | |- _ => s; _gnorm_itr
+              end
+            ]
+          end
+        end
+        + refl) *)
+    | [ |- @case_ _ _ _ _ _ _ _ _ _ _ _ ?E = _] =>
+        rewrite /case_ /LModTr.pure_state /=; _gnorm_itr
+    | [ |- @ModTr.trans ?A ?B ?itr = _] =>
+        etransitivity;
+        [ cong (@ModTr.trans A B); _gnorm_itr | red_ModTr (do 1 _gnorm_itr) ]
+    | [ |- @LModTr.handle_callE ?prog ?a = _] =>
+      rewrite /LModTr.handle_callE;
+      match goal with
+      | |- context [?a !! ?b] =>
+        pattern (a !! b);
+        match goal with
+        | |- ?f ?a =>
+          eapply (eq_ind_r f); cycle 1; [s; eapply (f_equal Some); _gnorm_itr|ss]
+        end
+      end
+    | [ |- trigger _ = _ ] =>
+        eapply trigger_vis
+    | [ |- assume _ = _ ] =>
+        eapply assume_assumeK
+    | [ |- guarantee _ = _ ] =>
+        eapply guarantee_guaranteeK
+    | [ |- unwrapU _ = _ ] =>
+        eapply unwrapU_unwrapUK
+    | [ |- unwrapN _ = _ ] =>
+        eapply unwrapN_unwrapNK
+    | [ |- UpdateProph _ _ _ = _ ] =>
+        eapply UpdateProph_UpdateProphK
+    | [ |- SModTr.HoareCall _ _ _ = _ ] =>
+        unfold SModTr.HoareCall;
+        _gnorm_itr
+    | [ |- SModTr.NativeSpawn _ _ = _ ] =>
+        unfold SModTr.NativeSpawn;
+        _gnorm_itr
+    | [ |- fbody_trivial _ = _ ] =>
+        unfold fbody_trivial;
+        _gnorm_itr
+    | [ |- cput _ _ = _ ] =>
+        unfold cput;
+        _gnorm_itr
+    | [ |- cgetU _ = _ ] =>
+        unfold cgetU;
+        _gnorm_itr
+    | [ |- cgetN _ = _ ] =>
+        unfold cgetN;
+        _gnorm_itr
+    | [ |- cfunU _ _ = _ ] =>
+        unfold cfunU;
+        _gnorm_itr
+    | [ |- cfunN _ _ = _ ] =>
+        unfold cfunN;
+        _gnorm_itr
+    | [ |- ccallU _ _ = _ ] =>
+        unfold ccallU;
+        _gnorm_itr
+    | [ |- ccallN _ _ = _ ] =>
+        unfold ccallN;
+        _gnorm_itr
+    | [ |- triggerUB = _ ] =>
+        unfold triggerUB;
+        _gnorm_itr
+    | [ |- triggerNB = _ ] =>
+        unfold triggerNB;
+        _gnorm_itr
+    | [ |- ?itr = _ ] =>
+        reflexivity
+  end.
+  Ltac gnorm_itr :=
+  etransitivity;
+  [ _gnorm_itr
+  | s;
+    lazymatch goal with
+    | [ |- Ret _ = _ ] =>
+        reflexivity
+    | [ |- Tau _ = _ ] =>
+        reflexivity
+    | [ |- vis _ _ = _ ] =>
+        eapply vis_trigger
+    | [ |- _ = _ ] =>
+        reflexivity
+    end
+  ].
+
+  Ltac norm_l :=
+    replace_l; [s; gnorm_itr|].
+  Ltac norm_r :=
+    replace_r; [s; gnorm_itr|].
+
+  Ltac iter_l :=
+    replace_l; [rewrite unfold_iterV /itreeV_itree //|]; norm_l.
+  Ltac iter_r :=
+    replace_r; [rewrite unfold_iterV /itreeV_itree //|]; norm_r.
+
+  Ltac step_r :=
+    norm_r; guclo gsim_indC_spec; econs; instantiate (1:=smj_top).
+  Ltac step_l :=
+    norm_l; guclo gsim_indC_spec; econs; instantiate (1:=smj_top).
+
+  Theorem helping_onoff_correct E q
+      (SchInSp : sp_incl (SchAS.sp sp_u E q) sp_s) :
+    ctx_refines (mod_off, emp%I) (mod_on, emp%I).
   Proof.
-  Admitted.
+    rewrite /mod_off /mod_on.
+    intros [ctx ctxP] WF; ss; split.
+    { inv WF.
+      econs.
+      { revert wf_fns. rewrite /HelpingOff.t /HelpingOn.t /SchA.t; unseal CRIS; ss. }
+      { revert wf_scopes. rewrite /HelpingOff.t /HelpingOn.t /SchA.t; unseal CRIS; ss. }
+    }
+    intros rs Hval Hrs; exists rs; split; [exact Hval|split; [done|]].
 
+    intro arg; eapply (@gsim_adequacy smj_top smj_top).
+    rewrite /LMod.compile /ITree.map /LModTr.trans /LModTr.interp_callE /=.
+    rewrite !alist_find_map_snd.
+    set (fnsems := (Mod.fnsems _ ++ _) ++ _).
+    destruct (alist_find None fnsems) eqn: FIND; s; cycle 1.
+    { s. ired. ginit. gstep. econs. econs. ss. }
+    rewrite alist_find_app_o; des_ifs.
+    { rewrite alist_find_app_o /HelpingOn.t /SchA.t in Heq; revert Heq; unseal CRIS; intros Heq.
+      des_ifs; ss.
+    }
+    subst fnsems; rewrite alist_find_app_o in FIND; des_ifs.
+    { rewrite /HelpingOff.t /SchA.t in Heq0; revert Heq0; unseal CRIS; ss. }
+    rewrite FIND /ModTr.trans_ktree; ired.
+
+    destruct f as [[[imgf mskf] scpf] f].
+
+    clear Heq Heq0 FIND.
+    rewrite /SB.sandbox_body /=.
+
+    ginit. guclo bindC_spec. econs; cycle 1.
+    { instantiate (1:=λ r_s r_t, r_s.2 = r_t.2). ii; gstep; ss. subst; econs; econs; ss. }
+
+    move imgf at top. move mskf at top. move scpf at top.
+    generalize (f arg) as f'; clear arg f; intros f.
+    clear Hrs.
+    revert_until WF.
+    gcofix CIH.
+    intros rs Hrs f.
+
+    destruct (case_itrH f) as [[v ->]|Hf].
+    { 
+      ziter_l; zstep_l.
+      ziter_r; zstep_r.
+      zstep; rewrite /HelpingOff.t /HelpingOn.t /SchA.t; unseal CRIS; ss.
+    }
+    destruct Hf as [[f' ->]|Hf].
+    { zprogress. ziter_l. zstep_l.
+      ziter_r; zstep_r. gbase.
+      rewrite /ModTr.trans. eapply CIH; eauto.
+    }
+    destruct Hf as [[P [f' ->]]|Hf].
+    {
+      destruct imgf; [|ziter_l; zstep_l].
+      zprogress.
+
+      iter_l. step_l. norm_l.
+      iter_l. hss. hss. norm_l. step_l. intros res; norm_l. step_l. norm_l.
+      iter_l. step_l. intros Hres. norm_l. step_l. norm_l.
+      iter_l. step_l. norm_l.
+      iter_l. hss. norm_l. step_l. norm_l. ired.
+
+      iter_r. step_r. norm_r.
+      iter_r. hss. hss. norm_r. step_r. exists res. step_r. norm_r.
+      iter_r. step_r. unshelve eexists; eauto. norm_r. step_r. norm_r.
+      iter_r. step_r. norm_r.
+      iter_r. hss. norm_r. step_r. norm_r. ired.
+
+      gbase. eapply (CIH res); des; eauto.
+    }
+    destruct Hf as [[res [f' ->]]|Hf].
+    { rewrite !SBRed.bind ?SBRed.AssumeRes.
+      zprogress.
+      iter_l. step_l. norm_l.
+      iter_l. hss. hss. norm_l. step_l. intros Hval. norm_l. step_l. norm_l.
+      iter_l. step_l. norm_l.
+      iter_l. hss. norm_l. step_l. norm_l. ired.
+
+      iter_r. step_r. norm_r.
+      iter_r. hss. hss. step_r. exists Hval. norm_r. step_r. norm_r.
+      iter_r. step_r. norm_r.
+      iter_r. hss. norm_r. step_r. norm_r.
+      ired. gbase. eapply (CIH (res ⋅ rs)); des; eauto.
+    }
+    destruct Hf as [[P [f' ->]]|Hf].
+    { rewrite !SBRed.bind !SBRed.Guarantee.
+      zprogress.
+      iter_r. step_r. norm_r.
+      iter_r. hss. hss. step_r. intros x. norm_r. step_r. norm_r.
+      iter_r. step_r. intros Hx. norm_r. step_r. norm_r.
+      iter_r. step_r. norm_r.
+      iter_r. hss. step_r. norm_r.
+
+      iter_l. step_l. norm_l.
+      iter_l. hss. hss. norm_l. step_l. exists x. step_l. norm_l.
+      iter_l. step_l. unshelve eexists; eauto. step_l. norm_l.
+      iter_l. step_l. norm_l.
+      iter_l. hss. step_l. norm_l.
+      ired.
+      gbase. eapply (CIH x); des; eauto.
+    }
+    destruct Hf as [[R [[fn args|fn args|tid_yield] [k ->]]]|Hf].
+    { rewrite !SBRed.bind !SBRed.call.
+      destruct (mskf fn) eqn : Hmask; [|iter_l; step_l; ss].
+
+      iter_l. step_l. iter_r. step_r.
+      rewrite /HelpingOff.t /SchA.t /HelpingOn.t /=; unseal CRIS; ss.
+      destruct (decide (fn = Helping.run mn)); subst.
+      {
+        norm_l. norm_r.
+        rewrite {1 3}/LMod.prog ?alist_find_map_snd /=.
+        destruct (dec _ _) as [?|e]; [ss|clarify].
+        norm_l. norm_r.
+
+        iter_r. step_r. norm_r.
+        rewrite /HelpingOn.run /HelpingOff.run.
+        destruct (args↓) as [j|] eqn:Hargs ; cycle 1.
+        { iter_l. step_l. norm_l. iter_l. rewrite Hargs /=. des_if; norm_l; step_l; ss. }
+        ss.
+
+        iter_r. step_r. norm_r.
+        iter_r. step_r. norm_r.
+
+        rewrite {2}/LMod.prog ?alist_find_map_snd /=.
+
+
+        rewrite /Sch.yield; unseal "Sch".
+        rewrite unfold_iterC.
+        norm_l. step_l.
+        norm_l. iter_l.
+      }
+    }
+
+
+  Admitted.
 End Helping.
