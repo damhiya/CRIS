@@ -379,8 +379,8 @@ Module MemIP. Section MemIP.
 
     destruct (classic (∃ v:nat, arg = [Vint v]↑)) as [[v ->]|Hex]; cycle 1.
     {
-      rewrite /fancy_real_update; steps_l; force_l (tt↑); steps_l.
-      fancy_real_l False%I.
+      steps_l. force_l (tt↑); steps_l.
+      ru_l False%I.
       iSplitL.
       - iIntros (?) "[% %]"; exfalso; subst; et.
       - iIntros "H"; iExFalso; done.
@@ -389,8 +389,8 @@ Module MemIP. Section MemIP.
     do 2 (hss_r; steps_r).
     des_ifs; cycle 1.
     {
-      rewrite /fancy_real_update; steps_l; force_l (tt↑); steps_l.
-      fancy_real_l False%I.
+      steps_l; force_l (tt↑); steps_l.
+      ru_l False%I.
       iSplitL.
       - iIntros (?) "[% %]". exfalso; hss; rewrite -x in H2. simpl_bool; des.
         { destruct (Z_le_gt_dec 0 v); des; ss; lia. }
@@ -399,9 +399,8 @@ Module MemIP. Section MemIP.
     }
 
     steps_r. rename _q into pad, v into size. set (blk := Mem.nb mem_tgt + pad).
-    rewrite /fancy_real_update; steps_l.
-    force_l ((Vptr (blk, 0%Z))↑); steps_l.
-    fancy_real_l (own base_γ (● (mem_src ⋅ _points_to_r (blk, 0%Z) 1 (repeat Vundef (Z.to_nat size)))))%I.
+    steps_l. force_l ((Vptr (blk, 0%Z))↑); steps_l.
+    ru_l (own base_γ (● (mem_src ⋅ _points_to_r (blk, 0%Z) 1 (repeat Vundef (Z.to_nat size)))))%I.
     iSplitL.
     { iIntros (?) "[% %]"; hss; apply Nat2Z.inj in x; subst.
       iMod (mem_ra_alloc with "B") as "[BLK WHT]"; eauto.
@@ -409,7 +408,7 @@ Module MemIP. Section MemIP.
       iModIntro; iSplit; [rewrite Nat2Z.id //| subst blk; iPureIntro; ss].
     }
 
-    iIntros "B !>". steps_l. step.
+    iIntros "B". steps_l. step.
     iSplit; eauto.
     iExists _, [_], _, _. repeat (iSplit; eauto).
     iExists _, _. iFrame. iPureIntro.
@@ -439,10 +438,8 @@ Module MemIP. Section MemIP.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
 
     destruct (or_else (pargs [Tptr] (or_else (arg↓) [])) (0, 0%Z)) as [b ofs] eqn: EQ.
-    step_l; step_r.
-    rewrite /fancy_real_update; steps_l.
-    force_l ((Vint 0)↑); steps_l.
-    fancy_real_l (own base_γ (● mem_ra_upd mem_src b ofs None) ∗ ⌜arg = [Vptr (b, ofs)]↑ ∧
+    steps_r. steps_l. force_l ((Vint 0)↑); steps_l.
+    ru_l (own base_γ (● mem_ra_upd mem_src b ofs None) ∗ ⌜arg = [Vptr (b, ofs)]↑ ∧
       ∃ v, Mem.cnts mem_tgt b ofs = Some v⌝)%I.
     iSplitL.
     { iIntros ([[??]?]) "/= [% PT]"; hss.
@@ -452,7 +449,7 @@ Module MemIP. Section MemIP.
       iModIntro; iSplit; eauto.
     }
 
-    iIntros "[B %] !>". hss.
+    iIntros "[B %]". hss.
     steps_l. steps_r. hss_r. steps_r. rewrite H2. steps_r.
     step.
 
@@ -471,10 +468,8 @@ Module MemIP. Section MemIP.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
 
     destruct (or_else (pargs [Tptr] (or_else (arg↓) []))(0,0%Z)) as [b ofs] eqn: EQ.
-    step_l; step_r.
-    rewrite /fancy_real_update; steps_l.
-    force_l ((mem_get mem_src b ofs)↑); steps_l.
-    fancy_real_l (⌜arg = [Vptr (b, ofs)]↑ ∧
+    steps_r. steps_l. force_l ((mem_get mem_src b ofs)↑); steps_l.
+    ru_l (⌜arg = [Vptr (b, ofs)]↑ ∧
                    mem_tgt.(Mem.cnts) b ofs = Some (mem_get mem_src b ofs)⌝ ∗
                   own base_γ (● mem_src))%I.
     iSplitL "B".
@@ -483,7 +478,7 @@ Module MemIP. Section MemIP.
       erewrite mem_get_sound; eauto.
     }
 
-    iIntros "[[-> %] B] !>". hss.
+    iIntros "[[-> %] B]". hss.
     steps_l. steps_r. hss_r. steps_r. rewrite H0. steps_r.
     step. iSplit; eauto.
     iExists _, [_], _, _. repeat (iSplit; eauto). iExists _, _. iSplit; eauto.
@@ -496,10 +491,8 @@ Module MemIP. Section MemIP.
 
     destruct (or_else (pargs [Tptr; Tuntyped] (or_else (arg↓) [])) (0, 0%Z,Vundef))
       as [[b ofs] v_new] eqn: EQ.
-    step_l; step_r.
-    rewrite /fancy_real_update; steps_l.
-    force_l ((Vint 0)↑); steps_l.
-    fancy_real_l
+    steps_r. steps_l. force_l ((Vint 0)↑); steps_l.
+    ru_l
       (⌜arg = [Vptr (b, ofs); v_new]↑ ∧ ∃ v, Mem.cnts mem_tgt b ofs = Some v⌝ ∗
        own base_γ (● mem_ra_upd mem_src b ofs (Some (to_frac_agree 1 v_new))))%I.
     
@@ -513,7 +506,7 @@ Module MemIP. Section MemIP.
     (* iSplit; [done | iSplit; [done |]].
      *)
     }
-    iIntros "[% B] !>".
+    iIntros "[% B]".
     step_l. steps_r. hss_r. steps_r. hss_r. steps_r. rewrite H2. steps_r.
     step. repeat (iSplit; eauto).
     iExists st_srcL, [_], _, _. repeat (iSplit; eauto).
@@ -531,10 +524,8 @@ Module MemIP. Section MemIP.
 
     destruct (or_else (pargs [Tuntyped; Tuntyped] (or_else (arg↓) [])) (Vundef,Vundef))
       as [p1 p2] eqn: EQ.
-    step_l; step_r.
-    rewrite /fancy_real_update; steps_l.
-    force_l ((MemSpec.compare_val p1 p2)↑); steps_l.
-    fancy_real_l
+    steps_r. steps_l. force_l ((MemSpec.compare_val p1 p2)↑); steps_l.
+    ru_l
       (⌜arg = [p1; p2]↑ ∧
         ∃ succ, MemSpec.compare_val p1 p2 = Vint succ ∧
                 Mem.vcmp mem_tgt p1 p2 = Some (dec succ 1 : bool)⌝ ∗
@@ -550,7 +541,7 @@ Module MemIP. Section MemIP.
       rewrite H2 //.
     }
 
-    iIntros "[[-> %] B] !>"; ss.
+    iIntros "[[-> %] B]"; ss.
     steps_l.
     hss_r. steps_r. hss_r; steps_r. destruct (Mem.vcmp mem_tgt p1 p2) as [r|] eqn: E; ss. steps_r.
     step. iSplit.
@@ -573,10 +564,8 @@ Module MemIP. Section MemIP.
     set (is_succ := dec (MemSpec.compare_val v_cur v_old) (Vint 1) : bool).
     set (v_upd := if is_succ then v_new else v_cur).
 
-    step_l; step_r.
-    rewrite /fancy_real_update; steps_l.
-    force_l (v_cur↑); steps_l.
-    fancy_real_l
+    steps_r. steps_l. force_l (v_cur↑); steps_l.
+    ru_l
       (⌜arg = [Vptr (b,ofs); v_old; v_new]↑ ∧
         Mem.cnts mem_tgt b ofs = Some v_cur ∧
         Mem.vcmp mem_tgt v_cur v_old = Some is_succ⌝ ∗
@@ -595,7 +584,7 @@ Module MemIP. Section MemIP.
       { des_ifs; iFrame. }
     }
 
-    iIntros "[[-> %] B] !>"; des; subst; hss. steps_r.
+    iIntros "[[-> %] B]"; des; subst; hss. steps_r.
     inline_r. steps_r; hss_r; steps_r.
     hss_r; steps_r. rewrite H0.
     steps_r; hss_r; steps_r.

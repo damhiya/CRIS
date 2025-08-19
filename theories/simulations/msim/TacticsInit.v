@@ -79,8 +79,8 @@ Ltac init_sim :=
 Ltac iinit_simF := initialize_simF.
 
 Ltac prove_fr_to_img :=
-  iinit_simF; iDestruct "IST" as "->"; iIntros "_"; isteps_r;
-  match goal with |- context[fancy_real_update ?fsp _] =>
+  iinit_simF; iDestruct "IST" as "->"; iIntros "_"; istep_r;
+  match goal with |- context[real_update ?fsp _] =>
     iApply (isim_fr_to_img fsp)
   end;
   rewrite !SRed.core !SBRed.choose; refl.

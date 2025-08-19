@@ -75,18 +75,18 @@ Section FSPEC.
     postcondS := λ '(existT i meta_i), (nth i fspecs fspecS_bot).(postcondS) meta_i
   |}.
 
-  Definition fancy_real_update (fsp : fspecS) (body: fbody) : fbody :=
+  Definition real_update (fsp : fspecS) (body: fbody) : fbody :=
     λ arg,
       ret <- body arg;;
-      FRPrePost (λ x, precondS fsp x arg) (λ x, postcondS fsp x ret);;;
+      RealUpdate (λ x, precondS fsp x arg) (λ x, postcondS fsp x ret);;;
       Ret ret.
 
-  Definition fancy_real_peek {X} (cond : X → iProp Σ) (body: itree crisE ()) : itree crisE () :=
-    iterC (λ _,
+  Definition real_peek {X} (cond : X → iProp Σ) (body: itree crisE ()) : itree crisE () :=
+    ITree.iter (λ _,
       body;;;
       'b: bool <- trigger (Choose bool);;
       if b
-      then FRPrePost cond cond;;; Ret (inl ())
+      then RealUpdate cond cond;;; Ret (inl ())
       else Ret (inr ())
     ) ().
 
@@ -150,3 +150,9 @@ Section FSPEC_WINV.
   Definition icond_winv (E : coPset) (I : iProp Σ) : iProp Σ :=
     winv (E, E) ∗ I.
 End FSPEC_WINV.
+
+Global Arguments precond : simpl never.
+Global Arguments postcond : simpl never.
+Global Arguments precondS : simpl never.
+Global Arguments postcondS : simpl never.
+

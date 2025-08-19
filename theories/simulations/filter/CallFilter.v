@@ -45,17 +45,16 @@ Module CFilter. Section CFilter.
       i. revert itr. combine_quant st.
       combine_quant ps. combine_quant pt. combine_quant img.
       combine_quant scp. combine_quant msk.
-      eapply isim_coind. i.
-      destruct a as [msk [scp [img [pt [ps [st itr]]]]]]. s. destruct_quant.
-      iIntros "[_ #CIH]".
+      eapply isim_coind. intros g0 _ CIH [msk [scp [img [pt [ps [st itr]]]]]].
+      s. destruct_quant CIH. iIntros "_".
       assert (CASE:= case_itrH itr). des; subst; s.
       - step; et.
-      - steps_l. steps_r. by_coind "CIH"; et.
+      - steps_l. steps_r. by_coind CIH; et.
       - destruct img.
-        + steps_l. force_r. iSplitL "ASM"; et. steps_r. by_coind "CIH"; et.
+        + steps_l. force_r. iSplitL "ASM"; et. steps_r. by_coind CIH; et.
         + rewrite SBRed.bind SBRed.Assume. steps_l. ss.
-      - steps_l. force_r; iFrame. steps_l. steps_r. by_coind "CIH"; et.
-      - steps_r. force_l. iSplitL "GRT"; et. steps_l. by_coind "CIH"; et.
+      - steps_l. force_r; iFrame. steps_l. steps_r. by_coind CIH; et.
+      - steps_r. force_l. iSplitL "GRT"; et. steps_l. by_coind CIH; et.
       - destruct c; s.
         + destruct (wmask_and mask msk fn) eqn: EQ; cycle 1.
           { rewrite SBRed.bind SBRed.call EQ. steps_l. ss. }
@@ -63,32 +62,32 @@ Module CFilter. Section CFilter.
           { unfold wmask_and in EQ. destruct (msk fn) eqn: EQ'; ss.
             destruct (mask fn); ss. }
           iDestruct "IST" as "%". subst.
-          steps_l. steps_r. by_coind "CIH"; et.
+          steps_l. steps_r. by_coind CIH; et.
         + destruct (wmask_and mask msk fn) eqn: EQ; cycle 1.
           { rewrite SBRed.bind SBRed.spawn EQ. steps_l. ss. }
           spawn; et.
           { unfold wmask_and in EQ. destruct (msk fn) eqn: EQ'; ss.
             destruct (mask fn); ss. }
-          iIntros "%"; steps_l. steps_r. by_coind "CIH"; et.
+          iIntros "%"; steps_l. steps_r. by_coind CIH; et.
         + yield ""; et. iDestruct "IST" as "%". subst.
-          steps_l. steps_r. by_coind "CIH"; et.
+          steps_l. steps_r. by_coind CIH; et.
       - destruct s.
         + ired. rewrite !SBRed.bind !SBRed.put. des_ifs; cycle 1.
           { steps_l. ss. }
           iApply isim_sput_src. iApply isim_sput_tgt.
-          steps_l. by_coind "CIH"; et.
+          steps_l. by_coind CIH; et.
         + ired. rewrite !SBRed.bind !SBRed.get. des_ifs; cycle 1.
           { steps_l. ss. }
           iApply isim_sget_src. iApply isim_sget_tgt.
-          by_coind "CIH"; et.
+          by_coind CIH; et.
       - destruct e.
-        + steps_r. force_l _q. steps_l. by_coind "CIH"; et.
+        + steps_r. force_l _q. steps_l. by_coind CIH; et.
         + destruct img; s.
-          { steps_l. force_r _q. steps_r. by_coind "CIH"; et. }
+          { steps_l. force_r _q. steps_r. by_coind CIH; et. }
           rewrite !SBRed.bind !SBRed.take; s. des_ifs.
-          * steps_l. force_r _q. norm_r. by_coind "CIH"; et.
+          * steps_l. force_r _q. norm_r. by_coind CIH; et.
           * steps_l. ss.
-        + step. steps_l. steps_r. by_coind "CIH"; et.
+        + step. steps_l. steps_r. by_coind CIH; et.
     }
 
     econs; ss; ii; et; try rewrite List.map_map fst_map_snd; try refl.
@@ -120,18 +119,17 @@ Module CFilter. Section CFilter.
       (ist_with_eq IstEq) ps pt
       (st, SB.sandbox img msk scp itr)
       (st, SB.sandbox img (wmask_and mask msk) scp itr)).
-    { i. revert itr.
-      combine_quant st. combine_quant ps. combine_quant pt.
-      eapply isim_coind.
-      iIntros (g' [pt [ps [st itr]]] MON) "[_ #CIH]". s. destruct_quant.
+    { i. revert itr. combine_quant st. combine_quant ps. combine_quant pt.
+      eapply isim_coind. intros g' _ CIH [pt [ps [st itr]]].
+      s. destruct_quant CIH. iIntros "_".
       assert (CASE:= case_itrH itr). des; subst; s.
       - step; et.
-      - steps_l. steps_r. by_coind "CIH"; et.
+      - steps_l. steps_r. by_coind CIH; et.
       - destruct img.
-        + steps_l. force_r. iSplitL "ASM"; et. steps_r. by_coind "CIH"; et.
+        + steps_l. force_r. iSplitL "ASM"; et. steps_r. by_coind CIH; et.
         + rewrite SBRed.bind SBRed.Assume. steps_l. ss.
-      - steps_l. force_r; iFrame. steps_l. steps_r. by_coind "CIH"; et.
-      - steps_r. force_l. iSplitL "GRT"; et. steps_l. by_coind "CIH"; et.
+      - steps_l. force_r; iFrame. steps_l. steps_r. by_coind CIH; et.
+      - steps_r. force_l. iSplitL "GRT"; et. steps_l. by_coind CIH; et.
       - destruct c; s.
         + destruct (msk fn) eqn: EQ; cycle 1.
           { rewrite SBRed.bind SBRed.call EQ. steps_l. ss. }
@@ -145,7 +143,7 @@ Module CFilter. Section CFilter.
           call ""; et.
           { unfold wmask_and. rewrite EQ EQ'. et. }
           iDestruct "IST" as "%". subst.
-          steps_l. steps_r. by_coind "CIH"; et.
+          steps_l. steps_r. by_coind CIH; et.
         + destruct (msk fn) eqn: EQ; cycle 1.
           { rewrite SBRed.bind SBRed.spawn EQ. steps_l. ss. }
           destruct (mask fn) eqn: EQ'; cycle 1.
@@ -157,26 +155,26 @@ Module CFilter. Section CFilter.
           }
           spawn; et.
           { unfold wmask_and. rewrite EQ EQ'. et. }
-          iIntros (tid); steps_l. steps_r. by_coind "CIH"; et.
+          iIntros (tid); steps_l. steps_r. by_coind CIH; et.
         + yield ""; et. iDestruct "IST" as "%". subst.
-          steps_l. steps_r. by_coind "CIH"; et.
+          steps_l. steps_r. by_coind CIH; et.
       - destruct s.
         + rewrite !SBRed.bind !SBRed.put. des_ifs; cycle 1.
           { steps_l. ss. }
           iApply isim_sput_src. iApply isim_sput_tgt.
-          steps_r. by_coind "CIH"; et.
+          steps_r. by_coind CIH; et.
         + ired. rewrite !SBRed.bind !SBRed.get. des_ifs; cycle 1.
           { steps_l. ss. }
           iApply isim_sget_src. iApply isim_sget_tgt.
-          steps_r. by_coind "CIH"; et.
+          steps_r. by_coind CIH; et.
       - destruct e.
-        + steps_r. force_l _q. steps_l. by_coind "CIH"; et.
+        + steps_r. force_l _q. steps_l. by_coind CIH; et.
         + destruct img.
-          * steps_l. force_r _q. steps_r. by_coind "CIH"; et.
+          * steps_l. force_r _q. steps_r. by_coind CIH; et.
           * rewrite !SBRed.bind !SBRed.take. des_ifs.
-            { steps_l. force_r _q. steps_r. by_coind "CIH"; et. }
+            { steps_l. force_r _q. steps_r. by_coind CIH; et. }
             steps_l. ss.
-        + step. steps_l. steps_r. by_coind "CIH"; et.
+        + step. steps_l. steps_r. by_coind CIH; et.
     }
 
     econs; ii ; et.

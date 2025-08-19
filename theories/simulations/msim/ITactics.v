@@ -29,21 +29,21 @@ Ltac _istep_l :=
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, Ret _ >>= _) _) ] =>
       rewrite bind_ret_l
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, (SB.sandbox _ _ _ (trigger (SPut _ _))) >>= _) _) ] =>
-      iApply isim_sput_src_sandbox; [s;eauto|]
+      iApply isim_nodup_src; iIntros (?); iApply isim_sput_src_sandbox; [s;eauto|alist_upd_simpl]
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, (SB.sandbox _ _ _ (trigger (SGet _))) >>= _) _) ] =>
       iApply isim_sget_src_sandbox; [s;eauto|]
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _) _) ] =>
       let name := fresh "_q" in
       iApply isim_take_src; iIntros (name)
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _  (_, trigger (Assume ?P) >>= _) _) ] =>
-      unfold_precond_postcond P; iApply isim_assume_src; iIntrosFresh "ASM"
+      unfold_pre_post_term P; iApply isim_assume_src; iIntrosFresh "ASM"
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, unwrapU ?ox >>= _) _) ] =>
       let name := fresh "_q" in
       iApply isim_unwrapU_src; iIntros (name) "%";
       match goal with [ H: ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite -> G in * end
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, assume _ >>= _) _) ] =>
       let name := fresh "asm" in iApply isim_asm_src; iIntros (name)
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, trigger (AssumeRes ?P) >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, trigger (AssumeRes _) >>= _) _) ] =>
       iApply isim_assume_res_src; iIntrosFresh "ASM"
   end.
 
@@ -70,14 +70,14 @@ Ltac _istep_r :=
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, tau;; _)) ] =>
       iApply isim_tau_tgt
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, (SB.sandbox _ _ _ (trigger (SPut _ _))) >>= _)) ] =>
-      iApply isim_sput_tgt_sandbox; [s; eauto|]
+      iApply isim_nodup_tgt; iIntros (?); iApply isim_sput_tgt_sandbox; [s; eauto|alist_upd_simpl]
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, (SB.sandbox _ _ _ (trigger (SGet _))) >>= _)) ] =>
       iApply isim_sget_tgt_sandbox; [s; eauto|]
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose _) >>= _)) ] =>
       let name := fresh "_q" in
       iApply isim_choose_tgt; iIntros (name)
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _)) ] =>
-      unfold_precond_postcond P; iApply isim_guarantee_tgt; iIntrosFresh "GRT"
+      unfold_pre_post_term P; iApply isim_guarantee_tgt; iIntrosFresh "GRT"
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, unwrapN ?ox >>= _)) ] =>
       let name := fresh "_q" in
       iApply isim_unwrapN_tgt; iIntros (name) "%";
@@ -108,8 +108,6 @@ Ltac _istep :=
       iApply isim_ret
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, trigger (IO _ _) >>= _) (_, trigger (IO _ _) >>= _)) ] =>
       iApply isim_io; iIntros "%"
-  (* | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, trigger (AssumeRes _) >>= _) (_, trigger (AssumeRes _) >>= _)) ] =>
-      iApply isim_assume_res_both *)
   end.
 
 Ltac istep :=
@@ -120,7 +118,7 @@ Ltac _iforce_l :=
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, trigger (Choose ?T) >>= _) _) ] =>
       iApply isim_choose_src
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _) _) ] =>
-      unfold_precond_postcond P; iApply isim_guarantee_src
+      unfold_pre_post_term P; iApply isim_guarantee_src
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, unwrapN _ >>= _) _) ] =>
       iApply isim_unwrapN_src; iExists _
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, guarantee _ >>= _) _) ] =>
@@ -145,15 +143,15 @@ Ltac _iforce_r :=
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _)) ] =>
       iApply isim_take_tgt
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger (Assume ?P) >>= _)) ] =>
-      unfold_precond_postcond P; iApply isim_assume_tgt
+      unfold_pre_post_term P; iApply isim_assume_tgt
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _)) ] =>
       iApply isim_asm_tgt
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, unwrapU _ >>= _)) ] =>
       iApply isim_unwrapU_tgt; iExists _
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger (AssumeRes ?P) >>= _)) ] =>
-      unfold_precond_postcond P; iApply isim_assume_res_tgt
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, FRPrePost ?P ?Q >>= _)) ] =>
-      unfold_precond_postcond P; unfold_precond_postcond Q; iApply isim_fr_prepost_tgt
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger (AssumeRes _) >>= _)) ] =>
+      iApply isim_assume_res_tgt
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, RealUpdate ?P ?Q >>= _)) ] =>
+      unfold_pre_post_term P; unfold_pre_post_term Q; iApply isim_ru_tgt_simple
   end
 .
 
@@ -178,7 +176,7 @@ Ltac iinline_r :=
 
 Ltac icall hyps :=
   (norm with do 1 iApply isim_call_sandbox); [try prove_sb_cond|
-  iSplitL hyps; [try done|iIntros "% % % % %"; iIntrosFresh "IST"];
+  iSplitL hyps; [try done|iIntros "% % %"; iIntrosFresh "IST"];
   move_aux].
 
 Ltac ispawn :=
@@ -186,24 +184,22 @@ Ltac ispawn :=
 
 Ltac iyield hyps :=
   (norm with do 1 iApply isim_yield);
-  iSplitL hyps; [try done|iIntros "% % % %"; iIntrosFresh "IST"];
+  iSplitL hyps; [try done|iIntros "% %"; iIntrosFresh "IST"];
   move_aux.
 
 Ltac iby_coind CIH :=
   iApply isim_progress; iApply isim_base;
-  iSpecialize (CIH $! _);
-  (hrepeat do 1 first[instantiate (1:= (_,_))|instantiate (1:= existT _ _)]); s;
   iApply CIH.
 
 (** Special Tactics for AssumeProph in Source **)
 
-Tactic Notation "ifancy_real_l_advanced" uconstr(P) :=
-  norm_l; iApply isim_fr_prepost_src_advanced;
+Tactic Notation "iru_l_advanced" uconstr(P) :=
+  norm_l; iApply isim_ru_src_advanced;
   iExists P; iSplit; [try prove_precise|].
 
-Tactic Notation "ifancy_real_l" uconstr(P) :=
-  norm_l; iApply isim_fr_prepost_src;
+Tactic Notation "iru_l" uconstr(P) :=
+  norm_l; iApply isim_ru_src;
   iExists P; iSplit; [try prove_precise|].
 
-Ltac ifancy_real_both :=
-  norm_l; norm_r; iApply isim_fr_prepost_both.
+Ltac iru_r :=
+  norm_r; iApply isim_ru_tgt.

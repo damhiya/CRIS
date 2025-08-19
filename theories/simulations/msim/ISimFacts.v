@@ -51,49 +51,48 @@ Proof using.
   combine_quant st_src.
   combine_quant ps.
   combine_quant pt.
-  eapply isim_coind. intros g0 a _.
-  destruct a as [pt [ps [st_src [st_tgt it]]]]. s. destruct_quant.
-  iIntros "[IST #CIH]".
+  eapply isim_coind. intros g0 _ CIH [pt [ps [st_src [st_tgt it]]]].
+  destruct_quant CIH. iIntros "IST".
   assert (CASE := case_itrH it); des; subst.
   - istep. iFrame. eauto.
-  - isteps_l. isteps_r. iby_coind "CIH"; eauto.
+  - isteps_l. isteps_r. iby_coind CIH; eauto.
   - destruct img.
-    + isteps_l. iforces_r. iFrame. isteps_r. iby_coind "CIH". eauto.
+    + isteps_l. iforces_r. iFrame. isteps_r. iby_coind CIH. eauto.
     + rewrite SBRed.bind SBRed.Assume. ired.
       iApply isim_take_src. iIntros (?). ss.
-  - isteps_l. iforce_r; iFrame. isteps_l. isteps_r. iby_coind "CIH". eauto.
-  - isteps_r. iforces_l. iFrame. isteps_l. iby_coind "CIH". eauto.
+  - isteps_l. iforce_r; iFrame. isteps_l. isteps_r. iby_coind CIH. eauto.
+  - isteps_r. iforces_l. iFrame. isteps_l. iby_coind CIH. eauto.
   - depdes c.
     + isteps_l. isteps_r. rewrite SBRed.call. des_ifs.
       * iApply isim_call. iSplitL "IST"; et.
-        iIntros (? ? ? ? ?) "IST".
-        iby_coind "CIH". et.
+        iIntros (???) "IST".
+        iby_coind CIH. et.
       * isteps_l. ss.
     + isteps_l. isteps_r. rewrite SBRed.spawn. des_ifs.
-      * iApply isim_spawn. iIntros "%"; iby_coind "CIH". done.
+      * iApply isim_spawn. iIntros "%"; iby_coind CIH. done.
       * isteps_l. ss.
-    + iyield "IST". iby_coind "CIH". eauto.
+    + iyield "IST". iby_coind CIH. eauto.
   - depdes s.
     + rewrite !SBRed.bind !SBRed.put. des_ifs; cycle 1.
       { isteps_l. ss. }
-      iApply isim_nodup. iIntros (? ? ? ?).
-      iApply isim_sput_src. iApply isim_sput_tgt.
-      iby_coind "CIH". iApply EQSET; et.
+      iApply isim_nodup_src; iIntros (?); iApply isim_sput_src.
+      iApply isim_nodup_tgt; iIntros (?); iApply isim_sput_tgt.
+      iby_coind CIH. iApply EQSET; et.
       apply existsb_exists in Heq. des. apply String.eqb_eq in Heq0. subst. et.
     + rewrite !SBRed.bind !SBRed.get. des_ifs; cycle 1.
       { isteps_l. ss. }
-      iApply isim_nodup. iIntros (? ? ? ?).
-      iApply isim_sget_src. iApply isim_sget_tgt.
+      iApply isim_nodup_src; iIntros (?); iApply isim_sget_src.
+      iApply isim_nodup_tgt; iIntros (?); iApply isim_sget_tgt.
       apply existsb_exists in Heq. des. apply String.eqb_eq in Heq0. subst.
       iPoseProof (EQGET with "IST") as "%"; et. rewrite H.
-      iby_coind "CIH". eauto.
+      iby_coind CIH. eauto.
   - destruct e.
-    + isteps_r. iforce_l _q. isteps_l. iby_coind "CIH". eauto.
+    + isteps_r. iforce_l _q. isteps_l. iby_coind CIH. eauto.
     + destruct img.
-      * isteps_l. iforce_r _q. isteps_r. iby_coind "CIH". eauto.
+      * isteps_l. iforce_r _q. isteps_r. iby_coind CIH. eauto.
       * rewrite SBRed.bind SBRed.take. s. des_ifs; isteps_l; ss.
-        isteps_l. iforce_r _q. isteps_r. iby_coind "CIH". eauto.
-    + istep. iby_coind "CIH". eauto.
+        isteps_l. iforce_r _q. isteps_r. iby_coind CIH. eauto.
+    + istep. iby_coind CIH. eauto.
 Qed.
 
 Lemma isim_reflL contextual Ist fl_src fl_tgt mask scopesL scopesR scopesF (EqL : ist_type Σ) itr
@@ -116,8 +115,8 @@ Proof using.
   eapply isim_refl; i; et.
   - iIntros "[% [% [% [% [% [EQ [% IST]]]]]]]". des; subst.
     iPoseProof (EQGET with "EQ") as "%".
-    { rewrite map_app in NODS0. eapply NoDup_app_remove_r. et. }
-    { rewrite map_app in NODT0. eapply NoDup_app_remove_r. et. }
+    { rewrite map_app in NODS. eapply NoDup_app_remove_r. et. }
+    { rewrite map_app in NODT. eapply NoDup_app_remove_r. et. }
     rewrite !alist_find_app_o. des_ifs.
     erewrite alist_find_fst_notin; cycle 1.
     { ii. eapply NoDup_app_disjoint; try apply DISJ; eauto.
@@ -130,8 +129,8 @@ Proof using.
     iExists (alist_upd k v st_srcL), (alist_upd k v st_tgtL), st_srcR, st_tgtR.
     iSplitR; cycle 1.
     { iFrame. iSplit; eauto. iApply EQSET; eauto.
-      - rewrite map_app in NODS0. eapply NoDup_app_remove_r. et.
-      - rewrite map_app in NODT0. eapply NoDup_app_remove_r. et.
+      - rewrite map_app in NODS. eapply NoDup_app_remove_r. et.
+      - rewrite map_app in NODT. eapply NoDup_app_remove_r. et.
     }
     iPureIntro. esplits; eauto.
     * eapply alist_upd_not_tail. ii.
@@ -488,9 +487,9 @@ Section FANCY_REAL.
     ⊢
     isim open fl_s fl_t IstEq ibot ibot (ist_with_eq IstEq) ps pt
       (st, SB.sandbox true msk scp (SModTr.HoareFun (Some (to_fspec fsp)) body_s arg))
-      (st, SB.sandbox false msk scp (SModTr.trans sp_none (fancy_real_update fsp body_t arg))).
+      (st, SB.sandbox false msk scp (SModTr.trans sp_none (real_update fsp body_t arg))).
   Proof using.
-    iIntros. isteps_l. rewrite /fancy_real_update. isteps_r.
+    iIntros. isteps_l. rewrite /real_update. isteps_r.
     iDestruct "ASM" as "[P %]"; subst.
     iApply isim_bind. iSplitL "".
     { iApply isim_eqit_tgt; et.

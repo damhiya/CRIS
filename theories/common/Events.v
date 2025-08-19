@@ -213,29 +213,29 @@ Section FancyReal.
   Global Opaque CRIS_FancyReal.
 
   (* Epilogue for propheciable specification: extracts the exact resource from precondition *)
-  Definition FRPrePost {X} pre post : itree crisE unit :=
+  Definition RealUpdate {X} pre post : itree crisE unit :=
     Seal.sealing CRIS_FancyReal (
       pr <- trigger (Choose Σ);;
       trigger (Guarantee (∀ (x : X), pre x ==∗ Own pr ∗ post x));;;
       trigger (AssumeRes pr)).
 
-  Definition FRPrePostK {X R} pre post ktr : itree crisE R :=
-    @FRPrePost X pre post >>= ktr.
+  Definition RealUpdateK {X R} pre post ktr : itree crisE R :=
+    @RealUpdate X pre post >>= ktr.
 
-  Lemma FRPrePost_FRPrePostK {X} pre post :
-    @FRPrePost X pre post = FRPrePostK pre post (λ x, Ret x).
-  Proof using. rewrite /FRPrePostK. by ired. Qed.
+  Lemma RealUpdate_RealUpdateK {X} pre post :
+    @RealUpdate X pre post = RealUpdateK pre post (λ x, Ret x).
+  Proof using. rewrite /RealUpdateK. by ired. Qed.
 
-  Lemma FRPrePostK_FRPrePost {X R} pre post k :
-    @FRPrePostK X R pre post k = FRPrePost pre post >>= k.
+  Lemma RealUpdateK_RealUpdate {X R} pre post k :
+    @RealUpdateK X R pre post k = RealUpdate pre post >>= k.
   Proof using. refl. Qed.
 
-  Lemma FRPrePostK_bind
+  Lemma RealUpdateK_bind
       {X R1 R2} pre post
       (k1 : unit → itree crisE R1) (k2 : R1 → itree crisE R2) :
-    @FRPrePostK X R1 pre post k1 >>= k2 =
-    FRPrePostK pre post (λ x, k1 x >>= k2).
-  Proof using. rewrite /FRPrePostK. by ired. Qed.
+    @RealUpdateK X R1 pre post k1 >>= k2 =
+    RealUpdateK pre post (λ x, k1 x >>= k2).
+  Proof using. rewrite /RealUpdateK. by ired. Qed.
 End FancyReal.
 
 Section SYNTAX.

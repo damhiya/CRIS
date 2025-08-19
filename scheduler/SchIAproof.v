@@ -355,7 +355,7 @@ Module SchIA. Section SchIA.
     destruct a as [st_src1 [st_tgt1 [NODS1 NODT1]]]. s.
     destruct_quant.
     iIntros "(WI & TU & IST) _ #CIH".
-    unfold_iter_l. unfold_iter_r.
+    unfold_iterC_l. unfold_iterC_r.
 
     steps_l. force_l my_tid. force_l (tt↑).
     force_l. iSplitL "WI TU". { iFrame. eauto. }
@@ -474,7 +474,7 @@ Module SchIA. Section SchIA.
     destruct_quant.
     iIntros "[IST [tid [TKN WI]]] _ #CIH".
 
-    unfold_iter_l; unfold_iter_r.
+    unfold_iterC_l; unfold_iterC_r.
 
     iDestruct "IST" as (????????) "(% & THB & THW & COND & [[% TA]|[% [TA _]]])"; des; subst; hss.
     2:{ iExFalso. iApply (tid_admin_none_user with "[TA tid]"); iFrame. }
