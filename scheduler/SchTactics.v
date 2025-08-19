@@ -350,7 +350,7 @@ Section SREL.
   Hint Resolve srel_flagC_mon.
 
   Lemma srel_flagC_spec : srel_flagC <5= gupaco4 _srel (cpn4 _srel).
-  Proof.
+  Proof using.
     eapply wrespect4_uclo; eauto with paco.
     econs; eauto with paco. i. inv PR.
     eauto using _srel_flag_mon, _srel_mon_auto, rclo4.
@@ -466,12 +466,18 @@ Section SREL.
     { specialize (SELF tt). pclearbot. esplits; eauto; econs; eauto. i. eapply (K st_src0 st_tgt0); eauto. f_equal; eapply func_ext_rev; eauto. }
   Qed.
 
-  Lemma srel_yy_y img_s msk_s sc_s sp_s:
+  Lemma msim_srelC_spec: msim_srelC <9= gupaco8 (_msim contextual fl_src fl_tgt Ist) (cpn8 (_msim contextual fl_src fl_tgt Ist)).
+  Proof using.
+    intros. gclo. econs; eauto using msim_srelC_compatible.
+    eapply msim_srelC_mon, PR; eauto with paco.
+  Qed.
+
+  Lemma srel_yy_y {R} (itr: unit -> itree crisE R) img_s msk_s sc_s sp_s:
     srel _ false
       ((SB.sandbox img_s msk_s sc_s (SModTr.trans sp_s Sch.yield));;;
-       (SB.sandbox img_s msk_s sc_s (SModTr.trans sp_s Sch.yield)))
-      (SB.sandbox img_s msk_s sc_s (SModTr.trans sp_s Sch.yield)).
-  Proof.
+       (SB.sandbox img_s msk_s sc_s (SModTr.trans sp_s Sch.yield)) >>= itr)
+      (SB.sandbox img_s msk_s sc_s (SModTr.trans sp_s Sch.yield) >>= itr).
+  Proof using.
     set (ysnd := SB.sandbox img_s msk_s sc_s (SModTr.trans sp_s Sch.yield)) at 2.
     unfold Sch.yield. unseal "Sch".
 
@@ -531,3 +537,58 @@ Section SREL.
   Qed.
   
 End SREL.
+
+Section ISIM.
+
+  Import SchAS.
+  Context `{!crisG Γ Σ α β τ _S _I, !schG}.
+  Variable contextual: contextuality.
+  Variable fl_src fl_tgt : alist (option string) (Any.t → itree crisE Any.t).
+  Variable Ist : ist_type Σ.
+
+  Lemma isim_yy_y r g ps pt {Rs Rt} RR st_src k_src sti_tgt
+    img_s msk_s sc_s sp_s :
+    @isim Σ contextual fl_src fl_tgt Ist r g Rs Rt RR ps pt
+      (st_src, (SB.sandbox img_s msk_s sc_s (SModTr.trans sp_s Sch.yield));;;
+               (SB.sandbox img_s msk_s sc_s (SModTr.trans sp_s Sch.yield)) >>= k_src) sti_tgt
+    ⊢ isim contextual fl_src fl_tgt Ist r g RR ps pt
+      (st_src, (SB.sandbox img_s msk_s sc_s (SModTr.trans sp_s Sch.yield)) >>= k_src) sti_tgt.
+  Proof using.
+    destruct sti_tgt as [st_tgt i_tgt].
+    split. intros x wfx SIM.
+    Local Transparent isim.
+    guclo msim_srelC_spec. econs; eauto using srel_yy_y.
+  Qed.
+
+End ISIM.
+
+(* Require Import WSim. *)
+
+(* Section WSIM. *)
+(*   Import SchAS. *)
+(*   Context `{!crisG Γ Σ α β τ _S _I, !schG}. *)
+
+(*   Context (fl_s fl_t : alist (option string) (Any.t → itree crisE Any.t)). *)
+(*   Context (Ist : alist key Any.t → alist key Any.t → iProp Σ). *)
+(*   Context (t : option bool). *)
+(*   Context (R_s R_t : Type). *)
+(*   Context (RR : post R_s R_t). *)
+(*   Context (ps pt : bool). *)
+(*   Context (st_src st_tgt : state). *)
+
+(*   Lemma wsim_yy_y E F r g img_s msk_s scp_s sp_s k_s i_t : *)
+(*     wsim fl_s fl_t Ist (E, F) r g R_s R_t RR ps pt *)
+(*       (st_src,  *)
+(*         (SB.sandbox img_s msk_s scp_s (SModTr.trans sp_s Sch.yield));;; *)
+(*         (SB.sandbox img_s msk_s scp_s (SModTr.trans sp_s Sch.yield)) >>= k_s) *)
+(*       (st_tgt, i_t) *)
+(*     ⊢ wsim fl_s fl_t Ist (E, F) r g R_s R_t RR ps pt *)
+(*     (st_src, (SB.sandbox img_s msk_s scp_s (SModTr.trans sp_s Sch.yield)) >>= k_s) *)
+(*     (st_tgt, i_t). *)
+(*   Proof using. *)
+(*     Local Transparent wsim isim. *)
+(*     split. intros w wfx SIM. *)
+(*     (* How can I unfold wsim? *) *)
+(*   Admitted. *)
+
+(* End WSIM. *)
