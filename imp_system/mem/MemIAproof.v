@@ -580,8 +580,7 @@ Module MemIP. Section MemIP.
       subst v_cur v_upd is_succ. erewrite mem_get_sound; et.
       rewrite H2 H3 H7 //. des_ifs; iFrame.
       { des_sumbool; inv Heq; iFrame; eauto. }
-      { des_sumbool; inv Heq. }
-      { des_ifs; iFrame. }
+      { des_sumbool; des_ifs; iFrame; iModIntro; iSplit; eauto. }
     }
 
     iIntros "[[-> %] B]"; des; subst; hss. steps_r.

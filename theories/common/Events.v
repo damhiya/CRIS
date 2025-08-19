@@ -236,6 +236,7 @@ Section FancyReal.
     @RealUpdateK X R1 pre post k1 >>= k2 =
     RealUpdateK pre post (λ x, k1 x >>= k2).
   Proof using. rewrite /RealUpdateK. by ired. Qed.
+
 End FancyReal.
 
 Section SYNTAX.
