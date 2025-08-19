@@ -562,33 +562,39 @@ Section ISIM.
 
 End ISIM.
 
-(* Require Import WSim. *)
+Require Import WSim.
 
-(* Section WSIM. *)
-(*   Import SchAS. *)
-(*   Context `{!crisG Γ Σ α β τ _S _I, !schG}. *)
+Section WSIM.
+  Import SchAS.
+  Context `{!crisG Γ Σ α β τ _S _I, !schG}.
 
-(*   Context (fl_s fl_t : alist (option string) (Any.t → itree crisE Any.t)). *)
-(*   Context (Ist : alist key Any.t → alist key Any.t → iProp Σ). *)
-(*   Context (t : option bool). *)
-(*   Context (R_s R_t : Type). *)
-(*   Context (RR : post R_s R_t). *)
-(*   Context (ps pt : bool). *)
-(*   Context (st_src st_tgt : state). *)
+  Context (fl_s fl_t : alist (option string) (Any.t → itree crisE Any.t)).
+  Context (Ist : alist key Any.t → alist key Any.t → iProp Σ).
+  Context (t : option bool).
+  Context (R_s R_t : Type).
+  Context (RR : post R_s R_t).
+  Context (ps pt : bool).
+  Context (st_src st_tgt : state).
 
-(*   Lemma wsim_yy_y E F r g img_s msk_s scp_s sp_s k_s i_t : *)
-(*     wsim fl_s fl_t Ist (E, F) r g R_s R_t RR ps pt *)
-(*       (st_src,  *)
-(*         (SB.sandbox img_s msk_s scp_s (SModTr.trans sp_s Sch.yield));;; *)
-(*         (SB.sandbox img_s msk_s scp_s (SModTr.trans sp_s Sch.yield)) >>= k_s) *)
-(*       (st_tgt, i_t) *)
-(*     ⊢ wsim fl_s fl_t Ist (E, F) r g R_s R_t RR ps pt *)
-(*     (st_src, (SB.sandbox img_s msk_s scp_s (SModTr.trans sp_s Sch.yield)) >>= k_s) *)
-(*     (st_tgt, i_t). *)
-(*   Proof using. *)
-(*     Local Transparent wsim isim. *)
-(*     split. intros w wfx SIM. *)
-(*     (* How can I unfold wsim? *) *)
-(*   Admitted. *)
+  Lemma wsim_yy_y E F r g img_s msk_s scp_s sp_s k_s i_t :
+    wsim fl_s fl_t Ist (E, F) r g R_s R_t RR ps pt
+      (st_src,
+        (SB.sandbox img_s msk_s scp_s (SModTr.trans sp_s Sch.yield));;;
+        (SB.sandbox img_s msk_s scp_s (SModTr.trans sp_s Sch.yield)) >>= k_s)
+      (st_tgt, i_t)
+    ⊢ wsim fl_s fl_t Ist (E, F) r g R_s R_t RR ps pt
+    (st_src, (SB.sandbox img_s msk_s scp_s (SModTr.trans sp_s Sch.yield)) >>= k_s)
+    (st_tgt, i_t).
+  Proof using.
+    Local Transparent isim.
+    iIntros "SIM".
+    iApply wsim_unfold. iIntros "W".
+    iPoseProof (wsim_fold with "[W SIM]") as "SIM"; iFrame.
+    iPoseProof (wsim_isim with "SIM") as "SIM".
+    iApply isim_wsim. iIntros "W".
+    iPoseProof ("SIM" with "W") as "SIM".
+    iStopProof. split. intros x wfx H0.
+    guclo msim_srelC_spec. econs; eauto using srel_yy_y.
+  Qed.
 
-(* End WSIM. *)
+End WSIM.
