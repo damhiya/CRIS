@@ -625,8 +625,6 @@ Proof using.
       unfold fnsems_scopes. erewrite x0. destruct ft, p. refl.
     - exploit x1; cycle 2; i.
       + iApply (x2 with "[H]"); et.
-      + rewrite map_app in NODS. eapply NoDup_app_remove_r; et.
-      + rewrite map_app in NODT. eapply NoDup_app_remove_r; et.
   }
   {
     exists fs. esplits; ss.
@@ -645,9 +643,6 @@ Proof using.
       + rewrite state_scopes_update. eauto.
       + rewrite state_scopes_update. eauto.
   }
-Unshelve. all: et.
-- rewrite map_app in NODS. eapply NoDup_app_remove_r. et.
-- rewrite map_app in NODT. eapply NoDup_app_remove_r. et.
 Qed.
 
 Theorem main_adequacy (ms mt : Mod.t) IC Ist

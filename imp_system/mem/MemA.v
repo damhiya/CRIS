@@ -194,12 +194,12 @@ Module MemP. Section MemP.
 
   (* Function specifications *)
   Definition fnsems : alist (option string) (fnsem_type (option fspec * fbody)) :=
-  [(Some MemHdr.alloc, (false, wmask_all, scopes, (None, fspec_proph_update (list val) val MemSpec.alloc fbody_trivial)));
-   (Some MemHdr.free,  (false, wmask_all, scopes, (None, fspec_proph_update (list val) val MemSpec.free fbody_trivial)));
-   (Some MemHdr.load,  (false, wmask_all, scopes, (None, fspec_proph_update (list val) val MemSpec.load fbody_trivial)));
-   (Some MemHdr.store, (false, wmask_all, scopes, (None, fspec_proph_update (list val) val MemSpec.store fbody_trivial)));
-   (Some MemHdr.cmp,   (false, wmask_all, scopes, (None, fspec_proph_update (list val) val MemSpec.cmp fbody_trivial)));
-   (Some MemHdr.cas,   (false, wmask_all, scopes, (None, fspec_proph_update (list val) val MemSpec.cas fbody_trivial)))].
+  [(Some MemHdr.alloc, (false, wmask_all, scopes, (None, real_update MemSpec.alloc fbody_trivial)));
+   (Some MemHdr.free,  (false, wmask_all, scopes, (None, real_update MemSpec.free fbody_trivial)));
+   (Some MemHdr.load,  (false, wmask_all, scopes, (None, real_update MemSpec.load fbody_trivial)));
+   (Some MemHdr.store, (false, wmask_all, scopes, (None, real_update MemSpec.store fbody_trivial)));
+   (Some MemHdr.cmp,   (false, wmask_all, scopes, (None, real_update MemSpec.cmp fbody_trivial)));
+   (Some MemHdr.cas,   (false, wmask_all, scopes, (None, real_update MemSpec.cas fbody_trivial)))].
 
   (* Module definition *)
   Program Definition smod : SMod.t := {|

@@ -1373,15 +1373,19 @@ Module ProphIA.
       rewrite !list_lookup_insert; et. grind.
       unfold LModTr.pure_state at 1. grind. steps_l. grind. steps_l.
       rewrite !list_insert_insert. des.
-      assert (Own p1 ⊢ ⌜arg = i1↑⌝).
-      { iIntros "A". iPoseProof (p3 with "A") as ">[[[A B] C] D]". iFrame. }
+      assert (Own p0 ⊢ ⌜arg = i1↑⌝).
+      { iIntros "A". destruct s as [? [? ?]].
+        iPoseProof (p2 with "A") as "> [[[% ?] %] ?]"; clarify.
+      }
       apply Own_pure_soundness in H; et. clarify.
       rewrite !SRed.ret. grind.
-      assert (Own p1 ⊢ |==> ((⌜i1 ↑ = i1 ↑⌝ ∗ has_proph i1 (existT x (p0, l))) ∗ ⌜p = i1 ↑⌝) ∗ Own (rs_tgt ⋅ rs_proph)).
-      { iIntros "A". iPoseProof (p3 with "A") as ">[A B]". iFrame.
+      destruct s as [x [p' l]].
+      assert (Own p0 ⊢
+        |==> ((⌜i1 ↑ = i1 ↑⌝ ∗ has_proph i1 (existT x (p', l))) ∗ ⌜p = i1 ↑⌝) ∗ Own (rs_tgt ⋅ rs_proph)).
+      { iIntros "A". iPoseProof (p2 with "A") as ">[A B]". iFrame.
         iStopProof. apply Own_Upd. et. }
-      clear p3. rename H into p3.
-      assert (✓ (has_proph_r i1 (existT x (p0, l)) ⋅ has_proph_auth_r free_ids proph_map)).
+      clear p2. rename H into p3.
+      assert (✓ (has_proph_r i1 (existT x (p', l)) ⋅ has_proph_auth_r free_ids proph_map)).
       { eapply Own_pure_soundness; et.
         iIntros "A". iPoseProof (p3 with "A") as ">[[[A B] C] [D E]]".
         rewrite RS. iDestruct "E" as "[E F]".
@@ -1402,7 +1406,7 @@ Module ProphIA.
         rewrite comm auth_both_valid_discrete in H. des.
         red in H. des. destruct z. { rewrite -Some_op in H. inv H. }
         inv H. }
-      assert (proph_map i1 = existT x (p0, l)).
+      assert (proph_map i1 = existT x (p', l)).
       { specialize (H i1).
         unfold has_proph_r, has_proph_auth_r in H.
         discrete_fun_tac. des_ifs.
@@ -1447,7 +1451,7 @@ Module ProphIA.
       rewrite !list_lookup_insert; et. grind.
       unfold LModTr.pure_state at 1. grind. steps_l.
       assert
-        (Own p1 ⊢ |==>
+        (Own p0 ⊢ |==>
            ((⌜tt ↑ = tt ↑⌝ ∗
              free_id (λ y, y = i1)) ∗ ⌜
               tt ↑ = tt ↑⌝) ∗
@@ -1501,8 +1505,8 @@ Module ProphIA.
           { exfalso. apply n0. econs 2. econs. }
           rewrite PROPH. rewrite comm.
           apply (@auth_update_dealloc _ (optionUR (exclR ProphInstO))).
-          set (Some (@Excl (ofe_car ProphInstO) (existT x (p0, l)))) at 1.
-          replace o with (Some (@Excl (ofe_car ProphInstO) (existT x (p0, l))) ⋅ ε) at 1.
+          set (Some (@Excl (ofe_car ProphInstO) (existT x (p', l)))) at 1.
+          replace o with (Some (@Excl (ofe_car ProphInstO) (existT x (p', l))) ⋅ ε) at 1.
           apply cancel_local_update_unit.
           { typeclasses eauto. }
           rewrite right_id. et. }
@@ -1514,7 +1518,7 @@ Module ProphIA.
               (free_id_auth_r
                  (Ensembles.Add Prophecy.ID free_ids i1))))).
       { assert
-          (p1 ~~>
+          (p0 ~~>
              (rs_tgt ⋅ (own.iRes_singleton base_γ
                 (has_proph_auth_r
                    (Ensembles.Add Prophecy.ID free_ids i1) proph_map)

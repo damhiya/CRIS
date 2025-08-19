@@ -452,7 +452,7 @@ Module SchA. Section SchA.
   .
   
   Definition fnsems sp_user : fnsems_type :=
-    [(Some SchHdr._spawn, (true, wmask_all, scopes, (Some (SchAS._spawn_spec sp_user ⊤ 1),   (cfunN (SchI._spawn check_internal)))));
+    [(Some SchHdr._spawn, (true, wmask_all, scopes, (Some (SchAS._spawn_spec sp_user ⊤ 1), (cfunN (SchI._spawn check_internal)))));
      (Some SchHdr.spawn,  (true, wmask_all, scopes, (Some (SchAS.spawn_spec sp_user ⊤ 1),  (cfunN SchI.spawn))));
      (Some SchHdr.yield,  (true, wmask_all, scopes, (Some (SchAS.yield_spec ⊤ 1),          (cfunN (SchI.yield trigger_Yield)))));
      (Some SchHdr.join,   (true, wmask_all, scopes, (Some (SchAS.join_spec ⊤ 1),           (cfunN SchI.join))));

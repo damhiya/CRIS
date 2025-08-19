@@ -105,8 +105,7 @@ Proof using.
     eapply alist_find_comm in FIND0; et. rewrite FIND0. esplits; et.
     ii. iIntros "% I". des; subst.
     iApply isim_mono; cycle 1.
-    - iApply isim_nodup. iIntros (? ? ? ?).
-      iApply isim_refl.
+    - iApply isim_refl.
       + ii. iIntros "%". iPureIntro. des. eapply alist_permutation_find; et.
       + ii. iIntros "%". iPureIntro. des. esplits; et.
         * rewrite state_scopes_update. et.
@@ -129,55 +128,50 @@ Proof using.
   ii. iIntros "S I". iStopProof.
   destruct fs as [[[img msk] scp] bd]. unfold SB.sandbox_body. s.
   generalize (bd arg) as it. clear FIND bd arg.
-  combine_quant NODT.
-  combine_quant NODS.
   combine_quant st_tgt.
   combine_quant st_src.
-  eapply isim_coind. i.
-  destruct a as [st_src [st_tgt [NODS [NODT it]]]]. s.
-  destruct_quant.
-  iIntros "((%IST & I) & #CIH)". des.
+  eapply isim_coind. intros g0 _ CIH [st_src [st_tgt it]].
+  destruct_quant CIH. iIntros "(%IST & I)". des.
   assert (CASE := case_itrH it); des; subst.
   - step. eauto.
-  - steps_l. steps_r. by_coind "CIH"; et.
+  - steps_l. steps_r. by_coind CIH; et.
   - destruct img.
-    + steps_l. force_r. iFrame. steps_r. by_coind "CIH"; et.
+    + steps_l. force_r. iFrame. steps_r. by_coind CIH; et.
     + rewrite SBRed.bind SBRed.Assume. s. steps_l. ss.
-  - steps_l. force_r. iFrame. steps_l; steps_r. by_coind "CIH"; eauto.
-  - steps_r. force_l. iFrame. steps_l. by_coind "CIH"; et.
+  - steps_l. force_r. iFrame. steps_l; steps_r. by_coind CIH; eauto.
+  - steps_r. force_l. iFrame. steps_l. by_coind CIH; et.
   - destruct c.
     + norm_l. norm_r. rewrite! SBRed.call. des_ifs; ss.
-      * iApply isim_call. iSplit; eauto. iIntros (? ? ? ? ?) "IST0".
-        steps_l. steps_r. by_coind "CIH"; et.
+      * iApply isim_call. iSplit; eauto. iIntros (???) "IST0".
+        steps_l. steps_r. by_coind CIH; et.
       * steps_l. ss.
     + norm_l. norm_r. rewrite! SBRed.spawn. des_ifs; ss.
       * iApply isim_spawn. iIntros "%".
-        steps_l. steps_r. by_coind "CIH"; et.
+        steps_l. steps_r. by_coind CIH; et.
       * steps_l. ss.
-    + yield ""; eauto. by_coind "CIH"; et.
-  - depdes s0.
+    + yield ""; eauto. by_coind CIH; et.
+  - iApply isim_nodup_src; iIntros (?).
+    depdes s0.
     + rewrite !SBRed.bind !SBRed.put. des_ifs; cycle 1.
       { steps_l. ss. }
       iApply isim_sput_src. iApply isim_sput_tgt.
-      by_coind "CIH"; et.
-      * rewrite alist_upd_keys. et.
-      * rewrite ?alist_upd_keys. et.
-      * iFrame. unfold perm_Ist. iPureIntro.
-        rewrite !state_scopes_update. esplits; eauto. 
-        eapply alist_upd_perm; eauto.
+      by_coind CIH; et.
+      iFrame. unfold perm_Ist. iPureIntro.
+      rewrite !state_scopes_update. esplits; eauto. 
+      eapply alist_upd_perm; eauto.
     + rewrite !SBRed.bind !SBRed.get. des_ifs; cycle 1.
       { steps_l. ss. }
       iApply isim_sget_src. iApply isim_sget_tgt.
       apply existsb_exists in Heq. des. apply String.eqb_eq in Heq0. subst.
       iAssert (⌜alist_find k st_src = alist_find k st_tgt⌝)%I as "%".
       { iPureIntro. eapply alist_permutation_find; eauto. }
-      rewrite H1. by_coind "CIH"; et.
+      rewrite H0. by_coind CIH; et.
   - destruct e.
-    + steps_r. force_l. instantiate (1:= _q). steps_l. by_coind "CIH"; et.
+    + steps_r. force_l. instantiate (1:= _q). steps_l. by_coind CIH; et.
     + rewrite SBRed.bind SBRed.take. des_ifs.
-      * steps_l. force_r. instantiate (1:= _q). steps_r. by_coind "CIH"; et.
+      * steps_l. force_r. instantiate (1:= _q). steps_r. by_coind CIH; et.
       * steps_l. ss.
-    + step. by_coind "CIH"; et.
+    + step. by_coind CIH; et.
 Qed.
 
 (*******

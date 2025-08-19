@@ -86,7 +86,7 @@ Notation "'τ{' t '}'" := (@SAT.arity ST.t t (GTerm.t_prev _)) : SAT_scope.
 (* TODO : The functionalities below need to be separated! after coarse refactoring *)
 Module SL.
   Section syntax.
-    Context  {Γ : HRA} {α : @GAT.t} {τ : TypG.t}.
+    Context  {Γ : HRA} {τ : TypG.t}.
 
     Variant ops : Type :=
     | _own i (γ : positive) (r : (@GRA_lookup Γ) i)
@@ -155,7 +155,7 @@ Module SL.
   }.
 
   Section definitions.
-    Context `{!subG (Γ : HRA) Σ, !G Γ Σ α β τ}.
+    Context {Γ : HRA} {α : GAT.t} {τ : TypG.t} `{!GAT.inG SL.syntax α}.
 
     Definition own `{IN: !inG M Γ} {n} (γ : positive) (r : M) : GTerm.t n.
       destruct IN. subst.
@@ -222,19 +222,19 @@ Module SL.
 
     Definition persistently {n} (p : GTerm.t n) : GTerm.t n.
       refine ⟨ _persistently, _ ⟩%SAT.
-      i. inv X; [|inv H0].
+      i. inv X; [|inv H1].
       exact p.
     Defined.
 
     Definition plainly {n} (p : GTerm.t n) : GTerm.t n.
       refine ⟨ _plainly, _ ⟩%SAT.
-      i. inv X; [|inv H0].
+      i. inv X; [|inv H1].
       exact p.
     Defined.
 
     Definition upd {n} (p : GTerm.t n) : GTerm.t n.
       refine ⟨ _upd, _ ⟩%SAT.
-      i. inv X; [|inv H0].
+      i. inv X; [|inv H1].
       exact p.
     Defined.
 
