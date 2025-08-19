@@ -169,19 +169,50 @@ Section MSIM.
     depdes IN; try (by econs; eauto).
   Qed.
 
+  Lemma msim_flag_tgt_down r {Rs Rt} RR (ps pt: bool) sti_src sti_tgt fmr
+    (SIM: _msim contextual fl_src fl_tgt Ist r Rs Rt RR ps pt sti_src sti_tgt fmr) :
+    _msim contextual fl_src fl_tgt Ist r Rs Rt RR ps true sti_src sti_tgt fmr.
+  Proof using.
+    pattern ps, pt, sti_src, sti_tgt, fmr.
+    eapply _msim_tarski, SIM. i. econs; ii. subst. ss.
+    specialize (IN NODFS NODFT NODS NODT H0). des.
+    econs; esplits; eauto.
+    depdes IN; try (by econs; eauto).
+  Qed.
+
   Lemma msim_bind r {Rs Rt} RR Qs Qt QQ (ps pt: bool) st_src st_tgt i_src i_tgt fmr k_src k_tgt
     (SIM : _msim contextual fl_src fl_tgt Ist r Qs Qt QQ ps pt (st_src, i_src) (st_tgt, i_tgt) fmr)
     (SIMK: forall st_src0 st_tgt0 vret_src vret_tgt fmr0
              (RET: Own fmr0 ⊢ |==> QQ (st_src0, vret_src) (st_tgt0, vret_tgt)),
-        _msim contextual fl_src fl_tgt Ist r Rs Rt RR ps pt (st_src, k_src vret_src) (st_tgt, k_tgt vret_tgt) fmr) :
+        _msim contextual fl_src fl_tgt Ist r Rs Rt RR false false (st_src0, k_src vret_src) (st_tgt0, k_tgt vret_tgt) fmr0) :
     _msim contextual fl_src fl_tgt Ist r Rs Rt RR ps pt (st_src, i_src >>= k_src) (st_tgt, i_tgt >>= k_tgt) fmr.
   Proof using.
+    enough (paco8 (_msim contextual fl_src fl_tgt Ist) r Rs Rt RR ps pt (st_src, i_src >>= k_src) (st_tgt, i_tgt >>= k_tgt) fmr).
+    { punfold H0.
+    enough (
+        paco8 (_msim contextual fl_src fl_tgt Ist) 
     remember (st_src, i_src) as sti_src. remember (st_tgt, i_tgt) as sti_tgt.
     move SIM before RR. revert_until SIM.
     pattern ps, pt, sti_src, sti_tgt, fmr.
     eapply _msim_tarski, SIM. econs; i; apply hsupd_merge.
     econs; esplits; eauto.
     subst; ss. specialize (IN NODFS NODFT NODS NODT H0). des.
+
+    depdes IN; grind;
+      try (by esplits; eauto; econs; eauto; i; repeat rewrite <- bind_bind; eapply K; eauto 7;
+           i; eapply (_msim_flag_mon _ _ _ _ _ _ _ _ ps0 pt0); eauto);
+      try (by esplits; eauto; econs; eauto; i; repeat rewrite <- bind_bind; eapply (K _ st_src0 st_tgt0); eauto 7;
+           i; eapply (_msim_flag_mon _ _ _ _ _ _ _ _ ps0 pt0); eauto).
+    - esplits; eauto. exploit SIMK; eauto. i. inv x0. exploit IN; eauto.
+      admit. admit.
+    - esplits; eauto. econs; eauto. i. 
+      i; eapply (_msim_flag_mon _ _ _ _ _ _ _ _ ps0 pt0); eauto.
+    - esplits; eauto. exploit SIMK; eauto.
+    - esplits; eauto. econs; eauto. i.
+    - esplits; eauto. econs; eauto. i. eapply K; eauto.
+      i. eapply (_msim_flag_mon _ _ _ _ _ _ _ _ ps0 pt0); eauto.
+    -
+      
     
     (* depdes IN; grind; *)
     (*   try (by rr; i; esplits; eauto with paco arith); *)
