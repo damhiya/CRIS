@@ -26,11 +26,9 @@ Ltac _wstep_l :=
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _) _) ] =>
       let name := fresh "asm" in iApply wsim_asm_src; iIntros (name)
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, (SB.sandbox _ _ _ (trigger (SPut _ _))) >>= _) _) ] =>
-      let H := fresh "H" in iApply wsim_nodup_src; iIntros (H);
-        iApply wsim_sput_src_sandbox; [s; eauto|]; alist_upd_simpl; clear H
+      iApply wsim_nodup_src; iIntros (?); iApply wsim_sput_src_sandbox; [s;eauto|alist_upd_simpl]
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, (SB.sandbox _ _ _ (trigger (SGet _))) >>= _) _) ] =>
-      iApply wsim_sget_src_sandbox; [s;eauto|];
-        let H := fresh "H" in iApply wsim_nodup_src; iIntros (H); alist_find_simpl; clear H
+      iApply wsim_nodup_src; iIntros (?); iApply wsim_sget_src_sandbox; [s;eauto|alist_find_simpl]
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, unwrapU ?ox >>= _) _) ] =>
       let name := fresh "_q" in
       iApply wsim_unwrapU_src; iIntros (name) "%";
@@ -74,15 +72,13 @@ Ltac _wstep_r :=
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, guarantee _ >>= _)) ] =>
       let name := fresh "grt" in iApply wsim_guar_tgt; iIntros (name)
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, (SB.sandbox _ _ _ (trigger (SPut _ _))) >>= _)) ] =>
-      let H := fresh "H" in iApply wsim_nodup_tgt; iIntros (H);
-        iApply wsim_sput_tgt_sandbox; [s; eauto|]; alist_upd_simpl; clear H
+      iApply wsim_nodup_tgt; iIntros (?); iApply wsim_sput_tgt_sandbox; [s; eauto|alist_upd_simpl]
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, (SB.sandbox _ _ _ (trigger (SGet _))) >>= _)) ] =>
-      iApply wsim_sget_tgt_sandbox; [s; eauto|];
-        let H := fresh "H" in iApply wsim_nodup_tgt; iIntros (H); alist_find_simpl; clear H
+      iApply wsim_nodup_tgt; iIntros (?); iApply wsim_sget_tgt_sandbox; [s; eauto|alist_find_simpl]
   end.
 
 Ltac wstep_r_core :=
-  _wstep_r; try alist_find_simpl; s; des_pairs; s.
+  _wstep_r; s; des_pairs; s.
 
 Ltac wstep_r :=
   norm_r with do 1 try wstep_r_core.

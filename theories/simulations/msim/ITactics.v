@@ -31,7 +31,7 @@ Ltac _istep_l :=
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, (SB.sandbox _ _ _ (trigger (SPut _ _))) >>= _) _) ] =>
       iApply isim_nodup_src; iIntros (?); iApply isim_sput_src_sandbox; [s;eauto|alist_upd_simpl]
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, (SB.sandbox _ _ _ (trigger (SGet _))) >>= _) _) ] =>
-      iApply isim_sget_src_sandbox; [s;eauto|]
+      iApply isim_nodup_src; iIntros (?); iApply isim_sget_src_sandbox; [s;eauto|alist_find_simpl]
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _) _) ] =>
       let name := fresh "_q" in
       iApply isim_take_src; iIntros (name)
@@ -72,7 +72,7 @@ Ltac _istep_r :=
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, (SB.sandbox _ _ _ (trigger (SPut _ _))) >>= _)) ] =>
       iApply isim_nodup_tgt; iIntros (?); iApply isim_sput_tgt_sandbox; [s; eauto|alist_upd_simpl]
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, (SB.sandbox _ _ _ (trigger (SGet _))) >>= _)) ] =>
-      iApply isim_sget_tgt_sandbox; [s; eauto|]
+      iApply isim_nodup_tgt; iIntros (?); iApply isim_sget_tgt_sandbox; [s; eauto|alist_find_simpl]
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose _) >>= _)) ] =>
       let name := fresh "_q" in
       iApply isim_choose_tgt; iIntros (name)
@@ -87,7 +87,7 @@ Ltac _istep_r :=
   end.
 
 Ltac istep_r_core :=
-  _istep_r; try alist_find_simpl; s; des_pairs; s.
+  _istep_r; s; des_pairs; s.
 
 Ltac istep_r :=
   norm_r with do 1 try istep_r_core.
