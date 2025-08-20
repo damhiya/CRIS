@@ -4,9 +4,6 @@ Require Import Common.
 
 Set Implicit Arguments.
 
-Arguments precond : simpl never.
-Arguments postcond : simpl never.
-
 Module SModTr. Section HOARE.
 
   Context `{Σ: GRA}.
@@ -227,18 +224,19 @@ Module SRed. Section RED.
   Lemma guar P : SModTr.trans sp (guarantee P) = guarantee P.
   Proof using. unfold guarantee. rewrite bind core. grind. rewrite ret. refl. Qed.
 
-  Lemma update_proph {X A R} (pre : X → A → iProp Σ) (post : X → R → iProp Σ) (arg : A) :
-    SModTr.trans sp (UpdateProph pre post arg) = UpdateProph pre post arg.
+  Lemma ru {X} (pre post: X → _) :
+    SModTr.trans sp (RealUpdate pre post) = RealUpdate pre post.
   Proof.
-    rewrite /UpdateProph; unseal CRIS_PROPH.
+    rewrite /RealUpdate; unseal CRIS_FancyReal.
     repeat (rewrite bind core; f_equal; extensionalities).
-    repeat (rewrite bind ag; f_equal; extensionalities). rewrite ret //.
+    repeat (rewrite bind ag; f_equal; extensionalities).
+    repeat (rewrite ag; f_equal; extensionalities).
   Qed.
 
-  Lemma update_prophK {X A R R1} pre (post : X → R → iProp Σ) (arg : A) (k : _ → itree _ R1) :
-    SModTr.trans sp (UpdateProphK pre post arg k) =
-    UpdateProphK pre post arg (λ x, SModTr.trans sp (k x)).
-  Proof using. rewrite /UpdateProphK bind update_proph //. Qed.
+  Lemma ruK {X R} (pre post : X → _) (k : _ → itree _ R) :
+    SModTr.trans sp (RealUpdateK pre post k) =
+    RealUpdateK pre post (λ x, SModTr.trans sp (k x)).
+  Proof using. rewrite /RealUpdateK bind ru //. Qed.
 
   Lemma fbody_trivial arg : SModTr.trans sp (fbody_trivial arg) = fbody_trivial arg.
   Proof. rewrite /fbody_trivial /= core //. Qed.

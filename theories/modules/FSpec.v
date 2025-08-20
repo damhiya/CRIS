@@ -75,27 +75,19 @@ Section FSPEC.
     postcondS := λ '(existT i meta_i), (nth i fspecs fspecS_bot).(postcondS) meta_i
   |}.
 
-  (* Iterating wrapper for propheciable specification *)
-  Definition fspec_proph_update (A R : Type) (fsp : fspecS) (body : fbody) : fbody :=
-    let pre := λ x r, precondS fsp x r↑ in
-    let post := λ x r, postcondS fsp x r↑ in
-    λ arg, iterC (λ _,
-      body arg;;;
-      'arg : A <- arg↓?;;
-      'ret : R <- UpdateProph pre post arg;;
-      Ret (inr ret↑)
-    ) ().
+  Definition real_update (fsp : fspecS) (body: fbody) : fbody :=
+    λ arg,
+      ret <- body arg;;
+      RealUpdate (λ x, precondS fsp x arg) (λ x, postcondS fsp x ret);;;
+      Ret ret.
 
-  Definition fspec_proph_update_option (A R : Type) (fsp : fspecS) (body : fbody) : fbody :=
-    λ arg, iterC (λ _,
-      let pre := λ x r,
-        match r with | Some arg => precondS fsp x arg↑ | None => False%I end in
-      let post := λ x r,
-        match r with | Some ret => postcondS fsp x ret↑ | None => precondS fsp x arg end in
-      body arg;;;
-      'arg : A <- arg↓?;;
-      'ret : option R <- UpdateProph pre post (Some arg);;
-      Ret (match ret with | Some r => inr r↑ | None => inl () end)
+  Definition real_peek {X} (cond : X → iProp Σ) (body: itree crisE ()) : itree crisE () :=
+    ITree.iter (λ _,
+      body;;;
+      'b: bool <- trigger (Choose bool);;
+      if b
+      then RealUpdate cond cond;;; Ret (inl ())
+      else Ret (inr ())
     ) ().
 
   Definition to_fspec (fsp : fspecS) : fspec :=
@@ -158,3 +150,9 @@ Section FSPEC_WINV.
   Definition icond_winv (E : coPset) (I : iProp Σ) : iProp Σ :=
     winv (E, E) ∗ I.
 End FSPEC_WINV.
+
+Global Arguments precond : simpl never.
+Global Arguments postcond : simpl never.
+Global Arguments precondS : simpl never.
+Global Arguments postcondS : simpl never.
+

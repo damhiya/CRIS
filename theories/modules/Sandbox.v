@@ -504,22 +504,19 @@ Module SBRed. Section SBRed.
     unfold guarantee. rewrite bind choose ret. eauto.
   Qed.
 
-  Lemma update_proph {X A R} pre (post : X → R → iProp Σ) (arg : A) img msk scp :
-    SB.sandbox img msk scp (UpdateProph pre post arg) = UpdateProph pre post arg.
+  Lemma ru {X} (pre post: X → _) img msk scp :
+    SB.sandbox img msk scp (RealUpdate pre post) = RealUpdate pre post.
   Proof.
-    rewrite /UpdateProph. unseal CRIS_PROPH.
+    rewrite /RealUpdate. unseal CRIS_FancyReal.
     repeat (rewrite bind choose; f_equal; extensionalities).
     repeat (rewrite bind Guarantee; f_equal; extensionalities).
-    repeat (rewrite bind AssumeRes; f_equal; extensionalities).
-    repeat (rewrite bind Guarantee; f_equal; extensionalities).
-    rewrite ret //.
+    repeat (rewrite AssumeRes; f_equal; extensionalities).
   Qed.
 
-  Lemma update_prophK
-      {X A R R2} pre (post : X → R → iProp Σ) (arg : A) (k : _ → itree crisE R2) img msk scp :
-    SB.sandbox img msk scp (UpdateProphK pre post arg k) =
-    UpdateProphK pre post arg (λ x, SB.sandbox img msk scp (k x)).
-  Proof using. rewrite /UpdateProphK bind update_proph //. Qed.
+  Lemma ruK {X R} (pre post : X → _) (k : _ → itree crisE R) img msk scp :
+    SB.sandbox img msk scp (RealUpdateK pre post k) =
+    RealUpdateK pre post (λ x, SB.sandbox img msk scp (k x)).
+  Proof using. rewrite /RealUpdateK bind ru //. Qed.
 End SBRed. End SBRed.
 
 Section Properties.

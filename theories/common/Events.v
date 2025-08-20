@@ -205,40 +205,39 @@ Notation "f '?'" := (unwrapU f) (at level 9).
 Notation "f '!'" := (unwrapN f) (at level 9).
 Notation "s ↯ f" := (sf s f) (at level 9).
 
-Section GuaranteeProph.
+Section FancyReal.
 
   Context `{Σ: GRA}.
 
-  Definition CRIS_PROPH := "CRIS-PROPH".
-  Global Opaque CRIS_PROPH.
+  Definition CRIS_FancyReal := "CRIS-FancyReal".
+  Global Opaque CRIS_FancyReal.
 
-  (* Prologue for propheciable specification: extracts the exact resource from precondition *)
-  Definition UpdateProph {X A R} pre post (arg : A) : itree crisE R :=
-    Seal.sealing CRIS_PROPH (
+  (* Epilogue for propheciable specification: extracts the exact resource from precondition *)
+  Definition RealUpdate {X} pre post : itree crisE unit :=
+    Seal.sealing CRIS_FancyReal (
       pr <- trigger (Choose Σ);;
-      ret <- trigger (Choose R);;
-      trigger (Guarantee (∀ (x : X), pre x arg ==∗ Own pr ∗ post x ret));;;
-      trigger (AssumeRes pr);;;
-      Ret ret).
+      trigger (Guarantee (∀ (x : X), pre x ==∗ Own pr ∗ post x));;;
+      trigger (AssumeRes pr)).
 
-  Definition UpdateProphK {X A R R'} pre (post : X → R → _) (arg : A) ktr : itree crisE R' :=
-    UpdateProph pre post arg >>= ktr.
+  Definition RealUpdateK {X R} pre post ktr : itree crisE R :=
+    @RealUpdate X pre post >>= ktr.
 
-  Lemma UpdateProph_UpdateProphK {X A R} pre (post : X → R → _) (arg : A) :
-    UpdateProph pre post arg = UpdateProphK pre post arg (λ x, Ret x).
-  Proof using. rewrite /UpdateProphK. by ired. Qed.
+  Lemma RealUpdate_RealUpdateK {X} pre post :
+    @RealUpdate X pre post = RealUpdateK pre post (λ x, Ret x).
+  Proof using. rewrite /RealUpdateK. by ired. Qed.
 
-  Lemma UpdateProphK_UpdateProph {X A R R'} pre (post : X → R → _) (arg : A) (k : R → itree crisE R') :
-    UpdateProphK pre post arg k = UpdateProph pre post arg >>= k.
+  Lemma RealUpdateK_RealUpdate {X R} pre post k :
+    @RealUpdateK X R pre post k = RealUpdate pre post >>= k.
   Proof using. refl. Qed.
 
-  Lemma UpdateProphK_bind
-      {X A R R1 R2} pre (post : X → R → iProp Σ) (arg : A)
-      (k1 : _ → itree crisE R1) (k2 : _ → itree crisE R2) :
-    UpdateProphK pre post arg k1 >>= k2 =
-    UpdateProphK pre post arg (λ x, k1 x >>= k2).
-  Proof using. rewrite /UpdateProphK. by ired. Qed.
-End GuaranteeProph.
+  Lemma RealUpdateK_bind
+      {X R1 R2} pre post
+      (k1 : unit → itree crisE R1) (k2 : R1 → itree crisE R2) :
+    @RealUpdateK X R1 pre post k1 >>= k2 =
+    RealUpdateK pre post (λ x, k1 x >>= k2).
+  Proof using. rewrite /RealUpdateK. by ired. Qed.
+
+End FancyReal.
 
 Section SYNTAX.
 

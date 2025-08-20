@@ -47,7 +47,7 @@ Proof using.
 
   generalize false at 1 as ps. generalize false at 1 as pt.
   generalize (bd arg) as it. i.
-  ss. clear bd arg NODT NODS. rename st_tgt into st.
+  ss. clear bd arg. rename st_tgt into st.
 
   revert it.
   combine_quant st.
@@ -57,29 +57,26 @@ Proof using.
   combine_quant img.
   combine_quant SCP.
   combine_quant scp.
-  
-  eapply isim_coind. i.
-  destruct a as [scp [SCP [img [msk [ps [pt [st it]]]]]]]; s.
-  destruct_quant.
-  iIntros "(I & #CIH)".
+  eapply isim_coind. intros ? _ CIH [scp [SCP [img [msk [ps [pt [st it]]]]]]]; s.
+  destruct_quant CIH. iIntros "I".
 
   assert (CASE := case_itrH it); des; subst.
   - rewrite SBRed.ret MIRed.ret. step. eauto.
-  - rewrite SBRed.tau MIRed.tau. steps_l. steps_r. by_coind "CIH"; eauto.
+  - rewrite SBRed.tau MIRed.tau. steps_l. steps_r. by_coind CIH; eauto.
   - rewrite SBRed.bind SBRed.Assume. destruct img; cycle 1.
     { s. rewrite bind_bind MIRed.core. steps_l. ss. }
     rewrite MIRed.ag. steps_l. force_r. iFrame.
-    steps_r. by_coind "CIH"; eauto.
+    steps_r. by_coind CIH; eauto.
   - rewrite SBRed.bind SBRed.AssumeRes MIRed.ag. steps_l. force_r; iFrame.
-    steps_l; steps_r. by_coind "CIH"; eauto.
+    steps_l; steps_r. by_coind CIH; eauto.
   - rewrite SBRed.bind SBRed.Guarantee MIRed.ag.
-    steps_r. force_l. iFrame. steps_l. by_coind "CIH"; eauto.
+    steps_r. force_l. iFrame. steps_l. by_coind CIH; eauto.
   - destruct c.
     {
       rewrite SBRed.bind SBRed.call. des_ifs; cycle 1.
       { unfold triggerUB. ired. rewrite MIRed.core. steps_l. ss. }
 
-      rewrite MIRed.call. steps_l. rewrite {3}/sandboxed_prog.
+      rewrite MIRed.call. steps_l. rewrite {2}/sandboxed_prog.
       destruct (alist_find (Some fn) (Mod.fnsems md)) eqn:FIND; cycle 1.
       { s. ired. rewrite MIRed.core. steps_l. ss. }
       destruct f as [[[img0 msk0] scp0] bd0]. iApply isim_inline_tgt.
@@ -89,24 +86,24 @@ Proof using.
       rewrite MIRed.bind SBRed.bind.
       iPoseProof (winv_split_empty with "[I]") as "[I I']"; et.
       iApply isim_bind. iSplitL "I".
-      - by_coind "CIH"; et.
-        iPureIntro. ii. exploit Mod.well_scoped_fns; et.
+      - by_coind CIH; et.
+        ii. exploit Mod.well_scoped_fns; et.
         rewrite /fnsems_scopes. erewrite FIND. et.
       - iIntros (? ? ? ?) "%". des; subst.
         rewrite MIRed.tau. steps_l. steps_r. ired.
-        by_coind "CIH"; et.
+        by_coind CIH; et.
     }
     {
       rewrite !SBRed.bind !SBRed.spawn. des_ifs; cycle 1.
       { unfold triggerUB. ired. rewrite MIRed.core. steps_l. ss. }
       rewrite MIRed.spawn SBRed.bind SBRed.spawn.
       iApply isim_spawn.
-      iIntros (?); steps_l. by_coind "CIH"; et.
+      iIntros (?); steps_l. by_coind CIH; et.
     }
     {
       rewrite SBRed.bind SBRed.yield MIRed.yield !SBRed.bind !SBRed.yield.
-      iApply isim_yield. iSplit; et. iIntros (? ? ? ?) "%". subst.
-      steps_l. by_coind "CIH"; et.
+      iApply isim_yield. iSplit; et. iIntros (??) "%". subst.
+      steps_l. by_coind CIH; et.
     }
   - depdes s.
     + rewrite !SBRed.bind !SBRed.put. des_ifs; cycle 1. 
@@ -116,11 +113,11 @@ Proof using.
         exfalso. eapply existsb_exists in Heq. des.
         eapply String.eqb_eq in Heq1. subst.
         eapply SCP in Heq. edestruct existsb_exists.
-        erewrite Heq0 in H1. exploit H1; ss. esplits; et.
+        erewrite Heq0 in H0. exploit H0; ss. esplits; et.
         eapply String.eqb_eq. et.
       } 
       iApply isim_sput_src. iApply isim_sput_tgt.
-      steps_l. by_coind "CIH"; et.
+      steps_l. by_coind CIH; et.
     + rewrite !SBRed.bind !SBRed.get. des_ifs; cycle 1.
       { unfold triggerUB; ired. rewrite MIRed.core. steps_l. ss. }
       rewrite MIRed.pg SBRed.bind SBRed.get. des_ifs; cycle 1.
@@ -130,17 +127,17 @@ Proof using.
         rewrite XEQ1 in Heq0; ss; eauto.
       } 
       iApply isim_sget_src. iApply isim_sget_tgt.
-      steps_l. by_coind "CIH"; et.
+      steps_l. by_coind CIH; et.
   - depdes e.
     + rewrite SBRed.bind SBRed.choose MIRed.core. 
-      steps_r. force_l. steps_l. by_coind "CIH"; et.
+      steps_r. force_l. steps_l. by_coind CIH; et.
     + rewrite SBRed.bind SBRed.take.
       des_ifs; cycle 1.
       { rewrite bind_bind MIRed.core. steps_l; ss. }
       rewrite MIRed.core.  steps_l. force_r. norm_r.
-      by_coind "CIH"; et.
+      by_coind CIH; et.
     + rewrite SBRed.bind SBRed.io MIRed.core.
-      step. steps_l. norm_r. by_coind "CIH"; et.
+      step. steps_l. norm_r. by_coind CIH; et.
 (*SLOW*)Qed.
 
 End INLINE.
