@@ -262,13 +262,17 @@ Section FancyReal.
 
 End FancyReal.
 
-Ltac real_peek_rr :=
-  norm_r with do 1 iApply wsim_real_peek_tgt;
-  [left; sch_resolve|et|et|sch_auto; [..|try sch_intros]].
+Ltac real_peek_rr Hyps :=
+  norm_r with do 1 iApply (wsim_real_peek_tgt);
+  [left; sch_resolve|et|et|sch_auto; [..|
+   iSplitL Hyps; [iCombine Hyps as "_tmp__"; iApply "_tmp__"|
+                  iSplit; [|iIntros (??); iIntrosFresh "IST"]]]].
 
-Ltac real_peek_ir :=
-  norm_r with do 1 iApply wsim_real_peek_tgt;
-  [right; sch_resolve|et|et|sch_auto; [..|try sch_intros]].
+Ltac real_peek_ir Hyps :=
+  norm_r with do 1 iApply (wsim_real_peek_tgt);
+  [right; sch_resolve|et|et|sch_auto; [..|
+   iSplitL Hyps; [iCombine Hyps as "_tmp__"; iApply "_tmp__"|
+                  iSplit; [|iIntros (??); iIntrosFresh "IST"]]]].
 
 Section MSIM.
 
