@@ -379,9 +379,7 @@ Module MemIP. Section MemIP.
 
     destruct (classic (∃ v:nat, arg = [Vint v]↑)) as [[v ->]|Hex]; cycle 1.
     {
-      steps_l. force_l (tt↑); steps_l.
-      ru_l False%I.
-      iSplitL.
+      steps_l. force_l (tt↑); steps_l. ru_l False%I. iSplitL.
       - iIntros (?) "[% %]"; exfalso; subst; et.
       - iIntros "H"; iExFalso; done.
     }
@@ -400,12 +398,11 @@ Module MemIP. Section MemIP.
 
     steps_r. rename _q into pad, v into size. set (blk := Mem.nb mem_tgt + pad).
     steps_l. force_l ((Vptr (blk, 0%Z))↑); steps_l.
-    ru_l (own base_γ (● (mem_src ⋅ _points_to_r (blk, 0%Z) 1 (repeat Vundef (Z.to_nat size)))))%I.
+    ru_l (own base_γ (● (mem_src ⋅ _points_to_r (blk, 0%Z) 1 (repeat Vundef size))))%I.
     iSplitL.
     { iIntros (?) "[% %]"; hss; apply Nat2Z.inj in x; subst.
       iMod (mem_ra_alloc with "B") as "[BLK WHT]"; eauto.
-      iPoseProof (points_to_transform with "WHT") as "$".
-      iModIntro; iSplit; [rewrite Nat2Z.id //| subst blk; iPureIntro; ss].
+      iPoseProof (points_to_transform with "WHT") as "$"; et.
     }
 
     iIntros "B". steps_l. step.
@@ -423,8 +420,6 @@ Module MemIP. Section MemIP.
     destruct (AList.dec b blk); subst; ss.
     - rewrite repeat_length. rewrite Z.add_0_l.
       unfold AList.update. des_ifs_safe. rewrite U left_id.
-      Ztac. rewrite Z2Nat.id; cycle 1.
-      { simpl_bool. des. destruct (Z_le_gt_dec 0 size); ss. }
       destruct ((_ <=? _)%Z && (_ <? _)%Z) eqn: E0; eauto.
       rewrite repeat_nth_some; eauto.
       bsimpl; des; des_sumbool. Ztac. nia.
@@ -451,9 +446,8 @@ Module MemIP. Section MemIP.
 
     iIntros "[B %]". hss.
     steps_l. steps_r. hss_r. steps_r. rewrite H2. steps_r.
-    step.
-
-    repeat (iSplit; eauto).
+ 
+    step. repeat (iSplit; eauto).
     iExists st_srcL, [_], _, _. repeat (iSplit; eauto).
     iExists _, (mem_ra_upd mem_src b ofs None). iFrame "B".
     iPureIntro. esplits; eauto.
@@ -500,14 +494,12 @@ Module MemIP. Section MemIP.
     { iIntros ([[[? ?] ?] ?]) "/= [% PT]"; hss.
       iPoseProof (mem_ra_lookup with "[B PT]") as "%"; eauto; iFrame. des.
       rewrite H2; eauto.
-      (* erewrite mem_get_sound; eauto. *)
       iMod (mem_ra_update with "[B PT]") as "[B PT]"; eauto; iFrame.
       iModIntro; iSplit; eauto.
-    (* iSplit; [done | iSplit; [done |]].
-     *)
     }
     iIntros "[% B]".
-    step_l. steps_r. hss_r. steps_r. hss_r. steps_r. rewrite H2. steps_r.
+
+    steps_l. steps_r. hss_r. steps_r. hss_r. steps_r. rewrite H2. steps_r.
     step. repeat (iSplit; eauto).
     iExists st_srcL, [_], _, _. repeat (iSplit; eauto).
     iExists _, (mem_ra_upd mem_src b ofs _). iSplit; eauto.
@@ -588,7 +580,7 @@ Module MemIP. Section MemIP.
     hss_r; steps_r. rewrite H0.
     steps_r; hss_r; steps_r.
     inline_r; steps_r; hss_r; steps_r.
-    hss_r; steps_r; rewrite H2. steps_r; hss_r; steps_r.
+    hss_r; steps_r. rewrite H2. steps_r; hss_r; steps_r.
     add_ret_l (). iApply wsim_bind.
     instantiate (1:= λ '(st_s,_) '(st_t,_), ⌜st_s = _ ∧
       st_t = (_, (or_else (Mem.store mem_tgt (b,ofs) v_upd) mem_tgt)↑) :: _⌝%I).
@@ -601,8 +593,8 @@ Module MemIP. Section MemIP.
         rewrite H0; steps_r; hss_r; steps_r.
         step. et.
     }
-    iIntros (? ? ? ?) "%". des; subst.
 
+    iIntros (? ? ? ?) "%". des; subst.
     steps_l. steps_r. step.
     iSplit; et. rewrite H0; s.
     iExists _, [_], _, _. repeat (iSplit; et). iExists _, _.
