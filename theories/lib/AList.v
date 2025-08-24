@@ -473,7 +473,17 @@ Section ALIST.
     des_ifs; ss; des; eauto.
     apply IHl in IN. des; eauto.
   Qed.
-        
+
+  Lemma alist_upd_fst
+      K `{Dec K} V (k : K) (v : V) (l : alist K V):
+    map fst (alist_upd k v l) = map fst l.
+  Proof.
+    induction l; ss.
+    unfold alist_upd; s. des_ifs; ss.
+    - rewrite eq_rel_dec_correct in *. des_ifs.
+    - f_equal. et.
+  Qed.
+  
   Lemma alist_upd_nodup {K V} `{DEC : Dec K} k v (l : alist K V)
     (ND : List.NoDup (List.map fst l))
     :
@@ -481,7 +491,7 @@ Section ALIST.
   Proof using.
     unfold alist_upd in *.
     revert ND. induction l; ss; i; eauto using NoDup.
-    i. inv ND. sp IHl. destruct a.
+    inv ND. sp IHl. destruct a.
     rewrite eq_rel_dec_correct in *.
     des_ifs; ss; eauto using NoDup.
     econs; eauto.
@@ -489,6 +499,19 @@ Section ALIST.
     apply alist_upd_in_or in H0.
     des; subst; eauto.
     apply H1. eapply in_map. eauto.
+  Qed.
+
+  Lemma alist_upd_nodup_inv {K V} `{DEC : Dec K} k v (l : alist K V)
+    (ND : List.NoDup (List.map fst (alist_upd k v l)))
+    :
+    List.NoDup (List.map fst l).
+  Proof using.
+    unfold alist_upd in *.
+    revert ND. induction l; ss; i; eauto using NoDup.
+    des_ifs; ss.
+    { rewrite eq_rel_dec_correct in *; des_ifs; ss. }
+    inv ND. sp IHl. destruct a. s.
+    econs; et. ii. eapply H1. s. rewrite alist_upd_fst. et.
   Qed.
   
   Lemma List_filter_none {A} (f : A -> bool) (l : list A)
@@ -606,6 +629,56 @@ Section ALIST.
     f_equal. et.
   Qed.
 
+  (* alist lemmas *)
+  Lemma alist_replace_find_None {K V} `{Dec K} (k: K) (v v': V) (l: alist K V)
+    (NONE: alist_find k l = None)
+  :
+    (alist_replace k v' l) = l.
+  Proof using.
+    induction l; ss. destruct a. des_ifs. f_equal. et.
+  Qed.
+
+  Lemma alist_replace_find_eq_Some {K V} `{Dec K} (k: K) (v v': V) (l: alist K V)
+    (SOME: alist_find k l = Some v)
+  :
+    alist_find k (alist_replace k v' l) = Some v'.
+  Proof using.
+    induction l; ss. destruct a. des_ifs.
+    - rewrite eq_rel_dec_correct in Heq. des_ifs. ss. des_ifs.
+      rewrite eq_rel_dec_correct in Heq0. des_ifs.
+    - rewrite eq_rel_dec_correct in Heq. des_ifs. apply IHl in SOME. ss.
+      rewrite eq_rel_dec_correct. des_ifs.
+  Qed.
+
+  Lemma alist_replace_find_eq_None {K V} `{Dec K} (k: K) (v v': V) (l: alist K V)
+    (NONE: alist_find k l = None)
+  :
+    alist_find k (alist_replace k v' l) = None.
+  Proof using.
+    induction l; ss. destruct a. des_ifs.
+    rewrite alist_replace_find_None; et. ss. des_ifs.
+  Qed.
+
+  Lemma alist_replace_find_neq_Some {K V} `{Dec K} (k k': K) (v v': V) (l: alist K V) (ov: option V)
+    (NEQ: k <> k')
+    (SOME: alist_find k' l = ov)
+  :
+    alist_find k' (alist_replace k v' l) = ov.
+  Proof using.
+    induction l; ss. destruct a. rewrite eq_rel_dec_correct. 
+    rewrite eq_rel_dec_correct in SOME.
+    des_ifs; ss; des_ifs; rewrite eq_rel_dec_correct in Heq1; des_ifs; et.
+  Qed.
+
+  Lemma alist_remove_find_None {K V} `{Dec K} (k: K) (l: alist K V)
+    (NONE: alist_find k l = None)
+  :
+    alist_remove k l = l.
+  Proof using.
+    induction l; ss. destruct a; ss. rewrite eq_rel_dec_correct in NONE.
+    rewrite eq_rel_dec_correct. des_ifs. f_equal. et.
+  Qed.
+  
 End ALIST.
 
 Lemma existsb_incl A f l1 l2

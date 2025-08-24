@@ -1,6 +1,8 @@
 Require Import sflib List.
 Import ListNotations.
 Require Import Permutation.
+(* weird bug: Lauto_find well does not work well without importing the following *)
+From iris.algebra Require Import proofmode_classes.
 
 Ltac Lauto_normalize :=
   (hrepeat do 1 (match goal with

@@ -1,312 +1,596 @@
 Require Import CRIS SchHeader SchA.
 Require Import ITactics.
+Require Import MSim WSim.
 
 Section wsim.
   Import SchAS.
-  Context `{_sinvG: !sinvG Γ Σ α β τ _I _S}.
-  Context `{_schG: !schG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !schG}.
 
   Local Definition state : Type := alist key Any.t.
-  Local Definition post (R_s R_t : Type) : Type := nat → state * R_s → state * R_t → iProp Σ.
+  Local Definition post (R_s R_t : Type) : Type := state * R_s → state * R_t → iProp Σ.
   Local Definition rel : Type := ∀ R_s R_t : Type,
-    post R_s R_t → bool → bool → nat → state * itree hmodE R_s → state * itree hmodE R_t → iProp Σ.
+    post R_s R_t → bool → bool → state * itree crisE R_s → state * itree crisE R_t → iProp Σ.
 
-  Implicit Types r g : rel.
-  Implicit Types ps pt : bool.
-  Implicit Types nths : nat.
-  Implicit Types E : coPset.
-
-  Context (fl_s fl_t : alist string (Any.t → itree hmodE Any.t)).
-  Context (Ist : nat → alist key Any.t → alist key Any.t → iProp Σ).
+  Context (fl_s fl_t : alist (option string) (Any.t → itree crisE Any.t)).
+  Context (Ist : alist key Any.t → alist key Any.t → iProp Σ).
   Context (t : option bool).
-  Context (υ ν : univ_id).
-  Context (E : coPset).
   Context (R_s R_t : Type).
   Context (RR : post R_s R_t).
   Context (ps pt : bool).
-  Context (nths : nat).
-  Context (st_s st_t : state).
+  Context (st_src st_tgt : state).
 
-  Lemma wsim_yield_tgt_u0 r g (msk_s msk_t:_→bool) sc_s sc_t sp sp_user k_s k_t my_tid
-    (SchInSp : sp_incl (SchAS.sp υ sp_user) sp)
-    :
-    msk_s SchHdr.yield → msk_t SchHdr.yield →
-    Ist nths st_s st_t ∗ tid_user my_tid ∗
-    (∀ nths st_s st_t (NODS: List.NoDup (List.map fst st_s)) (NODT: List.NoDup (List.map fst st_t)),
-      Ist nths st_s st_t -∗ tid_user my_tid -∗
-      wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR ps true nths
-        (st_s, (HModTr.sandbox msk_s sc_s (SModTr.trans sp Sch.yield)) >>= k_s)
-        (st_t, k_t tt))
-    ⊢ wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR ps pt nths
-      (st_s, (HModTr.sandbox msk_s sc_s (SModTr.trans sp Sch.yield)) >>= k_s)
-      (st_t, (HModTr.sandbox msk_t sc_t (PModTr.trans Sch.yield)) >>= k_t).
+  Lemma wsim_yield_tgt (tid_res : bool) (E : coPset) (q : Qp)
+      (r g : rel)
+      (img_s img_t : bool)
+      (msk_s msk_t : string → bool)
+      (scp_s scp_t : list string)
+      (sp_s sp_t : string → option fspec)
+      (k_s : () → itree crisE R_s)
+      (k_t : () → itree crisE R_t)
+      (my_tid : nat) :
+    (tid_res = false ∧
+     sp_s SchHdr.yield = None ∧
+     sp_t SchHdr.yield = None ∧
+     E = ∅ ∧
+     q = 1%Qp (* unused value *)) ∨
+    (tid_res = true ∧
+     ∃ sp_user_s,
+       sp_incl (SchAS.sp sp_user_s E q) sp_s ∧ img_s = true ∧
+       sp_t SchHdr.yield = None) ∨
+    (tid_res = true ∧
+    ∃ sp_user_s sp_user_t E_s E_t q_s q_t,
+      sp_incl (SchAS.sp sp_user_s E_s q_s) sp_s ∧ img_s = true ∧
+      sp_incl (SchAS.sp sp_user_t E_t q_t) sp_t ∧ img_t = true ∧
+      (E_s ≡ E_t ∪ E) ∧ (E ## E_t) ∧
+      (q_s ≡ q_t + q)%Qp) →
+    msk_s SchHdr.yield →
+    msk_t SchHdr.yield →
+    Ist st_src st_tgt ∗ (if tid_res then tid_user q my_tid else emp) ∗
+    (∀ st_src st_tgt,
+      Ist st_src st_tgt -∗ (if tid_res then tid_user q my_tid else emp) -∗
+      wsim fl_s fl_t Ist (E, E) r g R_s R_t RR true true
+        (st_src, (SB.sandbox img_s msk_s scp_s (SModTr.trans sp_s 𝒴)) >>= k_s)
+        (st_tgt, k_t tt))
+    ⊢ wsim fl_s fl_t Ist (E, E) r g R_s R_t RR ps pt
+    (st_src, (SB.sandbox img_s msk_s scp_s (SModTr.trans sp_s 𝒴)) >>= k_s)
+    (st_tgt, (SB.sandbox img_t msk_t scp_t (SModTr.trans sp_t 𝒴)) >>= k_t).
   Proof using.
-    i. rewrite !WSim.wsim_eq /WSim.wsim_def.
-    iIntros "SIM P".
-    iApply isim_nodup. iIntros (? ? ? ?). hss.
+    intros Hcase Hmsks Hmskt. iIntros "[IST [TID SIM]]".
     rewrite /Sch.yield; unseal "Sch".
-    (* iApply isim_reset. *)
     iStopProof.
-    revert nths. 
-    combine_quant NODS. combine_quant NODD.
-    combine_quant st_s. combine_quant st_t. combine_quant ps. combine_quant pt.
-    eapply isim_coind.
-    iIntros (g' [pt [ps [st_t' [st_s' [NODD [NODS nths']]]]]]) "%MON [[[IST [TID SIM]] P] #CIH]". s.
-
-    unfold_iter_r.
-    steps_r. destruct q.
-    { steps_r. iPoseProof ("SIM" $! _ _ _ NODS NODD with "IST TID P") as "SIM"; iFrame.
-      iPoseProof (isim_mono_knowledge with "SIM") as "SIM"; cycle 2.
+    revert st_src. combine_quant st_tgt.
+    combine_quant ps. combine_quant pt.
+    eapply wsim_coind. intros g' Hg CIH [pt [ps [st_t st_s]]].
+    s; destruct_quant CIH. iIntros "[IST [TID SIM]]".
+    unfold_iterC_r. steps_r. destruct _q; cycle 1.
+    { unfold_iterC_l. steps_l. force_l (Some false). steps_l. steps_r.
+      iPoseProof ("SIM" $! _ _ with "IST TID") as "SIM".
+      iPoseProof (wsim_mono_knowledge with "SIM") as "SIM"; cycle 2.
       { iApply "SIM". }
-      { iIntros (????????) "$"; done. }
-      { iIntros (????????) "P !>"; iApply MON; ss. }
+      { iIntros (???????) "$"; done. }
+      { iIntros (???????) "P !>". iApply Hg; ss. }
     }
-
+    destruct b; cycle 1.
+    { unfold_iterC_l. steps_l. force_l (Some false). steps_l.
+      steps_r. by_coind CIH. iFrame.
+    }
+    unfold_iterC_l. steps_l. force_l (Some true). steps_l.
     steps_r.
-    unfold_iter_l; steps_l.
-    force_l false; steps_l.
-    iApply isim_progress.
-    forces_l. iSplitL "P TID"; iFrame; eauto.
-    steps_l.
 
-    call "IST".
-    steps_l. iDestruct "ASM" as "[P [[-> TID] ->]]". hss. steps_l.
-    steps_r. hss. steps_r.
-    iApply isim_base.
-    iSpecialize ("CIH" $! _);
-    (hrepeat do 1 first[instantiate (1:= (_,_))|instantiate (1:= existT _ _)]); s.
-    iApply "CIH".
-    iFrame.
-    iIntros (nths st_s st_t NODS1 NODD1) "IST TID GINV".
-    iPoseProof ("SIM" $! nths _ _ NODS1 NODD1 with "IST TID GINV") as "SIM".
-    iApply (isim_flag_mon with "SIM"); eauto.
-    Unshelve. all: eauto.
+    destruct Hcase as [Hcase|[Hcase|Hcase]]; des; subst.
+    { rewrite Hcase0 Hcase1 /=.
+      call "IST".
+      steps_l. steps_r. hss. steps_l. steps_r.
+      by_coind CIH. iFrame.
+    }
+    { replace (sp_s SchHdr.yield) with (Some (SchAS.yield_spec E q)); cycle 1.
+      { erewrite (proj2 Hcase0); et. unfold sp; unseal CRIS; et. }
+      rewrite Hcase2.
+      forces_l. iSplitL "TID"; iFrame; eauto.
+      steps_l.
+      call "IST".
+      steps_l. iDestruct "ASM" as "[[-> TID] ->]". hss. steps_l. steps_r.
+      by_coind CIH. iFrame.
+    }
+    { replace (sp_s SchHdr.yield) with (Some (SchAS.yield_spec E_s q_s)); cycle 1.
+      { erewrite (proj2 Hcase0); et. unfold sp; unseal CRIS; et. }
+      replace (sp_t SchHdr.yield) with (Some (SchAS.yield_spec E_t q_t)); cycle 1.
+      { erewrite (proj2 Hcase2); et. unfold sp; unseal CRIS; et. }
+      steps_r. iDestruct "GRT" as "[[-> TID0] _]".
+      iPoseProof (tid_user_unique with "[TID TID0]") as "%"; iFrame; subst.
+      forces_l. iSplitL "TID TID0".
+      { do 2 (iSplit; et).
+        iPoseProof (tid_user_merge with "[TID TID0]") as "TID"; iFrame.
+        rewrite -Hcase6. et.
+      }
+      call "IST".
+      steps_l. hss. iDestruct "ASM" as "[[-> TID] _]". steps_l.
+      rewrite Hcase6.
+      iPoseProof (tid_user_split with "[TID]") as "[TID0 TID]"; et.
+      steps_r. forces_r. iSplitL "TID0"; et.
+      steps_r. hss. steps_r.
+      by_coind CIH. iFrame.
+    }
   (*SLOW*)Qed.
 
-  Lemma wsim_yield_tgt_uu r g (msk_s msk_t:_→bool) sc_s sc_t sp_s sp_t sp_user_s sp_user_t k_s k_t
-    (SchInSpS : sp_incl (SchAS.sp υ sp_user_s) sp_s)
-    (SchInSpT : sp_incl (SchAS.sp υ sp_user_t) sp_t)
-    :
-    msk_s SchHdr.yield → msk_t SchHdr.yield →
-    Ist nths st_s st_t ∗
-    (∀ nths st_s st_t (NODS: List.NoDup (List.map fst st_s)) (NODD: List.NoDup (List.map fst st_t)),
-      Ist nths st_s st_t -∗
-      wsim fl_s fl_t Ist None υ ν ⊤ r g R_s R_t RR ps true nths
-        (st_s, (HModTr.sandbox msk_s sc_s (SModTr.trans sp_s Sch.yield)) >>= k_s)
-        (st_t, k_t tt))
-    ⊢ wsim fl_s fl_t Ist None υ ν ⊤ r g R_s R_t RR ps pt nths
-      (st_s, (HModTr.sandbox msk_s sc_s (SModTr.trans sp_s Sch.yield)) >>= k_s)
-      (st_t, (HModTr.sandbox msk_t sc_t (SModTr.trans sp_t Sch.yield)) >>= k_t).
-  Proof using.
-    i. rewrite !WSim.wsim_eq /WSim.wsim_def.
-    iIntros "SIM P".
-    iApply isim_nodup. iIntros (? ? ? ?). hss.
-    rewrite /Sch.yield; unseal "Sch".
-    (* iApply isim_reset. *)
-    iStopProof.
-    revert nths.
-    combine_quant NODS; combine_quant NODD.
-    combine_quant st_s. combine_quant st_t. combine_quant ps. combine_quant pt.
-    eapply isim_coind.
-    iIntros (g' [pt [ps [st_t' [st_s' [NODD [NODS nths']]]]]]) "%MON [[[IST SIM] P] #CIH]". s.
-
-    unfold_iter_r.
-    steps_r. destruct q.
-    { steps_r. iPoseProof ("SIM" $! nths' _ _ NODS NODD with "IST P") as "SIM".
-      iPoseProof (isim_mono_knowledge with "SIM") as "SIM"; cycle 2.
-      { iApply "SIM". }
-      { iIntros (????????) "$"; done. }
-      { iIntros (????????) "P !>"; iApply MON; ss. }
-    }
-
-    steps_r.
-    unfold_iter_l; steps_l.
-    force_l false; steps_l. iDestruct "GRT" as "[P' [[-> TID] _]]".
-    forces_l. iFrame. iSplit; eauto.
-    iApply isim_progress.
-    steps_l.
-
-    call "IST".
-    steps_l. iDestruct "ASM" as "[P' [[-> TID] ->]]". hss. steps_l.
-    steps_r. forces_r. iFrame; iSplit; eauto. steps_r. hss. steps_r.
-    iApply isim_base.
-    iSpecialize ("CIH" $! _);
-    (hrepeat do 1 first[instantiate (1:= (_,_))|instantiate (1:= existT _ _)]); s.
-    iApply "CIH".
-    iFrame.
-    iIntros (nths st_s st_t NODS1 NODD1) "IST GINV".
-    iPoseProof ("SIM" $! nths _ _ NODS1 NODD1 with "IST GINV") as "SIM".
-    iApply (isim_flag_mon with "SIM"); eauto.
-    Unshelve. all: eauto.
-  (*SLOW*)Qed.
-
-  Lemma wsim_yield_tgt_uv r g (msk_s msk_t:_→bool) sc_s sc_t sp_s sp_t sp_user_s sp_user_t k_s k_t
-    (SchInSps : sp_incl (SchAS.sp υ sp_user_s) sp_s)
-    (SchInSpt : sp_incl (SchAS.sp ν sp_user_t) sp_t)
-    `{υ > ν}
-    :
-    msk_s SchHdr.yield → msk_t SchHdr.yield →
-    Ist nths st_s st_t ∗
-    (∀ nths st_s st_t
-        (NODS: List.NoDup (List.map fst st_s)) (NODD: List.NoDup (List.map fst st_t)),
-      Ist nths st_s st_t -∗
-      wsim fl_s fl_t Ist (Some false) υ ν ⊤ r g R_s R_t RR ps true nths
-        (st_s, (HModTr.sandbox msk_s sc_s (SModTr.trans sp_s Sch.yield)) >>= k_s)
-        (st_t, k_t tt))
-    ⊢ wsim fl_s fl_t Ist (Some false) υ ν ⊤ r g R_s R_t RR ps pt nths
-      (st_s, (HModTr.sandbox msk_s sc_s (SModTr.trans sp_s Sch.yield)) >>= k_s)
-      (st_t, (HModTr.sandbox msk_t sc_t (SModTr.trans sp_t Sch.yield)) >>= k_t).
-  Proof using.
-    i. rewrite !WSim.wsim_eq /WSim.wsim_def.
-    iIntros "SIM P".
-    iApply isim_nodup. iIntros (? ? ? ?). hss.
-    rewrite /Sch.yield; unseal "Sch".
-    (* iApply isim_reset. *)
-    iStopProof.
-    revert nths.
-    combine_quant NODS; combine_quant NODD.
-    combine_quant st_s. combine_quant st_t. combine_quant ps. combine_quant pt.
-    eapply isim_coind.
-    iIntros (g' [pt [ps [st_t' [st_s' [NODD [NODS nths']]]]]]) "%MON [[[IST SIM] P] #CIH]". s.
-
-    unfold_iter_r.
-    steps_r. destruct q.
-    { steps_r. iPoseProof ("SIM" $! nths' _ _ NODS NODD with "IST P") as "SIM".
-      iPoseProof (isim_mono_knowledge with "SIM") as "SIM"; cycle 2.
-      { iApply "SIM". }
-      { iIntros (????????) "$"; done. }
-      { iIntros (????????) "P !>"; iApply MON; ss. }
-    }
-
-    steps_r.
-    unfold_iter_l; steps_l.
-    force_l false; steps_l. iDestruct "GRT" as "[P' [[-> TID] _]]".
-    iDestruct "P" as "[O [W W']]"; iPoseProof ("W'" with "P'") as "> P".
-    forces_l. iFrame. iSplit; eauto.
-    iApply isim_progress.
-    steps_l.
-
-    call "IST".
-    steps_l. iDestruct "ASM" as "[P' [[-> TID] ->]]". hss. steps_l.
-    iPoseProof (wsim_ginv_split with "P'") as "> [U V]"; first eauto.
-    steps_r. forces_r. iFrame; iSplit; eauto. steps_r. hss. steps_r.
-    iApply isim_base.
-    iSpecialize ("CIH" $! _);
-    (hrepeat do 1 first[instantiate (1:= (_,_))|instantiate (1:= existT _ _)]); s.
-    iApply "CIH".
-    iFrame.
-    iIntros (nths st_s st_t NODS1 NODD1) "IST GINV".
-    iPoseProof ("SIM" $! nths _ _ NODS1 NODD1 with "IST GINV") as "SIM".
-    iApply (isim_flag_mon with "SIM"); eauto.
-    Unshelve. all: eauto.
-  (*SLOW*)Qed.
-
-  Lemma wsim_yield_src r g (msk_s:_→bool) sc_s sp sp_user k_s i_t
-      (SchInSp : sp_incl (SchAS.sp υ sp_user) sp) :
-    wsim fl_s fl_t Ist t υ ν E r g R_s R_t RR true pt nths
-      (st_s, k_s tt)
-      (st_t, i_t)
-    ⊢ wsim fl_s fl_t Ist t υ ν E r g R_s R_t RR ps pt nths
-      (st_s, (HModTr.sandbox msk_s sc_s (SModTr.trans sp Sch.yield)) >>= k_s)
-      (st_t, i_t).
+  Lemma wsim_yield_src Ep r g img_s (msk_s: _ → bool) sc_s sp_s k_s i_t :
+    wsim fl_s fl_t Ist Ep r g R_s R_t RR true pt (st_src, k_s tt) (st_tgt, i_t) ⊢
+    wsim fl_s fl_t Ist Ep r g R_s R_t RR true pt
+      (st_src, (SB.sandbox img_s msk_s sc_s (SModTr.trans sp_s 𝒴)) >>= k_s) (st_tgt, i_t).
   Proof using.
     iIntros "SIM".
     rewrite /Sch.yield; unseal "Sch".
-    unfold_iter_l; steps_l.
-    force_l true; steps_l. iApply "SIM".
-  Qed.
+    unfold_iterC_l; steps_l.
+    force_l None; steps_l. iApply "SIM".
+  (*SLOW*)Qed.
 
-  Lemma wsim_spawn fn vargs args fn_spec (P : SAny.t → SAny.t → iProp Σ) (Q : SAny.t → SAny.t → SynDepO)
-    r g (msk_s msk_t:_→bool) sc_s sc_t sp sp_user k_s k_t my_tid
-    (SchInSp : sp_incl (SchAS.sp υ sp_user) sp)
-    (CalleeInSp : sp_user fn = Some fn_spec)
-    (Spawnable : SchAS.fspec_spawnable υ fn_spec P Q)
-    :
-    msk_s SchHdr.spawn  → msk_t SchHdr.spawn →
-    Ist nths st_s st_t ∗
-    tid_user my_tid ∗
-    P vargs args ∗
-    (∀ tid nths st_s st_t (NODS: List.NoDup (List.map fst st_s)) (NODD: List.NoDup (List.map fst st_t)),
-        Ist nths st_s st_t
-        -∗ tid_user my_tid
-        -∗ token_th tid Q
-        -∗ wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR true true nths
-            (st_s, k_s tid) (st_t, k_t tid))
-    ⊢ wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR ps pt nths
-      (st_s, (HModTr.sandbox msk_s sc_s (SModTr.trans sp (Sch.spawn (fn, vargs)))) >>= k_s)
-      (st_t, (HModTr.sandbox msk_t sc_t (PModTr.trans (Sch.spawn (fn, args)))) >>= k_t).
-  Proof using.
-    i. iIntros "(I & TID & P & SIM)". rewrite /Sch.spawn; unseal "Sch".
-    steps_l. forces_l. iSplitL "P TID".
-    { iExists (fn, vargs); iSplit; eauto.
-      instantiate (1:=(fn, args)↑).
-      instantiate (1:=(my_tid, args, vargs, P, Q, fn)).
-      iFrame. iPureIntro. esplits; eauto. unfold find_fsp. rewrite CalleeInSp. eauto.
-    }
-    steps_l. steps_r.
-
-    call "I".
-    steps_l. steps_r.
-    iDestruct "ASM" as (vr) "[% [[%tid [[-> ->] TKN]] TID]]". hss. steps_r.
-    iApply ("SIM" $! _ nths' _ _ NODS NODD with "IST TID TKN").
-  Qed.
-
-  Lemma wsim_join tid (Q : SAny.t → SAny.t → SynDepO)
-    r g (msk_s msk_t:_→bool) sc_s sc_t sp sp_user k_s k_t my_tid
-    (SchInSp : sp_incl (SchAS.sp υ sp_user) sp)
-    :
-    msk_s SchHdr.join  → msk_t SchHdr.join →
-    Ist nths st_s st_t ∗
-    tid_user my_tid ∗
-    token_th tid Q ∗
-    (∀ nths st_s st_t vret ret (NODS: List.NoDup (List.map fst st_s)) (NODD: List.NoDup (List.map fst st_t)),
-        Ist nths st_s st_t
-        -∗ tid_user my_tid
-        -∗ interp_cond (Q vret ret)
-        -∗ wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR true true nths
-            (st_s, k_s vret) (st_t, k_t ret))
-    ⊢ wsim fl_s fl_t Ist (Some true) υ ν ⊤ r g R_s R_t RR ps pt nths
-      (st_s, (HModTr.sandbox msk_s sc_s (SModTr.trans sp (Sch.join tid))) >>= k_s)
-      (st_t, (HModTr.sandbox msk_t sc_t (PModTr.trans (Sch.join tid))) >>= k_t).
-  Proof using.
-    i. iIntros "(IST & TID & TK & SIM)". rewrite /Sch.join; unseal "Sch".
-    steps_l. force_l (tid, Q, my_tid). steps_l. force_l (tid↑). steps_l. force_l.
-    iFrame; iSplit; eauto. steps_l.
-
-    steps_r.
-
-    call "IST".
-    steps_l. iDestruct "ASM" as "(% & % & (% & % & % & Q) & TID)".
-    subst; hss. steps_r. hss. steps_r. hss. step_r.
-    iApply ("SIM" $! nths' _ _ _ _ NODS NODD with "IST TID Q").
-  Qed.
 End wsim.
 
-Ltac solve_sch_sp :=
-  match goal with
-  | H : sp_incl (SchAS.sp ?u ?user) ?sp |- sp_incl (SchAS.sp ?u _) ?sp => exact H
-  end.
-
-Ltac sch_yield_r_aux :=
-  match goal with
-  | |- context [wsim _ _ _ ?t] =>
-    match t with
-    | Some true => iApply wsim_yield_tgt_u0
-    | Some false => iApply wsim_yield_tgt_uv
-    | None => iApply wsim_yield_tgt_uu
-    end;
-    try solve_sch_sp;
-    eauto
-  end.
-
 Ltac sch_yield_l :=
-  norm with (do 1 (iApply wsim_yield_src; try solve_sch_sp; try prove_sb_cond)).
+  norm_l with do 1 iApply wsim_yield_src.
 
-Ltac sch_yield_r :=
-  norm with (do 1 sch_yield_r_aux).
+Ltac sch_resolve :=
+  esplits; et; try set_solver.
 
-Ltac sch_spawn :=
-  norm with (do 1 (iApply wsim_spawn; try solve_sch_sp; try prove_sb_cond)).
+Ltac sch_auto :=
+  hrepeat first [progress iFrame | iSplit; iFrame; et; []].
 
-Ltac sch_join :=
-  norm with (do 1 (iApply wsim_join; try solve_sch_sp; try prove_sb_cond)).
+Ltac sch_intros :=
+  iIntros (??); iIntrosFresh "IST"; iIntrosFresh "TID";
+  try match goal with [|- context[environments.Esnoc _ ?H (emp%I)]] => iClear H end.
+
+Ltac sch_yield_rr :=
+  norm_r with do 1 iApply wsim_yield_tgt;
+  [left; sch_resolve|et|et|sch_auto; [..|try sch_intros]].
+  
+Ltac sch_yield_ir :=
+  norm_r with do 1 iApply wsim_yield_tgt;
+  [right; left; sch_resolve|et|et|sch_auto; [..|try sch_intros]].
+
+Ltac sch_yield_ii :=
+  norm_r with do 1 iApply wsim_yield_tgt;
+  [right; right; sch_resolve|et|et|sch_auto; [..|try sch_intros]].
+
+Section MSIM.
+
+  Import SchAS.
+  Context `{!crisG Γ Σ α β τ _S _I, !schG}.
+
+  Variable contextual: contextuality.
+  Variable fl_src : alist (option string) (Any.t → itree crisE Any.t).
+  Variable fl_tgt : alist (option string) (Any.t → itree crisE Any.t).
+  Variable Ist : ist_type Σ.
+
+  Lemma msim_flag_src_down r {Rs Rt} RR (ps pt: bool) sti_src sti_tgt fmr
+    (SIM: _msim contextual fl_src fl_tgt Ist r Rs Rt RR ps pt sti_src sti_tgt fmr) :
+    _msim contextual fl_src fl_tgt Ist r Rs Rt RR true pt sti_src sti_tgt fmr.
+  Proof using.
+    pattern ps, pt, sti_src, sti_tgt, fmr.
+    eapply _msim_tarski, SIM. i. econs; ii. subst. ss.
+    specialize (IN NODFS NODFT NODS NODT H0). des.
+    econs; esplits; eauto.
+    depdes IN; try (by econs; eauto).
+  Qed.
+
+  Lemma msim_flag_tgt_down r {Rs Rt} RR (ps pt: bool) sti_src sti_tgt fmr
+    (SIM: _msim contextual fl_src fl_tgt Ist r Rs Rt RR ps pt sti_src sti_tgt fmr) :
+    _msim contextual fl_src fl_tgt Ist r Rs Rt RR ps true sti_src sti_tgt fmr.
+  Proof using.
+    pattern ps, pt, sti_src, sti_tgt, fmr.
+    eapply _msim_tarski, SIM. i. econs; ii. subst. ss.
+    specialize (IN NODFS NODFT NODS NODT H0). des.
+    econs; esplits; eauto.
+    depdes IN; try (by econs; eauto).
+  Qed.
+  
+End MSIM.
+
+Section SREL.
+
+  Import SchAS.
+  Context `{!crisG Γ Σ α β τ _S _I, !schG}.
+
+  (* srel (progress_flag) (oneshot_flag) (i_rew) (i_org) *)
+  Variant srel_def 
+    (coself : forall R, bool -> itree crisE R -> itree crisE R -> Prop)
+    {R}
+    (self : bool -> itree crisE R -> itree crisE R -> Prop)
+    : bool -> itree crisE R -> itree crisE R -> Prop :=
+    | srel_def_ret p r
+        (SRELEQ: True)
+      : srel_def coself self p (Ret r) (Ret r)
+
+    | srel_def_tau p itr_src itr_tgt
+        (SRELTAU: True)
+        (SELF: coself R false itr_src itr_tgt)
+      : srel_def coself self p (tau;; itr_src) (tau;; itr_tgt)
+
+    | srel_def_tau_r p itr_src itr_tgt
+        (SRELTAUR: True)
+        (SELF: self true itr_src itr_tgt)
+      : srel_def coself self p itr_src (tau;; itr_tgt)
+
+    | srel_def_choose_diff p (X: Type) ktr_src ktr_tgt
+        (SRELCHOOSEDIFF: True)
+        (SELF: forall x_src: X, exists x_tgt: X, coself R false (ktr_src x_src) (ktr_tgt x_tgt))
+      : srel_def coself self p (x <- trigger (Choose X);; ktr_src x) (x <- trigger (Choose X);; ktr_tgt x)
+
+    | srel_def_choose_r p X itr_src ktr_tgt
+        (SRELCHOOSER: True)
+        (SELF: exists x, self true (itr_src) (ktr_tgt x))
+      : srel_def coself self p itr_src (x <- trigger (Choose X);; ktr_tgt x)
+
+    | srel_def_choose p X ktr_src ktr_tgt
+        (SRELCHOOSE: True)
+        (SELF: forall x, coself R false (ktr_src x) (ktr_tgt x))
+      : srel_def coself self p (x <- trigger (Choose X);; ktr_src x) (x <- trigger (Choose X);; ktr_tgt x)
+
+    | srel_def_take p X ktr_src ktr_tgt
+        (SRELTAKE: True)
+        (SELF: forall x, coself R false (ktr_src x) (ktr_tgt x))
+      : srel_def coself self p (x <- trigger (Take X);; ktr_src x) (x <- trigger (Take X);; ktr_tgt x)
+
+    | srel_def_io p I O f i ktr_src ktr_tgt
+        (SRELIO: True)
+        (SELF: forall x, coself R false (ktr_src x) (ktr_tgt x))
+      : srel_def coself self p (x <- trigger (@IO I O f i);; ktr_src x) (x <- trigger (@IO I O f i);; ktr_tgt x)
+
+    | srel_def_assume p P ktr_src ktr_tgt
+        (SRELASSUME: True)
+        (SELF: coself R false (ktr_src tt) (ktr_tgt tt))
+      : srel_def coself self p (x <- trigger (Assume P);; ktr_src x) (x <- trigger (Assume P);; ktr_tgt x)
+
+    | srel_def_guarantee p P ktr_src ktr_tgt
+        (SRELGUARANTEE: True)
+        (SELF: coself R false (ktr_src tt) (ktr_tgt tt))
+      : srel_def coself self p (x <- trigger (Guarantee P);; ktr_src x) (x <- trigger (Guarantee P);; ktr_tgt x)
+
+    | srel_def_call p fn args ktr_src ktr_tgt
+        (SRELGUARANTEE: True)
+        (SELF: forall x, coself R false (ktr_src x) (ktr_tgt x))
+      : srel_def coself self p (x <- trigger (Call fn args);; ktr_src x) (x <- trigger (Call fn args);; ktr_tgt x)
+
+    | srel_def_spawn p fn args ktr_src ktr_tgt
+        (SRELSPAWN: True)
+        (SELF: forall x, coself R false (ktr_src x) (ktr_tgt x))
+      : srel_def coself self p (x <- trigger (Spawn fn args);; ktr_src x) (x <- trigger (Spawn fn args);; ktr_tgt x)
+
+    | srel_def_yield p n ktr_src ktr_tgt
+        (SRELYIELD: True)
+        (SELF: forall x, coself R false (ktr_src x) (ktr_tgt x))
+      : srel_def coself self p (x <- trigger (Yield n);; ktr_src x) (x <- trigger (Yield n);; ktr_tgt x)
+
+    | srel_def_sput p k v ktr_src ktr_tgt
+        (SRELSPUT: True)
+        (SELF: forall x, coself R false (ktr_src x) (ktr_tgt x))
+      : srel_def coself self p (x <- trigger (SPut k v);; ktr_src x) (x <- trigger (SPut k v);; ktr_tgt x)
+
+    | srel_def_sget p k ktr_src ktr_tgt
+        (SRELSGET: True)
+        (SELF: forall x, coself R false (ktr_src x) (ktr_tgt x))
+      : srel_def coself self p (x <- trigger (SGet k);; ktr_src x) (x <- trigger (SGet k);; ktr_tgt x)
+  .
+
+  Global Arguments srel_def coself {R} self.
+
+  Inductive _srel srel R p itr_src itr_tgt : Prop :=
+  | srel_intro (SELF: @srel_def srel R (@_srel srel R) p itr_src itr_tgt).
+
+  Definition srel := paco4 _srel bot4.
+
+  Lemma _srel_tarski srel R rel
+    (FIX: forall p itr_src itr_tgt (IN: @srel_def srel R rel p itr_src itr_tgt), rel p itr_src itr_tgt) :
+    @_srel srel R <3= rel.
+  Proof using.
+    fix self 4. i.
+    destruct PR. apply FIX. i. destruct SELF; des; econs; eauto.
+  Qed.
+
+  Lemma srel_def_mon r r' R s s' p itr_src itr_tgt
+    (REL: @srel_def r R s p itr_src itr_tgt)
+    (LEr: r <4= r')
+    (LEs: s <3= s') :
+    @srel_def r' R s' p itr_src itr_tgt.
+  Proof using.
+    ii. destruct REL; econs; eauto.
+    { i. specialize (SELF x_src). des. eauto. }
+    { des. eauto. }
+  Qed.
+
+  Lemma _srel_mon : monotone4 _srel.
+  Proof using.
+    ii. eapply _srel_tarski, IN.
+    i. econs. eauto using srel_def_mon.
+  Qed.
+
+  Hint Resolve _srel_mon : paco.
+
+  (** useful lemmas **)
+
+  Lemma _srel_mon_auto r r' R p i_src i_tgt
+    (REL: _srel r R p i_src i_tgt)
+    (LEr: r <4= r') :
+    _srel r' R p i_src i_tgt.
+  Proof using. eapply _srel_mon; eauto. Qed.
+
+  Lemma _srel_flag_mon r R (p p': bool) i_src i_tgt
+    (SIM: _srel r R p i_src i_tgt)
+    (LES: p -> p') :
+    _srel r R p' i_src i_tgt.
+  Proof using.
+    move SIM before r. revert_until SIM.
+    pattern p, i_src, i_tgt.
+    eapply _srel_tarski, SIM. i. econs.
+    destruct IN; try by des; econs; eauto.
+  Qed.
+
+  Hint Constructors srel_def _srel : core.
+  Hint Unfold srel : core.
+  Hint Resolve _srel_mon : paco.
+  Hint Resolve _srel_mon_auto : paco.
+  Hint Resolve cpn4_wcompat : paco.
+
+  (** srel closure **)
+
+  Variant srel_flagC
+    (r : ∀ R, bool -> itree crisE R -> itree crisE R -> Prop)
+    R p1 i_src i_tgt : Prop :=
+  | srel_flagC_intro p0
+      (SIM: r R p0 i_src i_tgt)
+      (FLAG: p0 = true -> p1 = true).
+
+  Lemma srel_flagC_mon r1 r2 (LE : r1 <4= r2) :
+    srel_flagC r1 <4= srel_flagC r2.
+  Proof using.
+    ii. destruct PR; econs; eauto.
+  Qed.
+
+  Hint Resolve srel_flagC_mon: core.
+
+  Lemma srel_flagC_spec : srel_flagC <5= gupaco4 _srel (cpn4 _srel).
+  Proof using.
+    eapply wrespect4_uclo; eauto with paco.
+    econs; eauto with paco. i. inv PR.
+    eauto using _srel_flag_mon, _srel_mon_auto, rclo4.
+  Qed.
+
+  Variant srel_eqC
+    (r : ∀ R, bool -> itree crisE R -> itree crisE R -> Prop)
+    R (p: bool) : itree crisE R -> itree crisE R -> Prop :=
+  | srel_eqC_intro itr
+    : srel_eqC r R p itr itr.
+
+  Lemma srel_eqC_mon r1 r2 (LEr: r1 <4= r2) : srel_eqC r1 <4= srel_eqC r2.
+  Proof using. ii. destruct PR; econs; eauto. Qed.
+
+  Lemma srel_eqC_compatible : compatible4 _srel srel_eqC.
+  Proof using.
+    econs; eauto using srel_eqC_mon. i.
+    destruct PR. ides itr.
+    - econs; econs; eauto.
+    - econs; econs; eauto. econs.
+    - rewrite <-bind_trigger. depdes e; ss.
+      { depdes a; ss; econs; econs; eauto; econs. }
+      depdes s; ss.
+      { depdes c; ss; econs; econs; eauto; econs. }
+      depdes s; ss.
+      { depdes p; ss; econs; econs; eauto; econs. }
+      { depdes c; ss; econs; econsr; eauto; i; econs. }
+  Qed.
+
+  Lemma srel_eqC_spec: srel_eqC <5= gupaco4 _srel (cpn4 _srel).
+  Proof using.
+    intros. gclo. econs; eauto using srel_eqC_compatible.
+    eapply srel_eqC_mon, PR; eauto with paco.
+  Qed.
+
+  Variant srel_bindC
+      (r : ∀ R, bool -> itree crisE R -> itree crisE R -> Prop)
+    : ∀ R, bool -> itree crisE R -> itree crisE R -> Prop :=
+  | srel_bindC_intro
+      p Q i_src i_tgt R k_src k_tgt
+      (SIM : r Q p i_src i_tgt)
+      (SIMK : ∀ vret, r R false (k_src vret) (k_tgt vret)) :
+    srel_bindC r R p (i_src >>= k_src) (i_tgt >>= k_tgt).
+
+  Lemma srel_bindC_mon r1 r2 (LEr : r1 <4= r2) : srel_bindC r1 <4= srel_bindC r2.
+  Proof using. ii. destruct PR; econs; et. Qed.
+
+  Lemma srel_bindC_wrespectful : wrespectful4 _srel srel_bindC.
+  Proof using.
+    econs; eauto using srel_bindC_mon; i.
+    destruct PR. apply GF in SIM.
+    move SIM before GF. revert_until SIM.
+    pattern p, i_src, i_tgt.
+    eapply _srel_tarski, SIM. econs. i.
+    depdes IN; grind; try (by econs; repeat rewrite <-bind_bind; eauto 7 using rclo4, srel_bindC).
+    - exploit SIMK; eauto. i. eapply GF in x0. inv x0. eauto.
+      eapply _srel_flag_mon with (p:=false); eauto.
+      eapply _srel_mon_auto; eauto using rclo4.
+    - econs; eauto. i. specialize (SELF x_src). des. esplits; eauto 7 using rclo4, srel_bindC.
+    - econs; eauto. des. esplits; eauto.
+  Unshelve. all: eauto.
+  Qed.
+
+  Lemma srel_bindC_spec : srel_bindC <5= gupaco4 _srel (cpn4 _srel).
+  Proof using. intros. eapply wrespect4_uclo; eauto with paco. apply srel_bindC_wrespectful. Qed.
+
+  (* msim closure *)
+  
+  Variable contextual: contextuality.
+  Variable fl_src : alist (option string) (Any.t → itree crisE Any.t).
+  Variable fl_tgt : alist (option string) (Any.t → itree crisE Any.t).
+  Variable Ist : ist_type Σ.
+
+  Variant msim_srelC (r: forall Rs Rt (RR: retr_type Σ Rs Rt), msim_type Σ Rs Rt) :
+    forall Rs Rt (RR: retr_type Σ Rs Rt), msim_type Σ Rs Rt :=
+    | msim_srelC_intro
+        ps pt Rs Rt RR itr_rew itr_org itr_tgt st_src st_tgt fmr
+        (SREL: @srel Rs false itr_rew itr_org)
+        (SIM: r Rs Rt RR ps pt (st_src, itr_rew) (st_tgt, itr_tgt) fmr)
+      : msim_srelC r Rs Rt RR ps pt (st_src, itr_org) (st_tgt, itr_tgt) fmr.
+
+  Lemma msim_srelC_mon r1 r2 (LEr: r1 <8= r2) : msim_srelC r1 <8= msim_srelC r2.
+  Proof using. ii; destruct PR; econs; eauto. Qed.
+
+  Hint Resolve msim_srelC_mon : paco.
+
+  Lemma msim_srelC_compatible : compatible8 (_msim contextual fl_src fl_tgt Ist) msim_srelC.
+  Proof using.
+    econs; eauto using msim_srelC_mon. ii.
+    destruct PR.
+    remember (st_src, itr_rew) as sti_src.
+    remember (st_tgt, itr_tgt) as sti_tgt.
+    move SIM before r. revert_until SIM.
+    pattern ps, pt, sti_src, sti_tgt, fmr.
+    eapply _msim_tarski, SIM. i. econs. ii. subst.
+    specialize (IN NODFS NODFT NODS NODT H0); des.
+    depdes IN; try (by esplits; eauto; econs; esplits; eauto); try (by esplits; eauto; econs; eauto; econs; eauto);
+      punfold SREL; move SREL after H0;
+      remember (_: itree crisE Rs) as itr_rew in SREL; remember false as p in SREL; clear Heqp;
+      move SREL before H0; revert_until SREL;
+      pattern p, itr_rew, itr_org;
+      eapply _srel_tarski, SREL; i; depdes IN; subst; try rewrite -> !bind_trigger in Heqitr_rew; ss;
+      try (by depdes Heqitr_rew; esplits; eauto; econs; eauto);
+      try (by exploit SELF; eauto; i; des; esplits; eauto; eapply msim_tau_src; eauto; eapply msim_flag_src_down; econs; eauto; i; econs; esplits; eauto);
+      try (by des; exploit SELF; eauto; i; des; esplits; eauto; econs; eauto; eapply msim_flag_src_down; econs; i; eauto; econs; eauto); try depdes Heqitr_rew;
+      try (by esplits; eauto; econs; eauto; intro vret; specialize (SELF vret); pclearbot; eapply K; eauto; f_equal; eapply func_ext_rev; eauto);
+      try (by esplits; eauto; econs; eauto; i; specialize (SELF tt); pclearbot; eapply K; eauto; f_equal; eapply func_ext_rev; eauto);
+      try (by specialize (SELF x0); des; esplits; eauto; econs; eauto; pclearbot; eapply K; eauto; f_equal; eapply func_ext_rev; eauto);
+      try (by pclearbot; esplits; eauto; econs; eauto; i; eapply K; eauto; f_equal; eapply func_ext_rev; eauto).
+    { esplits; eauto; econs; eauto; i; specialize (SELF vret). pclearbot. eapply (K _ st_src0 st_tgt0); eauto. f_equal. eapply func_ext_rev; eauto. }
+    { esplits; eauto. econs; eauto. eapply K; eauto. ginit. guclo srel_bindC_spec. econs; eauto.
+      guclo srel_eqC_spec. econs. i. specialize (SELF vret). pclearbot. eapply (func_ext_rev vret) in x. rewrite x in SELF. gfinal; eauto. }
+    { specialize (SELF tt). pclearbot. esplits; eauto; econs; eauto. i. eapply (K st_src0 st_tgt0); eauto. f_equal; eapply func_ext_rev; eauto. }
+  Qed.
+
+  Lemma msim_srelC_spec: msim_srelC <9= gupaco8 (_msim contextual fl_src fl_tgt Ist) (cpn8 (_msim contextual fl_src fl_tgt Ist)).
+  Proof using.
+    intros. gclo. econs; eauto using msim_srelC_compatible.
+    eapply msim_srelC_mon, PR; eauto with paco.
+  Qed.
+
+  Lemma srel_yy_y {R} (itr: unit -> itree crisE R) img_s msk_s sc_s sp_s:
+    srel _ false
+      ((SB.sandbox img_s msk_s sc_s (SModTr.trans sp_s Sch.yield));;;
+       (SB.sandbox img_s msk_s sc_s (SModTr.trans sp_s Sch.yield)) >>= itr)
+      (SB.sandbox img_s msk_s sc_s (SModTr.trans sp_s Sch.yield) >>= itr).
+  Proof using.
+    set (ysnd := SB.sandbox img_s msk_s sc_s (SModTr.trans sp_s Sch.yield)) at 2.
+    unfold Sch.yield. unseal "Sch".
+
+    ginit. gcofix CIH.
+
+    rewrite !unfold_iterC. grind. rewrite SRed.tau SBRed.tau. grind.
+    gstep. econs. econs; eauto.
+
+    rewrite !SRed.bind !SRed.core !SBRed.bind !SBRed.choose. grind.
+    gstep. econs. econs; eauto. i.
+
+    destruct x_src; [destruct b|].
+    { exists (Some true).
+
+      rewrite !SRed.bind !SRed.call. grind. rewrite !SBRed.tau. grind.
+      gstep. econs; econs; eauto.
+
+      unfold SModTr.HoareCall. des_ifs.
+      { rewrite !SBRed.bind !SBRed.choose. grind.
+        gstep; econs; econsr; eauto. i.
+        
+        rewrite !SBRed.bind !SBRed.choose; grind.
+        gstep; econs; econsr; eauto; i.
+
+        rewrite !SBRed.bind !SBRed.Guarantee; grind.
+        gstep; econs; econsr; eauto; i.
+        
+        rewrite !SBRed.call; grind. des_ifs; cycle 1.
+        { grind. gstep; econs; econsr; eauto. i; ss. }
+        grind. gstep; econs; econsr; eauto; i.
+
+        rewrite !SBRed.bind !SBRed.take. grind. des_ifs; cycle 1.
+        { grind. gstep; econs; econsr; eauto; i; ss. }
+        grind. gstep; econs; econsr; eauto; i.
+
+        rewrite !SBRed.bind !SBRed.Assume; grind. des_ifs; cycle 1.
+        { grind. gstep; econs; econsr; eauto; i; ss. }
+        gstep; econs; econsr; eauto; i.
+
+        rewrite !SBRed.ret. grind. rewrite !SRed.ret !SBRed.ret. grind.
+        gfinal; eauto.
+      }
+      { rewrite !SBRed.bind !SBRed.call; grind. des_ifs; cycle 1.
+        { grind. gstep; econs; econsr; eauto. i; ss. }
+        grind. gstep; econs; econsr; eauto; i.
+
+        rewrite !SRed.ret !SBRed.ret. grind.
+        gfinal; eauto.
+      }
+    }
+    { exists (Some false). gbase. grind. }
+    { exists (Some false).
+      subst ysnd. unfold Sch.yield. unseal "Sch". rewrite unfold_iterC.
+      grind. rewrite SRed.ret SBRed.ret. grind. 
+      rewrite unfold_iterC. grind. guclo srel_eqC_spec. econs; eauto.
+    }
+  Qed.
+  
+End SREL.
+
+Section ISIM.
+
+  Import SchAS.
+  Context `{!crisG Γ Σ α β τ _S _I, !schG}.
+  Variable contextual: contextuality.
+  Variable fl_src fl_tgt : alist (option string) (Any.t → itree crisE Any.t).
+  Variable Ist : ist_type Σ.
+
+  Lemma isim_yy_y r g ps pt {Rs Rt} RR st_src k_src sti_tgt
+    img_s msk_s sc_s sp_s :
+    @isim Σ contextual fl_src fl_tgt Ist r g Rs Rt RR ps pt
+      (st_src, (SB.sandbox img_s msk_s sc_s (SModTr.trans sp_s Sch.yield));;;
+               (SB.sandbox img_s msk_s sc_s (SModTr.trans sp_s Sch.yield)) >>= k_src) sti_tgt
+    ⊢ isim contextual fl_src fl_tgt Ist r g RR ps pt
+      (st_src, (SB.sandbox img_s msk_s sc_s (SModTr.trans sp_s Sch.yield)) >>= k_src) sti_tgt.
+  Proof using.
+    destruct sti_tgt as [st_tgt i_tgt].
+    split. intros x wfx SIM.
+    Local Transparent isim.
+    guclo msim_srelC_spec. econs; eauto using srel_yy_y.
+  Qed.
+
+End ISIM.
+
+Section WSIM.
+  Import SchAS.
+  Context `{!crisG Γ Σ α β τ _S _I, !schG}.
+
+  Context (fl_s fl_t : alist (option string) (Any.t → itree crisE Any.t)).
+  Context (Ist : alist key Any.t → alist key Any.t → iProp Σ).
+  Context (t : option bool).
+  Context (R_s R_t : Type).
+  Context (RR : post R_s R_t).
+  Context (ps pt : bool).
+  Context (st_src st_tgt : state).
+
+  Lemma wsim_yy_y E F r g img_s msk_s scp_s sp_s k_s i_t :
+    wsim fl_s fl_t Ist (E, F) r g R_s R_t RR ps pt
+      (st_src,
+        (SB.sandbox img_s msk_s scp_s (SModTr.trans sp_s Sch.yield));;;
+        (SB.sandbox img_s msk_s scp_s (SModTr.trans sp_s Sch.yield)) >>= k_s)
+      (st_tgt, i_t)
+    ⊢ wsim fl_s fl_t Ist (E, F) r g R_s R_t RR ps pt
+    (st_src, (SB.sandbox img_s msk_s scp_s (SModTr.trans sp_s Sch.yield)) >>= k_s)
+    (st_tgt, i_t).
+  Proof using.
+    Local Transparent isim.
+    iIntros "SIM".
+    iApply wsim_unfold. iIntros "W".
+    iPoseProof (wsim_fold with "[W SIM]") as "SIM"; iFrame.
+    iPoseProof (wsim_isim with "SIM") as "SIM".
+    iApply isim_wsim. iIntros "W".
+    iPoseProof ("SIM" with "W") as "SIM".
+    iStopProof. split. intros x wfx H0.
+    guclo msim_srelC_spec. econs; eauto using srel_yy_y.
+  Qed.
+
+End WSIM.

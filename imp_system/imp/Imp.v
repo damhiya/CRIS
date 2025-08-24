@@ -1,7 +1,7 @@
 (** * The Imp language  *)
 Require Import CRIS.
 
-Require Import ImpPrelude ModTr.
+Require Import ImpPrelude LModTr.
 
 Set Implicit Arguments.
 
@@ -177,14 +177,21 @@ Section FB_HAS_SPEC.
       (SPEC : fn_has_spec stb fn fsp)
   .
 
-  Lemma fb_has_spec_weaker (stb : string -> option fspec) (fb : mblock) (fsp0 fsp1 : fspec)
+  Variant fb_has_spec_in (stb : alist (option string) (option fspec)) (fb : mblock) (fsp : fspec) : Prop :=
+  | fb_has_spec_in_intro
+      fn
+      (FBLOCK : genvenv.(CEnv.blk2id) fb = Some fn)
+      (SPEC : fn_has_spec_in stb fn fsp)
+  .
+
+  Lemma fb_has_weaker_spec (stb : string -> option fspec) (fb : mblock) (fsp0 fsp1 : fspec)
         (SPEC : fb_has_spec stb fb fsp1)
-        (WEAK : fspec_weaker fsp0 fsp1)
+        (WEAK : fspec_imply fsp1 fsp0)
     :
       fb_has_spec stb fb fsp0.
   Proof.
     inv SPEC. econs; eauto.
-    eapply fn_has_spec_weaker; eauto.
+    eapply fn_has_weaker_spec; eauto.
   Qed.
   
 End FB_HAS_SPEC.
@@ -449,7 +456,9 @@ End Denote.
 
 Section Interp.
 
-  Definition effs := GlobEnv +' ImpState +' pmodE.
+  Context `{Σ: GRA}.
+
+  Definition effs := GlobEnv +' ImpState +' crisE.
 
   Definition handle_GlobEnv {eff} `{coreE -< eff} (ge : GEnv.t) : GlobEnv ~> (itree eff) :=
     fun _ e =>
@@ -476,12 +485,12 @@ Section Interp.
       end.
 
   Definition interp_ImpState {eff} `{coreE -< eff}: itree (ImpState +' eff) ~> stateT lenv (itree eff) :=
-    State.interp_state (case_ handle_ImpState ModTr.pure_state).
+    State.interp_state (case_ handle_ImpState LModTr.pure_state).
 
   (* Definition interp_imp ge le (itr : itree effs val) := *)
   (*   interp_ImpState (interp_GlobEnv ge itr) le. *)
 
-  Definition interp_imp ge : itree effs ~> stateT lenv (itree pmodE) :=
+  Definition interp_imp ge : itree effs ~> stateT lenv (itree crisE) :=
     fun _ itr le => interp_ImpState (interp_GlobEnv ge itr) le.
 
   Fixpoint init_lenv xs : lenv :=
@@ -512,7 +521,7 @@ Section Interp.
 
   (* 'return' is a fixed register, holding the return value of this function. *)
   (* '_' is a black hole register, holding garbage *)
-  Definition eval_imp (ge : GEnv.t) (f : function) (args : list val) : itree pmodE val :=
+  Definition eval_imp (ge : GEnv.t) (f : function) (args : list val) : itree crisE val :=
     let vars := f.(fn_vars) ++ ["return"; "_"] in
     let params := f.(fn_params) in
     (if (ListDec.NoDup_dec string_dec (params ++ vars)) then Ret tt else triggerUB);;;
@@ -536,19 +545,42 @@ Section MODSEM.
   Set Typeclasses Depth 5.
   (* Instance Initial_void1 : @Initial (Type -> Type) IFun void1 := @elim_void1. (*** TODO : move to ITreelib ***) *)
 
-  Definition to_itree (ge : GEnv.t) : (string*_) -> (string * (_ * list string * (Any.t -> itree pmodE Any.t)))%type :=
-    (fun '(fn, f) => (fn, (wmask_all, [], cfunU (eval_imp ge f)))).
+  Context `{Σ: GRA}.
   
-  Program Definition get_mod (m : program) (ge : GEnv.t) : PMod.t :=
-    {|PMod.scopes := [];
-      PMod.fnsems := List.map (to_itree ge) m.(prog_funs);
-      PMod.initial_st := [];
+  (* TODO : move lemmas to AList.v *)
+  Lemma alist_find_omap_some K `{Dec K} V0 V1 (f : V0 -> V1) (k : K) (l : alist K V0)
+    :
+      alist_find (Some k) (List.map (fun '(k, v) => (Some k, f v)) l) = o_map (alist_find k l) f.
+  Proof using.
+    induction l; ss. uo. destruct a.
+    des_ifs;
+    rewrite eq_rel_dec_correct in Heq1; des_ifs;
+    rewrite eq_rel_dec_correct in Heq; des_ifs.
+  Qed.
+
+  Lemma alist_find_omap_none K `{Dec K} V0 V1 (f : V0 -> V1) (k : K) (l : alist K V0)
+    :
+      alist_find None (List.map (fun '(k, v) => (Some k, f v)) l) = None.
+  Proof using.
+    induction l; ss. uo. destruct a.
+    des_ifs.
+  Qed.
+
+  Definition to_itree (ge : GEnv.t) : (string*_) -> (option string * (fnsem_type (option fspec * fbody)))%type :=
+    (fun '(fn, f) => (Some fn, (false, wmask_all, [], (None, cfunU (eval_imp ge f))))).
+  
+  Program Definition get_mod (m : program) (ge : GEnv.t) : SMod.t :=
+    {|SMod.scopes := [];
+      SMod.fnsems := List.map (to_itree ge) m.(prog_funs);
+      SMod.initial_st := [];
   |}.
   Solve All Obligations with prove_scope.
   Next Obligation.
-    ii. unfold HMod.fnsems_scopes, to_itree in *.
-    rewrite ->alist_find_map in *.
-    destruct (alist_find fn (prog_funs m)); ss.
+    ii. unfold Mod.fnsems_scopes, to_itree in *.
+    destruct fn.
+    - rewrite alist_find_omap_some in H.
+      destruct (alist_find s (prog_funs m)); ss.
+    - rewrite alist_find_omap_none in H; ss.
   Qed.
   Next Obligation. prove_nodup. Qed.
 
