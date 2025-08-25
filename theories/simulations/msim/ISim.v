@@ -845,8 +845,8 @@ Section FancyReal.
   Lemma isim_ru_src_advanced {X} (pre post : X → _) r g k_s i_t :
     (∃ (I P : iProp Σ),
       I ∗ precise P ∗
-      (∀ x, ∃ T, (I ∗ pre x -∗ □ T) ∗ (□ T -∗ pre x ==∗ P ∗ post x)) ∗
-      (P ∗ I -∗ isim r g RR true pt (st_s, k_s ()) (st_t, i_t))) ⊢
+      (∀ x, ∃ T, (I -∗ pre x -∗ □ T) ∗ (□ T -∗ pre x ==∗ P ∗ post x)) ∗
+      (I -∗ P -∗ isim r g RR true pt (st_s, k_s ()) (st_t, i_t))) ⊢
     isim r g RR ps pt (st_s, RealUpdate pre post >>= k_s) (st_t, i_t).
   Proof using.
     iIntros "[%I [%P [I [#[%pr Pre] [Hsplit Hsim]]]]]".
@@ -856,15 +856,14 @@ Section FancyReal.
     norm_l; iApply isim_choose_src; iExists (pr ⋅ res).
     norm_l; iApply isim_guarantee_src; iSplitL "I Hsplit".
     { iIntros (x) "Pre"; iPoseProof ("Hsplit" $! x) as "[%T [HT Hsplit]]".
-      iPoseProof ("HT" with "[I Pre]") as "#T".
+      iPoseProof ("HT" with "[I] Pre") as "#T".
       { rewrite Hres; iFrame. }
       iMod ("Hsplit" with "T Pre") as "[P $]".
       rewrite Own_op; iFrame "I". iApply "Hpre2"; done.
     }
     norm_l; iApply isim_assume_res_src; iIntros "[P R]"; rewrite Hres.
     iMod ("Hpre1" with "P") as "P".
-    (* ; iMod ("Hsim" with "[P R]") as "[Q SIM]"; iFrame. *)
-    norm_l; iPoseProof ("Hsim" with "[P R]") as "$"; iFrame; iApply "Hpre1".
+    norm_l. iPoseProof ("Hsim" with "R P") as "$".
   Qed.
 
   Lemma isim_ru_src {X} (pre post : X → _) r g k_s i_t :
@@ -879,10 +878,10 @@ Section FancyReal.
     iExists True%I, P.
     iSplit; [done|iSplit; [done|]].
     iSplitL "Hsplit".
-    { iIntros (?); iExists emp%I; iSplitR; [iIntros "_"; done|].
+    { iIntros (?); iExists emp%I; iSplitR; [iIntros "_ _"; done|].
       by iIntros "_ Pre"; iApply "Hsplit".
     }
-    by iIntros "[P _]"; iApply "Hsim".
+    by iIntros "_"; iApply "Hsim".
   Qed.
 
   Lemma isim_ru_tgt

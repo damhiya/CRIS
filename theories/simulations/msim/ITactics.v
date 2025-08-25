@@ -193,9 +193,9 @@ Ltac iby_coind CIH :=
 
 (** Special Tactics for AssumeProph in Source **)
 
-Tactic Notation "iru_l_advanced" uconstr(P) :=
-  norm_l; iApply isim_ru_src_advanced;
-  iExists P; iSplit; [try prove_precise|].
+(* Tactic Notation "iru_l_advanced" uconstr(P) := *)
+(*   norm_l; iApply isim_ru_src_advanced; *)
+(*   iExists P; iSplit; [try prove_precise|]. *)
 
 Tactic Notation "iru_l" uconstr(P) :=
   norm_l; iApply isim_ru_src;

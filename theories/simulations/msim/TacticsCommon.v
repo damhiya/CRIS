@@ -386,6 +386,9 @@ Ltac _hnorm_itr :=
   | [ |- triggerNB = _ ] =>
       unfold triggerNB;
       _hnorm_itr
+  | [ |- img_update _ _ _ = _ ] =>
+      unfold img_update;
+      _hnorm_itr
   | [ |- real_update _ _ _ = _ ] =>
       unfold real_update;
       _hnorm_itr

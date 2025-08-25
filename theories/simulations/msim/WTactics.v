@@ -207,9 +207,9 @@ Ltac winit_simF :=
 
 (** Special Tactics for AssumeProph in Source **)
 
-Tactic Notation "wru_l_advanced" uconstr(P) :=
-  norm_l; iApply wsim_ru_src_advanced;
-  iExists P; iSplit; [try prove_precise|].
+(* Tactic Notation "wru_l_advanced" uconstr(P) := *)
+(*   norm_l; iApply wsim_ru_src_advanced; *)
+(*   iExists P; iSplit; [try prove_precise|]. *)
 
 Tactic Notation "wru_l" uconstr(P) :=
   norm_l; iApply wsim_ru_src;
