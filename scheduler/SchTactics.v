@@ -126,30 +126,131 @@ Section wsim.
 
 End wsim.
 
+Ltac clear_emp :=
+  try match goal with [|- context[environments.Esnoc _ ?H (emp%I)]] => iClear H end.
+
 Ltac sch_yield_l :=
   norm_l with do 1 iApply wsim_yield_src.
-
-Ltac sch_resolve :=
-  esplits; et; try set_solver.
 
 Ltac sch_auto :=
   hrepeat first [progress iFrame | iSplit; iFrame; et; []].
 
 Ltac sch_intros :=
-  iIntros (??); iIntrosFresh "IST"; iIntrosFresh "TID";
-  try match goal with [|- context[environments.Esnoc _ ?H (emp%I)]] => iClear H end.
+  iIntros (??); iIntrosFresh "IST"; iIntrosFresh "TID"; clear_emp.
 
 Ltac sch_yield_rr :=
   norm_r with do 1 iApply wsim_yield_tgt;
-  [left; sch_resolve|et|et|sch_auto; [..|try sch_intros]].
-  
+  [left; esplits; [refl|..]; et; set_solver|et|et|sch_auto; [..|try sch_intros]].
+
 Ltac sch_yield_ir :=
   norm_r with do 1 iApply wsim_yield_tgt;
-  [right; left; sch_resolve|et|et|sch_auto; [..|try sch_intros]].
+  [right; left; esplits; [refl|..]; et; set_solver|et|et|sch_auto; [..|try sch_intros]].
 
 Ltac sch_yield_ii :=
   norm_r with do 1 iApply wsim_yield_tgt;
-  [right; right; sch_resolve|et|et|sch_auto; [..|try sch_intros]].
+  [right; right; esplits; [refl|..]; et; set_solver|et|et|sch_auto; [..|try sch_intros]].
+
+Section ImgLAT.
+  Context `{!crisG Γ Σ α β τ _S _I, !schG}.
+
+  Context (fl_s fl_t : alist (option string) (Any.t → itree crisE Any.t)).
+  Context (Ist : ist_type Σ).
+  Context (R_s R_t : Type).
+
+  Context (r g : rel).
+  Context (RR : post R_s R_t).
+  Context (ps pt : bool).
+  Context (st_s st_t : state).
+
+  Local Notation sim Ep r g := (wsim fl_s fl_t Ist Ep r g R_s R_t).
+
+  Lemma wsim_img_peek_tgt
+    {X} cond (x: X) E q my_tid
+    k_s k_t img_s img_t (msk_s msk_t: _ → bool) scp_s scp_t sp_s sp_t
+    I
+    :
+    (∃ sp_user_s sp_user_t E_s E_t q_s q_t,
+      sp_incl (SchAS.sp sp_user_s E_s q_s) sp_s ∧ img_s = true ∧
+      sp_incl (SchAS.sp sp_user_t E_t q_t) sp_t ∧ img_t = true ∧
+      (E_s ≡ E_t ∪ E) ∧ (E ## E_t) ∧
+      (q_s ≡ q_t + q)%Qp) →
+    msk_s SchHdr.yield →
+    msk_t SchHdr.yield →
+    I ∗ Ist st_s st_t ∗ SchAS.tid_user q my_tid ∗
+    (□ (∀ st_src st_tgt,
+        I -∗ winv (E, E) -∗ Ist st_src st_tgt -∗ SchAS.tid_user q my_tid ==∗
+        cond x ∗ (cond x ==∗ I ∗ winv (E, E) ∗ Ist st_src st_tgt ∗ SchAS.tid_user q my_tid))) ∗
+    (∀ st_src st_tgt,
+     I -∗ Ist st_src st_tgt -∗ SchAS.tid_user q my_tid -∗
+     sim (E,E) r g RR true true
+        (st_src, SB.sandbox img_s msk_s scp_s (SModTr.trans sp_s 𝒴) >>= k_s)
+        (st_tgt, k_t ()))
+    ⊢
+    sim (E,E) r g RR ps pt
+      (st_s, SB.sandbox img_s msk_s scp_s (SModTr.trans sp_s 𝒴) >>= k_s)
+      (st_t, SB.sandbox img_t msk_t scp_t (SModTr.trans sp_t (img_peek cond 𝒴)) >>= k_t).
+  Proof using.
+    i. iIntros "H". iApply wsim_reset. iStopProof.
+    revert st_s. combine_quant st_t.
+    eapply wsim_coind. intros g' Hg CIH [st_t st_s].
+    iIntros "[I [IST [TID [#COND SIM]]]] /=". destruct_quant CIH.
+
+    rewrite /img_peek. unfold_iter_r. steps_r.
+    des. sch_yield_ii.
+    steps_r. destruct _q; cycle 1; steps_r.
+    { iApply wsim_mono_knowledge; cycle 2.
+      { iApply ("SIM" with "I IST TID"); et; iFrame. }
+      { et. }
+      { i. rewrite Hg. et. }
+    }
+
+    iApply wsim_unfold; iIntros "W".
+    iMod ("COND" with "I W IST TID") as "[C R]"; iFrame.
+    forces_r; iFrame. steps_r.
+    iMod ("R" with "GRT") as "[I [W [IST TID]]]".
+    iApply wsim_fold; iFrame.
+    by_coind CIH. iFrame. et.
+  Qed.
+
+End ImgLAT.
+
+Ltac peek_auto Hyps :=
+  iRevert Hyps;
+  let PAT := fresh "_PAT" in
+  epose (PAT := ("("++_++")")% string);
+  (hrepeat do 1 match goal with
+    | |- _ (_ _ ?l _) _ =>
+        match l with
+        | context[INamed (String ?x ?y)] =>
+            let name := fresh "_NAME" in
+            set (name := String x y);
+            instantiate (1:= (String x y ++ "&" ++ _)%string) in (value of PAT)
+        end
+    end);
+  instantiate (1:= "_") in (value of PAT);
+  (hrepeat do 1 match goal with [H:= _ |- _] =>
+     match H with PAT => fail 1 | _ => subst H end end);
+  iIntros Hyps; iSplitR Hyps;
+  [ (hrepeat do 1 match goal with
+       | |- _ (_ _ ?l _) _ =>
+           match l with
+           | context[INamed ?H] =>
+               instantiate (1:= (_ ∗ _)%I); iSplitL H; [iApply H|]
+           | _ => instantiate (1:= emp%I); et
+           end
+       end)
+  | sch_auto;
+    [..
+    | iSplit;
+      [ iModIntro; iIntros (??) PAT; iIntrosFresh "W";
+        iIntrosFresh "IST"; iIntrosFresh "TID"; try unfold_pre_post
+      | iIntros (??) PAT; iIntrosFresh "IST"; iIntrosFresh "TID"]];
+    clear_emp
+  ].
+
+Ltac img_peek_ii Hyps :=
+  norm_r with do 1 iApply (wsim_img_peek_tgt);
+  [esplits; et; set_solver|et|et|peek_auto Hyps].
 
 Section MSIM.
 
@@ -584,7 +685,7 @@ Section WSIM.
   Proof using.
     Local Transparent isim.
     iIntros "SIM".
-    iApply wsim_unfold. iIntros "W".
+    iApply wsim_unfold; iIntros "W".
     iPoseProof (wsim_fold with "[W SIM]") as "SIM"; iFrame.
     iPoseProof (wsim_isim with "SIM") as "SIM".
     iApply isim_wsim. iIntros "W".
