@@ -75,19 +75,20 @@ Section FSPEC.
     postcondS := λ '(existT i meta_i), (nth i fspecs fspecS_bot).(postcondS) meta_i
   |}.
 
-  Definition img_lat (peeking: bool) (fsp : fspecS) (lbody: itree crisE ()) (body: fbody) : fbody :=
-    λ arg,
-    ITree.iter (λ _,
-      lbody;;;
-      x <- trigger (Take (metaS fsp));;
-      trigger (Assume (precondS fsp x arg));;;
-      b <- (if peeking then trigger (Choose bool) else Ret false);;
-      if b
-      then trigger (Guarantee (precondS fsp x arg));;; Ret (inl ())
-      else ret <- body arg;;
-           trigger (Guarantee (postcondS fsp x ret));;; Ret (inr ret)
-      ) ().
+  Definition img_lat_body (peeking: bool) (fsp : fspecS) (lbody: itree crisE ()) (body: fbody) (arg: Any.t) :=
+    lbody;;;
+    x <- trigger (Take (metaS fsp));;
+    trigger (Assume (precondS fsp x arg));;;
+    let peek := trigger (Guarantee (precondS fsp x arg));;; Ret (inl ()) in
+    let update := ret <- body arg;; trigger (Guarantee (postcondS fsp x ret));;; Ret (inr ret) in
+    if peeking
+    then 'b: bool <- trigger (Choose bool);;
+         (if b then peek else update)
+    else update.
 
+  Definition img_lat peeking fsp lbody body : fbody :=
+    λ arg, ITree.iter (λ _, img_lat_body peeking fsp lbody body arg) ().
+  
   Definition to_fspec (fsp : fspecS) : fspec :=
     mk_fspec (λ x varg arg, (fsp.(precondS) x arg ∗ ⌜varg = arg⌝)%I)
              (λ x vret ret, (fsp.(postcondS) x ret ∗ ⌜vret = ret⌝)%I).
