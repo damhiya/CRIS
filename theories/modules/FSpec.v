@@ -75,25 +75,18 @@ Section FSPEC.
     postcondS := λ '(existT i meta_i), (nth i fspecs fspecS_bot).(postcondS) meta_i
   |}.
 
-  Definition img_update (fsp : fspecS) (body: fbody) : fbody :=
+  Definition img_lat (peeking: bool) (fsp : fspecS) (lbody: itree crisE ()) (body: fbody) : fbody :=
     λ arg,
-      ret <- body arg;;
+    ITree.iter (λ _,
+      lbody;;;
       x <- trigger (Take (metaS fsp));;
       trigger (Assume (precondS fsp x arg));;;
-      trigger (Guarantee (postcondS fsp x ret));;;
-      Ret ret.
-
-  Definition img_peek {X} (cond : X → iProp Σ) (body: itree crisE ()) : itree crisE () :=
-    ITree.iter (λ _,
-      body;;;
       'b: bool <- trigger (Choose bool);;
-      if b
-      then x <- trigger (Take X);;
-           trigger (Assume (cond x));;;
-           trigger (Guarantee (cond x));;;
-           Ret (inl ())
-      else Ret (inr ())
-    ) ().
+      if peeking && b
+      then trigger (Guarantee (precondS fsp x arg));;; Ret (inl ())
+      else ret <- body arg;;
+           trigger (Guarantee (postcondS fsp x ret));;; Ret (inr ret)
+      ) ().
 
   Definition to_fspec (fsp : fspecS) : fspec :=
     mk_fspec (λ x varg arg, (fsp.(precondS) x arg ∗ ⌜varg = arg⌝)%I)
