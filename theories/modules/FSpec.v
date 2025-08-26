@@ -81,8 +81,8 @@ Section FSPEC.
       lbody;;;
       x <- trigger (Take (metaS fsp));;
       trigger (Assume (precondS fsp x arg));;;
-      'b: bool <- trigger (Choose bool);;
-      if peeking && b
+      b <- (if peeking then trigger (Choose bool) else Ret false);;
+      if b
       then trigger (Guarantee (precondS fsp x arg));;; Ret (inl ())
       else ret <- body arg;;
            trigger (Guarantee (postcondS fsp x ret));;; Ret (inr ret)
