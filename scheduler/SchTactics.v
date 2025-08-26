@@ -126,8 +126,11 @@ Section wsim.
 
 End wsim.
 
+Ltac clear_st :=
+  hrepeat do 1 match goal with [st: alist key Any.t |- _] => clear st end.
+
 Ltac clear_emp :=
-  try match goal with [|- context[environments.Esnoc _ ?H (emp%I)]] => iClear H end.
+  hrepeat do 1 match goal with [|- context[environments.Esnoc _ ?H (emp%I)]] => iClear H end.
   
 Ltac sch_yield_l :=
   norm_l with do 1 iApply wsim_yield_src.
@@ -136,22 +139,23 @@ Ltac sch_auto :=
   hrepeat first [progress iFrame | iSplit; iFrame; et; []].
 
 Ltac sch_intros :=
-  iIntros (??); iIntrosFresh "IST"; iIntrosFresh "TID"; clear_emp.
+  clear_st; iIntros (??); iIntrosFresh "IST"; iIntrosFresh "TID"; clear_emp.
 
 Ltac sch_yield_rr :=
-  norm_r with do 1 iApply wsim_yield_tgt;
+  norm_r; iApply wsim_yield_tgt;
   [left; esplits; [refl|..]; et; set_solver|et|et|sch_auto; [..|try sch_intros]].
 
 Ltac sch_yield_ir :=
-  norm_r with do 1 iApply wsim_yield_tgt;
+  norm_r; iApply wsim_yield_tgt;
   [right; left; esplits; [refl|..]; et; set_solver|et|et|sch_auto; [..|try sch_intros]].
 
 Ltac sch_yield_ii :=
-  norm_r with do 1 iApply wsim_yield_tgt;
+  norm_r; iApply wsim_yield_tgt;
   [right; right; esplits; [refl|..]; et; set_solver|et|et|sch_auto; [..|try sch_intros]].
 
-Section ImgLAT.
-  Context `{!crisG Γ Σ α β τ _S _I, !schG}.
+Section RealLAT.
+  Context `{CRIS: !crisG Γ Σ α β τ _S _I}.
+  Context `{SCH: !schG}.
 
   Context (fl_s fl_t : alist (option string) (Any.t → itree crisE Any.t)).
   Context (Ist : ist_type Σ).
@@ -164,55 +168,137 @@ Section ImgLAT.
 
   Local Notation sim Ep r g := (wsim fl_s fl_t Ist Ep r g R_s R_t).
 
-  Lemma wsim_img_peek_tgt
-    {X} cond (x: X) E q my_tid
-    k_s k_t img_s img_t (msk_s msk_t: _ → bool) scp_s scp_t sp_s sp_t
-    I
+  Lemma wsim_real_lat_both (peeking: bool)
+    fsp_s fsp_t body_s body_t arg_s arg_t k_s k_t
+    img_s img_t (msk_s msk_t: _ → bool) scp_s scp_t
     :
-    (∃ sp_user_s sp_user_t E_s E_t q_s q_t,
-      sp_incl (SchAS.sp sp_user_s E_s q_s) sp_s ∧ img_s = true ∧
-      sp_incl (SchAS.sp sp_user_t E_t q_t) sp_t ∧ img_t = true ∧
-      (E_s ≡ E_t ∪ E) ∧ (E ## E_t) ∧
-      (q_s ≡ q_t + q)%Qp) →
     msk_s SchHdr.yield →
     msk_t SchHdr.yield →
-    I ∗ Ist st_s st_t ∗ SchAS.tid_user q my_tid ∗
-    (□ (∀ st_src st_tgt,
-        I -∗ winv (E, E) -∗ Ist st_src st_tgt -∗ SchAS.tid_user q my_tid ==∗
-        cond x ∗ (cond x ==∗ I ∗ winv (E, E) ∗ Ist st_src st_tgt ∗ SchAS.tid_user q my_tid))) ∗
+    Ist st_s st_t ∗
+    (if peeking
+     then (□ ∀ x_s, ∃ x_t, precondS fsp_s x_s arg_s ==∗ precondS fsp_t x_t arg_t ∗ (precondS fsp_t x_t arg_t ==∗ precondS fsp_s x_s arg_s))
+     else emp) ∗
     (∀ st_src st_tgt,
-     I -∗ Ist st_src st_tgt -∗ SchAS.tid_user q my_tid -∗
+      Ist st_src st_tgt -∗ 
+      sim (∅,∅) r g RR true true
+        (st_src, SB.sandbox img_s msk_s scp_s (SModTr.trans sp_none (ret_s <- body_s arg_s;;
+                   RealUpdate (λ x, precondS fsp_s x arg_s) (λ x, postcondS fsp_s x ret_s);;;
+                   Ret ret_s)) >>= k_s)                                                                                
+        (st_tgt, SB.sandbox img_t msk_t scp_t (SModTr.trans sp_none (ret_t <- body_t arg_t;;
+                   RealUpdate (λ x, precondS fsp_t x arg_t) (λ x, postcondS fsp_t x ret_t);;;
+                   Ret ret_t)) >>= k_t))
+    ⊢
+    sim (∅,∅) r g RR ps pt
+      (st_s, SB.sandbox img_s msk_s scp_s (SModTr.trans sp_none (real_lat peeking fsp_s 𝒴 body_s arg_s)) >>= k_s)
+      (st_t, SB.sandbox img_t msk_t scp_t (SModTr.trans sp_none (real_lat peeking fsp_t 𝒴 body_t arg_t)) >>= k_t).
+  Proof using SCH.
+    i. iIntros "H". iApply wsim_reset. iStopProof.
+    revert st_s. combine_quant st_t.
+    eapply wsim_coind. intros g' Hg CIH [st_t st_s].
+    iIntros "[IST [#COND SIM]] /=". destruct_quant CIH.
+    
+    rewrite /real_lat. unfold_iter_l. steps_l. unfold_iter_r. steps_r.
+    sch_yield_rr. sch_yield_l.
+    steps_r. force_l _q. steps_l.
+    destruct (peeking && _q) eqn: E; cycle 1; steps_l; steps_r.
+    { iApply wsim_mono_knowledge; cycle 2.
+      { eapply eq_ind. iApply ("SIM" with "IST").
+        rewrite !SRed.bind !SBRed.bind !bind_bind.
+        repeat f_equal; extensionalities.
+        - rewrite !SRed.bind !SBRed.bind !bind_bind.
+          repeat f_equal; extensionalities.
+          rewrite !SRed.ret !SBRed.ret. ired.
+          rewrite !SRed.ret !SBRed.ret. ired. et.
+        - rewrite !SRed.bind !SBRed.bind !bind_bind.
+          repeat f_equal; extensionalities.
+          rewrite !SRed.ret !SBRed.ret. ired.
+          rewrite !SRed.ret !SBRed.ret. ired. et.
+      }
+      { et. }
+      { i. rewrite Hg. et. }
+    }
+
+    simpl_bool; des; subst.
+    ru_r. iIntros (?) "UPD".
+    ru_l (Own pr)%I. iSplitL "UPD".
+    { iIntros (?) "CS". iDestruct ("COND" $! x) as "[% H]".
+      iMod ("H" with "CS") as "[CT R]".
+      iMod ("UPD" with "CT") as "[PR CT]".
+      iMod ("R" with "CT") as "R". iFrame. et.
+    }
+    iIntros "PR"; force_r; iFrame.
+
+    steps_l; steps_r.
+    by_coind CIH; iFrame; et.
+  Unshelve. all: exact 0.
+  Qed.
+
+  Lemma wsim_real_lat_tgt (peeking: bool)
+    fsp_t body_t x_t arg_t E tid_res q my_tid
+    k_s k_t img_s img_t (msk_s msk_t: _ → bool) scp_s scp_t sp_s
+    I
+    :
+    (tid_res = false ∧
+     sp_s SchHdr.yield = None ∧
+     E = ∅ ∧
+     q = 1%Qp (* unused value *)) ∨
+    (tid_res = true ∧
+     ∃ sp_user_s,
+       sp_incl (SchAS.sp sp_user_s E q) sp_s ∧ img_s = true) →
+    msk_s SchHdr.yield →
+    msk_t SchHdr.yield →
+    I ∗ Ist st_s st_t ∗ (if tid_res then SchAS.tid_user q my_tid else emp) ∗
+    (if peeking
+     then □ (∀ st_src st_tgt,
+       I -∗ winv (E, E) -∗ Ist st_src st_tgt -∗ (if tid_res then SchAS.tid_user q my_tid else emp) ==∗
+       precondS fsp_t x_t arg_t ∗ (precondS fsp_t x_t arg_t ==∗ I ∗ winv (E, E) ∗ Ist st_src st_tgt ∗ (if tid_res then SchAS.tid_user q my_tid else emp)))
+     else emp) ∗
+    (∀ st_src st_tgt,
+     I -∗ Ist st_src st_tgt -∗ (if tid_res then SchAS.tid_user q my_tid else emp) -∗
      sim (E,E) r g RR true true
         (st_src, SB.sandbox img_s msk_s scp_s (SModTr.trans sp_s 𝒴) >>= k_s)
-        (st_tgt, k_t ()))
+        (st_tgt, SB.sandbox img_t msk_t scp_t (SModTr.trans sp_none (ret_t <- body_t arg_t;;
+                   RealUpdate (λ x, precondS fsp_t x arg_t) (λ x, postcondS fsp_t x ret_t);;;
+                   Ret ret_t)) >>= k_t))
     ⊢
     sim (E,E) r g RR ps pt
       (st_s, SB.sandbox img_s msk_s scp_s (SModTr.trans sp_s 𝒴) >>= k_s)
-      (st_t, SB.sandbox img_t msk_t scp_t (SModTr.trans sp_t (img_peek cond 𝒴)) >>= k_t).
+      (st_t, SB.sandbox img_t msk_t scp_t (SModTr.trans sp_none (real_lat peeking fsp_t 𝒴 body_t arg_t)) >>= k_t).
   Proof using.
     i. iIntros "H". iApply wsim_reset. iStopProof.
     revert st_s. combine_quant st_t.
     eapply wsim_coind. intros g' Hg CIH [st_t st_s].
     iIntros "[I [IST [TID [#COND SIM]]]] /=". destruct_quant CIH.
 
-    rewrite /img_peek. unfold_iter_r. steps_r.
-    des. sch_yield_ii.
-    steps_r. destruct _q; cycle 1; steps_r.
+    rewrite /real_lat. unfold_iter_r. steps_r.
+    iApply wsim_yield_tgt; [|et|et|try (sch_auto; sch_intros)].
+    { des; subst; [left|right;left]; et. }
+    steps_r. destruct (peeking && _q) eqn: E0; cycle 1; steps_r.
     { iApply wsim_mono_knowledge; cycle 2.
-      { iApply ("SIM" with "I IST TID"); et; iFrame. }
+      { eapply eq_ind. iApply ("SIM" with "I IST TID").
+        rewrite !SRed.bind !SBRed.bind !bind_bind.
+        repeat f_equal; extensionalities.
+        rewrite !SRed.bind !SBRed.bind !bind_bind.
+        repeat f_equal; extensionalities.
+        rewrite !SRed.ret !SBRed.ret. ired.
+        rewrite !SRed.ret !SBRed.ret. ired. et.
+      }
       { et. }
       { i. rewrite Hg. et. }
     }
 
+    simpl_bool; des_safe; subst.
+    ru_r. iIntros (?) "UPD".
     iApply wsim_unfold; iIntros "W".
     iMod ("COND" with "I W IST TID") as "[C R]"; iFrame.
-    forces_r; iFrame. steps_r.
-    iMod ("R" with "GRT") as "[I [W [IST TID]]]".
+    iMod ("UPD" with "C") as "[PR C]".
+    iMod ("R" with "C") as "[I [W [IST TID]]]".
     iApply wsim_fold; iFrame.
+    force_r; iFrame. steps_r.
     by_coind CIH. iFrame. et.
   Qed.
 
-End ImgLAT.
+End RealLAT.
 
 Ltac peek_auto Hyps :=
   iRevert Hyps;
@@ -241,137 +327,19 @@ Ltac peek_auto Hyps :=
        end)
   | sch_auto;
     [..
-    | iSplit;
+    | iSplit; clear_st; 
       [ iModIntro; iIntros (??) PAT; iIntrosFresh "W";
         iIntrosFresh "IST"; iIntrosFresh "TID"; try unfold_pre_post
       | iIntros (??) PAT; iIntrosFresh "IST"; iIntrosFresh "TID"]];
     clear_emp
   ].
 
-Ltac img_peek_ii Hyps :=
-  norm_r with do 1 iApply (wsim_img_peek_tgt);
-  [esplits; et; set_solver|et|et|peek_auto Hyps].
-
-Section RealLAT.
-  Context `{CRIS: !crisG Γ Σ α β τ _S _I}.
-  Context `{SCH: !schG}.
-
-  Context (fl_s fl_t : alist (option string) (Any.t → itree crisE Any.t)).
-  Context (Ist : ist_type Σ).
-  Context (R_s R_t : Type).
-
-  Context (r g : rel).
-  Context (RR : post R_s R_t).
-  Context (ps pt : bool).
-  Context (st_s st_t : state).
-
-  Local Notation sim Ep r g := (wsim fl_s fl_t Ist Ep r g R_s R_t).
-
-  Lemma wsim_real_peek_both
-    X_s X_t (cond_s: X_s → _) (cond_t: X_t → _) k_s k_t
-    img_s img_t (msk_s msk_t: _ → bool) scp_s scp_t
-    :
-    msk_s SchHdr.yield →
-    msk_t SchHdr.yield →
-    Ist st_s st_t ∗
-    (□ ∀ x_s, ∃ x_t, cond_s x_s ==∗ cond_t x_t ∗ (cond_t x_t ==∗ cond_s x_s)) ∗
-    (∀ st_src st_tgt,
-      Ist st_src st_tgt -∗ 
-      sim (∅,∅) r g RR true true (st_src, k_s ()) (st_tgt, k_t ()))
-    ⊢
-    sim (∅,∅) r g RR ps pt
-      (st_s, SB.sandbox img_s msk_s scp_s (SModTr.trans sp_none (real_peek cond_s 𝒴)) >>= k_s)
-      (st_t, SB.sandbox img_t msk_t scp_t (SModTr.trans sp_none (real_peek cond_t 𝒴)) >>= k_t).
-  Proof using SCH.
-    i. iIntros "H". iApply wsim_reset. iStopProof.
-    revert st_s. combine_quant st_t.
-    eapply wsim_coind. intros g' Hg CIH [st_t st_s].
-    iIntros "[IST [#COND SIM]] /=". destruct_quant CIH.
-    
-    rewrite /real_peek. unfold_iter_l. steps_l. unfold_iter_r. steps_r.
-    sch_yield_rr. sch_yield_l.
-    steps_r. force_l _q. destruct _q; cycle 1; steps_l; steps_r.
-    { iApply wsim_mono_knowledge; cycle 2.
-      { iApply ("SIM" with "[IST]"); et. }
-      { et. }
-      { i. rewrite Hg. et. }
-    }
-
-    ru_r. iIntros (?) "UPD".
-    ru_l (Own pr)%I. iSplitL "UPD".
-    { iIntros (?) "CS". iDestruct ("COND" $! x) as "[% H]".
-      iMod ("H" with "CS") as "[CT R]".
-      iMod ("UPD" with "CT") as "[PR CT]".
-      iMod ("R" with "CT") as "R". iFrame. et.
-    }
-    iIntros "PR"; force_r; iFrame.
-
-    steps_l; steps_r.
-    by_coind CIH; iFrame; et.
-  Unshelve. all: exact 0.
-  Qed.
-
-  Lemma wsim_real_peek_tgt
-    {X} cond (x: X) E (tid_res : bool) q my_tid
-    k_s k_t img_s img_t (msk_s msk_t: _ → bool) scp_s scp_t sp_s
-    I
-    :
-    (tid_res = false ∧
-     sp_s SchHdr.yield = None ∧
-     E = ∅ ∧
-     q = 1%Qp (* unused value *)) ∨
-    (tid_res = true ∧
-     ∃ sp_user_s,
-       sp_incl (SchAS.sp sp_user_s E q) sp_s ∧ img_s = true) →
-    msk_s SchHdr.yield →
-    msk_t SchHdr.yield →
-    I ∗ Ist st_s st_t ∗ (if tid_res then SchAS.tid_user q my_tid else emp) ∗
-    (□ (∀ st_src st_tgt,
-        I -∗ winv (E, E) -∗ Ist st_src st_tgt -∗ (if tid_res then SchAS.tid_user q my_tid else emp) ==∗
-        cond x ∗ (cond x ==∗ I ∗ winv (E, E) ∗ Ist st_src st_tgt ∗ (if tid_res then SchAS.tid_user q my_tid else emp)))) ∗
-    (∀ st_src st_tgt,
-     I -∗ Ist st_src st_tgt -∗ (if tid_res then SchAS.tid_user q my_tid else emp) -∗
-     sim (E,E) r g RR true true
-        (st_src, SB.sandbox img_s msk_s scp_s (SModTr.trans sp_s 𝒴) >>= k_s)
-        (st_tgt, k_t ()))
-    ⊢
-    sim (E,E) r g RR ps pt
-      (st_s, SB.sandbox img_s msk_s scp_s (SModTr.trans sp_s 𝒴) >>= k_s)
-      (st_t, SB.sandbox img_t msk_t scp_t (SModTr.trans sp_none (real_peek cond 𝒴)) >>= k_t).
-  Proof using.
-    i. iIntros "H". iApply wsim_reset. iStopProof.
-    revert st_s. combine_quant st_t.
-    eapply wsim_coind. intros g' Hg CIH [st_t st_s].
-    iIntros "[I [IST [TID [#COND SIM]]]] /=". destruct_quant CIH.
-
-    rewrite /real_peek. unfold_iter_r. steps_r.
-    iApply wsim_yield_tgt; [|et|et|try (sch_auto; sch_intros)].
-    { des; subst; [left|right;left]; et. }
-    steps_r. destruct _q; cycle 1; steps_r.
-    { iApply wsim_mono_knowledge; cycle 2.
-      { iApply ("SIM" with "I IST TID"); et; iFrame. }
-      { et. }
-      { i. rewrite Hg. et. }
-    }
-
-    ru_r. iIntros (?) "UPD".
-    iApply wsim_unfold; iIntros "W".
-    iMod ("COND" with "I W IST TID") as "[C R]"; iFrame.
-    iMod ("UPD" with "C") as "[PR C]".
-    iMod ("R" with "C") as "[I [W [IST TID]]]".
-    iApply wsim_fold; iFrame.
-    force_r; iFrame. steps_r.
-    by_coind CIH. iFrame. et.
-  Qed.
-
-End RealLAT.
-
-Ltac real_peek_rr Hyps :=
-  norm_r with do 1 iApply (wsim_real_peek_tgt);
+Ltac real_lat_rr Hyps :=
+  norm_r; iApply (wsim_real_lat_tgt);
   [left; esplits; [refl|..]; et; set_solver|et|et|peek_auto Hyps].
 
-Ltac real_peek_ir Hyps :=
-  norm_r with do 1 iApply (wsim_real_peek_tgt);
+Ltac real_lat_ir Hyps :=
+  norm_r; iApply (wsim_real_lat_tgt);
   [right; esplits; [refl|..]; et; set_solver|et|et|peek_auto Hyps].
 
 Section MSIM.

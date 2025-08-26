@@ -480,25 +480,45 @@ End ISIM_ADEQUACY.
 Section FANCY_REAL.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I}.  
 
-  Lemma isim_fr_to_img fsp body_s body_t fl_s fl_t msk scp ps pt st arg
+  Lemma isim_fr_to_img peeking fsp lbody_s lbody_t body_s body_t fl_s fl_t msk scp ps pt st arg
+    (EQITL: eqit eq false true 
+             (SB.sandbox true msk scp (SModTr.trans sp_none lbody_s))
+             (SB.sandbox false msk scp (SModTr.trans sp_none lbody_t)))
     (EQIT: eqit eq false true 
-            (SB.sandbox true msk scp (body_s arg))
-            (SB.sandbox false msk scp (SModTr.trans sp_none (body_t arg)))) :
+             (SB.sandbox true msk scp (SModTr.trans sp_none (body_s arg)))
+             (SB.sandbox false msk scp (SModTr.trans sp_none (body_t arg))))
+    :
     ⊢
     isim open fl_s fl_t IstEq ibot ibot (ist_with_eq IstEq) ps pt
-      (st, SB.sandbox true msk scp (SModTr.HoareFun (Some (to_fspec fsp)) body_s arg))
-      (st, SB.sandbox false msk scp (SModTr.trans sp_none (real_update fsp body_t arg))).
+      (st, SB.sandbox true msk scp (SModTr.trans sp_none (img_lat peeking fsp lbody_s body_s arg)))
+      (st, SB.sandbox false msk scp (SModTr.trans sp_none (real_lat peeking fsp lbody_t body_t arg))).
   Proof using.
-    iIntros. isteps_l. rewrite /real_update. isteps_r.
-    iDestruct "ASM" as "[P %]"; subst.
+    iApply isim_reset. clear ps pt. iStopProof. revert st.
+    eapply isim_coind. intros g Hg CIH st. iIntros. destruct_quant CIH.
+    rewrite /img_lat /real_lat.
+    unfold_iter_l. unfold_iter_r. norm_l. norm_r.
     iApply isim_bind. iSplitL "".
     { iApply isim_eqit_tgt; et.
       iApply isim_refl; et; i; iIntros "%"; subst; et.
     }
-    iIntros (?????). des; subst.
-    iforce_r. iFrame.
-    iIntros "Q". iforce_l. isteps_l. iforce_l. iSplitR ""; et.
-    istep_l. istep_r. istep. et.
+    iIntros (????) "%"; des; subst.
+    isteps_l. isteps_r. iforce_l _q0. isteps_l.
+    destruct (peeking && _q0) eqn: E.
+    { iforce_r. iFrame. iIntros "GRT".
+      iforce_l. iFrame. isteps_l. isteps_r.
+      iby_coind CIH; et.
+    }
+
+    isteps_l. isteps_r.
+    iApply isim_bind. iSplitL "".
+    { iApply isim_eqit_tgt; et.
+      iApply isim_refl; et; i; iIntros "%"; subst; et.
+    }
+    iIntros (????) "%"; des; subst.
+    isteps_l. isteps_r.
+    iforce_r. iFrame. iIntros "GRT".
+    iforce_l. iFrame. isteps_l. isteps_r.
+    istep; et.
   Qed.
 
 End FANCY_REAL.  

@@ -386,11 +386,8 @@ Ltac _hnorm_itr :=
   | [ |- triggerNB = _ ] =>
       unfold triggerNB;
       _hnorm_itr
-  | [ |- img_update _ _ _ = _ ] =>
-      unfold img_update;
-      _hnorm_itr
-  | [ |- real_update _ _ _ = _ ] =>
-      unfold real_update;
+  | [ |- img_lat _ _ _ _ _ = _ ] =>
+      unfold img_lat;
       _hnorm_itr
   | [ |- ?itr = _ ] =>
       reflexivity
@@ -457,21 +454,20 @@ Ltac des_pairs :=
     end);
    subst.
 
-Ltac has_precond_in TM :=
-  match goal with [H := ?P |- _] => match H with TM => match P with context[precond] => idtac end end end.
-Ltac has_postcond_in TM :=
-  match goal with [H := ?P |- _] => match H with TM => match P with context[postcond] => idtac end end end.
-Ltac has_precondS_in TM :=
-  match goal with [H := ?P |- _] => match H with TM => match P with context[precondS] => idtac end end end.
-Ltac has_postcondS_in TM :=
-  match goal with [H := ?P |- _] => match H with TM => match P with context[postcondS] => idtac end end end.
-
-Ltac unfold_pre_post_term term := let TM := fresh "_term" in
+Ltac unfold_pre_post_term term :=
+  let TM := fresh "_term" in
   set (TM := term) at 1;
-  (hrepeat do 1 (has_precond_in TM; unfold precond in TM; simpl in TM));
-  (hrepeat do 1 (has_postcond_in TM; unfold postcond in TM; simpl in TM));
-  (hrepeat do 1 (has_precondS_in TM; unfold precondS in TM; simpl in TM));
-  (hrepeat do 1 (has_postcondS_in TM; unfold postcondS in TM; simpl in TM));
+  (hrepeat do 1 match goal with
+       [H := ?P |- _] =>
+         match H with
+           TM => match P with
+                 | context[precond] => unfold precond in TM; simpl in TM
+                 | context[postcond] => unfold postcond in TM; simpl in TM
+                 | context[precondS] => unfold precondS in TM; simpl in TM
+                 | context[postcondS] => unfold postcondS in TM; simpl in TM
+                 end
+         end
+     end);
   subst TM.
 
 Ltac unfold_pre_post :=
@@ -665,14 +661,16 @@ Qed.
 
 Ltac hss_copset :=
   match goal with
-  | |- context[(@union coPset coPset_union ∅ ?E)] =>
-      replace (∅ ∪ E) with E by set_solver
-  | |- context[(@union coPset coPset_union ?E ∅)] =>
-      replace (E ∪ ∅) with E by set_solver
   | |- context[(@union coPset coPset_union (@difference coPset coPset_difference ?E ?E') ?E')] =>
     replace ((E ∖ E') ∪ E') with E by (rewrite copset_diff_union; et; set_solver)
   | |- context[(@difference coPset coPset_difference (@union coPset coPset_union ?E ?E') ?E')] =>
     replace ((E ∪ E') ∖ E') with E by (rewrite copset_union_diff; et; set_solver)
+  | |- context[(@difference coPset coPset_difference ?E ?E)] =>
+    replace (E ∖ E) with (∅ : coPset) by set_solver
+  | |- context[(@union coPset coPset_union ∅ ?E)] =>
+    replace (∅ ∪ E) with E by set_solver
+  | |- context[(@union coPset coPset_union ?E ∅)] =>
+    replace (E ∪ ∅) with E by set_solver
   end.
 
 Ltac hss_des :=
