@@ -143,15 +143,15 @@ Ltac sch_intros :=
 
 Ltac sch_yield_rr :=
   norm_r; iApply wsim_yield_tgt;
-  [left; esplits; [refl|..]; et; set_solver|et|et|sch_auto; [..|try sch_intros]].
+  [left; esplits; [refl|..]; et; try set_solver|et|et|sch_auto; [..|try sch_intros]].
 
 Ltac sch_yield_ir :=
   norm_r; iApply wsim_yield_tgt;
-  [right; left; esplits; [refl|..]; et; set_solver|et|et|sch_auto; [..|try sch_intros]].
+  [right; left; esplits; [refl|..]; et; try set_solver|et|et|sch_auto; [..|try sch_intros]].
 
 Ltac sch_yield_ii :=
   norm_r; iApply wsim_yield_tgt;
-  [right; right; esplits; [refl|..]; et; set_solver|et|et|sch_auto; [..|try sch_intros]].
+  [right; right; esplits; [refl|..]; et; try set_solver|et|et|sch_auto; [..|try sch_intros]].
 
 Lemma unfold_img_lat `{Σ:GRA} peeking fsp lbody body arg:
   img_lat peeking fsp lbody body arg =
