@@ -374,7 +374,7 @@ Module MemIP. Section MemIP.
   Lemma simF_alloc : ISim.sim_fun open MemP MemI (MemP.init_cond csl genv) IstFull (Some MemHdr.alloc).
   Proof using.
     init_simF.
-    rewrite /real_lat. unfold_iter_l. step_l; step_r. force_l false.
+    steps_l; rewrite /real_lat /real_lat_body; unfold_iter_l.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
 
     destruct (classic (∃ v:nat, arg = [Vint v]↑)) as [[v ->]|Hex]; cycle 1.
@@ -430,7 +430,7 @@ Module MemIP. Section MemIP.
   Lemma simF_free : ISim.sim_fun open MemP MemI (MemP.init_cond csl genv) IstFull (Some MemHdr.free).
   Proof using.
     init_simF.
-    rewrite /real_lat. unfold_iter_l. step_l; step_r. force_l false.
+    steps_l; rewrite /real_lat /real_lat_body; unfold_iter_l.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
 
     destruct (or_else (pargs [Tptr] (or_else (arg↓) [])) (0, 0%Z)) as [b ofs] eqn: EQ.
@@ -460,7 +460,7 @@ Module MemIP. Section MemIP.
   Lemma simF_load : ISim.sim_fun open MemP MemI (MemP.init_cond csl genv) IstFull (Some MemHdr.load).
   Proof using.
     init_simF.
-    rewrite /real_lat. unfold_iter_l. step_l; step_r. force_l false.
+    steps_l; rewrite /real_lat /real_lat_body; unfold_iter_l.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
 
     destruct (or_else (pargs [Tptr] (or_else (arg↓) []))(0,0%Z)) as [b ofs] eqn: EQ.
@@ -483,7 +483,7 @@ Module MemIP. Section MemIP.
   Lemma simF_store : ISim.sim_fun open MemP MemI (MemP.init_cond csl genv) IstFull (Some MemHdr.store).
   Proof using.
     init_simF.
-    rewrite /real_lat. unfold_iter_l. step_l; step_r. force_l false.
+    steps_l; rewrite /real_lat /real_lat_body; unfold_iter_l.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
 
     destruct (or_else (pargs [Tptr; Tuntyped] (or_else (arg↓) [])) (0, 0%Z,Vundef))
@@ -515,7 +515,7 @@ Module MemIP. Section MemIP.
   Lemma simF_cmp : ISim.sim_fun open MemP MemI (MemP.init_cond csl genv) IstFull (Some MemHdr.cmp).
   Proof using.
     init_simF.
-    rewrite /real_lat. unfold_iter_l. step_l; step_r. force_l false.
+    steps_l; rewrite /real_lat /real_lat_body; unfold_iter_l.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
 
     destruct (or_else (pargs [Tuntyped; Tuntyped] (or_else (arg↓) [])) (Vundef,Vundef))
@@ -552,7 +552,7 @@ Module MemIP. Section MemIP.
   Lemma simF_cas : ISim.sim_fun open MemP MemI (MemP.init_cond csl genv) IstFull (Some MemHdr.cas).
   Proof using.
     init_simF.
-    rewrite /real_lat. unfold_iter_l. step_l; step_r. force_l false.
+    steps_l; rewrite /real_lat /real_lat_body; unfold_iter_l.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
 
     destruct (or_else (pargs [Tptr; Tuntyped; Tuntyped] (or_else (arg↓) [])) ((0,0%Z),(Vundef,Vundef)))

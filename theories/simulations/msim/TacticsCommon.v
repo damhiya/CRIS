@@ -386,9 +386,6 @@ Ltac _hnorm_itr :=
   | [ |- triggerNB = _ ] =>
       unfold triggerNB;
       _hnorm_itr
-  | [ |- img_lat _ _ _ _ _ = _ ] =>
-      unfold img_lat;
-      _hnorm_itr
   | [ |- ?itr = _ ] =>
       reflexivity
   end.

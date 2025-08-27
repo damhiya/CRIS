@@ -477,10 +477,10 @@ Qed.
 
 End ISIM_ADEQUACY.
 
-Section FANCY_REAL.
+Section LAT.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I}.  
 
-  Lemma isim_fr_to_img peeking fsp lbody_s lbody_t body_s body_t fl_s fl_t msk scp ps pt st arg
+  Lemma isim_lat_real_to_img peeking fsp lbody_s lbody_t body_s body_t fl_s fl_t msk scp ps pt st arg
     (EQITL: eqit eq false true 
              (SB.sandbox true msk scp (SModTr.trans sp_none lbody_s))
              (SB.sandbox false msk scp (SModTr.trans sp_none lbody_t)))
@@ -496,24 +496,40 @@ Section FANCY_REAL.
     iApply isim_reset. clear ps pt. iStopProof. revert st.
     eapply isim_coind. intros g Hg CIH st. iIntros. destruct_quant CIH.
     rewrite /img_lat /real_lat.
-    unfold_iter_l. unfold_iter_r. norm_l. norm_r.
-    iApply isim_bind. iSplitL "".
+    unfold_iter_l. unfold_iter_r. rewrite {1}/img_lat_body {1}/real_lat_body.
+    norm_l. norm_r. iApply isim_bind. iSplitL "".
     { iApply isim_eqit_tgt; et.
       iApply isim_refl; et; i; iIntros "%"; subst; et.
     }
     iIntros (????) "%"; des; subst.
-    isteps_l. isteps_r. iforce_l _q0. isteps_l.
-    destruct (peeking && _q0) eqn: E.
-    { iforce_r. iFrame. iIntros "GRT".
+    isteps_l. isteps_r.
+    destruct (peeking); cycle 1.
+    {
+      isteps_l. isteps_r.
+      iApply isim_bind. iSplitL "".
+      { iApply isim_eqit_tgt; et.
+        iApply isim_refl; et; i; iIntros "%"; subst; et.
+      }
+      
+      iIntros (????) "%"; des; subst.
+      isteps_l. isteps_r.
+      iforce_r. iFrame. iIntros "GRT".
       iforce_l. iFrame. isteps_l. isteps_r.
+      istep; et.
+    }
+
+    isteps_r. destruct _q0.
+    { iforce_r. iFrame. iIntros "GRT".
+      iforce_l true. isteps_l. iforce_l. iFrame. isteps_l. isteps_r.
       iby_coind CIH; et.
     }
 
-    isteps_l. isteps_r.
+    iforce_l false. isteps_l. isteps_r.
     iApply isim_bind. iSplitL "".
     { iApply isim_eqit_tgt; et.
       iApply isim_refl; et; i; iIntros "%"; subst; et.
     }
+    
     iIntros (????) "%"; des; subst.
     isteps_l. isteps_r.
     iforce_r. iFrame. iIntros "GRT".
@@ -521,4 +537,4 @@ Section FANCY_REAL.
     istep; et.
   Qed.
 
-End FANCY_REAL.  
+End LAT.
