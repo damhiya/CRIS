@@ -451,16 +451,16 @@ Module SchA. Section SchA.
     check_internal
   .
   
-  Definition fnsems sp_user : fnsems_type :=
+  Definition fnsems sp_user q_tid : fnsems_type :=
     [(Some SchHdr._spawn, (true, wmask_all, scopes, (Some (SchAS._spawn_spec sp_user ⊤ 1), (cfunN (SchI._spawn check_internal)))));
      (Some SchHdr.spawn,  (true, wmask_all, scopes, (Some (SchAS.spawn_spec sp_user ⊤ 1),  (cfunN SchI.spawn))));
      (Some SchHdr.yield,  (true, wmask_all, scopes, (Some (SchAS.yield_spec ⊤ 1),          (cfunN (SchI.yield trigger_Yield)))));
      (Some SchHdr.join,   (true, wmask_all, scopes, (Some (SchAS.join_spec ⊤ 1),           (cfunN SchI.join))));
-     (Some SchHdr.get_tid,(true, wmask_all, scopes, (Some (SchAS.get_tid_spec 1),          (cfunN SchI.get_tid))))].
+     (Some SchHdr.get_tid,(true, wmask_all, scopes, (Some (SchAS.get_tid_spec q_tid),      (cfunN SchI.get_tid))))].
 
-  Program Definition smod sp_user : SMod.t := {|
+  Program Definition smod sp_user q_tid : SMod.t := {|
     SMod.scopes := scopes;
-    SMod.fnsems := fnsems sp_user;
+    SMod.fnsems := fnsems sp_user q_tid;
     SMod.initial_st := (v_internal, false↑) :: SchI.smod.(SMod.initial_st);
   |}.
   Solve All Obligations with prove_scope.
@@ -468,8 +468,8 @@ Module SchA. Section SchA.
 
   Definition init_cond : iProp Σ := SchAS.init_threads ∗ SchAS.init_tid.
   
-  Definition t sp sp_user :=
-    Seal.sealing CRIS (SMod.to_mod sp (smod sp_user)).
+  Definition t sp sp_user q_tid :=
+    Seal.sealing CRIS (SMod.to_mod sp (smod sp_user q_tid)).
 
 End SchA. End SchA.
 
