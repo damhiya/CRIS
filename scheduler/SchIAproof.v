@@ -4,6 +4,16 @@ Require Import ltac2_lib.
 
 Local Open Scope nat_scope.
 
+Lemma Qp_lt_split (p q: Qp)
+  (LT: (p < q)%Qp)
+  :
+  exists r, q = (p + r)%Qp.
+Proof.
+  destruct (q - p)%Qp eqn: E; cycle 1.
+  { eapply Qp.sub_None in E. exfalso. eapply Qp.lt_nge; et. }
+  eapply Qp.sub_Some in E. et.
+Qed.
+
 Module SchIA. Section SchIA.
   Import SchAS.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
@@ -11,6 +21,7 @@ Module SchIA. Section SchIA.
 
   Context (sp: sp_type).
   Context (sp_user : spl_type).
+  Context {q_tid: Qp}.
   Context (SchInSp : sp_incl (SchAS.sp sp_user ⊤ 1) sp).
   Context (FunInSp : sp_incl sp_user sp).
 
@@ -225,7 +236,7 @@ Module SchIA. Section SchIA.
           ∗ ((⌜intnl = false⌝ ∗ tid_admin (Some tid))
              ∨ (⌜intnl = true⌝ ∗ tid_admin None ∗ winv (⊤, ⊤))))%I.
 
-  Local Definition SchAMod := SchA.t sp sp_user.
+  Local Definition SchAMod := SchA.t sp sp_user q_tid.
   Local Definition SchIMod := SchI.t.
 
   Lemma simF__spawn : ISim.sim_fun open SchAMod SchIMod SchA.init_cond Ist (Some SchHdr._spawn).
@@ -595,12 +606,47 @@ Section ctxr.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
   Context `{_schG: !schG}.
 
-  Lemma ctxr sp sp_user
+  Lemma ctxr sp sp_user q_tid
         (SchInGlobal : sp_incl (SchAS.sp sp_user ⊤ 1) sp)
         (UserInGlobal : sp_incl sp_user sp) :
     ctx_refines
-      (SchA.t sp sp_user, SchA.init_cond)
+      (SchA.t sp sp_user q_tid, SchA.init_cond)
       (SchI.t, emp%I).
   Proof using. eapply main_adequacy, sim; eauto. Qed.
+
+  Lemma ctxr_lift sp sp_user (q_tid: Qp)
+        (LE: (q_tid < 1)%Qp)
+        (SchInGlobal : sp_incl (SchAS.sp sp_user ⊤ 1) sp)
+        (UserInGlobal : sp_incl sp_user sp) :
+    ctx_refines
+      (SchA.t sp sp_user 1, emp%I)
+      (SchA.t sp sp_user q_tid, emp%I).
+  Proof using.
+    eapply main_adequacy.
+    init_sim.
+    - instantiate (1:=IstEq). et.
+    - iinit_simF. iIntros "W". iApply isim_refl; et; i; iIntros "->"; et.
+    - iinit_simF. iIntros "W". iApply isim_refl; et; i; iIntros "->"; et.
+    - iinit_simF. iIntros "W". iApply isim_refl; et; i; iIntros "->"; et.
+    - iinit_simF. iIntros "W". iApply isim_refl; et; i; iIntros "->"; et.
+    - init_simF.
+      
+      steps_l. iDestruct "ASM" as "[[-> TID] ->]"; hss. rename _q into my_tid.
+      steps_r. iDestruct "IST" as "%"; subst.
+      steps_l. exploit Qp_lt_split; et. i; des. rewrite x0.
+      iPoseProof (SchAS.tid_user_split with "TID") as "[TID1 TID2]".
+      forces_r. iFrame. iSplit; et.
+      steps_r. hss. steps_r.
+      rewrite SBRed.get. des_ifs; cycle 1.
+      iApply wsim_sget_src. iApply wsim_sget_tgt.
+      steps_l. steps_r. rewrite G. steps_r.
+      iDestruct "GRT" as "[[% TID1] %]". subst.
+      forces_l. iSplitL.
+      { repeat (iSplit; et).
+        iPoseProof (SchAS.tid_user_merge with "[TID2 TID1]") as "TID"; iFrame.
+      }
+      steps_l. step. et.
+  Qed.
+  
 End ctxr.
 End SchIA.
