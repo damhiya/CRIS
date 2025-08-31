@@ -153,68 +153,6 @@ Ltac sch_yield_ii :=
   norm_r; iApply wsim_yield_tgt;
   [right; right; esplits; [refl|..]; et; try set_solver|et|et|sch_auto; [..|try sch_intros]].
 
-Lemma unfold_img_lat `{Σ:GRA} peeking fsp lbody body arg:
-  img_lat peeking fsp lbody body arg =
-    r <- img_lat_body peeking fsp lbody body arg;;
-    match r with
-    | inl _ => tau;; img_lat peeking fsp lbody body arg
-    | inr r => Ret r
-    end.
-Proof.
-  rewrite /img_lat. erewrite -> (bisim_is_eq (unfold_iter _ _)) at 1.
-  f_equal. extensionalities. destruct H; et.
-  repeat f_equal. destruct u; et.
-Qed.
-
-Lemma unfold_real_lat `{Σ:GRA} peeking fsp lbody body arg:
-  real_lat peeking fsp lbody body arg =
-    r <- real_lat_body peeking fsp lbody body arg;;
-    match r with
-    | inl _ => tau;; real_lat peeking fsp lbody body arg
-    | inr r => Ret r
-    end.
-Proof.
-  rewrite /real_lat. erewrite -> (bisim_is_eq (unfold_iter _ _)) at 1.
-  f_equal. extensionalities. destruct H; et.
-  repeat f_equal. destruct u; et.
-Qed.
-
-Ltac unfold_img_lat_l :=
-  let marker := fresh "MARKER" in
-  set_marker marker;
-  hide_ihyps;
-  only_itree_l;
-  rewrite {1}unfold_img_lat {1}/img_lat_body;
-  show_until marker;
-  steps_l.
-
-Ltac unfold_img_lat_r :=
-  let marker := fresh "MARKER" in
-  set_marker marker;
-  hide_ihyps;
-  only_itree_r;
-  rewrite {1}unfold_img_lat {1}/img_lat_body;
-  show_until marker;
-  steps_r.
-
-Ltac unfold_real_lat_l :=
-  let marker := fresh "MARKER" in
-  set_marker marker;
-  hide_ihyps;
-  only_itree_l;
-  rewrite {1}unfold_real_lat {1}/real_lat_body;
-  show_until marker;
-  steps_l.
-
-Ltac unfold_real_lat_r :=
-  let marker := fresh "MARKER" in
-  set_marker marker;
-  hide_ihyps;
-  only_itree_r;
-  rewrite {1}unfold_real_lat {1}/real_lat_body;
-  show_until marker;
-  steps_r.
-
 Section RealLAT.
   Context `{CRIS: !crisG Γ Σ α β τ _S _I}.
   Context `{SCH: !schG}.
@@ -230,7 +168,7 @@ Section RealLAT.
 
   Local Notation sim Ep r g := (wsim fl_s fl_t Ist Ep r g R_s R_t).
 
-  Lemma wsim_real_lat_both
+  Lemma wsim_lat_real_both
     fsp_s fsp_t body_s body_t arg_s arg_t k_s k_t
     img_s img_t (msk_s msk_t: _ → bool) scp_s scp_t
     :
@@ -249,15 +187,15 @@ Section RealLAT.
                    Ret ret_t)) >>= k_t))
     ⊢
     sim (∅,∅) r g RR ps pt
-      (st_s, SB.sandbox img_s msk_s scp_s (SModTr.trans sp_none (real_lat true fsp_s 𝒴 body_s arg_s)) >>= k_s)
-      (st_t, SB.sandbox img_t msk_t scp_t (SModTr.trans sp_none (real_lat true fsp_t 𝒴 body_t arg_t)) >>= k_t).
+      (st_s, SB.sandbox img_s msk_s scp_s (SModTr.trans sp_none (lat_real true fsp_s 𝒴 body_s arg_s)) >>= k_s)
+      (st_t, SB.sandbox img_t msk_t scp_t (SModTr.trans sp_none (lat_real true fsp_t 𝒴 body_t arg_t)) >>= k_t).
   Proof using SCH.
     i. iIntros "H". iApply wsim_reset. iStopProof.
     revert st_s. combine_quant st_t.
     eapply wsim_coind. intros g' Hg CIH [st_t st_s].
     iIntros "[IST [#COND SIM]] /=". destruct_quant CIH.
 
-    unfold_real_lat_l. unfold_real_lat_r.
+    unfold_lat_real_l. unfold_lat_real_r.
     sch_yield_rr. sch_yield_l.
     steps_r. force_l _q. steps_l.
     destruct _q eqn: E; cycle 1; steps_l; steps_r.
@@ -293,7 +231,7 @@ Section RealLAT.
   Unshelve. all: exact 0.
   Qed.
 
-  Lemma wsim_real_lat_tgt
+  Lemma wsim_lat_real_tgt
     fsp_t body_t x_t arg_t E tid_res q my_tid
     k_s k_t img_s img_t (msk_s msk_t: _ → bool) scp_s scp_t sp_s
     I
@@ -322,14 +260,14 @@ Section RealLAT.
     ⊢
     sim (E,E) r g RR ps pt
       (st_s, SB.sandbox img_s msk_s scp_s (SModTr.trans sp_s 𝒴) >>= k_s)
-      (st_t, SB.sandbox img_t msk_t scp_t (SModTr.trans sp_none (real_lat true fsp_t 𝒴 body_t arg_t)) >>= k_t).
+      (st_t, SB.sandbox img_t msk_t scp_t (SModTr.trans sp_none (lat_real true fsp_t 𝒴 body_t arg_t)) >>= k_t).
   Proof using.
     i. iIntros "H". iApply wsim_reset. iStopProof.
     revert st_s. combine_quant st_t.
     eapply wsim_coind. intros g' Hg CIH [st_t st_s].
     iIntros "[I [IST [TID [#COND SIM]]]] /=". destruct_quant CIH.
 
-    unfold_real_lat_r.
+    unfold_lat_real_r.
     iApply wsim_yield_tgt; [|et|et|try (sch_auto; sch_intros)].
     { des; subst; [left|right;left]; et. }
     steps_r. destruct _q eqn: E0; cycle 1; steps_r.
@@ -393,12 +331,12 @@ Ltac peek_auto Hyps :=
     clear_emp
   ].
 
-Ltac real_lat_rr Hyps :=
-  norm_r; iApply (wsim_real_lat_tgt);
+Ltac lat_real_rr Hyps :=
+  norm_r; iApply (wsim_lat_real_tgt);
   [left; esplits; [refl|..]; et; try set_solver|et|et|peek_auto Hyps].
 
-Ltac real_lat_ir Hyps :=
-  norm_r; iApply (wsim_real_lat_tgt);
+Ltac lat_real_ir Hyps :=
+  norm_r; iApply (wsim_lat_real_tgt);
   [right; esplits; [refl|..]; et; try set_solver|et|et|peek_auto Hyps].
 
 Section MSIM.

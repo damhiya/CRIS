@@ -194,12 +194,12 @@ Module MemP. Section MemP.
 
   (* Function specifications *)
   Definition fnsems : alist (option string) (fnsem_type (option fspec * fbody)) :=
-  [(Some MemHdr.alloc, (false, wmask_all, scopes, (None, real_lat false MemSpec.alloc (Ret ()) fbody_trivial)));
-   (Some MemHdr.free,  (false, wmask_all, scopes, (None, real_lat false MemSpec.free  (Ret ()) fbody_trivial)));
-   (Some MemHdr.load,  (false, wmask_all, scopes, (None, real_lat false MemSpec.load  (Ret ()) fbody_trivial)));
-   (Some MemHdr.store, (false, wmask_all, scopes, (None, real_lat false MemSpec.store (Ret ()) fbody_trivial)));
-   (Some MemHdr.cmp,   (false, wmask_all, scopes, (None, real_lat false MemSpec.cmp   (Ret ()) fbody_trivial)));
-   (Some MemHdr.cas,   (false, wmask_all, scopes, (None, real_lat false MemSpec.cas   (Ret ()) fbody_trivial)))].
+  [(Some MemHdr.alloc, (false, wmask_all, scopes, (None, lat_real false MemSpec.alloc (Ret ()) fbody_trivial)));
+   (Some MemHdr.free,  (false, wmask_all, scopes, (None, lat_real false MemSpec.free  (Ret ()) fbody_trivial)));
+   (Some MemHdr.load,  (false, wmask_all, scopes, (None, lat_real false MemSpec.load  (Ret ()) fbody_trivial)));
+   (Some MemHdr.store, (false, wmask_all, scopes, (None, lat_real false MemSpec.store (Ret ()) fbody_trivial)));
+   (Some MemHdr.cmp,   (false, wmask_all, scopes, (None, lat_real false MemSpec.cmp   (Ret ()) fbody_trivial)));
+   (Some MemHdr.cas,   (false, wmask_all, scopes, (None, lat_real false MemSpec.cas   (Ret ()) fbody_trivial)))].
 
   (* Module definition *)
   Program Definition smod : SMod.t := {|

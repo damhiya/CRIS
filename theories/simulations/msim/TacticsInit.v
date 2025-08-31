@@ -80,7 +80,7 @@ Ltac iinit_simF := initialize_simF.
 
 (* Ltac prove_real_to_img := *)
 (*   iinit_simF; iDestruct "IST" as "->"; iIntros "_"; istep_r; *)
-(*   match goal with |- context[real_lat ?peeking ?fsp] => *)
+(*   match goal with |- context[lat_real ?peeking ?fsp] => *)
 (*     iApply (isim_lat_real_to_img peeking fsp) *)
 (*   end; *)
 (*   rewrite !SRed.core !SBRed.choose; refl. *)

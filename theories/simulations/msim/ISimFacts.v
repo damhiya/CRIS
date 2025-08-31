@@ -490,13 +490,13 @@ Section LAT.
     :
     ⊢
     isim open fl_s fl_t IstEq ibot ibot (ist_with_eq IstEq) ps pt
-      (st, SB.sandbox true msk scp (SModTr.trans sp_none (img_lat peeking fsp lbody_s body_s arg)))
-      (st, SB.sandbox false msk scp (SModTr.trans sp_none (real_lat peeking fsp lbody_t body_t arg))).
+      (st, SB.sandbox true msk scp (SModTr.trans sp_none (lat_img peeking fsp lbody_s body_s arg)))
+      (st, SB.sandbox false msk scp (SModTr.trans sp_none (lat_real peeking fsp lbody_t body_t arg))).
   Proof using.
     iApply isim_reset. clear ps pt. iStopProof. revert st.
     eapply isim_coind. intros g Hg CIH st. iIntros. destruct_quant CIH.
-    rewrite /img_lat /real_lat.
-    unfold_iter_l. unfold_iter_r. rewrite {1}/img_lat_body {1}/real_lat_body.
+    rewrite /lat_img /lat_real.
+    unfold_iter_l. unfold_iter_r. rewrite {1}/lat_img_body {1}/lat_real_body.
     norm_l. norm_r. iApply isim_bind. iSplitL "".
     { iApply isim_eqit_tgt; et.
       iApply isim_refl; et; i; iIntros "%"; subst; et.
