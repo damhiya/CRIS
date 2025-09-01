@@ -537,4 +537,49 @@ Section LAT.
     istep; et.
   Qed.
 
+  Lemma isim_lat_img_to_hoare fsp body_s body_t fl_s fl_t msk scp ps pt st arg
+    (EQIT: eqit eq false true
+            (SB.sandbox true msk scp (body_s arg))
+            (SB.sandbox true msk scp (SModTr.trans sp_none (body_t arg))))
+    :
+    ⊢
+    isim open fl_s fl_t IstEq ibot ibot (ist_with_eq IstEq) ps pt
+      (st, SB.sandbox true msk scp (SModTr.HoareFun (Some (to_fspec fsp)) body_s arg))
+      (st, SB.sandbox true msk scp (SModTr.trans sp_none (lat_img false fsp (Ret ()) body_t arg))).
+  Proof using.
+    iIntros. isteps_l. rewrite /lat_img /lat_img_body. unfold_iter_r. isteps_r.
+    iDestruct "ASM" as "[P %]"; subst.
+    iforces_r. iFrame. isteps_r.
+    iApply isim_bind. iSplitL "".
+    { iApply isim_eqit_tgt; et.
+      iApply isim_refl; et; i; iIntros "%"; subst; et.
+    }
+    iIntros (?????). des; subst.
+    isteps_r. iforces_l. iFrame.
+    iSplit; et. istep. et.
+  Qed.
+
+  Lemma isim_lat_real_to_hoare fsp body_s body_t fl_s fl_t msk scp ps pt st arg
+    (EQIT: eqit eq false true
+            (SB.sandbox true msk scp (body_s arg))
+            (SB.sandbox false msk scp (SModTr.trans sp_none (body_t arg))))
+    :
+    ⊢
+    isim open fl_s fl_t IstEq ibot ibot (ist_with_eq IstEq) ps pt
+      (st, SB.sandbox true msk scp (SModTr.HoareFun (Some (to_fspec fsp)) body_s arg))
+      (st, SB.sandbox false msk scp (SModTr.trans sp_none (lat_real false fsp (Ret ()) body_t arg))).
+  Proof using.
+    iIntros. isteps_l. rewrite /lat_real /lat_real_body. unfold_iter_r. isteps_r.
+    iDestruct "ASM" as "[P %]"; subst.
+    iApply isim_bind. iSplitL "".
+    { iApply isim_eqit_tgt; et.
+      iApply isim_refl; et; i; iIntros "%"; subst; et.
+    }
+    iIntros (????) "%"; des; subst.
+    isteps_l. isteps_r.
+    iforce_r. iFrame. iIntros "GRT".
+    iforces_l. iFrame. iSplit; et.
+    isteps_l. isteps_r. istep; et.
+  Qed.
+  
 End LAT.

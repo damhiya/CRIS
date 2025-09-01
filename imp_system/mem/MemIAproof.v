@@ -606,7 +606,7 @@ Module MemIP. Section MemIP.
     iFrame. iSplit; et. iPureIntro; esplits; et.
     - ii. rewrite /mem_ra_upd. s. des_ifs; et.
     - ii. ss. des_ifs; et. bsimpl; des; des_sumbool; subst. eapply H5; et.
-  Qed.
+  (*SLOW*)Qed.
 
   Theorem sim : ISim.t open MemP MemI (MemP.init_cond csl genv) IstFull.
   Proof using.
@@ -636,3 +636,26 @@ Module MemIP. Section MemIP.
       (MemI, emp%I).
   Proof using. eapply main_adequacy, sim; eauto. Qed.
 End MemIP. End MemIP.
+
+Module MemIA. Section MemIA.
+  Context `{!crisG Γ Σ α β τ _S _I, !memG}.
+
+  Theorem sim_real_to_hoare: ISim.t open MemA.t MemP.t emp%I IstEq.
+  Proof using.
+    init_sim; et;
+      (init_simF; iDestruct "IST" as "->"; steps_r;
+       iApply wsim_eqit_src; [|iApply (wsim_lat_real_to_hoare _ fbody_trivial)];
+       rewrite ?SRed.core ?SBRed.choose; refl).
+  Qed.
+
+  Theorem ctxr csl genv :
+    ctx_refines
+      (MemA.t, MemA.init_cond csl genv)
+      (MemI.t csl genv, emp%I).
+  Proof using.
+    etrans; cycle 1.
+    { eapply MemIP.ctxr. }
+    { rewrite mod_addc_empty_l. eapply ctxr_cond_frameR_simpl.
+      eapply main_adequacy, sim_real_to_hoare. }
+  Qed.
+End MemIA. End MemIA.

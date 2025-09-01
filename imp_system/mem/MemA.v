@@ -214,3 +214,39 @@ Module MemP. Section MemP.
 
   Definition t := Seal.sealing CRIS (SMod.to_mod sp_none smod).
 End MemP. End MemP.
+
+Module MemA. Section MemA.
+  Context `{!crisG Γ Σ α β τ _S _I, !memG}.
+
+  Definition scopes := ["Mem"].
+
+  Definition sp : alist (option string) (option fspec) :=
+    Seal.sealing CRIS
+      [(Some MemHdr.alloc, Some (to_fspec MemSpec.alloc));
+       (Some MemHdr.free,  Some (to_fspec MemSpec.free));
+       (Some MemHdr.load,  Some (to_fspec MemSpec.load));
+       (Some MemHdr.store, Some (to_fspec MemSpec.store));
+       (Some MemHdr.cmp,   Some (to_fspec MemSpec.cmp));
+       (Some MemHdr.cas,   Some (to_fspec MemSpec.cas))].
+
+  Definition fnsems : alist (option string) (fnsem_type (option fspec * fbody)) :=
+    [(Some MemHdr.alloc, (true, wmask_all, scopes, (Some (to_fspec MemSpec.alloc), fbody_trivial)));
+     (Some MemHdr.free,  (true, wmask_all, scopes, (Some (to_fspec MemSpec.free), fbody_trivial)));
+     (Some MemHdr.load,  (true, wmask_all, scopes, (Some (to_fspec MemSpec.load), fbody_trivial)));
+     (Some MemHdr.store, (true, wmask_all, scopes, (Some (to_fspec MemSpec.store), fbody_trivial)));
+     (Some MemHdr.cmp,   (true, wmask_all, scopes, (Some (to_fspec MemSpec.cmp), fbody_trivial)));
+     (Some MemHdr.cas,   (true, wmask_all, scopes, (Some (to_fspec MemSpec.cas), fbody_trivial)))].
+
+  (* Module definition *)
+  Program Definition smod : SMod.t := {|
+    SMod.scopes := scopes;
+    SMod.fnsems := fnsems;
+    SMod.initial_st := [];
+  |}.
+  Solve All Obligations with prove_scope.
+  Next Obligation. prove_nodup. Qed.
+
+  Definition init_cond csl genv : iProp Σ := mem_init_auth csl genv.
+
+  Definition t := Seal.sealing CRIS (SMod.to_mod sp_none smod).
+End MemA. End MemA.
