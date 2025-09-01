@@ -205,7 +205,7 @@ Ltac winit_simF :=
       iApply wsim_init_winv; iSplitL "W"; [et; fail|]; hss_copset;
       hrepeat do 1 (unfold_mod; s)).
 
-(** Special Tactics for AssumeProph in Source **)
+(** Special Tactics for RealUpdate **)
 
 (* Tactic Notation "wru_l_advanced" uconstr(P) := *)
 (*   norm_l; iApply wsim_ru_src_advanced; *)

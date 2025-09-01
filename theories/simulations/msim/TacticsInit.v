@@ -77,4 +77,3 @@ Ltac init_sim :=
   ]).
 
 Ltac iinit_simF := initialize_simF.
-

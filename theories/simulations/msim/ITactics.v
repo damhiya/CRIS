@@ -191,7 +191,7 @@ Ltac iby_coind CIH :=
   iApply isim_progress; iApply isim_base;
   iApply CIH.
 
-(** Special Tactics for AssumeProph in Source **)
+(** Special Tactics for RealUpdate **)
 
 (* Tactic Notation "iru_l_advanced" uconstr(P) := *)
 (*   norm_l; iApply isim_ru_src_advanced; *)
