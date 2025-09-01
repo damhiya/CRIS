@@ -1,6 +1,6 @@
 From iris.proofmode Require Import proofmode.
 Require Import Common.
-Require Import ISim WSim.
+Require Import FSpec ISim WSim.
 Require Export TacticsCommon ITactics WTactics.
 
 Tactic Notation "iwcase" tactic(itac) tactic(wtac) :=
@@ -38,3 +38,38 @@ Ltac by_coind CIH := iwcase (do 1 iby_coind CIH) (do 1 wby_coind CIH).
 
 Tactic Notation "init_simF" := winit_simF. (* for isim mode, use iinit_simF directly *)
 (* Tactic Notation "init_simF" open_constr(u_src) open_constr(u_tgt) := winit_simF u_src u_tgt. *)
+
+(*
+ unfold_lat
+*)
+
+Lemma unfold_lat_img `{Σ:GRA} peeking fsp lbody body arg:
+  lat_img peeking fsp lbody body arg =
+    r <- lat_img_body peeking fsp lbody body arg;;
+    match r with
+    | inl _ => tau;; lat_img peeking fsp lbody body arg
+    | inr r => Ret r
+    end.
+Proof.
+  rewrite /lat_img. erewrite -> (bisim_is_eq (unfold_iter _ _)) at 1.
+  f_equal. extensionalities. destruct H; et.
+  repeat f_equal. destruct u; et.
+Qed.
+
+Ltac unfold_lat_img_l :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  only_itree_l;
+  rewrite {1}unfold_lat_img {1}/lat_img_body;
+  show_until marker;
+  steps_l.
+
+Ltac unfold_lat_img_r :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  only_itree_r;
+  rewrite {1}unfold_lat_img {1}/lat_img_body;
+  show_until marker;
+  steps_r.

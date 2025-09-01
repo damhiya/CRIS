@@ -153,37 +153,6 @@ Ltac sch_yield_ii :=
   norm_r; iApply wsim_yield_tgt;
   [right; right; esplits; [refl|..]; et; try set_solver|et|et|sch_auto; [..|try sch_intros]].
 
-Lemma unfold_img_lat `{Σ:GRA} peeking fsp lbody body arg:
-  img_lat peeking fsp lbody body arg =
-    r <- img_lat_body peeking fsp lbody body arg;;
-    match r with
-    | inl _ => tau;; img_lat peeking fsp lbody body arg
-    | inr r => Ret r
-    end.
-Proof.
-  rewrite /img_lat. erewrite -> (bisim_is_eq (unfold_iter _ _)) at 1.
-  f_equal. extensionalities. destruct H; et.
-  repeat f_equal. destruct u; et.
-Qed.
-
-Ltac unfold_img_lat_l :=
-  let marker := fresh "MARKER" in
-  set_marker marker;
-  hide_ihyps;
-  only_itree_l;
-  rewrite {1}unfold_img_lat {1}/img_lat_body;
-  show_until marker;
-  steps_l.
-
-Ltac unfold_img_lat_r :=
-  let marker := fresh "MARKER" in
-  set_marker marker;
-  hide_ihyps;
-  only_itree_r;
-  rewrite {1}unfold_img_lat {1}/img_lat_body;
-  show_until marker;
-  steps_r.
-
 Section MSIM.
 
   Import SchAS.
