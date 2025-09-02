@@ -56,7 +56,7 @@ Section wsim.
     (st_tgt, (SB.sandbox img_t msk_t scp_t (SModTr.trans sp_t 𝒴)) >>= k_t).
   Proof using.
     intros Hcase Hmsks Hmskt. iIntros "[IST [TID SIM]]".
-    rewrite /Sch.yield; unseal "Sch".
+    rewrite /Sch.yield; unseal SCH.
     iStopProof.
     revert st_src. combine_quant st_tgt.
     combine_quant ps. combine_quant pt.
@@ -119,7 +119,7 @@ Section wsim.
       (st_src, (SB.sandbox img_s msk_s sc_s (SModTr.trans sp_s 𝒴)) >>= k_s) (st_tgt, i_t).
   Proof using.
     iIntros "SIM".
-    rewrite /Sch.yield; unseal "Sch".
+    rewrite /Sch.yield; unseal SCH.
     unfold_iterC_l; steps_l.
     force_l None; steps_l. iApply "SIM".
   (*SLOW*)Qed.
@@ -154,8 +154,8 @@ Ltac sch_yield_ii :=
   [right; right; esplits; [refl|..]; et; try set_solver|et|et|sch_auto; [..|try sch_intros]].
 
 Section RealLAT.
-  Context `{CRIS: !crisG Γ Σ α β τ _S _I}.
-  Context `{SCH: !schG}.
+  Context `{CrisG: !crisG Γ Σ α β τ _S _I}.
+  Context `{SchG: !schG}.
 
   Context (fl_s fl_t : alist (option string) (Any.t → itree crisE Any.t)).
   Context (Ist : ist_type Σ).
@@ -189,7 +189,7 @@ Section RealLAT.
     sim (∅,∅) r g RR ps pt
       (st_s, SB.sandbox img_s msk_s scp_s (SModTr.trans sp_none (lat_real true fsp_s 𝒴 body_s arg_s)) >>= k_s)
       (st_t, SB.sandbox img_t msk_t scp_t (SModTr.trans sp_none (lat_real true fsp_t 𝒴 body_t arg_t)) >>= k_t).
-  Proof using SCH.
+  Proof using SchG.
     i. iIntros "H". iApply wsim_reset. iStopProof.
     revert st_s. combine_quant st_t.
     eapply wsim_coind. intros g' Hg CIH [st_t st_s].
@@ -670,7 +670,7 @@ Section SREL.
       (SB.sandbox img_s msk_s sc_s (SModTr.trans sp_s Sch.yield) >>= itr).
   Proof using.
     set (ysnd := SB.sandbox img_s msk_s sc_s (SModTr.trans sp_s Sch.yield)) at 2.
-    unfold Sch.yield. unseal "Sch".
+    unfold Sch.yield. unseal SCH.
 
     ginit. gcofix CIH.
 
@@ -721,7 +721,7 @@ Section SREL.
     }
     { exists (Some false). gbase. grind. }
     { exists (Some false).
-      subst ysnd. unfold Sch.yield. unseal "Sch". rewrite unfold_iterC.
+      subst ysnd. unfold Sch.yield. unseal SCH. rewrite unfold_iterC.
       grind. rewrite SRed.ret SBRed.ret. grind. 
       rewrite unfold_iterC. grind. guclo srel_eqC_spec. econs; eauto.
     }

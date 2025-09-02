@@ -302,14 +302,14 @@ Module SchIA. Section SchIA.
       { (* already done case - impossible *)
         dup SIM0. specialize (SIM0 my_tid). des. rewrite LU in SIM0. inv SIM0.
         { (* done *)
-          rewrite /token_half. unseal "SchA". iCombine "token THW" gives %X.
+          rewrite /token_half. unseal SCH. iCombine "token THW" gives %X.
           exfalso. rewrite auth_frag_valid in X.
           specialize (X my_tid). rewrite discrete_fun_lookup_op in X. ss.
           rewrite -H5 in X. rewrite Nat.eqb_refl in X.
           rewrite Some_valid pair_valid in X; des. ss.
         }
         { (* done *)
-          rewrite /token_half. unseal "SchA". iCombine "token THW" gives %X.
+          rewrite /token_half. unseal SCH. iCombine "token THW" gives %X.
           exfalso. rewrite auth_frag_valid in X.
           specialize (X my_tid). rewrite discrete_fun_lookup_op in X. ss.
           rewrite -H5 in X. rewrite Nat.eqb_refl in X.
@@ -318,7 +318,7 @@ Module SchIA. Section SchIA.
       }
       { (* active - only possible case *)
         dup SIM0. specialize (SIM0 my_tid). des. rewrite LU in SIM0. inv SIM0.
-        rewrite /token_half. unseal "SchA".
+        rewrite /token_half. unseal SCH.
         iCombine "token THW" gives %THW. iCombine "token THW" as "THW".
 
         rewrite auth_frag_valid in THW. ss.
@@ -357,7 +357,7 @@ Module SchIA. Section SchIA.
     }
 
     (* Coinduction on yield loop *)
-    rewrite !/Sch.terminate /ccallU. unseal "Sch".
+    rewrite !/Sch.terminate /ccallU. unseal SCH.
     clear THWF THWF0 THSEQ THSEQ0 SIM SIM0.
     clearbody st_t'0 st_s'0.
     iApply wsim_reset.
@@ -411,7 +411,7 @@ Module SchIA. Section SchIA.
     iMod "TH" as "[[[[THB THW] TKNH] TKNQ1] TKNQ0]".
 
     forces_l. iSplitL "PRE TKNH".
-    { rewrite /token_half. unseal "SchA". iFrame. iExists _. iSplit; eauto. }
+    { rewrite /token_half. unseal SCH. iFrame. iExists _. iSplit; eauto. }
 
     steps_l. steps_r. hss. steps_r.
     spawn. iIntros (tid); steps_r. hss. steps_l. hss.
@@ -585,10 +585,10 @@ Module SchIA. Section SchIA.
   Lemma sim : ISim.t open SchAMod SchIMod SchA.init_cond Ist.
   Proof using FunInSp SchInSp.
     init_sim.
-    - split; eauto. rewrite /SchA.init_cond /init_threads /init_tid. unseal "SchA".
+    - split; eauto. rewrite /SchA.init_cond /init_threads /init_tid. unseal SCH.
       iIntros "[[THB THW] tid]". iExists _, _, _, _, ∅, _, 0, false.
       iFrame. rewrite big_sepM_empty. iSplitR; et.
-      2:{ rewrite /tid_admin. iSplitR; eauto. iLeft. rewrite /tid_admin. unseal "SchA". eauto. }
+      2:{ rewrite /tid_admin. iSplitR; eauto. iLeft. rewrite /tid_admin. unseal SCH. eauto. }
       iPureIntro. esplits; et; ss; [split; nia |]. i.
       rewrite// eq_rel_dec_correct. des_ifs.
       + rewrite lookup_empty. econs 2.
