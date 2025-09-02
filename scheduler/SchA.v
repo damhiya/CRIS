@@ -48,28 +48,28 @@ Module SchAS. Section SchAS.
   Definition token_half_r (tid: nat) (st: SAny.t → SAny.t → SynDepO): threadsRA :=
     ◯ ((λ n, if (tid =? n) then Some (1/2, to_agree (λ vs s, Some (to_agree (st vs s)))) else ε): threadsF).
   Definition token_half (tid: nat) (st: SAny.t → SAny.t → SynDepO): iProp Σ :=
-    Seal.sealing "SchA" (own base_γ (token_half_r tid st)).
+    Seal.sealing SCH (own base_γ (token_half_r tid st)).
 
   Definition token_three_quarter_r (tid: nat) (st: SAny.t → SAny.t → SynDepO): threadsRA := 
     ◯ ((λ n, if (tid =? n) then Some (3/4, to_agree (λ vs s, Some (to_agree (st vs s)))) else ε): threadsF).
   Definition token_three_quarter (tid: nat) (st: SAny.t → SAny.t → SynDepO): iProp Σ := 
-    Seal.sealing "SchA"
+    Seal.sealing SCH
       (own base_γ (token_three_quarter_r tid st)).
 
   Definition token_one_r (tid: nat) (st: SAny.t → SAny.t → SynDepO): threadsRA := 
     ◯ ((λ n, if (tid =? n) then Some (1, to_agree (λ vs s, Some (to_agree (st vs s)))) else ε): threadsF).
   Definition token_one (tid: nat) (st: SAny.t → SAny.t → SynDepO): iProp Σ := 
-    Seal.sealing "SchA"
+    Seal.sealing SCH
       (own base_γ (token_one_r tid st)).
 
   Definition idle (tid: nat): iProp Σ := 
-    Seal.sealing "SchA" (own base_γ token_pending_r).
+    Seal.sealing SCH (own base_γ token_pending_r).
   Definition active (tid: nat) (st: SAny.t → SAny.t → SynDepO): iProp Σ := 
-    Seal.sealing "SchA" (own base_γ (token_quarter_r tid st)).
+    Seal.sealing SCH (own base_γ (token_quarter_r tid st)).
   Definition done (tid: nat) (st: SAny.t → SAny.t → SynDepO): iProp Σ := 
-    Seal.sealing "SchA" (own base_γ (token_three_quarter_r tid st)).
+    Seal.sealing SCH (own base_γ (token_three_quarter_r tid st)).
   Definition joined (tid: nat) (st: SAny.t → SAny.t → SynDepO): iProp Σ := 
-    Seal.sealing "SchA" (own base_γ (token_one_r tid st)).
+    Seal.sealing SCH (own base_γ (token_one_r tid st)).
 
   (** tid **)
   Definition tid_admin_r (otid: option nat) : tidF :=
@@ -85,12 +85,12 @@ Module SchAS. Section SchAS.
   Definition tid_frag_r (q: Qp) (otid: option nat) : tidA := Some (to_frac_agree q otid).
 
   Definition tid_admin (otid: option nat) : iProp Σ :=
-    Seal.sealing "SchA" (own base_γ ((tid_admin_r otid, match otid with
+    Seal.sealing SCH (own base_γ ((tid_admin_r otid, match otid with
                                                         | Some tid => None
                                                         | None => tid_frag_r 1 None
                                                         end): tidRA)).
   Definition tid_user (q: Qp) (tid: nat) : iProp Σ :=
-    Seal.sealing "SchA" (own base_γ ((tid_user_r q tid, tid_frag_r q (Some tid)): tidRA)).
+    Seal.sealing SCH (own base_γ ((tid_user_r q tid, tid_frag_r q (Some tid)): tidRA)).
 
   (** initial resource *)
   Definition ir_threadsRA : DRA_mk threadsRA := 
@@ -122,9 +122,9 @@ Module SchAS. Section SchAS.
     *[Some ir_threadsRA].
 
   Definition init_threads : iProp Σ := 
-    (* Seal.sealing "SchA" *) (own base_γ ir_threadsRA).
+    (* Seal.sealing SCH *) (own base_γ ir_threadsRA).
   Definition init_tid : iProp Σ :=
-    Seal.sealing "SchA" (own base_γ (tid_admin_r (Some 0), None))%I.
+    Seal.sealing SCH (own base_γ (tid_admin_r (Some 0), None))%I.
 
   Section RA.
 
@@ -205,13 +205,13 @@ Module SchAS. Section SchAS.
     Lemma make_tid_admin:
       own base_γ SchAS.ir_tidRA ⊢ SchAS.tid_admin None.
     Proof.
-      rewrite /tid_admin. unseal "SchA". et.
+      rewrite /tid_admin. unseal SCH. et.
     Qed.
 
     Lemma tid_admin_none_user q t :
       tid_admin None ∗ tid_user q t ⊢ False.
     Proof using.
-      rewrite /tid_admin /tid_user. unseal "SchA".
+      rewrite /tid_admin /tid_user. unseal SCH.
       iIntros "[A U]". iCombine "A U" gives %wf.
       rewrite /tid_admin_r /tid_user_r /tid_frag_r in wf.
       rewrite -pair_op pair_valid in wf; des; ss.
@@ -224,7 +224,7 @@ Module SchAS. Section SchAS.
     Lemma tid_admin_some_user q t0 t1 :
       tid_admin (Some t0) ∗ tid_user q t1 ⊢ ⌜t0 = t1⌝.
     Proof using.
-      rewrite /tid_admin /tid_user. unseal "SchA".
+      rewrite /tid_admin /tid_user. unseal SCH.
       iIntros "[F U]". iCombine "F U" gives %wf.
       rewrite /tid_admin_r /tid_user_r /tid_frag_r in wf.
       rewrite -pair_op pair_valid in wf; des; ss.
@@ -256,7 +256,7 @@ Module SchAS. Section SchAS.
     Proof using.
       iIntros "[A U]".
       iPoseProof (tid_admin_some_user with "[A U]") as "%"; iFrame. des.
-      rewrite /tid_admin /tid_user. unseal "SchA".
+      rewrite /tid_admin /tid_user. unseal SCH.
       iCombine "A U" as "AU".
       rewrite tid_admin_none_split_r; eauto.
       iPoseProof (own_update with "AU") as ">AU".
@@ -269,7 +269,7 @@ Module SchAS. Section SchAS.
       tid_admin None ⊢ |==> tid_admin (Some t) ∗ tid_user 1 t.
     Proof using.
       iIntros "N".
-      rewrite /tid_admin /tid_user. unseal "SchA".
+      rewrite /tid_admin /tid_user. unseal SCH.
       rewrite -(tid_admin_none_split_r t); eauto.
       iPoseProof (own_update with "N") as ">N".
       { instantiate (1 := (tid_admin_r (Some t) ⋅ tid_user_r 1 t, _)).
@@ -280,12 +280,23 @@ Module SchAS. Section SchAS.
       iDestruct "N" as "[A U]". iFrame; eauto.
     Qed.
 
+    Lemma tid_admin_none :
+      own base_γ SchAS.ir_tidRA ⊢ SchAS.tid_admin None.
+    Proof using.
+      rewrite /SchAS.tid_admin. unseal SCH. et.
+    Qed.
+    Lemma tid_admin_some tid :
+      own base_γ (SchAS.tid_admin_r (Some tid), None) ⊢ SchAS.tid_admin (Some tid).
+    Proof using.
+      rewrite /SchAS.tid_admin. unseal SCH. et.
+    Qed.
+    
     Lemma tid_user_shrink q0 q tid
       (LE: q ≤ q0)
       :
       tid_user q0 tid ⊢ tid_user q tid.
     Proof.
-      rewrite /tid_user /tid_user_r /tid_frag_r. unseal "SchA".
+      rewrite /tid_user /tid_user_r /tid_frag_r. unseal SCH.
       eapply own_mono.
       destruct (q0 - q) eqn: E.
       - exists (λ t : nat, if t =? tid then Some q1 else ε, Some (to_frac_agree q1 (Some tid))).
@@ -308,7 +319,7 @@ Module SchAS. Section SchAS.
       :
       tid_user q0 tid ∗ tid_user q1 tid ⊢ tid_user (q0+q1) tid.
     Proof.
-      rewrite /tid_user /tid_user_r. unseal "SchA".
+      rewrite /tid_user /tid_user_r. unseal SCH.
       rewrite -own_op. eapply own_mono. exists (ε, ε). rewrite -!pair_op !right_id.
       split; ss.
       - ii. rewrite discrete_fun_lookup_op. des_ifs.
@@ -320,7 +331,7 @@ Module SchAS. Section SchAS.
       :
       tid_user (q0+q1) tid ⊢ tid_user q0 tid ∗ tid_user q1 tid.
     Proof.
-      rewrite /tid_user /tid_user_r. unseal "SchA".
+      rewrite /tid_user /tid_user_r. unseal SCH.
       rewrite -own_op. eapply own_mono. exists (ε, ε). rewrite -!pair_op !right_id.
       split; ss.
       - ii. rewrite discrete_fun_lookup_op. des_ifs.
@@ -333,7 +344,7 @@ Module SchAS. Section SchAS.
       :
       tid_user q0 tid0 ∗ tid_user q1 tid1 ⊢ ⌜tid0 = tid1⌝.
     Proof.
-      rewrite /tid_user /tid_user_r /tid_frag_r. unseal "SchA".
+      rewrite /tid_user /tid_user_r /tid_frag_r. unseal SCH.
       iIntros "[U U0]". iCombine "U U0" gives %wf.
       rewrite -pair_op in wf. destruct wf as [wf0 wf]; ss.
       rewrite -Some_op Some_valid in wf.
@@ -436,8 +447,8 @@ Module SchA. Section SchA.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
   Context `{_schG: !schG}.
 
-  Definition scopes := ["Sch"].
-  Definition v_internal := "Sch" ↯ "internal".
+  Definition scopes := [SCH].
+  Definition v_internal := SCH ↯ "internal".
 
   Definition check_internal : itree crisE unit :=
     _internal <- cgetU v_internal;;

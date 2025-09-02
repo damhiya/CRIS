@@ -10,10 +10,10 @@ Definition tidslist: Type := list nat.
 Module SchI. Section SchI.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
 
-  Definition scopes := ["Sch"].
-  Definition v_ths := "Sch" ↯ "ths".
-  Definition v_tid := "Sch" ↯ "tid".
-  Definition v_tids := "Sch" ↯ "tids".
+  Definition scopes := [SCH].
+  Definition v_ths := SCH ↯ "ths".
+  Definition v_tid := SCH ↯ "tid".
+  Definition v_tids := SCH ↯ "tids".
 
   Definition _spawn (check_internal : itree crisE unit) : (nat * string * SAny.t) -> itree crisE unit
     :=

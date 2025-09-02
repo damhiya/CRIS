@@ -56,7 +56,7 @@ Section wsim.
     (st_tgt, (SB.sandbox img_t msk_t scp_t (SModTr.trans sp_t 𝒴)) >>= k_t).
   Proof using.
     intros Hcase Hmsks Hmskt. iIntros "[IST [TID SIM]]".
-    rewrite /Sch.yield; unseal "Sch".
+    rewrite /Sch.yield; unseal SCH.
     iStopProof.
     revert st_src. combine_quant st_tgt.
     combine_quant ps. combine_quant pt.
@@ -119,7 +119,7 @@ Section wsim.
       (st_src, (SB.sandbox img_s msk_s sc_s (SModTr.trans sp_s 𝒴)) >>= k_s) (st_tgt, i_t).
   Proof using.
     iIntros "SIM".
-    rewrite /Sch.yield; unseal "Sch".
+    rewrite /Sch.yield; unseal SCH.
     unfold_iterC_l; steps_l.
     force_l None; steps_l. iApply "SIM".
   (*SLOW*)Qed.
@@ -479,7 +479,7 @@ Section SREL.
       (SB.sandbox img_s msk_s sc_s (SModTr.trans sp_s Sch.yield) >>= itr).
   Proof using.
     set (ysnd := SB.sandbox img_s msk_s sc_s (SModTr.trans sp_s Sch.yield)) at 2.
-    unfold Sch.yield. unseal "Sch".
+    unfold Sch.yield. unseal SCH.
 
     ginit. gcofix CIH.
 
@@ -530,7 +530,7 @@ Section SREL.
     }
     { exists (Some false). gbase. grind. }
     { exists (Some false).
-      subst ysnd. unfold Sch.yield. unseal "Sch". rewrite unfold_iterC.
+      subst ysnd. unfold Sch.yield. unseal SCH. rewrite unfold_iterC.
       grind. rewrite SRed.ret SBRed.ret. grind. 
       rewrite unfold_iterC. grind. guclo srel_eqC_spec. econs; eauto.
     }

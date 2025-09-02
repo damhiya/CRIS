@@ -10,6 +10,9 @@ Module SchHdr.
   Definition get_tid := "Sch.get_tid".
 End SchHdr.
 
+Definition SCH : string := "sch".
+Global Opaque SCH.
+
 (* Wrapping fspecs *)
 Section FSpec.
   Context `{!crisG Γ Σ α β τ _S _I}.
@@ -44,7 +47,7 @@ Module Sch. Section Sch.
     'tid: nat <- ccallU SchHdr.spawn fnarg;; Ret tid.
 
   Definition yield : itree E unit :=
-    Seal.sealing "Sch"
+    Seal.sealing SCH
      (iterC ((fun (_: unit) =>
         b <- trigger (Choose (option bool));;
         match b with
@@ -56,7 +59,7 @@ Module Sch. Section Sch.
         end)) tt).
 
   Definition terminate : itree E unit :=
-    Seal.sealing "Sch"
+    Seal.sealing SCH
       (iterC ((fun (_: unit) =>
         trigger (Call SchHdr.yield tt↑);;;
         Ret (inl tt: () + ())

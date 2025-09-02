@@ -4,9 +4,6 @@ Require Import FSpec.
 
 Set Implicit Arguments.
 
-Create HintDb sp.
-Hint Rewrite (Seal.sealing_eq "sp") : sp.
-
 Section HEADER.
 
   Context `{Σ: GRA}.
