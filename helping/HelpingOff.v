@@ -1,10 +1,7 @@
 Require Import CRIS SchHeader.
 From CRIS.helping Require Import Header.
 
-Set Implicit Arguments.
-
 Module HelpingOff. Section HelpingOff.
-
   Context `{Σ : GRA}.
 
   Context (mn : string).
@@ -23,8 +20,8 @@ Module HelpingOff. Section HelpingOff.
     λ _, 𝒴;;; Ret ()↑.
       
   Definition fnsems : alist (option string) (fnsem_type (option fspec * fbody)) :=
-    [(Some (Helping.run mn),  (false, wmask_all, scopes, (None, run)));
-     (Some (Helping.help mn), (false, wmask_all, scopes, (None, help)))].
+    [(Some (Helping.run mn),  (true, wmask_all, scopes, (None, run)));
+     (Some (Helping.help mn), (true, wmask_all, scopes, (None, help)))].
 
   Program Definition Mod : SMod.t := {|
     SMod.scopes := scopes;
@@ -35,5 +32,4 @@ Module HelpingOff. Section HelpingOff.
   Next Obligation. prove_nodup. Qed.
 
   Definition t sp := Seal.sealing CRIS (SMod.to_mod sp Mod).  
-
 End HelpingOff. End HelpingOff.
