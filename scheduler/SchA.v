@@ -1,14 +1,12 @@
-(* Require Import CRIS.
+Require Import CRIS.
 Require Import SchHeader SchI.
 Require Import CallFilter.
 From iris Require Import frac_auth dfrac_agree.
 
-Set Implicit Arguments.
-
 Local Open Scope Qp.
 
 Section SchRA.
-  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
+  Context `{!crisG Γ Σ α β τ _S _I}.
 
   Canonical Structure SynDepO : ofe := leibnizO {n & GTerm.t n}.
 
@@ -22,8 +20,8 @@ Section SchRA.
   Definition tidRA := prodR tidF tidA.
 
   Class schG `{!crisG Γ Σ α β τ _S _I} := {
-      sch_inG_tid :: inG tidRA Γ;
-      sch_inG_ths :: inG threadsRA Σ;
+    sch_inG_tid :: inG tidRA Γ;
+    sch_inG_ths :: inG threadsRA Σ;
   }.
   Definition schΓ : HRA := #[tidRA].
   Definition schΣ : GRA := #[threadsRA].
@@ -32,54 +30,47 @@ Section SchRA.
 End SchRA.
 Hint Unfold sch_inG_tid sch_inG_ths subG_schG : GRA_index.
 
-Module SchAS. Section SchAS.
-  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
-  Context `{_schG: !schG}.
+Module SchA. Section SchA.
+  Context `{!crisG Γ Σ α β τ _S _I, !concG, !schG}.
 
   (** thread **)
-  Definition token_pending_r: threadsRA :=
-    ◯ ((λ n, ε): threadsF).
+  Definition token_pending_r : threadsRA := ◯ ((λ n, ε) : threadsF).
 
-  Definition token_quarter_r (tid: nat) (st: SAny.t → SAny.t → SynDepO): threadsRA :=
-    ◯ ((λ n, if (tid =? n) then Some (1/4, to_agree (λ vs s, Some (to_agree (st vs s)))) else ε): threadsF).
-  Definition token_th (tid: nat) (st: SAny.t → SAny.t → SynDepO): iProp Σ :=
+  Definition token_quarter_r (tid : nat) (st: SAny.t → SAny.t → SynDepO) : threadsRA :=
+    ◯ ((λ n, if (tid =? n) then Some (1/4, to_agree (λ vs s, Some (to_agree (st vs s)))) else ε) : threadsF).
+  Definition token_th (tid : nat) (st : SAny.t → SAny.t → SynDepO): iProp Σ :=
     own base_γ (token_quarter_r tid st).
 
-  Definition token_half_r (tid: nat) (st: SAny.t → SAny.t → SynDepO): threadsRA :=
+  Definition token_half_r (tid : nat) (st : SAny.t → SAny.t → SynDepO) : threadsRA :=
     ◯ ((λ n, if (tid =? n) then Some (1/2, to_agree (λ vs s, Some (to_agree (st vs s)))) else ε): threadsF).
-  Definition token_half (tid: nat) (st: SAny.t → SAny.t → SynDepO): iProp Σ :=
+  Definition token_half (tid : nat) (st : SAny.t → SAny.t → SynDepO): iProp Σ :=
     Seal.sealing SCH (own base_γ (token_half_r tid st)).
 
-  Definition token_three_quarter_r (tid: nat) (st: SAny.t → SAny.t → SynDepO): threadsRA := 
+  Definition token_three_quarter_r (tid : nat) (st : SAny.t → SAny.t → SynDepO) : threadsRA := 
     ◯ ((λ n, if (tid =? n) then Some (3/4, to_agree (λ vs s, Some (to_agree (st vs s)))) else ε): threadsF).
-  Definition token_three_quarter (tid: nat) (st: SAny.t → SAny.t → SynDepO): iProp Σ := 
-    Seal.sealing SCH
-      (own base_γ (token_three_quarter_r tid st)).
-
-  Definition token_one_r (tid: nat) (st: SAny.t → SAny.t → SynDepO): threadsRA := 
-    ◯ ((λ n, if (tid =? n) then Some (1, to_agree (λ vs s, Some (to_agree (st vs s)))) else ε): threadsF).
-  Definition token_one (tid: nat) (st: SAny.t → SAny.t → SynDepO): iProp Σ := 
-    Seal.sealing SCH
-      (own base_γ (token_one_r tid st)).
-
-  Definition idle (tid: nat): iProp Σ := 
-    Seal.sealing SCH (own base_γ token_pending_r).
-  Definition active (tid: nat) (st: SAny.t → SAny.t → SynDepO): iProp Σ := 
-    Seal.sealing SCH (own base_γ (token_quarter_r tid st)).
-  Definition done (tid: nat) (st: SAny.t → SAny.t → SynDepO): iProp Σ := 
+  Definition token_three_quarter (tid : nat) (st : SAny.t → SAny.t → SynDepO) : iProp Σ := 
     Seal.sealing SCH (own base_γ (token_three_quarter_r tid st)).
-  Definition joined (tid: nat) (st: SAny.t → SAny.t → SynDepO): iProp Σ := 
+
+  Definition token_one_r (tid : nat) (st : SAny.t → SAny.t → SynDepO) : threadsRA := 
+    ◯ ((λ n, if (tid =? n) then Some (1, to_agree (λ vs s, Some (to_agree (st vs s)))) else ε): threadsF).
+  Definition token_one (tid : nat) (st : SAny.t → SAny.t → SynDepO) : iProp Σ := 
+    Seal.sealing SCH (own base_γ (token_one_r tid st)).
+
+  Definition idle (tid : nat) : iProp Σ :=  Seal.sealing SCH (own base_γ token_pending_r).
+  Definition active (tid : nat) (st : SAny.t → SAny.t → SynDepO) : iProp Σ := 
+    Seal.sealing SCH (own base_γ (token_quarter_r tid st)).
+  Definition done (tid : nat) (st : SAny.t → SAny.t → SynDepO) : iProp Σ := 
+    Seal.sealing SCH (own base_γ (token_three_quarter_r tid st)).
+  Definition joined (tid : nat) (st : SAny.t → SAny.t → SynDepO) : iProp Σ := 
     Seal.sealing SCH (own base_γ (token_one_r tid st)).
 
   (** tid **)
-  Definition tid_admin_r (otid: option nat) : tidF :=
+  Definition tid_admin_r (otid : option nat) : tidF :=
     match otid with
-    | Some tid =>
-        (λ t, if t =? tid then ε else Some 1)
-    | None =>
-        (λ t, Some 1)
+    | Some tid => λ t, if t =? tid then ε else Some 1
+    | None => λ t, Some 1
     end.
-  Definition tid_user_r (q: Qp) (tid: nat) : tidF :=
+  Definition tid_user_r (q : Qp) (tid : nat) : tidF :=
     (λ t, if t =? tid then Some q else ε).
 
   Definition tid_frag_r (q: Qp) (otid: option nat) : tidA := Some (to_frac_agree q otid).
@@ -115,29 +106,25 @@ Module SchAS. Section SchAS.
     (tid_admin_r None, tid_frag_r 1 None).
   Lemma ir_tidRA_valid : ✓ (ir_tidRA). econs; ss. Qed.
 
-  Definition ir_schΓ : schΓ :=
-    *[Some ir_tidRA].
+  Definition ir_schΓ : schΓ := *[Some ir_tidRA].
+  Definition ir_schΣ : schΣ := *[Some ir_threadsRA].
 
-  Definition ir_schΣ : schΣ :=
-    *[Some ir_threadsRA].
-
-  Definition init_threads : iProp Σ := 
-    (* Seal.sealing SCH *) (own base_γ ir_threadsRA).
-  Definition init_tid : iProp Σ :=
-    Seal.sealing SCH (own base_γ (tid_admin_r (Some 0), None))%I.
+  Definition init_threads : iProp Σ := own base_γ ir_threadsRA.
+  Definition init_tid : iProp Σ := Seal.sealing SCH (own base_γ (tid_admin_r (Some 0), None))%I.
 
   Section RA.
 
-    Lemma fragree_incl_false x:
-      (Some x: fragreeUR) ≼ (None: fragreeUR) → False.
+    Lemma fragree_incl_false x :
+      (Some x : fragreeUR) ≼ (None : fragreeUR) → False.
     Proof using.
-      i. inv H. destruct x0.
-      - rewrite -Some_op in H0. inv H0.
-      - rewrite right_id in H0. inv H0.
+      i. inv H1. destruct x0.
+      - rewrite -Some_op in H2. inv H2.
+      - rewrite right_id in H2. inv H2.
     Qed.
 
-    Lemma split_thread (ths: threadsF) tid:
-      ths ≡ ((λ n, if (tid =? n) then ths tid else ε): threadsF) ⋅ ((λ n, if (tid =? n) then ε else ths n): threadsF).
+    Lemma split_thread (ths : threadsF) tid :
+      ths ≡
+      ((λ n, if (tid =? n) then ths tid else ε): threadsF) ⋅ (λ n, if (tid =? n) then ε else ths n).
     Proof using.
       intros x.
       rewrite discrete_fun_lookup_op. des_ifs.
@@ -145,7 +132,7 @@ Module SchAS. Section SchAS.
       - rewrite left_id. ss.
     Qed.
 
-    Lemma token_quarter_quarter tid (Q: SAny.t → SAny.t → SynDepO):
+    Lemma token_quarter_quarter tid (Q : SAny.t → SAny.t → SynDepO) :
       token_half_r tid Q ≡ (token_quarter_r tid Q) ⋅ (token_quarter_r tid Q).
     Proof using.
       unfold token_half_r, token_quarter_r.
@@ -154,7 +141,7 @@ Module SchAS. Section SchAS.
       rewrite -Some_op -pair_op frac_op Qp.quarter_quarter agree_idemp //.
     Qed.
 
-    Lemma token_quarter_half tid (Q: SAny.t → SAny.t → SynDepO):
+    Lemma token_quarter_half tid (Q : SAny.t → SAny.t → SynDepO) :
       token_three_quarter_r tid Q ≡ (token_quarter_r tid Q) ⋅ (token_half_r tid Q).
     Proof using.
       unfold token_half_r, token_quarter_r, token_three_quarter_r.
@@ -165,7 +152,7 @@ Module SchAS. Section SchAS.
       rewrite agree_idemp //.
     Qed.
 
-    Lemma token_half_half tid (Q: SAny.t → SAny.t → SynDepO):
+    Lemma token_half_half tid (Q : SAny.t → SAny.t → SynDepO) :
       token_one_r tid Q ≡ (token_half_r tid Q) ⋅ (token_half_r tid Q).
     Proof using.
       unfold token_one_r, token_half_r.
@@ -174,9 +161,9 @@ Module SchAS. Section SchAS.
       rewrite -Some_op -pair_op frac_op Qp.half_half agree_idemp //.
     Qed.
 
-    Lemma shot_thread (ths_b ths_w: threadsF) tid (Q: SAny.t → SAny.t → SynDepO)
-      (IDLE: ths_b tid = None ∧ ths_w tid = None)
-      (VLD: ✓ ths_b ∧ ✓ ths_w)
+    Lemma shot_thread (ths_b ths_w : threadsF) tid (Q : SAny.t → SAny.t → SynDepO)
+      (IDLE : ths_b tid = None ∧ ths_w tid = None)
+      (VLD : ✓ ths_b ∧ ✓ ths_w)
     :
       ● ths_b ⋅ ◯ ths_w
       ~~> ● ((λ n, if (tid =? n) then Some (1, to_agree (λ vs s, Some (to_agree (Q vs s)))) else ths_b n): threadsF)
@@ -195,15 +182,15 @@ Module SchAS. Section SchAS.
         + intros x.
           do 2 rewrite discrete_fun_lookup_op. 
           rewrite -assoc (comm _ _ (c x)) assoc.
-          specialize (H0 x). rewrite discrete_fun_lookup_op in H0. rewrite -H0.
+          specialize (H2 x). rewrite discrete_fun_lookup_op in H2. rewrite -H2.
           des_ifs; [|rewrite right_id //]. rewrite Nat.eqb_eq in Heq. subst. des.
           rewrite IDLE. ss.
         + intros x. rewrite discrete_fun_lookup_op. des_ifs; [|rewrite right_id //].
           des. rewrite Nat.eqb_eq in Heq. subst. rewrite IDLE0. ss.
     Qed.
 
-    Lemma make_tid_admin:
-      own base_γ SchAS.ir_tidRA ⊢ SchAS.tid_admin None.
+    Lemma make_tid_admin :
+      own base_γ SchA.ir_tidRA ⊢ SchA.tid_admin None.
     Proof.
       rewrite /tid_admin. unseal SCH. et.
     Qed.
@@ -281,14 +268,14 @@ Module SchAS. Section SchAS.
     Qed.
 
     Lemma tid_admin_none :
-      own base_γ SchAS.ir_tidRA ⊢ SchAS.tid_admin None.
+      own base_γ SchA.ir_tidRA ⊢ SchA.tid_admin None.
     Proof using.
-      rewrite /SchAS.tid_admin. unseal SCH. et.
+      rewrite /SchA.tid_admin. unseal SCH. et.
     Qed.
     Lemma tid_admin_some tid :
-      own base_γ (SchAS.tid_admin_r (Some tid), None) ⊢ SchAS.tid_admin (Some tid).
+      own base_γ (SchA.tid_admin_r (Some tid), None) ⊢ SchA.tid_admin (Some tid).
     Proof using.
-      rewrite /SchAS.tid_admin. unseal SCH. et.
+      rewrite /SchA.tid_admin. unseal SCH. et.
     Qed.
     
     Lemma tid_user_shrink q0 q tid
@@ -362,16 +349,15 @@ Module SchAS. Section SchAS.
     Variable q_full : Qp.
 
     Definition fspec_spawnable fsp
-      (pre : SAny.t → SAny.t → iProp Σ) (postS: SAny.t → SAny.t -> SynDepO) : Prop
-      :=
+      (pre : SAny.t → SAny.t → iProp Σ) (postS: SAny.t → SAny.t -> SynDepO) : Prop :=
+      spawnable fsp = false ∧
       fspec_imply fsp
         (fspec_winv E_full 
            (fspec_virtual (λ (my_tid: nat),
               ((λ (varg: SAny.t) arg,
                 tid_user q_full my_tid ∗ ∃ sarg, ⌜arg = sarg↑⌝ ∗ pre varg sarg)%I,
                (λ (vret: SAny.t) ret,
-                tid_user q_full my_tid ∗ ∃ sret, ⌜ret = sret↑⌝ ∗ interp_cond (postS vret sret)))%I)))
-    .
+                tid_user q_full my_tid ∗ ∃ sret, ⌜ret = sret↑⌝ ∗ interp_cond (postS vret sret)))%I))).
     
     (* TODO : clarify with WP tc *)
     Definition fn_spawnable fn
@@ -380,16 +366,17 @@ Module SchAS. Section SchAS.
       ∃ fsp, alist_find (Some fn) sp_user = Some (Some fsp) ∧
       fspec_spawnable fsp pre postS.
 
-    Definition _spawn_spec : fspec := 
-      fspec_virtual (λ '(my_tid, pre, postS),
-        ((λ varg arg,
+    Definition inner_spawn_spec : fspec := 
+      mk_fspec true
+        (λ '(my_tid, pre, postS) varg arg,
+          ∃ (va : string * SAny.t), ⌜varg = va↑⌝ ∗
             ∃ fvarg farg fn,
-              ⌜varg = ((my_tid, fn, fvarg) : nat * string * SAny.t)
-              ∧ arg = ((my_tid, fn, farg) : nat * string * SAny.t)↑
-              ∧ fn_spawnable fn pre postS⌝
-                  ∗ pre fvarg farg ∗ token_half my_tid postS)%I,
-         (λ (_: SAny.t) _, False%I)))
-    .
+              ⌜va = ((fn, fvarg) : string * SAny.t) ∧
+              arg = ((fn, farg) : string * SAny.t)↑ ∧
+              fn_spawnable fn pre postS⌝ ∗
+              pre fvarg farg ∗
+              token_half my_tid postS)%I
+        (λ _ vret _, ∃ (vr : SAny.t), ⌜vret = vr↑⌝ ∗ False)%I.
 
     Definition spawn_spec : fspec :=
       fspec_winv E_full
@@ -397,23 +384,20 @@ Module SchAS. Section SchAS.
           ((λ varg arg,
             tid_user q_full my_tid ∗
             ∃ fvarg farg fn,
-              ⌜varg = ((fn, fvarg): string * SAny.t) 
-              ∧ arg = ((fn, farg): string * SAny.t)↑
-              ∧ fn_spawnable fn pre postS⌝
+              ⌜varg = ((fn, fvarg): string * SAny.t) ∧
+               arg = ((fn, farg): string * SAny.t)↑ ∧
+               fn_spawnable fn pre postS⌝
               ∗ pre fvarg farg)%I,
-           (λ vret ret,
-            tid_user q_full my_tid ∗
-            ∃ tid: nat,
-              ⌜vret = tid ∧ ret = tid↑⌝ ∗ token_th tid postS)%I)))
-    .
+            (λ vret ret,
+              tid_user q_full my_tid ∗
+              ∃ tid, ⌜vret = tid ∧ ret = tid↑⌝ ∗ token_th tid postS)%I))).
 
     Definition yield_spec : fspec :=
       fspec_winv E_full
         (fspec_simple (λ my_tid,
           ((λ varg, ⌜varg = tt↑⌝ ∗ tid_user q_full my_tid),
            (λ vret, ⌜vret = tt↑⌝ ∗ tid_user q_full my_tid)
-          ))
-        )%I.
+          )))%I.
 
     Definition join_spec : fspec :=
       fspec_winv E_full
@@ -432,68 +416,118 @@ Module SchAS. Section SchAS.
 
     Definition sp : spl_type :=
       Seal.sealing CRIS 
-        [(Some SchHdr._spawn,  Some _spawn_spec);
-         (Some SchHdr.spawn,   Some (spawn_spec));
-         (Some SchHdr.yield,   Some (yield_spec));
-         (Some SchHdr.join,    Some (join_spec));
-         (Some SchHdr.get_tid, Some (get_tid_spec))].
-
+        [(Some SchHdr._spawn,  Some inner_spawn_spec);
+         (Some SchHdr.spawn,   Some spawn_spec);
+         (Some SchHdr.yield,   Some yield_spec);
+         (Some SchHdr.join,    Some join_spec);
+         (Some SchHdr.get_tid, Some get_tid_spec)].
   End SPEC.
-End SchAS. End SchAS.
-
-Global Arguments SchAS.init_threads : simpl never.
-
-Module SchA. Section SchA.
-  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
-  Context `{_schG: !schG}.
 
   Definition scopes := [SCH].
-  Definition v_internal := SCH ↯ "internal".
 
-  Definition check_internal : itree crisE unit :=
+  Definition v_ths := SCH ↯ "ths".
+  Definition v_tid := SCH ↯ "tid".
+
+  Definition inner_spawn : string * SAny.t → itree crisE unit :=
+    λ '(fn, arg),
+      'rv : SAny.t <- ccallU fn arg;;
+      'ths : thpool <- cgetN v_ths;;
+      'tid : nat <- cgetN v_tid;;
+      match ths !! tid with
+      | Some (stid, None) =>
+          let ths2 := <[tid := (stid, Some rv)]> ths in
+          cput v_ths ths2;;;
+          Sch.terminate
+      | _ => triggerUB
+      end.
+
+  Definition spawn : string * SAny.t → itree crisE nat :=
+    λ '(fn, arg),
+      'ths : thpool <- cgetN v_ths;;
+      new_stid <- trigger (Spawn SchHdr._spawn (fn, arg)↑);;
+      let new_tid : nat := length ths in
+      cput v_ths (<[new_tid := (new_stid, None)]> ths);;;
+      Ret new_tid.
+
+  Definition yield : unit → itree crisE unit :=
+    λ _,
+      'ths : thpool <- cgetN v_ths;;
+      '(exist _ ntid _) : _ <- trigger (Choose {ntid : nat | ntid < length ths})%nat;;
+      (* Sanity check *)
+      tid <- trigger GetTid;;
+      'mtid : nat <- cgetN v_tid;;
+      match ths !! mtid with
+      | Some (stid, _) => if (decide (stid = tid)) then Ret () else triggerUB
+      | None => triggerUB
+      end;;;
+      trigger (Yield ntid);;;
+      cput v_tid mtid.
+
+  Definition join : nat → itree crisE (option SAny.t) :=
+    λ tid,
+      (* possibly infinite loop while waiting for the thread to terminate *)
+      orv <- (iterC (λ _,
+        'ths : thpool <- cgetN v_ths;;
+        match ths !! tid with
+        | None => Ret (inr None)
+        | Some (_, Some rv) => Ret (inr (Some rv))
+        | Some (_, None) => '() : _ <- ccallU SchHdr.yield tt;; Ret (inl tt)
+        end
+      ) tt);;
+      Ret orv.
+
+  Definition get_tid : unit → itree crisE nat :=
+    λ _, cgetN v_tid.
+
+  (* Definition v_internal := SCH ↯ "internal". *)
+
+  (* Definition check_internal : itree crisE unit :=
     _internal <- cgetU v_internal;;
     assume (_internal = true);;;
     cput v_internal false
-  .
+  . *)
 
-  Definition trigger_Yield (nxt_tid: nat) : itree crisE unit :=
+  (* Definition trigger_Yield (nxt_tid: nat) : itree crisE unit :=
     cput v_internal true;;;
     SchI.trigger_Yield nxt_tid;;;
     check_internal
-  .
+  . *)
   
   Definition fnsems sp_user q_tid : fnsems_type :=
-    [(Some SchHdr._spawn, (true, wmask_all, scopes, (Some (SchAS._spawn_spec sp_user ⊤ 1), (cfunN (SchI._spawn check_internal)))));
-     (Some SchHdr.spawn,  (true, wmask_all, scopes, (Some (SchAS.spawn_spec sp_user ⊤ 1),  (cfunN SchI.spawn))));
-     (Some SchHdr.yield,  (true, wmask_all, scopes, (Some (SchAS.yield_spec ⊤ 1),          (cfunN (SchI.yield trigger_Yield)))));
-     (Some SchHdr.join,   (true, wmask_all, scopes, (Some (SchAS.join_spec ⊤ 1),           (cfunN SchI.join))));
-     (Some SchHdr.get_tid,(true, wmask_all, scopes, (Some (SchAS.get_tid_spec q_tid),      (cfunN SchI.get_tid))))].
+    [(Some SchHdr._spawn,
+      (true, wmask_all, scopes, (Some (inner_spawn_spec sp_user ⊤ 1), (cfunN inner_spawn))));
+     (Some SchHdr.spawn,
+      (true, wmask_all, scopes, (Some (spawn_spec sp_user ⊤ 1),       (cfunN spawn))));
+     (Some SchHdr.yield,
+      (true, wmask_all, scopes, (Some (yield_spec ⊤ 1),               (cfunN yield))));
+     (Some SchHdr.join,
+      (true, wmask_all, scopes, (Some (join_spec ⊤ 1),                (cfunN join))));
+     (Some SchHdr.get_tid,
+      (true, wmask_all, scopes, (Some (get_tid_spec q_tid),           (cfunN get_tid))))].
 
   Program Definition smod sp_user q_tid : SMod.t := {|
     SMod.scopes := scopes;
     SMod.fnsems := fnsems sp_user q_tid;
-    SMod.initial_st := (v_internal, false↑) :: SchI.smod.(SMod.initial_st);
+    SMod.initial_st := SchI.smod.(SMod.initial_st);
   |}.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition init_cond : iProp Σ := SchAS.init_threads ∗ SchAS.init_tid.
+  Definition init_cond : iProp Σ := SchA.init_threads ∗ SchA.init_tid.
   
-  Definition t sp sp_user q_tid :=
-    Seal.sealing CRIS (SMod.to_mod sp (smod sp_user q_tid)).
-
+  Definition t sp sp_user q_tid := Seal.sealing CRIS (SMod.to_mod sp (smod sp_user q_tid)).
 End SchA. End SchA.
 
 Section FSPEC_SCH.
-  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
-  Context `{_schG: !schG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concG, !schG}.
 
-  Definition fspec_sch q_full (fsp: fspec) : fspec :=
-    mk_fspec (meta := nat * fsp.(meta))
-    (λ '(my_tid,x) varg arg, SchAS.tid_user q_full my_tid ∗ fsp.(precond) x varg arg)%I
-    (λ '(my_tid,x) vret ret, SchAS.tid_user q_full my_tid ∗ fsp.(postcond) x vret ret)%I.
+  Definition fspec_sch q_full (fsp : fspec) : fspec :=
+    mk_fspec false (meta := nat * fsp.(meta))
+      (λ '(my_tid, x) varg arg, SchA.tid_user q_full my_tid ∗ fsp.(precond) x varg arg)%I
+      (λ '(my_tid, x) vret ret, SchA.tid_user q_full my_tid ∗ fsp.(postcond) x vret ret)%I.
 
   Definition icond_sch q_full (I: iProp Σ) : iProp Σ :=
-    SchAS.tid_user q_full 0 ∗ I.
+    SchA.tid_user q_full 0 ∗ I.
+End FSPEC_SCH.
 
-End FSPEC_SCH. *)
+Global Arguments SchA.init_threads : simpl never.
