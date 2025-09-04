@@ -6,7 +6,7 @@ Set Implicit Arguments.
 
 Module APCA. Section APCA.
   Import APC.
-  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concG}.
 
   Definition scopes := ["APC"].
 
@@ -14,8 +14,9 @@ Module APCA. Section APCA.
     λ dep_ord, APC dep_ord SpPure.
 
   Definition apc_spec : fspec :=
-    mk_fspec (λ (o: Ord.t) varg arg, ⌜varg = o↑ ∧ arg = varg⌝)%I
-             (λ _ _ _, True)%I.
+    mk_fspec false
+      (λ (o: Ord.t) varg arg, ⌜varg = o↑ ∧ arg = varg⌝)%I
+      (λ _ _ _, True)%I.
 
   Definition Sp : spl_type :=
     Seal.sealing CRIS

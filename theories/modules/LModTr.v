@@ -1,8 +1,6 @@
 Require Import Common.
 
 Module LModTr.
-Section EXEC.
-
   Definition pure_state {S E} : E ~> stateT S (itree E) := fun _ e s => x <- trigger e;; Ret (s, x).
 
   Definition handle_stateE {E} : stateE ~> stateT Any.t (itree E) :=
@@ -18,7 +16,7 @@ Section EXEC.
 
   Definition handle_callE (prog: string -> option (Any.t -> itree lmodE Any.t))
       : ths_state -> itreeV (stateE +' coreE) (ths_state + Any.t) :=
-    fun '(tid, ths) =>
+    λ '(tid, ths),
       match base.lookup tid ths with
       | None => inl (triggerUB)
       | Some itr =>
@@ -26,20 +24,24 @@ Section EXEC.
           | RetF rv =>
               inl (if Nat.eq_dec tid 0 then Ret (inr rv) else triggerUB)
           | TauF itr' =>
-              inl (Ret (inl (tid, base.insert tid itr' ths)))
+              inl (Ret (inl (tid, <[tid := itr']> ths)))
           | VisF (inr1 e) k =>
-              inr (existT _ (subevent _ e, fun v => Ret (inl (tid, base.insert tid (k v) ths))))
+              inr (existT _ (subevent _ e, λ v, Ret (inl (tid, <[tid := k v]> ths))))
           | VisF (inl1 e) k =>
               inl
                 (match e in callE T return (T -> _) -> _ with
-                 | Call fn arg => fun k =>
-                                    bd <- (prog fn)? ;;
-                                    Ret (inl (tid, base.insert tid (x <- bd arg;; tau;; k x) ths))
-                 | Spawn fn arg => fun k => let new_tid := List.length ths in
-                                     bd <- (prog fn)? ;;
-                                     Ret (inl (tid, (base.insert tid (k new_tid) ths) ++ [bd arg]))
-                 | Yield tid' => fun k =>
-                                    Ret (inl (tid', base.insert tid (k tt) ths))
+                 | Call fn arg =>
+                    λ k,
+                      bd <- (prog fn)? ;;
+                      Ret (inl (tid, <[tid := x <- bd arg;; tau;; k x]> ths))
+                 | Spawn fn arg =>
+                    λ k, let new_tid := List.length ths in
+                      bd <- (prog fn)? ;;
+                      Ret (inl (tid, (<[tid := k new_tid]> ths) ++ [bd arg]))
+                 | Yield tid' =>
+                    λ k, Ret (inl (tid', <[tid := k tt]> ths))
+                 | GetTid =>
+                    λ k, Ret (inl (tid, <[tid:=k tid]> ths))
                  end k)
           end
       end.
@@ -50,6 +52,4 @@ Section EXEC.
 
   Definition trans prog (itr0: itree lmodE Any.t) (st0: Any.t): itree coreE _ :=
     interp_stateE Any.t (interp_callE prog itr0) st0.
-
-End EXEC.
 End LModTr.

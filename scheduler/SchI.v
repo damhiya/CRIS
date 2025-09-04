@@ -8,7 +8,7 @@ Definition thslist: Type := list (nat * option SAny.t).
 Definition tidslist: Type := list nat.
 
 Module SchI. Section SchI.
-  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concG}.
 
   Definition scopes := [SCH].
   Definition v_ths := SCH ↯ "ths".
@@ -112,5 +112,4 @@ Module SchI. Section SchI.
   Next Obligation. prove_nodup. Qed.
 
   Definition t := Seal.sealing CRIS (SMod.to_mod sp_none smod).
-
 End SchI. End SchI.

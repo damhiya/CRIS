@@ -5,7 +5,7 @@ Set Implicit Arguments.
 
 Module APCIA. Section APCIA.
   Import APCA.
-  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concG}.
   
   Context (SpA : sp_type).
   Context (SpPure : spl_type).
@@ -20,7 +20,7 @@ Module APCIA. Section APCIA.
 
   Lemma simF_apc :
     ISim.sim_fun open APCAMod APCIMod APCA.init_cond Ist (Some APCHdr.apc).
-  Proof using _crisG.
+  Proof using.
     init_simF.
     
     steps_l. iDestruct "ASM" as "[-> ->]"; hss.
@@ -31,14 +31,14 @@ Module APCIA. Section APCIA.
   Qed.
 
   Theorem sim : ISim.t open APCAMod APCIMod emp%I Ist.
-  Proof using _crisG.
+  Proof using.
     init_sim.
     - eapply simF_apc.
   Qed.
 End APCIA.
 
 Section ctxr.
-  Context `{!crisG Γ Σ α β τ _S _I}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concG}.
 
   Theorem ctxr (SpA : sp_type) (SpPure : spl_type) :
     ctx_refines

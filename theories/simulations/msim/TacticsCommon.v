@@ -88,7 +88,7 @@ Ltac unfold_cris_defs :=
   (hrepeat do 1 match goal with |- context[cfunN ?x] => rewrite {1}/x end);
   rewrite /cfunN;
   rewrite /SModTr.trans_ktree /SModTr.HoareFun; s;
-  (hrepeat do 1 match goal with |- context[SModTr.trans _ (?x _)] =>
+  (hrepeat do 1 match goal with |- context[SModTr.trans _ _ (?x _)] =>
      match type of x with Any.t → _ => rewrite /x end
   end).
 
@@ -217,6 +217,8 @@ Tactic Notation "red_SB" :=
           eapply SBRed.Spawn_spawnSB
       | vis (Yield _) _ =>
           eapply SBRed.vis_yield
+      | vis GetTid _ =>
+          eapply SBRed.vis_gettid
       | vis (Call _ _) _ =>
           eapply SBRed.Call_callSB
       | vis (SPut _ _) _ =>
@@ -263,7 +265,7 @@ Ltac unfold_sp_exact sp name :=
 
 Tactic Notation "red_S" tactic(tac) :=
   lazymatch goal with
-  | [ |- @SModTr.trans _ ?sp _ ?itr = _ ] =>
+  | [ |- @SModTr.trans ?Γ ?Σ ?α ?β ?τ ?_S ?_I ?_crisG ?concG ?img ?sp ?R ?itr = _ ] =>
       lazymatch itr with
       | Ret _ =>
           eapply SRed.ret
@@ -285,6 +287,11 @@ Tactic Notation "red_S" tactic(tac) :=
       | vis (Yield _) _ =>
           etransitivity;
           [ eapply SRed.vis_yield
+          | tac
+          ]
+      | vis GetTid _ =>
+          etransitivity;
+          [ eapply SRed.vis_gettid
           | tac
           ]
       | vis (Call ?fn _) _ =>
@@ -335,9 +342,10 @@ Ltac _hnorm_itr :=
   | [ |- @SB.sandbox ?Σ ?R ?img ?imports ?scopes ?itr = _ ] =>
       etransitivity;
       [ cong (@SB.sandbox Σ R img imports scopes); _hnorm_itr | red_SB ]
-  | [ |- @SModTr.trans ?Σ ?sp ?R ?itr = _ ] =>
+  | [ |- @SModTr.trans ?Γ ?Σ ?α ?β ?τ ?_S ?_I ?_crisG ?concG ?img ?sp ?R ?itr = _ ] =>
       etransitivity;
-      [ cong (@SModTr.trans Σ sp R); _hnorm_itr | red_S (do 1 _hnorm_itr) ]
+      [ cong (@SModTr.trans Γ Σ α β τ _S _I _crisG concG img sp R); _hnorm_itr
+      | red_S (do 1 _hnorm_itr) ]
   | [ |- trigger _ = _ ] =>
       eapply trigger_vis
   | [ |- assume _ = _ ] =>

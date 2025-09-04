@@ -275,6 +275,16 @@ Section wsim.
     iIntros (??) "IST"; iApply ("C" with "[IST] [I]"); iFrame; et.
   Qed.
 
+  Lemma wsim_gettid k_s k_t :
+    (∀ tid, sim Ep r g RR true true (st_s, k_s tid) (st_t, k_t tid)) ⊢
+    sim Ep r g RR ps pt
+      (st_s, trigger GetTid >>= k_s)
+      (st_t, trigger GetTid >>= k_t).
+  Proof using.
+    unseal; iIntros "C I". iApply isim_gettid; eauto.
+    iIntros (?); iApply ("C" with "I"); iFrame; et.
+  Qed.
+
   Lemma wsim_reset i_s i_t :
     sim Ep r g RR false false (st_s, i_s) (st_t, i_t) ⊢
     sim Ep r g RR ps pt (st_s, i_s) (st_t, i_t).
@@ -774,5 +784,4 @@ Section FancyReal.
     iIntros "[%x [Hpre Hsim]] W".
     iApply isim_ru_tgt_simple; iFrame "Hpre"; iIntros "?"; iApply ("Hsim" with "[$] [$]").
   Qed.
-
 End FancyReal.

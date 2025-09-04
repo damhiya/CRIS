@@ -1,4 +1,4 @@
-Require Import Common.
+(* Require Import Common.
 From iris.proofmode Require Import proofmode.
 Require Import SModTr SMod Mod Tactics.
 Require Import ISim ISimFacts CtxRefine CtxRefineFacts ClosedAdequacy.
@@ -138,4 +138,4 @@ Proof using.
       step. steps_r. norm_l. by_coind CIH; et.
 Qed.
 
-End INLINE.
+End INLINE. *)

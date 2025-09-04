@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 Require Import APCHeader APC APCA.
 
 Set Implicit Arguments.
@@ -247,4 +247,4 @@ Ltac apc_call_weaker hyps :=
 
 (* Ltac apc_tgt_noist :=
   prep_macro_r;
-  iApply wsim_apc_tgt_noist; des_pairs; s. *)
+  iApply wsim_apc_tgt_noist; des_pairs; s. *) *)

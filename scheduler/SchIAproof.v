@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 Require Import SchHeader SchI SchA.
 Require Import ltac2_lib.
 
@@ -649,4 +649,4 @@ Section ctxr.
   Qed.
   
 End ctxr.
-End SchIA.
+End SchIA. *)

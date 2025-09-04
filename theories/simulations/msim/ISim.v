@@ -664,6 +664,17 @@ Section SIM.
     iSpecialize ("B" $! st_src0 st_tgt0).
     iApply "B"; eauto.
   Qed.
+  
+  Lemma isim_gettid r g ps pt {Rs Rt} RR st_src st_tgt k_src k_tgt :
+    (∀ tid, @isim r g Rs Rt RR true true (st_src, k_src tid) (st_tgt, k_tgt tid)) ⊢
+    isim r g RR ps pt (st_src, trigger GetTid >>= k_src) (st_tgt, trigger GetTid >>= k_tgt).
+  Proof.
+    split; intros x wfx SIM.
+    guclo msimC_spec. econs; esplits; eauto. econs; eauto. intros tid.
+    eapply Own_general_completeness in SIM; eauto.
+    eapply isim_init; eauto.
+    iIntros "H". iApply (SIM with "H"); eauto.
+  Qed.
 
   Lemma isim_call_none
       r g ps pt {Rs Rt} RR st_src st_tgt k_src i_tgt fn varg

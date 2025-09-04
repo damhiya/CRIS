@@ -188,7 +188,7 @@ Module MemSpec. Section MemSpec.
 End MemSpec. End MemSpec.
 
 Module MemP. Section MemP.
-  Context `{!crisG Γ Σ α β τ _S _I, !memG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concG, !memG}.
 
   Definition scopes := ["Mem"].
 
@@ -216,7 +216,7 @@ Module MemP. Section MemP.
 End MemP. End MemP.
 
 Module MemA. Section MemA.
-  Context `{!crisG Γ Σ α β τ _S _I, !memG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concG, !memG}.
 
   Definition scopes := ["Mem"].
 

@@ -97,6 +97,8 @@ Ltac _wstep :=
       iApply wsim_ret
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (IO _ _) >>= _) (_, trigger (IO _ _) >>= _))] =>
       iApply wsim_io; iIntros "%"
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger GetTid >>= _) (_, trigger GetTid >>= _))] =>
+      iApply wsim_gettid; iIntros "%"
   end.
 
 Ltac wstep :=

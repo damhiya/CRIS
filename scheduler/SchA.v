@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 Require Import SchHeader SchI.
 Require Import CallFilter.
 From iris Require Import frac_auth dfrac_agree.
@@ -496,4 +496,4 @@ Section FSPEC_SCH.
   Definition icond_sch q_full (I: iProp Σ) : iProp Σ :=
     SchAS.tid_user q_full 0 ∗ I.
 
-End FSPEC_SCH.
+End FSPEC_SCH. *)

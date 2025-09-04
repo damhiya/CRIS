@@ -1,4 +1,4 @@
-From CRIS Require Import CRIS MemHeader MemA MemI ImpPrelude.
+(* From CRIS Require Import CRIS MemHeader MemA MemI ImpPrelude.
 From iris.algebra Require Import auth excl agree csum functions dfrac_agree.
 
 Set Implicit Arguments.
@@ -658,4 +658,4 @@ Module MemIA. Section MemIA.
     { rewrite mod_addc_empty_l. eapply ctxr_cond_frameR_simpl.
       eapply main_adequacy, sim_real_to_hoare. }
   Qed.
-End MemIA. End MemIA.
+End MemIA. End MemIA. *)

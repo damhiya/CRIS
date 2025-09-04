@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 Require Import LMod LModTr GSim GSimFacts GSimTactics.
 Require Import MInline MInlineIntro MInlineElim ElimRel.
 
@@ -64,4 +64,4 @@ Unshelve.
     iMod (x4 with "X"); done.
   }
 }
-(*SLOW*)Qed.
+(*SLOW*)Qed. *)

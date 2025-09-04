@@ -1,4 +1,4 @@
-Require Import CRIS SchHeader SchA.
+(* Require Import CRIS SchHeader SchA.
 Require Import ITactics.
 Require Import MSim WSim.
 
@@ -786,4 +786,4 @@ Section WSIM.
     guclo msim_srelC_spec. econs; eauto using srel_yy_y.
   Qed.
 
-End WSIM.
+End WSIM. *)

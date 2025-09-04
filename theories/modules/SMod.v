@@ -1,15 +1,14 @@
-Require Import Common.
+Require Import Common ConcRA.
 Require Import Mod.
 Require Export FSpec SModTr Sp.
 
 Set Implicit Arguments.
 
-Definition fnsems_type `{Σ: GRA} :=
+Definition fnsems_type `{Σ : GRA} :=
   alist (option string) (fnsem_type (option fspec * fbody)).
 
-Module SMod.
-Section SMOD.
-  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
+Module SMod. Section SMOD.
+  Context `{!crisG Γ Σ α β τ _S _I, !concG}.
 
   Record t : Type := mk {
     scopes : list string;
@@ -24,7 +23,7 @@ Section SMOD.
       List.NoDup scopes -> List.NoDup (List.map fst initial_st);
   }.
 
-  Definition wf (ms : t) : Prop := 
+  Definition wf (ms : t) : Prop :=
     ∀ fno img msk scp fspo bd
        (FIND: alist_find fno (fnsems ms) = Some (img, msk, scp, (fspo, bd)))
        (COND: fno = None ∨ img = false),
@@ -46,7 +45,7 @@ Section SMOD.
     initial_st := ms1.(initial_st) ++ ms2.(initial_st);
   |}.
   Next Obligation.
-    ii. unfold fnsems_scopes in H. des_ifs.
+    ii. unfold fnsems_scopes in H0. des_ifs.
     rewrite alist_find_app_o in Heq. des_ifs.
     {
       hexploit (ms1.(well_scoped_fns) fn a).
@@ -61,8 +60,8 @@ Section SMOD.
   Qed.
   Next Obligation.
     unfold state_scopes. ii. destruct ms1, ms2. ss.
-    rewrite map_app in H. apply in_or_app. apply in_app_or in H.
-    destruct H; eauto.
+    rewrite map_app in H0. apply in_or_app. apply in_app_or in H0.
+    destruct H0; eauto.
   Qed.
   Next Obligation.
     ii. exploit nodup_app_l; eauto. i.
@@ -80,7 +79,7 @@ Section SMOD.
       { eapply NoDup_cons_iff in x0. des. eauto. }
       { ss. ii. eapply INCL1. ss. eauto. }
     }
-    ii. rewrite map_app in H0. eapply in_app_or in H0. des.
+    ii. rewrite map_app in H1. eapply in_app_or in H1. des.
     { eapply NoDup_cons_iff in x0. des. eauto. }
     eapply NoDup_app_disjoint; eauto.
     { eapply INCL1. s. left. eauto. }
@@ -96,9 +95,9 @@ Section SMOD.
     Mod.initial_st := ms.(initial_st);
     |}.
   Next Obligation.
-    i. destruct ms. ss. ii. unfold fnsems_scopes in *. unfold map_snd in*.
-    rewrite alist_find_map in H. specialize (well_scoped_fns0 fn a).
-    destruct (alist_find fn fnsems0) eqn: E; ss. 
+    i. destruct ms. ss. ii. unfold fnsems_scopes in *. unfold map_snd in *.
+    rewrite alist_find_map in H0. specialize (well_scoped_fns0 fn a).
+    destruct (alist_find fn fnsems0) eqn: E; ss.
     destruct f. destruct p. et.
   Qed.
   Next Obligation. ii. destruct ms. ss. eauto. Qed.
@@ -111,8 +110,8 @@ Section SMOD.
   |}.
   Next Obligation.
     i. destruct ms. ss. ii. unfold fnsems_scopes in *. unfold map_snd in*.
-    rewrite alist_find_map in H. specialize (well_scoped_fns0 fn a).
-    destruct (alist_find fn fnsems0) eqn: E; try rewrite E in H; ss.
+    rewrite alist_find_map in H0. specialize (well_scoped_fns0 fn a).
+    destruct (alist_find fn fnsems0) eqn: E; try rewrite E in H0; ss.
     destruct f. destruct p. et.
   Qed.
   Next Obligation. ii. destruct ms. ss. eauto. Qed.
@@ -124,8 +123,8 @@ End SMod.
 Infix "☆" := SMod.add (at level 60, right associativity).
 
 Section ADD.
-  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
-    
+  Context `{!crisG Γ Σ α β τ _S _I, !concG}.
+
   Lemma smod_add_interp_comm
       sp
       (ms0 ms1: SMod.t)
@@ -142,7 +141,7 @@ Section ADD.
     :
     SMod.to_mod sp (SMod.add md0 md1) = Mod.add (SMod.to_mod sp md0) (SMod.to_mod sp md1).
   Proof using.
-    unfold SMod.to_mod. unfold "★". s. 
+    unfold SMod.to_mod. unfold "★". s.
     f_equal. extensionalities.
     eapply smod_add_interp_comm.
   Qed.
@@ -165,28 +164,27 @@ Section ADD.
     induction mds; [eapply interp_empty|].
     s. rewrite add_interp_comm.
     f_equal. eauto.
-  Qed. 
+  Qed.
 
 End ADD.
 
 Section Aux.
+  Context `{!crisG Γ Σ α β τ _S _I, !concG}.
 
-  Context {Σ : GRA}.
-
-  Definition sp_from (md: SMod.t) : sp_type :=
+  Definition sp_from (md : SMod.t) : sp_type :=
     to_sp (List.map (map_snd (fst ∘ snd)) md.(SMod.fnsems)).
-  
-  Definition has_param (md: SMod.t) fno img msk scp :=
+
+  Definition has_param (md : SMod.t) fno img msk scp :=
     ∃ sbd, alist_find fno (SMod.fnsems md) = Some (img, msk, scp, sbd).
 
-  Definition has_trivial_spec (md: SMod.t) (fn: string) : Prop :=
+  Definition has_trivial_spec (md : SMod.t) (fn : string) : Prop :=
     ∃ fno msk scp, has_param md fno false msk scp ∧ msk fn.
 
   Definition valid_sp (md: SMod.t) (sp: sp_type) : Prop :=
     sp_imply (sp_from md) sp ∧
     ∀ fn (NS: has_trivial_spec md fn), fspec_imply (fspec_flat (sp fn)) fspec_trivial.
 
-  Definition real_smod (md: SMod.t) : Prop :=
+  Definition real_smod (md : SMod.t) : Prop :=
     ∀ fno img msk scp, has_param md fno img msk scp → img = false.
 
   Lemma real_smod_ignores_sp md sp
@@ -199,12 +197,11 @@ Section Aux.
     eapply map_ext_Forall. eapply List.Forall_forall. i.
     destruct x as [fno [[[img msk] scp] [fsp bd]]]. s. repeat f_equal.
     destruct WF; ss. rewrite map_map fst_map_snd in wf_fns.
-    eapply alist_find_some_iff in H; et.
+    eapply alist_find_some_iff in H0; et.
     exploit REAL; [r; et|].
     i; subst; et.
   Qed.
-
-End Aux.  
+End Aux.
 
 Global Hint Unfold has_param : core.
 Global Hint Unfold has_trivial_spec : core.

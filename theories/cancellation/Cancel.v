@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 Require Import LMod LModTr GSim GSimFacts GSimTactics.
 Require Import MInline MInlineIntro MInlineElim ElimRel.
 Require Import CancelCore CancelPG CancelAG CancelSpawn CancelPre CancelPost.
@@ -225,4 +225,4 @@ Proof using.
   eapply cancel_main; eauto.
 (*SLOW*)Qed.
 
-End Cancel. End Cancel.
+End Cancel. End Cancel. *)

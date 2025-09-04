@@ -68,12 +68,16 @@ Proof.
     rewrite! SBRed.yield. rewrite! bind_trigger.
     gstep. econs. i. r. gbase. eauto.
   }
+  {
+    rewrite! SBRed.gettid. rewrite! bind_trigger.
+    gstep. econs. i. r. gbase. eauto.
+  }
   destruct s; [destruct p|].
   {
     rewrite! SBRed.put. des_ifs.
-    + rewrite SBRed.put. des_ifs. 
+    + rewrite SBRed.put. des_ifs.
       * rewrite! bind_trigger. gstep. econs. i. r. gbase. eauto.
-      * exfalso. eapply existsb_exists in Heq. des. eapply SCP in Heq. 
+      * exfalso. eapply existsb_exists in Heq. des. eapply SCP in Heq.
         assert (XEQ:=existsb_exists).
         hdes. rewrite XEQ1 in Heq0; ss; eauto.
     + rewrite /triggerUB SBRed.unwrapU.
@@ -83,7 +87,7 @@ Proof.
     rewrite! SBRed.get. des_ifs.
     + rewrite! SBRed.get. des_ifs.
       * rewrite! bind_trigger. gstep. econs. i. r. gbase. eauto.
-      * exfalso. eapply existsb_exists in Heq. des. eapply SCP in Heq. 
+      * exfalso. eapply existsb_exists in Heq. des. eapply SCP in Heq.
         assert (XEQ:=existsb_exists).
         hdes. rewrite XEQ1 in Heq0; ss; eauto.
     + rewrite /triggerUB SBRed.unwrapU.
@@ -156,6 +160,15 @@ Proof.
   - rewrite bind_bind bind_vis in x. depdes x.
 Qed.
 
+Lemma inv_sandbox_gettid `{Σ : GRA} {Y} x img msk sc (ktr : _ -> itree crisE Y)
+    (SB : SB.sandbox img msk sc (trigger GetTid >>= ktr) = trigger GetTid >>= ktr) :
+  SB.sandbox img msk sc (ktr x) = ktr x.
+Proof.
+  rewrite SBRed.bind SBRed.gettid in SB.
+  des_ifs; rewrite! bind_trigger in SB; depdes SB.
+  - eapply equal_f in x. eauto.
+Qed.
+
 Lemma inv_sandbox_pg `{Σ: GRA} {X Y} x img msk sc (ktr : X -> itree crisE Y) (pg : pgE X)
     (SB : SB.sandbox img msk sc (trigger pg >>= ktr) = trigger pg >>= ktr) :
   SB.sandbox img msk sc (ktr x) = ktr x.
@@ -188,15 +201,15 @@ Proof.
   - rewrite SBRed.bind SBRed.Guarantee in SB.
     rewrite! bind_trigger in SB. inv SB.
     eapply inj_pair2, equal_f in H0. eauto.
-Qed.    
+Qed.
 
 Lemma alist_upd_not_exists k v st scopes
     (NOTEXT : existsb (String.eqb k.1) scopes = false)
     (INSCP : incl (state_scopes st) scopes) :
   alist_upd k v st = st.
 Proof.
-  eapply alist_upd_not_in. 
-  ii. eapply in_map with (f:=fst) in H. 
+  eapply alist_upd_not_in.
+  ii. eapply in_map with (f:=fst) in H.
   rewrite List.map_map in H. eapply INSCP in H.
   assert (∃x, In x scopes /\ String.eqb k.1 x = true).
   { exists k.1. esplits; [eauto|]. eapply String.eqb_refl. }
@@ -220,7 +233,7 @@ Lemma alist_find_not_exists st scopes k
   alist_find k st = None.
 Proof.
   eapply alist_find_fst_notin.
-  ii. eapply in_map with (f:=fst) in H. 
+  ii. eapply in_map with (f:=fst) in H.
   rewrite List.map_map in H. eapply INSCP in H.
   assert (∃x, In x scopes /\ String.eqb k.1 x = true).
   { exists k.1. esplits; [eauto|]. eapply String.eqb_refl. }
@@ -238,7 +251,7 @@ Proof.
   eapply alist_find_fst_notin. ii.
   eapply existsb_exists in EXT. des.
   eapply NoDup_app_disjoint; eauto.
-  eapply INC. unfold state_scopes. rewrite -List.map_map. 
+  eapply INC. unfold state_scopes. rewrite -List.map_map.
   eapply in_map with (f:=fst) in H.
   eapply String.eqb_eq in EXT0. subst. eauto.
 Qed.
@@ -250,7 +263,7 @@ Lemma wf_inv_l `{Σ: GRA} ms0 ms1
     (WF : Mod.wf (Mod.add ms0 ms1)) :
   Mod.wf ms0.
 Proof.
-  inv WF; ss. rewrite map_app in wf_fns. 
+  inv WF; ss. rewrite map_app in wf_fns.
   econs; eauto using nodup_app_l.
 Qed.
 
@@ -313,8 +326,8 @@ Lemma msim_ctx
       destruct INV1''0 as [x0' [x0'' [? [INV1''0 ?]]]]; inv INV1''0.
       destruct INV1''1 as [x1' [x1'' [? [INV1''1 ?]]]]; inv INV1''1.
       rewrite /IstEq in H7; uPred.unseal_in H7; inv H7.
-      (* 
-        new states after call should maintain the scope of previous states. 
+      (*
+        new states after call should maintain the scope of previous states.
         ctx state should maintain its own scope.
       *)
       eapply K; try refl; eauto using inv_sandbox_call; try nia; cycle 3.
@@ -325,7 +338,7 @@ Lemma msim_ctx
       { rewrite INV1 INV1'' H2; iDestruct "H1" as "[_ [[_ H] _]]";
           iPoseProof (Own_general_completeness with "H") as "H"; eauto. }
       { iApply INV2; done. }
-    - mstep. i. eapply K; try refl; eauto using inv_sandbox_core. 
+    - mstep. i. eapply K; try refl; eauto using inv_sandbox_core.
     - mstep. { rewrite alist_find_app_o. rewrite FUN. eauto. }
       eapply K; try refl; eauto. grind.
       rewrite! SBRed.bind.
@@ -337,7 +350,7 @@ Lemma msim_ctx
       rewrite sandbox_well_scoped; eauto; cycle 1.
       f_equal. extensionalities.
       rewrite ?SBRed.bind !SBRed.tau SBRed.ret.
-      do 4 f_equal. extensionalities. eapply inv_sandbox_call; eauto. 
+      do 4 f_equal. extensionalities. eapply inv_sandbox_call; eauto.
     - mstep. { rewrite alist_find_app_o. rewrite FUN. eauto. }
       eapply K; try refl; eauto. grind.
       rewrite! SBRed.bind.
@@ -361,8 +374,8 @@ Lemma msim_ctx
       rewrite  -ITRS SBRed.bind SBRed.put. des_ifs.
       + mstep.
         assert (UPD : alist_upd k v (st_src ++ st_ctx) = alist_upd k v st_src ++ st_ctx).
-        { 
-          move SCPS at bottom. move SCPC at bottom. 
+        {
+          move SCPS at bottom. move SCPC at bottom.
           eapply existsb_exists in Heq. des. eapply String.eqb_eq in Heq0.
           rewrite alist_upd_not_tail; eauto.
           ii. eapply NoDup_app_disjoint; eauto.
@@ -381,13 +394,13 @@ Lemma msim_ctx
     + mstep.
       assert (UPD : alist_upd k v (st_tgt ++ st_ctx) = alist_upd k v st_tgt ++ st_ctx).
       {
-        move SCPS at bottom. move SCPC at bottom. 
+        move SCPS at bottom. move SCPC at bottom.
         eapply existsb_exists in Heq. des. eapply String.eqb_eq in Heq0.
         eapply alist_upd_not_tail. eauto.
         ii. eapply NoDup_app_disjoint; eauto.
         eapply in_map with (f:=fst) in H2.
         rewrite List.map_map in H2. eapply SCPC in H2.
-        rewrite <- Heq0. eauto.  
+        rewrite <- Heq0. eauto.
       }
       rewrite UPD. eapply K; try refl; eauto.
       { rewrite state_scopes_update. eauto. }
@@ -396,20 +409,20 @@ Lemma msim_ctx
     + rewrite SBRed.bind SBRed.put Heq !bind_trigger in H1.
       exfalso. unfold triggerUB in H1. rewrite bind_bind bind_vis in H1. ss.
 
-  - assert (H1:=ITRS). 
+  - assert (H1:=ITRS).
     rewrite  -ITRS SBRed.bind SBRed.get. des_ifs.
     + mstep. eapply K; try refl; eauto.
       { eapply sandbox_well_scoped; et. refl. }
       erewrite alist_find_exists_l; eauto.
-      repeat f_equal. symmetry. eapply inv_sandbox_pg; eauto. 
+      repeat f_equal. symmetry. eapply inv_sandbox_pg; eauto.
     + unfold triggerUB. ired. mstep. ss.
 
-  - assert (H1:=ITRT). 
+  - assert (H1:=ITRT).
     rewrite  -ITRT SBRed.bind SBRed.get. des_ifs.
     + mstep. eapply K; try refl; eauto.
       { eapply sandbox_well_scoped; et. refl. }
       erewrite alist_find_exists_l; eauto.
-      repeat f_equal. symmetry. eapply inv_sandbox_pg; eauto. 
+      repeat f_equal. symmetry. eapply inv_sandbox_pg; eauto.
     + rewrite SBRed.bind SBRed.get Heq !bind_trigger in H1.
       exfalso. unfold triggerUB in H1. rewrite bind_bind bind_vis in H1. ss.
 
@@ -441,8 +454,8 @@ Lemma msim_ctx
     destruct INV1''0 as [x0' [x0'' [? [INV1''0 ?]]]]; inv INV1''0.
     destruct INV1''1 as [x1' [x1'' [? [INV1''1 ?]]]]; inv INV1''1.
     rewrite /IstEq in H7; uPred.unseal_in H7; inv H7.
-    (* 
-      new states after call should maintain the scope of previous states. 
+    (*
+      new states after call should maintain the scope of previous states.
       ctx state should maintain its own scope.
     *)
     eapply K; try refl; eauto; try nia; cycle 3.
@@ -458,7 +471,11 @@ Lemma msim_ctx
         iPoseProof (Own_general_completeness with "H") as "H"; eauto. }
     { iApply INV2; done. }
 
-  - gstep. econs. econs. econs; eauto. econs; eauto. 
+  - mstep. intros tid; eapply (K tid); try refl; eauto.
+    + eapply inv_sandbox_gettid in ITRT. eauto.
+    + eapply inv_sandbox_gettid in ITRS. eauto.
+
+  - gstep. econs. econs. econs; eauto. econs; eauto.
     gbase. pclearbot. eapply CIH; try refl; eauto.
 Qed.
 
@@ -502,7 +519,7 @@ Proof.
   destruct fs as [[[img msk] scp] bd].
   destruct ft as [[[img0 msk0] scp0] bd0]. ss.
   rewrite !map_app. eapply msim_ctx; try apply SIM; try nia; cycle 8; i.
-  - instantiate (1:= wmask_all). instantiate (1:= true).    
+  - instantiate (1:= wmask_all). instantiate (1:= true).
     rewrite sandbox_well_scoped; i; bsimpl; et.
   - rewrite sandbox_well_scoped; i; bsimpl; et.
   - refl.
@@ -524,7 +541,7 @@ Section ADEQUACY.
 Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
 
 Lemma ISim_ctx contextual (ms mt ctx : Mod.t) IC Ist (SIM : ISim.t open ms mt IC Ist) :
-  ISim.t contextual (ms ★ ctx) (mt ★ ctx) IC 
+  ISim.t contextual (ms ★ ctx) (mt ★ ctx) IC
     (IstProd (IstSB mt.(Mod.scopes) Ist) (IstSB ctx.(Mod.scopes) IstEq)).
 Proof using.
   inv SIM.
@@ -576,7 +593,7 @@ Proof using.
           rewrite /fnsems_scopes. erewrite x0. refl.
         - etrans; [eapply Mod.well_scoped_init|].
           eapply sub_perm_incl; et.
-        - exploit x1; et. i. 
+        - exploit x1; et. i.
           iApply (x2 with "[H]"); et. iSplit; et.
       }
       i. iIntros "%". des; subst. iPureIntro. et.
@@ -674,7 +691,7 @@ Proof using.
   - inv WFM. econs. ss. unfold map_snd.
     eapply eq_ind; [|].
     { inv SIM. eapply sub_perm_nodup. eapply sub_perm_cancel_tail.
-      eapply sim_match; et. 
+      eapply sim_match; et.
       rewrite map_app in wf_fns. eapply wf_fns. }
     rewrite -map_app map_map. f_equal.
     extensionalities. destruct H. ss.

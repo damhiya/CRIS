@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 Require Import LMod LModTr GSim GSimFacts GSimTactics.
 Require Import MInline MInlineIntro MInlineElim ElimRel.
 
@@ -19,4 +19,4 @@ Proof.
     { rewrite list_insert_id //. }
     { econs; eauto; eapply KTR. }
 Unshelve. all: exact smj_top.
-(*SLOW*)Qed.
+(*SLOW*)Qed. *)

@@ -108,6 +108,8 @@ Ltac _istep :=
       iApply isim_ret
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, trigger (IO _ _) >>= _) (_, trigger (IO _ _) >>= _)) ] =>
       iApply isim_io; iIntros "%"
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, trigger GetTid >>= _) (_, trigger GetTid >>= _)) ] =>
+      iApply isim_gettid; iIntros "%"
   end.
 
 Ltac istep :=

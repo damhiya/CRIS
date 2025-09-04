@@ -4,11 +4,8 @@ Require Import Ensembles.
 
 Set Implicit Arguments.
 
-Module ProphecyA.
-
-  Section ProphecyA.
-  Context `{_crisG: !crisG Γ Σ α β τ _I _S}.
-  Context `{_prophG: !prophG}.
+Module ProphecyA. Section ProphecyA.
+  Context `{!crisG Γ Σ α β τ _S _I, !concG, !prophG}.
 
   Definition scopes := ["Prophecy"].
 
@@ -59,7 +56,4 @@ Module ProphecyA.
   Definition initial_cond : iProp Σ := (has_proph_auth (Full_set _) (λ _, dummy_prophinst)) ∗ (free_id_auth (Full_set _)).
 
   Definition t sp := Seal.sealing CRIS (SMod.to_mod sp Mod).
-
-  End ProphecyA.
-
-End ProphecyA.
+End ProphecyA. End ProphecyA.
