@@ -9,7 +9,7 @@ Section FSPEC.
   
   (* fspec is only about args, varg is always ordinal *)
   Definition fspec_apc {X : Type} (o: X → Ord.t) (DPQ: X → (Any.t → iProp Σ) * (Any.t → iProp Σ)) : fspec :=
-    mk_fspec false
+    fspec_call
       (λ x y a, (((fst ∘ DPQ) x a: iProp Σ) ∗ ⌜∃ vo: Ord.t, y = vo↑ ∧ ((o x) <= vo)%ord⌝)%I)
       (λ x _ a, (((snd ∘ DPQ) x a: iProp Σ))%I).
 

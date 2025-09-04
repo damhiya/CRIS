@@ -14,7 +14,7 @@ Module APCA. Section APCA.
     λ dep_ord, APC dep_ord SpPure.
 
   Definition apc_spec : fspec :=
-    mk_fspec false
+    fspec_call
       (λ (o: Ord.t) varg arg, ⌜varg = o↑ ∧ arg = varg⌝)%I
       (λ _ _ _, True)%I.
 

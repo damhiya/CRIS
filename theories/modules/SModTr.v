@@ -11,8 +11,8 @@ Module SModTr. Section HOARE.
   (* Wraps a function call into a Hoare triple *)
   Definition HoareCall fn varg fspo : itree crisE Any.t :=
     match fspo with
-    | Some (@mk_fspec _ false X pre post) =>
-        x <- trigger (Choose X);;
+    | Some (@fspec_call _ meta pre post) =>
+        x <- trigger (Choose meta);;
 
         (* precondition *)
         arg <- trigger (Choose Any.t);;
@@ -26,8 +26,9 @@ Module SModTr. Section HOARE.
         trigger (Assume (post x vret ret));;;
 
         Ret vret
-    | Some (mk_fspec true _ _) =>
-        triggerUB (* calling spawnable functions is undefined behavior *)
+    | Some _ =>
+        (* Calling a spawnable function is undefined behavior *)
+        triggerUB
     | None =>
         trigger (Call fn varg)
     end.
@@ -35,8 +36,8 @@ Module SModTr. Section HOARE.
   (* Wraps a function into a Hoare triple *)
   Definition HoareFun fspo body : Any.t → itree crisE Any.t :=
     match fspo with
-    | Some (@mk_fspec _ false X pre post) => λ arg,
-        x <- trigger (Take X);;
+    | Some (@fspec_call _ meta pre post) => λ arg,
+        x <- trigger (Take meta);;
         varg <- trigger (Take Any.t);;
         trigger (Assume (pre x varg arg));;; (* precondition *)
 
@@ -46,20 +47,20 @@ Module SModTr. Section HOARE.
         trigger (Guarantee (post x vret ret));;; (* postcondition *)
 
         Ret ret
-    | Some (@mk_fspec _ true X pre post) => λ arg,
+    | Some (@fspec_spawn _ meta pre post) => λ arg,
         tid <- trigger (Take nat);;
-        trigger (Assume (TID(tid) ∗ YIELD(tid)));;; (* Concurrency precondition *)
+        trigger (Assume (TID tid ∗ YIELD tid));;; (* Concurrency precondition *)
 
-        x <- trigger (Take X);;
+        x <- trigger (Take meta);;
         varg <- trigger (Take Any.t);;
-        trigger (Assume (pre x varg arg));;; (* precondition *)
+        trigger (Assume (pre (tid, x) varg arg));;; (* precondition *)
 
         vret <- body varg;;
 
         ret <- trigger (Choose Any.t);;
-        trigger (Guarantee (post x vret ret));;; (* postcondition *)
+        trigger (Guarantee (post (tid, x) vret ret));;; (* postcondition *)
 
-        trigger (Guarantee (TID(tid)));;; (* Concurrency postcondition *)
+        trigger (Guarantee (TID tid));;; (* Concurrency postcondition *)
 
         Ret ret
     | None => λ arg, tau;; body arg
@@ -76,7 +77,7 @@ Module SModTr. Section HOARE.
         arg <- trigger (Choose Any.t);;
         trigger (Guarantee (precond fsp x varg arg));;;
         tid <- trigger (Spawn fn arg);;
-        trigger (Assume (YIELD(tid)));;;
+        trigger (Assume (YIELD tid));;;
         Ret tid
     | None =>
         NativeSpawn fn varg
