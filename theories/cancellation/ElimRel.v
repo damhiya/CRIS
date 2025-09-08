@@ -1,4 +1,4 @@
-Require Import Common Sp.
+Require Import Common Sp ConcRA.
 Require Import SMod Mod LMod SModTr ModTr LModTr.
 Require Import MInline Tactics GSim.
 From iris.proofmode Require Export proofmode.
@@ -63,7 +63,7 @@ Section CancelLib.
 End CancelLib.
 
 Section ELIM_REL.
-Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
+Context `{_crisG: !crisG Γ Σ α β τ _S _I, !concG}.
 
 Definition NativeSpawnE (fn: string) (arg: Any.t) : itree crisE nat :=
   tid <- trigger (Spawn fn arg);; tau;;
@@ -84,8 +84,18 @@ Definition HoareSpawnE fn varg (fspo: option fspec) : itree crisE nat :=
   end.
 
 Definition NativeYieldE tid : itree crisE () :=
-  my_tid <- trigger (Yield tid);; tau;;
-  Ret my_tid.
+  trigger (Yield tid);;; tau;; Ret tt.
+
+Definition HoareYieldE tid (fspo: option fspec) : itree crisE () :=
+  match fspo with
+  | Some fsp =>
+      my_tid <- trigger (Choose nat);;
+      trigger (Guarantee (TID(my_tid) ∗ YIELD(tid)));;;
+      trigger (Yield tid);;;
+      trigger (Assume (TID(my_tid) ∗ YIELD(my_tid)))
+  | None =>
+      NativeYieldE tid
+  end.
 
 Definition elim_precond {X X' : Type} Po Po' varg : itree crisE (X * X' * Any.t) :=
   '(x, arg): _ <-
