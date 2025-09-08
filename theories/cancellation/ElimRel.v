@@ -1,4 +1,4 @@
-(* Require Import Common Sp.
+Require Import Common Sp.
 Require Import SMod Mod LMod SModTr ModTr LModTr.
 Require Import MInline Tactics GSim.
 From iris.proofmode Require Export proofmode.
@@ -679,4 +679,4 @@ Section CancelDef.
               (SMod.to_mod sp md)) r_i))) (cid, tgts))
        (Any.pair (ModTr.alist_encode st) r_t ↑)).
 
-End CancelDef. *)
+End CancelDef.

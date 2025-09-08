@@ -1,4 +1,4 @@
-(* Require Import Common.
+Require Import Common.
 From iris.proofmode Require Import proofmode.
 Require Import SModTr SMod Mod Tactics.
 Require Import ISim ISimFacts CtxRefine CtxRefineFacts ClosedAdequacy.
@@ -103,6 +103,11 @@ Proof using.
       iApply isim_yield. iSplit; et. iIntros (? ?) "%". subst.
       steps_r. by_coind CIH; et.
     }
+    {
+      rewrite SBRed.bind SBRed.gettid MIRed.gettid !SBRed.bind !SBRed.gettid.
+      iApply isim_gettid. iIntros (?).
+      steps_r. by_coind CIH; et.
+    }
   - depdes s.
     + rewrite !SBRed.bind !SBRed.put. des_ifs; cycle 1. 
       { unfold triggerUB; ired. rewrite MIRed.core. steps_l. ss. }
@@ -138,4 +143,4 @@ Proof using.
       step. steps_r. norm_l. by_coind CIH; et.
 Qed.
 
-End INLINE. *)
+End INLINE.
