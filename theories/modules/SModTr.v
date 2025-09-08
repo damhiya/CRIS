@@ -28,7 +28,7 @@ Module SModTr. Section HOARE.
         Ret vret
     | Some _ =>
         (* Calling a spawnable function is undefined behavior *)
-        triggerUB
+        triggerNB
     | None =>
         trigger (Call fn varg)
     end.
@@ -72,12 +72,14 @@ Module SModTr. Section HOARE.
   (* Wraps a spawn into a Hoare triple *)
   Definition HoareSpawn fn varg fspo : itree crisE nat :=
     match fspo with
-    | Some fsp =>
-        x <- trigger (Choose (meta fsp));;
+    | Some (@fspec_call _ meta pre post) =>
+        triggerNB
+    | Some (@fspec_spawn _ meta pre post) =>
+        x <- trigger (Choose meta);;
         arg <- trigger (Choose Any.t);;
-        trigger (Guarantee (precond fsp x varg arg));;;
         tid <- trigger (Spawn fn arg);;
         trigger (Assume (YIELD tid));;;
+        trigger (Guarantee (pre (tid, x) varg arg));;;
         Ret tid
     | None =>
         NativeSpawn fn varg
