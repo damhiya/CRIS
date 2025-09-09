@@ -118,7 +118,7 @@ Module Mem.
 End Mem.
 
 Module MemI. Section MemI.
-  Context {Σ: GRA}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concG}.
 
   Definition scopes := ["Mem"].
   Definition v_mem := "Mem" ↯ "mem".

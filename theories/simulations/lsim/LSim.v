@@ -6,8 +6,9 @@ Set Implicit Arguments.
 
 Local Open Scope nat_scope.
 
+(* Local simulation or Low-level simulation *)
+(* wsim → isim → msim → lsim → gsim *)
 Section LSIM.
-
   Variable fl_src fl_tgt : alist (option string) (Any.t → itree lmodE Any.t).
 
   Variable world : Type.
@@ -151,6 +152,14 @@ Section LSIM.
           self true true w1 (st_src0, k_src ()) (st_tgt0, k_tgt ())) :
     lsim_def lsim RR self ps pt w (st_src, trigger (Yield tid) >>= k_src)
       (st_tgt, trigger (Yield tid) >>= k_tgt)
+
+  | lsim_gettid
+      ps pt w st_src st_tgt
+      k_src k_tgt
+      (K : ∀ (tid : nat), self true true w (st_src, k_src tid) (st_tgt, k_tgt tid)) :
+    lsim_def lsim RR self ps pt w
+      (st_src, trigger GetTid >>= k_src)
+      (st_tgt, trigger GetTid >>= k_tgt)
 
   | lsim_call_none
       ps pt w st_src st_tgt
@@ -311,12 +320,13 @@ Section LSIM.
     { econs 9; eauto. i. eapply lsim_mon; eauto. i. eapply rclo8_base. eauto. }
     { econs 10; eauto. i. eapply lsim_mon; eauto. i. eapply rclo8_base. eauto. }
     { econs 11; eauto. des. esplits; eauto. eapply lsim_mon; eauto. i. eapply rclo8_base. eauto. }
-    { econs 12; eauto. des. esplits; eauto. eapply lsim_mon; eauto. i. eapply rclo8_base. eauto.  }
-    { econs 13; eauto. des. esplits; eauto. eapply lsim_mon; eauto. i. eapply rclo8_base. eauto.  }
-    { econs 14; eauto. des. esplits; eauto. eapply lsim_mon; eauto. i. eapply rclo8_base. eauto.  }
-    { econs 15; eauto. des. esplits; eauto. eapply lsim_mon; eauto. i. eapply rclo8_base. eauto.  }
-    { econs 16; eauto. }
+    { econs 12; eauto. des. esplits; eauto. eapply lsim_mon; eauto. i. eapply rclo8_base. eauto. }
+    { econs 13; eauto. des. esplits; eauto. eapply lsim_mon; eauto. i. eapply rclo8_base. eauto. }
+    { econs 14; eauto. des. esplits; eauto. eapply lsim_mon; eauto. i. eapply rclo8_base. eauto. }
+    { econs 15; eauto. des. esplits; eauto. eapply lsim_mon; eauto. i. eapply rclo8_base. eauto. }
+    { econs 16; eauto. des. esplits; eauto. eapply lsim_mon; eauto. i. eapply rclo8_base. eauto. }
     { econs 17; eauto. }
+    { econs 18; eauto. }
     { ss. }
   Qed.
 
@@ -326,8 +336,7 @@ Section LSIM.
       {R_src R_tgt} RR :=
     @lsim_def bot8 R_src R_tgt RR (r R_src R_tgt RR).
 
-  Lemma lsimC_spec_aux:
-    lsimC <10= gpaco8 (_lsim) (cpn8 _lsim).
+  Lemma lsimC_spec_aux : lsimC <10= gpaco8 (_lsim) (cpn8 _lsim).
   Proof using.
     i. inv PR.
     { gstep. econs; econs 1; eauto. }
@@ -345,9 +354,10 @@ Section LSIM.
     { guclo lsim_indC_spec. econs 13; eauto. gbase. eauto. }
     { guclo lsim_indC_spec. econs 14; eauto. gbase. eauto. }
     { guclo lsim_indC_spec. econs 15; eauto. gbase. eauto. }
-    { guclo lsim_indC_spec. econs 16; eauto. }
+    { guclo lsim_indC_spec. econs 16; eauto. gbase. eauto. }
     { guclo lsim_indC_spec. econs 17; eauto. }
     { guclo lsim_indC_spec. econs 18; eauto. }
+    { guclo lsim_indC_spec. econs 19; eauto. }
   Qed.
 
   Lemma lsimC_spec r g :
@@ -515,7 +525,6 @@ Module LSim. Section Lsim.
     wle : world → world → Prop;
     wle_refl : Reflexive wle;
     wle_trans : Transitive wle;
-    (* wf_mon : ∀ w n n0 st_src st_tgt (LE : n <= n0) (WF : wf w (n,st_src,st_tgt)), wf w (n0,st_src,st_tgt); *)
     wf_winit : ∀ w st_src st_tgt (WF : wf w (st_src,st_tgt)), wf (w ++ [winit]) (st_src, st_tgt);
     sim_initial :
       ∀ it_src (FIND: alist_find None fl_src = Some it_src),

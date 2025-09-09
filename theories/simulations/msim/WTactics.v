@@ -28,7 +28,8 @@ Ltac _wstep_l :=
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, (SB.sandbox _ _ _ (trigger (SPut _ _))) >>= _) _) ] =>
       iApply wsim_nodup_src; iIntros (?); iApply wsim_sput_src_sandbox; [s;eauto|alist_upd_simpl]
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, (SB.sandbox _ _ _ (trigger (SGet _))) >>= _) _) ] =>
-      iApply wsim_sget_src_sandbox; [s;eauto|]
+      let name := fresh "NODS" in
+      iApply wsim_nodup_src; iIntros (name); iApply wsim_sget_src_sandbox; [s;eauto|alist_find_simpl]; clear name
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, unwrapU ?ox >>= _) _) ] =>
       let name := fresh "_q" in
       iApply wsim_unwrapU_src; iIntros (name) "%";
@@ -74,11 +75,12 @@ Ltac _wstep_r :=
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, (SB.sandbox _ _ _ (trigger (SPut _ _))) >>= _)) ] =>
       iApply wsim_nodup_tgt; iIntros (?); iApply wsim_sput_tgt_sandbox; [s; eauto|alist_upd_simpl]
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, (SB.sandbox _ _ _ (trigger (SGet _))) >>= _)) ] =>
-      iApply wsim_sget_tgt_sandbox; [s; eauto|]
+      let name := fresh "NODT" in
+      iApply wsim_nodup_tgt; iIntros (NODT); iApply wsim_sget_tgt_sandbox; [s; eauto|alist_find_simpl]; clear name
   end.
 
 Ltac wstep_r_core :=
-  _wstep_r; try alist_find_simpl; s; des_pairs; s.
+  _wstep_r; s; des_pairs; s.
 
 Ltac wstep_r :=
   norm_r with do 1 try wstep_r_core.
@@ -97,6 +99,8 @@ Ltac _wstep :=
       iApply wsim_ret
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (IO _ _) >>= _) (_, trigger (IO _ _) >>= _))] =>
       iApply wsim_io; iIntros "%"
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger GetTid >>= _) (_, trigger GetTid >>= _))] =>
+      iApply wsim_gettid; iIntros "%"
   end.
 
 Ltac wstep :=
@@ -205,11 +209,11 @@ Ltac winit_simF :=
       iApply wsim_init_winv; iSplitL "W"; [et; fail|]; hss_copset;
       hrepeat do 1 (unfold_mod; s)).
 
-(** Special Tactics for AssumeProph in Source **)
+(** Special Tactics for RealUpdate **)
 
-Tactic Notation "wru_l_advanced" uconstr(P) :=
-  norm_l; iApply wsim_ru_src_advanced;
-  iExists P; iSplit; [try prove_precise|].
+(* Tactic Notation "wru_l_advanced" uconstr(P) := *)
+(*   norm_l; iApply wsim_ru_src_advanced; *)
+(*   iExists P; iSplit; [try prove_precise|]. *)
 
 Tactic Notation "wru_l" uconstr(P) :=
   norm_l; iApply wsim_ru_src;

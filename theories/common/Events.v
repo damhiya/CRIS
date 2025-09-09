@@ -20,7 +20,8 @@ Variant stateE (V : Type) : Type :=
 Variant callE : Type -> Type :=
 | Call (fn : string) (args : Any.t) : callE Any.t
 | Spawn (fn : string) (args : Any.t) : callE nat
-| Yield (tid : nat) : callE unit.
+| Yield (tid : nat) : callE unit
+| GetTid : callE nat.
 
 Definition sPut x : stateE unit := SUpdate (fun _ => (x, tt)).
 Definition sGet : stateE Any.t := SUpdate (fun x => (x, x)).
@@ -28,7 +29,6 @@ Definition sGet : stateE Any.t := SUpdate (fun x => (x, x)).
 Definition lmodE : Type -> Type := callE +' stateE +' coreE.
 
 Section EVENTS_HMOD.
-
   Context {Σ : GRA}.
 
   Definition key := (string * string)%type.
@@ -55,11 +55,9 @@ Section EVENTS_HMOD.
   | Guarantee (P : iProp Σ) : agE unit.
 
   Definition crisE := agE +' callE +' pgE +' coreE.
-
 End EVENTS_HMOD.
 
 Section WRAP.
-
   Context {E : Type -> Type}.
   Context `{coreE -< E}.
 
@@ -198,7 +196,6 @@ Section WRAP.
   Proof using.
     eapply observe_eta; destruct x; ss. f_equal. extensionality x. ss.
   Qed.
-
 End WRAP.
 
 Notation "f '?'" := (unwrapU f) (at level 9).
@@ -206,7 +203,6 @@ Notation "f '!'" := (unwrapN f) (at level 9).
 Notation "s ↯ f" := (sf s f) (at level 9).
 
 Section FancyReal.
-
   Context `{Σ: GRA}.
 
   Definition CRIS_FancyReal := "CRIS-FancyReal".
@@ -236,11 +232,9 @@ Section FancyReal.
     @RealUpdateK X R1 pre post k1 >>= k2 =
     RealUpdateK pre post (λ x, k1 x >>= k2).
   Proof using. rewrite /RealUpdateK. by ired. Qed.
-
 End FancyReal.
 
 Section SYNTAX.
-
   Context `{coreE -< E, callE -< E, pgE -< E}.
 
   Definition cfunN {X Y} (body : X -> itree E Y) : Any.t -> itree E Any.t :=
@@ -263,7 +257,6 @@ Section SYNTAX.
 
   Definition cgetN {T} k : itree E T :=
     v <- trigger (SGet k);; (v↓!).
-
 End SYNTAX.
 
 Lemma case_itrL R (itr : itree lmodE R) :

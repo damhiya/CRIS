@@ -1,10 +1,8 @@
 Require Import CRIS.
 Require Import ProphecyHeader.
 
-Module ProphecyI.
-  Section ProphecyI.
-
-  Context `{Σ : GRA}.
+Module ProphecyI. Section ProphecyI.
+  Context `{!crisG Γ Σ α β τ _S _I, !concG}.
 
   Definition scopes := ["Prophecy"].
 
@@ -30,7 +28,4 @@ Module ProphecyI.
   Next Obligation. prove_nodup. Qed.
 
   Definition t : Mod.t := Seal.sealing CRIS (SMod.to_mod sp_none Mod).
-
-  End ProphecyI.
-
-End ProphecyI.
+End ProphecyI. End ProphecyI.

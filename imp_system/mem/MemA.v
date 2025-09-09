@@ -188,18 +188,18 @@ Module MemSpec. Section MemSpec.
 End MemSpec. End MemSpec.
 
 Module MemP. Section MemP.
-  Context `{!crisG Γ Σ α β τ _S _I, !memG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concG, !memG}.
 
   Definition scopes := ["Mem"].
 
   (* Function specifications *)
   Definition fnsems : alist (option string) (fnsem_type (option fspec * fbody)) :=
-  [(Some MemHdr.alloc, (false, wmask_all, scopes, (None, real_update MemSpec.alloc fbody_trivial)));
-   (Some MemHdr.free,  (false, wmask_all, scopes, (None, real_update MemSpec.free fbody_trivial)));
-   (Some MemHdr.load,  (false, wmask_all, scopes, (None, real_update MemSpec.load fbody_trivial)));
-   (Some MemHdr.store, (false, wmask_all, scopes, (None, real_update MemSpec.store fbody_trivial)));
-   (Some MemHdr.cmp,   (false, wmask_all, scopes, (None, real_update MemSpec.cmp fbody_trivial)));
-   (Some MemHdr.cas,   (false, wmask_all, scopes, (None, real_update MemSpec.cas fbody_trivial)))].
+  [(Some MemHdr.alloc, (false, wmask_all, scopes, (None, lat_real false MemSpec.alloc (Ret ()) fbody_trivial)));
+   (Some MemHdr.free,  (false, wmask_all, scopes, (None, lat_real false MemSpec.free  (Ret ()) fbody_trivial)));
+   (Some MemHdr.load,  (false, wmask_all, scopes, (None, lat_real false MemSpec.load  (Ret ()) fbody_trivial)));
+   (Some MemHdr.store, (false, wmask_all, scopes, (None, lat_real false MemSpec.store (Ret ()) fbody_trivial)));
+   (Some MemHdr.cmp,   (false, wmask_all, scopes, (None, lat_real false MemSpec.cmp   (Ret ()) fbody_trivial)));
+   (Some MemHdr.cas,   (false, wmask_all, scopes, (None, lat_real false MemSpec.cas   (Ret ()) fbody_trivial)))].
 
   (* Module definition *)
   Program Definition smod : SMod.t := {|
@@ -216,7 +216,7 @@ Module MemP. Section MemP.
 End MemP. End MemP.
 
 Module MemA. Section MemA.
-  Context `{!crisG Γ Σ α β τ _S _I, !memG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concG, !memG}.
 
   Definition scopes := ["Mem"].
 

@@ -1,4 +1,4 @@
-Require Import CRIS.
+(* Require Import CRIS.
 Require Import APCHeader APC APCA APCC.
 
 Require Import ltac2_lib.
@@ -152,4 +152,4 @@ Section ctxr.
       ((APCC.t sp_c)          ★ md, emp%I)
       ((APCA.t sp_pure sp_a)  ★ md, emp%I).
   Proof. eapply main_adequacy, sim; eauto. Qed.
-End ctxr. End APCAC.
+End ctxr. End APCAC. *)

@@ -240,6 +240,15 @@ Section msim.
     :
     _msim' msimc msimi ps pt (st_src, trigger (Yield tid) >>= k_src) (st_tgt, trigger (Yield tid) >>= k_tgt) fmr
 
+  | msim_gettid
+      (MSIM_GETTID : True)
+      ps pt st_src st_tgt fmr
+      k_src k_tgt
+      (K : ∀ tid, msimi true true (st_src, k_src tid) (st_tgt, k_tgt tid) fmr)
+    :
+    _msim' msimc msimi ps pt
+      (st_src, trigger GetTid >>= k_src) (st_tgt, trigger GetTid >>= k_tgt) fmr
+
   | msim_call_none
       (MSIM_CALL_NONE: True)
       ps pt st_src st_tgt fmr

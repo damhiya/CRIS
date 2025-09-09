@@ -25,6 +25,8 @@ Section INTERP.
             λ k, v <- trigger (Spawn fn args);; Ret (inl (k v))
         | Yield tid =>
             λ k, v <- trigger (Yield tid);; Ret (inl (k v))
+        | GetTid =>
+            λ k, v <- trigger GetTid;; Ret (inl (k v))
         end k
     | VisF e k =>
         v <- trigger e;; Ret (inl (k v))
@@ -121,6 +123,10 @@ Module MIRed.
         grind. rewrite! bind_trigger. gstep. econs. i.
         r. grind. gstep. econs. gbase. eauto.
       }
+      {
+        grind. rewrite! bind_trigger. gstep. econs. i.
+        r. grind. gstep. econs. gbase. eauto.
+      }
       grind. rewrite! bind_trigger. gstep. econs. i.
       r. grind. gstep. econs. gbase. eauto.
     Unshelve. eauto with paco.
@@ -136,56 +142,35 @@ Module MIRed.
     rewrite/inline_body unfold_iter_eq. grind.
   Qed.
 
-  Lemma yield `{Σ: GRA} {T}
-    prog tid (ktr: _ → itree _ T)
-  :
-    inline_body prog (x <- trigger (Yield tid);; ktr x) 
-    =
+  Lemma yield `{Σ: GRA} {T} prog tid (ktr: _ → itree _ T) :
+    inline_body prog (x <- trigger (Yield tid);; ktr x) =
     x <- trigger (Yield tid);; tau;; inline_body prog (ktr x).
-  Proof using.
-    rewrite/inline_body unfold_iter_eq. grind.
-  Qed.
+  Proof using. rewrite/inline_body unfold_iter_eq. grind. Qed.
   
-  Lemma core `{Σ: GRA} {T}
-    X prog (e: coreE X) (ktr: _ → itree _ T)
-  :
-    inline_body prog (x <- trigger e;; ktr x) 
-    =
-    x <- trigger e;; tau;; inline_body prog (ktr x).
-  Proof using.
-    rewrite/inline_body unfold_iter_eq. grind.
-  Qed.
+  Lemma gettid `{Σ : GRA} {T} prog (ktr: _ → itree _ T) :
+    inline_body prog (x <- trigger GetTid;; ktr x) =
+    x <- trigger GetTid;; tau;; inline_body prog (ktr x).
+  Proof using. rewrite/inline_body unfold_iter_eq. grind. Qed.
 
-  Lemma pg `{Σ: GRA} {T}
-    X prog (e: pgE X) (ktr: _ → itree _ T)
-  :
-    inline_body prog (x <- trigger e;; ktr x) 
-    =
+  Lemma core `{Σ: GRA} {T} X prog (e: coreE X) (ktr: _ → itree _ T) :
+    inline_body prog (x <- trigger e;; ktr x) =
     x <- trigger e;; tau;; inline_body prog (ktr x).
-  Proof using.
-    rewrite/inline_body unfold_iter_eq. grind.
-  Qed.
+  Proof using. rewrite /inline_body unfold_iter_eq. grind. Qed.
 
-  Lemma ag `{Σ: GRA} {T}
-    X prog (e: agE X) (ktr: _ → itree _ T)
-  :
-    inline_body prog (x <- trigger e;; ktr x) 
-    =
+  Lemma pg `{Σ : GRA} {T} X prog (e: pgE X) (ktr: _ → itree _ T) :
+    inline_body prog (x <- trigger e;; ktr x) =
     x <- trigger e;; tau;; inline_body prog (ktr x).
-  Proof using.
-    rewrite/inline_body unfold_iter_eq. grind.
-  Qed.
+  Proof using. rewrite/inline_body unfold_iter_eq. grind. Qed.
 
-  Lemma call `{Σ: GRA} {T}
-    prog (ktr: _ → itree _ T) (fn: string) arg 
-  :
-    inline_body prog (trigger (Call fn arg) >>= ktr)
-    =
+  Lemma ag `{Σ: GRA} {T} X prog (e: agE X) (ktr: _ → itree _ T) :
+    inline_body prog (x <- trigger e;; ktr x) =
+    x <- trigger e;; tau;; inline_body prog (ktr x).
+  Proof using. rewrite /inline_body unfold_iter_eq. grind. Qed.
+
+  Lemma call `{Σ: GRA} {T} prog (ktr: _ → itree _ T) (fn: string) arg  :
+    inline_body prog (trigger (Call fn arg) >>= ktr) =
     tau;; inline_body prog (x <- prog fn arg;; tau;; ITree.subst ktr (Ret x)).
-  Proof using.
-    rewrite/inline_body unfold_iter_eq. ired. refl.
-  Qed.
-
+  Proof using. rewrite/inline_body unfold_iter_eq. ired. refl. Qed.
 End MIRed.
 
 Lemma sandbox_inline_commute `{Σ: GRA}
@@ -263,6 +248,11 @@ Proof using.
   }
   {
     rewrite !SBRed.yield MIRed.yield SBRed.bind SBRed.yield !bind_trigger.
+    gstep. econs. i. r.
+    rewrite SBRed.tau. gstep. econs. gbase. eauto.
+  }
+  {
+    rewrite !SBRed.gettid MIRed.gettid SBRed.bind SBRed.gettid !bind_trigger.
     gstep. econs. i. r.
     rewrite SBRed.tau. gstep. econs. gbase. eauto.
   }

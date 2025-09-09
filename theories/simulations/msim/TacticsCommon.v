@@ -88,7 +88,7 @@ Ltac unfold_cris_defs :=
   (hrepeat do 1 match goal with |- context[cfunN ?x] => rewrite {1}/x end);
   rewrite /cfunN;
   rewrite /SModTr.trans_ktree /SModTr.HoareFun; s;
-  (hrepeat do 1 match goal with |- context[SModTr.trans _ (?x _)] =>
+  (hrepeat do 1 match goal with |- context[SModTr.trans _ _ (?x _)] =>
      match type of x with Any.t → _ => rewrite /x end
   end).
 
@@ -134,21 +134,23 @@ Ltac alist_find_simpl :=
     pattern (alist_find k l) at 1;
     match goal with [|- ?G _] => set (GOAL := G) end;
     simpl Mod.fnsems; (hrepeat do 1 unfold_mod; simpl Mod.fnsems);
-    first
-    [ (timeout 1 simpl alist_find at 1);
-       match goal with [|- _ (Some _)] => idtac end
-    | let TMP := fresh "_TMP" in
-      match goal with [H: List.NoDup _|-_] =>
-        eassert (TMP: List.NoDup (List.map fst l))  by (fnsems_nodup H);
-        revert TMP
-      end;
-      erewrite (@ereplace _ l); [intros ?
-      | Lauto_normalize; try rewrite !List.map_app; simpl List.map; Lauto_prepare;
-        let KV := fresh "KV" in                                
-        match goal with [|-context[(?k',?v)]] => change k' with k; set (KV:=(k,v)); try change (k,v) with KV; Lauto_find KV end; refl];
-      rewrite !alist_find_with_nodup; [|exact TMP]; clear TMP;
-      Lauto_finish
-    ];
+    match goal with [|-context [alist_find ?k ?l]] =>
+      first
+      [ (timeout 1 simpl alist_find at 1);
+         match goal with [|- _ (Some _)] => idtac end
+      | let TMP := fresh "_TMP" in
+        match goal with [H: List.NoDup _|-_] =>
+          eassert (TMP: List.NoDup (List.map fst l))  by (fnsems_nodup H);
+          revert TMP
+        end;
+        erewrite (@ereplace _ l); [intros TMP
+        | Lauto_normalize; try rewrite !List.map_app; simpl List.map; Lauto_prepare;
+          let KV := fresh "KV" in
+          match goal with [|-context[(?k',?v)]] => change k' with k; set (KV:=(k,v)); try change (k,v) with KV; Lauto_find KV end; refl];
+        rewrite !alist_find_with_nodup; [|exact TMP]; clear TMP;
+        Lauto_finish
+      ]
+    end;
     unfold GOAL; clear GOAL
   end.
 
@@ -215,6 +217,8 @@ Tactic Notation "red_SB" :=
           eapply SBRed.Spawn_spawnSB
       | vis (Yield _) _ =>
           eapply SBRed.vis_yield
+      | vis GetTid _ =>
+          eapply SBRed.vis_gettid
       | vis (Call _ _) _ =>
           eapply SBRed.Call_callSB
       | vis (SPut _ _) _ =>
@@ -261,7 +265,7 @@ Ltac unfold_sp_exact sp name :=
 
 Tactic Notation "red_S" tactic(tac) :=
   lazymatch goal with
-  | [ |- @SModTr.trans _ ?sp _ ?itr = _ ] =>
+  | [ |- @SModTr.trans ?Γ ?Σ ?α ?β ?τ ?_S ?_I ?_crisG ?concG ?img ?sp ?R ?itr = _ ] =>
       lazymatch itr with
       | Ret _ =>
           eapply SRed.ret
@@ -283,6 +287,11 @@ Tactic Notation "red_S" tactic(tac) :=
       | vis (Yield _) _ =>
           etransitivity;
           [ eapply SRed.vis_yield
+          | tac
+          ]
+      | vis GetTid _ =>
+          etransitivity;
+          [ eapply SRed.vis_gettid
           | tac
           ]
       | vis (Call ?fn _) _ =>
@@ -333,9 +342,10 @@ Ltac _hnorm_itr :=
   | [ |- @SB.sandbox ?Σ ?R ?img ?imports ?scopes ?itr = _ ] =>
       etransitivity;
       [ cong (@SB.sandbox Σ R img imports scopes); _hnorm_itr | red_SB ]
-  | [ |- @SModTr.trans ?Σ ?sp ?R ?itr = _ ] =>
+  | [ |- @SModTr.trans ?Γ ?Σ ?α ?β ?τ ?_S ?_I ?_crisG ?concG ?img ?sp ?R ?itr = _ ] =>
       etransitivity;
-      [ cong (@SModTr.trans Σ sp R); _hnorm_itr | red_S (do 1 _hnorm_itr) ]
+      [ cong (@SModTr.trans Γ Σ α β τ _S _I _crisG concG img sp R); _hnorm_itr
+      | red_S (do 1 _hnorm_itr) ]
   | [ |- trigger _ = _ ] =>
       eapply trigger_vis
   | [ |- assume _ = _ ] =>
@@ -383,9 +393,6 @@ Ltac _hnorm_itr :=
       _hnorm_itr
   | [ |- triggerNB = _ ] =>
       unfold triggerNB;
-      _hnorm_itr
-  | [ |- real_update _ _ _ = _ ] =>
-      unfold real_update;
       _hnorm_itr
   | [ |- ?itr = _ ] =>
       reflexivity
@@ -452,21 +459,20 @@ Ltac des_pairs :=
     end);
    subst.
 
-Ltac has_precond_in TM :=
-  match goal with [H := ?P |- _] => match H with TM => match P with context[precond] => idtac end end end.
-Ltac has_postcond_in TM :=
-  match goal with [H := ?P |- _] => match H with TM => match P with context[postcond] => idtac end end end.
-Ltac has_precondS_in TM :=
-  match goal with [H := ?P |- _] => match H with TM => match P with context[precondS] => idtac end end end.
-Ltac has_postcondS_in TM :=
-  match goal with [H := ?P |- _] => match H with TM => match P with context[postcondS] => idtac end end end.
-
-Ltac unfold_pre_post_term term := let TM := fresh "_term" in
+Ltac unfold_pre_post_term term :=
+  let TM := fresh "_term" in
   set (TM := term) at 1;
-  (hrepeat do 1 (has_precond_in TM; unfold precond in TM; simpl in TM));
-  (hrepeat do 1 (has_postcond_in TM; unfold postcond in TM; simpl in TM));
-  (hrepeat do 1 (has_precondS_in TM; unfold precondS in TM; simpl in TM));
-  (hrepeat do 1 (has_postcondS_in TM; unfold postcondS in TM; simpl in TM));
+  (hrepeat do 1 match goal with
+       [H := ?P |- _] =>
+         match H with
+           TM => match P with
+                 | context[precond] => unfold precond in TM; simpl in TM
+                 | context[postcond] => unfold postcond in TM; simpl in TM
+                 | context[precondS] => unfold precondS in TM; simpl in TM
+                 | context[postcondS] => unfold postcondS in TM; simpl in TM
+                 end
+         end
+     end);
   subst TM.
 
 Ltac unfold_pre_post :=
@@ -660,14 +666,16 @@ Qed.
 
 Ltac hss_copset :=
   match goal with
-  | |- context[(@union coPset coPset_union ∅ ?E)] =>
-      replace (∅ ∪ E) with E by set_solver
-  | |- context[(@union coPset coPset_union ?E ∅)] =>
-      replace (E ∪ ∅) with E by set_solver
   | |- context[(@union coPset coPset_union (@difference coPset coPset_difference ?E ?E') ?E')] =>
     replace ((E ∖ E') ∪ E') with E by (rewrite copset_diff_union; et; set_solver)
   | |- context[(@difference coPset coPset_difference (@union coPset coPset_union ?E ?E') ?E')] =>
     replace ((E ∪ E') ∖ E') with E by (rewrite copset_union_diff; et; set_solver)
+  | |- context[(@difference coPset coPset_difference ?E ?E)] =>
+    replace (E ∖ E) with (∅ : coPset) by set_solver
+  | |- context[(@union coPset coPset_union ∅ ?E)] =>
+    replace (∅ ∪ E) with E by set_solver
+  | |- context[(@union coPset coPset_union ?E ∅)] =>
+    replace (E ∪ ∅) with E by set_solver
   end.
 
 Ltac hss_des :=

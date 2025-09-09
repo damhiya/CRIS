@@ -4,11 +4,8 @@ Require Import ProphecyHeader ProphecyI ProphecyA.
 Require Import ExtendedBehavior SimGEx.
 Require Import exco_stream.
 
-Module ProphIA.
-
-  Section ProphIA.
-  Context `{_crisG: !crisG Γ Σ α β τ _I _S}.
-  Context `{_prophG: !prophG}.
+Module ProphIA. Section ProphIA.
+  Context `{_crisG : !crisG Γ Σ α β τ _I _S, _concG : !concG, _prophG : !prophG}.
 
   Definition physical_smod (smd : SMod.t) : Prop :=
     Forall (fun entry => entry.2.2.1 = None /\ entry.2.1.1.1 = false) smd.(SMod.fnsems).
@@ -185,6 +182,9 @@ Module ProphIA.
         * rewrite !interpV_tau bind_tau. pfold. econs. left.
           rewrite interpV_trigger. ss. des_ifs.
           grind. rewrite interpV_trigger. ss. grind. pfold. econs. i. grind. right. et.
+        * rewrite !interpV_tau bind_tau. pfold. econs. left.
+          rewrite interpV_trigger. ss. des_ifs.
+          grind. rewrite interpV_trigger. ss. grind. pfold. econs. i. grind. right. et.
         * grind. rewrite interpV_trigger. ss. des_ifs.
           { eapply inj_pair2 in H0. eapply inj_pair2 in H1. clarify.
             grind. rewrite interpV_trigger. grind. pfold. econs. i.
@@ -321,9 +321,9 @@ Module ProphIA.
         exploit (H2). rewrite list_lookup_fmap_Some. et. hss.
         i. punfold x0. inv x0; et; hss; try itree_clarify H0.
         pclearbot. eapply NEXT.
-      + (* Vis *) destruct e; try destruct c; try destruct s; hss; cycle 2; grind.
+      + (* Vis *) destruct e; try destruct c; try destruct s; hss; cycle 3; grind.
         3: destruct c.
-        * (* Yield *)
+        * (* GetTid *)
           econs. right. eapply CIH; et.
           apply Forall2_insert; et; ss.
           apply Forall_insert; et; ss.
@@ -474,6 +474,20 @@ Module ProphIA.
             - pfold. econs. i. left. eapply mod_take_is_prop; et.
             - eapply mod_take_is_prop; et. }
           Unshelve. all : et.
+        * (* Yield *)
+          econs. right. eapply CIH; et.
+          apply Forall2_insert; et; ss.
+          apply Forall_insert; et; ss.
+          exploit Forall_lookup_1. apply H1. apply E.
+          i. punfold x0. inv x0; et; hss; try itree_clarify H0.
+          pclearbot. ired.
+          eapply NEXT.
+          rewrite list_fmap_insert; ss.
+          apply Forall_insert; et; ss.
+          rewrite Forall_lookup in H2.
+          exploit (H2). rewrite list_lookup_fmap_Some. et. hss.
+          i. punfold x0. inv x0; et; hss; try itree_clarify H0.
+          pclearbot. ired. eapply NEXT.
   Qed.
 
   Lemma prophecy_tgt_exbeh_exists
@@ -854,7 +868,7 @@ Module ProphIA.
           des; clarify; ss; clarify.
           { pfold. econs. left. pfold. econs. }
           { pfold. econs. left. pfold. econs. }
-          { pfold. econs. left. pfold. econs. }
+          { pfold. eapply wf_prophecy_close. left. pfold. econs. }
         (* case : normal spawn *)
         * rewrite !map_app in E. rewrite alist_find_app_o in E.
           destruct alist_find eqn:E0 in E; clarify; cycle 1.
@@ -867,6 +881,10 @@ Module ProphIA.
             apply NEXT. }
           i. hexploit INV; et. i. des. esplits; et.
           punfold H0. inversion H0. fclarify. pclearbot. et.
+      + steps_l. steps_r. endsim.
+        * apply Forall2_insert; et. apply NEXT.
+        * i. hexploit INV; et. i. des. esplits; et.
+          punfold H0. inv H0. fclarify. pclearbot. et.
       + steps_l. steps_r. endsim.
         * apply Forall2_insert; et. apply NEXT.
         * i. hexploit INV; et. i. des. esplits; et.
@@ -1754,5 +1772,4 @@ Module ProphIA.
   Qed.
 
   End ProphIA.
-
 End ProphIA.

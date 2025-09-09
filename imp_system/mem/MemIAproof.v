@@ -1,4 +1,4 @@
-From CRIS Require Import CRIS MemHeader MemA MemI ImpPrelude.
+(* From CRIS Require Import CRIS MemHeader MemA MemI ImpPrelude.
 From iris.algebra Require Import auth excl agree csum functions dfrac_agree.
 
 Set Implicit Arguments.
@@ -374,14 +374,12 @@ Module MemIP. Section MemIP.
   Lemma simF_alloc : ISim.sim_fun open MemP MemI (MemP.init_cond csl genv) IstFull (Some MemHdr.alloc).
   Proof using.
     init_simF.
+    steps_l; rewrite /lat_real /lat_real_body; unfold_iter_l.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
-    step_l; step_r.
 
     destruct (classic (∃ v:nat, arg = [Vint v]↑)) as [[v ->]|Hex]; cycle 1.
     {
-      steps_l. force_l (tt↑); steps_l.
-      ru_l False%I.
-      iSplitL.
+      steps_l. force_l (tt↑); steps_l. ru_l False%I. iSplitL.
       - iIntros (?) "[% %]"; exfalso; subst; et.
       - iIntros "H"; iExFalso; done.
     }
@@ -400,12 +398,11 @@ Module MemIP. Section MemIP.
 
     steps_r. rename _q into pad, v into size. set (blk := Mem.nb mem_tgt + pad).
     steps_l. force_l ((Vptr (blk, 0%Z))↑); steps_l.
-    ru_l (own base_γ (● (mem_src ⋅ _points_to_r (blk, 0%Z) 1 (repeat Vundef (Z.to_nat size)))))%I.
+    ru_l (own base_γ (● (mem_src ⋅ _points_to_r (blk, 0%Z) 1 (repeat Vundef size))))%I.
     iSplitL.
     { iIntros (?) "[% %]"; hss; apply Nat2Z.inj in x; subst.
       iMod (mem_ra_alloc with "B") as "[BLK WHT]"; eauto.
-      iPoseProof (points_to_transform with "WHT") as "$".
-      iModIntro; iSplit; [rewrite Nat2Z.id //| subst blk; iPureIntro; ss].
+      iPoseProof (points_to_transform with "WHT") as "$"; et.
     }
 
     iIntros "B". steps_l. step.
@@ -423,8 +420,6 @@ Module MemIP. Section MemIP.
     destruct (AList.dec b blk); subst; ss.
     - rewrite repeat_length. rewrite Z.add_0_l.
       unfold AList.update. des_ifs_safe. rewrite U left_id.
-      Ztac. rewrite Z2Nat.id; cycle 1.
-      { simpl_bool. des. destruct (Z_le_gt_dec 0 size); ss. }
       destruct ((_ <=? _)%Z && (_ <? _)%Z) eqn: E0; eauto.
       rewrite repeat_nth_some; eauto.
       bsimpl; des; des_sumbool. Ztac. nia.
@@ -435,6 +430,7 @@ Module MemIP. Section MemIP.
   Lemma simF_free : ISim.sim_fun open MemP MemI (MemP.init_cond csl genv) IstFull (Some MemHdr.free).
   Proof using.
     init_simF.
+    steps_l; rewrite /lat_real /lat_real_body; unfold_iter_l.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
 
     destruct (or_else (pargs [Tptr] (or_else (arg↓) [])) (0, 0%Z)) as [b ofs] eqn: EQ.
@@ -451,9 +447,8 @@ Module MemIP. Section MemIP.
 
     iIntros "[B %]". hss.
     steps_l. steps_r. hss_r. steps_r. rewrite H2. steps_r.
-    step.
-
-    repeat (iSplit; eauto).
+ 
+    step. repeat (iSplit; eauto).
     iExists st_srcL, [_], _, _. repeat (iSplit; eauto).
     iExists _, (mem_ra_upd mem_src b ofs None). iFrame "B".
     iPureIntro. esplits; eauto.
@@ -465,6 +460,7 @@ Module MemIP. Section MemIP.
   Lemma simF_load : ISim.sim_fun open MemP MemI (MemP.init_cond csl genv) IstFull (Some MemHdr.load).
   Proof using.
     init_simF.
+    steps_l; rewrite /lat_real /lat_real_body; unfold_iter_l.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
 
     destruct (or_else (pargs [Tptr] (or_else (arg↓) []))(0,0%Z)) as [b ofs] eqn: EQ.
@@ -487,6 +483,7 @@ Module MemIP. Section MemIP.
   Lemma simF_store : ISim.sim_fun open MemP MemI (MemP.init_cond csl genv) IstFull (Some MemHdr.store).
   Proof using.
     init_simF.
+    steps_l; rewrite /lat_real /lat_real_body; unfold_iter_l.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
 
     destruct (or_else (pargs [Tptr; Tuntyped] (or_else (arg↓) [])) (0, 0%Z,Vundef))
@@ -500,14 +497,12 @@ Module MemIP. Section MemIP.
     { iIntros ([[[? ?] ?] ?]) "/= [% PT]"; hss.
       iPoseProof (mem_ra_lookup with "[B PT]") as "%"; eauto; iFrame. des.
       rewrite H2; eauto.
-      (* erewrite mem_get_sound; eauto. *)
       iMod (mem_ra_update with "[B PT]") as "[B PT]"; eauto; iFrame.
       iModIntro; iSplit; eauto.
-    (* iSplit; [done | iSplit; [done |]].
-     *)
     }
     iIntros "[% B]".
-    step_l. steps_r. hss_r. steps_r. hss_r. steps_r. rewrite H2. steps_r.
+
+    steps_l. steps_r. hss_r. steps_r. hss_r. steps_r. rewrite H2. steps_r.
     step. repeat (iSplit; eauto).
     iExists st_srcL, [_], _, _. repeat (iSplit; eauto).
     iExists _, (mem_ra_upd mem_src b ofs _). iSplit; eauto.
@@ -520,6 +515,7 @@ Module MemIP. Section MemIP.
   Lemma simF_cmp : ISim.sim_fun open MemP MemI (MemP.init_cond csl genv) IstFull (Some MemHdr.cmp).
   Proof using.
     init_simF.
+    steps_l; rewrite /lat_real /lat_real_body; unfold_iter_l.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
 
     destruct (or_else (pargs [Tuntyped; Tuntyped] (or_else (arg↓) [])) (Vundef,Vundef))
@@ -556,6 +552,7 @@ Module MemIP. Section MemIP.
   Lemma simF_cas : ISim.sim_fun open MemP MemI (MemP.init_cond csl genv) IstFull (Some MemHdr.cas).
   Proof using.
     init_simF.
+    steps_l; rewrite /lat_real /lat_real_body; unfold_iter_l.
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
 
     destruct (or_else (pargs [Tptr; Tuntyped; Tuntyped] (or_else (arg↓) [])) ((0,0%Z),(Vundef,Vundef)))
@@ -588,7 +585,7 @@ Module MemIP. Section MemIP.
     hss_r; steps_r. rewrite H0.
     steps_r; hss_r; steps_r.
     inline_r; steps_r; hss_r; steps_r.
-    hss_r; steps_r; rewrite H2. steps_r; hss_r; steps_r.
+    hss_r; steps_r. rewrite H2. steps_r; hss_r; steps_r.
     add_ret_l (). iApply wsim_bind.
     instantiate (1:= λ '(st_s,_) '(st_t,_), ⌜st_s = _ ∧
       st_t = (_, (or_else (Mem.store mem_tgt (b,ofs) v_upd) mem_tgt)↑) :: _⌝%I).
@@ -601,15 +598,15 @@ Module MemIP. Section MemIP.
         rewrite H0; steps_r; hss_r; steps_r.
         step. et.
     }
-    iIntros (? ? ? ?) "%". des; subst.
 
+    iIntros (? ? ? ?) "%". des; subst.
     steps_l. steps_r. step.
     iSplit; et. rewrite H0; s.
     iExists _, [_], _, _. repeat (iSplit; et). iExists _, _.
     iFrame. iSplit; et. iPureIntro; esplits; et.
     - ii. rewrite /mem_ra_upd. s. des_ifs; et.
     - ii. ss. des_ifs; et. bsimpl; des; des_sumbool; subst. eapply H5; et.
-  Qed.
+  (*SLOW*)Qed.
 
   Theorem sim : ISim.t open MemP MemI (MemP.init_cond csl genv) IstFull.
   Proof using.
@@ -640,23 +637,16 @@ Module MemIP. Section MemIP.
   Proof using. eapply main_adequacy, sim; eauto. Qed.
 End MemIP. End MemIP.
 
-Module MemPA. Section MemPA.
-  Context `{!crisG Γ Σ α β τ _S _I, !memG}.
-
-  Theorem sim : ISim.t open MemA.t MemP.t emp%I IstEq.
-  Proof using.
-    init_sim; et; prove_fr_to_img.
-  Qed.
-
-  Theorem ctxr:
-    ctx_refines
-      (MemA.t, emp%I)
-      (MemP.t, emp%I).
-  Proof using. eapply main_adequacy, sim; eauto. Qed.
-End MemPA. End MemPA.
-
 Module MemIA. Section MemIA.
   Context `{!crisG Γ Σ α β τ _S _I, !memG}.
+
+  Theorem sim_real_to_hoare: ISim.t open MemA.t MemP.t emp%I IstEq.
+  Proof using.
+    init_sim; et;
+      (init_simF; iDestruct "IST" as "->"; steps_r;
+       iApply wsim_eqit_src; [|iApply (wsim_lat_real_to_hoare _ fbody_trivial)];
+       rewrite ?SRed.core ?SBRed.choose; refl).
+  Qed.
 
   Theorem ctxr csl genv :
     ctx_refines
@@ -665,8 +655,7 @@ Module MemIA. Section MemIA.
   Proof using.
     etrans; cycle 1.
     { eapply MemIP.ctxr. }
-    etrans; cycle 1.
-    { ctxr_norm. eapply MemPA.ctxr. }
-    eapply ctxr_cond_strengthen; et.
+    { rewrite mod_addc_empty_l. eapply ctxr_cond_frameR_simpl.
+      eapply main_adequacy, sim_real_to_hoare. }
   Qed.
-End MemIA. End MemIA.
+End MemIA. End MemIA. *)

@@ -275,6 +275,16 @@ Section wsim.
     iIntros (??) "IST"; iApply ("C" with "[IST] [I]"); iFrame; et.
   Qed.
 
+  Lemma wsim_gettid k_s k_t :
+    (∀ tid, sim Ep r g RR true true (st_s, k_s tid) (st_t, k_t tid)) ⊢
+    sim Ep r g RR ps pt
+      (st_s, trigger GetTid >>= k_s)
+      (st_t, trigger GetTid >>= k_t).
+  Proof using.
+    unseal; iIntros "C I". iApply isim_gettid; eauto.
+    iIntros (?); iApply ("C" with "I"); iFrame; et.
+  Qed.
+
   Lemma wsim_reset i_s i_t :
     sim Ep r g RR false false (st_s, i_s) (st_t, i_t) ⊢
     sim Ep r g RR ps pt (st_s, i_s) (st_t, i_t).
@@ -719,15 +729,19 @@ Section FancyReal.
   Lemma wsim_ru_src_advanced {X} (pre post : X → _) k_s i_t :
     (∃ (I P : iProp Σ),
       I ∗ precise P ∗
-      (∀ x, ∃ T, (I ∗ pre x -∗ □ T) ∗ (□ T -∗ pre x ==∗ P ∗ post x)) ∗
-      (P ∗ I -∗ sim Ep r g RR true pt (st_s, k_s ()) (st_t, i_t))) ⊢
+      (∀ x, ∃ T, (I -∗ winv Ep -∗ pre x -∗ □ T) ∗ (□ T -∗ pre x ==∗ P ∗ post x)) ∗
+      (I -∗ P -∗ sim Ep r g RR true pt (st_s, k_s ()) (st_t, i_t))) ⊢
     sim Ep r g RR ps pt (st_s, RealUpdate pre post >>= k_s) (st_t, i_t).
   Proof.
     rewrite wsim_eq /wsim_def.
-    iIntros "[%I [%P [I [#[%pr [Pre ?]] [Hsplit Hsim]]]]] W".
-    iApply isim_ru_src_advanced; iFrame.
-    iSplit; [iModIntro; iExists pr; iSplitR; done|].
-    by iIntros "PI"; iPoseProof ("Hsim" with "PI") as "SIM"; iApply "SIM".
+    iIntros "[%I [%P [I [#Pre [Hsplit Hsim]]]]] W".
+    iApply isim_ru_src_advanced. iExists _, _.
+    iFrame "Pre". iSplitL "I W".
+    { iCombine "I W" as "I". iApply "I". }
+    iSplitL "Hsplit".
+    { iIntros (?). iDestruct ("Hsplit" $! x) as "[% [H ?]]"; iFrame.
+      iIntros "[I W]". iApply ("H" with "I W"). }
+    iIntros "[I W] P". iApply ("Hsim" with "I P W").
   Qed.
 
   Lemma wsim_ru_src {X} (pre post : X → _) k_s i_t :
@@ -770,5 +784,4 @@ Section FancyReal.
     iIntros "[%x [Hpre Hsim]] W".
     iApply isim_ru_tgt_simple; iFrame "Hpre"; iIntros "?"; iApply ("Hsim" with "[$] [$]").
   Qed.
-
 End FancyReal.

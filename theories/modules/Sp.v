@@ -1,14 +1,10 @@
 Require Import Common.
-From iris.proofmode Require Import proofmode.
 Require Import FSpec.
+From iris.proofmode Require Import proofmode.
 
 Set Implicit Arguments.
 
-Create HintDb sp.
-Hint Rewrite (Seal.sealing_eq "sp") : sp.
-
 Section HEADER.
-
   Context `{Σ: GRA}.
 
   (* we use "option string" instead of "string" in spl_type for an engineering purpose. *)
@@ -16,20 +12,19 @@ Section HEADER.
   Definition sp_type := (string -> option fspec).
   
   Definition to_sp (l : spl_type) : sp_type :=
-    (fun fn => or_else (alist_find (Some fn) l) (Some fspec_bot)).
+    (λ fn, or_else (alist_find (Some fn) l) (Some fspec_bot)).
 
   Definition sp_none : sp_type := (const None).
 
   Variant fn_has_spec (sp : sp_type) (fn : string) (fsp : fspec) : Prop :=
-    | fn_has_spec_intro
-        (WEAK : fspec_imply (fspec_flat (sp fn)) fsp).
+  | fn_has_spec_intro (WEAK : fspec_imply (fspec_flat (sp fn)) fsp).
   Hint Constructors fn_has_spec : core.
 
   Variant fn_has_spec_in (spl : spl_type) (fn : string) (fsp : fspec) : Prop :=
-    | fn_has_spec_in_intro
-        fsp_real
-        (SPEC: alist_find (Some fn) spl = Some fsp_real)
-        (WEAK : fspec_imply (fspec_flat fsp_real) fsp).
+  | fn_has_spec_in_intro
+      fsp_real
+      (SPEC: alist_find (Some fn) spl = Some fsp_real)
+      (WEAK : fspec_imply (fspec_flat fsp_real) fsp).
   Hint Constructors fn_has_spec_in : core.
 
   Lemma fn_has_weaker_spec (sp : sp_type) (fn : string) (fsp0 fsp1 : fspec)
@@ -50,10 +45,11 @@ Section HEADER.
   Global Program Instance sp_imply_PreOrder : PreOrder sp_imply.
   Next Obligation. ii. exists x1. esplits; et. Qed.
   Next Obligation.
-    ii. exploit H0; et. i; des. exploit H; et. i; des.
-    exists x2. split; ii.
-    - rewrite PRE PRE0. iIntros ">>H". et.
-    - rewrite POST0 POST. iIntros ">>H". et.
+    intros x y z Hxy Hyz fn z1. exploit Hyz; et; intros [y1 [Hypre Hypost]].
+    exploit Hxy; et; intros [x1 [Hxpre Hxpost]].
+    exists x1. split; ii.
+    - rewrite Hypre Hxpre. iIntros ">>H". et.
+    - rewrite Hxpost Hypost. iIntros ">>H". et.
   Qed.
 
   Definition sp_sub (sp0 sp: sp_type) : Prop :=

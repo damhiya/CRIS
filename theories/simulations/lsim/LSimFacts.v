@@ -353,6 +353,20 @@ Proof.
         esplits; eauto. apply MSIM. eauto.
     }
 
+  - rewrite !unfold_iterV. s. rewrite LKS LKT. grind.
+    unfold LModTr.pure_state. zostep_l. zostep_r.
+    (* grind. zstep. zostep_l. zostep_r. subst. *)
+    eapply K;
+      try rewrite length_insert;
+      try rewrite list_lookup_insert; eauto; try nia.
+    i. des_ifs; des; subst.
+    + rewrite !list_lookup_insert in INS; try nia. inv INS.
+      rewrite !list_lookup_insert in INT; try nia. inv INT.
+      eexists. eapply K.
+    + rewrite list_lookup_insert_ne in INS; try nia. inv INS.
+      rewrite list_lookup_insert_ne in INT; try nia. inv INT.
+      eapply SIM; des_ifs; eauto.
+
   - rewrite unfold_iterV; s. rewrite LKS. grind.
     unfold LMod.prog, unwrapU at 1. 
     rewrite FUN. grind. unfold triggerUB, LModTr.pure_state. grind.

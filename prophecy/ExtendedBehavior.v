@@ -54,6 +54,7 @@ Section proph_interp.
                        Ret (inl (tid, (base.insert tid (b, k (List.length ths)) ths) ++ [bi]))
                  | Yield tid' => fun k =>
                                    Ret (inl (tid', base.insert tid (b, k tt) ths))
+                 | GetTid => fun k => Ret (inl (tid, base.insert tid (b, k tid) ths))
                  end k)
           end
       end.
@@ -1292,4 +1293,3 @@ Section TREXTRREL.
   Qed.
 
 End TREXTRREL.
-

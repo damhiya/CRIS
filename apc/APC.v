@@ -5,21 +5,19 @@ Require Import APCHeader.
 Set Implicit Arguments.
 
 Section FSPEC.
-
-  Context {Σ: GRA}.
+  Context {Σ : GRA}.
   
   (* fspec is only about args, varg is always ordinal *)
   Definition fspec_apc {X : Type} (o: X → Ord.t) (DPQ: X → (Any.t → iProp Σ) * (Any.t → iProp Σ)) : fspec :=
-    mk_fspec (λ x y a, (((fst ∘ DPQ) x a: iProp Σ) ∗ ⌜∃ vo: Ord.t, y = vo↑ ∧ ((o x) <= vo)%ord⌝)%I)
-             (λ x _ a, (((snd ∘ DPQ) x a: iProp Σ))%I).
+    fspec_call
+      (λ x y a, (((fst ∘ DPQ) x a: iProp Σ) ∗ ⌜∃ vo: Ord.t, y = vo↑ ∧ ((o x) <= vo)%ord⌝)%I)
+      (λ x _ a, (((snd ∘ DPQ) x a: iProp Σ))%I).
 
   Definition pure_body : Any.t → itree crisE Any.t :=
     cfunN (λ dep_ord: Ord.t, trigger (Call APCHdr.apc dep_ord↑);;; Ret ()).
-
 End FSPEC.
 
 Section apc.
-
   Context {Σ: GRA}.  
 
   Variable dep_ord: Ord.t.
@@ -73,7 +71,7 @@ Section apc.
 End apc.
 
 Section aux.
-  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concG}.
 
   Lemma map_fst_map_map_snd_refl {A B C} (f: B → C) (l: list (A * B)):
     map fst (map (map_snd f) l) = map fst l.
@@ -93,5 +91,4 @@ Section aux.
   Definition pure: itree crisE Any.t :=
     o <- trigger (Choose Ord.t);;
     trigger (Call APCHdr.apc o↑).
-
 End aux.

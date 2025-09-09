@@ -150,6 +150,7 @@ Proof using.
         steps_l. steps_r. by_coind CIH; et.
       * steps_l. ss.
     + yield ""; eauto. by_coind CIH; et.
+    + step; eauto. by_coind CIH; et.
   - iApply isim_nodup_src; iIntros (?).
     depdes s0.
     + rewrite !SBRed.bind !SBRed.put. des_ifs; cycle 1.

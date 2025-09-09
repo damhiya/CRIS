@@ -467,10 +467,12 @@ Proof.
     { eapply le_mine_in; eauto; rewrite length_insert; eauto using le_mine_in. }
     rewrite /ctx_add /ctx_set list_lookup_insert; eauto using le_mine_in.
 
-  - clarify. prep. guclo lsim_indC_spec. econs 16.
-    rewrite alist_find_map FUN. et.
+  - clarify. step. eapply K; eauto.
 
   - clarify. prep. guclo lsim_indC_spec. econs 17.
+    rewrite alist_find_map FUN. et.
+
+  - clarify. prep. guclo lsim_indC_spec. econs 18.
     rewrite alist_find_map FUN. et.
 
   - clarify. pclearbot. gstep; econs; econs; eauto; cycle 1.
