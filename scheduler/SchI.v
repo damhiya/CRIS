@@ -18,7 +18,7 @@ Module SchI. Section SchI.
       'ths : thpool <- cgetU v_ths;;
       'tid : nat <- cgetU v_tid;;
       match ths !! tid with
-      | Some (stid, None) =>
+      | Some (stid, _) =>
           let ths2 := <[tid := (stid, Some rv)]> ths in
           cput v_ths ths2;;;
           Sch.terminate
@@ -29,23 +29,23 @@ Module SchI. Section SchI.
     λ '(fn, arg),
       'ths : thpool <- cgetU v_ths;;
       new_stid <- trigger (Spawn SchHdr._spawn (fn, arg)↑);;
-      let new_tid : nat := length ths in
-      cput v_ths (<[new_tid := (new_stid, None)]> ths);;;
-      Ret new_tid.
+      cput v_ths (ths ++ [(new_stid, None)]);;;
+      Ret (length ths).
 
   Definition yield : unit → itree crisE unit :=
     λ _,
+      (* sanity checking *)
       'ths : thpool <- cgetU v_ths;;
-      '(exist _ ntid _) : _ <- trigger (Choose {ntid : nat | ntid < length ths});;
-      (* Sanity check *)
       tid <- trigger GetTid;;
       'mtid : nat <- cgetU v_tid;;
       match ths !! mtid with
       | Some (stid, _) => if (decide (stid = tid)) then Ret () else triggerUB
       | None => triggerUB
       end;;;
-      trigger (Yield ntid);;;
-      cput v_tid mtid.
+      (* yield *)
+      '(exist _ (mtid, stid) _) : _ <- trigger (Choose {p : nat * nat | ths.*1 !! p.1 = Some p.2});;
+      cput v_tid mtid;;;
+      trigger (Yield stid).
 
   Definition join : nat → itree crisE (option SAny.t) :=
     λ tid,
