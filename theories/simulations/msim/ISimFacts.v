@@ -217,7 +217,7 @@ Proof using.
     rewrite E1. s. split; et.
     exploit INIT; try rewrite !alist_find_map_snd.
     + rewrite E0. et.
-    + i; des. rewrite x1. iIntros "[% H]". iExists _, _, _, _.
+    + i; des. rewrite x1. iIntros ">[% H]". iExists _, _, _, _. iModIntro.
       do 3 (iSplit; et).
   - i. eapply ISim.sim_fun_strong. intro IN.
     rewrite map_app in IN. apply in_app_or in IN. des; cycle 1.
@@ -244,21 +244,11 @@ Proof using.
 
     ii. iIntros "[% H] INV". des; subst.
     iApply isim_mono; cycle 1.
-    { iApply (isim_reflL with "[H]"); et; cycle 3.
+    { exploit INIT.
+      i. des.
+      iMod (x1 with "H") as "H".
+      iApply (isim_reflL with "[H]"); et; cycle 3.
       - iExists _, _, _, _. do 3 (iSplit; et).
-        + iPureIntro. split; cycle 1.
-          * eapply (Mod.well_scoped_init B).
-          * etrans; [eapply (Mod.well_scoped_init A)|].
-            eapply sub_perm_incl. et.
-        + exploit INIT.
-          { rewrite alist_find_map_snd.
-            destruct (alist_find None (_ B)) eqn: E; et.
-            rewrite map_app in NODUPFT.
-            eapply NoDup_app_disjoint in NODUPFT; ss.
-            - eapply (in_map fst), alist_find_some. et.
-            - s. eapply alist_find_some, (in_map fst) in E. et.
-          }
-          i. des. rewrite x1. iDestruct "H" as "[% H]". et.
       - eapply WFT.
       - ii. exploit (Mod.well_scoped_fns C None).
         { rewrite /fnsems_scopes FND. et. }
@@ -266,6 +256,14 @@ Proof using.
       - i. iIntros "%". subst. et.
     }
     i. iIntros "[% H]". subst. et.
+
+  Unshelve.
+    rewrite alist_find_map_snd.
+    destruct (alist_find None (_ B)) eqn: E; et.
+    rewrite map_app in NODUPFT.
+    eapply NoDup_app_disjoint in NODUPFT; ss.
+    { eapply (in_map fst), alist_find_some. et. }
+    { s. eapply alist_find_some, (in_map fst) in E. et. }
 Qed.
 
 Lemma ISim_reflR contextual A B C init_cond scopes Ist
@@ -304,7 +302,7 @@ Proof using.
     rewrite E0. s. split; et.
     exploit INIT; try rewrite !alist_find_map_snd.
     + rewrite E. et.
-    + i; des. rewrite x1. iIntros "[% H]". iExists _, _, _, _.
+    + i; des. rewrite x1. iIntros ">[% H]". iExists _, _, _, _. iModIntro.
       do 3 (iSplit; et).
   - i. eapply ISim.sim_fun_strong. intro IN.
     rewrite map_app in IN. apply in_app_or in IN. des.
@@ -331,21 +329,10 @@ Proof using.
 
     ii. iIntros "[% H] INV". des; subst.
     iApply isim_mono; cycle 1.
-    { iApply (isim_reflR with "[H]"); et; cycle 3.
+    { exploit INIT. i; des.
+      iMod (x1 with "H") as "H".
+      iApply (isim_reflR with "[H]"); et; cycle 3.
       - iExists _, _, _, _. do 3 (iSplit; et).
-        + iPureIntro. split; cycle 1.
-          * eapply (Mod.well_scoped_init B).
-          * etrans; [eapply (Mod.well_scoped_init A)|].
-            eapply sub_perm_incl. et.
-        + exploit INIT.
-          { rewrite alist_find_map_snd.
-            destruct (alist_find None (_ B)) eqn: E; et.
-            rewrite map_app in NODUPFT.
-            eapply NoDup_app_disjoint in NODUPFT; ss.
-            - eapply (in_map fst), alist_find_some. et.
-            - s. eapply alist_find_some, (in_map fst) in E. et.
-          }
-          i. des. rewrite x1. iDestruct "H" as "[% H]". et.
       - eapply WFT.
       - ii. exploit (Mod.well_scoped_fns C None).
         { rewrite /fnsems_scopes FND. et. }
@@ -353,6 +340,14 @@ Proof using.
       - i. iIntros "%". subst. et.
     }
     i. iIntros "[% H]". subst. et.
+
+  Unshelve.
+    rewrite alist_find_map_snd.
+    destruct (alist_find None (_ B)) eqn: E; et.
+    rewrite map_app in NODUPFT.
+    eapply NoDup_app_disjoint in NODUPFT; ss.
+    { eapply (in_map fst), alist_find_some. et. }
+    { s. eapply alist_find_some, (in_map fst) in E. et. }
 Qed.
 
 End ISIM_REFL.

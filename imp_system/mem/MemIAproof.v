@@ -613,7 +613,7 @@ Module MemIP. Section MemIP.
     init_sim.
     - rewrite /IstFull /MemP /MemI. unfold_mod. s. splits; eauto.
       iIntros "P". iExists [], [_], [], [].
-      repeat iSplit; et.
+      iModIntro. repeat iSplit; et.
       { iPureIntro. ss. }
       iExists _, _. iFrame. iPureIntro. esplits; et.
       + ii. rewrite /mem_init_val /Mem.load_mem.

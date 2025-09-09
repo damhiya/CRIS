@@ -548,7 +548,7 @@ Proof using.
     destruct (alist_find _ (Mod.fnsems ms)) eqn: E0; ss.
     rewrite alist_find_app_o. rewrite E0.
     destruct (alist_find _ (Mod.fnsems ctx)) eqn: E1; ss. esplits; et.
-    rewrite H1. iIntros "H". do 4 iExists _. iSplit; et. iSplit; et.
+    rewrite H1. iIntros ">H". do 4 iExists _. iModIntro. iSplit; et. iSplit; et.
     - iSplit; et. iPureIntro. split; try apply (Mod.well_scoped_init mt).
       etrans; try apply (Mod.well_scoped_init ms).
       eapply sub_perm_incl; et.
@@ -591,16 +591,16 @@ Proof using.
       destruct fs as [[[img msk] scp] bd].
       iIntros "[% H] I". des; subst.
       iApply isim_mono; cycle 1.
-      { iApply (isim_reflR with "[H]"); et.
+      { exploit sim_initial; et; try rewrite !alist_find_map_snd.
+        i. des. iMod (x1 with "H") as "H".
+        iApply (isim_reflR with "[H]"); et.
         - eapply WFT0.
         - s. etrans; [|eapply Mod.well_scoped_fns].
           rewrite /fnsems_scopes. erewrite H0. refl.
         - i. iIntros "%". des; subst. et.
         - i. iIntros "%". des; subst. iPureIntro.
           rewrite state_scopes_update. et.
-        - exploit sim_initial; et; try rewrite !alist_find_map_snd.
-          { rewrite E. et. }
-          i. des. rewrite x1. do 4 iExists _. iSplit; et.
+        - do 4 iExists _. iSplit; et.
           rewrite /IstSB. iSplit.
           + iFrame. iPureIntro. split; try apply Mod.well_scoped_init.
             etrans; try apply Mod.well_scoped_init.
@@ -643,6 +643,10 @@ Proof using.
       + rewrite state_scopes_update. eauto.
       + rewrite state_scopes_update. eauto.
   }
+
+  Unshelve.
+  - eauto.
+  - rewrite alist_find_map_snd E. eauto.
 Qed.
 
 Theorem main_adequacy (ms mt : Mod.t) IC Ist

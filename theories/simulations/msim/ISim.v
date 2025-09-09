@@ -974,7 +974,7 @@ Module ISim. Section ISim.
 
   Definition initial_valid : Prop :=
     alist_find None fl_tgt = None →
-    ((alist_find None fl_src = None) ∧ (init_cond ⊢ Ist init_src init_tgt)).
+    ((alist_find None fl_src = None) ∧ (init_cond ⊢ |==> Ist init_src init_tgt)).
 
   Inductive t : Prop := mk {
     sim_scopes : Mod.wf ms_tgt →
