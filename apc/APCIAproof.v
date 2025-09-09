@@ -32,7 +32,7 @@ Module APCIA. Section APCIA.
 
   Theorem sim : ISim.t open APCAMod APCIMod emp%I Ist.
   Proof using _crisG.
-    init_sim.
+    init_sim; eauto.
     - eapply simF_apc.
   Qed.
 End APCIA.

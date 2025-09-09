@@ -133,7 +133,8 @@ Module APCAC. Section APCAC.
   Theorem sim : ISim.t open APCCMod APCAMod APCC.init_cond IstFull.
   Proof using _crisG PureIsPure PureInSpA APCInSpA.
     init_sim.
-    - split; eauto. iIntros "_". iSplit; ss. iPureIntro. split; prove_scope.
+    - split; eauto. iIntros "_". iModIntro.
+      iSplit; ss. iPureIntro. split; prove_scope.
     - eapply simF_apc.
   Qed.
 End APCAC.
