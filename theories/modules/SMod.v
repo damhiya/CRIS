@@ -180,9 +180,13 @@ Section Aux.
   Definition has_trivial_spec (md : SMod.t) (fn : string) : Prop :=
     ∃ fno msk scp, has_param md fno false msk scp ∧ msk fn.
 
+  Definition fspec_tag_agree (md: SMod.t) (sp: sp_type) : Prop :=
+    ∀ fn, is_call_spec (fspec_flat (sp fn)) = is_call_spec (fspec_flat ((sp_from md) fn)).
+
   Definition valid_sp (md: SMod.t) (sp: sp_type) : Prop :=
     sp_imply (sp_from md) sp ∧
-    ∀ fn (NS: has_trivial_spec md fn), fspec_imply (fspec_flat (sp fn)) fspec_trivial.
+    (∀ fn (NS: has_trivial_spec md fn), fspec_imply (fspec_flat (sp fn)) fspec_trivial) /\
+    fspec_tag_agree md sp.
 
   Definition real_smod (md : SMod.t) : Prop :=
     ∀ fno img msk scp, has_param md fno img msk scp → img = false.
