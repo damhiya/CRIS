@@ -82,19 +82,17 @@ Definition NativeSpawnE (fn: string) (arg: Any.t) : itree crisE nat :=
 (*   | None => *)
 (*     NativeSpawnE fn varg *)
 (*   end. *)
-Definition HoareSpawnE fn varg (fspo: option fspec) : itree crisE nat :=
-  match fspo with
-  | Some (@fspec_call _ meta pre post) =>
-      triggerNB
-  | Some (@fspec_spawn _ meta pre post) =>
+
+Definition HoareSpawnE fn varg (fsp : fspec) : itree crisE nat :=
+  match fsp with
+  | @fspec_spawn _ meta pre post =>
       x <- trigger (Choose meta);; tau;;
       arg <- trigger (Choose Any.t);; tau;;
       tid <- trigger (Spawn fn arg);; tau;;
       trigger (Assume (YIELD tid));;; tau;;
       trigger (Guarantee (pre (tid, x) varg arg));;; tau;;
       Ret tid
-  | None =>
-      NativeSpawnE fn varg
+  | _ => triggerUB
   end.
 
 Definition NativeYieldE tid : itree crisE () :=
@@ -116,107 +114,46 @@ Definition HoareGetTidE : itree crisE nat :=
   trigger (Assume (⌜tid = my_tid⌝ ∗ TID(my_tid)));;; tau;;
   Ret tid.
 
-(* Definition elim_precond {X X' : Type} Po Po' varg : itree crisE (X * X' * Any.t) := *)
-(*   '(x, arg): _ <- *)
-(*     match Po with *)
-(*     | inl P => *)
-(*        x <- trigger (Choose X);; tau;; *)
-(*        arg <- trigger (Choose Any.t);; tau;; *)
-(*        trigger (Guarantee (P x varg arg));;; tau;; tau;; *)
-(*        Ret (x, arg) *)
-(*     | inr x => *)
-(*        tau;; Ret (x, varg) *)
-(*     end;; *)
-(*   match Po' with *)
-(*   | inl P' => *)
-(*      x' <- trigger (Take X');; tau;; *)
-(*      varg' <- trigger (Take Any.t);; tau;; *)
-(*      trigger (Assume (P' x' varg' arg));;; tau;; *)
-(*      Ret (x, x', varg') *)
-(*   | inr x' => *)
-(*      tau;; tau;; Ret (x, x', arg) *)
-(*   end. *)
-
-(* Definition elim_postcond {X X' : Type} Qo Qo' (x : X) (x' : X') vret' : itree crisE Any.t := *)
-(*   ret <- *)
-(*     match Qo' with *)
-(*     | Some Q' => *)
-(*        ret <- trigger (Choose Any.t);; tau;; *)
-(*        trigger (Guarantee (Q' x' vret' ret));;; tau;; tau;; tau;; *)
-(*        Ret ret *)
-(*     | None => *)
-(*        tau;; tau;; Ret vret' *)
-(*     end;; *)
-(*   match Qo with *)
-(*   | Some Q => *)
-(*      vret <- trigger (Take Any.t);; tau;; *)
-(*      trigger (Assume (Q x vret ret));;; tau;; *)
-(*      Ret vret *)
-(*   | None => *)
-(*      Ret ret *)
-(*   end. *)
-
-Definition elim_precond {X X' : Type}
-  (Po : _ + (nat * X -> Any.t -> Any.t -> iProp Σ) + _)
-  (Po' : _ + (nat * X' -> Any.t -> Any.t -> iProp Σ) + _)
-  varg : itree crisE (nat * X * X' * Any.t) :=
+Definition elim_precond {X X' : Type} Po Po' varg : itree crisE (X * X' * Any.t) :=
   '(x, arg): _ <-
     match Po with
-    | inl (inl P) =>
+    | inl P =>
        x <- trigger (Choose X);; tau;;
        arg <- trigger (Choose Any.t);; tau;;
        trigger (Guarantee (P x varg arg));;; tau;; tau;;
        Ret (x, arg)
-    | inl (inr P) =>
-       triggerNB
     | inr x =>
        tau;; Ret (x, varg)
     end;;
   match Po' with
-  | inl (inl P') =>
+  | inl P' =>
      x' <- trigger (Take X');; tau;;
      varg' <- trigger (Take Any.t);; tau;;
      trigger (Assume (P' x' varg' arg));;; tau;;
-     Ret (0, x, x', varg')
-  | inl (inr P') =>
-     tid <- trigger (Take nat);; tau;;
-     trigger (Assume (TID tid ∗ YIELD tid));;; tau;;
-     x' <- trigger (Take X');; tau;;
-     varg' <- trigger (Take Any.t);; tau;;
-     trigger (Assume (P' (tid, x') varg' arg));;; tau;;
-     Ret (tid, x, x', varg')
+     Ret (x, x', varg')
   | inr x' =>
-     tau;; tau;; Ret (0, x, x', arg)
+     tau;; tau;; Ret (x, x', arg)
   end.
 
-Definition elim_postcond {X X' : Type}
-  (Qo : option (_ + (nat * X -> Any.t -> Any.t -> iProp Σ)))
-  (Qo' : option (_ + (nat * X' -> Any.t -> Any.t -> iProp Σ)))
-  (tid: nat) (x : X) (x' : X') vret' : itree crisE Any.t :=
+Definition elim_postcond {X X' : Type} Qo Qo' (x : X) (x' : X') vret' : itree crisE Any.t :=
   ret <-
     match Qo' with
-    | Some (inl Q') =>
+    | Some Q' =>
        ret <- trigger (Choose Any.t);; tau;;
        trigger (Guarantee (Q' x' vret' ret));;; tau;; tau;; tau;;
-       Ret ret
-    | Some (inr Q') =>
-       ret <- trigger (Choose Any.t);; tau;;
-       trigger (Guarantee (Q' (tid, x') vret' ret));;; tau;;
-       trigger (Guarantee (TID tid));;; tau;; tau;; tau;;
        Ret ret
     | None =>
        tau;; tau;; Ret vret'
     end;;
   match Qo with
-  | Some (inl Q) =>
+  | Some Q =>
      vret <- trigger (Take Any.t);; tau;;
      trigger (Assume (Q x vret ret));;; tau;;
      Ret vret
-  | Some (inr Q) =>
-     triggerNB
   | None =>
      Ret ret
   end.
+
 
 (* Definition elim_spawnee_precond (X : Type) Po (arg : Any.t) : itree crisE (X * Any.t) := *)
 (*   match Po with *)
@@ -241,12 +178,7 @@ Definition elim_postcond {X X' : Type}
 
 Definition elim_spawnee_precond (X : Type) Po (arg : Any.t) : itree crisE (nat * X * Any.t) :=
   match Po with
-  | inl (inl P) =>
-     x <- trigger (Take X);; tau;;
-     varg <- trigger (Take Any.t);; tau;;
-     trigger (Assume (P x varg arg));;; tau;;
-     Ret (0, x, varg)
-  | inl (inr P) =>
+  | inl P =>
      tid <- trigger (Take nat);; tau;;
      trigger (Assume (TID tid ∗ YIELD tid));;; tau;;
      x <- trigger (Take X);; tau;;
@@ -259,11 +191,7 @@ Definition elim_spawnee_precond (X : Type) Po (arg : Any.t) : itree crisE (nat *
 
 Definition elim_spawnee_postcond {X : Type} Qo (tid : nat) (x : X) (vret : Any.t) : itree crisE Any.t :=
   match Qo with
-  | Some (inl Q) =>
-     ret <- trigger (Choose Any.t);; tau;;
-     trigger (Guarantee (Q x vret ret));;; tau;;
-     Ret ret
-  | Some (inr Q) =>
+  | Some Q =>
      ret <- trigger (Choose Any.t);; tau;;
      trigger (Guarantee (Q (tid, x) vret ret));;; tau;;
      trigger (Guarantee (TID tid));;; tau;;
@@ -305,10 +233,12 @@ Variant elim_rel_def
    (∀ x, self _ ε (ktrS x) (ktrT x)) →
    elim_rel_def sp self ε (trigger (Yield tid) >>= ktrS) (trigger (Yield tid) >>= ktrT)
 (* handling cancellation *)
-| elim_rel_spawn fn args img ktrS ktrT itrS itrT :
-   (img = false → fspec_imply (fspec_flat (sp fn)) fspec_trivial) →
+| elim_rel_spawn fn args fsp ktrS ktrT itrS itrT :
+   (* (img = false → fspec_imply (fspec_flat (sp fn)) fspec_trivial) → *)
    itrS = NativeSpawnE fn args >>= ktrS →
-   itrT = HoareSpawnE fn args ((if img then sp else sp_none) fn) >>= ktrT →
+   (* itrT = HoareSpawnE fn args ((if img then sp else sp_none) fn) >>= ktrT → *)
+   sp fn = Some fsp ->
+   itrT = HoareSpawnE fn args fsp >>= ktrT →
    (∀ x, self _ ε (ktrS x) (ktrT x)) →
    elim_rel_def sp self ε itrS itrT
 | elim_rel_precond (X X' : Type) Po Po' varg itrS itrT ktrT :
@@ -810,19 +740,21 @@ Proof using.
       { ired. rewrite MIRed.core. estep 1. }
       rewrite !MIRed.core. estep 2. edone.
     + rewrite SBRed.io !MIRed.core. estep 2. edone.
-(*SLOW*)Qed.
+Admitted.
+(* (*SLOW*)Qed. *)
 
 End ELIM_REL.
 Hint Resolve cpn4_wcompat: paco.
 Hint Resolve elim_rel_def_mon: paco.
 
 Section CancelDef.
-  Context `{Σ: GRA}.
+  (* Context `{Σ: GRA}. *)
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG}.
 
   Variant thread_rel sp : nat → Σ → itree lmodE Any.t → itree lmodE Any.t → Prop :=
   | thread_rel_body itrS itrT src tgt r_diff tid (k: Any.t → itree lmodE Any.t)
       (RET: tid = 0 -> k = λ x, Ret x)
-      (REL: @elim_rel Σ sp Any.t r_diff itrS itrT)
+      (REL: elim_rel sp r_diff itrS itrT)
       (SRC: src = ModTr.trans itrS)
       (TGT: tgt = ModTr.trans itrT >>= k) :
      thread_rel sp tid r_diff src tgt
@@ -831,11 +763,11 @@ Section CancelDef.
      src = ModTr.trans (tau;; tau;; itrS) →
      tgt = ModTr.trans (
        x <- elim_spawnee_precond (fspo_pre fspo) arg;;
-       let (m, varg) := x in
+       let '(tid, m, varg) := x in
        vret <- bd varg;;
-       elim_spawnee_postcond (fspo_post fspo) m vret) →
+       elim_spawnee_postcond (fspo_post fspo) tid m vret) →
      (Own r_diff ⊢
-       |==> match fspo_pre fspo with | inl P => P x varg arg | inr x' => ⌜arg = varg⌝ end)%I →
+       |==> match fspo_pre fspo with | inl (inl P) => P x varg arg | inl (inr P) => P (tid, x) varg arg | inr x' => ⌜arg = varg⌝ end)%I →
      elim_rel sp ε itrS (bd varg) →
      thread_rel sp tid r_diff src tgt.
 

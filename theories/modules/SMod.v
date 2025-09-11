@@ -181,12 +181,18 @@ Section Aux.
     ∃ fno msk scp, has_param md fno false msk scp ∧ msk fn.
 
   Definition fspec_tag_agree (md: SMod.t) (sp: sp_type) : Prop :=
-    ∀ fn, is_call_spec (fspec_flat (sp fn)) = is_call_spec (fspec_flat ((sp_from md) fn)).
+    ∀ fn, is_spawn_spec (fspec_flat (sp fn)) = is_spawn_spec (fspec_flat ((sp_from md) fn)).
+
+  Definition img_spawn (md: SMod.t) : Prop :=
+    ∀ fn fnsem, is_spawn_spec (fspec_flat ((sp_from md) fn)) ->
+                alist_find (Some fn) (SMod.fnsems md) = Some fnsem ->
+                fnsem.1.1.1 = true.
 
   Definition valid_sp (md: SMod.t) (sp: sp_type) : Prop :=
     sp_imply (sp_from md) sp ∧
-    (∀ fn (NS: has_trivial_spec md fn), fspec_imply (fspec_flat (sp fn)) fspec_trivial) /\
-    fspec_tag_agree md sp.
+    (∀ fn (NS: has_trivial_spec md fn), fspec_imply (fspec_flat (sp fn)) fspec_trivial) ∧
+    (* for spawn specs *)
+    fspec_tag_agree md sp ∧ img_spawn md.
 
   Definition real_smod (md : SMod.t) : Prop :=
     ∀ fno img msk scp, has_param md fno img msk scp → img = false.

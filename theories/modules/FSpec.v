@@ -170,10 +170,10 @@ Section FSPEC.
   Lemma fspec_top_weakest fsp : fspec_imply fsp fspec_top.
   Proof. ii. ss. Qed.
 
-  Definition is_call_spec fsp :=
+  Definition is_spawn_spec fsp :=
     match fsp with
-    | fspec_call _ _ => true
-    | fspec_spawn _ _ => false
+    | fspec_call _ _ => false
+    | fspec_spawn _ _ => true
     end.
 End FSPEC.
 
