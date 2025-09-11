@@ -184,8 +184,7 @@ Section Aux.
     ∀ fn, is_spawn_spec (fspec_flat (sp fn)) = is_spawn_spec (fspec_flat ((sp_from md) fn)).
 
   Definition img_spawn (md: SMod.t) : Prop :=
-    ∀ fn fnsem, is_spawn_spec (fspec_flat ((sp_from md) fn)) ->
-                alist_find (Some fn) (SMod.fnsems md) = Some fnsem ->
+    ∀ fn fnsem, alist_find (Some fn) (SMod.fnsems md) = Some fnsem ->
                 fnsem.1.1.1 = true.
 
   Definition valid_sp (md: SMod.t) (sp: sp_type) : Prop :=

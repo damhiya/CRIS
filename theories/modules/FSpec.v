@@ -175,6 +175,12 @@ Section FSPEC.
     | fspec_call _ _ => false
     | fspec_spawn _ _ => true
     end.
+
+  Definition is_spawn_ospec fspo :=
+    match fspo with
+    | Some fsp => is_spawn_spec fsp
+    | None => false
+    end.
 End FSPEC.
 
 Section FSPEC_WINV.
