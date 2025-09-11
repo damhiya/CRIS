@@ -21,7 +21,7 @@ Section resource.
     own base_γ (gmap_view_frag (V:=agreeR $ leibnizO jobID) tid (DfracOwn 1) (to_agree jid)).
 End resource. *)
 Section HoareCall.
-  Context {Σ : GRA}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concG}.
 
   Definition fspec_option_meta (fspo : option fspec) : Type :=
     match fspo with
@@ -32,11 +32,12 @@ Section HoareCall.
   Definition HoareCall_prologue fspo parg : itree crisE (fspec_option_meta fspo * Any.t) :=
     Seal.sealing "Help"
     (match fspo as fspo return itree crisE (fspec_option_meta fspo * Any.t) with
-    | Some fsp =>
-        x <- trigger (Choose (meta fsp));;
+    | Some (@fspec_call _ meta pre post) =>
+        x <- trigger (Choose meta);;
         varg <- trigger (Choose Any.t);;
-        trigger (Guarantee (precond fsp x parg varg));;;
+        trigger (Guarantee (pre x parg varg));;;
         Ret (x, varg)
+    | Some _ => triggerNB
     | None => Ret (tt, parg)
     end).
 
@@ -44,11 +45,12 @@ Section HoareCall.
       : itree crisE Any.t :=
     Seal.sealing "Help"
     (match fspo as fspo return fspec_option_meta fspo → itree crisE Any.t with
-    | Some fsp =>
+    | Some (@fspec_call _ meta pre post) =>
         λ x,
           vret <- trigger (Take Any.t);;
-          trigger (Assume (postcond fsp x vret pret));;;
+          trigger (Assume (post x vret pret));;;
           Ret vret
+    | Some _ => λ _, triggerNB
     | None => λ _, Ret pret
     end) x.
 
@@ -59,33 +61,30 @@ Section HoareCall.
     HoareCall_epilogue fspo xarg.1 ret.
   Proof.
     rewrite /SModTr.HoareCall /HoareCall_prologue /HoareCall_epilogue; unseal "Help".
-    destruct fspo as [fsp|]; ss.
+    destruct fspo as [[|]|]; ss.
     { ired. f_equal. extensionalities x. ired. f_equal. extensionalities arg. ired. f_equal.
       extensionalities t. f_equal. extensionalities a. unseal "Help". done. }
+    { ired. f_equal. extensionalities; ss. }
     { ired. erewrite <-bind_ret_r at 1. f_equal. extensionalities a. unseal "Help". done. }
   Qed.
 End HoareCall.
 
 (* Helping module *)
 Module HelpingOn. Section HelpingOn.
-  Context {Σ : GRA} {jobID : Type}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concG} {jobID : Type}.
 
   Context (mn : string).
   Context (jobcode : jobID → itree Helping.pureE unit).
-
-  Variant progress := Pend | InProgress.
-  Definition jobmap : Type := gmap nat (jobID * progress).
 
   Definition scopes := [mn].
   Definition v_reqs := mn ↯ "reqs".
 
   Definition try_run (tid : nat) : itree crisE Any.t :=
-    'reqs : jobmap <- cgetU v_reqs;;
+    'reqs : gmap nat jobID <- cgetU v_reqs;;
     match reqs !! tid with
-    | Some (jid, Pend) =>
-        cput v_reqs (<[tid := (jid, InProgress)]> reqs);;;
-        Helping.trans (jobcode jid);;;
+    | Some jid =>
         cput v_reqs (delete tid reqs);;;
+        Helping.trans (jobcode jid);;;
         Ret ()↑
     | _ => Ret ()↑
     end.
@@ -93,17 +92,10 @@ Module HelpingOn. Section HelpingOn.
   Definition run : Any.t → itree crisE Any.t :=
     λ arg,
       'jid : jobID <- arg↓?;;
-      'reqs : jobmap <- cgetU v_reqs;;
+      'reqs : gmap nat jobID <- cgetU v_reqs;;
       let tid := fresh (dom reqs) in
-      cput v_reqs (<[tid := (jid, Pend)]> reqs);;;
-      iterC (λ _ : (),
-        𝒴;;;
-        'reqs : jobmap <- cgetU v_reqs;;
-        match reqs !! tid with
-        | Some (jid, InProgress) => Ret (inl tt)
-        | _ => Ret (inr tt↑)
-        end
-      ) ();;;
+      cput v_reqs (<[tid := jid]> reqs);;;
+      𝒴;;;
       try_run tid.
 
   Definition help (sp : sp_type) : Any.t → itree crisE Any.t :=
@@ -122,7 +114,7 @@ Module HelpingOn. Section HelpingOn.
   Program Definition Mod (sp : sp_type) : SMod.t := {|
     SMod.scopes := scopes;
     SMod.fnsems := fnsems sp;
-    SMod.initial_st := [(v_reqs, (∅ : jobmap)↑)];
+    SMod.initial_st := [(v_reqs, (∅ : gmap nat jobID)↑)];
   |}.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.

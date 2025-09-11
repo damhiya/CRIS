@@ -2,7 +2,7 @@ Require Import CRIS SchHeader.
 From CRIS.helping Require Import Header.
 
 Module HelpingOff. Section HelpingOff.
-  Context `{Σ : GRA}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concG}.
 
   Context (mn : string).
   Context {jobID : Type} (jobcode : jobID → itree Helping.pureE unit).
