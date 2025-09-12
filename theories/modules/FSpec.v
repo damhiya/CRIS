@@ -16,6 +16,12 @@ Section FSPEC.
     | @fspec_spawn meta _ _ => nat * meta
     end.
 
+  Definition meta' (fsp: fspec) : Type :=
+    match fsp with
+    | @fspec_call meta _ _ => meta
+    | @fspec_spawn meta _ _ => meta
+    end.
+
   Definition precond (fsp : fspec) : meta fsp → Any.t → Any.t → iProp Σ :=
     match fsp with
     | fspec_call pre _
