@@ -1,7 +1,7 @@
 Require Import CRIS.
 Require Import LMod.
 Require Import GSim GSimFacts GSimTactics.
-Require Import SchHeader SchI.
+Require Import SchHeader SchI SchA.
 From CRIS.helping Require Import Header HelpingOn HelpingOff.
 
 Section auxilliary.
@@ -423,13 +423,15 @@ Tactic Notation "red_ModTr" tactic(tac) :=
     end.
 
 Section Helping.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG, !schG}.
-  Context (sp : sp_type) (mn : string). (* sp, module name for the helping module *)
-  Context {jobID : Type} (jobs : jobID → itree Helping.pureE unit).
+  Context `{!crisG Γ Σ α β τ _S _I, !concG, !newschG}.
+  (* sp, module name for the helping module *)
+  Context (sp : sp_type) (mn : string).
+  Context (Hyield : sp SchHdr.yield = None ∨ ∃ E, sp SchHdr.yield = Some (SchA.yield_spec E)).
+  Context `{jobID} (jobs : jobID → itree Helping.pureE unit).
   Context (msk : string → bool). (* mask for the user module *)
 
-  Local Definition mod_on :=  (HelpingOn.t mn jobs sp)  ★ (CFilter.filter msk (SchI.t)).
-  Local Definition mod_off := (HelpingOff.t mn jobs sp) ★ (CFilter.filter msk (SchI.t)).
+  Local Definition mod_on :=  (HelpingOn.t mn jobs sp)  ★ (CFilter.filter msk SchI.t).
+  Local Definition mod_off := (HelpingOff.t mn jobs sp) ★ (CFilter.filter msk SchI.t).
 
   Local Lemma get_tid_run_neq : SchHdr.get_tid ≠ Helping.run mn.
   Proof.
@@ -513,66 +515,41 @@ Section Helping.
     { ired. done. }
   Qed.
 
-  (* Definition to_reqlist
-      (tl : list (itree lmodE Any.t * itree lmodE Any.t * option (nat * jobID * option bool)))
-      : list (nat * jobID) :=
-    (omap (λ n,
-      match n with
-      | Some (tid, jid, None) => Some (tid, (jid, HelpingOn.Pend))
-      | Some (tid, jid, Some _) => Some (tid, (jid, HelpingOn.InProgress))
-      | None => None
-      end) tl.*2). *)
-
   Definition reqmap
-      (tl : list (itree lmodE Any.t * itree lmodE Any.t * option (nat * jobID)))
+      (tl : list (itree lmodE Any.t * itree lmodE Any.t * option (bool * nat * jobID)))
       : gmap nat jobID :=
-    list_to_map (omap id tl.*2).
+    list_to_map (omap
+      (λ e, match e with | Some (true, tid, jid) => Some (tid, jid) | _ => None end)
+      tl.*2).
 
   Notation "'⇓cris'" := (interpV (ModTr.handle_crisE)).
   Notation "'⇓sb(' i ',' m ',' s ')'" := (interpV (SB.handle_sandbox i m s)).
   Notation "'⇓smod(' img ',' sp ')'" := (interpV (SModTr.handle img sp)).
+  Notation prog_s ctx rs := (LMod.prog
+    (Mod.to_lmod
+      ((SMod.to_mod sp (HelpingOff.Mod mn jobs)
+      ★ CFilter.filter msk (SMod.to_mod sp_none SchI.smod)) ★ ctx) rs)).
+  Notation prog_t ctx rs := (LMod.prog
+    (Mod.to_lmod
+      ((SMod.to_mod sp (HelpingOn.Mod mn jobs sp)
+      ★ CFilter.filter msk (SMod.to_mod sp_none SchI.smod)) ★ ctx) rs)).
 
   Definition yield_epliogue (tid_cur : nat) : itree lmodE Any.t :=
     ⇓cris (⇓sb(false, wmask_and msk wmask_all, SchI.scopes) (⇓smod(false, sp_none) (
         x <- cput SchI.SchI.v_tid tid_cur;;
         Ret (x↑)
     ))).
-  (* Definition yield_epliogue (tid_cur : nat) (x : meta (SchAS.yield_spec ⊤ 1)): itree lmodE Any.t :=
-    ⇓cris (⇓sb(true, wmask_and msk wmask_all, SchA.scopes) (
-      r <- ⇓smod(sp_s) (
-        cput SchI.SchI.v_tid tid_cur;;;
-        r <- SchA.check_internal;;
-        Ret (r↑)
-      );;
-      ret <- trigger (Choose Any.t);;
-      trigger (Guarantee (postcond (SchAS.yield_spec ⊤ 1) x r ret));;;
-      Ret ret
-    )). *)
 
   Definition helpee_pend_s
       (tid_cur : nat) (j : jobID) img_c msk_c scp_c k
       (fspo : option fspec) (x_fsp : fspec_option_meta fspo)
       : itree lmodE Any.t :=
-    (* x <- yield_epliogue tid_cur;; *)
     tau;;
     r <- ⇓cris (⇓sb(true, wmask_all, HelpingOff.scopes mn) (
       HoareCall_epilogue fspo x_fsp ()↑;;;
-      ⇓smod(true, sp) (𝒴;;; Helping.trans (jobs j);;; Ret ()↑)
+      ⇓smod(true, sp) (𝒴;;; Helping.trans (jobs j);;; 𝒴;;; Ret ()↑)
     ));; tau;;
     ⇓cris (⇓sb(img_c, msk_c, scp_c) (k r)).
-
-  (* Definition loop_t (stid_cur : nat) : () → itree crisE (() + Any.t) :=
-    λ _ : (),
-      'x_ : HelpingOn.jobmap <- cgetU (HelpingOn.v_reqs mn);;
-      match x_ !! stid_cur with
-      | Some y =>
-          let (_, y0) := (y : jobID * HelpingOn.progress) in
-          match y0 with
-          | HelpingOn.Pend => Ret (inr () ↑)
-          | HelpingOn.InProgress => Ret (inl ())
-          end
-      | None => Ret (inr () ↑)
-      end. *)
 
   Definition helpee_pend_t
       (tid_cur tid_stid_cur : nat) (j : jobID) img_c msk_c scp_c k
@@ -581,21 +558,60 @@ Section Helping.
     tau;;
     r <- ⇓cris (⇓sb(true, wmask_all, HelpingOff.scopes mn) (
       HoareCall_epilogue fspo x_fsp ()↑;;;
-      ⇓smod(true, sp) (𝒴;;; HelpingOn.try_run mn jobs tid_stid_cur)
+      ⇓smod(true, sp) (𝒴;;; HelpingOn.try_run mn jobs tid_stid_cur;;; 𝒴;;; Ret (()↑))
     ));; tau;;
     ⇓cris (⇓sb(img_c, msk_c, scp_c) (k r)).
 
+  Variant help_rel : itree lmodE Any.t → itree lmodE Any.t → option (bool * nat * jobID) → Prop :=
+  | help_rel_eq itr_s itr_t itr img msk scp :
+      itr_t = itr_s →
+      itr_s = ModTr.trans (SB.sandbox img msk scp itr) →
+      help_rel itr_s itr_t None
+  | help_rel_helper itr_s itr_t img msk scp x k :
+      itr_t = itr_s →
+      itr_s = (tau;;
+        x_ <- ⇓cris(⇓sb(true, wmask_all, HelpingOn.scopes mn)
+          (x_2 <- HoareCall_epilogue (sp SchHdr.yield) x (()↑);;
+          ⇓smod(true, sp) (Ret x_2;;; 𝒴;;; Ret (()↑))));;
+        tau;; ⇓cris(⇓sb(img, msk, scp) (k x_))) →
+      help_rel itr_s itr_t None
+  | help_rel_helpee_done tid_cur tid jid itr_s itr_t img msk scp x k :
+      itr_t = helpee_pend_t tid_cur tid jid img msk scp k (sp SchHdr.yield) x →
+      itr_s = (tau;;
+        x_ <- ⇓cris(⇓sb(true, wmask_all, HelpingOn.scopes mn)
+          (x_2 <- HoareCall_epilogue (sp SchHdr.yield) x (()↑);;
+          ⇓smod(true, sp) (Ret x_2;;; 𝒴;;; Ret (()↑))));;
+        tau;; ⇓cris(⇓sb(img, msk, scp) (k x_))) →
+      help_rel itr_s itr_t (Some (false, tid, jid))
+  | help_rel_helpee_pend tid jid itr_s itr_t tid_cur img_c msk_c scp_c k x_fsp :
+      itr_s = helpee_pend_s tid_cur jid img_c msk_c scp_c k (sp SchHdr.yield) x_fsp →
+      itr_t = helpee_pend_t tid_cur tid jid img_c msk_c scp_c k (sp SchHdr.yield) x_fsp →
+      help_rel itr_s itr_t (Some (true, tid, jid)).
+(* 
   Definition help_rel
       (itr_s itr_t : itree lmodE Any.t) (no : option (nat * jobID)) : Prop :=
     match no with
     | None =>
         ∃ itr img msk scp,
-          itr_s = itr_t ∧ itr_s = ModTr.trans (SB.sandbox img msk scp itr)
+          (itr_s = itr_t ∧ itr_s = ModTr.trans (SB.sandbox img msk scp itr) ∨
+          ∃ x k,
+            itr_s = tau;;
+              x_ <- ⇓cris(⇓sb(true, wmask_all, HelpingOn.scopes mn)
+                (x_2 <- HoareCall_epilogue (sp SchHdr.yield) x (()↑);;
+                ⇓smod(true, sp) (Ret x_2;;; 𝒴;;; Ret (()↑))));;
+              tau;; ⇓cris(⇓sb(img, msk, scp) (k x_)) ∧
+            (itr_t = itr_s ∨
+            itr_t = tau;;
+              x_ <- ⇓cris(⇓sb(true, wmask_all, HelpingOn.scopes mn)
+                (x_2 <- HoareCall_epilogue (sp SchHdr.yield) x (()↑);;
+                ⇓smod(true, sp) (Ret x_2;;;
+                  𝒴;;; HelpingOn.try_run mn jobs tid_stid_cur;;; Ret (()↑))));;
+              tau;; ⇓cris(⇓sb(img, msk, scp) (k x_))))
     | Some (tid, jid) =>
-        ∃ tid_cur img_c msk_c scp_c k fsp x_fsp,
-          itr_s = helpee_pend_s tid_cur jid img_c msk_c scp_c k fsp x_fsp ∧
-          itr_t = helpee_pend_t tid_cur tid jid img_c msk_c scp_c k fsp x_fsp (* pending *)
-    end.
+        ∃ tid_cur img_c msk_c scp_c k x_fsp,
+          itr_s = helpee_pend_s tid_cur jid img_c msk_c scp_c k (sp SchHdr.yield) x_fsp ∧
+          itr_t = helpee_pend_t tid_cur tid jid img_c msk_c scp_c k (sp SchHdr.yield) x_fsp (* pending *)
+    end. *)
 
   Lemma gsim_tau_src r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t
       img_c msk_c scp_c k (k2 : Any.t → _) :
@@ -608,7 +624,7 @@ Section Helping.
     gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t).
-  Proof. intros H1 ?. iter_l; rewrite H1; ss. step_l; norm_l. done. Qed.
+  Proof. intros Hi ?. iter_l; rewrite Hi; ss. step_l; norm_l. done. Qed.
 
   Lemma gsim_tau_tgt r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t
       img_c msk_c scp_c k (k2 : Any.t → _) :
@@ -617,11 +633,11 @@ Section Helping.
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
       (LModTr.interp_stateE Any.t
         (iterV (LModTr.handle_callE prog_t)
-          (tid_t, <[tid_t := x<- ⇓cris (⇓sb(img_c, msk_c, scp_c) k);; k2 x]> tp_t)) st_t) →
+          (tid_t, <[tid_t := x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) k);; k2 x]> tp_t)) st_t) →
     gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t).
-  Proof. intros H1 ?. iter_r; rewrite H1; ss. step_r; norm_r. done. Qed.
+  Proof. intros Hi ?. iter_r; rewrite Hi; ss. step_r; norm_r. done. Qed.
 
   Lemma gsim_Choose_src r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t
       img_c msk_c scp_c X k (k2 : Any.t → _) :
@@ -636,7 +652,7 @@ Section Helping.
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t).
   Proof.
-    intros H1 [x Hk]. iter_l; rewrite H1; ss. step_l. exists x. norm_l. step_l. norm_l. ired. done.
+    intros Hi [x Hk]. iter_l; rewrite Hi; ss. step_l. exists x. norm_l. step_l. norm_l. ired. done.
   Qed.
 
   Lemma gsim_Choose_tgt r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t
@@ -647,18 +663,19 @@ Section Helping.
         (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
         (LModTr.interp_stateE Any.t
           (iterV (LModTr.handle_callE prog_t)
-          (tid_t, <[tid_t := (x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (k x));; k2 x)]> tp_t)) st_t)) →
+            (tid_t, <[tid_t := (x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (k x));; k2 x)]> tp_t)) st_t)) →
     gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t).
   Proof.
-    intros H1 Hk. iter_r; rewrite H1; ss. step_r. intros x. norm_r. step_r. norm_r. ired. eapply Hk.
+    intros Hi Hk. iter_r; rewrite Hi; ss. step_r. intros x. norm_r. step_r. norm_r. ired. eapply Hk.
   Qed.
 
-  (* Lemma gsim_Choose_src r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t
+  Lemma gsim_Take_src r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t
       img_c msk_c scp_c X k (k2 : Any.t → _) :
-    tp_s !! tid_s = Some (x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (x <- trigger (Choose X);; k x));; k2 x) →
-    (∃ (x : X),
+    tp_s !! tid_s = Some (x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (x <- trigger (Take X);; k x));; k2 x) →
+    (∀ (x : X),
+      (img_c = true ∨ (∃ P : Prop, X = P)) →
       gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR smj_top p_t
         (LModTr.interp_stateE Any.t
           (iterV (LModTr.handle_callE prog_s)
@@ -668,8 +685,37 @@ Section Helping.
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t).
   Proof.
-    intros H1 [x Hk]. iter_l; rewrite H1; ss. step_l. exists x. norm_l. step_l. norm_l. ired. done.
-  Qed. *)
+    intros Hin Hk. iter_l. rewrite Hin; ss.
+    destruct img_c; norm_l; cycle 1.
+    { destruct (excluded_middle_informative _) as [?|?]; des; clarify; ss; step_l; ss.
+      intros x; step_l; ired. norm_l. eapply Hk; right; eauto.
+    }
+    step_l. intros x. norm_l. step_l. norm_l. ired.
+    eapply Hk; eauto.
+  Qed.
+
+  Lemma gsim_Take_tgt r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t
+      img_c msk_c scp_c X k (k2 : Any.t → _) :
+    tp_t !! tid_t = Some (x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (x <- trigger (Take X);; k x));; k2 x) →
+    (∃ (x : X),
+      (img_c = true ∨ (∃ P : Prop, X = P)) ∧
+      gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s smj_top
+        (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
+        (LModTr.interp_stateE Any.t
+          (iterV (LModTr.handle_callE prog_t)
+          (tid_t, <[tid_t := (x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (k x));; k2 x)]> tp_t)) st_t)) →
+    gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
+      (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
+      (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t).
+  Proof.
+    intros Hi [x [Hx Hk]].
+    iter_r; rewrite Hi; ss.
+    destruct (orb _ _) eqn : E; ss; simpl_bool; cycle 1.
+    { des; clarify; ss. destruct (excluded_middle_informative _); ss.
+      exfalso; apply n; eexists; eauto.
+    }
+    norm_r. step_r. exists x. step_r. norm_r. ired. eapply Hk.
+  Qed.
 
   Lemma gsim_sGet_tgt r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t
       img_c msk_c scp_c key k (k2 : Any.t → _) r_t :
@@ -693,17 +739,39 @@ Section Helping.
     norm_r. step_r. norm_r. hss. rewrite ModTr.alist_encode_decode Ht /=. ired. eapply Hk.
   Qed.
 
-  (* No k2s here *)
+  Lemma gsim_sGet_src r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t
+      img_c msk_c scp_c key k (k2 : Any.t → _) r_s :
+    tp_s !! tid_s = Some (x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (x <- trigger (SGet key);; k x));; k2 x) →
+    existsb (String.eqb key.1) scp_c →
+    (∃ t, alist_find key st_s = Some t ∧
+      gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR smj_top p_t
+        (LModTr.interp_stateE Any.t
+          (iterV (LModTr.handle_callE prog_s)
+            (tid_s, <[tid_s := (x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (k t));; k2 x)]> tp_s))
+          (Any.pair (ModTr.alist_encode st_s) r_s))
+        (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t)) →
+    gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
+      (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s))
+        (Any.pair (ModTr.alist_encode st_s) r_s))
+      (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t).
+  Proof.
+    intros Hin Hkey [t [Ht Hk]].
+    iter_l; rewrite Hin; ss.
+    rewrite Hkey /=.
+    norm_l. step_l. norm_l. hss. rewrite ModTr.alist_encode_decode Ht /=. ired. eapply Hk.
+  Qed.
+
   Lemma gsim_Assume_src r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t
-      img_c msk_c scp_c k P r_s :
-    tp_s !! tid_s = Some (⇓cris (⇓sb(img_c, msk_c, scp_c) (trigger (Assume P);;; k))) →
+      img_c msk_c scp_c k (k_2 : Any.t → _) P r_s :
+    tp_s !! tid_s = Some (x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (trigger (Assume P);;; k));; k_2 x) →
     (∀ r_s2,
       img_c = true →
       ✓ r_s2 ∧ (Own r_s2 ⊢ |==> P ∗ Own r_s) →
       gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR smj_top p_t
         (LModTr.interp_stateE Any.t
           (iterV (LModTr.handle_callE prog_s)
-            (tid_s, <[tid_s := ⇓cris (⇓sb(img_c, msk_c, scp_c) k)]> tp_s)) (Any.pair st_s (r_s2↑)))
+            (tid_s, <[tid_s := x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) k);; k_2 x]> tp_s))
+          (Any.pair st_s (r_s2↑)))
         (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t)) →
     gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
       (LModTr.interp_stateE Any.t
@@ -725,8 +793,8 @@ Section Helping.
   Qed.
 
   Lemma gsim_Assume_tgt r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t
-      img_c msk_c scp_c k P r_t :
-    tp_t !! tid_t = Some (⇓cris (⇓sb(img_c, msk_c, scp_c) (trigger (Assume P);;; k))) →
+      img_c msk_c scp_c k (k_2 : Any.t → _) P r_t :
+    tp_t !! tid_t = Some (x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (trigger (Assume P);;; k));; k_2 x) →
     (∃ r_t2,
       img_c = true ∧
       ✓ r_t2 ∧ (Own r_t2 ⊢ |==> P ∗ Own r_t) ∧
@@ -734,7 +802,8 @@ Section Helping.
         (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
         (LModTr.interp_stateE Any.t
           (iterV (LModTr.handle_callE prog_t)
-            (tid_t, <[tid_t := ⇓cris (⇓sb(img_c, msk_c, scp_c) k)]> tp_t)) (Any.pair st_t (r_t2↑)))) →
+            (tid_t, <[tid_t := x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) k);; k_2 x]> tp_t))
+          (Any.pair st_t (r_t2↑)))) →
     gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
       (LModTr.interp_stateE Any.t
         (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
@@ -756,13 +825,14 @@ Section Helping.
   Qed.
 
   Lemma gsim_AssumeRes_src r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t
-      img_c msk_c scp_c k r_s r_s2 :
-    tp_s !! tid_s = Some (⇓cris (⇓sb(img_c, msk_c, scp_c) (trigger (AssumeRes r_s2);;; k))) →
+      img_c msk_c scp_c k (k_2 : Any.t → _) r_s r_s2 :
+    tp_s !! tid_s =
+      Some (x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (trigger (AssumeRes r_s2);;; k));; k_2 x) →
     (✓ (r_s2 ⋅ r_s) →
       gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR smj_top p_t
         (LModTr.interp_stateE Any.t
           (iterV (LModTr.handle_callE prog_s)
-            (tid_s, <[tid_s := ⇓cris (⇓sb(img_c, msk_c, scp_c) k)]> tp_s))
+            (tid_s, <[tid_s := x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) k);; k_2 x]> tp_s))
           (Any.pair st_s ((r_s2 ⋅ r_s)↑)))
         (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t)) →
     gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
@@ -783,14 +853,15 @@ Section Helping.
   Qed.
 
   Lemma gsim_AssumeRes_tgt r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t
-      img_c msk_c scp_c k r_t r_t2 :
-    tp_t !! tid_t = Some (⇓cris (⇓sb(img_c, msk_c, scp_c) (trigger (AssumeRes r_t2);;; k))) →
+      img_c msk_c scp_c k (k_2 : Any.t → _) r_t r_t2 :
+    tp_t !! tid_t =
+      Some (x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (trigger (AssumeRes r_t2);;; k));; k_2 x) →
     (✓ (r_t2 ⋅ r_t) ∧
     gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s smj_top
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
       (LModTr.interp_stateE Any.t
         (iterV (LModTr.handle_callE prog_t)
-          (tid_t, <[tid_t := ⇓cris (⇓sb(img_c, msk_c, scp_c) k)]> tp_t))
+          (tid_t, <[tid_t := x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) k);; k_2 x]> tp_t))
         (Any.pair st_t ((r_t2 ⋅ r_t)↑)))) →
     gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
@@ -808,6 +879,666 @@ Section Helping.
     iter_r. rewrite list_lookup_insert //=. step_r. norm_r.
     rewrite list_insert_insert //=. ired.
     apply Hk; done.
+  Qed.
+
+  Lemma gsim_Guarantee_src r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t
+      img_c msk_c scp_c k (k_2 : Any.t → _) r_s P :
+    tp_s !! tid_s =
+      Some (x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (trigger (Guarantee P);;; k));; k_2 x) →
+    (∃ r_s2, (✓ r_s2 ∧ (Own r_s ⊢ |==> P ∗ Own r_s2)) ∧
+      gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR smj_top p_t
+        (LModTr.interp_stateE Any.t
+          (iterV (LModTr.handle_callE prog_s)
+            (tid_s, <[tid_s := x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) k);; k_2 x]> tp_s))
+          (Any.pair st_s (r_s2↑)))
+        (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t)) →
+    gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
+      (LModTr.interp_stateE Any.t
+        (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) (Any.pair st_s (r_s↑)))
+      (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t).
+  Proof.
+    intros Hin [r_s2 [Hr_s2 Hk]]; pose proof Hin as Hlen; eapply lookup_lt_Some in Hlen.
+    iter_l; rewrite Hin; ss.
+    step_l; ss. norm_l. hss. ired. hss. ired.
+    iter_l. rewrite list_lookup_insert //=. step_l. exists r_s2. step_l. norm_l.
+    rewrite list_insert_insert //=. ired.
+    iter_l. rewrite list_lookup_insert //=. step_l. unshelve eexists; eauto. step_l. norm_l.
+    rewrite list_insert_insert //=. ired.
+    iter_l. rewrite list_lookup_insert //=. step_l. norm_l.
+    rewrite list_insert_insert //=. ired. hss. ired.
+    iter_l. rewrite list_lookup_insert //=. step_l. norm_l.
+    rewrite list_insert_insert //=. ired.
+    eapply Hk; done.
+  Qed.
+
+  Lemma gsim_Guarantee_tgt r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t
+      img_c msk_c scp_c k (k_2 : Any.t → _) r_t P :
+    tp_t !! tid_t =
+      Some (x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (trigger (Guarantee P);;; k));; k_2 x) →
+    (∀ r_t2, (✓ r_t2 ∧ (Own r_t ⊢ |==> P ∗ Own r_t2)) →
+      gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s smj_top
+        (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
+        (LModTr.interp_stateE Any.t
+          (iterV (LModTr.handle_callE prog_t)
+            (tid_t, <[tid_t := x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) k);; k_2 x]> tp_t))
+          (Any.pair st_t (r_t2↑)))) →
+    gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
+      (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
+      (LModTr.interp_stateE Any.t
+        (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t))
+        (Any.pair st_t (r_t↑))).
+  Proof.
+    intros Hin Hk; pose proof Hin as Hlen; eapply lookup_lt_Some in Hlen.
+    iter_r; rewrite Hin; ss.
+    step_r; ss. norm_r. hss. ired. hss. ired.
+    iter_r. rewrite list_lookup_insert //=. step_r. intros r_t2. norm_r. step_r. norm_r.
+    rewrite list_insert_insert //=. ired.
+    iter_r. rewrite list_lookup_insert //=. step_r. intros Hr_t2. step_r. norm_r.
+    rewrite list_insert_insert //=. ired.
+    iter_r. rewrite list_lookup_insert //=. step_r. norm_r.
+    rewrite list_insert_insert //=. ired. hss. ired.
+    iter_r. rewrite list_lookup_insert //=. step_r. norm_r.
+    rewrite list_insert_insert //=. ired.
+    apply Hk; done.
+  Qed.
+
+  Lemma HoareCall_prologue_sred img_c fsp arg :
+    ⇓smod(img_c, sp) (HoareCall_prologue fsp arg) = HoareCall_prologue fsp arg.
+  Proof.
+    rewrite /HoareCall_prologue; unseal "Help"; destruct fsp as [[fsp | fsp] |].
+    { repeat (rewrite interpV_bind interpV_trigger /=; grind).
+      rewrite interpV_ret //.
+    }
+    { rewrite /triggerNB /= interpV_bind interpV_trigger /=; grind. }
+    { rewrite interpV_ret //. }
+  Qed.
+
+  Lemma HoareCall_epilogue_sred img_c fsp arg x :
+    ⇓smod(img_c, sp) (HoareCall_epilogue fsp x arg) = HoareCall_epilogue fsp x arg.
+  Proof.
+    rewrite /HoareCall_epilogue; unseal "Help"; destruct fsp as [[fsp | fsp] |].
+    { repeat (rewrite interpV_bind interpV_trigger /=; grind).
+      rewrite interpV_ret //.
+    }
+    { rewrite /triggerNB /= interpV_bind interpV_trigger /=; grind. }
+    { rewrite interpV_ret //. }
+  Qed.
+
+  Lemma HoareFun_prologue_sred img_c fsp arg :
+    ⇓smod(img_c, sp) (HoareFun_prologue fsp arg) = HoareFun_prologue fsp arg.
+  Proof.
+    rewrite /HoareFun_prologue; unseal "Help"; destruct fsp as [[fsp | fsp] |].
+    { repeat (rewrite interpV_bind interpV_trigger /=; grind).
+      rewrite interpV_ret //.
+    }
+    { rewrite /triggerNB /= interpV_bind interpV_trigger /=; grind. }
+    { rewrite interpV_ret //. }
+  Qed.
+
+  Lemma HoareFun_epilogue_sred img_c fsp arg x :
+    ⇓smod(img_c, sp) (HoareFun_epilogue fsp x arg) = HoareFun_epilogue fsp x arg.
+  Proof.
+    rewrite /HoareFun_epilogue; unseal "Help"; destruct fsp as [[fsp | fsp] |].
+    { repeat (rewrite interpV_bind interpV_trigger /=; grind).
+      rewrite interpV_ret //.
+    }
+    { rewrite /triggerNB /= interpV_bind interpV_trigger /=; grind. }
+    { rewrite interpV_ret //. }
+  Qed.
+
+  Lemma gsim_HoareCall_prologue_both r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t
+      img_c msk_c scp_c fsp k_s k_t (k_s1 k_t1 : Any.t → itree _ Any.t) (res : Σ) arg :
+    tp_s !! tid_s =
+      Some (x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (x <- HoareCall_prologue fsp arg;; k_s x));; k_s1 x) →
+    tp_t !! tid_t =
+      Some (x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (x <- HoareCall_prologue fsp arg;; k_t x));; k_t1 x) →
+    ✓ res →
+    (∀ (res1 : Σ) x, ✓ res1 →
+      gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
+        (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s)
+          (tid_s, <[tid_s := x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (k_s x));; k_s1 x]> tp_s))
+          (Any.pair st_s (res1↑)))
+        (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t)
+          (tid_t, <[tid_t := x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (k_t x));; k_t1 x]> tp_t))
+          (Any.pair st_t (res1↑)))) →
+    gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
+      (LModTr.interp_stateE Any.t
+        (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) (Any.pair st_s (res↑)))
+      (LModTr.interp_stateE Any.t
+        (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) (Any.pair st_t (res↑))).
+  Proof.
+    intros Hin_s Hin_t Hres Hk.
+    pose proof Hin_s as Hlen_s; eapply lookup_lt_Some in Hlen_s.
+    pose proof Hin_t as Hlen_t; eapply lookup_lt_Some in Hlen_t.
+    destruct fsp as [[fsp | fsp] | ]; cycle 1.
+    { iter_l; iter_r; rewrite Hin_s Hin_t /HoareCall_prologue; unseal "Help". ss. step_r; ss. }
+    { revert Hin_s Hin_t; rewrite /HoareCall_prologue; unseal "Help"; ired.
+      intros Hin_s Hin_t.
+      specialize (Hk res ((), arg) Hres); revert Hk; rewrite ?list_insert_id //=.
+    }
+    { iter_l; iter_r; rewrite Hin_s Hin_t /HoareCall_prologue; unseal "Help". ss.
+      step_r; intros fsp2; step_l; exists fsp2. step_l; step_r. norm_l; norm_r. ired.
+      eapply gsim_Choose_tgt; [rewrite list_lookup_insert; grind|]. intros varg.
+      rewrite list_insert_insert.
+      eapply gsim_Choose_src; [rewrite list_lookup_insert; grind|]. exists varg.
+      rewrite list_insert_insert. ired.
+      eapply gsim_Guarantee_tgt; [rewrite list_lookup_insert; grind|]. intros r_t2 Hr_t2.
+      rewrite list_insert_insert.
+      eapply gsim_Guarantee_src; [rewrite list_lookup_insert; grind|]. exists r_t2; split; ss.
+      rewrite list_insert_insert. ired.
+      guclo flagC_spec; econs; last eapply (Hk r_t2 (fsp2, varg)).
+      { destruct p_s as [[|]|]; rr; ss; eauto. }
+      { destruct p_t as [[|]|]; rr; ss; eauto. }
+      by des.
+    }
+  Qed.
+
+  Lemma gsim_HoareCall_epilogue_both r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t
+      img_c msk_c scp_c fsp k_s k_t (k_s1 k_t1 : Any.t → itree _ Any.t) (res : Σ) arg x :
+    tp_s !! tid_s =
+      Some (x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (x <- HoareCall_epilogue fsp arg x;; k_s x));;
+        k_s1 x) →
+    tp_t !! tid_t =
+      Some (x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (x <- HoareCall_epilogue fsp arg x;; k_t x));;
+        k_t1 x) →
+    ✓ res →
+    (∀ (res1 : Σ) x, ✓ res1 →
+      gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
+        (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s)
+          (tid_s, <[tid_s := x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (k_s x));; k_s1 x]> tp_s))
+          (Any.pair st_s (res1↑)))
+        (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t)
+          (tid_t, <[tid_t := x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (k_t x));; k_t1 x]> tp_t))
+          (Any.pair st_t (res1↑)))) →
+    gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
+      (LModTr.interp_stateE Any.t
+        (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) (Any.pair st_s (res↑)))
+      (LModTr.interp_stateE Any.t
+        (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) (Any.pair st_t (res↑))).
+  Proof.
+    intros Hin_s Hin_t Hres Hk.
+    pose proof Hin_s as Hlen_s; eapply lookup_lt_Some in Hlen_s.
+    pose proof Hin_t as Hlen_t; eapply lookup_lt_Some in Hlen_t.
+    destruct fsp as [[fsp | fsp] | ]; cycle 1.
+    { iter_l; iter_r; rewrite Hin_s Hin_t /HoareCall_epilogue; unseal "Help". ss. step_r; ss. }
+    { revert Hin_s Hin_t; rewrite /HoareCall_epilogue; unseal "Help"; ired.
+      intros Hin_s Hin_t.
+      specialize (Hk res x Hres); revert Hk; rewrite ?list_insert_id //=.
+    }
+    { revert Hin_s Hin_t; rewrite /HoareCall_epilogue; unseal "Help"; ired.
+      intros Hin_s Hin_t.
+      eapply gsim_Take_src; [rewrite Hin_s //|intros y ?].
+      eapply gsim_Take_tgt; [rewrite Hin_t //|eexists y; eauto].
+      split; first done. ired.
+      eapply gsim_Assume_src; [rewrite list_lookup_insert //|].
+      intros res2 -> Hres2.
+      eapply gsim_Assume_tgt; [rewrite list_lookup_insert //|].
+      exists res2; splits; try by des.
+      rewrite ?list_insert_insert.
+      guclo flagC_spec; econs; last eapply (Hk res2).
+      { destruct p_s as [[|]|]; rr; ss; eauto. }
+      { destruct p_t as [[|]|]; rr; ss; eauto. }
+      by des.
+    }
+  Qed.
+
+  Lemma gsim_HoareCall_epilogue_HoareFun_prologue
+      r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t
+      msk_c scp_c fsp k_s k_t (k_s1 k_t1 : Any.t → itree _ Any.t) (res : Σ) pret x :
+    tp_s !! tid_s =
+      Some (x <- ⇓cris (⇓sb(true, msk_c, scp_c) (x <- HoareCall_epilogue fsp x pret;; k_s x));;
+        k_s1 x) →
+    tp_t !! tid_t =
+      Some (x <- ⇓cris (⇓sb(true, msk_c, scp_c) (x <- HoareFun_prologue fsp pret;; k_t x));;
+        k_t1 x) →
+    ✓ res →
+    (∀ (res1 : Σ) ret, ✓ res1 →
+      gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
+        (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s)
+          (tid_s, <[tid_s := x <- ⇓cris (⇓sb(true, msk_c, scp_c) (k_s ret));; k_s1 x]> tp_s))
+          (Any.pair st_s (res1↑)))
+        (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t)
+          (tid_t, <[tid_t := x <- ⇓cris (⇓sb(true, msk_c, scp_c) (k_t (x, ret)));; k_t1 x]> tp_t))
+          (Any.pair st_t (res1↑)))) →
+    gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
+      (LModTr.interp_stateE Any.t
+        (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) (Any.pair st_s (res↑)))
+      (LModTr.interp_stateE Any.t
+        (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) (Any.pair st_t (res↑))).
+  Proof.
+    intros Hin_s Hin_t Hres Hk.
+    pose proof Hin_s as Hlen_s; eapply lookup_lt_Some in Hlen_s.
+    pose proof Hin_t as Hlen_t; eapply lookup_lt_Some in Hlen_t.
+    destruct fsp as [[fsp | fsp] | ]; cycle 1.
+    { iter_l; iter_r; rewrite Hin_s Hin_t /HoareCall_epilogue /HoareFun_prologue; unseal "Help".
+      ss. step_r; ss.
+    }
+    { revert Hin_s Hin_t; rewrite /HoareCall_epilogue /HoareFun_prologue; unseal "Help"; ired.
+      intros Hin_s Hin_t. destruct x.
+      specialize (Hk res pret Hres); revert Hk; rewrite ?list_insert_id //=.
+    }
+    { iter_l; iter_r; rewrite Hin_s Hin_t /HoareCall_epilogue /HoareFun_prologue; unseal "Help".
+      ss.
+      step_l. intros varg. norm_l. step_l. norm_l. ired.
+      step_r. exists x. norm_r. step_r. norm_r. ired.
+      eapply gsim_Take_tgt; [rewrite list_lookup_insert //|exists varg; split; first eauto].
+      rewrite list_insert_insert.
+
+      eapply gsim_Assume_src; [rewrite list_lookup_insert //|].
+      intros r_s2 _ Hr_s2. rewrite list_insert_insert. ired.
+      eapply gsim_Assume_tgt; [rewrite list_lookup_insert //|].
+      exists r_s2; esplits; try by (des; eauto). rewrite list_insert_insert.
+      
+      guclo flagC_spec; econs.
+      { instantiate (1:=p_s). destruct p_s as [[|]|]; rr; ss; eauto. }
+      { instantiate (1:=p_t). destruct p_t as [[|]|]; rr; ss; eauto. }
+      eapply Hk; by des.
+    }
+  Qed.
+
+  Lemma gsim_HoareCall_prologue_HoareFun_epilogue
+      r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t
+      msk_c scp_c fsp k_s k_t (k_s1 k_t1 : Any.t → itree _ Any.t) (res : Σ) pret x :
+    tp_s !! tid_s =
+      Some (x <- ⇓cris (⇓sb(true, msk_c, scp_c) (x <- HoareCall_prologue fsp pret;; k_s x));;
+        k_s1 x) →
+    tp_t !! tid_t =
+      Some (x <- ⇓cris (⇓sb(true, msk_c, scp_c) (x <- HoareFun_epilogue fsp x pret;; k_t x));;
+        k_t1 x) →
+    ✓ res →
+    (∀ (res1 : Σ) ret, ✓ res1 →
+      gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
+        (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s)
+          (tid_s, <[tid_s := x <- ⇓cris (⇓sb(true, msk_c, scp_c) (k_s (x, ret)));; k_s1 x]> tp_s))
+          (Any.pair st_s (res1↑)))
+        (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t)
+          (tid_t, <[tid_t := x <- ⇓cris (⇓sb(true, msk_c, scp_c) (k_t ret));; k_t1 x]> tp_t))
+          (Any.pair st_t (res1↑)))) →
+    gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
+      (LModTr.interp_stateE Any.t
+        (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) (Any.pair st_s (res↑)))
+      (LModTr.interp_stateE Any.t
+        (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) (Any.pair st_t (res↑))).
+  Proof.
+    intros Hin_s Hin_t Hres Hk.
+    pose proof Hin_s as Hlen_s; eapply lookup_lt_Some in Hlen_s.
+    pose proof Hin_t as Hlen_t; eapply lookup_lt_Some in Hlen_t.
+    destruct fsp as [[fsp | fsp] | ]; cycle 1.
+    { iter_l; iter_r; rewrite Hin_s Hin_t /HoareCall_prologue /HoareFun_epilogue; unseal "Help".
+      ss. step_r; ss.
+    }
+    { revert Hin_s Hin_t; rewrite /HoareCall_prologue /HoareFun_epilogue; unseal "Help"; ired.
+      intros Hin_s Hin_t. destruct x.
+      specialize (Hk res pret Hres); revert Hk; rewrite ?list_insert_id //=.
+    }
+    { iter_l; iter_r; rewrite Hin_s Hin_t /HoareCall_prologue /HoareFun_epilogue; unseal "Help".
+      ss.
+      step_r. intros vret. norm_r. step_r. norm_r. ired.
+      step_l. exists x. norm_l. step_l. norm_l. ired.
+      eapply gsim_Choose_src; [rewrite list_lookup_insert //|exists vret; split; first eauto].
+      rewrite list_insert_insert.
+
+      eapply gsim_Guarantee_tgt; [rewrite list_lookup_insert //|].
+      intros r_t2 Hr_t2. rewrite list_insert_insert. ired.
+      eapply gsim_Guarantee_src; [rewrite list_lookup_insert //|].
+      exists r_t2; esplits; try by (des; eauto). rewrite list_insert_insert.
+      
+      guclo flagC_spec; econs.
+      { instantiate (1:=p_s). destruct p_s as [[|]|]; rr; ss; eauto. }
+      { instantiate (1:=p_t). destruct p_t as [[|]|]; rr; ss; eauto. }
+      eapply Hk; by des.
+    }
+  Qed.
+
+  Lemma gsim_jobs_both r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t
+      img_c msk_c scp_c k_s k_t (k_s1 k_t1 : Any.t → itree _ Any.t) (res : Σ) job :
+    tid_s < length tp_s →
+    tid_t < length tp_t →
+    ✓ res →
+    (∀ (res1 : Σ), ✓ res1 →
+      gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR smj_bot smj_bot
+        (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s)
+          (tid_s, <[tid_s := x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (⇓smod(img_c, sp) (k_s ())));; k_s1 x]> tp_s))
+          (Any.pair st_s (res1↑)))
+        (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t)
+          (tid_t, <[tid_t := x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (⇓smod(img_c, sp) (k_t ())));; k_t1 x]> tp_t))
+          (Any.pair st_t (res1↑)))) →
+    gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
+      (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s,
+        <[tid_s :=
+          x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (⇓smod(img_c, sp) (x <- Helping.trans job;; k_s x)));; k_s1 x]>
+        tp_s)) (Any.pair st_s (res↑)))
+      (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t,
+        <[tid_t :=
+          x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (⇓smod(img_c, sp) (x <- Helping.trans job;; k_t x)));; k_t1 x]>
+        tp_t)) (Any.pair st_t (res↑))).
+  Proof.
+    intros Hlen_s Hlen_t Hres Hk.
+    guclo flagC_spec; econs; try instantiate (1:=smj_bot); eauto using smj_le_bot.
+    revert Hres; generalize job res. clear job res.
+    gcofix CIH.
+    intros job res Hres.
+    ides job.
+    {
+      destruct r1.
+      rewrite /Helping.trans (bisim_is_eq (translate_ret _ _)); grind.
+      eapply gpaco7_mon; eauto.
+    }
+    {
+      rewrite /Helping.trans (bisim_is_eq (translate_tau _ _)); fold (Helping.trans t).
+      ired.
+      eapply gsim_tau_src; [rewrite list_lookup_insert //|rewrite list_insert_insert].
+      { rewrite interpV_tau //. }
+      eapply gsim_tau_tgt; [rewrite list_lookup_insert //|rewrite list_insert_insert].
+      { rewrite interpV_tau //. }
+      zprogress.
+      guclo flagC_spec; econs; try instantiate (1:=smj_bot); eauto using smj_le_bot.
+      gbase. eapply CIH; eauto using list_lookup_insert.
+    }
+    { (* agE *)
+      destruct e as [|].
+      { destruct a as [P | res2 | P].
+        { rewrite /Helping.trans (bisim_is_eq (translate_vis _ _ _ _)). ired.
+          eapply gsim_Assume_src; [rewrite list_lookup_insert //=|rewrite list_insert_insert].
+          { instantiate (1:=k_s1). rewrite vis_bind interpV_vis.
+            repeat f_equal; grind. extensionalities a; destruct a. grind.
+          }
+          intros r_s2 -> Hr_s2.
+          eapply gsim_Assume_tgt; [rewrite list_lookup_insert //=|rewrite list_insert_insert].
+          { instantiate (1:=k_t1). rewrite vis_bind interpV_vis.
+            repeat f_equal; grind. extensionalities a; destruct a. grind.
+          }
+          exists r_s2; esplits; try by des.
+          zprogress.
+          guclo flagC_spec; econs; try instantiate (1:=smj_bot); eauto using smj_le_bot.
+          gbase. eapply CIH; eauto using list_lookup_insert.
+          by des.
+        }
+        { rewrite /Helping.trans (bisim_is_eq (translate_vis _ _ _ _)). ired.
+          eapply gsim_AssumeRes_src; [rewrite list_lookup_insert //=|rewrite list_insert_insert].
+          { instantiate (1:=k_s1). rewrite vis_bind interpV_vis.
+            repeat f_equal; grind. extensionalities a; destruct a. grind.
+          }
+          intros Hres2.
+          eapply gsim_AssumeRes_tgt; [rewrite list_lookup_insert //=|rewrite list_insert_insert].
+          { instantiate (1:=k_t1). rewrite vis_bind interpV_vis.
+            repeat f_equal; grind. extensionalities a; destruct a. grind.
+          }
+          split; first done.
+          zprogress.
+          guclo flagC_spec; econs; try instantiate (1:=smj_bot); eauto using smj_le_bot.
+          gbase. eapply CIH; eauto using list_lookup_insert.
+        }
+        { rewrite /Helping.trans (bisim_is_eq (translate_vis _ _ _ _)). ired.
+          eapply gsim_Guarantee_tgt; [rewrite list_lookup_insert //=|rewrite list_insert_insert].
+          { instantiate (1:=k_t1). rewrite vis_bind interpV_vis.
+            repeat f_equal; grind. extensionalities a; destruct a. grind.
+          }
+          intros r_t2 Hr_t2.
+          eapply gsim_Guarantee_src; [rewrite list_lookup_insert //=|rewrite list_insert_insert].
+          { instantiate (1:=k_s1). rewrite vis_bind interpV_vis.
+            repeat f_equal; grind. extensionalities a; destruct a. grind.
+          }
+          exists r_t2; split; first done.
+          zprogress.
+          guclo flagC_spec; econs; try instantiate (1:=smj_bot); eauto using smj_le_bot.
+          gbase. eapply CIH; eauto using list_lookup_insert.
+          by des.
+        }
+      }
+      { (* coreE *)
+        destruct c as [X | X | fn args].
+        { rewrite /Helping.trans (bisim_is_eq (translate_vis _ _ _ _)). ired.
+          eapply gsim_Choose_tgt;
+            [rewrite list_lookup_insert //=|intros x; rewrite list_insert_insert].
+          { instantiate (1:=k_t1). rewrite vis_bind interpV_vis; repeat f_equal; grind. }
+          eapply gsim_Choose_src;
+            [rewrite list_lookup_insert //=|exists x; rewrite list_insert_insert].
+          { instantiate (1:=k_s1). rewrite vis_bind interpV_vis; repeat f_equal; grind. }
+          zprogress.
+          guclo flagC_spec; econs; try instantiate (1:=smj_bot); eauto using smj_le_bot.
+          gbase. eapply CIH; eauto using list_lookup_insert.
+        }
+        { rewrite /Helping.trans (bisim_is_eq (translate_vis _ _ _ _)). ired.
+          eapply gsim_Take_src;
+            [rewrite list_lookup_insert //=|intros x; rewrite list_insert_insert].
+          { instantiate (1:=k_s1). rewrite vis_bind interpV_vis; repeat f_equal; grind. }
+          intros Himg.
+          eapply gsim_Take_tgt;
+            [rewrite list_lookup_insert //=|exists x; rewrite list_insert_insert].
+          { instantiate (1:=k_t1). rewrite vis_bind interpV_vis; repeat f_equal; grind. }
+          split; first done. zprogress.
+          guclo flagC_spec; econs; try instantiate (1:=smj_bot); eauto using smj_le_bot.
+          gbase. eapply CIH; eauto using list_lookup_insert.
+        }
+        { iter_l. rewrite list_lookup_insert //=.
+          iter_r. rewrite list_lookup_insert //=.
+          norm_l; norm_r.
+          guclo gsim_indC_spec; econs; instantiate (1:=smj_top).
+          intros ?? ->.
+          step_l; step_r. norm_l; norm_r. rewrite ?list_insert_insert. ired.
+          zprogress.
+          guclo flagC_spec; econs; try instantiate (1:=smj_bot); eauto using smj_le_bot.
+          gbase. eapply CIH; eauto using list_lookup_insert.
+        }
+      }
+    }
+  Unshelve. exact smj_top.
+  Qed.
+
+  Lemma gsim_Yield_both r g RR p_s p_t tid_s tid_t tp_s tp_t
+      img_c msk_c scp_c k_s k_t (k_s1 k_t1 : Any.t → itree _ Any.t) ctx rs
+      (ths : list (nat * option SAny.t)) (tid_cur_s tid_cur_t : nat) st_ctx (res : Σ) reqs :
+    ✓ res →
+    tid_s < length tp_s →
+    tid_t < length tp_t →
+    gpaco7 _gsim (cpn7 _gsim) g g (Any.t * Any.t)%type (Any.t * Any.t)%type RR smj_top smj_top
+      (LModTr.interp_stateE Any.t
+        (iterV (LModTr.handle_callE (prog_s ctx rs))
+          (tid_s, <[tid_s :=
+            x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (⇓smod(img_c, sp) k_s));; k_s1 x]>
+            tp_s))
+        (Any.pair
+          (ModTr.alist_encode ((SchI.v_ths, (ths ↑)) :: (SchI.v_tid, (tid_cur_s ↑)) :: st_ctx))
+          (res↑)))
+      (LModTr.interp_stateE Any.t
+        (iterV (LModTr.handle_callE (prog_t ctx rs))
+          (tid_t, <[tid_t :=
+            x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (⇓smod(img_c, sp) k_t));; k_t1 x]>
+            tp_t))
+        (Any.pair
+          (ModTr.alist_encode ((HelpingOn.v_reqs mn, reqs)
+          :: (SchI.v_ths, (ths ↑)) :: (SchI.v_tid, (tid_cur_t ↑)) :: st_ctx))
+          (res↑))) →
+    ((∃ ro_s, ths !! tid_cur_s = Some (tid_s, ro_s)) →
+      ∃ ro_t, ths !! tid_cur_t = Some (tid_t, ro_t) ∧
+      (∀ mtidn_t stidn_t, ths.*1 !! mtidn_t = Some stidn_t →
+        ∃ mtidn_s stidn_s, ths.*1 !! mtidn_s = Some stidn_s ∧
+          ∀ (res1 : Σ) x, ✓ res1 →
+          gpaco7 _gsim (cpn7 _gsim) g g (Any.t * Any.t)%type (Any.t * Any.t)%type RR smj_top smj_top
+            (LModTr.interp_stateE Any.t
+              (iterV (LModTr.handle_callE (prog_s ctx rs))
+                (stidn_s, <[tid_s := tau;;
+                  x_ <- ⇓cris (⇓sb(img_c, msk_c, scp_c)
+                    (x_2 <- HoareCall_epilogue (sp SchHdr.yield) x (()↑);;
+                    (⇓smod(img_c, sp) (Ret x_2;;; 𝒴;;; k_s))));; k_s1 x_]> tp_s))
+              (Any.pair
+                (ModTr.alist_encode ((SchI.v_ths, (ths ↑)) :: (SchI.v_tid, (mtidn_s ↑)) :: st_ctx))
+                (res1 ↑)))
+            (LModTr.interp_stateE Any.t
+              (iterV (LModTr.handle_callE (prog_t ctx rs))
+                (stidn_t, <[tid_t := tau;;
+                  x_ <- ⇓cris (⇓sb(img_c, msk_c, scp_c)
+                    (x_2 <- HoareCall_epilogue (sp SchHdr.yield) x (()↑);;
+                    (⇓smod(img_c, sp) (Ret x_2;;; 𝒴;;; k_t))));; k_t1 x_]> tp_t))
+              (Any.pair
+                (ModTr.alist_encode
+                  ((HelpingOn.v_reqs mn, reqs)
+                  :: (SchI.v_ths, (ths ↑)) :: (SchI.v_tid, (mtidn_t ↑)) :: st_ctx))
+                (res1 ↑))))) →
+    gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
+      (LModTr.interp_stateE Any.t
+        (iterV (LModTr.handle_callE (prog_s ctx rs))
+          (tid_s, <[tid_s :=
+            x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (⇓smod(img_c, sp)(𝒴;;; k_s)));;
+            k_s1 x]> tp_s))
+        (Any.pair
+          (ModTr.alist_encode ((SchI.v_ths, (ths ↑)) :: (SchI.v_tid, (tid_cur_s ↑)) :: st_ctx))
+          (res↑)))
+      (LModTr.interp_stateE Any.t
+        (iterV (LModTr.handle_callE (prog_t ctx rs))
+          (tid_t, <[tid_t :=
+            x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (⇓smod(img_c, sp) (𝒴;;; k_t)));;
+            k_t1 x]> tp_t))
+        (Any.pair
+          (ModTr.alist_encode ((HelpingOn.v_reqs mn, reqs)
+          :: (SchI.v_ths, (ths ↑)) :: (SchI.v_tid, (tid_cur_t ↑)) :: st_ctx))
+          (res↑))).
+  Proof.
+    intros Hres Hlen_s Hlen_t Hk1 Hk2; revert Hk1; rewrite yield_unfold; ired.
+    revert res Hres.
+    gcofix CIH.
+    intros res Hres Hk1.
+    replace_r; [rewrite interpV_tau //|].
+    eapply gsim_tau_tgt; [rewrite list_lookup_insert //|rewrite list_insert_insert].
+    rewrite interpV_tau.
+    eapply gsim_tau_src; [rewrite list_lookup_insert //|rewrite list_insert_insert].
+    zprogress.
+    replace_r; [rewrite interpV_bind interpV_trigger //=|]; ired.
+    eapply gsim_Choose_tgt; [rewrite list_lookup_insert // length_insert //|].
+    intros [[|]|]; cycle 1; rewrite list_insert_insert.
+    {
+      ired. rewrite interpV_bind interpV_trigger //=; ired.
+      eapply gsim_Choose_src; [rewrite list_lookup_insert //|].
+      exists (Some false); rewrite list_insert_insert.
+      rewrite yield_unfold; ired.
+      guclo flagC_spec; econs; [instantiate (1:=p_s)|instantiate (1:=p_t)|].
+      { destruct p_s as [[|]|]; rr; ss; eauto. }
+      { destruct p_t as [[|]|]; rr; ss; eauto. }
+      gbase. eapply CIH; eauto.
+    }
+    {
+      clear CIH.
+      ired. rewrite interpV_bind interpV_trigger //=; ired.
+      eapply gsim_Choose_src; [rewrite list_lookup_insert //|].
+      exists (None); rewrite list_insert_insert. ired.
+      eapply gpaco7_mon; eauto.
+    }
+    ired. rewrite interpV_bind interpV_trigger //=; ired.
+    eapply gsim_Choose_src; [rewrite list_lookup_insert //|].
+    exists (Some true); rewrite list_insert_insert. ired.
+
+    iter_l; rewrite list_lookup_insert //=; step_l; norm_l.
+    rewrite list_insert_insert.
+    iter_r; rewrite list_lookup_insert //=; step_r; norm_r.
+    rewrite list_insert_insert.
+
+    rewrite !HoareCall_unfold; ired.
+    eapply gsim_HoareCall_prologue_both;
+      [rewrite list_lookup_insert //
+      |rewrite list_lookup_insert //
+      |ss
+      |].
+    intros res1 [x arg] Hres1.
+    rewrite ?list_insert_insert. ired.
+
+    iter_l; rewrite list_lookup_insert //=.
+    iter_r; rewrite list_lookup_insert //=.
+    destruct (msk_c _); cycle 1; ss.
+    { step_l; ss. }
+    step_l; step_r; norm_l; norm_r; rewrite {1 3}/LMod.prog /=; destruct (dec _ _) as [e|e]; ss.
+    { inv e; exfalso; apply yield_run_neq; eauto. }
+    clear e; destruct (dec _ _) as [e|e].
+    { ss. inv e; exfalso; apply yield_help_neq; eauto. }
+    ss; clear e. norm_l. rewrite list_insert_insert. ss.
+    norm_r. rewrite list_insert_insert. ss.
+
+    rewrite /ModTr.trans_ktree /ModTr.trans /SB.sandbox_body /SB.sandbox /SModTr.trans /=.
+    eapply gsim_tau_tgt; [rewrite list_lookup_insert //|rewrite list_insert_insert].
+    eapply gsim_tau_src; [rewrite list_lookup_insert //|rewrite list_insert_insert].
+    rewrite /SchI.yield /cfunU.
+    destruct (arg ↓) eqn : Harg; cycle 1.
+    { ss; iter_l; rewrite list_lookup_insert //=.
+      destruct (excluded_middle_informative _); step_l; ss.
+    }
+    ss. ired. rewrite /cgetU /=. ired.
+
+    replace_r; [rewrite interpV_bind interpV_vis //|]. ired.
+    eapply gsim_sGet_tgt;
+      [rewrite list_lookup_insert //=| ss | ].
+    esplits; eauto. rewrite list_insert_insert.
+
+    replace_l; [rewrite interpV_bind interpV_vis //|]. ired.
+    eapply gsim_sGet_src;
+      [rewrite list_lookup_insert //=| ss | ].
+    esplits; eauto. rewrite list_insert_insert.
+    rewrite ?interpV_ret. ired. hss. ired. rewrite ?interpV_ret. ired. hss. ired.
+
+    iter_l; rewrite list_lookup_insert //=. step_l; norm_l.
+    rewrite list_insert_insert.
+    iter_r; rewrite list_lookup_insert //=; step_r; norm_r.
+    rewrite list_insert_insert.
+
+    iter_l; rewrite list_lookup_insert //=. step_l; norm_l.
+    rewrite list_insert_insert.
+    iter_r; rewrite list_lookup_insert //=; step_r; norm_r.
+    rewrite list_insert_insert. ired.
+
+    replace_r; [rewrite interpV_bind interpV_vis //|]. ired.
+    eapply gsim_sGet_tgt;
+      [rewrite list_lookup_insert //=| ss | ].
+    esplits; eauto. rewrite list_insert_insert.
+
+    replace_l; [rewrite interpV_bind interpV_vis //|]. ired.
+    eapply gsim_sGet_src;
+      [rewrite list_lookup_insert //=| ss | ].
+    esplits; eauto. rewrite list_insert_insert.
+    rewrite ?interpV_ret. ired. hss. ired. rewrite ?interpV_ret. ired. hss. ired.
+
+    destruct (ths !! tid_cur_s) as [[stid_cur_s reto_s]|] eqn : Htid_cur_s; cycle 1.
+    { rewrite Htid_cur_s /=.
+      ss; iter_l; rewrite list_lookup_insert //=.
+      destruct (excluded_middle_informative _); step_l; ss.
+    }
+    rewrite Htid_cur_s //=.
+    destruct (decide (stid_cur_s = tid_s)); subst; cycle 1.
+    { ss; iter_l; rewrite list_lookup_insert //=.
+      destruct (excluded_middle_informative _); step_l; ss.
+    }
+    hexploit Hk2; eauto; clear Hk2; intros [? [Htid_t Hk2]].
+    rewrite Htid_t; case_decide; clarify; ired.
+
+    replace_r; [rewrite interpV_bind interpV_trigger //=|]; ired.
+    eapply gsim_Choose_tgt; [rewrite list_lookup_insert // length_insert //|].
+    intros [[mtidn stidn] Hmtidn]; rewrite list_insert_insert; ired; ss.
+
+    replace_l; [rewrite interpV_bind interpV_trigger //=|]; ired.
+    eapply gsim_Choose_src; [rewrite list_lookup_insert // length_insert //|].
+    specialize (Hk2 mtidn stidn Hmtidn); destruct Hk2 as [mtidn_s [stidn_s [Htid_s Hk3]]].
+    unshelve eexists.
+    { exists (mtidn_s, stidn_s); ss; eauto. }
+    rewrite list_insert_insert; ired; ss.
+    
+    iter_l; rewrite list_lookup_insert //=. step_l; norm_l.
+    rewrite list_insert_insert. hss.
+    iter_l; rewrite list_lookup_insert //=. step_l; norm_l.
+    rewrite list_insert_insert. ired.
+    iter_r; rewrite list_lookup_insert //=; step_r; norm_r.
+    rewrite list_insert_insert. hss.
+    iter_r; rewrite list_lookup_insert //=; step_r; norm_r.
+    rewrite list_insert_insert. ired.
+    rewrite ?ModTr.alist_encode_decode /alist_upd /=; destruct (dec _ _); clarify.
+
+    iter_l; rewrite list_lookup_insert //=. step_l; norm_l.
+    rewrite list_insert_insert. hss.
+    iter_l; rewrite list_lookup_insert //=. step_l; norm_l.
+    rewrite list_insert_insert. ired.
+    iter_r; rewrite list_lookup_insert //=. step_r; norm_r.
+    rewrite list_insert_insert. hss.
+    iter_r; rewrite list_lookup_insert //=. step_r; norm_r.
+    rewrite list_insert_insert. ired.
+    rewrite ?interpV_ret. ired. 
+    eapply gpaco7_mon; first eapply Hk3; eauto.
   Qed.
 
   Theorem helping_onoff_correct :
@@ -839,7 +1570,6 @@ Section Helping.
 
     clear Heq Heq0.
     rewrite /SB.sandbox_body /=.
-
     ginit. guclo bindC_spec. econs; cycle 1.
     { instantiate (1:=λ r_s r_t, r_s.2 = r_t.2). ii; gstep; ss. subst; econs; econs; ss. }
 
@@ -851,18 +1581,26 @@ Section Helping.
     set (tp_tgt := (0, [_])).
     clear Hrs.
     cut
-      (∃ (tl : list (itree lmodE Any.t * itree lmodE Any.t * option (nat * jobID)))
+      (∃ (tl : list (itree lmodE Any.t * itree lmodE Any.t * option (bool * nat * jobID)))
       (tid_cur stid_cur : nat) (ths : list (nat * option SAny.t)) st_ctx,
         st_src = [(SchI.SchI.v_ths, ths↑); (SchI.SchI.v_tid, tid_cur↑)] ++ st_ctx ∧
         st_tgt = [(HelpingOn.v_reqs mn, (reqmap tl)↑);
           (SchI.SchI.v_ths, ths↑); (SchI.SchI.v_tid, tid_cur↑)] ++ st_ctx ∧
-        tp_src = (stid_cur, (fst ∘ fst) <$> tl) ∧ tp_tgt = (stid_cur, (snd ∘ fst) <$> tl) ∧
-        NoDup (omap id tl.*2).*1 ∧
-        ∀ i itr_s itr_t no, tl !! i = Some (itr_s, itr_t, no) → help_rel itr_s itr_t no); cycle 1.
+        tp_src = (stid_cur, (fst ∘ fst <$> tl)) ∧ tp_tgt = (stid_cur, (snd ∘ fst <$> tl)) ∧
+        NoDup (omap
+          ((λ e, match e with | Some (true, tid, jid) => Some (tid, jid) | _ => None end))
+          tl.*2).*1 ∧
+        ∀ i itr_s itr_t no, tl !! i = Some (itr_s, itr_t, no) →
+          help_rel itr_s itr_t no ∧
+          match no with
+          | Some _ => ∃ stid_i ro_i, ths !! stid_i = Some (i, ro_i)
+          | None => True
+          end); cycle 1.
     { esplits; subst st_src st_tgt; ss; repeat f_equal; first instantiate (1:=[(_,_, None)]); ss.
       { econs. }
       intros ???? [-> In]%list_lookup_singleton_Some; clarify.
-      r. esplits; eauto.
+      split; ss.
+      eapply help_rel_eq; eauto.
     }
     generalize st_src, st_tgt, tp_src, tp_tgt.
     clear st_src st_tgt tp_src tp_tgt f imgf mskf scpf FIND arg.
@@ -872,926 +1610,252 @@ Section Helping.
 
     destruct ((fst ∘ fst <$> tl) !! stid_cur) as [i|] eqn : Htid; cycle 1.
     { iter_l. rewrite Htid. step_l. norm_l. step_l. ss. }
-    (* iter_l; iter_r; rewrite Htid /=. *)
-    (* iter_l; destruct (_ !! _) as [i|] eqn : Htid; cycle 1.
-    { step_l. norm_l. step_l. ss. } *)
 
     apply list_lookup_fmap_inv in Htid as [[[itr_src itr_tgt] no] [-> Htid]]; s.
-    (* iter_r. *)
-    (* rewrite list_lookup_fmap Htid /=. *)
-    destruct no as [|]; cycle 1.
-    { apply lookup_lt_Some in Htid as Hstid_cur_length.
-      pose proof Htid as Htid'. apply Hlookup in Htid' as [itr_c [img_c [msk_c [scp_c [-> ->]]]]].
-      destruct (case_itrH itr_c) as [[v ->]|Hf].
-      { (* return case *)
-        iter_l; iter_r; rewrite ?list_lookup_fmap Htid /=.
-        norm_l. step_l. norm_r. step_r.
-        des_ifs; ss; cycle 1.
-        { norm_l. step_l. ss. }
+    destruct no as [|].
+    { (* Helpee *)
+      admit.
+    }
+
+    (* Non-help case *)
+    apply lookup_lt_Some in Htid as Hstid_cur_length.
+    pose proof Htid as Htid'.
+    apply Hlookup in Htid' as [Hcase _].
+    inv Hcase; cycle 1.
+    { admit. 
+    }
+    rename itr into itr_c.
+    destruct (case_itrH itr_c) as [[v ->]|Hf].
+    { (* return case *)
+      iter_l; iter_r; rewrite ?list_lookup_fmap Htid /=.
+      norm_l. step_l. norm_r. step_r.
+      des_ifs; ss; cycle 1.
+      { norm_l. step_l. ss. }
+      norm_l. norm_r.
+      zstep; rewrite /HelpingOff.t /HelpingOn.t /SchI.t; unseal CRIS; ss.
+    }
+    destruct Hf as [[f' ->]|Hf].
+    { (* tau case *)
+      zprogress.
+      eapply gsim_tau_src; [rewrite list_lookup_fmap Htid //=; f_equal; grind|].
+      eapply gsim_tau_tgt; [rewrite list_lookup_fmap Htid //=; f_equal; grind|].
+      gbase. eapply CIH; eauto.
+      eexists (<[stid_cur := (_, _, None)]> tl); esplits; eauto.
+      { do 3 f_equal.
+        rewrite /reqmap.
+        erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
+        rewrite insert_take_drop /=; last done; rewrite ?fmap_app ?omap_app //.
+      }
+      { rewrite list_fmap_insert //=. }
+      { rewrite list_fmap_insert //=. }
+      {
+        rewrite list_fmap_insert /=.
+        revert Htl; erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
+        rewrite insert_take_drop; [|rewrite length_fmap //].
+        rewrite ?fmap_app ?omap_app; cbn.
+        rewrite fmap_take fmap_drop //.
+      }
+      { intros i; destruct (decide (i = stid_cur)); subst; cycle 1.
+        { intros ???; rewrite list_lookup_insert_ne //=; apply Hlookup. }
+        { rewrite list_lookup_insert; ii; clarify. split; ss.
+          eapply help_rel_eq; eauto. rewrite bind_ret_r //.
+        }
+      }
+    }
+    destruct Hf as [[P [f' ->]]|Hf].
+    { (* Assume *)
+      zprogress.
+      eapply gsim_Assume_src; [rewrite list_lookup_fmap Htid //=|].
+      { grind. }
+      intros r_s2 -> Hr_s2.
+      eapply gsim_Assume_tgt; [rewrite list_lookup_fmap Htid //=|].
+      { grind. }
+      exists r_s2; esplits; try by des.
+      gbase. eapply (CIH r_s2); try by des.
+      eexists (<[stid_cur := (_, _, None)]> tl); esplits; eauto.
+      { do 3 f_equal.
+        rewrite /reqmap.
+        erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
+        rewrite insert_take_drop /=; last done; rewrite ?fmap_app ?omap_app //.
+      }
+      { rewrite list_fmap_insert //=. }
+      { rewrite list_fmap_insert //=. }
+      {
+        rewrite list_fmap_insert /=.
+        revert Htl; erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
+        rewrite insert_take_drop; [|rewrite length_fmap //].
+        rewrite ?fmap_app ?omap_app; cbn.
+        rewrite fmap_take fmap_drop //.
+      }
+      { intros i; destruct (decide (i = stid_cur)); subst; cycle 1.
+        { intros ???; rewrite list_lookup_insert_ne //=; apply Hlookup. }
+        { rewrite list_lookup_insert; ii; clarify.
+          split; ss. esplits; eauto.
+          eapply help_rel_eq; eauto. grind.
+        }
+      }
+    }
+    destruct Hf as [[res [f' ->]]|Hf].
+    { (* AssumeRes *)
+      zprogress. ss.
+      eapply gsim_AssumeRes_src; [rewrite list_lookup_fmap Htid //=|].
+      { f_equal. grind. repeat f_equal; extensionalities a; destruct a; ss. }
+      intros Hval.
+      eapply gsim_AssumeRes_tgt; [rewrite list_lookup_fmap Htid //=|].
+      { f_equal; grind. repeat f_equal. extensionalities a; destruct a; ss. }
+      split; first done.
+
+      gbase. eapply (CIH (res ⋅ rs)); eauto.
+      eexists (<[stid_cur := (_, _, None)]> tl); esplits; eauto.
+      { do 3 f_equal.
+        rewrite /reqmap.
+        erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
+        rewrite insert_take_drop /=; last done; rewrite ?fmap_app ?omap_app //.
+      }
+      { rewrite list_fmap_insert //=. }
+      { rewrite list_fmap_insert //=. }
+      {
+        rewrite list_fmap_insert /=.
+        revert Htl; erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
+        rewrite insert_take_drop; [|rewrite length_fmap //].
+        rewrite ?fmap_app ?omap_app; cbn.
+        rewrite fmap_take fmap_drop //.
+      }
+      { intros i; destruct (decide (i = stid_cur)); subst; cycle 1.
+        { intros ???; rewrite list_lookup_insert_ne //=; apply Hlookup. }
+        { rewrite list_lookup_insert; ii; clarify. split; ss. esplits; eauto.
+          eapply help_rel_eq; grind.
+        }
+      }
+    }
+    destruct Hf as [[P [f' ->]]|Hf].
+    { (* Guarantee *)
+      zprogress. ss.
+      eapply gsim_Guarantee_tgt; [rewrite list_lookup_fmap Htid //=|].
+      { f_equal. grind. }
+      intros r2 ?.
+      eapply gsim_Guarantee_src; [rewrite list_lookup_fmap Htid //=|].
+      { f_equal; grind. }
+      esplits; try by des.
+
+      gbase. eapply (CIH r2); try by des.
+      eexists (<[stid_cur := (_, _, None)]> tl); esplits; eauto.
+      { do 3 f_equal.
+        rewrite /reqmap.
+        erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
+        rewrite insert_take_drop /=; last done; rewrite ?fmap_app ?omap_app //.
+      }
+      { rewrite list_fmap_insert //=. }
+      { rewrite list_fmap_insert //=. }
+      {
+        rewrite list_fmap_insert /=.
+        revert Htl; erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
+        rewrite insert_take_drop; [|rewrite length_fmap //].
+        rewrite ?fmap_app ?omap_app; cbn.
+        rewrite fmap_take fmap_drop //.
+      }
+      { intros i; destruct (decide (i = stid_cur)); subst; cycle 1.
+        { intros ???; rewrite list_lookup_insert_ne //=; apply Hlookup. }
+        { rewrite list_lookup_insert; ii; clarify. split; ss. esplits; eauto.
+          eapply help_rel_eq; grind.
+        }
+      }
+    }
+    destruct Hf as [[R [[fn args|fn args|tid_yield|] [k ->]]]|Hf].
+    { (* call case *)
+      rename msk0 into msk_c, img into img_c, scp into scp_c.
+      iter_l; iter_r; rewrite ?list_lookup_fmap Htid /=.
+      ss; destruct (msk_c fn); cycle 1.
+      { norm_l. step_l. ss. }
+      ss. zprogress.
+
+      step_l. step_r.
+      destruct (decide (fn = Helping.run mn)); subst.
+      { (* Helping.run *)
         norm_l. norm_r.
-        zstep; rewrite /HelpingOff.t /HelpingOn.t /SchI.t; unseal CRIS; ss.
-      }
-      destruct Hf as [[f' ->]|Hf].
-      { (* tau case *)
-        zprogress.
-        eapply gsim_tau_src; [rewrite list_lookup_fmap Htid //=; f_equal; grind|].
-        eapply gsim_tau_tgt; [rewrite list_lookup_fmap Htid //=; f_equal; grind|].
-        gbase. eapply CIH; eauto.
-        eexists (<[stid_cur := (_, _, None)]> tl); esplits; eauto.
-        { do 3 f_equal.
-          rewrite /reqmap.
-          erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
-          rewrite insert_take_drop /=; last done; rewrite ?fmap_app ?omap_app //.
-        }
-        { rewrite list_fmap_insert //=. }
-        { rewrite list_fmap_insert //=. }
-        {
-          rewrite list_fmap_insert /=.
-          revert Htl; erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
-          rewrite insert_take_drop; [|rewrite length_fmap //].
-          rewrite ?fmap_app ?omap_app; cbn.
-          rewrite fmap_take fmap_drop //.
-        }
-        { intros i; destruct (decide (i = stid_cur)); subst; cycle 1.
-          { intros ???; rewrite list_lookup_insert_ne //=; apply Hlookup. }
-          { rewrite list_lookup_insert; ii; clarify; r; esplits; eauto. rewrite bind_ret_r //. }
-        }
-      }
-      destruct Hf as [[P [f' ->]]|Hf].
-      { (* Assume *)
-        zprogress.
-        eapply gsim_Assume_src; [rewrite list_lookup_fmap Htid //|].
-        intros r_s2 -> Hr_s2.
-        eapply gsim_Assume_tgt; [rewrite list_lookup_fmap Htid //|].
-        exists r_s2; esplits; try by des.
-        gbase. eapply (CIH r_s2); try by des.
-        eexists (<[stid_cur := (_, _, None)]> tl); esplits; eauto.
-        { do 3 f_equal.
-          rewrite /reqmap.
-          erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
-          rewrite insert_take_drop /=; last done; rewrite ?fmap_app ?omap_app //.
-        }
-        { rewrite list_fmap_insert //=. }
-        { rewrite list_fmap_insert //=. }
-        {
-          rewrite list_fmap_insert /=.
-          revert Htl; erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
-          rewrite insert_take_drop; [|rewrite length_fmap //].
-          rewrite ?fmap_app ?omap_app; cbn.
-          rewrite fmap_take fmap_drop //.
-        }
-        { intros i; destruct (decide (i = stid_cur)); subst; cycle 1.
-          { intros ???; rewrite list_lookup_insert_ne //=; apply Hlookup. }
-          { rewrite list_lookup_insert; ii; clarify; r; esplits; eauto. }
-        }
-      }
-      destruct Hf as [[res [f' ->]]|Hf].
-      { (* AssumeRes *)
-        zprogress. ss.
-        eapply gsim_AssumeRes_src; [rewrite list_lookup_fmap Htid //=|].
-        { repeat f_equal; extensionalities a; destruct a; ss. }
-        intros Hval.
-        eapply gsim_AssumeRes_tgt; [rewrite list_lookup_fmap Htid //=|].
-        { repeat f_equal; extensionalities a; destruct a; ss. }
-        split; first done.
+        rewrite {1 3}/LMod.prog ?alist_find_map_snd /=.
+        destruct (dec _ _) as [?|e]; [ss|clarify].
+        norm_l. norm_r.
 
-        gbase. eapply (CIH (res ⋅ rs)); eauto.
-        eexists (<[stid_cur := (_, _, None)]> tl); esplits; eauto.
-        { do 3 f_equal.
-          rewrite /reqmap.
-          erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
-          rewrite insert_take_drop /=; last done; rewrite ?fmap_app ?omap_app //.
-        }
-        { rewrite list_fmap_insert //=. }
-        { rewrite list_fmap_insert //=. }
-        {
-          rewrite list_fmap_insert /=.
-          revert Htl; erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
-          rewrite insert_take_drop; [|rewrite length_fmap //].
-          rewrite ?fmap_app ?omap_app; cbn.
-          rewrite fmap_take fmap_drop //.
-        }
-        { intros i; destruct (decide (i = stid_cur)); subst; cycle 1.
-          { intros ???; rewrite list_lookup_insert_ne //=; apply Hlookup. }
-          { rewrite list_lookup_insert; ii; clarify; r; esplits; eauto. }
-        }
-      }
-      destruct Hf as [[P [f' ->]]|Hf].
-      { (* Guarantee *)
-        zprogress.
-        iter_l; iter_r; rewrite ?list_lookup_fmap Htid /=.
-        norm_l; norm_r.
-
-        step_r. step_r. ired. norm_r. hss. ired. hss. ired.
-        iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-        step_r.
-        intros res; norm_r. step_r. norm_r.
-        rewrite list_insert_insert.
-        iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-        step_r. intros Hres; eauto. norm_r. step_r. norm_r.
-        rewrite list_insert_insert.
         iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_r. norm_r.
         rewrite list_insert_insert.
-        iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. hss.
-        norm_r. step_r. norm_r. ired.
-        rewrite list_insert_insert.
-
-        norm_l.
-        iter_l. rewrite list_lookup_insert /=. hss. norm_l. step_l.
-        exists res; norm_l. step_l. norm_l.
-        rewrite list_insert_insert. 2:{ rewrite length_fmap //. }
-        iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-        step_l. unshelve eexists; eauto. norm_l. step_l. norm_l.
-        rewrite list_insert_insert.
-        iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_l. norm_l.
-        rewrite list_insert_insert.
-        iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. hss.
-        norm_l. step_l. norm_l. ired.
-        rewrite list_insert_insert.
-
-        gbase. eapply (CIH res); eauto.
-        eexists (<[stid_cur := (_, _, None)]> tl); esplits; eauto.
-        { do 3 f_equal.
-          rewrite /reqmap.
-          erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
-          rewrite insert_take_drop /=; last done; rewrite ?fmap_app ?omap_app //.
-        }
-        { rewrite list_fmap_insert //=. }
-        { rewrite list_fmap_insert //=. }
-        {
-          rewrite list_fmap_insert /=.
-          revert Htl; erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
-          rewrite insert_take_drop; [|rewrite length_fmap //].
-          rewrite ?fmap_app ?omap_app; cbn.
-          rewrite fmap_take fmap_drop //.
-        }
-        { intros i; destruct (decide (i = stid_cur)); subst; cycle 1.
-          { intros ???; rewrite list_lookup_insert_ne //=; apply Hlookup. }
-          { rewrite list_lookup_insert; ii; clarify; r; esplits; eauto. }
-        }
-      }
-      destruct Hf as [[R [[fn args|fn args|tid_yield|] [k ->]]]|Hf].
-      { (* call case *)
-        iter_l; iter_r; rewrite ?list_lookup_fmap Htid /=.
-        ss; destruct (msk_c fn); cycle 1.
-        { norm_l. step_l. ss. }
-        ss. zprogress.
-
-        step_l. step_r.
-        destruct (decide (fn = Helping.run mn)); subst.
-        { (* Helping.run *)
-          norm_l. norm_r.
-          rewrite {1 3}/LMod.prog ?alist_find_map_snd /=.
-          destruct (dec _ _) as [?|e]; [ss|clarify].
-          norm_l. norm_r.
-
-          iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_r. norm_r.
-          rewrite list_insert_insert.
-          rewrite /HelpingOn.run /HelpingOff.run.
-          rewrite /SModTr.trans.
-          destruct (args↓) as [j|] eqn:Hargs ; cycle 1.
-          { iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_l. norm_l. rewrite list_insert_insert.
-            rewrite Hargs /=.
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            norm_l; step_l; ss.
-          }
-          ss.
-          rewrite /ModTr.trans_ktree /SB.sandbox_body /= Hargs. ired.
-
-          rewrite /SB.sandbox /ModTr.trans.
-          eapply gsim_tau_src; [rewrite list_lookup_insert; [grind|rewrite ?length_fmap //]|]; s.
-          rewrite list_insert_insert.
-
-          (* call for help *)
-          iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-          rewrite String.eqb_refl /=. step_r. norm_r. hss. rewrite ModTr.alist_encode_decode.
-          rewrite list_insert_insert.
-          ss. destruct (dec _ _) as [e|]; ss; clear e. ired. hss. ired.
-          iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-          hss. rewrite String.eqb_refl /=. norm_r. step_r. norm_r. hss.
-          rewrite ModTr.alist_encode_decode /alist_upd /_alist_upd /=.
-          destruct (dec _ _) as [e|]; ss; clear e.
-          rewrite list_insert_insert.
-
-          iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_r. norm_r.
-          rewrite list_insert_insert.
-          ired.
-
-          gcofix CIH2.
-
-          rewrite {2}yield_unfold.
-          ired. rewrite interpV_tau.
-          eapply gsim_tau_tgt; [rewrite list_lookup_insert; [grind|rewrite ?length_fmap //]|]; s.
-          rewrite list_insert_insert.
-
-          rewrite interpV_bind interpV_trigger /=. ired.
-          eapply gsim_Choose_tgt; [rewrite list_lookup_insert; [grind|rewrite ?length_fmap //]|]; s.
-
-          intros [b|]; rewrite list_insert_insert; cycle 1.
-          { (* Loop exit *)
-            clear CIH2.
-
-            ired.
-            rewrite /HelpingOn.try_run /cgetU. ired.
-            rewrite interpV_bind interpV_trigger /=. ired.
-            eapply gsim_sGet_tgt; [rewrite list_lookup_insert //| |]; s.
-            { rewrite ?length_fmap //. }
-            { rewrite String.eqb_refl //. }
-            esplits; eauto.
-            { destruct (dec _ _); clarify. }
-            rewrite list_insert_insert. ired. hss. ired. rewrite lookup_insert. ired.
-
-            rewrite /cput.
-
-            iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            rewrite String.eqb_refl /=. step_r. norm_r.
-            rewrite list_insert_insert.
-            hss. rewrite ModTr.alist_encode_decode /=.
-
-            iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_r. norm_r. ired.
-            rewrite list_insert_insert.
-            rewrite /alist_upd /_alist_upd eq_rel_dec_correct; des_ifs.
-            rewrite delete_insert; cycle 1.
-            { apply not_elem_of_dom, is_fresh. }
-
-            rewrite yield_unfold.
-            rewrite /SModTr.trans; ired.
-            rewrite interpV_tau.
-            eapply gsim_tau_src; [rewrite list_lookup_insert; [grind|rewrite ?length_fmap //]|]; s.
-            rewrite list_insert_insert.
-
-            rewrite interpV_bind interpV_trigger /=. ired.
-            eapply gsim_Choose_src; [rewrite list_lookup_insert; [grind|rewrite ?length_fmap //]|]; s.
-            exists None.
-            rewrite list_insert_insert.
-            ired.
-
-            (* TODO : Make a jobs lemma here *)
-
-            clear e Heq.
-            assert (Htid' : ∃ ip, (tl !! stid_cur = Some (ip, None))) by (eexists; eauto).
-            clear Htid. generalize (jobs j); clear dependent j.
-            destruct Htid' as [? Htid].
-            revert rs Hrs.
-            gcofix CIH2.
-            intros rs Hrs job; ides job.
-            { clear CIH2. rewrite /Helping.trans.
-              rewrite ?(bisim_is_eq (translate_ret _ _)).
-              gbase. eapply (CIH rs); eauto.
-              eexists (<[stid_cur := (_, _, None)]> tl); esplits; eauto.
-              { do 3 f_equal.
-                rewrite /reqmap.
-                erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
-                rewrite insert_take_drop /=; last done; rewrite ?fmap_app ?omap_app //.
-              }
-              { rewrite list_fmap_insert //=. }
-              { rewrite list_fmap_insert //=. }
-              {
-                rewrite list_fmap_insert /=.
-                revert Htl; erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
-                rewrite insert_take_drop; [|rewrite length_fmap //].
-                rewrite ?fmap_app ?omap_app; cbn.
-                rewrite fmap_take fmap_drop //.
-              }
-              { intros i; destruct (decide (i = stid_cur)); subst; cycle 1.
-                { intros ???; rewrite list_lookup_insert_ne //=; apply Hlookup. }
-                { rewrite list_lookup_insert; ii; clarify; r; esplits; eauto.
-                  rewrite ?interpV_bind ?interpV_ret; grind.
-                  rewrite /ModTr.trans /SB.sandbox; instantiate (1:=tau;; k ()↑).
-                  rewrite ?interpV_tau; grind.
-                }
-              }
-            }
-            { zprogress.
-              rewrite /Helping.trans ?(bisim_is_eq (translate_tau _ _)).
-              iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-              step_l. norm_l.
-              rewrite list_insert_insert.
-              fold (Helping.trans t).
-
-              iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-              step_r. norm_r.
-              rewrite list_insert_insert.
-
-              gbase. eapply CIH2; eauto.
-            }
-            { destruct e as [e|e].
-              { destruct e as [P | res | P].
-                {
-                  zprogress.
-                  rewrite /Helping.trans !(bisim_is_eq (translate_vis _ _ _ _)).
-                  iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-                  step_l. norm_l.
-                  rewrite list_insert_insert. hss. ired. hss.
-
-                  iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-                  step_l. intros Pres. step_l. norm_l.
-                  rewrite list_insert_insert.
-
-                  iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-                  step_l. intros HPres. step_l. norm_l.
-                  rewrite list_insert_insert.
-
-                  iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-                  step_l. norm_l.
-                  rewrite list_insert_insert. ired. hss. ired.
-
-                  iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-                  step_l. norm_l.
-                  rewrite list_insert_insert. ired. fold (Helping.trans (k0 ())).
-
-                  iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-                  step_r. norm_r.
-                  rewrite list_insert_insert. hss. ired. hss.
-
-                  iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-                  step_r. exists Pres. step_r. norm_r.
-                  rewrite list_insert_insert.
-
-                  iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-                  step_r. unshelve eexists; eauto. step_r. norm_r.
-                  rewrite list_insert_insert.
-
-                  iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-                  step_r. norm_r.
-                  rewrite list_insert_insert. ired. hss. ired.
-
-                  iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-                  step_r. norm_r.
-                  rewrite list_insert_insert. ired. fold (Helping.trans (k0 ())).
-
-                  gbase. eapply (CIH2 Pres); eauto.
-                }
-                {
-                  zprogress.
-                  rewrite /Helping.trans !(bisim_is_eq (translate_vis _ _ _ _)).
-                  iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-                  step_l. norm_l.
-                  rewrite list_insert_insert. hss. ired. hss.
-
-                  iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-                  step_l. intros Pres. step_l. norm_l.
-                  rewrite list_insert_insert.
-
-                  iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-                  step_l. norm_l.
-                  rewrite list_insert_insert. ired. hss. ired.
-
-                  iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-                  step_l. norm_l.
-                  rewrite list_insert_insert. ired. fold (Helping.trans (k0 ())).
-
-                  iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-                  step_r. norm_r.
-                  rewrite list_insert_insert. hss. ired. hss.
-
-                  iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-                  step_r. exists Pres. step_r. norm_r.
-                  rewrite list_insert_insert.
-
-                  iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-                  step_r. norm_r.
-                  rewrite list_insert_insert. ired. hss. ired.
-
-                  iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-                  step_r. norm_r.
-                  rewrite list_insert_insert. ired. fold (Helping.trans (k0 ())).
-
-                  gbase. eapply (CIH2 (res ⋅ rs)); eauto.
-                }
-                {
-                  zprogress.
-
-                  iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-                  step_r. norm_r.
-                  rewrite list_insert_insert. hss. ired. hss.
-
-                  iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-                  step_r. intros Pres. step_r. norm_r.
-                  rewrite list_insert_insert.
-
-                  iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-                  step_r. intros HPres; eauto. step_r. norm_r.
-                  rewrite list_insert_insert.
-
-                  iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-                  step_r. norm_r.
-                  rewrite list_insert_insert. ired. hss. ired.
-
-                  iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-                  step_r. norm_r.
-                  rewrite list_insert_insert. ired. fold (Helping.trans (k0 ())).
-
-                  rewrite /Helping.trans !(bisim_is_eq (translate_vis _ _ _ _)).
-                  iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-                  step_l. norm_l.
-                  rewrite list_insert_insert. hss. ired. hss.
-
-                  iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-                  step_l. exists Pres. step_l. norm_l.
-                  rewrite list_insert_insert.
-
-                  iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-                  step_l. unshelve eexists; eauto. step_l. norm_l.
-                  rewrite list_insert_insert.
-
-                  iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-                  step_l. norm_l.
-                  rewrite list_insert_insert. ired. hss. ired.
-
-                  iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-                  step_l. norm_l.
-                  rewrite list_insert_insert. ired. fold (Helping.trans (k0 ())).
-
-                  gbase. eapply (CIH2 Pres); eauto.
-                }
-              }
-              {
-                destruct e as [X | X | ].
-                {
-                  zprogress.
-
-                  iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-                  step_r. intros ?. step_r. norm_r.
-                  rewrite list_insert_insert.
-
-                  iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-                  step_l. unshelve eexists; eauto. step_l; norm_l.
-                  rewrite list_insert_insert. hss. ired. hss.
-
-                  gbase. eapply CIH2; eauto.
-                }
-                {
-                  zprogress.
-
-                  iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-                  step_l. intros ?. step_l. norm_l.
-                  rewrite list_insert_insert.
-
-                  iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-                  step_r. unshelve eexists; eauto. step_r; norm_r.
-                  rewrite list_insert_insert. hss. ired. hss.
-
-                  gbase. eapply CIH2; eauto.
-                }
-                {
-                  zprogress.
-
-                  iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-                  iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-                  norm_l; norm_r.
-                  zstep. step_l; step_r; norm_l; norm_r. subst.
-
-                  gbase. eapply CIH2; eauto.
-                }
-              }
-            }
-          }
-          destruct b; cycle 1.
-          { zprogress. norm_r. step_r. norm_r. ired. rewrite list_insert_insert.
-            rewrite {1}yield_unfold.
-
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_l. norm_l. rewrite list_insert_insert.
-
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_l. exists (Some false). step_l. norm_l. ired.
-            rewrite list_insert_insert.
-            gbase.
-            eapply CIH2.
-          }
-
-          clear CIH2.
-          step_r. norm_r. rewrite list_insert_insert.
-
-          iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-          step_r. norm_r.
-          rewrite list_insert_insert.
-
-          rewrite {1}yield_unfold.
-
-          iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
+        rewrite /HelpingOn.run /HelpingOff.run.
+        rewrite /SModTr.trans.
+        destruct (args↓) as [j|] eqn:Hargs ; cycle 1.
+        { iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
           step_l. norm_l. rewrite list_insert_insert.
-
+          rewrite Hargs /=.
           iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-          step_l. exists (Some true). norm_l. step_l. norm_l. rewrite list_insert_insert.
-
-          iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-          step_l. norm_l. rewrite list_insert_insert.
-
-          rewrite HoareCall_unfold. ired.
-          rewrite /HoareCall_prologue; unseal "Help".
-
-          destruct (sp SchHdr.yield) as [[yield_spec|yield_spec]|]; cycle 1.
-          { iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_r. intros x. ss.
-          }
-          { (* no sp *)
-            ired.
-
-            iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_r.
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_l.
-            rewrite {1 3}/LMod.prog /=.
-
-            destruct (dec _ _); [exfalso; hexploit yield_run_neq; ii; clarify|].
-            destruct (dec _ _); [exfalso; hexploit yield_help_neq; ii; clarify|ss].
-            norm_l. norm_r.
-            rewrite /ModTr.trans_ktree /SB.sandbox_body /ModTr.trans /SB.sandbox /=.
-            rewrite ?list_insert_insert. ired.
-
-            rewrite /SchI.SchI.yield /cfunN /cfunU. hss. ired.
-
-            iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_r. norm_r.
-            rewrite list_insert_insert.
-
-            iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_r. norm_r. hss. rewrite ModTr.alist_encode_decode.
-            rewrite list_insert_insert. ired. hss. ired.
-            des_ifs_safe; clear Heq. hss. ired.
-
-            iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_r. norm_r.
-            rewrite list_insert_insert.
-            rewrite /SModTr.NativeGetTid.
-
-            iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_r. norm_r.
-            rewrite list_insert_insert.
-
-            iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_r. norm_r. rewrite list_insert_insert.
-            hss. rewrite ModTr.alist_encode_decode. ss.
-            des_ifs_safe; clear Heq; ss. ired. hss. ired.
-
-            (* TODO : stard dealing with GetTids - it would be better to come up with a
-              fully working help_rel now *)
-
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_l. norm_l.
-            rewrite list_insert_insert.
-
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_l. norm_l. hss. rewrite ModTr.alist_encode_decode.
-            rewrite list_insert_insert. ss.
-            des_ifs_safe; clear Heq. ss. ired. hss.
-
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_l. norm_l.
-            rewrite list_insert_insert.
-            rewrite /SModTr.NativeGetTid.
-
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_l. norm_l.
-            rewrite list_insert_insert.
-
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_l. norm_l.
-            rewrite list_insert_insert.
-            hss. rewrite ModTr.alist_encode_decode. ss. ired.
-            des_ifs_safe; clear Heq. ss. ired. hss. ired.
-
-            destruct (ths !! tid_cur) as [[stid_cur' ?]|] eqn : Htid_cur'; cycle 1.
-            { rewrite ?Htid_cur'. iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-              destruct (sumbool_to_bool _); ss; step_l; ss.
-            }
-            rewrite ?Htid_cur'; case_decide; cycle 1.
-            { rewrite ?Htid_cur'. iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-              destruct (sumbool_to_bool _); ss; step_l; ss.
-            }
-            subst stid_cur'.
-            
-            iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_r.
-            intros [[tid_nxt stid_nxt] Htid_nxt]. norm_r. step_r. norm_r.
-            rewrite list_insert_insert. ired.
-
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_l.
-            exists (exist _ (tid_nxt, stid_nxt) Htid_nxt). norm_l. step_l. norm_l.
-            rewrite list_insert_insert. ired.
-
-            iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_r. norm_r.
-            rewrite list_insert_insert. hss. rewrite ModTr.alist_encode_decode /=.
-
-            iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_r. norm_r.
-            rewrite list_insert_insert. ired.
-
-            iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_r. norm_r.
-            rewrite list_insert_insert. ired.
-            rewrite /SModTr.NativeYield.
-
-            iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_r. norm_r.
-            rewrite list_insert_insert. ired.
-
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_l. norm_l.
-            rewrite list_insert_insert. hss. rewrite ModTr.alist_encode_decode /=.
-
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_l. norm_l.
-            rewrite list_insert_insert. ired.
-
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_l. norm_l.
-            rewrite list_insert_insert. ired.
-            rewrite /SModTr.NativeYield.
-
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_l. norm_l.
-            rewrite list_insert_insert. ired.
-            rewrite /alist_upd /_alist_upd; des_ifs; clear Heq0 Heq1 Heq.
-            rewrite ?interpV_ret; ired.
-
-            gbase. eapply (CIH rs); eauto.
-            set (tid_stid_cur := fresh _).
-            eset (tl2 := <[stid_cur := (_, _, Some (tid_stid_cur, j))]> tl).
-            eexists (<[stid_cur := (_, _, Some (tid_stid_cur, j))]> tl); esplits; eauto.
-            { repeat f_equal.
-              subst tid_stid_cur; rewrite /reqmap.
-              symmetry; apply map_to_list_insert_inv; ss.
-              rewrite map_to_list_to_map.
-              { rewrite insert_take_drop /=; last done.
-                rewrite fmap_app omap_app; cbn.
-                erewrite <-(take_drop_middle tl stid_cur) at 5; eauto.
-                rewrite ?fmap_app ?omap_app; cbn.
-                rewrite cons_app Permutation_app_swap_app //.
-              }
-              rewrite insert_take_drop /=; last done; rewrite ?fmap_app ?omap_app; cbn.
-              rewrite cons_app Permutation_app_swap_app; cbn.
-              apply NoDup_cons; split.
-              { rewrite dom_list_to_map.
-                erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
-                rewrite fmap_app omap_app; cbn.
-                intros Hin; eapply elem_of_list_to_set, is_fresh in Hin; ss.
-              }
-              revert Htl.
-              erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
-              rewrite fmap_app omap_app; cbn; rewrite fmap_app //.
-            }
-            { rewrite list_fmap_insert //=. }
-            { rewrite list_fmap_insert //=. }
-            { rewrite insert_take_drop /=; last done; rewrite ?fmap_app ?omap_app; cbn.
-              rewrite cons_app Permutation_app_swap_app; cbn.
-              apply NoDup_cons; split.
-              { rewrite /tid_stid_cur dom_list_to_map.
-                erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
-                rewrite fmap_app omap_app; cbn.
-                intros Hin; eapply elem_of_list_to_set, is_fresh in Hin; ss.
-              }
-              revert Htl.
-              erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
-              rewrite fmap_app omap_app; cbn; rewrite fmap_app //.
-            }
-            { intros i; destruct (decide (i = stid_cur)); subst; cycle 1.
-              { intros ???; rewrite list_lookup_insert_ne //=; apply Hlookup. }
-              { rewrite list_lookup_insert; ii; clarify; r; esplits; eauto.
-                { rewrite /helpee_pend_s /yield_epliogue. grind.
-                  instantiate (1:=k).
-                  repeat f_equal; cycle 1.
-                  { extensionality a; grind. }
-                  { rewrite /yield_epliogue; repeat f_equal. extensionality a; grind. }
-                }
-                { rewrite /helpee_pend_t. grind. repeat f_equal.
-                  { extensionality a; grind. }
-                  { extensionality a; grind. }
-                }
-              }
-            }
-          }
-          { (* exists sp *)
-            iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_r. intros x. norm_r. step_r. norm_r.
-            rewrite list_insert_insert.
-
-            iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_r. intros arg. norm_r. step_r. norm_r.
-            rewrite list_insert_insert.
-
-            iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_r. norm_r.
-            rewrite list_insert_insert. hss. ired. hss. ired.
-
-            iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_r. intros rs_2. norm_r. step_r. norm_r.
-            rewrite list_insert_insert.
-
-            iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_r. intros Hrs_2. norm_r. step_r. norm_r.
-            rewrite list_insert_insert.
-
-            iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_r. norm_r.
-            rewrite list_insert_insert. hss. ired. hss. ired.
-
-            iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_r. norm_r.
-            rewrite list_insert_insert. ired.
-
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_l. exists x. norm_l. step_l. norm_l.
-            rewrite list_insert_insert.
-
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_l. exists arg. norm_l. step_l. norm_l.
-            rewrite list_insert_insert.
-
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_l. norm_l.
-            rewrite list_insert_insert. hss. ired. hss. ired.
-
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_l. exists rs_2. norm_l. step_l. norm_l.
-            rewrite list_insert_insert.
-
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_l. unshelve eexists; eauto. norm_l. step_l. norm_l.
-            rewrite list_insert_insert.
-
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_l. norm_l.
-            rewrite list_insert_insert. hss. ired. hss. ired.
-
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_l. norm_l.
-            rewrite list_insert_insert. ired.
-
-            iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_r.
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_l.
-            rewrite {1 3}/LMod.prog /=.
-
-            destruct (dec _ _); [exfalso; hexploit yield_run_neq; ii; clarify|].
-            destruct (dec _ _); [exfalso; hexploit yield_help_neq; ii; clarify|ss].
-            norm_l. norm_r.
-            rewrite /ModTr.trans_ktree /SB.sandbox_body /ModTr.trans /SB.sandbox /=.
-            rewrite ?list_insert_insert. ired.
-
-            (* enter SchI yield - tgt *)
-            rewrite /SchI.yield /cfunU.
-
-            iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_r. norm_r.
-            rewrite list_insert_insert.
-
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_l. norm_l.
-            rewrite list_insert_insert. ired.
-
-            destruct (arg ↓) as [arg'|]; cycle 1.
-            { iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-              des_if; step_l; ss.
-            }
-
-            iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_r. norm_r. hss. rewrite ModTr.alist_encode_decode.
-            rewrite list_insert_insert. ired. hss. ired.
-            des_ifs_safe; clear Heq. hss. ired.
-
-            iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_r. norm_r.
-            rewrite list_insert_insert.
-            rewrite /SModTr.NativeGetTid.
-
-            iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_r. norm_r.
-            rewrite list_insert_insert.
-
-            iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_r. norm_r. rewrite list_insert_insert.
-            hss. rewrite ModTr.alist_encode_decode. ss.
-            des_ifs_safe; clear Heq; ss. ired. hss. ired.
-
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_l. norm_l.
-            rewrite list_insert_insert. hss. rewrite ModTr.alist_encode_decode. ired.
-            des_ifs_safe; clear Heq. ss. ired. hss.
-
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_l. norm_l.
-            rewrite list_insert_insert.
-            rewrite /SModTr.NativeGetTid.
-
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_l. norm_l.
-            rewrite list_insert_insert.
-
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_l. norm_l.
-            rewrite list_insert_insert.
-            hss. rewrite ModTr.alist_encode_decode. ss. ired.
-            des_ifs_safe; clear Heq. ss. ired. hss. ired.
-
-            destruct (ths !! tid_cur) as [[stid_cur' ?]|] eqn : Htid_cur'; cycle 1.
-            { rewrite ?Htid_cur'. iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-              destruct (sumbool_to_bool _); ss; step_l; ss.
-            }
-            rewrite ?Htid_cur'; case_decide; cycle 1.
-            { rewrite ?Htid_cur'. iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-              destruct (sumbool_to_bool _); ss; step_l; ss.
-            }
-            subst stid_cur'.
-            
-            iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_r.
-            intros [[tid_nxt stid_nxt] Htid_nxt]. norm_r. step_r. norm_r.
-            rewrite list_insert_insert. ired.
-
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_l.
-            exists (exist _ (tid_nxt, stid_nxt) Htid_nxt). norm_l. step_l. norm_l.
-            rewrite list_insert_insert. ired.
-
-            iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_r. norm_r.
-            rewrite list_insert_insert. hss. rewrite ModTr.alist_encode_decode /=.
-
-            iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_r. norm_r.
-            rewrite list_insert_insert. ired.
-
-            iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_r. norm_r.
-            rewrite list_insert_insert. ired.
-            rewrite /SModTr.NativeYield.
-
-            iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_r. norm_r.
-            rewrite list_insert_insert. ired.
-
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_l. norm_l.
-            rewrite list_insert_insert. hss. rewrite ModTr.alist_encode_decode /=.
-
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_l. norm_l.
-            rewrite list_insert_insert. ired.
-
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_l. norm_l.
-            rewrite list_insert_insert. ired.
-            rewrite /SModTr.NativeYield.
-
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_l. norm_l.
-            rewrite list_insert_insert. ired.
-            rewrite /alist_upd /_alist_upd; des_ifs; clear Heq0 Heq1 Heq.
-            rewrite ?interpV_ret; ired.
-
-            gbase. eapply (CIH rs_2); eauto.
-            set (tid_stid_cur := fresh _).
-            eset (tl2 := <[stid_cur := (_, _, Some (tid_stid_cur, j))]> tl).
-            eexists (<[stid_cur := (_, _, Some (tid_stid_cur, j))]> tl); esplits; eauto.
-            { repeat f_equal.
-              subst tid_stid_cur; rewrite /reqmap.
-              symmetry; apply map_to_list_insert_inv; ss.
-              rewrite map_to_list_to_map.
-              { rewrite insert_take_drop /=; last done.
-                rewrite fmap_app omap_app; cbn.
-                erewrite <-(take_drop_middle tl stid_cur) at 5; eauto.
-                rewrite ?fmap_app ?omap_app; cbn.
-                rewrite cons_app Permutation_app_swap_app //.
-              }
-              rewrite insert_take_drop /=; last done; rewrite ?fmap_app ?omap_app; cbn.
-              rewrite cons_app Permutation_app_swap_app; cbn.
-              apply NoDup_cons; split.
-              { rewrite dom_list_to_map.
-                erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
-                rewrite fmap_app omap_app; cbn.
-                intros Hin; eapply elem_of_list_to_set, is_fresh in Hin; ss.
-              }
-              revert Htl.
-              erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
-              rewrite fmap_app omap_app; cbn; rewrite fmap_app //.
-            }
-            { rewrite list_fmap_insert //=. }
-            { rewrite list_fmap_insert //=. }
-            { rewrite insert_take_drop /=; last done; rewrite ?fmap_app ?omap_app; cbn.
-              rewrite cons_app Permutation_app_swap_app; cbn.
-              apply NoDup_cons; split.
-              { rewrite /tid_stid_cur dom_list_to_map.
-                erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
-                rewrite fmap_app omap_app; cbn.
-                intros Hin; eapply elem_of_list_to_set, is_fresh in Hin; ss.
-              }
-              revert Htl.
-              erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
-              rewrite fmap_app omap_app; cbn; rewrite fmap_app //.
-            }
-            { intros i; destruct (decide (i = stid_cur)); subst; cycle 1.
-              { intros ???; rewrite list_lookup_insert_ne //=; apply Hlookup. }
-              { rewrite list_lookup_insert; ii; clarify; r; esplits; eauto.
-                { rewrite /helpee_pend_s /yield_epliogue. grind.
-                  instantiate (1:=k).
-                  repeat f_equal; cycle 1.
-                  { extensionality a; grind. }
-                  { rewrite /yield_epliogue; repeat f_equal. extensionality a; grind. }
-                }
-                { rewrite /helpee_pend_t. grind. repeat f_equal.
-                  { extensionality a; grind. }
-                  { extensionality a; grind. }
-                }
-              }
-            }
-          }
+          norm_l; step_l; ss.
         }
-        { (* Helping.help *)
-          destruct (decide (fn = Helping.help mn)); subst.
-          { (* Helping.help *)
-            admit.
-          }
-          {
-            rewrite no_help_prog //; destruct (LMod.prog _ fn) as [bd|]; cycle 1.
-            { s. step_l; ss. }
-            ired.
-            norm_l; norm_r.
-            gbase. eapply (CIH); eauto.
-            eexists (<[stid_cur := (_, _, None)]> tl). esplits; eauto.
+        ss.
+        rewrite /ModTr.trans_ktree /SB.sandbox_body /= Hargs. ired.
+
+        rewrite /SB.sandbox /ModTr.trans.
+        eapply gsim_tau_src; [rewrite list_lookup_insert; [grind|rewrite ?length_fmap //]|]; s.
+        rewrite list_insert_insert.
+
+        (* call for help *)
+        rewrite /cgetU. ired.
+        rewrite interpV_bind interpV_trigger /=. ired.
+        eapply gsim_sGet_tgt; [rewrite list_lookup_insert //| |]; s.
+        { rewrite ?length_fmap //. }
+        { rewrite String.eqb_refl //. }
+        esplits; eauto.
+        { des_ifs; destruct (dec _ _); clarify. }
+        rewrite list_insert_insert. ired. hss. ired.
+        
+        iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
+        hss. rewrite String.eqb_refl /=. norm_r. step_r. norm_r. hss.
+        rewrite ModTr.alist_encode_decode /alist_upd /_alist_upd /=.
+        destruct (dec _ _) as [e|]; ss; clear e.
+        rewrite list_insert_insert.
+
+        iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_r. norm_r.
+        rewrite list_insert_insert.
+        ired.
+
+        rewrite /SModTr.trans.
+        eapply gsim_Yield_both; eauto.
+        { rewrite length_fmap //. }
+        { rewrite length_fmap //. }
+        { (* Self-help *)
+          rewrite /HelpingOn.try_run /cgetU; ired.
+          replace_r; [rewrite interpV_bind interpV_trigger //|]. ired.
+          eapply gsim_sGet_tgt; [rewrite list_lookup_insert //| |]; s.
+          { rewrite ?length_fmap //. }
+          { rewrite String.eqb_refl //. }
+          esplits; eauto.
+          { destruct (dec _ _); clarify. }
+          rewrite list_insert_insert. ired. hss. ired. rewrite lookup_insert. ired.
+
+          rewrite /cput.
+          iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
+          rewrite String.eqb_refl /=. step_r. norm_r.
+          rewrite list_insert_insert.
+          hss. rewrite ModTr.alist_encode_decode /=.
+
+          iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
+          step_r. norm_r. ired.
+          rewrite list_insert_insert.
+          rewrite /alist_upd /_alist_upd eq_rel_dec_correct; des_ifs.
+          rewrite delete_insert; cycle 1.
+          { apply not_elem_of_dom, is_fresh. }
+
+          eapply gsim_jobs_both; try by rewrite ?length_fmap.
+          intros res1 Hres1.
+
+          eapply gsim_Yield_both; eauto.
+          { rewrite length_fmap //. }
+          { rewrite length_fmap //. }
+          { (* immediate return *)
+            rewrite ?interpV_ret; ired.
+            iter_l; iter_r; rewrite ?list_lookup_insert //= ?length_fmap //.
+            step_l; step_r; norm_l; norm_r.
+            rewrite ?list_insert_insert.
+
+            gbase. eapply (CIH res1); eauto.
+            eexists (<[stid_cur := (_, _, None)]> tl); esplits; eauto.
             { do 3 f_equal.
               rewrite /reqmap.
               erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
@@ -1808,621 +1872,733 @@ Section Helping.
             }
             { intros i; destruct (decide (i = stid_cur)); subst; cycle 1.
               { intros ???; rewrite list_lookup_insert_ne //=; apply Hlookup. }
-              { rewrite list_lookup_insert; ii; clarify; r; esplits; eauto.
-                rewrite /ModTr.trans.
-                admit.
+              { rewrite list_lookup_insert; ii; clarify. split; ss.
+                eapply help_rel_eq; eauto.
               }
             }
           }
-        }
-      }
-      { (* Spawn case *)
-        ss.
-        admit.
-      }
 
-      { (* Yield case *)
-        admit.
-      }
+          (* appeal to coinduction *)
+          intros [ro_s Htid_cur]; exists ro_s; split; first done.
+          intros mtidn_t stidn_t Hn_t; exists mtidn_t, stidn_t; split; first done.
+          intros res2 x Hres2; ss.
 
-      { (* GetTid case *)
-        admit.
-      }
-
-      destruct Hf as [[R [s [f' ->]]]|[R [e [f' ->]]]].
-      { (* sput sget *)
-        admit.
-      }
-
-      (* Take Choose IO case *)
-      destruct e; admit.
-    }
-
-    (* Helpee case *)
-    destruct p as [tid jid].
-    apply lookup_lt_Some in Htid as Htid_cur.
-    pose proof Htid as Htid'.
-    apply Hlookup in Htid' as [? [? [? [? [? [? [? [-> ->]]]]]]]]; ss.
-    admit.
-  Admitted.
-      {
-
-      }
-            ired.
-
-            iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_r.
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_l.
-            rewrite {1 3}/LMod.prog /=.
-
-            destruct (dec _ _); [exfalso; hexploit yield_run_neq; ii; clarify|].
-            destruct (dec _ _); [exfalso; hexploit yield_help_neq; ii; clarify|ss].
-            norm_l. norm_r.
-            rewrite /ModTr.trans_ktree /SB.sandbox_body /ModTr.trans /SB.sandbox /=.
-            rewrite ?list_insert_insert. ired.
-
-            rewrite /SchI.SchI.yield /cfunN /cfunU. hss. ired.
-
-            iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_r. norm_r.
-            rewrite list_insert_insert.
-
-            iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_r. norm_r. hss. rewrite ModTr.alist_encode_decode.
-            rewrite list_insert_insert. ired. hss. ired.
-
-            iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_r.
-            intros [tid_nxt Htid_nxt]. norm_r. step_r. norm_r.
-            rewrite list_insert_insert. ired.
-
-            iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_r. norm_r.
-            rewrite list_insert_insert. hss. rewrite ModTr.alist_encode_decode /=.
-            ired. hss. ired.
-
-            iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_r. norm_r.
-            hss. rewrite ModTr.alist_encode_decode /=. ired. hss. ired.
-            destruct (nth_error _ _) as [stid_next|] eqn : Hnth; cycle 1.
-            { exfalso; eapply nth_error_Some in Htid_nxt; done. }
-            rewrite list_insert_insert.
-
-            iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_r. norm_r. ired.
-            rewrite list_insert_insert.
-            
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_l. norm_l.
-            rewrite list_insert_insert. ired.
-
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_l. norm_l. hss. rewrite ModTr.alist_encode_decode.
-            rewrite list_insert_insert. ired. hss. ired.
-
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_l. exists (exist _ tid_nxt Htid_nxt). norm_l. step_l. norm_l.
-            rewrite list_insert_insert.
-
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_l. norm_l. hss. rewrite ModTr.alist_encode_decode /=. ired. hss. ired.
-            rewrite list_insert_insert. rewrite /cgetU.
-
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_l. norm_l. rewrite list_insert_insert. ired. hss.
-            rewrite ModTr.alist_encode_decode /=. ired. hss. ired. rewrite Hnth. ired.
-
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_l. norm_l.
-            rewrite list_insert_insert. ired.
-
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_l. norm_l.
-            rewrite list_insert_insert. ired.
-
-            iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-            step_r. norm_r.
-            rewrite list_insert_insert. ired.
-
-            gbase. eapply (CIH rs); eauto.
-            set (tid_stid_cur := fresh _).
-            eset (tl2 := <[stid_cur := (_, _, Some (tid_stid_cur, j, None))]> tl).
-            assert (Htl2 : NoDup (to_reqlist tl2).*1).
-            { rewrite /tl2.
-              rewrite insert_take_drop // /to_reqlist fmap_app fmap_cons /=.
-              rewrite omap_app /=.
-              rewrite cons_app Permutation_app_swap_app /=; econs.
-              { subst tid_stid_cur; rewrite /to_reqmap /to_reqlist.
-                erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
-                rewrite fmap_app omap_app; simpl omap.
-                rewrite -omap_app -fmap_app.
-                apply not_elem_of_list_to_map, not_elem_of_dom, is_fresh.
-              }
-              { revert Htl.
-                erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
-                rewrite /to_reqlist.
-                rewrite fmap_app omap_app /= -NoDup_ListNoDup //.
-              }
-            }
-            eexists tl2; esplits; eauto.
-            { repeat f_equal.
-              subst tl2.
-              rewrite /to_reqmap /to_reqlist.
-              erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
-              rewrite insert_take_drop; last ss.
-              rewrite /to_reqmap /to_reqlist /= !fmap_app !omap_app /=.
-              fold (to_reqlist (take stid_cur tl)).
-              fold (fmap snd (drop (S stid_cur) tl)).
-              set (f := λ _, _). fold (omap f (drop (S stid_cur) tl).*2).
-              rewrite /HelpingOn.jobmap; symmetry; apply map_to_list_insert_inv.
-              rewrite map_to_list_to_map.
-              { rewrite cons_app Permutation_app_swap_app //=. }
-              revert Htl2.
-              rewrite insert_take_drop // {1}/to_reqlist fmap_app omap_app //=.
-            }
-            { rewrite list_fmap_insert //=. }
-            { rewrite list_fmap_insert //=. }
-            { rewrite -NoDup_ListNoDup //. }
-            { intros i; destruct (decide (i = stid_cur)); subst; cycle 1.
-              { intros ???; rewrite list_lookup_insert_ne //=; apply Hlookup. }
-              { rewrite list_lookup_insert; ii; clarify; r; esplits; eauto.
-                { rewrite /helpee_pend_s. grind. repeat f_equal.
-                  { extensionality a; grind. }
-                  { instantiate (1:=k). extensionality a; grind. }
-                }
-                { rewrite /helpee_pend_t. grind. repeat f_equal.
-                  { extensionality a; grind. }
-                  { extensionality a; grind. }
-                }
-              }
+          gbase. eapply (CIH res2); eauto.
+          eexists (<[stid_cur := (_, _, None)]> tl); esplits; eauto.
+          { do 3 f_equal.
+            rewrite /reqmap.
+            erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
+            rewrite insert_take_drop /=; last done; rewrite ?fmap_app ?omap_app //.
+          }
+          { rewrite list_fmap_insert //=. }
+          { rewrite list_fmap_insert //=. }
+          {
+            rewrite list_fmap_insert /=.
+            revert Htl; erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
+            rewrite insert_take_drop; [|rewrite length_fmap //].
+            rewrite ?fmap_app ?omap_app; cbn.
+            rewrite fmap_take fmap_drop //.
+          }
+          { intros i; destruct (decide (i = stid_cur)); subst; cycle 1.
+            { intros ???; rewrite list_lookup_insert_ne //=; apply Hlookup. }
+            { rewrite list_lookup_insert; ii; clarify. split; ss.
+              esplits; eauto.
+              eapply (help_rel_helper _ _ img_c msk_c scp_c x k); eauto. grind.
             }
           }
         }
 
-        destruct (decide (fn = Helping.help mn)) as [->|Hfn].
-        { (* Helping *)
-          rewrite {1 3}/LMod.prog /=.
-          destruct (dec _ _); [exfalso; ii; clarify|].
-          destruct (dec _ _); ss.
-          norm_l; norm_r.
-          rewrite /ModTr.trans_ktree /ModTr.trans /SB.sandbox_body /SB.sandbox /=.
-          rewrite /HelpingOn.help /HelpingOff.help.
+        (* Appeal to coinduction *)
+        intros [ro_s Htid_cur]; exists ro_s; split; first done.
+        intros mtidn_t stidn_t Hn_t; exists mtidn_t, stidn_t; split; first done.
+        intros res2 x Hres2; ss.
+        gbase. eapply (CIH res2); eauto.
+
+        set (tid_stid_cur := fresh _).
+        eexists (<[stid_cur := (_, _, Some (true, tid_stid_cur, j))]> tl); esplits; eauto.
+        { repeat f_equal.
+          subst tid_stid_cur; rewrite /reqmap.
+          symmetry; apply map_to_list_insert_inv; ss.
+          rewrite map_to_list_to_map.
+          { rewrite insert_take_drop /=; last done.
+            rewrite fmap_app omap_app; cbn.
+            erewrite <-(take_drop_middle tl stid_cur) at 5; eauto.
+            rewrite ?fmap_app ?omap_app; cbn.
+            rewrite cons_app Permutation_app_swap_app //.
+          }
+          rewrite insert_take_drop /=; last done; rewrite ?fmap_app ?omap_app; cbn.
+          rewrite cons_app Permutation_app_swap_app; cbn.
+          apply NoDup_cons; split.
+          { rewrite dom_list_to_map.
+            erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
+            rewrite fmap_app omap_app; cbn.
+            intros Hin; eapply elem_of_list_to_set, is_fresh in Hin; ss.
+          }
+          revert Htl.
+          erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
+          rewrite fmap_app omap_app; cbn; rewrite ?fmap_app //.
+        }
+        { rewrite list_fmap_insert //=. }
+        { rewrite list_fmap_insert //=. }
+        { rewrite insert_take_drop /=; last done; rewrite ?fmap_app ?omap_app; cbn.
+          rewrite cons_app Permutation_app_swap_app; cbn.
+          apply NoDup_cons; split.
+          { rewrite /tid_stid_cur dom_list_to_map.
+            erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
+            rewrite fmap_app omap_app; cbn.
+            intros Hin; eapply elem_of_list_to_set, is_fresh in Hin; ss.
+          }
+          revert Htl.
+          erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
+          rewrite fmap_app omap_app; cbn; rewrite fmap_app //.
+        }
+        { intros i; destruct (decide (i = stid_cur)); subst; cycle 1.
+          { intros ???; rewrite list_lookup_insert_ne //=; apply Hlookup. }
+          { rewrite list_lookup_insert; ii; clarify.
+            split.
+            { eapply (help_rel_helpee_pend tid_stid_cur j).
+              { rewrite /helpee_pend_s /yield_epliogue. grind.
+                instantiate (1:=k).
+                repeat f_equal; cycle 1.
+                { extensionality a; grind. }
+                { rewrite /yield_epliogue; repeat f_equal. extensionality a; grind. }
+              }
+              { rewrite /helpee_pend_t. grind. repeat f_equal.
+                { extensionality a; grind. }
+                { extensionality a; grind. }
+              }
+            }
+            esplits; eauto.
+          }
+        }
+      }
+
+      destruct (decide (fn = Helping.help mn)); subst.
+      { (* Helping.help *)
+        norm_l. norm_r.
+        rewrite {1 3}/LMod.prog ?alist_find_map_snd /=.
+        destruct (dec _ _) as [e|e]; [ss|clarify].
+        { inv e. }
+        destruct (dec _ _) as [e0|?]; [ss|clarify].
+        clear e e0.
+        norm_l. norm_r.
+        rewrite /SModTr.trans_ktree /= /SB.sandbox_body /= /SB.sandbox /ModTr.trans_ktree.
+        rewrite /ModTr.trans.
+        eapply gsim_tau_src;
+          [rewrite list_lookup_insert // length_fmap //|rewrite list_insert_insert].
+        eapply gsim_tau_tgt;
+          [rewrite list_lookup_insert // length_fmap //|rewrite list_insert_insert].
+
+        (* Helper chooses tid *)
+        rewrite /HelpingOn.help /HelpingOff.help /SModTr.trans.
+        replace_r; [rewrite interpV_bind interpV_trigger //|]. ired.
+        eapply gsim_Choose_tgt; [rewrite list_lookup_insert // length_fmap //|intros rid].
+        rewrite list_insert_insert.
+
+        (* Source-helper goes to yield *)
+        rewrite yield_unfold. ired.
+        rewrite interpV_tau.
+        eapply gsim_tau_src;
+          [rewrite list_lookup_insert // length_fmap //|rewrite list_insert_insert].
+        replace_l; [rewrite interpV_bind interpV_trigger //|]. ired.
+        eapply gsim_Choose_src; [rewrite list_lookup_insert // length_fmap //|exists (Some true)].
+        rewrite list_insert_insert. ired.
+
+        (* Handling yield *)
+        iter_l. rewrite list_lookup_insert //=; [|rewrite length_fmap //].
+        step_l. norm_l. rewrite list_insert_insert.
+        rewrite HoareCall_unfold. ired.
+        replace_r; [rewrite interpV_bind HoareCall_prologue_sred //|].
+        eapply gsim_HoareCall_prologue_both; eauto.
+        { rewrite list_lookup_insert // length_fmap //. }
+        { rewrite list_lookup_insert // length_fmap //. }
+        intros res1 [fsp_yield varg] Hres1; rewrite ?list_insert_insert. ired.
+
+        (* Calling yield *)
+        iter_l. rewrite list_lookup_insert //=; [|rewrite length_fmap //]. step_l; norm_l.
+        rewrite {1}/LMod.prog /=; destruct (dec _ _) as [e|e]; ss; [inv e|].
+        { exfalso; eapply yield_run_neq; eauto. }
+        clear e.
+        destruct (dec _ _) as [e|e]; ss; [inv e|].
+        { exfalso; eapply yield_help_neq; eauto. }
+        norm_l. rewrite list_insert_insert.
+        rewrite /SModTr.trans_ktree /= /SB.sandbox_body /= /SB.sandbox /ModTr.trans_ktree.
+        rewrite /ModTr.trans.
+        eapply gsim_tau_src;
+          [rewrite list_lookup_insert // length_fmap //|rewrite list_insert_insert].
+
+        (* Yield entrance *)
+        rewrite /cfunU /SchI.yield.
+        destruct (varg↓) as [[]|] eqn : Hvarg; cycle 1.
+        { ired. iter_l; rewrite list_lookup_insert //=; [|rewrite length_fmap //=].
+          destruct (excluded_middle_informative _); ss; step_l; ss.
+        }
+        ired. rewrite /cgetU. ired.
+        rewrite /SModTr.trans interpV_bind interpV_trigger.
+        eapply gsim_sGet_src; [rewrite list_lookup_insert //=; [| rewrite length_fmap //=]| | ].
+        { repeat f_equal; grind. }
+        { ss. }
+        esplits; eauto.
+        rewrite list_insert_insert. hss. ired. hss. ired.
+        iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_l. norm_l.
+        rewrite list_insert_insert.
+        iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_l. norm_l.
+        rewrite list_insert_insert. ired.
+
+        rewrite /SModTr.trans interpV_bind interpV_trigger.
+        eapply gsim_sGet_src; [rewrite list_lookup_insert //=; [| rewrite length_fmap //=]| | ].
+        { repeat f_equal; grind. }
+        { ss. }
+        esplits; eauto.
+        rewrite list_insert_insert. hss. ired. hss. ired.
+        destruct (_ !! tid_cur) as [[stid_cur2 ?]|] eqn : Htid_cur; ss; cycle 1.
+        { iter_l; rewrite list_lookup_insert /=; [|rewrite length_fmap //].
+          destruct (excluded_middle_informative _); step_l; ss.
+        }
+        case_decide; subst; cycle 1.
+        { iter_l; rewrite list_lookup_insert /=; [|rewrite length_fmap //].
+          destruct (excluded_middle_informative _); step_l; ss.
+        }
+        ired.
+
+        (* Choose the helpee! *)
+        destruct (reqmap tl !! rid) as [jid|] eqn : Hhelpee; cycle 1.
+        { (* No Helpee *)
+          ired.
+          rewrite interpV_bind interpV_trigger /=. ired.
+          eapply gsim_Choose_src;
+            [rewrite list_lookup_insert //= length_fmap //
+            |unshelve eexists].
+          { exists (tid_cur, stid_cur). rewrite list_lookup_fmap Htid_cur //=. }
+          rewrite list_insert_insert. ired.
+
+          iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_l. norm_l.
+          rewrite list_insert_insert. hss. rewrite ModTr.alist_encode_decode.
+
+          iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_l. norm_l.
+          rewrite list_insert_insert. ired.
+
+          iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_l. norm_l.
+          rewrite list_insert_insert. ired.
+
+          iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_l. norm_l.
+          rewrite list_insert_insert. ired. rewrite ?interpV_ret. ired.
 
           iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_l. norm_l.
           rewrite list_insert_insert.
 
-          iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_r. norm_r.
-          rewrite list_insert_insert.
+          (* No helping here *)
+          rewrite /HelpingOn.try_run /cgetU; ired.
+          replace_r; [rewrite interpV_bind HoareFun_prologue_sred //|]. ired.
+          eapply gsim_HoareCall_epilogue_HoareFun_prologue;
+            [rewrite list_lookup_insert // length_fmap //
+            |rewrite list_lookup_insert // length_fmap //|ss|].
+          intros res2 x Hres2. rewrite ?list_insert_insert /=. ired.
 
-          iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-          step_r. intros tid_helpee. norm_r. step_r. norm_r.
+          replace_r; [rewrite interpV_bind interpV_trigger //|].
+          eapply gsim_sGet_tgt;
+            [rewrite list_lookup_insert //; [repeat f_equal; grind|rewrite length_fmap //]
+            | ss; rewrite String.eqb_refl //
+            |].
+          esplits; eauto; ss; [destruct (dec _ _); ss|].
+          hss. ired. rewrite Hhelpee list_insert_insert. ired.
+          rewrite ?interpV_ret /=; ired.
+
+          rewrite yield_unfold; ired.
+          rewrite interpV_tau.
+          eapply gsim_tau_src;
+            [rewrite list_lookup_insert // length_fmap //
+            |rewrite list_insert_insert].
+          rewrite interpV_bind interpV_vis /=; ired.
+          eapply gsim_Choose_src;
+            [rewrite list_lookup_insert // length_fmap //
+            |exists (Some true); rewrite list_insert_insert].
+          ired. rewrite interpV_ret; ired. rewrite ?interpV_ret; ired.
+
+          iter_l; rewrite list_lookup_insert //=; [|rewrite length_fmap //].
+          step_l; norm_l; rewrite list_insert_insert.
+
+          rewrite HoareCall_unfold; ired.
+          replace_r; [rewrite interpV_bind HoareFun_epilogue_sred //|].
+          eapply gsim_HoareCall_prologue_HoareFun_epilogue;
+            [rewrite list_lookup_insert // length_fmap //
+            |rewrite list_lookup_insert // length_fmap //
+            |ss|].
+          clear dependent res2 x. intros res2 ret Hres2.
+          rewrite ?list_insert_insert. ired. 
+
+          iter_l; rewrite list_lookup_insert //=; [|rewrite length_fmap //].
+          step_l; norm_l; rewrite {1}/LMod.prog /=.
+          destruct (dec _ _) as [?|e']; ss; [exfalso; hexploit yield_run_neq; ii; clarify|].
+          clear e e'.
+          destruct (dec _ _) as [?|e]; [exfalso; hexploit yield_help_neq; ii; clarify|ss; clear e].
+          norm_l. rewrite list_insert_insert.
+
+          rewrite /ModTr.trans_ktree /ModTr.trans /SB.sandbox_body /SB.sandbox /SModTr.trans /=.
+          eapply gsim_tau_src;
+            [rewrite list_lookup_insert // length_fmap //
+            |rewrite list_insert_insert].
+          rewrite /SchI.yield /cfunU.
+          destruct (ret ↓) as [[]|] eqn : Hret; cycle 1.
+          { ss; iter_l; rewrite list_lookup_insert; [|rewrite length_fmap //].
+            ss; destruct (excluded_middle_informative _); step_l; ss.
+          }
+          ired. clear Hret.
+
+          rewrite /cgetU; ired; rewrite interpV_bind interpV_vis; ired.
+          eapply gsim_sGet_src;
+            [rewrite list_lookup_insert // length_fmap //
+            |ss|esplits; eauto].
+          rewrite list_insert_insert; ired.
+          rewrite ?interpV_ret; ired; hss; ired.
+          iter_l; rewrite list_lookup_insert //=; [|rewrite length_fmap //].
+          step_l; norm_l. rewrite list_insert_insert.
+          iter_l; rewrite list_lookup_insert //=; [|rewrite length_fmap //].
+          step_l; norm_l. rewrite list_insert_insert; ired.
+
+          rewrite /cgetU; ired; rewrite interpV_bind interpV_vis; ired.
+          eapply gsim_sGet_src;
+            [rewrite list_lookup_insert // length_fmap //
+            |ss|esplits; eauto].
+          rewrite list_insert_insert; ired.
+          rewrite ?interpV_ret; ired; hss; ired.
+          rewrite Htid_cur; case_decide as H'; clarify; ired; clear H'.
+
+          rewrite interpV_bind interpV_trigger /=. ired.
+          eapply gsim_Choose_src;
+            [rewrite list_lookup_insert //= length_fmap //
+            |unshelve eexists].
+          { exists (tid_cur, stid_cur); ss; rewrite list_lookup_fmap Htid_cur //=. }
           rewrite list_insert_insert. ired.
 
-          destruct ((to_reqmap tl) !! tid_helpee) as [[jid_helpee [|]] |] eqn : Hhelpee; ss.
-          { (* Found one to help *)
-            rewrite {1}yield_unfold.
+          iter_l; rewrite list_lookup_insert //=; [|rewrite length_fmap //].
+          step_l; norm_l. rewrite list_insert_insert. hss. ired. rewrite ModTr.alist_encode_decode.
+          iter_l; rewrite list_lookup_insert //=; [|rewrite length_fmap //].
+          step_l; norm_l. rewrite list_insert_insert. ired.
+          rewrite /alist_upd /=; destruct (dec _ _); ss; destruct (dec _ _); ss; clarify.
+          iter_l; rewrite list_lookup_insert //=; [|rewrite length_fmap //].
+          step_l; norm_l. rewrite list_insert_insert. ired.
+          iter_l; rewrite list_lookup_insert //=; [|rewrite length_fmap //].
+          step_l; norm_l. rewrite list_insert_insert. ired.
+          rewrite ?interpV_ret; ired.
+          iter_l; rewrite list_lookup_insert //=; [|rewrite length_fmap //].
+          step_l; norm_l. rewrite list_insert_insert.
 
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_l. norm_l.
-            rewrite list_insert_insert.
+          replace_r; [rewrite interpV_bind HoareCall_epilogue_sred //|].
+          eapply gsim_HoareCall_epilogue_both;
+            [rewrite list_lookup_insert // length_fmap //
+            |rewrite list_lookup_insert // length_fmap //
+            |ss
+            |].
+          clear dependent res1 res2.
+          intros res1 x1 Hres1. ired. rewrite ?list_insert_insert.
+          rewrite ?interpV_ret. ired.
+          iter_r; rewrite list_lookup_insert //=; [|rewrite length_fmap //].
+          step_r; norm_r. rewrite list_insert_insert.
+          
+          rewrite yield_unfold; ired.
+          rewrite interpV_tau.
+          eapply gsim_tau_src;
+            [rewrite list_lookup_insert // length_fmap //
+            |rewrite list_insert_insert].
+          rewrite interpV_bind interpV_vis /=; ired.
+          eapply gsim_Choose_src;
+            [rewrite list_lookup_insert // length_fmap //
+            |exists None; rewrite list_insert_insert].
+          ired. rewrite interpV_ret. ired. rewrite ?interpV_ret. ired.
+          iter_l; rewrite list_lookup_insert //=; [|rewrite length_fmap //].
+          step_l; norm_l. rewrite list_insert_insert.
 
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_l.
-            exists (Some true). norm_l. step_l. norm_l.
-            rewrite list_insert_insert. ired.
-
-            iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_l. norm_l.
-            rewrite list_insert_insert.
-
-            rewrite HoareCall_unfold. ired.
-            rewrite /HoareCall_prologue; unseal "Help"; destruct (sp SchHdr.yield) as [yield_spec|].
-            { 
-              iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-              step_r. intros x. norm_r. step_r. norm_r.
-              rewrite list_insert_insert.
-
-              iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-              step_r. intros arg. norm_r. step_r. norm_r.
-              rewrite list_insert_insert.
-
-              iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-              step_r. norm_r.
-              rewrite list_insert_insert. hss. ired. hss. ired.
-
-              iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-              step_r. intros rs_2. norm_r. step_r. norm_r.
-              rewrite list_insert_insert.
-
-              iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-              step_r. intros Hrs_2. norm_r. step_r. norm_r.
-              rewrite list_insert_insert.
-
-              iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-              step_r. norm_r.
-              rewrite list_insert_insert. hss. ired. hss. ired.
-
-              iter_r. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-              step_r. norm_r.
-              rewrite list_insert_insert. ired.
-
-              iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-              step_l. exists x. norm_l. step_l. norm_l.
-              rewrite list_insert_insert.
-
-              iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-              step_l. exists arg. norm_l. step_l. norm_l.
-              rewrite list_insert_insert.
-
-              iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-              step_l. norm_l.
-              rewrite list_insert_insert. hss. ired. hss. ired.
-
-              iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-              step_l. exists rs_2. norm_l. step_l. norm_l.
-              rewrite list_insert_insert.
-
-              iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-              step_l. unshelve eexists; eauto. norm_l. step_l. norm_l.
-              rewrite list_insert_insert.
-
-              iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-              step_l. norm_l.
-              rewrite list_insert_insert. hss. ired. hss. ired.
-
-              iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-              step_l. norm_l.
-              rewrite list_insert_insert. ired.
-
-              iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-              step_l. norm_l.
-              rewrite {1}/LMod.prog /=.
-              destruct (dec _ _); [exfalso; hexploit yield_run_neq; ii; clarify|].
-              destruct (dec _ _); [exfalso; hexploit yield_help_neq; ii; clarify|ss].
-              norm_l.
-              rewrite list_insert_insert.
-              rewrite /ModTr.trans_ktree /SB.sandbox_body /ModTr.trans /SB.sandbox /=.
-
-              iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-              step_l. norm_l.
-              rewrite list_insert_insert. ired.
-
-              (* Source yield only *)
-              rewrite /SchI.yield /cfunU /SchI.SchI.trigger_Yield.
-              destruct (arg ↓); cycle 1.
-              { ss. iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-                destruct (sumbool_to_bool _); ss; step_l; ss.
-              }
-              ss. norm_l. ired.
-
-              iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //].
-              step_l. norm_l. rewrite list_insert_insert. ired. hss.
-              rewrite ModTr.alist_encode_decode /=. ired. hss. ired.
+          gbase. eapply (CIH res1); eauto.
+          eexists (<[stid_cur := (_, _, None)]> tl); esplits; eauto.
+          { do 3 f_equal.
+            rewrite /reqmap.
+            erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
+            rewrite insert_take_drop /=; last done; rewrite ?fmap_app ?omap_app //.
+          }
+          { rewrite list_fmap_insert //=. }
+          { rewrite list_fmap_insert //=. }
+          {
+            rewrite list_fmap_insert /=.
+            revert Htl; erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
+            rewrite insert_take_drop; [|rewrite length_fmap //].
+            rewrite ?fmap_app ?omap_app; cbn.
+            rewrite fmap_take fmap_drop //.
+          }
+          { intros i; destruct (decide (i = stid_cur)); subst; cycle 1.
+            { intros ???; rewrite list_lookup_insert_ne //=; apply Hlookup. }
+            { rewrite list_lookup_insert; ii; clarify. split; ss.
+              eapply help_rel_eq; eauto.
             }
+          }
+          Unshelve. all: eauto.
+        }
+        
+        (* Going to helpee *)
+        rewrite /reqmap in Hhelpee; eapply elem_of_list_to_map_2 in Hhelpee.
+        eapply elem_of_list_omap in Hhelpee as [[[? ?]|] [Hhelpee ?]]; ss; clarify.
+        eapply elem_of_list_fmap_2 in Hhelpee as [[[? ?] [[? ?]|]] [EQ Hhelpee]]; ss.
+        symmetry in EQ; ss; clarify.
+        rewrite elem_of_list_lookup in Hhelpee; destruct Hhelpee as [stid_helpee Hhelpee].
+        eapply Hlookup in Hhelpee as Hhelpee'.
+        destruct Hhelpee' as [Hhelpee' [mtid_helpee Hthshelpee]].
+        inv Hhelpee'; des; clarify.
+        eapply lookup_lt_Some in Hhelpee as Hhelpeelen.
+        assert (Hneq : stid_helpee ≠ stid_cur) by (ii; clarify).
+
+        ired.
+        rewrite interpV_bind interpV_trigger /=. ired.
+        eapply gsim_Choose_src;
+          [rewrite list_lookup_insert //= length_fmap //
+          |unshelve eexists].
+        { exists (mtid_helpee, stid_helpee). rewrite /= list_lookup_fmap Hthshelpee //. }
+        rewrite list_insert_insert; ired.
+
+        iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_l. norm_l.
+        rewrite list_insert_insert. hss. rewrite ModTr.alist_encode_decode.
+
+        iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_l. norm_l.
+        rewrite list_insert_insert. ired.
+
+        iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_l. norm_l.
+        rewrite list_insert_insert. ired.
+
+        iter_l. rewrite list_lookup_insert /=; [|rewrite length_fmap //]. step_l. norm_l.
+        rewrite list_insert_insert. ired. rewrite ?interpV_ret. ired.
+
+        iter_l. rewrite list_lookup_insert_ne //=.
+        rewrite list_lookup_fmap Hhelpee /=.
+        step_l; norm_l.
+
+        replace_r; [rewrite interpV_bind HoareFun_prologue_sred //|].
+        eapply gsim_HoareCall_epilogue_HoareFun_prologue;
+          [rewrite list_lookup_insert // length_insert length_fmap //
+          |rewrite list_lookup_insert // length_fmap; repeat f_equal; grind
+          |ss
+          |].
+        clear dependent res1.
+        intros res1 x1 Hres1. ired. rewrite ?list_insert_insert.
+
+        rewrite {1}yield_unfold. ired.
+        rewrite interpV_tau.
+        eapply gsim_tau_src;
+          [rewrite list_lookup_insert // length_insert length_fmap //|rewrite list_insert_insert].
+        rewrite interpV_bind interpV_vis /=; ired.
+        eapply gsim_Choose_src;
+          [rewrite list_lookup_insert // length_insert length_fmap //
+          |exists None; rewrite list_insert_insert].
+        ired. rewrite interpV_ret. ired.
+
+        (* target proceed for helping *)
+        rewrite /HelpingOn.try_run /cgetU; ired.
+        replace_r; [rewrite interpV_bind interpV_vis //|]; ired.
+        eapply gsim_sGet_tgt; [rewrite list_lookup_insert // length_fmap //| ss |].
+        { rewrite String.eqb_refl //. }
+        esplits; ss; [destruct (dec _ _); ss; clarify|].
+        rewrite list_insert_insert. ired. rewrite ?interpV_ret; ired. hss. ired.
+        rewrite /reqmap.
+        erewrite (elem_of_list_to_map_1); eauto; cycle 1.
+        { eapply elem_of_list_omap; exists (Some (true, rid, jid)); split; ss.
+          rewrite elem_of_list_lookup; exists stid_helpee; rewrite list_lookup_fmap Hhelpee //.
+        }
+
+        ired. rewrite /cput.
+        iter_r; rewrite list_lookup_insert //=; [|rewrite length_fmap //].
+        rewrite String.eqb_refl /=. step_r. norm_r.
+        rewrite list_insert_insert. ired. hss.
+        iter_r; rewrite list_lookup_insert //=; [|rewrite length_fmap //].
+        step_r. norm_r. rewrite list_insert_insert /=. ired.
+        rewrite ModTr.alist_encode_decode /alist_upd /=; destruct (dec _ _); ss; clarify.
+        destruct (dec _ _); ss; clarify. hss.
+
+        eapply gsim_jobs_both;
+          [rewrite length_insert length_fmap //
+          |rewrite length_fmap //
+          |ss
+          |].
+        clear dependent res1; intros res1 Hres1.
+
+        rewrite yield_unfold; ired.
+        rewrite interpV_tau.
+        eapply gsim_tau_src;
+          [rewrite list_lookup_insert // length_insert length_fmap //
+          |rewrite list_insert_insert].
+        rewrite interpV_bind interpV_vis /=; ired.
+        eapply gsim_Choose_src;
+          [rewrite list_lookup_insert // length_insert length_fmap //
+          |exists (Some true); rewrite list_insert_insert].
+        ired. rewrite interpV_ret; ired. rewrite ?interpV_ret; ired.
+
+        iter_l; rewrite list_lookup_insert //=; [|rewrite length_insert length_fmap //].
+        step_l; norm_l; rewrite list_insert_insert.
+
+        rewrite HoareCall_unfold; ired.
+        replace_r; [rewrite interpV_bind HoareFun_epilogue_sred //|].
+        eapply gsim_HoareCall_prologue_HoareFun_epilogue;
+          [rewrite list_lookup_insert // length_insert length_fmap //
+          |rewrite list_lookup_insert // length_fmap //
+          |ss|].
+        clear dependent res1. intros res1 ret Hres1.
+        rewrite ?list_insert_insert. ired.
+
+        iter_l; rewrite list_lookup_insert //=; [|rewrite length_insert length_fmap //].
+        step_l; norm_l; rewrite {1}/LMod.prog /=.
+        destruct (dec _ _) as [?|e']; ss; [exfalso; hexploit yield_run_neq; ii; clarify|].
+        clear e e'.
+        destruct (dec _ _) as [?|e]; [exfalso; hexploit yield_help_neq; ii; clarify|ss; clear e].
+        norm_l. rewrite list_insert_insert.
+
+        rewrite /ModTr.trans_ktree /ModTr.trans /SB.sandbox_body /SB.sandbox /SModTr.trans /=.
+        eapply gsim_tau_src;
+          [rewrite list_lookup_insert // length_insert length_fmap //
+          |rewrite list_insert_insert].
+        rewrite /SchI.yield /cfunU.
+        destruct (ret ↓) as [[]|] eqn : Hret; cycle 1.
+        { ss; iter_l; rewrite list_lookup_insert; [|rewrite length_insert length_fmap //].
+          ss; destruct (excluded_middle_informative _); step_l; ss.
+        }
+        ired. clear Hret.
+
+        rewrite /cgetU; ired; rewrite interpV_bind interpV_vis; ired.
+        eapply gsim_sGet_src;
+          [rewrite list_lookup_insert // length_insert length_fmap //
+          |ss|esplits; eauto].
+        rewrite list_insert_insert; ired.
+        rewrite ?interpV_ret; ired; hss; ired.
+        iter_l; rewrite list_lookup_insert //=; [|rewrite length_insert length_fmap //].
+        step_l; norm_l. rewrite list_insert_insert.
+        iter_l; rewrite list_lookup_insert //=; [|rewrite length_insert length_fmap //].
+        step_l; norm_l. rewrite list_insert_insert; ired.
+
+        rewrite /cgetU; ired; rewrite interpV_bind interpV_vis; ired.
+        eapply gsim_sGet_src;
+          [rewrite list_lookup_insert // length_insert length_fmap //
+          |ss|esplits; eauto].
+        rewrite list_insert_insert; ired.
+        rewrite ?interpV_ret; ired; hss; ired.
+        rewrite Hthshelpee; case_decide as H'; ss; clear H'. ired.
+
+        rewrite interpV_bind interpV_trigger /=. ired.
+        eapply gsim_Choose_src;
+          [rewrite list_lookup_insert //= length_insert length_fmap //
+          |unshelve eexists].
+        { exists (tid_cur, stid_cur); ss; rewrite list_lookup_fmap Htid_cur //=. }
+        rewrite list_insert_insert. ired.
+
+        iter_l; rewrite list_lookup_insert //=; [|rewrite length_insert length_fmap //].
+        step_l; norm_l. rewrite list_insert_insert. hss. ired. rewrite ModTr.alist_encode_decode.
+        iter_l; rewrite list_lookup_insert //=; [|rewrite length_insert length_fmap //].
+        step_l; norm_l. rewrite list_insert_insert. ired.
+        rewrite /alist_upd /=; destruct (dec _ _); ss; clarify.
+        iter_l; rewrite list_lookup_insert //=; [|rewrite length_insert length_fmap //].
+        step_l; norm_l. rewrite list_insert_insert. ired.
+        iter_l; rewrite list_lookup_insert //=; [|rewrite length_insert length_fmap //].
+        step_l; norm_l. rewrite list_insert_insert. ired.
+        rewrite ?interpV_ret; ired.
+        iter_l; rewrite list_lookup_insert_ne //=.
+        rewrite list_lookup_insert /=; [|rewrite length_fmap //].
+        step_l; norm_l.
+        rewrite list_insert_commute //.
+        rewrite list_insert_insert.
+        rewrite list_insert_commute //.
+
+        replace_r; [rewrite interpV_bind HoareCall_epilogue_sred //|].
+        eapply gsim_HoareCall_epilogue_both;
+          [rewrite list_lookup_insert // length_insert length_fmap //
+          |rewrite list_lookup_insert // length_fmap //
+          |ss
+          |].
+        clear dependent res1 x1.
+        intros res1 x1 Hres1. ired. rewrite ?list_insert_insert.
+        rewrite ?interpV_ret. ired.
+        iter_r; rewrite list_lookup_insert //=; [|rewrite length_fmap //].
+        step_r; norm_r. rewrite list_insert_insert.
+          
+        rewrite interpV_tau.
+        eapply gsim_tau_src;
+          [rewrite list_lookup_insert // length_insert length_fmap //
+          |rewrite list_insert_insert].
+        rewrite interpV_bind interpV_vis /=; ired.
+        eapply gsim_Choose_src;
+          [rewrite list_lookup_insert // length_insert length_fmap //
+          |exists None; rewrite list_insert_insert].
+        ired. rewrite interpV_ret. ired. rewrite ?interpV_ret. ired.
+        iter_l; rewrite list_lookup_insert //=; [|rewrite length_insert length_fmap //].
+        step_l; norm_l. rewrite list_insert_insert.
+
+        gbase. eapply (CIH res1); eauto.
+        set (i_cur := ⇓cris(_)).
+        set (i_helpee := tau;; _).
+        eexists (<[stid_cur := (i_cur, i_cur, None)]>
+          (<[stid_helpee := (i_helpee, _, Some (false, rid, jid))]> tl)).
+        esplits; eauto.
+        {
+          do 3 f_equal.
+          rewrite /reqmap ?list_fmap_insert /=.
+          rewrite list_insert_commute //.
+          rewrite (list_insert_id _ stid_cur); cycle 1.
+          { rewrite list_lookup_fmap Htid //=. }
+          eapply map_eq; intros i; destruct (decide (i = rid)).
+          { subst; rewrite lookup_delete.
+            rewrite (not_elem_of_list_to_map_1 (omap _ (<[stid_helpee:=_]> tl.*2))).
+            { econs. }
+            revert Htl; erewrite <-(take_drop_middle tl stid_helpee) at 1; eauto.
+            rewrite insert_take_drop; [|rewrite length_fmap //].
+            rewrite ?fmap_app ?omap_app ?fmap_app; cbn.
+            rewrite cons_app Permutation_app_swap_app; cbn; rewrite ?fmap_app.
+            intros Htl; inv Htl; eauto. rewrite -fmap_take -fmap_drop //.
+          }
+          rewrite lookup_delete_ne //.
+          destruct (list_to_map _ !! i) eqn : Hi.
+          { eapply elem_of_list_to_map_2 in Hi.
+            revert Hi; erewrite <-(take_drop_middle tl stid_helpee) at 1; eauto.
+            rewrite ?fmap_app ?omap_app; cbn.
+            rewrite cons_app Permutation_app_swap_app /=.
+            rewrite insert_take_drop; [|rewrite length_fmap //].
+            move => /elem_of_cons [[]|]; [clarify|rewrite fmap_take fmap_drop].
+            intros Hi%elem_of_list_to_map_1; cycle 1.
+            { revert Htl. erewrite <-(take_drop_middle tl stid_helpee) at 1; eauto.
+              rewrite ?fmap_app ?omap_app; cbn. rewrite cons_app Permutation_app_swap_app.
+              rewrite fmap_take fmap_drop; cbn.
+              rewrite fmap_app; intros Htl; inv Htl; eauto.
+            }
+            rewrite ?fmap_app ?omap_app; cbn. rewrite Hi. ss.
+          }
+          symmetry. eapply not_elem_of_list_to_map_1.
+          eapply not_elem_of_list_to_map_2 in Hi.
+          rewrite insert_take_drop; [|rewrite length_fmap //].
+          rewrite ?fmap_app ?omap_app; cbn.
+          revert Hi; erewrite <-(take_drop_middle tl stid_helpee) at 1; eauto.
+          rewrite ?fmap_app ?omap_app; cbn.
+          rewrite cons_app Permutation_app_swap_app; cbn.
+          rewrite fmap_take fmap_drop fmap_app.
+          intros ?%not_elem_of_cons; by des.
+        }
+        { rewrite ?list_fmap_insert //=. }
+        { rewrite ?list_fmap_insert //=. do 2 f_equal. rewrite list_insert_id //.
+          rewrite list_lookup_fmap Hhelpee //.
+        }
+        { ss. rewrite ?list_fmap_insert /= list_insert_id //; cycle 1.
+          { rewrite list_lookup_insert_ne // list_lookup_fmap Htid //=. }
+          revert Htl; erewrite <-(take_drop_middle tl stid_helpee) at 1; eauto.
+          rewrite insert_take_drop ?fmap_app; [|rewrite length_fmap //].
+          rewrite ?omap_app; cbn; rewrite cons_app Permutation_app_swap_app; cbn.
+          rewrite fmap_take fmap_drop fmap_app.
+          intros ?%NoDup_cons; by des.
+        }
+        { intros i; destruct (decide (i = stid_cur)).
+          { subst; intros ??? Hin; rewrite list_lookup_insert in Hin; ss; clarify.
+            { split; ss. eapply help_rel_eq; eauto. }
+            { rewrite length_insert //. }
+          }
+          destruct (decide (i = stid_helpee)).
+          { subst; intros ??? Hin; rewrite list_lookup_insert_ne // list_lookup_insert // in Hin.
+            clarify; split; ss.
+            eapply help_rel_helpee_done; eauto.
+            esplits; eauto.
+          }
+          intros ??? Hin; rewrite ?list_lookup_insert_ne // in Hin; eapply Hlookup; eauto.
+        }
+      }
+      { (* Other calls *)
+        rewrite no_help_prog //; destruct (LMod.prog _ fn) as [bd|]; cycle 1.
+        { s. step_l; ss. }
+        ired.
+        norm_l; norm_r.
+        gbase. eapply (CIH); eauto.
+        eexists (<[stid_cur := (_, _, None)]> tl). esplits; eauto.
+        { do 3 f_equal.
+          rewrite /reqmap.
+          erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
+          rewrite insert_take_drop /=; last done; rewrite ?fmap_app ?omap_app //.
+        }
+        { rewrite list_fmap_insert //=. }
+        { rewrite list_fmap_insert //=. }
+        {
+          rewrite list_fmap_insert /=.
+          revert Htl; erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
+          rewrite insert_take_drop; [|rewrite length_fmap //].
+          rewrite ?fmap_app ?omap_app; cbn.
+          rewrite fmap_take fmap_drop //.
+        }
+        { intros i; destruct (decide (i = stid_cur)); subst; cycle 1.
+          { intros ???; rewrite list_lookup_insert_ne //=; apply Hlookup. }
+          { rewrite list_lookup_insert; ii; clarify.
+            split; ss. esplits; eauto.
+            rewrite /ModTr.trans /SB.sandbox. grind.
+
             admit.
           }
-        admit.
+        }
       }
-
-      { (* Spawn case *)
-        ss.
-        admit.
+      Unshelve. all: eauto.
+    }
+    { (* Spawn case *)
+      admit.
+      (* Why are you trying to spawn Helping calls, ctx modules? *)
+    }
+    { (* Yield case *)
+      zprogress.
+      iter_l; iter_r; rewrite ?list_lookup_fmap Htid /=.
+      step_l; step_r. norm_l; norm_r.
+      gbase. eapply CIH; eauto.
+      eexists (<[stid_cur := (_, _, None)]> tl); esplits; eauto.
+      { do 3 f_equal.
+        rewrite /reqmap.
+        erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
+        rewrite insert_take_drop /=; last done; rewrite ?fmap_app ?omap_app //.
       }
-
-      { (* Yield case *)
-        admit.
+      { rewrite list_fmap_insert //=. }
+      { rewrite list_fmap_insert //=. }
+      {
+        rewrite list_fmap_insert /=.
+        revert Htl; erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
+        rewrite insert_take_drop; [|rewrite length_fmap //].
+        rewrite ?fmap_app ?omap_app; cbn.
+        rewrite fmap_take fmap_drop //.
       }
-
-      destruct Hf as [[R [s [f' ->]]]|[R [e [f' ->]]]].
-      { (* sput sget *)
-        admit.
+      { intros i; destruct (decide (i = stid_cur)); subst; cycle 1.
+        { intros ???; rewrite list_lookup_insert_ne //=; apply Hlookup. }
+        { rewrite list_lookup_insert; ii; clarify. split; ss.
+          esplits; eauto. ired. eapply help_rel_eq; eauto.
+        }
       }
-
-      destruct e; admit.
     }
 
-    destruct p as [[tid jid] [[|]|]].
-    { (* Helpee *)
-      apply lookup_lt_Some in Htid as Htid_cur.
-      pose proof Htid as Htid'.
-      apply Hlookup in Htid' as [-> ->]; ss.
+    { (* GetTid case *)
+      zprogress.
+      iter_l; iter_r; rewrite ?list_lookup_fmap Htid /=.
+      step_l; step_r. norm_l; norm_r.
+      gbase. eapply CIH; eauto.
+      eexists (<[stid_cur := (_, _, None)]> tl); esplits; eauto.
+      { do 3 f_equal.
+        rewrite /reqmap.
+        erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
+        rewrite insert_take_drop /=; last done; rewrite ?fmap_app ?omap_app //.
+      }
+      { rewrite list_fmap_insert //=. }
+      { rewrite list_fmap_insert //=. }
+      {
+        rewrite list_fmap_insert /=.
+        revert Htl; erewrite <-(take_drop_middle tl stid_cur) at 1; eauto.
+        rewrite insert_take_drop; [|rewrite length_fmap //].
+        rewrite ?fmap_app ?omap_app; cbn.
+        rewrite fmap_take fmap_drop //.
+      }
+      { intros i; destruct (decide (i = stid_cur)); subst; cycle 1.
+        { intros ???; rewrite list_lookup_insert_ne //=; apply Hlookup. }
+        { rewrite list_lookup_insert; ii; clarify.
+          split; ss. esplits; eauto. ired. eapply help_rel_eq; eauto.
+        }
+      }
+    }
+
+    destruct Hf as [[R [s [f' ->]]]|[R [e [f' ->]]]].
+    { (* sput sget *)
       admit.
     }
-    { (* Helper *)
-      admit.
-    }
-    { (* Looping Helpee *)
-      admit.
-    }
-    Unshelve. exact smj_top.
-  Admitted.
 
-
-
-    destruct Hf as [[P [f' ->]]|Hf].
-    {
-      (* destruct imgf; [|ziter_l; zstep_l]. *)
-      zprogress.
-
-      iter_l. step_l. norm_l.
-      iter_l. hss. hss. norm_l. step_l. intros res; norm_l. step_l. norm_l.
-      iter_l. step_l. intros Hres. norm_l. step_l. norm_l.
-      iter_l. step_l. norm_l.
-      iter_l. hss. norm_l. step_l. norm_l. ired.
-
-      iter_r. step_r. norm_r.
-      iter_r. hss. hss. norm_r. step_r. exists res. step_r. norm_r.
-      iter_r. step_r. unshelve eexists; eauto. norm_r. step_r. norm_r.
-      iter_r. step_r. norm_r.
-      iter_r. hss. norm_r. step_r. norm_r. ired.
-
-      gbase. eapply (CIH res); des; eauto.
-      esplits; eauto.
-    }
-    destruct Hf as [[res [f' ->]]|Hf].
-    { 
-      (* rewrite !SBRed.bind ?SBRed.AssumeRes. *)
-      zprogress.
-      iter_l. step_l. norm_l.
-      iter_l. hss. hss. norm_l. step_l. intros Hval. norm_l. step_l. norm_l.
-      iter_l. step_l. norm_l.
-      iter_l. hss. norm_l. step_l. norm_l. ired.
-
-      iter_r. step_r. norm_r.
-      iter_r. hss. hss. step_r. exists Hval. norm_r. step_r. norm_r.
-      iter_r. step_r. norm_r.
-      iter_r. hss. norm_r. step_r. norm_r.
-      ired. gbase. eapply (CIH (res ⋅ rs)); des; eauto.
-      esplits; eauto.
-    }
-    destruct Hf as [[P [f' ->]]|Hf].
-    {
-      (* rewrite !SBRed.bind !SBRed.Guarantee. *)
-      zprogress.
-      iter_r. step_r. norm_r.
-      iter_r. hss. hss. step_r. intros x. norm_r. step_r. norm_r.
-      iter_r. step_r. intros Hx. norm_r. step_r. norm_r.
-      iter_r. step_r. norm_r.
-      iter_r. hss. step_r. norm_r.
-
-      iter_l. step_l. norm_l.
-      iter_l. hss. hss. norm_l. step_l. exists x. step_l. norm_l.
-      iter_l. step_l. unshelve eexists; eauto. step_l. norm_l.
-      iter_l. step_l. norm_l.
-      iter_l. hss. step_l. norm_l.
-      ired.
-      gbase. eapply (CIH x); des; eauto.
-      esplits; eauto.
-    }
-    destruct Hf as [[R [[fn args|fn args|tid_yield] [k ->]]]|Hf].
-    { 
-      (* rewrite !SBRed.bind !SBRed.call. *)
-      (* destruct (mskf fn) eqn : Hmask; [|iter_l; step_l; ss]. *)
-      zprogress.
-
-      iter_l. step_l. iter_r. step_r.
-      rewrite /HelpingOff.t /SchA.t /HelpingOn.t /=; unseal CRIS; ss.
-      destruct (decide (fn = Helping.run mn)); subst.
-      { norm_l. norm_r.
-        rewrite {1 3}/LMod.prog ?alist_find_map_snd /=.
-        destruct (dec _ _) as [?|e]; [ss|clarify].
-        norm_l. norm_r.
-
-        replace_tp_r.
-        { instantiate (1:=(0, [x <- _;; after_call k x])).
-          repeat f_equal. rewrite /after_call; extensionalities i; repeat f_equal; grind.
-        }
-        replace_tp_l.
-        { instantiate (1:=(0, [x <- _;; after_call k x])).
-          repeat f_equal. rewrite /after_call; extensionalities i; repeat f_equal; grind.
-        }
-
-        iter_r. step_r. norm_r.
-        rewrite /HelpingOn.run /HelpingOff.run.
-        destruct (args↓) as [j|] eqn:Hargs ; cycle 1.
-        { iter_l. step_l. norm_l. iter_l. rewrite Hargs /=. norm_l; step_l; ss. }
-        ss.
-        rewrite /ModTr.trans_ktree /SB.sandbox_body /= Hargs.
-
-        iter_l. step_l. norm_l. ired.
-        (* rewrite {1 2}yield_unfold. *)
-        (* rewrite /Sch.yield; unseal "Sch". *)
-
-        iter_r. rewrite String.eqb_refl /=. step_r. norm_r. hss. rewrite ModTr.alist_encode_decode.
-        ss. destruct (dec _ _) as [e|]; ss; clear e.
-        iter_r. hss. rewrite String.eqb_refl /=. norm_r. step_r. norm_r. hss.
-        iter_r. step_r. norm_r.
-        iter_r. step_r. norm_r.
-
-        set (loop := λ _ : (), _) at 4.
-        rewrite (bisim_is_eq (unfold_iter _ _)).
-        ired.
-        (* rewrite {12}unfold_iterC. *)
-        (* iter_r. step_r. norm_r. ired.
-        iter_l. step_l. norm_l. *)
-
-        gcofix CIH2.
-
-        rewrite {2}yield_unfold.
-        iter_r. step_r. norm_r.
-        iter_r. step_r. intros [b|]; cycle 1.
-        { clear CIH2.
-          step_r. norm_r. iter_r.
-          rewrite String.eqb_refl /=. step_r. norm_r. hss.
-          rewrite ?ModTr.alist_encode_decode.
-          erewrite (alist_upd_find); cycle 1.
-          { ss; destruct (dec _ _); ss. }
-          ss. grind. hss. grind.
-          rewrite lookup_insert /=.
-          iter_r. rewrite String.eqb_refl /=. step_r. norm_r.
-          hss. rewrite ModTr.alist_encode_decode /=.
-          erewrite (alist_upd_find); cycle 1.
-          { ss; destruct (dec _ _); ss. }
-          ss. grind. hss. grind.
-          rewrite delete_insert.
-          2:{ rewrite -not_elem_of_dom; eapply is_fresh. }
-          rewrite lookup_insert //=.
-          iter_r. rewrite String.eqb_refl /=. step_r. norm_r.
-          hss. iter_r. step_r. norm_r. grind. rewrite ModTr.alist_encode_decode.
-          rewrite alist_shadow alist_find_upd //=; cycle 1.
-          { destruct (dec _ _); ss. }
-
-          rewrite yield_unfold.
-          iter_l. step_l. norm_l.
-          iter_l. step_l. exists None. step_l. norm_l.
-          ired.
-          gbase.
-          set (f1 := (0, _)). pattern f1. eapply eq_ind_r.
-          { eapply (CIH rs Hrs); esplits; eauto. }
-          { subst f1; f_equal; f_equal.
-            rewrite /ModTr.trans.
-            instantiate (1:= ITree.bind _ (λ x, tau;; _ x)).
-            rewrite (@interpV_bind _ _ _ Any.t ModTr.handle_crisE); f_equal.
-            extensionality x.
-            rewrite interpV_tau; do 2 f_equal.
-            (* rewrite ?bind_ret_l //. *)
-          }
-        }
-        destruct b; cycle 1.
-        { zprogress. norm_r. step_r. norm_r. ired.
-          rewrite {1}yield_unfold.
-          (* iter_r. step_r. norm_r. *)
-
-          iter_l. step_l. norm_l.
-          iter_l. step_l. exists (Some false). step_l. norm_l. ired.
-          gbase.
-          revert CIH2. rewrite /iterC.
-          set (f1 := (0, _)) at 2. set (f3 := (0, _)) at 3. assert (f1 = f3).
-          { subst f1 f3. f_equal. }
-          rewrite H0. clear f1 H0.
-          eauto.
-        }
-
-        clear CIH2.
-        step_r. norm_r.
-        iter_r. step_r. norm_r.
-
-        rewrite {1}yield_unfold.
-        iter_l. step_l. norm_l.
-        iter_l. norm_l. step_l. exists (Some true). norm_l. step_l. norm_l.
-        iter_l. step_l. norm_l.
-        rewrite ModTr.alist_encode_decode /alist_upd /_alist_upd; ss; destruct (dec _ _); ss.
-
-        rewrite HoareCall_unfold. ired.
-        rewrite /HoareCall_prologue; unseal "Help".
-
-        destruct (sp SchHdr.yield) as [yield_spec|].
-        { iter_r. step_r. intros x. norm_r. step_r. norm_r.
-          iter_r. step_r. intros arg. norm_r. step_r. norm_r.
-          iter_r. step_r. norm_r. hss.
-          iter_r. hss. step_r. intros rs_2. norm_r. step_r. norm_r.
-          iter_r. step_r. intros Hrs_2. norm_r. step_r. norm_r.
-          iter_r. step_r. norm_r. iter_r. hss. step_r. norm_r. ired.
-
-          iter_l. step_l. exists x. norm_l. step_l. norm_l.
-          iter_l. step_l. exists arg. norm_l. step_l. norm_l.
-          iter_l. step_l. norm_l. hss.
-          iter_l. hss. step_l. exists rs_2. norm_l. step_l. norm_l.
-          iter_l. step_l. unshelve eexists; eauto. norm_l. step_l. norm_l.
-          iter_l. step_l. norm_l. iter_l. hss. step_l. norm_l. ired.
-
-          iter_r. step_r. iter_l. step_l.
-          rewrite {1 3}/LMod.prog /=.
-
-          destruct (dec _ _); [exfalso; hexploit yield_run_neq; ii; clarify|].
-          destruct (dec _ _); [exfalso; hexploit yield_help_neq; ii; clarify|ss].
-          norm_l. norm_r.
-          iter_l. step_l. intros tid. norm_l. step_l. norm_l.
-          iter_l. step_l. intros arg_y. norm_l. step_l. norm_l.
-          iter_l. step_l. norm_l. hss.
-          iter_l. hss. norm_l. step_l. intros rs_3. norm_l. step_l. norm_l.
-          iter_l. step_l. intros Hrs_3. norm_l. step_l. norm_l.
-
-          iter_r. step_r. exists tid. norm_r. step_r. norm_r.
-          iter_r. step_r. exists arg_y. norm_r. step_r. norm_r.
-          iter_r. step_r. norm_r. hss.
-          iter_r. hss. step_r. exists rs_3. norm_r. step_r. norm_r.
-          iter_r. step_r. unshelve eexists; eauto. norm_r. step_r. norm_r.
-          iter_r. step_r. norm_r. iter_r. hss. step_r. norm_r. ired.
-          rewrite /SchI.SchI.yield.
-          iter_r. destruct (arg_y ↓) eqn : Harg_y; cycle 1.
-          { ss. step_r; ss. }
-          ss. step_r. norm_r. hss. rewrite ModTr.alist_encode_decode /=.
-          ired. hss. iter_r. step_r. intros [tid_next Htid_next]. norm_r. step_r. norm_r.
-          iter_r. step_r. norm_r. hss. rewrite ModTr.alist_encode_decode /=.
-          rewrite /alist_upd /_alist_upd /=. iter_r. step_r. norm_r.
-          rewrite /SchI.SchI.trigger_Yield.
-          iter_r. step_r. norm_r. hss. rewrite ModTr.alist_encode_decode /=. ired. hss.
-          iter_r. step_r. norm_r. hss. rewrite ModTr.alist_encode_decode /=. ired. hss.
-          ired. destruct (nth_error _ _) as [stid_next|] eqn : Hnth; cycle 1.
-          { exfalso; eapply nth_error_Some in Htid_next; done. }
-          iter_r. step_r. norm_r. ired.
-
-          iter_l. step_l. norm_l.
-          ired. hss. ired. iter_l. step_l. norm_l.
-          rewrite /cfunN. hss. iter_l. step_l. norm_l. hss. rewrite ModTr.alist_encode_decode /=.
-          ired. hss. ired.
-          iter_l. step_l.
-          exists (exist _ tid_next Htid_next). norm_l. step_l. norm_l.
-          rewrite /SchA.trigger_Yield /SchI.SchI.trigger_Yield.
-          iter_l. step_l. norm_l. hss. rewrite ModTr.alist_encode_decode.
-          iter_l. step_l. norm_l.
-          iter_l. step_l. norm_l. hss. rewrite ModTr.alist_encode_decode.
-          rewrite /alist_upd /_alist_upd /=. ired. hss.
-          iter_l. step_l. norm_l. hss. rewrite ModTr.alist_encode_decode /=. ired. hss.
-          ired. rewrite Hnth. ired.
-          iter_l. step_l. norm_l.
-          iter_l. step_l. norm_l.
-          iter_r. step_r. norm_r.
-          ired.
-
-          Definition yield_epliogue (tid_cur tid : nat) : itree crisE Any.t :=
-            cput SchI.SchI.v_tid tid_cur;;;
-            x <- SchA.check_internal;;
-            ret <- trigger (Choose Any.t);;
-            trigger (Guarantee (postcond (SchAS.yield_spec ⊤ 1) tid (()↑) ret));;;
-            Ret ret.
-
-          replace_tp_r.
-          { instantiate (1:=
-              (_,
-              [ret <- interpV ModTr.handle_crisE
-                (interpV (SB.handle_sandbox true _ SchA.scopes)
-                  (interpV (SModTr.handle sp_s) (yield_epliogue tid_cur tid)));;
-               ret <-interpV ModTr.handle_crisE
-                (interpV (SB.handle_sandbox true wmask_all (HelpingOn.scopes mn))
-                  (interpV (SModTr.handle sp)
-                    (tau;; HoareCall_epilogue (Some yield_spec) x ret;;;
-                     𝒴;;;
-                     cond <- loop ();;
-                     match cond with
-                     | inl l => tau;; ITree.iter (λ _ : (), x <- 𝒴;; loop x) l
-                     | inr r1 => Ret r1
-                     end;;;
-                     HelpingOn.try_run mn jobs (fresh (dom tidmap))
-                    )));;
-                after_call k ret
-              ])). do 2 f_equal. f_equal.
-            { do 2 f_equal.
-              rewrite /yield_epliogue; ired.
-              rewrite ?interpV_bind; ired. grind.
-              rewrite interpV_ret; ired.
-              rewrite interpV_trigger /=; ired; grind.
-              rewrite interpV_bind interpV_trigger /=. ired. destruct x0, x3. f_equal.
-              rewrite interpV_ret; extensionalities a; destruct a; ired. done.
-            }
-            { extensionalities ret. ired.
-              rewrite ?interpV_tau. do 2 f_equal.
-              rewrite interpV_bind; ired. rewrite interpV_bind. ired.
-              rewrite (interpV_bind (SModTr.handle sp) (HoareCall_epilogue _ _ _)).
-              etransitivity; last (rewrite interpV_bind; refl).
-              etransitivity; last (rewrite interpV_bind; refl). do 2 f_equal.
-              rewrite bind_bind. f_equal.
-
-              { do 2 f_equal. rewrite /HoareCall_epilogue; unseal "Help".
-                rewrite ?interpV_bind ?interpV_vis; ired; grind.
-                rewrite interpV_ret; ired.
-                rewrite interpV_bind interpV_vis interpV_ret; grind.
-                rewrite interpV_ret; grind.
-              }
-              extensionalities a. grind.
-            }
-          }
-        }
-      }
-    }
+    (* Take Choose IO case *)
+    destruct e; admit.
   Admitted.
 End Helping.
