@@ -1,8 +1,8 @@
-(* Require Import CRIS.
+Require Import CRIS.
 Require Import LMod LModTr GSim GSimFacts GSimTactics.
 Require Import MInline MInlineIntro MInlineElim ElimRel.
 
-Lemma cancel_core `{Σ: GRA} md sp R (e : coreE R):
+Lemma cancel_core `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp R (e : coreE R):
   CANCEL_GOAL md sp (trigger e) (trigger e).
 Proof.
   r; i. destruct e.
@@ -19,4 +19,4 @@ Proof.
     { rewrite list_insert_id //. }
     { econs; eauto; eapply KTR. }
 Unshelve. all: exact smj_top.
-(*SLOW*)Qed. *)
+(*SLOW*)Qed.
