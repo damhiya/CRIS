@@ -303,12 +303,17 @@ Variant elim_rel_def
 | elim_rel_ag {R} (e : agE R) ktrS ktrT :
    (∀ (x : R), self _ ε (ktrS x) (ktrT x)) →
    elim_rel_def sp self ε (trigger e >>= ktrS) (a <- trigger e;; ktrT a)
-| elim_rel_yield tid ktrS ktrT :
-   (∀ x, self _ ε (ktrS x) (ktrT x)) →
-   elim_rel_def sp self ε (trigger (Yield tid) >>= ktrS) (trigger (Yield tid) >>= ktrT)
+(* | elim_rel_yield tid ktrS ktrT : *)
+(*    (∀ x, self _ ε (ktrS x) (ktrT x)) → *)
+(*    elim_rel_def sp self ε (trigger (Yield tid) >>= ktrS) (trigger (Yield tid) >>= ktrT) *)
 (* handling cancellation *)
+| elim_rel_yield tid ktrS ktrT itrS itrT :
+    itrS = NativeYieldE tid >>= ktrS →
+    itrT = HoareYieldE tid >>= ktrT →
+    (∀ x, self _ ε (ktrS x) (ktrT x)) →
+    elim_rel_def sp self ε itrS itrT
 | elim_rel_spawn fn args img ktrS ktrT itrS itrT :
-   (img = true -> is_spawn_ospec (sp fn)) ->
+   (* (img = true -> is_spawn_ospec (sp fn)) -> *)
    (img = false → fspec_imply (fspec_flat (sp fn)) fspec_trivial) →
    itrS = NativeSpawnE fn args >>= ktrS →
    itrT = HoareSpawnE fn args ((if img then sp else sp_none) fn) >>= ktrT →
@@ -419,6 +424,50 @@ Proof using.
   rewrite SBRed.bind SBRed.Guarantee. f_equal. extensionalities.
   rewrite SBRed.ret. f_equal.
 Qed.
+
+Lemma SBRed_NativeYield img msk scp tid :
+  SB.sandbox img msk scp (SModTr.NativeYield tid) = SModTr.NativeYield tid.
+Proof using. rewrite /SModTr.NativeYield SBRed.yield. refl. Qed.
+
+Lemma SBRed_HoareYield (img: bool) (msk : _ → bool) scp tid :
+  SB.sandbox img msk scp (SModTr.HoareYield img tid) =
+    SModTr.HoareYield img tid.
+Proof using.
+  rewrite /SModTr.HoareYield. destruct img; cycle 1.
+  { eapply SBRed_NativeYield. }
+  rewrite SBRed.bind SBRed.choose. f_equal. extensionalities.
+  rewrite SBRed.bind SBRed.Guarantee. f_equal. extensionalities.
+  rewrite SBRed.bind SBRed.yield. f_equal. extensionalities.
+  rewrite SBRed.Assume. f_equal.
+Qed.
+
+Lemma MIRed_NativeYield prog tid :
+  inline_body prog (SModTr.NativeYield tid) = NativeYieldE tid.
+Proof using.
+  rewrite /SModTr.NativeYield /NativeYieldE.
+  rewrite -(bind_ret_r (trigger _)).
+  rewrite MIRed.yield. f_equal.
+  { rewrite bind_ret_r //. }
+  extensionalities. do 2 f_equal.
+  rewrite MIRed.ret //. destruct H; refl.
+Qed.
+
+Lemma MIRed_HoareYield prog img tid :
+  inline_body prog (SModTr.HoareYield img tid) = HoareYieldE tid.
+Proof using.
+  destruct fspo; cycle 1.
+  { s. rewrite MIRed_NativeSpawn. et. }
+  rewrite /SModTr.HoareSpawn /HoareSpawnE. ired.
+  destruct f.
+  { rewrite MIRed.core. f_equal. extensionalities. ss. }
+  rewrite MIRed.core. f_equal. extensionalities. do 2 f_equal.
+  rewrite MIRed.core. f_equal. extensionalities. do 2 f_equal.
+  rewrite MIRed.spawn. f_equal. extensionalities. do 2 f_equal.
+  rewrite MIRed.ag. f_equal. extensionalities. do 2 f_equal.
+  rewrite MIRed.ag. f_equal. extensionalities. do 2 f_equal.
+  by rewrite MIRed.ret.
+Qed.
+
 
 Lemma MIRed_NativeSpawn prog fn varg :
   inline_body prog (SModTr.NativeSpawn fn varg) = NativeSpawnE fn varg.
@@ -843,28 +892,38 @@ Proof using.
       { rewrite /triggerUB // MIRed.core. ired. estep 1. }
       rewrite MIRed_NativeSpawn SBRed_HoareSpawn; et; ss. 
       rewrite MIRed_HoareSpawn.
-      (* destruct (is_spawn_ospec (sp fn)) eqn:SPAWN; cycle 1. *)
-      (* { assert (fspec_imply (fspec_flat (sp fn)) fspec_trivial). *)
-
-      (* rewrite /HoareSpawnE. destruct (sp fn); ss. *)
-      rewrite /HoareSpawnE.
+      destruct (is_spawn_ospec (sp fn)) eqn:SPAWN; cycle 1.
+      { destruct (sp fn) eqn:SP.
+        { destruct f; ss. ired. gstep. econs. }
+        gstep. eapply elim_rel_spawn; et.
+        { instantiate (1:=true). i. rewrite SP; ss. }
+        { ss. rewrite SP; ss. }
+        { i. edone. }
+      }
       
       gstep. eapply elim_rel_spawn; et.
-      { admit. }
-      { 
-      { i. subst. eapply VP. eauto 6. }
+      { i; clarify. }
+      { rewrite SPAWN; ss. }
       i. edone.
     }
 
     (* yield case *)
-    { admit.
-      (* rewrite !SRed.bind !SRed.yield !SBRed.bind !SBRed.tau !SBRed.yield. ired. *)
+    { 
+      (* rewrite !SRed.bind !SRed.yield !SBRed.bind !SBRed.tau. *)
+      (* rewrite /SModTr.HoareYield. *)
+      (* !SBRed.yield. ired. *)
       (* rewrite !MIRed.tau !MIRed.yield. estep 4. *)
       (* edone. *)
+      admit.
     }
 
     (* get tid case *)
-    { admit. }
+    {
+      rewrite !SRed.bind !SRed.gettid !SBRed.bind !SBRed.tau !bind_tau.
+      rewrite !MIRed.tau. estep 2.
+      rewrite SBRed_HoareGetTid.
+      admit.
+    }
 
   - rewrite !SRed.bind !SRed.pg !SBRed.bind. destruct s.
     + rewrite SBRed.put. destruct (existsb _ _) eqn: E; cycle 1.
