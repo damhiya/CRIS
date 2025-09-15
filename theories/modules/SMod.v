@@ -185,7 +185,7 @@ Section Aux.
 
   Definition img_spawn (md: SMod.t) : Prop :=
     ∀ fno fnsem, alist_find fno (SMod.fnsems md) = Some fnsem ->
-                fnsem.1.1.1 = true.
+                 is_some (fnsem.2.1).
 
   Definition valid_sp (md: SMod.t) (sp: sp_type) : Prop :=
     sp_imply (sp_from md) sp ∧
