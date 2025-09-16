@@ -2,7 +2,7 @@
 Require Import LMod LModTr GSim GSimFacts GSimTactics.
 Require Import MInline MInlineIntro MInlineElim ElimRel.
 
-Lemma cancel_spawn `{Σ : GRA} md sp fn args img0 :
+Lemma cancel_spawn `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp fn args img0 :
   (img0 = false → fspec_imply (fspec_flat (sp fn)) fspec_trivial) →
   CANCEL_GOAL md sp
     (NativeSpawnE fn args)
@@ -22,18 +22,27 @@ Proof.
 
   destruct ((if img0 then sp else sp_none) fn) eqn: E; s.
   { (* the spawnee has a non-trivial spec *)
+    destruct f.
+    { ired. zstep_r. }
     ired. ziter_l. zstep_l.
     do 2 zstep_r.
     ziter_r; zstep_r.
     ziter_r; do 2 zstep_r.
     ziter_r; zstep_r.
-    ziter_r; zstep_r. ired.
-    ziter_r; do 2 zstep_r.
-    ziter_r; do 2 zstep_r.
-    ziter_r; zstep_r. ziter_r; zstep_r.
-    ziter_r; zstep_r. ziter_r; zstep_r.
+    ziter_r; zstep_r.
+    (* rewrite !alist_find_map_snd FIND. ired. *)
+    (* ziter_r; do 2 zstep_r. *)
+    (* ziter_r; do 2 zstep_r. *)
+    (* ziter_r; zstep_r. ziter_r; zstep_r. *)
+    (* ziter_r; zstep_r. ziter_r; zstep_r. *)
     rewrite !alist_find_map_snd FIND /=. ired.
     ziter_r; zstep_r.
+    ziter_r; zstep_r.
+    ziter_r; zstep_r.
+    exists r_t. zstep_r.
+    ziter_r; zstep_r.
+    eexists.
+    zstep_r.
     zprogress. gbase.
     des; hexploit (Own_bupd_split); et.
     { eapply Own_wand_valid; [iIntros "X"; iMod (RS with "X") as "[? $]"; done|]; done. }
@@ -158,4 +167,5 @@ Proof.
       iIntros "> [$ $] !>"; iApply Own_unit.
     }
   }
-(*SLOW*)Qed. *)
+(*SLOW*)Qed.
+*)

@@ -950,15 +950,23 @@ Section CancelDef.
       (SRC: src = ModTr.trans itrS)
       (TGT: tgt = ModTr.trans itrT >>= k) :
      thread_rel sp tid r_diff src tgt
-  | thread_rel_spawn src tgt r_diff tid itrS fspo varg arg bd x :
+  | thread_rel_spawn src tgt r_diff r_diff0 tid itrS fspo varg arg bd x :
      tid ≠ 0 →
      src = ModTr.trans (tau;; tau;; itrS) →
      tgt = ModTr.trans (
        '(tid, m, varg):_ <- elim_spawnee_precond (fspo_pre fspo) arg;;
        vret <- bd varg;;
        elim_spawnee_postcond (fspo_post fspo) tid m vret) →
-     (Own r_diff ⊢
-       |==> match fspo_pre fspo with | inl (inl P) => P (tid, x) varg arg | inl (inr _) => True |inr x' => ⌜arg = varg⌝ end)%I →
+     (match fspo_pre fspo with
+      | inl (inl _) => YIELD tid ∗ Own r_diff
+      | _ => Own r_diff
+      end ⊢ |==> Own r_diff0) ->
+     (Own r_diff0 ⊢ |==>
+        match fspo_pre fspo with
+        | inl (inl P) => P (tid, x) varg arg
+        | inl (inr _) => False
+        | inr x' => ⌜arg = varg⌝
+        end)%I →
      elim_rel sp ε itrS (bd varg) →
      thread_rel sp tid r_diff src tgt.
 

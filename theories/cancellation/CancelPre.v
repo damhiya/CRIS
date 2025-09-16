@@ -1,8 +1,8 @@
-(* Require Import CRIS.
+Require Import CRIS.
 Require Import LMod LModTr GSim GSimFacts GSimTactics.
 Require Import MInline MInlineIntro MInlineElim ElimRel.
 
-Lemma cancel_pre `{Σ : GRA} md sp:
+Lemma cancel_pre `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp:
   ∀ (rs0 : Σ) r_s r_t rs_diff srcs tgts cid st ps pt varg X X' Po Po' itrS ktrT k
     (r: ∀ x x0, (x→x0→Prop)→smj→smj→itree coreE x→itree coreE x0→Prop)
     (WFS: SMod.wf md)
@@ -38,12 +38,12 @@ Lemma cancel_pre `{Σ : GRA} md sp:
     (RET : cid = 0 → k = λ x : Any.t, Ret x)
     (KTR :
     ∃ P : X → Any.t → Any.t → iProp Σ,
-      (Po = inl P
+      (Po = inl (inr P)
        ∨ ∃ x : X,
            X = ()%type
            ∧ Po = inr x ∧ P = λ (_ : X) (varg arg : Any.t), ⌜varg = arg⌝%I)
       ∧ ∃ P' : X' → Any.t → Any.t → iProp Σ,
-          (Po' = inl P'
+          (Po' = inl (inr P')
            ∨ ∃ x' : X',
                X' = ()%type
                ∧ Po' = inr x'
@@ -51,7 +51,7 @@ Lemma cancel_pre `{Σ : GRA} md sp:
           ∧ ∀ x : X,
               ∃ x' : X',
                 (∀ arg : Any.t, P x varg arg ⊢ |==> P' x' varg arg)
-                ∧ upaco4 (elim_rel_def sp) bot4 Any.t ε (itrS) (ktrT (x, x', varg))),
+                ∧ upaco4 (elim_rel_def sp) bot4 Any.t ε (itrS) (ktrT (0, x, x', varg))),
 
   gpaco7 _gsim (cpn7 _gsim) bot7 r (Any.t * Any.t)%type 
     (Any.t * Any.t)%type cancel_eq ps pt
@@ -133,4 +133,4 @@ Proof.
       { econs; eauto. }
     }
   }
-(*SLOW*)Qed. *)
+(*SLOW*)Qed.

@@ -1,8 +1,8 @@
-(* Require Import CRIS.
+Require Import CRIS.
 Require Import LMod LModTr GSim GSimFacts GSimTactics.
 Require Import MInline MInlineIntro MInlineElim ElimRel.
 
-Lemma cancel_post `{Σ: GRA} md sp:
+Lemma cancel_post `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp:
   ∀ (rs0 : Σ) r_s r_t srcs tgts cid st ps pt vret X X' x x' Qo Qo' itrS ktrT k rs_diff
     (r : ∀ x x0, (x→x0→Prop)→smj→smj→itree coreE x→itree coreE x0→Prop)
     (WFS: SMod.wf md)
@@ -34,14 +34,14 @@ Lemma cancel_post `{Σ: GRA} md sp:
     (LEN : cid < length srcs)
     (x2 : rs_diff !! cid = Some ε)
     (x0 : srcs !! cid = Some (ModTr.trans (tau;; tau;; itrS)))
-    (x1 : tgts !! cid = Some (x <- ModTr.trans (x <- elim_postcond Qo Qo' x x' vret;; ktrT x);; k x))
+    (x1 : tgts !! cid = Some (x <- ModTr.trans (x <- elim_postcond Qo Qo' 0 x x' vret;; ktrT x);; k x))
     (RET : cid = 0 → k = λ x : Any.t, Ret x)
     (KTR :
     ∃ Q : X → Any.t → Any.t → iProp Σ,
-      (Qo = Some Q
+      (Qo = Some (inr Q)
        ∨ Qo = None ∧ Q = λ (_ : X) (varg arg : Any.t), ⌜varg = arg⌝%I)
       ∧ ∃ Q' : X' → Any.t → Any.t → iProp Σ,
-          (Qo' = Some Q'
+          (Qo' = Some (inr Q')
            ∨ Qo' = None ∧ Q' = λ (_ : X') (varg arg : Any.t), ⌜varg = arg⌝%I)
           ∧ (∀ ret : Any.t, Q' x' vret ret ⊢ |==> Q x vret ret)
             ∧ upaco4 (elim_rel_def sp) bot4 Any.t ε itrS (ktrT vret)),
@@ -116,4 +116,4 @@ Proof.
       { econs; eauto; eapply KTR1. }
     }
   }
-(*SLOW*)Qed. *)
+(*SLOW*)Qed.

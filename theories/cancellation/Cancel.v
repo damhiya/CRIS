@@ -1,4 +1,4 @@
-(* Require Import CRIS.
+Require Import CRIS.
 Require Import LMod LModTr GSim GSimFacts GSimTactics.
 Require Import MInline MInlineIntro MInlineElim ElimRel.
 Require Import CancelCore CancelPG CancelAG CancelSpawn CancelPre CancelPost.
@@ -7,7 +7,7 @@ Set Implicit Arguments.
 
 Module Cancel. Section Cancel.
 
-Context `{Σ: GRA}.
+Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG}.
 
 Lemma cancel_elim md sp (r_i r_s r_t: Σ) rs_diff srcs tgts cid st ps pt
   (WFS: SMod.wf md)
@@ -77,7 +77,24 @@ Proof using.
   { ziter_l; rewrite Hs /=. zstep_l. ziter_l. zstep_l.
     ziter_r; rewrite Ht /= /elim_spawnee_precond.
     destruct fspo as [fsp|]; ss.
-    { zstep_r. exists x; ired. zstep_r.
+    { destruct fsp.
+      { (* spawning a function which has call-spec *)
+        assert (VALID : ✓ r_diff).
+        { eapply Own_wand_valid; try eapply WFR.
+          iIntros "R". iPoseProof (RS with "R") as ">[RS R]".
+          iPoseProof (big_sepL_lookup_acc with "RS") as "[$ S]"; eauto. }
+        exfalso.
+        assert (F: Own r_diff ⊢ False).
+        { iIntros "I". iPoseProof (H2 with "I") as ">I".
+          iPoseProof (H3 with "I") as ">I". iFrame. }
+        eapply Own_pure_soundness in F; eauto.
+      }
+      zstep_r. exists cid. ired. zstep_r.
+      ziter_r. zstep_r.
+      ziter_r. zstep_r. ired.
+      ziter_r. zstep_r.
+      exists r_diff1; ired. zstep_r.
+      exists x; ired. zstep_r.
       ziter_r. zstep_r.
       ziter_r. zstep_r. exists varg. ired. zstep_r.
       ziter_r. zstep_r.
@@ -225,4 +242,4 @@ Proof using.
   eapply cancel_main; eauto.
 (*SLOW*)Qed.
 
-End Cancel. End Cancel. *)
+End Cancel. End Cancel.
