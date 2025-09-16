@@ -637,7 +637,8 @@ Section CancelDef.
           (cid : nat) (st : list (key * Any.t)) (ps pt : smj)
           (REL : Forall3i (thread_rel sp) rs_diff srcs tgts)
           (WFR: ✓ r_s)
-          (RS: Own r_s ⊢ |==> ([∗ list] i ∈ rs_diff, Own i) ∗ Own r_t),
+          (RS: Own r_s ⊢ |==> ([∗ list] i ∈ rs_diff, Own i) ∗ Own r_t ∗
+                 (* TID *) TidTokenAuth cid ∗ (* YIELD *) YieldTokenAuth (length rs_diff)),
         r (Any.t * Any.t)%type (Any.t * Any.t)%type cancel_eq ps pt
           (LModTr.interp_stateE Any.t
               (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
@@ -649,7 +650,8 @@ Section CancelDef.
               (Any.pair (ModTr.alist_encode st) r_t ↑)))
       (KEY: ∀ itr_s itr_t st (r_s r_t r_diff : Σ) tid
               (WFR: ✓ r_s)
-              (RS: Own r_s ⊢ |==> ([∗ list] i ∈ <[cid:=r_diff]> rs_diff, Own i) ∗ Own r_t)
+              (RS: Own r_s ⊢ |==> ([∗ list] i ∈ <[cid:=r_diff]> rs_diff, Own i) ∗ Own r_t ∗
+                     (* TID *) TidTokenAuth cid ∗ (* YIELD *) YieldTokenAuth (length rs_diff))
               (LEN: cid < List.length srcs)
               (REL: thread_rel sp cid r_diff itr_s itr_t),
               (* (REL: elim_rel sp r_diff itr_s itr_t), *)
