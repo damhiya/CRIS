@@ -96,7 +96,7 @@ End HoareCall.
 
 (* Helping module *)
 Module HelpingOn. Section HelpingOn.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG} `{LeibnizEquiv jobID}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concG} {jobID : Type}.
 
   Context (mn : string).
   Context (jobcode : jobID → itree Helping.pureE unit).
