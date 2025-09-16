@@ -105,10 +105,10 @@ Module HelpingOn. Section HelpingOn.
   Definition v_reqs := mn ↯ "reqs".
 
   Definition try_run (tid : nat) : itree crisE Any.t :=
-    'reqs : gmap nat jobID <- cgetU v_reqs;;
+    'reqs : gmap nat (bool * jobID) <- cgetU v_reqs;;
     match reqs !! tid with
-    | Some jid =>
-        cput v_reqs (delete tid reqs);;;
+    | Some (true, jid) =>
+        cput v_reqs (<[tid := (false, jid)]> reqs);;;
         Helping.trans (jobcode jid);;;
         Ret ()↑
     | _ => Ret ()↑
@@ -117,9 +117,9 @@ Module HelpingOn. Section HelpingOn.
   Definition run : Any.t → itree crisE Any.t :=
     λ arg,
       'jid : jobID <- arg↓?;;
-      'reqs : gmap nat jobID <- cgetU v_reqs;;
+      'reqs : gmap nat (bool * jobID) <- cgetU v_reqs;;
       let tid := fresh (dom reqs) in
-      cput v_reqs (<[tid := jid]> reqs);;;
+      cput v_reqs (<[tid := (true, jid)]> reqs);;;
       𝒴;;; try_run tid;;; 𝒴;;; Ret ()↑.
 
   Definition help (sp : sp_type) : Any.t → itree crisE Any.t :=
@@ -139,7 +139,7 @@ Module HelpingOn. Section HelpingOn.
   Program Definition Mod (sp : sp_type) : SMod.t := {|
     SMod.scopes := scopes;
     SMod.fnsems := fnsems sp;
-    SMod.initial_st := [(v_reqs, (∅ : gmap nat jobID)↑)];
+    SMod.initial_st := [(v_reqs, (∅ : gmap nat (bool * jobID))↑)];
   |}.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
