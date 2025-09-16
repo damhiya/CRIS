@@ -24,9 +24,9 @@ Module SMod. Section SMOD.
   }.
 
   Definition wf (ms : t) : Prop :=
-    ∀ fno img msk scp fspo bd
-       (FIND: alist_find fno (fnsems ms) = Some (img, msk, scp, (fspo, bd)))
-       (COND: fno = None ∨ img = false),
+    ∀ fno msk scp fspo bd
+       (FIND: alist_find fno (fnsems ms) = Some (msk, scp, (fspo, bd)))
+       (COND: fno = None),
       fspo = None.
 
   (**** Linking ****)
@@ -95,10 +95,10 @@ Module SMod. Section SMOD.
     Mod.initial_st := ms.(initial_st);
     |}.
   Next Obligation.
-    i. destruct ms. ss. ii. unfold fnsems_scopes in *. unfold map_snd in *.
+    i. destruct ms. ss. ii. unfold ifnsems_scopes, fnsems_scopes in *. unfold map_snd in *.
     rewrite alist_find_map in H0. specialize (well_scoped_fns0 fn a).
     destruct (alist_find fn fnsems0) eqn: E; ss.
-    destruct f. destruct p. et.
+    destruct f. destruct p. destruct p0. et.
   Qed.
   Next Obligation. ii. destruct ms. ss. eauto. Qed.
   Next Obligation. ii. destruct ms. ss. eauto. Qed.
@@ -174,43 +174,44 @@ Section Aux.
   Definition sp_from (md : SMod.t) : sp_type :=
     to_sp (List.map (map_snd (fst ∘ snd)) md.(SMod.fnsems)).
 
-  Definition has_param (md : SMod.t) fno img msk scp :=
-    ∃ sbd, alist_find fno (SMod.fnsems md) = Some (img, msk, scp, sbd).
+  (* Definition has_param (md : SMod.t) fno img msk scp := *)
+  (*   ∃ sbd, alist_find fno (SMod.fnsems md) = Some (img, msk, scp, sbd). *)
 
-  Definition has_trivial_spec (md : SMod.t) (fn : string) : Prop :=
-    ∃ fno msk scp, has_param md fno false msk scp ∧ msk fn.
+  (* Definition has_trivial_spec (md : SMod.t) (fn : string) : Prop := *)
+  (*   ∃ fno msk scp, has_param md fno false msk scp ∧ msk fn. *)
 
-  Definition fspec_tag_agree (md: SMod.t) (sp: sp_type) : Prop :=
-    ∀ fn, is_spawn_spec (fspec_flat (sp fn)) = is_spawn_spec (fspec_flat ((sp_from md) fn)).
+  Definition spec_type_agree (md: SMod.t) (sp: sp_type) : Prop :=
+    ∀ fn, fspo_type (sp fn) = fspo_type ((sp_from md) fn).
 
-  Definition img_spawn (md: SMod.t) : Prop :=
+  Definition has_spec_forall (md: SMod.t) : Prop :=
     ∀ fno fnsem, alist_find fno (SMod.fnsems md) = Some fnsem ->
                  is_some (fnsem.2.1).
 
   Definition valid_sp (md: SMod.t) (sp: sp_type) : Prop :=
     sp_imply (sp_from md) sp ∧
-    (∀ fn (NS: has_trivial_spec md fn), fspec_imply (fspec_flat (sp fn)) fspec_trivial) ∧
-    (* for spawn specs *)
-    fspec_tag_agree md sp ∧ img_spawn md.
+    (* (∀ fn (NS: has_trivial_spec md fn), fspec_imply (fspec_flat (sp fn)) fspec_trivial) ∧ *)
+    spec_type_agree md sp ∧ has_spec_forall md.
 
-  Definition real_smod (md : SMod.t) : Prop :=
-    ∀ fno img msk scp, has_param md fno img msk scp → img = false.
+  (* Definition real_smod (md : SMod.t) : Prop := *)
+  (*   ∀ fno img msk scp, has_param md fno img msk scp → img = false. *)
 
-  Lemma real_smod_ignores_sp md sp
-    (REAL: real_smod md)
-    (WF: Mod.wf (SMod.to_mod sp_none md))
-    :
-    SMod.to_mod sp md = SMod.to_mod sp_none md.
-  Proof.
-    eapply mod_extensionality; s; et. unfold SModTr.trans_ktree.
-    eapply map_ext_Forall. eapply List.Forall_forall. i.
-    destruct x as [fno [[[img msk] scp] [fsp bd]]]. s. repeat f_equal.
-    destruct WF; ss. rewrite map_map fst_map_snd in wf_fns.
-    eapply alist_find_some_iff in H0; et.
-    exploit REAL; [r; et|].
-    i; subst; et.
-  Qed.
+  (* Lemma real_smod_ignores_sp md sp *)
+  (*   (REAL: real_smod md) *)
+  (*   (WF: Mod.wf (SMod.to_mod sp_none md)) *)
+  (*   : *)
+  (*   SMod.to_mod sp md = SMod.to_mod sp_none md. *)
+  (* Proof. *)
+  (*   eapply mod_extensionality; s; et. unfold SModTr.trans_ktree. *)
+  (*   eapply map_ext_Forall. eapply List.Forall_forall. i. *)
+  (*   destruct x as [fno [[[img msk] scp] [fsp bd]]]. s. repeat f_equal. *)
+  (*   destruct WF; ss. rewrite map_map fst_map_snd in wf_fns. *)
+  (*   eapply alist_find_some_iff in H0; et. *)
+  (*   exploit REAL; [r; et|]. *)
+  (*   i; subst; et. *)
+  (* Qed. *)
 End Aux.
 
-Global Hint Unfold has_param : core.
-Global Hint Unfold has_trivial_spec : core.
+(* Global Hint Unfold has_param : core. *)
+(* Global Hint Unfold has_trivial_spec : core. *)
+Global Hint Unfold spec_type_agree : core.
+Global Hint Unfold has_spec_forall : core.

@@ -38,7 +38,7 @@ Section INTERP.
 
   Definition inline_body {R} prog := ITree.iter (@handle_callE R prog).
 
-  Definition inline_fsem ms (kb: fnsem_type fbody) : fnsem_type fbody :=
+  Definition inline_fsem ms (kb: ifnsem_type fbody) : ifnsem_type fbody :=
     (true, wmask_all, ms.(Mod.scopes),
      inline_body (sandboxed_prog ms) ∘ (SB.sandbox_body kb)).
       
@@ -53,7 +53,7 @@ Module MInline.
     initial_st := ms.(initial_st);
   |}.
   Next Obligation.
-    i. depdes ms. ss. ii. unfold fnsems_scopes in *. unfold map_snd in*.
+    i. depdes ms. ss. ii. unfold ifnsems_scopes in *. unfold map_snd in*.
     rewrite! alist_find_map in H. unfold o_map in H.
     des_ifs; ss. 
   Qed.
@@ -220,7 +220,7 @@ Proof using.
     }
 
     rewrite {2 4}/sandboxed_prog /SB.sandbox_body FIND. s. ired.
-    destruct f as [[[img0 msk0] sc0] bd0]. s.
+    destruct i as [[[img0 msk0] sc0] bd0]. s.
     match goal with
     [|- _ _ (_ _ ?itr)] => assert (EX: exists itr', itr = SB.sandbox true wmask_all (Mod.scopes ms) itr'); cycle 1
     end.
@@ -230,7 +230,7 @@ Proof using.
     rewrite SBRed.bind. f_equal.
     { 
       erewrite <-(@sandbox_well_scoped _ _ _ _ _ _ sc0); try refl; eauto.
-      ii. eapply Mod.well_scoped_fns. unfold fnsems_scopes.
+      ii. eapply Mod.well_scoped_fns. unfold ifnsems_scopes.
       erewrite FIND. et.
     }
     extensionality x.

@@ -176,16 +176,16 @@ Section FSPEC.
   Lemma fspec_top_weakest fsp : fspec_imply fsp fspec_top.
   Proof. ii. ss. Qed.
 
-  Definition is_spawn_spec fsp :=
-    match fsp with
-    | fspec_call _ _ => false
-    | fspec_spawn _ _ => true
-    end.
+  Inductive spec_type : Type :=
+  | REAL_SPEC
+  | IMG_SPEC_SPAWN
+  | IMG_SPEC_CALL.
 
-  Definition is_spawn_ospec fspo :=
+  Definition fspo_type (fspo: option fspec) : spec_type :=
     match fspo with
-    | Some fsp => is_spawn_spec fsp
-    | None => false
+    | Some (@fspec_spawn _ _ _) => IMG_SPEC_SPAWN
+    | Some (@fspec_call _ _ _) => IMG_SPEC_CALL
+    | None => REAL_SPEC
     end.
 End FSPEC.
 

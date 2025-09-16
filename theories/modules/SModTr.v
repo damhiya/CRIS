@@ -139,8 +139,10 @@ Module SModTr. Section HOARE.
   Definition trans_body : (bool * sp_type * option fspec) → fbody → fbody :=
     λ '(img, sp, fsp) bd, HoareFun fsp (trans (* img *) (is_some fsp) sp ∘ bd).
 
-  Definition trans_ktree sp (sb : fnsem_type (option fspec * fbody)) : fnsem_type fbody :=
-    map_snd (λ '(fsp, bd), trans_body (sb.1.1.1, if sb.1.1.1 then sp else sp_none, fsp) bd) sb.
+  Definition trans_ktree sp (sb : fnsem_type (option fspec * fbody)) : ifnsem_type fbody :=
+    let '(msk, scp, (fsp, bd)) := sb in
+    let img := is_some sb.2.1 in
+    (img, msk, scp, trans_body (img, if img then sp else sp_none, fsp) bd).
 End HOARE. End SModTr.
 
 Global Arguments SModTr.trans_ktree: simpl never.

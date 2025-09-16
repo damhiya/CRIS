@@ -239,7 +239,7 @@ Section ISIM_REFL.
         + i. iIntros "%". subst. et.
         + apply WFT.
         + etrans; [|eapply Mod.well_scoped_fns].
-          unfold fnsems_scopes. erewrite FND. refl.
+          unfold ifnsems_scopes. erewrite FND. refl.
       }
 
       ii. iIntros "[% H] INV". des; subst.
@@ -261,7 +261,7 @@ Section ISIM_REFL.
             i. des. rewrite x1. iDestruct "H" as "[% H]". et.
         - eapply WFT.
         - ii. exploit (Mod.well_scoped_fns C None).
-          { rewrite /fnsems_scopes FND. et. }
+          { rewrite /ifnsems_scopes FND. et. }
           i. et.
         - i. iIntros "%". subst. et.
       }
@@ -326,7 +326,7 @@ Section ISIM_REFL.
         + i. iIntros "%". subst. et.
         + apply WFT.
         + etrans; [|eapply Mod.well_scoped_fns].
-          unfold fnsems_scopes. erewrite FND. refl.
+          unfold ifnsems_scopes. erewrite FND. refl.
       }
 
       ii. iIntros "[% H] INV". des; subst.
@@ -348,7 +348,7 @@ Section ISIM_REFL.
             i. des. rewrite x1. iDestruct "H" as "[% H]". et.
         - eapply WFT.
         - ii. exploit (Mod.well_scoped_fns C None).
-          { rewrite /fnsems_scopes FND. et. }
+          { rewrite /ifnsems_scopes FND. et. }
           i. et.
         - i. iIntros "%". subst. et.
       }
@@ -405,7 +405,7 @@ Section ISIM_REFL.
       destruct (alist_find _ _) eqn: FINDSRC; ss. inv FIND.
       exploit (sim_fnsems WFT None); et. i; des.
       rewrite !alist_find_map_snd x0. s. esplits; et.
-      destruct f as [[[img msk] scp] bd].
+      destruct i as [[[img msk] scp] bd].
       destruct ft as [[[img0 msk0] scp0] bd0].
       i. exists ε, ε.
 
