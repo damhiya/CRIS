@@ -170,6 +170,30 @@ Section FSPEC.
     - rewrite POST1 POST. iIntros ">> H". et.
   Qed.
 
+  Definition fspec_imply' (fsp0 fsp1 : fspec) : Prop :=
+    match fsp0, fsp1 with
+    | @fspec_spawn m0 pre0 post0, @fspec_spawn m1 pre1 post1 =>
+        ∀ tid x1, ∃ x0,
+          (∀ varg arg, (pre1 (tid, x1) varg arg ⊢ |==> pre0 (tid, x0) varg arg)) ∧
+            (∀ vret ret, (post0 (tid, x0) vret ret ⊢ |==> post1 (tid, x1) vret ret))
+    | @fspec_call m0 pre0 post0, @fspec_call m1 pre1 post1 =>
+        fspec_imply fsp0 fsp1
+    | _, _ => False
+    end.
+
+  Global Program Instance fspec_imply'_PreOrder : PreOrder fspec_imply'.
+  Next Obligation.
+  Proof using. ii. destruct x; ss; try refl. i. exists x1. esplits; ii; et. Qed.
+  Next Obligation.
+  Proof using.
+    ii. destruct x, y, z; ss; try by etrans; et. i.
+    hexploit (H0 tid x1). intros [? [PRE POST]]. hexploit (H tid x). intros [? [PRE1 POST1]].
+    exists x0.
+    esplits; ii.
+    - rewrite PRE PRE1. iIntros ">> H". et.
+    - rewrite POST1 POST. iIntros ">> H". et.
+  Qed.
+
   Lemma fspec_bot_strongest fsp : fspec_imply fspec_bot fsp.
   Proof. ii. exists (). s. esplits; et. i. iIntros "%". ss. Qed.
 

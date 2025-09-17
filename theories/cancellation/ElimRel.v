@@ -90,9 +90,9 @@ Definition HoareSpawnE fn varg (fspo: option fspec) : itree crisE nat :=
 
 Definition HoareYieldE tid : itree crisE () :=
   my_tid <- trigger (Choose nat);; tau;;
-  trigger (Guarantee (TID(my_tid) ∗ YIELD(tid)));;; tau;;
+  trigger (Guarantee (TID(my_tid) ∗ YIELD(tid) ∗ winv(⊤, ⊤)));;; tau;;
   trigger (Yield tid);;; tau;;
-  trigger (Assume (TID(my_tid) ∗ YIELD(my_tid)));;; tau;;
+  trigger (Assume (TID(my_tid) ∗ YIELD(my_tid) ∗ winv(⊤, ⊤)));;; tau;;
   Ret tt.
 
 Definition HoareGetTidE : itree crisE nat :=
@@ -120,7 +120,7 @@ Definition elim_postcond {X X' : Type} Q Q' (x : X) (x' : X') (vret': Any.t) : i
 
 Definition elim_spawnee_precond (X : Type) P (arg : Any.t) : itree crisE (nat * X * Any.t) :=
   tid <- trigger (Take nat);; tau;;
-  trigger (Assume (TID tid ∗ YIELD tid));;; tau;;
+  trigger (Assume (TID tid ∗ YIELD tid ∗ winv(⊤, ⊤)));;; tau;;
   x <- trigger (Take X);; tau;;
   varg <- trigger (Take Any.t);; tau;;
   trigger (Assume (P (tid, x) varg arg));;; tau;;
@@ -129,7 +129,7 @@ Definition elim_spawnee_precond (X : Type) P (arg : Any.t) : itree crisE (nat * 
 Definition elim_spawnee_postcond {X : Type} Q (tid : nat) (x : X) (vret : Any.t) : itree crisE Any.t :=
   ret <- trigger (Choose Any.t);; tau;;
   trigger (Guarantee (Q (tid, x) vret ret));;; tau;;
-  trigger (Guarantee (TID tid));;; tau;;
+  trigger (Guarantee (TID tid ∗ winv(⊤, ⊤)));;; tau;;
   Ret ret.
 
 Variant elim_rel_def
@@ -527,12 +527,12 @@ Proof using.
       (* rewrite !if_simpl. s. rewrite MIRed.bind. ired. *)
       
       gstep. eapply elim_rel_precond; eauto. i.
-      assert (I: fspec_imply (fspec_flat (sp_from md fn)) (fspec_flat (sp fn))).
+      assert (I: fspec_imply' (fspec_flat (sp_from md fn)) (fspec_flat (sp fn))).
       { etrans; [eapply VP|]. refl. }
       rewrite SP in I; ss.
+      r in I. rewrite /sp_from /to_sp alist_find_map_snd E0 /= in I.
       specialize (I x). des.
-      revert x0 I I0.
-      rewrite {1 2 3}/sp_from /to_sp !alist_find_map_snd !E0. s. i.
+      revert x0 I I0. s; i.
       exists x0. split; et.
       (* rewrite ?SBRed.tau ?MIRed.tau ?bind_tau. *)
 
@@ -612,7 +612,7 @@ Section CancelDef.
        '(tid, m, varg):_ <- elim_spawnee_precond pre arg;;
        vret <- bd varg;;
        elim_spawnee_postcond post tid m vret) →
-     (Own r_diff ⊢ |==> pre (tid, x) varg arg ∗ TID tid ∗ YIELD tid)%I →
+     (Own r_diff ⊢ |==> pre (tid, x) varg arg)%I →
      elim_rel sp ε itrS (bd varg) →
      thread_rel sp tid r_diff src tgt.
 

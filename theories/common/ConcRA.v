@@ -46,13 +46,24 @@ Section preds.
 
   Definition YieldTokenAuth (nths: nat) : iProp Σ :=
     Seal.sealing "Conc" own base_γ
-      ((λ x, if (decide (x <= nths)) then None else Some (Excl ())) : nat -d> optionUR (exclR unitO)).
+      ((λ x, if (decide (x < nths)) then None else Some (Excl ())) : nat -d> optionUR (exclR unitO)).
 
   Lemma YieldToken_both tid0 tid1 : YieldToken tid0 -∗ YieldToken tid1 -∗ ⌜tid0 ≠ tid1⌝.
   Proof.
     rewrite /YieldToken; unseal "Conc".
     iIntros "T1 T2"; iCombine "T1 T2" gives %WF; hexploit (WF tid1).
     rewrite discrete_fun_lookup_op; des_ifs.
+  Qed.
+
+  Lemma YieldToken_gen nths : YieldTokenAuth nths ⊢ YieldTokenAuth (S nths) ∗ YieldToken nths.
+  Proof.
+    rewrite /YieldTokenAuth /YieldToken. unseal "Conc".
+    iIntros "T". rewrite -own_op.
+    set (a:=_: nat -d> optionUR (exclR unitO)).
+    set (b:=_: nat -d> optionUR (exclR unitO)) at 2.
+    assert (EQ: a ≡ b).
+    { subst a b. intros x. rewrite discrete_fun_lookup_op. des_ifs; nia. }
+    rewrite EQ. iFrame.
   Qed.
 End preds.
 

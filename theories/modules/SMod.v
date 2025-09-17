@@ -180,6 +180,8 @@ Section Aux.
   (* Definition has_trivial_spec (md : SMod.t) (fn : string) : Prop := *)
   (*   ∃ fno msk scp, has_param md fno false msk scp ∧ msk fn. *)
 
+  (** TODO: I think that this can be weaken by allowing sp not to have specs for module function which has call-spec **)
+  (** If so, sp_imply' and has_spec_forall imply spec_type_agree so that valid_sp would be simplified **) 
   Definition spec_type_agree (md: SMod.t) (sp: sp_type) : Prop :=
     ∀ fn, fspo_type (sp fn) = fspo_type ((sp_from md) fn).
 
@@ -188,7 +190,7 @@ Section Aux.
                  is_some (fnsem.2.1).
 
   Definition valid_sp (md: SMod.t) (sp: sp_type) : Prop :=
-    sp_imply (sp_from md) sp ∧
+    sp_imply' (sp_from md) sp ∧
     (* (∀ fn (NS: has_trivial_spec md fn), fspec_imply (fspec_flat (sp fn)) fspec_trivial) ∧ *)
     spec_type_agree md sp ∧ has_spec_forall md.
 

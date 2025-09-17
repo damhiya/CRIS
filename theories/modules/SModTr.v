@@ -49,7 +49,7 @@ Module SModTr. Section HOARE.
         Ret ret
     | Some (@fspec_spawn _ meta pre post) => λ arg,
         tid <- trigger (Take nat);;
-        trigger (Assume (TID tid ∗ YIELD tid));;; (* Concurrency precondition *)
+        trigger (Assume (TID tid ∗ YIELD tid ∗ winv (⊤, ⊤)));;; (* Concurrency precondition *)
 
         x <- trigger (Take meta);;
         varg <- trigger (Take Any.t);;
@@ -60,7 +60,7 @@ Module SModTr. Section HOARE.
         ret <- trigger (Choose Any.t);;
         trigger (Guarantee (post (tid, x) vret ret));;; (* postcondition *)
 
-        trigger (Guarantee (TID tid));;; (* Concurrency postcondition *)
+        trigger (Guarantee (TID tid ∗ winv (⊤, ⊤)));;; (* Concurrency postcondition *)
 
         Ret ret
     | None => λ arg, tau;; body arg
@@ -93,9 +93,9 @@ Module SModTr. Section HOARE.
     if img
     then
       my_tid <- trigger (Choose nat);;
-      trigger (Guarantee (TID(my_tid) ∗ YIELD(tid)));;;
+      trigger (Guarantee (TID(my_tid) ∗ YIELD(tid) ∗ winv(⊤, ⊤)));;;
       trigger (Yield tid);;;
-      trigger (Assume (TID(my_tid) ∗ YIELD(my_tid)))
+      trigger (Assume (TID(my_tid) ∗ YIELD(my_tid) ∗ winv(⊤, ⊤)))
     else
       NativeYield tid.
 
