@@ -4,11 +4,6 @@ Require Import Common.
 Set Implicit Arguments.
 
 Definition fnsem_type `{Σ : GRA} T : Type :=
-  (string -> bool) *   (* mask *)
-  (list string) *      (* scope *)
-  T.                   (* function semantics *)
-
-Definition ifnsem_type `{Σ : GRA} T : Type :=
   bool *               (* imaginary or real spec *)
   (string -> bool) *   (* mask *)
   (list string) *      (* scope *)
@@ -96,7 +91,7 @@ Module SB. Section SB.
   Definition sandbox {T} img msk scp (itr : itree crisE T) :=
     interpV (handle_sandbox img msk scp) itr.
 
-  Definition sandbox_body (kb : ifnsem_type fbody) :=
+  Definition sandbox_body (kb : fnsem_type fbody) :=
     λ arg, sandbox kb.1.1.1 kb.1.1.2 kb.1.2 (kb.2 arg).
 
 End SB. End SB.

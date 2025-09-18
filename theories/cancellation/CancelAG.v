@@ -28,7 +28,7 @@ Proof.
     zstep_r.
     ziter_r; zstep_r. ziter_r; zstep_r.
     eapply KEY; eauto.
-    { rewrite list_insert_id // ?Own_op RS; iIntros "[$ > [$ $]]"; done. }
+    { rewrite list_insert_id // ?Own_op RS. iIntros "[$ > $]"; done. }
     { econs; eauto; eapply KTR. }
   + ziter_r; rewrite x1 /=; zstep_r; ired; hss.
     ziter_r; do 2 zstep_r. ziter_r; do 2 zstep_r.
@@ -49,7 +49,7 @@ Proof.
       }
       done.
     }
-    { rewrite list_insert_id // !Own_op Hr_s1 Hr_s5; eapply bupd_intro. }
+    { rewrite list_insert_id // !Own_op Hr_s1 Hr_s5. eapply bupd_intro. }
     { econs; eauto; eapply KTR. }
 Unshelve.
 { split; first eapply Own_wand_valid.

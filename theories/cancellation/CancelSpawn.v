@@ -39,8 +39,8 @@ Proof.
     ziter_r; zstep_r.
     rewrite YieldToken_gen in RS.
     hexploit (Own_bupd_split).
-    { iIntros "S". iPoseProof (RS with "S") as ">(D & T & TA & YA & Y)".
-      iModIntro. iCombine "D TA YA" as "P". iCombine "T Y" as "Q".
+    { iIntros "S". iPoseProof (RS with "S") as ">(D & R & TA & T & [YA NY] & Y & W)".
+      iModIntro. iCombine "D TA T YA Y W" as "P". iCombine "R NY" as "Q".
       iSplitL "P"; [iApply "P"|iApply "Q"]. }
     { eauto. }
     intros [r_t1 [r_t2 [Hr_t [Hr_t1 Hr_t2]]]].
@@ -59,7 +59,6 @@ Proof.
     do 3 (ziter_r; zstep_r).
     zprogress. gbase.
     des; hexploit (Own_bupd_split); et.
-    (* { eapply Own_wand_valid; [iIntros "X"; iMod (Hr_t with "X") as "[? $]"; done|]; done. } *)
     intros [r_t3 [r_t4 [Hr_t3 [Hr_t4 Hr_t5]]]].
     eapply CIH; eauto.
     { rewrite -!insert_app_l; try lia.

@@ -12,12 +12,6 @@ Definition fnsems_scopes `{Σ: GRA} {T} (fn : option string) (fnsems : alist (op
   | None => []
   end.
 
-Definition ifnsems_scopes `{Σ: GRA} {T} (fn : option string) (fnsems : alist (option string) (ifnsem_type T)) :=
-  match (alist_find fn fnsems) with
-  | Some (mask, scopes, body) => scopes
-  | None => []
-  end.
-
 Definition state_scopes (st : alist key Any.t) :=
   List.map (fst ∘ fst) st.
 
@@ -32,11 +26,11 @@ Module Mod. Section Mod.
   
   Record t : Type := mk {
     scopes : list string; (* scopes of the module local variables *)
-    fnsems : alist (option string) (ifnsem_type fbody);
+    fnsems : alist (option string) (fnsem_type fbody);
     initial_st : alist key Any.t;
 
     well_scoped_fns :
-      ∀ fn, incl (ifnsems_scopes fn fnsems) scopes;
+      ∀ fn, incl (fnsems_scopes fn fnsems) scopes;
     well_scoped_init :
       incl (state_scopes initial_st) scopes;                         
     nodup_init :
@@ -68,14 +62,14 @@ Module Mod. Section Mod.
       initial_st := ms1.(initial_st) ++ ms2.(initial_st);
     |}.
   Next Obligation.
-    ii. unfold ifnsems_scopes in H. des_ifs.
+    ii. unfold fnsems_scopes in H. des_ifs.
     rewrite alist_find_app_o in Heq. des_ifs.
     { hexploit (ms1.(well_scoped_fns) fn a).
-      { unfold ifnsems_scopes. des_ifs. }
+      { unfold fnsems_scopes. des_ifs. }
       i. eapply in_or_app. eauto.
     }
     { hexploit (ms2.(well_scoped_fns) fn a).
-      { unfold ifnsems_scopes. des_ifs. }
+      { unfold fnsems_scopes. des_ifs. }
       i. eapply in_or_app. eauto.
     }
   Qed.

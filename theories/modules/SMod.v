@@ -95,7 +95,7 @@ Module SMod. Section SMOD.
     Mod.initial_st := ms.(initial_st);
     |}.
   Next Obligation.
-    i. destruct ms. ss. ii. unfold ifnsems_scopes, fnsems_scopes in *. unfold map_snd in *.
+    i. destruct ms. ss. ii. unfold fnsems_scopes in *. unfold map_snd in *.
     rewrite alist_find_map in H0. specialize (well_scoped_fns0 fn a).
     destruct (alist_find fn fnsems0) eqn: E; ss.
     destruct f. destruct p. destruct p0. et.
@@ -173,26 +173,32 @@ Section Aux.
 
   Definition sp_from (md : SMod.t) : sp_type :=
     to_sp (List.map (map_snd (fst ∘ snd)) md.(SMod.fnsems)).
-
+  
   (* Definition has_param (md : SMod.t) fno img msk scp := *)
   (*   ∃ sbd, alist_find fno (SMod.fnsems md) = Some (img, msk, scp, sbd). *)
 
   (* Definition has_trivial_spec (md : SMod.t) (fn : string) : Prop := *)
   (*   ∃ fno msk scp, has_param md fno false msk scp ∧ msk fn. *)
 
-  (** TODO: I think that this can be weaken by allowing sp not to have specs for module function which has call-spec **)
-  (** If so, sp_imply' and has_spec_forall imply spec_type_agree so that valid_sp would be simplified **) 
-  Definition spec_type_agree (md: SMod.t) (sp: sp_type) : Prop :=
-    ∀ fn, fspo_type (sp fn) = fspo_type ((sp_from md) fn).
 
-  Definition has_spec_forall (md: SMod.t) : Prop :=
-    ∀ fno fnsem, alist_find fno (SMod.fnsems md) = Some fnsem ->
-                 is_some (fnsem.2.1).
+  (* Definition img_forall (md: SMod.t) : Prop := *)
+  (*   ∀ fno fnsem, alist_find fno (SMod.fnsems md) = Some fnsem -> fnsem.1.1.1. *)
 
-  Definition valid_sp (md: SMod.t) (sp: sp_type) : Prop :=
-    sp_imply' (sp_from md) sp ∧
-    (* (∀ fn (NS: has_trivial_spec md fn), fspec_imply (fspec_flat (sp fn)) fspec_trivial) ∧ *)
-    spec_type_agree md sp ∧ has_spec_forall md.
+  (* Definition spec_type_agree (md: SMod.t) (sp: sp_type) : Prop := *)
+  (*   ∀ fn, is_spawn_ospec (sp fn) = is_spawn_ospec ((sp_from md) fn). *)
+
+  (* Lemma valid_spec_type_agree md sp *)
+  (*   (IMPLY: sp_imply' (sp_from md) sp) *)
+  (*   (ISPEC: img_forall md) : *)
+  (*   spec_type_agree md sp. *)
+  (* Proof. *)
+  (*   ii. specialize (IMPLY fn). *)
+  (*   r in IMPLY. des_ifs; destruct (sp fn), (sp_from md fn); ss; subst; ss. *)
+  (* Qed. *)
+
+  (* Definition valid_sp (md: SMod.t) (sp: sp_type) : Prop := *)
+  (*   sp_imply' (sp_from md) sp ∧ *)
+  (*   (∀ fn (NS: has_trivial_spec md fn), fspec_imply (fspec_flat (sp fn)) fspec_trivial) *)
 
   (* Definition real_smod (md : SMod.t) : Prop := *)
   (*   ∀ fno img msk scp, has_param md fno img msk scp → img = false. *)
@@ -215,5 +221,5 @@ End Aux.
 
 (* Global Hint Unfold has_param : core. *)
 (* Global Hint Unfold has_trivial_spec : core. *)
-Global Hint Unfold spec_type_agree : core.
-Global Hint Unfold has_spec_forall : core.
+(* Global Hint Unfold spec_type_agree : core. *)
+(* Global Hint Unfold img_forall : core. *)

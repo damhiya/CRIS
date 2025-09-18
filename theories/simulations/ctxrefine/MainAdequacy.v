@@ -346,7 +346,7 @@ Lemma msim_ctx
       rewrite FLS in FUN.
       rewrite alist_find_map_snd in FUN.
       unfold o_map in FUN. des_ifs. unfold SB.sandbox_body.
-      destruct i as [[[img0 msk0] scp0] bd0]. s.
+      destruct f0 as [[[img0 msk0] scp0] bd0]. s.
       rewrite sandbox_well_scoped; eauto; cycle 1.
       f_equal. extensionalities.
       rewrite ?SBRed.bind !SBRed.tau SBRed.ret.
@@ -358,7 +358,7 @@ Lemma msim_ctx
       rewrite FLT in FUN.
       rewrite alist_find_map_snd in FUN.
       unfold o_map in FUN. des_ifs. unfold SB.sandbox_body.
-      destruct i as [[[img0 msk0] scp0] bd0]. s.
+      destruct f0 as [[[img0 msk0] scp0] bd0]. s.
       rewrite sandbox_well_scoped; eauto.
       f_equal. extensionalities.
       rewrite ?SBRed.bind !SBRed.tau SBRed.ret.
@@ -527,10 +527,10 @@ Proof.
   - bsimpl. esplits; et.
     etrans; [|eapply sub_perm_incl; et].
     etrans; [|eapply Mod.well_scoped_fns].
-    unfold ifnsems_scopes. erewrite IN. refl.
+    unfold fnsems_scopes. erewrite IN. refl.
   - bsimpl. esplits; et.
     etrans; [|eapply Mod.well_scoped_fns].
-    unfold ifnsems_scopes. erewrite IN. refl.
+    unfold fnsems_scopes. erewrite IN. refl.
   - destruct WFT. et.
   - et.
   - etrans; [apply SCOPES0|]. refl.
@@ -588,9 +588,9 @@ Proof using.
         - s. etrans; cycle 1.
           { eapply sub_perm_incl. et. }
           etrans; [|eapply Mod.well_scoped_fns].
-          rewrite /ifnsems_scopes. erewrite E0. refl.
+          rewrite /fnsems_scopes. erewrite E0. refl.
         - s. etrans; [|eapply Mod.well_scoped_fns].
-          rewrite /ifnsems_scopes. erewrite x0. refl.
+          rewrite /fnsems_scopes. erewrite x0. refl.
         - etrans; [eapply Mod.well_scoped_init|].
           eapply sub_perm_incl; et.
         - exploit x1; et. i.
@@ -611,7 +611,7 @@ Proof using.
       { iApply (isim_reflR with "[H]"); et.
         - eapply WFT0.
         - s. etrans; [|eapply Mod.well_scoped_fns].
-          rewrite /ifnsems_scopes. erewrite H0. refl.
+          rewrite /fnsems_scopes. erewrite H0. refl.
         - i. iIntros "%". des; subst. et.
         - i. iIntros "%". des; subst. iPureIntro.
           rewrite state_scopes_update. et.
@@ -637,9 +637,9 @@ Proof using.
     iApply (isim_ctx with "[H I]"); et; i.
     - etrans; [|eapply sub_perm_incl; et].
       etrans; [|eapply Mod.well_scoped_fns].
-      unfold ifnsems_scopes. erewrite Heq. destruct fs, p. refl.
+      unfold fnsems_scopes. erewrite Heq. destruct fs, p. refl.
     - etrans; [|eapply Mod.well_scoped_fns].
-      unfold ifnsems_scopes. erewrite x0. destruct ft, p. refl.
+      unfold fnsems_scopes. erewrite x0. destruct ft, p. refl.
     - exploit x1; cycle 2; i.
       + iApply (x2 with "[H]"); et.
   }
@@ -654,7 +654,7 @@ Proof using.
     destruct fs as [[[img msk] sc] bd].
     inv WFTC. eapply isim_reflR; ss; i; eauto.
     - etrans; [|eapply Mod.well_scoped_fns].
-      rewrite /ifnsems_scopes. erewrite FIND. refl.
+      rewrite /fnsems_scopes. erewrite FIND. refl.
     - iIntros "%". des; subst; eauto.
     - iIntros "%". des; subst; eauto. iPureIntro.  esplits; eauto.
       + rewrite state_scopes_update. eauto.

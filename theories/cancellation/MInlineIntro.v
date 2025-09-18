@@ -36,7 +36,7 @@ Proof using.
       subst. iApply isim_mono; cycle 1.
       - iApply H; et.
         ii. exploit Mod.well_scoped_fns; et.
-        rewrite /ifnsems_scopes. erewrite FINDT. destruct i as [[[] ?] ?]. et.
+        rewrite /fnsems_scopes. erewrite FINDT. destruct f as [[[] ?] ?]. et.
       - i. iIntros "%". des; subst. destruct fn; et.
     }
   }
@@ -79,7 +79,7 @@ Proof using.
       rewrite MIRed.call. steps_l. rewrite {2}/sandboxed_prog.
       destruct (alist_find (Some fn) (Mod.fnsems md)) eqn:FIND; cycle 1.
       { s. ired. rewrite MIRed.core. steps_l. ss. }
-      destruct i as [[[img0 msk0] scp0] bd0]. iApply isim_inline_tgt.
+      destruct f as [[[img0 msk0] scp0] bd0]. iApply isim_inline_tgt.
       { rewrite alist_find_map_snd FIND. ss. }
       s. ired. rewrite /SB.sandbox_body. s.
 
@@ -88,7 +88,7 @@ Proof using.
       iApply isim_bind. iSplitL "I".
       - by_coind CIH; et.
         ii. exploit Mod.well_scoped_fns; et.
-        rewrite /ifnsems_scopes. erewrite FIND. et.
+        rewrite /fnsems_scopes. erewrite FIND. et.
       - iIntros (? ? ? ?) "%". des; subst.
         rewrite MIRed.tau. steps_l. steps_r. ired.
         by_coind CIH; et.
