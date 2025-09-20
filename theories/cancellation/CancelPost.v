@@ -6,7 +6,6 @@ Lemma cancel_post `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp:
   ∀ (rs0 : Σ) r_s r_t srcs tgts cid st ps pt vret (X X': Type) (x: X) (x': X') Q Q' itrS ktrT k rs_diff
     (r : ∀ x x0, (x→x0→Prop)→smj→smj→itree coreE x→itree coreE x0→Prop)
     (WFS: SMod.wf md)
-    (VP: valid_sp md sp)
     (WF: Mod.wf (SMod.to_mod sp_none (SMod.cancel md)))
     (KEY: ∀ itr_s itr_t st (r_s r_t r_diff : Σ) tid
              (WFR: ✓ r_s)
@@ -81,39 +80,5 @@ Proof.
       { rewrite list_insert_id //. }
       { econs; eauto; eapply KTR1. }
     }
-    (* { assert (vret = x3). *)
-    (*   { eapply Own_pure_soundness; try apply WFR. *)
-    (*     rewrite RS. iIntros ">[? H]". iMod (x6 with "H") as "[P O]". *)
-    (*     rewrite KTR1. iMod "P" as "P"; et. *)
-    (*   } *)
-    (*   des. subst. *)
-    (*   ired. pclearbot. eapply KEY; et. *)
-    (*   rewrite RS list_insert_id //. iIntros ">[$ H]". iMod (x6 with "H") as "[P O]". iFrame. et. *)
-    (*   econs; eauto; eapply KTR1. *)
-    (* } *)
   }
-  (* { *)
-  (*   s. zstep_r. *)
-  (*   des; subst.       *)
-  (*   { ziter_r. zstep_r. *)
-  (*     ziter_r. zstep_r. eexists. zstep_r. *)
-  (*     ziter_r. zstep_r. ziter_r. zstep_r. *)
-  (*     ziter_r. zstep_r. eexists r_t. zstep_r. *)
-  (*     ziter_r. zstep_r. unshelve eexists. *)
-  (*     { split; [eapply Own_wand_valid; [iIntros "S"; iMod (RS with "S") as "[_ $]"|]|]; try done. *)
-  (*       iIntros "H". iFrame. iApply KTR1. et. *)
-  (*     } *)
-  (*     zstep_r. *)
-  (*     ziter_r. zstep_r. ziter_r. zstep_r. ziter_r. zstep_r. *)
-
-  (*     pclearbot. eapply KEY; et. *)
-  (*     { rewrite list_insert_id //. } *)
-  (*     { econs; eauto; eapply KTR1. } *)
-  (*   } *)
-  (*   { ziter_r. zstep_r. *)
-  (*     pclearbot. eapply KEY; et. *)
-  (*     { rewrite list_insert_id //. } *)
-  (*     { econs; eauto; eapply KTR1. } *)
-  (*   } *)
-  (* } *)
 (*SLOW*)Qed.

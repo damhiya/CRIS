@@ -140,7 +140,7 @@ Module SModTr. Section HOARE.
     λ '(img, sp, fsp) bd, HoareFun fsp (trans img sp ∘ bd).
 
   Definition trans_ktree sp (sb : fnsem_type (option fspec * fbody)) : fnsem_type fbody :=
-    map_snd (λ '(fsp,bd), trans_body (sb.1.1.1, if sb.1.1.1 then sp else sp_none, fsp) bd) sb.
+    map_snd (λ '(fsp,bd), trans_body (is_some sb.2.1, if sb.1.1.1 then sp else sp_none, fsp) bd) sb.
 
 End HOARE. End SModTr.
 

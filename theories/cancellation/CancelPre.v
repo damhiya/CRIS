@@ -6,7 +6,6 @@ Lemma cancel_pre `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp:
   ∀ (rs0 : Σ) r_s r_t rs_diff srcs tgts cid st ps pt varg X X' P P' itrS ktrT k
     (r: ∀ x x0, (x→x0→Prop)→smj→smj→itree coreE x→itree coreE x0→Prop)
     (WFS: SMod.wf md)
-    (VP: valid_sp md sp)
     (WF: Mod.wf (SMod.to_mod sp_none (SMod.cancel md)))
     (KEY: ∀ itr_s itr_t st (r_s r_t r_diff : Σ) tid
              (WFR: ✓ r_s)
@@ -86,46 +85,7 @@ Proof.
 
       pclearbot. eapply KEY; et.
       { rewrite RS list_insert_id //. }
-      (* { rewrite list_insert_id // RS. } *)
       { eapply thread_rel_body; eauto. }
     }
-    (* { destruct x', x'0. *)
-    (*   assert (varg = x3). *)
-    (*   { eapply Own_pure_soundness; try apply WFR. *)
-    (*     rewrite RS. iIntros ">[_ H]". iMod (x6 with "H") as "[P O]". *)
-    (*     rewrite KTR1. iMod "P" as "P"; et. *)
-    (*   } *)
-    (*   des. subst. ired. *)
-    (*   ziter_r. zstep_r. ziter_r. zstep_r. *)
-    (*   ziter_l. zstep_l. ziter_l. zstep_l. *)
-    (*   pclearbot. eapply KEY; et. *)
-    (*   { rewrite RS list_insert_id //. iIntros ">[$ H]". iMod (x6 with "H") as "[P O]". iFrame. et. } *)
-    (*   { econs; eauto. } *)
-    (* } *)
   }
-  (* { s. zstep_r. *)
-  (*   specialize (KTR1 ()). des; subst.       *)
-  (*   { ziter_r. zstep_r. exists x'. zstep_r. *)
-  (*     ziter_r. zstep_r. ziter_r. zstep_r. eexists. zstep_r. *)
-  (*     ziter_r. zstep_r. ziter_r. zstep_r. *)
-  (*     ziter_r. zstep_r. eexists r_t. zstep_r. *)
-  (*     ziter_r. zstep_r. unshelve eexists. *)
-  (*     { split; [eapply Own_wand_valid; [iIntros "S"; iMod (RS with "S") as "[_ $]"|]|]; try done. *)
-  (*       iIntros "H". iFrame. iApply KTR1. et. *)
-  (*     } *)
-  (*     zstep_r. *)
-  (*     ziter_r. zstep_r. ziter_r. zstep_r. ziter_r. zstep_r. *)
-  (*     ziter_l. zstep_l. ziter_l. zstep_l. *)
-  (*     pclearbot. destruct x. eapply KEY; et. *)
-  (*     { rewrite list_insert_id //. } *)
-  (*     { econs; eauto. } *)
-  (*   } *)
-  (*   { destruct x, x', x'0. *)
-  (*     ired. ziter_r. zstep_r. ziter_r. zstep_r. *)
-  (*     ziter_l. zstep_l. ziter_l. zstep_l. *)
-  (*     pclearbot. eapply KEY; et. *)
-  (*     { rewrite list_insert_id //. } *)
-  (*     { econs; eauto. } *)
-  (*   } *)
-  (* } *)
 (*SLOW*)Qed.

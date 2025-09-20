@@ -9,11 +9,10 @@ Module Cancel. Section Cancel.
 
 Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG}.
 
-Lemma cancel_elim md sp (r_i r_s r_t: Σ) rs_diff srcs tgts cid st ps pt
+Lemma cancel_elim md (r_i r_s r_t: Σ) rs_diff srcs tgts cid st ps pt
   (WFS: SMod.wf md)
-  (VP: valid_sp md sp)
   (WF: Mod.wf (SMod.to_mod sp_none (SMod.cancel md)))
-  (REL: Forall3i (thread_rel sp) rs_diff srcs tgts)
+  (REL: Forall3i (thread_rel (sp_from md)) rs_diff srcs tgts)
   (WFR: ✓ r_s)
   (RS: Own r_s ⊢ |==> ([∗ list] i ∈ rs_diff, Own i) ∗ Own r_t ∗
          (* TID *) TidTokenAuth cid ∗ TidToken cid ∗
@@ -27,10 +26,10 @@ Lemma cancel_elim md sp (r_i r_s r_t: Σ) rs_diff srcs tgts cid st ps pt
        (Any.pair (ModTr.alist_encode st) r_s ↑))
     (LModTr.interp_stateE Any.t
        (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
-              (SMod.to_mod sp md)) r_i))) (cid, tgts))
+              (SMod.to_mod (sp_from md) md)) r_i))) (cid, tgts))
        (Any.pair (ModTr.alist_encode st) r_t ↑)).
 Proof using.
-  ginit. move WFS at top. move WF at top. move VP at top.
+  ginit. move WFS at top. move WF at top.
   revert_until r_i. gcofix CIH. i.
   destruct (decide (cid < length srcs)) as [Hcid|]; cycle 1.
   { ziter_l. erewrite (proj2 (lookup_ge_None srcs cid)); try nia.
@@ -133,7 +132,7 @@ Proof using.
        (* YIELD *) YieldTokenAuth (length (<[cid := r_diff]> rs_diff)) ∗ YieldToken tid ∗
        (* WINV *) winv (⊤, ⊤)) →
     cid < List.length srcs →
-    thread_rel sp cid r_diff itr_s itr_t →
+    thread_rel (sp_from md) cid r_diff itr_s itr_t →
     gpaco7 _gsim (cpn7 _gsim) bot7 r (Any.t * Any.t)%type
       (Any.t * Any.t)%type cancel_eq smj_top smj_top
       (LModTr.interp_stateE Any.t
@@ -143,7 +142,7 @@ Proof using.
        (Any.pair (ModTr.alist_encode st) r_s ↑))
     (LModTr.interp_stateE Any.t
        (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
-              (SMod.to_mod sp md)) r_i)))
+              (SMod.to_mod (sp_from md) md)) r_i)))
               (tid, <[cid:=itr_t]> tgts))
        (Any.pair (ModTr.alist_encode st) r_t ↑))).
   { i. zprogress.
@@ -190,15 +189,33 @@ Proof using.
 Admitted.
 (* (*SLOW*) Qed. *)
 
-Lemma cancel_main md sp rs
+Lemma gsim_main_aux md rs bd arg msk scp
   (WFS: SMod.wf md)
-  (VP: valid_sp md sp)
+  (WF: Mod.wf (SMod.to_mod sp_none (SMod.cancel md)))
+  (VALID: ✓ rs) :
+  gsim cancel_eq smj_top smj_top
+    (interp_state (@case_ (forall _ : Type, Type) IFun _ _ _ _ _
+          LModTr.handle_stateE
+          (λ (T : Type) (e : coreE T) (s : Any.t), x <- trigger e;; Ret (s, x)))
+       ((iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline (SMod.to_mod sp_none (SMod.cancel md))) rs)))
+          (0, [ModTr.trans (inline_body (sandboxed_prog (SMod.to_mod sp_none (SMod.cancel md))) (interpV (SB.handle_sandbox true msk scp) (SModTr.trans false sp_none (bd arg))))])))
+       (Any.pair (ModTr.alist_encode (SMod.initial_st md)) rs ↑))
+    (LModTr.interp_stateE Any.t
+       (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline (SMod.to_mod (sp_from md) md)) rs)))
+          (0,
+            [ModTr.trans
+               (inline_body (sandboxed_prog (SMod.to_mod (sp_from md) md)) (SB.sandbox true msk scp (SModTr.HoareFun (Some fspec_trivial) (SModTr.trans true (sp_from md) ∘ bd) arg)))]))
+       (Any.pair (ModTr.alist_encode (SMod.initial_st md)) rs ↑)).
+Admitted.
+
+Lemma cancel_main md rs
+  (WFS: SMod.wf md)
   (WF: Mod.wf (SMod.to_mod sp_none (SMod.cancel md)))
   (VALID: ✓ rs)
   :  
   refines_lmod
     (Mod.to_lmod (MInline.inline (SMod.to_mod sp_none (SMod.cancel md))) rs)
-    (Mod.to_lmod (MInline.inline (SMod.to_mod sp md)) rs).
+    (Mod.to_lmod (MInline.inline (SMod.to_mod (sp_from md) md)) rs).
 Proof using.
   r. intro arg. eapply gsim_adequacy.
   instantiate (1:= smj_top). instantiate (1:= smj_top).
@@ -208,7 +225,7 @@ Proof using.
   destruct (alist_find None (SMod.fnsems md)) eqn: FIND; rewrite FIND; cycle 1.
   { s. ired. ginit. gstep. econs. econs. ss. }
   s. ired. rewrite /ModTr.trans_ktree.
-  destruct f as [[msk scp] [fspo bd]]. s.
+  destruct f as [[[img msk] scp] [fspo bd]]. s.
   assert (SCP: incl scp (SMod.scopes md)).
   { ii. eapply SMod.well_scoped_fns. rewrite /fnsems_scopes. erewrite FIND. et. }
   erewrite !sandbox_inline_commute; et.
@@ -219,9 +236,31 @@ Proof using.
   { instantiate (1:=cancel_eq). i. gstep. econs. econs.
     destruct SIM. des. et. }
   ziter_l. zstep_l. ziter_l. zstep_l.
-  exploit WFS; et. i. subst. ss.
-  rewrite SBRed.tau MIRed.tau.
-  ziter_r. zstep_r. ziter_r. zstep_r.
+  exploit WFS; et. i; des; subst; ss.
+
+  gfinal. right.
+  Unset Printing Notations.
+  Set Printing All.
+  hexploit x2; eauto; i; subst; ss.
+
+  ziter_r. zstep_r. exists tt. zstep_r.
+  ziter_r. zstep_r.
+  ziter_r. zstep_r. exists arg. zstep_r.
+  ziter_r. zstep_r.
+  ziter_r. zstep_r.
+  ziter_r. zstep_r. exists rs. zstep_r.
+  ziter_r. zstep_r. unshelve eexists.
+  { esplits; eauto. }
+  zstep_r.
+  ziter_r. zstep_r.
+  ziter_r. zstep_r.
+  ziter_r. zstep_r.
+  set (itr := (interpV (SB.handle_sandbox true msk scp) (vret <- (SModTr.trans _ _ (bd arg));; ret <- trigger (Choose Any.t);; trigger (Guarantee ⌜vret = ret⌝);;; Ret ret))).
+  replace itr with (SB.sandbox true msk scp (vret <- (SModTr.trans true (sp_from md) (bd arg));; ret <- trigger (Choose Any.t);; trigger (Guarantee ⌜vret = ret⌝);;; Ret ret)) by refl.
+  rewrite SBRed.bind MIRed.bind ModTr.Red.bind.
+
+  (* Search interp_callE_bind. *)
+  
   gfinal. right.
 
   eapply (cancel_elim _ _ (rs_diff:=[ε])); eauto.
@@ -231,8 +270,15 @@ Proof using.
     (* exploit WFS; et. i. subst. *)
     econs; et; cycle 1.
     { rewrite bind_ret_r. et. }
-    s.
-    Set Printing All.
+
+    set (itr:=SB.sandbox true msk scp (SModTr.HoareFun _ _ _)).
+    replace itr with (SB.sandbox_body (true, msk, scp, SModTr.HoareFun fspo (SModTr.trans (is_some fspo) (sp_from md) ∘ bd)) arg) by refl.
+    rewrite x1.
+    erewrite MIRed_HoareFun; eauto.
+
+    eapply elim_rel_precond.
+    
+    SB.sandbox rewrite SBRed.bind. econs.
     eapply elim_rel_cancel; et.
   }
   ss; rewrite right_id -Own_op left_id; iIntros "$"; done.
