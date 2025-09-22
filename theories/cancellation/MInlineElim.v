@@ -40,7 +40,7 @@ Proof using.
 
   ii. iIntros "% I". subst. iStopProof. 
   destruct f as [[[img msk] scp] bd].
-  rewrite /SB.sandbox_body; s. rewrite /SB.sandbox_body; s.
+  do 2 (rewrite /SB.sandbox_body; s).
 
   generalize false at 1 as ps. generalize false at 1 as pt.
   generalize (bd arg) as it. i.

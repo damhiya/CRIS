@@ -651,9 +651,15 @@ Hint Resolve elim_rel_def_mon: paco.
 Section CancelDef.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG}.
 
+  Definition main_post : Any.t → itree lmodE Any.t :=
+    λ vret,
+      ModTr.trans
+        (ret <- trigger (Choose Any.t);; tau;;
+         trigger (Guarantee ⌜vret = ret⌝);;; tau;; Ret ret).
+
   Variant thread_rel sp : nat → Σ → itree lmodE Any.t → itree lmodE Any.t → Prop :=
   | thread_rel_body itrS itrT src tgt r_diff tid (k: Any.t → itree lmodE Any.t)
-      (RET: tid = 0 -> k = λ x, Ret x)
+      (RET: tid = 0 -> k = main_post)
       (REL: elim_rel sp r_diff itrS itrT)
       (SRC: src = ModTr.trans itrS)
       (TGT: tgt = ModTr.trans itrT >>= k) :
@@ -669,7 +675,7 @@ Section CancelDef.
      (Own r_diff ⊢ |==> pre (tid, x) varg arg)%I →
      elim_rel sp ε itrS (bd varg) →
      thread_rel sp tid r_diff src tgt.
-
+  
   Definition cancel_eq (x y: Any.t * Any.t) : Prop :=
     ∃ st r_s r_t,
     Any.split x.1 = Some (st,r_s) ∧ Any.split y.1 = Some (st,r_t) ∧
@@ -692,9 +698,7 @@ Section CancelDef.
           (REL : Forall3i (thread_rel sp) rs_diff srcs tgts)
           (WFR: ✓ r_s)
           (RS: Own r_s ⊢ |==> ([∗ list] i ∈ rs_diff, Own i) ∗ Own r_t ∗
-                 (* TID *) TidTokenAuth cid ∗ TidToken cid ∗
-                 (* YIELD *) YieldTokenAuth (length rs_diff) ∗ YieldToken cid ∗
-                 (* WINV *) winv (⊤, ⊤)),
+                 TIDAUTH cid ∗ YIELDAUTH (length rs_diff)),
         r (Any.t * Any.t)%type (Any.t * Any.t)%type cancel_eq ps pt
           (LModTr.interp_stateE Any.t
               (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
@@ -707,9 +711,7 @@ Section CancelDef.
       (KEY: ∀ itr_s itr_t st (r_s r_t r_diff : Σ) tid
               (WFR: ✓ r_s)
               (RS: Own r_s ⊢ |==> ([∗ list] i ∈ <[cid:=r_diff]> rs_diff, Own i) ∗ Own r_t ∗
-                     (* TID *) TidTokenAuth tid ∗ TidToken tid ∗
-                     (* YIELD *) YieldTokenAuth (length (<[cid:=r_diff]> rs_diff)) ∗ YieldToken tid ∗
-                     (* WINV *) winv (⊤, ⊤))
+                     TIDAUTH tid ∗ YIELDAUTH (length (<[cid:=r_diff]> rs_diff)))
               (LEN: cid < List.length srcs)
               (REL: thread_rel sp cid r_diff itr_s itr_t),
               (* (REL: elim_rel sp r_diff itr_s itr_t), *)
@@ -731,15 +733,13 @@ Section CancelDef.
         thread_rel sp i z x y)
       (WFR : ✓ r_s)
       (RS : Own r_s ⊢
-              |==> ([∗ list] i ∈ rs_diff, Own i) ∗ Own r_t ∗
-                 (* TID *) TidTokenAuth cid ∗ TidToken cid ∗
-                 (* YIELD *) YieldTokenAuth (length rs_diff) ∗ YieldToken cid ∗
-                 (* WINV *) winv (⊤, ⊤))
+              |==> ([∗ list] i ∈ rs_diff, Own i) ∗ Own r_t ∗ 
+              TIDAUTH cid ∗ YIELDAUTH (length rs_diff))
       (LEN : cid < length srcs)
       (x0 : srcs !! cid = Some (ModTr.trans (x <- it_src;; ktrS x)))
       (x1 : tgts !! cid = Some (x <- ModTr.trans (x <- it_tgt;; ktrT x);; k x))
       (x2 : rs_diff !! cid = Some ε)
-      (RET : cid = 0 → k = λ x : Any.t, Ret x)
+      (RET : cid = 0 → k = main_post)
       (KTR : ∀ x, paco4 (elim_rel_def sp) bot4 Any.t ε (ktrS x) (ktrT x)),
 
   gpaco7 _gsim (cpn7 _gsim) bot7 r (Any.t * Any.t)%type 

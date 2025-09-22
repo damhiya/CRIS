@@ -65,8 +65,10 @@ Section preds.
     { subst a b. intros x. rewrite discrete_fun_lookup_op. des_ifs; nia. }
     rewrite EQ. iFrame.
   Qed.
+
 End preds.
 
 Notation "'TID' tid" := (TidToken tid) (at level 20, tid at level 1, format "TID  tid").
 Notation "'YIELD' tid" := (YieldToken tid) (at level 20, tid at level 1, format "YIELD  tid").
-
+Notation "'TIDAUTH' tid" := (TidTokenAuth tid) (at level 20, tid at level 1, format "TIDAUTH  tid").
+Notation "'YIELDAUTH' tid" := (YieldTokenAuth tid) (at level 20, tid at level 1, format "YIELDAUTH  tid").

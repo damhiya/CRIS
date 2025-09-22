@@ -15,9 +15,7 @@ Lemma cancel_elim md (r_i r_s r_t: Σ) rs_diff srcs tgts cid st ps pt
   (REL: Forall3i (thread_rel (sp_from md)) rs_diff srcs tgts)
   (WFR: ✓ r_s)
   (RS: Own r_s ⊢ |==> ([∗ list] i ∈ rs_diff, Own i) ∗ Own r_t ∗
-         (* TID *) TidTokenAuth cid ∗ TidToken cid ∗
-         (* YIELD *) YieldTokenAuth (length rs_diff) ∗ YieldToken cid ∗
-         (* WINV *) winv (⊤, ⊤))
+         TIDAUTH cid ∗ YIELDAUTH (length rs_diff))
   :
   gsim cancel_eq ps pt
     (LModTr.interp_stateE Any.t
@@ -128,9 +126,7 @@ Proof using.
     ∀ itr_s itr_t st (r_s r_t: Σ) r_diff tid,
     ✓ r_s →
     (Own r_s ⊢ |==> ([∗ list] i ∈ <[cid := r_diff]> rs_diff, Own i) ∗ Own r_t ∗
-       (* TID *) TidTokenAuth tid ∗ TidToken tid ∗
-       (* YIELD *) YieldTokenAuth (length (<[cid := r_diff]> rs_diff)) ∗ YieldToken tid ∗
-       (* WINV *) winv (⊤, ⊤)) →
+       TIDAUTH tid ∗ YIELDAUTH (length (<[cid := r_diff]> rs_diff))) →
     cid < List.length srcs →
     thread_rel (sp_from md) cid r_diff itr_s itr_t →
     gpaco7 _gsim (cpn7 _gsim) bot7 r (Any.t * Any.t)%type
@@ -169,9 +165,17 @@ Proof using.
   - ziter_l; rewrite Hs /=.
     ziter_r; rewrite Ht /=. destruct cid; s; cycle 1.
     { zstep_l. zstep_l. }
-    specialize (RET eq_refl). subst. s. zstep_l. zstep_r.
+    specialize (RET eq_refl). subst. s. zstep_l.
+    zstep_r. zstep_r. ziter_r. zstep_r. ziter_r. zstep_r. ired.
+    ziter_r. zstep_r. zstep_r. ziter_r. zstep_r. zstep_r.
+    ziter_r. zstep_r. ziter_r. zstep_r. ziter_r. zstep_r.
+    ziter_r. zstep_r.
     gstep. econs. econs.
     r. esplits; et; hss.
+    eapply Own_pure_soundness.
+    { eapply Own_wand_valid; [|instantiate (1 := r_s); eauto].
+      rewrite RS; eauto. iIntros ">(_ & $ & _)"; eauto. }
+    { rewrite x2. iIntros ">[$ _]". }
   - ziter_l. ziter_r. rewrite Hs Ht /=. zstep_l. zstep_r. eapply Hkey; et.
     { rewrite list_insert_id //. }
     { econs; eauto. }
@@ -185,8 +189,6 @@ Proof using.
   - eapply cancel_spawn; et.
   - eapply cancel_pre; et.
   - eapply cancel_post; et.
-  - admit.
-  - admit.
   - admit.
     (* ziter_r. rewrite Ht /=; zstep_r. *)
     (* exists tt. zstep_r. ziter_r. zstep_r. *)
@@ -205,7 +207,7 @@ Lemma cancel_main md rs rt
   (WFS: SMod.wf md)
   (WF: Mod.wf (SMod.to_mod sp_none (SMod.cancel md)))
   (VALID: ✓ rs)
-  (RES: Own rs ⊢ |==> Own rt ∗ TidTokenAuth 0 ∗ TidToken 0 ∗ YieldTokenAuth 0)
+  (RES: Own rs ⊢ |==> Own rt ∗ TIDAUTH 0 ∗ YIELDAUTH 1)
   :  
   refines_lmod
     (Mod.to_lmod (MInline.inline (SMod.to_mod sp_none (SMod.cancel md))) rs)
@@ -232,55 +234,58 @@ Proof using.
   ziter_l. zstep_l. ziter_l. zstep_l.
   exploit WFS; et. i; des; subst; ss.
 
-  gfinal. right.
-  replace (SModTr.HoareFun) with (Seal.sealing "temp" SModTr.HoareFun); cycle 1.
-  { unseal "temp". ss. }
   hexploit x2; eauto; i; subst; ss.
+  ziter_r. zstep_r. exists tt. zstep_r.
+  ziter_r. zstep_r. ziter_r. zstep_r. exists arg. zstep_r.
+  ziter_r. zstep_r. ziter_r. zstep_r. ired.
+  ziter_r. zstep_r. exists rt. zstep_r. ziter_r. zstep_r.
+  unshelve eexists.
+  { split; eauto. eapply Own_wand_valid; cycle 1; eauto.
+    rewrite RES. iIntros ">[$ _]"; eauto. }
+  ired. zstep_r. ziter_r. zstep_r. ziter_r. zstep_r.
+  ziter_r. zstep_r.
+  set (itr := vret <- SModTr.trans true (sp_from md) (bd arg);; _: itree crisE Any.t).
+  replace (interpV (SB.handle_sandbox true msk scp) itr) with (SB.sandbox true msk scp itr) by refl.
+  rewrite SBRed.bind MIRed.bind.
+  set (itr0 := (λ _, inline_body _ _)).
+  eassert (itr0 = λ vret, ret <- trigger (Choose Any.t);; tau;; trigger (Guarantee ⌜vret = ret⌝);;; tau;; Ret ret).
+  { subst itr0. eapply func_ext. i.
+    rewrite SBRed.bind SBRed.choose MIRed.core. f_equal.
+    extensionalities. do 2 f_equal.
+    rewrite SBRed.bind SBRed.Guarantee MIRed.ag. f_equal.
+    extensionalities. do 2 f_equal.
+    rewrite SBRed.ret MIRed.ret. refl.
+  }
+  rewrite H. rewrite Red.bind.
+
+  gfinal. right.
 
   eapply (cancel_elim rs rt (rs_diff:=[ε])); eauto.
   { econs; et.
     split; ss.
     i. destruct i; ss. inv H0. 
     (* exploit WFS; et. i. subst. *)
-    set (itrS:=_:itree lmodE Any.t).
-    set (itrT:=_:itree lmodE Any.t) at 2.
-    replace itrS with
-      (ModTr.trans
-         (inline_body (sandboxed_prog (SMod.to_mod sp_none (SMod.cancel md)))
-            (SB.sandbox true msk scp(SModTr.trans false sp_none (ret <- bd arg;; tau;; tau;; Ret ret))))); cycle 1.
-    { subst itrS. rewrite SRed.bind SBRed.bind MIRed.bind Red.bind.
-      rewrite {1}/SB.sandbox. f_equal.
-      extensionalities. rewrite SRed.tau SRed.ret SBRed.tau SBRed.ret MIRed.tau MIRed.ret.
-      rewrite !Red.tau Red.ret.
-      { repeat f_equal.
-    econs; et; cycle 1.
-    { set (INLINE := inline_body _).
-      set (ktr := λ ret, tau;; Ret ret).
-      rewrite bind_ret_r.
-      replace ktr with ModTr.trans (λ ret, INLINE (tau;; Ret ret))).
-      rewrite bind_ret_r. et. }
 
-    rewrite /SB.sandbox. rewrite {1}/SModTr.trans.
-
+    econs; et.
     eapply elim_rel_cancel; et.
   }
-  ss; rewrite right_id -Own_op left_id; iIntros "$"; done.
+  ss. rewrite right_id assoc -Own_op left_id. rewrite RES.
+  iIntros ">$"; eauto.
 Unshelve. all: exact smj_top.
 (*SLOW*)Qed.
 
 End Cancel.
 
 Section Cancel.
-Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
+Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG}.
 
 (*** Final Theorem ***)
-Theorem cancellation md sp P
+Theorem cancellation md P
   (WFS: SMod.wf md)
-  (VP: valid_sp md sp)
   (WF: Mod.wf (SMod.to_mod sp_none (SMod.cancel md)))
   :
-  refines (SMod.to_mod sp_none (SMod.cancel md), P)
-          (SMod.to_mod sp md, P).
+  refines (SMod.to_mod sp_none (SMod.cancel md), (P ∗ TIDAUTH 0 ∗ YIELDAUTH 1)%I)
+          (SMod.to_mod (sp_from md) md, P).
 Proof using. 
   etrans.
   { eapply inline_elim. }
@@ -292,8 +297,16 @@ Proof using.
     repeat rewrite List.map_map fst_map_snd.
     repeat rewrite List.map_map fst_map_snd in wf_fns. eauto.
   }
-  inv WFM. s; i. exists rs. esplits; et.
+  inv WFM. s; i.
+  rewrite assoc in SRC.
+  hexploit (Own_bupd_split); eauto.
+  intros [rt [ra [Hr1 [Hr2 Hr3]]]].
+  exists rt. esplits; et.
+  { eapply Own_wand_valid; [iIntros "S"; iPoseProof (Hr1 with "S") as ">[$ _]"; done|done]. }
+  { rewrite Hr2. eauto. }
   eapply cancel_main; eauto.
+  iIntros "S". iPoseProof (Hr1 with "S") as ">[$ A]".
+  rewrite Hr3; iFrame; eauto.
 (*SLOW*)Qed.
 
 End Cancel. End Cancel.

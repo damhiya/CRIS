@@ -10,9 +10,7 @@ Lemma cancel_post `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp:
     (KEY: ∀ itr_s itr_t st (r_s r_t r_diff : Σ) tid
              (WFR: ✓ r_s)
              (RS: Own r_s ⊢ |==> ([∗ list] i ∈ <[cid:=r_diff]> rs_diff, Own i) ∗ Own r_t ∗
-                    (* TID *) TidTokenAuth tid ∗ TidToken tid ∗
-                    (* YIELD *) YieldTokenAuth (length (<[cid:=r_diff]> rs_diff)) ∗ YieldToken tid ∗
-                    (* WINV *) winv (⊤, ⊤))
+                      TIDAUTH tid ∗ YIELDAUTH (length (<[cid:=r_diff]> rs_diff)))
              (LEN: cid < List.length srcs)
              (REL: thread_rel sp cid r_diff itr_s itr_t),
      gpaco7 _gsim (cpn7 _gsim) bot7 r (Any.t * Any.t)%type
@@ -33,14 +31,12 @@ Lemma cancel_post `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp:
       srcs !! i = Some x → tgts !! i = Some y → thread_rel sp i z x y)
     (WFR : ✓ r_s)
     (RS : Own r_s ⊢ |==> ([∗ list] i ∈ rs_diff, Own i) ∗ Own r_t ∗
-            (* TID *) TidTokenAuth cid ∗ TidToken cid ∗
-            (* YIELD *) YieldTokenAuth (length rs_diff) ∗ YieldToken cid ∗
-            (* WINV *) winv (⊤, ⊤))
+              TIDAUTH cid ∗ YIELDAUTH (length rs_diff))
     (LEN : cid < length srcs)
     (x2 : rs_diff !! cid = Some ε)
-    (x0 : srcs !! cid = Some (ModTr.trans (tau;; tau;; tau;; tau;; itrS)))
+    (x0 : srcs !! cid = Some (ModTr.trans (tau;; tau;; itrS)))
     (x1 : tgts !! cid = Some (x <- ModTr.trans (x <- elim_postcond Q Q' x x' vret;; ktrT x);; k x))
-    (RET : cid = 0 → k = λ x : Any.t, Ret x)
+    (RET : cid = 0 → k = main_post)
     (KTR :
       (∀ ret : Any.t, Q' x' vret ret ⊢ |==> Q x vret ret)
       ∧ upaco4 (elim_rel_def sp) bot4 Any.t ε itrS (ktrT vret)),
@@ -57,7 +53,7 @@ Lemma cancel_post `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp:
        (Any.pair (ModTr.alist_encode st) r_t ↑)).
 Proof.
   i. ziter_l. ziter_r. rewrite x0 x1 /=.
-  zstep_l. ziter_l. zstep_l. ziter_l. zstep_l. ziter_l. zstep_l.
+  zstep_l. ziter_l. zstep_l.
   move KTR at bottom. des_safe.
   destruct KTR0; subst; des_safe.
   { zstep_r. zstep_r.
@@ -67,8 +63,7 @@ Proof.
     ziter_r. zstep_r. ziter_r. zstep_r.
 
     des; subst.
-    { ziter_r. zstep_r. ziter_r. zstep_r.
-      ziter_r. zstep_r. eexists. zstep_r.
+    { ziter_r. zstep_r. eexists. zstep_r.
       ziter_r. zstep_r. ziter_r. zstep_r.
       ziter_r. zstep_r. eexists r_t. zstep_r.
       ziter_r. zstep_r. unshelve eexists.

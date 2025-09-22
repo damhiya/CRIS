@@ -36,8 +36,8 @@ Proof.
   ziter_r; zstep_r.
   rewrite YieldToken_gen in RS.
   hexploit (Own_bupd_split).
-  { iIntros "S". iPoseProof (RS with "S") as ">(D & R & TA & T & [YA NY] & Y & W)".
-    iModIntro. iCombine "D TA T YA Y W" as "P". iCombine "R NY" as "Q".
+  { iIntros "S". iPoseProof (RS with "S") as ">(D & R & TA & [YA NY])".
+    iModIntro. iCombine "D TA YA" as "P". iCombine "R NY" as "Q".
     iSplitL "P"; [iApply "P"|iApply "Q"]. }
   { eauto. }
   intros [r_t1 [r_t2 [Hr_t [Hr_t1 Hr_t2]]]].
@@ -46,7 +46,7 @@ Proof.
   assert (RES: ✓ r_t2 ∧ (Own r_t2 ⊢ |==> YIELD (length tgts) ∗ Own r_t)).
   { split; eauto.
     { eapply Own_wand_valid; [iIntros "S"; iMod (Hr_t with "S") as "[_ $]"; done|eauto]. }
-    { rewrite Hr_t2 EQLEN2 EQLEN. iIntros "[$ $]"; done. }
+    { rewrite Hr_t2 EQLEN2 -EQLEN. iIntros "[$ $]"; done. }
   }
   exists RES.
   zstep_r.

@@ -10,9 +10,7 @@ Lemma cancel_pre `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp:
     (KEY: ∀ itr_s itr_t st (r_s r_t r_diff : Σ) tid
              (WFR: ✓ r_s)
              (RS: Own r_s ⊢ |==> ([∗ list] i ∈ <[cid:=r_diff]> rs_diff, Own i) ∗ Own r_t ∗
-                    (* TID *) TidTokenAuth tid ∗ TidToken tid ∗
-                    (* YIELD *) YieldTokenAuth (length (<[cid:=r_diff]> rs_diff)) ∗ YieldToken tid ∗
-                    (* WINV *) winv (⊤, ⊤))
+                      TIDAUTH tid ∗ YIELDAUTH (length (<[cid:=r_diff]> rs_diff)))
              (LEN: cid < List.length srcs)
              (REL: thread_rel sp cid r_diff itr_s itr_t),
      gpaco7 _gsim (cpn7 _gsim) bot7 r (Any.t * Any.t)%type
@@ -33,14 +31,12 @@ Lemma cancel_pre `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp:
       srcs !! i = Some x → tgts !! i = Some y → thread_rel sp i z x y)
     (WFR : ✓ r_s)
     (RS : Own r_s ⊢ |==> ([∗ list] i ∈ rs_diff, Own i) ∗ Own r_t ∗
-            (* TID *) TidTokenAuth cid ∗ TidToken cid ∗
-            (* YIELD *) YieldTokenAuth (length rs_diff) ∗ YieldToken cid ∗
-            (* WINV *) winv (⊤, ⊤))
+              TIDAUTH cid ∗ YIELDAUTH (length rs_diff))
     (LEN : cid < length srcs)
     (x2 : rs_diff !! cid = Some ε)
     (x0 : srcs !! cid = Some (ModTr.trans (tau;; tau;; tau;; itrS)))
     (x1 : tgts !! cid = Some (x <- ModTr.trans (x <- elim_precond P P' varg;; ktrT x);; k x))
-    (RET : cid = 0 → k = λ x : Any.t, Ret x)
+    (RET : cid = 0 → k = main_post)
     (KTR :
       ∀ x : X, ∃ x' : X',
         (∀ arg : Any.t, P x varg arg ⊢ |==> P' x' varg arg)
