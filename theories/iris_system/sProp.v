@@ -263,11 +263,6 @@ Module SL.
   End definitions.
 End SL.
 
-(* Module CtxSL.
-  Class t (Σ : GRA) (Γ : HRA) α β τ 
-    `{!subG Γ Σ} `{!CtxST.t τ} `{!SATIntp.inG SL.syntax α SL.t β} := mk_t : unit.
-End CtxSL. *)
-
 (** Notations *)
 Local Open Scope SAT_scope.
 

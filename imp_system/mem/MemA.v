@@ -36,14 +36,14 @@ Section MEM.
   Definition mem_init_auth_r (csl : string → bool) (genv: GEnv.t) : memRA :=
     ● ((λ blk ofs,
         match mem_init_val csl genv blk ofs with
-        | Some gv => Some (to_frac_agree 1 (Vint gv))
+        | Some gv => Some (to_dfrac_agree (DfracOwn 1) (Vint gv))
         | _ => ε
         end) : _memRA).
 
   Definition mem_init_frag_r (csl : string → bool) (genv : GEnv.t) : memRA :=
     ◯ ((λ blk ofs,
         match mem_init_val csl genv blk ofs with
-        | Some gv => Some (to_frac_agree 1 (Vint gv))
+        | Some gv => Some (to_dfrac_agree (DfracOwn 1) (Vint gv))
         | _ => ε
         end) : _memRA).
 
@@ -77,26 +77,26 @@ Section MemRA.
 
   Definition mem_val : Type := Qp * val.
 
-  Definition _points_to_r (loc : mblock * Z) (q: Qp) (mvs : list val): _memRA :=
+  Definition _points_to_r (loc : mblock * Z) (q : dfrac) (mvs : list val): _memRA :=
     let (b, ofs) := loc in
     fun _b _ofs =>
       if (dec _b b) && ((ofs <=? _ofs) && (_ofs <? (ofs + Z.of_nat (List.length mvs))))%Z
       then match (List.nth_error mvs (Z.to_nat (_ofs - ofs))) with
-        | Some v => Some (to_frac_agree q v)
+        | Some v => Some (to_dfrac_agree q v)
         | None => ε
         end
       else ε.
 
-  Definition mem_points_to_singleton_r (loc : mblock * Z) (q: Qp) (v : val) : memRA :=
-    ◯ (discrete_fun_singleton loc.1 (discrete_fun_singleton loc.2 (Some (to_frac_agree q v)))).
-  Definition mem_points_to_singleton (loc : mblock * Z) (q: Qp) (v : val) : iProp Σ :=
+  Definition mem_points_to_singleton_r (loc : mblock * Z) (q : dfrac) (v : val) : memRA :=
+    ◯ (discrete_fun_singleton loc.1 (discrete_fun_singleton loc.2 (Some (to_dfrac_agree q v)))).
+  Definition mem_points_to_singleton (loc : mblock * Z) (q : dfrac) (v : val) : iProp Σ :=
     own base_γ ((mem_points_to_singleton_r loc q v): memRA).
-  Definition mem_points_to : (mblock * Z) → Qp → list val → iProp Σ :=
+  Definition mem_points_to : (mblock * Z) → dfrac → list val → iProp Σ :=
     λ '(blk, ofs) q vs, ([∗ list] i ↦ v ∈ vs, mem_points_to_singleton (blk, ofs + i)%Z q v)%I.
 
   Lemma mem_init_auth_r_valid (csl : string → bool) (genv : GEnv.t) blk ofs v :
     mem_init_val csl genv blk ofs = Some v →
-    mem_points_to_singleton_r (blk, ofs) 1 (Vint v) ≼ mem_init_frag_r csl genv.
+    mem_points_to_singleton_r (blk, ofs) (DfracOwn 1) (Vint v) ≼ mem_init_frag_r csl genv.
   Proof.
     intros H'. rewrite /mem_init_auth_r /mem_points_to_singleton_r /mem_init_val; ss.
     rewrite /mem_init_frag_r. apply auth_frag_mono.
@@ -123,10 +123,14 @@ Section MemRA.
   Qed.
 End MemRA.
 
-Notation "loc '↦{' q '}' v" := (mem_points_to_singleton loc q v) (at level 20).
-Notation "loc ↦ v" := (mem_points_to_singleton loc 1 v) (at level 20).
-Notation "loc ↦ v" := (<own> base_γ (mem_points_to_singleton_r loc 1 v))%SAT (at level 20) : SAT_scope.
-Notation "loc |-> vs" := (mem_points_to loc 1 vs) (at level 20).
+Notation "loc '↦{' q '}' v" := (mem_points_to_singleton loc (DfracOwn q) v) (at level 20).
+Notation "loc ↦ v" := (mem_points_to_singleton loc (DfracOwn 1) v) (at level 20).
+Notation "loc ↦□ v" := (mem_points_to_singleton loc DfracDiscarded v) (at level 20).
+Notation "loc ↦ v" := (<own> base_γ (mem_points_to_singleton_r loc (DfracOwn 1) v))%SAT
+  (at level 20) : SAT_scope.
+Notation "loc ↦□ v" := (<own> base_γ (mem_points_to_singleton_r loc DfracDiscarded v))%SAT
+  (at level 20) : SAT_scope.
+Notation "loc |-> vs" := (mem_points_to loc (DfracOwn 1) vs) (at level 20).
 
 Global Opaque mem_points_to_singleton_r.
 Arguments mem_points_to_singleton_r : simpl never.

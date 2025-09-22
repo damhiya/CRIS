@@ -1,10 +1,9 @@
-(* Require Import CRIS SchHeader SchA.
+Require Import CRIS SchHeader SchA.
 Require Import ITactics.
 Require Import MSim WSim.
 
 Section wsim.
-  Import SchAS.
-  Context `{!crisG Γ Σ α β τ _S _I, !schG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concG, !newschG}.
 
   Local Definition state : Type := alist key Any.t.
   Local Definition post (R_s R_t : Type) : Type := state * R_s → state * R_t → iProp Σ.
@@ -13,13 +12,14 @@ Section wsim.
 
   Context (fl_s fl_t : alist (option string) (Any.t → itree crisE Any.t)).
   Context (Ist : alist key Any.t → alist key Any.t → iProp Σ).
-  Context (t : option bool).
   Context (R_s R_t : Type).
   Context (RR : post R_s R_t).
   Context (ps pt : bool).
   Context (st_src st_tgt : state).
 
-  Lemma wsim_yield_tgt (tid_res : bool) (E : coPset) (q : Qp)
+  Lemma wsim_yield_tgt
+      (tid_res : bool)
+      (E : coPset)
       (r g : rel)
       (img_s img_t : bool)
       (msk_s msk_t : string → bool)
@@ -27,33 +27,31 @@ Section wsim.
       (sp_s sp_t : string → option fspec)
       (k_s : () → itree crisE R_s)
       (k_t : () → itree crisE R_t)
-      (my_tid : nat) :
+      (mtid stid : nat) :
     (tid_res = false ∧
      sp_s SchHdr.yield = None ∧
      sp_t SchHdr.yield = None ∧
-     E = ∅ ∧
-     q = 1%Qp (* unused value *)) ∨
+     E = ∅) ∨
     (tid_res = true ∧
      ∃ sp_user_s,
-       sp_incl (SchAS.sp sp_user_s E q) sp_s ∧ img_s = true ∧
+       sp_incl (SchA.sp sp_user_s E) sp_s ∧ img_s = true ∧
        sp_t SchHdr.yield = None) ∨
-    (tid_res = true ∧
-    ∃ sp_user_s sp_user_t E_s E_t q_s q_t,
-      sp_incl (SchAS.sp sp_user_s E_s q_s) sp_s ∧ img_s = true ∧
-      sp_incl (SchAS.sp sp_user_t E_t q_t) sp_t ∧ img_t = true ∧
-      (E_s ≡ E_t ∪ E) ∧ (E ## E_t) ∧
-      (q_s ≡ q_t + q)%Qp) →
+    (tid_res = false ∧
+    ∃ sp_user_s sp_user_t E_s E_t,
+      sp_incl (SchA.sp sp_user_s E_s) sp_s ∧ img_s = true ∧
+      sp_incl (SchA.sp sp_user_t E_t) sp_t ∧ img_t = true ∧
+      (E_s ≡ E_t ∪ E) ∧ (E ## E_t)) →
     msk_s SchHdr.yield →
     msk_t SchHdr.yield →
-    Ist st_src st_tgt ∗ (if tid_res then tid_user q my_tid else emp) ∗
+    Ist st_src st_tgt ∗ (if tid_res then Tid mtid stid else emp) ∗
     (∀ st_src st_tgt,
-      Ist st_src st_tgt -∗ (if tid_res then tid_user q my_tid else emp) -∗
+      Ist st_src st_tgt -∗ (if tid_res then Tid mtid stid else emp) -∗
       wsim fl_s fl_t Ist (E, E) r g R_s R_t RR true true
-        (st_src, (SB.sandbox img_s msk_s scp_s (SModTr.trans sp_s 𝒴)) >>= k_s)
+        (st_src, (SB.sandbox img_s msk_s scp_s (SModTr.trans img_s sp_s 𝒴)) >>= k_s)
         (st_tgt, k_t tt))
     ⊢ wsim fl_s fl_t Ist (E, E) r g R_s R_t RR ps pt
-    (st_src, (SB.sandbox img_s msk_s scp_s (SModTr.trans sp_s 𝒴)) >>= k_s)
-    (st_tgt, (SB.sandbox img_t msk_t scp_t (SModTr.trans sp_t 𝒴)) >>= k_t).
+    (st_src, (SB.sandbox img_s msk_s scp_s (SModTr.trans img_s sp_s 𝒴)) >>= k_s)
+    (st_tgt, (SB.sandbox img_t msk_t scp_t (SModTr.trans img_t sp_t 𝒴)) >>= k_t).
   Proof using.
     intros Hcase Hmsks Hmskt. iIntros "[IST [TID SIM]]".
     rewrite /Sch.yield; unseal SCH.
@@ -83,47 +81,40 @@ Section wsim.
       steps_l. steps_r. hss. steps_l. steps_r.
       by_coind CIH. iFrame.
     }
-    { replace (sp_s SchHdr.yield) with (Some (SchAS.yield_spec E q)); cycle 1.
-      { erewrite (proj2 Hcase0); et. unfold sp; unseal CRIS; et. }
+    { replace (sp_s SchHdr.yield) with (Some (SchA.yield_spec E)); cycle 1.
+      { erewrite (proj2 Hcase0); et. rewrite /SchA.sp; unseal CRIS; et. }
       rewrite Hcase2.
-      forces_l. iSplitL "TID"; iFrame; eauto.
+      steps_l. force_l (mtid, stid). forces_l. iSplitL "TID"; iFrame; eauto.
       steps_l.
       call "IST".
       steps_l. iDestruct "ASM" as "[[-> TID] ->]". hss. steps_l. steps_r.
       by_coind CIH. iFrame.
     }
-    { replace (sp_s SchHdr.yield) with (Some (SchAS.yield_spec E_s q_s)); cycle 1.
-      { erewrite (proj2 Hcase0); et. unfold sp; unseal CRIS; et. }
-      replace (sp_t SchHdr.yield) with (Some (SchAS.yield_spec E_t q_t)); cycle 1.
-      { erewrite (proj2 Hcase2); et. unfold sp; unseal CRIS; et. }
-      steps_r. iDestruct "GRT" as "[[-> TID0] _]".
-      iPoseProof (tid_user_unique with "[TID TID0]") as "%"; iFrame; subst.
-      forces_l. iSplitL "TID TID0".
-      { do 2 (iSplit; et).
-        iPoseProof (tid_user_merge with "[TID TID0]") as "TID"; iFrame.
-        rewrite -Hcase6. et.
-      }
+    { replace (sp_s SchHdr.yield) with (Some (SchA.yield_spec E_s)); cycle 1.
+      { erewrite (proj2 Hcase0); et. unfold SchA.sp; unseal CRIS; et. }
+      replace (sp_t SchHdr.yield) with (Some (SchA.yield_spec E_t)); cycle 1.
+      { erewrite (proj2 Hcase2); et. unfold SchA.sp; unseal CRIS; et. }
+      steps_r. iDestruct "GRT" as "[[-> TID0] _]". iClear "TID". iRename "TID0" into "TID".
+      force_l (_, _). forces_l. iFrame "TID". iSplit; eauto.
       call "IST".
       steps_l. hss. iDestruct "ASM" as "[[-> TID] _]". steps_l.
-      rewrite Hcase6.
-      iPoseProof (tid_user_split with "[TID]") as "[TID0 TID]"; et.
-      steps_r. forces_r. iSplitL "TID0"; et.
-      steps_r. hss. steps_r.
+      steps_r. forces_r. iSplitL "TID"; et.
+      steps_r.
       by_coind CIH. iFrame.
+      hss. iFrame.
     }
   (*SLOW*)Qed.
 
-  Lemma wsim_yield_src Ep r g img_s (msk_s: _ → bool) sc_s sp_s k_s i_t :
+  Lemma wsim_yield_src Ep r g img_s (msk_s: _ → bool) scp_s sp_s k_s i_t :
     wsim fl_s fl_t Ist Ep r g R_s R_t RR true pt (st_src, k_s tt) (st_tgt, i_t) ⊢
     wsim fl_s fl_t Ist Ep r g R_s R_t RR true pt
-      (st_src, (SB.sandbox img_s msk_s sc_s (SModTr.trans sp_s 𝒴)) >>= k_s) (st_tgt, i_t).
+      (st_src, (SB.sandbox img_s msk_s scp_s (SModTr.trans img_s sp_s 𝒴)) >>= k_s) (st_tgt, i_t).
   Proof using.
     iIntros "SIM".
     rewrite /Sch.yield; unseal SCH.
     unfold_iterC_l; steps_l.
     force_l None; steps_l. iApply "SIM".
   (*SLOW*)Qed.
-
 End wsim.
 
 Ltac clear_st :=
@@ -153,7 +144,7 @@ Ltac sch_yield_ii :=
   norm_r; iApply wsim_yield_tgt;
   [right; right; esplits; [refl|..]; et; try set_solver|et|et|sch_auto; [..|try sch_intros]].
 
-Section RealLAT.
+(* Section RealLAT.
   Context `{CrisG: !crisG Γ Σ α β τ _S _I}.
   Context `{SchG: !schG}.
 
@@ -242,16 +233,16 @@ Section RealLAT.
      q = 1%Qp (* unused value *)) ∨
     (tid_res = true ∧
      ∃ sp_user_s,
-       sp_incl (SchAS.sp sp_user_s E q) sp_s ∧ img_s = true) →
+       sp_incl (SchA.sp sp_user_s E q) sp_s ∧ img_s = true) →
     msk_s SchHdr.yield →
     msk_t SchHdr.yield →
-    I ∗ Ist st_s st_t ∗ (if tid_res then SchAS.tid_user q my_tid else emp) ∗
+    I ∗ Ist st_s st_t ∗ (if tid_res then SchA.tid_user q my_tid else emp) ∗
     (□ (∀ st_src st_tgt,
-       I -∗ winv (E, E) -∗ Ist st_src st_tgt -∗ (if tid_res then SchAS.tid_user q my_tid else emp) ==∗
-       precondS fsp_t x_t arg_t ∗ (precondS fsp_t x_t arg_t ==∗ I ∗ winv (E, E) ∗ Ist st_src st_tgt ∗ (if tid_res then SchAS.tid_user q my_tid else emp)))
+       I -∗ winv (E, E) -∗ Ist st_src st_tgt -∗ (if tid_res then SchA.tid_user q my_tid else emp) ==∗
+       precondS fsp_t x_t arg_t ∗ (precondS fsp_t x_t arg_t ==∗ I ∗ winv (E, E) ∗ Ist st_src st_tgt ∗ (if tid_res then SchA.tid_user q my_tid else emp)))
     ) ∗
     (∀ st_src st_tgt,
-     I -∗ Ist st_src st_tgt -∗ (if tid_res then SchAS.tid_user q my_tid else emp) -∗
+     I -∗ Ist st_src st_tgt -∗ (if tid_res then SchA.tid_user q my_tid else emp) -∗
      sim (E,E) r g RR true true
         (st_src, SB.sandbox img_s msk_s scp_s (SModTr.trans sp_s 𝒴) >>= k_s)
         (st_tgt, SB.sandbox img_t msk_t scp_t (SModTr.trans sp_none (ret_t <- body_t arg_t;;
@@ -341,7 +332,7 @@ Ltac lat_real_ir Hyps :=
 
 Section MSIM.
 
-  Import SchAS.
+  Import SchA.
   Context `{!crisG Γ Σ α β τ _S _I, !schG}.
 
   Variable contextual: contextuality.
@@ -375,7 +366,7 @@ End MSIM.
 
 Section SREL.
 
-  Import SchAS.
+  Import SchA.
   Context `{!crisG Γ Σ α β τ _S _I, !schG}.
 
   (* srel (progress_flag) (oneshot_flag) (i_rew) (i_org) *)
@@ -731,7 +722,7 @@ End SREL.
 
 Section ISIM.
 
-  Import SchAS.
+  Import SchA.
   Context `{!crisG Γ Σ α β τ _S _I, !schG}.
   Variable contextual: contextuality.
   Variable fl_src fl_tgt : alist (option string) (Any.t → itree crisE Any.t).
@@ -754,7 +745,7 @@ Section ISIM.
 End ISIM.
 
 Section WSIM.
-  Import SchAS.
+  Import SchA.
   Context `{!crisG Γ Σ α β τ _S _I, !schG}.
 
   Context (fl_s fl_t : alist (option string) (Any.t → itree crisE Any.t)).

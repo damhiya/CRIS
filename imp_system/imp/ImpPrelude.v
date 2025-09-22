@@ -23,6 +23,8 @@ Global Program Instance val_dec : Dec val.
 Next Obligation.
   repeat (decide equality).
 Defined.
+Global Instance val_deq_eq : EqDecision val.
+Proof. intros x y; destruct (dec x y); [left|right]; ss. Qed.
 
 Definition wordsize_64 := 64.
 Definition modulus_64 := two_power_nat wordsize_64.
