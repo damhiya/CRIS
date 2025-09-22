@@ -113,10 +113,21 @@ Definition elim_precond {X X' : Type} P P' (varg: Any.t) : itree crisE (X * X' *
 
 Definition elim_postcond {X X' : Type} Q Q' (x : X) (x' : X') (vret': Any.t) : itree crisE Any.t :=
   ret <- trigger (Choose Any.t);; tau;;
-  trigger (Guarantee (Q' x' vret' ret));;; tau;; tau;; tau;;
+  trigger (Guarantee (Q' x' vret' ret));;; tau;; tau;; tau;; tau;; tau;;
   vret <- trigger (Take Any.t);; tau;;
   trigger (Assume (Q x vret ret));;; tau;;
   Ret vret.
+
+Definition elim_trivial_precond (arg: Any.t) : itree crisE Any.t :=
+  trigger (Take ());;; tau;;
+  varg <- trigger (Take Any.t);; tau;;
+  trigger (Assume ⌜varg = arg⌝);;; tau;;
+  Ret varg.
+
+Definition elim_trivial_postcond (vret: Any.t) : itree crisE Any.t :=
+  ret <- trigger (Choose Any.t);; tau;;
+  trigger (Guarantee (⌜vret = ret⌝)%I);;; tau;;
+  Ret ret.
 
 Definition elim_spawnee_precond (X : Type) P (arg : Any.t) : itree crisE (nat * X * Any.t) :=
   tid <- trigger (Take nat);; tau;;
@@ -184,7 +195,16 @@ Variant elim_rel_def
    itrS = NativeGetTidE >>= ktrS ->
    itrT = HoareGetTidE >>= ktrT ->
    (∀ x, self _ ε (ktrS x) (ktrT x)) ->
-   elim_rel_def sp self ε itrS itrT.
+   elim_rel_def sp self ε itrS itrT
+| elim_rel_trivial_precond (varg: Any.t) itrS itrT ktrT :
+   itrT = elim_trivial_precond varg >>= ktrT →
+   (self _ ε itrS (ktrT varg)) →
+   elim_rel_def sp self ε (tau;; tau;; itrS) itrT
+| elim_rel_trivial_postcond (vret: Any.t) itrS itrT ktrT :
+   itrT = elim_trivial_postcond vret >>= ktrT →
+   (self _ ε itrS (ktrT vret)) →
+   elim_rel_def sp self ε (tau;; tau;; itrS) itrT
+.
 
 Definition elim_rel sp T r_diff itrS itrT :=
   paco4 (@elim_rel_def sp) bot4 T r_diff itrS itrT.
@@ -373,13 +393,13 @@ Lemma MIRed_HoareFun
   alist_find fno (SMod.fnsems md) = Some (img, msk, scp, (fspo, bd)) →
   fspo = Some (@fspec_spawn _ meta pre post) →
   inline_body
-    (sandboxed_prog (SMod.to_mod sp md))
+    (sandboxed_prog true (SMod.to_mod sp md))
     (SB.sandbox_body (true, msk, scp,
       SModTr.HoareFun fspo (SModTr.trans true sp ∘ bd)) arg) =
   '(tid, x, varg) : _ <- @elim_spawnee_precond _ pre arg;;
   vret <-
     inline_body
-      (sandboxed_prog (SMod.to_mod sp md))
+      (sandboxed_prog true (SMod.to_mod sp md))
       (SB.sandbox true msk scp (SModTr.trans true sp (bd varg)));;
   elim_spawnee_postcond post tid x vret.
 Proof using.
@@ -417,12 +437,12 @@ Lemma MIRed_HoareCall md sp fn varg
   (ST: fspo = Some (@fspec_call _ m pre post))
   (ST0: fspo0 = Some (@fspec_call _ m0 pre0 post0))
   :
-  inline_body (sandboxed_prog (SMod.to_mod sp md)) (SB.sandbox true msk scp (SModTr.HoareCall fn varg fspo))
+  inline_body (sandboxed_prog true (SMod.to_mod sp md)) (SB.sandbox true msk scp (SModTr.HoareCall fn varg fspo))
   =
   (* head *)
   '(x,x0,arg):_ <- elim_precond pre pre0 varg ;;
   (* body *)
-  vret0 <- inline_body (sandboxed_prog (SMod.to_mod sp md)) 
+  vret0 <- inline_body (sandboxed_prog true (SMod.to_mod sp md)) 
                        (SB.sandbox true msk0 scp0 (SModTr.trans true sp (bd0 arg)));;
   (* tail *)
   elim_postcond post post0 x x0 vret0.
@@ -453,7 +473,7 @@ Proof using.
   rewrite !SBRed.bind SBRed.Guarantee MIRed.ag. ired. do 2 f_equal.
   extensionalities. do 2 f_equal.
   rewrite !SBRed.ret MIRed.ret. ired.
-  rewrite MIRed.tau !SBRed.bind SBRed.take /= MIRed.core. ired. do 6 f_equal.
+  rewrite !MIRed.tau !SBRed.bind SBRed.take /= MIRed.core. ired. do 10 f_equal.
   extensionalities. do 2 f_equal.
   rewrite !SBRed.bind SBRed.Assume /=. ired. rewrite MIRed.ag. ired. do 2 f_equal.
   extensionalities. ired. do 2 f_equal.
@@ -467,9 +487,9 @@ Lemma elim_rel_cancel (md: SMod.t) T msk scp (itr: itree _ T)
   (WF: SMod.wf md)
   :
   @elim_rel (sp_from md) T ε
-    (inline_body (sandboxed_prog (SMod.to_mod sp_none (SMod.cancel md))) 
+    (inline_body (sandboxed_prog false (SMod.to_mod sp_none (SMod.cancel md))) 
       (SB.sandbox true msk scp (SModTr.trans false sp_none itr)))
-    (inline_body (sandboxed_prog (SMod.to_mod (sp_from md) md)) 
+    (inline_body (sandboxed_prog true (SMod.to_mod (sp_from md) md)) 
       (SB.sandbox true msk scp (SModTr.trans true (sp_from md) itr))).
 Proof using.
   ginit. revert T itr msk scp. gcofix CIH. i.
@@ -509,9 +529,10 @@ Proof using.
       
       gstep. eapply elim_rel_precond; eauto. i.
       exists x. split; eauto.
+
       ired. guclo elim_rel_bindC_spec. econs; [edone|].
 
-      i. ired. rewrite MIRed.tau MIRed.ret. ired.
+      i. ired. rewrite !MIRed.tau MIRed.ret. ired.
       gstep. eapply elim_rel_postcond; et.
       split; eauto. edone.
     }
@@ -561,6 +582,67 @@ Proof using.
       rewrite !MIRed.core. estep 2. edone.
     + rewrite !SBRed.io !MIRed.core. estep 2. edone.
 (*SLOW*)Qed.
+
+
+Lemma MIRed_HoareFun_Main prog msk scp sp bd arg :
+  inline_body prog
+    (SB.sandbox true msk scp
+       (SModTr.HoareFun (Some fspec_trivial) (SModTr.trans true sp ∘ bd) arg)) =
+    varg <- elim_trivial_precond arg;;
+    vret <- (inline_body prog
+              (SB.sandbox true msk scp ((SModTr.trans true sp (bd varg)))));;
+    elim_trivial_postcond vret.
+Proof using.
+  ss. rewrite /elim_trivial_precond /elim_trivial_postcond.
+  rewrite SBRed.bind SBRed.take /= MIRed.core.
+  ired. do 2 f_equal. extensionalities. do 2 f_equal.
+  rewrite SBRed.bind SBRed.take /= MIRed.core.
+  ired. do 2 f_equal. extensionalities. ired. do 2 f_equal.
+  rewrite SBRed.bind SBRed.Assume MIRed.ag.
+  ired. do 2 f_equal. extensionalities. do 2 f_equal.
+  rewrite SBRed.bind MIRed.bind. f_equal.
+  extensionalities.
+  rewrite SBRed.bind SBRed.choose MIRed.core.
+  ired. do 2 f_equal. extensionalities. do 2 f_equal.
+  rewrite SBRed.bind SBRed.Guarantee MIRed.ag.
+  ired. do 2 f_equal. extensionalities. do 2 f_equal.
+  by rewrite SBRed.ret MIRed.ret.
+Qed.
+
+Lemma elim_rel_cancel_main (md: SMod.t) msk scp (bd: Any.t → itree _ Any.t) (arg: Any.t)
+  (WF: SMod.wf md)
+  :
+  elim_rel (sp_from md) ε
+    (inline_body (sandboxed_prog true (SMod.to_mod sp_none (SMod.cancel md)))
+       (interpV (SB.handle_sandbox true msk scp)
+          (interpV (SModTr.handle false sp_none) (tau;; bd arg))))
+    (inline_body (sandboxed_prog false (SMod.to_mod (sp_from md) md))
+       (interpV (SB.handle_sandbox true msk scp)
+          (SModTr.HoareFun (Some fspec_trivial) (SModTr.trans true (sp_from md) ∘ bd) arg))).
+Proof.
+  rewrite MIRed_HoareFun_Main.
+  pstep. set (ktrT:=(λ _, inline_body _ _ >>= _)).
+  set (itrS:=(inline_body _ _)).
+  replace itrS with
+    (inline_body (sandboxed_prog true (SMod.to_mod sp_none (SMod.cancel md)))
+       (SB.sandbox true msk scp (SModTr.trans false sp_none (tau;; bd arg)))); cycle 1.
+  { subst itrS. f_equal. }
+  rewrite SRed.tau SBRed.tau MIRed.tau.
+  eapply elim_rel_trivial_precond; eauto.
+  i; subst ktrT.
+  left. ginit. guclo elim_rel_bindC_spec.
+(*   rewrite -(bind_ret_r (inline_body _ _)). *)
+(*   rewrite SRed.bind SBRed.bind MIRed.bind bind_bind. *)
+(*   econs; cycle 1. *)
+(*   { i. rewrite SRed.tau SBRed.tau SRed.ret SBRed.ret MIRed.tau MIRed.ret bind_ret_r. *)
+(*     gfinal. right. pstep. *)
+(*     rewrite -(bind_ret_r (elim_trivial_postcond _)). *)
+(*     eapply elim_rel_trivial_postcond; eauto. *)
+(*     i. left. pstep. eapply elim_rel_ret. *)
+(*   } *)
+(*   gfinal. right. eapply elim_rel_cancel; eauto. *)
+  (* Qed. *)
+  Admitted.
 
 End ELIM_REL.
 Hint Resolve cpn4_wcompat: paco.

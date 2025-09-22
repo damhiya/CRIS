@@ -32,24 +32,25 @@ Section INTERP.
         v <- trigger e;; Ret (inl (k v))
     end.
 
-  Definition sandboxed_prog (ms: Mod.t) fn (arg: Any.t) : itree crisE Any.t :=
+  Definition sandboxed_prog (tauf: bool) (ms: Mod.t) fn (arg: Any.t) : itree crisE Any.t :=
     kb <- (alist_find (Some fn) ms.(Mod.fnsems))?;;
-    SB.sandbox_body kb arg.
+    ret <- SB.sandbox_body kb arg;;
+    if tauf then tau;; Ret ret else Ret ret.
 
   Definition inline_body {R} prog := ITree.iter (@handle_callE R prog).
 
-  Definition inline_fsem ms (kb: fnsem_type fbody) : fnsem_type fbody :=
+  Definition inline_fsem (tauf: bool) ms (kb: fnsem_type fbody) : fnsem_type fbody :=
     (true, wmask_all, ms.(Mod.scopes),
-     inline_body (sandboxed_prog ms) ∘ (SB.sandbox_body kb)).
+     inline_body (sandboxed_prog tauf ms) ∘ (SB.sandbox_body kb)).
       
 End INTERP.
 
 Module MInline.
   Import Mod.
 
-  Program Definition inline `{Σ: GRA} (ms: Mod.t): Mod.t := {|
+  Program Definition inline `{Σ: GRA} (tauf: bool) (ms: Mod.t) : Mod.t := {|
     scopes := ms.(scopes);
-    fnsems := List.map (map_snd (inline_fsem ms)) (ms.(fnsems));
+    fnsems := List.map (map_snd (inline_fsem tauf ms)) (ms.(fnsems));
     initial_st := ms.(initial_st);
   |}.
   Next Obligation.
@@ -174,12 +175,12 @@ Module MIRed.
 End MIRed.
 
 Lemma sandbox_inline_commute `{Σ: GRA}
-  ms sb arg
+  ms sb arg tauf
   (SCP : incl sb.1.2 (Mod.scopes ms))
   :
-  SB.sandbox_body (inline_fsem ms sb) arg
+  SB.sandbox_body (inline_fsem tauf ms sb) arg
   =
-  inline_body (sandboxed_prog ms) (SB.sandbox_body sb arg).
+  inline_body (sandboxed_prog tauf ms) (SB.sandbox_body sb arg).
 Proof using.
   unfold inline_fsem, SB.sandbox_body. destruct sb as [[[img msk] sc] bd]. ss.
   apply bisim_is_eq. move sc at bottom.
@@ -234,8 +235,14 @@ Proof using.
       erewrite FIND. et.
     }
     extensionality x.
-    rewrite subst_bind bind_ret_l -SBRed.tau.
-    erewrite <-(@sandbox_well_scoped _ _ _ _ _ _ sc); eauto.
+    instantiate (1:= λ _, if tauf then tau;; tau;; _ else tau;; _). s.
+    des_ifs.
+    { rewrite bind_tau bind_ret_l.
+      rewrite !SBRed.tau. do 4 f_equal.
+      rewrite subst_bind bind_ret_l.
+      erewrite <-(@sandbox_well_scoped _ _ _ _ _ _ sc); eauto. }
+    { ired. rewrite !SBRed.tau.
+      erewrite <-(@sandbox_well_scoped _ _ _ _ _ _ sc); eauto. }
   }
   {
     rewrite !SBRed.spawn. des_ifs.

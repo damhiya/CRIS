@@ -186,36 +186,30 @@ Proof using.
   - eapply cancel_pre; et.
   - eapply cancel_post; et.
   - admit.
+  - admit.
+  - admit.
+    (* ziter_r. rewrite Ht /=; zstep_r. *)
+    (* exists tt. zstep_r. ziter_r. zstep_r. *)
+    (* ziter_r. zstep_r. exists varg. zstep_r. *)
+    (* ziter_r. zstep_r. ziter_r. zstep_r. ired. *)
+    (* ziter_r. zstep_r. exists r_t. zstep_r. *)
+    (* ziter_r. zstep_r. unshelve eexists. *)
+    (* { split; eauto. admit. } *)
+    (* ired. ziter_r. zstep_r. zstep_r. *)
+    (* ziter_r. zstep_r. ziter_r. zstep_r. *)
+    (* eapply Hkey; et. *)
 Admitted.
 (* (*SLOW*) Qed. *)
 
-Lemma gsim_main_aux md rs bd arg msk scp
-  (WFS: SMod.wf md)
-  (WF: Mod.wf (SMod.to_mod sp_none (SMod.cancel md)))
-  (VALID: ✓ rs) :
-  gsim cancel_eq smj_top smj_top
-    (interp_state (@case_ (forall _ : Type, Type) IFun _ _ _ _ _
-          LModTr.handle_stateE
-          (λ (T : Type) (e : coreE T) (s : Any.t), x <- trigger e;; Ret (s, x)))
-       ((iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline (SMod.to_mod sp_none (SMod.cancel md))) rs)))
-          (0, [ModTr.trans (inline_body (sandboxed_prog (SMod.to_mod sp_none (SMod.cancel md))) (interpV (SB.handle_sandbox true msk scp) (SModTr.trans false sp_none (bd arg))))])))
-       (Any.pair (ModTr.alist_encode (SMod.initial_st md)) rs ↑))
-    (LModTr.interp_stateE Any.t
-       (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline (SMod.to_mod (sp_from md) md)) rs)))
-          (0,
-            [ModTr.trans
-               (inline_body (sandboxed_prog (SMod.to_mod (sp_from md) md)) (SB.sandbox true msk scp (SModTr.HoareFun (Some fspec_trivial) (SModTr.trans true (sp_from md) ∘ bd) arg)))]))
-       (Any.pair (ModTr.alist_encode (SMod.initial_st md)) rs ↑)).
-Admitted.
-
-Lemma cancel_main md rs
+Lemma cancel_main md rs rt
   (WFS: SMod.wf md)
   (WF: Mod.wf (SMod.to_mod sp_none (SMod.cancel md)))
   (VALID: ✓ rs)
+  (RES: Own rs ⊢ |==> Own rt ∗ TidTokenAuth 0 ∗ TidToken 0 ∗ YieldTokenAuth 0)
   :  
   refines_lmod
     (Mod.to_lmod (MInline.inline (SMod.to_mod sp_none (SMod.cancel md))) rs)
-    (Mod.to_lmod (MInline.inline (SMod.to_mod (sp_from md) md)) rs).
+    (Mod.to_lmod (MInline.inline (SMod.to_mod (sp_from md) md)) rt).
 Proof using.
   r. intro arg. eapply gsim_adequacy.
   instantiate (1:= smj_top). instantiate (1:= smj_top).
@@ -231,54 +225,43 @@ Proof using.
   erewrite !sandbox_inline_commute; et.
   (* erewrite sandbox_inline_commute; et. *)
   rewrite /SB.sandbox_body. s.
-
+ 
   ginit. guclo bindC_spec. econs; cycle 1.
-  { instantiate (1:=cancel_eq). i. gstep. econs. econs.
+  { instantiate (1:=λ vrs vrt, cancel_eq vrs vrt). i. gstep. econs. econs.
     destruct SIM. des. et. }
   ziter_l. zstep_l. ziter_l. zstep_l.
   exploit WFS; et. i; des; subst; ss.
 
   gfinal. right.
-  Unset Printing Notations.
-  Set Printing All.
+  replace (SModTr.HoareFun) with (Seal.sealing "temp" SModTr.HoareFun); cycle 1.
+  { unseal "temp". ss. }
   hexploit x2; eauto; i; subst; ss.
 
-  ziter_r. zstep_r. exists tt. zstep_r.
-  ziter_r. zstep_r.
-  ziter_r. zstep_r. exists arg. zstep_r.
-  ziter_r. zstep_r.
-  ziter_r. zstep_r.
-  ziter_r. zstep_r. exists rs. zstep_r.
-  ziter_r. zstep_r. unshelve eexists.
-  { esplits; eauto. }
-  zstep_r.
-  ziter_r. zstep_r.
-  ziter_r. zstep_r.
-  ziter_r. zstep_r.
-  set (itr := (interpV (SB.handle_sandbox true msk scp) (vret <- (SModTr.trans _ _ (bd arg));; ret <- trigger (Choose Any.t);; trigger (Guarantee ⌜vret = ret⌝);;; Ret ret))).
-  replace itr with (SB.sandbox true msk scp (vret <- (SModTr.trans true (sp_from md) (bd arg));; ret <- trigger (Choose Any.t);; trigger (Guarantee ⌜vret = ret⌝);;; Ret ret)) by refl.
-  rewrite SBRed.bind MIRed.bind ModTr.Red.bind.
-
-  (* Search interp_callE_bind. *)
-  
-  gfinal. right.
-
-  eapply (cancel_elim _ _ (rs_diff:=[ε])); eauto.
+  eapply (cancel_elim rs rt (rs_diff:=[ε])); eauto.
   { econs; et.
     split; ss.
     i. destruct i; ss. inv H0. 
     (* exploit WFS; et. i. subst. *)
+    set (itrS:=_:itree lmodE Any.t).
+    set (itrT:=_:itree lmodE Any.t) at 2.
+    replace itrS with
+      (ModTr.trans
+         (inline_body (sandboxed_prog (SMod.to_mod sp_none (SMod.cancel md)))
+            (SB.sandbox true msk scp(SModTr.trans false sp_none (ret <- bd arg;; tau;; tau;; Ret ret))))); cycle 1.
+    { subst itrS. rewrite SRed.bind SBRed.bind MIRed.bind Red.bind.
+      rewrite {1}/SB.sandbox. f_equal.
+      extensionalities. rewrite SRed.tau SRed.ret SBRed.tau SBRed.ret MIRed.tau MIRed.ret.
+      rewrite !Red.tau Red.ret.
+      { repeat f_equal.
     econs; et; cycle 1.
-    { rewrite bind_ret_r. et. }
+    { set (INLINE := inline_body _).
+      set (ktr := λ ret, tau;; Ret ret).
+      rewrite bind_ret_r.
+      replace ktr with ModTr.trans (λ ret, INLINE (tau;; Ret ret))).
+      rewrite bind_ret_r. et. }
 
-    set (itr:=SB.sandbox true msk scp (SModTr.HoareFun _ _ _)).
-    replace itr with (SB.sandbox_body (true, msk, scp, SModTr.HoareFun fspo (SModTr.trans (is_some fspo) (sp_from md) ∘ bd)) arg) by refl.
-    rewrite x1.
-    erewrite MIRed_HoareFun; eauto.
+    rewrite /SB.sandbox. rewrite {1}/SModTr.trans.
 
-    eapply elim_rel_precond.
-    
-    SB.sandbox rewrite SBRed.bind. econs.
     eapply elim_rel_cancel; et.
   }
   ss; rewrite right_id -Own_op left_id; iIntros "$"; done.

@@ -38,7 +38,7 @@ Lemma cancel_post `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp:
             (* WINV *) winv (⊤, ⊤))
     (LEN : cid < length srcs)
     (x2 : rs_diff !! cid = Some ε)
-    (x0 : srcs !! cid = Some (ModTr.trans (tau;; tau;; itrS)))
+    (x0 : srcs !! cid = Some (ModTr.trans (tau;; tau;; tau;; tau;; itrS)))
     (x1 : tgts !! cid = Some (x <- ModTr.trans (x <- elim_postcond Q Q' x x' vret;; ktrT x);; k x))
     (RET : cid = 0 → k = λ x : Any.t, Ret x)
     (KTR :
@@ -56,7 +56,8 @@ Lemma cancel_post `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp:
               (SMod.to_mod sp md)) rs0))) (cid, tgts))
        (Any.pair (ModTr.alist_encode st) r_t ↑)).
 Proof.
-  i. ziter_l. ziter_r. rewrite x0 x1 /=. zstep_l. ziter_l. zstep_l.
+  i. ziter_l. ziter_r. rewrite x0 x1 /=.
+  zstep_l. ziter_l. zstep_l. ziter_l. zstep_l. ziter_l. zstep_l.
   move KTR at bottom. des_safe.
   destruct KTR0; subst; des_safe.
   { zstep_r. zstep_r.
@@ -66,7 +67,8 @@ Proof.
     ziter_r. zstep_r. ziter_r. zstep_r.
 
     des; subst.
-    { ziter_r. zstep_r. eexists. zstep_r.
+    { ziter_r. zstep_r. ziter_r. zstep_r.
+      ziter_r. zstep_r. eexists. zstep_r.
       ziter_r. zstep_r. ziter_r. zstep_r.
       ziter_r. zstep_r. eexists r_t. zstep_r.
       ziter_r. zstep_r. unshelve eexists.
