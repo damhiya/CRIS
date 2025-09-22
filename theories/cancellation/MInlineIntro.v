@@ -10,17 +10,17 @@ Section INLINE.
 Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
 
 Lemma inline_intro md P :
-  refines (MInline.inline true md, P) (md, P).
+  refines (MInline.inline md, P) (md, P).
 Proof using.
   eapply closed_adequacy_emp. clear P.
 
   cut (∀ f (WF: Mod.wf md) (SCP: incl f.1.2 md.(Mod.scopes)),
    isim_fsem
     (map (map_snd SB.sandbox_body)
-       (map (map_snd (inline_fsem true md)) (Mod.fnsems md)))
+       (map (map_snd (inline_fsem md)) (Mod.fnsems md)))
     (map (map_snd SB.sandbox_body) (Mod.fnsems md))
     IstEq closed IstEq IstEq
-    (SB.sandbox_body (inline_fsem true md f)) (SB.sandbox_body f)).
+    (SB.sandbox_body (inline_fsem md f)) (SB.sandbox_body f)).
   {
     econs; ss; try refl; eauto; i.
     { i. rewrite List.map_map fst_map_snd. exists []. ss. }
