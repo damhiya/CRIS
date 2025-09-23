@@ -5,15 +5,16 @@ Module HelpingOff. Section HelpingOff.
   Context `{!crisG Γ Σ α β τ _S _I, !concG}.
 
   Context (mn : string).
-  Context {jobID : Type} (jobcode : jobID → itree Helping.pureE unit).
+  Context {jobID retID : Type}.
+  Context (jobcode : jobID → itree Helping.pureE retID) (retcode : retID → Any.t).
 
   Definition scopes := [mn].
 
   Definition run : Any.t → itree crisE Any.t :=
     λ arg,
       'jid : jobID <- arg↓?;;
-      𝒴;;; Helping.trans (jobcode jid);;;
-      𝒴;;; Ret ()↑.
+      𝒴;;; ret <- Helping.trans (jobcode jid);;
+      𝒴;;; Ret (retcode ret).
 
   Definition help : Any.t → itree crisE Any.t :=
     λ _, 𝒴;;; Ret ()↑.

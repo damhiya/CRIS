@@ -6,7 +6,6 @@ From CRIS.helping Require Import Header HelpingOn HelpingOff.
 
 (* This file contains auxilliary lemmas for proving HelpOn ≼ HelpOff. *)
 Section auxilliary.
-
   Context {Σ : GRA}.
 
   Lemma Red_vis_Assume {R} P (ktr : () → itree crisE R) :
@@ -25,7 +24,6 @@ Section auxilliary.
     destruct x; ss.
     eapply observe_eta; ss. f_equal. extensionality x. ss.
   Qed.
-
 End auxilliary.
 
 Tactic Notation "red_bind" tactic(tac) :=
@@ -1113,18 +1111,18 @@ Section props.
     }
   Qed.
 
-  Lemma gsim_jobs_both r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t
+  Lemma gsim_jobs_both {retID} r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t
       img_c msk_c scp_c k_s k_t (k_s1 k_t1 : Any.t → itree _ Any.t) (res : Σ) job :
     tid_s < length tp_s →
     tid_t < length tp_t →
     ✓ res →
-    (∀ (res1 : Σ), ✓ res1 →
+    (∀ (res1 : Σ) (ret : retID), ✓ res1 →
       gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR smj_bot smj_bot
         (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s)
-          (tid_s, <[tid_s := x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (⇓smod(img_c, sp) (k_s ())));; k_s1 x]> tp_s))
+          (tid_s, <[tid_s := x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (⇓smod(img_c, sp) (k_s ret)));; k_s1 x]> tp_s))
           (Any.pair st_s (res1↑)))
         (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t)
-          (tid_t, <[tid_t := x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (⇓smod(img_c, sp) (k_t ())));; k_t1 x]> tp_t))
+          (tid_t, <[tid_t := x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (⇓smod(img_c, sp) (k_t ret)));; k_t1 x]> tp_t))
           (Any.pair st_t (res1↑)))) →
     gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s,
@@ -1143,7 +1141,6 @@ Section props.
     intros job res Hres.
     ides job.
     {
-      destruct r1.
       rewrite /Helping.trans (bisim_is_eq (translate_ret _ _)); grind.
       eapply gpaco7_mon; eauto.
     }

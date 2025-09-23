@@ -41,23 +41,25 @@ Section Helping.
     - eapply IHl; et. unfold strings_maxlen in *. ss. nia.
   Qed.
 
-  Lemma helping_on_wf jobID (jobs : jobID -> _) mn sp : Mod.wf (HelpingOn.t mn jobs sp).
+  Lemma helping_on_wf {jobID retID} (jobs : jobID -> _) (rets : retID → _) mn sp :
+    Mod.wf (HelpingOn.t mn jobs rets sp).
   Proof. unfold_mod. econs; ss; prove_nodup. Qed.
 
   (* imp : list of function names mI calls *)
-  Theorem helping_main (mA mM mI : Mod.t) (P1 P2 : iProp Σ) imp jobID (jobs : jobID -> _) sp :
+  Lemma helping_main (mA mM mI : Mod.t) (P1 P2 : iProp Σ) imp
+      {jobID retID} (jobs : jobID -> _) (rets : retID → _) sp :
     (∀ mn msk,
       ((Helping.exports mn) ## imp →
       wmask_sub (wmask_list imp) msk →
       ctx_refines
-        (mM ★ (HelpingOn.t mn jobs sp) ★ CFilter.filter msk SchI.t, P1)
+        (mM ★ (HelpingOn.t mn jobs rets sp) ★ CFilter.filter msk SchI.t, P1)
         (CFilter.filter msk mI ★ CFilter.filter msk SchI.t, emp%I))) →
     (∀ mn msk,
       ((Helping.exports mn) ## imp →
       wmask_sub (wmask_list imp) msk →
       ctx_refines
         (mA ★ CFilter.filter msk SchI.t, P2)
-        (mM ★ HelpingOff.t mn jobs sp ★ CFilter.filter msk SchI.t, emp%I))) →
+        (mM ★ HelpingOff.t mn jobs rets sp ★ CFilter.filter msk SchI.t, emp%I))) →
     ctx_refines
       (mA ★ SchI.t, (P1 ∗ P2)%I)
       (mI ★ SchI.t, emp%I).
@@ -110,7 +112,7 @@ Section Helping.
     }
 
     etrans; cycle 1.
-    { eapply CFilter.intro_module with (mask := mask) (mc := HelpingOn.t mn jobs sp); et.
+    { eapply CFilter.intro_module with (mask := mask) (mc := HelpingOn.t mn jobs rets sp); et.
       - eapply helping_on_wf.
       - i. r. rewrite existsb_exists.
         esplits; try apply String.eqb_eq; eauto.

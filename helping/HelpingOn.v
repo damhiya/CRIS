@@ -96,31 +96,32 @@ End HoareCall.
 
 (* Helping module *)
 Module HelpingOn. Section HelpingOn.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG} {jobID : Type}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concG} {jobID retID : Type}.
 
   Context (mn : string).
-  Context (jobcode : jobID → itree Helping.pureE unit).
+  Context (jobcode : jobID → itree Helping.pureE retID) (retcode : retID → Any.t).
 
   Definition scopes := [mn].
   Definition v_reqs := mn ↯ "reqs".
 
   Definition try_run (tid : nat) : itree crisE Any.t :=
-    'reqs : gmap nat (bool * jobID) <- cgetU v_reqs;;
+    'reqs : gmap nat (option retID * jobID) <- cgetU v_reqs;;
     match reqs !! tid with
-    | Some (true, jid) =>
-        cput v_reqs (<[tid := (false, jid)]> reqs);;;
-        Helping.trans (jobcode jid);;;
-        Ret ()↑
-    | _ => Ret ()↑
+    | Some (None, jid) =>
+        r <- Helping.trans (jobcode jid);;
+        cput v_reqs (<[tid := (Some r, jid)]> reqs);;;
+        Ret (retcode r)
+    | Some (Some retid, jid) => Ret (retcode retid)
+    | None => triggerNB
     end.
 
   Definition run : Any.t → itree crisE Any.t :=
     λ arg,
       'jid : jobID <- arg↓?;;
-      'reqs : gmap nat (bool * jobID) <- cgetU v_reqs;;
+      'reqs : gmap nat (option retID * jobID) <- cgetU v_reqs;;
       let tid := fresh (dom reqs) in
-      cput v_reqs (<[tid := (true, jid)]> reqs);;;
-      𝒴;;; try_run tid;;; 𝒴;;; Ret ()↑.
+      cput v_reqs (<[tid := (None, jid)]> reqs);;;
+      𝒴;;; r <- try_run tid;; 𝒴;;; Ret r.
 
   Definition help (sp : sp_type) : Any.t → itree crisE Any.t :=
     λ _,
@@ -139,7 +140,7 @@ Module HelpingOn. Section HelpingOn.
   Program Definition Mod (sp : sp_type) : SMod.t := {|
     SMod.scopes := scopes;
     SMod.fnsems := fnsems sp;
-    SMod.initial_st := [(v_reqs, (∅ : gmap nat (bool * jobID))↑)];
+    SMod.initial_st := [(v_reqs, (∅ : gmap nat (option retID * jobID))↑)];
   |}.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
