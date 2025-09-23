@@ -23,7 +23,7 @@ Module SMod. Section SMOD.
       List.NoDup scopes -> List.NoDup (List.map fst initial_st);
   }.
 
-  Definition wf (ms : t) : Prop :=
+  Definition cancellable (ms : t) : Prop :=
     ∀ fno img msk scp fspo bd
       (FIND: alist_find fno (fnsems ms) = Some (img, msk, scp, (fspo, bd))),
       img = true ∧ is_some fspo ∧ (fno = None → fspo = Some (fspec_trivial)).
@@ -179,21 +179,6 @@ Section Aux.
   (* Definition has_trivial_spec (md : SMod.t) (fn : string) : Prop := *)
   (*   ∃ fno msk scp, has_param md fno false msk scp ∧ msk fn. *)
 
-  (* Definition has_spec_forall (md: SMod.t) : Prop := *)
-  (*   ∀ fno fnsem, alist_find fno (SMod.fnsems md) = Some fnsem -> is_some fnsem.2.1. *)
-
-  (* Definition spec_type_agree (md: SMod.t) (sp: sp_type) : Prop := *)
-  (*   ∀ fn, is_spawn_ospec (sp fn) = is_spawn_ospec ((sp_from md) fn). *)
-
-  (* Lemma valid_spec_type_agree md sp *)
-  (*   (IMPLY: sp_imply' (sp_from md) sp) *)
-  (*   (ISPEC: img_forall md) : *)
-  (*   spec_type_agree md sp. *)
-  (* Proof. *)
-  (*   ii. specialize (IMPLY fn). *)
-  (*   r in IMPLY. des_ifs; destruct (sp fn), (sp_from md fn); ss; subst; ss. *)
-  (* Qed. *)
-
   (* Definition valid_sp (md: SMod.t) (sp: sp_type) : Prop := *)
   (*   sp_imply' (sp_from md) sp ∧ *)
   (*   (∀ fn (NS: has_trivial_spec md fn), fspec_imply (fspec_flat (sp fn)) fspec_trivial) *)
@@ -219,5 +204,3 @@ End Aux.
 
 (* Global Hint Unfold has_param : core. *)
 (* Global Hint Unfold has_trivial_spec : core. *)
-(* Global Hint Unfold spec_type_agree : core. *)
-(* Global Hint Unfold has_spec_forall : core. *)

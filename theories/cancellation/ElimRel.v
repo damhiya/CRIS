@@ -381,7 +381,7 @@ Lemma MIRed_HoareFun
     (md : SMod.t) (sp : sp_type) (img : bool) (msk : string → bool) (scp : list string)
     (bd : fbody) (fspo : option fspec) (arg : Any.t)
     (fno : option string) meta pre post:
-  SMod.wf md →
+  SMod.cancellable md →
   alist_find fno (SMod.fnsems md) = Some (img, msk, scp, (fspo, bd)) →
   fspo = Some (@fspec_spawn _ meta pre post) →
   inline_body
@@ -422,7 +422,7 @@ Qed.
 
 Lemma MIRed_HoareCall md sp fn varg
   (msk msk0: _→bool) scp scp0 fspo fspo0 bd0 m m0 pre pre0 post post0
-  (WF: SMod.wf md)
+  (WF: SMod.cancellable md)
   (IN: msk fn)
   (SP: fspo = sp fn)
   (FIND: alist_find (Some fn) (SMod.fnsems md) = Some (true, msk0, scp0, (fspo0, bd0)))
@@ -476,7 +476,7 @@ Local Tactic Notation "estep" integer(n) := do n (gstep; econs; i).
 Local Ltac edone := eauto 6 with paco.
 
 Lemma elim_rel_cancel (md: SMod.t) T msk scp (itr: itree _ T)
-  (WF: SMod.wf md)
+  (WF: SMod.cancellable md)
   :
   @elim_rel (sp_from md) T ε
     (inline_body (sandboxed_prog (SMod.to_mod sp_none (SMod.cancel md))) 
@@ -631,9 +631,9 @@ Section CancelDef.
       (ps pt : smj)
       ktrS k ktrT
       (r : ∀ x x0, (x → x0 → Prop) → smj → smj → itree coreE x → itree coreE x0 → Prop)
-      (WFS: SMod.wf md)
+      (WFS: SMod.cancellable md)
       (VP: sp = sp_from md)
-      (WF: Mod.wf (SMod.to_mod sp_none (SMod.cancel md)))
+      (* (WF: Mod.wf (SMod.to_mod sp_none (SMod.cancel md))) *)
       (CIH :
         ∀ (r_s r_t : Σ) (rs_diff : list Σ) (srcs tgts : list (itree lmodE Any.t)) 
           (cid : nat) (st : list (key * Any.t)) (ps pt : smj)

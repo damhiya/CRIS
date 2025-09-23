@@ -5,8 +5,8 @@ Require Import MInline MInlineIntro MInlineElim ElimRel.
 Lemma cancel_post `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp:
   ∀ (rs0 : Σ) r_s r_t srcs tgts cid st ps pt vret (X X': Type) (x: X) (x': X') Q Q' itrS ktrT k rs_diff
     (r : ∀ x x0, (x→x0→Prop)→smj→smj→itree coreE x→itree coreE x0→Prop)
-    (WFS: SMod.wf md)
-    (WF: Mod.wf (SMod.to_mod sp_none (SMod.cancel md)))
+    (WFS: SMod.cancellable md)
+    (* (WF: Mod.wf (SMod.to_mod sp_none (SMod.cancel md))) *)
     (KEY: ∀ itr_s itr_t st (r_s r_t r_diff : Σ)
              (WFR: ✓ r_s)
              (RS: Own r_s ⊢ |==> ([∗ list] i ∈ <[cid:=r_diff]> rs_diff, Own i) ∗ Own r_t ∗

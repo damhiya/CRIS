@@ -10,8 +10,8 @@ Module Cancel. Section Cancel.
 Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG}.
 
 Lemma cancel_elim md (r_i r_s r_t: Σ) rs_diff srcs tgts cid st ps pt
-  (WFS: SMod.wf md)
-  (WF: Mod.wf (SMod.to_mod sp_none (SMod.cancel md)))
+  (WFS: SMod.cancellable md)
+  (* (WF: Mod.wf (SMod.to_mod sp_none (SMod.cancel md))) *)
   (REL: Forall3i (thread_rel (sp_from md) cid) rs_diff srcs tgts)
   (WFR: ✓ r_s)
   (RS: Own r_s ⊢ |==> ([∗ list] i ∈ rs_diff, Own i) ∗ Own r_t ∗
@@ -27,7 +27,7 @@ Lemma cancel_elim md (r_i r_s r_t: Σ) rs_diff srcs tgts cid st ps pt
               (SMod.to_mod (sp_from md) md)) r_i))) (cid, tgts))
        (Any.pair (ModTr.alist_encode st) r_t ↑)).
 Proof using.
-  ginit. move WFS at top. move WF at top.
+  ginit. move WFS at top. (* move WF at top. *)
   revert_until r_i. gcofix CIH. i.
   destruct (decide (cid < length srcs)) as [Hcid|]; cycle 1.
   { ziter_l. erewrite (proj2 (lookup_ge_None srcs cid)); try nia.
@@ -107,8 +107,8 @@ Proof using.
 (*SLOW*)Qed.
 
 Lemma cancel_main md rs rt
-  (WFS: SMod.wf md)
-  (WF: Mod.wf (SMod.to_mod sp_none (SMod.cancel md)))
+  (WFS: SMod.cancellable md)
+  (* (WF: Mod.wf (SMod.to_mod sp_none (SMod.cancel md))) *)
   (VALID: ✓ rs)
   (RES: Own rs ⊢ |==> Own rt ∗ TIDAUTH 0 ∗ YIELDAUTH 1)
   :  
@@ -184,8 +184,7 @@ Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG}.
 
 (*** Final Theorem ***)
 Theorem cancellation md P
-  (WFS: SMod.wf md)
-  (WF: Mod.wf (SMod.to_mod sp_none (SMod.cancel md)))
+  (WFS: SMod.cancellable md)
   :
   refines (SMod.to_mod sp_none (SMod.cancel md), (P ∗ TIDAUTH 0 ∗ YIELDAUTH 1)%I)
           (SMod.to_mod (sp_from md) md, P).
