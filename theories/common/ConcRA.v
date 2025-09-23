@@ -39,6 +39,14 @@ Section preds.
     by iIntros "T1 T2"; iCombine "T1 T2" gives %WF%excl_auth_frag_op_valid.
   Qed.
 
+  Lemma TidToken_upd tid0 tid1 ntid : TidTokenAuth tid0 ∗ TidToken tid1 ⊢ |==> TidTokenAuth ntid ∗ TidToken ntid.
+  Proof.
+    rewrite /TidTokenAuth /TidToken. unseal "Conc".
+    rewrite -!own_op.
+    eapply own_update.
+    eapply excl_auth_update.
+  Qed.
+
   Definition YieldToken (tid : nat) : iProp Σ :=
     Seal.sealing "Conc" own base_γ
       ((λ x, if (decide (x = tid)) then Some (Excl ()) else None) : nat -d> optionUR (exclR unitO)).

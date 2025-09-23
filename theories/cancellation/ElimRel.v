@@ -609,11 +609,11 @@ Section CancelDef.
      (Own r_diff ⊢ |==> pre (tid, x) varg arg)%I →
      elim_rel sp ε itrS (bd varg) →
      thread_rel sp cid tid r_diff src tgt
-  | thread_rel_yield src tgt r_diff tid itrS (itrT: itree crisE Any.t) :
-     tid ≠ 0 →
+  | thread_rel_yield src tgt r_diff tid itrS itrT (k: Any.t → itree lmodE Any.t) :
+     (tid = 0 -> k = main_post) →
      cid ≠ tid →
      src = ModTr.trans (tau;; itrS) →
-     tgt = ModTr.trans (tau;; trigger (Assume (TID(tid) ∗ YIELD(tid) ∗ winv(⊤, ⊤)));;; tau;; itrT) →
+     tgt = ModTr.trans (tau;; trigger (Assume (TID(tid) ∗ YIELD(tid) ∗ winv(⊤, ⊤)));;; tau;; itrT) >>= k →
      elim_rel sp ε itrS itrT →
      thread_rel sp cid tid r_diff src tgt
   .
