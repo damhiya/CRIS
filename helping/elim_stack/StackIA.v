@@ -4,45 +4,64 @@ Require Import MemTactics.
 Require Import SchHeader SchA SchTactics.
 Require Import StackHeader StackA StackI.
 
-Module StackIA. Section StackIA.
-  Context `{!crisG Γ Σ α β τ _S _I, !memG, !newschG, !concG, !stackG} (N : namespace).
+Module StackIM. Section StackIM.
+  Context `{!crisG Γ Σ α β τ _S _I, !memG, Hsch : !newschG, !concG, !stackG} (N : namespace).
 
   Definition init_cond : iProp Σ := emp%I.
 
   Local Definition MemA := MemA.t.
-  Local Definition StackA := StackA.t.
+  Local Definition StackM := StackM.t.
   Local Definition StackI := StackI.t.
-  Local Definition IstFull := (IstProd (IstSB (Mod.scopes (StackA N)) IstTrue) IstEq).
-  Local Notation MA := (StackA N ★ MemA).
+  Local Definition IstFull := (IstProd (IstSB (Mod.scopes (StackM N)) IstTrue) IstEq).
+  Local Notation MA := (StackM N ★ MemA).
   Local Notation MI := (StackI ★ MemA).
 
+  Let offerN := N .@ "offer".
+  Let stackN := N .@ "stack".
+
   Lemma new_stack_simF : ISim.sim_fun open MA MI init_cond IstFull (Some StackHdr.new_stack).
-  Proof using.
+  Proof using Hsch.
     init_simF.
     steps_l. unfold_lat_img_l.
 
-    (* ill-formed argument *)
-    destruct (arg↓) as [v|] eqn:E; cycle 1.
-    { sch_yield_l. steps_l. hss.
-      iDestruct "ASM" as "[[% %] _]". des; subst. hss.
-    }
+    steps_r. destruct (arg ↓) as [args|] eqn : Harg; cycle 1.
+    { sch_yield_l. steps_l. iDestruct "ASM" as "[[% ->] _]"; hss. }
 
-    (* tgt yield *)
-    steps_r. sch_yield_rr.
+    clear Harg.
 
-    (* tgt inline - mem alloc *)
-    steps_r. inline_r. force_r 2. forces_r.
-    iSplit; et.
-    steps_r. iDestruct "GRT" as "[[%blk [-> [↦stack [↦offer _]]]] ->]".
-    rewrite ?Z.add_0_l.
-    hss_r; steps_r.
+    (* allocate new stack *)
+    steps_r. sch_yield_rr. steps_r.
+    iApply wsim_mem_alloc; [try prove_inline_cond|try prove_sb_cond|ss|unfold_cris_defs].
+    iIntros (stackb) "[↦stack [↦val _]]".
+    steps_r. hss_r. steps_r.
+    sch_yield_rr. steps_r. sch_yield_rr. steps_r.
 
-    (* tgt yield *)
-    sch_yield_rr. steps_r.
-  Admitted.
+    (* initialize stack *)
+    iApply (wsim_mem_store with "↦stack");
+      [try prove_inline_cond|try prove_sb_cond|..|unfold_cris_defs].
+    iIntros "↦stack". steps_r. hss_r. steps_r. sch_yield_rr.
+
+    steps_r.
+    iApply (wsim_mem_store with "↦val");
+      [try prove_inline_cond|try prove_sb_cond|..|unfold_cris_defs].
+    iIntros "↦val". steps_r. hss_r. steps_r. sch_yield_rr. steps_r.
+
+    sch_yield_l. steps_l. iDestruct "ASM" as "[[% ->] _]"; hss.
+    iMod (own_alloc (● Excl' [] ⋅ ◯ Excl' [])) as (γs) "[Hs● Hs◯]".
+    { apply auth_both_valid_discrete. split; done. }
+    iMod (inv_alloc (syn_stack_inv γs stackb 0%Z 0) _ _ _ stackN with "[-Hs◯ IST]")
+      as "#Hinv"; eauto.
+    { apply nclose_subseteq. }
+    { rewrite SLRed_red. iExists (Vint 0), None, []; iFrame; eauto. }
+    force_l ((Vptr (stackb, 0%Z))↑). steps_l. force_l.
+    iFrame "Hs◯"; iSplit; eauto.
+    { iSplit; eauto. iExists _; iSplit; eauto. iExists _, _; iSplit; eauto. }
+    steps_l. sch_yield_l. step. iSplit; eauto.
+  Unshelve. all: eauto. all: try exact 0.
+  Qed.
 
   Lemma push_simF : ISim.sim_fun open MA MI init_cond IstFull (Some StackHdr.push).
-  Proof using.
+  Proof using Hsch.
     init_simF.
     steps_l; unfold_lat_img_l.
 
@@ -69,19 +88,20 @@ Module StackIA. Section StackIA.
 
     (* load *)
     iInv "Hinv" as "Hstack" "close".
-    iEval (rewrite /stack_inv) in "Hstack".
-    iEval (SL_red) in "Hstack"; iDestruct "Hstack" as "[%stack_rep Hstack]".
-    iEval (SL_red) in "Hstack"; iDestruct "Hstack" as "[%offer_rep Hstack]".
-    iEval (SL_red) in "Hstack"; iDestruct "Hstack" as "[%l' Hstack]".
-    iEval (SL_red) in "Hstack"; iDestruct "Hstack" as "[Hs [H↦ [Hlist Hoffer]]]".
-    steps_r; inline_r; steps_r.
-    force_r (blk, ofs, 1%Qp, _). forces_r. iFrame "H↦"; iSplit; eauto.
-    steps_r. iDestruct "GRT" as "[[H↦ ->]->]". hss_r. steps_r.
+    rewrite SLRed_red.
+    iDestruct "Hstack" as "[%stack_rep [%offer_rep [%l' [Hs [H↦ [Hlist Hoffer]]]]]]".
+
+    iApply (wsim_mem_load with "[H↦]");
+      [try prove_inline_cond|try prove_sb_cond|ss|unfold_cris_defs].
+    iIntros "H↦". steps_r. hss_r. steps_r.
+
+    iPoseProof (list_inv_comparable with "Hlist") as "[Hlist [Hval #Hcomp]]".
     iMod ("close" with "[Hs Hlist H↦ Hoffer]") as "_".
     { rewrite /stack_inv. do 3 (SL_red; iExists _); SL_red; iFrame. }
     force_l true. steps_l. force_l; iSplitL "stack"; iFrame.
     { iSplit; eauto. iSplit; eauto. iExists _, _; iFrame "Hinv"; eauto. }
     steps_l; unfold_lat_img_l. hss.
+    iClear "Hinv". clear dependent l l' γs offer_rep.
 
     (* alloc new head *)
     sch_yield_rr. steps_r.
@@ -90,129 +110,102 @@ Module StackIA. Section StackIA.
 
     (* store to new head *)
     steps_r. sch_yield_rr. steps_r. sch_yield_rr. steps_r.
-    inline_r; force_r (head_newb, 0%Z, Vundef, _); forces_r.
-    iFrame "Hnewv"; iSplit; eauto.
-    steps_r. iDestruct "GRT" as "[[Hnewv ->] ->]". hss_r. steps_r.
-    sch_yield_rr. steps_r.
-    inline_r; force_r (head_newb, 1%Z, Vundef, _); forces_r.
-    iFrame "Hnewhead"; iSplit; eauto.
-    steps_r. iDestruct "GRT" as "[[Hnewhead ->] ->]". hss_r. steps_r.
+    iApply (wsim_mem_store with "Hnewv");
+      [try prove_inline_cond|try prove_sb_cond|unfold_cris_defs].
+    iIntros "Hnewv". steps_r. hss_r. steps_r. sch_yield_rr. steps_r.
+    iApply (wsim_mem_store with "Hnewhead");
+      [try prove_inline_cond|try prove_sb_cond|unfold_cris_defs].
+    iIntros "Hnewhead". steps_r. hss_r. steps_r.
 
-    (* CAS *)
+    (* try push *)
     sch_yield_rr. steps_r.
     steps_l; unfold_lat_img_l. sch_yield_l. steps_l.
-    iInv "Hinv" as "Hstack" "close". clear offer_rep l'.
-    iEval (rewrite /stack_inv) in "Hstack".
-    iEval (SL_red) in "Hstack"; iDestruct "Hstack" as "[%stack_rep' Hstack]".
-    iEval (SL_red) in "Hstack"; iDestruct "Hstack" as "[%offer_rep Hstack]".
-    iEval (SL_red) in "Hstack"; iDestruct "Hstack" as "[%l' Hstack]".
-    iEval (SL_red) in "Hstack"; iDestruct "Hstack" as "[Hs [H↦ [Hlist Hoffer]]]".
-    steps_r; inline_r; steps_r.
-    destruct (decide (stack_elem_to_val stack_rep = stack_elem_to_val stack_rep')) as [e|e].
+    iDestruct "ASM" as "[[%EQ [#[% [% [-> #Hinv]]] Hl']] _]"; symmetry in EQ; hss.
+    rename _q1 into γs, _q3 into l.
+    iInv "Hinv" as "Hstack" "close".
+    rewrite SLRed_red.
+    iDestruct "Hstack" as "[%stack_rep' [%offer_rep' [%l' [Hs [H↦ [Hlist Hoffer]]]]]]".
+    iPoseProof (list_inv_comparable with "Hlist") as "[Hlist [Hval2 _]]".
+    iPoseProof ("Hcomp" with "Hlist") as "[%succ %Hcomp]".
+
+    iCombine "Hval Hval2" as "Hcmp".
+    iApply (wsim_mem_cas with "H↦ Hcmp");
+      [try prove_inline_cond|try prove_sb_cond|unfold_cris_defs|..]; eauto.
+    { iIntros "[[% [% $]] [% [% $]]] !> [$ $] //". }
+    iIntros "H↦ [Hval Hval2]". iClear "Hcomp".
+    case_decide; subst.
     { (* success *)
-      rewrite e.
-      force_r (blk, ofs, _, 1%Qp, _, _, _, _, _, 1%Z). forces_r. iFrame "H↦". iSplitR; eauto.
-      { iSplit; eauto. iSplit.
-        { iPureIntro; split; first done. rewrite /stack_elem_to_val; rewrite /MemSpec.compare_val.
-          des_ifs; ss. simpl_bool. des; destruct (dec _ _); ss.
-          admit.
-        }
-        admit.
+      steps_r. hss_r. steps_r.
+      iCombine "Hs Hl'" gives
+        %[->%Excl_included%leibniz_equiv _]%auth_both_valid_discrete.
+      iMod (own_update_2 with "Hs Hl'") as "[Hs Hl']".
+      { eapply auth_update, option_local_update, (exclusive_local_update _ (Excl _)). done. }
+      iMod ("close" with "[Hnewv Hnewhead Hoffer Hlist H↦ Hs]") as "_".
+      { iExists _, offer_rep', (v :: l'). iFrame. iExists 1%Qp; iSplit; eauto.
+        rewrite Z.add_0_l.
+        destruct stack_rep, stack_rep'; inv Hcomp; des_ifs.
+        simpl_bool; des; do 2 destruct (dec _ _); clarify.
       }
-      steps_r. iDestruct "GRT" as "[[-> [H↦ [? ?]]]->]". hss_r. steps_r.
-      case_decide; first clarify.
-      admit.
-    }
-    force_r (blk, ofs, _, 1%Qp, _, _, _, _, _, 0%Z). forces_r. iFrame "H↦". iSplitR; eauto.
-    { iSplit; eauto. iSplit.
-      { iPureIntro; split; first done. admit. }
-      admit.
-    }
-    steps_r. iDestruct "GRT" as "[[-> [H↦ [? ?]]]->]". hss_r. steps_r.
-    iMod ("close" with "[Hs Hlist H↦ Hoffer]") as "_".
-    { rewrite /stack_inv. do 3 (SL_red; iExists _); SL_red; iFrame. }
-    force_l true. steps_l. force_l. iSplitL "ASM"; eauto. steps_l.
+      force_l false. force_l. force_l. iSplitL "Hl'"; eauto.
+      steps_l.
 
-    sch_yield_rr. case_decide; clarify. 2:{ exfalso; apply e; clarify. }
+      sch_yield_rr. steps_r.
+      iCombine "Hval" "Hval2" as "Hval".
+      iApply (wsim_mem_cmp with "Hval");
+        [try prove_inline_cond|try prove_sb_cond|unfold_cris_defs|..]; eauto.
+      { iIntros "[[% [% $]] [% [% $]]] !> [$ $] //". }
+      iIntros "_". steps_r. hss_r. steps_r. sch_yield_rr. steps_r. sch_yield_l. step. eauto.
+    }
+
+    (* failure - make an offer *)
+    steps_r. hss_r. steps_r.
+    iMod ("close" with "[Hnewv Hnewhead Hoffer Hlist H↦ Hs]") as "_".
+    { iExists _, offer_rep', l'. iFrame. }
+    force_l true. force_l. iSplitL "Hl'"; iFrame.
+    { iSplit; eauto. iSplit; eauto. rewrite /is_stack; iExists _, _; iSplit; eauto. }
+    steps_l.
+
+    sch_yield_rr. steps_r.
+    iCombine "Hval" "Hval2" as "Hval".
+    iApply (wsim_mem_cmp with "Hval");
+      [try prove_inline_cond|try prove_sb_cond|unfold_cris_defs|..]; eauto.
+    { iIntros "[[% [% $]] [% [% $]]] !> [$ $] //". }
+    iIntros "_". steps_r. hss_r. steps_r. sch_yield_rr. steps_r.
+    destruct (decide (succ = 0)); subst; cycle 1.
+    { exfalso; destruct stack_rep', stack_rep; inv Hcomp; des_ifs. }
+
     steps_r. sch_yield_rr. steps_r.
-    { iSplit; eauto. iSplit; eauto. iExists _, _; iFrame "Hinv"; eauto. }
-    steps_l; unfold_lat_img_l. hss.
+    iApply wsim_mem_alloc; [try prove_inline_cond|try prove_sb_cond|ss|unfold_cris_defs].
+    iIntros (offerb) "[Hofferv [Hofferst _]]".
+    steps_r; hss_r; steps_r.
 
-    destruct _q1. s. iDestruct "ASM" as "[[% [% [% #I]]] _]"; des; subst. hss.
-    iInv "I" as "INV" "ACC". iEval (SL_red) in "INV".
-    iDestruct "INV" as "[PT | [PT [R TKN]]]".
-    { force_r (_, _, _, _, _, _, _, _, _, _). steps_r. forces_r.
-      iSplitL "PT".
-      { iFrame. et. }
-      steps_r. iDestruct "GRT" as "[[% [↦ _]] %]"; subst. hss.
-      steps_r. iMod ("ACC" with "[↦]") as "_".
-      { SL_red; iFrame "↦". }
-      force_l true. forces_l. iSplitL "".
-      { repeat (iSplit; et). iExists _; et. }
-      steps_l. unfold_lat_img_l.
-      sch_yield_rr. steps_r. sch_yield_rr. steps_r.
-      by_coind CIH. hss_copset. iFrame.
-    }
-    { force_r (_, _, _, _, _, _, _, _, _, _). steps_r. forces_r.
-      iSplitL "PT".
-      { iFrame. repeat (iSplit; et). }
-      steps_r. iDestruct "GRT" as "[[% [↦ _]] %]"; subst. hss.
-      steps_r. iMod ("ACC" with "[↦]") as "_".
-      { SL_red; iFrame "↦". }
-      force_l false. forces_l. iSplitL "R TKN".
-      { repeat (iSplit; et). SL_red. iFrame. }
-      steps_l. sch_yield_rr. steps_r. sch_yield_rr. steps_r.
-      sch_yield_rr. steps_r. sch_yield_l.
-      step; et.
-    }      
-  Unshelve. all: try exact 1%Qp; try exact (Vint 0); eauto.
-  (*SLOW*)Qed.
+    sch_yield_rr; steps_r. sch_yield_rr; steps_r.
+    iApply (wsim_mem_store with "[Hofferv]");
+      [try prove_inline_cond|try prove_sb_cond|ss|unfold_cris_defs].
+    iIntros "Hofferv". steps_r. hss_r. steps_r.
 
-  Lemma release_simF : ISim.sim_fun open MA MI init_cond IstFull (Some SpinLockHdr.release).
-  Proof using SchG.
-    init_simF.
-    steps_l; unfold_lat_img_l.
+    sch_yield_rr. steps_r.
+    iApply (wsim_mem_store with "[Hofferst]");
+      [try prove_inline_cond|try prove_sb_cond|ss|unfold_cris_defs].
+    iIntros "Hofferst". steps_r. hss_r. steps_r.
+    rewrite Z.add_0_l.
 
-    (* ill-formed argument *)
-    destruct (classic (∃ blk ofs, arg = [Vptr (blk,ofs)]↑)); cycle 1.
-    {  sch_yield_l. steps_l. destruct _q1. iDestruct "ASM" as "[[% [L _]] _]".
-      subst. iDestruct "L" as "[% [% _]]". destruct bofs. subst. exfalso. et.
-    }
-    des; subst; hss.
-
-    steps_r; sch_yield_rr; steps_r.
-    sch_yield_l; steps_l. force_l (Vundef↑). 
-    destruct _q1. s. iDestruct "ASM" as "[[% [[% [% #I]] [TKN P]]] _]". hss.
-    iInv "I" as "INV" "ACC". iEval (SL_red) in "INV".
-    iDestruct "INV" as "[PT | [PT [R' TKN']]]"; cycle 1.
-    { SL_red. iCombine "TKN" "TKN'" gives %WF; inv WF. }
-    steps_r; inline_r; steps_r.
-    force_r (_,_,_,_). forces_r.
-    iSplitL "PT".
-    { iFrame. et. }
-    steps_r. iDestruct "GRT" as "[[↦ %] %]"; hss.
-    iMod ("ACC" with "[↦ TKN P]") as "_".
-    { SL_red. iRight. iFrame. }
-    steps_r. forces_l. iSplit; et.
-    steps_l. sch_yield_rr. sch_yield_l.
-    step. et.
-  Unshelve. all: eauto.
-  (*SLOW*)Qed.
+    sch_yield_rr; steps_r.
+  Admitted.
 
   (* Construct ISim.t for summing up each simulation proofs *)
   Lemma sim : ISim.t open MA MI init_cond IstFull.
   Proof.
     init_sim.
     { split; et. }
-    { apply newlock_simF. }
-    { apply acquire_simF. }
-    { apply release_simF. }
+    { apply new_stack_simF. }
+    { apply push_simF. }
   Qed.
 
   (* ctxr works as a unit in compositions of module simulations *)
   Lemma ctxr :
     ctx_refines
-      (SpinLockA.t ★ MemA.t, emp%I)
-      (SpinLockI.t ★ MemA.t, emp%I).
+      (StackM.t N ★ MemA.t, emp%I)
+      (StackI.t ★ MemA.t, emp%I).
   Proof. eapply main_adequacy, sim; eauto. Qed.
-End StackIA. End StackIA.
+End StackIM. End StackIM.

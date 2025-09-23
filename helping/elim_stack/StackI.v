@@ -11,6 +11,9 @@ Module StackI. Section StackI.
 
   Definition new_stack : list val → itree crisE val := λ _,
     𝒴;;; 'stack : val <- ccallU MemHdr.alloc [Vint 2];;
+    𝒴;;; '(b, ofs) : _ <- (pargs [Tptr] [stack])?;;
+    𝒴;;; '_ : val <- ccallU MemHdr.store [Vptr (b, 0%Z); Vint 0];;
+    𝒴;;; '_ : val <- ccallU MemHdr.store [Vptr (b, 1%Z); Vint 0];;
     𝒴;;; Ret stack.
 
   Definition _push : list val → itree crisE (() + val) := λ args,
@@ -22,8 +25,10 @@ Module StackI. Section StackI.
     𝒴;;; '_ : val <- ccallU MemHdr.store [Vptr (head_newb, head_newofs + 1)%Z; head_old];;
     𝒴;;; 'ret : val <-
       ccallU MemHdr.cas [Vptr (stackb, stackofs); head_old; Vptr (head_newb, head_newofs)];;
+    𝒴;;; 'cmp : val <- ccallU MemHdr.cmp [ret; head_old];;
     𝒴;;;
-      if (decide (ret ≠ head_old)) then
+      match cmp with
+      | Vint 0 =>
           𝒴;;; 'offer : val <- ccallU MemHdr.alloc [Vint 2];;
           𝒴;;; '(offerb, offerofs) : mblock * ptrofs <- (pargs [Tptr] [offer])?;;
           𝒴;;; '_ : val <- ccallU MemHdr.store [Vptr (offerb, offerofs); v];;
@@ -38,7 +43,9 @@ Module StackI. Section StackI.
           | Vint 1%Z => Ret (inl ())
           | _ => triggerUB
           end
-      else Ret (inr Vundef).
+      | Vint 1 => Ret (inr Vundef)
+      | _ => triggerUB
+      end.
 
   Definition push : list val → itree crisE val :=
     λ args, ITree.iter (λ _, (_push args)) ().

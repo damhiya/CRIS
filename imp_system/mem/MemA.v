@@ -1,5 +1,6 @@
 From CRIS Require Import CRIS MemHeader.
 From iris.algebra Require Import auth excl agree csum functions dfrac_agree.
+From iris.bi.lib Require Import fractional.
 Set Implicit Arguments.
 
 (* Memory resource algebra *)
@@ -94,6 +95,25 @@ Section MemRA.
   Definition mem_points_to : (mblock * Z) → dfrac → list val → iProp Σ :=
     λ '(blk, ofs) q vs, ([∗ list] i ↦ v ∈ vs, mem_points_to_singleton (blk, ofs + i)%Z q v)%I.
 
+  Global Instance mem_points_to_singleton_fractional l v :
+    Fractional (λ q, mem_points_to_singleton l (DfracOwn q) v)%I.
+  Proof.
+    destruct l. rewrite /mem_points_to_singleton /mem_points_to_singleton_r /=.
+    intros p q; rewrite -own_op -auth_frag_op discrete_fun_singleton_op.
+    rewrite auth_frag_proper; first refl.
+    rewrite discrete_fun_singleton_proper; first refl.
+    rewrite discrete_fun_singleton_op -Some_op. do 2 f_equiv.
+    rewrite -dfrac_agree_op -dfrac_op_own //.
+  Qed.
+  Global Instance mem_points_to_singleton_as_fractional l v q :
+    AsFractional
+      (mem_points_to_singleton l (DfracOwn q) v)
+      (λ q, mem_points_to_singleton l (DfracOwn q) v)%I q.
+  Proof. econs; ss. apply _. Qed.
+  Global Instance mem_points_to_persistent loc v :
+    Persistent (mem_points_to_singleton loc DfracDiscarded v).
+  Proof. apply _. Qed.
+
   Lemma mem_init_auth_r_valid (csl : string → bool) (genv : GEnv.t) blk ofs v :
     mem_init_val csl genv blk ofs = Some v →
     mem_points_to_singleton_r (blk, ofs) (DfracOwn 1) (Vint v) ≼ mem_init_frag_r csl genv.
@@ -126,6 +146,8 @@ End MemRA.
 Notation "loc '↦{' q '}' v" := (mem_points_to_singleton loc (DfracOwn q) v) (at level 20).
 Notation "loc ↦ v" := (mem_points_to_singleton loc (DfracOwn 1) v) (at level 20).
 Notation "loc ↦□ v" := (mem_points_to_singleton loc DfracDiscarded v) (at level 20).
+Notation "loc '↦{' q '}' v" := (<own> base_γ (mem_points_to_singleton_r loc (DfracOwn q) v))%SAT
+  (at level 20) : SAT_scope.
 Notation "loc ↦ v" := (<own> base_γ (mem_points_to_singleton_r loc (DfracOwn 1) v))%SAT
   (at level 20) : SAT_scope.
 Notation "loc ↦□ v" := (<own> base_γ (mem_points_to_singleton_r loc DfracDiscarded v))%SAT
@@ -175,20 +197,28 @@ Module MemSpec. Section MemSpec.
     end.
 
   Definition cmp :=
-    (make_fspecS (λ '(arg0, q0, v0, arg1, q1, v1, succ),
+    (make_fspecS (λ '(v1, v2, succ, E),
       (λ arg,
-        ⌜arg = [arg0; arg1]↑ ∧ compare_val arg0 arg1 = Vint succ⌝ ∗
-        val_r arg0 q0 v0 ∗ val_r arg1 q1 v1,
-       λ ret, ⌜ret = (Vint succ)↑⌝ ∗
-        val_r arg0 q0 v0 ∗ val_r arg1 q1 v1)))%I.
+        ⌜arg = [v1; v2]↑ ∧ compare_val v1 v2 = Vint succ⌝ ∗ E ∗
+        (E ==∗ ∃ q0 q1 v1' v2', val_r v1 q0 v1' ∗ val_r v2 q1 v2' ∗
+          (val_r v1 q0 v1' ∗ val_r v2 q1 v2' ==∗ E)),
+       λ ret, ⌜ret = (Vint succ)↑⌝ ∗ E)))%I.
 
-  Definition cas : fspecS :=
+  (* Definition cas : fspecS :=
     (make_fspecS (λ '(b, ofs, v_cur, q0, v0, v_old, q1, v1, v_new, succ),
       (λ arg, ⌜arg = [Vptr (b, ofs); v_old; v_new]↑ ∧ compare_val v_cur v_old = Vint succ⌝ ∗
         (b, ofs) ↦ v_cur ∗ val_r v_cur q0 v0 ∗ val_r v_old q1 v1,
        λ ret, ⌜ret = v_cur↑⌝ ∗
         (b, ofs) ↦ (if dec succ 1 then v_new else v_cur) ∗
-        val_r v_cur q0 v0 ∗ val_r v_old q1 v1)))%I.
+        val_r v_cur q0 v0 ∗ val_r v_old q1 v1)))%I. *)
+  Definition cas : fspecS :=
+    (make_fspecS (λ '(b, ofs, v_cur, v_old, v_new, succ, E),
+      (λ arg, ⌜arg = [Vptr (b, ofs); v_old; v_new]↑ ∧ compare_val v_cur v_old = Vint succ⌝ ∗
+        (b, ofs) ↦ v_cur ∗ E ∗
+        (E ==∗ ∃ q0 q1 v0 v1, val_r v_cur q0 v0 ∗ val_r v_old q1 v1 ∗
+          (val_r v_cur q0 v0 ∗ val_r v_old q1 v1 ==∗ E)),
+       λ ret, ⌜ret = v_cur↑⌝ ∗
+        (b, ofs) ↦ (if dec succ 1 then v_new else v_cur) ∗ E)))%I.
 End MemSpec. End MemSpec.
 
 Module MemP. Section MemP.

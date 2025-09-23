@@ -12,7 +12,6 @@ Section Helping.
   Context `{!crisG Γ Σ α β τ _S _I, !concG, !newschG}.
   (* sp, module name for the helping module *)
   Context (sp : sp_type) (mn : string).
-  (* Context (Hyield : sp SchHdr.yield = None ∨ ∃ E, sp SchHdr.yield = Some (SchA.yield_spec E)). *)
   Context `{jobID} (jobs : jobID → itree Helping.pureE unit).
   Context (msk : string → bool). (* mask for the user module *)
 

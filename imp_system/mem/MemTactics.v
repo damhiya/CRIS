@@ -27,10 +27,10 @@ Section mem.
       ([∗ list] i ↦ v ∈ repeat Vundef (Z.to_nat sz), (blk, Z.of_nat i)%Z ↦ v) -∗
       wsim fl_s fl_t Ist (E1, E2) r g R_s R_t RR ps true
       (st_src, k_s)
-      (st_tgt, k_t (Vptr (blk, 0%Z))↑))
-    ⊢ wsim fl_s fl_t Ist (E1, E2) r g R_s R_t RR ps pt
-    (st_src, k_s)
-    (st_tgt, x <- (SB.sandbox img_t msk_t scp_t (trigger (Call MemHdr.alloc [Vint sz]↑)));; k_t x).
+      (st_tgt, k_t (Vptr (blk, 0%Z))↑)) ⊢
+    wsim fl_s fl_t Ist (E1, E2) r g R_s R_t RR ps pt
+      (st_src, k_s)
+      (st_tgt, x <- (SB.sandbox img_t msk_t scp_t (trigger (Call MemHdr.alloc [Vint sz]↑)));; k_t x).
   Proof.
     intros Hin Hmsk Hsz.
     iIntros "K".
@@ -39,5 +39,109 @@ Section mem.
     steps_r. iDestruct "GRT" as "[[% [-> ↦]] ->]". iApply "K".
     iApply (big_sepL_impl with "↦").
     iIntros "!> % % %"; rewrite Z.add_0_l; iIntros "$".
+  Qed.
+
+  Lemma wsim_mem_store b ofs v v' k_s k_t E1 E2 r g img_t msk_t scp_t :
+    alist_find (Some MemHdr.store) fl_t =
+      Some (SB.sandbox_body
+        (SModTr.trans_ktree sp_none
+          (true, wmask_all, MemA.scopes, (Some (to_fspec MemSpec.store), fbody_trivial)))) →
+    (msk_t MemHdr.store : bool) →
+    (b, ofs) ↦ v' -∗
+    ((b, ofs) ↦ v -∗
+      wsim fl_s fl_t Ist (E1, E2) r g R_s R_t RR ps true
+        (st_src, k_s)
+        (st_tgt, k_t (Vint 0)↑)) -∗
+    wsim fl_s fl_t Ist (E1, E2) r g R_s R_t RR ps pt
+      (st_src, k_s)
+      (st_tgt,
+        x <- (SB.sandbox img_t msk_t scp_t (trigger (Call MemHdr.store [Vptr (b, ofs); v]↑)));;
+        k_t x).
+  Proof.
+    intros Hin Hmsk.
+    iIntros "↦ K".
+    inline_r. steps_r. force_r (b, ofs, v', v). forces_r. iFrame "↦"; iSplit; eauto.
+    steps_r. iDestruct "GRT" as "[[↦ ->] ->]". iApply "K"; iFrame.
+  Qed.
+
+  Lemma wsim_mem_load b ofs q v k_s k_t E1 E2 r g img_t msk_t scp_t :
+    alist_find (Some MemHdr.load) fl_t =
+      Some (SB.sandbox_body
+        (SModTr.trans_ktree sp_none
+          (true, wmask_all, MemA.scopes, (Some (to_fspec MemSpec.load), fbody_trivial)))) →
+    (msk_t MemHdr.load : bool) →
+    (b, ofs) ↦{q} v -∗
+    ((b, ofs) ↦{q} v -∗
+      wsim fl_s fl_t Ist (E1, E2) r g R_s R_t RR ps true
+        (st_src, k_s)
+        (st_tgt, k_t v↑)) -∗
+    wsim fl_s fl_t Ist (E1, E2) r g R_s R_t RR ps pt
+      (st_src, k_s)
+      (st_tgt,
+        x <- (SB.sandbox img_t msk_t scp_t (trigger (Call MemHdr.load [Vptr (b, ofs)]↑)));;
+        k_t x).
+  Proof.
+    intros Hin Hmsk.
+    iIntros "↦ K".
+    inline_r. steps_r. force_r (b, ofs, q, v). forces_r. iFrame "↦"; iSplit; eauto.
+    steps_r. iDestruct "GRT" as "[[↦ ->] ->]". iApply "K"; iFrame.
+  Qed.
+
+  Lemma wsim_mem_cas b ofs v v_old v_new succ E k_s k_t E1 E2 r g img_t msk_t scp_t :
+    alist_find (Some MemHdr.cas) fl_t =
+      Some (SB.sandbox_body
+        (SModTr.trans_ktree sp_none
+          (true, wmask_all, MemA.scopes, (Some (to_fspec MemSpec.cas), fbody_trivial)))) →
+    (msk_t MemHdr.cas : bool) →
+    MemSpec.compare_val v v_old = Vint succ →
+    (b, ofs) ↦ v -∗
+    E -∗
+    (E ==∗ ∃ q0 q1 v0 v1, MemSpec.val_r v q0 v0 ∗ MemSpec.val_r v_old q1 v1 ∗
+          (MemSpec.val_r v q0 v0 ∗ MemSpec.val_r v_old q1 v1 ==∗ E)) -∗
+    (((b, ofs) ↦ if (decide (succ = 1)) then v_new else v) -∗
+     E -∗
+      wsim fl_s fl_t Ist (E1, E2) r g R_s R_t RR ps true
+        (st_src, k_s)
+        (st_tgt, k_t v↑)) -∗
+    wsim fl_s fl_t Ist (E1, E2) r g R_s R_t RR ps pt
+      (st_src, k_s)
+      (st_tgt,
+        x <- (SB.sandbox img_t msk_t scp_t
+          (trigger (Call MemHdr.cas [Vptr (b, ofs); v_old; v_new]↑)));;
+        k_t x).
+  Proof.
+    intros Hin Hmsk Hcmp.
+    iIntros "↦ E HE K".
+    inline_r. steps_r. force_r (b, ofs, v, v_old, v_new, succ, E). forces_r.
+    iFrame "↦ E HE"; iSplit; eauto.
+    steps_r. iDestruct "GRT" as "[[-> [↦ E]] ->]". iApply ("K" with "↦ E"); iFrame.
+  Qed.
+
+  Lemma wsim_mem_cmp v1 v2 succ E k_s k_t E1 E2 r g img_t msk_t scp_t :
+    alist_find (Some MemHdr.cmp) fl_t =
+      Some (SB.sandbox_body
+        (SModTr.trans_ktree sp_none
+          (true, wmask_all, MemA.scopes, (Some (to_fspec MemSpec.cmp), fbody_trivial)))) →
+    (msk_t MemHdr.cmp : bool) →
+    MemSpec.compare_val v1 v2 = Vint succ →
+    E -∗
+    (E ==∗ ∃ q0 q1 v1' v2', MemSpec.val_r v1 q0 v1' ∗ MemSpec.val_r v2 q1 v2' ∗
+          (MemSpec.val_r v1 q0 v1' ∗ MemSpec.val_r v2 q1 v2' ==∗ E)) -∗
+    (E -∗
+      wsim fl_s fl_t Ist (E1, E2) r g R_s R_t RR ps true
+        (st_src, k_s)
+        (st_tgt, k_t (Vint succ)↑)) -∗
+    wsim fl_s fl_t Ist (E1, E2) r g R_s R_t RR ps pt
+      (st_src, k_s)
+      (st_tgt,
+        x <- (SB.sandbox img_t msk_t scp_t
+          (trigger (Call MemHdr.cmp [v1; v2]↑)));;
+        k_t x).
+  Proof.
+    intros Hin Hmsk Hcmp.
+    iIntros "E HE K".
+    inline_r. steps_r. force_r (v1, v2, succ, E). forces_r.
+    iFrame "E HE"; iSplit; eauto.
+    steps_r. iDestruct "GRT" as "[[-> E] ->]". iApply ("K" with "E"); iFrame.
   Qed.
 End mem.
