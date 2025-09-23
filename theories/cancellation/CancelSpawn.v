@@ -86,6 +86,7 @@ Proof.
     (* hexploit (Himp (length tgts) x); intros [x' [PRE ?]]. *)
     eapply thread_rel_spawn; eauto.
     { destruct rs_diff; ss. }
+    { rewrite EQLEN2. ii; subst; ss. }
     { rewrite EQLEN2 EQLEN. iIntros "X //". iPoseProof (Hr_t4 with "X") as "X"; done. }
     { ss; eapply elim_rel_cancel; eauto. }
   }

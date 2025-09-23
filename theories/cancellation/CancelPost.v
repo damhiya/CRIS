@@ -7,28 +7,28 @@ Lemma cancel_post `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp:
     (r : ∀ x x0, (x→x0→Prop)→smj→smj→itree coreE x→itree coreE x0→Prop)
     (WFS: SMod.wf md)
     (WF: Mod.wf (SMod.to_mod sp_none (SMod.cancel md)))
-    (KEY: ∀ itr_s itr_t st (r_s r_t r_diff : Σ) tid
+    (KEY: ∀ itr_s itr_t st (r_s r_t r_diff : Σ)
              (WFR: ✓ r_s)
              (RS: Own r_s ⊢ |==> ([∗ list] i ∈ <[cid:=r_diff]> rs_diff, Own i) ∗ Own r_t ∗
-                      TIDAUTH tid ∗ YIELDAUTH (length (<[cid:=r_diff]> rs_diff)))
+                      TIDAUTH cid ∗ YIELDAUTH (length (<[cid:=r_diff]> rs_diff)))
              (LEN: cid < List.length srcs)
-             (REL: thread_rel sp cid r_diff itr_s itr_t),
+             (REL: thread_rel sp cid cid r_diff itr_s itr_t),
      gpaco7 _gsim (cpn7 _gsim) bot7 r (Any.t * Any.t)%type
        (Any.t * Any.t)%type cancel_eq smj_top smj_top
        (LModTr.interp_stateE Any.t
           (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
                  (SMod.to_mod sp_none (SMod.cancel md))) rs0)))
-                 (tid, <[cid:=itr_s]> srcs))
+                 (cid, <[cid:=itr_s]> srcs))
           (Any.pair (ModTr.alist_encode st) r_s ↑))
        (LModTr.interp_stateE Any.t
           (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
                  (SMod.to_mod sp md)) rs0)))
-                 (tid, <[cid:=itr_t]> tgts))
+                 (cid, <[cid:=itr_t]> tgts))
           (Any.pair (ModTr.alist_encode st) r_t ↑)))
     (EQLEN2 : length rs_diff = length srcs)
     (EQLEN : length srcs = length tgts)
     (REL : ∀ i x y z, rs_diff !! i = Some z →
-      srcs !! i = Some x → tgts !! i = Some y → thread_rel sp i z x y)
+      srcs !! i = Some x → tgts !! i = Some y → thread_rel sp cid i z x y)
     (WFR : ✓ r_s)
     (RS : Own r_s ⊢ |==> ([∗ list] i ∈ rs_diff, Own i) ∗ Own r_t ∗
               TIDAUTH cid ∗ YIELDAUTH (length rs_diff))

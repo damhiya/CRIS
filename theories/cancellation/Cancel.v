@@ -1,7 +1,7 @@
 Require Import CRIS.
 Require Import LMod LModTr GSim GSimFacts GSimTactics.
 Require Import MInline MInlineIntro MInlineElim ElimRel.
-Require Import CancelCore CancelPG CancelAG CancelSpawn CancelPre CancelPost.
+Require Import CancelCore CancelPG CancelAG CancelSpawn CancelPre CancelPost CancelYield CancelGetTid.
 
 Set Implicit Arguments.
 
@@ -12,7 +12,7 @@ Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG}.
 Lemma cancel_elim md (r_i r_s r_t: Σ) rs_diff srcs tgts cid st ps pt
   (WFS: SMod.wf md)
   (WF: Mod.wf (SMod.to_mod sp_none (SMod.cancel md)))
-  (REL: Forall3i (thread_rel (sp_from md)) rs_diff srcs tgts)
+  (REL: Forall3i (thread_rel (sp_from md) cid) rs_diff srcs tgts)
   (WFR: ✓ r_s)
   (RS: Own r_s ⊢ |==> ([∗ list] i ∈ rs_diff, Own i) ∗ Own r_t ∗
          TIDAUTH cid ∗ YIELDAUTH (length rs_diff))
@@ -37,111 +37,28 @@ Proof using.
   exploit (@Forall3i_nth _ _ _ cid); eauto; try lia; clear REL.
   intros [r_diff [i_s [i_t [Hdiff [Hs [Ht Hcidrel]]]]]]; ss.
 
-  inversion_clear Hcidrel; subst; cycle 1.
-  {
-    (* ziter_l; rewrite Hs /=. zstep_l. ziter_l. zstep_l. *)
-    (* ziter_r; rewrite Ht /= /elim_spawnee_precond. *)
-    (* zstep_r. exists cid. ired. zstep_r. *)
-    (* ziter_r. zstep_r. *)
-    (* ziter_r. zstep_r. ired. *)
-    (* ziter_r. zstep_r. *)
-    (* hexploit (Own_bupd_split). *)
-    (* { iIntros "S"; iPoseProof (RS with "S") as ">(D & R & TA & T & YA & Y & W)". *)
-    (*   iCombine "D TA YA" as "P". iCombine "T Y W" as "TKN". iCombine "TKN R" as "Q". *)
-    (*   iModIntro. iSplitL "P"; [iApply "P"|iApply "Q"]. } *)
-    (* { eauto. } *)
-    (* intros [r_s1 [r_s2 [Hr_s [Hr_s1 Hr_s2]]]]. *)
-    (* exists r_s2; ired. zstep_r. *)
-    (* ziter_r. zstep_r. *)
-    (* unshelve eexists. *)
-    (* { split; [eapply Own_wand_valid; [iIntros "S"; iMod (Hr_s with "S") as "[_ $]"; done|done]|]. *)
-    (*   rewrite Hr_s2. eapply bupd_intro. *)
-    (* } *)
-    (* ired. zstep_r. *)
-    (* ziter_r. zstep_r. *)
-    (* ziter_r. zstep_r. *)
-    (* ziter_r. zstep_r. *)
-    (* ziter_r. zstep_r. exists x; ired. zstep_r. *)
-    (* ziter_r. zstep_r. *)
-    (* ziter_r. zstep_r. exists varg. ired. zstep_r. *)
-    (* ziter_r. zstep_r. *)
-    (* ziter_r. zstep_r. ired. *)
-    (* ziter_r. zstep_r. exists r_diff. ired. zstep_r. *)
-
-
-    
-    (* exists r_diff; ired. zstep_r. *)
-    (* exists x; ired. zstep_r. *)
-    (* ziter_r. zstep_r. *)
-    (* ziter_r. zstep_r. exists varg. ired. zstep_r. *)
-    (* ziter_r. zstep_r. *)
-    (* ziter_r. zstep_r. *)
-    (* ziter_r. zstep_r. *)
-    (* hexploit (Own_bupd_split); first apply RS; eauto. *)
-    (* intros [r_s1 [r_s2 [Hr_s [Hr_s1 Hr_s2]]]]; exists (r_t ⋅ r_diff). ired. zstep_r. *)
-    (* ziter_r. zstep_r. eexists. zstep_r. *)
-    (* ziter_r. zstep_r. ziter_r. zstep_r. ziter_r. zstep_r. *)
-    (* eapply Hkey; eauto; cycle 1. *)
-    (* { econs; cycle 3. *)
-    (*   { rewrite interpV_bind; refl. } *)
-    (*   { by ii. } *)
-    (*   { eauto. } *)
-    (*   { rewrite /ModTr.trans //. } *)
-    (* } *)
-    (* { rewrite Hr_s Hr_s1 Hr_s2 Own_op. *)
-    (*   iIntros "> [RS $]"; iPoseProof (big_sepL_insert_acc with "RS") as "[$ RS]"; eauto. *)
-    (*   iModIntro; iApply "RS"; iApply Own_unit. *)
-    (* } *)
-    (* Unshelve. *)
-    (* { split; *)
-    (*     [eapply Own_wand_valid; *)
-    (*      [iIntros "S"; rewrite Own_op; iMod (RS with "S") as "[S $]"|] *)
-    (*     | rewrite Own_op; iIntros "[$ D]"; rewrite H2]; try done. *)
-    (*   iPoseProof (big_sepL_lookup_acc with "S") as "[$ S]"; eauto. *)
-    (* } *)
-    (* { zstep_r. ziter_r. zstep_r. *)
-    (*   eapply Hkey; eauto; cycle 1. *)
-    (*   { econs; eauto. *)
-    (*     rewrite bind_ret_r /ModTr.trans. *)
-    (*     hexploit (Own_bupd_split r_diff (⌜ arg = varg ⌝)). *)
-    (*     { rewrite H2; iIntros "> $"; iModIntro; iApply Own_unit. } *)
-    (*     { eapply Own_wand_valid; [iIntros "S"; iMod (RS with "S") as "[S _]"|]; eauto. *)
-    (*       iPoseProof (big_sepL_lookup_acc with "S") as "[$ ?]"; eauto. *)
-    (*     } *)
-    (*     intros [? [? [? [Harg%Own_pure_soundness ?]]]]; subst; ss. *)
-    (*     eapply Own_wand_valid; [iIntros "S"; iMod (RS with "S") as "[S _]"|]; eauto. *)
-    (*     iPoseProof (big_sepL_lookup_acc with "S") as "[S ?]"; eauto. *)
-    (*     iMod (H0 with "S") as "[$ ?]"; done. *)
-    (*   } *)
-    (*   { rewrite RS. *)
-    (*     iIntros "> [S $]"; iPoseProof (big_sepL_insert_acc with "S") as "[_ S]"; eauto. *)
-    (*     iModIntro; iApply "S"; iApply Own_unit. *)
-    (*   } *)
-    (* } *)
-    admit.
-  }
-
+  inversion_clear Hcidrel; subst; ss; cycle 1.
   
   assert (Hkey :
-    ∀ itr_s itr_t st (r_s r_t: Σ) r_diff tid,
+    ∀ itr_s itr_t st (r_s r_t: Σ) r_diff,
     ✓ r_s →
     (Own r_s ⊢ |==> ([∗ list] i ∈ <[cid := r_diff]> rs_diff, Own i) ∗ Own r_t ∗
-       TIDAUTH tid ∗ YIELDAUTH (length (<[cid := r_diff]> rs_diff))) →
+       TIDAUTH cid ∗ YIELDAUTH (length (<[cid := r_diff]> rs_diff))) →
     cid < List.length srcs →
-    thread_rel (sp_from md) cid r_diff itr_s itr_t →
+    thread_rel (sp_from md) cid cid r_diff itr_s itr_t →
     gpaco7 _gsim (cpn7 _gsim) bot7 r (Any.t * Any.t)%type
       (Any.t * Any.t)%type cancel_eq smj_top smj_top
       (LModTr.interp_stateE Any.t
         (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
           (SMod.to_mod sp_none (SMod.cancel md))) r_i)))
-              (tid, <[cid:=itr_s]> srcs))
+              (cid, <[cid:=itr_s]> srcs))
        (Any.pair (ModTr.alist_encode st) r_s ↑))
     (LModTr.interp_stateE Any.t
        (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
               (SMod.to_mod (sp_from md) md)) r_i)))
-              (tid, <[cid:=itr_t]> tgts))
+              (cid, <[cid:=itr_t]> tgts))
        (Any.pair (ModTr.alist_encode st) r_t ↑))).
-  { i. zprogress.
+  { i. subst. zprogress.
     gbase. eapply CIH; et.
     split.
     { rewrite !length_insert. et. }
@@ -182,26 +99,12 @@ Proof using.
   - eapply cancel_core; eauto.
   - eapply cancel_pg; eauto.
   - eapply cancel_ag; eauto.
-  - admit.
-    (* ziter_l. ziter_r. rewrite Hs Ht /=. zstep_l. zstep_r. eapply Hkey; eauto. *)
-    (* { rewrite list_insert_id //. } *)
-    (* { econs; eauto; eapply H. } *)
+  - eapply cancel_yield; eauto.
   - eapply cancel_spawn; et.
   - eapply cancel_pre; et.
   - eapply cancel_post; et.
-  - admit.
-    (* ziter_r. rewrite Ht /=; zstep_r. *)
-    (* exists tt. zstep_r. ziter_r. zstep_r. *)
-    (* ziter_r. zstep_r. exists varg. zstep_r. *)
-    (* ziter_r. zstep_r. ziter_r. zstep_r. ired. *)
-    (* ziter_r. zstep_r. exists r_t. zstep_r. *)
-    (* ziter_r. zstep_r. unshelve eexists. *)
-    (* { split; eauto. admit. } *)
-    (* ired. ziter_r. zstep_r. zstep_r. *)
-    (* ziter_r. zstep_r. ziter_r. zstep_r. *)
-    (* eapply Hkey; et. *)
-Admitted.
-(* (*SLOW*) Qed. *)
+  - eapply cancel_gettid; eauto.
+(*SLOW*)Qed.
 
 Lemma cancel_main md rs rt
   (WFS: SMod.wf md)
