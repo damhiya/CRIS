@@ -1,6 +1,14 @@
 Require Import CRIS.
-Require Import LMod LModTr GSim GSimFacts GSimTactics.
+Require Import LMod LModTr GSim GSimFacts GSimTactics CancelTactics.
 Require Import MInline MInlineIntro MInlineElim ElimRel.
+
+Local Ltac sil := iter_l; rewrite !list_lookup_insert ?length_insert //.
+Local Ltac snl := norm_l; rewrite !list_insert_insert ?bind_ret_l.
+Local Ltac sir :=
+  match goal with
+  | [ EQLEN : length _ = length _ |- _ ] => iter_r; rewrite !list_lookup_insert ?length_insert -EQLEN //
+  end.
+Local Ltac snr := norm_r; rewrite !list_insert_insert ?bind_ret_l.
 
 Lemma cancel_post `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp:
   ∀ (rs0 : Σ) r_s r_t srcs tgts cid st ps pt vret (X X': Type) (x: X) (x': X') Q Q' itrS ktrT k rs_diff
@@ -52,30 +60,31 @@ Lemma cancel_post `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp:
               (SMod.to_mod sp md)) rs0))) (cid, tgts))
        (Any.pair (ModTr.alist_encode st) r_t ↑)).
 Proof.
-  i. ziter_l. ziter_r. rewrite x0 x1 /=.
-  zstep_l. ziter_l. zstep_l.
-  move KTR at bottom. des_safe.
-  destruct KTR0; subst; des_safe.
-  { zstep_r. zstep_r.
-    ziter_r. zstep_r. ziter_r. zstep_r.
-    ziter_r. zstep_r. zstep_r. ziter_r. zstep_r. zstep_r.
-    ziter_r. zstep_r. ziter_r. zstep_r. ziter_r. zstep_r.
-    ziter_r. zstep_r. ziter_r. zstep_r.
+  i. iter_l. iter_r. rewrite x0 x1 /=. step_l. norm_l. norm_r.
+  sil. step_l. snl. step_r. i. ired. step_r. norm_r.
 
-    des; subst.
-    { ziter_r. zstep_r. eexists. zstep_r.
-      ziter_r. zstep_r. ziter_r. zstep_r.
-      ziter_r. zstep_r. eexists r_t. zstep_r.
-      ziter_r. zstep_r. unshelve eexists.
-      { split; [eapply Own_wand_valid; [iIntros "S"; iMod (RS with "S") as "[_ [$ [_ _]]]"|]|]; try done.
-        iIntros "H". iMod (x6 with "H") as "[P O]". rewrite KTR. iFrame. 
-      }
-      zstep_r.
-      ziter_r. zstep_r. ziter_r. zstep_r. ziter_r. zstep_r.
-
-      pclearbot. eapply KEY; et.
-      { rewrite list_insert_id //. }
-      { econs; eauto; eapply KTR1. }
-    }
-  }
+  sir. step_r. snr.
+  sir. step_r. snr. rewrite Any.pair_split /= !bind_ret_l Any.upcast_downcast /= !bind_ret_l.
+  sir. step_r. i. step_r. snr.
+  sir. step_r. i. step_r. snr.
+  sir. step_r. snr. rewrite Any.pair_split /= !bind_ret_l.
+  sir. step_r. snr.
+  sir. step_r. snr.
+  sir. step_r. snr.
+  sir. step_r. snr.
+  sir. step_r. exists vret. step_r. snr.
+  sir. step_r. snr.
+  sir. step_r. snr. rewrite Any.pair_split /= !bind_ret_l Any.upcast_downcast /= !bind_ret_l.
+  sir. step_r. exists r_t. step_r. snr.
+  sir. step_r. unshelve eexists; ired.
+  { des; split; [eapply Own_wand_valid; [iIntros "S"; iMod (RS with "S") as "[_ [$ [_ _]]]"|]|]; try done.
+    iIntros "H". iMod (x6 with "H") as "[P O]". rewrite KTR. iFrame. }
+  step_r. snr.
+  sir. step_r. snr. rewrite Any.pair_split /= !bind_ret_l.
+  sir. step_r. snr.
+  sir. step_r. snr.
+  
+  des; pclearbot. eapply KEY; et.
+  { rewrite list_insert_id //. }
+  { econs; eauto; eapply KTR1. }
 (*SLOW*)Qed.

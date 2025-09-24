@@ -1,12 +1,43 @@
 Require Import CRIS.
-Require Import LMod LModTr GSim GSimFacts GSimTactics.
+Require Import LMod LModTr GSim GSimFacts GSimTactics CancelTactics.
 Require Import MInline MInlineIntro MInlineElim ElimRel.
+
+Local Ltac sil := iter_l; rewrite ?lookup_app_l ?length_insert // !list_lookup_insert ?length_insert //.
+Local Ltac snl := norm_l; rewrite -?insert_app_l //= !list_insert_insert ?bind_ret_l.
+Local Ltac sir :=
+  match goal with
+  | [ EQLEN : length _ = length _ |- _ ] => iter_r; rewrite ?lookup_app_l ?length_insert // !list_lookup_insert ?length_insert // -EQLEN //
+  end.
+Local Ltac snr := norm_r; rewrite -?insert_app_l //= !list_insert_insert ?bind_ret_l.
 
 Lemma cancel_spawn `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp fn args :
   CANCEL_GOAL md sp (NativeSpawnE fn args) (HoareSpawnE fn args (sp fn)).
 Proof.
   r; i. subst.
   (* rewrite /sp_from /to_sp in WFS. setoid_rewrite alist_find_map_snd in WFS. *)
+  iter_l. iter_r. rewrite x0 x1 /=. step_l. norm_l.
+  rewrite /LMod.prog /Mod.to_lmod /= !alist_find_map_snd.
+
+  destruct (alist_find (Some fn) (SMod.fnsems md)) eqn: FIND; rewrite !FIND; cycle 1.
+  { s. step_l. i; ss. }
+  destruct f as [[[img msk] scp] [fspo bd]].
+  assert (WFSCP: incl scp (SMod.scopes md)).
+  { etrans; [|apply SMod.well_scoped_fns].
+    rewrite /fnsems_scopes. erewrite FIND. refl.
+  }
+
+  assert (EQ: sp_from md fn = fspo).
+  { rewrite /sp_from /to_sp alist_find_map_snd /= FIND //. }
+  rewrite !EQ /=.
+  r in WFS. hexploit WFS; eauto; i; ss; des; subst img.
+  destruct fspo; ss. destruct f.
+  { ired. step_r. i; ss. }
+
+  ired. norm_l. norm_r.
+  step_r. i. step_r. norm_r.
+
+  sil. step_l. snl.
+  
   ziter_l. ziter_r. rewrite x0 x1 /=. zstep_l.
   rewrite !alist_find_map_snd.
   destruct (alist_find (Some fn) (SMod.fnsems md)) eqn: FIND; rewrite !FIND; cycle 1.
