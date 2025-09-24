@@ -6,9 +6,12 @@ Local Ltac sil := iter_l; rewrite ?lookup_app_l ?length_insert // !list_lookup_i
 Local Ltac snl := norm_l; rewrite -?insert_app_l //= !list_insert_insert ?bind_ret_l.
 Local Ltac sir :=
   match goal with
-  | [ EQLEN : length _ = length _ |- _ ] => iter_r; rewrite ?lookup_app_l ?length_insert // !list_lookup_insert ?length_insert // -EQLEN //
+  | [ EQLEN : length _ = length _ |- _ ] => iter_r; rewrite ?lookup_app_l -?EQLEN //= ?length_insert -?EQLEN //= !list_lookup_insert ?length_insert //= ?last_length //= -?EQLEN //=; [..|try nia]
   end.
-Local Ltac snr := norm_r; rewrite -?insert_app_l //= !list_insert_insert ?bind_ret_l.
+Local Ltac snr :=
+    match goal with
+    | [ EQLEN : length _ = length _ |- _ ] => norm_r; rewrite -?insert_app_l -?EQLEN //= !list_insert_insert ?bind_ret_l; [..|try nia]
+    end.
 
 Lemma cancel_spawn `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp fn args :
   CANCEL_GOAL md sp (NativeSpawnE fn args) (HoareSpawnE fn args (sp fn)).
@@ -35,36 +38,17 @@ Proof.
 
   ired. norm_l. norm_r.
   step_r. i. step_r. norm_r.
+  guardH EQLEN2.
 
   sil. step_l. snl.
-  
-  ziter_l. ziter_r. rewrite x0 x1 /=. zstep_l.
-  rewrite !alist_find_map_snd.
-  destruct (alist_find (Some fn) (SMod.fnsems md)) eqn: FIND; rewrite !FIND; cycle 1.
-  { s. zstep_l. }
-  destruct f as [[[img msk] scp] [fspo bd]].
-  assert (WFSCP: incl scp (SMod.scopes md)).
-  { etrans; [|apply SMod.well_scoped_fns].
-    rewrite /fnsems_scopes. erewrite FIND. refl.
-  }
+  sir. step_r. snr.
+  sir. step_r. i. step_r. snr.
+  sir. step_r. snr.
+  sir. step_r. snr.
+  rewrite !alist_find_map_snd FIND /=. norm_r.
+  sir. step_r. snr.
+  sir. step_r. snr. rewrite Any.pair_split /= !bind_ret_l Any.upcast_downcast /= !bind_ret_l.
 
-  assert (EQ: sp_from md fn = fspo).
-  { rewrite /sp_from /to_sp alist_find_map_snd /= FIND //. }
-  rewrite !EQ /=.
-  r in WFS. hexploit WFS; eauto; i; ss; des; subst img.
-  destruct fspo; ss. destruct f.
-  { ired. zstep_r. }
-    
-  ired. ziter_l. zstep_l.
-  do 2 zstep_r.
-  ziter_r; zstep_r.
-  ziter_r; do 2 zstep_r.
-  ziter_r; zstep_r.
-  ziter_r; zstep_r.
-  rewrite !alist_find_map_snd FIND /=. ired.
-  ziter_r; zstep_r.
-  ziter_r; zstep_r.
-  ziter_r; zstep_r.
   rewrite YieldToken_gen in RS.
   hexploit (Own_bupd_split).
   { iIntros "S". iPoseProof (RS with "S") as ">(D & R & TA & [YA NY])".
@@ -72,31 +56,39 @@ Proof.
     iSplitL "P"; [iApply "P"|iApply "Q"]. }
   { eauto. }
   intros [r_t1 [r_t2 [Hr_t [Hr_t1 Hr_t2]]]].
-  exists r_t2. zstep_r.
-  ziter_r; zstep_r.
-  assert (RES: ✓ r_t2 ∧ (Own r_t2 ⊢ |==> YIELD (length tgts) ∗ Own r_t)).
+
+  sir. step_r. exists r_t2. step_r. snr.
+  sir. step_r.
+  assert (RES: ✓ r_t2 ∧ (Own r_t2 ⊢ |==> YIELD (length srcs) ∗ Own r_t)).
   { split; eauto.
     { eapply Own_wand_valid; [iIntros "S"; iMod (Hr_t with "S") as "[_ $]"; done|eauto]. }
-    { rewrite Hr_t2 EQLEN2 -EQLEN. iIntros "[$ $]"; done. }
+    { rewrite Hr_t2 EQLEN2. iIntros "[$ $]"; done. }
   }
-  exists RES.
-  zstep_r.
-  do 4 (ziter_r; zstep_r).
-  ziter_r; do 2 zstep_r.
-  ziter_r; do 2 zstep_r.
-  do 3 (ziter_r; zstep_r).
-  zprogress. gbase.
-  des; hexploit (Own_bupd_split); et.
+  exists RES. step_r. snr.
+  sir. step_r. snr. rewrite Any.pair_split /= !bind_ret_l.
+  sir. step_r. snr.
+  sir. step_r. snr.
+  sir. step_r. snr. rewrite Any.pair_split /= !bind_ret_l Any.upcast_downcast /= !bind_ret_l.
+  sir. step_r. i. step_r. snr.
+  sir. step_r. i. step_r. snr.
+  sir. step_r. snr. rewrite Any.pair_split /= !bind_ret_l.
+  sir. step_r. snr.
+  sir. step_r. snr.
+
+  gstep; econs; econsr; try exact smj_lt_mid_top.
+  gbase.
+
+  unguardH EQLEN2.
+  des; hexploit (Own_bupd_split); eauto.
   intros [r_t3 [r_t4 [Hr_t3 [Hr_t4 Hr_t5]]]].
   eapply CIH; eauto.
-  { rewrite -!insert_app_l; try lia.
-    instantiate (1:=<[cid:=ε]>(rs_diff ++ [r_t3])).
+  { instantiate (1:=<[cid:=ε]>(rs_diff ++ [r_t3])).
     econs; first (rewrite !length_insert !length_app /=; lia).
     econs; first (rewrite !length_insert !length_app /=; lia).
     intros i ???; destruct (decide (i = cid)).
     { subst; rewrite ?list_lookup_insert; try (rewrite length_app /=; lia).
       do 3 (intros INV; inv INV).
-      econs; eauto. rewrite -EQLEN; eapply KTR.
+      econs; eauto. eapply KTR.
     }
     rewrite !list_lookup_insert_ne //.
     destruct (decide (i < length srcs)).
@@ -118,9 +110,10 @@ Proof.
     eapply thread_rel_spawn; eauto.
     { destruct rs_diff; ss. }
     { rewrite EQLEN2. ii; subst; ss. }
-    { rewrite EQLEN2 EQLEN. iIntros "X //". iPoseProof (Hr_t4 with "X") as "X"; done. }
+    { rewrite EQLEN2. iIntros "X //". iPoseProof (Hr_t4 with "X") as "X"; done. }
     { ss; eapply elim_rel_cancel; eauto. }
   }
+  
   rewrite insert_app_l; last lia.
   rewrite Hr_t Hr_t1 Hr_t3 Hr_t5 list_insert_id // big_sepL_app /= right_id last_length.
   iIntros ">(($ & $) & >[$ $])"; done.

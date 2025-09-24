@@ -1,5 +1,5 @@
 Require Import CRIS.
-Require Import LMod LModTr GSim GSimFacts GSimTactics.
+Require Import LMod LModTr GSim GSimFacts GSimTactics CancelTactics.
 Require Import MInline MInlineIntro MInlineElim ElimRel.
 
 Lemma list_lookup_exists {A} (l: list A) n (LT: n < length l) :
@@ -10,15 +10,28 @@ Proof.
   eapply Nat.succ_lt_mono in LT. hexploit IHl; eauto.
 Qed.
 
+Local Ltac sil := iter_l; rewrite !list_lookup_insert ?length_insert //.
+Local Ltac snl := norm_l; rewrite !list_insert_insert ?bind_ret_l.
+Local Ltac sir :=
+  match goal with
+  | [ EQLEN : length _ = length _ |- _ ] => iter_r; rewrite !list_lookup_insert ?length_insert -EQLEN //
+  end.
+Local Ltac snr := norm_r; rewrite !list_insert_insert ?bind_ret_l.
+
 Lemma cancel_yield `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp tid :
   CANCEL_GOAL md sp (NativeYieldE tid) (HoareYieldE tid).
 Proof.
   r; i. subst.
-  ziter_l; ziter_r. rewrite x0 x1 /=. zstep_l.
-  zstep_r. zstep_r. ziter_r. zstep_r. ziter_r. zstep_r. ired.
-  ziter_r. zstep_r. zstep_r. ziter_r. zstep_r. ziter_r. zstep_r. zstep_r.
-  ziter_r. zstep_r. ziter_r. zstep_r. ziter_r. zstep_r.
+  iter_l; iter_r. rewrite x0 x1 /=.
+  step_l. norm_l. rewrite !bind_ret_l.
+  step_r. i. step_r. norm_r. rewrite !bind_ret_l.
 
+  sir. step_r. snr. sir. step_r. snr.
+  rewrite Any.pair_split /= bind_ret_l Any.upcast_downcast /= bind_ret_l.
+  sir. step_r. i. step_r. snr. sir. step_r. i. step_r. snr.
+  sir. step_r. snr. rewrite Any.pair_split /= bind_ret_l.
+  sir. step_r. snr. sir. step_r. snr. sir. step_r. snr.
+  
   des.
   assert (EQ: x = cid).
   { eapply Own_pure_soundness with (a:=r_s); eauto.
@@ -41,17 +54,20 @@ Proof.
 
   destruct (decide (tid < length rs_diff)); cycle 1.
   {
-    ziter_l. destruct (<[cid:=_]> srcs !! tid) eqn:FIND.
+    iter_l. destruct (<[cid:=_]> srcs !! tid) eqn:FIND.
     { eapply lookup_lt_Some in FIND. rewrite length_insert in FIND. nia. }
-    { zstep_l. zstep_l. }
+    { step_l. rewrite /triggerUB. step_l. i; ss. }
   }
   destruct (decide (tid = cid)); subst.
   {
-    ziter_l. zstep_l. ziter_r. zstep_r. ziter_r. zstep_r. ired.
-    ziter_r. zstep_r.
-    exists r_t2. zstep_r. ziter_r. zstep_r. unshelve eexists; ired.
+    sil. step_l. snl. sir. step_r. snr. sir. step_r. snr.
+    rewrite Any.pair_split /= bind_ret_l Any.upcast_downcast /= bind_ret_l.
+    sir. step_r. exists r_t2. step_r. snr. sir. step_r. 
+    unshelve eexists; ired.
     { des; split; eauto. rewrite Hr_t3. eapply bupd_intro. }
-    zstep_r. ziter_r. zstep_r. ziter_r. zstep_r. ziter_r. zstep_r.
+    step_r. snr. sir. step_r. snr. rewrite Any.pair_split /= bind_ret_l.
+    sir. step_r. snr. sir. step_r. snr.
+
     eapply KEY with (r_diff:=ε); eauto.
     { rewrite length_insert list_insert_id //.
       iIntros "S". iPoseProof (Hr_t1 with "S") as ">[S $]"; iStopProof.
@@ -64,18 +80,22 @@ Proof.
     eapply list_lookup_exists in SRC, TGT, RES; des.
     hexploit REL; eauto; intros RELTID. inv RELTID.
     { (* first execution *)
-      ziter_l; ziter_r. rewrite !list_lookup_insert_ne // SRC TGT /=.
-      zstep_l. ziter_l. zstep_l.
-      zstep_r. exists tid. zstep_r. ziter_r. zstep_r. ziter_r. zstep_r. ired.
-      ziter_r. zstep_r. exists r_t2. zstep_r.
-      ziter_r. zstep_r. unshelve eexists; ired.
+      iter_l; iter_r. rewrite !list_lookup_insert_ne // SRC TGT /=.
+      step_l. norm_l. step_r. exists tid. step_r. norm_r.
+      sil. step_l. snl.
+      sir. step_r. snr. sir. step_r. snr.
+      rewrite Any.pair_split /= bind_ret_l Any.upcast_downcast /= bind_ret_l.
+      sir. step_r. exists r_t2. step_r. snr. sir. step_r.
+      unshelve eexists; ired.
       { split; eauto. rewrite Hr_t3. eapply bupd_intro. }
-      zstep_r. ziter_r. zstep_r. ziter_r. zstep_r.
-      ziter_r. zstep_r. ziter_r. zstep_r. exists x8. zstep_r.
-      ziter_r. zstep_r. ziter_r. zstep_r. exists varg. zstep_r.
-      ziter_r. zstep_r. ziter_r. zstep_r.
-      ziter_r. zstep_r. exists (x7 ⋅ r_t2). zstep_r.
-      ziter_r. zstep_r. unshelve eexists; ired.
+      step_r. snr.
+      sir. step_r. snr. rewrite Any.pair_split /= bind_ret_l.
+      sir. step_r. snr. sir. step_r. snr. sir. step_r. exists x8. step_r. snr.
+      sir. step_r. snr. sir. step_r. exists varg. step_r. snr.
+      sir. step_r. snr. sir. step_r. snr.
+      rewrite Any.pair_split /= bind_ret_l Any.upcast_downcast /= bind_ret_l.
+      sir. step_r. exists (x7 ⋅ r_t2). step_r. snr.
+      sir. step_r. unshelve eexists.
       { split; eauto.
         { eapply Own_wand_valid with (a1:=r_s); eauto.
           rewrite Hr_t1 Hr_t2 big_sepL_lookup_acc // Own_op.
@@ -83,8 +103,10 @@ Proof.
         }
         rewrite Own_op H4. iIntros "[>$ $]"; eauto.
       }
-      zstep_r. ziter_r. zstep_r. ziter_r. zstep_r.
-      ziter_r. zstep_r.
+      step_r. snr.
+      sir. step_r. snr. rewrite Any.pair_split /= bind_ret_l.
+      sir. step_r. snr. sir. step_r. snr.
+
       gstep. econs. econs; try exact smj_lt_mid_top.
       gbase. eapply CIH with (rs_diff:=<[tid:=ε]>rs_diff); eauto.
       { r. esplits; try rewrite !length_insert //.
@@ -119,11 +141,17 @@ Proof.
       }
     }
     { (* middle of execution *)
-      ziter_l; ziter_r. rewrite !list_lookup_insert_ne // SRC TGT /=.
-      zstep_l. zstep_r. ziter_r. zstep_r. ziter_r. zstep_r. exists r_t2.
-      zstep_r. ziter_r. zstep_r. unshelve eexists.
+      iter_l; iter_r. rewrite !list_lookup_insert_ne // SRC TGT /=.
+      step_l. norm_l. step_r. norm_r.
+      sir. step_r. snr.
+      rewrite Any.pair_split /= bind_ret_l Any.upcast_downcast /= bind_ret_l.
+      sir. step_r. exists r_t2. step_r. snr.
+      sir. step_r. unshelve eexists.
       { split; eauto. rewrite Hr_t3. eapply bupd_intro. }
-      zstep_r. ziter_r. zstep_r. ziter_r. zstep_r. ziter_r. zstep_r.
+      step_r. snr.
+      sir. step_r. snr. rewrite Any.pair_split /= bind_ret_l.
+      sir. step_r. snr. sir. step_r. snr.
+
       gstep; econs; econs; try exact smj_lt_mid_top.
       gbase. eapply CIH with (rs_diff:=<[tid:=ε]>rs_diff); eauto.
       { r; esplits; try rewrite !length_insert //.
@@ -140,7 +168,7 @@ Proof.
             rewrite list_lookup_insert_ne // ?length_insert // in H1.
             rewrite list_lookup_insert_ne // list_lookup_insert ?length_insert // in H2.
             rewrite list_lookup_insert_ne // list_lookup_insert ?length_insert // -?EQLEN // in H4.
-            des_ifs. eapply thread_rel_yield; eauto. eapply KTR.
+            des_ifs. ired. eapply thread_rel_yield; eauto. eapply KTR.
           }
           rewrite !list_lookup_insert_ne // ?length_insert // in H1.
           rewrite !list_lookup_insert_ne // ?length_insert // in H2.

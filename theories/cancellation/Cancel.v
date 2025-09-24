@@ -1,5 +1,5 @@
 Require Import CRIS.
-Require Import LMod LModTr GSim GSimFacts GSimTactics.
+Require Import LMod LModTr GSim GSimFacts GSimTactics CancelTactics.
 Require Import MInline MInlineIntro MInlineElim ElimRel.
 Require Import CancelCore CancelPG CancelAG CancelSpawn CancelPre CancelPost CancelYield CancelGetTid.
 
@@ -30,9 +30,8 @@ Proof using.
   ginit. move WFS at top. (* move WF at top. *)
   revert_until r_i. gcofix CIH. i.
   destruct (decide (cid < length srcs)) as [Hcid|]; cycle 1.
-  { ziter_l. erewrite (proj2 (lookup_ge_None srcs cid)); try nia.
-    s. zstep_l. zstep_l.
-  }
+  { iter_l. erewrite (proj2 (lookup_ge_None srcs cid)); try nia.
+    s. step_l. norm_l. step_l. i; ss. }
   inversion REL as [Hlenxy [Hlenyz Hrel]].
   exploit (@Forall3i_nth _ _ _ cid); eauto; try lia; clear REL.
   intros [r_diff [i_s [i_t [Hdiff [Hs [Ht Hcidrel]]]]]]; ss.
@@ -76,24 +75,39 @@ Proof using.
   }
   
   punfold REL; depdes REL; ii; subst; pclearbot.
-  - ziter_l; rewrite Hs /=; zstep_l.
-  - ziter_l; rewrite Hs /=; zstep_l; ziter_l; zstep_l.
-  - ziter_r; rewrite Ht /=; zstep_r.
-  - ziter_l; rewrite Hs /=.
-    ziter_r; rewrite Ht /=. destruct cid; s; cycle 1.
-    { zstep_l. zstep_l. }
-    specialize (RET eq_refl). subst. s. zstep_l.
-    zstep_r. zstep_r. ziter_r. zstep_r. ziter_r. zstep_r. ired.
-    ziter_r. zstep_r. zstep_r. ziter_r. zstep_r. zstep_r.
-    ziter_r. zstep_r. ziter_r. zstep_r. ziter_r. zstep_r.
-    ziter_r. zstep_r.
+  - iter_l; rewrite Hs /=; step_l; i; ss.
+  - iter_l; rewrite Hs /=; step_l; norm_l.
+    iter_l; rewrite list_lookup_insert //; step_l; i; ss. 
+  - iter_r; rewrite Ht /=; step_r; i; ss.
+  - iter_l; rewrite Hs /=.
+    iter_r; rewrite Ht /=. destruct cid; s; cycle 1.
+    { step_l; rewrite /triggerUB; step_l; i; ss. }
+    specialize (RET eq_refl). subst. s. step_l. norm_l.
+    step_r. i. step_r. norm_r.
+    guardH Hlenxy.
+    Ltac sir :=
+      match goal with
+      | [ H : length _ = length _ |- _ ] =>
+          iter_r; rewrite list_lookup_insert ?length_insert -?H //; norm_r; step_r
+      end;
+      match goal with
+      | [ |- ∀ _, _ ] => i; step_r
+      | _ => idtac
+      end; norm_r; rewrite !list_insert_insert.
+    sir. sir.
+    rewrite Any.pair_split /= bind_ret_l Any.upcast_downcast /= bind_ret_l.
+    sir; sir; sir.
+    rewrite bind_ret_l Any.pair_split /= bind_ret_l.
+    sir. sir. 
+    iter_r. rewrite list_lookup_insert -?Hlenyz //. step_r. norm_r.
+
     gstep. econs. econs.
     r. esplits; et; hss.
     eapply Own_pure_soundness.
     { eapply Own_wand_valid; [|instantiate (1 := r_s); eauto].
       rewrite RS; eauto. iIntros ">(_ & $ & _)"; eauto. }
     { rewrite x2. iIntros ">[$ _]". }
-  - ziter_l. ziter_r. rewrite Hs Ht /=. zstep_l. zstep_r. eapply Hkey; et.
+  - iter_l. iter_r. rewrite Hs Ht /=. step_l. norm_l. step_r. norm_r. eapply Hkey; et.
     { rewrite list_insert_id //. }
     { econs; eauto. }
   - eapply cancel_core; eauto.
@@ -134,19 +148,21 @@ Proof using.
   ginit. guclo bindC_spec. econs; cycle 1.
   { instantiate (1:=λ vrs vrt, cancel_eq vrs vrt). i. gstep. econs. econs.
     destruct SIM. des. et. }
-  ziter_l. zstep_l. ziter_l. zstep_l.
+  iter_l. step_l. norm_l. iter_l. step_l. norm_l.
   exploit WFS; et. i; des; subst; ss.
 
   hexploit x2; eauto; i; subst; ss.
-  ziter_r. zstep_r. exists tt. zstep_r.
-  ziter_r. zstep_r. ziter_r. zstep_r. exists arg. zstep_r.
-  ziter_r. zstep_r. ziter_r. zstep_r. ired.
-  ziter_r. zstep_r. exists rt. zstep_r. ziter_r. zstep_r.
-  unshelve eexists.
+  iter_r. step_r. exists tt. step_r. norm_r.
+  iter_r. step_r. norm_r. iter_r. step_r. exists arg. step_r. norm_r.
+  iter_r. step_r. norm_r. iter_r. step_r. norm_r.
+  rewrite Any.pair_split /= bind_ret_l Any.upcast_downcast /= bind_ret_l.
+  iter_r. step_r. exists rt. step_r. norm_r.
+  iter_r. step_r. unshelve eexists; ired.
   { split; eauto. eapply Own_wand_valid; cycle 1; eauto.
     rewrite RES. iIntros ">[$ _]"; eauto. }
-  ired. zstep_r. ziter_r. zstep_r. ziter_r. zstep_r.
-  ziter_r. zstep_r.
+  step_r. iter_r. step_r. norm_r.
+  rewrite bind_ret_l Any.pair_split /= bind_ret_l.
+  iter_r. step_r. norm_r. iter_r. step_r. norm_r. ired.
   set (itr := vret <- SModTr.trans true (sp_from md) (bd arg);; _: itree crisE Any.t).
   replace (interpV (SB.handle_sandbox true msk scp) itr) with (SB.sandbox true msk scp itr) by refl.
   rewrite SBRed.bind MIRed.bind.
@@ -159,7 +175,7 @@ Proof using.
     extensionalities. do 2 f_equal.
     rewrite SBRed.ret MIRed.ret. refl.
   }
-  rewrite H. rewrite Red.bind.
+  rewrite H. rewrite interpV_bind.
 
   gfinal. right.
 
