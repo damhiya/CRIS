@@ -16,11 +16,11 @@ Section mem.
   Context (ps pt : bool).
   Context (st_src st_tgt : state).
 
-  Lemma wsim_mem_alloc (sz : Z) k_s k_t E1 E2 r g img_t msk_t scp_t :
+  Lemma wsim_mem_alloc (sz : Z) k_s k_t E1 E2 r g img_t msk_t scp_t msk_m :
     alist_find (Some MemHdr.alloc) fl_t =
       Some (SB.sandbox_body
         (SModTr.trans_ktree sp_none
-          (true, wmask_all, MemA.scopes, (Some (to_fspec MemSpec.alloc), fbody_trivial)))) →
+          (true, msk_m, MemA.scopes, (Some (to_fspec MemSpec.alloc), fbody_trivial)))) →
     (msk_t MemHdr.alloc : bool) →
     (0 <= 8 * sz < modulus_64)%Z →
     (∀ blk,
@@ -41,11 +41,11 @@ Section mem.
     iIntros "!> % % %"; rewrite Z.add_0_l; iIntros "$".
   Qed.
 
-  Lemma wsim_mem_store b ofs v v' k_s k_t E1 E2 r g img_t msk_t scp_t :
+  Lemma wsim_mem_store b ofs v v' k_s k_t E1 E2 r g img_t msk_t scp_t msk_m :
     alist_find (Some MemHdr.store) fl_t =
       Some (SB.sandbox_body
         (SModTr.trans_ktree sp_none
-          (true, wmask_all, MemA.scopes, (Some (to_fspec MemSpec.store), fbody_trivial)))) →
+          (true, msk_m, MemA.scopes, (Some (to_fspec MemSpec.store), fbody_trivial)))) →
     (msk_t MemHdr.store : bool) →
     (b, ofs) ↦ v' -∗
     ((b, ofs) ↦ v -∗
@@ -64,11 +64,11 @@ Section mem.
     steps_r. iDestruct "GRT" as "[[↦ ->] ->]". iApply "K"; iFrame.
   Qed.
 
-  Lemma wsim_mem_load b ofs q v k_s k_t E1 E2 r g img_t msk_t scp_t :
+  Lemma wsim_mem_load b ofs q v k_s k_t E1 E2 r g img_t msk_t scp_t msk_m :
     alist_find (Some MemHdr.load) fl_t =
       Some (SB.sandbox_body
         (SModTr.trans_ktree sp_none
-          (true, wmask_all, MemA.scopes, (Some (to_fspec MemSpec.load), fbody_trivial)))) →
+          (true, msk_m, MemA.scopes, (Some (to_fspec MemSpec.load), fbody_trivial)))) →
     (msk_t MemHdr.load : bool) →
     (b, ofs) ↦{q} v -∗
     ((b, ofs) ↦{q} v -∗
@@ -87,11 +87,11 @@ Section mem.
     steps_r. iDestruct "GRT" as "[[↦ ->] ->]". iApply "K"; iFrame.
   Qed.
 
-  Lemma wsim_mem_cas b ofs v v_old v_new succ E k_s k_t E1 E2 r g img_t msk_t scp_t :
+  Lemma wsim_mem_cas b ofs v v_old v_new succ E k_s k_t E1 E2 r g img_t msk_t scp_t msk_m :
     alist_find (Some MemHdr.cas) fl_t =
       Some (SB.sandbox_body
         (SModTr.trans_ktree sp_none
-          (true, wmask_all, MemA.scopes, (Some (to_fspec MemSpec.cas), fbody_trivial)))) →
+          (true, msk_m, MemA.scopes, (Some (to_fspec MemSpec.cas), fbody_trivial)))) →
     (msk_t MemHdr.cas : bool) →
     MemSpec.compare_val v v_old = Vint succ →
     (b, ofs) ↦ v -∗
@@ -117,11 +117,11 @@ Section mem.
     steps_r. iDestruct "GRT" as "[[-> [↦ E]] ->]". iApply ("K" with "↦ E"); iFrame.
   Qed.
 
-  Lemma wsim_mem_cmp v1 v2 succ E k_s k_t E1 E2 r g img_t msk_t scp_t :
+  Lemma wsim_mem_cmp v1 v2 succ E k_s k_t E1 E2 r g img_t msk_t scp_t msk_m :
     alist_find (Some MemHdr.cmp) fl_t =
       Some (SB.sandbox_body
         (SModTr.trans_ktree sp_none
-          (true, wmask_all, MemA.scopes, (Some (to_fspec MemSpec.cmp), fbody_trivial)))) →
+          (true, msk_m, MemA.scopes, (Some (to_fspec MemSpec.cmp), fbody_trivial)))) →
     (msk_t MemHdr.cmp : bool) →
     MemSpec.compare_val v1 v2 = Vint succ →
     E -∗

@@ -47,12 +47,53 @@ Module StackI. Section StackI.
       | _ => triggerUB
       end.
 
-  Definition push : list val → itree crisE val :=
-    λ args, ITree.iter (λ _, (_push args)) ().
+  Definition _pop : list val → itree crisE (() + val) := λ args,
+    𝒴;;; '(stackb, stackofs) : (mblock * ptrofs) <- (pargs [Tptr] args)?;;
+    𝒴;;; 'head_old : val <- ccallU MemHdr.load [Vptr (stackb, stackofs)];;
+    𝒴;;;
+      match head_old with
+      | Vint 0%Z => Ret (inr Vundef)
+      | Vptr (head_oldb, head_oldofs) =>
+          𝒴;;; 'head_old_data : val <- ccallU MemHdr.load [Vptr (head_oldb, head_oldofs + 1)%Z];;
+          𝒴;;; 'ret : val <-
+            ccallU MemHdr.cas [Vptr (stackb, stackofs); head_old; head_old_data];;
+          𝒴;;; 'cmp : val <- ccallU MemHdr.cmp [ret; head_old];;
+          match cmp with
+          | Vint 0 => (* Failed to pop *)
+              (* See if there is an offer *)
+              𝒴;;; 'offer : val <- ccallU MemHdr.load [Vptr (stackb, stackofs + 1)%Z];;
+              match offer with
+              | Vint 0 => Ret (inr Vundef) (* No offer, return nothing *)
+              | Vptr (offerb, offerofs) =>
+                  𝒴;;; 'ret : val <-
+                    ccallU MemHdr.cas [Vptr (stackb, stackofs + 1)%Z; Vint 0; Vint 1];;
+                  𝒴;;; 'cmp : val <- ccallU MemHdr.cmp [ret; Vint 0];;
+                  𝒴;;;
+                    match cmp with
+                    | Vint 0 => Ret (inl ()) (* Failed to pop, try again *)
+                    | Vint 1 =>
+                        (* Success pop *)
+                        𝒴;;; 'ret : val <- ccallU MemHdr.load [Vptr (offerb, offerofs)];;
+                        𝒴;;; Ret (inr ret)
+                    | _ => triggerUB
+                    end
+              | _ => triggerUB
+              end
+          | Vint 1 => (* Success pop *)
+              𝒴;;; 'ret : val <- ccallU MemHdr.load [Vptr (head_oldb, head_oldofs)];;
+              𝒴;;; Ret (inr ret)
+          | _ => triggerUB
+          end
+      | _ => triggerUB
+      end.
+
+  Definition push : list val → itree crisE val := λ args, ITree.iter (λ _, (_push args)) ().
+  Definition pop : list val → itree crisE val := λ args, ITree.iter (λ _, (_pop args)) ().
 
   Definition fnsems : fnsems_type :=
     [(Some StackHdr.new_stack, (false, wmask_all, scopes, (None, cfunU new_stack)));
-     (Some StackHdr.push,      (false, wmask_all, scopes, (None, cfunU push)))].
+     (Some StackHdr.push,      (false, wmask_all, scopes, (None, cfunU push)));
+     (Some StackHdr.pop,       (false, wmask_all, scopes, (None, cfunU pop)))].
 
   Program Definition Mod : SMod.t := {|
     SMod.scopes := scopes;
