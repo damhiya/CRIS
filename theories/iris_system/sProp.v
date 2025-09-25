@@ -460,3 +460,39 @@ Ltac SL_red :=
             change (GTerm.t_prev (S ?n)) with (GTerm.t n)));
     simpl);
   simpl.
+
+
+Class SLRed `{Σ : GRA, @GATIntp.t (domain Σ) α} {n} (f : GTerm.t n) (P : iProp Σ) := {
+  SLRed_eq : ⟦f⟧ ⊣⊢ P
+}.
+Lemma SLRed_red `{S : SLRed n f P} : ⟦f⟧ ⊣⊢ P.
+Proof. destruct S; ss. Qed.
+
+Section instances.
+  Context `{!subG (Γ : HRA) Σ, !SL.G Γ Σ α β τ}.
+
+  Global Instance SLRed_own `{!inG M Γ, n : nat} (m : M) γ :
+    SLRed (n:=n) (<own> γ m)%SAT (own γ m).
+  Proof. econs; SL_red; eauto. Qed.
+
+  Global Instance SLRed_pure {n} (P : Prop) :
+    SLRed (⌜P⌝ : GTerm.t n)%SAT (⌜P⌝)%I.
+  Proof. econs; SL_red; eauto. Qed.
+
+  Global Instance SLRed_ex {A n} `{!STτ.t τ}
+      (f : A → GTerm.t n) (g : A → iProp Σ) `{∀ a, SLRed (f a) (g a)} :
+    SLRed (∃ a : τ{A}, f a)%SAT (∃ a, g a)%I.
+  Proof. econs; SL_red; f_equiv; ii; try rewrite SLRed_red //. Qed.
+
+  Global Instance SLRed_and {n} (f g : GTerm.t n) P Q `{!SLRed f P, !SLRed g Q} :
+    SLRed (f ∧ g)%SAT (P ∧ Q).
+  Proof. econs; rewrite SLRed.and ?SLRed_red //. Qed.
+
+  Global Instance SLRed_or {n} (f g : GTerm.t n) P Q `{!SLRed f P, !SLRed g Q} :
+    SLRed (f ∨ g)%SAT (P ∨ Q).
+  Proof. econs; rewrite SLRed.or ?SLRed_red //. Qed.
+
+  Global Instance SLRed_sep {n} (f g : GTerm.t n) P Q `{!SLRed f P, !SLRed g Q} :
+    SLRed (f ∗ g)%SAT (P ∗ Q).
+  Proof. econs; rewrite SLRed.sepconj ?SLRed_red //. Qed.
+End instances.
