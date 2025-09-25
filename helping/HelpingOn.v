@@ -3,23 +3,6 @@ From iris.algebra Require Import gmap_view.
 From CRIS.helping Require Import Header.
 From stdpp Require Import fin_sets.
 
-(* Resource algebra for the helping module *)
-(* Class helpingG `{!crisG Γ Σ α β τ _S _I} (jobID : Type) := {
-  helping_tokG :: inG (gmap_viewR nat (agreeR (leibnizO jobID))) Γ
-}.
-Definition helpingΓ (jobID : Type) : HRA :=
-  #[gmap_viewR nat (agreeR (leibnizO jobID))].
-Global Instance subG_helpingΓ `{!crisG Γ Σ α β τ _S _I} (jobID : Type) :
-  subG (helpingΓ jobID) Γ → helpingG jobID.
-Proof. solve_inG. Defined.
-Hint Unfold subG_helpingΓ : GRA_index.
-
-Section resource.
-  Context `{!crisG Γ Σ α β τ _S _I, !helpingG jobID}.
-
-  Definition helping_tok (tid : nat) (jid : jobID) : iProp Σ :=
-    own base_γ (gmap_view_frag (V:=agreeR $ leibnizO jobID) tid (DfracOwn 1) (to_agree jid)).
-End resource. *)
 Section HoareCall.
   Context `{!crisG Γ Σ α β τ _S _I, !concG}.
 
