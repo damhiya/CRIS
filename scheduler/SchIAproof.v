@@ -6,8 +6,7 @@ Module SchIA. Section sim.
   Context `{!crisG Γ Σ α β τ _S _I, !concG, !newschG}.
   Import SchA.
 
-  Context (sp : sp_type).
-  Context (sp_user  : spl_type).
+  Context (sp : sp_type) (sp_user  : spl_type).
   Context (SchInSp : sp_incl (SchA.sp sp_user ⊤) sp).
   Context (FunInSp : sp_incl sp_user sp).
 
