@@ -82,19 +82,19 @@ Module HelpingOn. Section HelpingOn.
   Context `{!crisG Γ Σ α β τ _S _I, !concG} {jobID retID : Type}.
 
   Context (mn : string).
-  Context (jobcode : jobID → itree Helping.pureE retID) (retcode : retID → Any.t).
+  Context (jobcode : jobID → itree Helping.pureE retID).
 
   Definition scopes := [mn].
   Definition v_reqs := mn ↯ "reqs".
 
-  Definition try_run (tid : nat) : itree crisE Any.t :=
+  Definition try_run (tid : nat) : itree crisE retID :=
     'reqs : gmap nat (option retID * jobID) <- cgetU v_reqs;;
     match reqs !! tid with
     | Some (None, jid) =>
         r <- Helping.trans (jobcode jid);;
         cput v_reqs (<[tid := (Some r, jid)]> reqs);;;
-        Ret (retcode r)
-    | Some (Some retid, jid) => Ret (retcode retid)
+        Ret r
+    | Some (Some retid, jid) => Ret retid
     | None => triggerNB
     end.
 
@@ -104,7 +104,7 @@ Module HelpingOn. Section HelpingOn.
       'reqs : gmap nat (option retID * jobID) <- cgetU v_reqs;;
       let tid := fresh (dom reqs) in
       cput v_reqs (<[tid := (None, jid)]> reqs);;;
-      𝒴;;; r <- try_run tid;; 𝒴;;; Ret r.
+      𝒴;;; r <- try_run tid;; 𝒴;;; Ret (r↑).
 
   Definition help (sp : sp_type) : Any.t → itree crisE Any.t :=
     λ _,
@@ -130,3 +130,4 @@ Module HelpingOn. Section HelpingOn.
 
   Definition t sp : Mod.t := Seal.sealing CRIS (SMod.to_mod sp (Mod sp)).
 End HelpingOn. End HelpingOn.
+  

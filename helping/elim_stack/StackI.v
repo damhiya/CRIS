@@ -63,10 +63,10 @@ Module StackI. Section StackI.
               (* See if there is an offer *)
               𝒴;;; 'offer : val <- ccallU MemHdr.load [Vptr (stackb, stackofs + 1)%Z];;
               match offer with
-              | Vint 0 => Ret (inr Vundef) (* No offer, return nothing *)
+              | Vint 0 => Ret (inl ()) (* No offer, try again *)
               | Vptr (offerb, offerofs) =>
                   𝒴;;; 'ret : val <-
-                    ccallU MemHdr.cas [Vptr (stackb, stackofs + 1)%Z; Vint 0; Vint 1];;
+                    ccallU MemHdr.cas [Vptr (offerb, offerofs + 1)%Z; Vint 0; Vint 1];;
                   𝒴;;; 'cmp : val <- ccallU MemHdr.cmp [ret; Vint 0];;
                   𝒴;;;
                     match cmp with

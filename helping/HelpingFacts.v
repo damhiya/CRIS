@@ -41,25 +41,25 @@ Section Helping.
     - eapply IHl; et. unfold strings_maxlen in *. ss. nia.
   Qed.
 
-  Lemma helping_on_wf {jobID retID} (jobs : jobID -> _) (rets : retID → _) mn sp :
-    Mod.wf (HelpingOn.t mn jobs rets sp).
+  Lemma helping_on_wf {jobID retID} (jobs : jobID -> _) mn sp :
+    Mod.wf (HelpingOn.t (retID:=retID) mn jobs sp).
   Proof. unfold_mod. econs; ss; prove_nodup. Qed.
 
   (* imp : list of function names mI calls *)
   Lemma helping_main (mA mM mI : Mod.t) (P1 P2 : iProp Σ) imp
-      {jobID retID} (jobs : jobID -> _) (rets : retID → _) sp :
+      {jobID retID} (jobs : jobID -> _) sp :
     (∀ mn msk,
       ((Helping.exports mn) ## imp →
       wmask_sub (wmask_list imp) msk →
       ctx_refines
-        (mM ★ (HelpingOn.t mn jobs rets sp) ★ CFilter.filter msk SchI.t, P1)
-        (CFilter.filter msk mI ★ CFilter.filter msk SchI.t, emp%I))) →
+        (mM  ★ CFilter.filter msk SchI.t ★ (HelpingOn.t (retID:=retID) mn jobs sp), P1)
+        (CFilter.filter msk (mI ★ SchI.t) ★ (HelpingOn.t (retID:=retID) mn jobs sp), emp%I))) →
     (∀ mn msk,
       ((Helping.exports mn) ## imp →
       wmask_sub (wmask_list imp) msk →
       ctx_refines
         (mA ★ CFilter.filter msk SchI.t, P2)
-        (mM ★ HelpingOff.t mn jobs rets sp ★ CFilter.filter msk SchI.t, emp%I))) →
+        (mM ★ CFilter.filter msk SchI.t ★ HelpingOff.t mn jobs sp, emp%I))) →
     ctx_refines
       (mA ★ SchI.t, (P1 ∗ P2)%I)
       (mI ★ SchI.t, emp%I).
@@ -112,7 +112,7 @@ Section Helping.
     }
 
     etrans; cycle 1.
-    { eapply CFilter.intro_module with (mask := mask) (mc := HelpingOn.t mn jobs rets sp); et.
+    { eapply CFilter.intro_module with (mask := mask) (mc := HelpingOn.t mn jobs sp); et.
       - eapply helping_on_wf.
       - i. r. rewrite existsb_exists.
         esplits; try apply String.eqb_eq; eauto.
@@ -143,42 +143,33 @@ Section Helping.
             rewrite mname_long_length; nia.
     }
     rewrite !CFilter.filter_app.
-    
-    (* etrans; cycle 1.
-    {
-      eapply ctxr_refines.
-      do 2 ctxr_rotate. do 3 ctxr_drop.
-      eapply sch_pure_elim_filter.
-    } *)
 
     etrans; cycle 1.
     {
       eapply ctxr_refines. ctxr_norm.
-      do 2 ctxr_rotate. ctxr_drop. ctxr_drop. ctxr_swap. ctxr_swap.
-      eapply Hc1; et.
+      do 2 ctxr_rotate. do 2 ctxr_drop. erewrite <- CFilter.filter_app.
+      ctxr_refl.
+    }
+
+    etrans; cycle 1.
+    {
+      eapply ctxr_refines; ctxr_norm.
+      ctxr_drop. ctxr_rotate. eapply Hc1; eauto.
     }
 
     etrans; cycle 1.
     {
       eapply ctxr_refines.
-      do 3 ctxr_drop.
+      do 2 ctxr_drop. ctxr_swap.
       eapply helping_onoff_correct; et.
     }
 
     etrans; cycle 1.
     {
       eapply ctxr_refines.
-      ctxr_drop. rewrite /mod_off. ctxr_drop.
+      ctxr_drop. rewrite /mod_off. do 2 ctxr_rotate. ctxr_swap.
       eapply Hc2; et.
     }
-
-    etrans; cycle 1.
-    {
-      eapply ctxr_refines.
-      ctxr_drop. ctxr_rotate. ctxr_drop. ctxr_drop.
-      apply CFilter.elim_module.
-    }
-    rewrite -mod_add_empty_r.
 
     etrans; cycle 1.
     {

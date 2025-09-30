@@ -25,8 +25,8 @@ Section definitions.
   Definition retID : Type := val.
   Context `{!crisG Γ Σ α β τ _S _I, !concG, !memG, !stackG jobID retID, !newschG} (N : namespace).
 
-  Let offerN := N .@ "offer".
-  Let stackN := N .@ "stack".
+  Definition offerN := N .@ "offer".
+  Definition stackN := N .@ "stack".
 
   Definition stack_content (γs : gname) (l : list (leibnizO val)) : iProp Σ :=
     (own γs (◯ Excl' l))%I.
@@ -88,43 +88,45 @@ Section definitions.
   Unshelve. all: try exact Vundef; try exact 1%Qp.
   Qed.
 
-  Definition syn_offer_inv n γo (offer : mblock * ptrofs) (jid : jobID) : GTerm.t n :=
-    (∃ (offerst : τ{val}) (rid : τ{nat}),
-      offer ↦ jid.2.1.2 ∗
-      (offer.1, offer.2 + 1)%Z ↦ offerst ∗
-      match offerst with
-      | Vint 0 => syn_helping_token n rid jid
-      | Vint 1 => syn_helping_done n rid Vundef
-      | _ => <own> γo (Excl ())
-      end)%SAT.
+  Definition syn_offer_inv n γo (offer : mblock * ptrofs) (rid : nat) (jid : jobID) : GTerm.t n :=
+    (∃ (offerst : τ{Z}),
+      (offer.1, offer.2 + 1)%Z ↦ Vint offerst ∗
+      if (decide (offerst = 0%Z))
+      then offer ↦ jid.2.1.2 ∗ syn_helping_token n rid jid
+      else if (decide (offerst = 1)) then syn_helping_done n rid Vundef
+      else if (decide (offerst = 2)) then <own> γo (Excl ())
+      else ⊥)%SAT.
 
-  Definition offer_inv γo (offer : mblock * ptrofs) (jid : jobID) : iProp Σ :=
-    (∃ (offerst : val) (rid : nat),
-      offer ↦ jid.2.1.2 ∗
-      (offer.1, offer.2 + 1)%Z ↦ offerst ∗
-      match offerst with
-      | Vint 0 => helping_token rid jid
-      | Vint 1 => helping_done rid Vundef
-      | _ => own γo (Excl ())
-      end)%I.
-  Global Instance SLRed_offer_inv n γo offer jid :
-    SLRed (syn_offer_inv n γo offer jid) (offer_inv γo offer jid).
+  Definition offer_inv γo (offer : mblock * ptrofs) (rid : nat) (jid : jobID) : iProp Σ :=
+    (∃ (offerst : Z),
+      (offer.1, offer.2 + 1)%Z ↦ Vint offerst ∗
+      if (decide (offerst = 0%Z))
+      then offer ↦ jid.2.1.2 ∗ helping_token rid jid
+      else if (decide (offerst = 1)) then helping_done rid Vundef
+      else if (decide (offerst = 2)) then own γo (Excl ())
+      else False)%I.
+  Global Instance SLRed_offer_inv n γo offer rid jid :
+    SLRed (syn_offer_inv n γo offer rid jid) (offer_inv γo offer rid jid).
   Proof.
-    econs; rewrite /syn_offer_inv /offer_inv ?SLRed_red; do 3 f_equiv; ii.
+    econs; rewrite /syn_offer_inv /offer_inv ?SLRed_red; do 2 f_equiv; ii.
     des_ifs; rewrite ?SLRed_red //.
   Qed.
+
   Definition syn_is_offer (γs : gname) (offer_rep : val) (n : nat) : GTerm.t n :=
     match offer_rep with
     | Vptr (offerb, offerofs) => 
-      ∃ (γo : τ{gname}) (jid : τ{jobID}),
-        syn_inv n offerN (syn_offer_inv n γo (offerb, offerofs) jid)
-    | _ => ⊤
+      ∃ (γo : τ{gname}) (jid : τ{jobID}) (rid : τ{nat}),
+        syn_inv n offerN (syn_offer_inv n γo (offerb, offerofs) rid jid)
+        ∗ ⌜jid.2.2 = γs⌝
+    | Vint 0 => ⊤
+    | _ => ⊥
     end%SAT.
 
   Definition syn_stack_inv (γs : gname) (stackb : mblock) (stackofs : ptrofs) (n : nat) : GTerm.t n :=
-    (∃ (stack_rep : τ{val}) (offer_rep : τ{val}) (l : τ{list val}), <own> γs (● Excl' l) ∗
+    ((∃ (stack_rep : τ{val}) (offer_rep : τ{val}) (l : τ{list val}), <own> γs (● Excl' l) ∗
        (stackb, stackofs) ↦ stack_rep ∗ syn_list_inv l stack_rep n ∗
-       (stackb, stackofs + 1)%Z ↦ offer_rep ∗ syn_is_offer γs offer_rep n)%SAT.
+       (stackb, stackofs + 1)%Z ↦ offer_rep ∗ syn_is_offer γs offer_rep n) ∨
+     (∃ (reqmap : τ{gmap nat (option _ * _)}), syn_helping_auth n (1/2)%Qp reqmap))%SAT.
 
   Definition is_stack (γs : gname) (s : val) (n : nat) : iProp Σ :=
     (∃ (stackb : mblock) (stackofs : ptrofs),
@@ -168,7 +170,6 @@ Module StackM. Section StackM.
       trigger (Assume (stack_content γs l));;;
       trigger (Guarantee (stack_content γs (v :: l)));;;
       Ret Vundef.
-  Definition retCode : retID → Any.t := Any.upcast.
 
   Definition new_stack : list val → itree crisE val :=
     λ _, 𝒴;;; trigger (Choose val).
@@ -184,7 +185,8 @@ Module StackM. Section StackM.
     x <- trigger (Take (meta (pop_spec N)));;
     trigger (Assume ((precond (pop_spec N)) x arg↑ arg↑));;;
     𝒴;;;
-    '_ : () <- ccallU (Helping.help mn) ();;
+    'b : _ <- trigger (Choose bool);;
+    (if b : bool then (ccallU (Helping.help mn) ()) else Ret ());;;
     l <- trigger (Take (list (leibnizO val)));;
     trigger (Assume (stack_content x.2.2 l));;;
     trigger (Guarantee (stack_content x.2.2 (tail l)));;;

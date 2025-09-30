@@ -12,11 +12,11 @@ Section Helping.
   Context `{!crisG Γ Σ α β τ _S _I, !concG, !newschG}.
   (* sp, module name for the helping module *)
   Context (sp : sp_type) (mn : string).
-  Context {jobID retID : Type} (jobs : jobID → itree Helping.pureE retID) (rets : retID → Any.t).
+  Context {jobID retID : Type} (jobs : jobID → itree Helping.pureE retID).
   Context (msk : string → bool). (* mask for the user module *)
 
-  Definition mod_on :=  (HelpingOn.t mn jobs rets sp)  ★ (CFilter.filter msk SchI.t).
-  Definition mod_off := (HelpingOff.t mn jobs rets sp) ★ (CFilter.filter msk SchI.t).
+  Definition mod_on :=  (HelpingOn.t mn jobs sp)  ★ (CFilter.filter msk SchI.t).
+  Definition mod_off := (HelpingOff.t mn jobs sp) ★ (CFilter.filter msk SchI.t).
 
   Lemma get_tid_run_neq : SchHdr.get_tid ≠ Helping.run mn.
   Proof.
@@ -86,26 +86,26 @@ Section Helping.
 
   Notation prog_s ctx rs := (LMod.prog
     (Mod.to_lmod
-      ((SMod.to_mod sp (HelpingOff.Mod mn jobs rets)
+      ((SMod.to_mod sp (HelpingOff.Mod mn jobs)
       ★ CFilter.filter msk (SMod.to_mod sp_none SchI.smod)) ★ ctx) rs)).
   Notation prog_t ctx rs := (LMod.prog
     (Mod.to_lmod
-      ((SMod.to_mod sp (HelpingOn.Mod mn jobs rets sp)
+      ((SMod.to_mod sp (HelpingOn.Mod mn jobs sp)
       ★ CFilter.filter msk (SMod.to_mod sp_none SchI.smod)) ★ ctx) rs)).
 
   Definition run_s : Any.t → itree lmodE Any.t := λ x,
     ⇓cris (⇓sb(true, wmask_all, HelpingOff.scopes mn)
-      (tau;; ⇓smod(true, sp) (HelpingOff.run jobs rets x))).
+      (tau;; ⇓smod(true, sp) (HelpingOff.run jobs x))).
   Definition run_t : Any.t → itree lmodE Any.t := λ x,
     ⇓cris (⇓sb(true, wmask_all, HelpingOn.scopes mn)
-      (tau;; ⇓smod(true, sp) (HelpingOn.run mn jobs rets x))).
+      (tau;; ⇓smod(true, sp) (HelpingOn.run mn jobs x))).
 
   Definition help_s : Any.t → itree lmodE Any.t := λ x,
     ⇓cris (⇓sb(true, wmask_all, HelpingOff.scopes mn)
       (tau;; ⇓smod(true, sp) (HelpingOff.help x))).
   Definition help_t : Any.t → itree lmodE Any.t := λ x,
     ⇓cris (⇓sb(true, wmask_all, HelpingOn.scopes mn)
-      (tau;; ⇓smod(true, sp) (HelpingOn.help mn jobs rets sp x))).
+      (tau;; ⇓smod(true, sp) (HelpingOn.help mn jobs sp x))).
 
   Definition yield : Any.t → itree lmodE Any.t := λ x,
     ⇓cris (⇓sb(false, wmask_and msk wmask_all, SchI.scopes)
@@ -137,7 +137,7 @@ Section Helping.
   Qed.
 
   Lemma prog_fn fn ctx rs :
-    Mod.wf ((HelpingOn.t mn jobs rets sp ★ CFilter.filter msk SchI.t) ★ ctx) →
+    Mod.wf ((HelpingOn.t mn jobs sp ★ CFilter.filter msk SchI.t) ★ ctx) →
     (fn = Helping.run mn ∧ prog_s ctx rs fn = Some run_s ∧ prog_t ctx rs fn = Some run_t) ∨
     (fn = Helping.help mn ∧ prog_s ctx rs fn = Some help_s ∧ prog_t ctx rs fn = Some help_t) ∨
     prog_s ctx rs fn = prog_t ctx rs fn ∧
@@ -146,7 +146,7 @@ Section Helping.
      (fn = SchHdr._spawn ∧ prog_s ctx rs fn = Some inner_spawn) ∨
      (fn = SchHdr.spawn ∧ prog_s ctx rs fn = Some spawn) ∨
      (fn = SchHdr.get_tid ∧ prog_s ctx rs fn = Some get_tid) ∨
-     (Some fn ∉ List.map fst (Mod.fnsems ((HelpingOn.t mn jobs rets sp) ★ (CFilter.filter msk SchI.t))) ∧
+     (Some fn ∉ List.map fst (Mod.fnsems ((HelpingOn.t mn jobs sp) ★ (CFilter.filter msk SchI.t))) ∧
      (prog_s ctx rs fn = None ∨
      ∃ itr_ctx img1 msk1 scp1, (prog_s ctx rs fn =
       Some (λ x, ⇓cris (⇓sb(img1, msk1, scp1) (itr_ctx x))) ∧
@@ -217,8 +217,8 @@ Section Helping.
   Qed.
 
   Lemma prog_fn_ctx fn ctx rs :
-    Mod.wf ((HelpingOn.t mn jobs rets sp ★ CFilter.filter msk SchI.t) ★ ctx) →
-    (Some fn ∉ List.map fst (Mod.fnsems ((HelpingOn.t mn jobs rets sp) ★ (CFilter.filter msk SchI.t)))) →
+    Mod.wf ((HelpingOn.t mn jobs sp ★ CFilter.filter msk SchI.t) ★ ctx) →
+    (Some fn ∉ List.map fst (Mod.fnsems ((HelpingOn.t mn jobs sp) ★ (CFilter.filter msk SchI.t)))) →
     (prog_s ctx rs fn = None ∨
      ∃ itr_ctx img1 msk1 scp1,
       prog_t ctx rs fn = prog_s ctx rs fn ∧
@@ -239,7 +239,7 @@ Section Helping.
   Qed.
 
   Lemma prog_s_prog_t fn ctx rs itr :
-    Mod.wf ((HelpingOn.t mn jobs rets sp ★ CFilter.filter msk SchI.t) ★ ctx) →
+    Mod.wf ((HelpingOn.t mn jobs sp ★ CFilter.filter msk SchI.t) ★ ctx) →
     prog_s ctx rs fn = Some itr →
     (prog_t ctx rs fn = Some itr ∨
      (fn = Helping.run mn ∧ itr = run_s ∧ prog_t ctx rs fn = Some run_t) ∨
@@ -527,7 +527,7 @@ Section Helping.
     tau;;
     r <- ⇓cris (⇓sb(true, wmask_all, HelpingOff.scopes mn) (
       HoareCall_epilogue fspo x_fsp ()↑;;;
-      ⇓smod(true, sp) (𝒴;;; r <- Helping.trans (jobs j);; 𝒴;;; Ret (rets r))
+      ⇓smod(true, sp) (𝒴;;; r <- Helping.trans (jobs j);; 𝒴;;; Ret r↑)
     ));;
     k r.
 
@@ -538,7 +538,7 @@ Section Helping.
     tau;;
     r <- ⇓cris (⇓sb(true, wmask_all, HelpingOff.scopes mn) (
       HoareCall_epilogue fspo x_fsp ()↑;;;
-      ⇓smod(true, sp) (𝒴;;; r <- HelpingOn.try_run mn jobs rets tid_stid_cur;; 𝒴;;; Ret r)
+      ⇓smod(true, sp) (𝒴;;; r <- HelpingOn.try_run mn jobs tid_stid_cur;; 𝒴;;; Ret r↑)
     ));; (k r).
 
   Inductive help_rel : itree lmodE Any.t → itree lmodE Any.t → option (nat * (option retID * jobID)) → Prop :=
@@ -568,7 +568,7 @@ Section Helping.
       itr_s = (tau;;
         x_ <- ⇓cris(⇓sb(true, wmask_all, HelpingOn.scopes mn)
           (x_2 <- HoareCall_epilogue (sp SchHdr.yield) x (()↑);;
-          ⇓smod(true, sp) (Ret x_2;;; 𝒴;;; Ret (rets ret))));;
+          ⇓smod(true, sp) (Ret x_2;;; 𝒴;;; Ret (ret↑))));;
         k_s x_) →
       (∀ ret, help_rel (k_s ret) (k_t ret) None) →
       help_rel itr_s itr_t (Some (tid, (Some ret, jid)))
@@ -578,8 +578,8 @@ Section Helping.
       (∀ ret, help_rel (k_s ret) (k_t ret) None) →
       help_rel itr_s itr_t (Some (tid, (None, jid)))
   | help_rel_call itr_s itr_t ktr_t ktr_s ktr_t1 ktr_s1 ctx rs fn arg :
-      Some fn ∈ List.map fst (Mod.fnsems ((HelpingOn.t mn jobs rets sp) ★ (CFilter.filter msk SchI.t))) →
-      Mod.wf ((HelpingOn.t mn jobs rets sp ★ CFilter.filter msk SchI.t) ★ ctx) →
+      Some fn ∈ List.map fst (Mod.fnsems ((HelpingOn.t mn jobs sp) ★ (CFilter.filter msk SchI.t))) →
+      Mod.wf ((HelpingOn.t mn jobs sp ★ CFilter.filter msk SchI.t) ★ ctx) →
       prog_t ctx rs fn = Some ktr_t →
       prog_s ctx rs fn = Some ktr_s →
       itr_t = ktr_t arg >>= ktr_t1 →
@@ -1535,6 +1535,15 @@ Section Helping.
           esplits; eauto. { ss; destruct (dec _ _); clarify. }
           rewrite list_insert_insert.
 
+          (* set (tr := match _ with | Some _ => _ | _ => _ end).
+          set (retv :=
+            match reqmap !! rid with
+            | Some (Some retid, _) => retid
+            | _ => ()↑
+            end).
+          assert (Htr : tr = Ret retv); last rewrite Htr.
+          { subst retv. des_ifs; ss. } *)
+          
           destruct (reqmap !! rid) as [[[ret|]]|] eqn : Hridreqmap; cycle 1.
           { subst; clarify. }
           { ired. replace_r; [rewrite interpV_bind interpV_trigger //=|]; ired.
@@ -1931,7 +1940,7 @@ Section Helping.
           { intros ???; rewrite list_lookup_insert_ne //=; apply Hlookup. }
           { rewrite list_lookup_insert; ii; clarify. split; ss.
             destruct (decide (Some fn ∈
-              List.map fst (Mod.fnsems ((HelpingOn.t mn jobs rets sp) ★ (CFilter.filter msk SchI.t))))).
+              List.map fst (Mod.fnsems ((HelpingOn.t mn jobs sp) ★ (CFilter.filter msk SchI.t))))).
             { eapply (help_rel_call _ _ _ _ _ _ ctx); eauto. intros ret; ss.
               eapply help_rel_inner_spawn; eauto.
               { rewrite /inner_spawn_pend; grind. instantiate (1:=ret); f_equal; grind.
@@ -2735,7 +2744,7 @@ Section Helping.
         { intros ???; rewrite list_lookup_insert_ne //=; apply Hlookup. }
         { rewrite list_lookup_insert; ii; clarify. split; ss.
           destruct (decide (Some fn ∈
-            List.map fst (Mod.fnsems ((HelpingOn.t mn jobs rets sp) ★ (CFilter.filter msk SchI.t))))).
+            List.map fst (Mod.fnsems ((HelpingOn.t mn jobs sp) ★ (CFilter.filter msk SchI.t))))).
           { eapply (help_rel_call _ _ _ _ _ _ ctx); eauto. intros ret; ss.
             eapply (help_rel_eq _ _ k_s k_t (tau;; k ret)); eauto.
             { grind. unfold_trans. rewrite ?interpV_tau; grind. }
@@ -2793,7 +2802,7 @@ Section Helping.
           rewrite Nat.sub_diag /=; intros Heq; inv Heq.
           split; ss.
           destruct (decide (Some fn ∈
-            List.map fst (Mod.fnsems ((HelpingOn.t mn jobs rets sp) ★ (CFilter.filter msk SchI.t))))).
+            List.map fst (Mod.fnsems ((HelpingOn.t mn jobs sp) ★ (CFilter.filter msk SchI.t))))).
           { eapply (help_rel_call _ _ _ _ (λ a, Ret a) (λ a, Ret a) ctx); eauto.
             { grind. }
             { grind. }

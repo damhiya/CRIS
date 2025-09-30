@@ -51,7 +51,7 @@ Section resource.
   Lemma helping_auth_split (q : Qp) (reqmap : gmap nat (option retID * jobID)) :
     (q < 1)%Qp →
     helping_auth 1 reqmap -∗
-    (helping_auth q reqmap ∗ (helping_auth q reqmap -∗ helping_auth 1 reqmap)).
+    (helping_auth q reqmap ∗ (∀ reqmap', helping_auth q reqmap' -∗ helping_auth 1 reqmap)).
   Proof.
     intros Hq.
     assert (Hr : (∃ r, 1 - q = Some r)%Qp).
@@ -61,7 +61,45 @@ Section resource.
     }
     destruct Hr as [r Hr%Qp.sub_Some]; rewrite Hr {1}/helping_auth.
     rewrite -dfrac_op_own. iIntros "Help●"; iDestruct "Help●" as "[$ H]".
-    iIntros "H2"; iCombine "H" "H2" as "H"; rewrite comm -Hr; iFrame; ss.
+    iIntros (reqmap') "H2"; iCombine "H" "H2" gives %WF%gmap_view_auth_dfrac_op_inv.
+    iCombine "H" "H2" as "H"; rewrite comm -Hr -WF -gmap_view_auth_dfrac_op dfrac_op_own -Hr.
+    iFrame; ss.
+  Qed.
+
+  Lemma helping_auth_done q reqmap reqid ret :
+    helping_auth q reqmap -∗ helping_done reqid ret -∗
+    ∃ jid, ⌜reqmap !! reqid = Some (Some ret, jid)⌝.
+  Proof.
+    iIntros "● [%jid ◯]"; iExists jid.
+    iCombine "● ◯" gives %[? [? [_ [WF [_ INCL]]]]]%gmap_view_both_dfrac_valid_discrete.
+    eapply Some_pair_included_r in INCL as INCL.
+    rewrite lookup_fmap_Some in WF; destruct WF as [? [<- Hwf]]; rewrite Hwf.
+    rewrite Some_included_total to_agree_included_L in INCL; clarify.
+  Qed.
+
+  Lemma helping_auth_token q reqmap reqid jid :
+    helping_auth q reqmap -∗ helping_token reqid jid -∗
+    ⌜reqmap !! reqid = Some (None, jid)⌝.
+  Proof.
+    iIntros "● ◯".
+    iCombine "● ◯" gives %[? [? [_ [WF [_ INCL]]]]]%gmap_view_both_dfrac_valid_discrete.
+    eapply Some_pair_included_r in INCL as INCL.
+    rewrite lookup_fmap_Some in WF; destruct WF as [? [<- Hwf]]; rewrite Hwf.
+    rewrite Some_included_total to_agree_included_L in INCL; clarify.
+  Qed.
+
+  Lemma helping_auth_commit reqmap reqid jid ret :
+    helping_auth 1 reqmap -∗ helping_token reqid jid ==∗
+    helping_auth 1 (<[reqid := (Some ret, jid)]> reqmap) ∗ helping_done reqid ret.
+  Proof.
+    rewrite /helping_auth /helping_token; iIntros "● ◯".
+    iPoseProof (helping_auth_token with "● ◯") as "%H".
+    iMod (own_update_2 with "● ◯") as "[$ $]"; eauto.
+    { etrans; first eapply gmap_view_replace.
+      { instantiate (1:=to_agree (Some ret, jid)); ss. }
+      rewrite fmap_insert cmra_update_op; try refl.
+      apply gmap_view_frag_persist.
+    }
   Qed.
 End resource.
 
@@ -82,20 +120,21 @@ Section help.
   Context (st_src st_tgt : state).
 
   (* Helping related context *)
-  Context (jobs : jobID → itree Helping.pureE retID) (rets : retID → Any.t).
+  Context (jobs : jobID → itree Helping.pureE retID).
   Context (mn : string) (sp : sp_type).
 
   Definition IstHelp (Ist : ist_type Σ) : ist_type Σ := λ st_src st_tgt,
-    (∃ (reqmap : gmap nat (option retID * jobID)) st_src1,
-      ⌜st_src = [(HelpingOn.v_reqs mn, reqmap↑)] ++ st_src1⌝ ∗
-      helping_auth 1 reqmap ∗
-      Ist st_src1 st_tgt)%I.
-  Lemma IstHelp_split (q : Qp) :
+    (∃ (reqmap_s reqmap_t : gmap nat (option retID * jobID)),
+      ⌜st_src = [(HelpingOn.v_reqs mn, reqmap_s↑)] ∧
+       st_tgt = [(HelpingOn.v_reqs mn, reqmap_t↑)]⌝ ∗
+      helping_auth 1 reqmap_s)%I.
+
+  (* Lemma IstHelp_split (q : Qp) :
     (q < 1)%Qp →
     IstHelp Ist st_src st_tgt -∗
     (∃ reqmap, helping_auth q reqmap ∗ (helping_auth q reqmap -∗ IstHelp Ist st_src st_tgt)).
   Proof.
-    iIntros (Hq) "[% [% [% [Help● IST]]]]"; hss.
+    iIntros (Hq) "[% [% [% [% [% [Help● IST]]]]]]"; hss.
     assert (Hr : (∃ r, 1 - q = Some r)%Qp).
     { destruct (1 - q)%Qp as [r'|] eqn : Hq'; first eauto.
       apply Qp.sub_None in Hq'. exfalso. apply (StrictOrder_Asymmetric _ q 1%Qp); eauto.
@@ -104,7 +143,7 @@ Section help.
     destruct Hr as [r Hr%Qp.sub_Some]; rewrite Hr {1}/helping_auth.
     rewrite -dfrac_op_own.
     iExists reqmap; iDestruct "Help●" as "[$ H]".
-    iIntros "H2"; iCombine "H" "H2" as "H"; rewrite comm -Hr; iFrame; ss.
+    iIntros "H2"; iCombine "H" "H2" as "H"; rewrite comm -Hr; iFrame; iExists _; ss.
   Qed.
 
   Lemma IstHelp_done req_id job_id (reqmap : gmap nat (option retID * jobID)) (ret : retID) :
@@ -114,12 +153,12 @@ Section help.
     IstHelp Ist
       ((HelpingOn.v_reqs mn, (<[req_id := (Some ret, job_id)]> reqmap)↑) :: st_src) st_tgt.
   Proof.
-    iIntros "Help [% [% [% [Help● IST]]]]"; hss.
+    iIntros "Help [% [% [% [% [% [Help● IST]]]]]]"; hss.
     iMod (own_update_2 with "Help● Help") as "[Help● Help]".
     { eapply gmap_view_replace. instantiate (1:=(to_agree (Some ret, job_id))); done. }
     iMod (own_update with "Help") as "$".
     { eapply gmap_view_frag_persist. }
-    iExists _, st_src1; iModIntro; iSplit; first done.
+    iExists _, _, _, _; iModIntro; iSplit; first done.
     rewrite -fmap_insert; iFrame "Help●"; done.
   Qed.
 
@@ -127,7 +166,7 @@ Section help.
     alist_find (Some (Helping.run mn)) fl_s =
       Some (SB.sandbox_body
         (SModTr.trans_ktree sp
-          (true, wmask_all, HelpingOn.scopes mn, (None, HelpingOn.run mn jobs rets)))) →
+          (true, wmask_all, HelpingOn.scopes mn, (None, HelpingOn.run mn jobs)))) →
     (msk_t (Helping.run mn) : bool) →
     IstHelp Ist st_src st_tgt -∗
     (∀ st_src st_tgt req_id,
@@ -137,7 +176,7 @@ Section help.
         (st_src,
           SB.sandbox true wmask_all (HelpingOn.scopes mn) (SModTr.trans true sp 𝒴);;;
           x_ <- SB.sandbox true wmask_all (HelpingOn.scopes mn) (SModTr.trans true sp
-            (r <- HelpingOn.try_run mn jobs rets req_id;; 𝒴;;; Ret r));;
+            (r <- HelpingOn.try_run mn jobs req_id;; 𝒴;;; Ret (r↑)));;
           x_0 <- (tau;; Ret x_);;
           x_1 <- (SB.sandbox img_t msk_t scp_t (Ret x_0));; k_s x_1)
         (st_tgt, k_t)) -∗
@@ -147,16 +186,16 @@ Section help.
   Proof.
     iIntros (Hfind Hmsk) "IST K".
     inline_l. steps_l. hss. rename _q into pargs.
-    iDestruct "IST" as "[% [% [-> [Help● IST]]]]". steps_l. hss. rename _q into reqmap. ired.
+    iDestruct "IST" as "[% [% [% [% [[-> ->] [Help● IST]]]]]]". steps_l. hss. rename _q into reqmap. ired.
     iMod (own_update with "Help●") as "[Help● Help◯]".
     { eapply (gmap_view_alloc _ (fresh (dom reqmap)) (DfracOwn 1)); eauto.
       { apply not_elem_of_dom. rewrite dom_fmap. apply is_fresh. }
       { rewrite dfrac_valid; eauto. }
       { instantiate (1:=(to_agree (None, pargs))); ss. }
     }
-    set (st_src := _ :: _).
+    set (st_src := _ :: _). set (st_tgt := _ :: _).
     iAssert (IstHelp Ist st_src st_tgt)%I with "[IST Help●]" as "IST".
-    { iFrame. subst st_src. ss. iExists _; iSplit; first done.
+    { iFrame. subst st_src. ss. iExists _, _; iSplit; first done.
       rewrite -fmap_insert //.
     }
     iApply ("K" $! st_src st_tgt (fresh (dom reqmap)) with "IST Help◯").
@@ -174,24 +213,24 @@ Section help.
           x_ <- SB.sandbox true wmask_all (HelpingOn.scopes mn) (SModTr.trans true sp
             (r <- Helping.trans (jobs parg);;
             (cput (HelpingOn.v_reqs mn) (<[req_id := (Some r, parg)]> reqmap));;;
-            Ret (rets r)));;
+            Ret (r)));;
           x_0 <- SB.sandbox true wmask_all (HelpingOn.scopes mn) (SModTr.trans true sp
-            (𝒴;;; Ret x_));;
+            (𝒴;;; Ret (x_↑)));;
           x_1 <- (tau;; Ret x_0);;
           x_2 <- (SB.sandbox img_t msk_t scp_t (Ret x_1));; k_s x_2)
         (st_tgt, k_t)) -∗
     wsim fl_s fl_t (IstHelp Ist) (E1, E2) r g R_s R_t RR ps pt
       (st_src,
         x_ <- SB.sandbox true wmask_all (HelpingOn.scopes mn) (SModTr.trans true sp
-          (HelpingOn.try_run mn jobs rets req_id));;
+          (HelpingOn.try_run mn jobs req_id));;
         x_0 <- SB.sandbox true wmask_all (HelpingOn.scopes mn) (SModTr.trans true sp
-          (𝒴;;; Ret x_));;
+          (𝒴;;; Ret x_↑));;
         x_1 <- (tau;; Ret x_0);;
         x_2 <- (SB.sandbox img_t msk_t scp_t (Ret x_1));; k_s x_2)
       (st_tgt, k_t).
   Proof.
     iIntros "Help IST K".
-    iDestruct "IST" as "[% [% [-> [Help● IST]]]]".
+    iDestruct "IST" as "[% [% [% [% [[-> ->] [Help● IST]]]]]]".
     rewrite /HelpingOn.try_run.
     steps_l. hss. rename _q into reqmap.
     iCombine "Help●" "Help" gives %[v' [? [_ [WF [_ EQ]]]]]%gmap_view_both_dfrac_valid_discrete.
@@ -199,30 +238,5 @@ Section help.
     rewrite Hlookup. apply Some_pair_included in EQ as [_ EQ].
     rewrite Some_included_total to_agree_included in EQ; inv EQ; clarify.
     iApply ("K" $! reqmap st_src1 with "Help"). iFrame. eauto.
-  Qed.
-(* 
-  Lemma wsim_helping_help_skip
-      (req_id : nat) (arg : Any.t) (reqmap : gmap nat (option retID * jobID))
-      k_s k_t E1 E2 r g img_t msk_t scp_t :
-    alist_find (Some (Helping.help mn)) fl_s =
-      Some (SB.sandbox_body
-        (SModTr.trans_ktree sp
-          (true, wmask_all, HelpingOn.scopes mn, (None, HelpingOn.help mn jobs rets sp)))) →
-    (msk_t (Helping.help mn) : bool) →
-    (wsim fl_s fl_t (IstHelp Ist) (E1, E2) r g R_s R_t RR true pt
-        ((HelpingOn.v_reqs mn, reqmap↑) :: st_src, k_s ()↑)
-        (st_tgt, k_t)) -∗
-    wsim fl_s fl_t (IstHelp Ist) (E1, E2) r g R_s R_t RR ps pt
-      ((HelpingOn.v_reqs mn, reqmap↑) :: st_src,
-        x <- (SB.sandbox img_t msk_t scp_t (trigger (Call (Helping.help mn) arg)));; k_s x)
-      (st_tgt, k_t).
-  Proof.
-    iIntros (Hfind Hmsk) "K".
-    inline_l. steps_l.
-    force_l (fresh (dom reqmap)).
-    steps_l.
-    rewrite /SModTr.trans HoareCall_prologue_sred /HoareCall_prologue; unseal CRIS.
-    iDestruct "IST" as "[% [% [-> [Help● IST]]]]".
-
-   *)
+  Qed. *)
 End help.
