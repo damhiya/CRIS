@@ -406,7 +406,7 @@ Proof.
   guclo bindC_spec. econs; i; s.
   { gfinal. right. eapply (lsim_gsim MSIM WFS); cycle 3.
     - i. destruct tid; ss; inv INS. des; subst. eexists.
-      instantiate (1:= [_]). eapply H0.
+      instantiate (1:= [_]). eauto.
     - et.
     - et.
     - et.

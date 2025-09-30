@@ -52,6 +52,17 @@ Section HEADER.
     - rewrite Hxpost Hypost. iIntros ">>H". et.
   Qed.
 
+  Definition sp_imply' (sp0 sp1 : sp_type) : Prop :=
+    ∀ fn, fspec_imply' (fspec_flat (sp0 fn)) (fspec_flat (sp1 fn)).
+
+  Global Program Instance sp_imply'_PreOrder : PreOrder sp_imply'.
+  Next Obligation. ii. refl. Qed.
+  Next Obligation.
+    intros x y z Hxy Hyz fn. specialize (Hxy fn); specialize (Hyz fn).
+    destruct (x fn), (y fn), (z fn); ss; try by etrans; et.
+    destruct f, f0; ss. etrans; et.
+  Qed.
+
   Definition sp_sub (sp0 sp: sp_type) : Prop :=
     ∀ fn, sp0 fn = Some fspec_bot ∨ sp0 fn = sp fn.
 

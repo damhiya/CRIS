@@ -1,18 +1,21 @@
-(* Require Import CRIS.
-Require Import LMod LModTr GSim GSimFacts GSimTactics.
+Require Import CRIS.
+Require Import LMod LModTr GSim GSimFacts GSimTactics CancelTactics.
 Require Import MInline MInlineIntro MInlineElim ElimRel.
 
-Lemma cancel_pg `{Σ: GRA} md sp R (e : pgE R):
+Lemma cancel_pg `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp R (e : pgE R):
   CANCEL_GOAL md sp (trigger e) (trigger e).
 Proof.
   r; i. destruct e.
-  + ziter_l. ziter_r. rewrite x0 x1. s. zstep_l. zstep_r. ss.
-    ziter_l. zstep_l. ziter_r. zstep_r. rewrite !ModTr.alist_encode_decode.
+  + iter_l. iter_r. rewrite x0 x1; s. step_l. step_r. norm_l. norm_r.
+    rewrite !Any.pair_split /= !ModTr.alist_encode_decode.
+    iter_l; iter_r; rewrite !list_lookup_insert -?EQLEN //; norm_l; norm_r; step_l; step_r.
+    norm_l; norm_r. rewrite !list_insert_insert !bind_ret_l.
     eapply KEY; et.
     { rewrite list_insert_id //. }
     { econs; eauto; eapply KTR. }
-  + ziter_l. ziter_r. rewrite x0 x1. s. zstep_l. zstep_r. ss. ired.
+  + iter_l. iter_r. rewrite x0 x1; s. step_l; step_r. norm_l; norm_r.
+    rewrite !Any.pair_split /=. rewrite !bind_ret_l.
     eapply KEY; et.
     { rewrite list_insert_id //. }
     { econs; eauto; eapply KTR. }
-(*SLOW*)Qed. *)
+(*SLOW*)Qed.

@@ -47,7 +47,7 @@ End INTERP.
 Module MInline.
   Import Mod.
 
-  Program Definition inline `{Σ: GRA} (ms: Mod.t): Mod.t := {|
+  Program Definition inline `{Σ: GRA} (ms: Mod.t) : Mod.t := {|
     scopes := ms.(scopes);
     fnsems := List.map (map_snd (inline_fsem ms)) (ms.(fnsems));
     initial_st := ms.(initial_st);
@@ -174,7 +174,7 @@ Module MIRed.
 End MIRed.
 
 Lemma sandbox_inline_commute `{Σ: GRA}
-  ms sb arg
+  ms sb arg 
   (SCP : incl sb.1.2 (Mod.scopes ms))
   :
   SB.sandbox_body (inline_fsem ms sb) arg
@@ -234,7 +234,8 @@ Proof using.
       erewrite FIND. et.
     }
     extensionality x.
-    rewrite subst_bind bind_ret_l -SBRed.tau.
+    rewrite subst_bind bind_ret_l.
+    erewrite SBRed.tau.
     erewrite <-(@sandbox_well_scoped _ _ _ _ _ _ sc); eauto.
   }
   {

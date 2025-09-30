@@ -1501,6 +1501,10 @@ Ltac idtacs Hs :=
 
 Notation "(∘)" := (fun g f => g ∘ f) (at level 0, left associativity).
 
+Lemma map_dist {A B C} (f: A -> B) (g: B -> C) (l: list A) :
+  map (g ∘ f) l = map g (map f l).
+Proof. induction l; simpl; eauto. rewrite IHl. reflexivity. Qed.
+
 Variant option_rel A B (P : A -> B -> Prop) : option A -> option B -> Prop :=
 | option_rel_some
     a b (IN : P a b)

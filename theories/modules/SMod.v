@@ -23,11 +23,10 @@ Module SMod. Section SMOD.
       List.NoDup scopes -> List.NoDup (List.map fst initial_st);
   }.
 
-  Definition wf (ms : t) : Prop :=
+  Definition cancellable (ms : t) : Prop :=
     ∀ fno img msk scp fspo bd
-       (FIND: alist_find fno (fnsems ms) = Some (img, msk, scp, (fspo, bd)))
-       (COND: fno = None ∨ img = false),
-      fspo = None.
+      (FIND: alist_find fno (fnsems ms) = Some (img, msk, scp, (fspo, bd))),
+      img = true ∧ is_some fspo ∧ (fno = None → fspo = Some (fspec_trivial)).
 
   (**** Linking ****)
   Program Definition empty : t := {|
@@ -98,7 +97,7 @@ Module SMod. Section SMOD.
     i. destruct ms. ss. ii. unfold fnsems_scopes in *. unfold map_snd in *.
     rewrite alist_find_map in H0. specialize (well_scoped_fns0 fn a).
     destruct (alist_find fn fnsems0) eqn: E; ss.
-    destruct f. destruct p. et.
+    destruct f. destruct p. destruct p0. et.
   Qed.
   Next Obligation. ii. destruct ms. ss. eauto. Qed.
   Next Obligation. ii. destruct ms. ss. eauto. Qed.
@@ -109,8 +108,8 @@ Module SMod. Section SMOD.
     initial_st := ms.(initial_st);
   |}.
   Next Obligation.
-    i. destruct ms. ss. ii. unfold fnsems_scopes in *. unfold map_snd in*.
-    rewrite alist_find_map in H0. specialize (well_scoped_fns0 fn a).
+    i. destruct ms. ss. ii. unfold fnsems_scopes in *. unfold map_snd in *.
+    rewrite !alist_find_map in H0. specialize (well_scoped_fns0 fn a).
     destruct (alist_find fn fnsems0) eqn: E; try rewrite E in H0; ss.
     destruct f. destruct p. et.
   Qed.
@@ -173,35 +172,35 @@ Section Aux.
 
   Definition sp_from (md : SMod.t) : sp_type :=
     to_sp (List.map (map_snd (fst ∘ snd)) md.(SMod.fnsems)).
+  
+  (* Definition has_param (md : SMod.t) fno img msk scp := *)
+  (*   ∃ sbd, alist_find fno (SMod.fnsems md) = Some (img, msk, scp, sbd). *)
 
-  Definition has_param (md : SMod.t) fno img msk scp :=
-    ∃ sbd, alist_find fno (SMod.fnsems md) = Some (img, msk, scp, sbd).
+  (* Definition has_trivial_spec (md : SMod.t) (fn : string) : Prop := *)
+  (*   ∃ fno msk scp, has_param md fno false msk scp ∧ msk fn. *)
 
-  Definition has_trivial_spec (md : SMod.t) (fn : string) : Prop :=
-    ∃ fno msk scp, has_param md fno false msk scp ∧ msk fn.
+  (* Definition valid_sp (md: SMod.t) (sp: sp_type) : Prop := *)
+  (*   sp_imply' (sp_from md) sp ∧ *)
+  (*   (∀ fn (NS: has_trivial_spec md fn), fspec_imply (fspec_flat (sp fn)) fspec_trivial) *)
 
-  Definition valid_sp (md: SMod.t) (sp: sp_type) : Prop :=
-    sp_imply (sp_from md) sp ∧
-    ∀ fn (NS: has_trivial_spec md fn), fspec_imply (fspec_flat (sp fn)) fspec_trivial.
+  (* Definition real_smod (md : SMod.t) : Prop := *)
+  (*   ∀ fno img msk scp, has_param md fno img msk scp → img = false. *)
 
-  Definition real_smod (md : SMod.t) : Prop :=
-    ∀ fno img msk scp, has_param md fno img msk scp → img = false.
-
-  Lemma real_smod_ignores_sp md sp
-    (REAL: real_smod md)
-    (WF: Mod.wf (SMod.to_mod sp_none md))
-    :
-    SMod.to_mod sp md = SMod.to_mod sp_none md.
-  Proof.
-    eapply mod_extensionality; s; et. unfold SModTr.trans_ktree.
-    eapply map_ext_Forall. eapply List.Forall_forall. i.
-    destruct x as [fno [[[img msk] scp] [fsp bd]]]. s. repeat f_equal.
-    destruct WF; ss. rewrite map_map fst_map_snd in wf_fns.
-    eapply alist_find_some_iff in H0; et.
-    exploit REAL; [r; et|].
-    i; subst; et.
-  Qed.
+  (* Lemma real_smod_ignores_sp md sp *)
+  (*   (REAL: real_smod md) *)
+  (*   (WF: Mod.wf (SMod.to_mod sp_none md)) *)
+  (*   : *)
+  (*   SMod.to_mod sp md = SMod.to_mod sp_none md. *)
+  (* Proof. *)
+  (*   eapply mod_extensionality; s; et. unfold SModTr.trans_ktree. *)
+  (*   eapply map_ext_Forall. eapply List.Forall_forall. i. *)
+  (*   destruct x as [fno [[[img msk] scp] [fsp bd]]]. s. repeat f_equal. *)
+  (*   destruct WF; ss. rewrite map_map fst_map_snd in wf_fns. *)
+  (*   eapply alist_find_some_iff in H0; et. *)
+  (*   exploit REAL; [r; et|]. *)
+  (*   i; subst; et. *)
+  (* Qed. *)
 End Aux.
 
-Global Hint Unfold has_param : core.
-Global Hint Unfold has_trivial_spec : core.
+(* Global Hint Unfold has_param : core. *)
+(* Global Hint Unfold has_trivial_spec : core. *)

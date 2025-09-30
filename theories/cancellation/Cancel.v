@@ -1,21 +1,21 @@
-(* Require Import CRIS.
-Require Import LMod LModTr GSim GSimFacts GSimTactics.
+Require Import CRIS.
+Require Import LMod LModTr GSim GSimFacts GSimTactics CancelTactics.
 Require Import MInline MInlineIntro MInlineElim ElimRel.
-Require Import CancelCore CancelPG CancelAG CancelSpawn CancelPre CancelPost.
+Require Import CancelCore CancelPG CancelAG CancelSpawn CancelPre CancelPost CancelYield CancelGetTid.
 
 Set Implicit Arguments.
 
 Module Cancel. Section Cancel.
 
-Context `{Σ: GRA}.
+Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG}.
 
-Lemma cancel_elim md sp (r_i r_s r_t: Σ) rs_diff srcs tgts cid st ps pt
-  (WFS: SMod.wf md)
-  (VP: valid_sp md sp)
-  (WF: Mod.wf (SMod.to_mod sp_none (SMod.cancel md)))
-  (REL: Forall3i (thread_rel sp) rs_diff srcs tgts)
+Lemma cancel_elim md (r_i r_s r_t: Σ) rs_diff srcs tgts cid st ps pt
+  (WFS: SMod.cancellable md)
+  (* (WF: Mod.wf (SMod.to_mod sp_none (SMod.cancel md))) *)
+  (REL: Forall3i (thread_rel (sp_from md) cid) rs_diff srcs tgts)
   (WFR: ✓ r_s)
-  (RS: Own r_s ⊢ |==> ([∗ list] i ∈ rs_diff, Own i) ∗ Own r_t)
+  (RS: Own r_s ⊢ |==> ([∗ list] i ∈ rs_diff, Own i) ∗ Own r_t ∗
+         TIDAUTH cid ∗ YIELDAUTH (length rs_diff))
   :
   gsim cancel_eq ps pt
     (LModTr.interp_stateE Any.t
@@ -24,39 +24,40 @@ Lemma cancel_elim md sp (r_i r_s r_t: Σ) rs_diff srcs tgts cid st ps pt
        (Any.pair (ModTr.alist_encode st) r_s ↑))
     (LModTr.interp_stateE Any.t
        (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
-              (SMod.to_mod sp md)) r_i))) (cid, tgts))
+              (SMod.to_mod (sp_from md) md)) r_i))) (cid, tgts))
        (Any.pair (ModTr.alist_encode st) r_t ↑)).
 Proof using.
-  ginit. move WFS at top. move WF at top. move VP at top.
+  ginit. move WFS at top. (* move WF at top. *)
   revert_until r_i. gcofix CIH. i.
   destruct (decide (cid < length srcs)) as [Hcid|]; cycle 1.
-  { ziter_l. erewrite (proj2 (lookup_ge_None srcs cid)); try nia.
-    s. zstep_l. zstep_l.
-  }
+  { iter_l. erewrite (proj2 (lookup_ge_None srcs cid)); try nia.
+    s. step_l. norm_l. step_l. i; ss. }
   inversion REL as [Hlenxy [Hlenyz Hrel]].
   exploit (@Forall3i_nth _ _ _ cid); eauto; try lia; clear REL.
   intros [r_diff [i_s [i_t [Hdiff [Hs [Ht Hcidrel]]]]]]; ss.
 
+  inversion_clear Hcidrel; subst; ss; cycle 1.
+  
   assert (Hkey :
-    ∀ itr_s itr_t st (r_s r_t: Σ) r_diff tid,
+    ∀ itr_s itr_t st (r_s r_t: Σ) r_diff,
     ✓ r_s →
-    (Own r_s ⊢ |==> ([∗ list] i ∈ <[cid := r_diff]> rs_diff, Own i) ∗ Own r_t) →
+    (Own r_s ⊢ |==> ([∗ list] i ∈ <[cid := r_diff]> rs_diff, Own i) ∗ Own r_t ∗
+       TIDAUTH cid ∗ YIELDAUTH (length (<[cid := r_diff]> rs_diff))) →
     cid < List.length srcs →
-    thread_rel sp cid r_diff itr_s itr_t →
-    (* elim_rel sp r_diff itr_s itr_t → *)
+    thread_rel (sp_from md) cid cid r_diff itr_s itr_t →
     gpaco7 _gsim (cpn7 _gsim) bot7 r (Any.t * Any.t)%type
       (Any.t * Any.t)%type cancel_eq smj_top smj_top
       (LModTr.interp_stateE Any.t
         (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
           (SMod.to_mod sp_none (SMod.cancel md))) r_i)))
-              (tid, <[cid:=itr_s]> srcs))
+              (cid, <[cid:=itr_s]> srcs))
        (Any.pair (ModTr.alist_encode st) r_s ↑))
     (LModTr.interp_stateE Any.t
        (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
-              (SMod.to_mod sp md)) r_i)))
-              (tid, <[cid:=itr_t]> tgts))
+              (SMod.to_mod (sp_from md) md)) r_i)))
+              (cid, <[cid:=itr_t]> tgts))
        (Any.pair (ModTr.alist_encode st) r_t ↑))).
-  { i. zprogress.
+  { i. subst. zprogress.
     gbase. eapply CIH; et.
     split.
     { rewrite !length_insert. et. }
@@ -72,92 +73,62 @@ Proof using.
     { rewrite Hlenxy. et. }
     inv H3. done.
   }
-
-  inversion_clear Hcidrel; subst; cycle 1.
-  { ziter_l; rewrite Hs /=. zstep_l. ziter_l. zstep_l.
-    ziter_r; rewrite Ht /= /elim_spawnee_precond.
-    destruct fspo as [fsp|]; ss.
-    { zstep_r. exists x; ired. zstep_r.
-      ziter_r. zstep_r.
-      ziter_r. zstep_r. exists varg. ired. zstep_r.
-      ziter_r. zstep_r.
-      ziter_r. zstep_r.
-      ziter_r. zstep_r.
-      hexploit (Own_bupd_split); first apply RS; eauto.
-      intros [r_s1 [r_s2 [Hr_s [Hr_s1 Hr_s2]]]]; exists (r_t ⋅ r_diff). ired. zstep_r.
-      ziter_r. zstep_r. eexists. zstep_r.
-      ziter_r. zstep_r. ziter_r. zstep_r. ziter_r. zstep_r.
-      eapply Hkey; eauto; cycle 1.
-      { econs; cycle 3.
-        { rewrite interpV_bind; refl. }
-        { by ii. }
-        { eauto. }
-        { rewrite /ModTr.trans //. }
-      }
-      { rewrite Hr_s Hr_s1 Hr_s2 Own_op.
-        iIntros "> [RS $]"; iPoseProof (big_sepL_insert_acc with "RS") as "[$ RS]"; eauto.
-        iModIntro; iApply "RS"; iApply Own_unit.
-      }
-      Unshelve.
-      { split;
-        [eapply Own_wand_valid;
-          [iIntros "S"; rewrite Own_op; iMod (RS with "S") as "[S $]"|]
-        | rewrite Own_op; iIntros "[$ D]"; rewrite H2]; try done.
-        iPoseProof (big_sepL_lookup_acc with "S") as "[$ S]"; eauto.
-      }
-    }
-    { zstep_r. ziter_r. zstep_r.
-      eapply Hkey; eauto; cycle 1.
-      { econs; eauto.
-        rewrite bind_ret_r /ModTr.trans.
-        hexploit (Own_bupd_split r_diff (⌜ arg = varg ⌝)).
-        { rewrite H2; iIntros "> $"; iModIntro; iApply Own_unit. }
-        { eapply Own_wand_valid; [iIntros "S"; iMod (RS with "S") as "[S _]"|]; eauto.
-          iPoseProof (big_sepL_lookup_acc with "S") as "[$ ?]"; eauto.
-        }
-        intros [? [? [? [Harg%Own_pure_soundness ?]]]]; subst; ss.
-        eapply Own_wand_valid; [iIntros "S"; iMod (RS with "S") as "[S _]"|]; eauto.
-        iPoseProof (big_sepL_lookup_acc with "S") as "[S ?]"; eauto.
-        iMod (H0 with "S") as "[$ ?]"; done.
-      }
-      { rewrite RS.
-        iIntros "> [S $]"; iPoseProof (big_sepL_insert_acc with "S") as "[_ S]"; eauto.
-        iModIntro; iApply "S"; iApply Own_unit.
-      }
-    }
-  }
+  
   punfold REL; depdes REL; ii; subst; pclearbot.
-  - ziter_l; rewrite Hs /=; zstep_l.
-  - ziter_l; rewrite Hs /=; zstep_l; ziter_l; zstep_l.
-  - ziter_l; rewrite Hs /=.
-    ziter_r; rewrite Ht /=. destruct cid; s; cycle 1.
-    { zstep_l. zstep_l. }
-    specialize (RET eq_refl). subst. s. zstep_l. zstep_r.
+  - iter_l; rewrite Hs /=; step_l; i; ss.
+  - iter_l; rewrite Hs /=; step_l; norm_l.
+    iter_l; rewrite list_lookup_insert //; step_l; i; ss. 
+  - iter_r; rewrite Ht /=; step_r; i; ss.
+  - iter_l; rewrite Hs /=.
+    iter_r; rewrite Ht /=. destruct cid; s; cycle 1.
+    { step_l; rewrite /triggerUB; step_l; i; ss. }
+    specialize (RET eq_refl). subst. s. step_l. norm_l.
+    step_r. i. step_r. norm_r.
+    guardH Hlenxy.
+    Ltac sir :=
+      match goal with
+      | [ H : length _ = length _ |- _ ] =>
+          iter_r; rewrite list_lookup_insert ?length_insert -?H //; norm_r; step_r
+      end;
+      match goal with
+      | [ |- ∀ _, _ ] => i; step_r
+      | _ => idtac
+      end; norm_r; rewrite !list_insert_insert.
+    sir. sir.
+    rewrite Any.pair_split /= bind_ret_l Any.upcast_downcast /= bind_ret_l.
+    sir; sir; sir.
+    rewrite bind_ret_l Any.pair_split /= bind_ret_l.
+    sir. sir. 
+    iter_r. rewrite list_lookup_insert -?Hlenyz //. step_r. norm_r.
+
     gstep. econs. econs.
     r. esplits; et; hss.
-  - ziter_l. ziter_r. rewrite Hs Ht /=. zstep_l. zstep_r. eapply Hkey; et.
+    eapply Own_pure_soundness.
+    { eapply Own_wand_valid; [|instantiate (1 := r_s); eauto].
+      rewrite RS; eauto. iIntros ">(_ & $ & _)"; eauto. }
+    { rewrite x2. iIntros ">[$ _]". }
+  - iter_l. iter_r. rewrite Hs Ht /=. step_l. norm_l. step_r. norm_r. eapply Hkey; et.
     { rewrite list_insert_id //. }
     { econs; eauto. }
   - eapply cancel_core; eauto.
   - eapply cancel_pg; eauto.
   - eapply cancel_ag; eauto.
-  - ziter_l. ziter_r. rewrite Hs Ht /=. zstep_l. zstep_r. eapply Hkey; eauto.
-    { rewrite list_insert_id //. }
-    { econs; eauto; eapply H. }
+  - eapply cancel_yield; eauto.
   - eapply cancel_spawn; et.
   - eapply cancel_pre; et.
   - eapply cancel_post; et.
-(*SLOW*) Qed.
+  - eapply cancel_gettid; eauto.
+(*SLOW*)Qed.
 
-Lemma cancel_main md sp rs
-  (WFS: SMod.wf md)
-  (VP: valid_sp md sp)
-  (WF: Mod.wf (SMod.to_mod sp_none (SMod.cancel md)))
+Lemma cancel_main md rs rt
+  (WFS: SMod.cancellable md)
+  (* (WF: Mod.wf (SMod.to_mod sp_none (SMod.cancel md))) *)
   (VALID: ✓ rs)
+  (RES: Own rs ⊢ |==> Own rt ∗ TIDAUTH 0 ∗ YIELDAUTH 1)
   :  
   refines_lmod
     (Mod.to_lmod (MInline.inline (SMod.to_mod sp_none (SMod.cancel md))) rs)
-    (Mod.to_lmod (MInline.inline (SMod.to_mod sp md)) rs).
+    (Mod.to_lmod (MInline.inline (SMod.to_mod (sp_from md) md)) rt).
 Proof using.
   r. intro arg. eapply gsim_adequacy.
   instantiate (1:= smj_top). instantiate (1:= smj_top).
@@ -173,43 +144,66 @@ Proof using.
   erewrite !sandbox_inline_commute; et.
   (* erewrite sandbox_inline_commute; et. *)
   rewrite /SB.sandbox_body. s.
-
+ 
   ginit. guclo bindC_spec. econs; cycle 1.
-  { instantiate (1:=cancel_eq). i. gstep. econs. econs.
+  { instantiate (1:=λ vrs vrt, cancel_eq vrs vrt). i. gstep. econs. econs.
     destruct SIM. des. et. }
-  ziter_l. zstep_l. ziter_l. zstep_l.
-  exploit WFS; et. i. subst. ss.
-  rewrite SBRed.tau MIRed.tau.
-  ziter_r. zstep_r. ziter_r. zstep_r.
+  iter_l. step_l. norm_l. iter_l. step_l. norm_l.
+  exploit WFS; et. i; des; subst; ss.
+
+  hexploit x2; eauto; i; subst; ss.
+  iter_r. step_r. exists tt. step_r. norm_r.
+  iter_r. step_r. norm_r. iter_r. step_r. exists arg. step_r. norm_r.
+  iter_r. step_r. norm_r. iter_r. step_r. norm_r.
+  rewrite Any.pair_split /= bind_ret_l Any.upcast_downcast /= bind_ret_l.
+  iter_r. step_r. exists rt. step_r. norm_r.
+  iter_r. step_r. unshelve eexists; ired.
+  { split; eauto. eapply Own_wand_valid; cycle 1; eauto.
+    rewrite RES. iIntros ">[$ _]"; eauto. }
+  step_r. iter_r. step_r. norm_r.
+  rewrite bind_ret_l Any.pair_split /= bind_ret_l.
+  iter_r. step_r. norm_r. iter_r. step_r. norm_r. ired.
+  set (itr := vret <- SModTr.trans true (sp_from md) (bd arg);; _: itree crisE Any.t).
+  replace (interpV (SB.handle_sandbox true msk scp) itr) with (SB.sandbox true msk scp itr) by refl.
+  rewrite SBRed.bind MIRed.bind.
+  set (itr0 := (λ _, inline_body _ _)).
+  eassert (itr0 = λ vret, ret <- trigger (Choose Any.t);; tau;; trigger (Guarantee ⌜vret = ret⌝);;; tau;; Ret ret).
+  { subst itr0. eapply func_ext. i.
+    rewrite SBRed.bind SBRed.choose MIRed.core. f_equal.
+    extensionalities. do 2 f_equal.
+    rewrite SBRed.bind SBRed.Guarantee MIRed.ag. f_equal.
+    extensionalities. do 2 f_equal.
+    rewrite SBRed.ret MIRed.ret. refl.
+  }
+  rewrite H. rewrite interpV_bind.
+
   gfinal. right.
 
-  eapply (cancel_elim _ _ (rs_diff:=[ε])); eauto.
+  eapply (cancel_elim rs rt (rs_diff:=[ε])); eauto.
   { econs; et.
     split; ss.
     i. destruct i; ss. inv H0. 
     (* exploit WFS; et. i. subst. *)
-    rewrite !if_simpl.
-    econs; et; cycle 1.
-    { rewrite bind_ret_r. et. }
-    s. eapply elim_rel_cancel; et.
+
+    econs; et.
+    eapply elim_rel_cancel; et.
   }
-  ss; rewrite right_id -Own_op left_id; iIntros "$"; done.
+  ss. rewrite right_id assoc -Own_op left_id. rewrite RES.
+  iIntros ">$"; eauto.
 Unshelve. all: exact smj_top.
 (*SLOW*)Qed.
 
 End Cancel.
 
 Section Cancel.
-Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
+Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG}.
 
 (*** Final Theorem ***)
-Theorem cancellation md sp P
-  (WFS: SMod.wf md)
-  (VP: valid_sp md sp)
-  (WF: Mod.wf (SMod.to_mod sp_none (SMod.cancel md)))
+Theorem cancellation md P
+  (WFS: SMod.cancellable md)
   :
-  refines (SMod.to_mod sp_none (SMod.cancel md), P)
-          (SMod.to_mod sp md, P).
+  refines (SMod.to_mod sp_none (SMod.cancel md), (P ∗ TIDAUTH 0 ∗ YIELDAUTH 1)%I)
+          (SMod.to_mod (sp_from md) md, P).
 Proof using. 
   etrans.
   { eapply inline_elim. }
@@ -221,8 +215,16 @@ Proof using.
     repeat rewrite List.map_map fst_map_snd.
     repeat rewrite List.map_map fst_map_snd in wf_fns. eauto.
   }
-  inv WFM. s; i. exists rs. esplits; et.
+  inv WFM. s; i.
+  rewrite assoc in SRC.
+  hexploit (Own_bupd_split); eauto.
+  intros [rt [ra [Hr1 [Hr2 Hr3]]]].
+  exists rt. esplits; et.
+  { eapply Own_wand_valid; [iIntros "S"; iPoseProof (Hr1 with "S") as ">[$ _]"; done|done]. }
+  { rewrite Hr2. eauto. }
   eapply cancel_main; eauto.
+  iIntros "S". iPoseProof (Hr1 with "S") as ">[$ A]".
+  rewrite Hr3; iFrame; eauto.
 (*SLOW*)Qed.
 
-End Cancel. End Cancel. *)
+End Cancel. End Cancel.

@@ -39,10 +39,22 @@ Section preds.
     by iIntros "T1 T2"; iCombine "T1 T2" gives %WF%excl_auth_frag_op_valid.
   Qed.
 
+  Lemma TidToken_upd tid0 tid1 ntid : TidTokenAuth tid0 ∗ TidToken tid1 ⊢ |==> TidTokenAuth ntid ∗ TidToken ntid.
+  Proof.
+    rewrite /TidTokenAuth /TidToken. unseal "Conc".
+    rewrite -!own_op.
+    eapply own_update.
+    eapply excl_auth_update.
+  Qed.
+
   Definition YieldToken (tid : nat) : iProp Σ :=
     Seal.sealing "Conc" own base_γ
       ((λ x, if (decide (x = tid)) then Some (Excl ()) else None) : nat -d> optionUR (exclR unitO)).
   Arguments YieldToken : simpl never.
+
+  Definition YieldTokenAuth (nths: nat) : iProp Σ :=
+    Seal.sealing "Conc" own base_γ
+      ((λ x, if (decide (x < nths)) then None else Some (Excl ())) : nat -d> optionUR (exclR unitO)).
 
   Lemma YieldToken_both tid0 tid1 : YieldToken tid0 -∗ YieldToken tid1 -∗ ⌜tid0 ≠ tid1⌝.
   Proof.
@@ -50,7 +62,21 @@ Section preds.
     iIntros "T1 T2"; iCombine "T1 T2" gives %WF; hexploit (WF tid1).
     rewrite discrete_fun_lookup_op; des_ifs.
   Qed.
+
+  Lemma YieldToken_gen nths : YieldTokenAuth nths ⊢ YieldTokenAuth (S nths) ∗ YieldToken nths.
+  Proof.
+    rewrite /YieldTokenAuth /YieldToken. unseal "Conc".
+    iIntros "T". rewrite -own_op.
+    set (a:=_: nat -d> optionUR (exclR unitO)).
+    set (b:=_: nat -d> optionUR (exclR unitO)) at 2.
+    assert (EQ: a ≡ b).
+    { subst a b. intros x. rewrite discrete_fun_lookup_op. des_ifs; nia. }
+    rewrite EQ. iFrame.
+  Qed.
+
 End preds.
 
 Notation "'TID' tid" := (TidToken tid) (at level 20, tid at level 1, format "TID  tid").
 Notation "'YIELD' tid" := (YieldToken tid) (at level 20, tid at level 1, format "YIELD  tid").
+Notation "'TIDAUTH' tid" := (TidTokenAuth tid) (at level 20, tid at level 1, format "TIDAUTH  tid").
+Notation "'YIELDAUTH' tid" := (YieldTokenAuth tid) (at level 20, tid at level 1, format "YIELDAUTH  tid").
