@@ -79,7 +79,7 @@ Module StackIM. Section StackIM.
 
   Lemma new_stack_simF :
     ISim.sim_fun open StackM StackI init_cond IstFull (Some StackHdr.new_stack).
-  Proof using Hsch Hmsk.
+  Proof using Hsch Hmsk Hspsch Hsphelp.
     init_simF.
     steps_l. rename _q3 into stid, _q4 into mtid.
     iDestruct "ASM" as "[TID [[%v ->] ->]]". hss. 
@@ -400,7 +400,7 @@ Module StackIM. Section StackIM.
   (*SLOW*)Qed.
 
   Lemma pop_simF : ISim.sim_fun open StackM StackI init_cond IstFull (Some StackHdr.pop).
-  Proof.
+  Proof using Hsch Hmsk Hspsch Hsphelp.
     init_simF.
     steps_l. iDestruct "ASM" as "[TID [[% #[%stackb [%stackofs [-> Hinv]]]] _]]". hss.
     rename _q3 into stid, _q4 into mtid, _q6 into γs.
