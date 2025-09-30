@@ -21,7 +21,7 @@ Section wsim.
       (tid_res : bool)
       (E : coPset)
       (r g : rel)
-      (img_s img_t : bool)
+      (img_s img_t img_s' img_t' : bool)
       (msk_s msk_t : string → bool)
       (scp_s scp_t : list string)
       (sp_s sp_t : string → option fspec)
@@ -47,11 +47,11 @@ Section wsim.
     (∀ st_src st_tgt,
       Ist st_src st_tgt -∗ (if tid_res then Tid mtid stid else emp) -∗
       wsim fl_s fl_t Ist (E, E) r g R_s R_t RR true true
-        (st_src, (SB.sandbox img_s msk_s scp_s (SModTr.trans img_s sp_s 𝒴)) >>= k_s)
-        (st_tgt, k_t tt))
-    ⊢ wsim fl_s fl_t Ist (E, E) r g R_s R_t RR ps pt
-    (st_src, (SB.sandbox img_s msk_s scp_s (SModTr.trans img_s sp_s 𝒴)) >>= k_s)
-    (st_tgt, (SB.sandbox img_t msk_t scp_t (SModTr.trans img_t sp_t 𝒴)) >>= k_t).
+        (st_src, (SB.sandbox img_s msk_s scp_s (SModTr.trans img_s' sp_s 𝒴)) >>= k_s)
+        (st_tgt, k_t tt)) ⊢
+    wsim fl_s fl_t Ist (E, E) r g R_s R_t RR ps pt
+      (st_src, (SB.sandbox img_s msk_s scp_s (SModTr.trans img_s' sp_s 𝒴)) >>= k_s)
+      (st_tgt, (SB.sandbox img_t msk_t scp_t (SModTr.trans img_t' sp_t 𝒴)) >>= k_t).
   Proof using.
     intros Hcase Hmsks Hmskt. iIntros "[IST [TID SIM]]".
     rewrite /Sch.yield; unseal SCH.
@@ -105,10 +105,10 @@ Section wsim.
     }
   (*SLOW*)Qed.
 
-  Lemma wsim_yield_src Ep r g img_s (msk_s: _ → bool) scp_s sp_s k_s i_t :
+  Lemma wsim_yield_src Ep r g (img_s img_s' : bool) (msk_s: _ → bool) scp_s sp_s k_s i_t :
     wsim fl_s fl_t Ist Ep r g R_s R_t RR true pt (st_src, k_s tt) (st_tgt, i_t) ⊢
     wsim fl_s fl_t Ist Ep r g R_s R_t RR true pt
-      (st_src, (SB.sandbox img_s msk_s scp_s (SModTr.trans img_s sp_s 𝒴)) >>= k_s) (st_tgt, i_t).
+      (st_src, (SB.sandbox img_s msk_s scp_s (SModTr.trans img_s' sp_s 𝒴)) >>= k_s) (st_tgt, i_t).
   Proof using.
     iIntros "SIM".
     rewrite /Sch.yield; unseal SCH.

@@ -151,7 +151,7 @@ Module SchIA. Section sim.
     by_coind CIH; eauto.
     iPoseProof (winv_split_empty with "I") as "[I E]".
     rewrite left_id_L; iFrame; iDestruct "TidF" as "[$ [$ $]]".
-  (*SLOW*)Admitted.
+  (*SLOW*)Qed.
 
   Lemma simF_spawn : ISim.sim_fun open SchAMod SchIMod SchA.init_cond Ist (Some SchHdr.spawn).
   Proof using FunInSp SchInSp.
@@ -218,7 +218,7 @@ Module SchIA. Section sim.
     iSplitL "RET".
     { rewrite big_sepL_app /=; iFrame; done. }
     by rewrite ?fmap_app big_sepL_app /=; des_ifs; iFrame.
-  (*SLOW*)Admitted.
+  (*SLOW*)Qed.
 
   Lemma simF_yield : ISim.sim_fun open SchAMod SchIMod SchA.init_cond Ist (Some SchHdr.yield).
   Proof using FunInSp SchInSp.
@@ -277,7 +277,7 @@ Module SchIA. Section sim.
     steps_l. iDestruct "ASM" as "[TID [YIELD WINV]]".
     forces_l. iFrame. iSplit; eauto.
     step. iFrame. done.
-  (*SLOW*)Admitted.
+  (*SLOW*)Qed.
 
   Lemma simF_join : ISim.sim_fun open SchAMod SchIMod SchA.init_cond Ist (Some SchHdr.join).
   Proof using FunInSp SchInSp.
@@ -335,7 +335,7 @@ Module SchIA. Section sim.
       destruct WF as [? [_ [_ [[? [? [EQ Hcont]]]%elem_of_list_to_map_2%elem_of_lookup_imap _]]]].
       inv EQ. rewrite list_lookup_fmap Htid // in Hcont.
     }
-  (*SLOW*)Admitted.
+  (*SLOW*)Qed.
 
   Lemma simF_get_tid : ISim.sim_fun open SchAMod SchIMod SchA.init_cond Ist (Some SchHdr.get_tid).
   Proof using FunInSp SchInSp.
@@ -359,7 +359,7 @@ Module SchIA. Section sim.
 
     iSplit; eauto.
     iFrame. iExists _; iPureIntro; esplits; eauto.
-  (*SLOW*)Admitted.
+  (*SLOW*)Qed.
 
   Lemma sim : ISim.t open SchAMod SchIMod SchA.init_cond Ist.
   Proof using FunInSp SchInSp.

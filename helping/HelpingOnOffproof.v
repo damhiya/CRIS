@@ -95,17 +95,17 @@ Section Helping.
 
   Definition run_s : Any.t → itree lmodE Any.t := λ x,
     ⇓cris (⇓sb(true, wmask_all, HelpingOff.scopes mn)
-      (tau;; ⇓smod(true, sp) (HelpingOff.run jobs x))).
+      (tau;; ⇓smod(false, sp) (HelpingOff.run jobs x))).
   Definition run_t : Any.t → itree lmodE Any.t := λ x,
     ⇓cris (⇓sb(true, wmask_all, HelpingOn.scopes mn)
-      (tau;; ⇓smod(true, sp) (HelpingOn.run mn jobs x))).
+      (tau;; ⇓smod(false, sp) (HelpingOn.run mn jobs x))).
 
   Definition help_s : Any.t → itree lmodE Any.t := λ x,
     ⇓cris (⇓sb(true, wmask_all, HelpingOff.scopes mn)
-      (tau;; ⇓smod(true, sp) (HelpingOff.help x))).
+      (tau;; ⇓smod(false, sp) (HelpingOff.help x))).
   Definition help_t : Any.t → itree lmodE Any.t := λ x,
     ⇓cris (⇓sb(true, wmask_all, HelpingOn.scopes mn)
-      (tau;; ⇓smod(true, sp) (HelpingOn.help mn jobs sp x))).
+      (tau;; ⇓smod(false, sp) (HelpingOn.help mn jobs sp x))).
 
   Definition yield : Any.t → itree lmodE Any.t := λ x,
     ⇓cris (⇓sb(false, wmask_and msk wmask_all, SchI.scopes)
@@ -155,7 +155,7 @@ Section Helping.
     intros WF.
     destruct (decide (fn = Helping.run mn)).
     { subst; left.
-      rewrite /LMod.prog /=; destruct (dec _ _); last clarify; ss.
+      rewrite /LMod.prog /= /run_s /run_t; destruct (dec _ _); last clarify; ss.
     }
     destruct (decide (fn = Helping.help mn)).
     { subst; right; left.
@@ -527,7 +527,7 @@ Section Helping.
     tau;;
     r <- ⇓cris (⇓sb(true, wmask_all, HelpingOff.scopes mn) (
       HoareCall_epilogue fspo x_fsp ()↑;;;
-      ⇓smod(true, sp) (𝒴;;; r <- Helping.trans (jobs j);; 𝒴;;; Ret r↑)
+      ⇓smod(false, sp) (𝒴;;; r <- Helping.trans (jobs j);; 𝒴;;; Ret r↑)
     ));;
     k r.
 
@@ -538,7 +538,7 @@ Section Helping.
     tau;;
     r <- ⇓cris (⇓sb(true, wmask_all, HelpingOff.scopes mn) (
       HoareCall_epilogue fspo x_fsp ()↑;;;
-      ⇓smod(true, sp) (𝒴;;; r <- HelpingOn.try_run mn jobs tid_stid_cur;; 𝒴;;; Ret r↑)
+      ⇓smod(false, sp) (𝒴;;; r <- HelpingOn.try_run mn jobs tid_stid_cur;; 𝒴;;; Ret r↑)
     ));; (k r).
 
   Inductive help_rel : itree lmodE Any.t → itree lmodE Any.t → option (nat * (option retID * jobID)) → Prop :=
@@ -554,12 +554,12 @@ Section Helping.
       itr_t = (tau;;
         x_ <- ⇓cris(⇓sb(true, wmask_all, HelpingOn.scopes mn)
           (x_2 <- HoareCall_epilogue (sp SchHdr.yield) x (()↑);;
-          ⇓smod(true, sp) (Ret x_2;;; 𝒴;;; Ret (ret))));;
+          ⇓smod(false, sp) (Ret x_2;;; 𝒴;;; Ret (ret))));;
         ktr_t x_) →
       itr_s = (tau;;
         x_ <- ⇓cris(⇓sb(true, wmask_all, HelpingOn.scopes mn)
           (x_2 <- HoareCall_epilogue (sp SchHdr.yield) x (()↑);;
-          ⇓smod(true, sp) (Ret x_2;;; 𝒴;;; Ret (ret))));;
+          ⇓smod(false, sp) (Ret x_2;;; 𝒴;;; Ret (ret))));;
         ktr_s x_) →
       (∀ ret, help_rel (ktr_s ret) (ktr_t ret) None) →
       help_rel itr_s itr_t None
@@ -568,7 +568,7 @@ Section Helping.
       itr_s = (tau;;
         x_ <- ⇓cris(⇓sb(true, wmask_all, HelpingOn.scopes mn)
           (x_2 <- HoareCall_epilogue (sp SchHdr.yield) x (()↑);;
-          ⇓smod(true, sp) (Ret x_2;;; 𝒴;;; Ret (ret↑))));;
+          ⇓smod(false, sp) (Ret x_2;;; 𝒴;;; Ret (ret↑))));;
         k_s x_) →
       (∀ ret, help_rel (k_s ret) (k_t ret) None) →
       help_rel itr_s itr_t (Some (tid, (Some ret, jid)))
@@ -609,7 +609,7 @@ Section Helping.
       help_rel itr_s itr_t None.
 
   Lemma gsim_Yield_tgt r g RR p_s p_t tid_s tid_t tp_s tp_t
-      img_c msk_c scp_c k_s k_t (k_s1 k_t1 : Any.t → itree _ Any.t) ctx rs
+      img_c img_c' msk_c scp_c k_s k_t (k_s1 k_t1 : Any.t → itree _ Any.t) ctx rs
       (ths : list (nat * option SAny.t)) (tid_cur_s tid_cur_t : nat) st_ctx (res : Σ) reqs :
     ✓ res →
     tid_s < length tp_s →
@@ -618,7 +618,7 @@ Section Helping.
       (LModTr.interp_stateE Any.t
         (iterV (LModTr.handle_callE (prog_s ctx rs))
           (tid_s, <[tid_s :=
-            x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (⇓smod(img_c, sp)(𝒴;;; k_s)));;
+            x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (⇓smod(img_c', sp)(𝒴;;; k_s)));;
             k_s1 x]> tp_s))
         (Any.pair
           (ModTr.alist_encode ((SchI.v_ths, (ths ↑)) :: (SchI.v_tid, (tid_cur_s ↑)) :: st_ctx))
@@ -626,7 +626,7 @@ Section Helping.
       (LModTr.interp_stateE Any.t
         (iterV (LModTr.handle_callE (prog_t ctx rs))
           (tid_t, <[tid_t :=
-            x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (⇓smod(img_c, sp) k_t));; k_t1 x]> tp_t))
+            x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (⇓smod(img_c', sp) k_t));; k_t1 x]> tp_t))
         (Any.pair
           (ModTr.alist_encode ((HelpingOn.v_reqs mn, reqs)
           :: (SchI.v_ths, (ths ↑)) :: (SchI.v_tid, (tid_cur_t ↑)) :: st_ctx))
@@ -642,7 +642,7 @@ Section Helping.
                 (stidn_s, <[tid_s := tau;;
                   x_ <- ⇓cris (⇓sb(img_c, msk_c, scp_c)
                     (x_2 <- HoareCall_epilogue (sp SchHdr.yield) x (()↑);;
-                    (⇓smod(img_c, sp) (Ret x_2;;; 𝒴;;; k_s))));; k_s1 x_]> tp_s))
+                    (⇓smod(img_c', sp) (Ret x_2;;; 𝒴;;; k_s))));; k_s1 x_]> tp_s))
               (Any.pair
                 (ModTr.alist_encode ((SchI.v_ths, (ths ↑)) :: (SchI.v_tid, (mtidn_s ↑)) :: st_ctx))
                 (res1 ↑)))
@@ -651,7 +651,7 @@ Section Helping.
                 (stidn_t, <[tid_t := tau;;
                   x_ <- ⇓cris (⇓sb(img_c, msk_c, scp_c)
                     (x_2 <- HoareCall_epilogue (sp SchHdr.yield) x (()↑);;
-                    (⇓smod(img_c, sp) (Ret x_2;;; 𝒴;;; k_t))));; k_t1 x_]> tp_t))
+                    (⇓smod(img_c', sp) (Ret x_2;;; 𝒴;;; k_t))));; k_t1 x_]> tp_t))
               (Any.pair
                 (ModTr.alist_encode
                   ((HelpingOn.v_reqs mn, reqs)
@@ -661,7 +661,7 @@ Section Helping.
       (LModTr.interp_stateE Any.t
         (iterV (LModTr.handle_callE (prog_s ctx rs))
           (tid_s, <[tid_s :=
-            x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (⇓smod(img_c, sp)(𝒴;;; k_s)));;
+            x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (⇓smod(img_c', sp)(𝒴;;; k_s)));;
             k_s1 x]> tp_s))
         (Any.pair
           (ModTr.alist_encode ((SchI.v_ths, (ths ↑)) :: (SchI.v_tid, (tid_cur_s ↑)) :: st_ctx))
@@ -669,7 +669,7 @@ Section Helping.
       (LModTr.interp_stateE Any.t
         (iterV (LModTr.handle_callE (prog_t ctx rs))
           (tid_t, <[tid_t :=
-            x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (⇓smod(img_c, sp) (𝒴;;; k_t)));;
+            x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (⇓smod(img_c', sp) (𝒴;;; k_t)));;
             k_t1 x]> tp_t))
         (Any.pair
           (ModTr.alist_encode ((HelpingOn.v_reqs mn, reqs)
@@ -825,10 +825,10 @@ Section Helping.
     rewrite list_insert_insert. ired.
     rewrite ?interpV_ret. ired.
     eapply gpaco7_mon; first eapply Hk3; eauto.
-  (*SLOW*)Admitted.
+  (*SLOW*)Qed.
 
   Lemma gsim_Yield_both r g RR p_s p_t tid_s tid_t tp_s tp_t
-      img_c msk_c scp_c k_s k_t (k_s1 k_t1 : Any.t → itree _ Any.t) ctx rs
+      img_c img_c' msk_c scp_c k_s k_t (k_s1 k_t1 : Any.t → itree _ Any.t) ctx rs
       (ths : list (nat * option SAny.t)) (tid_cur_s tid_cur_t : nat) st_ctx (res : Σ) reqs :
     ✓ res →
     tid_s < length tp_s →
@@ -837,7 +837,7 @@ Section Helping.
       (LModTr.interp_stateE Any.t
         (iterV (LModTr.handle_callE (prog_s ctx rs))
           (tid_s, <[tid_s :=
-            x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (⇓smod(img_c, sp) k_s));; k_s1 x]>
+            x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (⇓smod(img_c', sp) k_s));; k_s1 x]>
             tp_s))
         (Any.pair
           (ModTr.alist_encode ((SchI.v_ths, (ths ↑)) :: (SchI.v_tid, (tid_cur_s ↑)) :: st_ctx))
@@ -845,7 +845,7 @@ Section Helping.
       (LModTr.interp_stateE Any.t
         (iterV (LModTr.handle_callE (prog_t ctx rs))
           (tid_t, <[tid_t :=
-            x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (⇓smod(img_c, sp) k_t));; k_t1 x]>
+            x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (⇓smod(img_c', sp) k_t));; k_t1 x]>
             tp_t))
         (Any.pair
           (ModTr.alist_encode ((HelpingOn.v_reqs mn, reqs)
@@ -862,7 +862,7 @@ Section Helping.
                 (stidn_s, <[tid_s := tau;;
                   x_ <- ⇓cris (⇓sb(img_c, msk_c, scp_c)
                     (x_2 <- HoareCall_epilogue (sp SchHdr.yield) x (()↑);;
-                    (⇓smod(img_c, sp) (Ret x_2;;; 𝒴;;; k_s))));; k_s1 x_]> tp_s))
+                    (⇓smod(img_c', sp) (Ret x_2;;; 𝒴;;; k_s))));; k_s1 x_]> tp_s))
               (Any.pair
                 (ModTr.alist_encode ((SchI.v_ths, (ths ↑)) :: (SchI.v_tid, (mtidn_s ↑)) :: st_ctx))
                 (res1 ↑)))
@@ -871,7 +871,7 @@ Section Helping.
                 (stidn_t, <[tid_t := tau;;
                   x_ <- ⇓cris (⇓sb(img_c, msk_c, scp_c)
                     (x_2 <- HoareCall_epilogue (sp SchHdr.yield) x (()↑);;
-                    (⇓smod(img_c, sp) (Ret x_2;;; 𝒴;;; k_t))));; k_t1 x_]> tp_t))
+                    (⇓smod(img_c', sp) (Ret x_2;;; 𝒴;;; k_t))));; k_t1 x_]> tp_t))
               (Any.pair
                 (ModTr.alist_encode
                   ((HelpingOn.v_reqs mn, reqs)
@@ -881,7 +881,7 @@ Section Helping.
       (LModTr.interp_stateE Any.t
         (iterV (LModTr.handle_callE (prog_s ctx rs))
           (tid_s, <[tid_s :=
-            x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (⇓smod(img_c, sp)(𝒴;;; k_s)));;
+            x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (⇓smod(img_c', sp)(𝒴;;; k_s)));;
             k_s1 x]> tp_s))
         (Any.pair
           (ModTr.alist_encode ((SchI.v_ths, (ths ↑)) :: (SchI.v_tid, (tid_cur_s ↑)) :: st_ctx))
@@ -889,7 +889,7 @@ Section Helping.
       (LModTr.interp_stateE Any.t
         (iterV (LModTr.handle_callE (prog_t ctx rs))
           (tid_t, <[tid_t :=
-            x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (⇓smod(img_c, sp) (𝒴;;; k_t)));;
+            x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (⇓smod(img_c', sp) (𝒴;;; k_t)));;
             k_t1 x]> tp_t))
         (Any.pair
           (ModTr.alist_encode ((HelpingOn.v_reqs mn, reqs)
@@ -1535,15 +1535,6 @@ Section Helping.
           esplits; eauto. { ss; destruct (dec _ _); clarify. }
           rewrite list_insert_insert.
 
-          (* set (tr := match _ with | Some _ => _ | _ => _ end).
-          set (retv :=
-            match reqmap !! rid with
-            | Some (Some retid, _) => retid
-            | _ => ()↑
-            end).
-          assert (Htr : tr = Ret retv); last rewrite Htr.
-          { subst retv. des_ifs; ss. } *)
-          
           destruct (reqmap !! rid) as [[[ret|]]|] eqn : Hridreqmap; cycle 1.
           { subst; clarify. }
           { ired. replace_r; [rewrite interpV_bind interpV_trigger //=|]; ired.
@@ -2121,7 +2112,6 @@ Section Helping.
           rewrite list_insert_insert; ss.
         }
         clear Harg.
-        (* gcofix CIH1. *)
         rewrite unfold_iterC; ired.
         rewrite {1 2}interpV_tau.
         eapply gsim_tau_src; [rewrite list_lookup_insert // length_fmap //|].
@@ -3047,5 +3037,5 @@ Section Helping.
       }
     }
   Unshelve. all: eauto.
-  (*SLOW*)Admitted.
+  (*SLOW*)Qed.
 End Helping.

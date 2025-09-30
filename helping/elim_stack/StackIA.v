@@ -124,7 +124,7 @@ Module StackIM. Section StackIM.
     iFrame "Hs◯ TID"; iSplit; eauto.
     { iSplit; eauto. iExists _; iSplit; eauto. iExists _, _; iSplit; eauto. }
     steps_l. step. iSplit; eauto.
-  (*SLOW*)Admitted.
+  (*SLOW*)Qed.
 
   Program Global Instance winv_sep_WP `{!crisG Γ Σ α β τ _S _I} E P :
     WP (winv (E, E) ∗ P) :=
@@ -397,7 +397,7 @@ Module StackIM. Section StackIM.
 
     case_decide; try by (iCombine "OfferTkn" "offer" gives %WF). ss.
   Unshelve. all: try exact 1%Qp.
-  (*SLOW*)Admitted.
+  (*SLOW*)Qed.
 
   Lemma pop_simF : ISim.sim_fun open StackM StackI init_cond IstFull (Some StackHdr.pop).
   Proof.
@@ -651,7 +651,7 @@ Module StackIM. Section StackIM.
     iIntros "_". steps_r. hss_r. steps_r. sch_yield_ir. steps_r.
 
     by_coind CIH. iFrame. done.
-  (*SLOW*)Admitted.
+  (*SLOW*)Qed.
 
   (* Construct ISim.t for summing up each simulation proofs *)
   Lemma sim : ISim.t open StackM StackI init_cond IstFull.
