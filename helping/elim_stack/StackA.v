@@ -154,6 +154,15 @@ End definitions.
 (* Temporary note : for this spec to make sense, pre/postconditions for atomic update should be
    able to depend on the choice of the metavariable of the private pre/postconditions.
    Thus, conventional Hoarefun is not usable for now. *)
+Definition atomic_body `{Σ : GRA} (fsp : fspecS) (body : metaS fsp → Any.t → itree crisE Any.t)
+    : Any.t → itree crisE Any.t :=
+  λ arg,
+    x <- trigger (Take (metaS fsp));;
+    trigger (Assume ((precondS fsp) x arg));;;
+    ret <- body x arg;;
+    trigger (Guarantee ((postcondS fsp) x ret));;;
+    Ret ret.
+
 Module StackM. Section StackM.
   Definition jobID : Type := nat * nat * (val * val * gname).
   Definition retID : Type := val.
@@ -174,31 +183,25 @@ Module StackM. Section StackM.
   Definition new_stack : list val → itree crisE val :=
     λ _, 𝒴;;; trigger (Choose val).
 
-  Definition push : list val → itree crisE val := λ arg,
-    x <- trigger (Take (meta (push_spec N)));;
-    trigger (Assume ((precond (push_spec N)) x arg↑ arg↑));;;
-    'vret : retID <- ccallU (Helping.run mn) x;;
-    trigger (Guarantee ((postcond (push_spec N)) x vret↑ vret↑));;;
-    Ret vret.
+  Definition push : Any.t → itree crisE Any.t :=
+    atomic_body (from_fspec (push_spec N)) (λ x arg, trigger (Call (Helping.run mn) x↑)).
 
-  Definition pop : list val → itree crisE val := λ arg,
-    x <- trigger (Take (meta (pop_spec N)));;
-    trigger (Assume ((precond (pop_spec N)) x arg↑ arg↑));;;
-    𝒴;;;
-    'b : _ <- trigger (Choose bool);;
-    (if b : bool then (ccallU (Helping.help mn) ()) else Ret ());;;
-    l <- trigger (Take (list (leibnizO val)));;
-    trigger (Assume (stack_content x.2.2 l));;;
-    trigger (Guarantee (stack_content x.2.2 (tail l)));;;
-    let vret := match l with | v :: _ => v | _ => Vundef end in
-    𝒴;;;
-    trigger (Guarantee ((postcond (pop_spec N)) x vret↑ vret↑));;;
-    Ret vret.
+  Definition pop : Any.t → itree crisE Any.t :=
+    atomic_body (from_fspec (pop_spec N))
+      (λ x _,
+        𝒴;;;
+        'b : _ <- trigger (Choose bool);;
+        (if b : bool then trigger (Call (Helping.help mn) ()↑) else Ret ()↑);;;
+        l <- trigger (Take (list (leibnizO val)));;
+        trigger (Assume (stack_content x.2.2 l));;;
+        trigger (Guarantee (stack_content x.2.2 (tail l)));;;
+        let vret := match l with | v :: _ => v | _ => Vundef end in
+        𝒴;;; Ret (vret↑)).
 
   Definition fnsems : fnsems_type :=
     [(Some StackHdr.new_stack, (true, wmask_all, scopes, (Some (new_stack_spec N), cfunU new_stack)));
-     (Some StackHdr.push,      (true, wmask_all, scopes, (None, cfunU push)));
-     (Some StackHdr.pop,       (true, wmask_all, scopes, (None, cfunU pop)))].
+     (Some StackHdr.push,      (true, wmask_all, scopes, (None, push)));
+     (Some StackHdr.pop,       (true, wmask_all, scopes, (None, pop)))].
 
   Program Definition Mod : SMod.t := {|
     SMod.scopes := scopes;
@@ -211,19 +214,47 @@ Module StackM. Section StackM.
   Definition t sp := Seal.sealing CRIS (SMod.to_mod sp Mod).
 End StackM. End StackM.
 
-(* Module StackA. Section StackA.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG, !memG, !stackG} (N : namespace).
+Module StackA. Section StackA.
+  Context `{!crisG Γ Σ α β τ _S _I, !concG, !newschG, !memG, !stackG jobID retID}.
+  Context (N : namespace).
+
   (* Module definitions *)
   Definition scopes : list string := [].
 
-  Definition new_stack : Any.t → itree crisE Any.t :=
-    λ arg, ret <- lat_img false (new_stack_spec N) 𝒴 fbody_trivial arg;; 𝒴;;; Ret ret.
+  Definition jobCode : jobID → itree Helping.pureE retID :=
+    λ '(_, _, (_, v, γs)),
+      l <- trigger (Take (list (leibnizO val)));;
+      trigger (Assume (stack_content γs l));;;
+      trigger (Guarantee (stack_content γs (v :: l)));;;
+      Ret Vundef.
+
+  Definition new_stack : list val → itree crisE val :=
+    λ _, 𝒴;;; trigger (Choose val).
+
   Definition push : Any.t → itree crisE Any.t :=
-    λ arg, ret <- lat_img true (push_spec N) 𝒴 fbody_trivial arg;; 𝒴;;; Ret ret.
+    atomic_body (from_fspec (push_spec N))
+      (λ '(_, _, (_, v, γs)) _,
+        𝒴;;;
+        l <- trigger (Take (list (leibnizO val)));;
+        trigger (Assume (stack_content γs l));;;
+        trigger (Guarantee (stack_content γs (v :: l)));;;
+        𝒴;;;
+        Ret Vundef↑).
+
+  Definition pop : Any.t → itree crisE Any.t :=
+    atomic_body (from_fspec (pop_spec N))
+      (λ '(_, _, (_, γs)) _,
+        𝒴;;;
+        l <- trigger (Take (list (leibnizO val)));;
+        trigger (Assume (stack_content γs l));;;
+        trigger (Guarantee (stack_content γs (tail l)));;;
+        let vret := match l with | v :: _ => v | _ => Vundef end in
+        𝒴;;; Ret (vret↑)).
 
   Definition fnsems : fnsems_type :=
-    [(Some StackHdr.new_stack, (true, wmask_all, scopes, (None, new_stack)));
-     (Some StackHdr.push,      (true, wmask_all, scopes, (None, push)))].
+    [(Some StackHdr.new_stack, (true, wmask_all, scopes, (Some (new_stack_spec N), cfunU new_stack)));
+     (Some StackHdr.push,      (true, wmask_all, scopes, (None, push)));
+     (Some StackHdr.pop,       (true, wmask_all, scopes, (None, pop)))].
 
   Program Definition Mod : SMod.t := {|
     SMod.scopes := scopes;
@@ -233,5 +264,5 @@ End StackM. End StackM.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition t := Seal.sealing CRIS (SMod.to_mod sp_none Mod).
-End StackA. End StackA. *)
+  Definition t sp := Seal.sealing CRIS (SMod.to_mod sp Mod).
+End StackA. End StackA.

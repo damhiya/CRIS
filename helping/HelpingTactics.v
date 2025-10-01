@@ -1,6 +1,6 @@
 Require Import CRIS.
 From CRIS.helping Require Import Header HelpingOn HelpingAux.
-Require Import SchHeader SchTactics.
+Require Import SchHeader SchTactics SchI SchA.
 From iris.algebra Require Import gmap_view.
 
 (* Resource algebra for the helping module *)
@@ -101,6 +101,12 @@ Section resource.
       apply gmap_view_frag_persist.
     }
   Qed.
+
+  Definition IstHelp (mn : string) : ist_type Σ :=
+    λ st_src st_tgt,
+      (∃ (reqmap_s : gmap nat (option retID * jobID)),
+        ⌜st_src = [(HelpingOn.v_reqs mn, reqmap_s↑)] ∧ st_tgt = []⌝ ∗
+        helping_auth 1 reqmap_s)%I.
 End resource.
 
 Section help.
@@ -122,12 +128,6 @@ Section help.
   (* Helping related context *)
   Context (jobs : jobID → itree Helping.pureE retID).
   Context (mn : string) (sp : sp_type).
-
-  Definition IstHelp (Ist : ist_type Σ) : ist_type Σ := λ st_src st_tgt,
-    (∃ (reqmap_s reqmap_t : gmap nat (option retID * jobID)),
-      ⌜st_src = [(HelpingOn.v_reqs mn, reqmap_s↑)] ∧
-       st_tgt = [(HelpingOn.v_reqs mn, reqmap_t↑)]⌝ ∗
-      helping_auth 1 reqmap_s)%I.
 
   (* Lemma IstHelp_split (q : Qp) :
     (q < 1)%Qp →

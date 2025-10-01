@@ -130,4 +130,23 @@ Module HelpingOn. Section HelpingOn.
 
   Definition t sp : Mod.t := Seal.sealing CRIS (SMod.to_mod sp (Mod sp)).
 End HelpingOn. End HelpingOn.
-  
+
+Module HelpingDummy. Section HelpingDummy.
+  Context `{!crisG Γ Σ α β τ _S _I, !concG}.
+  Context (mn : string).
+  Definition scopes := [mn].
+
+  Definition fnsems : alist (option string) (fnsem_type (option fspec * fbody)) :=
+    [(Some (Helping.run mn),  (true, wmask_all, scopes, (None, λ _, triggerNB)));
+     (Some (Helping.help mn), (true, wmask_all, scopes, (None, λ _, triggerNB)))].
+
+  Program Definition Mod : SMod.t := {|
+    SMod.scopes := scopes;
+    SMod.fnsems := fnsems;
+    SMod.initial_st := [];
+  |}.
+  Solve All Obligations with prove_scope.
+  Next Obligation. prove_nodup. Qed.
+
+  Definition t : Mod.t := Seal.sealing CRIS (SMod.to_mod sp_none Mod).
+End HelpingDummy. End HelpingDummy.

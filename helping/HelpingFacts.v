@@ -41,28 +41,27 @@ Section Helping.
     - eapply IHl; et. unfold strings_maxlen in *. ss. nia.
   Qed.
 
-  Lemma helping_on_wf {jobID retID} (jobs : jobID -> _) mn sp :
-    Mod.wf (HelpingOn.t (retID:=retID) mn jobs sp).
+  Lemma helping_dummy_wf mn : Mod.wf (HelpingDummy.t mn).
   Proof. unfold_mod. econs; ss; prove_nodup. Qed.
 
   (* imp : list of function names mI calls *)
-  Lemma helping_main (mA mM mI : Mod.t) (P1 P2 : iProp Σ) imp
-      {jobID retID} (jobs : jobID -> _) sp :
+  Lemma helping_main (mM : string → Mod.t) (mA mI m_aux : Mod.t) (P1 P2 : iProp Σ) imp
+      {jobID retID} (jobs : jobID -> _) (sp : string → sp_type) :
     (∀ mn msk,
       ((Helping.exports mn) ## imp →
       wmask_sub (wmask_list imp) msk →
       ctx_refines
-        (mM  ★ CFilter.filter msk SchI.t ★ (HelpingOn.t (retID:=retID) mn jobs sp), P1)
-        (CFilter.filter msk (mI ★ SchI.t) ★ (HelpingOn.t (retID:=retID) mn jobs sp), emp%I))) →
+        (mM mn ★ CFilter.filter msk (m_aux ★ SchI.t) ★ (HelpingOn.t (retID:=retID) mn jobs (sp mn)), P1)
+        (CFilter.filter msk (mI ★ m_aux ★ SchI.t) ★ HelpingDummy.t mn, emp%I))) →
     (∀ mn msk,
       ((Helping.exports mn) ## imp →
       wmask_sub (wmask_list imp) msk →
       ctx_refines
-        (mA ★ CFilter.filter msk SchI.t, P2)
-        (mM ★ CFilter.filter msk SchI.t ★ HelpingOff.t mn jobs sp, emp%I))) →
+        (mA    ★ CFilter.filter msk (m_aux ★ SchI.t), P2)
+        (mM mn ★ CFilter.filter msk (m_aux ★ SchI.t) ★ HelpingOff.t mn jobs (sp mn), emp%I))) →
     ctx_refines
-      (mA ★ SchI.t, (P1 ∗ P2)%I)
-      (mI ★ SchI.t, emp%I).
+      (mA ★ m_aux ★ SchI.t, (P1 ∗ P2)%I)
+      (mI ★ m_aux ★ SchI.t, emp%I).
   Proof.
     intros Hc1 Hc2 [ctx P]; s.
     ctxr_norm.
@@ -112,8 +111,8 @@ Section Helping.
     }
 
     etrans; cycle 1.
-    { eapply CFilter.intro_module with (mask := mask) (mc := HelpingOn.t mn jobs sp); et.
-      - eapply helping_on_wf.
+    { eapply CFilter.intro_module with (mask := mask) (mc := HelpingDummy.t mn); et.
+      - eapply helping_dummy_wf.
       - i. r. rewrite existsb_exists.
         esplits; try apply String.eqb_eq; eauto.
         do 2 (eapply in_or_app; right).
@@ -133,7 +132,7 @@ Section Helping.
       - unfold_mod; ss; ii; des; ss.
       - eapply List.NoDup_app.
         + unfold_mod; ss.
-        + unfold_mod; ss. rewrite /HelpingOn.scopes; econs; ss. econs; ss.
+        + unfold_mod; ss. econs; ss. econs; ss.
         + intros a Ha Ha2; eapply (long_name_notin _ a); cycle 1.
           * rewrite /wmask_list; eapply existsb_exists.
             esplits; [apply Ha|apply String.eqb_eq]; eauto.
@@ -147,7 +146,7 @@ Section Helping.
     etrans; cycle 1.
     {
       eapply ctxr_refines. ctxr_norm.
-      do 2 ctxr_rotate. do 2 ctxr_drop. erewrite <- CFilter.filter_app.
+      do 3 ctxr_rotate. do 2 ctxr_drop. erewrite <- ?CFilter.filter_app.
       ctxr_refl.
     }
 
@@ -160,14 +159,16 @@ Section Helping.
     etrans; cycle 1.
     {
       eapply ctxr_refines.
-      do 2 ctxr_drop. ctxr_swap.
+      do 2 ctxr_drop. rewrite CFilter.filter_app. ctxr_drop. ctxr_swap.
       eapply helping_onoff_correct; et.
     }
 
     etrans; cycle 1.
     {
       eapply ctxr_refines.
-      ctxr_drop. rewrite /mod_off. do 2 ctxr_rotate. ctxr_swap.
+      ctxr_drop. rewrite /mod_off. do 3 ctxr_rotate. ctxr_swap. ctxr_rotate; ctxr_swap.
+      do 3 ctxr_rotate. rewrite -?mod_add_assoc. rewrite (mod_add_assoc (mM _)).
+      erewrite <-CFilter.filter_app. rewrite mod_add_assoc.
       eapply Hc2; et.
     }
 
@@ -180,7 +181,7 @@ Section Helping.
     etrans; cycle 1.
     { eapply ctxr_refines. do 2 ctxr_rotate. ctxr_refl. }
 
-    erewrite <-!CFilter.filter_app.
+    erewrite <-!CFilter.filter_app. ctxr_norm.
     etrans; [|eapply CFilter.elim_filter]; cycle 1.
     {
       intros fn Hin; eapply existsb_exists.
@@ -196,4 +197,5 @@ Section Helping.
     eapply ctxr_cond_strengthen.
     iIntros "[[P1 P2] P]". iFrame.
   Qed.
+
 End Helping.  

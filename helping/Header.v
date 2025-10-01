@@ -1,4 +1,5 @@
 Require Import CRIS.
+Require Import SchHeader.
 
 Module Helping. Section Helping.
   Context `{Σ : GRA}.
@@ -58,3 +59,117 @@ Module Helping. Section Helping.
   Proof. rewrite /trans (bisim_is_eq (translate_ret _ _)) //. Qed.
   Definition exports := [run; help].
 End Helping. End Helping.
+
+Section names.
+  Context (mn : string).
+
+  Lemma get_tid_run_neq : SchHdr.get_tid ≠ Helping.run mn.
+  Proof.
+    rewrite /SchHdr.get_tid /Helping.run; destruct (decide (String.length mn = 7)) as [Hlen|];
+      cycle 1.
+    { assert (Hlen : String.length "Sch.get_tid" = 11) by ss.
+      intros Heq; rewrite Heq string_length_app in Hlen; ss; lia.
+    }
+    rewrite -get_correct; intros Hfalse; specialize (Hfalse (3 + String.length mn)).
+    rewrite -(append_correct2 _ _) Hlen in Hfalse; ss.
+  Qed.
+
+  Lemma get_tid_help_neq : SchHdr.get_tid ≠ Helping.help mn.
+  Proof.
+    rewrite /SchHdr.get_tid /Helping.help; destruct (decide (String.length mn = 6)) as [Hlen|];
+      cycle 1.
+    { assert (Hlen : String.length "Sch.get_tid" = 11) by ss.
+      intros Heq; rewrite Heq string_length_app in Hlen; ss; lia.
+    }
+    rewrite -get_correct; intros Hfalse; specialize (Hfalse (3 + String.length mn)).
+    rewrite -(append_correct2 _ _) Hlen in Hfalse; ss.
+  Qed.
+
+  Lemma yield_run_neq : SchHdr.yield ≠ Helping.run mn.
+  Proof.
+    rewrite /SchHdr.yield /Helping.run; destruct (decide (String.length mn = 5)) as [Hlen|];
+      cycle 1.
+    { assert (Hlen : String.length "Sch.yield" = 9) by ss.
+      intros Heq; rewrite Heq string_length_app in Hlen; ss; lia.
+    }
+    rewrite -get_correct; intros Hfalse; specialize (Hfalse (3 + String.length mn)).
+    rewrite -(append_correct2 _ _) Hlen in Hfalse; ss.
+  Qed.
+
+  Lemma yield_help_neq : SchHdr.yield ≠ Helping.help mn.
+  Proof.
+    rewrite /SchHdr.yield /Helping.help; destruct (decide (String.length mn = 4)) as [Hlen|];
+      cycle 1.
+    { assert (Hlen : String.length "Sch.yield" = 9) by ss.
+      intros Heq; rewrite Heq string_length_app in Hlen; ss; lia.
+    }
+    rewrite -get_correct; intros Hfalse; specialize (Hfalse (0 + String.length mn)).
+    rewrite -(append_correct2 _ _) Hlen in Hfalse; ss.
+  Qed.
+
+  Lemma join_run_neq : SchHdr.join ≠ Helping.run mn.
+  Proof.
+    rewrite /SchHdr.join /Helping.run; destruct (decide (String.length mn = 4)) as [Hlen|];
+      cycle 1.
+    { assert (Hlen : String.length "Sch.join" = 8) by ss.
+      intros Heq; rewrite Heq string_length_app in Hlen; ss; lia.
+    }
+    rewrite -get_correct; intros Hfalse; specialize (Hfalse (1 + String.length mn)).
+    rewrite -(append_correct2 _ _) Hlen in Hfalse; ss.
+  Qed.
+
+  Lemma join_help_neq : SchHdr.join ≠ Helping.help mn.
+  Proof.
+    rewrite /SchHdr.join /Helping.help; destruct (decide (String.length mn = 3)) as [Hlen|];
+      cycle 1.
+    { assert (Hlen : String.length "Sch.join" = 8) by ss.
+      intros Heq; rewrite Heq string_length_app in Hlen; ss; lia.
+    }
+    rewrite -get_correct; intros Hfalse; specialize (Hfalse (1 + String.length mn)).
+    rewrite -(append_correct2 _ _) Hlen in Hfalse; ss.
+  Qed.
+
+  Lemma spawn_run_neq : SchHdr.spawn ≠ Helping.run mn.
+  Proof.
+    rewrite /SchHdr.spawn /Helping.run; destruct (decide (String.length mn = 5)) as [Hlen|];
+      cycle 1.
+    { assert (Hlen : String.length "Sch.spawn" = 9) by ss.
+      intros Heq; rewrite Heq string_length_app in Hlen; ss; lia.
+    }
+    rewrite -get_correct; intros Hfalse; specialize (Hfalse (2 + String.length mn)).
+    rewrite -(append_correct2 _ _) Hlen in Hfalse; ss.
+  Qed.
+
+  Lemma spawn_help_neq : SchHdr.spawn ≠ Helping.help mn.
+  Proof.
+    rewrite /SchHdr.spawn /Helping.help; destruct (decide (String.length mn = 4)) as [Hlen|];
+      cycle 1.
+    { assert (Hlen : String.length "Sch.spawn" = 9) by ss.
+      intros Heq; rewrite Heq string_length_app in Hlen; ss; lia.
+    }
+    rewrite -get_correct; intros Hfalse; specialize (Hfalse (0 + String.length mn)).
+    rewrite -(append_correct2 _ _) Hlen in Hfalse; ss.
+  Qed.
+
+  Lemma _spawn_run_neq : SchHdr._spawn ≠ Helping.run mn.
+  Proof.
+    rewrite /SchHdr._spawn /Helping.run; destruct (decide (String.length mn = 6)) as [Hlen|];
+      cycle 1.
+    { assert (Hlen : String.length "Sch._spawn" = 10) by ss.
+      intros Heq; rewrite Heq string_length_app in Hlen; ss; lia.
+    }
+    rewrite -get_correct; intros Hfalse; specialize (Hfalse (1 + String.length mn)).
+    rewrite -(append_correct2 _ _) Hlen in Hfalse; ss.
+  Qed.
+
+  Lemma _spawn_help_neq : SchHdr._spawn ≠ Helping.help mn.
+  Proof.
+    rewrite /SchHdr._spawn /Helping.help; destruct (decide (String.length mn = 5)) as [Hlen|];
+      cycle 1.
+    { assert (Hlen : String.length "Sch._spawn" = 10) by ss.
+      intros Heq; rewrite Heq string_length_app in Hlen; ss; lia.
+    }
+    rewrite -get_correct; intros Hfalse; specialize (Hfalse (1 + String.length mn)).
+    rewrite -(append_correct2 _ _) Hlen in Hfalse; ss.
+  Qed.
+End names.

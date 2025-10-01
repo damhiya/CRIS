@@ -19,7 +19,7 @@ Section Helping.
   Definition mod_off := (HelpingOff.t mn jobs sp) ★ (CFilter.filter msk SchI.t).
 
   Lemma get_tid_run_neq : SchHdr.get_tid ≠ Helping.run mn.
-  Proof.
+  Proof using.
     rewrite /SchHdr.get_tid /Helping.run; destruct (decide (String.length mn = 7)) as [Hlen|];
       cycle 1.
     { assert (Hlen : String.length "Sch.get_tid" = 11) by ss.
@@ -30,7 +30,7 @@ Section Helping.
   Qed.
 
   Lemma get_tid_help_neq : SchHdr.get_tid ≠ Helping.help mn.
-  Proof.
+  Proof using.
     rewrite /SchHdr.get_tid /Helping.help; destruct (decide (String.length mn = 6)) as [Hlen|];
       cycle 1.
     { assert (Hlen : String.length "Sch.get_tid" = 11) by ss.
@@ -41,7 +41,7 @@ Section Helping.
   Qed.
 
   Lemma yield_run_neq : SchHdr.yield ≠ Helping.run mn.
-  Proof.
+  Proof using.
     rewrite /SchHdr.yield /Helping.run; destruct (decide (String.length mn = 5)) as [Hlen|];
       cycle 1.
     { assert (Hlen : String.length "Sch.yield" = 9) by ss.
@@ -52,7 +52,7 @@ Section Helping.
   Qed.
 
   Lemma yield_help_neq : SchHdr.yield ≠ Helping.help mn.
-  Proof.
+  Proof using.
     rewrite /SchHdr.yield /Helping.help; destruct (decide (String.length mn = 4)) as [Hlen|];
       cycle 1.
     { assert (Hlen : String.length "Sch.yield" = 9) by ss.
@@ -63,7 +63,7 @@ Section Helping.
   Qed.
 
   Lemma join_run_neq : SchHdr.join ≠ Helping.run mn.
-  Proof.
+  Proof using.
     rewrite /SchHdr.join /Helping.run; destruct (decide (String.length mn = 4)) as [Hlen|];
       cycle 1.
     { assert (Hlen : String.length "Sch.join" = 8) by ss.
@@ -74,7 +74,7 @@ Section Helping.
   Qed.
 
   Lemma join_help_neq : SchHdr.join ≠ Helping.help mn.
-  Proof.
+  Proof using.
     rewrite /SchHdr.join /Helping.help; destruct (decide (String.length mn = 3)) as [Hlen|];
       cycle 1.
     { assert (Hlen : String.length "Sch.join" = 8) by ss.
@@ -127,7 +127,7 @@ Section Helping.
     fn ≠ Helping.run mn →
     fn ≠ Helping.help mn →
     prog_s ctx rs fn = prog_t ctx rs fn.
-  Proof.
+  Proof using.
     intros ??.
     rewrite /LMod.prog /=;
     repeat (
@@ -151,7 +151,7 @@ Section Helping.
      ∃ itr_ctx img1 msk1 scp1, (prog_s ctx rs fn =
       Some (λ x, ⇓cris (⇓sb(img1, msk1, scp1) (itr_ctx x))) ∧
       (scp1 ## (SchI.scopes ++ HelpingOff.scopes mn)))))).
-  Proof.
+  Proof using.
     intros WF.
     destruct (decide (fn = Helping.run mn)).
     { subst; left.
@@ -225,7 +225,7 @@ Section Helping.
       prog_s ctx rs fn =
         Some (λ x, ⇓cris (⇓sb(img1, msk1, scp1) (itr_ctx x))) ∧
         (scp1 ## (SchI.scopes ++ HelpingOff.scopes mn))).
-  Proof.
+  Proof using.
     intros ? NIN; hexploit (prog_fn fn ctx rs); eauto; intros CASE.
     revert NIN; rewrite /HelpingOn.t /SchI.t; unseal CRIS; ss.
     destruct CASE as [[-> ?]|CASE]; first set_solver.
@@ -244,7 +244,7 @@ Section Helping.
     (prog_t ctx rs fn = Some itr ∨
      (fn = Helping.run mn ∧ itr = run_s ∧ prog_t ctx rs fn = Some run_t) ∨
      (fn = Helping.help mn ∧ itr = help_s ∧ prog_t ctx rs fn = Some help_t)).
-  Proof.
+  Proof using.
     intros ? Hs; hexploit (prog_fn fn ctx rs); eauto.
     i; des; clarify; eauto; left; rewrite -H4 //.
   Qed.
@@ -257,7 +257,7 @@ Section Helping.
     | Some false => Sch.yield
     | Some true => trigger (Call SchHdr.yield tt↑);;; Sch.yield
     end.
-  Proof.
+  Proof using.
     rewrite {1}/Sch.yield; unseal SCH; rewrite unfold_iterC.
     repeat f_equal. ired. repeat f_equal. extensionalities b. destruct b as [[|]|]; ss.
     { ired. f_equal. extensionalities x. rewrite /Sch.yield; unseal SCH; ss. }
@@ -278,7 +278,7 @@ Section Helping.
     tl !! stid = Some (es0, r) →
     reqmap_rel tl reqmap →
     reqmap_rel (<[stid:=(es1, r)]> tl) reqmap.
-  Proof.
+  Proof using.
     intros [tl1 [tl2 [-> Hlen]]]%elem_of_list_split_length.
     rewrite -(Nat.add_0_r stid); subst stid; rewrite /reqmap_rel insert_app_r ?fmap_app; cbn.
     rewrite ?omap_app ?fmap_app; cbn; destruct r; eauto.
@@ -288,7 +288,7 @@ Section Helping.
     tl !! stid = Some (es, Some (rid, (b, jid))) →
     reqmap_rel tl reqmap →
     reqmap !! rid = Some (b, jid).
-  Proof.
+  Proof using.
     rewrite /reqmap_rel; intros Hin [Hnodup [Hrel1 Hrel2]].
     apply (Hrel1 stid rid jid b). rewrite list_lookup_fmap Hin; eauto.
   Qed.
@@ -297,7 +297,7 @@ Section Helping.
     reqmap_rel tl reqmap →
     reqmap !! rid = Some (None, jid) →
     ∃ stid i_s i_t, tl !! stid = Some (i_s, i_t, Some (rid, (None, jid))).
-  Proof.
+  Proof using.
     rewrite /reqmap_rel; intros [? [? Hsome]] [stid Hstid]%Hsome; exists stid.
     apply list_lookup_fmap_inv in Hstid as [[[? ?] [[? [? ?]]|]] [? ?]]; ss.
     clarify; esplits; eauto.
@@ -307,7 +307,7 @@ Section Helping.
     tl !! stid = Some (es0, Some (rid, (None, jid))) →
     reqmap_rel tl reqmap →
     reqmap_rel (<[stid := (es1, None)]> tl) (<[rid := (Some ret, jid)]> reqmap).
-  Proof.
+  Proof using.
     intros Hin [Hnodup [Hrel1 Hrel2]]; eapply lookup_lt_Some in Hin as Hlen; split.
     { revert Hin; intros [tl1 [tl2 [-> ?]]]%elem_of_list_split_length.
       rewrite -(Nat.add_0_r stid); subst stid; rewrite /reqmap_rel insert_app_r ?fmap_app; cbn.
@@ -350,7 +350,7 @@ Section Helping.
     tl !! stid = Some (es0, Some (rid, (None, jid))) →
     reqmap_rel tl reqmap →
     reqmap_rel (<[stid := (es1, Some (rid, (Some ret, jid)))]> tl) (<[rid := (Some ret, jid)]> reqmap).
-  Proof.
+  Proof using.
     intros Hin [Hnodup [Hrel1 Hrel2]]; eapply lookup_lt_Some in Hin as Hlen; split.
     { revert Hin; intros [tl1 [tl2 [-> ?]]]%elem_of_list_split_length.
       rewrite -(Nat.add_0_r stid); subst stid; rewrite /reqmap_rel insert_app_r ?fmap_app; cbn.
@@ -391,7 +391,7 @@ Section Helping.
     tl !! stid = Some (es0, Some (rid, (Some ret, jid))) →
     reqmap_rel tl reqmap →
     reqmap_rel (<[stid := (es1, None)]> tl) (reqmap).
-  Proof.
+  Proof using.
     intros Hin [Hnodup [Hrel1 Hrel2]].
     split.
     { revert Hin; intros [tl1 [tl2 [-> Hlen]]]%elem_of_list_split_length.
@@ -418,7 +418,7 @@ Section Helping.
     rid ∉ (dom reqmap) →
     reqmap_rel tl reqmap →
     reqmap_rel tl (<[rid:=(Some ret, jid)]> reqmap).
-  Proof.
+  Proof using.
     intros Hrid [? [Hrel1 Hrel2]]; split; first done.
     split.
     { intros ???? Hstid%Hrel1.
@@ -435,7 +435,7 @@ Section Helping.
     tl !! stid = Some (es0, None) →
     reqmap_rel tl reqmap →
     reqmap_rel (<[stid:=(es1, Some (rid, (None, jid)))]> tl) (<[rid:=(None, jid)]> reqmap).
-  Proof.
+  Proof using Σ mn msk jobs.
     intros Hrid Hin [Hnodup [Hrel1 Hrel2]]; eapply lookup_lt_Some in Hin as Hlen; split.
     { rewrite insert_take_drop //.
       rewrite ?fmap_app ?omap_app ?fmap_app; cbn.
@@ -474,7 +474,7 @@ Section Helping.
   Lemma reqmap_rel_append tl reqmap es :
     reqmap_rel tl reqmap →
     reqmap_rel (tl ++ [(es, None)]) reqmap.
-  Proof.
+  Proof using.
     rewrite /reqmap_rel ?fmap_app ?omap_app ?fmap_app app_nil_r; cbn.
     intros [? [Hrel1 Hrel2]]; split; first done.
     split.
@@ -675,7 +675,7 @@ Section Helping.
           (ModTr.alist_encode ((HelpingOn.v_reqs mn, reqs)
           :: (SchI.v_ths, (ths ↑)) :: (SchI.v_tid, (tid_cur_t ↑)) :: st_ctx))
           (res↑))).
-  Proof.
+  Proof using.
     intros Hres Hlen_s Hlen_t Hk1 Hk2; revert Hk1; rewrite yield_unfold; ired.
     revert res Hres.
     gcofix CIH.
@@ -895,7 +895,7 @@ Section Helping.
           (ModTr.alist_encode ((HelpingOn.v_reqs mn, reqs)
           :: (SchI.v_ths, (ths ↑)) :: (SchI.v_tid, (tid_cur_t ↑)) :: st_ctx))
           (res↑))).
-  Proof.
+  Proof using.
     intros Hres Hlen_s Hlen_t Hk1 Hk2.
     eapply gsim_Yield_tgt; eauto.
     rewrite {1}yield_unfold. ired.
@@ -911,7 +911,7 @@ Section Helping.
 
   Theorem helping_onoff_correct :
     ctx_refines (mod_off, emp%I) (mod_on, emp%I).
-  Proof.
+  Proof using.
     rewrite /mod_off /mod_on.
     intros [ctx ctxP] WF; ss; split.
     { inv WF. econs.

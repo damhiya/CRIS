@@ -3,7 +3,7 @@ Require Import ImpPrelude.
 Require Import MemTactics MemA.
 Require Import SchHeader SchI SchA SchTactics.
 Require Import StackHeader StackA StackI.
-From CRIS.helping Require Import Header HelpingOn HelpingOnOffproof HelpingTactics.
+From CRIS.helping Require Import Header HelpingOn HelpingOnOffproof HelpingTactics HelpingFacts.
 
 (* TEMP *)
 From iris.algebra Require Import gmap_view.
@@ -63,19 +63,14 @@ Module StackIM. Section StackIM.
 
   Definition init_cond : iProp Σ := helping_auth 1 ∅%I.
 
-  Local Definition MemA := MemA.t.
+  Local Definition MemA := CFilter.filter msk MemA.t.
   Local Definition SchI := CFilter.filter msk SchI.t.
   Local Definition HelpingOn := HelpingOn.t mn StackM.jobCode sp.
-  Local Definition StackM := (StackM.t mn N sp ★ MemA)            ★ SchI ★ HelpingOn.
-  Local Definition StackI := CFilter.filter msk (StackI.t ★ MemA) ★ SchI ★ HelpingOn.
+  Local Definition HelpingDummy := HelpingDummy.t mn.
+  Local Definition StackM := SchI ★ MemA ★ StackM.t mn N sp            ★ HelpingOn.
+  Local Definition StackI := SchI ★ MemA ★ CFilter.filter msk StackI.t ★ HelpingDummy.
 
-  Definition IstHelp : ist_type Σ := λ st_src st_tgt,
-    (∃ (reqmap_s reqmap_t : gmap nat (option retID * jobID)),
-      ⌜st_src = [(HelpingOn.v_reqs mn, reqmap_s↑)] ∧
-       st_tgt = [(HelpingOn.v_reqs mn, reqmap_t↑)]⌝ ∗
-      helping_auth 1 reqmap_s)%I.
-
-  Local Definition IstFull := IstProd (IstSB (Mod.scopes StackM) IstTrue) IstHelp.
+  Local Definition IstFull := IstProd IstEq (IstSB [mn] (IstHelp mn)).
 
   Lemma new_stack_simF :
     ISim.sim_fun open StackM StackI init_cond IstFull (Some StackHdr.new_stack).
@@ -139,26 +134,25 @@ Module StackIM. Section StackIM.
     destruct Hsphelp as [Hfind2 Hfind]; rewrite (Hfind (Helping.run mn) None) //; cycle 1.
     { rewrite /alist_find eq_rel_dec_correct /=; des_ifs. }
     clear Hfind Hfind2.
-    rename _q into args, _q3 into stid, _q4 into mtid, _q6 into γs, _q7 into s, _q8 into v.
+    rename _q2 into stid, _q3 into mtid, _q5 into γs, _q6 into s, _q7 into v.
     iDestruct "ASM" as "[TID [[% #[%stackb [%stackofs [-> Hinv]]]] _]]"; hss.
 
     (* Register for helping *)
     steps_r. norm_l.
-
     (* TODO : factor out this proof into a lemma *)
     inline_l. steps_l. hss.
-    iDestruct "IST" as "[% [% [% [% [[-> ->] [IST [% [% [[-> ->] Help●]]]]]]]]]". steps_l. hss.
+    iDestruct "IST" as "[% [% [% [% [[-> ->] [-> [% [% [[-> ->] ●Help]]]]]]]]]". steps_l. hss.
     rename _q into reqmap_s.
-    iMod (own_update with "Help●") as "[Help● Help◯]".
+    iMod (own_update with "●Help") as "[●Help Help◯]".
     { eapply (gmap_view_alloc _ (fresh (dom reqmap_s)) (DfracOwn 1)); eauto.
       { apply not_elem_of_dom. rewrite dom_fmap. apply is_fresh. }
       { rewrite dfrac_valid; eauto. }
       { instantiate (1:=(to_agree (None, _))); ss. }
     }
-    set (st_src := st_srcL ++ _). set (st_tgt := st_tgtL ++ _).
-    iAssert (IstFull st_src st_tgt)%I with "[IST Help●]" as "IST".
-    { iFrame. subst st_src. ss. iExists _, _; iSplit; first done.
-      rewrite -fmap_insert //. iExists _, _; iFrame; done.
+    set (st_src := st_tgtL ++ _). set (st_tgt := st_tgtL ++ _).
+    iAssert (IstFull st_src st_tgt)%I with "[●Help]" as "IST".
+    { iExists _, _, _, _; subst st_src st_tgt; repeat iSplit; eauto.
+      rewrite -fmap_insert //. iFrame; done.
     }
     iAssert (helping_token (fresh (dom _)) _)%I with "Help◯" as "Tkn".
     generalize (fresh (dom reqmap_s)) as req_id; intros req_id.
@@ -216,8 +210,9 @@ Module StackIM. Section StackIM.
     rewrite SLRed_red.
     iDestruct "Hstack" as "[[%stack_rep' [%offer_rep' [%l' [Hs [H↦ [Hlist Hoffer]]]]]]|[% ●]]";
       cycle 1.
-    { iExFalso. iDestruct "IST" as "[% [% [% [% [% [? [% [% [IST ●2]]]]]]]]]".
-      iCombine "●" "●2" gives %[WF _]%gmap_view_auth_dfrac_op_valid. ss.
+    { iExFalso.
+      iDestruct "IST" as "[% [% [% [% [[-> ->] [-> [% [% [[-> ->] ●Help]]]]]]]]]".
+      iCombine "●" "●Help" gives %[WF _]%gmap_view_auth_dfrac_op_valid. ss.
     }
     iPoseProof (list_inv_comparable with "Hlist") as "[Hlist [Hval2 _]]".
     iPoseProof ("Hcomp" with "Hlist") as "[%succ %Hcomp]".
@@ -236,8 +231,8 @@ Module StackIM. Section StackIM.
          helps from other threads), the pusher does its own job *)
       sch_yield_l. norm_l.
       rewrite /HelpingOn.try_run.
-      iDestruct "IST" as "[% [% [% [% [[-> ->] [IST [% [% [[-> ->] Help●]]]]]]]]]". steps_l. hss.
-      iPoseProof (helping_auth_token with "Help● Help") as "%Hlookup"; rewrite Hlookup /=.
+      iDestruct "IST" as "[% [% [% [% [[-> ->] [IST [% [% [[-> ->] ●Help]]]]]]]]]". steps_l. hss.
+      iPoseProof (helping_auth_token with "●Help Help") as "%Hlookup"; rewrite Hlookup /=.
       rewrite Helping.trans_take. steps_l. clear l; rename _q0 into l.
       rewrite Helping.trans_Assume. steps_l.
       iCombine "Hs ASM" gives
@@ -255,10 +250,10 @@ Module StackIM. Section StackIM.
         simpl_bool; des; do 2 destruct (dec _ _); clarify.
       }
       (* restoring IST *)
-      iMod (helping_auth_commit with "Help● Help") as "[Help● Help◯]".
-      clear st_src st_tgt. set (st_src := st_srcL0 ++ _); set (st_tgt := st_tgtL0 ++ _).
-      iAssert (IstFull st_src st_tgt)%I with "[IST Help●]" as "IST".
-      { iExists _, _, _, _; iFrame "Help●". iSplit; eauto. }
+      iMod (helping_auth_commit with "●Help Help") as "[●Help Help◯]".
+      clear st_src st_tgt. set (st_src := st_srcL ++ _); set (st_tgt := st_tgtL0 ++ _).
+      iAssert (IstFull st_src st_tgt)%I with "[IST ●Help]" as "IST".
+      { iExists _, _, _, _; iFrame "●Help". iSplit; eauto. }
 
       (* comparison *)
       sch_yield_ir. clear st_src st_tgt. steps_r.
@@ -387,10 +382,10 @@ Module StackIM. Section StackIM.
 
       sch_yield_l.
       rewrite /HelpingOn.try_run /=. steps_l.
-      iDestruct "IST" as "[% [% [% [% [[-> ->] [? [% [% [[-> ->] Help●]]]]]]]]]".
+      iDestruct "IST" as "[% [% [% [% [[-> ->] [? [% [% [[-> ->] ●Help]]]]]]]]]".
       steps_l. hss.
 
-      iPoseProof (helping_auth_done with "Help● offer") as "[% %Heq]"; rewrite Heq; clear Heq.
+      iPoseProof (helping_auth_done with "●Help offer") as "[% %Heq]"; rewrite Heq; clear Heq.
       steps_l. sch_yield_l. steps_l. force_l. hss. iFrame. iSplit; eauto.
       step. iFrame. iSplit; eauto.
     }
@@ -403,7 +398,7 @@ Module StackIM. Section StackIM.
   Proof using Hsch Hmsk Hspsch Hsphelp.
     init_simF.
     steps_l. iDestruct "ASM" as "[TID [[% #[%stackb [%stackofs [-> Hinv]]]] _]]". hss.
-    rename _q3 into stid, _q4 into mtid, _q6 into γs.
+    rename _q2 into stid, _q3 into mtid, _q5 into γs.
     steps_r.
 
     (* Coinduction starts here *)
@@ -567,9 +562,9 @@ Module StackIM. Section StackIM.
 
       (* Help *)
       sch_yield_l. force_l true. steps_l.
-      iDestruct "IST" as "[% [% [% [% [[-> ->] [IST [% [% [[-> ->] Help●]]]]]]]]]".
-      iPoseProof (helping_auth_token with "Help● offer") as "%Hreq".
-      iMod (helping_auth_commit with "Help● offer") as "[●offer #◯offer]".
+      iDestruct "IST" as "[% [% [% [% [[-> ->] [IST [% [% [[-> ->] ●Help]]]]]]]]]".
+      iPoseProof (helping_auth_token with "●Help offer") as "%Hreq".
+      iMod (helping_auth_commit with "●Help offer") as "[●offer #◯offer]".
       iMod ("close" with "[offer↦ ◯offer]") as "_".
       { iExists 1; iFrame; case_decide; ss. }
       destruct Hsphelp as [Hfind2 Hfind]; rewrite (Hfind (Helping.help mn) None) //; cycle 1.
@@ -656,15 +651,188 @@ Module StackIM. Section StackIM.
   (* Construct ISim.t for summing up each simulation proofs *)
   Lemma sim : ISim.t open StackM StackI init_cond IstFull.
   Proof.
-    rewrite /StackM /StackI.
-    init_sim.
-    { i; try rewrite /Mod.scopes; s; (hrepeat do 1 unfold_mod); s. apply sub_perm_refl. }
-    { split; first done.
-      iIntros "I"; iExists _, _, [_], [_]; iFrame.
-      admit.
+    rewrite /StackM /StackI -mod_add_assoc -(mod_add_assoc SchI).
+    eapply ISim_reflL.
+    { hrepeat do 1 unfold_mod; ss. }
+    { try prove_sub_perm. }
+    { try prove_sub_perm. }
+    { r; (hrepeat do 1 unfold_mod; s); i; ss. split; ss.
+      iIntros "I"; iSplit; first (ss; iPureIntro; split; try refl; try apply incl_nil_l).
+      iFrame. iSplit; eauto.
     }
-    { apply new_stack_simF. }
-    { apply push_simF. }
-    { apply pop_simF. }
-  Admitted.
+    { rewrite ?mod_add_assoc.
+      try unfold_mod_fn; i; des; subst; ss.
+      { apply new_stack_simF. }
+      { apply push_simF. }
+      { apply pop_simF. }
+      { rewrite /HelpingOn in H1; revert H1.
+        do 2 unfold_mod; ss; i; des; clarify.
+        { init_simF; steps_r; ss. }
+        { init_simF; steps_r; ss. }
+      }
+    }
+  Qed.
 End StackIM. End StackIM.
+
+Module StackIA. Section StackIA.
+  Context `{!crisG Γ Σ α β τ _S _I, !memG, !newschG, !concG, !stackG StackM.jobID StackM.retID}.
+
+  Definition sp_m N mn : sp_type :=
+    to_sp (SchA.sp [] (↑N) ++ [(Some (Helping.run mn), None); (Some (Helping.help mn), None)]).
+
+  Lemma ctxr (N : namespace) (sp : sp_type) :
+    sp_incl (SchA.sp [] (↑N)) sp →
+    ctx_refines
+      (StackA.t N sp ★ MemA.t ★ SchI.t , StackIM.init_cond)
+      (StackI.t      ★ MemA.t ★ SchI.t, emp%I).
+  Proof.
+    intros Hsp.
+    etrans; first eapply ctxr_cond_strengthen.
+    { instantiate (1:=(_ ∗ emp)%I); iIntros "H"; iSplitL; last done; iExact "H". }
+    eapply helping_main with
+      (imp:=StackIM.imp) (mM:=λ mn, StackM.t mn N (sp_m N mn)).
+    { intros mn msk Hmn Hmsk.
+      rewrite ?CFilter.filter_app ?mod_add_assoc.
+      ctxr_swap. ctxr_rotate. ctxr_swap. do 3 ctxr_rotate. ctxr_swap.
+      etrans; cycle 1.
+      { eapply main_adequacy, StackIM.sim with (mn:=mn) (msk:=msk) (N:=N); cycle 3.
+        { instantiate (1:=(sp_m N mn)).
+          rewrite /sp_m /to_sp /SchA.sp; unseal CRIS; split; first prove_nodup.
+          intros ??; rewrite /alist_find ?eq_rel_dec_correct; des_ifs; i; clarify.
+        }
+        { rewrite /sp_m /to_sp /SchA.sp; unseal CRIS; split; first prove_nodup.
+          intros ?? [?|[?|?]%in_inv]%alist_find_some%in_inv; clarify.
+          { rewrite /alist_find /=; destruct (dec _ _); ss; clarify; eauto.
+            { exfalso; eapply _spawn_run_neq; eauto. }
+            destruct (dec _ _); ss; clarify; eauto.
+            { exfalso; eapply spawn_run_neq; eauto. }
+            destruct (dec _ _); ss; clarify; eauto.
+            { exfalso; eapply yield_run_neq; eauto. }
+            destruct (dec _ _); ss; clarify; eauto.
+            { exfalso; eapply join_run_neq; eauto. }
+            destruct (dec _ _); ss; clarify; eauto.
+            { exfalso; eapply get_tid_run_neq; eauto. }
+            destruct (dec _ _); ss.
+          }
+          { rewrite /alist_find /=; destruct (dec _ _); ss; clarify; eauto.
+            { exfalso; eapply _spawn_help_neq; eauto. }
+            destruct (dec _ _); ss; clarify; eauto.
+            { exfalso; eapply spawn_help_neq; eauto. }
+            destruct (dec _ _); ss; clarify; eauto.
+            { exfalso; eapply yield_help_neq; eauto. }
+            destruct (dec _ _); ss; clarify; eauto.
+            { exfalso; eapply join_help_neq; eauto. }
+            destruct (dec _ _); ss; clarify; eauto.
+            { exfalso; eapply get_tid_help_neq; eauto. }
+            repeat destruct (dec _ _); ss.
+          }
+        }
+        ss.
+      }
+      rewrite /StackIM.StackM /StackIM.HelpingOn.
+      do 2 ctxr_rotate. ctxr_drop. ctxr_rotate. ctxr_swap. do 2 ctxr_drop. ctxr_refl.
+    }
+    intros mn msk Hmn Hmsk.
+    etrans; cycle 1.
+    { do 2 ctxr_rotate. ctxr_swap. ctxr_refl. }
+
+    rewrite -mod_add_assoc.
+    eapply main_adequacy with (Ist := IstProd (IstSB (Mod.scopes (StackA.t N sp) ++ [mn]) IstTrue) IstEq).
+    init_sim.
+    { split; ss. iIntros "_"; iSplit; ss; eauto using incl_nil_l. }
+    { init_simF.
+      steps_l. force_r (_q3, _q4, _). forces_r. iFrame "ASM". hss. steps_r.
+      sch_yield_ii. 2:{ rewrite right_id //. }
+      { rewrite /sp_m /to_sp /SchA.sp; unseal CRIS; split; first prove_nodup.
+        intros ??; rewrite /alist_find ?eq_rel_dec_correct; des_ifs; i; clarify.
+      }
+      { set_solver. }
+      steps_r. sch_yield_l. forces_l. iFrame. step; iFrame; done.
+    }
+    { init_simF.
+      steps_l. steps_r. force_r (_q2, _q3, (_q6, _q7, _)). forces_r. iFrame "ASM". hss. steps_r.
+      rewrite /sp_m /to_sp /SchA.sp; unseal CRIS.
+      rewrite /alist_find /=; destruct (dec _ _); ss; clarify; eauto.
+      { exfalso; eapply _spawn_run_neq; eauto. }
+      destruct (dec _ _); ss; clarify; eauto.
+      { exfalso; eapply spawn_run_neq; eauto. }
+      destruct (dec _ _); ss; clarify; eauto.
+      { exfalso; eapply yield_run_neq; eauto. }
+      destruct (dec _ _); ss; clarify; eauto.
+      { exfalso; eapply join_run_neq; eauto. }
+      destruct (dec _ _); ss; clarify; eauto.
+      { exfalso; eapply get_tid_run_neq; eauto. }
+      destruct (dec _ _); ss.
+      inline_r.
+      rewrite /alist_find ?eq_rel_dec_correct; des_ifs; i; clarify.
+      steps_r. hss_r. steps_r.
+      sch_yield_ii. 2:{ rewrite right_id //. }
+      { rewrite /sp_m /to_sp /SchA.sp; unseal CRIS; split; first prove_nodup.
+        intros ??; rewrite /alist_find ?eq_rel_dec_correct; des_ifs; i; clarify.
+      }
+      { set_solver. }
+      steps_r. sch_yield_l. steps_l.
+      rewrite Helping.trans_take. force_r. steps_r.
+      rewrite Helping.trans_Assume. force_r. iFrame. steps_r.
+      rewrite Helping.trans_Guarantee. steps_r. force_l. iFrame. steps_l.
+      rewrite Helping.trans_ret. steps_r. sch_yield_ii.
+       2:{ rewrite right_id //. }
+      { rewrite /sp_m /to_sp /SchA.sp; unseal CRIS; split; first prove_nodup.
+        intros ??; rewrite /alist_find ?eq_rel_dec_correct; des_ifs; i; clarify.
+      }
+      { set_solver. }
+      steps_r. sch_yield_l. force_l. iFrame. step. iSplit; eauto.
+      Unshelve. all: eauto.
+    }
+    { init_simF.
+      steps_l. steps_r. force_r (_q2, _q3, (_q4, _)). forces_r. iFrame "ASM". hss. steps_r.
+      sch_yield_ii. 2:{ rewrite right_id //. }
+      { rewrite /sp_m /to_sp /SchA.sp; unseal CRIS; split; first prove_nodup.
+        intros ??; rewrite /alist_find ?eq_rel_dec_correct; des_ifs; i; clarify.
+      }
+      { set_solver. }
+      steps_r. iApply (wsim_bind).
+      instantiate (1:=λ '(st_s, r_s) '(st_t, r_t), IstProd _ _ st_s st_t).
+      iSplitL "IST".
+      { destruct _q; ss.
+        { steps_r.
+          rewrite /sp_m /to_sp /SchA.sp; unseal CRIS.
+          rewrite /alist_find /=; destruct (dec _ _); ss; clarify; eauto.
+          { exfalso; eapply _spawn_help_neq; eauto. }
+          destruct (dec _ _); ss; clarify; eauto.
+          { exfalso; eapply spawn_help_neq; eauto. }
+          destruct (dec _ _); ss; clarify; eauto.
+          { exfalso; eapply yield_help_neq; eauto. }
+          destruct (dec _ _); ss; clarify; eauto.
+          { exfalso; eapply join_help_neq; eauto. }
+          destruct (dec _ _); ss; clarify; eauto.
+          { exfalso; eapply get_tid_help_neq; eauto. }
+          destruct (dec _ _); ss.
+          { exfalso; revert e; rewrite /Helping.help /Helping.run; i; clarify.
+            eapply string_app_inv in H3; clarify.
+          }
+          destruct (dec _ _); ss.
+          inline_r. steps_r.
+          erewrite <-(bind_ret_r (SB.sandbox _ _ _ _)).
+          sch_yield_ii. 2:{ rewrite right_id //. }
+          { rewrite /sp_m /to_sp /SchA.sp; unseal CRIS; split; first prove_nodup.
+            intros ??; rewrite /alist_find ?eq_rel_dec_correct; des_ifs; i; clarify.
+          }
+          { set_solver. }
+          steps_r. sch_yield_l. step. iFrame.
+        }
+        { steps_l. erewrite <-(bind_ret_r (SB.sandbox _ _ _ _)). sch_yield_l. step. iFrame. }
+      }
+      clear_st. iIntros (st_s _ st_t _) "IST".
+      steps_l. forces_r; iFrame. steps_r; force_l. iFrame.
+      steps_l.
+      sch_yield_ii. 2:{ rewrite right_id //. }
+      { rewrite /sp_m /to_sp /SchA.sp; unseal CRIS; split; first prove_nodup.
+        intros ??; rewrite /alist_find ?eq_rel_dec_correct; des_ifs; i; clarify.
+      }
+      { set_solver. }
+      steps_r. sch_yield_l. forces_l. iFrame. step. iFrame. done.
+    }
+  Unshelve. all: eauto.
+  Qed.
+End StackIA. End StackIA.
