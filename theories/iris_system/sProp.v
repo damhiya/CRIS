@@ -260,6 +260,13 @@ Module SL.
       : GTerm.t n :=
       fold_right (fun hd tl => sepconj (f hd) tl) empty I.
 
+    Fixpoint sepL2 n {A} (I : list A) (f : nat → A → GTerm.t n) : GTerm.t n :=
+      match I with
+      | [] => empty
+      | x :: xs =>
+          sepconj (f 0 x) (sepL2 n xs (λ n, f (S n)))
+      end.
+
   End definitions.
 End SL.
 
@@ -307,6 +314,10 @@ Notation "'[∗' n 'list]' x ∈ l , P" :=
   (SL.sepL1 n l (fun x => P))
     (at level 200, n at level 1, l at level 10, x at level 1, right associativity,
       format "[∗  n  list]  x  ∈  l ,  P") : SAT_scope.
+Notation "'[∗' n 'list]' i ↦ x ∈ l , P" :=
+  (SL.sepL2 n l (λ i x, P))
+    (at level 200, n at level 1, l at level 10, x at level 1, i at level 1, right associativity,
+      format "[∗  n  list]  i  ↦ x  ∈  l ,  P") : SAT_scope.
 Notation "'[∗' n , A 'list]' x ∈ l , P" :=
   (SL.sepL1 n (A:=A) l (fun x => P))
     (at level 200, n at level 1, l at level 10, x, A at level 1, right associativity,
@@ -492,7 +503,20 @@ Section instances.
     SLRed (f ∨ g)%SAT (P ∨ Q).
   Proof. econs; rewrite SLRed.or ?SLRed_red //. Qed.
 
+  Global Instance SLRed_impl {n} (f g : GTerm.t n) P Q `{!SLRed f P, !SLRed g Q} :
+    SLRed (f → g)%SAT (P → Q).
+  Proof. econs; rewrite SLRed.impl ?SLRed_red //. Qed.
+
   Global Instance SLRed_sep {n} (f g : GTerm.t n) P Q `{!SLRed f P, !SLRed g Q} :
     SLRed (f ∗ g)%SAT (P ∗ Q).
   Proof. econs; rewrite SLRed.sepconj ?SLRed_red //. Qed.
+
+  Global Instance SLRed_big_sepL
+      {n A} (l : list A) (P : nat → A → GTerm.t n) (Q : nat → A → iProp Σ)
+      `{∀ i x, SLRed (P i x) (Q i x)} :
+    SLRed ([∗ n list] i ↦ x ∈ l, P i x)%SAT ([∗ list] i ↦ x ∈ l, Q i x).
+  Proof.
+    revert_until l. induction l; ss; first (econs; SL_red; ss). i.
+    econs; SL_red; rewrite ?SLRed_eq. f_equiv.
+  Qed.
 End instances.

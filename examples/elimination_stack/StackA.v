@@ -21,7 +21,7 @@ Global Instance SLRed_self `{!subG (Γ : HRA) Σ, !SL.G Γ Σ α β τ} {n} (f :
 Proof. econs; SL_red; eauto. Qed.
 
 Section definitions.
-  Definition jobID : Type := nat * nat * (val * val * gname).
+  Definition jobID : Type := nat * nat * (nat * val * val * gname).
   Definition retID : Type := val.
   Context `{!crisG Γ Σ α β τ _S _I, !concG, !memG, !stackG jobID retID, !newschG} (N : namespace).
 
@@ -131,23 +131,32 @@ Section definitions.
   Definition is_stack (γs : gname) (s : val) (n : nat) : iProp Σ :=
     (∃ (stackb : mblock) (stackofs : ptrofs),
       ⌜s = Vptr (stackb, stackofs)⌝ ∗ inv n stackN (syn_stack_inv γs stackb stackofs n))%I.
+  Definition syn_is_stack (γs : gname) (s : val) (n : nat) : GTerm.t n :=
+    (∃ (stackb : τ{mblock}) (stackofs : τ{ptrofs}),
+      ⌜s = Vptr (stackb, stackofs)⌝ ∗ syn_inv n stackN (syn_stack_inv γs stackb stackofs n))%SAT.
+  Global Instance SLRed_is_stack γs s n :
+    SLRed (syn_is_stack γs s n) (is_stack γs s n).
+  Proof.
+    econs; rewrite /syn_is_stack /is_stack ?SLRed_eq; do 2 (f_equiv; ii).
+    f_equiv; ss; rewrite inv_red //.
+  Qed.
 
   Definition new_stack_spec : fspec :=
     fspec_sch (↑N)
-      (fspec_simple (λ _ : (),
+      (fspec_simple (λ n : nat,
         ((λ arg, ∃ (v : list val), ⌜arg = v↑⌝),
-         (λ ret, ∃ v γs, ⌜ret = v↑⌝ ∗ is_stack γs v 0 ∗ stack_content γs []))%I)).
+         (λ ret, ∃ v γs, ⌜ret = v↑⌝ ∗ is_stack γs v n ∗ stack_content γs []))%I)).
 
   Definition push_spec : fspec :=
     fspec_sch (↑N)
-      (fspec_simple (λ '((s, v, γs) : val * val * gname),
-        ((λ arg, ⌜arg = [s; v]↑⌝ ∗ is_stack γs s 0),
+      (fspec_simple (λ '((n, s, v, γs) : nat * val * val * gname),
+        ((λ arg, ⌜arg = [s; v]↑⌝ ∗ is_stack γs s n),
          (λ ret, ⌜ret = Vundef↑⌝))))%I.
 
   Definition pop_spec : fspec :=
     fspec_sch (↑N)
-      (fspec_simple (λ '((s, γs) : val * gname),
-        ((λ arg, ⌜arg = [s]↑⌝ ∗ is_stack γs s 0),
+      (fspec_simple (λ '((n, s, γs) : nat * val * gname),
+        ((λ arg, ⌜arg = [s]↑⌝ ∗ is_stack γs s n),
          (λ ret, True))))%I.
 End definitions.
 
@@ -164,7 +173,7 @@ Definition atomic_body `{Σ : GRA} (fsp : fspecS) (body : metaS fsp → Any.t �
     Ret ret.
 
 Module StackM. Section StackM.
-  Definition jobID : Type := nat * nat * (val * val * gname).
+  Definition jobID : Type := nat * nat * (nat * val * val * gname).
   Definition retID : Type := val.
 
   Context `{!crisG Γ Σ α β τ _S _I, !concG, !newschG, !memG, !stackG jobID retID}.
@@ -174,7 +183,7 @@ Module StackM. Section StackM.
   Definition scopes : list string := [].
 
   Definition jobCode : jobID → itree Helping.pureE retID :=
-    λ '(_, _, (_, v, γs)),
+    λ '(_, _, (_, _, v, γs)),
       l <- trigger (Take (list (leibnizO val)));;
       trigger (Assume (stack_content γs l));;;
       trigger (Guarantee (stack_content γs (v :: l)));;;
@@ -221,19 +230,12 @@ Module StackA. Section StackA.
   (* Module definitions *)
   Definition scopes : list string := [].
 
-  Definition jobCode : jobID → itree Helping.pureE retID :=
-    λ '(_, _, (_, v, γs)),
-      l <- trigger (Take (list (leibnizO val)));;
-      trigger (Assume (stack_content γs l));;;
-      trigger (Guarantee (stack_content γs (v :: l)));;;
-      Ret Vundef.
-
   Definition new_stack : list val → itree crisE val :=
     λ _, 𝒴;;; trigger (Choose val).
 
   Definition push : Any.t → itree crisE Any.t :=
     atomic_body (from_fspec (push_spec N))
-      (λ '(_, _, (_, v, γs)) _,
+      (λ '(_, _, (_, _, v, γs)) _,
         𝒴;;;
         l <- trigger (Take (list (leibnizO val)));;
         trigger (Assume (stack_content γs l));;;

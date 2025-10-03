@@ -76,7 +76,7 @@ Module StackIM. Section StackIM.
     ISim.sim_fun open StackM StackI init_cond IstFull (Some StackHdr.new_stack).
   Proof using Hsch Hmsk Hspsch Hsphelp.
     init_simF.
-    steps_l. rename _q3 into stid, _q4 into mtid.
+    steps_l. rename _q2 into n, _q3 into stid, _q4 into mtid.
     iDestruct "ASM" as "[TID [[%v ->] ->]]". hss. 
 
     steps_r. sch_yield_ir.
@@ -107,7 +107,7 @@ Module StackIM. Section StackIM.
     sch_yield_l.
     iMod (own_alloc (● Excl' [] ⋅ ◯ Excl' [])) as (γs) "[Hs● Hs◯]".
     { apply auth_both_valid_discrete. split; done. }
-    iMod (inv_alloc (syn_stack_inv N γs stackb 0%Z 0) _ _ _ (stackN N) with "[-Hs◯ IST TID]")
+    iMod (inv_alloc (syn_stack_inv N γs stackb 0%Z n) _ _ _ (stackN N) with "[-Hs◯ IST TID]")
       as "#Hinv"; eauto.
     { apply nclose_subseteq. }
     { rewrite /syn_stack_inv /syn_is_offer SLRed_red. iLeft.
@@ -134,7 +134,7 @@ Module StackIM. Section StackIM.
     destruct Hsphelp as [Hfind2 Hfind]; rewrite (Hfind (Helping.run mn) None) //; cycle 1.
     { rewrite /alist_find eq_rel_dec_correct /=; des_ifs. }
     clear Hfind Hfind2.
-    rename _q2 into stid, _q3 into mtid, _q5 into γs, _q6 into s, _q7 into v.
+    rename _q2 into stid, _q3 into mtid, _q5 into γs, _q7 into v, _q9 into s, _q8 into n.
     iDestruct "ASM" as "[TID [[% #[%stackb [%stackofs [-> Hinv]]]] _]]"; hss.
 
     (* Register for helping *)
@@ -318,7 +318,7 @@ Module StackIM. Section StackIM.
     iIntros "Hoffer↦". steps_r. hss_r.
     iMod (own_alloc (Excl ())) as "[%γo OfferTkn]"; ss.
     iMod (inv_alloc
-      (syn_offer_inv 0 γo (offerb, 0%Z) req_id (stid, mtid, (Vptr (stackb, stackofs), v, γs)))
+      (syn_offer_inv n γo (offerb, 0%Z) req_id (stid, mtid, (n, Vptr (stackb, stackofs), v, γs)))
       _ _ _ (offerN N) with "[Hofferv Hofferst Help]") as "#Hoinv"; eauto.
     { apply nclose_subseteq. }
     { rewrite SLRed_red; iExists _; iFrame. done. }
@@ -398,7 +398,7 @@ Module StackIM. Section StackIM.
   Proof using Hsch Hmsk Hspsch Hsphelp.
     init_simF.
     steps_l. iDestruct "ASM" as "[TID [[% #[%stackb [%stackofs [-> Hinv]]]] _]]". hss.
-    rename _q2 into stid, _q3 into mtid, _q5 into γs.
+    rename _q2 into stid, _q3 into mtid, _q5 into γs, _q6 into n.
     steps_r.
 
     (* Coinduction starts here *)
@@ -535,7 +535,7 @@ Module StackIM. Section StackIM.
       }
       by_coind CIH. iFrame. done.
     }
-    iDestruct "Hoffer" as (γo [[stid' mtid'] [[s' v'] γs']] reqid) "OfferInv"; rewrite inv_red.
+    iDestruct "Hoffer" as (γo [[stid' mtid'] [[[n' s'] v'] γs']] reqid) "OfferInv"; rewrite inv_red.
     iPoseProof ("OfferInv") as "#OfferInv".
 
     steps_r.
@@ -750,7 +750,7 @@ Module StackIA. Section StackIA.
       steps_r. sch_yield_l. forces_l. iFrame. step; iFrame; done.
     }
     { init_simF.
-      steps_l. steps_r. force_r (_q2, _q3, (_q6, _q7, _)). forces_r. iFrame "ASM". hss. steps_r.
+      steps_l. steps_r. force_r (_q2, _q3, (_, _, _q7, _)). forces_r. iFrame "ASM". hss. steps_r.
       rewrite /sp_m /to_sp /SchA.sp; unseal CRIS.
       rewrite /alist_find /=; destruct (dec _ _); ss; clarify; eauto.
       { exfalso; eapply _spawn_run_neq; eauto. }
@@ -785,7 +785,7 @@ Module StackIA. Section StackIA.
       Unshelve. all: eauto.
     }
     { init_simF.
-      steps_l. steps_r. force_r (_q2, _q3, (_q4, _)). forces_r. iFrame "ASM". hss. steps_r.
+      steps_l. steps_r. force_r (_q2, _q3, (_, _, _)). forces_r. iFrame "ASM". hss. steps_r.
       sch_yield_ii. 2:{ rewrite right_id //. }
       { rewrite /sp_m /to_sp /SchA.sp; unseal CRIS; split; first prove_nodup.
         intros ??; rewrite /alist_find ?eq_rel_dec_correct; des_ifs; i; clarify.
