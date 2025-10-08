@@ -147,14 +147,16 @@ Ltac _wforce_r :=
       first [
         tcsearch constr:(WP P)
           ltac:(fun c =>
-            unshelve iApply (wsim_assume_tgt_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); s; [try set_solver|try set_solver|simpl WP_space]
+            unshelve iApply (wsim_assume_tgt_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); s;
+            [first [apply nclose_subseteq|try set_solver]
+            |first [apply nclose_subseteq|try set_solver]
+            |simpl WP_space]
           );
         match goal with
         | [ |- environments.envs_entails _ (?P' ∗ _)] =>
           unfold_pre_post_term P'
         end
-      | unfold_pre_post_term P; iApply wsim_assume_tgt
-      ]
+      | unfold_pre_post_term P; iApply wsim_assume_tgt ]
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (AssumeRes _) >>= _)) ] =>
       iApply wsim_assume_res_tgt
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _)) ] =>

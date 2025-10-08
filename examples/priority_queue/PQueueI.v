@@ -11,28 +11,49 @@ Module PQueueI. Section PQueueI.
 
   Definition new : list val → itree crisE val := λ args,
     𝒴;;; 'n : Z <- (pargs [Tint] args)?;;
-    𝒴;;; 'queue : val <- ccallU MemHdr.alloc [Vint n];;
+    𝒴;;; 'queue : val <- ccallU MemHdr.alloc [Vint (n + 1)%Z];;
     𝒴;;; '(b, ofs) : _ <- (pargs [Tptr] [queue])?;;
+    𝒴;;; '_ : val <- ccallU MemHdr.store [Vptr (b, ofs); Vint n];;
     let n := Z.to_nat n in
     ITree.iter (λ '(n, ofs),
       match n with
-      | 0 => Ret (inr ())
+      | 0 => 𝒴;;; Ret (inr ())
       | S n' =>
-          'bin : val <- ccallU StackHdr.new_stack (@nil val);;
-          '_ : val <- ccallU MemHdr.store [Vptr (b, ofs); bin];; Ret (inl (n', (ofs + 1)%Z))
+          𝒴;;; 'bin : val <- ccallU StackHdr.new_stack (@nil val);;
+          𝒴;;; '_ : val <- ccallU MemHdr.store [Vptr (b, ofs); bin];;
+          𝒴;;; Ret (inl (n', (ofs + 1)%Z))
       end
-    ) (n, ofs);;;
+    ) (n, ofs + 1)%Z;;;
     𝒴;;; Ret queue.
 
   Definition add : list val → itree crisE val := λ args,
     𝒴;;; '(queueb, queueofs, (p, v)) : _ <- (pargs [Tptr; Tint; Tuntyped] args)?;;
-    𝒴;;; 'bin : val <- ccallU MemHdr.load [Vptr (queueb, queueofs + p)%Z];;
+    𝒴;;; 'bin : val <- ccallU MemHdr.load [Vptr (queueb, queueofs + p + 1)%Z];;
     𝒴;;; '_ : val <- ccallU StackHdr.push [bin; v];;
     𝒴;;; Ret Vundef.
 
+  Definition remove_min : list val → itree crisE val := λ args,
+    𝒴;;; 'q : val <- (pargs [Tuntyped] args)?;;
+    𝒴;;; 'n : val <- ccallU MemHdr.load [q];;
+    𝒴;;; '(b, ofs, n) : mblock * ptrofs * Z <- (pargs [Tptr; Tint] [q; n])?;;
+    let n := Z.to_nat n in 
+    ITree.iter (λ '(n, ofs),
+      match n with
+      | 0 => 𝒴;;; Ret (inr Vundef)
+      | S n' =>
+          𝒴;;; 's : val <- ccallU MemHdr.load [Vptr (b, ofs)];;
+          𝒴;;; 'v : val <- ccallU StackHdr.pop [s];;
+          match v with
+          | Vundef => 𝒴;;; Ret (inl (n', ofs + 1)%Z)
+          | _ => 𝒴;;; Ret (inr v)
+          end
+      end
+    ) (n, ofs + 1)%Z.
+
   Definition fnsems : fnsems_type :=
     [(Some PQueueHdr.new, (false, wmask_all, scopes, (None, cfunU new)));
-     (Some PQueueHdr.add, (false, wmask_all, scopes, (None, cfunU add)))].
+     (Some PQueueHdr.add, (false, wmask_all, scopes, (None, cfunU add)));
+     (Some PQueueHdr.remove_min, (false, wmask_all, scopes, (None, cfunU remove_min)))].
 
   Program Definition Mod : SMod.t := {|
     SMod.scopes := scopes;

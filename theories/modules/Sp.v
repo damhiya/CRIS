@@ -73,6 +73,17 @@ Section HEADER.
     List.NoDup (List.map fst l) ∧
     (∀ fn fsp, alist_find (Some fn) l = Some fsp → sp fn = fsp).
 
+  Lemma sp_incl_to_sp (l : spl_type) :
+    List.NoDup (l.*1) → sp_incl l (to_sp l).
+  Proof.
+    intros ?; split; first done.
+    induction l as [|[??]?]; ss; intros ??; rewrite eq_rel_dec_correct; des_ifs; ss; ii; clarify.
+    { rewrite /to_sp; ss; destruct dec; ss. }
+    { rewrite /to_sp; s; rewrite eq_rel_dec_correct; des_ifs; ss; clarify.
+      rewrite H0; ss.
+    }
+  Qed.
+
   Lemma sp_sub_imply sp0 sp
     (SUB: sp_sub sp0 sp)
     :
