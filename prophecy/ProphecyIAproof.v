@@ -1645,39 +1645,12 @@ Module ProphIA.
       steps_l; steps_r.
       rewrite !Any.pair_split /=; grind.
       rewrite !list_insert_insert.
-      (* unfold LModTr.pure_state at 1 4. grind.
-      steps_r. steps_l. exists (x0 ⋅ rs_proph). grind.
-      steps_r. steps_l. rewrite !list_insert_insert. *)
       do 2 rewrite unfold_iterV. grind.
       rewrite !list_lookup_insert; et; cycle 1.
       { erewrite <- Forall2_length; et. }
       grind.
       steps_r. steps_l.
       rewrite !list_insert_insert.
-      (* do 2 rewrite unfold_iterV.
-      rewrite !list_list_insert; et; cycle 1.
-      assert (Own rs_src ⊢ |==> □ ((Own x ==∗ iP) ∗ (iP ==∗ Own x)) ∗ Own (x0 ⋅ rs_proph)).
-      { iIntros "A". apply Own_Upd in REQ. iPoseProof (REQ with "A") as ">[A B]".
-        iPoseProof (x1 with "A") as ">[A C]". iModIntro. iFrame.
-        iSplitL "C"; et. }
-      exists H. grind. clear H.
-      steps_r. steps_l. rewrite !list_insert_insert.
-      do 2 rewrite unfold_iterV. grind.
-      rewrite !list_lookup_insert; et; cycle 1.
-      { erewrite <- Forall2_length; et. }
-      grind. unfold LModTr.pure_state at 1 4. grind.
-      steps_l. steps_r. esplits. Unshelve. all: cycle 1.
-      { rewrite assoc in p. eapply cmra_valid_op_l; et. }
-      grind. steps_r. steps_l. rewrite !list_insert_insert.
-      do 2 rewrite unfold_iterV. grind.
-      rewrite !list_lookup_insert; et; cycle 1.
-      { erewrite <- Forall2_length; et. }
-      grind. steps_r. steps_l. rewrite !list_insert_insert.
-      rewrite !Any.pair_split. grind.
-      do 2 rewrite unfold_iterV. grind.
-      rewrite !list_lookup_insert; et; cycle 1.
-      { erewrite <- Forall2_length; et. } *)
-      (* grind. steps_r. steps_l. rewrite !list_insert_insert. *)
       endsim. { apply Forall2_insert; et. }
       2:{ rewrite REQ assoc //. }
       i. hexploit INV; et. i. des. esplits; et. clear - H0.
@@ -1692,6 +1665,10 @@ Module ProphIA.
       punfold STEP3. pfold. eauto.
   Qed.
 
+  (* we can't give an prophecy value in initial state *)
+  (* prophecy's invariant is that prophecy value should consistent with full prophecy call behavior *)
+  (* prophecy module can't expect full program's behavior locally *)
+  (* If prophecy value is given in initial state, context module cannot be parameterized and should have expected behavior *)
   Theorem adequacy_refines_mod sp
       (r_src r_tgt r_proph : Σ)
       (WFMODT : Mod.wf (md ★ ProphecyI.t))
