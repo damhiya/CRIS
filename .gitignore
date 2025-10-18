@@ -51,3 +51,6 @@ main.d.byte
 
 builddep
 _opam
+
+.envrc
+.direnv
