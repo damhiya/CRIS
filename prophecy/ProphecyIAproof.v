@@ -1,5 +1,5 @@
 From stdpp Require Import base strings.
-Require Import CRIS Common Mod LMod.
+Require Import CRIS Common Mod LMod CallFilter.
 Require Import ProphecyHeader ProphecyI ProphecyA.
 Require Import ExtendedBehavior SimGEx.
 Require Import exco_stream.
@@ -13,11 +13,13 @@ Module ProphIA.
   Definition physical_smod (smd : SMod.t) : Prop :=
     Forall (fun entry => entry.2.2.1 = None /\ entry.2.1.1.1 = false) smd.(SMod.fnsems).
 
-  Variable smds : list SMod.t.
+  Variable smds : list (bool * SMod.t).
 
-  Hypothesis PHYS : Forall (fun smd => physical_smod smd) smds.
+  Hypothesis PHYS : Forall (fun smd => physical_smod smd) (map snd smds).
 
-  Let md : Mod.t := Mod.addL (List.map (SMod.to_mod sp_none) smds).
+  Variable msk : string -> bool.
+
+  Let md : Mod.t := (Mod.addL (List.map ((λ '(b, md), if b : bool then CFilter.filter msk md else md) ∘ (map_snd (SMod.to_mod sp_none))) smds)).
 
   Variant _take_is_prop (coself : itree lmodE Any.t -> Prop) : itree lmodE Any.t -> Prop :=
   | take_is_prop_ret retv
@@ -126,10 +128,25 @@ Module ProphIA.
       des_ifs; unfold ModTr.trans_ktree, SB.sandbox_body; ss;
         unfold SModTr.trans, SB.sandbox, ModTr.trans;
         rewrite !interpV_tau !interpV_ret; pfold; econs; left; pfold; econs. }
-    unfold LMod.prog in *. ss. rewrite !map_app -app_assoc alist_find_app_o in PROG.
-    inv PHYS.
-    des_ifs; cycle 1. { apply IHl; et. rewrite !map_app. et. }
+    rewrite !map_app -app_assoc alist_find_app_o in PROG. destruct a. ss.
+    inv PHYS. destruct (alist_find _ _) eqn:Heq in PROG; cycle 1.
+    { apply IHl; et. rewrite !map_app. et. }
     clear IHl H2. clear smds md l. red in H1.
+    replace (Mod.fnsems (if b then CFilter.filter msk (SMod.to_mod sp_none t) else SMod.to_mod sp_none t)) with ((if b then Mod.fnsems (CFilter.filter msk (SMod.to_mod sp_none t)) else Mod.fnsems (SMod.to_mod sp_none t))) in Heq.
+    2:{ des_ifs. }
+    ss. set ((map (map_snd (SModTr.trans_ktree sp_none)) (SMod.fnsems t))) in Heq at 2.
+    replace l with
+      (map (map_snd (map_fst (map_fst (map_snd (wmask_and wmask_all)))))
+             (map (map_snd (SModTr.trans_ktree sp_none)) (SMod.fnsems t))) in Heq.
+    2:{ clear. unfold l. induction t.(SMod.fnsems); ss. f_equal; et.
+        destruct a; ss. f_equal. clear. destruct f0. ss. destruct p0. ss.
+        destruct p. ss. destruct p. ss. }
+    set (if b then _ else _) in Heq.
+    replace y with 
+      (Mod.fnsems (CFilter.filter (if b then msk else wmask_all) (SMod.to_mod sp_none t))) in Heq.
+    2:{ clear. unfold y. des_ifs. }
+    clear y. clarify. clear l. revert Heq. generalize (if b then msk else wmask_all).
+    clear msk. intro msk. i. rename t into a. ss.
     induction a.(SMod.fnsems); ss. inv H1. des_ifs; et. clear IHf H3 f Heq1.
     destruct a0; ss; clarify. destruct f. ss. destruct p0. ss. destruct p. ss.
     destruct p. ss. des; clarify. clear.
@@ -268,7 +285,7 @@ Module ProphIA.
         rewrite interp_state_tau. rewrite bind_tau.
         over. }
       econs. ss. grind.
-      rewrite list_insert_insert. right. eapply CIH.
+      rewrite list_insert_insert. right. eapply CIH; et.
       apply Forall2_insert. ss.
       ss.
       apply Forall_insert; ss.
@@ -416,11 +433,13 @@ Module ProphIA.
           grind. right. eapply CIH.
           { apply Forall2_insert; et; ss.
             unfold thread_rel. destruct decide; et.
-            left. rewrite map_app in EE. apply alist_find_comm in EE; cycle 1.
-            { rewrite -map_app List.map_map.
-              inv WF. ss. set fst in wf_fns.
-              replace (fst ∘ _) with y; et.
-              extensionalities; destruct H; et. }
+            left. rewrite !map_app in EE.
+            apply alist_find_comm in EE; cycle 1.
+            { inv WF. ss. rewrite map_app. rewrite map_app in wf_fns.
+              rewrite !List.map_map.
+              set fst in wf_fns. set (λ _, _).
+              replace y0 with y by now extensionalities; destruct H; ss.
+              clear y0. et. }
             revert EE. unfold ProphecyI.t. unseal CRIS. ss.
             unfold ProphecyI.new, ProphecyI.resolve, ProphecyI.close.
             unfold ModTr.trans_ktree, SB.sandbox_body.
@@ -452,10 +471,11 @@ Module ProphIA.
             { apply Forall2_insert; et; ss. apply Forall2_length in H3. rewrite H3; ss. }
             econs; last econs. destruct decide; ss.
             right. rewrite map_app in EE. apply alist_find_comm in EE; cycle 1.
-            { rewrite -map_app List.map_map.
-              inv WF. ss. set fst in wf_fns.
-              replace (fst ∘ _) with y; et.
-              extensionalities; destruct H; et. }
+            { inv WF. ss. rewrite map_app. rewrite map_app in wf_fns.
+              rewrite !List.map_map. 
+              set fst in wf_fns. set (λ _, _).
+              replace y0 with y by now extensionalities; destruct H; ss.
+              clear y0. et. }
             revert EE. unfold ProphecyI.t. unseal CRIS. ss.
             unfold ProphecyI.new, ProphecyI.resolve, ProphecyI.close.
             unfold ModTr.trans_ktree, SB.sandbox_body.
@@ -588,8 +608,25 @@ Module ProphIA.
       wf_sim (i args) (false, i args).
   Proof using PHYS.
     revert i FIND. unfold md. induction smds; ss.
-    rewrite !map_app alist_find_app_o. i. inv PHYS. des_ifs; et. clear IHl H2 l md smds.
-    red in H1. revert i H1 Heq. induction a.(SMod.fnsems); ss. i. inv H1.
+    rewrite !map_app alist_find_app_o. i. destruct a. ss.
+    inv PHYS. destruct (alist_find _ _) eqn:Heq in FIND; et. clear IHl H2 l md smds.
+    clarify. red in H1.
+    replace (Mod.fnsems (if b then CFilter.filter msk (SMod.to_mod sp_none t) else SMod.to_mod sp_none t)) with ((if b then Mod.fnsems (CFilter.filter msk (SMod.to_mod sp_none t)) else Mod.fnsems (SMod.to_mod sp_none t))) in Heq.
+    2:{ des_ifs. }
+    ss. set ((map (map_snd (SModTr.trans_ktree sp_none)) (SMod.fnsems t))) in Heq at 2.
+    replace l with
+      (map (map_snd (map_fst (map_fst (map_snd (wmask_and wmask_all)))))
+             (map (map_snd (SModTr.trans_ktree sp_none)) (SMod.fnsems t))) in Heq.
+    2:{ clear. unfold l. induction t.(SMod.fnsems); ss. f_equal; et.
+        destruct a; ss. f_equal. clear. destruct f0. ss. destruct p0. ss.
+        destruct p. ss. destruct p. ss. }
+    set (if b then _ else _) in Heq.
+    replace y with 
+      (Mod.fnsems (CFilter.filter (if b then msk else wmask_all) (SMod.to_mod sp_none t))) in Heq.
+    2:{ clear. unfold y. des_ifs. }
+    clear y. clarify. clear l. revert Heq. generalize (if b then msk else wmask_all).
+    clear msk. intro msk. i. rename t into a. ss.
+    revert i H1 Heq. induction a.(SMod.fnsems); ss. i. inv H1.
     des_ifs; et. destruct a0; ss; clarify. destruct f0; ss. destruct p0; ss.
     destruct p; ss. destruct p; ss. des; clarify.
     clear. unfold SB.sandbox_body. ss.
@@ -804,11 +841,18 @@ Module ProphIA.
           revert Heq. unfold_mod. ss. rewrite !map_app. ss. i.
           revert wf_fns. unfold_mod; ss. rewrite !map_app. ss. i.
           apply alist_find_comm in E; cycle 1.
-          { rewrite map_app !List.map_map //=. erewrite map_ext; et. i.
-            destruct a; ss. }
+          { rewrite map_app !List.map_map //=. 
+            set fst in wf_fns.
+            set (λ _, _).
+            replace y0 with y by now extensionalities; destruct H; ss.
+            clear y0. et. }
           apply alist_find_comm in Heq; cycle 1.
-          { rewrite map_app !List.map_map //=. erewrite map_ext; et. i.
-            destruct a; ss. }
+          { rewrite map_app !List.map_map //=. 
+            set fst in wf_fns.
+            set (λ _, _).
+            replace y0 with y by now extensionalities; destruct H; ss.
+            clear y0. et. }
+          revert E. ss. i. revert Heq. i.
           des; clarify; ss; clarify.
           { pfold. econs. left. pfold. econs. left. grind. }
           { pfold. econs. left. pfold. econs. left. grind. }
@@ -846,11 +890,18 @@ Module ProphIA.
           revert Heq. unfold_mod. ss. rewrite !map_app. ss. i.
           revert wf_fns. unfold_mod; ss. rewrite !map_app. ss. i.
           apply alist_find_comm in E; cycle 1.
-          { rewrite map_app !List.map_map //=. erewrite map_ext; et. i.
-            destruct a; ss. }
+          { rewrite map_app !List.map_map //=. 
+            set fst in wf_fns.
+            set (λ _, _).
+            replace y0 with y by now extensionalities; destruct H; ss.
+            clear y0. et. }
           apply alist_find_comm in Heq; cycle 1.
-          { rewrite map_app !List.map_map //=. erewrite map_ext; et. i.
-            destruct a; ss. }
+          { rewrite map_app !List.map_map //=. 
+            set fst in wf_fns.
+            set (λ _, _).
+            replace y0 with y by now extensionalities; destruct H; ss.
+            clear y0. et. }
+          revert E. ss. i. revert Heq. ss. i.
           des; clarify; ss; clarify.
           { pfold. econs. left. pfold. econs. }
           { pfold. econs. left. pfold. econs. }
