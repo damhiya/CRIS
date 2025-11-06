@@ -496,4 +496,36 @@ Section FSPEC_SCH.
   Definition icond_sch q_full (I: iProp Σ) : iProp Σ :=
     SchAS.tid_user q_full 0 ∗ I.
 
+  #[global] Program Instance fspec_sch_precond q_full (fsp : fspec) m arg varg `{fsp_precond : WP (Σ := Σ) (precond fsp (snd m) arg varg)} :
+    WP (precond (fspec_sch q_full fsp) m arg varg) :=
+    {| WP_space := WP_space fsp_precond; WP_remainder := SchAS.tid_user q_full (fst m) ∗ WP_remainder fsp_precond |}.
+  Next Obligation.
+    i. iSplit.
+    - iIntros "H".
+      destruct m as [my_tid m]. iEval (unfold precond) in "H". s.
+      iDestruct "H" as "[TID PRECOND]".
+      iFrame.
+      iApply (WP_iff fsp_precond). ss.
+    - iIntros "[WINV [TID REM]]".
+      destruct m as [my_tid m]. iEval (unfold precond). s.
+      iFrame.
+      iApply (WP_iff fsp_precond). iFrame.
+  Qed.
+
+  #[global] Program Instance fspec_sch_postcond q_full (fsp : fspec) m arg varg `{fsp_postcond : WP (Σ := Σ) (postcond fsp (snd m) arg varg)} :
+    WP (postcond (fspec_sch q_full fsp) m arg varg) :=
+    {| WP_space := WP_space fsp_postcond; WP_remainder := SchAS.tid_user q_full (fst m) ∗ WP_remainder fsp_postcond |}.
+  Next Obligation.
+    i. iSplit.
+    - iIntros "H".
+      destruct m as [my_tid m]. iEval (unfold postcond) in "H". s.
+      iDestruct "H" as "[TID POSTCOND]".
+      iFrame.
+      iApply (WP_iff fsp_postcond). ss.
+    - iIntros "[WINV [TID REM]]".
+      destruct m as [my_tid m]. iEval (unfold postcond). s.
+      iFrame.
+      iApply (WP_iff fsp_postcond). iFrame.
+  Qed.
+
 End FSPEC_SCH.
