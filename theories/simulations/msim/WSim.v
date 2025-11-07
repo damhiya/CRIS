@@ -79,7 +79,7 @@ Section wsim.
   Qed.
 
   Lemma wsim_call_sandbox k_s k_t fn arg img_src img_tgt (msk_src msk_tgt:_→bool) scp_src scp_tgt:
-    (msk_src fn → msk_tgt fn) →
+    (msk_src (Some fn) → msk_tgt (Some fn)) →
     Ist st_s st_t ∗
     (∀ ret st_s' st_t',
       Ist st_s' st_t' -∗ sim Ep r g RR true true (st_s', k_s ret) (st_t', k_t ret)) ⊢
@@ -142,7 +142,7 @@ Section wsim.
 
   Lemma wsim_inline_tgt_sandbox fn arg i_s f_t k_t img (msk:_→bool) scp:
     alist_find (Some fn) fl_t = Some f_t →
-    (msk fn) →
+    (msk (Some fn)) →
     sim Ep r g RR ps true
       (st_s, i_s)
       (st_t, x <- (ret <- (f_t arg);; (tau;; Ret ret));; (k_t x))
@@ -254,7 +254,7 @@ Section wsim.
   Proof using. unseal; iIntros "C I". iApply isim_spawn; eauto. iIntros "%"; iApply "C". ss. Qed.
 
   Lemma wsim_spawn_sandbox fn args k_s k_t img_src img_tgt (msk_src msk_tgt:_→bool) scp_src scp_tgt:
-    (msk_src fn → msk_tgt fn) →
+    (msk_src (Some fn) && msk_src None → msk_tgt (Some fn) && msk_tgt None) →
     (∀ tid, sim Ep r g RR true true (st_s, k_s tid) (st_t, k_t tid)) ⊢
     sim Ep r g RR ps pt
       (st_s, SB.sandbox img_src msk_src scp_src (trigger (Spawn fn args)) >>= k_s)

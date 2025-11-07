@@ -71,7 +71,9 @@ Proof using.
     + isteps_l. isteps_r. rewrite SBRed.spawn. des_ifs.
       * iApply isim_spawn. iIntros "%"; iby_coind CIH. done.
       * isteps_l. ss.
-    + iyield "IST". iby_coind CIH. eauto.
+    + isteps_l. isteps_r. des_ifs.
+      * iyield "IST". iby_coind CIH. eauto.
+      * isteps_l. ss.
   - depdes s.
     + rewrite !SBRed.bind !SBRed.put. des_ifs; cycle 1.
       { isteps_l. ss. }

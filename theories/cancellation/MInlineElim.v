@@ -98,8 +98,10 @@ Proof using.
       iApply isim_spawn.
       iIntros (?); steps_r. by_coind CIH; et.
     }
-    {
-      rewrite SBRed.bind SBRed.yield MIRed.yield !SBRed.bind !SBRed.yield.
+    { rewrite SBRed.bind SBRed.yield. 
+      destruct msk; cycle 1.
+      { steps_l. ss. }
+      rewrite MIRed.yield !SBRed.bind !SBRed.yield.
       iApply isim_yield. iSplit; et. iIntros (? ?) "%". subst.
       steps_r. by_coind CIH; et.
     }

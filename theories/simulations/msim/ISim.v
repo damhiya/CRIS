@@ -554,7 +554,7 @@ Section SIM.
   Qed.
 
   Lemma isim_call_sandbox r g ps pt {Rs Rt} RR st_src st_tgt k_src k_tgt fn varg (msk_src msk_tgt:_→bool) scp_src scp_tgt img_src img_tgt:
-    (msk_src fn → msk_tgt fn) →
+    (msk_src (Some fn) → msk_tgt (Some fn)) →
     Ist st_src st_tgt ∗
     (∀ st_src0 st_tgt0 vret,
       (Ist st_src0 st_tgt0) -∗
@@ -602,7 +602,7 @@ Section SIM.
 
   Lemma isim_inline_tgt_sandbox r g ps pt {Rs Rt} RR st_src st_tgt i_src k_tgt f fn varg (msk:_→bool) scp img
     (FIND : alist_find (Some fn) fl_tgt = Some f) :
-    (msk fn) →
+    (msk (Some fn)) →
     @isim r g Rs Rt RR ps true (st_src, i_src) (st_tgt, f varg >>= (λ ret, tau;; Ret ret) >>= k_tgt)
     ⊢ @isim r g Rs Rt RR ps pt (st_src, i_src) (st_tgt, SB.sandbox img msk scp (trigger (Call fn varg)) >>= k_tgt).
   Proof using.
@@ -625,7 +625,7 @@ Section SIM.
   Lemma isim_spawn_sandbox
     r g ps pt {Rs Rt} RR st_src st_tgt k_src k_tgt fn arg
     (msk_src msk_tgt : _ → bool) scp_src scp_tgt img_src img_tgt :
-    (msk_src fn → msk_tgt fn) →
+    (msk_src (Some fn) && msk_src None → msk_tgt (Some fn) && msk_tgt None) →
     (∀ tid, @isim r g Rs Rt RR true true (st_src, k_src tid) (st_tgt, k_tgt tid)) ⊢
     isim r g RR ps pt
       (st_src, SB.sandbox img_src msk_src scp_src (trigger (Spawn fn arg)) >>= k_src)
@@ -714,7 +714,7 @@ Section SIM.
   
   Lemma isim_call_mask_sandbox
     r g ps pt {Rs Rt} RR st_src st_tgt k_src i_tgt fn varg img msk scp
-    (FIND: msk fn = false)
+    (FIND: msk (Some fn) = false)
   :
   ⊢ (@isim r g Rs Rt RR ps pt (st_src, SB.sandbox img msk scp (trigger (Call fn varg)) >>= k_src) (st_tgt, i_tgt)).
   Proof using.
@@ -723,11 +723,13 @@ Section SIM.
 
   Lemma isim_spawn_mask_sandbox
     r g ps pt {Rs Rt} RR st_src st_tgt k_src i_tgt fn varg img msk scp
-    (FIND: msk fn = false)
+    (FIND: msk (Some fn) = false \/ msk None = false)
     :
     ⊢ (@isim r g Rs Rt RR ps pt (st_src, SB.sandbox img msk scp (trigger (Spawn fn varg)) >>= k_src) (st_tgt, i_tgt)).
   Proof using.
-    rewrite SBRed.spawn FIND. iApply isim_triggerUB_src.
+    destruct FIND.
+    - rewrite SBRed.spawn H. iApply isim_triggerUB_src.
+    - rewrite SBRed.spawn H. rewrite andb_false_r. iApply isim_triggerUB_src.
   Qed.
   
   Lemma isim_progress r g {Rs Rt} RR st_src st_tgt i_src i_tgt :

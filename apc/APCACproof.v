@@ -21,7 +21,7 @@ Module APCAC. Section APCAC.
   Context (PureIsPure :
             ∀ fn pfsp,
             alist_find (Some fn) sp_pure = Some pfsp
-            → ∃ msk scp, (find_body md fn = Some (pure_specbody sp_a true msk scp pfsp)) ∧ msk APCHdr.apc = true).
+            → ∃ msk scp, (find_body md fn = Some (pure_specbody sp_a true msk scp pfsp)) ∧ msk (Some APCHdr.apc) = true).
 
   Local Definition APCC := (APCC.t sp_c).
   Local Definition APCA := (APCA.t sp_pure sp_a).
@@ -148,7 +148,7 @@ Section ctxr.
       (PureIsPure :
         ∀ fn pfsp,
           alist_find (Some fn) sp_pure = Some pfsp
-          → ∃ msk scp, (find_body md fn = Some (pure_specbody sp_a true msk scp pfsp)) ∧ msk APCHdr.apc = true) :
+          → ∃ msk scp, (find_body md fn = Some (pure_specbody sp_a true msk scp pfsp)) ∧ msk (Some APCHdr.apc) = true) :
     ctx_refines
       ((APCC.t sp_c)          ★ md, emp%I)
       ((APCA.t sp_pure sp_a)  ★ md, emp%I).

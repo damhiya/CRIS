@@ -180,7 +180,7 @@ Section Aux.
     ∃ sbd, alist_find fno (SMod.fnsems md) = Some (img, msk, scp, sbd).
 
   Definition has_trivial_spec (md: SMod.t) (fn: string) : Prop :=
-    ∃ fno msk scp, has_param md fno false msk scp ∧ msk fn.
+    ∃ fno msk scp, has_param md fno false msk scp ∧ msk (Some fn).
 
   Definition valid_sp (md: SMod.t) (sp: sp_type) : Prop :=
     sp_imply (sp_from md) sp ∧

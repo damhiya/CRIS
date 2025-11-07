@@ -262,9 +262,12 @@ Proof using.
       gstep. econs. ss.
   }
   {
-    rewrite !SBRed.yield MIRed.yield SBRed.bind SBRed.yield !bind_trigger.
-    gstep. econs. i. r.
-    rewrite SBRed.tau. gstep. econs. gbase. eauto.
+    rewrite !SBRed.yield. des_ifs.
+    + rewrite MIRed.yield SBRed.bind SBRed.yield !bind_trigger.
+      gstep. econs. i. r.
+      rewrite SBRed.tau. gstep. econs. gbase. eauto.
+    + ired. rewrite !MIRed.core !SBRed.bind SBRed.take !bind_trigger.
+      gstep. econs. ss.
   }
   destruct s; [destruct p|].
   {

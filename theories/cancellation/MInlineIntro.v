@@ -101,7 +101,9 @@ Proof using.
       iIntros (?); steps_l. by_coind CIH; et.
     }
     {
-      rewrite SBRed.bind SBRed.yield MIRed.yield !SBRed.bind !SBRed.yield.
+      rewrite SBRed.bind SBRed.yield. destruct msk; cycle 1.
+      { rewrite /triggerUB /=. ired. rewrite MIRed.core. steps_l. ss. }
+      rewrite MIRed.yield !SBRed.bind !SBRed.yield.
       iApply isim_yield. iSplit; et. iIntros (??) "%". subst.
       steps_l. by_coind CIH; et.
     }

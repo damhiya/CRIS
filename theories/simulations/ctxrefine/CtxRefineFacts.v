@@ -149,7 +149,9 @@ Proof using.
       * iApply isim_spawn. iIntros "%".
         steps_l. steps_r. by_coind CIH; et.
       * steps_l. ss.
-    + yield ""; eauto. by_coind CIH; et.
+    + ss. rewrite !SBRed.bind !SBRed.yield. des_ifs.
+      * yield "". norm_l. norm_r. by_coind CIH. et.
+      * steps_l. ss.
   - iApply isim_nodup_src; iIntros (?).
     depdes s0.
     + rewrite !SBRed.bind !SBRed.put. des_ifs; cycle 1.

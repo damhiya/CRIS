@@ -56,20 +56,25 @@ Module CFilter. Section CFilter.
       - steps_l. force_r; iFrame. steps_l. steps_r. by_coind CIH; et.
       - steps_r. force_l. iSplitL "GRT"; et. steps_l. by_coind CIH; et.
       - destruct c; s.
-        + destruct (wmask_and mask msk fn) eqn: EQ; cycle 1.
+        + destruct (wmask_and mask msk (Some fn)) eqn: EQ; cycle 1.
           { rewrite SBRed.bind SBRed.call EQ. steps_l. ss. }
           call ""; et.
-          { unfold wmask_and in EQ. destruct (msk fn) eqn: EQ'; ss.
-            destruct (mask fn); ss. }
+          { unfold wmask_and in EQ. destruct (msk (Some fn)) eqn: EQ'; ss.
+            destruct (mask (Some fn)); ss. }
           iDestruct "IST" as "%". subst.
           steps_l. steps_r. by_coind CIH; et.
-        + destruct (wmask_and mask msk fn) eqn: EQ; cycle 1.
+        + destruct (wmask_and mask msk (Some fn) && wmask_and mask msk None) eqn: EQ; cycle 1.
           { rewrite SBRed.bind SBRed.spawn EQ. steps_l. ss. }
           spawn; et.
-          { unfold wmask_and in EQ. destruct (msk fn) eqn: EQ'; ss.
-            destruct (mask fn); ss. }
+          { unfold wmask_and in EQ. do 2 (apply andb_prop in EQ; des).
+            apply andb_prop in EQ0; des. rewrite EQ1 EQ2. ss. }
           iIntros "%"; steps_l. steps_r. by_coind CIH; et.
-        + yield ""; et. iDestruct "IST" as "%". subst.
+        + rewrite !SBRed.bind !SBRed.yield {2}/wmask_and.
+          destruct msk; cycle 1.
+          { rewrite andb_false_r. steps_l. ss. }
+          destruct mask; cycle 1.
+          { steps_l. ss. }
+          yield ""; et. iDestruct "IST" as "%". subst.
           steps_l. steps_r. by_coind CIH; et.
       - destruct s.
         + ired. rewrite !SBRed.bind !SBRed.put. des_ifs; cycle 1.
@@ -107,7 +112,8 @@ Module CFilter. Section CFilter.
   (*SLOW*)Qed.
   
   Lemma sim_filter_elim (mask:_→bool) (m: Mod.t)
-    (SUB: ∀fn, In (Some fn) (List.map fst m.(Mod.fnsems)) → mask fn)
+    (SUB: ∀fn, In (Some fn) (List.map fst m.(Mod.fnsems)) → mask (Some fn))
+    (NOF: mask None)
     :
     ISim.t closed m (filter mask m) emp%I IstEq.
   Proof using.
@@ -131,32 +137,36 @@ Module CFilter. Section CFilter.
       - steps_l. force_r; iFrame. steps_l. steps_r. by_coind CIH; et.
       - steps_r. force_l. iSplitL "GRT"; et. steps_l. by_coind CIH; et.
       - destruct c; s.
-        + destruct (msk fn) eqn: EQ; cycle 1.
+        + destruct (msk (Some fn)) eqn: EQ; cycle 1.
           { rewrite SBRed.bind SBRed.call EQ. steps_l. ss. }
-          destruct (mask fn) eqn: EQ'; cycle 1.
+          destruct (mask (Some fn)) eqn: EQ'; cycle 1.
           { rewrite SBRed.bind. iApply isim_call_none_sandbox; et.
             rewrite alist_find_map_snd.
             destruct (alist_find (Some fn) _) eqn: FIND'; ss.
             eapply alist_find_some, (in_map fst), SUB in FIND'.
-            rewrite EQ' in FIND'. ss.
+            rewrite EQ' in FIND'. done.
           }
           call ""; et.
           { unfold wmask_and. rewrite EQ EQ'. et. }
           iDestruct "IST" as "%". subst.
           steps_l. steps_r. by_coind CIH; et.
-        + destruct (msk fn) eqn: EQ; cycle 1.
+        + destruct (msk (Some fn) && msk None) eqn: EQ; cycle 1.
           { rewrite SBRed.bind SBRed.spawn EQ. steps_l. ss. }
-          destruct (mask fn) eqn: EQ'; cycle 1.
+          destruct (mask (Some fn) && mask None) eqn: EQ'; cycle 1.
           { rewrite SBRed.bind. iApply isim_spawn_none_sandbox; et.
             rewrite alist_find_map_snd.
             destruct (alist_find (Some fn) _) eqn: FIND'; ss.
             eapply alist_find_some, (in_map fst), SUB in FIND'.
-            rewrite EQ' in FIND'. ss.
+            rewrite FIND' NOF in EQ'. done.
           }
           spawn; et.
-          { unfold wmask_and. rewrite EQ EQ'. et. }
+          { unfold wmask_and. apply andb_prop in EQ, EQ'; des.
+            rewrite EQ' EQ EQ'0 EQ0. et. }
           iIntros (tid); steps_l. steps_r. by_coind CIH; et.
-        + yield ""; et. iDestruct "IST" as "%". subst.
+        + rewrite !SBRed.bind !SBRed.yield {2}/wmask_and NOF. s.
+          destruct msk; cycle 1.
+          { steps_l. ss. }
+          yield ""; et. iDestruct "IST" as "%". subst.
           steps_l. steps_r. by_coind CIH; et.
       - destruct s.
         + rewrite !SBRed.bind !SBRed.put. des_ifs; cycle 1.
@@ -204,11 +214,12 @@ Module CFilter. Section CFilter.
 
   (*** elimination of a module ***)
   Theorem elim_filter (mask:_→bool) (m: Mod.t) P
-    (SUB: ∀fn, In (Some fn) (List.map fst m.(Mod.fnsems)) → mask fn)
+    (SUB: ∀fn, In (Some fn) (List.map fst m.(Mod.fnsems)) → mask (Some fn))
+    (NOF: mask None)
     :
     refines (m, P)%I (filter mask m, P)%I.
   Proof using.
-    eapply closed_adequacy_emp, sim_filter_elim. eauto.
+    eapply closed_adequacy_emp, sim_filter_elim; eauto.
   Qed.
 
   (*** elimination of a module ***)
@@ -225,8 +236,9 @@ Module CFilter. Section CFilter.
   (*** introduction of a module ***)
   Theorem intro_module (mask:_→bool) m mc P
     (WF: Mod.wf mc)
-    (SUB: ∀fn, In (Some fn) (List.map fst m.(Mod.fnsems)) → mask fn)
-    (FRESH: ∀fn, In (Some fn) (List.map fst mc.(Mod.fnsems)) → (~ mask fn))
+    (SUB: ∀fn, In (Some fn) (List.map fst m.(Mod.fnsems)) → mask (Some fn))
+    (NOF: mask None)
+    (FRESH: ∀fn, In (Some fn) (List.map fst mc.(Mod.fnsems)) → (~ mask (Some fn)))
     (FRESHI: ~ In None (List.map fst mc.(Mod.fnsems)))
     (DISJ: List.NoDup (m.(Mod.scopes) ++ mc.(Mod.scopes)))
     :
@@ -359,7 +371,7 @@ Module CFilter. Section CFilter.
       i. eapply list_lookup_insert_Some in IN. des; subst; et.
     }
     { (* Call *)
-      s. destruct (mask fn) eqn: Hmask; cycle 1.
+      s. destruct (mask (Some fn)) eqn: Hmask; cycle 1.
       { zstep_l. }
       s. unfold unwrapU at 1. des_ifs; cycle 1.
       { unfold triggerUB. do 2 zstep_l. }
@@ -393,7 +405,7 @@ Module CFilter. Section CFilter.
         unfold fnsems_scopes. instantiate (1:=Some fn). rewrite Heq0. refl.
     }
     { (* Spawn *)
-      s. destruct (mask fn) eqn: Hmask; cycle 1.
+      s. destruct (mask (Some fn) && mask None) eqn: Hmask; cycle 1.
       { zstep_l. }
       s. unfold unwrapU at 1. des_ifs; cycle 1.
       { unfold triggerUB. do 2 zstep_l. }
@@ -401,7 +413,7 @@ Module CFilter. Section CFilter.
       { exfalso. rewrite !List.map_app alist_find_app_o Heq0 in Heq.
         eapply alist_find_some, (in_map fst) in Heq.
         rewrite List.map_map fst_map_snd in Heq. ss.
-        eapply FRESH; et.
+        eapply FRESH; et. apply andb_prop in Hmask; des; et.
       }
       zstep_l. zstep_r.
 
@@ -422,6 +434,7 @@ Module CFilter. Section CFilter.
         unfold fnsems_scopes. instantiate (1:=Some fn). rewrite Heq0. refl.
     }
     { (* Yield *)
+      s. rewrite NOF. s.
       zstep_l. zstep_r.
       zprogress.
       gbase. eapply CIH; et.

@@ -22,7 +22,7 @@ Section wsim.
   Lemma wsim_yield_tgt (tid_res : bool) (E : coPset) (q : Qp)
       (r g : rel)
       (img_s img_t : bool)
-      (msk_s msk_t : string → bool)
+      (msk_s msk_t : option string → bool)
       (scp_s scp_t : list string)
       (sp_s sp_t : string → option fspec)
       (k_s : () → itree crisE R_s)
@@ -43,8 +43,8 @@ Section wsim.
       sp_incl (SchAS.sp sp_user_t E_t q_t) sp_t ∧ img_t = true ∧
       (E_s ≡ E_t ∪ E) ∧ (E ## E_t) ∧
       (q_s ≡ q_t + q)%Qp) →
-    msk_s SchHdr.yield →
-    msk_t SchHdr.yield →
+    msk_s (Some SchHdr.yield) →
+    msk_t (Some SchHdr.yield) →
     Ist st_src st_tgt ∗ (if tid_res then tid_user q my_tid else emp) ∗
     (∀ st_src st_tgt,
       Ist st_src st_tgt -∗ (if tid_res then tid_user q my_tid else emp) -∗
@@ -172,8 +172,8 @@ Section RealLAT.
     fsp_s fsp_t body_s body_t arg_s arg_t k_s k_t
     img_s img_t (msk_s msk_t: _ → bool) scp_s scp_t
     :
-    msk_s SchHdr.yield →
-    msk_t SchHdr.yield →
+    msk_s (Some SchHdr.yield) →
+    msk_t (Some SchHdr.yield) →
     Ist st_s st_t ∗
     (□ ∀ x_s, ∃ x_t, precondS fsp_s x_s arg_s ==∗ precondS fsp_t x_t arg_t ∗ (precondS fsp_t x_t arg_t ==∗ precondS fsp_s x_s arg_s)) ∗
     (∀ st_src st_tgt,
@@ -243,8 +243,8 @@ Section RealLAT.
     (tid_res = true ∧
      ∃ sp_user_s,
        sp_incl (SchAS.sp sp_user_s E q) sp_s ∧ img_s = true) →
-    msk_s SchHdr.yield →
-    msk_t SchHdr.yield →
+    msk_s (Some SchHdr.yield) →
+    msk_t (Some SchHdr.yield) →
     I ∗ Ist st_s st_t ∗ (if tid_res then SchAS.tid_user q my_tid else emp) ∗
     (□ (∀ st_src st_tgt,
        I -∗ winv (E, E) -∗ Ist st_src st_tgt -∗ (if tid_res then SchAS.tid_user q my_tid else emp) ==∗

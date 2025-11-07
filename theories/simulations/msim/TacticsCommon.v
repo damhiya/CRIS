@@ -553,7 +553,7 @@ Ltac prove_inline_cond :=
 Lemma mask_app (l m: list string) fn:
   wmask_list (l ++ m) fn = wmask_list l fn || wmask_list m fn.
 Proof.
-  unfold wmask_list. rewrite existsb_app. eauto.
+  unfold wmask_list. destruct fn; ss. rewrite existsb_app. eauto.
 Qed.
 
 Ltac prove_sb_cond :=

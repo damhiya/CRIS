@@ -51,7 +51,7 @@ Proof.
     + rewrite SBRed.call. des_ifs.
       * rewrite! bind_trigger.
         gstep. econs. i. r. gbase. eauto.
-      * exfalso. rewrite (MASK fn) in Heq0; ss.
+      * exfalso. rewrite (MASK (Some fn)) in Heq0; ss.
     + rewrite /triggerUB SBRed.unwrapU.
       ired; rewrite !bind_trigger. gstep. econs. i. ss.
   }
@@ -60,13 +60,18 @@ Proof.
     + rewrite SBRed.spawn. des_ifs.
       * rewrite! bind_trigger.
         gstep. econs. i. r. gbase. eauto.
-      * exfalso. rewrite (MASK fn) in Heq0; ss.
+      * exfalso. apply andb_prop in Heq. des. rewrite (MASK (Some fn)) in Heq0; auto.
+        rewrite (MASK None) in Heq0; ss.
     + rewrite /triggerUB SBRed.unwrapU.
       ired; rewrite !bind_trigger. gstep. econs. i. ss.
   }
   {
-    rewrite! SBRed.yield. rewrite! bind_trigger.
-    gstep. econs. i. r. gbase. eauto.
+    rewrite! SBRed.yield. des_ifs.
+    + rewrite SBRed.yield. des_ifs.
+      * rewrite! bind_trigger. gstep. econs. i. r. gbase. eauto.
+      * apply MASK in Heq. exfalso. et.
+    + rewrite /triggerUB SBRed.unwrapU.
+      ired; rewrite !bind_trigger. gstep. econs. i. ss.
   }
   destruct s; [destruct p|].
   {
@@ -446,10 +451,12 @@ Lemma msim_ctx
       ctx state should maintain its own scope.
     *)
     eapply K; try refl; eauto; try nia; cycle 3.
-    { rewrite SBRed.bind SBRed.yield !bind_trigger in ITRT.
-      depdes ITRT. eapply equal_f in x. eauto. }
-    { rewrite SBRed.bind SBRed.yield !bind_trigger in ITRS.
-      depdes ITRS. eapply equal_f in x. eauto. }
+    { rewrite SBRed.bind SBRed.yield in ITRT. des_ifs. 
+      - rewrite !bind_trigger in ITRT. depdes ITRT. eapply equal_f in x. eauto. 
+      - unfold triggerUB in ITRT. ss. itree_clarify ITRT. }
+    { rewrite SBRed.bind SBRed.yield in ITRS. des_ifs.
+      - rewrite !bind_trigger in ITRS. depdes ITRS. eapply equal_f in x. eauto.
+      - itree_clarify ITRS. }
     { eapply nodup_app_l. rewrite <- map_app. eauto. }
     { eapply nodup_app_l. rewrite <- map_app. eauto. }
     iIntros "H". iPoseProof (INV0 with "H") as ">H".

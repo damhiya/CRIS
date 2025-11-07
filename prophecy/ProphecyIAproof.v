@@ -17,7 +17,7 @@ Module ProphIA.
 
   Hypothesis PHYS : Forall (fun smd => physical_smod smd) (map snd smds).
 
-  Variable msk : string -> bool.
+  Variable msk : option string -> bool.
 
   Let md : Mod.t := (Mod.addL (List.map ((λ '(b, md), if b : bool then CFilter.filter msk md else md) ∘ (map_snd (SMod.to_mod sp_none))) smds)).
 

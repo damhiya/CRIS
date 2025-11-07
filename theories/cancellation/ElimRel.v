@@ -264,11 +264,11 @@ Qed.
 
 Lemma SBRed_NativeSpawn img msk scp fn varg :
   SB.sandbox img msk scp (SModTr.NativeSpawn fn varg) =
-    if msk fn then SModTr.NativeSpawn fn varg else triggerUB.
+    if msk (Some fn) && msk None then SModTr.NativeSpawn fn varg else triggerUB.
 Proof using. rewrite /SModTr.NativeSpawn SBRed.spawn. des_ifs; cycle 1. Qed.
 
 Lemma SBRed_HoareSpawn (img: bool) (msk : _ → bool) scp fn varg fspo
-  (MSK: msk fn)
+  (MSK: msk (Some fn) && msk None)
   (IMG: (negb img) → fspo = None)
   :
   SB.sandbox img msk scp (SModTr.HoareSpawn fn varg fspo) =
@@ -336,7 +336,7 @@ Lemma if_simpl X (b: bool) (x: X):
 Proof using. destruct b; et. Qed.
 
 Lemma MIRed_HoareFun
-    (md : SMod.t) (sp : sp_type) (img : bool) (msk : string → bool) (scp : list string)
+    (md : SMod.t) (sp : sp_type) (img : bool) (msk : option string → bool) (scp : list string)
     (bd : fbody) (fspo : option fspec) (arg : Any.t)
     (fn : string) :
   SMod.wf md →
@@ -382,7 +382,7 @@ Lemma MIRed_HoareCall md sp fn varg
   (img img0: bool) (msk msk0:_→bool) scp scp0 fspo fspo0 bd0
   (WF: SMod.wf md)
   (VP: valid_sp md sp)
-  (IN: msk fn)
+  (IN: msk (Some fn))
   (SP: fspo = if img then sp fn else None)
   (FIND: alist_find (Some fn) (SMod.fnsems md) = Some (img0, msk0, scp0, (fspo0, bd0)))
   :
@@ -405,7 +405,7 @@ Proof using.
     f_equal. extensionalities. ired. do 2 f_equal.
     rewrite SBRed.bind SBRed.Guarantee MIRed.ag.
     f_equal. extensionalities. ired. do 2 f_equal.
-    rewrite SBRed.bind SBRed.call. destruct (msk fn); ss.
+    rewrite SBRed.bind SBRed.call. destruct (msk (Some fn)); ss.
     rewrite MIRed.call {2}/sandboxed_prog.
     ired. rewrite alist_find_map_snd FIND. s. ired.
     rewrite /SB.sandbox_body /SModTr.trans_body. s. do 2 f_equal.
@@ -443,7 +443,7 @@ Proof using.
     }
   }
   {
-    rewrite SBRed.call. destruct (msk fn); ss.
+    rewrite SBRed.call. destruct (msk (Some fn)); ss.
     rewrite -(bind_ret_r (trigger _)) MIRed.call {2}/sandboxed_prog.
     ired. rewrite alist_find_map_snd FIND. s. ired.
     rewrite /SB.sandbox_body /SModTr.trans_body /SModTr.HoareFun.
@@ -502,7 +502,7 @@ Proof using.
     (* call case *)
     {
       rewrite !SRed.bind !SBRed.bind !SRed.call !SBRed.tau !MIRed.bind !MIRed.tau.
-      ired. estep 2. destruct (msk fn) eqn: E; cycle 1.
+      ired. estep 2. destruct (msk (Some fn)) eqn: E; cycle 1.
       { rewrite SBRed.call E /triggerUB // MIRed.core. ired. estep 1. }
       destruct (alist_find (Some fn) (SMod.fnsems md)) eqn: E0; cycle 1.
       { rewrite SBRed.call E -(bind_ret_r (trigger _)) MIRed.call
@@ -548,21 +548,21 @@ Proof using.
     {
       rewrite !SRed.bind !SBRed.bind !SRed.spawn !SBRed.tau !MIRed.bind !MIRed.tau.
       ired. rewrite SBRed_NativeSpawn. estep 2.
-      destruct (msk fn) eqn: E; cycle 1.
+      destruct (msk _ && _) eqn: E; cycle 1.
       { rewrite /triggerUB // MIRed.core. ired. estep 1. }
       rewrite MIRed_NativeSpawn SBRed_HoareSpawn; et; cycle 1.
       { i. destruct img; ss. }
       rewrite MIRed_HoareSpawn.
       gstep. eapply elim_rel_spawn; et.
-      { i. subst. eapply VP. eauto 6. }
+      { i. apply andb_prop in E; des. subst. eapply VP. eauto 6. }
       i. edone.
     }
 
     (* yield case *)
-    { rewrite !SRed.bind !SRed.yield !SBRed.bind !SBRed.tau !SBRed.yield. ired.
-      rewrite !MIRed.tau !MIRed.yield. estep 4.
-      edone.
-    }
+    { rewrite !SRed.bind !SRed.yield !SBRed.bind !SBRed.tau !SBRed.yield.
+      destruct msk.
+      { ired. rewrite !MIRed.tau !MIRed.yield. estep 4. edone. }
+      { rewrite !bind_tau !MIRed.tau. ired. estep 2. rewrite !MIRed.core. ired. estep 1. }}
 
   - rewrite !SRed.bind !SRed.pg !SBRed.bind. destruct s.
     + rewrite SBRed.put. destruct (existsb _ _) eqn: E; cycle 1.
