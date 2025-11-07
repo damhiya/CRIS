@@ -1,7 +1,7 @@
 Require Import CRIS.
 Require Import SchHeader SchA.
 Require Import RRSHeader RRSA.
-Require Import RRSNodeHeader.
+Require Import RRSNodeHeader RRSNodeA.
 Set Implicit Arguments.
 
 Module NDSMainI. Section NDSMainI.
@@ -9,7 +9,7 @@ Module NDSMainI. Section NDSMainI.
   Context `{_schG: !SchA.newschG}.
 
   Definition main : Any.t → itree crisE Any.t :=
-    λ _, trigger (Call SchHdr.spawn (RRSHdr.init, RRSNodeHdr.f_main↑↑)↑). 
+    λ _, trigger (Call SchHdr.spawn (RRSHdr.init, RRSNodeHdr.f_main↑↑)↑);;; Ret tt↑. 
 
   Definition fnsems : fnsems_type :=
     [(None, (false, wmask_all, [], (None, main)))].

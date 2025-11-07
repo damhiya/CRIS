@@ -678,7 +678,7 @@ Module RRSAS. Section RRSAS.
                    ⌜my_tid = mtid ∧ my_tid = 0⌝ ∗
                    (∃ sarg, ⌜arg = sarg↑⌝ ∗ pre varg sarg))%I,
                 (λ (vret: SAny.t) ret,
-                  Tid mtid stid ssch ∗ (∃ (sret: SAny.t), ⌜ret = sret↑⌝)))%I)))
+                  Tid my_tid stid ssch ∗ (∃ (sret: SAny.t), ⌜ret = sret↑⌝)))%I)))
     .
     
     Definition fn_spawnable_rr fn (my_tid: nat) (pre : SAny.t → SAny.t → iProp Σ) Invs : Prop :=
@@ -694,7 +694,7 @@ Module RRSAS. Section RRSAS.
         (fspec_virtual (λ '(pre, Inv),
              ((λ varg arg, 
                 ∃ fn,
-                  ⌜varg = fn ∧ arg = fn↑ ∧ fn_spawnable_rr_init fn 0 pre Inv⌝ ∗
+                  ⌜varg = fn↑↑ ∧ arg = (fn↑↑)↑ ∧ fn_spawnable_rr_init fn 0 pre Inv⌝ ∗
                   InitRRS ∗ pre (tt↑↑) (tt↑↑))%I,
               (λ (vret: SAny.t) ret, False)%I)))
     .
@@ -782,9 +782,10 @@ Module RRSA. Section RRSA.
   Import RRSI.
   
   (* spawnable funciton *)
-  Definition init : string → itree crisE unit :=
-    λ fn,
+  Definition init : SAny.t → itree crisE unit :=
+    λ sfn,
       (* initialize RRS with given function *)
+      'fn: string <- (sfn↓↓)!;;
       stid <- trigger GetTid;;
       cput v_sch stid;;;
       'ths: thpool <- cgetN v_ths;;

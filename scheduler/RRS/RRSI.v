@@ -14,9 +14,10 @@ Module RRSI. Section RRSI.
   Definition v_sch := RRS ↯ "sch".
 
   (* function which would be called by "spawn" of parent scheduler *)
-  Definition init : string → itree crisE unit :=
-    λ fn,
+  Definition init : SAny.t → itree crisE unit :=
+    λ sfn,
       (* initialize RRS with given function *)
+      'fn: string <- (sfn↓↓)?;;
       stid <- trigger GetTid;;
       cput v_sch stid;;;
       'ths: thpool <- cgetU v_ths;;

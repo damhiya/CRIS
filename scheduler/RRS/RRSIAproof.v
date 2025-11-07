@@ -62,7 +62,7 @@ Module RRSIA. Section RRSIA.
 
     steps_l. iDestruct "ASM" as "[[NschT [Tsch Ysch]] [% [-> (% & % & [RRI [P C]] & PRE)]]]"; des; hss.
     rename _q3 into Nmtid_sch, _q4 into stid_sch, _q5 into pre, _q6 into Inv.
-    steps_r. steps_l.
+    steps_r. steps_l. hss. steps_l. steps_r.
 
     (* Get Tid from parent scheduler *)
     force_l stid_sch. steps_l. forces_l; iFrame. steps_l.
