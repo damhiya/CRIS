@@ -49,8 +49,9 @@ Module SchIA. Section sim.
 
     iDestruct "IST" as "[% [% [% [[-> [-> [% [% %Hin]]]] [JoinA [TidA [Rs Ys]]]]]]]".
     pose proof Hspawn as Hspawn2.
-    rewrite /fn_spawnable /fspec_spawnable /fspec_imply /= in Hspawn2.
-    destruct Hspawn2 as [meta_sp [pre_sp [post_sp [Hsp Hprepost]]]].
+    rewrite /fn_spawnable /fspec_spawnable /fspec_imply' /= in Hspawn2.
+    destruct Hspawn2 as [[|] [Hsp Hprepost]]; ss.
+    rename meta into meta_sp, precond into pre_sp, postcond into post_sp.
     steps_l. destruct FunInSp as [? Hsp2]. erewrite Hsp2; eauto; ss.
     specialize (Hprepost (mtid, stid)) as [userx [Hpre Hpost]]. force_l userx.
     steps_l. force_l (farg↑). steps_l.

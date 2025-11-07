@@ -1,4 +1,4 @@
-(* Require Import CRIS.
+Require Import CRIS.
 Require Import APCHeader APC APCA.
 
 Set Implicit Arguments.
@@ -9,25 +9,26 @@ Import APC.
 
 Section LEMMAS.
 
-Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
+Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG}.
 
 Lemma wsim_apc_src
-    fl fr Ist cP r g {Rs Rt} RR ps pt st_src st_tgt k_src i_tgt sp sp_pure
+    fl fr Ist cP r g {Rs Rt} RR ps pt st_src st_tgt k_src i_tgt spimg sp sp_pure
     img mask scopes (ow od: Ord.t) :
   wsim fl fr Ist cP r g Rs Rt RR true pt (st_src, k_src ()) (st_tgt, i_tgt) ⊢
   wsim fl fr Ist cP r g Rs Rt RR ps pt
-    (st_src, ((SB.sandbox img mask scopes (SModTr.trans sp (_APC od sp_pure ow))) >>= k_src))
+    (st_src, ((SB.sandbox img mask scopes (SModTr.trans spimg sp (_APC od sp_pure ow))) >>= k_src))
     (st_tgt, i_tgt).
 Proof using. iIntros "ISIM". rewrite unfold_APC. force_l true. steps_l. iFrame. Qed.
 
 Lemma wsim_apc_src_call_tgt_weaker
-  fl fr Ist Ep r g {Rs Rt} RR ps pt st_src st_tgt k_src k_tgt sp sp_pure
+  fl fr Ist Ep r g {Rs Rt} RR ps pt st_src st_tgt k_src k_tgt spimg sp sp_pure
   img_t (msk_s msk_t : _ → bool) sc_s sc_t (fn: string) args fsp' fsp X (spec_arg: X) o P Q
   (ow_src ow_fn od_src od_fn : Ord.t)
   (WIDTH: (ow_fn < ow_src)%ord)
   (DEPTH: (od_fn < od_src)%ord)
   (SpPureInSp: sp_incl sp_pure sp)
   (fnInSpPure: alist_find (Some fn) sp_pure = Some fsp')
+  (CallSpec: negb (is_spawn_ospec fsp'))
   (WEAK: fspec_imply (fspec_flat fsp') fsp)
   (fspIsfspecapc: fsp = (@fspec_apc Σ X o (λ x, (P x, Q x))))
   :
@@ -36,11 +37,11 @@ Lemma wsim_apc_src_call_tgt_weaker
     (∀ st_src0 st_tgt0 (vret ret: Any.t),
       ((Ist st_src0 st_tgt0) ∗ (Q spec_arg ret))
       -∗ wsim fl fr Ist Ep r g Rs Rt RR false false
-          (st_src0, ((SB.sandbox true msk_s sc_s (SModTr.trans sp (_APC od_src sp_pure ow_fn))) >>= k_src))
+          (st_src0, ((SB.sandbox true msk_s sc_s (SModTr.trans spimg sp (_APC od_src sp_pure ow_fn))) >>= k_src))
           (st_tgt0, k_tgt ret)))
   ⊢
     wsim fl fr Ist Ep r g Rs Rt RR ps pt
-      (st_src, (SB.sandbox true msk_s sc_s (SModTr.trans sp (_APC od_src sp_pure ow_src))) >>= k_src)
+      (st_src, (SB.sandbox true msk_s sc_s (SModTr.trans spimg sp (_APC od_src sp_pure ow_src))) >>= k_src)
       (st_tgt, (SB.sandbox img_t msk_t sc_t (trigger (Call fn args))) >>= k_tgt).
 Proof using.
   i. iIntros "[[[PRE %] IST] ISIM]".
@@ -51,26 +52,26 @@ Proof using.
   unfold guarantee. force_l PO. steps_l.
   assert (sp fn = fsp').
   { apply SpPureInSp. eauto. }
-  rewrite H3. des_ifs.
+  rewrite H3. destruct fsp'; ss; [destruct f;ss|].
   { des. rewrite /fspec_imply in WEAK. hss.
     specialize (WEAK spec_arg). des.
     force_l x0. force_l args. steps_l.
-    iPoseProof ((PRE vo ↑ args) with "[PRE]") as ">PRE". { unfold precond, fspec_apc; ss. iFrame. by iExists _. }
+    iPoseProof ((WEAK vo ↑ args) with "[PRE]") as ">PRE". { unfold FSpec.precond, fspec_apc; ss. iFrame. by iExists _. }
     iApply wsim_guarantee_src. iFrame. steps_l.
 
     call "IST"; et. norm_r.
     steps_l. iApply wsim_reset.
-    iPoseProof ((POST _q ret) with "ASM") as ">POST".
+    iPoseProof ((WEAK0 _q ret) with "ASM") as ">POST".
     iSpecialize ("ISIM" $! st_s' st_t' _q ret).
     iApply "ISIM". iFrame.
   }
   { des; rewrite /fspec_imply in WEAK; hss.
     specialize (WEAK spec_arg). des.
-    specialize (PRE (vo↑) args). rewrite /fspec_apc /fspec_trivial /precond in PRE; ss.
-    iPoseProof (PRE with "[PRE]") as ">%".
+    specialize (WEAK (vo↑) args). rewrite /fspec_apc /fspec_trivial /FSpec.precond in WEAK; ss.
+    iPoseProof (WEAK with "[PRE]") as ">%".
     { iFrame. iPureIntro; eauto. }
     subst. call "IST".
-    iPoseProof (POST with "[]") as ">POST"; eauto.
+    iPoseProof (WEAK0 with "[]") as ">POST"; eauto.
     rewrite /fspec_apc /postcond; ss.
     iApply wsim_reset.
     norm_l. norm_r. iSpecialize ("ISIM" $! st_s' st_t' (tt↑) ret).
@@ -79,13 +80,14 @@ Proof using.
 Qed.
 
 Lemma wsim_apc_src_call_tgt
-  fl fr Ist cP r g {Rs Rt} RR ps pt st_src st_tgt k_src k_tgt sp (sp_pure : spl_type)
+  fl fr Ist cP r g {Rs Rt} RR ps pt st_src st_tgt k_src k_tgt spimg sp (sp_pure : spl_type)
   img_t (msk_s msk_t : _ → bool) sc_s sc_t fn args fsp X (spec_arg: X) o P Q
   (ow_src ow_fn od_src od_fn : Ord.t)
   (WIDTH: (ow_fn < ow_src)%ord)
   (DEPTH: (od_fn < od_src)%ord)
   (SpPureInSp: sp_incl sp_pure sp)
   (fnInSpPure: alist_find (Some fn) sp_pure = Some (Some fsp))
+  (CallSpec: negb (is_spawn_ospec (Some fsp)))
   (fspIsfspecapc: fsp = (@fspec_apc Σ X o (λ x, (P x, Q x))))
   :
   msk_s fn → msk_t fn →
@@ -93,11 +95,11 @@ Lemma wsim_apc_src_call_tgt
     (∀ st_src0 st_tgt0 (vret ret: Any.t),
       ((Ist st_src0 st_tgt0) ∗ (Q spec_arg ret))
       -∗ wsim fl fr Ist cP r g Rs Rt RR false false
-          (st_src0, ((SB.sandbox true msk_s sc_s (SModTr.trans sp (_APC od_src sp_pure ow_fn))) >>= k_src))
+          (st_src0, ((SB.sandbox true msk_s sc_s (SModTr.trans spimg sp (_APC od_src sp_pure ow_fn))) >>= k_src))
           (st_tgt0, k_tgt ret)))
   ⊢
     wsim fl fr Ist cP r g Rs Rt RR ps pt
-      (st_src, (SB.sandbox true msk_s sc_s (SModTr.trans sp (_APC od_src sp_pure ow_src))) >>= k_src)
+      (st_src, (SB.sandbox true msk_s sc_s (SModTr.trans spimg sp (_APC od_src sp_pure ow_src))) >>= k_src)
       (st_tgt, (SB.sandbox img_t msk_t sc_t (trigger (Call fn args))) >>= k_tgt).
 Proof using.
   eapply wsim_apc_src_call_tgt_weaker; et. 
@@ -235,16 +237,18 @@ Ltac apc_l :=
   iApply wsim_apc_tgt; des_pairs; s;
   [| |iSplitL hyps; [|iIntros "% % % %"; iIntrosFresh "IST"]]. *)
 
+(** TODO: updating apc tactics is required *)
+
 Ltac apc_call hyps :=
   prep_macro_l; norm_r;
   iApply wsim_apc_src_call_tgt; des_pairs; s;
-  [| | | | |try prove_sb_cond|try prove_sb_cond|iSplitL hyps; [ |iIntros "% % % %"; iIntrosFresh "ISTPOST"]].
+  [| | | | |try prove_sb_cond|try prove_sb_cond| |iSplitL hyps; [ |iIntros "% % % %"; iIntrosFresh "ISTPOST"]].
 
 Ltac apc_call_weaker hyps :=
   prep_macro_l; norm_r;
   iApply wsim_apc_src_call_tgt_weaker; des_pairs; s;
-  [| | | | | |try prove_sb_cond|try prove_sb_cond|iSplitL hyps; [ |iIntros "% % % %"; iIntrosFresh "ISTPOST"]].
+  [| | | | | |try prove_sb_cond|try prove_sb_cond| |iSplitL hyps; [ |iIntros "% % % %"; iIntrosFresh "ISTPOST"]].
 
 (* Ltac apc_tgt_noist :=
   prep_macro_r;
-  iApply wsim_apc_tgt_noist; des_pairs; s. *) *)
+  iApply wsim_apc_tgt_noist; des_pairs; s. *)
