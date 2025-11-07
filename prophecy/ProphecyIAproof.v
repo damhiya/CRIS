@@ -200,7 +200,11 @@ Module ProphIA.
           { eapply inj_pair2 in H0. eapply inj_pair2 in H1. clarify.
             grind. rewrite interpV_bind interpV_trigger. grind. pfold. econs; et. i. clarify. }
         * rewrite !interpV_tau bind_tau. pfold. econs. left.
-          rewrite interpV_trigger. ss. des_ifs.
+          rewrite interpV_trigger. ss. des_ifs; cycle 1.
+          { apply inj_pair2 in H1, H0. clarify.
+            rewrite interpV_bind interpV_trigger; ss. ired. pfold. econs; et. 
+            clarify. }
+          apply inj_pair2 in H0. clarify. apply inj_pair2 in H0. clarify.
           grind. rewrite interpV_trigger. ss. grind. pfold. econs. i. grind. right. et.
         * grind. rewrite interpV_trigger. ss. des_ifs.
           { eapply inj_pair2 in H0. eapply inj_pair2 in H1. clarify.
