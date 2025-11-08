@@ -21,7 +21,7 @@ Module StackIM. Section StackIM.
   Context (Hsphelp : sp_incl ([(Some (Helping.run mn), None); (Some (Helping.help mn), None)]) sp).
 
   (* Whitelist of functions callable in stack *)
-  Definition imp := omap id (Mod.exports SchI.t ++ Mod.exports (MemA.t sp)).
+  Definition imp := omap id (Mod.exports SchI.t ++ Mod.exports (MemA.t sp_none)).
   Context (Hmsk : wmask_sub (wmask_list imp) msk).
 
   Lemma yield_msk : wmask_and msk wmask_all SchHdr.yield.
@@ -63,7 +63,7 @@ Module StackIM. Section StackIM.
 
   Definition init_cond : iProp Σ := helping_auth 1 ∅%I.
 
-  Local Definition MemA := CFilter.filter msk (MemA.t sp).
+  Local Definition MemA := CFilter.filter msk (MemA.t sp_none).
   Local Definition SchI := CFilter.filter msk SchI.t.
   Local Definition HelpingOn := HelpingOn.t mn StackM.jobCode sp.
   Local Definition HelpingDummy := HelpingDummy.t mn.
@@ -349,7 +349,7 @@ Module StackIM. Section StackIM.
     rewrite Z.add_0_l.
     case_decide; subst.
     { (* nobody helped*)
-      iApply (wsim_mem_cas _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ emp%I with "offerst↦");
+      iApply (wsim_mem_cas _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ emp%I with "offerst↦");
         [try prove_inline_cond|try prove_sb_cond|unfold_cris_defs|..]; eauto.
       des_ifs_safe. iIntros "Hofferst _". steps_r. hss_r. steps_r.
 
@@ -366,7 +366,7 @@ Module StackIM. Section StackIM.
     }
     case_decide; subst.
     { (* Somebody helped *)
-      iApply (wsim_mem_cas _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ emp%I with "offerst↦");
+      iApply (wsim_mem_cas _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ emp%I with "offerst↦");
         [try prove_inline_cond|try prove_sb_cond|unfold_cris_defs|..]; eauto.
       des_ifs_safe. iIntros "Hofferst _". steps_r. hss_r. steps_r.
       iPoseProof "offer" as "#offer".
@@ -631,7 +631,7 @@ Module StackIM. Section StackIM.
     }
 
     (* Failed to take the offer - repeat the whole process! *)
-    iApply (wsim_mem_cas _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ emp%I with "↦offerst");
+    iApply (wsim_mem_cas _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ emp%I with "↦offerst");
         [try prove_inline_cond|try prove_sb_cond|unfold_cris_defs|..]; eauto.
     { instantiate (1:=0%Z). destruct (dec _ _); clarify. des_ifs; ss. }
     iIntros "↦offerst _". steps_r. hss_r. steps_r.
@@ -683,8 +683,8 @@ Module StackIA. Section StackIA.
   Lemma ctxr (N : namespace) (sp : sp_type) :
     sp_incl (SchA.sp [] (↑N)) sp →
     ctx_refines
-      (StackA.t N sp ★ MemA.t sp ★ SchI.t , StackIM.init_cond)
-      (StackI.t      ★ MemA.t sp ★ SchI.t, emp%I).
+      (StackA.t N sp ★ MemA.t sp_none ★ SchI.t , StackIM.init_cond)
+      (StackI.t      ★ MemA.t sp_none ★ SchI.t, emp%I).
   Proof.
     intros Hsp.
     etrans; first eapply ctxr_cond_strengthen.

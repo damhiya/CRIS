@@ -163,8 +163,8 @@ Module PQueueIA. Section PQueueIA.
 
   Local Definition sp_stack : sp_type := to_sp (SchA.sp  [] (↑(stackN N))).
   Local Definition StackA := StackA.t (stackN N) sp_stack.
-  Local Definition PQueueI := PQueueI.t      ★ (StackA ★ SchI.t ★ MemA.t).
-  Local Definition PQueueA := PQueueA.t N sp ★ (StackA ★ SchI.t ★ MemA.t).
+  Local Definition PQueueI := PQueueI.t      ★ (StackA ★ SchI.t ★ MemA.t sp_none).
+  Local Definition PQueueA := PQueueA.t N sp ★ (StackA ★ SchI.t ★ MemA.t sp_none).
   Local Definition IstFull := IstProd (IstSB (Mod.scopes (PQueueA.t N sp)) IstTrue) IstEq.
 
   Lemma new_simF : ISim.sim_fun open PQueueA PQueueI init_cond IstFull (Some PQueueHdr.new).
@@ -495,8 +495,8 @@ Section ctxr.
   Lemma ctxr (N : namespace) (sp : sp_type) :
     sp_incl (SchA.sp [] (↑N)) sp →
     ctx_refines
-      (PQueueA.t N sp ★ StackA.t (stackN N) (sp_stack N) ★ SchI.t ★ MemA.t, emp%I)
-      (PQueueI.t ★ StackA.t (stackN N) (sp_stack N) ★ SchI.t ★ MemA.t, emp%I).
+      (PQueueA.t N sp ★ StackA.t (stackN N) (sp_stack N) ★ SchI.t ★ MemA.t sp_none, emp%I)
+      (PQueueI.t ★ StackA.t (stackN N) (sp_stack N) ★ SchI.t ★ MemA.t sp_none, emp%I).
   Proof. intros Hsp. eapply main_adequacy, sim; eauto. Qed.
 End ctxr. End PQueueIA.
 
