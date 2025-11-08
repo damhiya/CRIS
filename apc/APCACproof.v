@@ -1,4 +1,4 @@
-(* Require Import CRIS.
+Require Import CRIS.
 Require Import APCHeader APC APCA APCC.
 
 Require Import ltac2_lib.
@@ -7,7 +7,7 @@ Set Implicit Arguments.
 
 Module APCAC. Section APCAC.
   Import APCA.
-  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG}.
 
   Definition Ist : alist key Any.t → alist key Any.t → iProp Σ :=
     (λ _ _, True)%I.
@@ -21,7 +21,7 @@ Module APCAC. Section APCAC.
   Context (PureIsPure :
             ∀ fn pfsp,
             alist_find (Some fn) sp_pure = Some pfsp
-            → ∃ msk scp, (find_body md fn = Some (pure_specbody sp_a true msk scp pfsp)) ∧ msk APCHdr.apc = true).
+            → ∃ msk scp, (find_body md fn = Some (pure_specbody sp_a true msk scp pfsp)) ∧ msk APCHdr.apc = true /\ negb (is_spawn_ospec pfsp)).
 
   Local Definition APCC := (APCC.t sp_c).
   Local Definition APCA := (APCA.t sp_pure sp_a).
@@ -98,7 +98,7 @@ Module APCAC. Section APCAC.
 
     (* inlining *)
     hexploit PureIsPure; eauto. i. des. rewrite /find_body in H1.
-    steps_r. rename _q into x', _q0 into ret'.
+    destruct f; ss. steps_r. rename _q into x', _q0 into ret'.
     inline_r.
     { unfold FLT. rewrite map_app. apply alist_find_comm.
       { rewrite map_app. rewrite !map_fst_map_map_snd_refl.
@@ -139,7 +139,7 @@ Module APCAC. Section APCAC.
 End APCAC.
 
 Section ctxr.
-  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG}.
 
   Definition ctxr (md : Mod.t) (sp_c sp_a : sp_type) (sp_pure : spl_type)
       (APCInSpA : sp_incl APCA.Sp sp_a)
@@ -147,9 +147,9 @@ Section ctxr.
       (PureIsPure :
         ∀ fn pfsp,
           alist_find (Some fn) sp_pure = Some pfsp
-          → ∃ msk scp, (find_body md fn = Some (pure_specbody sp_a true msk scp pfsp)) ∧ msk APCHdr.apc = true) :
+          → ∃ msk scp, (find_body md fn = Some (pure_specbody sp_a true msk scp pfsp)) ∧ msk APCHdr.apc = true /\ negb (is_spawn_ospec pfsp)) :
     ctx_refines
       ((APCC.t sp_c)          ★ md, emp%I)
       ((APCA.t sp_pure sp_a)  ★ md, emp%I).
   Proof. eapply main_adequacy, sim; eauto. Qed.
-End ctxr. End APCAC. *)
+End ctxr. End APCAC.

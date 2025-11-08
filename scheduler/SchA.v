@@ -74,7 +74,7 @@ Module SchA. Section SchA.
     Definition fspec_spawnable fsp
         (pre : SAny.t → SAny.t → iProp Σ)
         (postS : SAny.t → SAny.t → leibnizO {n & GTerm.t n}) : Prop :=
-      fspec_imply fsp
+      fspec_imply' fsp
         (fspec_winv E
            (fspec_virtual (λ '(mtid, stid),
               ((λ (varg : SAny.t) arg,
@@ -85,9 +85,8 @@ Module SchA. Section SchA.
     Definition fn_spawnable fn
         (pre : SAny.t -d> SAny.t -d> iProp Σ)
         (postS : SAny.t -d> SAny.t -d> leibnizO {n & GTerm.t n}) : Prop :=
-      ∃ meta1 pre1 post1,
-        alist_find (Some fn) sp_user = Some (Some (@fspec_call _ meta1 pre1 post1)) ∧
-      fspec_spawnable (@fspec_call _ meta1 pre1 post1) pre postS.
+      ∃ fsp, alist_find (Some fn) sp_user = Some (Some fsp) ∧
+               fspec_spawnable fsp pre postS.
 
     Definition inner_spawn_spec : fspec := 
       fspec_spawn
