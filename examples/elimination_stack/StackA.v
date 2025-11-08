@@ -23,7 +23,8 @@ Proof. econs; SL_red; eauto. Qed.
 Section definitions.
   Definition jobID : Type := nat * nat * (nat * val * val * gname).
   Definition retID : Type := val.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG, !memG, !stackG jobID retID, !newschG} (N : namespace).
+  Context `{!crisG Γ Σ α β τ _S _I, !concG, !memG, !stackG jobID retID, !newschG}.
+  Context (N : namespace).
 
   Definition offerN := N .@ "offer".
   Definition stackN := N .@ "stack".
@@ -96,7 +97,6 @@ Section definitions.
       else if (decide (offerst = 1)) then syn_helping_done n rid Vundef
       else if (decide (offerst = 2)) then <own> γo (Excl ())
       else ⊥)%SAT.
-
   Definition offer_inv γo (offer : mblock * ptrofs) (rid : nat) (jid : jobID) : iProp Σ :=
     (∃ (offerst : Z),
       (offer.1, offer.2 + 1)%Z ↦ Vint offerst ∗
@@ -159,18 +159,6 @@ Section definitions.
         ((λ arg, ⌜arg = [s]↑⌝ ∗ is_stack γs s n),
          (λ ret, True))))%I.
 End definitions.
-
-(* Temporary note : for this spec to make sense, pre/postconditions for atomic update should be
-   able to depend on the choice of the metavariable of the private pre/postconditions.
-   Thus, conventional Hoarefun is not usable for now. *)
-Definition atomic_body `{Σ : GRA} (fsp : fspecS) (body : metaS fsp → Any.t → itree crisE Any.t)
-    : Any.t → itree crisE Any.t :=
-  λ arg,
-    x <- trigger (Take (metaS fsp));;
-    trigger (Assume ((precondS fsp) x arg));;;
-    ret <- body x arg;;
-    trigger (Guarantee ((postcondS fsp) x ret));;;
-    Ret ret.
 
 Module StackM. Section StackM.
   Definition jobID : Type := nat * nat * (nat * val * val * gname).

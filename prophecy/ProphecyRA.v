@@ -40,7 +40,8 @@ Section ProphecyRA.
           then ●ε
           else ●E (map id))).
 
-  Definition has_proph_auth (P : Prophecy.ID → Prop) (map : Prophecy.ID -> ProphInst) : iProp Σ := own base_γ (has_proph_auth_r P map).
+  Definition has_proph_auth (P : Prophecy.ID → Prop) (map : Prophecy.ID -> ProphInst) : iProp Σ :=
+    own base_γ (has_proph_auth_r P map).
 
   Definition free_id_r (P : Prophecy.ID → Prop) : IdRA :=
      λ i, if (excluded_middle_informative (P i)) then ◯E () else ε.

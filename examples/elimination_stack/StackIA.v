@@ -139,25 +139,8 @@ Module StackIM. Section StackIM.
 
     (* Register for helping *)
     steps_r. norm_l.
-    (* TODO : factor out this proof into a lemma *)
-    inline_l. steps_l. hss.
-    iDestruct "IST" as "[% [% [% [% [[-> ->] [-> [% [% [[-> ->] ●Help]]]]]]]]]". steps_l. hss.
-    rename _q into reqmap_s.
-    iMod (own_update with "●Help") as "[●Help Help◯]".
-    { eapply (gmap_view_alloc _ (fresh (dom reqmap_s)) (DfracOwn 1)); eauto.
-      { apply not_elem_of_dom. rewrite dom_fmap. apply is_fresh. }
-      { rewrite dfrac_valid; eauto. }
-      { instantiate (1:=(to_agree (None, _))); ss. }
-    }
-    set (st_src := st_tgtL ++ _). set (st_tgt := st_tgtL ++ _).
-    iAssert (IstFull st_src st_tgt)%I with "[●Help]" as "IST".
-    { iExists _, _, _, _; subst st_src st_tgt; repeat iSplit; eauto.
-      rewrite -fmap_insert //. iFrame; done.
-    }
-    iAssert (helping_token (fresh (dom _)) _)%I with "Help◯" as "Tkn".
-    generalize (fresh (dom reqmap_s)) as req_id; intros req_id.
-    generalize (st_src); clear st_src; intros st_src.
-    generalize (st_tgt); clear st_tgt; intros st_tgt.
+    iApply (wsim_helping_run with "IST"); eauto. { prove_inline_cond. }
+    clear st_src st_tgt; iIntros (st_src st_tgt req_id) "IST Tkn".
 
     (* Coinduction starts here *)
     iApply wsim_reset. iStopProof.
@@ -230,17 +213,18 @@ Module StackIM. Section StackIM.
       (* atomic update happens here: since it is valid to update stack_contents here (without any
          helps from other threads), the pusher does its own job *)
       sch_yield_l. norm_l.
-      rewrite /HelpingOn.try_run.
-      iDestruct "IST" as "[% [% [% [% [[-> ->] [IST [% [% [[-> ->] ●Help]]]]]]]]]". steps_l. hss.
-      iPoseProof (helping_auth_token with "●Help Help") as "%Hlookup"; rewrite Hlookup /=.
-      rewrite Helping.trans_take. steps_l. clear l; rename _q0 into l.
+      iApply (wsim_helping_pend_try_run with "Help IST [-]").
+      rewrite Helping.trans_take. steps_l.
       rewrite Helping.trans_Assume. steps_l.
       iCombine "Hs ASM" gives
         %[->%Excl_included%leibniz_equiv _]%auth_both_valid_discrete.
       iMod (own_update_2 with "Hs ASM") as "[Hs Hl]".
       { eapply auth_update, option_local_update, (exclusive_local_update _ (Excl _)). done. }
       rewrite Helping.trans_Guarantee. force_l. iFrame.
-      rewrite Helping.trans_ret. steps_l.
+      rewrite Helping.trans_ret. steps_l. iApply wsim_unfold; iIntros "W"; step.
+      iFrame. iSplit; eauto.
+
+      clear st_src st_tgt; iIntros (st_src st_tgt) "#Done IST". steps_l.
 
       (* we updated the user-side resource, now proceed *)
       iMod ("close" with "[Hnewv Hnewhead Hoffer Hlist H↦ Hs]") as "_".
@@ -249,14 +233,9 @@ Module StackIM. Section StackIM.
         destruct stack_rep, stack_rep'; inv Hcomp; des_ifs.
         simpl_bool; des; do 2 destruct (dec _ _); clarify.
       }
-      (* restoring IST *)
-      iMod (helping_auth_commit with "●Help Help") as "[●Help Help◯]".
-      clear st_src st_tgt. set (st_src := st_srcL ++ _); set (st_tgt := st_tgtL0 ++ _).
-      iAssert (IstFull st_src st_tgt)%I with "[IST ●Help]" as "IST".
-      { iExists _, _, _, _; iFrame "●Help". iSplit; eauto. }
 
       (* comparison *)
-      sch_yield_ir. clear st_src st_tgt. steps_r.
+      sch_yield_ir. steps_r.
       iCombine "Hval" "Hval2" as "Hval".
       iApply (wsim_mem_cmp with "Hval");
         [try prove_inline_cond|try prove_sb_cond|unfold_cris_defs|..]; eauto.
@@ -380,14 +359,11 @@ Module StackIM. Section StackIM.
         [try prove_inline_cond|try prove_sb_cond|unfold_cris_defs|..]; eauto.
       iIntros "_". steps_r. hss_r. steps_r.
 
-      sch_yield_l.
-      rewrite /HelpingOn.try_run /=. steps_l.
-      iDestruct "IST" as "[% [% [% [% [[-> ->] [? [% [% [[-> ->] ●Help]]]]]]]]]".
-      steps_l. hss.
-
-      iPoseProof (helping_auth_done with "●Help offer") as "[% %Heq]"; rewrite Heq; clear Heq.
-      steps_l. sch_yield_l. steps_l. force_l. hss. iFrame. iSplit; eauto.
-      step. iFrame. iSplit; eauto.
+      sch_yield_l. steps_l.
+      iApply (wsim_helping_done_try_run with "offer IST"); eauto.
+      iIntros "IST".
+      sch_yield_l. steps_l. force_l. hss. iFrame. iSplit; eauto.
+      step. iFrame. eauto.
     }
 
     case_decide; try by (iCombine "OfferTkn" "offer" gives %WF). ss.

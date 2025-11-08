@@ -3,6 +3,7 @@ From iris.proofmode Require Import proofmode.
 
 Set Implicit Arguments.
 
+(* Function specifications *)
 Section FSPEC.
   Context {Σ : GRA}.
 
@@ -33,17 +34,6 @@ Section FSPEC.
     | fspec_call _ post
     | fspec_spawn _ post => post
     end.
-
-  (* Record fspec : Type := mk_fspec {
-    (* boolean flag to denote spawnable functions *)
-    spawnable : bool;
-    (* metavariable *)
-    meta : Type;
-    (* meta-variable → virtual arg → physical arg → iProp *)
-    precond : meta → Any.t → Any.t → iProp Σ;
-    (* meta-variable → virtual ret → physical ret → iProp *)
-    postcond : meta → Any.t → Any.t → iProp Σ;
-  }. *)
 
   Definition fbody : Type := Any.t → itree crisE Any.t.
 
@@ -88,6 +78,7 @@ Section FSPEC.
       (λ '(existT i meta_i), precond (nth i fspecs fspec_top) meta_i)
       (λ '(existT i meta_i), postcond (nth i fspecs fspec_top) meta_i).
 
+  (* Simple fspecs. Assumes virtual arg = physical arg *)
   Record fspecS : Type := mk_fspecS {
     metaS : Type;
     precondS : metaS → Any.t → iProp Σ;
@@ -108,6 +99,16 @@ Section FSPEC.
     precondS := λ '(existT i meta_i), (nth i fspecs fspecS_bot).(precondS) meta_i;
     postcondS := λ '(existT i meta_i), (nth i fspecs fspecS_bot).(postcondS) meta_i
   |}.
+
+  (* Takes fspecS, generates inlinable specification *)
+  Definition atomic_body (fsp : fspecS) (body : metaS fsp → Any.t → itree crisE Any.t)
+    : Any.t → itree crisE Any.t :=
+  λ arg,
+    x <- trigger (Take (metaS fsp));;
+    trigger (Assume ((precondS fsp) x arg));;;
+    ret <- body x arg;;
+    trigger (Guarantee ((postcondS fsp) x ret));;;
+    Ret ret.
 
   Definition lat_img_body
       (peeking: bool) (fsp : fspecS) (lbody : itree crisE ()) (body : fbody) (arg : Any.t) :=
