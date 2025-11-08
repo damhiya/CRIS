@@ -24,8 +24,8 @@ Module RRSNodeIA. Section RRSNodeIA.
 
   Local Definition IstFull := (IstProd (IstSB (RRSNodeA.t E sp).(Mod.scopes) IstTrue) IstEq).
   Local Definition init_cond := RRSNodeA.init_cond.
-  Local Definition MA := (RRSNodeA.t E sp ★ MemP.t ★ (RRSA.t sp sp_user)).
-  Local Definition MI := (RRSNodeI.t ★ MemP.t ★ (RRSA.t sp sp_user)).
+  Local Definition MA := (RRSNodeA.t E sp ★ (MemA.t sp) ★ (RRSA.t sp sp_user)).
+  Local Definition MI := (RRSNodeI.t ★ (MemA.t sp) ★ (RRSA.t sp sp_user)).
 
   Lemma f_spawnable n b Invs
     (RNG: 0 < n < size Invs)
@@ -66,9 +66,9 @@ Module RRSNodeIA. Section RRSNodeIA.
 
     (** alloc **)
     steps_r. inline_r. steps_r.
-    unfold_lat_real_r. forces_r. iSplit; eauto; ss.
-    { instantiate (1 := 1). iPureIntro; esplits; eauto; ss. }
-    ss. iIntros "[% [-> [PT _]]]".
+    forces_r. iSplit; eauto; ss.
+    { instantiate (1:=[Vint 1]↑). instantiate (1:=1). iPureIntro; esplits; eauto; ss. }
+    ss. steps_r. iDestruct "GRT" as "[[% (-> & PT & _)] %]".
     replace (0 + 0%nat)%Z with 0%Z by nia.
     steps_r; hss_r. steps_r.
     steps_l.
@@ -84,10 +84,9 @@ Module RRSNodeIA. Section RRSNodeIA.
     iDestruct "ASM" as "[[-> tidF] ->]". hss.
 
     (** store **)
-    steps_r. inline_r. steps_r.
-    unfold_lat_real_r. forces_r. iSplitL "PT"; eauto; ss.
-    { instantiate (1 := (b, 0%Z, Vundef, Vint 0)); ss. iFrame; eauto. }
-    ss. iIntros "[PT ->]".
+    steps_r. inline_r. steps_r. forces_r. iSplitL "PT"; eauto; ss.
+    { instantiate (2 := (b, 0%Z, Vundef, Vint 0)); ss. iFrame; eauto. }
+    ss. steps_r. iDestruct "GRT" as "[[PT ->] %]".
     steps_r; hss_r. steps_r.
 
     rewrite SP_RRS_YG /=.
@@ -209,9 +208,9 @@ Module RRSNodeIA. Section RRSNodeIA.
     { rewrite /half_val. unseal "Node". iFrame. }
     rewrite PREV.
     
-    inline_r. steps_r. unfold_lat_real_r. forces_r. instantiate (1 := (blk, ofs, 1%Qp, _)); ss.
+    inline_r. steps_r. forces_r. instantiate (1 := (blk, ofs, 1%Qp, _)); ss.
     iSplitL "PT"; iFrame; eauto.
-    iIntros "[PT ->]".
+    steps_r. iDestruct "GRT" as "[[PT ->] %]".
     steps_r; hss. steps_r.
 
     (** Close invariant **)
@@ -257,10 +256,10 @@ Module RRSNodeIA. Section RRSNodeIA.
     { rewrite /half_val. unseal "Node". iFrame. }
     rewrite PREV.
 
-    inline_r. steps_r. unfold_lat_real_r. forces_r.
+    inline_r. steps_r.  forces_r.
     instantiate (1 := (blk, ofs, Vint _, Vint _)); ss.
-    iSplitL "PT"; iFrame; eauto.
-    iIntros "[PT ->]". steps_r; hss_r. steps_r.
+    iSplitL "PT"; iFrame; eauto. steps_r.
+    iDestruct "GRT" as "[[PT ->] %]". steps_r; hss_r. steps_r.
     replace (S mtid - mtid)%Z with 1%Z by nia.
 
     (** Close invariant **)
@@ -326,8 +325,8 @@ Section ctxr.
     (Hrrs: spl_sub (RRSAS.sp sp_user E) sp_sch_user)
     (Hnode: spl_sub (RRSNodeAS.sp E) sp_user) :
     ctx_refines
-      ((RRSNodeA.t E sp ★ MemP.t ★ (RRSA.t sp sp_user)), RRSNodeA.init_cond)
-      ((RRSNodeI.t      ★ MemP.t ★ (RRSA.t sp sp_user)), emp%I).
+      ((RRSNodeA.t E sp ★ (MemA.t sp) ★ (RRSA.t sp sp_user)), RRSNodeA.init_cond)
+      ((RRSNodeI.t      ★ (MemA.t sp) ★ (RRSA.t sp sp_user)), emp%I).
   Proof using. eapply main_adequacy, (RRSNodeIA.sim E Hsub sp sp_sch_user); eauto. Qed.
 
 End ctxr.

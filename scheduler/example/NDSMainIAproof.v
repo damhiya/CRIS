@@ -23,14 +23,14 @@ Module NDSMainIA. Section NDSMainIA.
   Context (Hrrs: spl_sub (RRSAS.sp sp_user E) sp_sch_user).
   Context (Hnode: spl_sub (RRSNodeAS.sp E) sp_user).
 
-  Local Definition MA := (NDSMainA.t E sp).
+  Local Definition MA := (NDSMainA.t sp).
   Local Definition MI := (NDSMainI.t).
 
-  Lemma simF_main : ISim.sim_fun open MA MI emp%I IstTrue None.
+  Lemma simF_main : ISim.sim_fun open MA MI init_cond IstTrue None.
   Proof using Hschglob Hschrrs Hsch Hrrs Hnode.
     init_simF.
 
-    steps_l. iDestruct "ASM" as "((-> & I & F) & ->)".
+    steps_l. iDestruct "ASM" as "->"; iDestruct "IST" as "[IST [I F]]".
     force_l (λ svarg sarg, ⌜svarg = RRSNodeHdr.f_main↑↑ ∧ svarg = sarg⌝ ∗ RRSAS.InitRRS ∗ RRSNodeAS.full_val (Vint 0),
               λ svret sret, existT 0 (SL.pure False))%I.
     forces_l. iSplitL "I F".
@@ -63,7 +63,7 @@ Module NDSMainIA. Section NDSMainIA.
     steps_r. step. iFrame; eauto.
   Qed.
 
-  Lemma sim : ISim.t open MA MI emp%I IstTrue.
+  Lemma sim : ISim.t open MA MI init_cond IstTrue.
   Proof using Hschglob Hschrrs Hsch Hrrs Hnode.
     init_sim. eapply simF_main.
   Qed.
@@ -84,8 +84,8 @@ Section ctxr.
     (Hrrs: spl_sub (RRSAS.sp sp_user E) sp_sch_user)
     (Hnode: spl_sub (RRSNodeAS.sp E) sp_user) :
     ctx_refines
-      (NDSMainA.t E sp, emp%I)
-      (NDSMainI.t     , emp%I).
+      (NDSMainA.t sp, NDSMainA.init_cond)
+      (NDSMainI.t   , emp%I).
   Proof using. eapply main_adequacy, (NDSMainIA.sim E sp sp_sch_user sp_user); eauto. Qed.
 
 End ctxr.

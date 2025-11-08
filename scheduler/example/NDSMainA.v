@@ -14,24 +14,23 @@ Module NDSMainA. Section NDSMainA.
   Context `{_memG: !MemA.memG}.
   Context `{_nodeG: !RRSNodeA.nodeG}.
 
-  Definition main_spec E : fspec :=
-    fspec_winv E
-      (fspec_simple (λ (_: unit),
-           (λ varg, ⌜varg = tt↑⌝ ∗ RRSAS.InitRRS ∗ RRSNodeAS.full_val (Vint 0),
-           λ vret, ⌜vret = tt↑⌝)%I)).
+  Definition sp : spl_type :=
+    Seal.sealing CRIS [(None, Some fspec_trivial)].
 
-  Definition fnsems E : fnsems_type :=
-    [(None, (true, wmask_all, [], (Some (main_spec E), NDSMainI.main)))].
+  Definition fnsems : fnsems_type :=
+    [(None, (true, wmask_all, [], (Some fspec_trivial, NDSMainI.main)))].
 
-  Program Definition smod E: SMod.t :=
+  Program Definition smod: SMod.t :=
     {|
       SMod.scopes := [];
-      SMod.fnsems := fnsems E;
+      SMod.fnsems := fnsems;
       SMod.initial_st := [];
     |}.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition t E sp := Seal.sealing CRIS (SMod.to_mod sp (smod E)).
+  Definition init_cond : iProp Σ := RRSAS.InitRRS ∗ RRSNodeAS.full_val (Vint 0).
+
+  Definition t sp := Seal.sealing CRIS (SMod.to_mod sp smod).
 
 End NDSMainA. End NDSMainA.

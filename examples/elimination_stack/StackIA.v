@@ -21,7 +21,7 @@ Module StackIM. Section StackIM.
   Context (Hsphelp : sp_incl ([(Some (Helping.run mn), None); (Some (Helping.help mn), None)]) sp).
 
   (* Whitelist of functions callable in stack *)
-  Definition imp := omap id (Mod.exports SchI.t ++ Mod.exports MemA.t).
+  Definition imp := omap id (Mod.exports SchI.t ++ Mod.exports (MemA.t sp)).
   Context (Hmsk : wmask_sub (wmask_list imp) msk).
 
   Lemma yield_msk : wmask_and msk wmask_all SchHdr.yield.
@@ -63,7 +63,7 @@ Module StackIM. Section StackIM.
 
   Definition init_cond : iProp Σ := helping_auth 1 ∅%I.
 
-  Local Definition MemA := CFilter.filter msk MemA.t.
+  Local Definition MemA := CFilter.filter msk (MemA.t sp).
   Local Definition SchI := CFilter.filter msk SchI.t.
   Local Definition HelpingOn := HelpingOn.t mn StackM.jobCode sp.
   Local Definition HelpingDummy := HelpingDummy.t mn.
@@ -683,8 +683,8 @@ Module StackIA. Section StackIA.
   Lemma ctxr (N : namespace) (sp : sp_type) :
     sp_incl (SchA.sp [] (↑N)) sp →
     ctx_refines
-      (StackA.t N sp ★ MemA.t ★ SchI.t , StackIM.init_cond)
-      (StackI.t      ★ MemA.t ★ SchI.t, emp%I).
+      (StackA.t N sp ★ MemA.t sp ★ SchI.t , StackIM.init_cond)
+      (StackI.t      ★ MemA.t sp ★ SchI.t, emp%I).
   Proof.
     intros Hsp.
     etrans; first eapply ctxr_cond_strengthen.

@@ -12,10 +12,11 @@ Module RRSIA. Section RRSIA.
   Context `{_schG: !SchA.newschG}.
 
   Context (sp: sp_type).
-  Context (sp_user : spl_type).
-  Context (SchInSp : sp_incl (SchA.sp sp_user ⊤) sp).
-  Context (RRSInSp : sp_incl (RRSAS.sp sp_user ⊤) sp).
-  Context (FunInSp : sp_incl sp_user sp).
+  Context (sp_sch_user sp_rrs_user: spl_type).
+  Context (SchInSp : sp_incl (SchA.sp sp_sch_user ⊤) sp).
+  Context (RRSInSp : sp_incl (RRSAS.sp sp_rrs_user ⊤) sp).
+  Context (FunInSchSp : sp_incl sp_sch_user sp).
+  Context (FunInRrsSp : spl_sub sp_rrs_user sp_sch_user).
 
   (**************************)
 
@@ -53,11 +54,11 @@ Module RRSIA. Section RRSIA.
            ∨ Ist_global_in ths tid stid ssch rrinvO
            ∨ Ist_global_out ths tid stid ssch rrinvO))%I.
 
-  Local Definition RRSAMod := RRSA.t sp sp_user.
+  Local Definition RRSAMod := RRSA.t sp sp_rrs_user.
   Local Definition RRSIMod := RRSI.t.
 
   Lemma simF_init : ISim.sim_fun open RRSAMod RRSIMod RRSA.init_cond Ist (Some RRSHdr.init).
-  Proof using FunInSp SchInSp RRSInSp.
+  Proof using FunInSchSp FunInRrsSp SchInSp RRSInSp.
     init_simF.
 
     steps_l. iDestruct "ASM" as "[[NschT [Tsch Ysch]] [% [-> (% & % & [RRI [P C]] & PRE)]]]"; des; hss.
@@ -175,7 +176,7 @@ Module RRSIA. Section RRSIA.
   (*SLOW*)Qed.
 
   Lemma simF_inner_spawn : ISim.sim_fun open RRSAMod RRSIMod RRSA.init_cond Ist (Some RRSHdr._spawn).
-  Proof using FunInSp SchInSp RRSInSp.
+  Proof using FunInSchSp FunInRrsSp SchInSp RRSInSp.
     init_simF.
 
     steps_l. iDestruct "ASM" as "[T [Y WI]]".
@@ -225,7 +226,7 @@ Module RRSIA. Section RRSIA.
       rewrite STID in Hmtid0. inv Hmtid0.
 
       dup H1. r in H1. des.
-      assert (SPFN: sp fn = Some fsp) by (eapply FunInSp; eauto).
+      assert (SPFN: sp fn = Some fsp) by (eapply FunInSchSp; eauto).
       rewrite SPFN. rr in H3; ss. destruct fsp; ss. rr in H3. ss.
       specialize (H3 (mtid, stid, ssch)). des.
       rename H3 into PRE, H4 into POST.
@@ -307,7 +308,7 @@ Module RRSIA. Section RRSIA.
       iCombine "TidF TidF'" as "TidF". rewrite agree_idemp.
 
       dup H1. r in H1. des.
-      assert (SPFN: sp fn = Some fsp) by (eapply FunInSp; eauto).
+      assert (SPFN: sp fn = Some fsp) by (eapply FunInSchSp; eauto).
       rewrite SPFN. rr in H1; ss. destruct fsp; ss. rr in H2. ss.
       specialize (H2 (0, stid, ssch)). des.
       rename H2 into PRE, H3 into POST.
@@ -352,7 +353,7 @@ Module RRSIA. Section RRSIA.
   (*SLOW*)Qed.
 
   Lemma simF_spawn : ISim.sim_fun open RRSAMod RRSIMod RRSA.init_cond Ist (Some RRSHdr.spawn).
-  Proof using FunInSp SchInSp RRSInSp.
+  Proof using FunInSchSp FunInRrsSp SchInSp RRSInSp.
     init_simF.
 
     steps_l. iDestruct "ASM" as (?) "(% & (% & % & % & % & PRE) & (TidF & Y & T & S & C & PubF) & RRI)"; des; subst; hss.
@@ -439,7 +440,7 @@ Module RRSIA. Section RRSIA.
   (*SLOW*)Qed.
 
   Lemma simF_yield : ISim.sim_fun open RRSAMod RRSIMod RRSA.init_cond Ist (Some RRSHdr.yield).
-  Proof using FunInSp SchInSp RRSInSp.
+  Proof using FunInSchSp FunInRrsSp SchInSp RRSInSp.
     init_simF.
 
     steps_l.
@@ -562,7 +563,7 @@ Module RRSIA. Section RRSIA.
   (*SLOW*)Qed.
 
   Lemma simF_yield_global : ISim.sim_fun open RRSAMod RRSIMod RRSA.init_cond Ist (Some RRSHdr.yield_global).
-  Proof using FunInSp SchInSp RRSInSp.
+  Proof using FunInSchSp FunInRrsSp SchInSp RRSInSp.
     init_simF.
 
     steps_l. iDestruct "ASM" as "[[-> (TidF & Y & T & S & C & PubF)] ->]".
@@ -659,7 +660,7 @@ Module RRSIA. Section RRSIA.
   (*SLOW*)Qed.
 
   Lemma simF_get_tid : ISim.sim_fun open RRSAMod RRSIMod RRSA.init_cond Ist (Some RRSHdr.get_tid).
-  Proof using FunInSp SchInSp RRSInSp.
+  Proof using FunInSchSp FunInRrsSp SchInSp RRSInSp.
     init_simF.
 
     steps_l. iDestruct "ASM" as "[[-> (TidF & Y & T & S & C & PubF)] ->]"; hss.
@@ -704,7 +705,7 @@ Module RRSIA. Section RRSIA.
   (*SLOW*)Qed.
 
   Lemma sim : ISim.t open RRSAMod RRSIMod RRSA.init_cond Ist.
-  Proof using FunInSp SchInSp RRSInSp.
+  Proof using FunInSchSp FunInRrsSp SchInSp RRSInSp.
     init_sim.
     - split; eauto. rewrite /RRSA.init_cond /init_inv /init_tid /init_pub. unseal RRS.
       iIntros "(RRI & tid & pub)". rewrite /Ist.
@@ -724,12 +725,13 @@ Section ctxr.
   Context `{_rrsG: !rrsG}.
   Context `{_schG: !SchA.newschG}.
 
-  Lemma ctxr sp sp_user
-        (SchInGlobal : sp_incl (SchA.sp sp_user ⊤) sp)
-        (RRSInGlobal : sp_incl (RRSAS.sp sp_user ⊤) sp)
-        (UserInGlobal : sp_incl sp_user sp) :
+  Lemma ctxr sp sp_sch_user sp_rrs_user
+        (SchInGlobal     : sp_incl (SchA.sp sp_sch_user ⊤) sp)
+        (RRSInGlobal     : sp_incl (RRSAS.sp sp_rrs_user ⊤) sp)
+        (SchUserInGlobal : sp_incl sp_sch_user sp)
+        (RrsUserInSch    : spl_sub sp_rrs_user sp_sch_user) :
     ctx_refines
-      (RRSA.t sp sp_user, RRSA.init_cond)
+      (RRSA.t sp sp_rrs_user, RRSA.init_cond)
       (RRSI.t, emp%I).
   Proof using. eapply main_adequacy, sim; eauto. Qed.
 

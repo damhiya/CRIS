@@ -108,6 +108,10 @@ Module RRSAS. Section RRSAS.
   Definition ir_initRA_valid : ✓ ir_initRA.
   Proof using. ss. Qed.
 
+  Definition ir_ctlRA : DRA_mk ctlRA := Excl tt.
+  Definition ir_ctlRA_valid : ✓ ir_ctlRA.
+  Proof using. ss. Qed.
+
   Definition ir_pubRA : DRA_mk pubRA := gmap_view_auth (DfracOwn 1) ∅.
   Definition ir_pubRA_valid : ✓ ir_pubRA.
   Proof using. rewrite /ir_pubRA. eapply gmap_view_auth_valid. Qed.
@@ -128,7 +132,7 @@ Module RRSAS. Section RRSAS.
   Lemma ir_newtidRA_valid : ✓ ir_tidRA.
   Proof. rewrite /ir_tidRA; apply gmap_view_auth_valid. Qed.
 
-  Definition ir_schΓ : rrsΓ := *[Some ir_initRA; None; Some ir_pubRA; Some ir_tidRA].
+  Definition ir_schΓ : rrsΓ := *[Some ir_initRA; Some ir_ctlRA; Some ir_pubRA; Some ir_tidRA].
   Definition ir_schΣ : rrsΣ := *[Some ir_invRA].
 
   Definition init_pub : iProp Σ :=

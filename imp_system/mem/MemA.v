@@ -235,33 +235,33 @@ Module MemSpec. Section MemSpec.
         (b, ofs) ↦ (if dec succ 1 then v_new else v_cur) ∗ E)))%I.
 End MemSpec. End MemSpec.
 
-Module MemP. Section MemP.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG, !memG}.
+(* Module MemP. Section MemP. *)
+(*   Context `{!crisG Γ Σ α β τ _S _I, !concG, !memG}. *)
 
-  Definition scopes := ["Mem"].
+(*   Definition scopes := ["Mem"]. *)
 
-  (* Function specifications *)
-  Definition fnsems : alist (option string) (fnsem_type (option fspec * fbody)) :=
-  [(Some MemHdr.alloc, (false, wmask_all, scopes, (None, lat_real false MemSpec.alloc (Ret ()) fbody_trivial)));
-   (Some MemHdr.free,  (false, wmask_all, scopes, (None, lat_real false MemSpec.free  (Ret ()) fbody_trivial)));
-   (Some MemHdr.load,  (false, wmask_all, scopes, (None, lat_real false MemSpec.load  (Ret ()) fbody_trivial)));
-   (Some MemHdr.store, (false, wmask_all, scopes, (None, lat_real false MemSpec.store (Ret ()) fbody_trivial)));
-   (Some MemHdr.cmp,   (false, wmask_all, scopes, (None, lat_real false MemSpec.cmp   (Ret ()) fbody_trivial)));
-   (Some MemHdr.cas,   (false, wmask_all, scopes, (None, lat_real false MemSpec.cas   (Ret ()) fbody_trivial)))].
+(*   (* Function specifications *) *)
+(*   Definition fnsems : alist (option string) (fnsem_type (option fspec * fbody)) := *)
+(*   [(Some MemHdr.alloc, (false, wmask_all, scopes, (None, lat_real false MemSpec.alloc (Ret ()) fbody_trivial))); *)
+(*    (Some MemHdr.free,  (false, wmask_all, scopes, (None, lat_real false MemSpec.free  (Ret ()) fbody_trivial))); *)
+(*    (Some MemHdr.load,  (false, wmask_all, scopes, (None, lat_real false MemSpec.load  (Ret ()) fbody_trivial))); *)
+(*    (Some MemHdr.store, (false, wmask_all, scopes, (None, lat_real false MemSpec.store (Ret ()) fbody_trivial))); *)
+(*    (Some MemHdr.cmp,   (false, wmask_all, scopes, (None, lat_real false MemSpec.cmp   (Ret ()) fbody_trivial))); *)
+(*    (Some MemHdr.cas,   (false, wmask_all, scopes, (None, lat_real false MemSpec.cas   (Ret ()) fbody_trivial)))]. *)
 
-  (* Module definition *)
-  Program Definition smod : SMod.t := {|
-    SMod.scopes := scopes;
-    SMod.fnsems := fnsems;
-    SMod.initial_st := [];
-  |}.
-  Solve All Obligations with prove_scope.
-  Next Obligation. prove_nodup. Qed.
+(*   (* Module definition *) *)
+(*   Program Definition smod : SMod.t := {| *)
+(*     SMod.scopes := scopes; *)
+(*     SMod.fnsems := fnsems; *)
+(*     SMod.initial_st := []; *)
+(*   |}. *)
+(*   Solve All Obligations with prove_scope. *)
+(*   Next Obligation. prove_nodup. Qed. *)
 
-  Definition init_cond csl genv : iProp Σ := mem_init_auth csl genv.
+(*   Definition init_cond csl genv : iProp Σ := mem_init_auth csl genv. *)
 
-  Definition t := Seal.sealing CRIS (SMod.to_mod sp_none smod).
-End MemP. End MemP.
+(*   Definition t := Seal.sealing CRIS (SMod.to_mod sp_none smod). *)
+(* End MemP. End MemP. *)
 
 Module MemA. Section MemA.
   Context `{!crisG Γ Σ α β τ _S _I, !concG, !memG}.
@@ -296,5 +296,5 @@ Module MemA. Section MemA.
 
   Definition init_cond csl genv : iProp Σ := mem_init_auth csl genv.
 
-  Definition t := Seal.sealing CRIS (SMod.to_mod sp_none smod).
+  Definition t sp := Seal.sealing CRIS (SMod.to_mod sp smod).
 End MemA. End MemA.

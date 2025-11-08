@@ -74,6 +74,17 @@ Section preds.
     rewrite EQ. iFrame.
   Qed.
 
+  Definition ir_tidRA : DRA_mk (excl_authUR natO) := (●E 0).
+  Lemma ir_tidRA_valid : ✓ ir_tidRA.
+  Proof using. rewrite /ir_tidRA. eapply auth_auth_valid. ss. Qed.
+
+  Definition ir_yieldRA : DRA_mk (nat -d> optionUR (exclR unitO)) := 
+    (λ x, if (decide (x < 1)) then None else Some (Excl ())).
+  Lemma ir_yieldRA_valid : ✓ ir_yieldRA.
+  Proof using. rewrite /ir_yieldRA. ii. destruct x; ss. Qed.
+
+  Definition ir_concΓ : concΓ := *[Some ir_tidRA; Some ir_yieldRA].
+
 End preds.
 
 Notation "'TID' tid" := (TidToken tid) (at level 20, tid at level 1, format "TID  tid").
