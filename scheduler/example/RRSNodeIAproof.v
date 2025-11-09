@@ -2,7 +2,7 @@ Require Import CRIS.
 Require Import SchHeader SchA SchTactics.
 Require Import RRSHeader RRSA.
 Require Import MemHeader MemA.
-Require Import RRSNodeHeader RRSNodeI RRSNodeA.
+Require Import RRSNodeHeader RRSNodeI RRSNodeA RRSTactics.
 Require Import ltac2_lib.
 
 Module RRSNodeIA. Section RRSNodeIA.
@@ -73,15 +73,11 @@ Module RRSNodeIA. Section RRSNodeIA.
     steps_r; hss_r. steps_r.
     steps_l.
 
-    (** TODO : make lemma **)
-    unfold RRS.yield_global. unseal "RRS". steps_l. steps_r.
-    assert (SP_RRS_YG: sp RRSHdr.yield_global = Some (RRSAS.yield_global_spec E)).
-    { eapply Hschglob, Hrrs. rewrite /RRSAS.sp. unseal CRIS. ss. }
+    assert (rrs_in_sp : sp_incl (RRSAS.sp sp_user E snd PYIP) sp).
+    { rewrite /RRSAS.sp. unseal CRIS. econs; [prove_nodup|].
+      i. eapply Hschglob. eapply Hrrs. rewrite /RRSAS.sp. unseal CRIS. eauto. }
 
-    rewrite SP_RRS_YG /=.
-    force_l (0, stid, ssch). steps_l. forces_l. iSplitL "tidF"; iFrame; eauto.
-    steps_l. call "IST". steps_l. steps_r.
-    iDestruct "ASM" as "[[-> tidF] ->]". hss.
+    rrs_yield_ir.
 
     (** store **)
     steps_r. inline_r. steps_r. forces_r. iSplitL "PT"; eauto; ss.
@@ -89,10 +85,7 @@ Module RRSNodeIA. Section RRSNodeIA.
     ss. steps_r. iDestruct "GRT" as "[[PT ->] %]".
     steps_r; hss_r. steps_r.
 
-    rewrite SP_RRS_YG /=.
-    force_l (0, stid, ssch). steps_l. forces_l. iSplitL "tidF"; iFrame; eauto.
-    steps_l. call "IST". steps_l. steps_r.
-    iDestruct "ASM" as "[[-> tidF] ->]". hss.
+    rrs_yield_ir. rrs_yield_l. steps_l.
 
     (** invariant *)
     iPoseProof (full_merge with "F") as "[H H0]".
@@ -100,13 +93,8 @@ Module RRSNodeIA. Section RRSNodeIA.
     { SL_red. iExists (Vint 0). SL_red; iFrame. rewrite /half_val. unseal "Node". iFrame. }
 
     (** 1st spawn **)
-    assert (SP_RRS_SPAWN: sp RRSHdr.spawn = Some (RRSAS.spawn_spec sp_user E)).
-    { eapply Hschglob, Hrrs. rewrite /RRSAS.sp. unseal CRIS; ss. }
-    rewrite SP_RRS_SPAWN; ss.
-
-    (* set (Invs := _ : gmap nat InvO). *)
     force_l (0, stid, ssch, RRSNodeAS.f_precond (b, 0%Z), {[0 := existT 0 (x_value_tid 0)]}, existT 0 (x_value_tid 1)).
-    steps_l. forces_l; ss. iSplitL "RRI tidF".
+    steps_l. forces_l; ss. iSplitL "RRI TID".
     { iExists _. iFrame. iFrame "I". iSplit; eauto.
       do 3 iExists _. iSplit; eauto.
       iPureIntro. esplits; eauto.
@@ -126,17 +114,13 @@ Module RRSNodeIA. Section RRSNodeIA.
     iDestruct "ASM" as (?) "[% [tidF [RRI [% %]]]]"; des; subst; hss.
     steps_r; hss. steps_r.
 
-    rewrite SP_RRS_YG /=.
-    force_l (0, stid, ssch). steps_l. forces_l. iSplitL "tidF"; iFrame; eauto.
-    steps_l. call "IST". steps_l. steps_r.
-    iDestruct "ASM" as "[[-> tidF] ->]". hss.
+    rrs_yield_ir. rrs_yield_l. steps_l.
 
     (** 2nd spawn **)
-    steps_l; steps_r. rewrite SP_RRS_SPAWN; ss.
-    set (Invs := _ : gmap nat InvO).
+    steps_l; steps_r. set (Invs := _ : gmap nat InvO).
     force_l (0, stid, ssch, RRSNodeAS.f_precond (b, 0%Z), Invs, existT 0 (x_value_tid 2)).
 
-    subst Invs. steps_l. forces_l; ss. iSplitL "RRI tidF".
+    subst Invs. steps_l. forces_l; ss. iSplitL "RRI TID".
     { iExists _. iFrame. iFrame "I". iSplit; eauto.
       do 3 iExists _. iSplit; eauto.
       iPureIntro. esplits; eauto.
@@ -151,19 +135,13 @@ Module RRSNodeIA. Section RRSNodeIA.
     iDestruct "ASM" as (?) "[% [tidF [RRI [% %]]]]"; des; subst; hss.
     steps_r; hss. steps_r.
 
-    rewrite SP_RRS_YG /=.
-    force_l (0, stid, ssch). steps_l. forces_l. iSplitL "tidF"; iFrame; eauto.
-    steps_l. call "IST". steps_l. steps_r.
-    iDestruct "ASM" as "[[-> tidF] ->]". hss.
+    rrs_yield_ir. rrs_yield_l. steps_l.
 
     (** Round-Robin yield *)
     unfold RRS.yield. unseal "RRS". steps_r. steps_l.
-    assert (SP_RRS_YIELD: sp RRSHdr.yield = Some (RRSAS.yield_spec E)).
-    { eapply Hschglob, Hrrs. rewrite /RRSAS.sp. unseal CRIS; ss. }
-    rewrite SP_RRS_YIELD; ss.
 
     set (Invs := _ : gmap nat InvO).
-    force_l (0, stid, ssch, Invs). subst Invs. forces_l. iSplitL "RRI tidF H".
+    force_l (0, stid, ssch, Invs). subst Invs. forces_l. iSplitL "RRI TID H".
     { iFrame. repeat iSplit; eauto. iExists _.
       do 2 (rewrite lookup_insert_ne; eauto).
       rewrite lookup_insert. iSplit; eauto.
@@ -192,14 +170,12 @@ Module RRSNodeIA. Section RRSNodeIA.
     iDestruct "ASM" as "(WI & % & % & tidF & RRIP & RRI & [% | HALF] & % & % & % & [% #inv])"; des; hss.
     steps_l; steps_r; hss. steps_r. SL_red. destruct mtid as [|mtid]; ss.
 
-    unfold RRS.yield_global. unseal "RRS". steps_l. steps_r.
-    assert (SP_RRS_YG: sp RRSHdr.yield_global = Some (RRSAS.yield_global_spec E)).
-    { eapply Hschglob, Hrrs. rewrite /RRSAS.sp. unseal CRIS. ss. }
+    assert (rrs_in_sp : sp_incl (RRSAS.sp sp_user E snd PYIP) sp).
+    { rewrite /RRSAS.sp. unseal CRIS. econs; [prove_nodup|].
+      i. eapply Hschglob. eapply Hrrs. rewrite /RRSAS.sp. unseal CRIS. eauto. }
 
-    rewrite SP_RRS_YG /=.
-    force_l (S mtid, stid, ssch). steps_l. forces_l. iSplitL "WI tidF"; iFrame; eauto.
-    steps_l. call "IST". steps_l. steps_r.
-    iDestruct "ASM" as "[[-> tidF] ->]". hss.
+    iApply wsim_fold; iFrame.
+    rrs_yield_ir. steps_r.
 
     (** Open invariant **)
     rewrite /inv_x_points_to /ex_x_points_to.
@@ -217,16 +193,13 @@ Module RRSNodeIA. Section RRSNodeIA.
     iMod ("CLOSE" with "[PT HALF0]") as "_".
     { iExists _. SL_red. rewrite /half_val. unseal "Node". iFrame. }
 
-    iApply wsim_unfold; iIntros "WI". rewrite SP_RRS_YG /=.
-    force_l (S mtid, stid, ssch). steps_l. forces_l. iSplitL "WI tidF"; iFrame; eauto.
-    steps_l. call "IST". steps_l. steps_r.
-    iDestruct "ASM" as "[[-> tidF] ->]". hss.
+    rrs_yield_ir. steps_r.
 
     inline_r. steps_r. force_r (S mtid, stid, ssch).
-    forces_r. iSplitL "tidF"; iFrame; eauto.
+    forces_r. iSplitL "TID"; iFrame; eauto.
     steps_r; hss_r. steps_r.
     rewrite SBRed.get. rewrite /RRSI.RRSI.v_tid /= String.eqb_refl. ss.
-    iApply wsim_sget_tgt. rewrite /or_else. steps_r. destruct (alist_find (RRS ↯ "tid") st_t'0) eqn:F; cycle 1.
+    iApply wsim_sget_tgt. rewrite /or_else. steps_r. destruct (alist_find (RRS ↯ "tid") st_tgt) eqn:F; cycle 1.
     { rewrite F. steps_r. destruct (@Any.downcast nat tt↑) eqn:A; steps_r; ss.
       iDestruct "GRT" as "[[-> tid] <-]"; hss.
       exfalso. eapply unit_nat_neq; eauto. }
@@ -234,20 +207,7 @@ Module RRSNodeIA. Section RRSNodeIA.
     rewrite F. steps_r. destruct (@Any.downcast nat t) eqn:A; steps_r; ss.
     iDestruct "GRT" as "[[% tidF] %]"; hss. steps_r.
 
-    iApply wsim_unfold; iIntros "WI". rewrite SP_RRS_YG /=.
-    force_l (S mtid, stid, ssch). steps_l. forces_l. iSplitL "WI tidF"; iFrame; eauto.
-    steps_l. call "IST". steps_l. steps_r.
-    iDestruct "ASM" as "[[-> tidF] ->]". hss.
-
-    iApply wsim_unfold; iIntros "WI". rewrite SP_RRS_YG /=.
-    force_l (S mtid, stid, ssch). steps_l. forces_l. iSplitL "WI tidF"; iFrame; eauto.
-    steps_l. call "IST". steps_l. steps_r.
-    iDestruct "ASM" as "[[-> tidF] ->]". hss.
-
-    iApply wsim_unfold; iIntros "WI". rewrite SP_RRS_YG /=.
-    force_l (S mtid, stid, ssch). steps_l. forces_l. iSplitL "WI tidF"; iFrame; eauto.
-    steps_l. call "IST". steps_l. steps_r.
-    iDestruct "ASM" as "[[-> tidF] ->]". hss.
+    do 3 (rrs_yield_ir; steps_r).
 
     (** Open invariant **)
     rewrite /inv_x_points_to /ex_x_points_to.
@@ -270,25 +230,13 @@ Module RRSNodeIA. Section RRSNodeIA.
     iMod ("CLOSE" with "[PT HALF0]") as "_".
     { iExists _. SL_red. rewrite /half_val. unseal "Node". iFrame. }
 
-    iApply wsim_unfold; iIntros "WI". rewrite SP_RRS_YG /=.
-    force_l (S mtid, stid, ssch). steps_l. forces_l. iSplitL "WI tidF"; iFrame; eauto.
-    steps_l. call "IST". steps_l. steps_r.
-    iDestruct "ASM" as "[[-> tidF] ->]". hss.
-
+    rrs_yield_ir. rrs_yield_l. steps_l; steps_r.
     step. steps_r. steps_l.
-
-    iApply wsim_unfold; iIntros "WI". rewrite SP_RRS_YG /=.
-    force_l (S mtid, stid, ssch). steps_l. forces_l. iSplitL "WI tidF"; iFrame; eauto.
-    steps_l. call "IST". steps_l. steps_r.
-    iDestruct "ASM" as "[[-> tidF] ->]". hss.
+    rrs_yield_ir. rrs_yield_l. steps_l; steps_r.
 
     unfold RRS.yield. unseal "RRS". steps_l.
-    assert (SP_RRS_YIELD: sp RRSHdr.yield = Some (RRSAS.yield_spec E)).
-    { eapply Hschglob, Hrrs. rewrite /RRSAS.sp. unseal CRIS; ss. }
-    rewrite SP_RRS_YIELD; ss.
-
     force_l (mtid + 1, stid, ssch, Invs').
-    forces_l. iSplitL "tidF RRI HALF".
+    forces_l. iSplitL "TID RRI HALF".
     { replace (mtid + 1)%Z with (Z.of_nat (S mtid)) by nia.
       replace (mtid + 1) with (S mtid) by nia.
       iSplit; eauto. iFrame. iSplit; eauto. iExists _; iSplit; eauto. SL_red.

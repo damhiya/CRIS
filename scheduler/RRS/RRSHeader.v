@@ -24,9 +24,17 @@ Module RRS. Section RRS.
     Seal.sealing "RRS"
       (trigger (Call RRSHdr.yield tt↑)).
 
-  Definition yield_global : itree E Any.t :=
+  Definition yield_global : itree E unit :=
     Seal.sealing "RRS"
-      (trigger (Call RRSHdr.yield_global tt↑)).
+     (iterC ((λ (_: unit),
+        b <- trigger (Choose (option bool));;
+        match b with
+        | None => Ret (inr tt: () + ())
+        | Some false => Ret (inl tt: () + ())
+        | Some true => 
+            trigger (Call RRSHdr.yield_global tt↑);;;
+            Ret (inl tt: () + ())
+        end)) tt).
 
   (** Currently, we require all threads to terminate simultaneously. **)
   Definition spin : itree E unit :=

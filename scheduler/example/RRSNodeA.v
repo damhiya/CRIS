@@ -168,7 +168,7 @@ Module RRSNodeA. Section RRSNodeA.
 
   Definition f_main : SAny.t -> itree crisE SAny.t :=
     fun _ =>
-      ℛ𝒴;;; ℛ𝒴;;;
+      ℛ𝒴;;;
       'tid1: nat <- ccallU RRSHdr.spawn (RRSNodeHdr.f, tt↑↑);; ℛ𝒴;;;
       'tid2: nat <- ccallU RRSHdr.spawn (RRSNodeHdr.f, tt↑↑);; ℛ𝒴;;; ℛℛ;;;
       Ret (tt↑↑)
@@ -176,7 +176,7 @@ Module RRSNodeA. Section RRSNodeA.
 
   Definition f : SAny.t -> itree crisE SAny.t :=
     fun _ =>
-      ℛ𝒴;;; ℛ𝒴;;; ℛ𝒴;;; ℛ𝒴;;; ℛ𝒴;;; ℛ𝒴;;; 
+      ℛ𝒴;;;
       trigger (@IO _ unit "print" (Vint 1));;; ℛ𝒴;;; ℛℛ;;; 
       Ret (tt↑↑).
   
