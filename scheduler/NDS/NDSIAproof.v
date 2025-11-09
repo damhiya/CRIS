@@ -10,7 +10,7 @@ Module NDSIA. Section sim.
   Context (sp : sp_type) (sp_sch_user sp_nds_user : spl_type).
   Context (parent_yield: string).
   Context (parent_yield_fsp: fspec).
-  Context (PYIP: iProp Σ).
+  Context (T: Type) (get_stid: T → nat) (PYIP: T → iProp Σ).
   Context (SchInSp : sp parent_yield = Some parent_yield_fsp).
   Context (NDSInSp : sp_incl (NDSA.sp sp_nds_user ⊤) sp).
   Context (SpSchInSp : sp_incl sp_sch_user sp).
@@ -18,9 +18,9 @@ Module NDSIA. Section sim.
   Context (YieldSpec :
               fspec_imply' parent_yield_fsp
                 (fspec_winv ⊤
-                   (fspec_simple (λ stid: nat,
-                        ((λ varg, TID stid ∗ YIELD stid ∗ PYIP ∗ ⌜varg = tt↑⌝),
-                         (λ vret, TID stid ∗ YIELD stid ∗ PYIP ∗ ⌜vret = tt↑⌝))%I)))).
+                   (fspec_simple (λ x: T,
+                        ((λ varg, TID (get_stid x) ∗ YIELD (get_stid x) ∗ PYIP x ∗ ⌜varg = tt↑⌝),
+                         (λ vret, TID (get_stid x) ∗ YIELD (get_stid x) ∗ PYIP x ∗ ⌜vret = tt↑⌝))%I)))).
 
   Local Notation ths_type :=
     (list (nat * option (SAny.t * SAny.t) * (SAny.t -d> SAny.t -d> leibnizO {n : level & GTerm.t n}))).
@@ -77,7 +77,7 @@ Module NDSIA. Section sim.
          ∨ Ist_global_in tid_cur stid_cur ssch ths
          ∨ Ist_global_out tid_cur stid_cur ssch ths))%I.
 
-  Local Definition NDSAMod := NDSA.t parent_yield sp sp_nds_user PYIP.
+  Local Definition NDSAMod := NDSA.t parent_yield sp sp_nds_user T get_stid PYIP.
   Local Definition NDSIMod := NDSI.t parent_yield.
 
   Lemma simF_init :
@@ -86,7 +86,7 @@ Module NDSIA. Section sim.
     init_simF.
 
     steps_l. iDestruct "ASM" as (?) "(% & % & % & T & Y & (P & C) & PRE & YI)"; des; subst; hss.
-    rename _q4 into pre, _q2 into postS, _q3 into ssch.
+    rename _q4 into pre, _q2 into postS, _q3 into x.
     steps_l. steps_r. hss. steps_l. steps_r.
     rewrite /SModTr.NativeGetTid. forces_l. iSplitL "T"; [iFrame|].
     steps_l. step. steps_l. iDestruct "ASM" as "[% T]".
@@ -116,7 +116,7 @@ Module NDSIA. Section sim.
     iMod (own_update with "TidA") as "[TidA TidF]".
     { eapply (gmap_view_alloc _ mtid_new (DfracOwn 1) (to_agree stid_new)); ss. }
 
-    iMod (Pending_Shot ssch with "[P P']") as "S"; iFrame.
+    iMod (Pending_Shot (get_stid x) with "[P P']") as "S"; iFrame.
     iPoseProof (Shot_dup with "S") as "[S S']".
 
     rewrite -{3}Qp.three_quarter_quarter -dfrac_op_own -{2}(agree_idemp (to_agree _)).
@@ -137,7 +137,7 @@ Module NDSIA. Section sim.
     iApply wsim_unfold; iIntros "WI".
     forces_l. iSplitL "Ynew T WI"; [iFrame|].
     steps_l. steps_r. yield "Y JoinA JoinF2 TidA TidF2 S' PubA".
-    { iExists [(stid_new, None, postS)], 0, stid_new, ssch. iSplit; eauto. ss. iFrame.
+    { iExists [(stid_new, None, postS)], 0, stid_new, (get_stid x). iSplit; eauto. ss. iFrame.
       iSplit; eauto. do 4 iRight. iFrame; ss.
       rewrite /PublicAuth. unseal NDS. iSplit; eauto. }
 
@@ -147,17 +147,17 @@ Module NDSIA. Section sim.
     { instantiate (1:= λ _ _, False%I). iIntros (????) "X"; ss. }
 
     clear H2. iApply wsim_reset. iStopProof.
-    revert st_t'. combine_quant st_s'. combine_quant ssch.
+    revert st_t'. combine_quant st_s'. combine_quant x.
     eapply wsim_coind. i. destruct_quant CIH.
-    destruct a as [stid_sch [st_s' st_t']]. s.
+    destruct a as [x [st_s' st_t']]. s.
 
     iIntros "(PYIP & S & PubF & IST & T & Y & WI)"; subst.
     unfold_iterC_l. unfold_iterC_r.
 
     steps_r. steps_l. rewrite SchInSp.
     rr in YieldSpec. destruct parent_yield_fsp; ss.
-    rr in YieldSpec; ss. specialize (YieldSpec stid_sch).
-    destruct YieldSpec as [x [PRE POST]]; ss.
+    rr in YieldSpec; ss. specialize (YieldSpec x).
+    destruct YieldSpec as [x' [PRE POST]]; ss.
     iPoseProof ((PRE tt↑ tt↑) with "[T Y WI PYIP]") as ">PRE".
     { rewrite /fspec_simple /fspec_winv /FSpec.precond /=.
       rewrite /precondS /make_fspecS /=. iFrame. eauto. }
@@ -194,7 +194,7 @@ Module NDSIA. Section sim.
     iSplitL "Y' T WI"; iFrame.
 
     steps_l. yield "JoinA TidA Rs S' tidF Y Ys PubA".
-    { iExists ths, tid_cur, stid_cur0, ssch. iSplit; eauto. iFrame. do 4 iRight.
+    { iExists ths, tid_cur, stid_cur0, (get_stid x). iSplit; eauto. iFrame. do 4 iRight.
       iFrame. eauto. }
 
     steps_l. steps_r.
@@ -1016,7 +1016,7 @@ Section ctxr.
 
   Context (parent_yield: string).
   Context (parent_yield_fsp: fspec).
-  Context (PYIP: iProp Σ).
+  Context (T: Type) (get_stid: T → nat) (PYIP: T → iProp Σ).
 
   Lemma ctxr sp sp_sch_user sp_nds_user
     (SchInSp : sp parent_yield = Some parent_yield_fsp)
@@ -1026,12 +1026,12 @@ Section ctxr.
     (YieldSpec :
       fspec_imply' parent_yield_fsp
         (fspec_winv ⊤
-           (fspec_simple (λ stid: nat,
-                  ((λ varg, TID stid ∗ YIELD stid ∗ PYIP ∗ ⌜varg = tt↑⌝),
-                    (λ vret, TID stid ∗ YIELD stid ∗ PYIP ∗ ⌜vret = tt↑⌝))%I)))) :
+           (fspec_simple (λ x: T,
+                  ((λ varg, TID (get_stid x) ∗ YIELD (get_stid x) ∗ PYIP x ∗ ⌜varg = tt↑⌝),
+                    (λ vret, TID (get_stid x) ∗ YIELD (get_stid x) ∗ PYIP x ∗ ⌜vret = tt↑⌝))%I)))) :
     ctx_refines
-      (NDSA.t parent_yield sp sp_nds_user PYIP, NDSA.init_cond)
-      (NDSI.t parent_yield,                     emp%I).
+      (NDSA.t parent_yield sp sp_nds_user T get_stid PYIP, NDSA.init_cond)
+      (NDSI.t parent_yield,                                emp%I).
   Proof. eapply main_adequacy, sim; eauto. Qed.
 End ctxr.
 End NDSIA.

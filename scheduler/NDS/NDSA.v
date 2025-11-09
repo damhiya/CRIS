@@ -407,7 +407,7 @@ Module NDSA. Section NDSA.
   (* Scheduler specifications *)
   Section SPEC.
     Context (sp_user : spl_type) (E : coPset).
-    Context (PYIP: iProp Σ).
+    Context (T: Type) (get_stid: T → nat) (PYIP: T → iProp Σ).
 
     Definition fspec_spawnable fsp
         (pre : SAny.t → SAny.t → iProp Σ)
@@ -428,11 +428,11 @@ Module NDSA. Section NDSA.
 
     Definition init_spec : fspec :=
       fspec_winv E
-        (fspec_virtual (λ '(stid, pre, postS),
+        (fspec_virtual (λ '(x, pre, postS),
              ((λ varg arg, 
                 ∃ fn,
                   ⌜varg = fn↑↑ ∧ arg = (fn↑↑)↑ ∧ fn_spawnable fn pre postS⌝ ∗
-                  TID stid ∗ YIELD stid ∗ InitNDS ∗ pre (tt↑↑) (tt↑↑) ∗ PYIP)%I,
+                  TID (get_stid x) ∗ YIELD (get_stid x) ∗ InitNDS ∗ pre (tt↑↑) (tt↑↑) ∗ PYIP x)%I,
               (λ (vret: SAny.t) ret, False)%I)))
     .
     
@@ -585,9 +585,9 @@ Module NDSA. Section NDSA.
   Definition get_tid : unit → itree crisE nat :=
     λ _, cgetN v_tid.
 
-  Definition fnsems sp_user PYIP : fnsems_type :=
+  Definition fnsems sp_user (T: Type) (get_stid : T → nat) (PYIP : T → iProp Σ) : fnsems_type :=
     [(Some NDSHdr.init,
-       (true, wmask_all, scopes, (Some (init_spec sp_user ⊤ PYIP),   (cfunN init))));
+       (true, wmask_all, scopes, (Some (init_spec sp_user ⊤ T get_stid PYIP),   (cfunN init))));
      (Some NDSHdr._spawn,
        (true, wmask_all, scopes, (Some (inner_spawn_spec sp_user ⊤), (cfunN inner_spawn))));
      (Some NDSHdr.spawn,
@@ -601,9 +601,9 @@ Module NDSA. Section NDSA.
      (Some NDSHdr.get_tid,
        (true, wmask_all, scopes, (Some (get_tid_spec),               (cfunN get_tid))))].
 
-  Program Definition smod sp_user PYIP : SMod.t := {|
+  Program Definition smod sp_user T get_stid PYIP : SMod.t := {|
     SMod.scopes := scopes;
-    SMod.fnsems := fnsems sp_user PYIP;
+    SMod.fnsems := fnsems sp_user T get_stid PYIP;
     SMod.initial_st := (NDSI.smod parent_yield).(SMod.initial_st);
   |}.
   Solve All Obligations with prove_scope.
@@ -611,7 +611,7 @@ Module NDSA. Section NDSA.
 
   Definition init_cond : iProp Σ := own base_γ ir_tidRA ∗ own base_γ ir_joinRA ∗ own base_γ (Cinl (1/2)%Qp) ∗ own base_γ (gmap_view_auth (DfracOwn 1) (∅: gmap (option nat) (agreeR boolO))).
 
-  Definition t sp sp_user PYIP := Seal.sealing CRIS (SMod.to_mod sp (smod sp_user PYIP)).
+  Definition t sp sp_user T get_stid PYIP := Seal.sealing CRIS (SMod.to_mod sp (smod sp_user T get_stid PYIP)).
 End NDSA. End NDSA.
 
 Section FSPEC_NDS.
