@@ -37,19 +37,19 @@ Module NDSMainAll.
   Qed.
 
   Local Definition sp_rrs : spl_type := (RRSNodeAS.sp ⊤) ++ MemA.sp.
-  Local Definition sp_sch : spl_type := NDSMainA.sp ++ (RRSAS.sp sp_rrs ⊤) ++ sp_rrs.
+  Local Definition sp_sch : spl_type := NDSMainA.sp ++ (RRSAS.sp sp_rrs ⊤ snd SchA.PYIP) ++ sp_rrs.
 
   Local Definition smod_src : SMod.t :=
     (NDSMainA.smod)
       ☆ (SchA.smod sp_sch)
-      ☆ (RRSA.smod sp_rrs)
+      ☆ (RRSA.smod SchHeader.SchHdr.yield sp_rrs snd SchA.PYIP)
       ☆ (RRSNodeA.smod ⊤)
       ☆ (MemA.smod).
   Local Definition mod_top : Mod.t := (SMod.to_mod sp_none (SMod.cancel smod_src)).
   Local Definition mod_tgt : Mod.t :=
     NDSMainI.t
       ★ SchI.t
-      ★ RRSI.t
+      ★ (RRSI.t SchHeader.SchHdr.yield)
       ★ RRSNodeI.t
       ★ (MemI.t csl genv).
   
@@ -102,7 +102,7 @@ Module NDSMainAll.
       destruct (decide (fn = MemHeader.MemHdr.cmp)); subst; [by inv H|ss].
       destruct (decide (fn = MemHeader.MemHdr.cas)); subst; [by inv H|ss].
       destruct (decide (fn = MemHeader.MemHdr.store)); subst; [by inv H|ss].
-    Qed.
+    (*SLOW*)Qed.
 
     Lemma sprrs_in_spsch : spl_sub sp_rrs sp_sch.
     Proof.
@@ -137,9 +137,9 @@ Module NDSMainAll.
       destruct (decide (fn = SchHeader.SchHdr.yield)); subst; [by inv H|ss].
       destruct (decide (fn = SchHeader.SchHdr.get_tid)); subst; [by inv H|ss].
       destruct (decide (fn = SchHeader.SchHdr.join)); subst; [by inv H|ss].
-    Qed.
+    (*SLOW*)Qed.
 
-    Lemma rrs_in_spsch : spl_sub (RRSAS.sp sp_rrs ⊤) sp_sch.
+    Lemma rrs_in_spsch : spl_sub (RRSAS.sp sp_rrs ⊤ snd SchA.PYIP) sp_sch.
     Proof.
       rewrite /spl_sub /RRSAS.sp /sp_sch /sp_rrs.
       rewrite /NDSMainA.sp /SchA.sp /RRSAS.sp /RRSNodeAS.sp /MemA.sp. unseal CRIS.
@@ -153,7 +153,7 @@ Module NDSMainAll.
       ss. intros fn fsp. rewrite !eq_rel_dec_correct. des_ifs.
     Qed.
 
-    Lemma rrs_in_sp : sp_incl (RRSAS.sp sp_rrs ⊤) sp.
+    Lemma rrs_in_sp : sp_incl (RRSAS.sp sp_rrs ⊤ snd SchA.PYIP) sp.
     Proof.
       rewrite /sp_incl /sp /SchA.sp /sp_sch /sp_rrs /sp_from /to_sp /smod_src.
       rewrite /NDSMainA.sp /RRSAS.sp /sp_rrs /RRSNodeAS.sp /MemA.sp /sp_sch. unseal CRIS.
@@ -164,8 +164,26 @@ Module NDSMainAll.
       destruct (decide (fn = RRSHeader.RRSHdr.yield)); subst; [by inv H|ss].
       destruct (decide (fn = RRSHeader.RRSHdr.yield_global)); subst; [by inv H|ss].
       destruct (decide (fn = RRSHeader.RRSHdr.get_tid)); subst; [by inv H|ss].
+    (*SLOW*)Qed.
+
+    Lemma yield_in_sp : sp SchHeader.SchHdr.yield = Some (SchA.yield_spec ⊤).
+    Proof.
+      rewrite /sp /smod_src /sp_from.
+      rewrite /NDSMainA.smod /SchA.smod //.
     Qed.
 
+    Lemma yield_spec_cond :
+      fspec_imply' (SchA.yield_spec ⊤)
+        (fspec_winv ⊤
+           (fspec_simple
+              (λ x : nat * nat,
+                  (λ varg : Any.t, (TID x.2 ∗ YIELD x.2 ∗ PYIP x ∗ ⌜varg = tt ↑⌝)%I,
+                      λ vret : Any.t, (TID x.2 ∗ YIELD x.2 ∗ PYIP x ∗ ⌜vret = tt ↑⌝)%I)))).
+    Proof.
+      ii; ss. destruct x1. exists (n, n0). esplits.
+      { i. iIntros "[WI [(T & Y & tid & %) %]]"; subst; hss. iFrame. eauto. }
+      { i. iIntros "[WI [(% & T & Y & tid) %]]"; subst; hss. iFrame. eauto. }
+    Qed.
   End SP.
 
   (* Refinement between spec/impl of whole program (linked module) *)
@@ -191,10 +209,11 @@ Module NDSMainAll.
 
     etrans; cycle 1.
     { ctxr_rotate. do 4 ctxr_drop. eapply RRSIA.ctxr.
-      { eapply sch_in_sp. }
+      { eapply yield_in_sp. }
       { eapply rrs_in_sp. }
       { eapply spsch_in_sp. }
       { eapply sprrs_in_spsch. }
+      { eapply yield_spec_cond. }
     }
 
     etrans; cycle 1.

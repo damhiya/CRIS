@@ -38,6 +38,9 @@ Section SchRA.
   Definition TidAuth (m : gmap nat nat) : iProp Σ :=
     own base_γ (gmap_view_auth (DfracOwn 1) (to_agree <$> m)).
 
+  Definition PYIP (x: nat * nat) : iProp Σ :=
+    own base_γ (gmap_view_frag x.1 (DfracOwn 1) (to_agree x.2)).
+
   Lemma Tid_Auth_Tid (m : gmap nat nat) (mtid stid : nat) :
     TidAuth m ∗ own base_γ (gmap_view_frag mtid (DfracOwn 1) (to_agree stid)) -∗
     ⌜m !! mtid = Some stid⌝.

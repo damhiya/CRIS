@@ -6,7 +6,7 @@ Definition thpool : Type := list nat.
 Module RRSI. Section RRSI.
   Context `{!crisG Γ Σ α β τ _S _I, !concG}.
 
-  (* Context (parent_yield : string). *)
+  Context (parent_yield : string).
 
   Definition scopes := [RRS].
   Definition v_ths := RRS ↯ "ths".
@@ -27,7 +27,7 @@ Module RRSI. Section RRSI.
       trigger (Yield new_stid);;;
       (* infinite global yield *)
       iterC (λ _,
-        trigger (Call SchHdr.yield tt↑);;;
+        trigger (Call parent_yield tt↑);;;
         'ths: thpool <- cgetU v_ths;;
         'mtid: nat <- cgetU v_tid;;
         match ths !! mtid with

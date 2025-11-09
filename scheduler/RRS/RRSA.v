@@ -44,7 +44,6 @@ Local Open Scope Qp.
 Module RRSAS. Section RRSAS.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG}.
   Context `{_rrsG: !rrsG}.
-  Context `{_schG: !SchA.newschG}.
 
   (** init **)
   Definition Pending : iProp Σ := Seal.sealing RRS (own base_γ (Cinl (Excl ()))).
@@ -658,6 +657,9 @@ Module RRSAS. Section RRSAS.
   Section SPEC.
     Variable sp_user : spl_type.
     Variable E : coPset.
+    Variable T : Type.
+    Variable get_stid : T -> nat.
+    Variable PYIP: T → iProp Σ.
 
     Definition fspec_spawnable_rr fsp
       (my_tid: nat) (pre : SAny.t → SAny.t → iProp Σ) (Invs: gmap nat InvO) : Prop :=
@@ -694,12 +696,12 @@ Module RRSAS. Section RRSAS.
       fspec_spawnable_rr_init fsp my_tid pre Inv.
 
     Definition init_spec : fspec :=
-      fspec_sch E
-        (fspec_virtual (λ '(pre, Inv),
+      fspec_winv E
+        (fspec_virtual (λ '(x, pre, Inv),
              ((λ varg arg, 
                 ∃ fn,
                   ⌜varg = fn↑↑ ∧ arg = (fn↑↑)↑ ∧ fn_spawnable_rr_init fn 0 pre Inv⌝ ∗
-                  InitRRS ∗ pre (tt↑↑) (tt↑↑))%I,
+                  TID (get_stid x) ∗ YIELD (get_stid x) ∗ InitRRS ∗ pre (tt↑↑) (tt↑↑) ∗ PYIP x)%I,
               (λ (vret: SAny.t) ret, False)%I)))
     .
     
@@ -784,6 +786,8 @@ Module RRSA. Section RRSA.
 
   (* Context (parent_yield : string). *)
   Import RRSI.
+
+  Context (parent_yield : string).
   
   (* spawnable funciton *)
   Definition init : SAny.t → itree crisE unit :=
@@ -799,7 +803,7 @@ Module RRSA. Section RRSA.
       trigger (Yield new_stid);;;
       (* infinite global yield *)
       iterC (λ _,
-        trigger (Call SchHdr.yield tt↑);;;
+        trigger (Call parent_yield tt↑);;;
         'ths: thpool <- cgetN v_ths;;
         'mtid: nat <- cgetN v_tid;;
         match ths !! mtid with
@@ -852,26 +856,26 @@ Module RRSA. Section RRSA.
   Definition get_tid : unit → itree crisE nat :=
     λ _, cgetN v_tid.
   
-  Definition fnsems sp_user : fnsems_type :=
-    [(Some RRSHdr.init,         (true, wmask_all, scopes, (Some (RRSAS.init_spec sp_user ⊤),                (cfunN init))));
+  Definition fnsems sp_user (T: Type) (get_stid: T → nat) (PYIP: T → iProp Σ) : fnsems_type :=
+    [(Some RRSHdr.init,         (true, wmask_all, scopes, (Some (RRSAS.init_spec sp_user ⊤ get_stid PYIP),   (cfunN init))));
      (Some RRSHdr._spawn,       (true, wmask_all, scopes, (Some (RRSAS.inner_spawn_spec sp_user ⊤), (cfunN inner_spawn))));
      (Some RRSHdr.spawn,        (true, wmask_all, scopes, (Some (RRSAS.spawn_spec sp_user ⊤),       (cfunN spawn))));
      (Some RRSHdr.yield,        (true, wmask_all, scopes, (Some (RRSAS.yield_spec ⊤),               (cfunN yield))));
      (Some RRSHdr.yield_global, (true, wmask_all, scopes, (Some (RRSAS.yield_global_spec ⊤),        (cfunN yield_global))));
      (Some RRSHdr.get_tid,      (true, wmask_all, scopes, (Some (RRSAS.get_tid_spec),               (cfunN get_tid))))].
 
-  Program Definition smod sp_user : SMod.t := {|
+  Program Definition smod sp_user (T: Type) (get_stid: T → nat) (PYIP : T → iProp Σ): SMod.t := {|
     SMod.scopes := scopes;
-    SMod.fnsems := fnsems sp_user;
-    SMod.initial_st := RRSI.smod.(SMod.initial_st);
+    SMod.fnsems := fnsems sp_user get_stid PYIP;
+    SMod.initial_st := (RRSI.smod parent_yield).(SMod.initial_st);
   |}.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
   Definition init_cond : iProp Σ := RRSAS.init_inv ∗ RRSAS.init_tid ∗ RRSAS.init_pub.
   
-  Definition t sp sp_user :=
-    Seal.sealing CRIS (SMod.to_mod sp (smod sp_user)).
+  Definition t sp sp_user (T: Type) (get_stid: T → nat) (PYIP : T → iProp Σ) :=
+    Seal.sealing CRIS (SMod.to_mod sp (smod sp_user get_stid PYIP)).
 
 End RRSA. End RRSA.
 

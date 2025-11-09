@@ -19,13 +19,13 @@ Module RRSNodeIA. Section RRSNodeIA.
   Context (Hschglob: sp_incl sp_sch_user sp).
   Context (Hschrrs: spl_sub sp_user sp_sch_user).
   Context (Hsch: sp_incl (SchA.sp sp_sch_user E) sp).
-  Context (Hrrs: spl_sub (RRSAS.sp sp_user E) sp_sch_user).
+  Context (Hrrs: spl_sub (RRSAS.sp sp_user E snd SchA.PYIP) sp_sch_user).
   Context (Hnode: spl_sub (RRSNodeAS.sp E) sp_user).
 
   Local Definition IstFull := (IstProd (IstSB (RRSNodeA.t E sp).(Mod.scopes) IstTrue) IstEq).
   Local Definition init_cond := RRSNodeA.init_cond.
-  Local Definition MA := (RRSNodeA.t E sp ★ (MemA.t sp) ★ (RRSA.t sp sp_user)).
-  Local Definition MI := (RRSNodeI.t ★ (MemA.t sp) ★ (RRSA.t sp sp_user)).
+  Local Definition MA := (RRSNodeA.t E sp ★ (MemA.t sp) ★ (RRSA.t SchHdr.yield sp sp_user snd SchA.PYIP)).
+  Local Definition MI := (RRSNodeI.t ★ (MemA.t sp) ★ (RRSA.t SchHdr.yield sp sp_user snd SchA.PYIP)).
 
   Lemma f_spawnable n b Invs
     (RNG: 0 < n < size Invs)
@@ -322,11 +322,11 @@ Section ctxr.
     (Hschglob: sp_incl sp_sch_user sp)
     (Hschrrs: spl_sub sp_user sp_sch_user)
     (Hsch: sp_incl (SchA.sp sp_sch_user E) sp)
-    (Hrrs: spl_sub (RRSAS.sp sp_user E) sp_sch_user)
+    (Hrrs: spl_sub (RRSAS.sp sp_user E snd SchA.PYIP) sp_sch_user)
     (Hnode: spl_sub (RRSNodeAS.sp E) sp_user) :
     ctx_refines
-      ((RRSNodeA.t E sp ★ (MemA.t sp) ★ (RRSA.t sp sp_user)), RRSNodeA.init_cond)
-      ((RRSNodeI.t      ★ (MemA.t sp) ★ (RRSA.t sp sp_user)), emp%I).
+      ((RRSNodeA.t E sp ★ (MemA.t sp) ★ (RRSA.t SchHdr.yield sp sp_user snd SchA.PYIP)), RRSNodeA.init_cond)
+      ((RRSNodeI.t      ★ (MemA.t sp) ★ (RRSA.t SchHdr.yield sp sp_user snd SchA.PYIP)), emp%I).
   Proof using. eapply main_adequacy, (RRSNodeIA.sim E Hsub sp sp_sch_user); eauto. Qed.
 
 End ctxr.

@@ -20,7 +20,7 @@ Module NDSMainIA. Section NDSMainIA.
   Context (Hschglob: sp_incl sp_sch_user sp).
   Context (Hschrrs: spl_sub sp_user sp_sch_user).
   Context (Hsch: sp_incl (SchA.sp sp_sch_user E) sp).
-  Context (Hrrs: spl_sub (RRSAS.sp sp_user E) sp_sch_user).
+  Context (Hrrs: spl_sub (RRSAS.sp sp_user E snd SchA.PYIP) sp_sch_user).
   Context (Hnode: spl_sub (RRSNodeAS.sp E) sp_user).
 
   Local Definition MA := (NDSMainA.t sp).
@@ -36,14 +36,14 @@ Module NDSMainIA. Section NDSMainIA.
     forces_l. iSplitL "I F".
     { iExists _. iSplit; eauto.  do 3 iExists _. iSplit; eauto; cycle 1.
       { iFrame. iSplit; eauto. }
-      { iPureIntro. esplits; eauto. r. exists (RRSAS.init_spec sp_user E). esplits; eauto.
+      { iPureIntro. esplits; eauto. r. exists (RRSAS.init_spec sp_user E snd SchA.PYIP). esplits; eauto.
         { eapply Hrrs. rewrite /RRSAS.sp. unseal CRIS. ss. }
         econs. ss. Unshelve.
-        2:{ ss. eexact (x1.1, x1.2, (λ (svarg sarg : SAny.t), ⌜svarg = sarg ∧ sarg = tt↑↑⌝ ∗ RRSNodeAS.full_val (Vint 0), existT 0 (RRSNodeAS.x_value_tid 0))%I). }
+        2:{ ss. exact (x1.1, x1.2, (λ (svarg sarg : SAny.t), ⌜svarg = sarg ∧ sarg = tt↑↑⌝ ∗ RRSNodeAS.full_val (Vint 0))%I, existT 0 (RRSNodeAS.x_value_tid 0)%I). }
         esplits; eauto.
-        { destruct x1 as [mtid stid]. iIntros (??) "(WI & % & % & tidF & % & % & % & I & F)"; des; subst; hss.
+        { destruct x1 as [mtid stid]. iIntros (??) "(WI & % & % & (tidF & T & Y) & % & % & % & I & F)"; des; subst; hss.
           rewrite /RRSAS.init_spec /fspec_sch /fspec_winv /precond /=.
-          iFrame. iModIntro. iExists _. iSplit; eauto. iExists _. iPureIntro. esplits; eauto.
+          iFrame. iModIntro. iExists _. iSplit; eauto. iExists _. rewrite /PYIP. iPureIntro. esplits; eauto.
           rr. exists (RRSNodeAS.f_main_spec E). esplits; eauto.
           { eapply Hnode. rewrite /RRSNodeAS.sp. unseal CRIS. ss. }
           ii; ss. destruct x1 as [[mtid' stid'] ssch']. exists (stid', ssch'). esplits; eauto.
@@ -53,7 +53,7 @@ Module NDSMainIA. Section NDSMainIA.
             rewrite /fspec_winv /fspec_virtual /postcond. iFrame.
             iModIntro. iExists (tt↑↑). iSplit; eauto. }
         }
-        { iIntros (??) "(WI & tidF & % & % & X)". ss. }
+        { iIntros (??) "(WI & % & % & X)". ss. }
       }
     }
 
@@ -81,7 +81,7 @@ Section ctxr.
     (Hschglob: sp_incl sp_sch_user sp)
     (Hschrrs: spl_sub sp_user sp_sch_user)
     (Hsch: sp_incl (SchA.sp sp_sch_user E) sp)
-    (Hrrs: spl_sub (RRSAS.sp sp_user E) sp_sch_user)
+    (Hrrs: spl_sub (RRSAS.sp sp_user E snd SchA.PYIP) sp_sch_user)
     (Hnode: spl_sub (RRSNodeAS.sp E) sp_user) :
     ctx_refines
       (NDSMainA.t sp, NDSMainA.init_cond)

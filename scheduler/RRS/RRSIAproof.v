@@ -9,14 +9,22 @@ Module RRSIA. Section RRSIA.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
   Context `{_concG: !concG}.
   Context `{_rrsG: !RRSA.rrsG}.
-  Context `{_schG: !SchA.newschG}.
 
   Context (sp: sp_type).
   Context (sp_sch_user sp_rrs_user: spl_type).
-  Context (SchInSp : sp_incl (SchA.sp sp_sch_user ⊤) sp).
-  Context (RRSInSp : sp_incl (RRSAS.sp sp_rrs_user ⊤) sp).
+  Context (parent_yield: string).
+  Context (parent_yield_fsp: fspec).
+  Context (T: Type) (get_stid: T → nat) (PYIP: T → iProp Σ).
+  Context (SchInSp : sp parent_yield = Some parent_yield_fsp).
+  Context (RRSInSp : sp_incl (RRSAS.sp sp_rrs_user ⊤ get_stid PYIP) sp).
   Context (FunInSchSp : sp_incl sp_sch_user sp).
   Context (FunInRrsSp : spl_sub sp_rrs_user sp_sch_user).
+  Context (YieldSpec :
+              fspec_imply' parent_yield_fsp
+                (fspec_winv ⊤
+                   (fspec_simple (λ x,
+                        ((λ varg, TID (get_stid x) ∗ YIELD (get_stid x) ∗ PYIP x ∗ ⌜varg = tt↑⌝),
+                         (λ vret, TID (get_stid x) ∗ YIELD (get_stid x)∗ PYIP x ∗ ⌜vret = tt↑⌝))%I)))).
 
   (**************************)
 
@@ -54,19 +62,19 @@ Module RRSIA. Section RRSIA.
            ∨ Ist_global_in ths tid stid ssch rrinvO
            ∨ Ist_global_out ths tid stid ssch rrinvO))%I.
 
-  Local Definition RRSAMod := RRSA.t sp sp_rrs_user.
-  Local Definition RRSIMod := RRSI.t.
+  Local Definition RRSAMod := RRSA.t parent_yield sp sp_rrs_user get_stid PYIP.
+  Local Definition RRSIMod := RRSI.t parent_yield.
 
   Lemma simF_init : ISim.sim_fun open RRSAMod RRSIMod RRSA.init_cond Ist (Some RRSHdr.init).
-  Proof using FunInSchSp FunInRrsSp SchInSp RRSInSp.
+  Proof using FunInSchSp FunInRrsSp SchInSp RRSInSp YieldSpec.
     init_simF.
 
-    steps_l. iDestruct "ASM" as "[[NschT [Tsch Ysch]] [% [-> (% & % & [RRI [P C]] & PRE)]]]"; des; hss.
-    rename _q3 into Nmtid_sch, _q4 into stid_sch, _q5 into pre, _q6 into Inv.
+    steps_l. iDestruct "ASM" as "[% [-> (% & % & Tsch & Ysch & [RRI [P C]] & PRE & PYIP)]]"; des; hss.
+    rename _q3 into x, _q4 into pre, _q2 into Inv.
     steps_r. steps_l. hss. steps_l. steps_r.
 
     (* Get Tid from parent scheduler *)
-    force_l stid_sch. steps_l. forces_l; iFrame. steps_l.
+    force_l (get_stid x). steps_l. forces_l; iFrame. steps_l.
     rewrite /SModTr.NativeGetTid. steps_r. step. steps_l.
     iDestruct "ASM" as "[-> Tsch]". steps_r.
 
@@ -99,10 +107,10 @@ Module RRSIA. Section RRSIA.
     
     iMod (own_update with "TidA") as "[TidA TidF]".
     { etrans; first eapply (gmap_view_alloc _ 0 (DfracOwn 1) (to_agree stid_0)); ss. refl. }
-    rewrite -{6}Qp.half_half -dfrac_op_own -{2}(agree_idemp (to_agree stid_0)) gmap_view_frag_op.
+    rewrite -{5}Qp.half_half -dfrac_op_own -{2}(agree_idemp (to_agree stid_0)) gmap_view_frag_op.
     iDestruct "TidF" as "[TidF TidF0]".
 
-    iMod (Pending_Shot stid_sch with "P") as "S".
+    iMod (Pending_Shot (get_stid x) with "P") as "S".
     iPoseProof (Shot_dup with "S") as "[S S']".
 
     steps_r. steps_l. iDestruct "ASM" as "Y".
@@ -111,7 +119,7 @@ Module RRSIA. Section RRSIA.
 
     iApply wsim_unfold; iIntros "WI".
     rewrite /SModTr.NativeYield. steps_r.
-    steps_l. force_l stid_sch. steps_l. force_l. iSplitL "Tsch Y WI"; first iFrame.
+    steps_l. force_l (get_stid x). steps_l. force_l. iSplitL "Tsch Y WI"; first iFrame.
     steps_l. yield "Ysch RRIA TidA TidF S' PubA".
     { do 6 iExists _. iSplit; eauto.
       { iPureIntro. esplits; eauto.
@@ -125,16 +133,25 @@ Module RRSIA. Section RRSIA.
     { instantiate (1:= λ _ _, False%I). iIntros (????) "X"; ss. }
 
     clear H1. iApply wsim_reset. iStopProof.
-    revert st_t'. combine_quant st_s'. combine_quant stid_sch.
+    revert st_t'. combine_quant st_s'. combine_quant x.
     eapply wsim_coind. i. destruct_quant CIH.
-    destruct a as [stid_sch [st_s' st_t']]. s.
+    destruct a as [x [st_s' st_t']]. s.
 
-    iIntros "(NschT & RRIP & PubF & S & IST & Tsch & Ysch & WI)"; subst.
+    iIntros "(PYIP & RRIP & PubF & S & IST & Tsch & Ysch & WI)"; subst.
     unfold_iterC_l. unfold_iterC_r.
 
-    steps_r. steps_l. force_l (Nmtid_sch, stid_sch). steps_l. force_l. steps_l.
-    iApply wsim_guarantee_src. iSplitL "WI Ysch Tsch NschT". iFrame; eauto.
-    steps_l. call "IST". steps_l. steps_r. iDestruct "ASM" as "[[-> (NschT & Tsch & Ysch)] ->]".
+    steps_r. steps_l. rewrite SchInSp.
+    rr in YieldSpec. destruct parent_yield_fsp; ss.
+    rr in YieldSpec; ss. specialize (YieldSpec x).
+    destruct YieldSpec as [x0 [PRE POST]]; ss.
+    iPoseProof ((PRE tt↑ tt↑) with "[Tsch Ysch WI PYIP]") as ">PRE".
+    { rewrite /fspec_simple /fspec_winv /FSpec.precond /=.
+      rewrite /precondS /make_fspecS /=. iFrame. eauto. }
+
+    rewrite /FSpec.precond. forces_l. iSplitL "PRE"; eauto.
+    steps_l. call "IST". steps_l. steps_r. 
+
+    iMod (POST with "ASM") as "(WI & (Tsch & Ysch & PYIP & %) & %)".
 
     iDestruct "IST" as (??????) "(% & TidA & [IST_init | [IST_private | [IST_public | [IST_global_in | IST_global_out]]]])"; des; subst; cycle 4.
     { iExFalso. iDestruct "IST_global_out" as "(% & Ys & RRIA & TidF & Ysch' & S' & PubA)".
@@ -161,7 +178,6 @@ Module RRSIA. Section RRSIA.
     iPoseProof (Shot_match with "S S'") as "%". subst. hss.
     iPoseProof (big_sepL_delete with "Ys") as "[Y Ys]"; eauto.
 
-    iApply wsim_unfold; iIntros "WI".
     forces_l. iSplitL "Tsch Y WI"; first iFrame.
 
     steps_l. rewrite /SModTr.NativeYield. steps_r.
@@ -176,7 +192,7 @@ Module RRSIA. Section RRSIA.
   (*SLOW*)Qed.
 
   Lemma simF_inner_spawn : ISim.sim_fun open RRSAMod RRSIMod RRSA.init_cond Ist (Some RRSHdr._spawn).
-  Proof using FunInSchSp FunInRrsSp SchInSp RRSInSp.
+  Proof using FunInSchSp FunInRrsSp SchInSp RRSInSp YieldSpec.
     init_simF.
 
     steps_l. iDestruct "ASM" as "[T [Y WI]]".
@@ -353,7 +369,7 @@ Module RRSIA. Section RRSIA.
   (*SLOW*)Qed.
 
   Lemma simF_spawn : ISim.sim_fun open RRSAMod RRSIMod RRSA.init_cond Ist (Some RRSHdr.spawn).
-  Proof using FunInSchSp FunInRrsSp SchInSp RRSInSp.
+  Proof using FunInSchSp FunInRrsSp SchInSp RRSInSp YieldSpec.
     init_simF.
 
     steps_l. iDestruct "ASM" as (?) "(% & (% & % & % & % & PRE) & (TidF & Y & T & S & C & PubF) & RRI)"; des; subst; hss.
@@ -440,7 +456,7 @@ Module RRSIA. Section RRSIA.
   (*SLOW*)Qed.
 
   Lemma simF_yield : ISim.sim_fun open RRSAMod RRSIMod RRSA.init_cond Ist (Some RRSHdr.yield).
-  Proof using FunInSchSp FunInRrsSp SchInSp RRSInSp.
+  Proof using FunInSchSp FunInRrsSp SchInSp RRSInSp YieldSpec.
     init_simF.
 
     steps_l.
@@ -563,7 +579,7 @@ Module RRSIA. Section RRSIA.
   (*SLOW*)Qed.
 
   Lemma simF_yield_global : ISim.sim_fun open RRSAMod RRSIMod RRSA.init_cond Ist (Some RRSHdr.yield_global).
-  Proof using FunInSchSp FunInRrsSp SchInSp RRSInSp.
+  Proof using FunInSchSp FunInRrsSp SchInSp RRSInSp YieldSpec.
     init_simF.
 
     steps_l. iDestruct "ASM" as "[[-> (TidF & Y & T & S & C & PubF)] ->]".
@@ -660,7 +676,7 @@ Module RRSIA. Section RRSIA.
   (*SLOW*)Qed.
 
   Lemma simF_get_tid : ISim.sim_fun open RRSAMod RRSIMod RRSA.init_cond Ist (Some RRSHdr.get_tid).
-  Proof using FunInSchSp FunInRrsSp SchInSp RRSInSp.
+  Proof using FunInSchSp FunInRrsSp SchInSp RRSInSp YieldSpec.
     init_simF.
 
     steps_l. iDestruct "ASM" as "[[-> (TidF & Y & T & S & C & PubF)] ->]"; hss.
@@ -705,7 +721,7 @@ Module RRSIA. Section RRSIA.
   (*SLOW*)Qed.
 
   Lemma sim : ISim.t open RRSAMod RRSIMod RRSA.init_cond Ist.
-  Proof using FunInSchSp FunInRrsSp SchInSp RRSInSp.
+  Proof using FunInSchSp FunInRrsSp SchInSp RRSInSp YieldSpec.
     init_sim.
     - split; eauto. rewrite /RRSA.init_cond /init_inv /init_tid /init_pub. unseal RRS.
       iIntros "(RRI & tid & pub)". rewrite /Ist.
@@ -723,16 +739,25 @@ End RRSIA.
 Section ctxr.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG}.
   Context `{_rrsG: !rrsG}.
-  Context `{_schG: !SchA.newschG}.
+
+  Context (parent_yield: string).
+  Context (parent_yield_fsp: fspec).
+  Context (T: Type) (get_stid : T → nat) (PYIP: T → iProp Σ).
 
   Lemma ctxr sp sp_sch_user sp_rrs_user
-        (SchInGlobal     : sp_incl (SchA.sp sp_sch_user ⊤) sp)
-        (RRSInGlobal     : sp_incl (RRSAS.sp sp_rrs_user ⊤) sp)
+        (SchInGlobal     : sp parent_yield = Some parent_yield_fsp)
+        (RRSInGlobal     : sp_incl (RRSAS.sp sp_rrs_user ⊤ get_stid PYIP) sp)
         (SchUserInGlobal : sp_incl sp_sch_user sp)
-        (RrsUserInSch    : spl_sub sp_rrs_user sp_sch_user) :
+        (RrsUserInSch    : spl_sub sp_rrs_user sp_sch_user) 
+        (YieldSpec :
+          fspec_imply' parent_yield_fsp
+            (fspec_winv ⊤
+               (fspec_simple (λ x: T,
+                      ((λ varg, TID (get_stid x) ∗ YIELD (get_stid x) ∗ PYIP x ∗ ⌜varg = tt↑⌝),
+                        (λ vret, TID (get_stid x) ∗ YIELD (get_stid x) ∗ PYIP x ∗ ⌜vret = tt↑⌝))%I)))) :
     ctx_refines
-      (RRSA.t sp sp_rrs_user, RRSA.init_cond)
-      (RRSI.t, emp%I).
+      (RRSA.t parent_yield sp sp_rrs_user get_stid PYIP, RRSA.init_cond)
+      (RRSI.t parent_yield,                              emp%I).
   Proof using. eapply main_adequacy, sim; eauto. Qed.
 
 End ctxr.
