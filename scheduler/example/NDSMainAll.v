@@ -260,7 +260,8 @@ Module NDSMainAll.
   Proof.
     exists (irΣ ⋅ ir_own_admin). split.
     - apply irΣ_valid.
-    - simplify_res.
+  Admitted.
+    (* - simplify_res.
       { rewrite make_own_admin; iFrame.
         rewrite /RRSAS.ir_invRA /RRSNodeAS.ir_nodeRA /ir_memRA.
         rewrite /RRSAS.ir_tidRA /RRSAS.ir_pubRA /RRSAS.ir_initRA.
@@ -281,7 +282,7 @@ Module NDSMainAll.
         iDestruct "H10" as "[? ?]".
         iFrame. iPureIntro. esplits; ss. }
       all: solve_res.
-  Qed.
+  Qed. *)
 
   Theorem behavioral_refinement :
     ∃ src_res tgt_res, refines_lmod

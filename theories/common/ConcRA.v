@@ -74,17 +74,28 @@ Section preds.
     rewrite EQ. iFrame.
   Qed.
 
-  Definition ir_tidRA : DRA_mk (excl_authUR natO) := (●E 0).
+  Definition ir_tidRA : DRA_mk (excl_authUR natO) := (●E 0 ⋅ ◯E 0).
   Lemma ir_tidRA_valid : ✓ ir_tidRA.
-  Proof using. rewrite /ir_tidRA. eapply auth_auth_valid. ss. Qed.
+  Proof using. rewrite /ir_tidRA. eapply excl_auth_valid. Qed.
 
   Definition ir_yieldRA : DRA_mk (nat -d> optionUR (exclR unitO)) := 
-    (λ x, if (decide (x < 1)) then None else Some (Excl ())).
+    (* (λ x, if (decide (x < 1)) then None else Some (Excl ())). *)
+    const (Some (Excl ())).
+
   Lemma ir_yieldRA_valid : ✓ ir_yieldRA.
   Proof using. rewrite /ir_yieldRA. ii. destruct x; ss. Qed.
 
+  Lemma make_sys_init :
+    own base_γ ir_tidRA -∗ own base_γ ir_yieldRA -∗
+    TidToken 0 ∗ YieldToken 0 ∗ TidTokenAuth 0 ∗ YieldTokenAuth 1.
+  Proof.
+    iIntros "T Y".
+    rewrite /ir_tidRA /ir_yieldRA /TidToken /YieldToken /TidTokenAuth /YieldTokenAuth.
+    unseal "Conc". iDestruct "T" as "[$ $]".
+    rewrite -own_op own_proper; first done.
+    intros x; rewrite discrete_fun_lookup_op; ss; repeat case_decide; eauto; try lia.
+  Qed.
   Definition ir_concΓ : concΓ := *[Some ir_tidRA; Some ir_yieldRA].
-
 End preds.
 
 Notation "'TID' tid" := (TidToken tid) (at level 20, tid at level 1, format "TID  tid").

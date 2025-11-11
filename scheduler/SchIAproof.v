@@ -367,7 +367,7 @@ Module SchIA. Section sim.
     init_sim.
     - split; eauto.
       rewrite /init_cond.
-      iIntros "[TiA JoinA]". iExists [(0, None, λ _ _, existT 0 ⊥)], 0, 0.
+      iIntros "[TidA JoinA]". iExists [(0, None, λ _ _, existT 0 ⊥)], 0, 0.
       iFrame. ss. iSplit; eauto. iSplit; eauto.
     - eapply simF_inner_spawn.
     - eapply simF_spawn.

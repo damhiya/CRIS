@@ -63,9 +63,13 @@ Module SchA. Section SchA.
   Proof. rewrite /ir_joinRA; apply gmap_view_auth_valid. Qed.
 
   Definition ir_newtidRA : DRA_mk newtidRA := 
-    (gmap_view_auth (DfracOwn 1) {[0 := (to_agree 0)]})%SAT.
+    (gmap_view_auth (DfracOwn 1) {[0 := (to_agree 0)]} ⋅
+    gmap_view_frag 0 (DfracOwn 1) (to_agree 0))%SAT.
   Lemma ir_newtidRA_valid : ✓ ir_newtidRA.
-  Proof. rewrite /ir_joinRA; apply gmap_view_auth_valid. Qed.
+  Proof.
+    rewrite /ir_joinRA /ir_newtidRA.
+    apply gmap_view_both_valid; esplits; eauto; ss.
+  Qed.
 
   Definition ir_schΓ : newschΓ := *[Some ir_newtidRA].
   Definition ir_schΣ : newschΣ := *[Some ir_joinRA].
@@ -218,7 +222,9 @@ Module SchA. Section SchA.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition init_cond : iProp Σ := own base_γ ir_newtidRA ∗ own base_γ ir_joinRA.
+  Definition init_cond : iProp Σ :=
+    (* own base_γ ir_newtidRA ∗ own base_γ ir_joinRA. *)
+    TidAuth {[0 := 0]} ∗ own base_γ ir_joinRA.
 
   Definition t sp sp_user := Seal.sealing CRIS (SMod.to_mod sp (smod sp_user)).
 End SchA. End SchA.
