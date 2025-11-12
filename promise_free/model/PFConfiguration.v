@@ -26,7 +26,7 @@ Module PFConfiguration.
   Variant estep: forall (e: ThreadEvent.t) (tid: Ident.t) (c1 c2: Configuration.t), Prop :=
     | estep_intro
         e tid c1 lang st1 lc1 st2 lc2 gl2
-        (TID: IdentMap.find tid (Configuration.threads c1) = Some (existT lang st1, lc1))
+        (HTID: IdentMap.find tid (Configuration.threads c1) = Some (existT lang st1, lc1))
         (STEP: Thread.step e
                  (Thread.mk _ st1 lc1 (Configuration.global c1))
                  (Thread.mk _ st2 lc2 gl2))
@@ -92,8 +92,8 @@ Module PFConfiguration.
         rewrite IdentMap.Facts.add_o. condtac; ss. subst. congruence.
     - i. Configuration.simplify.
       + exploit Thread.step_preserve; eauto. i. des. i. des.
-        erewrite <- TID; try exact TID0. etrans; eauto.
-      + eapply TID; try exact TH.
+        erewrite <- HTID; try exact HTID0. etrans; eauto.
+      + eapply HTID; try exact TH.
   Qed.
 
   Lemma all_step_future

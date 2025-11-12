@@ -5,7 +5,7 @@ Require Import PFMemIAproof.
 
 Section write.
   Import PFMemIA.
-  Context `{!crisG Γ Σ α β τ _S _I, !histG, !atomicG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concG, !histG, !atomicG}.
 
   Context (sp : string → option fspec).
   Context (syn : Threads.syntax).
@@ -29,7 +29,7 @@ Section write.
       destruct e; inv EVWRITE; inv STEP; clear EVENT; rename STEP0 into STEP; s in STEP; cycle 1.
       { (* RACY WRITE *)
         inv STEP; inv LOCAL. inv LOCAL0. inv RACE.
-        { inv PFG; rewrite H1 in GET; ss. }
+        { inv PFG; rewrite H2 in GET; ss. }
         iPoseProof (tview_both_valid with "TA TV") as "%IN".
         destruct IN as [l [lc [FOUND LCEQ]]].
         s; rewrite FOUND in Heq; inv Heq.
@@ -43,7 +43,7 @@ Section write.
         assert (LECUT: Time.lt (View.rlx Vcut loc) to0).
         { inv SEEN_LOCAL.
           { ett. eapply l. etrans; eauto. }
-          { ett. eapply l. inv H1; eauto. }
+          { ett. eapply l. inv H2; eauto. }
         }
         assert (CUT_GET: Cell.get to0 (Cell.singleton msg' LT) = Some (from, Message.message val0 released na)).
         { rewrite CELL_CUT Cell.cut_spec; des_ifs; timetac. }
@@ -61,7 +61,7 @@ Section write.
         exfalso; inv RACE; try done.
         hexploit (PFL tid); eauto; clear PFL; intros PFL.
         inv PFL; inv PFG.
-        des; rewrite H4 H5 in FREEPROMISE.
+        des; rewrite H5 H6 in FREEPROMISE.
         rewrite Promises.FreePromises.minus_bot in FREEPROMISE. inv FREEPROMISE.
       }
       (* VALID WRITE *)
@@ -81,7 +81,7 @@ Section write.
       assert (TTO: Time.lt t to).
       { inv LOCAL0. inv SEEN_LOCAL; inv WRITABLE.
         { etrans; eauto. }
-        { rewrite H1. auto. }
+        { rewrite H2. auto. }
       }
 
       assert (AFTER: Time.lt (View.rlx Vcut loc) to).
@@ -106,7 +106,7 @@ Section write.
             instantiate (1:=t0). instantiate (1:=loc').
             des_ifs.
             { ss; des; clarify.
-              rewrite GET; intros HH; inv HH; revert H5; destruct ord; ss.
+              rewrite GET; intros HH; inv HH; revert H6; destruct ord; ss.
               i. rewrite /TimeMap.join /Time.join /TimeMap.singleton /LocFun.add; des_ifs.
               rewrite Time.le_lteq; right; auto.
             }
@@ -133,9 +133,9 @@ Section write.
                 { exfalso. eapply Memory.prealloced_is_not_accessible; cycle 1.
                   eapply ACC.
                   exploit Memory.add_preserve; eauto. i. des.
-                  rewrite /Memory.is_prealloced /Block.is_prealloced in H1.
+                  rewrite /Memory.is_prealloced /Block.is_prealloced in H2.
                   rewrite /Memory.get_state in GET_STATE.
-                  rewrite (GET_STATE loc) in H1; ss.
+                  rewrite (GET_STATE loc) in H2; ss.
                 }
               }
             }
@@ -145,7 +145,7 @@ Section write.
             ss.
           }
           { inv WF. inv GL_WF. inv LOCAL0. eapply wf_prealloc_write; eauto. }
-          { inv PFG. inv LOCAL0; econs; ss. inv FULFILL. done. rewrite H1 in GREMOVE.
+          { inv PFG. inv LOCAL0; econs; ss. inv FULFILL. done. rewrite H2 in GREMOVE.
             hexploit (Promises.Promises.remove_le); eauto.
             intros ?; hexploit (Promises.Promises.antisym); eauto using Promises.Promises.bot_spec.
           }
@@ -154,7 +154,7 @@ Section write.
               hexploit (PFL tid); eauto using F.
               intros PFL'; inv PFL'; inv LOCAL0; econs; ss.
               inv FULFILL; ss.
-              hexploit (Promises.Promises.remove_le); first apply REMOVE. rewrite H1.
+              hexploit (Promises.Promises.remove_le); first apply REMOVE. rewrite H2.
               intros ?; hexploit (Promises.Promises.antisym); eauto using Promises.Promises.bot_spec.
             }
             { subst ths2; rewrite IdentMap.gso in LC; ss.
@@ -210,7 +210,7 @@ Section write.
       destruct e; inv EVWRITE; inv STEP; clear EVENT; rename STEP0 into STEP; s in STEP; cycle 1.
       { (* RACY WRITE *)
         inv STEP; inv LOCAL. inv LOCAL0. inv RACE.
-        { inv PFG; rewrite H1 in GET; ss. }
+        { inv PFG; rewrite H2 in GET; ss. }
         hexploit MSG; eauto; intros ->; clear MSG.
         iPoseProof (tview_both_valid with "TA TV") as "%IN".
         destruct IN as [l [lc [FOUND LCEQ]]].
@@ -248,7 +248,7 @@ Section write.
         exfalso; inv RACE; try done.
         hexploit (PFL tid); eauto; clear PFL; intros PFL.
         inv PFL; inv PFG.
-        des; rewrite H4 H5 in FREEPROMISE.
+        des; rewrite H6 H5 in FREEPROMISE.
         rewrite Promises.FreePromises.minus_bot in FREEPROMISE. inv FREEPROMISE.
       }
       (* VALID WRITE *)
@@ -368,7 +368,7 @@ Section write.
             hexploit Memory.add_o; eauto.
             instantiate (1:=t). instantiate (1:=loc').
             des_ifs.
-            { ss; des; clarify. rewrite GET; intros HH; inv HH; revert ORDRLX H6; destruct ord; ss. }
+            { ss; des; clarify. rewrite GET; intros HH; inv HH; revert ORDRLX H7; destruct ord; ss. }
             intros GET'; rewrite GET' in GET.
             eapply CUT; eauto.
           }
@@ -378,7 +378,7 @@ Section write.
             ss.
           }
           { inv WF. inv GL_WF. inv LOCAL0. eapply wf_prealloc_write; eauto. }
-          { inv PFG. inv LOCAL0; econs; ss. inv FULFILL. done. rewrite H2 in GREMOVE.
+          { inv PFG. inv LOCAL0; econs; ss. inv FULFILL. done. rewrite H3 in GREMOVE.
             hexploit (Promises.Promises.remove_le); eauto.
             intros ?; hexploit (Promises.Promises.antisym); eauto using Promises.Promises.bot_spec.
           }
@@ -387,7 +387,7 @@ Section write.
               hexploit (PFL tid); eauto using EQ.
               intros PFL'; inv PFL'; inv LOCAL0; econs; ss.
               inv FULFILL; ss.
-              hexploit (Promises.Promises.remove_le); first apply REMOVE. rewrite H2.
+              hexploit (Promises.Promises.remove_le); first apply REMOVE. rewrite H3.
               intros ?; hexploit (Promises.Promises.antisym); eauto using Promises.Promises.bot_spec.
             }
             { subst ths2; rewrite IdentMap.gso in LC; ss.

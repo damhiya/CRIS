@@ -3,9 +3,9 @@ Require Import CRIS SystemHeader SystemA.
 Require Import ltac2_lib.
 
 Section wsim.
-  Context `{!crisG Γ Σ α β τ _S _I, !sysG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concG, !sysG}.
 
-  Lemma wsim_system_yield
+  (* Lemma wsim_system_yield
       fl_src fl_tgt Ist r g R_src R_tgt RR p_src p_tgt
       st_src st_tgt itr_src itr_tgt
       (tid : Ident.t) (V : TView.t)
@@ -130,5 +130,5 @@ Section wsim.
     iIntros "S"; rewrite /System.yield; unseal "System".
     unfold_iter_l; steps_l.
     force_l true; steps_l; done.
-  Qed.
+  Qed. *)
 End wsim.

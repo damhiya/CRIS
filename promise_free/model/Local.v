@@ -396,7 +396,7 @@ Module Local.
       (PROMISES_DISJOINT: Promises.disjoint (promises lc1) (promises lc2))
       (FREE_PROMISES_DISJOINT: FreePromises.disjoint (free_promises lc1) (free_promises lc2))
       (RESERVES_DISJOINT: Memory.disjoint (reserves lc1) (reserves lc2))
-      (TID: tid lc1 <> tid lc2)
+      (NEQ: tid lc1 <> tid lc2)
   .
   #[global] Hint Constructors disjoint: core.
 
@@ -532,7 +532,7 @@ Module Local.
 
   Lemma locs_in
         loc1 loc2 size
-        (TID: Loc.tid loc1 = Loc.tid loc2)
+        (TIDE: Loc.tid loc1 = Loc.tid loc2)
         (BID: Loc.bid loc1 = Loc.bid loc2)
         (OFS: (Loc.ofs loc2 <= Loc.ofs loc1 < Loc.ofs loc2 + (Z.of_nat size))%Z):
     List.In loc1 (locs loc2 size).
@@ -930,7 +930,7 @@ Module Local.
   Lemma internal_step_preserve
         e lc1 gl1 lc2 gl2
         (STEP: internal_step e lc1 gl1 lc2 gl2):
-    <<TID: Local.tid lc2 = Local.tid lc1>> /\
+    <<NEQ: Local.tid lc2 = Local.tid lc1>> /\
     <<NEXTBID: forall tid, Memory.next_bid (Global.memory gl2) tid =
                       Memory.next_bid (Global.memory gl1) tid>>.
   Proof.
@@ -952,7 +952,7 @@ Module Local.
   Lemma program_step_preserve
         e lc1 gl1 lc2 gl2
         (STEP: program_step e lc1 gl1 lc2 gl2):
-    <<TID: Local.tid lc2 = Local.tid lc1>> /\
+    <<NEQ: Local.tid lc2 = Local.tid lc1>> /\
     <<NEXTBID: forall tid, Local.tid lc1 <> tid ->
                       Memory.next_bid (Global.memory gl2) tid =
                       Memory.next_bid (Global.memory gl1) tid>>.

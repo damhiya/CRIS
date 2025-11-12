@@ -3,7 +3,7 @@ Require Import PFMemHeader PFMemI PFMemA HistoryRA AtomicRA.
 Require Import base Time TView View Cell Memory Global Time.
 
 Module PFMemIA. Section PFMemIA.
-  Context `{!crisG Γ Σ α β τ _S _I, !histG, !atomicG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concG, !histG, !atomicG}.
 
   Context (sp : string → option fspec).
   Context (syn : Threads.syntax).
@@ -119,7 +119,7 @@ Module PFMemIA. Section PFMemIA.
     exfalso; inv RACE; try done.
     hexploit (PFL tid); eauto; clear PFL; intros PFL.
     inv PFL; inv PFG.
-    des; rewrite H4 H5 in FREEPROMISE.
+    des. rewrite H5 H6 in FREEPROMISE.
     rewrite Promises.FreePromises.minus_bot in FREEPROMISE. inv FREEPROMISE.
   Qed.
 
@@ -140,7 +140,7 @@ Module PFMemIA. Section PFMemIA.
   Proof.
     iIntros "[HA [FA [SEEN [PT [TA TV]]]]]".
     inv RACE.
-    { inv PFG; rewrite H1 in GET; ss. }
+    { inv PFG; rewrite H2 in GET; ss. }
     hexploit MSG; eauto; intros ->; clear MSG.
     iPoseProof (tview_both_valid with "TA TV") as "%IN".
     destruct IN as [l [lc [FOUND LCEQ]]].

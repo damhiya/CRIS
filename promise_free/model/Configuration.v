@@ -43,7 +43,7 @@ Module Threads.
       (DISJOINT:
          forall tid1 lang1 st1 lc1
            tid2 lang2 st2 lc2
-           (TID: tid1 <> tid2)
+           (HTID: tid1 <> tid2)
            (TH1: IdentMap.find tid1 ths = Some (existT lang1 st1, lc1))
            (TH2: IdentMap.find tid2 ths = Some (existT lang2 st2, lc2)),
            Local.disjoint lc1 lc2)
@@ -58,7 +58,7 @@ Module Threads.
         exists tid lang st lc,
           (<<TH: IdentMap.find tid ths = Some (existT lang st, lc)>>) /\
           (<<GET: Local.free_promises lc tbid = true>>))
-      (TID: forall tid lang st lc
+      (HTID: forall tid lang st lc
               (TH: IdentMap.find tid ths = Some (existT lang st, lc)),
           Local.tid lc = tid)
   .
@@ -100,8 +100,8 @@ Module Threads.
     destruct WF2 as [tid FIND].
     intros lc_new; inv WF; econs; ss.
     { intros ???????? Hneq; rewrite ?IdentMap.gsspec; des_ifs; clarify; last by eapply DISJOINT.
-      { case; intros -> <-; rewrite /= => /TID; i; econs; ss; eauto using Memory.bot_disjoint; clarify. }
-      { move => /TID; intros <-; case; intros -> <-; econs; ss; clarify.
+      { case; intros -> <-; rewrite /= => /HTID; i; econs; ss; eauto using Memory.bot_disjoint; clarify. }
+      { move => /HTID; intros <-; case; intros -> <-; econs; ss; clarify.
         symmetry; by eauto using Memory.bot_disjoint.
       }
     }
@@ -121,9 +121,7 @@ Module Threads.
     { intros ? [tid_p [? [? [? [??]]]]]%FREEPROMISES; exists tid_p; esplits; eauto.
       { rewrite IdentMap.gso; eauto; ii; apply NIN; rewrite IdentMap.mem_find; des_ifs; ss. }
     }
-    { intros ????; rewrite IdentMap.gsspec; des_ifs; last by apply TID.
-      case; intros -> <-; ss.
-    }
+    { intros ????; rewrite IdentMap.gsspec; des_ifs; last by apply HTID. case; intros -> <-; ss. }
   Qed.
   (* tids *)
 
@@ -219,7 +217,7 @@ Module Configuration.
   Variant step: forall (e: MachineEvent.t) (tid: Tid.t) (c1 c2: t), Prop :=
   | step_intro
       e tid c1 lang st1 lc1 th2 st3 lc3 gl3
-      (TID: IdentMap.find tid (threads c1) = Some (existT lang st1, lc1))
+      (HTID: IdentMap.find tid (threads c1) = Some (existT lang st1, lc1))
       (STEPS: rtc (@Thread.tau_step lang) (Thread.mk _ st1 lc1 (global c1)) th2)
       (STEP: Thread.step e th2 (Thread.mk _ st3 lc3 gl3))
       (CONSISTENT: ThreadEvent.get_machine_event e <> MachineEvent.failure ->
@@ -365,8 +363,8 @@ Module Configuration.
     - simplify.
       + exploit Thread.step_preserve; eauto. i. des.
         exploit Thread.rtc_tau_step_preserve; eauto. i. des.
-        erewrite <- TID; try exact TID0. etrans; eauto.
-      + eapply TID; try exact TH.
+        erewrite <- HTID; try exact HTID0. etrans; eauto.
+      + eapply HTID; try exact TH.
     - inv GL_FUTURE. inv GL_FUTURE0. inv MEMORY. inv MEMORY0.
       econs; try etrans; eauto. econs; try etrans; eauto.
   Qed.
@@ -520,7 +518,7 @@ Module Configuration.
         exists tid0, lang0, st, lc. splits; ss.
         rewrite IdentMap.Facts.add_o. condtac; ss. subst. congruence.
     - destruct (classic (tid0 = tid)).
-      { subst. rewrite IdentMap.gss in TH. clarify. eapply TID in TID0.
+      { subst. rewrite IdentMap.gss in TH. clarify. eapply HTID in HTID0.
         exploit Thread.rtc_tau_step_preserve; eauto. i. des. ss.
         exploit Thread.step_preserve; eauto. i. des. ss.
         etrans; eauto. etrans; eauto.

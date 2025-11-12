@@ -5,7 +5,7 @@ Require Import PFMemIAproof.
 
 Section spawn.
   Import PFMemIA.
-  Context `{!crisG Γ Σ α β τ _S _I, !histG, !atomicG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concG, !histG, !atomicG}.
 
   Context (sp : string → option fspec).
   Context (syn : Threads.syntax).
@@ -19,12 +19,12 @@ Section spawn.
     init_simF. steps_l. iDestruct "ASM" as "[[-> TV] ->]". hss_r. steps_r.
     rename _q2 into 𝓥, _q1 into tid.
     iDestruct "IST" as "[% [% [% [[-> [% [% [%WF [% [%PFG %PFL]]]]]] [HA [TA HFA]]]]]]". hss_r.
-    steps_r. destruct _q as [tid_new Hnin].
+    steps_r. hss_r. steps_r. destruct _q as [tid_new Hnin].
     iPoseProof (tview_both_valid with "TA TV") as "[% [% [%FIND %]]]"; rewrite FIND. steps_r.
     iMod (tview_auth_alloc _ tid_new with "TA") as "[TA TVnew]"; eauto.
     { rewrite IdentMap.mem_find in Hnin; des_ifs; eauto. }
     force_l (tid_new↑). steps_l. force_l (tid_new↑). steps_l.
-    remember (alist_upd _ _ _) as st_tgt'.
+    remember [(_, _)] as st_tgt'.
     iAssert (Ist st_src st_tgt')%I with "[- TV TVnew]" as "IST".
     { iExists _, _, _; iSplit; first iPureIntro.
       { split; first subst; ss.

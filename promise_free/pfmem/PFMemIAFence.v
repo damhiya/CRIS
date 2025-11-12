@@ -5,7 +5,7 @@ Require Import PFMemIAproof.
 
 Section fence.
   Import PFMemIA.
-  Context `{!crisG Γ Σ α β τ _S _I, !histG, !atomicG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concG, !histG, !atomicG}.
 
   Context (sp : string → option fspec).
   Context (syn : Threads.syntax).
@@ -20,7 +20,7 @@ Section fence.
     steps_l. iDestruct "ASM" as "[[[-> %] TV] ->]". hss. steps_r.
     rename _q2 into 𝓥, _q4 into ordw, _q5 into tid, _q6 into ordr.
     iDestruct "IST" as "[%gl [%ths [%Vcut [[-> [%CUT [%CUTCL [%WF [%WF2 [%PFG %PFL]]]]]] [HA [TA FA]]]]]]".
-    hss. steps_r. rewrite /PFMemI.check_ident.
+    hss. steps_r. hss_r. steps_r. rewrite /PFMemI.check_ident.
     des_ifs; last (iPoseProof (tview_both_valid with "TA TV") as "%F"; des; ss; clarify).
     steps_r. destruct _q as [config' STEP].
     inv STEP. s in STEP0. inv STEP0; [inv LOCAL|].
@@ -33,10 +33,10 @@ Section fence.
 
     set (gl2:=_: Global.t) at 5.
     assert (gl2 = gl) by (subst gl2; destruct gl; ss).
-    rewrite H2. clear H2. set (lc2:=_: Local.t).
+    rewrite H3. clear H3. set (lc2:=_: Local.t).
 
     steps_r. rewrite /alist_upd /_alist_upd /=.
-    set (st_tgt:=[(PFMemI.v_config, _)]).
+    set (st_tgt:=[(_, _)]).
 
     iPoseProof (tview_both_valid with "TA TV") as "%IN". des. subst 𝓥.
 
@@ -56,9 +56,9 @@ Section fence.
         rewrite GL in WF0. destruct gl; ss.
       }
       { i. destruct (decide (tid0 = tid)).
-        { subst. rewrite IdentMap.gss in H2; inv H2.
+        { subst. rewrite IdentMap.gss in H3; inv H3.
           hexploit PFL; eauto. }
-        { rewrite IdentMap.gso in H2; eauto. }
+        { rewrite IdentMap.gso in H3; eauto. }
       }
     }
 

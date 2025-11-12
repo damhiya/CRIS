@@ -5,7 +5,7 @@ Require Import PFMemIAproof.
 
 Section alloc.
   Import PFMemIA.
-  Context `{!crisG Γ Σ α β τ _S _I, !histG, !atomicG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concG, !histG, !atomicG}.
 
   Context (sp : string → option fspec).
   Context (syn : Threads.syntax).
@@ -54,7 +54,7 @@ Section alloc.
             hexploit (WFP l).
             { inv WF. inv MEM_WELL_ALLOCED. destruct l; ss.
               hexploit (PREALLOC (Local.tid lc1) bid); ss. lia.
-              rewrite /Memory.is_prealloced /= H3 //.
+              rewrite /Memory.is_prealloced /= H4 //.
             }
             intros ->.
             rewrite Cell.cut_spec Cell.init_get; des_ifs.
@@ -95,8 +95,8 @@ Section alloc.
         { instantiate (1:=l). destruct l; rewrite /Loc.get_tbid; clarify; split; ss. subst tid; ss. }
         intros ACC1; hexploit Memory.alloc_accessible3; eauto. { inv WF; ss. }
         intros [ACC1' | CONT]; cycle 1.
-        { des; exfalso; apply LOC; rewrite /Loc.get_tbid H2 a; ss. }
-        { exfalso; apply n0; split; des; eauto. rewrite H2 in ACC1; done. }
+        { des; exfalso; apply LOC; rewrite /Loc.get_tbid H3 a; ss. }
+        { exfalso; apply n0; split; des; eauto. rewrite H3 in ACC1; done. }
       }
     }
     iStopProof. clear STEP; revert n; induction n; [iIntros "_"; ss|].
@@ -158,10 +158,10 @@ Section alloc.
         { inv WF. inv GL_WF. inv LOCAL0. eapply wf_prealloc_alloc; eauto. }
         { destruct gl, gl2; inv LOCAL0; ss. }
         { ii; destruct (decide (tid0 = tid)); subst.
-          { hexploit (PFL tid); eauto. s in H1; rewrite IdentMap.gss in H1; inv H1.
+          { hexploit (PFL tid); eauto. s in H2; rewrite IdentMap.gss in H2; inv H2.
             inv LOCAL0; inv ALLOC; ss.
           }
-          { rewrite IdentMap.gso in H1; clarify; hexploit (PFL tid0); eauto. }
+          { rewrite IdentMap.gso in H2; clarify; hexploit (PFL tid0); eauto. }
         }
       }
       subst config'; iFrame.

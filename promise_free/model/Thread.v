@@ -242,7 +242,7 @@ Module Thread.
     Lemma step_preserve
           e th1 th2
           (STEP: step e th1 th2):
-      <<TID: Local.tid (local th2) = Local.tid (local th1)>> /\
+      <<HTID: Local.tid (local th2) = Local.tid (local th1)>> /\
       <<NEXTBID: forall tid, Local.tid (local th1) <> tid ->
                         Memory.next_bid (Global.memory (global th2)) tid =
                         Memory.next_bid (Global.memory (global th1)) tid>>.
@@ -255,7 +255,7 @@ Module Thread.
     Lemma opt_step_preserve
           e th1 th2
           (STEP: opt_step e th1 th2):
-      <<TID: Local.tid (local th2) = Local.tid (local th1)>> /\
+      <<HTID: Local.tid (local th2) = Local.tid (local th1)>> /\
       <<NEXTBID: forall tid, Local.tid (local th1) <> tid ->
                         Memory.next_bid (Global.memory (global th2)) tid =
                         Memory.next_bid (Global.memory (global th1)) tid>>.
@@ -266,7 +266,7 @@ Module Thread.
     Lemma rtc_all_step_preserve
           th1 th2
           (STEP: rtc all_step th1 th2):
-      <<TID: Local.tid (local th2) = Local.tid (local th1)>> /\
+      <<HTID: Local.tid (local th2) = Local.tid (local th1)>> /\
       <<NEXTBID: forall tid, Local.tid (local th1) <> tid ->
                         Memory.next_bid (Global.memory (global th2)) tid =
                         Memory.next_bid (Global.memory (global th1)) tid>>.
@@ -275,13 +275,13 @@ Module Thread.
       - splits; ss; try refl.
       - inv H. exploit step_preserve; eauto. i. des.
         splits; ss; try by (etrans; eauto).
-        rewrite TID in NEXTBID0. i. erewrite NEXTBID0; eauto.
+        rewrite HTID in NEXTBID0. i. erewrite NEXTBID0; eauto.
     Qed.
 
     Lemma rtc_tau_step_preserve
           th1 th2
           (STEP: rtc tau_step th1 th2):
-      <<TID: Local.tid (local th2) = Local.tid (local th1)>> /\
+      <<HTID: Local.tid (local th2) = Local.tid (local th1)>> /\
       <<NEXTBID: forall tid, Local.tid (local th1) <> tid ->
                         Memory.next_bid (Global.memory (global th2)) tid =
                         Memory.next_bid (Global.memory (global th1)) tid>>.
@@ -294,7 +294,7 @@ Module Thread.
     Lemma internal_step_preserve
           th1 th2
           (STEP: internal_step th1 th2):
-      <<TID: Local.tid (local th2) = Local.tid (local th1)>> /\
+      <<HTID: Local.tid (local th2) = Local.tid (local th1)>> /\
       <<NEXTBID: forall tid, Memory.next_bid (Global.memory (global th2)) tid =
                         Memory.next_bid (Global.memory (global th1)) tid>>.
     Proof.
@@ -304,7 +304,7 @@ Module Thread.
     Lemma rtc_internal_step_preserve
           th1 th2
           (STEP: rtc internal_step th1 th2):
-      <<TID: Local.tid (local th2) = Local.tid (local th1)>> /\
+      <<HTID: Local.tid (local th2) = Local.tid (local th1)>> /\
       <<NEXTBID: forall tid, Local.tid (local th1) <> tid ->
                         Memory.next_bid (Global.memory (global th2)) tid =
                         Memory.next_bid (Global.memory (global th1)) tid>>.
@@ -313,13 +313,13 @@ Module Thread.
       - splits; ss; try refl.
       - inv H. exploit internal_step_preserve; eauto. i. instantiate (1 := st) in x0. des.
         splits; ss; try by (etrans; eauto).
-        rewrite TID in NEXTBID0. i. erewrite NEXTBID0; eauto.
+        rewrite HTID in NEXTBID0. i. erewrite NEXTBID0; eauto.
     Qed.
 
     Lemma program_step_preserve
           e th1 th2
           (STEP: program_step e th1 th2):
-      <<TID: Local.tid (local th2) = Local.tid (local th1)>> /\
+      <<HTID: Local.tid (local th2) = Local.tid (local th1)>> /\
       <<NEXTBID: forall tid, Local.tid (local th1) <> tid ->
                         Memory.next_bid (Global.memory (global th2)) tid =
                         Memory.next_bid (Global.memory (global th1)) tid>>.
@@ -330,7 +330,7 @@ Module Thread.
     Lemma rtc_program_step_preserve
           th1 th2
           (STEP: rtc (tau program_step) th1 th2):
-      <<TID: Local.tid (local th2) = Local.tid (local th1)>> /\
+      <<HTID: Local.tid (local th2) = Local.tid (local th1)>> /\
       <<NEXTBID: forall tid, Local.tid (local th1) <> tid ->
                         Memory.next_bid (Global.memory (global th2)) tid =
                         Memory.next_bid (Global.memory (global th1)) tid>>.
@@ -339,7 +339,7 @@ Module Thread.
       - splits; ss; try refl.
       - inv H. exploit program_step_preserve; eauto. i. des.
         splits; ss; try by (etrans; eauto).
-        rewrite TID in NEXTBID0. i. erewrite NEXTBID0; eauto.
+        rewrite HTID in NEXTBID0. i. erewrite NEXTBID0; eauto.
     Qed.
 
     (* step_future *)

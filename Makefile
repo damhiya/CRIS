@@ -84,6 +84,7 @@ Makefile.coq: Makefile $(COQTHEORIES)
 	 echo "-R extract $(COQMODULE)"; \
 	 echo "-R prophecy $(COQMODULE)"; \
 	 echo "-R examples $(COQMODULE)"; \
+	 echo "-R promise_free $(COQMODULE)"; \
 	 echo $(COQTHEORIES)) > _CoqProject
 	coq_makefile -f _CoqProject -o Makefile.coq
 

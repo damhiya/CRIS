@@ -6,7 +6,7 @@ Require Import
   PFMemIACAS PFMemIAFence PFMemIASpawn.
 
 Module PFMemIA. Section PFMemIA.
-  Context `{!crisG Γ Σ α β τ _S _I, !histG, !atomicG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concG, !histG, !atomicG}.
 
   Lemma ctxr sp syn size :
     ctx_refines
@@ -22,7 +22,6 @@ Module PFMemIA. Section PFMemIA.
     { apply simF_write. }
     { apply simF_cas. }
     { apply simF_fence. }
-    (* { apply simF_init. } *)
     { apply simF_spawn. }
   Admitted.
 End PFMemIA. End PFMemIA.

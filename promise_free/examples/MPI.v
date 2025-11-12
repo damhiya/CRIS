@@ -11,7 +11,7 @@ End MPHdr.
 
 (* Message passing - implementation *)
 Module MPI. Section MPI.
-  Context `{Σ : GRA}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concG}.
   Definition scopes : list string := [].
 
   Definition mp : () → itree crisE Val.t :=

@@ -5,7 +5,7 @@ Require Import PFMemIAproof.
 
 Section read.
   Import PFMemIA.
-  Context `{!crisG Γ Σ α β τ _S _I, !histG, !atomicG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concG, !histG, !atomicG}.
 
   Context (sp : string → option fspec).
   Context (syn : Threads.syntax).
@@ -29,7 +29,7 @@ Section read.
       destruct e; inv EVREAD; inv STEP; clear EVENT; rename STEP0 into STEP; s in STEP; cycle 1.
       { (* RACY READ *)
         inv STEP; inv LOCAL. inv LOCAL0. inv RACE.
-        { inv PFG; rewrite H1 in GET; ss. }
+        { inv PFG; rewrite H2 in GET; ss. }
         iPoseProof (tview_both_valid with "TA TV") as "%IN".
         destruct IN as [l [lc [FOUND LCEQ]]].
         s; rewrite FOUND in Heq; inv Heq.
@@ -43,7 +43,7 @@ Section read.
         assert (LECUT: Time.lt (View.rlx Vcut loc) to0).
         { inv SEEN_LOCAL.
           { ett. eapply l. etrans; eauto. }
-          { ett. eapply l. inv H1; eauto. }
+          { ett. eapply l. inv H2; eauto. }
         }
         assert (CUT_GET: Cell.get to0 (Cell.singleton (Message.message val V' na') LT) = Some (from, Message.message val0 released na)).
         { rewrite CELL_CUT Cell.cut_spec; des_ifs; timetac. }
@@ -61,7 +61,7 @@ Section read.
         exfalso; inv RACE; try done.
         hexploit (PFL tid); eauto; clear PFL; intros PFL.
         inv PFL; inv PFG.
-        des; rewrite H4 H5 in FREEPROMISE.
+        des; rewrite H5 H6 in FREEPROMISE.
         rewrite Promises.FreePromises.minus_bot in FREEPROMISE. inv FREEPROMISE.
       }
       (* VALID READ *)
@@ -84,7 +84,7 @@ Section read.
         assert (LECUT: Time.le (View.rlx Vcut loc) ts).
         { inv READABLE. inv SEEN_LOCAL.
           { etrans. eapply l. rewrite Time.le_lteq; left; tet; eauto. }
-          { etrans. eapply l. inv H1. eauto. }
+          { etrans. eapply l. inv H2. eauto. }
         }
 
         assert (CUT_GET: Cell.get ts (Cell.singleton (Message.message val V' na') LT) = Some (from, Message.message val'0 released na)).
@@ -98,9 +98,9 @@ Section read.
       inv LOCAL0.
       assert (EQ: val'0 = val ∧ V' = released ∧ na' = na ∧ from' = from).
       { rewrite Memory.get_memory_cell in CELL_GET'; des_ifs. }
-      destruct EQ as [H1 [H2 [H3 H4]]]; subst.
+      destruct EQ as [H2 [H3 [H4 H5]]]; subst.
       
-      remember ([(PFMemI.v_config, _)]) as st_tgt.
+      remember ([(_, _)]) as st_tgt.
       iAssert (Ist st_src st_tgt)%I with "[HA FA TA]" as "IST".
       { iFrame. iPureIntro; esplits; eauto.
         { hexploit (@PFConfiguration.step_future ThreadEvent.get_machine_event); eauto.
@@ -113,9 +113,9 @@ Section read.
           i; des; eauto.
         }
         { i. destruct (decide (tid0 = tid)).
-          { subst. rewrite IdentMap.gss in H1; inv H1.
+          { subst. rewrite IdentMap.gss in H2; inv H2.
             hexploit PFL; eauto. }
-          { rewrite IdentMap.gso in H1; eauto. }
+          { rewrite IdentMap.gso in H2; eauto. }
         }
       }
 
@@ -227,7 +227,7 @@ Section read.
 
         iMod ((tview_auth_update ths (IdentMap.add tid (existT lang st2, lc2) ths)) with "TA TV") as "[TA TV]"; eauto.
 
-        remember ([(PFMemI.v_config, _)]) as st_tgt.
+        remember ([(_, _)]) as st_tgt.
         iAssert (Ist st_src st_tgt)%I with "[HA FA TA]" as "IST".
         { iFrame. iPureIntro; esplits; eauto.
           { hexploit (@PFConfiguration.step_future ThreadEvent.get_machine_event); eauto.
@@ -237,10 +237,10 @@ Section read.
             i; des; eauto.
           }
           { i. destruct (decide (tid0 = tid)).
-            { subst. rewrite IdentMap.gss in H1; inv H1.
+            { subst. rewrite IdentMap.gss in H2; inv H2.
               hexploit PFL; eauto; intros PF. inv PF; des.
               econs; inv LOCAL0; eauto. }
-            { rewrite IdentMap.gso in H1; eauto. }
+            { rewrite IdentMap.gso in H2; eauto. }
           }
         }
 
@@ -286,14 +286,14 @@ Section read.
         iPoseProof (at_reader_extract with "R") as "#RR".
         { instantiate (1:=ζ'').
           ii. destruct (decide (to = ts)).
-          { subst. eapply Cell.add_get0 in H1. des.
+          { subst. eapply Cell.add_get0 in H2. des.
             rewrite GET1 in LHS. inv LHS.
             rewrite Cell.cut_spec.
             destruct (Time.le_lt_dec (View.rlx Vcut loc) ts); ss.
             timetac.
           }
-          { eapply Cell.add_o in H1. instantiate (1:=to) in H1.
-            rewrite LHS in H1. destruct (TimeSet.Facts.eq_dec to ts); ss.
+          { eapply Cell.add_o in H2. instantiate (1:=to) in H2.
+            rewrite LHS in H2. destruct (TimeSet.Facts.eq_dec to ts); ss.
             unfold Cell.le in LE. hexploit LE; eauto.
           }
         }
@@ -309,7 +309,7 @@ Section read.
             { subst. rewrite /seen_local.
               set (V := View.join _ _).
               enough (View.le (View.singleton loc ts) V).
-              { subst V. inv H3. ss.
+              { subst V. inv H4. ss.
                 eapply TimeMap.singleton_inv. ii.
                 specialize (RLX0 loc0). eauto.
               }
@@ -318,14 +318,14 @@ Section read.
                 eapply View.join_r.
               }
             }
-            { eapply Cell.add_o in H1. instantiate (1:=t0) in H1.
-              rewrite /is_Some in H2. des. destruct x. rewrite H1 in H2.
+            { eapply Cell.add_o in H2. instantiate (1:=t0) in H2.
+              rewrite /is_Some in H3. des. destruct x. rewrite H3 in H2.
               destruct (TimeSet.Facts.eq_dec t0 ts); ss.
               hexploit SEEN; eauto; i. unfold seen_local in *.
               etrans; eauto. etrans; eapply View.join_l.
             }
           }
-          { unfold good_absHist in *. ii. subst. inv H1.
+          { unfold good_absHist in *. ii. subst. inv H2.
             ss. assert (EX: None = Some (from, Message.message val' released na)).
             { rewrite -(Cell.bot_get ts) /Cell.bot /Cell.get /= CELL2.
               rewrite DOMap.gsspec.
@@ -337,7 +337,7 @@ Section read.
         }
 
         assert (GETTS0: Cell.get ts ζ'' = Some (from, msg)).
-        { inv H1; eauto. rewrite /Cell.get CELL2 DOMap.gsspec.
+        { inv H2; eauto. rewrite /Cell.get CELL2 DOMap.gsspec.
           destruct (DOMap.Properties.F.eq_dec ts ts); ss.
         }
 
@@ -375,7 +375,7 @@ Section read.
 
         iMod ((tview_auth_update ths (IdentMap.add tid (existT lang st2, lc2) ths)) with "TA TV") as "[TA TV]"; eauto.
 
-        remember ([(PFMemI.v_config, _)]) as st_tgt.
+        remember ([(_, _)]) as st_tgt.
         iAssert (Ist st_src st_tgt)%I with "[HA FA TA]" as "IST".
         { iFrame. iPureIntro; esplits; eauto.
           { hexploit (@PFConfiguration.step_future ThreadEvent.get_machine_event); eauto.
@@ -389,9 +389,9 @@ Section read.
             i; des; eauto.
           }
           { i. destruct (decide (tid0 = tid)).
-            { subst. rewrite IdentMap.gss in H2; inv H2.
+            { subst. rewrite IdentMap.gss in H3; inv H3.
               hexploit PFL; eauto. }
-            { rewrite IdentMap.gso in H2; eauto. }
+            { rewrite IdentMap.gso in H3; eauto. }
           }
         }
 
@@ -410,9 +410,9 @@ Section read.
               rewrite /Memory.get /Block.get in GET.
               rewrite /Memory.get_cell. rewrite GET. eauto.
             }
-            { subst ts. eapply Cell.add_o with (t:= to) in H1.
+            { subst ts. eapply Cell.add_o with (t:= to) in H2.
               destruct (TimeSet.Facts.eq_dec to (Cell.max_ts ζ'')); ss.
-              rewrite H1 in GET0.
+              rewrite H2 in GET0.
               unfold Cell.le in LE. eapply LE in GET0.
               rewrite Cell.cut_spec in GET0.
               destruct (Time.le_lt_dec (View.rlx Vcut loc) to) eqn:L; ss.
