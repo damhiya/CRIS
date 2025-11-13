@@ -51,10 +51,10 @@ Module SystemA. Section SystemA.
       fspec_imply'
         fsp
         (fspec_winv ⊤
-          (fspec_virtual (λ '(tid, stid, V),
+          (fspec_virtual (λ '(tid, stid),
             ((λ (varg : SAny.t) (arg : Any.t),
-              tview_sys tid stid V ∗ ∃ sarg, ⌜arg = sarg↑⌝ ∗ pre V varg sarg),
-            (λ (vret : SAny.t) _, tview_sys tid stid V)))))%I.
+              ∃ V, tview_sys tid stid V ∗ ∃ sarg, ⌜arg = sarg↑⌝ ∗ pre V varg sarg),
+            (λ (vret : SAny.t) _, ∃ V, tview_sys tid stid V)))))%I.
 
   Definition _spawn_spec : fspec := 
     fspec_spawn
@@ -158,9 +158,9 @@ Module SystemA. Section SystemA.
           let 𝓥' := TView.write_tview 𝓥 loc t ord in
           ⌜vret = Val.zero↑
           ∧ Time.lt (Cell.max_ts ζ') t
-          ∧ if Ordering.le Ordering.acqrel ord
+          ∧ (if Ordering.le Ordering.acqrel ord
             then V' = TView.cur 𝓥'
-            else (TView.rel 𝓥 loc) ⊑ V' ∧ V' ⊑ TView.cur 𝓥'
+            else (TView.rel 𝓥 loc) ⊑ V' ∧ V' ⊑ TView.cur 𝓥')
           ∧ Cell.add ζ' f t (Message.message val V' false) ζ''
           ∧ Cell.add ζ f t (Message.message val V' false) ζn⌝ ∗
           @{TView.cur 𝓥'} loc sn⊒{γ} ζ'' ∗

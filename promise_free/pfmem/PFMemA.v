@@ -1,6 +1,6 @@
 Require Import CRIS.
 Require Import PFMemHeader HistoryRA AtomicRA.
-Require Import Time Cell View TView base.
+Require Import Time Cell View TView base Language.
 
 (* Specification of promise-free memory module *)
 Module PFMemA. Section PFMemA.
@@ -92,9 +92,9 @@ Module PFMemA. Section PFMemA.
           let 𝓥' := TView.write_tview 𝓥 loc t ord in
           ⌜vret = Val.zero↑
           ∧ Time.lt (Cell.max_ts ζ') t
-          ∧ if Ordering.le Ordering.acqrel ord (* TODO : maybe this can be just V' = TView.write_released *)
+          ∧ (if Ordering.le Ordering.acqrel ord (* TODO : maybe this can be just V' = TView.write_released *)
             then V' = TView.cur 𝓥'
-            else (TView.rel 𝓥 loc) ⊑ V' ∧ V' ⊑ TView.cur 𝓥'
+            else (TView.rel 𝓥 loc) ⊑ V' ∧ V' ⊑ TView.cur 𝓥')
           ∧ Cell.add ζ' f t (Message.message val V' false) ζ''
           ∧ Cell.add ζ f t (Message.message val V' false) ζn⌝
           ∗ @{TView.cur 𝓥'} loc sn⊒{γ} ζ''
@@ -230,4 +230,72 @@ Module PFMemA. Section PFMemA.
   Next Obligation. prove_nodup. Qed.
 
   Definition t sp : Mod.t := Seal.sealing CRIS (SMod.to_mod sp smod).
+
+  Definition lang := Language.mk (λ _ : (), tt) (const False) (λ _ : ProgramEvent.t, λ _ _, True).
+  Definition syn : Threads.syntax := IdentMap.singleton 1%positive (existT lang tt).
+  Definition init : Configuration.t := Configuration.init syn [].
+
+  Definition init_cond : iProp Σ :=
+    tview_auth (Threads.init syn []) ∗
+    hist_auth (Memory.init []) ∗
+    hist_freeable_auth (Memory.init []).
+
+  Definition ir_viewR : DRA_mk viewR :=
+    ● ((λ tid, (option_map (Excl ∘ Local.tview ∘ snd) (IdentMap.find tid (Threads.init syn []))))
+      : Ident.t -d> optionUR (exclR TViewO)) ⋅
+    ◯ ((discrete_fun_singleton 1%positive (Some (Excl (TView.init []))))).
+  Lemma ir_viewR_valid : ✓ (ir_viewR).
+  Proof.
+    rewrite /ir_viewR.
+    apply auth_both_valid_discrete; split.
+    { exists ε; rewrite right_id; intros i; destruct (decide (i = 1%positive)); subst.
+      { rewrite discrete_fun_lookup_singleton //=. }
+      { rewrite discrete_fun_lookup_singleton_ne //= /Threads.init /syn.
+        rewrite IdentMap.gmapi IdentMap.singleton_neq //.
+      }
+    }
+    intros i; destruct (decide (i = 1%positive)); subst; ss.
+    { rewrite //= /Threads.init /syn IdentMap.gmapi IdentMap.singleton_neq //. }
+  Qed.
+
+  Definition ir_histR : DRA_mk histR :=
+    (● ((λ l,
+        if Memory.accessible l (Memory.init [])
+        then
+          Some (DfracOwn 1, to_agree (Memory.get_cell l (Memory.init [])))
+        else None) : Loc.t -d> optionUR (prodR dfracR (agreeR CellO)))).
+  Lemma ir_histR_valid : ✓ (ir_histR).
+  Proof.
+    rewrite /ir_histR.
+    rewrite auth_auth_valid; intros l; des_ifs.
+  Qed.
+
+  Definition ir_hist_freeableUR : DRA_mk hist_freeableUR :=
+    (● ((λ '(tid, bid),
+          if Memory.is_freeable (Loc.mk (Some tid) bid 0) (Memory.init [])
+          then
+            match Memory.get_size (Loc.mk (Some tid) bid 0) (Memory.init []) with
+            | Some sz => Some (1%Qp, Excl sz)
+            | None => None
+            end
+          else None
+        ) : Tid.t * Bid.t -d> optionUR (prodR fracR (exclR ZO)))).
+  Lemma ir_hist_freeableUR_valid : ✓ (ir_hist_freeableUR).
+  Proof.
+    rewrite /ir_hist_freeableUR.
+    rewrite auth_auth_valid; intros l; des_ifs.
+  Qed.
+
+  Definition ir_histΓ : histΓ :=
+    *[Some ir_viewR; Some ir_histR; Some ir_hist_freeableUR].
+
+  Lemma make_init_cond :
+    own base_γ ir_viewR ∗ own base_γ ir_histR ∗ own base_γ ir_hist_freeableUR -∗
+    init_cond ∗ tview 1%positive (TView.init []).
+  Proof.
+    iIntros "[[V TV] [H HF]]"; rewrite /init_cond.
+    rewrite tview_auth_eq /tview_auth_def hist_auth_eq /hist_auth_def; iFrame.
+    rewrite hist_freeable_auth_eq /hist_freeable_auth_def; iFrame.
+    rewrite tview_eq /tview_def //.
+  Qed.
 End PFMemA. End PFMemA.

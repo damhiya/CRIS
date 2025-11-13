@@ -2704,6 +2704,21 @@ Qed.
     rewrite get_memory_cell; rewrite H. rewrite H0. ss.
   Qed.
 
+  Lemma cut_init : Memory.cut (View.init []) (Memory.init []) = (Memory.init []).
+  Proof.
+    apply Memory.ext; ss.
+    intros loc ts; rewrite /cut /get /= /Block.get /= Cell.cut_spec; des_ifs; ss; try timetac.
+  Qed.
+
+  Lemma cut_init' : Memory.cut (View.init' []) (Memory.init []) = (Memory.init []).
+  Proof.
+    apply Memory.ext; ss.
+    rewrite /View.init' /cut /get /= /Block.get /=. intros loc ts.
+    rewrite Cell.cut_spec /TimeMap.init'; des_ifs; ss; try timetac.
+    { rewrite Cell.init_get; des_ifs; timetac. }
+    { rewrite Cell.init_get; des_ifs; timetac. } 
+    { rewrite Cell.init_get; des_ifs; timetac. }
+  Qed.
 End Memory.
 #[export] Hint Resolve Memory.le_PreOrder: core.
 #[export] Hint Resolve Memory.messages_le_PreOrder: core.

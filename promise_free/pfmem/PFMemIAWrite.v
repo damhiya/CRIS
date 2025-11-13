@@ -459,20 +459,21 @@ Section write.
             hexploit Cell.max_ts_spec; eauto.
             intros [GET _]; des; apply SEEN; eauto.
           }
-          des_ifs.
-          { rewrite /TView.TView.write_released; des_ifs.
-            rewrite View.join_bot_l /= Heq /= /LocFun.add; des_ifs.
-          }
           split.
-          { rewrite /TView.TView.write_released ORDRLX View.join_bot_l /TView.TView.write_tview /=.
-            rewrite /LocFun.add; des_ifs; eapply View.join_l.
-          }
-          split.
-          { rewrite /TView.TView.write_released ORDRLX View.join_bot_l /TView.TView.write_tview /=.
+          { des_ifs.
+            { rewrite /TView.TView.write_released; des_ifs.
+              rewrite View.join_bot_l /= Heq /= /LocFun.add; des_ifs.
+            }
+            split.
+            { rewrite /TView.TView.write_released ORDRLX View.join_bot_l /TView.TView.write_tview /=.
+              rewrite /LocFun.add; des_ifs; eapply View.join_l.
+            }
+            { rewrite /TView.TView.write_released ORDRLX View.join_bot_l /TView.TView.write_tview /=.
             rewrite Heq /LocFun.add; des_ifs.
             eapply View.join_le; last refl.
             inv WF. inv WF0; ss. hexploit (THREADS tid); eauto.
             intros LWF; inv LWF. inv TVIEW_WF; ss.
+            }
           }
           split; destruct ord; ss.
         }

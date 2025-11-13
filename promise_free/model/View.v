@@ -56,6 +56,9 @@ Module TimeMap <: JoinableType.
             | Loc.mk (Some _) _ _ => Time.bot
             end.
 
+  Definition init' : t :=
+    fun loc => Time.init.
+
   Definition get (loc:Loc.t) (c:t) := c loc.
 
   Definition add (l:Loc.t) (ts:Time.t) (tm:t): t :=
@@ -398,6 +401,7 @@ Module View <: JoinableType.
   (* Proof. econs; i; ss. Qed. *)
 
   Definition init size: t := mk (TimeMap.init size) (AllocView.init size).
+  Definition init' size: t := mk (TimeMap.init') (AllocView.init size).
 
   (* Lemma init_wf size: wf (init size). *)
   (* Proof. *)

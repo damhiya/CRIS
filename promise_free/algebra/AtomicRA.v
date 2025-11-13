@@ -626,6 +626,27 @@ Section atomic_preds.
   Lemma AtomicSWriter_AtomicSeen l γ ζ V : @{V} l sw⊒{γ} ζ ⊢ @{V} l sn⊒{γ} ζ.
   Proof. rewrite -AtomicSync_AtomicSeen. by apply AtomicSWriter_AtomicSync. Qed.
 
+  Lemma AtomicPtsToX_at_writer_agree l γ t1 ζ1 ζ2 mode V1 :
+    @{V1}(AtomicPtsToX l γ t1 ζ1 mode) -∗ at_writer γ ζ2 -∗ ⌜ζ1 = ζ2⌝.
+  Proof.
+    rewrite AtomicPtsToX_eq. iDestruct 1 as (??) "(_&_&_&SA&_)". iIntros "W".
+    by iDestruct (at_auth_at_writer_exact with "[$SA] [$W]") as %?.
+  Qed.
+
+  Lemma AtomicPtsToX_SWriter_agree l γ t1 ζ1 ζ2 mode V1 V2 :
+    @{V1}(AtomicPtsToX l γ t1 ζ1 mode) ⊢ @{V2} l sw⊒{γ} ζ2 -∗ ⌜ζ1 = ζ2⌝.
+  Proof.
+    rewrite AtomicSWriter_eq. iIntros "P [_ [W1 _]]".
+    iApply (AtomicPtsToX_at_writer_agree with "P [$]").
+  Qed.
+
+  Lemma AtomicPtsTo_SWriter_agree l γ ζ1 ζ2 mode V1 V2 :
+    @{V1}(AtomicPtsTo l γ ζ1 mode) ⊢ @{V2} l sw⊒{γ} ζ2 -∗ ⌜ζ1 = ζ2⌝.
+  Proof.
+    rewrite AtomicPtsTo_eq. apply bi.exist_elim => ?.
+    by apply AtomicPtsToX_SWriter_agree.
+  Qed.
+
   Lemma AtomicPtsToX_from_na l v Vinit Ew E :
     let Vcur := TView.cur Vinit in
     @{Vcur} l ↦ v =|0, Ew|={E}=∗

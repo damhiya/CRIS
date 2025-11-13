@@ -40,14 +40,15 @@ Module System. Section System.
 
   Definition yield : itree E unit :=
     Seal.sealing "System"
-      (iterC ((λ _,
-        'b : bool <- trigger (Choose bool);;
-        if b
-        then Ret (inr tt)
-        else
-          '() : _ <- ccallU SystemHdr.yield tt;;
-          Ret (inl tt)
-      )) tt).
+      (iterC ((λ (_: unit),
+        b <- trigger (Choose (option bool));;
+        match b with
+        | None => Ret (inr tt: () + ())
+        | Some false => Ret (inl tt: () + ())
+        | Some true => 
+            trigger (Call SystemHdr.yield tt↑);;;
+            Ret (inl tt: () + ())
+        end)) tt).
 
   Definition terminate : itree E unit :=
     Seal.sealing "System"

@@ -8,14 +8,20 @@ Require Import
 Module PFMemIA. Section PFMemIA.
   Context `{!crisG Γ Σ α β τ _S _I, !concG, !histG, !atomicG}.
 
-  Lemma ctxr sp syn size :
+  (* Lemma hist_au *)
+  Lemma ctxr sp :
     ctx_refines
-      (PFMemA.t sp, True%I)
-      (PFMemI.t syn size, emp%I).
+      (PFMemA.t sp, PFMemA.init_cond)
+      (PFMemI.t PFMemA.syn [], emp%I).
   Proof using.
     eapply main_adequacy with (Ist := PFMemIA.Ist).
     init_sim.
-    { split; first done. iIntros "_"; ss. admit. }
+    { split; first done. iIntros "[TVA [HA HFA]]"; ss.
+      rewrite /PFMemIA.Ist.
+      iExists (Global.init []), _, (View.init []); iSplit; cycle 1.
+      { iFrame. rewrite Memory.cut_init //. }
+      { admit. }
+    }
     { apply simF_alloc. }
     { apply simF_free. }
     { apply simF_read. }

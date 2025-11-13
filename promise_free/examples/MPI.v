@@ -14,7 +14,7 @@ Module MPI. Section MPI.
   Context `{!crisG Γ Σ α β τ _S _I, !concG}.
   Definition scopes : list string := [].
 
-  Definition mp : () → itree crisE Val.t :=
+  Definition mp : Any.t → itree crisE Any.t :=
     λ _,
       (* alloc *)
       𝒴;;; m <- ccallU SystemHdr.alloc 2;;
@@ -34,7 +34,7 @@ Module MPI. Section MPI.
           else 
             𝒴;;; r <- ccallU SystemHdr.read (loc >> data, Ordering.acqrel);;
             𝒴;;; n <- parse_num r;;
-            Ret (inr (Val.Vnum n))
+            Ret (inr (Val.Vnum n)↑)
       ) ().
 
   Definition mp2 : Val.t → itree crisE Val.t :=
@@ -46,7 +46,7 @@ Module MPI. Section MPI.
 
   Definition fnsems : alist (option string) (fnsem_type (option fspec * fbody)) :=
     [(Some MPHdr.mp2, (false, wmask_all, scopes, (None, cfunU (sfunU mp2))));
-     (None,           (false, wmask_all, scopes, (None, cfunU mp)))].
+     (None,           (false, wmask_all, scopes, (None, mp)))].
 
   Program Definition Mod : SMod.t := {|
     SMod.scopes := scopes;

@@ -1,6 +1,6 @@
 Require Import CRIS.
 Require Import SystemHeader SystemI SystemA.
-(* rewrite Import SystemIAAlloc SystemIAWrite SystemIARead. *)
+Require Import SystemIAAlloc SystemIAWrite SystemIARead.
 Require Import PFMemHeader PFMemA HistoryRA AtomicRA.
 
 Module SystemIA. Section SystemIA.
@@ -42,7 +42,7 @@ Module SystemIA. Section SystemIA.
     hss_l. steps_l.
 
     destruct FS as [[fsp|fsp] [->%Hincl Himpl]]; ss.
-    destruct (Himpl (tid, _q, 𝓥)) as [fmeta [Hpre Hpost]].
+    destruct (Himpl (tid, _q)) as [fmeta [Hpre Hpost]].
     force_l fmeta. steps_l. force_l (farg↑). steps_l.
 
     (* iDestruct "TV" as "[TV STV]". *)
@@ -75,7 +75,8 @@ Module SystemIA. Section SystemIA.
 
     iIntros "[IST [W TV]]". iPoseProof (winv_split_empty with "W") as "[W We]".
 
-    unfold_iterC_l. steps_l. force_l (tid, _q, 𝓥). steps_l. force_l (tt↑). steps_l.
+    unfold_iterC_l. steps_l. iDestruct "TV" as "[%V TV]".
+    force_l (tid, _q, V). steps_l. force_l (tt↑). steps_l.
     force_l; iFrame "W TV"; iSplit; eauto. steps_l.
     unfold_iterC_r. steps_r.
     call "IST".
@@ -91,7 +92,6 @@ Module SystemIA. Section SystemIA.
     steps_l. iDestruct "ASM" as "[%varg [-> [%fvarg [%farg [%fn [[-> [-> %Hsp]] [TV PRE]]]]]]]".
     iDestruct "IST" as (????) "[[-> ->] [[% IST] ->]]".
     iDestruct "IST" as "[%tid_cur [%tids [[-> ->] [TA TVS]]]]".
-    (* rename _q2 into 𝓥, _q5 into tid, _q4 into pre, _q6 into stid. *)
     rename _q2 into V, _q5 into tid, _q4 into pre, _q6 into stid.
 
     (* v_tid is set to a correct one *)
@@ -109,10 +109,7 @@ Module SystemIA. Section SystemIA.
     steps_r. hss. steps_l; steps_r. hss. steps_l; steps_r. hss. steps_l; steps_r.
 
     (* Calling PFMemHdr.spawn *)
-    (* steps_r. hss_r. steps_r. hss_r. steps_r. hss_r. steps_r. *)
-    (* rewrite /SystemI.new_tid. steps_r. *)
     inline_r. steps_r.
-    (* force_r (tid_cur, V). steps_r. *)
     force_r (tid_cur, V). steps_r.
     force_r (tid_cur↑). steps_r.
 
@@ -159,19 +156,13 @@ Module SystemIA. Section SystemIA.
     rewrite -fmap_insert; iFrame "TA".
     iSplitL "TV_new MTVS".
     { iPoseProof (big_sepM_insert with "[TV_new MTVS]") as "$"; last iFrame; eauto. }
-    {
-       (* destruct flag.
-      { rewrite fmap_insert /= big_sepM_insert; [iFrame|rewrite lookup_fmap Hnew //]. }
-      {  *)
-        (* rewrite ?fmap_delete fmap_insert /= delete_insert_ne; cycle 1.
-        { ii; clarify; rewrite lookup_fmap Hnew // in Hlookup. } *)
-      rewrite delete_insert_ne; cycle 1. { ii; clarify. }
+    { rewrite delete_insert_ne; cycle 1. { ii; clarify. }
       rewrite fmap_insert /= big_sepM_insert; first iFrame.
       rewrite lookup_fmap lookup_delete_ne; cycle 1. { ii; clarify. }
       rewrite Hnew //.
     }
   Unshelve. ss.
-  (*SLOW*)Admitted.
+  (*SLOW*)Qed.
 
   Lemma simF_yield : ISim.sim_fun open SystemA_s SystemI_s init_cond IstFull (Some SystemHdr.yield).
   Proof.
@@ -215,14 +206,6 @@ Module SystemIA. Section SystemIA.
     iApply wsim_unfold; iIntros "W".
     force_l; iFrame.
 
-    (* rewrite /trigger_Yield. steps_l. hss. *)
-    (* rewrite /SystemI.trigger_Yield. steps_r. hss_r. steps_r. hss_r. steps_r.
-    eapply elem_of_dom in Hin. destruct (_ !! tid_next) as [tid_s_next|] eqn : Hnext ; [|inv Hin]. *)
-
-    (* steps_l. hss. rewrite Hnext. steps_l. steps_r.
-    (* splitting thread view for IST *)
-    iDestruct "TVS" as "[TVS TVS2]".
-    iApply wsim_unfold; iIntros "WS". *)
     steps_l; steps_r. rewrite /SModTr.NativeYield /=.
     yield "TA YS".
     { iExists [_; _], [_; _], st_tgtR, st_tgtR; iSplit; first ss.
@@ -325,11 +308,8 @@ Section ctx_refines.
     { apply simF_spawn; eauto. }
     { apply simF_yield; eauto. }
     { apply simF_get_tid; eauto. }
-    (* { apply simF_alloc; eauto. } *)
-    { admit. }
-    { admit. }
-    { admit. }
-    (* { apply simF_write; eauto. }
-    { apply simF_read; eauto. } *)
-  Admitted.
+    { apply simF_alloc; eauto. }
+    { apply simF_write; eauto. }
+    { apply simF_read; eauto. }
+  Qed.
 End ctx_refines. End SystemIA.

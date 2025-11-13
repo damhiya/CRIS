@@ -29,6 +29,10 @@ Class histG `{!crisG Γ Σ α β τ _S _I} := {
   histG_hist :: inG histR Γ;
   histG_free :: inG hist_freeableUR Γ;
 }.
+Definition histΓ : HRA := #[viewR; histR; hist_freeableUR].
+Global Instance subG_histG `{!crisG Γ Σ α β τ _S _I} : subG histΓ Γ → histG.
+Proof. solve_inG. Defined.
+Hint Unfold subG_histG histG_view histG_hist histG_free : GRA_index.
 
 Implicit Types
   (l : Loc.t) (t : Time.t) (V : View.t) (C ζ : Cell.t) (M : Memory.t) (q : Qp)
@@ -417,6 +421,9 @@ Section na_props.
     epose proof (alloc_local_mon_pred l (Cell.singleton _ LT)).
     inv H0; rewrite MonPred_at0 //.
   Qed.
+
+  Lemma own_loc_mon_pred_gen l q v V1 V2 : V1 ⊑ V2 → @{V1} l ↦ v ⊢ @{V2} l ↦ v.
+  Proof. intros H1; rewrite H1 //. Qed.
 
   Lemma own_loc_na_own_loc l v q V : @{V} l ↦{q} v -∗ @{V} l ↦{q} ?.
   Proof.

@@ -2,12 +2,28 @@ Require Import CRIS.
 Require Import Cell Time View.
 
 Require Import SchHeader SchA.
-Require Import PFMemHeader HistoryRA AtomicRA OneShotRA.
+Require Import PFMemHeader HistoryRA AtomicRA.
 Require Import SystemHeader SystemA.
 Require Import MPI.
 
+From iris.algebra Require Import excl agree csum.
+
+Definition one_shotR := csumR (exclR unitO) (agreeR ZO).
+Definition Pending : one_shotR := Cinl (Excl ()).
+Definition Shot (n : Z) : one_shotR := Cinr (to_agree n).
+
+Section one_shot.
+  Context `{!crisG  Γ Σ α β τ _S _I}.
+
+  Class one_shotG := { #[local] one_shot_inG :: inG one_shotR Γ }.
+
+  Definition one_shotΓ : HRA := #[one_shotR].
+  Global Instance subG_one_shotG : subG one_shotΓ Γ → one_shotG.
+  Proof. solve_inG. Defined.
+End one_shot.
+
 Module MPA. Section MPA.
-  Context `{!crisG Γ Σ α β τ _S _I, !histG, !atomicG, !sysG, !one_shotG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concG, !histG, !atomicG, !sysG, !one_shotG}.
   Local Existing Instances one_shot_inG.
 
   (* Invariants *)
@@ -35,17 +51,18 @@ Module MPA. Section MPA.
 
   Definition mp2_precondition : TView.t → SAny.t → SAny.t → iProp Σ :=
     λ V varg arg,
-      (∃ (loc : Loc.t) (γ γx : gname),
+      (∃ (loc : Loc.t) (γ γx : gname) (V0 : View.t) (f t : Time.t) (LT : Time.lt f t) (na : bool),
         ⌜varg = (Val.Vptr loc)↑↑ ∧ arg = varg⌝ ∗
         mp_inv 0 (loc >> 0) (loc >> 1) γ γx ∗
-        @{TView.cur V} (loc >> 1) ↦ Val.Vnum 0)%I.
+        @{TView.cur V} (loc >> 1) ↦ Val.Vnum 0 ∗
+        @{TView.cur V} loc sw⊒{γx} Cell.singleton (Message.message (Val.Vnum 0) V0 na) LT)%I.
 
   Definition mp2_spec : fspec :=
     fspec_winv ⊤
-      (fspec_virtual (λ '(tid, V),
+      (fspec_virtual (λ '(tid, stid),
         (λ (varg : SAny.t) arg,
-          ∃ sarg, ⌜ arg = sarg↑ ⌝ ∗ mp2_precondition V varg sarg ∗ tview_sys tid V,
-        λ (_ : SAny.t) _, tview_sys tid V)))%I.
+          ∃ sarg V, ⌜ arg = sarg↑ ⌝ ∗ mp2_precondition V varg sarg ∗ tview_sys tid stid V,
+        λ (_ : SAny.t) _, ∃ V, tview_sys tid stid V)))%I.
 
   Definition sp : spl_type :=
     [(None,           Some mp_spec);
@@ -56,7 +73,7 @@ Module MPA. Section MPA.
   Definition mp2 : Val.t → itree crisE Val.t :=
     λ _, 𝒴;;; Ret Val.zero.
 
-  Definition mp : () → itree crisE Val.t :=
+  Definition mp : Any.t → itree crisE Any.t :=
     λ _,
       𝒴;;;
         m <- trigger (Choose Val.t);;
@@ -65,11 +82,11 @@ Module MPA. Section MPA.
         𝒴;;;
         'b : bool <- trigger (Choose bool);;
         if b then Ret (inr tt) else Ret (inl tt)) ();;;
-      Ret (Val.Vnum 42).
+      Ret (Val.Vnum 42)↑.
 
   Definition fnsems : alist (option string) (fnsem_type (option fspec * fbody)) :=
     [(Some MPHdr.mp2, (true, wmask_all, scopes, (Some mp2_spec, (cfunN (sfunN mp2)))));
-     (None,           (true, wmask_all, scopes, (Some mp_spec,  (cfunN mp))))].
+     (None,           (true, wmask_all, scopes, (Some fspec_trivial,  mp)))].
 
   Program Definition Mod : SMod.t := {|
     SMod.scopes := scopes;
@@ -79,6 +96,6 @@ Module MPA. Section MPA.
   Solve All Obligations with prove_scope.
   Next Obligation. prove_nodup. Qed.
 
-  Definition init_cond : iProp Σ := tview_sys 1%positive (TView.init []).
+  Definition init_cond : iProp Σ := winv (⊤, ⊤) ∗ tview_sys 1%positive 0 (TView.init []).
   Definition t sp : Mod.t := Seal.sealing CRIS (SMod.to_mod sp Mod).
 End MPA. End MPA.
