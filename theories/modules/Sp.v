@@ -1,20 +1,21 @@
-Require Import Common.
-Require Import FSpec.
+(* TODO : Can sp and spl be a same type i.e. gmap? If possible, unify them into single types
+and maybe define ≼ relations on them so that sp_incl and the variants are notationally simple *)
+Require Import Common FSpec.
 From iris.proofmode Require Import proofmode.
 
 Set Implicit Arguments.
 
-Section HEADER.
+Section sp.
   Context `{Σ: GRA}.
 
   (* we use "option string" instead of "string" in spl_type for an engineering purpose. *)
-  Definition spl_type := alist (option string) (option fspec).
-  Definition sp_type := (string -> option fspec).
+  Definition spl_type : Type := alist (option string) (option fspec).
+  Definition sp_type : Type := string → option fspec.
   
   Definition to_sp (l : spl_type) : sp_type :=
-    (λ fn, or_else (alist_find (Some fn) l) (Some fspec_bot)).
+    λ fn, or_else (alist_find (Some fn) l) (Some fspec_bot).
 
-  Definition sp_none : sp_type := (const None).
+  Definition sp_none : sp_type := const None.
 
   Variant fn_has_spec (sp : sp_type) (fn : string) (fsp : fspec) : Prop :=
   | fn_has_spec_intro (WEAK : fspec_imply (fspec_flat (sp fn)) fsp).
@@ -45,14 +46,15 @@ Section HEADER.
   Global Program Instance sp_imply_PreOrder : PreOrder sp_imply.
   Next Obligation. ii. exists x1. esplits; et. Qed.
   Next Obligation.
-    intros x y z Hxy Hyz fn z1. exploit Hyz; et; intros [y1 [Hypre Hypost]].
+    intros x y z Hxy Hyz fn ? z1. exploit Hyz; et; intros [y1 [Hypre Hypost]].
     exploit Hxy; et; intros [x1 [Hxpre Hxpost]].
     exists x1. split; ii.
     - rewrite Hypre Hxpre. iIntros ">>H". et.
     - rewrite Hxpost Hypost. iIntros ">>H". et.
   Qed.
 
-  Definition sp_imply' (sp0 sp1 : sp_type) : Prop :=
+  (* Commented out since fspec_imply' erased *)
+  (* Definition sp_imply' (sp0 sp1 : sp_type) : Prop :=
     ∀ fn, fspec_imply' (fspec_flat (sp0 fn)) (fspec_flat (sp1 fn)).
 
   Global Program Instance sp_imply'_PreOrder : PreOrder sp_imply'.
@@ -61,20 +63,20 @@ Section HEADER.
     intros x y z Hxy Hyz fn. specialize (Hxy fn); specialize (Hyz fn).
     destruct (x fn), (y fn), (z fn); ss; try by etrans; et.
     destruct f, f0; ss. etrans; et.
-  Qed.
+  Qed. *)
 
-  Definition sp_sub (sp0 sp: sp_type) : Prop :=
-    ∀ fn, sp0 fn = Some fspec_bot ∨ sp0 fn = sp fn.
+  (* Definition sp_sub (sp0 sp : sp_type) : Prop :=
+    ∀ fn, sp0 fn = Some fspec_bot ∨ sp0 fn = sp fn. *)
 
-  Definition spl_sub (spl0 spl: spl_type) : Prop :=
+  Definition spl_sub (spl0 spl : spl_type) : Prop :=
     ∀ fno fsp, alist_find fno spl0 = Some fsp → alist_find fno spl = Some fsp.
 
   Definition sp_incl (l : spl_type) (sp : sp_type) : Prop :=
-    List.NoDup (List.map fst l) ∧
+    NoDup (l.*1) ∧
     (∀ fn fsp, alist_find (Some fn) l = Some fsp → sp fn = fsp).
 
   Lemma sp_incl_to_sp (l : spl_type) :
-    List.NoDup (l.*1) → sp_incl l (to_sp l).
+    NoDup (l.*1) → sp_incl l (to_sp l).
   Proof.
     intros ?; split; first done.
     induction l as [|[??]?]; ss; intros ??; rewrite eq_rel_dec_correct; des_ifs; ss; ii; clarify.
@@ -84,7 +86,7 @@ Section HEADER.
     }
   Qed.
 
-  Lemma sp_sub_imply sp0 sp
+  (* Lemma sp_sub_imply sp0 sp
     (SUB: sp_sub sp0 sp)
     :
     sp_imply sp0 sp.
@@ -92,9 +94,9 @@ Section HEADER.
     r; i. destruct (SUB fn); rewrite H; s.
     - eapply fspec_bot_strongest.
     - refl.
-  Qed.
+  Qed. *)
 
-  Lemma sp_incl_sub l sp
+  (* Lemma sp_incl_sub l sp
     (INCL: sp_incl l sp)
     :
     sp_sub (to_sp l) sp.
@@ -102,9 +104,9 @@ Section HEADER.
     r. i. r in INCL. des. rewrite /to_sp.
     destruct (alist_find (Some fn) l) eqn: E; s; et.
     erewrite INCL0; et.
-  Qed.
+  Qed. *)
 
-  Lemma incl_sp_sub :
+  (* Lemma incl_sp_sub :
     ∀ sp0 sp1 (NODUP : List.NoDup (List.map fst sp1)) (INCL : List.incl sp0 sp1),
       sp_sub (to_sp sp0) (to_sp sp1).
   Proof using.
@@ -113,13 +115,13 @@ Section HEADER.
     eapply alist_find_some in E.
     eapply alist_find_some_iff in NODUP; et.
     rewrite NODUP. et.
-  Qed.
+  Qed. *)
 
-  Lemma app_imply : ∀ sp0 sp1, sp_sub (to_sp sp0) (to_sp (sp0 ++ sp1)) .
+  (* Lemma app_imply : ∀ sp0 sp1, sp_sub (to_sp sp0) (to_sp (sp0 ++ sp1)) .
   Proof using.
     r; i. rewrite /to_sp.
     destruct (alist_find (Some fn) sp0) eqn: E; et.
     right. s. rewrite alist_find_app_o E. et.
-  Qed.
+  Qed. *)
 
-End HEADER.
+End sp.
