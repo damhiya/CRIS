@@ -1,12 +1,11 @@
 Require Import Common.
 From iris.proofmode Require Import proofmode.
-Require Import PropExtensionality.
+(* Require Import PropExtensionality. *)
 Require Import LMod.
 Require Export FSpec ModTr Sandbox.
 
-Set Implicit Arguments.
-
-Definition fnsems_scopes `{Σ: GRA} {T} (fn : option string) (fnsems : alist (option string) (fnsem_type T)) :=
+Definition fnsems_scopes
+    `{Σ: GRA} {T} (fn : option string) (fnsems : alist (option string) (fnsem_type T)) :=
   match (alist_find fn fnsems) with
   | Some (mask, scopes, body) => scopes
   | None => []

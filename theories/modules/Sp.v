@@ -1,30 +1,35 @@
 (* TODO : Can sp and spl be a same type i.e. gmap? If possible, unify them into single types
-and maybe define ≼ relations on them so that sp_incl and the variants are notationally simple *)
+and maybe define ⊆ relations on them so that sp_incl and the variants are notationally simple *)
 Require Import Common FSpec.
 From iris.proofmode Require Import proofmode.
 
-Set Implicit Arguments.
+Variant speckey : Type :=
+| speckey_fn (fn : string)
+| speckey_entry
+| speckey_concE.
+Global Instance speckey_Dec : Dec speckey.
+Proof. intros [fn0| |] [fn1| |]; eauto; destruct (decide (fn0 = fn1)); [left|right]; ii; clarify.
+Qed.
 
 Section sp.
   Context `{Σ: GRA}.
 
-  (* we use "option string" instead of "string" in spl_type for an engineering purpose. *)
-  Definition spl_type : Type := alist (option string) (option fspec).
-  Definition sp_type : Type := string → option fspec.
-  
+  Definition spl_type : Type := alist speckey (option fspec).
+  Definition sp_type : Type := speckey → option fspec.
+
   Definition to_sp (l : spl_type) : sp_type :=
-    λ fn, or_else (alist_find (Some fn) l) (Some fspec_bot).
+    λ k, or_else (alist_find k l) (Some fspec_bot).
 
   Definition sp_none : sp_type := const None.
 
   Variant fn_has_spec (sp : sp_type) (fn : string) (fsp : fspec) : Prop :=
-  | fn_has_spec_intro (WEAK : fspec_imply (fspec_flat (sp fn)) fsp).
+  | fn_has_spec_intro (WEAK : fspec_imply (fspec_flat (sp (speckey_fn fn))) fsp).
   Hint Constructors fn_has_spec : core.
 
   Variant fn_has_spec_in (spl : spl_type) (fn : string) (fsp : fspec) : Prop :=
   | fn_has_spec_in_intro
       fsp_real
-      (SPEC: alist_find (Some fn) spl = Some fsp_real)
+      (SPEC: alist_find (speckey_fn fn) spl = Some fsp_real)
       (WEAK : fspec_imply (fspec_flat fsp_real) fsp).
   Hint Constructors fn_has_spec_in : core.
 
@@ -73,7 +78,7 @@ Section sp.
 
   Definition sp_incl (l : spl_type) (sp : sp_type) : Prop :=
     NoDup (l.*1) ∧
-    (∀ fn fsp, alist_find (Some fn) l = Some fsp → sp fn = fsp).
+    (∀ fn fsp, alist_find (speckey_fn fn) l = Some fsp → sp (speckey_fn fn) = fsp).
 
   Lemma sp_incl_to_sp (l : spl_type) :
     NoDup (l.*1) → sp_incl l (to_sp l).
