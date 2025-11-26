@@ -2,8 +2,6 @@ Require Import Common ConcRA.
 Require Import Mod.
 Require Export FSpec SModTr Sp.
 
-Set Implicit Arguments.
-
 Definition fnsems_type `{Σ : GRA} :=
   alist (option string) (fnsem_type (option fspec * fbody)).
 
@@ -12,7 +10,7 @@ Module SMod. Section SMOD.
 
   Record t : Type := mk {
     scopes : list string;
-    fnsems : fnsems_type;
+    fnsems : alist (option string) fnsem;
     initial_st : alist key Any.t;
 
     well_scoped_fns:

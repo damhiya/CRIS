@@ -1,116 +1,127 @@
 Require Import Mod FSpec Sp.
 Require Import Common ConcRA.
 
+Definition mask {Σ : GRA} : Type := ∀ X, crisE X → bool.
+
+Definition mask_handle `{Σ : GRA, E -< crisE} (msk : mask) {T} (e : E T) : itreeV crisE T :=
+  if msk T (subevent _ e)
+  then inr (existT T (subevent _ e, λ x, Ret x))
+  else inr (existT _ (subevent _ (Take False), λ v, Ret (False_rect _ v))).
+
+Definition mask_trigger `{Σ : GRA, E -< crisE} (msk : mask) {X} (e : E X) : itree crisE X :=
+  itreeV_itree (mask_handle msk e).
+
+Lemma mask_trigger_gen `{Σ : GRA, E -< crisE} (msk : mask) {X} (e : E X) :
+  mask_trigger msk e = if msk X (subevent _ e) then trigger e else triggerUB.
+Proof. rewrite /mask_trigger /mask_handle; des_if; rewrite ?bind_ret_r /triggerUB //=; grind. Qed.
+
 (* function semantics *)
 Definition fnsem `{Σ : GRA} : Type :=
-  bool *               (* take erasure *)
-  (string → bool) *    (* call mask *)
-  (list string) *      (* scope *)
-  option fspec *       (* function spec *)
-  fbody.               (* function body *)
+  mask *          (* event masks *)
+  option fspec *  (* function spec *)
+  fbody.          (* function body *)
 
 Module SModTr. Section HOARE.
   Context `{!crisG Γ Σ α β τ _S _I, !concG}.
-  Implicit Types (fn : string) (varg arg : Any.t) (fspo : option fspec).
-  Implicit Types (img : bool) (msk : string → bool) (scp : list string).
-  Implicit Types (N : namespace) (stid : nat) (sp : sp_type).
+  Implicit Types (fn : string) (varg arg : Any.t) (fspo sspo : option fspec).
+  Implicit Types (msk : mask).
+  Implicit Types (N : namespace) (stid ntid : nat) (sp : sp_type).
 
   (* Wraps a function call into a Hoare triple *)
-  (* Definition HoareCall fspo img fn varg N stid : itree crisE Any.t :=
+  Definition HoareCall msk fspo fn varg N stid : itree crisE Any.t :=
     match fspo with
     | Some fsp =>
-        x <- trigger (Choose (meta fsp));;
+        x <- mask_trigger msk (Choose (meta fsp));;
 
-        (* precondition *)
-        arg <- trigger (Choose Any.t);;
-        trigger (Guarantee (TID stid ∗ YIELD stid ∗ winv (↑N, ↑N)));;;
-        trigger (Guarantee ((precond fsp) (N, stid) x varg arg));;;
+        (* precondition and argument passing *)
+        arg <- mask_trigger msk (Choose Any.t);;
+        mask_trigger msk (Guarantee (TID stid ∗ YIELD stid ∗ winv (↑N, ↑N)));;;
+        mask_trigger msk (Guarantee ((precond fsp) (N, stid) x varg arg));;;
 
         (* call *)
-        ret <- trigger (Call fn arg);;
+        ret <- mask_trigger msk (Call fn arg);;
 
-        (* postcondition *)
-        if img then
-          vret <- trigger (Take Any.t);;
-          trigger (Assume (TID stid ∗ YIELD stid ∗ winv (↑N, ↑N)));;;
-          trigger (Assume ((postcond fsp) (N, stid) x vret ret));;;
-          Ret vret
-        else
-          triggerUB
+        (* postcondition argument receiving *)
+        vret <- mask_trigger msk (Take Any.t);;
+        mask_trigger msk (Assume (TID stid ∗ YIELD stid ∗ winv (↑N, ↑N)));;;
+        mask_trigger msk (Assume ((postcond fsp) (N, stid) x vret ret));;;
+        Ret vret
     | None =>
-        trigger (Call fn varg)
-    end. *)
+        mask_trigger msk (Call fn varg)
+    end.
 
   (* Wraps a function into a Hoare triple *)
   Definition HoareFun
-      fspo (body : namespace → nat → Any.t → itree crisE Any.t) : Any.t → itree crisE Any.t :=
+      msk fspo (body : namespace → nat → Any.t → itree crisE Any.t) : Any.t → itree crisE Any.t :=
     match fspo with
     | Some fsp => λ arg,
-        '(N, stid) : _ <- trigger (Take (namespace * nat));;
+        '(N, stid) : _ <- mask_trigger msk (Take (namespace * nat));;
 
         (* precondition *)
-        x <- trigger (Take (meta fsp));;
-        varg <- trigger (Take Any.t);;
-        trigger (Assume (TID stid ∗ YIELD stid ∗ winv (↑N, ↑N)));;;
-        trigger (Assume (precond fsp (N, stid) x varg arg));;;
+        x <- mask_trigger msk (Take (meta fsp));;
+        varg <- mask_trigger msk (Take Any.t);;
+        mask_trigger msk (Assume (TID stid ∗ YIELD stid ∗ winv (↑N, ↑N)));;;
+        mask_trigger msk (Assume (precond fsp (N, stid) x varg arg));;;
 
         vret <- body N stid varg;;
 
         (* postcondition *)
-        ret <- trigger (Choose Any.t);;
-        trigger (Guarantee (TID stid ∗ YIELD stid ∗ winv (↑N, ↑N)));;;
-        trigger (Guarantee (postcond fsp (N, stid) x vret ret));;;
+        ret <- mask_trigger msk (Choose Any.t);;
+        mask_trigger msk (Guarantee (TID stid ∗ YIELD stid ∗ winv (↑N, ↑N)));;;
+        mask_trigger msk (Guarantee (postcond fsp (N, stid) x vret ret));;;
 
         Ret ret
     | None => λ arg, tau;; body nroot 0 arg
     end.
 
-  Definition NativeSpawn fn arg : itree crisE nat :=
-    trigger (Spawn fn arg).
+  (* Definition NativeSpawn fn arg : itree crisE nat :=
+    trigger (Spawn fn arg). *)
 
   (* Wraps a spawn into a Hoare triple *)
-  (* Definition HoareSpawn fn varg fspo : itree crisE nat :=
-    match fspo with
-    | Some (@fspec_call _ meta pre post) =>
-        triggerNB
-    | Some (@fspec_spawn _ meta pre post) =>
-        x <- trigger (Choose meta);;
-        arg <- trigger (Choose Any.t);;
-        tid <- trigger (Spawn fn arg);;
-        trigger (Assume (YIELD tid));;;
-        trigger (Guarantee (pre (tid, x) varg arg));;;
+  Definition HoareSpawn msk fspo sspo fn varg N : itree crisE nat :=
+    match fspo, sspo with
+    | Some fsp, Some _ =>
+        x <- mask_trigger msk (Choose (meta fsp));;
+        arg <- mask_trigger msk (Choose Any.t);;
+        tid <- mask_trigger msk (Spawn fn arg);;
+        mask_trigger msk (Assume (YIELD tid));;;
+        mask_trigger msk (Guarantee (precond fsp (N, tid) x varg arg));;;
         Ret tid
-    | None =>
-        NativeSpawn fn varg
-    end. *)
+    | None, Some _ =>
+        tid <- mask_trigger msk (Spawn fn varg);;
+        mask_trigger msk (Assume (YIELD tid));;;
+        Ret tid
+    | _, None =>
+        mask_trigger msk (Spawn fn varg)
+    end.
 
-  Definition NativeYield (tid : nat) : itree crisE unit :=
-    trigger (Yield tid).
+  (* Definition NativeYield (tid : nat) : itree crisE unit :=
+    trigger (Yield tid). *)
 
   (* Wraps a yield into a Hoare triple *)
-  Definition HoareYield (img : bool) (tid : nat) : itree crisE unit :=
-    if img
-    then
-      my_tid <- trigger (Choose nat);;
-      trigger (Guarantee (TID my_tid ∗ YIELD tid ∗ winv (⊤, ⊤)));;;
-      trigger (Yield tid);;;
-      trigger (Assume (TID my_tid ∗ YIELD my_tid ∗ winv (⊤, ⊤)))
-    else
-      NativeYield tid.
+  Definition HoareYield msk sspo N stid ntid : itree crisE unit :=
+    match sspo with
+    | Some _ =>
+      mask_trigger msk (Guarantee (TID stid ∗ YIELD ntid ∗ winv (↑N, ↑N)));;;
+      mask_trigger msk (Yield ntid);;;
+      mask_trigger msk (Assume (TID stid ∗ YIELD stid ∗ winv (↑N, ↑N)))
+    | None =>
+      mask_trigger msk (Yield ntid)
+    end.
 
-  Definition NativeGetTid : itree crisE nat :=
-    trigger GetTid.
+  (* Definition NativeGetTid : itree crisE nat :=
+    trigger GetTid. *)
 
-  Definition HoareGetTid (img : bool) : itree crisE nat :=
-    if img
-    then
-      my_tid <- trigger (Choose nat);;
-      trigger (Guarantee (TID(my_tid)));;;
-      tid <- trigger GetTid;;
-      trigger (Assume (⌜tid = my_tid⌝ ∗ TID(my_tid)));;;
+  Definition HoareGetTid msk sspo stid : itree crisE nat :=
+    match sspo with
+    | Some _ =>
+      mask_trigger msk (Guarantee (TID(stid)));;;
+      tid <- mask_trigger msk GetTid;;
+      mask_trigger msk (Assume (⌜tid = stid⌝ ∗ TID(stid)));;;
       Ret tid
-    else
-      NativeGetTid.
+    | None =>
+      mask_trigger msk GetTid
+    end.
 
   (* Definition handle (img : bool) (sp : sp_type) : crisE ~> itreeV crisE.
   Proof.
@@ -131,140 +142,205 @@ Module SModTr. Section HOARE.
     { exact (inr (existT _ (subevent _ p, λ v, Ret v))). }
     { exact (inr (existT _ (subevent _ c, λ v, Ret v))). }
   Defined. *)
-  Definition handle sp img msk scp N stid : crisE ~> itreeV crisE. Admitted.
+  Definition handle sp msk N stid : crisE ~> itreeV crisE.
+  Proof.
+    intros T e.
+    destruct e as [e|e].
+    { (* agE *)
+      exact (mask_handle msk e).
+    }
+    destruct e as [[fn args|fn args|tid|]|e].
+    { (* Call *)
+      exact (inl (HoareCall msk (sp (speckey_fn fn)) fn args N stid)).
+    }
+    { (* Spawn *)
+      exact (inl (HoareSpawn msk (sp (speckey_fn fn)) (sp (speckey_concE)) fn args N)).
+    }
+    { (* Yield *)
+      exact (inl (HoareYield msk (sp (speckey_concE)) N stid tid)).
+    }
+    { (* GetTid *)
+      exact (inl (HoareGetTid msk (sp (speckey_concE)) stid)).
+    }
+    (* pgE +' coreE *)
+    destruct e as [e|e]; exact (mask_handle msk e).
+  Defined.
 
   (* Definition trans img sp {R} (it : itree crisE R) : itree crisE R :=
     interpV (handle img sp) it. *)
-  Definition trans sp img msk scp N stid {R} (itr : itree crisE R) : itree crisE R :=
-    interpV (handle sp img msk scp N stid) itr.
+  Definition trans sp msk N stid {R} (itr : itree crisE R) : itree crisE R :=
+    interpV (handle sp msk N stid) itr.
   (* Definition trans_body : (bool * sp_type * option fspec) → fbody → fbody :=
     λ '(img, sp, fsp) bd, HoareFun fsp (trans img sp ∘ bd). *)
 
   (* Definition trans_ktree sp (sb : fnsem_type (option fspec * fbody)) : fnsem_type fbody :=
     map_snd (λ '(fsp,bd), trans_body (is_some sb.2.1, if sb.1.1.1 then sp else sp_none, fsp) bd) sb. *)
   Definition trans_fnsem (sp : sp_type) (sem : fnsem) : fbody :=
-    let '(img, msk, scp, fspo, fbd) := sem in
-    HoareFun fspo (λ N stid, trans sp img msk scp N stid ∘ fbd).
+    let '(msk, fspo, fbd) := sem in
+    HoareFun msk fspo (λ N stid, trans sp msk N stid ∘ fbd).
 End HOARE. End SModTr.
 
 Global Arguments SModTr.trans_fnsem: simpl never.
 
-Notation "↧ it" := (SModTr.trans _ _ it) (at level 59, only printing).
+Notation "↧ it" := (SModTr.trans _ _ _ _ _ _ it) (at level 59, only printing).
 
 Module SRed. Section RED.
   Context `{!crisG Γ Σ α β τ _S _I, !concG}.
-  Context (img : bool) (sp : sp_type).
+  Import SModTr.
 
-  Lemma bind (R S : Type) (s : itree crisE R) (k : R → itree crisE S) :
-    SModTr.trans img sp (s >>= k) = st <- SModTr.trans img sp s;; SModTr.trans img sp (k st).
-  Proof using. unfold SModTr.trans in *. rewrite interpV_bind //. Qed.
+  (* reduction lemmas for vis form - used for reduction tactics *)
+  Lemma bind sp msk N stid (R S : Type) (s : itree crisE R) (k : R → itree crisE S) :
+    trans sp msk N stid (s >>= k) =
+    st <- trans sp msk N stid s;; trans sp msk N stid (k st).
+  Proof using. rewrite /SModTr.trans interpV_bind //. Qed.
 
-  Lemma tau (U : Type) (t : itree _ U) :
-    SModTr.trans img sp (tau;; t) = tau;; (SModTr.trans img sp t).
-  Proof using. unfold SModTr.trans in *. rewrite interpV_tau //. Qed.
+  Lemma tau sp msk N stid (U : Type) (t : itree crisE U) :
+    trans sp msk N stid (tau;; t) = tau;; (trans sp msk N stid t).
+  Proof using. rewrite /SModTr.trans interpV_tau //. Qed.
 
-  Lemma ret (U : Type) (t : U) :
-    SModTr.trans img sp (Ret t) = Ret t.
-  Proof using. unfold SModTr.trans in *. rewrite interpV_ret //. Qed.
+  Lemma ret sp msk N stid (U : Type) (t : U) :
+    trans sp msk N stid (Ret t) = Ret t.
+  Proof using. rewrite /SModTr.trans interpV_ret //. Qed.
 
-  Lemma vis_ag {X R} (e : agE X) (ktr : X -> itree crisE R) :
-    SModTr.trans img sp (vis e ktr) = vis e (λ x, SModTr.trans img sp (ktr x)).
-  Proof using. eapply observe_eta; ss. f_equal. extensionality x. eapply observe_eta; ss. Qed.
-
-  Lemma vis_yield {R} tid (ktr : () -> itree crisE R) :
-    SModTr.trans img sp (vis (Yield tid) ktr) =
-    tau;; x <- SModTr.HoareYield img tid;; SModTr.trans img sp (ktr x).
-  Proof using. unfold SModTr.trans. rewrite interpV_vis. eapply observe_eta; ss. Qed.
-
-  Lemma vis_spawn {R} fn args (ktr : nat -> itree crisE R) :
-    SModTr.trans img sp (vis (Spawn fn args) ktr) =
-    tau;; x <- SModTr.HoareSpawn fn args (sp fn);; SModTr.trans img sp (ktr x).
-  Proof using. unfold SModTr.trans. rewrite interpV_vis. eapply observe_eta; ss. Qed.
-
-  Lemma vis_gettid {R} (ktr : nat -> itree crisE R) :
-    SModTr.trans img sp (vis GetTid ktr) =
-    tau;; x <- SModTr.HoareGetTid img;; SModTr.trans img sp (ktr x).
-  Proof using. unfold SModTr.trans. rewrite interpV_vis. eapply observe_eta; ss. Qed.
-
-  Lemma vis_call {R} fn args (ktr : Any.t -> itree crisE R) :
-    SModTr.trans img sp (vis (Call fn args) ktr) =
-    tau;; x <- SModTr.HoareCall fn args (sp fn);; SModTr.trans img sp (ktr x).
-  Proof using. unfold SModTr.trans. rewrite interpV_vis. eapply observe_eta; ss. Qed.
-
-  Lemma vis_pg {X R} (e : pgE X) (ktr : X -> itree crisE R) :
-    SModTr.trans img sp (vis e ktr) = vis e (λ x, SModTr.trans img sp (ktr x)).
-  Proof using. eapply observe_eta; ss. f_equal. extensionality x. eapply observe_eta; ss. Qed.
-
-  Lemma vis_core {X R} (e : coreE X) (ktr : X -> itree crisE R) :
-    SModTr.trans img sp (vis e ktr) = vis e (λ x, SModTr.trans img sp (ktr x)).
-  Proof using. eapply observe_eta; ss. f_equal. extensionality x. eapply observe_eta; ss. Qed.
-
-  Lemma assumeK {R} P (itr : itree crisE R) :
-    SModTr.trans img sp (assumeK P itr) = assumeK P (SModTr.trans img sp itr).
-  Proof using. eapply observe_eta; ss. f_equal. extensionality x. eapply observe_eta; ss. Qed.
-
-  Lemma guaranteeK {R} P (itr : itree crisE R) :
-    SModTr.trans img sp (guaranteeK P itr) = guaranteeK P (SModTr.trans img sp itr).
-  Proof using. eapply observe_eta; ss. f_equal. extensionality x. eapply observe_eta; ss. Qed.
-
-  Lemma unwrapUK {X R} x (ktr : X -> itree crisE R) :
-    SModTr.trans img sp (unwrapUK x ktr) = unwrapUK x (λ x, SModTr.trans img sp (ktr x)).
-  Proof using. destruct x; ss. eapply observe_eta; ss. f_equal. extensionality x. ss. Qed.
-
-  Lemma unwrapNK {X R} x (ktr : X -> itree crisE R) :
-    SModTr.trans img sp (unwrapNK x ktr) = unwrapNK x (λ x, SModTr.trans img sp (ktr x)).
-  Proof using. destruct x; ss. eapply observe_eta; ss. f_equal. extensionality x. ss. Qed.
-
-  Lemma yield tid :
-    SModTr.trans img sp (trigger (Yield tid)) = tau;; SModTr.HoareYield img tid.
+  Lemma vis_agE sp msk N stid {X R} (e : agE X) (ktr : X → itree crisE R) :
+    trans sp msk N stid (vis e ktr) =
+    if msk X (subevent _ e)
+    then vis e (λ x, trans sp msk N stid (ktr x))
+    else vis (Take False) (λ v, Ret (False_rect _ v)).
   Proof using.
-    rewrite vis_yield. f_equal. f_equal. erewrite <- bind_ret_r; f_equal.
-    extensionalities; rewrite ret //.
+    rewrite /SModTr.trans /SModTr.handle /=; apply observe_eta; rewrite /mask_handle /=.
+    rewrite resum_to_subevent subevent_subevent; des_if; ss; f_equal; extensionality x; grind.
   Qed.
 
-  Lemma spawn fn args :
-    SModTr.trans img sp (trigger (Spawn fn args)) = tau;; SModTr.HoareSpawn fn args (sp fn).
+  Lemma vis_pgE sp msk N stid {X R} (e : pgE X) (ktr : X → itree crisE R) :
+    trans sp msk N stid (vis e ktr) =
+    if msk X (subevent _ e)
+    then vis e (λ x, trans sp msk N stid (ktr x))
+    else vis (Take False) (λ v, Ret (False_rect _ v)).
   Proof using.
-    rewrite vis_spawn. do 3 f_equal.
-    rewrite -{2}(bind_ret_r (SModTr.HoareSpawn _ _ _)).
-    f_equal. extensionalities. rewrite ret. et.
+    rewrite /SModTr.trans /SModTr.handle /=; apply observe_eta; rewrite /mask_handle /=.
+    rewrite !resum_to_subevent !subevent_subevent; des_if; ss; f_equal; extensionality x; grind.
   Qed.
 
-  Lemma gettid :
-    SModTr.trans img sp (trigger GetTid) = tau;; SModTr.HoareGetTid img.
+  Lemma vis_coreE sp msk N stid {X R} (e : coreE X) (ktr : X → itree crisE R) :
+    trans sp msk N stid (vis e ktr) =
+    if msk X (subevent _ e)
+    then vis e (λ x, trans sp msk N stid (ktr x))
+    else vis (Take False) (λ v, Ret (False_rect _ v)).
   Proof using.
-    rewrite vis_gettid. do 3 f_equal.
-    rewrite -{2}(bind_ret_r (SModTr.HoareGetTid _)).
-    f_equal. extensionalities. rewrite ret. et.
+    rewrite /SModTr.trans /SModTr.handle /=; apply observe_eta; rewrite /mask_handle /=.
+    rewrite !resum_to_subevent !subevent_subevent; des_if; ss; f_equal; extensionality x; grind.
   Qed.
 
-  Lemma call fn args :
-    SModTr.trans img sp (trigger (Call fn args)) = tau;; SModTr.HoareCall fn args (sp fn).
+  Lemma vis_call sp msk N stid {R} fn args (ktr : Any.t → itree crisE R) :
+    trans sp msk N stid (vis (Call fn args) ktr) =
+    tau;; r <- HoareCall msk (sp (speckey_fn fn)) fn args N stid;;
+    trans sp msk N stid (ktr r).
+  Proof using. rewrite /SModTr.trans /SModTr.handle /= interpV_vis. apply observe_eta; ss. Qed.
+
+  Lemma vis_spawn sp msk N stid {R} fn args (ktr : nat → itree crisE R) :
+    trans sp msk N stid (vis (Spawn fn args) ktr) =
+    tau;; r <- HoareSpawn msk (sp (speckey_fn fn)) (sp (speckey_concE)) fn args N;;
+    trans sp msk N stid (ktr r).
+  Proof using. rewrite /SModTr.trans /SModTr.handle /= interpV_vis. apply observe_eta; ss. Qed.
+
+  Lemma vis_yield sp msk N stid {R} tid (ktr : () → itree crisE R) :
+    trans sp msk N stid (vis (Yield tid) ktr) =
+    tau;; x <- HoareYield msk (sp (speckey_concE)) N stid tid;; trans sp msk N stid (ktr x).
+  Proof using. rewrite /SModTr.trans /SModTr.handle /= interpV_vis. apply observe_eta; ss. Qed.
+
+  Lemma vis_gettid sp msk N stid {R} (ktr : nat → itree crisE R) :
+    trans sp msk N stid (vis GetTid ktr) =
+    tau;; x <- HoareGetTid msk (sp (speckey_concE)) stid;; trans sp msk N stid (ktr x).
+  Proof using. rewrite /SModTr.trans /SModTr.handle /= interpV_vis. apply observe_eta; ss. Qed.
+
+  Lemma assumeK sp msk N stid {R} P (itr : itree crisE R) :
+    trans sp msk N stid (assumeK P itr) =
+    if msk _ (subevent _ (Take P))
+    then assumeK P (trans sp msk N stid itr)
+    else triggerUB.
   Proof using.
-    rewrite vis_call. do 3 f_equal.
-    rewrite -{2}(bind_ret_r (SModTr.HoareCall _ _ _)).
-    f_equal. extensionalities. rewrite ret. et.
+    apply observe_eta; ss.
+    rewrite resum_to_subevent /mask_handle subevent_subevent.
+    des_if; ss; f_equal; extensionality x; grind.
   Qed.
 
-  Lemma pg (R : Type) (i : pgE R) : SModTr.trans img sp (trigger i) = trigger i.
+  Lemma guaranteeK sp msk N stid {R} P (itr : itree crisE R) :
+    trans sp msk N stid (guaranteeK P itr) =
+    if msk _ (subevent _ (Choose P))
+    then guaranteeK P (trans sp msk N stid itr)
+    else triggerUB.
   Proof using.
-    rewrite vis_pg. unfold trigger.
-    eapply observe_eta; ss. f_equal. extensionalities. rewrite ret. eauto.
+    apply observe_eta; ss.
+    rewrite resum_to_subevent /mask_handle subevent_subevent.
+    des_if; ss; f_equal; extensionality x; grind.
   Qed.
 
-  Lemma core (R : Type) (e : coreE R) : SModTr.trans img sp (trigger e) = trigger e.
+  Lemma unwrapUK sp msk N stid {X R} x (ktr : X → itree crisE R) :
+    trans sp msk N stid (unwrapUK x ktr) =
+    unwrapUK x (λ x, trans sp msk N stid (ktr x)).
   Proof using.
-    rewrite vis_core. unfold trigger.
-    eapply observe_eta; ss. f_equal. extensionalities. rewrite ret. eauto.
+    destruct x; ss.
+    eapply observe_eta; ss.
+    rewrite /mask_handle resum_to_subevent subevent_subevent.
+    des_if; ss; f_equal; grind; extensionality x; ss.
   Qed.
 
-  Lemma ag {A} (e : agE A) : SModTr.trans img sp (trigger e) = trigger e.
+  Lemma unwrapNK sp msk N stid {X R} (x : option X) (ktr : X → itree crisE R) :
+    trans sp msk N stid (unwrapNK x ktr) =
+    if (msk _ (subevent _ (Choose False)))
+    then unwrapNK x (λ x, trans sp msk N stid (ktr x))
+    else Events.unwrapUK x (λ x, trans sp msk N stid (ktr x)).
   Proof using.
-    rewrite vis_ag. unfold trigger.
-    eapply observe_eta; ss. f_equal. extensionalities. rewrite ret. eauto.
+    destruct x; [des_ifs|]; ss.
+    apply observe_eta; ss.
+    rewrite /mask_handle resum_to_subevent subevent_subevent; des_if; ss.
+    { f_equal; extensionalities x; ss. }
+    { f_equal; extensionalities x; ss. }
   Qed.
 
-  Lemma unwrapU (R : Type) (i : option R) :
+  (* reduction lemmas for trigger form *)
+  Lemma yield sp msk N stid tid :
+    trans sp msk N stid (trigger (Yield tid)) =
+    tau;; HoareYield msk (sp (speckey_concE)) N stid tid.
+  Proof using. rewrite vis_yield; grind; erewrite <- bind_ret_r; grind; rewrite ret //. Qed.
+
+  Lemma spawn sp msk N stid fn args :
+    trans sp msk N stid (trigger (Spawn fn args)) =
+    tau;; HoareSpawn msk (sp (speckey_fn fn)) (sp (speckey_concE)) fn args N.
+  Proof using. rewrite vis_spawn; grind; erewrite <- bind_ret_r; grind; rewrite ret //. Qed.
+
+  Lemma gettid sp msk N stid :
+    trans sp msk N stid (trigger GetTid) = tau;; HoareGetTid msk (sp (speckey_concE)) stid.
+  Proof using. rewrite vis_gettid; grind; erewrite <- bind_ret_r; grind; rewrite ret //. Qed.
+
+  Lemma call sp msk N stid fn args :
+    trans sp msk N stid (trigger (Call fn args)) =
+    tau;; HoareCall msk (sp (speckey_fn fn)) fn args N stid.
+  Proof using. rewrite vis_call; grind; erewrite <- bind_ret_r; grind; rewrite ret //. Qed.
+
+  Lemma pg sp msk N stid (R : Type) (e : pgE R) :
+    trans sp msk N stid (trigger e) = mask_trigger msk e.
+  Proof using.
+    rewrite vis_pgE mask_trigger_gen; des_if; rewrite vis_trigger; grind.
+    erewrite <- bind_ret_r; grind; rewrite ret //.
+  Qed.
+
+  Lemma core sp msk N stid (R : Type) (e : coreE R) : 
+    trans sp msk N stid (trigger e) = mask_trigger msk e.
+  Proof using.
+    rewrite vis_coreE mask_trigger_gen; des_if; rewrite vis_trigger; grind.
+    erewrite <- bind_ret_r; grind; rewrite ret //.
+  Qed.
+
+  Lemma ag sp msk N stid (R : Type) (e : agE R) : 
+    trans sp msk N stid (trigger e) = mask_trigger msk e.
+  Proof using.
+    rewrite vis_agE mask_trigger_gen; des_if; rewrite vis_trigger; grind.
+    erewrite <- bind_ret_r; grind; rewrite ret //.
+  Qed.
+
+  (* Lemma unwrapU (R : Type) (i : option R) :
     SModTr.trans img sp (@unwrapU crisE _ _ i) = unwrapU i.
   Proof using.
     unfold unwrapU. des_ifs; grind.
@@ -286,9 +362,9 @@ Module SRed. Section RED.
   Proof using. unfold assume. rewrite bind core. grind. rewrite ret. refl. Qed.
 
   Lemma guar P : SModTr.trans img sp (guarantee P) = guarantee P.
-  Proof using. unfold guarantee. rewrite bind core. grind. rewrite ret. refl. Qed.
+  Proof using. unfold guarantee. rewrite bind core. grind. rewrite ret. refl. Qed. *)
 
-  Lemma ru {X} (pre post : X → _) :
+  (* Lemma ru {X} (pre post : X → _) :
     SModTr.trans img sp (RealUpdate pre post) = RealUpdate pre post.
   Proof.
     rewrite /RealUpdate; unseal CRIS_FancyReal.
@@ -300,8 +376,8 @@ Module SRed. Section RED.
   Lemma ruK {X R} (pre post : X → _) (k : _ → itree _ R) :
     SModTr.trans img sp (RealUpdateK pre post k) =
     RealUpdateK pre post (λ x, SModTr.trans img sp (k x)).
-  Proof using. rewrite /RealUpdateK bind ru //. Qed.
+  Proof using. rewrite /RealUpdateK bind ru //. Qed. *)
 
-  Lemma fbody_trivial arg : SModTr.trans img sp (fbody_trivial arg) = fbody_trivial arg.
-  Proof. rewrite /fbody_trivial /= core //. Qed.
+  (* Lemma fbody_trivial arg : SModTr.trans img sp (fbody_trivial arg) = fbody_trivial arg.
+  Proof. rewrite /fbody_trivial /= core //. Qed. *)
 End RED. End SRed.
