@@ -1,76 +1,75 @@
-From iris.algebra Require Export auth excl excl_auth functions frac agree gmap big_op.
 Require Import Mod FSpec Sp.
 Require Import Common ConcRA.
 
-Set Implicit Arguments.
+(* function semantics *)
+Definition fnsem `{Σ : GRA} : Type :=
+  bool *               (* take erasure *)
+  (string → bool) *    (* call mask *)
+  (list string) *      (* scope *)
+  option fspec *       (* function spec *)
+  fbody.               (* function body *)
 
 Module SModTr. Section HOARE.
   Context `{!crisG Γ Σ α β τ _S _I, !concG}.
   Implicit Types (fn : string) (varg arg : Any.t) (fspo : option fspec).
+  Implicit Types (img : bool) (msk : string → bool) (scp : list string).
+  Implicit Types (N : namespace) (stid : nat) (sp : sp_type).
 
   (* Wraps a function call into a Hoare triple *)
-  Definition HoareCall fn varg fspo : itree crisE Any.t :=
+  (* Definition HoareCall fspo img fn varg N stid : itree crisE Any.t :=
     match fspo with
-    | Some (@fspec_call _ meta pre post) =>
-        x <- trigger (Choose meta);;
+    | Some fsp =>
+        x <- trigger (Choose (meta fsp));;
 
         (* precondition *)
         arg <- trigger (Choose Any.t);;
-        trigger (Guarantee (pre x varg arg));;;
+        trigger (Guarantee (TID stid ∗ YIELD stid ∗ winv (↑N, ↑N)));;;
+        trigger (Guarantee ((precond fsp) (N, stid) x varg arg));;;
 
         (* call *)
         ret <- trigger (Call fn arg);;
 
         (* postcondition *)
-        vret <- trigger (Take Any.t);;
-        trigger (Assume (post x vret ret));;;
-
-        Ret vret
-    | Some _ =>
-        (* Calling a spawnable function is undefined behavior *)
-        triggerNB
+        if img then
+          vret <- trigger (Take Any.t);;
+          trigger (Assume (TID stid ∗ YIELD stid ∗ winv (↑N, ↑N)));;;
+          trigger (Assume ((postcond fsp) (N, stid) x vret ret));;;
+          Ret vret
+        else
+          triggerUB
     | None =>
         trigger (Call fn varg)
-    end.
+    end. *)
 
   (* Wraps a function into a Hoare triple *)
-  Definition HoareFun fspo body : Any.t → itree crisE Any.t :=
+  Definition HoareFun
+      fspo (body : namespace → nat → Any.t → itree crisE Any.t) : Any.t → itree crisE Any.t :=
     match fspo with
-    | Some (@fspec_call _ meta pre post) => λ arg,
-        x <- trigger (Take meta);;
+    | Some fsp => λ arg,
+        '(N, stid) : _ <- trigger (Take (namespace * nat));;
+
+        (* precondition *)
+        x <- trigger (Take (meta fsp));;
         varg <- trigger (Take Any.t);;
-        trigger (Assume (pre x varg arg));;; (* precondition *)
+        trigger (Assume (TID stid ∗ YIELD stid ∗ winv (↑N, ↑N)));;;
+        trigger (Assume (precond fsp (N, stid) x varg arg));;;
 
-        vret <- body varg;;
+        vret <- body N stid varg;;
 
+        (* postcondition *)
         ret <- trigger (Choose Any.t);;
-        trigger (Guarantee (post x vret ret));;; (* postcondition *)
+        trigger (Guarantee (TID stid ∗ YIELD stid ∗ winv (↑N, ↑N)));;;
+        trigger (Guarantee (postcond fsp (N, stid) x vret ret));;;
 
         Ret ret
-    | Some (@fspec_spawn _ meta pre post) => λ arg,
-        tid <- trigger (Take nat);;
-        trigger (Assume (TID tid ∗ YIELD tid ∗ winv (⊤, ⊤)));;; (* Concurrency precondition *)
-
-        x <- trigger (Take meta);;
-        varg <- trigger (Take Any.t);;
-        trigger (Assume (pre (tid, x) varg arg));;; (* precondition *)
-
-        vret <- body varg;;
-
-        ret <- trigger (Choose Any.t);;
-        trigger (Guarantee (post (tid, x) vret ret));;; (* postcondition *)
-
-        trigger (Guarantee (TID tid ∗ winv (⊤, ⊤)));;; (* Concurrency postcondition *)
-
-        Ret ret
-    | None => λ arg, tau;; body arg
+    | None => λ arg, tau;; body nroot 0 arg
     end.
 
   Definition NativeSpawn fn arg : itree crisE nat :=
     trigger (Spawn fn arg).
 
   (* Wraps a spawn into a Hoare triple *)
-  Definition HoareSpawn fn varg fspo : itree crisE nat :=
+  (* Definition HoareSpawn fn varg fspo : itree crisE nat :=
     match fspo with
     | Some (@fspec_call _ meta pre post) =>
         triggerNB
@@ -83,7 +82,7 @@ Module SModTr. Section HOARE.
         Ret tid
     | None =>
         NativeSpawn fn varg
-    end.
+    end. *)
 
   Definition NativeYield (tid : nat) : itree crisE unit :=
     trigger (Yield tid).
@@ -113,7 +112,7 @@ Module SModTr. Section HOARE.
     else
       NativeGetTid.
 
-  Definition handle (img : bool) (sp : sp_type) : crisE ~> itreeV crisE.
+  (* Definition handle (img : bool) (sp : sp_type) : crisE ~> itreeV crisE.
   Proof.
     intros T e. destruct e.
     { exact (inr (existT _ (subevent _ a, λ v, Ret v))). }
@@ -131,20 +130,24 @@ Module SModTr. Section HOARE.
     destruct s.
     { exact (inr (existT _ (subevent _ p, λ v, Ret v))). }
     { exact (inr (existT _ (subevent _ c, λ v, Ret v))). }
-  Defined.
+  Defined. *)
+  Definition handle sp img msk scp N stid : crisE ~> itreeV crisE. Admitted.
 
-  Definition trans img sp {R} (it : itree crisE R) : itree crisE R :=
-    interpV (handle img sp) it.
+  (* Definition trans img sp {R} (it : itree crisE R) : itree crisE R :=
+    interpV (handle img sp) it. *)
+  Definition trans sp img msk scp N stid {R} (itr : itree crisE R) : itree crisE R :=
+    interpV (handle sp img msk scp N stid) itr.
+  (* Definition trans_body : (bool * sp_type * option fspec) → fbody → fbody :=
+    λ '(img, sp, fsp) bd, HoareFun fsp (trans img sp ∘ bd). *)
 
-  Definition trans_body : (bool * sp_type * option fspec) → fbody → fbody :=
-    λ '(img, sp, fsp) bd, HoareFun fsp (trans img sp ∘ bd).
-
-  Definition trans_ktree sp (sb : fnsem_type (option fspec * fbody)) : fnsem_type fbody :=
-    map_snd (λ '(fsp,bd), trans_body (is_some sb.2.1, if sb.1.1.1 then sp else sp_none, fsp) bd) sb.
-
+  (* Definition trans_ktree sp (sb : fnsem_type (option fspec * fbody)) : fnsem_type fbody :=
+    map_snd (λ '(fsp,bd), trans_body (is_some sb.2.1, if sb.1.1.1 then sp else sp_none, fsp) bd) sb. *)
+  Definition trans_fnsem (sp : sp_type) (sem : fnsem) : fbody :=
+    let '(img, msk, scp, fspo, fbd) := sem in
+    HoareFun fspo (λ N stid, trans sp img msk scp N stid ∘ fbd).
 End HOARE. End SModTr.
 
-Global Arguments SModTr.trans_ktree: simpl never.
+Global Arguments SModTr.trans_fnsem: simpl never.
 
 Notation "↧ it" := (SModTr.trans _ _ it) (at level 59, only printing).
 

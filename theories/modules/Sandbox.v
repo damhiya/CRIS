@@ -88,12 +88,11 @@ Module SB. Section SB.
       exact (existT _ (subevent _ (@IO I O fn args), fun v => Ret v)).
   Defined.
 
-  Definition sandbox {T} img msk scp (itr : itree crisE T) :=
+  Definition sandbox {T} img msk scp (itr : itree crisE T) : itree crisE T :=
     interpV (handle_sandbox img msk scp) itr.
 
-  Definition sandbox_body (kb : fnsem_type fbody) :=
+  Definition sandbox_body (kb : fnsem_type fbody) : Any.t → itree crisE Any.t :=
     λ arg, sandbox kb.1.1.1 kb.1.1.2 kb.1.2 (kb.2 arg).
-
 End SB. End SB.
 
 (* Sandboxing interpretation lemmas *)
