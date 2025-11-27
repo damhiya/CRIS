@@ -1,8 +1,9 @@
 Require Import Common.
 From iris.proofmode Require Import proofmode.
-(* Require Import PropExtensionality. *)
 Require Import LMod.
 Require Export FSpec ModTr Sandbox.
+
+Definition mask {Σ : GRA} : Type := ∀ X, crisE X → bool.
 
 Definition fnsems_scopes
     `{Σ: GRA} {T} (fn : option string) (fnsems : alist (option string) (fnsem_type T)) :=
@@ -12,7 +13,7 @@ Definition fnsems_scopes
   end.
 
 Definition state_scopes (st : alist key Any.t) :=
-  List.map (fst ∘ fst) st.
+  map (fst ∘ fst) st.
 
 Lemma state_scopes_update k v st:
   state_scopes (alist_upd k v st) = state_scopes st.

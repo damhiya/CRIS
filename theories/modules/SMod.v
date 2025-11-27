@@ -2,137 +2,120 @@ Require Import Common ConcRA.
 Require Import Mod.
 Require Export FSpec SModTr Sp.
 
-Definition fnsems_type `{Σ : GRA} :=
-  alist (option string) (fnsem_type (option fspec * fbody)).
-
-Module SMod. Section SMOD.
+Module SMod. Section Smod.
   Context `{!crisG Γ Σ α β τ _S _I, !concG}.
 
+  (* SMods are basic units of composition in CRIS. *)
+  (* The image of the maps are lifted by option to make the module append operation total. *)
   Record t : Type := mk {
     scopes : list string;
-    fnsems : alist (option string) fnsem;
-    initial_st : alist key Any.t;
+    fnsems : gmap (option string) (option (mask * (option fspec * fbody)));
+    initial_st : gmap key (option Any.t);
 
-    well_scoped_fns:
-      forall fn, incl (fnsems_scopes fn fnsems) scopes;
-    well_scoped_init:
-      incl (state_scopes initial_st) scopes;
-    nodup_init:
-      List.NoDup scopes -> List.NoDup (List.map fst initial_st);
+    well_scoped_fns :
+      map_Forall
+        (λ _ '((msk, _) : mask * _),
+          (∀ (k : key) (v : Any.t), msk _ (subevent _ (SPut k v)) = true → k.1 ∈ scopes) ∧
+          (∀ (k : key), msk _ (subevent _ (SGet k)) = true → k.1 ∈ scopes))
+        (omap id fnsems);
+      (* forall fn, incl (fnsems_scopes fn fnsems) scopes; *)
+    well_scoped_init :
+      (elements (dom initial_st)).*1 ⊆ scopes;
+    (* nodup_init:
+      List.NoDup scopes -> List.NoDup (List.map fst initial_st); *)
   }.
 
-  Definition cancellable (ms : t) : Prop :=
+  (* Definition cancellable (ms : t) : Prop :=
     ∀ fno img msk scp fspo bd
       (FIND: alist_find fno (fnsems ms) = Some (img, msk, scp, (fspo, bd))),
-      img = true ∧ is_some fspo ∧ (fno = None → fspo = Some (fspec_trivial)).
+      img = true ∧ is_some fspo ∧ (fno = None → fspo = Some (fspec_trivial)). *)
 
   (**** Linking ****)
   Program Definition empty : t := {|
     scopes := [];
-    fnsems := [];
-    initial_st := [];
+    fnsems := ∅;
+    initial_st := ∅;
   |}.
   Next Obligation. ii; ss. Qed.
   Next Obligation. ii; ss. Qed.
-  Next Obligation. econs. Qed.
+  (* Next Obligation. econs. Qed. *)
 
   Program Definition add ms1 ms2 : t := {|
-    scopes := ms1.(scopes) ++ ms2.(scopes);
-    fnsems := ms1.(fnsems) ++ ms2.(fnsems);
-    initial_st := ms1.(initial_st) ++ ms2.(initial_st);
+    scopes := (scopes ms1) ++ (scopes ms2);
+    fnsems := union_with (λ _ _, Some None) (fnsems ms1) (fnsems ms2);
+    initial_st := union_with (λ _ _, Some None) (initial_st ms1) (initial_st ms2);
   |}.
   Next Obligation.
-    ii. unfold fnsems_scopes in H0. des_ifs.
-    rewrite alist_find_app_o in Heq. des_ifs.
-    {
-      hexploit (ms1.(well_scoped_fns) fn a).
-      { unfold fnsems_scopes. des_ifs. }
-      i. eapply in_or_app. eauto.
+    intros ms1 ms2 fn [msk p].
+    rewrite lookup_omap lookup_union_with.
+    destruct ((fnsems ms1) !! fn) eqn: Heq1; destruct ((fnsems ms2) !! fn) eqn: Heq2; ss; intros ->.
+    { hexploit (ms1.(well_scoped_fns) fn (msk, p)); eauto.
+      { rewrite lookup_omap Heq1 //. }
+      intros [? ?]; split; ii; rewrite elem_of_app; left; eauto.
     }
-    {
-      hexploit (ms2.(well_scoped_fns) fn a).
-      { unfold fnsems_scopes. des_ifs. }
-      i. eapply in_or_app. eauto.
+    { hexploit (ms2.(well_scoped_fns) fn (msk, p)); eauto.
+      { rewrite lookup_omap Heq2 //. }  
+      intros [? ?]; split; ii; rewrite elem_of_app; right; eauto.
     }
   Qed.
   Next Obligation.
-    unfold state_scopes. ii. destruct ms1, ms2. ss.
-    rewrite map_app in H0. apply in_or_app. apply in_app_or in H0.
-    destruct H0; eauto.
-  Qed.
-  Next Obligation.
-    ii. exploit nodup_app_l; eauto. i.
-    exploit nodup_app_r; eauto; i.
-    apply ms1 in x0. apply ms2 in x1.
-    assert (INCL1:= ms1.(well_scoped_init)).
-    assert (INCL2:= ms2.(well_scoped_init)).
-    revert_until ms2. unfold state_scopes.
-    generalize (initial_st ms1) as l1.
-    generalize (initial_st ms2) as l2.
-    i. revert_until l1. induction l1; ss.
-    i. econs; cycle 1.
-    {
-      eapply IHl1; eauto.
-      { eapply NoDup_cons_iff in x0. des. eauto. }
-      { ss. ii. eapply INCL1. ss. eauto. }
+    intros ms1 ms2 fn; rewrite elem_of_list_fmap; intros [[scp ?] [-> Hin]]; ss.
+    rewrite elem_of_elements elem_of_dom lookup_union_with in Hin.
+    destruct (initial_st ms1 !! _) eqn: Heq1; eapply elem_of_app; [left|right].
+    { apply (ms1.(well_scoped_init)); rewrite elem_of_list_fmap; eexists (scp, _); split; ss.
+      rewrite elem_of_elements elem_of_dom //.
     }
-    ii. rewrite map_app in H1. eapply in_app_or in H1. des.
-    { eapply NoDup_cons_iff in x0. des. eauto. }
-    eapply NoDup_app_disjoint; eauto.
-    { eapply INCL1. s. left. eauto. }
-    { eapply INCL2. rewrite - List.map_map. eapply in_map. eauto. }
+    destruct (initial_st ms2 !! _) eqn: Heq2; [|inv Hin].
+    { apply (ms2.(well_scoped_init)); rewrite elem_of_list_fmap; eexists (scp, _); split; ss.
+      rewrite elem_of_elements elem_of_dom //.
+    }
   Qed.
 
-  Definition addL (ms : list t) : t :=
-    foldr add empty ms.
+  (* TODO *)
+  (* Definition addL (ms : list t) : t := foldr add empty ms. *)
 
-  Program Definition to_mod (sp : sp_type) (ms : t) : Mod.t := {|
-    Mod.scopes := ms.(scopes);
-    Mod.fnsems := List.map (map_snd (SModTr.trans_ktree sp)) ms.(fnsems);
-    Mod.initial_st := ms.(initial_st);
-    |}.
-  Next Obligation.
+  (* Program Definition to_mod (sp : sp_type) (ms : t) : Mod.t := {|
+    scopes := ms.(scopes);
+    (* fnsems := List.map (map_snd (SModTr.trans_fnsem sp)) ms.(fnsems); *)
+    fnsems := List.map (map_snd (SModTr.trans_fnsem sp)) ms.(fnsems);
+    initial_st := ms.(initial_st);
+  |}. *)
+  (* Next Obligation.
     i. destruct ms. ss. ii. unfold fnsems_scopes in *. unfold map_snd in *.
     rewrite alist_find_map in H0. specialize (well_scoped_fns0 fn a).
     destruct (alist_find fn fnsems0) eqn: E; ss.
     destruct f. destruct p. destruct p0. et.
   Qed.
   Next Obligation. ii. destruct ms. ss. eauto. Qed.
-  Next Obligation. ii. destruct ms. ss. eauto. Qed.
-
+  Next Obligation. ii. destruct ms. ss. eauto. Qed. *)
   Program Definition cancel (ms : t) : t := {|
     scopes := ms.(scopes);
-    fnsems := List.map (map_snd (map_snd (map_fst (const None)))) ms.(fnsems);
+    fnsems := (.≫= (λ '(msk, bd), Some (msk, (None, bd.2)))) <$> ms.(fnsems);
     initial_st := ms.(initial_st);
   |}.
   Next Obligation.
-    i. destruct ms. ss. ii. unfold fnsems_scopes in *. unfold map_snd in *.
-    rewrite !alist_find_map in H0. specialize (well_scoped_fns0 fn a).
-    destruct (alist_find fn fnsems0) eqn: E; try rewrite E in H0; ss.
-    destruct f. destruct p. et.
+    intros ms fn [? ?] Hin; hexploit (ms.(well_scoped_fns)); eauto.
+    rewrite lookup_omap_id_Some lookup_fmap in Hin;
+      destruct (_ !! _) as [[[p1 [p2 p3]]|]|] eqn : Hin';
+      ss; clarify.
+    intros Hwf; specialize (Hwf fn (m, (p2, p3))); ss; apply Hwf.
+    rewrite lookup_omap_id_Some; ss.
   Qed.
-  Next Obligation. ii. destruct ms. ss. eauto. Qed.
-  Next Obligation. ii. destruct ms. ss. eauto. Qed.
-
-End SMOD.
-End SMod.
+  Next Obligation. intros ms; ii; destruct ms; ss; eauto. Qed.
+End Smod. End SMod.
 
 Infix "☆" := SMod.add (at level 60, right associativity).
 
 Section ADD.
   Context `{!crisG Γ Σ α β τ _S _I, !concG}.
 
-  Lemma smod_add_interp_comm
-      sp
-      (ms0 ms1: SMod.t)
-    :
+  (* Lemma smod_add_interp_comm sp (ms0 ms1 : SMod.t) :
     SMod.to_mod sp (SMod.add ms0 ms1) = Mod.add (SMod.to_mod sp ms0) (SMod.to_mod sp ms1).
   Proof using.
-    eapply mod_extensionality; ss; eauto.
-    rewrite map_app. ss.
-  Qed.
+    eapply mod_extensionality; ss; eauto. rewrite map_app. ss.
+  Qed. *)
 
-  Lemma add_interp_comm
+  (* Lemma add_interp_comm
       sp
       (md0 md1: SMod.t)
     :
@@ -141,18 +124,18 @@ Section ADD.
     unfold SMod.to_mod. unfold "★". s.
     f_equal. extensionalities.
     eapply smod_add_interp_comm.
-  Qed.
+  Qed. *)
 
-  Lemma interp_empty
+  (* Lemma interp_empty
       sp
     :
     SMod.to_mod sp SMod.empty = Mod.empty.
   Proof using.
     unfold SMod.to_mod, Mod.empty.
     eapply mod_extensionality; eauto.
-  Qed.
+  Qed. *)
 
-  Lemma addL_interp_comm
+  (* Lemma addL_interp_comm
       sp
       (mds: list SMod.t)
     :
@@ -161,15 +144,14 @@ Section ADD.
     induction mds; [eapply interp_empty|].
     s. rewrite add_interp_comm.
     f_equal. eauto.
-  Qed.
-
+  Qed. *)
 End ADD.
 
 Section Aux.
   Context `{!crisG Γ Σ α β τ _S _I, !concG}.
 
-  Definition sp_from (md : SMod.t) : sp_type :=
-    to_sp (List.map (map_snd (fst ∘ snd)) md.(SMod.fnsems)).
+  (* Definition sp_from (md : SMod.t) : sp_type :=
+    to_sp (List.map (map_snd (fst ∘ snd)) md.(SMod.fnsems)). *)
   
   (* Definition has_param (md : SMod.t) fno img msk scp := *)
   (*   ∃ sbd, alist_find fno (SMod.fnsems md) = Some (img, msk, scp, sbd). *)
