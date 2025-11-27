@@ -25,7 +25,7 @@ Module SModTr. Section HOARE.
   Context `{!crisG Γ Σ α β τ _S _I, !concG}.
   Implicit Types (fn : string) (varg arg : Any.t) (fspo sspo : option fspec).
   (* Implicit Types (msk : mask). *)
-  Implicit Types (N : namespace) (stid ntid : nat) (sp : sp_type).
+  Implicit Types (N : namespace) (stid ntid : nat) (sp : specmap).
 
   (* Wraps a function call into a Hoare triple *)
   Definition HoareCall fspo fn varg N stid : itree crisE Any.t :=
@@ -123,7 +123,7 @@ Module SModTr. Section HOARE.
       trigger GetTid
     end.
 
-  (* Definition handle (img : bool) (sp : sp_type) : crisE ~> itreeV crisE.
+  (* Definition handle (img : bool) (sp : specmap) : crisE ~> itreeV crisE.
   Proof.
     intros T e. destruct e.
     { exact (inr (existT _ (subevent _ a, λ v, Ret v))). }
@@ -151,16 +151,16 @@ Module SModTr. Section HOARE.
     }
     destruct e as [[fn args|fn args|tid|]|e].
     { (* Call *)
-      exact (inl (HoareCall (sp (speckey_fn fn)) fn args N stid)).
+      exact (inl (HoareCall (sp !! (speckey_fn fn)) fn args N stid)).
     }
     { (* Spawn *)
-      exact (inl (HoareSpawn (sp (speckey_fn fn)) (sp (speckey_concE)) fn args N)).
+      exact (inl (HoareSpawn (sp !! (speckey_fn fn)) (sp !! (speckey_concE)) fn args N)).
     }
     { (* Yield *)
-      exact (inl (HoareYield (sp (speckey_concE)) N stid tid)).
+      exact (inl (HoareYield (sp !! (speckey_concE)) N stid tid)).
     }
     { (* GetTid *)
-      exact (inl (HoareGetTid (sp (speckey_concE)) stid)).
+      exact (inl (HoareGetTid (sp !! (speckey_concE)) stid)).
     }
     (* pgE +' coreE *)
     destruct e as [e|e]; exact (inr (existT _ (subevent _ e, λ v, Ret v))).
@@ -170,12 +170,12 @@ Module SModTr. Section HOARE.
     interpV (handle img sp) it. *)
   Definition trans sp N stid {R} (itr : itree crisE R) : itree crisE R :=
     interpV (handle sp N stid) itr.
-  (* Definition trans_body : (bool * sp_type * option fspec) → fbody → fbody :=
+  (* Definition trans_body : (bool * specmap * option fspec) → fbody → fbody :=
     λ '(img, sp, fsp) bd, HoareFun fsp (trans img sp ∘ bd). *)
 
   (* Definition trans_ktree sp (sb : fnsem_type (option fspec * fbody)) : fnsem_type fbody :=
     map_snd (λ '(fsp,bd), trans_body (is_some sb.2.1, if sb.1.1.1 then sp else sp_none, fsp) bd) sb. *)
-  Definition trans_fnsem (sp : sp_type) (sem : option fspec * fbody) : fbody :=
+  Definition trans_fnsem (sp : specmap) (sem : option fspec * fbody) : fbody :=
     let '(fspo, fbd) := sem in
     HoareFun fspo (λ N stid, trans sp N stid ∘ fbd).
 End HOARE. End SModTr.
@@ -228,24 +228,24 @@ Module SRed. Section RED.
 
   Lemma vis_call sp N stid {R} fn args (ktr : Any.t → itree crisE R) :
     trans sp N stid (vis (Call fn args) ktr) =
-    tau;; r <- HoareCall (sp (speckey_fn fn)) fn args N stid;;
+    tau;; r <- HoareCall (sp !! (speckey_fn fn)) fn args N stid;;
     trans sp N stid (ktr r).
   Proof using. rewrite /SModTr.trans /SModTr.handle /= interpV_vis. apply observe_eta; ss. Qed.
 
   Lemma vis_spawn sp N stid {R} fn args (ktr : nat → itree crisE R) :
     trans sp N stid (vis (Spawn fn args) ktr) =
-    tau;; r <- HoareSpawn (sp (speckey_fn fn)) (sp (speckey_concE)) fn args N;;
+    tau;; r <- HoareSpawn (sp !! (speckey_fn fn)) (sp !! (speckey_concE)) fn args N;;
     trans sp N stid (ktr r).
   Proof using. rewrite /SModTr.trans /SModTr.handle /= interpV_vis. apply observe_eta; ss. Qed.
 
   Lemma vis_yield sp N stid {R} tid (ktr : () → itree crisE R) :
     trans sp N stid (vis (Yield tid) ktr) =
-    tau;; x <- HoareYield (sp (speckey_concE)) N stid tid;; trans sp N stid (ktr x).
+    tau;; x <- HoareYield (sp !! (speckey_concE)) N stid tid;; trans sp N stid (ktr x).
   Proof using. rewrite /SModTr.trans /SModTr.handle /= interpV_vis. apply observe_eta; ss. Qed.
 
   Lemma vis_gettid sp N stid {R} (ktr : nat → itree crisE R) :
     trans sp N stid (vis GetTid ktr) =
-    tau;; x <- HoareGetTid (sp (speckey_concE)) stid;; trans sp N stid (ktr x).
+    tau;; x <- HoareGetTid (sp !! (speckey_concE)) stid;; trans sp N stid (ktr x).
   Proof using. rewrite /SModTr.trans /SModTr.handle /= interpV_vis. apply observe_eta; ss. Qed.
 
   Lemma assumeK sp N stid {R} P (itr : itree crisE R) :
@@ -270,21 +270,21 @@ Module SRed. Section RED.
   (* reduction lemmas for trigger form *)
   Lemma yield sp N stid tid :
     trans sp N stid (trigger (Yield tid)) =
-    tau;; HoareYield (sp (speckey_concE)) N stid tid.
+    tau;; HoareYield (sp !! (speckey_concE)) N stid tid.
   Proof using. rewrite vis_yield; grind; erewrite <- bind_ret_r; grind; rewrite ret //. Qed.
 
   Lemma spawn sp N stid fn args :
     trans sp N stid (trigger (Spawn fn args)) =
-    tau;; HoareSpawn (sp (speckey_fn fn)) (sp (speckey_concE)) fn args N.
+    tau;; HoareSpawn (sp !! (speckey_fn fn)) (sp !! (speckey_concE)) fn args N.
   Proof using. rewrite vis_spawn; grind; erewrite <- bind_ret_r; grind; rewrite ret //. Qed.
 
   Lemma gettid sp N stid :
-    trans sp N stid (trigger GetTid) = tau;; HoareGetTid (sp (speckey_concE)) stid.
+    trans sp N stid (trigger GetTid) = tau;; HoareGetTid (sp !! (speckey_concE)) stid.
   Proof using. rewrite vis_gettid; grind; erewrite <- bind_ret_r; grind; rewrite ret //. Qed.
 
   Lemma call sp N stid fn args :
     trans sp N stid (trigger (Call fn args)) =
-    tau;; HoareCall (sp (speckey_fn fn)) fn args N stid.
+    tau;; HoareCall (sp !! (speckey_fn fn)) fn args N stid.
   Proof using. rewrite vis_call; grind; erewrite <- bind_ret_r; grind; rewrite ret //. Qed.
 
   Lemma pg sp N stid (R : Type) (e : pgE R) : trans sp N stid (trigger e) = trigger e.

@@ -7,46 +7,56 @@ Variant speckey : Type :=
 | speckey_fn (fn : string)
 | speckey_entry
 | speckey_concE.
-Global Instance speckey_Dec : Dec speckey.
-Proof. intros [fn0| |] [fn1| |]; eauto; destruct (decide (fn0 = fn1)); [left|right]; ii; clarify.
+Global Instance speckey_eq_dec : EqDecision speckey.
+Proof. solve_decision. Qed.
+Global Instance speckey_countable : Countable speckey.
+Proof.
+  refine (inj_countable'
+   (λ k, match k with speckey_fn fn => Some (Some fn) | speckey_entry => Some None | _ => None end)
+   (λ k,
+    match k with
+    | Some (Some fn) => speckey_fn fn
+    | Some None => speckey_entry
+    | _ => speckey_concE end) _).
+   by intros [].
 Qed.
 
 Section sp.
-  Context `{Σ: GRA}.
+  Context `{Σ : GRA}.
 
-  Definition spl_type : Type := alist speckey (option fspec).
-  Definition sp_type : Type := speckey → option fspec.
+  (* Definition spl_type : Type := alist speckey (option fspec). *)
+  Definition specmap : Type := gmap speckey fspec.
 
-  Definition to_sp (l : spl_type) : sp_type :=
-    λ k, or_else (alist_find k l) (Some fspec_bot).
+  (* Definition to_sp (l : spl_type) : specmap :=
+    λ k, or_else (alist_find k l) (Some fspec_bot). *)
 
-  Definition sp_none : sp_type := const None.
+  (* Definition sp_none : specmap := const None. *)
 
-  Variant fn_has_spec (sp : sp_type) (fn : string) (fsp : fspec) : Prop :=
-  | fn_has_spec_intro (WEAK : fspec_imply (fspec_flat (sp (speckey_fn fn))) fsp).
+  Variant fn_has_spec (sp : specmap) (fn : string) (fsp : fspec) : Prop :=
+  | fn_has_spec_intro (WEAK : fspec_imply (fspec_flat (sp !! (speckey_fn fn))) fsp).
   Hint Constructors fn_has_spec : core.
 
-  Variant fn_has_spec_in (spl : spl_type) (fn : string) (fsp : fspec) : Prop :=
+  (* Variant fn_has_spec_in (spl : spl_type) (fn : string) (fsp : fspec) : Prop :=
   | fn_has_spec_in_intro
       fsp_real
       (SPEC: alist_find (speckey_fn fn) spl = Some fsp_real)
       (WEAK : fspec_imply (fspec_flat fsp_real) fsp).
-  Hint Constructors fn_has_spec_in : core.
+  Hint Constructors fn_has_spec_in : core. *)
 
-  Lemma fn_has_weaker_spec (sp : sp_type) (fn : string) (fsp0 fsp1 : fspec)
+  Lemma fn_has_weaker_spec (sp : specmap) (fn : string) (fsp0 fsp1 : fspec)
       (SPEC : fn_has_spec sp fn fsp0)
       (WEAK : fspec_imply fsp0 fsp1) :
     fn_has_spec sp fn fsp1.
   Proof using. inv SPEC. econs; eauto. etrans; eauto. Qed.
 
-  Lemma fn_has_weaker_spec_in (spl : spl_type) (fn : string) (fsp0 fsp1 : fspec)
+  (* Lemma fn_has_weaker_spec_in (spl : spl_type) (fn : string) (fsp0 fsp1 : fspec)
       (SPEC : fn_has_spec_in spl fn fsp0)
       (WEAK : fspec_imply fsp0 fsp1) :
     fn_has_spec_in spl fn fsp1.
-  Proof using. inv SPEC. econs; eauto. etrans; eauto. Qed.
+  Proof using. inv SPEC. econs; eauto. etrans; eauto. Qed. *)
 
-  Definition sp_imply (sp0 sp1 : sp_type) : Prop :=
-    ∀ fn, fspec_imply (fspec_flat (sp0 fn)) (fspec_flat (sp1 fn)).
+  Definition sp_imply (sp0 sp1 : specmap) : Prop :=
+    ∀ fn, fspec_imply (fspec_flat (sp0 !! (speckey_fn fn))) (fspec_flat (sp1 !! (speckey_fn fn))).
 
   Global Program Instance sp_imply_PreOrder : PreOrder sp_imply.
   Next Obligation. ii. exists x1. esplits; et. Qed.
@@ -59,7 +69,7 @@ Section sp.
   Qed.
 
   (* Commented out since fspec_imply' erased *)
-  (* Definition sp_imply' (sp0 sp1 : sp_type) : Prop :=
+  (* Definition sp_imply' (sp0 sp1 : specmap) : Prop :=
     ∀ fn, fspec_imply' (fspec_flat (sp0 fn)) (fspec_flat (sp1 fn)).
 
   Global Program Instance sp_imply'_PreOrder : PreOrder sp_imply'.
@@ -70,17 +80,17 @@ Section sp.
     destruct f, f0; ss. etrans; et.
   Qed. *)
 
-  (* Definition sp_sub (sp0 sp : sp_type) : Prop :=
+  (* Definition sp_sub (sp0 sp : specmap) : Prop :=
     ∀ fn, sp0 fn = Some fspec_bot ∨ sp0 fn = sp fn. *)
 
-  Definition spl_sub (spl0 spl : spl_type) : Prop :=
-    ∀ fno fsp, alist_find fno spl0 = Some fsp → alist_find fno spl = Some fsp.
+  (* Definition spl_sub (spl0 spl : spl_type) : Prop :=
+    ∀ fno fsp, alist_find fno spl0 = Some fsp → alist_find fno spl = Some fsp. *)
 
-  Definition sp_incl (l : spl_type) (sp : sp_type) : Prop :=
+  (* Definition sp_incl (l : spl_type) (sp : specmap) : Prop :=
     NoDup (l.*1) ∧
-    (∀ fn fsp, alist_find (speckey_fn fn) l = Some fsp → sp (speckey_fn fn) = fsp).
+    (∀ fn fsp, alist_find (speckey_fn fn) l = Some fsp → sp (speckey_fn fn) = fsp). *)
 
-  Lemma sp_incl_to_sp (l : spl_type) :
+  (* Lemma sp_incl_to_sp (l : spl_type) :
     NoDup (l.*1) → sp_incl l (to_sp l).
   Proof.
     intros ?; split; first done.
@@ -89,7 +99,7 @@ Section sp.
     { rewrite /to_sp; s; rewrite eq_rel_dec_correct; des_ifs; ss; clarify.
       rewrite H0; ss.
     }
-  Qed.
+  Qed. *)
 
   (* Lemma sp_sub_imply sp0 sp
     (SUB: sp_sub sp0 sp)
