@@ -26,9 +26,9 @@ Ltac inv_string X :=
      end);
   ss.
 
-Ltac prove_scope :=
+(* Ltac prove_scope :=
   try unfold Mod.fnsems; try unfold SMod.fnsems; try unfold fnsems_scopes;
-  s; ii; des_ifs; ss; des; ss; eauto.
+  s; ii; des_ifs; ss; des; ss; eauto. *)
 
 Ltac prove_nodup :=
   (hrepeat do 1 (econs; [ii; ss; des; try match goal with [H: _ |- _] => inv_string H end|]));
@@ -87,7 +87,7 @@ Ltac unfold_cris_defs :=
   rewrite /cfunU;
   (hrepeat do 1 match goal with |- context[cfunN ?x] => rewrite {1}/x end);
   rewrite /cfunN;
-  rewrite /SModTr.trans_ktree /SModTr.HoareFun; s;
+  rewrite /SModTr.trans_fnsem /SModTr.HoareFun; s;
   (hrepeat do 1 match goal with |- context[SModTr.trans _ _ (?x _)] =>
      match type of x with Any.t → _ => rewrite /x end
   end).
@@ -120,7 +120,7 @@ Ltac move_aux :=
   (hrepeat do 1 match goal with [H: List.NoDup _ |- _ ] => guardH H; move H at top end);
   (hrepeat do 1 match goal with [H: incl _ (Mod.scopes _ _) |- _] => guardH H; move H at top end);
   (hrepeat do 1 match goal with [H: Mod.wf _ |- _ ] => guardH H; move H at top end);
-  (hrepeat do 1 match goal with [H: ∀ _, sp_incl _ _ |- _ ] => guardH H; move H at top end);
+  (* (hrepeat do 1 match goal with [H: ∀ _, sp_incl _ _ |- _ ] => guardH H; move H at top end); *)
   (hrepeat do 1 match goal with [H:=_:list (_ * (Any.t -> itree crisE Any.t)) |- _ ] => guardH H; move H at top end);
   unguard.
 
@@ -190,10 +190,10 @@ Tactic Notation "red_bind" tactic(tac) :=
       | unwrapUK _ _ => eapply unwrapUK_bind
       | unwrapNK _ _ => eapply unwrapNK_bind
       | RealUpdateK _ _ _ => eapply RealUpdateK_bind
-      | SBRed.putSB _ _ _ _ _ _ => eapply SBRed.putSB_bind
+      (* | SBRed.putSB _ _ _ _ _ _ => eapply SBRed.putSB_bind
       | SBRed.getSB _ _ _ _ _ => eapply SBRed.getSB_bind
       | SBRed.callSB _ _ _ _ _ _ => eapply SBRed.callSB_bind
-      | SBRed.spawnSB _ _ _ _ _ _ => eapply SBRed.spawnSB_bind
+      | SBRed.spawnSB _ _ _ _ _ _ => eapply SBRed.spawnSB_bind *)
       | @ITree.bind _ _ _ _ _ => eapply bind_bind
       | _ => reflexivity
       end
@@ -208,39 +208,39 @@ Tactic Notation "red_SB" :=
       | Tau _ =>
           eapply SBRed.tau
       | vis (Assume _) _ =>
-          first [eapply SBRed.vis_Assume_img|eapply SBRed.vis_Assume]
+          eapply SBRed.vis
       | vis (AssumeRes _) _ =>
-          eapply SBRed.vis_AssumeRes
+          eapply SBRed.vis
       | vis (Guarantee _) _ =>
-          eapply SBRed.vis_Guarantee
+          eapply SBRed.vis
       | vis (Spawn _ _) _ =>
-          eapply SBRed.Spawn_spawnSB
+          eapply SBRed.vis
       | vis (Yield _) _ =>
-          eapply SBRed.vis_yield
+          eapply SBRed.vis
       | vis GetTid _ =>
-          eapply SBRed.vis_gettid
+          eapply SBRed.vis
       | vis (Call _ _) _ =>
-          eapply SBRed.Call_callSB
+          eapply SBRed.vis
       | vis (SPut _ _) _ =>
-          eapply SBRed.SPut_putSB
+          eapply SBRed.vis
       | vis (SGet _) _ =>
-          eapply SBRed.SGet_getSB
+          eapply SBRed.vis
       | vis (Choose _) _ =>
-          eapply SBRed.vis_choose
+          eapply SBRed.vis
       | vis (Take _) _ =>
-          first [eapply SBRed.vis_take_img|eapply SBRed.vis_take]
+          eapply SBRed.vis
       | vis (IO _ _) _ =>
-          eapply SBRed.vis_io
-      | assumeK _ _ =>
-          eapply SBRed.assumeK
-      | guaranteeK _ _ =>
-          eapply SBRed.guaranteeK
-      | unwrapUK _ _ =>
-          eapply SBRed.unwrapUK
-      | unwrapNK _ _ =>
-          eapply SBRed.unwrapNK
-      | RealUpdateK _ _ _ =>
-          eapply SBRed.ruK
+          eapply SBRed.vis
+      (* | assumeK _ _ =>
+          eapply SBRed.assumeK *)
+      (* | guaranteeK _ _ =>
+          eapply SBRed.guaranteeK *)
+      (* | unwrapUK _ _ =>
+          eapply SBRed.unwrapUK *)
+      (* | unwrapNK _ _ =>
+          eapply SBRed.unwrapNK *)
+      (* | RealUpdateK _ _ _ =>
+          eapply SBRed.ruK *)
       | @ITree.bind _ _ _ _ _ =>
           eapply SBRed.bind
       | _ =>
@@ -248,7 +248,7 @@ Tactic Notation "red_SB" :=
       end
   end.
 
-Ltac unfold_sp_exact sp name :=
+(* Ltac unfold_sp_exact sp name :=
   try match goal with
       [ H : sp_incl _ sp |- _ ] =>
         let RW := fresh "_RW" in
@@ -261,7 +261,7 @@ Ltac unfold_sp_exact sp name :=
            alist_find_simpl;
            refl];
         simpl unwrapN; clear ND RW
-    end.
+    end. *)
 
 Tactic Notation "red_S" tactic(tac) :=
   lazymatch goal with
@@ -272,16 +272,16 @@ Tactic Notation "red_S" tactic(tac) :=
       | Tau _ =>
           eapply SRed.tau
       | vis (Assume _) _ =>
-          eapply SRed.vis_ag
+          eapply SRed.vis_agE
       | vis (AssumeRes _) _ =>
-          eapply SRed.vis_ag
+          eapply SRed.vis_agE
       | vis (Guarantee _) _ =>
-          eapply SRed.vis_ag
+          eapply SRed.vis_agE
       | vis (Spawn ?fn _) _ =>
           etransitivity;
           [ eapply SRed.vis_spawn
-          | unfold SModTr.HoareSpawn, SModTr.NativeSpawn;
-            unfold_sp_exact sp fn; s;
+          | unfold SModTr.HoareSpawn;
+            (* unfold_sp_exact sp fn; s; *)
             tac
           ]
       | vis (Yield _) _ =>
@@ -298,19 +298,19 @@ Tactic Notation "red_S" tactic(tac) :=
           etransitivity;
           [ eapply SRed.vis_call
           | unfold SModTr.HoareCall;
-            unfold_sp_exact sp fn; s;
+            (* unfold_sp_exact sp fn; s; *)
             tac
           ]
       | vis (SPut _ _) _ =>
-          eapply SRed.vis_pg
+          eapply SRed.vis_pgE
       | vis (SGet _) _ =>
-          eapply SRed.vis_pg
+          eapply SRed.vis_pgE
       | vis (Choose _) _ =>
-          eapply SRed.vis_core
+          eapply SRed.vis_coreE
       | vis (Take _) _ =>
-          eapply SRed.vis_core
+          eapply SRed.vis_coreE
       | vis (IO _ _) _ =>
-          eapply SRed.vis_core
+          eapply SRed.vis_coreE
       | assumeK _ _ =>
           eapply SRed.assumeK
       | guaranteeK _ _ =>
@@ -319,8 +319,8 @@ Tactic Notation "red_S" tactic(tac) :=
           eapply SRed.unwrapUK
       | unwrapNK _ _ =>
           eapply SRed.unwrapNK
-      | RealUpdateK _ _ _ =>
-          eapply SRed.ruK
+      (* | RealUpdateK _ _ _ =>
+          eapply SRed.ruK *)
       | @ITree.bind _ _ _ _ _ =>
           eapply SRed.bind
       | _ =>
@@ -361,9 +361,9 @@ Ltac _hnorm_itr :=
   | [ |- SModTr.HoareCall _ _ _ = _ ] =>
       unfold SModTr.HoareCall;
       _hnorm_itr
-  | [ |- SModTr.NativeSpawn _ _ = _ ] =>
+  (* | [ |- SModTr.NativeSpawn _ _ = _ ] =>
       unfold SModTr.NativeSpawn;
-      _hnorm_itr
+      _hnorm_itr *)
   | [ |- fbody_trivial _ = _ ] =>
       unfold fbody_trivial;
       _hnorm_itr
@@ -419,14 +419,14 @@ Ltac hnorm_itr :=
         eapply unwrapNK_unwrapN
     | [ |- RealUpdateK _ _ _ = _ ] =>
         eapply RealUpdateK_RealUpdate
-    | [ |- SBRed.putSB _ _ _ _ _ _ = _ ] =>
-        eapply SBRed.putSB_SPut
-    | [ |- SBRed.getSB _ _ _ _ _ = _ ] =>
-        eapply SBRed.getSB_SGet
-    | [ |- SBRed.callSB _ _ _ _ _ _ = _ ] =>
-        eapply SBRed.callSB_Call
-    | [ |- SBRed.spawnSB _ _ _ _ _ _ = _ ] =>
-        eapply SBRed.spawnSB_Spawn
+    (* | [ |- SBRed.putSB _ _ _ _ _ _ = _ ] =>
+        eapply SBRed.putSB_SPut *)
+    (* | [ |- SBRed.getSB _ _ _ _ _ = _ ] =>
+        eapply SBRed.getSB_SGet *)
+    (* | [ |- SBRed.callSB _ _ _ _ _ _ = _ ] =>
+        eapply SBRed.callSB_Call *)
+    (* | [ |- SBRed.spawnSB _ _ _ _ _ _ = _ ] =>
+        eapply SBRed.spawnSB_Spawn *)
     | [ |- _ = _ ] =>
         reflexivity
     end
@@ -468,8 +468,8 @@ Ltac unfold_pre_post_term term :=
            TM => match P with
                  | context[precond] => unfold precond in TM; simpl in TM
                  | context[postcond] => unfold postcond in TM; simpl in TM
-                 | context[precondS] => unfold precondS in TM; simpl in TM
-                 | context[postcondS] => unfold postcondS in TM; simpl in TM
+                 (* | context[precondS] => unfold precondS in TM; simpl in TM *)
+                 (* | context[postcondS] => unfold postcondS in TM; simpl in TM *)
                  end
          end
      end);
@@ -479,8 +479,8 @@ Ltac unfold_pre_post :=
   hrepeat do 1 match goal with
   | |-context[precond] => rewrite /precond; s
   | |-context[postcond] => rewrite /postcond; s
-  | |-context[precondS] => rewrite /precondS; s
-  | |-context[postcondS] => rewrite /postcondS; s
+  (* | |-context[precondS] => rewrite /precondS; s
+  | |-context[postcondS] => rewrite /postcondS; s *)
   end.
 
 Ltac set_marker marker :=
@@ -558,11 +558,11 @@ Ltac prove_inline_cond :=
     simpl List.map; alist_find_simpl; eauto
   end].
 
-Lemma mask_app (l m: list string) fn:
+(* Lemma mask_app (l m: list string) fn:
   wmask_list (l ++ m) fn = wmask_list l fn || wmask_list m fn.
 Proof.
   unfold wmask_list. rewrite existsb_app. eauto.
-Qed.
+Qed. *)
 
 Ltac prove_sb_cond :=
   by s; i; eauto; try rewrite !mask_app; s; eauto.

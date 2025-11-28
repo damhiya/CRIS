@@ -299,3 +299,5 @@ Proof using.
   - do 5 right. exists X, c, k. unfold trigger. rewrite bind_vis.
     repeat f_equal. extensionality x. rewrite bind_ret_l. eauto.
 Qed.
+
+Definition emask {Σ : GRA} : Type := ∀ X, crisE X → bool.

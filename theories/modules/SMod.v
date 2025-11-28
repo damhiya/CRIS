@@ -9,12 +9,12 @@ Module SMod. Section Smod.
   (* The image of the maps are lifted by option to make the module append operation total. *)
   Record t : Type := mk {
     scopes : list string;
-    fnsems : gmap (option string) (option (mask * (option fspec * fbody)));
+    fnsems : gmap (option string) (option (emask * (option fspec * fbody)));
     initial_st : gmap key (option Any.t);
 
     well_scoped_fns :
       map_Forall
-        (λ _ '((msk, _) : mask * _),
+        (λ _ '((msk, _) : emask * _),
           (∀ (k : key) (v : Any.t), msk _ (subevent _ (SPut k v)) = true → k.1 ∈ scopes) ∧
           (∀ (k : key), msk _ (subevent _ (SGet k)) = true → k.1 ∈ scopes))
         (omap id fnsems);
@@ -98,7 +98,7 @@ Module SMod. Section Smod.
     rewrite lookup_omap_id_Some lookup_fmap in Hin;
       destruct (_ !! _) as [[[p1 [p2 p3]]|]|] eqn : Hin';
       ss; clarify.
-    intros Hwf; specialize (Hwf fn (m, (p2, p3))); ss; apply Hwf.
+    intros Hwf; specialize (Hwf fn (e, (p2, p3))); ss; apply Hwf.
     rewrite lookup_omap_id_Some; ss.
   Qed.
   Next Obligation. intros ms; ii; destruct ms; ss; eauto. Qed.

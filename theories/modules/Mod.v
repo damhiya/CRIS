@@ -2,13 +2,10 @@ Require Import Common.
 From iris.proofmode Require Import proofmode.
 Require Import LMod.
 Require Export FSpec ModTr Sandbox.
-
-Definition mask {Σ : GRA} : Type := ∀ X, crisE X → bool.
-
 (* Definition fnsems_scopes
     `{Σ: GRA} {T} (fn : option string) (fnsems : alist (option string) (fnsem_type T)) :=
   match (alist_find fn fnsems) with
-  | Some (mask, scopes, body) => scopes
+  | Some (emask, scopes, body) => scopes
   | None => []
   end. *)
 
@@ -26,12 +23,12 @@ Module Mod. Section Mod.
   
   Record t : Type := mk {
     scopes : list string;
-    fnsems : gmap (option string) (option (mask * fbody));
+    fnsems : gmap (option string) (option (emask * fbody));
     initial_st : gmap key (option Any.t);
 
     well_scoped_fns :
       map_Forall
-        (λ _ '((msk, _) : mask * _),
+        (λ _ '((msk, _) : emask * _),
           (∀ (k : key) (v : Any.t), msk _ (subevent _ (SPut k v)) = true → k.1 ∈ scopes) ∧
           (∀ (k : key), msk _ (subevent _ (SGet k)) = true → k.1 ∈ scopes))
         (omap id fnsems);
@@ -90,11 +87,10 @@ Module Mod. Section Mod.
     }
   Qed.
 
-  (* Definition to_lmod (ms : t) (r : Σ) : LMod.t :=
-  {|
-    LMod.fnsems := List.map (map_snd (ModTr.trans_ktree ∘ SB.sandbox_body)) ms.(fnsems);
-    LMod.initial_st := Any.pair (ModTr.alist_encode ms.(initial_st)) r↑;
-  |}. *)
+  Definition to_lmod (ms : t) (r : Σ) : LMod.t := {|
+    LMod.fnsems := map_to_list (ModTr.trans_ktree <$> (SB.sandbox_body <$> omap id (fnsems ms)));
+    LMod.initial_st := Any.pair (ModTr.alist_encode (map_to_list (omap id (initial_st ms)))) r↑;
+  |}.
 
   (* Definition addL (ms : list t) : t :=
     foldr add empty ms. *)
