@@ -1,8 +1,4 @@
-Require Import Coqlib.
-Require Import String.
-Require Import Any.
-Require Import ITreelib.
-Require Import Events.
+Require Import Coqlib String Any ITreelib Events.
 
 Set Implicit Arguments.
 
@@ -28,15 +24,12 @@ Module Tr.
   | abort
   | spin
   | hang (e: outE)
-  | interact (hd : outinE) (tl: t)
-  .
-
+  | interact (hd : outinE) (tl: t).
 End Tr.
 
-
 Module Beh.
-Definition t : Type := Tr.t -> Prop.
-Definition improves (src tgt : t) : Prop := tgt <1= src.
+  Definition t : Type := Tr.t -> Prop.
+  Definition improves (src tgt : t) : Prop := tgt <1= src.
 
 Section BEHAVES.
 

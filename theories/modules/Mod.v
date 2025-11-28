@@ -88,8 +88,8 @@ Module Mod. Section Mod.
   Qed.
 
   Definition to_lmod (ms : t) (r : Σ) : LMod.t := {|
-    LMod.fnsems := map_to_list (ModTr.trans_ktree <$> (SB.sandbox_body <$> omap id (fnsems ms)));
-    LMod.initial_st := Any.pair (ModTr.alist_encode (map_to_list (omap id (initial_st ms)))) r↑;
+    LMod.fnsems := ModTr.trans_fnsem <$> (SB.sandbox_body <$> omap id (fnsems ms));
+    LMod.initial_st := Any.pair (ModTr.state_encode (initial_st ms)) r↑;
   |}.
 
   (* Definition addL (ms : list t) : t :=

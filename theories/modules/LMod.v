@@ -3,25 +3,18 @@ Require Export LModTr.
 
 Module LMod.
   Record t : Type := mk {
-    fnsems : alist (option string) (Any.t → itree lmodE Any.t);
+    fnsems : gmap (option string) (Any.t → itree lmodE Any.t);
     initial_st : Any.t;
   }.
 
-  Record wf (ms : t) : Prop := mk_wf {
-    wf_fnsems : List.NoDup (List.map fst ms.(fnsems));
-  }.
+  (* Record wf (ms : t) : Prop := mk_wf {
+    wf_fnsems : map_Forall (const is_Some) (fnsems ms);
+  }. *)
 
-  Section COMPILE.
+  Definition prog (ms : t) : string → option (Any.t → itree lmodE Any.t) :=
+    λ fn, (fnsems ms) !! (Some fn).
 
-    Variable ms: t.
-
-    Definition prog: string → option (Any.t → itree lmodE Any.t) :=
-      fun fn => alist_find (Some fn) ms.(fnsems).
-
-    Definition compile : Any.t → itree coreE Any.t :=
-      λ arg,
-      bd <- (alist_find None ms.(fnsems))? ;;
-      snd <$> LModTr.trans prog (bd arg) (initial_st ms).
-
-  End COMPILE.
+  Definition compile (ms : t) : Any.t → itree coreE Any.t := λ arg,
+    bd <- ((fnsems ms) !! None)? ;;
+    snd <$> LModTr.trans (prog ms) (bd arg) (initial_st ms).
 End LMod.

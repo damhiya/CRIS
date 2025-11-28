@@ -1,10 +1,10 @@
 Require Import Common.
 
 Module LModTr.
-  Definition pure_state {S E} : E ~> stateT S (itree E) := fun _ e s => x <- trigger e;; Ret (s, x).
+  Definition pure_state {S E} : E ~> stateT S (itree E) := λ _ e s, x <- trigger e;; Ret (s, x).
 
   Definition handle_stateE {E} : stateE ~> stateT Any.t (itree E) :=
-    fun _ e glob =>
+    λ _ e glob,
       match e with
       | SUpdate run => Ret (run glob)
       end.
@@ -14,8 +14,8 @@ Module LModTr.
 
   Definition ths_state : Type := nat * list (itree lmodE Any.t).
 
-  Definition handle_callE (prog: string -> option (Any.t -> itree lmodE Any.t))
-      : ths_state -> itreeV (stateE +' coreE) (ths_state + Any.t) :=
+  Definition handle_callE (prog: string → option (Any.t → itree lmodE Any.t))
+      : ths_state → itreeV (stateE +' coreE) (ths_state + Any.t) :=
     λ '(tid, ths),
       match base.lookup tid ths with
       | None => inl (triggerUB)
@@ -29,7 +29,7 @@ Module LModTr.
               inr (existT _ (subevent _ e, λ v, Ret (inl (tid, <[tid := k v]> ths))))
           | VisF (inl1 e) k =>
               inl
-                (match e in callE T return (T -> _) -> _ with
+                (match e in callE T return (T → _) → _ with
                  | Call fn arg =>
                     λ k,
                       bd <- (prog fn)? ;;
@@ -46,10 +46,9 @@ Module LModTr.
           end
       end.
 
-  Definition interp_callE prog (itr0: itree lmodE Any.t)
-      : itree (stateE +' coreE) Any.t :=
-    iterV (handle_callE prog) (0, [itr0]).
+  Definition interp_callE prog (itr : itree lmodE Any.t) : itree (stateE +' coreE) Any.t :=
+    iterV (handle_callE prog) (0, [itr]).
 
-  Definition trans prog (itr0: itree lmodE Any.t) (st0: Any.t): itree coreE _ :=
-    interp_stateE Any.t (interp_callE prog itr0) st0.
+  Definition trans prog (itr : itree lmodE Any.t) (st : Any.t): itree coreE _ :=
+    interp_stateE Any.t (interp_callE prog itr) st.
 End LModTr.

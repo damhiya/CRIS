@@ -4,8 +4,7 @@ From iris.proofmode Require Import proofmode.
 Require Import Sandbox Mod LSim MSimCommon.
 
 Section msim.
-
-  Context `{Σ : GRA}.
+  Context {Σ : GRA}.
   Variable contextual: contextuality.
   Variable fl_src : alist (option string) (Any.t → itree crisE Any.t).
   Variable fl_tgt : alist (option string) (Any.t → itree crisE Any.t).
@@ -171,7 +170,6 @@ Section msim.
       (MSIM_ASSUME_PRECISE_SRC : True)
       ps pt st_src st_tgt fmr
       r k_src i_tgt FMR
-      (* (PRE : ⊢ precise iP) *)
       (CUR : Own fmr ⊢ |==> FMR)
       (K : ∀ fmr0 (NEW : Own fmr0 ⊢ |==> Own r ∗ FMR),
           msimi true pt (st_src, k_src tt) (st_tgt, i_tgt) fmr0)
