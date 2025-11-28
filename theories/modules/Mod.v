@@ -5,110 +5,99 @@ Require Export FSpec ModTr Sandbox.
 
 Definition mask {Σ : GRA} : Type := ∀ X, crisE X → bool.
 
-Definition fnsems_scopes
+(* Definition fnsems_scopes
     `{Σ: GRA} {T} (fn : option string) (fnsems : alist (option string) (fnsem_type T)) :=
   match (alist_find fn fnsems) with
   | Some (mask, scopes, body) => scopes
   | None => []
-  end.
+  end. *)
 
-Definition state_scopes (st : alist key Any.t) :=
-  map (fst ∘ fst) st.
+(* Definition state_scopes (st : alist key Any.t) :=
+  map (fst ∘ fst) st. *)
 
-Lemma state_scopes_update k v st:
+(* Lemma state_scopes_update k v st:
   state_scopes (alist_upd k v st) = state_scopes st.
 Proof.
   rewrite /state_scopes -!List.map_map alist_upd_keys. eauto.
-Qed.
+Qed. *)
 
 Module Mod. Section Mod.
   Context {Σ : GRA}.
   
   Record t : Type := mk {
-    scopes : list string; (* scopes of the module local variables *)
-    fnsems : alist (option string) (fnsem_type fbody);
-    initial_st : alist key Any.t;
+    scopes : list string;
+    fnsems : gmap (option string) (option (mask * fbody));
+    initial_st : gmap key (option Any.t);
 
     well_scoped_fns :
-      ∀ fn, incl (fnsems_scopes fn fnsems) scopes;
+      map_Forall
+        (λ _ '((msk, _) : mask * _),
+          (∀ (k : key) (v : Any.t), msk _ (subevent _ (SPut k v)) = true → k.1 ∈ scopes) ∧
+          (∀ (k : key), msk _ (subevent _ (SGet k)) = true → k.1 ∈ scopes))
+        (omap id fnsems);
     well_scoped_init :
-      incl (state_scopes initial_st) scopes;                         
-    nodup_init :
-      List.NoDup scopes → List.NoDup (List.map fst initial_st);
+      (elements (dom initial_st)).*1 ⊆ scopes;
+    (* nodup_init :
+      List.NoDup scopes → List.NoDup (List.map fst initial_st); *)
   }.
 
   Record wf (ms : t) : Prop := mk_wf {
-    wf_fns : List.NoDup (List.map fst ms.(fnsems));
-    wf_scopes : List.NoDup ms.(scopes);
+    wf_fns : map_Forall (const is_Some) (fnsems ms);
+    wf_state : map_Forall (const is_Some) (initial_st ms);
+    wf_scopes : NoDup (scopes ms);
   }.
 
-  Definition exports (m: t) : list (option string) :=
-    List.map fst m.(fnsems).
+  (* Definition exports (m: t) : list (option string) :=
+    List.map fst m.(fnsems). *)
 
   (**** Linking ****)
   Program Definition empty : t := {|
     scopes := [];
-    fnsems := [];
-    initial_st := [];
+    fnsems := ∅;
+    initial_st := ∅;
   |}.
   Next Obligation. ii; ss. Qed.
   Next Obligation. ii; ss. Qed.
-  Next Obligation. econs. Qed.
 
-  Program Definition add ms1 ms2 : t :=
-    {|
-      fnsems := ms1.(fnsems) ++ ms2.(fnsems);
-      scopes := ms1.(scopes) ++ ms2.(scopes);
-      initial_st := ms1.(initial_st) ++ ms2.(initial_st);
-    |}.
+  Program Definition add (ms1 ms2 : t) : t := {|
+    scopes := (scopes ms1) ++ (scopes ms2);
+    fnsems := union_with (λ _ _, Some None) (fnsems ms1) (fnsems ms2);
+    initial_st := union_with (λ _ _, Some None) (initial_st ms1) (initial_st ms2);
+  |}.
   Next Obligation.
-    ii. unfold fnsems_scopes in H. des_ifs.
-    rewrite alist_find_app_o in Heq. des_ifs.
-    { hexploit (ms1.(well_scoped_fns) fn a).
-      { unfold fnsems_scopes. des_ifs. }
-      i. eapply in_or_app. eauto.
+    intros ms1 ms2 fn [msk p].
+    rewrite lookup_omap lookup_union_with.
+    destruct ((fnsems ms1) !! fn) eqn: Heq1; destruct ((fnsems ms2) !! fn) eqn: Heq2; ss; intros ->.
+    { hexploit (ms1.(well_scoped_fns) fn (msk, p)); eauto.
+      { rewrite lookup_omap Heq1 //. }
+      intros [? ?]; split; ii; rewrite elem_of_app; left; eauto.
     }
-    { hexploit (ms2.(well_scoped_fns) fn a).
-      { unfold fnsems_scopes. des_ifs. }
-      i. eapply in_or_app. eauto.
+    { hexploit (ms2.(well_scoped_fns) fn (msk, p)); eauto.
+      { rewrite lookup_omap Heq2 //. }  
+      intros [? ?]; split; ii; rewrite elem_of_app; right; eauto.
     }
   Qed.
   Next Obligation.
-    unfold state_scopes. ii. destruct ms1, ms2. ss.
-    rewrite map_app in H. apply in_or_app. apply in_app_or in H.
-    destruct H; eauto.
-  Qed.  
-  Next Obligation.
-    ii. exploit nodup_app_l; eauto. i.
-    exploit nodup_app_r; eauto; i.
-    apply ms1 in x0. apply ms2 in x1.
-    assert (INCL1:= ms1.(well_scoped_init)).
-    assert (INCL2:= ms2.(well_scoped_init)).
-    revert_until ms2. unfold state_scopes.
-    generalize (initial_st ms1) as l1.
-    generalize (initial_st ms2) as l2.
-    i. revert_until l1. induction l1; ss.
-    i. econs; cycle 1.
-    {
-      eapply IHl1; eauto.
-      { eapply NoDup_cons_iff in x0. des. eauto. }
-      { ss. ii. eapply INCL1. ss. eauto. }
+    intros ms1 ms2 fn; rewrite elem_of_list_fmap; intros [[scp ?] [-> Hin]]; ss.
+    rewrite elem_of_elements elem_of_dom lookup_union_with in Hin.
+    destruct (initial_st ms1 !! _) eqn: Heq1; eapply elem_of_app; [left|right].
+    { apply (ms1.(well_scoped_init)); rewrite elem_of_list_fmap; eexists (scp, _); split; ss.
+      rewrite elem_of_elements elem_of_dom //.
     }
-    ii. rewrite map_app in H0. eapply in_app_or in H0. des.
-    { eapply NoDup_cons_iff in x0. des. eauto. }
-    eapply NoDup_app_disjoint; eauto.
-    { eapply INCL1. s. left. eauto. }
-    { eapply INCL2. rewrite - List.map_map. eapply in_map. eauto. }
+    destruct (initial_st ms2 !! _) eqn: Heq2; [|inv Hin].
+    { apply (ms2.(well_scoped_init)); rewrite elem_of_list_fmap; eexists (scp, _); split; ss.
+      rewrite elem_of_elements elem_of_dom //.
+    }
   Qed.
 
-  Definition to_lmod (ms : t) (r : Σ) : LMod.t :=
+  (* Definition to_lmod (ms : t) (r : Σ) : LMod.t :=
   {|
     LMod.fnsems := List.map (map_snd (ModTr.trans_ktree ∘ SB.sandbox_body)) ms.(fnsems);
     LMod.initial_st := Any.pair (ModTr.alist_encode ms.(initial_st)) r↑;
-  |}.
+  |}. *)
 
-  Definition addL (ms : list t) : t :=
-    foldr add empty ms.
+  (* Definition addL (ms : list t) : t :=
+    foldr add empty ms. *)
 
   Definition modc : Type := (t * iProp Σ)%type.
   Global Instance modc_equiv : Equiv modc := λ m1 m2, m1.1 = m2.1 ∧ m1.2 ≡ m2.2.
@@ -128,7 +117,7 @@ End Mod. End Mod.
 Infix "★" := Mod.add (at level 60, right associativity).
 Notation "⌽" := Mod.empty (at level 9).
 
-Section ModFacts.
+(* Section ModFacts.
   Context `{Σ : GRA}.
 
   Lemma mod_extensionality (ms1 ms2 : Mod.t)
@@ -195,4 +184,4 @@ Section ModFacts.
   Proof.
     destruct m1, m2. unfold Mod.exports. s. rewrite List.map_app. et.
   Qed.
-End ModFacts.
+End ModFacts. *)
