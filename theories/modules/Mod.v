@@ -92,6 +92,22 @@ Module Mod. Section Mod.
     LMod.initial_st := Any.pair (ModTr.state_encode (initial_st ms)) r↑;
   |}.
 
+  Lemma mod_dom_subseteq (ms1 ms2 ms3 : t) :
+    dom (fnsems ms1) ⊆ dom (fnsems ms2) →
+    dom (fnsems (Mod.add ms1 ms3)) ⊆ dom (fnsems (Mod.add ms2 ms3)).
+  Proof.
+    intros Hsub x; rewrite ?elem_of_dom ?lookup_union_with.
+    destruct (_ ms1 !! x) eqn: Heq1.
+    { apply elem_of_dom_2, Hsub, elem_of_dom in Heq1.
+      destruct (_ ms2 !! x) eqn : Heq2; [|inv Heq1].
+      destruct (_ ms3 !! x); ss.
+    }
+    { apply not_elem_of_dom_2 in Heq1.
+      destruct (_ ms3 !! x) eqn : Heq3; [|intros ?%is_Some_None]; ss.
+      destruct (_ ms2 !! x) eqn : Heq2; ss.
+    }
+  Qed.
+
   (* Definition addL (ms : list t) : t :=
     foldr add empty ms. *)
 

@@ -10,69 +10,69 @@ Global Arguments Esnoc {_} _%_proof_scope _%_string _%_I.
 (*** isim ***)
 Notation "E1 '------------------------------------------------------------------□' E2 '------------------------------------------------------------------∗' st_src st_tgt '-------------------------------isim-------------------------------' itr_src itr_tgt"
 :=
-  (environments.envs_entails (Envs E1 E2 _) (isim _ _ _ _ _ _ _ _ _ _ (st_src, itr_src) (st_tgt, itr_tgt)))
+  (environments.envs_entails (Envs E1 E2 _) (isim _ _ _ _ _ _ _ _ _ (st_src, itr_src) (st_tgt, itr_tgt)))
     (at level 50, only printing,
      format "E1 '------------------------------------------------------------------□' '//' E2 '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '-------------------------------isim-------------------------------' '//' itr_src '//' '//' '//' itr_tgt '//' ").
 
 Notation "E1 '------------------------------------------------------------------□' st_src st_tgt '-------------------------------isim-------------------------------' itr_src itr_tgt"
 :=
-  (environments.envs_entails (Envs E1 Enil _) (isim _ _ _ _ _ _ _ _ _ _ (st_src, itr_src) (st_tgt, itr_tgt)))
+  (environments.envs_entails (Envs E1 Enil _) (isim _ _ _ _ _ _ _ _ _ (st_src, itr_src) (st_tgt, itr_tgt)))
     (at level 50, only printing,
      format "E1 '------------------------------------------------------------------□' '//' st_src '//' st_tgt '//' '-------------------------------isim-------------------------------' '//' itr_src '//' '//' '//' itr_tgt '//' ").
 
 Notation "E2 '------------------------------------------------------------------∗' st_src st_tgt '-------------------------------isim-------------------------------' itr_src itr_tgt"
 :=
-  (environments.envs_entails (Envs Enil E2 _) (isim _ _ _ _ _ _ _ _ _ _ (st_src, itr_src) (st_tgt, itr_tgt)))
+  (environments.envs_entails (Envs Enil E2 _) (isim _ _ _ _ _ _ _ _ _ (st_src, itr_src) (st_tgt, itr_tgt)))
     (at level 50, only printing,
      format "E2 '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '-------------------------------isim-------------------------------' '//' itr_src '//' '//' '//' itr_tgt '//' ").
 
 Notation "'------------------------------------------------------------------∗' st_src st_tgt '-------------------------------isim-------------------------------' itr_src itr_tgt"
 :=
-  (environments.envs_entails (Envs Enil Enil _) (isim _ _ _ _ _ _ _ _ _ _ (st_src, itr_src) (st_tgt, itr_tgt)))
+  (environments.envs_entails (Envs Enil Enil _) (isim _ _ _ _ _ _ _ _ _ (st_src, itr_src) (st_tgt, itr_tgt)))
     (at level 50, only printing,
      format "'------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '-------------------------------isim-------------------------------' '//' itr_src '//' '//' '//' itr_tgt '//' ").
 
 (* additional *) 
 Notation "E1 '------------------------------------------------------------------□' E2 '------------------------------------------------------------------∗' st_src st_tgt '-------------------------------isim-------------------------------' P '∗' 'ISIM'"
 :=
-  (environments.envs_entails (Envs E1 E2 _) (bi_sep P (isim _ _ _ _ _ _ _ _ _ _ (st_src, _) (st_tgt, _))))
+  (environments.envs_entails (Envs E1 E2 _) (bi_sep P (isim _ _ _ _ _ _ _ _ _ (st_src, _) (st_tgt, _))))
     (at level 50, only printing,
      format "E1 '------------------------------------------------------------------□' '//' E2 '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '-------------------------------isim-------------------------------' '//' P  '∗'  'ISIM' ").
 Notation "E1 '------------------------------------------------------------------□' E2 '------------------------------------------------------------------∗' st_src st_tgt '-------------------------------isim-------------------------------' P '-∗' 'ISIM'"
 :=
-  (environments.envs_entails (Envs E1 E2 _) (bi_wand P (isim _ _ _ _ _ _ _ _ _ _ (st_src, _) (st_tgt, _))))
+  (environments.envs_entails (Envs E1 E2 _) (bi_wand P (isim _ _ _ _ _ _ _ _ _ (st_src, _) (st_tgt, _))))
     (at level 50, only printing,
      format "E1 '------------------------------------------------------------------□' '//' E2 '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '-------------------------------isim-------------------------------' '//' P  '-∗'  'ISIM' ").
 
 Notation "E2 '------------------------------------------------------------------∗' st_src st_tgt '-------------------------------isim-------------------------------' P '∗' 'ISIM'"
 :=
-  (environments.envs_entails (Envs Enil E2 _) (bi_sep P (isim _ _ _ _ _ _ _ _ _ _ (st_src, _) (st_tgt, _))))
+  (environments.envs_entails (Envs Enil E2 _) (bi_sep P (isim _ _ _ _ _ _ _ _ _ (st_src, _) (st_tgt, _))))
     (at level 50, only printing,
      format "E2 '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '-------------------------------isim-------------------------------' '//' P  '∗'  'ISIM' ").
 Notation "E2 '------------------------------------------------------------------∗' st_src st_tgt '-------------------------------isim-------------------------------' P '-∗' 'ISIM'"
 :=
-  (environments.envs_entails (Envs Enil E2 _) (bi_wand P (isim _ _ _ _ _ _ _ _ _ _ (st_src, _) (st_tgt, _))))
+  (environments.envs_entails (Envs Enil E2 _) (bi_wand P (isim _ _ _ _ _ _ _ _ _ (st_src, _) (st_tgt, _))))
     (at level 50, only printing,
      format "E2 '------------------------------------------------------------------∗' '//' st_src '//' st_tgt '//' '-------------------------------isim-------------------------------' '//' P  '-∗'  'ISIM' ").
 
 Notation "E1 '------------------------------------------------------------------□' st_src st_tgt '-------------------------------isim-------------------------------' P '∗' 'ISIM'"
 :=
-  (environments.envs_entails (Envs E1 Enil _) (bi_sep P (isim _ _ _ _ _ _ _ _ _ _ (st_src, _) (st_tgt, _))))
+  (environments.envs_entails (Envs E1 Enil _) (bi_sep P (isim _ _ _ _ _ _ _ _ _ (st_src, _) (st_tgt, _))))
     (at level 50, only printing,
      format "E1 '------------------------------------------------------------------□' '//' st_src '//' st_tgt '//' '-------------------------------isim-------------------------------' '//' P  '∗'  'ISIM' ").
 Notation "E1 '------------------------------------------------------------------□' st_src st_tgt '-------------------------------isim-------------------------------' P '-∗' 'ISIM'"
 :=
-  (environments.envs_entails (Envs E1 Enil _) (bi_wand P (isim _ _ _ _ _ _ _ _ _ _ (st_src, _) (st_tgt, _))))
+  (environments.envs_entails (Envs E1 Enil _) (bi_wand P (isim _ _ _ _ _ _ _ _ _ (st_src, _) (st_tgt, _))))
     (at level 50, only printing,
      format "E1 '------------------------------------------------------------------□' '//' st_src '//' st_tgt '//' '-------------------------------isim-------------------------------' '//' P  '-∗'  'ISIM' ").
 
 Notation "'------------------------------------------------------------------□' st_src st_tgt '-------------------------------isim-------------------------------' P '∗' 'ISIM'"
 :=
-  (environments.envs_entails (Envs Enil Enil _) (bi_sep P (isim _ _ _ _ _ _ _ _ _ _ (st_src, _) (st_tgt, _))))
+  (environments.envs_entails (Envs Enil Enil _) (bi_sep P (isim _ _ _ _ _ _ _ _ _ (st_src, _) (st_tgt, _))))
     (at level 50, only printing,
      format "'------------------------------------------------------------------□' '//' st_src '//' st_tgt '//' '-------------------------------isim-------------------------------' '//' P  '∗'  'ISIM' ").
 Notation "'------------------------------------------------------------------□' st_src st_tgt '-------------------------------isim-------------------------------' P '-∗' 'ISIM'"
 :=
-  (environments.envs_entails (Envs Enil Enil _) (bi_wand P (isim _ _ _ _ _ _ _ _ _ _ (st_src, _) (st_tgt, _))))
+  (environments.envs_entails (Envs Enil Enil _) (bi_wand P (isim _ _ _ _ _ _ _ _ _ (st_src, _) (st_tgt, _))))
     (at level 50, only printing,
      format "'------------------------------------------------------------------□' '//' st_src '//' st_tgt '//' '-------------------------------isim-------------------------------' '//' P  '-∗'  'ISIM' ").

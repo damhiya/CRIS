@@ -1,33 +1,25 @@
 Require Import Common.
-Require Import LMod.
-Require Import GSim.
-
-Set Implicit Arguments.
+Require Export LMod.
 
 Local Open Scope nat_scope.
 
-(* Local simulation or Low-level simulation *)
+(** lsim is a local simulation relation between modules, with primitive rules for
+  events like call, yield, etc. lsim is further abstracted to msim, and so on. You
+  would not like to delve into the definitions unless for changing the metatheory *)
 (* wsim → isim → msim → lsim → gsim *)
 Section LSIM.
-  Variable fl_src fl_tgt : alist (option string) (Any.t → itree lmodE Any.t).
+  Context (fl_src fl_tgt : gmap (option string) (Any.t → itree lmodE Any.t)).
+  Context {world : Type} (winit : world) (wf : list world → Any.t * Any.t → Prop).
+  Context (wle : relation world) (le_refl : Reflexive wle) (le_trans : Transitive wle).
+  Context (my_tid : nat).
 
-  Variable world : Type.
-  Variable winit : world.
-  Variable wf : list world → Any.t * Any.t → Prop.
-  Variable wle: relation world.
-  Variable my_tid : nat.
-
-  Hypothesis le_refl : Reflexive wle.
-  Hypothesis le_trans : Transitive wle.
-
-  Definition le_mine (w w' : list world) :=
+  Definition le_mine (w w' : list world) : Prop :=
     List.length w <= List.length w' ∧
-    ∀ wi (IN : base.lookup my_tid w = Some wi),
-    ∃ wi', base.lookup my_tid w' = Some wi' ∧ wle wi wi'.
+    ∀ wi, w !! my_tid = Some wi → ∃ wi', w' !! my_tid = Some wi' ∧ wle wi wi'.
 
   Definition le_others (w w' : list world) : Prop :=
     List.length w = List.length w' ∧
-    ∀ i (OTH : i <> my_tid), base.lookup i w = base.lookup i w'.
+    ∀ i, i ≠ my_tid → w !! i = w' !! i.
 
   Variant lsim_def
     (lsim : ∀ R_src R_tgt (RR : list world → Any.t → Any.t → R_src → R_tgt → Prop),
@@ -56,8 +48,7 @@ Section LSIM.
   | lsim_io
       ps pt w st_src st_tgt
       I O fn (varg : I) k_src k_tgt
-      (K : ∀ (vret : O),
-          self true true w (st_src, k_src vret) (st_tgt, k_tgt vret)) :
+      (K : ∀ (vret : O), self true true w (st_src, k_src vret) (st_tgt, k_tgt vret)) :
     lsim_def lsim RR self ps pt w
       (st_src, trigger (IO fn varg) >>= k_src)
       (st_tgt, trigger (IO fn varg) >>= k_tgt)
@@ -65,7 +56,7 @@ Section LSIM.
   | lsim_inline_src
       ps pt w st_src st_tgt
       f fn varg k_src i_tgt
-      (FUN : alist_find (Some fn) fl_src = Some f)
+      (FUN : fl_src !! (Some fn) = Some f)
       (K : self true pt w (st_src, x <- f varg;; tau;; k_src x) (st_tgt, i_tgt)) :
     lsim_def lsim RR self ps pt w
       (st_src, trigger (Call fn varg) >>= k_src)
@@ -74,7 +65,7 @@ Section LSIM.
   | lsim_inline_tgt
       ps pt w st_src st_tgt
       f fn varg i_src k_tgt
-      (FUN : alist_find (Some fn) fl_tgt = Some f)
+      (FUN : fl_tgt !! (Some fn) = Some f)
       (K : self ps true w (st_src, i_src) (st_tgt, x <- f varg;; tau;; k_tgt x)) :
     lsim_def lsim RR self ps pt w
       (st_src, i_src)
@@ -164,7 +155,7 @@ Section LSIM.
   | lsim_call_none
       ps pt w st_src st_tgt
       fn varg k_src i_tgt
-      (FUN: alist_find (Some fn) fl_src = None) :
+      (FUN: fl_src !! (Some fn) = None) :
     lsim_def lsim RR self ps pt w
       (st_src, trigger (Call fn varg) >>= k_src)
       (st_tgt, i_tgt)
@@ -172,7 +163,7 @@ Section LSIM.
   | lsim_spawn_none
       ps pt w st_src st_tgt
       fn varg k_src i_tgt
-      (FUN: alist_find (Some fn) fl_src = None) :
+      (FUN: fl_src !! (Some fn) = None) :
     lsim_def lsim RR self ps pt w
       (st_src, trigger (Spawn fn varg) >>= k_src)
       (st_tgt, i_tgt)
@@ -182,8 +173,7 @@ Section LSIM.
       i_src i_tgt
       (WLE : le_others w w0)
       (SIM : lsim _ _ RR false false w0 (st_src, i_src) (st_tgt, i_tgt)) :
-    lsim_def lsim RR self true true w (st_src, i_src) (st_tgt, i_tgt)
-  .
+    lsim_def lsim RR self true true w (st_src, i_src) (st_tgt, i_tgt).
 
   Inductive _lsim lsim {R_src} {R_tgt} RR ps pt w src tgt : Prop :=
   | _lsim_intro (SAT : @lsim_def lsim R_src R_tgt RR (_lsim lsim RR) ps pt w src tgt).
@@ -198,9 +188,7 @@ Section LSIM.
       (LESIM : lsim <8= lsim')
       (LE : P <5= P') :
     @lsim_def lsim R_src R_tgt RR P <5= lsim_def lsim' RR P'.
-  Proof using.
-    i. destruct PR; eauto using lsim_def.
-  Defined.
+  Proof using. i. destruct PR; eauto using lsim_def. Defined.
 
   Lemma lsim_tarski lsim R_src R_tgt RR P
       (SIM : @lsim_def lsim R_src R_tgt RR P <5= P) :
@@ -229,8 +217,8 @@ Section LSIM.
 
   Lemma le_mine_trans : Transitive le_mine.
   Proof using le_trans.
-    ii. destruct H, H0. split; try nia.
-    i. eapply H1 in IN. des. eapply H2 in IN. des. eauto.
+    intros x y z Hxy Hyz; destruct Hxy as [Hxy1 Hxy2], Hyz as [Hyz1 Hyz2]; split; try nia.
+    intros wi Hx; eapply Hxy2 in Hx as [wi' [Hy ?]]; eapply Hyz2 in Hy; des; eauto.
   Qed.
 
   Lemma le_others_refl : Reflexive le_others.
@@ -243,7 +231,7 @@ Section LSIM.
     - etrans; try apply H2; eauto.
   Qed.
 
-  Lemma le_others_inc w1 w2 x:
+  Lemma le_others_inc w1 w2 x :
     le_others w1 w2 → le_others (w1++[x]) (w2++[x]).
   Proof using.
     i. rdes H. split.
@@ -465,8 +453,7 @@ Section LSIM.
       (SIM : r R_src R_tgt RR ps pt w (st_src, i_src) (st_tgt, i_tgt))
       (SIMK : ∀ w0 st_src0 st_tgt0 vret_src vret_tgt (SIM : RR w0 st_src0 st_tgt0 vret_src vret_tgt),
         s _ _ SS false false w0 (st_src0, k_src vret_src) (st_tgt0, k_tgt vret_tgt)) :
-    lbindR r s SS ps pt w (st_src, ITree.bind i_src k_src) (st_tgt, ITree.bind i_tgt k_tgt).
-
+    lbindR r s _ _ SS ps pt w (st_src, ITree.bind i_src k_src) (st_tgt, ITree.bind i_tgt k_tgt).
   Hint Constructors lbindR : core.
 
   Lemma lbindR_mon r1 r2 s1 s2 (LEr : r1 <8= r2) (LEs : s1 <8= s2) :
@@ -510,7 +497,7 @@ End LSIM.
 Hint Resolve lsim_mon : paco.
 Hint Resolve cpn8_wcompat : paco.
 
-Module LSim. Section Lsim.
+Section LSim.
   Variable (ms_src ms_tgt : LMod.t).
 
   Let fl_src := ms_src.(LMod.fnsems).
@@ -518,7 +505,7 @@ Module LSim. Section Lsim.
   Let st_src := ms_src.(LMod.initial_st).
   Let st_tgt := ms_tgt.(LMod.initial_st).
 
-  Inductive t : Type := mk {
+  Inductive lsim_mod : Type := mk {
     world : Type;
     winit : world;
     wf : list world → Any.t * Any.t → Prop;
@@ -527,23 +514,24 @@ Module LSim. Section Lsim.
     wle_trans : Transitive wle;
     wf_winit : ∀ w st_src st_tgt (WF : wf w (st_src,st_tgt)), wf (w ++ [winit]) (st_src, st_tgt);
     sim_initial :
-      ∀ it_src (FIND: alist_find None fl_src = Some it_src),
-        ∃ it_tgt, alist_find None fl_tgt = Some it_tgt ∧
-      ∀ arg, ∃ w0 w,
-      lsim fl_src fl_tgt winit wf wle 0 top2 [w0] false false [w] (st_src, it_src arg) (st_tgt, it_tgt arg);
+      ∀ it_src, fl_src !! None = Some it_src →
+        (∃ it_tgt, fl_tgt !! None = Some it_tgt ∧
+        ∀ arg, ∃ w0 w,
+          lsim fl_src fl_tgt winit wf wle 0 top2 [w0] false false [w]
+            (st_src, it_src arg) (st_tgt, it_tgt arg));
     sim_fnsems:
-      ∀ fn fs (FIND : alist_find (Some fn) fl_src = Some fs),
-        ∃ ft, alist_find (Some fn) fl_tgt = Some ft ∧
-        ∀ my_tid, sim_fsem fl_src fl_tgt winit wf wle my_tid fs ft;
+      ∀ fn fs, fl_src !! Some fn = Some fs →
+        ∃ ft, fl_tgt !! (Some fn) = Some ft ∧
+          ∀ my_tid, sim_fsem fl_src fl_tgt winit wf wle my_tid fs ft;
   }.
 
-  Lemma wf_sim_miss (SIM : t) (WF : LMod.wf ms_tgt) :
-    ∀ fn (MISS : alist_find fn fl_tgt = None), alist_find fn fl_src = None.
+  Lemma wf_sim_miss :
+    lsim_mod →
+    ∀ fn, fl_tgt !! fn = None → fl_src !! fn = None.
   Proof using.
-    i. destruct (alist_find fn fl_src) eqn: EQ; eauto.
+    intros Hsim fn. destruct (fl_src !! fn) eqn: EQ; eauto.
     destruct fn.
-    - apply SIM in EQ. des. rewrite MISS in EQ. ss.
-    - destruct SIM. exploit sim_initial0; et. i; des.
-      rewrite x0 in MISS. ss.
+    - apply Hsim in EQ as [ft [Hft Hftsim]]; rewrite Hft; ss.
+    - exploit (sim_initial Hsim); et; i; des; clarify.
   Qed.
-End Lsim. End LSim.
+End LSim.

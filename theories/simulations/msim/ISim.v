@@ -1,19 +1,20 @@
 Require Import Common.
-From iris.proofmode Require Import proofmode.
 Require Import Mod LMod FSpec.
-Require Import MSim TacticsCommon.
-Require Export MSimCommon.
+Require Import MSim MSimCommon TacticsCommon.
+From iris.proofmode Require Import proofmode.
 
-Set Implicit Arguments.
+(* Set Implicit Arguments. *)
 
 Section SIM.
-  Context `{Σ : GRA}.
-  Variable contextual: contextuality.
-  Variable fl_src fl_tgt : alist (option string) (Any.t → itree crisE Any.t).
-  Variable Ist : ist_type Σ.
+  Context {Σ : GRA}.
+  Context (ctx : contextuality).
+  Context (fl_src fl_tgt : gmap (option string) (option (Any.t → itree crisE Any.t))).
+  Context (Ist : ist_type Σ).
 
-  Let _msim := _msim contextual fl_src fl_tgt Ist.
-  Let rel := ∀ Rs Rt, (retr_type Σ Rs Rt) → bool → bool → alist key Any.t * itree crisE Rs → alist key Any.t * itree crisE Rt → iProp Σ.
+  Let _msim := _msim ctx fl_src fl_tgt Ist.
+  Let rel : Type := ∀ Rs Rt,
+    retr_type Σ Rs Rt → bool → bool →
+    gmap key (option Any.t) * itree crisE Rs → gmap key (option Any.t) * itree crisE Rt → iProp Σ.
 
   Variant iunlift (r : rel) Rs Rt RR ps pt sti_src sti_tgt res : Prop :=
   | unlift_intro (WF : ✓ res) (REL : Own res ⊢ |==> r Rs Rt RR ps pt sti_src sti_tgt).
@@ -21,7 +22,7 @@ Section SIM.
   Definition ibot : rel := λ _ _ _ _ _ _ _, False%I.
 
   Global Program Definition isim
-      r g {Rs Rt} (RR : retr_type Σ Rs Rt) ps pt sti_src sti_tgt : iProp Σ :=
+      (r g : rel) {Rs Rt} (RR : retr_type Σ Rs Rt) ps pt sti_src sti_tgt : iProp Σ :=
     UPred Σ (gpaco8 (_msim) (cpn8 _msim) (iunlift r) (iunlift g) _ _ RR ps pt sti_src sti_tgt) _.
   Next Obligation. guclo msim_extendC_spec. econs; et. Defined.
 
@@ -35,11 +36,10 @@ Section SIM.
   Qed.
 
   Lemma isim_init r g r' g' ps pt {Rs Rt} RR st_src st_tgt i_src i_tgt iP fmr
-    (ENTAIL : iP ⊢ (@isim r g Rs Rt RR ps pt (st_src, i_src) (st_tgt, i_tgt)))
-    (CUR : Own fmr ⊢ iP)
-    (LER: iunlift r <8= r')
-    (LEG: iunlift g <8= g')
-    :
+      (ENTAIL : iP ⊢ (@isim r g Rs Rt RR ps pt (st_src, i_src) (st_tgt, i_tgt)))
+      (CUR : Own fmr ⊢ iP)
+      (LER: iunlift r <8= r')
+      (LEG: iunlift g <8= g') :
     gpaco8 _msim (cpn8 _msim) r' g' Rs Rt RR ps pt (st_src, i_src) (st_tgt, i_tgt) fmr.
   Proof using.
     guclo msim_wfC_spec; econs; ii; esplits; eauto.
@@ -50,8 +50,8 @@ Section SIM.
   Qed.
 
   Lemma isim_final r g ps pt {Rs Rt} RR st_src st_tgt i_src i_tgt fmr
-    (SIM : gpaco8 _msim (cpn8 _msim) (iunlift r) (iunlift g) Rs Rt RR ps pt (st_src, i_src) (st_tgt, i_tgt) fmr)
-    :
+      (SIM : gpaco8 _msim (cpn8 _msim) (iunlift r) (iunlift g) Rs Rt RR ps pt
+        (st_src, i_src) (st_tgt, i_tgt) fmr) :
     Own fmr ⊢ (@isim r g Rs Rt RR ps pt (st_src, i_src) (st_tgt, i_tgt)).
   Proof using.
     rr. econs. i. rr in H0. rewrite /isim. rr.
@@ -93,7 +93,7 @@ Section SIM.
   Qed.
 
   Lemma isim_nodup_src r g ps pt {Rs Rt} RR st_src st_tgt i_src i_tgt :
-    (∀ (NODS : List.NoDup (List.map fst st_src)),
+    (∀ (NODS : map_Forall (const is_Some) st_src),
      @isim r g Rs Rt RR ps pt (st_src, i_src) (st_tgt, i_tgt))
     ⊢ @isim r g Rs Rt RR ps pt (st_src, i_src) (st_tgt, i_tgt).
   Proof using.
@@ -102,7 +102,7 @@ Section SIM.
   Qed.
 
   Lemma isim_nodup_tgt r g ps pt {Rs Rt} RR st_src st_tgt i_src i_tgt :
-    (∀ (NODT : List.NoDup (List.map fst st_tgt)),
+    (∀ (NODT : map_Forall (const is_Some) st_tgt),
      @isim r g Rs Rt RR ps pt (st_src, i_src) (st_tgt, i_tgt))
     ⊢ @isim r g Rs Rt RR ps pt (st_src, i_src) (st_tgt, i_tgt).
   Proof using.
@@ -313,15 +313,16 @@ Section SIM.
   Qed.
 
   Lemma isim_sput_src r g ps pt {Rs Rt} RR k v st_src st_tgt k_src i_tgt :
-    @isim r g Rs Rt RR true pt (alist_upd k v st_src, k_src tt) (st_tgt, i_tgt)
+    @isim r g Rs Rt RR true pt (<[k := Some v]> st_src, k_src tt) (st_tgt, i_tgt)
     ⊢ @isim r g Rs Rt RR ps pt (st_src, trigger (SPut k v) >>= k_src) (st_tgt, i_tgt).
   Proof using.
     split; intros x wfx SIM; guclo msimC_spec; econs; esplits; eauto; econs; eauto.
   Qed.
 
-  Lemma isim_sput_src_sandbox r g ps pt {Rs Rt} RR k v st_src st_tgt k_src i_tgt img msk scp :
+  (* TTODO : Maybe we do not need these lemmas. *)
+  (* Lemma isim_sput_src_sandbox r g ps pt {Rs Rt} RR k v st_src st_tgt k_src i_tgt img msk scp :
     In k.1 scp →
-    @isim r g Rs Rt RR true pt (alist_upd k v st_src, k_src tt) (st_tgt, i_tgt)
+    @isim r g Rs Rt RR true pt (<[k := Some v]> st_src, k_src tt) (st_tgt, i_tgt)
     ⊢ @isim r g Rs Rt RR ps pt (st_src, SB.sandbox img msk scp (trigger (SPut k v)) >>= k_src) (st_tgt, i_tgt).
   Proof using.
     i. iIntros "ISIM".
@@ -332,16 +333,16 @@ Section SIM.
       hexploit H1.
       + esplits; try eassumption. apply String.eqb_refl.
       + i. rewrite Heq in H2. ss.
-  Qed.
+  Qed. *)
   
   Lemma isim_sput_tgt r g ps pt {Rs Rt} RR k v st_src st_tgt i_src k_tgt :
-    @isim r g Rs Rt RR ps true (st_src, i_src) (alist_upd k v st_tgt, k_tgt tt)
+    @isim r g Rs Rt RR ps true (st_src, i_src) (<[k := Some v]> st_tgt, k_tgt tt)
     ⊢ @isim r g Rs Rt RR ps pt (st_src, i_src) (st_tgt, trigger (SPut k v) >>= k_tgt).
   Proof using.
     split; intros x wfx SIM; guclo msimC_spec; econs; esplits; eauto; econs; eauto.
   Qed.
 
-  Lemma isim_sput_tgt_sandbox r g ps pt {Rs Rt} RR k v st_src st_tgt i_src k_tgt img msk scp :
+  (* Lemma isim_sput_tgt_sandbox r g ps pt {Rs Rt} RR k v st_src st_tgt i_src k_tgt img msk scp :
     In k.1 scp →
     @isim r g Rs Rt RR ps true (st_src, i_src) (alist_upd k v st_tgt, k_tgt tt)
     ⊢ @isim r g Rs Rt RR ps pt (st_src, i_src) (st_tgt, SB.sandbox img msk scp (trigger (SPut k v)) >>= k_tgt).
@@ -354,16 +355,18 @@ Section SIM.
       hexploit H1.
       + esplits; try eassumption. apply String.eqb_refl.
       + i. rewrite Heq in H2. ss.
-  Qed.
-  
-  Lemma isim_sget_src r g ps pt {Rs Rt} RR k st_src st_tgt k_src i_tgt :
-    @isim r g Rs Rt RR true pt (st_src, k_src (or_else (alist_find k st_src) tt↑)) (st_tgt, i_tgt)
+  Qed. *)
+  (* About finite.finite_countable.
+  Print Instances finite.Finite.
+  About key. *)
+  Lemma isim_sget_src r g ps pt {Rs Rt : Type} RR k st_src st_tgt k_src i_tgt :
+    @isim r g Rs Rt RR true pt (st_src, k_src (default tt↑ (mjoin (st_src !! k)))) (st_tgt, i_tgt)
     ⊢ @isim r g Rs Rt RR ps pt (st_src, trigger (SGet k) >>= k_src) (st_tgt, i_tgt).
   Proof using.
     split; intros x wfx SIM; guclo msimC_spec; econs; esplits; eauto; econs; eauto.
   Qed.
 
-  Lemma isim_sget_src_sandbox r g ps pt {Rs Rt} RR k st_src st_tgt k_src i_tgt img msk scp :
+  (* Lemma isim_sget_src_sandbox r g ps pt {Rs Rt} RR k st_src st_tgt k_src i_tgt img msk scp :
     In k.1 scp →
     @isim r g Rs Rt RR true pt (st_src, k_src (or_else (alist_find k st_src) tt↑)) (st_tgt, i_tgt)
     ⊢ @isim r g Rs Rt RR ps pt (st_src, SB.sandbox img msk scp (trigger (SGet k)) >>= k_src) (st_tgt, i_tgt).
@@ -376,16 +379,16 @@ Section SIM.
       hexploit H1.
       + esplits; try eassumption. apply String.eqb_refl.
       + i. rewrite Heq in H2. ss.
-  Qed.
+  Qed. *)
   
   Lemma isim_sget_tgt r g ps pt {Rs Rt} RR k st_src st_tgt i_src k_tgt :
-    @isim r g Rs Rt RR ps true (st_src, i_src) (st_tgt, k_tgt (or_else (alist_find k st_tgt) tt↑))
+    @isim r g Rs Rt RR ps true (st_src, i_src) (st_tgt, k_tgt (default tt↑ (mjoin (st_tgt !! k))))
     ⊢ @isim r g Rs Rt RR ps pt (st_src, i_src) (st_tgt, trigger (SGet k) >>= k_tgt).
   Proof using.
     split; intros x wfx SIM; guclo msimC_spec; econs; esplits; eauto; econs; eauto.
   Qed.
 
-  Lemma isim_sget_tgt_sandbox r g ps pt {Rs Rt} RR k st_src st_tgt i_src k_tgt img msk scp :
+  (* Lemma isim_sget_tgt_sandbox r g ps pt {Rs Rt} RR k st_src st_tgt i_src k_tgt img msk scp :
     In k.1 scp →
     @isim r g Rs Rt RR ps true (st_src, i_src) (st_tgt, k_tgt (or_else (alist_find k st_tgt) tt↑))
     ⊢ @isim r g Rs Rt RR ps pt (st_src, i_src) (st_tgt, SB.sandbox img msk scp (trigger (SGet k)) >>= k_tgt).
@@ -398,7 +401,7 @@ Section SIM.
       hexploit H1.
       + esplits; try eassumption. apply String.eqb_refl.
       + i. rewrite Heq in H2. ss.
-  Qed.
+  Qed. *)
   
   Lemma isim_assume_src r g ps pt {Rs Rt} RR iP st_src st_tgt k_src i_tgt :
     (iP -∗ (@isim r g Rs Rt RR true pt (st_src, k_src tt) (st_tgt, i_tgt)))
@@ -553,7 +556,7 @@ Section SIM.
     iApply "B"; eauto.
   Qed.
 
-  Lemma isim_call_sandbox r g ps pt {Rs Rt} RR st_src st_tgt k_src k_tgt fn varg (msk_src msk_tgt:_→bool) scp_src scp_tgt img_src img_tgt:
+  (* Lemma isim_call_sandbox r g ps pt {Rs Rt} RR st_src st_tgt k_src k_tgt fn varg (msk_src msk_tgt:_→bool) scp_src scp_tgt img_src img_tgt:
     (msk_src fn → msk_tgt fn) →
     Ist st_src st_tgt ∗
     (∀ st_src0 st_tgt0 vret,
@@ -570,17 +573,17 @@ Section SIM.
     des_ifs; ss; cycle 1.
     { specialize (H eq_refl). inv H. }
     iApply isim_call. iFrame.
-  Qed.
+  Qed. *)
 
   Lemma isim_inline_src r g ps pt {Rs Rt} RR st_src st_tgt k_src i_tgt f fn varg
-      (FIND : alist_find (Some fn) fl_src = Some f) :
+      (FIND : fl_src !! (Some fn) = Some (Some f)) :
     @isim r g Rs Rt RR true pt (st_src, f varg >>= (λ ret, tau;; Ret ret) >>= k_src) (st_tgt, i_tgt)
     ⊢ @isim r g Rs Rt RR ps pt (st_src, trigger (Call fn varg) >>= k_src) (st_tgt, i_tgt).
   Proof using.
     split; intros x wfx SIM; guclo msimC_spec; econs; esplits; eauto; econs; eauto.
   Qed.
 
-  Lemma isim_inline_src_sandbox r g ps pt {Rs Rt} RR st_src st_tgt k_src i_tgt f fn varg (msk:_→bool) scp img
+  (* Lemma isim_inline_src_sandbox r g ps pt {Rs Rt} RR st_src st_tgt k_src i_tgt f fn varg (msk:_→bool) scp img
     (FIND : alist_find (Some fn) fl_src = Some f) :
     @isim r g Rs Rt RR true pt (st_src, f varg >>= (λ ret, tau;; Ret ret) >>= k_src) (st_tgt, i_tgt)
     ⊢ @isim r g Rs Rt RR ps pt (st_src, SB.sandbox img msk scp (trigger (Call fn varg)) >>= k_src) (st_tgt, i_tgt).
@@ -590,17 +593,17 @@ Section SIM.
     des_ifs.
     - iApply isim_inline_src; eauto.
     - iApply isim_triggerUB_src.
-  Qed.
+  Qed. *)
 
   Lemma isim_inline_tgt r g ps pt {Rs Rt} RR st_src st_tgt i_src k_tgt f fn varg
-      (FIND : alist_find (Some fn) fl_tgt = Some f) :
+      (FIND : fl_tgt !! (Some fn) = Some (Some f)) :
     @isim r g Rs Rt RR ps true (st_src, i_src) (st_tgt, f varg >>= (λ ret, tau;; Ret ret) >>= k_tgt)
     ⊢ @isim r g Rs Rt RR ps pt (st_src, i_src) (st_tgt, trigger (Call fn varg) >>= k_tgt).
   Proof using. 
     split; intros x wfx SIM; guclo msimC_spec; econs; esplits; eauto; econs; eauto.
   Qed.
 
-  Lemma isim_inline_tgt_sandbox r g ps pt {Rs Rt} RR st_src st_tgt i_src k_tgt f fn varg (msk:_→bool) scp img
+  (* Lemma isim_inline_tgt_sandbox r g ps pt {Rs Rt} RR st_src st_tgt i_src k_tgt f fn varg (msk:_→bool) scp img
     (FIND : alist_find (Some fn) fl_tgt = Some f) :
     (msk fn) →
     @isim r g Rs Rt RR ps true (st_src, i_src) (st_tgt, f varg >>= (λ ret, tau;; Ret ret) >>= k_tgt)
@@ -610,7 +613,7 @@ Section SIM.
     rewrite SBRed.call.
     des_ifs; ss.
     iApply isim_inline_tgt; eauto.
-  Qed.
+  Qed. *)
   
   Lemma isim_spawn r g ps pt {Rs Rt} RR st_src st_tgt k_src k_tgt fn arg :
     (∀ tid, @isim r g Rs Rt RR true true (st_src, k_src tid) (st_tgt, k_tgt tid)) ⊢
@@ -622,7 +625,7 @@ Section SIM.
     i. eapply isim_init; eauto; iIntros "X"; iPoseProof (SIM with "X") as "X"; done.
   Qed.
 
-  Lemma isim_spawn_sandbox
+  (* Lemma isim_spawn_sandbox
     r g ps pt {Rs Rt} RR st_src st_tgt k_src k_tgt fn arg
     (msk_src msk_tgt : _ → bool) scp_src scp_tgt img_src img_tgt :
     (msk_src fn → msk_tgt fn) →
@@ -638,7 +641,7 @@ Section SIM.
     des_ifs; ss; cycle 1.
     { specialize (H eq_refl). inv H. }
     iApply isim_spawn. iFrame.
-  Qed.
+  Qed. *)
   
   Lemma isim_yield r g ps pt {Rs Rt} RR st_src st_tgt k_src k_tgt tid :
     Ist st_src st_tgt ∗
@@ -678,17 +681,17 @@ Section SIM.
 
   Lemma isim_call_none
       r g ps pt {Rs Rt} RR st_src st_tgt k_src i_tgt fn varg
-      (CLOSED: contextual = closed)
-      (FIND: alist_find (Some fn) fl_src = None) :
+      (CLOSED: ctx = closed)
+      (FIND: mjoin (fl_src !! (Some fn)) = None) :
     ⊢ (@isim r g Rs Rt RR ps pt (st_src, trigger (Call fn varg) >>= k_src) (st_tgt, i_tgt)).
   Proof using.
     split; intros x wfx SIM; guclo msimC_spec. econs; esplits; eauto.
     eapply msim_call_none; et.
   Qed.
 
-  Lemma isim_call_none_sandbox
+  (* Lemma isim_call_none_sandbox
       r g ps pt {Rs Rt} RR st_src st_tgt k_src i_tgt fn varg img msk scp
-      (CLOSED: contextual = closed)
+      (CLOSED: ctx = closed)
       (FIND: alist_find (Some fn) fl_src = None) :
     ⊢ (@isim r g Rs Rt RR ps pt
       (st_src, SB.sandbox img msk scp (trigger (Call fn varg)) >>= k_src) (st_tgt, i_tgt)).
@@ -697,12 +700,12 @@ Section SIM.
     des_ifs; ss.
     - iApply isim_call_none; eauto.
     - unfold triggerUB. grind. iApply isim_take_src. iIntros (?). ss.
-  Qed.
+  Qed. *)
   
   Lemma isim_spawn_none
     r g ps pt {Rs Rt} RR st_src st_tgt k_src i_tgt fn varg
-    (CLOSED: contextual = closed)
-    (FIND: alist_find (Some fn) fl_src = None)
+    (CLOSED: ctx = closed)
+    (FIND: mjoin (fl_src !! (Some fn)) = None)
   :
   ⊢ (@isim r g Rs Rt RR ps pt (st_src, trigger (Spawn fn varg) >>= k_src) (st_tgt, i_tgt)).
   Proof using.
@@ -710,9 +713,9 @@ Section SIM.
     eapply msim_spawn_none; et.
   Qed.
 
-  Lemma isim_spawn_none_sandbox
+  (* Lemma isim_spawn_none_sandbox
     r g ps pt {Rs Rt} RR st_src st_tgt k_src i_tgt fn varg img msk scp
-    (CLOSED: contextual = closed)
+    (CLOSED: ctx = closed)
     (FIND: alist_find (Some fn) fl_src = None)
     :
     ⊢ (@isim r g Rs Rt RR ps pt (st_src, SB.sandbox img msk scp (trigger (Spawn fn varg)) >>= k_src) (st_tgt, i_tgt)).
@@ -721,36 +724,33 @@ Section SIM.
     des_ifs; ss.
     - iApply isim_spawn_none; eauto.
     - unfold triggerUB. grind. iApply isim_take_src. iIntros (?). ss.
-  Qed.
+  Qed. *)
   
-  Lemma isim_call_mask_sandbox
+  (* Lemma isim_call_mask_sandbox
     r g ps pt {Rs Rt} RR st_src st_tgt k_src i_tgt fn varg img msk scp
     (FIND: msk fn = false)
   :
   ⊢ (@isim r g Rs Rt RR ps pt (st_src, SB.sandbox img msk scp (trigger (Call fn varg)) >>= k_src) (st_tgt, i_tgt)).
   Proof using.
     rewrite SBRed.call FIND. iApply isim_triggerUB_src.
-  Qed.
+  Qed. *)
 
-  Lemma isim_spawn_mask_sandbox
+  (* Lemma isim_spawn_mask_sandbox
     r g ps pt {Rs Rt} RR st_src st_tgt k_src i_tgt fn varg img msk scp
     (FIND: msk fn = false)
     :
     ⊢ (@isim r g Rs Rt RR ps pt (st_src, SB.sandbox img msk scp (trigger (Spawn fn varg)) >>= k_src) (st_tgt, i_tgt)).
   Proof using.
     rewrite SBRed.spawn FIND. iApply isim_triggerUB_src.
-  Qed.
+  Qed. *)
   
   Lemma isim_progress r g {Rs Rt} RR st_src st_tgt i_src i_tgt :
     @isim g g Rs Rt RR false false (st_src, i_src) (st_tgt, i_tgt)
     ⊢ @isim r g Rs Rt RR true true (st_src, i_src) (st_tgt, i_tgt).
-  Proof using.
-    split; intros x wfx SIM; eapply msim_progress_flag; eauto.
-  Qed.
+  Proof using. split; intros x wfx SIM; eapply msim_progress_flag; eauto. Qed.
 
   Lemma isim_base r g Rs Rt RR ps pt sti_src sti_tgt :
-    r Rs Rt RR ps pt sti_src sti_tgt
-    ⊢ isim r g RR ps pt sti_src sti_tgt.
+    r Rs Rt RR ps pt sti_src sti_tgt ⊢ isim r g RR ps pt sti_src sti_tgt.
   Proof using.
     split; intros x wfx Hr.
     gfinal; left; econs; eauto.
@@ -835,22 +835,23 @@ Section SIM.
 
 End SIM.
 
+Arguments isim {_} _ _ _ _ _ _ {_ _} _ _ _ _ _.
 Global Opaque isim.
 
 Section FancyReal.
 
   Context `{Σ: GRA}.
 
-  Context (contextual: contextuality).
-  Context (fl_s fl_t : alist (option string) (Any.t → itree crisE Any.t)).
+  Context (ctx : contextuality).
+  Context (fl_s fl_t : gmap (option string) (option (Any.t → itree crisE Any.t))).
   Context (Ist : ist_type Σ).
 
-  Local Notation isim := (isim contextual fl_s fl_t Ist).
+  Local Notation isim := (isim ctx fl_s fl_t Ist).
 
   Context (R_s R_t : Type).
   Context (RR : retr_type Σ R_s R_t).
   Context (ps pt : bool).
-  Context (st_s st_t : alist key Any.t).
+  Context (st_s st_t : gmap key (option Any.t)).
 
   (* Precise Pre & Post conditions *)
   Lemma isim_ru_src_advanced {X} (pre post : X → _) r g k_s i_t :
@@ -936,19 +937,19 @@ End FancyReal.
 Section FSEM.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I}.  
 
-  Definition isim_fsem fl_src fl_tgt Ist contextual IstS IstE : relation (Any.t -> itree crisE Any.t) :=
-  λ itr_src itr_tgt,
-    ∀ arg st_src st_tgt,
-    IstS st_src st_tgt ⊢
-      (winv (∅,∅) -∗ @isim Σ contextual fl_src fl_tgt Ist ibot ibot Any.t Any.t (ist_with_eq IstE)
-        false false (st_src, itr_src arg) (st_tgt, itr_tgt arg)).
+  Definition isim_fsem fl_src fl_tgt Ist ctx IstS IstE : relation (Any.t → itree crisE Any.t) :=
+    λ itr_src itr_tgt,
+      ∀ arg st_src st_tgt,
+        IstS st_src st_tgt ⊢
+          (winv (∅,∅) -∗ @isim Σ ctx fl_src fl_tgt Ist ibot ibot Any.t Any.t (ist_with_eq IstE)
+            false false (st_src, itr_src arg) (st_tgt, itr_tgt arg)).
 End FSEM.
 
 Module ISim. Section ISim.
   Import Mod.
   Context `{!crisG Γ Σ α β τ _S _I}.  
 
-  Variable contextual: contextuality.
+  Variable ctx: contextuality.
   Variable (ms_src ms_tgt : Mod.t).
   Variable init_cond : iProp Σ.
   Variable Ist : ist_type Σ.
@@ -959,8 +960,8 @@ Module ISim. Section ISim.
   Let fnsems_tgt := ms_tgt.(fnsems).
   Let init_src := ms_src.(initial_st).
   Let init_tgt := ms_tgt.(initial_st).
-  Let fl_src := (List.map (map_snd SB.sandbox_body) fnsems_src).
-  Let fl_tgt := (List.map (map_snd SB.sandbox_body) fnsems_tgt).
+  Let fl_src := (λ v : option _, SB.sandbox_body <$> v) <$> fnsems_src.
+  Let fl_tgt := (λ v : option _, SB.sandbox_body <$> v) <$> fnsems_tgt.
 
   Definition IstS (is_fun : bool) :=
     if is_fun
@@ -976,22 +977,23 @@ Module ISim. Section ISim.
   Definition sim_fun fno : Prop :=
     ∀ (WFS : Mod.wf ms_src)
       (WFT : Mod.wf ms_tgt)
-      (NODUPFS : List.NoDup (List.map fst fnsems_src))
-      (NODUPFT : List.NoDup (List.map fst fnsems_tgt))
-      fs (FIND : alist_find fno fnsems_src = Some fs),
-    ∃ ft, alist_find fno fnsems_tgt = Some ft /\
-      isim_fsem fl_src fl_tgt Ist contextual (IstS (is_some fno)) (IstE (is_some fno))
+      (* (NODUPFS : List.NoDup (List.map fst fnsems_src))
+      (NODUPFT : List.NoDup (List.map fst fnsems_tgt)) *)
+      fs (FIND : fnsems_src !! fno = Some (Some fs)),
+    ∃ ft, fnsems_tgt !! fno = Some (Some ft) /\
+      isim_fsem fl_src fl_tgt Ist ctx (IstS (is_some fno)) (IstE (is_some fno))
         (SB.sandbox_body fs) (SB.sandbox_body ft).
 
   Definition initial_valid : Prop :=
-    alist_find None fl_tgt = None →
-    ((alist_find None fl_src = None) ∧ (init_cond ⊢ Ist init_src init_tgt)).
+    fl_tgt !! None = None →
+    ((fl_src !! None = None) ∧ (init_cond ⊢ Ist init_src init_tgt)).
 
   Inductive t : Prop := mk {
     sim_scopes : Mod.wf ms_tgt →
-      sub_perm scopes_src scopes_tgt;
+      scopes_src ⊆ scopes_tgt;
     sim_match : Mod.wf ms_tgt →
-      sub_perm (List.map fst fnsems_src) (List.map fst fnsems_tgt);
+      dom fl_src ⊆ dom fl_tgt;
+      (* sub_perm (List.map fst fnsems_src) (List.map fst fnsems_tgt); *)
     sim_initial : Mod.wf ms_tgt →
       initial_valid;
     sim_fnsems : Mod.wf ms_tgt →
@@ -999,7 +1001,6 @@ Module ISim. Section ISim.
   }.
 
   Lemma sim_fun_strong fno:
-    (In fno (List.map fst fnsems_src) → sim_fun fno) → sim_fun fno.
-  Proof using. ii. dup FIND. eapply alist_find_some, (in_map fst) in FIND0. eapply H; et. Qed.
-
+    (fno ∈ dom fnsems_src → sim_fun fno) → sim_fun fno.
+  Proof using. ii. dup FIND. eapply elem_of_dom_2 in FIND0; eapply H; eauto. Qed.
 End ISim. End ISim.

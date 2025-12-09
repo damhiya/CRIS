@@ -1,11 +1,9 @@
 Require Import Common.
 From iris.proofmode Require Import proofmode.
-Require Import Mod.
-Require Import MSimCommon MSim LSim LSimTactics.
+Require Import Mod MSimCommon MSim LSim LSimTactics ModTr.
 
 (* MSIM_FRAME *)
-Lemma msim_ist_frame
-    `{Σ: GRA} contextual fl_src fl_tgt Rs Rt RR Ist P ps pt
+Lemma msim_ist_frame `{Σ : GRA} contextual fl_src fl_tgt Rs Rt RR Ist P ps pt
     (sti_s: _ * itree crisE Rs) (sti_t: _ * itree crisE Rt) fmr0 fmr
     (SIM : msim contextual fl_src fl_tgt Ist RR ps pt sti_s sti_t fmr0)
     (FMR: Own fmr ⊢ |==> P ∗ Own fmr0) :
@@ -171,44 +169,44 @@ Proof.
     split; et. nia.
 Qed.
 
-Variant interp_inv `{Σ : GRA} (Ist : ist_type Σ) : list Σ -> Any.t * Any.t -> Prop :=
+Variant interp_inv `{Σ : GRA} (Ist : ist_type Σ) : list Σ → Any.t * Any.t → Prop :=
 | interp_inv_intro
     (ctx : list Σ) (mr_src mr_tgt : Σ) st_src st_tgt mr
     (WF : ✓ mr_src)
     (MRS : Own mr_src ⊢ |==> Own (ctx_sem ctx ⋅ mr ⋅ mr_tgt))
     (MR : Own mr ⊢ |==> Ist st_src st_tgt)
-    (NODUPS : List.NoDup (List.map fst st_src))
-    (NODUPT : List.NoDup (List.map fst st_tgt)) :
+    (NODUPS : map_Forall (const is_Some) st_src)
+    (NODUPT : map_Forall (const is_Some) st_tgt)
+    :
   interp_inv Ist ctx
-    (Any.pair (ModTr.alist_encode st_src) mr_src↑, Any.pair (ModTr.alist_encode st_tgt) mr_tgt↑).
+    (Any.pair (ModTr.state_encode st_src) mr_src↑, Any.pair (ModTr.state_encode st_tgt) mr_tgt↑).
 
 (* Adequacy requires 'contextual = closed'*)
 Lemma msim_adequacy
-  `{Σ : GRA}
-  (fl_src : alist (option string) (Any.t -> itree crisE Any.t))
-  (fl_tgt : alist (option string) (Any.t -> itree crisE Any.t))
-  (Ist : ist_type Σ)
-  (my_tid : nat)
-  (NODUPFS : List.NoDup (List.map fst fl_src))
-  (NODUPFT : List.NoDup (List.map fst fl_tgt))
-  (fl_src0 fl_tgt0 : alist (option string) (Any.t -> itree lmodE Any.t))
-  (FLS : fl_src0 = List.map (fun '(s, f) => (s, ModTr.trans_ktree f)) fl_src)
-  (FLT : fl_tgt0 = List.map (fun '(s, f) => (s, ModTr.trans_ktree f)) fl_tgt)
-  ps pt st_src st_tgt itr_src itr_tgt
-  RR
-  (NODUPS : List.NoDup (List.map fst st_src))
-  (NODUPT : List.NoDup (List.map fst st_tgt))
-  (ctx0 ctx : list Σ) (mr_src mr_tgt fmr : Σ)
-  (CTXLE : @le_mine Σ eq my_tid ctx0 ctx)
-  (TID : my_tid < List.length ctx0)
-  (SIM : msim closed fl_src fl_tgt Ist (ist_with_eq RR) ps pt (st_src, itr_src) (st_tgt, itr_tgt) fmr)
-  (WF : ✓ mr_src)
-  (FMR : Own mr_src ⊢ |==> Own ((ctx_sem ctx) ⋅ fmr ⋅ mr_tgt))
-  :
+    `{Σ : GRA}
+    (fl_src fl_tgt : gmap (option string) (option (Any.t → itree crisE Any.t)))
+    (Ist : ist_type Σ)
+    (my_tid : nat)
+    (fl_src0 fl_tgt0 : gmap (option string) (Any.t → itree lmodE Any.t))
+    (FLS : fl_src0 = ModTr.trans_fnsem <$> (omap id fl_src))
+    (FLT : fl_tgt0 = ModTr.trans_fnsem <$> (omap id fl_tgt))
+    ps pt st_src st_tgt itr_src itr_tgt
+    RR
+    (ctx0 ctx : list Σ) (mr_src mr_tgt fmr : Σ)
+
+    (NODUPFS : map_Forall (const is_Some) fl_src)
+    (NODUPFT : map_Forall (const is_Some) fl_tgt)
+    (NODUPS : map_Forall (const is_Some) st_src)
+    (NODUPT : map_Forall (const is_Some) st_tgt)
+    (CTXLE : @le_mine Σ eq my_tid ctx0 ctx)
+    (TID : my_tid < List.length ctx0)
+    (SIM : msim closed fl_src fl_tgt Ist (ist_with_eq RR) ps pt (st_src, itr_src) (st_tgt, itr_tgt) fmr)
+    (WF : ✓ mr_src)
+    (FMR : Own mr_src ⊢ |==> Own ((ctx_sem ctx) ⋅ fmr ⋅ mr_tgt)) :
   lsim fl_src0 fl_tgt0 ε (interp_inv Ist) eq my_tid
     (interp_inv RR) ctx0 ps pt ctx
-    (Any.pair (ModTr.alist_encode st_src) mr_src ↑, ModTr.trans itr_src)
-    (Any.pair (ModTr.alist_encode st_tgt) mr_tgt ↑, ModTr.trans itr_tgt).
+    (Any.pair (ModTr.state_encode st_src) mr_src ↑, ModTr.trans itr_src)
+    (Any.pair (ModTr.state_encode st_tgt) mr_tgt ↑, ModTr.trans itr_tgt).
 Proof.
   revert_until FLT. ginit. gcofix CIH. i.
   remember (st_src, itr_src). remember (st_tgt, itr_tgt).
@@ -254,13 +252,13 @@ Proof.
       eauto using ctx_set_le_others.
     eapply (K _ st_src1 st_tgt1) with (fmr0:=(frame ⋅ mr)); eauto; try nia.
     { iIntros "[F M]"; iMod (MR with "M") as "M"; iSplitL "M"; iModIntro; eauto. iApply Hframe; done. }
-    { instantiate (1:= or_else (ctx !! my_tid) ε).
+    { instantiate (1:= default ε (ctx !! my_tid)).
       eapply le_mine_trans; first by ii; subst.
       { apply CTXLE. }
       { split.
         { destruct WLE. unfold ctx_add, ctx_set in *.
           rewrite !length_insert in H |- *. nia. }
-        ii; esplits; eauto; rewrite IN /ctx_set list_lookup_insert; ss; eauto.
+        intros ? ->; ss; rewrite /ctx_set list_lookup_insert; eauto.
         eapply le_mine_in; eauto; rewrite /ctx_add /ctx_set length_insert; eauto using le_mine_in.
       }
     }
@@ -275,10 +273,12 @@ Proof.
   - clarify. step. ired. eapply K; eauto.
 
   - clarify. step; eauto.
-    { instantiate (1:= ModTr.trans_ktree f). rewrite alist_find_map FUN. et. }
+    { instantiate (1:= ModTr.trans_fnsem f).
+      rewrite lookup_fmap /= lookup_omap FUN //.
+    }
 
-    rewrite /ModTr.trans_ktree.
-    exploit (K _ _ st_src st_tgt _ _ _ _ _ _ mr_src mr_tgt); eauto.
+    rewrite /ModTr.trans_fnsem.
+    exploit (K _ _ st_src st_tgt _ _ _ _ mr_src mr_tgt); eauto.
     clear K CIH; intros K.
 
     match goal with [|- _ ?t _] => pattern t end.
@@ -288,10 +288,12 @@ Proof.
     grind. rewrite !Red.tau ?bind_tau. repeat f_equal. rewrite Red.ret; grind.
 
   - clarify. step; eauto.
-    { instantiate (1:= ModTr.trans_ktree f). rewrite alist_find_map FUN. et. }
+    { instantiate (1:= ModTr.trans_fnsem f).
+      rewrite lookup_fmap /= lookup_omap FUN //.
+    }
 
-    rewrite /ModTr.trans_ktree.
-    exploit (K _ _ st_src st_tgt _ _ _ _ _ _ mr_src mr_tgt); eauto.
+    rewrite /ModTr.trans_fnsem.
+    exploit (K _ _ st_src st_tgt _ _ _ _ mr_src mr_tgt); eauto.
     clear K CIH; intros K.
 
     eapply eq_ind; eauto.
@@ -308,21 +310,25 @@ Proof.
 
   - clarify; steps.
     rewrite /ModTr.mput_kv; steps.
-    rewrite Any.pair_split /= ModTr.alist_encode_decode; steps; eapply K; eauto.
-    eapply alist_upd_nodup; eauto.
+    rewrite Any.pair_split /= ModTr.state_encode_decode //.
+    steps; eapply K; eauto.
+    apply map_Forall_insert_2; ss.
 
   - clarify; steps.
     rewrite /ModTr.mput_kv; steps.
-    rewrite Any.pair_split /= ModTr.alist_encode_decode; steps; eapply K; eauto.
-    eapply alist_upd_nodup; eauto.
+    rewrite Any.pair_split /= ModTr.state_encode_decode //.
+    steps; eapply K; eauto.
+    apply map_Forall_insert_2; ss.
 
   - clarify; steps.
     rewrite /ModTr.mget_kv; steps.
-    rewrite Any.pair_split /= ModTr.alist_encode_decode; steps; eapply K; eauto.
+    rewrite Any.pair_split /= ModTr.state_encode_decode //.
+    steps; eapply K; eauto.
 
   - clarify; steps.
     rewrite /ModTr.mget_kv; steps.
-    rewrite Any.pair_split /= ModTr.alist_encode_decode; steps; eapply K; eauto.
+    rewrite Any.pair_split /= ModTr.state_encode_decode //.
+    steps; eapply K; eauto.
 
   - clarify; steps.
     rewrite Red.Assume /ModTr.handle_Assume /assume; steps.
@@ -445,17 +451,17 @@ Proof.
       iIntros "H"; iModIntro; iApply Hist; done.
     }
     ired. inv WF0.
-    guclo lflagC_spec; econs; try instantiate (1:=ctx_set w1 (or_else (ctx !! my_tid) ε));
+    guclo lflagC_spec; econs; try instantiate (1:=ctx_set w1 (default ε (ctx !! my_tid)));
       eauto using ctx_set_le_others.
     eapply (K st_src1 st_tgt1) with (fmr0:=(frame ⋅ mr)); eauto; try nia.
     { iIntros "[F M]"; iMod (MR with "M") as "M"; iSplitL "M"; iModIntro; eauto. iApply Hframe; done. }
     { eapply le_mine_trans; first by ii; subst.
       { apply CTXLE. }
-      { instantiate (1:= or_else (ctx !! my_tid) ε).
+      { instantiate (1:= default ε (ctx !! my_tid)).
         split.
         { destruct WLE. unfold ctx_add, ctx_set in *.
           rewrite !length_insert in H |- *. nia. }
-        ii; esplits; eauto; rewrite IN /ctx_set list_lookup_insert; ss; eauto.
+        intros ? ->; ss; rewrite /ctx_set list_lookup_insert; eauto.
         eapply le_mine_in; eauto; rewrite /ctx_add /ctx_set length_insert; eauto using le_mine_in.
       }
     }
@@ -470,10 +476,10 @@ Proof.
   - clarify. step. eapply K; eauto.
 
   - clarify. prep. guclo lsim_indC_spec. econs 17.
-    rewrite alist_find_map FUN. et.
+    rewrite lookup_fmap lookup_omap; destruct (_ !! _); ss; clarify.
 
   - clarify. prep. guclo lsim_indC_spec. econs 18.
-    rewrite alist_find_map FUN. et.
+    rewrite lookup_fmap lookup_omap; destruct (_ !! _); ss; clarify.
 
   - clarify. pclearbot. gstep; econs; econs; eauto; cycle 1.
     { gfinal; left; eapply CIH; eauto. }
