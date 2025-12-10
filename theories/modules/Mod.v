@@ -34,13 +34,12 @@ Module Mod. Section Mod.
         (omap id fnsems);
     well_scoped_init :
       (elements (dom initial_st)).*1 ⊆ scopes;
-    (* nodup_init :
-      List.NoDup scopes → List.NoDup (List.map fst initial_st); *)
+    nodup_init :
+      NoDup scopes → map_Forall (const is_Some) initial_st;
   }.
 
   Record wf (ms : t) : Prop := mk_wf {
     wf_fns : map_Forall (const is_Some) (fnsems ms);
-    wf_state : map_Forall (const is_Some) (initial_st ms);
     wf_scopes : NoDup (scopes ms);
   }.
 
@@ -53,8 +52,7 @@ Module Mod. Section Mod.
     fnsems := ∅;
     initial_st := ∅;
   |}.
-  Next Obligation. ii; ss. Qed.
-  Next Obligation. ii; ss. Qed.
+  Solve All Obligations with ii; ss.
 
   Program Definition add (ms1 ms2 : t) : t := {|
     scopes := (scopes ms1) ++ (scopes ms2);
@@ -85,6 +83,26 @@ Module Mod. Section Mod.
     { apply (ms2.(well_scoped_init)); rewrite elem_of_list_fmap; eexists (scp, _); split; ss.
       rewrite elem_of_elements elem_of_dom //.
     }
+  Qed.
+  Next Obligation.
+    intros ms1 ms2 [Hnodup1%ms1 [Hdisj Hnodup2%ms2]]%NoDup_app.
+    rewrite map_Forall_lookup; intros [scp nm] x; rewrite lookup_union_with.
+    destruct (_ ms1 !! _) eqn : Hms1.
+    { destruct (_ ms2 !! _) eqn : Hms2; ss; cycle 1.
+      { i; clarify. rewrite map_Forall_lookup in Hnodup1; eapply Hnodup1 in Hms1; destruct x; ss. }
+      exfalso; hexploit (Hdisj scp).
+      { apply (well_scoped_init ms1).
+        apply elem_of_list_fmap; exists (scp, nm); split; ss.
+        rewrite elem_of_elements elem_of_dom Hms1 //.
+      }
+      { intros Hf; apply Hf.
+        apply (well_scoped_init ms2).
+        apply elem_of_list_fmap; exists (scp, nm); split; ss.
+        rewrite elem_of_elements elem_of_dom Hms2 //.
+      }
+    }
+    destruct (_ ms2 !! _) eqn : Hms2; ss; cycle 1.
+    { i; clarify. rewrite map_Forall_lookup in Hnodup2; eapply Hnodup2 in Hms2; destruct x; ss. }
   Qed.
 
   Definition to_lmod (ms : t) (r : Σ) : LMod.t := {|

@@ -937,11 +937,11 @@ End FancyReal.
 Section FSEM.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I}.  
 
-  Definition isim_fsem fl_src fl_tgt Ist ctx IstS IstE : relation (Any.t → itree crisE Any.t) :=
+  Definition isim_fsem fl_src fl_tgt Ist ctx : relation (Any.t → itree crisE Any.t) :=
     λ itr_src itr_tgt,
       ∀ arg st_src st_tgt,
-        IstS st_src st_tgt ⊢
-          (winv (∅,∅) -∗ @isim Σ ctx fl_src fl_tgt Ist ibot ibot Any.t Any.t (ist_with_eq IstE)
+        Ist st_src st_tgt ⊢
+          (winv (∅,∅) -∗ @isim Σ ctx fl_src fl_tgt Ist ibot ibot Any.t Any.t (ist_with_eq Ist)
             false false (st_src, itr_src arg) (st_tgt, itr_tgt arg)).
 End FSEM.
 
@@ -963,44 +963,52 @@ Module ISim. Section ISim.
   Let fl_src := (λ v : option _, SB.sandbox_body <$> v) <$> fnsems_src.
   Let fl_tgt := (λ v : option _, SB.sandbox_body <$> v) <$> fnsems_tgt.
 
-  Definition IstS (is_fun : bool) :=
+  (* Definition IstS (is_fun : bool) :=
     if is_fun
     then Ist
     else λ st_src st_tgt,
-        (⌜st_src = init_src ∧ st_tgt = init_tgt⌝ ∗ init_cond)%I.
+        (⌜st_src = init_src ∧ st_tgt = init_tgt⌝ ∗ init_cond)%I. *)
 
-  Definition IstE (is_fun : bool) :=
+  (* Definition IstE (is_fun : bool) :=
     if is_fun
     then Ist
-    else IstTrue.
+    else IstTrue. *)
 
   Definition sim_fun fno : Prop :=
-    ∀ (WFS : Mod.wf ms_src)
+    match fl_src !! fno with
+    | Some (Some fs) => 
+        Mod.wf ms_src → Mod.wf ms_tgt →
+        ∃ ft, fl_tgt !! fno = Some (Some ft) ∧ isim_fsem fl_src fl_tgt Ist ctx fs ft
+    | Some None => fnsems_tgt !! fno = Some None
+    | _ => True
+    end.
+    (* ∀ (WFS : Mod.wf ms_src)
       (WFT : Mod.wf ms_tgt)
-      (* (NODUPFS : List.NoDup (List.map fst fnsems_src))
-      (NODUPFT : List.NoDup (List.map fst fnsems_tgt)) *)
       fs (FIND : fnsems_src !! fno = Some (Some fs)),
-    ∃ ft, fnsems_tgt !! fno = Some (Some ft) /\
-      isim_fsem fl_src fl_tgt Ist ctx (IstS (is_some fno)) (IstE (is_some fno))
-        (SB.sandbox_body fs) (SB.sandbox_body ft).
+    . *)
 
-  Definition initial_valid : Prop :=
+  (* Definition initial_valid : Prop :=
     fl_tgt !! None = None →
-    ((fl_src !! None = None) ∧ (init_cond ⊢ Ist init_src init_tgt)).
+    ((fl_src !! None = None) ∧ (init_cond ⊢ Ist init_src init_tgt)). *)
 
   Inductive t : Prop := mk {
     sim_scopes : Mod.wf ms_tgt →
-      scopes_src ⊆ scopes_tgt;
-    sim_match : Mod.wf ms_tgt →
-      dom fl_src ⊆ dom fl_tgt;
+      scopes_src ⊆+ scopes_tgt;
+    (* sim_match : Mod.wf ms_tgt →
+      dom fl_src ⊆ dom fl_tgt; *)
       (* sub_perm (List.map fst fnsems_src) (List.map fst fnsems_tgt); *)
     sim_initial : Mod.wf ms_tgt →
-      initial_valid;
+      init_cond ⊢ Ist init_src init_tgt;
     sim_fnsems : Mod.wf ms_tgt →
       ∀ fn, sim_fun fn;
   }.
 
-  Lemma sim_fun_strong fno:
+  Lemma sim_fun_strong fno :
     (fno ∈ dom fnsems_src → sim_fun fno) → sim_fun fno.
-  Proof using. ii. dup FIND. eapply elem_of_dom_2 in FIND0; eapply H; eauto. Qed.
+  Proof using.
+    intros Hin; r; destruct (_ !! _) eqn : Hlookup; [|ss].
+    revert Hin; rewrite /sim_fun Hlookup; intros H; hexploit H; eauto.
+    apply elem_of_dom_2 in Hlookup.
+    rewrite dom_fmap // in Hlookup.
+  Qed.
 End ISim. End ISim.
