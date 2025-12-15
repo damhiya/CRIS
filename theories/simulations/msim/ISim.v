@@ -1003,6 +1003,9 @@ Module ISim. Section ISim.
       ∀ fn, sim_fun fn;
   }.
 
+  Lemma t_strong : (Mod.wf ms_tgt → t) → t.
+  Proof. intros Ht; econs; intros Hwf; destruct (Ht Hwf); eauto. Qed.
+
   Lemma sim_fun_strong fno :
     (fno ∈ dom fnsems_src → sim_fun fno) → sim_fun fno.
   Proof using.

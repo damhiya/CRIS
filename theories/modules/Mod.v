@@ -105,6 +105,21 @@ Module Mod. Section Mod.
     { i; clarify. rewrite map_Forall_lookup in Hnodup2; eapply Hnodup2 in Hms2; destruct x; ss. }
   Qed.
 
+  Lemma add_wf (ms1 ms2 : t) : wf (add ms1 ms2) → wf ms1 ∧ wf ms2.
+  Proof.
+    intros [Hfnsems [? [? ?]]%NoDup_app]; split; econs; eauto.
+    { rewrite map_Forall_lookup; intros i x Hix; rewrite map_Forall_lookup in Hfnsems.
+      hexploit (Hfnsems i x); eauto.
+      rewrite lookup_union_with Hix; destruct (_ ms2 !! i) eqn : Hms2; ss.
+      hexploit (Hfnsems i None); [rewrite lookup_union_with Hix Hms2 //|intros Hf; inv Hf].
+    }
+    { rewrite map_Forall_lookup; intros i x Hix; rewrite map_Forall_lookup in Hfnsems.
+      hexploit (Hfnsems i x); eauto.
+      rewrite lookup_union_with Hix; destruct (_ ms1 !! i) eqn : Hms1; ss.
+      hexploit (Hfnsems i None); [rewrite lookup_union_with Hix Hms1 //|intros Hf; inv Hf].
+    }
+  Qed.
+
   Definition to_lmod (ms : t) (r : Σ) : LMod.t := {|
     LMod.fnsems := ModTr.trans_fnsem <$> (SB.sandbox_body <$> omap id (fnsems ms));
     LMod.initial_st := Any.pair (ModTr.state_encode (initial_st ms)) r↑;

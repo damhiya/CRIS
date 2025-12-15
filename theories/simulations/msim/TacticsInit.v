@@ -52,11 +52,11 @@ Ltac unfold_mod_fn :=
      | _ => unfold_mod; ss; unfold_mod_fn
      end.
 
-Ltac prove_ist :=
+(* Ltac prove_ist :=
   i; first [iIntros "->" | iIntros "[% ->]"];
   des; iPureIntro; esplits;
   try rewrite state_scopes_update;
-  et.
+  et. *)
 
 Ltac init_sim :=
   clear_trivials;
