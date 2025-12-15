@@ -16,6 +16,49 @@ Require Import Bool List Arith ZArith String Program.
 
 Set Implicit Arguments.
 
+(* evar_at_last_[i] makes the [i]th argument from the end as an evar. *)
+
+Ltac evar_at_last_1 :=
+  match goal with [|- _ ?arg] => pattern arg end; eapply eq_ind.
+Ltac evar_at_last_2 :=
+  match goal with [|- _ ?arg _] => pattern arg end; eapply eq_ind.
+Ltac evar_at_last_3 :=
+  match goal with [|- _ ?arg _ _] => pattern arg end; eapply eq_ind.
+Ltac evar_at_last_4 :=
+  match goal with [|- _ ?arg _ _ _] => pattern arg end; eapply eq_ind.
+Ltac evar_at_last_5 :=
+  match goal with [|- _ ?arg _ _ _ _] => pattern arg end; eapply eq_ind.
+Ltac evar_at_last_6 :=
+  match goal with [|- _ ?arg _ _ _ _ _] => pattern arg end; eapply eq_ind.
+Ltac evar_at_last_7 :=
+  match goal with [|- _ ?arg _ _ _ _ _ _] => pattern arg end; eapply eq_ind.
+Ltac evar_at_last_8 :=
+  match goal with [|- _ ?arg _ _ _ _ _ _ _] => pattern arg end; eapply eq_ind.
+Ltac evar_at_last_9 :=
+  match goal with [|- _ ?arg _ _ _ _ _ _ _ _] => pattern arg end; eapply eq_ind.
+Ltac evar_at_last_10 :=
+  match goal with [|- _ ?arg _ _ _ _ _ _ _ _ _] => pattern arg end; eapply eq_ind.
+Ltac evar_at_last_11 :=
+  match goal with [|- _ ?arg _ _ _ _ _ _ _ _ _ _] => pattern arg end; eapply eq_ind.
+Ltac evar_at_last_12 :=
+  match goal with [|- _ ?arg _ _ _ _ _ _ _ _ _ _ _] => pattern arg end; eapply eq_ind.
+Ltac evar_at_last_13 :=
+  match goal with [|- _ ?arg _ _ _ _ _ _ _ _ _ _ _ _] => pattern arg end; eapply eq_ind.
+Ltac evar_at_last_14 :=
+  match goal with [|- _ ?arg _ _ _ _ _ _ _ _ _ _ _ _ _] => pattern arg end; eapply eq_ind.
+Ltac evar_at_last_15 :=
+  match goal with [|- _ ?arg _ _ _ _ _ _ _ _ _ _ _ _ _ _] => pattern arg end; eapply eq_ind.
+Ltac evar_at_last_16 :=
+  match goal with [|- _ ?arg _ _ _ _ _ _ _ _ _ _ _ _ _ _ _] => pattern arg end; eapply eq_ind.
+Ltac evar_at_last_17 :=
+  match goal with [|- _ ?arg _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _] => pattern arg end; eapply eq_ind.
+Ltac evar_at_last_18 :=
+  match goal with [|- _ ?arg _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _] => pattern arg end; eapply eq_ind.
+Ltac evar_at_last_19 :=
+  match goal with [|- _ ?arg _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _] => pattern arg end; eapply eq_ind.
+Ltac evar_at_last_20 :=
+  match goal with [|- _ ?arg _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _] => pattern arg end; eapply eq_ind.
+
 Tactic Notation "tryany" tactic(tac1) tactic(tac2) :=
   tryif tac1 then try tac2 else tac2.
 
