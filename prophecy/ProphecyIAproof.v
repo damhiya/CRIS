@@ -142,7 +142,7 @@ Module ProphIA.
         destruct a; ss. f_equal. clear. destruct f0. ss. destruct p0. ss.
         destruct p. ss. destruct p. ss. }
     set (if b then _ else _) in Heq.
-    replace y with 
+    replace y with
       (Mod.fnsems (CFilter.filter (if b then msk else wmask_all) (SMod.to_mod sp_none t))) in Heq.
     2:{ clear. unfold y. des_ifs. }
     clear y. clarify. clear l. revert Heq. generalize (if b then msk else wmask_all).
@@ -202,7 +202,7 @@ Module ProphIA.
         * rewrite !interpV_tau bind_tau. pfold. econs. left.
           rewrite interpV_trigger. ss. des_ifs; cycle 1.
           { apply inj_pair2 in H1, H0. clarify.
-            rewrite interpV_bind interpV_trigger; ss. ired. pfold. econs; et. 
+            rewrite interpV_bind interpV_trigger; ss. ired. pfold. econs; et.
             clarify. }
           apply inj_pair2 in H0. clarify. apply inj_pair2 in H0. clarify.
           grind. rewrite interpV_trigger. ss. grind. pfold. econs. i. grind. right. et.
@@ -476,7 +476,7 @@ Module ProphIA.
             econs; last econs. destruct decide; ss.
             right. rewrite map_app in EE. apply alist_find_comm in EE; cycle 1.
             { inv WF. ss. rewrite map_app. rewrite map_app in wf_fns.
-              rewrite !List.map_map. 
+              rewrite !List.map_map.
               set fst in wf_fns. set (λ _, _).
               replace y0 with y by now extensionalities; destruct H; ss.
               clear y0. et. }
@@ -625,7 +625,7 @@ Module ProphIA.
         destruct a; ss. f_equal. clear. destruct f0. ss. destruct p0. ss.
         destruct p. ss. destruct p. ss. }
     set (if b then _ else _) in Heq.
-    replace y with 
+    replace y with
       (Mod.fnsems (CFilter.filter (if b then msk else wmask_all) (SMod.to_mod sp_none t))) in Heq.
     2:{ clear. unfold y. des_ifs. }
     clear y. clarify. clear l. revert Heq. generalize (if b then msk else wmask_all).
@@ -845,13 +845,13 @@ Module ProphIA.
           revert Heq. unfold_mod. ss. rewrite !map_app. ss. i.
           revert wf_fns. unfold_mod; ss. rewrite !map_app. ss. i.
           apply alist_find_comm in E; cycle 1.
-          { rewrite map_app !List.map_map //=. 
+          { rewrite map_app !List.map_map //=.
             set fst in wf_fns.
             set (λ _, _).
             replace y0 with y by now extensionalities; destruct H; ss.
             clear y0. et. }
           apply alist_find_comm in Heq; cycle 1.
-          { rewrite map_app !List.map_map //=. 
+          { rewrite map_app !List.map_map //=.
             set fst in wf_fns.
             set (λ _, _).
             replace y0 with y by now extensionalities; destruct H; ss.
@@ -894,13 +894,13 @@ Module ProphIA.
           revert Heq. unfold_mod. ss. rewrite !map_app. ss. i.
           revert wf_fns. unfold_mod; ss. rewrite !map_app. ss. i.
           apply alist_find_comm in E; cycle 1.
-          { rewrite map_app !List.map_map //=. 
+          { rewrite map_app !List.map_map //=.
             set fst in wf_fns.
             set (λ _, _).
             replace y0 with y by now extensionalities; destruct H; ss.
             clear y0. et. }
           apply alist_find_comm in Heq; cycle 1.
-          { rewrite map_app !List.map_map //=. 
+          { rewrite map_app !List.map_map //=.
             set fst in wf_fns.
             set (λ _, _).
             replace y0 with y by now extensionalities; destruct H; ss.
@@ -966,21 +966,18 @@ Module ProphIA.
         iIntros "A". iPoseProof (p2 with "A") as ">[[[A B] C] [D E]]".
         rewrite RS. iDestruct "E" as "[E F]".
         rewrite own.own_eq /own.own_def own.Own_eq /own.Own_def.
-        iCombine "B F" as "B". rewrite -own.iRes_singleton_op.
-        replace uPred_ownM with own.Own_def by et.
-        rewrite -own.Own_eq.
-        iPoseProof (Own_valid with "B") as "%".
-        rewrite -uPred.discrete_valid.
-        iApply own.iRes_singleton_validI.
-        rewrite uPred.discrete_valid. et. }
+        iCombine "B F" gives %HFREE. iPureIntro.
+        rewrite -own.iRes_singleton_op in HFREE.
+        by apply own.iRes_singleton_valid in HFREE.
+      }
       assert (free_ids i1).
       { unfold free_id_auth_r, free_id_r in H.
         specialize (H i1). discrete_fun_tac.
         destruct excluded_middle_informative; clarify.
         destruct excluded_middle_informative; clarify.
         rewrite comm auth_both_valid_discrete in H. des.
-        red in H. des. destruct z. { rewrite -Some_op in H. inv H. }
-        inv H. }
+        apply Some_included_is_Some in H. clear -H. rewrite -not_eq_None_Some in H. done.
+      }
       clear H. rename H0 into FREE.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind. steps_l.
@@ -1192,13 +1189,10 @@ Module ProphIA.
         iIntros "A". iPoseProof (p3 with "A") as ">[[[A B] C] [D E]]".
         iDestruct "E" as "[E F]".
         rewrite own.own_eq /own.own_def own.Own_eq /own.Own_def.
-        iCombine "B E" as "B". rewrite -own.iRes_singleton_op.
-        replace uPred_ownM with own.Own_def by et.
-        rewrite -own.Own_eq.
-        iPoseProof (Own_valid with "B") as "%".
-        rewrite -uPred.discrete_valid.
-        iApply own.iRes_singleton_validI.
-        rewrite uPred.discrete_valid. et. }
+        iCombine "B E" gives %HFREE.
+        rewrite -own.iRes_singleton_op in HFREE.
+        by apply own.iRes_singleton_valid in HFREE.
+      }
       assert (~ free_ids i1).
       { unfold has_proph_auth_r, has_proph_r in H.
         specialize (H i1). discrete_fun_tac.
@@ -1446,13 +1440,10 @@ Module ProphIA.
         rewrite RS. iDestruct "E" as "[E F]".
         unfold has_proph.
         rewrite own.own_eq /own.own_def own.Own_eq /own.Own_def.
-        iCombine "B E" as "B". rewrite -own.iRes_singleton_op.
-        replace uPred_ownM with own.Own_def by et.
-        rewrite -own.Own_eq.
-        iPoseProof (Own_valid with "B") as "%".
-        rewrite -uPred.discrete_valid.
-        iApply own.iRes_singleton_validI.
-        rewrite uPred.discrete_valid. et. }
+        iCombine "B E" gives %HFREE.
+        rewrite -own.iRes_singleton_op in HFREE.
+        by apply own.iRes_singleton_valid in HFREE.
+      }
       assert (~ free_ids i1).
       { unfold has_proph_auth_r, has_proph_r in H.
         specialize (H i1). discrete_fun_tac.

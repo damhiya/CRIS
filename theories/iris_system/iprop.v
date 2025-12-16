@@ -144,7 +144,9 @@ Ltac solve_inG :=
   split; (assumption || by apply _).
 
 (* iProps are parameterized on GRAs, without step-indexing *)
-Notation iProp Σ := (uPredI Σ).
+Notation iProp Σ := (uPred Σ).
+Notation iPropO Σ := (uPredO Σ).
+Notation iPropI Σ := (uPredI Σ).
 
 (* Require Import ucmra_list.
 Class GRAL := GRAL_mk {

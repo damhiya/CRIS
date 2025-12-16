@@ -16,7 +16,7 @@ Section SchRA.
   Definition fragreeUR := optionUR (prodR fracR (agreeR thst)).
   Definition threadsF := nat -d> fragreeUR.
   Definition threadsRA := authUR threadsF.
-  
+
   Definition tidF := nat -d> optionUR fracR.
   Definition tidA := optionUR (dfrac_agreeR (optionO natO)).
   Definition tidRA := prodR tidF tidA.
@@ -50,25 +50,25 @@ Module SchAS. Section SchAS.
   Definition token_half (tid: nat) (st: SAny.t → SAny.t → SynDepO): iProp Σ :=
     Seal.sealing SCH (own base_γ (token_half_r tid st)).
 
-  Definition token_three_quarter_r (tid: nat) (st: SAny.t → SAny.t → SynDepO): threadsRA := 
+  Definition token_three_quarter_r (tid: nat) (st: SAny.t → SAny.t → SynDepO): threadsRA :=
     ◯ ((λ n, if (tid =? n) then Some (3/4, to_agree (λ vs s, Some (to_agree (st vs s)))) else ε): threadsF).
-  Definition token_three_quarter (tid: nat) (st: SAny.t → SAny.t → SynDepO): iProp Σ := 
+  Definition token_three_quarter (tid: nat) (st: SAny.t → SAny.t → SynDepO): iProp Σ :=
     Seal.sealing SCH
       (own base_γ (token_three_quarter_r tid st)).
 
-  Definition token_one_r (tid: nat) (st: SAny.t → SAny.t → SynDepO): threadsRA := 
+  Definition token_one_r (tid: nat) (st: SAny.t → SAny.t → SynDepO): threadsRA :=
     ◯ ((λ n, if (tid =? n) then Some (1, to_agree (λ vs s, Some (to_agree (st vs s)))) else ε): threadsF).
-  Definition token_one (tid: nat) (st: SAny.t → SAny.t → SynDepO): iProp Σ := 
+  Definition token_one (tid: nat) (st: SAny.t → SAny.t → SynDepO): iProp Σ :=
     Seal.sealing SCH
       (own base_γ (token_one_r tid st)).
 
-  Definition idle (tid: nat): iProp Σ := 
+  Definition idle (tid: nat): iProp Σ :=
     Seal.sealing SCH (own base_γ token_pending_r).
-  Definition active (tid: nat) (st: SAny.t → SAny.t → SynDepO): iProp Σ := 
+  Definition active (tid: nat) (st: SAny.t → SAny.t → SynDepO): iProp Σ :=
     Seal.sealing SCH (own base_γ (token_quarter_r tid st)).
-  Definition done (tid: nat) (st: SAny.t → SAny.t → SynDepO): iProp Σ := 
+  Definition done (tid: nat) (st: SAny.t → SAny.t → SynDepO): iProp Σ :=
     Seal.sealing SCH (own base_γ (token_three_quarter_r tid st)).
-  Definition joined (tid: nat) (st: SAny.t → SAny.t → SynDepO): iProp Σ := 
+  Definition joined (tid: nat) (st: SAny.t → SAny.t → SynDepO): iProp Σ :=
     Seal.sealing SCH (own base_γ (token_one_r tid st)).
 
   (** tid **)
@@ -93,13 +93,13 @@ Module SchAS. Section SchAS.
     Seal.sealing SCH (own base_γ ((tid_user_r q tid, tid_frag_r q (Some tid)): tidRA)).
 
   (** initial resource *)
-  Definition ir_threadsRA : DRA_mk threadsRA := 
-    ● ((λ tid: nat, if tid =? 0 then Some (1, to_agree (λ _ _, (Some (to_agree (existT 0 ⊤%SAT))))) else None): threadsF)
-    ⋅ ◯ ((λ tid: nat, if tid =? 0 then Some (1/4, to_agree (λ _ _, (Some (to_agree (existT 0 ⊤%SAT))))) else None): threadsF).
+  Definition ir_threadsRA : DRA_mk threadsRA :=
+    ● ((λ tid: nat, if tid =? 0 then Some (1, to_agree (λ _ _, (Some (to_agree (existT 0 emp%SAT))))) else None): threadsF)
+    ⋅ ◯ ((λ tid: nat, if tid =? 0 then Some (1/4, to_agree (λ _ _, (Some (to_agree (existT 0 emp%SAT))))) else None): threadsF).
   Definition ir_threadsRA_valid : ✓ ir_threadsRA.
   Proof using.
     rewrite /ir_threadsRA. apply auth_both_valid_discrete. split.
-    { exists (λ tid: nat, if tid =? 0 then Some (3/4, to_agree (λ _ _, (Some (to_agree (existT 0 ⊤%SAT))))) else None).
+    { exists (λ tid: nat, if tid =? 0 then Some (3/4, to_agree (λ _ _, (Some (to_agree (existT 0 emp%SAT))))) else None).
       intros i; des_ifs; rewrite discrete_fun_lookup_op.
       { eapply Nat.eqb_eq in Heq; subst; des_ifs.
         rewrite -Some_op -pair_op frac_op; repeat f_equiv; ss.
@@ -121,7 +121,7 @@ Module SchAS. Section SchAS.
   Definition ir_schΣ : schΣ :=
     *[Some ir_threadsRA].
 
-  Definition init_threads : iProp Σ := 
+  Definition init_threads : iProp Σ :=
     (* Seal.sealing SCH *) (own base_γ ir_threadsRA).
   Definition init_tid : iProp Σ :=
     Seal.sealing SCH (own base_γ (tid_admin_r (Some 0), None))%I.
@@ -158,7 +158,7 @@ Module SchAS. Section SchAS.
       token_three_quarter_r tid Q ≡ (token_quarter_r tid Q) ⋅ (token_half_r tid Q).
     Proof using.
       unfold token_half_r, token_quarter_r, token_three_quarter_r.
-      rewrite -auth_frag_op. f_equiv. intros x. 
+      rewrite -auth_frag_op. f_equiv. intros x.
       rewrite discrete_fun_lookup_op. des_ifs.
       rewrite -Some_op -pair_op frac_op //.
       replace (1/4+1/2) with (3/4) by compute_done.
@@ -180,7 +180,7 @@ Module SchAS. Section SchAS.
     :
       ● ths_b ⋅ ◯ ths_w
       ~~> ● ((λ n, if (tid =? n) then Some (1, to_agree (λ vs s, Some (to_agree (Q vs s)))) else ths_b n): threadsF)
-          ⋅ ◯ ths_w 
+          ⋅ ◯ ths_w
           ⋅ (token_half_r tid Q)
           ⋅ (token_quarter_r tid Q)
           ⋅ (token_quarter_r tid Q).
@@ -193,7 +193,7 @@ Module SchAS. Section SchAS.
       - intros x. des_ifs.
       - destruct mz; ss.
         + intros x.
-          do 2 rewrite discrete_fun_lookup_op. 
+          do 2 rewrite discrete_fun_lookup_op.
           rewrite -assoc (comm _ _ (c x)) assoc.
           specialize (H0 x). rewrite discrete_fun_lookup_op in H0. rewrite -H0.
           des_ifs; [|rewrite right_id //]. rewrite Nat.eqb_eq in Heq. subst. des.
@@ -290,7 +290,7 @@ Module SchAS. Section SchAS.
     Proof using.
       rewrite /SchAS.tid_admin. unseal SCH. et.
     Qed.
-    
+
     Lemma tid_user_shrink q0 q tid
       (LE: q ≤ q0)
       :
@@ -314,7 +314,7 @@ Module SchAS. Section SchAS.
         + repeat f_equiv. eapply Qp.le_lteq in LE. eapply Qp.le_ngt in E.
           des; subst; ss.
     Qed.
-    
+
     Lemma tid_user_merge (q0 q1: Qp) tid
       :
       tid_user q0 tid ∗ tid_user q1 tid ⊢ tid_user (q0+q1) tid.
@@ -352,7 +352,7 @@ Module SchAS. Section SchAS.
       destruct wf as [wf1 wf]; ss.
       rewrite to_agree_op_valid in wf. inv wf. eauto.
     Qed.
-    
+
   End RA.
 
   (* Scheduler specifications *)
@@ -365,14 +365,14 @@ Module SchAS. Section SchAS.
       (pre : SAny.t → SAny.t → iProp Σ) (postS: SAny.t → SAny.t -> SynDepO) : Prop
       :=
       fspec_imply fsp
-        (fspec_winv E_full 
+        (fspec_winv E_full
            (fspec_virtual (λ (my_tid: nat),
               ((λ (varg: SAny.t) arg,
                 tid_user q_full my_tid ∗ ∃ sarg, ⌜arg = sarg↑⌝ ∗ pre varg sarg)%I,
                (λ (vret: SAny.t) ret,
                 tid_user q_full my_tid ∗ ∃ sret, ⌜ret = sret↑⌝ ∗ interp_cond (postS vret sret)))%I)))
     .
-    
+
     (* TODO : clarify with WP tc *)
     Definition fn_spawnable fn
       (pre : SAny.t → SAny.t → iProp Σ) (postS: SAny.t → SAny.t -> SynDepO) : Prop
@@ -380,7 +380,7 @@ Module SchAS. Section SchAS.
       ∃ fsp, alist_find (Some fn) sp_user = Some (Some fsp) ∧
       fspec_spawnable fsp pre postS.
 
-    Definition _spawn_spec : fspec := 
+    Definition _spawn_spec : fspec :=
       fspec_virtual (λ '(my_tid, pre, postS),
         ((λ varg arg,
             ∃ fvarg farg fn,
@@ -397,7 +397,7 @@ Module SchAS. Section SchAS.
           ((λ varg arg,
             tid_user q_full my_tid ∗
             ∃ fvarg farg fn,
-              ⌜varg = ((fn, fvarg): string * SAny.t) 
+              ⌜varg = ((fn, fvarg): string * SAny.t)
               ∧ arg = ((fn, farg): string * SAny.t)↑
               ∧ fn_spawnable fn pre postS⌝
               ∗ pre fvarg farg)%I,
@@ -421,7 +421,7 @@ Module SchAS. Section SchAS.
           ((λ varg arg,
             ⌜arg = tid↑ ∧ varg = tid⌝ ∗
             tid_user q_full my_tid ∗ token_th tid postS),
-           (λ vret ret, 
+           (λ vret ret,
             (∃ vsret sret, ⌜vret = (Some vsret) ∧ ret = (Some sret)↑⌝ ∗
             tid_user q_full my_tid ∗ interp_cond (postS vsret sret)))))%I).
 
@@ -431,7 +431,7 @@ Module SchAS. Section SchAS.
         (λ vret, (⌜vret = tid↑⌝ ∗ tid_user q_full tid))))%I.
 
     Definition sp : spl_type :=
-      Seal.sealing CRIS 
+      Seal.sealing CRIS
         [(Some SchHdr._spawn,  Some _spawn_spec);
          (Some SchHdr.spawn,   Some (spawn_spec));
          (Some SchHdr.yield,   Some (yield_spec));
@@ -461,7 +461,7 @@ Module SchA. Section SchA.
     SchI.trigger_Yield nxt_tid;;;
     check_internal
   .
-  
+
   Definition fnsems sp_user q_tid : fnsems_type :=
     [(Some SchHdr._spawn, (true, wmask_all, scopes, (Some (SchAS._spawn_spec sp_user ⊤ 1), (cfunN (SchI._spawn check_internal)))));
      (Some SchHdr.spawn,  (true, wmask_all, scopes, (Some (SchAS.spawn_spec sp_user ⊤ 1),  (cfunN SchI.spawn))));
@@ -478,7 +478,7 @@ Module SchA. Section SchA.
   Next Obligation. prove_nodup. Qed.
 
   Definition init_cond : iProp Σ := SchAS.init_threads ∗ SchAS.init_tid.
-  
+
   Definition t sp sp_user q_tid :=
     Seal.sealing CRIS (SMod.to_mod sp (smod sp_user q_tid)).
 

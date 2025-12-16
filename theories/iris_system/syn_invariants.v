@@ -12,7 +12,7 @@ Variant inv_ops : Type :=
 | _ownI_reserve (X : coPset)
 | _ownD (i : positive)
 | _wsat_auth (X : coPset)
-| _own_admin.
+.
 
 Local Definition inv_arity (op : inv_ops) (sProp : Type) : Type :=
   match op with
@@ -20,7 +20,6 @@ Local Definition inv_arity (op : inv_ops) (sProp : Type) : Type :=
   | _ownI_reserve X => fin 0
   | _ownD i => fin 1
   | _wsat_auth X => fin 0
-  | _own_admin => fin 0
   end.
 
 Global Instance inv_syntax : SAT.t := {
@@ -38,11 +37,10 @@ Local Definition inv_interp_aux `{!invG Γ Σ α, !subG Γ Σ} n (op : inv_ops) 
   | _ownI_reserve X => λ _ _, ownI_reserve n X
   | _ownD i => λ syn _, ownD i (syn 0%fin)
   | _wsat_auth X => λ _ _, wsat_auth n X
-  | _own_admin => λ _ _, own_admin
   end.
 
 Global Instance inv_interp `{!invG Γ Σ α, !subG Γ Σ} :
-    @SATIntp.t (@domain Σ) α _ :=
+    @SATIntp.t (iPropI Σ) α _ :=
   inv_interp_aux.
 
 Class syn_invG (Γ : HRA) (Σ : GRA) (α : GAT.t) (β : GATIntp.t) (τ : TypG.t)
@@ -52,6 +50,7 @@ Class syn_invG (Γ : HRA) (Σ : GRA) (α : GAT.t) (β : GATIntp.t) (τ : TypG.t)
 }.
 
 Section syn_inv.
+  Context `{Σ : GRA, Γ : HRA}.
   Context `{!invG Γ Σ α, !subG Γ Σ, !STτ.t τ, !SL.G Γ Σ α β τ, !syn_invG Γ Σ α β τ}.
   Local Existing Instances invG_I invG_E.
 
@@ -63,39 +62,31 @@ Section syn_inv.
     ⟨ _ownD i, λ _, p ⟩.
   Local Definition syn_wsat_auth n X : GTerm.t n :=
     ⟨ _wsat_auth X, λ e, match e with end ⟩.
-  Local Definition syn_own_admin n : GTerm.t n :=
-    ⟨ _own_admin, λ e, match e with end ⟩.
 
-  Local Definition syn_ownE n (E : coPset) : GTerm.t n :=
-    <own> base_γ (CoPset E).
+  Local Definition syn_ownE {n} (E : coPset) : GTerm.t n :=
+    sown enabled_name (CoPset E).
 
   Local Definition syn_inv_satall {n} (I : gmap positive (GTerm.t n)) : GTerm.t n :=
-    ([∗ n map] i ↦ p ∈ I, syn_ownI i p ∗ ((syn_ownD i p ∗ p) ∨ syn_ownE n {[i]}))%SAT.
+    [∗ map] i ↦ p ∈ I, syn_ownI i p ∗ ((p ∗ syn_ownD i p) ∨ syn_ownE {[i]}).
   Local Definition syn_wsat n X : GTerm.t (S n) :=
-    (∃ I : τ{ST.gmapT Φ}, let dom := gset_to_coPset (dom I) in
-      ⌜dom ⊆ X⌝ ∗ (⤉ syn_inv_satall I) ∗ (⤉ syn_ownI_reserve (X ∖ dom)))%SAT.
+    ∃ I : τ{ST.gmapT Φ}%SAT, let dom := gset_to_coPset (dom I) in
+      ⌜dom ⊆ X⌝ ∗ (⤉ syn_inv_satall I) ∗ (⤉ syn_ownI_reserve (X ∖ dom)).
 
   Local Fixpoint syn_wsatl n X : GTerm.t n :=
     match n with
-    | O => emp%SAT
-    | S n' => syn_wsat n' X ∗ ⤉ syn_wsatl n' X
+    | O => emp
+    | S n' => ⤉ syn_wsatl n' X ∗ syn_wsat n' X
     end.
   Local Definition syn_wsats n (E : coPset) : GTerm.t n :=
     syn_wsat_auth n E ∗ syn_wsatl n E.
 
   (* Interface for the user *)
-  Local Definition syn_inv_def {n : level} (N : namespace) (p : GTerm.t n) :=
-    (∃ i : τ{⇣positive}, ⌜i ∈ (↑N : coPset)⌝ ∧ syn_ownI i p)%SAT.
-  Local Definition syn_inv_aux : seal (@syn_inv_def). Proof using. by eexists. Qed.
-  Definition syn_inv := syn_inv_aux.(unseal).
-  Local Definition syn_inv_eq : @syn_inv = @syn_inv_def := syn_inv_aux.(seal_eq).
+  Definition syn_inv {n : level} (N : namespace) (p : GTerm.t n) : GTerm.t n :=
+    ∃ i : τ{⇣positive}%SAT, ⌜i ∈ (↑N : coPset)⌝ ∧ syn_ownI i p.
 
-  Local Definition syn_fupd_def {n} (Ew E1 E2 : coPset) (P : GTerm.t n) : GTerm.t n :=
-    syn_wsatl n Ew ∗ syn_ownE n E1 ∗ syn_own_admin n ==∗
-      (syn_wsatl n Ew ∗ syn_ownE n E2 ∗ syn_own_admin n ∗ P).
-  Local Definition syn_fupd_aux : seal (@syn_fupd_def). Proof using. by eexists. Qed.
-  Definition syn_fupd := syn_fupd_aux.(unseal).
-  Local Definition syn_fupd_eq : @syn_fupd = @syn_fupd_def := syn_fupd_aux.(seal_eq).
+  Definition syn_fupd {n} (Ew E1 E2 : coPset) (P : GTerm.t n) : GTerm.t n :=
+    syn_wsatl n Ew ∗ syn_ownE E1 o==∗
+      (syn_wsatl n Ew ∗ syn_ownE E2∗ P).
 End syn_inv.
 
 Class crisG (Γ : HRA) (Σ : GRA) (α : GAT.t) (β : GATIntp.t) (τ : TypG.t)
@@ -108,58 +99,50 @@ Class crisG (Γ : HRA) (Σ : GRA) (α : GAT.t) (β : GATIntp.t) (τ : TypG.t)
 Section reduction.
   Context `{!crisG Γ Σ α β τ _S _I}.
 
-  Implicit Types (n : level) (X : coPset).
-  Lemma wsat_red n X : ⟦syn_wsat n X⟧ ≡ wsat n X.
-  Proof using.
-    rewrite /syn_wsat /wsat; SAT_red; SL_red.
-    iSplit; iIntros "[%I H]"; SL_red.
-    { rewrite ?@SATRed.lift. SAT_red. rewrite /syn_inv_satall; SL_red.
-      iExists I; iDestruct "H" as "[$ [H $]]".
-      rewrite /inv_satall. iApply (big_sepM_mono with "H"); ss.
-      intros k x IN; SL_red; SAT_red; ss.
-      iIntros "[$ [[??]|$]]"; iLeft; iFrame.
-    }
-    { iExists I; SL_red; SAT_red.
-      iDestruct "H" as "[$ [H $]]".
-      rewrite /syn_inv_satall; SL_red. iApply (big_sepM_mono with "H"); ss.
-      intros k x IN; SL_red; SAT_red; ss.
-      iIntros "[$ [[??]|$]]"; iLeft; iFrame.
-    }
-  Qed.
+  Local Instance ownI_red n i (p : GTerm.t n) :
+    SLRed n (syn_ownI i p) (ownI i p).
+  Proof using. solve_sl_red. Qed.
+  Local Instance ownI_reserve_red {n} X :
+    SLRed n (syn_ownI_reserve X) (ownI_reserve n X).
+  Proof using. solve_sl_red. Qed.
+  Local Instance ownD_red {n} i (p : GTerm.t n) :
+    SLRed n (syn_ownD i p) (ownD i p).
+  Proof using. solve_sl_red. Qed.
+  Local Instance wsat_auth_red {n} X :
+    SLRed n (syn_wsat_auth n X) (wsat_auth n X).
+  Proof using. solve_sl_red. Qed.
+  Local Instance ownE_red {n} E :
+    SLRed n (syn_ownE E) (ownE E).
+  Proof using. solve_sl_red. Qed.
+  Local Instance inv_satall_red {n} I :
+    SLRed n (syn_inv_satall I) (inv_satall I).
+  Proof using. solve_sl_red. Qed.
 
-  Lemma wsatl_red n X : ⟦syn_wsatl n X⟧ ≡ wsatl n X.
-  Proof using.
-    induction n.
-    { SAT_red; SL_red; ss. }
-    { simpl syn_wsatl. SAT_red; ss. rewrite /wsatl seq_S big_sepL_app //=.
-      rewrite wsat_red; SAT_red; rewrite IHn; iSplit; iIntros "[$ H]"; iFrame.
-      iDestruct "H" as "[??]"; iFrame.
-    }
-  Qed.
-  
-  Lemma wsats_red n E : ⟦syn_wsats n E⟧ ≡ wsats n E.
-  Proof using.
-    rewrite /syn_wsats /syn_ownE. SAT_red. SL_red.
-    rewrite wsatl_red; SAT_red; ss; rewrite /wsats /ownD_auth.
-  Qed.
+  Local Instance wsat_red {n} X :
+    SLRed _ (syn_wsat n X) (wsat n X).
+  Proof using. solve_sl_red. Qed.
+  Local Instance wsatl_red {n} X :
+    SLRed _ (syn_wsatl n X) (wsatl n X).
+  Proof using. induction n; rewrite /SLRed /= ?wsatl_S; solve_sl_red. Qed.
 
-  Lemma inv_red n N p : ⟦syn_inv n N p⟧ ≡ inv n N p.
-  Proof using.
-    rewrite syn_inv_eq /syn_inv_def. SL_red.
-    rewrite /inv invariants.inv_aux.(seal_eq) /invariants.inv_def.
-    iSplit; iIntros "[%x H]"; iExists x; SL_red; SAT_red; ss.
-  Qed.
+  Local Instance wsats_red {n} E :
+    SLRed _ (syn_wsats n E) (wsats n E).
+  Proof using. solve_sl_red. Qed.
 
-  Lemma fupd_red n Ew E1 E2 P : ⟦syn_fupd n Ew E1 E2 P⟧ ≡ uPred_fupd n Ew E1 E2 ⟦P⟧.
-  Proof using.
-    rewrite syn_fupd_eq /uPred_fupd invariants.uPred_fupd_aux.(seal_eq) /invariants.uPred_fupd_def.
-    rewrite /syn_fupd_def SLRed.wand SLRed.upd. repeat SAT_red.
-    rewrite wsatl_red /wsatl /syn_ownE; SL_red. done.
-  Qed.
+  Global Instance inv_red {n} N p :
+    SLRed n (syn_inv N p) (inv n N p).
+  Proof using. rewrite invariants.inv_eq. solve_sl_red. Qed.
+
+  Global Instance fupd_red {n} Ew E1 E2 p P :
+    SLRed n p P →
+    SLRed n (syn_fupd Ew E1 E2 p) (=|n,Ew|={E1,E2}=> P).
+  Proof using. rewrite invariants.uPred_fupd_unseal. solve_sl_red. Qed.
 End reduction.
 
-Ltac inv_red :=
-  hrepeat do 1 tryany (do 1 rewrite ! inv_red) (do 1 rewrite ! fupd_red).
+Global Opaque syn_inv syn_fupd.
+
+(* Ltac inv_red :=
+  hrepeat do 1 tryany (do 1 rewrite ! inv_red) (do 1 rewrite ! fupd_red). *)
 
 (* Module for constructing concrete structures for stratified propositions and global RAs *)
 (* Module inv_instances.
@@ -222,7 +205,7 @@ Ltac inv_red :=
   #[export] Instance subGH_app_r (Σ: GRA) (Γ1 : HRA) (Σ2 : GRA) : subG Σ Σ2 → subG Σ (GRAs.app Γ1 Σ2).
   Proof using. move=> H i; move: H=> /(_ i) [j ?]. exists (Fin.R _ j). by rewrite /= fin_add_inv_r. Defined.
 End inv_instances. *)
-Module inv_instances.
+(* Module inv_instances.
   #[export] Instance τ : TypG.t :=
     λ i,
       match i with
@@ -270,4 +253,4 @@ Module inv_instances.
 
   #[export] Instance subGH_app_r (Σ: GRA) (Γ1 : HRA) (Σ2 : GRA) : subG Σ Σ2 → subG Σ (GRAs.app Γ1 Σ2).
   Proof using. move=> H i; move: H=> /(_ i) [j ?]. exists (Fin.R _ j). by rewrite /= fin_add_inv_r. Defined.
-End inv_instances.
+End inv_instances. *)

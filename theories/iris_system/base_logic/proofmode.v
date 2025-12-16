@@ -9,16 +9,16 @@ Section class_instances.
   Context {M : ucmra}.
   Implicit Types P Q R : uPred M.
 
-  Global Instance into_pure_cmra_valid `{!CmraDiscrete A} (a : A) :
+  (* Global Instance into_pure_cmra_valid `{!CmraDiscrete A} (a : A) :
     @IntoPure (uPredI M) (✓ a) (✓ a).
-  Proof using. rewrite /IntoPure. by rewrite uPred.discrete_valid. Qed.
+  Proof using. rewrite /IntoPure. by rewrite uPred.discrete_valid. Qed. *)
 
-  Global Instance from_pure_cmra_valid {A : cmra} (a : A) :
+  (* Global Instance from_pure_cmra_valid {A : cmra} (a : A) :
     @FromPure (uPredI M) false (✓ a) (✓ a).
   Proof using.
     rewrite /FromPure /=. eapply bi.pure_elim=> // ?.
     rewrite -uPred.cmra_valid_intro //.
-  Qed.
+  Qed. *)
 
   Global Instance from_sep_ownM (a b1 b2 : M) :
     IsOp a b1 b2 →
@@ -34,7 +34,7 @@ Section class_instances.
   (* TODO : Improve this instance with generic own validity simplification
   machinery once https://gitlab.mpi-sws.org/iris/iris/-/issues/460 is fixed *)
   Global Instance combine_sep_gives_ownM (b1 b2 : M) :
-    CombineSepGives (uPred_ownM b1) (uPred_ownM b2) (✓ (b1 ⋅ b2)).
+    CombineSepGives (uPred_ownM b1) (uPred_ownM b2) (⌜✓ (b1 ⋅ b2)⌝).
   Proof using.
     intros. rewrite /CombineSepGives -ownM_op ownM_valid.
     by apply : bi.persistently_intro.
@@ -56,4 +56,8 @@ Section class_instances.
   Global Instance into_sep_ownM (a b1 b2 : M) :
     IsOp a b1 b2 → IntoSep (uPred_ownM a) (uPred_ownM b1) (uPred_ownM b2).
   Proof using. intros. by rewrite /IntoSep (is_op a) ownM_op. Qed.
+
+  (* except 0 *)
+  Global Instance uPred_except_0 (P : uPred M) : IsExcept0 P.
+  Proof. by rewrite /IsExcept0 /bi_except_0 later_eq left_id. Qed.
 End class_instances.
