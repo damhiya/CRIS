@@ -61,7 +61,7 @@ End saved_prop.
 Section syn_saved_prop_def.
   (* Syntactic invariants *)
 
-  (* Define syntactic elements *)
+  (* Define syntactic elements. In syntax, we omit the [GTerm.t] stuff *)
   Variant saved_prop_ops : Type :=
   | _saved_prop_own (γ : gname) (dq : dfrac)
   .
@@ -84,7 +84,9 @@ Section syn_saved_prop_def.
       iProp Σ
     :=
     match op with
-    | _saved_prop_own γ dq => λ syn _, saved_prop_own γ dq (syn 0%fin)
+    | _saved_prop_own γ dq => λ syn _,
+      (* Here, we "fill in" the missing [GTerm.t] from the provided generator functions. *)
+      saved_prop_own γ dq (syn 0%fin)
     end.
 
   Global Instance saved_prop_interp `{!savedPropG Σ α} :
@@ -102,6 +104,8 @@ Section syn_wsat.
   Context `{!subHG Γ Σ, !STτ.t τ, !SL.G Γ Σ α β τ}.
   Context `{!savedPropG Σ α, !syn_saved_propG Σ α β τ}.
 
+  (* Now defined the actual syntactic definition. Here, we "send" the [GTerm.t] missing in the base
+    syntactic definition to the interpertation function. *)
   Definition syn_saved_prop_own {n} γ dq (p : GTerm.t n) : GTerm.t n :=
     ⟨ _saved_prop_own γ dq, λ _, p ⟩.
 
