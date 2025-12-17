@@ -120,6 +120,28 @@ Module Mod. Section Mod.
     }
   Qed.
 
+  Lemma lookup_add_l (ms1 ms2 : t) (fno : option string) (mb : emask * fbody) :
+    wf (add ms1 ms2) →
+    (fnsems ms1) !! fno = Some (Some mb) →
+    (fnsems (add ms1 ms2)) !! fno = Some (Some mb).
+  Proof.
+    intros Hwf; rewrite /= lookup_union_with => Hin; rewrite Hin.
+    hexploit (wf_fns _ Hwf); rewrite map_Forall_lookup => /(_ fno) /=.
+    rewrite lookup_union_with Hin; destruct (_ ms2 !! _) eqn : Hms2; ss.
+    by move => /(_ None (reflexivity _)) [? ?].
+  Qed.
+
+  Lemma lookup_add_r (ms1 ms2 : t) (fno : option string) (mb : emask * fbody) :
+    wf (add ms1 ms2) →
+    (fnsems ms2) !! fno = Some (Some mb) →
+    (fnsems (add ms1 ms2)) !! fno = Some (Some mb).
+  Proof.
+    intros Hwf; rewrite /= lookup_union_with => Hin; rewrite Hin.
+    hexploit (wf_fns _ Hwf); rewrite map_Forall_lookup => /(_ fno) /=.
+    rewrite lookup_union_with Hin; destruct (_ ms1 !! _) eqn : Hms1; ss.
+    by move => /(_ None (reflexivity _)) [? ?].
+  Qed.
+
   Definition to_lmod (ms : t) (r : Σ) : LMod.t := {|
     LMod.fnsems := ModTr.trans_fnsem <$> (SB.sandbox_body <$> omap id (fnsems ms));
     LMod.initial_st := Any.pair (ModTr.state_encode (initial_st ms)) r↑;
