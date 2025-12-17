@@ -288,6 +288,14 @@ Module SPropBi.
 
     Definition syn_big_sepMS {n A} `{Countable A} (f : A → GTerm.t n)
       (X : gmultiset A) : GTerm.t n := syn_big_sepL (λ _, f) (elements X).
+
+    Fixpoint syn_big_sepL2 {n A B} (f : nat → A → B → GTerm.t n) (l1 : list A) (l2 : list B)
+      : GTerm.t n :=
+      match l1, l2 with
+      | [], [] => emp
+      | x1 :: l1, x2 :: l2 => (f 0 x1 x2) ∗ (syn_big_sepL2 (λ m, f (S m)) l1 l2)
+      | _, _ => ⌜False⌝
+      end.
   End derived.
 
   Module Import notations_derived.
@@ -309,6 +317,11 @@ Module SPropBi.
 
     Notation "'[∗' 'mset]' x ∈ X , P" :=
       (syn_big_sepMS (λ x, P)%SAT X) : SAT_scope.
+
+    Notation "'[∗' 'list]' k ↦ x1 ; x2 ∈ l1 ; l2 , P" :=
+      (syn_big_sepL2 (λ k x1 x2, P)%SAT l1 l2) : SAT_scope.
+    Notation "'[∗' 'list]' x1 ; x2 ∈ l1 ; l2 , P" :=
+      (syn_big_sepL2 (λ _ x1 x2, P)%SAT l1 l2) : SAT_scope.
   End notations_derived.
 
   Section reduction.
@@ -416,6 +429,11 @@ Module SPropBi.
       (∀ x, SLRed n (f x) (P x)) →
       SLRed n ([∗ mset] x ∈ X, f x) ([∗ mset] x ∈ X, P x).
     Proof. rewrite big_op.big_opMS_unseal /big_op.big_opMS_def. apply _. Qed.
+
+    Global Instance sepL2_red {n A B} f P (l1 : list A) (l2 : list B) :
+      (∀ k a b, SLRed n (f k a b) (P k a b)) →
+      SLRed n ([∗ list] k ↦ x1 ; x2 ∈ l1 ; l2 , f k x1 x2) ([∗ list] k ↦ x1 ; x2 ∈ l1 ; l2 , P k x1 x2).
+    Proof. revert l2 f P. induction l1; intros []; solve_base_sl_red. Qed.
 
     Lemma and_red_base n p q :
       ⟦p ∧ q, n⟧ ⊣⊢ ⟦ p ⟧ ∧ ⟦ q ⟧.
