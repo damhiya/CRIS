@@ -56,6 +56,7 @@ Module ST. Section ST.
   | sumT : type → type → type
   | listT : type → type
   | gmapT : type → type (* TODO: From Rocq 9.0.0, can use generic keytype. *)
+  | qp_gmapT : type → type (* TODO: From Rocq 9.0.0, can use generic keytype. *)
   | metaT : type
   .
 
@@ -68,6 +69,7 @@ Module ST. Section ST.
     | sumT ty1 ty2 => sum (interp ty1 sProp) (interp ty2 sProp)
     | listT ty1 => list (interp ty1 sProp)
     | gmapT ty1 => gmap positive (interp ty1 sProp)
+    | qp_gmapT ty1 => gmap Qp (interp ty1 sProp)
     | metaT => Type
     end.
 
@@ -324,6 +326,20 @@ Module SPropBi.
       (syn_big_sepL2 (λ _ x1 x2, P)%SAT l1 l2) : SAT_scope.
   End notations_derived.
 
+  Section big_sepM2.
+    Context `{!G PROP α β τ}.
+    Local Definition syn_big_sepM2 `{Countable K} {n A B}
+      (P : K → A → B → GTerm.t n) (m1 : gmap K A) (m2 : gmap K B) : GTerm.t n :=
+    ⌜ dom m1 = dom m2 ⌝ ∧ [∗ map] k ↦ xy ∈ map_zip m1 m2, P k xy.1 xy.2.
+  End big_sepM2.
+
+  Module Import big_sepM2_notations.
+    Notation "'[∗' 'map]' k ↦ x1 ; x2 ∈ m1 ; m2 , P" :=
+      (syn_big_sepM2 (λ k x1 x2, P)%SAT m1 m2) : SAT_scope.
+    Notation "'[∗' 'map]' x1 ; x2 ∈ m1 ; m2 , P" :=
+      (syn_big_sepM2 (λ _ x1 x2, P)%SAT m1 m2) : SAT_scope.
+  End big_sepM2_notations.
+
   Section reduction.
     Context `{!G PROP α β τ}.
 
@@ -432,8 +448,18 @@ Module SPropBi.
 
     Global Instance sepL2_red {n A B} f P (l1 : list A) (l2 : list B) :
       (∀ k a b, SLRed n (f k a b) (P k a b)) →
-      SLRed n ([∗ list] k ↦ x1 ; x2 ∈ l1 ; l2 , f k x1 x2) ([∗ list] k ↦ x1 ; x2 ∈ l1 ; l2 , P k x1 x2).
+      SLRed n
+        ([∗ list] k ↦ x1 ; x2 ∈ l1 ; l2 , f k x1 x2)
+        ([∗ list] k ↦ x1 ; x2 ∈ l1 ; l2 , P k x1 x2).
     Proof. revert l2 f P. induction l1; intros []; solve_base_sl_red. Qed.
+
+    Global Instance sepM2_red `{Countable K} {n A B} f P
+      (m1 : gmap K A) (m2 : gmap K B) :
+      (∀ k a b, SLRed n (f k a b) (P k a b)) →
+      SLRed n
+        ([∗ map] k ↦ x1 ; x2 ∈ m1 ; m2 , f k x1 x2)
+        ([∗ map] k ↦ x1 ; x2 ∈ m1 ; m2 , P k x1 x2).
+    Proof. rewrite big_op.big_sepM2_unseal /big_op.big_sepM2_def. solve_base_sl_red. Qed.
 
     Lemma and_red_base n p q :
       ⟦p ∧ q, n⟧ ⊣⊢ ⟦ p ⟧ ∧ ⟦ q ⟧.
