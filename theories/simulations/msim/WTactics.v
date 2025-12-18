@@ -11,7 +11,8 @@ Ltac _wstep_l :=
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _) _) ] =>
       let name := fresh "_q" in iApply wsim_take_src; iIntros (name)
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Assume ?P) >>= _) _) ] =>
-      first [
+      unfold_pre_post_term P; iApply wsim_assume_src; iIntrosFresh "ASM"
+      (* first [
         tcsearch constr:(WP P)
           ltac:(fun c =>
             iApply (wsim_assume_src_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); simpl);
@@ -20,16 +21,16 @@ Ltac _wstep_l :=
           unfold_pre_post_term P'; iIntrosFresh "ASM"
         end
       | unfold_pre_post_term P; iApply wsim_assume_src; iIntrosFresh "ASM"
-      ]
+      ] *)
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (AssumeRes _) >>= _) _) ] =>
       iApply wsim_assume_res_src; iIntrosFresh "ASM"
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _) _) ] =>
       let name := fresh "asm" in iApply wsim_asm_src; iIntros (name)
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, (SB.sandbox _ _ _ (trigger (SPut _ _))) >>= _) _) ] =>
+  (* | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, (SB.sandbox _ _ _ (trigger (SPut _ _))) >>= _) _) ] =>
       iApply wsim_nodup_src; iIntros (?); iApply wsim_sput_src_sandbox; [s;eauto|alist_upd_simpl]
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, (SB.sandbox _ _ _ (trigger (SGet _))) >>= _) _) ] =>
       let name := fresh "NODS" in
-      iApply wsim_nodup_src; iIntros (name); iApply wsim_sget_src_sandbox; [s;eauto|alist_find_simpl]; clear name
+      iApply wsim_nodup_src; iIntros (name); iApply wsim_sget_src_sandbox; [s;eauto|alist_find_simpl]; clear name *)
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, unwrapU ?ox >>= _) _) ] =>
       let name := fresh "_q" in
       iApply wsim_unwrapU_src; iIntros (name) "%";
@@ -60,7 +61,7 @@ Ltac _wstep_r :=
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose _) >>= _) ) ] =>
       let name := fresh "_q" in iApply wsim_choose_tgt; iIntros (name)
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _) ) ] =>
-      first [
+      (* first [
         tcsearch constr:(WP P)
           ltac:(fun c =>
             iApply (wsim_guarantee_tgt_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); simpl);
@@ -69,14 +70,15 @@ Ltac _wstep_r :=
             unfold_pre_post_term P'; iIntrosFresh "GRT"
         end
       | unfold_pre_post_term P; iApply wsim_guarantee_tgt; iIntrosFresh "GRT"
-      ]
+      ] *)
+      unfold_pre_post_term P; iApply wsim_guarantee_tgt; iIntrosFresh "GRT"
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, guarantee _ >>= _)) ] =>
       let name := fresh "grt" in iApply wsim_guar_tgt; iIntros (name)
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, (SB.sandbox _ _ _ (trigger (SPut _ _))) >>= _)) ] =>
+  (* | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, (SB.sandbox _ _ _ (trigger (SPut _ _))) >>= _)) ] =>
       iApply wsim_nodup_tgt; iIntros (?); iApply wsim_sput_tgt_sandbox; [s; eauto|alist_upd_simpl]
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, (SB.sandbox _ _ _ (trigger (SGet _))) >>= _)) ] =>
       let name := fresh "NODT" in
-      iApply wsim_nodup_tgt; iIntros (NODT); iApply wsim_sget_tgt_sandbox; [s; eauto|alist_find_simpl]; clear name
+      iApply wsim_nodup_tgt; iIntros (NODT); iApply wsim_sget_tgt_sandbox; [s; eauto|alist_find_simpl]; clear name *)
   end.
 
 Ltac wstep_r_core :=
@@ -111,7 +113,8 @@ Ltac _wforce_l :=
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose ?T) >>= _) _) ] =>
       iApply wsim_choose_src
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _) _) ] =>
-      first [
+      unfold_pre_post_term P; iApply wsim_guarantee_src
+      (* first [
         tcsearch constr:(WP P)
           ltac:(fun c =>
           iApply (wsim_guarantee_src_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); [try set_solver|try set_solver|simpl WP_space]);
@@ -120,7 +123,7 @@ Ltac _wforce_l :=
           unfold_pre_post_term P'
         end
       | unfold_pre_post_term P; iApply wsim_guarantee_src
-      ]
+      ] *)
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, unwrapN _ >>= _) _) ] =>
       iApply wsim_unwrapN_src
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, guarantee _ >>= _) _) ] =>
@@ -144,7 +147,7 @@ Ltac _wforce_r :=
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _)) ] =>
       iApply wsim_take_tgt
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Assume ?P) >>= _)) ] =>
-      first [
+      (* first [
         tcsearch constr:(WP P)
           ltac:(fun c =>
             unshelve iApply (wsim_assume_tgt_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); s;
@@ -156,7 +159,8 @@ Ltac _wforce_r :=
         | [ |- environments.envs_entails _ (?P' ∗ _)] =>
           unfold_pre_post_term P'
         end
-      | unfold_pre_post_term P; iApply wsim_assume_tgt ]
+      | unfold_pre_post_term P; iApply wsim_assume_tgt ] *)
+    unfold_pre_post_term P; iApply wsim_assume_tgt
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (AssumeRes _) >>= _)) ] =>
       iApply wsim_assume_res_tgt
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _)) ] =>
@@ -180,19 +184,19 @@ Ltac wforces_r :=
 
 Ltac winline_l :=
   norm_l with
-    do 1 iApply wsim_inline_src_sandbox; [try prove_inline_cond|unfold_cris_defs].
+    do 1 iApply wsim_inline_src; [try prove_inline_cond|unfold_cris_defs].
 
 Ltac winline_r :=
   norm_r with
-    do 1 iApply wsim_inline_tgt_sandbox; [try prove_inline_cond|try prove_sb_cond|unfold_cris_defs].
+    do 1 iApply wsim_inline_tgt; [try prove_inline_cond|try prove_sb_cond|unfold_cris_defs].
 
 Ltac wcall hyps :=
-  (norm with do 1 iApply wsim_call_sandbox); [try prove_sb_cond|
+  (norm with do 1 iApply wsim_call); [try prove_sb_cond|
   iSplitL hyps; [try done| iIntros "% % %"; iIntrosFresh "IST"];
   move_aux].
 
 Ltac wspawn :=
-  (norm with do 1 iApply wsim_spawn_sandbox); [try prove_sb_cond|].
+  (norm with do 1 iApply wsim_spawn); [try prove_sb_cond|].
 
 Ltac wyield hyps :=
   (norm with do 1 iApply wsim_yield);

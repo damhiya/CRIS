@@ -1,46 +1,17 @@
 Require Import Common.
 From iris.proofmode Require Import proofmode.
 
-(* TODO : generalize sandbox for all events *)
-Set Implicit Arguments.
-
 (* Function specifications *)
 Section fspec.
   Context {Σ : GRA}.
 
-  (* CRIS specification of functions *)
-  (* parameterize fspecs with nat * namespace by default, which is for tid and invariant masks *)
+  (** CRIS specification of functions *)
   Record fspec : Type := fspec_mk {
     meta : Type;
     precond : (namespace * nat) → meta → Any.t → Any.t → iProp Σ;
     postcond : (namespace * nat) → meta → Any.t → Any.t → iProp Σ;
   }.
-
-  (* Definition meta (fsp : fspec) : Type :=
-    match fsp with
-    | @fspec_call meta _ _ => meta
-    | @fspec_spawn meta _ _ => nat * meta
-    end. *)
-
-  (* Definition meta' (fsp: fspec) : Type :=
-    match fsp with
-    | @fspec_call meta _ _ => meta
-    | @fspec_spawn meta _ _ => meta
-    end. *)
-
-  (* Definition precond (fsp : fspec) : meta fsp → Any.t → Any.t → iProp Σ :=
-    match fsp with
-    | fspec_call pre _
-    | fspec_spawn pre _ => pre
-    end. *)
-
-  (* Definition postcond (fsp : fspec) : meta fsp → Any.t → Any.t → iProp Σ :=
-    match fsp with
-    | fspec_call _ post
-    | fspec_spawn _ post => post
-    end. *)
-
-  (* Definition fspecbody : Type := fspec * fbody. *)
+  Arguments fspec_mk {meta} precond postcond.
 
   Definition fspec_trivial : fspec :=
     @fspec_mk unit

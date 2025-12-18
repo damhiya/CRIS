@@ -54,7 +54,7 @@ Ltac ru_r :=
  unfold_lat
 *)
 
-Lemma unfold_lat_img `{Σ:GRA} peeking fsp lbody body arg:
+(* Lemma unfold_lat_img `{Σ:GRA} peeking fsp lbody body arg:
   lat_img peeking fsp lbody body arg =
     r <- lat_img_body peeking fsp lbody body arg;;
     match r with
@@ -114,4 +114,4 @@ Ltac unfold_lat_real_r :=
   only_itree_r;
   rewrite {1}unfold_lat_real {1}/lat_real_body;
   show_until marker;
-  steps_r.
+  steps_r. *)

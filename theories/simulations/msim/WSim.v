@@ -6,7 +6,7 @@ Require Import TacticsCommon.
 Require Export MSimCommon.
 
 (* Typeclass definition to streamline assume/guarantee processing *)
-Class WP `{!crisG Γ Σ α β τ _S _I} (P : iProp Σ) := mk_WP {
+(* Class WP `{!crisG Γ Σ α β τ _S _I} (P : iProp Σ) := mk_WP {
   WP_space : coPset;
   WP_remainder : iProp Σ;
   WP_iff : P ∗-∗ winv (WP_space, WP_space) ∗ WP_remainder
@@ -28,12 +28,12 @@ Next Obligation. intros; iSplit; iIntros "[$ $]". Qed.
 Program Global Instance fspec_winv_postcond `{!crisG Γ Σ α β τ _S _I} (fsp : fspec) E m arg varg :
   WP (postcond (fspec_winv E fsp) m arg varg) :=
   {| WP_space := E; WP_remainder := (postcond fsp m arg varg) |}.
-Next Obligation. intros; iSplit; iIntros "[$ $]". Qed.
+Next Obligation. intros; iSplit; iIntros "[$ $]". Qed. *)
 
 Section wsim.
   Context `{!crisG Γ Σ α β τ _S _I}.
 
-  Local Definition state : Type := alist key Any.t.
+  Local Definition state : Type := gmap key (option Any.t).
   Local Definition post (R_s R_t : Type) : Type := state * R_s → state * R_t → iProp Σ.
   Local Definition rel : Type := ∀ R_s R_t : Type,
     post R_s R_t → bool → bool → state * itree crisE R_s → state * itree crisE R_t → iProp Σ.
@@ -45,7 +45,7 @@ Section wsim.
   Local Definition wsim_eq : @wsim = @wsim_def := wsim_aux.(seal_eq).
   Local Ltac unseal := rewrite wsim_eq /wsim_def.
 
-  Context (fl_s fl_t : alist (option string) (Any.t → itree crisE Any.t)).
+  Context (fl_s fl_t : gmap (option string) (option (Any.t → itree crisE Any.t))).
   Context (Ist : ist_type Σ).
   Context (R_s R_t : Type).
 
@@ -78,7 +78,7 @@ Section wsim.
     iIntros (???) "IST". iApply ("CONT" with "[IST]"); et; iFrame.
   Qed.
 
-  Lemma wsim_call_sandbox k_s k_t fn arg img_src img_tgt (msk_src msk_tgt:_→bool) scp_src scp_tgt:
+  (* Lemma wsim_call_sandbox k_s k_t fn arg img_src img_tgt (msk_src msk_tgt:_→bool) scp_src scp_tgt:
     (msk_src fn → msk_tgt fn) →
     Ist st_s st_t ∗
     (∀ ret st_s' st_t',
@@ -91,7 +91,7 @@ Section wsim.
     iIntros (???) "IST".
     iSpecialize ("RR" $! vret _ _).
     iApply ("RR" with "IST I").
-  Qed.
+  Qed. *)
 
   Lemma wsim_io fn I O (arg : I) k_s k_t :
     (∀ (ret : O),
@@ -112,15 +112,14 @@ Section wsim.
   Proof using. unseal; iIntros "RR I". iApply isim_tau_tgt; iApply "RR"; iFrame. Qed.
 
   Lemma wsim_inline_src fn arg f_s k_s i_t :
-    alist_find (Some fn) fl_s = Some f_s →
+    fl_s !! (Some fn) = Some (Some f_s) →
     sim Ep r g RR true pt
       (st_s, x <- (ret <- (f_s arg);; (tau;; Ret ret));; (k_s x))
-      (st_t, i_t)
-    ⊢
+      (st_t, i_t) ⊢
     sim Ep r g RR ps pt (st_s, trigger (Call fn arg) >>= k_s) (st_t, i_t).
   Proof using. i; unseal; iIntros "RR I". iApply isim_inline_src; eauto. iApply "RR"; iFrame. Qed.
 
-  Lemma wsim_inline_src_sandbox fn arg f_s k_s i_t img (msk:_→bool) scp:
+  (* Lemma wsim_inline_src_sandbox fn arg f_s k_s i_t img (msk:_→bool) scp:
     alist_find (Some fn) fl_s = Some f_s →
     sim Ep r g RR true pt
       (st_s, x <- (ret <- (f_s arg);; (tau;; Ret ret));; (k_s x))
@@ -129,18 +128,17 @@ Section wsim.
   Proof using.
     i. unseal. iIntros "RR I". iApply isim_inline_src_sandbox; et.
     iApply ("RR" with "I").
-  Qed.
+  Qed. *)
 
   Lemma wsim_inline_tgt fn arg i_s f_t k_t :
-    alist_find (Some fn) fl_t = Some f_t →
+    fl_t !! (Some fn) = Some (Some f_t) →
     sim Ep r g RR ps true
       (st_s, i_s)
-      (st_t, x <- (ret <- (f_t arg);; (tau;; Ret ret));; (k_t x))
-    ⊢
+      (st_t, x <- (ret <- (f_t arg);; (tau;; Ret ret));; (k_t x)) ⊢
     sim Ep r g RR ps pt (st_s, i_s) (st_t, trigger (Call fn arg) >>= k_t).
   Proof using. i; unseal; iIntros "RR I". iApply isim_inline_tgt; eauto. iApply "RR"; iFrame. Qed.
 
-  Lemma wsim_inline_tgt_sandbox fn arg i_s f_t k_t img (msk:_→bool) scp:
+  (* Lemma wsim_inline_tgt_sandbox fn arg i_s f_t k_t img (msk:_→bool) scp:
     alist_find (Some fn) fl_t = Some f_t →
     (msk fn) →
     sim Ep r g RR ps true
@@ -150,7 +148,7 @@ Section wsim.
     sim Ep r g RR ps pt (st_s, i_s) (st_t, SB.sandbox img msk scp (trigger (Call fn arg)) >>= k_t).
   Proof using.
     i. iIntros "ISIM". rewrite SBRed.call. des_ifs; ss. iApply wsim_inline_tgt; eauto.
-  Qed.
+  Qed. *)
   
   Lemma wsim_take_src X k_s i_t :
     (∀ x, sim Ep r g RR true pt (st_s, k_s x) (st_t, i_t)) ⊢
@@ -181,22 +179,22 @@ Section wsim.
   Qed.
 
   Lemma wsim_sput_src k v k_s i_t :
-    sim Ep r g RR true pt (alist_upd k v st_s, k_s tt) (st_t, i_t) ⊢
+    sim Ep r g RR true pt (<[k:=Some v]> st_s, k_s tt) (st_t, i_t) ⊢
     sim Ep r g RR ps pt (st_s, trigger (SPut k v) >>= k_s) (st_t, i_t).
   Proof using. unseal; iIntros "RR I". iApply isim_sput_src; eauto. iApply "RR"; iFrame. Qed.
 
   Lemma wsim_sput_tgt k v i_s k_t :
-    sim Ep r g RR ps true (st_s, i_s) (alist_upd k v st_t, k_t tt) ⊢
+    sim Ep r g RR ps true (st_s, i_s) (<[k:=Some v]> st_t, k_t tt) ⊢
     sim Ep r g RR ps pt (st_s, i_s) (st_t, trigger (SPut k v) >>= k_t).
   Proof using. unseal; iIntros "RR I". iApply isim_sput_tgt; eauto. iApply "RR"; iFrame. Qed.
 
   Lemma wsim_sget_src k k_s i_t :
-    sim Ep r g RR true pt (st_s, k_s (or_else (alist_find k st_s) tt↑)) (st_t, i_t) ⊢
+    sim Ep r g RR true pt (st_s, k_s (default tt↑ (mjoin (st_s !! k)))) (st_t, i_t) ⊢
     sim Ep r g RR ps pt (st_s, trigger (SGet k) >>= k_s) (st_t, i_t).
   Proof using. unseal; iIntros "RR I". iApply isim_sget_src; eauto. iApply "RR"; iFrame. Qed.
 
   Lemma wsim_sget_tgt k i_s k_t :
-    sim Ep r g RR ps true (st_s, i_s) (st_t, k_t (or_else (alist_find k st_t) tt↑)) ⊢
+    sim Ep r g RR ps true (st_s, i_s) (st_t, k_t (default tt↑ (mjoin (st_t !! k)))) ⊢
     sim Ep r g RR ps pt (st_s, i_s) (st_t, trigger (SGet k) >>= k_t).
   Proof using. unseal; iIntros "RR I". iApply isim_sget_tgt; eauto. iApply "RR"; iFrame. Qed.
 
@@ -253,7 +251,7 @@ Section wsim.
       (st_t, trigger (Spawn fn args) >>= k_t).
   Proof using. unseal; iIntros "C I". iApply isim_spawn; eauto. iIntros "%"; iApply "C". ss. Qed.
 
-  Lemma wsim_spawn_sandbox fn args k_s k_t img_src img_tgt (msk_src msk_tgt:_→bool) scp_src scp_tgt:
+  (* Lemma wsim_spawn_sandbox fn args k_s k_t img_src img_tgt (msk_src msk_tgt:_→bool) scp_src scp_tgt:
     (msk_src fn → msk_tgt fn) →
     (∀ tid, sim Ep r g RR true true (st_s, k_s tid) (st_t, k_t tid)) ⊢
     sim Ep r g RR ps pt
@@ -261,7 +259,7 @@ Section wsim.
       (st_t, SB.sandbox img_tgt msk_tgt scp_tgt (trigger (Spawn fn args)) >>= k_t).
   Proof using.
     i. unseal. iIntros "RR I". iApply isim_spawn_sandbox; et. iIntros (?); iApply ("RR" with "I").
-  Qed.
+  Qed. *)
 
   Lemma wsim_yield tid k_s k_t :
     Ist st_s st_t ∗
@@ -340,7 +338,7 @@ Section wsim.
   Qed.
 
   (* Lemmas that use WP typeclasses *)
-  Lemma wsim_guarantee_src_WP `{i : !WP P} k_s i_t Ew E :
+  (* Lemma wsim_guarantee_src_WP `{i : !WP P} k_s i_t Ew E :
     let EP := WP_space i in
     EP ⊆ Ew → EP ⊆ E →
     (WP_remainder i ∗
@@ -401,7 +399,7 @@ Section wsim.
     with "[I P1]" as "> I".
     { destruct Ep as [??]; ss; iPoseProof (winv_merge with "[I P1]") as "[$ _]"; iFrame. }
     iApply ("SIM" with "P2"); ss.
-  Qed.
+  Qed. *)
 
   (* Derived lemmas *)
   Lemma wsim_unwrapU_src X (x : option X) k_s i_t :
@@ -414,14 +412,11 @@ Section wsim.
   Qed.
 
   Lemma wsim_unwrapN_src X (x : option X) k_s i_t :
-    (∃ x', ⌜x = Some x'⌝ ∗
-      sim Ep r g RR ps pt
-        (st_s, k_s x') (st_t, i_t)) ⊢
-    sim Ep r g RR ps pt
-      (st_s, unwrapN x >>= k_s) (st_t, i_t).
+    (∃ x', ⌜x = Some x'⌝ ∗ sim Ep r g RR ps pt (st_s, k_s x') (st_t, i_t)) ⊢
+    sim Ep r g RR ps pt (st_s, unwrapN x >>= k_s) (st_t, i_t).
   Proof using. iIntros "H". iDestruct "H" as (x') "[% H]". subst. ired. iApply "H". Qed.
 
-  Lemma wsim_sput_src_sandbox img msk scp k v k_s i_t :
+  (* Lemma wsim_sput_src_sandbox img msk scp k v k_s i_t :
     In k.1 scp →
     sim Ep r g RR true pt
       (alist_upd k v st_s, k_s tt) (st_t, i_t) ⊢
@@ -453,9 +448,9 @@ Section wsim.
       { exists k.1; split; ss. apply String.eqb_refl. }
       { i; clarify. }
     }
-  Qed.
+  Qed. *)
 
-  Lemma wsim_sput_tgt_sandbox img msk scp k v i_s k_t :
+  (* Lemma wsim_sput_tgt_sandbox img msk scp k v i_s k_t :
     In k.1 scp →
     sim Ep r g RR ps true
       (st_s, i_s) (alist_upd k v st_t, k_t tt) ⊢
@@ -487,7 +482,7 @@ Section wsim.
       { exists k.1; split; ss. apply String.eqb_refl. }
       { i; clarify. }
     }
-  Qed.
+  Qed. *)
 
   Lemma wsim_asm_src (P : Prop) k_s i_t :
     (⌜P⌝ -∗ (sim Ep r g RR true pt (st_s, k_s tt) (st_t, i_t))) ⊢
@@ -526,40 +521,32 @@ Section wsim.
       (MON1 : ∀ Rs Rt RR ps pt sti_src sti_tgt,
         @g0 Rs Rt RR ps pt sti_src sti_tgt ⊢ |==> @g Rs Rt RR ps pt sti_src sti_tgt) :
     sim Ep r0 g0 RR ps pt (st_s, i_s) (st_t, i_t) ⊢ sim Ep r g RR ps pt (st_s, i_s) (st_t, i_t).
-  Proof using.
-    unseal. iIntros "SIM I". iApply isim_mono_knowledge; et. iApply "SIM". et.
-  Qed.
+  Proof using. unseal. iIntros "SIM I". iApply isim_mono_knowledge; et. iApply "SIM". et. Qed.
 
   Lemma wsim_mono RR0 i_s i_t
       (MONO : ∀ st_src st_tgt ret_src ret_tgt,
         RR0 (st_src, ret_src) (st_tgt, ret_tgt) ⊢ RR (st_src, ret_src) (st_tgt, ret_tgt)) :
     sim Ep r g RR0 ps pt (st_s, i_s) (st_t, i_t) ⊢ sim Ep r g RR ps pt (st_s, i_s) (st_t, i_t).
-  Proof using.
-    unseal. iIntros "SIM I". iApply isim_mono; et. iApply "SIM". et.
-  Qed.
+  Proof using. unseal. iIntros "SIM I". iApply isim_mono; et. iApply "SIM". et. Qed.
   
   Lemma wsim_nodup_src i_s i_t:
-    (∀ (NODS : List.NoDup (List.map fst st_s)),
-      sim Ep r g RR ps pt (st_s, i_s) (st_t, i_t))
-    ⊢ sim Ep r g RR ps pt (st_s, i_s) (st_t, i_t).
+    (∀ (NODS : map_Forall (const is_Some) st_s), sim Ep r g RR ps pt (st_s, i_s) (st_t, i_t)) ⊢
+    sim Ep r g RR ps pt (st_s, i_s) (st_t, i_t).
   Proof using.
     unseal; iIntros "SIM I". iApply isim_nodup_src; eauto.
     iIntros (?). iApply "SIM"; eauto.
   Qed.
 
   Lemma wsim_nodup_tgt i_s i_t:
-    (∀ (NODT : List.NoDup (List.map fst st_t)),
-      sim Ep r g RR ps pt (st_s, i_s) (st_t, i_t))
-    ⊢ sim Ep r g RR ps pt (st_s, i_s) (st_t, i_t).
+    (∀ (NODT : map_Forall (const is_Some) st_t), sim Ep r g RR ps pt (st_s, i_s) (st_t, i_t)) ⊢
+    sim Ep r g RR ps pt (st_s, i_s) (st_t, i_t).
   Proof using.
     unseal; iIntros "SIM I". iApply isim_nodup_tgt; eauto.
     iIntros (?). iApply "SIM"; eauto.
   Qed.
 
   Lemma wsim_init_winv i_s i_t Ew E Ew' E':
-    (winv (Ew', E') ∗
-     sim (Ew ∪ Ew', E ∪ E') r g RR ps pt (st_s, i_s) (st_t, i_t))
-    ⊢
+    (winv (Ew', E') ∗ sim (Ew ∪ Ew', E ∪ E') r g RR ps pt (st_s, i_s) (st_t, i_t)) ⊢
     sim (Ew, E) r g RR ps pt (st_s, i_s) (st_t, i_t).
   Proof using.
     unseal; iIntros "[P SIM] I".
@@ -568,16 +555,16 @@ Section wsim.
   Qed.
 
   Lemma wsim_upd i_s i_t:
-    ( |==> sim Ep r g RR ps pt (st_s, i_s) (st_t, i_t))
-    ⊢ sim Ep r g RR ps pt (st_s, i_s) (st_t, i_t).
+    ( |==> sim Ep r g RR ps pt (st_s, i_s) (st_t, i_t)) ⊢
+    sim Ep r g RR ps pt (st_s, i_s) (st_t, i_t).
   Proof using.
     unseal. iIntros "SIM W". iApply isim_upd.
     iMod "SIM". iModIntro. iApply "SIM"; et.
   Qed.
 
   Lemma wsim_fupd m Ew E1 E2 i_s i_t :
-    =|m, Ew|={E2, E1}=> sim (Ew, E1) r g RR ps pt (st_s, i_s) (st_t, i_t)
-    ⊢ sim (Ew, E2) r g RR ps pt (st_s, i_s) (st_t, i_t).
+    =|m, Ew|={E2, E1}=> sim (Ew, E1) r g RR ps pt (st_s, i_s) (st_t, i_t) ⊢
+    sim (Ew, E2) r g RR ps pt (st_s, i_s) (st_t, i_t).
   Proof using.
     unseal; iIntros "SIM [O [E [%n [WA W]]]]".
     set (nm := n `max` m).
@@ -713,7 +700,7 @@ Global Arguments wsim_own_alloc {Γ Σ α β _S _I fl_s fl_t Ist R_s R_t r g RR 
 Section FancyReal.
   Context `{!crisG Γ Σ α β τ _S _I}.
 
-  Context (fl_s fl_t : alist (option string) (Any.t → itree crisE Any.t)).
+  Context (fl_s fl_t : gmap (option string) (option (Any.t → itree crisE Any.t))).
   Context (Ist : ist_type Σ).
   Context (R_s R_t : Type).
 
@@ -785,3 +772,4 @@ Section FancyReal.
     iApply isim_ru_tgt_simple; iFrame "Hpre"; iIntros "?"; iApply ("Hsim" with "[$] [$]").
   Qed.
 End FancyReal.
+0

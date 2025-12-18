@@ -1,17 +1,17 @@
 Require Import Common.
 From iris.proofmode Require Import proofmode.
 Require Import Mod.
-Require Import ISim ISimFacts.
+Require Import MSimCommon ISim ISimFacts.
 Require Import CtxRefine MainAdequacy.
 Require Import Tactics TacticsInit.
 
-Set Implicit Arguments.
+(* Set Implicit Arguments. *)
 
 (*******
   Commutativity Proof
  *******)
 
-Definition perm_Ist `{Σ: GRA} : alist key Any.t -> alist key Any.t -> iProp Σ :=
+(* Definition perm_Ist `{Σ: GRA} : alist key Any.t -> alist key Any.t -> iProp Σ :=
   λ l0 l1, ⌜l0 ≡ₚ l1⌝%I.  
 
 Lemma alist_upd_perm {K V} l0 l1 `{Dec K} (k : K) (v : V)
@@ -71,21 +71,24 @@ Proof.
   rewrite map_app in NODUP.
   exfalso.
   eapply NoDup_app_disjoint in NODUP; eauto.
-Qed.
+Qed. *)
 
 Section CtxRefineFacts.
-Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
 
-Lemma mod_add_scopes md0 md1:
-  Mod.scopes (md0 ★ md1) = Mod.scopes md0 ++ Mod.scopes md1.
-Proof using. ss. Qed.
+  Lemma mod_add_scopes md0 md1:
+    Mod.scopes (md0 ★ md1) = Mod.scopes md0 ++ Mod.scopes md1.
+  Proof using. ss. Qed.
 
-Lemma mod_add_comm contextual ms0 ms1:
-  ISim.t contextual (ms0 ★ ms1) (ms1 ★ ms0) (emp%I)
-    (IstSB (Mod.scopes (ms0 ★ ms1)) perm_Ist).
-Proof using.
-  econs; ss; i.
-  { apply sub_perm_comm. }
+  Lemma mod_add_comm contextual (ms0 ms1 : Mod.t) :
+    ISim.t contextual (ms0 ★ ms1) (ms1 ★ ms0) emp%I (IstSB (Mod.scopes (ms0 ★ ms1)) IstEq).
+  Proof using.
+    econs; ss; intros Hwf.
+    { apply Permutation_submseteq, Permutation_app_comm. }
+    { iIntros "_"; iSplit; cycle 1.
+      { iPureIntro. eapply fin_maps.union_with_comm; ss. }
+      { admit. }
+    }
   { rewrite ?map_app; i. apply sub_perm_comm. }
   { ii. ss. rewrite !map_app !alist_find_app_o in H0 |- *.
     des_ifs. esplits; et.
