@@ -21,14 +21,14 @@ Module SMod. Section Smod.
       (* forall fn, incl (fnsems_scopes fn fnsems) scopes; *)
     well_scoped_init :
       (elements (dom initial_st)).*1 ⊆ scopes;
-    (* nodup_init:
-      List.NoDup scopes -> List.NoDup (List.map fst initial_st); *)
+    nodup_init :
+      NoDup scopes → map_Forall (const is_Some) initial_st;
   }.
 
-  (* Definition cancellable (ms : t) : Prop :=
-    ∀ fno img msk scp fspo bd
-      (FIND: alist_find fno (fnsems ms) = Some (img, msk, scp, (fspo, bd))),
-      img = true ∧ is_some fspo ∧ (fno = None → fspo = Some (fspec_trivial)). *)
+  Definition cancellable (ms : t) (sp: specmap) : Prop :=
+    ∀ fno msk fspo bd
+      (FIND: (fnsems ms) !! fno = Some (Some (msk, (fspo, bd)))),
+      (img_msk msk) ∧ (speckey_concE ∈ dom sp) ∧ (fno = None → fspo = Some (fspec_trivial)).
 
   (**** Linking ****)
   Program Definition empty : t := {|
@@ -38,7 +38,7 @@ Module SMod. Section Smod.
   |}.
   Next Obligation. ii; ss. Qed.
   Next Obligation. ii; ss. Qed.
-  (* Next Obligation. econs. Qed. *)
+  Next Obligation. ii; ss. Qed.
 
   Program Definition add ms1 ms2 : t := {|
     scopes := (scopes ms1) ++ (scopes ms2);
@@ -70,24 +70,48 @@ Module SMod. Section Smod.
       rewrite elem_of_elements elem_of_dom //.
     }
   Qed.
+  Next Obligation.
+    intros ms1 ms2 [Hnodup1%ms1 [Hdisj Hnodup2%ms2]]%NoDup_app.
+    rewrite map_Forall_lookup; intros [scp nm] x; rewrite lookup_union_with.
+    destruct (_ ms1 !! _) eqn : Hms1.
+    { destruct (_ ms2 !! _) eqn : Hms2; ss; cycle 1.
+      { i; clarify. rewrite map_Forall_lookup in Hnodup1; eapply Hnodup1 in Hms1; destruct x; ss. }
+      exfalso; hexploit (Hdisj scp).
+      { apply (well_scoped_init ms1).
+        apply elem_of_list_fmap; exists (scp, nm); split; ss.
+        rewrite elem_of_elements elem_of_dom Hms1 //.
+      }
+      { intros Hf; apply Hf.
+        apply (well_scoped_init ms2).
+        apply elem_of_list_fmap; exists (scp, nm); split; ss.
+        rewrite elem_of_elements elem_of_dom Hms2 //.
+      }
+    }
+    destruct (_ ms2 !! _) eqn : Hms2; ss; cycle 1.
+    { i; clarify. rewrite map_Forall_lookup in Hnodup2; eapply Hnodup2 in Hms2; destruct x; ss. }
+  Qed.
 
   (* TODO *)
-  (* Definition addL (ms : list t) : t := foldr add empty ms. *)
+  Definition addL (ms : list t) : t := foldr add empty ms.
 
-  (* Program Definition to_mod (sp : sp_type) (ms : t) : Mod.t := {|
-    scopes := ms.(scopes);
-    (* fnsems := List.map (map_snd (SModTr.trans_fnsem sp)) ms.(fnsems); *)
-    fnsems := List.map (map_snd (SModTr.trans_fnsem sp)) ms.(fnsems);
-    initial_st := ms.(initial_st);
-  |}. *)
-  (* Next Obligation.
-    i. destruct ms. ss. ii. unfold fnsems_scopes in *. unfold map_snd in *.
-    rewrite alist_find_map in H0. specialize (well_scoped_fns0 fn a).
-    destruct (alist_find fn fnsems0) eqn: E; ss.
-    destruct f. destruct p. destruct p0. et.
+  Program Definition to_mod (sp : specmap) (ms : t) : Mod.t := {|
+    Mod.scopes := ms.(scopes);
+    Mod.fnsems := fmap (option_map (map_snd (SModTr.trans_fnsem sp))) ms.(fnsems);
+    Mod.initial_st := ms.(initial_st);
+  |}.
+  Next Obligation.
+    intros sp ms fno [msk p].
+    rewrite lookup_omap lookup_fmap. destruct (fnsems ms !! fno) eqn: Heq; intros FIND; ss.
+    destruct o as [[msk0 [fspo p0]]|]; ss. inv FIND.
+    hexploit (well_scoped_fns ms). i. unfold map_Forall in H0. specialize (H0 fno (msk, (fspo, p0))).
+    eapply H0. rewrite lookup_omap Heq; refl.
   Qed.
   Next Obligation. ii. destruct ms. ss. eauto. Qed.
-  Next Obligation. ii. destruct ms. ss. eauto. Qed. *)
+  Next Obligation.
+    ii. destruct ms. ss.
+    hexploit nodup_init0; eauto. i. specialize (H2 i). eapply H2; eauto.
+  Qed.
+  
   Program Definition cancel (ms : t) : t := {|
     scopes := ms.(scopes);
     fnsems := (.≫= (λ '(msk, bd), Some (msk, (None, bd.2)))) <$> ms.(fnsems);
@@ -102,6 +126,10 @@ Module SMod. Section Smod.
     rewrite lookup_omap_id_Some; ss.
   Qed.
   Next Obligation. intros ms; ii; destruct ms; ss; eauto. Qed.
+  Next Obligation.
+    ii. destruct ms. ss.
+    hexploit nodup_init0; eauto. i. specialize (H2 i). eapply H2; eauto.
+  Qed.
 End Smod. End SMod.
 
 Infix "☆" := SMod.add (at level 60, right associativity).

@@ -32,16 +32,14 @@ Section INTERP.
         v <- trigger e;; Ret (inl (k v))
     end.
 
-  Definition sandboxed_prog (ms: Mod.t) fn (arg: Any.t) : itree crisE Any.t :=
-    kb <- (alist_find (Some fn) ms.(Mod.fnsems))?;;
+  Definition sandboxed_prog (ms: Mod.t) (fn: string) (arg: Any.t) : itree crisE Any.t :=
+    kb <- ((omap id ms.(Mod.fnsems)) !! (Some fn))?;;
     SB.sandbox_body kb arg.
 
   Definition inline_body {R} prog := ITree.iter (@handle_callE R prog).
 
-  Definition inline_fsem ms (kb: fnsem_type fbody) : fnsem_type fbody :=
-    (true, wmask_all, ms.(Mod.scopes),
-     inline_body (sandboxed_prog ms) ∘ (SB.sandbox_body kb)).
-      
+  Definition inline_fsem ms (kb: emask * fbody) : emask * fbody :=
+    (kb.1, inline_body (sandboxed_prog ms) ∘ (SB.sandbox_body kb)).
 End INTERP.
 
 Module MInline.
@@ -49,16 +47,23 @@ Module MInline.
 
   Program Definition inline `{Σ: GRA} (ms: Mod.t) : Mod.t := {|
     scopes := ms.(scopes);
-    fnsems := List.map (map_snd (inline_fsem ms)) (ms.(fnsems));
+    fnsems := fmap (option_map (inline_fsem ms)) (ms.(fnsems));
     initial_st := ms.(initial_st);
   |}.
   Next Obligation.
-    i. depdes ms. ss. ii. unfold fnsems_scopes in *. unfold map_snd in*.
-    rewrite! alist_find_map in H. unfold o_map in H.
-    des_ifs; ss. 
+    intros Σ ms fn [msk p].
+    rewrite lookup_omap lookup_fmap.
+    destruct ((fnsems ms) !! fn) eqn: Heq; ss; intros H.
+    destruct o as [[msk0 p0]|]; ss. hexploit (ms.(well_scoped_fns) fn (msk0, p0)); eauto.
+    { rewrite lookup_omap Heq //. }
+    inv H. i; des; eauto.
   Qed.
   Next Obligation. ii. destruct ms. ss. eauto. Qed.
-  Next Obligation. ii. destruct ms. ss. eauto. Qed.
+  Next Obligation.
+    ii. destruct ms. ss.
+    hexploit nodup_init0; eauto. i; ss. specialize (H1 i). ss.
+    hexploit H1; eauto.
+  Qed.
 End MInline.
 
 Module MIRed.
@@ -173,16 +178,37 @@ Module MIRed.
   Proof using. rewrite/inline_body unfold_iter_eq. ired. refl. Qed.
 End MIRed.
 
+Ltac solveif :=
+  des_ifs;
+  [|
+    let IMG := fresh "IMG" in
+    let IMG0 := fresh "IMG" in
+    let IMG1 := fresh "IMG" in
+    let IMG2 := fresh "IMG" in
+    let IMG3 := fresh "IMG" in
+    lazymatch goal with
+    | [ H : img_msk ?msk, H0 : _ = false |- _ ] =>
+        r in H; destruct H as [IMG [IMG0 [IMG1 [IMG2 IMG3]]]];
+        (try by (rewrite IMG in H0; ss));
+        (try by (rewrite IMG0 in H0; ss));
+        (try by (rewrite IMG1 in H0; ss));
+        (try by (rewrite IMG2 in H0; ss));
+        (try by (rewrite IMG3 in H0; ss))
+    end
+  ].
+
 Lemma sandbox_inline_commute `{Σ: GRA}
-  ms sb arg 
-  (SCP : incl sb.1.2 (Mod.scopes ms))
+  ms (msk: emask) (bd: fbody) arg
+  (IMG: img_msk msk)
+  (SCP: (∀ (k : key) (v : Any.t), msk _ (subevent _ (SPut k v)) = true → k.1 ∈ (Mod.scopes ms))
+        ∧ (∀ (k : key), msk _ (subevent _ (SGet k)) = true → k.1 ∈ (Mod.scopes ms)))
   :
-  SB.sandbox_body (inline_fsem ms sb) arg
+  SB.sandbox_body (inline_fsem ms (msk, bd)) arg
   =
-  inline_body (sandboxed_prog ms) (SB.sandbox_body sb arg).
+  inline_body (sandboxed_prog ms) (SB.sandbox_body (msk, bd) arg).
 Proof using.
-  unfold inline_fsem, SB.sandbox_body. destruct sb as [[[img msk] sc] bd]. ss.
-  apply bisim_is_eq. move sc at bottom.
+  unfold inline_fsem, SB.sandbox_body. ss.
+  apply bisim_is_eq.
   ginit. generalize (bd arg) as itr. clear bd arg.
   revert_until ms. gcofix CIH. i.
   ides itr.
@@ -194,116 +220,138 @@ Proof using.
   {
     assert ((@ITree.trigger (@crisE Σ) X (inl1 a)) = trigger a) by grind.
     destruct a.
-    - rewrite H !SBRed.Assume. des_ifs.
-      + rewrite MIRed.ag SBRed.bind SBRed.Assume !bind_trigger.
-        gstep. econs. i. r. rewrite SBRed.tau. gstep. econs. gbase. eauto.
-      + ired. rewrite !MIRed.core SBRed.bind SBRed.take. s.
+    - rewrite H !SBRed.vis. des_ifs.
+      + rewrite !vis_trigger !bind_bind !MIRed.ag !SBRed.bind !SBRed.vis !bind_trigger.
+        des_ifs. rewrite !bind_vis.
+        gstep. econs. i. r. rewrite SBRed.ret bind_ret_l SBRed.tau SBRed.ret !bind_ret_l.
+        gstep. econs. gbase. eauto.
+      + ired. rewrite !vis_trigger !bind_bind !MIRed.core SBRed.bind SBRed.vis.
+        solveif. rewrite !vis_trigger !bind_bind.
         gstep. r; s; econs. ss.
-    - rewrite H !SBRed.AssumeRes MIRed.ag SBRed.bind SBRed.AssumeRes !bind_trigger.
-      gstep. econs. i. r. rewrite SBRed.tau. gstep. econs. gbase. eauto.
-    - rewrite H !SBRed.Guarantee MIRed.ag SBRed.bind SBRed.Guarantee !bind_trigger.
-      gstep. econs. i. r. rewrite SBRed.tau. gstep. econs. gbase. eauto.
+    - rewrite H !SBRed.vis. solveif.
+      rewrite !vis_trigger !bind_bind MIRed.ag SBRed.bind SBRed.vis !bind_trigger.
+      des_ifs. rewrite !vis_trigger !bind_bind H.
+      gstep. r; s; econs. i. r.
+      rewrite bind_ret_l SBRed.ret !bind_ret_l.
+      rewrite SBRed.tau. gstep. econs.
+      rewrite SBRed.ret !bind_ret_l.
+      gbase. eauto.
+    - rewrite H !SBRed.vis. solveif.
+      rewrite !vis_trigger bind_bind MIRed.ag SBRed.bind SBRed.vis !bind_trigger !vis_trigger.
+      des_ifs. rewrite bind_bind.
+      gstep. r; s; econs. i. r.
+      rewrite bind_ret_l SBRed.ret !bind_ret_l.
+      rewrite SBRed.tau. gstep. econs.
+      rewrite SBRed.ret !bind_ret_l.
+      gbase. eauto.
   }
   destruct s; [destruct c|].
   {
-    rewrite !SBRed.call. des_ifs; cycle 1.
-    { ired. rewrite !MIRed.core !SBRed.bind SBRed.take !bind_trigger.
-      gstep. econs. ss.
+    rewrite !SBRed.vis. des_ifs; cycle 1.
+    { ired. rewrite !vis_trigger !bind_bind !MIRed.core !SBRed.bind SBRed.vis !bind_trigger.
+      solveif. gstep. r; s; econs. ss.
     }
 
-    rewrite MIRed.call SBRed.tau. s.
+    rewrite !vis_trigger !bind_bind MIRed.call SBRed.tau. s.
     gstep. econs.
-    destruct (alist_find (Some fn) (Mod.fnsems ms)) eqn: FIND; cycle 1.
-    { ired. rewrite {2 4}/sandboxed_prog FIND. s. ired.
-      rewrite !MIRed.core !SBRed.bind SBRed.take !bind_trigger.
-      gstep. econs. ss.
+    destruct ((Mod.fnsems ms) !! (Some fn)) eqn: FIND; cycle 1.
+    { ired. rewrite {2 4}/sandboxed_prog lookup_omap FIND. s. ired.
+      rewrite !MIRed.core !SBRed.bind SBRed.vis !bind_trigger.
+      solveif. gstep. r; s; econs. ss.
     }
 
-    rewrite {2 4}/sandboxed_prog /SB.sandbox_body FIND. s. ired.
-    destruct f as [[[img0 msk0] sc0] bd0]. s.
+    rewrite {2 4}/sandboxed_prog /SB.sandbox_body lookup_omap FIND. s. ired. destruct o; cycle 1.
+    { ired. rewrite !MIRed.core !SBRed.bind SBRed.vis !bind_trigger. solveif.
+      gstep. r; s; econs. ss. }
+    ired.
+    destruct p as [msk0 bd0]. s.
     match goal with
-    [|- _ _ (_ _ ?itr)] => assert (EX: exists itr', itr = SB.sandbox true wmask_all (Mod.scopes ms) itr'); cycle 1
+    [|- _ _ (_ _ ?itr)] => assert (EX: exists itr', itr = SB.sandbox msk itr'); cycle 1
     end.
-    { des. rewrite EX. gbase. eapply CIH; try refl. }
+    { des. rewrite EX. gbase. eapply CIH; try refl; eauto. }
 
     eexists. instantiate (1:= _ >>= _).
     rewrite SBRed.bind. f_equal.
-    { 
-      erewrite <-(@sandbox_well_scoped _ _ _ _ _ _ sc0); try refl; eauto.
-      ii. eapply Mod.well_scoped_fns. unfold fnsems_scopes.
-      erewrite FIND. et.
-    }
+    { erewrite <-(@sandbox_well_scoped _ _ _ _ _ _); try refl; eauto. }
     extensionality x.
     rewrite subst_bind bind_ret_l.
     erewrite SBRed.tau.
-    erewrite <-(@sandbox_well_scoped _ _ _ _ _ _ sc); eauto.
+    rewrite SBRed.ret bind_ret_l.
+    erewrite <-(@sandbox_well_scoped _ _ _ _ _ _); eauto.
+    Unshelve.
+    { 
   }
   {
-    rewrite !SBRed.spawn. des_ifs.
-    + rewrite MIRed.spawn SBRed.bind SBRed.spawn. s.
-      rewrite !bind_trigger.
-      gstep. econs. i. r.
-      rewrite SBRed.tau. gstep. econs. gbase. eauto.
-    + ired. rewrite !MIRed.core !SBRed.bind SBRed.take !bind_trigger.
-      gstep. econs. ss.
+    rewrite !SBRed.vis. des_ifs.
+    + rewrite !vis_trigger !bind_bind MIRed.spawn SBRed.bind SBRed.vis. s.
+      rewrite !bind_trigger Heq.
+      gstep. r; s; econs. i. r.
+      rewrite SBRed.ret bind_ret_l SBRed.tau. gstep. econs.
+      rewrite SBRed.ret bind_ret_l. gbase. eauto.
+    + ired. rewrite !vis_trigger !bind_bind !MIRed.core !SBRed.bind SBRed.vis !bind_trigger.
+      solveif. gstep. r; s; econs. ss.
   }
   {
-    rewrite !SBRed.yield MIRed.yield SBRed.bind SBRed.yield !bind_trigger.
-    gstep. econs. i. r.
-    rewrite SBRed.tau. gstep. econs. gbase. eauto.
+    rewrite !SBRed.vis. des_ifs.
+    + rewrite !vis_trigger !bind_bind MIRed.yield SBRed.bind SBRed.vis !bind_trigger Heq.
+      gstep. r; s; econs. i. r.
+      rewrite SBRed.ret bind_ret_l SBRed.tau. gstep. econs.
+      rewrite SBRed.ret bind_ret_l. gbase. eauto.
+    + ired. rewrite !vis_trigger !bind_bind !MIRed.core !SBRed.bind SBRed.vis !bind_trigger.
+      solveif. gstep. r; s; econs. ss.
   }
   {
-    rewrite !SBRed.gettid MIRed.gettid SBRed.bind SBRed.gettid !bind_trigger.
-    gstep. econs. i. r.
-    rewrite SBRed.tau. gstep. econs. gbase. eauto.
+    rewrite !SBRed.vis. des_ifs.
+    + rewrite !vis_trigger !bind_bind MIRed.gettid SBRed.bind SBRed.vis !bind_trigger Heq.
+      gstep. r; s; econs. i. r.
+      rewrite SBRed.ret bind_ret_l SBRed.tau. gstep. econs.
+      rewrite SBRed.ret bind_ret_l. gbase. eauto.
+    + ired. rewrite !vis_trigger !bind_bind !MIRed.core !SBRed.bind SBRed.vis !bind_trigger.
+      solveif. gstep. r; s; econs. ss.
   }
   destruct s; [destruct p|].
   {
-    rewrite !SBRed.put. des_ifs; cycle 1.
-    { ired. rewrite !MIRed.core !SBRed.bind SBRed.take !bind_trigger.
-      gstep. econs. ss.
+    rewrite !SBRed.vis. des_ifs; cycle 1.
+    { ired. rewrite !vis_trigger !bind_bind !MIRed.core !SBRed.bind SBRed.vis !bind_trigger. solveif.
+      gstep. r; s; econs. ss.
     }
 
-    rewrite MIRed.pg SBRed.bind SBRed.put. des_ifs; cycle 1.
-    {
-      exfalso. assert (existsb (String.eqb k0.1) (Mod.scopes ms) = true).
-      {
-        eapply existsb_exists. eapply existsb_exists in Heq. des.
-        esplits; eauto.
-      }
-      rewrite H in Heq0. ss.
-    }
-    rewrite !bind_trigger. gstep. econs. i.
-    rewrite SBRed.tau. gstep. econs. gbase; eauto. 
+    rewrite !vis_trigger !bind_bind MIRed.pg SBRed.bind SBRed.vis. des_ifs; cycle 1.
+    { exfalso. rewrite Heq in Heq0. ss. }
+    rewrite !vis_trigger !bind_bind. gstep; r; s; econs; i; r.
+    rewrite !bind_ret_l SBRed.ret bind_ret_l SBRed.tau. gstep; econs.
+    rewrite SBRed.ret bind_ret_l. gbase; eauto. 
   }
   {
-    rewrite !SBRed.get. des_ifs; cycle 1.
-    { ired. rewrite !MIRed.core !SBRed.bind SBRed.take !bind_trigger.
-      gstep. econs. ss.
+    rewrite !SBRed.vis. des_ifs; cycle 1.
+    { ired. rewrite !vis_trigger !bind_bind !MIRed.core !SBRed.bind SBRed.vis !bind_trigger. solveif.
+      gstep. r; s; econs. ss.
     }
 
-    rewrite MIRed.pg SBRed.bind SBRed.get. des_ifs; cycle 1.
-    {
-      exfalso. assert (existsb (String.eqb k0.1) (Mod.scopes ms) = true).
-      {
-        eapply existsb_exists. eapply existsb_exists in Heq. des.
-        esplits; eauto.
-      }
-      rewrite H in Heq0. ss.
-    }
-    gstep. r; s. econs. i. ired.
-    gstep. r; s. econs. gbase. et.
+    rewrite !vis_trigger !bind_bind MIRed.pg SBRed.bind SBRed.vis. des_ifs; cycle 1.
+    { exfalso. rewrite Heq in Heq0. ss. }
+    rewrite !vis_trigger !bind_bind. gstep; r; s; econs; i; r.
+    rewrite !bind_ret_l SBRed.ret bind_ret_l SBRed.tau. gstep; econs.
+    rewrite SBRed.ret bind_ret_l. gbase; eauto. 
   }
   {
     destruct c.
-    - rewrite SBRed.choose MIRed.core SBRed.bind SBRed.choose !bind_trigger.
-      gstep. econs. i. r. rewrite SBRed.tau. gstep. econs. gbase; eauto.
-    - rewrite SBRed.take. des_ifs.
-      + rewrite MIRed.core SBRed.bind SBRed.take !bind_trigger.
-        gstep. econs. i. gstep. r; s. econs. gbase. et.
-      + ired. rewrite MIRed.core SBRed.bind SBRed.take. s.
+    - rewrite SBRed.vis. solveif.
+      rewrite !vis_trigger !bind_bind MIRed.core SBRed.bind SBRed.vis !bind_trigger Heq.
+      gstep. r; s; econs. i. r.
+      rewrite SBRed.ret bind_ret_l SBRed.tau.  gstep; econs.
+      rewrite SBRed.ret bind_ret_l. gbase; eauto. 
+    - rewrite SBRed.vis. solveif.
+      rewrite !vis_trigger !bind_bind MIRed.core SBRed.bind SBRed.vis !bind_trigger Heq.
+      gstep. r; s; econs. i. r.
+      rewrite SBRed.ret bind_ret_l SBRed.tau.  gstep; econs.
+      rewrite SBRed.ret bind_ret_l. gbase; eauto. 
+    - rewrite SBRed.vis. des_ifs.
+      + rewrite !vis_trigger !bind_bind MIRed.core SBRed.bind SBRed.vis !bind_trigger Heq.
+        gstep. r; s; econs. i. r.
+        rewrite SBRed.ret bind_ret_l SBRed.tau.  gstep; econs.
+        rewrite SBRed.ret bind_ret_l. gbase; eauto.
+      + rewrite !vis_trigger !bind_bind MIRed.core SBRed.bind SBRed.vis. solveif.
         gstep. r; s; econs. ss.
-    - rewrite SBRed.io MIRed.core SBRed.bind SBRed.io !bind_trigger.
-      gstep. econs. i. r. rewrite SBRed.tau. gstep. econs. gbase; eauto.
   }
 (*SLOW*)Qed.
