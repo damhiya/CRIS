@@ -25,10 +25,22 @@ Module SMod. Section Smod.
       NoDup scopes → map_Forall (const is_Some) initial_st;
   }.
 
-  Definition cancellable (ms : t) (sp: specmap) : Prop :=
+  Definition lift_fn (fno: option string) : speckey :=
+    match fno with
+    | Some fn => speckey_fn fn
+    | None => speckey_entry
+    end.
+
+  Definition sp_from (md : t) : specmap :=
+    list_to_map (map (map_fst lift_fn) (map_to_list (omap id (fst ∘ snd <$> omap id md.(fnsems))))).
+
+  Definition sp_from_conc (md : t) : specmap :=
+    <[speckey_concE := fspec_trivial]> (sp_from md).
+
+  Definition cancellable (ms : t) : Prop :=
     ∀ fno msk fspo bd
       (FIND: (fnsems ms) !! fno = Some (Some (msk, (fspo, bd)))),
-      (img_msk msk) ∧ (speckey_concE ∈ dom sp).
+      (img_msk msk) ∧ (is_Some fspo).
 
   (**** Linking ****)
   Program Definition empty : t := {|
@@ -178,8 +190,17 @@ End ADD.
 Section Aux.
   Context `{!crisG Γ Σ α β τ _S _I, !concG}.
 
-  (* Definition sp_from (md : SMod.t) : sp_type :=
-    to_sp (List.map (map_snd (fst ∘ snd)) md.(SMod.fnsems)). *)
+  (* Definition lift_fn (fno: option string) : speckey := *)
+  (*   match fno with *)
+  (*   | Some fn => speckey_fn fn *)
+  (*   | None => speckey_entry *)
+  (*   end. *)
+  
+  (* Definition sp_from (md : SMod.t) : specmap := *)
+  (*   list_to_map (map (map_fst lift_fn) (map_to_list (omap id (fst ∘ snd <$> omap id md.(SMod.fnsems))))). *)
+
+  (* Definition sp_from_conc (md : SMod.t) : specmap := *)
+  (*   <[speckey_concE := fspec_trivial]> (sp_from md). *)
   
   (* Definition has_param (md : SMod.t) fno img msk scp := *)
   (*   ∃ sbd, alist_find fno (SMod.fnsems md) = Some (img, msk, scp, sbd). *)
