@@ -74,32 +74,31 @@ Definition NativeYieldE tid : itree crisE () :=
 Definition NativeGetTidE : itree crisE nat :=
   my_tid <- trigger GetTid;; tau;; Ret my_tid.
 
-Definition HoareSpawnE fn varg (fspo: option fspec) : itree crisE nat :=
+Definition HoareSpawnE (fspo: option fspec) fn varg N : itree crisE nat :=
   match fspo with
-  | Some (@fspec_spawn _ meta pre post) =>
-      x <- trigger (Choose meta);; tau;;
+  | Some fsp =>
+      x <- trigger (Choose (meta fsp));; tau;;
       arg <- trigger (Choose Any.t);; tau;;
       tid <- trigger (Spawn fn arg);; tau;;
       trigger (Assume (YIELD tid));;; tau;;
-      trigger (Guarantee (pre (tid, x) varg arg));;; tau;;
+      trigger (Guarantee (precond fsp (N, tid) x varg arg));;; tau;;
       Ret tid
-  | Some (@fspec_call _ meta pre post) =>
-      triggerNB
-  | None => NativeSpawnE fn varg
+  | None =>
+      tid <- trigger (Spawn fn varg);; tau;;
+      trigger (Assume (YIELD tid));;; tau;;
+      Ret tid
   end.
 
-Definition HoareYieldE tid : itree crisE () :=
-  my_tid <- trigger (Choose nat);; tau;;
-  trigger (Guarantee (TID(my_tid) ∗ YIELD(tid) ∗ winv(⊤, ⊤)));;; tau;;
-  trigger (Yield tid);;; tau;;
-  trigger (Assume (TID(my_tid) ∗ YIELD(my_tid) ∗ winv(⊤, ⊤)));;; tau;;
+Definition HoareYieldE N stid ntid : itree crisE () :=
+  trigger (Guarantee (TID stid ∗ YIELD ntid ∗ winv (↑N, ↑N)));;; tau;;
+  trigger (Yield ntid);;; tau;;
+  trigger (Assume (TID stid ∗ YIELD stid ∗ winv (↑N, ↑N)));;; tau;;
   Ret tt.
 
-Definition HoareGetTidE : itree crisE nat :=
-  my_tid <- trigger (Choose nat);; tau;;
-  trigger (Guarantee (TID(my_tid)));;; tau;;
+Definition HoareGetTidE stid : itree crisE nat :=
+  trigger (Guarantee (TID(stid)));;; tau;;
   tid <- trigger GetTid;; tau;;
-  trigger (Assume (⌜tid = my_tid⌝ ∗ TID(my_tid)));;; tau;;
+  trigger (Assume (⌜tid = stid⌝ ∗ TID(stid)));;; tau;;
   Ret tid.
 
 Definition elim_precond {X X' : Type} P P' (varg: Any.t) : itree crisE (X * X' * Any.t) :=
@@ -144,7 +143,7 @@ Definition elim_spawnee_postcond {X : Type} Q (tid : nat) (x : X) (vret : Any.t)
   Ret ret.
 
 Variant elim_rel_def
-    (sp : sp_type)
+    (sp : specmap)
     (self : ∀ T, Σ → itree crisE T → itree crisE T → Prop) (T : Type)
   : Σ → itree crisE T → itree crisE T → Prop :=
 
@@ -171,15 +170,15 @@ Variant elim_rel_def
    (∀ (x : R), self _ ε (ktrS x) (ktrT x)) →
    elim_rel_def sp self ε (trigger e >>= ktrS) (a <- trigger e;; ktrT a)
 (* handling cancellation *)
-| elim_rel_yield tid ktrS ktrT itrS itrT :
-    itrS = NativeYieldE tid >>= ktrS →
-    itrT = HoareYieldE tid >>= ktrT →
+| elim_rel_yield N stid ntid ktrS ktrT itrS itrT :
+    itrS = NativeYieldE ntid >>= ktrS →
+    itrT = HoareYieldE N stid ntid >>= ktrT →
     (∀ x, self _ ε (ktrS x) (ktrT x)) →
     elim_rel_def sp self ε itrS itrT
-| elim_rel_spawn fn args ktrS ktrT itrS itrT :
+| elim_rel_spawn fn args N ktrS ktrT itrS itrT :
    (* (img = false → fspec_imply (fspec_flat (sp fn)) fspec_trivial) → *)
    itrS = NativeSpawnE fn args >>= ktrS →
-   itrT = HoareSpawnE fn args (sp fn) >>= ktrT →
+   itrT = HoareSpawnE (sp !! (speckey_fn fn)) fn args N >>= ktrT →
    (∀ x, self _ ε (ktrS x) (ktrT x)) →
    elim_rel_def sp self ε itrS itrT
 | elim_rel_precond (X X' : Type) P P' varg itrS itrT ktrT :
@@ -191,9 +190,9 @@ Variant elim_rel_def
    ((∀ ret, Q' x' vret ret ⊢ |==> Q x vret ret) ∧ self _ ε itrS (ktrT vret)) →
    itrT = elim_postcond Q Q' x x' vret >>= ktrT →
    elim_rel_def sp self ε (tau;; tau;; itrS) itrT
-| elim_rel_gettid ktrS ktrT itrS itrT :
+| elim_rel_gettid stid ktrS ktrT itrS itrT :
    itrS = NativeGetTidE >>= ktrS ->
-   itrT = HoareGetTidE >>= ktrT ->
+   itrT = HoareGetTidE stid >>= ktrT ->
    (∀ x, self _ ε (ktrS x) (ktrT x)) ->
    elim_rel_def sp self ε itrS itrT
 .
@@ -245,10 +244,15 @@ Proof using.
     + eauto using rclo4.
 Qed.
 
-Lemma SBRed_NativeSpawn img msk scp fn varg :
-  SB.sandbox img msk scp (SModTr.NativeSpawn fn varg) =
-    if msk fn then SModTr.NativeSpawn fn varg else triggerUB.
-Proof using. rewrite /SModTr.NativeSpawn SBRed.spawn. des_ifs; cycle 1. Qed.
+Lemma SBRed_NativeSpawn msk fn varg :
+  SB.sandbox msk (trigger (Spawn fn varg)) =
+    if msk _ (subevent _ (Spawn fn varg)) then trigger (Spawn fn varg) else triggerUB.
+Proof using.
+  rewrite SBRed.vis. des_ifs; rewrite Heq // in Heq0.
+  { rewrite vis_trigger. rewrite -{2}(bind_ret_r (trigger (Spawn fn varg))).
+    f_equal. extensionalities. rewrite SBRed.ret. refl. }
+  { rewrite /triggerUB. ss. rewrite vis_trigger. f_equal. extensionalities. ss. }
+Qed.
 
 Lemma SBRed_HoareSpawn (img: bool) (msk : _ → bool) scp fn varg fspo
   (MSK: msk fn)
