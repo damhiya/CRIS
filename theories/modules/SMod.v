@@ -28,7 +28,7 @@ Module SMod. Section Smod.
   Definition cancellable (ms : t) (sp: specmap) : Prop :=
     ∀ fno msk fspo bd
       (FIND: (fnsems ms) !! fno = Some (Some (msk, (fspo, bd)))),
-      (img_msk msk) ∧ (speckey_concE ∈ dom sp) ∧ (fno = None → fspo = Some (fspec_trivial)).
+      (img_msk msk) ∧ (speckey_concE ∈ dom sp).
 
   (**** Linking ****)
   Program Definition empty : t := {|
