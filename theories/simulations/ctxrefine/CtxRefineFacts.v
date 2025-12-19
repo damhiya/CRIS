@@ -76,11 +76,11 @@ Qed. *)
 Section CtxRefineFacts.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
 
-  Lemma mod_add_scopes md0 md1:
+  (* Lemma mod_add_scopes md0 md1:
     Mod.scopes (md0 ★ md1) = Mod.scopes md0 ++ Mod.scopes md1.
-  Proof using. ss. Qed.
+  Proof using. ss. Qed. *)
 
-  Lemma mod_add_comm contextual (ms0 ms1 : Mod.t) :
+  (* Lemma mod_add_comm contextual (ms0 ms1 : Mod.t) :
     ISim.t contextual (ms0 ★ ms1) (ms1 ★ ms0) emp%I (IstSB (Mod.scopes (ms0 ★ ms1)) IstEq).
   Proof using.
     econs; ss; intros Hwf.
@@ -176,7 +176,7 @@ Section CtxRefineFacts.
       * steps_l. force_r. instantiate (1:= _q). steps_r. by_coind CIH; et.
       * steps_l. ss.
     + step. by_coind CIH; et.
-Qed.
+Qed. *)
 
 (*******
   Properties of Contextual Refinements
@@ -282,14 +282,7 @@ Qed.
 (*** commutativity ***)
 Theorem ctxr_comm (ma mb : Mod.t) P:
   ctx_refines (Mod.add ma mb, P) (Mod.add mb ma, P).
-Proof using.
-  etrans.
-  { eapply ctxr_cond_strengthen.
-    instantiate (1:= ((emp ∗ P)%I)). eauto. }
-  etrans.
-  { eapply ctxr_cond_frameR, main_adequacy, mod_add_comm. }
-  eapply ctxr_cond_strengthen. iIntros "[_ ?]"; et.
-Qed.
+Proof using. rewrite Mod.add_comm //. Qed.
 
 (*** frame rules ***)
 Lemma ctxr_frameR ms Ps mt Pt mc (REFA : ctx_refines (ms, Ps) (mt, Pt)) :

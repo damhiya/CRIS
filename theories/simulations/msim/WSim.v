@@ -772,4 +772,3 @@ Section FancyReal.
     iApply isim_ru_tgt_simple; iFrame "Hpre"; iIntros "?"; iApply ("Hsim" with "[$] [$]").
   Qed.
 End FancyReal.
-0
