@@ -1,22 +1,23 @@
 Require Import CRIS.
-From stdpp Require Import gmap.
 From iris.algebra Require Import dfrac_agree.
 From iris.proofmode Require Import proofmode.
 From iris.bi Require Import fractional.
 From iris.prelude Require Import options.
 
+Notation savedPropR :=
+  (discrete_funR (λ n, optionUR (dfrac_agreeR (leibnizO (GTerm.t n))))).
+
 Class savedPropG (Σ : GRA) (α : GAT.t) := SavedPropG {
-  saved_prop_inG : inG (discrete_funR (λ n, optionUR (dfrac_agreeR (leibnizO (GTerm.t n))))) Σ
+  saved_prop_inG : inG savedPropR Σ;
 }.
 Local Existing Instance saved_prop_inG.
 
 Definition savedPropΣ (α : GAT.t) : GRA :=
-  #[ dfrac_agreeR (discrete_funR (λ n, optionUR (dfrac_agreeR (leibnizO (GTerm.t n))))) ].
+  #[ savedPropR ].
 
-(* FIXME: Doesn't solve for some stupid reason. *)
-(* Global Instance subG_savedPropΓ (Σ : GRA) α :
+Global Instance subG_savedPropΓ (Σ : GRA) α :
   subG (savedPropΣ α) Σ → savedPropG Σ α.
-Proof. solve_inG. Qed. *)
+Proof. solve_inG. Qed.
 
 Section saved_prop.
   Context {Σ : GRA}.
@@ -59,8 +60,6 @@ Section saved_prop.
 End saved_prop.
 
 Section syn_saved_prop_def.
-  (* Syntactic invariants *)
-
   (* Define syntactic elements. In syntax, we omit the [GTerm.t] stuff *)
   Variant saved_prop_ops : Type :=
   | _saved_prop_own (γ : gname) (dq : dfrac)
@@ -94,15 +93,15 @@ Section syn_saved_prop_def.
     saved_prop_interp_aux.
 End syn_saved_prop_def.
 
-Class syn_saved_propG (Σ : GRA) (α : GAT.t) (β : GATIntp.t) (τ : TypG.t)
-    `{!savedPropG Σ α} := {
+Class syn_saved_propG (Σ : GRA) (α : GAT.t) (β : GATIntp.t)
+  `{!savedPropG Σ α} := {
   #[local] syn_saved_prop_inG_syntax :: GAT.inG saved_prop_syntax α;
-  #[global] syn_saved_prop_inG_interp :: GATIntp.inG saved_prop_syntax α saved_prop_interp β;
+  #[local] syn_saved_prop_inG_interp :: GATIntp.inG saved_prop_syntax α saved_prop_interp β;
 }.
 
-Section syn_wsat.
+Section syn_saved_prop.
   Context `{!subHG Γ Σ, !STτ.t τ, !SL.G Γ Σ α β τ}.
-  Context `{!savedPropG Σ α, !syn_saved_propG Σ α β τ}.
+  Context `{!savedPropG Σ α, !syn_saved_propG Σ α β}.
 
   (* Now defined the actual syntactic definition. Here, we "send" the [GTerm.t] missing in the base
     syntactic definition to the interpertation function. *)
@@ -112,70 +111,115 @@ Section syn_wsat.
   Global Instance saved_prop_own_red n γ dq p :
     SLRed n (syn_saved_prop_own γ dq p) (saved_prop_own γ dq p).
   Proof. solve_sl_red. Qed.
-End syn_wsat.
+End syn_saved_prop.
 
-Class savedPredG (Γ : HRA) (α : GAT.t) (n : level) (A : Type) := SavedPredG {
-  saved_pred_inG : inG (dfrac_agreeR (leibnizO (A → GTerm.t n))) Γ
+Global Opaque syn_saved_prop_own.
+
+Notation savedPredR A :=
+  (discrete_funR (λ n, optionUR (dfrac_agreeR (leibnizO (A → GTerm.t n))))).
+
+Class savedPredG (Σ : GRA) (A : Type) (α : GAT.t) := SavedPredG {
+  saved_pred_inG : inG (savedPredR A) Σ
 }.
 Local Existing Instance saved_pred_inG.
 
-Definition savedPredΓ (α : GAT.t) (n : level) (A : Type) : HRA :=
-  #[ dfrac_agreeR (leibnizO (A -> GTerm.t n)) ].
+Definition savedPredΣ (A : Type) (α : GAT.t) : GRA :=
+  #[ savedPredR A ].
 
-Global Instance subG_savedPredΓ (Γ : HRA) α n A :
-  subG (savedPredΓ α n A) Γ → savedPredG Γ α n A.
+Global Instance subG_savedPredΣ (Σ : HRA) A α :
+  subG (savedPredΣ A α) Σ → savedPredG Σ A α.
 Proof. solve_inG. Qed.
 
 Section saved_pred.
-  Context {Γ : HRA} {Σ : GRA} `{!subG Γ Σ}.
-  Context `{!savedPredG Γ α n A}.
+  Context `{!savedPredG Σ A α}.
 
   Definition saved_pred_own
-      (γ : gname) (dq : dfrac) (x : A → GTerm.t n) : iProp Σ := own γ (to_dfrac_agree dq (x : leibnizO _)).
+    (γ : gname) (dq : dfrac) {n} (x : A → GTerm.t n) : iProp Σ :=
+      own γ (discrete_fun_singleton n (Some (to_dfrac_agree dq (x : leibnizO _)))).
   Global Typeclasses Opaque saved_pred_own.
-  Global Instance: Params (@saved_pred_own) 2 := {}.
+  Global Instance: Params (@saved_pred_own) 3 := {}.
 
-  Global Instance saved_pred_own_persistent γ x : Persistent (saved_pred_own γ DfracDiscarded x).
+  Global Instance saved_pred_own_persistent γ {n} (x : A → GTerm.t n) :
+    Persistent (saved_pred_own γ DfracDiscarded x).
   Proof. rewrite /saved_pred_own. apply _. Qed.
 
-  Lemma saved_pred_alloc x dq Ew E `{!crisG Γ Σ α β τ _S _I} :
+  Lemma saved_pred_alloc dq {n} (x : A → GTerm.t n) :
     ✓ dq →
-    ⊢ =|0,Ew|={E}=> ∃ γ, saved_pred_own γ dq x.
-  Proof. intros ?. by apply own_alloc. Qed.
+    ⊢ o=> ∃ γ, saved_pred_own γ dq x.
+  Proof. intros ?. by apply own_alloc, discrete_fun_singleton_valid, Some_valid. Qed.
 
-  Lemma saved_pred_valid_2 γ dq1 dq2 P Q :
+  Lemma saved_pred_valid_2 γ {n} dq1 dq2 (P Q : A → GTerm.t n) :
     saved_pred_own γ dq1 P -∗ saved_pred_own γ dq2 Q -∗ ⌜ ✓ (dq1 ⋅ dq2) ∧ P = Q ⌝.
   Proof.
     iIntros "Hx Hy". rewrite /saved_pred_own.
-    iCombine "Hx Hy" gives "%Hv".
+    iCombine "Hx Hy" gives %Hv.
+    rewrite discrete_fun_singleton_op discrete_fun_singleton_valid Some_valid in Hv.
     apply dfrac_agree_op_valid_L in Hv. done.
   Qed.
 
-  Lemma saved_pred_update y γ x :
+  Lemma saved_pred_update {n} (y : A → GTerm.t n) γ (x : A → GTerm.t n) :
     saved_pred_own γ (DfracOwn 1) x ==∗ saved_pred_own γ (DfracOwn 1) y.
   Proof.
-    iApply own_update. apply cmra_update_exclusive. done.
+    iApply own_update.
+    apply discrete_fun_singleton_update, option_update, cmra_update_exclusive.
+    done.
   Qed.
 
   (** Make an element read-only. *)
-  Lemma saved_pred_persist γ dq v :
+  Lemma saved_pred_persist {n} γ dq (v : A → GTerm.t n) :
     saved_pred_own γ dq v ==∗ saved_pred_own γ DfracDiscarded v.
   Proof.
-    iApply own_update. apply dfrac_agree_persist.
+    iApply own_update.
+    apply discrete_fun_singleton_update, option_update, dfrac_agree_persist.
   Qed.
 End saved_pred.
 
-Global Instance subG_savedPredΓΣ {Γ : HRA} {Σ : GRA} (α : GAT.t) (n : level) (A : Type) :
-  subG Γ Σ → savedPredG Γ α n A → savedPredG Σ α n A.
-Proof. intros ? []. constructor. apply _. Defined.
+Section syn_saved_pred_def.
+  Variant saved_pred_ops : Type :=
+  | _saved_pred_own (γ : gname) (dq : dfrac)
+  .
+
+  Local Definition saved_pred_arity (A : Type) (op : saved_pred_ops) (sProp : Type) : Type :=
+    match op with
+    | _saved_pred_own _ _ => A
+    end.
+
+  Global Instance saved_pred_syntax {A : Type} : SAT.t := {
+    ops := saved_pred_ops;
+    arity := saved_pred_arity A;
+  }.
+
+  (* [saved_pred] interpretations *)
+  Local Definition saved_pred_interp_aux `{!savedPredG Σ A α}
+    n (op : saved_pred_ops) :
+    (saved_pred_arity A op (GTerm.t_prev n) → GTerm.t n) →
+    (saved_pred_arity A op (GTerm.t_prev n) → iProp Σ) →
+    iProp Σ :=
+    match op with
+    | _saved_pred_own γ dq => λ syn _, saved_pred_own γ dq syn
+    end.
+
+  Global Instance saved_pred_interp {A : Type} `{!savedPredG Σ A α} :
+    @SATIntp.t (@iPropI Σ) α saved_pred_syntax :=
+    saved_pred_interp_aux.
+End syn_saved_pred_def.
+
+Class syn_saved_predG (Σ : GRA) (A : Type) (α : GAT.t) (β : GATIntp.t)
+  `{!savedPredG Σ A α} := {
+  #[local] syn_saved_pred_inG_syntax :: GAT.inG saved_pred_syntax α;
+  #[local] syn_saved_pred_inG_interp :: GATIntp.inG saved_pred_syntax α saved_pred_interp β;
+}.
 
 Section syn_saved_pred.
-  Context `{!crisG Γ Σ α β τ _S _I, !savedPredG Γ α n A}.
+  Context `{!subHG Γ Σ, !STτ.t τ, !SL.G Γ Σ α β τ}.
+  Context `{!savedPredG Σ A α, !syn_saved_predG Σ A α β}.
 
-  Definition syn_saved_pred_own (γ : gname) (dq : dfrac) (x : A → GTerm.t n) : GTerm.t n :=
-    <own> γ (to_dfrac_agree dq (x : leibnizO _)).
+  Definition syn_saved_pred_own {n} γ dq (p : A → GTerm.t n) : GTerm.t n :=
+    ⟨ _saved_pred_own γ dq : saved_pred_syntax.(SAT.ops), p ⟩.
 
-  Global Instance saved_pred_own_red γ dq x :
-    SLRed (n:=n) (syn_saved_pred_own γ dq x) (saved_pred_own γ dq x).
-  Proof. rewrite /saved_pred_own. apply _. Qed.
+  Global Instance saved_pred_own_red n γ dq p :
+    SLRed n (syn_saved_pred_own γ dq p) (saved_pred_own γ dq p).
+  Proof. solve_sl_red. Qed.
 End syn_saved_pred.
+
+Global Opaque syn_saved_pred_own.

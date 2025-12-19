@@ -47,7 +47,10 @@ Qed.
 Section own_admin.
   Context `{i : !inG A Σ}.
   Implicit Types a : A.
-  (* Note : There is no way to impose restrictions on ghost locs for now. *)
+  (* Note : There is no way to impose restrictions on ghost locs for now.
+     There probably doesn't exist a model that (1) allows rules
+     [own_alloc_strog_dep] and (2) allow splitting of [own_admin].
+  *)
   Lemma own_admin_alloc a : ✓ a → own_admin ⊢ |==> own_admin ∗ ∃ γ, own γ a.
   Proof using.
     intros hwf. rewrite ?own_admin_eq /own_admin_def.

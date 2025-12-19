@@ -4,8 +4,6 @@ From stdpp Require Import gmap.
 From iris.bi Require Import notation bi.
 Require Export SAT.
 
-(* Note that the types in a group has the type SAT.t *)
-(* The types in all groups *)
 Section sl_red_base.
   Context {PROP : bi}.
   Context `{@GATIntp.t PROP α}.
@@ -517,6 +515,16 @@ Module SPropBi.
       ⟦[∗ mset] x ∈ X, f x,n ⟧ ⊣⊢ [∗ mset] x ∈ X, ⟦ f x ⟧.
     Proof. apply: sl_red. Qed.
 
+    Lemma sepL2_red_base {n A B} f (l1 : list A) (l2 : list B) :
+      ⟦ [∗ list] k ↦ x1 ; x2 ∈ l1 ; l2 , f k x1 x2, n ⟧ ⊣⊢
+        [∗ list] k ↦ x1 ; x2 ∈ l1 ; l2 , ⟦ f k x1 x2 ⟧.
+    Proof. apply: sl_red. Qed.
+
+    Lemma sepM2_red_base `{Countable K} {n A B} f
+      (m1 : gmap K A) (m2 : gmap K B) :
+      ⟦ [∗ map] k ↦ x1 ; x2 ∈ m1 ; m2 , f k x1 x2, n ⟧ ⊣⊢
+        [∗ map] k ↦ x1 ; x2 ∈ m1 ; m2 , ⟦ f k x1 x2 ⟧.
+    Proof. apply: sl_red. Qed.
   End reduction.
 
   Global Opaque syn_emp.
@@ -536,8 +544,11 @@ Module SPropBi.
   Global Opaque syn_big_sepS.
   Global Opaque syn_big_sepMS.
 
+  Global Opaque syn_big_sepL2.
+  Global Opaque syn_big_sepM2.
+
 End SPropBi.
-Export SPropBi.notations SPropBi.notations_derived.
+Export SPropBi.notations SPropBi.notations_derived SPropBi.big_sepM2_notations.
 
 Module SPropBiPlainly.
   Section syntax.
@@ -947,6 +958,10 @@ Ltac solve_sl_red :=
     rewrite sepS_red_base; apply big_sepS_proper; solve_sl_red
   | |- ⟦ [∗ mset] _ ∈ _, _ ⟧ ⊣⊢ _ =>
     rewrite sepMS_red_base; apply big_sepMS_proper; solve_sl_red
+  | |- ⟦ [∗ list] _ ↦ _; _ ∈ _; _, _ ⟧ ⊣⊢ _ =>
+    rewrite sepL2_red_base; apply big_sepL2_proper; solve_sl_red
+  | |- ⟦ [∗ map] _ ↦ _; _ ∈ _; _, _ ⟧ ⊣⊢ _ =>
+    rewrite sepM2_red_base; apply big_sepM2_proper; solve_sl_red
   | |- ⟦ ?f ⟧ ⊣⊢ _ =>
     (* Stuck on base case. *)
     try (reflexivity || rewrite {1}(sl_red f));

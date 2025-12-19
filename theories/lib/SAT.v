@@ -79,6 +79,8 @@ Module GTerm. Section GTerm.
 
 End GTerm. End GTerm.
 
+(* FIXME: having this a separate module makes inference for [SLRed] hard, so we need
+  to directly expose it as a raw [Type] *)
 (* Semantic Domain *)
 (* Module SemDom.
 

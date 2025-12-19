@@ -46,8 +46,8 @@ End invariants.
 Global Arguments invG : clear implicits.
 Hint Unfold invG_I invG_E subG_invG subG_inG : GRA_index.
 
-Axiom invariant_name : gname.
-Axiom enabled_name : gname.
+Notation invariant_name := (base_γ) (only parsing).
+Notation enabled_name := (base_γ) (only parsing).
 
 Section predicates.
   Context `{!subG (Γ : HRA) Σ, !invG Γ Σ α}.
