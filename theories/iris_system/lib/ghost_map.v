@@ -394,4 +394,4 @@ End syn_ghost_map.
 
 Notation "k ↪[ γ ] dq v" := (syn_ghost_map_elem γ k dq v)
   (at level 20, γ at level 50, dq custom dfrac at level 1,
-   format "k  ↪[ γ ] dq  v") : SRF_scope.
+   format "k  ↪[ γ ] dq  v") : SAT_scope.
