@@ -539,7 +539,7 @@ Lemma elim_rel_cancel (md: SMod.t) (sp: specmap) T msk N stid (itr: itree _ T)
     (inline_body (sandboxed_prog (SMod.to_mod (SMod.sp_from_conc md) md)) 
       (SB.sandbox msk (SModTr.trans (SMod.sp_from_conc md) N stid itr))).
 Proof using.
-  ginit. revert IMG. revert T itr msk. gcofix CIH. i.
+  ginit. revert IMG. revert T itr N stid msk. gcofix CIH. i.
   dup WF. red in WF. dup IMG. red in IMG. des.
   assert (CASE:= case_itrH itr). des; subst.
   - rewrite !SRed.ret !SBRed.ret !MIRed.ret. estep 1.
@@ -558,18 +558,38 @@ Proof using.
       { rewrite SBRed.vis E vis_trigger // MIRed.core. ired. estep 1. }
       destruct ((SMod.fnsems md) !! (Some fn)) eqn: E0; cycle 1.
       { rewrite SBRed.vis E vis_trigger -(bind_ret_r (trigger _)).
-        rewrite {3}/SMod.sp_from_conc. rewrite 
-        MIRed.call.
-                {2}/sandboxed_prog // !alist_find_map_snd E0 //.
-        ired. rewrite MIRed.core. ired. estep 1. }
-      destruct f as [[[img0 msk0] scp0] [fsp0 bd0]].
+        rewrite {4}/SMod.sp_from_conc. rewrite lookup_insert_ne //. rewrite (lookup_sp_from _ _ None) //.
+        ired. rewrite SBRed.vis E vis_trigger !MIRed.bind. ired.
+        rewrite -(bind_ret_r (trigger _)) !MIRed.call. ired.
+        estep 1. rewrite !MIRed.bind. rewrite !lookup_omap /= !lookup_fmap E0 /=. ired.
+        rewrite !MIRed.bind /=. rewrite -(bind_ret_r (trigger _)) MIRed.core. ired.
+        estep 1. }
+      destruct o; cycle 1.
+      { rewrite SBRed.vis E vis_trigger -(bind_ret_r (trigger _)).
+        rewrite {4}/SMod.sp_from_conc. rewrite lookup_insert_ne //. rewrite (lookup_sp_from _ _ (Some None)) //.
+        ired. rewrite SBRed.vis E vis_trigger !MIRed.bind. ired.
+        rewrite -(bind_ret_r (trigger _)) !MIRed.call. ired.
+        estep 1. rewrite !MIRed.bind. rewrite !lookup_omap /= !lookup_fmap E0 /=. ired.
+        rewrite !MIRed.bind /=. rewrite -(bind_ret_r (trigger _)) MIRed.core. ired.
+        estep 1. }
+      destruct p as [img0 [fsp0 bd0]].
       destruct fsp0; [destruct f|]; cycle 1.
-      { rewrite /SModTr.HoareCall. rewrite /sp_from /to_sp alist_find_map_snd E0 /=.
-        rewrite /triggerNB /= SBRed.bind SBRed.choose MIRed.core. ired. estep 1. }
-      { r in WF. hexploit WF; eauto; i; ss; des; ss. }
-      replace img0 with true in *; cycle 1.
-      { r in WF. hexploit WF; eauto 1; i; ss; des. destruct img0; ss. }
+      { rewrite SBRed.vis E vis_trigger -(bind_ret_r (trigger _)).
+        rewrite {4}/SMod.sp_from_conc. rewrite lookup_insert_ne //. rewrite (lookup_sp_from _ _ (Some (Some (img0, (None, bd0))))) //.
+        ired. rewrite SBRed.vis E vis_trigger !MIRed.bind. ired.
+        rewrite -(bind_ret_r (trigger _)) !MIRed.call. ired.
+        estep 1. rewrite !MIRed.bind. rewrite !lookup_omap /= !lookup_fmap E0 /=. ired.
+        rewrite !MIRed.ret. ired. guclo elim_rel_bindC_spec. econs.
+        { rewrite /SB.sandbox_body /= /SModTr.trans_fnsem /SModTr.HoareFun.
+          rewrite !SBRed.tau !MIRed.tau. estep 2. ss. gbase. eapply CIH.
+          r in WF0. hexploit WF0; eauto. i; des; eauto. }
+        i. rewrite !MIRed.tau. ired. estep 2. rewrite !MIRed.ret !bind_ret_l.
+        rewrite !SBRed.ret !MIRed.ret !bind_ret_l. gbase. eapply CIH; eauto. }
 
+      set (fsp := fspec_mk _ _) in E0.
+      rewrite SBRed.vis E vis_trigger -(bind_ret_r (trigger _)).
+      rewrite {4}/SMod.sp_from_conc. rewrite lookup_insert_ne //. rewrite (lookup_sp_from _ _ (Some (Some (img0, (Some fsp, bd0))))) //.
+      
       des. erewrite MIRed_HoareCall; et; cycle 1.
       { rewrite /sp_from /to_sp alist_find_map_snd E0 //. }
       rewrite SBRed.call E -(bind_ret_r (trigger _)) MIRed.call.

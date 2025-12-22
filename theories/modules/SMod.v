@@ -190,6 +190,72 @@ End ADD.
 Section Aux.
   Context `{!crisG Γ Σ α β τ _S _I, !concG}.
 
+  #[local]
+  Lemma NoDup_map_injective {A B} (f: A → B) `{!Inj (=) (=) f} (l : list A)
+    (NOD: NoDup l) :
+    NoDup (map f l).
+  Proof using.
+    gen NOD. induction l.
+    { i; ss. econs. }
+    { i; ss. inv NOD. hexploit IHl; eauto. i. econs; eauto.
+      ii. apply H2. eapply elem_of_list_fmap_inj; eauto. }
+  Qed.
+
+  #[local]
+  Lemma map_fst_map_map_fst {A B C} (l: list (A * B)) (f: A → C) :
+    (map (map_fst f) l).*1 = map f (l.*1).
+  Proof using.
+    induction l; ss.
+    rewrite -IHl. destruct a; ss.
+  Qed.
+
+  Lemma lookup_sp_from md fn kboo
+    (FIND: md.(SMod.fnsems) !! Some fn = kboo) :
+    (SMod.sp_from md) !! (speckey_fn fn) =
+      match kboo with
+      | Some (Some (_, (Some fsp, _))) => Some fsp
+      | _ => None
+      end.
+  Proof using.
+    rewrite /SMod.sp_from.
+    destruct (match kboo with
+              | Some (Some (_, (Some fsp, _))) => Some fsp
+              | _ => None
+              end) eqn: E; cycle 1.
+    { rewrite not_elem_of_list_to_map_1 //.
+      intro N. set (l:=map _ _) in N.
+      assert (∃ fsp, (speckey_fn fn, fsp) ∈ l).
+      { clear -N. clearbody l. induction l; try set_solver.
+        eapply elem_of_cons in N. des.
+        { exists a.2. rewrite N. destruct a; ss. set_solver. }
+        { hexploit IHl; eauto. i. destruct H. exists x. set_solver. }
+      }
+      des. subst l. set (l:=(map_to_list _)) in H0.
+      assert ((Some fn, fsp) ∈ l).
+      { clear -H0. clearbody l. induction l; try set_solver.
+        eapply elem_of_cons in H0. des.
+        { destruct a; ss. rewrite /SMod.lift_fn in H0. destruct o; ss. inv H0. set_solver. }
+        { hexploit IHl; eauto. i. set_solver. }
+      }
+      subst l.
+      eapply elem_of_map_to_list in H1.
+      rewrite lookup_omap lookup_fmap lookup_omap FIND // in H1.
+      des_ifs. }
+    { des_ifs.
+      eapply (elem_of_list_to_map_1 _ _ f).
+      { rewrite map_fst_map_map_fst.
+        eapply NoDup_map_injective.
+        { ii. destruct x, y; ss. inv H0. refl. }
+        eapply NoDup_fst_map_to_list.
+      }
+      set (l:=(map_to_list _)).
+      enough ((Some fn, f) ∈ l).
+      { clear -H0. clearbody l. induction l; set_solver. }
+      subst l. eapply elem_of_map_to_list.
+      rewrite lookup_omap lookup_fmap lookup_omap Heq //.
+    }
+  Qed.
+
   (* Definition lift_fn (fno: option string) : speckey := *)
   (*   match fno with *)
   (*   | Some fn => speckey_fn fn *)
