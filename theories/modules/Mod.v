@@ -267,3 +267,16 @@ Section ModFacts.
     destruct m1, m2. unfold Mod.exports. s. rewrite List.map_app. et.
   Qed. *)
 End ModFacts.
+
+(* Tactics for map definitions. *)
+Tactic Notation "mod_tac" tactic(tac) :=
+  let rec go :=
+  match goal with
+  | |- map_Forall ?P ∅ => apply map_Forall_empty
+  | |- map_Forall ?P {[_:=_]} => apply map_Forall_singleton; tac
+  | |- map_Forall ?P (<[_:=_]> _) =>
+      apply map_Forall_insert_2; [tac|go]
+  end
+  in try go.
+
+Ltac scope_solver := ss; split; i; case_decide; naive_solver.

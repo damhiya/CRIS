@@ -8,7 +8,7 @@ Module SMod. Section Smod.
   (* SMods are basic units of composition in CRIS. *)
   (* The image of the maps are lifted by option to make the module append operation total. *)
   Record t : Type := mk {
-    scopes : list string;
+    scopes : gmultiset string;
     fnsems : gmap (option string) (option (emask * (option fspec * fbody)));
     initial_st : gmap key (option Any.t);
 
@@ -18,11 +18,10 @@ Module SMod. Section Smod.
           (∀ (k : key) (v : Any.t), msk _ (subevent _ (SPut k v)) = true → k.1 ∈ scopes) ∧
           (∀ (k : key), msk _ (subevent _ (SGet k)) = true → k.1 ∈ scopes))
         (omap id fnsems);
-      (* forall fn, incl (fnsems_scopes fn fnsems) scopes; *)
     well_scoped_init :
-      (elements (dom initial_st)).*1 ⊆ scopes;
+      (set_map fst (dom initial_st)) ⊆ dom scopes;
     nodup_init :
-      NoDup scopes → map_Forall (const is_Some) initial_st;
+      (∀ x, multiplicity x scopes ≤ 1) → map_Forall (const is_Some) initial_st;
   }.
 
   Definition lift_fn (fno: option string) : speckey :=
@@ -44,16 +43,14 @@ Module SMod. Section Smod.
 
   (**** Linking ****)
   Program Definition empty : t := {|
-    scopes := [];
+    scopes := ∅;
     fnsems := ∅;
     initial_st := ∅;
   |}.
-  Next Obligation. ii; ss. Qed.
-  Next Obligation. ii; ss. Qed.
-  Next Obligation. ii; ss. Qed.
+  Solve All Obligations with done.
 
   Program Definition add ms1 ms2 : t := {|
-    scopes := (scopes ms1) ++ (scopes ms2);
+    scopes := (scopes ms1) ⊎ (scopes ms2);
     fnsems := union_with (λ _ _, Some None) (fnsems ms1) (fnsems ms2);
     initial_st := union_with (λ _ _, Some None) (initial_st ms1) (initial_st ms2);
   |}.
@@ -63,48 +60,47 @@ Module SMod. Section Smod.
     destruct ((fnsems ms1) !! fn) eqn: Heq1; destruct ((fnsems ms2) !! fn) eqn: Heq2; ss; intros ->.
     { hexploit (ms1.(well_scoped_fns) fn (msk, p)); eauto.
       { rewrite lookup_omap Heq1 //. }
-      intros [? ?]; split; ii; rewrite elem_of_app; left; eauto.
+      intros [? ?]; split; ii; apply gmultiset_elem_of_disj_union; left; eauto.
     }
     { hexploit (ms2.(well_scoped_fns) fn (msk, p)); eauto.
       { rewrite lookup_omap Heq2 //. }  
-      intros [? ?]; split; ii; rewrite elem_of_app; right; eauto.
+      intros [? ?]; split; ii; apply gmultiset_elem_of_disj_union; right; eauto.
     }
   Qed.
   Next Obligation.
-    intros ms1 ms2 fn; rewrite elem_of_list_fmap; intros [[scp ?] [-> Hin]]; ss.
-    rewrite elem_of_elements elem_of_dom lookup_union_with in Hin.
-    destruct (initial_st ms1 !! _) eqn: Heq1; eapply elem_of_app; [left|right].
-    { apply (ms1.(well_scoped_init)); rewrite elem_of_list_fmap; eexists (scp, _); split; ss.
-      rewrite elem_of_elements elem_of_dom //.
+    intros ms1 ms2 fn [[scp ?] [-> [? Hin]%elem_of_dom]]%elem_of_map; ss.
+    apply lookup_union_with_Some in Hin; des; ss;
+      apply gmultiset_elem_of_dom, gmultiset_elem_of_disj_union; [left|right|left].
+    { hexploit (ms1.(well_scoped_init)) => /(_ scp); rewrite gmultiset_elem_of_dom; eauto.
+      intros k; apply: k; apply elem_of_map; eexists (_, _); split; eauto; apply elem_of_dom; done.
     }
-    destruct (initial_st ms2 !! _) eqn: Heq2; [|inv Hin].
-    { apply (ms2.(well_scoped_init)); rewrite elem_of_list_fmap; eexists (scp, _); split; ss.
-      rewrite elem_of_elements elem_of_dom //.
+    { hexploit (ms2.(well_scoped_init)) => /(_ scp); rewrite gmultiset_elem_of_dom; eauto.
+      intros k; apply: k; apply elem_of_map; eexists (_, _); split; eauto; apply elem_of_dom; done.
+    }
+    { hexploit (ms1.(well_scoped_init)) => /(_ scp); rewrite gmultiset_elem_of_dom; eauto.
+      intros k; apply: k; apply elem_of_map; eexists (_, _); split; eauto; apply elem_of_dom; done.
     }
   Qed.
   Next Obligation.
-    intros ms1 ms2 [Hnodup1%ms1 [Hdisj Hnodup2%ms2]]%NoDup_app.
-    rewrite map_Forall_lookup; intros [scp nm] x; rewrite lookup_union_with.
-    destruct (_ ms1 !! _) eqn : Hms1.
-    { destruct (_ ms2 !! _) eqn : Hms2; ss; cycle 1.
-      { i; clarify. rewrite map_Forall_lookup in Hnodup1; eapply Hnodup1 in Hms1; destruct x; ss. }
-      exfalso; hexploit (Hdisj scp).
-      { apply (well_scoped_init ms1).
-        apply elem_of_list_fmap; exists (scp, nm); split; ss.
-        rewrite elem_of_elements elem_of_dom Hms1 //.
-      }
-      { intros Hf; apply Hf.
-        apply (well_scoped_init ms2).
-        apply elem_of_list_fmap; exists (scp, nm); split; ss.
-        rewrite elem_of_elements elem_of_dom Hms2 //.
-      }
+    intros ms1 ms2 H1; rewrite map_Forall_lookup; intros [scp key] v.
+    rewrite lookup_union_with_Some; intros [Hl | [Hl | [? [? [Hl1 Hl2]]]]]; des.
+    { apply (nodup_init ms1); eauto.
+      intros x; hexploit (H1 x); rewrite multiplicity_disj_union; lia.
     }
-    destruct (_ ms2 !! _) eqn : Hms2; ss; cycle 1.
-    { i; clarify. rewrite map_Forall_lookup in Hnodup2; eapply Hnodup2 in Hms2; destruct x; ss. }
+    { apply (nodup_init ms2); eauto.
+      intros x; hexploit (H1 x); rewrite multiplicity_disj_union; lia.
+    }
+    hexploit (well_scoped_init ms1) => /(_ scp); rewrite elem_of_map.
+    intros Hin1; hexploit Hin1; [exists (scp, key); split; ss; apply elem_of_dom; eauto|].
+    rewrite gmultiset_elem_of_dom elem_of_multiplicity.
+    hexploit (well_scoped_init ms2) => /(_ scp); rewrite elem_of_map.
+    intros Hin2; hexploit Hin2; [exists (scp, key); split; ss; apply elem_of_dom; eauto|].
+    rewrite gmultiset_elem_of_dom elem_of_multiplicity.
+    hexploit (H1 scp); rewrite multiplicity_disj_union; lia.
   Qed.
 
   (* TODO *)
-  Definition addL (ms : list t) : t := foldr add empty ms.
+  (* Definition addL (ms : list t) : t := foldr add empty ms. *)
 
   Program Definition to_mod (sp : specmap) (ms : t) : Mod.t := {|
     Mod.scopes := ms.(scopes);
@@ -123,7 +119,7 @@ Module SMod. Section Smod.
     ii. destruct ms. ss.
     hexploit nodup_init0; eauto. i. specialize (H2 i). eapply H2; eauto.
   Qed.
-  
+
   Program Definition cancel (ms : t) : t := {|
     scopes := ms.(scopes);
     fnsems := (.≫= (λ '(msk, bd), Some (msk, (None, bd.2)))) <$> ms.(fnsems);

@@ -1,8 +1,6 @@
 From CRIS Require Import CRIS MemHeader MemA MemI ImpPrelude.
 From iris.algebra Require Import auth excl agree csum functions dfrac_agree.
 
-Set Implicit Arguments.
-
 Local Open Scope nat_scope.
 
 Section AUX.
@@ -12,7 +10,7 @@ Section AUX.
     match xs with
     | [] => (⌜ll = Vnullptr⌝)%I
     | xhd :: xtl =>
-      (∃ lhd ltl, ⌜ll = Vptr (lhd, 0%Z)⌝ ∗ (lhd, 0%Z) |-> [xhd; ltl] ∗ is_list ltl xtl)%I
+        (∃ lhd ltl, ⌜ll = Vptr (lhd, 0%Z)⌝ ∗ (lhd, 0%Z) |-> [xhd; ltl] ∗ is_list ltl xtl)%I
     end.
 
   Lemma unfold_is_list ll xs:
@@ -108,9 +106,7 @@ Section RA.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
   Context `{_memG: !memG}.
 
-  Definition mem_wf (m0: Mem.t): Prop :=
-    forall b ofs v, m0.(Mem.cnts) b ofs = Some v -> b < m0.(Mem.nb)
-  .
+  Definition mem_wf (m : Mem.t) : Prop := ∀ b ofs v, m.(Mem.cnts) b ofs = Some v → b < m.(Mem.nb).
 
   Definition sim_mem (mem_s: _memRA) (mem_t: Mem.t) : Prop :=
     ∀ b ofs,
@@ -256,7 +252,7 @@ Section RA.
     own base_γ (● mem_ra_upd mem_s b ofs (Some (to_dfrac_agree (DfracOwn 1) v_new))) ∗ (b, ofs) ↦{1} v_new.
   Proof using.
     iIntros "P".
-    iPoseProof ((mem_ra_lookup _ _ _ _ SIM) with "P") as "%H"; iFrame.
+    iPoseProof ((mem_ra_lookup _ _ _ _ _ _ SIM) with "P") as "%H"; iFrame.
     des. clear H0.
     rewrite -!own_op. iApply (own_update with "P").
     apply auth_update, local_update_discrete. s. i.
@@ -344,12 +340,12 @@ Module MemIA. Section MemIA.
 
   Context (csl : string → bool).
   Context (genv : GEnv.t).
-  Context (sp: sp_type).
+  Context (sp: specmap).
 
-  Definition Ist: alist key Any.t -> alist key Any.t -> iProp Σ :=
+  Definition Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ :=
     λ st_src st_tgt,
-      ((∃ (mem_tgt: Mem.t) (mem_src: _memRA),
-      ⌜st_tgt = [(MemI.v_mem, mem_tgt↑)] ∧ sim_mem mem_src mem_tgt ∧ mem_wf mem_tgt⌝ ∗
+      ((∃ (mem_tgt : Mem.t) (mem_src : _memRA),
+      ⌜st_tgt = {[MemI.v_mem := Some mem_tgt↑]} ∧ sim_mem mem_src mem_tgt ∧ mem_wf mem_tgt⌝ ∗
       ( |==> own base_γ (● mem_src))))%I.
 
   Local Definition MemA := (MemA.t sp).
@@ -370,9 +366,17 @@ Module MemIA. Section MemIA.
     rewrite H2. et.
   Qed.
 
-  Lemma simF_alloc : ISim.sim_fun open MemA MemI (MemA.init_cond csl genv) IstFull (Some MemHdr.alloc).
+  Ltac init_simF :=
+    rewrite /ISim.sim_fun; simplify_map_eq; intros ??; eexists; split; first refl;
+    iIntros (arg st_src st_tgt) "IST"; iApply wsim_isim;
+    rewrite /SB.sandbox_body /SModTr.trans_fnsem /=.
+
+  Lemma simF_alloc : ISim.sim_fun open MemA MemI IstFull (Some MemHdr.alloc).
   Proof using.
     init_simF.
+
+    norm_l.
+    
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
 
     steps_l.

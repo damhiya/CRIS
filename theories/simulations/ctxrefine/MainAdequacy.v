@@ -84,16 +84,6 @@ Proof.
   iIntros "> [[? [[? ?] ?]] ?]"; by iFrame.
 Qed.
 
-Definition msk_scp `{Σ : GRA} (scp : gmultiset string) : emask :=
-  λ X e,
-    match e with
-    | inl1 _ => true
-    | inr1 (inl1 _) => true
-    | inr1 (inr1 (inl1 (SPut k v))) => decide (k.1 ∈ scp)
-    | inr1 (inr1 (inl1 (SGet k))) => decide (k.1 ∈ scp)
-    | inr1 (inr1 (inr1 _)) => true
-    end.
-
 Lemma msim_ctx
     `{Σ : GRA} contextual ms mt ctx
     Ist RR
@@ -102,8 +92,8 @@ Lemma msim_ctx
   (set_map fst (dom st_src)) ⊆ (dom (Mod.scopes mt)) →
   (set_map fst (dom st_tgt)) ⊆ (dom (Mod.scopes mt)) →
   (set_map fst (dom st_ctx)) ⊆ (dom (Mod.scopes ctx)) →
-  SB.sandbox (msk_scp (Mod.scopes mt)) itr_src = itr_src →
-  SB.sandbox (msk_scp (Mod.scopes mt)) itr_tgt = itr_tgt →
+  SB.sandbox (msk_scp (Mod.scopes mt) msk_true) itr_src = itr_src →
+  SB.sandbox (msk_scp (Mod.scopes mt) msk_true) itr_tgt = itr_tgt →
   Mod.wf (ms ★ ctx) →
   Mod.wf (mt ★ ctx) →
   msim open
@@ -160,7 +150,7 @@ Proof.
   { mstep; cycle 1.
     { eapply K; eauto using inv_sandbox_ktr.
       ired. rewrite SBRed.bind; ired.
-      assert (Hf : SB.sandbox (msk_scp (Mod.scopes mt)) (f varg) = f varg).
+      assert (Hf : SB.sandbox (msk_scp (Mod.scopes mt) msk_true) (f varg) = f varg).
       { move: FUN; rewrite lookup_fmap; destruct (_ ms !! _) as [[[fnmsk ?]|]|] eqn : Hfn; ss.
         i; clarify; eapply sandbox_well_scoped; eauto.
         intros ? e; depdes e; ss. depdes s; ss. depdes s; ss.
@@ -178,7 +168,7 @@ Proof.
   { mstep; cycle 1.
     { eapply K; eauto using inv_sandbox_ktr.
       ired. rewrite SBRed.bind; ired.
-      assert (Hf : SB.sandbox (msk_scp (Mod.scopes mt)) (f varg) = f varg).
+      assert (Hf : SB.sandbox (msk_scp (Mod.scopes mt) msk_true) (f varg) = f varg).
       { move: FUN; rewrite lookup_fmap; destruct (_ mt !! _) as [[[fnmsk ?]|]|] eqn : Hfn; ss.
         i; clarify; eapply sandbox_well_scoped; eauto.
         intros ? e; depdes e; ss. depdes s; ss. depdes s; ss.

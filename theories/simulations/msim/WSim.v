@@ -34,7 +34,6 @@ Section wsim.
   Context `{!crisG Γ Σ α β τ _S _I}.
 
   Local Definition state : Type := gmap key (option Any.t).
-  Local Definition state : Type := gmap key (option Any.t).
   Local Definition post (R_s R_t : Type) : Type := state * R_s → state * R_t → iProp Σ.
   Local Definition rel : Type := ∀ R_s R_t : Type,
     post R_s R_t → bool → bool → state * itree crisE R_s → state * itree crisE R_t → iProp Σ.
@@ -46,7 +45,6 @@ Section wsim.
   Local Definition wsim_eq : @wsim = @wsim_def := wsim_aux.(seal_eq).
   Local Ltac unseal := rewrite wsim_eq /wsim_def.
 
-  Context (fl_s fl_t : gmap (option string) (option (Any.t → itree crisE Any.t))).
   Context (fl_s fl_t : gmap (option string) (option (Any.t → itree crisE Any.t))).
   Context (Ist : ist_type Σ).
   Context (R_s R_t : Type).
@@ -184,12 +182,10 @@ Section wsim.
 
   Lemma wsim_sput_src k v k_s i_t :
     sim Ep r g RR true pt (<[k:=Some v]> st_s, k_s tt) (st_t, i_t) ⊢
-    sim Ep r g RR true pt (<[k:=Some v]> st_s, k_s tt) (st_t, i_t) ⊢
     sim Ep r g RR ps pt (st_s, trigger (SPut k v) >>= k_s) (st_t, i_t).
   Proof using. unseal; iIntros "RR I". iApply isim_sput_src; eauto. iApply "RR"; iFrame. Qed.
 
   Lemma wsim_sput_tgt k v i_s k_t :
-    sim Ep r g RR ps true (st_s, i_s) (<[k:=Some v]> st_t, k_t tt) ⊢
     sim Ep r g RR ps true (st_s, i_s) (<[k:=Some v]> st_t, k_t tt) ⊢
     sim Ep r g RR ps pt (st_s, i_s) (st_t, trigger (SPut k v) >>= k_t).
   Proof using. unseal; iIntros "RR I". iApply isim_sput_tgt; eauto. iApply "RR"; iFrame. Qed.
@@ -706,7 +702,6 @@ Global Arguments wsim_own_alloc {Γ Σ α β _S _I fl_s fl_t Ist R_s R_t r g RR 
 Section FancyReal.
   Context `{!crisG Γ Σ α β τ _S _I}.
 
-  Context (fl_s fl_t : gmap (option string) (option (Any.t → itree crisE Any.t))).
   Context (fl_s fl_t : gmap (option string) (option (Any.t → itree crisE Any.t))).
   Context (Ist : ist_type Σ).
   Context (R_s R_t : Type).
