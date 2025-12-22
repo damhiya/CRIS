@@ -192,13 +192,13 @@ End fspec.
 Section fspec_WINV.
   Context `{!crisG Γ Σ α β τ _S _I}.
 
-  (* Definition fspec_winv (E : coPset) (fsp : fspec) : fspec :=
-    fspec_call (meta := meta fsp)
-      (λ x varg arg, winv (E, E) ∗ precond fsp x varg arg)%I
-      (λ x vret ret, winv (E, E) ∗ postcond fsp x vret ret)%I.
+  Definition fspec_winv (E : coPset) (fsp : fspec) : fspec :=
+    fspec_mk (meta := meta fsp)
+      (λ '(NS, tid) x varg arg, winv (E, E) ∗ precond fsp (NS, tid) x varg arg)%I
+      (λ '(NS, tid) x vret ret, winv (E, E) ∗ postcond fsp (NS, tid) x vret ret)%I.
 
   Definition icond_winv (E : coPset) (I : iProp Σ) : iProp Σ :=
-    winv (E, E) ∗ I. *)
+    winv (E, E) ∗ I.
 End fspec_WINV.
 
 Global Arguments precond : simpl never.

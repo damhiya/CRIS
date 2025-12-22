@@ -65,57 +65,72 @@ End CancelLib.
 Section ELIM_REL.
 Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG}.
 
-Definition NativeSpawnE (fn: string) (arg: Any.t) : itree crisE nat :=
-  tid <- trigger (Spawn fn arg);; tau;; Ret tid.
+(* Definition NativeSpawnE (fn: string) (arg: Any.t) : itree crisE nat := *)
+(*   tid <- trigger (Spawn fn arg);; tau;; Ret tid. *)
 
-Definition NativeYieldE tid : itree crisE () :=
-  trigger (Yield tid);;; tau;; Ret tt.
+(* Definition NativeYieldE tid : itree crisE () := *)
+(*   trigger (Yield tid);;; tau;; Ret tt. *)
 
-Definition NativeGetTidE : itree crisE nat :=
-  my_tid <- trigger GetTid;; tau;; Ret my_tid.
+(* Definition NativeGetTidE : itree crisE nat := *)
+(*   my_tid <- trigger GetTid;; tau;; Ret my_tid. *)
 
-Definition HoareSpawnE fn varg (fspo: option fspec) : itree crisE nat :=
-  match fspo with
-  | Some (@fspec_spawn _ meta pre post) =>
-      x <- trigger (Choose meta);; tau;;
+Definition HoareSpawnE (fspo: option fspec) (sspo: bool) fn varg N : itree crisE nat :=
+  match fspo, sspo with
+  | Some fsp, true =>
+      x <- trigger (Choose (meta fsp));; tau;;
       arg <- trigger (Choose Any.t);; tau;;
       tid <- trigger (Spawn fn arg);; tau;;
       trigger (Assume (YIELD tid));;; tau;;
-      trigger (Guarantee (pre (tid, x) varg arg));;; tau;;
+      trigger (Guarantee (precond fsp (N, tid) x varg arg));;; tau;;
       Ret tid
-  | Some (@fspec_call _ meta pre post) =>
-      triggerNB
-  | None => NativeSpawnE fn varg
+  | None, true =>
+      tid <- trigger (Spawn fn varg);; tau;;
+      trigger (Assume (YIELD tid));;; tau;;
+      Ret tid
+  | _, false =>
+      tid <- trigger (Spawn fn varg);; tau;;
+      Ret tid
   end.
 
-Definition HoareYieldE tid : itree crisE () :=
-  my_tid <- trigger (Choose nat);; tau;;
-  trigger (Guarantee (TID(my_tid) ∗ YIELD(tid) ∗ winv(⊤, ⊤)));;; tau;;
-  trigger (Yield tid);;; tau;;
-  trigger (Assume (TID(my_tid) ∗ YIELD(my_tid) ∗ winv(⊤, ⊤)));;; tau;;
-  Ret tt.
+Definition HoareYieldE (sspo: bool) N stid ntid : itree crisE () :=
+  if sspo
+  then
+      trigger (Guarantee (TID stid ∗ YIELD ntid ∗ winv (↑N, ↑N)));;; tau;;
+      trigger (Yield ntid);;; tau;;
+      trigger (Assume (TID stid ∗ YIELD stid ∗ winv (↑N, ↑N)));;; tau;;
+      Ret tt
+  else
+      trigger (Yield ntid);;; tau;; Ret tt.
 
-Definition HoareGetTidE : itree crisE nat :=
-  my_tid <- trigger (Choose nat);; tau;;
-  trigger (Guarantee (TID(my_tid)));;; tau;;
-  tid <- trigger GetTid;; tau;;
-  trigger (Assume (⌜tid = my_tid⌝ ∗ TID(my_tid)));;; tau;;
-  Ret tid.
+Definition HoareGetTidE (sspo: bool) stid : itree crisE nat :=
+  if sspo
+  then
+      trigger (Guarantee (TID(stid)));;; tau;;
+      tid <- trigger GetTid;; tau;;
+      trigger (Assume (⌜tid = stid⌝ ∗ TID(stid)));;; tau;;
+      Ret tid
+  else
+      tid <- trigger GetTid;; tau;; Ret tid.
 
-Definition elim_precond {X X' : Type} P P' (varg: Any.t) : itree crisE (X * X' * Any.t) :=
+Definition elim_precond {X X' : Type} P P' (N: namespace) (stid: nat) (varg: Any.t) : itree crisE (namespace * nat * X * X' * Any.t) :=
   x <- trigger (Choose X);; tau;;
   arg <- trigger (Choose Any.t);; tau;;
-  trigger (Guarantee (P x varg arg));;; tau;; tau;;
+  trigger (Guarantee (TID stid ∗ YIELD stid ∗ winv (↑N, ↑N)));;; tau;;
+  trigger (Guarantee (P (N, stid) x varg arg));;; tau;; tau;;
+  '(N', stid') : _ <- trigger (Take (namespace * nat));; tau;;
   x' <- trigger (Take X');; tau;;
   varg' <- trigger (Take Any.t);; tau;;
-  trigger (Assume (P' x' varg' arg));;; tau;;
-  Ret (x, x', varg').
+  trigger (Assume (TID stid' ∗ YIELD stid' ∗ winv (↑(N'), ↑(N'))));;; tau;;
+  trigger (Assume (P' (N', stid') x' varg' arg));;; tau;;
+  Ret (N', stid', x, x', varg').
 
-Definition elim_postcond {X X' : Type} Q Q' (x : X) (x' : X') (vret': Any.t) : itree crisE Any.t :=
+Definition elim_postcond {X X' : Type} Q Q' (N N': namespace) (stid stid': nat) (x : X) (x' : X') (vret': Any.t) : itree crisE Any.t :=
   ret <- trigger (Choose Any.t);; tau;;
-  trigger (Guarantee (Q' x' vret' ret));;; tau;; tau;; tau;;
+  trigger (Guarantee (TID stid' ∗ YIELD stid' ∗ winv (↑(N'), ↑(N'))));;; tau;;
+  trigger (Guarantee (Q' (N', stid') x' vret' ret));;; tau;; tau;; tau;;
   vret <- trigger (Take Any.t);; tau;;
-  trigger (Assume (Q x vret ret));;; tau;;
+  trigger (Assume (TID stid ∗ YIELD stid ∗ winv (↑N, ↑N)));;; tau;;
+  trigger (Assume (Q (N, stid) x vret ret));;; tau;;
   Ret vret.
 
 (* Definition elim_trivial_precond (arg: Any.t) : itree crisE Any.t := *)
@@ -129,22 +144,22 @@ Definition elim_postcond {X X' : Type} Q Q' (x : X) (x' : X') (vret': Any.t) : i
 (*   trigger (Guarantee (⌜vret = ret⌝)%I);;; tau;; *)
 (*   Ret ret. *)
 
-Definition elim_spawnee_precond (X : Type) P (arg : Any.t) : itree crisE (nat * X * Any.t) :=
-  tid <- trigger (Take nat);; tau;;
-  trigger (Assume (TID tid ∗ YIELD tid ∗ winv(⊤, ⊤)));;; tau;;
+Definition elim_spawnee_precond (X : Type) P (arg : Any.t) : itree crisE (namespace * nat * X * Any.t) :=
+  '(N, stid) : _ <- trigger (Take (namespace * nat));; tau;;
   x <- trigger (Take X);; tau;;
   varg <- trigger (Take Any.t);; tau;;
-  trigger (Assume (P (tid, x) varg arg));;; tau;;
-  Ret (tid, x, varg).
+  trigger (Assume (TID stid ∗ YIELD stid ∗ winv (↑N, ↑N)));;; tau;;
+  trigger (Assume (P (N, stid) x varg arg));;; tau;;
+  Ret (N, stid, x, varg).
 
-Definition elim_spawnee_postcond {X : Type} Q (tid : nat) (x : X) (vret : Any.t) : itree crisE Any.t :=
+Definition elim_spawnee_postcond {X : Type} Q (N: namespace) (stid : nat) (x : X) (vret : Any.t) : itree crisE Any.t :=
   ret <- trigger (Choose Any.t);; tau;;
-  trigger (Guarantee (Q (tid, x) vret ret));;; tau;;
-  trigger (Guarantee (TID tid ∗ winv(⊤, ⊤)));;; tau;;
+  trigger (Guarantee (TID stid ∗ YIELD stid ∗ winv (↑N, ↑N)));;; tau;;
+  trigger (Guarantee (Q (N, stid) x vret ret));;; tau;;
   Ret ret.
 
 Variant elim_rel_def
-    (sp : sp_type)
+    (sp : specmap)
     (self : ∀ T, Σ → itree crisE T → itree crisE T → Prop) (T : Type)
   : Σ → itree crisE T → itree crisE T → Prop :=
 
@@ -171,29 +186,29 @@ Variant elim_rel_def
    (∀ (x : R), self _ ε (ktrS x) (ktrT x)) →
    elim_rel_def sp self ε (trigger e >>= ktrS) (a <- trigger e;; ktrT a)
 (* handling cancellation *)
-| elim_rel_yield tid ktrS ktrT itrS itrT :
-    itrS = NativeYieldE tid >>= ktrS →
-    itrT = HoareYieldE tid >>= ktrT →
+| elim_rel_yield N stid ntid ktrS ktrT itrS itrT :
+    itrS = HoareYieldE false N stid ntid >>= ktrS →
+    itrT = HoareYieldE true N stid ntid >>= ktrT →
     (∀ x, self _ ε (ktrS x) (ktrT x)) →
     elim_rel_def sp self ε itrS itrT
-| elim_rel_spawn fn args ktrS ktrT itrS itrT :
+| elim_rel_spawn fn args N ktrS ktrT itrS itrT :
    (* (img = false → fspec_imply (fspec_flat (sp fn)) fspec_trivial) → *)
-   itrS = NativeSpawnE fn args >>= ktrS →
-   itrT = HoareSpawnE fn args (sp fn) >>= ktrT →
+   itrS = HoareSpawnE (sp !! (speckey_fn fn)) false fn args N >>= ktrS →
+   itrT = HoareSpawnE (sp !! (speckey_fn fn)) true fn args N >>= ktrT →
    (∀ x, self _ ε (ktrS x) (ktrT x)) →
    elim_rel_def sp self ε itrS itrT
-| elim_rel_precond (X X' : Type) P P' varg itrS itrT ktrT :
-   (∀ (x : X), ∃ (x' : X'),
-     (∀ arg, P x varg arg ⊢ |==> P' x' varg arg) ∧ self _ ε itrS (ktrT (x, x', varg))) →
-   itrT = elim_precond P P' varg >>= ktrT →
+| elim_rel_precond (X X' : Type) P P' N stid varg itrS itrT ktrT :
+   (∀ (x : X), ∃ (x' : X') (N': namespace) (stid': nat),
+     (∀ arg, P (N, stid) x varg arg ⊢ |==> P' (N', stid') x' varg arg) ∧ self _ ε itrS (ktrT (N', stid', x, x', varg))) →
+   itrT = elim_precond P P' N stid varg >>= ktrT →
    elim_rel_def sp self ε (tau;; tau;; tau;; itrS) itrT
-| elim_rel_postcond (X X': Type) Q Q' (x: X) (x': X') vret itrS itrT ktrT :
-   ((∀ ret, Q' x' vret ret ⊢ |==> Q x vret ret) ∧ self _ ε itrS (ktrT vret)) →
-   itrT = elim_postcond Q Q' x x' vret >>= ktrT →
+| elim_rel_postcond (X X': Type) Q Q' (N N' : namespace) (stid stid': nat) (x: X) (x': X') vret itrS itrT ktrT :
+   ((∀ ret, Q' (N', stid') x' vret ret ⊢ |==> Q (N, stid) x vret ret) ∧ self _ ε itrS (ktrT vret)) →
+   itrT = elim_postcond Q Q' N N' stid stid' x x' vret >>= ktrT →
    elim_rel_def sp self ε (tau;; tau;; itrS) itrT
-| elim_rel_gettid ktrS ktrT itrS itrT :
-   itrS = NativeGetTidE >>= ktrS ->
-   itrT = HoareGetTidE >>= ktrT ->
+| elim_rel_gettid stid ktrS ktrT itrS itrT :
+   itrS = HoareGetTidE false stid >>= ktrS ->
+   itrT = HoareGetTidE true stid >>= ktrT ->
    (∀ x, self _ ε (ktrS x) (ktrT x)) ->
    elim_rel_def sp self ε itrS itrT
 .
@@ -207,7 +222,7 @@ Lemma elim_rel_def_mon sp r1 r2 :
 Proof using.
   intros ??????PR; destruct PR; eauto using @elim_rel_def.
   - eapply elim_rel_precond; eauto; des_safe.
-    i. specialize (H0 x). des; eauto.
+    i. specialize (H0 x). des; esplits; eauto.
   - eapply elim_rel_postcond; eauto; des_safe.
     esplits; eauto.
 Qed.
@@ -233,6 +248,9 @@ Proof using.
   econs; [apply elim_rel_bindC_mon|].
   i. inv PR. apply GF in H.
   inv H; grind; eauto 7 using rclo4, elim_rel_def, elim_rel_bindC with paco.
+  - ired. eapply elim_rel_yield with (ktrS := λ z, (x <- ktrS0 z;; ktrS x)) (ktrT := λ z, (x <- ktrT0 z;; ktrT x)); eauto.
+    { ired; ss. } { ired; ss. }
+    eauto 7 using rclo4, elim_rel_def, elim_rel_bindC with paco.
   - eapply elim_rel_precond; i; et.
     specialize (H1 x). des; esplits; eauto.
     eapply rclo4_clo'; cycle 1.
@@ -243,49 +261,65 @@ Proof using.
     eapply rclo4_clo'; cycle 1.
     + econs; [eapply H2|]; et.
     + eauto using rclo4.
+  - ired. eapply elim_rel_gettid with (ktrS := λ z, (x <- ktrS0 z;; ktrS x)) (ktrT := λ z, (x <- ktrT0 z;; ktrT x)); eauto.
+    { ired; ss. } { ired; ss. }
+    eauto 7 using rclo4, elim_rel_def, elim_rel_bindC with paco.
+Unshelve. all: eauto.
 Qed.
 
-Lemma SBRed_NativeSpawn img msk scp fn varg :
-  SB.sandbox img msk scp (SModTr.NativeSpawn fn varg) =
-    if msk fn then SModTr.NativeSpawn fn varg else triggerUB.
-Proof using. rewrite /SModTr.NativeSpawn SBRed.spawn. des_ifs; cycle 1. Qed.
+Lemma SBRed_NativeSpawn msk fn varg :
+  SB.sandbox msk (trigger (Spawn fn varg)) =
+    if msk _ (subevent _ (Spawn fn varg)) then trigger (Spawn fn varg) else triggerUB.
+Proof using.
+  rewrite SBRed.vis. des_ifs; rewrite Heq // in Heq0.
+  { rewrite vis_trigger. rewrite -{2}(bind_ret_r (trigger (Spawn fn varg))).
+    f_equal. extensionalities. rewrite SBRed.ret. refl. }
+  { rewrite /triggerUB. ss. rewrite vis_trigger. f_equal. extensionalities. ss. }
+Qed.
 
-Lemma SBRed_HoareSpawn (img: bool) (msk : _ → bool) scp fn varg fspo
-  (MSK: msk fn)
-  (IMG: (negb img) → fspo = None)
+Lemma SBRed_HoareSpawn (msk : emask) fn varg sspo fspo N
+  (MSK: ∀ x, msk _ (subevent _ (Spawn fn x)) = true)
+  (IMG: img_msk msk)
   :
-  SB.sandbox img msk scp (SModTr.HoareSpawn fn varg fspo) =
-    SModTr.HoareSpawn fn varg fspo.
+  SB.sandbox msk (SModTr.HoareSpawn fspo sspo fn varg N) =
+    SModTr.HoareSpawn fspo sspo fn varg N.
 Proof using.
-  rewrite /SModTr.HoareSpawn. destruct fspo; cycle 1.
+  r in IMG; des.
+  rewrite /SModTr.HoareSpawn. destruct fspo, sspo; cycle 1.
   { rewrite SBRed_NativeSpawn MSK. et. }
-  destruct img; cycle 1.
-  { exploit IMG; et. i. ss. }
-  destruct f.
-  { rewrite /triggerNB /= SBRed.bind SBRed.choose. f_equal. extensionalities; ss. }
-  rewrite SBRed.bind SBRed.choose. f_equal. extensionalities.
-  rewrite SBRed.bind SBRed.choose. f_equal. extensionalities.
-  rewrite SBRed.bind SBRed.spawn MSK. f_equal. extensionalities.
-  rewrite SBRed.bind SBRed.Assume. f_equal. extensionalities.
-  rewrite SBRed.bind SBRed.Guarantee. f_equal. extensionalities.
-  rewrite SBRed.ret. f_equal.
+  { rewrite SBRed.bind SBRed.vis MSK vis_trigger. ired. f_equal. extensionalities.
+    rewrite SBRed.ret bind_ret_l SBRed.bind SBRed.vis IMG1 vis_trigger. ired.
+    f_equal. extensionalities.
+    rewrite SBRed.ret bind_ret_l SBRed.ret //. }
+  { rewrite SBRed_NativeSpawn MSK. et. }
+  destruct f; ss.
+  rewrite SBRed.bind SBRed.vis !vis_trigger IMG0. ired. f_equal. extensionalities.
+  rewrite SBRed.ret bind_ret_l.
+  rewrite SBRed.bind SBRed.vis !vis_trigger IMG0. ired. f_equal. extensionalities.
+  rewrite SBRed.ret bind_ret_l.
+  rewrite SBRed.bind SBRed.vis !vis_trigger MSK. ired. f_equal. extensionalities.
+  rewrite SBRed.ret bind_ret_l.
+  rewrite SBRed.bind SBRed.vis !vis_trigger IMG1. ired. f_equal. extensionalities.
+  rewrite SBRed.ret bind_ret_l.
+  rewrite SBRed.bind SBRed.vis !vis_trigger IMG3. ired. f_equal. extensionalities.
+  rewrite SBRed.ret bind_ret_l. rewrite SBRed.ret //.
 Qed.
 
-Lemma MIRed_NativeSpawn prog fn varg :
-  inline_body prog (SModTr.NativeSpawn fn varg) = NativeSpawnE fn varg.
+Lemma MIRed_HoareSpawn prog fspo sspo fn varg N :
+  inline_body prog (SModTr.HoareSpawn fspo sspo fn varg N) = HoareSpawnE fspo sspo fn varg N.
 Proof using.
-  rewrite /SModTr.NativeSpawn /NativeSpawnE.
-  rewrite -(bind_ret_r (trigger _)).
-  rewrite MIRed.spawn. f_equal.
-  { rewrite bind_ret_r //. }
-  extensionalities. do 2 f_equal.
-  rewrite MIRed.ret //.
-Qed.
-
-Lemma MIRed_HoareSpawn prog fspo fn varg (ST: fspo = None ∨ is_spawn_ospec fspo) :
-  inline_body prog (SModTr.HoareSpawn fn varg fspo) = HoareSpawnE fn varg fspo.
-Proof using.
-  destruct fspo; ss; [|rewrite MIRed_NativeSpawn //].
+  destruct sspo; ss; cycle 1.
+  { destruct fspo; ss; cycle 1.
+    { rewrite -{1}(bind_ret_r (trigger (Spawn fn varg))). rewrite MIRed.spawn.
+      f_equal. extensionalities. do 2 f_equal. by rewrite MIRed.ret. }
+    { rewrite -{1}(bind_ret_r (trigger (Spawn fn varg))). rewrite MIRed.spawn.
+      f_equal. extensionalities. do 2 f_equal. by rewrite MIRed.ret. }
+  }
+  destruct fspo; ss; cycle 1.
+  { rewrite MIRed.bind -{1}(bind_ret_r (trigger (Spawn fn varg))) MIRed.spawn. ired.
+    f_equal. extensionalities. ired. do 2 f_equal.
+    rewrite MIRed.ret bind_ret_l MIRed.ag. ired.
+    f_equal. extensionalities. by rewrite MIRed.ret. }
   destruct f; des; ss.
   rewrite MIRed.core. f_equal. extensionalities. do 2 f_equal.
   rewrite MIRed.core. f_equal. extensionalities. do 2 f_equal.
@@ -295,78 +329,64 @@ Proof using.
   by rewrite MIRed.ret.
 Qed.
 
-Lemma SBRed_NativeYield img msk scp tid :
-  SB.sandbox img msk scp (SModTr.NativeYield tid) = SModTr.NativeYield tid.
-Proof using. rewrite /SModTr.NativeYield SBRed.yield. refl. Qed.
-
-Lemma SBRed_HoareYield (img: bool) (msk : _ → bool) scp tid :
-  SB.sandbox img msk scp (SModTr.HoareYield img tid) =
-    SModTr.HoareYield img tid.
+Lemma SBRed_HoareYield (msk: emask) sspo N stid ntid
+  (MSK: ∀ x, msk _ (subevent _ (Yield x)) = true)
+  (IMG: img_msk msk) :
+  SB.sandbox msk (SModTr.HoareYield sspo N stid ntid) =
+    SModTr.HoareYield sspo N stid ntid.
 Proof using.
-  rewrite /SModTr.HoareYield. destruct img; cycle 1.
-  { eapply SBRed_NativeYield. }
-  rewrite SBRed.bind SBRed.choose. f_equal. extensionalities.
-  rewrite SBRed.bind SBRed.Guarantee. f_equal. extensionalities.
-  rewrite SBRed.bind SBRed.yield. f_equal. extensionalities.
-  rewrite SBRed.Assume. f_equal.
+  r in IMG; des.
+  rewrite /SModTr.HoareYield. destruct sspo; cycle 1.
+  { rewrite SBRed.vis MSK vis_trigger. rewrite -{2}(bind_ret_r (trigger (Yield _))).
+    f_equal. extensionalities. rewrite SBRed.ret //. }
+  rewrite SBRed.bind SBRed.vis IMG3 vis_trigger. ired. f_equal. extensionalities.
+  rewrite SBRed.ret bind_ret_l.
+  rewrite SBRed.bind SBRed.vis MSK vis_trigger. ired. f_equal. extensionalities.
+  rewrite SBRed.ret bind_ret_l.
+  rewrite SBRed.vis IMG1 vis_trigger -{2}(bind_ret_r (trigger (Assume _))). f_equal. extensionalities.
+  rewrite SBRed.ret //.
 Qed.
 
-Lemma MIRed_NativeYield prog tid :
-  inline_body prog (SModTr.NativeYield tid) = NativeYieldE tid.
+Lemma MIRed_HoareYield prog sspo N stid ntid :
+  inline_body prog (SModTr.HoareYield sspo N stid ntid) = HoareYieldE sspo N stid ntid.
 Proof using.
-  rewrite /SModTr.NativeYield /NativeYieldE.
-  rewrite -(bind_ret_r (trigger _)).
-  rewrite MIRed.yield. f_equal.
-  { rewrite bind_ret_r //. }
-  extensionalities. do 2 f_equal.
-  rewrite MIRed.ret //. destruct H; refl.
-Qed.
-
-Lemma MIRed_HoareYield prog tid :
-  inline_body prog (SModTr.HoareYield true tid) = HoareYieldE tid.
-Proof using.
-  rewrite /SModTr.HoareYield /HoareYieldE. ired.
-  rewrite MIRed.core. f_equal. extensionalities. do 2 f_equal.
+  rewrite /SModTr.HoareYield /HoareYieldE. destruct sspo; cycle 1.
+  { rewrite -{1}(bind_ret_r (trigger (Yield _))) MIRed.yield.
+    f_equal. extensionalities. do 2 f_equal. rewrite MIRed.ret.
+    by destruct H. }
   rewrite MIRed.ag. f_equal. extensionalities. do 2 f_equal.
   rewrite MIRed.yield. f_equal. extensionalities. do 2 f_equal.
   rewrite -{1}(bind_ret_r (trigger _)).
   rewrite MIRed.ag. f_equal. extensionalities. do 2 f_equal.
-  destruct H2. by rewrite MIRed.ret.
+  destruct H1. by rewrite MIRed.ret.
 Qed.
 
-Lemma SBRed_NativeGetTid img msk scp :
-  SB.sandbox img msk scp SModTr.NativeGetTid = SModTr.NativeGetTid.
-Proof using. rewrite /SModTr.NativeGetTid SBRed.gettid. refl. Qed.
-
-Lemma SBRed_HoareGetTid (img: bool) (msk : _ → bool) scp :
-  SB.sandbox img msk scp (SModTr.HoareGetTid img) =
-    SModTr.HoareGetTid img.
+Lemma SBRed_HoareGetTid (msk : emask) sspo stid
+  (MSK: msk _ (subevent _ GetTid) = true)
+  (IMG: img_msk msk) :
+  SB.sandbox msk (SModTr.HoareGetTid sspo stid) =
+    SModTr.HoareGetTid sspo stid.
 Proof using.
-  rewrite /SModTr.HoareGetTid. destruct img; cycle 1.
-  { eapply SBRed_NativeGetTid. }
-  rewrite SBRed.bind SBRed.choose. f_equal. extensionalities.
-  rewrite SBRed.bind SBRed.Guarantee. f_equal. extensionalities.
-  rewrite SBRed.bind SBRed.gettid. f_equal. extensionalities.
-  rewrite SBRed.bind SBRed.Assume. f_equal. extensionalities.
-  rewrite SBRed.ret. f_equal.
+  r in IMG. des.
+  rewrite /SModTr.HoareGetTid. destruct sspo; cycle 1.
+  { rewrite SBRed.vis MSK vis_trigger. rewrite -{2}(bind_ret_r (trigger _)).
+    f_equal. extensionalities. rewrite SBRed.ret //. }
+  rewrite SBRed.bind SBRed.vis IMG3 vis_trigger bind_bind. f_equal. extensionalities.
+  rewrite SBRed.ret bind_ret_l.
+  rewrite SBRed.bind SBRed.vis MSK vis_trigger bind_bind. f_equal. extensionalities.
+  rewrite SBRed.ret bind_ret_l.
+  rewrite SBRed.bind SBRed.vis IMG1 vis_trigger bind_bind. f_equal. extensionalities.
+  rewrite SBRed.ret bind_ret_l.
+  rewrite SBRed.ret //.
 Qed.
 
-Lemma MIRed_NativeGetTid prog :
-  inline_body prog SModTr.NativeGetTid = NativeGetTidE.
+Lemma MIRed_HoareGetTid prog sspo stid :
+  inline_body prog (SModTr.HoareGetTid sspo stid) = HoareGetTidE sspo stid.
 Proof using.
-  rewrite /SModTr.NativeGetTid /NativeGetTidE.
-  rewrite -(bind_ret_r (trigger _)).
-  rewrite MIRed.gettid. f_equal.
-  { rewrite bind_ret_r //. }
-  extensionalities. do 2 f_equal.
-  rewrite MIRed.ret //.
-Qed.
-
-Lemma MIRed_HoareGetTid prog :
-  inline_body prog (SModTr.HoareGetTid true) = HoareGetTidE.
-Proof using.
-  rewrite /SModTr.HoareGetTid /HoareGetTidE. ired.
-  rewrite MIRed.core. f_equal. extensionalities. do 2 f_equal.
+  rewrite /SModTr.HoareGetTid /HoareGetTidE. destruct sspo; cycle 1.
+  { rewrite -{1}(bind_ret_r (trigger GetTid)) MIRed.gettid.
+    f_equal. extensionalities. do 2 f_equal. rewrite MIRed.ret.
+    by destruct H. }
   rewrite MIRed.ag. f_equal. extensionalities. do 2 f_equal.
   rewrite MIRed.gettid. f_equal. extensionalities. do 2 f_equal.
   rewrite MIRed.ag. f_equal. extensionalities. do 2 f_equal.
@@ -378,130 +398,168 @@ Lemma if_simpl X (b: bool) (x: X):
 Proof using. destruct b; et. Qed.
 
 Lemma MIRed_HoareFun
-    (md : SMod.t) (sp : sp_type) (img : bool) (msk : string → bool) (scp : list string)
+    (md : SMod.t) (sp : specmap) (msk : emask)
     (bd : fbody) (fspo : option fspec) (arg : Any.t)
     (fno : option string) meta pre post:
-  SMod.cancellable md →
-  alist_find fno (SMod.fnsems md) = Some (img, msk, scp, (fspo, bd)) →
-  fspo = Some (@fspec_spawn _ meta pre post) →
+  (SMod.fnsems md) !! fno = Some (Some (msk, (fspo, bd))) →
+  img_msk msk →
+  fspo = Some (@fspec_mk _ meta pre post) →
   inline_body
     (sandboxed_prog (SMod.to_mod sp md))
-    (SB.sandbox_body (true, msk, scp,
-      SModTr.HoareFun fspo (SModTr.trans true sp ∘ bd)) arg) =
-  '(tid, x, varg) : _ <- @elim_spawnee_precond _ pre arg;;
+    (SB.sandbox_body (msk, SModTr.HoareFun fspo (λ N tid, (SModTr.trans sp N tid ∘ bd))) arg) =
+  '(N, tid, x, varg) : _ <- @elim_spawnee_precond _ pre arg;;
   vret <-
     inline_body
       (sandboxed_prog (SMod.to_mod sp md))
-      (SB.sandbox true msk scp (SModTr.trans true sp (bd varg)));;
-  elim_spawnee_postcond post tid x vret.
+      (SB.sandbox msk (SModTr.trans sp N tid (bd varg)));;
+  elim_spawnee_postcond post N tid x vret.
 Proof using.
-  intros Hwf Hfind Hst.
+  intros Hfind Himg Hst. r in Himg. des.
   rewrite /SModTr.HoareFun /elim_spawnee_precond /elim_spawnee_postcond /=.
   destruct fspo; ss. destruct f; ss. depdes Hst.
-  rewrite /SB.sandbox_body SBRed.bind SBRed.take /=.
-  rewrite MIRed.core; ired; f_equal.
-  extensionalities x; ired; do 2 f_equal.
-  rewrite SBRed.bind SBRed.Assume MIRed.ag; f_equal.
-  extensionalities y; destruct y; ired; do 2 f_equal.
-  rewrite SBRed.bind SBRed.take MIRed.core; f_equal.
-  extensionalities z; ired; do 2 f_equal.
-  rewrite SBRed.bind SBRed.take MIRed.core; f_equal.
-  extensionalities w; ired; do 2 f_equal.
-  rewrite SBRed.bind SBRed.Assume MIRed.ag; f_equal.
-  extensionalities a; destruct a; ired; do 2 f_equal.
+  rewrite /SB.sandbox_body SBRed.bind SBRed.vis /= Himg vis_trigger !bind_bind MIRed.core.
+  ired; f_equal. extensionalities x; ired; do 2 f_equal.
+  destruct x. ired. do 2 f_equal.
+  rewrite SBRed.ret bind_ret_l.
+  rewrite SBRed.bind SBRed.vis /= Himg vis_trigger !bind_bind MIRed.core.
+  ired; f_equal. extensionalities x; ired; do 2 f_equal.
+  rewrite SBRed.ret bind_ret_l.
+  rewrite SBRed.bind SBRed.vis /= Himg vis_trigger !bind_bind MIRed.core.
+  ired; f_equal. extensionalities y; ired; do 2 f_equal.
+  rewrite SBRed.ret bind_ret_l.
+  rewrite SBRed.bind SBRed.vis /= Himg1 vis_trigger !bind_bind MIRed.ag.
+  ired; f_equal. extensionalities P; ired; do 2 f_equal.
+  rewrite SBRed.ret bind_ret_l /precond.
+  rewrite SBRed.bind SBRed.vis /= Himg1 vis_trigger !bind_bind MIRed.ag.
+  ired; f_equal. extensionalities P'; ired; do 2 f_equal.
+  rewrite SBRed.ret bind_ret_l.
+  
   rewrite SBRed.bind MIRed.bind; f_equal.
   extensionalities vret.
-  rewrite SBRed.bind SBRed.choose MIRed.core; f_equal.
+  rewrite SBRed.bind SBRed.vis /= Himg0 vis_trigger !bind_bind MIRed.core; f_equal.
   extensionalities ret; ired; do 2 f_equal.
-  rewrite SBRed.bind SBRed.Guarantee MIRed.ag; f_equal.
+  rewrite SBRed.ret bind_ret_l.
+  rewrite SBRed.bind SBRed.vis /= Himg3 vis_trigger !bind_bind MIRed.ag; f_equal.
   extensionalities b; destruct b; do 2 f_equal.
-  rewrite SBRed.bind SBRed.Guarantee MIRed.ag; f_equal.
+  rewrite SBRed.ret bind_ret_l.
+  rewrite SBRed.bind SBRed.vis /= Himg3 vis_trigger !bind_bind MIRed.ag; f_equal.
   extensionalities c; destruct c; do 2 f_equal.
+  rewrite SBRed.ret bind_ret_l.
   rewrite SBRed.ret MIRed.ret //.
 Qed.
 
 Lemma MIRed_HoareCall md sp fn varg
-  (msk msk0: _→bool) scp scp0 fspo fspo0 bd0 m m0 pre pre0 post post0
+  (msk msk0: emask) fspo fspo0 bd0 m m0 pre pre0 post post0 N stid
   (WF: SMod.cancellable md)
-  (IN: msk fn)
-  (SP: fspo = sp fn)
-  (FIND: alist_find (Some fn) (SMod.fnsems md) = Some (true, msk0, scp0, (fspo0, bd0)))
-  (ST: fspo = Some (@fspec_call _ m pre post))
-  (ST0: fspo0 = Some (@fspec_call _ m0 pre0 post0))
+  (* (SPWF: speckey_concE ∈ dom sp) *)
+  (IN: ∀ x, msk _ (subevent _ (Call fn x)) = true)
+  (IMG: img_msk msk)
+  (SP: sp !! (speckey_fn fn) = fspo)
+  (FIND: (SMod.fnsems md) !! (Some fn) = Some (Some (msk0, (fspo0, bd0))))
+  (ST: fspo = Some (@fspec_mk _ m pre post))
+  (ST0: fspo0 = Some (@fspec_mk _ m0 pre0 post0))
   :
-  inline_body (sandboxed_prog (SMod.to_mod sp md)) (SB.sandbox true msk scp (SModTr.HoareCall fn varg fspo))
+  inline_body (sandboxed_prog (SMod.to_mod sp md)) (SB.sandbox msk (SModTr.HoareCall fspo fn varg N stid))
   =
   (* head *)
-  '(x,x0,arg):_ <- elim_precond pre pre0 varg ;;
+  '(N', stid', x,x0,arg):_ <- elim_precond pre pre0 N stid varg ;;
   (* body *)
   vret0 <- inline_body (sandboxed_prog (SMod.to_mod sp md)) 
-                       (SB.sandbox true msk0 scp0 (SModTr.trans true sp (bd0 arg)));;
+                       (SB.sandbox msk0 (SModTr.trans sp N' stid' (bd0 arg)));;
   (* tail *)
-  elim_postcond post post0 x x0 vret0.
+  elim_postcond post post0 N N' stid stid' x x0 vret0.
 Proof using.
+  r in IMG. des.
+  r in WF. hexploit WF; eauto. intros [IM [_ _]]. r in IM. des.
   destruct fspo; ss. destruct f; ss. depdes ST.
   destruct fspo0; ss. destruct f; ss. depdes ST0.
   rewrite /elim_precond /elim_postcond. ired.
-  rewrite !SBRed.bind !SBRed.choose /= MIRed.core. do 2 f_equal.
+  rewrite !SBRed.bind !SBRed.vis /= IMG0 vis_trigger !bind_bind MIRed.core. do 2 f_equal.
   extensionalities. ired. do 2 f_equal.
-  rewrite !SBRed.bind !SBRed.choose /= MIRed.core. do 2 f_equal.
+  rewrite !SBRed.ret bind_ret_l.
+  rewrite !SBRed.bind !SBRed.vis /= IMG0 vis_trigger !bind_bind MIRed.core. do 2 f_equal.
   extensionalities. ired. do 2 f_equal.
-  rewrite !SBRed.bind SBRed.Guarantee MIRed.ag. ired. do 2 f_equal.
+  rewrite !SBRed.ret bind_ret_l.
+  rewrite !SBRed.bind SBRed.vis /= IMG3 vis_trigger !bind_bind MIRed.ag. do 2 f_equal.
   extensionalities. do 2 f_equal.
-  rewrite SBRed.call. destruct (msk fn); ss.
-  rewrite MIRed.call {2}/sandboxed_prog.
-  ired. rewrite alist_find_map_snd FIND. s. ired.
-  rewrite /SB.sandbox_body /SModTr.trans_body. s. do 2 f_equal.
-  rewrite !SBRed.bind !SBRed.take /= MIRed.bind MIRed.core. ired. do 2 f_equal.
+  rewrite !SBRed.ret bind_ret_l.
+  rewrite /precond SBRed.vis /= IMG3 vis_trigger !bind_bind MIRed.ag. do 2 f_equal.
+  extensionalities. do 2 f_equal.
+  rewrite !SBRed.ret bind_ret_l.
+  rewrite SBRed.vis IN vis_trigger !bind_bind MIRed.call. do 2 f_equal.
+  rewrite {2}/sandboxed_prog. rewrite lookup_omap {2}/SMod.to_mod /= lookup_fmap FIND /= bind_ret_l.
+  rewrite /SB.sandbox_body /SModTr.trans_fnsem. s.
+  rewrite !SBRed.bind SBRed.vis /= IM vis_trigger !bind_bind MIRed.core. do 2 f_equal.
+  extensionalities. ired. destruct H3. ired. do 2 f_equal.
+  rewrite !SBRed.ret bind_ret_l.
+  rewrite !SBRed.bind !SBRed.vis /= IM vis_trigger !bind_bind MIRed.core. do 2 f_equal.
   extensionalities. ired. do 2 f_equal.
-  rewrite !SBRed.bind SBRed.take /=. ired. rewrite MIRed.core. ired. do 2 f_equal.
+  rewrite !SBRed.ret bind_ret_l.
+  rewrite !SBRed.bind !SBRed.vis /= IM vis_trigger !bind_bind MIRed.core. do 2 f_equal.
   extensionalities. ired. do 2 f_equal.
-  rewrite !SBRed.bind SBRed.Assume /=. ired. rewrite MIRed.ag. ired. do 2 f_equal.
+  rewrite !SBRed.ret bind_ret_l.
+  rewrite !SBRed.bind !SBRed.vis /= !IM1 !vis_trigger !bind_bind MIRed.ag. do 2 f_equal.
   extensionalities. ired. do 2 f_equal.
+  rewrite !SBRed.ret bind_ret_l.
+  rewrite /precond MIRed.ag. ired. do 2 f_equal.
+  extensionalities. ired. do 2 f_equal.
+  rewrite !SBRed.ret bind_ret_l.
   rewrite MIRed.bind. ired. do 2 f_equal.
   extensionalities. ired.
-  rewrite !SBRed.bind SBRed.choose MIRed.core. ired. do 2 f_equal.
+  rewrite !SBRed.bind !SBRed.vis /= !IM0 !vis_trigger !bind_bind MIRed.core. do 2 f_equal.
   extensionalities. ired. do 2 f_equal.
-  rewrite !SBRed.bind SBRed.Guarantee MIRed.ag. ired. do 2 f_equal.
-  extensionalities. do 2 f_equal.
-  rewrite !SBRed.ret MIRed.ret. ired.
-  rewrite !MIRed.tau !SBRed.bind SBRed.take /= MIRed.core. ired. do 6 f_equal.
-  extensionalities. do 2 f_equal.
-  rewrite !SBRed.bind SBRed.Assume /=. ired. rewrite MIRed.ag. ired. do 2 f_equal.
+  rewrite !SBRed.ret bind_ret_l.
+  rewrite !SBRed.bind !SBRed.vis /= !IM3 !vis_trigger !bind_bind MIRed.ag. do 2 f_equal.
   extensionalities. ired. do 2 f_equal.
-  rewrite SBRed.ret MIRed.ret. refl.
+  rewrite !SBRed.ret bind_ret_l.
+  rewrite MIRed.ag /precond. ired. do 2 f_equal.
+  extensionalities. ired. do 2 f_equal.
+  rewrite !SBRed.ret bind_ret_l MIRed.tau. ired. do 4 f_equal.
+  rewrite !SBRed.bind SBRed.vis /= IMG vis_trigger !bind_bind MIRed.core. do 2 f_equal.
+  extensionalities. ired. do 2 f_equal.
+  rewrite !SBRed.ret bind_ret_l.
+  rewrite !SBRed.bind !SBRed.vis /= !IMG1 !vis_trigger !bind_bind MIRed.ag. do 2 f_equal.
+  extensionalities. ired. do 2 f_equal.
+  rewrite !SBRed.ret bind_ret_l.
+  rewrite MIRed.ag /precond. ired. do 2 f_equal.
+  extensionalities. ired. do 2 f_equal.
+  by rewrite !SBRed.ret bind_ret_l MIRed.ret.
 (*SLOW*)Qed.
 
 Local Tactic Notation "estep" integer(n) := do n (gstep; econs; i).
 Local Ltac edone := eauto 6 with paco.
 
-Lemma elim_rel_cancel (md: SMod.t) T msk scp (itr: itree _ T)
+Lemma elim_rel_cancel (md: SMod.t) (sp: specmap) T msk N stid (itr: itree _ T)
   (WF: SMod.cancellable md)
+  (IMG: img_msk msk)
   :
-  @elim_rel (sp_from md) T ε
-    (inline_body (sandboxed_prog (SMod.to_mod sp_none (SMod.cancel md))) 
-      (SB.sandbox true msk scp (SModTr.trans false sp_none itr)))
-    (inline_body (sandboxed_prog (SMod.to_mod (sp_from md) md)) 
-      (SB.sandbox true msk scp (SModTr.trans true (sp_from md) itr))).
+  @elim_rel (SMod.sp_from_conc md) T ε
+    (inline_body (sandboxed_prog (SMod.to_mod ∅ (SMod.cancel md))) 
+      (SB.sandbox msk (SModTr.trans ∅ N stid itr)))
+    (inline_body (sandboxed_prog (SMod.to_mod (SMod.sp_from_conc md) md)) 
+      (SB.sandbox msk (SModTr.trans (SMod.sp_from_conc md) N stid itr))).
 Proof using.
-  ginit. revert T itr msk scp. gcofix CIH. i.
+  ginit. revert IMG. revert T itr msk. gcofix CIH. i.
+  dup WF. red in WF. dup IMG. red in IMG. des.
   assert (CASE:= case_itrH itr). des; subst.
   - rewrite !SRed.ret !SBRed.ret !MIRed.ret. estep 1.
   - rewrite !SRed.tau !SBRed.tau !MIRed.tau. estep 2. edone.
-  - rewrite !SRed.bind !SRed.ag !SBRed.bind SBRed.Assume.
-    rewrite !MIRed.ag. estep 2. edone.
-  - rewrite !SRed.bind !SRed.ag !SBRed.bind !SBRed.AssumeRes.
-    rewrite !MIRed.ag. estep 2. edone.
-  - rewrite !SRed.bind !SRed.ag !SBRed.bind !SBRed.Guarantee !MIRed.ag.
-    estep 2. edone.
+  - rewrite !SRed.bind !SRed.ag !SBRed.bind SBRed.vis IMG2 vis_trigger !bind_bind.
+    rewrite !MIRed.ag. estep 2. rewrite !SBRed.ret !bind_ret_l. edone.
+  - rewrite !SRed.bind !SRed.ag !SBRed.bind !SBRed.vis IMG3 vis_trigger !bind_bind.
+    rewrite !MIRed.ag. estep 2. rewrite !SBRed.ret !bind_ret_l. edone.
+  - rewrite !SRed.bind !SRed.ag !SBRed.bind !SBRed.vis IMG4 vis_trigger !bind_bind !MIRed.ag.
+    estep 2. rewrite !SBRed.ret !bind_ret_l. edone.
   - depdes c; s.
     (* call case *)
     { 
       rewrite !SRed.bind !SBRed.bind !SRed.call !SBRed.tau !MIRed.bind !MIRed.tau.
-      ired. estep 2. destruct (msk fn) eqn: E; cycle 1.
-      { rewrite SBRed.call E /triggerUB // MIRed.core. ired. estep 1. }
-      destruct (alist_find (Some fn) (SMod.fnsems md)) eqn: E0; cycle 1.
-      { rewrite SBRed.call E -(bind_ret_r (trigger _)) MIRed.call
+      ired. estep 2. rewrite lookup_empty. destruct (msk _ (subevent _ (Call fn args))) eqn: E; cycle 1.
+      { rewrite SBRed.vis E vis_trigger // MIRed.core. ired. estep 1. }
+      destruct ((SMod.fnsems md) !! (Some fn)) eqn: E0; cycle 1.
+      { rewrite SBRed.vis E vis_trigger -(bind_ret_r (trigger _)).
+        rewrite {3}/SMod.sp_from_conc. rewrite 
+        MIRed.call.
                 {2}/sandboxed_prog // !alist_find_map_snd E0 //.
         ired. rewrite MIRed.core. ired. estep 1. }
       destruct f as [[[img0 msk0] scp0] [fsp0 bd0]].

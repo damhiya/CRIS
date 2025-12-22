@@ -221,9 +221,5 @@ Ltac winit_simF :=
 (*   norm_l; iApply wsim_ru_src_advanced; *)
 (*   iExists P; iSplit; [try prove_precise|]. *)
 
-Tactic Notation "wru_l" uconstr(P) :=
-  norm_l; iApply wsim_ru_src;
-  iExists P; iSplit; [try prove_precise|].
-
-Ltac wru_r :=
-  norm_r; iApply wsim_ru_tgt.
+(* Ltac wru_r := *)
+(*   norm_r; iApply wsim_ru_tgt. *)

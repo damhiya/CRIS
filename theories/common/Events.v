@@ -301,3 +301,10 @@ Proof using.
 Qed.
 
 Definition emask {Σ : GRA} : Type := ∀ X, crisE X → bool.
+
+Definition img_msk `{Σ: GRA} (msk: emask): Prop :=
+  (∀ T, msk _ (subevent _ (Take T)) = true)
+  ∧ (∀ T, msk _ (subevent _ (Choose T)) = true)
+  ∧ (∀ P, msk _ (subevent _ (Assume P)) = true)
+  ∧ (∀ P, msk _ (subevent _ (AssumeRes P)) = true)
+  ∧ (∀ P, msk _ (subevent _ (Guarantee P)) = true).
