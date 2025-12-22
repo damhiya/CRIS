@@ -300,11 +300,28 @@ Proof using.
     repeat f_equal. extensionality x. rewrite bind_ret_l. eauto.
 Qed.
 
-Definition emask {Σ : GRA} : Type := ∀ X, crisE X → bool.
+Section MASK.
+  Context `{Σ: GRA}.
 
-Definition img_msk `{Σ: GRA} (msk: emask): Prop :=
-  (∀ T, msk _ (subevent _ (Take T)) = true)
-  ∧ (∀ T, msk _ (subevent _ (Choose T)) = true)
-  ∧ (∀ P, msk _ (subevent _ (Assume P)) = true)
-  ∧ (∀ P, msk _ (subevent _ (AssumeRes P)) = true)
-  ∧ (∀ P, msk _ (subevent _ (Guarantee P)) = true).
+  Definition emask : Type := ∀ X, crisE X → bool.
+
+  Definition img_msk (msk: emask): Prop :=
+    (∀ T, msk _ (subevent _ (Take T)) = true)
+    ∧ (∀ T, msk _ (subevent _ (Choose T)) = true)
+    ∧ (∀ P, msk _ (subevent _ (Assume P)) = true)
+    ∧ (∀ P, msk _ (subevent _ (AssumeRes P)) = true)
+    ∧ (∀ P, msk _ (subevent _ (Guarantee P)) = true).
+
+  Definition msk_scp (scp : list string) : emask :=
+    λ X e,
+      match e with
+      | inl1 _ => true
+      | inr1 (inl1 _) => true
+      | inr1 (inr1 (inl1 (SPut k v))) => decide (k.1 ∈ scp)
+      | inr1 (inr1 (inl1 (SGet k))) => decide (k.1 ∈ scp)
+      | inr1 (inr1 (inr1 _)) => true
+      end.
+
+  Definition call_msk (msk: emask): Prop :=
+    ∀ fn x y, msk _ (subevent _ (Call fn x)) = msk _ (subevent _ (Call fn y)).
+End MASK.

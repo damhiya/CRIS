@@ -32,15 +32,15 @@ Module SMod. Section Smod.
     end.
 
   Definition sp_from (md : t) : specmap :=
-    list_to_map (map (map_fst lift_fn) (map_to_list (omap id (fst ∘ snd <$> omap id md.(fnsems))))).
-
-  Definition sp_from_conc (md : t) : specmap :=
+    kmap lift_fn (omap id (fst ∘ snd <$> omap id md.(fnsems))).
+  
+  Definition conc_sp_from (md : t) : specmap :=
     <[speckey_concE := fspec_trivial]> (sp_from md).
 
   Definition cancellable (ms : t) : Prop :=
     ∀ fno msk fspo bd
       (FIND: (fnsems ms) !! fno = Some (Some (msk, (fspo, bd)))),
-      (img_msk msk) ∧ (is_Some fspo).
+      (img_msk msk) ∧ (call_msk msk) ∧ (is_Some fspo).
 
   (**** Linking ****)
   Program Definition empty : t := {|
@@ -190,24 +190,9 @@ End ADD.
 Section Aux.
   Context `{!crisG Γ Σ α β τ _S _I, !concG}.
 
-  #[local]
-  Lemma NoDup_map_injective {A B} (f: A → B) `{!Inj (=) (=) f} (l : list A)
-    (NOD: NoDup l) :
-    NoDup (map f l).
-  Proof using.
-    gen NOD. induction l.
-    { i; ss. econs. }
-    { i; ss. inv NOD. hexploit IHl; eauto. i. econs; eauto.
-      ii. apply H2. eapply elem_of_list_fmap_inj; eauto. }
-  Qed.
-
-  #[local]
-  Lemma map_fst_map_map_fst {A B C} (l: list (A * B)) (f: A → C) :
-    (map (map_fst f) l).*1 = map f (l.*1).
-  Proof using.
-    induction l; ss.
-    rewrite -IHl. destruct a; ss.
-  Qed.
+  #[global]
+  Instance smod_lift_fn_inj : Inj (=) (=) SMod.lift_fn.
+  Proof. ii. rewrite /SMod.lift_fn in H0. des_ifs. Qed.
 
   Lemma lookup_sp_from md fn kboo
     (FIND: md.(SMod.fnsems) !! Some fn = kboo) :
@@ -222,38 +207,14 @@ Section Aux.
               | Some (Some (_, (Some fsp, _))) => Some fsp
               | _ => None
               end) eqn: E; cycle 1.
-    { rewrite not_elem_of_list_to_map_1 //.
-      intro N. set (l:=map _ _) in N.
-      assert (∃ fsp, (speckey_fn fn, fsp) ∈ l).
-      { clear -N. clearbody l. induction l; try set_solver.
-        eapply elem_of_cons in N. des.
-        { exists a.2. rewrite N. destruct a; ss. set_solver. }
-        { hexploit IHl; eauto. i. destruct H. exists x. set_solver. }
-      }
-      des. subst l. set (l:=(map_to_list _)) in H0.
-      assert ((Some fn, fsp) ∈ l).
-      { clear -H0. clearbody l. induction l; try set_solver.
-        eapply elem_of_cons in H0. des.
-        { destruct a; ss. rewrite /SMod.lift_fn in H0. destruct o; ss. inv H0. set_solver. }
-        { hexploit IHl; eauto. i. set_solver. }
-      }
-      subst l.
-      eapply elem_of_map_to_list in H1.
-      rewrite lookup_omap lookup_fmap lookup_omap FIND // in H1.
-      des_ifs. }
-    { des_ifs.
-      eapply (elem_of_list_to_map_1 _ _ f).
-      { rewrite map_fst_map_map_fst.
-        eapply NoDup_map_injective.
-        { ii. destruct x, y; ss. inv H0. refl. }
-        eapply NoDup_fst_map_to_list.
-      }
-      set (l:=(map_to_list _)).
-      enough ((Some fn, f) ∈ l).
-      { clear -H0. clearbody l. induction l; set_solver. }
-      subst l. eapply elem_of_map_to_list.
-      rewrite lookup_omap lookup_fmap lookup_omap Heq //.
-    }
+    { set (l:=omap _ _).
+      eapply (lookup_kmap_None SMod.lift_fn l (speckey_fn fn)).
+      i. rewrite /SMod.lift_fn in H0. destruct i; ss. inv H0. subst l.
+      rewrite lookup_omap lookup_fmap lookup_omap. des_ifs. }
+    { set (l:=omap _ _).
+      eapply (lookup_kmap_Some SMod.lift_fn l (speckey_fn fn)).
+      exists (Some fn). split; ss. subst l.
+      rewrite lookup_omap lookup_fmap lookup_omap. des_ifs. }
   Qed.
 
   (* Definition lift_fn (fno: option string) : speckey := *)

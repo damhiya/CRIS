@@ -192,7 +192,7 @@ Proof using.
   assert (SCPIMPL:
            ∀ (fn: string) (msk: emask) (bd: fbody),
              Mod.fnsems ms !! Some fn = Some (Some (msk, bd)) →
-             ∀ (X : Type) (e : crisE X), msk X e → msk_scp (Mod.scopes ms) X e).
+             ∀ (X: Type) (e : @crisE Σ X), msk X e → msk_scp (Mod.scopes ms) e).
   { i. hexploit (Mod.well_scoped_fns ms); eauto.
     intros FA. specialize (FA (Some fn) (msk0, bd0)).
     rewrite lookup_omap H in FA. ss. specialize (FA eq_refl).
@@ -201,7 +201,7 @@ Proof using.
     { destruct (decide (k.1 ∈ Mod.scopes ms)); ss. exfalso. des; eauto. }
     { destruct (decide (k.1 ∈ Mod.scopes ms)); ss. exfalso. des; eauto. }
   }
-  assert (SCPIMPL0: ∀ (X : Type) (e : crisE X), msk X e → msk_scp (Mod.scopes ms) X e).
+  assert (SCPIMPL0: ∀ (X : Type) (e : crisE X), msk X e → msk_scp (Mod.scopes ms) e).
   { i; des. rewrite /msk_scp. depdes e; ss. depdes s; ss. depdes s; ss. depdes p; ss.
     { destruct (decide (k.1 ∈ Mod.scopes ms)); ss. exfalso. des; eauto. }
     { destruct (decide (k.1 ∈ Mod.scopes ms)); ss. exfalso. des; eauto. }

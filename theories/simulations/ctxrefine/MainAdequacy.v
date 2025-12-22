@@ -84,16 +84,6 @@ Proof.
   iIntros "> [[? [[? ?] ?]] ?]"; by iFrame.
 Qed.
 
-Definition msk_scp `{Σ : GRA} (scp : list string) : emask :=
-  λ X e,
-    match e with
-    | inl1 _ => true
-    | inr1 (inl1 _) => true
-    | inr1 (inr1 (inl1 (SPut k v))) => decide (k.1 ∈ scp)
-    | inr1 (inr1 (inl1 (SGet k))) => decide (k.1 ∈ scp)
-    | inr1 (inr1 (inr1 _)) => true
-    end.
-
 Lemma msim_ctx
     `{Σ : GRA} contextual ms mt ctx
     Ist RR
