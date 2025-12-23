@@ -63,9 +63,9 @@ Local Lemma Own_Ist `{Σ : GRA} FR fmr scp scp_ctx Ist st_src st_tgt :
   ∃ st_srcL st_tgtL st_ctx,
     st_src = union_with (const (const (Some None))) st_srcL st_ctx ∧
     st_tgt = union_with (const (const (Some None))) st_tgtL st_ctx ∧
-    (elements (dom st_srcL)).*1 ⊆ scp ∧
-    (elements (dom st_tgtL)).*1 ⊆ scp ∧
-    (elements (dom st_ctx)).*1 ⊆ scp_ctx ∧
+    (set_map fst (dom st_srcL)) ⊆ dom scp ∧
+    (set_map fst (dom st_tgtL)) ⊆ dom scp ∧
+    (set_map fst (dom st_ctx)) ⊆ dom scp_ctx ∧
     (Own fmr ⊢ |==> Ist st_srcL st_tgtL ∗ FR).
 Proof.
   intros Hfmr2val Hfmr2.
@@ -88,10 +88,10 @@ Lemma msim_ctx
     `{Σ : GRA} contextual ms mt ctx
     Ist RR
     ps pt st_src st_tgt st_ctx itr_src itr_tgt fmr :
-  Mod.scopes ms ⊆+ Mod.scopes mt →
-  (elements (dom st_src)).*1 ⊆ (Mod.scopes mt) →
-  (elements (dom st_tgt)).*1 ⊆ (Mod.scopes mt) →
-  (elements (dom st_ctx)).*1 ⊆ (Mod.scopes ctx) →
+  Mod.scopes ms ⊆ Mod.scopes mt →
+  (set_map fst (dom st_src)) ⊆ (dom (Mod.scopes mt)) →
+  (set_map fst (dom st_tgt)) ⊆ (dom (Mod.scopes mt)) →
+  (set_map fst (dom st_ctx)) ⊆ (dom (Mod.scopes ctx)) →
   SB.sandbox (msk_scp (Mod.scopes mt)) itr_src = itr_src →
   SB.sandbox (msk_scp (Mod.scopes mt)) itr_tgt = itr_tgt →
   Mod.wf (ms ★ ctx) →
@@ -156,8 +156,8 @@ Proof.
         intros ? e; depdes e; ss. depdes s; ss. depdes s; ss.
         depdes p; ss; hexploit (Mod.well_scoped_fns ms); rewrite map_Forall_lookup =>
           /(_ (Some fn) (fnmsk, f0)); rewrite lookup_omap Hfn => /(_ eq_refl);
-          [intros [Hkey ?]|intros [? Hkey]] => /Hkey; case_decide; ss;
-          intros Hin; eapply elem_of_submseteq in Hin; eauto.
+          [intros [Hkey ?]|intros [? Hkey]] => /Hkey; case_decide as Hin2; ss;
+          intros Hin; eapply gmultiset_elem_of_subseteq in Hscopest; eauto.
       }
       rewrite Hf; grind.
       rewrite SBRed.tau; ired; grind; eauto using inv_sandbox_ktr.
@@ -189,7 +189,8 @@ Proof.
     { eapply K; eauto. rewrite dom_insert_L; set_solver. }
     rewrite not_elem_of_dom_1 //.
     assert (Mod.scopes ctx ## Mod.scopes mt); [|set_solver].
-    hexploit (Mod.wf_scopes _ Hwft); eauto => /NoDup_app; i; des; set_solver.
+    intros x Hxc Hxt; hexploit (Mod.wf_scopes _ Hwft x); rewrite ?elem_of_multiplicity in Hxc, Hxt.
+    rewrite multiplicity_disj_union; lia.
   }
   { mstep.
     eapply inv_sandbox_event in Hsbt as [Hktr Hmsk]; ss; case_decide; ss.
@@ -197,19 +198,22 @@ Proof.
     { eapply K; eauto. rewrite dom_insert_L; set_solver. }
     rewrite not_elem_of_dom_1 //.
     assert (Mod.scopes ctx ## Mod.scopes mt); [|set_solver].
-    hexploit (Mod.wf_scopes _ Hwft); eauto => /NoDup_app; i; des; set_solver.
+    intros x Hxc Hxt; hexploit (Mod.wf_scopes _ Hwft x); rewrite ?elem_of_multiplicity in Hxc, Hxt.
+    rewrite multiplicity_disj_union; lia.
   }
   { mstep. eapply K; eauto using inv_sandbox_ktr.
     eapply inv_sandbox_event in Hsbs as [Hktr Hmsk]; ss; case_decide; ss.
     rewrite lookup_union_with (not_elem_of_dom_1 st_ctx); [destruct (_ !! _); ss|].
     assert (Mod.scopes ctx ## Mod.scopes mt); [|set_solver].
-    hexploit (Mod.wf_scopes _ Hwft); eauto => /NoDup_app; i; des; set_solver.
+    intros x Hxc Hxt; hexploit (Mod.wf_scopes _ Hwft x); rewrite ?elem_of_multiplicity in Hxc, Hxt.
+    rewrite multiplicity_disj_union; lia.
   }
   { mstep. eapply K; eauto using inv_sandbox_ktr.
     eapply inv_sandbox_event in Hsbt as [Hktr Hmsk]; ss; case_decide; ss.
     rewrite lookup_union_with (not_elem_of_dom_1 st_ctx); [destruct (_ !! _); ss|].
     assert (Mod.scopes ctx ## Mod.scopes mt); [|set_solver].
-    hexploit (Mod.wf_scopes _ Hwft); eauto => /NoDup_app; i; des; set_solver.
+    intros x Hxc Hxt; hexploit (Mod.wf_scopes _ Hwft x); rewrite ?elem_of_multiplicity in Hxc, Hxt.
+    rewrite multiplicity_disj_union; lia.
   }
   { mstep.
     { instantiate (1:=FR). rewrite INV; iIntros "> [$ $] !>"; iExists _, _; iSplit; eauto. }
@@ -225,10 +229,10 @@ Proof.
 Qed.
 
 Lemma isim_ctx `{Σ : GRA} contextual RR fs ft ms mt ctx Ist arg st_src st_tgt st_ctx :
-  (elements (dom st_src)).*1 ⊆ Mod.scopes mt →
-  (elements (dom st_tgt)).*1 ⊆ Mod.scopes mt →
-  (elements (dom st_ctx)).*1 ⊆ Mod.scopes ctx →
-  Mod.scopes ms ⊆+ Mod.scopes mt →
+  (set_map fst (dom st_src)) ⊆ dom (Mod.scopes mt) →
+  (set_map fst (dom st_tgt)) ⊆ dom (Mod.scopes mt) →
+  (set_map fst (dom st_ctx)) ⊆ dom (Mod.scopes ctx) →
+  Mod.scopes ms ⊆ Mod.scopes mt →
   Mod.wf (ms ★ ctx) →
   Mod.wf (mt ★ ctx) →
   (∃ fno, Mod.fnsems ms !! fno = Some (Some fs) ∧ Mod.fnsems mt !! fno = Some (Some ft)) →
@@ -262,8 +266,8 @@ Proof.
     intros ? s; depdes s; ss; depdes s; ss; depdes s; ss.
     depdes p; ss; hexploit (Mod.well_scoped_fns ms); rewrite map_Forall_lookup =>
       /(_ fno (msks, bds)); rewrite lookup_omap Hins => /(_ eq_refl);
-      [intros [Hkey ?]|intros [? Hkey]] => /Hkey; case_decide; ss;
-      intros Hin; eapply elem_of_submseteq in Hin; eauto.
+      [intros [Hkey ?]|intros [? Hkey]] => /Hkey; case_decide as Hin2; ss;
+      intros Hin; eapply gmultiset_elem_of_subseteq in Hscp; eauto.
   }
   { destruct Hin as [fno [Hins Hint]].
     eapply sandbox_well_scoped; ss.
@@ -288,13 +292,15 @@ Section ADEQUACY.
     hexploit ISim_wf; eauto; intros Hwfs.
     pose Hsim as Hsim'; destruct Hsim' as [Hscp Hic Hsimfun].
     econs; intros _.
-    { apply submseteq_app; eauto. }
+    { hexploit Hscp; eauto.
+      do 2 (etrans; first apply gmultiset_disj_union_mono; eauto).
+    }
     { rewrite Hic //; iIntros "$"; iExists _, _; iSplit; eauto.
       iSplit; eauto.
       { iPureIntro; split; [|destruct mt; ss].
         etrans; first apply (Mod.well_scoped_init).
-        hexploit Hscp; eauto; clear Hscp; intros Hscp.
-        apply submseteq_Permutation in Hscp as [? ->]; set_solver.
+        intros ?; rewrite ?gmultiset_elem_of_dom; hexploit Hscp; eauto.
+        i; eapply gmultiset_elem_of_subseteq; eauto.
       }
       iSplit; [iPureIntro; split; destruct ctx; ss|ss].
     }
@@ -325,13 +331,19 @@ Section ADEQUACY.
           { iIntros "[% ->]"; iSplit; [rewrite ?dom_insert_L|eauto]; iPureIntro.
             split; set_solver.
           }
-          hexploit (Mod.wf_scopes _ Hwftctx) => /NoDup_app [? [? _]]; set_solver.
+          enough (Mod.scopes mt ## Mod.scopes ctx); [set_solver|].
+          intros x Hin%(gmultiset_elem_of_subseteq _ (Mod.scopes mt)) => HinC //.
+          hexploit (Mod.wf_scopes _ Hwftctx x); rewrite ?elem_of_multiplicity in Hin, HinC.
+          rewrite multiplicity_disj_union; lia.
         }
         { intros ??? Hkey; hexploit (Mod.well_scoped_fns ctx fno (fmsk, fbd)).
           { rewrite lookup_omap Hfnoctx //. }
           intros [_ Hmsk]; move: Hmsk => /(_ k Hkey) ?; split.
           { iIntros "[% ->] //". }
-          hexploit (Mod.wf_scopes _ Hwftctx) => /NoDup_app [? [? _]]; set_solver.
+          enough (Mod.scopes mt ## Mod.scopes ctx); [set_solver|].
+          intros x Hin%(gmultiset_elem_of_subseteq _ (Mod.scopes mt)) => HinC //.
+          hexploit (Mod.wf_scopes _ Hwftctx x); rewrite ?elem_of_multiplicity in Hin, HinC.
+          rewrite multiplicity_disj_union; lia.
         }
       }
       { exfalso; move: (Mod.wf_fns ctx Hwfctx).

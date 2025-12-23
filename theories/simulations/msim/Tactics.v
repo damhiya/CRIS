@@ -54,18 +54,18 @@
 (*  unfold_lat *)
 (* *) *)
 
-(* Lemma unfold_lat_img `{Σ:GRA} peeking fsp lbody body arg: *)
-(*   lat_img peeking fsp lbody body arg = *)
-(*     r <- lat_img_body peeking fsp lbody body arg;; *)
-(*     match r with *)
-(*     | inl _ => tau;; lat_img peeking fsp lbody body arg *)
-(*     | inr r => Ret r *)
-(*     end. *)
-(* Proof. *)
-(*   rewrite /lat_img. erewrite -> (bisim_is_eq (unfold_iter _ _)) at 1. *)
-(*   f_equal. extensionalities. destruct H; et. *)
-(*   repeat f_equal. destruct u; et. *)
-(* Qed. *)
+(* Lemma unfold_lat_img `{Σ:GRA} peeking fsp lbody body arg:
+  lat_img peeking fsp lbody body arg =
+    r <- lat_img_body peeking fsp lbody body arg;;
+    match r with
+    | inl _ => tau;; lat_img peeking fsp lbody body arg
+    | inr r => Ret r
+    end.
+Proof.
+  rewrite /lat_img. erewrite -> (bisim_is_eq (unfold_iter _ _)) at 1.
+  f_equal. extensionalities. destruct H; et.
+  repeat f_equal. destruct u; et.
+Qed.
 
 (* Lemma unfold_lat_real `{Σ:GRA} peeking fsp lbody body arg: *)
 (*   lat_real peeking fsp lbody body arg = *)
@@ -107,11 +107,11 @@
 (*   show_until marker; *)
 (*   steps_l. *)
 
-(* Ltac unfold_lat_real_r := *)
-(*   let marker := fresh "MARKER" in *)
-(*   set_marker marker; *)
-(*   hide_ihyps; *)
-(*   only_itree_r; *)
-(*   rewrite {1}unfold_lat_real {1}/lat_real_body; *)
-(*   show_until marker; *)
-(*   steps_r. *)
+Ltac unfold_lat_real_r :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  only_itree_r;
+  rewrite {1}unfold_lat_real {1}/lat_real_body;
+  show_until marker;
+  steps_r. *)

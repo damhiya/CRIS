@@ -20,9 +20,8 @@ Qed. *)
 
 Module Mod. Section Mod.
   Context {Σ : GRA}.
-  
   Record t : Type := mk {
-    scopes : list string;
+    scopes : gmultiset string;
     fnsems : gmap (option string) (option (emask * fbody));
     initial_st : gmap key (option Any.t);
 
@@ -33,14 +32,14 @@ Module Mod. Section Mod.
           (∀ (k : key), msk _ (subevent _ (SGet k)) = true → k.1 ∈ scopes))
         (omap id fnsems);
     well_scoped_init :
-      (elements (dom initial_st)).*1 ⊆ scopes;
+      (set_map fst (dom initial_st)) ⊆ dom scopes;
     nodup_init :
-      NoDup scopes → map_Forall (const is_Some) initial_st;
+      (∀ x, multiplicity x scopes ≤ 1) → map_Forall (const is_Some) initial_st;
   }.
 
   Record wf (ms : t) : Prop := mk_wf {
     wf_fns : map_Forall (const is_Some) (fnsems ms);
-    wf_scopes : NoDup (scopes ms);
+    wf_scopes : ∀ x, multiplicity x (scopes ms) ≤ 1;
   }.
 
   (* Definition exports (m: t) : list (option string) :=
@@ -48,14 +47,14 @@ Module Mod. Section Mod.
 
   (**** Linking ****)
   Program Definition empty : t := {|
-    scopes := [];
+    scopes := ∅;
     fnsems := ∅;
     initial_st := ∅;
   |}.
   Solve All Obligations with ii; ss.
 
   Program Definition add (ms1 ms2 : t) : t := {|
-    scopes := (scopes ms1) ++ (scopes ms2);
+    scopes := (scopes ms1) ⊎ (scopes ms2);
     fnsems := union_with (λ _ _, Some None) (fnsems ms1) (fnsems ms2);
     initial_st := union_with (λ _ _, Some None) (initial_st ms1) (initial_st ms2);
   |}.
@@ -65,49 +64,67 @@ Module Mod. Section Mod.
     destruct ((fnsems ms1) !! fn) eqn: Heq1; destruct ((fnsems ms2) !! fn) eqn: Heq2; ss; intros ->.
     { hexploit (ms1.(well_scoped_fns) fn (msk, p)); eauto.
       { rewrite lookup_omap Heq1 //. }
-      intros [? ?]; split; ii; rewrite elem_of_app; left; eauto.
+      intros [? ?]; split; ii; apply gmultiset_elem_of_disj_union; left; eauto.
     }
     { hexploit (ms2.(well_scoped_fns) fn (msk, p)); eauto.
       { rewrite lookup_omap Heq2 //. }  
-      intros [? ?]; split; ii; rewrite elem_of_app; right; eauto.
+      intros [? ?]; split; ii; apply gmultiset_elem_of_disj_union; right; eauto.
     }
   Qed.
   Next Obligation.
-    intros ms1 ms2 fn; rewrite elem_of_list_fmap; intros [[scp ?] [-> Hin]]; ss.
-    rewrite elem_of_elements elem_of_dom lookup_union_with in Hin.
-    destruct (initial_st ms1 !! _) eqn: Heq1; eapply elem_of_app; [left|right].
-    { apply (ms1.(well_scoped_init)); rewrite elem_of_list_fmap; eexists (scp, _); split; ss.
-      rewrite elem_of_elements elem_of_dom //.
+    intros ms1 ms2 fn [[scp ?] [-> [? Hin]%elem_of_dom]]%elem_of_map; ss.
+    apply lookup_union_with_Some in Hin; des; ss;
+      apply gmultiset_elem_of_dom, gmultiset_elem_of_disj_union; [left|right|left].
+    { hexploit (ms1.(well_scoped_init)) => /(_ scp); rewrite gmultiset_elem_of_dom; eauto.
+      intros k; apply: k; apply elem_of_map; eexists (_, _); split; eauto; apply elem_of_dom; done.
     }
-    destruct (initial_st ms2 !! _) eqn: Heq2; [|inv Hin].
-    { apply (ms2.(well_scoped_init)); rewrite elem_of_list_fmap; eexists (scp, _); split; ss.
-      rewrite elem_of_elements elem_of_dom //.
+    { hexploit (ms2.(well_scoped_init)) => /(_ scp); rewrite gmultiset_elem_of_dom; eauto.
+      intros k; apply: k; apply elem_of_map; eexists (_, _); split; eauto; apply elem_of_dom; done.
+    }
+    { hexploit (ms1.(well_scoped_init)) => /(_ scp); rewrite gmultiset_elem_of_dom; eauto.
+      intros k; apply: k; apply elem_of_map; eexists (_, _); split; eauto; apply elem_of_dom; done.
     }
   Qed.
   Next Obligation.
-    intros ms1 ms2 [Hnodup1%ms1 [Hdisj Hnodup2%ms2]]%NoDup_app.
-    rewrite map_Forall_lookup; intros [scp nm] x; rewrite lookup_union_with.
-    destruct (_ ms1 !! _) eqn : Hms1.
-    { destruct (_ ms2 !! _) eqn : Hms2; ss; cycle 1.
-      { i; clarify. rewrite map_Forall_lookup in Hnodup1; eapply Hnodup1 in Hms1; destruct x; ss. }
-      exfalso; hexploit (Hdisj scp).
-      { apply (well_scoped_init ms1).
-        apply elem_of_list_fmap; exists (scp, nm); split; ss.
-        rewrite elem_of_elements elem_of_dom Hms1 //.
-      }
-      { intros Hf; apply Hf.
-        apply (well_scoped_init ms2).
-        apply elem_of_list_fmap; exists (scp, nm); split; ss.
-        rewrite elem_of_elements elem_of_dom Hms2 //.
-      }
+    intros ms1 ms2 H1; rewrite map_Forall_lookup; intros [scp key] v.
+    rewrite lookup_union_with_Some; intros [Hl | [Hl | [? [? [Hl1 Hl2]]]]]; des.
+    { apply (nodup_init ms1); eauto.
+      intros x; hexploit (H1 x); rewrite multiplicity_disj_union; lia.
     }
-    destruct (_ ms2 !! _) eqn : Hms2; ss; cycle 1.
-    { i; clarify. rewrite map_Forall_lookup in Hnodup2; eapply Hnodup2 in Hms2; destruct x; ss. }
+    { apply (nodup_init ms2); eauto.
+      intros x; hexploit (H1 x); rewrite multiplicity_disj_union; lia.
+    }
+    hexploit (well_scoped_init ms1) => /(_ scp); rewrite elem_of_map.
+    intros Hin1; hexploit Hin1; [exists (scp, key); split; ss; apply elem_of_dom; eauto|].
+    rewrite gmultiset_elem_of_dom elem_of_multiplicity.
+    hexploit (well_scoped_init ms2) => /(_ scp); rewrite elem_of_map.
+    intros Hin2; hexploit Hin2; [exists (scp, key); split; ss; apply elem_of_dom; eauto|].
+    rewrite gmultiset_elem_of_dom elem_of_multiplicity.
+    hexploit (H1 scp); rewrite multiplicity_disj_union; lia.
+  Qed.
+
+  Lemma t_eq (ms1 ms2 : t) :
+    scopes ms1 = scopes ms2 →
+    fnsems ms1 = fnsems ms2 →
+    initial_st ms1 = initial_st ms2 →
+    ms1 = ms2.
+  Proof.
+    destruct ms1, ms2; ss. intros Hscp Hfns Hst.
+    subst scopes0 fnsems0 initial_st0; f_equal; apply proof_irrelevance.
+  Qed.
+
+  Lemma add_comm (ms1 ms2 : t) : Mod.add ms1 ms2 = Mod.add ms2 ms1.
+  Proof.
+    apply t_eq; ss.
+    { rewrite gmultiset_disj_union_comm; eauto. }
+    { apply fin_maps.union_with_comm; done. }
+    { apply fin_maps.union_with_comm; done. }
   Qed.
 
   Lemma add_wf (ms1 ms2 : t) : wf (add ms1 ms2) → wf ms1 ∧ wf ms2.
   Proof.
-    intros [Hfnsems [? [? ?]]%NoDup_app]; split; econs; eauto.
+    intros [Hfnsems Hscopes]; split; econs; eauto; try
+      (intros x; hexploit (Hscopes x); ss; rewrite multiplicity_disj_union; lia).
     { rewrite map_Forall_lookup; intros i x Hix; rewrite map_Forall_lookup in Hfnsems.
       hexploit (Hfnsems i x); eauto.
       rewrite lookup_union_with Hix; destruct (_ ms2 !! i) eqn : Hms2; ss.
@@ -184,40 +201,38 @@ End Mod. End Mod.
 Infix "★" := Mod.add (at level 60, right associativity).
 Notation "⌽" := Mod.empty (at level 9).
 
-(* Section ModFacts.
+Section ModFacts.
   Context `{Σ : GRA}.
 
-  Lemma mod_extensionality (ms1 ms2 : Mod.t)
+  (* Lemma mod_extensionality (ms1 ms2 : Mod.t)
     (SCOPE : Mod.scopes ms1 = Mod.scopes ms2)
     (FNSEM : Mod.fnsems ms1 = Mod.fnsems ms2)
     (INITS : Mod.initial_st ms1 = Mod.initial_st ms2)
     :
     ms1 = ms2.
-  Proof using. destruct ms1, ms2; ss. subst. f_equal; apply proof_irrelevance. Qed.
+  Proof using. destruct ms1, ms2; ss. subst. f_equal; apply proof_irrelevance. Qed. *)
 
   Lemma mod_add_assoc (md1 md2 md3 : Mod.t) :
     (md1 ★ md2) ★ md3 = md1 ★ md2 ★ md3.
   Proof using.
     destruct md1, md2, md3.
-    apply mod_extensionality; s; try rewrite app_assoc; eauto.
+    apply Mod.t_eq; s; try rewrite assoc //.
+    { apply map_eq; intros ?; rewrite ?lookup_union_with; repeat (destruct (_ !! _)); ss. }
+    { apply map_eq; intros ?; rewrite ?lookup_union_with; repeat (destruct (_ !! _)); ss. }
   Qed.
 
   Lemma mod_add_empty_l (md : Mod.t) : md = ⌽ ★ md.
-  Proof using.
-    destruct md. apply mod_extensionality; s; eauto.
-  Qed.
+  Proof using. destruct md. apply Mod.t_eq; s; rewrite left_id //. Qed.
 
   Lemma mod_add_empty_r (md : Mod.t) : md = md ★ ⌽.
-  Proof using.
-    destruct md. apply mod_extensionality; s; try rewrite app_nil_r; eauto.
-  Qed.
+  Proof using. destruct md. apply Mod.t_eq; s; rewrite right_id //. Qed.
 
-  Lemma mod_addL_app l l' : Mod.addL (l ++ l') = (Mod.addL l) ★ (Mod.addL l').
+  (* Lemma mod_addL_app l l' : Mod.addL (l ++ l') = (Mod.addL l) ★ (Mod.addL l').
   Proof using.
     induction l; s.
     - rewrite -mod_add_empty_l. eauto.
     - rewrite mod_add_assoc. rewrite IHl. eauto.
-  Qed.
+  Qed. *)
 
   Lemma mod_addc_assoc (md : Mod.t) (P Q R : iProp Σ) :
     (md, (P ∗ Q) ∗ R)%I ≡ (md, P ∗ Q ∗ R)%I.
@@ -246,9 +261,9 @@ Notation "⌽" := Mod.empty (at level 9).
     { iIntros "[P _]"; iFrame. }
   Qed.
 
-  Lemma mod_exports_app m1 m2:
+  (* Lemma mod_exports_app m1 m2:
     Mod.exports (m1 ★ m2) = Mod.exports m1 ++ Mod.exports m2.
   Proof.
     destruct m1, m2. unfold Mod.exports. s. rewrite List.map_app. et.
-  Qed.
-End ModFacts. *)
+  Qed. *)
+End ModFacts.

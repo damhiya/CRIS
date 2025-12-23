@@ -993,7 +993,7 @@ Module ISim. Section ISim.
 
   Inductive t : Prop := mk {
     sim_scopes : Mod.wf ms_tgt →
-      scopes_src ⊆+ scopes_tgt;
+      scopes_src ⊆ scopes_tgt;
     (* sim_match : Mod.wf ms_tgt →
       dom fl_src ⊆ dom fl_tgt; *)
       (* sub_perm (List.map fst fnsems_src) (List.map fst fnsems_tgt); *)
