@@ -201,7 +201,7 @@ Tactic Notation "red_bind" tactic(tac) :=
 
 Tactic Notation "red_SB" :=
   lazymatch goal with
-  | [ |- @SB.sandbox _ _ _ _ _ ?itr = _ ] =>
+  | [ |- @SB.sandbox ?Σ ?msk ?R ?itr = _ ] =>
       lazymatch itr with
       | Ret _ =>
           eapply SBRed.ret
@@ -342,6 +342,9 @@ Ltac _hnorm_itr :=
   | [ |- @SB.sandbox ?Σ ?R ?img ?imports ?scopes ?itr = _ ] =>
       etransitivity;
       [ cong (@SB.sandbox Σ R img imports scopes); _hnorm_itr | red_SB ]
+  | [ |- @SB.sandbox ?Σ ?msk ?R ?itr = _ ] =>
+      etransitivity;
+      [ cong (@SB.sandbox Σ msk R); _hnorm_itr | red_SB]
   | [ |- @SModTr.trans ?Γ ?Σ ?α ?β ?τ ?_S ?_I ?_crisG ?concG ?img ?sp ?R ?itr = _ ] =>
       etransitivity;
       [ cong (@SModTr.trans Γ Σ α β τ _S _I _crisG concG img sp R); _hnorm_itr
@@ -361,9 +364,6 @@ Ltac _hnorm_itr :=
   | [ |- SModTr.HoareCall _ _ _ = _ ] =>
       unfold SModTr.HoareCall;
       _hnorm_itr
-  (* | [ |- SModTr.NativeSpawn _ _ = _ ] =>
-      unfold SModTr.NativeSpawn;
-      _hnorm_itr *)
   | [ |- fbody_trivial _ = _ ] =>
       unfold fbody_trivial;
       _hnorm_itr
@@ -408,6 +408,7 @@ Ltac hnorm_itr :=
     | [ |- Tau _ = _ ] =>
         reflexivity
     | [ |- vis _ _ = _ ] =>
+        rewrite ?resum_to_subevent ?subevent_subevent;
         eapply vis_trigger
     | [ |- assumeK _ _ = _ ] =>
         eapply assumeK_assume
@@ -558,17 +559,10 @@ Ltac prove_inline_cond :=
     simpl List.map; alist_find_simpl; eauto
   end].
 
-(* Lemma mask_app (l m: list string) fn:
-  wmask_list (l ++ m) fn = wmask_list l fn || wmask_list m fn.
-Proof.
-  unfold wmask_list. rewrite existsb_app. eauto.
-Qed. *)
-
 Ltac prove_sb_cond :=
   by s; i; eauto; try rewrite !mask_app; s; eauto.
 
 (* Normalization tactics *)
-
 Ltac replace_l :=
   lazymatch goal with
   | [ |- environments.envs_entails ?env (?rel (?st_src, ?itr_src) (?st_tgt, ?itr_tgt)) ] =>

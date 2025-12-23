@@ -308,8 +308,8 @@ Definition msk_true `{Σ : GRA} : emask := λ X e, true.
 Definition msk_scp `{Σ : GRA} (scp : gmultiset string) (msk : emask) : emask :=
   λ X e,
     match e with
-    | inr1 (inr1 (inl1 (SPut k v))) => decide (k.1 ∈ scp)
-    | inr1 (inr1 (inl1 (SGet k))) => decide (k.1 ∈ scp)
+    | inr1 (inr1 (inl1 (SPut k v))) => bool_decide (k.1 ∈ scp)
+    | inr1 (inr1 (inl1 (SGet k))) => bool_decide (k.1 ∈ scp)
     | _ => msk X e
     end.
 

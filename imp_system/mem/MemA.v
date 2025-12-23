@@ -78,10 +78,10 @@ Section MemRA.
 
   Definition mem_val : Type := Qp * val.
 
-  Definition _points_to_r (loc : mblock * Z) (q : dfrac) (mvs : list val): _memRA :=
+  Definition _points_to_r (loc : mblock * Z) (q : dfrac) (mvs : list val) : _memRA :=
     let (b, ofs) := loc in
-    fun _b _ofs =>
-      if (dec _b b) && ((ofs <=? _ofs) && (_ofs <? (ofs + Z.of_nat (List.length mvs))))%Z
+    λ _b _ofs,
+      if bool_decide (_b = b ∧ (ofs <= _ofs < (ofs + Z.of_nat (List.length mvs))))%Z
       then match (List.nth_error mvs (Z.to_nat (_ofs - ofs))) with
         | Some v => Some (to_dfrac_agree q v)
         | None => ε
@@ -203,11 +203,11 @@ Module MemSpec. Section MemSpec.
 
   Definition compare_val (v0 v1: val) : val :=
     match v0, v1 with
-    | Vint i0, Vint i1 => Vint (if dec i0 i1 then 1 else 0)
+    | Vint i0, Vint i1 => Vint (if bool_decide (i0 = i1) then 1 else 0)
     | Vint 0, Vptr _ => Vint 0
     | Vptr _, Vint 0 => Vint 0
     | Vptr (b0,ofs0), Vptr (b1,ofs1) =>
-       if dec b0 b1 && dec ofs0 ofs1 then Vint 1 else Vint 0
+       if bool_decide (b0 = b1 ∧ ofs0 = ofs1) then Vint 1 else Vint 0
     | _, _ => Vundef
     end.
 
@@ -233,7 +233,7 @@ Module MemSpec. Section MemSpec.
         (E ==∗ ∃ q0 q1 v0 v1, val_r v_cur q0 v0 ∗ val_r v_old q1 v1 ∗
           (val_r v_cur q0 v0 ∗ val_r v_old q1 v1 ==∗ E)),
        λ ret, ⌜ret = v_cur↑⌝ ∗
-        (b, ofs) ↦ (if dec succ 1 then v_new else v_cur) ∗ E))%I.
+        (b, ofs) ↦ (if bool_decide (succ = 1) then v_new else v_cur) ∗ E))%I.
 End MemSpec. End MemSpec.
 
 (* Module MemP. Section MemP. *)

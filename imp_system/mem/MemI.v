@@ -1,27 +1,26 @@
 From CRIS Require Import CRIS MemHeader.
 
-Set Implicit Arguments.
-Set Typeclasses Depth 5.
+(* Set Implicit Arguments. *)
+(* Set Typeclasses Depth 5. *)
 
 Module Mem.
   Record t : Type := mk {
     cnts : mblock → Z → option val;
     nb : mblock;
-  }
-  .
+  }.
 
   Definition wf (m0 : t) : Prop := ∀ blk ofs (LT : (blk < m0.(nb))%nat), m0.(cnts) blk ofs = None.
 
-  Definition alloc (m0 : Mem.t) (sz : Z) : mblock * Mem.t :=
-    ((nb m0),
-     Mem.mk (update (m0.(cnts)) (m0.(nb))
-                    (fun ofs => if (0 <=? ofs)%Z && (ofs <? sz)%Z then Some (Vundef) else None))
-            (S m0.(nb))
-    ).
+  Definition alloc (m : Mem.t) (sz : Z) : mblock * Mem.t :=
+    (nb m,
+     Mem.mk
+      (update (cnts m)
+        (nb m) (λ ofs, if bool_decide (0 <= ofs < sz)%Z then Some Vundef else None))
+      (S m.(nb))).
 
   Opaque Z.ltb Z.leb Z.mul Z.eq_dec Nat.eq_dec.
 
-  Definition empty : t := mk (fun _ _ => None) 0.
+  Definition empty : t := mk (λ _ _, None) 0.
 
   Definition free (m0 : Mem.t) := fun '(b,ofs) =>
     match m0.(cnts) b ofs with
@@ -45,7 +44,7 @@ Module Mem.
 
   Definition load_mem (csl : string → bool) (genv : GEnv.t) : Mem.t :=
     Mem.mk
-      (fun blk ofs =>
+      (λ blk ofs,
          do '(g, gd) <- (List.nth_error genv blk);
          match gd↓ with
          | Some Gfun =>
@@ -62,17 +61,17 @@ Module Mem.
 
   Definition vcmp (m0 : Mem.t) (x y : val) : option bool :=
     match x, y with
-    | Vint x, Vint y => Some (dec x y : bool)
+    | Vint x, Vint y => Some (bool_decide (x = y))
     | Vptr (x, xofs), Vptr (y, yofs) =>
-      if Mem.valid_ptr m0 (x, xofs) && Mem.valid_ptr m0 (y, yofs)
-      then Some (dec x y && dec xofs yofs)
+      if bool_decide (Mem.valid_ptr m0 (x, xofs) ∧ Mem.valid_ptr m0 (y, yofs))
+      then Some (bool_decide (x = y ∧ xofs = yofs))
       else None
     | Vptr (x, xofs), Vint y =>
-      if Mem.valid_ptr m0 (x, xofs) && dec y 0%Z
+      if bool_decide (Mem.valid_ptr m0 (x, xofs) ∧ y = 0)
       then Some false
       else None
     | Vint x, Vptr (y, yofs) =>
-      if Mem.valid_ptr m0 (y, yofs) && dec x 0%Z
+      if bool_decide (Mem.valid_ptr m0 (y, yofs) ∧ x = 0)
       then Some false
       else None
     | _, _ => None
@@ -89,13 +88,14 @@ Module MemI. Section MemI.
     λ arg,
       'sz : Z <- (pargs [Tint] arg)?;;
       mem <- trigger (SGet v_mem);; mem <- mem↓?;;
-      if (Z_le_gt_dec 0 sz && Z_lt_ge_dec (8 * sz) modulus_64)
-      then (delta <- trigger (Choose _);;
-            let mem0 : Mem.t := Mem.mem_pad mem delta in
-            let (blk, mem1) := Mem.alloc mem0 sz in
-            trigger (SPut v_mem mem1↑);;;
-            Ret (Vptr (blk, 0%Z)))
-      else triggerUB. 
+      if (bool_decide (0 <= (8 * sz) < modulus_64))%Z
+      then
+        delta <- trigger (Choose _);;
+        let mem0 : Mem.t := Mem.mem_pad mem delta in
+        let (blk, mem1) := Mem.alloc mem0 sz in
+        trigger (SPut v_mem mem1↑);;;
+        Ret (Vptr (blk, 0%Z))
+      else triggerUB.
 
   Definition free : list val → itree crisE val :=
     λ arg,
@@ -103,16 +103,14 @@ Module MemI. Section MemI.
       mem <- trigger (SGet v_mem);; mem <- mem↓?;;
       mem1 <- (Mem.free mem bofs)?;;
       trigger (SPut v_mem mem1↑);;;
-      Ret (Vint 0)
-  . 
+      Ret (Vint 0).
 
   Definition load: list val → itree crisE val :=
-    λ arg,      
-      bofs <- (pargs [Tptr] arg)?;;        
+    λ arg,
+      bofs <- (pargs [Tptr] arg)?;;
       mem <- trigger (SGet v_mem);; mem <- mem↓?;;
       v <- (Mem.load mem bofs)?;;
-      Ret v
-  .
+      Ret v.
 
   Definition store : list val → itree crisE val :=
     λ arg,
@@ -120,23 +118,21 @@ Module MemI. Section MemI.
       mem <- trigger (SGet v_mem);; mem <- mem↓?;;
       mem1 <- (Mem.store mem bofs v)?;;
       trigger (SPut v_mem mem1↑);;;
-      Ret (Vint 0)
-  .
+      Ret (Vint 0).
 
   Definition cmp : list val → itree crisE val :=
     λ arg,
       '(v0, v1): _ <- (pargs [Tuntyped; Tuntyped] arg)?;;
       mem <- trigger (SGet v_mem);; mem <- mem↓?;;
       'b: bool <- (Mem.vcmp mem v0 v1)?;;
-      Ret (Vint (if b then 1 else 0))
-  .
+      Ret (Vint (if b then 1 else 0)).
 
   Definition cas: list val → itree crisE val :=
     λ arg,
       '(bofs, (v_old, v_new)) : _ <- (pargs [Tptr; Tuntyped; Tuntyped] arg)?;;
       'v_cur : val <- ccallU MemHdr.load [Vptr bofs];;
       'succ : val <- ccallU MemHdr.cmp [v_cur; v_old];;
-      (if (decide (succ = (Vint 1)))
+      (if (bool_decide (succ = (Vint 1)))
        then ccallU MemHdr.store [Vptr bofs; v_new]
        else Ret Vundef);;;
       Ret v_cur.

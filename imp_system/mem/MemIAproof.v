@@ -108,51 +108,41 @@ Section RA.
 
   Definition mem_wf (m : Mem.t) : Prop := ∀ b ofs v, m.(Mem.cnts) b ofs = Some v → b < m.(Mem.nb).
 
-  Definition sim_mem (mem_s: _memRA) (mem_t: Mem.t) : Prop :=
+  Definition sim_mem (mem_s : _memRA) (mem_t : Mem.t) : Prop :=
     ∀ b ofs,
-    (mem_s b ofs = None ∧ Mem.cnts mem_t b ofs = None) ∨
-    (∃ v, mem_s b ofs = Some (to_dfrac_agree (DfracOwn 1) v) ∧
-          Mem.cnts mem_t b ofs = Some v).
+      (mem_s b ofs = None ∧ Mem.cnts mem_t b ofs = None) ∨
+      (∃ v, mem_s b ofs = Some (to_dfrac_agree (DfracOwn 1) v) ∧
+        Mem.cnts mem_t b ofs = Some v).
 
-  Definition mem_ra_upd (mem: _memRA) b ofs r : _memRA :=
-    fun b0 ofs0 =>
-      if dec b b0 && dec ofs ofs0 then r else mem b0 ofs0.
+  Definition mem_ra_upd (mem : _memRA) b ofs r : _memRA :=
+    λ b0 ofs0, if bool_decide (b = b0 ∧ ofs = ofs0) then r else mem b0 ofs0.
 
   Lemma split_points_to_r blk ofs q a l :
     _points_to_r (blk, ofs) q (a :: l)
-    ≡ (_points_to_r (blk, ofs) q [a]) ⋅ (_points_to_r (blk, (ofs+1)%Z) q l).
-  Proof using _memG.
-    intros b o. rewrite !discrete_fun_lookup_op. ss.
-    destruct (dec b blk).
-    - subst. destruct (dec o ofs).
-      + subst. ss. des_ifs; bsimpl; des; Ztac; try nia.
-        { rewrite right_id. rewrite ->Z.sub_diag in *. ss. inv Heq0. ss. }
-        { rewrite ->Z.sub_diag in *; ss. }
-        { rewrite ->Z.sub_diag in *; ss. }
-      + des_ifs; bsimpl; des; Ztac; try nia.
-        { rewrite left_id. replace (o - (ofs + 1))%Z with (o - ofs - 1)%Z  in Heq3 by nia.
-          replace (Z.to_nat (o - ofs)) with (S (Z.to_nat (o - ofs - 1))) in Heq0 by nia.
-          ss. rewrite Heq0 in Heq3. inv Heq3. ss. }
-        { replace (o - (ofs + 1))%Z with (o - ofs - 1)%Z  in Heq3 by nia.
-          replace (Z.to_nat (o - ofs)) with (S (Z.to_nat (o - ofs - 1))) in Heq0 by nia.
-          ss. rewrite Heq0 in Heq3. inv Heq3. }
-        { replace (o - (ofs + 1))%Z with (o - ofs - 1)%Z  in Heq3 by nia.
-          replace (Z.to_nat (o - ofs)) with (S (Z.to_nat (o - ofs - 1))) in Heq0 by nia.
-          ss. rewrite Heq0 in Heq3. inv Heq3. }
-    - des_ifs.
+    ≡ (_points_to_r (blk, ofs) q [a]) ⋅ (_points_to_r (blk, (ofs + 1)%Z) q l).
+  Proof using.
+    intros b o. rewrite !discrete_fun_lookup_op /=.
+    repeat case_bool_decide; des; simplify_eq; try nia; ss.
+    { destruct (decide (o = ofs)); subst; [|nia]; rewrite ?Z.sub_diag //=. }
+    { rewrite left_id. replace (o - (ofs + 1))%Z with (o - ofs - 1)%Z by nia.
+      replace (Z.to_nat (o - ofs)) with (S (Z.to_nat (o - ofs - 1))) by nia.
+      ss.
+    }
   Qed.
 
   Lemma points_to_singleton blk ofs q a :
     _points_to_r (blk, ofs) q [a]
     ≡ (discrete_fun_singleton blk (discrete_fun_singleton ofs (Some (to_dfrac_agree q a)))).
-  Proof using _memG.
-    intros b o. ss. des_ifs; destruct dec; bsimpl; des; Ztac; try nia.
-    - replace o with ofs in * by nia. rewrite Z.sub_diag in Heq0. ss. inv Heq0.
-      rewrite !discrete_fun_lookup_singleton //.
-    - replace o with ofs in * by nia. rewrite Z.sub_diag in Heq0. ss.
-    - subst. rewrite discrete_fun_lookup_singleton discrete_fun_lookup_singleton_ne; [eauto|nia].
-    - subst. rewrite discrete_fun_lookup_singleton discrete_fun_lookup_singleton_ne; [eauto|nia].
-    - rewrite discrete_fun_lookup_singleton_ne; eauto.
+  Proof using.
+    intros b o; ss.
+    ss; case_bool_decide; des; simplify_eq; ss.
+    { destruct (decide (o = ofs)); subst; try nia.
+      rewrite Z.sub_diag /= ?discrete_fun_lookup_singleton //.
+    }
+    apply not_and_or in H; des; try by rewrite discrete_fun_lookup_singleton_ne //.
+    destruct (decide (b = blk)); subst;
+      [rewrite discrete_fun_lookup_singleton discrete_fun_lookup_singleton_ne //; ii; clarify; nia
+      |rewrite discrete_fun_lookup_singleton_ne //].
   Qed.
 
   Local Transparent mem_points_to_singleton_r.
@@ -216,10 +206,10 @@ Section RA.
       + rewrite left_id (comm _ c). et.
       + rewrite left_id. et.
     - rewrite -H0. ii. rewrite !discrete_fun_lookup_op /_points_to_r.
-      destruct (dec _ _); s; cycle 1.
+      case_bool_decide; s; cycle 1.
       { rewrite right_id. apply H. }
-      hexploit (SIM blk x0). i; subst; des; rewrite H1.
-      + des_ifs.
+      hexploit (SIM blk x0). i; subst; des; rewrite H1; clarify.
+      + rewrite H2; case_match; ss.
       + exploit WF; et. nia.
   Qed.
 
@@ -244,64 +234,50 @@ Section RA.
     - eapply to_frac_agree_inv in H1. ss. des. depdes H2. et.
   Qed.
 
-  Lemma mem_ra_update v_new v (mem_s: _memRA) mem_t b ofs
-    (SIM: sim_mem mem_s mem_t)
-    :
-    own base_γ (● mem_s) ∗ (b, ofs) ↦{1} v
-    ⊢ |==>
-    own base_γ (● mem_ra_upd mem_s b ofs (Some (to_dfrac_agree (DfracOwn 1) v_new))) ∗ (b, ofs) ↦{1} v_new.
+  Lemma mem_ra_update v_new v (mem_s: _memRA) mem_t b ofs :
+    sim_mem mem_s mem_t →
+    own base_γ (● mem_s) ∗ (b, ofs) ↦{1} v ⊢
+    |==> own base_γ (● mem_ra_upd mem_s b ofs (Some (to_dfrac_agree (DfracOwn 1) v_new))) ∗
+      (b, ofs) ↦{1} v_new.
   Proof using.
-    iIntros "P".
-    iPoseProof ((mem_ra_lookup _ _ _ _ _ _ SIM) with "P") as "%H"; iFrame.
-    des. clear H0.
-    rewrite -!own_op. iApply (own_update with "P").
-    apply auth_update, local_update_discrete. s. i.
-    rewrite /mem_ra_upd. split; ii.
-    { des_ifs. eapply H0. }
-    destruct (dec b x); s; subst; cycle 1.
-    - rewrite (H1 x x0). destruct mz; s;
-        try rewrite !discrete_fun_lookup_op;
-        rewrite !discrete_fun_lookup_singleton_ne; et.
-    - destruct (dec ofs x0); s; subst; cycle 1.
-      + rewrite (H1 x x0). destruct mz; s;
-          try rewrite !discrete_fun_lookup_op;
-          rewrite !discrete_fun_lookup_singleton;
-          rewrite !discrete_fun_lookup_singleton_ne; et.
-      + specialize (H1 x x0). revert H1.
-        destruct mz; s;
-          try rewrite !discrete_fun_lookup_op;
-          rewrite !discrete_fun_lookup_singleton; et.
-        i. specialize (H0 x x0). rewrite H1 in H0.
-        eapply to_frac_full_valid_inv in H0. rewrite H0 right_id. et.
+    iIntros "%SIM [Auth Frag]".
+    iPoseProof ((mem_ra_lookup _ _ _ _ _ _ SIM) with "[Auth Frag]") as "[%H %_]"; iFrame.
+    rewrite -own_op.
+    iApply (own_update_2 with "Auth Frag").
+    rewrite /mem_points_to_singleton_r /= auth_update //; apply discrete_fun_local_update.
+    intros b2; apply discrete_fun_local_update; intros o2.
+    destruct (decide (b2 = b)); subst.
+    { destruct (decide (o2 = ofs)); subst.
+      { rewrite H ?discrete_fun_lookup_singleton /mem_ra_upd; case_bool_decide; [|naive_solver].
+        apply option_local_update, exclusive_local_update; ss.
+      }
+      rewrite ?discrete_fun_lookup_singleton /mem_ra_upd; case_bool_decide; [naive_solver|].
+      rewrite ?discrete_fun_lookup_singleton_ne //.
+    }
+    rewrite ?discrete_fun_lookup_singleton_ne /mem_ra_upd //.
+    case_bool_decide; [naive_solver|]; ss.
   Qed.
 
-  Lemma mem_ra_free (mem_s : _memRA) mem_t b ofs v
-    (SIM: sim_mem mem_s mem_t)
-    (WF: mem_wf mem_t)
-    :
-    own base_γ (● mem_s) ∗ (b, ofs) ↦{1} v
-    ⊢ |==>
-    own base_γ (● mem_ra_upd mem_s b ofs None).
+  Lemma mem_ra_free (mem_s : _memRA) mem_t b ofs v :
+    sim_mem mem_s mem_t →
+    mem_wf mem_t →
+    own base_γ (● mem_s) ∗ (b, ofs) ↦{1} v ⊢
+    |==> own base_γ (● mem_ra_upd mem_s b ofs None).
   Proof using _memG.
-    iIntros "P". rewrite -own_op. iApply (own_update with "P").
-    eapply auth_update_dealloc, local_update_discrete.
-    i. split.
-    { ii. rewrite /mem_ra_upd. des_ifs. apply H. }
-    ss. ii. dup H. rewrite H0 in H. rewrite /mem_ra_upd.
-    specialize (H x x0). specialize (H0 x x0). specialize (H1 x x0).
-    destruct mz; ss; try rewrite !discrete_fun_lookup_op in H, H0 |- *.
-    - destruct dec; ss; subst; cycle 1.
-      { rewrite discrete_fun_lookup_singleton_ne in H0; et. }
-      rewrite discrete_fun_lookup_singleton in H, H0.
-      destruct dec; ss; subst; cycle 1.
-      { rewrite discrete_fun_lookup_singleton_ne in H0; et. }
-      rewrite discrete_fun_lookup_singleton in H, H0.
-      apply to_frac_full_valid_inv in H. rewrite H. et.
-    - destruct dec; ss; subst; cycle 1.
-      { rewrite discrete_fun_lookup_singleton_ne in H0; et. }
-      rewrite discrete_fun_lookup_singleton in H, H0.
-      destruct dec; ss.
-      rewrite discrete_fun_lookup_singleton_ne in H0; et.
+    iIntros "% % [Auth Frag]".
+    iApply (own_update_2 with "Auth Frag").
+    rewrite /mem_points_to_singleton_r auth_update_dealloc //=.
+    apply discrete_fun_local_update; intros b1; apply discrete_fun_local_update; intros o1.
+    destruct (decide (b1 = b)); subst.
+    { rewrite discrete_fun_lookup_singleton.
+      destruct (decide (o1 = ofs)); subst.
+      { rewrite ?discrete_fun_lookup_singleton /mem_ra_upd; case_bool_decide; [|naive_solver].
+        apply delete_option_local_update; eauto; apply _.
+      }
+      rewrite discrete_fun_lookup_singleton_ne // /mem_ra_upd; case_bool_decide; [naive_solver|ss].
+    }
+    rewrite /mem_ra_upd; case_bool_decide; [naive_solver|].
+    rewrite discrete_fun_lookup_singleton_ne; ss; eauto.
   Qed.
 
   Lemma mem_ra_cmp (mem_s: _memRA) mem_t p0 q0 v0 p1 q1 v1 succ
@@ -310,7 +286,7 @@ Section RA.
     :
     (own base_γ (● mem_s) ∗ MemSpec.val_r p0 q0 v0 ∗ MemSpec.val_r p1 q1 v1)
     ⊢
-    ⌜Mem.vcmp mem_t p0 p1 = Some (dec succ 1 : bool)⌝.
+    ⌜Mem.vcmp mem_t p0 p1 = Some (bool_decide (succ = 1))⌝.
   Proof using.
     iIntros "(B & P1 & P2)".
     destruct p0, p1; try destruct blkofs; try destruct blkofs0; ss.
@@ -330,7 +306,8 @@ Section RA.
       { rewrite SIM in H. rr in H. depdes H. }
       specialize (SIM0 n0 z0). des; subst; ss.
       { rewrite SIM0 in H0. rr in H0. depdes H0. }
-      rewrite SIM1 SIM2. s. des_ifs.
+      rewrite SIM1 SIM2. s.
+      repeat case_bool_decide; ss; des; simplify_eq.
   Qed.
 
 End RA.
@@ -369,78 +346,792 @@ Module MemIA. Section MemIA.
   Ltac init_simF :=
     rewrite /ISim.sim_fun; simplify_map_eq; intros ??; eexists; split; first refl;
     iIntros (arg st_src st_tgt) "IST"; iApply wsim_isim;
-    rewrite /SB.sandbox_body /SModTr.trans_fnsem /=.
+    rewrite /SB.sandbox_body /=.
+    (* /SModTr.trans_fnsem /=. *)
+  Local Definition state : Type := gmap key (option Any.t).
+  Local Definition post (R_s R_t : Type) : Type := state * R_s → state * R_t → iProp Σ.
+
+  Local Definition rel : Type := ∀ R_s R_t : Type,
+    post R_s R_t → bool → bool → state * itree crisE R_s → state * itree crisE R_t → iProp Σ.
+
+  (* TEMP *)
+  Ltac simplify_msk msk :=
+    (* try match goal with
+    | H :  context [msk _ _ = _] |- _ => rewrite H
+    end; *)
+    lazymatch goal with
+    | [ |- match ?P with true => _ | false => _ end] =>
+        let r := eval vm_compute in P in
+        change P with r in *
+    end.
+
+
+Tactic Notation "red_bind" tactic(tac) :=
+  lazymatch goal with
+  | [ |- @ITree.bind _ _ _ ?itr _ = _ ] =>
+      lazymatch itr with
+      | Ret _ => etransitivity; [ eapply bind_ret_l | s; tac ]
+      | Tau _ => eapply bind_tau
+      | vis _ _ => eapply vis_bind
+      | assumeK _ _ => eapply assumeK_bind
+      | guaranteeK _ _ => eapply guaranteeK_bind
+      | unwrapUK _ _ => eapply unwrapUK_bind
+      | unwrapNK _ _ => eapply unwrapNK_bind
+      | RealUpdateK _ _ _ => eapply RealUpdateK_bind
+      (* | SBRed.putSB _ _ _ _ _ _ => eapply SBRed.putSB_bind
+      | SBRed.getSB _ _ _ _ _ => eapply SBRed.getSB_bind
+      | SBRed.callSB _ _ _ _ _ _ => eapply SBRed.callSB_bind
+      | SBRed.spawnSB _ _ _ _ _ _ => eapply SBRed.spawnSB_bind *)
+      | @ITree.bind _ _ _ _ _ => eapply bind_bind
+      | _ => reflexivity
+      end
+  end.
+
+Tactic Notation "red_SB" tactic(tac) :=
+  lazymatch goal with
+  | [ |- @SB.sandbox ?Σ ?msk ?R ?itr = _ ] =>
+      lazymatch itr with
+      | Ret _ =>
+          eapply SBRed.ret
+      | Tau _ =>
+          eapply SBRed.tau
+      | vis _ ?k =>
+          etransitivity; [eapply SBRed.vis | s; tac ]
+      (* | assumeK _ _ =>
+          eapply SBRed.assumeK *)
+      (* | guaranteeK _ _ =>
+          eapply SBRed.guaranteeK *)
+      (* | unwrapUK _ _ =>
+          eapply SBRed.unwrapUK *)
+      (* | unwrapNK _ _ =>
+          eapply SBRed.unwrapNK *)
+      (* | RealUpdateK _ _ _ =>
+          eapply SBRed.ruK *)
+      | @ITree.bind _ _ _ _ _ =>
+          eapply SBRed.bind
+      | _ =>
+          reflexivity
+      end
+  end.
+
+(* Ltac unfold_sp_exact sp name :=
+  try match goal with
+      [ H : sp_incl _ sp |- _ ] =>
+        let RW := fresh "_RW" in
+        let ND := fresh "_ND" in
+        edestruct H as [ND RW];
+        erewrite (RW name);
+        [| revert ND; unfold to_sp;
+           match goal with [|-context[alist_find _ ?x]] => rewrite /x end;
+           unseal CRIS; i;
+           alist_find_simpl;
+           refl];
+        simpl unwrapN; clear ND RW
+    end. *)
+
+Tactic Notation "red_S" tactic(tac) :=
+  lazymatch goal with
+  | [ |- @SModTr.trans ?Γ ?Σ ?α ?β ?τ ?_S ?_I ?_crisG ?concG ?sp ?N ?stid ?R ?itr = _ ] =>
+      lazymatch itr with
+      | Ret _ =>
+          eapply SRed.ret
+      | Tau _ =>
+          eapply SRed.tau
+      | vis (Assume _) _ =>
+          eapply SRed.vis_agE
+      | vis (AssumeRes _) _ =>
+          eapply SRed.vis_agE
+      | vis (Guarantee _) _ =>
+          eapply SRed.vis_agE
+      | vis (Spawn ?fn _) _ =>
+          etransitivity;
+          [ eapply SRed.vis_spawn
+          | unfold SModTr.HoareSpawn;
+            tac
+          ]
+      | vis (Yield _) _ =>
+          etransitivity;
+          [ eapply SRed.vis_yield
+          | tac
+          ]
+      | vis GetTid _ =>
+          etransitivity;
+          [ eapply SRed.vis_gettid
+          | tac
+          ]
+      | vis (Call ?fn _) _ =>
+          etransitivity;
+          [ eapply SRed.vis_call
+          | unfold SModTr.HoareCall;
+            tac
+          ]
+      | vis (SPut _ _) _ =>
+          eapply SRed.vis_pgE
+      | vis (SGet _) _ =>
+          eapply SRed.vis_pgE
+      | vis (Choose _) _ =>
+          eapply SRed.vis_coreE
+      | vis (Take _) _ =>
+          eapply SRed.vis_coreE
+      | vis (IO _ _) _ =>
+          eapply SRed.vis_coreE
+      (* | assumeK _ _ =>
+          eapply SRed.assumeK
+      | guaranteeK _ _ =>
+          eapply SRed.guaranteeK
+      | unwrapUK _ _ =>
+          eapply SRed.unwrapUK
+      | unwrapNK _ _ =>
+          eapply SRed.unwrapNK *)
+      (* | RealUpdateK _ _ _ =>
+          eapply SRed.ruK *)
+      | @ITree.bind _ _ _ _ _ =>
+          eapply SRed.bind
+      | _ =>
+          reflexivity
+      end
+  end.
+
+Ltac _hnorm_itr :=
+  lazymatch goal with
+  | |- match bool_decide ?P with | true => ?A | false => ?B end = _ =>
+      tryif is_closed_term P
+      then
+        let r := eval vm_compute in (bool_decide P) in
+        change (bool_decide P) with r in *;
+        s; _hnorm_itr
+      else reflexivity
+  | [ |- Ret _ = _ ] =>
+      reflexivity
+  | [ |- Tau _ = _ ] =>
+      reflexivity
+  | [ |- vis _ _ = _ ] =>
+      reflexivity
+  | [ |- @ITree.bind ?E ?T ?U ?itr ?ktr = _ ] =>
+      etransitivity;
+      [ let itr' := fresh "itr" in
+        cong (fun (itr' : itree E T) => @ITree.bind E T U itr' ktr); _hnorm_itr
+      | red_bind (do 1 _hnorm_itr) ]
+  (* | [ |- @SB.sandbox ?Σ ?R ?img ?imports ?scopes ?itr = _ ] =>
+      etransitivity;
+      [ cong (@SB.sandbox Σ R img imports scopes); _hnorm_itr | red_SB ] *)
+  | [ |- @SB.sandbox ?Σ ?msk ?R ?itr = _ ] =>
+      etransitivity;
+      [ cong (@SB.sandbox Σ msk R); _hnorm_itr | red_SB (do 1 _hnorm_itr) ]
+  (* | [ |- @SModTr.trans ?Γ ?Σ ?α ?β ?τ ?_S ?_I ?_crisG ?concG ?img ?sp ?R ?itr = _ ] =>
+      etransitivity;
+      [ cong (@SModTr.trans Γ Σ α β τ _S _I _crisG concG img sp R); _hnorm_itr
+      | red_S (do 1 _hnorm_itr) ] *)
+  | [ |- @SModTr.trans ?Γ ?Σ ?α ?β ?τ ?_S ?_I ?_crisG ?concG ?sp ?N ?stid ?R ?itr = _ ] =>
+      etransitivity;
+      [ cong (@SModTr.trans Γ Σ α β τ _S _I _crisG concG sp N stid R); _hnorm_itr
+      | red_S (do 1 _hnorm_itr) ]
+  | [ |- trigger _ = _ ] =>
+      eapply trigger_vis
+  (* | [ |- assume _ = _ ] =>
+      eapply assume_assumeK
+  | [ |- guarantee _ = _ ] =>
+      eapply guarantee_guaranteeK *)
+  (* | [ |- unwrapU _ = _ ] =>
+      eapply unwrapU_unwrapUK
+  | [ |- unwrapN _ = _ ] =>
+      eapply unwrapN_unwrapNK *)
+  | [ |- RealUpdate _ _ = _ ] =>
+      eapply RealUpdate_RealUpdateK
+  | [ |- SModTr.HoareCall _ _ _ = _ ] =>
+      unfold SModTr.HoareCall;
+      _hnorm_itr
+  | [ |- fbody_trivial _ = _ ] =>
+      unfold fbody_trivial;
+      _hnorm_itr
+  | [ |- cput _ _ = _ ] =>
+      unfold cput;
+      _hnorm_itr
+  | [ |- cgetU _ = _ ] =>
+      unfold cgetU;
+      _hnorm_itr
+  | [ |- cgetN _ = _ ] =>
+      unfold cgetN;
+      _hnorm_itr
+  | [ |- cfunU _ _ = _ ] =>
+      unfold cfunU;
+      _hnorm_itr
+  | [ |- cfunN _ _ = _ ] =>
+      unfold cfunN;
+      _hnorm_itr
+  | [ |- ccallU _ _ = _ ] =>
+      unfold ccallU;
+      _hnorm_itr
+  | [ |- ccallN _ _ = _ ] =>
+      unfold ccallN;
+      _hnorm_itr
+  | [ |- triggerUB = _ ] =>
+      unfold triggerUB;
+      _hnorm_itr
+  | [ |- triggerNB = _ ] =>
+      unfold triggerNB;
+      _hnorm_itr
+  | [ |- ?itr = _ ] =>
+      reflexivity
+  end.
+
+Ltac hnorm_itr :=
+  etransitivity;
+  [ _hnorm_itr
+  | s;
+    lazymatch goal with
+    | |- Ret _ = _ =>
+        reflexivity
+    | |- Tau _ = _ =>
+        reflexivity
+    | |- vis _ _ = _ =>
+        rewrite ?resum_to_subevent ?subevent_subevent;
+        eapply vis_trigger
+    | |- assumeK _ _ = _ =>
+        eapply assumeK_assume
+    | |- guaranteeK _ _ = _ =>
+        eapply guaranteeK_guarantee
+    | |- unwrapUK _ _ = _ =>
+        eapply unwrapUK_unwrapU
+    | |- unwrapNK _ _ = _ =>
+        eapply unwrapNK_unwrapN
+    | |- RealUpdateK _ _ _ = _ =>
+        eapply RealUpdateK_RealUpdate
+    (* | [ |- SBRed.putSB _ _ _ _ _ _ = _ ] =>
+        eapply SBRed.putSB_SPut *)
+    (* | [ |- SBRed.getSB _ _ _ _ _ = _ ] =>
+        eapply SBRed.getSB_SGet *)
+    (* | [ |- SBRed.callSB _ _ _ _ _ _ = _ ] =>
+        eapply SBRed.callSB_Call *)
+    (* | [ |- SBRed.spawnSB _ _ _ _ _ _ = _ ] =>
+        eapply SBRed.spawnSB_Spawn *)
+    | [ |- _ = _ ] =>
+        reflexivity
+    end
+  ].
+Ltac replace_l :=
+  lazymatch goal with
+  | [ |- environments.envs_entails ?env (?rel (?st_src, ?itr_src) (?st_tgt, ?itr_tgt)) ] =>
+      refine (eq_ind_r (fun itr_src' => environments.envs_entails env (rel (st_src, itr_src') (st_tgt, itr_tgt))) _ _); cycle 1
+  end.
+
+Ltac replace_r :=
+  lazymatch goal with
+  | [ |- environments.envs_entails ?env (?rel (?st_src, ?itr_src) (?st_tgt, ?itr_tgt)) ] =>
+      refine (eq_ind_r (fun itr_tgt' => environments.envs_entails env (rel (st_src, itr_src) (st_tgt, itr_tgt'))) _ _); cycle 1
+  end.
+
+Ltac norm_l := replace_l; [s; hnorm_itr|].
+Ltac norm_r := replace_r; [s; hnorm_itr|].
+
+Tactic Notation "norm_l" "with" tactic(tac) :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  norm_l;
+  tac;
+  show_until marker.
+
+Tactic Notation "norm_r" "with" tactic(tac) :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  norm_r;
+  tac;
+  show_until marker.
+
+Tactic Notation "norm" "with" tactic(tac) :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  norm_l;
+  norm_r;
+  tac;
+  show_until marker.
+
+  Tactic Notation "iwcase" tactic(itac) tactic(wtac) :=
+    match goal with
+    | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ _) ] => itac
+    | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ _) ] => wtac
+    end.
+
+  Lemma map_Forall_union_with `{Countable K} {V} (m1 m2 : gmap K (option V)) :
+    map_Forall (const is_Some) (union_with (λ _ _, Some None) m1 m2) →
+    map_Forall (const is_Some) m1 ∧ map_Forall (const is_Some) m2.
+  Proof.
+    rewrite ?map_Forall_lookup => Hwf; split; intros i v Hi; move: (Hwf i v);
+      rewrite lookup_union_with Hi; repeat destruct (_ !! i) as [[|]|]; ss; clarify; eauto.
+  Qed.
+
+  Lemma lookup_union_with_l `{Countable K} {V} (m1 m2 : gmap K (option V)) (k : K) (v : V):
+    map_Forall (const is_Some) (union_with (λ _ _, Some None) m1 m2) →
+    m1 !! k = Some (Some v) →
+    union_with (λ _ _, Some None) m1 m2 !! k = Some (Some v).
+  Proof.
+    intros Hwf Hm1; rewrite lookup_union_with Hm1; destruct (m2 !! k) as [[|]|] eqn : Hm2; ss;
+      apply map_Forall_lookup in Hwf; move: (Hwf k None); rewrite lookup_union_with Hm1 Hm2;
+      move => /(_ eq_refl) [? ?] //.
+  Qed.
+
+  Lemma lookup_union_with_r `{Countable K} {V} (m1 m2 : gmap K (option V)) (k : K) (v : V):
+    map_Forall (const is_Some) (union_with (λ _ _, Some None) m1 m2) →
+    m2 !! k = Some (Some v) →
+    union_with (λ _ _, Some None) m1 m2 !! k = Some (Some v).
+  Proof.
+    intros Hwf Hm2; rewrite lookup_union_with Hm2; destruct (m1 !! k) as [[|]|] eqn : Hm1; ss;
+      apply map_Forall_lookup in Hwf; move: (Hwf k None); rewrite lookup_union_with Hm1 Hm2;
+      move => /(_ eq_refl) [? ?] //.
+  Qed.
+
+  Lemma insert_union_with_l `{Countable K} {V} (m1 m2 : gmap K (option V)) (k : K) v :
+    map_Forall (const is_Some) (union_with (λ _ _, Some None) m1 m2) →
+    is_Some (m1 !! k) →
+    <[k := v]> (union_with (λ _ _, Some None) m1 m2) =
+    union_with (λ _ _, Some None) (<[k := v]> m1) m2.
+  Proof.
+    intros Hwf [? Hm1]; apply insert_union_with_l.
+    destruct (m2 !! k) as [[|]|] eqn : Hm2; ss;
+      apply map_Forall_lookup in Hwf; move: (Hwf k None); rewrite lookup_union_with Hm1 Hm2;
+      move => /(_ eq_refl) [? ?] //.
+  Qed.
+
+  Lemma insert_union_with_r `{Countable K} {V} (m1 m2 : gmap K (option V)) (k : K) v :
+    map_Forall (const is_Some) (union_with (λ _ _, Some None) m1 m2) →
+    is_Some (m2 !! k) →
+    <[k := v]> (union_with (λ _ _, Some None) m1 m2) =
+    union_with (λ _ _, Some None) m1 (<[k := v]> m2).
+  Proof.
+    intros Hwf [? Hm2]; apply insert_union_with_r.
+    destruct (m1 !! k) as [[|]|] eqn : Hm1; ss;
+      apply map_Forall_lookup in Hwf; move: (Hwf k None); rewrite lookup_union_with Hm1 Hm2;
+      move => /(_ eq_refl) [? ?] //.
+  Qed.
+
+Ltac is_key_in k m :=
+  match m with
+  | {[ k := _ ]} => idtac
+  | <[ k := _ ]> _ => idtac
+  | <[ _ := _ ]> ?rest => is_key_in k rest
+  | union_with _ ?l ?r => first [ is_key_in k l | is_key_in k r ]
+  | _ => fail "Key not syntactically found"
+  end.
+
+Ltac solve_map_lookup_symbolic NODT :=
+  match goal with
+  | [ |- union_with ?f ?l ?r !! ?k = _ ] =>
+      tryif is_key_in k l 
+      then (
+        eapply lookup_union_with_l;
+        [eauto|eapply map_Forall_union_with in NODT as [NODT _]];
+        solve_map_lookup_symbolic NODT
+      )
+      else (
+        eapply lookup_union_with_r;
+        [eauto|eapply map_Forall_union_with in NODT as [_ NODT]];
+        solve_map_lookup_symbolic NODT
+      )
+  | [ |- <[ ?k' := ?v ]> ?m !! ?k = _ ] =>
+      (* Case: Insert *)
+      tryif unify k' k
+      then (rewrite lookup_insert; reflexivity)
+      else (
+        rewrite lookup_insert_ne; [|let Hc := fresh "" in intro Hc; inversion Hc; done];
+        solve_map_lookup_symbolic NODT
+      )
+  | [ |- {[ ?k' := ?v ]} !! ?k = _ ] =>
+      (* Case: Singleton *)
+      unify k' k; apply lookup_singleton
+  | |- ?A => 
+      (* idtac "Leaf reached or structure unknown";  *) fail
+  end.
+
+Ltac state_lookup_simpl NOD :=
+  let GOAL := fresh "GOAL" in
+  set (a := _ !! _); pattern a; subst a;
+  match goal with [|- ?G _] => set (GOAL := G) end;
+  eapply (eq_ind_r GOAL); [|solve_map_lookup_symbolic NOD];
+  rewrite /GOAL /=; clear GOAL.
+
+(* TODO : the complexity of this tactic is terrible - make it better *)
+Ltac state_insert_simpl NODT :=
+  let GOAL := fresh "GOAL" in
+  set (a := <[_:=_]> _); pattern a; subst a;
+  match goal with [|- ?G _] => set (GOAL := G) end;
+  eapply (eq_ind_r GOAL);
+  [|
+    match goal with
+    | [ |- <[?k:=?v]> (union_with ?f ?l ?r) = _ ] =>
+        tryif is_key_in k l
+        then (
+          etransitivity;
+          [ eapply insert_union_with_l;
+            [ eauto
+            | eapply map_Forall_union_with in NODT as [NODT _];
+              eexists; state_lookup_simpl NODT; reflexivity
+            ]
+          | eapply map_Forall_union_with in NODT as [NODT _]; 
+            state_insert_simpl NODT ]
+        )
+        else (
+          etransitivity;
+          [ eapply insert_union_with_r;
+            [ eauto
+            | eapply map_Forall_union_with in NODT as [_ NODT];
+              eexists; state_lookup_simpl NODT; reflexivity
+            ]
+          | eapply map_Forall_union_with in NODT as [_ NODT]; 
+            state_insert_simpl NODT ]
+        )
+    | [ |- <[?k:=_]>{[?k':=?v]} = _ ] => (* Case: Singleton *)
+        unify k' k; apply insert_singleton
+    | [ |- <[?k:=_]>(<[?k':=?v]>?m) = _ ] => (* Case: Insert *)
+        tryif unify k' k
+        then (rewrite insert_insert; reflexivity)
+        else (
+          rewrite insert_ne; [|let Hc := fresh "" in intro Hc; inversion Hc; done];
+          state_insert_simpl NODT
+        )
+    
+    | |- ?A => 
+        (* idtac "Leaf reached or structure unknown";  *) fail
+    end
+  ];
+  rewrite /GOAL //=; clear GOAL.
+
+(* Ltac state_insert_simpl NOD :=
+  let GOAL := fresh "GOAL" in
+  set (a := <[_:=_]> _); pattern a; subst a;
+  match goal with [|- ?G _] => set (GOAL := G) end;
+  eapply (eq_ind_r GOAL); [|solve_map_insert_symbolic NOD];
+  rewrite /GOAL /=; clear GOAL. *)
+
+Ltac _wstep_l :=
+  match goal with
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, tau;; _) _) ] =>
+      iApply wsim_tau_src
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, Ret _ >>= _) _) ] =>
+      rewrite bind_ret_l
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _) _) ] =>
+      let name := fresh "_q" in iApply wsim_take_src; iIntros (name)
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Assume ?P) >>= _) _) ] =>
+      unfold_pre_post_term P; iApply wsim_assume_src; iIntrosFresh "ASM"
+      (* first [
+        tcsearch constr:(WP P)
+          ltac:(fun c =>
+            iApply (wsim_assume_src_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); simpl);
+        match goal with
+        | [ |- environments.envs_entails _ (?P' -∗ _)] =>
+          unfold_pre_post_term P'; iIntrosFresh "ASM"
+        end
+      | unfold_pre_post_term P; iApply wsim_assume_src; iIntrosFresh "ASM"
+      ] *)
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (AssumeRes _) >>= _) _) ] =>
+      iApply wsim_assume_res_src; iIntrosFresh "ASM"
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _) _) ] =>
+      let name := fresh "asm" in iApply wsim_asm_src; iIntros (name)
+  (* | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, (SB.sandbox _ _ _ (trigger (SPut _ _))) >>= _) _) ] =>
+      iApply wsim_nodup_src; iIntros (?); iApply wsim_sput_src_sandbox; [s;eauto|alist_upd_simpl]
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, (SB.sandbox _ _ _ (trigger (SGet _))) >>= _) _) ] =>
+      let name := fresh "NODS" in
+      iApply wsim_nodup_src; iIntros (name); iApply wsim_sget_src_sandbox; [s;eauto|alist_find_simpl]; clear name *)
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, unwrapU ?ox >>= _) _) ] =>
+      let name := fresh "_q" in
+      iApply wsim_unwrapU_src; iIntros (name) "%";
+      match goal with [ H: ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite -> G in * end
+  end.
+
+Ltac wstep_l_core :=
+  _wstep_l; try alist_find_simpl; s; des_pairs; s.
+
+Ltac wstep_l :=
+  norm_l with do 1 try wstep_l_core.
+
+Ltac wsteps_l :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  norm_l;
+  (hrepeat (do 1 wstep_l_core; norm_l));
+  show_until marker.
+
+Ltac _wstep_r :=
+  match goal with
+  (** tgt **)
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, tau;; _)) ] =>
+      iApply wsim_tau_tgt
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, Ret _ >>= _) ) ] =>
+      rewrite bind_ret_l
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose _) >>= _) ) ] =>
+      let name := fresh "_q" in iApply wsim_choose_tgt; iIntros (name)
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _) ) ] =>
+      unfold_pre_post_term P; iApply wsim_guarantee_tgt; iIntrosFresh "GRT"
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, guarantee _ >>= _)) ] =>
+      let name := fresh "grt" in iApply wsim_guar_tgt; iIntros (name)
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (SGet _) >>= _)) ] =>
+      let NODT := fresh "NODT" in
+      iApply wsim_nodup_tgt; iIntros (NODT);
+      iApply wsim_sget_tgt; state_lookup_simpl NODT; clear NODT
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (SPut _ _) >>= _)) ] =>
+      let NODT := fresh "NODT" in
+      iApply wsim_nodup_tgt; iIntros (NODT);
+      iApply wsim_sput_tgt; state_insert_simpl NODT; clear NODT
+  end.
+
+Ltac wstep_r_core :=
+  _wstep_r; s; des_pairs; s.
+
+Ltac wstep_r :=
+  norm_r with do 1 try wstep_r_core.
+
+Ltac wsteps_r :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  norm_r;
+  (hrepeat (do 1 wstep_r_core; norm_r));
+  show_until marker.
+
+Ltac _wstep :=
+  match goal with
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, Ret _) (_, Ret _))] =>
+      iApply wsim_unfold; iIntros "?"; iApply wsim_ret; iFrame
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (IO _ _) >>= _) (_, trigger (IO _ _) >>= _))] =>
+      iApply wsim_io; iIntros "%"
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger GetTid >>= _) (_, trigger GetTid >>= _))] =>
+      iApply wsim_gettid; iIntros "%"
+  end.
+
+Ltac wstep :=
+  norm with do 1 _wstep; s; des_pairs; s.
+
+Ltac _wforce_l :=
+  match goal with
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose ?T) >>= _) _) ] =>
+      iApply wsim_choose_src
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _) _) ] =>
+      unfold_pre_post_term P; iApply wsim_guarantee_src
+      (* first [
+        tcsearch constr:(WP P)
+          ltac:(fun c =>
+          iApply (wsim_guarantee_src_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); [try set_solver|try set_solver|simpl WP_space]);
+        match goal with
+        | [ |- environments.envs_entails _ (?P' ∗ _)] =>
+          unfold_pre_post_term P'
+        end
+      | unfold_pre_post_term P; iApply wsim_guarantee_src
+      ] *)
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, unwrapN _ >>= _) _) ] =>
+      iApply wsim_unwrapN_src
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, guarantee _ >>= _) _) ] =>
+      iApply wsim_guar_src
+  end.
+
+Ltac wforce_l_core :=
+  norm_l with do 1 _wforce_l.
+
+Tactic Notation "wforce_l" :=
+  wforce_l_core; [..|try iExists _].
+
+Tactic Notation "wforce_l" uconstr(p) :=
+  wforce_l_core; [..|iExists p].
+
+Ltac wforces_l :=
+  hrepeat do 1 wforce_l.
+
+Ltac _wforce_r :=
+  match goal with
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _)) ] =>
+      iApply wsim_take_tgt
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Assume ?P) >>= _)) ] =>
+      (* first [
+        tcsearch constr:(WP P)
+          ltac:(fun c =>
+            unshelve iApply (wsim_assume_tgt_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); s;
+            [first [apply nclose_subseteq|try set_solver]
+            |first [apply nclose_subseteq|try set_solver]
+            |simpl WP_space]
+          );
+        match goal with
+        | [ |- environments.envs_entails _ (?P' ∗ _)] =>
+          unfold_pre_post_term P'
+        end
+      | unfold_pre_post_term P; iApply wsim_assume_tgt ] *)
+    unfold_pre_post_term P; iApply wsim_assume_tgt
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (AssumeRes _) >>= _)) ] =>
+      iApply wsim_assume_res_tgt
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _)) ] =>
+      iApply wsim_asm_tgt
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, RealUpdate ?P ?Q >>= _)) ] =>
+      unfold_pre_post_term P; unfold_pre_post_term Q; iApply wsim_ru_tgt_simple
+  end
+.
+
+Ltac wforce_r_core :=
+  norm_r with do 1 _wforce_r; s.
+
+Tactic Notation "wforce_r" :=
+  wforce_r_core; try (iExists _).
+
+Tactic Notation "wforce_r" uconstr(p) :=
+  wforce_r_core; iExists p.
+
+Ltac wforces_r :=
+  hrepeat do 1 wforce_r.
+
+Ltac winline_l :=
+  norm_l with
+    do 1 iApply wsim_inline_src; [try prove_inline_cond|unfold_cris_defs].
+
+Ltac winline_r :=
+  norm_r with
+    do 1 iApply wsim_inline_tgt; [try prove_inline_cond|try prove_sb_cond|unfold_cris_defs].
+
+Ltac wcall hyps :=
+  (norm with do 1 iApply wsim_call); [try prove_sb_cond|
+  iSplitL hyps; [try done| iIntros "% % %"; iIntrosFresh "IST"];
+  move_aux].
+
+Ltac wspawn :=
+  (norm with do 1 iApply wsim_spawn); [try prove_sb_cond|].
+
+Ltac wyield hyps :=
+  (norm with do 1 iApply wsim_yield);
+  iSplitL hyps; [try done| iIntros "% %"; iIntrosFresh "IST"];
+  move_aux.
+
+Ltac wby_coind CIH :=
+  iApply wsim_progress; iApply wsim_base; iIntrosFresh "I";
+  iApply CIH.
+
+Ltac winit_simF :=
+  initialize_simF;
+  iApply wsim_isim;
+  try (
+      iDestruct "IST" as "[% [W [TID IST]]]"; des; subst;
+      iApply wsim_init_winv; iSplitL "W"; [et; fail|]; hss_copset;
+      hrepeat do 1 (unfold_mod; s)).
+
+  Ltac step_l := iwcase (do 1 istep_l) (do 1 wstep_l).
+  Ltac steps_l := iwcase (do 1 isteps_l) (do 1 wsteps_l).
+
+  Ltac step_r := iwcase (do 1 istep_r) (do 1 wstep_r).
+  Ltac steps_r := iwcase (do 1 isteps_r) (do 1 wsteps_r).
+
+  Ltac step := iwcase (do 1 istep) (do 1 wstep).
+
+  Tactic Notation "force_l" := iwcase (do 1 iforce_l) (do 1 wforce_l).
+  Tactic Notation "force_l" uconstr(p) := iwcase (do 1 iforce_l p) (do 1 wforce_l p).
+  Ltac forces_l := iwcase (do 1 iforces_l) (do 1 wforces_l).
+
+  Tactic Notation "force_r" := iwcase (do 1 iforce_r) (do 1 wforce_r).
+  Tactic Notation "force_r" uconstr(p) := iwcase (do 1 iforce_r p) (do 1 wforce_r p).
+  Ltac forces_r := iwcase (do 1 iforces_r) (do 1 wforces_r).
+
+  Ltac inline_l := iwcase (do 1 iinline_l) (do 1 winline_l).
+  Ltac inline_r := iwcase (do 1 iinline_r) (do 1 winline_r).
+  Ltac unfold_cris_defs :=
+    rewrite /SB.sandbox_body; s;
+    (hrepeat do 1 match goal with |- context[cfunU ?x] => rewrite {1}/x end);
+    rewrite /cfunU;
+    (hrepeat do 1 match goal with |- context[cfunN ?x] => rewrite {1}/x end);
+    rewrite /cfunN;
+    rewrite /SModTr.trans_fnsem.
+  (* TEMP *)
+
+  Lemma wsim_HoareFun_src fsp msk fbd arg fl_src fl_tgt Ist RR r g ps pt st_src st_tgt itr_tgt :
+    (∀ N tid x varg, TID tid -∗
+      YIELD tid -∗
+      precond fsp (N, tid) x varg arg -∗
+      wsim fl_src fl_tgt Ist (↑N, ↑N) r g Any.t Any.t
+        (λ src tgt, TID tid ∗ YIELD tid ∗ winv (↑N, ↑N) ∗
+          ∃ ret, postcond fsp (N, tid) x src.2 ret ∗ RR (src.1, ret) tgt) true pt
+        (st_src, SB.sandbox msk (fbd N tid varg))
+        (st_tgt, itr_tgt)) ⊢
+    wsim fl_src fl_tgt Ist (∅, ∅) r g Any.t Any.t RR ps pt
+      (st_src, SB.sandbox msk (SModTr.HoareFun (Some fsp) fbd arg))
+      (st_tgt, itr_tgt).
+  Proof.
+    iIntros "sim".
+    rewrite /SModTr.HoareFun.
+    norm_l. des_if; step_l; ss. destruct _q as [N tid].
+    steps_l. des_if; step_l; ss. rename _q into m.
+    steps_l. des_if; step_l; ss. rename _q into varg.
+    steps_l. des_if; step_l; ss.
+    iDestruct "ASM" as "[? [? W]]"; iApply wsim_fold; iFrame "W".
+    steps_l. des_if; step_l; ss. steps_l.
+    rewrite {2}(bind_ret_r_rev itr_tgt).
+    iPoseProof ("sim" with "[$] [$] [$]") as "sim".
+    iApply wsim_bind; iFrame "sim".
+    clear dependent st_src st_tgt.
+    iIntros (st_src r_s st_tgt r_t) "[? [? [W [%ret [Post RR]]]]]".
+    steps_l. des_ifs; steps_l; ss.
+    force_l ret. steps_l. des_ifs; steps_l; ss.
+    forces_l. iFrame. steps_l. des_ifs; steps_l; ss. force_l. iFrame "Post". step.
+  Qed.
+
+  Ltac iStartSim := init_simF; unfold_cris_defs; iApply wsim_HoareFun_src; eauto; ss.
 
   Lemma simF_alloc : ISim.sim_fun open MemA MemI IstFull (Some MemHdr.alloc).
   Proof using.
-    init_simF.
+    iStartSim.
+    iIntros (N tid x varg) "TID YIELD PRE".
+    unfold_pre_post.
+    iDestruct "PRE" as "[-> [-> %]]".
+    steps_r. rewrite Any.upcast_downcast. steps_r.
 
-    norm_l.
-    
-    iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
+    iDestruct "IST" as (? ? ? ?) "([-> ->] & [% [% [% [[-> %] >B]]]] & ->)"; des.
+    steps_r. rewrite Any.upcast_downcast. steps_r. case_bool_decide; [|lia]. steps_r.
 
-    steps_l.
-    iDestruct "ASM" as "[[-> %] ->]". hss_r.
-    steps_r. hss_r. steps_r.
-    des_ifs.
-    2:{ rewrite andb_false_iff in Heq. des; des_sumbool; try nia. }
-
-    steps_r.
-    rename _q0 into pad, _q into size.
+    rename _q into pad.
     set (blk := Mem.nb mem_tgt + pad).
     iPoseProof (own_valid with "B") as "%".
     iPoseProof (mem_ra_alloc with "B") as ">B"; et.
-    iDestruct "B" as "[BLK WHT]".
+    iDestruct "B" as "[BLK WHT]". iPoseProof (points_to_transform with "WHT") as "WHT".
 
-    force_l ((Vptr (blk, 0%Z)) ↑). forces_l. iSplitL "WHT".
-    { iSplit; et.
-      iPoseProof (points_to_transform with "WHT") as "WHT". iFrame.
-      iPureIntro; refl.
-    }
-    steps_l.
-    step. iSplit; eauto.
-    iExists _, [_], _, _. repeat (iSplit; et).
-    iExists _, _. iFrame. iPureIntro.
-    esplits; et; ii; cycle 1.
-    { ss. unfold update in *. rewrite /mem_wf in H6. des_ifs. exploit H6; eauto. nia. }
-    
-    destruct (mem_tgt.(Mem.cnts) blk ofs) eqn:E.
+    force_l ((Vptr (blk, 0%Z)) ↑). step.
+    iExists _.
+    repeat (iSplit; first done).
+    iExists _, _, _, _; iSplit; [iPureIntro; split; refl|iSplit; eauto].
+    repeat (iSplit; eauto).
+    iExists _; iSplit; eauto.
+    iPureIntro; esplits; eauto; cycle 1.
+    { ii; ss. unfold update in *. rewrite /mem_wf in H6. des_ifs. exploit H6; eauto. nia. }
+
+    intros blk' ofs'; rewrite ?discrete_fun_lookup_op /= Z.add_0_l Z.sub_0_r repeat_length.
+    destruct (mem_tgt.(Mem.cnts) blk ofs') eqn:E.
     { exfalso. exploit H6; et. nia. }
-    ss. hexploit (H5 blk ofs); et.
+    ss. hexploit (H5 blk ofs'); et.
     rewrite E. intro U. des; ss.
-    rewrite !discrete_fun_lookup_op.
-    destruct (AList.dec b blk); subst; ss.
-    - rewrite repeat_length. rewrite Z.add_0_l.
-      unfold AList.update. des_ifs_safe. rewrite U left_id.
-      Ztac. destruct (dec _ _); ss.
-      destruct ((_ <=? _)%Z && (_ <? _)%Z) eqn: E0; et.
-      rewrite repeat_nth_some; et.
-      bsimpl; des; des_sumbool. Ztac. nia.
-    - unfold update in *. destruct (dec blk b); subst; ss.
-      des_ifs; bsimpl; destruct dec; des; subst; ss; rewrite right_id; eauto.
+
+    case_bool_decide as Hblkofs; [destruct Hblkofs as [Hblk Hofs]|].
+    { rewrite repeat_nth_some; [subst|lia]; rewrite U left_id; right; esplits; eauto.
+      rewrite /update; destruct (dec _ _); ss; case_bool_decide; ss.
+    }
+    rewrite right_id /update; destruct (_ blk' ofs') eqn : ?; hexploit (H5 blk' ofs');
+        i; des; destruct (dec _ _); ss; try case_bool_decide; naive_solver.
   (*SLOW*)Qed.
 
-  Lemma simF_free : ISim.sim_fun open MemA MemI (MemA.init_cond csl genv) IstFull (Some MemHdr.free).
+  Lemma simF_free : ISim.sim_fun open MemA MemI IstFull (Some MemHdr.free).
   Proof using.
-    init_simF.
-    iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
+    iStartSim.
+    iIntros (N tid [[blk ofs] v] varg) "?? Pre"; unfold_pre_post.
+    iDestruct "Pre" as "[-> [-> ↦]]".
+    iDestruct "IST" as (? ? ? ?) "([-> ->] & [% [% [% [[-> %] >B]]]] & ->)"; des.
 
     steps_l.
-    iDestruct "ASM" as "[[-> P] ->]". rename _q3 into blk, _q4 into ofs, _q2 into val. hss_r.
+    steps_r. rewrite Any.upcast_downcast /=. steps_r. rewrite Any.upcast_downcast /=.
+    steps_r.
 
-    steps_r. hss_r. steps_r.
-    iPoseProof (mem_ra_lookup with "[B P]") as "%HIT"; et; iFrame. des.
-    (* iSplit. { erewrite mem_get_sound; et. } *)
+    iPoseProof (mem_ra_lookup with "[B ↦]") as "[%HIT ->]"; et; iFrame. steps_r.
 
-    rewrite HIT0. steps_r.
-    force_l. forces_l. iSplit; et. step. repeat (iSplit; et).
-    iExists st_srcL, [_], _, _. repeat (iSplit; et).
-    iExists _, (mem_ra_upd mem_src blk ofs None). iSplit; cycle 1.
-    { iMod (mem_ra_free with "[B P]") as "H"; et; iFrame. }
-    iPureIntro. esplits; et.
+    force_l. iMod (mem_ra_free with "[B ↦]") as "H"; et; iFrame.
+    step. iExists _; repeat (iSplit; et).
+    iExists _, _, _, _; repeat (iSplit; et).
+    iExists _; iSplit; eauto.
+    iPureIntro. esplits; eauto.
     - ii. s. rewrite /mem_ra_upd /update.
-      destruct dec; ss; subst. des_ifs. left. et.
-    - rewrite /update. ii. ss. destruct dec; ss; subst; et.
+      repeat destruct dec; case_bool_decide; des; ss; subst; naive_solver.
+    - rewrite /update. ii. ss. repeat destruct dec; ss; subst; et.
   (*SLOW*)Qed.
 
   Lemma simF_load : ISim.sim_fun open MemA MemI (MemA.init_cond csl genv) IstFull (Some MemHdr.load).
@@ -499,7 +1190,7 @@ Module MemIA. Section MemIA.
   Lemma simF_cas : ISim.sim_fun open MemA MemI (MemA.init_cond csl genv) IstFull (Some MemHdr.cas).
   Proof using.
     init_simF.
-    
+
     iDestruct "IST" as (? ? ? ?) "(% & [% [% [% [% >B]]]] & %)". des; subst; hss.
     steps_l. iDestruct "ASM" as "[[[-> %Hcmp] [PT [P1 P2]]] ->]".
     rename _q10 into v_cur, _q11 into blk, _q12 into ofs, _q8 into v_cmp, _q6 into v_new.
@@ -524,7 +1215,7 @@ Module MemIA. Section MemIA.
       forces_l. subst is_succ v_upd. des_ifs; des_sumbool; ss. iFrame "PT P". iSplit; eauto.
       step. iSplit; eauto.
       iExists _, [_], _, _. repeat (iSplit; et). iExists _, _. iFrame "B". iSplit; eauto.
-      iPureIntro; esplits; eauto. 
+      iPureIntro; esplits; eauto.
       - ii. rewrite /mem_ra_upd. s. des_ifs; et.
       - ii. ss. des_ifs; et. bsimpl; des; des_sumbool; subst. eapply H6; et.
     }
