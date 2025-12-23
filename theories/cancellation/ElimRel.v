@@ -529,7 +529,7 @@ Proof using.
 Local Tactic Notation "estep" integer(n) := do n (gstep; econs; i).
 Local Ltac edone := eauto 6 with paco.
 
-Lemma elim_rel_cancel (md: SMod.t) (sp: specmap) T msk sN tN stid ttid (itr: itree _ T)
+Lemma elim_rel_cancel (md: SMod.t) T msk sN tN stid ttid (itr: itree _ T)
   (WF: SMod.cancellable md)
   (IMG: img_msk msk)
   (CALL: call_msk msk)

@@ -2,9 +2,8 @@ Require Import Common.
 Require Import LMod Mod.
 
 Definition refines_lmod (ms_src ms_tgt: LMod.t) : Prop :=
-  ∀ arg,
-  Beh.of_itree (LMod.compile ms_tgt arg) <1=
-  Beh.of_itree (LMod.compile ms_src arg).
+  Beh.of_itree (LMod.compile ms_tgt tt↑) <1=
+  Beh.of_itree (LMod.compile ms_src tt↑).
 
 Section CTX_REFINE.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I}.

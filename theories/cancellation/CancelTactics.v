@@ -36,7 +36,7 @@ Tactic Notation "red_bind" tactic(tac) :=
       | guaranteeK _ _ => eapply guaranteeK_bind
       | unwrapUK _ _ => eapply unwrapUK_bind
       | unwrapNK _ _ => eapply unwrapNK_bind
-      | RealUpdateK _ _ => eapply RealUpdateK_bind
+      (* | RealUpdateK _ _ => eapply RealUpdateK_bind *)
       (* | SBRed.putSB _ _ _ _ _ _ => eapply SBRed.putSB_bind *)
       (* | SBRed.getSB _ _ _ _ _ => eapply SBRed.getSB_bind *)
       (* | SBRed.callSB _ _ _ _ _ _ => eapply SBRed.callSB_bind *)
@@ -46,52 +46,52 @@ Tactic Notation "red_bind" tactic(tac) :=
       end
   end.
 
-Tactic Notation "red_SB" :=
-  lazymatch goal with
-  | [ |- @SB.sandbox _ _ _ _ _ ?itr = _ ] =>
-      lazymatch itr with
-      | Ret _ =>
-          eapply SBRed.ret
-      | Tau _ =>
-          eapply SBRed.tau
-      | vis (Assume _) _ =>
-          first [eapply SBRed.vis_Assume_img|eapply SBRed.vis_Assume]
-      | vis (AssumeRes _) _ =>
-          eapply SBRed.vis_AssumeRes
-      | vis (Guarantee _) _ =>
-          eapply SBRed.vis_Guarantee
-      | vis (Spawn _ _) _ =>
-          eapply SBRed.Spawn_spawnSB
-      | vis (Yield _) _ =>
-          eapply SBRed.vis_yield
-      | vis (Call _ _) _ =>
-          eapply SBRed.Call_callSB
-      | vis (SPut _ _) _ =>
-          eapply SBRed.SPut_putSB
-      | vis (SGet _) _ =>
-          eapply SBRed.SGet_getSB
-      | vis (Choose _) _ =>
-          eapply SBRed.vis_choose
-      | vis (Take _) _ =>
-          first [eapply SBRed.vis_take_img|eapply SBRed.vis_take]
-      | vis (IO _ _) _ =>
-          eapply SBRed.vis_io
-      | assumeK _ _ =>
-          eapply SBRed.assumeK
-      | guaranteeK _ _ =>
-          eapply SBRed.guaranteeK
-      | unwrapUK _ _ =>
-          eapply SBRed.unwrapUK
-      | unwrapNK _ _ =>
-          eapply SBRed.unwrapNK
-      (* | RealUpdateK _ _ _ => *)
-      (*     eapply SBRed.ruK *)
-      | @ITree.bind _ _ _ _ _ =>
-          eapply SBRed.bind
-      | _ =>
-          reflexivity
-      end
-  end.
+(* Tactic Notation "red_SB" := *)
+(*   lazymatch goal with *)
+(*   | [ |- @SB.sandbox _ _ _ _ _ ?itr = _ ] => *)
+(*       lazymatch itr with *)
+(*       | Ret _ => *)
+(*           eapply SBRed.ret *)
+(*       | Tau _ => *)
+(*           eapply SBRed.tau *)
+(*       | vis (Assume _) _ => *)
+(*           first [eapply SBRed.vis_Assume_img|eapply SBRed.vis_Assume] *)
+(*       | vis (AssumeRes _) _ => *)
+(*           eapply SBRed.vis_AssumeRes *)
+(*       | vis (Guarantee _) _ => *)
+(*           eapply SBRed.vis_Guarantee *)
+(*       | vis (Spawn _ _) _ => *)
+(*           eapply SBRed.Spawn_spawnSB *)
+(*       | vis (Yield _) _ => *)
+(*           eapply SBRed.vis_yield *)
+(*       | vis (Call _ _) _ => *)
+(*           eapply SBRed.Call_callSB *)
+(*       | vis (SPut _ _) _ => *)
+(*           eapply SBRed.SPut_putSB *)
+(*       | vis (SGet _) _ => *)
+(*           eapply SBRed.SGet_getSB *)
+(*       | vis (Choose _) _ => *)
+(*           eapply SBRed.vis_choose *)
+(*       | vis (Take _) _ => *)
+(*           first [eapply SBRed.vis_take_img|eapply SBRed.vis_take] *)
+(*       | vis (IO _ _) _ => *)
+(*           eapply SBRed.vis_io *)
+(*       | assumeK _ _ => *)
+(*           eapply SBRed.assumeK *)
+(*       | guaranteeK _ _ => *)
+(*           eapply SBRed.guaranteeK *)
+(*       | unwrapUK _ _ => *)
+(*           eapply SBRed.unwrapUK *)
+(*       | unwrapNK _ _ => *)
+(*           eapply SBRed.unwrapNK *)
+(*       (* | RealUpdateK _ _ _ => *) *)
+(*       (*     eapply SBRed.ruK *) *)
+(*       | @ITree.bind _ _ _ _ _ => *)
+(*           eapply SBRed.bind *)
+(*       | _ => *)
+(*           reflexivity *)
+(*       end *)
+(*   end. *)
 
 (* Tactic Notation "red_S" tactic(tac) := *)
 (*   lazymatch goal with *)

@@ -128,15 +128,13 @@ Lemma cancel_main md rs rt fsp N mm
   (MAIN: SMod.conc_sp_from md !! speckey_entry = Some fsp)
   (* (WF: Mod.wf (SMod.to_mod sp_none (SMod.cancel md))) *)
   (VALID: ✓ rs)
-  (RES: ∀ arg, ∃ varg, Own rs ⊢ |==> TID 0 ∗ YIELD 0 ∗ winv (↑N, ↑N) ∗ Own rt ∗ precond fsp (N, 0) mm varg arg ∗ TIDAUTH 0 ∗ YIELDAUTH 1)
+  (RES: Own rs ⊢ |==> TID 0 ∗ YIELD 0 ∗ winv (↑N, ↑N) ∗ Own rt ∗ precond fsp (N, 0) mm tt↑ tt↑ ∗ TIDAUTH 0 ∗ YIELDAUTH 1)
   :  
   refines_lmod
     (Mod.to_lmod (MInline.inline (SMod.to_mod ∅ (SMod.cancel md))) rs)
     (Mod.to_lmod (MInline.inline (SMod.to_mod (SMod.conc_sp_from md) md)) rt).
 Proof using.
-  r. intro args.
-  specialize (RES args). destruct RES as [arg RES].
-  eapply gsim_adequacy.
+  r. eapply gsim_adequacy.
   instantiate (1:= smj_top). instantiate (1:= smj_top).
   unfold LMod.compile. s. rewrite /ITree.map /LModTr.trans /LModTr.interp_callE.
 
@@ -171,14 +169,14 @@ Proof using.
   des. rewrite /SMod.lift_fn in MAIN. des_ifs. rewrite !lookup_omap /= !lookup_fmap lookup_omap FIND /= in MAIN0.
   inv MAIN0.
 
-  r in x0; des.
+  dup x0. r in x0; des.
   rewrite SBRed.bind SBRed.vis !vis_trigger x0. ired.
   iter_r. step_r. exists (N, 0). step_r. ired. iter_r. step_r. ired.
   rewrite SBRed.ret bind_ret_l SBRed.bind SBRed.vis !vis_trigger x0. ired.
   iter_r. step_r. exists mm. step_r. ired. iter_r. step_r. ired.
   rewrite SBRed.ret bind_ret_l SBRed.bind SBRed.vis !vis_trigger x0. ired.
-  iter_r. step_r. exists arg. step_r. ired. iter_r. step_r. ired.
-  rewrite SBRed.ret bind_ret_l SBRed.bind SBRed.vis !vis_trigger x3. ired.
+  iter_r. step_r. exists (tt↑). step_r. ired. iter_r. step_r. ired.
+  rewrite SBRed.ret bind_ret_l SBRed.bind SBRed.vis !vis_trigger x4. ired.
   iter_r. step_r. ired. rewrite Any.pair_split /= bind_ret_l Any.upcast_downcast /= bind_ret_l !bind_bind.
   iter_r. step_r. rewrite (assoc _ (Own rt)) (assoc _ (winv (↑N, ↑N))) (assoc _ (YIELD 0) _) (assoc _ (TID 0)) in RES.
   hexploit (Own_bupd_split); eauto. i; des.
@@ -198,7 +196,7 @@ Proof using.
   }
   iter_r. step_r. ired. step_r. ired. rewrite Any.pair_split /= bind_ret_l.
   iter_r. step_r. ired. iter_r. step_r. ired.
-  rewrite SBRed.ret bind_ret_l SBRed.bind SBRed.vis !vis_trigger x3. ired.
+  rewrite SBRed.ret bind_ret_l SBRed.bind SBRed.vis !vis_trigger x4. ired.
   iter_r. step_r. ired. rewrite Any.pair_split /= bind_ret_l Any.upcast_downcast /= bind_ret_l !bind_bind.
   iter_r. step_r. exists a1. step_r. ired. iter_r. step_r. unshelve eexists; ired.
   { esplits; eauto. iIntros "P"; iPoseProof (H3 with "P") as ">[A B]". iFrame.
@@ -215,11 +213,11 @@ Proof using.
          trigger (Guarantee (postcond fsp (N, 0) mm vret ret));;; tau;;
          Ret ret)).
   { subst itr0. eapply func_ext. i.
-    rewrite SBRed.bind SBRed.vis vis_trigger x2 MIRed.bind MIRed.core. ired. f_equal.
+    rewrite SBRed.bind SBRed.vis vis_trigger x3 MIRed.bind MIRed.core. ired. f_equal.
     extensionalities. ired. do 2 f_equal.
-    rewrite SBRed.ret MIRed.ret bind_ret_l SBRed.bind SBRed.vis !vis_trigger x5 MIRed.bind MIRed.ag. ired. f_equal.
+    rewrite SBRed.ret MIRed.ret bind_ret_l SBRed.bind SBRed.vis !vis_trigger x6 MIRed.bind MIRed.ag. ired. f_equal.
     extensionalities. ired. do 2 f_equal.
-    rewrite SBRed.ret MIRed.ret bind_ret_l SBRed.bind SBRed.vis !vis_trigger x5 MIRed.bind MIRed.ag. ired. f_equal.
+    rewrite SBRed.ret MIRed.ret bind_ret_l SBRed.bind SBRed.vis !vis_trigger x6 MIRed.bind MIRed.ag. ired. f_equal.
     extensionalities. ired. do 2 f_equal.
     rewrite SBRed.ret MIRed.ret bind_ret_l SBRed.ret MIRed.ret //.
   }
@@ -227,17 +225,20 @@ Proof using.
 
   gfinal. right.
 
-  eapply (cancel_elim rs rt (rs_diff:=[ε])); eauto.
+  eapply (cancel_elim rs a1 (rs_diff:=[ε])); eauto.
+  { rewrite /SMod.conc_sp_from /SMod.sp_from lookup_insert_ne // lookup_kmap_Some.
+    exists None. esplit; eauto. rewrite !lookup_omap !lookup_fmap !lookup_omap FIND //. }
   { econs; et.
     split; ss.
     i. destruct i; ss. inv H0. 
-    (* exploit WFS; et. i. subst. *)
-
     econs; et.
+    { rewrite /SMod.conc_sp_from /SMod.sp_from lookup_insert_ne // lookup_kmap_Some.
+      exists None. esplit; eauto. rewrite !lookup_omap !lookup_fmap !lookup_omap FIND //. }
     eapply elim_rel_cancel; et.
   }
-  ss. rewrite right_id assoc -Own_op left_id. rewrite RES.
-  iIntros ">$"; eauto.
+  ss. iIntros "P". iPoseProof (H with "P") as ">[$ P]".
+  iPoseProof (H1 with "P") as "[$ $]".
+  iModIntro. iSplit; eauto. iApply Own_unit.
 Unshelve. all: exact smj_top.
 (*SLOW*)Qed.
 
@@ -247,21 +248,25 @@ Section Cancel.
 Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG}.
 
 (*** Final Theorem ***)
-Theorem cancellation md P
+Theorem cancellation md P fsp N mm
   (WFS: SMod.cancellable md)
+  (MAIN: SMod.conc_sp_from md !! speckey_entry = Some fsp)
   :
-  refines (SMod.to_mod sp_none (SMod.cancel md), (P ∗ TIDAUTH 0 ∗ YIELDAUTH 1)%I)
-          (SMod.to_mod (sp_from md) md, P).
+  refines (SMod.to_mod ∅ (SMod.cancel md), (P ∗ TIDAUTH 0 ∗ YIELDAUTH 1 ∗ TID 0 ∗ YIELD 0 ∗ winv (↑N, ↑N) ∗ precond fsp (N, 0) mm tt↑ tt↑)%I)
+          (SMod.to_mod (SMod.conc_sp_from md) md, P).
 Proof using. 
   etrans.
   { eapply inline_elim. }
   etrans; cycle 1.
   { eapply inline_intro. }
   ii; split.
-  {
+  { 
     inv WFM. econs; eauto. s.
-    repeat rewrite List.map_map fst_map_snd.
-    repeat rewrite List.map_map fst_map_snd in wf_fns. eauto.
+    ii. ss. r in wf_fns. specialize (wf_fns i). ss.
+    rewrite !lookup_fmap in H, wf_fns. destruct (SMod.fnsems md !! i); ss.
+    destruct o; ss; cycle 1.
+    { inv H. hexploit wf_fns; eauto. }
+    inv H. destruct p as [msk [fspo bd]]. ss.
   }
   inv WFM. s; i.
   rewrite assoc in SRC.
@@ -272,7 +277,7 @@ Proof using.
   { rewrite Hr2. eauto. }
   eapply cancel_main; eauto.
   iIntros "S". iPoseProof (Hr1 with "S") as ">[$ A]".
-  rewrite Hr3; iFrame; eauto.
+  rewrite Hr3. iDestruct "A" as "(A & B & C & D & E)"; iFrame; eauto.
 (*SLOW*)Qed.
 
 End Cancel. End Cancel.
