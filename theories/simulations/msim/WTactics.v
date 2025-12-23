@@ -1,6 +1,6 @@
-(* From iris.proofmode Require Import proofmode. *)
-(* Require Import Common Mod ltac2_lib. *)
-(* Require Import WSim TacticsCommon TacticsInit. *)
+From iris.proofmode Require Import proofmode.
+Require Import Common Mod ltac2_lib.
+Require Import WSim TacticsCommon TacticsInit.
 
 Ltac _wstep_l :=
   match goal with
@@ -37,19 +37,19 @@ Ltac _wstep_l :=
       match goal with [ H: ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite -> G in * end
   end.
 
-(* Ltac wstep_l_core := *)
-(*   _wstep_l; try alist_find_simpl; s; des_pairs; s. *)
+Ltac wstep_l_core :=
+  _wstep_l; try alist_find_simpl; s; des_pairs; s.
 
-(* Ltac wstep_l := *)
-(*   norm_l with do 1 try wstep_l_core. *)
+Ltac wstep_l :=
+  norm_l with do 1 try wstep_l_core.
 
-(* Ltac wsteps_l := *)
-(*   let marker := fresh "MARKER" in *)
-(*   set_marker marker; *)
-(*   hide_ihyps; *)
-(*   norm_l; *)
-(*   (hrepeat (do 1 wstep_l_core; norm_l)); *)
-(*   show_until marker. *)
+Ltac wsteps_l :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  norm_l;
+  (hrepeat (do 1 wstep_l_core; norm_l));
+  show_until marker.
 
 Ltac _wstep_r :=
   match goal with
@@ -81,32 +81,32 @@ Ltac _wstep_r :=
       iApply wsim_nodup_tgt; iIntros (NODT); iApply wsim_sget_tgt_sandbox; [s; eauto|alist_find_simpl]; clear name *)
   end.
 
-(* Ltac wstep_r_core := *)
-(*   _wstep_r; s; des_pairs; s. *)
+Ltac wstep_r_core :=
+  _wstep_r; s; des_pairs; s.
 
-(* Ltac wstep_r := *)
-(*   norm_r with do 1 try wstep_r_core. *)
+Ltac wstep_r :=
+  norm_r with do 1 try wstep_r_core.
 
-(* Ltac wsteps_r := *)
-(*   let marker := fresh "MARKER" in *)
-(*   set_marker marker; *)
-(*   hide_ihyps; *)
-(*   norm_r; *)
-(*   (hrepeat (do 1 wstep_r_core; norm_r)); *)
-(*   show_until marker. *)
+Ltac wsteps_r :=
+  let marker := fresh "MARKER" in
+  set_marker marker;
+  hide_ihyps;
+  norm_r;
+  (hrepeat (do 1 wstep_r_core; norm_r));
+  show_until marker.
 
-(* Ltac _wstep := *)
-(*   match goal with *)
-(*   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, Ret _) (_, Ret _))] => *)
-(*       iApply wsim_ret *)
-(*   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (IO _ _) >>= _) (_, trigger (IO _ _) >>= _))] => *)
-(*       iApply wsim_io; iIntros "%" *)
-(*   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger GetTid >>= _) (_, trigger GetTid >>= _))] => *)
-(*       iApply wsim_gettid; iIntros "%" *)
-(*   end. *)
+Ltac _wstep :=
+  match goal with
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, Ret _) (_, Ret _))] =>
+      iApply wsim_ret
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (IO _ _) >>= _) (_, trigger (IO _ _) >>= _))] =>
+      iApply wsim_io; iIntros "%"
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger GetTid >>= _) (_, trigger GetTid >>= _))] =>
+      iApply wsim_gettid; iIntros "%"
+  end.
 
-(* Ltac wstep := *)
-(*   norm with do 1 _wstep; s; des_pairs; s. *)
+Ltac wstep :=
+  norm with do 1 _wstep; s; des_pairs; s.
 
 Ltac _wforce_l :=
   match goal with
@@ -130,17 +130,17 @@ Ltac _wforce_l :=
       iApply wsim_guar_src
   end.
 
-(* Ltac wforce_l_core := *)
-(*   norm_l with do 1 _wforce_l. *)
+Ltac wforce_l_core :=
+  norm_l with do 1 _wforce_l.
 
-(* Tactic Notation "wforce_l" := *)
-(*   wforce_l_core; [..|try iExists _]. *)
+Tactic Notation "wforce_l" :=
+  wforce_l_core; [..|try iExists _].
 
-(* Tactic Notation "wforce_l" uconstr(p) := *)
-(*   wforce_l_core; [..|iExists p]. *)
+Tactic Notation "wforce_l" uconstr(p) :=
+  wforce_l_core; [..|iExists p].
 
-(* Ltac wforces_l := *)
-(*   hrepeat do 1 wforce_l. *)
+Ltac wforces_l :=
+  hrepeat do 1 wforce_l.
 
 Ltac _wforce_r :=
   match goal with
@@ -170,17 +170,17 @@ Ltac _wforce_r :=
   end
 .
 
-(* Ltac wforce_r_core := *)
-(*   norm_r with do 1 _wforce_r; s. *)
+Ltac wforce_r_core :=
+  norm_r with do 1 _wforce_r; s.
 
-(* Tactic Notation "wforce_r" := *)
-(*   wforce_r_core; try (iExists _). *)
+Tactic Notation "wforce_r" :=
+  wforce_r_core; try (iExists _).
 
-(* Tactic Notation "wforce_r" uconstr(p) := *)
-(*   wforce_r_core; iExists p. *)
+Tactic Notation "wforce_r" uconstr(p) :=
+  wforce_r_core; iExists p.
 
-(* Ltac wforces_r := *)
-(*   hrepeat do 1 wforce_r. *)
+Ltac wforces_r :=
+  hrepeat do 1 wforce_r.
 
 Ltac winline_l :=
   norm_l with
@@ -198,32 +198,32 @@ Ltac wcall hyps :=
 Ltac wspawn :=
   (norm with do 1 iApply wsim_spawn); [try prove_sb_cond|].
 
-(* Ltac wyield hyps := *)
-(*   (norm with do 1 iApply wsim_yield); *)
-(*   iSplitL hyps; [try done| iIntros "% %"; iIntrosFresh "IST"]; *)
-(*   move_aux. *)
+Ltac wyield hyps :=
+  (norm with do 1 iApply wsim_yield);
+  iSplitL hyps; [try done| iIntros "% %"; iIntrosFresh "IST"];
+  move_aux.
 
-(* Ltac wby_coind CIH := *)
-(*   iApply wsim_progress; iApply wsim_base; iIntrosFresh "I"; *)
-(*   iApply CIH. *)
+Ltac wby_coind CIH :=
+  iApply wsim_progress; iApply wsim_base; iIntrosFresh "I";
+  iApply CIH.
 
-(* Ltac winit_simF := *)
-(*   initialize_simF; *)
-(*   iApply wsim_isim; *)
-(*   try ( *)
-(*       iDestruct "IST" as "[% [W [TID IST]]]"; des; subst; *)
-(*       iApply wsim_init_winv; iSplitL "W"; [et; fail|]; hss_copset; *)
-(*       hrepeat do 1 (unfold_mod; s)). *)
+Ltac winit_simF :=
+  initialize_simF;
+  iApply wsim_isim;
+  try (
+      iDestruct "IST" as "[% [W [TID IST]]]"; des; subst;
+      iApply wsim_init_winv; iSplitL "W"; [et; fail|]; hss_copset;
+      hrepeat do 1 (unfold_mod; s)).
 
-(* (** Special Tactics for RealUpdate **) *)
+(** Special Tactics for RealUpdate **)
 
-(* (* Tactic Notation "wru_l_advanced" uconstr(P) := *) *)
-(* (*   norm_l; iApply wsim_ru_src_advanced; *) *)
-(* (*   iExists P; iSplit; [try prove_precise|]. *) *)
-
-(* Tactic Notation "wru_l" uconstr(P) := *)
-(*   norm_l; iApply wsim_ru_src; *)
+(* Tactic Notation "wru_l_advanced" uconstr(P) := *)
+(*   norm_l; iApply wsim_ru_src_advanced; *)
 (*   iExists P; iSplit; [try prove_precise|]. *)
 
-(* Ltac wru_r := *)
-(*   norm_r; iApply wsim_ru_tgt. *)
+Tactic Notation "wru_l" uconstr(P) :=
+  norm_l; iApply wsim_ru_src;
+  iExists P; iSplit; [try prove_precise|].
+
+Ltac wru_r :=
+  norm_r; iApply wsim_ru_tgt.

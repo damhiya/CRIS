@@ -312,13 +312,13 @@ Section MASK.
     ∧ (∀ P, msk _ (subevent _ (AssumeRes P)) = true)
     ∧ (∀ P, msk _ (subevent _ (Guarantee P)) = true).
 
-  Definition msk_scp (scp : list string) : emask :=
+  Definition msk_scp (scp : gmultiset string) : emask :=
     λ X e,
       match e with
       | inl1 _ => true
       | inr1 (inl1 _) => true
-      | inr1 (inr1 (inl1 (SPut k v))) => decide (k.1 ∈ scp)
-      | inr1 (inr1 (inl1 (SGet k))) => decide (k.1 ∈ scp)
+      | inr1 (inr1 (inl1 (SPut k v))) => decide (k ∈ scp)
+      | inr1 (inr1 (inl1 (SGet k))) => decide (k ∈ scp)
       | inr1 (inr1 (inr1 _)) => true
       end.
 
