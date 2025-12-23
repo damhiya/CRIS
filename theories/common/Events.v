@@ -323,5 +323,7 @@ Section MASK.
       end.
 
   Definition call_msk (msk: emask): Prop :=
-    ∀ fn x y, msk _ (subevent _ (Call fn x)) = msk _ (subevent _ (Call fn y)).
+    ∀ fn x y,
+      msk _ (subevent _ (Call fn x)) = msk _ (subevent _ (Call fn y))
+      ∧ msk _ (subevent _ (Spawn fn x)) = msk _ (subevent _ (Spawn fn y)).
 End MASK.

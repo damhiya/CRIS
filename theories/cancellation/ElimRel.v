@@ -330,7 +330,7 @@ Proof using.
 Qed.
 
 Lemma SBRed_HoareYield (msk: emask) sspo N stid ntid
-  (MSK: ∀ x, msk _ (subevent _ (Yield x)) = true)
+  (MSK: msk _ (subevent _ (Yield ntid)) = true)
   (IMG: img_msk msk) :
   SB.sandbox msk (SModTr.HoareYield sspo N stid ntid) =
     SModTr.HoareYield sspo N stid ntid.
@@ -594,6 +594,7 @@ Proof using.
       rewrite {4}/SMod.conc_sp_from. rewrite lookup_insert_ne //. rewrite (lookup_sp_from _ _ (Some (Some (img0, (Some fsp, bd0))))) //.
       
       erewrite MIRed_HoareCall; et; cycle 1.
+      { r in CALL. i. hexploit (CALL fn args x); i. des; eauto. }
       { rewrite /SMod.conc_sp_from. rewrite lookup_insert_ne //.
         rewrite (lookup_sp_from _ _ (Some (Some (img0, (Some fsp, bd0))))) //. }
 
@@ -621,23 +622,34 @@ Proof using.
     (* spawn case *)
     {
       rewrite !SRed.bind !SBRed.bind !SRed.spawn !SBRed.tau !MIRed.bind !MIRed.tau.
-      ired. rewrite SBRed_NativeSpawn. estep 2.
-      destruct (msk fn) eqn: E; cycle 1.
-      { rewrite /triggerUB // MIRed.core. ired. estep 1. }
-      rewrite MIRed_NativeSpawn SBRed_HoareSpawn; et; ss.
-      destruct (match (sp_from md) fn with | Some (@fspec_call _ _ _ _) => true | _ => false end) eqn:ST.
-      { destruct (sp_from md fn); ss. destruct f; ss. rewrite MIRed.core. ired. estep 1. }
-      rewrite MIRed_HoareSpawn; cycle 1.
-      { destruct (sp_from md fn); ss; eauto. destruct f; ss; eauto. }
-      gstep. eapply elim_rel_spawn; et.
-      i. edone.
+      ired. estep 2. rewrite lookup_empty.
+      rewrite dom_empty_L. destruct (decide (speckey_concE ∈ ∅)); [ss|].
+      destruct (decide (speckey_concE ∈ dom (SMod.conc_sp_from md))); cycle 1.
+      { exfalso. eapply n0. rewrite /SMod.conc_sp_from.
+        rewrite dom_insert. set_solver. }
+
+      destruct (msk _ (subevent _ (Spawn fn args))) eqn: M; cycle 1.
+      { rewrite SBRed.vis M vis_trigger MIRed.core. ired. estep 1. }
+      rewrite !SBRed_HoareSpawn //; cycle 1.
+      { i. r in CALL. hexploit (CALL fn args x). i; des; eauto. }
+      { i. r in CALL. hexploit (CALL fn args x). i; des; eauto. }
+      rewrite !MIRed_HoareSpawn.
+      gstep. eapply elim_rel_spawn; eauto.
+      { rewrite /HoareSpawnE. ired. des_ifs; ired; f_equal. }
+      i. ss. edone.
     }
 
     (* yield case *)
     {
       rewrite !SRed.bind !SRed.yield !SBRed.bind !SBRed.tau !bind_tau !MIRed.tau. estep 2.
-      rewrite !MIRed.bind SBRed_HoareYield SBRed_NativeYield /= MIRed_HoareYield MIRed_NativeYield.
+      destruct (decide (speckey_concE ∈ dom ∅)); [ss|].
+      destruct (decide (speckey_concE ∈ dom (SMod.conc_sp_from md))); cycle 1.
+      { exfalso. eapply n0. rewrite /SMod.conc_sp_from. rewrite dom_insert. set_solver. }
+      destruct (msk _ (subevent _ (Yield tid))) eqn:Y; cycle 1.
+      { ss. rewrite SBRed.vis Y vis_trigger bind_bind MIRed.core. estep 1. }
+      rewrite !MIRed.bind !SBRed_HoareYield // !MIRed_HoareYield.
       gstep. eapply elim_rel_yield; eauto.
+      { rewrite /HoareYieldE. des_ifs.
       i; s. edone.
     }
 
