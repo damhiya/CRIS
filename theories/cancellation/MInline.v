@@ -1,4 +1,4 @@
-(* Require Import Common.
+Require Import Common.
 From iris.proofmode Require Import proofmode.
 
 Require Import Mod FSpec.
@@ -357,4 +357,4 @@ Proof using.
       + rewrite !vis_trigger !bind_bind MIRed.core SBRed.bind SBRed.vis. des_ifs.
         gstep. r; s; econs. ss.
   }
-(*SLOW*)Qed. *)
+(*SLOW*)Qed.

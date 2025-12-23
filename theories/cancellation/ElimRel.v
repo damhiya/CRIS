@@ -591,12 +591,13 @@ Proof using.
 
       set (fsp := fspec_mk _ _) in E0.
       rewrite SBRed.vis E vis_trigger -(bind_ret_r (trigger _)).
-      rewrite {4}/SMod.conc_sp_from. rewrite lookup_insert_ne //. rewrite (lookup_sp_from _ _ (Some (Some (img0, (Some fsp, bd0))))) //.
+      rewrite {4}/SMod.conc_sp_from. rewrite lookup_insert_ne //.
+      rewrite (lookup_sp_from _ _ (Some (Some (img0, (Some (fsp postcond), bd0))))) //.
       
       erewrite MIRed_HoareCall; et; cycle 1.
       { i. r in CALL. hexploit (CALL fn args x); i; des; eauto. }
       { rewrite /SMod.conc_sp_from. rewrite lookup_insert_ne //.
-        rewrite (lookup_sp_from _ _ (Some (Some (img0, (Some fsp, bd0))))) //. }
+        rewrite (lookup_sp_from _ _ (Some (Some (img0, (Some (fsp postcond), bd0))))) //. }
 
       rewrite MIRed.bind MIRed.call MIRed.bind.
       rewrite {2}/sandboxed_prog. s. 
@@ -696,40 +697,50 @@ Hint Resolve elim_rel_def_mon: paco.
 Section CancelDef.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG}.
 
-  Definition main_post : Any.t → itree lmodE Any.t :=
+  (* Definition main_post : Any.t → itree lmodE Any.t := *)
+  (*   λ vret, *)
+  (*     ModTr.trans *)
+  (*       (ret <- trigger (Choose Any.t);; tau;; *)
+  (*        trigger (Guarantee ⌜vret = ret⌝);;; tau;; Ret ret). *)
+
+  Definition main_post (fsp: fspec) (N: namespace) (x: meta fsp): Any.t → itree lmodE Any.t :=
     λ vret,
       ModTr.trans
         (ret <- trigger (Choose Any.t);; tau;;
-         trigger (Guarantee ⌜vret = ret⌝);;; tau;; Ret ret).
+         trigger (Guarantee (TID 0 ∗ YIELD 0 ∗ winv (↑N, ↑N)));;; tau;;
+         trigger (Guarantee (postcond fsp (N, 0) x vret ret));;; tau;;
+         Ret ret).
 
-  (* thread_rel cid tid ... *)
-  Variant thread_rel sp cid : nat → Σ → itree lmodE Any.t → itree lmodE Any.t → Prop :=
+  (* thread_rel (main spec) (main namespace) (main meta) cid tid ... *)
+  Variant thread_rel main_fsp N mm sp cid : nat → Σ → itree lmodE Any.t → itree lmodE Any.t → Prop :=
   | thread_rel_body itrS itrT src tgt r_diff tid (k: Any.t → itree lmodE Any.t)
-      (RET: tid = 0 -> k = main_post)
+      (MAIN: sp !! speckey_entry = Some main_fsp)
+      (RET: tid = 0 -> k = main_post main_fsp N mm)
       (TEQ: cid = tid)
       (REL: elim_rel sp r_diff itrS itrT)
       (SRC: src = ModTr.trans itrS)
       (TGT: tgt = ModTr.trans itrT >>= k) :
-     thread_rel sp cid tid r_diff src tgt
+     thread_rel main_fsp N mm sp cid tid r_diff src tgt
   | thread_rel_spawn src tgt r_diff tid itrS fspo m pre post varg arg bd x :
      tid ≠ 0 →
      cid ≠ tid →
-     fspo = Some (@fspec_spawn _ m pre post) →
+     fspo = Some (@fspec_mk _ m pre post) →
      src = ModTr.trans (tau;; tau;; itrS) →
      tgt = ModTr.trans (
-       '(tid, m, varg):_ <- elim_spawnee_precond pre arg;;
+       '(N', tid, m, varg):_ <- elim_spawnee_precond pre arg;;
        vret <- bd varg;;
-       elim_spawnee_postcond post tid m vret) →
-     (Own r_diff ⊢ |==> pre (tid, x) varg arg)%I →
+       elim_spawnee_postcond post N' tid m vret) →
+     (Own r_diff ⊢ |==> pre (N, tid) x varg arg)%I →
      elim_rel sp ε itrS (bd varg) →
-     thread_rel sp cid tid r_diff src tgt
+     thread_rel main_fsp N mm sp cid tid r_diff src tgt
   | thread_rel_yield src tgt r_diff tid itrS itrT (k: Any.t → itree lmodE Any.t) :
-     (tid = 0 -> k = main_post) →
+     sp !! speckey_entry = Some main_fsp →
+     (tid = 0 -> k = main_post main_fsp N mm) →
      cid ≠ tid →
      src = ModTr.trans (tau;; itrS) →
      tgt = ModTr.trans (tau;; trigger (Assume (TID(tid) ∗ YIELD(tid) ∗ winv(⊤, ⊤)));;; tau;; itrT) >>= k →
      elim_rel sp ε itrS itrT →
-     thread_rel sp cid tid r_diff src tgt
+     thread_rel main_fsp N mm sp cid tid r_diff src tgt
   .
   
   Definition cancel_eq (x y: Any.t * Any.t) : Prop :=
@@ -741,51 +752,52 @@ Section CancelDef.
     ∀ (r_i r_s r_t : Σ)
       (rs_diff : list Σ) (srcs tgts : list (itree lmodE Any.t))
       (cid : nat)
-      (st : list (key * Any.t))
+      (st : gmap key (option Any.t))
       (ps pt : smj)
-      ktrS k ktrT
+      ktrS k ktrT main_fsp N (mm: meta main_fsp)
       (r : ∀ x x0, (x → x0 → Prop) → smj → smj → itree coreE x → itree coreE x0 → Prop)
       (WFS: SMod.cancellable md)
-      (VP: sp = sp_from md)
+      (VP: sp = SMod.conc_sp_from md)
+      (MAIN: sp !! speckey_entry = Some main_fsp)
       (* (WF: Mod.wf (SMod.to_mod sp_none (SMod.cancel md))) *)
       (CIH :
         ∀ (r_s r_t : Σ) (rs_diff : list Σ) (srcs tgts : list (itree lmodE Any.t)) 
-          (cid : nat) (st : list (key * Any.t)) (ps pt : smj)
-          (REL : Forall3i (thread_rel sp cid) rs_diff srcs tgts)
+          (cid : nat) (st : gmap key (option Any.t)) (ps pt : smj)
+          (REL : Forall3i (thread_rel main_fsp N mm sp cid) rs_diff srcs tgts)
           (WFR: ✓ r_s)
           (RS: Own r_s ⊢ |==> ([∗ list] i ∈ rs_diff, Own i) ∗ Own r_t ∗
                  TIDAUTH cid ∗ YIELDAUTH (length rs_diff)),
         r (Any.t * Any.t)%type (Any.t * Any.t)%type cancel_eq ps pt
           (LModTr.interp_stateE Any.t
               (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
-                    (SMod.to_mod sp_none (SMod.cancel md))) r_i))) (cid, srcs))
-              (Any.pair (ModTr.alist_encode st) r_s ↑))
+                    (SMod.to_mod ∅ (SMod.cancel md))) r_i))) (cid, srcs))
+              (Any.pair (ModTr.state_encode st) r_s ↑))
           (LModTr.interp_stateE Any.t
               (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
                     (SMod.to_mod sp md)) r_i))) (cid, tgts))
-              (Any.pair (ModTr.alist_encode st) r_t ↑)))
+              (Any.pair (ModTr.state_encode st) r_t ↑)))
       (KEY: ∀ itr_s itr_t st (r_s r_t r_diff : Σ)
               (WFR: ✓ r_s)
               (RS: Own r_s ⊢ |==> ([∗ list] i ∈ <[cid:=r_diff]> rs_diff, Own i) ∗ Own r_t ∗
                      TIDAUTH cid ∗ YIELDAUTH (length (<[cid:=r_diff]> rs_diff)))
               (LEN: cid < List.length srcs)
-              (REL: thread_rel sp cid cid r_diff itr_s itr_t),
+              (REL: thread_rel main_fsp N mm sp cid cid r_diff itr_s itr_t),
         gpaco7 _gsim (cpn7 _gsim) bot7 r (Any.t * Any.t)%type
           (Any.t * Any.t)%type cancel_eq smj_top smj_top
           (LModTr.interp_stateE Any.t
               (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
-                    (SMod.to_mod sp_none (SMod.cancel md))) r_i)))
+                    (SMod.to_mod ∅ (SMod.cancel md))) r_i)))
                     (cid, <[cid:=itr_s]> srcs))
-              (Any.pair (ModTr.alist_encode st) r_s ↑))
+              (Any.pair (ModTr.state_encode st) r_s ↑))
           (LModTr.interp_stateE Any.t
               (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
                     (SMod.to_mod sp md)) r_i)))
                     (cid, <[cid:=itr_t]> tgts))
-              (Any.pair (ModTr.alist_encode st) r_t ↑)))
+              (Any.pair (ModTr.state_encode st) r_t ↑)))
       (EQLEN : length srcs = length tgts)
       (EQLEN2 : length rs_diff = length srcs)
       (REL : ∀ i x y z, srcs !! i = Some x → tgts !! i = Some y → rs_diff !! i = Some z →
-        thread_rel sp cid i z x y)
+        thread_rel main_fsp N mm sp cid i z x y)
       (WFR : ✓ r_s)
       (RS : Own r_s ⊢
               |==> ([∗ list] i ∈ rs_diff, Own i) ∗ Own r_t ∗ 
@@ -794,18 +806,18 @@ Section CancelDef.
       (x0 : srcs !! cid = Some (ModTr.trans (x <- it_src;; ktrS x)))
       (x1 : tgts !! cid = Some (x <- ModTr.trans (x <- it_tgt;; ktrT x);; k x))
       (x2 : rs_diff !! cid = Some ε)
-      (RET : cid = 0 → k = main_post)
+      (RET : cid = 0 → k = main_post main_fsp N mm)
       (KTR : ∀ x, paco4 (elim_rel_def sp) bot4 Any.t ε (ktrS x) (ktrT x)),
 
   gpaco7 _gsim (cpn7 _gsim) bot7 r (Any.t * Any.t)%type 
     (Any.t * Any.t)%type cancel_eq ps pt
     (LModTr.interp_stateE Any.t
        (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
-              (SMod.to_mod sp_none (SMod.cancel md))) r_i))) (cid, srcs))
-       (Any.pair (ModTr.alist_encode st) r_s ↑))
+              (SMod.to_mod ∅ (SMod.cancel md))) r_i))) (cid, srcs))
+       (Any.pair (ModTr.state_encode st) r_s ↑))
     (LModTr.interp_stateE Any.t
        (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
               (SMod.to_mod sp md)) r_i))) (cid, tgts))
-       (Any.pair (ModTr.alist_encode st) r_t ↑)).
+       (Any.pair (ModTr.state_encode st) r_t ↑)).
 
 End CancelDef.
