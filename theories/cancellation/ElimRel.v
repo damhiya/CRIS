@@ -186,9 +186,9 @@ Variant elim_rel_def
    (∀ (x : R), self _ ε (ktrS x) (ktrT x)) →
    elim_rel_def sp self ε (trigger e >>= ktrS) (a <- trigger e;; ktrT a)
 (* handling cancellation *)
-| elim_rel_yield N stid ntid ktrS ktrT itrS itrT :
-    itrS = HoareYieldE false N stid ntid >>= ktrS →
-    itrT = HoareYieldE true N stid ntid >>= ktrT →
+| elim_rel_yield sN tN stid ttid ntid ktrS ktrT itrS itrT :
+    itrS = HoareYieldE false sN stid ntid >>= ktrS →
+    itrT = HoareYieldE true tN ttid ntid >>= ktrT →
     (∀ x, self _ ε (ktrS x) (ktrT x)) →
     elim_rel_def sp self ε itrS itrT
 | elim_rel_spawn fn args N ktrS ktrT itrS itrT :
@@ -206,9 +206,9 @@ Variant elim_rel_def
    ((∀ ret, Q' (N', stid') x' vret ret ⊢ |==> Q (N, stid) x vret ret) ∧ self _ ε itrS (ktrT vret)) →
    itrT = elim_postcond Q Q' N N' stid stid' x x' vret >>= ktrT →
    elim_rel_def sp self ε (tau;; tau;; itrS) itrT
-| elim_rel_gettid stid ktrS ktrT itrS itrT :
+| elim_rel_gettid stid ttid ktrS ktrT itrS itrT :
    itrS = HoareGetTidE false stid >>= ktrS ->
-   itrT = HoareGetTidE true stid >>= ktrT ->
+   itrT = HoareGetTidE true ttid >>= ktrT ->
    (∀ x, self _ ε (ktrS x) (ktrT x)) ->
    elim_rel_def sp self ε itrS itrT
 .
@@ -594,7 +594,7 @@ Proof using.
       rewrite {4}/SMod.conc_sp_from. rewrite lookup_insert_ne //. rewrite (lookup_sp_from _ _ (Some (Some (img0, (Some fsp, bd0))))) //.
       
       erewrite MIRed_HoareCall; et; cycle 1.
-      { r in CALL. i. hexploit (CALL fn args x); i. des; eauto. }
+      { i. r in CALL. hexploit (CALL fn args x); i; des; eauto. }
       { rewrite /SMod.conc_sp_from. rewrite lookup_insert_ne //.
         rewrite (lookup_sp_from _ _ (Some (Some (img0, (Some fsp, bd0))))) //. }
 
@@ -631,7 +631,7 @@ Proof using.
       destruct (msk _ (subevent _ (Spawn fn args))) eqn: M; cycle 1.
       { rewrite SBRed.vis M vis_trigger MIRed.core. ired. estep 1. }
       rewrite !SBRed_HoareSpawn //; cycle 1.
-      { i. r in CALL. hexploit (CALL fn args x). i; des; eauto. }
+      { i. r in CALL. hexploit (CALL fn x args). i; des; eauto. }
       { i. r in CALL. hexploit (CALL fn args x). i; des; eauto. }
       rewrite !MIRed_HoareSpawn.
       gstep. eapply elim_rel_spawn; eauto.
@@ -649,31 +649,44 @@ Proof using.
       { ss. rewrite SBRed.vis Y vis_trigger bind_bind MIRed.core. estep 1. }
       rewrite !MIRed.bind !SBRed_HoareYield // !MIRed_HoareYield.
       gstep. eapply elim_rel_yield; eauto.
-      { rewrite /HoareYieldE. des_ifs.
       i; s. edone.
     }
 
     (* get tid case *)
     {
-      rewrite !SRed.bind !SRed.gettid !SBRed.bind !SBRed.tau !bind_tau !MIRed.tau.
-      rewrite !MIRed.bind SBRed_HoareGetTid SBRed_NativeGetTid MIRed_HoareGetTid MIRed_NativeGetTid.
-      estep 2. gstep. eapply elim_rel_gettid; eauto.
+      rewrite !SRed.bind !SRed.gettid !SBRed.bind !SBRed.tau !bind_tau !MIRed.tau. estep 2.
+      destruct (decide (speckey_concE ∈ dom ∅)); [ss|].
+      destruct (decide (speckey_concE ∈ dom (SMod.conc_sp_from md))); cycle 1.
+      { exfalso. eapply n0. rewrite /SMod.conc_sp_from. rewrite dom_insert. set_solver. }
+      destruct (msk _ (subevent _ GetTid)) eqn:Y; cycle 1.
+      { ss. rewrite SBRed.vis Y vis_trigger bind_bind MIRed.core. estep 1. }
+      rewrite !MIRed.bind !SBRed_HoareGetTid // !MIRed_HoareGetTid.
+      gstep. eapply elim_rel_gettid; eauto.
       i; s. edone.
     }
 
   - rewrite !SRed.bind !SRed.pg !SBRed.bind. destruct s.
-    + rewrite !SBRed.put. destruct (existsb _ _) eqn: E; cycle 1.
-      { rewrite /triggerUB. s. ired. rewrite MIRed.core. estep 1. }
-      rewrite !MIRed.pg. estep 2. edone.
-    + rewrite !SBRed.get. destruct (existsb _ _) eqn: E; cycle 1.
-      { rewrite /triggerUB. s. ired. rewrite MIRed.core. estep 1. }
-      rewrite !MIRed.pg. estep 2. edone.
+    + rewrite !SBRed.vis !vis_trigger. des_ifs; ired; cycle 1.
+      { rewrite MIRed.core. estep 1. }
+      rewrite !MIRed.pg. estep 2.
+      rewrite !SBRed.ret !bind_ret_l. edone.
+    + rewrite !SBRed.vis !vis_trigger. des_ifs; ired; cycle 1.
+      { rewrite MIRed.core. estep 1. }
+      rewrite !MIRed.pg. estep 2.
+      rewrite !SBRed.ret !bind_ret_l. edone.
   - rewrite !SRed.bind !SRed.core !SBRed.bind. destruct e.
-    + rewrite !SBRed.choose !MIRed.core. estep 2. edone.
-    + rewrite !SBRed.take. destruct (_ || _) eqn: E; cycle 1.
-      { ired. rewrite MIRed.core. estep 1. }
-      rewrite !MIRed.core. estep 2. edone.
-    + rewrite !SBRed.io !MIRed.core. estep 2. edone.
+    + rewrite !SBRed.vis !vis_trigger. des_ifs; ired; cycle 1.
+      { rewrite MIRed.core. estep 1. }
+      rewrite !MIRed.core. estep 2.
+      rewrite !SBRed.ret !bind_ret_l. edone.
+    + rewrite !SBRed.vis !vis_trigger. des_ifs; ired; cycle 1.
+      { rewrite MIRed.core. estep 1. }
+      rewrite !MIRed.core. estep 2.
+      rewrite !SBRed.ret !bind_ret_l. edone.
+    + rewrite !SBRed.vis !vis_trigger. des_ifs; ired; cycle 1.
+      { rewrite MIRed.core. estep 1. }
+      rewrite !MIRed.core. estep 2.
+      rewrite !SBRed.ret !bind_ret_l. edone.
 (*SLOW*)Qed.
 
 End ELIM_REL.
