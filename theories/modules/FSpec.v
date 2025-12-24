@@ -2,29 +2,28 @@ Require Import Common.
 From iris.proofmode Require Import proofmode.
 
 (* Function specifications *)
+Record fspec `{Σ : GRA} : Type := fspec_mk {
+  meta : Type;
+  precond : (namespace * nat) → meta → Any.t → Any.t → iProp Σ;
+  postcond : (namespace * nat) → meta → Any.t → Any.t → iProp Σ;
+}.
+Arguments fspec_mk {Σ meta} precond postcond.
+
 Section fspec.
   Context {Σ : GRA}.
 
-  (** CRIS specification of functions *)
-  Record fspec : Type := fspec_mk {
-    meta : Type;
-    precond : (namespace * nat) → meta → Any.t → Any.t → iProp Σ;
-    postcond : (namespace * nat) → meta → Any.t → Any.t → iProp Σ;
-  }.
-  Arguments fspec_mk {meta} precond postcond.
-
   Definition fspec_trivial : fspec :=
-    @fspec_mk unit
+    @fspec_mk _ unit
       (λ _ _ varg arg, ⌜varg = arg⌝%I)
       (λ _ _ vret ret, ⌜vret = ret⌝%I).
 
   Definition fspec_bot : fspec :=
-    @fspec_mk unit
+    @fspec_mk _ unit
       (λ _ _ varg arg, True%I)
       (λ _ _ vret ret, False%I).
 
   Definition fspec_top : fspec :=
-    @fspec_mk False
+    @fspec_mk _ False
       (λ _ _ varg arg, False%I)
       (λ _ _ vret ret, True%I).
 
@@ -55,7 +54,7 @@ Section fspec.
       (λ _ x vret ret, (∃ (vr : VR), ⌜vret = vr↑⌝ ∗ (DPQ x).2 vr ret)%I).
 
   Definition app_fspec (fspecs : list fspec) : fspec :=
-    @fspec_mk { i : nat & meta (nth i fspecs fspec_top) }
+    @fspec_mk _ { i : nat & meta (nth i fspecs fspec_top) }
       (λ A '(existT i meta_i), precond (nth i fspecs fspec_top) A meta_i)
       (λ A '(existT i meta_i), postcond (nth i fspecs fspec_top) A meta_i).
 
@@ -205,3 +204,4 @@ Global Arguments precond : simpl never.
 Global Arguments postcond : simpl never.
 (* Global Arguments precondS : simpl never.
 Global Arguments postcondS : simpl never. *)
+

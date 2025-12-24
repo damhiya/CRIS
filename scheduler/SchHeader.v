@@ -59,9 +59,7 @@ Module Sch. Section Sch.
       )) tt).
 
   Definition join (tid : nat) : itree E SAny.t :=
-    'ors: option SAny.t <- ccallU SchHdr.join tid;;
-    rs <- ors?;;
-    Ret rs.
+    ors <- ccallU SchHdr.join tid;; ors?.
 End Sch. End Sch.
 
 Notation 𝒴 := (Sch.yield).

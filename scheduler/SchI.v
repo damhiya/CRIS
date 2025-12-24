@@ -1,14 +1,14 @@
+Require Export SchHeader.
 Require Import CRIS.
-Require Import SchHeader.
 
 Definition thpool : Type := list (nat * option SAny.t).
 
 Module SchI. Section SchI.
   Context `{!crisG Γ Σ α β τ _S _I, !concG}.
 
-  Definition scopes := [SCH].
-  Definition v_ths := SCH ↯ "ths".
-  Definition v_tid := SCH ↯ "tid".
+  Definition scp : gmultiset string := {[+"sch"+]}.
+  Definition v_ths : key := "sch" ↯ "ths".
+  Definition v_tid : key := "sch" ↯ "tid".
 
   Definition inner_spawn : string * SAny.t → itree crisE unit :=
     λ '(fn, arg),
@@ -61,21 +61,27 @@ Module SchI. Section SchI.
   Definition get_tid : unit → itree crisE nat :=
     λ _, cgetU v_tid.
 
-  Definition fnsems : fnsems_type :=
-    [(Some SchHdr._spawn,  (false, wmask_all, scopes, (None, cfunU inner_spawn)));
-     (Some SchHdr.spawn,   (false, wmask_all, scopes, (None, cfunU spawn)));
-     (Some SchHdr.yield,   (false, wmask_all, scopes, (None, cfunU yield)));
-     (Some SchHdr.join,    (false, wmask_all, scopes, (None, cfunU join)));
-     (Some SchHdr.get_tid, (false, wmask_all, scopes, (None, cfunU get_tid)))].
+  Definition fnsems : gmap (option string) (option (emask * (option fspec * fbody))) :=
+    {[Some SchHdr._spawn := Some (msk_scp scp msk_true, (None, cfunU inner_spawn));
+      Some SchHdr.spawn := Some (msk_scp scp msk_true, (None, cfunU spawn));
+      Some SchHdr.yield := Some (msk_scp scp msk_true, (None, cfunU yield));
+      Some SchHdr.join := Some (msk_scp scp msk_true, (None, cfunU join));
+      Some SchHdr.get_tid := Some (msk_scp scp msk_true, (None, cfunU get_tid))]}.
 
-  Program Definition smod: SMod.t :=
-  {|
-    SMod.scopes := scopes;
+  Program Definition smod : SMod.t := {|
+    SMod.scopes := scp;
     SMod.fnsems := fnsems;
-    SMod.initial_st := [(v_ths, ([(0, None)] : thpool)↑); (v_tid, 0↑)];
+    SMod.initial_st := {[v_ths:=Some ([(0, None)] : thpool)↑; v_tid := Some 0↑]};
   |}.
-  Solve All Obligations with prove_scope.
-  Next Obligation. prove_nodup. Qed.
+  Solve All Obligations with auto.
+  Next Obligation.
+    i.
+    rewrite ?omap_insert /= omap_empty.
+    mod_tac scope_solver.
+  Qed.
+  Next Obligation.
+    i. mod_tac scope_solver.
+  Qed.
 
-  Definition t := Seal.sealing CRIS (SMod.to_mod sp_none smod).
+  Definition t := Seal.sealing CRIS (SMod.to_mod ∅ smod).
 End SchI. End SchI.

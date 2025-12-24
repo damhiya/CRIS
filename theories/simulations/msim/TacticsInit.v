@@ -114,4 +114,4 @@ Ltac init_simF :=
   iIntros (arg st_src st_tgt) "IST"; iApply wsim_isim;
   rewrite /SB.sandbox_body /=.
 
-Ltac iStartSim := init_simF; unfold_cris_defs; iApply wsim_HoareFun_src; eauto; ss.
+Ltac iStartSim := init_simF; unfold_cris_defs; iApply wsim_HoareFun_src.
