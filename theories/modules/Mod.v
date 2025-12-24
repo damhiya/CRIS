@@ -280,3 +280,56 @@ Tactic Notation "mod_tac" tactic(tac) :=
   in try go.
 
 Ltac scope_solver := ss; split; i; case_decide; naive_solver.
+
+(* Lemmas related to module states and function maps *)
+Lemma map_Forall_union_with `{Countable K} {V} (m1 m2 : gmap K (option V)) :
+  map_Forall (const is_Some) (union_with (λ _ _, Some None) m1 m2) →
+  map_Forall (const is_Some) m1 ∧ map_Forall (const is_Some) m2.
+Proof.
+  rewrite ?map_Forall_lookup => Hwf; split; intros i v Hi; move: (Hwf i v);
+    rewrite lookup_union_with Hi; repeat destruct (_ !! i) as [[|]|]; ss; clarify; eauto.
+Qed.
+
+Lemma lookup_union_with_l `{Countable K} {V} (m1 m2 : gmap K (option V)) (k : K) (v : V):
+  map_Forall (const is_Some) (union_with (λ _ _, Some None) m1 m2) →
+  m1 !! k = Some (Some v) →
+  union_with (λ _ _, Some None) m1 m2 !! k = Some (Some v).
+Proof.
+  intros Hwf Hm1; rewrite lookup_union_with Hm1; destruct (m2 !! k) as [[|]|] eqn : Hm2; ss;
+    apply map_Forall_lookup in Hwf; move: (Hwf k None); rewrite lookup_union_with Hm1 Hm2;
+    move => /(_ eq_refl) [? ?] //.
+Qed.
+
+Lemma lookup_union_with_r `{Countable K} {V} (m1 m2 : gmap K (option V)) (k : K) (v : V):
+  map_Forall (const is_Some) (union_with (λ _ _, Some None) m1 m2) →
+  m2 !! k = Some (Some v) →
+  union_with (λ _ _, Some None) m1 m2 !! k = Some (Some v).
+Proof.
+  intros Hwf Hm2; rewrite lookup_union_with Hm2; destruct (m1 !! k) as [[|]|] eqn : Hm1; ss;
+    apply map_Forall_lookup in Hwf; move: (Hwf k None); rewrite lookup_union_with Hm1 Hm2;
+    move => /(_ eq_refl) [? ?] //.
+Qed.
+
+Lemma insert_union_with_l' `{Countable K} {V} (m1 m2 : gmap K (option V)) (k : K) v :
+  map_Forall (const is_Some) (union_with (λ _ _, Some None) m1 m2) →
+  is_Some (m1 !! k) →
+  <[k := v]> (union_with (λ _ _, Some None) m1 m2) =
+  union_with (λ _ _, Some None) (<[k := v]> m1) m2.
+Proof.
+  intros Hwf [? Hm1]; apply insert_union_with_l.
+  destruct (m2 !! k) as [[|]|] eqn : Hm2; ss;
+    apply map_Forall_lookup in Hwf; move: (Hwf k None); rewrite lookup_union_with Hm1 Hm2;
+    move => /(_ eq_refl) [? ?] //.
+Qed.
+
+Lemma insert_union_with_r' `{Countable K} {V} (m1 m2 : gmap K (option V)) (k : K) v :
+  map_Forall (const is_Some) (union_with (λ _ _, Some None) m1 m2) →
+  is_Some (m2 !! k) →
+  <[k := v]> (union_with (λ _ _, Some None) m1 m2) =
+  union_with (λ _ _, Some None) m1 (<[k := v]> m2).
+Proof.
+  intros Hwf [? Hm2]; apply insert_union_with_r.
+  destruct (m1 !! k) as [[|]|] eqn : Hm1; ss;
+    apply map_Forall_lookup in Hwf; move: (Hwf k None); rewrite lookup_union_with Hm1 Hm2;
+    move => /(_ eq_refl) [? ?] //.
+Qed.

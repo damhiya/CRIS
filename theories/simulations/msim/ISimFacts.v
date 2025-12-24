@@ -335,20 +335,6 @@ Section ISIM_ADEQUACY.
     { intros x; hexploit (Hscp Ht0 x); specialize (wf_scopes x); i; lia. }
   Qed.
 
-  (* Lemma ISim_wf_ctx contextual ms mt ctx cond Ist :
-    ISim.t contextual ms mt cond Ist → Mod.wf (mt ★ ctx) → Mod.wf (ms ★ ctx).
-  Proof using.
-    intros [Hscp Hinit Hsim] Ht; pose proof Ht as Ht0; inv Ht; econs.
-    { rewrite map_Forall_lookup; intros i x Hx.
-      rewrite /ISim.sim_fun in Hsim; hexploit (Hsim Ht0 i); eauto.
-      rewrite lookup_fmap Hx /=; destruct x; ss.
-      intros Hnone; rewrite map_Forall_lookup in wf_fns; eapply wf_fns in Hnone; ss.
-    }
-    { apply submseteq_Permutation in Hscp as [? Hscp]; eauto.
-      rewrite Hscp NoDup_app in wf_scopes; des; done.
-    }
-  Qed. *)
-
   Lemma ISim_match contextual ms mt cond Ist fn :
     ISim.t contextual ms mt cond Ist →
     Mod.wf mt →

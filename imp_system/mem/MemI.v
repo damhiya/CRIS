@@ -45,19 +45,19 @@ Module Mem.
   Definition load_mem (csl : string → bool) (genv : GEnv.t) : Mem.t :=
     Mem.mk
       (λ blk ofs,
-         do '(g, gd) <- (List.nth_error genv blk);
+         do '(g, gd) <- (genv !! blk);
          match gd↓ with
          | Some Gfun =>
            None
          | Some (Gvar gv) =>
            if csl g then None else
-           if (dec ofs 0%Z) then Some (Vint gv) else None
+           if (bool_decide (ofs = 0%Z)) then Some (Vint gv) else None
           | _ => None
          end)
       (List.length genv).
 
-  Definition mem_pad (m0 : Mem.t) (delta : nat) : Mem.t :=
-    Mem.mk m0.(Mem.cnts) (m0.(Mem.nb) + delta).
+  Definition mem_pad (m : Mem.t) (delta : nat) : Mem.t :=
+    Mem.mk m.(Mem.cnts) (m.(Mem.nb) + delta).
 
   Definition vcmp (m0 : Mem.t) (x y : val) : option bool :=
     match x, y with

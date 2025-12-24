@@ -1,7 +1,7 @@
 From CRIS Require Import CRIS MemHeader.
 From iris.algebra Require Import auth excl agree csum functions dfrac_agree.
 From iris.bi.lib Require Import fractional.
-Set Implicit Arguments.
+(* Set Implicit Arguments. *)
 
 (* Memory resource algebra *)
 Section MemRA.
@@ -24,17 +24,17 @@ Section MEM.
   Context `{!crisG Γ Σ α β τ _S _I, !memG}.
 
   (* Initial resources for memory *)
-  Definition mem_init_val (csl : string → bool) genv blk ofs : option Z :=
-    match List.nth_error genv blk with
+  Definition mem_init_val (csl : string → bool) (genv : GEnv.t) (blk : mblock) ofs : option Z :=
+    match genv !! blk with
     | Some (g, gd) =>
       match gd↓ with
-      | Some (Gvar gv) => if negb (csl g) && (decide (ofs = 0%Z)) then Some gv else None
+      | Some (Gvar gv) => if negb (csl g) && (bool_decide (ofs = 0%Z)) then Some gv else None
       | _ => None
       end
     | None => None
     end.
 
-  Definition mem_init_auth_r (csl : string → bool) (genv: GEnv.t) : memRA :=
+  Definition mem_init_auth_r (csl : string → bool) (genv : GEnv.t) : memRA :=
     ● ((λ blk ofs,
         match mem_init_val csl genv blk ofs with
         | Some gv => Some (to_dfrac_agree (DfracOwn 1) (Vint gv))
@@ -82,7 +82,7 @@ Section MemRA.
     let (b, ofs) := loc in
     λ _b _ofs,
       if bool_decide (_b = b ∧ (ofs <= _ofs < (ofs + Z.of_nat (List.length mvs))))%Z
-      then match (List.nth_error mvs (Z.to_nat (_ofs - ofs))) with
+      then match (mvs !! (Z.to_nat (_ofs - ofs))) with
         | Some v => Some (to_dfrac_agree q v)
         | None => ε
         end
@@ -178,7 +178,7 @@ Module MemSpec. Section MemSpec.
   Definition alloc : fspec :=
     fspec_simple (λ sz,
       (λ arg, ⌜arg = [Vint (Z.of_nat sz)]↑ /\ (8 * (Z.of_nat sz) < modulus_64)%Z⌝,
-      λ ret, ∃ b, ⌜ret = (Vptr (b, 0%Z))↑⌝ ∗ (b, 0%Z) |-> List.repeat Vundef sz))%I.
+      λ ret, ∃ b, ⌜ret = (Vptr (b, 0%Z))↑⌝ ∗ (b, 0%Z) |-> replicate sz Vundef))%I.
 
   Definition free : fspec :=
     fspec_simple (λ '(b, ofs, v),
