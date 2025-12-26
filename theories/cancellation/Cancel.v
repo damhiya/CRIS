@@ -1,8 +1,7 @@
 Require Import CRIS.
 Require Import LMod LModTr GSim GSimFacts GSimTactics CancelTactics.
 Require Import MInline MInlineIntro MInlineElim ElimRel.
-(* Require Import CancelCore CancelPG CancelAG CancelSpawn CancelPre CancelPost CancelYield CancelGetTid. *)
-Require Import CancelCore.
+Require Import CancelCore CancelPG CancelAG CancelSpawn CancelPre CancelPost CancelYield CancelGetTid.
 
 Set Implicit Arguments.
 
@@ -10,12 +9,13 @@ Module Cancel. Section Cancel.
 
 Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG}.
 
-Lemma cancel_elim md fsp N mm (r_i r_s r_t: Σ) rs_diff srcs tgts cid st ps pt
+Lemma cancel_elim md {X: Type} (PQ : X → (Any.t → iProp Σ) * (Any.t → iProp Σ)) N mm
+  (r_i r_s r_t: Σ) rs_diff srcs tgts cid st ps pt
   (WFS: SMod.cancellable md)
-  (MAIN: (SMod.conc_sp_from md) !! speckey_entry = Some fsp)
+  (MAIN: (SMod.conc_sp_from md) !! speckey_entry = Some (fspec_simple PQ))
   (* (WF: Mod.wf (SMod.to_mod sp_none (SMod.cancel md))) *)
-  (REL: Forall3i (thread_rel fsp N mm (SMod.conc_sp_from md) cid) rs_diff srcs tgts)
-  (WFR: ✓ r_s)
+  (REL: Forall3i (thread_rel PQ N mm (SMod.conc_sp_from md) cid) rs_diff srcs tgts)
+  (WFR: ✓ r_s) (WFST: map_Forall (const is_Some) st)
   (RS: Own r_s ⊢ |==> ([∗ list] i ∈ rs_diff, Own i) ∗ Own r_t ∗
          TIDAUTH cid ∗ YIELDAUTH (length rs_diff))
   :
@@ -29,106 +29,110 @@ Lemma cancel_elim md fsp N mm (r_i r_s r_t: Σ) rs_diff srcs tgts cid st ps pt
               (SMod.to_mod (SMod.conc_sp_from md) md)) r_i))) (cid, tgts))
        (Any.pair (ModTr.state_encode st) r_t ↑)).
 Proof using.
-(*   ginit. move WFS at top. (* move WF at top. *) *)
-(*   revert_until r_i. gcofix CIH. i. *)
-(*   destruct (decide (cid < length srcs)) as [Hcid|]; cycle 1. *)
-(*   { iter_l. erewrite (proj2 (lookup_ge_None srcs cid)); try nia. *)
-(*     s. step_l. norm_l. step_l. i; ss. } *)
-(*   inversion REL as [Hlenxy [Hlenyz Hrel]]. *)
-(*   exploit (@Forall3i_nth _ _ _ cid); eauto; try lia; clear REL. *)
-(*   intros [r_diff [i_s [i_t [Hdiff [Hs [Ht Hcidrel]]]]]]; ss. *)
+  ginit. move WFS at top. (* move WF at top. *)
+  revert_until r_i. gcofix CIH. i.
+  destruct (decide (cid < length srcs)) as [Hcid|]; cycle 1.
+  { iter_l. erewrite (proj2 (lookup_ge_None srcs cid)); try nia.
+    s. step_l. norm_l. step_l. i; ss. }
+  inversion REL as [Hlenxy [Hlenyz Hrel]].
+  exploit (@Forall3i_nth _ _ _ cid); eauto; try lia; clear REL.
+  intros [r_diff [i_s [i_t [Hdiff [Hs [Ht Hcidrel]]]]]]; ss.
 
-(*   inversion_clear Hcidrel; subst; ss; cycle 1. *)
+  inversion_clear Hcidrel; subst; ss; cycle 1.
   
-(*   assert (Hkey : *)
-(*     ∀ itr_s itr_t st (r_s r_t: Σ) r_diff, *)
-(*     ✓ r_s → *)
-(*     (Own r_s ⊢ |==> ([∗ list] i ∈ <[cid := r_diff]> rs_diff, Own i) ∗ Own r_t ∗ *)
-(*        TIDAUTH cid ∗ YIELDAUTH (length (<[cid := r_diff]> rs_diff))) → *)
-(*     cid < List.length srcs → *)
-(*     thread_rel (sp_from md) cid cid r_diff itr_s itr_t → *)
-(*     gpaco7 _gsim (cpn7 _gsim) bot7 r (Any.t * Any.t)%type *)
-(*       (Any.t * Any.t)%type cancel_eq smj_top smj_top *)
-(*       (LModTr.interp_stateE Any.t *)
-(*         (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline *)
-(*           (SMod.to_mod sp_none (SMod.cancel md))) r_i))) *)
-(*               (cid, <[cid:=itr_s]> srcs)) *)
-(*        (Any.pair (ModTr.alist_encode st) r_s ↑)) *)
-(*     (LModTr.interp_stateE Any.t *)
-(*        (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline *)
-(*               (SMod.to_mod (sp_from md) md)) r_i))) *)
-(*               (cid, <[cid:=itr_t]> tgts)) *)
-(*        (Any.pair (ModTr.alist_encode st) r_t ↑))). *)
-(*   { i. subst. zprogress. *)
-(*     gbase. eapply CIH; et. *)
-(*     split. *)
-(*     { rewrite !length_insert. et. } *)
-(*     split. *)
-(*     { rewrite !length_insert. et. } *)
-(*     i. destruct (classic (cid = i)); cycle 1. *)
-(*     { rewrite list_lookup_insert_ne in H3; et. *)
-(*       rewrite list_lookup_insert_ne in H4; et. *)
-(*       rewrite list_lookup_insert_ne in H5; et. *)
-(*     } *)
-(*     subst. rewrite !list_lookup_insert in H3, H4, H5; et; cycle 1. *)
-(*     { rewrite -Hlenyz. et. } *)
-(*     { rewrite Hlenxy. et. } *)
-(*     inv H3. done. *)
-(*   } *)
+  assert (Hkey :
+    ∀ itr_s itr_t st (r_s r_t: Σ) r_diff,
+    ✓ r_s → map_Forall (const is_Some) st →
+    (Own r_s ⊢ |==> ([∗ list] i ∈ <[cid := r_diff]> rs_diff, Own i) ∗ Own r_t ∗
+       TIDAUTH cid ∗ YIELDAUTH (length (<[cid := r_diff]> rs_diff))) →
+    cid < List.length srcs →
+    thread_rel PQ N mm (SMod.conc_sp_from md) cid cid r_diff itr_s itr_t →
+    gpaco7 _gsim (cpn7 _gsim) bot7 r (Any.t * Any.t)%type
+      (Any.t * Any.t)%type cancel_eq smj_top smj_top
+      (LModTr.interp_stateE Any.t
+        (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
+          (SMod.to_mod ∅ (SMod.cancel md))) r_i)))
+              (cid, <[cid:=itr_s]> srcs))
+       (Any.pair (ModTr.state_encode st) r_s ↑))
+    (LModTr.interp_stateE Any.t
+       (iterV (LModTr.handle_callE (LMod.prog (Mod.to_lmod (MInline.inline
+              (SMod.to_mod (SMod.conc_sp_from md) md)) r_i)))
+              (cid, <[cid:=itr_t]> tgts))
+       (Any.pair (ModTr.state_encode st) r_t ↑))).
+  { i. subst. zprogress.
+    gbase. eapply CIH; et.
+    split.
+    { rewrite !length_insert. et. }
+    split.
+    { rewrite !length_insert. et. }
+    i. destruct (classic (cid = i)); cycle 1.
+    { rewrite list_lookup_insert_ne in H4; et.
+      rewrite list_lookup_insert_ne in H5; et.
+      rewrite list_lookup_insert_ne in H6; et.
+    }
+    subst. rewrite !list_lookup_insert in H4, H5, H6; et; cycle 1.
+    { rewrite -Hlenyz. et. }
+    { rewrite Hlenxy. et. }
+    inv H4. done.
+  }
   
-(*   punfold REL; depdes REL; ii; subst; pclearbot. *)
-(*   - iter_l; rewrite Hs /=; step_l; i; ss. *)
-(*   - iter_l; rewrite Hs /=; step_l; norm_l. *)
-(*     iter_l; rewrite list_lookup_insert //; step_l; i; ss.  *)
-(*   - iter_r; rewrite Ht /=; step_r; i; ss. *)
-(*   - iter_l; rewrite Hs /=. *)
-(*     iter_r; rewrite Ht /=. destruct cid; s; cycle 1. *)
-(*     { step_l; rewrite /triggerUB; step_l; i; ss. } *)
-(*     specialize (RET eq_refl). subst. s. step_l. norm_l. *)
-(*     step_r. i. step_r. norm_r. *)
-(*     guardH Hlenxy. *)
-(*     Ltac sir := *)
-(*       match goal with *)
-(*       | [ H : length _ = length _ |- _ ] => *)
-(*           iter_r; rewrite list_lookup_insert ?length_insert -?H //; norm_r; step_r *)
-(*       end; *)
-(*       match goal with *)
-(*       | [ |- ∀ _, _ ] => i; step_r *)
-(*       | _ => idtac *)
-(*       end; norm_r; rewrite !list_insert_insert. *)
-(*     sir. sir. *)
-(*     rewrite Any.pair_split /= bind_ret_l Any.upcast_downcast /= bind_ret_l. *)
-(*     sir; sir; sir. *)
-(*     rewrite bind_ret_l Any.pair_split /= bind_ret_l. *)
-(*     sir. sir.  *)
-(*     iter_r. rewrite list_lookup_insert -?Hlenyz //. step_r. norm_r. *)
+  punfold REL; depdes REL; ii; subst; pclearbot.
+  - iter_l; rewrite Hs /=; step_l; i; ss.
+  - iter_l; rewrite Hs /=; step_l; norm_l.
+    iter_l; rewrite list_lookup_insert //; step_l; i; ss.
+  - iter_r; rewrite Ht /=; step_r; i; ss.
+  - iter_l; rewrite Hs /=.
+    iter_r; rewrite Ht /=. destruct cid; s; cycle 1.
+    { step_l; rewrite /triggerUB; step_l; i; ss. }
+    specialize (RET eq_refl). subst. s. step_l. norm_l.
+    step_r. i. step_r. norm_r.
+    guardH Hlenxy.
+    Ltac sir :=
+      match goal with
+      | [ H : length _ = length _ |- _ ] =>
+          iter_r; rewrite list_lookup_insert ?length_insert -?H //; norm_r; step_r
+      end;
+      match goal with
+      | [ |- ∀ _, _ ] => i; step_r
+      | _ => idtac
+      end; norm_r; rewrite !list_insert_insert.
+    sir. sir.
+    rewrite Any.pair_split /= bind_ret_l Any.upcast_downcast /= bind_ret_l.
+    sir; sir; sir.
+    rewrite bind_ret_l Any.pair_split /= bind_ret_l.
+    sir. sir.
+    iter_r. rewrite list_lookup_insert -?Hlenyz //. step_r. norm_r.
+    rewrite Any.pair_split /=. ired. hss. ired.
+    sir. ired. sir. ired. sir. ired.
+    rewrite Any.pair_split /=. ired. sir. ired. sir.
+    iter_r. rewrite list_lookup_insert -?Hlenyz //. step_r. norm_r.
 
-(*     gstep. econs. econs. *)
-(*     r. esplits; et; hss. *)
-(*     eapply Own_pure_soundness. *)
-(*     { eapply Own_wand_valid; [|instantiate (1 := r_s); eauto]. *)
-(*       rewrite RS; eauto. iIntros ">(_ & $ & _)"; eauto. } *)
-(*     { rewrite x2. iIntros ">[$ _]". } *)
-(*   - iter_l. iter_r. rewrite Hs Ht /=. step_l. norm_l. step_r. norm_r. eapply Hkey; et. *)
-(*     { rewrite list_insert_id //. } *)
-(*     { econs; eauto. } *)
-(*   - eapply cancel_core; eauto. *)
-(*   - eapply cancel_pg; eauto. *)
-(*   - eapply cancel_ag; eauto. *)
-(*   - eapply cancel_yield; eauto. *)
-(*   - eapply cancel_spawn; et. *)
-(*   - eapply cancel_pre; et. *)
-(*   - eapply cancel_post; et. *)
-(*   - eapply cancel_gettid; eauto. *)
-  (* (*SLOW*)Qed. *)
-Admitted.
+    gstep. econs. econs. 
+    r. esplits; eauto; hss.
+    eapply Own_pure_soundness.
+    { eapply Own_wand_valid; [|instantiate (1 := r_s); eauto].
+      rewrite RS; eauto. iIntros ">(_ & $ & _)"; eauto. }
+    { rewrite x2 x5. iIntros ">[_ >[[$ _] _]]". }
+  - iter_l. iter_r. rewrite Hs Ht /=. step_l. norm_l. step_r. norm_r. eapply Hkey; et.
+    { rewrite list_insert_id //. }
+    { econs; eauto. }
+  - eapply cancel_core; eauto.
+  - eapply cancel_pg; eauto.
+  - eapply cancel_ag; eauto.
+  - eapply cancel_yield; eauto.
+  - eapply cancel_spawn; eauto.
+  - eapply cancel_pre; eauto.
+  - eapply cancel_post; eauto.
+  - eapply cancel_gettid; eauto.
+(*SLOW*)Qed.
 
-Lemma cancel_main md rs rt fsp N mm
+
+Lemma cancel_main md rs rt {X} (PQ: X → (Any.t → iProp Σ) * (Any.t → iProp Σ)) N mm
   (WFS: SMod.cancellable md)
-  (MAIN: SMod.conc_sp_from md !! speckey_entry = Some fsp)
-  (* (WF: Mod.wf (SMod.to_mod sp_none (SMod.cancel md))) *)
+  (MAIN: SMod.conc_sp_from md !! speckey_entry = Some (fspec_simple PQ))
+  (WF: Mod.wf (SMod.to_mod ∅ (SMod.cancel md)))
   (VALID: ✓ rs)
-  (RES: Own rs ⊢ |==> TID 0 ∗ YIELD 0 ∗ winv (↑N, ↑N) ∗ Own rt ∗ precond fsp (N, 0) mm tt↑ tt↑ ∗ TIDAUTH 0 ∗ YIELDAUTH 1)
+  (RES: Own rs ⊢ |==> TID 0 ∗ YIELD 0 ∗ winv (↑N, ↑N) ∗ Own rt ∗ (PQ mm).1 tt↑ ∗ TIDAUTH 0 ∗ YIELDAUTH 1)
   :  
   refines_lmod
     (Mod.to_lmod (MInline.inline (SMod.to_mod ∅ (SMod.cancel md))) rs)
@@ -200,7 +204,7 @@ Proof using.
   iter_r. step_r. ired. rewrite Any.pair_split /= bind_ret_l Any.upcast_downcast /= bind_ret_l !bind_bind.
   iter_r. step_r. exists a1. step_r. ired. iter_r. step_r. unshelve eexists; ired.
   { esplits; eauto. iIntros "P"; iPoseProof (H3 with "P") as ">[A B]". iFrame.
-    iModIntro. iApply H5; eauto. }
+    iModIntro. rewrite /precond /fspec_simple. iSplit; eauto. iApply H5; eauto. }
   step_r. iter_r. step_r. ired. rewrite Any.pair_split /= !bind_ret_l.
   iter_r. step_r. ired. iter_r. step_r. ired. rewrite SBRed.ret bind_ret_l SBRed.bind MIRed.bind.
 
@@ -210,9 +214,9 @@ Proof using.
   set (itr0 := (λ _, inline_body _ _)).
   eassert (itr0 = λ vret, (ret <- trigger (Choose Any.t);; tau;;
          trigger (Guarantee (TID 0 ∗ YIELD 0 ∗ winv (↑N, ↑N)));;; tau;;
-         trigger (Guarantee (postcond fsp (N, 0) mm vret ret));;; tau;;
+         trigger (Guarantee (⌜vret = ret⌝ ∗ (PQ mm).2 vret));;; tau;;
          Ret ret)).
-  { subst itr0. eapply func_ext. i.
+  { subst itr0. rewrite /postcond /fspec_simple. eapply func_ext. i.
     rewrite SBRed.bind SBRed.vis vis_trigger x3 MIRed.bind MIRed.core. ired. f_equal.
     extensionalities. ired. do 2 f_equal.
     rewrite SBRed.ret MIRed.ret bind_ret_l SBRed.bind SBRed.vis !vis_trigger x6 MIRed.bind MIRed.ag. ired. f_equal.
@@ -236,6 +240,7 @@ Proof using.
       exists None. esplit; eauto. rewrite !lookup_omap !lookup_fmap !lookup_omap FIND //. }
     eapply elim_rel_cancel; et.
   }
+  { eapply (SMod.nodup_init). inv WF. ss. }
   ss. iIntros "P". iPoseProof (H with "P") as ">[$ P]".
   iPoseProof (H1 with "P") as "[$ $]".
   iModIntro. iSplit; eauto. iApply Own_unit.
@@ -248,11 +253,12 @@ Section Cancel.
 Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG}.
 
 (*** Final Theorem ***)
-Theorem cancellation md P fsp N mm
+Theorem cancellation md P {X: Type} (PQ : X → (Any.t → iProp Σ) * (Any.t → iProp Σ)) N mm
   (WFS: SMod.cancellable md)
-  (MAIN: SMod.conc_sp_from md !! speckey_entry = Some fsp)
+  (WF: Mod.wf (SMod.to_mod ∅ (SMod.cancel md)))
+  (MAIN: SMod.conc_sp_from md !! speckey_entry = Some (fspec_simple PQ))
   :
-  refines (SMod.to_mod ∅ (SMod.cancel md), (P ∗ TIDAUTH 0 ∗ YIELDAUTH 1 ∗ TID 0 ∗ YIELD 0 ∗ winv (↑N, ↑N) ∗ precond fsp (N, 0) mm tt↑ tt↑)%I)
+  refines (SMod.to_mod ∅ (SMod.cancel md), (P ∗ TIDAUTH 0 ∗ YIELDAUTH 1 ∗ TID 0 ∗ YIELD 0 ∗ winv (↑N, ↑N) ∗ (PQ mm).1 tt↑)%I)
           (SMod.to_mod (SMod.conc_sp_from md) md, P).
 Proof using. 
   etrans.

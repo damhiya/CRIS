@@ -45,7 +45,7 @@ Section fspec.
   Definition fspec_simple {X} (PQ : X → (Any.t → iProp Σ) * (Any.t → iProp Σ)) : fspec :=
     fspec_mk
       (λ A x varg arg, ⌜varg = arg⌝ ∗ (PQ x).1 varg)%I
-      (λ A x vret ret, ⌜vret = ret⌝ ∗ (PQ x).1 vret)%I.
+      (λ A x vret ret, ⌜vret = ret⌝ ∗ (PQ x).2 vret)%I.
 
   Definition fspec_virtual
       {M VA VR : Type}

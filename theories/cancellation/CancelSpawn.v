@@ -13,30 +13,34 @@ Local Ltac snr :=
     | [ EQLEN : length _ = length _ |- _ ] => norm_r; rewrite -?insert_app_l -?EQLEN //= !list_insert_insert ?bind_ret_l; [..|try nia]
     end.
 
-Lemma cancel_spawn `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp fn args :
-  CANCEL_GOAL md sp (NativeSpawnE fn args) (HoareSpawnE fn args (sp fn)).
+Lemma cancel_spawn `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp 
+  (X: Type) (PQ: X → (Any.t → iProp Σ) * (Any.t → iProp Σ)) N mm
+  fn args :
+  CANCEL_GOAL md sp PQ N mm
+    (HoareSpawnE None false fn args N) 
+    (HoareSpawnE (SMod.conc_sp_from md !! speckey_fn fn) true fn args N).
 Proof.
   r; i. subst.
   (* rewrite /sp_from /to_sp in WFS. setoid_rewrite alist_find_map_snd in WFS. *)
   iter_l. iter_r. rewrite x0 x1 /=. step_l. norm_l.
-  rewrite /LMod.prog /Mod.to_lmod /= !alist_find_map_snd.
+  rewrite /LMod.prog /Mod.to_lmod /=.
+  rewrite !lookup_fmap !lookup_omap !lookup_fmap.
 
-  destruct (alist_find (Some fn) (SMod.fnsems md)) eqn: FIND; rewrite !FIND; cycle 1.
+  destruct (SMod.fnsems md !! Some fn) eqn:FIND; cycle 1.
   { s. step_l. i; ss. }
-  destruct f as [[[img msk] scp] [fspo bd]].
-  assert (WFSCP: incl scp (SMod.scopes md)).
-  { etrans; [|apply SMod.well_scoped_fns].
-    rewrite /fnsems_scopes. erewrite FIND. refl.
-  }
+  destruct o; ss; cycle 1.
+  { s. step_l. i; ss. }
 
-  assert (EQ: sp_from md fn = fspo).
-  { rewrite /sp_from /to_sp alist_find_map_snd /= FIND //. }
-  rewrite !EQ /=.
-  r in WFS. hexploit WFS; eauto; i; ss; des; subst img.
-  destruct fspo; ss. destruct f.
-  { ired. step_r. i; ss. }
-
+  destruct p as [msk [fspo bd]]. ss.
+  destruct fspo; ss; cycle 1.
+  { s. exfalso. r in WFS. hexploit WFS; eauto; i; des. inv H1. }
   ired. norm_l. norm_r.
+  assert (FIND0: SMod.conc_sp_from md !! (speckey_fn fn) = Some f).
+  { rewrite /SMod.conc_sp_from. rewrite lookup_insert_ne //.
+    rewrite /SMod.sp_from. rewrite lookup_kmap_Some. exists (Some fn).
+    esplits; eauto. rewrite lookup_omap !lookup_fmap lookup_omap FIND //. }
+  rewrite FIND0. ired.
+
   step_r. i. step_r. norm_r.
   guardH EQLEN2.
 
@@ -45,7 +49,7 @@ Proof.
   sir. step_r. i. step_r. snr.
   sir. step_r. snr.
   sir. step_r. snr.
-  rewrite !alist_find_map_snd FIND /=. norm_r.
+  rewrite !lookup_fmap !lookup_omap !lookup_fmap FIND /=. norm_r.
   sir. step_r. snr.
   sir. step_r. snr. rewrite Any.pair_split /= !bind_ret_l Any.upcast_downcast /= !bind_ret_l.
 
@@ -98,12 +102,16 @@ Proof.
     subst; rewrite list_lookup_length EQLEN list_lookup_length -EQLEN -EQLEN2 list_lookup_length.
     do 3 (intros INV; inv INV).
 
-    rewrite /ModTr.trans_ktree !sandbox_inline_commute /SB.sandbox_body; try by eauto.
-    rewrite /SModTr.trans_ktree /SModTr.trans_body.
+    destruct f; ss. r in WFS. hexploit WFS; eauto. i; des.
+    exploit (Mod.well_scoped_fns (SMod.to_mod (SMod.conc_sp_from md) md) (Some fn)); eauto.
+    { rewrite lookup_omap lookup_fmap FIND. ss. }
+    i; ss.
+    rewrite /ModTr.trans_fnsem !sandbox_inline_commute /SB.sandbox_body; cycle 1; try by eauto.
+    rewrite /SModTr.trans_fnsem /SModTr.trans_fnsem.
     replace (SModTr.HoareFun) with (Seal.sealing "temp" (SModTr.HoareFun)); cycle 1.
     { unseal "temp". refl. }
     ss. unseal "temp".
-    rewrite (@MIRed_HoareFun _ _ _ _ _ _ _ _ _ md (sp_from md) true msk scp bd (Some (fspec_spawn precond postcond)) x3 (Some fn) meta precond postcond); eauto.
+    rewrite (@MIRed_HoareFun _ _ _ _ _ _ _ _ _ md (SMod.conc_sp_from md) msk bd (Some (fspec_mk meta precond postcond)) x3 (Some fn) meta precond postcond); cycle 1; eauto.
     rewrite SBRed.tau MIRed.tau.
     (* hexploit (VP1 fn); rewrite FIND /=; revert E; intros ->; ss; intros Himp. *)
     (* hexploit (Himp (length tgts) x); intros [x' [PRE ?]]. *)
