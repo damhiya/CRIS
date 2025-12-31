@@ -447,7 +447,7 @@ Module MemIP. Section MemIP.
 
     iIntros "[B %]". hss.
     steps_l. steps_r. hss_r. steps_r. rewrite H2. steps_r.
- 
+
     step. repeat (iSplit; eauto).
     iExists st_srcL, [_], _, _. repeat (iSplit; eauto).
     iExists _, (mem_ra_upd mem_src b ofs None). iFrame "B".
@@ -492,7 +492,7 @@ Module MemIP. Section MemIP.
     ru_l
       (⌜arg = [Vptr (b, ofs); v_new]↑ ∧ ∃ v, Mem.cnts mem_tgt b ofs = Some v⌝ ∗
        own base_γ (● mem_ra_upd mem_src b ofs (Some (to_frac_agree 1 v_new))))%I.
-    
+
     iSplitL.
     { iIntros ([[[? ?] ?] ?]) "/= [% PT]"; hss.
       iPoseProof (mem_ra_lookup with "[B PT]") as "%"; eauto; iFrame. des.

@@ -43,7 +43,7 @@ Section Precise.
   Proof.
     iSplit; iIntros "[% H]"; iExists _; rewrite comm; et.
   Qed.
-  
+
   Lemma precise_or_ex_sep_r X (P: X → _) Q :
     precise (∃ x, P x) ∗ precise Q ⊢ precise (∃ x, P x ∗ Q).
   Proof.
@@ -53,7 +53,7 @@ Section Precise.
     iDestruct "H" as "[% H]". iExists _.
     rewrite ex_sep_comm. et.
   Qed.
-  
+
   Lemma precise_or_l P Q1 Q2 :
     precise P ∗ precise (Q1 ∨ Q2) ⊢ precise ((P ∗ Q1) ∨ (P ∗ Q2)).
   Proof.
@@ -95,5 +95,5 @@ Section Precise.
     rewrite own.Own_eq /own seal_eq /own.own_def /own.Own_def.
     iSplitL ""; et.
   Qed.
-    
+
 End Precise.
