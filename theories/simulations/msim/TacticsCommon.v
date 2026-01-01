@@ -87,7 +87,7 @@ Ltac unfold_cris_defs :=
   rewrite /cfunU;
   (hrepeat do 1 match goal with |- context[cfunN ?x] => rewrite {1}/x end);
   rewrite /cfunN;
-  rewrite /SModTr.trans_fnsem.
+  rewrite /SModTr.trans_fnsem /SModTr.trans_fnsem /=.
 
 Lemma ereplace T (x y: T):
   x = y -> x = y.

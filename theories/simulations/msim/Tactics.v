@@ -28,13 +28,13 @@ Ltac forces_r := iwcase (do 1 iforces_r) (do 1 wforces_r).
 Ltac inline_l := iwcase (do 1 iinline_l) (do 1 winline_l).
 Ltac inline_r := iwcase (do 1 iinline_r) (do 1 winline_r).
 
-(* Ltac call hyps := iwcase (do 1 icall hyps) (do 1 wcall hyps). *)
+Ltac call hyps := iwcase (do 1 icall hyps) (do 1 wcall hyps).
 
 (* Ltac spawn := iwcase (do 1 ispawn) (do 1 wspawn). *)
 
 (* Ltac yield hyps := iwcase (do 1 iyield hyps) (do 1 wyield hyps). *)
 
-(* Ltac by_coind CIH := iwcase (do 1 iby_coind CIH) (do 1 wby_coind CIH). *)
+Ltac by_coind CIH := iwcase (do 1 iby_coind CIH) (do 1 wby_coind CIH).
 
 (* Tactic Notation "init_simF" := winit_simF. (* for isim mode, use iinit_simF directly *) *)
 (* (* Tactic Notation "init_simF" open_constr(u_src) open_constr(u_tgt) := winit_simF u_src u_tgt. *) *)

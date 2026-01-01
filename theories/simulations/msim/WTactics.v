@@ -30,8 +30,8 @@ Ltac solve_map_lookup_symbolic NODT :=
       tryif unify k' k
       then (rewrite lookup_insert; reflexivity)
       else (
-        rewrite lookup_insert_ne; [|let Hc := fresh "" in intro Hc; inversion Hc; done];
-        solve_map_lookup_symbolic NODT
+        etransitivity;
+        [eapply lookup_insert_ne; intros Hc; inv Hc|solve_map_lookup_symbolic NODT]
       )
   | [ |- {[ ?k' := ?v ]} !! ?k = _ ] =>
       (* Case: Singleton *)
@@ -48,50 +48,52 @@ Ltac state_lookup_simpl NOD :=
   rewrite /GOAL /=; clear GOAL.
 
 (* TODO : the complexity of this tactic is terrible - make it better *)
-Ltac state_insert_simpl NODT :=
-  let GOAL := fresh "GOAL" in
-  set (a := <[_:=_]> _); pattern a; subst a;
-  match goal with [|- ?G _] => set (GOAL := G) end;
-  eapply (eq_ind_r GOAL);
-  [|
-    match goal with
-    | [ |- <[?k:=?v]> (union_with ?f ?l ?r) = _ ] =>
-        tryif is_key_in k l
-        then (
-          etransitivity;
-          [ eapply insert_union_with_l';
-            [ eauto
-            | eapply map_Forall_union_with in NODT as [NODT _];
-              eexists; state_lookup_simpl NODT; reflexivity
-            ]
-          | eapply map_Forall_union_with in NODT as [NODT _]; 
-            state_insert_simpl NODT ]
-        )
-        else (
-          etransitivity;
-          [ eapply insert_union_with_r';
-            [ eauto
-            | eapply map_Forall_union_with in NODT as [_ NODT];
-              eexists; state_lookup_simpl NODT; reflexivity
-            ]
-          | eapply map_Forall_union_with in NODT as [_ NODT]; 
-            state_insert_simpl NODT ]
-        )
-    | [ |- <[?k:=_]>{[?k':=?v]} = _ ] => (* Case: Singleton *)
-        unify k' k; apply insert_singleton
-    | [ |- <[?k:=_]>(<[?k':=?v]>?m) = _ ] => (* Case: Insert *)
-        tryif unify k' k
-        then (rewrite insert_insert; reflexivity)
-        else (
-          rewrite insert_ne; [|let Hc := fresh "" in intro Hc; inversion Hc; done];
-          state_insert_simpl NODT
-        )
-    
-    | |- ?A => 
-        (* idtac "Leaf reached or structure unknown";  *) fail
-    end
-  ];
-  rewrite /GOAL //=; clear GOAL.
+Ltac state_insert_simpl k1 v1 NODT :=
+  match goal with
+  | |- context C[base.insert k1 (Some v1) ?a] =>
+      let lhs := constr:(base.insert k1 (Some v1) a) in
+      let T := type of lhs in
+      let rhs := fresh "rhs" in
+      let Heq := fresh "Heq" in
+      evar (rhs : T);
+      assert (Heq : lhs = rhs); subst rhs;
+      [ match goal with
+        | [ |- <[?k:=Some ?v]> (union_with ?f ?l ?r) = _ ] =>
+            tryif is_key_in k l
+            then (
+              etransitivity;
+              [ eapply insert_union_with_l';
+                [ eauto
+                | eapply map_Forall_union_with in NODT as [NODT _];
+                  eexists; state_lookup_simpl NODT; reflexivity
+                ]
+              | eapply map_Forall_union_with in NODT as [NODT _]; 
+                state_insert_simpl k v NODT; reflexivity ]
+            )
+            else (
+              etransitivity;
+              [ eapply insert_union_with_r';
+                [ eauto
+                | eapply map_Forall_union_with in NODT as [_ NODT];
+                  eexists; state_lookup_simpl NODT; reflexivity
+                ]
+              | eapply map_Forall_union_with in NODT as [_ NODT]; 
+                state_insert_simpl k v NODT; reflexivity ]
+            )
+        | [ |- <[?k:=_]>{[?k':=_]} = _ ] => (* Case: Singleton *)
+            unify k' k; apply insert_singleton
+        | [ |- <[?k:=Some ?v]>(<[?k':=?v']>?m) = _ ] => (* Case: Insert *)
+            tryif unify k' k
+            then (rewrite insert_insert; reflexivity)
+            else (
+              rewrite insert_ne; [|let Hc := fresh "" in intro Hc; inversion Hc; done];
+              state_insert_simpl k v NODT; reflexivity
+            )
+        
+        | |- ?A => fail
+        end
+      |rewrite Heq; clear Heq]
+  end.
 
 Ltac _wstep_l :=
   match goal with
@@ -107,18 +109,22 @@ Ltac _wstep_l :=
       iApply wsim_assume_res_src; iIntrosFresh "ASM"
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _) _) ] =>
       let name := fresh "asm" in iApply wsim_asm_src; iIntros (name)
-  (* | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, (SB.sandbox _ _ _ (trigger (SPut _ _))) >>= _) _) ] =>
-      iApply wsim_nodup_src; iIntros (?); iApply wsim_sput_src_sandbox; [s;eauto|alist_upd_simpl]
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, (SB.sandbox _ _ _ (trigger (SGet _))) >>= _) _) ] =>
-      let name := fresh "NODS" in
-      iApply wsim_nodup_src; iIntros (name); iApply wsim_sget_src_sandbox; [s;eauto|alist_find_simpl]; clear name *)
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (SPut ?k ?v) >>= _) _) ] =>
+      let NODS := fresh "NODS" in
+      iApply wsim_nodup_src; iIntros (NODS);
+      iApply wsim_sput_src; state_insert_simpl k v NODS; clear NODS
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (SGet _) >>= _) _) ] =>
+      let NODS := fresh "NODS" in
+      iApply wsim_nodup_src; iIntros (NODS);
+      iApply wsim_sget_src; state_lookup_simpl NODS; clear NODS
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, unwrapU ?ox >>= _) _) ] =>
       let name := fresh "_q" in
       iApply wsim_unwrapU_src; iIntros (name) "%";
       match goal with [ H: ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite -> G in * end
   end.
 Ltac wstep_l_core :=
-  _wstep_l; try alist_find_simpl; s; des_pairs; s.
+  (* _wstep_l; try alist_find_simpl; s; des_pairs; s. *)
+  _wstep_l; s.
 
 Ltac wstep_l :=
   norm_l with do 1 try wstep_l_core.
@@ -148,14 +154,14 @@ Ltac _wstep_r :=
       let NODT := fresh "NODT" in
       iApply wsim_nodup_tgt; iIntros (NODT);
       iApply wsim_sget_tgt; state_lookup_simpl NODT; clear NODT
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (SPut _ _) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (SPut ?k ?v) >>= _)) ] =>
       let NODT := fresh "NODT" in
       iApply wsim_nodup_tgt; iIntros (NODT);
-      iApply wsim_sput_tgt; state_insert_simpl NODT; clear NODT
+      iApply wsim_sput_tgt; state_insert_simpl k v NODT; clear NODT
   end.
 
 Ltac wstep_r_core :=
-  _wstep_r; s; des_pairs; s.
+  _wstep_r; s.
 
 Ltac wstep_r :=
   norm_r with do 1 try wstep_r_core.
@@ -171,7 +177,7 @@ Ltac wsteps_r :=
 Ltac _wstep :=
   match goal with
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, Ret _) (_, Ret _))] =>
-      iApply wsim_unfold; iIntros "?"; iApply wsim_ret; iFrame
+      iApply wsim_unfold; iIntros "?"; iApply wsim_ret
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (IO _ _) >>= _) (_, trigger (IO _ _) >>= _))] =>
       iApply wsim_io; iIntros "%"
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger GetTid >>= _) (_, trigger GetTid >>= _))] =>
@@ -264,9 +270,10 @@ Ltac winline_r :=
     do 1 iApply wsim_inline_tgt; [try prove_inline_cond|try prove_sb_cond|unfold_cris_defs].
 
 Ltac wcall hyps :=
-  (norm with do 1 iApply wsim_call); [try prove_sb_cond|
+  (norm with do 1 iApply wsim_call); iSplitL hyps; [try done|].
+  (* (norm with do 1 iApply wsim_call); [try prove_sb_cond|
   iSplitL hyps; [try done| iIntros "% % %"; iIntrosFresh "IST"];
-  move_aux].
+  move_aux]. *)
 
 Ltac wspawn :=
   (norm with do 1 iApply wsim_spawn); [try prove_sb_cond|].

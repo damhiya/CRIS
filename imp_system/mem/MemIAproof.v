@@ -249,9 +249,11 @@ Module MemIA. Section MemIA.
   Lemma simF_alloc : ISim.sim_fun open MemA MemI IstFull (Some MemHdr.alloc).
   Proof using.
     iStartSim.
-    iIntros (N tid x varg) "TID YIELD PRE".
+    step_l. destruct _q as [N stid]. steps_l.
+    rename _q into sz, _q0 into varg.
+    iDestruct "ASM" as "[-> [-> %]]".
+
     unfold_pre_post.
-    iDestruct "PRE" as "[-> [-> %]]".
     steps_r. rewrite Any.upcast_downcast. steps_r.
 
     iDestruct "IST" as (? ? ? ?) "([-> ->] & [% [% [% [[-> %] >B]]]] & ->)"; des.
@@ -263,8 +265,8 @@ Module MemIA. Section MemIA.
     iPoseProof (mem_ra_alloc with "B") as ">B"; et.
     iDestruct "B" as "[BLK WHT]". iPoseProof (points_to_transform with "WHT") as "WHT".
 
-    force_l ((Vptr (blk, 0%Z)) ↑). step.
-    iExists _.
+    force_l ((Vptr (blk, 0%Z)) ↑). steps_l. forces_l. iFrame. iSplit; eauto.
+    step. iFrame.
     repeat (iSplit; first done).
     iExists _, _, _, _; iSplit; [iPureIntro; split; refl|iSplit; eauto].
     repeat (iSplit; eauto).
@@ -289,8 +291,11 @@ Module MemIA. Section MemIA.
   Lemma simF_free : ISim.sim_fun open MemA MemI IstFull (Some MemHdr.free).
   Proof using.
     iStartSim.
-    iIntros (N tid [[blk ofs] v] varg) "?? Pre"; unfold_pre_post.
-    iDestruct "Pre" as "[-> [-> ↦]]".
+    step_l. destruct _q as [N stid].
+    step_l. destruct _q as [[blk ofs] v].
+    step_l. rename _q into varg. step_l.
+    (* iIntros (N tid [[blk ofs] v] varg) "?? Pre"; unfold_pre_post. *)
+    iDestruct "ASM" as "[-> [-> ↦]]".
     iDestruct "IST" as (? ? ? ?) "([-> ->] & [% [% [% [[-> %] >B]]]] & ->)"; des.
 
     steps_l.
@@ -300,7 +305,8 @@ Module MemIA. Section MemIA.
     iPoseProof (mem_ra_lookup with "[B ↦]") as "[%HIT ->]"; et; iFrame. steps_r.
 
     force_l. iMod (mem_ra_free with "[B ↦]") as "H"; et; iFrame.
-    step. iExists _; repeat (iSplit; et).
+    forces_l; iSplit; eauto.
+    step; iFrame. repeat (iSplit; et).
     iExists _, _, _, _; repeat (iSplit; et).
     iExists _; iSplit; eauto.
     iPureIntro. esplits; eauto.
@@ -312,8 +318,11 @@ Module MemIA. Section MemIA.
   Lemma simF_load : ISim.sim_fun open MemA MemI IstFull (Some MemHdr.load).
   Proof using.
     iStartSim.
-    iIntros (N tid [[[blk ofs] q] v] varg) "?? Pre"; unfold_pre_post.
-    iDestruct "Pre" as "[-> [-> ↦]]".
+    step_l. destruct _q as [N stid].
+    step_l. destruct _q as [[[blk ofs] q] v]. steps_l.
+
+    (* iIntros (N tid [[[blk ofs] q] v] varg) "?? Pre"; unfold_pre_post. *)
+    iDestruct "ASM" as "[-> [-> ↦]]".
     iDestruct "IST" as (? ? ? ?) "([-> ->] & [% [% [% [[-> %] >B]]]] & ->)"; des.
 
     steps_l.
@@ -321,16 +330,19 @@ Module MemIA. Section MemIA.
     steps_r.
 
     iPoseProof (mem_ra_lookup with "[B ↦]") as "[%HIT ->]"; et; iFrame. steps_r.
-    force_l.
-    step. iExists _; repeat (iSplit; et).
+    forces_l. iFrame. iSplit; eauto.
+    step. iFrame. repeat (iSplit; et).
     iExists _, _, _, _; repeat (iSplit; et).
   (*SLOW*)Qed.
 
   Lemma simF_store : ISim.sim_fun open MemA MemI IstFull (Some MemHdr.store).
   Proof using.
     iStartSim.
-    iIntros (N tid [[[blk ofs] v_old] v_new] varg) "?? Pre"; unfold_pre_post.
-    iDestruct "Pre" as "[-> [-> ↦]]".
+    step_l. destruct _q as [N stid].
+    step_l. destruct _q as [[[blk ofs] q] v]. steps_l.
+
+    (* iIntros (N tid [[[blk ofs] v_old] v_new] varg) "?? Pre"; unfold_pre_post. *)
+    iDestruct "ASM" as "[-> [-> ↦]]".
     iDestruct "IST" as (? ? ? ?) "([-> ->] & [% [% [% [[-> %] >B]]]] & ->)"; des.
 
     steps_l.
@@ -340,7 +352,8 @@ Module MemIA. Section MemIA.
     iPoseProof (mem_ra_lookup with "[B ↦]") as "[%HIT %HIT2]"; et; iFrame; rewrite HIT2. steps_r.
     iMod (mem_ra_update with "[B ↦]") as "[B ↦]"; et; iFrame.
 
-    force_l. step. iExists _; iFrame; repeat (iSplit; et).
+    forces_l. iFrame. iSplit; eauto.
+    step. iFrame. repeat (iSplit; et).
     iExists _, _, _, _; repeat (iSplit; et).
     iExists _; iSplit; et.
     iPureIntro. split; eauto. split.
@@ -352,8 +365,10 @@ Module MemIA. Section MemIA.
   Lemma simF_cmp : ISim.sim_fun open MemA MemI IstFull (Some MemHdr.cmp).
   Proof using.
     iStartSim.
-    iIntros (N tid [[[v_old v_new] v_cmp] Cmp] varg) "?? Pre"; unfold_pre_post.
-    iDestruct "Pre" as "[-> [[-> %Hcmp] [Cmp Cmp2]]]".
+    step_l. destruct _q as [N stid].
+    step_l. destruct _q as [[[v_old v_new] v_cmp] Cmp]. steps_l.
+    (* iIntros (N tid [[[v_old v_new] v_cmp] Cmp] varg) "?? Pre"; unfold_pre_post. *)
+    iDestruct "ASM" as "[-> [[-> %Hcmp] [Cmp Cmp2]]]".
     iDestruct "IST" as (? ? ? ?) "([-> ->] & [% [% [% [[-> %] >B]]]] & ->)"; des.
 
     steps_r. rewrite Any.upcast_downcast /=. steps_r. rewrite Any.upcast_downcast /=. steps_r.
@@ -362,9 +377,8 @@ Module MemIA. Section MemIA.
     iPoseProof (mem_ra_cmp with "[B C1 C2]") as "->"; eauto; iFrame.
     iMod ("C3" with "[$]").
 
-    steps_r. forces_l. step.
+    steps_r. forces_l. iFrame. iSplit; eauto. step. iFrame.
 
-    iExists _; iSplit; eauto.
     iSplit; [case_bool_decide; clarify; ss|].
     { iPureIntro; move : Hcmp; rewrite /MemSpec.compare_val; des_ifs; i; clarify. }
     iExists _, _, _, _; iSplit; eauto.
@@ -373,8 +387,11 @@ Module MemIA. Section MemIA.
   Lemma simF_cas : ISim.sim_fun open MemA MemI IstFull (Some MemHdr.cas).
   Proof using.
     iStartSim.
-    iIntros (N tid [[[[[[blk ofs ] v_old] v_new] v_upd] v_cmp] Cmp] varg) "?? Pre"; unfold_pre_post.
-    iDestruct "Pre" as "[-> [[-> %Hcmp] [↦ [Cmp Cmp2]]]]".
+    step_l. destruct _q as [N stid].
+    step_l. destruct _q as [[[[[[blk ofs ] v_old] v_new] v_upd] v_cmp] Cmp]. steps_l.
+
+    (* iIntros (N tid [[[[[[blk ofs ] v_old] v_new] v_upd] v_cmp] Cmp] varg) "?? Pre"; unfold_pre_post. *)
+    iDestruct "ASM" as "[-> [[-> %Hcmp] [↦ [Cmp Cmp2]]]]".
     iDestruct "IST" as (? ? ? ?) "([-> ->] & [% [% [% [[-> %] >B]]]] & ->)"; des.
 
     steps_r. rewrite Any.upcast_downcast. steps_r.
@@ -398,9 +415,9 @@ Module MemIA. Section MemIA.
       steps_r. rewrite Any.upcast_downcast. steps_r.
       iMod ((mem_ra_update v_upd) with "[B ↦]") as "[B ↦]"; et; [iFrame|].
 
-      forces_l. step.
+      forces_l. iFrame. iSplit; eauto. step. iFrame.
 
-      iExists _; repeat (iSplit; eauto).
+      repeat (iSplit; eauto).
       iExists _, _, _, _; repeat (iSplit; eauto).
       iExists _; iSplit; eauto.
       iPureIntro. split; eauto. split.
@@ -409,8 +426,8 @@ Module MemIA. Section MemIA.
       - ii; ss; repeat destruct dec; ss; subst; eauto.
     }
 
-    steps_r. forces_l. step.
-    iExists _; repeat (iSplit; eauto).
+    steps_r. forces_l. case_bool_decide; simplify_eq. iFrame. iSplit; eauto. step. iFrame.
+    repeat (iSplit; eauto).
     iExists _, _, _, _; repeat (iSplit; eauto).
   (*SLOW*)Qed.
 

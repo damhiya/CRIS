@@ -1,7 +1,6 @@
 Require Import CRIS.
 Require Import SchHeader SchI.
-Require Import CallFilter.
-From iris Require Import frac_auth dfrac_agree gmap_view.
+From iris Require Export frac_auth dfrac_agree gmap_view.
 
 Local Open Scope Qp.
 Section SchRA.
@@ -76,13 +75,18 @@ Module SchA. Section SchA.
 
   (* Scheduler specifications *)
   Section SPEC.
-    Context (sp_user : spl_type) (E : coPset).
+    Context (sp_user : specmap).
+
+  Definition fspec_winv (fsp : fspec) : fspec :=
+    fspec_mk (meta := meta fsp)
+      (λ '(N, stid) x varg arg, winv (↑N, ↑N) ∗ precond fsp (N, stid) x varg arg)%I
+      (λ '(N, stid) x vret ret, winv (↑N, ↑N) ∗ postcond fsp (N, stid) x vret ret)%I.
 
     Definition fspec_spawnable fsp
         (pre : SAny.t → SAny.t → iProp Σ)
         (postS : SAny.t → SAny.t → leibnizO {n & GTerm.t n}) : Prop :=
-      fspec_imply' fsp
-        (fspec_winv E
+      fspec_imply fsp
+        (fspec_winv
            (fspec_virtual (λ '(mtid, stid),
               ((λ (varg : SAny.t) arg,
                 Tid mtid stid ∗ ∃ sarg, ⌜arg = sarg↑⌝ ∗ pre varg sarg)%I,
@@ -92,18 +96,18 @@ Module SchA. Section SchA.
     Definition fn_spawnable fn
         (pre : SAny.t -d> SAny.t -d> iProp Σ)
         (postS : SAny.t -d> SAny.t -d> leibnizO {n & GTerm.t n}) : Prop :=
-      ∃ fsp, alist_find (Some fn) sp_user = Some (Some fsp) ∧
-               fspec_spawnable fsp pre postS.
+      ∃ fsp, sp_user !! (speckey_fn fn) = Some fsp ∧ fspec_spawnable fsp pre postS.
 
     Definition inner_spawn_spec : fspec := 
-      fspec_spawn
-        (λ '(stid, (pre, postS)) varg arg,
+      fspec_mk
+        (λ '(N, stid) '(pre, postS) varg arg,
           ∃ (fvarg farg : SAny.t) (fn : string) (mtid : nat),
             ⌜varg = (fn, fvarg)↑ ∧ arg = (fn, farg)↑ ∧ fn_spawnable fn pre postS⌝ ∗
+            winv (↑N, ↑N) ∗ TID(stid) ∗ YIELD(stid) ∗
             pre fvarg farg ∗
             JoinFrag (3/4)%Qp mtid postS ∗
             own base_γ (gmap_view_frag mtid (DfracOwn 1) (to_agree stid)))%I
-        (λ _ vret _, ∃ (vr : SAny.t), ⌜vret = vr↑⌝ ∗ False)%I.
+        (λ _ _ vret _, ∃ (vr : SAny.t), ⌜vret = vr↑⌝ ∗ False)%I.
 
     Definition spawn_spec : fspec :=
       fspec_virtual (λ '(pre, postS),
@@ -117,13 +121,13 @@ Module SchA. Section SchA.
             ∃ tid, ⌜vret = tid ∧ ret = tid↑⌝ ∗ JoinHandle tid postS)%I)).
 
     Definition yield_spec : fspec :=
-      fspec_winv E
+      fspec_winv
         (fspec_simple (λ '(mtid, stid),
           ((λ varg, ⌜varg = tt↑⌝ ∗ Tid mtid stid),
            (λ vret, ⌜vret = tt↑⌝ ∗ Tid mtid stid))))%I.
 
     Definition join_spec : fspec :=
-      fspec_winv E
+      fspec_winv
         (fspec_virtual (λ '(mtid, stid, tid, postS),
           ((λ varg arg,
             ⌜arg = tid↑ ∧ varg = tid⌝ ∗ Tid mtid stid ∗ JoinHandle tid postS),
@@ -136,17 +140,16 @@ Module SchA. Section SchA.
         ((λ varg, (⌜varg = tt↑⌝ ∗ Tid mtid stid)),
          (λ vret, (⌜vret = mtid↑⌝ ∗ Tid mtid stid))))%I.
 
-    Definition sp : spl_type :=
-      Seal.sealing CRIS 
-        [(Some SchHdr._spawn,  Some inner_spawn_spec);
-         (Some SchHdr.spawn,   Some spawn_spec);
-         (Some SchHdr.yield,   Some yield_spec);
-         (Some SchHdr.join,    Some join_spec);
-         (Some SchHdr.get_tid, Some get_tid_spec)].
+    Definition sp : specmap :=
+      {[speckey_fn SchHdr._spawn := inner_spawn_spec;
+        speckey_fn SchHdr.spawn :=  spawn_spec;
+        speckey_fn SchHdr.yield :=  yield_spec;
+        speckey_fn SchHdr.join :=   join_spec;
+        speckey_fn SchHdr.get_tid := get_tid_spec]}.
   End SPEC.
 
   (* Module definition *)
-  Definition scopes := [SCH].
+  Definition scopes : gmultiset string := {[+SCH+]}.
 
   Definition v_ths := SCH ↯ "ths".
   Definition v_tid := SCH ↯ "tid".
@@ -202,34 +205,34 @@ Module SchA. Section SchA.
   Definition get_tid : unit → itree crisE nat :=
     λ _, cgetN v_tid.
 
-  Definition fnsems sp_user : fnsems_type :=
-    [(Some SchHdr._spawn,
-      (true, wmask_all, scopes, (Some (inner_spawn_spec sp_user ⊤), (cfunN inner_spawn))));
-     (Some SchHdr.spawn,
-      (true, wmask_all, scopes, (Some (spawn_spec sp_user ⊤),       (cfunN spawn))));
-     (Some SchHdr.yield,
-      (true, wmask_all, scopes, (Some (yield_spec ⊤),               (cfunN yield))));
-     (Some SchHdr.join,
-      (true, wmask_all, scopes, (Some (join_spec ⊤),                (cfunN join))));
-     (Some SchHdr.get_tid,
-      (true, wmask_all, scopes, (Some (get_tid_spec),               (cfunN get_tid))))].
+  Definition fnsems (sp_user : specmap) : gmap (option string) (option (emask * (option fspec * fbody))) :=
+    {[Some SchHdr._spawn :=
+        Some (msk_scp scopes msk_true, (Some (inner_spawn_spec sp_user), cfunN inner_spawn));
+      Some SchHdr.spawn :=
+        Some (msk_scp scopes msk_true, (Some (spawn_spec sp_user), cfunN spawn));
+      Some SchHdr.yield :=
+        Some (msk_scp scopes msk_true, (Some yield_spec, cfunN yield));
+      Some SchHdr.join :=
+        Some (msk_scp scopes msk_true, (Some yield_spec, cfunN join));
+      Some SchHdr.get_tid :=
+        Some (msk_scp scopes msk_true, (Some yield_spec, cfunN get_tid))]}.
 
   Program Definition smod sp_user : SMod.t := {|
     SMod.scopes := scopes;
     SMod.fnsems := fnsems sp_user;
     SMod.initial_st := SchI.smod.(SMod.initial_st);
   |}.
-  Solve All Obligations with prove_scope.
-  Next Obligation. prove_nodup. Qed.
+  Solve All Obligations with (i; try done).
+  Next Obligation. i; rewrite ?omap_insert /= omap_empty. mod_tac scope_solver. Qed.
+  Next Obligation. i. rewrite /SchI.smod /=. mod_tac scope_solver. Qed.
 
   Definition init_cond : iProp Σ :=
-    (* own base_γ ir_newtidRA ∗ own base_γ ir_joinRA. *)
     TidAuth {[0 := 0]} ∗ own base_γ ir_joinRA.
 
-  Definition t sp sp_user := Seal.sealing CRIS (SMod.to_mod sp (smod sp_user)).
+  Definition t sp sp_user := SMod.to_mod sp (smod sp_user).
 End SchA. End SchA.
 
-Section FSPEC_SCH.
+(* Section FSPEC_SCH.
   Context `{!crisG Γ Σ α β τ _S _I, !concG, !newschG}.
 
   Definition fspec_sch E (fsp : fspec) : fspec :=
@@ -237,4 +240,4 @@ Section FSPEC_SCH.
       (fspec_call
         (λ '(mtid, stid, x) varg arg, Tid mtid stid ∗ precond fsp x varg arg)
         (λ '(mtid, stid, x) vret ret, Tid mtid stid ∗ postcond fsp x vret ret))%I.
-End FSPEC_SCH.
+End FSPEC_SCH. *)

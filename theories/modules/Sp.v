@@ -21,11 +21,12 @@ Proof.
    by intros [].
 Qed.
 
+Global Notation specmap := (gmap speckey fspec).
+
 Section sp.
   Context `{Σ : GRA}.
 
   (* Definition spl_type : Type := alist speckey (option fspec). *)
-  Definition specmap : Type := gmap speckey fspec.
 
   (* Definition to_sp (l : spl_type) : specmap :=
     λ k, or_else (alist_find k l) (Some fspec_bot). *)

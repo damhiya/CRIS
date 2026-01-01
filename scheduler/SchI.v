@@ -83,5 +83,5 @@ Module SchI. Section SchI.
     i. mod_tac scope_solver.
   Qed.
 
-  Definition t := Seal.sealing CRIS (SMod.to_mod ∅ smod).
+  Definition t := SMod.to_mod ∅ smod.
 End SchI. End SchI.

@@ -77,14 +77,13 @@ Require Import Mod ISim WSim SModTr.
   ]). *)
 
 (* Ltac iinit_simF := initialize_simF. *)
-Lemma wsim_HoareFun_src `{!crisG Γ Σ α β τ _S _I, !concG}
+(* Lemma wsim_HoareFun_src `{!crisG Γ Σ α β τ _S _I, !concG}
     fsp msk fbd arg fl_src fl_tgt Ist RR r g ps pt st_src st_tgt itr_tgt :
-  (∀ N tid x varg, TID tid -∗
-    YIELD tid -∗
+  (∀ N tid x varg,
     precond fsp (N, tid) x varg arg -∗
     wsim fl_src fl_tgt Ist (↑N, ↑N) r g Any.t Any.t
-      (λ src tgt, TID tid ∗ YIELD tid ∗ winv (↑N, ↑N) ∗
-        ∃ ret, postcond fsp (N, tid) x src.2 ret ∗ RR (src.1, ret) tgt) true pt
+      (λ src tgt, ∃ ret, postcond fsp (N, tid) x src.2 ret ∗ RR (src.1, ret) tgt)
+      true pt
       (st_src, SB.sandbox msk (fbd N tid varg))
       (st_tgt, itr_tgt)) ⊢
   wsim fl_src fl_tgt Ist (∅, ∅) r g Any.t Any.t RR ps pt
@@ -107,11 +106,11 @@ Proof.
   steps_l. des_ifs; steps_l; ss.
   force_l ret. steps_l. des_ifs; steps_l; ss.
   forces_l. iFrame. steps_l. des_ifs; steps_l; ss. force_l. iFrame "Post". step; ss.
-Qed.
+Qed. *)
 
 Ltac init_simF :=
   rewrite /ISim.sim_fun; simpl_map; intros ??; eexists; split; first refl;
   iIntros (arg st_src st_tgt) "IST"; iApply wsim_isim;
   rewrite /SB.sandbox_body /=.
 
-Ltac iStartSim := init_simF; unfold_cris_defs; iApply wsim_HoareFun_src.
+Ltac iStartSim := init_simF; unfold_cris_defs.

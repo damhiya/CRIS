@@ -35,7 +35,6 @@ Module SModTr. Section HOARE.
 
         (* precondition and argument passing *)
         arg <- trigger (Choose Any.t);;
-        trigger (Guarantee (TID stid ∗ YIELD stid ∗ winv (↑N, ↑N)));;;
         trigger (Guarantee ((precond fsp) (N, stid) x varg arg));;;
 
         (* call *)
@@ -43,7 +42,6 @@ Module SModTr. Section HOARE.
 
         (* postcondition and argument receiving *)
         vret <- trigger (Take Any.t);;
-        trigger (Assume (TID stid ∗ YIELD stid ∗ winv (↑N, ↑N)));;;
         trigger (Assume ((postcond fsp) (N, stid) x vret ret));;;
         Ret vret
     | None =>
@@ -60,14 +58,12 @@ Module SModTr. Section HOARE.
         (* precondition *)
         x <- trigger (Take (meta fsp));;
         varg <- trigger (Take Any.t);;
-        trigger (Assume (TID stid ∗ YIELD stid ∗ winv (↑N, ↑N)));;;
         trigger (Assume (precond fsp (N, stid) x varg arg));;;
 
         vret <- body N stid varg;;
 
         (* postcondition *)
         ret <- trigger (Choose Any.t);;
-        trigger (Guarantee (TID stid ∗ YIELD stid ∗ winv (↑N, ↑N)));;;
         trigger (Guarantee (postcond fsp (N, stid) x vret ret));;;
 
         Ret ret
@@ -85,7 +81,7 @@ Module SModTr. Section HOARE.
         arg <- trigger (Choose Any.t);;
         tid <- trigger (Spawn fn arg);;
         trigger (Assume (YIELD tid));;;
-        trigger (Guarantee (precond fsp (N, tid) x varg arg));;;
+        trigger (Guarantee (YIELD tid -∗ TID tid -∗ winv (↑N, ↑N) -∗ precond fsp (N, tid) x varg arg));;;
         Ret tid
     | None, true =>
         tid <- trigger (Spawn fn varg);;
