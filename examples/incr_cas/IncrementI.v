@@ -5,7 +5,7 @@ Require Import IncrementHeader.
 Module IncrementI. Section IncrementI.
   Context `{!crisG Γ Σ α β τ _S _I, !concG}.
 
-  Definition scopes : list string := [].
+  Definition scopes : gmultiset string := ∅.
 
   Definition increment : list val → itree crisE val :=
     λ arg,
@@ -22,16 +22,16 @@ Module IncrementI. Section IncrementI.
             else Ret (inl tt)
         ) ().
 
-  Definition fnsems : fnsems_type :=
-    [(Some IncrementHdr.increment, (false, wmask_all, scopes, (None, cfunU increment)))].
+  Definition fnsems : gmap (option string) (option (emask * (option fspec * fbody))) :=
+    {[Some IncrementHdr.increment := Some (msk_scp scopes msk_true, (None, cfunU increment))]}.
 
   Program Definition smod : SMod.t := {|
     SMod.scopes := scopes;
     SMod.fnsems := fnsems;
-    SMod.initial_st := [];
+    SMod.initial_st := ∅;
   |}.
-  Solve All Obligations with prove_scope.
-  Next Obligation. prove_nodup. Qed.
+  Solve All Obligations with (try done).
+  Next Obligation. rewrite ?omap_insert /= omap_empty. mod_tac scope_solver. Qed.
 
-  Definition t : Mod.t := Seal.sealing CRIS (SMod.to_mod sp_none smod).
+  Definition t : Mod.t := SMod.to_mod ∅ smod.
 End IncrementI. End IncrementI.

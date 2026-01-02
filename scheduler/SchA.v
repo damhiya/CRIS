@@ -2,11 +2,8 @@ Require Import CRIS.
 Require Import SchHeader SchI.
 From iris Require Export frac_auth dfrac_agree gmap_view.
 
-Local Open Scope Qp.
 Section SchRA.
   Context `{!crisG Γ Σ α β τ _S _I}.
-
-  (* Canonical Structure SynDepO : ofe := leibnizO {n & GTerm.t n}. *)
 
   Definition joinRA :=
     gmap_viewUR nat (agreeR (SAny.t -d> SAny.t -d> leibnizO {n & GTerm.t n}))%type.

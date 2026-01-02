@@ -17,7 +17,66 @@ Section wsim.
   Context (ps pt : bool).
   Context (st_src st_tgt : state).
 
-  (* Lemma wsim_yield_tgt
+  Lemma wsim_yield_tgt
+      (E : coPset) (r g : rel)
+      (k_s : () → itree crisE R_s)
+      (k_t : () → itree crisE R_t)
+      (msk_s msk_t : emask)
+      (sp_s sp_t : specmap)
+      (N_s N_t : namespace)
+      (stid_s stid_t : nat) :
+    let tid :=
+      (match sp_s !! speckey_fn SchHdr.yield, sp_t !! speckey_fn SchHdr.yield with
+      | Some fsp_s, Some fsp_t =>
+          ⌜fsp_s = fsp_t ∧ fsp_s = SchA.yield_spec⌝
+      | None, None =>
+          True
+      | _, _ =>
+          False
+      end)%I in
+    (∀ X, msk_t _ (subevent _ (Choose X))) →
+    (msk_t _ (subevent _ (Call SchHdr.yield ()↑))) →
+    Ist st_src st_tgt ∗ tid ∗
+    (∀ st_src st_tgt,
+      Ist st_src st_tgt -∗ tid -∗
+      wsim fl_s fl_t Ist (E, E) r g R_s R_t RR true true
+        (st_src, (SB.sandbox msk_s (SModTr.trans sp_s N_s stid_s 𝒴)) >>= k_s)
+        (st_tgt, k_t tt)) ⊢
+    wsim fl_s fl_t Ist (E, E) r g R_s R_t RR ps pt
+      (st_src, (SB.sandbox msk_s (SModTr.trans sp_s N_s stid_s 𝒴)) >>= k_s)
+      (st_tgt, (SB.sandbox msk_t (SModTr.trans sp_t N_t stid_t 𝒴)) >>= k_t).
+  Proof.
+    intros tid Hmsk Hcall; subst tid.
+    rewrite /Sch.yield; unseal SCH.
+    revert st_src. combine_quant st_tgt.
+    combine_quant ps. combine_quant pt.
+    eapply wsim_coind. intros g' Hg CIH [pt [ps [st_t st_s]]].
+    s; destruct_quant CIH.
+    iIntros "[IST [TID SIM]]".
+    unfold_iterC_l. steps_l. destruct (msk_s _); step_l; ss.
+    unfold_iterC_r. steps_r. rewrite Hmsk. steps_r. destruct _q; cycle 1.
+    { force_l (Some false). steps_l. steps_r.
+      iPoseProof ("SIM" $! _ _ with "IST TID") as "SIM".
+      iPoseProof (wsim_mono_knowledge with "SIM") as "SIM"; cycle 2.
+      { iApply "SIM". }
+      { iIntros (???????) "$"; done. }
+      { iIntros (???????) "P !>". iApply Hg; ss. }
+    }
+    destruct b; cycle 1.
+    { force_l (Some false). steps_l. steps_r. by_coind CIH. iFrame. }
+
+    force_l (Some true). steps_r. steps_l.
+    des_ifs; des; clarify.
+    { admit. }
+    { steps_l. destruct (msk_s _); step_l; ss. 
+      steps_r. rewrite Hcall; steps_r.
+      call "IST". clear st_s st_t; iIntros (? st_s st_t) "IST".
+      steps_r. steps_l.
+      by_coind CIH. iFrame.
+    }
+  Admitted.
+
+   (* Lemma wsim_yield_tgt
       (tid_res : bool)
       (E : coPset)
       (r g : rel)
@@ -121,20 +180,23 @@ Section wsim.
 End wsim.
 
 Ltac clear_st :=
-  hrepeat do 1 match goal with [st: alist key Any.t |- _] => clear st end.
+  hrepeat do 1 match goal with [st: gmap key (option Any.t) |- _] => clear st end.
 
-Ltac clear_emp :=
-  hrepeat do 1 match goal with [|- context[environments.Esnoc _ ?H (emp%I)]] => iClear H end.
-  
+(* Ltac clear_emp :=
+  hrepeat do 1 match goal with [|- context[environments.Esnoc _ ?H (emp%I)]] => iClear H end. *)
+
+(* Ltac sch_auto :=
+  hrepeat first [progress iFrame | iSplit; iFrame; et; []]. *)
+
+(* Ltac sch_intros :=
+  clear_st; iIntros (??); iIntrosFresh "IST"; iIntrosFresh "TID"; clear_emp. *)
+
+Ltac sch_yield_rr IST :=
+  iApply (wsim_yield_tgt); [ss|ss|simpl_map]; iFrame IST; iSplit;
+  [done|clear_st; iIntros (??) IST; iIntros "_"].
+
 Ltac sch_yield_l :=
-  norm_l with do 1 iApply wsim_yield_src.
-
-Ltac sch_auto :=
-  hrepeat first [progress iFrame | iSplit; iFrame; et; []].
-
-Ltac sch_intros :=
-  clear_st; iIntros (??); iIntrosFresh "IST"; iIntrosFresh "TID"; clear_emp.
-
+  norm_l with do 1 iApply wsim_yield_src; [ss|].
 (* Ltac sch_yield_rr :=
   norm_r; iApply wsim_yield_tgt;
   [left; esplits; [refl|..]; et; try set_solver|et|et|sch_auto; [..|try sch_intros]]. *)

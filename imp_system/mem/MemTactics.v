@@ -25,7 +25,7 @@ Section mem.
          SModTr.trans_fnsem sp (Some MemSpec.alloc, fbody_trivial)))) →
     (0 <= 8 * sz < modulus_64)%Z →
     (∀ blk,
-      ([∗ list] i ↦ v ∈ repeat Vundef (Z.to_nat sz), (blk, Z.of_nat i)%Z ↦ v) -∗
+      ([∗ list] i ↦ v ∈ replicate (Z.to_nat sz) Vundef, (blk, Z.of_nat i)%Z ↦ v) -∗
       wsim fl_s fl_t Ist (E1, E2) r g R_s R_t RR ps true
       (st_src, k_s)
       (st_tgt, k_t (Vptr (blk, 0%Z))↑)) ⊢
@@ -33,15 +33,40 @@ Section mem.
       (st_src, k_s)
       (st_tgt, x <- (trigger (Call MemHdr.alloc [Vint sz]↑));; k_t x).
   Proof.
-  Admitted.
-    (* intros Hin Hsz.
+    intros Hin Hsz.
     iIntros "K".
-    inline_r. steps_r. force_r (Z.to_nat sz). forces_r. iSplit; eauto.
+    inline_r. force_r (nroot, 0). force_r (Z.to_nat sz). forces_r. iSplit; eauto.
     { rewrite Z2Nat.id //; try lia. iSplit; eauto. iSplit; eauto. iPureIntro; lia. }
-    steps_r. iDestruct "GRT" as "[[% [-> ↦]] ->]". iApply "K".
+    steps_r. iDestruct "GRT" as "[-> [% [-> ↦]]]". iApply "K".
     iApply (big_sepL_impl with "↦").
     iIntros "!> % % %"; rewrite Z.add_0_l; iIntros "$".
-  Qed. *)
+  Qed.
+
+  Lemma wsim_mem_cas b ofs v v_old v_new succ E k_s k_t E1 E2 r g  :
+    fl_t !! Some MemHdr.cas =
+      Some (Some (SB.sandbox_body
+        (msk_scp MemA.scopes msk_true,
+         SModTr.trans_fnsem sp (Some MemSpec.cas, fbody_trivial)))) →
+    MemSpec.compare_val v v_old = Vint succ →
+    (b, ofs) ↦ v -∗
+    E -∗
+    (E ==∗ ∃ q0 q1 v0 v1, MemSpec.val_r v q0 v0 ∗ MemSpec.val_r v_old q1 v1 ∗
+          (MemSpec.val_r v q0 v0 ∗ MemSpec.val_r v_old q1 v1 ==∗ E)) -∗
+    (((b, ofs) ↦ if (bool_decide (succ = 1)) then v_new else v) -∗
+     E -∗
+      wsim fl_s fl_t Ist (E1, E2) r g R_s R_t RR ps true
+        (st_src, k_s)
+        (st_tgt, k_t v↑)) -∗
+    wsim fl_s fl_t Ist (E1, E2) r g R_s R_t RR ps pt
+      (st_src, k_s)
+      (st_tgt, x <- trigger (Call MemHdr.cas [Vptr (b, ofs); v_old; v_new]↑);; k_t x).
+  Proof.
+    intros Hin Hmsk.
+    iIntros "↦ E HE K".
+    inline_r. force_r (nroot, 0). force_r (b, ofs, v, v_old, v_new, succ, E). forces_r.
+    iFrame "↦ E HE"; iSplit; eauto.
+    steps_r. iDestruct "GRT" as "[-> [-> [↦ E]]]". iApply ("K" with "↦ E"); iFrame.
+  Qed.
 
   (* Lemma wsim_mem_store b ofs v v' k_s k_t E1 E2 r g img_t msk_t scp_t msk_m :
     alist_find (Some MemHdr.store) fl_t =
@@ -89,35 +114,7 @@ Section mem.
     steps_r. iDestruct "GRT" as "[[↦ ->] ->]". iApply "K"; iFrame.
   Qed.
 
-  Lemma wsim_mem_cas b ofs v v_old v_new succ E k_s k_t E1 E2 r g img_t msk_t scp_t msk_m :
-    alist_find (Some MemHdr.cas) fl_t =
-      Some (SB.sandbox_body
-        (SModTr.trans_fnsem sp
-          (true, msk_m, MemA.scopes, (Some (MemSpec.cas), fbody_trivial)))) →
-    (msk_t MemHdr.cas : bool) →
-    MemSpec.compare_val v v_old = Vint succ →
-    (b, ofs) ↦ v -∗
-    E -∗
-    (E ==∗ ∃ q0 q1 v0 v1, MemSpec.val_r v q0 v0 ∗ MemSpec.val_r v_old q1 v1 ∗
-          (MemSpec.val_r v q0 v0 ∗ MemSpec.val_r v_old q1 v1 ==∗ E)) -∗
-    (((b, ofs) ↦ if (decide (succ = 1)) then v_new else v) -∗
-     E -∗
-      wsim fl_s fl_t Ist (E1, E2) r g R_s R_t RR ps true
-        (st_src, k_s)
-        (st_tgt, k_t v↑)) -∗
-    wsim fl_s fl_t Ist (E1, E2) r g R_s R_t RR ps pt
-      (st_src, k_s)
-      (st_tgt,
-        x <- (SB.sandbox img_t msk_t scp_t
-          (trigger (Call MemHdr.cas [Vptr (b, ofs); v_old; v_new]↑)));;
-        k_t x).
-  Proof.
-    intros Hin Hmsk Hcmp.
-    iIntros "↦ E HE K".
-    inline_r. steps_r. force_r (b, ofs, v, v_old, v_new, succ, E). forces_r.
-    iFrame "↦ E HE"; iSplit; eauto.
-    steps_r. iDestruct "GRT" as "[[-> [↦ E]] ->]". iApply ("K" with "↦ E"); iFrame.
-  Qed.
+
 
   Lemma wsim_mem_cmp v1 v2 succ E k_s k_t E1 E2 r g img_t msk_t scp_t msk_m :
     alist_find (Some MemHdr.cmp) fl_t =

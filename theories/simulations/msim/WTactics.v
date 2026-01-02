@@ -124,13 +124,12 @@ Ltac _wstep_l :=
       let NODS := fresh "NODS" in
       iApply wsim_nodup_src; iIntros (NODS);
       iApply wsim_sget_src; state_lookup_simpl st_src k NODS; clear NODS
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, unwrapU ?ox >>= _) _) ] =>
+  (* | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, unwrapU ?ox >>= _) _) ] =>
       let name := fresh "_q" in
       iApply wsim_unwrapU_src; iIntros (name) "%";
-      match goal with [ H: ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite -> G in * end
+      match goal with [ H: ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite -> G in * end *)
   end.
 Ltac wstep_l_core :=
-  (* _wstep_l; try alist_find_simpl; s; des_pairs; s. *)
   _wstep_l; s.
 
 Ltac wstep_l :=
