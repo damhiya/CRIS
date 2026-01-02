@@ -40,12 +40,17 @@ Ltac solve_map_lookup_symbolic NODT :=
       (* idtac "Leaf reached or structure unknown";  *) fail
   end.
 
-Ltac state_lookup_simpl NOD :=
-  let GOAL := fresh "GOAL" in
-  set (a := _ !! _); pattern a; subst a;
-  match goal with [|- ?G _] => set (GOAL := G) end;
-  eapply (eq_ind_r GOAL); [|solve_map_lookup_symbolic NOD];
-  rewrite /GOAL /=; clear GOAL.
+Ltac state_lookup_simpl st k NOD :=
+  match goal with
+  | |- context C[st !! k] =>
+      let lhs := constr:(st !! k) in
+      let T := type of lhs in
+      let rhs := fresh "rhs" in
+      let Heq := fresh "Heq" in
+      evar (rhs : T);
+      assert (Heq : lhs = rhs); subst rhs;
+      [solve_map_lookup_symbolic NOD|rewrite Heq; clear Heq]
+  end.
 
 (* TODO : the complexity of this tactic is terrible - make it better *)
 Ltac state_insert_simpl k1 v1 NODT :=
@@ -65,7 +70,7 @@ Ltac state_insert_simpl k1 v1 NODT :=
               [ eapply insert_union_with_l';
                 [ eauto
                 | eapply map_Forall_union_with in NODT as [NODT _];
-                  eexists; state_lookup_simpl NODT; reflexivity
+                  eexists; state_lookup_simpl l k NODT; reflexivity
                 ]
               | eapply map_Forall_union_with in NODT as [NODT _]; 
                 state_insert_simpl k v NODT; reflexivity ]
@@ -75,7 +80,7 @@ Ltac state_insert_simpl k1 v1 NODT :=
               [ eapply insert_union_with_r';
                 [ eauto
                 | eapply map_Forall_union_with in NODT as [_ NODT];
-                  eexists; state_lookup_simpl NODT; reflexivity
+                  eexists; state_lookup_simpl r k NODT; reflexivity
                 ]
               | eapply map_Forall_union_with in NODT as [_ NODT]; 
                 state_insert_simpl k v NODT; reflexivity ]
@@ -86,8 +91,10 @@ Ltac state_insert_simpl k1 v1 NODT :=
             tryif unify k' k
             then (rewrite insert_insert; reflexivity)
             else (
-              rewrite insert_ne; [|let Hc := fresh "" in intro Hc; inversion Hc; done];
-              state_insert_simpl k v NODT; reflexivity
+              rewrite (insert_commute _ k k');
+              [state_insert_simpl k v NODT
+              |let Hc := fresh "Hc" in intros Hc; inv Hc];
+              reflexivity
             )
         
         | |- ?A => fail
@@ -113,10 +120,10 @@ Ltac _wstep_l :=
       let NODS := fresh "NODS" in
       iApply wsim_nodup_src; iIntros (NODS);
       iApply wsim_sput_src; state_insert_simpl k v NODS; clear NODS
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (SGet _) >>= _) _) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (?st_src, trigger (SGet ?k) >>= _) _) ] =>
       let NODS := fresh "NODS" in
       iApply wsim_nodup_src; iIntros (NODS);
-      iApply wsim_sget_src; state_lookup_simpl NODS; clear NODS
+      iApply wsim_sget_src; state_lookup_simpl st_src k NODS; clear NODS
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, unwrapU ?ox >>= _) _) ] =>
       let name := fresh "_q" in
       iApply wsim_unwrapU_src; iIntros (name) "%";
@@ -150,10 +157,10 @@ Ltac _wstep_r :=
       unfold_pre_post_term P; iApply wsim_guarantee_tgt; iIntrosFresh "GRT"
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, guarantee _ >>= _)) ] =>
       let name := fresh "grt" in iApply wsim_guar_tgt; iIntros (name)
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (SGet _) >>= _)) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (?st_tgt, trigger (SGet ?k) >>= _)) ] =>
       let NODT := fresh "NODT" in
       iApply wsim_nodup_tgt; iIntros (NODT);
-      iApply wsim_sget_tgt; state_lookup_simpl NODT; clear NODT
+      iApply wsim_sget_tgt; state_lookup_simpl st_tgt k NODT; clear NODT
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (SPut ?k ?v) >>= _)) ] =>
       let NODT := fresh "NODT" in
       iApply wsim_nodup_tgt; iIntros (NODT);

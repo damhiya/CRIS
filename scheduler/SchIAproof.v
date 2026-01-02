@@ -144,12 +144,12 @@ Module SchIA. Section sim.
     steps_l.
     unshelve erewrite (lookup_weaken _ _ _ _ _ SchInSp); cycle 1.
     { rewrite /SchA.sp; simpl_map; refl. }
-    force_l (mtid, stid). force_l (tt↑). steps_l.
+    force_l mtid. force_l (tt↑). steps_l.
     iApply wsim_guarantee_src; iFrame "W TidF TID YIELD"; iSplit; eauto.
 
     steps_r. call "IST".
     clear ret st_s st_t; iIntros (ret st_s st_t) "IST". steps_l.
-    iDestruct "ASM" as "[W [-> [-> TidF]]]".
+    iDestruct "ASM" as "[W [[-> ->] TidF]]".
     steps_r.
     by_coind CIH; eauto.
     iPoseProof (winv_split_empty with "I") as "[I E]".
@@ -232,18 +232,20 @@ Module SchIA. Section sim.
     iStartSim.
 
     step_l. destruct _q as [N stid].
-    step_l. destruct _q as [mtid ?]. steps_l.
-    iDestruct "ASM" as "[W [-> [-> [TidFrag [TID YIELD]]]]]".
+    step_l. rename _q into mtid. steps_l.
+    iDestruct "ASM" as "[W [[-> ->] [Tid [TID YIELD]]]]".
     rewrite !Any.upcast_downcast /=.
     iDestruct "IST" as "[% [%tid_cur [%stid_cur [[-> [-> %Htid_cur]] [JoinA [TidA [RET Ys]]]]]]]".
+    destruct Htid_cur as [ro_cur [post_cur Htid_cur]].
     steps_r. steps_l. rewrite !Any.upcast_downcast. steps_r. steps_l.
     do 2 (case_decide as H'; ss; clear H').
 
     (* GetTid reasoning *)
-    force_l stid; steps_l. force_l; iFrame "TID". steps_l.
-    steps_r. rewrite /SModTr.NativeGetTid; steps_r. step.
-    steps_l. iDestruct "ASM" as "[-> TID]". hss_l. steps_l. steps_r. hss_r. steps_r.
-    iPoseProof (Tid_Auth_Tid with "[TidA TidF]") as "%Hmtid"; first iFrame.
+    force_l; iFrame "TID". steps_l. steps_r.
+    step. steps_l. iDestruct "ASM" as "[-> TID]". rewrite !Any.upcast_downcast /=. steps_l.
+    steps_r. rewrite Any.upcast_downcast /=. steps_r.
+    (* hss_l. steps_l. steps_r. hss_r. steps_r. *)
+    iPoseProof (Tid_Auth_Tid with "[TidA Tid]") as "%Hmtid"; first iFrame.
     eapply elem_of_list_to_map_2 in Hmtid; rewrite elem_of_lookup_imap in Hmtid.
     destruct Hmtid as [? [? [EQ Hmtid]]]; symmetry in EQ; inv EQ.
     destruct (decide (tid_cur = mtid)); subst; cycle 1.
@@ -261,12 +263,13 @@ Module SchIA. Section sim.
     steps_l. steps_r.
 
     (* HoareYield *)
-    force_l stid. steps_l.
+    do 2 (case_decide as H'; ss; clear H'). steps_r.
+    steps_l.
     rewrite ?list_lookup_fmap /= in Htidn.
     iAssert (YIELD stidn ∗
         [∗ list] i ↦ e ∈ ths.*1.*1, if decide (i = tidn) then emp else YIELD e)%I
       with "[YIELD Ys]" as "[YIELD Ys]".
-    { destruct (decide (mtid = tidn)). 
+    { destruct (decide (mtid = tidn)).
       { subst; destruct (ths !! tidn) as [[[? ?] ?]|]; ss; clarify. iFrame. }
       iPoseProof (big_sepL_delete _ ths.*1.*1 mtid with "[Ys YIELD]") as "Ys"; eauto.
       { rewrite ?list_lookup_fmap Htid_cur //. }
@@ -274,42 +277,43 @@ Module SchIA. Section sim.
       rewrite big_sepL_delete; try iFrame.
       rewrite ?list_lookup_fmap; destruct (ths !! tidn) as [[[? ?] ?]|]; ss.
     }
-    iApply wsim_unfold; iIntros "WI".
-    force_l. iFrame "WI TID YIELD".
-
-    steps_l. steps_r. rewrite /SModTr.NativeYield. steps_r.
-    yield "JoinA TidA RET Ys".
+    force_l. iFrame "W TID YIELD". steps_l.
+    iApply wsim_yield; iFrame. iSplit.
     { destruct (ths !! tidn) as [[[? ?] ?]|] eqn : ?; ss; clarify.
-      iFrame. iExists _. iPureIntro; esplits; eauto.
+      iExists _; iPureIntro; esplits; eauto.
     }
+    iIntros (st_sr st_tgt) "IST".
 
     steps_l. iDestruct "ASM" as "[TID [YIELD WINV]]".
     forces_l. iFrame. iSplit; eauto.
     step. iFrame. done.
   (*SLOW*)Qed.
 
-  Lemma simF_join : ISim.sim_fun open SchAMod SchIMod SchA.init_cond Ist (Some SchHdr.join).
+  Lemma simF_join : ISim.sim_fun open SchAMod SchIMod Ist (Some SchHdr.join).
   Proof using FunInSp SchInSp.
-    init_simF.
+    iStartSim.
 
-    steps_l.
-    iDestruct "ASM" as (vargs) "[-> [[-> ->] JoinF]]". hss.
-    rename _q4 into tid, _q2 into post, _q5 into mtid, _q6 into stid.
+    step_l. destruct _q as [N stid]. step_l.
+    destruct _q as [[mtid tid] post]. steps_l.
+    iDestruct "ASM" as "[W [[-> ->] [TID JoinF]]]". rewrite ?Any.upcast_downcast /=.
+    (* hss.
+    rename _q4 into tid, _q2 into post, _q5 into mtid, _q6 into stid. *)
 
-    steps_l. steps_r.
-    iApply wsim_unfold; iIntros "WI".
+    steps_r. steps_l.
+    (* iApply wsim_unfold; iIntros "WI". *)
     iApply wsim_reset. iStopProof.
     revert st_tgt.
     combine_quant st_src.
     eapply wsim_coind. intros g' _ CIH a.
     destruct a as [st_src st_tgt]. s.
     destruct_quant CIH.
-    iIntros "[IST [[Tid JoinF] Winv]]".
+    iIntros "[IST [W [Tid JoinF]]]".
 
     unfold_iterC_l; unfold_iterC_r.
 
     iDestruct "IST" as "[% [%tid_cur [%stid_cur [[-> [-> %Hmtid]] [JoinA [TidA [RET Ys]]]]]]]".
-    steps_l. steps_r. hss. steps_l. steps_r.
+    steps_l. steps_r. rewrite ?Any.upcast_downcast /=.
+    steps_r. steps_l.
 
     rewrite ?list_lookup_fmap.
     destruct (ths !! tid) as [[[stid_join [[rv vrv]|]] post2]|] eqn : Htid.
@@ -321,24 +325,23 @@ Module SchIA. Section sim.
       }
       iCombine "JoinF" "JoinF2" gives %[_ WF%to_agree_op_valid]%gmap_view_frag_op_valid.
       iCombine "JoinF" "JoinF2" as "JoinF"; rewrite Qp.quarter_three_quarter.
-      (* Search (to_agree _ ⋅ (to_agree _)) *)
       iEval (rewrite WF agree_idemp) in "JoinF".
       iPoseProof ("RET" with "[JoinF]") as "RET"; first (iRight; iFrame).
-      iApply (wsim_fold with "[-]"); iFrame.
-      forces_l. iEval (rewrite -WF) in "Post". iFrame "Tid Post".
+      forces_l. iEval (rewrite -WF) in "Post". iFrame "Tid Post W".
       iSplit; eauto.
-      rewrite difference_diag_L.
       step. iSplit; eauto.
-      iFrame. iExists _; iPureIntro; esplits; eauto.
+      iFrame. des; iExists _; iPureIntro; esplits; eauto.
     }
-    { steps_l. steps_r.
-      force_l (mtid, stid). steps_l. force_l. force_l. iFrame "Winv Tid". iSplit; eauto.
+    { steps_r.
+      steps_l. unshelve erewrite (lookup_weaken _ _ _ _ _ SchInSp); cycle 1.
+      { rewrite /SchA.sp; simpl_map; refl. }
+      force_l mtid. steps_l. force_l. force_l. iFrame "W Tid". iSplit; eauto.
       steps_l. call "JoinA TidA RET Ys".
-      { iFrame. iExists _; iPureIntro; esplits; eauto. }
-      steps_l. iDestruct "ASM" as "[[-> Tid] ->]". hss_l. steps_l.
-      steps_r. hss_r. steps_r.
-      by_coind CIH.
-      iPoseProof (winv_split_empty with "I") as "[$ $]". iFrame.
+      { iFrame. des; iExists _; iPureIntro; esplits; eauto. }
+      iIntros (ret st_src st_tgt) "IST". steps_l. steps_r.
+      iDestruct "ASM" as "[W [[-> ->] Tid]]". rewrite ?Any.upcast_downcast /=.
+      steps_r. steps_l.
+      by_coind CIH. iFrame.
     }
     { iExFalso; iCombine "JoinA" "JoinF" gives %WF%gmap_view_both_dfrac_valid_discrete_total.
       destruct WF as [? [_ [_ [[? [? [EQ Hcont]]]%elem_of_list_to_map_2%elem_of_lookup_imap _]]]].
@@ -346,12 +349,13 @@ Module SchIA. Section sim.
     }
   (*SLOW*)Qed.
 
-  Lemma simF_get_tid : ISim.sim_fun open SchAMod SchIMod SchA.init_cond Ist (Some SchHdr.get_tid).
+  Lemma simF_get_tid : ISim.sim_fun open SchAMod SchIMod Ist (Some SchHdr.get_tid).
   Proof using FunInSp SchInSp.
-    init_simF.
+    iStartSim.
 
-    steps_l. iDestruct "ASM" as "[[-> Tid] ->]"; hss. rename _q1 into mtid, _q2 into stid.
-    steps_l. steps_r.
+    step_l. destruct _q as [N stid]. step_l. rename _q into mtid.
+    steps_l. iDestruct "ASM" as "[[-> ->] Tid]". rewrite !Any.upcast_downcast /=.
+    steps_r. steps_l.
     iDestruct "IST" as "[% [%tid_cur [%stid_cur [[-> [-> %Hmtid]] [JoinA [TidA [RET Ys]]]]]]]".
     iDestruct "Tid" as "[TidF [TID YIELD]]".
     iPoseProof (Tid_Auth_Tid with "[TidA TidF]") as "%Hin"; iFrame.
@@ -363,25 +367,30 @@ Module SchIA. Section sim.
       case_decide; clarify; by iPoseProof (YieldToken_both with "YIELD YIELD2") as "%".
     }
 
-    steps_l. hss_l. steps_l. forces_l. iFrame. iSplit; eauto.
-    steps_r. hss_r. step.
+    steps_l. steps_r. rewrite !Any.upcast_downcast /=.
+    steps_l. forces_l. iFrame. iSplit; eauto.
+    steps_r. step.
 
     iSplit; eauto.
-    iFrame. iExists _; iPureIntro; esplits; eauto.
+    iFrame. des; iExists _; iPureIntro; esplits; eauto.
   (*SLOW*)Qed.
 
   Lemma sim : ISim.t open SchAMod SchIMod SchA.init_cond Ist.
-  Proof using FunInSp SchInSp.
-    init_sim.
-    - split; eauto.
-      rewrite /init_cond.
+  Proof using FunInSp SchInSp ConcInSp.
+    econs; intros Hwf.
+    { multiset_solver. }
+    { rewrite /init_cond.
       iIntros "[TidA JoinA]". iExists [(0, None, λ _ _, existT 0 ⊥)], 0, 0.
       iFrame. ss. iSplit; eauto. iSplit; eauto.
-    - eapply simF_inner_spawn.
-    - eapply simF_spawn.
-    - eapply simF_yield.
-    - eapply simF_join.
-    - eapply simF_get_tid.
+    }
+    { intros fn; eapply ISim.sim_fun_strong; rewrite !dom_fmap /= /SchA.fnsems ?dom_insert_L;
+      set_unfold; intros Hfn; des; subst; last inv Hfn.
+      { eapply simF_inner_spawn. }
+      { eapply simF_spawn. }
+      { eapply simF_yield. }
+      { eapply simF_join. }
+      { eapply simF_get_tid. }
+    }
   Qed.
 End sim.
 
@@ -389,8 +398,9 @@ Section ctxr.
   Context `{!crisG Γ Σ α β τ _S _I, !concG, !newschG}.
 
   Lemma ctxr sp sp_user
-        (SchInGlobal : sp_incl (SchA.sp sp_user ⊤) sp)
-        (UserInGlobal : sp_incl sp_user sp) :
+        (SchInGlobal : SchA.sp sp_user ⊆ sp)
+        (UserInGlobal : sp_user ⊆ sp)
+        (ConcInGlobal : speckey_concE ∈ dom sp) :
     ctx_refines
       (SchA.t sp sp_user, SchA.init_cond)
       (SchI.t,            emp%I).

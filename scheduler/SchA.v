@@ -122,23 +122,23 @@ Module SchA. Section SchA.
 
     Definition yield_spec : fspec :=
       fspec_winv
-        (fspec_simple (λ '(mtid, stid),
-          ((λ varg, ⌜varg = tt↑⌝ ∗ Tid mtid stid),
-           (λ vret, ⌜vret = tt↑⌝ ∗ Tid mtid stid))))%I.
+        (fspec_mk
+          (λ '(N, stid) mtid varg arg, ⌜arg = varg ∧ varg = tt↑⌝ ∗ Tid mtid stid)
+          (λ '(N, stid) mtid vret ret, ⌜ret = vret ∧ vret = tt↑⌝ ∗ Tid mtid stid))%I.
 
     Definition join_spec : fspec :=
       fspec_winv
-        (fspec_virtual (λ '(mtid, stid, tid, postS),
-          ((λ varg arg,
-            ⌜arg = tid↑ ∧ varg = tid⌝ ∗ Tid mtid stid ∗ JoinHandle tid postS),
-           (λ vret ret, 
-            (∃ vsret sret, ⌜vret = (Some vsret) ∧ ret = (Some sret)↑⌝ ∗
-            Tid mtid stid ∗ interp_cond (postS vsret sret)))))%I).
+        (fspec_mk
+          (λ '(N, stid) '(mtid, tid, postS) varg arg,
+            ⌜arg = tid↑ ∧ varg = tid↑⌝ ∗ Tid mtid stid ∗ JoinHandle tid postS)
+          (λ '(N, stid) '(mtid, tid, postS) vret ret, 
+            (∃ vsret sret, ⌜vret = (Some vsret)↑ ∧ ret = (Some sret)↑⌝ ∗
+            Tid mtid stid ∗ interp_cond (postS vsret sret))))%I.
 
     Definition get_tid_spec : fspec :=
-      fspec_simple (λ '(mtid, stid),
-        ((λ varg, (⌜varg = tt↑⌝ ∗ Tid mtid stid)),
-         (λ vret, (⌜vret = mtid↑⌝ ∗ Tid mtid stid))))%I.
+      fspec_mk
+        (λ '(_, stid) mtid varg arg, ⌜varg = tt↑ ∧ arg = varg⌝ ∗ Tid mtid stid)%I
+        (λ '(_, stid) mtid vret ret, ⌜vret = mtid↑ ∧ ret = vret⌝ ∗ Tid mtid stid)%I.
 
     Definition sp : specmap :=
       {[speckey_fn SchHdr._spawn := inner_spawn_spec;
@@ -213,9 +213,9 @@ Module SchA. Section SchA.
       Some SchHdr.yield :=
         Some (msk_scp scopes msk_true, (Some yield_spec, cfunN yield));
       Some SchHdr.join :=
-        Some (msk_scp scopes msk_true, (Some yield_spec, cfunN join));
+        Some (msk_scp scopes msk_true, (Some join_spec, cfunN join));
       Some SchHdr.get_tid :=
-        Some (msk_scp scopes msk_true, (Some yield_spec, cfunN get_tid))]}.
+        Some (msk_scp scopes msk_true, (Some get_tid_spec, cfunN get_tid))]}.
 
   Program Definition smod sp_user : SMod.t := {|
     SMod.scopes := scopes;

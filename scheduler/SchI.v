@@ -62,11 +62,11 @@ Module SchI. Section SchI.
     λ _, cgetU v_tid.
 
   Definition fnsems : gmap (option string) (option (emask * (option fspec * fbody))) :=
-    {[Some SchHdr._spawn := Some (msk_scp scp msk_true, (None, cfunU inner_spawn));
-      Some SchHdr.spawn := Some (msk_scp scp msk_true, (None, cfunU spawn));
-      Some SchHdr.yield := Some (msk_scp scp msk_true, (None, cfunU yield));
-      Some SchHdr.join := Some (msk_scp scp msk_true, (None, cfunU join));
-      Some SchHdr.get_tid := Some (msk_scp scp msk_true, (None, cfunU get_tid))]}.
+    {[Some SchHdr._spawn := Some (msk_real (msk_scp scp msk_true), (None, cfunU inner_spawn));
+      Some SchHdr.spawn := Some (msk_real (msk_scp scp msk_true), (None, cfunU spawn));
+      Some SchHdr.yield := Some (msk_real (msk_scp scp msk_true), (None, cfunU yield));
+      Some SchHdr.join := Some (msk_real (msk_scp scp msk_true), (None, cfunU join));
+      Some SchHdr.get_tid := Some (msk_real (msk_scp scp msk_true), (None, cfunU get_tid))]}.
 
   Program Definition smod : SMod.t := {|
     SMod.scopes := scp;

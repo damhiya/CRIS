@@ -5,19 +5,19 @@ Require Import MSim WSim.
 Section wsim.
   Context `{!crisG Γ Σ α β τ _S _I, !concG, !newschG}.
 
-  Local Definition state : Type := alist key Any.t.
+  Local Definition state : Type := gmap key (option Any.t).
   Local Definition post (R_s R_t : Type) : Type := state * R_s → state * R_t → iProp Σ.
   Local Definition rel : Type := ∀ R_s R_t : Type,
     post R_s R_t → bool → bool → state * itree crisE R_s → state * itree crisE R_t → iProp Σ.
 
-  Context (fl_s fl_t : alist (option string) (Any.t → itree crisE Any.t)).
-  Context (Ist : alist key Any.t → alist key Any.t → iProp Σ).
+  Context (fl_s fl_t : gmap (option string) (option (Any.t → itree crisE Any.t))).
+  Context (Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ).
   Context (R_s R_t : Type).
   Context (RR : post R_s R_t).
   Context (ps pt : bool).
   Context (st_src st_tgt : state).
 
-  Lemma wsim_yield_tgt
+  (* Lemma wsim_yield_tgt
       (tid_res : bool)
       (E : coPset)
       (r g : rel)
@@ -103,18 +103,21 @@ Section wsim.
       by_coind CIH. iFrame.
       hss. iFrame.
     }
-  (*SLOW*)Qed.
+  (*SLOW*)Qed. *)
 
-  Lemma wsim_yield_src Ep r g (img_s img_s' : bool) (msk_s: _ → bool) scp_s sp_s k_s i_t :
+  Lemma wsim_yield_src Ep r g (msk_s : emask) (N : namespace) (stid : nat) sp_s k_s i_t :
+    msk_s _ (subevent _ (Choose (option bool))) →
     wsim fl_s fl_t Ist Ep r g R_s R_t RR true pt (st_src, k_s tt) (st_tgt, i_t) ⊢
     wsim fl_s fl_t Ist Ep r g R_s R_t RR true pt
-      (st_src, (SB.sandbox img_s msk_s scp_s (SModTr.trans img_s' sp_s 𝒴)) >>= k_s) (st_tgt, i_t).
+      (st_src, (SB.sandbox msk_s (SModTr.trans sp_s N stid 𝒴)) >>= k_s) (st_tgt, i_t).
   Proof using.
-    iIntros "SIM".
+    iIntros "%Hmsk SIM".
     rewrite /Sch.yield; unseal SCH.
     unfold_iterC_l; steps_l.
+    case_match; cycle 1.
+    { rewrite ->Hmsk in *; done. }
     force_l None; steps_l. iApply "SIM".
-  (*SLOW*)Qed.
+  Qed.
 End wsim.
 
 Ltac clear_st :=
@@ -132,25 +135,24 @@ Ltac sch_auto :=
 Ltac sch_intros :=
   clear_st; iIntros (??); iIntrosFresh "IST"; iIntrosFresh "TID"; clear_emp.
 
-Ltac sch_yield_rr :=
+(* Ltac sch_yield_rr :=
   norm_r; iApply wsim_yield_tgt;
-  [left; esplits; [refl|..]; et; try set_solver|et|et|sch_auto; [..|try sch_intros]].
+  [left; esplits; [refl|..]; et; try set_solver|et|et|sch_auto; [..|try sch_intros]]. *)
 
-Ltac sch_yield_ir :=
+(* Ltac sch_yield_ir :=
   norm_r; iApply wsim_yield_tgt;
-  [right; left; esplits; [refl|..]; et; try set_solver|et|et|sch_auto; [..|try sch_intros]].
+  [right; left; esplits; [refl|..]; et; try set_solver|et|et|sch_auto; [..|try sch_intros]]. *)
 
-Ltac sch_yield_ii :=
+(* Ltac sch_yield_ii :=
   norm_r; iApply wsim_yield_tgt;
-  [right; right; esplits; [refl|..]; et; try set_solver|et|et|sch_auto; [..|try sch_intros]].
+  [right; right; esplits; [refl|..]; et; try set_solver|et|et|sch_auto; [..|try sch_intros]]. *)
 Section MSIM.
-
-  Import SchA.
   Context `{!crisG Γ Σ α β τ _S _I, !schG}.
+  Import SchA.
 
   Variable contextual: contextuality.
-  Variable fl_src : alist (option string) (Any.t → itree crisE Any.t).
-  Variable fl_tgt : alist (option string) (Any.t → itree crisE Any.t).
+  Variable fl_src : gmap (option string) (option (Any.t → itree crisE Any.t)).
+  Variable fl_tgt : gmap (option string) (option (Any.t → itree crisE Any.t)).
   Variable Ist : ist_type Σ.
 
   Lemma msim_flag_src_down r {Rs Rt} RR (ps pt: bool) sti_src sti_tgt fmr
@@ -174,13 +176,11 @@ Section MSIM.
     econs; esplits; eauto.
     depdes IN; try (by econs; eauto).
   Qed.
-  
 End MSIM.
 
 Section SREL.
-
-  Import SchA.
   Context `{!crisG Γ Σ α β τ _S _I, !concG, !schG}.
+  Import SchA.
 
   (* srel (progress_flag) (oneshot_flag) (i_rew) (i_org) *)
   Variant srel_def 
@@ -420,8 +420,8 @@ Section SREL.
   (* msim closure *)
   
   Variable contextual: contextuality.
-  Variable fl_src : alist (option string) (Any.t → itree crisE Any.t).
-  Variable fl_tgt : alist (option string) (Any.t → itree crisE Any.t).
+  Variable fl_src : gmap (option string) (option (Any.t → itree crisE Any.t)).
+  Variable fl_tgt : gmap (option string) (option (Any.t → itree crisE Any.t)).
   Variable Ist : ist_type Σ.
 
   Variant msim_srelC (r: forall Rs Rt (RR: retr_type Σ Rs Rt), msim_type Σ Rs Rt) :
@@ -460,10 +460,10 @@ Section SREL.
       try (by esplits; eauto; econs; eauto; i; specialize (SELF tt); pclearbot; eapply K; eauto; f_equal; eapply func_ext_rev; eauto);
       try (by specialize (SELF x0); des; esplits; eauto; econs; eauto; pclearbot; eapply K; eauto; f_equal; eapply func_ext_rev; eauto);
       try (by pclearbot; esplits; eauto; econs; eauto; i; eapply K; eauto; f_equal; eapply func_ext_rev; eauto).
-    { esplits; eauto; econs; eauto; i; specialize (SELF vret). pclearbot. eapply (K _ st_src0 st_tgt0); eauto. f_equal. eapply func_ext_rev; eauto. }
+    (* { esplits; eauto; econs; eauto; i; specialize (SELF vret). pclearbot. eapply (K _ st_src0 st_tgt0); eauto. f_equal. eapply func_ext_rev; eauto. } *)
     { esplits; eauto. econs; eauto. eapply K; eauto. ginit. guclo srel_bindC_spec. econs; eauto.
       guclo srel_eqC_spec. econs. i. specialize (SELF vret). pclearbot. eapply (func_ext_rev vret) in x. rewrite x in SELF. gfinal; eauto. }
-    { specialize (SELF tt). pclearbot. esplits; eauto; econs; eauto. i. eapply (K st_src0 st_tgt0); eauto. f_equal; eapply func_ext_rev; eauto. }
+    (* { specialize (SELF tt). pclearbot. esplits; eauto; econs; eauto. i. eapply (K st_src0 st_tgt0); eauto. f_equal; eapply func_ext_rev; eauto. } *)
   Qed.
 
   Lemma msim_srelC_spec: msim_srelC <9= gupaco8 (_msim contextual fl_src fl_tgt Ist) (cpn8 (_msim contextual fl_src fl_tgt Ist)).
@@ -472,7 +472,7 @@ Section SREL.
     eapply msim_srelC_mon, PR; eauto with paco.
   Qed.
 
-  Lemma srel_yy_y {R} (itr: unit -> itree crisE R) img_s img_s' msk_s sc_s sp_s :
+  (* Lemma srel_yy_y {R} (itr: unit -> itree crisE R) img_s img_s' msk_s sc_s sp_s :
     srel _ false
       ((SB.sandbox img_s msk_s sc_s (SModTr.trans img_s' sp_s Sch.yield));;;
        (SB.sandbox img_s msk_s sc_s (SModTr.trans img_s' sp_s Sch.yield)) >>= itr)
@@ -537,7 +537,7 @@ Section SREL.
       grind. rewrite SRed.ret SBRed.ret. grind. 
       rewrite unfold_iterC. grind. guclo srel_eqC_spec. econs; eauto.
     }
-  Qed.
+  Qed. *)
   
 End SREL.
 
@@ -549,7 +549,7 @@ Section ISIM.
   Variable fl_src fl_tgt : alist (option string) (Any.t → itree crisE Any.t).
   Variable Ist : ist_type Σ.
 
-  Lemma isim_yy_y r g ps pt {Rs Rt} RR st_src k_src sti_tgt
+  (* Lemma isim_yy_y r g ps pt {Rs Rt} RR st_src k_src sti_tgt
       img_s img_s' msk_s sc_s sp_s :
     @isim Σ contextual fl_src fl_tgt Ist r g Rs Rt RR ps pt
       (st_src, (SB.sandbox img_s msk_s sc_s (SModTr.trans img_s' sp_s Sch.yield));;;
@@ -561,7 +561,7 @@ Section ISIM.
     split. intros x wfx SIM.
     Local Transparent isim.
     guclo msim_srelC_spec. econs; eauto using srel_yy_y.
-  Qed.
+  Qed. *)
 
 End ISIM.
 
@@ -577,7 +577,7 @@ Section WSIM.
   Context (ps pt : bool).
   Context (st_src st_tgt : state).
 
-  Lemma wsim_yy_y E F r g img_s img_s' msk_s scp_s sp_s k_s i_t :
+  (* Lemma wsim_yy_y E F r g img_s img_s' msk_s scp_s sp_s k_s i_t :
     wsim fl_s fl_t Ist (E, F) r g R_s R_t RR ps pt
       (st_src,
         (SB.sandbox img_s msk_s scp_s (SModTr.trans img_s' sp_s Sch.yield));;;
@@ -596,7 +596,7 @@ Section WSIM.
     iPoseProof ("SIM" with "W") as "SIM".
     iStopProof. split. intros x wfx H1.
     guclo msim_srelC_spec. econs; eauto using srel_yy_y.
-  Qed.
+  Qed. *)
 
 End WSIM. 
 
