@@ -2,21 +2,6 @@ Require Import Common.
 From iris.proofmode Require Import proofmode.
 Require Import LMod.
 Require Export FSpec ModTr Sandbox.
-(* Definition fnsems_scopes
-    `{Σ: GRA} {T} (fn : option string) (fnsems : alist (option string) (fnsem_type T)) :=
-  match (alist_find fn fnsems) with
-  | Some (emask, scopes, body) => scopes
-  | None => []
-  end. *)
-
-(* Definition state_scopes (st : alist key Any.t) :=
-  map (fst ∘ fst) st. *)
-
-(* Lemma state_scopes_update k v st:
-  state_scopes (alist_upd k v st) = state_scopes st.
-Proof.
-  rewrite /state_scopes -!List.map_map alist_upd_keys. eauto.
-Qed. *)
 
 Module Mod. Section Mod.
   Context {Σ : GRA}.
@@ -42,10 +27,7 @@ Module Mod. Section Mod.
     wf_scopes : ∀ x, multiplicity x (scopes ms) ≤ 1;
   }.
 
-  (* Definition exports (m: t) : list (option string) :=
-    List.map fst m.(fnsems). *)
-
-  (**** Linking ****)
+  (** Linking *)
   Program Definition empty : t := {|
     scopes := ∅;
     fnsems := ∅;
@@ -180,9 +162,6 @@ Module Mod. Section Mod.
     }
   Qed.
 
-  (* Definition addL (ms : list t) : t :=
-    foldr add empty ms. *)
-
   Definition modc : Type := (t * iProp Σ)%type.
   Global Instance modc_equiv : Equiv modc := λ m1 m2, m1.1 = m2.1 ∧ m1.2 ≡ m2.2.
   Global Instance modc_equiv_equiv : Equivalence modc_equiv.
@@ -204,14 +183,6 @@ Notation "⌽" := Mod.empty (at level 9).
 Section ModFacts.
   Context `{Σ : GRA}.
 
-  (* Lemma mod_extensionality (ms1 ms2 : Mod.t)
-    (SCOPE : Mod.scopes ms1 = Mod.scopes ms2)
-    (FNSEM : Mod.fnsems ms1 = Mod.fnsems ms2)
-    (INITS : Mod.initial_st ms1 = Mod.initial_st ms2)
-    :
-    ms1 = ms2.
-  Proof using. destruct ms1, ms2; ss. subst. f_equal; apply proof_irrelevance. Qed. *)
-
   Lemma mod_add_assoc (md1 md2 md3 : Mod.t) :
     (md1 ★ md2) ★ md3 = md1 ★ md2 ★ md3.
   Proof using.
@@ -226,13 +197,6 @@ Section ModFacts.
 
   Lemma mod_add_empty_r (md : Mod.t) : md = md ★ ⌽.
   Proof using. destruct md. apply Mod.t_eq; s; rewrite right_id //. Qed.
-
-  (* Lemma mod_addL_app l l' : Mod.addL (l ++ l') = (Mod.addL l) ★ (Mod.addL l').
-  Proof using.
-    induction l; s.
-    - rewrite -mod_add_empty_l. eauto.
-    - rewrite mod_add_assoc. rewrite IHl. eauto.
-  Qed. *)
 
   Lemma mod_addc_assoc (md : Mod.t) (P Q R : iProp Σ) :
     (md, (P ∗ Q) ∗ R)%I ≡ (md, P ∗ Q ∗ R)%I.
@@ -260,12 +224,6 @@ Section ModFacts.
     { iIntros "P"; iFrame. }
     { iIntros "[P _]"; iFrame. }
   Qed.
-
-  (* Lemma mod_exports_app m1 m2:
-    Mod.exports (m1 ★ m2) = Mod.exports m1 ++ Mod.exports m2.
-  Proof.
-    destruct m1, m2. unfold Mod.exports. s. rewrite List.map_app. et.
-  Qed. *)
 End ModFacts.
 
 (* Tactics for map definitions. *)

@@ -433,8 +433,7 @@ Module MemIA. Section MemIA.
 
   Theorem sim : ISim.t open MemA MemI (MemA.init_cond csl genv) IstFull.
   Proof using.
-    econs; intros Hwf.
-    { multiset_solver. }
+    init_sim.
     { iIntros "?"; iFrame.
       iExists _, _, ∅, ∅; iSplit; eauto.
       { rewrite ?right_id //. }
@@ -448,15 +447,12 @@ Module MemIA. Section MemIA.
         i. inv H1. eapply lookup_lt_Some; eauto.
       }
     }
-    { intros fn; eapply ISim.sim_fun_strong; rewrite !dom_fmap /= /MemA.fnsems ?dom_insert_L;
-      set_unfold; intros Hfn; des; subst; last inv Hfn.
-      { apply simF_alloc. }
-      { apply simF_free. }
-      { apply simF_load. }
-      { apply simF_store. }
-      { apply simF_cmp. }
-      { apply simF_cas. }
-    }
+    { apply simF_alloc. }
+    { apply simF_free. }
+    { apply simF_load. }
+    { apply simF_store. }
+    { apply simF_cmp. }
+    { apply simF_cas. }
   (*SLOW*)Qed.
 
   Lemma ctxr : ctx_refines (MemA, MemA.init_cond csl genv) (MemI, emp%I).

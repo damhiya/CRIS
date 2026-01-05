@@ -1,58 +1,80 @@
 Require Import CRIS.
-Require Import FaaHeader ClientI ClientA FaaA.
-Require Import SchA SchTactics MemA MemTactics.
+Require Export ClientI ClientA FaaA SchA MemA.
+Require Import SchTactics MemTactics.
 From iris Require Import frac_auth numbers.
+
+Require Import Common Mod ltac2_lib.
+
+Program Global Instance fspec_winv_precond
+    `{!crisG Γ Σ α β τ _S _I, !concG, !newschG} (fsp : fspec) N stid m arg varg :
+  WP (precond (fspec_sch fsp) (N, stid) m arg varg) :=
+  {| WP_space := ↑N; WP_remainder := Tid m.1 stid ∗ (precond fsp (N, m.1) m.2 arg varg) |}.
+Next Obligation. intros; destruct m; iSplit; iIntros "[$ $]". Qed.
+
+Program Global Instance fspec_winv_postcond
+    `{!crisG Γ Σ α β τ _S _I, !concG, !newschG} (fsp : fspec) N stid m arg varg :
+  WP (postcond (fspec_sch fsp) (N, stid) m arg varg) :=
+  {| WP_space := ↑N; WP_remainder := Tid m.1 stid ∗ (postcond fsp (N, m.1) m.2 arg varg) |}.
+Next Obligation. intros; destruct m; iSplit; iIntros "[$ $]". Qed.
+
+Ltac simpl_sp :=
+  match goal with
+  | H : ?sp1 ⊆ ?sp2 |- context [?sp2 !! ?key] =>
+    unshelve erewrite (lookup_weaken sp1 sp2 key _ _ H);
+    [|rewrite /sp1; simpl_map; reflexivity|]
+  end.
 
 (* Proof of refinement between ClientA.t and ClientI.t *)
 Module ClientIA. Section ClientIA.
   Import ClientA.
   Context `{!crisG Γ Σ α β τ _S _I, !concG, !memG, !newschG, !incrG}.
 
-  Context (E : coPset) (Hsub : ↑N_main ⊆ E).
-  Context (sp_user : spl_type).
-  Context (sp_s : string → option fspec).
-  Context (Hsch : sp_incl (SchA.sp sp_user E) sp_s).
-  Context (Hclient : spl_sub (ClientA.sp E) sp_user).
+  Context (sp_user sp : specmap).
+  Context (Hclient : ClientA.sp ⊆ sp_user).
+  Context (Hsch : SchA.sp sp_user ⊆ sp).
 
-  Local Definition IstFull := (IstProd (IstSB (ClientA.t E sp_s).(Mod.scopes) IstTrue) IstEq).
-  Local Definition init_cond := ClientA.init_cond E.
-  Local Definition MA := (ClientA.t E sp_s ★ MemA.t sp_none).
-  Local Definition MI := ((ClientI.t ★ FaaA.t) ★ MemA.t sp_none).
+  Local Definition IstFull := (IstProd (IstSB (ClientA.t sp).(Mod.scopes) IstTrue) IstEq).
+  Local Definition MA := (ClientA.t sp ★ MemA.t sp).
+  Local Definition MI := ((ClientI.t ★ FaaA.t) ★ MemA.t sp).
 
   Lemma f_spawnable γ v bofs :
-    SchA.fspec_spawnable E (incr_spec E)
-      (λ varg arg,
+    SchA.fn_spawnable sp_user (IncrHdr.incr)
+      (λ N varg arg,
         ⌜varg = arg ∧ varg = ([Vptr bofs]↑↑)⌝
         ∗ counter γ (1/2) v
-        ∗ incr_inv 0 γ bofs)%I
+        ∗ incr_inv 0 N γ bofs)%I
       (λ vret ret,
         existT 0 ((⌜vret = ret ∧ vret = tt↑↑⌝ ∗ counter_syn γ (1/2) (v + 2))%SAT)).
-  Proof using.
-    rewrite /SchA.fspec_spawnable /fspec_sch /fspec_virtual /precond /postcond /incr_spec /=.
-    intros [mtid stid]; ss. eexists (_, _, (bofs, v, γ)); split; red; ii.
-    - unfold_pre_post.
-      iIntros "[W [% [-> [TID [% [-> [[-> ->] [C #INV]]]]]]]]". iFrame. eauto.
-    - unfold_pre_post. iIntros "[$ [$ [[-> C] ->]]]". iExists _; iSplitR; eauto.
-      iExists _; iSplitR; eauto. SL_red. iSplitR; eauto.
+  Proof using Hclient.
+    eexists; split.
+    { simpl_sp. refl. }
+    intros [N ?] mtid; exists (mtid, (bofs, v, γ)); unfold_pre_post; split; i.
+    - iIntros "[$ [$ [% [% [[-> ->] [[-> ->] [$ $]]]]]]]". done.
+    - iIntros "[$ [$ [[-> ->] ?]]] !>". iExists _, _; iSplitR; eauto.
+      SL_red. iSplitR; eauto.
   Qed.
 
-  Lemma incr_simF : ISim.sim_fun open MA MI init_cond IstFull (Some IncrHdr.incr).
-  Proof using Hsch Hclient Hsub.
-    init_simF.
+  Ltac sch_yield_ir H1 H2 :=
+    iApply (wsim_yield_tgt); [ss|ss|simpl_map; simpl_sp]; iFrame H1; iFrame H2;
+      iSplit; [try done|clear_st; iIntros (??) H1;
+      let H2' := eval compute in ("[_ " ++ H2 ++ "]")%string in iIntros H2'].
 
-    steps_l. iDestruct "ASM" as "[TID [[-> [C #INV]] ->]]". hss_l.
-    destruct _q7 as [b ofs]. rename _q3 into mtid, _q4 into stid, _q6 into γ, _q8 into v.
+  Lemma incr_simF : ISim.sim_fun open MA MI IstFull (Some IncrHdr.incr).
+  Proof using Hsch Hclient.
+    iStartSim.
 
-    steps_l. hss. steps_l.
-    steps_r. hss. steps_r.
-    rewrite /ClientI.incr /ClientA.incr /=. norm_l; norm_r.
+    steps_l. destruct _q as [N stid].
+    steps_l. destruct _q as [mtid [[[blk ofs] v]]]; s.
+    iDestruct "ASM" as "[TID [[-> ->] [C #INV]]]". hss_l; hss_r.
 
-    sch_yield_ir.
+    steps_l. steps_r. hss_l. hss_r. steps_l. steps_r.
+    rewrite /ClientI.incr /ClientA.incr /=; steps_r. steps_l.
+
+    sch_yield_ir "IST" "TID".
 
     (* tgt inline - faa *)
-    steps_r; inline_r; steps_r.
-    hss_r; steps_r.
-    sch_yield_ir.
+    steps_r. inline_r. steps_r. hss_r. steps_r.
+    sch_yield_ir "IST" "TID".
 
     rewrite /incr_inv.
     iInv "INV" as "I" "IA". SL_red.
@@ -64,7 +86,7 @@ Module ClientIA. Section ClientIA.
     iMod (counter_incr 1 with "[C CA]") as "[C CA]"; first iFrame.
     iMod ("IA" with "[GRT CA]") as "_".
     { iExists (x + 1)%Z; SL_red; ss; iFrame. }
-    sch_yield_ir.
+    sch_yield_ir "IST" "TID".
 
     rewrite /incr_inv.
     iInv "INV" as "I" "IA". SL_red.
@@ -76,52 +98,48 @@ Module ClientIA. Section ClientIA.
     iMod (counter_incr 1 with "[C CA]") as "[C CA]"; first iFrame.
     iMod ("IA" with "[GRT CA]") as "_".
     { iExists (y + 1)%Z; SL_red; ss; iFrame. }
-    sch_yield_ir.
+    sch_yield_ir "IST" "TID".
 
     steps_r; hss_r; steps_r.
-    sch_yield_ir.
+    sch_yield_ir "IST" "TID".
     steps_r.
 
-    sch_yield_l; steps_l; forces_l; iFrame "TID".
+    sch_yield_l. steps_l. forces_l. iFrame "TID".
     iSplitL "C".
     { iFrame. replace (v + 1 + 1)%Z with (v + 2)%Z by lia. iFrame. eauto. }
-    steps_l. step; eauto.
+    steps_l. step. iFrame. done.
 (*SLOW*)Qed.
 
-  Lemma main_simF : ISim.sim_fun open MA MI init_cond IstFull None.
-  Proof using Hsch Hclient Hsub.
-    init_simF.
+  Lemma main_simF : ISim.sim_fun open MA MI IstFull None.
+  Proof using Hsch Hclient.
+    iStartSim.
 
-    steps_l.
+    steps_l. destruct _q as [N stid]. steps_l. destruct _q as [mtid []]; s.
+    iDestruct "ASM" as "[TID ->]".
+    rewrite /main /ClientI.main.
 
     (* src/tgt yield *)
-    steps_r.
-    sch_yield_ir. iSplitL.
-    { iExists [], [], [], []; iSplit; eauto.
-      iSplit; eauto.
-      { iPureIntro; splits; ss; unfold_mod; ss. }
-    }
-    iIntros (??) "IST TID".
+    steps_r. steps_l.
+    sch_yield_ir "IST" "TID".
 
     (* tgt alloc *)
     steps_r.
-    iApply wsim_mem_alloc; [try prove_inline_cond|try prove_sb_cond|ss|unfold_cris_defs].
+    iApply wsim_mem_alloc; [ss|ss|].
     iIntros (blk) "[map _]". steps_r; hss_r; steps_r.
-    sch_yield_ir.
-    sch_yield_ir.
+    sch_yield_ir "IST" "TID". steps_r.
+    sch_yield_ir "IST" "TID". steps_r.
 
     (* tgt store *)
-    steps_r.
-    iApply (wsim_mem_store with "map");
-      [try prove_inline_cond|try prove_sb_cond|..|unfold_cris_defs].
+    iApply (wsim_mem_store with "map"); [ss|].
     iIntros "map". steps_r. hss_r. steps_r.
-    sch_yield_ir.
+    sch_yield_ir "IST" "TID". steps_r.
     sch_yield_l. force_l (Vptr (blk, 0%Z)). steps_l. sch_yield_l. steps_l.
 
     (* spawn *)
     iMod (own_alloc ((●F 0%Z ⋅ ◯F{1} 0%Z))) as "[%γc [A F]]".
     { apply frac_auth_valid; ss. }
-    iMod (inv_alloc (ccounter_syn 0 γc (blk, 0%Z)) _ _ _ N_main with "[map A]") as "#I"; eauto.
+    iMod (inv_alloc (ccounter_syn 0 γc (blk, 0%Z)) _ _ _ (N_main N) with "[map A]") as "#I"; eauto.
+    { apply nclose_subseteq. }
     { rewrite /ccounter_syn; SL_red; iExists 0; SL_red; iFrame. }
     iPoseProof (counter_op with "[F]") as "[F1 F2]".
     { rewrite -Qp.half_half -{2}(Z.add_0_r 0%Z). iApply "F". }
@@ -129,54 +147,46 @@ Module ClientIA. Section ClientIA.
     iCombine "F1 I" as "F1". iCombine "F2 I" as "F2".
 
     (* src/tgt spawns *)
-    rewrite /Sch.spawn; steps_r; steps_l.
+    rewrite /Sch.spawn; steps_r; steps_l. simpl_sp.
     force_l (_, _); forces_l; iSplitL "F1".
-    { iExists _; iSplit; eauto.
-      iExists _, _, _; iSplit.
-      { iPureIntro; split; [done|split; [done|]].
-        eexists; split; last eapply f_spawnable.
-        eapply Hclient; ss.
-      }
-      ss; iFrame; iSplit; eauto.
+    { iExists _, _, _; iSplit.
+      { iPureIntro; split; [done|split; [done|]]. eapply f_spawnable. }
+      ss. iFrame; iSplit; eauto.
     }
-    steps_l. call "IST".
-    steps_l. iDestruct "ASM" as "[% [-> [% [[-> ->] Handle]]]]". hss.
-    rename _q0 into tid1. steps_r. hss_r. steps_r.
-    sch_yield_ir.
+    steps_l. call "IST". clear_st. iIntros (ret st_src st_tgt) "IST".
+    steps_l. iDestruct "ASM" as "[% [[-> ->] Handle]]". hss_l. steps_l.
+    steps_r. hss_r. steps_r.
+    sch_yield_ir "IST" "TID".
     sch_yield_l.
 
-    rewrite /Sch.spawn; steps_r; steps_l.
+    rewrite /Sch.spawn; steps_r; steps_l. simpl_sp.
     force_l (_, _); forces_l; iSplitL "F2".
-    { iExists _; iSplit; eauto.
-      iExists _, _, _; iSplit.
-      { iPureIntro; split; [done|split; [done|]].
-        eexists; split; last eapply f_spawnable.
-        eapply Hclient; ss.
-      }
-      ss; iFrame; iSplit; eauto.
+    { iExists _, _, _; iSplit.
+      { iPureIntro; split; [done|split; [done|]]. eapply f_spawnable. }
+      ss. iFrame; iSplit; eauto.
     }
-    steps_l. call "IST".
-    steps_l. iDestruct "ASM" as "[% [-> [% [[-> ->] Handle2]]]]". hss.
-    rename _q0 into tid2. steps_r. hss_r. steps_r.
-    sch_yield_ir.
+    steps_l. call "IST". clear_st. iIntros (ret st_src st_tgt) "IST".
+    steps_l. iDestruct "ASM" as "[% [[-> ->] Handle2]]". hss_l. steps_l.
+    steps_r. hss_r. steps_r.
+    sch_yield_ir "IST" "TID".
     sch_yield_l.
 
-    rewrite /Sch.join; steps_r; steps_l.
-    force_l (_, _, _, _); forces_l. iFrame "TID Handle"; iSplit; [iExists _; eauto|]. steps_l.
-    call "IST".
-    steps_l. iDestruct "ASM" as "[% [-> [% [% ASM]]]]"; hss.
-    iDestruct "ASM" as "[[% ->] [TID ASM]]". hss. SL_red. iDestruct "ASM" as "[[-> ->] Q]".
-    steps_r. hss_r. steps_r.
-    sch_yield_ir.
+    rewrite /Sch.join; steps_r; steps_l. simpl_sp.
+    force_l (_, _); forces_l. iFrame "TID Handle"; iSplit; [eauto|]. steps_l.
+    call "IST". clear_st. iIntros (ret st_src st_tgt) "IST".
+    steps_l. iDestruct "ASM" as "[TID [% [% [[-> ->] ASM]]]]".
+    SL_red. iDestruct "ASM" as "[[-> ->] Q]".
+    hss_l. steps_l. steps_r. hss_r. steps_r.
+    sch_yield_ir "IST" "TID".
     sch_yield_l.
 
-    rewrite /Sch.join; steps_r; steps_l.
-    force_l (_, _, _, _); forces_l; iFrame "Handle2 TID"; iSplit; [iExists _; eauto|]. steps_l.
-    call "IST".
-    steps_l. iDestruct "ASM" as "[% [-> [% [% ASM]]]]"; hss.
-    iDestruct "ASM" as "[[% ->] [TID ASM]]". hss. SL_red. iDestruct "ASM" as "[[-> ->] Q2]".
-    steps_r. hss_r. steps_r.
-    sch_yield_ir.
+    rewrite /Sch.join; steps_r; steps_l. simpl_sp.
+    force_l (_, _); forces_l. iFrame "TID Handle2"; iSplit; [eauto|]. steps_l.
+    call "IST". clear_st. iIntros (ret st_src st_tgt) "IST".
+    steps_l. iDestruct "ASM" as "[TID [% [% [[-> ->] ASM]]]]".
+    SL_red. iDestruct "ASM" as "[[-> ->] Q2]".
+    hss_l. steps_l. steps_r. hss_r. steps_r.
+    sch_yield_ir "IST" "TID".
 
     iInv "I" as "INV" "INVA"; iEval (SL_red) in "INV"; iDestruct "INV" as "[%x INV]".
     iEval (SL_red) in "INV". iDestruct "INV" as "[PT C]".
@@ -184,42 +194,41 @@ Module ClientIA. Section ClientIA.
     iDestruct "C" as "[CA CF]".
 
     steps_r.
-    iApply (wsim_mem_load with "[PT]");
-        [try prove_inline_cond|try prove_sb_cond|ss|unfold_cris_defs].
-    iIntros "PT". steps_r. hss. steps_r.
+    iApply (wsim_mem_load with "[PT]"); [ss|ss|].
+    iIntros "PT". steps_r. hss_r. steps_r.
 
     iMod ("INVA" with "[CA PT]") as "_".
     { SL_red. iExists _; SL_red; iFrame. }
 
-    sch_yield_ir. steps_r.
-    sch_yield_ir.
+    sch_yield_ir "IST" "TID". steps_r.
+    sch_yield_ir "IST" "TID". 
     sch_yield_l; steps_l.
 
     step.
     steps_l. steps_r.
-    sch_yield_ir.
-    sch_yield_l. steps_l. forces_l. iSplit; eauto.
-    step. eauto.
+    sch_yield_ir "IST" "TID".
+    sch_yield_l. steps_l. forces_l. iFrame "TID"; iSplit; eauto.
+    step. iFrame. done.
 (*SLOW*)Qed.
 
-  Lemma sim : ISim.t open MA MI init_cond IstFull.
-  Proof using Hsch Hclient Hsub.
+  Lemma sim : ISim.t open MA MI emp%I IstFull.
+  Proof using Hsch Hclient.
     init_sim.
     { eapply incr_simF. }
     { eapply main_simF. }
+    { iIntros "_"; iExists _, _, _, _; iSplit; eauto. }
   Qed.
 End ClientIA.
 
 Section ctxr.
   Context `{!crisG Γ Σ α β τ _S _I, !concG, !memG, !newschG, !incrG}.
 
-  Definition ctxr (E : coPset) (sp_s : string → option fspec) (sp_user : spl_type) :
-    ↑ClientA.N_main ⊆ E →
-    spl_sub (ClientA.sp E) sp_user →
-    sp_incl (SchA.sp sp_user E) sp_s →
+  Definition ctxr (sp_user sp : specmap) :
+    ClientA.sp ⊆ sp_user →
+    (SchA.sp sp_user) ⊆ sp →
     ctx_refines
-      (ClientA.t E sp_s   ★ MemA.t sp_none, init_cond E)
-      (ClientI.t          ★ FaaA.t ★ (MemA.t sp_none), emp%I).
+      (ClientA.t sp ★ MemA.t sp, emp%I)
+      (ClientI.t    ★ FaaA.t ★ (MemA.t sp), emp%I).
   Proof using.
     etrans; cycle 1. { do 2 ctxr_rotate. ctxr_refl. }
     eset (GRP := ClientI.t ★ _).

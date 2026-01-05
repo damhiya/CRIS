@@ -49,6 +49,20 @@ Section SchRA.
 End SchRA.
 Hint Unfold inG_join inG_tid subG_newschG : GRA_index.
 
+Definition fspec_sch `{!crisG Γ Σ α β τ _S _I, !concG, !newschG} (fsp : fspec) : fspec :=
+  fspec_winv
+    (fspec_mk
+      (λ '(N, stid) '(mtid, x) varg arg, Tid mtid stid ∗ precond fsp (N, mtid) x varg arg)
+      (λ '(N, stid) '(mtid, x) vret ret, Tid mtid stid ∗ postcond fsp (N, mtid) x vret ret))%I.
+(* Program Global Instance fspec_winv_precond `{!crisG Γ Σ α β τ _S _I} (fsp : fspec) N tid E m arg varg :
+  WP (precond (fspec_sch fsp) (N, tid) m arg varg) :=
+  {| WP_space := E; WP_remainder := (precond fsp (N, tid) m arg varg) |}.
+Next Obligation. intros; iSplit; iIntros "[$ $]". Qed.
+
+Program Global Instance fspec_winv_postcond `{!crisG Γ Σ α β τ _S _I} (fsp : fspec) E m arg varg :
+  WP (postcond (fspec_sch fsp) m arg varg) :=
+  {| WP_space := E; WP_remainder := (postcond fsp m arg varg) |}.
+Next Obligation. intros; iSplit; iIntros "[$ $]". Qed. *)
 Module SchA. Section SchA.
   Context `{!crisG Γ Σ α β τ _S _I, !concG, !newschG}.
 
@@ -74,24 +88,21 @@ Module SchA. Section SchA.
   Section SPEC.
     Context (sp_user : specmap).
 
-  Definition fspec_winv (fsp : fspec) : fspec :=
-    fspec_mk (meta := meta fsp)
-      (λ '(N, stid) x varg arg, winv (↑N, ↑N) ∗ precond fsp (N, stid) x varg arg)%I
-      (λ '(N, stid) x vret ret, winv (↑N, ↑N) ∗ postcond fsp (N, stid) x vret ret)%I.
-
     Definition fspec_spawnable fsp
-        (pre : SAny.t → SAny.t → iProp Σ)
+        (pre : namespace → SAny.t → SAny.t → iProp Σ)
         (postS : SAny.t → SAny.t → leibnizO {n & GTerm.t n}) : Prop :=
       fspec_imply fsp
-        (fspec_winv
-           (fspec_virtual (λ '(mtid, stid),
-              ((λ (varg : SAny.t) arg,
-                Tid mtid stid ∗ ∃ sarg, ⌜arg = sarg↑⌝ ∗ pre varg sarg)%I,
-               (λ (vret : SAny.t) ret,
-                Tid mtid stid ∗ ∃ sret, ⌜ret = sret↑⌝ ∗ interp_cond (postS vret sret)))%I))).
+        (fspec_mk
+          (λ '(N, stid) mtid varg arg,
+            winv (↑N, ↑N) ∗ Tid mtid stid ∗
+            ∃ (sarg svarg : SAny.t), ⌜varg = svarg↑ ∧ arg = sarg↑⌝ ∗ pre N svarg sarg)
+          (λ '(N, stid) mtid vret ret,
+            winv (↑N, ↑N) ∗ Tid mtid stid ∗
+            ∃ (sret svret : SAny.t), ⌜vret = svret↑ ∧ ret = sret↑⌝ ∗
+              interp_cond (postS svret sret)))%I.
 
     Definition fn_spawnable fn
-        (pre : SAny.t -d> SAny.t -d> iProp Σ)
+        (pre : namespace → SAny.t -d> SAny.t -d> iProp Σ)
         (postS : SAny.t -d> SAny.t -d> leibnizO {n & GTerm.t n}) : Prop :=
       ∃ fsp, sp_user !! (speckey_fn fn) = Some fsp ∧ fspec_spawnable fsp pre postS.
 
@@ -100,37 +111,36 @@ Module SchA. Section SchA.
         (λ '(N, stid) '(pre, postS) varg arg,
           ∃ (fvarg farg : SAny.t) (fn : string) (mtid : nat),
             ⌜varg = (fn, fvarg)↑ ∧ arg = (fn, farg)↑ ∧ fn_spawnable fn pre postS⌝ ∗
-            winv (↑N, ↑N) ∗ TID(stid) ∗ YIELD(stid) ∗
-            pre fvarg farg ∗
-            JoinFrag (3/4)%Qp mtid postS ∗
-            own base_γ (gmap_view_frag mtid (DfracOwn 1) (to_agree stid)))%I
+            winv (↑N, ↑N) ∗ Tid mtid stid ∗
+            pre N fvarg farg ∗
+            JoinFrag (3/4)%Qp mtid postS)%I
         (λ _ _ vret _, ∃ (vr : SAny.t), ⌜vret = vr↑⌝ ∗ False)%I.
 
     Definition spawn_spec : fspec :=
-      fspec_virtual (λ '(pre, postS),
-        ((λ varg arg,
+      fspec_mk
+        (λ '(N, stid) '(pre, postS) varg arg,
           ∃ fvarg farg fn,
-            ⌜varg = ((fn, fvarg) : string * SAny.t) ∧
-             arg = ((fn, farg) : string * SAny.t)↑ ∧
-             fn_spawnable fn pre postS⌝ ∗
-            pre fvarg farg)%I,
-          (λ vret ret,
-            ∃ tid, ⌜vret = tid ∧ ret = tid↑⌝ ∗ JoinHandle tid postS)%I)).
+            ⌜varg = ((fn, fvarg) : string * SAny.t)↑
+            ∧ arg = ((fn, farg) : string * SAny.t)↑ ∧
+            fn_spawnable fn pre postS⌝ ∗
+          pre N fvarg farg)%I
+        (λ '(N, stid) '(pre, postS) vret ret,
+          ∃ tid, ⌜vret = tid↑ ∧ ret = tid↑⌝ ∗ JoinHandle tid postS)%I.
 
     Definition yield_spec : fspec :=
-      fspec_winv
+      fspec_sch
         (fspec_mk
-          (λ '(N, stid) mtid varg arg, ⌜arg = varg ∧ varg = tt↑⌝ ∗ Tid mtid stid)
-          (λ '(N, stid) mtid vret ret, ⌜ret = vret ∧ vret = tt↑⌝ ∗ Tid mtid stid))%I.
+          (λ _ (_ : ()) varg arg, ⌜arg = varg ∧ varg = tt↑⌝)
+          (λ _ _ vret ret, ⌜ret = vret ∧ vret = tt↑⌝))%I.
 
     Definition join_spec : fspec :=
-      fspec_winv
+      fspec_sch
         (fspec_mk
-          (λ '(N, stid) '(mtid, tid, postS) varg arg,
-            ⌜arg = tid↑ ∧ varg = tid↑⌝ ∗ Tid mtid stid ∗ JoinHandle tid postS)
-          (λ '(N, stid) '(mtid, tid, postS) vret ret, 
+          (λ '(N, stid) postS varg arg,
+            ∃ tid, ⌜arg = tid↑ ∧ varg = tid↑⌝ ∗ JoinHandle tid postS)
+          (λ '(N, stid) postS vret ret, 
             (∃ vsret sret, ⌜vret = (Some vsret)↑ ∧ ret = (Some sret)↑⌝ ∗
-            Tid mtid stid ∗ interp_cond (postS vsret sret))))%I.
+            interp_cond (postS vsret sret))))%I.
 
     Definition get_tid_spec : fspec :=
       fspec_mk
@@ -228,13 +238,3 @@ Module SchA. Section SchA.
 
   Definition t sp sp_user := SMod.to_mod sp (smod sp_user).
 End SchA. End SchA.
-
-(* Section FSPEC_SCH.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG, !newschG}.
-
-  Definition fspec_sch E (fsp : fspec) : fspec :=
-    fspec_winv E
-      (fspec_call
-        (λ '(mtid, stid, x) varg arg, Tid mtid stid ∗ precond fsp x varg arg)
-        (λ '(mtid, stid, x) vret ret, Tid mtid stid ∗ postcond fsp x vret ret))%I.
-End FSPEC_SCH. *)

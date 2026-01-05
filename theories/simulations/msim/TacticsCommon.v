@@ -649,8 +649,20 @@ Ltac hss :=
   (hrepeat do 1 hss_copset);
   move_aux.
 
-Ltac hss_l := only_itree_l; hss; show_itree.
-Ltac hss_r := only_itree_r; hss; show_itree.
+(* Ltac hss_l := only_itree_l; hss; show_itree. *)
+(* Ltac hss_r := only_itree_r; hss; show_itree. *)
+Ltac hss_l := 
+  only_itree_l;
+  match goal with
+  | |- context [Any.downcast (Any.upcast ?A)] => rewrite (Any.upcast_downcast A)
+  | |- context [SAny.downcast (SAny.upcast ?A)] => rewrite (SAny.upcast_downcast A)
+  end; show_itree.
+Ltac hss_r :=
+  only_itree_r;
+  match goal with
+  | |- context [Any.downcast (Any.upcast ?A)] => rewrite (Any.upcast_downcast A)
+  | |- context [SAny.downcast (SAny.upcast ?A)] => rewrite (SAny.upcast_downcast A)
+  end; show_itree.
 
 Ltac red_ret_l :=
   let marker := fresh "MARKER" in

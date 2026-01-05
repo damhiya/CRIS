@@ -5,7 +5,7 @@ Require Import FaaHeader.
 Module ClientI. Section ClientI.
   Context `{!crisG Γ Σ α β τ _S _I, !concG}.
 
-  Definition scopes : list string := [].
+  Definition scopes : gmultiset string := ∅.
 
   Definition incr : list val → itree crisE unit :=
     λ arg,
@@ -26,17 +26,17 @@ Module ClientI. Section ClientI.
       𝒴;;; '_ : unit <- trigger (IO "OUT" v);;
       𝒴;;; Ret (tt↑).
 
-  Definition fnsems : fnsems_type :=
-    [(Some IncrHdr.incr, (false, wmask_all, scopes, (None, cfunU (sfunU incr))));
-     (None,              (false, wmask_all, scopes, (None, main)))].
+  Definition fnsems : gmap (option string) (option (emask * (option fspec * fbody))) :=
+    {[Some IncrHdr.incr := Some (msk_scp scopes msk_true, (None, cfunU (sfunU incr)));
+      None := Some (msk_scp scopes msk_true, (None, main))]}.
 
   Program Definition smod : SMod.t := {|
     SMod.scopes := scopes;
     SMod.fnsems := fnsems;
-    SMod.initial_st := [];
+    SMod.initial_st := ∅;
   |}.
-  Solve All Obligations with prove_scope.
-  Next Obligation. prove_nodup. Qed.
+  Solve All Obligations with try done.
+  Next Obligation. rewrite ?omap_insert /= omap_empty. mod_tac scope_solver. Qed.
 
-  Definition t : Mod.t := Seal.sealing CRIS (SMod.to_mod sp_none smod).
+  Definition t : Mod.t := SMod.to_mod ∅ smod.
 End ClientI. End ClientI.

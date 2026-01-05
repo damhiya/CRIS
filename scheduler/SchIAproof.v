@@ -45,12 +45,12 @@ Module SchIA. Section sim.
     step_l. destruct _q as [N stid].
     step_l. destruct _q as [pre post].
     steps_l. iDestruct "ASM" as "[%fvarg [%varg [%fn [%mtid [[-> [-> %Hspawn]] ASM]]]]]".
-    iDestruct "ASM" as "[? [? [? [Pre [JoinFrag TidFrag]]]]]".
-    rewrite !Any.upcast_downcast /=.
+    iDestruct "ASM" as "[? [TidFrag [Pre JoinFrag]]]".
+    hss_l; hss_r.
 
     steps_l. steps_r.
     destruct Hspawn as [fsp [Hfind Hspawn]]; erewrite lookup_weaken; eauto using Hfind.
-    destruct (Hspawn (N, stid) (mtid, stid)) as [x [Hpre Hpost]].
+    destruct (Hspawn (N, stid) mtid) as [x [Hpre Hpost]].
     iPoseProof (Hpre with "[-IST JoinFrag]") as "> Post".
     { unfold_pre_post; iFrame; eauto. }
     force_l x. forces_l. iFrame.
@@ -60,13 +60,13 @@ Module SchIA. Section sim.
 
     (* after call - prepare for termination *)
     steps_l. rename _q into vret.
-    iMod (Hpost $ vret with "[ASM]") as "[W [% [-> [[TidF [TID YIELD]] [% [-> Q]]]]]] /="; iFrame.
-    rewrite Any.upcast_downcast /=. steps_l.
+    iMod (Hpost $ vret with "[ASM]") as "[W [[TidF [TID YIELD]] [% [% [[-> ->] Q]]]]]"; iFrame.
+    hss_l; steps_l.
 
-    steps_r. rewrite Any.upcast_downcast. steps_r.
+    steps_r. hss_r. steps_r.
     iDestruct "IST" as "[% [%tid_cur [%stid_cur [[-> [-> %Hmtid]] [JoinA [TidA [RET Ys]]]]]]]".
-    steps_r. rewrite Any.upcast_downcast /=. steps_r. rewrite Any.upcast_downcast /=. steps_r.
-    steps_l. rewrite Any.upcast_downcast /=. steps_l. rewrite Any.upcast_downcast /=. steps_l.
+    steps_r. hss_r. steps_r. hss_r. steps_r.
+    steps_l. hss_l. steps_l. hss_l. steps_l.
 
     destruct Hmtid as [? [? Hmtid]].
 
@@ -99,7 +99,7 @@ Module SchIA. Section sim.
     set (st_t2 := <[_:=_]>_).
     iAssert (Ist st_s2 st_t2) with "[JoinFrag JoinA TidA RET Ys Q]" as "IST".
     { subst st_s2 st_t2.
-      iExists (<[mtid := (stid, Some (vr, sret), _)]> ths), mtid, stid.
+      iExists (<[mtid := (stid, Some (svret, sret), _)]> ths), mtid, stid.
       iSplit.
       { rewrite ?list_fmap_insert /= list_lookup_insert //.
         { iPureIntro; esplits; eauto. }
@@ -118,10 +118,10 @@ Module SchIA. Section sim.
       { rewrite Hlen insert_app_r_alt; last done.
         iPoseProof (big_sepL_insert_acc _ _ mtid with "RET") as "[_ RET]"; ss.
         { rewrite Hlen lookup_app_Some; right; split; ss; rewrite Nat.sub_diag //=. }
-        iPoseProof ("RET" $! (stid, Some (vr, sret), postS) with "[Q JoinFrag]") as "RET".
+        iPoseProof ("RET" $! (stid, Some (svret, sret), postS) with "[Q JoinFrag]") as "RET".
         { rewrite /JoinFrag Hlen /=; iLeft; iFrame.
           rewrite /interp_cond. pose proof Hincl as Hequiv.
-          specialize (Hequiv vr sret). rewrite Hequiv. iFrame.
+          specialize (Hequiv svret sret). rewrite Hequiv. iFrame.
           rewrite Hincl //.
         }
         rewrite Nat.sub_diag insert_app_r_alt Hlen // Nat.sub_diag //=.
@@ -144,12 +144,12 @@ Module SchIA. Section sim.
     steps_l.
     unshelve erewrite (lookup_weaken _ _ _ _ _ SchInSp); cycle 1.
     { rewrite /SchA.sp; simpl_map; refl. }
-    force_l mtid. force_l (tt↑). steps_l.
+    force_l (mtid, tt). force_l (tt↑). steps_l.
     iApply wsim_guarantee_src; iFrame "W TidF TID YIELD"; iSplit; eauto.
 
     steps_r. call "IST".
     clear ret st_s st_t; iIntros (ret st_s st_t) "IST". steps_l.
-    iDestruct "ASM" as "[W [[-> ->] TidF]]".
+    iDestruct "ASM" as "[W [TidF [-> ->]]]".
     steps_r.
     by_coind CIH; eauto.
     iPoseProof (winv_split_empty with "I") as "[I E]".
@@ -163,8 +163,8 @@ Module SchIA. Section sim.
     (* preprocess source precondition *)
     step_l. destruct _q as [N stid].
     step_l. destruct _q as [user_pre user_post]. steps_l.
-    iDestruct "ASM" as "[% [-> [% [% [% [[-> [-> %Hspawn]] ASM]]]]]]".
-    rewrite ?Any.upcast_downcast /=.
+    iDestruct "ASM" as "[% [% [% [[-> [-> %Hspawn]] ASM]]]]".
+    hss_l; hss_r.
     steps_l. steps_r.
 
     iDestruct "IST" as "[% [% [% [[-> [-> %Hmtid]] [JoinA [TidA [RET Y]]]]]]]".
@@ -232,19 +232,18 @@ Module SchIA. Section sim.
     iStartSim.
 
     step_l. destruct _q as [N stid].
-    step_l. rename _q into mtid. steps_l.
-    iDestruct "ASM" as "[W [[-> ->] [Tid [TID YIELD]]]]".
-    rewrite !Any.upcast_downcast /=.
+    step_l. destruct _q as [mtid ?]. steps_l.
+    iDestruct "ASM" as "[W [[Tid [TID YIELD]] [-> ->]]]".
+    hss_l; hss_r.
     iDestruct "IST" as "[% [%tid_cur [%stid_cur [[-> [-> %Htid_cur]] [JoinA [TidA [RET Ys]]]]]]]".
     destruct Htid_cur as [ro_cur [post_cur Htid_cur]].
-    steps_r. steps_l. rewrite !Any.upcast_downcast. steps_r. steps_l.
+    steps_r. steps_l. hss_l; hss_r. steps_r. steps_l.
     do 2 (case_decide as H'; ss; clear H').
 
     (* GetTid reasoning *)
     force_l; iFrame "TID". steps_l. steps_r.
-    step. steps_l. iDestruct "ASM" as "[-> TID]". rewrite !Any.upcast_downcast /=. steps_l.
-    steps_r. rewrite Any.upcast_downcast /=. steps_r.
-    (* hss_l. steps_l. steps_r. hss_r. steps_r. *)
+    step. steps_l. iDestruct "ASM" as "[-> TID]". hss_l; steps_l.
+    steps_r. hss_r; steps_r.
     iPoseProof (Tid_Auth_Tid with "[TidA Tid]") as "%Hmtid"; first iFrame.
     eapply elem_of_list_to_map_2 in Hmtid; rewrite elem_of_lookup_imap in Hmtid.
     destruct Hmtid as [? [? [EQ Hmtid]]]; symmetry in EQ; inv EQ.
@@ -294,10 +293,8 @@ Module SchIA. Section sim.
     iStartSim.
 
     step_l. destruct _q as [N stid]. step_l.
-    destruct _q as [[mtid tid] post]. steps_l.
-    iDestruct "ASM" as "[W [[-> ->] [TID JoinF]]]". rewrite ?Any.upcast_downcast /=.
-    (* hss.
-    rename _q4 into tid, _q2 into post, _q5 into mtid, _q6 into stid. *)
+    destruct _q as [mtid post]. steps_l.
+    iDestruct "ASM" as "[W [TID [%tid [[-> ->] JoinF]]]]". hss_l; hss_r.
 
     steps_r. steps_l.
     (* iApply wsim_unfold; iIntros "WI". *)
@@ -312,7 +309,7 @@ Module SchIA. Section sim.
     unfold_iterC_l; unfold_iterC_r.
 
     iDestruct "IST" as "[% [%tid_cur [%stid_cur [[-> [-> %Hmtid]] [JoinA [TidA [RET Ys]]]]]]]".
-    steps_l. steps_r. rewrite ?Any.upcast_downcast /=.
+    steps_l. steps_r. hss_l; hss_r.
     steps_r. steps_l.
 
     rewrite ?list_lookup_fmap.
@@ -335,11 +332,11 @@ Module SchIA. Section sim.
     { steps_r.
       steps_l. unshelve erewrite (lookup_weaken _ _ _ _ _ SchInSp); cycle 1.
       { rewrite /SchA.sp; simpl_map; refl. }
-      force_l mtid. steps_l. force_l. force_l. iFrame "W Tid". iSplit; eauto.
+      force_l (mtid, tt). steps_l. force_l. force_l. iFrame "W Tid". iSplit; eauto.
       steps_l. call "JoinA TidA RET Ys".
       { iFrame. des; iExists _; iPureIntro; esplits; eauto. }
       iIntros (ret st_src st_tgt) "IST". steps_l. steps_r.
-      iDestruct "ASM" as "[W [[-> ->] Tid]]". rewrite ?Any.upcast_downcast /=.
+      iDestruct "ASM" as "[W [Tid [-> ->]]]". hss_l; hss_r.
       steps_r. steps_l.
       by_coind CIH. iFrame.
     }
@@ -354,7 +351,7 @@ Module SchIA. Section sim.
     iStartSim.
 
     step_l. destruct _q as [N stid]. step_l. rename _q into mtid.
-    steps_l. iDestruct "ASM" as "[[-> ->] Tid]". rewrite !Any.upcast_downcast /=.
+    steps_l. iDestruct "ASM" as "[[-> ->] Tid]". hss_l; hss_r.
     steps_r. steps_l.
     iDestruct "IST" as "[% [%tid_cur [%stid_cur [[-> [-> %Hmtid]] [JoinA [TidA [RET Ys]]]]]]]".
     iDestruct "Tid" as "[TidF [TID YIELD]]".

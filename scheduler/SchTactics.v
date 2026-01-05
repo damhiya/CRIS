@@ -1,6 +1,7 @@
-Require Import CRIS SchHeader SchA.
+Require Import CRIS.
 Require Import ITactics.
 Require Import MSim WSim.
+Require Export SchHeader SchA.
 
 Section wsim.
   Context `{!crisG Γ Σ α β τ _S _I, !concG, !newschG}.
@@ -24,11 +25,13 @@ Section wsim.
       (msk_s msk_t : emask)
       (sp_s sp_t : specmap)
       (N_s N_t : namespace)
-      (stid_s stid_t : nat) :
+      (stid_s stid_t mtid : nat) :
     let tid :=
       (match sp_s !! speckey_fn SchHdr.yield, sp_t !! speckey_fn SchHdr.yield with
       | Some fsp_s, Some fsp_t =>
           ⌜fsp_s = fsp_t ∧ fsp_s = SchA.yield_spec⌝
+      | Some fsp_s, None =>
+          ⌜fsp_s = SchA.yield_spec⌝ ∗ Tid mtid stid_s
       | None, None =>
           True
       | _, _ =>
@@ -67,6 +70,7 @@ Section wsim.
 
     force_l (Some true). steps_r. steps_l.
     des_ifs; des; clarify.
+    { admit. }
     { admit. }
     { steps_l. destruct (msk_s _); step_l; ss. 
       steps_r. rewrite Hcall; steps_r.
@@ -192,7 +196,7 @@ Ltac clear_st :=
   clear_st; iIntros (??); iIntrosFresh "IST"; iIntrosFresh "TID"; clear_emp. *)
 
 Ltac sch_yield_rr IST :=
-  iApply (wsim_yield_tgt); [ss|ss|simpl_map]; iFrame IST; iSplit;
+  unshelve iApply (wsim_yield_tgt); [exact 0|ss|ss|simpl_map]; iFrame IST; iSplit;
   [done|clear_st; iIntros (??) IST; iIntros "_"].
 
 Ltac sch_yield_l :=

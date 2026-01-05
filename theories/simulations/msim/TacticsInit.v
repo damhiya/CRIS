@@ -1,7 +1,7 @@
 Require Import Common ConcRA.
 From iris.proofmode Require Export proofmode.
 Require Import TacticsCommon ITactics WTactics Tactics.
-Require Import Mod ISim WSim SModTr.
+Require Import Mod ISim ISimFacts WSim SModTr.
 
 (***
  Module-level tactics
@@ -58,23 +58,23 @@ Require Import Mod ISim WSim SModTr.
   try rewrite state_scopes_update;
   et. *)
 
-(* Ltac init_sim :=
-  clear_trivials;
+Ltac init_sim :=
+  (* clear_trivials; *)
   (first
-  [ eapply ISim_reflR;
-    [ hrepeat do 1 unfold_mod; et
-    | try prove_sub_perm
-    | try prove_sub_perm
-    | r; (hrepeat do 1 unfold_mod; s); i; ss
-    | try unfold_mod_fn; i; des; subst; ss
-    ]
-  | econs; i;
-    [ try prove_sub_perm
-    | try prove_sub_perm
-    | r; (hrepeat do 1 unfold_mod; s); i; ss
-    | eapply ISim.sim_fun_strong; try unfold_mod_fn; i; des; subst; ss
-    ]
-  ]). *)
+    [ eapply ISim_reflR;
+      [ intros fn; rewrite !dom_fmap /= ?dom_insert_L;
+        set_unfold; intros Hfn; des; subst; last inv Hfn
+      | multiset_solver
+      | multiset_solver
+      | set_solver
+      |]
+    | econs; intros Hwf;
+      [ multiset_solver
+      |
+      | intros fn; eapply ISim.sim_fun_strong; rewrite !dom_fmap /= ?dom_insert_L;
+        set_unfold; intros Hfn; des; subst; last inv Hfn
+      ]
+    ]).
 
 (* Ltac iinit_simF := initialize_simF. *)
 (* Lemma wsim_HoareFun_src `{!crisG Γ Σ α β τ _S _I, !concG}

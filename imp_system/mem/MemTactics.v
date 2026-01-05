@@ -42,6 +42,46 @@ Section mem.
     iIntros "!> % % %"; rewrite Z.add_0_l; iIntros "$".
   Qed.
 
+  Lemma wsim_mem_store b ofs v v' k_s k_t E1 E2 r g :
+    fl_t !! Some MemHdr.store =
+      Some (Some (SB.sandbox_body
+        (msk_scp MemA.scopes msk_true,
+         SModTr.trans_fnsem sp (Some MemSpec.store, fbody_trivial)))) →
+    (b, ofs) ↦ v' -∗
+    ((b, ofs) ↦ v -∗
+      wsim fl_s fl_t Ist (E1, E2) r g R_s R_t RR ps true
+        (st_src, k_s)
+        (st_tgt, k_t (Vint 0)↑)) -∗
+    wsim fl_s fl_t Ist (E1, E2) r g R_s R_t RR ps pt
+      (st_src, k_s)
+      (st_tgt, x <- trigger (Call MemHdr.store [Vptr (b, ofs); v]↑);; k_t x).
+  Proof.
+    intros Hin.
+    iIntros "↦ K".
+    inline_r. force_r (nroot, 0). force_r (b, ofs, v', v). forces_r. iFrame "↦"; iSplit; eauto.
+    steps_r. iDestruct "GRT" as "[-> [↦ ->]]". iApply "K"; iFrame.
+  Qed.
+
+  Lemma wsim_mem_load b ofs q v k_s k_t E1 E2 r g :
+     fl_t !! Some MemHdr.load =
+      Some (Some (SB.sandbox_body
+        (msk_scp MemA.scopes msk_true,
+         SModTr.trans_fnsem sp (Some MemSpec.load, fbody_trivial)))) →
+    (b, ofs) ↦{q} v -∗
+    ((b, ofs) ↦{q} v -∗
+      wsim fl_s fl_t Ist (E1, E2) r g R_s R_t RR ps true
+        (st_src, k_s)
+        (st_tgt, k_t v↑)) -∗
+    wsim fl_s fl_t Ist (E1, E2) r g R_s R_t RR ps pt
+      (st_src, k_s)
+      (st_tgt, x <- trigger (Call MemHdr.load [Vptr (b, ofs)]↑);; k_t x).
+  Proof.
+    intros Hin.
+    iIntros "↦ K".
+    inline_r. force_r (nroot, 0). force_r (b, ofs, q, v). forces_r. iFrame "↦"; iSplit; eauto.
+    steps_r. iDestruct "GRT" as "[-> [↦ ->]]". iApply "K"; iFrame.
+  Qed.
+
   Lemma wsim_mem_cas b ofs v v_old v_new succ E k_s k_t E1 E2 r g  :
     fl_t !! Some MemHdr.cas =
       Some (Some (SB.sandbox_body
@@ -68,54 +108,7 @@ Section mem.
     steps_r. iDestruct "GRT" as "[-> [-> [↦ E]]]". iApply ("K" with "↦ E"); iFrame.
   Qed.
 
-  (* Lemma wsim_mem_store b ofs v v' k_s k_t E1 E2 r g img_t msk_t scp_t msk_m :
-    alist_find (Some MemHdr.store) fl_t =
-      Some (SB.sandbox_body
-        (SModTr.trans_fnsem sp
-          (true, msk_m, MemA.scopes, (Some (MemSpec.store), fbody_trivial)))) →
-    (msk_t MemHdr.store : bool) →
-    (b, ofs) ↦ v' -∗
-    ((b, ofs) ↦ v -∗
-      wsim fl_s fl_t Ist (E1, E2) r g R_s R_t RR ps true
-        (st_src, k_s)
-        (st_tgt, k_t (Vint 0)↑)) -∗
-    wsim fl_s fl_t Ist (E1, E2) r g R_s R_t RR ps pt
-      (st_src, k_s)
-      (st_tgt,
-        x <- (SB.sandbox img_t msk_t scp_t (trigger (Call MemHdr.store [Vptr (b, ofs); v]↑)));;
-        k_t x).
-  Proof.
-    intros Hin Hmsk.
-    iIntros "↦ K".
-    inline_r. steps_r. force_r (b, ofs, v', v). forces_r. iFrame "↦"; iSplit; eauto.
-    steps_r. iDestruct "GRT" as "[[↦ ->] ->]". iApply "K"; iFrame.
-  Qed.
-
-  Lemma wsim_mem_load b ofs q v k_s k_t E1 E2 r g img_t msk_t scp_t msk_m :
-    alist_find (Some MemHdr.load) fl_t =
-      Some (SB.sandbox_body
-        (SModTr.trans_fnsem sp
-          (true, msk_m, MemA.scopes, (Some (MemSpec.load), fbody_trivial)))) →
-    (msk_t MemHdr.load : bool) →
-    (b, ofs) ↦{q} v -∗
-    ((b, ofs) ↦{q} v -∗
-      wsim fl_s fl_t Ist (E1, E2) r g R_s R_t RR ps true
-        (st_src, k_s)
-        (st_tgt, k_t v↑)) -∗
-    wsim fl_s fl_t Ist (E1, E2) r g R_s R_t RR ps pt
-      (st_src, k_s)
-      (st_tgt,
-        x <- (SB.sandbox img_t msk_t scp_t (trigger (Call MemHdr.load [Vptr (b, ofs)]↑)));;
-        k_t x).
-  Proof.
-    intros Hin Hmsk.
-    iIntros "↦ K".
-    inline_r. steps_r. force_r (b, ofs, q, v). forces_r. iFrame "↦"; iSplit; eauto.
-    steps_r. iDestruct "GRT" as "[[↦ ->] ->]". iApply "K"; iFrame.
-  Qed.
-
-
-
+  (* 
   Lemma wsim_mem_cmp v1 v2 succ E k_s k_t E1 E2 r g img_t msk_t scp_t msk_m :
     alist_find (Some MemHdr.cmp) fl_t =
       Some (SB.sandbox_body
