@@ -31,15 +31,15 @@ Module SMod. Section Smod.
     end.
 
   Definition sp_from (md : t) : specmap :=
-    list_to_map (map (map_fst lift_fn) (map_to_list (omap id (fst ∘ snd <$> omap id md.(fnsems))))).
-
-  Definition sp_from_conc (md : t) : specmap :=
+    kmap lift_fn (omap id (fst ∘ snd <$> omap id md.(fnsems))).
+  
+  Definition conc_sp_from (md : t) : specmap :=
     <[speckey_concE := fspec_trivial]> (sp_from md).
 
   Definition cancellable (ms : t) : Prop :=
     ∀ fno msk fspo bd
       (FIND: (fnsems ms) !! fno = Some (Some (msk, (fspo, bd)))),
-      (img_msk msk) ∧ (is_Some fspo).
+      (img_msk msk) ∧ (call_msk msk) ∧ (is_Some fspo).
 
   (**** Linking ****)
   Program Definition empty : t := {|
@@ -185,6 +185,33 @@ End ADD.
 
 Section Aux.
   Context `{!crisG Γ Σ α β τ _S _I, !concG}.
+
+  #[global]
+  Instance smod_lift_fn_inj : Inj (=) (=) SMod.lift_fn.
+  Proof. ii. rewrite /SMod.lift_fn in H0. des_ifs. Qed.
+
+  Lemma lookup_sp_from md fn kboo
+    (FIND: md.(SMod.fnsems) !! Some fn = kboo) :
+    (SMod.sp_from md) !! (speckey_fn fn) =
+      match kboo with
+      | Some (Some (_, (Some fsp, _))) => Some fsp
+      | _ => None
+      end.
+  Proof using.
+    rewrite /SMod.sp_from.
+    destruct (match kboo with
+              | Some (Some (_, (Some fsp, _))) => Some fsp
+              | _ => None
+              end) eqn: E; cycle 1.
+    { set (l:=omap _ _).
+      eapply (lookup_kmap_None SMod.lift_fn l (speckey_fn fn)).
+      i. rewrite /SMod.lift_fn in H0. destruct i; ss. inv H0. subst l.
+      rewrite lookup_omap lookup_fmap lookup_omap. des_ifs. }
+    { set (l:=omap _ _).
+      eapply (lookup_kmap_Some SMod.lift_fn l (speckey_fn fn)).
+      exists (Some fn). split; ss. subst l.
+      rewrite lookup_omap lookup_fmap lookup_omap. des_ifs. }
+  Qed.
 
   (* Definition lift_fn (fno: option string) : speckey := *)
   (*   match fno with *)

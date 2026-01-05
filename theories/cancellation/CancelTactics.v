@@ -36,122 +36,122 @@ Tactic Notation "red_bind" tactic(tac) :=
       | guaranteeK _ _ => eapply guaranteeK_bind
       | unwrapUK _ _ => eapply unwrapUK_bind
       | unwrapNK _ _ => eapply unwrapNK_bind
-      | RealUpdateK _ _ => eapply RealUpdateK_bind
-      | SBRed.putSB _ _ _ _ _ _ => eapply SBRed.putSB_bind
-      | SBRed.getSB _ _ _ _ _ => eapply SBRed.getSB_bind
-      | SBRed.callSB _ _ _ _ _ _ => eapply SBRed.callSB_bind
-      | SBRed.spawnSB _ _ _ _ _ _ => eapply SBRed.spawnSB_bind
+      (* | RealUpdateK _ _ => eapply RealUpdateK_bind *)
+      (* | SBRed.putSB _ _ _ _ _ _ => eapply SBRed.putSB_bind *)
+      (* | SBRed.getSB _ _ _ _ _ => eapply SBRed.getSB_bind *)
+      (* | SBRed.callSB _ _ _ _ _ _ => eapply SBRed.callSB_bind *)
+      (* | SBRed.spawnSB _ _ _ _ _ _ => eapply SBRed.spawnSB_bind *)
       | @ITree.bind _ _ _ _ _ => eapply bind_bind
       | _ => reflexivity
       end
   end.
 
-Tactic Notation "red_SB" :=
-  lazymatch goal with
-  | [ |- @SB.sandbox _ _ _ _ _ ?itr = _ ] =>
-      lazymatch itr with
-      | Ret _ =>
-          eapply SBRed.ret
-      | Tau _ =>
-          eapply SBRed.tau
-      | vis (Assume _) _ =>
-          first [eapply SBRed.vis_Assume_img|eapply SBRed.vis_Assume]
-      | vis (AssumeRes _) _ =>
-          eapply SBRed.vis_AssumeRes
-      | vis (Guarantee _) _ =>
-          eapply SBRed.vis_Guarantee
-      | vis (Spawn _ _) _ =>
-          eapply SBRed.Spawn_spawnSB
-      | vis (Yield _) _ =>
-          eapply SBRed.vis_yield
-      | vis (Call _ _) _ =>
-          eapply SBRed.Call_callSB
-      | vis (SPut _ _) _ =>
-          eapply SBRed.SPut_putSB
-      | vis (SGet _) _ =>
-          eapply SBRed.SGet_getSB
-      | vis (Choose _) _ =>
-          eapply SBRed.vis_choose
-      | vis (Take _) _ =>
-          first [eapply SBRed.vis_take_img|eapply SBRed.vis_take]
-      | vis (IO _ _) _ =>
-          eapply SBRed.vis_io
-      | assumeK _ _ =>
-          eapply SBRed.assumeK
-      | guaranteeK _ _ =>
-          eapply SBRed.guaranteeK
-      | unwrapUK _ _ =>
-          eapply SBRed.unwrapUK
-      | unwrapNK _ _ =>
-          eapply SBRed.unwrapNK
-      | RealUpdateK _ _ _ =>
-          eapply SBRed.ruK
-      | @ITree.bind _ _ _ _ _ =>
-          eapply SBRed.bind
-      | _ =>
-          reflexivity
-      end
-  end.
+(* Tactic Notation "red_SB" := *)
+(*   lazymatch goal with *)
+(*   | [ |- @SB.sandbox _ _ _ _ _ ?itr = _ ] => *)
+(*       lazymatch itr with *)
+(*       | Ret _ => *)
+(*           eapply SBRed.ret *)
+(*       | Tau _ => *)
+(*           eapply SBRed.tau *)
+(*       | vis (Assume _) _ => *)
+(*           first [eapply SBRed.vis_Assume_img|eapply SBRed.vis_Assume] *)
+(*       | vis (AssumeRes _) _ => *)
+(*           eapply SBRed.vis_AssumeRes *)
+(*       | vis (Guarantee _) _ => *)
+(*           eapply SBRed.vis_Guarantee *)
+(*       | vis (Spawn _ _) _ => *)
+(*           eapply SBRed.Spawn_spawnSB *)
+(*       | vis (Yield _) _ => *)
+(*           eapply SBRed.vis_yield *)
+(*       | vis (Call _ _) _ => *)
+(*           eapply SBRed.Call_callSB *)
+(*       | vis (SPut _ _) _ => *)
+(*           eapply SBRed.SPut_putSB *)
+(*       | vis (SGet _) _ => *)
+(*           eapply SBRed.SGet_getSB *)
+(*       | vis (Choose _) _ => *)
+(*           eapply SBRed.vis_choose *)
+(*       | vis (Take _) _ => *)
+(*           first [eapply SBRed.vis_take_img|eapply SBRed.vis_take] *)
+(*       | vis (IO _ _) _ => *)
+(*           eapply SBRed.vis_io *)
+(*       | assumeK _ _ => *)
+(*           eapply SBRed.assumeK *)
+(*       | guaranteeK _ _ => *)
+(*           eapply SBRed.guaranteeK *)
+(*       | unwrapUK _ _ => *)
+(*           eapply SBRed.unwrapUK *)
+(*       | unwrapNK _ _ => *)
+(*           eapply SBRed.unwrapNK *)
+(*       (* | RealUpdateK _ _ _ => *) *)
+(*       (*     eapply SBRed.ruK *) *)
+(*       | @ITree.bind _ _ _ _ _ => *)
+(*           eapply SBRed.bind *)
+(*       | _ => *)
+(*           reflexivity *)
+(*       end *)
+(*   end. *)
 
-Tactic Notation "red_S" tactic(tac) :=
-  lazymatch goal with
-  | [ |- @SModTr.trans _ ?sp _ ?itr = _ ] =>
-      lazymatch itr with
-      | Ret _ =>
-          eapply SRed.ret
-      | Tau _ =>
-          eapply SRed.tau
-      | vis (Assume _) _ =>
-          eapply SRed.vis_ag
-      | vis (AssumeRes _) _ =>
-          eapply SRed.vis_ag
-      | vis (Guarantee _) _ =>
-          eapply SRed.vis_ag
-      | vis (Spawn ?fn _) _ =>
-          etransitivity;
-          [ eapply SRed.vis_spawn
-          | unfold SModTr.HoareSpawn, SModTr.NativeSpawn;
-            unfold_sp_exact sp fn; s;
-            tac
-          ]
-      | vis (Yield _) _ =>
-          etransitivity;
-          [ eapply SRed.vis_yield
-          | tac
-          ]
-      | vis (Call ?fn _) _ =>
-          etransitivity;
-          [ eapply SRed.vis_call
-          | unfold SModTr.HoareCall;
-            unfold_sp_exact sp fn; s;
-            tac
-          ]
-      | vis (SPut _ _) _ =>
-          eapply SRed.vis_pg
-      | vis (SGet _) _ =>
-          eapply SRed.vis_pg
-      | vis (Choose _) _ =>
-          eapply SRed.vis_core
-      | vis (Take _) _ =>
-          eapply SRed.vis_core
-      | vis (IO _ _) _ =>
-          eapply SRed.vis_core
-      | assumeK _ _ =>
-          eapply SRed.assumeK
-      | guaranteeK _ _ =>
-          eapply SRed.guaranteeK
-      | unwrapUK _ _ =>
-          eapply SRed.unwrapUK
-      | unwrapNK _ _ =>
-          eapply SRed.unwrapNK
-      | RealUpdateK _ _ _ =>
-          eapply SRed.ruK
-      | @ITree.bind _ _ _ _ _ =>
-          eapply SRed.bind
-      | _ =>
-          reflexivity
-      end
-  end.
+(* Tactic Notation "red_S" tactic(tac) := *)
+(*   lazymatch goal with *)
+(*   | [ |- @SModTr.trans _ ?sp _ ?itr = _ ] => *)
+(*       lazymatch itr with *)
+(*       | Ret _ => *)
+(*           eapply SRed.ret *)
+(*       | Tau _ => *)
+(*           eapply SRed.tau *)
+(*       | vis (Assume _) _ => *)
+(*           eapply SRed.vis_ag *)
+(*       | vis (AssumeRes _) _ => *)
+(*           eapply SRed.vis_ag *)
+(*       | vis (Guarantee _) _ => *)
+(*           eapply SRed.vis_ag *)
+(*       | vis (Spawn ?fn _) _ => *)
+(*           etransitivity; *)
+(*           [ eapply SRed.vis_spawn *)
+(*           | unfold SModTr.HoareSpawn, SModTr.NativeSpawn; *)
+(*             unfold_sp_exact sp fn; s; *)
+(*             tac *)
+(*           ] *)
+(*       | vis (Yield _) _ => *)
+(*           etransitivity; *)
+(*           [ eapply SRed.vis_yield *)
+(*           | tac *)
+(*           ] *)
+(*       | vis (Call ?fn _) _ => *)
+(*           etransitivity; *)
+(*           [ eapply SRed.vis_call *)
+(*           | unfold SModTr.HoareCall; *)
+(*             unfold_sp_exact sp fn; s; *)
+(*             tac *)
+(*           ] *)
+(*       | vis (SPut _ _) _ => *)
+(*           eapply SRed.vis_pg *)
+(*       | vis (SGet _) _ => *)
+(*           eapply SRed.vis_pg *)
+(*       | vis (Choose _) _ => *)
+(*           eapply SRed.vis_core *)
+(*       | vis (Take _) _ => *)
+(*           eapply SRed.vis_core *)
+(*       | vis (IO _ _) _ => *)
+(*           eapply SRed.vis_core *)
+(*       | assumeK _ _ => *)
+(*           eapply SRed.assumeK *)
+(*       | guaranteeK _ _ => *)
+(*           eapply SRed.guaranteeK *)
+(*       | unwrapUK _ _ => *)
+(*           eapply SRed.unwrapUK *)
+(*       | unwrapNK _ _ => *)
+(*           eapply SRed.unwrapNK *)
+(*       | RealUpdateK _ _ _ => *)
+(*           eapply SRed.ruK *)
+(*       | @ITree.bind _ _ _ _ _ => *)
+(*           eapply SRed.bind *)
+(*       | _ => *)
+(*           reflexivity *)
+(*       end *)
+(*   end. *)
 
 Ltac replace_l :=
   match goal with
@@ -279,7 +279,7 @@ Ltac _gnorm_itr :=
       | s; red_bind (do 1 _gnorm_itr) ]
   | [ |- @SB.sandbox ?Σ ?R ?img ?imports ?scopes ?itr = _ ] =>
       etransitivity;
-      [ cong (@SB.sandbox Σ R img imports scopes); _gnorm_itr | red_SB ]
+      [ cong (@SB.sandbox Σ R img imports scopes); _gnorm_itr | ]
   | [ |- @SModTr.trans ?Σ ?sp ?R ?itr = _ ] =>
       etransitivity;
       [ cong (@SModTr.trans Σ sp R); _gnorm_itr | red_S (do 1 _gnorm_itr) ]
@@ -334,9 +334,6 @@ Ltac _gnorm_itr :=
   | [ |- SModTr.HoareCall _ _ _ = _ ] =>
       unfold SModTr.HoareCall;
       _gnorm_itr
-  | [ |- SModTr.NativeSpawn _ _ = _ ] =>
-      unfold SModTr.NativeSpawn;
-      _gnorm_itr
   | [ |- fbody_trivial _ = _ ] =>
       unfold fbody_trivial;
       _gnorm_itr
@@ -370,6 +367,7 @@ Ltac _gnorm_itr :=
   | [ |- ?itr = _ ] =>
       reflexivity
   end.
+
 Ltac gnorm_itr :=
   etransitivity;
   [ _gnorm_itr

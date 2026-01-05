@@ -327,3 +327,8 @@ Definition img_msk `{Σ : GRA} (msk : emask) : Prop :=
   ∧ (∀ P, msk _ (subevent _ (Assume P)) = true)
   ∧ (∀ P, msk _ (subevent _ (AssumeRes P)) = true)
   ∧ (∀ P, msk _ (subevent _ (Guarantee P)) = true).
+
+Definition call_msk `{Σ : GRA} (msk : emask) : Prop :=
+  ∀ fn x y,
+    msk _ (subevent _ (Call fn x)) = msk _ (subevent _ (Call fn y))
+    ∧ msk _ (subevent _ (Spawn fn x)) = msk _ (subevent _ (Spawn fn y)).

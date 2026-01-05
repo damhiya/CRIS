@@ -1,4 +1,4 @@
-(* Require Import Common.
+Require Import Common.
 From iris.proofmode Require Import proofmode.
 
 Require Import Mod FSpec.
@@ -8,11 +8,11 @@ Set Implicit Arguments.
 
 (* Inlining every function call in HMod. *)
 Section INTERP.
-  Context `{Σ: GRA}.
+  Context `{Σ : GRA}.
 
-  Definition handle_callE {R} (prog: string -> fbody) (itr: itree crisE R)
-    : itree crisE (itree crisE R + R)
-    :=
+  Definition handle_callE
+      {R} (prog : string → fbody) (itr : itree crisE R)
+      : itree crisE (itree crisE R + R) :=
     match observe itr with
     | RetF r => Ret (inr r)
     | TauF itr' => tau;; Ret (inl itr')
@@ -32,20 +32,20 @@ Section INTERP.
         v <- trigger e;; Ret (inl (k v))
     end.
 
-  Definition sandboxed_prog (ms: Mod.t) (fn: string) (arg: Any.t) : itree crisE Any.t :=
+  Definition sandboxed_prog (ms : Mod.t) (fn : string) (arg : Any.t) : itree crisE Any.t :=
     kb <- ((omap id ms.(Mod.fnsems)) !! (Some fn))?;;
     SB.sandbox_body kb arg.
 
   Definition inline_body {R} prog := ITree.iter (@handle_callE R prog).
 
   Definition inline_fsem ms (kb: emask * fbody) : emask * fbody :=
-    (msk_scp ms.(Mod.scopes), inline_body (sandboxed_prog ms) ∘ (SB.sandbox_body kb)).
+    (msk_scp (Mod.scopes ms) msk_true, inline_body (sandboxed_prog ms) ∘ (SB.sandbox_body kb)).
 End INTERP.
 
 Module MInline.
   Import Mod.
 
-  Program Definition inline `{Σ: GRA} (ms: Mod.t) : Mod.t := {|
+  Program Definition inline `{Σ : GRA} (ms : Mod.t) : Mod.t := {|
     scopes := ms.(scopes);
     fnsems := fmap (option_map (inline_fsem ms)) (ms.(fnsems));
     initial_st := ms.(initial_st);
@@ -56,8 +56,8 @@ Module MInline.
     destruct ((fnsems ms) !! fn) eqn: Heq; ss; intros H.
     destruct o as [[msk0 p0]|]; ss. hexploit (ms.(well_scoped_fns) fn (msk0, p0)); eauto.
     { rewrite lookup_omap Heq //. }
-    inv H. i; des; split; i; rewrite /msk_scp in H1; des_ifs; inv Heq0; ss;
-      destruct (decide (k.1 ∈ scopes ms)); ss.
+    inv H. i; des; split; i; rewrite /msk_scp /msk_true in H1; des_ifs; inv Heq0; ss;
+      case_bool_decide; ss.
   Qed.
   Next Obligation. ii. destruct ms. ss. eauto. Qed.
   Next Obligation.
@@ -69,28 +69,16 @@ End MInline.
 
 Module MIRed.
 
-  Lemma ret `{Σ: GRA} {T}
-    prog (x: T)
-  :
+  Lemma ret `{Σ : GRA} {T} prog (x : T) :
     inline_body prog (Ret x) = Ret x.
-  Proof using.
-    rewrite/inline_body unfold_iter_eq. grind.
-  Qed.
+  Proof using. rewrite/inline_body unfold_iter_eq. grind. Qed.
 
-  Lemma tau `{Σ: GRA} {T}
-    prog (t: itree _ T)
-  :
+  Lemma tau `{Σ : GRA} {T} prog (t : itree _ T) :
     inline_body prog (tau;; t) = tau;; tau;; inline_body prog t.
-  Proof using.
-    rewrite/inline_body unfold_iter_eq. grind.
-  Qed.
+  Proof using. rewrite/inline_body unfold_iter_eq. grind. Qed.
 
-  Lemma bind `{Σ: GRA} {R T} prg
-    i (k: R → itree _ T)
-  :
-    inline_body prg (i >>= k)
-    =
-    x <- inline_body prg i;; inline_body prg (k x).
+  Lemma bind `{Σ : GRA} {R T} prg i (k : R → itree _ T) :
+    inline_body prg (i >>= k) = x <- inline_body prg i;; inline_body prg (k x).
   Proof using.
     rewrite /inline_body. eapply bisim_is_eq.
     eapply (@gpaco2_init _ _ _ _ (eqitC eq false false)); eauto with paco.
@@ -103,13 +91,11 @@ Module MIRed.
       gstep. econs. gstep. econs. gbase. eapply CIH.
     - rewrite !unfold_iter_eq.
       destruct e.
-      {
-        grind. rewrite! bind_trigger. gstep. econs. i.
+      { grind. rewrite! bind_trigger. gstep. econs. i.
         r. grind. gstep. econs. gbase. eauto.
       }
       destruct s; [destruct c|].
-      {
-        grind. gstep. econs. 
+      { grind. gstep. econs. 
         guclo eqit_clo_trans; eauto.
         econs; cycle 1.
         { refl. }
@@ -121,16 +107,13 @@ Module MIRed.
         with (' r0 : _ <- prg fn args;; ' x : _ <- (tau;; k0 r0);; k x) by grind.
         refl.
       } 
-      {
-        grind. rewrite! bind_trigger. gstep. econs. i.
+      { grind. rewrite! bind_trigger. gstep. econs. i.
         r. grind. gstep. econs. gbase. eauto.  
       }
-      {
-        grind. rewrite! bind_trigger. gstep. econs. i.
+      { grind. rewrite! bind_trigger. gstep. econs. i.
         r. grind. gstep. econs. gbase. eauto.
       }
-      {
-        grind. rewrite! bind_trigger. gstep. econs. i.
+      { grind. rewrite! bind_trigger. gstep. econs. i.
         r. grind. gstep. econs. gbase. eauto.
       }
       grind. rewrite! bind_trigger. gstep. econs. i.
@@ -138,15 +121,10 @@ Module MIRed.
     Unshelve. eauto with paco.
   Qed.
 
-  Lemma spawn `{Σ: GRA} {T}
-    prog fn args (ktr: _ → itree _ T)
-  :
-    inline_body prog (x <- trigger (Spawn fn args);; ktr x) 
-    =
+  Lemma spawn `{Σ: GRA} {T} prog fn args (ktr: _ → itree _ T) :
+    inline_body prog (x <- trigger (Spawn fn args);; ktr x)  =
     x <- trigger (Spawn fn args);; tau;; inline_body prog (ktr x).
-  Proof using.
-    rewrite/inline_body unfold_iter_eq. grind.
-  Qed.
+  Proof using. rewrite/inline_body unfold_iter_eq. grind. Qed.
 
   Lemma yield `{Σ: GRA} {T} prog tid (ktr: _ → itree _ T) :
     inline_body prog (x <- trigger (Yield tid);; ktr x) =
@@ -192,19 +170,19 @@ Proof using.
   assert (SCPIMPL:
            ∀ (fn: string) (msk: emask) (bd: fbody),
              Mod.fnsems ms !! Some fn = Some (Some (msk, bd)) →
-             ∀ (X : Type) (e : crisE X), msk X e → msk_scp (Mod.scopes ms) X e).
+             ∀ (X: Type) (e : @crisE Σ X), msk X e → (msk_scp (Mod.scopes ms) msk_true) X e).
   { i. hexploit (Mod.well_scoped_fns ms); eauto.
     intros FA. specialize (FA (Some fn) (msk0, bd0)).
     rewrite lookup_omap H in FA. ss. specialize (FA eq_refl).
     rewrite /msk_scp. depdes e; ss.
     depdes s; ss. depdes s; ss. depdes p; ss.
-    { destruct (decide (k.1 ∈ Mod.scopes ms)); ss. exfalso. des; eauto. }
-    { destruct (decide (k.1 ∈ Mod.scopes ms)); ss. exfalso. des; eauto. }
+    { case_bool_decide; ss. exfalso. des; eauto. }
+    { case_bool_decide. ss. exfalso. des; eauto. }
   }
-  assert (SCPIMPL0: ∀ (X : Type) (e : crisE X), msk X e → msk_scp (Mod.scopes ms) X e).
+  assert (SCPIMPL0: ∀ (X : Type) (e : crisE X), msk X e → (msk_scp (Mod.scopes ms) msk_true) X e).
   { i; des. rewrite /msk_scp. depdes e; ss. depdes s; ss. depdes s; ss. depdes p; ss.
-    { destruct (decide (k.1 ∈ Mod.scopes ms)); ss. exfalso. des; eauto. }
-    { destruct (decide (k.1 ∈ Mod.scopes ms)); ss. exfalso. des; eauto. }
+    { case_bool_decide; ss. exfalso. des; eauto. }
+    { case_bool_decide; ss. exfalso. des; eauto. }
   }
   unfold inline_fsem, SB.sandbox_body. ss.
   apply bisim_is_eq.
@@ -216,8 +194,7 @@ Proof using.
     gstep. econs. gstep. econs. gbase. eauto. }
   rewrite -bind_trigger !SBRed.bind.
   destruct e.
-  {
-    assert ((@ITree.trigger (@crisE Σ) X (inl1 a)) = trigger a) by grind.
+  { assert ((@ITree.trigger (@crisE Σ) X (inl1 a)) = trigger a) by grind.
     destruct a.
     - rewrite H !SBRed.vis. des_ifs.
       + rewrite !vis_trigger !bind_bind !MIRed.ag !SBRed.bind !SBRed.vis !bind_trigger.
@@ -246,8 +223,7 @@ Proof using.
       gbase. eauto.
   }
   destruct s; [destruct c|].
-  {
-    rewrite !SBRed.vis. des_ifs; cycle 1.
+  { rewrite !SBRed.vis. des_ifs; cycle 1.
     { ired. rewrite !vis_trigger !bind_bind !MIRed.core !SBRed.bind SBRed.vis !bind_trigger.
       des_ifs. gstep. r; s; econs. ss. }
 
@@ -265,10 +241,9 @@ Proof using.
     ired.
     destruct p as [msk1 bd0]. s.
     match goal with
-    [|- _ _ (_ _ ?itr)] => assert (EX: exists itr', itr = SB.sandbox (msk_scp ms.(Mod.scopes)) itr'); cycle 1
+    [|- _ _ (_ _ ?itr)] => assert (EX: exists itr', itr = SB.sandbox (msk_scp ms.(Mod.scopes) msk_true) itr'); cycle 1
     end.
-    { des. rewrite EX. gbase. eapply CIH; try refl; eauto; ss.
-      split; i; destruct (decide (k0.1 ∈ Mod.scopes ms)); ss. }
+    { des. rewrite EX. gbase. eapply CIH; try refl; eauto; ss. split; i; case_bool_decide; ss. }
 
     eexists. instantiate (1:= _ >>= _).
     rewrite SBRed.bind. f_equal.
@@ -317,7 +292,7 @@ Proof using.
     }
 
     rewrite !vis_trigger !bind_bind MIRed.pg SBRed.bind SBRed.vis. des_ifs; cycle 1.
-    { exfalso. ss. destruct (decide (k0.1 ∈ Mod.scopes ms)); ss. eapply n. des.
+    { exfalso. ss. case_bool_decide; ss. eapply H. des.
       eapply SCP; eauto. }
     rewrite !vis_trigger !bind_bind. gstep; r; s; econs; i; r.
     rewrite !bind_ret_l SBRed.ret bind_ret_l SBRed.tau. gstep; econs.
@@ -329,7 +304,7 @@ Proof using.
       des_ifs. gstep. r; s; econs. ss. }
 
     rewrite !vis_trigger !bind_bind MIRed.pg SBRed.bind SBRed.vis. des_ifs; cycle 1.
-    { exfalso. ss. destruct (decide (k0.1 ∈ Mod.scopes ms)); ss. eapply n. des.
+    { exfalso. ss. case_bool_decide; ss. eapply H. des.
       eapply (SCP k0 tt↑). eauto. }
     rewrite !vis_trigger !bind_bind. gstep; r; s; econs; i; r.
     rewrite !bind_ret_l SBRed.ret bind_ret_l SBRed.tau. gstep; econs.
@@ -357,4 +332,4 @@ Proof using.
       + rewrite !vis_trigger !bind_bind MIRed.core SBRed.bind SBRed.vis. des_ifs.
         gstep. r; s; econs. ss.
   }
-(*SLOW*)Qed. *)
+(*SLOW*)Qed.

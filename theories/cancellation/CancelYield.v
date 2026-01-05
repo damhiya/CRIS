@@ -18,32 +18,35 @@ Local Ltac sir :=
   end.
 Local Ltac snr := norm_r; rewrite !list_insert_insert ?bind_ret_l.
 
-Lemma cancel_yield `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp tid :
-  CANCEL_GOAL md sp (NativeYieldE tid) (HoareYieldE tid).
+Lemma cancel_yield `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp
+  (X: Type) (PQ: X → (Any.t → iProp Σ) * (Any.t → iProp Σ)) sN tN mm stid ttid ntid :
+  CANCEL_GOAL md sp PQ tN mm (HoareYieldE false sN stid ntid) (HoareYieldE true tN ttid ntid).
 Proof.
   r; i. subst.
   iter_l; iter_r. rewrite x0 x1 /=.
   step_l. norm_l. rewrite !bind_ret_l.
-  step_r. i. step_r. norm_r. rewrite !bind_ret_l.
+  step_r. i. ired. rewrite Any.pair_split /= bind_ret_l Any.upcast_downcast /= bind_ret_l. norm_r.
+  (* step_r. norm_r. rewrite !bind_ret_l. *)
 
-  sir. step_r. snr. sir. step_r. snr.
-  rewrite Any.pair_split /= bind_ret_l Any.upcast_downcast /= bind_ret_l.
+  (* sir. step_r. snr. sir. step_r. snr. *)
+  (* rewrite Any.pair_split /= bind_ret_l Any.upcast_downcast /= bind_ret_l. *)
+  norm_r.
   sir. step_r. i. step_r. snr. sir. step_r. i. step_r. snr.
   sir. step_r. snr. rewrite Any.pair_split /= bind_ret_l.
   sir. step_r. snr. sir. step_r. snr. sir. step_r. snr.
   
   des.
-  assert (EQ: x = cid).
+  assert (EQ: ttid = cid).
   { eapply Own_pure_soundness with (a:=r_s); eauto.
     iIntros "S"; iPoseProof (RS with "S") as ">[_ [R [TA _]]]".
-    iPoseProof (x5 with "R") as ">[[T _] _]".
+    iPoseProof (x4 with "R") as ">[[T _] _]".
     iApply (TidToken_agree with "T"); iFrame. }
   subst.
 
   assert (RS0: Own r_s ⊢
-                 |==> (([∗ list] i ∈ rs_diff, Own i) ∗ TIDAUTH tid ∗ YIELDAUTH (length rs_diff)) ∗
-                 ((TID tid ∗ YIELD tid ∗ winv (⊤, ⊤)) ∗ Own x3)).
-  { rewrite RS x5. iIntros ">[$ [>[[T [$ $]] $] [TA $]]]".
+                 |==> (([∗ list] i ∈ rs_diff, Own i) ∗ TIDAUTH ntid ∗ YIELDAUTH (length rs_diff)) ∗
+                 ((TID ntid ∗ YIELD ntid ∗ winv (↑tN, ↑tN)) ∗ Own x)).
+  { rewrite RS x4. iIntros ">[$ [>[[T [$ $]] $] [TA $]]]".
   iApply (TidToken_upd with "[TA T]"); iFrame. }
   hexploit (Own_bupd_split); eauto.
   intros [r_t1 [r_t2 [Hr_t1 [Hr_t2 Hr_t3]]]].
@@ -52,13 +55,13 @@ Proof.
   { eapply Own_wand_valid with (a1:=r_s); eauto.
     rewrite Hr_t1. iIntros ">[_ $]"; eauto. }
 
-  destruct (decide (tid < length rs_diff)); cycle 1.
+  destruct (decide (ntid < length rs_diff)); cycle 1.
   {
-    iter_l. destruct (<[cid:=_]> srcs !! tid) eqn:FIND.
+    iter_l. destruct (<[cid:=_]> srcs !! ntid) eqn:FIND.
     { eapply lookup_lt_Some in FIND. rewrite length_insert in FIND. nia. }
     { step_l. rewrite /triggerUB. step_l. i; ss. }
   }
-  destruct (decide (tid = cid)); subst.
+  destruct (decide (ntid = cid)); subst.
   {
     sil. step_l. snl. sir. step_r. snr. sir. step_r. snr.
     rewrite Any.pair_split /= bind_ret_l Any.upcast_downcast /= bind_ret_l.
@@ -81,19 +84,19 @@ Proof.
     hexploit REL; eauto; intros RELTID. inv RELTID.
     { (* first execution *)
       iter_l; iter_r. rewrite !list_lookup_insert_ne // SRC TGT /=.
-      step_l. norm_l. step_r. exists tid. step_r. norm_r.
+      step_l. norm_l. step_r. exists (tN, ntid). step_r. norm_r.
       sil. step_l. snl.
-      sir. step_r. snr. sir. step_r. snr.
-      rewrite Any.pair_split /= bind_ret_l Any.upcast_downcast /= bind_ret_l.
-      sir. step_r. exists r_t2. step_r. snr. sir. step_r.
-      unshelve eexists; ired.
-      { split; eauto. rewrite Hr_t3. eapply bupd_intro. }
-      step_r. snr.
-      sir. step_r. snr. rewrite Any.pair_split /= bind_ret_l.
-      sir. step_r. snr. sir. step_r. snr. sir. step_r. exists x8. step_r. snr.
+      sir. step_r. snr. sir. step_r. exists x8. step_r. snr.
       sir. step_r. snr. sir. step_r. exists varg. step_r. snr.
       sir. step_r. snr. sir. step_r. snr.
       rewrite Any.pair_split /= bind_ret_l Any.upcast_downcast /= bind_ret_l.
+      sir. step_r. exists r_t2. step_r. snr.
+      sir. step_r. unshelve eexists.
+      { split; eauto. rewrite Hr_t3. iIntros "[$ $]"; eauto. }
+      step_r. snr.
+      sir. step_r. snr. rewrite Any.pair_split /= bind_ret_l.
+      sir. step_r. snr. sir. step_r. snr.
+      sir. step_r. snr. rewrite Any.pair_split /= bind_ret_l Any.upcast_downcast /= bind_ret_l.
       sir. step_r. exists (x7 ⋅ r_t2). step_r. snr.
       sir. step_r. unshelve eexists.
       { split; eauto.
@@ -103,14 +106,14 @@ Proof.
         }
         rewrite Own_op H4. iIntros "[>$ $]"; eauto.
       }
-      step_r. snr.
-      sir. step_r. snr. rewrite Any.pair_split /= bind_ret_l.
+      step_r. snr. sir. step_r. snr. rewrite Any.pair_split /= bind_ret_l.
       sir. step_r. snr. sir. step_r. snr.
+      rewrite /ModTr.trans in TGT.
 
       gstep. econs. econs; try exact smj_lt_mid_top.
-      gbase. eapply CIH with (rs_diff:=<[tid:=ε]>rs_diff); eauto.
+      gbase. eapply CIH with (rs_diff:=<[ntid:=ε]>rs_diff); eauto.
       { r. esplits; try rewrite !length_insert //.
-        ii. destruct (decide (tid = i)); subst.
+        ii. destruct (decide (ntid = i)); subst.
         {
           rewrite list_lookup_insert ?length_insert // in H1.
           rewrite list_lookup_insert ?length_insert // in H2.
@@ -123,13 +126,13 @@ Proof.
             rewrite list_lookup_insert_ne // ?length_insert // in H1.
             rewrite list_lookup_insert_ne // list_lookup_insert ?length_insert // in H2.
             rewrite list_lookup_insert_ne // list_lookup_insert ?length_insert // -?EQLEN // in H3.
-            des_ifs. eapply thread_rel_yield; eauto. eapply KTR.
+            des_ifs. ired. eapply thread_rel_yield; eauto. eapply KTR.
           }
           rewrite !list_lookup_insert_ne // ?length_insert // in H1.
           rewrite !list_lookup_insert_ne // ?length_insert // in H2.
           rewrite !list_lookup_insert_ne // ?length_insert // in H3.
           hexploit REL; eauto; i. inv H6.
-          { eapply thread_rel_spawn; eauto. }
+          { eapply thread_rel_spawn; cycle 4; eauto. }
           { eapply thread_rel_yield; eauto. }
         }
       }
@@ -153,28 +156,28 @@ Proof.
       sir. step_r. snr. sir. step_r. snr.
 
       gstep; econs; econs; try exact smj_lt_mid_top.
-      gbase. eapply CIH with (rs_diff:=<[tid:=ε]>rs_diff); eauto.
+      gbase. eapply CIH with (rs_diff:=<[ntid:=ε]>rs_diff); eauto.
       { r; esplits; try rewrite !length_insert //.
-        ii. destruct (decide (tid = i)); subst.
+        ii. destruct (decide (ntid = i)); subst.
         {
-          rewrite list_lookup_insert ?length_insert // in H1.
+          rewrite list_lookup_insert ?length_insert // in H.
           rewrite list_lookup_insert ?length_insert // in H2.
-          rewrite list_lookup_insert ?length_insert // in H4.
+          rewrite list_lookup_insert ?length_insert // in H3.
           des_ifs. eapply thread_rel_body; cycle 1; eauto.
         }
         {
           destruct (decide (cid = i)); subst.
           {
-            rewrite list_lookup_insert_ne // ?length_insert // in H1.
+            rewrite list_lookup_insert_ne // ?length_insert // in H.
             rewrite list_lookup_insert_ne // list_lookup_insert ?length_insert // in H2.
-            rewrite list_lookup_insert_ne // list_lookup_insert ?length_insert // -?EQLEN // in H4.
+            rewrite list_lookup_insert_ne // list_lookup_insert ?length_insert // -?EQLEN // in H3.
             des_ifs. ired. eapply thread_rel_yield; eauto. eapply KTR.
           }
-          rewrite !list_lookup_insert_ne // ?length_insert // in H1.
+          rewrite !list_lookup_insert_ne // ?length_insert // in H.
           rewrite !list_lookup_insert_ne // ?length_insert // in H2.
-          rewrite !list_lookup_insert_ne // ?length_insert // in H4.
+          rewrite !list_lookup_insert_ne // ?length_insert // in H3.
           hexploit REL; eauto; i. inv H5.
-          { eapply thread_rel_spawn; eauto. }
+          { eapply thread_rel_spawn; cycle 4; eauto. }
           { eapply thread_rel_yield; eauto. }
         }
       }

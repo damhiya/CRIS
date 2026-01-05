@@ -13,8 +13,10 @@ Local Ltac sir :=
   end.
 Local Ltac snr := norm_r; rewrite !list_insert_insert !bind_ret_l.
 
-Lemma cancel_ag `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp R (e : agE R):
-  CANCEL_GOAL md sp (trigger e) (trigger e).
+Lemma cancel_ag `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp 
+  (X: Type) (PQ: X → (Any.t → iProp Σ) * (Any.t → iProp Σ)) N mm
+  R (e : agE R):
+  CANCEL_GOAL md sp PQ N mm (trigger e) (trigger e).
 Proof.
   r; i. destruct e.
   + iter_l; rewrite x0 /=; step_l. norm_l.
