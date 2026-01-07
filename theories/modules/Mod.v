@@ -103,7 +103,7 @@ Module Mod. Section Mod.
     { apply fin_maps.union_with_comm; done. }
   Qed.
 
-  Lemma add_wf (ms1 ms2 : t) : wf (add ms1 ms2) → wf ms1 ∧ wf ms2.
+  Lemma add_wf_inv (ms1 ms2 : t) : wf (add ms1 ms2) → wf ms1 ∧ wf ms2.
   Proof.
     intros [Hfnsems Hscopes]; split; econs; eauto; try
       (intros x; hexploit (Hscopes x); ss; rewrite multiplicity_disj_union; lia).
@@ -240,12 +240,33 @@ Tactic Notation "mod_tac" tactic(tac) :=
 Ltac scope_solver := ss; split; i; case_decide; naive_solver.
 
 (* Lemmas related to module states and function maps *)
-Lemma map_Forall_union_with `{Countable K} {V} (m1 m2 : gmap K (option V)) :
+Lemma map_Forall_union_with_inv_gen `{Countable K} {V} (m1 m2 : gmap K (option V)) :
+  map_Forall (const is_Some) (union_with (λ _ _, Some None) m1 m2) →
+  dom m1 ## dom m2.
+Proof.
+  rewrite ?map_Forall_lookup => Hwf; intros i [? H1]%elem_of_dom [? H2]%elem_of_dom;
+    move: (Hwf i None); rewrite lookup_union_with H1 H2 /=; intros H3; hexploit H3; eauto.
+  by intros [].
+Qed.
+
+Lemma map_Forall_union_with_inv `{Countable K} {V} (m1 m2 : gmap K (option V)) :
   map_Forall (const is_Some) (union_with (λ _ _, Some None) m1 m2) →
   map_Forall (const is_Some) m1 ∧ map_Forall (const is_Some) m2.
 Proof.
   rewrite ?map_Forall_lookup => Hwf; split; intros i v Hi; move: (Hwf i v);
     rewrite lookup_union_with Hi; repeat destruct (_ !! i) as [[|]|]; ss; clarify; eauto.
+Qed.
+
+Lemma map_Forall_union_with `{Countable K} {V} (m1 m2 : gmap K (option V)) :
+  dom m1 ## dom m2 →
+  map_Forall (const is_Some) m1 ∧ map_Forall (const is_Some) m2 →
+  map_Forall (const is_Some) (union_with (λ _ _, Some None) m1 m2).
+Proof.
+  intros Hdom; rewrite ?map_Forall_lookup => [[H1 H2] i] x;
+    specialize (H1 i); specialize (H2 i); rewrite lookup_union_with;
+    repeat match goal with | |- context [?m !! ?i] => destruct (m !! i) eqn : ? end;
+    ss; try set_solver.
+  repeat match goal with | H : _ !! _ = Some _ |- _ => eapply elem_of_dom_2 in H end; set_solver.
 Qed.
 
 Lemma lookup_union_with_l `{Countable K} {V} (m1 m2 : gmap K (option V)) (k : K) (v : V):
@@ -290,4 +311,15 @@ Proof.
   destruct (m1 !! k) as [[|]|] eqn : Hm1; ss;
     apply map_Forall_lookup in Hwf; move: (Hwf k None); rewrite lookup_union_with Hm1 Hm2;
     move => /(_ eq_refl) [? ?] //.
+Qed.
+
+Lemma lookup_fnsems_inv `{Σ : GRA} (m1 m2 : Mod.t) (k : option string) v :
+  Mod.wf (m1 ★ m2) →
+  (Mod.fnsems (m1 ★ m2)) !! k = Some v →
+  (Mod.fnsems m1 !! k = Some v ∧ Mod.fnsems m2 !! k = None) ∨
+  (Mod.fnsems m1 !! k = None ∧ Mod.fnsems m2 !! k = Some v).
+Proof.
+  intros Hwf H; inv Hwf; rewrite map_Forall_lookup in wf_fns; hexploit (wf_fns); eauto.
+  revert H; ss; rewrite lookup_union_with; repeat destruct (_ !! _); ss; intros H; eauto; inv H.
+  intros []; ss.
 Qed.

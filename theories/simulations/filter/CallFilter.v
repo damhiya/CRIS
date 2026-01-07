@@ -1,14 +1,23 @@
 (* Require Import Common.
-From iris.proofmode Require Export proofmode.
+Require Export ConcRA CtxRefine Mod SMod.
+(* From iris.proofmode Require Export proofmode.
 Require Import LMod LSim GSim GSimFacts GSimTactics Mod ISim ISimFacts.
 Require Export CtxRefine CtxRefineFacts ClosedAdequacy MainAdequacy.
-Require Import TacticsInit Tactics.
+Require Import TacticsInit Tactics. *)
 
 Module CFilter. Section CFilter.
-  Context `{_crisG : !crisG Γ Σ α β τ _S _I}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concG}.
+  Context (smod : SMod.t) (sp : specmap).
+
+  Lemma intro_module (mc : Mod.t) (P : iProp Σ) :
+    (∀ fn, Some fn ∈ dom (Mod.fnsems mc) → sp !! (speckey_fn fn) = Some fspec_top) →
+    refines (SMod.to_mod sp smod ★ mc, P)%I (SMod.to_mod sp smod, P)%I.
+  Proof.
+    intros Hfn Hwfs; ss.
+
 
   (* filters module m with mask, which means function call fn ∉ mask are undefined behaviors *)
-  Program Definition filter mask (m : Mod.t) : Mod.t := {|
+  Program Definition filter mask (m : SMod.t) : SMod.t := {|
     Mod.scopes := m.(Mod.scopes);
     Mod.fnsems := List.map (map_snd (map_fst (map_fst (map_snd (wmask_and mask))))) m.(Mod.fnsems);
     Mod.initial_st := m.(Mod.initial_st)

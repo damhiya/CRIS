@@ -17,12 +17,12 @@ Ltac solve_map_lookup_symbolic NODT :=
       tryif is_key_in k l 
       then (
         eapply lookup_union_with_l;
-        [eauto|eapply map_Forall_union_with in NODT as [NODT _]];
+        [eauto|eapply map_Forall_union_with_inv in NODT as [NODT _]];
         solve_map_lookup_symbolic NODT
       )
       else (
         eapply lookup_union_with_r;
-        [eauto|eapply map_Forall_union_with in NODT as [_ NODT]];
+        [eauto|eapply map_Forall_union_with_inv in NODT as [_ NODT]];
         solve_map_lookup_symbolic NODT
       )
   | [ |- <[ ?k' := ?v ]> ?m !! ?k = _ ] =>
@@ -69,20 +69,20 @@ Ltac state_insert_simpl k1 v1 NODT :=
               etransitivity;
               [ eapply insert_union_with_l';
                 [ eauto
-                | eapply map_Forall_union_with in NODT as [NODT _];
+                | eapply map_Forall_union_with_inv in NODT as [NODT _];
                   eexists; state_lookup_simpl l k NODT; reflexivity
                 ]
-              | eapply map_Forall_union_with in NODT as [NODT _]; 
+              | eapply map_Forall_union_with_inv in NODT as [NODT _]; 
                 state_insert_simpl k v NODT; reflexivity ]
             )
             else (
               etransitivity;
               [ eapply insert_union_with_r';
                 [ eauto
-                | eapply map_Forall_union_with in NODT as [_ NODT];
+                | eapply map_Forall_union_with_inv in NODT as [_ NODT];
                   eexists; state_lookup_simpl r k NODT; reflexivity
                 ]
-              | eapply map_Forall_union_with in NODT as [_ NODT]; 
+              | eapply map_Forall_union_with_inv in NODT as [_ NODT]; 
                 state_insert_simpl k v NODT; reflexivity ]
             )
         | [ |- <[?k:=_]>{[?k':=_]} = _ ] => (* Case: Singleton *)

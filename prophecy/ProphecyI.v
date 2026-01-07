@@ -4,7 +4,7 @@ Require Import ProphecyHeader.
 Module ProphecyI. Section ProphecyI.
   Context `{!crisG Γ Σ α β τ _S _I, !concG}.
 
-  Definition scopes := ["Prophecy"].
+  Definition scopes : gmultiset string := ∅.
 
   Definition new : Any.t → itree crisE Any.t :=
     λ _, Ret tt↑.
@@ -12,20 +12,19 @@ Module ProphecyI. Section ProphecyI.
     λ _, Ret tt↑.
   Definition close : Any.t → itree crisE Any.t :=
     λ _, Ret tt↑.
-  
-  Definition fnsems : fnsems_type :=
-    [(Some ProphecyName.new, (false, wmask_all, scopes, (None, new)));
-     (Some ProphecyName.resolve,  (false, wmask_all, scopes, (None, resolve)));
-     (Some ProphecyName.close, (false, wmask_all, scopes, (None, close)))
-    ].
-  
+
+  Definition fnsems : gmap (option string) (option (emask * (option fspec * fbody))) :=
+    {[Some ProphecyName.new := Some (msk_real (msk_scp scopes msk_true), (None, new));
+      Some ProphecyName.resolve := Some (msk_real (msk_scp scopes msk_true), (None, new));
+      Some ProphecyName.close := Some (msk_real (msk_scp scopes msk_true), (None, close))]}.
+
   Program Definition Mod : SMod.t := {|
     SMod.scopes := scopes;
     SMod.fnsems := fnsems;
-    SMod.initial_st := [];
+    SMod.initial_st := ∅;
   |}.
-  Solve All Obligations with prove_scope.
-  Next Obligation. prove_nodup. Qed.
+  Solve All Obligations with try done.
+  Next Obligation. rewrite ?omap_insert /= omap_empty. mod_tac scope_solver. Qed.
 
-  Definition t : Mod.t := Seal.sealing CRIS (SMod.to_mod sp_none Mod).
+  Definition t : Mod.t := SMod.to_mod ∅ Mod.
 End ProphecyI. End ProphecyI.

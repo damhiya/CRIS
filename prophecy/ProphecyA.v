@@ -2,12 +2,10 @@ Require Import CRIS.
 Require Export ProphecyHeader ProphecyRA.
 Require Import Ensembles.
 
-Set Implicit Arguments.
-
 Module ProphecyA. Section ProphecyA.
   Context `{!crisG Γ Σ α β τ _S _I, !concG, !prophG}.
 
-  Definition scopes := ["Prophecy"].
+  Definition scopes : gmultiset string := ∅.
 
   Definition new_spec : fspec :=
     fspec_simple
@@ -33,27 +31,24 @@ Module ProphecyA. Section ProphecyA.
         (λ vret, ⌜vret = tt↑⌝ ∗ free_id (.=id)))
       )%I.
 
-  Definition sp : spl_type :=
-    Seal.sealing CRIS
-      [(Some ProphecyName.new, Some new_spec);
-       (Some ProphecyName.resolve, Some resolve_spec);
-       (Some ProphecyName.close, Some close_spec)
-      ].
-  
-  Definition fnsems : fnsems_type :=
-    [(Some ProphecyName.new, (true, wmask_all, scopes, (Some new_spec, fbody_trivial)));
-     (Some ProphecyName.resolve, (true, wmask_all, scopes, (Some resolve_spec, fbody_trivial)));
-     (Some ProphecyName.close, (true, wmask_all, scopes, (Some close_spec, fbody_trivial)))].
+  Definition fnsems : gmap (option string) (option (emask * (option fspec * fbody))) :=
+    {[Some ProphecyName.new :=
+        Some (msk_scp scopes msk_true, (Some new_spec, fbody_trivial));
+      Some ProphecyName.resolve :=
+        Some (msk_scp scopes msk_true, (Some resolve_spec, fbody_trivial));
+      Some ProphecyName.close :=
+        Some (msk_scp scopes msk_true, (Some close_spec, fbody_trivial))]}.
 
   Program Definition Mod : SMod.t := {|
     SMod.scopes := scopes;
     SMod.fnsems := fnsems;
-    SMod.initial_st := [];
+    SMod.initial_st := ∅;
   |}.
-  Solve All Obligations with prove_scope.
-  Next Obligation. prove_nodup. Qed.
+  Solve All Obligations with try done.
+  Next Obligation. rewrite ?omap_insert /= omap_empty. mod_tac scope_solver. Qed.
 
-  Definition initial_cond : iProp Σ := (has_proph_auth (Full_set _) (λ _, dummy_prophinst)) ∗ (free_id_auth (Full_set _)).
+  Definition initial_cond : iProp Σ :=
+    (has_proph_auth (Full_set _) (λ _, dummy_prophinst)) ∗ (free_id_auth (Full_set _)).
 
-  Definition t sp := Seal.sealing CRIS (SMod.to_mod sp Mod).
+  Definition t sp := SMod.to_mod sp Mod.
 End ProphecyA. End ProphecyA.

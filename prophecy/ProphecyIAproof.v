@@ -1,5 +1,5 @@
 From stdpp Require Import base strings.
-Require Import CRIS Common Mod LMod.
+Require Import CRIS Mod LMod.
 Require Import ProphecyHeader ProphecyI ProphecyA.
 Require Import ExtendedBehavior SimGEx.
 Require Import exco_stream.
@@ -7,14 +7,21 @@ Require Import exco_stream.
 Module ProphIA. Section ProphIA.
   Context `{_crisG : !crisG Γ Σ α β τ _I _S, _concG : !concG, _prophG : !prophG}.
 
-  Definition physical_smod (smd : SMod.t) : Prop :=
-    Forall (fun entry => entry.2.2.1 = None /\ entry.2.1.1.1 = false) smd.(SMod.fnsems).
+  Definition real_mod (md : Mod.t) : Prop :=
+    map_Forall
+      (λ _ (v : option (emask * fbody)),
+        match v with
+        | Some (msk, _) =>
+            (∀ P, msk _ (subevent _ (Assume P)) = false) ∧
+            ∀ X, msk _ (subevent _ (Take X)) = true → ∃ (P : Prop), X = P
+        | _ => False
+        end) (Mod.fnsems md).
 
-  Variable smds : list SMod.t.
+  (* Variable smds : list SMod.t. *)
 
-  Hypothesis PHYS : Forall (fun smd => physical_smod smd) smds.
+  (* Hypothesis PHYS : Forall (λ smd, physical_smod smd) smds. *)
 
-  Let md : Mod.t := Mod.addL (List.map (SMod.to_mod sp_none) smds).
+  (* Let md : Mod.t := Mod.addL (List.map (SMod.to_mod sp_none) smds). *)
 
   Variant _take_is_prop (coself : itree lmodE Any.t -> Prop) : itree lmodE Any.t -> Prop :=
   | take_is_prop_ret retv
@@ -71,7 +78,8 @@ Module ProphIA. Section ProphIA.
   Lemma thread_rel_load
       thl_src thl_tgt
       (WF : Forall2 thread_rel thl_src thl_tgt) :
-    forall n itr_src, thl_src !! n = Some itr_src -> exists bitr_tgt, <<TGTITR : thl_tgt !! n = Some bitr_tgt>> /\ <<WFITR : thread_rel itr_src bitr_tgt>>.
+    forall n itr_src, thl_src !! n = Some itr_src ->
+      exists bitr_tgt, <<TGTITR : thl_tgt !! n = Some bitr_tgt>> /\<<WFITR : thread_rel itr_src bitr_tgt>>.
   Proof using Type.
     induction WF; i; ss. destruct n; ss; clarify; et.
   Qed.
@@ -112,36 +120,48 @@ Module ProphIA. Section ProphIA.
           pclearbot. et.
   Qed.
 
-  Lemma mod_take_is_prop i ofn r arg
-    (PROG: alist_find ofn (Mod.to_lmod (md ★ ProphecyI.t) r).(LMod.fnsems) = Some i)
-  :
+  Context (md : Mod.t) (Hreal : real_mod md).
+
+  Lemma mod_take_is_prop r fn i arg :
+    (Mod.to_lmod (md ★ ProphecyI.t) r).(LMod.fnsems) !! fn = Some i →
     take_is_prop (i arg).
-  Proof using PHYS.
-    unfold md in PROG. induction smds; ss.
-    { revert PROG. unfold ProphecyI.t, LMod.prog. unseal CRIS. ss. i.
-      unfold ProphecyI.new, ProphecyI.resolve, ProphecyI.close in PROG.
-      des_ifs; unfold ModTr.trans_ktree, SB.sandbox_body; ss;
-        unfold SModTr.trans, SB.sandbox, ModTr.trans;
-        rewrite !interpV_tau !interpV_ret; pfold; econs; left; pfold; econs. }
-    unfold LMod.prog in *. ss. rewrite !map_app -app_assoc alist_find_app_o in PROG.
-    inv PHYS.
-    des_ifs; cycle 1. { apply IHl; et. rewrite !map_app. et. }
-    clear IHl H2. clear smds md l. red in H1.
-    induction a.(SMod.fnsems); ss. inv H1. des_ifs; et. clear IHf H3 f Heq1.
-    destruct a0; ss; clarify. destruct f. ss. destruct p0. ss. destruct p. ss.
-    destruct p. ss. des; clarify. clear.
-    unfold ModTr.trans_ktree, SB.sandbox_body. hss.
-    unfold ModTr.trans, SB.sandbox, SModTr.trans. rewrite !interpV_tau. pfold. econs. left.
-    set (f _). generalize i. clear i. clear. pcofix CIH. i. ides i.
-    - rewrite ! interpV_ret. pfold. econs.
-    - rewrite ! interpV_tau. pfold. econs. right. et.
-    - rewrite ! interpV_vis. rewrite !interpV_bind. destruct e; simpl.
+  Proof using Hreal.
+    dup Hreal.
+    rewrite /LMod.fnsems /Mod.to_lmod ?lookup_fmap lookup_omap.
+    destruct (_ _ !! fn) as [[[msk bd]|]|] eqn : Hfn; ss.
+    assert ((∀ P, msk _ (subevent _ (Assume P)) = false) ∧
+      ∀ X, msk _ (subevent _ (Take X)) = true → ∃ (P : Prop), X = P).
+    { rewrite lookup_union_with ?lookup_fmap in Hfn.
+      destruct (_ !! fn) as [[[? ?]|]|] eqn : ?; ss; simplify_eq.
+      { destruct (ProphecyI.fnsems !! fn); ss.
+        rewrite /real_mod map_Forall_lookup in Hreal0; eapply Hreal0 in Heqo; ss.
+        rewrite /SModTr.trans_fnsem in Hfn; clarify.
+      }
+      { repeat destruct (_ !! fn); ss. }
+      { revert Hfn; rewrite /ProphecyI.fnsems.
+        let rec go :=
+        try match goal with
+        | |- context [(<[?i := _]> _) !! ?k] =>
+          destruct (decide (i = k)); [subst; rewrite lookup_insert; ss|rewrite lookup_insert_ne; go]
+        | |- context [({[?i := _]}) !! ?k] =>
+          destruct (decide (i = k)); [subst; rewrite lookup_insert; ss|rewrite lookup_insert_ne; go]
+        end in go; i; clarify; ss; split; ss; intros ?;
+        match goal with
+        | |- context [excluded_middle_informative ?P] =>
+          destruct (excluded_middle_informative P) as [?|?]; ss
+        end.
+      }
+    }
+    clear Hfn. i; clarify.
+    rewrite /SB.sandbox_body /ModTr.trans_fnsem /= /ModTr.trans.
+    generalize (bd arg). clear -H. pcofix CIH. i. ides i.
+    - rewrite SBRed.ret interpV_ret. pfold. econs.
+    - rewrite SBRed.tau interpV_tau. pfold. econs. right. et.
+    - rewrite SBRed.vis; des_ifs; [|rewrite interpV_vis; ss; grind; pfold; econs; eauto; ss].
+      destruct e; simpl.
       + destruct a; des_ifs; ss.
-        * rewrite interpV_bind interpV_trigger. grind.
-          rewrite interpV_bind interpV_trigger. grind.
-          pfold. econs; et. i. clarify.
-        * rewrite interpV_bind interpV_trigger. grind.
-          rewrite interpV_bind interpV_trigger. grind.
+        * destruct H as [H ?]; rewrite H in Heq; ss.
+        * rewrite interpV_vis; ss; grind.
           pfold. econs. i. left. grind. destruct (Any.split x); ss; cycle 1.
           { unfold triggerUB. grind. pfold. econs; et. i. clarify. }
           grind. unfold unwrapU. des_ifs; ss; cycle 1.
@@ -154,9 +174,7 @@ Module ProphIA. Section ProphIA.
           unfold unwrapU. des_ifs; ss; cycle 1.
           { unfold triggerUB. grind. pfold. econs; et. i. clarify. }
           grind. pfold. econs. i. right. grind.
-          rewrite !interpV_ret. grind.
-        * rewrite interpV_bind interpV_trigger. grind.
-          rewrite interpV_bind interpV_trigger. grind.
+        * rewrite interpV_vis; ss; grind.
           pfold. econs. i. left. grind. unfold unwrapU. des_ifs; cycle 1.
           { unfold triggerUB. grind. pfold. econs; et. i. clarify. }
           grind. des_ifs; cycle 1.
@@ -165,63 +183,31 @@ Module ProphIA. Section ProphIA.
           unfold guarantee, ModTr.put_res. grind. pfold. econs. i. left.
           grind. pfold. econs. i. left. grind. unfold unwrapU. des_ifs; cycle 1.
           { unfold triggerUB. grind. pfold. econs; et. i. clarify. }
-          grind. pfold. econs. i. grind. rewrite !interpV_ret. grind.
+          grind. pfold. econs. i.
           right. et.
-      + destruct s; des_ifs; try destruct p; try destruct c; ss.
-        * grind. rewrite !interpV_tau bind_tau. pfold. econs. left.
-          rewrite interpV_trigger. ss. des_ifs.
-          all : eapply inj_pair2 in H1; eapply inj_pair2 in H0; clarify; grind; try rewrite interpV_trigger; grind.
-          { pfold. econs. i. grind. right. et. }
-          { rewrite interpV_bind interpV_trigger. grind. pfold. econs; et. i. clarify. }
-        * rewrite !interpV_tau bind_tau. pfold. econs. left.
-          rewrite interpV_trigger. ss. des_ifs.
-          { eapply inj_pair2 in H0. eapply inj_pair2 in H1. clarify.
-            grind. rewrite interpV_trigger. grind. pfold. econs. i. grind. right. et. }
-          { eapply inj_pair2 in H0. eapply inj_pair2 in H1. clarify.
-            grind. rewrite interpV_bind interpV_trigger. grind. pfold. econs; et. i. clarify. }
-        * rewrite !interpV_tau bind_tau. pfold. econs. left.
-          rewrite interpV_trigger. ss. des_ifs.
-          grind. rewrite interpV_trigger. ss. grind. pfold. econs. i. grind. right. et.
-        * rewrite !interpV_tau bind_tau. pfold. econs. left.
-          rewrite interpV_trigger. ss. des_ifs.
-          grind. rewrite interpV_trigger. ss. grind. pfold. econs. i. grind. right. et.
-        * grind. rewrite interpV_trigger. ss. des_ifs.
-          { eapply inj_pair2 in H0. eapply inj_pair2 in H1. clarify.
-            grind. rewrite interpV_trigger. grind. pfold. econs. i.
-            uo. unfold or_else. des_ifs.
-            - left. pfold. econs. i. right. et.
-            - grind. right. et. }
-          { eapply inj_pair2 in H0. eapply inj_pair2 in H1. clarify.
-            rewrite interpV_bind interpV_trigger. grind. pfold. econs; et. i. clarify. }
-        * grind. rewrite interpV_trigger. ss. des_ifs.
-          { eapply inj_pair2 in H0. eapply inj_pair2 in H1. clarify.
-            grind. rewrite interpV_trigger. grind. pfold. econs. i.
-            uo. unfold or_else. des_ifs.
-            - grind. right. et.
-            - grind. right. et.
-            - grind. right. et. }
-          { eapply inj_pair2 in H0. eapply inj_pair2 in H1. clarify.
-            rewrite interpV_bind interpV_trigger. grind. pfold. econs; et. i. clarify. }
-        * grind. rewrite interpV_trigger. ss.
-          grind. rewrite interpV_trigger. ss. grind.
-          pfold. econs; et. i. right. grind.
-        * rewrite interpV_bind interpV_trigger. grind.
-          destruct excluded_middle_informative; ss.
-          { clarify. eapply inj_pair2 in H0. clarify. eapply inj_pair2 in H0. clarify.
-            rewrite interpV_bind interpV_trigger. grind. pfold. econs; et. i. grind.
-            rewrite !interpV_ret. grind. right. et. }
-          { clarify. apply inj_pair2 in H0.
-            clarify. apply inj_pair2 in H0. clarify.
-            rewrite interpV_bind interpV_trigger. grind. pfold. econs; et. i. clarify. }
-        * grind. rewrite interpV_trigger. ss.
-          grind. rewrite interpV_trigger. ss. grind.
-          pfold. econs; et. i. right. grind.
-  Qed.
+      + destruct s; des_ifs; try destruct p; try destruct c; ss;
+        try by (rewrite interpV_vis /=; grind; pfold; econs; i; grind; right; eauto).
+        destruct s.
+        * destruct p.
+          { rewrite interpV_vis; grind; pfold; econs; i;
+            destruct (Any.split _) as [[? ?]|]; grind; [left; pfold; econs; i; right|]; eauto.
+          }
+          { rewrite interpV_vis; grind; pfold; econs; i;
+              destruct (Any.split _) as [[? ?]|]; grind; eauto.
+          }
+        * destruct c.
+          { rewrite interpV_vis /=; grind; pfold; econs; i; grind; right; eauto. }
+          { rewrite interpV_vis /=; grind; pfold; econs; eauto.
+            { destruct H as [? H]; apply H; ss. }
+            { i; grind; right; eauto. }
+          }
+          { rewrite interpV_vis /=; grind; pfold; econs; i; grind; right; eauto. }
+  (*SLOW*)Qed.
 
-  Lemma map_fst_snd {A B C: Type} (l : list (A * B)) (f: B -> C):
+  (* Lemma map_fst_snd {A B C: Type} (l : list (A * B)) (f: B -> C):
     List.map fst (List.map (map_snd f) l)
      = List.map fst l.
-  Proof using Type. induction l. hss. hss. destruct a. hss. rewrite IHl. ss. Qed.
+  Proof using Type. induction l. hss. hss. destruct a. hss. rewrite IHl. ss. Qed. *)
 
   Lemma mod_proph_comp_sim
       (WF : Mod.wf (md ★ ProphecyI.t)) :
@@ -229,7 +215,7 @@ Module ProphIA. Section ProphIA.
       comp_sim
         (LMod.compile (Mod.to_lmod (md ★ ProphecyI.t) r) arg)
         (proph_compile (Mod.to_lmod (md ★ ProphecyI.t) r) arg).
-  Proof using PHYS.
+  Proof using Hreal.
     ii.
     unfold LMod.compile, proph_compile. ss.
     unfold ITree.map.
@@ -240,13 +226,14 @@ Module ProphIA. Section ProphIA.
     assert (Forall2 thread_rel [i arg] [(false, i arg)]).
     { econs; last econs. ss. }
     assert (Forall take_is_prop [i arg]).
-    { econs; last econs. eapply mod_take_is_prop; et. }
+    { econs; last econs. unshelve eapply mod_take_is_prop; et. }
     assert (Forall take_is_prop (snd <$> [(false, i arg)])%stdpp).
-    { econs; last econs. ss. eapply mod_take_is_prop; et. }
+    { econs; last econs. ss. unshelve eapply mod_take_is_prop; et. }
     clear Heq.
-    set (Any.pair (ModTr.alist_encode (Mod.initial_st md ++ Mod.initial_st ProphecyI.t)) r↑). clearbody t. revert H H0 H1.
+    set (Any.pair _ (r↑)).
+    clearbody t. revert H H0 H1.
     generalize [i arg]. generalize [(false, i arg)].
-    generalize 0. revert t. clear -WF PHYS.
+    generalize 0. revert t. clear -WF Hreal.
     pcofix CIH. i. do 2 rewrite unfold_iterV. ss.
     destruct (l0 !! n) eqn:E; cycle 1.
     { ired. apply List.Forall2_length in H0.
@@ -408,7 +395,7 @@ Module ProphIA. Section ProphIA.
           pclearbot. ired. eapply NEXT.
         * (* Call *)
           econs.
-          destruct (alist_find _ _) eqn:EE; cycle 1.
+          rewrite {1 3}/LMod.prog; destruct (_ !! (Some fn)) eqn: EE; ss; cycle 1.
           { hss. unfold triggerUB.
             rewrite interp_state_bind.
             grind. unfold LModTr.pure_state. grind.
@@ -416,18 +403,20 @@ Module ProphIA. Section ProphIA.
           grind. right. eapply CIH.
           { apply Forall2_insert; et; ss.
             unfold thread_rel. destruct decide; et.
-            left. rewrite map_app in EE. apply alist_find_comm in EE; cycle 1.
-            { rewrite -map_app List.map_map.
-              inv WF. ss. set fst in wf_fns.
-              replace (fst ∘ _) with y; et.
-              extensionalities; destruct H; et. }
-            revert EE. unfold ProphecyI.t. unseal CRIS. ss.
-            unfold ProphecyI.new, ProphecyI.resolve, ProphecyI.close.
-            unfold ModTr.trans_ktree, SB.sandbox_body.
-            unfold ModTr.trans, SB.sandbox, SModTr.trans, SModTr.trans_ktree.
-            i. des; clarify; ss; clarify; rewrite !interpV_tau !SRed.ret !interpV_ret; grind; et. }
+            left. eapply lookup_fmap_Some in EE as [? [<- EE]].
+            eapply lookup_fmap_Some in EE as [? [<- EE]].
+            eapply lookup_omap_id_Some in EE.
+            apply lookup_union_with_Some in EE as [[? EE] | [[? EE] | ]].
+            { des; subst; rewrite /ProphecyI.fnsems in EE; ss. }
+            { rewrite /ProphecyI.fnsems in EE; des; subst; ss; simpl_map; ss; clarify;
+              rewrite /ModTr.trans_fnsem /ModTr.trans /SB.sandbox_body /SModTr.trans_fnsem /=;
+                esplits; rewrite /ProphecyI.new /ProphecyI.resolve /ProphecyI.close
+                ?SBRed.tau ?interpV_tau SRed.ret SBRed.ret interpV_ret; grind.
+            }
+            { des; clarify. }
+          }
           { apply Forall_insert; et. apply take_is_prop_bind.
-            eapply mod_take_is_prop; et. i. pfold. econs. left.
+            unshelve eapply mod_take_is_prop; et. i. pfold. econs. left.
             eapply Forall_lookup_1 in H2; cycle 1.
             { rewrite list_lookup_fmap. rewrite -> TGTITR. ss. }
             punfold H2. inv H2; try itree_clarify H0. grind.
@@ -437,12 +426,12 @@ Module ProphIA. Section ProphIA.
             punfold H1. inv H1; try itree_clarify H0. pclearbot.
             destruct decide; ss.
             - pfold. econs. i. left. apply take_is_prop_bind.
-              eapply mod_take_is_prop; et. i. pfold. econs. left. grind.
-            - apply take_is_prop_bind. eapply mod_take_is_prop; et.
+              unshelve eapply mod_take_is_prop; et. i. pfold. econs. left. grind.
+            - apply take_is_prop_bind. unshelve eapply mod_take_is_prop; et.
               i. pfold. econs. left. grind. }
         * (* Spawn *)
           econs.
-          destruct (alist_find _ _) eqn:EE; cycle 1.
+          rewrite {1 3}/LMod.prog; destruct (_ !! (Some fn)) eqn: EE; ss; cycle 1.
           { hss. unfold triggerUB.
             rewrite interp_state_bind.
             grind. unfold LModTr.pure_state. grind.
@@ -451,16 +440,18 @@ Module ProphIA. Section ProphIA.
           { apply Forall2_app.
             { apply Forall2_insert; et; ss. apply Forall2_length in H3. rewrite H3; ss. }
             econs; last econs. destruct decide; ss.
-            right. rewrite map_app in EE. apply alist_find_comm in EE; cycle 1.
-            { rewrite -map_app List.map_map.
-              inv WF. ss. set fst in wf_fns.
-              replace (fst ∘ _) with y; et.
-              extensionalities; destruct H; et. }
-            revert EE. unfold ProphecyI.t. unseal CRIS. ss.
-            unfold ProphecyI.new, ProphecyI.resolve, ProphecyI.close.
-            unfold ModTr.trans_ktree, SB.sandbox_body.
-            unfold ModTr.trans, SB.sandbox, SModTr.trans, SModTr.trans_ktree.
-            i. des; clarify; ss; clarify; rewrite !interpV_tau !SRed.ret !interpV_ret; grind; et. }
+            right. eapply lookup_fmap_Some in EE as [? [<- EE]].
+            eapply lookup_fmap_Some in EE as [? [<- EE]].
+            eapply lookup_omap_id_Some in EE.
+            apply lookup_union_with_Some in EE as [[? EE] | [[? EE] | ]].
+            { des; subst; rewrite /ProphecyI.fnsems in EE; ss. }
+            { rewrite /ProphecyI.fnsems in EE; des; subst; ss; simpl_map; ss; clarify;
+              rewrite /ModTr.trans_fnsem /ModTr.trans /SB.sandbox_body /SModTr.trans_fnsem /=;
+                esplits; rewrite /ProphecyI.new /ProphecyI.resolve /ProphecyI.close
+                ?SBRed.tau ?interpV_tau SRed.ret SBRed.ret interpV_ret; grind.
+            }
+            { des; clarify. }
+          }
           { eapply Forall_lookup_1 in E; et. punfold E.
             inv E; try itree_clarify H0. pclearbot. grind.
             apply Forall_app. split. apply Forall_insert; et.
@@ -488,24 +479,35 @@ Module ProphIA. Section ProphIA.
           exploit (H2). rewrite list_lookup_fmap_Some. et. hss.
           i. punfold x0. inv x0; et; hss; try itree_clarify H0.
           pclearbot. ired. eapply NEXT.
-  Qed.
+  (*SLOW*)Qed.
 
   Lemma prophecy_tgt_exbeh_exists
       (WF : Mod.wf (md ★ ProphecyI.t)) :
     forall arg r tr
       (BEH: Beh.of_itree (LMod.compile (Mod.to_lmod (md ★ ProphecyI.t) r) arg) tr),
       exists extr, tr_extr_relation tr extr /\ ExBeh.of_itree (proph_compile (Mod.to_lmod (md ★ ProphecyI.t) r) arg) extr.
-  Proof using PHYS.
+  Proof using Hreal.
     i. eapply comp_sim_tgt_extr_exists; et. apply mod_proph_comp_sim. et.
   Qed.
 
-  Let proph_newI := (ModTr.trans_ktree ∘ SB.sandbox_body ∘ (SModTr.trans_ktree sp_none)) (false, wmask_all, ["Prophecy"], (None, ProphecyI.new)).
-  Let proph_resolveI := (ModTr.trans_ktree ∘ SB.sandbox_body ∘ (SModTr.trans_ktree sp_none)) (false, wmask_all, ["Prophecy"], (None, ProphecyI.resolve)).
-  Let proph_closeI := (ModTr.trans_ktree ∘ SB.sandbox_body ∘ (SModTr.trans_ktree sp_none)) (false, wmask_all, ["Prophecy"], (None, ProphecyI.close)).
-
-  Let proph_newA sp := (ModTr.trans_ktree ∘ SB.sandbox_body ∘ (SModTr.trans_ktree sp)) (true, wmask_all, ["Prophecy"], (Some ProphecyA.new_spec, fbody_trivial)).
-  Let proph_resolveA sp := (ModTr.trans_ktree ∘ SB.sandbox_body ∘ (SModTr.trans_ktree sp)) (true, wmask_all, ["Prophecy"], (Some ProphecyA.resolve_spec, fbody_trivial)).
-  Let proph_closeA sp := (ModTr.trans_ktree ∘ SB.sandbox_body ∘ (SModTr.trans_ktree sp)) (true, wmask_all, ["Prophecy"], (Some ProphecyA.close_spec, fbody_trivial)).
+  Let proph_newI :=
+    (ModTr.trans_fnsem ∘ SB.sandbox_body)
+    (msk_real (msk_scp ∅ msk_true), (SModTr.trans_fnsem ∅ (None, ProphecyI.new))).
+  Let proph_resolveI :=
+    (ModTr.trans_fnsem ∘ SB.sandbox_body)
+    (msk_real (msk_scp ∅ msk_true), (SModTr.trans_fnsem ∅ (None, ProphecyI.resolve))).
+  Let proph_closeI :=
+    (ModTr.trans_fnsem ∘ SB.sandbox_body)
+    (msk_real (msk_scp ∅ msk_true), (SModTr.trans_fnsem ∅ (None, ProphecyI.close))).
+  Let proph_newA sp :=
+    (ModTr.trans_fnsem ∘ SB.sandbox_body)
+    (msk_scp ∅ msk_true, (SModTr.trans_fnsem sp (Some ProphecyA.new_spec, fbody_trivial))).
+  Let proph_resolveA sp :=
+    (ModTr.trans_fnsem ∘ SB.sandbox_body)
+    (msk_scp ∅ msk_true, (SModTr.trans_fnsem sp (Some ProphecyA.resolve_spec, fbody_trivial))).
+  Let proph_closeA sp :=
+    (ModTr.trans_fnsem ∘ SB.sandbox_body)
+    (msk_scp ∅ msk_true, (SModTr.trans_fnsem sp (Some ProphecyA.close_spec, fbody_trivial))).
 
   Variant _wf_sim (coself : itree lmodE Any.t -> (bool * itree lmodE Any.t) -> Prop) : itree lmodE Any.t -> (bool * itree lmodE Any.t) -> Prop :=
   | wf_ret retv
@@ -543,22 +545,21 @@ Module ProphIA. Section ProphIA.
 
   | wf_sget key ktr_src ktr_tgt
     (NEXT: forall x, coself (ktr_src x) (false, ktr_tgt x))
-  : _wf_sim coself (x <- (itreeV_itree (ModTr.handle_crisE (||SGet key|)%sum));; ktr_src x) (false, x <- (itreeV_itree (ModTr.handle_crisE (||SGet key|)%sum));; ktr_tgt x)
+  : _wf_sim coself (x <- (itreeV_itree (ModTr.handle_crisE _ (||SGet key|)%sum));; ktr_src x) (false, x <- (itreeV_itree (ModTr.handle_crisE _ (||SGet key|)%sum));; ktr_tgt x)
 
   | wf_sput key a ktr_src ktr_tgt
     (NEXT: coself (ktr_src tt) (false, ktr_tgt tt))
-  : _wf_sim coself (x <- (itreeV_itree (ModTr.handle_crisE (||SPut key a|)%sum));; ktr_src x) (false, x <- (itreeV_itree (ModTr.handle_crisE (||SPut key a|)%sum));; ktr_tgt x)
+  : _wf_sim coself (x <- (itreeV_itree (ModTr.handle_crisE _ (||SPut key a|)%sum));; ktr_src x) (false, x <- (itreeV_itree (ModTr.handle_crisE _ (||SPut key a|)%sum));; ktr_tgt x)
 
   | wf_Guarantee iP ktr_src ktr_tgt
     (NEXT: coself (ktr_src tt) (false, ktr_tgt tt))
-  : _wf_sim coself (x <- (itreeV_itree (ModTr.handle_crisE (Guarantee iP|)%sum));; ktr_src x) (false, x <- (itreeV_itree (ModTr.handle_crisE (Guarantee iP|)%sum));; ktr_tgt x)
+  : _wf_sim coself (x <- (itreeV_itree (ModTr.handle_crisE _ (Guarantee iP|)%sum));; ktr_src x) (false, x <- (itreeV_itree (ModTr.handle_crisE _ (Guarantee iP|)%sum));; ktr_tgt x)
 
   | wf_AssumePrecise r ktr_src ktr_tgt
     (NEXT: coself (ktr_src tt) (false, ktr_tgt tt))
-  : _wf_sim coself (x <- (itreeV_itree (ModTr.handle_crisE (AssumeRes r|)%sum));; ktr_src x) (false, x <- (itreeV_itree (ModTr.handle_crisE (AssumeRes r|)%sum));; ktr_tgt x).
+  : _wf_sim coself (x <- (itreeV_itree (ModTr.handle_crisE _ (AssumeRes r|)%sum));; ktr_src x) (false, x <- (itreeV_itree (ModTr.handle_crisE _ (AssumeRes r|)%sum));; ktr_tgt x).
 
   Definition wf_sim := paco2 _wf_sim bot2.
-
 
   Lemma wf_sim_mon : monotone2 _wf_sim.
   Proof using.
@@ -596,48 +597,32 @@ Module ProphIA. Section ProphIA.
   Qed.
 
   Lemma pmod_fun_wf_sim fn i args
-    (FIND: alist_find fn
-             (List.map (map_snd (ModTr.trans_ktree ∘ SB.sandbox_body)%stdpp)
-                (Mod.fnsems md)) = Some i) :
+    (FIND:
+      (ModTr.trans_fnsem <$> (SB.sandbox_body <$> omap id (Mod.fnsems md))) !! fn = Some i)
+    :
       wf_sim (i args) (false, i args).
-  Proof using PHYS.
-    revert i FIND. unfold md. induction smds; ss.
-    rewrite !map_app alist_find_app_o. i. inv PHYS. des_ifs; et. clear IHl H2 l md smds.
-    red in H1. revert i H1 Heq. induction a.(SMod.fnsems); ss. i. inv H1.
-    des_ifs; et. destruct a0; ss; clarify. destruct f0; ss. destruct p0; ss.
-    destruct p; ss. destruct p; ss. des; clarify.
-    clear. unfold SB.sandbox_body. ss.
-    unfold ModTr.trans_ktree. unfold ModTr.trans, SB.sandbox, SModTr.trans.
-    rewrite !interpV_tau. pfold. econs. left. generalize (f0 args). clear. pcofix CIH. i.
-    ides i.
-    { rewrite ! interpV_ret. pfold. econs. }
-    { rewrite ! interpV_tau. pfold. econs. right. et. }
-    rewrite interpV_vis. rewrite !interpV_bind.
-    destruct e as [e|[e|[e|e]]]; simpl.
-    - rewrite bind_ret_r interpV_trigger /=.
-      des_ifs; clexteq;
-        rewrite interpV_bind bind_bind interpV_trigger.
-      + ss. rewrite bind_bind. pfold. econs. clarify.
-      + pfold. apply wf_AssumePrecise. rewrite interpV_ret bind_ret_l. right. et.
-      + pfold. apply wf_Guarantee. rewrite interpV_ret bind_ret_l. right. et.
-    - des_ifs; ss;
-        rewrite !interpV_tau bind_tau; pfold; econs; left;
-        rewrite interpV_trigger; ss; des_ifs; clexteq;
-        rewrite interpV_bind interpV_trigger; ss;
-        grind; pfold; econs; clarify; right; grind;
-        rewrite interpV_ret; grind.
-    - rewrite bind_ret_r interpV_trigger; ss.
-      des_ifs; clexteq;
-        rewrite interpV_bind bind_bind interpV_trigger.
-      + pfold. econs. rewrite interpV_ret bind_ret_l. right. et.
-      + ss. rewrite bind_bind. pfold. econs. clarify.
-      + pfold. econs. i. rewrite interpV_ret bind_ret_l. right. et.
-      + ss. rewrite bind_bind. pfold. econs. clarify.
-    - rewrite bind_ret_r interpV_trigger; ss.
-      des_ifs; clexteq;
-        rewrite interpV_bind bind_bind interpV_trigger /= bind_ret_r;
-        pfold; econs; clarify; i;
-        rewrite interpV_ret bind_ret_l; right; et.
+  Proof using Hreal.
+    revert i FIND; pcofix CIH; intros i; rewrite ?lookup_fmap lookup_omap.
+    destruct (Mod.fnsems _ !! fn) as [[[msk ?]|]|] eqn : Hfn; ss; i; clarify.
+    revert Hreal; rewrite /real_mod map_Forall_lookup => /(_ fn (Some (msk, f))).
+    intros Hmsk; hexploit Hmsk; eauto; clear Hmsk; intros Hmsk.
+    rewrite /SB.sandbox_body /= /ModTr.trans_fnsem /ModTr.trans.
+    clear - Hmsk f. generalize (f args) as i; clear f args.
+    pcofix CIH; intros i; ides i.
+    { rewrite SBRed.ret interpV_ret. pfold. econs. }
+    { rewrite SBRed.tau interpV_tau. pfold. econs. right. et. }
+    { rewrite SBRed.vis; des_ifs; cycle 1.
+      { rewrite interpV_vis /= bind_bind. pfold. econs. ss. }
+      destruct e as [e|[e|[e|e]]]; simpl.
+      { destruct e.
+        { destruct Hmsk as [Hmsk _]; rewrite Hmsk in Heq; done. }
+        { rewrite interpV_vis; pfold. eapply wf_AssumePrecise; eauto. }
+        { rewrite interpV_vis; pfold. econs; eauto. }
+      }
+      { rewrite interpV_vis /= bind_ret_r. pfold; econs; eauto. }
+      { destruct e; rewrite interpV_vis; pfold; econs; eauto. }
+      { rewrite interpV_vis /= bind_ret_r; pfold; econs; eauto. }
+    }
   Qed.
 
   Fixpoint stream_app {A} (prefix : list A) (s : stream A) : stream A :=
@@ -712,18 +697,21 @@ Module ProphIA. Section ProphIA.
 
   Lemma src_mod_wf sp (WF : Mod.wf (md ★ ProphecyI.t)) :
     Mod.wf (md ★ (ProphecyA.t sp)).
-  Proof using smds.
-    inv WF. ss. rewrite !map_app in wf_fns.
-    replace (Mod.scopes ProphecyI.t) with (Mod.scopes (ProphecyA.t sp)) in wf_scopes by now do 2 (unfold_mod; ss); et.
-    replace (List.map fst (Mod.fnsems ProphecyI.t)) with (List.map fst (Mod.fnsems (ProphecyA.t sp))) in wf_fns by now do 2 (unfold_mod; ss).
-    econs; et. ss. rewrite !map_app //.
+  Proof using.
+    econs; dup WF; inv WF; eauto; s.
+    eapply map_Forall_union_with_inv_gen in wf_fns as ?.
+    eapply map_Forall_union_with_inv in wf_fns as [? ?].
+    eapply map_Forall_union_with; [set_solver|]; split; eauto.
+    rewrite /= /ProphecyI.fnsems /ProphecyA.fnsems ?fmap_insert ?fmap_empty //.
+    rewrite ?map_Forall_insert; ss.
   Qed.
 
   Lemma adequacy_aux sp rs_src rs_tgt rs_proph rs_prog_tgt rs_prog_src proph_map free_ids extr thidx thl_src thl_tgt pstore
     (WFMODT : Mod.wf (md ★ ProphecyI.t))
     (VALID : ✓ rs_src)
     (REQ : rs_src ~~> rs_tgt ⋅ rs_proph)
-    (RS : rs_proph ≡ (own.iRes_singleton base_γ (has_proph_auth_r free_ids proph_map) ⋅ own.iRes_singleton base_γ (free_id_auth_r free_ids)))
+    (RS : rs_proph ≡ (own.iRes_singleton base_γ (has_proph_auth_r free_ids proph_map) ⋅
+      own.iRes_singleton base_γ (free_id_auth_r free_ids)))
     (WF : Forall2 wf_sim thl_src thl_tgt)
     (INV :
       forall id (NOTFREE : ~(free_ids id)),
@@ -756,7 +744,7 @@ Module ProphIA. Section ProphIA.
               (proph_handle_callE
                  (LMod.prog (Mod.to_lmod (md ★ ProphecyI.t) rs_prog_tgt)))
               (thidx, thl_tgt)) (Any.pair pstore (rs_tgt : Σ) ↑);; Ret x.2).
-  Proof using PHYS.
+  Proof using Hreal.
     Local Opaque wsimg.
     hexploit src_mod_wf; et. intro WFMODS.
     move WFMODS at top. move WFMODT at top.
@@ -801,84 +789,78 @@ Module ProphIA. Section ProphIA.
           punfold STEP. inversion STEP. fclarify. pclearbot. et.
     (* case : callE *)
     - grind. destruct e; ss; grind.
-      + steps_l. steps_r. unfold unwrapU. destruct alist_find eqn:E; [|clearub].
-        grind. destruct decide.
-        (* case : proph call *)
-        * des_ifs; cycle 1.
-          { rewrite !map_app in Heq. rewrite alist_find_app_o in Heq.
-            des_ifs. exfalso. revert Heq. unfold_mod. ss.
-            unfold rel_dec. ss. do 3 (destruct dec; ss). i. des; clarify. }
+      + steps_l. steps_r. unfold unwrapU.
+        destruct LMod.prog eqn:E; [|clearub]. grind. destruct decide.
+        { assert (Hfn : Mod.fnsems md !! Some fn = None).
+          { inv WFMODT; eapply map_Forall_union_with_inv_gen in wf_fns.
+            eapply not_elem_of_dom_1; i; des; subst; set_solver.
+          }
+          des_ifs; cycle 1.
+          { exfalso; rewrite /LMod.prog /= ?lookup_fmap lookup_omap lookup_union_with in Heq.
+            rewrite Hfn in Heq; des; subst; ss.
+          }
           grind. endsim; cycle 1.
           { i. hexploit INV; et. i. clear o. des. esplits; et.
-            punfold H0. inversion H0. fclarify. pclearbot. et. }
-          apply Forall2_insert; et. clear -Heq E o NEXT WFMODS WFMODT.
-          inv WFMODS. inv WFMODT. ss.
-          set (Mod.fnsems md) as fns in *.
-          revert E. unfold_mod. ss. rewrite !map_app. ss. i.
-          revert Heq. unfold_mod. ss. rewrite !map_app. ss. i.
-          revert wf_fns. unfold_mod; ss. rewrite !map_app. ss. i.
-          apply alist_find_comm in E; cycle 1.
-          { rewrite map_app !List.map_map //=. erewrite map_ext; et. i.
-            destruct a; ss. }
-          apply alist_find_comm in Heq; cycle 1.
-          { rewrite map_app !List.map_map //=. erewrite map_ext; et. i.
-            destruct a; ss. }
-          des; clarify; ss; clarify.
-          { pfold. econs. left. pfold. econs. left. grind. }
-          { pfold. econs. left. pfold. econs. left. grind. }
-          { pfold. econs. left. pfold. econs. left. grind. }
+            punfold H0. inversion H0. fclarify. pclearbot. et.
+          }
+          apply Forall2_insert; et. pfold.
+          clear -Heq E o NEXT WFMODS WFMODT Hfn.
+          revert E Heq; rewrite /LMod.prog /= ?lookup_fmap ?lookup_omap ?lookup_union_with ?Hfn.
+          rewrite /ProphecyA.fnsems /ProphecyI.fnsems.
+          des; subst; simpl_map; ss; i; clarify; econs; left; pfold; econs; left; grind.
+        }
         (* case : normal call *)
-        * rewrite !map_app in E. rewrite alist_find_app_o in E.
-          destruct alist_find eqn:E0 in E; clarify; cycle 1.
-          { exfalso. revert E. unfold_mod. ss. unfold rel_dec. ss. i.
-            do 3 (try destruct dec; ss); clarify; apply n; et. }
-          rewrite !map_app alist_find_app_o E0. grind. endsim.
+        * revert E; rewrite {1 3}/LMod.prog /= ?lookup_fmap ?lookup_omap ?lookup_union_with.
+          rewrite ?lookup_fmap /ProphecyA.fnsems /ProphecyI.fnsems; rewrite ?lookup_insert_ne;
+            try by (ii; clarify; exfalso; apply n; esplits; eauto).
+          rewrite lookup_empty /=; ss.
+          destruct (_ !! Some fn) as [[?|]|] eqn : Hfn; ss; i; clarify.
+          grind. endsim.
           { apply Forall2_insert; et. apply wf_sim_bind.
-            { eapply pmod_fun_wf_sim; et. }
-            i. pfold. econs. left. grind. }
+            { eapply (pmod_fun_wf_sim (Some fn)); rewrite ?lookup_fmap lookup_omap Hfn //=. }
+            i. pfold. econs. left. grind.
+          }
           i. hexploit INV; et. i. des. esplits; et.
           punfold H0. inversion H0. fclarify. pclearbot. et.
-      + steps_l. steps_r. unfold unwrapU. destruct alist_find eqn:E; [|clearub].
-        grind. destruct decide.
-        (* case : proph spawn *)
-        * des_ifs; cycle 1.
-          { rewrite !map_app in Heq. rewrite alist_find_app_o in Heq.
-            des_ifs. exfalso. revert Heq. unfold_mod. ss.
-            unfold rel_dec. ss. do 3 (destruct dec; ss). i. des; clarify. }
+      + steps_l. steps_r. unfold unwrapU.
+        destruct LMod.prog eqn:E; [|clearub]. grind. destruct decide.
+        { assert (Hfn : Mod.fnsems md !! Some fn = None).
+          { inv WFMODT; eapply map_Forall_union_with_inv_gen in wf_fns.
+            eapply not_elem_of_dom_1; i; des; subst; set_solver.
+          }
+          des_ifs; cycle 1.
+          { exfalso; rewrite /LMod.prog /= ?lookup_fmap lookup_omap lookup_union_with in Heq.
+            rewrite Hfn in Heq; des; subst; ss.
+          }
           grind. endsim; cycle 1.
           { i. hexploit INV; et. i. clear o. des. esplits; et.
-            punfold H0. inversion H0. fclarify. pclearbot. et. }
+            punfold H0. inversion H0. fclarify. pclearbot. et.
+          }
           apply Forall2_app.
           { apply Forall2_insert; et.
-            erewrite Forall2_length; et. apply NEXT. }
+            erewrite Forall2_length; et. apply NEXT.
+          }
           econs; last econs.
           rewrite -(bind_ret_r (i1 args)) -(bind_ret_r (trigger _;;;_)) bind_bind.
-          clear -Heq E o NEXT WFMODS WFMODT.
-          inv WFMODS. inv WFMODT. ss.
-          set (Mod.fnsems md) as fns in *.
-          revert E. unfold_mod. ss. rewrite !map_app. ss. i.
-          revert Heq. unfold_mod. ss. rewrite !map_app. ss. i.
-          revert wf_fns. unfold_mod; ss. rewrite !map_app. ss. i.
-          apply alist_find_comm in E; cycle 1.
-          { rewrite map_app !List.map_map //=. erewrite map_ext; et. i.
-            destruct a; ss. }
-          apply alist_find_comm in Heq; cycle 1.
-          { rewrite map_app !List.map_map //=. erewrite map_ext; et. i.
-            destruct a; ss. }
-          des; clarify; ss; clarify.
-          { pfold. econs. left. pfold. econs. }
-          { pfold. econs. left. pfold. econs. }
-          { pfold. eapply wf_prophecy_close. left. pfold. econs. }
-        (* case : normal spawn *)
-        * rewrite !map_app in E. rewrite alist_find_app_o in E.
-          destruct alist_find eqn:E0 in E; clarify; cycle 1.
-          { exfalso. revert E. unfold_mod. ss. unfold rel_dec. ss. i.
-            do 3 (try destruct dec; ss); clarify; apply n; et. }
-          rewrite !map_app alist_find_app_o E0. grind. endsim.
+          clear -Heq E o NEXT WFMODS WFMODT Hfn.
+          revert E Heq; rewrite /LMod.prog /= ?lookup_fmap ?lookup_omap ?lookup_union_with ?Hfn.
+          rewrite /ProphecyA.fnsems /ProphecyI.fnsems.
+          des; subst; simpl_map; ss; i; clarify; pfold; econs; left; pfold; econs; left; grind.
+        }
+        (* case : normal call *)
+        * revert E; rewrite {1 3}/LMod.prog /= ?lookup_fmap ?lookup_omap ?lookup_union_with.
+          rewrite ?lookup_fmap /ProphecyA.fnsems /ProphecyI.fnsems; rewrite ?lookup_insert_ne;
+            try by (ii; clarify; exfalso; apply n; esplits; eauto).
+          rewrite lookup_empty /=; ss.
+          destruct (_ !! Some fn) as [[?|]|] eqn : Hfn; ss; i; clarify.
+          grind. endsim.
           { apply Forall2_app; cycle 1.
-            { econs; last econs. eapply pmod_fun_wf_sim; et. }
+            { econs; last econs.
+              eapply (pmod_fun_wf_sim (Some fn)); rewrite ?lookup_fmap lookup_omap Hfn //=.
+            }
             apply Forall2_insert; et. erewrite Forall2_length; et.
-            apply NEXT. }
+            apply NEXT.
+          }
           i. hexploit INV; et. i. des. esplits; et.
           punfold H0. inversion H0. fclarify. pclearbot. et.
       + steps_l. steps_r. endsim.
@@ -893,13 +875,20 @@ Module ProphIA. Section ProphIA.
       apply wsimg_io_proph. i. clarify. rename extr' into extr.
       steps_l. grind. steps_l. steps_r.
       unfold proph_newI, ProphecyI.new, ProphecyA.new_spec, fspec_simple.
-      unfold precond, postcond. destruct p. ss.
-      unfold cfunU, SB.sandbox_body, SB.sandbox, ModTr.trans_ktree, ModTr.trans, SModTr.trans.
+      unfold precond, postcond.
+      rewrite ?interpV_bind ?interpV_trigger /=; grind.
+      rewrite unfold_iterV /= list_lookup_insert //=; grind.
+      rewrite /LModTr.pure_state /=; grind. steps_l. destruct p; ss. grind.
+      steps_l. rewrite !list_insert_insert.
+      rewrite interpV_ret; grind.
+      (* destruct p. ss. *)
+      unfold cfunU, SB.sandbox_body, SB.sandbox, ModTr.trans_fnsem, ModTr.trans, SModTr.trans.
       simpl. rewrite !interpV_bind !interpV_trigger. simpl.
-      rewrite bind_ret_r interpV_trigger. simpl.
-      rewrite bind_ret_r. grind. rewrite unfold_iterV. simpl.
+      rewrite bind_ret_r interpV_trigger. simpl. grind.
+      (* rewrite bind_ret_r. grind. *)
+      rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et.
-      grind. unfold LModTr.pure_state at 1. grind. steps_l. grind.
+      grind.  grind. steps_l. grind.
       steps_l. rewrite !list_insert_insert.
       simpl. rewrite !interpV_bind !interpV_trigger. simpl.
       rewrite bind_ret_r interpV_trigger. simpl. grind.
@@ -909,20 +898,20 @@ Module ProphIA. Section ProphIA.
       rewrite Any.upcast_downcast. grind.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind.
-      unfold LModTr.pure_state at 1. grind. steps_l. grind. steps_l.
+      grind. steps_l. grind. steps_l.
       rewrite !list_insert_insert.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind.
-      unfold LModTr.pure_state at 1. grind. steps_l. grind. steps_l.
+      grind. steps_l. grind. steps_l.
       rewrite !list_insert_insert.
       des.
       assert (Own p0 ⊢ ⌜arg = i1↑⌝).
-      { iIntros "A". iPoseProof (p2 with "A") as ">[[[A B] C] D]". iFrame. }
+      { iIntros "A". iPoseProof (p2 with "A") as "> [[-> [-> ?]] ?]". done. }
       apply Own_pure_soundness in H; et. clarify.
-      rewrite !SRed.ret.
       assert (Own p0 ⊢ |==> ((⌜i1 ↑ = i1 ↑⌝ ∗ free_id (λ y : Prophecy.ID, y = i1)) ∗ ⌜p = i1 ↑⌝) ∗ Own (rs_tgt ⋅ rs_proph)).
-      { iIntros "A". iPoseProof (p2 with "A") as ">[A B]". iFrame.
-        iStopProof. apply Own_Upd. et. }
+      { iIntros "A". iPoseProof (p2 with "A") as ">[[$ [-> $]] B]".
+        iFrame. iSplitR; [eauto|]. iStopProof. apply Own_Upd. et.
+      }
       clear p2. rename H into p2. rewrite /free_id in p2.
       assert (✓ (free_id_r (λ y : Prophecy.ID, y = i1) ⋅ free_id_auth_r free_ids)).
       { eapply Own_pure_soundness; et.
@@ -955,14 +944,14 @@ Module ProphIA. Section ProphIA.
       rewrite bind_ret_r interpV_trigger. simpl.
       rewrite bind_ret_r. rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind.
-      unfold LModTr.pure_state at 1. grind. steps_l.
+      grind. apply wsimg_choose_src.
       exists (tt↑). grind. rewrite !list_insert_insert. steps_l.
       rewrite !interpV_bind interpV_trigger. simpl.
       rewrite bind_ret_r interpV_trigger. simpl.
       rewrite bind_ret_r. grind.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind.
-      unfold LModTr.pure_state at 1. grind. steps_l. grind. steps_l.
+      grind. steps_l. grind. steps_l.
       exists (tt↑). grind. rewrite !list_insert_insert. steps_l.
       rewrite !interpV_bind interpV_trigger. simpl.
       rewrite bind_ret_r interpV_trigger. simpl. grind.
@@ -979,17 +968,17 @@ Module ProphIA. Section ProphIA.
           else proph_map i.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind.
-      unfold LModTr.pure_state at 1. grind. steps_l.
+      grind. steps_l.
       exists (rs_tgt ⋅ (own.iRes_singleton base_γ (has_proph_auth_r (Ensembles.Subtract _ free_ids i1) proph_map')
                 ⋅ own.iRes_singleton base_γ (free_id_auth_r (Ensembles.Subtract _ free_ids i1)))).
       grind. steps_l. rewrite !list_insert_insert.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind.
-      unfold LModTr.pure_state at 1. grind. steps_l.
+      grind. steps_l.
       assert
         (Own p0 ⊢ |==>
-           ((∃ p4 : Prophecy.Pro t, ⌜tt ↑ = tt ↑⌝ ∗
-             has_proph i1 (existT t (p4, []))) ∗ ⌜
+           ((⌜tt ↑ = tt ↑⌝ ∗
+             ∃ p4 : Prophecy.Pro t, has_proph i1 (existT t (p4, []))) ∗ ⌜
               tt ↑ = tt ↑⌝) ∗
            Own
            (rs_tgt ⋅ (own.iRes_singleton base_γ
@@ -1014,8 +1003,8 @@ Module ProphIA. Section ProphIA.
           apply discrete_fun_update. i. discrete_fun_tac.
           destruct excluded_middle_informative; cycle 1.
           { do 2 destruct excluded_middle_informative; try done.
-            { exfalso. apply n0. red. red. split; et. ii. inv H1. }
-            exfalso. do 2 red in s. des. apply n0. apply s. }
+            { exfalso. apply n2. red. red. split; et. ii. inv H1. }
+            exfalso. do 2 red in s. des. apply n2. apply s. }
           subst. destruct excluded_middle_informative; clarify.
           destruct excluded_middle_informative; clarify.
           { inv s. exfalso. apply H2. econs. }
@@ -1041,7 +1030,7 @@ Module ProphIA. Section ProphIA.
             rewrite right_id. unfold proph_map'.
             destruct (excluded_middle_informative (a = i1)); clarify.
             des_ifs; exfalso; cycle 1. { inv s. }
-            apply n1. split; et. ii. apply n. inv H1. }
+            apply n3. split; et. ii. apply n2. inv H1. }
           subst. destruct excluded_middle_informative; clarify.
           rewrite discrete_fun_lookup_singleton.
           destruct excluded_middle_informative.
@@ -1068,9 +1057,10 @@ Module ProphIA. Section ProphIA.
         { apply Own_bupd_update. iIntros "A".
           iPoseProof (H1 with "A") as ">[A B]". iModIntro. iFrame. }
         rewrite cmra_valid_validN. i.
-        specialize (H2 n ε). ss. apply H2. clear H2. revert n.
+        specialize (H2 n1 ε). ss. apply H2. clear H2. revert n1.
         rewrite -cmra_valid_validN. et. }
-      exists (conj H2 H1).
+      unshelve eexists (conj H2 _).
+      { rewrite H1. iIntros "> [[[_ [% ?]] _] $]". iModIntro; iSplit; eauto. }
       grind. rewrite list_insert_insert. step_l.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind. steps_l.
@@ -1078,13 +1068,13 @@ Module ProphIA. Section ProphIA.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind. steps_l.
       rewrite !list_insert_insert. rewrite !interpV_ret. grind.
-      rewrite !interpV_tau !interpV_ret. grind.
-      rewrite (@unfold_iterV _ _ _ (proph_handle_callE _)). simpl.
+      (* rewrite !interpV_tau !interpV_ret. grind. *)
+      rewrite (unfold_iterV (proph_handle_callE _)). simpl.
       rewrite !list_lookup_insert; [| erewrite <- Forall2_length; et].
       ss. grind. steps_r.
       rewrite !list_insert_insert.
       apply wsimg_endsim. i. eapply CIH. et.
-      { apply Forall2_insert; et. }
+      { apply Forall2_insert; et. rewrite SRed.ret ?interpV_ret /=. grind; eauto. }
       4:{ refl. }
       2:{ refl. }
       3:{ apply WFMODS. }
@@ -1119,13 +1109,20 @@ Module ProphIA. Section ProphIA.
       apply wsimg_io_proph. i. clarify. rename extr' into extr.
       steps_l. grind. steps_l. steps_r.
       unfold proph_resolveI, ProphecyI.resolve, ProphecyA.resolve_spec, fspec_simple.
-      unfold precond, postcond. destruct p. ss. destruct s, p, p. ss.
-      unfold cfunU, SB.sandbox_body, SB.sandbox, ModTr.trans_ktree, ModTr.trans, SModTr.trans.
-      simpl. rewrite !SRed.ret. grind.
+      unfold precond, postcond.
+      rewrite !interpV_bind !interpV_trigger. simpl.
+      rewrite bind_ret_r. grind. rewrite unfold_iterV. simpl.
+      rewrite !list_lookup_insert; et.
+      grind. unfold LModTr.pure_state at 1. grind. steps_l. grind.
+      destruct p. ss. destruct s, p, p. ss.
+      unfold cfunU, SB.sandbox_body, SB.sandbox, ModTr.trans_fnsem, ModTr.trans, SModTr.trans.
+      steps_l. grind. steps_l. steps_r.
+      rewrite interpV_ret; ired.
+      (* simpl. rewrite !SRed.ret. grind. *)
       rewrite !interpV_bind !interpV_trigger. simpl.
       rewrite bind_ret_r interpV_trigger. simpl.
       rewrite bind_ret_r. grind. rewrite unfold_iterV. simpl.
-      rewrite !list_lookup_insert; et.
+      rewrite list_lookup_insert; et. 2:{ rewrite length_insert //. }
       grind. unfold LModTr.pure_state at 1. grind. steps_l. grind.
       steps_l. rewrite !list_insert_insert.
       simpl. rewrite !interpV_bind !interpV_trigger. simpl.
@@ -1144,11 +1141,12 @@ Module ProphIA. Section ProphIA.
       rewrite !list_insert_insert.
       des.
       assert (Own p1 ⊢ ⌜arg = (i1, o↑↑)↑⌝).
-      { iIntros "A". iPoseProof (p3 with "A") as ">[[[A B] C] D]". iFrame. }
+      { iIntros "A". iPoseProof (p3 with "A") as ">[[-> [-> B]] D]". done. }
       apply Own_pure_soundness in H; et. clarify.
       assert (Own p1 ⊢ |==> ((⌜(i1, o ↑↑) ↑ = (i1, o ↑↑) ↑⌝ ∗ has_proph i1 (existT x (p, l))) ∗ ⌜p0 = (i1, o ↑↑) ↑⌝) ∗ Own (rs_tgt ⋅ rs_proph)).
-      { iIntros "A". iPoseProof (p3 with "A") as ">[A B]". iFrame.
-        iStopProof. apply Own_Upd. et. }
+      { iIntros "A". iPoseProof (p3 with "A") as ">[[_ [$ A]] B]". iFrame. iSplitR; ss.
+        iStopProof. apply Own_Upd. et.
+      }
       clear p3. rename H into p3. rewrite RS /has_proph in p3.
       assert (✓ (has_proph_r i1 (existT x (p, l)) ⋅ has_proph_auth_r free_ids proph_map)).
       { eapply Own_pure_soundness; et.
@@ -1191,6 +1189,7 @@ Module ProphIA. Section ProphIA.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind.
       unfold LModTr.pure_state at 1. grind. steps_l. grind. steps_l.
+      apply wsimg_choose_src.
       exists (tt↑). grind. rewrite !list_insert_insert. steps_l.
       rewrite !interpV_bind interpV_trigger. simpl.
       rewrite bind_ret_r interpV_trigger. simpl.
@@ -1317,12 +1316,14 @@ Module ProphIA. Section ProphIA.
         { apply Own_bupd_update. iIntros "A".
           iPoseProof (H with "A") as ">[A B]". iModIntro. iFrame. }
         rewrite cmra_valid_validN. i.
-        specialize (H0 n ε). ss. apply H0. clear H0. revert n.
+        specialize (H0 n1 ε). ss. apply H0. clear H0. revert n1.
         rewrite -cmra_valid_validN. et. }
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind.
       unfold LModTr.pure_state at 1. grind. steps_l.
-      exists (conj H0 H). grind. steps_l. rewrite !list_insert_insert.
+      unshelve eexists (conj H0 _).
+      { rewrite H; iIntros ">[[[% $] %] $] !>"; iSplit; eauto. }
+      grind. steps_l. rewrite !list_insert_insert.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind. steps_l.
       rewrite !list_insert_insert.
@@ -1331,11 +1332,12 @@ Module ProphIA. Section ProphIA.
       rewrite !list_lookup_insert; et. grind. steps_l.
       rewrite !list_insert_insert.
       rewrite !interpV_ret. grind.
-      rewrite (@unfold_iterV _ _ _ (proph_handle_callE _)). simpl.
+      rewrite (unfold_iterV (proph_handle_callE _)). simpl.
+      (* rewrite (unfold_iterV (proph_handle_callE _)). simpl. *)
       rewrite !list_lookup_insert; [| erewrite <- Forall2_length; et].
       ss. grind. steps_r.
       rewrite !list_insert_insert.
-      rewrite !interpV_ret bind_ret_l.
+      rewrite !SRed.ret ?interpV_ret bind_ret_l.
       apply wsimg_endsim. i. eapply CIH. et.
       { apply Forall2_insert; et. }
       5:{ apply WFMODS. }
@@ -1369,12 +1371,15 @@ Module ProphIA. Section ProphIA.
       apply wsimg_io_proph. i. clarify. rename extr' into extr.
       steps_l. grind. steps_l. steps_r.
       unfold proph_closeI, ProphecyI.close, ProphecyA.close_spec, fspec_simple.
-      unfold precond, postcond. destruct p. ss.
-      unfold cfunU, SB.sandbox_body, SB.sandbox, ModTr.trans_ktree, ModTr.trans, SModTr.trans.
+      unfold precond, postcond.
+      rewrite unfold_iterV. simpl.
+      rewrite !list_lookup_insert; et. grind.
+      unfold LModTr.pure_state at 1. grind. steps_l. grind. steps_l.
+      unfold cfunU, SB.sandbox_body, SB.sandbox, ModTr.trans_fnsem, ModTr.trans, SModTr.trans.
       simpl. rewrite !interpV_bind !interpV_trigger. simpl.
       rewrite bind_ret_r interpV_trigger. simpl.
       rewrite bind_ret_r. grind. rewrite unfold_iterV. simpl.
-      rewrite !list_lookup_insert; et.
+      rewrite !list_lookup_insert; et. 2:{ rewrite length_insert //. }
       grind. unfold LModTr.pure_state at 1. grind. steps_l. grind.
       steps_l. rewrite !list_insert_insert.
       simpl. rewrite !interpV_bind !interpV_trigger. simpl.
@@ -1391,19 +1396,21 @@ Module ProphIA. Section ProphIA.
       rewrite !list_lookup_insert; et. grind.
       unfold LModTr.pure_state at 1. grind. steps_l. grind. steps_l.
       rewrite !list_insert_insert. des.
-      assert (Own p0 ⊢ ⌜arg = i1↑⌝).
-      { iIntros "A". destruct s as [? [? ?]].
-        iPoseProof (p2 with "A") as "> [[[% ?] %] ?]"; clarify.
+      assert (Own p1 ⊢ ⌜arg = i1↑⌝).
+      { iIntros "A".
+        iPoseProof (p3 with "A") as "> [[% [% ?]] ?]"; clarify.
       }
       apply Own_pure_soundness in H; et. clarify.
-      rewrite !SRed.ret. grind.
-      destruct s as [x [p' l]].
-      assert (Own p0 ⊢
-        |==> ((⌜i1 ↑ = i1 ↑⌝ ∗ has_proph i1 (existT x (p', l))) ∗ ⌜p = i1 ↑⌝) ∗ Own (rs_tgt ⋅ rs_proph)).
-      { iIntros "A". iPoseProof (p2 with "A") as ">[A B]". iFrame.
-        iStopProof. apply Own_Upd. et. }
-      clear p2. rename H into p3.
-      assert (✓ (has_proph_r i1 (existT x (p', l)) ⋅ has_proph_auth_r free_ids proph_map)).
+      (* rewrite !SRed.ret. grind. *)
+      (* destruct s as [x [p' l]]. *)
+      assert (Own p1 ⊢
+        |==> ((⌜i1 ↑ = i1 ↑⌝ ∗ has_proph i1 (existT x (p0, l))) ∗ ⌜p = i1 ↑⌝) ∗ Own (rs_tgt ⋅ rs_proph)).
+      { iIntros "A". iPoseProof (p3 with "A") as ">[[-> [_ A]] B]". iFrame.
+        iSplitR; eauto.
+        iStopProof. apply Own_Upd. et.
+      }
+      clear p3. rename H into p3.
+      assert (✓ (has_proph_r i1 (existT x (p0, l)) ⋅ has_proph_auth_r free_ids proph_map)).
       { eapply Own_pure_soundness; et.
         iIntros "A". iPoseProof (p3 with "A") as ">[[[A B] C] [D E]]".
         rewrite RS. iDestruct "E" as "[E F]".
@@ -1424,7 +1431,7 @@ Module ProphIA. Section ProphIA.
         rewrite comm auth_both_valid_discrete in H. des.
         red in H. des. destruct z. { rewrite -Some_op in H. inv H. }
         inv H. }
-      assert (proph_map i1 = existT x (p', l)).
+      assert (proph_map i1 = existT x (p0, l)).
       { specialize (H i1).
         unfold has_proph_r, has_proph_auth_r in H.
         discrete_fun_tac. des_ifs.
@@ -1445,6 +1452,7 @@ Module ProphIA. Section ProphIA.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind.
       unfold LModTr.pure_state at 1. grind. steps_l. grind. steps_l.
+      eapply wsimg_choose_src.
       exists (tt↑). grind. rewrite !list_insert_insert. steps_l.
       rewrite !interpV_bind interpV_trigger. simpl.
       rewrite bind_ret_r interpV_trigger. simpl.
@@ -1469,7 +1477,7 @@ Module ProphIA. Section ProphIA.
       rewrite !list_lookup_insert; et. grind.
       unfold LModTr.pure_state at 1. grind. steps_l.
       assert
-        (Own p0 ⊢ |==>
+        (Own p1 ⊢ |==>
            ((⌜tt ↑ = tt ↑⌝ ∗
              free_id (λ y, y = i1)) ∗ ⌜
               tt ↑ = tt ↑⌝) ∗
@@ -1500,12 +1508,12 @@ Module ProphIA. Section ProphIA.
           destruct (excluded_middle_informative (a = i1)); cycle 1.
           { rewrite right_id.
             do 2 destruct excluded_middle_informative; try done.
-            { exfalso. apply n0. econs. et. }
+            { exfalso. apply n2. econs. et. }
             exfalso. inv a0. inv H. }
           subst.
           do 2 destruct excluded_middle_informative; clarify; cycle 1.
-          { exfalso. apply n0. econs 2. econs. }
-          apply (@auth_update_alloc _ (optionUR (exclR unitO))).
+          { exfalso. apply n2. econs 2. econs. }
+          apply (auth_update_alloc).
           apply alloc_option_local_update. done.
         - iCombine "B E" as "B".
           iStopProof.
@@ -1515,19 +1523,16 @@ Module ProphIA. Section ProphIA.
           { rewrite discrete_fun_lookup_singleton_ne; et.
             rewrite left_id.
             do 2 destruct excluded_middle_informative; try done.
-            { exfalso. apply n0. econs. et. }
+            { exfalso. apply n2. econs. et. }
             exfalso. inv a0. inv H. }
           subst. destruct excluded_middle_informative; clarify.
           rewrite discrete_fun_lookup_singleton.
           destruct excluded_middle_informative; cycle 1.
-          { exfalso. apply n0. econs 2. econs. }
+          { exfalso. apply n2. econs 2. econs. }
           rewrite PROPH. rewrite comm.
-          apply (@auth_update_dealloc _ (optionUR (exclR ProphInstO))).
-          set (Some (@Excl (ofe_car ProphInstO) (existT x (p', l)))) at 1.
-          replace o with (Some (@Excl (ofe_car ProphInstO) (existT x (p', l))) ⋅ ε) at 1.
-          apply cancel_local_update_unit.
-          { typeclasses eauto. }
-          rewrite right_id. et. }
+          apply (auth_update_dealloc).
+          eapply delete_option_local_update; ss.
+      }
       assert
         (✓ (rs_tgt ⋅ (own.iRes_singleton base_γ
               (has_proph_auth_r
@@ -1536,7 +1541,7 @@ Module ProphIA. Section ProphIA.
               (free_id_auth_r
                  (Ensembles.Add Prophecy.ID free_ids i1))))).
       { assert
-          (p0 ~~>
+          (p1 ~~>
              (rs_tgt ⋅ (own.iRes_singleton base_γ
                 (has_proph_auth_r
                    (Ensembles.Add Prophecy.ID free_ids i1) proph_map)
@@ -1546,9 +1551,13 @@ Module ProphIA. Section ProphIA.
         { apply Own_bupd_update. iIntros "A".
           iPoseProof (H with "A") as ">[A B]". iModIntro. iFrame. }
         rewrite cmra_valid_validN. i.
-        specialize (H0 n ε). ss. apply H0. clear H0. revert n.
+        specialize (H0 n1 ε). ss. apply H0. clear H0. revert n1.
         rewrite -cmra_valid_validN. et. }
-      exists (conj H0 H).
+      unshelve eexists (conj H0 _).
+      { rewrite H.
+        iIntros "> [[[_ $] _] $]".
+        done.
+      }
       grind. rewrite list_insert_insert. step_l.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind. steps_l.
@@ -1556,13 +1565,15 @@ Module ProphIA. Section ProphIA.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind. steps_l.
       rewrite !list_insert_insert. rewrite !interpV_ret. grind.
-      rewrite (@unfold_iterV _ _ _ (proph_handle_callE _)). simpl.
+      rewrite (unfold_iterV (proph_handle_callE _)). simpl.
+      (* rewrite (unfold_iterV (proph_handle_callE _)). simpl. *)
+      (* rewrite !list_lookup_insert; [| erewrite <- Forall2_length; et]. *)
       rewrite !list_lookup_insert; [| erewrite <- Forall2_length; et].
       ss. grind. steps_r.
       rewrite !list_insert_insert.
-      rewrite !interpV_ret bind_ret_l.
+      (* rewrite !interpV_ret bind_ret_l. *)
       apply wsimg_endsim. i. eapply CIH. et.
-      { apply Forall2_insert; et. }
+      { apply Forall2_insert; et. rewrite SRed.ret ?interpV_ret; grind; eauto. }
       5:{ apply WFMODS. }
       4:{ refl. }
       3:{ et. }
@@ -1708,7 +1719,7 @@ Module ProphIA. Section ProphIA.
       apply (f_equal (fun y => y 0%fin)) in H0; clarify. pclearbot.
       punfold STEP2. inv STEP2. fclarify. pclearbot.
       punfold STEP3. pfold. eauto.
-  Qed.
+  (*SLOW*)Qed.
 
   Theorem adequacy_refines_mod sp
       (r_src r_tgt r_proph : Σ)
@@ -1718,18 +1729,18 @@ Module ProphIA. Section ProphIA.
       (RS : r_proph ≡ (own.iRes_singleton base_γ (has_proph_auth_r (Ensembles.Full_set _) (fun _ => dummy_prophinst)) ⋅ own.iRes_singleton base_γ (free_id_auth_r (Ensembles.Full_set _)))) :
     refines_lmod (Mod.to_lmod (md ★ (ProphecyA.t sp)) r_src)
       (Mod.to_lmod (md ★ ProphecyI.t) r_tgt).
-  Proof using PHYS.
+  Proof using Hreal.
     ii. apply prophecy_tgt_exbeh_exists in PR; et. des.
     pose proof (extrace_has_obs_stream extr).
     revert PR0. unfold LMod.compile. unfold proph_compile.
-    remember (alist_find None _). set (alist_find None _).
+    remember (_ !! None). set (_ !! None).
     assert (o = o0).
     { rewrite Heqo. unfold o0, Mod.to_lmod, LMod.prog. ss.
-      rewrite !map_app. rewrite !alist_find_app_o.
-      set (Mod.fnsems _). do 2 (unfold_mod; ss). }
+      rewrite ?lookup_fmap ?lookup_omap ?lookup_union_with.
+      simpl_map; ss.
+    }
     rewrite -H0. clear o0 H0. destruct o; simpl; cycle 1.
-    { i. unfold triggerUB. rewrite bind_bind.
-      pfold. econs. econs. i. clarify. }
+    { i. unfold triggerUB. rewrite bind_bind. pfold. econs. econs. i. clarify. }
     rewrite !bind_ret_l. unfold ITree.map. i.
     eapply simg_ex_adequacy; et.
     replace (Mod.initial_st ProphecyI.t) with (Mod.initial_st (ProphecyA.t sp)) in PR0; cycle 1.
@@ -1738,16 +1749,15 @@ Module ProphIA. Section ProphIA.
     { i. exfalso. apply NOTFREE. ss. }
     econs; last econs. eapply pmod_fun_wf_sim.
     rewrite Heqo. unfold LMod.prog. ss.
-    rewrite !map_app alist_find_app_o. des_ifs; et.
-    exfalso. unfold LMod.prog in Heqo. ss.
-    rewrite !map_app alist_find_app_o in Heqo. des_ifs; et.
-    symmetry in Heqo. apply alist_find_some in Heqo.
-    revert Heqo. unfold_mod. ss. i. des; clarify.
+    instantiate (1:= None).
+    rewrite ?lookup_fmap ?lookup_omap ?lookup_union_with ?lookup_fmap.
+    rewrite /ProphecyI.fnsems ?fmap_insert ?lookup_insert_ne //= lookup_empty //=.
+    destruct (Mod.fnsems _ !! None); ss.
   Qed.
 
   Theorem adequacy_refines sp (P : iProp Σ):
     refines (md ★ (ProphecyA.t sp), (P ∗ ProphecyA.initial_cond)%I) (md ★ ProphecyI.t, P).
-  Proof using PHYS.
+  Proof using Hreal.
     ii. ss. split; [apply src_mod_wf; et|].
     i. rewrite assoc in SRC. apply Own_bupd_split in SRC; et. des.
     rewrite -Own_op in SRC. apply Own_bupd_update in SRC. dup SRC.
