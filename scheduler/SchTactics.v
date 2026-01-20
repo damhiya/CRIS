@@ -114,14 +114,15 @@ Section wsim.
   (*SLOW*)Qed.
 
   Lemma wsim_yield_src Ep r g img_s (msk_s: _ → bool) sc_s sp_s k_s i_t :
-    wsim fl_s fl_t Ist Ep r g R_s R_t RR true pt (st_src, k_s tt) (st_tgt, i_t) ⊢
-    wsim fl_s fl_t Ist Ep r g R_s R_t RR true pt
+    wsim fl_s fl_t Ist Ep r g R_s R_t RR ps pt (st_src, k_s tt) (st_tgt, i_t) ⊢
+    wsim fl_s fl_t Ist Ep r g R_s R_t RR ps pt
       (st_src, (SB.sandbox img_s msk_s sc_s (SModTr.trans sp_s 𝒴)) >>= k_s) (st_tgt, i_t).
   Proof using.
     iIntros "SIM".
     rewrite /Sch.yield; unseal SCH.
     unfold_iterC_l; steps_l.
-    force_l None; steps_l. iApply "SIM".
+    force_l None; steps_l.
+    iApply wsim_flag_mon; [..|iApply "SIM"]; eauto.
   (*SLOW*)Qed.
 
 End wsim.
