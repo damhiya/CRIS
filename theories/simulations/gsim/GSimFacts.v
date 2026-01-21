@@ -1,5 +1,5 @@
 Require Import Common.
-Require Import GSim.
+Require Export GSim.
 
 Set Implicit Arguments.
 

@@ -62,7 +62,7 @@ Ltac init_sim :=
   (* clear_trivials; *)
   (first
     [ eapply ISim_reflR;
-      [ intros fn; rewrite !dom_fmap /= ?dom_insert_L;
+      [ intros fn; rewrite ?dom_fmap /= ?dom_insert_L;
         set_unfold; intros Hfn; des; subst; last inv Hfn
       | multiset_solver
       | multiset_solver
@@ -71,7 +71,7 @@ Ltac init_sim :=
     | econs; intros Hwf;
       [ multiset_solver
       |
-      | intros fn; eapply ISim.sim_fun_strong; rewrite !dom_fmap /= ?dom_insert_L;
+      | intros fn; eapply ISim.sim_fun_strong; rewrite ?dom_fmap /= ?dom_insert_L;
         set_unfold; intros Hfn; des; subst; last inv Hfn
       ]
     ]).

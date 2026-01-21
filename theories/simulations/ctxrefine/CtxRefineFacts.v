@@ -27,6 +27,25 @@ Section CtxRefineFacts.
     etrans; eauto.
   Qed.
 
+  Global Program Instance refines_Proper : Proper ((≡) ==> (≡) ==> iff) refines.
+  Next Obligation.
+    intros ms1 ms2 mseq mt1 mt2 mteq; split; intros CTXR.
+    { destruct ms1, ms2, mt1, mt2; inv mseq; inv mteq; ii; ss; split; auto; clarify.
+      { apply CTXR; s; eauto. }
+      { hexploit (CTXR WFM); ss; i; des; eauto.
+        hexploit (H1 rs); eauto; [rewrite H0 //|].
+        i; des; esplits; eauto; rewrite -H2 //. 
+      }
+    }
+    { destruct ms1, ms2, mt1, mt2; inv mseq; inv mteq; ii; ss; split; auto; clarify.
+      { apply CTXR; s; eauto. }
+      { hexploit (CTXR WFM); ss; i; des; eauto.
+        hexploit (H1 rs); eauto; [rewrite -H0 //|].
+        i; des; esplits; eauto; rewrite H2 //. 
+      }
+    }
+  Qed.
+
   (*** vertical composition ***)
   Global Program Instance ctx_refines_PreOrder : PreOrder ctx_refines.
   Next Obligation. r. r. i. refl. Qed.

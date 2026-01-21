@@ -288,7 +288,7 @@ Section ADEQUACY.
       (IstProd (IstSB mt.(Mod.scopes) Ist) (IstSB ctx.(Mod.scopes) IstEq)).
   Proof using.
     intros Hsim; apply ISim.t_strong; intros Hwftctx.
-    hexploit Mod.add_wf_inv; eauto; intros [Hwft Hwfctx].
+    hexploit Mod.add_wf_inv; eauto; intros [Hwft [Hwfctx _]].
     hexploit ISim_wf; eauto; intros Hwfs.
     pose Hsim as Hsim'; destruct Hsim' as [Hscp Hic Hsimfun].
     econs; intros _.

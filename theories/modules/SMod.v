@@ -101,10 +101,9 @@ Module SMod. Section Smod.
 
   (* TODO *)
   (* Definition addL (ms : list t) : t := foldr add empty ms. *)
-
   Program Definition to_mod (sp : specmap) (ms : t) : Mod.t := {|
     Mod.scopes := ms.(scopes);
-    Mod.fnsems := fmap (option_map (map_snd (SModTr.trans_fnsem sp))) ms.(fnsems);
+    Mod.fnsems := (λ (x : option _), (map_snd (SModTr.trans_fnsem sp)) <$> x) <$> ms.(fnsems);
     Mod.initial_st := ms.(initial_st);
   |}.
   Next Obligation.

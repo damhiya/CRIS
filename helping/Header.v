@@ -5,8 +5,8 @@ Module Helping. Section Helping.
   Context `{Σ : GRA}.
   Context (mn : string).
 
-  Definition run  := mn +:+ ".run".
-  Definition help  := mn +:+ ".help".
+  Definition run  := "★" +:+ mn.
+  Definition help  := "☆" +:+ mn.
 
   Definition pureE := agE +' coreE.
 
@@ -57,10 +57,10 @@ Module Helping. Section Helping.
 
   Lemma trans_ret {R} (r : R) : trans (Ret r) = Ret r.
   Proof. rewrite /trans (bisim_is_eq (translate_ret _ _)) //. Qed.
-  Definition exports := [run; help].
+  Definition exports : gset string := {[run; help]}.
 End Helping. End Helping.
 
-Section names.
+(* Section names.
   Context (mn : string).
 
   Lemma get_tid_run_neq : SchHdr.get_tid ≠ Helping.run mn.
@@ -172,4 +172,4 @@ Section names.
     rewrite -get_correct; intros Hfalse; specialize (Hfalse (1 + String.length mn)).
     rewrite -(append_correct2 _ _) Hlen in Hfalse; ss.
   Qed.
-End names.
+End names. *)

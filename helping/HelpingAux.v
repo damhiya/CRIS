@@ -26,134 +26,6 @@ Section auxilliary.
   Qed.
 End auxilliary.
 
-Tactic Notation "red_bind" tactic(tac) :=
-  lazymatch goal with
-  | [ |- @ITree.bind _ _ _ ?itr _ = _ ] =>
-      lazymatch itr with
-      | Ret _ => etransitivity; [ eapply bind_ret_l | s; tac ]
-      | Tau _ => eapply bind_tau
-      | vis _ _ => eapply vis_bind
-      | assumeK _ _ => eapply assumeK_bind
-      | guaranteeK _ _ => eapply guaranteeK_bind
-      | unwrapUK _ _ => eapply unwrapUK_bind
-      | unwrapNK _ _ => eapply unwrapNK_bind
-      | RealUpdateK _ _ => eapply RealUpdateK_bind
-      | SBRed.putSB _ _ _ _ _ _ => eapply SBRed.putSB_bind
-      | SBRed.getSB _ _ _ _ _ => eapply SBRed.getSB_bind
-      | SBRed.callSB _ _ _ _ _ _ => eapply SBRed.callSB_bind
-      | SBRed.spawnSB _ _ _ _ _ _ => eapply SBRed.spawnSB_bind
-      | @ITree.bind _ _ _ _ _ => eapply bind_bind
-      | _ => reflexivity
-      end
-  end.
-
-Tactic Notation "red_SB" :=
-  lazymatch goal with
-  | [ |- @SB.sandbox _ _ _ _ _ ?itr = _ ] =>
-      lazymatch itr with
-      | Ret _ =>
-          eapply SBRed.ret
-      | Tau _ =>
-          eapply SBRed.tau
-      | vis (Assume _) _ =>
-          first [eapply SBRed.vis_Assume_img|eapply SBRed.vis_Assume]
-      | vis (AssumeRes _) _ =>
-          eapply SBRed.vis_AssumeRes
-      | vis (Guarantee _) _ =>
-          eapply SBRed.vis_Guarantee
-      | vis (Spawn _ _) _ =>
-          eapply SBRed.Spawn_spawnSB
-      | vis (Yield _) _ =>
-          eapply SBRed.vis_yield
-      | vis (Call _ _) _ =>
-          eapply SBRed.Call_callSB
-      | vis (SPut _ _) _ =>
-          eapply SBRed.SPut_putSB
-      | vis (SGet _) _ =>
-          eapply SBRed.SGet_getSB
-      | vis (Choose _) _ =>
-          eapply SBRed.vis_choose
-      | vis (Take _) _ =>
-          first [eapply SBRed.vis_take_img|eapply SBRed.vis_take]
-      | vis (IO _ _) _ =>
-          eapply SBRed.vis_io
-      | assumeK _ _ =>
-          eapply SBRed.assumeK
-      | guaranteeK _ _ =>
-          eapply SBRed.guaranteeK
-      | unwrapUK _ _ =>
-          eapply SBRed.unwrapUK
-      | unwrapNK _ _ =>
-          eapply SBRed.unwrapNK
-      | RealUpdateK _ _ _ =>
-          eapply SBRed.ruK
-      | @ITree.bind _ _ _ _ _ =>
-          eapply SBRed.bind
-      | _ =>
-          reflexivity
-      end
-  end.
-
-Tactic Notation "red_S" tactic(tac) :=
-  lazymatch goal with
-  | [ |- @SModTr.trans _ ?sp _ ?itr = _ ] =>
-      lazymatch itr with
-      | Ret _ =>
-          eapply SRed.ret
-      | Tau _ =>
-          eapply SRed.tau
-      | vis (Assume _) _ =>
-          eapply SRed.vis_ag
-      | vis (AssumeRes _) _ =>
-          eapply SRed.vis_ag
-      | vis (Guarantee _) _ =>
-          eapply SRed.vis_ag
-      | vis (Spawn ?fn _) _ =>
-          etransitivity;
-          [ eapply SRed.vis_spawn
-          | unfold SModTr.HoareSpawn, SModTr.NativeSpawn;
-            unfold_sp_exact sp fn; s;
-            tac
-          ]
-      | vis (Yield _) _ =>
-          etransitivity;
-          [ eapply SRed.vis_yield
-          | tac
-          ]
-      | vis (Call ?fn _) _ =>
-          etransitivity;
-          [ eapply SRed.vis_call
-          | unfold SModTr.HoareCall;
-            unfold_sp_exact sp fn; s;
-            tac
-          ]
-      | vis (SPut _ _) _ =>
-          eapply SRed.vis_pg
-      | vis (SGet _) _ =>
-          eapply SRed.vis_pg
-      | vis (Choose _) _ =>
-          eapply SRed.vis_core
-      | vis (Take _) _ =>
-          eapply SRed.vis_core
-      | vis (IO _ _) _ =>
-          eapply SRed.vis_core
-      | assumeK _ _ =>
-          eapply SRed.assumeK
-      | guaranteeK _ _ =>
-          eapply SRed.guaranteeK
-      | unwrapUK _ _ =>
-          eapply SRed.unwrapUK
-      | unwrapNK _ _ =>
-          eapply SRed.unwrapNK
-      | RealUpdateK _ _ _ =>
-          eapply SRed.ruK
-      | @ITree.bind _ _ _ _ _ =>
-          eapply SRed.bind
-      | _ =>
-          reflexivity
-      end
-  end.
-
 Ltac replace_l :=
   match goal with
   | |- gpaco7 _ _ _ _ _ _ _ _ _ ?itr _ =>
@@ -193,47 +65,6 @@ Tactic Notation "red_ModTr" tactic(tac) :=
           eapply Red_vis_Take
       | unwrapUK _ _ =>
           eapply Red_unwrapUK
-      (* | vis (Red_AssumeRes _) _ =>
-          eapply SRed.vis_ag
-      | vis (Guarantee _) _ =>
-          eapply SRed.vis_ag
-      | vis (Spawn ?fn _) _ =>
-          etransitivity;
-          [ eapply SRed.vis_spawn
-          | unfold SModTr.HoareSpawn, SModTr.NativeSpawn;
-            unfold_sp_exact sp fn; s;
-            tac
-          ]
-      | vis (Yield _) _ =>
-          etransitivity;
-          [ eapply SRed.vis_yield
-          | tac
-          ]
-      | vis (Call ?fn _) _ =>
-          etransitivity;
-          [ eapply SRed.vis_call
-          | unfold SModTr.HoareCall;
-            unfold_sp_exact sp fn; s;
-            tac
-          ]
-      | vis (SPut _ _) _ =>
-          eapply SRed.vis_pg
-      | vis (SGet _) _ =>
-          eapply SRed.vis_pg
-      | vis (Choose _) _ =>
-          eapply SRed.vis_core
-      | vis (IO _ _) _ =>
-          eapply SRed.vis_core
-      | assumeK _ _ =>
-          eapply SRed.assumeK
-      | guaranteeK _ _ =>
-          eapply SRed.guaranteeK
-      | unwrapNK _ _ =>
-          eapply SRed.unwrapNK
-      | RealUpdateK _ _ _ _ =>
-          eapply SRed.update_prophK
-      | @ITree.bind _ _ _ _ _ =>
-          eapply SRed.bind *)
       | _ =>
           reflexivity
       end
@@ -279,31 +110,13 @@ Ltac _gnorm_itr :=
       | s; red_bind (do 1 _gnorm_itr) ]
   | [ |- @SB.sandbox ?Σ ?R ?img ?imports ?scopes ?itr = _ ] =>
       etransitivity;
-      [ cong (@SB.sandbox Σ R img imports scopes); _gnorm_itr | red_SB ]
+      [ cong (@SB.sandbox Σ R img imports scopes); _gnorm_itr | red_SB (do 1 _gnorm_itr) ]
   | [ |- @SModTr.trans ?Σ ?sp ?R ?itr = _ ] =>
       etransitivity;
       [ cong (@SModTr.trans Σ sp R); _gnorm_itr | red_S (do 1 _gnorm_itr) ]
   | [ |- @LModTr.interp_stateE ?E ?T ?itr ?st = _] =>
       etransitivity;
       [ cong (λ i, @LModTr.interp_stateE E T i st); _gnorm_itr | red_LModTr_state (do 1 _gnorm_itr)]
-  (* | [ |- @iterV ?A ?B ?C ?handle ?itr = _ ] =>
-      idtac "iterV "; idtac itr;
-      (rewrite unfold_iterV /itreeV_itree;
-      lazymatch goal with
-      | |- context [@LModTr.handle_callE ?A ?B] =>
-        pattern (LModTr.handle_callE A B);
-        lazymatch goal with
-        | [ |- ?f ?a] =>
-          refine (eq_ind_r f _ _); cycle 1;
-          [_gnorm_itr
-          | lazymatch goal with
-            | |- context [_observe ?f] => idtac f; fail
-            | |- _ => s; _gnorm_itr
-            end
-          ]
-        end
-      end
-      + refl) *)
   | [ |- @case_ _ _ _ _ _ _ _ _ _ _ _ ?E = _] =>
       rewrite /case_ /LModTr.pure_state /=; _gnorm_itr
   | [ |- @ModTr.trans ?A ?B ?itr = _] =>
@@ -333,9 +146,6 @@ Ltac _gnorm_itr :=
       eapply RealUpdate_RealUpdateK
   | [ |- SModTr.HoareCall _ _ _ = _ ] =>
       unfold SModTr.HoareCall;
-      _gnorm_itr
-  | [ |- SModTr.NativeSpawn _ _ = _ ] =>
-      unfold SModTr.NativeSpawn;
       _gnorm_itr
   | [ |- fbody_trivial _ = _ ] =>
       unfold fbody_trivial;
@@ -396,10 +206,13 @@ Ltac iter_l :=
 Ltac iter_r :=
   replace_r; [rewrite unfold_iterV /itreeV_itree //|]; norm_r.
 
-Ltac step_r :=
-  norm_r; guclo gsim_indC_spec; econs; instantiate (1:=smj_top).
-Ltac step_l :=
-  norm_l; guclo gsim_indC_spec; econs; instantiate (1:=smj_top).
+Ltac step_r := norm_r; guclo gsim_indC_spec; econs; instantiate (1:=smj_top).
+Ltac step_l := norm_l; guclo gsim_indC_spec; econs; instantiate (1:=smj_top).
+
+Ltac steps_r :=
+  norm_r; hrepeat (do 1 (guclo gsim_indC_spec; econs; instantiate (1:=smj_top); try norm_r)).
+Ltac steps_l :=
+  norm_l; hrepeat (do 1 (guclo gsim_indC_spec; econs; instantiate (1:=smj_top); try norm_l)).
 
 Ltac replace_tp_r :=
   match goal with
@@ -421,8 +234,8 @@ Ltac replace_tp_l :=
   end.
 
 Notation "'⇓cris'" := (interpV (ModTr.handle_crisE)).
-Notation "'⇓sb(' i ',' m ',' s ')'" := (interpV (SB.handle_sandbox i m s)).
-Notation "'⇓smod(' img ',' sp ')'" := (interpV (SModTr.handle img sp)).
+Notation "'⇓sb(' m ')'" := (SB.sandbox m).
+Notation "'⇓smod(' sp ',' N ',' stid ')'" := (SModTr.trans sp N stid).
 
 Section props.
   Context `{!crisG Γ Σ α β τ _S _I, !concG, !newschG}.
@@ -436,120 +249,182 @@ Section props.
     intros ?; guclo flagC_spec; econs; try instantiate (1:=smj_bot); eauto using smj_le_bot.
   Qed.
 
-  Lemma gsim_tau_src r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t
-      img_c msk_c scp_c k (k2 : Any.t → _) :
-    tp_s !! tid_s = Some (x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (tau;; k));; k2 x) →
+  Lemma gsim_tau_src r g RR p_s p_t st_s itr_t prog_s tid_s tp_s k :
+    tp_s !! tid_s = Some (⇓cris (tau;; k)) →
     gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR smj_top p_t
       (LModTr.interp_stateE Any.t
         (iterV (LModTr.handle_callE prog_s)
-          (tid_s, <[tid_s := (x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) k);; k2 x)]> tp_s)) st_s)
-      (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t) →
+          (tid_s, <[tid_s := (⇓cris k)]> tp_s)) st_s)
+      itr_t →
     gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
-      (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t).
-  Proof. intros Hi ?. iter_l; rewrite Hi; ss. step_l; norm_l. done. Qed.
+      itr_t.
+  Proof. intros Hi ?. giter_l. s. rewrite Hi; ss. gstep_l. gnorm_l. done. Qed.
 
-  Lemma gsim_tau_tgt r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t
-      img_c msk_c scp_c k (k2 : Any.t → _) :
-    tp_t !! tid_t = Some (x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (tau;; k));; k2 x) →
+  Lemma gsim_tau_tgt r g RR p_s p_t itr_s st_t prog_t tid_t tp_t k :
+    tp_t !! tid_t = Some (⇓cris (tau;; k)) →
     gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s smj_top
-      (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
+      itr_s
       (LModTr.interp_stateE Any.t
         (iterV (LModTr.handle_callE prog_t)
-          (tid_t, <[tid_t := x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) k);; k2 x]> tp_t)) st_t) →
+          (tid_t, <[tid_t := ⇓cris k]> tp_t)) st_t) →
     gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
-      (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
+      itr_s
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t).
-  Proof. intros Hi ?. iter_r; rewrite Hi; ss. step_r; norm_r. done. Qed.
+  Proof. intros Hi ?. giter_r; rewrite /= Hi; ss. gstep_r; gnorm_r. done. Qed.
 
   Lemma gsim_Choose_src r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t
-      img_c msk_c scp_c X k (k2 : Any.t → _) :
-    tp_s !! tid_s = Some (x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (x <- trigger (Choose X);; k x));; k2 x) →
+      msk_c X k (k2 : Any.t → _) :
+    tp_s !! tid_s = Some (x <- ⇓cris (⇓sb(msk_c) (x <- trigger (Choose X);; k x));; k2 x) →
     (∃ (x : X),
       gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR smj_top p_t
         (LModTr.interp_stateE Any.t
           (iterV (LModTr.handle_callE prog_s)
-            (tid_s, <[tid_s := (x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (k x));; k2 x)]> tp_s)) st_s)
+            (tid_s, <[tid_s := (x <- ⇓cris (⇓sb(msk_c) (k x));; k2 x)]> tp_s)) st_s)
         (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t)) →
     gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t).
   Proof.
-    intros Hi [x Hk]. iter_l; rewrite Hi; ss. step_l. exists x. norm_l. step_l. norm_l. ired. done.
+    rewrite -vis_trigger SBRed.vis; case_match; intros Hi [x Hk]; iter_l; rewrite Hi; ss.
+    { step_l. exists x; norm_l. steps_l. ired. done. }
+    { step_l. ss. }
   Qed.
 
   Lemma gsim_Choose_tgt r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t
-      img_c msk_c scp_c X k (k2 : Any.t → _) :
-    tp_t !! tid_t = Some (x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (x <- trigger (Choose X);; k x));; k2 x) →
+      msk_c X k (k2 : Any.t → _) :
+    msk_c _ (subevent _ (Choose X)) = true →
+    tp_t !! tid_t = Some (x <- ⇓cris (⇓sb(msk_c) (x <- trigger (Choose X);; k x));; k2 x) →
     (∀ (x : X),
       gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s smj_top
         (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
         (LModTr.interp_stateE Any.t
           (iterV (LModTr.handle_callE prog_t)
-            (tid_t, <[tid_t := (x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (k x));; k2 x)]> tp_t)) st_t)) →
+            (tid_t, <[tid_t := (x <- ⇓cris (⇓sb(msk_c) (k x));; k2 x)]> tp_t)) st_t)) →
     gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t).
   Proof.
-    intros Hi Hk. iter_r; rewrite Hi; ss. step_r. intros x. norm_r. step_r. norm_r. ired. eapply Hk.
+    rewrite -vis_trigger SBRed.vis; case_match eqn:Hmsk2; intros Hmsk Hi Hk; ss.
+    { iter_r; rewrite Hi; ss. step_r. intros x. steps_r. ired. done. }
+    { rewrite Hmsk // in Hmsk2. }
   Qed.
 
-  Lemma gsim_Take_src r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t
-      img_c msk_c scp_c X k (k2 : Any.t → _) :
-    tp_s !! tid_s = Some (x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (x <- trigger (Take X);; k x));; k2 x) →
+  Lemma gsim_Take_src r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t X k :
+    tp_s !! tid_s = Some (⇓cris (x <- trigger (Take X);; k x)) →
     (∀ (x : X),
-      (img_c = true ∨ (∃ P : Prop, X = P)) →
       gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR smj_top p_t
         (LModTr.interp_stateE Any.t
           (iterV (LModTr.handle_callE prog_s)
-            (tid_s, <[tid_s := (x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (k x));; k2 x)]> tp_s)) st_s)
+            (tid_s, <[tid_s := ⇓cris (k x)]> tp_s)) st_s)
         (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t)) →
     gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t).
-  Proof.
-    intros Hin Hk. iter_l. rewrite Hin; ss.
-    destruct img_c; norm_l; cycle 1.
-    { destruct (excluded_middle_informative _) as [?|?]; des; clarify; ss; step_l; ss.
-      intros x; step_l; ired. norm_l. eapply Hk; right; eauto.
-    }
-    step_l. intros x. norm_l. step_l. norm_l. ired.
-    eapply Hk; eauto.
-  Qed.
+  Proof. intros Hi ?; giter_l; s. rewrite Hi; ss. gstep_l; i; gstep_l; gnorm_l. ired; done. Qed.
 
-  Lemma gsim_Take_tgt r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t
-      img_c msk_c scp_c X k (k2 : Any.t → _) :
-    tp_t !! tid_t = Some (x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (x <- trigger (Take X);; k x));; k2 x) →
+  Lemma gsim_Take_tgt r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t X k :
+    tp_t !! tid_t = Some (⇓cris (x <- trigger (Take X);; k x)) →
     (∃ (x : X),
-      (img_c = true ∨ (∃ P : Prop, X = P)) ∧
       gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s smj_top
         (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
         (LModTr.interp_stateE Any.t
           (iterV (LModTr.handle_callE prog_t)
-          (tid_t, <[tid_t := (x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (k x));; k2 x)]> tp_t)) st_t)) →
+          (tid_t, <[tid_t := (⇓cris (k x))]> tp_t)) st_t)) →
     gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t).
   Proof.
-    intros Hi [x [Hx Hk]].
-    iter_r; rewrite Hi; ss.
-    destruct (orb _ _) eqn : E; ss; simpl_bool; cycle 1.
-    { des; clarify; ss. destruct (excluded_middle_informative _); ss.
-      exfalso; apply n; eexists; eauto.
-    }
-    norm_r. step_r. exists x. step_r. norm_r. ired. eapply Hk.
+    intros Hi [x Hk]; ss. giter_r; rewrite /= Hi; ss. gstep_r. exists x. gstep_r. ired. done.
   Qed.
 
-  Lemma gsim_sGet_tgt r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t
+  Lemma gsim_Call_src r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t fn args k :
+    tp_s !! tid_s = Some (⇓cris (x <- trigger (Call fn args);; k x)) →
+    (gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR smj_top p_t
+      (LModTr.interp_stateE Any.t
+        (iterV (LModTr.handle_callE prog_s)
+          (tid_s, <[tid_s := bd <- (prog_s fn)?;; x <- (bd args);; ⇓cris (tau;; k x)]> tp_s)) st_s)
+      (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t)) →
+    gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
+      (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
+      (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t).
+  Proof.
+    intros Hi Hk.
+    giter_l. rewrite /= Hi; ss. gstep_l. ired.
+    replace_l; [|apply Hk].
+    do 4 f_equal. destruct (prog_s); ss; grind.
+    { do 3 f_equal; grind. rewrite interpV_tau //. }
+    { rewrite unfold_iterV /=; rewrite list_lookup_insert /=; grind.
+      by apply lookup_lt_is_Some.
+    }
+  Qed.
+
+  Lemma gsim_Call_tgt r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t fn args k :
+    tp_t !! tid_t = Some (⇓cris (x <- trigger (Call fn args);; k x)) →
+    (gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s smj_top
+      (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
+      (LModTr.interp_stateE Any.t
+        (iterV (LModTr.handle_callE prog_t)
+          (tid_t, <[tid_t := bd <- (prog_t fn)?;; x <- (bd args);; ⇓cris (tau;; k x)]> tp_t)) st_t)) →
+    gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
+      (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
+      (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t).
+  Proof.
+    intros Hi Hk.
+    giter_r. rewrite /= Hi; ss. gstep_r. ired.
+    replace_r; [|apply Hk].
+    do 4 f_equal. destruct (prog_t); ss; grind.
+    { do 3 f_equal; grind. rewrite interpV_tau //. }
+    { rewrite unfold_iterV /=; rewrite list_lookup_insert /=; grind.
+      by apply lookup_lt_is_Some.
+    }
+  Qed.
+
+  Lemma gsim_Spawn_src r g RR p_s p_t itr_t st_s prog_s tid_s tp_s fn args k :
+    tp_s !! tid_s = Some (⇓cris (x <- trigger (Spawn fn args);; k x)) →
+    (gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR smj_top p_t
+      (LModTr.interp_stateE Any.t
+        (bd <- (prog_s fn)?;;
+        iterV (LModTr.handle_callE prog_s)
+          (tid_s, <[tid_s := ⇓cris (k (length tp_s))]> tp_s ++ [bd args])) st_s)
+      itr_t) →
+    gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
+      (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
+      itr_t.
+  Proof.
+    intros Hi Hk.
+    giter_l. rewrite /= Hi; ss. gstep_l. ired.
+    replace_l; [|apply Hk].
+    do 1 f_equal. grind.
+  Qed.
+
+  Lemma gsim_Spawn_tgt r g RR p_s p_t itr_s st_t prog_t tid_t tp_t fn args k :
+    tp_t !! tid_t = Some (⇓cris (x <- trigger (Spawn fn args);; k x)) →
+    (gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s smj_top
+      (itr_s)
+      (LModTr.interp_stateE Any.t
+        (bd <- (prog_t fn)?;;
+        iterV (LModTr.handle_callE prog_t)
+          (tid_t, <[tid_t := ⇓cris (k (length tp_t))]> tp_t ++ [bd args])) st_t)) →
+    gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
+      (itr_s)
+      (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t).
+  Proof.
+    intros Hi Hk.
+    giter_r. rewrite /= Hi; ss. gstep_r. ired.
+    replace_r; [|apply Hk].
+    do 1 f_equal. grind.
+  Qed.
+  (* Lemma gsim_sGet_tgt r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t
       img_c msk_c scp_c key k (k2 : Any.t → _) r_t :
-    tp_t !! tid_t = Some (x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (x <- trigger (SGet key);; k x));; k2 x) →
+    tp_t !! tid_t = Some (x <- ⇓cris (⇓sb(msk_c) (x <- trigger (SGet key);; k x));; k2 x) →
     existsb (String.eqb key.1) scp_c →
     (∃ t, alist_find key st_t = Some t ∧
       gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s smj_top
         (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
         (LModTr.interp_stateE Any.t
           (iterV (LModTr.handle_callE prog_t)
-            (tid_t, <[tid_t := (x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (k t));; k2 x)]> tp_t))
+            (tid_t, <[tid_t := (x <- ⇓cris (⇓sb(msk_c) (k t));; k2 x)]> tp_t))
           (Any.pair (ModTr.alist_encode st_t) r_t))) →
     gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
@@ -678,18 +553,16 @@ Section props.
     norm_l. step_l. norm_l. rewrite list_insert_insert. ired.
     rewrite ModTr.alist_encode_decode /=.
     rewrite ?interpV_ret. ired. eauto.
-  Qed.
+  Qed. *)
 
-  Lemma gsim_Assume_src r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t
-      img_c msk_c scp_c k (k_2 : Any.t → _) P r_s :
-    tp_s !! tid_s = Some (x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (trigger (Assume P);;; k));; k_2 x) →
+  Lemma gsim_Assume_src r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t k P r_s :
+    tp_s !! tid_s = Some (⇓cris (x <- trigger (Assume P);; k x)) →
     (∀ r_s2,
-      img_c = true →
       ✓ r_s2 ∧ (Own r_s2 ⊢ |==> P ∗ Own r_s) →
       gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR smj_top p_t
         (LModTr.interp_stateE Any.t
           (iterV (LModTr.handle_callE prog_s)
-            (tid_s, <[tid_s := x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) k);; k_2 x]> tp_s))
+            (tid_s, <[tid_s := ⇓cris (k ())]> tp_s))
           (Any.pair st_s (r_s2↑)))
         (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t)) →
     gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
@@ -697,31 +570,29 @@ Section props.
         (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) (Any.pair st_s (r_s↑)))
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t).
   Proof.
-    intros Hin Hk; pose proof Hin as Hlen; eapply lookup_lt_Some in Hlen.
-    iter_l; rewrite Hin; ss.
-    destruct img_c; step_l; ss.
-    norm_l. hss. ired. hss. ired.
-    iter_l. rewrite list_lookup_insert //=. step_l. intros r_s2. norm_l. step_l. norm_l.
-    rewrite list_insert_insert //=. ired.
-    iter_l. rewrite list_lookup_insert //=. step_l. intros Hr_s2. norm_l. step_l. norm_l.
-    rewrite list_insert_insert //=. ired.
-    iter_l. rewrite list_lookup_insert //=. step_l. norm_l.
-    rewrite list_insert_insert //=. ired. hss. ired.
-    iter_l. rewrite list_lookup_insert //=. step_l. norm_l.
-    rewrite list_insert_insert //=. ired. eapply Hk; done.
+    intros Hi Hk; pose proof Hi as Hlen; eapply lookup_lt_Some in Hlen.
+    iter_l; rewrite Hi; ss.
+    steps_l. hss. ired. hss. ired.
+    iter_l. rewrite list_lookup_insert //=. step_l. intros r_s2.
+      steps_l. ired. rewrite list_insert_insert.
+    iter_l. rewrite list_lookup_insert //=. step_l. intros Hr_s2.
+      steps_l. ired. rewrite list_insert_insert.
+    iter_l. rewrite list_lookup_insert //=. step_l.
+      steps_l. ired. hss. ired. rewrite list_insert_insert.
+    iter_l. rewrite list_lookup_insert //=. step_l.
+      steps_l. ired. rewrite list_insert_insert.
+    eapply Hk; done.
   Qed.
 
-  Lemma gsim_Assume_tgt r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t
-      img_c msk_c scp_c k (k_2 : Any.t → _) P r_t :
-    tp_t !! tid_t = Some (x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (trigger (Assume P);;; k));; k_2 x) →
+  Lemma gsim_Assume_tgt r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t k P r_t :
+    tp_t !! tid_t = Some (⇓cris (x <- trigger (Assume P);; k x)) →
     (∃ r_t2,
-      img_c = true ∧
       ✓ r_t2 ∧ (Own r_t2 ⊢ |==> P ∗ Own r_t) ∧
       gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s smj_top
         (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
         (LModTr.interp_stateE Any.t
           (iterV (LModTr.handle_callE prog_t)
-            (tid_t, <[tid_t := x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) k);; k_2 x]> tp_t))
+            (tid_t, <[tid_t := ⇓cris (k ())]> tp_t))
           (Any.pair st_t (r_t2↑)))) →
     gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
       (LModTr.interp_stateE Any.t
@@ -729,78 +600,70 @@ Section props.
       (LModTr.interp_stateE Any.t
         (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) (Any.pair st_t (r_t↑))).
   Proof.
-    intros Hin [r_t2 [-> [Hr_t2 Hk]]]; pose proof Hin as Hlen; eapply lookup_lt_Some in Hlen.
-    iter_r; rewrite Hin; ss.
-    step_r; ss.
-    norm_r. hss. ired. hss. ired.
-    iter_r. rewrite list_lookup_insert //=. step_r. exists r_t2. norm_r. step_r. norm_r.
-    rewrite list_insert_insert //=. ired.
-    iter_r. rewrite list_lookup_insert //=. step_r. unshelve eexists; eauto; ss. norm_r. step_r.
-    norm_r. rewrite list_insert_insert //=. ired.
-    iter_r. rewrite list_lookup_insert //=. step_r. norm_r.
-    rewrite list_insert_insert //=. ired. hss. ired.
-    iter_r. rewrite list_lookup_insert //=. step_r. norm_r.
-    rewrite list_insert_insert //=. ired. eauto.
+    intros Hin [r_t2 [Hr_t2 Hk]]; pose proof Hin as Hlen; eapply lookup_lt_Some in Hlen.
+    iter_r; rewrite Hin /=. step_r. steps_r. hss. ired. hss. ired.
+    iter_r. rewrite list_lookup_insert //=. step_r. exists r_t2.
+      steps_r. rewrite list_insert_insert //=. ired.
+    iter_r. rewrite list_lookup_insert //=. step_r. unshelve eexists; eauto; ss.
+      steps_r. rewrite list_insert_insert //=. ired.
+    iter_r. rewrite list_lookup_insert //=. steps_r.
+      rewrite list_insert_insert //=. ired. hss. ired.
+    iter_r. rewrite list_lookup_insert //=. steps_r.
+      rewrite list_insert_insert //=. ired. eauto.
   Qed.
 
-  Lemma gsim_AssumeRes_src r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t
-      img_c msk_c scp_c k (k_2 : Any.t → _) r_s r_s2 :
+  Lemma gsim_AssumeRes_src r g RR p_s p_t st_s prog_s tid_s tp_s k r_s r_s2 itr_t :
     tp_s !! tid_s =
-      Some (x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (trigger (AssumeRes r_s2);;; k));; k_2 x) →
+      Some (⇓cris (x <- trigger (AssumeRes r_s2);; k x)) →
     (✓ (r_s2 ⋅ r_s) →
       gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR smj_top p_t
         (LModTr.interp_stateE Any.t
           (iterV (LModTr.handle_callE prog_s)
-            (tid_s, <[tid_s := x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) k);; k_2 x]> tp_s))
+            (tid_s, <[tid_s := ⇓cris (k ())]> tp_s))
           (Any.pair st_s ((r_s2 ⋅ r_s)↑)))
-        (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t)) →
+        itr_t) →
     gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
       (LModTr.interp_stateE Any.t
         (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) (Any.pair st_s (r_s↑)))
-      (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t).
+      itr_t.
   Proof.
     intros Hin Hk; pose proof Hin as Hlen; eapply lookup_lt_Some in Hlen.
-    iter_l; rewrite Hin; ss.
-    step_l; ss. norm_l. hss. ired. hss. ired.
-    iter_l. rewrite list_lookup_insert //=. step_l. intros Hval. norm_l. step_l. norm_l.
-    rewrite list_insert_insert //=. ired.
-    iter_l. rewrite list_lookup_insert //=. step_l. norm_l.
-    rewrite list_insert_insert //=. ired. hss. ired.
-    iter_l. rewrite list_lookup_insert //=. step_l. norm_l.
-    rewrite list_insert_insert //=. ired.
+    giter_l; rewrite /= Hin /=. gstep_l; ss. gnorm_l. hss. ired. hss. ired.
+    giter_l; rewrite /= list_lookup_insert //=. gstep_l; ss.
+      intros Hval. gnorm_l. gstep_l. gnorm_l. rewrite list_insert_insert.
+    giter_l; rewrite /= list_lookup_insert //=. gstep_l; ss.
+      gnorm_l. ired. hss. ired. rewrite list_insert_insert.
+    giter_l; rewrite /= list_lookup_insert //=. gstep_l; ss.
+      gnorm_l. ired. rewrite list_insert_insert.
     eapply Hk; done.
   Qed.
 
-  Lemma gsim_AssumeRes_tgt r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t
-      img_c msk_c scp_c k (k_2 : Any.t → _) r_t r_t2 :
-    tp_t !! tid_t =
-      Some (x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (trigger (AssumeRes r_t2);;; k));; k_2 x) →
+  Lemma gsim_AssumeRes_tgt r g RR p_s p_t st_t prog_s tid_t tp_t k r_t r_t2 itr_s :
+    tp_t !! tid_t = Some (⇓cris (x <- trigger (AssumeRes r_t2);; k x)) →
     (✓ (r_t2 ⋅ r_t) ∧
-    gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s smj_top
-      (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
-      (LModTr.interp_stateE Any.t
-        (iterV (LModTr.handle_callE prog_t)
-          (tid_t, <[tid_t := x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) k);; k_2 x]> tp_t))
-        (Any.pair st_t ((r_t2 ⋅ r_t)↑)))) →
+      gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s smj_top
+        itr_s
+        (LModTr.interp_stateE Any.t
+          (iterV (LModTr.handle_callE prog_s)
+            (tid_t, <[tid_t := ⇓cris (k ())]> tp_t))
+          (Any.pair st_t ((r_t2 ⋅ r_t)↑)))) →
     gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
-      (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
+      itr_s
       (LModTr.interp_stateE Any.t
-        (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t))
-        (Any.pair st_t (r_t↑))).
+        (iterV (LModTr.handle_callE prog_s) (tid_t, tp_t)) (Any.pair st_t (r_t↑))).
   Proof.
     intros Hin [Hval Hk]; pose proof Hin as Hlen; eapply lookup_lt_Some in Hlen.
-    iter_r; rewrite Hin; ss.
-    step_r; ss. norm_r. hss. ired. hss. ired.
-    iter_r. rewrite list_lookup_insert //=. step_r. exists Hval. norm_r. step_r. norm_r.
-    rewrite list_insert_insert //=. ired.
-    iter_r. rewrite list_lookup_insert //=. step_r. norm_r.
-    rewrite list_insert_insert //=. ired. hss. ired.
-    iter_r. rewrite list_lookup_insert //=. step_r. norm_r.
-    rewrite list_insert_insert //=. ired.
-    apply Hk; done.
+    giter_r; rewrite /= Hin /=. gstep_r; ss. gnorm_r. hss. ired. hss. ired.
+    giter_r; rewrite /= list_lookup_insert //=.
+      gstep_r; ss. exists Hval. gsteps_r. rewrite list_insert_insert. ired.
+    giter_r; rewrite /= list_lookup_insert //=.
+      gsteps_r; ss. rewrite list_insert_insert. ired. hss. ired.
+    giter_r; rewrite /= list_lookup_insert //=.
+      gsteps_r; ss. rewrite list_insert_insert. ired.
+    eapply Hk; done.
   Qed.
 
-  Lemma gsim_Guarantee_src r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t
+  (* Lemma gsim_Guarantee_src r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t
       img_c msk_c scp_c k (k_2 : Any.t → _) r_s P :
     tp_s !! tid_s =
       Some (x <- ⇓cris (⇓sb(img_c, msk_c, scp_c) (trigger (Guarantee P);;; k));; k_2 x) →
@@ -859,9 +722,9 @@ Section props.
     iter_r. rewrite list_lookup_insert //=. step_r. norm_r.
     rewrite list_insert_insert //=. ired.
     apply Hk; done.
-  Qed.
+  Qed. *)
 
-  Context (sp : sp_type).
+  (* Context (sp : sp_type).
 
   Lemma HoareCall_prologue_sred img_c fsp arg :
     ⇓smod(img_c, sp) (HoareCall_prologue fsp arg) = HoareCall_prologue fsp arg.
@@ -1244,5 +1107,5 @@ Section props.
       }
     }
   Unshelve. exact smj_top.
-  Qed.
+  Qed. *)
 End props.

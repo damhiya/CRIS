@@ -1,64 +1,65 @@
 Require Import CRIS.
-Require Import SchHeader SchI.
+Require Import SchHeader SchI SchA.
 From CRIS.helping Require Import Header HelpingOn HelpingOff HelpingOnOffproof.
+From stdpp Require Import list.
 
 Section Helping.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG, !schG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concG, !newschG}.
 
   (* Lemmas about names *)
-  Definition strings_maxlen (l : list string) : nat :=
-    list_max (List.map String.length l).
+  Local Definition maxlen (s : gset string) : nat :=
+    list_max (String.length <$> elements s).
 
-  Fixpoint mname_long (n : nat) : string :=
+  Local Fixpoint mname_long (n : nat) : string :=
     match n with
     | 0 => ""
     | S n' => "h" +:+ mname_long n'
     end.
 
-  Lemma mname_long_length n :
-    String.length (mname_long n) = n.
+  Local Lemma mname_long_length n : String.length (mname_long n) = n.
+  Proof. induction n; ss. rewrite IHn. et. Qed.
+
+  Local Lemma elem_of_maxlen (fn : string) (s : gset string) :
+    fn ∈ s → String.length fn ≤ maxlen s.
   Proof.
-    induction n; ss.
-    rewrite IHn. et.
+    i; eapply max_list_elem_of_le, elem_of_list_fmap; esplits; eauto.
+    by apply elem_of_elements.
   Qed.
 
-  Lemma strings_maxlen_app l1 l2 :
-    strings_maxlen (l1 ++ l2) = max (strings_maxlen l1) (strings_maxlen l2).
+  Local Lemma maxlen_union s1 s2 : maxlen (s1 ∪ s2) = maxlen s1 `max` maxlen s2.
   Proof.
-    revert l2. induction l1; et.
-    i. s. unfold strings_maxlen in *. ss.
-    rewrite IHl1. nia.
+    revert s2; eapply (set_ind_L (λ s, ∀ s2, maxlen (s ∪ s2) = maxlen s `max` maxlen s2)).
+    { i; rewrite /maxlen left_id_L elements_empty //=. }
+    intros x X Hx IH s2.
+    rewrite (union_comm_L _ X) -union_assoc_L ?IH -Nat.max_assoc; f_equal.
+    rewrite {2}/maxlen elements_singleton /= Nat.max_0_r.
+    generalize s2 x; clear.
+    intros s x; destruct (decide (x ∈ s)); cycle 1.
+    { rewrite /maxlen elements_disj_union; [|set_solver].
+      rewrite fmap_app ?elements_singleton //=.
+    }
+    replace (_ ∪ s) with s by set_solver; hexploit (elem_of_maxlen x s); eauto; lia.
   Qed.
 
-  Lemma long_name_notin l (fn : string) :
-    String.length fn > strings_maxlen l →
-    ~ wmask_list l fn.
+  Lemma helping_on_wf {jobID retID} mn (jobs : jobID → _) : Mod.wf (HelpingOn.t (retID:=retID) mn jobs ∅).
   Proof.
-    intros Hlen Hmsk. eapply existsb_exists in Hmsk. des. eapply String.eqb_eq in Hmsk0; subst.
-    revert_until l. induction l; i; ss.
-    des; subst.
-    - rewrite /strings_maxlen in Hlen. ss. nia.
-    - eapply IHl; et. unfold strings_maxlen in *. ss. nia.
+    econs; ss.
+    { rewrite /HelpingOn.fnsems /= ?fmap_insert fmap_empty. mod_tac scope_solver. }
+    { rewrite /HelpingOn.scopes; multiset_solver. }
   Qed.
-
-  Lemma helping_dummy_wf mn : Mod.wf (HelpingDummy.t mn).
-  Proof. unfold_mod. econs; ss; prove_nodup. Qed.
 
   (* imp : list of function names mI calls *)
-  Lemma helping_main (mM : string → Mod.t) (mA mI m_aux : Mod.t) (P1 P2 : iProp Σ) imp
-      {jobID retID} (jobs : jobID -> _) (sp : string → sp_type) :
-    (∀ mn msk,
-      ((Helping.exports mn) ## imp →
-      wmask_sub (wmask_list imp) msk →
+  (* TODO : modify sp according to the proof of helpingonoff *)
+  Lemma helping_main (mM : string → Mod.t) (mA mI m_aux : Mod.t) (P1 P2 : iProp Σ)
+      {jobID retID} (jobs : jobID -> _) (sp : specmap) :
+    (∀ mn,
       ctx_refines
-        (mM mn ★ CFilter.filter msk (m_aux ★ SchI.t) ★ (HelpingOn.t (retID:=retID) mn jobs (sp mn)), P1)
-        (CFilter.filter msk (mI ★ m_aux ★ SchI.t) ★ HelpingDummy.t mn, emp%I))) →
-    (∀ mn msk,
-      ((Helping.exports mn) ## imp →
-      wmask_sub (wmask_list imp) msk →
-      ctx_refines
-        (mA    ★ CFilter.filter msk (m_aux ★ SchI.t), P2)
-        (mM mn ★ CFilter.filter msk (m_aux ★ SchI.t) ★ HelpingOff.t mn jobs (sp mn), emp%I))) →
+        (mM mn ★ CFilter.filter (Helping.exports mn) (m_aux ★ SchI.t) ★ (HelpingOn.t (retID:=retID) mn jobs ∅), P1)
+        (CFilter.filter (Helping.exports mn) (mI ★ m_aux ★ SchI.t) ★ (HelpingOn.t (retID:=retID) mn jobs ∅), emp%I)) →
+    (∀ mn,
+      (ctx_refines
+        (mA    ★ CFilter.filter (Helping.exports mn) (m_aux ★ SchI.t), P2)
+        (mM mn ★ CFilter.filter (Helping.exports mn) (m_aux ★ SchI.t) ★ HelpingOff.t mn jobs ∅, emp%I))) →
     ctx_refines
       (mA ★ m_aux ★ SchI.t, (P1 ∗ P2)%I)
       (mI ★ m_aux ★ SchI.t, emp%I).
@@ -70,22 +71,23 @@ Section Helping.
       pose (md_src := src);
       pose (md_tgt := tgt);
       pose (all_names :=
-        imp ++ omap id (Mod.exports md_src) ++ omap id (Mod.exports md_tgt)
-                           ++ Mod.scopes md_src ++ Mod.scopes md_tgt);
-      cut(List.NoDup (Mod.scopes tgt) -> refines (src,P1) (tgt,P2))
+        (set_omap id (dom (Mod.fnsems md_src) ∪ dom (Mod.fnsems md_tgt))) ∪
+        dom (Mod.scopes md_src) ∪ dom (Mod.scopes md_tgt) : gset string)
+    end.
+      (* cut(refines (src,P1) (tgt,P2))
     end.
     { intros Hg WFM; ss. eapply Hg; et. destruct WFM. et. }
-    intros NODUP.
+    intros NODUP. *)
 
     etrans; cycle 1.
     { eapply ctxr_refines.
       eapply CFilter.intro_filter.
     }
 
-    pose (mn := mname_long (10 + strings_maxlen all_names)).
-    pose (mask := wmask_list all_names).
+    pose (mn := mname_long (S (maxlen all_names))).
+    (* pose (mask := wmask_list all_names). *)
 
-    assert (DISJ : Helping.exports mn ## imp).
+    (* assert (DISJ : Helping.exports mn ## imp).
     { intros x H1 H2. eapply (long_name_notin _ x); cycle 1.
       { unfold wmask_list. eapply existsb_exists.
         esplits; [|apply String.eqb_eq]; et.
@@ -101,80 +103,63 @@ Section Helping.
           rewrite mname_long_length. nia.
         }
       }
-    }
+    } *)
 
-    assert (SUB : wmask_sub (wmask_list imp) mask).
+    (* assert (SUB : wmask_sub (wmask_list imp) mask).
     { unfold mask, wmask_sub, wmask_list.
       intros ? Hin. eapply existsb_exists in Hin. des.
       eapply existsb_exists. esplits; et.
       eapply in_or_app; et.
-    }
+    } *)
 
     etrans; cycle 1.
-    { eapply CFilter.intro_module with (mask := mask) (mc := HelpingDummy.t mn); et.
-      - eapply helping_dummy_wf.
-      - i. r. rewrite existsb_exists.
-        esplits; try apply String.eqb_eq; eauto.
-        do 2 (eapply in_or_app; right).
-        eapply in_or_app; left; rewrite /Mod.exports; subst md_tgt.
-        rewrite -elem_of_list_In elem_of_list_omap; eexists; rewrite elem_of_list_In //.
-      - intros fn IN.
-        eapply long_name_notin.
-        revert IN. unfold_mod. s. i. des; subst; try by ss.
-        { inv IN. simpl String.length. fold append.
-          rewrite !strings_maxlen_app !string_length_app mname_long_length.
-          nia.
-        }
-        { inv IN. simpl String.length. fold append.
-          rewrite !strings_maxlen_app !string_length_app mname_long_length.
-          nia.
-        }
-      - unfold_mod; ss; ii; des; ss.
-      - eapply List.NoDup_app.
-        + unfold_mod; ss.
-        + unfold_mod; ss. econs; ss. econs; ss.
-        + intros a Ha Ha2; eapply (long_name_notin _ a); cycle 1.
-          * rewrite /wmask_list; eapply existsb_exists.
-            esplits; [apply Ha|apply String.eqb_eq]; eauto.
-          * revert Ha2; unfold_mod; intros Ha2.
-            rr in Ha2; des; ss; subst.
-            unfold mn; rewrite !strings_maxlen_app; s.
-            rewrite mname_long_length; nia.
+    { eapply CFilter.intro_module with
+        (mask := Helping.exports mn) (mc := (HelpingOn.t (retID:=retID) mn jobs ∅)); et.
+      { eapply helping_on_wf. }
+      { intros ? a%gmultiset_elem_of_dom ->%gmultiset_elem_of_singleton.
+        eapply elem_of_maxlen in a.
+        subst mn all_names md_tgt md_src.
+        rewrite mname_long_length ?maxlen_union in a; lia.
+      }
+      { intros x Hx%elem_of_maxlen [?%elem_of_singleton|?%elem_of_singleton]%elem_of_union; subst;
+          subst mn all_names; rewrite string_length_app mname_long_length ?set_omap_union_L
+          ?maxlen_union /md_src /md_tgt /= in Hx; lia.
+      }
+      { set_solver. }
+      { set_solver. }
     }
-    rewrite !CFilter.filter_app.
 
-    etrans; cycle 1.
-    {
-      eapply ctxr_refines. ctxr_norm.
-      do 3 ctxr_rotate. do 2 ctxr_drop. erewrite <- ?CFilter.filter_app.
+    erewrite ?CFilter.filter_app.
+    (* etrans; cycle 1.
+    { eapply ctxr_refines. ctxr_norm.
+      erewrite ?CFilter.filter_app.
       ctxr_refl.
+    } *)
+
+    etrans; cycle 1.
+    { eapply ctxr_refines.
+      do 3 ctxr_rotate. ctxr_drop. ctxr_rotate.
+      hexploit (Hc1 mn); rewrite ?CFilter.filter_app; ctxr_norm.
     }
 
     etrans; cycle 1.
-    {
-      eapply ctxr_refines; ctxr_norm.
-      ctxr_drop. ctxr_rotate. eapply Hc1; eauto.
-    }
-
-    etrans; cycle 1.
-    {
-      eapply ctxr_refines.
-      do 2 ctxr_drop. rewrite CFilter.filter_app. ctxr_drop. ctxr_swap.
+    { eapply ctxr_refines.
+      do 3 ctxr_drop. ctxr_swap.
       eapply helping_onoff_correct; et.
     }
 
     etrans; cycle 1.
-    {
-      eapply ctxr_refines.
-      ctxr_drop. rewrite /mod_off. do 3 ctxr_rotate. ctxr_swap. ctxr_rotate; ctxr_swap.
+    { eapply ctxr_refines.
+      ctxr_drop.
+      rewrite /mod_src.
+      do 3 ctxr_rotate. ctxr_swap. ctxr_rotate; ctxr_swap.
       do 3 ctxr_rotate. rewrite -?mod_add_assoc. rewrite (mod_add_assoc (mM _)).
       erewrite <-CFilter.filter_app. rewrite mod_add_assoc.
       eapply Hc2; et.
     }
 
     etrans; cycle 1.
-    {
-      eapply ctxr_refines.
+    { eapply ctxr_refines.
       do 2 ctxr_rotate. do 2 ctxr_drop. eapply CFilter.intro_filter.
     }
 
@@ -183,19 +168,13 @@ Section Helping.
 
     erewrite <-!CFilter.filter_app. ctxr_norm.
     etrans; [|eapply CFilter.elim_filter]; cycle 1.
-    {
-      intros fn Hin; eapply existsb_exists.
-      exists fn; split; last apply String.eqb_refl.
-      apply in_or_app; right.
-      apply in_or_app; left.
-      rewrite /md_src /Mod.exports.
-      apply elem_of_list_In, elem_of_list_omap; exists (Some fn); split; ss.
-      apply elem_of_list_In; eauto.
+    { intros x Hx%elem_of_maxlen [?%elem_of_singleton|?%elem_of_singleton]%elem_of_union; subst;
+        subst mn all_names; rewrite string_length_app mname_long_length ?set_omap_union_L
+        ?maxlen_union /md_src /md_tgt /= in Hx; lia.
     }
 
     eapply ctxr_refines.
     eapply ctxr_cond_strengthen.
     iIntros "[[P1 P2] P]". iFrame.
   Qed.
-
-End Helping.  
+End Helping.

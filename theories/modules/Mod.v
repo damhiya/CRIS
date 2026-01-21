@@ -103,7 +103,29 @@ Module Mod. Section Mod.
     { apply fin_maps.union_with_comm; done. }
   Qed.
 
-  Lemma add_wf_inv (ms1 ms2 : t) : wf (add ms1 ms2) → wf ms1 ∧ wf ms2.
+  Lemma add_wf (ms1 ms2 : t) :
+    wf ms1 → wf ms2 →
+    dom (fnsems ms1) ## dom (fnsems ms2) →
+    scopes ms1 ## scopes ms2 →
+    wf (add ms1 ms2).
+  Proof.
+    intros Hwf1 Hwf2 Hfnsems Hscopes; econs.
+    { rewrite map_Forall_lookup; intros i x; rewrite lookup_union_with.
+      destruct (_ ms1 !! i) eqn : H1; destruct (_ ms2 !! i) eqn : H2; ss.
+      { eapply elem_of_dom_2 in H1, H2; set_solver. }
+      { inv Hwf1; i; clarify; eapply wf_fns0; eauto. }
+      { inv Hwf2; i; clarify; eapply wf_fns0; eauto. }
+    }
+    { intros x; s; rewrite multiplicity_disj_union.
+      inv Hwf1; hexploit (wf_scopes0 x).
+      inv Hwf2; hexploit (wf_scopes1 x).
+      destruct (decide (x ∈ scopes ms1)); destruct (decide (x ∈ scopes ms2)); multiset_solver.
+    }
+  Qed.
+
+  Lemma add_wf_inv (ms1 ms2 : t) :
+    wf (add ms1 ms2) →
+    wf ms1 ∧ wf ms2 ∧ (dom (fnsems ms1) ## dom (fnsems ms2)) ∧ (scopes ms1 ## scopes ms2).
   Proof.
     intros [Hfnsems Hscopes]; split; econs; eauto; try
       (intros x; hexploit (Hscopes x); ss; rewrite multiplicity_disj_union; lia).
@@ -112,11 +134,28 @@ Module Mod. Section Mod.
       rewrite lookup_union_with Hix; destruct (_ ms2 !! i) eqn : Hms2; ss.
       hexploit (Hfnsems i None); [rewrite lookup_union_with Hix Hms2 //|intros Hf; inv Hf].
     }
-    { rewrite map_Forall_lookup; intros i x Hix; rewrite map_Forall_lookup in Hfnsems.
+    { econs; eauto; try
+       (intros x; hexploit (Hscopes x); ss; rewrite multiplicity_disj_union; lia).
+      rewrite map_Forall_lookup; intros i x Hix; rewrite map_Forall_lookup in Hfnsems.
       hexploit (Hfnsems i x); eauto.
       rewrite lookup_union_with Hix; destruct (_ ms1 !! i) eqn : Hms1; ss.
       hexploit (Hfnsems i None); [rewrite lookup_union_with Hix Hms1 //|intros Hf; inv Hf].
     }
+    split.
+    { intros fn ??; rewrite map_Forall_lookup in Hfnsems; hexploit (Hfnsems fn None); [|by intros []].
+      rewrite -> elem_of_dom in *; s; rewrite lookup_union_with; repeat (destruct (_ !! _)); ss;
+        exfalso; eapply is_Some_None; eauto.
+    }
+    { intros x ? ?; rewrite -> elem_of_multiplicity in *; hexploit (Hscopes x); s.
+      rewrite  multiplicity_disj_union; lia.
+    }
+  Qed.
+
+  Lemma dom_fnsems_add (ms1 ms2 : t) :
+    dom (fnsems (add ms1 ms2)) = dom (fnsems ms1) ∪ dom (fnsems ms2).
+  Proof.
+    apply set_eq; intros x; s; rewrite elem_of_union ?elem_of_dom lookup_union_with.
+    destruct (_ ms1 !! x); destruct (_ ms2 !! x); ss; naive_solver.
   Qed.
 
   Lemma lookup_add_l (ms1 ms2 : t) (fno : option string) (mb : emask * fbody) :
@@ -145,6 +184,11 @@ Module Mod. Section Mod.
     LMod.fnsems := ModTr.trans_fnsem <$> (SB.sandbox_body <$> omap id (fnsems ms));
     LMod.initial_st := Any.pair (ModTr.state_encode (initial_st ms)) r↑;
   |}.
+
+  Lemma to_lmod_fnsems (m : t) (r : Σ) (fn : option string) :
+    LMod.fnsems (Mod.to_lmod m r) !! fn =
+    ModTr.trans_fnsem <$> (SB.sandbox_body <$> ((fnsems m) !! fn ≫= id)).
+  Proof. ss; rewrite ?lookup_fmap lookup_omap //. Qed.
 
   Lemma mod_dom_subseteq (ms1 ms2 ms3 : t) :
     dom (fnsems ms1) ⊆ dom (fnsems ms2) →
@@ -240,6 +284,15 @@ Tactic Notation "mod_tac" tactic(tac) :=
 Ltac scope_solver := ss; split; i; case_decide; naive_solver.
 
 (* Lemmas related to module states and function maps *)
+Lemma dom_union_with `{Countable K} {V} (m1 m2 : gmap K (option V)) :
+  dom (union_with (λ _ _, Some None) m1 m2) =
+  dom m1 ∪ dom m2.
+Proof.
+  apply set_eq; intros x; split;
+    rewrite elem_of_union ?elem_of_dom lookup_union_with; repeat destruct (_ !! _); ss; eauto.
+  intros [[]|[]]; done.
+Qed.
+
 Lemma map_Forall_union_with_inv_gen `{Countable K} {V} (m1 m2 : gmap K (option V)) :
   map_Forall (const is_Some) (union_with (λ _ _, Some None) m1 m2) →
   dom m1 ## dom m2.
@@ -269,20 +322,20 @@ Proof.
   repeat match goal with | H : _ !! _ = Some _ |- _ => eapply elem_of_dom_2 in H end; set_solver.
 Qed.
 
-Lemma lookup_union_with_l `{Countable K} {V} (m1 m2 : gmap K (option V)) (k : K) (v : V):
+Lemma lookup_union_with_l `{Countable K} {V} (m1 m2 : gmap K (option V)) (k : K) v :
   map_Forall (const is_Some) (union_with (λ _ _, Some None) m1 m2) →
-  m1 !! k = Some (Some v) →
-  union_with (λ _ _, Some None) m1 m2 !! k = Some (Some v).
+  m1 !! k = Some v →
+  union_with (λ _ _, Some None) m1 m2 !! k = Some v.
 Proof.
   intros Hwf Hm1; rewrite lookup_union_with Hm1; destruct (m2 !! k) as [[|]|] eqn : Hm2; ss;
     apply map_Forall_lookup in Hwf; move: (Hwf k None); rewrite lookup_union_with Hm1 Hm2;
     move => /(_ eq_refl) [? ?] //.
 Qed.
 
-Lemma lookup_union_with_r `{Countable K} {V} (m1 m2 : gmap K (option V)) (k : K) (v : V):
+Lemma lookup_union_with_r `{Countable K} {V} (m1 m2 : gmap K (option V)) (k : K) v :
   map_Forall (const is_Some) (union_with (λ _ _, Some None) m1 m2) →
-  m2 !! k = Some (Some v) →
-  union_with (λ _ _, Some None) m1 m2 !! k = Some (Some v).
+  m2 !! k = Some v →
+  union_with (λ _ _, Some None) m1 m2 !! k = Some v.
 Proof.
   intros Hwf Hm2; rewrite lookup_union_with Hm2; destruct (m1 !! k) as [[|]|] eqn : Hm1; ss;
     apply map_Forall_lookup in Hwf; move: (Hwf k None); rewrite lookup_union_with Hm1 Hm2;
@@ -322,4 +375,40 @@ Proof.
   intros Hwf H; inv Hwf; rewrite map_Forall_lookup in wf_fns; hexploit (wf_fns); eauto.
   revert H; ss; rewrite lookup_union_with; repeat destruct (_ !! _); ss; intros H; eauto; inv H.
   intros []; ss.
+Qed.
+
+Lemma lookup_fnsems_l `{Σ : GRA} (m1 m2 : Mod.t) (k : option string) v :
+  Mod.wf (m1 ★ m2) →
+  (Mod.fnsems m1) !! k = Some v →
+  (Mod.fnsems (m1 ★ m2)) !! k = Some v.
+Proof.
+  intros Hwf H; inv Hwf; ss.
+  etransitivity; [eapply lookup_union_with_l|]; eauto.
+Qed.
+
+Lemma lookup_fnsems_r `{Σ : GRA} (m1 m2 : Mod.t) (k : option string) v :
+  Mod.wf (m1 ★ m2) →
+  (Mod.fnsems m2) !! k = Some v →
+  (Mod.fnsems (m1 ★ m2)) !! k = Some v.
+Proof.
+  intros Hwf H; inv Hwf; ss.
+  etransitivity; [eapply lookup_union_with_r|]; eauto.
+Qed.
+
+Lemma lookup_fnsems_None_l `{Σ : GRA} (m1 m2 : Mod.t) (k : option string) :
+  Mod.wf (m1 ★ m2) →
+  (Mod.fnsems m1) !! k = None →
+  (Mod.fnsems (m1 ★ m2)) !! k = (Mod.fnsems m2) !! k.
+Proof.
+  intros Hwf H; inv Hwf; ss.
+  rewrite lookup_union_with H; destruct (_ m2 !! _); ss.
+Qed.
+
+Lemma lookup_fnsems_None_r `{Σ : GRA} (m1 m2 : Mod.t) (k : option string) :
+  Mod.wf (m1 ★ m2) →
+  (Mod.fnsems m2) !! k = None →
+  (Mod.fnsems (m1 ★ m2)) !! k = (Mod.fnsems m1) !! k.
+Proof.
+  intros Hwf H; inv Hwf; ss.
+  rewrite lookup_union_with H; destruct (_ m1 !! _); ss.
 Qed.
