@@ -1,4 +1,5 @@
 Require Import CRIS SchHeader.
+Require Import SchI.
 From iris.algebra Require Import gmap_view.
 From CRIS.helping Require Import Header.
 From stdpp Require Import fin_sets.
@@ -82,16 +83,26 @@ Module HelpingOn. Section HelpingOn.
   Context `{!crisG Γ Σ α β τ _S _I, !concG} {jobID retID : Type}.
 
   Context (mn : string).
-  Context (jobcode : jobID → itree Helping.pureE retID).
+  Context (jobcode : jobID → itree crisE retID).
 
   Definition scopes : gmultiset string := {[+mn+]}.
-  Definition v_reqs : key := mn ↯ "reqs".
+  Definition v_reqs : key := (mn, "reqs").
+
+  Definition msk_pure : emask := λ X e,
+    match e with
+    | inl1 _ => true
+    | inr1 (inl1 _) => false
+    (* | inr1 (inr1 (inl1 (SPut k v))) => bool_decide (k.1 ∉ scopes ∪ SchI.scopes)
+    | inr1 (inr1 (inl1 (SGet k))) => bool_decide (k.1 ∉ scopes ∪ SchI.scopes) *)
+    | inr1 (inr1 (inl1 _)) => false
+    | inr1 (inr1 (inr1 _)) => true
+    end.
 
   Definition try_run (tid : nat) : itree crisE retID :=
     'reqs : gmap nat (option retID * jobID) <- cgetU v_reqs;;
     match reqs !! tid with
     | Some (None, jid) =>
-        r <- Helping.trans (jobcode jid);;
+        r <- SB.sandbox msk_pure (jobcode jid);;
         cput v_reqs (<[tid := (Some r, jid)]> reqs);;;
         Ret r
     | Some (Some retid, jid) => Ret retid
@@ -106,30 +117,46 @@ Module HelpingOn. Section HelpingOn.
       cput v_reqs (<[tid := (None, jid)]> reqs);;;
       𝒴;;; r <- try_run tid;; 𝒴;;; Ret (r↑).
 
-  Definition help (sp : specmap) : Any.t → itree crisE Any.t :=
+  Definition help : Any.t → itree crisE Any.t :=
     λ _,
       tid <- trigger (Choose nat);;
+      trigger (Call (Helping.yield mn) ()↑);;;
       (* xarg <- HoareCall_prologue (sp SchHdr.yield) (() ↑);;
       x <- HoareFun_prologue (sp SchHdr.yield) (() ↑);; *)
       try_run tid;;;
+      trigger (Call (Helping.yield mn) ()↑);;;
       (* HoareFun_epilogue (sp SchHdr.yield) x.1 (() ↑);;;
       HoareCall_epilogue (sp SchHdr.yield) xarg.1 (() ↑);;; *)
       Ret ()↑.
 
-  Definition fnsems (sp : specmap) : gmap (option string) (option (emask * (option fspec * fbody))) :=
+  Definition fnsems : gmap (option string) (option (emask * (option fspec * fbody))) :=
     {[Some (Helping.run mn) := Some (msk_scp scopes msk_true, (Some fspec_trivial, run));
-      Some (Helping.help mn) := Some (msk_scp scopes msk_true, (Some fspec_trivial, help sp))]}.
+      Some (Helping.help mn) := Some (msk_scp scopes msk_true, (Some fspec_trivial, help));
+      Some (Helping.yield mn) := Some (msk_scp scopes msk_true, (None, λ _, Ret ()↑))]}.
 
-  Program Definition Mod (sp : specmap) : SMod.t := {|
+  Program Definition Mod : SMod.t := {|
     SMod.scopes := scopes;
-    SMod.fnsems := fnsems sp;
+    SMod.fnsems := fnsems;
     SMod.initial_st := {[v_reqs := Some (∅ : gmap nat (option retID * jobID))↑]};
   |}.
   Next Obligation. i; rewrite ?omap_insert omap_empty /=; mod_tac scope_solver. Qed.
   Next Obligation. set_solver. Qed.
   Next Obligation. i; mod_tac scope_solver. Qed.
 
-  Definition t sp : Mod.t := SMod.to_mod sp (Mod sp).
+  Definition sp (sp : specmap) : specmap := 
+    match sp !! speckey_fn SchHdr.yield with
+    | Some fsp => <[speckey_fn (Helping.yield mn) := fsp]> sp
+    | None => ∅
+    end.
+  Lemma sp_helping_yield sp1 :
+    (sp sp1) !! speckey_fn SchHdr.yield = sp1 !! speckey_fn SchHdr.yield.
+  Proof. rewrite /sp; destruct (sp1 !! _) eqn : ?; ss; rewrite lookup_insert_ne; ss. Qed.
+
+  Lemma sp_yield sp1 :
+    (sp sp1) !! speckey_fn (Helping.yield mn) = sp1 !! speckey_fn SchHdr.yield.
+  Proof. rewrite /sp; destruct (sp1 !! _) eqn : ?; ss; rewrite lookup_insert; ss. Qed.
+
+  Definition t sp1 : Mod.t := SMod.to_mod (sp sp1) Mod.
 End HelpingOn. End HelpingOn.
 
 Module HelpingDummy. Section HelpingDummy.

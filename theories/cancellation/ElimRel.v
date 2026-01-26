@@ -273,7 +273,7 @@ Lemma SBRed_NativeSpawn msk fn varg :
   SB.sandbox msk (trigger (Spawn fn varg)) =
     if msk _ (subevent _ (Spawn fn varg)) then trigger (Spawn fn varg) else triggerUB.
 Proof using.
-  rewrite SBRed.vis. des_ifs; rewrite Heq // in Heq0.
+  rewrite SBRed.vis. des_ifs.
   { rewrite vis_trigger. rewrite -{2}(bind_ret_r (trigger (Spawn fn varg))).
     f_equal. extensionalities. rewrite SBRed.ret. refl. }
   { rewrite /triggerUB. ss. rewrite vis_trigger. f_equal. extensionalities. ss. }

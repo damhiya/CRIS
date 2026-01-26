@@ -207,7 +207,7 @@ Proof using.
     - rewrite H !SBRed.vis. des_ifs; cycle 1.
       { r in IMG; des. rewrite IMG2 // in Heq. }
       rewrite !vis_trigger !bind_bind MIRed.ag SBRed.bind SBRed.vis !bind_trigger /=.
-      des_ifs. rewrite !vis_trigger !bind_bind H.
+      des_ifs. rewrite ?vis_trigger ?bind_bind ?H.
       gstep. r; s; econs. i. r.
       rewrite bind_ret_l SBRed.ret !bind_ret_l.
       rewrite SBRed.tau. gstep. econs.

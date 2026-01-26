@@ -6,7 +6,8 @@ Module Helping. Section Helping.
   Context (mn : string).
 
   Definition run  := "★" +:+ mn.
-  Definition help  := "☆" +:+ mn.
+  Definition help := "☆" +:+ mn.
+  Definition yield := "∘" +:+ mn.
 
   Definition pureE := agE +' coreE.
 
@@ -57,7 +58,7 @@ Module Helping. Section Helping.
 
   Lemma trans_ret {R} (r : R) : trans (Ret r) = Ret r.
   Proof. rewrite /trans (bisim_is_eq (translate_ret _ _)) //. Qed.
-  Definition exports : gset string := {[run; help]}.
+  Definition exports : gset string := {[run; help; yield]}.
 End Helping. End Helping.
 
 (* Section names.

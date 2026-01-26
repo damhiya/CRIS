@@ -117,13 +117,16 @@ Module SBRed. Section SBRed.
   Proof using. rewrite /SB.sandbox interpV_ret; eauto. Qed.
 
   Lemma vis msk {X R} (e : crisE X) (k : X → itree crisE R) :
-    SB.sandbox msk (vis e k) =
-    if msk X (subevent _ e)
-    then vis e (λ x, SB.sandbox msk (k x))
+    SB.sandbox msk (Vis e k) =
+    if msk X e
+    then Vis e (λ x, SB.sandbox msk (k x))
     else vis (Take False) (λ v, Ret (False_rect _ v)).
   Proof using.
     rewrite /SB.sandbox interpV_vis /SB.handle ?subevent_subevent.
-    eapply observe_eta; grind; des_if; ss; f_equal; extensionalities; ss; grind.
+    case_match eqn : H; rewrite H /=.
+    eapply observe_eta; grind; ss; f_equal; extensionalities; ss; grind.
+    ired.
+    eapply observe_eta; grind; ss; f_equal; extensionalities; ss; grind. 
   Qed.
 (* 
   Lemma vis_choose msk {X R} (k : X → itree crisE R) :

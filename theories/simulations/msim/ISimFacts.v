@@ -78,13 +78,13 @@ Section ISIM_REFL.
       }
     - depdes s.
       { istep_l; istep_r.
-        rewrite resum_to_subevent ?subevent_subevent.
+        rewrite ?resum_to_subevent ?subevent_subevent.
         specialize (Hset st_src st_tgt k v); destruct (msk _ _); [norm_l; norm_r|istep_l; ss].
         iApply isim_sput_src. iApply isim_sput_tgt.
         iby_coind CIH. iApply Hset; eauto.
       }
       { istep_l; istep_r.
-        rewrite resum_to_subevent ?subevent_subevent.
+        rewrite ?resum_to_subevent ?subevent_subevent.
         specialize (Hget st_src st_tgt k); destruct (msk _ _); [norm_l; norm_r|istep_l; ss].
         iApply isim_sget_src. iApply isim_sget_tgt. iPoseProof (Hget with "IST") as "->"; eauto.
         iby_coind CIH; eauto.

@@ -299,7 +299,7 @@ Module MemIA. Section MemIA.
     iDestruct "IST" as (? ? ? ?) "([-> ->] & [% [% [% [[-> %] >B]]]] & ->)"; des.
 
     steps_l.
-    steps_r. rewrite Any.upcast_downcast /=. steps_r. rewrite Any.upcast_downcast /=.
+    steps_r. hss_r. steps_r. hss_r.
     steps_r.
 
     iPoseProof (mem_ra_lookup with "[B ↦]") as "[%HIT ->]"; et; iFrame. steps_r.

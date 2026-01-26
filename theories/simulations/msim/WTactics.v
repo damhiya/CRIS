@@ -4,11 +4,10 @@ Require Import WSim TacticsCommon.
 
 Ltac is_key_in k m :=
   match m with
-  | {[ k := _ ]} => idtac
-  | <[ k := _ ]> _ => idtac
-  | <[ _ := _ ]> ?rest => is_key_in k rest
+  | {[ ?k1 := _ ]} => tryif (unify k k1) then idtac else fail
+  | <[ ?k1 := _ ]> ?rest => tryif (unify k k1) then idtac else is_key_in k rest
   | union_with _ ?l ?r => first [ is_key_in k l | is_key_in k r ]
-  | _ => fail "Key not syntactically found"
+  | _ => fail
   end.
 
 Ltac solve_map_lookup_symbolic NODT :=
@@ -77,7 +76,7 @@ Ltac state_insert_simpl k1 v1 NODT :=
             )
             else (
               etransitivity;
-              [ eapply insert_union_with_r';
+              [ e apply insert_union_with_r';
                 [ eauto
                 | eapply map_Forall_union_with_inv in NODT as [_ NODT];
                   eexists; state_lookup_simpl r k NODT; reflexivity

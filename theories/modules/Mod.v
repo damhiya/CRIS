@@ -366,6 +366,34 @@ Proof.
     move => /(_ eq_refl) [? ?] //.
 Qed.
 
+Lemma map_Forall_insert_union_with `{Countable K} {V} (m1 m2 : gmap K (option V)) k v :
+  map_Forall (const is_Some) (union_with (λ _ _, Some None) m1 m2) →
+  map_Forall (const is_Some) (<[k := Some v]> (union_with (λ _ _, Some None) m1 m2)).
+Proof.
+  intros Hwf; destruct (decide (k ∈ dom m1)) as [Hm1|Hm1].
+  { apply elem_of_dom in Hm1; rewrite insert_union_with_l' //.
+    eapply map_Forall_union_with_inv_gen in Hwf as ?.
+    eapply map_Forall_union_with_inv in Hwf as [? ?].
+    eapply map_Forall_union_with.
+    { rewrite dom_insert.
+      rewrite -elem_of_dom in Hm1; set_solver.
+    }
+    { split; last done.
+      apply map_Forall_insert_2; eauto; ss.
+    }
+  }
+  rewrite insert_union_with_r.
+  { eapply map_Forall_union_with_inv_gen in Hwf as ?.
+    eapply map_Forall_union_with_inv in Hwf as [? ?].
+    eapply map_Forall_union_with.
+    { rewrite dom_insert. set_solver. }
+    { split; first done.
+      apply map_Forall_insert_2; eauto; ss.
+    }
+  }
+  { destruct lookup eqn: temp; ss; eapply elem_of_dom_2 in temp; set_solver. }
+Qed.
+
 Lemma lookup_fnsems_inv `{Σ : GRA} (m1 m2 : Mod.t) (k : option string) v :
   Mod.wf (m1 ★ m2) →
   (Mod.fnsems (m1 ★ m2)) !! k = Some v →
@@ -386,6 +414,16 @@ Proof.
   etransitivity; [eapply lookup_union_with_l|]; eauto.
 Qed.
 
+Lemma lookup_fnsems_l_2 `{Σ : GRA} (m1 m2 : Mod.t) (k : option string) :
+  Mod.wf (m1 ★ m2) →
+  k ∈ dom (Mod.fnsems m1) →
+  (Mod.fnsems (m1 ★ m2)) !! k = Mod.fnsems m1 !! k.
+Proof.
+  intros Hwf H; rewrite /= lookup_union_with; destruct (Mod.fnsems m2 !! k) eqn : Hm2.
+  { apply elem_of_dom_2 in Hm2; apply Mod.add_wf_inv in Hwf; des; exfalso; set_solver. }
+  repeat destruct lookup; ss.
+Qed.
+
 Lemma lookup_fnsems_r `{Σ : GRA} (m1 m2 : Mod.t) (k : option string) v :
   Mod.wf (m1 ★ m2) →
   (Mod.fnsems m2) !! k = Some v →
@@ -393,6 +431,16 @@ Lemma lookup_fnsems_r `{Σ : GRA} (m1 m2 : Mod.t) (k : option string) v :
 Proof.
   intros Hwf H; inv Hwf; ss.
   etransitivity; [eapply lookup_union_with_r|]; eauto.
+Qed.
+
+Lemma lookup_fnsems_r_2 `{Σ : GRA} (m1 m2 : Mod.t) (k : option string) :
+  Mod.wf (m1 ★ m2) →
+  k ∈ dom (Mod.fnsems m2) →
+  (Mod.fnsems (m1 ★ m2)) !! k = Mod.fnsems m2 !! k.
+Proof.
+  intros Hwf H; rewrite /= lookup_union_with; destruct (Mod.fnsems m1 !! k) eqn : Hm1.
+  { apply elem_of_dom_2 in Hm1; apply Mod.add_wf_inv in Hwf; des; exfalso; set_solver. }
+  repeat destruct lookup; ss.
 Qed.
 
 Lemma lookup_fnsems_None_l `{Σ : GRA} (m1 m2 : Mod.t) (k : option string) :
