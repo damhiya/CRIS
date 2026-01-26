@@ -713,44 +713,44 @@ Class subHG (Γ : HRA) (Σ : GRA) := subHG_mk : subG Γ Σ.
 Global Hint Mode subHG - - : typeclass_instances.
 
 Global Instance subG_reflHH (Γ : HRA) : subG Γ Γ.
-Proof. exact: subG_refl. Qed.
+Proof. exact: subG_refl. Defined.
 Global Instance subG_reflHG (Γ : HRA) : subG Γ (Γ : GRA).
-Proof. exact: subG_refl. Qed.
+Proof. exact: subG_refl. Defined.
 
 Global Instance subG_app_lGGH (Σ : GRA) (Σ1 : GRA) (Σ2 : HRA) :
   subG Σ Σ1 → subG Σ (GRAs.app Σ1 Σ2).
-Proof. exact: subG_app_l. Qed.
+Proof. exact: subG_app_l. Defined.
 Global Instance subG_app_lHGG (Σ : HRA) (Σ1 : GRA) (Σ2 : GRA) :
   subG Σ Σ1 → subG Σ (GRAs.app Σ1 Σ2).
-Proof. exact: subG_app_l. Qed.
+Proof. exact: subG_app_l. Defined.
 Global Instance subG_app_lHGH (Σ : HRA) (Σ1 : GRA) (Σ2 : HRA) :
   subG Σ Σ1 → subG Σ (GRAs.app Σ1 Σ2).
-Proof. exact: subG_app_l. Qed.
+Proof. exact: subG_app_l. Defined.
 Global Instance subG_app_lHHG (Σ : HRA) (Σ1 : HRA) (Σ2 : GRA) :
   subG Σ Σ1 → subG Σ (GRAs.app Σ1 Σ2).
-Proof. exact: subG_app_l. Qed.
+Proof. exact: subG_app_l. Defined.
 Global Instance subG_app_lHHH (Σ : HRA) (Σ1 : HRA) (Σ2 : HRA) :
   subG Σ Σ1 → subG Σ (GRAs.app Σ1 Σ2).
-Proof. exact: subG_app_l. Qed.
+Proof. exact: subG_app_l. Defined.
 
 Global Instance subG_app_rGHG (Σ : GRA) (Σ1 : HRA) (Σ2 : GRA) :
   subG Σ Σ2 → subG Σ (GRAs.app Σ1 Σ2).
-Proof. exact: subG_app_r. Qed.
+Proof. exact: subG_app_r. Defined.
 Global Instance subG_app_rHGG (Σ : HRA) (Σ1 : GRA) (Σ2 : GRA) :
   subG Σ Σ2 → subG Σ (GRAs.app Σ1 Σ2).
-Proof. exact: subG_app_r. Qed.
+Proof. exact: subG_app_r. Defined.
 Global Instance subG_app_rHGH (Σ : HRA) (Σ1 : GRA) (Σ2 : HRA) :
   subG Σ Σ2 → subG Σ (GRAs.app Σ1 Σ2).
-Proof. exact: subG_app_r. Qed.
+Proof. exact: subG_app_r. Defined.
 Global Instance subG_app_rHHG (Σ : HRA) (Σ1 : HRA) (Σ2 : GRA) :
   subG Σ Σ2 → subG Σ (GRAs.app Σ1 Σ2).
-Proof. exact: subG_app_r. Qed.
+Proof. exact: subG_app_r. Defined.
 Global Instance subG_app_rHHH (Σ : HRA) (Σ1 : HRA) (Σ2 : HRA) :
   subG Σ Σ2 → subG Σ (GRAs.app Σ1 Σ2).
-Proof. exact: subG_app_r. Qed.
+Proof. exact: subG_app_r. Defined.
 
 Global Instance subG_subHG (Γ : HRA) (Σ : GRA) : subG Γ Σ → subHG Γ Σ.
-Proof. intros H. exact: H. Qed.
+Proof. intros H. exact: H. Defined.
 
 Global Instance index_in_subG (Γ : HRA) (i : gid Γ) :
   inG (@GRA_lookup Γ i) Γ.
@@ -761,7 +761,7 @@ Proof.
   intros HΓΣ. destruct Hin. subst M.
   destruct (HΓΣ inG_id) as [j ->].
   exists j. reflexivity.
-Qed.
+Defined.
 
 Module SPropiProp.
   Section syntax.
