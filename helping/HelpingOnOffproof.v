@@ -52,44 +52,40 @@ Section HelpingOnOff.
 
   Definition run_s : Any.t → itree lmodE Any.t := λ x,
     ⇓cris (⇓sb(msk_scp (HelpingOff.scopes mn) msk_true)
-      (SModTr.HoareFun (Some fspec_trivial)
-        (λ N stid, (SModTr.trans sp N stid) ∘ (HelpingOff.run jobs)) x)).
+      ((tau;; ⇓smod(sp) (HelpingOff.run jobs x)))).
   Definition run_t : Any.t → itree lmodE Any.t := λ x,
     ⇓cris (⇓sb(msk_scp (HelpingOn.scopes mn) msk_true)
-      (SModTr.HoareFun (Some fspec_trivial)
-        (λ N stid, (SModTr.trans (HelpingOn.sp mn sp) N stid) ∘ (HelpingOn.run mn jobs)) x)).
+      ((tau;; ⇓smod(HelpingOn.sp mn sp) (HelpingOn.run mn jobs x)))).
 
   Definition help_s : Any.t → itree lmodE Any.t := λ x,
     ⇓cris (⇓sb(msk_scp (HelpingOff.scopes mn) msk_true)
-      (SModTr.HoareFun (Some fspec_trivial)
-        (λ N stid, (SModTr.trans sp N stid) ∘ (HelpingOff.help)) x)).
+      ((tau;; ⇓smod(sp) (HelpingOff.help x)))).
   Definition help_t : Any.t → itree lmodE Any.t := λ x,
-    ⇓cris (⇓sb(msk_scp (HelpingOn.scopes mn) msk_true)
-      (SModTr.HoareFun (Some fspec_trivial)
-        (λ N stid, (SModTr.trans (HelpingOn.sp mn sp) N stid) ∘ (HelpingOn.help mn jobs)) x)).
+    ⇓cris (⇓sb(msk_scp (HelpingOff.scopes mn) msk_true)
+      ((tau;; ⇓smod(HelpingOn.sp mn sp) (HelpingOn.help mn jobs x)))).
 
   Definition help_yield_s : Any.t → itree lmodE Any.t := λ x,
     ⇓cris (⇓sb(msk_scp (HelpingOff.scopes mn) msk_true)
-      (tau;; ⇓smod(sp, nroot, 0) (fbody_trivial x))).
+      (tau;; ⇓smod(sp) (fbody_trivial x))).
   Definition help_yield_t : Any.t → itree lmodE Any.t := λ x,
     ⇓cris (⇓sb(msk_scp (HelpingOn.scopes mn) msk_true)
-      (tau;; ⇓smod(HelpingOn.sp mn sp, nroot, 0) (Ret ()↑))).
+      (tau;; ⇓smod(HelpingOn.sp mn sp) (Ret ()↑))).
 
   Definition yield : Any.t → itree lmodE Any.t := λ x,
     ⇓cris (⇓sb(CFilter.msk_filter (Helping.exports mn) (msk_real (msk_scp SchI.scopes msk_true)))
-      (tau;; ⇓smod(∅, nroot, 0) (cfunU SchI.yield x))).
+      (tau;; ⇓smod(∅) (cfunU SchI.yield x))).
   Definition inner_spawn : Any.t → itree lmodE Any.t := λ x,
     ⇓cris (⇓sb(CFilter.msk_filter (Helping.exports mn) (msk_real (msk_scp SchI.scopes msk_true)))
-      (tau;; ⇓smod(∅, nroot, 0) (cfunU SchI.inner_spawn x))).
+      (tau;; ⇓smod(∅) (cfunU SchI.inner_spawn x))).
   Definition spawn : Any.t → itree lmodE Any.t := λ x,
     ⇓cris (⇓sb(CFilter.msk_filter (Helping.exports mn) (msk_real (msk_scp SchI.scopes msk_true)))
-      (tau;; ⇓smod(∅, nroot, 0) (cfunU SchI.spawn x))).
+      (tau;; ⇓smod(∅) (cfunU SchI.spawn x))).
   Definition join : Any.t → itree lmodE Any.t := λ x,
     ⇓cris (⇓sb(CFilter.msk_filter (Helping.exports mn) (msk_real (msk_scp SchI.scopes msk_true)))
-      (tau;; ⇓smod(∅, nroot, 0) (cfunU SchI.join x))).
+      (tau;; ⇓smod(∅) (cfunU SchI.join x))).
   Definition get_tid : Any.t → itree lmodE Any.t := λ x,
     ⇓cris (⇓sb(CFilter.msk_filter (Helping.exports mn) (msk_real (msk_scp SchI.scopes msk_true)))
-      (tau;; ⇓smod(∅, nroot, 0) (cfunU SchI.get_tid x))).
+      (tau;; ⇓smod(∅) (cfunU SchI.get_tid x))).
 
   Local Lemma dom_helping_on :
     dom (Mod.fnsems (HelpingOn.t mn jobs sp)) = set_map Some (Helping.exports mn).
@@ -499,10 +495,10 @@ Section HelpingOnOff.
     }
   Qed.
 
-  Definition inner_spawn_pend (arg : Any.t) N stid ktr : itree lmodE Any.t :=
+  Definition inner_spawn_pend (arg : Any.t) ktr : itree lmodE Any.t :=
     tau;;
     x <- ⇓cris (⇓sb(msk_real (msk_scp SchI.scopes msk_true))
-      (⇓smod(∅, N, stid) (
+      (⇓smod(∅) (
         'arg : SAny.t <- (arg↓)?;;
         'x1 : thpool <- (cgetU SchI.v_ths);;
         'x2 : nat <- (cgetU SchI.v_tid);;
@@ -516,10 +512,10 @@ Section HelpingOnOff.
         Ret (r↑))));;
     ktr x.
 
-  Definition join_pend (arg : Any.t) N stid jtid ktr : itree lmodE Any.t :=
+  Definition join_pend (arg : Any.t) jtid ktr : itree lmodE Any.t :=
     tau;;
     x <- ⇓cris (⇓sb(msk_real (msk_scp SchI.scopes msk_true))
-      (⇓smod(∅, N, stid) (
+      (⇓smod(∅) (
         'arg : () <- (arg↓)?;;
         x_3 <- iterC (λ _ : (),
           'x_1 : thpool <- cgetU SchI.v_ths;;
@@ -535,28 +531,26 @@ Section HelpingOnOff.
 
   Definition helpee_pend_s
       (j : jobID) k
-      N stid
       (fspo : option fspec) x_fsp
       : itree lmodE Any.t :=
     ⇓cris (tau;; r <- ⇓sb(msk_scp (HelpingOff.scopes mn) msk_true) (
-      HoareCall_epilogue (sp !! speckey_fn SchHdr.yield) x_fsp (()↑) N stid;;;
-      ret <- ⇓smod(sp, N, stid) (𝒴;;; r <- SB.sandbox (HelpingOn.msk_pure) (jobs j);; 𝒴;;; Ret r↑);;
-      vret <- trigger (Choose Any.t);;
-      trigger (Guarantee (postcond fspec_trivial (N, stid) () ret vret));;;
-      Ret vret
+      HoareCall_epilogue (sp !! speckey_fn SchHdr.yield) x_fsp (()↑);;;
+      ret <- ⇓smod(sp) (𝒴;;; r <- SB.sandbox (HelpingOn.msk_pure) (jobs j);; 𝒴;;; Ret r↑);;
+      (* vret <- trigger (Choose Any.t);;
+      trigger (Guarantee (postcond fspec_trivial () ret vret));;; *)
+      Ret ret
     );; k r).
 
   Definition helpee_pend_t
       (tid_stid_cur : nat) (j : jobID)
-      N stid
       (fspo : option fspec) x_fsp k
       : itree lmodE Any.t :=
     ⇓cris (tau;; x_ <- ⇓sb(msk_scp (HelpingOff.scopes mn) msk_true) (
-      HoareCall_epilogue fspo x_fsp ()↑ N stid;;;
-      x <- ⇓smod(HelpingOn.sp mn sp, N, stid) (𝒴;;; r <- HelpingOn.try_run mn jobs tid_stid_cur;; 𝒴;;; Ret r↑);;
-      vret <- trigger (Choose Any.t);;
-      trigger (Guarantee (postcond fspec_trivial (N, stid) () x vret));;;
-      Ret vret
+      HoareCall_epilogue fspo x_fsp ()↑;;;
+      x <- ⇓smod(HelpingOn.sp mn sp) (𝒴;;; r <- HelpingOn.try_run mn jobs tid_stid_cur;; 𝒴;;; Ret r↑);;
+      (* vret <- trigger (Choose Any.t);;
+      trigger (Guarantee (postcond fspec_trivial () x vret));;; *)
+      Ret x
     );; k x_).
 
   Inductive help_rel : itree lmodE Any.t → itree lmodE Any.t → option (nat * (option retID * jobID)) → Prop :=
@@ -568,43 +562,43 @@ Section HelpingOnOff.
       (∀ ret, itr ≠ Ret ret) →
       (∀ (ret : Any.t), help_rel (⇓cris (ktr_s ret)) (⇓cris (ktr_t ret)) None) →
       help_rel itr_s itr_t None
-  | help_rel_loop itr_s itr_t ktr_t ktr_s N stid x (ret : Any.t) :
+  | help_rel_loop itr_s itr_t ktr_t ktr_s x (ret : Any.t) :
       itr_t = (
         ⇓cris (tau;;
           x_ <- ⇓sb(msk_scp (HelpingOff.scopes mn) msk_true)
-            (HoareCall_epilogue (sp !! speckey_fn SchHdr.yield) x (()↑) N stid;;;
-            ⇓smod(HelpingOn.sp mn sp, N, stid) (𝒴);;;
-            vret <- trigger (Choose Any.t);;
-            trigger (Guarantee (postcond fspec_trivial (N, stid) () ret vret));;;
-            Ret vret);;
+            (HoareCall_epilogue (sp !! speckey_fn SchHdr.yield) x (()↑);;;
+            ⇓smod(HelpingOn.sp mn sp) (𝒴);;;
+            (* vret <- trigger (Choose Any.t);;
+            trigger (Guarantee (postcond fspec_trivial () ret vret));;; *)
+            Ret ret);;
           ktr_t x_)) →
       itr_s = (
         ⇓cris (tau;;
           x_ <- ⇓sb(msk_scp (HelpingOn.scopes mn) msk_true)
-            (HoareCall_epilogue (sp !! speckey_fn SchHdr.yield) x (()↑) N stid;;;
-            ⇓smod(sp, N, stid) (𝒴);;;
-            vret <- trigger (Choose Any.t);;
-            trigger (Guarantee (postcond fspec_trivial (N, stid) () ret vret));;;
-            Ret vret);;
+            (HoareCall_epilogue (sp !! speckey_fn SchHdr.yield) x (()↑);;;
+            ⇓smod(sp) (𝒴);;;
+            (* vret <- trigger (Choose Any.t);;
+            trigger (Guarantee (postcond fspec_trivial () ret vret));;; *)
+            Ret ret);;
           ktr_s x_)) →
       (∀ ret, help_rel (⇓cris (ktr_s ret)) (⇓cris (ktr_t ret)) None) →
       help_rel itr_s itr_t None
-  | help_rel_helpee_done tid jid itr_s itr_t ktr_s ktr_t x ret N stid :
-      itr_t = helpee_pend_t tid jid N stid (sp !! speckey_fn SchHdr.yield) x ktr_t →
+  | help_rel_helpee_done tid jid itr_s itr_t ktr_s ktr_t x ret :
+      itr_t = helpee_pend_t tid jid (sp !! speckey_fn SchHdr.yield) x ktr_t →
       itr_s = (
         ⇓cris (tau;;
           x_ <- ⇓sb(msk_scp (HelpingOn.scopes mn) msk_true)
-            (HoareCall_epilogue (sp !! speckey_fn SchHdr.yield) x (()↑) N stid;;;
-            ⇓smod(sp, N, stid) (𝒴);;;
-            vret <- trigger (Choose Any.t);;
-            trigger (Guarantee (postcond fspec_trivial (N, stid) () ret↑ vret));;;
-            Ret vret);;
+            (HoareCall_epilogue (sp !! speckey_fn SchHdr.yield) x (()↑);;;
+            ⇓smod(sp) (𝒴);;;
+            (* vret <- trigger (Choose Any.t);;
+            trigger (Guarantee (postcond fspec_trivial () ret↑ vret));;; *)
+            Ret ret↑);;
           ktr_s x_)) →
       (∀ ret, help_rel (⇓cris (ktr_s ret)) (⇓cris (ktr_t ret)) None) →
       help_rel itr_s itr_t (Some (tid, (Some ret, jid)))
-  | help_rel_helpee_pend tid jid itr_s itr_t k_s k_t x_fsp N stid :
-      itr_s = helpee_pend_s jid k_s N stid (sp !! speckey_fn SchHdr.yield) x_fsp →
-      itr_t = helpee_pend_t tid jid N stid (sp !! speckey_fn SchHdr.yield) x_fsp k_t →
+  | help_rel_helpee_pend tid jid itr_s itr_t k_s k_t x_fsp :
+      itr_s = helpee_pend_s jid k_s (sp !! speckey_fn SchHdr.yield) x_fsp →
+      itr_t = helpee_pend_t tid jid (sp !! speckey_fn SchHdr.yield) x_fsp k_t →
       (∀ ret, help_rel (⇓cris (k_s ret)) (⇓cris (k_t ret)) None) →
       help_rel itr_s itr_t (Some (tid, (None, jid)))
   | help_rel_call itr_s itr_t ktr_t ktr_s ctx rs fn arg :
@@ -616,31 +610,31 @@ Section HelpingOnOff.
       itr_t = bd <- (prog_t ctx rs fn)?;; x <- bd arg;; ⇓cris (ktr_t x) →
       (∀ ret, help_rel (⇓cris (ktr_s ret)) (⇓cris (ktr_t ret)) None) →
       help_rel itr_s itr_t None
-  | help_rel_inner_spawn itr_s itr_t (arg : Any.t) ktr_s ktr_t N stid :
-      itr_t = inner_spawn_pend arg N stid ktr_t →
-      itr_s = inner_spawn_pend arg N stid ktr_s →
+  | help_rel_inner_spawn itr_s itr_t (arg : Any.t) ktr_s ktr_t :
+      itr_t = inner_spawn_pend arg ktr_t →
+      itr_s = inner_spawn_pend arg ktr_s →
       (∀ ret, help_rel (ktr_s ret) (ktr_t ret) None) →
       help_rel itr_s itr_t None
-  | help_rel_join itr_s itr_t (arg : Any.t) ktr_s ktr_t tid N stid :
-      itr_t = join_pend arg N stid tid ktr_t →
-      itr_s = join_pend arg N stid tid ktr_s →
+  | help_rel_join itr_s itr_t (arg : Any.t) ktr_s ktr_t tid :
+      itr_t = join_pend arg tid ktr_t →
+      itr_s = join_pend arg tid ktr_s →
       (∀ ret, help_rel (ktr_s ret) (ktr_t ret) None) →
       help_rel itr_s itr_t None
-  | help_rel_terminate itr_s itr_t ktr_s ktr_t N stid :
+  | help_rel_terminate itr_s itr_t ktr_s ktr_t :
       itr_s =
         (x <- ⇓cris (⇓sb(msk_real (msk_scp SchI.scopes msk_true))
-          (⇓smod(sp, N, stid) (x_ <- Sch.terminate;; Ret x_↑)));;
+          (⇓smod(sp) (x_ <- Sch.terminate;; Ret x_↑)));;
         ktr_s x) →
       itr_t =
         (x <- ⇓cris (⇓sb(msk_real (msk_scp SchI.scopes msk_true))
-          (⇓smod(sp, N, stid) (x_ <- Sch.terminate;; Ret x_↑)));;
+          (⇓smod(sp) (x_ <- Sch.terminate;; Ret x_↑)));;
         ktr_t x) →
       (∀ ret, help_rel (ktr_s ret) (ktr_t ret) None) →
       help_rel itr_s itr_t None.
 
 
   Lemma gsim_Yield_tgt r g RR p_s p_t tid_s tid_t tp_s tp_t
-      scp N stid (k_s k_t : itree crisE _) ctx st_ctx rs
+      scp (k_s k_t : itree crisE _) ctx st_ctx rs
       (ths : list (nat * option SAny.t))
       (mtid_s mtid_t : nat)
       (res : Σ)
@@ -660,12 +654,12 @@ Section HelpingOnOff.
     map_Forall (const is_Some) (st_src ths mtid_s) →
     map_Forall (const is_Some) (st_tgt reqmap ths mtid_t) →
     ✓ res →
-    tp_s !! tid_s = Some (⇓cris ((⇓sb(msk_scp scp msk_true) (⇓smod(sp, N, stid) (𝒴)));;; k_s)) →
-    tp_t !! tid_t = Some (⇓cris ((⇓sb(msk_scp scp msk_true) (⇓smod(HelpingOn.sp mn sp, N, stid) (𝒴)));;; k_t)) →
+    tp_s !! tid_s = Some (⇓cris ((⇓sb(msk_scp scp msk_true) (⇓smod(sp) (𝒴)));;; k_s)) →
+    tp_t !! tid_t = Some (⇓cris ((⇓sb(msk_scp scp msk_true) (⇓smod(HelpingOn.sp mn sp) (𝒴)));;; k_t)) →
     gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR smj_top smj_top
       (LModTr.interp_stateE Any.t
         (iterV (LModTr.handle_callE (prog_s ctx rs))
-          (tid_s, <[tid_s:=⇓cris (⇓sb( msk_scp scp msk_true) (⇓smod(sp, N, stid) 𝒴);;; k_s)]> tp_s))
+          (tid_s, <[tid_s:=⇓cris (⇓sb( msk_scp scp msk_true) (⇓smod(sp) 𝒴);;; k_s)]> tp_s))
         (Any.pair (ModTr.state_encode (st_src ths mtid_s)) res↑))
       (LModTr.interp_stateE Any.t
         (iterV (LModTr.handle_callE (prog_t ctx rs)) (tid_t, <[tid_t:=⇓cris k_t]> tp_t))
@@ -682,15 +676,15 @@ Section HelpingOnOff.
           (iterV (LModTr.handle_callE (prog_s ctx rs))
             (stid_s1, <[tid_s:=⇓cris (tau;;
               ⇓sb(msk_scp scp msk_true)
-                (HoareCall_epilogue (sp !! speckey_fn SchHdr.yield) x ()↑ N stid;;;
-                 ⇓smod(sp, N, stid) 𝒴);;; k_s)]> tp_s))
+                (HoareCall_epilogue (sp !! speckey_fn SchHdr.yield) x ()↑;;;
+                 ⇓smod(sp) 𝒴);;; k_s)]> tp_s))
           (Any.pair (ModTr.state_encode (st_src ths mtid_s1)) res2↑))
         (LModTr.interp_stateE Any.t
           (iterV (LModTr.handle_callE (prog_t ctx rs))
             (stid_t1, <[tid_t:=⇓cris (tau;;
               ⇓sb(msk_scp scp msk_true)
-                (HoareCall_epilogue (sp !! speckey_fn SchHdr.yield) x ()↑ N stid;;;
-                 ⇓smod(HelpingOn.sp mn sp, N, stid) 𝒴);;; k_t)]> tp_t))
+                (HoareCall_epilogue (sp !! speckey_fn SchHdr.yield) x ()↑;;;
+                 ⇓smod(HelpingOn.sp mn sp) 𝒴);;; k_t)]> tp_t))
           (Any.pair
             (ModTr.state_encode (st_tgt reqmap ths mtid_t1)) res2↑))) →
     gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
@@ -1298,7 +1292,7 @@ Section HelpingOnOff.
         { (* Helping.run *)
           revert Htid; rewrite prog_s_run ?prog_t_run; eauto using wf_src; s; ired.
           rewrite /run_s /run_t -!interpV_bind; intros Htid.
-          eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+          (* eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
             intros [N stid2]. ghnorm_l.
           eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
             intros []. ghnorm_l. rewrite list_insert_insert.
@@ -1314,9 +1308,11 @@ Section HelpingOnOff.
           eapply gsim_Take_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
             exists varg. ghnorm_r. rewrite list_insert_insert.
           eapply gsim_Assume_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-            exists rs2; splits; try by des. ghnorm_r. rewrite list_insert_insert.
-          rewrite /HelpingOff.run /HelpingOn.run.
-          destruct (varg ↓) as [j|];
+            exists rs2; splits; try by des. ghnorm_r. rewrite list_insert_insert. *)
+          revert Htid; rewrite /HelpingOff.run /HelpingOn.run; intros Htid.
+          eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+          eapply gsim_tau_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+          destruct (arg ↓) as [j|];
             [|eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; ss]; s. 
           ghnorm_l.
           ghnorm_r. case_bool_decide as Htemp; [|set_solver +Htemp]; clear Htemp. ghnorm_r.
@@ -1374,23 +1370,23 @@ Section HelpingOnOff.
             { (* immediate return of helpee *)
               rewrite ?list_insert_insert. ghnorm_r.
 
-              eapply gsim_Choose_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+              (* eapply gsim_Choose_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
               intros vret; rewrite list_insert_insert. ghnorm_r; ss.
               eapply gsim_Guarantee_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-              intros res2 Hres2; rewrite list_insert_insert. ghnorm_r; ss.
+              intros res2 Hres2; rewrite list_insert_insert. ghnorm_r; ss. *)
 
               rewrite {1}yield_unfold. ghnorm_l.
               eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
               rewrite list_insert_insert.
               eapply gsim_Choose_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
               exists (None). rewrite list_insert_insert. ghnorm_l.
-              eapply gsim_Choose_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+              (* eapply gsim_Choose_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
               exists vret; rewrite list_insert_insert. ghnorm_l; ss.
               eapply gsim_Guarantee_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-              exists res2; splits; (try by des); rewrite list_insert_insert. ghnorm_l.
+              exists res2; splits; (try by des); rewrite list_insert_insert. ghnorm_l. *)
 
               zprogress.
-              gbase. eapply (CIH res2); try by des; eauto.
+              gbase. eapply (CIH res1); try by des; eauto.
               eexists (<[stid := (_, _, None)]> tl); ss; esplits; eauto.
               { rewrite list_fmap_insert //=. }
               { rewrite list_fmap_insert //=. }
@@ -1419,7 +1415,7 @@ Section HelpingOnOff.
             { intros i; destruct (decide (i = stid)); subst; cycle 1.
               { intros ???; rewrite list_lookup_insert_ne //=; apply Hlookup. }
               { rewrite list_lookup_insert; ii; clarify. split; ss.
-                eapply help_rel_loop with (x:=x) (N:=N) (stid:=stid2) (ret:=ret1↑); eauto.
+                eapply help_rel_loop with (x:=x)(ret:=ret1↑); eauto.
                 { f_equal. grind.
                   repeat (etrans; first hnorm_itr; symmetry; etrans; first hnorm_itr; grind).
                 }
@@ -1460,7 +1456,7 @@ Section HelpingOnOff.
             {
               rewrite list_lookup_insert; ii; clarify.
               split.
-              { eapply help_rel_helpee_pend with (x_fsp:=x) (N:=N) (stid:=stid2); eauto.
+              { eapply help_rel_helpee_pend with (x_fsp:=x); eauto.
                 { rewrite /helpee_pend_s. f_equal. grind.
                   repeat (etrans; first hnorm_itr; symmetry; etrans; first hnorm_itr; grind).
                 }
@@ -1490,8 +1486,8 @@ Section HelpingOnOff.
 
         { (* Helping.help *)
           revert Htid; rewrite prog_s_help ?prog_t_help; eauto using wf_src; s; ired.
-          rewrite /help_s /help_t -!interpV_bind; intros Htid.
-          eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+          rewrite /help_s /help_t -!interpV_bind /HelpingOff.help /HelpingOn.help; intros Htid.
+          (* eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
             intros [N stid2]. ghnorm_l.
           eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
             intros []. ghnorm_l. rewrite list_insert_insert.
@@ -1507,10 +1503,9 @@ Section HelpingOnOff.
           eapply gsim_Take_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
             exists varg. ghnorm_r. rewrite list_insert_insert.
           eapply gsim_Assume_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-            exists rs2; splits; try by des. ghnorm_r. rewrite list_insert_insert.
-          rewrite /HelpingOff.help /HelpingOn.help.
-          ghnorm_l.
-          ghnorm_r.
+            exists rs2; splits; try by des. ghnorm_r. rewrite list_insert_insert. *)
+          eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+          eapply gsim_tau_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
 
           eapply gsim_Choose_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|]. intros rid.
           rewrite list_insert_insert.
@@ -1537,7 +1532,8 @@ Section HelpingOnOff.
 
           rewrite prog_s_yield; auto using wf_src.
           rewrite prog_t_help_yield //=.
-          rewrite /yield /help_yield_t /SchI.yield /cfunU /fbody_trivial; ired; rewrite -?interpV_bind.
+          rewrite /yield /help_yield_t /SchI.yield /cfunU /fbody_trivial; ired.
+          do 2 rewrite -interpV_bind.
           eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|rewrite list_insert_insert].
           eapply gsim_tau_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|rewrite list_insert_insert].
           destruct Any.downcast as [[]|]; s; ghnorm_l; cycle 1.
@@ -1714,7 +1710,7 @@ Section HelpingOnOff.
             eapply gsim_Choose_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
             exists (None).
             rewrite list_insert_insert. ghnorm_l.
-            eapply gsim_Choose_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|]. intros vret7.
+            (* eapply gsim_Choose_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|]. intros vret7.
             rewrite list_insert_insert.
             eapply gsim_Choose_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]. exists vret7.
             rewrite list_insert_insert.
@@ -1725,10 +1721,10 @@ Section HelpingOnOff.
             unshelve eexists; eauto using Hres8.
             splits; try by des.
             rewrite list_insert_insert.
-            ghnorm_l; ghnorm_r.
+            ghnorm_l; ghnorm_r. *)
 
             zprogress.
-            gbase. eapply (CIH res8); eauto; try by des.
+            gbase. eapply (CIH res6); eauto; try by des.
             eexists (<[stid := (_, _, None)]> tl); ss; esplits; eauto.
             { rewrite list_fmap_insert //=. }
             { rewrite list_fmap_insert //=. }

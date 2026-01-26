@@ -17,6 +17,7 @@ Section wsim.
   Context (RR : post R_s R_t).
   Context (ps pt : bool).
   Context (st_src st_tgt : state).
+  Context (N : namespace).
 
   Lemma wsim_yield_tgt
       (E : coPset) (r g : rel)
@@ -29,9 +30,9 @@ Section wsim.
     let tid :=
       (match sp_s !! speckey_fn SchHdr.yield, sp_t !! speckey_fn SchHdr.yield with
       | Some fsp_s, Some fsp_t =>
-          ⌜fsp_s = fsp_t ∧ fsp_s = SchA.yield_spec⌝
+          ⌜fsp_s = fsp_t ∧ fsp_s = SchA.yield_spec N⌝
       | Some fsp_s, None =>
-          ⌜fsp_s = SchA.yield_spec⌝ ∗ Tid mtid stid_s
+          ⌜fsp_s = SchA.yield_spec N⌝ ∗ Tid mtid stid_s
       | None, None =>
           True
       | _, _ =>
@@ -43,11 +44,11 @@ Section wsim.
     (∀ st_src st_tgt,
       Ist st_src st_tgt -∗ tid -∗
       wsim fl_s fl_t Ist (E, E) r g R_s R_t RR true true
-        (st_src, (SB.sandbox msk_s (SModTr.trans sp_s N_s stid_s 𝒴)) >>= k_s)
+        (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴)) >>= k_s)
         (st_tgt, k_t tt)) ⊢
     wsim fl_s fl_t Ist (E, E) r g R_s R_t RR ps pt
-      (st_src, (SB.sandbox msk_s (SModTr.trans sp_s N_s stid_s 𝒴)) >>= k_s)
-      (st_tgt, (SB.sandbox msk_t (SModTr.trans sp_t N_t stid_t 𝒴)) >>= k_t).
+      (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴)) >>= k_s)
+      (st_tgt, (SB.sandbox msk_t (SModTr.trans sp_t 𝒴)) >>= k_t).
   Proof.
     intros tid Hmsk Hcall; subst tid.
     rewrite /Sch.yield; unseal SCH.

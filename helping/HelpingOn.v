@@ -92,8 +92,6 @@ Module HelpingOn. Section HelpingOn.
     match e with
     | inl1 _ => true
     | inr1 (inl1 _) => false
-    (* | inr1 (inr1 (inl1 (SPut k v))) => bool_decide (k.1 ∉ scopes ∪ SchI.scopes)
-    | inr1 (inr1 (inl1 (SGet k))) => bool_decide (k.1 ∉ scopes ∪ SchI.scopes) *)
     | inr1 (inr1 (inl1 _)) => false
     | inr1 (inr1 (inr1 _)) => true
     end.
@@ -130,8 +128,8 @@ Module HelpingOn. Section HelpingOn.
       Ret ()↑.
 
   Definition fnsems : gmap (option string) (option (emask * (option fspec * fbody))) :=
-    {[Some (Helping.run mn) := Some (msk_scp scopes msk_true, (Some fspec_trivial, run));
-      Some (Helping.help mn) := Some (msk_scp scopes msk_true, (Some fspec_trivial, help));
+    {[Some (Helping.run mn) := Some (msk_scp scopes msk_true, (None, run));
+      Some (Helping.help mn) := Some (msk_scp scopes msk_true, (None, help));
       Some (Helping.yield mn) := Some (msk_scp scopes msk_true, (None, λ _, Ret ()↑))]}.
 
   Program Definition Mod : SMod.t := {|

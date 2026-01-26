@@ -4,7 +4,7 @@ Require Import APCHeader.
 
 Set Implicit Arguments.
 
-Section FSPEC.
+(* Section FSPEC.
   Context {Σ : GRA}.
   
   (* fspec is only about args, varg is always ordinal *)
@@ -91,4 +91,4 @@ Section aux.
   Definition pure: itree crisE Any.t :=
     o <- trigger (Choose Ord.t);;
     trigger (Call APCHdr.apc o↑).
-End aux.
+End aux. *)

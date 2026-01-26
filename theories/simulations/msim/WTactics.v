@@ -76,7 +76,7 @@ Ltac state_insert_simpl k1 v1 NODT :=
             )
             else (
               etransitivity;
-              [ e apply insert_union_with_r';
+              [ eapply insert_union_with_r';
                 [ eauto
                 | eapply map_Forall_union_with_inv in NODT as [_ NODT];
                   eexists; state_lookup_simpl r k NODT; reflexivity

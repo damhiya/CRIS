@@ -170,21 +170,21 @@ Section FB_HAS_SPEC.
 
   Variable genvenv : GEnv.t.
 
-  Variant fb_has_spec (stb : string -> option fspec) (fb : mblock) (fsp : fspec) : Prop :=
+  (* Variant fb_has_spec (stb : string -> option fspec) (fb : mblock) (fsp : fspec) : Prop :=
   | fb_has_spec_intro
       fn
       (FBLOCK : genvenv.(CEnv.blk2id) fb = Some fn)
       (SPEC : fn_has_spec stb fn fsp)
-  .
+  . *)
 
-  Variant fb_has_spec_in (stb : alist (option string) (option fspec)) (fb : mblock) (fsp : fspec) : Prop :=
+  (* Variant fb_has_spec_in (stb : alist (option string) (option fspec)) (fb : mblock) (fsp : fspec) : Prop :=
   | fb_has_spec_in_intro
       fn
       (FBLOCK : genvenv.(CEnv.blk2id) fb = Some fn)
       (SPEC : fn_has_spec_in stb fn fsp)
-  .
+  . *)
 
-  Lemma fb_has_weaker_spec (stb : string -> option fspec) (fb : mblock) (fsp0 fsp1 : fspec)
+  (* Lemma fb_has_weaker_spec (stb : string -> option fspec) (fb : mblock) (fsp0 fsp1 : fspec)
         (SPEC : fb_has_spec stb fb fsp1)
         (WEAK : fspec_imply fsp1 fsp0)
     :
@@ -192,7 +192,7 @@ Section FB_HAS_SPEC.
   Proof.
     inv SPEC. econs; eauto.
     eapply fn_has_weaker_spec; eauto.
-  Qed.
+  Qed. *)
   
 End FB_HAS_SPEC.
 
@@ -566,10 +566,10 @@ Section MODSEM.
     des_ifs.
   Qed.
 
-  Definition to_itree (ge : GEnv.t) : (string*_) -> (option string * (fnsem_type (option fspec * fbody)))%type :=
-    (fun '(fn, f) => (Some fn, (false, wmask_all, [], (None, cfunU (eval_imp ge f))))).
+  (* Definition to_itree (ge : GEnv.t) : (string*_) -> (option string * (fnsem_type (option fspec * fbody)))%type :=
+    (fun '(fn, f) => (Some fn, (false, wmask_all, [], (None, cfunU (eval_imp ge f))))). *)
   
-  Program Definition get_mod (m : program) (ge : GEnv.t) : SMod.t :=
+  (* Program Definition get_mod (m : program) (ge : GEnv.t) : SMod.t :=
     {|SMod.scopes := [];
       SMod.fnsems := List.map (to_itree ge) m.(prog_funs);
       SMod.initial_st := [];
@@ -582,7 +582,7 @@ Section MODSEM.
       destruct (alist_find s (prog_funs m)); ss.
     - rewrite alist_find_omap_none in H; ss.
   Qed.
-  Next Obligation. prove_nodup. Qed.
+  Next Obligation. prove_nodup. Qed. *)
 
   (* Definition get_mod (m : program) : Mod.t := {| *)
   (*   Mod.modsem := fun ge => (modsem m (GEnv.load_genv ge)); *)

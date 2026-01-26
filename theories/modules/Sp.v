@@ -62,7 +62,7 @@ Section sp.
   Global Program Instance sp_imply_PreOrder : PreOrder sp_imply.
   Next Obligation. ii. exists x1. esplits; et. Qed.
   Next Obligation.
-    intros x y z Hxy Hyz fn ? z1. exploit Hyz; et; intros [y1 [Hypre Hypost]].
+    intros x y z Hxy Hyz fn z1. exploit Hyz; et; intros [y1 [Hypre Hypost]].
     exploit Hxy; et; intros [x1 [Hxpre Hxpost]].
     exists x1. split; ii.
     - rewrite Hypre Hxpre. iIntros ">>H". et.

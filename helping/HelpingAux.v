@@ -7,7 +7,7 @@ From CRIS.helping Require Import Header HelpingOn HelpingOff.
 (* This file contains auxilliary lemmas for proving HelpOn ≼ HelpOff. *)
 Notation "'⇓cris'" := (interpV (ModTr.handle_crisE)).
 Notation "'⇓sb(' m ')'" := (SB.sandbox m).
-Notation "'⇓smod(' sp ',' N ',' stid ')'" := (SModTr.trans sp N stid).
+Notation "'⇓smod(' sp ')'" := (SModTr.trans sp).
 
 Local Ltac gnorm_itr :=
   match goal with
@@ -504,43 +504,43 @@ Section props.
     | None => unit
     end.
 
-  Definition HoareCall_prologue fspo (varg : Any.t) N stid
+  Definition HoareCall_prologue fspo (varg : Any.t)
       : itree crisE (fspec_option_meta fspo * Any.t) :=
     (match fspo as fspo return itree crisE (fspec_option_meta fspo * Any.t) with
     | Some (fspec_mk pre post) =>
         x <- trigger (Choose _);;
         arg <- trigger (Choose Any.t);;
-        trigger (Guarantee (pre (N, stid) x varg arg));;;
+        trigger (Guarantee (pre x varg arg));;;
         Ret (x, arg)
     | None => Ret (tt, varg)
     end).
 
-  Definition HoareCall_epilogue fspo (x : fspec_option_meta fspo) (pret : Any.t) N stid
+  Definition HoareCall_epilogue fspo (x : fspec_option_meta fspo) (pret : Any.t)
       : itree crisE Any.t :=
     (match fspo as fspo return fspec_option_meta fspo → itree crisE Any.t with
     | Some (fspec_mk pre post) =>
         λ x,
           vret <- trigger (Take Any.t);;
-          trigger (Assume (post (N, stid) x vret pret));;;
+          trigger (Assume (post x vret pret));;;
           Ret vret
     | None => λ _, Ret pret
     end) x.
 
-  Lemma HoareCall_unfold (sp : specmap) (fn : string) N stid :
-    SModTr.HoareCall (sp !! speckey_fn fn) fn ()↑ N stid =
-    xarg <- HoareCall_prologue (sp !! speckey_fn fn) (()↑) N stid;;
+  Lemma HoareCall_unfold (sp : specmap) (fn : string) :
+    SModTr.HoareCall (sp !! speckey_fn fn) fn ()↑ =
+    xarg <- HoareCall_prologue (sp !! speckey_fn fn) (()↑);;
     ret <- trigger (Call fn xarg.2);;
-    HoareCall_epilogue (sp !! speckey_fn fn) xarg.1 ret N stid.
+    HoareCall_epilogue (sp !! speckey_fn fn) xarg.1 ret.
   Proof using.
     rewrite /SModTr.HoareCall /HoareCall_prologue /HoareCall_epilogue; case_match; grind.
   Qed.
 
   Lemma gsim_HoareCall_prologue_both r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t
-      scp fsp k_s k_t (res : Σ) arg N stid :
+      scp fsp k_s k_t (res : Σ) arg :
     tp_s !! tid_s =
-      Some (⇓cris (x <- ⇓sb(msk_scp scp msk_true) (HoareCall_prologue fsp arg N stid);; k_s x)) →
+      Some (⇓cris (x <- ⇓sb(msk_scp scp msk_true) (HoareCall_prologue fsp arg);; k_s x)) →
     tp_t !! tid_t =
-      Some (⇓cris (x <- ⇓sb(msk_scp scp msk_true) (HoareCall_prologue fsp arg N stid);; k_t x)) →
+      Some (⇓cris (x <- ⇓sb(msk_scp scp msk_true) (HoareCall_prologue fsp arg);; k_t x)) →
     ✓ res →
     (∀ (res1 : Σ) x, ✓ res1 →
       gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
@@ -581,11 +581,11 @@ Section props.
   Qed.
 
   Lemma gsim_HoareCall_epilogue_both r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t
-      scp fsp k_s k_t (res : Σ) x arg N stid :
+      scp fsp k_s k_t (res : Σ) x arg :
     tp_s !! tid_s =
-      Some (⇓cris (x <- ⇓sb(msk_scp scp msk_true) (HoareCall_epilogue fsp x arg N stid);; k_s x)) →
+      Some (⇓cris (x <- ⇓sb(msk_scp scp msk_true) (HoareCall_epilogue fsp x arg);; k_s x)) →
     tp_t !! tid_t =
-      Some (⇓cris (x <- ⇓sb(msk_scp scp msk_true) (HoareCall_epilogue fsp x arg N stid);; k_t x)) →
+      Some (⇓cris (x <- ⇓sb(msk_scp scp msk_true) (HoareCall_epilogue fsp x arg);; k_t x)) →
     ✓ res →
     (∀ (res1 : Σ) x, ✓ res1 →
       gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
@@ -622,7 +622,7 @@ Section props.
   Qed.
 
   Lemma gsim_jobs_both {retID} r g RR st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t
-      sp N stid k_s k_t (res : Σ) job mn :
+      sp k_s k_t (res : Σ) job mn :
     tid_s < length tp_s →
     tid_t < length tp_t →
     ✓ res →
@@ -639,11 +639,11 @@ Section props.
     gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR smj_bot smj_bot
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s,
         <[tid_s :=
-          ⇓cris (x <- ⇓sb(msk_scp (HelpingOn.scopes mn) msk_true) (⇓smod(sp, N, stid) (⇓sb(HelpingOn.msk_pure) job));; k_s x)]>
+          ⇓cris (x <- ⇓sb(msk_scp (HelpingOn.scopes mn) msk_true) (⇓smod(sp) (⇓sb(HelpingOn.msk_pure) job));; k_s x)]>
         tp_s)) (Any.pair st_s (res↑)))
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t,
         <[tid_t :=
-          ⇓cris (x <- ⇓sb(msk_scp (HelpingOff.scopes mn) msk_true) (⇓smod(HelpingOn.sp mn sp, N, stid) (⇓sb(HelpingOn.msk_pure) job));; k_t x)]>
+          ⇓cris (x <- ⇓sb(msk_scp (HelpingOff.scopes mn) msk_true) (⇓smod(HelpingOn.sp mn sp) (⇓sb(HelpingOn.msk_pure) job));; k_t x)]>
         tp_t)) (Any.pair st_t (res↑))).
   Proof using.
     intros Hlen_s Hlen_t Hres Hk.
