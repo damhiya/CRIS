@@ -258,20 +258,20 @@ Module MemA. Section MemA.
 
   Definition sp : alist (option string) (option fspec_rel) :=
     Seal.sealing CRIS
-      [(Some MemHdr.alloc, Some (to_fspec MemSpec.alloc: fspec_rel));
-       (Some MemHdr.free,  Some (to_fspec MemSpec.free: fspec_rel));
-       (Some MemHdr.load,  Some (to_fspec MemSpec.load: fspec_rel));
-       (Some MemHdr.store, Some (to_fspec MemSpec.store: fspec_rel));
-       (Some MemHdr.cmp,   Some (to_fspec MemSpec.cmp: fspec_rel));
-       (Some MemHdr.cas,   Some (to_fspec MemSpec.cas: fspec_rel))].
+      [(Some MemHdr.alloc, fsp_some (to_fspec MemSpec.alloc));
+       (Some MemHdr.free,  fsp_some (to_fspec MemSpec.free));
+       (Some MemHdr.load,  fsp_some (to_fspec MemSpec.load));
+       (Some MemHdr.store, fsp_some (to_fspec MemSpec.store));
+       (Some MemHdr.cmp,   fsp_some (to_fspec MemSpec.cmp));
+       (Some MemHdr.cas,   fsp_some (to_fspec MemSpec.cas))].
 
   Definition fnsems : alist (option string) (fnsem_type (option fspec_rel * fbody)) :=
-    [(Some MemHdr.alloc, (true, wmask_all, scopes, (Some (to_fspec MemSpec.alloc: fspec_rel), fbody_trivial)));
-     (Some MemHdr.free,  (true, wmask_all, scopes, (Some (to_fspec MemSpec.free: fspec_rel), fbody_trivial)));
-     (Some MemHdr.load,  (true, wmask_all, scopes, (Some (to_fspec MemSpec.load: fspec_rel), fbody_trivial)));
-     (Some MemHdr.store, (true, wmask_all, scopes, (Some (to_fspec MemSpec.store: fspec_rel), fbody_trivial)));
-     (Some MemHdr.cmp,   (true, wmask_all, scopes, (Some (to_fspec MemSpec.cmp: fspec_rel), fbody_trivial)));
-     (Some MemHdr.cas,   (true, wmask_all, scopes, (Some (to_fspec MemSpec.cas: fspec_rel), fbody_trivial)))].
+    [(Some MemHdr.alloc, (true, wmask_all, scopes, (fsp_some (to_fspec MemSpec.alloc), fbody_trivial)));
+     (Some MemHdr.free,  (true, wmask_all, scopes, (fsp_some (to_fspec MemSpec.free), fbody_trivial)));
+     (Some MemHdr.load,  (true, wmask_all, scopes, (fsp_some (to_fspec MemSpec.load), fbody_trivial)));
+     (Some MemHdr.store, (true, wmask_all, scopes, (fsp_some (to_fspec MemSpec.store), fbody_trivial)));
+     (Some MemHdr.cmp,   (true, wmask_all, scopes, (fsp_some (to_fspec MemSpec.cmp), fbody_trivial)));
+     (Some MemHdr.cas,   (true, wmask_all, scopes, (fsp_some (to_fspec MemSpec.cas), fbody_trivial)))].
 
   (* Module definition *)
   Program Definition smod : SMod.t := {|

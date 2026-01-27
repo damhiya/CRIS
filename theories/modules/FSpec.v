@@ -31,6 +31,10 @@ Section FSPEC.
   Definition fspec_to_rel_o: option fspec → option fspec_rel :=
     option_map fspec_to_rel.
 
+  Definition fsp_none : option fspec_rel := None.
+
+  Definition fsp_some (fsp: fspec_rel) : option fspec_rel := Some fsp.
+
   Coercion fspec_to_rel: fspec >-> fspec_rel.
   #[warnings="-uniform-inheritance"]  
   Coercion fspec_to_rel_o: option >-> option.

@@ -432,11 +432,11 @@ Module SchAS. Section SchAS.
 
     Definition sp : spl_type :=
       Seal.sealing CRIS
-        [(Some SchHdr._spawn,  Some (_spawn_spec: fspec_rel));
-         (Some SchHdr.spawn,   Some (spawn_spec: fspec_rel));
-         (Some SchHdr.yield,   Some (yield_spec: fspec_rel));
-         (Some SchHdr.join,    Some (join_spec: fspec_rel));
-         (Some SchHdr.get_tid, Some (get_tid_spec: fspec_rel))].
+        [(Some SchHdr._spawn,  fsp_some _spawn_spec);
+         (Some SchHdr.spawn,   fsp_some spawn_spec);
+         (Some SchHdr.yield,   fsp_some yield_spec);
+         (Some SchHdr.join,    fsp_some join_spec);
+         (Some SchHdr.get_tid, fsp_some get_tid_spec)].
 
   End SPEC.
 End SchAS. End SchAS.
@@ -463,11 +463,11 @@ Module SchA. Section SchA.
   .
 
   Definition fnsems sp_user q_tid : fnsems_type :=
-    [(Some SchHdr._spawn, (true, wmask_all, scopes, (Some (SchAS._spawn_spec sp_user ⊤ 1: fspec_rel), (cfunN (SchI._spawn check_internal)))));
-     (Some SchHdr.spawn,  (true, wmask_all, scopes, (Some (SchAS.spawn_spec sp_user ⊤ 1: fspec_rel),  (cfunN SchI.spawn))));
-     (Some SchHdr.yield,  (true, wmask_all, scopes, (Some (SchAS.yield_spec ⊤ 1: fspec_rel),          (cfunN (SchI.yield trigger_Yield)))));
-     (Some SchHdr.join,   (true, wmask_all, scopes, (Some (SchAS.join_spec ⊤ 1: fspec_rel),           (cfunN SchI.join))));
-     (Some SchHdr.get_tid,(true, wmask_all, scopes, (Some (SchAS.get_tid_spec q_tid: fspec_rel),      (cfunN SchI.get_tid))))].
+    [(Some SchHdr._spawn, (true, wmask_all, scopes, (fsp_some (SchAS._spawn_spec sp_user ⊤ 1), (cfunN (SchI._spawn check_internal)))));
+     (Some SchHdr.spawn,  (true, wmask_all, scopes, (fsp_some (SchAS.spawn_spec sp_user ⊤ 1),  (cfunN SchI.spawn))));
+     (Some SchHdr.yield,  (true, wmask_all, scopes, (fsp_some (SchAS.yield_spec ⊤ 1),          (cfunN (SchI.yield trigger_Yield)))));
+     (Some SchHdr.join,   (true, wmask_all, scopes, (fsp_some (SchAS.join_spec ⊤ 1),           (cfunN SchI.join))));
+     (Some SchHdr.get_tid,(true, wmask_all, scopes, (fsp_some (SchAS.get_tid_spec q_tid),      (cfunN SchI.get_tid))))].
 
   Program Definition smod sp_user q_tid : SMod.t := {|
     SMod.scopes := scopes;

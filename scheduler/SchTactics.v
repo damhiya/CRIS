@@ -83,7 +83,7 @@ Section wsim.
       steps_l. steps_r. hss. steps_l. steps_r.
       by_coind CIH. iFrame.
     }
-    { replace (sp_s SchHdr.yield) with (Some (SchAS.yield_spec E q: fspec_rel)); cycle 1.
+    { replace (sp_s SchHdr.yield) with (fsp_some (SchAS.yield_spec E q)); cycle 1.
       { erewrite (proj2 Hcase0); et. unfold sp; unseal CRIS; et. }
       rewrite Hcase2.
       forces_l. iSplitL "TID"; iFrame; eauto.
@@ -92,9 +92,9 @@ Section wsim.
       steps_l. iDestruct "ASM" as "[[-> TID] ->]". hss. steps_l. steps_r.
       by_coind CIH. iFrame.
     }
-    { replace (sp_s SchHdr.yield) with (Some (SchAS.yield_spec E_s q_s: fspec_rel)); cycle 1.
+    { replace (sp_s SchHdr.yield) with (fsp_some (SchAS.yield_spec E_s q_s)); cycle 1.
       { erewrite (proj2 Hcase0); et. unfold sp; unseal CRIS; et. }
-      replace (sp_t SchHdr.yield) with (Some (SchAS.yield_spec E_t q_t: fspec_rel)); cycle 1.
+      replace (sp_t SchHdr.yield) with (fsp_some (SchAS.yield_spec E_t q_t)); cycle 1.
       { erewrite (proj2 Hcase2); et. unfold sp; unseal CRIS; et. }
       steps_r. iDestruct "GRT" as "[[-> TID0] _]".
       iPoseProof (tid_user_unique with "[TID TID0]") as "%"; iFrame; subst.

@@ -513,9 +513,9 @@ Module ProphIA.
   Let proph_resolveI := (ModTr.trans_ktree ∘ SB.sandbox_body ∘ (SModTr.trans_ktree sp_none)) (false, wmask_all, ["Prophecy"], (None, ProphecyI.resolve)).
   Let proph_closeI := (ModTr.trans_ktree ∘ SB.sandbox_body ∘ (SModTr.trans_ktree sp_none)) (false, wmask_all, ["Prophecy"], (None, ProphecyI.close)).
 
-  Let proph_newA sp := (ModTr.trans_ktree ∘ SB.sandbox_body ∘ (SModTr.trans_ktree sp)) (true, wmask_all, ["Prophecy"], (Some (ProphecyA.new_spec: fspec_rel), fbody_trivial)).
-  Let proph_resolveA sp := (ModTr.trans_ktree ∘ SB.sandbox_body ∘ (SModTr.trans_ktree sp)) (true, wmask_all, ["Prophecy"], (Some (ProphecyA.resolve_spec: fspec_rel), fbody_trivial)).
-  Let proph_closeA sp := (ModTr.trans_ktree ∘ SB.sandbox_body ∘ (SModTr.trans_ktree sp)) (true, wmask_all, ["Prophecy"], (Some (ProphecyA.close_spec: fspec_rel), fbody_trivial)).
+  Let proph_newA sp := (ModTr.trans_ktree ∘ SB.sandbox_body ∘ (SModTr.trans_ktree sp)) (true, wmask_all, ["Prophecy"], (fsp_some ProphecyA.new_spec, fbody_trivial)).
+  Let proph_resolveA sp := (ModTr.trans_ktree ∘ SB.sandbox_body ∘ (SModTr.trans_ktree sp)) (true, wmask_all, ["Prophecy"], (fsp_some ProphecyA.resolve_spec, fbody_trivial)).
+  Let proph_closeA sp := (ModTr.trans_ktree ∘ SB.sandbox_body ∘ (SModTr.trans_ktree sp)) (true, wmask_all, ["Prophecy"], (fsp_some ProphecyA.close_spec, fbody_trivial)).
 
   Variant _wf_sim (coself : itree lmodE Any.t -> (bool * itree lmodE Any.t) -> Prop) : itree lmodE Any.t -> (bool * itree lmodE Any.t) -> Prop :=
   | wf_ret retv
