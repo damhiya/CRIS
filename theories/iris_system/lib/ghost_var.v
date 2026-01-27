@@ -135,7 +135,7 @@ Local Instance inGΓ_ghost_var {A} {Γ : HRA} :
 Proof. intros [Hin]. exact Hin. Defined.
 
 Section syn_ghost_var.
-  Context `{!subHG Γ Σ, !STτ.t τ, !SL.G Γ Σ α β τ}.
+  Context `{!subHG Γ Σ, !STτ.t τ, !SL.synG Γ τ α, semG0 : !SL.semG Γ τ α Σ β}.
   Context `{GV: !ghost_varG Γ A}.
   Implicit Types (γ : gname) (a : A).
 
@@ -144,5 +144,5 @@ Section syn_ghost_var.
 
   Global Instance ghost_var_red n γ q l :
     SLRed n (syn_ghost_var γ q l) (ghost_var γ q l).
-  Proof. rewrite ghost_var_unseal. solve_sl_red. by destruct GV. Qed.
+  Proof using semG0. rewrite ghost_var_unseal. solve_sl_red. by destruct GV. Qed.
 End syn_ghost_var.

@@ -100,7 +100,7 @@ Class syn_saved_propG (Σ : GRA) (α : GAT.t) (β : GATIntp.t)
 }.
 
 Section syn_saved_prop.
-  Context `{!subHG Γ Σ, !STτ.t τ, !SL.G Γ Σ α β τ}.
+  Context `{!subHG Γ Σ, !STτ.t τ, !SL.synG Γ τ α, !SL.semG Γ τ α Σ β}.
   Context `{!savedPropG Σ α, !syn_saved_propG Σ α β}.
 
   (* Now defined the actual syntactic definition. Here, we "send" the [GTerm.t] missing in the base
@@ -211,7 +211,7 @@ Class syn_saved_predG (Σ : GRA) (A : Type) (α : GAT.t) (β : GATIntp.t)
 }.
 
 Section syn_saved_pred.
-  Context `{!subHG Γ Σ, !STτ.t τ, !SL.G Γ Σ α β τ}.
+  Context `{!subHG Γ Σ, !STτ.t τ, !SL.synG Γ τ α, !SL.semG Γ τ α Σ β}.
   Context `{!savedPredG Σ A α, !syn_saved_predG Σ A α β}.
 
   Definition syn_saved_pred_own {n} γ dq (p : A → GTerm.t n) : GTerm.t n :=

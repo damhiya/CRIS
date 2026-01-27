@@ -178,7 +178,7 @@ Local Instance inGΓ_mono_list {A} {Γ : HRA} :
 Proof. intros [Hin]. exact Hin. Defined.
 
 Section syn_mono_list_own.
-  Context `{!subHG Γ Σ, !STτ.t τ, !SL.G Γ Σ α β τ}.
+  Context `{!subHG Γ Σ, !STτ.t τ, !SL.synG Γ τ α, semG0 : !SL.semG Γ τ α Σ β}.
   (* FIXME: ideally, automatically infer the inG instances as equal,
      and don't need to destruct this.
   *)
@@ -196,13 +196,13 @@ Section syn_mono_list_own.
 
   Global Instance mono_list_auth_own_red n γ q l :
    SLRed n (syn_mono_list_auth_own γ q l) (mono_list_auth_own γ q l).
-  Proof. rewrite mono_list_auth_own_unseal. solve_sl_red. by destruct ML. Qed.
+  Proof using semG0. rewrite mono_list_auth_own_unseal. solve_sl_red. by destruct ML. Qed.
 
   Global Instance mono_list_lb_own_red {n} γ l :
    SLRed n (syn_mono_list_lb_own γ l) (mono_list_lb_own γ l).
-  Proof. rewrite mono_list_lb_own_unseal. solve_sl_red. by destruct ML. Qed.
+  Proof using semG0. rewrite mono_list_lb_own_unseal. solve_sl_red. by destruct ML. Qed.
 
   Global Instance mono_list_idx_own_red {n} γ i a :
    SLRed n (syn_mono_list_idx_own γ i a) (mono_list_idx_own γ i a).
-  Proof. solve_sl_red. Qed.
+  Proof using semG0. solve_sl_red. Qed.
 End syn_mono_list_own.

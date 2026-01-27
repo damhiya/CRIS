@@ -73,7 +73,7 @@ Local Instance inGΓ_token {Γ : HRA} :
 Proof. intros [Hin]. exact Hin. Defined.
 
 Section syn_tokens.
-  Context `{!subHG Γ Σ, !STτ.t τ, !SL.G Γ Σ α β τ}.
+  Context `{!subHG Γ Σ, !STτ.t τ, !SL.synG Γ τ α, semG0 : !SL.semG Γ τ α Σ β}.
   Context `{TG: !tokenG Γ}.
 
   Definition syn_token {n} γ : GTerm.t n :=
@@ -81,5 +81,5 @@ Section syn_tokens.
 
   Global Instance token_red n γ :
     SLRed n (syn_token γ) (token γ).
-  Proof. rewrite token_unseal. solve_sl_red. by destruct TG. Qed.
+  Proof using semG0. rewrite token_unseal. solve_sl_red. by destruct TG. Qed.
 End syn_tokens.

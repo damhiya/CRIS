@@ -162,15 +162,16 @@ Module SPropBi.
     Global Instance interp : @SATIntp.t PROP α syntax := interp_aux.
   End semantics.
 
-  Class G (PROP : bi) (α : GAT.t) (β : GATIntp.t) (τ : TypG.t) := {
-    #[local] G_inG_syntax :: GAT.inG syntax α;
-    #[local] G_inG_interp :: GATIntp.inG syntax α (interp PROP) β;
-  }.
-  (* TODO: Good hint mode... *)
-  (* Global Hint Mode G - - - + : typeclass_instances. *)
+  Class synG (τ : TypG.t) (α : GAT.t) :=
+    { #[local] synG_inG :: GAT.inG syntax α
+    }.
+
+  Class semG (τ : TypG.t) (α : GAT.t) `{!synG τ α} (PROP : bi) (β : GATIntp.t) :=
+    { #[local] semG_inG :: GATIntp.inG syntax α (interp PROP) β
+    }.
 
   Section definitions.
-    Context `{!G PROP α β τ}.
+    Context `{!synG τ α}.
 
     Definition syn_emp {n} : GTerm.t n.
     Proof.
@@ -269,7 +270,7 @@ Module SPropBi.
   End notations.
 
   Section derived.
-    Context `{!G PROP α β τ}.
+    Context `{!synG τ α}.
 
     Definition syn_affinely {n} (p : GTerm.t n) : GTerm.t n :=
       emp ∧ p.
@@ -325,7 +326,7 @@ Module SPropBi.
   End notations_derived.
 
   Section big_sepM2.
-    Context `{!G PROP α β τ}.
+    Context `{!synG τ α}.
     Local Definition syn_big_sepM2 `{Countable K} {n A B}
       (P : K → A → B → GTerm.t n) (m1 : gmap K A) (m2 : gmap K B) : GTerm.t n :=
     ⌜ dom m1 = dom m2 ⌝ ∧ [∗ map] k ↦ xy ∈ map_zip m1 m2, P k xy.1 xy.2.
@@ -339,7 +340,7 @@ Module SPropBi.
   End big_sepM2_notations.
 
   Section reduction.
-    Context `{!G PROP α β τ}.
+    Context `{!synG τ α, !semG τ α PROP β}.
 
     Global Instance empty_red n :
       SLRed n emp emp.
@@ -584,14 +585,16 @@ Module SPropBiPlainly.
     Global Instance interp : @SATIntp.t PROP α syntax := interp_aux.
   End semantics.
 
-  Class G (PROP : bi) `{!BiPlainly PROP} (α : GAT.t) (β : GATIntp.t) := {
-    #[local] G_inG_syntax :: GAT.inG syntax α;
-    #[local] G_inG_interp :: GATIntp.inG syntax α (interp PROP) β;
-  }.
-  (* Global Hint Mode G - + + + : typeclass_instances. *)
+  Class synG (α : GAT.t) :=
+    { #[local] synG_inG :: GAT.inG syntax α
+    }.
+
+  Class semG (α : GAT.t) `{!synG α} (PROP : bi) `{!BiPlainly PROP} (β : GATIntp.t) :=
+    { #[local] semG_inG :: GATIntp.inG syntax α (interp PROP) β
+    }.
 
   Section definitions.
-    Context `{!BiPlainly PROP} `{!G PROP α β}.
+    Context `{!synG α}.
 
     Definition syn_plainly {n} (p : GTerm.t n) : GTerm.t n.
     Proof.
@@ -606,7 +609,7 @@ Module SPropBiPlainly.
   End notations.
 
   Section reduction.
-    Context `{!BiPlainly PROP} `{!G PROP α β}.
+    Context `{!synG α, !BiPlainly PROP, !semG α PROP β}.
 
     Global Instance plainly_red n p P :
       SLRed n p P →
@@ -658,13 +661,16 @@ Module SPropBiBUpd.
     Global Instance interp : @SATIntp.t PROP α syntax := interp_aux.
   End semantics.
 
-  Class G (PROP : bi) `{!BiBUpd PROP} (α : GAT.t) (β : GATIntp.t) := {
-    #[local] G_inG_syntax :: GAT.inG syntax α;
-    #[local] G_inG_interp :: GATIntp.inG syntax α (interp PROP) β;
-  }.
+  Class synG (α : GAT.t) :=
+    { #[local] synG_inG :: GAT.inG syntax α
+    }.
+
+  Class semG (α : GAT.t) `{!synG α} (PROP : bi) `{!BiBUpd PROP} (β : GATIntp.t) :=
+    { #[local] semG_inG :: GATIntp.inG syntax α (interp PROP) β
+    }.
 
   Section definitions.
-    Context `{!BiBUpd PROP} `{!G PROP α β}.
+    Context `{!synG α}.
 
     Definition syn_bupd {n} (p : GTerm.t n) : GTerm.t n.
     Proof.
@@ -681,7 +687,7 @@ Module SPropBiBUpd.
   End notations.
 
   Section reduction.
-    Context `{!BiBUpd PROP} `{!G PROP α β}.
+    Context `{!synG α, !BiBUpd PROP, !semG α PROP β}.
 
     Global Instance bupd_red n p P :
       SLRed n p P →
@@ -801,13 +807,16 @@ Module SPropiProp.
     Global Instance interp : @SATIntp.t (iProp Σ) α syntax := interp_aux.
   End semantics.
 
-  Class G (Σ : GRA) (Γ : HRA) (α : GAT.t) (β : GATIntp.t) `{!subHG Γ Σ} := {
-    #[local] G_inG_syntax :: GAT.inG syntax α;
-    #[local] G_inG_interp :: GATIntp.inG syntax α interp β;
-  }.
+  Class synG (Γ : HRA) (α : GAT.t) :=
+    { #[local] synG_inG :: GAT.inG syntax α
+    }.
+
+  Class semG (Γ : HRA) (α : GAT.t) `{!synG Γ α} (Σ : GRA) `{!subHG Γ Σ} (β : GATIntp.t) :=
+    { #[local] semG_inG :: GATIntp.inG syntax α interp β
+    }.
 
   Section definitions.
-    Context `{!subHG Γ Σ, !G Σ Γ α β}.
+    Context `{!synG Γ α}.
     Definition syn_own `{IN: !inG M Γ} {n} (γ : positive) (r : M) : GTerm.t n.
       destruct IN. subst.
       refine ⟨ _own γ r, _ ⟩%SAT.
@@ -828,7 +837,7 @@ Module SPropiProp.
   End notations.
 
   Section reduction.
-    Context `{!subHG Γ Σ, !G Σ Γ α β}.
+    Context `{!synG Γ α, !subHG Γ Σ, !semG Γ α Σ β}.
 
     Global Instance own_red `{IN: !inG M Γ} n γ (r : M) :
       SLRed n (sown γ r) (own γ r).
@@ -849,12 +858,21 @@ End SPropiProp.
 Export SPropiProp.notations.
 
 Module SL.
-  Class G (Γ : HRA) (Σ : GRA) (α : GAT.t) (β : GATIntp.t) (τ : TypG.t) `{!subHG Γ Σ} := {
-    #[global] G_Bi :: SPropBi.G (iProp Σ) α β τ;
-    #[global] G_BiPlainly :: SPropBiPlainly.G (iProp Σ) α β;
-    #[global] G_BiBUpd :: SPropBiBUpd.G (iProp Σ) α β;
-    #[global] G_iProp :: SPropiProp.G Σ Γ α β;
-  }.
+
+  Class synG (Γ : HRA) (τ : TypG.t) (α : GAT.t) :=
+    { #[global] synG_Bi :: SPropBi.synG τ α
+    ; #[global] synG_BiPlainly :: SPropBiPlainly.synG α
+    ; #[global] synG_BiBUpd :: SPropBiBUpd.synG α
+    ; #[global] synG_iProp :: SPropiProp.synG Γ α
+    }.
+
+  Class semG (Γ : HRA) (τ : TypG.t) (α : GAT.t) `{!synG Γ τ α} (Σ : GRA) `{!subHG Γ Σ} (β : GATIntp.t) :=
+    { #[global] semG_Bi :: SPropBi.semG τ α (iPropI Σ) β
+    ; #[global] semG_BiPlainly :: SPropBiPlainly.semG α (iPropI Σ) β
+    ; #[global] semG_BiBUpd :: SPropBiBUpd.semG α (iPropI Σ) β
+    ; #[global] semG_iProp :: SPropiProp.semG Γ α Σ β
+    }.
+
 End SL.
 
 (* Simple sProp reduction tactics. *)

@@ -374,7 +374,7 @@ Proof. intros [Hin]. exact Hin. Defined.
 
 Section syn_ghost_map.
   Context {K V : Type} `{Countable K}.
-  Context `{!subHG Γ Σ, !STτ.t τ, !SL.G Γ Σ α β τ}.
+  Context `{!subHG Γ Σ, !STτ.t τ, !SL.synG Γ τ α, semG0 : !SL.semG Γ τ α Σ β}.
   Context `{GM : !ghost_mapG Γ K V}.
 
   Definition syn_ghost_map_auth {n} γ q m : GTerm.t n :=
@@ -385,11 +385,11 @@ Section syn_ghost_map.
 
   Global Instance ghost_map_auth_red n γ q m :
     SLRed n (syn_ghost_map_auth γ q m) (ghost_map_auth γ q m).
-  Proof. rewrite ghost_map_auth_unseal. solve_sl_red. by destruct GM. Qed.
+  Proof using semG0. rewrite ghost_map_auth_unseal. solve_sl_red. by destruct GM. Qed.
 
   Global Instance ghost_map_elem_red n γ k dq v:
     SLRed n (syn_ghost_map_elem γ k dq v) (k ↪[γ]{dq} v).
-  Proof. rewrite ghost_map_elem_unseal. solve_sl_red. by destruct GM. Qed.
+  Proof using semG0. rewrite ghost_map_elem_unseal. solve_sl_red. by destruct GM. Qed.
 End syn_ghost_map.
 
 Notation "k ↪[ γ ] dq v" := (syn_ghost_map_elem γ k dq v)
