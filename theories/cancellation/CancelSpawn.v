@@ -59,12 +59,15 @@ Proof.
       rewrite /ModTr.trans_ktree !sandbox_inline_commute /SB.sandbox_body //=.
       rewrite (MIRed_HoareFun _ _ fn) //= if_simpl SBRed.tau MIRed.tau.
       hexploit (VP1 fn); rewrite FIND /=; revert E; destruct img0; ss; intros ->; ss; intros Himp.
-      hexploit (Himp x); intros [x' [PRE ?]].
+      destruct x as [pre post related]. ss.
+      hexploit (Himp _ _ related). i; des.
       eapply thread_rel_spawn; eauto.
       { destruct rs_diff; ss. }
       { destruct fspo; ss.
-        { iIntros "X //". iApply PRE; iApply Hr_t1; done. }
-        { iIntros "X //". iPoseProof (Hr_t1 with "X") as "X".
+        { iIntros "X //". iExists _, _. iSplitL ""; et.
+          iApply PRE; iApply Hr_t1; done. }
+        { rr in ValidSP. des; subst.
+          iIntros "X //". iPoseProof (Hr_t1 with "X") as "X".
           iMod (PRE with "X") as "%"; done.
         }
       }
@@ -143,11 +146,12 @@ Proof.
         { rewrite E in Himpl; ss. }
         { etrans; eauto. }
       }
-      hexploit (Himpl ()); intros [? [PRE ?]].
+      exploit Himpl. { rr. esplits; et. } i; des.
       eapply thread_rel_spawn; eauto.
       { destruct rs_diff; ss. }
       { destruct fspo; ss.
-        { iIntros "X //". iApply PRE; done. }
+        { iIntros "X //". iExists _, _. iSplitL ""; et.
+          iApply PRE; done. }
         { iIntros "X //". }
       }
       { ss; eapply elim_rel_cancel; eauto. }
@@ -158,4 +162,5 @@ Proof.
       iIntros "> [$ $] !>"; iApply Own_unit.
     }
   }
+  Unshelve. exact ().
 (*SLOW*)Qed.

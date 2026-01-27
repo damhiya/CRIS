@@ -5,13 +5,12 @@ Require Import FSpec.
 Set Implicit Arguments.
 
 Section HEADER.
-
   Context `{Σ: GRA}.
 
   (* we use "option string" instead of "string" in spl_type for an engineering purpose. *)
-  Definition spl_type := alist (option string) (option fspec).
-  Definition sp_type := (string -> option fspec).
-  
+  Definition spl_type := alist (option string) (option fspec_rel).
+  Definition sp_type := (string -> option fspec_rel).
+
   Definition to_sp (l : spl_type) : sp_type :=
     (fun fn => or_else (alist_find (Some fn) l) (Some fspec_bot)).
 
@@ -45,10 +44,10 @@ Section HEADER.
     ∀ fn, fspec_imply (fspec_flat (sp0 fn)) (fspec_flat (sp1 fn)).
 
   Global Program Instance sp_imply_PreOrder : PreOrder sp_imply.
-  Next Obligation. ii. exists x1. esplits; et. Qed.
+  Next Obligation. ii. exists P1, Q1. esplits; et. Qed.
   Next Obligation.
     ii. exploit H0; et. i; des. exploit H; et. i; des.
-    exists x2. split; ii.
+    exists P2, Q2. esplits; et; i.
     - rewrite PRE PRE0. iIntros ">>H". et.
     - rewrite POST0 POST. iIntros ">>H". et.
   Qed.

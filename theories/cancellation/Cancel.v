@@ -77,14 +77,30 @@ Proof using.
   { ziter_l; rewrite Hs /=. zstep_l. ziter_l. zstep_l.
     ziter_r; rewrite Ht /= /elim_spawnee_precond.
     destruct fspo as [fsp|]; ss.
-    { zstep_r. exists x; ired. zstep_r.
+    { hexploit (Own_bupd_split); first apply RS; eauto.
+      intros [r_s1 [r_s2 [Hr_s [Hr_s1 Hr_s2]]]].
+      rewrite (bi.emp_sep_1 (∃ P Q, _)%I) comm in H2.
+      assert (Hr_diff: Own r_s1 ⊢ Own r_diff).
+      { iIntros "R". iPoseProof (Hr_s1 with "R") as "R".
+        iPoseProof (big_sepL_lookup with "R") as "R"; et. }
+      hexploit (Own_bupd_split); first apply H2; eauto.
+      { eapply Own_wand_valid, WFR. rewrite Hr_s Hr_diff. iIntros ">[? ?]". et. }
+      intros Hr; des. clear Hr1.
+      eapply Own_general_soundness in Hr0; cycle 1.
+      { eapply Own_wand_valid, WFR. rewrite Hr_s Hr_diff Hr. iIntros ">[>[??]?]"; et. }
+      rr in Hr0. rewrite seal_eq in Hr0. destruct Hr0 as [P Hr0].
+      rr in Hr0. rewrite seal_eq in Hr0. destruct Hr0 as [Q Hr0].
+      rr in Hr0. rewrite seal_eq in Hr0. destruct Hr0 as [VS Hr0].
+      eapply Own_general_completeness in VS, Hr0.
+      eapply Own_pure_soundness in VS; cycle 1.
+      { eapply Own_wand_valid, WFR. rewrite Hr_s Hr_diff Hr. iIntros ">[>[??]?]"; et. }
+
+      zstep_r. exists (mk_FSpec _ _ _ VS); ired. zstep_r.
       ziter_r. zstep_r.
       ziter_r. zstep_r. exists varg. ired. zstep_r.
       ziter_r. zstep_r.
       ziter_r. zstep_r.
-      ziter_r. zstep_r.
-      hexploit (Own_bupd_split); first apply RS; eauto.
-      intros [r_s1 [r_s2 [Hr_s [Hr_s1 Hr_s2]]]]; exists (r_t ⋅ r_diff). ired. zstep_r.
+      ziter_r. zstep_r. exists (r_t ⋅ r_diff). ired. zstep_r.
       ziter_r. zstep_r. eexists. zstep_r.
       ziter_r. zstep_r. ziter_r. zstep_r. ziter_r. zstep_r.
       eapply Hkey; eauto; cycle 1.
@@ -99,11 +115,11 @@ Proof using.
         iModIntro; iApply "RS"; iApply Own_unit.
       }
       Unshelve.
-      { split;
-        [eapply Own_wand_valid;
-          [iIntros "S"; rewrite Own_op; iMod (RS with "S") as "[S $]"|]
-        | rewrite Own_op; iIntros "[$ D]"; rewrite H2]; try done.
-        iPoseProof (big_sepL_lookup_acc with "S") as "[$ S]"; eauto.
+      { split.
+        - eapply Own_wand_valid, WFR. rewrite Own_op Hr_s Hr_diff Hr_s2.
+          iIntros ">[??]". iFrame. et.
+        - rewrite Own_op Hr Hr0.
+          iIntros "[?>[??]]". iFrame; et.
       }
     }
     { zstep_r. ziter_r. zstep_r.
@@ -111,7 +127,7 @@ Proof using.
       { econs; eauto.
         rewrite bind_ret_r /ModTr.trans.
         hexploit (Own_bupd_split r_diff (⌜ arg = varg ⌝)).
-        { rewrite H2; iIntros "> $"; iModIntro; iApply Own_unit. }
+        { rewrite H2. iIntros "> ->"; iModIntro. iSplit; et. iApply Own_unit. }
         { eapply Own_wand_valid; [iIntros "S"; iMod (RS with "S") as "[S _]"|]; eauto.
           iPoseProof (big_sepL_lookup_acc with "S") as "[$ ?]"; eauto.
         }

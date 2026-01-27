@@ -5,7 +5,7 @@ Require Export FSpec SModTr Sp.
 Set Implicit Arguments.
 
 Definition fnsems_type `{Σ: GRA} :=
-  alist (option string) (fnsem_type (option fspec * fbody)).
+  alist (option string) (fnsem_type (option fspec_rel * fbody)).
 
 Module SMod.
 Section SMOD.

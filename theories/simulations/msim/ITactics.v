@@ -32,6 +32,8 @@ Ltac _istep_l :=
       iApply isim_nodup_src; iIntros (?); iApply isim_sput_src_sandbox; [s;eauto|alist_upd_simpl]
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, (SB.sandbox _ _ _ (trigger (SGet _))) >>= _) _) ] =>
       iApply isim_nodup_src; iIntros (?); iApply isim_sget_src_sandbox; [s;eauto|alist_find_simpl]
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, trigger (Take (FSpec (fspec_to_rel _))) >>= _) _) ] =>
+      let name := fresh "_q" in iApply isim_take_src_fspec; iIntros (name); simpl in name
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _) _) ] =>
       let name := fresh "_q" in
       iApply isim_take_src; iIntros (name)
@@ -73,6 +75,8 @@ Ltac _istep_r :=
       iApply isim_nodup_tgt; iIntros (?); iApply isim_sput_tgt_sandbox; [s; eauto|alist_upd_simpl]
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, (SB.sandbox _ _ _ (trigger (SGet _))) >>= _)) ] =>
       iApply isim_nodup_tgt; iIntros (?); iApply isim_sget_tgt_sandbox; [s; eauto|alist_find_simpl]
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose (FSpec (fspec_to_rel _))) >>= _)) ] =>
+      let name := fresh "_q" in iApply isim_choose_tgt_fspec; iIntros (name); simpl in name
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose _) >>= _)) ] =>
       let name := fresh "_q" in
       iApply isim_choose_tgt; iIntros (name)
@@ -115,6 +119,9 @@ Ltac istep :=
 
 Ltac _iforce_l :=
   match goal with
+
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, trigger (Choose (FSpec (fspec_to_rel _))) >>= _) _) ] =>
+      iApply isim_choose_src_fspec
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, trigger (Choose ?T) >>= _) _) ] =>
       iApply isim_choose_src
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _) _) ] =>
@@ -140,6 +147,8 @@ Ltac iforces_l :=
 
 Ltac _iforce_r :=
   match goal with
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger (Take (FSpec (fspec_to_rel _))) >>= _)) ] =>
+      iApply isim_take_tgt_fspec
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _)) ] =>
       iApply isim_take_tgt
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger (Assume ?P) >>= _)) ] =>
@@ -150,8 +159,10 @@ Ltac _iforce_r :=
       iApply isim_unwrapU_tgt; iExists _
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger (AssumeRes _) >>= _)) ] =>
       iApply isim_assume_res_tgt
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, RealUpdate ?P ?Q >>= _)) ] =>
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, RealUpdate (idx_to_rel ?P ?Q) >>= _)) ] =>
       unfold_pre_post_term P; unfold_pre_post_term Q; iApply isim_ru_tgt_simple
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, RealUpdate _ >>= _)) ] =>
+      iApply isim_ru_tgt_simple_general
   end
 .
 

@@ -24,7 +24,7 @@ Section wsim.
       (img_s img_t : bool)
       (msk_s msk_t : option string → bool)
       (scp_s scp_t : list string)
-      (sp_s sp_t : string → option fspec)
+      (sp_s sp_t : sp_type)
       (k_s : () → itree crisE R_s)
       (k_t : () → itree crisE R_t)
       (my_tid : nat) :
@@ -83,7 +83,7 @@ Section wsim.
       steps_l. steps_r. hss. steps_l. steps_r.
       by_coind CIH. iFrame.
     }
-    { replace (sp_s SchHdr.yield) with (Some (SchAS.yield_spec E q)); cycle 1.
+    { replace (sp_s SchHdr.yield) with (Some (SchAS.yield_spec E q: fspec_rel)); cycle 1.
       { erewrite (proj2 Hcase0); et. unfold sp; unseal CRIS; et. }
       rewrite Hcase2.
       forces_l. iSplitL "TID"; iFrame; eauto.
@@ -92,9 +92,9 @@ Section wsim.
       steps_l. iDestruct "ASM" as "[[-> TID] ->]". hss. steps_l. steps_r.
       by_coind CIH. iFrame.
     }
-    { replace (sp_s SchHdr.yield) with (Some (SchAS.yield_spec E_s q_s)); cycle 1.
+    { replace (sp_s SchHdr.yield) with (Some (SchAS.yield_spec E_s q_s: fspec_rel)); cycle 1.
       { erewrite (proj2 Hcase0); et. unfold sp; unseal CRIS; et. }
-      replace (sp_t SchHdr.yield) with (Some (SchAS.yield_spec E_t q_t)); cycle 1.
+      replace (sp_t SchHdr.yield) with (Some (SchAS.yield_spec E_t q_t: fspec_rel)); cycle 1.
       { erewrite (proj2 Hcase2); et. unfold sp; unseal CRIS; et. }
       steps_r. iDestruct "GRT" as "[[-> TID0] _]".
       iPoseProof (tid_user_unique with "[TID TID0]") as "%"; iFrame; subst.
@@ -181,10 +181,10 @@ Section RealLAT.
       Ist st_src st_tgt -∗ 
       sim (∅,∅) r g RR true true
         (st_src, SB.sandbox img_s msk_s scp_s (SModTr.trans sp_none (ret_s <- body_s arg_s;;
-                   RealUpdate (λ x, precondS fsp_s x arg_s) (λ x, postcondS fsp_s x ret_s);;;
+                   RealUpdate (idx_to_rel (λ x, precondS fsp_s x arg_s) (λ x, postcondS fsp_s x ret_s));;;
                    Ret ret_s)) >>= k_s)                                                                                
         (st_tgt, SB.sandbox img_t msk_t scp_t (SModTr.trans sp_none (ret_t <- body_t arg_t;;
-                   RealUpdate (λ x, precondS fsp_t x arg_t) (λ x, postcondS fsp_t x ret_t);;;
+                   RealUpdate (idx_to_rel (λ x, precondS fsp_t x arg_t) (λ x, postcondS fsp_t x ret_t));;;
                    Ret ret_t)) >>= k_t))
     ⊢
     sim (∅,∅) r g RR ps pt
@@ -256,7 +256,7 @@ Section RealLAT.
      sim (E,E) r g RR true true
         (st_src, SB.sandbox img_s msk_s scp_s (SModTr.trans sp_s 𝒴) >>= k_s)
         (st_tgt, SB.sandbox img_t msk_t scp_t (SModTr.trans sp_none (ret_t <- body_t arg_t;;
-                   RealUpdate (λ x, precondS fsp_t x arg_t) (λ x, postcondS fsp_t x ret_t);;;
+                   RealUpdate (idx_to_rel (λ x, precondS fsp_t x arg_t) (λ x, postcondS fsp_t x ret_t));;;
                    Ret ret_t)) >>= k_t))
     ⊢
     sim (E,E) r g RR ps pt

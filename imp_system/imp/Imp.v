@@ -170,21 +170,21 @@ Section FB_HAS_SPEC.
 
   Variable genvenv : GEnv.t.
 
-  Variant fb_has_spec (stb : string -> option fspec) (fb : mblock) (fsp : fspec) : Prop :=
+  Variant fb_has_spec (stb : string -> option fspec_rel) (fb : mblock) (fsp : fspec) : Prop :=
   | fb_has_spec_intro
       fn
       (FBLOCK : genvenv.(CEnv.blk2id) fb = Some fn)
       (SPEC : fn_has_spec stb fn fsp)
   .
 
-  Variant fb_has_spec_in (stb : alist (option string) (option fspec)) (fb : mblock) (fsp : fspec) : Prop :=
+  Variant fb_has_spec_in (stb : alist (option string) (option fspec_rel)) (fb : mblock) (fsp : fspec) : Prop :=
   | fb_has_spec_in_intro
       fn
       (FBLOCK : genvenv.(CEnv.blk2id) fb = Some fn)
       (SPEC : fn_has_spec_in stb fn fsp)
   .
 
-  Lemma fb_has_weaker_spec (stb : string -> option fspec) (fb : mblock) (fsp0 fsp1 : fspec)
+  Lemma fb_has_weaker_spec (stb : string -> option fspec_rel) (fb : mblock) (fsp0 fsp1 : fspec)
         (SPEC : fb_has_spec stb fb fsp1)
         (WEAK : fspec_imply fsp1 fsp0)
     :
@@ -566,7 +566,7 @@ Section MODSEM.
     des_ifs.
   Qed.
 
-  Definition to_itree (ge : GEnv.t) : (string*_) -> (option string * (fnsem_type (option fspec * fbody)))%type :=
+  Definition to_itree (ge : GEnv.t) : (string*_) -> (option string * (fnsem_type (option fspec_rel * fbody)))%type :=
     (fun '(fn, f) => (Some fn, (false, wmask_all, [], (None, cfunU (eval_imp ge f))))).
   
   Program Definition get_mod (m : program) (ge : GEnv.t) : SMod.t :=

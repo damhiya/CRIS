@@ -8,40 +8,41 @@ Module SModTr. Section HOARE.
 
   Context `{Σ: GRA}.
 
-  Definition HoareCall fn (varg: Any.t) (fspo: option fspec): itree crisE Any.t :=
+  Definition HoareCall fn (varg: Any.t) (fspo: option fspec_rel): itree crisE Any.t :=
     match fspo with
     | Some fsp =>
-      x <- trigger (Choose (meta fsp));;
-    
+      PQ <- trigger (Choose (FSpec fsp));;
+
       (*** precondition ***)
       arg <- trigger (Choose Any.t);;
-      trigger (Guarantee (precond fsp x varg arg));;;
+      trigger (Guarantee (PQ.(Precond) varg arg));;;
 
       (*** call ***)
       ret <- trigger (Call fn arg);;
 
       (*** postcondition ***)
       vret <- trigger (Take Any.t);;
-      trigger (Assume (postcond fsp x vret ret));;;
+      trigger (Assume (PQ.(Postcond) vret ret));;;
 
       Ret vret
     | None =>
       trigger (Call fn varg)
     end.
 
-  Definition HoareFun (fspo: option fspec) (body: Any.t → itree crisE Any.t)
+  Definition HoareFun (fspo: option fspec_rel) (body: Any.t → itree crisE Any.t)
       : Any.t → itree crisE Any.t :=
     match fspo with
     | Some fsp =>
       λ arg,
-      x <- trigger (Take (meta fsp));;
+      PQ <- trigger (Take (FSpec fsp));;
+
       varg <- trigger (Take Any.t);;
-      trigger (Assume (precond fsp x varg arg));;; (*** precondition ***)
+      trigger (Assume (PQ.(Precond) varg arg));;; (*** precondition ***)
 
       vret <- body varg;;
 
       ret <- trigger (Choose Any.t);;
-      trigger (Guarantee (postcond fsp x vret ret));;; (*** postcondition ***)
+      trigger (Guarantee (PQ.(Postcond) vret ret));;; (*** postcondition ***)
 
       Ret ret
     | None =>
@@ -51,12 +52,12 @@ Module SModTr. Section HOARE.
   Definition NativeSpawn (fn : string) (arg : Any.t) : itree crisE nat :=
     trigger (Spawn fn arg).
 
-  Definition HoareSpawn fn (varg : Any.t) (fspo : option fspec) : itree crisE nat :=
+  Definition HoareSpawn fn (varg : Any.t) (fspo : option fspec_rel) : itree crisE nat :=
     match fspo with
     | Some fsp =>
-      x <- trigger (Choose (meta fsp));; 
+      PQ <- trigger (Choose (FSpec fsp));;
       arg <- trigger (Choose Any.t);; 
-      trigger (Guarantee (precond fsp x varg arg));;;
+      trigger (Guarantee (PQ.(Precond) varg arg));;;
       trigger (Spawn fn arg)
     | None =>
       NativeSpawn fn varg
@@ -85,10 +86,10 @@ Module SModTr. Section HOARE.
   Definition trans sp {R} (it : itree crisE R) : itree crisE R :=
     interpV (handle sp) it.
 
-  Definition trans_body : (sp_type * option fspec) → fbody → fbody :=
+  Definition trans_body : (sp_type * option fspec_rel) → fbody → fbody :=
     λ '(sp,fsp) bd, HoareFun fsp (trans sp ∘ bd).
 
-  Definition trans_ktree sp (sb: fnsem_type (option fspec * fbody)) : fnsem_type fbody :=
+  Definition trans_ktree sp (sb: fnsem_type (option fspec_rel * fbody)) : fnsem_type fbody :=
     map_snd (λ '(fsp,bd), trans_body (if sb.1.1.1 then sp else sp_none, fsp) bd) sb.
 
 End HOARE. End SModTr.
@@ -224,8 +225,8 @@ Module SRed. Section RED.
   Lemma guar P : SModTr.trans sp (guarantee P) = guarantee P.
   Proof using. unfold guarantee. rewrite bind core. grind. rewrite ret. refl. Qed.
 
-  Lemma ru {X} (pre post: X → _) :
-    SModTr.trans sp (RealUpdate pre post) = RealUpdate pre post.
+  Lemma ru pp :
+    SModTr.trans sp (RealUpdate pp) = RealUpdate pp.
   Proof.
     rewrite /RealUpdate; unseal CRIS_FancyReal.
     repeat (rewrite bind core; f_equal; extensionalities).
@@ -233,9 +234,9 @@ Module SRed. Section RED.
     repeat (rewrite ag; f_equal; extensionalities).
   Qed.
 
-  Lemma ruK {X R} (pre post : X → _) (k : _ → itree _ R) :
-    SModTr.trans sp (RealUpdateK pre post k) =
-    RealUpdateK pre post (λ x, SModTr.trans sp (k x)).
+  Lemma ruK {R} pp (k : _ → itree _ R) :
+    SModTr.trans sp (RealUpdateK pp k) =
+    RealUpdateK pp (λ x, SModTr.trans sp (k x)).
   Proof using. rewrite /RealUpdateK bind ru //. Qed.
 
   Lemma fbody_trivial arg : SModTr.trans sp (fbody_trivial arg) = fbody_trivial arg.

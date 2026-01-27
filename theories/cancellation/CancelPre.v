@@ -3,7 +3,7 @@ Require Import LMod LModTr GSim GSimFacts GSimTactics.
 Require Import MInline MInlineIntro MInlineElim ElimRel.
 
 Lemma cancel_pre `{Σ : GRA} md sp:
-  ∀ (rs0 : Σ) r_s r_t rs_diff srcs tgts cid st ps pt varg X X' Po Po' itrS ktrT k
+  ∀ (rs0 : Σ) r_s r_t rs_diff srcs tgts cid st ps pt varg fspo fspo' itrS ktrT k
     (r: ∀ x x0, (x→x0→Prop)→smj→smj→itree coreE x→itree coreE x0→Prop)
     (WFS: SMod.wf md)
     (VP: valid_sp md sp)
@@ -34,24 +34,11 @@ Lemma cancel_pre `{Σ : GRA} md sp:
     (LEN : cid < length srcs)
     (x2 : rs_diff !! cid = Some ε)
     (x0 : srcs !! cid = Some (ModTr.trans (tau;; tau;; tau;; itrS)))
-    (x1 : tgts !! cid = Some (x <- ModTr.trans (x <- elim_precond Po Po' varg;; ktrT x);; k x))
+    (x1 : tgts !! cid = Some (x <- ModTr.trans (x <- elim_precond fspo fspo' varg;; ktrT x);; k x))
     (RET : cid = 0 → k = λ x : Any.t, Ret x)
-    (KTR :
-    ∃ P : X → Any.t → Any.t → iProp Σ,
-      (Po = inl P
-       ∨ ∃ x : X,
-           X = ()%type
-           ∧ Po = inr x ∧ P = λ (_ : X) (varg arg : Any.t), ⌜varg = arg⌝%I)
-      ∧ ∃ P' : X' → Any.t → Any.t → iProp Σ,
-          (Po' = inl P'
-           ∨ ∃ x' : X',
-               X' = ()%type
-               ∧ Po' = inr x'
-                 ∧ P' = λ (_ : X') (varg arg : Any.t), ⌜varg = arg⌝%I)
-          ∧ ∀ x : X,
-              ∃ x' : X',
-                (∀ arg : Any.t, P x varg arg ⊢ |==> P' x' varg arg)
-                ∧ upaco4 (elim_rel_def sp) bot4 Any.t ε (itrS) (ktrT (x, x', varg))),
+    (KTR :∀ P Q (VS: fspec_flat fspo P Q), ∃ P' Q', fspec_flat fspo' P' Q' ∧
+            (∀ arg : Any.t, P varg arg ⊢ |==> P' varg arg)
+            ∧ upaco4 (elim_rel_def sp) bot4 Any.t ε (itrS) (ktrT (if fspo then Some Q else None, if fspo' then Some Q' else None, varg))),
 
   gpaco7 _gsim (cpn7 _gsim) bot7 r (Any.t * Any.t)%type 
     (Any.t * Any.t)%type cancel_eq ps pt
@@ -65,8 +52,8 @@ Lemma cancel_pre `{Σ : GRA} md sp:
        (Any.pair (ModTr.alist_encode st) r_t ↑)).
 Proof.
   i. ziter_l. ziter_r. rewrite x0 x1. s. zstep_l.
-  move KTR at bottom. des_safe.
-  destruct KTR; subst; des_safe.
+  move KTR at bottom.
+  destruct fspo as [fsp|]; des; subst.
   { zstep_r. zstep_r.
     ziter_r. zstep_r. ziter_r. zstep_r. zstep_r.
     ziter_r. zstep_r. ziter_r. zstep_r.
@@ -74,15 +61,14 @@ Proof.
     ziter_r. zstep_r. zstep_r.
     ziter_r. zstep_r. ziter_r. zstep_r.
     ziter_r. zstep_r. ziter_r. zstep_r.
-
-    specialize (KTR1 x). des; subst.
-    { ziter_r. zstep_r. exists x'. zstep_r.
+    destruct x. des. ss. specialize (KTR _ _ related). des. destruct fspo' as [fsp'|].
+    { ziter_r. zstep_r. exists (mk_FSpec _ _ _ KTR). zstep_r.
       ziter_r. zstep_r. ziter_r. zstep_r. eexists. zstep_r.
       ziter_r. zstep_r. ziter_r. zstep_r.
       ziter_r. zstep_r. eexists r_t. zstep_r.
       ziter_r. zstep_r. unshelve eexists.
       { split; [eapply Own_wand_valid; [iIntros "S"; iMod (RS with "S") as "[_ $]"|]|]; try done.
-        iIntros "H". iMod (x6 with "H") as "[P O]". rewrite KTR1. iFrame. 
+        iIntros "H". iMod (x6 with "H") as "[P O]". rewrite KTR0. iFrame. 
       }
       zstep_r. 
       ziter_r. zstep_r. ired.
@@ -94,11 +80,11 @@ Proof.
       (* { rewrite list_insert_id // RS. } *)
       { eapply thread_rel_body; eauto. }
     }
-    { destruct x', x'0.
+    { rr in KTR. des; subst.
       assert (varg = x3).
       { eapply Own_pure_soundness; try apply WFR.
         rewrite RS. iIntros ">[_ H]". iMod (x6 with "H") as "[P O]".
-        rewrite KTR1. iMod "P" as "P"; et.
+        rewrite KTR0. iMod "P" as "P"; et.
       }
       des. subst. ired.
       ziter_r. zstep_r. ziter_r. zstep_r.
@@ -108,24 +94,24 @@ Proof.
       { econs; eauto. }
     }
   }
-  { s. zstep_r.
-    specialize (KTR1 ()). des; subst.      
-    { ziter_r. zstep_r. exists x'. zstep_r.
+  { s. zstep_r. exploit KTR; [rr; esplits; et; exact ()|].
+    clear KTR. i; des. destruct fspo' as [fsp'|]; ss.
+    { ziter_r. zstep_r. exists (mk_FSpec _ _ _ x3). zstep_r.
       ziter_r. zstep_r. ziter_r. zstep_r. eexists. zstep_r.
       ziter_r. zstep_r. ziter_r. zstep_r.
       ziter_r. zstep_r. eexists r_t. zstep_r.
       ziter_r. zstep_r. unshelve eexists.
       { split; [eapply Own_wand_valid; [iIntros "S"; iMod (RS with "S") as "[_ $]"|]|]; try done.
-        iIntros "H". iFrame. iApply KTR1. et.
+        iIntros "H". iFrame. iApply x4. et.
       }
       zstep_r.
       ziter_r. zstep_r. ziter_r. zstep_r. ziter_r. zstep_r.
       ziter_l. zstep_l. ziter_l. zstep_l.
-      pclearbot. destruct x. eapply KEY; et.
+      pclearbot. eapply KEY; et.
       { rewrite list_insert_id //. }
       { econs; eauto. }
     }
-    { destruct x, x', x'0.
+    { rr in x3. des; subst.
       ired. ziter_r. zstep_r. ziter_r. zstep_r.
       ziter_l. zstep_l. ziter_l. zstep_l.
       pclearbot. eapply KEY; et.
@@ -133,4 +119,5 @@ Proof.
       { econs; eauto. }
     }
   }
+  Unshelve. exact ().
 (*SLOW*)Qed.

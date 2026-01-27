@@ -189,7 +189,7 @@ Tactic Notation "red_bind" tactic(tac) :=
       | guaranteeK _ _ => eapply guaranteeK_bind
       | unwrapUK _ _ => eapply unwrapUK_bind
       | unwrapNK _ _ => eapply unwrapNK_bind
-      | RealUpdateK _ _ _ => eapply RealUpdateK_bind
+      | RealUpdateK _ _ => eapply RealUpdateK_bind
       | SBRed.putSB _ _ _ _ _ _ => eapply SBRed.putSB_bind
       | SBRed.getSB _ _ _ _ _ => eapply SBRed.getSB_bind
       | SBRed.callSB _ _ _ _ _ _ => eapply SBRed.callSB_bind
@@ -237,7 +237,7 @@ Tactic Notation "red_SB" :=
           eapply SBRed.unwrapUK
       | unwrapNK _ _ =>
           eapply SBRed.unwrapNK
-      | RealUpdateK _ _ _ =>
+      | RealUpdateK _ _ =>
           eapply SBRed.ruK
       | @ITree.bind _ _ _ _ _ =>
           eapply SBRed.bind
@@ -312,7 +312,7 @@ Tactic Notation "red_S" tactic(tac) :=
           eapply SRed.unwrapUK
       | unwrapNK _ _ =>
           eapply SRed.unwrapNK
-      | RealUpdateK _ _ _ =>
+      | RealUpdateK _ _ =>
           eapply SRed.ruK
       | @ITree.bind _ _ _ _ _ =>
           eapply SRed.bind
@@ -348,7 +348,7 @@ Ltac _hnorm_itr :=
       eapply unwrapU_unwrapUK
   | [ |- unwrapN _ = _ ] =>
       eapply unwrapN_unwrapNK
-  | [ |- RealUpdate _ _ = _ ] =>
+  | [ |- RealUpdate _ = _ ] =>
       eapply RealUpdate_RealUpdateK
   | [ |- SModTr.HoareCall _ _ _ = _ ] =>
       unfold SModTr.HoareCall;
@@ -409,7 +409,7 @@ Ltac hnorm_itr :=
         eapply unwrapUK_unwrapU
     | [ |- unwrapNK _ _ = _ ] =>
         eapply unwrapNK_unwrapN
-    | [ |- RealUpdateK _ _ _ = _ ] =>
+    | [ |- RealUpdateK _ _ = _ ] =>
         eapply RealUpdateK_RealUpdate
     | [ |- SBRed.putSB _ _ _ _ _ _ = _ ] =>
         eapply SBRed.putSB_SPut

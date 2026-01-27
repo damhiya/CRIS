@@ -6,6 +6,9 @@ Set Implicit Arguments.
 Section FSPEC.
   Context {Σ : GRA}.
 
+  Definition fspec_rel :=
+    (Any.t → Any.t → iProp Σ) → (Any.t → Any.t → iProp Σ) → Prop.
+
   Record fspec : Type := mk_fspec {
     meta : Type;
     (* meta-variable → virtual arg → physical arg → iProp *)
@@ -13,6 +16,28 @@ Section FSPEC.
     (* meta-variable → virtual ret → physical ret → iProp *)
     postcond : meta → Any.t → Any.t → iProp Σ;
   }.
+
+  Record FSpec (fsp: fspec_rel) : Type := mk_FSpec {
+    Precond: Any.t → Any.t → iProp Σ;
+    Postcond: Any.t → Any.t → iProp Σ;
+    related: fsp Precond Postcond;
+  }.
+
+  Definition idx_to_rel {I A B} fP fQ := λ (P: A) (Q: B), ∃ x: I, P = fP x ∧ Q = fQ x.
+
+  Definition fspec_to_rel: fspec → fspec_rel :=
+    λ fsp, idx_to_rel fsp.(precond) fsp.(postcond).
+
+  Definition fspec_to_rel_o: option fspec → option fspec_rel :=
+    option_map fspec_to_rel.
+
+  Coercion fspec_to_rel: fspec >-> fspec_rel.
+  #[warnings="-uniform-inheritance"]  
+  Coercion fspec_to_rel_o: option >-> option.
+
+  Lemma fspec_to_rel_satisfy (fsp: fspec) x:
+    fspec_to_rel fsp (fsp.(precond) x) (fsp.(postcond) x).
+  Proof. eexists. et. Qed.
 
   Definition fbody : Type := Any.t → itree crisE Any.t.
 
@@ -29,9 +54,6 @@ Section FSPEC.
   Definition fspec_top : fspec :=
     @mk_fspec False (λ _ varg arg, False%I)
                     (λ _ vret ret, True%I).
-
-  Definition fspec_flat (fspo : option fspec) : fspec :=
-    or_else fspo fspec_trivial.
 
   Definition fbody_trivial : Any.t → itree crisE Any.t :=
     λ _, trigger (Choose _).
@@ -75,6 +97,14 @@ Section FSPEC.
     postcondS := λ '(existT i meta_i), (nth i fspecs fspecS_bot).(postcondS) meta_i
   |}.
 
+  Definition to_fspec (fsp : fspecS) : fspec :=
+    mk_fspec (λ x varg arg, (fsp.(precondS) x arg ∗ ⌜varg = arg⌝)%I)
+             (λ x vret ret, (fsp.(postcondS) x ret ∗ ⌜vret = ret⌝)%I).
+
+  Definition from_fspec (fsp : fspec) : fspecS :=
+    mk_fspecS (λ x arg, (fsp.(precond) x arg arg)%I)
+              (λ x ret, (fsp.(postcond) x ret ret)%I).
+  
   Definition lat_img_body (peeking: bool) (fsp : fspecS) (lbody: itree crisE ()) (body: fbody) (arg: Any.t) :=
     lbody;;;
     x <- trigger (Take (metaS fsp));;
@@ -91,8 +121,8 @@ Section FSPEC.
 
   Definition lat_real_body (peeking: bool) (fsp : fspecS) (lbody: itree crisE ()) (body: fbody) (arg: Any.t) :=
     lbody;;;
-    let peek := RealUpdate (λ x, precondS fsp x arg) (λ x, precondS fsp x arg);;; Ret (inl ()) in
-    let update := ret <- body arg;; RealUpdate (λ x, precondS fsp x arg) (λ x, postcondS fsp x ret);;; Ret (inr ret) in
+    let peek := RealUpdate (idx_to_rel (λ x, precondS fsp x arg) (λ x, precondS fsp x arg));;; Ret (inl ()) in
+    let update := ret <- body arg;; RealUpdate (idx_to_rel (λ x, precondS fsp x arg) (λ x, postcondS fsp x ret));;; Ret (inr ret) in
     if peeking
     then 'b: bool <- trigger (Choose bool);;
          (if b then peek else update)
@@ -101,52 +131,52 @@ Section FSPEC.
   Definition lat_real peeking fsp lbody body : fbody :=
     λ arg, ITree.iter (λ _, lat_real_body peeking fsp lbody body arg) ().
 
-  Definition to_fspec (fsp : fspecS) : fspec :=
-    mk_fspec (λ x varg arg, (fsp.(precondS) x arg ∗ ⌜varg = arg⌝)%I)
-             (λ x vret ret, (fsp.(postcondS) x ret ∗ ⌜vret = ret⌝)%I).
-
-  Definition from_fspec (fsp : fspec) : fspecS :=
-    mk_fspecS (λ x arg, (fsp.(precond) x arg arg)%I)
-              (λ x ret, (fsp.(postcond) x ret ret)%I).
-
   Definition fspec_simple {X} (DPQ : X → (Any.t → iProp Σ) * (Any.t → iProp Σ)) : fspec :=
     to_fspec (make_fspecS DPQ).
 
+
+  Definition fspec_flat (fspo : option fspec_rel) : fspec_rel :=
+    or_else fspo fspec_trivial.
+  
   (** fspec_imply fsp0 fsp1 means that [fsp0] is stronger spec than [fsp1]
       For the notion of a stronger spec, consider the consequence rule of Hoare triple:
         if P1 ⊢ P0 and Q0 ⊢ Q1 and { P0 } e { Q0 } then { P1 } e { Q1 }
       Therefore (P0, Q0) is stronger than (P1, Q1) if P1 ⊢ P0 and Q0 ⊢ Q1 *)
-  Definition fspec_imply (fsp0 fsp1 : fspec) : Prop :=
-    forall x1,
-    exists x0,
+  Definition fspec_imply (fsp0 fsp1 : fspec_rel) : Prop :=
+    ∀ P1 Q1 (ValidSP: fsp1 P1 Q1), 
+    ∃ P0 Q0, <<ValidSP: fsp0 P0 Q0>> ∧
       (<<PRE: forall varg arg,
-          (precond fsp1 x1 varg arg) ⊢ |==> (precond fsp0 x0 varg arg)>>) ∧
+          (P1 varg arg) ⊢ |==> (P0 varg arg)>>) ∧
       (<<POST: forall vret ret,
-          (postcond fsp0 x0 vret ret) ⊢ |==> (postcond fsp1 x1 vret ret)>>).
+          (Q0 vret ret) ⊢ |==> (Q1 vret ret)>>).    
 
   Global Program Instance fspec_imply_PreOrder : PreOrder fspec_imply.
-  Next Obligation.
+  Next Obligation. 
   Proof using.
-    ii. exists x1. esplits; ii; et.
+    ii. exists P1, Q1. esplits; ii; et.
   Qed.
   Next Obligation.
   Proof using.
-    ii. hexploit (H0 x1). i. des. hexploit (H x0). i. des. exists x2.
-    esplits; ii.
+    ii. hexploit (H0 P1 Q1); et. i. des. hexploit (H P0 Q0); et. i. des. exists P2, Q2.
+    esplits; et; ii.
     - rewrite PRE PRE0. iIntros ">> H". et.
     - rewrite POST0 POST. iIntros ">> H". et.
-  Qed.
+  Qed.  
 
   Lemma fspec_bot_strongest fsp :
     fspec_imply fspec_bot fsp.
   Proof.
-    ii. exists (). s. esplits; et. i. iIntros "%". ss.
+    ii. esplits; i.
+    - rr; esplits; et.
+    - et.
+    - iIntros. ss.
+    Unshelve. exact ().
   Qed.
 
   Lemma fspec_top_weakest fsp :
     fspec_imply fsp fspec_top.
   Proof.
-    ii. ss.
+    ii. rr in ValidSP. des; ss.
   Qed.
 End FSPEC.
 

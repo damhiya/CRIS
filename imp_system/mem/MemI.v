@@ -181,7 +181,7 @@ Module MemI. Section MemI.
       Ret v_cur
   .
   
-  Definition fnsems : alist (option string) (fnsem_type (option fspec * fbody)) :=
+  Definition fnsems : alist (option string) (fnsem_type (option fspec_rel * fbody)) :=
     [(Some MemHdr.alloc, (false, wmask_all, scopes, (None, (cfunU alloc)))) ;
      (Some MemHdr.free,  (false, wmask_all, scopes, (None, (cfunU free)))) ;
      (Some MemHdr.load,  (false, wmask_all, scopes, (None, (cfunU load)))) ;

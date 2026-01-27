@@ -38,15 +38,15 @@ Module ProphecyA.
 
   Definition sp : spl_type :=
     Seal.sealing CRIS
-      [(Some ProphecyName.new, Some new_spec);
-       (Some ProphecyName.resolve, Some resolve_spec);
-       (Some ProphecyName.close, Some close_spec)
+      [(Some ProphecyName.new, Some (new_spec: fspec_rel));
+       (Some ProphecyName.resolve, Some (resolve_spec: fspec_rel));
+       (Some ProphecyName.close, Some (close_spec: fspec_rel))
       ].
   
   Definition fnsems : fnsems_type :=
-    [(Some ProphecyName.new, (true, wmask_all, scopes, (Some new_spec, fbody_trivial)));
-     (Some ProphecyName.resolve, (true, wmask_all, scopes, (Some resolve_spec, fbody_trivial)));
-     (Some ProphecyName.close, (true, wmask_all, scopes, (Some close_spec, fbody_trivial)))].
+    [(Some ProphecyName.new, (true, wmask_all, scopes, (Some (new_spec: fspec_rel), fbody_trivial)));
+     (Some ProphecyName.resolve, (true, wmask_all, scopes, (Some (resolve_spec: fspec_rel), fbody_trivial)));
+     (Some ProphecyName.close, (true, wmask_all, scopes, (Some (close_spec: fspec_rel), fbody_trivial)))].
 
   Program Definition Mod : SMod.t := {|
     SMod.scopes := scopes;

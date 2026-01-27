@@ -259,7 +259,8 @@ Module SchIA. Section SchIA.
     assert (SPFN: sp fn = Some fsp).
     { apply FunInSp. eauto. }
     steps_l. rewrite SPFN.
-    specialize (H1 my_tid). des. force_l x0. steps_l. force_l (farg↑).
+    exploit H1. { exists my_tid; et. } clear H1. i. des.
+    force_l (mk_FSpec _ _ _ ValidSP). steps_l. force_l (farg↑).
 
     (* SRC: guarantee a precondition of user fspec *)
     iPoseProof (PRE with "[WI pre tid]") as ">pre".
@@ -391,7 +392,7 @@ Module SchIA. Section SchIA.
     steps_l.
     iDestruct "ASM" as "[%va [-> [tid ASM]]]".
     iDestruct "ASM" as (???) "[[-> [-> %]] PRE]"; hss. dup H. inv H0; des.
-    rewrite /fspec_imply in H0. specialize (H0 my_tid). des.
+    exploit H0. { exists my_tid; et. } clear H0. i; des.
 
     iDestruct "IST" as (????????) "(% & THB & THW & COND & [[% TA]|[% [TA WI]]])"; subst; hss.
     2:{ iExFalso. iApply (tid_admin_none_user with "[TA tid]"); iFrame. }

@@ -513,9 +513,9 @@ Module ProphIA.
   Let proph_resolveI := (ModTr.trans_ktree ∘ SB.sandbox_body ∘ (SModTr.trans_ktree sp_none)) (false, wmask_all, ["Prophecy"], (None, ProphecyI.resolve)).
   Let proph_closeI := (ModTr.trans_ktree ∘ SB.sandbox_body ∘ (SModTr.trans_ktree sp_none)) (false, wmask_all, ["Prophecy"], (None, ProphecyI.close)).
 
-  Let proph_newA sp := (ModTr.trans_ktree ∘ SB.sandbox_body ∘ (SModTr.trans_ktree sp)) (true, wmask_all, ["Prophecy"], (Some ProphecyA.new_spec, fbody_trivial)).
-  Let proph_resolveA sp := (ModTr.trans_ktree ∘ SB.sandbox_body ∘ (SModTr.trans_ktree sp)) (true, wmask_all, ["Prophecy"], (Some ProphecyA.resolve_spec, fbody_trivial)).
-  Let proph_closeA sp := (ModTr.trans_ktree ∘ SB.sandbox_body ∘ (SModTr.trans_ktree sp)) (true, wmask_all, ["Prophecy"], (Some ProphecyA.close_spec, fbody_trivial)).
+  Let proph_newA sp := (ModTr.trans_ktree ∘ SB.sandbox_body ∘ (SModTr.trans_ktree sp)) (true, wmask_all, ["Prophecy"], (Some (ProphecyA.new_spec: fspec_rel), fbody_trivial)).
+  Let proph_resolveA sp := (ModTr.trans_ktree ∘ SB.sandbox_body ∘ (SModTr.trans_ktree sp)) (true, wmask_all, ["Prophecy"], (Some (ProphecyA.resolve_spec: fspec_rel), fbody_trivial)).
+  Let proph_closeA sp := (ModTr.trans_ktree ∘ SB.sandbox_body ∘ (SModTr.trans_ktree sp)) (true, wmask_all, ["Prophecy"], (Some (ProphecyA.close_spec: fspec_rel), fbody_trivial)).
 
   Variant _wf_sim (coself : itree lmodE Any.t -> (bool * itree lmodE Any.t) -> Prop) : itree lmodE Any.t -> (bool * itree lmodE Any.t) -> Prop :=
   | wf_ret retv
@@ -931,6 +931,7 @@ Module ProphIA.
       steps_l. grind. steps_l. steps_r.
       unfold proph_newI, ProphecyI.new, ProphecyA.new_spec, fspec_simple.
       unfold precond, postcond. destruct p. ss.
+      rr in related. des; subst. destruct x as [i1 t].
       unfold cfunU, SB.sandbox_body, SB.sandbox, ModTr.trans_ktree, ModTr.trans, SModTr.trans.
       simpl. rewrite !interpV_bind !interpV_trigger. simpl.
       rewrite bind_ret_r interpV_trigger. simpl.
@@ -1153,7 +1154,9 @@ Module ProphIA.
       apply wsimg_io_proph. i. clarify. rename extr' into extr.
       steps_l. grind. steps_l. steps_r.
       unfold proph_resolveI, ProphecyI.resolve, ProphecyA.resolve_spec, fspec_simple.
-      unfold precond, postcond. destruct p. ss. destruct s, p, p. ss.
+      unfold precond, postcond. destruct p. ss.
+      rr in related. des; subst. destruct x.
+      destruct s, p, p. ss.
       unfold cfunU, SB.sandbox_body, SB.sandbox, ModTr.trans_ktree, ModTr.trans, SModTr.trans.
       simpl. rewrite !SRed.ret. grind.
       rewrite !interpV_bind !interpV_trigger. simpl.
@@ -1401,6 +1404,7 @@ Module ProphIA.
       steps_l. grind. steps_l. steps_r.
       unfold proph_closeI, ProphecyI.close, ProphecyA.close_spec, fspec_simple.
       unfold precond, postcond. destruct p. ss.
+      rr in related. des; subst. destruct x as [i1 s].
       unfold cfunU, SB.sandbox_body, SB.sandbox, ModTr.trans_ktree, ModTr.trans, SModTr.trans.
       simpl. rewrite !interpV_bind !interpV_trigger. simpl.
       rewrite bind_ret_r interpV_trigger. simpl.

@@ -245,6 +245,15 @@ Section SIM.
     iIntros "H". iApply (SIM with "H").
   Qed.
 
+  Lemma isim_take_src_fspec fsp r g ps pt {Rs Rt} RR st_src st_tgt k_src i_tgt :
+    (∀ x, @isim r g Rs Rt RR true pt (st_src, k_src (mk_FSpec _ _ _ (fspec_to_rel_satisfy fsp x))) (st_tgt, i_tgt))
+    ⊢ @isim r g Rs Rt RR ps pt (st_src, trigger (Take (FSpec (fspec_to_rel fsp))) >>= k_src) (st_tgt, i_tgt).
+  Proof using.
+    iIntros "H". iApply isim_take_src. iIntros (x). destruct x.
+    rr in related. des; subst. iSpecialize ("H" $! x).
+    erewrite (proof_irrelevance _ (fspec_to_rel_satisfy fsp x)); et.
+  Qed.
+  
   Lemma isim_take_tgt X r g ps pt {Rs Rt} RR st_src st_tgt i_src k_tgt :
     (∃ x, @isim r g Rs Rt RR ps true (st_src, i_src) (st_tgt, k_tgt x))
     ⊢ @isim r g Rs Rt RR ps pt (st_src, i_src) (st_tgt, trigger (Take X) >>= k_tgt).
@@ -256,6 +265,13 @@ Section SIM.
     eapply isim_init; eauto.
   Qed.
 
+  Lemma isim_take_tgt_fspec fsp r g ps pt {Rs Rt} RR st_src st_tgt i_src k_tgt :
+    (∃ x, @isim r g Rs Rt RR ps true (st_src, i_src) (st_tgt, k_tgt (mk_FSpec _ _ _ (fspec_to_rel_satisfy fsp x))))
+    ⊢ @isim r g Rs Rt RR ps pt (st_src, i_src) (st_tgt, trigger (Take (FSpec (fspec_to_rel fsp))) >>= k_tgt).
+  Proof using.
+    iIntros "[%x H]". iApply isim_take_tgt. eauto.
+  Qed.
+  
   Lemma isim_choose_src X r g ps pt {Rs Rt} RR st_src st_tgt k_src i_tgt :
     (∃ x, @isim r g Rs Rt RR true pt (st_src, k_src x) (st_tgt, i_tgt))
     ⊢ @isim r g Rs Rt RR ps pt (st_src, trigger (Choose X) >>= k_src) (st_tgt, i_tgt).
@@ -267,6 +283,13 @@ Section SIM.
     eapply isim_init; eauto.
   Qed.
 
+  Lemma isim_choose_src_fspec fsp r g ps pt {Rs Rt} RR st_src st_tgt k_src i_tgt :
+    (∃ x, @isim r g Rs Rt RR true pt (st_src, k_src (mk_FSpec _ _ _ (fspec_to_rel_satisfy fsp x))) (st_tgt, i_tgt))
+    ⊢ @isim r g Rs Rt RR ps pt (st_src, trigger (Choose (FSpec (fspec_to_rel fsp))) >>= k_src) (st_tgt, i_tgt).
+  Proof using.
+    iIntros "[%x H]". iApply isim_choose_src. eauto.
+  Qed.
+  
   Lemma isim_choose_tgt X r g ps pt {Rs Rt} RR st_src st_tgt i_src k_tgt :
     (∀ x, @isim r g Rs Rt RR ps true (st_src, i_src) (st_tgt, k_tgt x))
     ⊢ @isim r g Rs Rt RR ps pt (st_src, i_src) (st_tgt, trigger (Choose X) >>= k_tgt).
@@ -275,6 +298,15 @@ Section SIM.
     eapply Own_general_completeness in SIM; eauto.
     eapply isim_init; eauto.
     iIntros "H". iApply (SIM with "H").
+  Qed.
+
+  Lemma isim_choose_tgt_fspec fsp r g ps pt {Rs Rt} RR st_src st_tgt i_src k_tgt :
+    (∀ x, @isim r g Rs Rt RR ps true (st_src, i_src) (st_tgt, k_tgt (mk_FSpec _ _ _ (fspec_to_rel_satisfy fsp x))))
+    ⊢ @isim r g Rs Rt RR ps pt (st_src, i_src) (st_tgt, trigger (Choose (FSpec (fspec_to_rel fsp))) >>= k_tgt).
+  Proof using.
+    iIntros "H". iApply isim_choose_tgt. iIntros (x). destruct x.
+    rr in related. des; subst. iSpecialize ("H" $! x).
+    erewrite (proof_irrelevance _ (fspec_to_rel_satisfy fsp x)); et.
   Qed.
 
   Lemma isim_asm_src (P : Prop) r g ps pt {Rs Rt} RR st_src st_tgt k_src i_tgt :
@@ -844,12 +876,12 @@ Section FancyReal.
   Context (st_s st_t : alist key Any.t).
 
   (* Precise Pre & Post conditions *)
-  Lemma isim_ru_src_advanced {X} (pre post : X → _) r g k_s i_t :
+  Lemma isim_ru_src_advanced_general (pp: _→_→Prop) r g k_s i_t :
     (∃ (I P : iProp Σ),
       I ∗ precise P ∗
-      (∀ x, ∃ T, (I -∗ pre x -∗ □ T) ∗ (□ T -∗ pre x ==∗ P ∗ post x)) ∗
+      (∀ pre post (VS: pp pre post), ∃ T, (I -∗ pre -∗ □ T) ∗ (□ T -∗ pre ==∗ P ∗ post)) ∗
       (I -∗ P -∗ isim r g RR true pt (st_s, k_s ()) (st_t, i_t))) ⊢
-    isim r g RR ps pt (st_s, RealUpdate pre post >>= k_s) (st_t, i_t).
+    isim r g RR ps pt (st_s, RealUpdate pp >>= k_s) (st_t, i_t).
   Proof using.
     iIntros "[%I [%P [I [#[%pr Pre] [Hsplit Hsim]]]]]".
     iRevert "Hsplit Hsim Pre"; iStopProof.
@@ -857,7 +889,8 @@ Section FancyReal.
     rewrite /RealUpdate; unseal CRIS_FancyReal.
     norm_l; iApply isim_choose_src; iExists (pr ⋅ res).
     norm_l; iApply isim_guarantee_src; iSplitL "I Hsplit".
-    { iIntros (x) "Pre"; iPoseProof ("Hsplit" $! x) as "[%T [HT Hsplit]]".
+    { iIntros (pre post VS) "Pre".
+      iPoseProof ("Hsplit" $! pre post VS) as "[%T [HT Hsplit]]".
       iPoseProof ("HT" with "[I] Pre") as "#T".
       { rewrite Hres; iFrame. }
       iMod ("Hsplit" with "T Pre") as "[P $]".
@@ -868,36 +901,60 @@ Section FancyReal.
     norm_l. iPoseProof ("Hsim" with "R P") as "$".
   Qed.
 
-  Lemma isim_ru_src {X} (pre post : X → _) r g k_s i_t :
+  Lemma isim_ru_src_advanced {X} (pre post: X → _) r g k_s i_t:
+    (∃ (I P : iProp Σ),
+      I ∗ precise P ∗
+      (∀ x, ∃ T, (I -∗ pre x -∗ □ T) ∗ (□ T -∗ pre x ==∗ P ∗ post x)) ∗
+      (I -∗ P -∗ isim r g RR true pt (st_s, k_s ()) (st_t, i_t))) ⊢
+    isim r g RR ps pt (st_s, RealUpdate (idx_to_rel pre post) >>= k_s) (st_t, i_t).
+  Proof.
+    iIntros "[%[% [I [P [A B]]]]]".
+    iApply (isim_ru_src_advanced_general (idx_to_rel pre post)).
+    iFrame. iIntros (???). rr in VS; des; subst. iApply "A".
+  Qed.
+  
+  Lemma isim_ru_src_general (pp: _→_→Prop) r g k_s i_t :
     (∃ (P : iProp Σ),
       precise P ∗
-      (∀ x, pre x ==∗ P ∗ post x) ∗
+      (∀ pre post (VS: pp pre post), pre ==∗ P ∗ post) ∗
       (P -∗ isim r g RR true pt (st_s, k_s ()) (st_t, i_t))) ⊢
-    isim r g RR ps pt (st_s, RealUpdate pre post >>= k_s) (st_t, i_t).
+    isim r g RR ps pt (st_s, RealUpdate pp >>= k_s) (st_t, i_t).
   Proof using.
     iIntros "[%P [Hprecise [Hsplit Hsim]]]".
-    iApply isim_ru_src_advanced.
+    iApply isim_ru_src_advanced_general.
     iExists True%I, P.
     iSplit; [done|iSplit; [done|]].
     iSplitL "Hsplit".
-    { iIntros (?); iExists emp%I; iSplitR; [iIntros "_ _"; done|].
+    { iIntros (? ? ?); iExists emp%I; iSplitR; [iIntros "_ _"; done|].
       by iIntros "_ Pre"; iApply "Hsplit".
     }
     by iIntros "_"; iApply "Hsim".
   Qed.
 
-  Lemma isim_ru_tgt
-      {X} r g
-      (pre post: X → _)
+  Lemma isim_ru_src {X} (pre post: X → _) r g k_s i_t:
+    (∃ (P : iProp Σ),
+      precise P ∗
+      (∀ x, pre x ==∗ P ∗ post x) ∗
+      (P -∗ isim r g RR true pt (st_s, k_s ()) (st_t, i_t))) ⊢
+    isim r g RR ps pt (st_s, RealUpdate (idx_to_rel pre post) >>= k_s) (st_t, i_t).
+  Proof.
+    iIntros "[% [? [A ?]]]".
+    iApply (isim_ru_src_general (idx_to_rel pre post)).
+    iFrame. iIntros (???). rr in VS; des; subst. iApply "A".
+  Qed.
+  
+  Lemma isim_ru_tgt_general
+      (pp: _→_→Prop)
+      r g
       i_s k_t
     :
     (∀ pr,
-     (∀ x, pre x ==∗ Own pr ∗ post x) -∗
+     (∀ pre post (VS: pp pre post), pre ==∗ Own pr ∗ post) -∗
      isim r g RR ps true (st_s, i_s) (st_t, trigger (AssumeRes pr);;; k_t ()))
     ⊢
     isim r g RR ps pt
       (st_s, i_s)
-      (st_t, RealUpdate pre post >>= k_t).
+      (st_t, RealUpdate pp >>= k_t).
   Proof.
     iIntros "H".
     rewrite /RealUpdate; unseal CRIS_FancyReal.
@@ -909,19 +966,49 @@ Section FancyReal.
     f_equal. extensionalities. ired. destruct H. et.
   Qed.
 
-  Lemma isim_ru_tgt_simple {X} (pre post : X → _) r g i_s k_t :
-    (∃ x, pre x ∗ (post x -∗ isim r g RR ps true (st_s, i_s) (st_t, k_t ())))
+  Lemma isim_ru_tgt {X} (pre post: X → _)
+      r g
+      i_s k_t
+    :
+    (∀ pr,
+     (∀ x, pre x ==∗ Own pr ∗ post x) -∗
+     isim r g RR ps true (st_s, i_s) (st_t, trigger (AssumeRes pr);;; k_t ()))
     ⊢
-    isim r g RR ps pt (st_s, i_s) (st_t, RealUpdate pre post >>= k_t).
+    isim r g RR ps pt
+      (st_s, i_s)
+      (st_t, RealUpdate (idx_to_rel pre post) >>= k_t).
+  Proof.
+    iIntros "H".
+    iApply (isim_ru_tgt_general (idx_to_rel pre post)).
+    iIntros (?) "A". iApply "H". iIntros (?) "H".
+    assert (PF: ∃ x0, pre x = pre x0 ∧ post x = post x0); et.
+    iSpecialize ("A" $! _ _ PF).
+    iApply "A". et.
+  Qed.
+  
+  Lemma isim_ru_tgt_simple_general (pp: _→_→Prop) r g i_s k_t :
+    (∃ pre post, ⌜pp pre post⌝ ∗ pre ∗ (post -∗ isim r g RR ps true (st_s, i_s) (st_t, k_t ())))
+    ⊢
+    isim r g RR ps pt (st_s, i_s) (st_t, RealUpdate pp >>= k_t).
   Proof using.
-    iIntros "[%x [Hpre Hsim]]".
-    iApply isim_ru_tgt.
+    iIntros "[%pre [%post [%VS [Hpre Hsim]]]]".
+    iApply isim_ru_tgt_general.
     iIntros (?) "U".
-    iPoseProof ("U" with "Hpre") as ">[P Hpost]".
+    iPoseProof ("U" $! _ _ VS with "Hpre") as ">[P Hpost]".
     iApply isim_assume_res_tgt. iFrame.
     iApply "Hsim". et.
   Qed.
 
+  Lemma isim_ru_tgt_simple {X} (pre post: X → _) r g i_s k_t :
+    (∃ x, pre x ∗ (post x -∗ isim r g RR ps true (st_s, i_s) (st_t, k_t ())))
+    ⊢
+    isim r g RR ps pt (st_s, i_s) (st_t, RealUpdate (idx_to_rel pre post) >>= k_t).
+  Proof.
+    iIntros "[% H]".
+    iApply (isim_ru_tgt_simple_general (idx_to_rel pre post)).
+    iFrame. iPureIntro. rr; esplits; eauto.
+  Qed.
+  
 End FancyReal.
 
 Section FSEM.

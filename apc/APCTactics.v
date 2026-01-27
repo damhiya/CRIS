@@ -53,8 +53,8 @@ Proof using.
   { apply SpPureInSp. eauto. }
   rewrite H3. des_ifs.
   { des. rewrite /fspec_imply in WEAK. hss.
-    specialize (WEAK spec_arg). des.
-    force_l x0. force_l args. steps_l.
+    exploit WEAK. { exists spec_arg; et. } i; des.
+    force_l (mk_FSpec _ _ _ ValidSP). force_l args. steps_l.
     iPoseProof ((PRE vo ↑ args) with "[PRE]") as ">PRE". { unfold precond, fspec_apc; ss. iFrame. by iExists _. }
     iApply wsim_guarantee_src. iFrame. steps_l.
 
@@ -65,7 +65,7 @@ Proof using.
     iApply "ISIM". iFrame.
   }
   { des; rewrite /fspec_imply in WEAK; hss.
-    specialize (WEAK spec_arg). des.
+    exploit WEAK. { exists spec_arg; et. } i; des. rr in ValidSP; des; subst.
     specialize (PRE (vo↑) args). rewrite /fspec_apc /fspec_trivial /precond in PRE; ss.
     iPoseProof (PRE with "[PRE]") as ">%".
     { iFrame. iPureIntro; eauto. }
@@ -101,7 +101,7 @@ Lemma wsim_apc_src_call_tgt
       (st_tgt, (SB.sandbox img_t msk_t sc_t (trigger (Call fn args))) >>= k_tgt).
 Proof using.
   eapply wsim_apc_src_call_tgt_weaker; et. 
-  do 2 (econs; et).
+  ii. esplits; et.
 Qed.
 
 (* useful apc lemmas cont. - don't require IST *)

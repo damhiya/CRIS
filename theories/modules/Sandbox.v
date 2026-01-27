@@ -517,8 +517,8 @@ Module SBRed. Section SBRed.
     unfold guarantee. rewrite bind choose ret. eauto.
   Qed.
 
-  Lemma ru {X} (pre post: X → _) img msk scp :
-    SB.sandbox img msk scp (RealUpdate pre post) = RealUpdate pre post.
+  Lemma ru pp img msk scp :
+    SB.sandbox img msk scp (RealUpdate pp) = RealUpdate pp.
   Proof.
     rewrite /RealUpdate. unseal CRIS_FancyReal.
     repeat (rewrite bind choose; f_equal; extensionalities).
@@ -526,9 +526,9 @@ Module SBRed. Section SBRed.
     repeat (rewrite AssumeRes; f_equal; extensionalities).
   Qed.
 
-  Lemma ruK {X R} (pre post : X → _) (k : _ → itree crisE R) img msk scp :
-    SB.sandbox img msk scp (RealUpdateK pre post k) =
-    RealUpdateK pre post (λ x, SB.sandbox img msk scp (k x)).
+  Lemma ruK {R} pp (k : _ → itree crisE R) img msk scp :
+    SB.sandbox img msk scp (RealUpdateK pp k) =
+    RealUpdateK pp (λ x, SB.sandbox img msk scp (k x)).
   Proof using. rewrite /RealUpdateK bind ru //. Qed.
 End SBRed. End SBRed.
 
