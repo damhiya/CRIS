@@ -286,7 +286,10 @@ Ltac _hnorm_itr :=
         let r := eval vm_compute in (bool_decide P) in
         change (bool_decide P) with r in *;
         s; _hnorm_itr
-      else reflexivity
+      else (* solver for open proposition P - add further tactics in new scenarios *)
+        (let a := fresh in case_bool_decide as a; [exfalso; set_solver+a|]
+        ||let a := fresh in case_bool_decide as a; [|exfalso; set_solver+a]
+        ||idtac); reflexivity
   | [ |- Ret _ = _ ] =>
       reflexivity
   | [ |- Tau _ = _ ] =>

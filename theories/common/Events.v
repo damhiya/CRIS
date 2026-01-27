@@ -332,3 +332,6 @@ Definition call_msk `{Σ : GRA} (msk : emask) : Prop :=
   ∀ fn x y,
     msk _ (subevent _ (Call fn x)) = msk _ (subevent _ (Call fn y))
     ∧ msk _ (subevent _ (Spawn fn x)) = msk _ (subevent _ (Spawn fn y)).
+
+Definition msk_sub `{Σ : GRA} (m1 m2 : emask) : Prop :=
+  ∀ X e, m1 X e → m2 X e.

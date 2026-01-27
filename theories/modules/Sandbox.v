@@ -552,93 +552,29 @@ End SBRed. End SBRed.
 Section Properties.
   Context `{Σ: GRA}.
 
-  (* Lemma sandbox_sandbox {R} (t: itree crisE R) (img img': bool) (msk msk' : _ → bool) scp scp'
-      (IMPL: img → img')
-      (SUB: wmask_sub msk msk')
-      (INCL: incl scp scp') :
-    SB.sandbox img' msk' scp' (SB.sandbox msk t) = SB.sandbox msk t.
+  Lemma sandbox_sandbox {R} (t : itree crisE R) (msk1 msk2 : emask) :
+    msk_sub msk1 msk2 →
+    SB.sandbox msk2 (SB.sandbox msk1 t) = SB.sandbox msk1 t.
   Proof using.
-    eapply bisim_is_eq.
+    intros Hmsk; eapply bisim_is_eq.
     eapply gpaco2_init with (clo:=eqitC _ _ _); eauto with paco.
-    revert R t scp scp' INCL. gcofix CIH. i.
+    revert R t msk1 msk2 Hmsk. gcofix CIH. i.
     rewrite (bisim_is_eq (itree_eta t)). destruct (observe t).
     { rewrite !SBRed.ret. eapply Reflexive_eqit_gen. et. }
     { rewrite !SBRed.tau. gstep. econs. gbase. et. }
 
     rewrite -bind_trigger !SBRed.bind.
-    destruct e; [ |destruct s;
-                   [destruct c|destruct s; [destruct p|]]].
-    + destruct a.
-      * rewrite !SBRed.Assume. des_ifs.
-        { specialize (IMPL eq_refl). destruct img'; ss.
-          gstep. rewrite SBRed.Assume !bind_trigger. econs. i. gbase. et. }
-        { gstep. rewrite SBRed.bind SBRed.take.
-          des_ifs; ired; rr; s; econs; ss. }
-      * rewrite !SBRed.AssumeRes.
-        gstep. rewrite !bind_trigger. econs. i. gbase. et.
-      * rewrite !SBRed.Guarantee.
-        gstep. rewrite !bind_trigger. econs. i. gbase. et.
-    + rewrite !SBRed.call. des_ifs; cycle 1.
-      { rewrite /triggerUB SBRed.unwrapU. s. ired.
-        gstep. rewrite !bind_trigger. econs. ss. }
-      rewrite !SBRed.call. des_ifs; cycle 1.
-      { eapply SUB in Heq. rewrite Heq0 in Heq. ss. }
-      gstep. rewrite !bind_trigger. econs. i. gbase. et.
-    + rewrite !SBRed.spawn. des_ifs; cycle 1.
-      { rewrite /triggerUB SBRed.unwrapU. s. ired.
-        gstep. rewrite !bind_trigger. econs. ss. }
-      rewrite !SBRed.spawn. des_ifs; cycle 1.
-      { eapply SUB in Heq. rewrite Heq0 in Heq. ss. }
-      gstep. rewrite !bind_trigger. econs. i. gbase. et.
-    + rewrite !SBRed.yield.
-      gstep. rewrite !bind_trigger. econs. i. gbase. et.
-    + rewrite !SBRed.gettid.
-      gstep. rewrite !bind_trigger. econs. i. gbase. et.
-    + rewrite !SBRed.put. des_ifs; cycle 1.
-      { rewrite /triggerUB SBRed.unwrapU. ired.
-        gstep. rewrite !bind_trigger. econs. ss. }
-      rewrite !SBRed.put. des_ifs; cycle 1.
-      { exfalso. eapply existsb_exists in Heq. des.
-        eapply String.eqb_eq in Heq1. subst.
-        apply INCL in Heq.
-        hexploit (proj2 (existsb_exists (String.eqb k0.1) scp')).
-        { esplits; et. apply String.eqb_eq. et. }
-        i. rewrite H in Heq0. ss.
-      }
-      gstep. rewrite !bind_trigger. econs. i. gbase. et.
-    + rewrite !SBRed.get. des_ifs; cycle 1.
-      { rewrite /triggerUB SBRed.unwrapU. ired.
-        gstep. rewrite !bind_trigger. econs. ss. }
-      rewrite !SBRed.get. des_ifs; cycle 1.
-      { exfalso. eapply existsb_exists in Heq. des.
-        eapply String.eqb_eq in Heq1. subst.
-        apply INCL in Heq.
-        hexploit (proj2 (existsb_exists (String.eqb k0.1) scp')).
-        { esplits; et. apply String.eqb_eq. et. }
-        i. rewrite H in Heq0. ss.
-      }
-      gstep. rewrite !bind_trigger. econs. i. gbase. et.
-    + destruct c.
-      * rewrite !SBRed.choose.
-        gstep. rewrite !bind_trigger. econs. i. gbase. et.
-      * rewrite !SBRed.take. des_ifs; cycle 1.
-        { destruct img'.
-          - rewrite SBRed.bind SBRed.take. ired.
-            gstep. rewrite !bind_trigger. econs. i. ss.
-          - rewrite SBRed.bind SBRed.take. ired. des_ifs; ired.
-            + gstep. rewrite !bind_trigger. econs. i. ss.
-            + gstep. rewrite !bind_trigger. econs. i. ss.
-        }
-        { rewrite SBRed.take. destruct img; ss.
-          - destruct img'; ss; cycle 1.
-            { specialize (IMPL eq_refl). inv IMPL. }
-            gstep. rewrite !bind_trigger. econs. i. gbase. et.
-          - rewrite Heq orb_true_r.
-            gstep. rewrite !bind_trigger. econs. i. gbase. et.
-        }
-      * rewrite !SBRed.io.
-        gstep. rewrite !bind_trigger. econs. i. gbase. et.
-  Qed. *)
+    rewrite !SBRed.vis; case_match eqn : Hmsk1; cycle 1.
+    { rewrite !SBRed.vis; case_match eqn : Hmsk2; ss.
+      { gstep. rewrite !bind_vis. econs; ss. }
+      gstep. rewrite !bind_vis. econs; ss.
+    }
+    rewrite !SBRed.vis; case_match eqn : Hmsk2; ss; cycle 1.
+    { rewrite Hmsk in Hmsk2; ss. }
+    rewrite !bind_vis. gstep. econs. intros x.
+    rewrite !SBRed.ret; ired.
+    gbase. eapply CIH. auto.
+  Qed.
 End Properties.
 
 Notation "░ it" := (SB.sandbox _ it) (at level 60, only printing).

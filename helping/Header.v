@@ -58,7 +58,7 @@ Module Helping. Section Helping.
 
   Lemma trans_ret {R} (r : R) : trans (Ret r) = Ret r.
   Proof. rewrite /trans (bisim_is_eq (translate_ret _ _)) //. Qed.
-  Definition exports : gset string := {[run; help; yield]}.
+  Definition exports : gset string := {[run; help]}.
 End Helping. End Helping.
 
 (* Section names.

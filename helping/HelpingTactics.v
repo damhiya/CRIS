@@ -105,7 +105,7 @@ Section resource.
   Definition IstHelp (mn : string) : ist_type Σ :=
     λ st_src st_tgt,
       (∃ (reqmap_s : gmap nat (option retID * jobID)),
-        ⌜st_src = [(HelpingOn.v_reqs mn, reqmap_s↑)] ∧ st_tgt = []⌝ ∗
+        ⌜st_src = {[HelpingOn.v_reqs mn := Some reqmap_s↑]} ∧ st_tgt = ∅⌝ ∗
         helping_auth 1 reqmap_s)%I.
 End resource.
 
@@ -113,59 +113,60 @@ Section help.
   Context (jobID retID : Type).
   Context `{!crisG Γ Σ α β τ _S _I, !concG, !inG (helpingR jobID retID) Γ}.
 
-  Local Definition state : Type := alist key Any.t.
+  Local Definition state : Type := gmap key (option Any.t).
   Local Definition post (R_s R_t : Type) : Type := state * R_s → state * R_t → iProp Σ.
   Local Definition rel : Type := ∀ R_s R_t : Type,
     post R_s R_t → bool → bool → state * itree crisE R_s → state * itree crisE R_t → iProp Σ.
 
-  Context (fl_s fl_t : alist (option string) (Any.t → itree crisE Any.t)).
-  Context (Ist : alist key Any.t → alist key Any.t → iProp Σ).
+  Context (fl_s fl_t : gmap (option string) (option (Any.t → itree crisE Any.t))).
+  Context (Ist : ist_type Σ).
   Context (R_s R_t : Type).
   Context (RR : post R_s R_t).
   Context (ps pt : bool).
   Context (st_src st_tgt : state).
 
   (* Helping related context *)
-  Context (jobs : jobID → itree Helping.pureE retID).
-  Context (mn : string) (sp : sp_type).
+  Context (jobs : jobID → itree crisE retID).
+  Context (mn : string) (sp : specmap).
 
-  Local Definition IstFull := IstProd IstEq (IstSB [mn] (IstHelp mn)).
+  Local Definition IstFull := IstProd IstEq (IstSB {[+mn+]} (IstHelp mn)).
 
-  Lemma wsim_helping_run (parg : jobID) k_s k_t E1 E2 r g img_t msk_t scp_t :
-    alist_find (Some (Helping.run mn)) fl_s =
-      Some (SB.sandbox_body
-        (SModTr.trans_ktree sp
-          (true, wmask_all, HelpingOn.scopes mn, (None, HelpingOn.run mn jobs)))) →
-    (msk_t (Helping.run mn) : bool) →
+  Lemma wsim_helping_run (parg : jobID) k_s k_t E1 E2 r g :
+    fl_s !! Some (Helping.run mn) =
+      Some (Some (SB.sandbox_body
+        (msk_scp (HelpingOn.scopes mn) msk_true, (SModTr.trans_fnsem sp (None, HelpingOn.run mn jobs))))) →
     IstFull st_src st_tgt -∗
     (∀ (st_src st_tgt : state) req_id,
       IstFull st_src st_tgt -∗
       helping_token req_id parg -∗
       wsim fl_s fl_t IstFull (E1, E2) r g R_s R_t RR true pt
         (st_src,
-          SB.sandbox true wmask_all (HelpingOn.scopes mn) (SModTr.trans false sp 𝒴);;;
-          x_ <- (x_ <- SB.sandbox true wmask_all (HelpingOn.scopes mn) (SModTr.trans false sp
+          SB.sandbox (msk_scp (HelpingOn.scopes mn) msk_true) (SModTr.trans sp 𝒴);;;
+          x_ <- SB.sandbox (msk_scp (HelpingOn.scopes mn) msk_true) (SModTr.trans sp
             (r <- HelpingOn.try_run mn jobs req_id;; 𝒴;;; Ret (r↑)));;
-          (tau;; Ret x_));;
-          x_1 <- (SB.sandbox img_t msk_t scp_t (Ret x_));; k_s x_1)
+          x_0 <- (tau;; Ret x_);;
+          x <- Ret x_0;;
+          k_s x)
         (st_tgt, k_t)) -∗
     wsim fl_s fl_t IstFull (E1, E2) r g R_s R_t RR ps pt
-      (st_src, x <- (SB.sandbox img_t msk_t scp_t (trigger (Call (Helping.run mn) parg↑)));; k_s x)
+      (st_src, x <- (trigger (Call (Helping.run mn) parg↑));; k_s x)
       (st_tgt, k_t).
   Proof.
-    iIntros (Hfind Hmsk) "IST K".
+    iIntros (Hfind) "IST K".
         (* TODO : factor out this proof into a lemma *)
-    inline_l. steps_l. hss.
-    iDestruct "IST" as "[% [% [% [% [[-> ->] [-> [% [% [[-> ->] ●Help]]]]]]]]]". steps_l. hss.
+    inline_l. steps_l. rewrite /HelpingOn.run. steps_l. hss_l.
+    iDestruct "IST" as "[% [% [% [% [[-> ->] [-> [% [% [[-> ->] ●Help]]]]]]]]]".
+    steps_l. hss_l. steps_l.
     iMod (own_update with "●Help") as "[●Help Help◯]".
-    { eapply (gmap_view_alloc _ (fresh (dom _q0)) (DfracOwn 1)); eauto.
+    { eapply (gmap_view_alloc _ (fresh (dom reqmap_s)) (DfracOwn 1)); eauto.
       { apply not_elem_of_dom. rewrite dom_fmap. apply is_fresh. }
       { rewrite dfrac_valid; eauto. }
       { instantiate (1:=(to_agree (None, _))); ss. }
     }
-    set (st_src := st_tgtL ++ _). set (st_tgt := st_tgtL ++ _).
+    set (st_src := union_with _ _ _). set (st_tgt := union_with _ _ _).
     iAssert (IstFull st_src st_tgt)%I with "[●Help]" as "IST".
     { iExists _, _, _, _; subst st_src st_tgt; repeat iSplit; eauto.
+      { iPureIntro; set_solver. }
       rewrite -fmap_insert //. iFrame; done.
     }
     iAssert (helping_token (fresh (dom _)) _)%I with "Help◯" as "Tkn".
@@ -173,7 +174,7 @@ Section help.
     iApply "K".
   Qed.
 
-  Lemma wsim_helping_pend_try_run k_s k_t E1 E2 r g img_s req_id x :
+  (* Lemma wsim_helping_pend_try_run k_s k_t E1 E2 r g img_s req_id x :
     helping_token req_id x -∗
     IstFull st_src st_tgt -∗
     (* wsim fl_s fl_t IstFull (E1, E2) r g R_s R_t  *)
@@ -211,9 +212,9 @@ Section help.
     iAssert (IstFull st_src st_tgt)%I with "[IST Auth]" as "IST".
     { iExists _, _, _, _; iFrame. repeat iSplit; eauto. }
     iApply ("K" with "Pend IST").
-  Qed.
+  Qed. *)
 
-  Lemma wsim_helping_done_try_run k_s k_t E1 E2 r g img_s req_id ret_id :
+  (* Lemma wsim_helping_done_try_run k_s k_t E1 E2 r g img_s req_id ret_id :
     helping_done req_id ret_id -∗
     IstFull st_src st_tgt -∗
     (IstFull st_src st_tgt -∗
@@ -234,7 +235,7 @@ Section help.
     steps_l.
     iApply ("K" with "[IST ●Help]").
     iFrame; iExists _, _; iSplit; eauto.
-  Qed.
+  Qed. *)
   (* Lemma IstHelp_split (q : Qp) :
     (q < 1)%Qp →
     IstHelp Ist st_src st_tgt -∗
@@ -267,8 +268,6 @@ Section help.
     iExists _, _, _, _; iModIntro; iSplit; first done.
     rewrite -fmap_insert; iFrame "Help●"; done.
   Qed.
-
-
 
   (* TODO : modify helping so that we do not see cput after job execution *)
   Lemma wsim_helping_try_run (req_id : nat) (parg : jobID) k_s k_t E1 E2 r g img_t msk_t scp_t :

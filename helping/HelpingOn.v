@@ -4,79 +4,67 @@ From iris.algebra Require Import gmap_view.
 From CRIS.helping Require Import Header.
 From stdpp Require Import fin_sets.
 
-(* Section HoareCall.
+Section HoareCall.
   Context `{!crisG Γ Σ α β τ _S _I, !concG}.
-
+  (* HoareCall Lemmas *)
   Definition fspec_option_meta (fspo : option fspec) : Type :=
     match fspo with
     | Some fsp => meta fsp
     | None => unit
     end.
 
-  Definition HoareCall_prologue fspo varg : itree crisE (fspec_option_meta fspo * Any.t) :=
-    Seal.sealing "Help"
+  Definition HoareCall_prologue fspo (varg : Any.t)
+      : itree crisE (fspec_option_meta fspo * Any.t) :=
     (match fspo as fspo return itree crisE (fspec_option_meta fspo * Any.t) with
-    | Some (@fspec_mk _ meta pre post) =>
-        x <- trigger (Choose meta);;
+    | Some (fspec_mk pre post) =>
+        x <- trigger (Choose _);;
         arg <- trigger (Choose Any.t);;
         trigger (Guarantee (pre x varg arg));;;
         Ret (x, arg)
-    | Some _ => triggerNB
     | None => Ret (tt, varg)
     end).
 
   Definition HoareCall_epilogue fspo (x : fspec_option_meta fspo) (pret : Any.t)
       : itree crisE Any.t :=
-    Seal.sealing "Help"
     (match fspo as fspo return fspec_option_meta fspo → itree crisE Any.t with
-    | Some (@fspec_call _ meta pre post) =>
+    | Some (fspec_mk pre post) =>
         λ x,
           vret <- trigger (Take Any.t);;
           trigger (Assume (post x vret pret));;;
           Ret vret
-    | Some _ => λ _, triggerNB
     | None => λ _, Ret pret
     end) x.
 
-  Lemma HoareCall_unfold fspo :
-    SModTr.HoareCall SchHdr.yield (()↑) fspo =
-    xarg <- HoareCall_prologue fspo (()↑);;
-    ret <- trigger (Call SchHdr.yield xarg.2);;
-    HoareCall_epilogue fspo xarg.1 ret.
-  Proof.
-    rewrite /SModTr.HoareCall /HoareCall_prologue /HoareCall_epilogue; unseal "Help".
-    destruct fspo as [[|]|]; ss.
-    { ired. f_equal. extensionalities x. ired. f_equal. extensionalities arg. ired. f_equal.
-      extensionalities t. f_equal. extensionalities a. unseal "Help". done. }
-    { ired. f_equal. extensionalities; ss. }
-    { ired. erewrite <-bind_ret_r at 1. f_equal. extensionalities a. unseal "Help". done. }
+  Lemma HoareCall_unfold (sp : specmap) (fn : string) :
+    SModTr.HoareCall (sp !! speckey_fn fn) fn ()↑ =
+    xarg <- HoareCall_prologue (sp !! speckey_fn fn) (()↑);;
+    ret <- trigger (Call fn xarg.2);;
+    HoareCall_epilogue (sp !! speckey_fn fn) xarg.1 ret.
+  Proof using.
+    rewrite /SModTr.HoareCall /HoareCall_prologue /HoareCall_epilogue; case_match; grind.
   Qed.
 
   Definition HoareFun_prologue fspo parg : itree crisE (fspec_option_meta fspo * Any.t) :=
-    Seal.sealing "Help"
     (match fspo as fspo return itree crisE (fspec_option_meta fspo * Any.t) with
-    | Some (@fspec_call _ meta pre post) =>
-        x <- trigger (Take meta);;
+    | Some (fspec_mk pre post) =>
+        x <- trigger (Take _);;
         varg <- trigger (Take Any.t);;
         trigger (Assume (post x varg parg));;;
         Ret (x, varg)
-    | Some _ => triggerNB
     | None => Ret (tt, parg)
     end).
 
   Definition HoareFun_epilogue fspo (x : fspec_option_meta fspo) (vret : Any.t)
       : itree crisE Any.t :=
-    Seal.sealing "Help"
     (match fspo as fspo return fspec_option_meta fspo → itree crisE Any.t with
-    | Some (@fspec_call _ meta pre post) =>
+    | Some (fspec_mk pre post) =>
         λ x,
           pret <- trigger (Choose Any.t);;
           trigger (Guarantee (pre x vret pret));;;
           Ret pret
-    | Some _ => λ _, triggerNB
     | None => λ _, Ret vret
     end) x.
-End HoareCall. *)
+End HoareCall.
 
 (* Helping module *)
 Module HelpingOn. Section HelpingOn.
@@ -115,33 +103,30 @@ Module HelpingOn. Section HelpingOn.
       cput v_reqs (<[tid := (None, jid)]> reqs);;;
       𝒴;;; r <- try_run tid;; 𝒴;;; Ret (r↑).
 
-  Definition help : Any.t → itree crisE Any.t :=
+  Definition help (sp : specmap) : Any.t → itree crisE Any.t :=
     λ _,
       tid <- trigger (Choose nat);;
-      trigger (Call (Helping.yield mn) ()↑);;;
-      (* xarg <- HoareCall_prologue (sp SchHdr.yield) (() ↑);;
-      x <- HoareFun_prologue (sp SchHdr.yield) (() ↑);; *)
+      xarg <- HoareCall_prologue (sp !! speckey_fn SchHdr.yield) (() ↑);;
+      x <- HoareFun_prologue (sp !! speckey_fn SchHdr.yield) (() ↑);;
       try_run tid;;;
-      trigger (Call (Helping.yield mn) ()↑);;;
-      (* HoareFun_epilogue (sp SchHdr.yield) x.1 (() ↑);;;
-      HoareCall_epilogue (sp SchHdr.yield) xarg.1 (() ↑);;; *)
+      HoareFun_epilogue (sp !! speckey_fn SchHdr.yield) x.1 (() ↑);;;
+      HoareCall_epilogue (sp !! speckey_fn SchHdr.yield) xarg.1 (() ↑);;;
       Ret ()↑.
 
-  Definition fnsems : gmap (option string) (option (emask * (option fspec * fbody))) :=
+  Definition fnsems (sp : specmap) : gmap (option string) (option (emask * (option fspec * fbody))) :=
     {[Some (Helping.run mn) := Some (msk_scp scopes msk_true, (None, run));
-      Some (Helping.help mn) := Some (msk_scp scopes msk_true, (None, help));
-      Some (Helping.yield mn) := Some (msk_scp scopes msk_true, (None, λ _, Ret ()↑))]}.
+      Some (Helping.help mn) := Some (msk_scp scopes msk_true, (None, help sp))]}.
 
-  Program Definition Mod : SMod.t := {|
+  Program Definition Mod (sp : specmap) : SMod.t := {|
     SMod.scopes := scopes;
-    SMod.fnsems := fnsems;
+    SMod.fnsems := fnsems sp;
     SMod.initial_st := {[v_reqs := Some (∅ : gmap nat (option retID * jobID))↑]};
   |}.
   Next Obligation. i; rewrite ?omap_insert omap_empty /=; mod_tac scope_solver. Qed.
   Next Obligation. set_solver. Qed.
   Next Obligation. i; mod_tac scope_solver. Qed.
 
-  Definition sp (sp : specmap) : specmap := 
+  (* Definition sp (sp : specmap) : specmap := 
     match sp !! speckey_fn SchHdr.yield with
     | Some fsp => <[speckey_fn (Helping.yield mn) := fsp]> sp
     | None => ∅
@@ -152,9 +137,9 @@ Module HelpingOn. Section HelpingOn.
 
   Lemma sp_yield sp1 :
     (sp sp1) !! speckey_fn (Helping.yield mn) = sp1 !! speckey_fn SchHdr.yield.
-  Proof. rewrite /sp; destruct (sp1 !! _) eqn : ?; ss; rewrite lookup_insert; ss. Qed.
+  Proof. rewrite /sp; destruct (sp1 !! _) eqn : ?; ss; rewrite lookup_insert; ss. Qed. *)
 
-  Definition t sp1 : Mod.t := SMod.to_mod (sp sp1) Mod.
+  Definition t sp : Mod.t := SMod.to_mod sp (Mod sp).
 End HelpingOn. End HelpingOn.
 
 Module HelpingDummy. Section HelpingDummy.

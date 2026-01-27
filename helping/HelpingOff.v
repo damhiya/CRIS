@@ -21,8 +21,8 @@ Module HelpingOff. Section HelpingOff.
       
   Definition fnsems : gmap (option string) (option (emask * (option fspec * fbody))) :=
     {[Some (Helping.run mn) := Some (msk_scp scopes msk_true, (None, run));
-      Some (Helping.help mn) := Some (msk_scp scopes msk_true, (None, help));
-      Some (Helping.yield mn) := Some (msk_scp scopes msk_true, (None, fbody_trivial))]}.
+      Some (Helping.help mn) := Some (msk_scp scopes msk_true, (None, help))
+    ]}.
 
   Program Definition Mod : SMod.t := {|
     SMod.scopes := scopes;

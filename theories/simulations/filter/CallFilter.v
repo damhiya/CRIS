@@ -1,10 +1,17 @@
 Require Import Common ISim WSim Tactics TacticsCommon WSimNotations TacticsInit Tactics.
-Require Import GSim GSimFacts GSimTactics.
+Require Import GSim GSimFacts GSimTactics GSimAux.
 Require Export ConcRA LMod Mod SMod.
 Require Export CtxRefine CtxRefineFacts ClosedAdequacy MainAdequacy.
 (* From iris.proofmode Require Export proofmode.
 Require Import LMod LSim GSim GSimFacts GSimTactics Mod ISim ISimFacts.
 Require Import TacticsInit Tactics. *)
+Local Ltac gnorm_itr :=
+  match goal with
+  | |- context [?A] =>
+      match type of A with
+      | itree crisE Any.t => pattern A; eapply eq_ind; [|symmetry; hnorm_itr]
+      end
+  end.
 
 Module CFilter. Section CFilter.
   Context `{!crisG Γ Σ α β τ _S _I, !concG}.
@@ -12,6 +19,7 @@ Module CFilter. Section CFilter.
   Definition msk_filter (s : gset string) (msk : emask) : emask := λ X e,
     match e with
     | inr1 (inl1 (Call fn _)) => bool_decide (fn ∉ s ∧ msk X e)
+    | inr1 (inl1 (Spawn fn _)) => bool_decide (fn ∉ s ∧ msk X e)
     | _ => msk X e
     end.
 
@@ -141,9 +149,15 @@ Module CFilter. Section CFilter.
           exfalso; eapply (SUB fn0); set_solver.
         }
       }
-      { steps_r; case_match; des; ss.
-        steps_r.
-        iApply isim_spawn; iIntros (tid). norm_l; norm_r. by_coind CIH. done.
+      { steps_r; case_bool_decide; des; ss.
+        { steps_r.
+          iApply isim_spawn; iIntros (tid). norm_l; norm_r. by_coind CIH. done.
+        }
+        { iApply isim_spawn_none; ss.
+          rewrite ?lookup_fmap; destruct (_ !! _) eqn : Heq; ss.
+          eapply elem_of_dom_2 in Heq.
+          exfalso; eapply (SUB fn0); set_solver.
+        }
       }
       { steps_r; case_match; des; ss. steps_r.
         iApply isim_yield; iSplit; [done|]; iIntros (??) "->".
@@ -189,17 +203,6 @@ Module CFilter. Section CFilter.
     init_sim; ii; et.
   Qed.
 
-  (* TODO : move to GSimTactics.v *)
-  Ltac giter_l :=
-    replace_l; [rewrite unfold_iterV /itreeV_itree //|]; s;
-    try match goal with
-    | |- context [(<[?i := _]> _ )!! ?i] =>
-        rewrite list_lookup_insert //=
-    | |- context [<[?i := _]> (<[?i := _]> _ )] =>
-        rewrite list_insert_insert //
-    end;
-    gnorm_l.
-
   (*** introduction of a module ***)
   Theorem intro_module (mask : gset string) m mc P
       (WF: Mod.wf mc)
@@ -215,40 +218,20 @@ Module CFilter. Section CFilter.
     refines ((filter mask m) ★ mc, P)%I (filter mask m, P)%I.
   Proof using.
     ii; ss.
-    split.
-    (* Well-formedness proof - TODO : make a lemma *)
-    { econs; ss.
-      { rewrite map_Forall_lookup; intros i x; rewrite lookup_union_with ?lookup_fmap /=.
-        destruct (_ m !! i) as [o|] eqn : Hm; ss.
-        { destruct (_ mc !! i) as [oc|] eqn : Hmc; ss.
-          { exfalso.
-            destruct i as [i|].
-            { eapply (EXCL i).
-              { eapply elem_of_set_omap; esplits; eauto; eapply elem_of_dom; eauto. }
-              { eapply EXCL2, elem_of_set_omap; esplits; eauto; eapply elem_of_dom; eauto. }
-            }
-            { eapply EXCL3; eapply elem_of_dom_2 in Hmc; eauto. }
-          }
-          { destruct o; ss; i; clarify.
-            inv WFM; rewrite map_Forall_lookup in wf_fns; hexploit (wf_fns i None); ss.
-            rewrite ?lookup_fmap Hm //=.
-          }
-        }
-        { destruct (_ mc !! i) as [[?|]|] eqn : Hmc; ss; i; clarify.
-          inv WF; rewrite map_Forall_lookup in wf_fns; hexploit (wf_fns i None); ss.
-        }
+    assert (Hwfadd : Mod.wf (filter mask m ★ mc)).
+    { apply Mod.add_wf; eauto.
+      intros [i|] Hi1 Hi2; last set_solver.
+      apply (EXCL i).
+      { apply elem_of_set_omap; eexists; split; last done.
+        rewrite /filter /= dom_fmap // in Hi1.
       }
-      { intros x; rewrite multiplicity_disj_union.
-        destruct (decide (x ∈ Mod.scopes m)) as [e|e]; [rewrite elem_of_multiplicity in e|].
-        { destruct (decide (x ∈ Mod.scopes mc)) as [e2|e2]; first multiset_solver.
-          rewrite elem_of_multiplicity in e2; inv WFM; hexploit (wf_scopes x); ss; nia.
-        }
-        destruct (decide (x ∈ Mod.scopes mc)) as [e2|e2]; last multiset_solver.
-        rewrite elem_of_multiplicity in e2; inv WF; hexploit (wf_scopes x); ss; multiset_solver.
-      }
+      apply EXCL2.
+      apply elem_of_set_omap; eexists; split; done.
     }
+    split; first done.
+
     (* Simulation proof *)
-    intros rs ? Hrs; exists rs; splits; eauto.
+    intros rs Hrs temp; exists rs; splits; eauto. clear temp.
     cut (∀ ps pt arg,
          gsim eq ps pt (LMod.compile (Mod.to_lmod (filter mask m ★ mc) rs) arg)
            (LMod.compile (Mod.to_lmod (filter mask m) rs) arg)).
@@ -262,6 +245,17 @@ Module CFilter. Section CFilter.
     rewrite /LModTr.trans /LModTr.interp_callE /ModTr.trans_fnsem /SB.sandbox_body /ITree.map. ired.
     guclo bindC_spec. econs; cycle 1.
     { instantiate (1:=λ r_s r_t, r_s.2 = r_t.2). ii; gstep; ss. subst; econs; econs; ss. }
+    rewrite -(sandbox_sandbox (bd arg) _ (msk_filter mask (msk_scp (Mod.scopes m) msk_true))); cycle 1.
+    { intros X e ?; destruct e as [e|[e|[e|e]]]; ss; destruct e; ss; repeat case_bool_decide; ss.
+      { exfalso; naive_solver. }
+      { exfalso; naive_solver. }
+      { hexploit (Mod.well_scoped_fns m); rewrite map_Forall_lookup => /(_ None (msk, bd)).
+        rewrite lookup_omap Hm /= =>/(_ eq_refl); intros [Hput ?]; naive_solver.
+      }
+      { hexploit (Mod.well_scoped_fns m); rewrite map_Forall_lookup => /(_ None (msk, bd)).
+        rewrite lookup_omap Hm /= =>/(_ eq_refl); intros [? Hget]; naive_solver.
+      }
+    }
     
     match goal with
       [|-context [ModTr.trans ?t]] => remember [ModTr.trans t] as ths
@@ -269,242 +263,210 @@ Module CFilter. Section CFilter.
     (* destruct p as [[[img msk] sc] bd]. *)
     assert (WFTHS:
       ∀ tid t (IN: ths !! tid = Some t),
-      ∃ ht, t = ModTr.trans (SB.sandbox (msk_filter mask msk) ht)).
+      ∃ ht, t = ModTr.trans (SB.sandbox (msk_filter mask (msk_scp (Mod.scopes m) msk_true)) ht)).
     { i. subst. destruct tid; ss. inv IN. esplits; eauto. }
     clear Heqths.
     generalize 0 as cid.
-    rename rs into rs0.
-    generalize rs0 at 2 4 as rs.
+    (* rename rs into rs0.
+    generalize rs0 at 2 4 as rs. *)
     assert (SCP := m.(Mod.well_scoped_init)). revert SCP.
-    generalize (Mod.initial_st m) as st.
+    assert (Hsts : map_Forall (const is_Some) (Mod.initial_st m)).
+    { apply Mod.nodup_init; inv WFM; auto. }
+    revert Hsts.
     assert (SCPc := mc.(Mod.well_scoped_init)). revert SCPc.
-    generalize (Mod.initial_st mc) as stc.
-    generalize (eq_refl ths) as Heqths.
-    generalize ths at 1 3 as ths0.
-    revert_until WFM.
-    gcofix CIH. i. subst.
-  Admitted.
-    (* TODO : Admitted first and see if CallFilter.v and HelpingOnOff can share the same lemma *)
-    (* giter_l. giter_r.
+    set (st := Mod.initial_st m).
+    assert (Hsts : map_Forall (const is_Some) (union_with (λ _ _, Some None) st (Mod.initial_st mc))).
+    { subst st. hexploit (Mod.nodup_init (filter mask m ★ mc)); ss. inv Hwfadd; auto. }
+    revert Hsts.
+    generalize st.
+    generalize (Mod.initial_st mc) as stc; clear st.
+    (* generalize (eq_refl ths) as Heqths. *)
+    (* generalize ths at 1 3 as ths0. *)
+    generalize dependent ths.
+    clear dependent arg bd msk.
+    revert_until Hwfadd.
+    gcofix CIH. i.
     (* ziter_l. ziter_r. *)
     destruct (ths !! cid) eqn: EQ; cycle 1.
-    { unfold triggerUB. gstep_l. gstep_l. ss. }
+    { giter_l. rewrite /= EQ /triggerUB. gstep_l. gstep_l. ss. }
     assert (WFLEN := lookup_lt_Some _ _ _ EQ).
 
-    eapply WFTHS in EQ. des. subst.
+    eapply WFTHS in EQ as ?. des. subst.
+    rewrite /ModTr.trans in EQ.
     ides ht.
     {
+      giter_l; giter_r; rewrite /= EQ /=.
       des_ifs; cycle 1.
       { unfold triggerUB. do 2 gstep_l. ss. }
       gstep_l. gnorm_l. gstep_r. gnorm_r. gstep. econs; econs; eauto.
     }
     {
-      gstep_l. gstep_r. gnorm_l; gnorm_r.
+      revert EQ; gnorm_itr; i.
+      eapply gsim_tau_src; eauto.
+      eapply gsim_tau_tgt; eauto.
       zprogress.
       gbase. eapply CIH; et.
       i. eapply list_lookup_insert_Some in IN. des; subst; et.
     }
 
-    rewrite ?SBRed.vis; destruct (msk_filter) eqn : Hmsk; cycle 1.
-    { gnorm_l. gstep_l. ss. }
+    rewrite ?SBRed.vis in EQ; destruct (msk_filter) eqn : Hmsk; cycle 1.
+    { revert EQ; gnorm_itr; intros EQ. eapply gsim_Take_src; [eapply EQ|ss]. }
     destruct e; [destruct a | destruct s;
-                              [destruct c|destruct s; [destruct p|destruct c]]].
+                              [destruct c|destruct s; [destruct p|destruct c]]];
+    rewrite vis_trigger in EQ.
     { (* Assume *)
-      gnorm_l. gsteps_l. gsteps_r. hss. ired. hss. ired.
-      giter_l. gstep_l; intros x; gsteps_l.
-      replace_l; [rewrite unfold_iterV /itreeV_itree //|]; s;
-      try match goal with
-      | |- context [(<[?i := _]> _ )!! ?i] =>
-          rewrite list_lookup_insert //= ?length_insert //
-      | |- context [<[?i := _]> (<[?i := _]> _ )] =>
-          rewrite list_insert_insert; [rewrite length_insert //|]
-      end;
-      gnorm_l.
-      giter_l. gstep_l; intros x; gsteps_l.
-      gsteps_l. intros x; gsteps_l.
-      gstep_l.
-      ziter_l. zstep_l. zstep_l.
-      ziter_l. zstep_l. zstep_l. 
-      ziter_l. zstep_l.
-      ziter_l. zstep_l.
-
-      zstep_r.
-      ziter_r. zstep_r. exists x. zstep_r.
-      ziter_r. zstep_r. exists x0. zstep_r.
-      ziter_r. zstep_r.
-      ziter_r. zstep_r.
-
-      zprogress.
-      gbase. eapply CIH; et.
+      eapply gsim_Assume_src; [apply EQ|]. intros rs2 Hrs2.
+      eapply gsim_Assume_tgt; [apply EQ|]. exists rs2; splits; try by des.
+      zprogress. gbase. eapply (CIH rs2); try by des.
       i. eapply list_lookup_insert_Some in IN. des; subst; et.
     }
-    { (* AssumeRes  *)
-
-      zstep_l.
-      ziter_l. zstep_l. zstep_l.
-      ziter_l. zstep_l.
-      ziter_l. zstep_l.
-
-      zstep_r. ziter_r. zstep_r. exists x.
-      zstep_r. ziter_r; zstep_r.
-      ziter_r; zstep_r.
-
-      zprogress.
-      gbase. eapply CIH; et.
+    { (* AssumeRes *)
+      eapply gsim_AssumeRes_src; [apply EQ|]. intros rs2.
+      eapply gsim_AssumeRes_tgt; [apply EQ|]. splits; try by des.
+      zprogress. gbase. eapply (CIH (r0 ⋅ rs)); try by des.
       i. eapply list_lookup_insert_Some in IN. des; subst; et.
     }
     { (* Guarantee *)
-      zstep_r.
-      ziter_r. zstep_r. zstep_r.
-      ziter_r. zstep_r. zstep_r. 
-      ziter_r. zstep_r.
-      ziter_r. zstep_r.
-      
-      zstep_l.
-      ziter_l. zstep_l. exists x. zstep_l.
-      ziter_l. zstep_l. exists x0. zstep_l.
-      ziter_l. zstep_l.
-      ziter_l. zstep_l.
-
-      zprogress.
-      gbase. eapply CIH; et.
+      eapply gsim_Guarantee_tgt; [apply EQ|]. intros rs2 Hrs2.
+      eapply gsim_Guarantee_src; [apply EQ|]. exists rs2; splits; try by des.
+      zprogress. gbase. eapply (CIH rs2); try by des.
       i. eapply list_lookup_insert_Some in IN. des; subst; et.
     }
     { (* Call *)
-      s. destruct (mask fn) eqn: Hmask; cycle 1.
-      { zstep_l. }
-      s. unfold unwrapU at 1. des_ifs; cycle 1.
-      { unfold triggerUB. do 2 zstep_l. }
-      s. unfold unwrapU at 1. des_ifs; cycle 1.
-      { exfalso. rewrite !List.map_app alist_find_app_o Heq0 in Heq.
-        eapply alist_find_some, (in_map fst) in Heq.
-        rewrite List.map_map fst_map_snd in Heq. ss.
-        eapply FRESH; et.
+      simpl in Hmsk; case_bool_decide as Hfn; ss.
+      eapply gsim_Call_src; [apply EQ|].
+      eapply gsim_Call_tgt; [apply EQ|].
+      rewrite {2 4}/LMod.prog !Mod.to_lmod_fnsems lookup_fnsems_None_r //; cycle 1.
+      { rewrite -not_elem_of_dom; intros ?; apply Hfn, EXCL2.
+        rewrite elem_of_set_omap; eexists; split; ss; auto.
       }
-      zstep_l. zstep_r.
+      rewrite /unwrapU; destruct (_ !! Some fn) as [[[cmsk cbd]|]|] eqn : Hfn'; cycle 1.
+      { ired. giter_l. rewrite /= list_lookup_insert //=. gstep_l; ss. }
+      { ired. giter_l. rewrite /= list_lookup_insert //=. gstep_l; ss. }
+      ired.
+      rewrite /ModTr.trans_fnsem /ModTr.trans /SB.sandbox_body -!interpV_bind /=.
+      simpl; rewrite !lookup_fmap in Hfn'.
+      destruct (_ !! Some fn) as [[[cmsk2 bd2]|]|] eqn : Hfn2; ss; clarify.
 
-      rewrite !List.map_app alist_find_app_o Heq0 in Heq. depdes Heq.
-
-      zprogress.
-      gbase. eapply CIH; et.
-
+      zprogress. gbase. eapply CIH; et.
       i. eapply list_lookup_insert_Some in IN. des; subst; et.
-
-      rewrite alist_find_map_snd /o_map in Heq0. des_ifs.
-      rewrite alist_find_map_snd /o_map in Heq. des_ifs.
-      destruct p as [[[img1 msk1] sc1] bd1]. s.
-
-      esplits. rewrite /SB.sandbox_body /ModTr.trans_ktree.
-      erewrite SBRed.bind, Red.bind, sandbox_sandbox; s.
-      - f_equal. extensionalities.
-        erewrite SBRed.tau, Red.tau.
-        do 2 f_equal. ired. erewrite sandbox_sandbox; ii; et; try refl.
-      - et.
-      - ii. eapply andb_prop in H. des; et.
-      - s. etrans; [|eapply Mod.well_scoped_fns].
-        unfold fnsems_scopes. instantiate (1:=Some fn). rewrite Heq0. refl.
+      rewrite /ModTr.trans; esplits.
+      f_equal; erewrite SBRed.bind, sandbox_sandbox.
+      { f_equal. extensionalities a. rewrite -SBRed.tau //. }
+      { intros X e ?; destruct e as [e|[e|[e|e]]]; ss; destruct e; ss; repeat case_bool_decide; ss.
+        { exfalso; naive_solver. }
+        { exfalso; naive_solver. }
+        { hexploit (Mod.well_scoped_fns m); rewrite map_Forall_lookup => /(_ (Some fn) (cmsk2, cbd)).
+          rewrite lookup_omap Hfn2 /= =>/(_ eq_refl); intros [Hput ?]; naive_solver.
+        }
+        { hexploit (Mod.well_scoped_fns m); rewrite map_Forall_lookup => /(_ (Some fn) (cmsk2, cbd)).
+          rewrite lookup_omap Hfn2 /= =>/(_ eq_refl); intros [? Hget]; naive_solver.
+        }
+      }
     }
     { (* Spawn *)
-      s. destruct (mask fn) eqn: Hmask; cycle 1.
-      { zstep_l. }
-      s. unfold unwrapU at 1. des_ifs; cycle 1.
-      { unfold triggerUB. do 2 zstep_l. }
-      s. unfold unwrapU at 1. des_ifs; cycle 1.
-      { exfalso. rewrite !List.map_app alist_find_app_o Heq0 in Heq.
-        eapply alist_find_some, (in_map fst) in Heq.
-        rewrite List.map_map fst_map_snd in Heq. ss.
-        eapply FRESH; et.
+      simpl in Hmsk; case_bool_decide as Hfn; ss.
+      eapply gsim_Spawn_src; [apply EQ|].
+      eapply gsim_Spawn_tgt; [apply EQ|].
+      rewrite {1 3}/LMod.prog !Mod.to_lmod_fnsems lookup_fnsems_None_r //; cycle 1.
+      { rewrite -not_elem_of_dom; intros ?; apply Hfn, EXCL2.
+        rewrite elem_of_set_omap; eexists; split; ss; auto.
       }
-      zstep_l. zstep_r.
+      rewrite /unwrapU; destruct (_ !! Some fn) as [[[cmsk cbd]|]|] eqn : Hfn'; cycle 1.
+      { ired. gstep_l; ss. }
+      { ired. gstep_l; ss. }
+      ired.
+      rewrite /ModTr.trans_fnsem /ModTr.trans /SB.sandbox_body /=.
+      simpl; rewrite !lookup_fmap in Hfn'.
+      destruct (_ !! Some fn) as [[[cmsk2 bd2]|]|] eqn : Hfn2; ss; clarify.
 
-      rewrite !List.map_app alist_find_app_o Heq0 in Heq. depdes Heq.
-
-      zprogress.
-      gbase. eapply CIH; et.
-
+      zprogress. gbase. eapply CIH; et.
       i. eapply lookup_snoc_Some in IN. des.
       { eapply list_lookup_insert_Some in IN0. des; subst; et. }
-      
-      subst. rewrite !alist_find_map /o_map in Heq0. des_ifs.
-      destruct p as [[[img1 msk1] sc1] bd1]. s.
-      esplits. unfold SB.sandbox_body, ModTr.trans_ktree. s.
-      erewrite <-sandbox_sandbox; try refl.
-      - ii. apply andb_prop in H. des; et.
-      - etrans; [|eapply Mod.well_scoped_fns].
-        unfold fnsems_scopes. instantiate (1:=Some fn). rewrite Heq0. refl.
+      rewrite /ModTr.trans; esplits; subst.
+      f_equal; erewrite <-sandbox_sandbox; try refl.
+      { intros X e ?; destruct e as [e|[e|[e|e]]]; ss; destruct e; ss; repeat case_bool_decide; ss.
+        { exfalso; naive_solver. }
+        { exfalso; naive_solver. }
+        { hexploit (Mod.well_scoped_fns m); rewrite map_Forall_lookup => /(_ (Some fn) (cmsk2, cbd)).
+          rewrite lookup_omap Hfn2 /= =>/(_ eq_refl); intros [Hput ?]; naive_solver.
+        }
+        { hexploit (Mod.well_scoped_fns m); rewrite map_Forall_lookup => /(_ (Some fn) (cmsk2, cbd)).
+          rewrite lookup_omap Hfn2 /= =>/(_ eq_refl); intros [? Hget]; naive_solver.
+        }
+      }
     }
     { (* Yield *)
-      zstep_l. zstep_r.
+      eapply gsim_Yield_src; [apply EQ|].
+      eapply gsim_Yield_tgt; [apply EQ|].
       zprogress.
       gbase. eapply CIH; et.
       i. eapply list_lookup_insert_Some in IN. des; subst; et.
     }
     { (* GetTid *)
-      zstep_l. zstep_r.
+      eapply gsim_GetTid_src; [apply EQ|].
+      eapply gsim_GetTid_tgt; [apply EQ|].
       zprogress.
       gbase. eapply CIH; et.
       i. eapply list_lookup_insert_Some in IN. des; subst; et.
     }
     { (* Put *)
-      destruct k0 as [key var]. s.
-      destruct (existsb (String.eqb key) (Mod.scopes m)) eqn: Heq; cycle 1.
-      { zstep_l. }
-      zstep_l. zstep_r.
-      ziter_l. zstep_l.
-      ziter_r. zstep_r.
-      rewrite !ModTr.alist_encode_decode.
-      rewrite alist_upd_not_tail; cycle 1.
-      { eapply existsb_exists in Heq. des. eapply String.eqb_eq in Heq0; subst.
-        ii. eapply NoDup_app_disjoint; et.
-        eapply SCPc. eapply (List.in_map fst) in H. ss.
-        rewrite List.map_map in H. et.
+      destruct k0 as [scp0 key0]; ss; case_bool_decide; ss.
+      assert ((scp0, key0) ∉ (dom stc)).
+      { intros Hscp0; eapply (DISJ scp0); auto.
+        rewrite -gmultiset_elem_of_dom; apply SCPc; rewrite elem_of_map; eexists (_, _); eauto.
       }
-
+      eapply gsim_SPut_src; [apply EQ|auto|].
+      rewrite insert_union_with_l; [|rewrite -not_elem_of_dom //].
+      eapply gsim_SPut_tgt; [apply EQ|auto|].
       zprogress.
-      gbase. eapply CIH; et.
-      - i. eapply list_lookup_insert_Some in IN. des; subst; et.
-      - unfold state_scopes. ii.
-        rewrite -List.map_map alist_upd_keys List.map_map in H. et.
+      gbase. eapply (CIH rs); et.
+      { i. eapply list_lookup_insert_Some in IN. des; subst; et. }
+      { eapply map_Forall_union_with; cycle 1.
+        { split.
+          { eapply map_Forall_insert_2; ss. }
+          { eapply map_Forall_union_with_inv in Hsts as ?; des; eauto. }
+        }
+        eapply map_Forall_union_with_inv_gen in Hsts as ?.
+        set_solver.
+      }
+      { eapply map_Forall_insert_2; ss. }
+      { set_solver. }
     }
     { (* Get *)
-      destruct k0 as [key var]. s.
-      destruct (existsb (String.eqb key) (Mod.scopes m)) eqn: Heq; cycle 1.
-      { zstep_l. }
-      zstep_l. zstep_r. s. ired.   
-      rewrite !ModTr.alist_encode_decode.
-      rewrite alist_find_app_o (alist_find_fst_notin _ stc); cycle 1.
-      { eapply existsb_exists in Heq. des. eapply String.eqb_eq in Heq0; subst.
-        ii. eapply (List.in_map fst) in H. ss.
-        rewrite List.map_map in H. eapply SCPc in H.
-        eapply NoDup_app_disjoint; et.
+      destruct k0 as [scp0 key0]. ss; case_bool_decide; ss.
+      assert ((scp0, key0) ∉ (dom stc)).
+      { intros Hscp0; eapply (DISJ scp0); auto.
+        rewrite -gmultiset_elem_of_dom; apply SCPc; rewrite elem_of_map; eexists (_, _); eauto.
       }
-      zprogress.
-      gbase. eapply CIH; et.
-      - i. eapply list_lookup_insert_Some in IN. des; subst; et.
-      - do 5 f_equal. des_ifs.
+      eapply gsim_SGet_src; [apply EQ|auto|]; s.
+      eapply gsim_SGet_tgt; [apply EQ|auto|]; s.
+      rewrite lookup_union_with (not_elem_of_dom_1 stc); eauto.
+      zprogress. gbase.
+      destruct (st !! _); ss; eapply (CIH rs); et.
+      { i. eapply list_lookup_insert_Some in IN. des; subst; et. }
+      { i. eapply list_lookup_insert_Some in IN. des; subst; et. }
     }
     { (* Choose *)
-      zstep_r. zstep_r.
-      zstep_l. exists x. zstep_l.
+      eapply gsim_Choose_tgt; [apply EQ|]; intros x.
+      eapply gsim_Choose_src; [apply EQ|]; exists x.
       zprogress.
       gbase. eapply CIH; et.
       i. eapply list_lookup_insert_Some in IN. des; subst; et.
     }
     { (* Take *)
-      zstep_l. zstep_l.
-      zstep_r. exists x. zstep_r.
+      eapply gsim_Take_src; [apply EQ|]; intros x.
+      eapply gsim_Take_tgt; [apply EQ|]; exists x.
       zprogress.
       gbase. eapply CIH; et.
       i. eapply list_lookup_insert_Some in IN. des; subst; et.
     }
     { (* IO *)
-      zstep. subst.
-      zstep_l. zstep_r.
+      eapply gsim_IO; [apply EQ|apply EQ|]; intros x.
       zprogress.
       gbase. eapply CIH; et.
       i. eapply list_lookup_insert_Some in IN. des; subst; et.
     }
   Unshelve. all: exact smj_top.
-  (*SLOW*)Qed. *)
-
+  (*SLOW*)Qed.
 End CFilter. End CFilter.

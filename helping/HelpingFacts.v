@@ -125,8 +125,8 @@ Section Helping.
           subst mn all_names; rewrite string_length_app mname_long_length ?set_omap_union_L
           ?maxlen_union /md_src /md_tgt /= in Hx; lia.
       }
-      { set_solver. }
-      { set_solver. }
+      { set_solver-. }
+      { set_solver-. }
     }
 
     erewrite ?CFilter.filter_app.

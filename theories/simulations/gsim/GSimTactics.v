@@ -23,7 +23,7 @@ Section auxilliary.
   Qed.
 End auxilliary.
 
-Ltac replace_l :=
+Ltac greplace_l :=
   match goal with
   | |- gpaco7 _ _ _ _ _ _ _ _ _ ?itr _ =>
     pattern itr;
@@ -33,7 +33,7 @@ Ltac replace_l :=
     end
   end.
 
-Ltac replace_r :=
+Ltac greplace_r :=
   match goal with
   | |- gpaco7 _ _ _ _ _ _ _ _ _ _ ?itr =>
     pattern itr;
@@ -253,14 +253,14 @@ etransitivity;
 ].
 
 Ltac gnorm_l :=
-  replace_l; [s; gnorm_itr|].
+  greplace_l; [s; gnorm_itr|].
 Ltac gnorm_r :=
-  replace_r; [s; gnorm_itr|].
+  greplace_r; [s; gnorm_itr|].
 
 Ltac giter_l :=
-  replace_l; [rewrite unfold_iterV /itreeV_itree //|].
+  greplace_l; [rewrite unfold_iterV /itreeV_itree //|].
 Ltac giter_r :=
-  replace_r; [rewrite unfold_iterV /itreeV_itree //|].
+  greplace_r; [rewrite unfold_iterV /itreeV_itree //|].
 
 Ltac gstep_r := gnorm_r; guclo gsim_indC_spec; econs; instantiate (1:=smj_top).
 Ltac gstep_l := gnorm_l; guclo gsim_indC_spec; econs; instantiate (1:=smj_top).
