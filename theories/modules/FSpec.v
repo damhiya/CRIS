@@ -93,10 +93,10 @@ Section FSPEC.
   
   Definition lat_img_body (peeking: bool) (fsp : fspecS) (lbody: itree crisE ()) (body: fbody) (arg: Any.t) :=
     lbody;;;
-    x <- trigger (Take (metaS fsp));;
-    trigger (Assume (precondS fsp x arg));;;
-    let peek := trigger (Guarantee (precondS fsp x arg));;; Ret (inl ()) in
-    let update := ret <- body arg;; trigger (Guarantee (postcondS fsp x ret));;; Ret (inr ret) in
+    PQ <- trigger (Take (FSpec (to_fspec fsp)));;
+    trigger (Assume (PQ.(Precond) arg arg));;;
+    let peek := trigger (Guarantee (PQ.(Precond) arg arg));;; Ret (inl ()) in
+    let update := ret <- body arg;; trigger (Guarantee (PQ.(Postcond) ret ret));;; Ret (inr ret) in
     if peeking
     then 'b: bool <- trigger (Choose bool);;
          (if b then peek else update)

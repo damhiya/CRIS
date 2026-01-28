@@ -490,6 +490,7 @@ Section LAT.
       (st, SB.sandbox true msk scp (SModTr.trans sp_none (lat_img peeking fsp lbody_s body_s arg)))
       (st, SB.sandbox false msk scp (SModTr.trans sp_none (lat_real peeking fsp lbody_t body_t arg))).
   Proof using.
+    destruct fsp as [m pre post].
     iApply isim_reset. clear ps pt. iStopProof. revert st.
     eapply isim_coind. intros g Hg CIH st. iIntros. destruct_quant CIH.
     rewrite /lat_img /lat_real.
@@ -499,7 +500,7 @@ Section LAT.
       iApply isim_refl; et; i; iIntros "%"; subst; et.
     }
     iIntros (????) "%"; des; subst.
-    isteps_l. isteps_r.
+    isteps_l. iDestruct "ASM" as "[ASM %]". isteps_r.
     destruct (peeking); cycle 1.
     {
       isteps_l. isteps_r.
@@ -511,13 +512,13 @@ Section LAT.
       iIntros (????) "%"; des; subst.
       isteps_l. isteps_r.
       iforce_r. iFrame. iIntros "GRT".
-      iforce_l. iFrame. isteps_l. isteps_r.
+      iforce_l. iFrame. iSplit; et. isteps_l. isteps_r.
       istep; et.
     }
 
     isteps_r. destruct _q0.
     { iforce_r. iFrame. iIntros "GRT".
-      iforce_l true. isteps_l. iforce_l. iFrame. isteps_l. isteps_r.
+      iforce_l true. isteps_l. iforce_l. iFrame. iSplit; et. isteps_l. isteps_r.
       iby_coind CIH; et.
     }
 
@@ -530,7 +531,7 @@ Section LAT.
     iIntros (????) "%"; des; subst.
     isteps_l. isteps_r.
     iforce_r. iFrame. iIntros "GRT".
-    iforce_l. iFrame. isteps_l. isteps_r.
+    iforce_l. iFrame. iSplit; et. isteps_l. isteps_r.
     istep; et.
   Qed.
 
@@ -546,14 +547,14 @@ Section LAT.
   Proof using.
     iIntros. isteps_l. rewrite /lat_img /lat_img_body. unfold_iter_r. isteps_r.
     iDestruct "ASM" as "[P %]"; subst.
-    iforces_r. iFrame. isteps_r.
+    iforces_r. iFrame. iSplit; et. isteps_r.
     iApply isim_bind. iSplitL "".
     { iApply isim_eqit_tgt; et.
       iApply isim_refl; et; i; iIntros "%"; subst; et.
     }
     iIntros (?????). des; subst.
     isteps_r. iforces_l. iFrame.
-    iSplit; et. istep. et.
+    istep. et.
   Qed.
 
   Lemma isim_lat_real_to_hoare fsp body_s body_t fl_s fl_t msk scp ps pt st arg
