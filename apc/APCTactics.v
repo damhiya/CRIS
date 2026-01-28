@@ -32,7 +32,7 @@ Lemma wsim_apc_src_call_tgt_weaker
   (WEAK: fspec_imply (fspec_flat fsp') fsp)
   (fspIsfspecapc: fsp = (@fspec_apc Σ X o (λ x, (P x, Q x))))
   :
-  msk_s fn → msk_t fn →
+  msk_s (Some fn) → msk_t (Some fn) →
   (((P spec_arg args ∗ ⌜∃ vo : Ord.t, od_fn ↑ = vo ↑ ∧ (o spec_arg <= vo)%ord⌝) ∗ (Ist st_src st_tgt)) ∗
     (∀ st_src0 st_tgt0 (vret ret: Any.t),
       ((Ist st_src0 st_tgt0) ∗ (Q spec_arg ret))
@@ -90,7 +90,7 @@ Lemma wsim_apc_src_call_tgt
   (CallSpec: negb (is_spawn_ospec (Some fsp)))
   (fspIsfspecapc: fsp = (@fspec_apc Σ X o (λ x, (P x, Q x))))
   :
-  msk_s fn → msk_t fn →
+  msk_s (Some fn) → msk_t (Some fn) →
   (((P spec_arg args ∗ ⌜∃ vo : Ord.t, od_fn ↑ = vo ↑ ∧ (o spec_arg <= vo)%ord⌝) ∗ (Ist st_src st_tgt)) ∗
     (∀ st_src0 st_tgt0 (vret ret: Any.t),
       ((Ist st_src0 st_tgt0) ∗ (Q spec_arg ret))

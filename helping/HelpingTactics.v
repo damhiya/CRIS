@@ -11,19 +11,19 @@ Section resource.
   Context `{!crisG Γ Σ α β τ _S _I, !inG (helpingR jobID retID) Γ}.
 
   Definition syn_helping_token n (tid : nat) (jid : jobID) : GTerm.t n :=
-    <own> base_γ
+    sown base_γ
       (gmap_view_frag (V:=agreeR $ leibnizO (option retID * jobID))
         tid (DfracOwn 1) (to_agree (None, jid))).
   Definition helping_token (tid : nat) (jid : jobID) : iProp Σ :=
     own base_γ
       (gmap_view_frag (V:=agreeR $ leibnizO (option retID * jobID))
         tid (DfracOwn 1) (to_agree (None, jid))).
-  Global Instance SLRed_helping_token {n} tid jid :
-    SLRed (syn_helping_token n tid jid) (helping_token tid jid).
-  Proof. econs; rewrite SLRed_red //. Qed.
+  Global Instance SLRed_helping_token n tid jid :
+    SLRed n (syn_helping_token n tid jid) (helping_token tid jid).
+  Proof. solve_sl_red. Qed.
 
   Definition syn_helping_done n (tid : nat) (retid : retID) : GTerm.t n :=
-    (∃ (jid : τ{jobID}), <own> base_γ
+    (∃ (jid : τ{jobID}), sown base_γ
       (gmap_view_frag (V:=agreeR $ leibnizO (option retID * jobID))
         tid DfracDiscarded (to_agree (Some retid, jid))))%SAT.
   Definition helping_done (tid : nat) (retid : retID) : iProp Σ :=
@@ -31,13 +31,13 @@ Section resource.
       (gmap_view_frag (V:=agreeR $ leibnizO (option retID * jobID))
         tid DfracDiscarded (to_agree (Some retid, jid))).
   Global Instance SLRed_helping_done n tid retid :
-    SLRed (syn_helping_done n tid retid) (helping_done tid retid).
-  Proof. econs; rewrite SLRed_red //. Qed. 
+    SLRed n (syn_helping_done n tid retid) (helping_done tid retid).
+  Proof. solve_sl_red. Qed. 
   Global Instance helping_done_persistent tid retid : Persistent (helping_done tid retid).
   Proof. apply _. Qed.
 
   Definition syn_helping_auth n q (reqmap : gmap nat (option retID * jobID)) : GTerm.t n :=
-    (<own> base_γ
+    (sown base_γ
       (gmap_view_auth (DfracOwn q)
         (to_agree <$> reqmap : gmap nat (agreeR (leibnizO (option retID * jobID))))))%SAT.
   Definition helping_auth q (reqmap : gmap nat (option retID * jobID)) : iProp Σ :=
@@ -45,8 +45,8 @@ Section resource.
       (gmap_view_auth (DfracOwn q)
         (to_agree <$> reqmap : gmap nat (agreeR (leibnizO (option retID * jobID))))).
   Global Instance SLRed_helping_auth n q reqmap :
-    SLRed (syn_helping_auth n q reqmap) (helping_auth q reqmap).
-  Proof. econs; rewrite SLRed_red //. Qed.
+    SLRed n (syn_helping_auth n q reqmap) (helping_auth q reqmap).
+  Proof. solve_sl_red. Qed.
 
   Lemma helping_auth_split (q : Qp) (reqmap : gmap nat (option retID * jobID)) :
     (q < 1)%Qp →

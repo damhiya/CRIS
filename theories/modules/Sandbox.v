@@ -203,8 +203,9 @@ Module SBRed. Section SBRed.
   Lemma vis_yield {R} msk tid (ktr : () → itree crisE R) :
     SB.sandbox msk (vis (Yield tid) ktr) = vis (Yield tid) (λ x, SB.sandbox msk (ktr x)).
   Proof using.
-    unfold SB.sandbox. rewrite interpV_vis.
-    eapply observe_eta. ss. f_equal. extensionalities. ired. eauto.
+    unfold SB.sandbox. rewrite interpV_vis. s. des_ifs; depdes H0.
+    - eapply observe_eta. ss. f_equal. extensionalities. ired. eauto.
+    - eapply observe_eta. ss. f_equal. extensionalities. ss.
   Qed.
 
   Lemma vis_spawn {R} msk f a (ktr : nat → itree crisE R) :
@@ -480,8 +481,9 @@ Module SBRed. Section SBRed.
   Lemma yield msk tid :
     SB.sandbox msk (trigger (Yield tid)) = trigger (Yield tid).
   Proof using.
-    rewrite vis_yield.
-    eapply observe_eta; ss. f_equal. extensionalities. rewrite ret. eauto.
+    rewrite vis_yield. des_ifs.
+    - eapply observe_eta; ss. f_equal. extensionalities. rewrite ret. eauto.
+    - eapply observe_eta; ss. f_equal. extensionalities. ss.
   Qed.
 
   Lemma spawn f a msk :

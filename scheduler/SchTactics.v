@@ -20,19 +20,18 @@ Section wsim.
   Context (N : namespace).
 
   Lemma wsim_yield_tgt
-      (E : coPset) (r g : rel)
+      (E E_s E_t : coPset) (r g : rel)
       (k_s : () → itree crisE R_s)
       (k_t : () → itree crisE R_t)
       (msk_s msk_t : emask)
       (sp_s sp_t : specmap)
-      (N_s N_t : namespace)
       (stid_s stid_t mtid : nat) :
     let tid :=
       (match sp_s !! speckey_fn SchHdr.yield, sp_t !! speckey_fn SchHdr.yield with
       | Some fsp_s, Some fsp_t =>
-          ⌜fsp_s = fsp_t ∧ fsp_s = SchA.yield_spec N⌝
+          ⌜fsp_s = SchA.yield_spec E_s ∧ fsp_t = SchA.yield_spec E_t⌝
       | Some fsp_s, None =>
-          ⌜fsp_s = SchA.yield_spec N⌝ ∗ Tid mtid stid_s
+          ⌜fsp_s = SchA.yield_spec E_s⌝ ∗ Tid mtid stid_s
       | None, None =>
           True
       | _, _ =>

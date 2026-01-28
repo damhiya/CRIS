@@ -157,16 +157,46 @@ Section MemRA.
   Qed.
 End MemRA.
 
-Notation "loc '↦{' q '}' v" := (mem_points_to_singleton loc (DfracOwn q) v) (at level 20).
-Notation "loc ↦ v" := (mem_points_to_singleton loc (DfracOwn 1) v) (at level 20).
-Notation "loc ↦□ v" := (mem_points_to_singleton loc DfracDiscarded v) (at level 20).
-Notation "loc '↦{' q '}' v" := (<own> base_γ (mem_points_to_singleton_r loc (DfracOwn q) v))%SAT
-  (at level 20) : SAT_scope.
-Notation "loc ↦ v" := (<own> base_γ (mem_points_to_singleton_r loc (DfracOwn 1) v))%SAT
-  (at level 20) : SAT_scope.
-Notation "loc ↦□ v" := (<own> base_γ (mem_points_to_singleton_r loc DfracDiscarded v))%SAT
-  (at level 20) : SAT_scope.
-Notation "loc |-> vs" := (mem_points_to loc (DfracOwn 1) vs) (at level 20).
+Section syn_mem.
+  Context `{!crisG Γ Σ α β τ _S _I, !memG}.
+
+  Definition syn_mem_points_to_singleton {n} loc q v : GTerm.t n :=
+    sown base_γ ((mem_points_to_singleton_r loc q v): memRA).
+
+  Definition syn_mem_points_to {n} : (mblock * Z) → dfrac → list val → GTerm.t n :=
+    λ '(blk, ofs) q vs, ([∗ list] i ↦ v ∈ vs, syn_mem_points_to_singleton (blk, ofs + i)%Z q v)%SAT.
+End syn_mem.
+
+Reserved Notation "l '↦{' q '}' v"
+  (at level 20, q at level 1, format "l  ↦{ q }  v").
+Reserved Notation "l ↦ v"
+  (at level 20, format "l  ↦  v").
+Reserved Notation "l '|->{' q '}' vs"
+  (at level 20, q at level 1, format "l  |->{ q }  vs").
+Reserved Notation "l |-> vs"
+  (at level 20, format "l  |->  vs").
+
+Notation "loc ↦{ q } v" := (mem_points_to_singleton loc (DfracOwn q) v)%I : bi_scope.
+Notation "loc ↦ v" := (mem_points_to_singleton loc (DfracOwn 1) v)%I : bi_scope.
+Notation "loc |->{ q } vs" := (mem_points_to loc (DfracOwn q) vs)%I : bi_scope.
+Notation "loc |-> vs" := (mem_points_to loc (DfracOwn 1) vs)%I : bi_scope.
+
+Notation "loc ↦{ q } v" := (syn_mem_points_to_singleton loc (DfracOwn q) v)%SAT : SAT_scope.
+Notation "loc ↦ v" := (syn_mem_points_to_singleton loc (DfracOwn 1) v)%SAT : SAT_scope.
+Notation "loc |->{ q } vs" := (syn_mem_points_to loc (DfracOwn q) vs)%SAT : SAT_scope.
+Notation "loc |-> vs" := (syn_mem_points_to loc (DfracOwn 1) vs)%SAT : SAT_scope.
+
+Section reduction.
+  Context `{!crisG Γ Σ α β τ _S _I, !memG}.
+
+  Global Instance mem_points_to_singleton_red n loc q v :
+    SLRed n (loc ↦{q} v) (loc ↦{q} v).
+  Proof. solve_sl_red. Qed.
+
+  Global Instance mem_points_to_red n loc q vs :
+    SLRed n (loc |->{q} vs) (loc |->{q} vs).
+  Proof. destruct loc as [blk ofs]. solve_sl_red. Qed.
+End reduction.
 
 Global Opaque mem_points_to_singleton_r.
 Arguments mem_points_to_singleton_r : simpl never.

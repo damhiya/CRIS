@@ -29,19 +29,46 @@ Section ProphecyRA.
   Context `{_crisG: !crisG Γ Σ α β τ _I _S}.
   Context `{_prophG: !prophG}.
 
+  Definition dummy_proph : Prophecy.t :=
+    {| Prophecy.Pro := ();
+       Prophecy.Obs := ();
+       Prophecy.consistent := λ _ _, True;
+       Prophecy.obs_default := ();
+       Prophecy.coverage := λ _, ex_intro _ () (λ _, Logic.I); |}.
+
+  Definition dummy_prophinst : ProphInst.
+  Proof using Type.
+    econs. instantiate (1:=dummy_proph). simpl. exact (tt, []).
+  Qed.
+
+  Section ProphRA.
+
   Definition has_proph_r (id : Prophecy.ID) (v : ProphInst) : ProphRA :=
      discrete_fun_singleton id (◯E v).
   Definition has_proph (id : Prophecy.ID) (v : ProphInst) : iProp Σ :=
     own base_γ (has_proph_r id v).
 
   Definition has_proph_auth_r (P : Prophecy.ID → Prop) (map : Prophecy.ID -> ProphInst) : ProphRA :=
-       ((λ id,
-          if excluded_middle_informative (P id)
-          then ●ε
-          else ●E (map id))).
+       λ id,
+         if excluded_middle_informative (P id)
+         then ●ε
+         else ●E (map id).
 
   Definition has_proph_auth (P : Prophecy.ID → Prop) (map : Prophecy.ID -> ProphInst) : iProp Σ :=
     own base_γ (has_proph_auth_r P map).
+
+  (* initial resource should have no prophecy value *)
+  Definition proph_ir : DRA_mk ProphRA :=
+    has_proph_auth_r (Ensembles.Full_set _) (fun _ => dummy_prophinst).
+
+  Lemma proph_ir_valid : ✓ proph_ir.
+  Proof using Type.
+    ii. unfold proph_ir, has_proph_auth_r. ss. des_ifs; rewrite auth_auth_valid; clarify.
+  Qed.
+
+  End ProphRA.
+
+  Section IdRA.
 
   Definition free_id_r (P : Prophecy.ID → Prop) : IdRA :=
      λ i, if (excluded_middle_informative (P i)) then ◯E () else ε.
@@ -88,16 +115,18 @@ Section ProphecyRA.
   Definition free_id_auth (P : Prophecy.ID → Prop) : iProp Σ :=
     own base_γ (free_id_auth_r P).
 
-  Definition dummy_proph : Prophecy.t :=
-    {| Prophecy.Pro := ();
-       Prophecy.Obs := ();
-       Prophecy.consistent := λ _ _, True;
-       Prophecy.obs_default := ();
-       Prophecy.coverage := λ _, ex_intro _ () (λ _, Logic.I); |}.
+  Definition free_id_ir : DRA_mk IdRA := free_id_auth_r (Ensembles.Full_set _) ⋅ λ i, ◯E().
 
-  Definition dummy_prophinst : ProphInst.
+  Lemma free_id_auth_valid : ✓ free_id_ir.
   Proof using Type.
-    econs. instantiate (1:=dummy_proph). simpl. exact (tt, []).
+    ii. unfold free_id_ir, free_id_auth_r. discrete_fun_tac.
+    des_ifs.
+    - rewrite auth_both_valid_discrete. clarify.
+    - exfalso. apply n. econs.
   Qed.
+
+  End IdRA.
+
+  Definition irΓ : prophΓ := *[Some proph_ir; Some free_id_ir].
 
 End ProphecyRA.

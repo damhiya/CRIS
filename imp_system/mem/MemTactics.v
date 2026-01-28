@@ -35,7 +35,7 @@ Section mem.
   Proof.
     intros Hin Hsz.
     iIntros "K".
-    inline_r. force_r (nroot, 0). force_r (Z.to_nat sz). forces_r. iSplit; eauto.
+    inline_r. force_r (Z.to_nat sz). forces_r. iSplit; eauto.
     { rewrite Z2Nat.id //; try lia. iSplit; eauto. iSplit; eauto. iPureIntro; lia. }
     steps_r. iDestruct "GRT" as "[-> [% [-> ↦]]]". iApply "K".
     iApply (big_sepL_impl with "↦").
@@ -58,7 +58,7 @@ Section mem.
   Proof.
     intros Hin.
     iIntros "↦ K".
-    inline_r. force_r (nroot, 0). force_r (b, ofs, v', v). forces_r. iFrame "↦"; iSplit; eauto.
+    inline_r. force_r (b, ofs, v', v). forces_r. iFrame "↦"; iSplit; eauto.
     steps_r. iDestruct "GRT" as "[-> [↦ ->]]". iApply "K"; iFrame.
   Qed.
 
@@ -78,7 +78,7 @@ Section mem.
   Proof.
     intros Hin.
     iIntros "↦ K".
-    inline_r. force_r (nroot, 0). force_r (b, ofs, q, v). forces_r. iFrame "↦"; iSplit; eauto.
+    inline_r. force_r (b, ofs, q, v). forces_r. iFrame "↦"; iSplit; eauto.
     steps_r. iDestruct "GRT" as "[-> [↦ ->]]". iApply "K"; iFrame.
   Qed.
 
@@ -103,7 +103,7 @@ Section mem.
   Proof.
     intros Hin Hmsk.
     iIntros "↦ E HE K".
-    inline_r. force_r (nroot, 0). force_r (b, ofs, v, v_old, v_new, succ, E). forces_r.
+    inline_r. force_r (b, ofs, v, v_old, v_new, succ, E). forces_r.
     iFrame "↦ E HE"; iSplit; eauto.
     steps_r. iDestruct "GRT" as "[-> [-> [↦ E]]]". iApply ("K" with "↦ E"); iFrame.
   Qed.

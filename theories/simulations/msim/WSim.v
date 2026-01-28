@@ -248,7 +248,7 @@ Section wsim.
     unseal. iIntros "SIM I". iApply isim_flag_mon; [| |iApply "SIM"]; eauto.
   Qed.
 
-  Lemma wsim_coind A (P: A → _) RsA RtA RRA psA ptA srcA tgtA 
+  Lemma wsim_coind A (P: A → _) RsA RtA RRA psA ptA srcA tgtA
     (COIND: ∀ (g0 : rel)
         (INC: ∀ Rs Rt RR ps pt src tgt, g Rs Rt RR ps pt src tgt ⊢ g0 Rs Rt RR ps pt src tgt)
         (CIH: ∀ a, P a ∗ winv Ep ⊢ g0 (RsA a) (RtA a) (RRA a) (psA a) (ptA a) (srcA a) (tgtA a)),
@@ -428,14 +428,6 @@ Section wsim.
     iPoseProof (winv_merge with "[P I]") as "[I _]"; iFrame.
   Qed.
 
-  Lemma wsim_upd i_s i_t:
-    ( |==> sim Ep r g RR ps pt (st_s, i_s) (st_t, i_t)) ⊢
-    sim Ep r g RR ps pt (st_s, i_s) (st_t, i_t).
-  Proof using.
-    unseal. iIntros "SIM W". iApply isim_upd.
-    iMod "SIM". iModIntro. iApply "SIM"; et.
-  Qed.
-
   Lemma wsim_fupd m Ew E1 E2 i_s i_t :
     =|m, Ew|={E2, E1}=> sim (Ew, E1) r g RR ps pt (st_s, i_s) (st_t, i_t) ⊢
     sim (Ew, E2) r g RR ps pt (st_s, i_s) (st_t, i_t).
@@ -444,22 +436,48 @@ Section wsim.
     set (nm := n `max` m).
     iPoseProof (fupd_mon _ nm with "SIM") as "SIM"; first lia.
     iMod (wsatl_mon n nm with "[WA W]") as "[WA W]"; first lia; iFrame.
-    rewrite invariants.uPred_fupd_unseal /invariants.uPred_fupd_def.
-    iMod ("SIM" with "[O W E]") as "[W [E [O SIM]]]"; iFrame.
+    rewrite invariants.uPred_fupd_unseal /invariants.uPred_fupd_def own_bupd_unseal /own_bupd.
+    iMod ("SIM" with "[W E] O") as "[O [W [E SIM]]]"; iFrame.
     iApply "SIM"; iFrame.
   Qed.
 
+  Lemma wsim_own_upd i_s i_t:
+    (o=> sim Ep r g RR ps pt (st_s, i_s) (st_t, i_t))
+    ⊢ sim Ep r g RR ps pt (st_s, i_s) (st_t, i_t).
+  Proof using.
+    destruct Ep as [Ew E2]; iIntros "SIM".
+    iApply (wsim_fupd 0 _ E2). by iMod "SIM" as "$".
+  Qed.
+
+  Lemma wsim_upd i_s i_t:
+    ( |==> sim Ep r g RR ps pt (st_s, i_s) (st_t, i_t))
+    ⊢ sim Ep r g RR ps pt (st_s, i_s) (st_t, i_t).
+  Proof using.
+    iIntros "SIM".
+    iApply wsim_own_upd. by iMod "SIM" as "$".
+  Qed.
+
   (* Proofmode instances *)
+  Global Instance wsim_elim_own_upd P p i_s i_t :
+    ElimModal True p false (o=> P)%I P
+      (sim Ep r g RR ps pt (st_s, i_s) (st_t, i_t))
+      (sim Ep r g RR ps pt (st_s, i_s) (st_t, i_t)).
+  Proof using.
+    rewrite /ElimModal bi.intuitionistically_if_elim /=.
+    iIntros (_) "[HP SIM]".
+    iApply wsim_own_upd. iMod "HP".
+    by iApply ("SIM" with "HP").
+  Qed.
+
   Global Instance wsim_elim_upd P p i_s i_t :
     ElimModal True p false ( |==> P)%I P
       (sim Ep r g RR ps pt (st_s, i_s) (st_t, i_t))
       (sim Ep r g RR ps pt (st_s, i_s) (st_t, i_t)).
   Proof using.
-    unseal.
-    unfold ElimModal. rewrite bi.intuitionistically_if_elim.
-    i. iIntros "[H0 H1] HPRE".
-    iApply isim_upd. iMod "H0". iModIntro.
-    iApply ("H1" with "H0 HPRE").
+    rewrite /ElimModal bi.intuitionistically_if_elim /=.
+    iIntros (_) "[HP SIM]".
+    iApply wsim_upd. iMod "HP".
+    by iApply ("SIM" with "HP").
   Qed.
 
   Global Instance wsim_elim_fupd_gen Ew Ew' E0 E1 E2 n P p i_s i_t :
@@ -507,14 +525,14 @@ Section wsim.
     unfold AddModal. iIntros "[H0 H1]". iMod "H0". iApply ("H1" with "H0").
   Qed.
 
-  Lemma wsim_own_alloc `{!inG A Σ} (a : A) Ew E i_s i_t :
+  (* Lemma wsim_own_alloc `{!inG A Σ} (a : A) Ep i_s i_t :
     ✓ a →
-    ((∃ γ, own γ a) -∗ sim (Ew, E) r g RR ps pt (st_s, i_s) (st_t, i_t))
-    ⊢ sim (Ew, E) r g RR ps pt (st_s, i_s) (st_t, i_t).
+    ((∃ γ, own γ a) -∗ sim Ep r g RR ps pt (st_s, i_s) (st_t, i_t))
+    ⊢ sim Ep r g RR ps pt (st_s, i_s) (st_t, i_t).
   Proof using.
     iIntros (?) "SIM".
     iMod (own_alloc a) as "O"; ss; iApply ("SIM" with "O"); iFrame.
-  Qed.
+  Qed. *)
 
   (* Primitive simulation rules *)
   Lemma wsim_isim sti_s sti_t :
@@ -568,7 +586,7 @@ Section wsim.
   Qed.
 End wsim.
 
-Global Arguments wsim_own_alloc {Γ Σ α β _S _I fl_s fl_t Ist R_s R_t r g RR ps pt st_s st_t A inG0}.
+(* Global Arguments wsim_own_alloc {Γ Σ α β _S _I fl_s fl_t Ist R_s R_t r g RR ps pt st_s st_t A inG0}. *)
 
 (* Lemmas for prophecies *)
 Section FancyReal.

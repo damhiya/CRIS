@@ -284,7 +284,7 @@ Ltac winline_l :=
 
 Ltac winline_r :=
   norm_r with
-    do 1 iApply wsim_inline_tgt; [try prove_inline_cond|try prove_sb_cond|unfold_cris_defs].
+    do 1 iApply wsim_inline_tgt; [try prove_inline_cond|unfold_cris_defs].
 
 Ltac wcall hyps :=
   (norm with do 1 iApply wsim_call); iSplitL hyps; [try done|].

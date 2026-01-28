@@ -248,16 +248,14 @@ Module MemIA. Section MemIA.
 
   Lemma simF_alloc : ISim.sim_fun open MemA MemI IstFull (Some MemHdr.alloc).
   Proof using.
-    iStartSim.
-    step_l. destruct _q as [N stid]. steps_l.
+    iStartSim. steps_l.
     rename _q into sz, _q0 into varg.
     iDestruct "ASM" as "[-> [-> %]]".
 
-    unfold_pre_post.
-    steps_r. rewrite Any.upcast_downcast. steps_r.
+    steps_r. hss_r. steps_r.
 
     iDestruct "IST" as (? ? ? ?) "([-> ->] & [% [% [% [[-> %] >B]]]] & ->)"; des.
-    steps_r. rewrite Any.upcast_downcast. steps_r. case_bool_decide; [|lia]. steps_r.
+    steps_r. hss_r. steps_r. case_bool_decide; [|lia]. steps_r.
 
     rename _q into pad.
     set (blk := Mem.nb mem_tgt + pad).
@@ -291,10 +289,8 @@ Module MemIA. Section MemIA.
   Lemma simF_free : ISim.sim_fun open MemA MemI IstFull (Some MemHdr.free).
   Proof using.
     iStartSim.
-    step_l. destruct _q as [N stid].
     step_l. destruct _q as [[blk ofs] v].
     step_l. rename _q into varg. step_l.
-    (* iIntros (N tid [[blk ofs] v] varg) "?? Pre"; unfold_pre_post. *)
     iDestruct "ASM" as "[-> [-> ↦]]".
     iDestruct "IST" as (? ? ? ?) "([-> ->] & [% [% [% [[-> %] >B]]]] & ->)"; des.
 
@@ -318,15 +314,13 @@ Module MemIA. Section MemIA.
   Lemma simF_load : ISim.sim_fun open MemA MemI IstFull (Some MemHdr.load).
   Proof using.
     iStartSim.
-    step_l. destruct _q as [N stid].
     step_l. destruct _q as [[[blk ofs] q] v]. steps_l.
 
-    (* iIntros (N tid [[[blk ofs] q] v] varg) "?? Pre"; unfold_pre_post. *)
     iDestruct "ASM" as "[-> [-> ↦]]".
     iDestruct "IST" as (? ? ? ?) "([-> ->] & [% [% [% [[-> %] >B]]]] & ->)"; des.
 
     steps_l.
-    steps_r. rewrite Any.upcast_downcast /=. steps_r. rewrite Any.upcast_downcast /=.
+    steps_r. hss_r. steps_r. hss_r.
     steps_r.
 
     iPoseProof (mem_ra_lookup with "[B ↦]") as "[%HIT ->]"; et; iFrame. steps_r.
@@ -338,15 +332,13 @@ Module MemIA. Section MemIA.
   Lemma simF_store : ISim.sim_fun open MemA MemI IstFull (Some MemHdr.store).
   Proof using.
     iStartSim.
-    step_l. destruct _q as [N stid].
     step_l. destruct _q as [[[blk ofs] q] v]. steps_l.
 
-    (* iIntros (N tid [[[blk ofs] v_old] v_new] varg) "?? Pre"; unfold_pre_post. *)
     iDestruct "ASM" as "[-> [-> ↦]]".
     iDestruct "IST" as (? ? ? ?) "([-> ->] & [% [% [% [[-> %] >B]]]] & ->)"; des.
 
     steps_l.
-    steps_r. rewrite Any.upcast_downcast /=. steps_r. rewrite Any.upcast_downcast /=.
+    steps_r. hss_r. steps_r. hss_r.
     steps_r.
 
     iPoseProof (mem_ra_lookup with "[B ↦]") as "[%HIT %HIT2]"; et; iFrame; rewrite HIT2. steps_r.
@@ -365,13 +357,11 @@ Module MemIA. Section MemIA.
   Lemma simF_cmp : ISim.sim_fun open MemA MemI IstFull (Some MemHdr.cmp).
   Proof using.
     iStartSim.
-    step_l. destruct _q as [N stid].
     step_l. destruct _q as [[[v_old v_new] v_cmp] Cmp]. steps_l.
-    (* iIntros (N tid [[[v_old v_new] v_cmp] Cmp] varg) "?? Pre"; unfold_pre_post. *)
     iDestruct "ASM" as "[-> [[-> %Hcmp] [Cmp Cmp2]]]".
     iDestruct "IST" as (? ? ? ?) "([-> ->] & [% [% [% [[-> %] >B]]]] & ->)"; des.
 
-    steps_r. rewrite Any.upcast_downcast /=. steps_r. rewrite Any.upcast_downcast /=. steps_r.
+    steps_r. hss_r. steps_r. hss_r. steps_r.
 
     iMod ("Cmp2" with "Cmp") as (????) "[C1 [C2 C3]]".
     iPoseProof (mem_ra_cmp with "[B C1 C2]") as "->"; eauto; iFrame.
@@ -387,14 +377,13 @@ Module MemIA. Section MemIA.
   Lemma simF_cas : ISim.sim_fun open MemA MemI IstFull (Some MemHdr.cas).
   Proof using.
     iStartSim.
-    step_l. destruct _q as [N stid].
     step_l. destruct _q as [[[[[[blk ofs ] v_old] v_new] v_upd] v_cmp] Cmp]. steps_l.
 
     (* iIntros (N tid [[[[[[blk ofs ] v_old] v_new] v_upd] v_cmp] Cmp] varg) "?? Pre"; unfold_pre_post. *)
     iDestruct "ASM" as "[-> [[-> %Hcmp] [↦ [Cmp Cmp2]]]]".
     iDestruct "IST" as (? ? ? ?) "([-> ->] & [% [% [% [[-> %] >B]]]] & ->)"; des.
 
-    steps_r. rewrite Any.upcast_downcast. steps_r.
+    steps_r. hss_r. steps_r.
 
     iPoseProof (mem_ra_lookup with "[B ↦]") as "[% %Hlookup]"; eauto; [iFrame|].
     iMod ("Cmp2" with "Cmp") as (????) "[C1 [C2 C3]]".
@@ -402,17 +391,17 @@ Module MemIA. Section MemIA.
     iMod ("C3" with "[$]").
 
     (* Load *)
-    inline_r. hrepeat (do 1 rewrite Any.upcast_downcast; steps_r). rewrite Hlookup.
-    steps_r. rewrite Any.upcast_downcast. steps_r.
+    inline_r. hrepeat (do 1 hss_r; steps_r). rewrite Hlookup.
+    steps_r. hss_r. steps_r.
 
     (* Store *)
-    inline_r. hrepeat (do 1 rewrite Any.upcast_downcast; steps_r). rewrite Hcmp2.
-    steps_r. rewrite Any.upcast_downcast. steps_r.
+    inline_r. hrepeat (do 1 hss_r; steps_r). rewrite Hcmp2.
+    steps_r. hss_r. steps_r.
 
     repeat case_bool_decide; simplify_eq.
     { (* Store *)
-      steps_r. inline_r. hrepeat (do 1 rewrite Any.upcast_downcast; steps_r). rewrite Hlookup.
-      steps_r. rewrite Any.upcast_downcast. steps_r.
+      steps_r. inline_r. hrepeat (do 1 hss_r; steps_r). rewrite Hlookup.
+      steps_r. hss_r. steps_r.
       iMod ((mem_ra_update v_upd) with "[B ↦]") as "[B ↦]"; et; [iFrame|].
 
       forces_l. iFrame. iSplit; eauto. step. iFrame.

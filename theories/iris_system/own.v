@@ -44,73 +44,24 @@ Proof using.
   { rewrite /ir_own_admin own.Own_eq /own.Own_def. iFrame. }
 Qed.
 
-Section properties.
+Section own_admin.
   Context `{i : !inG A Σ}.
   Implicit Types a : A.
-
-  Local Instance iRes_singleton_ne γ : NonExpansive (@iRes_singleton A Σ _ γ).
-  Proof using.
-    by intros ????; apply discrete_fun_singleton_ne, allocs_frag_ne, cmra_transport_ne.
-  Qed.
-  Local Instance iRes_singleton_proper γ :
-    Proper ((≡) ==> (≡)) (@iRes_singleton A Σ _ γ) := ne_proper _.
-  Local Lemma iRes_singleton_op γ a1 a2 :
-    iRes_singleton γ (a1 ⋅ a2) ≡ iRes_singleton γ a1 ⋅ iRes_singleton γ a2.
-  Proof using.
-    rewrite /iRes_singleton discrete_fun_singleton_op cmra_transport_op.
-    f_equiv. rewrite allocs_frag_op; done.
-  Qed.
-  Local Lemma iRes_singleton_validI γ a : ✓ (iRes_singleton γ a) ⊢@{@iProp Σ} ✓ a.
-  Proof using.
-    rewrite /iRes_singleton /allocs_frag.
-    rewrite discrete_fun_validI (forall_elim (inG_id i)) discrete_fun_lookup_singleton.
-    rewrite discrete_fun_validI (forall_elim γ) discrete_fun_lookup_singleton.
-    rewrite option_validI csum_validI.
-    trans (✓ cmra_transport inG_prf a : @iProp Σ)%I; last by destruct inG_prf.
-    done.
-  Qed.
-
-  (** ** Properties of [own] *)
-  Global Instance own_ne γ : NonExpansive (@own A Σ _ γ).
-  Proof using. rewrite !own_eq; solve_proper. Qed.
-  Global Instance own_proper γ : Proper ((≡) ==> (⊣⊢)) (@own A Σ _ γ) := ne_proper _.
-
-  Lemma own_op γ a1 a2 : own γ (a1 ⋅ a2) ⊣⊢ own γ a1 ∗ own γ a2.
-  Proof using. by rewrite !own_eq -ownM_op -iRes_singleton_op. Qed.
-  Lemma own_mono γ a1 a2 : a2 ≼ a1 → own γ a1 ⊢ own γ a2.
-  Proof using. move=> [c ->]. by rewrite own_op sep_elim_l. Qed.
-
-  Global Instance own_mono' γ : Proper (flip (≼) ==> (⊢)) (@own A Σ _ γ).
-  Proof using. intros a1 a2. apply own_mono. Qed.
-
-  Lemma own_valid γ a : own γ a ⊢ ✓ a.
-  Proof using. by rewrite !own_eq /own_def ownM_valid iRes_singleton_validI. Qed.
-  Lemma own_valid_2 γ a1 a2 : own γ a1 -∗ own γ a2 -∗ ✓ (a1 ⋅ a2).
-  Proof using. apply entails_wand, wand_intro_r. by rewrite -own_op own_valid. Qed.
-  Lemma own_valid_3 γ a1 a2 a3 : own γ a1 -∗ own γ a2 -∗ own γ a3 -∗ ✓ (a1 ⋅ a2 ⋅ a3).
-  Proof using. apply entails_wand. do 2 apply wand_intro_r. by rewrite -!own_op own_valid. Qed.
-  Lemma own_valid_r γ a : own γ a ⊢ own γ a ∗ ✓ a.
-  Proof using. apply: bi.persistent_entails_r. apply own_valid. Qed.
-  Lemma own_valid_l γ a : own γ a ⊢ ✓ a ∗ own γ a.
-  Proof using. by rewrite comm -own_valid_r. Qed.
-
-  Global Instance own_timeless γ a : Discrete a → Timeless (own γ a).
-  Proof using. rewrite !own_eq /own_def. apply _. Qed.
-  Global Instance own_core_persistent γ a : CoreId a → Persistent (own γ a).
-  Proof using. rewrite !own_eq /own_def; apply _. Qed.
-
-  (* TODO : Find a way to hide own_admin using fancy-update-like modalities *)
-  (* Note : There is no way to impose restrictions on ghost locs for now. *)
+  (* Note : There is no way to impose restrictions on ghost locs for now.
+     There probably doesn't exist a model that (1) allows rules
+     [own_alloc_strog_dep] and (2) allow splitting of [own_admin].
+  *)
   Lemma own_admin_alloc a : ✓ a → own_admin ⊢ |==> own_admin ∗ ∃ γ, own γ a.
   Proof using.
     intros hwf. rewrite ?own_admin_eq /own_admin_def.
-    iIntros "[%X [%INF OWN]]".
-    iPoseProof (bupd_ownM_update _ 
+    iIntros "[%X [%INF ●]]".
+    iMod (bupd_ownM_update _
       (((λ i, allocs_auth (@GRA_lookup Σ i) (.∈ X ∖ {[coPpick X]})) : GRAUR Σ)
       ⋅ iRes_singleton (coPpick X) a)
-      with "OWN") as "> [AUTH OWN]".
-    { apply discrete_fun_update; intros i'. destruct (decide ((inG_id i) = i')).
-      { subst i'. rewrite discrete_fun_lookup_op. etrans.
+      with "●") as "[● H]".
+    { apply discrete_fun_update; intros i'.
+      destruct (decide (inG_id i = i')) as [<-|NE].
+      { rewrite discrete_fun_lookup_op. etrans.
         { eapply (allocs_alloc (cmra_transport inG_prf a) _ (.∈ X∖{[coPpick X]}) (coPpick X)).
           { eapply cmra_transport_valid, hwf. }
           { set_solver. }
@@ -137,6 +88,7 @@ Section properties.
     { iExists (coPpick X); rewrite own_eq /own_def; done. }
   Qed.
 
+  (* TODO: is this really needed? *)
   Lemma own_admin_split : own_admin -∗ own_admin ∗ own_admin.
   Proof using.
     rewrite ?own_admin_eq /own_admin_def; iIntros "[%X [%H OWN]]".
@@ -149,6 +101,134 @@ Section properties.
       rewrite discrete_fun_lookup_op; apply allocs_auth_split_2_L; set_solver.
     }
     iDestruct "O" as "[$ $]"; done.
+  Qed.
+End own_admin.
+
+(* Make a lightweight [bupd] with [own_admin] baked in, for easier allocation lemmas. *)
+Section own_bupd.
+  Context `{Σ : GRA}.
+  Implicit Types P : iProp Σ.
+
+  Definition own_bupd P : iProp Σ := own_admin ==∗ own_admin ∗ P.
+
+  Lemma own_bupd_unseal :
+    @bupd _ own_bupd = own_bupd.
+  Proof. done. Qed.
+
+  Lemma own_bupd_intro P : P ⊢ own_bupd P.
+  Proof. iIntros "H INV". iModIntro. iFrame. Qed.
+
+  Lemma own_bupd_mono P Q : (P ⊢ Q) → own_bupd P ⊢ own_bupd Q.
+  Proof.
+    iIntros (HPQ) "Upd I".
+    iMod ("Upd" with "I") as "[$ P]". iModIntro.
+    rewrite -HPQ. done.
+  Qed.
+
+  Lemma own_bupd_trans P : own_bupd (own_bupd P) ⊢ own_bupd P.
+  Proof.
+    iIntros "Upd I".
+    iMod ("Upd" with "I") as "[I Upd]".
+    iApply "Upd". done.
+  Qed.
+
+  Lemma own_bupd_frame_r P R : (own_bupd P) ∗ R ⊢ own_bupd (P ∗ R).
+  Proof.
+    ii. unfold own_bupd. iIntros "[H0 $] INV".
+    iApply ("H0" with "INV").
+  Qed.
+
+  Lemma uPred_bupd_mixin_own_bupd : BiBUpdMixin (iProp Σ) own_bupd.
+  Proof.
+    split.
+    - rewrite own_bupd_unseal /own_bupd. solve_proper.
+    - exact: own_bupd_intro.
+    - exact: own_bupd_mono.
+    - exact: own_bupd_trans.
+    - exact: own_bupd_frame_r.
+  Qed.
+
+  (* Not an instance to not contaminate search for original [bupd] *)
+  Definition uPred_bi_bupd_own : BiBUpd (iProp Σ) :=
+    {| bi_bupd_mixin := uPred_bupd_mixin_own_bupd |}.
+End own_bupd.
+
+(* Notation for use of [own_bupd] with [BiBUpd] lemma supports *)
+Reserved Notation "o=> Q"
+  (at level 99, Q at level 200, format "'[  ' o=>  '/' Q ']'").
+Reserved Notation "P o==∗ Q"
+  (at level 99, Q at level 200, format "'[' P  o==∗  '/' Q ']'").
+
+Notation "o=> P" := (@bupd _ (@bi_bupd_bupd _ uPred_bi_bupd_own) P) : bi_scope.
+Notation "P o==∗ Q" := (P -∗ o=> Q)%I : bi_scope.
+Notation "P o==∗ Q" := (P -∗ o=> Q)%stdpp : stdpp_scope.
+
+Global Instance elim_modal_base_own `{Σ : GRA} b (P Q : iProp Σ) :
+  ElimModal True b false (|==> P) P (o=> Q) (o=> Q).
+Proof.
+  rewrite /ElimModal bi.intuitionistically_if_elim
+    own_bupd_unseal /own_bupd /=.
+  iIntros (_) "[>P Q] O".
+  iApply ("Q" with "P O").
+Qed.
+
+Section properties.
+  Context `{i : !inG A Σ}.
+  Implicit Types a : A.
+
+  Local Instance iRes_singleton_ne γ : NonExpansive (@iRes_singleton A Σ _ γ).
+  Proof using.
+    by intros ????; apply discrete_fun_singleton_ne, allocs_frag_ne, cmra_transport_ne.
+  Qed.
+  Local Instance iRes_singleton_proper γ :
+    Proper ((≡) ==> (≡)) (@iRes_singleton A Σ _ γ) := ne_proper _.
+  Local Lemma iRes_singleton_op γ a1 a2 :
+    iRes_singleton γ (a1 ⋅ a2) ≡ iRes_singleton γ a1 ⋅ iRes_singleton γ a2.
+  Proof using.
+    rewrite /iRes_singleton discrete_fun_singleton_op cmra_transport_op.
+    f_equiv. rewrite allocs_frag_op; done.
+  Qed.
+  Local Lemma iRes_singleton_valid γ a : ✓ (iRes_singleton γ a) → ✓ a.
+  Proof using.
+    intros Ha.
+    apply discrete_fun_singleton_valid, discrete_fun_singleton_valid in Ha.
+    rewrite Some_valid Cinr_valid cmra_transport_valid // in Ha.
+  Qed.
+
+  (** ** Properties of [own] *)
+  Global Instance own_ne γ : NonExpansive (@own A Σ _ γ).
+  Proof using. rewrite !own_eq; solve_proper. Qed.
+  Global Instance own_proper γ : Proper ((≡) ==> (⊣⊢)) (@own A Σ _ γ) := ne_proper _.
+
+  Lemma own_op γ a1 a2 : own γ (a1 ⋅ a2) ⊣⊢ own γ a1 ∗ own γ a2.
+  Proof using. by rewrite !own_eq -ownM_op -iRes_singleton_op. Qed.
+  Lemma own_mono γ a1 a2 : a2 ≼ a1 → own γ a1 ⊢ own γ a2.
+  Proof using. move=> [c ->]. by rewrite own_op sep_elim_l. Qed.
+
+  Global Instance own_mono' γ : Proper (flip (≼) ==> (⊢)) (@own A Σ _ γ).
+  Proof using. intros a1 a2. apply own_mono. Qed.
+
+  Lemma own_valid γ a : own γ a ⊢ ⌜✓ a⌝.
+  Proof using. rewrite !own_eq /own_def ownM_valid. iPureIntro. apply iRes_singleton_valid. Qed.
+  Lemma own_valid_2 γ a1 a2 : own γ a1 -∗ own γ a2 -∗ ⌜✓ (a1 ⋅ a2)⌝.
+  Proof using. apply entails_wand, wand_intro_r. by rewrite -own_op own_valid. Qed.
+  Lemma own_valid_3 γ a1 a2 a3 : own γ a1 -∗ own γ a2 -∗ own γ a3 -∗ ⌜✓ (a1 ⋅ a2 ⋅ a3)⌝.
+  Proof using. apply entails_wand. do 2 apply wand_intro_r. by rewrite -!own_op own_valid. Qed.
+  Lemma own_valid_r γ a : own γ a ⊢ own γ a ∗ ⌜✓ a⌝.
+  Proof using. apply: bi.persistent_entails_r. apply own_valid. Qed.
+  Lemma own_valid_l γ a : own γ a ⊢ ⌜✓ a⌝ ∗ own γ a.
+  Proof using. by rewrite comm -own_valid_r. Qed.
+
+  Global Instance own_timeless γ a : Discrete a → Timeless (own γ a).
+  Proof using. rewrite !own_eq /own_def. apply _. Qed.
+  Global Instance own_core_persistent γ a : CoreId a → Persistent (own γ a).
+  Proof using. rewrite !own_eq /own_def; apply _. Qed.
+
+  (* Note : There is no way to impose restrictions on ghost locs for now. *)
+  Lemma own_alloc a : ✓ a → ⊢ o=> ∃ γ, own γ a.
+  Proof using.
+    rewrite own_bupd_unseal. iIntros (hwf) "●own".
+    by iApply (own_admin_alloc with "●own").
   Qed.
 
   Lemma own_update γ a a' : a ~~> a' → own γ a ⊢ |==> own γ a'.
@@ -251,9 +331,9 @@ Section proofmode_instances.
   Global Instance combine_sep_as_own γ a b1 b2 :
     IsOp a b1 b2 → CombineSepAs (own γ b1) (own γ b2) (own γ a) | 60.
   Proof using. intros. by rewrite /CombineSepAs -own_op -is_op. Qed.
-  
+
   Global Instance combine_sep_gives_own γ b1 b2 :
-    CombineSepGives (own γ b1) (own γ b2) (✓ (b1 ⋅ b2)).
+    CombineSepGives (own γ b1) (own γ b2) (⌜✓ (b1 ⋅ b2)⌝).
   Proof using.
     intros. rewrite /CombineSepGives -own_op own_valid.
     by apply: bi.persistently_intro.
@@ -298,8 +378,7 @@ Section Own.
 
   Lemma Own_valid a : Own a ⊢ ⌜✓ a⌝.
   Proof using.
-    unseal. iIntros "H". iDestruct (uPred.ownM_valid with "H") as "V".
-    iEval (rewrite uPred.discrete_valid) in "V". iFrame "V".
+    unseal. iIntros "H". iDestruct (uPred.ownM_valid with "H") as "V". done.
   Qed.
 
   Lemma Own_wand_valid (a1 a2 : Σ) (WAND : Own a1 ⊢ |==> Own a2) (VALID : ✓ a1) : ✓ a2.
@@ -371,7 +450,7 @@ Section Own.
     eapply Own_general_completeness in H1. eapply H in H1.
     rewrite own.Own_eq in H1. et.
   Qed.
-  
+
   Global Instance into_sep_Own (a b1 b2 : Σ) :
     IsOp a b1 b2 → IntoSep (Own a) (Own b1) (Own b2).
   Proof using. intros. by rewrite /IntoSep (is_op a) Own_op. Qed.
@@ -635,4 +714,4 @@ Section Lemmas.
     iIntros "H". iApply Own_op. iStopProof. eauto.
   Qed.
 
-End Lemmas.  
+End Lemmas.

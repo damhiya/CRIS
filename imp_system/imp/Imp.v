@@ -566,23 +566,26 @@ Section MODSEM.
     des_ifs.
   Qed.
 
-  (* Definition to_itree (ge : GEnv.t) : (string*_) -> (option string * (fnsem_type (option fspec * fbody)))%type :=
-    (fun '(fn, f) => (Some fn, (false, wmask_all, [], (None, cfunU (eval_imp ge f))))). *)
-  
-  (* Program Definition get_mod (m : program) (ge : GEnv.t) : SMod.t :=
-    {|SMod.scopes := [];
-      SMod.fnsems := List.map (to_itree ge) m.(prog_funs);
-      SMod.initial_st := [];
+  Definition to_itree (ge : GEnv.t)
+      : (string * _) -> (option string * option (emask * (option fspec * fbody)))%type :=
+    λ '(fn, f), (Some fn, Some ((msk_real (msk_scp ∅ msk_true), (None, cfunU (eval_imp ge f))))).
+
+  Program Definition get_mod (m : program) (ge : GEnv.t) : SMod.t :=
+    {|SMod.scopes := ∅;
+      SMod.fnsems := list_to_map (List.map (to_itree ge) m.(prog_funs));
+      SMod.initial_st := ∅;
   |}.
-  Solve All Obligations with prove_scope.
+  (* Solve All Obligations with prove_scope. *)
   Next Obligation.
-    ii. unfold Mod.fnsems_scopes, to_itree in *.
-    destruct fn.
-    - rewrite alist_find_omap_some in H.
-      destruct (alist_find s (prog_funs m)); ss.
-    - rewrite alist_find_omap_none in H; ss.
+    intros ??; rewrite map_Forall_lookup; intros i [x p].
+    induction (prog_funs m) as [|[fn f] tl]; ss.
+    rewrite lookup_omap; destruct (decide (Some fn = i)); subst.
+    { rewrite lookup_insert; i; ss; clarify. }
+    rewrite lookup_insert_ne //.
+    rewrite lookup_omap in IHtl; intros ?%IHtl; auto.
   Qed.
-  Next Obligation. prove_nodup. Qed. *)
+  Next Obligation. set_solver. Qed.
+  Next Obligation. i; ss. Qed.
 
   (* Definition get_mod (m : program) : Mod.t := {| *)
   (*   Mod.modsem := fun ge => (modsem m (GEnv.load_genv ge)); *)

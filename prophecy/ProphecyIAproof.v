@@ -255,7 +255,7 @@ Module ProphIA. Section ProphIA.
         rewrite interp_state_tau. rewrite bind_tau.
         over. }
       econs. ss. grind.
-      rewrite list_insert_insert. right. eapply CIH.
+      rewrite list_insert_insert. right. eapply CIH; et.
       apply Forall2_insert. ss.
       ss.
       apply Forall_insert; ss.
@@ -878,8 +878,7 @@ Module ProphIA. Section ProphIA.
       unfold precond, postcond.
       rewrite ?interpV_bind ?interpV_trigger /=; grind.
       rewrite unfold_iterV /= list_lookup_insert //=; grind.
-      rewrite /LModTr.pure_state /=; grind. steps_l. destruct p; ss. grind.
-      steps_l. rewrite !list_insert_insert.
+      rewrite /LModTr.pure_state /=; grind. steps_l. grind. steps_l. rewrite !list_insert_insert.
       rewrite interpV_ret; grind.
       (* destruct p. ss. *)
       unfold cfunU, SB.sandbox_body, SB.sandbox, ModTr.trans_fnsem, ModTr.trans, SModTr.trans.
@@ -889,12 +888,7 @@ Module ProphIA. Section ProphIA.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et.
       grind.  grind. steps_l. grind.
-      steps_l. rewrite !list_insert_insert.
-      simpl. rewrite !interpV_bind !interpV_trigger. simpl.
-      rewrite bind_ret_r interpV_trigger. simpl. grind.
-      rewrite unfold_iterV. simpl.
-      rewrite !list_lookup_insert; et. grind. steps_l. grind.
-      rewrite !list_insert_insert. rewrite Any.pair_split. grind.
+      steps_l. rewrite !list_insert_insert. rewrite Any.pair_split. grind.
       rewrite Any.upcast_downcast. grind.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind.
@@ -918,21 +912,18 @@ Module ProphIA. Section ProphIA.
         iIntros "A". iPoseProof (p2 with "A") as ">[[[A B] C] [D E]]".
         rewrite RS. iDestruct "E" as "[E F]".
         rewrite own.own_eq /own.own_def own.Own_eq /own.Own_def.
-        iCombine "B F" as "B". rewrite -own.iRes_singleton_op.
-        replace uPred_ownM with own.Own_def by et.
-        rewrite -own.Own_eq.
-        iPoseProof (Own_valid with "B") as "%".
-        rewrite -uPred.discrete_valid.
-        iApply own.iRes_singleton_validI.
-        rewrite uPred.discrete_valid. et. }
+        iCombine "B F" gives %HFREE. iPureIntro.
+        rewrite -own.iRes_singleton_op in HFREE.
+        by apply own.iRes_singleton_valid in HFREE.
+      }
       assert (free_ids i1).
       { unfold free_id_auth_r, free_id_r in H.
         specialize (H i1). discrete_fun_tac.
         destruct excluded_middle_informative; clarify.
         destruct excluded_middle_informative; clarify.
         rewrite comm auth_both_valid_discrete in H. des.
-        red in H. des. destruct z. { rewrite -Some_op in H. inv H. }
-        inv H. }
+        apply Some_included_is_Some in H. clear -H. rewrite -not_eq_None_Some in H. done.
+      }
       clear H. rename H0 into FREE.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind. steps_l.
@@ -1003,8 +994,8 @@ Module ProphIA. Section ProphIA.
           apply discrete_fun_update. i. discrete_fun_tac.
           destruct excluded_middle_informative; cycle 1.
           { do 2 destruct excluded_middle_informative; try done.
-            { exfalso. apply n2. red. red. split; et. ii. inv H1. }
-            exfalso. do 2 red in s. des. apply n2. apply s. }
+            { exfalso. apply n0. red. red. split; et. ii. inv H1. }
+            exfalso. do 2 red in s. des. apply n0. apply s. }
           subst. destruct excluded_middle_informative; clarify.
           destruct excluded_middle_informative; clarify.
           { inv s. exfalso. apply H2. econs. }
@@ -1030,7 +1021,7 @@ Module ProphIA. Section ProphIA.
             rewrite right_id. unfold proph_map'.
             destruct (excluded_middle_informative (a = i1)); clarify.
             des_ifs; exfalso; cycle 1. { inv s. }
-            apply n3. split; et. ii. apply n2. inv H1. }
+            apply n1. split; et. ii. apply n1. inv H1. }
           subst. destruct excluded_middle_informative; clarify.
           rewrite discrete_fun_lookup_singleton.
           destruct excluded_middle_informative.
@@ -1057,7 +1048,7 @@ Module ProphIA. Section ProphIA.
         { apply Own_bupd_update. iIntros "A".
           iPoseProof (H1 with "A") as ">[A B]". iModIntro. iFrame. }
         rewrite cmra_valid_validN. i.
-        specialize (H2 n1 ε). ss. apply H2. clear H2. revert n1.
+        specialize (H2 n ε). ss. apply H2. clear H2. revert n.
         rewrite -cmra_valid_validN. et. }
       unshelve eexists (conj H2 _).
       { rewrite H1. iIntros "> [[[_ [% ?]] _] $]". iModIntro; iSplit; eauto. }
@@ -1114,20 +1105,21 @@ Module ProphIA. Section ProphIA.
       rewrite bind_ret_r. grind. rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et.
       grind. unfold LModTr.pure_state at 1. grind. steps_l. grind.
-      destruct p. ss. destruct s, p, p. ss.
+      (* destruct p. ss. destruct s, p, p. ss. *)
       unfold cfunU, SB.sandbox_body, SB.sandbox, ModTr.trans_fnsem, ModTr.trans, SModTr.trans.
-      steps_l. grind. steps_l. steps_r.
+      steps_l. grind. rewrite list_insert_insert.
       rewrite interpV_ret; ired.
       (* simpl. rewrite !SRed.ret. grind. *)
       rewrite !interpV_bind !interpV_trigger. simpl.
       rewrite bind_ret_r interpV_trigger. simpl.
       rewrite bind_ret_r. grind. rewrite unfold_iterV. simpl.
-      rewrite list_lookup_insert; et. 2:{ rewrite length_insert //. }
-      grind. unfold LModTr.pure_state at 1. grind. steps_l. grind.
+      (* rewrite list_lookup_insert; et. *)
+      (* 2:{ rewrite length_insert //. } *)
+      (* grind. unfold LModTr.pure_state at 1. grind. steps_l. grind.
       steps_l. rewrite !list_insert_insert.
       simpl. rewrite !interpV_bind !interpV_trigger. simpl.
       rewrite bind_ret_r interpV_trigger. simpl. grind.
-      rewrite unfold_iterV. simpl.
+      rewrite unfold_iterV. simpl. *)
       rewrite !list_lookup_insert; et. grind. steps_l. grind.
       rewrite !list_insert_insert. rewrite Any.pair_split. grind.
       rewrite Any.upcast_downcast. grind.
@@ -1153,13 +1145,10 @@ Module ProphIA. Section ProphIA.
         iIntros "A". iPoseProof (p3 with "A") as ">[[[A B] C] [D E]]".
         iDestruct "E" as "[E F]".
         rewrite own.own_eq /own.own_def own.Own_eq /own.Own_def.
-        iCombine "B E" as "B". rewrite -own.iRes_singleton_op.
-        replace uPred_ownM with own.Own_def by et.
-        rewrite -own.Own_eq.
-        iPoseProof (Own_valid with "B") as "%".
-        rewrite -uPred.discrete_valid.
-        iApply own.iRes_singleton_validI.
-        rewrite uPred.discrete_valid. et. }
+        iCombine "B E" gives %HFREE.
+        rewrite -own.iRes_singleton_op in HFREE.
+        by apply own.iRes_singleton_valid in HFREE.
+      }
       assert (~ free_ids i1).
       { unfold has_proph_auth_r, has_proph_r in H.
         specialize (H i1). discrete_fun_tac.
@@ -1316,7 +1305,7 @@ Module ProphIA. Section ProphIA.
         { apply Own_bupd_update. iIntros "A".
           iPoseProof (H with "A") as ">[A B]". iModIntro. iFrame. }
         rewrite cmra_valid_validN. i.
-        specialize (H0 n1 ε). ss. apply H0. clear H0. revert n1.
+        specialize (H0 n ε). ss. apply H0. clear H0. revert n.
         rewrite -cmra_valid_validN. et. }
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind.
@@ -1382,11 +1371,7 @@ Module ProphIA. Section ProphIA.
       rewrite !list_lookup_insert; et. 2:{ rewrite length_insert //. }
       grind. unfold LModTr.pure_state at 1. grind. steps_l. grind.
       steps_l. rewrite !list_insert_insert.
-      simpl. rewrite !interpV_bind !interpV_trigger. simpl.
-      rewrite bind_ret_r interpV_trigger. simpl. grind.
-      rewrite unfold_iterV. simpl.
-      rewrite !list_lookup_insert; et. grind. steps_l. grind.
-      rewrite !list_insert_insert. rewrite Any.pair_split. grind.
+      rewrite Any.pair_split. grind.
       rewrite Any.upcast_downcast. grind.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind.
@@ -1394,7 +1379,8 @@ Module ProphIA. Section ProphIA.
       rewrite !list_insert_insert.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind.
-      unfold LModTr.pure_state at 1. grind. steps_l. grind. steps_l.
+      (* unfold LModTr.pure_state at 1. *)
+      grind. steps_l. grind. steps_l.
       rewrite !list_insert_insert. des.
       assert (Own p1 ⊢ ⌜arg = i1↑⌝).
       { iIntros "A".
@@ -1416,13 +1402,10 @@ Module ProphIA. Section ProphIA.
         rewrite RS. iDestruct "E" as "[E F]".
         unfold has_proph.
         rewrite own.own_eq /own.own_def own.Own_eq /own.Own_def.
-        iCombine "B E" as "B". rewrite -own.iRes_singleton_op.
-        replace uPred_ownM with own.Own_def by et.
-        rewrite -own.Own_eq.
-        iPoseProof (Own_valid with "B") as "%".
-        rewrite -uPred.discrete_valid.
-        iApply own.iRes_singleton_validI.
-        rewrite uPred.discrete_valid. et. }
+        iCombine "B E" gives %HFREE.
+        rewrite -own.iRes_singleton_op in HFREE.
+        by apply own.iRes_singleton_valid in HFREE.
+      }
       assert (~ free_ids i1).
       { unfold has_proph_auth_r, has_proph_r in H.
         specialize (H i1). discrete_fun_tac.
@@ -1451,15 +1434,15 @@ Module ProphIA. Section ProphIA.
       rewrite bind_ret_r.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind.
-      unfold LModTr.pure_state at 1. grind. steps_l. grind. steps_l.
+      (* unfold LModTr.pure_state at 1. grind. steps_l. grind. steps_l. *)
       eapply wsimg_choose_src.
       exists (tt↑). grind. rewrite !list_insert_insert. steps_l.
       rewrite !interpV_bind interpV_trigger. simpl.
       rewrite bind_ret_r interpV_trigger. simpl.
       rewrite bind_ret_r. grind.
       rewrite unfold_iterV. simpl.
-      rewrite !list_lookup_insert; et. grind.
-      unfold LModTr.pure_state at 1. grind. steps_l. grind. steps_l.
+      rewrite !list_lookup_insert; et. grind. steps_l.
+      (* unfold LModTr.pure_state at 1. grind. steps_l. grind. steps_l. *)
       exists (tt↑). grind. rewrite !list_insert_insert. steps_l.
       rewrite !interpV_bind interpV_trigger. simpl.
       rewrite bind_ret_r interpV_trigger. simpl. grind.
@@ -1469,13 +1452,15 @@ Module ProphIA. Section ProphIA.
       rewrite Any.upcast_downcast. grind.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind.
-      unfold LModTr.pure_state at 1. grind. steps_l.
+      (* unfold LModTr.pure_state at 1. grind. *)
+      steps_l.
       exists (rs_tgt ⋅ (own.iRes_singleton base_γ (has_proph_auth_r (Ensembles.Add _ free_ids i1) proph_map)
                 ⋅ own.iRes_singleton base_γ (free_id_auth_r (Ensembles.Add _ free_ids i1)))).
       grind. steps_l. rewrite !list_insert_insert.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind.
-      unfold LModTr.pure_state at 1. grind. steps_l.
+      (* unfold LModTr.pure_state at 1. grind. *)
+      steps_l.
       assert
         (Own p1 ⊢ |==>
            ((⌜tt ↑ = tt ↑⌝ ∗
@@ -1508,11 +1493,11 @@ Module ProphIA. Section ProphIA.
           destruct (excluded_middle_informative (a = i1)); cycle 1.
           { rewrite right_id.
             do 2 destruct excluded_middle_informative; try done.
-            { exfalso. apply n2. econs. et. }
+            { exfalso. apply n0. econs. et. }
             exfalso. inv a0. inv H. }
           subst.
           do 2 destruct excluded_middle_informative; clarify; cycle 1.
-          { exfalso. apply n2. econs 2. econs. }
+          { exfalso. apply n0. econs 2. econs. }
           apply (auth_update_alloc).
           apply alloc_option_local_update. done.
         - iCombine "B E" as "B".
@@ -1523,12 +1508,12 @@ Module ProphIA. Section ProphIA.
           { rewrite discrete_fun_lookup_singleton_ne; et.
             rewrite left_id.
             do 2 destruct excluded_middle_informative; try done.
-            { exfalso. apply n2. econs. et. }
+            { exfalso. apply n0. econs. et. }
             exfalso. inv a0. inv H. }
           subst. destruct excluded_middle_informative; clarify.
           rewrite discrete_fun_lookup_singleton.
           destruct excluded_middle_informative; cycle 1.
-          { exfalso. apply n2. econs 2. econs. }
+          { exfalso. apply n0. econs 2. econs. }
           rewrite PROPH. rewrite comm.
           apply (auth_update_dealloc).
           eapply delete_option_local_update; ss.
@@ -1551,7 +1536,7 @@ Module ProphIA. Section ProphIA.
         { apply Own_bupd_update. iIntros "A".
           iPoseProof (H with "A") as ">[A B]". iModIntro. iFrame. }
         rewrite cmra_valid_validN. i.
-        specialize (H0 n1 ε). ss. apply H0. clear H0. revert n1.
+        specialize (H0 n ε). ss. apply H0. clear H0. revert n.
         rewrite -cmra_valid_validN. et. }
       unshelve eexists (conj H0 _).
       { rewrite H.
@@ -1674,39 +1659,12 @@ Module ProphIA. Section ProphIA.
       steps_l; steps_r.
       rewrite !Any.pair_split /=; grind.
       rewrite !list_insert_insert.
-      (* unfold LModTr.pure_state at 1 4. grind.
-      steps_r. steps_l. exists (x0 ⋅ rs_proph). grind.
-      steps_r. steps_l. rewrite !list_insert_insert. *)
       do 2 rewrite unfold_iterV. grind.
       rewrite !list_lookup_insert; et; cycle 1.
       { erewrite <- Forall2_length; et. }
       grind.
       steps_r. steps_l.
       rewrite !list_insert_insert.
-      (* do 2 rewrite unfold_iterV.
-      rewrite !list_list_insert; et; cycle 1.
-      assert (Own rs_src ⊢ |==> □ ((Own x ==∗ iP) ∗ (iP ==∗ Own x)) ∗ Own (x0 ⋅ rs_proph)).
-      { iIntros "A". apply Own_Upd in REQ. iPoseProof (REQ with "A") as ">[A B]".
-        iPoseProof (x1 with "A") as ">[A C]". iModIntro. iFrame.
-        iSplitL "C"; et. }
-      exists H. grind. clear H.
-      steps_r. steps_l. rewrite !list_insert_insert.
-      do 2 rewrite unfold_iterV. grind.
-      rewrite !list_lookup_insert; et; cycle 1.
-      { erewrite <- Forall2_length; et. }
-      grind. unfold LModTr.pure_state at 1 4. grind.
-      steps_l. steps_r. esplits. Unshelve. all: cycle 1.
-      { rewrite assoc in p. eapply cmra_valid_op_l; et. }
-      grind. steps_r. steps_l. rewrite !list_insert_insert.
-      do 2 rewrite unfold_iterV. grind.
-      rewrite !list_lookup_insert; et; cycle 1.
-      { erewrite <- Forall2_length; et. }
-      grind. steps_r. steps_l. rewrite !list_insert_insert.
-      rewrite !Any.pair_split. grind.
-      do 2 rewrite unfold_iterV. grind.
-      rewrite !list_lookup_insert; et; cycle 1.
-      { erewrite <- Forall2_length; et. } *)
-      (* grind. steps_r. steps_l. rewrite !list_insert_insert. *)
       endsim. { apply Forall2_insert; et. }
       2:{ rewrite REQ assoc //. }
       i. hexploit INV; et. i. des. esplits; et. clear - H0.
@@ -1721,6 +1679,10 @@ Module ProphIA. Section ProphIA.
       punfold STEP3. pfold. eauto.
   (*SLOW*)Qed.
 
+  (* we can't give an prophecy value in initial state *)
+  (* prophecy's invariant is that prophecy value should consistent with full prophecy call behavior *)
+  (* prophecy module can't expect full program's behavior locally *)
+  (* If prophecy value is given in initial state, context module cannot be parameterized and should have expected behavior *)
   Theorem adequacy_refines_mod sp
       (r_src r_tgt r_proph : Σ)
       (WFMODT : Mod.wf (md ★ ProphecyI.t))
@@ -1781,5 +1743,4 @@ Module ProphIA. Section ProphIA.
     - eapply cmra_valid_op_r. et.
   Qed.
 
-  End ProphIA.
-End ProphIA.
+End ProphIA. End ProphIA.

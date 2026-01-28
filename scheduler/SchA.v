@@ -70,7 +70,7 @@ Module SchA. Section SchA.
 
   (** initial resource *)
   Definition ir_joinRA : DRA_mk joinRA := 
-    (gmap_view_auth (DfracOwn 1) {[0 := (to_agree (λ _ _, existT 0 ⊥))]})%SAT.
+    (gmap_view_auth (DfracOwn 1) {[0 := (to_agree (λ _ _, existT 0 emp))]})%SAT.
   Lemma ir_joinRA_valid : ✓ ir_joinRA.
   Proof. rewrite /ir_joinRA; apply gmap_view_auth_valid. Qed.
 
