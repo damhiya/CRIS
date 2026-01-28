@@ -9,12 +9,12 @@ Module Cancel. Section Cancel.
 
 Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG}.
 
-Lemma cancel_elim md {X: Type} (PQ : X → (Any.t → iProp Σ) * (Any.t → iProp Σ)) N mm
+Lemma cancel_elim md {X: Type} (PQ : X → (Any.t → iProp Σ) * (Any.t → iProp Σ)) mm
   (r_i r_s r_t: Σ) rs_diff srcs tgts cid st ps pt
   (WFS: SMod.cancellable md)
   (MAIN: (SMod.conc_sp_from md) !! speckey_entry = Some (fspec_simple PQ))
   (* (WF: Mod.wf (SMod.to_mod sp_none (SMod.cancel md))) *)
-  (REL: Forall3i (thread_rel PQ N mm (SMod.conc_sp_from md) cid) rs_diff srcs tgts)
+  (REL: Forall3i (thread_rel PQ mm (SMod.conc_sp_from md) cid) rs_diff srcs tgts)
   (WFR: ✓ r_s) (WFST: map_Forall (const is_Some) st)
   (RS: Own r_s ⊢ |==> ([∗ list] i ∈ rs_diff, Own i) ∗ Own r_t ∗
          TIDAUTH cid ∗ YIELDAUTH (length rs_diff))
@@ -46,7 +46,7 @@ Proof using.
     (Own r_s ⊢ |==> ([∗ list] i ∈ <[cid := r_diff]> rs_diff, Own i) ∗ Own r_t ∗
        TIDAUTH cid ∗ YIELDAUTH (length (<[cid := r_diff]> rs_diff))) →
     cid < List.length srcs →
-    thread_rel PQ N mm (SMod.conc_sp_from md) cid cid r_diff itr_s itr_t →
+    thread_rel PQ mm (SMod.conc_sp_from md) cid cid r_diff itr_s itr_t →
     gpaco7 _gsim (cpn7 _gsim) bot7 r (Any.t * Any.t)%type
       (Any.t * Any.t)%type cancel_eq smj_top smj_top
       (LModTr.interp_stateE Any.t
@@ -102,17 +102,12 @@ Proof using.
     rewrite bind_ret_l Any.pair_split /= bind_ret_l.
     sir. sir.
     iter_r. rewrite list_lookup_insert -?Hlenyz //. step_r. norm_r.
-    rewrite Any.pair_split /=. ired. hss. ired.
-    sir. ired. sir. ired. sir. ired.
-    rewrite Any.pair_split /=. ired. sir. ired. sir.
-    iter_r. rewrite list_lookup_insert -?Hlenyz //. step_r. norm_r.
-
     gstep. econs. econs. 
     r. esplits; eauto; hss.
     eapply Own_pure_soundness.
     { eapply Own_wand_valid; [|instantiate (1 := r_s); eauto].
       rewrite RS; eauto. iIntros ">(_ & $ & _)"; eauto. }
-    { rewrite x2 x5. iIntros ">[_ >[[$ _] _]]". }
+    { rewrite x2. iIntros ">[[$ _] _]". }
   - iter_l. iter_r. rewrite Hs Ht /=. step_l. norm_l. step_r. norm_r. eapply Hkey; et.
     { rewrite list_insert_id //. }
     { econs; eauto. }
@@ -127,12 +122,12 @@ Proof using.
 (*SLOW*)Qed.
 
 
-Lemma cancel_main md rs rt {X} (PQ: X → (Any.t → iProp Σ) * (Any.t → iProp Σ)) N mm
+Lemma cancel_main md rs rt {X} (PQ: X → (Any.t → iProp Σ) * (Any.t → iProp Σ)) mm
   (WFS: SMod.cancellable md)
   (MAIN: SMod.conc_sp_from md !! speckey_entry = Some (fspec_simple PQ))
   (WF: Mod.wf (SMod.to_mod ∅ (SMod.cancel md)))
   (VALID: ✓ rs)
-  (RES: Own rs ⊢ |==> TID 0 ∗ YIELD 0 ∗ winv (↑N, ↑N) ∗ Own rt ∗ (PQ mm).1 tt↑ ∗ TIDAUTH 0 ∗ YIELDAUTH 1)
+  (RES: Own rs ⊢ |==> TID 0 ∗ YIELD 0 ∗ winv (⊤, ⊤) ∗ Own rt ∗ (PQ mm).1 tt↑ ∗ TIDAUTH 0 ∗ YIELDAUTH 1)
   :  
   refines_lmod
     (Mod.to_lmod (MInline.inline (SMod.to_mod ∅ (SMod.cancel md))) rs)
@@ -170,50 +165,54 @@ Proof using.
 
   r in x2. des. destruct fspo; ss. inv x2.
   rewrite /SMod.conc_sp_from lookup_insert_ne // /SMod.sp_from lookup_kmap_Some in MAIN.
-  des. rewrite /SMod.lift_fn in MAIN. des_ifs. rewrite !lookup_omap /= !lookup_fmap lookup_omap FIND /= in MAIN0.
+  des. rewrite /SMod.lift_fn in MAIN. des_ifs.
+  rewrite !lookup_omap /= !lookup_fmap lookup_omap FIND /= in MAIN0.
   inv MAIN0.
 
   dup x0. r in x0; des.
   rewrite SBRed.bind SBRed.vis !vis_trigger x0. ired.
-  iter_r. step_r. exists (N, 0). step_r. ired. iter_r. step_r. ired.
-  rewrite SBRed.ret bind_ret_l SBRed.bind SBRed.vis !vis_trigger x0. ired.
   iter_r. step_r. exists mm. step_r. ired. iter_r. step_r. ired.
   rewrite SBRed.ret bind_ret_l SBRed.bind SBRed.vis !vis_trigger x0. ired.
   iter_r. step_r. exists (tt↑). step_r. ired. iter_r. step_r. ired.
   rewrite SBRed.ret bind_ret_l SBRed.bind SBRed.vis !vis_trigger x4. ired.
   iter_r. step_r. ired. rewrite Any.pair_split /= bind_ret_l Any.upcast_downcast /= bind_ret_l !bind_bind.
-  iter_r. step_r. rewrite (assoc _ (Own rt)) (assoc _ (winv (↑N, ↑N))) (assoc _ (YIELD 0) _) (assoc _ (TID 0)) in RES.
+  iter_r. step_r.
+  rewrite (assoc _ (Own rt)) (assoc _ (winv (⊤, ⊤))) (assoc _ (YIELD 0) _) (assoc _ (TID 0)) in RES.
   hexploit (Own_bupd_split); eauto. i; des.
   do 3 rewrite -assoc in RES.
   assert (✓ a1).
   { eapply (Own_wand_valid rs); eauto. iIntros "P". iPoseProof (H with "P") as "[>$ _]". eauto. }
   hexploit (Own_bupd_split a1); eauto.
-  { iIntros "P"; iPoseProof (H0 with "P") as "(A & B & C & D & E)". iModIntro. iSplitR "E".
-    { iCombine "A B C D" as "A". iApply "A". }
-    { iApply "E". }
+  { iIntros "P"; iPoseProof (H0 with "P") as "(A & B & C & D & E)". iModIntro. iSplitR "D E".
+    { iCombine "A B C" as "A". iApply "A". }
+    { iCombine "D E" as "E". iApply "E". }
   }
   i; des.
-  exists a0. step_r. ired. iter_r. step_r. unshelve eexists; ired.
+  exists a3. step_r. ired. iter_r. step_r. unshelve eexists; ired.
   { esplits; eauto.
-    { eapply (Own_wand_valid a1); eauto. iIntros "P". iPoseProof (H3 with "P") as "[>$ _]". eauto. }
-    { iIntros "P"; iPoseProof (H4 with "P") as "($ & $ & $ & $)". eauto. }
+    { eapply (Own_wand_valid a1); eauto. iIntros "P". iPoseProof (H3 with "P") as "[_ >$]". eauto. }
+    { iIntros "P"; iPoseProof (H5 with "P") as "[$ $]". eauto. }
   }
   iter_r. step_r. ired. step_r. ired. rewrite Any.pair_split /= bind_ret_l.
   iter_r. step_r. ired. iter_r. step_r. ired.
-  rewrite SBRed.ret bind_ret_l SBRed.bind SBRed.vis !vis_trigger x4. ired.
-  iter_r. step_r. ired. rewrite Any.pair_split /= bind_ret_l Any.upcast_downcast /= bind_ret_l !bind_bind.
-  iter_r. step_r. exists a1. step_r. ired. iter_r. step_r. unshelve eexists; ired.
+  rewrite SBRed.ret bind_ret_l SBRed.bind.
+  (* SBRed.vis. !vis_trigger x4. *)
+  (* ired. *)
+  (* iter_r. step_r. ired. rewrite Any.pair_split /= bind_ret_l Any.upcast_downcast /= bind_ret_l !bind_bind. *)
+  (* iter_r. step_r. exists a1. step_r. ired. iter_r. step_r. unshelve eexists; ired.
   { esplits; eauto. iIntros "P"; iPoseProof (H3 with "P") as ">[A B]". iFrame.
     iModIntro. rewrite /precond /fspec_simple. iSplit; eauto. iApply H5; eauto. }
   step_r. iter_r. step_r. ired. rewrite Any.pair_split /= !bind_ret_l.
-  iter_r. step_r. ired. iter_r. step_r. ired. rewrite SBRed.ret bind_ret_l SBRed.bind MIRed.bind.
+  iter_r. step_r. ired. iter_r. step_r. ired. rewrite SBRed.ret bind_ret_l SBRed.bind MIRed.bind. *)
 
   (* set (itr := vret <- SModTr.trans true (sp_from md) (bd arg);; _: itree crisE Any.t). *)
   (* replace (interpV (SB.handle_sandbox true msk scp) itr) with (SB.sandbox true msk scp itr) by refl. *)
   (* rewrite SBRed.bind MIRed.bind. *)
-  set (itr0 := (λ _, inline_body _ _)).
-  eassert (itr0 = λ vret, (ret <- trigger (Choose Any.t);; tau;;
-         trigger (Guarantee (TID 0 ∗ YIELD 0 ∗ winv (↑N, ↑N)));;; tau;;
+  (* set (itr0 := inline_body _).
+  eassert (itr0 = λ bd,
+          vret <- bd;;
+         (ret <- trigger (Choose Any.t);; tau;;
+         (* trigger (Guarantee (TID 0 ∗ YIELD 0 ∗ winv (↑N, ↑N)));;; tau;; *)
          trigger (Guarantee (⌜vret = ret⌝ ∗ (PQ mm).2 vret));;; tau;;
          Ret ret)).
   { subst itr0. rewrite /postcond /fspec_simple. eapply func_ext. i.
@@ -225,11 +224,13 @@ Proof using.
     extensionalities. ired. do 2 f_equal.
     rewrite SBRed.ret MIRed.ret bind_ret_l SBRed.ret MIRed.ret //.
   }
-  rewrite H6. rewrite interpV_bind.
+  rewrite H6. *)
+  (* rewrite interpV_bind. *)
 
   gfinal. right.
+  rewrite /LMod.prog /LMod.fnsems /Mod.to_lmod.
 
-  eapply (cancel_elim rs a1 (rs_diff:=[ε])); eauto.
+  eapply cancel_elim with (r_s:=rs) (r_t:=a3) (rs_diff:=[ε]); eauto.
   { rewrite /SMod.conc_sp_from /SMod.sp_from lookup_insert_ne // lookup_kmap_Some.
     exists None. esplit; eauto. rewrite !lookup_omap !lookup_fmap !lookup_omap FIND //. }
   { econs; et.
@@ -239,12 +240,18 @@ Proof using.
     { rewrite /SMod.conc_sp_from /SMod.sp_from lookup_insert_ne // lookup_kmap_Some.
       exists None. esplit; eauto. rewrite !lookup_omap !lookup_fmap !lookup_omap FIND //. }
     eapply elim_rel_cancel; et.
+    rewrite /main_post /ModTr.trans -interpV_bind; f_equal.
+    rewrite MIRed.bind; f_equal; extensionalities.
+    rewrite SBRed.bind MIRed.bind SBRed.vis x3 vis_trigger MIRed.core; grind.
+    rewrite SBRed.ret MIRed.ret; ired.
+    rewrite SBRed.bind MIRed.bind SBRed.vis x6 vis_trigger MIRed.ag; grind.
+    rewrite !SBRed.ret !MIRed.ret; ired; ss.
   }
   { eapply (SMod.nodup_init). inv WF. ss. }
-  ss. iIntros "P". iPoseProof (H with "P") as ">[$ P]".
-  iPoseProof (H1 with "P") as "[$ $]".
-  iModIntro. iSplit; eauto. iApply Own_unit.
-Unshelve. all: exact smj_top.
+  ss. iIntros "P". rewrite right_id. iPoseProof (H with "P") as ">[P1 P2]".
+  iPoseProof (H1 with "P2") as "[$ $]".
+  rewrite H3; iMod ("P1") as "[_ $]"; iModIntro; iApply Own_unit.
+Unshelve. all: try exact smj_top; auto.
 (*SLOW*)Qed.
 
 End Cancel.
@@ -253,12 +260,12 @@ Section Cancel.
 Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG}.
 
 (*** Final Theorem ***)
-Theorem cancellation md P {X: Type} (PQ : X → (Any.t → iProp Σ) * (Any.t → iProp Σ)) N mm
+Theorem cancellation md P {X: Type} (PQ : X → (Any.t → iProp Σ) * (Any.t → iProp Σ)) mm
   (WFS: SMod.cancellable md)
   (WF: Mod.wf (SMod.to_mod ∅ (SMod.cancel md)))
   (MAIN: SMod.conc_sp_from md !! speckey_entry = Some (fspec_simple PQ))
   :
-  refines (SMod.to_mod ∅ (SMod.cancel md), (P ∗ TIDAUTH 0 ∗ YIELDAUTH 1 ∗ TID 0 ∗ YIELD 0 ∗ winv (↑N, ↑N) ∗ (PQ mm).1 tt↑)%I)
+  refines (SMod.to_mod ∅ (SMod.cancel md), (P ∗ TIDAUTH 0 ∗ YIELDAUTH 1 ∗ TID 0 ∗ YIELD 0 ∗ winv (⊤, ⊤) ∗ (PQ mm).1 tt↑)%I)
           (SMod.to_mod (SMod.conc_sp_from md) md, P).
 Proof using. 
   etrans.

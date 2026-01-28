@@ -50,11 +50,12 @@ End SchRA.
 Hint Unfold inG_join inG_tid subG_newschG : GRA_index.
 
 Definition fspec_sch `{!crisG Γ Σ α β τ _S _I, !concG, !newschG}
-    (N : namespace) (fsp : fspec) : fspec :=
-  fspec_winv N
+    (E : coPset) (fsp : fspec) : fspec :=
+  fspec_winv E
     (fspec_mk
       (λ '(stid, mtid, x) varg arg, Tid mtid stid ∗ precond fsp x varg arg)
       (λ '(stid, mtid, x) vret ret, Tid mtid stid ∗ postcond fsp x vret ret))%I.
+
 (* Program Global Instance fspec_winv_precond `{!crisG Γ Σ α β τ _S _I} (fsp : fspec) N tid E m arg varg :
   WP (precond (fspec_sch fsp) (N, tid) m arg varg) :=
   {| WP_space := E; WP_remainder := (precond fsp (N, tid) m arg varg) |}.
@@ -129,14 +130,14 @@ Module SchA. Section SchA.
         (λ '(pre, postS) vret ret,
           ∃ tid, ⌜vret = tid↑ ∧ ret = tid↑⌝ ∗ JoinHandle tid postS)%I.
 
-    Definition yield_spec (N : namespace) : fspec :=
-      fspec_sch N
+    Definition yield_spec (E : coPset) : fspec :=
+      fspec_sch E
         (fspec_mk
           (λ (_ : ()) varg arg, ⌜arg = varg ∧ varg = tt↑⌝)
           (λ _ vret ret, ⌜ret = vret ∧ vret = tt↑⌝))%I.
 
-    Definition join_spec (N : namespace) : fspec :=
-      fspec_sch N
+    Definition join_spec (E : coPset) : fspec :=
+      fspec_sch E
         (fspec_mk
           (λ postS varg arg,
             ∃ tid, ⌜arg = tid↑ ∧ varg = tid↑⌝ ∗ JoinHandle tid postS)
@@ -149,11 +150,11 @@ Module SchA. Section SchA.
         (λ '(mtid, stid) varg arg, ⌜varg = tt↑ ∧ arg = varg⌝ ∗ Tid mtid stid)%I
         (λ '(mtid, stid) vret ret, ⌜vret = mtid↑ ∧ ret = vret⌝ ∗ Tid mtid stid)%I.
 
-    Definition sp (N : namespace) : specmap :=
+    Definition sp (E : coPset) : specmap :=
       {[speckey_fn SchHdr._spawn := inner_spawn_spec;
         speckey_fn SchHdr.spawn :=  spawn_spec;
-        speckey_fn SchHdr.yield :=  yield_spec N;
-        speckey_fn SchHdr.join :=   join_spec N;
+        speckey_fn SchHdr.yield :=  yield_spec E;
+        speckey_fn SchHdr.join :=   join_spec E;
         speckey_fn SchHdr.get_tid := get_tid_spec]}.
   End SPEC.
 
@@ -214,22 +215,22 @@ Module SchA. Section SchA.
   Definition get_tid : unit → itree crisE nat :=
     λ _, cgetN v_tid.
 
-  Definition fnsems (N : namespace) (sp_user : specmap)
+  Definition fnsems (E : coPset) (sp_user : specmap)
       : gmap (option string) (option (emask * (option fspec * fbody))) :=
     {[Some SchHdr._spawn :=
         Some (msk_scp scopes msk_true, (Some (inner_spawn_spec sp_user), cfunN inner_spawn));
       Some SchHdr.spawn :=
         Some (msk_scp scopes msk_true, (Some (spawn_spec sp_user), cfunN spawn));
       Some SchHdr.yield :=
-        Some (msk_scp scopes msk_true, (Some (yield_spec N), cfunN yield));
+        Some (msk_scp scopes msk_true, (Some (yield_spec E), cfunN yield));
       Some SchHdr.join :=
-        Some (msk_scp scopes msk_true, (Some (join_spec N), cfunN join));
+        Some (msk_scp scopes msk_true, (Some (join_spec E), cfunN join));
       Some SchHdr.get_tid :=
         Some (msk_scp scopes msk_true, (Some get_tid_spec, cfunN get_tid))]}.
 
-  Program Definition smod (N : namespace) sp_user : SMod.t := {|
+  Program Definition smod (E : coPset) sp_user : SMod.t := {|
     SMod.scopes := scopes;
-    SMod.fnsems := fnsems N sp_user;
+    SMod.fnsems := fnsems E sp_user;
     SMod.initial_st := SchI.smod.(SMod.initial_st);
   |}.
   Solve All Obligations with (i; try done).
@@ -239,5 +240,6 @@ Module SchA. Section SchA.
   Definition init_cond : iProp Σ :=
     TidAuth {[0 := 0]} ∗ own base_γ ir_joinRA.
 
-  Definition t (N : namespace) sp sp_user := SMod.to_mod sp (smod N sp_user).
+  (* Scheduler module itself has fixed namespace to ⊤, with specmap namespaces variable *)
+  Definition t sp sp_user := SMod.to_mod sp (smod ⊤ sp_user).
 End SchA. End SchA.

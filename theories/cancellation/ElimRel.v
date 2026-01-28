@@ -698,26 +698,25 @@ Section CancelDef.
   (*       (ret <- trigger (Choose Any.t);; tau;; *)
   (*        trigger (Guarantee ⌜vret = ret⌝);;; tau;; Ret ret). *)
 
-  Definition main_post {X} (PQ: X → (Any.t → iProp Σ) * (Any.t → iProp Σ))
-    (N: namespace) (x: X): Any.t → itree lmodE Any.t :=
+  Definition main_post {X} (PQ: X → (Any.t → iProp Σ) * (Any.t → iProp Σ)) (x: X)
+      : Any.t → itree lmodE Any.t :=
     λ vret,
       ModTr.trans
         (ret <- trigger (Choose Any.t);; tau;;
-         trigger (Guarantee (TID 0 ∗ YIELD 0 ∗ winv (↑N, ↑N)));;; tau;;
          trigger (Guarantee (⌜vret = ret⌝ ∗ (PQ x).2 vret));;; tau;;
          Ret ret).
 
   (* thread_rel (main spec) (main namespace) (main meta) cid tid ... *)
-  Variant thread_rel {X: Type} (PQ : X → (Any.t → iProp Σ) * (Any.t → iProp Σ)) N mm
+  Variant thread_rel {X: Type} (PQ : X → (Any.t → iProp Σ) * (Any.t → iProp Σ)) mm
     sp cid : nat → Σ → itree lmodE Any.t → itree lmodE Any.t → Prop :=
   | thread_rel_body itrS itrT src tgt r_diff tid (k: Any.t → itree lmodE Any.t)
       (MAIN: sp !! speckey_entry = Some (fspec_simple PQ))
-      (RET: tid = 0 -> k = main_post PQ N mm)
+      (RET: tid = 0 -> k = main_post PQ mm)
       (TEQ: cid = tid)
       (REL: elim_rel sp r_diff itrS itrT)
       (SRC: src = ModTr.trans itrS)
       (TGT: tgt = ModTr.trans itrT >>= k) :
-     thread_rel PQ N mm sp cid tid r_diff src tgt
+     thread_rel PQ mm sp cid tid r_diff src tgt
   | thread_rel_spawn src tgt r_diff tid itrS fspo m pre post varg arg bd x :
      tid ≠ 0 →
      cid ≠ tid →
@@ -727,18 +726,17 @@ Section CancelDef.
        '(m, varg):_ <- elim_spawnee_precond pre arg;;
        vret <- bd varg;;
        elim_spawnee_postcond post m vret) →
-     (Own r_diff ⊢ |==> pre x varg arg)%I →
+     (Own r_diff ⊢ |==> YIELD tid -∗ TID tid -∗ winv (⊤, ⊤) -∗ pre x varg arg)%I →
      elim_rel sp ε itrS (bd varg) →
-     thread_rel PQ N mm sp cid tid r_diff src tgt
+     thread_rel PQ mm sp cid tid r_diff src tgt
   | thread_rel_yield src tgt r_diff tid itrS itrT (k: Any.t → itree lmodE Any.t) :
      sp !! speckey_entry = Some (fspec_simple PQ) →
-     (tid = 0 -> k = main_post PQ N mm) →
+     (tid = 0 -> k = main_post PQ mm) →
      cid ≠ tid →
      src = ModTr.trans (tau;; itrS) →
-     tgt = ModTr.trans (tau;; trigger (Assume (TID(tid) ∗ YIELD(tid) ∗ winv(↑N, ↑N)));;; tau;; itrT) >>= k →
+     tgt = ModTr.trans (tau;; trigger (Assume (TID(tid) ∗ YIELD(tid) ∗ winv(⊤, ⊤)));;; tau;; itrT) >>= k →
      elim_rel sp ε itrS itrT →
-     thread_rel PQ N mm sp cid tid r_diff src tgt
-  .
+     thread_rel PQ mm sp cid tid r_diff src tgt.
   
   Definition cancel_eq (x y: Any.t * Any.t) : Prop :=
     ∃ st r_s r_t,
@@ -746,7 +744,7 @@ Section CancelDef.
     x.2 = y.2.
 
   Definition CANCEL_GOAL md sp R
-    {X: Type} (PQ: X → (Any.t →  iProp Σ) * (Any.t →  iProp Σ)) N (mm: X)
+    {X: Type} (PQ: X → (Any.t →  iProp Σ) * (Any.t →  iProp Σ)) (mm: X)
     (it_src it_tgt: itree crisE R) :=
     ∀ (r_i r_s r_t : Σ)
       (rs_diff : list Σ) (srcs tgts : list (itree lmodE Any.t))
@@ -762,7 +760,7 @@ Section CancelDef.
       (CIH :
         ∀ (r_s r_t : Σ) (rs_diff : list Σ) (srcs tgts : list (itree lmodE Any.t)) 
           (cid : nat) (st : gmap key (option Any.t)) (ps pt : smj)
-          (REL : Forall3i (thread_rel PQ N mm sp cid) rs_diff srcs tgts)
+          (REL : Forall3i (thread_rel PQ mm sp cid) rs_diff srcs tgts)
           (WFR: ✓ r_s) (WFST: map_Forall (const is_Some) st)
           (RS: Own r_s ⊢ |==> ([∗ list] i ∈ rs_diff, Own i) ∗ Own r_t ∗
                  TIDAUTH cid ∗ YIELDAUTH (length rs_diff)),
@@ -780,7 +778,7 @@ Section CancelDef.
               (RS: Own r_s ⊢ |==> ([∗ list] i ∈ <[cid:=r_diff]> rs_diff, Own i) ∗ Own r_t ∗
                      TIDAUTH cid ∗ YIELDAUTH (length (<[cid:=r_diff]> rs_diff)))
               (LEN: cid < List.length srcs)
-              (REL: thread_rel PQ N mm sp cid cid r_diff itr_s itr_t),
+              (REL: thread_rel PQ mm sp cid cid r_diff itr_s itr_t),
         gpaco7 _gsim (cpn7 _gsim) bot7 r (Any.t * Any.t)%type
           (Any.t * Any.t)%type cancel_eq smj_top smj_top
           (LModTr.interp_stateE Any.t
@@ -796,7 +794,7 @@ Section CancelDef.
       (EQLEN : length srcs = length tgts)
       (EQLEN2 : length rs_diff = length srcs)
       (REL : ∀ i x y z, srcs !! i = Some x → tgts !! i = Some y → rs_diff !! i = Some z →
-        thread_rel PQ N mm sp cid i z x y)
+        thread_rel PQ mm sp cid i z x y)
       (WFR : ✓ r_s)
       (WFST: map_Forall (const is_Some) st)
       (RS : Own r_s ⊢
@@ -806,7 +804,7 @@ Section CancelDef.
       (x0 : srcs !! cid = Some (ModTr.trans (x <- it_src;; ktrS x)))
       (x1 : tgts !! cid = Some (x <- ModTr.trans (x <- it_tgt;; ktrT x);; k x))
       (x2 : rs_diff !! cid = Some ε)
-      (RET : cid = 0 → k = main_post PQ N mm)
+      (RET : cid = 0 → k = main_post PQ mm)
       (KTR : ∀ x, paco4 (elim_rel_def sp) bot4 Any.t ε (ktrS x) (ktrT x)),
 
   gpaco7 _gsim (cpn7 _gsim) bot7 r (Any.t * Any.t)%type 

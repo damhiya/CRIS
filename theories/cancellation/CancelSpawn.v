@@ -1,5 +1,5 @@
 Require Import CRIS.
-Require Import LMod LModTr GSim GSimFacts GSimTactics CancelTactics.
+Require Import LMod LModTr GSim GSimFacts GSimTactics GSimAux CancelTactics.
 Require Import MInline MInlineIntro MInlineElim ElimRel.
 
 Local Ltac sil := iter_l; rewrite ?lookup_app_l ?length_insert // !list_lookup_insert ?length_insert //.
@@ -14,11 +14,11 @@ Local Ltac snr :=
     end.
 
 Lemma cancel_spawn `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp 
-  (X: Type) (PQ: X → (Any.t → iProp Σ) * (Any.t → iProp Σ)) N mm
+  (X: Type) (PQ: X → (Any.t → iProp Σ) * (Any.t → iProp Σ)) mm
   fn args :
-  CANCEL_GOAL md sp PQ N mm
-    (HoareSpawnE None false fn args N) 
-    (HoareSpawnE (SMod.conc_sp_from md !! speckey_fn fn) true fn args N).
+  CANCEL_GOAL md sp PQ mm
+    (HoareSpawnE None false fn args) 
+    (HoareSpawnE (SMod.conc_sp_from md !! speckey_fn fn) true fn args).
 Proof.
   r; i. subst.
   (* rewrite /sp_from /to_sp in WFS. setoid_rewrite alist_find_map_snd in WFS. *)
@@ -111,14 +111,14 @@ Proof.
     replace (SModTr.HoareFun) with (Seal.sealing "temp" (SModTr.HoareFun)); cycle 1.
     { unseal "temp". refl. }
     ss. unseal "temp".
-    rewrite (@MIRed_HoareFun _ _ _ _ _ _ _ _ _ md (SMod.conc_sp_from md) msk bd (Some (fspec_mk meta precond postcond)) x3 (Some fn) meta precond postcond); cycle 1; eauto.
+    rewrite (@MIRed_HoareFun _ _ _ _ _ _ _ _ _ md (SMod.conc_sp_from md) msk bd (Some (@fspec_mk _ meta precond postcond)) x3 (Some fn) meta precond postcond); cycle 1; eauto.
     rewrite SBRed.tau MIRed.tau.
     (* hexploit (VP1 fn); rewrite FIND /=; revert E; intros ->; ss; intros Himp. *)
     (* hexploit (Himp (length tgts) x); intros [x' [PRE ?]]. *)
     eapply thread_rel_spawn; eauto.
     { destruct rs_diff; ss. }
     { rewrite EQLEN2. ii; subst; ss. }
-    { rewrite EQLEN2. iIntros "X //". iPoseProof (Hr_t4 with "X") as "X"; done. }
+    { rewrite EQLEN2. iIntros "? !> ? ? ?"; iApply (Hr_t4 with "[$] [$] [$] [$]"). }
     { ss; eapply elim_rel_cancel; eauto. }
   }
   

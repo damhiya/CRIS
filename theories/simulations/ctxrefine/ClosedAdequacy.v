@@ -6,8 +6,6 @@ Require Import MSimCommon.
 Require Import LSim LSimFacts.
 Require Import ISim ISimFacts.
 Require Import CtxRefine.
-Require Import ITactics.
-Require Import syn_invariants.
 
 Section ADEQUACY.
   Context `{!crisG Γ Σ α β τ _S _I}.

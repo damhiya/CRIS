@@ -11,7 +11,7 @@ Local Ltac sir :=
 Local Ltac snr := norm_r; rewrite !list_insert_insert ?bind_ret_l.
 
 Lemma cancel_post `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp
-  (X: Type) (PQ: X → (Any.t → iProp Σ) * (Any.t → iProp Σ)) N mm stid :
+  (X: Type) (PQ: X → (Any.t → iProp Σ) * (Any.t → iProp Σ)) mm :
   ∀ (rs0 : Σ) r_s r_t srcs tgts cid st ps pt vret (X X': Type) (x: X) (x': X') Q Q' itrS ktrT k rs_diff
     (r : ∀ x x0, (x→x0→Prop)→smj→smj→itree coreE x→itree coreE x0→Prop)
     (WFS: SMod.cancellable md)
@@ -22,7 +22,7 @@ Lemma cancel_post `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp
              (RS: Own r_s ⊢ |==> ([∗ list] i ∈ <[cid:=r_diff]> rs_diff, Own i) ∗ Own r_t ∗
                       TIDAUTH cid ∗ YIELDAUTH (length (<[cid:=r_diff]> rs_diff)))
              (LEN: cid < List.length srcs)
-             (REL: thread_rel PQ N mm sp cid cid r_diff itr_s itr_t),
+             (REL: thread_rel PQ mm sp cid cid r_diff itr_s itr_t),
      gpaco7 _gsim (cpn7 _gsim) bot7 r (Any.t * Any.t)%type
        (Any.t * Any.t)%type cancel_eq smj_top smj_top
        (LModTr.interp_stateE Any.t
@@ -38,7 +38,7 @@ Lemma cancel_post `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp
     (EQLEN2 : length rs_diff = length srcs)
     (EQLEN : length srcs = length tgts)
     (REL : ∀ i x y z, rs_diff !! i = Some z →
-      srcs !! i = Some x → tgts !! i = Some y → thread_rel PQ N mm sp cid i z x y)
+      srcs !! i = Some x → tgts !! i = Some y → thread_rel PQ mm sp cid i z x y)
     (WFR : ✓ r_s)
     (WFST: map_Forall (const is_Some) st)
     (RS : Own r_s ⊢ |==> ([∗ list] i ∈ rs_diff, Own i) ∗ Own r_t ∗
@@ -46,11 +46,11 @@ Lemma cancel_post `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp
     (LEN : cid < length srcs)
     (x2 : rs_diff !! cid = Some ε)
     (x0 : srcs !! cid = Some (ModTr.trans (tau;; tau;; itrS)))
-    (x1 : tgts !! cid = Some (x <- ModTr.trans (x <- elim_postcond Q Q' N N stid stid x x' vret;; ktrT x);; k x))
-    (RET : cid = 0 → k = main_post PQ N mm)
+    (x1 : tgts !! cid = Some (x <- ModTr.trans (x <- elim_postcond Q Q' x x' vret;; ktrT x);; k x))
+    (RET : cid = 0 → k = main_post PQ mm)
     (KTR :
-      (∀ ret : Any.t, Q' (N, stid) x' vret ret ⊢ |==> Q (N, stid) x vret ret)
-      ∧ upaco4 (elim_rel_def N sp) bot4 Any.t ε itrS (ktrT vret)),
+      (∀ ret : Any.t, Q' x' vret ret ⊢ |==> Q x vret ret)
+      ∧ upaco4 (elim_rel_def sp) bot4 Any.t ε itrS (ktrT vret)),
 
   gpaco7 _gsim (cpn7 _gsim) bot7 r (Any.t * Any.t)%type 
     (Any.t * Any.t)%type cancel_eq ps pt
@@ -87,7 +87,7 @@ Proof.
   assert (RTV: ✓ r_t).
   { eapply (Own_wand_valid r_s); eauto. iIntros "S"; iMod (RS with "S") as "[_ [$ [_ _]]]"; eauto. }
   
-  assert (RES: Own r_t ⊢ |==> ((Own x4) ∗ Q' (N, stid) x' vret x3)).
+  assert (RES: Own r_t ⊢ |==> ((Own x4) ∗ Q' x' vret x3)).
   { rewrite x6. iIntros ">[$ $]"; eauto. }
   hexploit (Own_bupd_split r_t); [eapply RES|eauto|].
   i; des.

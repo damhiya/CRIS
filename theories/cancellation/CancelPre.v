@@ -14,7 +14,7 @@ Local Ltac snr := norm_r; rewrite !list_insert_insert ?bind_ret_l.
 (* after canceltactics : 13s *)
 
 Lemma cancel_pre `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp
-  (X: Type) (PQ: X → (Any.t → iProp Σ) * (Any.t → iProp Σ)) N mm stid :
+  (X: Type) (PQ: X → (Any.t → iProp Σ) * (Any.t → iProp Σ)) mm :
   ∀ (rs0 : Σ) r_s r_t rs_diff srcs tgts cid st ps pt varg X X' P P' itrS ktrT k
     (r: ∀ x x0, (x→x0→Prop)→smj→smj→itree coreE x→itree coreE x0→Prop)
     (WFS: SMod.cancellable md)
@@ -24,7 +24,7 @@ Lemma cancel_pre `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp
              (RS: Own r_s ⊢ |==> ([∗ list] i ∈ <[cid:=r_diff]> rs_diff, Own i) ∗ Own r_t ∗
                       TIDAUTH cid ∗ YIELDAUTH (length (<[cid:=r_diff]> rs_diff)))
              (LEN: cid < List.length srcs)
-             (REL: thread_rel PQ N mm sp cid cid r_diff itr_s itr_t),
+             (REL: thread_rel PQ mm sp cid cid r_diff itr_s itr_t),
      gpaco7 _gsim (cpn7 _gsim) bot7 r (Any.t * Any.t)%type
        (Any.t * Any.t)%type cancel_eq smj_top smj_top
        (LModTr.interp_stateE Any.t
@@ -40,7 +40,7 @@ Lemma cancel_pre `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp
     (EQLEN2 : length rs_diff = length srcs)
     (EQLEN : length srcs = length tgts)
     (REL : ∀ i z x y, rs_diff !! i = Some z →
-      srcs !! i = Some x → tgts !! i = Some y → thread_rel PQ N mm sp cid i z x y)
+      srcs !! i = Some x → tgts !! i = Some y → thread_rel PQ mm sp cid i z x y)
     (WFR : ✓ r_s)
     (WFST: map_Forall (const is_Some) st)
     (RS : Own r_s ⊢ |==> ([∗ list] i ∈ rs_diff, Own i) ∗ Own r_t ∗
@@ -48,12 +48,12 @@ Lemma cancel_pre `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp
     (LEN : cid < length srcs)
     (x2 : rs_diff !! cid = Some ε)
     (x0 : srcs !! cid = Some (ModTr.trans (tau;; tau;; tau;; itrS)))
-    (x1 : tgts !! cid = Some (x <- ModTr.trans (x <- elim_precond P P' N stid varg;; ktrT x);; k x))
-    (RET : cid = 0 → k = main_post PQ N mm)
+    (x1 : tgts !! cid = Some (x <- ModTr.trans (x <- elim_precond P P' varg;; ktrT x);; k x))
+    (RET : cid = 0 → k = main_post PQ mm)
     (KTR :
       ∀ x : X, ∃ (x' : X'),
-        (∀ arg : Any.t, P (N, stid) x varg arg ⊢ |==> P' (N, stid) x' varg arg)
-        ∧ upaco4 (elim_rel_def N sp) bot4 Any.t ε (itrS) (ktrT (N, stid, x, x', varg))),
+        (∀ arg : Any.t, P x varg arg ⊢ |==> P' x' varg arg)
+        ∧ upaco4 (elim_rel_def sp) bot4 Any.t ε (itrS) (ktrT (x, x', varg))),
 
   gpaco7 _gsim (cpn7 _gsim) bot7 r (Any.t * Any.t)%type 
     (Any.t * Any.t)%type cancel_eq ps pt
@@ -81,14 +81,14 @@ Proof.
   sir. step_r. snr. rewrite Any.pair_split /= !bind_ret_l.
   sir. step_r. snr.
   sir. step_r. snr.
-  sir. step_r. snr. rewrite Any.pair_split /= !bind_ret_l Any.upcast_downcast /= !bind_ret_l.
+  (* sir. step_r. snr. rewrite Any.pair_split /= !bind_ret_l Any.upcast_downcast /= !bind_ret_l.
   sir. step_r. i. step_r. snr.
   sir. step_r. i. step_r. snr.
   sir. step_r. snr. rewrite Any.pair_split /= !bind_ret_l.
   sir. step_r. snr.
   sir. step_r. snr.
   sir. step_r. snr.
-  sir. step_r. exists (N, stid). step_r. snr.
+  sir. step_r. exists (N, stid). step_r. snr. *)
   sir. step_r. snr.
   sir. step_r. exists x'. step_r. snr.
   sir. step_r. snr.
@@ -100,28 +100,27 @@ Proof.
   assert (RTV: ✓ r_t).
   { eapply (Own_wand_valid r_s); eauto. iIntros "S"; iMod (RS with "S") as "[_ [$ [_ _]]]"; eauto. }
   
-  assert (RES: Own r_t ⊢ |==> (((TID stid ∗ YIELD stid ∗ winv (↑N, ↑N)) ∗ Own x6) ∗ P (N, stid) x varg x3)).
+  (* assert (RES: Own r_t ⊢ |==> (((TID stid ∗ YIELD stid ∗ winv (⊤, ⊤)) ∗ Own x6) ∗ P x varg x3)).
   { rewrite x9 x8. iIntros ">[($ & $ & $) >[$ $]]"; eauto. }
   hexploit (Own_bupd_split r_t); [eapply RES|eauto|].
-  i; des.
+  i; des. *)
   
-  sir. step_r. exists a1. step_r. snr.
+  sir. step_r. exists r_t. step_r. snr.
   sir. step_r. unshelve eexists; ired.
   { split; eauto.
-    { eapply (Own_wand_valid r_t); eauto. rewrite H; iIntros ">[$ _]"; eauto. }
-    rewrite H0. iIntros "$"; eauto. }
+    rewrite x6 KTR. iIntros "> [>$ $] //". }
   step_r. snr.
   sir. step_r. snr. rewrite Any.pair_split /= !bind_ret_l.
   sir. step_r. snr.
   sir. step_r. snr.
-  sir. step_r. snr. rewrite Any.pair_split /= !bind_ret_l Any.upcast_downcast /= !bind_ret_l.
+  (* sir. step_r. snr. rewrite Any.pair_split /= !bind_ret_l Any.upcast_downcast /= !bind_ret_l.
   sir. step_r. exists r_t. step_r. snr.
   sir. step_r. unshelve eexists.
   { split; eauto. rewrite H H1 KTR. iIntros ">[$ >$]"; eauto. }
   step_r. snr.
   sir. step_r. snr. rewrite Any.pair_split /= !bind_ret_l.
   sir. step_r. snr.
-  sir. step_r. snr.
+  sir. step_r. snr. *)
 
   sil. step_l. snl.
   sil. step_l. snl.
