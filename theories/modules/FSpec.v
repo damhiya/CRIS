@@ -28,16 +28,11 @@ Section FSPEC.
   Definition fspec_to_rel: fspec → fspec_rel :=
     λ fsp, idx_to_rel fsp.(precond) fsp.(postcond).
 
-  Definition fspec_to_rel_o: option fspec → option fspec_rel :=
-    option_map fspec_to_rel.
-
   Definition fsp_none : option fspec_rel := None.
 
   Definition fsp_some (fsp: fspec_rel) : option fspec_rel := Some fsp.
 
   Coercion fspec_to_rel: fspec >-> fspec_rel.
-  #[warnings="-uniform-inheritance"]  
-  Coercion fspec_to_rel_o: option >-> option.
 
   Lemma fspec_to_rel_satisfy (fsp: fspec) x:
     fspec_to_rel fsp (fsp.(precond) x) (fsp.(postcond) x).

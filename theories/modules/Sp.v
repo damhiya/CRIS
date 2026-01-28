@@ -12,7 +12,7 @@ Section HEADER.
   Definition sp_type := (string -> option fspec_rel).
 
   Definition to_sp (l : spl_type) : sp_type :=
-    (fun fn => or_else (alist_find (Some fn) l) (Some fspec_bot)).
+    (fun fn => or_else (alist_find (Some fn) l) (fsp_some fspec_bot)).
 
   Definition sp_none : sp_type := (const None).
 
@@ -53,7 +53,7 @@ Section HEADER.
   Qed.
 
   Definition sp_sub (sp0 sp: sp_type) : Prop :=
-    ∀ fn, sp0 fn = Some fspec_bot ∨ sp0 fn = sp fn.
+    ∀ fn, sp0 fn = fsp_some fspec_bot ∨ sp0 fn = sp fn.
 
   Definition spl_sub (spl0 spl: spl_type) : Prop :=
     ∀ fno fsp, alist_find fno spl0 = Some fsp → alist_find fno spl = Some fsp.

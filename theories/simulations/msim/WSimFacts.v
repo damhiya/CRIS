@@ -31,7 +31,7 @@ Section LAT.
     :
     ⊢
     wsim fl_s fl_t IstEq (∅,∅) ibot ibot _ _ (ist_with_eq IstEq) ps pt
-      (st, SB.sandbox true msk scp (SModTr.HoareFun (Some (to_fspec fsp)) body_s arg))
+      (st, SB.sandbox true msk scp (SModTr.HoareFun (fsp_some (to_fspec fsp)) body_s arg))
       (st, SB.sandbox true msk scp (SModTr.trans sp_none (lat_img false fsp (Ret ()) body_t arg))).
   Proof using.
     iIntros. iApply isim_wsim. iIntros "W". iApply isim_lat_img_to_hoare; et.
@@ -44,7 +44,7 @@ Section LAT.
     :
     ⊢
     wsim fl_s fl_t IstEq (∅,∅) ibot ibot _ _ (ist_with_eq IstEq) ps pt
-      (st, SB.sandbox true msk scp (SModTr.HoareFun (Some (to_fspec fsp)) body_s arg))
+      (st, SB.sandbox true msk scp (SModTr.HoareFun (fsp_some (to_fspec fsp)) body_s arg))
       (st, SB.sandbox false msk scp (SModTr.trans sp_none (lat_real false fsp (Ret ()) body_t arg))).
   Proof using.
     iIntros. iApply isim_wsim. iIntros "W". iApply isim_lat_real_to_hoare; et.

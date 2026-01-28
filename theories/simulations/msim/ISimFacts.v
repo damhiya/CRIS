@@ -541,7 +541,7 @@ Section LAT.
     :
     ⊢
     isim open fl_s fl_t IstEq ibot ibot (ist_with_eq IstEq) ps pt
-      (st, SB.sandbox true msk scp (SModTr.HoareFun (Some (to_fspec fsp)) body_s arg))
+      (st, SB.sandbox true msk scp (SModTr.HoareFun (fsp_some (to_fspec fsp)) body_s arg))
       (st, SB.sandbox true msk scp (SModTr.trans sp_none (lat_img false fsp (Ret ()) body_t arg))).
   Proof using.
     iIntros. isteps_l. rewrite /lat_img /lat_img_body. unfold_iter_r. isteps_r.
@@ -563,7 +563,7 @@ Section LAT.
     :
     ⊢
     isim open fl_s fl_t IstEq ibot ibot (ist_with_eq IstEq) ps pt
-      (st, SB.sandbox true msk scp (SModTr.HoareFun (Some (to_fspec fsp)) body_s arg))
+      (st, SB.sandbox true msk scp (SModTr.HoareFun (fsp_some (to_fspec fsp)) body_s arg))
       (st, SB.sandbox false msk scp (SModTr.trans sp_none (lat_real false fsp (Ret ()) body_t arg))).
   Proof using.
     iIntros. isteps_l. rewrite /lat_real /lat_real_body. unfold_iter_r. isteps_r.
