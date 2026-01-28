@@ -271,17 +271,19 @@ Section ModFacts.
 End ModFacts.
 
 (* Tactics for map definitions. *)
-Tactic Notation "mod_tac" tactic(tac) :=
+Tactic Notation "mod_tac" tactic(tac) := i;
   let rec go :=
-  match goal with
-  | |- map_Forall ?P ∅ => apply map_Forall_empty
-  | |- map_Forall ?P {[_:=_]} => apply map_Forall_singleton; tac
-  | |- map_Forall ?P (<[_:=_]> _) =>
-      apply map_Forall_insert_2; [tac|go]
-  end
-  in try go.
-
+    match goal with
+    | |- map_Forall ?P (omap id ?X) => rewrite omap_insert /=; go
+    | |- map_Forall ?P (omap id ∅) => rewrite omap_empty; go
+    | |- map_Forall ?P ∅ => apply map_Forall_empty
+    | |- map_Forall ?P {[_:=_]} => apply map_Forall_singleton; tac
+    | |- map_Forall ?P (<[_:=_]> _) =>
+        apply map_Forall_insert_2; [tac|go]
+    | |- _ => set_solver
+  end in go.
 Ltac scope_solver := ss; split; i; case_decide; naive_solver.
+Tactic Notation "mod_tac" := mod_tac scope_solver.
 
 (* Lemmas related to module states and function maps *)
 Lemma dom_union_with `{Countable K} {V} (m1 m2 : gmap K (option V)) :

@@ -20,15 +20,15 @@ Hint Unfold subG_spinlockmainG spinlockmain_inG : GRA_index.
 
 (* Spec definition *)
 (* Define 1) initial resource 2) function specs 3) sp here. *)
-Module MainAS. Section MainAS.
-  Import LockAS.
+Module MainA. Section MainA.
+  Import LockA.
   Context `{!crisG Γ Σ α β τ _S _I, !concG, !memG, !newschG, !spinlockG, !spinlockmainG}.
 
   (* initial resource *)
   Definition ir : spinlockmainΓ := *[None].
 
   Definition lock_P loc γ : GTerm.t 0 :=
-    ∃ v : τ{Z}%SAT, loc ↦ (Vint v) ∗ <own> γ (●F v).
+    ∃ v : τ{Z}%SAT, loc ↦ (Vint v) ∗ sown γ (●F v).
 
   Definition init_cond E : iProp Σ :=
     winv (E, E) ∗ Tid 0 0.
@@ -54,37 +54,31 @@ Module MainAS. Section MainAS.
           ∗ own γ_v (◯F{1/2} 0%Z)))%I.
 
   Definition incr_post γ_v : SAny.t → SAny.t → leibnizO {n & GTerm.t n} :=
-    (λ _ _, existT 0 (<own> γ_v (◯F{1/2} 1%Z)))%SAT.
+    (λ _ _, existT 0 (sown γ_v (◯F{1/2} 1%Z)))%SAT.
 
   Lemma incr_spawnable E bofs_l bofs_v γ_v :
-    SchA.fspec_spawnable E (incr_spec E)
-      (incr_pre bofs_l bofs_v γ_v) (incr_post γ_v).
+    ⊢ SchA.fspec_spawnable (incr_spec E) (incr_pre bofs_l bofs_v γ_v) (incr_post γ_v).
   Proof.
-    intros [x1 x2]; ss.
-    exists (x1, x2, (bofs_l, bofs_v, γ_v)); split.
-    { intros varg arg. unfold_pre_post.
-      iIntros "[W [%va [-> [TID [%sarg [-> [-> [-> P]]]]]]]]".
-      iFrame. iModIntro. iSplit; eauto.
-    }
-    { iIntros (vret ret); rewrite /postcond /incr_spec /=.
-      iIntros "[$ [$ [[-> F] ->]]]".
-      iFrame. iModIntro; iExists _; iSplit; eauto. iExists _. iSplit; eauto. SL_red; done.
-    }
+    iIntros ([[x1 x2] []]); iExists (x1, x2, (bofs_l, bofs_v, γ_v)); unfold_pre_post.
+    iIntros (varg arg) "[W [$ [%va [%sarg [[-> ->] [-> [-> ?]]]]]]]".
+    iEval (replace ⊤ with ((⊤ ∖ E) ∪ E); last (rewrite difference_union_L //; set_solver)) in "W".
+    iPoseProof (winv_split with "W") as "[W $]"; try set_solver.
+    iFrame. iModIntro. iSplit; eauto.
+    iIntros (vret ret) "[W2 [$ [-> [-> ?]]]]".
+    iMod (winv_merge with "[W2 W]") as "[W %]"; iFrame.
+    rewrite difference_union_L comm_L subseteq_union_1_L //.
+    iFrame. iModIntro; iExists _, _; iSplit; solve_base_sl_red.
   Qed.
 
-  Definition sp E : spl_type := [(Some SpinLockMainHdr.incr, Some (incr_spec E))].
-End MainAS. End MainAS.
+  Definition sp E : specmap := {[speckey_fn SpinLockMainHdr.incr := incr_spec E]}.
 
-(* Module definition *)
-(* Define three components for a module:
-  1) scope
-  2) code (via itree)
-  3) initial state (via Any.t)
-*)
-Module SpinLockMainA. Section SpinLockMainA.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG, !memG, !newschG, !spinlockG, !spinlockmainG}.
-
-  Definition scopes : list string := [].
+  (* Module definition *)
+  (* Define three components for a module:
+    1) scope
+    2) code (via itree)
+    3) initial state (via Any.t)
+  *)
+  Definition scopes : gmultiset string := ∅.
 
   Definition main : Any.t → itree crisE Any.t :=
     λ _,
@@ -99,17 +93,16 @@ Module SpinLockMainA. Section SpinLockMainA.
   Definition incr : list val → itree crisE val :=
     λ _, 𝒴;;; Ret Vundef.
 
-  Definition fnsems E : fnsems_type :=
-    [(None,                      (true, wmask_all, scopes, (Some fspec_trivial, main)));
-     (Some SpinLockMainHdr.incr, (true, wmask_all, scopes, (Some (MainAS.incr_spec E), cfunN (sfunN incr))))].
+  Definition fnsems (N : namespace) : gmap (option string) (option (emask * (option fspec * fbody))) :=
+    {[None := Some (msk_scp scopes msk_true, (Some fspec_trivial, main));
+      Some SpinLockMainHdr.incr := Some (msk_scp scopes msk_true, (Some (incr_spec (↑N)), cfunN (sfunN incr)))]}.
 
-  Program Definition smod E : SMod.t := {|
-    SMod.scopes := [];
-    SMod.fnsems := fnsems E;
-    SMod.initial_st := []
+  Program Definition smod N : SMod.t := {|
+    SMod.scopes := scopes;
+    SMod.fnsems := fnsems N;
+    SMod.initial_st := ∅
   |}.
-  Solve All Obligations with prove_scope.
-  Next Obligation. prove_nodup. Defined.
+  Solve All Obligations with mod_tac.
 
-  Definition t E sp : Mod.t := Seal.sealing CRIS SMod.to_mod sp (smod E).
-End SpinLockMainA. End SpinLockMainA.
+  Definition t N sp : Mod.t := SMod.to_mod sp (smod N).
+End MainA. End MainA.

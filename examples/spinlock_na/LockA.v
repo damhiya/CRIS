@@ -27,7 +27,7 @@ Hint Unfold subG_spinlockG spinlock_inG : GRA_index.
 
 (* Spec definition *)
 (* Define 1) initial resource 2) function specs 3) sp here. *)
-Module LockAS. Section LockAS.
+Module LockA. Section LockA.
   Context `{!crisG Γ Σ α β τ _S _I, !concG, !memG, !newschG, !spinlockG}.
 
   (* Initial resource *)
@@ -35,7 +35,7 @@ Module LockAS. Section LockAS.
 
   Definition N_SpinLockA := nroot .@ "spin_lock".
 
-  Definition token n γ : GTerm.t n := <own> γ (Excl ()).
+  Definition token n γ : GTerm.t n := sown γ (Excl ()).
 
   Definition lock_inv {n} bofs (P : GTerm.t n) γ : GTerm.t n :=
     bofs ↦ (Vint 1)
@@ -72,43 +72,37 @@ Module LockAS. Section LockAS.
           (λ ret, ⌜ret = Vundef↑⌝))
       )))%I.
 
-  Definition sp E : spl_type :=
-    [(Some SpinLockHdr.newlock, Some (newlock_spec E));
-     (Some SpinLockHdr.acquire, Some (acquire_spec E));
-     (Some SpinLockHdr.release, Some (release_spec E))].
-End LockAS. End LockAS.
+  Definition sp E : specmap :=
+    {[speckey_fn SpinLockHdr.newlock := newlock_spec E;
+      speckey_fn SpinLockHdr.acquire := acquire_spec E;
+      speckey_fn SpinLockHdr.release := release_spec E]}.
 
-(* Module definition *)
-(* Define three components for a module:
-  1) scope
-  2) code (via itree)
-  3) initial state (via Any.t)
-*)
-Module SpinLockA. Section SpinLockA.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG, !memG, !newschG, !spinlockG}.
-
-  Definition scopes : list string := [].
+  (* Module definition *)
+  (* Define three components for a module:
+    1) scope
+    2) code (via itree)
+    3) initial state (via Any.t)
+  *)
+  Definition scopes : gmultiset string := ∅.
 
   Definition newlock : list val → itree crisE val :=
     λ _, 𝒴;;; trigger (Choose val).
-
   Definition acquire : list val → itree crisE val :=
     λ _, 𝒴;;; Ret Vundef.
   Definition release : list val → itree crisE val :=
     λ _, 𝒴;;; Ret Vundef.
 
-  Definition fnsems E : fnsems_type :=
-    [(Some SpinLockHdr.newlock, (true, wmask_all, scopes, (Some (LockAS.newlock_spec E), cfunU newlock)));
-     (Some SpinLockHdr.acquire, (true, wmask_all, scopes, (Some (LockAS.acquire_spec E), cfunU acquire)));
-     (Some SpinLockHdr.release, (true, wmask_all, scopes, (Some (LockAS.release_spec E), cfunU release)))].
+  Definition fnsems (E : coPset) : gmap (option string) (option (emask * (option fspec * fbody))) :=
+    {[Some SpinLockHdr.newlock := Some (msk_scp scopes msk_true, (Some (newlock_spec E), cfunU newlock));
+      Some SpinLockHdr.acquire := Some (msk_scp scopes msk_true, (Some (acquire_spec E), cfunU acquire));
+      Some SpinLockHdr.release := Some (msk_scp scopes msk_true, (Some (release_spec E), cfunU release))]}.
 
   Program Definition smod E : SMod.t := {|
-    SMod.scopes := [];
+    SMod.scopes := scopes;
     SMod.fnsems := fnsems E;
-    SMod.initial_st := []
+    SMod.initial_st := ∅
   |}.
-  Solve All Obligations with prove_scope.
-  Next Obligation. prove_nodup. Defined.
+  Solve All Obligations with mod_tac.
 
-  Definition t E sp : Mod.t := Seal.sealing CRIS (SMod.to_mod sp (smod E)).
-End SpinLockA. End SpinLockA.
+  Definition t E sp : Mod.t := SMod.to_mod sp (smod E).
+End LockA. End LockA.

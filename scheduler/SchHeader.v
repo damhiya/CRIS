@@ -32,8 +32,6 @@ Section FSpec.
 End FSpec.
 
 Module Sch. Section Sch.
-  Import Events.
-
   Context `{E : Type → Type, coreE -< E, callE -< E}.
 
   Definition spawn (fnarg : string * SAny.t) : itree E nat :=
@@ -63,3 +61,19 @@ Module Sch. Section Sch.
 End Sch. End Sch.
 
 Notation 𝒴 := (Sch.yield).
+
+Lemma yield_unfold `{E : Type → Type, coreE -< E, callE -< E} :
+  @Sch.yield E _ _ =
+  tau;; b <- trigger (Choose (option bool));;
+  match b with
+  | None => Ret tt
+  | Some false => Sch.yield
+  | Some true => trigger (Call SchHdr.yield tt↑);;; Sch.yield
+  end.
+Proof using.
+  rewrite {1}/Sch.yield; unseal SCH; rewrite unfold_iterC.
+  repeat f_equal. ired. repeat f_equal. extensionalities b. destruct b as [[|]|]; ss.
+  { ired. f_equal. extensionalities x. rewrite /Sch.yield; unseal SCH; ss. }
+  { ired. rewrite /Sch.yield; unseal SCH; ss. }
+  { ired. done. }
+Qed.

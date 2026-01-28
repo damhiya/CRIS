@@ -20,6 +20,16 @@ Program Global Instance WP_refl E `{!crisG Γ Σ α β τ _S _I}
   : WP (winv (E, E)) := mk_WP E True _.
 Next Obligation. ii; iSplit; first iIntros "$"; iIntros "[$ _]". Qed.
 
+Program Global Instance fspec_winv_precond `{!crisG Γ Σ α β τ _S _I} (fsp : fspec) E m arg varg :
+  WP (precond (fspec_winv E fsp) m arg varg) :=
+  {| WP_space := E; WP_remainder := (precond fsp m arg varg) |}.
+Next Obligation. intros; iSplit; iIntros "[$ $]". Qed.
+
+Program Global Instance fspec_winv_postcond `{!crisG Γ Σ α β τ _S _I} (fsp : fspec) E m arg varg :
+  WP (postcond (fspec_winv E fsp) m arg varg) :=
+  {| WP_space := E; WP_remainder := (postcond fsp m arg varg) |}.
+Next Obligation. intros; iSplit; iIntros "[$ $]". Qed.
+
 Section wsim.
   Context `{!crisG Γ Σ α β τ _S _I}.
 

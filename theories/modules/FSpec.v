@@ -135,12 +135,12 @@ Section fspec.
       For the notion of a stronger spec, consider the consequence rule of Hoare triple:
         if P1 ⊢ P0 and Q0 ⊢ Q1 and { P0 } e { Q0 } then { P1 } e { Q1 }
       Therefore (P0, Q0) is stronger than (P1, Q1) if P1 ⊢ P0 and Q0 ⊢ Q1 *)
-  Definition fspec_imply (fsp0 fsp1 : fspec) : Prop :=
+  Definition fspec_imply (fsp0 fsp1 : fspec) : iProp Σ :=
     ∀ x1, ∃ x0,
-      (∀ varg arg, (precond fsp1 x1 varg arg ⊢ |==> precond fsp0 x0 varg arg)) ∧
-      (∀ vret ret, (postcond fsp0 x0 vret ret ⊢ |==> postcond fsp1 x1 vret ret)).
+      ∀ varg arg, precond fsp1 x1 varg arg o==∗ precond fsp0 x0 varg arg ∗
+        ∀ vret ret, postcond fsp0 x0 vret ret o==∗ postcond fsp1 x1 vret ret.
 
-  Global Program Instance fspec_imply_PreOrder : PreOrder fspec_imply.
+  (* Global Program Instance fspec_imply_PreOrder : PreOrder fspec_imply.
   Next Obligation.
   Proof using. ii; eexists; esplits; ii; et. Qed.
   Next Obligation.
@@ -149,7 +149,7 @@ Section fspec.
     hexploit (Hxy my); intros [mx [Hyx Hxy']]; exists mx; split.
     { ii; rewrite Hzy Hyx; iIntros ">>$ //". }
     { ii; rewrite Hxy' Hyz'; iIntros ">>$ //". }
-  Qed.
+  Qed. *)
 
   (* Definition fspec_imply' (fsp0 fsp1 : fspec) : Prop :=
     match fsp0, fsp1 with
@@ -175,33 +175,17 @@ Section fspec.
     - rewrite POST1 POST. iIntros ">> H". et.
   Qed. *)
 
-  Lemma fspec_bot_strongest fsp : fspec_imply fspec_bot fsp.
-  Proof. ii. exists (). s. esplits; et. i. iIntros "%". ss. Qed.
+  Lemma fspec_bot_strongest fsp : ⊢ fspec_imply fspec_bot fsp.
+  Proof. iIntros (?); iExists tt; iIntros (??) "? !>"; iSplit; first done; iIntros (??) "[]". Qed.
 
-  Lemma fspec_top_weakest fsp : fspec_imply fsp fspec_top.
-  Proof. ii; ss. Qed.
-
-  (* Definition is_spawn_ospec (fspo: option fspec) : bool :=
-    match fspo with
-    | Some (@fspec_spawn _ _ _) => true
-    | _ => false
-    end. *)
+  Lemma fspec_top_weakest fsp : ⊢ fspec_imply fsp fspec_top.
+  Proof. by iIntros (?). Qed.
 End fspec.
 
-Section fspec_WINV.
-  Context `{!crisG Γ Σ α β τ _S _I}.
-
-  Definition fspec_winv (E : coPset) (fsp : fspec) : fspec :=
-    fspec_mk
-      (λ x varg arg, winv (E, E) ∗ precond fsp x varg arg)%I
-      (λ x vret ret, winv (E, E) ∗ postcond fsp x vret ret)%I.
-
-  Definition icond_winv (E : coPset) (I : iProp Σ) : iProp Σ :=
-    winv (E, E) ∗ I.
-End fspec_WINV.
+Definition fspec_winv `{!crisG Γ Σ α β τ _S _I} (E : coPset) (fsp : fspec) : fspec :=
+  fspec_mk
+    (λ x varg arg, winv (E, E) ∗ precond fsp x varg arg)%I
+    (λ x vret ret, winv (E, E) ∗ postcond fsp x vret ret)%I.
 
 Global Arguments precond : simpl never.
 Global Arguments postcond : simpl never.
-(* Global Arguments precondS : simpl never.
-Global Arguments postcondS : simpl never. *)
-

@@ -56,15 +56,6 @@ Definition fspec_sch `{!crisG Γ Σ α β τ _S _I, !concG, !newschG}
       (λ '(stid, mtid, x) varg arg, Tid mtid stid ∗ precond fsp x varg arg)
       (λ '(stid, mtid, x) vret ret, Tid mtid stid ∗ postcond fsp x vret ret))%I.
 
-(* Program Global Instance fspec_winv_precond `{!crisG Γ Σ α β τ _S _I} (fsp : fspec) N tid E m arg varg :
-  WP (precond (fspec_sch fsp) (N, tid) m arg varg) :=
-  {| WP_space := E; WP_remainder := (precond fsp (N, tid) m arg varg) |}.
-Next Obligation. intros; iSplit; iIntros "[$ $]". Qed.
-
-Program Global Instance fspec_winv_postcond `{!crisG Γ Σ α β τ _S _I} (fsp : fspec) E m arg varg :
-  WP (postcond (fspec_sch fsp) m arg varg) :=
-  {| WP_space := E; WP_remainder := (postcond fsp m arg varg) |}.
-Next Obligation. intros; iSplit; iIntros "[$ $]". Qed. *)
 Module SchA. Section SchA.
   Context `{!crisG Γ Σ α β τ _S _I, !concG, !newschG}.
 
@@ -92,27 +83,40 @@ Module SchA. Section SchA.
 
     Definition fspec_spawnable fsp
         (pre : SAny.t → SAny.t → iProp Σ)
-        (postS : SAny.t → SAny.t → leibnizO {n & GTerm.t n}) : Prop :=
+        (postS : SAny.t → SAny.t → leibnizO {n & GTerm.t n}) : iProp Σ :=
       fspec_imply fsp
-        (fspec_mk
-          (λ '(stid, mtid) varg arg,
-            winv (⊤, ⊤) ∗ Tid mtid stid ∗
-            ∃ (sarg svarg : SAny.t), ⌜varg = svarg↑ ∧ arg = sarg↑⌝ ∗ pre svarg sarg)
-          (λ '(stid, mtid) vret ret,
-            winv (⊤, ⊤) ∗ Tid mtid stid ∗
-            ∃ (sret svret : SAny.t), ⌜vret = svret↑ ∧ ret = sret↑⌝ ∗
-              interp_cond (postS svret sret)))%I.
+        (fspec_sch ⊤
+          (fspec_mk (meta:=unit)
+            (λ _ varg arg,
+              ∃ (sarg svarg : SAny.t), ⌜varg = svarg↑ ∧ arg = sarg↑⌝ ∗ pre svarg sarg)
+            (λ _ vret ret,
+              ∃ (sret svret : SAny.t), ⌜vret = svret↑ ∧ ret = sret↑⌝ ∗
+                interp_cond (postS svret sret))))%I.
 
     Definition fn_spawnable fn
         (pre : SAny.t -d> SAny.t -d> iProp Σ)
-        (postS : SAny.t -d> SAny.t -d> leibnizO {n & GTerm.t n}) : Prop :=
-      ∃ fsp, sp_user !! (speckey_fn fn) = Some fsp ∧ fspec_spawnable fsp pre postS.
+        (postS : SAny.t -d> SAny.t -d> leibnizO {n & GTerm.t n}) : iProp Σ :=
+      ∃ fsp, ⌜sp_user !! (speckey_fn fn) = Some fsp⌝ ∗ fspec_spawnable fsp pre postS.
+
+    Lemma fspec_sch_spawnable E1 E2 fsp1 fsp2 :
+      E1 ⊆ E2 →
+      fspec_imply fsp1 fsp2 -∗ fspec_imply (fspec_sch E1 fsp1) (fspec_sch E2 fsp2).
+    Proof.
+      iIntros "% S" ([[stid mtid] x]); iPoseProof ("S" $! x) as "[%x1 S]".
+      iExists (stid, mtid, x1); iIntros (varg arg) "[W [$ P]]".
+      iMod ("S" $! varg arg with "P") as "[$ S]".
+      replace E2 with ((E2 ∖ E1) ∪ E1); last (rewrite difference_union_L //; set_solver).
+      iPoseProof (winv_split with "W") as "[W $]"; [set_solver|set_solver|].
+      iIntros "!> %vret %ret [W2 [$ P]]"; iSplitR "S P"; last by iApply "S".
+      iMod (winv_merge with "[-]") as "[$ ?]"; iFrame; auto.
+    Qed.
 
     Definition inner_spawn_spec : fspec := 
       fspec_mk
         (λ (_ : unit) varg arg,
           ∃ stid pre postS (fvarg farg : SAny.t) (fn : string) (mtid : nat),
-            ⌜varg = (fn, fvarg)↑ ∧ arg = (fn, farg)↑ ∧ fn_spawnable fn pre postS⌝ ∗
+            ⌜varg = (fn, fvarg)↑ ∧ arg = (fn, farg)↑⌝ ∗
+            fn_spawnable fn pre postS ∗
             winv (⊤, ⊤) ∗ Tid mtid stid ∗
             pre fvarg farg ∗
             JoinFrag (3/4)%Qp mtid postS)%I
@@ -123,10 +127,8 @@ Module SchA. Section SchA.
       fspec_mk
         (λ '(pre, postS) varg arg,
           ∃ fvarg farg fn,
-            ⌜varg = ((fn, fvarg) : string * SAny.t)↑ ∧
-             arg = ((fn, farg) : string * SAny.t)↑ ∧
-             fn_spawnable fn pre postS⌝ ∗
-          pre fvarg farg)%I
+            ⌜varg = ((fn, fvarg) : string * SAny.t)↑ ∧ arg = ((fn, farg) : string * SAny.t)↑⌝ ∗
+            fn_spawnable fn pre postS ∗ pre fvarg farg)%I
         (λ '(pre, postS) vret ret,
           ∃ tid, ⌜vret = tid↑ ∧ ret = tid↑⌝ ∗ JoinHandle tid postS)%I.
 

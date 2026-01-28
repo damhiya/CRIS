@@ -34,7 +34,7 @@ Module IncrementIA. Section IncrementIA.
 
     sch_yield_l. steps_l. rename _q into v.
 
-    steps_r. inline_r. force_r (nroot, 0). force_r (blk, ofs, 1%Qp, Vint v).
+    steps_r. inline_r. force_r (blk, ofs, 1%Qp, Vint v).
     forces_r. iFrame "ASM". iSplit; eauto.
     steps_r. iDestruct "GRT" as "[-> [↦ ->]]". rewrite Any.upcast_downcast /=. steps_r.
 

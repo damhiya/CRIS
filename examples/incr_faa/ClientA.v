@@ -19,13 +19,13 @@ Module ClientA. Section ClientA.
   Definition N_main N : namespace := (N .@ IncrHdr.main).
 
   Definition counter γ q (v : Z) : iProp Σ := own γ (◯F{q} v).
-  Definition counter_syn {n} γ q (v : Z) : GTerm.t n := <own> γ (◯F{q} v).
+  Definition counter_syn {n} γ q (v : Z) : GTerm.t n := sown γ (◯F{q} v).
   Definition counter_auth γ (v : Z) : iProp Σ := own γ (●F v).
 
   Definition ccounter_syn n γ bofs : GTerm.t n :=
     (∃ v : τ{Z, n},
-      <own> base_γ (mem_points_to_singleton_r bofs (DfracOwn 1) (Vint v))
-      ∗ <own> γ (frac_auth_auth v))%SAT.
+      sown base_γ (mem_points_to_singleton_r bofs (DfracOwn 1) (Vint v))
+      ∗ sown γ (frac_auth_auth v))%SAT.
 
   Definition incr_inv n N γ bofs : iProp Σ := inv n (N_main N) (ccounter_syn n γ bofs).
 
@@ -43,17 +43,17 @@ Module ClientA. Section ClientA.
     iFrame; done.
   Qed.
 
-  Definition incr_spec : fspec :=
-    fspec_sch
+  Definition incr_spec N : fspec :=
+    fspec_sch (↑N)
       (fspec_mk
-        (λ '(N, _) '(bofs, v, γ) varg arg,
+        (λ '(bofs, v, γ) varg arg,
           ⌜varg = ([Vptr bofs]↑↑)↑ ∧ arg = varg⌝ ∗ counter γ (1/2) v ∗ incr_inv 0 N γ bofs)
-        (λ _ '(bofs, v, γ) vret ret, ⌜vret = (tt↑↑)↑ ∧ ret = vret⌝ ∗ counter γ (1/2) (v + 2)))%I.
+        (λ '(bofs, v, γ) vret ret, ⌜vret = (tt↑↑)↑ ∧ ret = vret⌝ ∗ counter γ (1/2) (v + 2)))%I.
 
   (* Definition init_cond E : iProp Σ := winv (E, E) ∗ Tid 0 0. *)
 
-  Definition sp : specmap :=
-    {[speckey_fn IncrHdr.incr := incr_spec]}.
+  Definition sp N : specmap :=
+    {[speckey_fn IncrHdr.incr := incr_spec N]}.
 
   (* Module definition *)
   Definition scopes : gmultiset string := ∅.
@@ -71,17 +71,16 @@ Module ClientA. Section ClientA.
       𝒴;;; trigger (IO (O:=unit) "OUT" 4%Z);;;
       𝒴;;; Ret (tt↑).
 
-  Definition fnsems : gmap (option string) (option (emask * (option fspec * fbody))) :=
-    {[Some IncrHdr.incr := Some (msk_scp scopes msk_true, (Some incr_spec, cfunN (sfunN incr)));
-      None := Some (msk_scp scopes msk_true, (Some (fspec_sch fspec_trivial), main))]}.
+  Definition fnsems (N : namespace) : gmap (option string) (option (emask * (option fspec * fbody))) :=
+    {[Some IncrHdr.incr := Some (msk_scp scopes msk_true, (Some (incr_spec N), cfunN (sfunN incr)));
+      None := Some (msk_scp scopes msk_true, (Some (fspec_sch (↑N) fspec_trivial), main))]}.
 
-  Program Definition smod : SMod.t := {|
+  Program Definition smod N : SMod.t := {|
     SMod.scopes := scopes;
-    SMod.fnsems := fnsems;
+    SMod.fnsems := fnsems N;
     SMod.initial_st := ∅;
   |}.
-  Solve All Obligations with try done.
-  Next Obligation. rewrite ?omap_insert /= omap_empty. mod_tac scope_solver. Qed.
+  Solve All Obligations with mod_tac.
 
-  Definition t sp : Mod.t := SMod.to_mod sp smod.
+  Definition t N sp : Mod.t := SMod.to_mod sp (smod N).
 End ClientA. End ClientA.

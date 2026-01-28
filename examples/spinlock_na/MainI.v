@@ -11,7 +11,7 @@ Require Import ImpPrelude SchHeader MemHeader.
 Module SpinLockMainI. Section SpinLockMainI.
   Context `{!crisG Γ Σ α β τ _S _I, !concG, !memG, !newschG, !spinlockG}.
 
-  Definition scopes : list string := [].
+  Definition scopes : gmultiset string := ∅.
 
   Definition main : Any.t → itree crisE Any.t :=
     λ _,
@@ -39,17 +39,17 @@ Module SpinLockMainI. Section SpinLockMainI.
       𝒴;;; '_ : val <- ccallU SpinLockHdr.release [Vptr l];;
       𝒴;;; Ret Vundef.
 
-  Definition fnsems : fnsems_type :=
-    [(None, (false, wmask_all, scopes, (None, main)));
-     (Some SpinLockMainHdr.incr, (false, wmask_all, scopes, (None, cfunU (sfunU incr))))].
+  Definition fnsems : gmap (option string) (option (emask * (option fspec * fbody))) :=
+    {[None := Some (msk_real (msk_scp scopes msk_true), (None, main));
+      Some SpinLockMainHdr.incr :=
+        Some (msk_real (msk_scp scopes msk_true), (None, cfunU (sfunU incr)))]}.
 
   Program Definition smod : SMod.t := {|
     SMod.scopes := scopes;
     SMod.fnsems := fnsems;
-    SMod.initial_st := []
+    SMod.initial_st := ∅
   |}.
-  Solve All Obligations with prove_scope.
-  Next Obligation. prove_nodup. Defined.
+  Solve All Obligations with mod_tac.
 
-  Definition t : Mod.t := Seal.sealing CRIS (SMod.to_mod sp_none smod).
+  Definition t : Mod.t := SMod.to_mod ∅ smod.
 End SpinLockMainI. End SpinLockMainI.

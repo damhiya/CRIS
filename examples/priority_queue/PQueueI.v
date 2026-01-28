@@ -7,7 +7,7 @@ Require Import PQueueHeader.
 Module PQueueI. Section PQueueI.
   Context `{!crisG Γ Σ α β τ _S _I, !concG}.
 
-  Definition scopes : list string := [].
+  Definition scopes : gmultiset string := ∅.
 
   Definition new : list val → itree crisE val := λ args,
     𝒴;;; 'n : Z <- (pargs [Tint] args)?;;
@@ -50,18 +50,17 @@ Module PQueueI. Section PQueueI.
       end
     ) (n, ofs + 1)%Z.
 
-  Definition fnsems : fnsems_type :=
-    [(Some PQueueHdr.new, (false, wmask_all, scopes, (None, cfunU new)));
-     (Some PQueueHdr.add, (false, wmask_all, scopes, (None, cfunU add)));
-     (Some PQueueHdr.remove_min, (false, wmask_all, scopes, (None, cfunU remove_min)))].
+  Definition fnsems : gmap (option string) (option (emask * (option fspec * fbody))) :=
+    {[Some PQueueHdr.new :=        Some (msk_real (msk_scp scopes msk_true), (None, cfunU new));
+      Some PQueueHdr.add        := Some (msk_real (msk_scp scopes msk_true), (None, cfunU add));
+      Some PQueueHdr.remove_min := Some (msk_real (msk_scp scopes msk_true), (None, cfunU remove_min))]}.
 
   Program Definition Mod : SMod.t := {|
     SMod.scopes := scopes;
     SMod.fnsems := fnsems;
-    SMod.initial_st := [];
+    SMod.initial_st := ∅;
   |}.
-  Solve All Obligations with prove_scope.
-  Next Obligation. prove_nodup. Qed.
+  Solve All Obligations with mod_tac.
 
-  Definition t := Seal.sealing CRIS (SMod.to_mod sp_none Mod).
+  Definition t := SMod.to_mod ∅ Mod.
 End PQueueI. End PQueueI.

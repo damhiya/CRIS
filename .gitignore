@@ -50,7 +50,7 @@ main.d.byte
 /.vscode
 
 builddep
-_opam
+_opam/*
 
 .envrc
 .direnv

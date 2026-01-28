@@ -301,22 +301,6 @@ Section HelpingOnOff.
     }
   Qed.
 
-  Lemma yield_unfold :
-    @Sch.yield crisE _ _ =
-    tau;; b <- trigger (Choose (option bool));;
-    match b with
-    | None => Ret tt
-    | Some false => Sch.yield
-    | Some true => trigger (Call SchHdr.yield tt↑);;; Sch.yield
-    end.
-  Proof using.
-    rewrite {1}/Sch.yield; unseal SCH; rewrite unfold_iterC.
-    repeat f_equal. ired. repeat f_equal. extensionalities b. destruct b as [[|]|]; ss.
-    { ired. f_equal. extensionalities x. rewrite /Sch.yield; unseal SCH; ss. }
-    { ired. rewrite /Sch.yield; unseal SCH; ss. }
-    { ired. done. }
-  Qed.
-
   Definition reqmap_rel
       (tl : list (itree lmodE Any.t * itree lmodE Any.t * option (nat * (option retID * jobID))))
       (reqmap : gmap nat (option retID * jobID)) : Prop :=

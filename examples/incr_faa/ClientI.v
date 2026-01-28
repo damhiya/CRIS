@@ -27,16 +27,15 @@ Module ClientI. Section ClientI.
       𝒴;;; Ret (tt↑).
 
   Definition fnsems : gmap (option string) (option (emask * (option fspec * fbody))) :=
-    {[Some IncrHdr.incr := Some (msk_scp scopes msk_true, (None, cfunU (sfunU incr)));
-      None := Some (msk_scp scopes msk_true, (None, main))]}.
+    {[Some IncrHdr.incr := Some (msk_real (msk_scp scopes msk_true), (None, cfunU (sfunU incr)));
+      None := Some (msk_real (msk_scp scopes msk_true), (None, main))]}.
 
   Program Definition smod : SMod.t := {|
     SMod.scopes := scopes;
     SMod.fnsems := fnsems;
     SMod.initial_st := ∅;
   |}.
-  Solve All Obligations with try done.
-  Next Obligation. rewrite ?omap_insert /= omap_empty. mod_tac scope_solver. Qed.
+  Solve All Obligations with mod_tac.
 
   Definition t : Mod.t := SMod.to_mod ∅ smod.
 End ClientI. End ClientI.

@@ -7,7 +7,7 @@ Require Import StackHeader.
 Module StackI. Section StackI.
   Context `{!crisG Γ Σ α β τ _S _I, !concG}.
 
-  Definition scopes : list string := [].
+  Definition scopes : gmultiset string := ∅.
 
   Definition new_stack : list val → itree crisE val := λ _,
     𝒴;;; 'stack : val <- ccallU MemHdr.alloc [Vint 2];;
@@ -90,18 +90,17 @@ Module StackI. Section StackI.
   Definition push : list val → itree crisE val := λ args, ITree.iter (λ _, (_push args)) ().
   Definition pop : list val → itree crisE val := λ args, ITree.iter (λ _, (_pop args)) ().
 
-  Definition fnsems : fnsems_type :=
-    [(Some StackHdr.new_stack, (false, wmask_all, scopes, (None, cfunU new_stack)));
-     (Some StackHdr.push,      (false, wmask_all, scopes, (None, cfunU push)));
-     (Some StackHdr.pop,       (false, wmask_all, scopes, (None, cfunU pop)))].
+  Definition fnsems : gmap (option string) (option (emask * (option fspec * fbody))) :=
+    {[Some StackHdr.new_stack := Some (msk_real (msk_scp scopes msk_true), (None, cfunU new_stack));
+      Some StackHdr.push      := Some (msk_real (msk_scp scopes msk_true), (None, cfunU push));
+      Some StackHdr.pop       := Some (msk_real (msk_scp scopes msk_true), (None, cfunU pop))]}.
 
   Program Definition Mod : SMod.t := {|
     SMod.scopes := scopes;
     SMod.fnsems := fnsems;
-    SMod.initial_st := [];
+    SMod.initial_st := ∅;
   |}.
-  Solve All Obligations with prove_scope.
-  Next Obligation. prove_nodup. Qed.
+  Solve All Obligations with mod_tac.
 
-  Definition t := Seal.sealing CRIS (SMod.to_mod sp_none Mod).
+  Definition t := SMod.to_mod ∅ Mod.
 End StackI. End StackI.

@@ -16,10 +16,6 @@ Global Instance subG_stackG (jobID retID : Type) `{!crisG Γ Σ α β τ _S _I} 
 Proof. solve_inG. Defined.
 Hint Unfold subG_stackG stack_tokG stack_stateG : GRA_index.
 
-Global Instance SLRed_self `{!subG (Γ : HRA) Σ, !SL.G Γ Σ α β τ} {n} (f : GTerm.t n) :
-  SLRed f (⟦f, n⟧)%I | 6.
-Proof. econs; SL_red; eauto. Qed.
-
 Section definitions.
   Definition jobID : Type := nat * nat * (nat * val * val * gname).
   Definition retID : Type := val.
@@ -55,8 +51,8 @@ Section definitions.
         (blk, ofs) ↦{q0} v ∗ (blk, ofs + 1)%Z ↦{q1} rep' ∗ list_inv l rep' n
     end%I.
 
-  Global Instance list_inv_SLRed l n rep : SLRed (syn_list_inv l rep n) (list_inv l rep n).
-  Proof. revert n rep; induction l; econs; rewrite SLRed_red //. Qed.
+  Global Instance list_inv_SLRed l n rep : SLRed n (syn_list_inv l rep n) (list_inv l rep n).
+  Proof. revert n rep; induction l; i; solve_sl_red. Qed.
   Local Hint Extern 0 (environments.envs_entails _ (list_inv (_::_) _)) => simpl : core.
 
   Lemma list_inv_comparable l rep n :
@@ -95,8 +91,8 @@ Section definitions.
       if (decide (offerst = 0%Z))
       then offer ↦ jid.2.1.2 ∗ syn_helping_token n rid jid
       else if (decide (offerst = 1)) then syn_helping_done n rid Vundef
-      else if (decide (offerst = 2)) then <own> γo (Excl ())
-      else ⊥)%SAT.
+      else if (decide (offerst = 2)) then sown γo (Excl ())
+      else ⌜False⌝)%SAT.
   Definition offer_inv γo (offer : mblock * ptrofs) (rid : nat) (jid : jobID) : iProp Σ :=
     (∃ (offerst : Z),
       (offer.1, offer.2 + 1)%Z ↦ Vint offerst ∗
@@ -104,26 +100,23 @@ Section definitions.
       then offer ↦ jid.2.1.2 ∗ helping_token rid jid
       else if (decide (offerst = 1)) then helping_done rid Vundef
       else if (decide (offerst = 2)) then own γo (Excl ())
-      else False)%I.
+      else ⌜False⌝)%I.
   Global Instance SLRed_offer_inv n γo offer rid jid :
-    SLRed (syn_offer_inv n γo offer rid jid) (offer_inv γo offer rid jid).
-  Proof.
-    econs; rewrite /syn_offer_inv /offer_inv ?SLRed_red; do 2 f_equiv; ii.
-    des_ifs; rewrite ?SLRed_red //.
-  Qed.
+    SLRed n (syn_offer_inv n γo offer rid jid) (offer_inv γo offer rid jid).
+  Proof. solve_sl_red; repeat case_decide; ss. Qed.
 
   Definition syn_is_offer (γs : gname) (offer_rep : val) (n : nat) : GTerm.t n :=
     match offer_rep with
     | Vptr (offerb, offerofs) => 
       ∃ (γo : τ{gname}) (jid : τ{jobID}) (rid : τ{nat}),
-        syn_inv n offerN (syn_offer_inv n γo (offerb, offerofs) rid jid)
+        syn_inv offerN (syn_offer_inv n γo (offerb, offerofs) rid jid)
         ∗ ⌜jid.2.2 = γs⌝
-    | Vint 0 => ⊤
-    | _ => ⊥
+    | Vint 0 => ⌜True⌝
+    | _ => ⌜False⌝
     end%SAT.
 
   Definition syn_stack_inv (γs : gname) (stackb : mblock) (stackofs : ptrofs) (n : nat) : GTerm.t n :=
-    ((∃ (stack_rep : τ{val}) (offer_rep : τ{val}) (l : τ{list val}), <own> γs (● Excl' l) ∗
+    ((∃ (stack_rep : τ{val}) (offer_rep : τ{val}) (l : τ{list val}), sown γs (● Excl' l) ∗
        (stackb, stackofs) ↦ stack_rep ∗ syn_list_inv l stack_rep n ∗
        (stackb, stackofs + 1)%Z ↦ offer_rep ∗ syn_is_offer γs offer_rep n) ∨
      (∃ (reqmap : τ{gmap nat (option _ * _)}), syn_helping_auth n (1/2)%Qp reqmap))%SAT.
@@ -133,13 +126,10 @@ Section definitions.
       ⌜s = Vptr (stackb, stackofs)⌝ ∗ inv n stackN (syn_stack_inv γs stackb stackofs n))%I.
   Definition syn_is_stack (γs : gname) (s : val) (n : nat) : GTerm.t n :=
     (∃ (stackb : τ{mblock}) (stackofs : τ{ptrofs}),
-      ⌜s = Vptr (stackb, stackofs)⌝ ∗ syn_inv n stackN (syn_stack_inv γs stackb stackofs n))%SAT.
+      ⌜s = Vptr (stackb, stackofs)⌝ ∗ syn_inv stackN (syn_stack_inv γs stackb stackofs n))%SAT.
   Global Instance SLRed_is_stack γs s n :
-    SLRed (syn_is_stack γs s n) (is_stack γs s n).
-  Proof.
-    econs; rewrite /syn_is_stack /is_stack ?SLRed_eq; do 2 (f_equiv; ii).
-    f_equiv; ss; rewrite inv_red //.
-  Qed.
+    SLRed n (syn_is_stack γs s n) (is_stack γs s n).
+  Proof. solve_sl_red. Qed.
 
   Definition new_stack_spec : fspec :=
     fspec_sch (↑N)
@@ -160,7 +150,8 @@ Section definitions.
          (λ ret, True))))%I.
 End definitions.
 
-Module StackM. Section StackM.
+(* TODO : come back when you define atomic_body *)
+(* Module StackM. Section StackM.
   Definition jobID : Type := nat * nat * (nat * val * val * gname).
   Definition retID : Type := val.
 
@@ -168,7 +159,7 @@ Module StackM. Section StackM.
   Context (mn : string) (N : namespace).
 
   (* Module definitions *)
-  Definition scopes : list string := [].
+  Definition scopes : gmultiset string := ∅.
 
   Definition jobCode : jobID → itree Helping.pureE retID :=
     λ '(_, _, (_, _, v, γs)),
@@ -255,4 +246,4 @@ Module StackA. Section StackA.
   Next Obligation. prove_nodup. Qed.
 
   Definition t sp := Seal.sealing CRIS (SMod.to_mod sp Mod).
-End StackA. End StackA.
+End StackA. End StackA. *)

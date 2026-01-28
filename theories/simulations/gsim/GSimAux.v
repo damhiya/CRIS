@@ -2,12 +2,8 @@ Require Export Common ConcRA.
 From iris.proofmode Require Export proofmode.
 
 Require Export FSpec Sp.
-Require Export SMod Mod.
-Require Export ISim ISimFacts WSim WSimFacts ISimNotations WSimNotations.
+Require Export SMod Mod LMod.
 Require Export TacticsCommon.
-Require Export Tactics TacticsInit IrisTactics.
-
-Require Import LMod.
 Require Import GSim GSimFacts GSimTactics.
 
 (* This file contains auxilliary lemmas for proving HelpOn ≼ HelpOff. *)
