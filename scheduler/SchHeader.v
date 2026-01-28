@@ -17,9 +17,6 @@ Global Opaque SCH.
 Section FSpec.
   Context `{!crisG Γ Σ α β τ _S _I}.
 
-  Variable univ: positive.
-  Variable SpFun: string → option fspec.
-
   Definition sfunN {X Y} `{coreE -< E} `{callE -< E} `{pgE -< E}
       (body : X -> itree E Y) : SAny.t -> itree E SAny.t :=
     λ varg, varg <- varg↓↓!;; vret <- body varg;; Ret vret↑↑.

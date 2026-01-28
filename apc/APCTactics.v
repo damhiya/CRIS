@@ -109,7 +109,7 @@ Qed.
 (*
 Lemma wsim_apc_tgt_noist
   is_closed fl fr Ist u0 u1 cP r g {Rs Rt} RR ps pt nths st_src st_tgt i_src i_tgt
-  (sp sp_pure: string → option fspec) (od ow: Ord.t) (scopes: list string)
+  (sp sp_pure: sp_type) (od ow: Ord.t) (scopes: list string)
   (SUB: sp_sub sp_pure sp)
   (SUBA: sp_incl APCA.Sp sp)
   (FIND: alist_find APCHdr.apc fr = Some (HModTr.sandbox_body (APCA.scopes, interp_sb_hp (wsim_ginv u0 cP) sp
