@@ -89,14 +89,14 @@ Section wsim.
       forces_l. iSplitL "TID"; iFrame; eauto.
       steps_l.
       call "IST".
-      steps_l. iDestruct "ASM" as "[[-> TID] ->]". hss. steps_l. steps_r.
+      steps_l. iDestruct "ASM" as "[-> [-> TID]]". hss. steps_l. steps_r.
       by_coind CIH. iFrame.
     }
     { replace (sp_s SchHdr.yield) with (fsp_some (SchAS.yield_spec E_s q_s)); cycle 1.
       { erewrite (proj2 Hcase0); et. unfold sp; unseal CRIS; et. }
       replace (sp_t SchHdr.yield) with (fsp_some (SchAS.yield_spec E_t q_t)); cycle 1.
       { erewrite (proj2 Hcase2); et. unfold sp; unseal CRIS; et. }
-      steps_r. iDestruct "GRT" as "[[-> TID0] _]".
+      steps_r. iDestruct "GRT" as "[<- [_ TID0]]".
       iPoseProof (tid_user_unique with "[TID TID0]") as "%"; iFrame; subst.
       forces_l. iSplitL "TID TID0".
       { do 2 (iSplit; et).
@@ -104,7 +104,7 @@ Section wsim.
         rewrite -Hcase6. et.
       }
       call "IST".
-      steps_l. hss. iDestruct "ASM" as "[[-> TID] _]". steps_l.
+      steps_l. hss. iDestruct "ASM" as "[-> [-> TID]]". steps_l.
       rewrite Hcase6.
       iPoseProof (tid_user_split with "[TID]") as "[TID0 TID]"; et.
       steps_r. forces_r. iSplitL "TID0"; et.
@@ -176,15 +176,15 @@ Section RealLAT.
     msk_s (Some SchHdr.yield) →
     msk_t (Some SchHdr.yield) →
     Ist st_s st_t ∗
-    (□ ∀ x_s, ∃ x_t, precondS fsp_s x_s arg_s ==∗ precondS fsp_t x_t arg_t ∗ (precondS fsp_t x_t arg_t ==∗ precondS fsp_s x_s arg_s)) ∗
+    (□ ∀ x_s, ∃ x_t, precond fsp_s x_s arg_s arg_s ==∗ precond fsp_t x_t arg_t arg_t ∗ (precond fsp_t x_t arg_t arg_t ==∗ precond fsp_s x_s arg_s arg_s)) ∗
     (∀ st_src st_tgt,
       Ist st_src st_tgt -∗ 
       sim (∅,∅) r g RR true true
         (st_src, SB.sandbox img_s msk_s scp_s (SModTr.trans sp_none (ret_s <- body_s arg_s;;
-                   RealUpdate (idx_to_rel (λ x, precondS fsp_s x arg_s) (λ x, postcondS fsp_s x ret_s));;;
+                   RealUpdate (idx_to_rel (λ x, precond fsp_s x arg_s arg_s) (λ x, postcond fsp_s x ret_s ret_s));;;
                    Ret ret_s)) >>= k_s)                                                                                
         (st_tgt, SB.sandbox img_t msk_t scp_t (SModTr.trans sp_none (ret_t <- body_t arg_t;;
-                   RealUpdate (idx_to_rel (λ x, precondS fsp_t x arg_t) (λ x, postcondS fsp_t x ret_t));;;
+                   RealUpdate (idx_to_rel (λ x, precond fsp_t x arg_t arg_t) (λ x, postcond fsp_t x ret_t ret_t));;;
                    Ret ret_t)) >>= k_t))
     ⊢
     sim (∅,∅) r g RR ps pt
@@ -249,14 +249,14 @@ Section RealLAT.
     I ∗ Ist st_s st_t ∗ (if tid_res then SchAS.tid_user q my_tid else emp) ∗
     (□ (∀ st_src st_tgt,
        I -∗ winv (E, E) -∗ Ist st_src st_tgt -∗ (if tid_res then SchAS.tid_user q my_tid else emp) ==∗
-       precondS fsp_t x_t arg_t ∗ (precondS fsp_t x_t arg_t ==∗ I ∗ winv (E, E) ∗ Ist st_src st_tgt ∗ (if tid_res then SchAS.tid_user q my_tid else emp)))
+       precond fsp_t x_t arg_t arg_t ∗ (precond fsp_t x_t arg_t arg_t ==∗ I ∗ winv (E, E) ∗ Ist st_src st_tgt ∗ (if tid_res then SchAS.tid_user q my_tid else emp)))
     ) ∗
     (∀ st_src st_tgt,
      I -∗ Ist st_src st_tgt -∗ (if tid_res then SchAS.tid_user q my_tid else emp) -∗
      sim (E,E) r g RR true true
         (st_src, SB.sandbox img_s msk_s scp_s (SModTr.trans sp_s 𝒴) >>= k_s)
         (st_tgt, SB.sandbox img_t msk_t scp_t (SModTr.trans sp_none (ret_t <- body_t arg_t;;
-                   RealUpdate (idx_to_rel (λ x, precondS fsp_t x arg_t) (λ x, postcondS fsp_t x ret_t));;;
+                   RealUpdate (idx_to_rel (λ x, precond fsp_t x arg_t arg_t) (λ x, postcond fsp_t x ret_t ret_t));;;
                    Ret ret_t)) >>= k_t))
     ⊢
     sim (E,E) r g RR ps pt

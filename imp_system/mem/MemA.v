@@ -171,22 +171,22 @@ Module MemSpec. Section MemSpec.
   Context `{!crisG Γ Σ α β τ _S _I, !memG}.
 
   Definition alloc :=
-    (make_fspecS (λ sz,
+    (fspec_simple (λ sz,
        (λ arg, ⌜arg = [Vint (Z.of_nat sz)]↑ /\ (8 * (Z.of_nat sz) < modulus_64)%Z⌝,
         λ ret, ∃ b, ⌜ret = (Vptr (b, 0%Z))↑⌝ ∗ (b, 0%Z) |-> List.repeat Vundef sz)))%I.
 
   Definition free :=
-    (make_fspecS (λ '(b, ofs, v),
+    (fspec_simple (λ '(b, ofs, v),
        (λ arg, ⌜arg = [Vptr (b, ofs)]↑⌝ ∗ (b, ofs) ↦ v,
         λ ret, ⌜ret = (Vint 0)↑⌝)))%I.
 
   Definition load :=
-    (make_fspecS (λ '(b, ofs, q, v),
+    (fspec_simple (λ '(b, ofs, q, v),
        (λ arg, ⌜arg = [Vptr (b, ofs)]↑⌝ ∗ (b, ofs) ↦{q} v,
         λ ret, (b, ofs) ↦{q} v ∗ ⌜ret = v↑⌝)))%I.
 
   Definition store :=
-    (make_fspecS (λ '(b, ofs, v_old, v_new),
+    (fspec_simple (λ '(b, ofs, v_old, v_new),
        (λ arg, ⌜arg = [Vptr (b, ofs) ; v_new]↑⌝ ∗ (b, ofs) ↦ v_old,
         λ ret, (b, ofs) ↦ v_new ∗ ⌜ret = (Vint 0)↑⌝)))%I.
 
@@ -207,15 +207,15 @@ Module MemSpec. Section MemSpec.
     end.
 
   Definition cmp :=
-    (make_fspecS (λ '(arg0, q0, v0, arg1, q1, v1, succ),
+    (fspec_simple (λ '(arg0, q0, v0, arg1, q1, v1, succ),
       (λ arg,
         ⌜arg = [arg0; arg1]↑ ∧ compare_val arg0 arg1 = Vint succ⌝ ∗
         val_r arg0 q0 v0 ∗ val_r arg1 q1 v1,
        λ ret, ⌜ret = (Vint succ)↑⌝ ∗
         val_r arg0 q0 v0 ∗ val_r arg1 q1 v1)))%I.
 
-  Definition cas : fspecS :=
-    (make_fspecS (λ '(b, ofs, v_cur, q0, v0, v_old, q1, v1, v_new, succ),
+  Definition cas :=
+    (fspec_simple (λ '(b, ofs, v_cur, q0, v0, v_old, q1, v1, v_new, succ),
       (λ arg, ⌜arg = [Vptr (b, ofs); v_old; v_new]↑ ∧ compare_val v_cur v_old = Vint succ⌝ ∗
         (b, ofs) ↦ v_cur ∗ val_r v_cur q0 v0 ∗ val_r v_old q1 v1,
        λ ret, ⌜ret = v_cur↑⌝ ∗
@@ -258,20 +258,20 @@ Module MemA. Section MemA.
 
   Definition sp : alist (option string) (option fspec_rel) :=
     Seal.sealing CRIS
-      [(Some MemHdr.alloc, fsp_some (to_fspec MemSpec.alloc));
-       (Some MemHdr.free,  fsp_some (to_fspec MemSpec.free));
-       (Some MemHdr.load,  fsp_some (to_fspec MemSpec.load));
-       (Some MemHdr.store, fsp_some (to_fspec MemSpec.store));
-       (Some MemHdr.cmp,   fsp_some (to_fspec MemSpec.cmp));
-       (Some MemHdr.cas,   fsp_some (to_fspec MemSpec.cas))].
+      [(Some MemHdr.alloc, fsp_some (MemSpec.alloc));
+       (Some MemHdr.free,  fsp_some (MemSpec.free));
+       (Some MemHdr.load,  fsp_some (MemSpec.load));
+       (Some MemHdr.store, fsp_some (MemSpec.store));
+       (Some MemHdr.cmp,   fsp_some (MemSpec.cmp));
+       (Some MemHdr.cas,   fsp_some (MemSpec.cas))].
 
   Definition fnsems : alist (option string) (fnsem_type (option fspec_rel * fbody)) :=
-    [(Some MemHdr.alloc, (true, wmask_all, scopes, (fsp_some (to_fspec MemSpec.alloc), fbody_trivial)));
-     (Some MemHdr.free,  (true, wmask_all, scopes, (fsp_some (to_fspec MemSpec.free), fbody_trivial)));
-     (Some MemHdr.load,  (true, wmask_all, scopes, (fsp_some (to_fspec MemSpec.load), fbody_trivial)));
-     (Some MemHdr.store, (true, wmask_all, scopes, (fsp_some (to_fspec MemSpec.store), fbody_trivial)));
-     (Some MemHdr.cmp,   (true, wmask_all, scopes, (fsp_some (to_fspec MemSpec.cmp), fbody_trivial)));
-     (Some MemHdr.cas,   (true, wmask_all, scopes, (fsp_some (to_fspec MemSpec.cas), fbody_trivial)))].
+    [(Some MemHdr.alloc, (true, wmask_all, scopes, (fsp_some (MemSpec.alloc), fbody_trivial)));
+     (Some MemHdr.free,  (true, wmask_all, scopes, (fsp_some (MemSpec.free), fbody_trivial)));
+     (Some MemHdr.load,  (true, wmask_all, scopes, (fsp_some (MemSpec.load), fbody_trivial)));
+     (Some MemHdr.store, (true, wmask_all, scopes, (fsp_some (MemSpec.store), fbody_trivial)));
+     (Some MemHdr.cmp,   (true, wmask_all, scopes, (fsp_some (MemSpec.cmp), fbody_trivial)));
+     (Some MemHdr.cas,   (true, wmask_all, scopes, (fsp_some (MemSpec.cas), fbody_trivial)))].
 
   (* Module definition *)
   Program Definition smod : SMod.t := {|

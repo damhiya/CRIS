@@ -380,7 +380,7 @@ Module MemIP. Section MemIP.
     destruct (classic (∃ v:nat, arg = [Vint v]↑)) as [[v ->]|Hex]; cycle 1.
     {
       steps_l. force_l (tt↑); steps_l. ru_l False%I. iSplitL.
-      - iIntros (?) "[% %]"; exfalso; subst; et.
+      - iIntros (?) "[% [% %]]"; exfalso; subst; et.
       - iIntros "H"; iExFalso; done.
     }
 
@@ -390,7 +390,7 @@ Module MemIP. Section MemIP.
       steps_l; force_l (tt↑); steps_l.
       ru_l False%I.
       iSplitL.
-      - iIntros (?) "[% %]". exfalso; hss; rewrite -x in H2. simpl_bool; des.
+      - iIntros (?) "[% [% %]]". exfalso; hss; rewrite -x in H3. simpl_bool; des.
         { destruct (Z_le_gt_dec 0 v); des; ss; lia. }
         { destruct (Z_lt_ge_dec (8 * v) modulus_64); des; ss. }
       - iIntros "H"; iExFalso; done.
@@ -438,7 +438,7 @@ Module MemIP. Section MemIP.
     ru_l (own base_γ (● mem_ra_upd mem_src b ofs None) ∗ ⌜arg = [Vptr (b, ofs)]↑ ∧
       ∃ v, Mem.cnts mem_tgt b ofs = Some v⌝)%I.
     iSplitL.
-    { iIntros ([[??]?]) "/= [% PT]"; hss.
+    { iIntros ([[??]?]) "/= [% [-> PT]]"; hss.
       iPoseProof (mem_ra_lookup with "[B PT]") as "%HIT"; eauto; iFrame. des.
       rewrite HIT0.
       iMod (mem_ra_free with "[B PT]") as "H"; eauto; iFrame.
@@ -469,7 +469,7 @@ Module MemIP. Section MemIP.
                    mem_tgt.(Mem.cnts) b ofs = Some (mem_get mem_src b ofs)⌝ ∗
                   own base_γ (● mem_src))%I.
     iSplitL "B".
-    { iIntros ([[[? ?] ?] ?]) "/= [% PT] !>"; hss.
+    { iIntros ([[[? ?] ?] ?]) "/= [% [-> PT]] !>"; hss.
       iPoseProof (mem_ra_lookup with "[B PT]") as "[% %]"; eauto; iFrame.
       erewrite mem_get_sound; eauto.
     }
@@ -494,7 +494,7 @@ Module MemIP. Section MemIP.
        own base_γ (● mem_ra_upd mem_src b ofs (Some (to_frac_agree 1 v_new))))%I.
 
     iSplitL.
-    { iIntros ([[[? ?] ?] ?]) "/= [% PT]"; hss.
+    { iIntros ([[[? ?] ?] ?]) "/= [% [-> PT]]"; hss.
       iPoseProof (mem_ra_lookup with "[B PT]") as "%"; eauto; iFrame. des.
       rewrite H2; eauto.
       iMod (mem_ra_update with "[B PT]") as "[B PT]"; eauto; iFrame.
@@ -529,7 +529,7 @@ Module MemIP. Section MemIP.
 
     iSplitL "B".
     { iIntros ([[[[[[arg0 q0] v0] arg1] q1] v1] succ]); s.
-      iIntros "[% [P1 P2]]". des. subst. hss. iModIntro.
+      iIntros "[% [[-> %] [P1 P2]]]". hss. iModIntro.
       iPoseProof (mem_ra_cmp with "[B P1 P2]") as "%"; et; [iFrame|].
       rewrite -(assoc (∗))%I. iSplit.
       { iSplit; et. }
@@ -570,7 +570,7 @@ Module MemIP. Section MemIP.
 
     iSplitL "B".
     { iIntros ([[[[[[[[[b' ofs'] v_cur']q0]v0]v_old']q1]v1]v_new']succ]). s.
-      iIntros "[% [P [V1 V2]]]". des. subst. hss.
+      iIntros "[% [[-> %] [P [V1 V2]]]]". des. subst. hss.
       iPoseProof (mem_ra_lookup with "[B P]") as "%"; et; [iFrame|]. des.
       iPoseProof (mem_ra_cmp with "[B V1 V2]") as "%"; et; [iFrame|].
       iMod ((mem_ra_update v_upd) with "[B P]") as "[B P]"; et; [iFrame|].
@@ -644,8 +644,9 @@ Module MemIA. Section MemIA.
   Proof using.
     init_sim; et;
       (init_simF; iDestruct "IST" as "->"; steps_r;
-       iApply wsim_eqit_src; [|iApply (wsim_lat_real_to_hoare _ fbody_trivial)];
-       rewrite ?SRed.core ?SBRed.choose; refl).
+       iApply wsim_eqit_src; [|iApply (wsim_lat_real_to_hoare fbody_trivial)];
+       rewrite ?SRed.core ?SBRed.choose; try refl);
+      (split; i; unfold_pre_post; iIntros "[% _]"; des; et).
   Qed.
 
   Theorem ctxr csl genv :

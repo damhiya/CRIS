@@ -377,7 +377,7 @@ Module SchIA. Section SchIA.
 
     steps_r. call "IST".
 
-    steps_l. iDestruct "ASM" as "[[-> TU] ->]". hss.
+    steps_l. iDestruct "ASM" as "[-> [-> TU]]". hss.
     steps_l.
     steps_r.
     by_coind CIH; eauto.
@@ -440,7 +440,7 @@ Module SchIA. Section SchIA.
     rewrite /SchA.check_internal /SchI.check_internal.
 
     steps_l. rename _q into my_tid.
-    iDestruct "ASM" as "[[-> tid] ->]". hss. steps_r.
+    iDestruct "ASM" as "[-> [-> tid]]". hss. steps_r.
     iDestruct "IST" as (????????) "(% & THB & THW & COND & [[% TA]|[% [TA WI]]])"; subst; hss.
     2:{ iExFalso. iApply (tid_admin_none_user with "[TA tid]"); iFrame. }
     iPoseProof (tid_admin_some_user with "[TA tid]") as "%"; iFrame; subst.
@@ -553,7 +553,7 @@ Module SchIA. Section SchIA.
       call "THB THW COND TA".
       { do 8 iExists _. iFrame. iSplit; eauto. }
 
-      steps_l. iDestruct "ASM" as  "[[-> tid] ->]".
+      steps_l. iDestruct "ASM" as  "[-> [-> tid]]".
       steps_l. hss. steps_l.
       steps_r. hss. steps_r.
       rewrite /cgetU.
@@ -574,7 +574,7 @@ Module SchIA. Section SchIA.
   Proof using FunInSp SchInSp.
     init_simF.
 
-    steps_l. iDestruct "ASM" as "[[-> tid] ->]"; hss. rename _q into my_tid.
+    steps_l. iDestruct "ASM" as "[-> [-> tid]]"; hss. rename _q into my_tid.
     steps_r.
     iDestruct "IST" as (????????) "(% & THB & THW & COND & [[% TA]|[% [TA WI]]])"; des; subst; hss.
     2:{ iExFalso. iApply (tid_admin_none_user with "[TA tid]"); iFrame. }
@@ -632,7 +632,7 @@ Section ctxr.
     - iinit_simF. iIntros "W". iApply isim_refl; et; i; iIntros "->"; et.
     - init_simF.
       
-      steps_l. iDestruct "ASM" as "[[-> TID] ->]"; hss. rename _q into my_tid.
+      steps_l. iDestruct "ASM" as "[-> [-> TID]]"; hss. rename _q into my_tid.
       steps_r. iDestruct "IST" as "%"; subst.
       steps_l. exploit Qp_lt_split; et. i; des. rewrite x0.
       iPoseProof (SchAS.tid_user_split with "TID") as "[TID1 TID2]".
@@ -641,7 +641,7 @@ Section ctxr.
       rewrite SBRed.get. des_ifs; cycle 1.
       iApply wsim_sget_src. iApply wsim_sget_tgt.
       steps_l. steps_r. rewrite G. steps_r.
-      iDestruct "GRT" as "[[% TID1] %]". subst.
+      iDestruct "GRT" as "[-> [-> TID1]]".
       forces_l. iSplitL.
       { repeat (iSplit; et).
         iPoseProof (SchAS.tid_user_merge with "[TID2 TID1]") as "TID"; iFrame.

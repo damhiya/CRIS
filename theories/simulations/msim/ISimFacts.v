@@ -500,7 +500,7 @@ Section LAT.
       iApply isim_refl; et; i; iIntros "%"; subst; et.
     }
     iIntros (????) "%"; des; subst.
-    isteps_l. iDestruct "ASM" as "[ASM %]". isteps_r.
+    isteps_l. isteps_r.
     destruct (peeking); cycle 1.
     {
       isteps_l. isteps_r.
@@ -512,13 +512,13 @@ Section LAT.
       iIntros (????) "%"; des; subst.
       isteps_l. isteps_r.
       iforce_r. iFrame. iIntros "GRT".
-      iforce_l. iFrame. iSplit; et. isteps_l. isteps_r.
+      iforce_l. iFrame. isteps_l. isteps_r.
       istep; et.
     }
 
     isteps_r. destruct _q0.
     { iforce_r. iFrame. iIntros "GRT".
-      iforce_l true. isteps_l. iforce_l. iFrame. iSplit; et. isteps_l. isteps_r.
+      iforce_l true. isteps_l. iforce_l. iFrame. isteps_l. isteps_r.
       iby_coind CIH; et.
     }
 
@@ -531,23 +531,24 @@ Section LAT.
     iIntros (????) "%"; des; subst.
     isteps_l. isteps_r.
     iforce_r. iFrame. iIntros "GRT".
-    iforce_l. iFrame. iSplit; et. isteps_l. isteps_r.
+    iforce_l. iFrame. isteps_l. isteps_r.
     istep; et.
   Qed.
 
   Lemma isim_lat_img_to_hoare fsp body_s body_t fl_s fl_t msk scp ps pt st arg
+    (PHY: fspec_physical fsp)
     (EQIT: eqit eq false true
             (SB.sandbox true msk scp (body_s arg))
             (SB.sandbox true msk scp (SModTr.trans sp_none (body_t arg))))
     :
     ⊢
     isim open fl_s fl_t IstEq ibot ibot (ist_with_eq IstEq) ps pt
-      (st, SB.sandbox true msk scp (SModTr.HoareFun (fsp_some (to_fspec fsp)) body_s arg))
+      (st, SB.sandbox true msk scp (SModTr.HoareFun (fsp_some fsp) body_s arg))
       (st, SB.sandbox true msk scp (SModTr.trans sp_none (lat_img false fsp (Ret ()) body_t arg))).
   Proof using.
     iIntros. isteps_l. rewrite /lat_img /lat_img_body. unfold_iter_r. isteps_r.
-    iDestruct "ASM" as "[P %]"; subst.
-    iforces_r. iFrame. iSplit; et. isteps_r.
+    destruct fsp. destruct PHY as [P1 P2]. iPoseProof (P1 with "ASM") as "->".
+    iforces_r. iFrame. isteps_r.
     iApply isim_bind. iSplitL "".
     { iApply isim_eqit_tgt; et.
       iApply isim_refl; et; i; iIntros "%"; subst; et.
@@ -558,17 +559,18 @@ Section LAT.
   Qed.
 
   Lemma isim_lat_real_to_hoare fsp body_s body_t fl_s fl_t msk scp ps pt st arg
+    (PHY: fspec_physical fsp)
     (EQIT: eqit eq false true
             (SB.sandbox true msk scp (body_s arg))
             (SB.sandbox false msk scp (SModTr.trans sp_none (body_t arg))))
     :
     ⊢
     isim open fl_s fl_t IstEq ibot ibot (ist_with_eq IstEq) ps pt
-      (st, SB.sandbox true msk scp (SModTr.HoareFun (fsp_some (to_fspec fsp)) body_s arg))
+      (st, SB.sandbox true msk scp (SModTr.HoareFun (fsp_some fsp) body_s arg))
       (st, SB.sandbox false msk scp (SModTr.trans sp_none (lat_real false fsp (Ret ()) body_t arg))).
   Proof using.
     iIntros. isteps_l. rewrite /lat_real /lat_real_body. unfold_iter_r. isteps_r.
-    iDestruct "ASM" as "[P %]"; subst.
+    destruct fsp. destruct PHY as [P1 P2]. iPoseProof (P1 with "ASM") as "->".
     iApply isim_bind. iSplitL "".
     { iApply isim_eqit_tgt; et.
       iApply isim_refl; et; i; iIntros "%"; subst; et.
@@ -576,7 +578,7 @@ Section LAT.
     iIntros (????) "%"; des; subst.
     isteps_l. isteps_r.
     iforce_r. iFrame. iIntros "GRT".
-    iforces_l. iFrame. iSplit; et.
+    iforces_l. iFrame.
     isteps_l. isteps_r. istep; et.
   Qed.
   

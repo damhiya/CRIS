@@ -68,32 +68,13 @@ Section FSPEC.
       (λ x varg arg, (∃ va: VA, ⌜varg = va↑⌝ ∗ (DPQ x).1 va arg)%I)
       (λ x vret ret, (∃ vr: VR, ⌜vret = vr↑⌝ ∗ (DPQ x).2 vr ret)%I).
 
-  Record fspecS : Type := mk_fspecS {
-    metaS : Type;
-    precondS : metaS → Any.t → iProp Σ;
-    postcondS : metaS → Any.t → iProp Σ;
-  }.
+  Definition fspec_physical (fsp: fspec) : Prop :=
+    (∀ x va a, fsp.(precond) x va a ⊢ ⌜va = a⌝%I) ∧
+    (∀ x vr r, fsp.(postcond) x vr r ⊢ ⌜vr = r⌝%I).
 
-  Definition make_fspecS {X} (DPQ : X → (Any.t → iProp Σ) * (Any.t → iProp Σ)) : fspecS :=
-    mk_fspecS (λ x, (DPQ x).1) (λ x, (DPQ x).2).
-
-  Definition fspecS_bot : fspecS := {|
-    metaS := unit;
-    precondS := λ _ _, False%I;
-    postcondS := λ _ _, True%I;
-  |}.
-
-  Definition to_fspec (fsp : fspecS) : fspec :=
-    mk_fspec (λ x varg arg, (fsp.(precondS) x arg ∗ ⌜varg = arg⌝)%I)
-             (λ x vret ret, (fsp.(postcondS) x ret ∗ ⌜vret = ret⌝)%I).
-
-  Definition from_fspec (fsp : fspec) : fspecS :=
-    mk_fspecS (λ x arg, (fsp.(precond) x arg arg)%I)
-              (λ x ret, (fsp.(postcond) x ret ret)%I).
-  
-  Definition lat_img_body (peeking: bool) (fsp : fspecS) (lbody: itree crisE ()) (body: fbody) (arg: Any.t) :=
+  Definition lat_img_body (peeking: bool) (fsp : fspec) (lbody: itree crisE ()) (body: fbody) (arg: Any.t) :=
     lbody;;;
-    PQ <- trigger (Take (FSpec (to_fspec fsp)));;
+    PQ <- trigger (Take (FSpec fsp));;
     trigger (Assume (PQ.(Precond) arg arg));;;
     let peek := trigger (Guarantee (PQ.(Precond) arg arg));;; Ret (inl ()) in
     let update := ret <- body arg;; trigger (Guarantee (PQ.(Postcond) ret ret));;; Ret (inr ret) in
@@ -105,10 +86,10 @@ Section FSPEC.
   Definition lat_img peeking fsp lbody body : fbody :=
     λ arg, ITree.iter (λ _, lat_img_body peeking fsp lbody body arg) ().
 
-  Definition lat_real_body (peeking: bool) (fsp : fspecS) (lbody: itree crisE ()) (body: fbody) (arg: Any.t) :=
+  Definition lat_real_body (peeking: bool) (fsp : fspec) (lbody: itree crisE ()) (body: fbody) (arg: Any.t) :=
     lbody;;;
-    let peek := RealUpdate (idx_to_rel (λ x, precondS fsp x arg) (λ x, precondS fsp x arg));;; Ret (inl ()) in
-    let update := ret <- body arg;; RealUpdate (idx_to_rel (λ x, precondS fsp x arg) (λ x, postcondS fsp x ret));;; Ret (inr ret) in
+    let peek := RealUpdate (idx_to_rel (λ x, precond fsp x arg arg) (λ x, precond fsp x arg arg));;; Ret (inl ()) in
+    let update := ret <- body arg;; RealUpdate (idx_to_rel (λ x, precond fsp x arg arg) (λ x, postcond fsp x ret ret));;; Ret (inr ret) in
     if peeking
     then 'b: bool <- trigger (Choose bool);;
          (if b then peek else update)
@@ -117,9 +98,13 @@ Section FSPEC.
   Definition lat_real peeking fsp lbody body : fbody :=
     λ arg, ITree.iter (λ _, lat_real_body peeking fsp lbody body arg) ().
 
-  Definition fspec_simple {X} (DPQ : X → (Any.t → iProp Σ) * (Any.t → iProp Σ)) : fspec :=
-    to_fspec (make_fspecS DPQ).
+  Definition to_physical (fsp: fspec) : fspec :=
+    mk_fspec (λ x va a, ⌜va=a⌝ ∗ fsp.(precond) x va a)%I
+             (λ x vr r, ⌜vr=r⌝ ∗ fsp.(postcond) x vr r)%I.
 
+  Definition fspec_simple {X} (DPQ : X → (Any.t → iProp Σ) * (Any.t → iProp Σ)) : fspec :=
+    to_physical (mk_fspec (λ x varg arg, (DPQ x).1 varg)%I
+                          (λ x vret ret, (DPQ x).2 vret)%I).
 
   Definition fspec_flat (fspo : option fspec_rel) : fspec_rel :=
     or_else fspo fspec_trivial.
@@ -180,6 +165,4 @@ End FSPEC_WINV.
 
 Global Arguments precond : simpl never.
 Global Arguments postcond : simpl never.
-Global Arguments precondS : simpl never.
-Global Arguments postcondS : simpl never.
 

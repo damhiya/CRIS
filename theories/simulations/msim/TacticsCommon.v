@@ -460,8 +460,6 @@ Ltac unfold_pre_post_term term :=
            TM => match P with
                  | context[precond] => unfold precond in TM; simpl in TM
                  | context[postcond] => unfold postcond in TM; simpl in TM
-                 | context[precondS] => unfold precondS in TM; simpl in TM
-                 | context[postcondS] => unfold postcondS in TM; simpl in TM
                  end
          end
      end);
@@ -471,8 +469,6 @@ Ltac unfold_pre_post :=
   hrepeat do 1 match goal with
   | |-context[precond] => rewrite /precond; s
   | |-context[postcond] => rewrite /postcond; s
-  | |-context[precondS] => rewrite /precondS; s
-  | |-context[postcondS] => rewrite /postcondS; s
   end.
 
 Ltac set_marker marker :=

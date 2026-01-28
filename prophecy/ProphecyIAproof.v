@@ -955,11 +955,11 @@ Module ProphIA.
       rewrite !list_insert_insert.
       des.
       assert (Own p0 ⊢ ⌜arg = i1↑⌝).
-      { iIntros "A". iPoseProof (p2 with "A") as ">[[[A B] C] D]". iFrame. }
+      { iIntros "A". iPoseProof (p2 with "A") as ">[[-> [-> _]] _]". et. }
       apply Own_pure_soundness in H; et. clarify.
       rewrite !SRed.ret.
       assert (Own p0 ⊢ |==> ((⌜i1 ↑ = i1 ↑⌝ ∗ free_id (λ y : Prophecy.ID, y = i1)) ∗ ⌜p = i1 ↑⌝) ∗ Own (rs_tgt ⋅ rs_proph)).
-      { iIntros "A". iPoseProof (p2 with "A") as ">[A B]". iFrame.
+      { iIntros "A". iPoseProof (p2 with "A") as ">[[-> A] B]". iFrame. iSplitL ""; et.
         iStopProof. apply Own_Upd. et. }
       clear p2. rename H into p2. rewrite /free_id in p2.
       assert (✓ (free_id_r (λ y : Prophecy.ID, y = i1) ⋅ free_id_auth_r free_ids)).
@@ -1023,9 +1023,7 @@ Module ProphIA.
       unfold LModTr.pure_state at 1. grind. steps_l.
       assert
         (Own p0 ⊢ |==>
-           ((∃ p4 : Prophecy.Pro t, ⌜tt ↑ = tt ↑⌝ ∗
-             has_proph i1 (existT t (p4, []))) ∗ ⌜
-              tt ↑ = tt ↑⌝) ∗
+           postcond ProphecyA.new_spec (i1, t) () ↑ () ↑ ∗
            Own
            (rs_tgt ⋅ (own.iRes_singleton base_γ
               (has_proph_auth_r
@@ -1181,10 +1179,10 @@ Module ProphIA.
       rewrite !list_insert_insert.
       des.
       assert (Own p1 ⊢ ⌜arg = (i1, o↑↑)↑⌝).
-      { iIntros "A". iPoseProof (p3 with "A") as ">[[[A B] C] D]". iFrame. }
+      { iIntros "A". iPoseProof (p3 with "A") as ">[[-> [-> _]] _]". et. }
       apply Own_pure_soundness in H; et. clarify.
       assert (Own p1 ⊢ |==> ((⌜(i1, o ↑↑) ↑ = (i1, o ↑↑) ↑⌝ ∗ has_proph i1 (existT x (p, l))) ∗ ⌜p0 = (i1, o ↑↑) ↑⌝) ∗ Own (rs_tgt ⋅ rs_proph)).
-      { iIntros "A". iPoseProof (p3 with "A") as ">[A B]". iFrame.
+      { iIntros "A". iPoseProof (p3 with "A") as ">[[-> A] B]". iFrame. iSplitL ""; et.
         iStopProof. apply Own_Upd. et. }
       clear p3. rename H into p3. rewrite RS /has_proph in p3.
       assert (✓ (has_proph_r i1 (existT x (p, l)) ⋅ has_proph_auth_r free_ids proph_map)).
@@ -1297,8 +1295,9 @@ Module ProphIA.
 
       assert
         (Own p1 ⊢ |==>
-           ((⌜tt ↑ = tt ↑ /\ Prophecy.consistent (projT1 (proph_map i1)) (o :: l) p⌝ ∗
-             has_proph i1 (existT (projT1 (proph_map i1)) (p, o :: l))) ∗ ⌜tt ↑ = tt ↑⌝) ∗
+           postcond ProphecyA.resolve_spec
+                 (i1, existT (projT1 (proph_map i1)) (p, l, o)) 
+                 () ↑ () ↑ ∗
            Own
            (rs_tgt ⋅
               (own.iRes_singleton base_γ (has_proph_auth_r free_ids proph_map')
@@ -1428,14 +1427,14 @@ Module ProphIA.
       rewrite !list_insert_insert. des.
       assert (Own p0 ⊢ ⌜arg = i1↑⌝).
       { iIntros "A". destruct s as [? [? ?]].
-        iPoseProof (p2 with "A") as "> [[[% ?] %] ?]"; clarify.
+        iPoseProof (p2 with "A") as "> [[-> [-> _]] _]". et.
       }
       apply Own_pure_soundness in H; et. clarify.
       rewrite !SRed.ret. grind.
       destruct s as [x [p' l]].
       assert (Own p0 ⊢
         |==> ((⌜i1 ↑ = i1 ↑⌝ ∗ has_proph i1 (existT x (p', l))) ∗ ⌜p = i1 ↑⌝) ∗ Own (rs_tgt ⋅ rs_proph)).
-      { iIntros "A". iPoseProof (p2 with "A") as ">[A B]". iFrame.
+      { iIntros "A". iPoseProof (p2 with "A") as ">[[-> A] B]". iFrame. iSplitL ""; et.
         iStopProof. apply Own_Upd. et. }
       clear p2. rename H into p3.
       assert (✓ (has_proph_r i1 (existT x (p', l)) ⋅ has_proph_auth_r free_ids proph_map)).
@@ -1502,9 +1501,7 @@ Module ProphIA.
       unfold LModTr.pure_state at 1. grind. steps_l.
       assert
         (Own p0 ⊢ |==>
-           ((⌜tt ↑ = tt ↑⌝ ∗
-             free_id (λ y, y = i1)) ∗ ⌜
-              tt ↑ = tt ↑⌝) ∗
+           postcond ProphecyA.close_spec (i1, existT x (p', l)) () ↑ () ↑ ∗
            Own
            (rs_tgt ⋅ (own.iRes_singleton base_γ
               (has_proph_auth_r
