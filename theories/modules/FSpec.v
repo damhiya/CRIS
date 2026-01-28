@@ -40,8 +40,6 @@ Section FSPEC.
 
   Definition fbody : Type := Any.t → itree crisE Any.t.
 
-  Definition fspecbody : Type := fspec * fbody.
-
   Definition fspec_trivial : fspec :=
     @mk_fspec unit (λ _ varg arg, ⌜varg = arg⌝%I)
                    (λ _ vret ret, ⌜vret = ret⌝%I).
@@ -70,11 +68,6 @@ Section FSPEC.
       (λ x varg arg, (∃ va: VA, ⌜varg = va↑⌝ ∗ (DPQ x).1 va arg)%I)
       (λ x vret ret, (∃ vr: VR, ⌜vret = vr↑⌝ ∗ (DPQ x).2 vr ret)%I).
 
-  Definition app_fspec (fspecs : list fspec) : fspec :=
-    @mk_fspec { i : nat & meta (nth i fspecs fspec_top) }
-      (λ '(existT i meta_i), precond (nth i fspecs fspec_top) meta_i)
-      (λ '(existT i meta_i), postcond (nth i fspecs fspec_top) meta_i).
-
   Record fspecS : Type := mk_fspecS {
     metaS : Type;
     precondS : metaS → Any.t → iProp Σ;
@@ -88,12 +81,6 @@ Section FSPEC.
     metaS := unit;
     precondS := λ _ _, False%I;
     postcondS := λ _ _, True%I;
-  |}.
-
-  Definition app_fspecS (fspecs : list fspecS) : fspecS := {|
-    metaS := { i : nat & (nth i fspecs fspecS_bot).(metaS) };
-    precondS := λ '(existT i meta_i), (nth i fspecs fspecS_bot).(precondS) meta_i;
-    postcondS := λ '(existT i meta_i), (nth i fspecs fspecS_bot).(postcondS) meta_i
   |}.
 
   Definition to_fspec (fsp : fspecS) : fspec :=
