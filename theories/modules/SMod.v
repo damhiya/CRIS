@@ -2,6 +2,8 @@ Require Import Common ConcRA.
 Require Import Mod.
 Require Export FSpec SModTr Sp.
 
+Notation fnsemmap := (gmap (option string) (option (emask * (option fspec_rel * fbody)))).
+
 Module SMod. Section Smod.
   Context `{!crisG Γ Σ α β τ _S _I, !concG}.
 
@@ -9,7 +11,7 @@ Module SMod. Section Smod.
   (* The image of the maps are lifted by option to make the module append operation total. *)
   Record t : Type := mk {
     scopes : gmultiset string;
-    fnsems : gmap (option string) (option (emask * (option fspec * fbody)));
+    fnsems : fnsemmap;
     initial_st : gmap key (option Any.t);
 
     well_scoped_fns :
@@ -24,7 +26,7 @@ Module SMod. Section Smod.
       (∀ x, multiplicity x scopes ≤ 1) → map_Forall (const is_Some) initial_st;
   }.
 
-  Definition lift_fn (fno: option string) : speckey :=
+  Definition lift_fn (fno : option string) : speckey :=
     match fno with
     | Some fn => speckey_fn fn
     | None => speckey_entry
@@ -32,14 +34,14 @@ Module SMod. Section Smod.
 
   Definition sp_from (md : t) : specmap :=
     kmap lift_fn (omap id (fst ∘ snd <$> omap id md.(fnsems))).
-  
+
   Definition conc_sp_from (md : t) : specmap :=
-    <[speckey_concE := fspec_trivial]> (sp_from md).
+    <[speckey_concE := fspec_to_rel fspec_trivial]> (sp_from md).
 
   Definition cancellable (ms : t) : Prop :=
-    ∀ fno msk fspo bd
-      (FIND: (fnsems ms) !! fno = Some (Some (msk, (fspo, bd)))),
-      (img_msk msk) ∧ (call_msk msk) ∧ (is_Some fspo).
+    map_Forall
+      (λ k v, match v with | Some (msk, _) => img_msk msk ∧ call_msk msk | _ => True end)
+      (fnsems ms).
 
   (**** Linking ****)
   Program Definition empty : t := {|
@@ -99,8 +101,6 @@ Module SMod. Section Smod.
     hexploit (H1 scp); rewrite multiplicity_disj_union; lia.
   Qed.
 
-  (* TODO *)
-  (* Definition addL (ms : list t) : t := foldr add empty ms. *)
   Program Definition to_mod (sp : specmap) (ms : t) : Mod.t := {|
     Mod.scopes := ms.(scopes);
     Mod.fnsems := (λ (x : option _), (map_snd (SModTr.trans_fnsem sp)) <$> x) <$> ms.(fnsems);
@@ -141,52 +141,10 @@ End Smod. End SMod.
 
 Infix "☆" := SMod.add (at level 60, right associativity).
 
-Section ADD.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG}.
-
-  (* Lemma smod_add_interp_comm sp (ms0 ms1 : SMod.t) :
-    SMod.to_mod sp (SMod.add ms0 ms1) = Mod.add (SMod.to_mod sp ms0) (SMod.to_mod sp ms1).
-  Proof using.
-    eapply mod_extensionality; ss; eauto. rewrite map_app. ss.
-  Qed. *)
-
-  (* Lemma add_interp_comm
-      sp
-      (md0 md1: SMod.t)
-    :
-    SMod.to_mod sp (SMod.add md0 md1) = Mod.add (SMod.to_mod sp md0) (SMod.to_mod sp md1).
-  Proof using.
-    unfold SMod.to_mod. unfold "★". s.
-    f_equal. extensionalities.
-    eapply smod_add_interp_comm.
-  Qed. *)
-
-  (* Lemma interp_empty
-      sp
-    :
-    SMod.to_mod sp SMod.empty = Mod.empty.
-  Proof using.
-    unfold SMod.to_mod, Mod.empty.
-    eapply mod_extensionality; eauto.
-  Qed. *)
-
-  (* Lemma addL_interp_comm
-      sp
-      (mds: list SMod.t)
-    :
-    SMod.to_mod sp (SMod.addL mds) = Mod.addL (List.map (SMod.to_mod sp) mds).
-  Proof using.
-    induction mds; [eapply interp_empty|].
-    s. rewrite add_interp_comm.
-    f_equal. eauto.
-  Qed. *)
-End ADD.
-
 Section Aux.
   Context `{!crisG Γ Σ α β τ _S _I, !concG}.
 
-  #[global]
-  Instance smod_lift_fn_inj : Inj (=) (=) SMod.lift_fn.
+  #[global] Instance smod_lift_fn_inj : Inj (=) (=) SMod.lift_fn.
   Proof. ii. rewrite /SMod.lift_fn in H0. des_ifs. Qed.
 
   Lemma lookup_sp_from md fn kboo
@@ -211,47 +169,4 @@ Section Aux.
       exists (Some fn). split; ss. subst l.
       rewrite lookup_omap lookup_fmap lookup_omap. des_ifs. }
   Qed.
-
-  (* Definition lift_fn (fno: option string) : speckey := *)
-  (*   match fno with *)
-  (*   | Some fn => speckey_fn fn *)
-  (*   | None => speckey_entry *)
-  (*   end. *)
-  
-  (* Definition sp_from (md : SMod.t) : specmap := *)
-  (*   list_to_map (map (map_fst lift_fn) (map_to_list (omap id (fst ∘ snd <$> omap id md.(SMod.fnsems))))). *)
-
-  (* Definition sp_from_conc (md : SMod.t) : specmap := *)
-  (*   <[speckey_concE := fspec_trivial]> (sp_from md). *)
-  
-  (* Definition has_param (md : SMod.t) fno img msk scp := *)
-  (*   ∃ sbd, alist_find fno (SMod.fnsems md) = Some (img, msk, scp, sbd). *)
-
-  (* Definition has_trivial_spec (md : SMod.t) (fn : string) : Prop := *)
-  (*   ∃ fno msk scp, has_param md fno false msk scp ∧ msk fn. *)
-
-  (* Definition valid_sp (md: SMod.t) (sp: sp_type) : Prop := *)
-  (*   sp_imply' (sp_from md) sp ∧ *)
-  (*   (∀ fn (NS: has_trivial_spec md fn), fspec_imply (fspec_flat (sp fn)) fspec_trivial) *)
-
-  (* Definition real_smod (md : SMod.t) : Prop := *)
-  (*   ∀ fno img msk scp, has_param md fno img msk scp → img = false. *)
-
-  (* Lemma real_smod_ignores_sp md sp *)
-  (*   (REAL: real_smod md) *)
-  (*   (WF: Mod.wf (SMod.to_mod sp_none md)) *)
-  (*   : *)
-  (*   SMod.to_mod sp md = SMod.to_mod sp_none md. *)
-  (* Proof. *)
-  (*   eapply mod_extensionality; s; et. unfold SModTr.trans_ktree. *)
-  (*   eapply map_ext_Forall. eapply List.Forall_forall. i. *)
-  (*   destruct x as [fno [[[img msk] scp] [fsp bd]]]. s. repeat f_equal. *)
-  (*   destruct WF; ss. rewrite map_map fst_map_snd in wf_fns. *)
-  (*   eapply alist_find_some_iff in H0; et. *)
-  (*   exploit REAL; [r; et|]. *)
-  (*   i; subst; et. *)
-  (* Qed. *)
 End Aux.
-
-(* Global Hint Unfold has_param : core. *)
-(* Global Hint Unfold has_trivial_spec : core. *)

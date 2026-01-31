@@ -1,6 +1,6 @@
 Require Import CRIS.
 Require Import LMod.
-Require Import GSim GSimFacts GSimTactics.
+Require Import GSim GSimFacts GSimTactics GSimAux.
 Require Import SchHeader SchI SchA.
 From CRIS.helping Require Import Header HelpingOn HelpingOff HelpingAux.
 
@@ -555,7 +555,7 @@ Section HelpingOnOff.
 
   Definition helpee_pend_s
       (j : jobID) k
-      (fspo : option fspec) x_fsp
+      (fspo : option fspec_rel) x_fsp
       : itree lmodE Any.t :=
     ⇓cris (tau;; r <- ⇓sb(msk_scp (HelpingOff.scopes mn) msk_true) (
       HoareCall_epilogue (sp !! speckey_fn SchHdr.yield) x_fsp (()↑);;;
@@ -567,7 +567,7 @@ Section HelpingOnOff.
 
   Definition helpee_pend_t
       (tid_stid_cur : nat) (j : jobID)
-      (fspo : option fspec) x_fsp k
+      (fspo : option fspec_rel) x_fsp k
       : itree lmodE Any.t :=
     ⇓cris (tau;; x_ <- ⇓sb(msk_scp (HelpingOff.scopes mn) msk_true) (
       HoareCall_epilogue fspo x_fsp ()↑;;;
@@ -1422,7 +1422,7 @@ Section HelpingOnOff.
         }
         { (* yield *)
           eapply gsim_Yield_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
-          eapply HelpingAux.gsim_Yield_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
+          eapply GSimAux.gsim_Yield_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
           ghnorm_l; ghnorm_r.
           zprogress.
           gbase. eapply (CIH rs); try by des.
@@ -2489,7 +2489,7 @@ Section HelpingOnOff.
         case_decide as Htemp; [set_solver +Htemp|]; s; clear Htemp.
         eapply gsim_Yield_src; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
         rewrite list_insert_insert. ghnorm_l.
-        eapply HelpingAux.gsim_Yield_tgt; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
+        eapply GSimAux.gsim_Yield_tgt; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
         rewrite list_insert_insert. ghnorm_r. ired.
 
         zprogress. gbase. eapply (CIH rs); eauto.

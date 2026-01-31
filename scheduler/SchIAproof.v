@@ -51,10 +51,11 @@ Module SchIA. Section sim.
     steps_l. steps_r.
     iDestruct "Spawn" as "[%fsp [%Hfind Spawn]]".
     erewrite lookup_weaken; eauto using Hfind.
-    iDestruct ("Spawn" $! (stid, mtid, tt)) as "[%x Hspawn]".
+    iDestruct ("Spawn" with "[]") as "[% [% [%Hfsp Hspawn]]]".
+    { iPureIntro; exists (stid, mtid, tt); split; done. }
     iPoseProof ("Hspawn" with "[-IST JoinFrag]") as "> [Pre Post]".
     { unfold_pre_post; iFrame; eauto. }
-    force_l x. forces_l. iFrame.
+    force_l (FSpec_mk _ _ Hfsp); eauto. forces_l. iFrame.
 
     steps_l. call "IST".
     clear st_src st_tgt; iIntros (ret st_src st_tgt) "IST".

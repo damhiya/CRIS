@@ -13,7 +13,7 @@ Module ProphecyI. Section ProphecyI.
   Definition close : Any.t → itree crisE Any.t :=
     λ _, Ret tt↑.
 
-  Definition fnsems : gmap (option string) (option (emask * (option fspec * fbody))) :=
+  Definition fnsems : fnsemmap :=
     {[Some ProphecyName.new := Some (msk_real (msk_scp scopes msk_true), (None, new));
       Some ProphecyName.resolve := Some (msk_real (msk_scp scopes msk_true), (None, new));
       Some ProphecyName.close := Some (msk_real (msk_scp scopes msk_true), (None, close))]}.
@@ -23,8 +23,7 @@ Module ProphecyI. Section ProphecyI.
     SMod.fnsems := fnsems;
     SMod.initial_st := ∅;
   |}.
-  Solve All Obligations with try done.
-  Next Obligation. rewrite ?omap_insert /= omap_empty. mod_tac scope_solver. Qed.
+  Solve All Obligations with mod_tac.
 
   Definition t : Mod.t := SMod.to_mod ∅ Mod.
 End ProphecyI. End ProphecyI.

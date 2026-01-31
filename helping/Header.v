@@ -9,7 +9,7 @@ Module Helping. Section Helping.
   Definition help := "☆" +:+ mn.
   Definition yield := "∘" +:+ mn.
 
-  Definition pureE := agE +' coreE.
+  (* Definition pureE := agE +' coreE.
 
   Definition trans {R} (itr: itree pureE R) : itree crisE R :=
     translate (case_ (bif:=sum1) subevent subevent) itr.
@@ -57,7 +57,7 @@ Module Helping. Section Helping.
   Qed.
 
   Lemma trans_ret {R} (r : R) : trans (Ret r) = Ret r.
-  Proof. rewrite /trans (bisim_is_eq (translate_ret _ _)) //. Qed.
+  Proof. rewrite /trans (bisim_is_eq (translate_ret _ _)) //. Qed. *)
   Definition exports : gset string := {[run; help]}.
 End Helping. End Helping.
 

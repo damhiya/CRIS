@@ -54,9 +54,9 @@ Proof using.
   { apply SpPureInSp. eauto. }
   rewrite H3. destruct fsp'; ss; [destruct f;ss|].
   { des. rewrite /fspec_imply in WEAK. hss.
-    specialize (WEAK spec_arg). des.
-    force_l x0. force_l args. steps_l.
-    iPoseProof ((WEAK vo ↑ args) with "[PRE]") as ">PRE". { unfold FSpec.precond, fspec_apc; ss. iFrame. by iExists _. }
+    exploit WEAK. { exists spec_arg; et. } i; des.
+    force_l (FSpec_mk _ _ _ ValidSP). force_l args. steps_l.
+    iPoseProof ((PRE vo ↑ args) with "[PRE]") as ">PRE". { unfold precond, fspec_apc; ss. iFrame. by iExists _. }
     iApply wsim_guarantee_src. iFrame. steps_l.
 
     call "IST"; et. norm_r.
@@ -66,9 +66,9 @@ Proof using.
     iApply "ISIM". iFrame.
   }
   { des; rewrite /fspec_imply in WEAK; hss.
-    specialize (WEAK spec_arg). des.
-    specialize (WEAK (vo↑) args). rewrite /fspec_apc /fspec_trivial /FSpec.precond in WEAK; ss.
-    iPoseProof (WEAK with "[PRE]") as ">%".
+    exploit WEAK. { exists spec_arg; et. } i; des. rr in ValidSP; des; subst.
+    specialize (PRE (vo↑) args). rewrite /fspec_apc /fspec_trivial /precond in PRE; ss.
+    iPoseProof (PRE with "[PRE]") as ">%".
     { iFrame. iPureIntro; eauto. }
     subst. call "IST".
     iPoseProof (WEAK0 with "[]") as ">POST"; eauto.
@@ -103,7 +103,7 @@ Lemma wsim_apc_src_call_tgt
       (st_tgt, (SB.sandbox img_t msk_t sc_t (trigger (Call fn args))) >>= k_tgt).
 Proof using.
   eapply wsim_apc_src_call_tgt_weaker; et. 
-  do 2 (econs; et).
+  ii. esplits; et.
 Qed.
 
 (* useful apc lemmas cont. - don't require IST *)
@@ -111,7 +111,7 @@ Qed.
 (*
 Lemma wsim_apc_tgt_noist
   is_closed fl fr Ist u0 u1 cP r g {Rs Rt} RR ps pt nths st_src st_tgt i_src i_tgt
-  (sp sp_pure: string → option fspec) (od ow: Ord.t) (scopes: list string)
+  (sp sp_pure: sp_type) (od ow: Ord.t) (scopes: list string)
   (SUB: sp_sub sp_pure sp)
   (SUBA: sp_incl APCA.Sp sp)
   (FIND: alist_find APCHdr.apc fr = Some (HModTr.sandbox_body (APCA.scopes, interp_sb_hp (wsim_ginv u0 cP) sp

@@ -2,7 +2,6 @@ Require Import Common.
 From iris.proofmode Require Import proofmode.
 
 Require Import Mod FSpec.
-Require Import ISim MainAdequacy.
 
 Set Implicit Arguments.
 
@@ -247,12 +246,12 @@ Proof using.
 
     eexists. instantiate (1:= _ >>= _).
     rewrite SBRed.bind. f_equal.
-    { erewrite <-(@sandbox_well_scoped _ _ _ _ _ (SCPIMPL fn msk1 bd0 FIND)); try refl; eauto. }
+    { erewrite <-(@sandbox_sandbox _ _ _ _ _ (SCPIMPL fn msk1 bd0 FIND)); try refl; eauto. }
     extensionality x.
     rewrite subst_bind bind_ret_l.
     erewrite SBRed.tau.
     rewrite SBRed.ret bind_ret_l.
-    erewrite <-(@sandbox_well_scoped _ _ _ _ _ SCPIMPL0); eauto.
+    erewrite <-(@sandbox_sandbox _ _ _ _ _ SCPIMPL0); eauto.
   }
   {
     rewrite !SBRed.vis. des_ifs.

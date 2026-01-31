@@ -34,27 +34,6 @@ Lemma inv_sandbox_tau `{Σ : GRA} {X} msk (ktr : itree crisE X) :
   SB.sandbox msk ktr = ktr.
 Proof. rewrite SBRed.tau; grind. Qed.
 
-Lemma sandbox_well_scoped `{Σ : GRA} {A} (msk0 msk1 : emask) (itr : itree crisE A) :
-  (∀ X e, msk0 X e → msk1 X e) →
-  SB.sandbox msk1 (SB.sandbox msk0 itr) = SB.sandbox msk0 itr.
-Proof.
-  intros Hmsk; apply bisim_is_eq; revert itr; ginit; gcofix CIH; intros itr.
-  ides itr.
-  { rewrite !SBRed.ret; gstep; econs; eauto. }
-  { rewrite !SBRed.tau; gstep; econs; eauto.
-    gbase; eauto.
-  }
-  { rewrite !SBRed.vis; des_ifs.
-    { rewrite SBRed.vis; des_ifs.
-      { gstep; econs; intros v; eauto.
-        gbase; eauto.
-      }
-      { apply Hmsk in Heq; bsimpl; clarify. }
-    }
-    { rewrite SBRed.vis; des_ifs; gstep; econs; ii; ss. }
-  }
-Qed.
-
 Ltac mstep := guclo msimC_spec; econs; econs; eauto; econs; eauto.
 
 Local Lemma Own_Ist `{Σ : GRA} FR fmr scp scp_ctx Ist st_src st_tgt :
@@ -152,7 +131,7 @@ Proof.
       ired. rewrite SBRed.bind; ired.
       assert (Hf : SB.sandbox (msk_scp (Mod.scopes mt) msk_true) (f varg) = f varg).
       { move: FUN; rewrite lookup_fmap; destruct (_ ms !! _) as [[[fnmsk ?]|]|] eqn : Hfn; ss.
-        i; clarify; eapply sandbox_well_scoped; eauto.
+        i; clarify; eapply sandbox_sandbox; eauto.
         intros ? e; depdes e; ss. depdes s; ss. depdes s; ss.
         depdes p; ss; hexploit (Mod.well_scoped_fns ms); rewrite map_Forall_lookup =>
           /(_ (Some fn) (fnmsk, f0)); rewrite lookup_omap Hfn => /(_ eq_refl);
@@ -170,7 +149,7 @@ Proof.
       ired. rewrite SBRed.bind; ired.
       assert (Hf : SB.sandbox (msk_scp (Mod.scopes mt) msk_true) (f varg) = f varg).
       { move: FUN; rewrite lookup_fmap; destruct (_ mt !! _) as [[[fnmsk ?]|]|] eqn : Hfn; ss.
-        i; clarify; eapply sandbox_well_scoped; eauto.
+        i; clarify; eapply sandbox_sandbox; eauto.
         intros ? e; depdes e; ss. depdes s; ss. depdes s; ss.
         depdes p; ss; hexploit (Mod.well_scoped_fns mt); rewrite map_Forall_lookup =>
           /(_ (Some fn) (fnmsk, f0)); rewrite lookup_omap Hfn => /(_ eq_refl);
@@ -262,7 +241,7 @@ Proof.
   destruct fs as [msks bds]; destruct ft as [mskt bdt].
   eapply msim_ctx; eauto.
   { destruct Hin as [fno [Hins Hint]].
-    eapply sandbox_well_scoped; ss.
+    eapply sandbox_sandbox; ss.
     intros ? s; depdes s; ss; depdes s; ss; depdes s; ss.
     depdes p; ss; hexploit (Mod.well_scoped_fns ms); rewrite map_Forall_lookup =>
       /(_ fno (msks, bds)); rewrite lookup_omap Hins => /(_ eq_refl);
@@ -270,7 +249,7 @@ Proof.
       intros Hin; eapply gmultiset_elem_of_subseteq in Hscp; eauto.
   }
   { destruct Hin as [fno [Hins Hint]].
-    eapply sandbox_well_scoped; ss.
+    eapply sandbox_sandbox; ss.
     intros ? s; depdes s; ss; depdes s; ss; depdes s; ss.
     depdes p; ss; hexploit (Mod.well_scoped_fns mt); rewrite map_Forall_lookup =>
       /(_ fno (mskt, bdt)); rewrite lookup_omap Hint => /(_ eq_refl);
@@ -352,7 +331,7 @@ Section ADEQUACY.
     }
   Qed.
 
-  Theorem main_adequacy (ms mt : Mod.t) IC Ist :
+  Lemma main_adequacy (ms mt : Mod.t) IC Ist :
     ISim.t open ms mt IC Ist →
     ctx_refines (ms, IC) (mt, emp%I).
   Proof using.

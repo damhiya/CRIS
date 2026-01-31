@@ -22,7 +22,7 @@ Section mem.
     fl_t !! (Some MemHdr.alloc) =
       Some (Some (SB.sandbox_body
         (msk_scp MemA.scopes msk_true,
-         SModTr.trans_fnsem sp (Some MemSpec.alloc, fbody_trivial)))) →
+         SModTr.trans_fnsem sp (fsp_some MemA.alloc, fbody_trivial)))) →
     (0 <= 8 * sz < modulus_64)%Z →
     (∀ blk,
       ([∗ list] i ↦ v ∈ replicate (Z.to_nat sz) Vundef, (blk, Z.of_nat i)%Z ↦ v) -∗
@@ -46,7 +46,7 @@ Section mem.
     fl_t !! Some MemHdr.store =
       Some (Some (SB.sandbox_body
         (msk_scp MemA.scopes msk_true,
-         SModTr.trans_fnsem sp (Some MemSpec.store, fbody_trivial)))) →
+         SModTr.trans_fnsem sp (fsp_some MemA.store, fbody_trivial)))) →
     (b, ofs) ↦ v' -∗
     ((b, ofs) ↦ v -∗
       wsim fl_s fl_t Ist (E1, E2) r g R_s R_t RR ps true
@@ -66,7 +66,7 @@ Section mem.
      fl_t !! Some MemHdr.load =
       Some (Some (SB.sandbox_body
         (msk_scp MemA.scopes msk_true,
-         SModTr.trans_fnsem sp (Some MemSpec.load, fbody_trivial)))) →
+         SModTr.trans_fnsem sp (fsp_some MemA.load, fbody_trivial)))) →
     (b, ofs) ↦{q} v -∗
     ((b, ofs) ↦{q} v -∗
       wsim fl_s fl_t Ist (E1, E2) r g R_s R_t RR ps true
@@ -86,12 +86,12 @@ Section mem.
     fl_t !! Some MemHdr.cas =
       Some (Some (SB.sandbox_body
         (msk_scp MemA.scopes msk_true,
-         SModTr.trans_fnsem sp (Some MemSpec.cas, fbody_trivial)))) →
-    MemSpec.compare_val v v_old = Vint succ →
+         SModTr.trans_fnsem sp (fsp_some MemA.cas, fbody_trivial)))) →
+    MemA.compare_val v v_old = Vint succ →
     (b, ofs) ↦ v -∗
     E -∗
-    (E ==∗ ∃ q0 q1 v0 v1, MemSpec.val_r v q0 v0 ∗ MemSpec.val_r v_old q1 v1 ∗
-          (MemSpec.val_r v q0 v0 ∗ MemSpec.val_r v_old q1 v1 ==∗ E)) -∗
+    (E ==∗ ∃ q0 q1 v0 v1, MemA.val_r v q0 v0 ∗ MemA.val_r v_old q1 v1 ∗
+          (MemA.val_r v q0 v0 ∗ MemA.val_r v_old q1 v1 ==∗ E)) -∗
     (((b, ofs) ↦ if (bool_decide (succ = 1)) then v_new else v) -∗
      E -∗
       wsim fl_s fl_t Ist (E1, E2) r g R_s R_t RR ps true
@@ -113,12 +113,12 @@ Section mem.
     alist_find (Some MemHdr.cmp) fl_t =
       Some (SB.sandbox_body
         (SModTr.trans_fnsem sp
-          (true, msk_m, MemA.scopes, (Some (MemSpec.cmp), fbody_trivial)))) →
+          (true, msk_m, MemA.scopes, (Some (MemA.cmp), fbody_trivial)))) →
     (msk_t MemHdr.cmp : bool) →
-    MemSpec.compare_val v1 v2 = Vint succ →
+    MemA.compare_val v1 v2 = Vint succ →
     E -∗
-    (E ==∗ ∃ q0 q1 v1' v2', MemSpec.val_r v1 q0 v1' ∗ MemSpec.val_r v2 q1 v2' ∗
-          (MemSpec.val_r v1 q0 v1' ∗ MemSpec.val_r v2 q1 v2' ==∗ E)) -∗
+    (E ==∗ ∃ q0 q1 v1' v2', MemA.val_r v1 q0 v1' ∗ MemA.val_r v2 q1 v2' ∗
+          (MemA.val_r v1 q0 v1' ∗ MemA.val_r v2 q1 v2' ==∗ E)) -∗
     (E -∗
       wsim fl_s fl_t Ist (E1, E2) r g R_s R_t RR ps true
         (st_src, k_s)

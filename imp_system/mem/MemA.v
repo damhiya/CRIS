@@ -1,7 +1,6 @@
 From CRIS Require Import CRIS MemHeader.
 From iris.algebra Require Import auth excl agree csum functions dfrac_agree.
 From iris.bi.lib Require Import fractional.
-(* Set Implicit Arguments. *)
 
 (* Memory resource algebra *)
 Section MemRA.
@@ -202,8 +201,8 @@ Global Opaque mem_points_to_singleton_r.
 Arguments mem_points_to_singleton_r : simpl never.
 
 (* Memory specification *)
-Module MemSpec. Section MemSpec.
-  Context `{!crisG Γ Σ α β τ _S _I, !memG}.
+Module MemA. Section MemA.
+  Context `{!crisG Γ Σ α β τ _S _I, !concG, !memG}.
 
   Definition alloc : fspec :=
     fspec_simple (λ sz,
@@ -249,13 +248,6 @@ Module MemSpec. Section MemSpec.
           (val_r v1 q0 v1' ∗ val_r v2 q1 v2' ==∗ E)),
        λ ret, ⌜ret = (Vint succ)↑⌝ ∗ E))%I.
 
-  (* Definition cas : fspecS :=
-    (make_fspecS (λ '(b, ofs, v_cur, q0, v0, v_old, q1, v1, v_new, succ),
-      (λ arg, ⌜arg = [Vptr (b, ofs); v_old; v_new]↑ ∧ compare_val v_cur v_old = Vint succ⌝ ∗
-        (b, ofs) ↦ v_cur ∗ val_r v_cur q0 v0 ∗ val_r v_old q1 v1,
-       λ ret, ⌜ret = v_cur↑⌝ ∗
-        (b, ofs) ↦ (if dec succ 1 then v_new else v_cur) ∗
-        val_r v_cur q0 v0 ∗ val_r v_old q1 v1)))%I. *)
   Definition cas : fspec :=
     fspec_simple (λ '(b, ofs, v_cur, v_old, v_new, succ, E),
       (λ arg, ⌜arg = [Vptr (b, ofs); v_old; v_new]↑ ∧ compare_val v_cur v_old = Vint succ⌝ ∗
@@ -264,7 +256,37 @@ Module MemSpec. Section MemSpec.
           (val_r v_cur q0 v0 ∗ val_r v_old q1 v1 ==∗ E)),
        λ ret, ⌜ret = v_cur↑⌝ ∗
         (b, ofs) ↦ (if bool_decide (succ = 1) then v_new else v_cur) ∗ E))%I.
-End MemSpec. End MemSpec.
+
+  Definition scopes : gmultiset string := {[+"Mem"+]}.
+
+  (* Definition sp : specmap :=
+    {[speckey_fn MemHdr.alloc := MemSpec.alloc;
+      speckey_fn MemHdr.free := MemSpec.free;
+      speckey_fn MemHdr.load := MemSpec.load;
+      speckey_fn MemHdr.store := MemSpec.store;
+      speckey_fn MemHdr.cmp := MemSpec.cmp;
+      speckey_fn MemHdr.cas := MemSpec.cas]}. *)
+
+  Definition fnsems : gmap (option string) (option (emask * (option fspec_rel * fbody))) :=
+    {[Some MemHdr.alloc := Some (msk_scp scopes msk_true, (fsp_some alloc, fbody_trivial));
+      Some MemHdr.free := Some (msk_scp scopes msk_true, (fsp_some free, fbody_trivial));
+      Some MemHdr.load := Some (msk_scp scopes msk_true, (fsp_some load, fbody_trivial));
+      Some MemHdr.store := Some (msk_scp scopes msk_true, (fsp_some store, fbody_trivial));
+      Some MemHdr.cmp := Some (msk_scp scopes msk_true, (fsp_some cmp, fbody_trivial));
+      Some MemHdr.cas := Some (msk_scp scopes msk_true, (fsp_some cas, fbody_trivial))]}.
+
+  (* Module definition *)
+  Program Definition smod : SMod.t := {|
+    SMod.scopes := scopes;
+    SMod.fnsems := fnsems;
+    SMod.initial_st := ∅;
+  |}.
+  Solve All Obligations with mod_tac.
+
+  Definition init_cond csl genv : iProp Σ := mem_init_auth csl genv.
+
+  Definition t sp : Mod.t := SMod.to_mod sp smod.
+End MemA. End MemA.
 
 (* Module MemP. Section MemP. *)
 (*   Context `{!crisG Γ Σ α β τ _S _I, !concG, !memG}. *)
@@ -293,39 +315,3 @@ End MemSpec. End MemSpec.
 
 (*   Definition t := Seal.sealing CRIS (SMod.to_mod sp_none smod). *)
 (* End MemP. End MemP. *)
-
-(* Module definition *)
-Module MemA. Section MemA.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG, !memG}.
-
-  Definition scopes : gmultiset string := {[+"Mem"+]}.
-
-  Definition sp : specmap :=
-    {[speckey_fn MemHdr.alloc := MemSpec.alloc;
-      speckey_fn MemHdr.free := MemSpec.free;
-      speckey_fn MemHdr.load := MemSpec.load;
-      speckey_fn MemHdr.store := MemSpec.store;
-      speckey_fn MemHdr.cmp := MemSpec.cmp;
-      speckey_fn MemHdr.cas := MemSpec.cas]}.
-
-  Definition fnsems : gmap (option string) (option (emask * (option fspec * fbody))) :=
-    {[Some MemHdr.alloc := Some (msk_scp scopes msk_true, (Some MemSpec.alloc, fbody_trivial));
-      Some MemHdr.free := Some (msk_scp scopes msk_true, (Some MemSpec.free, fbody_trivial));
-      Some MemHdr.load := Some (msk_scp scopes msk_true, (Some MemSpec.load, fbody_trivial));
-      Some MemHdr.store := Some (msk_scp scopes msk_true, (Some MemSpec.store, fbody_trivial));
-      Some MemHdr.cmp := Some (msk_scp scopes msk_true, (Some MemSpec.cmp, fbody_trivial));
-      Some MemHdr.cas := Some (msk_scp scopes msk_true, (Some MemSpec.cas, fbody_trivial))]}.
-
-  (* Module definition *)
-  Program Definition smod : SMod.t := {|
-    SMod.scopes := scopes;
-    SMod.fnsems := fnsems;
-    SMod.initial_st := ∅;
-  |}.
-  Solve All Obligations with (try done).
-  Next Obligation. rewrite ?omap_insert /= omap_empty. mod_tac scope_solver. Qed.
-
-  Definition init_cond csl genv : iProp Σ := mem_init_auth csl genv.
-
-  Definition t sp : Mod.t := SMod.to_mod sp smod.
-End MemA. End MemA.

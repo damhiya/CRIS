@@ -137,7 +137,7 @@ Module MemI. Section MemI.
        else Ret Vundef);;;
       Ret v_cur.
 
-  Definition fnsems : gmap (option string) (option (emask * (option fspec * fbody))) :=
+  Definition fnsems : gmap (option string) (option (emask * (option fspec_rel * fbody))) :=
     {[Some MemHdr.alloc := Some (msk_real (msk_scp scopes msk_true), (None, (cfunU alloc)));
       Some MemHdr.free := Some (msk_real (msk_scp scopes msk_true), (None, (cfunU free)));
       Some MemHdr.load := Some (msk_real (msk_scp scopes msk_true), (None, (cfunU load)));
@@ -150,16 +150,7 @@ Module MemI. Section MemI.
     SMod.fnsems := fnsems;
     SMod.initial_st := {[v_mem := Some (Mem.load_mem csl genv)↑]};
   |}.
-  Solve Obligations with auto.
-  Next Obligation.
-    i.
-    rewrite ?omap_insert /= omap_empty.
-    mod_tac scope_solver.
-  Qed.
-  Next Obligation.
-    i. mod_tac scope_solver.
-  Qed.
+  Solve Obligations with mod_tac.
 
-  (* TODO : Sealing *)
-  Definition t csl genv := (SMod.to_mod ∅ (smod csl genv)).
+  Definition t csl genv : Mod.t := SMod.to_mod ∅ (smod csl genv).
 End MemI. End MemI.

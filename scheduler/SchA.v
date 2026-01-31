@@ -98,12 +98,16 @@ Module SchA. Section SchA.
         (postS : SAny.t -d> SAny.t -d> leibnizO {n & GTerm.t n}) : iProp Σ :=
       ∃ fsp, ⌜sp_user !! (speckey_fn fn) = Some fsp⌝ ∗ fspec_spawnable fsp pre postS.
 
-    Lemma fspec_sch_spawnable E1 E2 fsp1 fsp2 :
+    Lemma fspec_sch_spawnable E1 E2 (fsp1 fsp2 : fspec) :
       E1 ⊆ E2 →
       fspec_imply fsp1 fsp2 -∗ fspec_imply (fspec_sch E1 fsp1) (fspec_sch E2 fsp2).
     Proof.
-      iIntros "% S" ([[stid mtid] x]); iPoseProof ("S" $! x) as "[%x1 S]".
-      iExists (stid, mtid, x1); iIntros (varg arg) "[W [$ P]]".
+      iIntros "% S %P2 %Q2 [%x2 [-> ->]]"; destruct x2 as [[stid mtid] x2].
+      iPoseProof ("S" with "[]") as "[%P1 [%Q1 [[%x1 [-> ->]] S]]]"; first (iPureIntro).
+      { exists x2; split; ss. }
+      iExists _, _; iSplit; first iPureIntro.
+      { exists (stid, mtid, x1); split; ss. }
+      iIntros (varg arg) "[W [$ P]]".
       iMod ("S" $! varg arg with "P") as "[$ S]".
       replace E2 with ((E2 ∖ E1) ∪ E1); last (rewrite difference_union_L //; set_solver).
       iPoseProof (winv_split with "W") as "[W $]"; [set_solver|set_solver|].
@@ -153,11 +157,11 @@ Module SchA. Section SchA.
         (λ '(mtid, stid) vret ret, ⌜vret = mtid↑ ∧ ret = vret⌝ ∗ Tid mtid stid)%I.
 
     Definition sp (E : coPset) : specmap :=
-      {[speckey_fn SchHdr._spawn := inner_spawn_spec;
-        speckey_fn SchHdr.spawn :=  spawn_spec;
-        speckey_fn SchHdr.yield :=  yield_spec E;
-        speckey_fn SchHdr.join :=   join_spec E;
-        speckey_fn SchHdr.get_tid := get_tid_spec]}.
+      {[speckey_fn SchHdr._spawn :=  fspec_to_rel inner_spawn_spec;
+        speckey_fn SchHdr.spawn :=   fspec_to_rel spawn_spec;
+        speckey_fn SchHdr.yield :=   fspec_to_rel (yield_spec E);
+        speckey_fn SchHdr.join :=    fspec_to_rel (join_spec E);
+        speckey_fn SchHdr.get_tid := fspec_to_rel get_tid_spec]}.
   End SPEC.
 
   (* Module definition *)
@@ -218,30 +222,27 @@ Module SchA. Section SchA.
     λ _, cgetN v_tid.
 
   Definition fnsems (E : coPset) (sp_user : specmap)
-      : gmap (option string) (option (emask * (option fspec * fbody))) :=
+      : gmap (option string) (option (emask * (option fspec_rel * fbody))) :=
     {[Some SchHdr._spawn :=
-        Some (msk_scp scopes msk_true, (Some (inner_spawn_spec sp_user), cfunN inner_spawn));
+        Some (msk_scp scopes msk_true, (fsp_some (inner_spawn_spec sp_user), cfunN inner_spawn));
       Some SchHdr.spawn :=
-        Some (msk_scp scopes msk_true, (Some (spawn_spec sp_user), cfunN spawn));
+        Some (msk_scp scopes msk_true, (fsp_some (spawn_spec sp_user), cfunN spawn));
       Some SchHdr.yield :=
-        Some (msk_scp scopes msk_true, (Some (yield_spec E), cfunN yield));
+        Some (msk_scp scopes msk_true, (fsp_some (yield_spec E), cfunN yield));
       Some SchHdr.join :=
-        Some (msk_scp scopes msk_true, (Some (join_spec E), cfunN join));
+        Some (msk_scp scopes msk_true, (fsp_some (join_spec E), cfunN join));
       Some SchHdr.get_tid :=
-        Some (msk_scp scopes msk_true, (Some get_tid_spec, cfunN get_tid))]}.
+        Some (msk_scp scopes msk_true, (fsp_some get_tid_spec, cfunN get_tid))]}.
 
   Program Definition smod (E : coPset) sp_user : SMod.t := {|
     SMod.scopes := scopes;
     SMod.fnsems := fnsems E sp_user;
     SMod.initial_st := SchI.smod.(SMod.initial_st);
   |}.
-  Solve All Obligations with (i; try done).
-  Next Obligation. i; rewrite ?omap_insert /= omap_empty. mod_tac scope_solver. Qed.
-  Next Obligation. i. rewrite /SchI.smod /=. mod_tac scope_solver. Qed.
+  Solve All Obligations with rewrite /SchI.smod /=; mod_tac.
 
-  Definition init_cond : iProp Σ :=
-    TidAuth {[0 := 0]} ∗ own base_γ ir_joinRA.
+  Definition init_cond : iProp Σ := TidAuth {[0 := 0]} ∗ own base_γ ir_joinRA.
 
   (* Scheduler module itself has fixed namespace to ⊤, with specmap namespaces variable *)
-  Definition t sp sp_user := SMod.to_mod sp (smod ⊤ sp_user).
+  Definition t sp sp_user : Mod.t := SMod.to_mod sp (smod ⊤ sp_user).
 End SchA. End SchA.

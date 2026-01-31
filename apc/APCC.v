@@ -11,13 +11,14 @@ Module APCC. Section APCC.
 
   Definition Sp : spl_type :=
     Seal.sealing CRIS
-      [(Some APCHdr.apc, Some APCA.apc_spec)].
+      [(Some APCHdr.apc, fsp_some APCA.apc_spec)].
+
   
   Lemma Sp_nodup : List.NoDup (List.map fst Sp).
   Proof using. unfold Sp. unseal CRIS. prove_nodup. Qed.
 
   Definition fnsems : fnsems_type :=
-    [(Some APCHdr.apc, (true, wmask_all, scopes, (Some APCA.apc_spec, fbody_trivial)))].
+    [(Some APCHdr.apc, (true, wmask_all, scopes, (fsp_some APCA.apc_spec, fbody_trivial)))].
 
   Program Definition smod : SMod.t := {|
     SMod.scopes := scopes;

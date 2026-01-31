@@ -539,7 +539,7 @@ End Interp.
 (* ========================================================================== *)
 (**** ModSem ****)
 
-Module ImpMod.
+(* Module ImpMod.
 Section MODSEM.
 
   Set Typeclasses Depth 5.
@@ -627,4 +627,4 @@ Section MODSEM.
   Qed. *)
 
 End MODSEM.
-End ImpMod.
+End ImpMod. *)

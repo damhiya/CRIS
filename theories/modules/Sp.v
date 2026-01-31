@@ -21,7 +21,7 @@ Proof.
    by intros [].
 Qed.
 
-Global Notation specmap := (gmap speckey fspec).
+Global Notation specmap := (gmap speckey fspec_rel).
 
 Section sp.
   Context `{Σ : GRA}.

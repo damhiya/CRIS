@@ -72,7 +72,7 @@ Section wsim.
       (msk_s msk_t : emask)
       (sp_s sp_t : specmap)
       (mtid stid : nat) :
-    sp_s !! speckey_fn SchHdr.yield = Some (SchA.yield_spec Es) →
+    sp_s !! speckey_fn SchHdr.yield = fsp_some (SchA.yield_spec Es) →
     sp_t !! speckey_fn SchHdr.yield = None →
     (∀ X, msk_t _ (subevent _ (Choose X))) →
     (msk_t _ (subevent _ (Call SchHdr.yield ()↑))) →
@@ -124,7 +124,7 @@ Section wsim.
       (img_s img_t img_s' img_t' : bool)
       (msk_s msk_t : string → bool)
       (scp_s scp_t : list string)
-      (sp_s sp_t : string → option fspec)
+      (sp_s sp_t : sp_type)
       (k_s : () → itree crisE R_s)
       (k_t : () → itree crisE R_t)
       (mtid stid : nat) :
@@ -187,7 +187,7 @@ Section wsim.
       steps_l. force_l (mtid, stid). forces_l. iSplitL "TID"; iFrame; eauto.
       steps_l.
       call "IST".
-      steps_l. iDestruct "ASM" as "[[-> TID] ->]". hss. steps_l. steps_r.
+      steps_l. iDestruct "ASM" as "[-> [-> TID]]". hss. steps_l. steps_r.
       by_coind CIH. iFrame.
     }
     { replace (sp_s SchHdr.yield) with (Some (SchA.yield_spec E_s)); cycle 1.

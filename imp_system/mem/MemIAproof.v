@@ -180,9 +180,9 @@ Section RA.
 
   Lemma mem_ra_cmp (mem_s: _memRA) mem_t p0 q0 v0 p1 q1 v1 succ
     (SIM: sim_mem mem_s mem_t)
-    (CMP: MemSpec.compare_val p0 p1 = Vint succ)
+    (CMP: MemA.compare_val p0 p1 = Vint succ)
     :
-    (own base_γ (● mem_s) ∗ MemSpec.val_r p0 q0 v0 ∗ MemSpec.val_r p1 q1 v1)
+    (own base_γ (● mem_s) ∗ MemA.val_r p0 q0 v0 ∗ MemA.val_r p1 q1 v1)
     ⊢
     ⌜Mem.vcmp mem_t p0 p1 = Some (bool_decide (succ = 1))⌝.
   Proof using.
@@ -370,7 +370,7 @@ Module MemIA. Section MemIA.
     steps_r. forces_l. iFrame. iSplit; eauto. step. iFrame.
 
     iSplit; [case_bool_decide; clarify; ss|].
-    { iPureIntro; move : Hcmp; rewrite /MemSpec.compare_val; des_ifs; i; clarify. }
+    { iPureIntro; move : Hcmp; rewrite /MemA.compare_val; des_ifs; i; clarify. }
     iExists _, _, _, _; iSplit; eauto.
   (*SLOW*)Qed.
 
@@ -455,8 +455,9 @@ End MemIA. End MemIA.
   Proof using.
     init_sim; et;
       (init_simF; iDestruct "IST" as "->"; steps_r;
-       iApply wsim_eqit_src; [|iApply (wsim_lat_real_to_hoare _ fbody_trivial)];
-       rewrite ?SRed.core ?SBRed.choose; refl).
+       iApply wsim_eqit_src; [|iApply (wsim_lat_real_to_hoare fbody_trivial)];
+       rewrite ?SRed.core ?SBRed.choose; try refl);
+      (split; i; unfold_pre_post; iIntros "[% _]"; des; et).
   Qed.
 
   Theorem ctxr csl genv :

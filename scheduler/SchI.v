@@ -61,7 +61,7 @@ Module SchI. Section SchI.
   Definition get_tid : unit → itree crisE nat :=
     λ _, cgetU v_tid.
 
-  Definition fnsems : gmap (option string) (option (emask * (option fspec * fbody))) :=
+  Definition fnsems : gmap (option string) (option (emask * (option fspec_rel * fbody))) :=
     {[Some SchHdr._spawn := Some (msk_real (msk_scp scopes msk_true), (None, cfunU inner_spawn));
       Some SchHdr.spawn := Some (msk_real (msk_scp scopes msk_true), (None, cfunU spawn));
       Some SchHdr.yield := Some (msk_real (msk_scp scopes msk_true), (None, cfunU yield));
@@ -73,15 +73,7 @@ Module SchI. Section SchI.
     SMod.fnsems := fnsems;
     SMod.initial_st := {[v_ths:=Some ([(0, None)] : thpool)↑; v_tid := Some 0↑]};
   |}.
-  Solve All Obligations with auto.
-  Next Obligation.
-    i.
-    rewrite ?omap_insert /= omap_empty.
-    mod_tac scope_solver.
-  Qed.
-  Next Obligation.
-    i. mod_tac scope_solver.
-  Qed.
+  Solve All Obligations with mod_tac.
 
   Definition t := SMod.to_mod ∅ smod.
 End SchI. End SchI.

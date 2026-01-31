@@ -31,21 +31,20 @@ Module ProphecyA. Section ProphecyA.
         (λ vret, ⌜vret = tt↑⌝ ∗ free_id (.=id)))
       )%I.
 
-  Definition fnsems : gmap (option string) (option (emask * (option fspec * fbody))) :=
+  Definition fnsems : fnsemmap :=
     {[Some ProphecyName.new :=
-        Some (msk_scp scopes msk_true, (Some new_spec, fbody_trivial));
+        Some (msk_scp scopes msk_true, (fsp_some new_spec, fbody_trivial));
       Some ProphecyName.resolve :=
-        Some (msk_scp scopes msk_true, (Some resolve_spec, fbody_trivial));
+        Some (msk_scp scopes msk_true, (fsp_some resolve_spec, fbody_trivial));
       Some ProphecyName.close :=
-        Some (msk_scp scopes msk_true, (Some close_spec, fbody_trivial))]}.
+        Some (msk_scp scopes msk_true, (fsp_some close_spec, fbody_trivial))]}.
 
   Program Definition Mod : SMod.t := {|
     SMod.scopes := scopes;
     SMod.fnsems := fnsems;
     SMod.initial_st := ∅;
   |}.
-  Solve All Obligations with try done.
-  Next Obligation. rewrite ?omap_insert /= omap_empty. mod_tac scope_solver. Qed.
+  Solve All Obligations with try mod_tac.
 
   Definition initial_cond : iProp Σ :=
     (has_proph_auth (Full_set _) (λ _, dummy_prophinst)) ∗ (free_id_auth (Full_set _)).

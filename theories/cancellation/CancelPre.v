@@ -1,30 +1,25 @@
 Require Import CRIS.
-Require Import LMod LModTr GSim GSimFacts GSimTactics CancelTactics.
+Require Import LMod LModTr GSim GSimFacts GSimTactics GSimAux CancelTactics.
 Require Import MInline MInlineIntro MInlineElim ElimRel.
 
-Local Ltac sil := iter_l; rewrite !list_lookup_insert ?length_insert //.
-Local Ltac snl := norm_l; rewrite !list_insert_insert ?bind_ret_l.
-Local Ltac sir :=
+Local Ltac gnorm_itr :=
   match goal with
-  | [ EQLEN : length _ = length _ |- _ ] => iter_r; rewrite !list_lookup_insert ?length_insert -EQLEN //
+  | |- context [?A] =>
+      match type of A with
+      | itree crisE Any.t => pattern A; eapply eq_ind; [|symmetry; hnorm_itr]
+      end
   end.
-Local Ltac snr := norm_r; rewrite !list_insert_insert ?bind_ret_l.
 
-(* before canceltactics : 23s *)
-(* after canceltactics : 13s *)
-
-Lemma cancel_pre `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp
-  (X: Type) (PQ: X → (Any.t → iProp Σ) * (Any.t → iProp Σ)) mm :
-  ∀ (rs0 : Σ) r_s r_t rs_diff srcs tgts cid st ps pt varg X X' P P' itrS ktrT k
+Lemma cancel_pre `{!crisG Γ Σ α β τ _S _I, !concG} md sp :
+  ∀ (rs0 : Σ) r_s r_t rs_diff srcs tgts cid st ps pt varg fspo fspo' Qo'' itrS ktrT 
     (r: ∀ x x0, (x→x0→Prop)→smj→smj→itree coreE x→itree coreE x0→Prop)
     (WFS: SMod.cancellable md)
-    (MAIN: sp !! speckey_entry = Some (fspec_simple PQ))
     (KEY: ∀ itr_s itr_t st (r_s r_t r_diff : Σ)
              (WFR: ✓ r_s) (WFST: map_Forall (const is_Some) st)
              (RS: Own r_s ⊢ |==> ([∗ list] i ∈ <[cid:=r_diff]> rs_diff, Own i) ∗ Own r_t ∗
                       TIDAUTH cid ∗ YIELDAUTH (length (<[cid:=r_diff]> rs_diff)))
              (LEN: cid < List.length srcs)
-             (REL: thread_rel PQ mm sp cid cid r_diff itr_s itr_t),
+             (REL: thread_rel sp cid cid r_diff itr_s itr_t),
      gpaco7 _gsim (cpn7 _gsim) bot7 r (Any.t * Any.t)%type
        (Any.t * Any.t)%type cancel_eq smj_top smj_top
        (LModTr.interp_stateE Any.t
@@ -40,7 +35,7 @@ Lemma cancel_pre `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp
     (EQLEN2 : length rs_diff = length srcs)
     (EQLEN : length srcs = length tgts)
     (REL : ∀ i z x y, rs_diff !! i = Some z →
-      srcs !! i = Some x → tgts !! i = Some y → thread_rel PQ mm sp cid i z x y)
+      srcs !! i = Some x → tgts !! i = Some y → thread_rel sp cid i z x y)
     (WFR : ✓ r_s)
     (WFST: map_Forall (const is_Some) st)
     (RS : Own r_s ⊢ |==> ([∗ list] i ∈ rs_diff, Own i) ∗ Own r_t ∗
@@ -48,12 +43,14 @@ Lemma cancel_pre `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp
     (LEN : cid < length srcs)
     (x2 : rs_diff !! cid = Some ε)
     (x0 : srcs !! cid = Some (ModTr.trans (tau;; tau;; tau;; itrS)))
-    (x1 : tgts !! cid = Some (x <- ModTr.trans (x <- elim_precond P P' varg;; ktrT x);; k x))
-    (RET : cid = 0 → k = main_post PQ mm)
+    (x1 : tgts !! cid = Some (ModTr.trans ((x <- elim_precond fspo fspo' varg;; vret' <- ktrT x;; elim_spawnee_postcond Qo'' vret'))))
+    (RET: cid = 0 → match Qo'' with | Some Q => ∀ varg arg, Q varg arg ⊢ ⌜varg = arg⌝ | _ => True end)
+    (* (RET : cid = 0 → k = λ x, Ret x) *)
     (KTR :
-      ∀ x : X, ∃ (x' : X'),
-        (∀ arg : Any.t, P x varg arg ⊢ |==> P' x' varg arg)
-        ∧ upaco4 (elim_rel_def sp) bot4 Any.t ε (itrS) (ktrT (x, x', varg))),
+      (∀ P Q (VS: fspec_flat fspo P Q), ∃ P' Q', fspec_flat fspo' P' Q' ∧
+        (∀ arg, P varg arg ⊢ |==> P' varg arg)
+        ∧ upaco4 (elim_rel_def sp) bot4 Any.t ε
+          itrS (ktrT (if fspo then Some Q else None, if fspo' then Some Q' else None, varg)))),
 
   gpaco7 _gsim (cpn7 _gsim) bot7 r (Any.t * Any.t)%type 
     (Any.t * Any.t)%type cancel_eq ps pt
@@ -66,66 +63,104 @@ Lemma cancel_pre `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp
               (SMod.to_mod sp md)) rs0))) (cid, tgts))
        (Any.pair (ModTr.state_encode st) r_t ↑)).
 Proof.
-  i. iter_l. rewrite x0 /=. step_l. norm_l.
-  iter_r. rewrite x1 /=. step_r. i. step_r. norm_r.
-  rewrite !bind_ret_l.
+  i.
+  eapply gsim_tau_src; eauto.
+  eapply gsim_tau_src; [lookup_tac; do 2 f_equal|].
+  eapply gsim_tau_src; [lookup_tac; do 2 f_equal|].
+  rewrite !list_insert_insert.
 
-  specialize (KTR x). des.
+  destruct fspo as [fsp|].
+  { revert x1; rewrite /elim_precond; gnorm_itr; intros x1.
+    eapply gsim_Choose_tgt; [eapply x1|]. intros Fsp; s. ghnorm_r.
+    eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia. ghnorm_r.
+    rewrite !list_insert_insert.
+    eapply gsim_Choose_tgt; [lookup_tac; do 2 f_equal|]; try lia. intros arg; s.
+    rewrite !list_insert_insert. ghnorm_r.
+    eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia. ghnorm_r.
+    rewrite !list_insert_insert.
+    eapply gsim_Guarantee_tgt; [lookup_tac; do 2 f_equal|]; try lia. intros rt2 Hrt2; s.
+    rewrite !list_insert_insert. ghnorm_r.
+    eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia. ghnorm_r.
+    rewrite !list_insert_insert.
+    eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia. ghnorm_r.
+    rewrite !list_insert_insert.
 
-  sir. step_r. snr.
-  sir. step_r. i. step_r. snr.
-  sir. step_r. snr.
-  sir. step_r. snr. rewrite Any.pair_split /= !bind_ret_l Any.upcast_downcast /= !bind_ret_l.
-  sir. step_r. i. step_r. snr.
-  sir. step_r. i. step_r. snr.
-  sir. step_r. snr. rewrite Any.pair_split /= !bind_ret_l.
-  sir. step_r. snr.
-  sir. step_r. snr.
-  (* sir. step_r. snr. rewrite Any.pair_split /= !bind_ret_l Any.upcast_downcast /= !bind_ret_l.
-  sir. step_r. i. step_r. snr.
-  sir. step_r. i. step_r. snr.
-  sir. step_r. snr. rewrite Any.pair_split /= !bind_ret_l.
-  sir. step_r. snr.
-  sir. step_r. snr.
-  sir. step_r. snr.
-  sir. step_r. exists (N, stid). step_r. snr. *)
-  sir. step_r. snr.
-  sir. step_r. exists x'. step_r. snr.
-  sir. step_r. snr.
-  sir. step_r. exists varg. step_r. snr.
-  sir. step_r. snr.
-  sir. step_r. snr. rewrite Any.pair_split /= !bind_ret_l Any.upcast_downcast /= !bind_ret_l.
+    hexploit (KTR _ _ (related Fsp)); intros [P' [? [Hfsp' [Hres ?]]]]. rewrite Hres in Hrt2.
+    destruct fspo' as [fsp'|]; ss; ghnorm_r.
+    { eapply gsim_Take_tgt; [lookup_tac; do 2 f_equal|]; try lia.
+      exists (FSpec_mk _ _ Hfsp').
+      rewrite !list_insert_insert. ghnorm_r.
+      eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia. 
+      rewrite !list_insert_insert. ghnorm_r.
+      eapply gsim_Take_tgt; [lookup_tac; do 2 f_equal|]; try lia.
+      exists varg.
+      rewrite !list_insert_insert. ghnorm_r.
+      eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia.
+      rewrite !list_insert_insert. ghnorm_r.
+      eapply gsim_Assume_tgt; [lookup_tac; do 2 f_equal|]; try lia.
+      exists r_t; splits; auto.
+      { apply (Own_wand_valid r_s); auto; iIntros "S"; iMod (RS with "S") as "[? [$ ?]]"; auto. }
+      { rewrite (proj2 Hrt2); iIntros "> [>$ $] //". }
+      rewrite !list_insert_insert. ghnorm_r.
+      eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia.
+      rewrite !list_insert_insert. ghnorm_r.
 
-  des.
-  assert (RTV: ✓ r_t).
-  { eapply (Own_wand_valid r_s); eauto. iIntros "S"; iMod (RS with "S") as "[_ [$ [_ _]]]"; eauto. }
-  
-  (* assert (RES: Own r_t ⊢ |==> (((TID stid ∗ YIELD stid ∗ winv (⊤, ⊤)) ∗ Own x6) ∗ P x varg x3)).
-  { rewrite x9 x8. iIntros ">[($ & $ & $) >[$ $]]"; eauto. }
-  hexploit (Own_bupd_split r_t); [eapply RES|eauto|].
-  i; des. *)
-  
-  sir. step_r. exists r_t. step_r. snr.
-  sir. step_r. unshelve eexists; ired.
-  { split; eauto.
-    rewrite x6 KTR. iIntros "> [>$ $] //". }
-  step_r. snr.
-  sir. step_r. snr. rewrite Any.pair_split /= !bind_ret_l.
-  sir. step_r. snr.
-  sir. step_r. snr.
-  (* sir. step_r. snr. rewrite Any.pair_split /= !bind_ret_l Any.upcast_downcast /= !bind_ret_l.
-  sir. step_r. exists r_t. step_r. snr.
-  sir. step_r. unshelve eexists.
-  { split; eauto. rewrite H H1 KTR. iIntros ">[$ >$]"; eauto. }
-  step_r. snr.
-  sir. step_r. snr. rewrite Any.pair_split /= !bind_ret_l.
-  sir. step_r. snr.
-  sir. step_r. snr. *)
+      pclearbot. eapply KEY; et.
+      { rewrite RS list_insert_id //. }
+      { eapply thread_rel_body; cycle 1; eauto; i; clarify; auto. }
+    }
 
-  sil. step_l. snl.
-  sil. step_l. snl.
-  
+    eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia. 
+    rewrite !list_insert_insert. ghnorm_r.
+    eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia. 
+    rewrite !list_insert_insert. ghnorm_r.
+
+    assert (arg = varg).
+    { eapply (Own_pure_soundness r_t).
+      { apply (Own_wand_valid r_s); auto; iIntros "S"; iMod (RS with "S") as "[? [$ ?]]"; auto. }
+      destruct Hfsp' as [? [? ?]]; clarify.
+      rewrite (proj2 Hrt2); iIntros "> [>-> ?] //".
+    }
+    subst. pclearbot. eapply KEY; et.
+    { rewrite RS list_insert_id // (proj2 Hrt2). iIntros "> [$ [>[_ $] $]] //". }
+    { eapply thread_rel_body; eauto; f_equal; rewrite bind_ret_r //. }
+  }
+
+  hexploit KTR; first exists tt; ss. intros [? [? [Hfsp' [? ?]]]].
+  destruct fspo' as [fsp'|]; ss.
+  { revert x1; rewrite /elim_precond; gnorm_itr; intros x1.
+    eapply gsim_tau_tgt; [eapply x1|]. ghnorm_r. 
+    eapply gsim_Take_tgt; [lookup_tac; do 2 f_equal|]; try lia.
+    exists (FSpec_mk _ _ Hfsp').
+    rewrite !list_insert_insert. ghnorm_r.
+    eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia. 
+    rewrite !list_insert_insert. ghnorm_r.
+    eapply gsim_Take_tgt; [lookup_tac; do 2 f_equal|]; try lia.
+    exists varg.
+    rewrite !list_insert_insert. ghnorm_r.
+    eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia.
+    rewrite !list_insert_insert. ghnorm_r.
+    eapply gsim_Assume_tgt; [lookup_tac; do 2 f_equal|]; try lia.
+    exists r_t; splits; auto.
+    { apply (Own_wand_valid r_s); auto; iIntros "S"; iMod (RS with "S") as "[? [$ ?]]"; auto. }
+    { iIntros "$"; iApply H0; eauto. }
+    rewrite !list_insert_insert. ghnorm_r.
+    eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia.
+    rewrite !list_insert_insert. ghnorm_r.
+
+    pclearbot. eapply KEY; et.
+    { rewrite RS list_insert_id //. }
+    { eapply thread_rel_body; cycle 1; eauto; i; clarify; auto. }
+  }
+
+  revert x1; rewrite /elim_precond; gnorm_itr; intros x1.
+  eapply gsim_tau_tgt; [eapply x1|]. ghnorm_r. 
+  eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia.
+  rewrite !list_insert_insert. ghnorm_r.
+  eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia.
+  rewrite !list_insert_insert. ghnorm_r.
+
   pclearbot. eapply KEY; et.
   { rewrite RS list_insert_id //. }
-  { eapply thread_rel_body; eauto. }
+  { eapply thread_rel_body; cycle 1; eauto; i; clarify; auto. }
 (*SLOW*)Qed.

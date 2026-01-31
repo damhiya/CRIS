@@ -492,19 +492,18 @@ Section props.
     eauto.
   Qed.
 
-  Lemma gsim_Guarantee_tgt r g RR p_s p_t st_s st_t prog_s prog_t tid_s tid_t tp_s tp_t k P r_t :
+  Lemma gsim_Guarantee_tgt r g RR p_s p_t itr_s st_t prog_t tid_t tp_t k P r_t :
     tp_t !! tid_t = Some (⇓cris (x <- trigger (Guarantee P);; k x)) →
     (∀ r_t2,
       ✓ r_t2 ∧ (Own r_t ⊢ |==> P ∗ Own r_t2) →
       gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s smj_top
-        (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
+        itr_s
         (LModTr.interp_stateE Any.t
           (iterV (LModTr.handle_callE prog_t)
             (tid_t, <[tid_t := ⇓cris (k ())]> tp_t))
           (Any.pair st_t (r_t2↑)))) →
     gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
-      (LModTr.interp_stateE Any.t
-        (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
+      itr_s
       (LModTr.interp_stateE Any.t
         (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) (Any.pair st_t (r_t↑))).
   Proof using.

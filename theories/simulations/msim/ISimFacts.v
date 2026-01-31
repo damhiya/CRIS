@@ -457,6 +457,7 @@ End ISIM_ADEQUACY.
       (st, SB.sandbox true msk scp (SModTr.trans img sp_none (lat_img peeking fsp lbody_s body_s arg)))
       (st, SB.sandbox false msk scp (SModTr.trans img sp_none (lat_real peeking fsp lbody_t body_t arg))).
   Proof using.
+    destruct fsp as [m pre post].
     iApply isim_reset. clear ps pt. iStopProof. revert st.
     eapply isim_coind. intros g Hg CIH st. iIntros. destruct_quant CIH.
     rewrite /lat_img /lat_real.
@@ -512,7 +513,7 @@ End ISIM_ADEQUACY.
       (st, SB.sandbox true msk scp (SModTr.trans img sp_none (lat_img false fsp (Ret ()) body_t arg))).
   Proof using.
     iIntros. isteps_l. rewrite /lat_img /lat_img_body. unfold_iter_r. isteps_r.
-    iDestruct "ASM" as "[P %]"; subst.
+    destruct fsp. destruct PHY as [P1 P2]. iPoseProof (P1 with "ASM") as "->".
     iforces_r. iFrame. isteps_r.
     iApply isim_bind. iSplitL "".
     { iApply isim_eqit_tgt; et.
@@ -520,7 +521,7 @@ End ISIM_ADEQUACY.
     }
     iIntros (?????). des; subst.
     isteps_r. iforces_l. iFrame.
-    iSplit; et. istep. et.
+    istep. et.
   Qed.
 
   Lemma isim_lat_real_to_hoare fsp img body_s body_t fl_s fl_t msk scp ps pt st arg
@@ -534,7 +535,7 @@ End ISIM_ADEQUACY.
       (st, SB.sandbox false msk scp (SModTr.trans img sp_none (lat_real false fsp (Ret ()) body_t arg))).
   Proof using.
     iIntros. isteps_l. rewrite /lat_real /lat_real_body. unfold_iter_r. isteps_r.
-    iDestruct "ASM" as "[P %]"; subst.
+    destruct fsp. destruct PHY as [P1 P2]. iPoseProof (P1 with "ASM") as "->".
     iApply isim_bind. iSplitL "".
     { iApply isim_eqit_tgt; et.
       iApply isim_refl; et; i; iIntros "%"; subst; et.
@@ -542,7 +543,7 @@ End ISIM_ADEQUACY.
     iIntros (????) "%"; des; subst.
     isteps_l. isteps_r.
     iforce_r. iFrame. iIntros "GRT".
-    iforces_l. iFrame. iSplit; et.
+    iforces_l. iFrame.
     isteps_l. isteps_r. istep; et.
   Qed.
 End LAT. *)

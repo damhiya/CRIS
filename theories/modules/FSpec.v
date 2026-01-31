@@ -9,8 +9,34 @@ Record fspec `{Σ : GRA} : Type := fspec_mk {
 }.
 Arguments fspec_mk {Σ meta} precond postcond.
 
+Definition fspec_rel `{Σ : GRA} : Type :=
+  (Any.t → Any.t → iProp Σ) → (Any.t → Any.t → iProp Σ) → Prop.
+
+Record FSpec `{Σ : GRA} (fsp : fspec_rel) : Type := FSpec_mk {
+  Precond : Any.t → Any.t → iProp Σ;
+  Postcond : Any.t → Any.t → iProp Σ;
+  related : fsp Precond Postcond;
+}.
+Arguments FSpec_mk {Σ fsp} Precond Postcond related.
+Arguments Precond {Σ fsp} f.
+Arguments Postcond {Σ fsp} f.
+Arguments related {Σ fsp} f.
+
+Definition idx_to_rel {I A B} fP fQ := λ (P : A) (Q : B), ∃ x: I, P = fP x ∧ Q = fQ x.
+
 Section fspec.
-  Context {Σ : GRA}.
+  Context `{Σ : GRA}.
+
+  Definition fspec_to_rel : fspec → fspec_rel :=
+    λ fsp, idx_to_rel fsp.(precond) fsp.(postcond).
+  Coercion fspec_to_rel : fspec >-> fspec_rel.
+
+  Definition fsp_none : option fspec_rel := None.
+  Definition fsp_some (fsp : fspec_rel) : option fspec_rel := Some fsp.
+
+  Lemma fspec_to_rel_satisfy (fsp : fspec) x :
+    fspec_to_rel fsp (fsp.(precond) x) (fsp.(postcond) x).
+  Proof. by eexists. Qed.
 
   Definition fspec_trivial : fspec :=
     @fspec_mk _ unit
@@ -26,11 +52,6 @@ Section fspec.
     @fspec_mk _ False
       (λ _ varg arg, False%I)
       (λ _ vret ret, True%I).
-
-  Definition fspec_flat (fspo : option fspec) : fspec :=
-    or_else fspo fspec_trivial.
-
-  Definition fbody : Type := Any.t → itree crisE Any.t.
 
   Definition fbody_trivial : Any.t → itree crisE Any.t :=
     λ _, trigger (Choose _).
@@ -53,64 +74,34 @@ Section fspec.
       (λ x varg arg, (∃ (va : VA), ⌜varg = va↑⌝ ∗ (DPQ x).1 va arg)%I)
       (λ x vret ret, (∃ (vr : VR), ⌜vret = vr↑⌝ ∗ (DPQ x).2 vr ret)%I).
 
-  Definition app_fspec (fspecs : list fspec) : fspec :=
-    @fspec_mk _ { i : nat & meta (nth i fspecs fspec_top) }
-      (λ '(existT i meta_i), precond (nth i fspecs fspec_top) meta_i)
-      (λ '(existT i meta_i), postcond (nth i fspecs fspec_top) meta_i).
+  Definition fspec_physical (fsp : fspec) : Prop :=
+    (∀ x va a, fsp.(precond) x va a ⊢ ⌜va = a⌝%I) ∧
+    (∀ x vr r, fsp.(postcond) x vr r ⊢ ⌜vr = r⌝%I).
 
-  (* Simple fspecs. Assumes virtual arg = physical arg *)
-  (* Record fspecS : Type := mk_fspecS {
-    metaS : Type;
-    precondS : metaS → Any.t → iProp Σ;
-    postcondS : metaS → Any.t → iProp Σ;
-  }. *)
+  Definition fspec_rel_physical (fsp : fspec_rel) : Prop :=
+    ∀ P Q, fsp P Q →
+      (∀ varg arg, P varg arg ⊢ ⌜varg = arg⌝) ∧ (∀ vret ret, Q vret ret ⊢ ⌜vret = ret⌝).
+      
+  Definition fbody `{Σ : GRA} : Type := Any.t → itree crisE Any.t.
 
-  (* Definition make_fspecS {X} (DPQ : X → (Any.t → iProp Σ) * (Any.t → iProp Σ)) : fspecS :=
-    mk_fspecS (λ x, (DPQ x).1) (λ x, (DPQ x).2). *)
-
-  (* Definition fspecS_bot : fspecS := {|
-    metaS := unit;
-    precondS := λ _ _, False%I;
-    postcondS := λ _ _, True%I;
-  |}. *)
-
-  (* Definition app_fspecS (fspecs : list fspecS) : fspecS := {|
-    metaS := { i : nat & (nth i fspecs fspecS_bot).(metaS) };
-    precondS := λ '(existT i meta_i), (nth i fspecs fspecS_bot).(precondS) meta_i;
-    postcondS := λ '(existT i meta_i), (nth i fspecs fspecS_bot).(postcondS) meta_i
-  |}. *)
-
-  (* Takes fspecS, generates inlinable specification *)
-  Definition atomic_body
-    (fsp : fspec) (body : meta fsp → Any.t → itree crisE Any.t)
-    : Any.t → itree crisE Any.t :=
-  λ arg,
-    x <- trigger (Take (meta fsp));;
-    trigger (Assume ((precond fsp) x arg arg));;;
-    ret <- body x arg;;
-    trigger (Guarantee ((postcond fsp) x ret ret));;;
-    Ret ret.
-
-  (* Definition lat_img_body
-      (peeking: bool) (fsp : fspecS) (lbody : itree crisE ()) (body : fbody) (arg : Any.t) :=
+  Definition lat_img_body (peeking : bool) (fsp : fspec) (lbody : itree crisE ()) (body : fbody) (arg : Any.t) :=
     lbody;;;
-    x <- trigger (Take (metaS fsp));;
-    trigger (Assume (precondS fsp x arg));;;
-    let peek := trigger (Guarantee (precondS fsp x arg));;; Ret (inl ()) in
-    let update := ret <- body arg;; trigger (Guarantee (postcondS fsp x ret));;; Ret (inr ret) in
+    PQ <- trigger (Take (FSpec fsp));;
+    trigger (Assume ((Precond PQ) arg arg));;;
+    let peek := trigger (Guarantee ((Precond PQ) arg arg));;; Ret (inl ()) in
+    let update := ret <- body arg;; trigger (Guarantee ((Postcond PQ) ret ret));;; Ret (inr ret) in 
     if peeking
     then 'b: bool <- trigger (Choose bool);;
          (if b then peek else update)
-    else update. *)
+    else update.
 
   (* Definition lat_img peeking fsp lbody body : fbody :=
     λ arg, ITree.iter (λ _, lat_img_body peeking fsp lbody body arg) (). *)
 
-  (* Definition lat_real_body
-      (peeking : bool) (fsp : fspecS) (lbody : itree crisE ()) (body : fbody) (arg : Any.t) :=
+  Definition lat_real_body (peeking: bool) (fsp : fspec) (lbody: itree crisE ()) (body: fbody) (arg: Any.t) :=
     lbody;;;
-    let peek := RealUpdate (λ x, precondS fsp x arg) (λ x, precondS fsp x arg);;; Ret (inl ()) in
-    let update := ret <- body arg;; RealUpdate (λ x, precondS fsp x arg) (λ x, postcondS fsp x ret);;; Ret (inr ret) in
+    let peek := RealUpdate (idx_to_rel (λ x, precond fsp x arg arg) (λ x, precond fsp x arg arg));;; Ret (inl ()) in
+    let update := ret <- body arg;; RealUpdate (idx_to_rel (λ x, precond fsp x arg arg) (λ x, postcond fsp x ret ret));;; Ret (inr ret) in
     if peeking
     then 'b: bool <- trigger (Choose bool);;
          (if b then peek else update)
@@ -119,67 +110,47 @@ Section fspec.
   Definition lat_real peeking fsp lbody body : fbody :=
     λ arg, ITree.iter (λ _, lat_real_body peeking fsp lbody body arg) ().
 
-  Definition to_fspec (fsp : fspecS) : fspec :=
-    fspec_call
-      (λ x varg arg, (fsp.(precondS) x arg ∗ ⌜varg = arg⌝)%I)
-      (λ x vret ret, (fsp.(postcondS) x ret ∗ ⌜vret = ret⌝)%I). *)
-
-  (* Definition from_fspec (fsp : fspec) : fspecS :=
-    mk_fspecS (λ x arg, (precond fsp x arg arg)%I)
-              (λ x ret, (postcond fsp x ret ret)%I). *)
+  Definition to_physical (fsp : fspec) : fspec :=
+    fspec_mk (λ x va a, ⌜va=a⌝ ∗ fsp.(precond) x va a)%I
+             (λ x vr r, ⌜vr=r⌝ ∗ fsp.(postcond) x vr r)%I.
 
   (* Definition fspec_simple {X} (DPQ : X → (Any.t → iProp Σ) * (Any.t → iProp Σ)) : fspec :=
-    to_fspec (make_fspecS DPQ). *)
+    to_physical (mk_fspec (λ x varg arg, (DPQ x).1 varg)%I
+                          (λ x vret ret, (DPQ x).2 vret)%I). *)
 
+  Definition fspec_flat (fspo : option fspec_rel) : fspec_rel :=
+    or_else fspo fspec_trivial.
+  
   (** fspec_imply fsp0 fsp1 means that [fsp0] is stronger spec than [fsp1]
       For the notion of a stronger spec, consider the consequence rule of Hoare triple:
         if P1 ⊢ P0 and Q0 ⊢ Q1 and { P0 } e { Q0 } then { P1 } e { Q1 }
       Therefore (P0, Q0) is stronger than (P1, Q1) if P1 ⊢ P0 and Q0 ⊢ Q1 *)
-  Definition fspec_imply (fsp0 fsp1 : fspec) : iProp Σ :=
-    ∀ x1, ∃ x0,
-      ∀ varg arg, precond fsp1 x1 varg arg o==∗ precond fsp0 x0 varg arg ∗
-        ∀ vret ret, postcond fsp0 x0 vret ret o==∗ postcond fsp1 x1 vret ret.
+  Definition fspec_imply (fsp0 fsp1 : fspec_rel) : iProp Σ :=
+    ∀ P1 Q1, ⌜fsp1 P1 Q1⌝ →
+      ∃ P0 Q0, ⌜fsp0 P0 Q0⌝ ∧
+        ∀ varg arg, P1 varg arg o==∗ P0 varg arg ∗ ∀ vret ret, Q0 vret ret o==∗ Q1 vret ret.
 
   (* Global Program Instance fspec_imply_PreOrder : PreOrder fspec_imply.
-  Next Obligation.
-  Proof using. ii; eexists; esplits; ii; et. Qed.
+  Next Obligation. 
+  Proof using.
+    ii. exists P1, Q1. esplits; ii; et.
+  Qed.
   Next Obligation.
   Proof using.
-    intros x y z Hxy Hyz mz; hexploit (Hyz mz); intros [my [Hzy Hyz']].
-    hexploit (Hxy my); intros [mx [Hyx Hxy']]; exists mx; split.
-    { ii; rewrite Hzy Hyx; iIntros ">>$ //". }
-    { ii; rewrite Hxy' Hyz'; iIntros ">>$ //". }
-  Qed. *)
-
-  (* Definition fspec_imply' (fsp0 fsp1 : fspec) : Prop :=
-    match fsp0, fsp1 with
-    | @fspec_spawn m0 pre0 post0, @fspec_spawn m1 pre1 post1 =>
-        ∀ tid x1, ∃ x0,
-          (∀ varg arg, (pre1 (tid, x1) varg arg ⊢ |==> pre0 (tid, x0) varg arg)) ∧
-            (∀ vret ret, (post0 (tid, x0) vret ret ⊢ |==> post1 (tid, x1) vret ret))
-    | @fspec_call m0 pre0 post0, @fspec_call m1 pre1 post1 =>
-        fspec_imply fsp0 fsp1
-    | _, _ => False
-    end. *)
-
-  (* Global Program Instance fspec_imply'_PreOrder : PreOrder fspec_imply'.
-  Next Obligation.
-  Proof using. ii. destruct x; ss; try refl. i. exists x1. esplits; ii; et. Qed.
-  Next Obligation.
-  Proof using.
-    ii. destruct x, y, z; ss; try by etrans; et. i.
-    hexploit (H0 tid x1). intros [? [PRE POST]]. hexploit (H tid x). intros [? [PRE1 POST1]].
-    exists x0.
-    esplits; ii.
-    - rewrite PRE PRE1. iIntros ">> H". et.
-    - rewrite POST1 POST. iIntros ">> H". et.
-  Qed. *)
+    ii. hexploit (H0 P1 Q1); et. i. des. hexploit (H P0 Q0); et. i. des. exists P2, Q2.
+    esplits; et; ii.
+    - rewrite PRE PRE0. iIntros ">> H". et.
+    - rewrite POST0 POST. iIntros ">> H". et.
+  Qed.   *)
 
   Lemma fspec_bot_strongest fsp : ⊢ fspec_imply fspec_bot fsp.
-  Proof. iIntros (?); iExists tt; iIntros (??) "? !>"; iSplit; first done; iIntros (??) "[]". Qed.
+  Proof.
+    iIntros (P1 Q1) "PQ1"; iExists _, _; iSplit; first (iExists tt; ss).
+    iIntros (??) "P !>"; iSplit; first done; iIntros (??) "[]".
+  Qed.
 
   Lemma fspec_top_weakest fsp : ⊢ fspec_imply fsp fspec_top.
-  Proof. by iIntros (?). Qed.
+  Proof. by iIntros (??) "[% %]". Qed.
 End fspec.
 
 Definition fspec_winv `{!crisG Γ Σ α β τ _S _I} (E : coPset) (fsp : fspec) : fspec :=

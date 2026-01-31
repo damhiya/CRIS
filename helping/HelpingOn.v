@@ -7,30 +7,30 @@ From stdpp Require Import fin_sets.
 Section HoareCall.
   Context `{!crisG Γ Σ α β τ _S _I, !concG}.
   (* HoareCall Lemmas *)
-  Definition fspec_option_meta (fspo : option fspec) : Type :=
+  Definition fspec_option_meta (fspo : option fspec_rel) : Type :=
     match fspo with
-    | Some fsp => meta fsp
+    | Some fsp => FSpec fsp
     | None => unit
     end.
 
   Definition HoareCall_prologue fspo (varg : Any.t)
       : itree crisE (fspec_option_meta fspo * Any.t) :=
     (match fspo as fspo return itree crisE (fspec_option_meta fspo * Any.t) with
-    | Some (fspec_mk pre post) =>
-        x <- trigger (Choose _);;
+    | Some fsp =>
+        PQ <- trigger (Choose (FSpec fsp));;
         arg <- trigger (Choose Any.t);;
-        trigger (Guarantee (pre x varg arg));;;
-        Ret (x, arg)
+        trigger (Guarantee ((Precond PQ) varg arg));;;
+        Ret (PQ, arg)
     | None => Ret (tt, varg)
     end).
 
   Definition HoareCall_epilogue fspo (x : fspec_option_meta fspo) (pret : Any.t)
       : itree crisE Any.t :=
     (match fspo as fspo return fspec_option_meta fspo → itree crisE Any.t with
-    | Some (fspec_mk pre post) =>
+    | Some fsp =>
         λ x,
           vret <- trigger (Take Any.t);;
-          trigger (Assume (post x vret pret));;;
+          trigger (Assume ((Postcond x) vret pret));;;
           Ret vret
     | None => λ _, Ret pret
     end) x.
@@ -46,21 +46,21 @@ Section HoareCall.
 
   Definition HoareFun_prologue fspo parg : itree crisE (fspec_option_meta fspo * Any.t) :=
     (match fspo as fspo return itree crisE (fspec_option_meta fspo * Any.t) with
-    | Some (fspec_mk pre post) =>
-        x <- trigger (Take _);;
+    | Some fsp =>
+        PQ <- trigger (Take (FSpec fsp));;
         varg <- trigger (Take Any.t);;
-        trigger (Assume (post x varg parg));;;
-        Ret (x, varg)
+        trigger (Assume ((Postcond PQ) varg parg));;;
+        Ret (PQ, varg)
     | None => Ret (tt, parg)
     end).
 
   Definition HoareFun_epilogue fspo (x : fspec_option_meta fspo) (vret : Any.t)
       : itree crisE Any.t :=
     (match fspo as fspo return fspec_option_meta fspo → itree crisE Any.t with
-    | Some (fspec_mk pre post) =>
+    | Some fsp =>
         λ x,
           pret <- trigger (Choose Any.t);;
-          trigger (Guarantee (pre x vret pret));;;
+          trigger (Guarantee ((Precond x) vret pret));;;
           Ret pret
     | None => λ _, Ret vret
     end) x.
@@ -113,7 +113,7 @@ Module HelpingOn. Section HelpingOn.
       HoareCall_epilogue (sp !! speckey_fn SchHdr.yield) xarg.1 (() ↑);;;
       Ret ()↑.
 
-  Definition fnsems (sp : specmap) : gmap (option string) (option (emask * (option fspec * fbody))) :=
+  Definition fnsems (sp : specmap) : fnsemmap :=
     {[Some (Helping.run mn) := Some (msk_scp scopes msk_true, (None, run));
       Some (Helping.help mn) := Some (msk_scp scopes msk_true, (None, help sp))]}.
 
@@ -122,9 +122,7 @@ Module HelpingOn. Section HelpingOn.
     SMod.fnsems := fnsems sp;
     SMod.initial_st := {[v_reqs := Some (∅ : gmap nat (option retID * jobID))↑]};
   |}.
-  Next Obligation. i; rewrite ?omap_insert omap_empty /=; mod_tac scope_solver. Qed.
-  Next Obligation. set_solver. Qed.
-  Next Obligation. i; mod_tac scope_solver. Qed.
+  Solve All Obligations with mod_tac.
 
   (* Definition sp (sp : specmap) : specmap := 
     match sp !! speckey_fn SchHdr.yield with
@@ -147,7 +145,7 @@ Module HelpingDummy. Section HelpingDummy.
   Context (mn : string).
   Definition scopes : gmultiset string := {[+mn+]}.
 
-  Definition fnsems : gmap (option string) (option (emask * (option fspec * fbody))) :=
+  Definition fnsems : fnsemmap :=
     {[Some (Helping.run mn) := Some (msk_scp scopes msk_true, (None, λ _, triggerNB));
       Some (Helping.help mn) := Some (msk_scp scopes msk_true, (None, λ _, triggerNB))]}.
 
@@ -156,8 +154,7 @@ Module HelpingDummy. Section HelpingDummy.
     SMod.fnsems := fnsems;
     SMod.initial_st := ∅;
   |}.
-  Solve All Obligations with try done.
-  Next Obligation. rewrite ?omap_insert omap_empty /=; mod_tac scope_solver. Qed.
+  Solve All Obligations with mod_tac.
 
   Definition t : Mod.t := SMod.to_mod ∅ Mod.
 End HelpingDummy. End HelpingDummy.

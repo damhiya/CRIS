@@ -115,6 +115,8 @@ Ltac _wstep_l :=
       iApply wsim_tau_src
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, Ret _ >>= _) _) ] =>
       rewrite bind_ret_l
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Take (FSpec (fspec_to_rel _))) >>= _) _) ] =>
+      let name := fresh "_q" in iApply wsim_take_src_fspec; iIntros (name); simpl in name
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _) _) ] =>
       let name := fresh "_q" in iApply wsim_take_src; iIntros (name)
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Assume ?P) >>= _) _) ] =>
@@ -162,6 +164,8 @@ Ltac _wstep_r :=
       iApply wsim_tau_tgt
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, Ret _ >>= _) ) ] =>
       rewrite bind_ret_l
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose (FSpec (fspec_to_rel _))) >>= _) ) ] =>
+      let name := fresh "_q" in iApply wsim_choose_tgt_fspec; iIntros (name); simpl in name
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose _) >>= _) ) ] =>
       let name := fresh "_q" in iApply wsim_choose_tgt; iIntros (name)
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _) ) ] =>
@@ -207,6 +211,8 @@ Ltac wstep :=
 
 Ltac _wforce_l :=
   match goal with
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose (FSpec (fspec_to_rel _))) >>= _) _) ] =>
+      iApply wsim_choose_src_fspec
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose ?T) >>= _) _) ] =>
       iApply wsim_choose_src
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _) _) ] =>
@@ -242,6 +248,8 @@ Ltac wforces_l :=
 
 Ltac _wforce_r :=
   match goal with
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Take (FSpec (fspec_to_rel _))) >>= _)) ] =>
+      iApply wsim_take_tgt_fspec
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _)) ] =>
       iApply wsim_take_tgt
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Assume ?P) >>= _)) ] =>
@@ -261,8 +269,10 @@ Ltac _wforce_r :=
       iApply wsim_assume_res_tgt
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _)) ] =>
       iApply wsim_asm_tgt
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, RealUpdate ?P ?Q >>= _)) ] =>
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, RealUpdate (idx_to_rel ?P ?Q) >>= _)) ] =>
       unfold_pre_post_term P; unfold_pre_post_term Q; iApply wsim_ru_tgt_simple
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, RealUpdate _ >>= _)) ] =>
+      iApply wsim_ru_tgt_simple_general
   end
 .
 
@@ -308,7 +318,7 @@ Ltac wby_coind CIH :=
   initialize_simF;
   iApply wsim_isim;
   try (
-      iDestruct "IST" as "[% [W [TID IST]]]"; des; subst;
+      iDestruct "IST" as "[% [W [TID IST]]]"; des_safe; subst;
       iApply wsim_init_winv; iSplitL "W"; [et; fail|]; hss_copset;
       hrepeat do 1 (unfold_mod; s)). *)
 

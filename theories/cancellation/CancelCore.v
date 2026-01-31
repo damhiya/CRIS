@@ -1,27 +1,26 @@
 Require Import CRIS.
-Require Import LMod LModTr GSim GSimFacts GSimTactics CancelTactics.
+Require Import LMod LModTr GSim GSimFacts GSimTactics GSimAux CancelTactics.
 Require Import MInline MInlineIntro MInlineElim ElimRel.
 
-Lemma cancel_core `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp
-  (X: Type) (PQ: X → (Any.t → iProp Σ) * (Any.t → iProp Σ)) mm
-  R (e : coreE R):
-  CANCEL_GOAL md sp PQ mm (trigger e) (trigger e).
+Lemma cancel_core `{!crisG Γ Σ α β τ _S _I, !concG} md sp R (e : coreE R) :
+  CANCEL_GOAL md sp (trigger e) (trigger e).
 Proof.
   r; i. destruct e.
-  + iter_l. iter_r. rewrite x0 x1. s. step_r. i. step_r. step_l. exists x. step_l.
-    norm_l. norm_r. rewrite !bind_ret_l.
+  { eapply gsim_Choose_tgt; try apply x1. intros x.
+    eapply gsim_Choose_src; eauto. exists x.
     eapply KEY; et.
     { rewrite list_insert_id //. }
-    { econs; eauto; eapply KTR. }
-  + iter_l. iter_r. rewrite x0 x1. s. step_l. i. step_r. exists x. step_l. step_r.
-    norm_l. norm_r. rewrite !bind_ret_l.
+    { econs; eauto; ss. }
+  }
+  { eapply gsim_Take_src; eauto. intros x.
+    eapply gsim_Take_tgt; try apply x1. exists x.
     eapply KEY; et.
     { rewrite list_insert_id //. }
-    { econs; eauto; eapply KTR. }
-  + iter_l. iter_r. rewrite x0 x1. s. norm_l. norm_r. step_l. i. subst.
-    norm_l. norm_r. step_l. step_r. norm_l. norm_r. rewrite !bind_ret_l.
+    { econs; eauto; ss. }
+  }
+  { eapply gsim_IO; eauto; try apply x1. intros ret.
     eapply KEY; et.
     { rewrite list_insert_id //. }
-    { econs; eauto; eapply KTR. }
-Unshelve. all: exact smj_top.
+    { econs; eauto; ss. }
+  }
 (*SLOW*)Qed.
