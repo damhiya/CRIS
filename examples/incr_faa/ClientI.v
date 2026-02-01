@@ -26,7 +26,7 @@ Module ClientI. Section ClientI.
       𝒴;;; '_ : unit <- trigger (IO "OUT" v);;
       𝒴;;; Ret (tt↑).
 
-  Definition fnsems : gmap (option string) (option (emask * (option fspec * fbody))) :=
+  Definition fnsems : fnsemmap :=
     {[Some IncrHdr.incr := Some (msk_real (msk_scp scopes msk_true), (None, cfunU (sfunU incr)));
       None := Some (msk_real (msk_scp scopes msk_true), (None, main))]}.
 

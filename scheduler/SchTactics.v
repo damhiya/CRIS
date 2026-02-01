@@ -3,6 +3,8 @@ Require Import ITactics.
 Require Import MSim WSim.
 Require Export SchHeader SchA.
 
+Require Import ltac2_lib.
+
 Section wsim.
   Context `{!crisG Γ Σ α β τ _S _I, !concG, !newschG}.
 
@@ -85,7 +87,7 @@ Section wsim.
     wsim fl_s fl_t Ist (Es, Es) r g R_s R_t RR ps pt
       (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴)) >>= k_s)
       (st_tgt, (SB.sandbox msk_t (SModTr.trans sp_t 𝒴)) >>= k_t).
-  Proof.
+  Proof using.
     intros Hsps Hspt Hmsk Hcall.
     revert st_src. combine_quant st_tgt.
     combine_quant ps. combine_quant pt.
@@ -117,93 +119,64 @@ Section wsim.
     steps_l. destruct msk_s; step_l; ss. steps_l. destruct msk_s; steps_l; ss.
     by_coind CIH. iFrame. iDestruct "ASM" as "[$ ?]".
   (*SLOW*)Qed.
-   (* Lemma wsim_yield_tgt
-      (tid_res : bool)
-      (E : coPset)
-      (r g : rel)
-      (img_s img_t img_s' img_t' : bool)
-      (msk_s msk_t : string → bool)
-      (scp_s scp_t : list string)
-      (sp_s sp_t : sp_type)
+
+  Lemma wsim_yield_tgt_ii
+      (E Es Et : coPset) (r g : rel)
       (k_s : () → itree crisE R_s)
       (k_t : () → itree crisE R_t)
-      (mtid stid : nat) :
-    (tid_res = false ∧
-     sp_s SchHdr.yield = None ∧
-     sp_t SchHdr.yield = None ∧
-     E = ∅) ∨
-    (tid_res = true ∧
-     ∃ sp_user_s,
-       sp_incl (SchA.sp sp_user_s E) sp_s ∧ img_s = true ∧
-       sp_t SchHdr.yield = None) ∨
-    (tid_res = false ∧
-    ∃ sp_user_s sp_user_t E_s E_t,
-      sp_incl (SchA.sp sp_user_s E_s) sp_s ∧ img_s = true ∧
-      sp_incl (SchA.sp sp_user_t E_t) sp_t ∧ img_t = true ∧
-      (E_s ≡ E_t ∪ E) ∧ (E ## E_t)) →
-    msk_s SchHdr.yield →
-    msk_t SchHdr.yield →
-    Ist st_src st_tgt ∗ (if tid_res then Tid mtid stid else emp) ∗
+      (msk_s msk_t : emask)
+      (sp_s sp_t : specmap) :
+    sp_s !! speckey_fn SchHdr.yield = fsp_some (SchA.yield_spec Es) →
+    sp_t !! speckey_fn SchHdr.yield = fsp_some (SchA.yield_spec Et) →
+    img_msk msk_t →
+    (∀ fn arg, msk_t _ (subevent _ (Call fn arg)) = true) →
+    Et ⊆ Es →
+    E = Es ∖ Et →
+    Ist st_src st_tgt ∗
     (∀ st_src st_tgt,
-      Ist st_src st_tgt -∗ (if tid_res then Tid mtid stid else emp) -∗
+      Ist st_src st_tgt -∗
       wsim fl_s fl_t Ist (E, E) r g R_s R_t RR true true
-        (st_src, (SB.sandbox img_s msk_s scp_s (SModTr.trans img_s' sp_s 𝒴)) >>= k_s)
+        (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴)) >>= k_s)
         (st_tgt, k_t tt)) ⊢
     wsim fl_s fl_t Ist (E, E) r g R_s R_t RR ps pt
-      (st_src, (SB.sandbox img_s msk_s scp_s (SModTr.trans img_s' sp_s 𝒴)) >>= k_s)
-      (st_tgt, (SB.sandbox img_t msk_t scp_t (SModTr.trans img_t' sp_t 𝒴)) >>= k_t).
+      (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴)) >>= k_s)
+      (st_tgt, (SB.sandbox msk_t (SModTr.trans sp_t 𝒴)) >>= k_t).
   Proof using.
-    intros Hcase Hmsks Hmskt. iIntros "[IST [TID SIM]]".
-    rewrite /Sch.yield; unseal SCH.
-    iStopProof.
+    intros Hsps Hspt [Ht [Hc [Ha [Har Hg]]]] Hcall HE ->.
     revert st_src. combine_quant st_tgt.
     combine_quant ps. combine_quant pt.
-    eapply wsim_coind. intros g' Hg CIH [pt [ps [st_t st_s]]].
-    s; destruct_quant CIH. iIntros "[IST [TID SIM]]".
-    unfold_iterC_r. steps_r. destruct _q; cycle 1.
-    { unfold_iterC_l. steps_l. force_l (Some false). steps_l. steps_r.
-      iPoseProof ("SIM" $! _ _ with "IST TID") as "SIM".
+    eapply wsim_coind. intros g' Hg' CIH [pt [ps [st_t st_s]]].
+    s; destruct_quant CIH.
+
+    rewrite {2 3}yield_unfold.
+    iIntros "[IST SIM]".
+    steps_l. destruct (msk_s _); step_l; ss.
+    steps_r. rewrite Hc. steps_r. destruct _q; cycle 1.
+    { force_l (Some false). steps_l. steps_r.
+      iPoseProof ("SIM" $! _ _ with "IST") as "SIM".
       iPoseProof (wsim_mono_knowledge with "SIM") as "SIM"; cycle 2.
       { iApply "SIM". }
       { iIntros (???????) "$"; done. }
-      { iIntros (???????) "P !>". iApply Hg; ss. }
+      { iIntros (???????) "P !>". iApply Hg'; ss. }
     }
     destruct b; cycle 1.
-    { unfold_iterC_l. steps_l. force_l (Some false). steps_l.
-      steps_r. by_coind CIH. iFrame.
-    }
-    unfold_iterC_l. steps_l. force_l (Some true). steps_l.
-    steps_r.
+    { force_l (Some false). steps_l. steps_r. by_coind CIH. iFrame. }
 
-    destruct Hcase as [Hcase|[Hcase|Hcase]]; des; subst.
-    { rewrite Hcase0 Hcase1 /=.
-      call "IST".
-      steps_l. steps_r. hss. steps_l. steps_r.
-      by_coind CIH. iFrame.
-    }
-    { replace (sp_s SchHdr.yield) with (Some (SchA.yield_spec E)); cycle 1.
-      { erewrite (proj2 Hcase0); et. rewrite /SchA.sp; unseal CRIS; et. }
-      rewrite Hcase2.
-      steps_l. force_l (mtid, stid). forces_l. iSplitL "TID"; iFrame; eauto.
-      steps_l.
-      call "IST".
-      steps_l. iDestruct "ASM" as "[-> [-> TID]]". hss. steps_l. steps_r.
-      by_coind CIH. iFrame.
-    }
-    { replace (sp_s SchHdr.yield) with (Some (SchA.yield_spec E_s)); cycle 1.
-      { erewrite (proj2 Hcase0); et. unfold SchA.sp; unseal CRIS; et. }
-      replace (sp_t SchHdr.yield) with (Some (SchA.yield_spec E_t)); cycle 1.
-      { erewrite (proj2 Hcase2); et. unfold SchA.sp; unseal CRIS; et. }
-      steps_r. iDestruct "GRT" as "[[-> TID0] _]". iClear "TID". iRename "TID0" into "TID".
-      force_l (_, _). forces_l. iFrame "TID". iSplit; eauto.
-      call "IST".
-      steps_l. hss. iDestruct "ASM" as "[[-> TID] _]". steps_l.
-      steps_r. forces_r. iSplitL "TID"; et.
-      steps_r.
-      by_coind CIH. iFrame.
-      hss. iFrame.
-    }
-  (*SLOW*)Qed. *)
+    force_l (Some true). steps_r. steps_l. rewrite Hsps Hspt.
+    steps_r. rewrite Hc. steps_r. destruct _q as [[stid mtid] []]. rewrite Hc.
+    steps_r. rewrite Hg. steps_r. iDestruct "GRT" as "[TID [-> _]]". rewrite Hcall. steps_r.
+    steps_l. destruct msk_s; step_l; ss. force_l (stid, mtid, ()); ss.
+    steps_l. destruct msk_s; step_l; ss. force_l (()↑); s.
+
+    steps_l. destruct msk_s; step_l; ss.
+    force_l. iFrame; iSplit; eauto.
+    steps_l. destruct msk_s; step_l; ss.
+    call "IST". clear st_s st_t; iIntros (? st_s st_t) "IST".
+    steps_r.
+    steps_l. destruct msk_s; step_l; ss. steps_l. destruct msk_s; steps_l; ss.
+    rewrite Ht. force_r _q. steps_r. rewrite Ha. force_r. iFrame. steps_r.
+    by_coind CIH. iFrame.
+  (*SLOW*)Qed.
 
   Lemma wsim_yield_src Ep r g (msk_s : emask) sp_s k_s i_t :
     msk_s _ (subevent _ (Choose (option bool))) →
@@ -232,10 +205,22 @@ Ltac clear_st :=
 (* Ltac sch_intros :=
   clear_st; iIntros (??); iIntrosFresh "IST"; iIntrosFresh "TID"; clear_emp. *)
 
+Ltac simpl_sp :=
+  try match goal with
+  | H : ?sp1 ⊆ ?sp2 |- context [?sp2 !! ?key] =>
+    unshelve erewrite (lookup_weaken sp1 sp2 key _ _ H);
+    [|rewrite /sp1; simpl_map; reflexivity|]
+  end.
+
 Ltac sch_yield_rr IST :=
   (norm_l with 
     (do 1 unshelve iApply (wsim_yield_tgt_rr); [ss|ss|ss|ss|];
       iFrame IST)); clear_st; iIntros (??) IST.
+
+Ltac sch_yield_ir H1 H2 :=
+  let H2' := eval compute in (H1 ++ " " ++ H2)%string in
+  (norm_l with do 1 (iApply (wsim_yield_tgt_ir); [simpl_sp; ss|simpl_sp; ss|ss|ss|iFrame H2']));
+  clear_st; iIntros (??) H2'.
 
 Ltac sch_yield_l :=
   norm_l with do 1 iApply wsim_yield_src; [ss|].

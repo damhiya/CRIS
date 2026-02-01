@@ -37,7 +37,7 @@ Module SpinLockI. Section SpinLockI.
       𝒴;;; '_ : val <- ccallU MemHdr.store (x ++ [Vint 0]);;
       𝒴;;; Ret Vundef.
 
-  Definition fnsems : gmap (option string) (option (emask * (option fspec * fbody))) :=
+  Definition fnsems : fnsemmap :=
     {[Some SpinLockHdr.newlock := Some (msk_real (msk_scp scopes msk_true), (None, cfunU newlock));
       Some SpinLockHdr.acquire := Some (msk_real (msk_scp scopes msk_true), (None, cfunU acquire));
       Some SpinLockHdr.release := Some (msk_real (msk_scp scopes msk_true), (None, cfunU release))]}.

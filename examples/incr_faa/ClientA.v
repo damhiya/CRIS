@@ -53,7 +53,7 @@ Module ClientA. Section ClientA.
   (* Definition init_cond E : iProp Σ := winv (E, E) ∗ Tid 0 0. *)
 
   Definition sp N : specmap :=
-    {[speckey_fn IncrHdr.incr := incr_spec N]}.
+    {[speckey_fn IncrHdr.incr := fspec_to_rel (incr_spec N)]}.
 
   (* Module definition *)
   Definition scopes : gmultiset string := ∅.
@@ -71,9 +71,9 @@ Module ClientA. Section ClientA.
       𝒴;;; trigger (IO (O:=unit) "OUT" 4%Z);;;
       𝒴;;; Ret (tt↑).
 
-  Definition fnsems (N : namespace) : gmap (option string) (option (emask * (option fspec * fbody))) :=
-    {[Some IncrHdr.incr := Some (msk_scp scopes msk_true, (Some (incr_spec N), cfunN (sfunN incr)));
-      None := Some (msk_scp scopes msk_true, (Some (fspec_sch (↑N) fspec_trivial), main))]}.
+  Definition fnsems (N : namespace) : fnsemmap :=
+    {[Some IncrHdr.incr := Some (msk_scp scopes msk_true, (fsp_some (incr_spec N), cfunN (sfunN incr)));
+      None := Some (msk_scp scopes msk_true, (fsp_some (fspec_sch (↑N) fspec_trivial), main))]}.
 
   Program Definition smod N : SMod.t := {|
     SMod.scopes := scopes;

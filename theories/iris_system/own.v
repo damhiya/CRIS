@@ -151,6 +151,17 @@ Section own_bupd.
   (* Not an instance to not contaminate search for original [bupd] *)
   Definition uPred_bi_bupd_own : BiBUpd (iProp Σ) :=
     {| bi_bupd_mixin := uPred_bupd_mixin_own_bupd |}.
+
+  Lemma own_admin_soundness_gen (P : Prop) :
+    ((uPred_ownM ((λ i, allocs_auth (@GRA_lookup Σ i) (λ _, True : Prop)) : GRAUR Σ)) ⊢ ⌜P⌝) → P.
+  Proof. eapply uPred.ownM_pure_soundness; try done. Qed.
+
+  Lemma own_admin_soundness (P : Prop) :
+    (own_admin ⊢ ⌜P⌝) → P.
+  Proof.
+    intros Hp; apply own_admin_soundness_gen; iIntros "?"; iApply Hp.
+    rewrite /own_admin seal_eq; iExists ⊤; iSplit; eauto; iPureIntro; apply top_infinite.
+  Qed.
 End own_bupd.
 
 (* Notation for use of [own_bupd] with [BiBUpd] lemma supports *)

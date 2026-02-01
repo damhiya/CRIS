@@ -10,7 +10,7 @@ Module FaaI. Section FaaI.
   Definition faa2 : list val → itree crisE unit :=
     λ arg, 𝒴;;; MemHdr.faa arg;;; 𝒴;;; MemHdr.faa arg;;; 𝒴;;; Ret tt.
 
-  Definition fnsems : gmap (option string) (option (emask * (option fspec * fbody))) :=
+  Definition fnsems : fnsemmap :=
     {[Some FaaHdr.faa2 := Some (msk_scp scopes (msk_real msk_true), (None, cfunU faa2))]}.
 
   Program Definition smod : SMod.t := {|

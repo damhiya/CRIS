@@ -22,7 +22,7 @@ Module IncrementI. Section IncrementI.
             else Ret (inl tt)
         ) ().
 
-  Definition fnsems : gmap (option string) (option (emask * (option fspec * fbody))) :=
+  Definition fnsems : fnsemmap :=
     {[Some IncrementHdr.increment := Some (msk_scp scopes msk_true, (None, cfunU increment))]}.
 
   Program Definition smod : SMod.t := {|
@@ -30,8 +30,7 @@ Module IncrementI. Section IncrementI.
     SMod.fnsems := fnsems;
     SMod.initial_st := ∅;
   |}.
-  Solve All Obligations with (try done).
-  Next Obligation. rewrite ?omap_insert /= omap_empty. mod_tac scope_solver. Qed.
+  Solve All Obligations with mod_tac.
 
   Definition t : Mod.t := SMod.to_mod ∅ smod.
 End IncrementI. End IncrementI.

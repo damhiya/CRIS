@@ -59,18 +59,16 @@ Module MainA. Section MainA.
   Lemma incr_spawnable E bofs_l bofs_v γ_v :
     ⊢ SchA.fspec_spawnable (incr_spec E) (incr_pre bofs_l bofs_v γ_v) (incr_post γ_v).
   Proof.
-    iIntros ([[x1 x2] []]); iExists (x1, x2, (bofs_l, bofs_v, γ_v)); unfold_pre_post.
-    iIntros (varg arg) "[W [$ [%va [%sarg [[-> ->] [-> [-> ?]]]]]]]".
-    iEval (replace ⊤ with ((⊤ ∖ E) ∪ E); last (rewrite difference_union_L //; set_solver)) in "W".
-    iPoseProof (winv_split with "W") as "[W $]"; try set_solver.
-    iFrame. iModIntro. iSplit; eauto.
-    iIntros (vret ret) "[W2 [$ [-> [-> ?]]]]".
-    iMod (winv_merge with "[W2 W]") as "[W %]"; iFrame.
-    rewrite difference_union_L comm_L subseteq_union_1_L //.
-    iFrame. iModIntro; iExists _, _; iSplit; solve_base_sl_red.
+    iApply SchA.fspec_sch_spawnable; first done.
+    iIntros "%P1 %Q1 [% [-> ->]]"; iExists _, _; iSplit; first (iPureIntro).
+    { exists (bofs_l, bofs_v, γ_v); split; ss. }
+    iIntros (varg arg) "[%va [%sarg [[-> ->] [-> [-> ?]]]]]"; des; clarify.
+    iIntros "!>"; iSplitL; first iFrame; eauto.
+    iIntros "%% [-> [-> ?]] !>"; iExists _, _; iSplit; eauto.
+    solve_base_sl_red; iSplit; done.
   Qed.
 
-  Definition sp E : specmap := {[speckey_fn SpinLockMainHdr.incr := incr_spec E]}.
+  Definition sp E : specmap := {[speckey_fn SpinLockMainHdr.incr := fspec_to_rel (incr_spec E)]}.
 
   (* Module definition *)
   (* Define three components for a module:
@@ -93,9 +91,9 @@ Module MainA. Section MainA.
   Definition incr : list val → itree crisE val :=
     λ _, 𝒴;;; Ret Vundef.
 
-  Definition fnsems (N : namespace) : gmap (option string) (option (emask * (option fspec * fbody))) :=
-    {[None := Some (msk_scp scopes msk_true, (Some fspec_trivial, main));
-      Some SpinLockMainHdr.incr := Some (msk_scp scopes msk_true, (Some (incr_spec (↑N)), cfunN (sfunN incr)))]}.
+  Definition fnsems (N : namespace) : fnsemmap :=
+    {[None := Some (msk_scp scopes msk_true, (fsp_some fspec_trivial, main));
+      Some SpinLockMainHdr.incr := Some (msk_scp scopes msk_true, (fsp_some (incr_spec (↑N)), cfunN (sfunN incr)))]}.
 
   Program Definition smod N : SMod.t := {|
     SMod.scopes := scopes;

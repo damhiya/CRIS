@@ -73,9 +73,9 @@ Module LockA. Section LockA.
       )))%I.
 
   Definition sp E : specmap :=
-    {[speckey_fn SpinLockHdr.newlock := newlock_spec E;
-      speckey_fn SpinLockHdr.acquire := acquire_spec E;
-      speckey_fn SpinLockHdr.release := release_spec E]}.
+    {[speckey_fn SpinLockHdr.newlock := fspec_to_rel (newlock_spec E);
+      speckey_fn SpinLockHdr.acquire := fspec_to_rel (acquire_spec E);
+      speckey_fn SpinLockHdr.release := fspec_to_rel (release_spec E)]}.
 
   (* Module definition *)
   (* Define three components for a module:
@@ -92,10 +92,10 @@ Module LockA. Section LockA.
   Definition release : list val → itree crisE val :=
     λ _, 𝒴;;; Ret Vundef.
 
-  Definition fnsems (E : coPset) : gmap (option string) (option (emask * (option fspec * fbody))) :=
-    {[Some SpinLockHdr.newlock := Some (msk_scp scopes msk_true, (Some (newlock_spec E), cfunU newlock));
-      Some SpinLockHdr.acquire := Some (msk_scp scopes msk_true, (Some (acquire_spec E), cfunU acquire));
-      Some SpinLockHdr.release := Some (msk_scp scopes msk_true, (Some (release_spec E), cfunU release))]}.
+  Definition fnsems (E : coPset) : fnsemmap :=
+    {[Some SpinLockHdr.newlock := Some (msk_scp scopes msk_true, (fsp_some (newlock_spec E), cfunU newlock));
+      Some SpinLockHdr.acquire := Some (msk_scp scopes msk_true, (fsp_some (acquire_spec E), cfunU acquire));
+      Some SpinLockHdr.release := Some (msk_scp scopes msk_true, (fsp_some (release_spec E), cfunU release))]}.
 
   Program Definition smod E : SMod.t := {|
     SMod.scopes := scopes;

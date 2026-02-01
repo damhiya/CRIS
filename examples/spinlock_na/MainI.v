@@ -39,7 +39,7 @@ Module SpinLockMainI. Section SpinLockMainI.
       𝒴;;; '_ : val <- ccallU SpinLockHdr.release [Vptr l];;
       𝒴;;; Ret Vundef.
 
-  Definition fnsems : gmap (option string) (option (emask * (option fspec * fbody))) :=
+  Definition fnsems : fnsemmap :=
     {[None := Some (msk_real (msk_scp scopes msk_true), (None, main));
       Some SpinLockMainHdr.incr :=
         Some (msk_real (msk_scp scopes msk_true), (None, cfunU (sfunU incr)))]}.

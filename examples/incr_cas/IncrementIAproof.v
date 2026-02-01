@@ -46,7 +46,7 @@ Module IncrementIA. Section IncrementIA.
 
     sch_yield_l. steps_l. rename _q into v'.
     iApply (wsim_mem_cas _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ emp%I with "ASM"); [ss|..].
-    { rewrite /MemSpec.compare_val; des_ifs. }
+    { rewrite /MemA.compare_val; des_ifs. }
     { done. }
     { iIntros "_"; iExists 1%Qp, 1%Qp, Vundef, Vundef; ss. }
     iIntros "↦ _".

@@ -90,7 +90,7 @@ Module StackI. Section StackI.
   Definition push : list val → itree crisE val := λ args, ITree.iter (λ _, (_push args)) ().
   Definition pop : list val → itree crisE val := λ args, ITree.iter (λ _, (_pop args)) ().
 
-  Definition fnsems : gmap (option string) (option (emask * (option fspec * fbody))) :=
+  Definition fnsems : fnsemmap :=
     {[Some StackHdr.new_stack := Some (msk_real (msk_scp scopes msk_true), (None, cfunU new_stack));
       Some StackHdr.push      := Some (msk_real (msk_scp scopes msk_true), (None, cfunU push));
       Some StackHdr.pop       := Some (msk_real (msk_scp scopes msk_true), (None, cfunU pop))]}.

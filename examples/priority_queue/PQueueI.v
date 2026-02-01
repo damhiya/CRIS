@@ -50,7 +50,7 @@ Module PQueueI. Section PQueueI.
       end
     ) (n, ofs + 1)%Z.
 
-  Definition fnsems : gmap (option string) (option (emask * (option fspec * fbody))) :=
+  Definition fnsems : fnsemmap :=
     {[Some PQueueHdr.new :=        Some (msk_real (msk_scp scopes msk_true), (None, cfunU new));
       Some PQueueHdr.add        := Some (msk_real (msk_scp scopes msk_true), (None, cfunU add));
       Some PQueueHdr.remove_min := Some (msk_real (msk_scp scopes msk_true), (None, cfunU remove_min))]}.

@@ -5,12 +5,6 @@ From iris Require Import frac_auth numbers.
 
 Require Import Common Mod ltac2_lib.
 
-Ltac simpl_sp :=
-  try match goal with
-  | H : ?sp1 ⊆ ?sp2 |- context [?sp2 !! ?key] =>
-    unshelve erewrite (lookup_weaken sp1 sp2 key _ _ H);
-    [|rewrite /sp1; simpl_map; reflexivity|]
-  end.
 
 (* Proof of refinement between ClientA.t and ClientI.t *)
 Module ClientIA. Section ClientIA.
@@ -38,16 +32,12 @@ Module ClientIA. Section ClientIA.
     iExists _; iSplitL.
     { simpl_sp. eauto. }
     iApply SchA.fspec_sch_spawnable; first done.
-    iIntros ([]); iExists (bofs, v, γ); unfold_pre_post.
+    iIntros "%P1 %Q1 [% [-> ->]]"; iExists _, _; iSplit; first (iPureIntro).
+    { exists (bofs, v, γ); split; ss. }
     iIntros (varg arg) "[%va [%sarg [[% %] [% $]]]]"; des; clarify.
     iIntros "!>"; iSplit; first done; iIntros "%% [[-> ->] ?] !>"; iExists _, _; iSplit; eauto.
     solve_base_sl_red; iSplit; done.
   Qed.
-
-  Ltac sch_yield_ir H1 H2 :=
-    let H2' := eval compute in (H1 ++ " " ++ H2)%string in
-    (norm_l with do 1 (iApply (wsim_yield_tgt_ir); [simpl_sp; ss|simpl_sp; ss|ss|ss|iFrame H2']));
-    clear_st; iIntros (??) H2'.
 
   Lemma incr_simF : ISim.sim_fun open MA MI IstFull (Some IncrHdr.incr).
   Proof using Hsch Hclient.

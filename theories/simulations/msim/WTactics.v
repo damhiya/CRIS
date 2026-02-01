@@ -106,7 +106,8 @@ Ltac simpl_set := repeat
   | |- context [?X ∪ ∅] => rewrite (right_id_L ∅ _ X)
   | |- context [∅ ∪ ?X] => rewrite (left_id_L ∅ _ X)
   | |- context [?A ∖ ?A] => rewrite (difference_diag_L A)
-  | |- context [?A ∖ ?B ∪ ?B] => idtac "TODO"
+  | |- context [?A ∖ ?B ∪ ?B] =>
+    rewrite (difference_union_L A B) (comm_L _ A B) (subseteq_union_1_L B A); [|set_solver]
   end.
 
 Ltac _wstep_l :=
@@ -168,8 +169,17 @@ Ltac _wstep_r :=
       let name := fresh "_q" in iApply wsim_choose_tgt_fspec; iIntros (name); simpl in name
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose _) >>= _) ) ] =>
       let name := fresh "_q" in iApply wsim_choose_tgt; iIntros (name)
-  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _) ) ] =>
-      unfold_pre_post_term P; iApply wsim_guarantee_tgt; iIntrosFresh "GRT"
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _)) ] =>
+      first [
+        tcsearch constr:(WP P)
+          ltac:(fun c =>
+            iApply (wsim_guarantee_tgt_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); simpl);
+        match goal with
+        | [ |- environments.envs_entails _ (?P' -∗ _)] =>
+          unfold_pre_post_term P'; iIntrosFresh "GRT"; simpl_set
+        end
+      | unfold_pre_post_term P; iApply wsim_guarantee_tgt; iIntrosFresh "GRT"
+      ]
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, guarantee _ >>= _)) ] =>
       let name := fresh "grt" in iApply wsim_guar_tgt; iIntros (name)
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (?st_tgt, trigger (SGet ?k) >>= _)) ] =>
@@ -220,7 +230,7 @@ Ltac _wforce_l :=
         tcsearch constr:(WP P)
           ltac:(fun c =>
           iApply (wsim_guarantee_src_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c));
-          [first [done|set_solver]|first [done|set_solver]|simpl WP_space]
+          simpl WP_space; simpl WP_remainder; [try (done||set_solver)|try (done||set_solver)| ]
         );
         match goal with
         | [ |- environments.envs_entails _ (?P' ∗ _)] =>
@@ -257,7 +267,7 @@ Ltac _wforce_r :=
         tcsearch constr:(WP P)
           ltac:(fun c =>
           iApply (wsim_assume_tgt_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c));
-          [first [done|set_solver]|first [done|set_solver]|simpl WP_space]
+          simpl WP_space; simpl WP_remainder; [first [done|set_solver]|first [done|set_solver]| ]
         );
         match goal with
         | [ |- environments.envs_entails _ (?P' ∗ _)] =>

@@ -6,7 +6,7 @@ From iris.proofmode Require Import proofmode.
 From iris Require Import bi.big_op.
 Require Import functions allocs.
 Require Import Coqlib.
-Require Export SAT sProp own precise.
+Require Export SAT sProp own bi precise.
 
 (* Resource algebra & initial resources for invariants *)
 Section invariants.

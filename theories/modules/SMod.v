@@ -26,22 +26,15 @@ Module SMod. Section Smod.
       (∀ x, multiplicity x scopes ≤ 1) → map_Forall (const is_Some) initial_st;
   }.
 
-  Definition lift_fn (fno : option string) : speckey :=
-    match fno with
-    | Some fn => speckey_fn fn
-    | None => speckey_entry
-    end.
-
-  Definition sp_from (md : t) : specmap :=
-    kmap lift_fn (omap id (fst ∘ snd <$> omap id md.(fnsems))).
-
-  Definition conc_sp_from (md : t) : specmap :=
-    <[speckey_concE := fspec_to_rel fspec_trivial]> (sp_from md).
-
-  Definition cancellable (ms : t) : Prop :=
-    map_Forall
-      (λ k v, match v with | Some (msk, _) => img_msk msk ∧ call_msk msk | _ => True end)
-      (fnsems ms).
+  Lemma t_eq (ms1 ms2 : t) :
+    scopes ms1 = scopes ms2 →
+    fnsems ms1 = fnsems ms2 →
+    initial_st ms1 = initial_st ms2 →
+    ms1 = ms2.
+  Proof.
+    destruct ms1, ms2; ss. intros Hscp Hfns Hst.
+    subst scopes0 fnsems0 initial_st0; f_equal; apply proof_irrelevance.
+  Qed.
 
   (**** Linking ****)
   Program Definition empty : t := {|
@@ -101,6 +94,14 @@ Module SMod. Section Smod.
     hexploit (H1 scp); rewrite multiplicity_disj_union; lia.
   Qed.
 
+  Lemma add_comm (ms1 ms2 : t) : add ms1 ms2 = add ms2 ms1.
+  Proof.
+    apply t_eq; ss.
+    { rewrite gmultiset_disj_union_comm; eauto. }
+    { apply fin_maps.union_with_comm; done. }
+    { apply fin_maps.union_with_comm; done. }
+  Qed.
+
   Program Definition to_mod (sp : specmap) (ms : t) : Mod.t := {|
     Mod.scopes := ms.(scopes);
     Mod.fnsems := (λ (x : option _), (map_snd (SModTr.trans_fnsem sp)) <$> x) <$> ms.(fnsems);
@@ -117,6 +118,13 @@ Module SMod. Section Smod.
   Next Obligation.
     ii. destruct ms. ss.
     hexploit nodup_init0; eauto. i. specialize (H2 i). eapply H2; eauto.
+  Qed.
+
+  Lemma to_mod_add sp (ms1 ms2 : t) :
+    to_mod sp (add ms1 ms2) = Mod.add (to_mod sp ms1) (to_mod sp ms2).
+  Proof.
+    apply Mod.t_eq; ss; apply map_eq; intros i; simpl_map; rewrite !lookup_union_with ?lookup_fmap;
+      repeat destruct (_ !! i); ss.
   Qed.
 
   Program Definition cancel (ms : t) : t := {|
@@ -136,6 +144,37 @@ Module SMod. Section Smod.
   Next Obligation.
     ii. destruct ms. ss.
     hexploit nodup_init0; eauto. i. specialize (H2 i). eapply H2; eauto.
+  Qed.
+
+  Lemma cancel_add (ms1 ms2 : t) : cancel (add ms1 ms2) = add (cancel ms1) (cancel ms2).
+  Proof.
+    apply t_eq; ss; apply map_eq; intros i; simpl_map; rewrite !lookup_union_with ?lookup_fmap;
+      repeat destruct (_ !! i); ss.
+  Qed.
+
+  Definition lift_fn (fno : option string) : speckey :=
+    match fno with
+    | Some fn => speckey_fn fn
+    | None => speckey_entry
+    end.
+
+  Definition sp_from (md : t) : specmap :=
+    kmap lift_fn (omap id (fst ∘ snd <$> omap id md.(fnsems))).
+
+  Definition conc_sp_from (md : t) : specmap :=
+    <[speckey_concE := fspec_to_rel fspec_trivial]> (sp_from md).
+
+  Definition cancellable (ms : t) : Prop :=
+    map_Forall
+      (λ k v, match v with | Some (msk, _) => img_msk msk ∧ call_msk msk | _ => True end)
+      (fnsems ms).
+
+  Lemma cancellable_add (ms1 ms2 : t) :
+    cancellable ms1 → cancellable ms2 → cancellable (add ms1 ms2).
+  Proof.
+    rewrite /cancellable !map_Forall_lookup; intros Hi1 Hi2 i x; specialize (Hi1 i);
+      specialize (Hi2 i); rewrite lookup_union_with; repeat destruct (_ !! i); i; ss; clarify;
+      des_ifs; naive_solver.
   Qed.
 End Smod. End SMod.
 

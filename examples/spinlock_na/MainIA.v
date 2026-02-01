@@ -4,97 +4,90 @@ Require Import ImpPrelude.
 Require Import SchHeader SchA MemA SchTactics MemTactics.
 From iris Require Import frac_auth numbers.
 
+Ltac sch_yield_ii IST :=
+  (norm_l with 
+    (do 1 iApply (wsim_yield_tgt_ii);  [simpl_sp; ss|simpl_sp; ss|ss|ss|set_solver|set_solver| ];
+      iFrame IST)); clear_st; iIntros (??) IST.
+
 Module MainIA. Section MainIA.
   Context `{!crisG Γ Σ α β τ _S _I, !concG, !memG, !newschG, !spinlockG, !spinlockmainG}.
-  Import LockAS MainAS.
+  Import LockA MainA.
 
-  Context (E : coPset).
-  Context (sp_s sp_t: sp_type). (* sps of lock/sch/mem *)
-  Context (sp_user_s sp_user_t: spl_type).
-  Context (SchInSp_s : sp_incl (SchA.sp sp_user_s E) sp_s).
-  Context (SchInSp_t : sp_incl (SchA.sp sp_user_t E) sp_t).
-  Context (MainInSp : spl_sub (MainAS.sp E) sp_user_s).
+  Context (N : namespace).
+  Context (sp_s sp_t sp_user_s sp_user_t : specmap). (* sps of lock/sch/mem *)
+  Context (SchInSp_s : (SchA.sp sp_user_s (↑N)) ⊆ sp_s).
+  Context (SchInSp_t : (SchA.sp sp_user_t (↑N)) ⊆ sp_t).
+  Context (MainInSp : (MainA.sp (↑N)) ⊆ sp_user_s).
 
-  Local Definition MemA := MemA.t sp_none.
-  Local Definition SpinLockA := (SpinLockA.t E sp_t).
-  Local Definition SpinLockMainA := (SpinLockMainA.t E sp_s).
+  Local Definition MemA := MemA.t sp_s.
+  Local Definition SpinLockA := (LockA.t (↑N) sp_t).
+  Local Definition SpinLockMainA := (MainA.t N sp_s).
   Local Definition SpinLockMainI := (SpinLockMainI.t).
   Local Definition IstFull := (IstProd (IstSB SpinLockMainA.(Mod.scopes) IstTrue) IstEq).
   Local Notation MA := (SpinLockMainA ★ (SpinLockA ★ MemA)).
   Local Notation MI := (SpinLockMainI ★ (SpinLockA ★ MemA)).
 
-  Definition init_cond := MainAS.init_cond E.
-
-  Lemma incr_simF :
-    ISim.sim_fun open MA MI init_cond IstFull (Some SpinLockMainHdr.incr).
+  Lemma incr_simF : ISim.sim_fun open MA MI IstFull (Some SpinLockMainHdr.incr).
   Proof using SchInSp_s SchInSp_t MainInSp.
-    init_simF.
+    iStartSim.
     (* process src precondition *)
-    steps_l. iDestruct "ASM" as "[TID [[-> [%γ_l [#I F]]] ->]]". hss.
-    destruct _q7 as [blk_l ofs_l], _q8 as [blk_v ofs_v].
-    rename _q6 into γ_v, _q3 into stid, _q4 into mtid.
+    steps_l. destruct _q as [[stid mtid] [[[blk_l ofs_l] [blk_v ofs_v]] γ_v]]. rename _q0 into varg.
+    iDestruct "ASM" as "[TID [-> [-> [%γ_l [#Lock Tkn]]]]]".
+    hss_l; hss_r. steps_l; steps_r. hss_l; hss_r. steps_l; steps_r.
+
     (* main code *)
-    steps_l. hss. steps_l. rewrite /SpinLockMainA.incr. steps_l.
-    steps_r. hss. steps_r. rewrite /SpinLockMainI.incr. steps_r.
+    rewrite /incr /SpinLockMainI.incr. steps_l. steps_r.
     (* tgt yields *)
-    sch_yield_ir.
-    steps_r.
+    sch_yield_ir "IST" "TID". steps_r.
+    sch_yield_ir "IST" "TID". steps_r.
+
     (* tgt inline - lock acquire *)
-    sch_yield_ir.
     steps_r. inline_r.
     force_r (_, _, (γ_l, Vptr (blk_l, ofs_l), existT 0 (lock_P (blk_v, ofs_v) γ_v))).
     steps_r. forces_r.
     (* rewrite -{1}(Qp.div_2 q); iPoseProof (SchAS.tid_user_split with "TID") as "[TID1 ITD2]". *)
-    iFrame. iSplit; eauto. hss. steps_r.
-    sch_yield_ii.
+    iFrame "TID Lock". iSplit; eauto. steps_r. hss_r. steps_r.
+    (* TODO : make *)
+    sch_yield_ii "IST".
 
     (* (* success case *) *)
-    steps_r. iDestruct "GRT" as "[TID' [[-> [TKN P]] _]]". hss. steps_r.
-    (* iPoseProof (SchAS.tid_user_merge with "[TID TID']") as "TID"; iFrame; rewrite Qp.div_2. *)
+    steps_r. iDestruct "GRT" as "[TID [<- [_ [TKN P]]]]". hss_r. steps_r.
+    sch_yield_ir "IST" "TID".
+
     (* tgt yield *)
-    sch_yield_ir.
-    rewrite /lock_P; SL_red; iDestruct "P" as "[%x P]"; SL_red; iDestruct "P" as "[PT P]".
-    (* tgt inline - mem load *)
-    steps_r. inline_r. steps_r.
-    force_r (blk_v, ofs_v, 1%Qp, Vint x). forces_r.
-    iSplitL "PT"; iFrame; eauto.
-    steps_r. iDestruct "GRT" as "[[PT %] %]"; subst. hss. steps_r.
-    (* tgt yield *)
-    do 2 (sch_yield_ir).
-    (* tgt inline - mem store *)
-    steps_r. inline_r. steps_r.
-    force_r (blk_v, ofs_v, _, Vint (x + 1)). forces_r.
-    iSplitL "PT"; iFrame; et.
-    steps_r. iDestruct "GRT" as "[[PT %] %]"; subst. hss_r; steps_r.
-    sch_yield_ir.
-    iCombine "P F" as "C". iMod (own_update with "C") as "[F C]".
+    solve_base_sl_red. iDestruct "P" as "[%x [PT P]]".
+    steps_r.
+    iApply (wsim_mem_load with "PT"); ss. iIntros "PT".
+    steps_r. hss_r. steps_r.
+    sch_yield_ir "IST" "TID". steps_r.
+    sch_yield_ir "IST" "TID". steps_r.
+
+    iApply (wsim_mem_store with "PT"); ss. iIntros "PT".
+    steps_r. hss_r. steps_r.
+    sch_yield_ir "IST" "TID". steps_r.
+
+    iCombine "P Tkn" as "C". iMod (own_update with "C") as "[F C]".
     { apply frac_auth_update, (Z_local_update _ _ (x + 1) 1); lia. }
+    inline_r. steps_r.
+    force_r (_, _, (γ_l, Vptr (blk_l, ofs_l), existT 0 (lock_P (blk_v, ofs_v) γ_v))). forces_r.
+    iSplitL "TID F PT TKN".
+    { solve_base_sl_red. iFrame. iSplit; eauto. }
+    steps_r. hss_r; steps_r.
+    sch_yield_ii "IST". steps_r.
+    
     (* tgt inline - lock acquire - restore lock protected proposition *)
-    steps_r. inline_r. steps_r.
-    force_r (_, _, (γ_l, Vptr (blk_l, ofs_l), existT 0 (lock_P (blk_v, ofs_v) γ_v))).
-    (* rewrite -{1}(Qp.div_2 q); iPoseProof (SchAS.tid_user_split with "TID") as "[TID1 ITD2]". *)
-    forces_r. iSplitL "TID F PT TKN".
-    { SL_red. rewrite /lock_P; ss.
-      iFrame "TID". iSplit; iFrame; eauto. iSplit; eauto. iSplit.
-      { iExact "I". }
-      { iExists _; SL_red; iFrame. }
-    }
-    steps_r. hss. steps_r.
-    (* tgt yield *)
-    sch_yield_ii.
-    steps_r. iDestruct "GRT" as "[TID [-> _]]". hss. steps_r.
+    iDestruct "GRT" as "[TID [<- _]]". hss_r. steps_r.
     (* iPoseProof (SchAS.tid_user_merge with "[TID TID']") as "TID"; iFrame; rewrite Qp.div_2. *)
-    sch_yield_ir.
+    sch_yield_ir "IST" "TID".
     (* src yield *)
     sch_yield_l. steps_l. forces_l. iFrame; iSplit; eauto.
     (* both terminate *)
     step. iFrame. eauto.
-    Unshelve. all: eauto.
   (*SLOW*)Qed.
 
-  Lemma main_simF : ISim.sim_fun open MA MI init_cond IstFull None.
+  Lemma main_simF : ISim.sim_fun open MA MI IstFull None.
   Proof using SchInSp_s SchInSp_t MainInSp.
-    init_simF.
+    iStartSim. steps_l.
     rewrite /Sch.spawn /Sch.join.
 
     iAssert (Tid 0 0) with "[TID IST]" as "TID"; first iFrame.
@@ -222,6 +215,8 @@ Module MainIA. Section MainIA.
     forces_l. iSplit; first eauto. step. iSplit; eauto.
   Unshelve. all: eauto.
   (*SLOW*)Qed.
+
+  Definition init_cond := MainA.init_cond (↑N).
 
   Lemma sim : ISim.t open MA MI init_cond IstFull.
   Proof.

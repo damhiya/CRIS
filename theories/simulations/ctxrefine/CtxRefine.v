@@ -1,15 +1,17 @@
 Require Import Common.
 Require Import LMod Mod.
 
+Require Import allocs.
+From iris.proofmode Require Import proofmode.
+
 Definition refines_lmod (ms_src ms_tgt: LMod.t) : Prop :=
   Beh.of_itree (LMod.compile ms_tgt tt↑) <1=
   Beh.of_itree (LMod.compile ms_src tt↑).
 
 Section CTX_REFINE.
-  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
-  
-  (* Definition of ctx refinement in Mod Level. *)
+  Context `{!crisG Γ Σ α β τ _S _I}.
 
+  (* Definition of ctx refinement in Mod Level. *)
   Definition refines (mps : Mod.modc) (mpt : Mod.modc) : Prop :=
     let ms := mps.1 in let Ps := mps.2 in
     let mt := mpt.1 in let Pt := mpt.2 in
