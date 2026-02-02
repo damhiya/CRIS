@@ -28,6 +28,8 @@ Section SchRA.
     own base_γ (gmap_view_auth (DfracOwn 1) m).
 
   (* Thread-id-related predicates *)
+  Definition TidFrag (mtid stid : nat) : iProp Σ :=
+    own base_γ (gmap_view_frag mtid (DfracOwn 1) (to_agree stid)).
   Definition Tid (mtid stid : nat) : iProp Σ :=
     own base_γ (gmap_view_frag mtid (DfracOwn 1) (to_agree stid)) ∗
     TID stid ∗ YIELD stid.

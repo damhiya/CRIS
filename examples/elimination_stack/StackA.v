@@ -58,14 +58,14 @@ Section definitions.
   Lemma list_inv_comparable l rep n :
     list_inv l rep n -∗
     list_inv l rep n ∗
-    (∃ q v, MemSpec.val_r rep q v) ∗
-    □ (∀ l' rep' n', list_inv l' rep' n' -∗ ∃ succ, ⌜MemSpec.compare_val rep' rep = Vint succ⌝).
+    (∃ q v, MemA.val_r rep q v) ∗
+    □ (∀ l' rep' n', list_inv l' rep' n' -∗ ∃ succ, ⌜MemA.compare_val rep' rep = Vint succ⌝).
   Proof.
     iIntros "L"; iAssert (⌜rep = Vint 0 ∨ ∃ b ofs, rep = Vptr (b, ofs)⌝)%I as "%".
     { destruct l; ss; first iPoseProof "L" as "%"; eauto.
       iDestruct "L" as "[% [% [% [% [% [-> ?]]]]]]"; iPureIntro; right; esplits; eauto.
     }
-    iAssert (list_inv l rep n ∗ ∃ v q, MemSpec.val_r (rep) q v)%I
+    iAssert (list_inv l rep n ∗ ∃ v q, MemA.val_r (rep) q v)%I
       with "[L]" as "[L [% [% $]]]".
     { destruct rep as [v'|v'|]; eauto. destruct v'; eauto.
       destruct l; eauto.

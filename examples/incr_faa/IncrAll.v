@@ -74,7 +74,7 @@ Module ClientAll.
   (* Apply cancellation to linked spec module *)
   Lemma cancel_src :
     refines
-      (mod_top, init_cond ∗ TID 0 ∗ YIELD 0 ∗ winv (⊤, ⊤) ∗ emp ∗ TIDAUTH 0 ∗ YIELDAUTH 1)%I
+      (mod_top, init_cond ∗ TID 0 ∗ YIELD 0 ∗ winv (⊤, ⊤) ∗ TidFrag 0 0 ∗ TIDAUTH 0 ∗ YIELDAUTH 1)%I
       (mod_src, init_cond).
   Proof.
     eapply Cancel.cancellation.
@@ -85,10 +85,10 @@ Module ClientAll.
       { rewrite lookup_insert_ne // lookup_kmap_Some; exists None; split; ss. }
        eexists _, _; splits.
       { ss; exists (0, 0, tt); split; refl. }
-      { rewrite !nclose_nroot. iIntros "[$ [$ [$ ?]]]"; ss. admit. }
+      { rewrite !nclose_nroot. iIntros "[$ [$ [$ $]]]"; ss. }
       { unfold_pre_post. iIntros "% % [_ [_ $]]". }
     }
-  Admitted.
+  Qed.
 
   (* Refinement between spec/impl of whole program (linked module) *)
   Lemma src_tgt : refines (mod_src, init_cond) (mod_tgt, emp%I).
@@ -142,7 +142,7 @@ Module ClientAll.
   (*SLOW*)Qed.
 
   Lemma top_tgt :
-    refines (mod_top, init_cond ∗ TID 0 ∗ YIELD 0 ∗ winv (⊤, ⊤) ∗ emp ∗ TIDAUTH 0 ∗ YIELDAUTH 1)%I
+    refines (mod_top, init_cond ∗ TID 0 ∗ YIELD 0 ∗ winv (⊤, ⊤) ∗ TidFrag 0 0 ∗ TIDAUTH 0 ∗ YIELDAUTH 1)%I
             (mod_tgt, emp%I).
   Proof.
     etrans.
@@ -179,8 +179,8 @@ Module ClientAll.
     { set_solver. }
   Qed.
 
-  Lemma init_cond_valid:
-    ∃ rs, ✓ rs ∧ (Own rs ⊢ |==> init_cond ∗ TID 0 ∗ YIELD 0 ∗ winv (⊤, ⊤) ∗ emp ∗ TIDAUTH 0 ∗ YIELDAUTH 1).
+  Lemma init_cond_valid :
+    ∃ rs, ✓ rs ∧ (Own rs ⊢ |==> init_cond ∗ TID 0 ∗ YIELD 0 ∗ winv (⊤, ⊤) ∗ TidFrag 0 0 ∗ TIDAUTH 0 ∗ YIELDAUTH 1).
   Proof.
     exists (irΣ ⋅ ir_own_admin). split.
     - apply irΣ_valid.

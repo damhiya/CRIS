@@ -30,8 +30,7 @@ Module MainA. Section MainA.
   Definition lock_P loc γ : GTerm.t 0 :=
     ∃ v : τ{Z}%SAT, loc ↦ (Vint v) ∗ sown γ (●F v).
 
-  Definition init_cond E : iProp Σ :=
-    winv (E, E) ∗ Tid 0 0.
+  (* Definition init_cond : iProp Σ := own base_γ (gmap_view_frag 0 (DfracOwn 1) (to_agree 0)). *)
 
   Definition incr_spec E : fspec :=
     (fspec_sch E
@@ -68,6 +67,8 @@ Module MainA. Section MainA.
     solve_base_sl_red; iSplit; done.
   Qed.
 
+  Definition main_spec (N : namespace) : fspec := fspec_sch (↑N) fspec_trivial.
+
   Definition sp E : specmap := {[speckey_fn SpinLockMainHdr.incr := fspec_to_rel (incr_spec E)]}.
 
   (* Module definition *)
@@ -92,7 +93,7 @@ Module MainA. Section MainA.
     λ _, 𝒴;;; Ret Vundef.
 
   Definition fnsems (N : namespace) : fnsemmap :=
-    {[None := Some (msk_scp scopes msk_true, (fsp_some fspec_trivial, main));
+    {[None := Some (msk_scp scopes msk_true, (fsp_some (main_spec N), main));
       Some SpinLockMainHdr.incr := Some (msk_scp scopes msk_true, (fsp_some (incr_spec (↑N)), cfunN (sfunN incr)))]}.
 
   Program Definition smod N : SMod.t := {|

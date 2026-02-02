@@ -47,7 +47,6 @@ Module MainIA. Section MainIA.
     steps_r. forces_r.
     (* rewrite -{1}(Qp.div_2 q); iPoseProof (SchAS.tid_user_split with "TID") as "[TID1 ITD2]". *)
     iFrame "TID Lock". iSplit; eauto. steps_r. hss_r. steps_r.
-    (* TODO : make *)
     sch_yield_ii "IST".
 
     (* (* success case *) *)
@@ -87,147 +86,135 @@ Module MainIA. Section MainIA.
 
   Lemma main_simF : ISim.sim_fun open MA MI IstFull None.
   Proof using SchInSp_s SchInSp_t MainInSp.
-    iStartSim. steps_l.
-    rewrite /Sch.spawn /Sch.join.
+    iStartSim. steps_l. destruct _q as [[stid mtid] []]. iDestruct "ASM" as "[TID ->]".
 
-    iAssert (Tid 0 0) with "[TID IST]" as "TID"; first iFrame.
+    rewrite /main. steps_l.
+    steps_r. rewrite /SpinLockMainI.main. steps_r.
+    rewrite /Sch.spawn.
 
-    steps_l. iDestruct "ASM" as "->". steps_r.
     (* tgt yield *)
-    sch_yield_ir; iSplit; first (iExists [], [], [], []; iPureIntro; esplits; ss).
-    iIntros (st_src st_tgt) "IST TID".
+    sch_yield_ir "IST" "TID".
 
     (* tgt inline - mem alloc - counter allocation *)
     steps_r.
-    iApply wsim_mem_alloc; [try prove_inline_cond|try prove_sb_cond|ss|unfold_cris_defs].
-    iIntros (blk) "[↦ _]". steps_r. hss_r. steps_r.
-    sch_yield_ir.
+    iApply wsim_mem_alloc; ss. iIntros (blk) "[↦ _]". steps_r. hss_r. steps_r.
+    sch_yield_ir "IST" "TID".
 
     (* tgt inline - mem store - counter initialization *)
     steps_r.
-    iApply (wsim_mem_store with "[↦]");
-      [try prove_inline_cond|try prove_sb_cond|ss|unfold_cris_defs].
-    iIntros"↦". steps_r. hss_r. steps_r.
-    sch_yield_ir.
+    iApply (wsim_mem_store with "[↦]"); ss. iIntros"↦". steps_r. hss_r. steps_r.
+    sch_yield_ir "IST" "TID".
 
     (* create lock-guarded proposition *)
     iMod (own_alloc (●F 0%Z ⋅ ◯F{1} 0%Z)) as "[%γ [B W]]". { eapply frac_auth_valid; ss. }
 
     (* tgt inline - newlock *)
-    steps_r. inline_r. force_r (0, 0, existT 0 (lock_P (blk, 0%Z) γ)). forces_r.
+    steps_r. inline_r. force_r (stid, mtid, existT 0 (lock_P (blk, 0%Z) γ)). forces_r.
     iSplitL "TID B ↦"; eauto.
-    { iFrame; SL_red; iSplit; eauto. iFrame. iExists _; SL_red; iFrame. }
-    steps_r. hss. steps_r.
+    { iFrame. solve_base_sl_red. iFrame. done. }
+    steps_r. hss_r. steps_r.
 
     (* src/tgt yields *)
-    sch_yield_ii.
-    steps_r. iDestruct "GRT" as "[TID [[%val [%γ_l [-> #I]]] %EQ]]".
-    hss. steps_r.
-    sch_yield_ir.
+    sch_yield_ii "IST".
+    steps_r. iDestruct "GRT" as "[TID [-> [%val [%γl [-> [%bofs_l [-> #Lock]]]]]]]".
+    hss_r. steps_r.
+    sch_yield_ir "IST" "TID".
 
-    iPoseProof "I" as "[%bofs_l [-> _]]".
+    (* iPoseProof "I" as "[%bofs_l [-> _]]". *)
     sch_yield_l. steps_l. force_l (Vptr bofs_l, Vptr (blk, 0%Z)). steps_l. sch_yield_l.
     (* create preconditions of incr *)
     iDestruct "W" as "[W1 W2]".
 
     (* spawn thread 1 - incr *)
-    steps_l. steps_r. force_l (_,_). forces_l. iSplitL "W1".
-    { iExists (_,_). iSplit; et. iFrame. iExists _, _, _. iSplit.
-      - iPureIntro; esplits; et. r; eauto using incr_spawnable.
-      - iFrame; et.
+    steps_l. simpl_sp. steps_r. force_l (_,_). forces_l. iSplitL "W1".
+    { iExists _, _, _. iSplit; et. iSplitR.
+      - iExists _; iSplit; [iPureIntro; simpl_sp|]; ss. iApply incr_spawnable.
+      - iFrame "W1"; eauto. repeat iSplit; eauto. iExists _; iFrame "Lock"; auto.
     }
-    call "IST".
-    steps_l. iDestruct "ASM" as "[% [-> [% [[-> ->] TKN1]]]]".
-    rename _q0 into tid1.
-    steps_r. hss. steps_r.
-    sch_yield_ir. sch_yield_l.
+    call "IST". clear_st; iIntros (ret st_src st_tgt) "IST".
+    steps_l. iDestruct "ASM" as "[% [[-> ->] TKN1]]". 
+    steps_r. hss_r. steps_r. hss_l. steps_l.
+    sch_yield_ir "IST" "TID". sch_yield_l.
 
     (* spawn thread 2 - incr *)
-    steps_l. steps_r. force_l (_,_). forces_l. iSplitL "W2".
-    { iExists (_,_). iSplit; et. iFrame. iExists _, _, _. iSplit.
-      - iPureIntro; esplits; et. r; eauto using incr_spawnable.
-      - iFrame; et.
+    steps_l. simpl_sp. steps_r. force_l (_,_). forces_l. iSplitL "W2".
+    { iExists _, _, _. iSplit; et. iSplitR.
+      - iExists _; iSplit; [iPureIntro; simpl_sp|]; ss. iApply incr_spawnable.
+      - iFrame "W2"; eauto. repeat iSplit; eauto. iExists _; iFrame "Lock"; auto.
     }
-    call "IST".
-    steps_l. iDestruct "ASM" as "[% [-> [% [[-> ->] TKN2]]]]". hss.
-    rename _q0 into tid2.
-    steps_r. hss. steps_r.
-    sch_yield_ir. sch_yield_l.
+    call "IST". clear_st; iIntros (ret st_src st_tgt) "IST".
+    steps_l. iDestruct "ASM" as "[% [[-> ->] TKN2]]". 
+    steps_r. hss_r. steps_r. hss_l. steps_l.
+    sch_yield_ir "IST" "TID". sch_yield_l.
 
     (* join thread 1 - incr *)
-    steps_l. steps_r.  force_l (_,_,_,_). forces_l. iSplitL "TKN1 TID".
-    { iExists _. do 2 (iSplit; et). iFrame. }
-    call "IST".
-    steps_l. iDestruct "ASM" as "[% [-> [% [% [[-> ->] [TID W1]]]]]]".
-    hss. rename _q1 into vret.
-    steps_r. hss. steps_r.
-    sch_yield_ir. sch_yield_l.
+    rewrite /Sch.join.
+    steps_l. steps_r. simpl_sp. force_l (_,_,_). forces_l. iSplitL "TKN1 TID".
+    { iFrame. eauto. }
+    call "IST". clear_st; iIntros (ret st_src st_tgt) "IST".
+    steps_l. steps_r. iDestruct "ASM" as "[TID [% [% [[-> ->] W1]]]]". solve_base_sl_red.
+    hss_l; hss_r. steps_l; steps_r.
+    sch_yield_ir "IST" "TID". sch_yield_l. steps_r. steps_l. simpl_sp.
 
     (* join thread 2 - incr *)
-    steps_l. steps_r.  force_l (_,_,_,_). forces_l. iSplitL "TID TKN2".
-    { iExists _. do 2 (iSplit; et). iFrame. }
-    call "IST".
-    steps_l. iDestruct "ASM" as "[% [-> [% [% [[-> ->] [TID W2]]]]]]".
-    hss. rename _q1 into vret0.
-    steps_r. hss. steps_r.
-    sch_yield_ir.
+    force_l (stid, mtid, _). forces_l. iSplitL "TID TKN2".
+    { iFrame; eauto. }
+    call "IST". clear_st; iIntros (ret st_src st_tgt) "IST".
+    steps_l. iDestruct "ASM" as "[TID [% [% [[-> ->] W2]]]]". solve_base_sl_red. steps_r.
+    hss_l; hss_r. steps_l; steps_r.
+    sch_yield_ir "IST" "TID". steps_r.
 
     (* tgt inline - lock acquire *)
-    steps_r. inline_r. steps_r.
-    force_r (_, _, (γ_l, Vptr bofs_l, existT 0 (lock_P (blk, 0%Z) γ))). forces_r.
-    iFrame. iSplit; eauto.
-    steps_r. hss. steps_r.
-    sch_yield_ii.
-    steps_r. iDestruct "GRT" as "[TID' [[-> [TKN P]] _]]". hss. steps_r.
-    SL_red. iCombine "W1 W2" as "W".
-    iDestruct "P" as "[%x P]"; SL_red; iDestruct "P" as "[PT B]".
+    inline_r. steps_r.
+    force_r (_, _, (γl, Vptr bofs_l, existT 0 (lock_P (blk, 0%Z) γ))). forces_r.
+    iFrame "TID"; iSplitR.
+    { repeat iSplit; eauto. iFrame "Lock"; auto. }
+    steps_r. hss_r. steps_r.
+    sch_yield_ii "IST". steps_r.
+    iDestruct "GRT" as "[TID [<- [_ [TKN P]]]]". hss_r. steps_r.
+    sch_yield_ir "IST" "TID". steps_r.
+    iCombine "W1 W2" as "W". solve_base_sl_red.
+    iDestruct "P" as "[%x [PT B]]".
     iCombine "B W" gives %WF%frac_auth_agree. inv WF.
-    sch_yield_ir.
 
     (* tgt inline - mem load *)
-    steps_r.
-    iApply (wsim_mem_load with "[PT]");
-      [try prove_inline_cond|try prove_sb_cond|ss|unfold_cris_defs].
-    iIntros "↦". hss_r. steps_r. hss_r. steps_r.
+    iApply (wsim_mem_load with "[PT]"); ss.
+    iIntros "↦". steps_r. hss_r. steps_r.
 
     (* tgt yield *)
-    do 2 (sch_yield_ir).
+    sch_yield_ir "IST" "TID". steps_r.
+    sch_yield_ir "IST" "TID". steps_r.
 
     (* tgt inline - lock release *)
-    steps_r. inline_r. steps_r.
-    force_r (_, _, (γ_l, Vptr bofs_l, existT 0 (lock_P (blk, 0%Z) γ))). forces_r.
+    inline_r. steps_r.
+    force_r (_, _, (γl, Vptr bofs_l, existT 0 (lock_P (blk, 0%Z) γ))). forces_r.
     iSplitL "TKN TID B ↦".
-    { iFrame; SL_red. iSplit; eauto. iFrame. iSplit; eauto. iSplit; eauto.
-      iExists _; SL_red; iFrame.
-    }
-    steps_r. hss. steps_r.
+    { solve_base_sl_red. iFrame. iFrame "Lock"; iSplit; eauto. }
+    steps_r. hss_r. steps_r.
 
     (* tgt yield *)
-    sch_yield_ii.
-    steps_r. iDestruct "GRT" as "[TID' [-> _]]". hss. steps_r.
-    sch_yield_ir.
+    sch_yield_ii "IST". steps_r. iDestruct "GRT" as "[TID [<- _]]". hss_r. steps_r.
+    sch_yield_ir "IST" "TID".
 
     (* both output - counter value *)
     sch_yield_l. step.
     steps_l. steps_r.
-    sch_yield_ir. sch_yield_l.
+    sch_yield_ir "IST" "TID". sch_yield_l.
     (* terminate both *)
-    forces_l. iSplit; first eauto. step. iSplit; eauto.
-  Unshelve. all: eauto.
+    forces_l. iFrame; iSplit; first eauto. step. iSplit; eauto.
   (*SLOW*)Qed.
 
-  Definition init_cond := MainA.init_cond (↑N).
-
-  Lemma sim : ISim.t open MA MI init_cond IstFull.
+  Lemma sim : ISim.t open MA MI emp%I IstFull.
   Proof.
     init_sim.
     { eapply main_simF. }
     { eapply incr_simF. }
+    { iIntros "_"; repeat iExists _; repeat iSplit; eauto. }
   Qed.
 
   Definition ctxr :
     ctx_refines
-      ((SpinLockMainA.t E sp_s) ★ ((SpinLockA.t E sp_t) ★ MemA.t sp_none), init_cond)
-      ((SpinLockMainI.t)        ★ ((SpinLockA.t E sp_t) ★ MemA.t sp_none), emp%I).
+      ((MainA.t N sp_s)  ★ ((LockA.t (↑N) sp_t) ★ MemA.t sp_s), emp%I)
+      ((SpinLockMainI.t) ★ ((LockA.t (↑N) sp_t) ★ MemA.t sp_s), emp%I).
   Proof. eapply main_adequacy, sim. Qed.
 End MainIA. End MainIA.

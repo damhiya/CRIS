@@ -18,7 +18,7 @@ Module MainAll.
 
   (* initial resources for HRA & GRA *)
   Definition irΓ : Γ :=
-    **[ir_invΓ; ir_concΓ; ir_memΓ csl genv; SchA.ir_schΓ; LockAS.ir; MainAS.ir].
+    **[ir_invΓ; ir_concΓ; ir_memΓ csl genv; SchA.ir_schΓ; LockA.ir; MainA.ir].
   Definition irΣ : Σ :=
     **[irΓ; ir_invΣ; SchA.ir_schΣ].
 
@@ -34,62 +34,80 @@ Module MainAll.
   Qed.
 
   (* sp of source module (scheduler spec excluded) *)
-  Local Definition sp_user : spl_type := MainAS.sp ⊤.
+  Local Definition sp_user : specmap := MainA.sp ⊤.
 
   (* the source SMod *)
-  Local Definition smod_src : SMod.t := SpinLockMainA.smod ⊤ ☆ SchA.smod sp_user.
+  Local Definition smod_src : SMod.t := MainA.smod nroot ☆ SchA.smod ⊤ sp_user.
   (* the top-level module after cancellation *)
-  Local Definition mod_top : Mod.t := SMod.to_mod sp_none (SMod.cancel smod_src).
+  Local Definition mod_top : Mod.t := SMod.to_mod ∅ (SMod.cancel smod_src).
   (* the target module *)
   Local Definition mod_tgt : Mod.t := SpinLockMainI.t ★ SpinLockI.t ★ MemI.t csl genv ★ SchI.t .
 
   (* the source sp *)
-  Local Definition sp : sp_type := sp_from smod_src.
+  Local Definition sp : specmap := SMod.conc_sp_from smod_src.
   (* the source Mod *)
   Local Definition mod_src : Mod.t := SMod.to_mod sp smod_src.
 
-  Local Definition sp_t : sp_type := to_sp (SchA.sp nil ⊤).
-
+  (* Local Definition sp_t : specmap := to_sp (SchA.sp nil ⊤). *)
+  Lemma mod_top_wf : Mod.wf mod_top.
+  Proof.
+    rewrite /mod_top SMod.cancel_add SMod.to_mod_add. eapply Mod.add_wf.
+    { econs; eauto.
+      rewrite /MainA.smod /= /MainA.fnsems !fmap_insert !fmap_empty; mod_tac ss.
+    }
+    { econs; eauto.
+      { rewrite /SchA.smod /= /SchA.fnsems !fmap_insert !fmap_empty; mod_tac ss. }
+      { ss; rewrite /SchA.scopes; multiset_solver. }
+    }
+    { set_solver. }
+    { set_solver. }
+  Qed.
   (* initial condition for the source *)
-  Local Definition init_cond : iProp Σ :=
-    (MainAS.init_cond ⊤ ∗ MemA.init_cond csl genv ∗ SchA.init_cond)%I.
+  Local Definition init_cond : iProp Σ := (MemA.init_cond csl genv ∗ SchA.init_cond)%I.
 
   (* Some assumptions on sp inclusion *)
-  Lemma SchInSp : sp_incl (SchA.sp sp_user ⊤) sp.
+  Lemma SchInSp : (SchA.sp sp_user ⊤) ⊆ sp.
   Proof.
-    rewrite /sp /SchA.sp /sp_from /to_sp. unseal CRIS.
-    split; first prove_nodup.
-    ii; s in H. by repeat (destruct (dec _ _); s in H; [depdes e; depdes H; et|]).
+    repeat try eapply insert_subseteq_l; last apply map_empty_subseteq;
+      rewrite lookup_insert_ne // lookup_kmap_Some; eexists (Some _); split; ss.
   Qed.
 
-  Lemma SchInSp_t : sp_incl (SchA.sp [] ⊤) sp_t.
+  (* Lemma SchInSp_t : (SchA.sp [] ⊤) ⊆ sp_s.
   Proof.
     rewrite /sp_t /SchA.sp /sp_from /to_sp. unseal CRIS.
     split; first prove_nodup.
     ii; s in H. by repeat (destruct (dec _ _); s in H; [depdes e; depdes H; et|]).
+  Qed. *)
+
+  Lemma MainInSp : MainA.sp ⊤ ⊆ sp_user.
+  Proof.
+    repeat try eapply insert_subseteq_l; last apply map_empty_subseteq. rewrite lookup_insert //.
   Qed.
 
-  Lemma MainInSp : spl_sub (MainAS.sp ⊤) sp_user.
+  Lemma UserInSp : sp_user ⊆ sp.
   Proof.
-    rewrite /sp_user /MainAS.sp /sp_from /to_sp.
-    ii. s in H. des_ifs.
-  Qed.
-
-  Lemma UserInSp : sp_incl sp_user sp.
-  Proof.
-    rewrite /sp_user /MainAS.sp /sp /sp_from /to_sp.
-    split; first prove_nodup.
-    ii; s in H. by repeat (destruct (dec _ _); s in H; [depdes e; depdes H; et|]).
+    repeat try eapply insert_subseteq_l; last apply map_empty_subseteq;
+      rewrite lookup_insert_ne // lookup_kmap_Some; eexists (Some _); split; ss.
+    rewrite !lookup_omap !lookup_fmap !lookup_omap lookup_union_with /MainA.fnsems /SchA.fnsems;
+    simpl_map; ss.
+    rewrite nclose_nroot //.
   Qed.
 
   (* Refinement between smod_cancel and smod_src *)
   Lemma cancel_src :
-    refines (mod_top, init_cond ∗ TIDAUTH 0 ∗ YIELDAUTH 1)%I
+    refines (mod_top, init_cond ∗ TID 0 ∗ YIELD 0 ∗ winv (⊤, ⊤) ∗ TidFrag 0 0 ∗ TIDAUTH 0 ∗ YIELDAUTH 1)%I
             (mod_src, init_cond).
   Proof.
     eapply Cancel.cancellation.
-    { ii; des; subst; inv FIND; ss.
-      rewrite !eq_rel_dec_correct in H0; des_ifs.
+    { apply SMod.cancellable_add; r; rewrite /= /MainA.fnsems /SchA.fnsems; mod_tac ss. }
+    { apply mod_top_wf. }
+    { assert (Ht : SMod.conc_sp_from smod_src !! speckey_entry =
+        fsp_some (fspec_sch (↑nroot) fspec_trivial)); last (rewrite Ht; clear Ht).
+      { rewrite lookup_insert_ne // lookup_kmap_Some; exists None; split; ss. }
+       eexists _, _; splits.
+      { ss; exists (0, 0, tt); split; refl. }
+      { rewrite !nclose_nroot. iIntros "[$ [$ [$ $]]]"; ss. }
+      { unfold_pre_post. iIntros "% % [_ [_ $]]". }
     }
   Qed.
 
@@ -97,7 +115,7 @@ Module MainAll.
   Lemma src_tgt : refines (mod_src, init_cond) (mod_tgt, emp%I).
   Proof.
     apply ctxr_refines.
-    rewrite /mod_src /smod_src /mod_tgt /init_cond !add_interp_comm.
+    rewrite /mod_src /smod_src /mod_tgt /init_cond.
 
     (* abstraction of Sch *)
     etrans; cycle 1.
@@ -105,6 +123,7 @@ Module MainAll.
       eapply SchIA.ctxr.
       - apply SchInSp.
       - apply UserInSp.
+      - rewrite dom_insert elem_of_union; left; apply elem_of_singleton; ss.
     }
 
     (* abstraction of Mem *)
@@ -117,16 +136,17 @@ Module MainAll.
     etrans; cycle 1.
     { do 2 ctxr_drop.
       eapply LockIA.ctxr; cycle 1.
-      - apply SchInSp_t.
+      - apply SchInSp.
       - set_solver.
     }
 
     (* abstraction of SpinLockMain *)
     etrans; cycle 1.
     { ctxr_drop.
-      eapply MainIA.ctxr.
+      rewrite -nclose_nroot.
+      eapply MainIA.ctxr; rewrite ?nclose_nroot.
       - apply SchInSp.
-      - apply SchInSp_t.
+      - apply SchInSp.
       - apply MainInSp.
     }
 
@@ -143,13 +163,14 @@ Module MainAll.
     etrans; cycle 1.
     { ctxr_rotate. refl. }
 
-    rewrite /SpinLockMainA.t /SchA.t. unseal CRIS.
+    rewrite /MainA.t /SchA.t. unseal CRIS.
+    rewrite SMod.to_mod_add.
     eapply ctxr_cond_strengthen; et.
   (*SLOW*)Qed.
 
   (* source Mod ⊆ source SMod ⊆ cancelled Mod *)
   Lemma cancel_tgt :
-    refines (mod_top, init_cond ∗ TIDAUTH 0 ∗ YIELDAUTH 1)%I
+    refines (mod_top, init_cond ∗ TID 0 ∗ YIELD 0 ∗ winv (⊤, ⊤) ∗ TidFrag 0 0 ∗ TIDAUTH 0 ∗ YIELDAUTH 1)%I
             (mod_tgt, emp%I).
   Proof.
     etrans.
@@ -157,15 +178,37 @@ Module MainAll.
     { eapply src_tgt. }
   Qed.
 
-  Lemma tgt_wf:
-    Mod.wf mod_tgt.
+  Lemma tgt_wf : Mod.wf mod_tgt.
   Proof.
-    rewrite /mod_tgt /SpinLockMainI.t /SpinLockI.t /MemI.t /SchI.t; unseal CRIS.
-    prove_nodup.
+    rewrite /mod_tgt; eapply Mod.add_wf.
+    { econs; eauto.
+      rewrite /MainA.smod /= /MainA.fnsems !fmap_insert !fmap_empty; mod_tac ss.
+    }
+    { eapply Mod.add_wf.
+      { econs; eauto.
+      rewrite /MainA.smod /= /MainA.fnsems !fmap_insert !fmap_empty; mod_tac ss.
+      }
+      { eapply Mod.add_wf.
+        { econs; eauto.
+          { rewrite /MainA.smod /= /MainA.fnsems !fmap_insert !fmap_empty; mod_tac ss. }
+          { ss; rewrite /MemI.scopes; multiset_solver. }
+        }
+        { econs; eauto.
+          { rewrite /= !fmap_insert !fmap_empty; mod_tac ss. }
+          { ss; rewrite /SchI.scopes; multiset_solver. }
+        }
+        { set_solver. }
+        { set_solver. }
+      }
+      { rewrite Mod.dom_fnsems_add; set_solver. }
+      { set_solver. }
+    }
+    { rewrite !Mod.dom_fnsems_add; set_solver. }
+    { set_solver. }
   Qed.
 
-  Lemma init_cond_valid:
-    ∃ rs, ✓ rs ∧ (Own rs ⊢ |==> init_cond ∗ TIDAUTH 0 ∗ YIELDAUTH 1).
+  Lemma init_cond_valid :
+    ∃ rs, ✓ rs ∧ (Own rs ⊢ |==> init_cond ∗ TID 0 ∗ YIELD 0 ∗ winv (⊤, ⊤) ∗ TidFrag 0 0 ∗ TIDAUTH 0 ∗ YIELDAUTH 1).
   Proof.
     exists (irΣ ⋅ ir_own_admin). split.
     - apply irΣ_valid.
@@ -188,7 +231,7 @@ Module MainAll.
     hexploit H; eauto using tgt_wf. clear H; intros [WF H].
     assert (IV:= init_cond_valid). des.
     destruct (H rs); des; et.
-    rewrite IV0 /init_cond /MainAS.init_cond /icond_winv {1}winv_split_empty.
-    iIntros ">[[[? ?] ?] ?]". iFrame. rewrite comm. et.
+    rewrite IV0 /init_cond {1}winv_split_empty.
+    iIntros ">[[$ $] [$ [$ [[? ?] ?]]]]". iFrame. done.
   (*SLOW*)Qed.
 End MainAll.
