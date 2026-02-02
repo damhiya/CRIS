@@ -220,7 +220,7 @@ Ltac sch_yield_rr IST :=
 Ltac sch_yield_ir H1 H2 :=
   let H2' := eval compute in (H1 ++ " " ++ H2)%string in
   (norm_l with do 1 (iApply (wsim_yield_tgt_ir); [simpl_sp; ss|simpl_sp; ss|ss|ss|iFrame H2']));
-  clear_st; iIntros (??) H2'.
+  last (clear_st; iIntros (??) H2').
 
 Ltac sch_yield_l :=
   norm_l with do 1 iApply wsim_yield_src; [ss|].

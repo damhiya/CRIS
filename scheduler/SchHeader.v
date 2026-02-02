@@ -77,3 +77,14 @@ Proof using.
   { ired. rewrite /Sch.yield; unseal SCH; ss. }
   { ired. done. }
 Qed.
+
+Definition atomic_body `{Σ : GRA}
+    (fsp : fspec)
+    (body : meta fsp → Any.t → itree crisE Any.t)
+    : Any.t → itree crisE Any.t :=
+  λ arg,
+    x <- trigger (Take (meta fsp));;
+    trigger (Assume (precond fsp x arg arg));;;
+    𝒴;;; ret <- body x arg;; 𝒴;;;
+    trigger (Guarantee (postcond fsp x ret ret));;;
+    Ret ret.

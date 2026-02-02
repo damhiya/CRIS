@@ -113,13 +113,10 @@ Section help.
   Context (jobID retID : Type).
   Context `{!crisG Γ Σ α β τ _S _I, !concG, !inG (helpingR jobID retID) Γ}.
 
-  Local Definition state : Type := gmap key (option Any.t).
-  Local Definition post (R_s R_t : Type) : Type := state * R_s → state * R_t → iProp Σ.
-  Local Definition rel : Type := ∀ R_s R_t : Type,
-    post R_s R_t → bool → bool → state * itree crisE R_s → state * itree crisE R_t → iProp Σ.
-
+  Local Notation state := (gmap key (option Any.t)).
+  Local Notation post R_s R_t := (state * R_s → state * R_t → iProp Σ).
+  
   Context (fl_s fl_t : gmap (option string) (option (Any.t → itree crisE Any.t))).
-  Context (Ist : ist_type Σ).
   Context (R_s R_t : Type).
   Context (RR : post R_s R_t).
   Context (ps pt : bool).

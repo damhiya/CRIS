@@ -5,23 +5,33 @@ Require Import SchHeader SchI SchA SchTactics.
 Require Import StackHeader StackA StackI.
 From CRIS.helping Require Import Header HelpingOn HelpingOnOffproof HelpingTactics HelpingFacts.
 
-(* TEMP *)
-From iris.algebra Require Import gmap_view.
+Ltac sch_yield_ir H1 H2 :=
+  let H2' := eval compute in (H1 ++ " " ++ H2)%string in
+  (norm_l with do 1 (iApply (wsim_yield_tgt_ir); [simpl_map; simpl_sp; ss|simpl_map; simpl_sp; ss|ss|ss|iFrame H2']));
+  last (clear_st; iIntros (??) H2').
+
+Ltac unfold_fnsem :=
+  rewrite /Mod.fnsems /=;
+  match goal with | [|-context[?x]] => 
+    match type of x with fnsemmap =>
+      rewrite {1}/x /=
+    end
+  end.
 
 Module StackIM. Section StackIM.
-  Context `{!crisG Γ Σ α β τ _S _I, !memG, Hsch : !newschG, !concG, !stackG StackM.jobID StackM.retID}.
+  Context `{!crisG Γ Σ α β τ _S _I, !memG, !newschG, !concG, !stackG StackM.jobID StackM.retID}.
   Local Existing Instances stack_helpingG.
 
   (* Helping module being parameterized by mn *)
   Context (mn : string).
 
   (* Stack module being masked for eliminating the helping module *)
-  Context (msk : string → bool) (N : namespace) (sp : sp_type).
-  Context (Hspsch : sp_incl (SchA.sp [] (↑N)) sp).
-  Context (Hsphelp : sp_incl ([(Some (Helping.run mn), None); (Some (Helping.help mn), None)]) sp).
+  Context (N : namespace) (sp sp_user : specmap).
+  Context (Hspsch : SchA.sp sp_user (↑N) ⊆ sp).
+  (* Context (Hsphelp : {[ Some (Helping.run mn) := None; Some (Helping.help mn) := None ]} ⊆ sp). *)
 
   (* Whitelist of functions callable in stack *)
-  Definition imp := omap id (Mod.exports SchI.t ++ Mod.exports (MemA.t sp_none)).
+  (* Definition imp := omap id (Mod.exports SchI.t ++ Mod.exports (MemA.t sp_none)).
   Context (Hmsk : wmask_sub (wmask_list imp) msk).
 
   Lemma yield_msk : wmask_and msk wmask_all SchHdr.yield.
@@ -59,63 +69,80 @@ Module StackIM. Section StackIM.
     unfold_mod; ss.
     intros Hmsk; simpl_bool; apply Hmsk; eauto.
   Qed.
-  Hint Resolve yield_msk alloc_msk store_msk load_msk cas_msk cmp_msk : core.
+  Hint Resolve yield_msk alloc_msk store_msk load_msk cas_msk cmp_msk : core. *)
 
   Definition init_cond : iProp Σ := helping_auth 1 ∅%I.
 
-  Local Definition MemA := CFilter.filter msk (MemA.t sp_none).
-  Local Definition SchI := CFilter.filter msk SchI.t.
-  Local Definition HelpingOn := HelpingOn.t mn StackM.jobCode sp.
-  Local Definition HelpingDummy := HelpingDummy.t mn.
-  Local Definition StackM := SchI ★ MemA ★ StackM.t mn N sp            ★ HelpingOn.
-  Local Definition StackI := SchI ★ MemA ★ CFilter.filter msk StackI.t ★ HelpingDummy.
+  Local Notation MemA := (CFilter.filter (Helping.exports mn) (MemA.t sp)).
+  Local Notation SchI := (CFilter.filter (Helping.exports mn) SchI.t).
+  Local Notation HelpingOn := (HelpingOn.t mn StackM.jobCode sp).
+  Local Notation HelpingDummy := (HelpingDummy.t mn).
+  Local Notation StackM := (SchI ★ MemA ★ StackM.t mn N (delete (speckey_fn (Helping.run mn)) sp) ★ HelpingOn).
+  Local Notation StackI := (SchI ★ MemA ★ CFilter.filter (Helping.exports mn) StackI.t ★ HelpingOn).
 
-  Local Definition IstFull := IstProd IstEq (IstSB [mn] (IstHelp mn)).
+  Local Notation IstFull := (HelpingTactics.IstFull StackM.jobID StackM.retID mn).
+  (* IstProd IstEq (IstSB {[+mn+]} (IstHelp mn)). *)
 
-  Lemma new_stack_simF :
-    ISim.sim_fun open StackM StackI init_cond IstFull (Some StackHdr.new_stack).
-  Proof using Hsch Hmsk Hspsch Hsphelp.
-    init_simF.
-    steps_l. rename _q2 into n, _q3 into stid, _q4 into mtid.
-    iDestruct "ASM" as "[TID [[%v ->] ->]]". hss. 
+  Lemma lookup_fnsems_l2 (m1 m2 : Mod.t) (k : option string) v :
+    (Mod.fnsems m1) !! k = None →
+    (Mod.fnsems m2) !! k = Some v →
+    (Mod.fnsems (m1 ★ m2)) !! k = Some v.
+  Proof. rewrite lookup_union_with => -> -> //. Qed.
 
-    steps_r. sch_yield_ir.
+  Lemma lookup_fnsems_r2 (m1 m2 : Mod.t) (k : option string) v :
+    (Mod.fnsems m1) !! k = Some v →
+    (Mod.fnsems m2) !! k = None →
+    (Mod.fnsems (m1 ★ m2)) !! k = Some v.
+  Proof. rewrite lookup_union_with => -> -> //. Qed.
 
-    (* allocate new stack *)
-    steps_r.
-    iApply wsim_mem_alloc; [try prove_inline_cond|try prove_sb_cond|ss|unfold_cris_defs].
-    iIntros (stackb) "[↦stack [↦val _]]".
-    steps_r. hss_r. steps_r. sch_yield_ir.
-    steps_r. sch_yield_ir.
+  Lemma lookup_fnsems_None (m1 m2 : Mod.t) (k : option string) :
+    (Mod.fnsems m1) !! k = None →
+    (Mod.fnsems m2) !! k = None →
+    (Mod.fnsems (m1 ★ m2)) !! k = None.
+  Proof. rewrite lookup_union_with => -> -> //. Qed.
+
+  Hint Extern 80 (Mod.fnsems (_ ★ _) !! _ = Some _) => eapply lookup_fnsems_l2 : simpl_map.
+  Hint Extern 80 (Mod.fnsems (_ ★ _) !! _ = Some _) => eapply lookup_fnsems_r2 : simpl_map.
+  Hint Extern 80 (Mod.fnsems (_ ★ _) !! _ = None) => eapply lookup_fnsems_None : simpl_map.
+  Hint Extern 81 (Mod.fnsems _ !! _ = Some _) => unfold_fnsem; simpl_map : simpl_map.
+  Hint Extern 81 (Mod.fnsems _ !! _ = None) => unfold_fnsem; simpl_map : simpl_map.
+
+  Arguments Mod.add : simpl never.
+  Arguments Mod.fnsems : simpl never.
+  Lemma new_stack_simF : ISim.sim_fun open StackM StackI IstFull (Some StackHdr.new_stack).
+  Proof using Hspsch.
+    iStartSim.
+    steps_l. destruct _q as [[stid mtid] n]. iDestruct "ASM" as "[TID [-> [%val ->]]]".
+    hss_l. hss_r. steps_l. steps_r.
+    sch_yield_ir "IST" "TID". { case_bool_decide; set_solver. }
+
+    (* allocate new stack - can't use memtactics here..., generalize the lemma *)
+    steps_r. inline_r. force_r 2. forces_r. iSplit; first eauto. steps_r.
+    iDestruct "GRT" as "[-> [%blk [-> [↦stack [↦val _]]]]]". hss_r; steps_r.
+    sch_yield_ir "IST" "TID". { case_bool_decide; set_solver. }
+    steps_r. sch_yield_ir "IST" "TID". { case_bool_decide; set_solver. }
 
     (* initialize stack *)
     steps_r.
-    iApply (wsim_mem_store with "↦stack");
-      [try prove_inline_cond|try prove_sb_cond|..|unfold_cris_defs].
-    iIntros "↦stack". steps_r. hss_r.
-
-    steps_r. sch_yield_ir.
+    inline_r. force_r (blk, 0%Z, _, _). forces_r. iFrame "↦stack". iSplit; first eauto. steps_r.
+    iDestruct "GRT" as "[-> [↦stack ->]]". hss_r; steps_r.
+    sch_yield_ir "IST" "TID". { case_bool_decide; set_solver. }
 
     steps_r.
-    iApply (wsim_mem_store with "↦val");
-      [try prove_inline_cond|try prove_sb_cond|..|unfold_cris_defs].
-    iIntros "↦val". steps_r. hss_r.
-
-    steps_r. sch_yield_ir. steps_r.
+    inline_r. force_r (blk, 1%Z, _, _). forces_r. iFrame "↦val". iSplit; first eauto. steps_r.
+    iDestruct "GRT" as "[-> [↦val ->]]". hss_r; steps_r.
+    sch_yield_ir "IST" "TID". { case_bool_decide; set_solver. }
 
     (* Guarantee the postcondition *)
     sch_yield_l.
     iMod (own_alloc (● Excl' [] ⋅ ◯ Excl' [])) as (γs) "[Hs● Hs◯]".
     { apply auth_both_valid_discrete. split; done. }
-    iMod (inv_alloc (syn_stack_inv N γs stackb 0%Z n) _ _ _ (stackN N) with "[-Hs◯ IST TID]")
+    iMod (inv_alloc (syn_stack_inv N γs blk 0%Z n) _ _ _ (stackN N) with "[-Hs◯ IST TID]")
       as "#Hinv"; eauto.
-    { apply nclose_subseteq. }
-    { rewrite /syn_stack_inv /syn_is_offer SLRed_red. iLeft.
-      iExists (Vint 0), (Vint 0), []; iFrame; eauto.
-      rewrite SLRed_red //.
-    }
+    { solve_ndisj. }
+    { solve_base_sl_red. iLeft. iExists (Vint 0), (Vint 0), []; iFrame; solve_base_sl_red; ss. }
 
-    force_l (Vptr (stackb, 0%Z)). steps_l. forces_l.
+    force_l (Vptr (blk, 0%Z)). steps_l. forces_l.
     iFrame "Hs◯ TID"; iSplit; eauto.
     { iSplit; eauto. iExists _; iSplit; eauto. iExists _, _; iSplit; eauto. }
     steps_l. step. iSplit; eauto.
@@ -126,20 +153,16 @@ Module StackIM. Section StackIM.
     {| WP_space := E; WP_remainder := P |}.
   Next Obligation. intros; iSplit; iIntros "[$ $]". Qed.
 
-  Lemma push_simF : ISim.sim_fun open StackM StackI init_cond IstFull (Some StackHdr.push).
-  Proof using Hsch Hmsk Hspsch Hsphelp.
-    init_simF.
+  Lemma push_simF : ISim.sim_fun open StackM StackI IstFull (Some StackHdr.push).
+  Proof using.
+    iStartSim.
+    rewrite /StackM.push; steps_l. steps_r.
 
-    steps_l.
-    destruct Hsphelp as [Hfind2 Hfind]; rewrite (Hfind (Helping.run mn) None) //; cycle 1.
-    { rewrite /alist_find eq_rel_dec_correct /=; des_ifs. }
-    clear Hfind Hfind2.
-    rename _q2 into stid, _q3 into mtid, _q5 into γs, _q7 into v, _q9 into s, _q8 into n.
-    iDestruct "ASM" as "[TID [[% #[%stackb [%stackofs [-> Hinv]]]] _]]"; hss.
-
-    (* Register for helping *)
-    steps_r. norm_l.
-    iApply (wsim_helping_run with "IST"); eauto. { prove_inline_cond. }
+    rewrite /atomic_body. steps_l. destruct _q as [[stid mtid] [[[n vs] v] γs]].
+    iDestruct "ASM" as "[TID [_ [-> #[%stackb [%stackofs [-> Hinv]]]]]]".
+    hss_r. steps_r. sch_yield_l.
+    step_l. simpl_map; simpl_sp. step_l.
+    iApply (wsim_helping_run with "IST"); eauto; [prove_inline_cond|].
     clear st_src st_tgt; iIntros (st_src st_tgt req_id) "IST Tkn".
 
     (* Coinduction starts here *)
@@ -151,20 +174,19 @@ Module StackIM. Section StackIM.
 
     unfold_iter_r. rewrite {1}/StackI._push. steps_r.
 
-    sch_yield_ir. steps_r.
-    sch_yield_ir. steps_r.
+    sch_yield_ir "IST" "TID". { case_bool_decide; set_solver. } steps_r.
+    sch_yield_ir "IST" "TID". { case_bool_decide; set_solver. } steps_r.
 
     (* load *)
-    iInv "Hinv" as "Hstack" "close".
-    rewrite {1}SLRed_red.
-    iDestruct "Hstack" as "[[%stack_rep [%offer_rep [%l [Hs [H↦ [Hlist Hoffer]]]]]]|[% ●]]";
+    iInv "Hinv" as "[[%stack_rep [%offer_rep [%l [Hs [H↦ [Hlist Hoffer]]]]]]|[% ●]]" "close";
       cycle 1.
     { iExFalso. iDestruct "IST" as "[% [% [% [% [% [? [% [% [IST ●2]]]]]]]]]".
-      iCombine "●" "●2" gives %[WF _]%gmap_view_auth_dfrac_op_valid. ss.
+      by iCombine "●" "●2" gives %[WF _]%gmap_view_auth_dfrac_op_valid.
     }
 
     iApply (wsim_mem_load with "[H↦]");
-      [try prove_inline_cond|try prove_sb_cond|ss|unfold_cris_defs].
+      [try prove_inline_cond|try prove_sb_cond|ss].
+    (* TODO : Make memtactics more flexible *)
     iIntros "H↦". steps_r. hss_r. steps_r.
 
     iPoseProof (list_inv_comparable with "Hlist") as "[Hlist [Hval #Hcomp]]".

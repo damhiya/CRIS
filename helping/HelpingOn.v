@@ -1,8 +1,5 @@
-Require Import CRIS SchHeader.
-Require Import SchI.
-From iris.algebra Require Import gmap_view.
+Require Import CRIS SchHeader SchI.
 From CRIS.helping Require Import Header.
-From stdpp Require Import fin_sets.
 
 Section HoareCall.
   Context `{!crisG Γ Σ α β τ _S _I, !concG}.
@@ -123,19 +120,6 @@ Module HelpingOn. Section HelpingOn.
     SMod.initial_st := {[v_reqs := Some (∅ : gmap nat (option retID * jobID))↑]};
   |}.
   Solve All Obligations with mod_tac.
-
-  (* Definition sp (sp : specmap) : specmap := 
-    match sp !! speckey_fn SchHdr.yield with
-    | Some fsp => <[speckey_fn (Helping.yield mn) := fsp]> sp
-    | None => ∅
-    end.
-  Lemma sp_helping_yield sp1 :
-    (sp sp1) !! speckey_fn SchHdr.yield = sp1 !! speckey_fn SchHdr.yield.
-  Proof. rewrite /sp; destruct (sp1 !! _) eqn : ?; ss; rewrite lookup_insert_ne; ss. Qed.
-
-  Lemma sp_yield sp1 :
-    (sp sp1) !! speckey_fn (Helping.yield mn) = sp1 !! speckey_fn SchHdr.yield.
-  Proof. rewrite /sp; destruct (sp1 !! _) eqn : ?; ss; rewrite lookup_insert; ss. Qed. *)
 
   Definition t sp : Mod.t := SMod.to_mod sp (Mod sp).
 End HelpingOn. End HelpingOn.
