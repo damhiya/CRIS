@@ -4,11 +4,6 @@ Require Import ImpPrelude.
 Require Import SchHeader SchA MemA SchTactics MemTactics.
 From iris Require Import frac_auth numbers.
 
-Ltac sch_yield_ii IST :=
-  (norm_l with 
-    (do 1 iApply (wsim_yield_tgt_ii);  [simpl_sp; ss|simpl_sp; ss|ss|ss|set_solver|set_solver| ];
-      iFrame IST)); clear_st; iIntros (??) IST.
-
 Module MainIA. Section MainIA.
   Context `{!crisG Γ Σ α β τ _S _I, !concG, !memG, !newschG, !spinlockG, !spinlockmainG}.
   Import LockA MainA.

@@ -188,7 +188,7 @@ Module StackM. Section StackM.
     {[Some StackHdr.new_stack :=
         Some (msk_scp scopes msk_true, (fsp_some (new_stack_spec N), cfunU new_stack));
       Some StackHdr.push := Some (msk_scp scopes msk_true, (None, push));
-      Some StackHdr.push := Some (msk_scp scopes msk_true, (None, pop))]}.
+      Some StackHdr.pop := Some (msk_scp scopes msk_true, (None, pop))]}.
 
   Program Definition Mod : SMod.t := {|
     SMod.scopes := scopes;
@@ -231,7 +231,7 @@ Module StackA. Section StackA.
     {[Some StackHdr.new_stack :=
         Some (msk_scp scopes msk_true, (fsp_some (new_stack_spec N), cfunU new_stack));
       Some StackHdr.push := Some (msk_scp scopes msk_true, (None, push));
-      Some StackHdr.push := Some (msk_scp scopes msk_true, (None, pop))]}.
+      Some StackHdr.pop := Some (msk_scp scopes msk_true, (None, pop))]}.
 
   Program Definition Mod : SMod.t := {|
     SMod.scopes := scopes;

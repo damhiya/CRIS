@@ -48,22 +48,29 @@ Section Helping.
     { rewrite /HelpingOn.scopes; multiset_solver. }
   Qed.
 
+  Lemma helping_dummy_wf mn : Mod.wf (HelpingDummy.t mn).
+  Proof.
+    econs; ss.
+    { rewrite /HelpingOn.fnsems /= ?fmap_insert fmap_empty. mod_tac scope_solver. }
+    { rewrite /HelpingDummy.scopes; multiset_solver. }
+  Qed.
+
   (* imp : list of function names mI calls *)
   (* TODO : modify sp according to the proof of helpingonoff *)
   Lemma helping_main (mM : string → Mod.t) (mA mI m_aux : Mod.t) (P1 P2 : iProp Σ)
       {jobID retID} (jobs : jobID -> _) (sp : specmap) :
     (∀ mn,
       ctx_refines
-        (mM mn ★ CFilter.filter (Helping.exports mn) (m_aux ★ SchI.t) ★ (HelpingOn.t (retID:=retID) mn jobs ∅), P1)
-        (CFilter.filter (Helping.exports mn) (mI ★ m_aux ★ SchI.t) ★ (HelpingOn.t (retID:=retID) mn jobs ∅), emp%I)) →
+        (mM mn ★ CFilter.filter (Helping.exports mn) (m_aux ★ SchI.t) ★ (HelpingOn.t (retID:=retID) mn jobs sp), P1)
+        (CFilter.filter (Helping.exports mn) (mI ★ m_aux ★ SchI.t) ★ (HelpingDummy.t mn), emp%I)) →
     (∀ mn,
       (ctx_refines
         (mA    ★ CFilter.filter (Helping.exports mn) (m_aux ★ SchI.t), P2)
-        (mM mn ★ CFilter.filter (Helping.exports mn) (m_aux ★ SchI.t) ★ HelpingOff.t mn jobs ∅, emp%I))) →
+        (mM mn ★ CFilter.filter (Helping.exports mn) (m_aux ★ SchI.t) ★ HelpingOff.t mn jobs sp, emp%I))) →
     ctx_refines
       (mA ★ m_aux ★ SchI.t, (P1 ∗ P2)%I)
       (mI ★ m_aux ★ SchI.t, emp%I).
-  Proof.
+  Proof using.
     intros Hc1 Hc2 [ctx P]; s.
     ctxr_norm.
 
@@ -114,8 +121,8 @@ Section Helping.
 
     etrans; cycle 1.
     { eapply CFilter.intro_module with
-        (mask := Helping.exports mn) (mc := (HelpingOn.t (retID:=retID) mn jobs ∅)); et.
-      { eapply helping_on_wf. }
+        (mask := Helping.exports mn) (mc := (HelpingDummy.t mn)); et.
+      { eapply helping_dummy_wf. }
       { intros ? a%gmultiset_elem_of_dom ->%gmultiset_elem_of_singleton.
         eapply elem_of_maxlen in a.
         subst mn all_names md_tgt md_src.
@@ -125,8 +132,8 @@ Section Helping.
           subst mn all_names; rewrite string_length_app mname_long_length ?set_omap_union_L
           ?maxlen_union /md_src /md_tgt /= in Hx; lia.
       }
-      { set_solver-. }
-      { set_solver-. }
+      { set_solver+. }
+      { set_solver+. }
     }
 
     erewrite ?CFilter.filter_app.

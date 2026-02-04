@@ -206,6 +206,7 @@ Ltac clear_st :=
   clear_st; iIntros (??); iIntrosFresh "IST"; iIntrosFresh "TID"; clear_emp. *)
 
 Ltac simpl_sp :=
+  (* try match goal with | |- context[?m !! _] => rewrite /m end; *)
   try match goal with
   | H : ?sp1 ⊆ ?sp2 |- context [?sp2 !! ?key] =>
     unshelve erewrite (lookup_weaken sp1 sp2 key _ _ H);
@@ -219,8 +220,13 @@ Ltac sch_yield_rr IST :=
 
 Ltac sch_yield_ir H1 H2 :=
   let H2' := eval compute in (H1 ++ " " ++ H2)%string in
-  (norm_l with do 1 (iApply (wsim_yield_tgt_ir); [simpl_sp; ss|simpl_sp; ss|ss|ss|iFrame H2']));
+  (norm_l with do 1 (iApply (wsim_yield_tgt_ir); [simpl_map; simpl_sp; ss|simpl_map; simpl_sp; ss|ss|ss|iFrame H2']));
   last (clear_st; iIntros (??) H2').
+
+Ltac sch_yield_ii IST :=
+  (norm_l with 
+    (do 1 iApply (wsim_yield_tgt_ii); [simpl_sp; simpl_map; ss|simpl_sp; simpl_map; ss|ss|ss|set_solver|set_solver| ];
+      iFrame IST)); clear_st; iIntros (??) IST.
 
 Ltac sch_yield_l :=
   norm_l with do 1 iApply wsim_yield_src; [ss|].

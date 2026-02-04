@@ -119,7 +119,6 @@ Section help.
   Context (fl_s fl_t : gmap (option string) (option (Any.t → itree crisE Any.t))).
   Context (R_s R_t : Type).
   Context (RR : post R_s R_t).
-  Context (ps pt : bool).
   Context (st_src st_tgt : state).
 
   (* Helping related context *)
@@ -128,7 +127,7 @@ Section help.
 
   Local Definition IstFull := IstProd IstEq (IstSB {[+mn+]} (IstHelp mn)).
 
-  Lemma wsim_helping_run (parg : jobID) k_s k_t E1 E2 r g :
+  Lemma wsim_helping_run (ps pt : bool) (parg : jobID) k_s k_t E1 E2 r g :
     fl_s !! Some (Helping.run mn) =
       Some (Some (SB.sandbox_body
         (msk_scp (HelpingOn.scopes mn) msk_true, (SModTr.trans_fnsem sp (None, HelpingOn.run mn jobs))))) →
@@ -148,7 +147,7 @@ Section help.
     wsim fl_s fl_t IstFull (E1, E2) r g R_s R_t RR ps pt
       (st_src, x <- (trigger (Call (Helping.run mn) parg↑));; k_s x)
       (st_tgt, k_t).
-  Proof.
+  Proof using.
     iIntros (Hfind) "IST K".
         (* TODO : factor out this proof into a lemma *)
     inline_l. steps_l. rewrite /HelpingOn.run. steps_l. hss_l.
@@ -171,47 +170,46 @@ Section help.
     iApply "K".
   Qed.
 
-  (* Lemma wsim_helping_pend_try_run k_s k_t E1 E2 r g img_s req_id x :
+  Lemma wsim_helping_pend_try_run (ps pt : bool) k_s k_t E1 E2 r g req_id x :
     helping_token req_id x -∗
     IstFull st_src st_tgt -∗
-    (* wsim fl_s fl_t IstFull (E1, E2) r g R_s R_t  *)
     (wsim fl_s fl_t IstFull (E1, E2) r g retID ()
       (λ '(st_s, r_s) '(st_t, r_t), ⌜st_s = st_src ∧ st_t = st_tgt⌝ ∗ winv (E1, E2) ∗
         (∀ st_src st_tgt,
           helping_done req_id r_s -∗
           IstFull st_src st_tgt -∗
-          wsim fl_s fl_t IstFull (E1, E2) r g R_s R_t RR true false (st_src, k_s r_s) (st_tgt, k_t)
-        )
-      )
+          wsim fl_s fl_t IstFull (E1, E2) r g R_s R_t RR true false
+            (st_src, k_s r_s) (st_tgt, k_t)))
       true pt
-        (st_src,
-          SB.sandbox true wmask_all (HelpingOn.scopes mn)
-            (SModTr.trans img_s sp (Helping.trans (jobs x))))
+        (st_src, SB.sandbox (msk_scp (HelpingOn.scopes mn) msk_true)
+          (SModTr.trans sp (SB.sandbox HelpingOn.msk_pure (jobs x))))
         (st_tgt, Ret ())) -∗
     wsim fl_s fl_t IstFull (E1, E2) r g R_s R_t RR ps pt
       (st_src,
-        x_ <- SB.sandbox true wmask_all (HelpingOn.scopes mn) (SModTr.trans img_s sp
-          (HelpingOn.try_run mn jobs req_id));; k_s x_)
+        x_ <- SB.sandbox (msk_scp (HelpingOn.scopes mn) msk_true)
+          (SModTr.trans sp (HelpingOn.try_run mn jobs req_id));;
+        k_s x_)
       (st_tgt, k_t).
-  Proof.
+  Proof using.
     iIntros "Pend IST K".
     rewrite /HelpingOn.try_run; steps_l.
-    iDestruct "IST" as "[% [% [% [% [[-> ->] [IST [% [% [[-> ->] Auth]]]]]]]]]". steps_l. hss.
+    iDestruct "IST" as "[% [% [% [% [[-> ->] [IST [% [% [[-> ->] Auth]]]]]]]]]".
+    steps_l. hss_l. steps_l.
     iPoseProof (helping_auth_token with "Auth Pend") as "%Hlookup"; rewrite Hlookup /=; steps_l.
-    replace k_t with (x <- Ret ();; (λ _, k_t) x) at 1; cycle 1; first ired; eauto.
+    replace k_t with (x <- Ret ();; (λ _, k_t) x) at 1 by grind.
     iApply wsim_bind.
     iSplitR "Pend Auth IST".
     { iApply "K". }
     iIntros (? ? ? ?) "[[-> ->] [W K]]"; iApply wsim_fold; iSplitL "W"; iFrame.
     steps_l.
     iMod (helping_auth_commit with "Auth Pend") as "[Auth Pend]".
-    set (st_src := st_srcL ++ _); set (st_tgt := st_tgtL ++ _).
+    set (st_src := union_with _ _ _); set (st_tgt := union_with _ _ _).
     iAssert (IstFull st_src st_tgt)%I with "[IST Auth]" as "IST".
-    { iExists _, _, _, _; iFrame. repeat iSplit; eauto. }
+    { iExists _, _, _, _; iFrame. repeat iSplit; eauto. iPureIntro; set_solver. }
     iApply ("K" with "Pend IST").
-  Qed. *)
+  Qed.
 
-  (* Lemma wsim_helping_done_try_run k_s k_t E1 E2 r g img_s req_id ret_id :
+  Lemma wsim_helping_done_try_run (ps pt : bool) k_s k_t E1 E2 r g req_id ret_id :
     helping_done req_id ret_id -∗
     IstFull st_src st_tgt -∗
     (IstFull st_src st_tgt -∗
@@ -220,19 +218,59 @@ Section help.
         (st_tgt, k_t)) -∗
     wsim fl_s fl_t IstFull (E1, E2) r g R_s R_t RR ps pt
       (st_src,
-        x_ <- SB.sandbox true wmask_all (HelpingOn.scopes mn) (SModTr.trans img_s sp
-          (HelpingOn.try_run mn jobs req_id));; k_s x_)
+        x_ <- SB.sandbox (msk_scp (HelpingOn.scopes mn) msk_true)
+          (SModTr.trans sp (HelpingOn.try_run mn jobs req_id));; k_s x_)
       (st_tgt, k_t).
-  Proof.
+  Proof using.
     iIntros "#Done IST K".
     rewrite /HelpingOn.try_run /=. steps_l.
     iDestruct "IST" as "[% [% [% [% [[-> ->] [IST [% [% [[-> ->] ●Help]]]]]]]]]".
-    steps_l. hss.
+    steps_l. hss_l. step_l.
     iPoseProof (helping_auth_done with "●Help Done") as "[% %Heq]"; rewrite Heq; clear Heq.
     steps_l.
     iApply ("K" with "[IST ●Help]").
     iFrame; iExists _, _; iSplit; eauto.
-  Qed. *)
+  Qed.
+
+  Lemma wsim_helping_help
+      `{!newschG} (ps pt : bool) k_s k_t E r g (req_id : nat) x arg (mtid stid : nat) :
+    sp !! speckey_fn SchHdr.yield = fsp_some (SchA.yield_spec E) →
+    Tid mtid stid -∗
+    helping_token req_id x -∗
+    IstFull st_src st_tgt -∗
+    (wsim fl_s fl_t IstFull (E, E) r g retID ()
+      (λ '(st_s, r_s) '(st_t, r_t), ⌜st_s = st_src ∧ st_t = st_tgt⌝ ∗ winv (E, E) ∗
+        (∀ st_src st_tgt,
+          Tid mtid stid -∗
+          helping_done req_id r_s -∗
+          IstFull st_src st_tgt -∗
+          wsim fl_s fl_t IstFull (E, E) r g R_s R_t RR true false
+            (st_src, k_s ()↑) (st_tgt, k_t)))
+      true pt
+        (st_src, SB.sandbox (msk_scp (HelpingOn.scopes mn) msk_true)
+          (SModTr.trans sp (SB.sandbox HelpingOn.msk_pure (jobs x))))
+        (st_tgt, Ret ())) -∗
+    wsim fl_s fl_t IstFull (E, E) r g R_s R_t RR ps pt
+      (st_src,
+        x_ <- SB.sandbox (msk_scp (HelpingOn.scopes mn) msk_true)
+          (SModTr.trans sp (HelpingOn.help mn jobs sp arg));; k_s x_)
+      (st_tgt, k_t).
+  Proof using.
+    iIntros (Hsp) "TID Tkn IST SIM".
+    rewrite /HelpingOn.help Hsp.
+    force_l req_id. force_l (stid, mtid, tt). forces_l. iFrame. iSplit; eauto.
+    steps_l. destruct _q as [[stid1 mtid1] []]. iDestruct "ASM" as "[TID [_ ->]]".
+    iApply (wsim_helping_pend_try_run with "Tkn IST").
+    add_ret_l. add_ret_r tt.
+    iApply wsim_bind.
+    iSplitL "SIM"; iFrame.
+    s. iIntros (sts1 stt1 rets []) "[[-> ->] [? SIM]]"; iApply wsim_fold; iFrame.
+    step; iFrame. iSplit; first auto.
+    clear_st. iIntros (st_src st_tgt) "Tkn IST".
+    forces_l. iFrame. iSplit; eauto.
+    steps_l. iDestruct "ASM" as "[TID [_ ->]]". iApply ("SIM" with "[$] [$]"); done.
+  Qed.
+     
   (* Lemma IstHelp_split (q : Qp) :
     (q < 1)%Qp →
     IstHelp Ist st_src st_tgt -∗

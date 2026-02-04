@@ -5,7 +5,6 @@ From iris Require Import frac_auth numbers.
 
 Require Import Common Mod ltac2_lib.
 
-
 (* Proof of refinement between ClientA.t and ClientI.t *)
 Module ClientIA. Section ClientIA.
   Import ClientA.
@@ -99,14 +98,13 @@ Module ClientIA. Section ClientIA.
 
     (* tgt alloc *)
     steps_r.
-    iApply wsim_mem_alloc; [ss|ss|].
+    iApply wsim_mem_alloc. { prove_inline_cond. } { ss. } { ss. }
     iIntros (blk) "[map _]". steps_r; hss_r; steps_r.
     sch_yield_ir "IST" "TID". steps_r.
     sch_yield_ir "IST" "TID". steps_r.
 
     (* tgt store *)
-    iApply (wsim_mem_store with "map"); [ss|].
-    iIntros "map". steps_r. hss_r. steps_r.
+    store_r "map". steps_r. hss_r. steps_r.
     sch_yield_ir "IST" "TID". steps_r.
     sch_yield_l. force_l (Vptr (blk, 0%Z)). steps_l. sch_yield_l. steps_l.
 
@@ -167,9 +165,7 @@ Module ClientIA. Section ClientIA.
     iCombine "C Q Q2" as "C" gives %[_ WF%frac_auth_agree]. inv WF; ss.
     iDestruct "C" as "[CA CF]".
 
-    steps_r.
-    iApply (wsim_mem_load with "[PT]"); [ss|ss|].
-    iIntros "PT". steps_r. hss_r. steps_r.
+    steps_r. load_r "PT".  steps_r. hss_r. steps_r.
 
     iMod ("INVA" with "[CA PT]") as "_"; first solve_base_sl_red; iFrame.
 

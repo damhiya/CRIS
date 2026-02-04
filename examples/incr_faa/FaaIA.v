@@ -11,7 +11,7 @@ Module FaaIA. Section FaaIA.
   Local Definition MI := (FaaI.t ★ MemA.t sp).
 
   Lemma faa2_simF : ISim.sim_fun open MA MI IstFull (Some FaaHdr.faa2).
-  Proof.
+  Proof using.
     iStartSim.
 
     steps_l.
@@ -21,19 +21,16 @@ Module FaaIA. Section FaaIA.
     steps_r. sch_yield_rr "IST". steps_r.
     rewrite /MemHdr.faa; steps_r.
 
-    sch_yield_l; steps_l. rename _q into v.
-    iApply (wsim_mem_load with "ASM"); [ss|..]. iIntros "↦".
-    steps_r. hss_r. steps_r.
-    iApply (wsim_mem_store with "↦"); [ss|..]. iIntros "↦".
-    steps_r. hss_r. steps_r. force_l; iFrame "↦". steps_l.
+    sch_yield_l; steps_l. rename _q into v. load_r "ASM".
+    steps_r. hss_r. steps_r. store_r "ASM".
+    steps_r. hss_r. steps_r. force_l; iFrame "ASM". steps_l.
     sch_yield_rr "IST".
 
     steps_r.
     sch_yield_l; steps_l. clear v. rename _q into v.
-    iApply (wsim_mem_load with "ASM"); [ss|..]. iIntros "↦".
-    steps_r. hss_r. steps_r.
-    iApply (wsim_mem_store with "↦"); [ss|..]. iIntros "↦".
-    steps_r. hss_r. steps_r. force_l; iFrame "↦". steps_l.
+    load_r "ASM". steps_r. hss_r. steps_r.
+    store_r "ASM". steps_r. hss_r. steps_r.
+    force_l; iFrame "ASM". steps_l.
     sch_yield_rr "IST". sch_yield_l. step. iFrame; done.
   (*SLOW*)Qed.
 

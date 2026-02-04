@@ -18,11 +18,11 @@ Section mem.
 
   Context (sp : specmap).
 
-  Lemma wsim_mem_alloc (sz : Z) k_s k_t E1 E2 r g :
+  Lemma wsim_mem_alloc (sz : Z) (msk : emask) k_s k_t E1 E2 r g :
     fl_t !! (Some MemHdr.alloc) =
       Some (Some (SB.sandbox_body
-        (msk_scp MemA.scopes msk_true,
-         SModTr.trans_fnsem sp (fsp_some MemA.alloc, fbody_trivial)))) →
+        (msk, SModTr.trans_fnsem sp (fsp_some MemA.alloc, fbody_trivial)))) →
+    img_msk msk →
     (0 <= 8 * sz < modulus_64)%Z →
     (∀ blk,
       ([∗ list] i ↦ v ∈ replicate (Z.to_nat sz) Vundef, (blk, Z.of_nat i)%Z ↦ v) -∗
@@ -32,21 +32,24 @@ Section mem.
     wsim fl_s fl_t Ist (E1, E2) r g R_s R_t RR ps pt
       (st_src, k_s)
       (st_tgt, x <- (trigger (Call MemHdr.alloc [Vint sz]↑));; k_t x).
-  Proof.
-    intros Hin Hsz.
-    iIntros "K".
-    inline_r. force_r (Z.to_nat sz). forces_r. iSplit; eauto.
+  Proof using.
+    intros Hin [Ht [Hc [Ha [Har Hg]]]] Hsz.
+    iIntros "K". inline_r.
+    steps_r; rewrite Ht; force_r (Z.to_nat sz).
+    steps_r; rewrite Ht; force_r _. steps_r; rewrite Ha; force_r.
+    iSplit; eauto.
     { rewrite Z2Nat.id //; try lia. iSplit; eauto. iSplit; eauto. iPureIntro; lia. }
-    steps_r. iDestruct "GRT" as "[-> [% [-> ↦]]]". iApply "K".
+    steps_r; rewrite Hc; steps_r. rewrite Hc; steps_r. rewrite Hg; steps_r.
+    iDestruct "GRT" as "[-> [% [-> ↦]]]". iApply "K".
     iApply (big_sepL_impl with "↦").
     iIntros "!> % % %"; rewrite Z.add_0_l; iIntros "$".
   Qed.
 
-  Lemma wsim_mem_store b ofs v v' k_s k_t E1 E2 r g :
+  Lemma wsim_mem_store b ofs v v' (msk : emask) k_s k_t E1 E2 r g :
     fl_t !! Some MemHdr.store =
       Some (Some (SB.sandbox_body
-        (msk_scp MemA.scopes msk_true,
-         SModTr.trans_fnsem sp (fsp_some MemA.store, fbody_trivial)))) →
+        (msk, SModTr.trans_fnsem sp (fsp_some MemA.store, fbody_trivial)))) →
+    img_msk msk →
     (b, ofs) ↦ v' -∗
     ((b, ofs) ↦ v -∗
       wsim fl_s fl_t Ist (E1, E2) r g R_s R_t RR ps true
@@ -55,18 +58,20 @@ Section mem.
     wsim fl_s fl_t Ist (E1, E2) r g R_s R_t RR ps pt
       (st_src, k_s)
       (st_tgt, x <- trigger (Call MemHdr.store [Vptr (b, ofs); v]↑);; k_t x).
-  Proof.
-    intros Hin.
+  Proof using.
+    intros Hin [Ht [Hc [Ha [Har Hg]]]].
     iIntros "↦ K".
-    inline_r. force_r (b, ofs, v', v). forces_r. iFrame "↦"; iSplit; eauto.
-    steps_r. iDestruct "GRT" as "[-> [↦ ->]]". iApply "K"; iFrame.
+    inline_r. steps_r; rewrite Ht. force_r (b, ofs, v', v); steps_r; rewrite Ht.
+    forces_r; steps_r; rewrite Ha; forces_r. iFrame "↦"; iSplit; eauto.
+    steps_r. rewrite Hc; steps_r. rewrite Hc; steps_r. rewrite Hg; steps_r.
+    iDestruct "GRT" as "[-> [↦ ->]]". iApply "K"; iFrame.
   Qed.
 
-  Lemma wsim_mem_load b ofs q v k_s k_t E1 E2 r g :
+  Lemma wsim_mem_load b ofs q v (msk : emask) k_s k_t E1 E2 r g :
      fl_t !! Some MemHdr.load =
       Some (Some (SB.sandbox_body
-        (msk_scp MemA.scopes msk_true,
-         SModTr.trans_fnsem sp (fsp_some MemA.load, fbody_trivial)))) →
+        (msk, SModTr.trans_fnsem sp (fsp_some MemA.load, fbody_trivial)))) →
+    img_msk msk →
     (b, ofs) ↦{q} v -∗
     ((b, ofs) ↦{q} v -∗
       wsim fl_s fl_t Ist (E1, E2) r g R_s R_t RR ps true
@@ -75,18 +80,20 @@ Section mem.
     wsim fl_s fl_t Ist (E1, E2) r g R_s R_t RR ps pt
       (st_src, k_s)
       (st_tgt, x <- trigger (Call MemHdr.load [Vptr (b, ofs)]↑);; k_t x).
-  Proof.
-    intros Hin.
+  Proof using.
+    intros Hin [Ht [Hc [Ha [Har Hg]]]].
     iIntros "↦ K".
-    inline_r. force_r (b, ofs, q, v). forces_r. iFrame "↦"; iSplit; eauto.
-    steps_r. iDestruct "GRT" as "[-> [↦ ->]]". iApply "K"; iFrame.
+    inline_r. steps_r; rewrite Ht. force_r (b, ofs, q, v); steps_r; rewrite Ht.
+    forces_r; steps_r; rewrite Ha; force_r; iFrame "↦"; iSplit; eauto.
+    steps_r; rewrite Hc; steps_r. rewrite Hc; steps_r. rewrite Hg; steps_r.
+    iDestruct "GRT" as "[-> [↦ ->]]". iApply "K"; iFrame.
   Qed.
 
-  Lemma wsim_mem_cas b ofs v v_old v_new succ E k_s k_t E1 E2 r g  :
+  Lemma wsim_mem_cas b ofs v v_old v_new succ E (msk : emask) k_s k_t E1 E2 r g  :
     fl_t !! Some MemHdr.cas =
       Some (Some (SB.sandbox_body
-        (msk_scp MemA.scopes msk_true,
-         SModTr.trans_fnsem sp (fsp_some MemA.cas, fbody_trivial)))) →
+        (msk, SModTr.trans_fnsem sp (fsp_some MemA.cas, fbody_trivial)))) →
+    img_msk msk →
     MemA.compare_val v v_old = Vint succ →
     (b, ofs) ↦ v -∗
     E -∗
@@ -100,21 +107,21 @@ Section mem.
     wsim fl_s fl_t Ist (E1, E2) r g R_s R_t RR ps pt
       (st_src, k_s)
       (st_tgt, x <- trigger (Call MemHdr.cas [Vptr (b, ofs); v_old; v_new]↑);; k_t x).
-  Proof.
-    intros Hin Hmsk.
+  Proof using.
+    intros Hin [Ht [Hc [Ha [Har Hg]]]] Hcmp.
     iIntros "↦ E HE K".
-    inline_r. force_r (b, ofs, v, v_old, v_new, succ, E). forces_r.
+    inline_r. steps_r. rewrite Ht; force_r (b, ofs, v, v_old, v_new, succ, E); norm_r.
+    rewrite Ht; forces_r; norm_r. rewrite Ha; forces_r.
     iFrame "↦ E HE"; iSplit; eauto.
-    steps_r. iDestruct "GRT" as "[-> [-> [↦ E]]]". iApply ("K" with "↦ E"); iFrame.
+    steps_r. rewrite Hc; steps_r. rewrite Hc; steps_r.
+    rewrite Hg; steps_r. iDestruct "GRT" as "[-> [-> [↦ E]]]". iApply ("K" with "↦ E"); iFrame.
   Qed.
 
-  (* 
-  Lemma wsim_mem_cmp v1 v2 succ E k_s k_t E1 E2 r g img_t msk_t scp_t msk_m :
-    alist_find (Some MemHdr.cmp) fl_t =
-      Some (SB.sandbox_body
-        (SModTr.trans_fnsem sp
-          (true, msk_m, MemA.scopes, (Some (MemA.cmp), fbody_trivial)))) →
-    (msk_t MemHdr.cmp : bool) →
+  Lemma wsim_mem_cmp v1 v2 succ E (msk : emask) k_s k_t E1 E2 r g :
+    fl_t !! (Some MemHdr.cmp) =
+      Some (Some (SB.sandbox_body
+        (msk, SModTr.trans_fnsem sp (fsp_some (MemA.cmp), fbody_trivial)))) →
+    img_msk msk →
     MemA.compare_val v1 v2 = Vint succ →
     E -∗
     (E ==∗ ∃ q0 q1 v1' v2', MemA.val_r v1 q0 v1' ∗ MemA.val_r v2 q1 v2' ∗
@@ -126,14 +133,18 @@ Section mem.
     wsim fl_s fl_t Ist (E1, E2) r g R_s R_t RR ps pt
       (st_src, k_s)
       (st_tgt,
-        x <- (SB.sandbox img_t msk_t scp_t
-          (trigger (Call MemHdr.cmp [v1; v2]↑)));;
+        x <- trigger (Call MemHdr.cmp [v1; v2]↑);;
         k_t x).
-  Proof.
-    intros Hin Hmsk Hcmp.
+  Proof using.
+    intros Hin [Ht [Hc [Ha [Har Hg]]]] Hcmp.
     iIntros "E HE K".
-    inline_r. steps_r. force_r (v1, v2, succ, E). forces_r.
+    inline_r. steps_r. rewrite Ht. force_r (v1, v2, succ, E). steps_r.
+    rewrite Ht. forces_r. steps_r. rewrite Ha. force_r.
     iFrame "E HE"; iSplit; eauto.
-    steps_r. iDestruct "GRT" as "[[-> E] ->]". iApply ("K" with "E"); iFrame.
-  Qed. *)
+    steps_r. rewrite Hc. steps_r. rewrite Hc. steps_r. rewrite Hg. steps_r.
+    iDestruct "GRT" as "[-> [-> E]]". iApply ("K" with "E"); iFrame.
+  Qed.
 End mem.
+
+Ltac load_r H := iApply (wsim_mem_load with H); [try by simpl_map|ss|]; last iIntros H.
+Ltac store_r H := iApply (wsim_mem_store with H); [try by simpl_map|ss|]; last iIntros H.

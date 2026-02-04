@@ -462,3 +462,35 @@ Proof.
   intros Hwf H; inv Hwf; ss.
   rewrite lookup_union_with H; destruct (_ m1 !! _); ss.
 Qed.
+
+Lemma lookup_fnsems_l2 `{Σ : GRA} (m1 m2 : Mod.t) (k : option string) v :
+  (Mod.fnsems m1) !! k = None →
+  (Mod.fnsems m2) !! k = Some v →
+  (Mod.fnsems (m1 ★ m2)) !! k = Some v.
+Proof. rewrite lookup_union_with => -> -> //. Qed.
+
+Lemma lookup_fnsems_r2 `{Σ : GRA} (m1 m2 : Mod.t) (k : option string) v :
+  (Mod.fnsems m1) !! k = Some v →
+  (Mod.fnsems m2) !! k = None →
+  (Mod.fnsems (m1 ★ m2)) !! k = Some v.
+Proof. rewrite lookup_union_with => -> -> //. Qed.
+
+Lemma lookup_fnsems_None `{Σ : GRA} (m1 m2 : Mod.t) (k : option string) :
+  (Mod.fnsems m1) !! k = None →
+  (Mod.fnsems m2) !! k = None →
+  (Mod.fnsems (m1 ★ m2)) !! k = None.
+Proof. rewrite lookup_union_with => -> -> //. Qed.
+
+Ltac unfold_fnsem :=
+  rewrite /Mod.fnsems /=;
+  match goal with | [|-context[?x]] => 
+    match type of x with (gmap (option string) (option (emask * (option fspec_rel * fbody)))) =>
+      rewrite {1}/x /=
+    end
+  end.
+
+Hint Extern 80 (Mod.fnsems (_ ★ _) !! _ = Some _) => eapply lookup_fnsems_l2 : simpl_map.
+Hint Extern 80 (Mod.fnsems (_ ★ _) !! _ = Some _) => eapply lookup_fnsems_r2 : simpl_map.
+Hint Extern 80 (Mod.fnsems (_ ★ _) !! _ = None) => eapply lookup_fnsems_None : simpl_map.
+Hint Extern 81 (Mod.fnsems _ !! _ = Some _) => unfold_fnsem; simpl_map : simpl_map.
+Hint Extern 81 (Mod.fnsems _ !! _ = None) => unfold_fnsem; simpl_map : simpl_map.

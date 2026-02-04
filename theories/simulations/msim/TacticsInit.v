@@ -66,7 +66,7 @@ Ltac init_sim :=
         set_unfold; intros Hfn; des; subst; last inv Hfn
       | multiset_solver
       | multiset_solver
-      | set_solver
+      | try set_solver
       |]
     | econs; intros Hwf;
       [ multiset_solver

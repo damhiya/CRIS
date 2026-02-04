@@ -496,7 +496,7 @@ Ltac prove_sub_perm :=
 
 (* TODO : improve *)
 Ltac prove_inline_cond :=
-  simpl_map; ss.
+  simpl_map; rewrite /SB.sandbox_body /=; try refl.
 
 Ltac prove_sb_cond :=
   by s; i; eauto; try rewrite !mask_app; s; eauto.
@@ -702,3 +702,23 @@ Tactic Notation "add_ret_r" uconstr(r) :=
     rewrite -(bind_ret_l r (fun _ => t))
   end;
   show_until marker.
+
+Tactic Notation "add_ret_l" :=
+  let marker := fresh "MARKER" in
+    set_marker marker;
+    hide_ihyps;
+    only_itree_l;
+    match goal with [|-_ _ (_ (_,?t) _)] =>
+      rewrite -(bind_ret_r t)
+    end;
+    show_until marker.
+
+Tactic Notation "add_ret_r" :=
+  let marker := fresh "MARKER" in
+    set_marker marker;
+    hide_ihyps;
+    only_itree_r;
+    match goal with [|-_ _ (_ _ (_,?t))] =>
+      rewrite -(bind_ret_r t)
+    end;
+    show_until marker.

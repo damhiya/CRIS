@@ -45,9 +45,9 @@ Module IncrementIA. Section IncrementIA.
     sch_yield_rr "IST". steps_r.
 
     sch_yield_l. steps_l. rename _q into v'.
-    iApply (wsim_mem_cas _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ emp%I with "ASM"); [ss|..].
+    iApply (wsim_mem_cas with "ASM"); [prove_inline_cond|ss|eauto| | | ].
     { rewrite /MemA.compare_val; des_ifs. }
-    { done. }
+    { instantiate (1:=emp%I); done. }
     { iIntros "_"; iExists 1%Qp, 1%Qp, Vundef, Vundef; ss. }
     iIntros "↦ _".
 
