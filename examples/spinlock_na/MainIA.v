@@ -50,14 +50,11 @@ Module MainIA. Section MainIA.
 
     (* tgt yield *)
     solve_base_sl_red. iDestruct "P" as "[%x [PT P]]".
-    steps_r.
-    iApply (wsim_mem_load with "PT"); ss. iIntros "PT".
-    steps_r. hss_r. steps_r.
+    steps_r. load_r "PT". steps_r. hss_r. steps_r.
     sch_yield_ir "IST" "TID". steps_r.
     sch_yield_ir "IST" "TID". steps_r.
 
-    iApply (wsim_mem_store with "PT"); ss. iIntros "PT".
-    steps_r. hss_r. steps_r.
+    store_r "PT". steps_r. hss_r. steps_r.
     sch_yield_ir "IST" "TID". steps_r.
 
     iCombine "P Tkn" as "C". iMod (own_update with "C") as "[F C]".
@@ -173,8 +170,7 @@ Module MainIA. Section MainIA.
     iCombine "B W" gives %WF%frac_auth_agree. inv WF.
 
     (* tgt inline - mem load *)
-    iApply (wsim_mem_load with "[PT]"); ss.
-    iIntros "↦". steps_r. hss_r. steps_r.
+    load_r "PT". steps_r. hss_r. steps_r.
 
     (* tgt yield *)
     sch_yield_ir "IST" "TID". steps_r.
@@ -183,7 +179,7 @@ Module MainIA. Section MainIA.
     (* tgt inline - lock release *)
     inline_r. steps_r.
     force_r (_, _, (γl, Vptr bofs_l, existT 0 (lock_P (blk, 0%Z) γ))). forces_r.
-    iSplitL "TKN TID B ↦".
+    iSplitL "TKN TID B PT".
     { solve_base_sl_red. iFrame. iFrame "Lock"; iSplit; eauto. }
     steps_r. hss_r. steps_r.
 

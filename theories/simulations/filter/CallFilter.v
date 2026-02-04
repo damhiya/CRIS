@@ -31,7 +31,7 @@ Module CFilter. Section CFilter.
     Mod.initial_st := m.(Mod.initial_st)
   |}.
   Next Obligation.
-    intros ? ? i [msk x]; rewrite lookup_omap ?lookup_fmap => ?.
+    intros ? ? i [msk x]; rewrite lookup_omap ?lookup_fmap /Mod.fnsems => ?.
     destruct m; ss.
     destruct (fnsems !! i) as [[[??]|]|] eqn : ?; ss; clarify; ss.
     eapply (well_scoped_fns i (_, _)); rewrite lookup_omap Heqo //=.

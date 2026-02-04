@@ -53,10 +53,10 @@ Module MainAll.
   Proof.
     rewrite /mod_top SMod.cancel_add SMod.to_mod_add. eapply Mod.add_wf.
     { econs; eauto.
-      rewrite /MainA.smod /= /MainA.fnsems !fmap_insert !fmap_empty; mod_tac ss.
+      rewrite /MainA.smod /= /MainA.fnsems /Mod.fnsems /= !fmap_insert !fmap_empty; mod_tac ss.
     }
     { econs; eauto.
-      { rewrite /SchA.smod /= /SchA.fnsems !fmap_insert !fmap_empty; mod_tac ss. }
+      { rewrite /SchA.smod /= /SchA.fnsems /Mod.fnsems /= !fmap_insert !fmap_empty; mod_tac ss. }
       { ss; rewrite /SchA.scopes; multiset_solver. }
     }
     { set_solver. }
@@ -182,19 +182,19 @@ Module MainAll.
   Proof.
     rewrite /mod_tgt; eapply Mod.add_wf.
     { econs; eauto.
-      rewrite /MainA.smod /= /MainA.fnsems !fmap_insert !fmap_empty; mod_tac ss.
+      rewrite /MainA.smod /= /MainA.fnsems /Mod.fnsems /= !fmap_insert !fmap_empty; mod_tac ss.
     }
     { eapply Mod.add_wf.
       { econs; eauto.
-      rewrite /MainA.smod /= /MainA.fnsems !fmap_insert !fmap_empty; mod_tac ss.
+      rewrite /MainA.smod /= /MainA.fnsems /Mod.fnsems /= !fmap_insert !fmap_empty; mod_tac ss.
       }
       { eapply Mod.add_wf.
         { econs; eauto.
-          { rewrite /MainA.smod /= /MainA.fnsems !fmap_insert !fmap_empty; mod_tac ss. }
+          { rewrite /MainA.smod /= /MainA.fnsems /Mod.fnsems /= !fmap_insert !fmap_empty; mod_tac ss. }
           { ss; rewrite /MemI.scopes; multiset_solver. }
         }
         { econs; eauto.
-          { rewrite /= !fmap_insert !fmap_empty; mod_tac ss. }
+          { unfold_fnsem. rewrite /= !fmap_insert !fmap_empty; mod_tac ss. }
           { ss; rewrite /SchI.scopes; multiset_solver. }
         }
         { set_solver. }
@@ -219,7 +219,7 @@ Module MainAll.
         iPoseProof (make_sys_init with "[$] [$]") as "[$ [$ [$ $]]]". done.
       }
     all: solve_res.
-  Qed.
+  (*SLOW*)Qed.
 
   (* tgt Mod ⊆ cancelled Mod *)
   Theorem behavioral_refinement :

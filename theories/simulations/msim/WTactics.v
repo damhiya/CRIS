@@ -107,7 +107,7 @@ Ltac simpl_set := repeat
   | |- context [∅ ∪ ?X] => rewrite (left_id_L ∅ _ X)
   | |- context [?A ∖ ?A] => rewrite (difference_diag_L A)
   | |- context [?A ∖ ?B ∪ ?B] =>
-    rewrite (difference_union_L A B) (comm_L _ A B) (subseteq_union_1_L B A); [|set_solver]
+    rewrite (difference_union_L A B) (comm_L _ A B) (subseteq_union_1_L B A); [|(solve_ndisj || set_solver)]
   end.
 
 Ltac _wstep_l :=
@@ -267,7 +267,7 @@ Ltac _wforce_r :=
         tcsearch constr:(WP P)
           ltac:(fun c =>
           iApply (wsim_assume_tgt_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c));
-          simpl WP_space; simpl WP_remainder; [first [done|set_solver]|first [done|set_solver]| ]
+          simpl WP_space; simpl WP_remainder; [solve_ndisj|solve_ndisj| ]
         );
         match goal with
         | [ |- environments.envs_entails _ (?P' ∗ _)] =>

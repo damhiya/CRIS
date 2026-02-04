@@ -48,29 +48,24 @@ Module ClientAll.
   Qed.
   Local Definition MainInSp : (ClientA.sp nroot) ⊆ sp_user_s.
   Proof. by reflexivity. Qed.
-  (* Local Definition MemInSp : sp_incl MemA.sp sp.
-  Proof.
-    ii; rewrite /sp /SchAS.sp /MemA.sp /ClientA.sp; unseal CRIS; split; [prove_nodup|ii].
-    ss; des_ifs; rewrite ->eq_rel_dec_correct in *; des_ifs.
-  Qed. *)
 
   Local Definition init_cond : iProp Σ :=
     MemA.init_cond csl genv ∗ SchA.init_cond.
-  (* Local Definition main_fsp : fspec := ClientA.main_spec ⊤ 1%Qp. *)
 
   Lemma mod_top_wf : Mod.wf mod_top.
   Proof.
     rewrite /mod_top SMod.cancel_add SMod.to_mod_add. eapply Mod.add_wf.
     { econs; eauto.
-      rewrite /ClientA.smod /= /ClientA.fnsems !fmap_insert !fmap_empty; mod_tac ss.
+      rewrite /ClientA.smod /= /ClientA.fnsems /Mod.fnsems /= !fmap_insert !fmap_empty; mod_tac ss.
     }
     { econs; eauto.
-      { rewrite /SchA.smod /= /SchA.fnsems !fmap_insert !fmap_empty; mod_tac ss. }
+      { rewrite /SchA.smod /= /SchA.fnsems /Mod.fnsems /= !fmap_insert !fmap_empty; mod_tac ss. }
       { ss; rewrite /SchA.scopes; multiset_solver. }
     }
     { set_solver. }
     { set_solver. }
   Qed.
+
   (* Apply cancellation to linked spec module *)
   Lemma cancel_src :
     refines
@@ -154,19 +149,19 @@ Module ClientAll.
   Proof.
     rewrite /mod_tgt; eapply Mod.add_wf.
     { econs; eauto.
-      rewrite /ClientA.smod /= /ClientA.fnsems !fmap_insert !fmap_empty; mod_tac ss.
+      unfold_fnsem; rewrite /ClientA.smod /= /ClientA.fnsems !fmap_insert !fmap_empty; mod_tac ss.
     }
     { eapply Mod.add_wf.
       { econs; eauto.
-      rewrite /ClientA.smod /= /ClientA.fnsems !fmap_insert !fmap_empty; mod_tac ss.
+      unfold_fnsem; rewrite /ClientA.smod /= /ClientA.fnsems !fmap_insert !fmap_empty; mod_tac ss.
       }
       { eapply Mod.add_wf.
         { econs; eauto.
-          { rewrite /ClientA.smod /= /ClientA.fnsems !fmap_insert !fmap_empty; mod_tac ss. }
+          { unfold_fnsem; rewrite /ClientA.smod /= /ClientA.fnsems !fmap_insert !fmap_empty; mod_tac ss. }
           { ss; rewrite /MemI.scopes; multiset_solver. }
         }
         { econs; eauto.
-          { rewrite /= !fmap_insert !fmap_empty; mod_tac ss. }
+          { unfold_fnsem; rewrite /= !fmap_insert !fmap_empty; mod_tac ss. }
           { ss; rewrite /SchI.scopes; multiset_solver. }
         }
         { set_solver. }

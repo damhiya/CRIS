@@ -44,14 +44,14 @@ Section Helping.
   Lemma helping_on_wf {jobID retID} mn (jobs : jobID → _) : Mod.wf (HelpingOn.t (retID:=retID) mn jobs ∅).
   Proof.
     econs; ss.
-    { rewrite /HelpingOn.fnsems /= ?fmap_insert fmap_empty. mod_tac scope_solver. }
+    { unfold_fnsem. rewrite /HelpingOn.fnsems /= ?fmap_insert fmap_empty. mod_tac scope_solver. }
     { rewrite /HelpingOn.scopes; multiset_solver. }
   Qed.
 
   Lemma helping_dummy_wf mn : Mod.wf (HelpingDummy.t mn).
   Proof.
     econs; ss.
-    { rewrite /HelpingOn.fnsems /= ?fmap_insert fmap_empty. mod_tac scope_solver. }
+    { unfold_fnsem. rewrite /HelpingOn.fnsems /= ?fmap_insert fmap_empty. mod_tac scope_solver. }
     { rewrite /HelpingDummy.scopes; multiset_solver. }
   Qed.
 

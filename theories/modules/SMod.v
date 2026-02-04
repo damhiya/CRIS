@@ -123,7 +123,8 @@ Module SMod. Section Smod.
   Lemma to_mod_add sp (ms1 ms2 : t) :
     to_mod sp (add ms1 ms2) = Mod.add (to_mod sp ms1) (to_mod sp ms2).
   Proof.
-    apply Mod.t_eq; ss; apply map_eq; intros i; simpl_map; rewrite !lookup_union_with ?lookup_fmap;
+    apply Mod.t_eq; ss; apply map_eq; intros i;
+      rewrite /Mod.fnsems; s; simpl_map; rewrite !lookup_union_with ?lookup_fmap;
       repeat destruct (_ !! i); ss.
   Qed.
 

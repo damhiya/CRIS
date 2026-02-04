@@ -225,7 +225,7 @@ Ltac sch_yield_ir H1 H2 :=
 
 Ltac sch_yield_ii IST :=
   (norm_l with 
-    (do 1 iApply (wsim_yield_tgt_ii); [simpl_sp; simpl_map; ss|simpl_sp; simpl_map; ss|ss|ss|set_solver|set_solver| ];
+    (do 1 iApply (wsim_yield_tgt_ii); [simpl_sp; simpl_map; ss|simpl_sp; simpl_map; ss|ss|ss|(solve_ndisj || set_solver)|(solve_ndisj || set_solver)| ];
       iFrame IST)); clear_st; iIntros (??) IST.
 
 Ltac sch_yield_l :=
@@ -567,119 +567,99 @@ Section SREL.
     eapply msim_srelC_mon, PR; eauto with paco.
   Qed.
 
-  (* Lemma srel_yy_y {R} (itr: unit -> itree crisE R) img_s img_s' msk_s sc_s sp_s :
+  Lemma srel_yy_y {R} (itr: unit -> itree crisE R) msk_s sp_s :
     srel _ false
-      ((SB.sandbox img_s msk_s sc_s (SModTr.trans img_s' sp_s Sch.yield));;;
-       (SB.sandbox img_s msk_s sc_s (SModTr.trans img_s' sp_s Sch.yield)) >>= itr)
-      (SB.sandbox img_s msk_s sc_s (SModTr.trans img_s' sp_s Sch.yield) >>= itr).
+      ((SB.sandbox msk_s (SModTr.trans sp_s Sch.yield));;;
+       (SB.sandbox msk_s (SModTr.trans sp_s Sch.yield)) >>= itr)
+      (SB.sandbox msk_s (SModTr.trans sp_s Sch.yield) >>= itr).
   Proof using.
-    set (ysnd := SB.sandbox img_s msk_s sc_s (SModTr.trans img_s' sp_s Sch.yield)) at 2.
-    unfold Sch.yield. unseal SCH.
+    set (ysnd := SB.sandbox msk_s (SModTr.trans sp_s Sch.yield)) at 2.
 
-    ginit. gcofix CIH.
+    ginit. gcofix CIH. rewrite yield_unfold.
 
-    rewrite !unfold_iterC. grind. rewrite SRed.tau SBRed.tau. grind.
+    rewrite SRed.tau SBRed.tau. grind.
     gstep. econs. econs; eauto.
 
-    rewrite !SRed.bind !SRed.core !SBRed.bind !SBRed.choose. grind.
-    gstep. econs. econs; eauto. i.
+    rewrite !SRed.bind !SRed.core !SBRed.bind !SBRed.vis; case_match; rewrite vis_trigger; grind;
+      gstep; econs; econs; eauto; ss; i.
 
     destruct x_src; [destruct b|].
     { exists (Some true).
 
+      rewrite !SBRed.ret; ired.
       rewrite !SRed.bind !SRed.call. grind. rewrite !SBRed.tau. grind.
       gstep. econs; econs; eauto.
 
       unfold SModTr.HoareCall. des_ifs.
-      { rewrite !SBRed.bind !SBRed.choose. grind.
-        gstep; econs; econsr; eauto. i.
+      { rewrite !SBRed.bind !SBRed.vis; case_match; rewrite vis_trigger; grind;
+          gstep; econs; econs; eauto; ss; i; exists x_src.
         
-        rewrite !SBRed.bind !SBRed.choose; grind.
-        gstep; econs; econsr; eauto; i.
+        rewrite !SBRed.ret; ired.
 
-        rewrite !SBRed.bind !SBRed.Guarantee; grind.
-        gstep; econs; econsr; eauto; i.
-        
-        rewrite !SBRed.call; grind. des_ifs; cycle 1.
-        { grind. gstep; econs; econsr; eauto. i; ss. }
-        grind. gstep; econs; econsr; eauto; i.
+        rewrite !SBRed.bind !SBRed.vis; case_match; rewrite vis_trigger; grind;
+          gstep; econs; econs; eauto; ss; i; exists x_src0.
+        rewrite !SBRed.ret; ired.
 
-        rewrite !SBRed.bind !SBRed.take. grind. des_ifs; cycle 1.
-        { grind. gstep; econs; econsr; eauto; i; ss. }
-        grind. gstep; econs; econsr; eauto; i.
+        rewrite !SBRed.bind !SBRed.vis; case_match; rewrite vis_trigger; grind;
+          gstep; econs; econs; eauto; ss; i.
+        rewrite !SBRed.ret; ired.
 
-        rewrite !SBRed.bind !SBRed.Assume; grind. des_ifs; cycle 1.
-        { grind. gstep; econs; econsr; eauto; i; ss. }
-        gstep; econs; econsr; eauto; i.
+        case_match; rewrite vis_trigger; grind; gstep; econs; econs; eauto; ss; i.
+        rewrite !SBRed.ret; ired.
 
-        rewrite !SBRed.ret. grind. rewrite !SRed.ret !SBRed.ret. grind.
+        rewrite !SBRed.bind !SBRed.vis; case_match; rewrite vis_trigger; grind;
+          gstep; econs; econs; eauto; ss; i.
+        rewrite !SBRed.ret; ired.
+
+        rewrite !SBRed.bind !SBRed.vis; case_match; rewrite vis_trigger; grind;
+          gstep; econs; econs; eauto; ss; i.
+        rewrite !SBRed.ret; ired.
+
         gfinal; eauto.
       }
-      { rewrite !SBRed.bind !SBRed.choose. grind.
-        gstep; econs; econsr; eauto. i. ss. 
-      }
-      { rewrite !SBRed.bind !SBRed.call; grind. des_ifs; cycle 1.
-        { grind. gstep; econs; econsr; eauto. i; ss. }
-        grind. gstep; econs; econsr; eauto; i.
+      { rewrite !SBRed.bind !SBRed.vis; case_match; rewrite vis_trigger; grind;
+          gstep; econs; econs; eauto; ss; i.
+        rewrite !SBRed.ret; ired.
 
-        rewrite !SRed.ret !SBRed.ret. grind.
         gfinal; eauto.
       }
     }
-    { exists (Some false). gbase. grind. }
+    { exists (Some false). rewrite SBRed.ret; grind. gbase. grind. }
     { exists (Some false).
-      subst ysnd. unfold Sch.yield. unseal SCH. rewrite unfold_iterC.
-      grind. rewrite SRed.ret SBRed.ret. grind. 
-      rewrite unfold_iterC. grind. guclo srel_eqC_spec. econs; eauto.
+      subst ysnd. rewrite !SBRed.ret; ired.
+      rewrite SRed.ret SBRed.ret; ired. guclo srel_eqC_spec. econs; eauto.
     }
-  Qed. *)
-  
+  Qed.
 End SREL.
 
 Section ISIM.
-
   Import SchA.
   Context `{!crisG Γ Σ α β τ _S _I, !concG, !schG}.
   Variable contextual: contextuality.
-  Variable fl_src fl_tgt : alist (option string) (Any.t → itree crisE Any.t).
+  Variable fl_src fl_tgt : gmap (option string) (option (Any.t → itree crisE Any.t)).
   Variable Ist : ist_type Σ.
 
-  (* Lemma isim_yy_y r g ps pt {Rs Rt} RR st_src k_src sti_tgt
-      img_s img_s' msk_s sc_s sp_s :
+  Lemma isim_yy_y r g ps pt {Rs Rt} RR st_src k_src sti_tgt msk_s sp_s :
     @isim Σ contextual fl_src fl_tgt Ist r g Rs Rt RR ps pt
-      (st_src, (SB.sandbox img_s msk_s sc_s (SModTr.trans img_s' sp_s Sch.yield));;;
-               (SB.sandbox img_s msk_s sc_s (SModTr.trans img_s' sp_s Sch.yield)) >>= k_src) sti_tgt
+      (st_src, (SB.sandbox msk_s (SModTr.trans sp_s Sch.yield));;;
+               (SB.sandbox msk_s (SModTr.trans sp_s Sch.yield)) >>= k_src) sti_tgt
     ⊢ isim contextual fl_src fl_tgt Ist r g RR ps pt
-      (st_src, (SB.sandbox img_s msk_s sc_s (SModTr.trans img_s' sp_s Sch.yield)) >>= k_src) sti_tgt.
+      (st_src, (SB.sandbox msk_s (SModTr.trans sp_s Sch.yield)) >>= k_src) sti_tgt.
   Proof using.
     destruct sti_tgt as [st_tgt i_tgt].
     split. intros x wfx SIM.
     Local Transparent isim.
     guclo msim_srelC_spec. econs; eauto using srel_yy_y.
-  Qed. *)
+  Qed.
 
-End ISIM.
-
-Section WSIM.
-  Import SchA.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG, !schG}.
-
-  Context (fl_s fl_t : alist (option string) (Any.t → itree crisE Any.t)).
-  Context (Ist : alist key Any.t → alist key Any.t → iProp Σ).
-  Context (t : option bool).
-  Context (R_s R_t : Type).
-  Context (RR : post R_s R_t).
-  Context (ps pt : bool).
-  Context (st_src st_tgt : state).
-
-  (* Lemma wsim_yy_y E F r g img_s img_s' msk_s scp_s sp_s k_s i_t :
-    wsim fl_s fl_t Ist (E, F) r g R_s R_t RR ps pt
+  Lemma wsim_yy_y ps pt {Rs Rt} RR st_src st_tgt E F r g msk_s sp_s k_s i_t :
+    wsim fl_src fl_tgt Ist (E, F) r g Rs Rt RR ps pt
       (st_src,
-        (SB.sandbox img_s msk_s scp_s (SModTr.trans img_s' sp_s Sch.yield));;;
-        (SB.sandbox img_s msk_s scp_s (SModTr.trans img_s' sp_s Sch.yield)) >>= k_s)
+        (SB.sandbox msk_s (SModTr.trans sp_s Sch.yield));;;
+        (SB.sandbox msk_s (SModTr.trans sp_s Sch.yield)) >>= k_s)
       (st_tgt, i_t)
-    ⊢ wsim fl_s fl_t Ist (E, F) r g R_s R_t RR ps pt
-    (st_src, (SB.sandbox img_s msk_s scp_s (SModTr.trans img_s' sp_s Sch.yield)) >>= k_s)
+    ⊢ wsim fl_src fl_tgt Ist (E, F) r g Rs Rt RR ps pt
+    (st_src, (SB.sandbox msk_s (SModTr.trans sp_s Sch.yield)) >>= k_s)
     (st_tgt, i_t).
   Proof using.
     Local Transparent isim.
@@ -691,9 +671,8 @@ Section WSIM.
     iPoseProof ("SIM" with "W") as "SIM".
     iStopProof. split. intros x wfx H1.
     guclo msim_srelC_spec. econs; eauto using srel_yy_y.
-  Qed. *)
-
-End WSIM. 
+  Qed.
+End ISIM.
 
 (* Section RealLAT.
   Context `{CrisG: !crisG Γ Σ α β τ _S _I}.

@@ -1,7 +1,7 @@
 Require Import Common.
 From iris.proofmode Require Import proofmode.
 Require Import LMod.
-Require Export FSpec ModTr Sandbox.
+Require Export FSpec ModTr Sandbox Sp.
 
 Module Mod. Section Mod.
   Context {Σ : GRA}.
@@ -489,8 +489,14 @@ Ltac unfold_fnsem :=
     end
   end.
 
+Arguments Mod.add : simpl never.
+Arguments Mod.fnsems : simpl never.
 Hint Extern 80 (Mod.fnsems (_ ★ _) !! _ = Some _) => eapply lookup_fnsems_l2 : simpl_map.
 Hint Extern 80 (Mod.fnsems (_ ★ _) !! _ = Some _) => eapply lookup_fnsems_r2 : simpl_map.
 Hint Extern 80 (Mod.fnsems (_ ★ _) !! _ = None) => eapply lookup_fnsems_None : simpl_map.
 Hint Extern 81 (Mod.fnsems _ !! _ = Some _) => unfold_fnsem; simpl_map : simpl_map.
 Hint Extern 81 (Mod.fnsems _ !! _ = None) => unfold_fnsem; simpl_map : simpl_map.
+Hint Extern 100 (?A !! _ = _) =>
+  match type of A with
+  | specmap => rewrite /A /=; simpl_map
+  end : simpl_map.

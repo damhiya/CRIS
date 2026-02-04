@@ -25,7 +25,7 @@ Section HelpingOnOff.
     apply Mod.add_wf; eauto.
     { apply Mod.add_wf; eauto.
       { econs; ss.
-        { rewrite /HelpingOff.fnsems /= ?fmap_insert fmap_empty. mod_tac scope_solver. }
+        { rewrite /Mod.fnsems /HelpingOff.fnsems /= ?fmap_insert fmap_empty. mod_tac scope_solver. }
         { rewrite /HelpingOff.scopes; multiset_solver. }
       }
       { set_solver. }
@@ -857,14 +857,13 @@ Section HelpingOnOff.
     intros rs Hval Hrs; exists rs; split; [exact Hval|split; [done|]].
     intro arg; eapply (gsim_adequacy); repeat (instantiate (1:=smj_bot)).
     rewrite /LMod.compile /ITree.map /LModTr.trans /LModTr.interp_callE /=.
-    rewrite -> !lookup_fmap.
-    simpl_map; rewrite -> !lookup_union_with; simpl_map.
-    rewrite ?lookup_insert_ne; ii; clarify; rewrite ?lookup_empty /=.
-    destruct (_ ctx !! None) as [[[msk bd]|]|] eqn : FIND; s; cycle 1.
-    { s. ired. ginit. gstep_l. ss. }
-    { s. ired. ginit. gstep_l. ss. }
-    ired.
+    destruct (Mod.fnsems ctx !! None) as [[[msk bd]|]|] eqn : FIND; cycle 1.
+    { simpl_map; ss. ginit. gstep_l. ss. }
+    { rewrite {1}/Mod.fnsems {1}/Mod.add; simpl_map by eauto; rewrite lookup_union_with FIND.
+      rewrite lookup_fnsems_None //. ginit. gstep_l. ss.
+    }
 
+    simpl_map; s. ired.
     rewrite /SB.sandbox_body /ModTr.trans_fnsem /ModTr.trans /=.
     ginit. guclo bindC_spec. econs; cycle 1.
     { instantiate (1:=λ r_s r_t, r_s.2 = r_t.2). ii; gstep; ss. subst; econs; econs; ss. }
