@@ -29,6 +29,7 @@ Section fspec.
 
   Definition fspec_to_rel : fspec → fspec_rel :=
     λ fsp, idx_to_rel fsp.(precond) fsp.(postcond).
+  #[warning="-uniform-inheritance"]
   Coercion fspec_to_rel : fspec >-> fspec_rel.
 
   Definition fsp_none : option fspec_rel := None.
