@@ -1,34 +1,27 @@
 Require Import CRIS.
 
-Require Import APCHeader APC APCA.
+Require Import APCHeader APC APCI APCA.
 
 Set Implicit Arguments.
 
 Module APCC. Section APCC.
   Context `{!crisG Γ Σ α β τ _S _I, !concG}.
+  Import APC APCI APCA.
 
-  Definition scopes := ["APC"].
+  Definition Sp : specmap :=
+    {[speckey_fn APCHdr.apc := fspec_to_rel APCA.apc_spec]}.
 
-  Definition Sp : spl_type :=
-    Seal.sealing CRIS
-      [(Some APCHdr.apc, fsp_some APCA.apc_spec)].
-
-  
-  Lemma Sp_nodup : List.NoDup (List.map fst Sp).
-  Proof using. unfold Sp. unseal CRIS. prove_nodup. Qed.
-
-  Definition fnsems : fnsems_type :=
-    [(Some APCHdr.apc, (true, wmask_all, scopes, (fsp_some APCA.apc_spec, fbody_trivial)))].
+  Definition fnsems : fnsemmap :=
+    {[Some APCHdr.apc := Some (msk_scp scp msk_true, (fsp_some APCA.apc_spec, fbody_trivial))]}.
 
   Program Definition smod : SMod.t := {|
-    SMod.scopes := scopes;
+    SMod.scopes := scp;
     SMod.fnsems := fnsems;
-    SMod.initial_st := [];
+    SMod.initial_st := ∅;
   |}.
-  Solve All Obligations with prove_scope.
-  Next Obligation. prove_nodup. Qed.
+  Solve All Obligations with mod_tac.
 
   Definition init_cond : iProp Σ := emp%I.
 
-  Definition t Sp := Seal.sealing CRIS (SMod.to_mod Sp smod).
+  Definition t Sp := SMod.to_mod Sp smod.
 End APCC. End APCC.

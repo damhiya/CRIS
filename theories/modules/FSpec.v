@@ -122,6 +122,13 @@ Section fspec.
 
   Lemma fspec_top_weakest fsp : ⊢ fspec_imply fsp fspec_top.
   Proof. by iIntros (??) "[% %]". Qed.
+
+  Lemma fspec_imply_refl fsp : ⊢ fspec_imply fsp fsp.
+  Proof using.
+    iIntros (??) "%". iExists P1, Q1. iSplit; eauto.
+    iIntros (??) "P". iModIntro. iFrame.
+    iIntros (??) "Q". iModIntro. iFrame.
+  Qed.
 End fspec.
 
 Definition fspec_winv `{!crisG Γ Σ α β τ _S _I} (E : coPset) (fsp : fspec) : fspec :=

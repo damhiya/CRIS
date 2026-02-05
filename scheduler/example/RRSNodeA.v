@@ -88,14 +88,14 @@ Module RRSNodeAS. Section RRSNodeAS.
     Import RRSAS.
 
     Definition per_tid_fspec (fspecf: nat -> fspec) : fspec :=
-      fspec_call (meta := { i : nat & meta (fspecf i) })
+      fspec_mk (meta := { i : nat & meta (fspecf i) })
         (λ '(existT i meta_i), precond (fspecf i) meta_i)
         (λ '(existT i meta_i), postcond (fspecf i) meta_i).
 
     Definition per_tid_fspec_rrsch E {meta: Type}
       (precond postcond: nat * nat * nat * meta → Any.t → Any.t → iProp Σ) (Invf: nat -> InvO) (mtid : nat) : fspec :=
       fspec_winv E
-        (fspec_call (meta := nat * nat * nat * meta * (gmap nat InvO))
+        (fspec_mk (meta := nat * nat * nat * meta * (gmap nat InvO))
            (λ '(mtid', stid, ssch, x, Invs) varg arg,
              ∃ Invs',
                ⌜mtid = mtid' ∧ Invs' !! (pred_rr mtid (size Invs')) = Some (Invf (pred_rr mtid (size Invs'))) ∧
@@ -121,14 +121,14 @@ Module RRSNodeAS. Section RRSNodeAS.
     Definition N_node : namespace := (nroot .@ "Node.x").
 
     Definition x_points_to (loc: mblock * Z) (v: val) : GTerm.t 0 :=
-      (<own> base_γ ((mem_points_to_singleton_r loc (DfracOwn 1) v): memRA))
-        ∗ (<own> base_γ ((half_val_r v): nodeRA)).
+      (sown base_γ ((mem_points_to_singleton_r loc (DfracOwn 1) v): memRA))
+        ∗ (sown base_γ ((half_val_r v): nodeRA)).
 
     Definition ex_x_points_to loc : GTerm.t 0 :=
       (∃ (v: τ{ ⇣val }), x_points_to loc v)%SAT.
 
     Definition x_value_tid (tid: nat) : GTerm.t 0 :=
-      (<own> base_γ ((half_val_r (Vint tid)): nodeRA)).
+      (sown base_γ ((half_val_r (Vint tid)): nodeRA)).
         
     Definition inv_x_points_to (loc: mblock * Z) : iProp Σ :=
       inv 0 N_node (ex_x_points_to loc).
@@ -150,10 +150,9 @@ Module RRSNodeAS. Section RRSNodeAS.
         (λ '(mtid, stid, ssch, loc) varg arg, ∃ svarg sarg, ⌜varg = svarg↑ ∧ arg = sarg↑ ∧ mtid ≠ 0⌝ ∗ f_precond loc svarg sarg)%I
         (λ '(mtid, stid, ssch, loc) vret ret, ∃ svret sret, ⌜vret = svret↑ ∧ ret = sret↑⌝ ∗ f_postcond svret sret)%I.
 
-    Definition sp : spl_type :=
-      Seal.sealing CRIS
-        [(Some RRSNodeHdr.f_main, Some f_main_spec);
-         (Some RRSNodeHdr.f,      Some f_spec)].
+    Definition sp : specmap :=
+      {[speckey_fn RRSNodeHdr.f_main := fspec_to_rel f_main_spec;
+        speckey_fn RRSNodeHdr.f      := fspec_to_rel f_spec]}.
   End SPEC.
 End RRSNodeAS. End RRSNodeAS.
 
@@ -163,8 +162,7 @@ Module RRSNodeA. Section RRSNodeA.
   Context `{_rrsG: !RRSA.rrsG}.
   Context `{_memG: !MemA.memG}.
   Context `{_nodeG: !RRSNodeA.nodeG}.
-
-  Definition scopes := [RRSNODE].
+  Import RRSNodeI.
 
   Definition f_main : SAny.t -> itree crisE SAny.t :=
     fun _ =>
@@ -180,21 +178,19 @@ Module RRSNodeA. Section RRSNodeA.
       trigger (@IO _ unit "print" (Vint 1));;; ℛ𝒴;;; ℛℛ;;; 
       Ret (tt↑↑).
   
-  Definition fnsems E : fnsems_type :=
-    [(Some RRSNodeHdr.f_main, (true, wmask_all, scopes, (Some (RRSNodeAS.f_main_spec E), (cfunN f_main))));
-     (Some RRSNodeHdr.f,      (true, wmask_all, scopes, (Some (RRSNodeAS.f_spec E),      (cfunN f))))].
+  Definition fnsems (E : coPset) : fnsemmap :=
+    {[Some RRSNodeHdr.f_main := Some (msk_scp scopes msk_true, (fsp_some (RRSNodeAS.f_main_spec E), cfunN f_main));
+      Some RRSNodeHdr.f      := Some (msk_scp scopes msk_true, (fsp_some (RRSNodeAS.f_spec E), cfunN f))]}.
 
   Program Definition smod E : SMod.t := {|
     SMod.scopes := scopes;
     SMod.fnsems := fnsems E;
-    SMod.initial_st := [];
+    SMod.initial_st := ∅;
   |}.
-  Solve All Obligations with prove_scope.
-  Next Obligation. prove_nodup. Qed.
+  Solve All Obligations with mod_tac.
 
   Definition init_cond : iProp Σ := emp%I.
   
-  Definition t E sp := Seal.sealing CRIS (SMod.to_mod sp (smod E)).
-
+  Definition t sp := SMod.to_mod sp (smod ⊤).
 End RRSNodeA. End RRSNodeA.
 

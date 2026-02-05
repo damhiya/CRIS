@@ -7,14 +7,12 @@ Local Open Scope Qp.
 Section NDSRA.
   Context `{!crisG Γ Σ α β τ _S _I}.
 
-  (* Canonical Structure SynDepO : ofe := leibnizO {n & GTerm.t n}. *)
-
   Definition joinRA :=
-    gmap_viewUR nat (agreeR (SAny.t -d> SAny.t -d> leibnizO {n & GTerm.t n}))%type.
-  Definition tidRA := gmap_viewUR nat (agreeR nat).
+    gmap_viewUR nat (agreeR (optionO (SAny.t -d> SAny.t -d> leibnizO {n & GTerm.t n})))%type.
+  Definition tidRA := gmap_viewUR nat (agreeR (optionO nat)).
   Definition initRA := csumR fracR (agreeR natO).
-  Definition ctlRA := exclR unitO.
-  Definition pubRA := gmap_viewUR (option nat) (agreeR boolO).
+  Definition ctlRA := exclR (optionO unitO).
+  Definition pubRA := gmap_viewUR (option nat) (agreeR (optionO boolO)).
 
   Class ndsG `{!crisG Γ Σ α β τ _S _I} := {
       inG_join :: inG joinRA Σ;
@@ -51,28 +49,28 @@ Section NDSRA.
   Definition Shot (n : nat) : iProp Σ := Seal.sealing NDS (own base_γ (Cinr (to_agree n))).
 
   (** control **)
-  Definition Control : iProp Σ := Seal.sealing NDS (own base_γ (Excl tt : ctlRA)).
+  Definition Control : iProp Σ := Seal.sealing NDS (own base_γ (Excl (Some tt) : ctlRA)).
 
   (** public **)
   Definition PublicAuth (ths: NDSI.thpool) (tido: option nat) : iProp Σ :=
     Seal.sealing NDS
       (own base_γ
          (gmap_view_auth (DfracOwn 1)
-            (<[None := to_agree false]> (list_to_map (map (λ '(i, x), (Some i, to_agree (eq_dec (Some i) tido))) (imap pair ths.*1)))))).
+            (<[None := to_agree (Some false)]> (list_to_map (map (λ '(i, x), (Some i, to_agree (Some (eq_dec (Some i) tido)))) (imap pair ths.*1)))))).
   Definition Public (tido: option nat) (b: bool) : iProp Σ :=
     Seal.sealing NDS
-      (own base_γ (gmap_view_frag tido (DfracOwn 1) (to_agree b))).
+      (own base_γ (gmap_view_frag tido (DfracOwn 1) (to_agree (Some b)))).
 
   (* Thread-id-related predicates *)
   Definition Tid (mtid stid ssch : nat) : iProp Σ :=
-    own base_γ (gmap_view_frag mtid (DfracOwn 1) (to_agree stid)) ∗
+    own base_γ (gmap_view_frag mtid (DfracOwn 1) (to_agree (Some stid))) ∗
     TID stid ∗ YIELD stid ∗ Shot ssch ∗ Control ∗ Public (Some mtid) true.
-  Definition TidAuth (m : gmap nat nat) : iProp Σ :=
+  Definition TidAuth (m : gmap nat (option nat)) : iProp Σ :=
     own base_γ (gmap_view_auth (DfracOwn 1) (to_agree <$> m)).
 
-  Lemma Tid_Auth_Tid (m : gmap nat nat) (mtid stid : nat) q :
-    TidAuth m ∗ own base_γ (gmap_view_frag mtid (DfracOwn q) (to_agree stid)) -∗
-    ⌜m !! mtid = Some stid⌝.
+  Lemma Tid_Auth_Tid (m : gmap nat (option nat)) (mtid stid : nat) q :
+    TidAuth m ∗ own base_γ (gmap_view_frag mtid (DfracOwn q) (to_agree (Some stid))) -∗
+    ⌜m !! mtid = Some (Some stid)⌝.
   Proof.
     iIntros "[A F]"; iCombine "A" "F" gives %WF%gmap_view_both_dfrac_valid_discrete_total.
     destruct WF as [? [_ [_ [Hlookup [_ Hin]]]]]; rewrite lookup_fmap in Hlookup.
@@ -90,7 +88,7 @@ Module NDSA. Section NDSA.
   Definition ir_initRA_valid : ✓ ir_initRA.
   Proof using. ss. Qed.
 
-  Definition ir_ctlRA : DRA_mk ctlRA := Excl tt.
+  Definition ir_ctlRA : DRA_mk ctlRA := Excl (Some tt).
   Definition ir_ctlRA_valid : ✓ ir_ctlRA.
   Proof using. ss. Qed.
   
@@ -156,7 +154,7 @@ Module NDSA. Section NDSA.
               eapply elem_of_app in wf0. des; eauto.
               eapply elem_of_list_singleton in wf0. inv wf0.
               rewrite /dec /option_Dec in H2. rewrite /AList.option_Dec_obligation_1 in H2. des_ifs. ss.
-              assert (to_agree false ≼ to_agree true) by rewrite H2 //.
+              assert (to_agree (Some false) ≼ to_agree (Some true)) by rewrite H2 //.
               eapply to_agree_included in H1. inv H1.
             }
           }
@@ -168,7 +166,7 @@ Module NDSA. Section NDSA.
             { i. rewrite fmap_app imap_app map_app /= in wf0.
               eapply elem_of_app in wf0. des; eauto.
               eapply elem_of_list_singleton in wf0. inv wf0. 
-              assert (to_agree false ≼ to_agree true) by rewrite H2 //.
+              assert (to_agree (Some false) ≼ to_agree (Some true)) by rewrite H2 //.
               eapply to_agree_included in H1. inv H1.
             }
           }
@@ -183,7 +181,7 @@ Module NDSA. Section NDSA.
               eapply elem_of_list_singleton in wf0. inv wf0.
               rewrite /dec /option_Dec in H2. rewrite /AList.option_Dec_obligation_1 in H2. des_ifs.
               { ii. inv H1.
-                assert (to_agree false ≼ to_agree true) by rewrite H2 //.
+                assert (to_agree (Some false) ≼ to_agree (Some true)) by rewrite H2 //.
                 eapply to_agree_included in H1. inv H1. }
               { ii. inv H1. }
             }
@@ -191,9 +189,12 @@ Module NDSA. Section NDSA.
         }
       }
       { rewrite lookup_insert // in wf0. inv wf0.
-        assert (to_agree false ≼ to_agree b) by rewrite H2 //.
+        assert (to_agree (Some false) ≼ to_agree (Some b)) by rewrite H2 //.
         eapply to_agree_included in H1. rewrite <-!H1.
-        destruct tido; ss. }
+        destruct tido; ss.
+        { destruct b; ss. inv H1. }
+        { destruct b; ss. inv H1. }
+      }
     Qed.
 
     Lemma Public_update_private ths tid (IN: ∃ stid, ths !! tid = Some stid) :
@@ -205,9 +206,9 @@ Module NDSA. Section NDSA.
       rewrite -own_op.
       iApply (own_update with "A").
       etrans; [eapply gmap_view_replace|].
-      { instantiate (1 := to_agree false). ss. }
-      set (m := _: gmap (option nat) (agreeR boolO)).
-      set (m' := _: gmap (option nat) (agreeR boolO)) at 2.
+      { instantiate (1 := to_agree (Some false)). ss. }
+      set (m := _: gmap (option nat) (agreeR (optionO boolO))).
+      set (m' := _: gmap (option nat) (agreeR (optionO boolO))) at 2.
       assert (m ≡ m').
       { subst m m'. ii. destruct i.
         { destruct (decide (tid = n)).
@@ -270,9 +271,9 @@ Module NDSA. Section NDSA.
       rewrite -own_op.
       iApply (own_update with "A").
       etrans; [eapply gmap_view_replace|].
-      { instantiate (1 := to_agree true). ss. }
-      set (m := _: gmap (option nat) (agreeR boolO)).
-      set (m' := _: gmap (option nat) (agreeR boolO)) at 2.
+      { instantiate (1 := to_agree (Some true)). ss. }
+      set (m := _: gmap (option nat) (agreeR (optionO boolO))).
+      set (m' := _: gmap (option nat) (agreeR (optionO boolO))) at 2.
       assert (m ≡ m').
       { subst m m'. ii. destruct i.
         { destruct (decide (tid = n)).
@@ -332,7 +333,7 @@ Module NDSA. Section NDSA.
       rewrite /PublicAuth /Public. unseal NDS.
       iIntros "A".
       iMod (own_update with "A") as "[A F]".
-      { etrans; first eapply (gmap_view_alloc _ (Some (length ths)) (DfracOwn 1) (to_agree false)); ss.
+      { etrans; first eapply (gmap_view_alloc _ (Some (length ths)) (DfracOwn 1) (to_agree (Some false))); ss.
         { clear IN. rewrite lookup_insert_ne; ss.
           remember (length ths) as len.
           assert (length ths ≤ len)%nat by nia. clear Heqlen.
@@ -406,13 +407,13 @@ Module NDSA. Section NDSA.
 
   (* Scheduler specifications *)
   Section SPEC.
-    Context (sp_user : spl_type) (E : coPset).
+    Context (sp_user : specmap) (E : coPset).
     Context (T: Type) (get_stid: T → nat) (PYIP: T → iProp Σ).
 
     Definition fspec_spawnable fsp
         (pre : SAny.t → SAny.t → iProp Σ)
-        (postS : SAny.t → SAny.t → leibnizO {n & GTerm.t n}) : Prop :=
-      fspec_imply' fsp
+        (postS : SAny.t → SAny.t → leibnizO {n & GTerm.t n}) : iProp Σ :=
+      fspec_imply fsp
         (fspec_winv E
            (fspec_virtual (λ '(mtid, stid, ssch),
               ((λ (varg : SAny.t) arg,
@@ -422,36 +423,39 @@ Module NDSA. Section NDSA.
 
     Definition fn_spawnable fn
         (pre : SAny.t -d> SAny.t -d> iProp Σ)
-        (postS : SAny.t -d> SAny.t -d> leibnizO {n & GTerm.t n}) : Prop :=
-      ∃ fsp, alist_find (Some fn) sp_user = Some (Some fsp) ∧
-               fspec_spawnable fsp pre postS.
+        (postS : SAny.t -d> SAny.t -d> leibnizO {n & GTerm.t n}) : iProp Σ :=
+      (∃ fsp, ⌜sp_user !! (speckey_fn fn) = Some fsp⌝ ∗ fspec_spawnable fsp pre postS)%I.
 
     Definition init_spec : fspec :=
       fspec_winv E
         (fspec_virtual (λ '(x, pre, postS),
              ((λ varg arg, 
                 ∃ fn,
-                  ⌜varg = fn↑↑ ∧ arg = (fn↑↑)↑ ∧ fn_spawnable fn pre postS⌝ ∗
+                  ⌜varg = fn↑↑ ∧ arg = (fn↑↑)↑⌝ ∗ fn_spawnable fn pre postS ∗
                   TID (get_stid x) ∗ YIELD (get_stid x) ∗ InitNDS ∗ pre (tt↑↑) (tt↑↑) ∗ PYIP x)%I,
               (λ (vret: SAny.t) ret, False)%I)))
     .
     
     Definition inner_spawn_spec : fspec :=
-      fspec_spawn
-        (λ '(stid, (b, pre, postS)) varg arg,
+      fspec_mk
+        (λ '(b, pre, postS) varg arg,
           if (b: bool)
           then
-            (∃ fvarg farg fn mtid,
-                ⌜varg = (fn, fvarg)↑ ∧ arg = (fn, farg)↑ ∧ fn_spawnable fn pre postS⌝ ∗
-                pre fvarg farg ∗ JoinFrag (3/4)%Qp mtid postS
-                ∗ own base_γ (gmap_view_frag mtid (DfracOwn 1) (to_agree stid))
-                ∗ Public (Some mtid) false)
+            (∃ stid fvarg farg fn mtid,
+                ⌜varg = (fn, fvarg)↑ ∧ arg = (fn, farg)↑⌝ ∗
+                fn_spawnable fn pre postS ∗
+                pre fvarg farg ∗ JoinFrag (3/4)%Qp mtid (Some postS)
+                ∗ own base_γ (gmap_view_frag mtid (DfracOwn 1) (to_agree (Some stid)))
+                ∗ Public (Some mtid) false
+                ∗ winv (E, E) ∗ TID stid ∗ YIELD stid)
           else
-            (∃ fvarg farg fn mtid,
-                ⌜varg = (fn, fvarg)↑ ∧ arg = (fn, farg)↑ ∧ fn_spawnable fn pre postS /\ mtid = 0⌝ ∗
-                pre fvarg farg ∗ JoinFrag (3/4)%Qp mtid postS
-                ∗ own base_γ (gmap_view_frag mtid (DfracOwn (1/2)%Qp) (to_agree stid)) ∗ Control
-                ∗ Public (Some mtid) false))%I
+            (∃ stid fvarg farg fn mtid,
+                ⌜varg = (fn, fvarg)↑ ∧ arg = (fn, farg)↑ /\ mtid = 0⌝ ∗
+                fn_spawnable fn pre postS ∗
+                pre fvarg farg ∗ JoinFrag (3/4)%Qp mtid (Some postS)
+                ∗ own base_γ (gmap_view_frag mtid (DfracOwn (1/2)%Qp) (to_agree (Some stid))) ∗ Control
+                ∗ Public (Some mtid) false
+                ∗ winv (E, E) ∗ TID stid ∗ YIELD stid))%I
         (λ _ vret _, ∃ (vr : SAny.t), ⌜vret = vr↑⌝ ∗ False)%I.
 
     Definition spawn_spec : fspec :=
@@ -459,12 +463,12 @@ Module NDSA. Section NDSA.
         ((λ varg arg,
           ∃ fvarg farg fn,
             ⌜varg = ((fn, fvarg) : string * SAny.t) ∧
-             arg = ((fn, farg) : string * SAny.t)↑ ∧
-             fn_spawnable fn pre postS⌝ ∗
+             arg = ((fn, farg) : string * SAny.t)↑⌝ ∗
+            fn_spawnable fn pre postS ∗
             Tid mtid stid ssch ∗
             pre fvarg farg)%I,
           (λ vret ret,
-            ∃ tid, ⌜vret = tid ∧ ret = tid↑⌝ ∗ Tid mtid stid ssch ∗ JoinHandle tid postS)%I)).
+            ∃ tid, ⌜vret = tid ∧ ret = tid↑⌝ ∗ Tid mtid stid ssch ∗ JoinHandle tid (Some postS))%I)).
 
     Definition yield_spec : fspec :=
       fspec_winv E
@@ -482,7 +486,7 @@ Module NDSA. Section NDSA.
       fspec_winv E
         (fspec_virtual (λ '(mtid, stid, ssch, tid, postS),
           ((λ varg arg,
-            ⌜arg = tid↑ ∧ varg = tid⌝ ∗ Tid mtid stid ssch ∗ JoinHandle tid postS),
+            ⌜arg = tid↑ ∧ varg = tid⌝ ∗ Tid mtid stid ssch ∗ JoinHandle tid (Some postS)),
            (λ vret ret, 
             (∃ vsret sret, ⌜vret = (Some vsret) ∧ ret = (Some sret)↑⌝ ∗
             Tid mtid stid ssch ∗ interp_cond (postS vsret sret)))))%I).
@@ -492,14 +496,14 @@ Module NDSA. Section NDSA.
         ((λ varg, (⌜varg = tt↑⌝ ∗ Tid mtid stid ssch)),
          (λ vret, (⌜vret = mtid↑⌝ ∗ Tid mtid stid ssch))))%I.
 
-    Definition sp : spl_type :=
-      Seal.sealing CRIS 
-        [(Some NDSHdr._spawn,       Some inner_spawn_spec);
-         (Some NDSHdr.spawn,        Some spawn_spec);
-         (Some NDSHdr.yield,        Some yield_spec);
-         (Some NDSHdr.yield_global, Some yield_global_spec);
-         (Some NDSHdr.join,         Some join_spec);
-         (Some NDSHdr.get_tid,      Some get_tid_spec)].
+    Definition sp : specmap :=
+      {[speckey_fn NDSHdr.init := fspec_to_rel init_spec;
+        speckey_fn NDSHdr._spawn := fspec_to_rel inner_spawn_spec;
+        speckey_fn NDSHdr.spawn := fspec_to_rel spawn_spec;
+        speckey_fn NDSHdr.yield := fspec_to_rel yield_spec;
+        speckey_fn NDSHdr.yield_global := fspec_to_rel yield_global_spec;
+        speckey_fn NDSHdr.join := fspec_to_rel join_spec;
+        speckey_fn NDSHdr.get_tid := fspec_to_rel get_tid_spec]}.
   End SPEC.
 
   Import NDSI.
@@ -585,33 +589,25 @@ Module NDSA. Section NDSA.
   Definition get_tid : unit → itree crisE nat :=
     λ _, cgetN v_tid.
 
-  Definition fnsems sp_user (T: Type) (get_stid : T → nat) (PYIP : T → iProp Σ) : fnsems_type :=
-    [(Some NDSHdr.init,
-       (true, wmask_all, scopes, (Some (init_spec sp_user ⊤ T get_stid PYIP),   (cfunN init))));
-     (Some NDSHdr._spawn,
-       (true, wmask_all, scopes, (Some (inner_spawn_spec sp_user ⊤), (cfunN inner_spawn))));
-     (Some NDSHdr.spawn,
-       (true, wmask_all, scopes, (Some (spawn_spec sp_user ⊤),       (cfunN spawn))));
-     (Some NDSHdr.yield,
-       (true, wmask_all, scopes, (Some (yield_spec ⊤),               (cfunN yield))));
-     (Some NDSHdr.yield_global,
-       (true, wmask_all, scopes, (Some (yield_global_spec ⊤),        (cfunN yield_global))));
-     (Some NDSHdr.join,
-       (true, wmask_all, scopes, (Some (join_spec ⊤),                (cfunN join))));
-     (Some NDSHdr.get_tid,
-       (true, wmask_all, scopes, (Some (get_tid_spec),               (cfunN get_tid))))].
+  Definition fnsems (E : coPset) (sp_user: specmap) (T: Type) (get_stid: T → nat) (PYIP: T → iProp Σ): fnsemmap:=
+    {[Some NDSHdr.init := Some (msk_scp scp msk_true, (fsp_some (init_spec sp_user E T get_stid PYIP), cfunN init));
+      Some NDSHdr._spawn := Some (msk_scp scp msk_true, (fsp_some (inner_spawn_spec sp_user E), cfunN inner_spawn));
+      Some NDSHdr.spawn := Some (msk_scp scp msk_true, (fsp_some (spawn_spec sp_user E), cfunN spawn));
+      Some NDSHdr.yield := Some (msk_scp scp msk_true, (fsp_some (yield_spec E), cfunN yield));
+      Some NDSHdr.yield_global := Some (msk_scp scp msk_true, (fsp_some (yield_global_spec E), cfunN yield_global));
+      Some NDSHdr.join := Some (msk_scp scp msk_true, (fsp_some (join_spec E), cfunN join));
+      Some NDSHdr.get_tid := Some (msk_scp scp msk_true, (fsp_some (get_tid_spec), cfunN get_tid))]}.
 
-  Program Definition smod sp_user T get_stid PYIP : SMod.t := {|
-    SMod.scopes := scopes;
-    SMod.fnsems := fnsems sp_user T get_stid PYIP;
+  Program Definition smod E sp_user T get_stid PYIP : SMod.t := {|
+    SMod.scopes := scp;
+    SMod.fnsems := fnsems E sp_user T get_stid PYIP;
     SMod.initial_st := (NDSI.smod parent_yield).(SMod.initial_st);
   |}.
-  Solve All Obligations with prove_scope.
-  Next Obligation. prove_nodup. Qed.
+  Solve All Obligations with rewrite /NDSI.smod /=; mod_tac.
 
-  Definition init_cond : iProp Σ := own base_γ ir_tidRA ∗ own base_γ ir_joinRA ∗ own base_γ (Cinl (1/2)%Qp) ∗ own base_γ (gmap_view_auth (DfracOwn 1) (∅: gmap (option nat) (agreeR boolO))).
+  Definition init_cond : iProp Σ := own base_γ ir_tidRA ∗ own base_γ ir_joinRA ∗ own base_γ (Cinl (1/2)%Qp) ∗ own base_γ (gmap_view_auth (DfracOwn 1) (∅: gmap (option nat) (agreeR (optionO boolO)))).
 
-  Definition t sp sp_user T get_stid PYIP := Seal.sealing CRIS (SMod.to_mod sp (smod sp_user T get_stid PYIP)).
+  Definition t sp sp_user T get_stid PYIP := SMod.to_mod sp (smod ⊤ sp_user T get_stid PYIP).
 End NDSA. End NDSA.
 
 Section FSPEC_NDS.
@@ -619,7 +615,7 @@ Section FSPEC_NDS.
 
   Definition fspec_nds E (fsp : fspec) : fspec :=
     fspec_winv E
-      (fspec_call
+      (fspec_mk
         (λ '(mtid, stid, ssch, x) varg arg, Tid mtid stid ssch ∗ precond fsp x varg arg)
         (λ '(mtid, stid, ssch, x) vret ret, Tid mtid stid ssch ∗ postcond fsp x vret ret))%I.
 End FSPEC_NDS.

@@ -8,7 +8,7 @@ Module NDSI. Section NDSI.
 
   Variable (parent_yield : string).
 
-  Definition scopes := [NDS].
+  Definition scp : gmultiset string := {[+ NDS +]}.
   Definition v_ths := NDS ↯ "ths".
   Definition v_tid := NDS ↯ "tid".
   Definition v_sch := NDS ↯ "sch".
@@ -23,7 +23,7 @@ Module NDSI. Section NDSI.
       'ths: thpool <- cgetU v_ths;;
       new_stid <- trigger (Spawn NDSHdr._spawn (fn, tt↑↑)↑);;
       cput v_ths (ths ++ [(new_stid, None)]);;;
-      cput v_tid (length ths);;;
+      cput v_tid (List.length ths);;;
       trigger (Yield new_stid);;;
       (* infinite global yield *)
       iterC (λ _,
@@ -54,7 +54,7 @@ Module NDSI. Section NDSI.
       'ths : thpool <- cgetU v_ths;;
       new_stid <- trigger (Spawn NDSHdr._spawn (fn, arg)↑);;
       cput v_ths (ths ++ [(new_stid, None)]);;;
-      Ret (length ths).
+      Ret (List.length ths).
 
   Definition yield : unit → itree crisE unit :=
     λ _,
@@ -92,23 +92,22 @@ Module NDSI. Section NDSI.
   Definition get_tid : unit → itree crisE nat :=
     λ _, cgetU v_tid.
 
-  Definition fnsems : fnsems_type :=
-    [(Some NDSHdr.init,         (false, wmask_all, scopes, (None, cfunU init)));
-     (Some NDSHdr._spawn,       (false, wmask_all, scopes, (None, cfunU inner_spawn)));
-     (Some NDSHdr.spawn,        (false, wmask_all, scopes, (None, cfunU spawn)));
-     (Some NDSHdr.yield,        (false, wmask_all, scopes, (None, cfunU yield)));
-     (Some NDSHdr.yield_global, (false, wmask_all, scopes, (None, cfunU yield_global)));
-     (Some NDSHdr.join,         (false, wmask_all, scopes, (None, cfunU join)));
-     (Some NDSHdr.get_tid,      (false, wmask_all, scopes, (None, cfunU get_tid)))].
+  Definition fnsems : fnsemmap :=
+    {[Some NDSHdr.init := Some (msk_real (msk_scp scp msk_true), (None, cfunU init));
+      Some NDSHdr._spawn := Some (msk_real (msk_scp scp msk_true), (None, cfunU inner_spawn));
+      Some NDSHdr.spawn := Some (msk_real (msk_scp scp msk_true), (None, cfunU spawn));
+      Some NDSHdr.yield := Some (msk_real (msk_scp scp msk_true), (None, cfunU yield));
+      Some NDSHdr.yield_global := Some (msk_real (msk_scp scp msk_true), (None, cfunU yield_global));
+      Some NDSHdr.join := Some (msk_real (msk_scp scp msk_true), (None, cfunU join));
+      Some NDSHdr.get_tid := Some (msk_real (msk_scp scp msk_true), (None, cfunU get_tid))]}.
 
   Program Definition smod: SMod.t :=
   {|
-    SMod.scopes := scopes;
+    SMod.scopes := scp;
     SMod.fnsems := fnsems;
-    SMod.initial_st := [(v_ths, ([] : thpool)↑); (v_tid, 0↑); (v_sch, 0↑)];
+    SMod.initial_st := {[v_ths := Some ([] : thpool)↑; v_tid := Some 0↑; v_sch := Some 0↑]};
   |}.
-  Solve All Obligations with prove_scope.
-  Next Obligation. prove_nodup. Qed.
+  Solve All Obligations with mod_tac.
 
-  Definition t := Seal.sealing CRIS (SMod.to_mod sp_none smod).
+  Definition t := SMod.to_mod ∅ smod.
 End NDSI. End NDSI.

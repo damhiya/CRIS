@@ -10,11 +10,11 @@ Section RRSRA.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
 
   Canonical Structure InvO := leibnizO {n & GTerm.t n}.
-  Definition invRA := gmap_viewUR nat (agreeR InvO).
-  Definition tidRA := gmap_viewUR nat (agreeR natO).
-  Definition initRA := csumR (exclR unitO) (agreeR natO).
-  Definition ctlRA := exclR unitO.
-  Definition pubRA := gmap_viewUR (option nat) (agreeR boolO).
+  Definition invRA := gmap_viewUR nat (optionR (agreeR InvO)).
+  Definition tidRA := gmap_viewUR nat (optionR (agreeR natO)).
+  Definition initRA := csumR (exclR unitO) (optionR (agreeR natO)).
+  Definition ctlRA := optionR (exclR unitO).
+  Definition pubRA := gmap_viewUR (option nat) (optionR (agreeR boolO)).
 
   Class rrsG `{!crisG Γ Σ α β τ _S _I} := {
       rrs_inG_init :: inG initRA Γ;
@@ -47,31 +47,31 @@ Module RRSAS. Section RRSAS.
 
   (** init **)
   Definition Pending : iProp Σ := Seal.sealing RRS (own base_γ (Cinl (Excl ()))).
-  Definition Shot (n : nat) : iProp Σ := Seal.sealing RRS (own base_γ (Cinr (to_agree n))).
+  Definition Shot (n : nat) : iProp Σ := Seal.sealing RRS (own base_γ (Cinr (Some (to_agree n)))).
 
   (** control **)
-  Definition Control : iProp Σ := Seal.sealing RRS (own base_γ (Excl tt : ctlRA)).
+  Definition Control : iProp Σ := Seal.sealing RRS (own base_γ (Some (Excl tt) : ctlRA)).
   
   (** public **)
   Definition PublicAuth (ths: RRSI.thpool) (tido: option nat) : iProp Σ :=
     Seal.sealing RRS
       (own base_γ
          (gmap_view_auth (DfracOwn 1)
-            (<[None := to_agree false]> (list_to_map (map (λ '(i, x), (Some i, to_agree (eq_dec (Some i) tido))) (imap pair ths)))))).
+            (<[None := Some (to_agree false)]> (list_to_map (map (λ '(i, x), (Some i, Some (to_agree (eq_dec (Some i) tido)))) (imap pair ths)))))).
   Definition Public (tido: option nat) (b: bool) : iProp Σ :=
     Seal.sealing RRS
-      (own base_γ (gmap_view_frag tido (DfracOwn 1) (to_agree b))).
+      (own base_γ (gmap_view_frag tido (DfracOwn 1) (Some (to_agree b)))).
 
   (** inv **)
   Definition gmap_wf (I: gmap nat InvO): Prop := dom I ≡ set_seq 0 (size I).
 
   Definition rrinv_admin_r (q: Qp) (I: gmap nat InvO): invRA :=
-    gmap_view_auth (DfracOwn q) (to_agree <$> I).
+    gmap_view_auth (DfracOwn q) ((λ x, Some (to_agree x)) <$> I).
   Definition rrinv_r (I: gmap nat InvO): invRA :=
     big_opL op
       (fun _ tid =>
          match I !! tid with
-         | Some inv => (gmap_view_frag tid DfracDiscarded (to_agree inv) : invRA)
+         | Some inv => (gmap_view_frag tid DfracDiscarded (Some (to_agree inv)) : invRA)
          | None => ε
          end) (elements (dom I)).
 
@@ -88,18 +88,21 @@ Module RRSAS. Section RRSAS.
 
   (** tid **)
   Definition Tid (mtid stid ssch: nat) : iProp Σ :=
-    own base_γ ((gmap_view_frag mtid (DfracOwn 1) (to_agree stid)) : tidRA) ∗ YIELD stid ∗ TID stid ∗ Shot ssch ∗ Control ∗ Public (Some mtid) true.
+    own base_γ ((gmap_view_frag mtid (DfracOwn 1) (Some (to_agree stid))) : tidRA) ∗ YIELD stid ∗ TID stid ∗ Shot ssch ∗ Control ∗ Public (Some mtid) true.
   Definition TidAuth (m : gmap nat nat): iProp Σ :=
-    own base_γ ((gmap_view_auth (DfracOwn 1) (to_agree <$> m)) : tidRA).
+    own base_γ ((gmap_view_auth (DfracOwn 1) ((λ x, Some (to_agree x)) <$> m)) : tidRA).
 
   Lemma Tid_Auth_Tid (m : gmap nat nat) (mtid stid : nat) (q: Qp) :
-    TidAuth m ∗ own base_γ (gmap_view_frag mtid (DfracOwn q) (to_agree stid)) -∗
+    TidAuth m ∗ own base_γ (gmap_view_frag mtid (DfracOwn q) (Some (to_agree stid))) -∗
     ⌜m !! mtid = Some stid⌝.
   Proof.
     iIntros "[A F]"; iCombine "A" "F" gives %WF%gmap_view_both_dfrac_valid_discrete_total.
     destruct WF as [? [_ [_ [Hlookup [_ Hin]]]]]; rewrite lookup_fmap in Hlookup.
     destruct (m !! mtid) as [stid2|] eqn:L; ss; inv Hlookup.
-    eapply to_agree_included in Hin. inv Hin; eauto.
+    eapply Some_included in Hin.
+    assert (to_agree stid ≼ to_agree stid2).
+    { des; eauto. rewrite Hin. refl. }
+    eapply to_agree_included in H. inv H; eauto.
   Qed.
 
   (** initial resource *)
@@ -107,7 +110,7 @@ Module RRSAS. Section RRSAS.
   Definition ir_initRA_valid : ✓ ir_initRA.
   Proof using. ss. Qed.
 
-  Definition ir_ctlRA : DRA_mk ctlRA := Excl tt.
+  Definition ir_ctlRA : DRA_mk ctlRA := Some (Excl tt).
   Definition ir_ctlRA_valid : ✓ ir_ctlRA.
   Proof using. ss. Qed.
 
@@ -135,7 +138,7 @@ Module RRSAS. Section RRSAS.
   Definition ir_schΣ : rrsΣ := *[Some ir_invRA].
 
   Definition init_pub : iProp Σ :=
-    Seal.sealing RRS (own base_γ (gmap_view_auth (DfracOwn 1) (∅: gmap (option nat) (agreeR boolO)))).
+    Seal.sealing RRS (own base_γ (gmap_view_auth (DfracOwn 1) (∅: gmap (option nat) (optionR (agreeR boolO))))).
   Definition init_inv : iProp Σ := 
     Seal.sealing RRS (rrinv ∅).
   Definition init_tid : iProp Σ :=
@@ -186,7 +189,8 @@ Module RRSAS. Section RRSAS.
               eapply elem_of_app in wf0. des; eauto.
               eapply elem_of_list_singleton in wf0. inv wf0.
               rewrite /dec /option_Dec in H0. rewrite /AList.option_Dec_obligation_1 in H0. des_ifs. ss.
-              assert (to_agree false ≼ to_agree true) by rewrite H0 //.
+              inv H0.
+              assert (to_agree false ≼ to_agree true) by rewrite H3 //.
               eapply to_agree_included in H. inv H.
             }
           }
@@ -197,8 +201,8 @@ Module RRSAS. Section RRSAS.
             { i; ss. inv wf0. }
             { i. rewrite imap_app map_app /= in wf0.
               eapply elem_of_app in wf0. des; eauto.
-              eapply elem_of_list_singleton in wf0. inv wf0. 
-              assert (to_agree false ≼ to_agree true) by rewrite H0 //.
+              eapply elem_of_list_singleton in wf0. inv wf0. inv H0.
+              assert (to_agree false ≼ to_agree true) by rewrite H3 //.
               eapply to_agree_included in H. inv H.
             }
           }
@@ -212,16 +216,16 @@ Module RRSAS. Section RRSAS.
               eapply elem_of_app in wf0. des; eauto.
               eapply elem_of_list_singleton in wf0. inv wf0.
               rewrite /dec /option_Dec in H0. rewrite /AList.option_Dec_obligation_1 in H0. des_ifs.
-              { ii. inv H.
-                assert (to_agree false ≼ to_agree true) by rewrite H0 //.
+              { ii. inv H. inv H0.
+                assert (to_agree false ≼ to_agree true) by rewrite H3 //.
                 eapply to_agree_included in H. inv H. }
               { ii. inv H. }
             }
           }
         }
       }
-      { rewrite lookup_insert // in wf0. inv wf0.
-        assert (to_agree false ≼ to_agree b) by rewrite H0 //.
+      { rewrite lookup_insert // in wf0. inv wf0. inv H0.
+        assert (to_agree false ≼ to_agree b) by rewrite H2 //.
         eapply to_agree_included in H. rewrite <-!H.
         destruct tido; ss. }
     Qed.
@@ -235,9 +239,9 @@ Module RRSAS. Section RRSAS.
       rewrite -own_op.
       iApply (own_update with "A").
       etrans; [eapply gmap_view_replace|].
-      { instantiate (1 := to_agree false). ss. }
-      set (m := _: gmap (option nat) (agreeR boolO)).
-      set (m' := _: gmap (option nat) (agreeR boolO)) at 2.
+      { instantiate (1 := Some (to_agree false)). ss. }
+      set (m := _: gmap (option nat) (optionR (agreeR boolO))).
+      set (m' := _: gmap (option nat) (optionR (agreeR boolO))) at 2.
       assert (m ≡ m').
       { subst m m'. ii. destruct i.
         { destruct (decide (tid = n)).
@@ -298,9 +302,9 @@ Module RRSAS. Section RRSAS.
       rewrite -own_op.
       iApply (own_update with "A").
       etrans; [eapply gmap_view_replace|].
-      { instantiate (1 := to_agree true). ss. }
-      set (m := _: gmap (option nat) (agreeR boolO)).
-      set (m' := _: gmap (option nat) (agreeR boolO)) at 2.
+      { instantiate (1 := Some (to_agree true)). ss. }
+      set (m := _: gmap (option nat) (optionR (agreeR boolO))).
+      set (m' := _: gmap (option nat) (optionR (agreeR boolO))) at 2.
       assert (m ≡ m').
       { subst m m'. ii. destruct i.
         { destruct (decide (tid = n)).
@@ -359,7 +363,7 @@ Module RRSAS. Section RRSAS.
       rewrite /PublicAuth /Public. unseal RRS.
       iIntros "A".
       iMod (own_update with "A") as "[A F]".
-      { etrans; first eapply (gmap_view_alloc _ (Some (length ths)) (DfracOwn 1) (to_agree false)); ss.
+      { etrans; first eapply (gmap_view_alloc _ (Some (length ths)) (DfracOwn 1) (Some (to_agree false))); ss.
         { clear IN. rewrite lookup_insert_ne; ss.
           remember (length ths) as len.
           assert (length ths ≤ len)%nat by nia. clear Heqlen.
@@ -413,7 +417,7 @@ Module RRSAS. Section RRSAS.
     Proof.
       rewrite /Pending /Shot. unseal RRS.
       iIntros "P". iPoseProof (own_update with "P") as ">Q".
-      { instantiate (1 := Cinr (to_agree n)).
+      { instantiate (1 := Cinr (Some (to_agree n))).
         eapply cmra_update_exclusive. ss. }
       iFrame; eauto.
     Qed.
@@ -422,8 +426,8 @@ Module RRSAS. Section RRSAS.
       Shot n ⊢ Shot n ∗ Shot n.
     Proof.
       rewrite /Shot. unseal RRS.
-      rewrite -{1}(agree_idemp (to_agree n)) Cinr_op.
-      iIntros "[S0 S1]". iFrame.
+      rewrite -own_op -Cinr_op -Some_op.
+      rewrite -{1}(agree_idemp (to_agree n)). iIntros "$".
     Qed.
 
     Lemma Shot_match n0 n1 :
@@ -484,7 +488,7 @@ Module RRSAS. Section RRSAS.
         rewrite -assoc. rewrite (comm _ r _).
         rewrite !assoc. rewrite -assoc.
         f_equiv.
-        { subst f. rewrite -gmap_view_frag_op agree_idemp //. }
+        { subst f. rewrite -gmap_view_frag_op -Some_op agree_idemp //. }
         { subst r. eauto. }
       - rewrite !left_id. eauto.
     Qed.
@@ -506,7 +510,7 @@ Module RRSAS. Section RRSAS.
       destruct (i0 !! i); destruct (i1 !! i); ss; inv wf0.
       f_equiv.
       assert (to_agree o ≼ to_agree o0).
-      { rewrite H3. refl. }
+      { inv H3. rewrite H4. refl. }
       eapply to_agree_included in H1; eauto.
     Qed.
 
@@ -546,7 +550,10 @@ Module RRSAS. Section RRSAS.
       iPureIntro.
       eapply gmap_view_both_dfrac_valid_discrete_total in wf. des.
       rewrite lookup_fmap in wf1. destruct (i1 !! tid); ss.
-      inv wf1. eapply to_agree_included in wf3. f_equiv. rewrite wf3. eauto.
+      inv wf1. eapply Some_included in wf3.
+      assert (to_agree v ≼ to_agree o).
+      { des; eauto. rewrite wf3; refl. }
+      eapply to_agree_included in H. f_equiv. rewrite H. eauto.
     Qed.
 
     Lemma rrinv_prev_subset i0 i1 :
@@ -608,7 +615,7 @@ Module RRSAS. Section RRSAS.
     Qed.
 
     Lemma rrinv_r_add i (WF: gmap_wf i) Q :
-      rrinv_r i ⋅ gmap_view_frag (size i) DfracDiscarded (to_agree Q)
+      rrinv_r i ⋅ gmap_view_frag (size i) DfracDiscarded (Some (to_agree Q))
       ≡ rrinv_r (<[size i:=Q]> i).
     Proof.
       rewrite /rrinv_r.
@@ -642,7 +649,7 @@ Module RRSAS. Section RRSAS.
           eapply gmap_view_alloc.
           { rewrite lookup_fmap. erewrite N. ss. }
           { eapply dfrac_valid_discarded. }
-          { instantiate (1 := to_agree Q). econs. }
+          { instantiate (1 := Some (to_agree Q)). econs. }
         }
         iDestruct "A" as "[A F0]".
         iApply own_op.
@@ -655,15 +662,15 @@ Module RRSAS. Section RRSAS.
 
   (* Scheduler specifications *)
   Section SPEC.
-    Variable sp_user : spl_type.
+    Variable sp_user : specmap.
     Variable E : coPset.
     Variable T : Type.
     Variable get_stid : T -> nat.
     Variable PYIP: T → iProp Σ.
 
     Definition fspec_spawnable_rr fsp
-      (my_tid: nat) (pre : SAny.t → SAny.t → iProp Σ) (Invs: gmap nat InvO) : Prop :=
-      fspec_imply' fsp
+      (my_tid: nat) (pre : SAny.t → SAny.t → iProp Σ) (Invs: gmap nat InvO) : iProp Σ :=
+      fspec_imply fsp
         (fspec_winv E
            (fspec_virtual (λ '(mtid, stid, ssch),
               ((λ (varg: SAny.t) arg,
@@ -675,8 +682,8 @@ Module RRSAS. Section RRSAS.
     .
 
     Definition fspec_spawnable_rr_init fsp
-      (my_tid: nat) (pre : SAny.t → SAny.t → iProp Σ) (Inv: InvO) : Prop :=
-      fspec_imply' fsp
+      (my_tid: nat) (pre : SAny.t → SAny.t → iProp Σ) (Inv: InvO) : iProp Σ :=
+      fspec_imply fsp
         (fspec_winv E
            (fspec_virtual (λ '(mtid, stid, ssch),
               ((λ (varg: SAny.t) arg,
@@ -686,39 +693,38 @@ Module RRSAS. Section RRSAS.
                 (λ (vret: SAny.t) ret,
                   Tid my_tid stid ssch ∗ (∃ (sret: SAny.t), ⌜ret = sret↑⌝)))%I)))
     .
-    
-    Definition fn_spawnable_rr fn (my_tid: nat) (pre : SAny.t → SAny.t → iProp Σ) Invs : Prop :=
-      ∃ fsp, alist_find (Some fn) sp_user = Some (Some fsp) ∧
-      fspec_spawnable_rr fsp my_tid pre Invs.
 
-    Definition fn_spawnable_rr_init fn (my_tid: nat) (pre : SAny.t → SAny.t → iProp Σ) Inv : Prop :=
-      ∃ fsp, alist_find (Some fn) sp_user = Some (Some fsp) ∧
-      fspec_spawnable_rr_init fsp my_tid pre Inv.
+    Definition fn_spawnable_rr fn (my_tid: nat) (pre : SAny.t → SAny.t → iProp Σ) Invs : iProp Σ :=
+      (∃ fsp, ⌜sp_user !! (speckey_fn fn) = Some fsp⌝ ∧ fspec_spawnable_rr fsp my_tid pre Invs)%I.
+    
+    Definition fn_spawnable_rr_init fn (my_tid: nat) (pre : SAny.t → SAny.t → iProp Σ) Inv : iProp Σ :=
+      (∃ fsp, ⌜sp_user !! (speckey_fn fn) = Some fsp⌝ ∧
+       fspec_spawnable_rr_init fsp my_tid pre Inv).
 
     Definition init_spec : fspec :=
       fspec_winv E
         (fspec_virtual (λ '(x, pre, Inv),
              ((λ varg arg, 
                 ∃ fn,
-                  ⌜varg = fn↑↑ ∧ arg = (fn↑↑)↑ ∧ fn_spawnable_rr_init fn 0 pre Inv⌝ ∗
+                  ⌜varg = fn↑↑ ∧ arg = (fn↑↑)↑⌝ ∗ fn_spawnable_rr_init fn 0 pre Inv ∗
                   TID (get_stid x) ∗ YIELD (get_stid x) ∗ InitRRS ∗ pre (tt↑↑) (tt↑↑) ∗ PYIP x)%I,
               (λ (vret: SAny.t) ret, False)%I)))
     .
     
     Definition inner_spawn_spec : fspec :=
-      fspec_spawn
-        (λ '(stid, (b, mtid, pre)) varg arg,
+      fspec_mk
+        (λ '(b, mtid, pre) varg arg,
           if (b: bool)
           then
-            (∃ fvarg farg fn Invs,
-                ⌜varg = (fn, fvarg)↑ ∧ arg = (fn, farg)↑ ∧ fn_spawnable_rr fn mtid pre Invs /\ Invs <> ∅⌝ ∗
-                pre fvarg farg ∗ rrinv_prev Invs ∗ own base_γ (gmap_view_frag mtid (DfracOwn 1) (to_agree stid))) ∗
+            (∃ stid fvarg farg fn Invs,
+                ⌜varg = (fn, fvarg)↑ ∧ arg = (fn, farg)↑ /\ Invs <> ∅⌝ ∗ fn_spawnable_rr fn mtid pre Invs ∗
+                pre fvarg farg ∗ rrinv_prev Invs ∗ own base_γ (gmap_view_frag mtid (DfracOwn 1) (Some (to_agree stid))) ∗ winv (⊤, ⊤) ∗ TID stid ∗ YIELD stid) ∗
                 Public (Some mtid) false
           else
-            (∃ fvarg farg fn Inv,
-                ⌜varg = (fn, fvarg)↑ ∧ arg = (fn, farg)↑ ∧ fn_spawnable_rr_init fn mtid pre Inv /\ mtid = 0⌝ ∗
-                pre fvarg farg ∗ rrinv {[0:=Inv]} ∗ own base_γ (gmap_view_frag mtid (DfracOwn (1/2)%Qp) (to_agree stid)) ∗ Control ∗
-                Public (Some mtid) false))%I
+            (∃ stid fvarg farg fn Inv,
+                ⌜varg = (fn, fvarg)↑ ∧ arg = (fn, farg)↑ /\ mtid = 0⌝ ∗ fn_spawnable_rr_init fn mtid pre Inv ∗
+                pre fvarg farg ∗ rrinv {[0:=Inv]} ∗ own base_γ (gmap_view_frag mtid (DfracOwn (1/2)%Qp) (Some (to_agree stid))) ∗ Control ∗
+                Public (Some mtid) false ∗ winv (⊤, ⊤) ∗ TID stid ∗ YIELD stid))%I
         (λ _ _ _, False)%I
     .
 
@@ -729,7 +735,8 @@ Module RRSAS. Section RRSAS.
              (∃ fvarg farg fn,
                  ⌜varg = ((fn, fvarg): string * SAny.t) 
                  ∧ arg = ((fn, farg): string * SAny.t)↑
-                 ∧ fn_spawnable_rr fn (size Invs) pre (<[(size Invs) := nInv]> Invs) ∧ Invs ≠ ∅⌝ ∗
+                 ∧ Invs ≠ ∅⌝ ∗
+                 fn_spawnable_rr fn (size Invs) pre (<[(size Invs) := nInv]> Invs) ∗
                  pre fvarg farg) ∗
              Tid mtid stid ssch ∗
              rrinv Invs)%I,
@@ -767,14 +774,13 @@ Module RRSAS. Section RRSAS.
        ((λ varg, (⌜varg = tt↑⌝ ∗ Tid mtid stid ssch)),
         (λ vret, (⌜vret = mtid↑⌝ ∗ Tid mtid stid ssch))))%I.
 
-    Definition sp : spl_type :=
-      Seal.sealing CRIS
-        [(Some RRSHdr.init,         Some (init_spec));
-         (Some RRSHdr._spawn,       Some (inner_spawn_spec));
-         (Some RRSHdr.spawn,        Some (spawn_spec));
-         (Some RRSHdr.yield,        Some (yield_spec));
-         (Some RRSHdr.yield_global, Some (yield_global_spec));
-         (Some RRSHdr.get_tid,      Some (get_tid_spec))].
+    Definition sp : specmap :=
+      {[speckey_fn RRSHdr.init := fspec_to_rel init_spec;
+        speckey_fn RRSHdr._spawn := fspec_to_rel inner_spawn_spec;
+        speckey_fn RRSHdr.spawn := fspec_to_rel spawn_spec;
+        speckey_fn RRSHdr.yield := fspec_to_rel yield_spec;
+        speckey_fn RRSHdr.yield_global := fspec_to_rel yield_global_spec;
+        speckey_fn RRSHdr.get_tid := fspec_to_rel get_tid_spec]}.
 
   End SPEC.
 End RRSAS. End RRSAS.
@@ -856,26 +862,25 @@ Module RRSA. Section RRSA.
   Definition get_tid : unit → itree crisE nat :=
     λ _, cgetN v_tid.
   
-  Definition fnsems sp_user (T: Type) (get_stid: T → nat) (PYIP: T → iProp Σ) : fnsems_type :=
-    [(Some RRSHdr.init,         (true, wmask_all, scopes, (Some (RRSAS.init_spec sp_user ⊤ get_stid PYIP),   (cfunN init))));
-     (Some RRSHdr._spawn,       (true, wmask_all, scopes, (Some (RRSAS.inner_spawn_spec sp_user ⊤), (cfunN inner_spawn))));
-     (Some RRSHdr.spawn,        (true, wmask_all, scopes, (Some (RRSAS.spawn_spec sp_user ⊤),       (cfunN spawn))));
-     (Some RRSHdr.yield,        (true, wmask_all, scopes, (Some (RRSAS.yield_spec ⊤),               (cfunN yield))));
-     (Some RRSHdr.yield_global, (true, wmask_all, scopes, (Some (RRSAS.yield_global_spec ⊤),        (cfunN yield_global))));
-     (Some RRSHdr.get_tid,      (true, wmask_all, scopes, (Some (RRSAS.get_tid_spec),               (cfunN get_tid))))].
+  Definition fnsems (E: coPset) (sp_user: specmap) (T: Type) (get_stid : T → nat) (PYIP: T → iProp Σ): fnsemmap :=
+    {[Some RRSHdr.init := Some (msk_scp scp msk_true, (fsp_some (RRSAS.init_spec sp_user E get_stid PYIP), cfunN init));
+      Some RRSHdr._spawn := Some (msk_scp scp msk_true, (fsp_some (RRSAS.inner_spawn_spec sp_user E), cfunN inner_spawn));
+      Some RRSHdr.spawn := Some (msk_scp scp msk_true, (fsp_some (RRSAS.spawn_spec sp_user E), cfunN spawn));
+      Some RRSHdr.yield := Some (msk_scp scp msk_true, (fsp_some (RRSAS.yield_spec E), cfunN yield));
+      Some RRSHdr.yield_global := Some (msk_scp scp msk_true, (fsp_some (RRSAS.yield_global_spec E), cfunN yield_global));
+      Some RRSHdr.get_tid := Some (msk_scp scp msk_true, (fsp_some (RRSAS.get_tid_spec), cfunN get_tid))]}.
 
-  Program Definition smod sp_user (T: Type) (get_stid: T → nat) (PYIP : T → iProp Σ): SMod.t := {|
-    SMod.scopes := scopes;
-    SMod.fnsems := fnsems sp_user get_stid PYIP;
+  Program Definition smod sp_user (E: coPset) (T: Type) (get_stid: T → nat) (PYIP : T → iProp Σ): SMod.t := {|
+    SMod.scopes := scp;
+    SMod.fnsems := fnsems E sp_user get_stid PYIP;
     SMod.initial_st := (RRSI.smod parent_yield).(SMod.initial_st);
   |}.
-  Solve All Obligations with prove_scope.
-  Next Obligation. prove_nodup. Qed.
+  Solve All Obligations with rewrite /RRSI.smod /=; mod_tac.
 
   Definition init_cond : iProp Σ := RRSAS.init_inv ∗ RRSAS.init_tid ∗ RRSAS.init_pub.
   
   Definition t sp sp_user (T: Type) (get_stid: T → nat) (PYIP : T → iProp Σ) :=
-    Seal.sealing CRIS (SMod.to_mod sp (smod sp_user get_stid PYIP)).
+    SMod.to_mod sp (smod sp_user ⊤ get_stid PYIP).
 
 End RRSA. End RRSA.
 
@@ -885,13 +890,13 @@ Section FSPEC_RRSCH.
   Context `{_schG: !rrsG}.
 
   Definition per_tid_fspec (fspecf: nat -> fspec) : fspec :=
-    fspec_call (meta := { i : nat & meta (fspecf i) })
+    fspec_mk (meta := { i : nat & meta (fspecf i) })
       (λ '(existT i meta_i), precond (fspecf i) meta_i)
       (λ '(existT i meta_i), postcond (fspecf i) meta_i).
 
   Definition per_tid_fspec_rrsch E (fsp: fspec) (Invf: nat -> InvO) (mtid : nat) : fspec :=
     fspec_winv E
-      (fspec_call (meta := meta fsp * (gmap nat InvO))
+      (fspec_mk (meta := meta fsp * (gmap nat InvO))
          (λ '(x,Invs) varg arg,
            ∃ stid ssch Invs',
              Tid mtid stid ssch ∗

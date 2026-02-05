@@ -11,7 +11,7 @@ Module RRSNodeI. Section RRSNodeI.
   Context `{_rrsG: !RRSA.rrsG}.
   Context `{_memG: !MemA.memG}.
 
-  Definition scopes := [RRSNODE].
+  Definition scopes : gmultiset string := {[+RRSNODE+]}.
 
   Definition f_main : SAny.t -> itree crisE SAny.t :=
     fun _ =>
@@ -34,19 +34,17 @@ Module RRSNodeI. Section RRSNodeI.
       Ret (tt↑↑)
   .
   
-  Definition fnsems : fnsems_type :=
-    [(Some RRSNodeHdr.f_main, (false, wmask_all, scopes, (None, cfunU f_main)));
-     (Some RRSNodeHdr.f,      (false, wmask_all, scopes, (None, cfunU f)))].
+  Definition fnsems : fnsemmap :=
+    {[Some RRSNodeHdr.f_main := Some (msk_real (msk_scp scopes msk_true), (None, cfunU f_main));
+      Some RRSNodeHdr.f      := Some (msk_real (msk_scp scopes msk_true), (None, cfunU f))]}.
 
   Program Definition smod: SMod.t :=
   {|
     SMod.scopes := scopes;
     SMod.fnsems := fnsems;
-    SMod.initial_st := [];
+    SMod.initial_st := ∅;
   |}.
-  Solve All Obligations with prove_scope.
-  Next Obligation. prove_nodup. Qed.
+  Solve All Obligations with mod_tac.
 
-  Definition t := Seal.sealing CRIS (SMod.to_mod sp_none smod).
-
+  Definition t := SMod.to_mod ∅ smod.
 End RRSNodeI. End RRSNodeI.
