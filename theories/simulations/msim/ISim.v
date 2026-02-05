@@ -860,6 +860,12 @@ Section FSEM.
             false false (st_src, itr_src arg) (st_tgt, itr_tgt arg)).
 End FSEM.
 
+Definition sandbox_fnsemmap `{Σ : GRA} (fns : gmap (option string) (option (emask * fbody))) :=
+  (λ v : option _, SB.sandbox_body <$> v) <$> fns.
+Arguments sandbox_fnsemmap : simpl never.
+Global Hint Extern 80 (sandbox_fnsemmap _ !! _ = Some _) =>
+  rewrite /sandbox_fnsemmap; simpl_map : simpl_map.
+
 Module ISim. Section ISim.
   Import Mod.
   Context `{!crisG Γ Σ α β τ _S _I}.
@@ -875,8 +881,9 @@ Module ISim. Section ISim.
   Let fnsems_tgt := ms_tgt.(fnsems).
   Let init_src := ms_src.(initial_st).
   Let init_tgt := ms_tgt.(initial_st).
-  Let fl_src := (λ v : option _, SB.sandbox_body <$> v) <$> fnsems_src.
-  Let fl_tgt := (λ v : option _, SB.sandbox_body <$> v) <$> fnsems_tgt.
+
+  Let fl_src := sandbox_fnsemmap fnsems_src.
+  Let fl_tgt := sandbox_fnsemmap fnsems_tgt.
 
   Definition sim_fun fno : Prop :=
     match fl_src !! fno with

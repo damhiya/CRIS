@@ -26,7 +26,7 @@ Section wsim.
       (img_s img_t img_s' img_t' : bool)
       (msk_s msk_t : string → bool)
       (scp_s scp_t : list string)
-      (sp_s sp_t : string → option fspec)
+      (sp_s sp_t : specmap)
       (k_s : () → itree crisE R_s)
       (k_t : () → itree crisE R_t)
       (mtid stid ssch : nat) :

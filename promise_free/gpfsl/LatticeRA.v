@@ -1,6 +1,5 @@
 (* Definition of lattice algebra copied from gpfsl *)
 Require Import CRIS.
-(* From iris.base_logic.lib Require Import own. *)
 From iris.algebra Require Import cmra auth lib.frac_auth.
 Require Export base.
 Require Import iris.prelude.options.
@@ -143,8 +142,7 @@ Section lat_auth.
     own γ (● (to_latT V1)) ⊢ own γ (◯ (to_latT V2)) -∗ ⌜V2 ⊑ V1⌝.
   Proof.
     apply bi.wand_intro_r.
-    rewrite -own_op own_valid uPred.discrete_valid auth_both_valid_discrete
-            latT_included.
+    rewrite -own_op own_valid auth_both_valid_discrete latT_included.
     by apply bi.pure_mono=>-[? _].
   Qed.
 End lat_auth.

@@ -5,7 +5,7 @@ Require Import Time Cell View TView base Language.
 (* Specification of promise-free memory module *)
 Module PFMemA. Section PFMemA.
   Context `{!crisG Γ Σ α β τ _S _I, !concG, !histG, !atomicG}.
-  Definition scopes := ["PFMem"].
+  Definition scopes : gmultiset string := {[+"PFMem"+]}.
 
   Definition alloc_spec : fspec :=
     fspec_simple (X:=Ident.t * nat * TView.t)
@@ -58,7 +58,8 @@ Module PFMemA. Section PFMemA.
           ∗ @{Vb} AtomicPtsToX loc γ t ζ mode
           ∗ tview tid 𝓥')))%I.
 
-  Definition read_spec : fspec := app_fspec [read_spec_0; read_spec_1].
+  Definition read_spec : fspec_rel :=
+    λ P Q, fspec_to_rel read_spec_0 P Q ∨ fspec_to_rel read_spec_1 P Q.
 
   (* non-atomic write *)
   Definition write_spec_0 : fspec :=
@@ -107,7 +108,8 @@ Module PFMemA. Section PFMemA.
           ∗ @{Vb ⊔ TView.cur 𝓥'} AtomicPtsToX loc γ (if mode is SingleWriter then t else tx') ζn mode
           ∗ tview tid 𝓥')))%I.
 
-  Definition write_spec : fspec := app_fspec [write_spec_0; write_spec_1].
+  Definition write_spec : fspec_rel :=
+    λ P Q, fspec_to_rel write_spec_0 P Q ∨ fspec_to_rel write_spec_1 P Q.
 
   (* TODO : Move to appropriate space *)
   Definition comparable (v1 v2 : Val.t) : Prop :=
@@ -201,35 +203,34 @@ Module PFMemA. Section PFMemA.
            (TView.acq 𝓥' = TView.acq 𝓥)⌝ ∗
           tview tid 𝓥')))%I.
 
-  Definition sp : spl_type :=  
-    Seal.sealing CRIS
-      [(Some PFMemHdr.alloc, Some alloc_spec);
-       (Some PFMemHdr.free,  Some free_spec);
-       (Some PFMemHdr.read,  Some read_spec);
-       (Some PFMemHdr.write, Some write_spec);
-       (Some PFMemHdr.cas,   Some cas_spec);
-       (Some PFMemHdr.fence, Some fence_spec);
-       (Some PFMemHdr.spawn, Some spawn_spec)].
+  Definition sp : specmap :=  
+    {[speckey_fn PFMemHdr.alloc := fspec_to_rel alloc_spec;
+      speckey_fn PFMemHdr.free := fspec_to_rel free_spec;
+      speckey_fn PFMemHdr.read := read_spec;
+      speckey_fn PFMemHdr.write := write_spec;
+      speckey_fn PFMemHdr.cas := fspec_to_rel cas_spec;
+      speckey_fn PFMemHdr.fence := fspec_to_rel fence_spec;
+      speckey_fn PFMemHdr.spawn := fspec_to_rel spawn_spec
+    ]}.
 
-  Definition fnsems : alist (option string) (fnsem_type (option fspec * fbody)) :=
-    [(Some PFMemHdr.alloc, (true, wmask_all, scopes, (Some alloc_spec, fbody_trivial)));
-     (Some PFMemHdr.free,  (true, wmask_all, scopes, (Some free_spec,  fbody_trivial)));
-     (Some PFMemHdr.read,  (true, wmask_all, scopes, (Some read_spec,  fbody_trivial)));
-     (Some PFMemHdr.write, (true, wmask_all, scopes, (Some write_spec, fbody_trivial)));
-     (Some PFMemHdr.cas,   (true, wmask_all, scopes, (Some cas_spec,   fbody_trivial)));
-     (Some PFMemHdr.fence, (true, wmask_all, scopes, (Some fence_spec, fbody_trivial)));
-     (Some PFMemHdr.spawn, (true, wmask_all, scopes, (Some spawn_spec, fbody_trivial)))].
+  Definition fnsems : fnsemmap :=
+    {[Some PFMemHdr.alloc := Some (msk_scp scopes msk_true, (fsp_some alloc_spec, fbody_trivial));
+      Some PFMemHdr.free := Some (msk_scp scopes msk_true, (fsp_some free_spec, fbody_trivial));
+      Some PFMemHdr.read := Some (msk_scp scopes msk_true, (fsp_some read_spec, fbody_trivial));
+      Some PFMemHdr.write := Some (msk_scp scopes msk_true, (fsp_some write_spec, fbody_trivial));
+      Some PFMemHdr.cas := Some (msk_scp scopes msk_true, (fsp_some cas_spec, fbody_trivial));
+      Some PFMemHdr.fence := Some (msk_scp scopes msk_true, (fsp_some fence_spec, fbody_trivial));
+      Some PFMemHdr.spawn := Some (msk_scp scopes msk_true, (fsp_some spawn_spec, fbody_trivial))]}.
 
   (* Module definition *)
   Program Definition smod : SMod.t := {|
     SMod.scopes := scopes;
     SMod.fnsems := fnsems;
-    SMod.initial_st := [];
+    SMod.initial_st := ∅;
   |}.
-  Solve All Obligations with prove_scope.
-  Next Obligation. prove_nodup. Qed.
+  Solve All Obligations with mod_tac.
 
-  Definition t sp : Mod.t := Seal.sealing CRIS (SMod.to_mod sp smod).
+  Definition t sp : Mod.t := SMod.to_mod sp smod.
 
   Definition lang := Language.mk (λ _ : (), tt) (const False) (λ _ : ProgramEvent.t, λ _ _, True).
   Definition syn : Threads.syntax := IdentMap.singleton 1%positive (existT lang tt).

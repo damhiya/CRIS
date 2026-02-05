@@ -8,7 +8,6 @@ Require Import
 Module PFMemIA. Section PFMemIA.
   Context `{!crisG Γ Σ α β τ _S _I, !concG, !histG, !atomicG}.
 
-  (* Lemma hist_au *)
   Lemma ctxr sp :
     ctx_refines
       (PFMemA.t sp, PFMemA.init_cond)

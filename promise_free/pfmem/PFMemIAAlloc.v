@@ -7,7 +7,7 @@ Section alloc.
   Import PFMemIA.
   Context `{!crisG Γ Σ α β τ _S _I, !concG, !histG, !atomicG}.
 
-  Context (sp : string → option fspec).
+  Context (sp : specmap).
   Context (syn : Threads.syntax).
   Context (size : list Z).
 
@@ -127,9 +127,15 @@ Section alloc.
     }
   Qed.
 
-  Lemma simF_alloc : ISim.sim_fun open MA MI (init_cond syn size) Ist (Some PFMemHdr.alloc).
+  Lemma simF_alloc : ISim.sim_fun open MA MI Ist (Some PFMemHdr.alloc).
   Proof.
     init_simF.
+    set (fls := fmap _ _). assert (fls = sandbox_fnsemmap (Mod.fnsems MA)) by refl.
+    rewrite H4; clear dependent fls.
+    set (flt := fmap _ _). assert (flt = sandbox_fnsemmap (Mod.fnsems MI)) by refl.
+    rewrite H4; clear dependent flt.
+    unfold_cris_defs.
+    iStartSim.
     steps_l. iDestruct "ASM" as "[[-> TV] ->]". rename _q2 into 𝓥, _q3 into tid, _q4 into sz. hss.
     iDestruct "IST" as "[%gl [%ths [%Vcut [[-> [%CUT [%CUTCL [%WF [%WF2 [%PFG %PFL]]]]]] [HA [TA FA]]]]]]".
     rewrite /PFMemI.check_ident.

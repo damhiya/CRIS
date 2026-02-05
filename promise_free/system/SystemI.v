@@ -6,7 +6,7 @@ Definition tidmap : Type := gmap Ident.t nat.
 Module SystemI. Section SystemI.
   Context `{!crisG Γ Σ α β τ _S _I, !concG}.
 
-  Definition scopes := ["System"].
+  Definition scopes : gmultiset string := {[+"System"+]}.
   Definition v_tid := "System" ↯ "tid".
   Definition v_tids := "System" ↯ "tids".
 
@@ -49,23 +49,22 @@ Module SystemI. Section SystemI.
       'tid : Ident.t <- get_tid ();;
       ccallU PFMemHdr.read (tid, loc, ord).
 
-  Definition fnsems : alist (option string) (fnsem_type (option fspec * fbody)) :=
-    [(Some SystemHdr._spawn,  (false, wmask_all, scopes, (None, cfunU _spawn)));
-     (Some SystemHdr.spawn,   (false, wmask_all, scopes, (None, cfunU spawn)));
-     (Some SystemHdr.yield,   (false, wmask_all, scopes, (None, cfunU yield)));
-     (Some SystemHdr.get_tid, (false, wmask_all, scopes, (None, cfunU get_tid)));
-     (Some SystemHdr.alloc,   (false, wmask_all, scopes, (None, cfunU alloc)));
-     (Some SystemHdr.write,   (false, wmask_all, scopes, (None, cfunU write)));
-     (Some SystemHdr.read,    (false, wmask_all, scopes, (None, cfunU read)))].
+  Definition fnsems : fnsemmap :=
+    {[Some SystemHdr._spawn := Some (msk_real (msk_scp scopes msk_true), (None, cfunU _spawn));
+      Some SystemHdr.spawn := Some (msk_real (msk_scp scopes msk_true), (None, cfunU spawn));
+      Some SystemHdr.get_tid := Some (msk_real (msk_scp scopes msk_true), (None, cfunU get_tid));
+      Some SystemHdr.yield := Some (msk_real (msk_scp scopes msk_true), (None, cfunU yield));
+      Some SystemHdr.alloc := Some (msk_real (msk_scp scopes msk_true), (None, cfunU alloc));
+      Some SystemHdr.write := Some (msk_real (msk_scp scopes msk_true), (None, cfunU write));
+      Some SystemHdr.read := Some (msk_real (msk_scp scopes msk_true), (None, cfunU read))]}.
 
   Program Definition Mod: SMod.t := {|
     SMod.scopes := scopes;
     SMod.fnsems := fnsems;
     SMod.initial_st :=
-      [(v_tid, 1%positive↑); (v_tids, ({[1%positive := 0]} : tidmap)↑)];
+      {[v_tid := Some 1%positive↑; v_tids := Some ({[1%positive := 0]} : tidmap)↑]};
   |}.
-  Solve All Obligations with prove_scope.
-  Next Obligation. prove_nodup. Qed.
+  Solve All Obligations with mod_tac.
 
-  Definition t : Mod.t := Seal.sealing CRIS (SMod.to_mod sp_none Mod).
+  Definition t : Mod.t := SMod.to_mod ∅ Mod.
 End SystemI. End SystemI.

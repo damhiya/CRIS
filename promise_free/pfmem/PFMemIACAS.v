@@ -7,7 +7,7 @@ Section CAS.
   Import PFMemIA.
   Context `{!crisG Γ Σ α β τ _S _I, !concG, !histG, !atomicG}.
 
-  Context (sp : string → option fspec).
+  Context (sp : specmap).
   Context (syn : Threads.syntax).
   Context (size : list Z).
 

@@ -56,7 +56,7 @@ Module CFilter. Section CFilter.
     rewrite /ISim.sim_fun ?lookup_fmap.
     destruct (_ !! _) as [[[msk bd]|]|]; ss; intros ??; eexists; split; [refl|].
     iIntros (arg st_src st_tgt) "->"; iApply wsim_isim. iStopProof.
-    rewrite {3 4}/SB.sandbox_body /=.
+    rewrite /SB.sandbox_body /=.
     generalize (bd arg) as itr.
     combine_quant st_tgt.
     generalize false at 1 as ps. intros ps; combine_quant ps.
@@ -113,7 +113,7 @@ Module CFilter. Section CFilter.
     rewrite /ISim.sim_fun ?lookup_fmap.
     destruct (_ !! _) as [[[msk bd]|]|]; ss; intros ??; eexists; split; [refl|].
     iIntros (arg st_src st_tgt) "-> _". iStopProof.
-    rewrite {3 4}/SB.sandbox_body /=.
+    rewrite /SB.sandbox_body /=.
     generalize (bd arg) as itr.
     combine_quant st_tgt.
     generalize false at 1 as ps. intros ps; combine_quant ps.

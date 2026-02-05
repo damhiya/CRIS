@@ -5,7 +5,7 @@ Require Import base Time TView View Cell Memory Global Time.
 Module PFMemIA. Section PFMemIA.
   Context `{!crisG Γ Σ α β τ _S _I, !concG, !histG, !atomicG}.
 
-  Context (sp : string → option fspec).
+  Context (sp : specmap).
   Context (syn : Threads.syntax).
   Context (size : list Z).
 
@@ -68,11 +68,11 @@ Module PFMemIA. Section PFMemIA.
       (Memory.get loc t m) = Some (f, Message.message val V true)
       → Time.le t ((View.rlx Vcut) loc).
 
-  Definition Ist : alist key Any.t → alist key Any.t → iProp Σ :=
+  Definition Ist : ist_type Σ :=
     λ st_s st_t,
       (∃ gl ths Vcut,
         let m := Global.memory gl in
-        ⌜st_t = [(PFMemI.v_config, (Configuration.mk ths gl)↑)]
+        ⌜st_t = {[PFMemI.v_config := Some (Configuration.mk ths gl)↑]}
         ∧ view_na Vcut m
         ∧ Memory.closed_view Vcut m
         ∧ Configuration.wf (Configuration.mk ths gl)

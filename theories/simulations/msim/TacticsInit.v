@@ -111,6 +111,6 @@ Qed. *)
 Ltac init_simF :=
   rewrite /ISim.sim_fun; simpl_map; intros ??; eexists; split; first refl;
   iIntros (arg st_src st_tgt) "IST"; iApply wsim_isim;
-  rewrite /SB.sandbox_body /=.
+  rewrite /SB.sandbox_body; simpl fst; simpl snd.
 
 Ltac iStartSim := init_simF; unfold_cris_defs.

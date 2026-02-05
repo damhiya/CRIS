@@ -276,11 +276,12 @@ Section ghost_defs.
       at_auth γ ζ t V ∗ at_writer γ ζ ∗ at_exclusive_write γ t 1%Qp ∗ at_last_na γ V.
   Proof.
     setoid_rewrite at_full_auth_join.
-    do 3 setoid_rewrite <- own_op. apply own_alloc.
+    do 3 setoid_rewrite <- own_op.
+    iStartProof; iMod (own_alloc); last by iFrame.
     rewrite -?pair_op /=; split; ss.
     { rewrite ?right_id auth_both_valid_discrete; split; [done | apply to_agreeM_valid]. }
     { split; ss.
-      { rewrite left_id right_id auth_both_dfrac_valid_discrete; split; ss. }
+      rewrite left_id right_id auth_both_dfrac_valid_discrete; split; ss.
     }
   Qed.
 End ghost_defs.
@@ -393,30 +394,32 @@ Section syn_atomic_preds.
     ∧ ∀ t, is_Some (Cell.get t ζ) → seen_local loc t V ⌝%SAT.
   Lemma syn_SeenLocal_red n loc ζ V :
     ⟦syn_SeenLocal n loc ζ V⟧ ⊣⊢ SeenLocal loc ζ V.
-  Proof. SL_red; done. Qed.
+  Proof. solve_base_sl_red. Qed.
 
   Definition syn_SyncLocal n loc ζ V : GTerm.t n :=
     syn_SeenLocal n loc ζ V ∗
     ⌜∀ t f v b V', Cell.get t ζ = Some (f, Message.message v V' b) → seen_view loc t V' V⌝%SAT.
   Lemma syn_SyncLocal_red n loc ζ V :
     ⟦syn_SyncLocal n loc ζ V⟧ ⊣⊢ SyncLocal loc ζ V.
-  Proof. rewrite /syn_SyncLocal /SyncLocal; SL_red; iSplit; iIntros "%"; iPureIntro; ss. Qed.
+  Proof.
+    rewrite /syn_SyncLocal /SyncLocal; solve_base_sl_red; iSplit; iIntros "%"; iPureIntro; ss.
+  Qed.
 
   (* TODO : last non-atomic view might be useless to carry around in this model *)
   Definition syn_at_last_na n γ (Va : View.t) : GTerm.t n :=
-    <own> γ ((ε, (ε, Some $ to_agree Va)) : atomicR).
+    sown γ ((ε, (ε, Some $ to_agree Va)) : atomicR).
 
   Definition syn_at_exclusive_write n γ (tx: Time.t) q : GTerm.t n :=
-    <own> γ ((ε, (◯F{q} (to_agree tx), ε)) : atomicR).
+    sown γ ((ε, (◯F{q} (to_agree tx), ε)) : atomicR).
   Definition syn_at_auth_exclusive_write n γ (tx : Time.t) : GTerm.t n :=
-    <own> γ ((ε, (●F (to_agree tx), ε)) : atomicR).
+    sown γ ((ε, (●F (to_agree tx), ε)) : atomicR).
 
   Definition syn_at_writer_base n γ ζ q : GTerm.t n :=
-    <own> γ ((●{#q} toHistBaseUR ζ ⋅ ◯ toHistBaseUR ζ, (ε,ε)) : atomicR).
+    sown γ ((●{#q} toHistBaseUR ζ ⋅ ◯ toHistBaseUR ζ, (ε,ε)) : atomicR).
   Definition syn_at_writer n γ ζ      : GTerm.t n := syn_at_writer_base n γ ζ (3/4).
   Definition syn_at_auth_writer n γ ζ : GTerm.t n := syn_at_writer_base n γ ζ (1/4).
 
-  Definition syn_at_reader n γ ζ      : GTerm.t n := <own> γ ((◯ toHistBaseUR ζ, (ε,ε)) : atomicR).
+  Definition syn_at_reader n γ ζ      : GTerm.t n := sown γ ((◯ toHistBaseUR ζ, (ε,ε)) : atomicR).
 
   Definition syn_at_auth n γ ζ (tx : Time.t) (Va : View.t) : GTerm.t n :=
     syn_at_auth_writer n γ ζ ∗ syn_at_auth_exclusive_write n γ tx ∗ syn_at_last_na n γ Va.
@@ -439,17 +442,17 @@ Section syn_atomic_preds.
   Lemma syn_AtomicPtsToX_red n l γ t ζ mode V :
     ⟦syn_AtomicPtsToX n l γ t ζ mode V⟧ ⊣⊢ AtomicPtsToX l γ t ζ mode V.
   Proof.
-    rewrite syn_AtomicPtsToX_eq AtomicPtsToX_eq /AtomicPtsToX_def; SL_red.
-    iSplit; iIntros "[% I]"; SL_red; iDestruct "I" as "[% I]"; SL_red; iFrame.
-    { iExists _, _. SL_red; iDestruct "I" as "[$ [[$ $] I]]".
+    rewrite syn_AtomicPtsToX_eq AtomicPtsToX_eq /AtomicPtsToX_def; solve_base_sl_red.
+    iSplit; iIntros "[% I]"; iDestruct "I" as "[% I]"; iFrame.
+    { iExists _, _. iDestruct "I" as "[$ [[$ $] I]]".
       rewrite hist_eq /hist_def. iDestruct "I" as "[$ [$ I]]".
-      destruct mode; SL_red; ss.
+      destruct mode; solve_base_sl_red.
     }
     { rewrite /SyncLocal hist_eq /hist_def.
-      iExists _; SL_red; iExists _; SL_red.
+      iExists _; iExists _;
       iDestruct "I" as "[$ [%I [$ [$ ?]]]]".
       iSplit; first ss.
-      destruct mode; ss; SL_red; done.
+      destruct mode; ss; solve_base_sl_red; done.
     }
   Qed.
 
@@ -462,7 +465,7 @@ Section syn_atomic_preds.
   Lemma syn_AtomicPtsTo_red n l γ ζ mode V :
     ⟦@{V} syn_AtomicPtsTo n l γ ζ mode⟧ ⊣⊢ @{V} AtomicPtsTo l γ ζ mode.
   Proof.
-    rewrite syn_AtomicPtsTo_eq /syn_AtomicPtsTo_def AtomicPtsTo_eq /AtomicPtsTo_def; SL_red.
+    rewrite syn_AtomicPtsTo_eq /syn_AtomicPtsTo_def AtomicPtsTo_eq /AtomicPtsTo_def; solve_base_sl_red.
     by iSplit; iIntros "[%x I]"; iExists x; rewrite syn_AtomicPtsToX_red; done.
   Qed.
 End syn_atomic_preds.

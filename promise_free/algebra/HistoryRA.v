@@ -108,10 +108,10 @@ Section syn_preds.
   Context `{!crisG Γ Σ α β τ _S _I, !histG}.
 
   Definition syn_hist n loc q C : GTerm.t n :=
-    <own> base_γ (◯ (discrete_fun_singleton loc (Some (DfracOwn q, to_agree C)))).
+    sown base_γ (◯ (discrete_fun_singleton loc (Some (DfracOwn q, to_agree C)))).
   Lemma syn_hist_red n loc q C :
     ⟦syn_hist n loc q C⟧ ⊣⊢ hist loc q C.
-  Proof. SL_red; rewrite hist_eq /hist_def //. Qed.
+  Proof. solve_base_sl_red; rewrite /hist seal_eq //. Qed.
 End syn_preds.
 
 Notation "†{ q } l … n" := (hist_freeable l q n)
@@ -320,19 +320,8 @@ Section syn_preds.
   Lemma syn_own_loc_na_red n loc q v V :
     ⟦syn_own_loc_na n loc q v V⟧ ⊣⊢ @{V} own_loc_na loc q v.
   Proof.
-    rewrite own_loc_na_eq /own_loc_na_def syn_own_loc_na_eq /syn_own_loc_na_def; SL_red.
-    iSplit; iIntros "I".
-    { iDestruct "I" as "[%x I]"; iExists x; SL_red.
-      iDestruct "I" as "[%x1 I]"; iExists x1; SL_red.
-      iDestruct "I" as "[%x2 I]"; iExists x2; SL_red.
-      iDestruct "I" as "[%x3 I]"; iExists x3; SL_red.
-      iDestruct "I" as "[%x4 I]"; iExists x4; SL_red.
-      rewrite /own_loc_prim; iDestruct "I" as "[[$ ?] $]". rewrite hist_eq /hist_def //.
-    }
-    { iDestruct "I" as "[% [% [% [% [% [[I0 I1] I2]]]]]]".
-      do 5 (iExists _; SL_red). iFrame "I0 I2".
-      rewrite hist_eq /hist_def //.
-    }
+    rewrite own_loc_na_eq /own_loc_na_def syn_own_loc_na_eq /syn_own_loc_na_def.
+    solve_base_sl_red. rewrite /view_at /own_loc_prim hist_eq //.
   Qed.
 End syn_preds.
 

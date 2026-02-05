@@ -5,7 +5,7 @@ Require Export PFMemHeader.
 Module PFMemI. Section PFMemI.
   Context `{!crisG Γ Σ α β τ _S _I, !concG}.
 
-  Definition scopes := ["PFMem"].
+  Definition scopes : gmultiset string := {[+"PFMem"+]}.
   Definition v_config := "PFMem" ↯ "config".
   Definition v_tid := "PFMem" ↯ "tid".
   Definition v_tids := "PFMem" ↯ "tids".
@@ -149,24 +149,23 @@ Module PFMemI. Section PFMemI.
       cput v_config config';;;
       Ret tid_new.
 
-  Definition fnsems : alist (option string) (fnsem_type (option fspec * fbody)) :=
-    [(Some PFMemHdr.alloc, (false, wmask_all, scopes, (None, cfunU alloc)));
-     (Some PFMemHdr.free,  (false, wmask_all, scopes, (None, cfunU free)));
-     (Some PFMemHdr.read,  (false, wmask_all, scopes, (None, cfunU read)));
-     (Some PFMemHdr.write, (false, wmask_all, scopes, (None, cfunU write)));
-     (Some PFMemHdr.cmp,   (false, wmask_all, scopes, (None, cfunU cmp)));
-     (Some PFMemHdr.cas,   (false, wmask_all, scopes, (None, cfunU cas)));
-     (Some PFMemHdr.faa,   (false, wmask_all, scopes, (None, cfunU faa)));
-     (Some PFMemHdr.fence, (false, wmask_all, scopes, (None, cfunU fence)));
-     (Some PFMemHdr.spawn, (false, wmask_all, scopes, (None, cfunU spawn)))].
+  Definition fnsems : fnsemmap :=
+    {[Some PFMemHdr.alloc := Some (msk_real (msk_scp scopes msk_true), (None, cfunU alloc));
+      Some PFMemHdr.free  := Some (msk_real (msk_scp scopes msk_true), (None, cfunU free));
+      Some PFMemHdr.read  := Some (msk_real (msk_scp scopes msk_true), (None, cfunU read));
+      Some PFMemHdr.write := Some (msk_real (msk_scp scopes msk_true), (None, cfunU write));
+      Some PFMemHdr.cmp   := Some (msk_real (msk_scp scopes msk_true), (None, cfunU cmp));
+      Some PFMemHdr.cas   := Some (msk_real (msk_scp scopes msk_true), (None, cfunU cas));
+      Some PFMemHdr.faa   := Some (msk_real (msk_scp scopes msk_true), (None, cfunU faa));
+      Some PFMemHdr.fence := Some (msk_real (msk_scp scopes msk_true), (None, cfunU fence));
+      Some PFMemHdr.spawn := Some (msk_real (msk_scp scopes msk_true), (None, cfunU spawn))]}.
 
   Program Definition Mod s size : SMod.t := {|
     SMod.scopes := scopes;
     SMod.fnsems := fnsems;
-    SMod.initial_st := [(v_config, (Configuration.init s size)↑)];
+    SMod.initial_st := {[v_config := Some (Configuration.init s size)↑]};
   |}.
-  Solve All Obligations with prove_scope.
-  Next Obligation. prove_nodup. Qed.
+  Solve All Obligations with mod_tac.
 
-  Definition t s size : Mod.t := Seal.sealing CRIS (SMod.to_mod sp_none (Mod s size)).
+  Definition t s size : Mod.t := (SMod.to_mod ∅ (Mod s size)).
 End PFMemI. End PFMemI.

@@ -408,10 +408,11 @@ Module ProphIA. Section ProphIA.
             eapply lookup_omap_id_Some in EE.
             apply lookup_union_with_Some in EE as [[? EE] | [[? EE] | ]].
             { des; subst; rewrite /ProphecyI.fnsems in EE; ss. }
-            { rewrite /ProphecyI.fnsems in EE; des; subst; ss; simpl_map; ss; clarify;
+            { rewrite /Mod.fnsems /= /ProphecyI.fnsems in EE; des; subst;
+              ss; simpl_map; ss; clarify;
               rewrite /ModTr.trans_fnsem /ModTr.trans /SB.sandbox_body /SModTr.trans_fnsem /=;
                 esplits; rewrite /ProphecyI.new /ProphecyI.resolve /ProphecyI.close
-                ?SBRed.tau ?interpV_tau SRed.ret SBRed.ret interpV_ret; grind.
+                ?SBRed.tau ?interpV_tau ?SRed.ret ?SBRed.ret ?interpV_ret; grind.
             }
             { des; clarify. }
           }
@@ -445,7 +446,7 @@ Module ProphIA. Section ProphIA.
             eapply lookup_omap_id_Some in EE.
             apply lookup_union_with_Some in EE as [[? EE] | [[? EE] | ]].
             { des; subst; rewrite /ProphecyI.fnsems in EE; ss. }
-            { rewrite /ProphecyI.fnsems in EE; des; subst; ss; simpl_map; ss; clarify;
+            { rewrite /Mod.fnsems /= /ProphecyI.fnsems /= in EE; des; subst; ss; simpl_map; ss; clarify;
               rewrite /ModTr.trans_fnsem /ModTr.trans /SB.sandbox_body /SModTr.trans_fnsem /=;
                 esplits; rewrite /ProphecyI.new /ProphecyI.resolve /ProphecyI.close
                 ?SBRed.tau ?interpV_tau SRed.ret SBRed.ret interpV_ret; grind.
@@ -697,13 +698,11 @@ Module ProphIA. Section ProphIA.
 
   Lemma src_mod_wf sp (WF : Mod.wf (md ★ ProphecyI.t)) :
     Mod.wf (md ★ (ProphecyA.t sp)).
-  Proof using.
-    econs; dup WF; inv WF; eauto; s.
-    eapply map_Forall_union_with_inv_gen in wf_fns as ?.
-    eapply map_Forall_union_with_inv in wf_fns as [? ?].
-    eapply map_Forall_union_with; [set_solver|]; split; eauto.
-    rewrite /= /ProphecyI.fnsems /ProphecyA.fnsems ?fmap_insert ?fmap_empty //.
-    rewrite ?map_Forall_insert; ss.
+  Proof using Hreal.
+    apply Mod.add_wf_inv in WF as [? [? [? ?]]].
+    eapply Mod.add_wf; eauto.
+    econs; last multiset_solver.
+    unfold_fnsem. rewrite ?fmap_insert ?fmap_empty // ?map_Forall_insert; ss.
   Qed.
 
   Lemma adequacy_aux sp rs_src rs_tgt rs_proph rs_prog_tgt rs_prog_src proph_map free_ids extr thidx thl_src thl_tgt pstore
