@@ -9,246 +9,170 @@ Import APC.
 
 Section LEMMAS.
 
-Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG}.
 
-Lemma wsim_apc_src
-    fl fr Ist cP r g {Rs Rt} RR ps pt st_src st_tgt k_src i_tgt spimg sp sp_pure
-    img mask scopes (ow od: Ord.t) :
-  wsim fl fr Ist cP r g Rs Rt RR true pt (st_src, k_src ()) (st_tgt, i_tgt) ⊢
-  wsim fl fr Ist cP r g Rs Rt RR ps pt
-    (st_src, ((SB.sandbox img mask scopes (SModTr.trans spimg sp (_APC od sp_pure ow))) >>= k_src))
-    (st_tgt, i_tgt).
-Proof using. iIntros "ISIM". rewrite unfold_APC. force_l true. steps_l. iFrame. Qed.
+  Local Definition state : Type := gmap key (option Any.t).
+  Local Definition post (R_s R_t : Type) : Type := state * R_s → state * R_t → iProp Σ.
+  Local Definition rel : Type := ∀ R_s R_t : Type,
+    post R_s R_t → bool → bool → state * itree crisE R_s → state * itree crisE R_t → iProp Σ.
 
-Lemma wsim_apc_src_call_tgt_weaker
-  fl fr Ist Ep r g {Rs Rt} RR ps pt st_src st_tgt k_src k_tgt spimg sp sp_pure
-  img_t (msk_s msk_t : _ → bool) sc_s sc_t (fn: string) args fsp' fsp X (spec_arg: X) o P Q
-  (ow_src ow_fn od_src od_fn : Ord.t)
-  (WIDTH: (ow_fn < ow_src)%ord)
-  (DEPTH: (od_fn < od_src)%ord)
-  (SpPureInSp: sp_incl sp_pure sp)
-  (fnInSpPure: alist_find (Some fn) sp_pure = Some fsp')
-  (CallSpec: negb (is_spawn_ospec fsp'))
-  (WEAK: fspec_imply (fspec_flat fsp') fsp)
-  (fspIsfspecapc: fsp = (@fspec_apc Σ X o (λ x, (P x, Q x))))
-  :
-  msk_s (Some fn) → msk_t (Some fn) →
-  (((P spec_arg args ∗ ⌜∃ vo : Ord.t, od_fn ↑ = vo ↑ ∧ (o spec_arg <= vo)%ord⌝) ∗ (Ist st_src st_tgt)) ∗
-    (∀ st_src0 st_tgt0 (vret ret: Any.t),
-      ((Ist st_src0 st_tgt0) ∗ (Q spec_arg ret))
-      -∗ wsim fl fr Ist Ep r g Rs Rt RR false false
-          (st_src0, ((SB.sandbox true msk_s sc_s (SModTr.trans spimg sp (_APC od_src sp_pure ow_fn))) >>= k_src))
-          (st_tgt0, k_tgt ret)))
-  ⊢
-    wsim fl fr Ist Ep r g Rs Rt RR ps pt
-      (st_src, (SB.sandbox true msk_s sc_s (SModTr.trans spimg sp (_APC od_src sp_pure ow_src))) >>= k_src)
-      (st_tgt, (SB.sandbox img_t msk_t sc_t (trigger (Call fn args))) >>= k_tgt).
-Proof using.
-  i. iIntros "[[[PRE %] IST] ISIM]".
-  des. set_marker m. hide_ihyps. rewrite unfold_APC. show_until m.
-  force_l false. steps_l. force_l ow_fn. steps_l. force_l WIDTH. steps_l.
-  force_l fn. steps_l. force_l od_fn. steps_l.
-  assert (PO: (is_Some (alist_find (Some fn) sp_pure) ∧ (od_fn < od_src)%ord)); et.
-  unfold guarantee. force_l PO. steps_l.
-  assert (sp fn = fsp').
-  { apply SpPureInSp. eauto. }
-  rewrite H3. destruct fsp'; ss; [destruct f;ss|].
-  { des. rewrite /fspec_imply in WEAK. hss.
-    exploit WEAK. { exists spec_arg; et. } i; des.
-    force_l (FSpec_mk _ _ _ ValidSP). force_l args. steps_l.
-    iPoseProof ((PRE vo ↑ args) with "[PRE]") as ">PRE". { unfold precond, fspec_apc; ss. iFrame. by iExists _. }
-    iApply wsim_guarantee_src. iFrame. steps_l.
+  Context (fl_s fl_t : gmap (option string) (option (Any.t → itree crisE Any.t))).
+  Context (Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ).
+  Context (R_s R_t : Type).
+  Context (RR : post R_s R_t).
+  Context (ps pt : bool).
+  Context (st_src st_tgt : state).
 
-    call "IST"; et. norm_r.
-    steps_l. iApply wsim_reset.
-    iPoseProof ((WEAK0 _q ret) with "ASM") as ">POST".
-    iSpecialize ("ISIM" $! st_s' st_t' _q ret).
-    iApply "ISIM". iFrame.
-  }
-  { des; rewrite /fspec_imply in WEAK; hss.
-    exploit WEAK. { exists spec_arg; et. } i; des. rr in ValidSP; des; subst.
-    specialize (PRE (vo↑) args). rewrite /fspec_apc /fspec_trivial /precond in PRE; ss.
-    iPoseProof (PRE with "[PRE]") as ">%".
-    { iFrame. iPureIntro; eauto. }
-    subst. call "IST".
-    iPoseProof (WEAK0 with "[]") as ">POST"; eauto.
-    rewrite /fspec_apc /postcond; ss.
-    iApply wsim_reset.
-    norm_l. norm_r. iSpecialize ("ISIM" $! st_s' st_t' (tt↑) ret).
-    iApply "ISIM". iFrame.
-  }
-Qed.
-
-Lemma wsim_apc_src_call_tgt
-  fl fr Ist cP r g {Rs Rt} RR ps pt st_src st_tgt k_src k_tgt spimg sp (sp_pure : spl_type)
-  img_t (msk_s msk_t : _ → bool) sc_s sc_t fn args fsp X (spec_arg: X) o P Q
-  (ow_src ow_fn od_src od_fn : Ord.t)
-  (WIDTH: (ow_fn < ow_src)%ord)
-  (DEPTH: (od_fn < od_src)%ord)
-  (SpPureInSp: sp_incl sp_pure sp)
-  (fnInSpPure: alist_find (Some fn) sp_pure = Some (Some fsp))
-  (CallSpec: negb (is_spawn_ospec (Some fsp)))
-  (fspIsfspecapc: fsp = (@fspec_apc Σ X o (λ x, (P x, Q x))))
-  :
-  msk_s (Some fn) → msk_t (Some fn) →
-  (((P spec_arg args ∗ ⌜∃ vo : Ord.t, od_fn ↑ = vo ↑ ∧ (o spec_arg <= vo)%ord⌝) ∗ (Ist st_src st_tgt)) ∗
-    (∀ st_src0 st_tgt0 (vret ret: Any.t),
-      ((Ist st_src0 st_tgt0) ∗ (Q spec_arg ret))
-      -∗ wsim fl fr Ist cP r g Rs Rt RR false false
-          (st_src0, ((SB.sandbox true msk_s sc_s (SModTr.trans spimg sp (_APC od_src sp_pure ow_fn))) >>= k_src))
-          (st_tgt0, k_tgt ret)))
-  ⊢
-    wsim fl fr Ist cP r g Rs Rt RR ps pt
-      (st_src, (SB.sandbox true msk_s sc_s (SModTr.trans spimg sp (_APC od_src sp_pure ow_src))) >>= k_src)
-      (st_tgt, (SB.sandbox img_t msk_t sc_t (trigger (Call fn args))) >>= k_tgt).
-Proof using.
-  eapply wsim_apc_src_call_tgt_weaker; et. 
-  ii. esplits; et.
-Qed.
-
-(* useful apc lemmas cont. - don't require IST *)
-
-(*
-Lemma wsim_apc_tgt_noist
-  is_closed fl fr Ist u0 u1 cP r g {Rs Rt} RR ps pt nths st_src st_tgt i_src i_tgt
-  (sp sp_pure: sp_type) (od ow: Ord.t) (scopes: list string)
-  (SUB: sp_sub sp_pure sp)
-  (SUBA: sp_incl APCA.Sp sp)
-  (FIND: alist_find APCHdr.apc fr = Some (HModTr.sandbox_body (APCA.scopes, interp_sb_hp (wsim_ginv u0 cP) sp
-      {| fsb_fspec := APCA.apc_spec; fsb_body := cfunN (APCA.apc_body sp_pure) |})))
-  (BODY: ∀ fn fsp, sp_pure fn = Some fsp 
-          → ∃ sc, alist_find fn fr = Some (pure_specbody sc u0 sp fsp))
-  :
-    (wsim fl fr Ist is_closed u0 u1 cP r g Rs Rt RR false false nths
-      (st_src, i_src)
-      (st_tgt, i_tgt))
-  ⊢
-    (wsim fl fr Ist is_closed u0 u1 cP r g Rs Rt RR ps pt nths 
-      (st_src, i_src)
-      (st_tgt, ((HModTr.sandbox scopes (SModTr.trans (wsim_ginv u1 cP) sp (_APC od sp_pure ow)));;; i_tgt))).
+  Lemma wsim_apc_src
+    (E : coPset) (r g : rel) (k_src : () -> itree crisE R_s) (i_tgt : itree crisE R_t)
+    (msk_s msk_t : emask) (sp_s sp_t sp_pure : specmap) (ow od : Ord.t) :
+    (∀ X, msk_s _ (subevent _ (Choose X))) ->
+    wsim fl_s fl_t Ist (E, E) r g R_s R_t RR true pt (st_src, k_src ()) (st_tgt, i_tgt) ⊢
+    wsim fl_s fl_t Ist (E, E) r g R_s R_t RR ps pt
+      (st_src, ((SB.sandbox msk_s (SModTr.trans sp_s (_APC od sp_pure ow))) >>= k_src))
+      (st_tgt, i_tgt).
   Proof using.
-  iIntros "ISIM".
-  set (E:=environments.envs_entails _).
-  apply wsim_congruence_src with (Ret ();;; i_src).
-  { rewrite bind_ret_l. refl. }
-  subst E.
-  iApply wsim_bind. iSplitR; cycle 1.
-  { iIntros (? ? ? ? ?) "IST".
-    instantiate (1:=(λ nths0 '(st_src0, ret_src) '(st_tgt0, ret_tgt),
-      ⌜nths0 = nths ∧ st_src0 = st_src ∧ st_tgt0 = st_tgt⌝)%I).
-    iDestruct "IST" as "%"; des; subst; hss.
-  }
+    intros Hchoose. iIntros "ISIM". rewrite unfold_APC.
+    steps_l. rewrite Hchoose. force_l true. steps_l. iFrame.
+  Qed.
 
-  (* well founded induction on depth ordinal *)
-  iApply wsim_reset. iStopProof.
-  generalize scopes.
-  revert ow. pattern od. set (GOAL:=λ _, _).
-  revert od. apply (well_founded_induction Ord.lt_well_founded).
-  i. subst GOAL. ss. iIntros (? ?) "_".
+  Lemma wsim_apc_src_call_tgt_weaker
+    (E : coPset) (r g : rel) (k_src : () → itree crisE R_s) (k_tgt: Any.t -> itree crisE R_t)
+    (msk_s msk_t : emask) (sp_s sp_t sp_pure : specmap) (ow od : Ord.t)
+    (fn: string) args fsp' fsp X (spec_arg: X) o P Q
+    (ow_src ow_fn od_src od_fn : Ord.t)
+    (WIDTH: (ow_fn < ow_src)%ord)
+    (DEPTH: (od_fn < od_src)%ord)
+    (SpPureInSp: sp_pure ⊆ sp_s)
+    (fnInSpPure: sp_pure !! speckey_fn fn = Some fsp')
+    (WEAK: ⊢ fspec_imply fsp' fsp)
+    (fspIsfspecapc: fsp = (@fspec_apc Σ X o (λ x, (P x, Q x))))
+    :
+    (∀ X, msk_s _ (subevent _ (Choose X))) ->
+    (∀ X, msk_s _ (subevent _ (Take X))) ->
+    (∀ X, msk_s _ (subevent _ (Guarantee X))) ->
+    (∀ X, msk_s _ (subevent _ (Assume X))) ->
+    (msk_s _ (subevent _ (Call fn args)) = msk_t _ (subevent _ (Call fn args))) ->
+    (((P spec_arg args ∗ ⌜∃ vo : Ord.t, od_fn ↑ = vo ↑ ∧ (o spec_arg <= vo)%ord⌝) ∗ (Ist st_src st_tgt)) ∗
+     (∀ st_src0 st_tgt0 (vret ret: Any.t),
+        ((Ist st_src0 st_tgt0) ∗ (Q spec_arg ret))
+        -∗ wsim fl_s fl_t Ist (E, E) r g R_s R_t RR false false
+             (st_src0, ((SB.sandbox msk_s (SModTr.trans sp_s (_APC od_src sp_pure ow_fn))) >>= k_src))
+             (st_tgt0, k_tgt ret)))
+    ⊢
+      wsim fl_s fl_t Ist (E, E) r g R_s R_t RR ps pt
+        (st_src, (SB.sandbox msk_s (SModTr.trans sp_s (_APC od_src sp_pure ow_src))) >>= k_src)
+        (st_tgt, (SB.sandbox msk_t (trigger (Call fn args))) >>= k_tgt).
+  Proof using.
+    intros Hchoose Htake Hguarantee Hassume Hcall. iIntros "[[[PRE %] IST] ISIM]".
+    des. set_marker m. hide_ihyps. rewrite unfold_APC. show_until m.
+    steps_l. rewrite Hchoose. force_l false. steps_l. rewrite Hchoose.
+    force_l ow_fn. steps_l. rewrite Hchoose. force_l WIDTH. steps_l.
+    rewrite Hchoose. force_l fn. steps_l. rewrite Hchoose. force_l od_fn. steps_l.
+    assert (PO: (is_Some (sp_pure !! speckey_fn fn) ∧ (od_fn < od_src)%ord)); et.
+    unfold guarantee. steps_l. rewrite Hchoose. force_l PO. steps_l.
+    erewrite lookup_weaken; eauto. steps_l. rewrite Hchoose.
+    iPoseProof (WEAK with "") as "WEAK".
+    iSpecialize ("WEAK" with "[]").
+    { instantiate (1 := (λ _ a, (Q spec_arg a)%I)).
+      instantiate (1 := (λ x a, (P spec_arg a ∗ ⌜∃ vo0, x = vo0 ↑ ∧ (o spec_arg <= vo0)%ord⌝))%I).
+      subst fsp. rewrite /fspec_apc. ss. iPureIntro. exists spec_arg. ss. }
+    iDestruct "WEAK" as "(%pre & %post & %Hfsp & POST)".
+    force_l (FSpec_mk _ _ Hfsp). steps_l. rewrite Hchoose. force_l args. steps_l.
+    rewrite Hguarantee. iSpecialize ("POST" $! od_fn↑ args with "[PRE]").
+    { iFrame. iPureIntro. esplits; eauto. }
+    iDestruct "POST" as ">[PRE POST]".
+    force_l; iSplitL "PRE"; eauto. steps_l.
+    steps_r. des_ifs; cycle 1.
+    { steps_l; ss. }
+    steps_l. steps_r. call "IST". iIntros (???) "IST".
+    steps_l. steps_r. rewrite Htake. steps_l. rewrite Hassume. steps_l.
+    iPoseProof ("POST" with "ASM") as ">POST".
+    iApply wsim_reset. iSpecialize ("ISIM" $! st_s' st_t' (tt↑) ret).
+    iApply "ISIM"; iFrame.
+  Qed.
 
-  (* well founded induction on width ordinal *)
-  iApply wsim_reset. iStopProof.
-  (* generalize st_tgt0 st_src0 nths0. *)
-  pattern ow. set (GOAL:=λ _, _).
-  revert ow. apply (well_founded_induction Ord.lt_well_founded).
-  i. subst GOAL. ss. iIntros "_".
-
-  rewrite unfold_APC. steps_r. des_ifs.
-  { (* break *)
-    steps_r. 
-    rewrite wsim.wsim_eq /wsim.wsim_def /wsim.wsim_pre. iIntros "_".
-    step. iPureIntro. split; et.
-  }
-  { (* continue *)
-    steps_r.
-
-    unfold is_Some in *. des. dup grt. apply BODY in grt. des.
-    apply SUB in grt1. rewrite grt1. hss. steps_r.
-    iApply wsim_inline_tgt; eauto.
-    unfold pure_specbody, interp_sb_hp; ss. steps_r.
-    unfold pure_specbody, interp_sb_hp in q3; ss.
-    unfold HoareFun. steps_r. force_r q3. steps_r.
-    forces_r. iSplitL "GRT"; et.
-    steps_r. unfold pure_body, cfunN. hss. steps_r.
-    iDestruct "GRT" as "%"; des; subst; hss.
-    iApply wsim_inline_tgt; eauto.
-    unfold HModTr.sandbox_body, interp_sb_hp, HoareFun; hss.
-    steps_r. force_r q5. force_r (q5↑). forces_r. iSplit; et.
-    steps_r. hss. unfold APCA.apc_body, APC. steps_r.
-
-    wbind_expand_r.
-    apply wsim_congruence_src with (Ret ();;; Ret ()).
-    { rewrite bind_ret_l. refl. }
-    iApply wsim_bind. iSplitL.
-    { iApply wsim_reset. iStopProof. instantiate (1:=(λ (nths0 : nat) '(st_src0, _) '(st_tgt0, _), ⌜nths0 = nths ∧ st_src0 = st_src ∧ st_tgt0 = st_tgt⌝%I)). specialize (H q5 grt0 q2 APCA.scopes). 
-    Unset Printing Notations. move H at bottom. eapply H. eauto. }
-
-    iIntros (? ? ? ? ?) "IST". iDestruct "IST" as "%"; des; subst; hss.
-    w_steps_r. w_forces_r. iSplitL; iFrame.
-    w_steps_r. w_forces_r. iSplitL; iFrame.
-    w_steps_r. iApply wsim_reset. iStopProof. eapply H0. eauto.
-  }
-  Unshelve. eauto.
-Qed.
-*)
+  Lemma wsim_apc_src_call_tgt
+    (E : coPset) (r g : rel) (k_src : () → itree crisE R_s) (k_tgt: Any.t -> itree crisE R_t)
+    (msk_s msk_t : emask) (sp_s sp_t sp_pure : specmap) (ow od : Ord.t)
+    (fn: string) args fsp X (spec_arg: X) o P Q
+    (ow_src ow_fn od_src od_fn : Ord.t)
+    (WIDTH: (ow_fn < ow_src)%ord)
+    (DEPTH: (od_fn < od_src)%ord)
+    (SpPureInSp: sp_pure ⊆ sp_s)
+    (fnInSpPure: sp_pure !! speckey_fn fn = Some fsp)
+    (fspIsfspecapc: fsp = (@fspec_apc Σ X o (λ x, (P x, Q x))))
+    :
+    (∀ X, msk_s _ (subevent _ (Choose X))) ->
+    (∀ X, msk_s _ (subevent _ (Take X))) ->
+    (∀ X, msk_s _ (subevent _ (Guarantee X))) ->
+    (∀ X, msk_s _ (subevent _ (Assume X))) ->
+    (msk_s _ (subevent _ (Call fn args)) = msk_t _ (subevent _ (Call fn args))) ->
+    (((P spec_arg args ∗ ⌜∃ vo : Ord.t, od_fn ↑ = vo ↑ ∧ (o spec_arg <= vo)%ord⌝) ∗ (Ist st_src st_tgt)) ∗
+     (∀ st_src0 st_tgt0 (vret ret: Any.t),
+        ((Ist st_src0 st_tgt0) ∗ (Q spec_arg ret))
+        -∗ wsim fl_s fl_t Ist (E, E) r g R_s R_t RR false false
+             (st_src0, ((SB.sandbox msk_s (SModTr.trans sp_s (_APC od_src sp_pure ow_fn))) >>= k_src))
+             (st_tgt0, k_tgt ret)))
+    ⊢
+      wsim fl_s fl_t Ist (E, E) r g R_s R_t RR ps pt
+        (st_src, (SB.sandbox msk_s (SModTr.trans sp_s (_APC od_src sp_pure ow_src))) >>= k_src)
+        (st_tgt, (SB.sandbox msk_t (trigger (Call fn args))) >>= k_tgt).
+  Proof using.
+    eapply wsim_apc_src_call_tgt_weaker; et. 
+    eapply fspec_imply_refl.
+  Qed.
 
 End LEMMAS.
 
-Ltac _prep_macro :=
-  ired;
-  match goal with
-  | [|- context[SB.sandbox _ _ _ (SModTr.trans _ _ (_APC _ _ _)) >>= _]] => fail 1
-  | [|- context[SB.sandbox _ _ _ (SModTr.trans _ _ (_APC _ _ _) >>= _)]] =>
-      rewrite// [in SB.sandbox _ _ _ (SModTr.trans _ _ (_APC _ _ _) >>= _)] SBRed.bind
-  | [|- context[SModTr.trans _ _ (_APC _ _ _ >>= _)]] =>
-      rewrite// [in (SModTr.trans _ _ (_APC _ _ _ >>= _))] SRed.bind; _prep_macro
-  end.
+(*** TODO : create appropriate tactics for handling APC ***)
 
-Ltac prep_macro_l :=
-  let marker := fresh "MARKER" in
-  set_marker marker;
-  hide_ihyps;
-  only_itree_l;
-  try _prep_macro; ired;
-  show_until marker.  
+(* Ltac _prep_macro := *)
+(*   ired; *)
+(*   match goal with *)
+(*   | [|- context[SB.sandbox _ _ _ (SModTr.trans _ _ (_APC _ _ _)) >>= _]] => fail 1 *)
+(*   | [|- context[SB.sandbox _ _ _ (SModTr.trans _ _ (_APC _ _ _) >>= _)]] => *)
+(*       rewrite// [in SB.sandbox _ _ _ (SModTr.trans _ _ (_APC _ _ _) >>= _)] SBRed.bind *)
+(*   | [|- context[SModTr.trans _ _ (_APC _ _ _ >>= _)]] => *)
+(*       rewrite// [in (SModTr.trans _ _ (_APC _ _ _ >>= _))] SRed.bind; _prep_macro *)
+(*   end. *)
 
-Ltac prep_macro_r :=
-  let marker := fresh "MARKER" in
-  set_marker marker;
-  hide_ihyps;
-  only_itree_r;
-  try _prep_macro; ired;
-  show_until marker.
+(* Ltac prep_macro_l := *)
+(*   let marker := fresh "MARKER" in *)
+(*   set_marker marker; *)
+(*   hide_ihyps; *)
+(*   only_itree_l; *)
+(*   try _prep_macro; ired; *)
+(*   show_until marker.   *)
 
-Ltac prep_macro :=
-  let marker := fresh "MARKER" in
-  set_marker marker;
-  hide_ihyps;
-  only_itree_l; try _prep_macro; ired; show_itree;
-  only_itree_r; try _prep_macro; ired; show_itree;
-  show_until marker.
+(* Ltac prep_macro_r := *)
+(*   let marker := fresh "MARKER" in *)
+(*   set_marker marker; *)
+(*   hide_ihyps; *)
+(*   only_itree_r; *)
+(*   try _prep_macro; ired; *)
+(*   show_until marker. *)
 
-Ltac apc_l :=
-  prep_macro_l;
-  iApply wsim_apc_src; des_pairs; s.
+(* Ltac prep_macro := *)
+(*   let marker := fresh "MARKER" in *)
+(*   set_marker marker; *)
+(*   hide_ihyps; *)
+(*   only_itree_l; try _prep_macro; ired; show_itree; *)
+(*   only_itree_r; try _prep_macro; ired; show_itree; *)
+(*   show_until marker. *)
 
-(* Ltac apc_r hyps :=
-  prep_macro_r;
-  iApply wsim_apc_tgt; des_pairs; s;
-  [| |iSplitL hyps; [|iIntros "% % % %"; iIntrosFresh "IST"]]. *)
+(* Ltac apc_l := *)
+(*   prep_macro_l; *)
+(*   iApply wsim_apc_src; des_pairs; s. *)
 
-(** TODO: updating apc tactics is required *)
+(* (** TODO: updating apc tactics is required *) *)
 
-Ltac apc_call hyps :=
-  prep_macro_l; norm_r;
-  iApply wsim_apc_src_call_tgt; des_pairs; s;
-  [| | | | |try prove_sb_cond|try prove_sb_cond| |iSplitL hyps; [ |iIntros "% % % %"; iIntrosFresh "ISTPOST"]].
+(* Ltac apc_call hyps := *)
+(*   prep_macro_l; norm_r; *)
+(*   iApply wsim_apc_src_call_tgt; des_pairs; s; *)
+(*   [| | | | |try prove_sb_cond|try prove_sb_cond| |iSplitL hyps; [ |iIntros "% % % %"; iIntrosFresh "ISTPOST"]]. *)
 
-Ltac apc_call_weaker hyps :=
-  prep_macro_l; norm_r;
-  iApply wsim_apc_src_call_tgt_weaker; des_pairs; s;
-  [| | | | | |try prove_sb_cond|try prove_sb_cond| |iSplitL hyps; [ |iIntros "% % % %"; iIntrosFresh "ISTPOST"]].
-
-(* Ltac apc_tgt_noist :=
-  prep_macro_r;
-  iApply wsim_apc_tgt_noist; des_pairs; s. *)
+(* Ltac apc_call_weaker hyps := *)
+(*   prep_macro_l; norm_r; *)
+(*   iApply wsim_apc_src_call_tgt_weaker; des_pairs; s; *)
+(*   [| | | | | |try prove_sb_cond|try prove_sb_cond| |iSplitL hyps; [ |iIntros "% % % %"; iIntrosFresh "ISTPOST"]]. *)

@@ -7,10 +7,9 @@ Module APCIA. Section APCIA.
   Import APCA.
   Context `{!crisG Γ Σ α β τ _S _I, !concG}.
   
-  Context (SpA : sp_type).
-  Context (SpPure : spl_type).
+  Context (SpA SpPure: specmap).
 
-  Definition Ist : alist key Any.t → alist key Any.t → iProp Σ :=
+  Definition Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ :=
     (λ _ _, True)%I.
 
   Local Definition APCAMod := (APCA.t SpPure SpA).
@@ -19,9 +18,9 @@ Module APCIA. Section APCIA.
   Local Transparent _APC.
 
   Lemma simF_apc :
-    ISim.sim_fun open APCAMod APCIMod APCA.init_cond Ist (Some APCHdr.apc).
+    ISim.sim_fun open APCAMod APCIMod Ist (Some APCHdr.apc).
   Proof using.
-    init_simF.
+    iStartSim.
     
     steps_l. iDestruct "ASM" as "[-> ->]"; hss.
     steps_r. steps_l. rewrite /APC. force_l. steps_l.
@@ -31,7 +30,7 @@ Module APCIA. Section APCIA.
   Qed.
 
   Theorem sim : ISim.t open APCAMod APCIMod emp%I Ist.
-  Proof using _crisG.
+  Proof using.
     init_sim; eauto.
     - eapply simF_apc.
   Qed.
@@ -40,7 +39,7 @@ End APCIA.
 Section ctxr.
   Context `{!crisG Γ Σ α β τ _S _I, !concG}.
 
-  Theorem ctxr (SpA : sp_type) (SpPure : spl_type) :
+  Theorem ctxr (SpA SpPure : specmap) :
     ctx_refines
       (APCA.t SpPure SpA, emp%I)
       (APCI.t, emp%I).

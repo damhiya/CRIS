@@ -6,18 +6,17 @@ Set Implicit Arguments.
 Module APCI. Section APCI.
   Context `{!crisG Γ Σ α β τ _S _I, !concG}.
 
-  Definition scopes := ["APC"].
+  Definition scp : gmultiset string := {[+"APC"+]}.
 
-  Definition fnsems : fnsems_type :=
-    [(Some APCHdr.apc, (false, wmask_all, scopes, (None, fbody_trivial)))].
+  Definition fnsems : fnsemmap :=
+    {[Some APCHdr.apc := Some (msk_real (msk_scp scp msk_true), (None, fbody_trivial))]}.
   
   Program Definition smod : SMod.t := {|
-    SMod.scopes := scopes;
+    SMod.scopes := scp;
     SMod.fnsems := fnsems;
-    SMod.initial_st := [];
+    SMod.initial_st := ∅;
   |}.
-  Solve All Obligations with prove_scope.
-  Next Obligation. prove_nodup. Qed.
+  Solve All Obligations with mod_tac.
 
-  Definition t := Seal.sealing CRIS (SMod.to_mod sp_none smod).
+  Definition t := SMod.to_mod ∅ smod.
 End APCI. End APCI.

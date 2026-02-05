@@ -8,7 +8,7 @@ Module RRSI. Section RRSI.
 
   Context (parent_yield : string).
 
-  Definition scopes := [RRS].
+  Definition scp : gmultiset string := {[+RRS+]}.
   Definition v_ths := RRS ↯ "ths".
   Definition v_tid := RRS ↯ "tid".
   Definition v_sch := RRS ↯ "sch".
@@ -23,7 +23,7 @@ Module RRSI. Section RRSI.
       'ths: thpool <- cgetU v_ths;;
       new_stid <- trigger (Spawn RRSHdr._spawn (fn, tt↑↑)↑);;
       cput v_ths (ths ++ [new_stid]);;;
-      cput v_tid (length ths);;;
+      cput v_tid (List.length ths);;;
       trigger (Yield new_stid);;;
       (* infinite global yield *)
       iterC (λ _,
@@ -47,7 +47,7 @@ Module RRSI. Section RRSI.
       'ths : thpool <- cgetU v_ths;;
       new_stid <- trigger (Spawn RRSHdr._spawn (fn, arg)↑);;
       cput v_ths (ths ++ [new_stid]);;;
-      Ret (length ths).
+      Ret (List.length ths).
 
   Definition yield : unit → itree crisE unit :=
     λ _,
@@ -60,7 +60,7 @@ Module RRSI. Section RRSI.
       | None => triggerUB
       end;;;
       (* yield *)
-      let mtid : nat := succ_rr mtid (length ths) in
+      let mtid : nat := succ_rr mtid (List.length ths) in
       match ths !! mtid with
       | Some stid =>
           cput v_tid mtid;;;
@@ -76,22 +76,28 @@ Module RRSI. Section RRSI.
   Definition get_tid : unit → itree crisE nat :=
     λ _, cgetU v_tid.
 
-  Definition fnsems : fnsems_type :=
-    [(Some RRSHdr.init,        (false, wmask_all, scopes, (None, cfunU init)));
-     (Some RRSHdr._spawn,      (false, wmask_all, scopes, (None, cfunU inner_spawn)));
-     (Some RRSHdr.spawn,       (false, wmask_all, scopes, (None, cfunU spawn)));
-     (Some RRSHdr.yield,       (false, wmask_all, scopes, (None, cfunU yield)));
-     (Some RRSHdr.yield_global,(false, wmask_all, scopes, (None, cfunU yield_global)));
-     (Some RRSHdr.get_tid,     (false, wmask_all, scopes, (None, cfunU get_tid)))].
+  Definition fnsems : fnsemmap :=
+    {[Some RRSHdr.init := Some (msk_real (msk_scp scp msk_true), (None, cfunU init));
+      Some RRSHdr._spawn := Some (msk_real (msk_scp scp msk_true), (None, cfunU inner_spawn));
+      Some RRSHdr.spawn := Some (msk_real (msk_scp scp msk_true), (None, cfunU spawn));
+      Some RRSHdr.yield := Some (msk_real (msk_scp scp msk_true), (None, cfunU yield));
+      Some RRSHdr.yield_global := Some (msk_real (msk_scp scp msk_true), (None, cfunU yield_global));
+      Some RRSHdr.get_tid := Some (msk_real (msk_scp scp msk_true), (None, cfunU get_tid))]}.
 
   Program Definition smod: SMod.t :=
   {|
-    SMod.scopes := scopes;
+    SMod.scopes := scp;
     SMod.fnsems := fnsems;
-    SMod.initial_st := [(v_ths, ([] : thpool)↑); (v_tid, 0↑); (v_sch, 0↑)];
+    SMod.initial_st := {[v_ths := Some ([] : thpool)↑; v_tid := Some 0↑; v_sch := Some 0↑]};
   |}.
-  Solve All Obligations with prove_scope.
-  Next Obligation. prove_nodup. Qed.
-
-  Definition t := Seal.sealing CRIS (SMod.to_mod sp_none smod).
+  Solve All Obligations with auto.
+  Next Obligation.
+    i. rewrite ?omap_insert /= omap_empty.
+    mod_tac scope_solver.
+  Qed.
+  Next Obligation.
+    i. mod_tac scope_solver.
+  Qed.
+  
+  Definition t := SMod.to_mod ∅ smod.
 End RRSI. End RRSI.

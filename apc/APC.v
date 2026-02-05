@@ -4,12 +4,12 @@ Require Import APCHeader.
 
 Set Implicit Arguments.
 
-(* Section FSPEC.
+Section FSPEC.
   Context {Σ : GRA}.
   
   (* fspec is only about args, varg is always ordinal *)
   Definition fspec_apc {X : Type} (o: X → Ord.t) (DPQ: X → (Any.t → iProp Σ) * (Any.t → iProp Σ)) : fspec :=
-    fspec_call
+    fspec_mk
       (λ x y a, (((fst ∘ DPQ) x a: iProp Σ) ∗ ⌜∃ vo: Ord.t, y = vo↑ ∧ ((o x) <= vo)%ord⌝)%I)
       (λ x _ a, (((snd ∘ DPQ) x a: iProp Σ))%I).
 
@@ -21,7 +21,7 @@ Section apc.
   Context {Σ: GRA}.  
 
   Variable dep_ord: Ord.t.
-  Variable SpPure: spl_type.
+  Variable SpPure: specmap.
 
   Program Fixpoint _APC (wid_ord: Ord.t) {wf Ord.lt wid_ord}: itree crisE () :=
     break <- trigger (Choose _);;
@@ -34,7 +34,7 @@ Section apc.
       'fn:_ <- trigger (Choose _);;
       (* depth ordinal *)
       o <- trigger (Choose Ord.t);;
-      guarantee (is_Some (alist_find (Some fn) SpPure) ∧ (o < dep_ord)%ord);;;
+      guarantee (is_Some (SpPure !! (speckey_fn fn)) ∧ (o < dep_ord)%ord);;;
       trigger (Call fn o↑);;;
       _APC wid_next
   .
@@ -58,7 +58,7 @@ Section apc.
       trigger (Choose (wid_next < wid_ord)%ord);;;
       'fn:_ <- trigger (Choose _);;
       o <- trigger (Choose Ord.t);;
-      guarantee (is_Some (alist_find (Some fn) SpPure) ∧ (o < dep_ord)%ord);;;
+      guarantee (is_Some (SpPure !! (speckey_fn fn)) ∧ (o < dep_ord)%ord);;;
       trigger (Call fn o↑);;;
       _APC wid_next.
   Proof using.
@@ -80,15 +80,14 @@ Section aux.
     destruct a; ss. f_equal; et.
   Qed.
 
-  Definition find_body md fn :=
-    alist_find (Some fn) (map (map_snd SB.sandbox_body) (Mod.fnsems md)).
+  Definition find_body (md: Mod.t) (fn: string) :=
+    ((λ v : option _, SB.sandbox_body <$> v) <$> (Mod.fnsems md)) !! (Some fn).
 
-  Definition pure_specbody sp img msk scp fspo :=
+  Definition pure_specbody sp msk fspo :=
     (λ arg : Any.t,
-      SB.sandbox_body
-        (SModTr.trans_ktree sp (img, msk, scp, (fspo, pure_body))) arg).
+      SB.sandbox_body (msk, SModTr.trans_fnsem sp (fspo, pure_body)) arg).
 
   Definition pure: itree crisE Any.t :=
     o <- trigger (Choose Ord.t);;
     trigger (Call APCHdr.apc o↑).
-End aux. *)
+End aux.

@@ -51,7 +51,7 @@ Section MEM.
     own base_γ (mem_init_auth_r csl genv).
 
   Definition mem_init_frag csl genv : iProp Σ :=
-    own base_γ (mem_init_auth_r csl genv).
+    own base_γ (mem_init_frag_r csl genv).
 
   Definition mem_init csl genv : iProp Σ :=
     own base_γ (mem_init_auth_r csl genv ⋅ mem_init_frag_r csl genv).

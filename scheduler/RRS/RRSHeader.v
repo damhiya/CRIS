@@ -97,3 +97,19 @@ End ROUNDROBIN.
 
 Notation ℛℛ := (RRS.yield).
 Notation ℛ𝒴 := (RRS.yield_global).
+
+Lemma yield_unfold `{E : Type → Type, coreE -< E, callE -< E} :
+  @RRS.yield_global E _ _ =
+  tau;; b <- trigger (Choose (option bool));;
+  match b with
+  | None => Ret tt
+  | Some false => RRS.yield_global
+  | Some true => trigger (Call RRSHdr.yield_global tt↑);;; RRS.yield_global
+  end.
+Proof using.
+  rewrite {1}/RRS.yield_global; unseal "RRS"; rewrite unfold_iterC.
+  repeat f_equal. ired. repeat f_equal. extensionalities b. destruct b as [[|]|]; ss.
+  { ired. f_equal. extensionalities x. rewrite /RRS.yield_global; unseal "RRS"; ss. }
+  { ired. rewrite /RRS.yield_global; unseal "RRS"; ss. }
+  { ired. done. }
+Qed.
