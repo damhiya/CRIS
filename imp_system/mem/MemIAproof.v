@@ -2,17 +2,17 @@ From CRIS Require Import CRIS MemHeader MemA MemI ImpPrelude.
 From iris.algebra Require Import auth excl agree csum functions dfrac_agree.
 
 Section RA.
-  Context `{!crisG Γ Σ α β τ _S _I, !memG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !memGS}.
 
   Definition mem_wf (m : Mem.t) : Prop := ∀ b ofs v, m.(Mem.cnts) b ofs = Some v → b < m.(Mem.nb).
 
-  Definition sim_mem (mem_s : _memRA) (mem_t : Mem.t) : Prop :=
+  Definition sim_mem (mem_s : MemA._memRA) (mem_t : Mem.t) : Prop :=
     ∀ b ofs,
       (mem_s b ofs = None ∧ Mem.cnts mem_t b ofs = None) ∨
       (∃ v, mem_s b ofs = Some (to_dfrac_agree (DfracOwn 1) v) ∧
         Mem.cnts mem_t b ofs = Some v).
 
-  Definition mem_ra_upd (mem : _memRA) b ofs r : _memRA :=
+  Definition mem_ra_upd (mem : MemA._memRA) b ofs r : MemA._memRA :=
     λ b0 ofs0, if bool_decide (b = b0 ∧ ofs = ofs0) then r else mem b0 ofs0.
 
   Lemma split_points_to_r blk ofs q a l :
@@ -44,9 +44,9 @@ Section RA.
   Qed.
 
   Local Transparent mem_points_to_singleton_r.
-
+  Local Existing Instances memGS_memGSpreS mem_inG.
   Lemma points_to_transform blk ofs q l :
-    own base_γ ((◯ _points_to_r (blk, ofs) (DfracOwn q) l): memRA)
+    own mem_name ((◯ _points_to_r (blk, ofs) (DfracOwn q) l): MemA.memRA)
     ⊢ [∗ list] i↦v ∈ l, (blk, (ofs + i)%Z) ↦{q} v.
   Proof using.
     gen ofs. induction l.
@@ -86,15 +86,15 @@ Section RA.
     rr in VALID. des. ss. exfalso. eapply dfrac_full_exclusive; et.
   Qed.
 
-  Lemma mem_ra_alloc γ (mem_src : _memRA) mem_tgt blk sz pad
+  Lemma mem_ra_alloc γ (mem_src : MemA._memRA) mem_tgt blk sz pad
     (SIM: sim_mem mem_src mem_tgt)
     (BLK: blk = Mem.nb mem_tgt + pad)
     (WF: mem_wf mem_tgt)
     :
-    own γ ((● mem_src): memRA)
+    own γ ((● mem_src): MemA.memRA)
     ⊢ |==>
-    own γ ((● (mem_src ⋅ _points_to_r (blk, 0%Z) (DfracOwn 1) (replicate sz Vundef))): memRA)
-    ∗ own γ ((◯ _points_to_r (blk, 0%Z) (DfracOwn 1) (replicate sz Vundef)): memRA).
+    own γ ((● (mem_src ⋅ _points_to_r (blk, 0%Z) (DfracOwn 1) (replicate sz Vundef))): MemA.memRA)
+    ∗ own γ ((◯ _points_to_r (blk, 0%Z) (DfracOwn 1) (replicate sz Vundef)): MemA.memRA).
   Proof using.
     iIntros "P". rewrite -own_op.
     iApply (own_update with "P"). apply auth_update_alloc.
@@ -111,10 +111,10 @@ Section RA.
       + exploit WF; et. nia.
   Qed.
 
-  Lemma mem_ra_lookup (mem_s: _memRA) mem_t b ofs q v
+  Lemma mem_ra_lookup (mem_s: MemA._memRA) mem_t b ofs q v
     (SIM: sim_mem mem_s mem_t)
     :
-    own base_γ (● mem_s) ∗ (b, ofs) ↦{q} v
+    own mem_name (● mem_s) ∗ (b, ofs) ↦{q} v
     ⊢
     ⌜mem_s b ofs ≡ Some (to_dfrac_agree (DfracOwn 1%Qp) v) ∧
      Mem.cnts mem_t b ofs = Some v⌝.
@@ -132,10 +132,10 @@ Section RA.
     - eapply to_frac_agree_inv in H2. ss. des. depdes H3. et.
   Qed.
 
-  Lemma mem_ra_update v_new v (mem_s: _memRA) mem_t b ofs :
+  Lemma mem_ra_update v_new v (mem_s: MemA._memRA) mem_t b ofs :
     sim_mem mem_s mem_t →
-    own base_γ (● mem_s) ∗ (b, ofs) ↦{1} v ⊢
-    |==> own base_γ (● mem_ra_upd mem_s b ofs (Some (to_dfrac_agree (DfracOwn 1) v_new))) ∗
+    own mem_name (● mem_s) ∗ (b, ofs) ↦{1} v ⊢
+    |==> own mem_name (● mem_ra_upd mem_s b ofs (Some (to_dfrac_agree (DfracOwn 1) v_new))) ∗
       (b, ofs) ↦{1} v_new.
   Proof using.
     iIntros "%SIM [Auth Frag]".
@@ -156,11 +156,11 @@ Section RA.
     case_bool_decide; [naive_solver|]; ss.
   Qed.
 
-  Lemma mem_ra_free (mem_s : _memRA) mem_t b ofs v :
+  Lemma mem_ra_free (mem_s : MemA._memRA) mem_t b ofs v :
     sim_mem mem_s mem_t →
     mem_wf mem_t →
-    own base_γ (● mem_s) ∗ (b, ofs) ↦{1} v ⊢
-    |==> own base_γ (● mem_ra_upd mem_s b ofs None).
+    own mem_name (● mem_s) ∗ (b, ofs) ↦{1} v ⊢
+    |==> own mem_name (● mem_ra_upd mem_s b ofs None).
   Proof using.
     iIntros "% % [Auth Frag]".
     iApply (own_update_2 with "Auth Frag").
@@ -178,11 +178,11 @@ Section RA.
     rewrite discrete_fun_lookup_singleton_ne; ss; eauto.
   Qed.
 
-  Lemma mem_ra_cmp (mem_s: _memRA) mem_t p0 q0 v0 p1 q1 v1 succ
+  Lemma mem_ra_cmp (mem_s: MemA._memRA) mem_t p0 q0 v0 p1 q1 v1 succ
     (SIM: sim_mem mem_s mem_t)
     (CMP: MemA.compare_val p0 p1 = Vint succ)
     :
-    (own base_γ (● mem_s) ∗ MemA.val_r p0 q0 v0 ∗ MemA.val_r p1 q1 v1)
+    (own mem_name (● mem_s) ∗ MemA.val_r p0 q0 v0 ∗ MemA.val_r p1 q1 v1)
     ⊢
     ⌜Mem.vcmp mem_t p0 p1 = Some (bool_decide (succ = 1))⌝.
   Proof using.
@@ -210,7 +210,8 @@ Section RA.
 End RA.
 
 Module MemIA. Section MemIA.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG, !memG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !memGS}.
+  Local Existing Instances memGS_memGSpreS mem_inG.
 
   Context (csl : string → bool).
   Context (genv : GEnv.t).
@@ -218,15 +219,15 @@ Module MemIA. Section MemIA.
 
   Definition Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ :=
     λ st_src st_tgt,
-      ((∃ (mem_tgt : Mem.t) (mem_src : _memRA),
+      ((∃ (mem_tgt : Mem.t) (mem_src : MemA._memRA),
       ⌜st_tgt = {[MemI.v_mem := Some mem_tgt↑]} ∧ sim_mem mem_src mem_tgt ∧ mem_wf mem_tgt⌝ ∗
-      ( |==> own base_γ (● mem_src))))%I.
+      ( |==> own mem_name (● mem_src))))%I.
 
   Local Definition MemA := (MemA.t sp).
   Local Definition MemI := (MemI.t csl genv).
   Local Definition IstFull := (IstProd (IstSB MemA.(Mod.scopes) Ist) IstEq).
 
-  Definition mem_get (mem: _memRA) b ofs :=
+  Definition mem_get (mem: MemA._memRA) b ofs :=
     match or_else (mem b ofs) (to_dfrac_agree (DfracOwn 1) Vundef) with
     | (_,v) => or_else (nth_error v.(agree_car) 0) Vundef
     end.
@@ -449,7 +450,7 @@ Module MemIA. Section MemIA.
 End MemIA. End MemIA.
 
 (* Module MemIA. Section MemIA.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG, !memG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !memGS}.
 
   Theorem sim_real_to_hoare : ISim.t open MemA.t MemP.t emp%I IstEq.
   Proof using.

@@ -51,7 +51,7 @@ Section own_admin.
      There probably doesn't exist a model that (1) allows rules
      [own_alloc_strog_dep] and (2) allow splitting of [own_admin].
   *)
-  Lemma own_admin_alloc a : ✓ a → own_admin ⊢ |==> own_admin ∗ ∃ γ, own γ a.
+  Lemma own_admin_alloc_gen a : ✓ a → own_admin ⊢ |==> own_admin ∗ ∃ γ, own γ a.
   Proof using.
     intros hwf. rewrite ?own_admin_eq /own_admin_def.
     iIntros "[%X [%INF ●]]".
@@ -157,9 +157,11 @@ Section own_bupd.
   Proof. eapply uPred.ownM_pure_soundness; try done. Qed.
 
   Lemma own_admin_soundness (P : Prop) :
-    (own_admin ⊢ ⌜P⌝) → P.
+    (⊢ @bupd _ (@bi_bupd_bupd _ uPred_bi_bupd_own) ⌜P⌝) → P.
   Proof.
-    intros Hp; apply own_admin_soundness_gen; iIntros "?"; iApply Hp.
+    intros Hp; apply own_admin_soundness_gen; iIntros "O".
+    rewrite own_bupd_unseal in Hp.
+    iMod (Hp with "[O]") as "[_ $]".
     rewrite /own_admin seal_eq; iExists ⊤; iSplit; eauto; iPureIntro; apply top_infinite.
   Qed.
 End own_bupd.
@@ -182,6 +184,9 @@ Proof.
   iIntros (_) "[>P Q] O".
   iApply ("Q" with "P O").
 Qed.
+
+Lemma own_admin_alloc `{Σ : GRA} : ⊢ o=> own_admin.
+Proof. rewrite own_bupd_unseal; iIntros "O"; iApply own_admin_split; done. Qed.
 
 Section properties.
   Context `{i : !inG A Σ}.
@@ -239,7 +244,7 @@ Section properties.
   Lemma own_alloc a : ✓ a → ⊢ o=> ∃ γ, own γ a.
   Proof using.
     rewrite own_bupd_unseal. iIntros (hwf) "●own".
-    by iApply (own_admin_alloc with "●own").
+    by iApply (own_admin_alloc_gen with "●own").
   Qed.
 
   Lemma own_update γ a a' : a ~~> a' → own γ a ⊢ |==> own γ a'.
@@ -454,8 +459,8 @@ Section Own.
     - rr. rewrite seal_eq. s. rewrite cmra_core_idemp. et.
   Qed.
 
-  Lemma entails_pointwise (P Q: iProp Σ):
-    (∀ res: Σ, (Own res ⊢ P) → (Own res ⊢ Q)) -> P ⊢ Q.
+  Lemma entails_pointwise (P Q : iProp Σ) :
+    (∀ res: Σ, (Own res ⊢ P) → (Own res ⊢ Q)) → P ⊢ Q.
   Proof.
     i. rr. econs. i. eapply uPred.ownM_general_soundness; et.
     eapply Own_general_completeness in H1. eapply H in H1.
@@ -498,231 +503,3 @@ Section Own.
   Qed.
 
 End Own.
-
-(* tactics for cancellation *)
-Ltac gen_eq a :=
-  match a with context [?t] =>
-    lazymatch t with
-    | eq_refl => fail
-    | _ =>
-      let T := type of t in
-      match (eval simpl in T) with
-      | _ = _ => generalize t
-      end
-    end
-  end.
-
-Ltac gen_prop a :=
-  match a with context [?t] =>
-    let T := type of t in
-    match (eval simpl in T) with
-    | Prop => generalize t
-    end
-  end.
-
-Ltac remove_eq_aux :=
-  let e := fresh "E" in
-  intros e;
-  match goal with
-  | H : @eq ?A ?b _ |- _ => replace H with (@eq_refl A b)
-  end; last apply UIP; clear e.
-
-Ltac remove_eq a := gen_eq a; remove_eq_aux.
-
-Module InitRes.
-  Definition nil : GRAs.nil.
-  Proof using. intros i; inv i. Defined.
-
-  Definition singleton {A : DRA} (a : option A) : GRAs.singleton A.
-  Proof using.
-    intros i γ. inv_fin i.
-    { destruct (decide (γ = base_γ)).
-      { destruct a as [a|].
-        { ss. exact (Some (Cinr a)). }
-        { ss. exact (Some (Cinl (Excl ()))). }
-      }
-      { exact None. }
-    }
-    { intros i. inv i. }
-  Defined.
-
-  Definition R_prf {Σ1 Σ2 : GRA} (i2 : gid Σ2) :
-    @eq cmra
-    (allocs.allocsUR positive (@GRA_lookup Σ2 i2))
-    (allocs.allocsUR positive (@GRA_lookup (GRAs.app Σ1 Σ2) (Fin.R (@GRA_len Σ1) i2))).
-  Proof using. rewrite /GRAs.app /= fin_add_inv_r; refl. Qed.
-
-  Definition L_prf {Σ1 Σ2 : GRA} (i1 : gid Σ1) :
-    @eq cmra
-    (allocs.allocsUR positive (@GRA_lookup Σ1 i1))
-    (allocs.allocsUR positive (@GRA_lookup (GRAs.app Σ1 Σ2) (Fin.L (@GRA_len Σ2) i1))).
-  Proof using. rewrite /GRAs.app /= fin_add_inv_l; refl. Qed.
-
-  Definition R {Σ1 Σ2 : GRA} (r2 : Σ2) : GRAs.app Σ1 Σ2.
-  Proof using.
-    intros i. eapply fin_add_inv with (i:=i).
-    { intros i1 g. exact ε. }
-    { intros i2. refine (cmra_transport (R_prf i2) (r2 i2)). }
-  Defined.
-
-  Definition L {Σ1 Σ2 : GRA} (r1 : Σ1) : GRAs.app Σ1 Σ2.
-  Proof using.
-    intros i. eapply fin_add_inv with (i:=i).
-    { intros i1. refine (cmra_transport (L_prf i1) (r1 i1)). }
-    { intros i2 g. exact ε. }
-  Defined.
-
-  Lemma R_distr {Σ1 Σ2 : GRA} (r1 r2 : Σ2) : @R Σ1 Σ2 (r1 ⋅ r2) = @R Σ1 Σ2 r1 ⋅ @R Σ1 Σ2 r2.
-  Proof using.
-    extensionalities i; apply fin_add_inv with (i:=i); clear i.
-    { intros i1; rewrite /R ?discrete_fun_lookup_op ?fin_add_inv_l //. }
-    { intros i2. rewrite /R discrete_fun_lookup_op fin_add_inv_r.
-      rewrite !fin_add_inv_r cmra_transport_op //.
-    }
-  Qed.
-
-  Lemma L_distr {Σ1 Σ2 : GRA} (r1 r2 : Σ1) : @L Σ1 Σ2 (r1 ⋅ r2) = @L Σ1 Σ2 r1 ⋅ @L Σ1 Σ2 r2.
-  Proof using.
-    extensionalities i; apply fin_add_inv with (i:=i); clear i.
-    { intros i1. rewrite /L discrete_fun_lookup_op fin_add_inv_l.
-      rewrite !fin_add_inv_l cmra_transport_op //.
-    }
-    { intros i2; rewrite /L ?discrete_fun_lookup_op ?fin_add_inv_r //. }
-  Qed.
-
-  Definition app {Σ1 Σ2 : GRA} (r1 : Σ1) (r2 : Σ2) : GRAs.app Σ1 Σ2 :=
-    @L Σ1 Σ2 r1 ⋅ @R Σ1 Σ2 r2.
-
-  Lemma singleton_some_valid {A : DRA} (a : A)
-      (VALID : ✓ a) :
-    ✓ (singleton (Some a) ⋅ ir_own_admin).
-  Proof using.
-    intros i γ. inv_fin i; ss; des_ifs.
-    { rewrite ?discrete_fun_lookup_op /singleton /ir_own_admin.
-      des_ifs. ss. rewrite left_id /allocs.allocs_auth; des_ifs; ss.
-    }
-    { intros i; inv i. }
-  Qed.
-
-  Lemma singleton_none_valid {A : DRA} :
-    ✓ (@singleton A None ⋅ ir_own_admin).
-  Proof using.
-    intros i γ. inv_fin i; ss; des_ifs.
-    { rewrite ?discrete_fun_lookup_op /singleton /ir_own_admin.
-      des_ifs; ss; rewrite left_id /allocs.allocs_auth; des_ifs.
-    }
-    { intros i; inv i. }
-  Qed.
-
-  Definition app_valid {Σ1 Σ2 : GRA} (r1 : Σ1) (r2 : Σ2)
-      (VALID1 : ✓ (r1 ⋅ ir_own_admin))
-      (VALID2 : ✓ (r2 ⋅ ir_own_admin)) :
-    ✓ (app r1 r2 ⋅ ir_own_admin).
-  Proof using.
-    intros i; apply fin_add_inv with (i:=i).
-    { intros i1. rewrite /app ?discrete_fun_lookup_op.
-      rewrite /L fin_add_inv_l /R fin_add_inv_l right_id.
-      rewrite /ir_own_admin.
-      match goal with | |- ?A => gen_eq A end.
-      rewrite /GRAs.app /= fin_add_inv_l. remove_eq_aux. ss.
-    }
-    { intros i2. rewrite /app ?discrete_fun_lookup_op.
-      rewrite /L fin_add_inv_r /R fin_add_inv_r left_id.
-      rewrite /ir_own_admin.
-      match goal with | |- ?A => gen_eq A end.
-      rewrite /GRAs.app /= fin_add_inv_r. remove_eq_aux. ss.
-    }
-  Qed.
-
-  Lemma singleton_index {A : DRA} (a : A) :
-    singleton (Some a) = discrete_fun_singleton 0%fin (allocs.allocs_frag base_γ a).
-  Proof using.
-    extensionalities i g. inv_fin i; ss; des_ifs.
-    { rewrite ?discrete_fun_lookup_singleton //=. }
-    { rewrite discrete_fun_lookup_singleton /= /allocs.allocs_frag discrete_fun_lookup_singleton_ne //. }
-    { intros i; inv i. }
-  Qed.
-
-  Lemma L_index {Σ1 Σ2 : GRA} (i : fin (@GRA_len Σ1)) r :
-    @L Σ1 Σ2 (discrete_fun_singleton i r)
-    = discrete_fun_singleton (Fin.L (@GRA_len Σ2) i) (cmra_transport (@L_prf Σ1 Σ2 i) r).
-  Proof using.
-    rewrite /L. extensionalities i1.
-    apply fin_add_inv with (i:=i1); cycle 1.
-    { intros i2; ss.
-      match goal with | |- fin_add_inv ?P ?H1 ?H2 ?r = _ => rewrite (fin_add_inv_r P H1 H2 _) end.
-      rewrite discrete_fun_lookup_singleton_ne; ss.
-      ii. eapply Fin.L_R_neq; eauto.
-    }
-    { intros i2; ss.
-      destruct (decide (i = i2)).
-      { subst.
-        match goal with | |- fin_add_inv ?P ?H1 ?H2 ?r = _ => rewrite (fin_add_inv_l P H1 H2 _) end.
-        rewrite ?discrete_fun_lookup_singleton //.
-      }
-      { match goal with | |- fin_add_inv ?P ?H1 ?H2 ?r = _ => rewrite (fin_add_inv_l P H1 H2 _) end.
-        rewrite ?discrete_fun_lookup_singleton_ne //.
-        { match goal with | |- ?a => gen_eq a end.
-          rewrite /GRAs.app /= fin_add_inv_l. remove_eq_aux. ss.
-        }
-        { ii. apply Fin.L_inj in H. ss. }
-      }
-    }
-  Qed.
-
-  Lemma R_index {Σ1 Σ2 : GRA} (i : fin (@GRA_len Σ2)) r :
-    @R Σ1 Σ2 (discrete_fun_singleton i r)
-    = discrete_fun_singleton (Fin.R (@GRA_len Σ1) i) (cmra_transport (@R_prf Σ1 Σ2 i) r).
-  Proof using.
-    rewrite /R. extensionalities i1.
-    apply fin_add_inv with (i:=i1); cycle 1.
-    { intros i2; ss.
-      match goal with | |- fin_add_inv ?P ?H1 ?H2 ?r = _ => rewrite (fin_add_inv_r P H1 H2 _) end.
-      destruct (decide (i = i2)).
-      { subst. rewrite ?discrete_fun_lookup_singleton //.
-      }
-      { rewrite ?discrete_fun_lookup_singleton_ne //.
-        { match goal with | |- ?a => gen_eq a end.
-          rewrite /GRAs.app /= fin_add_inv_r. remove_eq_aux. ss.
-        }
-        { ii. apply Fin.R_inj in H. ss. }
-      }
-    }
-    { intros i2; ss.
-      match goal with | |- fin_add_inv ?P ?H1 ?H2 ?r = _ => rewrite (fin_add_inv_l P H1 H2 _) end.
-      rewrite discrete_fun_lookup_singleton_ne; ss.
-      ii. eapply Fin.L_R_neq; eauto.
-    }
-  Qed.
-End InitRes.
-Notation "*[ ]" := InitRes.nil (format "*[ ]").
-Notation "*[ Σ1 ; .. ; Σn ]" :=
-  (InitRes.app (InitRes.singleton Σ1) .. (InitRes.app (InitRes.singleton Σn) InitRes.nil) ..).
-Notation "**[ Σ1 ; .. ; Σn ]" := (InitRes.app Σ1 .. (InitRes.app Σn InitRes.nil) ..).
-Notation "'L'" := InitRes.L (at level 50, only printing).
-Notation "'R'" := InitRes.R (at level 50, only printing).
-
-Section Lemmas.
-  Context `{Σ: GRA}.
-
-  Lemma valid_solve (a b c: Σ) :
-    ✓ a -> a ≡  b ⋅ c -> ✓ b.
-  Proof using.
-    i. eapply cmra_valid_op_l. setoid_rewrite <- H0. eauto.
-  Qed.
-
-  Lemma valid_extends (r a b: Σ):
-    b ≼ a -> ✓(r ⋅ a) -> ✓ (r ⋅ b).
-  Proof using.
-    i. apply cmra_mono_l with (z:=r) in H.
-    eapply cmra_valid_included; eauto.
-  Qed.
-
-  Lemma Own_bupd_valid (r a b: Σ):
-    (Own r ⊢|==> Own a ∗ Own b) -> ✓ r -> ✓ (a ⋅ b).
-  Proof using.
-    i. eapply Own_wand_valid with (a1 := r); eauto.
-    iIntros "H". iApply Own_op. iStopProof. eauto.
-  Qed.
-
-End Lemmas.

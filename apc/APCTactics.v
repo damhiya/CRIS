@@ -9,7 +9,7 @@ Import APC.
 
 Section LEMMAS.
 
-  Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concGS}.
 
   Local Definition state : Type := gmap key (option Any.t).
   Local Definition post (R_s R_t : Type) : Type := state * R_s → state * R_t → iProp Σ.

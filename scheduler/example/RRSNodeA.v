@@ -24,10 +24,10 @@ Hint Unfold node_inG_node subG_nodeG : GRA_index.
 Local Open Scope Qp.
 
 Module RRSNodeAS. Section RRSNodeAS.
-  Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG}.
-  Context `{_schG: !SchA.newschG}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concGS}.
+  Context `{_schG: !SchA.schGS}.
   Context `{_rrsG: !RRSA.rrsG}.
-  Context `{_memG: !MemA.memG}.
+  Context `{_memGS: !MemA.memGS}.
   Context `{_nodeG: !RRSNodeA.nodeG}.
 
   (** Define user resources and iProp **)
@@ -157,10 +157,10 @@ Module RRSNodeAS. Section RRSNodeAS.
 End RRSNodeAS. End RRSNodeAS.
 
 Module RRSNodeA. Section RRSNodeA.
-  Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG}.
-  Context `{_schG: !SchA.newschG}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concGS}.
+  Context `{_schG: !SchA.schGS}.
   Context `{_rrsG: !RRSA.rrsG}.
-  Context `{_memG: !MemA.memG}.
+  Context `{_memGS: !MemA.memGS}.
   Context `{_nodeG: !RRSNodeA.nodeG}.
   Import RRSNodeI.
 

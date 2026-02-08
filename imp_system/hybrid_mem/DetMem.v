@@ -4,7 +4,7 @@ Require Import MemHdr MemLib.
 (* Deterministic Memory model, Bottom-level memory model of this example. *)
 
 Module DetMem. Section DetMem.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
 
   Definition scopes : gmultiset string := {[+"MemH"+]}.
   Definition v_mem := "MemH" ↯ "mem".

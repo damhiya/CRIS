@@ -20,39 +20,31 @@ Section invariants.
   Definition ownIRA : ucmra := discrete_funUR InvSetRA.
   Definition ownERA : ucmra := coPset_disjUR.
 
-  Class invG := {
-    #[local] invG_E :: inG ownERA Γ;
-    #[local] invG_I :: inG ownIRA Σ;
+  Class invGpreS := {
+    #[local] invGpreS_E :: inG ownERA Γ;
+    #[local] invGpreS_I :: inG ownIRA Σ;
+  }.
+
+  Class invGS := {
+    invG : invGpreS;
+    enabled_name : gname;
+    invariant_name : gname;
   }.
 
   Definition invΓ : HRA := #[ownERA].
   Definition invΣ : GRA := #[ownIRA].
 
-  Global Instance subG_invG : subG invΣ Σ → subG invΓ Γ → invG.
+  Global Instance subG_invGpreS : subG invΣ Σ → subG invΓ Γ → invGpreS.
   Proof using. solve_inG. Defined.
-
-  (* Initial resources for invariants *)
-  Definition ir_ownIRA : DRA_mk ownIRA := λ n, allocs_auth _ (λ i, True).
-  Lemma ir_ownIRA_valid : ✓ ir_ownIRA.
-  Proof using. rewrite /ir_ownIRA; intros n'; apply allocs_auth_valid. Qed.
-
-  Definition ir_ownERA : DRA_mk ownERA := CoPset ⊤.
-  Lemma ir_ownERA_valid : ✓ ir_ownERA.
-  Proof using. rewrite /ir_ownERA //. Qed.
-
-  Definition ir_invΓ : invΓ := *[Some (ir_ownERA)].
-  Definition ir_invΣ : invΣ := *[Some (ir_ownIRA)].
 End invariants.
-Global Arguments invG : clear implicits.
-Hint Unfold invG_I invG_E subG_invG subG_inG : GRA_index.
+Global Arguments invGpreS : clear implicits.
+Global Arguments invGS : clear implicits.
 
-Notation invariant_name := (base_γ) (only parsing).
-Notation enabled_name := (base_γ) (only parsing).
 
 Section predicates.
-  Context `{!subG (Γ : HRA) Σ, !invG Γ Σ α}.
-  Local Existing Instances invG_I invG_E.
+  Context `{!subG (Γ : HRA) Σ, !invGS Γ Σ α}.
   Implicit Types (n : level) (i : positive).
+  Local Existing Instances invG invGpreS_I invGpreS_E.
 
   (* owns an invariant *)
   Definition ownIR {n} i (p : GTerm.t n) : ownIRA :=
@@ -147,7 +139,8 @@ End predicates.
 
 Section wsat.
   Context `{Σ : GRA, Γ : HRA}.
-  Context `{@GATIntp.t (iPropI Σ) α, !invG Γ Σ α, !subG Γ Σ}.
+  Context `{@GATIntp.t (iPropI Σ) α, !invGS Γ Σ α, !subG Γ Σ}.
+  Local Existing Instances invG invGpreS_I invGpreS_E.
 
   Definition inv_satall {n} (I : gmap positive (GTerm.t n)) : iProp Σ :=
     [∗ map] i ↦ p ∈ I, ownI i p ∗ ((⟦p⟧ ∗ ownD i p) ∨ ownE {[i]}).
@@ -331,8 +324,8 @@ End wsat.
 
 Section wsats.
   Context `{Σ : GRA, Γ : HRA}.
-  Context `{@GATIntp.t (iPropI Σ) α, !invG Γ Σ α, !subG Γ Σ}.
-  Local Existing Instances invG_I invG_E.
+  Context `{@GATIntp.t (iPropI Σ) α, !invGS Γ Σ α, !subG Γ Σ}.
+  Local Existing Instances invG invGpreS_I invGpreS_E.
 
   Lemma wsat_authR_valid n X : ✓ (wsat_authR n X).
   Proof using. rewrite /wsat_authR; intros i; des_ifs; apply allocs_auth_valid. Qed.
@@ -432,12 +425,6 @@ Section wsats.
     iPureIntro; apply elem_of_disjoint; intros x??.
     des_ifs; try lia; rewrite /allocs_auth in WF; des_ifs.
     specialize (WF x); rewrite discrete_fun_lookup_op in WF; des_ifs.
-  Qed.
-
-  (* For cancellation *)
-  Lemma make_wsats : own invariant_name (ir_ownIRA) ∗ own enabled_name ir_ownERA ⊢ wsats 0 ⊤ ∗ ownE ⊤.
-  Proof.
-    rewrite /ir_ownIRA /wsats; iIntros "[I E]"; iSplitL "I"; ss. rewrite /wsatl //=. iFrame.
   Qed.
 
   (* Definitions for fancy updates & invariants *)
@@ -547,7 +534,7 @@ Notation "P '=|' n ',' E '|={' E1 '}=∗' Q" := (P -∗ =|n, E|={E1}=> Q)%I (at 
 
 Section fancy_updates.
   Context `{Σ : GRA, Γ : HRA}.
-  Context `{@GATIntp.t (iProp Σ) α, !invG Γ Σ α, !subG Γ Σ}.
+  Context `{@GATIntp.t (iProp Σ) α, !invGS Γ Σ α, !subG Γ Σ}.
   Implicit Types n m : level.
   Implicit Types N : namespace.
   Implicit Types E : coPset.
@@ -575,7 +562,7 @@ End fancy_updates.
 
 Section inv.
   Context `{Σ : GRA, Γ : HRA}.
-  Context `{@GATIntp.t (iProp Σ) α, !invG Γ Σ α, !subG Γ Σ}.
+  Context `{@GATIntp.t (iProp Σ) α, !invGS Γ Σ α, !subG Γ Σ}.
   Implicit Types (n : level) (N : namespace) (E : coPset).
 
   Lemma inv_alloc {n} (p : GTerm.t n) m E Ew N :
@@ -612,15 +599,6 @@ Section inv.
     iModIntro; iApply "R"; iFrame.
   Qed.
 
-  (* Global Instance from_modal_fupd n Ew E1 E2 P :
-    FromModal (E2 ⊆ E1) modality_id (=|n, Ew|={E1,E2}=> P) (=|n, Ew|={E1,E2}=> P) P | 1.
-  Proof using.
-    rewrite /FromModal ?uPred_fupd_unseal /uPred_fupd_def ?inv_eq /inv_def /=.
-    iIntros (IN) "$ W !>".
-    rewrite (union_difference_L E2 E1) // /wsats ownE_op; last set_solver.
-    iDestruct "W" as "[$ [[$ _] $]]".
-  Qed. *)
-
   Global Instance into_acc_inv n m Ew E N p P:
     SLRed n p P →
     IntoAcc (inv n N p) (n < m ∧ ↑N ⊆ E ∧ E ⊆ Ew) True
@@ -655,7 +633,7 @@ End inv.
 
 Section winv.
   Context `{Σ : GRA, Γ : HRA}.
-  Context `{@GATIntp.t (iProp Σ) α, !invG Γ Σ α, !subG Γ Σ}.
+  Context `{@GATIntp.t (iProp Σ) α, !invGS Γ Σ α, !subG Γ Σ}.
 
   Definition winv (Ep : coPset * coPset) : iProp Σ :=
     match Ep with
@@ -734,126 +712,3 @@ Section winv.
 End winv.
 
 Arguments winv : simpl never.
-
-(* tactics for cancellation *)
-Ltac unfold_own :=
-  match goal with
-  | |- Own ?R = own base_γ ?R2 =>
-    rewrite own.Own_eq /own.Own_def own.own_eq /own.own_def /own.iRes_singleton; f_equal
-  end.
-
-Ltac unfold_left :=
-  repeat match goal with
-  | |- context [InitRes.singleton _] => rewrite InitRes.singleton_index
-  | |- context [InitRes.L (discrete_fun_singleton _ _)] => rewrite ?InitRes.L_index
-  | |- context [InitRes.R (discrete_fun_singleton _ _)] => rewrite ?InitRes.R_index
-  end.
-
-Ltac solve_index H :=
-  eapply eq_ind; first iExact H;
-  unfold_own;
-  etrans;
-  [unfold_left; repeat match goal with | |- ?a = _ => remove_eq a end; simpl; refl
-  | etrans; cycle 1;
-    [ symmetry;
-      let k := fresh "k" in
-      match goal with
-      | |- context [inG_id ?i] => pattern i; match goal with | |- ?f ?a => set (k:=f) end
-      end;
-      autounfold with GRA_index
-      ; subst k
-      ; simpl
-      ; hrepeat do 1 match goal with | |- ?a = _ => remove_eq a end
-      ; simpl
-    | refl
-    ]
-  ].
-
-Ltac _solve_ir_valid :=
-  lazymatch goal with
-  | |- ✓ ( (InitRes.app _ _) ⋅ ir_own_admin ) => eapply InitRes.app_valid
-  | |- ✓ ( InitRes.nil ⋅ ir_own_admin ) => let i := fresh "i" in intros i; inv_fin i
-  | |- ✓ ( InitRes.singleton None ⋅ ir_own_admin ) => eapply InitRes.singleton_none_valid
-  | |- ✓ ( InitRes.singleton _ ⋅ ir_own_admin ) => eapply InitRes.singleton_some_valid
-  | |- ✓ ( ?r ⋅ ir_own_admin ) => rewrite /r; eapply InitRes.app_valid
-  end.
-
-Ltac solve_ir_valid :=
-  (hrepeat do 1 _solve_ir_valid);
-  try match goal with |- ✓ ir_ownIRA => apply ir_ownIRA_valid end;
-  try match goal with |- ✓ ir_ownERA => apply ir_ownERA_valid end.
-  (* try match goal with |- ✓ ir_ownDRA => apply ir_ownDRA_valid end. *)
-
-Ltac _unfold_res :=
-  match goal with
-    |- context[Own(?r ⋅ ir_own_admin)] =>
-      rewrite /r /InitRes.app;
-      repeat (rewrite ?InitRes.L_distr ?InitRes.R_distr)
-  end.
-
-Ltac _destruct_res :=
-  let CNT := fresh "CNT" in
-  let Pat := fresh "Pat" in
-  pose (CNT := 0);
-  (hrepeat do 1
-    pose (Pat := ("[H" ++ NilEmpty.string_of_uint (Nat.to_uint CNT) ++ " H" ++ NilEmpty.string_of_uint (Nat.to_uint (S CNT)) ++ "]")%string);
-    compute in Pat;
-    lazymatch goal with
-    |- context[environments.Esnoc _ (INamed ?H) (Own (_ ⋅ _))] =>
-        match goal with [_ := ?pat |-_] => iDestruct H as pat end
-    end;
-    clear Pat;
-    match goal with [CNT := ?n |-_] => clear CNT; pose (CNT := S(S n)) end);
-  clear CNT.
-
-Ltac _clear_res :=
-  hrepeat do 1 match goal with
-  |- context[environments.Esnoc _ (INamed ?H) (Own ?r)] =>
-     pose (RRR := r);
-     lazymatch goal with
-     | [_ := context[InitRes.nil] |-_] => iClear H
-     | [_ := context[InitRes.singleton None] |- _] => iClear H
-     end;
-     clear RRR
-   end.
-
-Ltac _simplify_res :=
-  try match goal with
-      |- context[environments.Esnoc _ (INamed ?H) (Own ?r)] =>
-      let R := fresh "R" in
-      let pat := fresh "pat" in
-      pose (R:=r);
-      lazymatch goal with
-        [_ := context[ InitRes.singleton (Some ?r) ] |-_] =>
-          pose (pat := ("[" ++ H ++ "]")%string); compute in pat;
-          iAssert (own base_γ r) with pat as H;
-          clear R pat;
-          cycle 1; [_simplify_res|]
-      end
-  end.
-
-Ltac _wsats_res :=
-  lazymatch goal with
-  |- context[environments.Esnoc _ (INamed ?I) (own base_γ (ir_ownIRA))] =>
-  lazymatch goal with
-  |- context[environments.Esnoc _ (INamed ?E) (own base_γ (ir_ownERA))] =>
-    let Pat := fresh "Pat" in
-    pose (Pat := ("[" ++ I ++ " " ++ E  ++ "]")%string);
-    compute in Pat;
-    iPoseProof (make_wsats with Pat) as "[U W]"; [by iFrame|];
-    clear Pat
-  end end.
-
-Ltac simplify_res :=
-  _unfold_res;
-  iIntros "H";
-  _destruct_res;
-  _clear_res;
-  _simplify_res;
-  [try _wsats_res|..].
-
-Ltac solve_res :=
-  match goal with
-    |- context[environments.Esnoc _ (INamed ?H) _] =>
-      solve_index H; f_equal
-  end.

@@ -7,7 +7,7 @@ Local Open Scope nat_scope.
 Module RRSIA. Section RRSIA.
   Import RRSAS.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
-  Context `{_concG: !concG}.
+  Context `{_concG: !concGS}.
   Context `{_rrsG: !RRSA.rrsG}.
 
   Context (sp (* sp_sch_user *) sp_rrs_user: specmap).
@@ -766,7 +766,7 @@ Module RRSIA. Section RRSIA.
 End RRSIA.
 
 Section ctxr.
-  Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concGS}.
   Context `{_rrsG: !rrsG}.
 
   Context (parent_yield: string).

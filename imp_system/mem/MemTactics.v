@@ -2,7 +2,7 @@ Require Import CRIS.
 Require Export ImpPrelude MemHeader MemA.
 
 Section mem.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG, !memG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !memGS}.
 
   Local Definition state : Type := gmap key (option Any.t).
   Local Definition post (R_s R_t : Type) : Type := state * R_s → state * R_t → iProp Σ.

@@ -4,7 +4,7 @@ From iris Require Import gmap_view.
 
 Module NDSIA. Section sim.
   Import NDSA.
-  Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concGS}.
   Context `{_ndsG: !ndsG}.
 
   Context (sp (* sp_sch_user *) sp_nds_user : specmap).
@@ -1046,7 +1046,7 @@ Module NDSIA. Section sim.
 End sim.
 
 Section ctxr.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG, !ndsG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !ndsG}.
 
   Context (parent_yield: string).
   Context (parent_yield_fsp: fspec).

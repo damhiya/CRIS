@@ -6,7 +6,7 @@ Require Import StackHeader StackA StackI.
 From CRIS.helping Require Import Header HelpingOn HelpingOnOffproof HelpingTactics HelpingFacts.
 
 Section StackIM.
-  Context `{!crisG Γ Σ α β τ _S _I, !memG, !newschG, !concG, !stackG StackM.jobID StackM.retID}.
+  Context `{!crisG Γ Σ α β τ _S _I, !memGS, !schGS, !concGS, !stackG StackM.jobID StackM.retID}.
   Local Existing Instances stack_helpingG.
 
   (* Helping module being parameterized by mn *)

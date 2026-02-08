@@ -4,7 +4,7 @@ Require Import RRSHeader SchHeader.
 Definition thpool : Type := list nat.
 
 Module RRSI. Section RRSI.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
 
   Context (parent_yield : string).
 

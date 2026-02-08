@@ -3,24 +3,25 @@ From iris.algebra Require Import auth excl agree csum functions dfrac_agree.
 From iris.bi.lib Require Import fractional.
 
 (* Memory resource algebra *)
-Section MemRA.
-  Context `{!crisG Γ Σ α β τ _S _I}.
+Canonical Structure valO := leibnizO val.
+Local Definition frac_valO := dfrac_agreeR valO.
+Local Definition _memRA := (mblock -d> Z -d> optionUR frac_valO).
+Local Definition memRA := authUR _memRA.
+Class memGpreS `{!crisG Γ Σ α β τ _S _I} := {
+  #[local] mem_inG :: inG memRA Γ;
+}.
+Class memGS `{!crisG Γ Σ α β τ _S _I} := {
+  #[local] memGS_memGSpreS :: memGpreS;
+  mem_name : gname;
+}.
+Definition memΓ : HRA := #[memRA].
+Global Instance subG_memGS `{!crisG Γ Σ α β τ _S _I} : subG memΓ Γ → memGpreS.
+Proof. solve_inG. Defined.
 
-  Canonical Structure valO := leibnizO val.
-  Definition frac_valO := dfrac_agreeR valO.
-  Definition _memRA := (mblock -d> Z -d> optionUR frac_valO).
-  Definition memRA := authUR _memRA.
-  Class memG `{!crisG Γ Σ α β τ _S _I} := {
-    mem_inG :: inG memRA Γ;
-  }.
-  Definition memΓ : HRA := #[memRA].
-  Global Instance subG_memG : subG memΓ Γ → memG.
-  Proof. solve_inG. Defined.
-End MemRA.
-Hint Unfold subG_memG mem_inG : GRA_index.
+Local Existing Instances memGS_memGSpreS mem_inG.
 
 Section MEM.
-  Context `{!crisG Γ Σ α β τ _S _I, !memG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !memGS}.
 
   (* Initial resources for memory *)
   Definition mem_init_val (csl : string → bool) (genv : GEnv.t) (blk : mblock) ofs : option Z :=
@@ -48,32 +49,28 @@ Section MEM.
         end) : _memRA).
 
   Definition mem_init_auth csl genv : iProp Σ :=
-    own base_γ (mem_init_auth_r csl genv).
+    own mem_name (mem_init_auth_r csl genv).
 
   Definition mem_init_frag csl genv : iProp Σ :=
-    own base_γ (mem_init_frag_r csl genv).
+    own mem_name (mem_init_frag_r csl genv).
 
   Definition mem_init csl genv : iProp Σ :=
-    own base_γ (mem_init_auth_r csl genv ⋅ mem_init_frag_r csl genv).
-
-  Lemma mem_init_valid (csl : string → bool) (genv : GEnv.t) :
-    ✓ (mem_init_auth_r csl genv ⋅ mem_init_frag_r csl genv).
-  Proof. rewrite /mem_init_auth_r /mem_init_frag_r auth_both_valid_discrete; split; ii; des_ifs. Qed.
-
-  Definition ir_memRA csl genv : DRA_mk memRA :=
-    mem_init_auth_r csl genv ⋅ mem_init_frag_r csl genv.
-  Lemma ir_memRA_valid csl genv : ✓ (ir_memRA csl genv).
-  Proof. pose proof (mem_init_valid csl genv). rewrite /ir_memRA //. Qed.
-
-  Definition ir_memΓ csl genv : memΓ :=
-    *[Some (ir_memRA csl genv)].
-
+    own mem_name (mem_init_auth_r csl genv ⋅ mem_init_frag_r csl genv).
 End MEM.
+
+Lemma mem_alloc `{!crisG Γ Σ α β τ Hsub Hinv, !memGpreS} csl genv :
+  ⊢ o=> ∃ (_ : memGS), mem_init csl genv.
+Proof.
+  iMod (own_alloc (mem_init_auth_r csl genv ⋅ mem_init_frag_r csl genv)) as "[%γm M]".
+  { apply auth_both_valid_discrete; split; ss; ii; des_ifs. }
+  pose (Build_memGS _ _ _ _ _ _ _ _ _ γm) as Hmem.
+  by iExists Hmem; iFrame.
+Qed.
 
 Local Arguments Z.of_nat : simpl nomatch.
 
 Section MemRA.
-  Context `{!crisG Γ Σ α β τ _S _I, !memG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !memGS}.
 
   Definition mem_val : Type := Qp * val.
 
@@ -90,7 +87,8 @@ Section MemRA.
   Definition mem_points_to_singleton_r (loc : mblock * Z) (q : dfrac) (v : val) : memRA :=
     ◯ (discrete_fun_singleton loc.1 (discrete_fun_singleton loc.2 (Some (to_dfrac_agree q v)))).
   Definition mem_points_to_singleton (loc : mblock * Z) (q : dfrac) (v : val) : iProp Σ :=
-    own base_γ ((mem_points_to_singleton_r loc q v): memRA).
+    own mem_name (mem_points_to_singleton_r loc q v).
+
   Definition mem_points_to : (mblock * Z) → dfrac → list val → iProp Σ :=
     λ '(blk, ofs) q vs, ([∗ list] i ↦ v ∈ vs, mem_points_to_singleton (blk, ofs + i)%Z q v)%I.
 
@@ -157,10 +155,10 @@ Section MemRA.
 End MemRA.
 
 Section syn_mem.
-  Context `{!crisG Γ Σ α β τ _S _I, !memG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !memGS}.
 
   Definition syn_mem_points_to_singleton {n} loc q v : GTerm.t n :=
-    sown base_γ ((mem_points_to_singleton_r loc q v): memRA).
+    sown mem_name ((mem_points_to_singleton_r loc q v): memRA).
 
   Definition syn_mem_points_to {n} : (mblock * Z) → dfrac → list val → GTerm.t n :=
     λ '(blk, ofs) q vs, ([∗ list] i ↦ v ∈ vs, syn_mem_points_to_singleton (blk, ofs + i)%Z q v)%SAT.
@@ -186,7 +184,7 @@ Notation "loc |->{ q } vs" := (syn_mem_points_to loc (DfracOwn q) vs)%SAT : SAT_
 Notation "loc |-> vs" := (syn_mem_points_to loc (DfracOwn 1) vs)%SAT : SAT_scope.
 
 Section reduction.
-  Context `{!crisG Γ Σ α β τ _S _I, !memG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !memGS}.
 
   Global Instance mem_points_to_singleton_red n loc q v :
     SLRed n (loc ↦{q} v) (loc ↦{q} v).
@@ -202,7 +200,7 @@ Arguments mem_points_to_singleton_r : simpl never.
 
 (* Memory specification *)
 Module MemA. Section MemA.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG, !memG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !memGS}.
 
   Definition alloc : fspec :=
     fspec_simple (λ sz,
@@ -289,7 +287,7 @@ Module MemA. Section MemA.
 End MemA. End MemA.
 
 (* Module MemP. Section MemP. *)
-(*   Context `{!crisG Γ Σ α β τ _S _I, !concG, !memG}. *)
+(*   Context `{!crisG Γ Σ α β τ _S _I, !concGS, !memGS}. *)
 
 (*   Definition scopes := ["Mem"]. *)
 

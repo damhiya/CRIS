@@ -78,18 +78,18 @@ Section MemRA.
   Definition frac_valO := (dfrac_agreeR (optionO valO)).
   Definition _memRA := (mblock -d> Z -d> optionUR frac_valO).
   Definition memRA := prodR (authUR _memRA) (unitO).
-  Class memG `{!crisG Γ Σ α β τ _S _I} := {
+  Class memGS `{!crisG Γ Σ α β τ _S _I} := {
     mem_inG :: inG memRA Γ;
   }.
   Definition memΓ : HRA := #[memRA].
-  Global Instance subG_memG : subG memΓ Γ → memG.
+  Global Instance subG_memGS : subG memΓ Γ → memGS.
   Proof. solve_inG. Defined.
 End MemRA.
-Hint Unfold subG_memG mem_inG : GRA_index.
+Hint Unfold subG_memGS mem_inG : GRA_index.
 
 
 Section MEM.
-  Context `{!crisG Γ Σ α β τ _S _I, !memG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !memGS}.
 
   Definition mem_init_auth_r : memRA :=
     (● ((λ blk ofs, ε): _memRA), tt).
@@ -123,7 +123,7 @@ End MEM.
 Local Arguments Z.of_nat : simpl nomatch.
 
 Section MemRA.
-  Context `{!crisG Γ Σ α β τ _S _I, !memG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !memGS}.
 
   Definition mem_val : Type := Qp * val.
 
@@ -158,7 +158,7 @@ Arguments mem_points_to_singleton_r : simpl never.
 (* Auxiliary Definitions & Lemmas *)
 Section AUX.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
-  Context `{_memG: !memG}.
+  Context `{_memGS: !memGS}.
 
   Fixpoint is_list (ll: val) (xs: list val): iProp Σ :=
     match xs with
@@ -284,12 +284,12 @@ End AUX2.
 
 Section RA.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
-  Context `{_memG: !memG}.
+  Context `{_memGS: !memGS}.
 
   Lemma split_points_to_r blk ofs q a l :
     _points_to_r (blk, ofs) q (a :: l)
     ≡ (_points_to_r (blk, ofs) q [a]) ⋅ (_points_to_r (blk, (ofs+1)%Z) q l).
-  Proof using _memG.
+  Proof using _memGS.
     intros b o. rewrite !discrete_fun_lookup_op. ss.
     destruct (dec b blk).
     - subst. destruct (dec o ofs).
@@ -313,7 +313,7 @@ Section RA.
   Lemma points_to_singleton blk ofs q a :
     _points_to_r (blk, ofs) q [a]
     ≡ (discrete_fun_singleton blk (discrete_fun_singleton ofs (Some (to_frac_agree q (Some a))))).
-  Proof using _memG.
+  Proof using _memGS.
     intros b o. ss. des_ifs; destruct dec; bsimpl; des; Ztac; try nia.
     - replace o with ofs in * by nia. rewrite Z.sub_diag in Heq0. ss. inv Heq0.
       rewrite !discrete_fun_lookup_singleton //.
@@ -328,7 +328,7 @@ Section RA.
   Lemma points_to_transform blk ofs q l :
     own base_γ (((◯ _points_to_r (blk, ofs) q l), tt): memRA)
     ⊢ [∗ list] i↦v ∈ l, (blk, (ofs + i)%Z) ⤇{q} v.
-  Proof using _memG.
+  Proof using _memGS.
     gen ofs. induction l.
     - iIntros; eauto.
     - i. rewrite split_points_to_r. iIntros "[P L]".

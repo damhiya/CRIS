@@ -5,7 +5,7 @@ Require Import MemHdr MemLib DetMem.
 
 
 Module NonDetMem. Section NonDetMem.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
   Import DetMem.
 
   Definition v_mem := "MemH" ↯ "mem".

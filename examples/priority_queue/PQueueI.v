@@ -5,7 +5,7 @@ Require Import StackHeader.
 Require Import PQueueHeader.
 
 Module PQueueI. Section PQueueI.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
 
   Definition scopes : gmultiset string := ∅.
 

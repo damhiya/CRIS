@@ -4,7 +4,7 @@ Require Import NDSHeader.
 Definition thpool : Type := list (nat * option SAny.t).
 
 Module NDSI. Section NDSI.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
 
   Variable (parent_yield : string).
 

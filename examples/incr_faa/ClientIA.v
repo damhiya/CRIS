@@ -8,7 +8,7 @@ Require Import Common Mod ltac2_lib.
 (* Proof of refinement between ClientA.t and ClientI.t *)
 Module ClientIA. Section ClientIA.
   Import ClientA.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG, !memG, !newschG, !incrG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !memGS, !schGS, !incrG}.
 
   Context (N : namespace).
   Context (sp_user sp : specmap).
@@ -190,7 +190,7 @@ Module ClientIA. Section ClientIA.
 End ClientIA.
 
 Section ctxr.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG, !memG, !newschG, !incrG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !memGS, !schGS, !incrG}.
 
   Definition ctxr (N : namespace) (sp_user sp : specmap) :
     ClientA.sp N ⊆ sp_user →

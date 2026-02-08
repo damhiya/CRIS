@@ -5,7 +5,7 @@ From CRIS.helping Require Import Header.
 Require Import StackHeader.
 
 Module StackI. Section StackI.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
 
   Definition scopes : gmultiset string := ∅.
 

@@ -10,7 +10,7 @@ Local Ltac gnorm_itr :=
       end
   end.
 
-Lemma cancel_spawn `{!crisG Γ Σ α β τ _S _I, !concG} md sp fn args :
+Lemma cancel_spawn `{!crisG Γ Σ α β τ _S _I, !concGS} md sp fn args :
   CANCEL_GOAL md sp
     (HoareSpawnE None false fn args) 
     (HoareSpawnE (SMod.conc_sp_from md !! speckey_fn fn) true fn args).

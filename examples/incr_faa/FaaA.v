@@ -3,7 +3,7 @@ Require Export ImpPrelude MemHeader MemA SchHeader.
 Require Export FaaHeader.
 
 Module FaaA. Section FaaA.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG, !memG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !memGS}.
 
   Definition scopes : gmultiset string := ∅.
 

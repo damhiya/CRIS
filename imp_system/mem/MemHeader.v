@@ -17,7 +17,7 @@ Module MemHdr.
     Ret r.
 End MemHdr.
 
-Module MemGEnv.
+Module memGSEnv.
   Definition t: GEnv.t :=
     [(MemHdr.alloc, Gfun↑);
      (MemHdr.free,  Gfun↑);
@@ -25,4 +25,4 @@ Module MemGEnv.
      (MemHdr.store, Gfun↑);
      (MemHdr.cmp, Gfun↑);
      (MemHdr.cas, Gfun↑)].
-End MemGEnv.
+End memGSEnv.

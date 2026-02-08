@@ -6,7 +6,7 @@ Require Import
   PFMemIACAS PFMemIAFence PFMemIASpawn.
 
 Module PFMemIA. Section PFMemIA.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG, !histG, !atomicG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !histG, !atomicG}.
 
   Lemma ctxr sp :
     ctx_refines

@@ -77,7 +77,7 @@ Ltac init_sim :=
     ]).
 
 (* Ltac iinit_simF := initialize_simF. *)
-(* Lemma wsim_HoareFun_src `{!crisG Γ Σ α β τ _S _I, !concG}
+(* Lemma wsim_HoareFun_src `{!crisG Γ Σ α β τ _S _I, !concGS}
     fsp msk fbd arg fl_src fl_tgt Ist RR r g ps pt st_src st_tgt itr_tgt :
   (∀ N tid x varg,
     precond fsp (N, tid) x varg arg -∗

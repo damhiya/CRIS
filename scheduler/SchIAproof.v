@@ -3,7 +3,7 @@ Require Import SchHeader SchI SchA.
 From iris.algebra Require Import gmap_view frac_auth.
 
 Module SchIA. Section sim.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG, !newschG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !schGS}.
   Import SchA.
 
   Context (sp sp_user : specmap).
@@ -36,7 +36,7 @@ Module SchIA. Section sim.
           end) ∗
         ([∗ list] i ↦ e ∈ ths.*1.*1, if decide (i = tid_cur) then emp else YIELD e))%I.
 
-  Local Definition SchAMod := SchA.t sp sp_user.
+  Local Definition SchAMod := SchA.t sp_user sp.
   Local Definition SchIMod := SchI.t.
 
   Lemma simF_inner_spawn : ISim.sim_fun open SchAMod SchIMod Ist (Some SchHdr._spawn).
@@ -391,14 +391,14 @@ Module SchIA. Section sim.
 End sim.
 
 Section ctxr.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG, !newschG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !schGS}.
 
   Lemma ctxr sp sp_user
         (SchInGlobal : SchA.sp sp_user ⊤ ⊆ sp)
         (UserInGlobal : sp_user ⊆ sp)
         (ConcInGlobal : speckey_concE ∈ dom sp) :
     ctx_refines
-      (SchA.t sp sp_user, SchA.init_cond)
+      (SchA.t sp_user sp, SchA.init_cond)
       (SchI.t,            emp%I).
   Proof. eapply main_adequacy, sim; eauto. Qed.
 End ctxr.

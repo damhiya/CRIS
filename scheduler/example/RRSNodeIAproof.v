@@ -7,9 +7,9 @@ Require Import ltac2_lib.
 
 Module RRSNodeIA. Section RRSNodeIA.
   Import RRSNodeAS.
-  Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concGS}.
   Context `{_rrsG: !RRSA.rrsG}.
-  Context `{_memG: !MemA.memG}.
+  Context `{_memGS: !MemA.memGS}.
   Context `{_nodeG: !RRSNodeA.nodeG}.
 
   Context (sp sp_user: specmap).
@@ -267,10 +267,10 @@ Module RRSNodeIA. Section RRSNodeIA.
 End RRSNodeIA. End RRSNodeIA.
 
 Section ctxr.
-  Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG}.
-  Context `{_schG: !SchA.newschG}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concGS}.
+  Context `{_schG: !SchA.schGS}.
   Context `{_rrsG: !RRSA.rrsG}.
-  Context `{_memG: !MemA.memG}.
+  Context `{_memGS: !MemA.memGS}.
   Context `{_nodeG: !RRSNodeA.nodeG}.
 
   Lemma ctxr sp sp_user

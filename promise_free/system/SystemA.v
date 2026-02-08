@@ -13,7 +13,7 @@ Global Instance subG_sysG `{!crisG Γ Σ α β τ _S _I} : subG sysΓ Γ → sys
 Proof. solve_inG. Defined.
 
 Section SystemRA.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG, !histG, !atomicG, !sysG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !histG, !atomicG, !sysG}.
 
   Definition tview_sys_auth (ths : gmap Ident.t (TView.t * nat)) : iProp Σ :=
     (own base_γ (gmap_view_auth (DfracOwn 1) (to_agree <$> ths)) ∗
@@ -58,7 +58,7 @@ Section SystemRA.
 End SystemRA.
 
 Module SystemA. Section SystemA.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG, !histG, !atomicG, !sysG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !histG, !atomicG, !sysG}.
   Context (sp_user : specmap).
 
   (* Specifications *)

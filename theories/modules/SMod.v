@@ -5,7 +5,7 @@ Require Export FSpec SModTr Sp.
 Notation fnsemmap := (gmap (option string) (option (emask * (option fspec_rel * fbody)))).
 
 Module SMod. Section Smod.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
 
   (* SMods are basic units of composition in CRIS. *)
   (* The image of the maps are lifted by option to make the module append operation total. *)
@@ -182,7 +182,7 @@ End Smod. End SMod.
 Infix "☆" := SMod.add (at level 60, right associativity).
 
 Section Aux.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
 
   #[global] Instance smod_lift_fn_inj : Inj (=) (=) SMod.lift_fn.
   Proof. ii. rewrite /SMod.lift_fn in H0. des_ifs. Qed.

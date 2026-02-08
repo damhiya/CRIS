@@ -42,7 +42,7 @@ Hint Unfold rrs_inG_init rrs_inG_ctl rrs_inG_pub rrs_inG_tid rrs_inG_inv subG_rr
 Local Open Scope Qp.
 
 Module RRSAS. Section RRSAS.
-  Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concGS}.
   Context `{_rrsG: !rrsG}.
 
   (** init **)
@@ -786,9 +786,9 @@ Module RRSAS. Section RRSAS.
 End RRSAS. End RRSAS.
 
 Module RRSA. Section RRSA.
-  Context `{_crisG: !crisG Γ Σ α β τ _S _I, !concG}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I, !concGS}.
   Context `{_rrsG: !rrsG}.
-  Context `{_schG: !SchA.newschG}.
+  Context `{_schG: !SchA.schGS}.
 
   (* Context (parent_yield : string). *)
   Import RRSI.
@@ -886,7 +886,7 @@ End RRSA. End RRSA.
 
 Section FSPEC_RRSCH.
   Import RRSAS.
-  Context `{_crisG: !crisG Γ Σ α β τ _S _I, !concG}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I, !concGS}.
   Context `{_schG: !rrsG}.
 
   Definition per_tid_fspec (fspecf: nat -> fspec) : fspec :=

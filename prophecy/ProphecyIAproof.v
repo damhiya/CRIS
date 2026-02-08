@@ -5,7 +5,7 @@ Require Import ExtendedBehavior SimGEx.
 Require Import exco_stream.
 
 Module ProphIA. Section ProphIA.
-  Context `{_crisG : !crisG Γ Σ α β τ _I _S, _concG : !concG, _prophG : !prophG}.
+  Context `{_crisG : !crisG Γ Σ α β τ _I _S, _concG : !concGS, _prophG : !prophG}.
 
   Definition real_mod (md : Mod.t) : Prop :=
     map_Forall

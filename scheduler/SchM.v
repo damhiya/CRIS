@@ -4,7 +4,7 @@ Require Import SchHeader.
 Definition thpool : Type := list (nat * option SAny.t).
 
 Module SchM. Section SchM.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
 
   Definition scopes := [SCH].
   Definition v_ths := SCH ↯ "ths".

@@ -63,8 +63,8 @@ End SpinLockAS. End SpinLockAS.
   3) initial state (via Any.t)
 *)
 Module SpinLockA. Section SpinLockA.
-  Context `{_sinvG: !crisG Γ Σ α β τ _S _I}.
-  Context `{_memG: !memG}.
+  Context `{_sinvGpreS: !crisG Γ Σ α β τ _S _I}.
+  Context `{_memGS: !memGS}.
   Context `{_schG: !schG}.
   Context `{_spinlockG: !spinlockG}.
 

@@ -9,7 +9,6 @@ From iris Require Import excl.
 (* Resource algebra *)
 (* Structure of the resource algebra definition is similar to that of iris,
   but few differences exist. *)
-(* HRAs are structs similar to GRAs, but for RAs that sProps can own. *)
 Section RA.
   Context `{!crisG Γ Σ α β τ _S _I}.
   
@@ -17,21 +16,14 @@ Section RA.
     spinlock_inG :: inG (exclR unitO) Γ;
   }.
   Definition spinlockΓ : HRA := #[exclR unitO].
-  (* Be sure to annotate Γ as HRA, or tc search may not work properly. *)
   Global Instance subG_spinlockG : subG spinlockΓ Γ → spinlockG.
   Proof. solve_inG. Defined.
-  (* Be sure to add these two instances to hint database so that we can resolve inG instances
-    in the cancellation phase. *)
 End RA.
-Hint Unfold subG_spinlockG spinlock_inG : GRA_index.
 
 (* Spec definition *)
 (* Define 1) initial resource 2) function specs 3) sp here. *)
 Module LockA. Section LockA.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG, !memG, !newschG, !spinlockG}.
-
-  (* Initial resource *)
-  Definition ir : spinlockΓ := *[None].
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !memGS, !schGS, !spinlockG}.
 
   Definition N_SpinLockA := nroot .@ "spin_lock".
 

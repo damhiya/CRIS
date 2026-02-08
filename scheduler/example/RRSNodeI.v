@@ -6,10 +6,10 @@ Require Import RRSNodeHeader.
 Set Implicit Arguments.
 
 Module RRSNodeI. Section RRSNodeI.
-  Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG}.
-  Context `{_schG: !SchA.newschG}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concGS}.
+  Context `{_schG: !SchA.schGS}.
   Context `{_rrsG: !RRSA.rrsG}.
-  Context `{_memG: !MemA.memG}.
+  Context `{_memGS: !MemA.memGS}.
 
   Definition scopes : gmultiset string := {[+RRSNODE+]}.
 

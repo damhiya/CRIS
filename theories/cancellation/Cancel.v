@@ -7,7 +7,7 @@ Set Implicit Arguments.
 
 Module Cancel. Section Cancel.
 
-Context `{!crisG Γ Σ α β τ _S _I, !concG}.
+Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
 
 Lemma cancel_elim md (r_i r_s r_t: Σ) rs_diff srcs tgts cid st ps pt
   (WFS: SMod.cancellable md)
@@ -209,7 +209,7 @@ Proof using.
 End Cancel.
 
 Section Cancel.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
 
   Lemma cancellation md IC Pinit :
     SMod.cancellable md →

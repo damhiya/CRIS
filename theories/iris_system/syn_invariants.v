@@ -33,7 +33,7 @@ Module SInv.
 
   Section semantics.
 
-    Definition interp_aux `{!invG Γ Σ α, !subHG Γ Σ} n (op : ops) :
+    Definition interp_aux `{!invGS Γ Σ α, !subHG Γ Σ} n (op : ops) :
         (arity op (GTerm.t_prev n) → GTerm.t n) →
         (arity op (GTerm.t_prev n) → iProp Σ) →
         iProp Σ :=
@@ -44,7 +44,7 @@ Module SInv.
       | _wsat_auth X => λ _ _, wsat_auth n X
       end.
 
-    Global Instance interp `{!invG Γ Σ α, !subHG Γ Σ} :
+    Global Instance interp `{!invGS Γ Σ α, !subHG Γ Σ} :
         @SATIntp.t (iPropI Σ) α _ :=
       interp_aux.
 
@@ -54,7 +54,7 @@ Module SInv.
     { #[local] synG_inG :: GAT.inG syntax α
     }.
 
-  Class semG (α : GAT.t) `{!synG α} (Γ : HRA) (Σ : GRA) `{!invG Γ Σ α, !subHG Γ Σ} (β : GATIntp.t) :=
+  Class semG (α : GAT.t) `{!synG α} (Γ : HRA) (Σ : GRA) `{!invGS Γ Σ α, !subHG Γ Σ} (β : GATIntp.t) :=
     { #[local] semG_inG :: GATIntp.inG syntax α interp β
     }.
 
@@ -73,7 +73,7 @@ Module SInv.
   End definitions.
 
   Section reduction.
-    Context `{!synG α, !invG Γ Σ α, !subHG Γ Σ, !semG α Γ Σ β}.
+    Context `{!synG α, !invGS Γ Σ α, !subHG Γ Σ, !semG α Γ Σ β}.
 
     #[export] Instance ownI_red n i (p : GTerm.t n) :
       SLRed n (syn_ownI i p) (ownI i p).
@@ -93,9 +93,8 @@ Module SInv.
 End SInv.
 
 Section derived.
-
-  Context `{!invG Γ Σ α, !subHG Γ Σ, !STτ.t τ, !SL.synG Γ τ α, !SL.semG Γ τ α Σ β, !SInv.synG α, !SInv.semG α Γ Σ β}.
-  Local Existing Instances invG_I invG_E.
+  Context `{!invGS Γ Σ α, !subHG Γ Σ, !STτ.t τ, !SL.synG Γ τ α, !SL.semG Γ τ α Σ β, !SInv.synG α, !SInv.semG α Γ Σ β}.
+  Local Existing Instances invG invGpreS_I invGpreS_E.
 
   Definition syn_ownE {n} (E : coPset) : GTerm.t n :=
     sown enabled_name (CoPset E).
@@ -134,14 +133,14 @@ Module Cris.
     ; #[global] synG_SInv :: SInv.synG α
     }.
 
-  Class semG (Γ : HRA) (τ : TypG.t) (α : GAT.t) `{!synG Γ τ α} (Σ : GRA) (β : GATIntp.t) `(_S : !subG Γ Σ) `(_I : !invG Γ Σ α) :=
+  Class semG (Γ : HRA) (τ : TypG.t) (α : GAT.t) `{!synG Γ τ α} (Σ : GRA) (β : GATIntp.t) `(_S : !subG Γ Σ) `(_I : !invGS Γ Σ α) :=
     { #[global] semG_SL :: SL.semG Γ τ α Σ β
     ; #[global] semG_SInv :: SInv.semG α Γ Σ β
     }.
 
 End Cris.
 
-Class crisG (Γ : HRA) (Σ : GRA) (α : GAT.t) (β : GATIntp.t) (τ : TypG.t) (_S : subG Γ Σ) (_I : invG Γ Σ α) :=
+Class crisG (Γ : HRA) (Σ : GRA) (α : GAT.t) (β : GATIntp.t) (τ : TypG.t) (_S : subG Γ Σ) (_I : invGS Γ Σ α) :=
   { #[global] cris_synG :: Cris.synG Γ τ α
   ; #[global] cris_semG :: Cris.semG Γ τ α Σ β _S _I
   }.
@@ -186,7 +185,6 @@ Global Opaque syn_inv syn_fupd.
 
 (* Module for constructing concrete structures for stratified propositions and global RAs *)
 Module inv_instances.
-
   (* τ and related instances *)
   #[export] Instance τ : TypG.t :=
     λ i,
@@ -207,22 +205,22 @@ Module inv_instances.
           | _ => SInv.syntax
           end.
 
-  #[export] Instance SPropBi_in_α `{Γ : HRA} : GAT.inG SPropBi.syntax α.
+  Local Instance SPropBi_in_α `{Γ : HRA} : GAT.inG SPropBi.syntax α.
   Proof. exists 0. ss. Defined.
 
-  #[export] Instance SPropBiPlainly_in_α `{Γ : HRA} : GAT.inG SPropBiPlainly.syntax α.
+  Local Instance SPropBiPlainly_in_α `{Γ : HRA} : GAT.inG SPropBiPlainly.syntax α.
   Proof. exists 1. ss. Defined.
 
-  #[export] Instance SPropBiBUpd_in_α `{Γ : HRA} : GAT.inG SPropBiBUpd.syntax α.
+  Local Instance SPropBiBUpd_in_α `{Γ : HRA} : GAT.inG SPropBiBUpd.syntax α.
   Proof. exists 2. ss. Defined.
 
-  #[export] Instance SPropiProp_in_α `{Γ : HRA} : GAT.inG SPropiProp.syntax α.
+  Local Instance SPropiProp_in_α `{Γ : HRA} : GAT.inG SPropiProp.syntax α.
   Proof. exists 3. ss. Defined.
 
-  #[export] Instance SInv_in_α `{Γ : HRA} : GAT.inG SInv.syntax α.
+  Local Instance SInv_in_α `{Γ : HRA} : GAT.inG SInv.syntax α.
   Proof. exists 4. ss. Defined.
 
-  #[export] Instance β {Γ : HRA} {Σ : GRA} `{!subG Γ Σ, !invG Γ Σ α} : @GATIntp.t (iPropI Σ) α :=
+  Local Instance β {Γ : HRA} {Σ : GRA} `{!subG Γ Σ, !invGS Γ Σ α} : @GATIntp.t (iPropI Σ) α :=
     fun i => match i with
           | 0 => @SPropBi.interp τ α (iPropI Σ)
           | 1 => @SPropBiPlainly.interp α (iPropI Σ) _
@@ -231,7 +229,7 @@ Module inv_instances.
           | _ => @SInv.interp Γ Σ α _ _
           end.
 
-  #[export] Instance SPropBi_in_β {Γ : HRA} {Σ : GRA} `{!subG Γ Σ, !invG Γ Σ α}
+  Local Instance SPropBi_in_β {Γ : HRA} {Σ : GRA} `{!subG Γ Σ, !invGS Γ Σ α}
     : GATIntp.inG
         SPropBi.syntax
         α
@@ -239,7 +237,7 @@ Module inv_instances.
         β.
   Proof. econs. ss. Qed.
 
-  #[export] Instance SPropBiPlainly_in_β {Γ : HRA} {Σ : GRA} `{!subG Γ Σ, !invG Γ Σ α}
+  Local Instance SPropBiPlainly_in_β {Γ : HRA} {Σ : GRA} `{!subG Γ Σ, !invGS Γ Σ α}
     : GATIntp.inG
         SPropBiPlainly.syntax
         α
@@ -247,7 +245,7 @@ Module inv_instances.
         β.
   Proof. econs. ss. Qed.
 
-  #[export] Instance SPropBiBUpd_in_β {Γ : HRA} {Σ : GRA} `{!subG Γ Σ, !invG Γ Σ α}
+  Local Instance SPropBiBUpd_in_β {Γ : HRA} {Σ : GRA} `{!subG Γ Σ, !invGS Γ Σ α}
     : GATIntp.inG
         SPropBiBUpd.syntax
         α
@@ -255,7 +253,7 @@ Module inv_instances.
         β.
   Proof. econs. ss. Qed.
 
-  #[export] Instance SPropiProp_in_β {Γ : HRA} {Σ : GRA} `{!subG Γ Σ, !invG Γ Σ α}
+  Local Instance SPropiProp_in_β {Γ : HRA} {Σ : GRA} `{!subG Γ Σ, !invGS Γ Σ α}
     : GATIntp.inG
         SPropiProp.syntax
         α
@@ -263,7 +261,7 @@ Module inv_instances.
         β.
   Proof. econs. ss. Qed.
 
-  #[export] Instance SInv_in_β {Γ : HRA} {Σ : GRA} `{!subG Γ Σ, !invG Γ Σ α}
+  Local Instance SInv_in_β {Γ : HRA} {Σ : GRA} `{!subG Γ Σ, !invGS Γ Σ α}
     : GATIntp.inG
         SInv.syntax
         α
@@ -272,7 +270,7 @@ Module inv_instances.
   Proof. econs. ss. Qed.
 
   (* crisG *)
-  #[export] Instance Cris_synG {Γ} : Cris.synG Γ τ α.
+  Local Instance Cris_synG {Γ} : Cris.synG Γ τ α.
   Proof.
     econs.
     - typeclasses eauto.
@@ -280,16 +278,28 @@ Module inv_instances.
     - econs; typeclasses eauto.
   Defined.
 
-  #[export] Instance Cris_semG {Γ : HRA} {Σ : GRA} `{!subG Γ Σ, !invG Γ Σ α} : Cris.semG Γ τ α Σ β _ _.
+  Local Instance Cris_semG {Γ : HRA} {Σ : GRA} `{!subG Γ Σ, !invGS Γ Σ α} : Cris.semG Γ τ α Σ β _ _.
   Proof.
     econs.
     - econs; econs; typeclasses eauto.
     - econs; typeclasses eauto.
   Defined.
 
-  #[export] Instance Cris_G {Γ : HRA} {Σ : GRA} `{!subG Γ Σ, !invG Γ Σ α} : crisG Γ Σ α β τ _ _.
+  Local Instance Cris_G {Γ : HRA} {Σ : GRA} `{!subG Γ Σ, !invGS Γ Σ α} : crisG Γ Σ α β τ _ _.
   Proof.
     econs. typeclasses eauto.
   Defined.
 
+  Lemma winv_alloc `{!invGpreS Γ Σ α, !subG Γ Σ} :
+    ⊢ o=> ∃ (Hinv : invGS Γ Σ α) τ (β : @GATIntp.t (iProp Σ) α) (_ : @crisG Γ Σ α β τ _ Hinv),
+      winv (⊤, ⊤).
+  Proof.
+  iMod (own_admin_alloc) as "$".
+  iMod (own_alloc (CoPset ⊤)) as "[%γe E]"; first done.
+  iMod (own_alloc ((λ _, allocs.allocs_auth _ (const True)) : ownIRA)) as "[%γi I]"; first done.
+  pose (Build_invGS _ γe γi) as Hinv.
+  iModIntro; iExists _, τ, β, Cris_G. iSplitL "E".
+  { rewrite /ownE //. }
+  iExists 0; rewrite /wsats /wsatl /= right_id /wsat_auth /invariant_name //.
+  Qed.
 End inv_instances.

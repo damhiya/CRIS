@@ -3,7 +3,7 @@ Require Import ImpPrelude MemHeader SchHeader.
 Require Import FaaHeader.
 
 Module ClientI. Section ClientI.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
 
   Definition scopes : gmultiset string := ∅.
 

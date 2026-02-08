@@ -6,7 +6,7 @@ Set Implicit Arguments.
 
 Module APCA. Section APCA.
   Import APC APCI.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
 
   Definition apc_body SpPure : Ord.t → itree crisE () :=
     λ dep_ord, APC dep_ord SpPure.

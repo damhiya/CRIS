@@ -4,7 +4,7 @@ Require Import PFMemHeader PFMemA HistoryRA AtomicRA.
 
 Section SystemIA.
   Import SystemA.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG, !histG, !atomicG, !sysG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !histG, !atomicG, !sysG}.
   Context (sp_user sp : specmap).
   Context (size : list Z).
   Context (Hincl : sp_user ⊆ sp).

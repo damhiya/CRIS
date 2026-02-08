@@ -3,33 +3,13 @@ Require Import MemI MemA MemIAproof ImpPrelude.
 Require Import SchHeader SchI SchA SchIAproof SchTactics.
 Require Import FaaHeader ClientI ClientA ClientIA FaaI FaaA FaaIA.
 
-Module ClientAll.
-  Import inv_instances.
-
-  Local Definition csl : string → bool := λ _, false.
-  Local Definition genv : GEnv.t := GEnv.unit.
-
-  Local Instance Γ : HRA := ##[invΓ; concΓ; memΓ; newschΓ; incrΓ].
-  Local Instance Σ : GRA := ##[Γ; invΣ; newschΣ].
-
-  Definition irΓ : Γ :=
-    **[ir_invΓ; ir_concΓ; ir_memΓ csl genv; SchA.ir_schΓ; *[None]].
-  Definition irΣ : Σ :=
-    **[irΓ; ir_invΣ; SchA.ir_schΣ].
-
-  Lemma irΣ_valid : ✓ (irΣ ⋅ ir_own_admin).
-  Proof.
-    solve_ir_valid.
-    - apply ir_tidRA_valid.
-    - apply ir_yieldRA_valid.
-    - apply ir_memRA_valid.
-    - apply SchA.ir_newtidRA_valid.
-    - apply SchA.ir_joinRA_valid.
-  Qed.
+Section ClientAux.
+  Context `{!crisG Γ Σ α β τ Hsub Hinv, !concGS, !memGS, !schGS, !incrG}.
+  Context (csl : string → bool) (genv : GEnv.t).
 
   (* source module *)
   Local Definition sp_user_s : specmap := ClientA.sp nroot.
-  Local Definition smod_src : SMod.t := (ClientA.smod nroot) ☆ (SchA.smod ⊤ sp_user_s).
+  Local Definition smod_src : SMod.t := (ClientA.smod nroot) ☆ (SchA.smod sp_user_s ⊤).
   Local Definition mod_top : Mod.t := SMod.to_mod ∅ (SMod.cancel smod_src).
   Local Definition mod_tgt : Mod.t := ClientI.t ★ FaaI.t ★ (MemI.t csl genv) ★ (SchI.t).
 
@@ -173,31 +153,41 @@ Module ClientAll.
     { rewrite !Mod.dom_fnsems_add; set_solver. }
     { set_solver. }
   Qed.
+End ClientAux.
 
-  Lemma init_cond_valid :
-    ∃ rs, ✓ rs ∧ (Own rs ⊢ |==> init_cond ∗ TID 0 ∗ YIELD 0 ∗ winv (⊤, ⊤) ∗ TidFrag 0 0 ∗ TIDAUTH 0 ∗ YIELDAUTH 1).
-  Proof.
-    exists (irΣ ⋅ ir_own_admin). split.
-    - apply irΣ_valid.
-    - simplify_res.
-      { rewrite make_own_admin.
-        iDestruct "H24" as "[H24 Htid]". iFrame.
-        rewrite /MemA.init_cond /ir_memRA; iDestruct "H26" as "[$ _]".
-        iPoseProof (make_sys_init with "[$] [$]") as "[$ [$ [$ $]]]". done.
-      }
-    all: solve_res.
-  Qed.
+Module ClientAll. 
+  Import inv_instances.
+
+  Local Definition csl : string → bool := λ _, false.
+  Local Definition genv : GEnv.t := GEnv.unit.
+
+  Local Instance Γ : HRA := ##[invΓ; concΓ; memΓ; newschΓ; incrΓ].
+  Local Instance Σ : GRA := ##[Γ; invΣ; newschΣ].
 
   Theorem behavioral_refinement :
-    ∃ src_res tgt_res, refines_lmod
+    ∃ β τ (Hinv : invGS Γ Σ α) (_ : crisG Γ Σ α β τ _ Hinv) (_ : concGS) (_ : schGS) (_ : memGS)
+      src_res tgt_res,
+    refines_lmod
       (Mod.to_lmod mod_top src_res)
-      (Mod.to_lmod mod_tgt tgt_res).
+      (Mod.to_lmod (mod_tgt csl genv) tgt_res).
   Proof.
-    move: (top_tgt)=>H; rewrite /refines in H; des; ss.
-    hexploit H; eauto using tgt_wf. clear H; intros [WF H].
-    assert (IV:= init_cond_valid). des.
-    destruct (H rs); des; et.
-    rewrite IV0 /init_cond.
-    rewrite {1}winv_split_empty. iIntros ">[[$ $] [$ [$ [[? ?] ?]]]]". iFrame. done.
+    apply own_admin_soundness.
+    iMod winv_alloc as "[% [% [% [% ?]]]]"; iExists _, _, _, _.
+    iMod conc_alloc as "[% ?]"; iExists _.
+    iMod sch_alloc as "[% ?]"; iExists _.
+    iMod (mem_alloc csl genv) as "[% ?]"; iExists _.
+    pose proof (top_tgt csl genv) as Href.
+    iStopProof. eapply entails_pointwise; iIntros (res Hres) "R".
+    iPoseProof (Own_valid with "R") as "%".
+    rewrite /refines in Href; hexploit Href; eauto using tgt_wf.
+    clear Href; intros [? Href].
+    iPureIntro; hexploit (Href res); eauto.
+    { rewrite Hres; iIntros "[W [[$ [$ [$ $]]] [[$ $] [$ _]]]]".
+      rewrite {1}winv_split_empty comm //.
+    }
+    intros [rt ?].
+    exists res, rt; by des.
   (*SLOW*)Qed.
 End ClientAll.
+
+(* Print Assumptions ClientAll.behavioral_refinement. *)

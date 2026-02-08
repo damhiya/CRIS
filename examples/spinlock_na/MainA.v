@@ -16,21 +16,15 @@ Section RA.
   Global Instance subG_spinlockmainG : subG spinlockmainΓ Γ → spinlockmainG.
   Proof. solve_inG. Defined.
 End RA.
-Hint Unfold subG_spinlockmainG spinlockmain_inG : GRA_index.
 
 (* Spec definition *)
 (* Define 1) initial resource 2) function specs 3) sp here. *)
 Module MainA. Section MainA.
   Import LockA.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG, !memG, !newschG, !spinlockG, !spinlockmainG}.
-
-  (* initial resource *)
-  Definition ir : spinlockmainΓ := *[None].
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !memGS, !schGS, !spinlockG, !spinlockmainG}.
 
   Definition lock_P loc γ : GTerm.t 0 :=
     ∃ v : τ{Z}%SAT, loc ↦ (Vint v) ∗ sown γ (●F v).
-
-  (* Definition init_cond : iProp Σ := own base_γ (gmap_view_frag 0 (DfracOwn 1) (to_agree 0)). *)
 
   Definition incr_spec E : fspec :=
     (fspec_sch E

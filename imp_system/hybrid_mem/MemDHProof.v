@@ -4,8 +4,8 @@ Require Import MemHdr MemLib HybridMem DetMem.
 From iris.algebra Require Import auth excl agree csum functions dfrac_agree.
 
 Section RA.
-  Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG}.
-  Context `{_memG: !memG}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concGS}.
+  Context `{_memGS: !memGS}.
 
   Definition mem_wf (m0: Mem.t): Prop :=
     forall b ofs v, m0.(Mem.cnts) b ofs = Some v -> b < m0.(Mem.nb)
@@ -41,7 +41,7 @@ Section RA.
     ⊢ |==>
     own γ (((● (mem_r ⋅ _points_to_r (Mem.nb mem_t, 0%Z) 1 (repeat Vundef sz))), tt): memRA)
     ∗ own γ (((◯ _points_to_r (Mem.nb mem_t, 0%Z) 1 (repeat Vundef sz)), tt): memRA).
-  Proof using _memG. 
+  Proof using _memGS. 
     iIntros "P". rewrite -own_op -pair_op.
     iApply (own_update with "P"). apply prod_update; ss. apply auth_update_alloc.
     apply local_update_discrete. i. rewrite H0.
@@ -160,7 +160,7 @@ Section RA.
     own base_γ ((● mem_r), tt) ∗ (b, ofs) ⤇{1} v
     ⊢ |==>
     own base_γ ((● mem_ra_upd mem_r b ofs None), tt).
-  Proof using _memG.
+  Proof using _memGS.
     Local Opaque discrete_fun_singleton.
     iIntros "P". rewrite -own_op -pair_op. iApply (own_update with "P").
     eapply prod_update; ss.
@@ -256,7 +256,7 @@ End RA.
 
 
 Module MemDH. Section MemDH.
-  Context `{!crisG Γ Σ α β τ _S _I, _concG: !concG, !memG}.
+  Context `{!crisG Γ Σ α β τ _S _I, _concG: !concGS, !memGS}.
 
   Definition Ist: gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ :=
     λ st_src st_tgt,

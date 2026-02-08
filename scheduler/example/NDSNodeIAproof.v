@@ -7,9 +7,9 @@ Require Import ltac2_lib.
 
 Module NDSNodeIA. Section NDSNodeIA.
   Import NDSNodeA.
-  Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concGS}.
   Context `{_ndsG: !NDSA.ndsG}.
-  Context `{_memG: !MemLib.memG}.
+  Context `{_memGS: !MemLib.memGS}.
 
   Context (sp sp_user: specmap).
   Context (T: Type) (get_stid: T → nat) (PYIP: T → iProp Σ).
@@ -145,10 +145,10 @@ Module NDSNodeIA. Section NDSNodeIA.
 End NDSNodeIA. End NDSNodeIA.
 
 Section ctxr.
-  Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG}.
-  Context `{_schG: !SchA.newschG}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concGS}.
+  Context `{_schG: !SchA.schGS}.
   Context `{_ndsG: !NDSA.ndsG}.
-  Context `{_memG: !MemLib.memG}.
+  Context `{_memGS: !MemLib.memGS}.
 
   Lemma ctxr sp sp_user
     (T: Type) (get_stid: T → nat) (PYIP: T → iProp Σ)

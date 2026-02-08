@@ -4,7 +4,7 @@ Require Import Time Cell View TView base Language.
 
 (* Specification of promise-free memory module *)
 Module PFMemA. Section PFMemA.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG, !histG, !atomicG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !histG, !atomicG}.
   Definition scopes : gmultiset string := {[+"PFMem"+]}.
 
   Definition alloc_spec : fspec :=

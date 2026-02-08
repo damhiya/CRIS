@@ -8,10 +8,10 @@ Require Import CallFilter.
 Set Implicit Arguments.
 
 Module NDSNodeA. Section NDSNodeA.
-  Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG}.
-  Context `{_schG: !SchA.newschG}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concGS}.
+  Context `{_schG: !SchA.schGS}.
   Context `{_ndsG: !NDSA.ndsG}.
-  Context `{_memG: !MemLib.memG}.
+  Context `{_memGS: !MemLib.memGS}.
   Import NDSNodeI.
 
   Section SPEC.

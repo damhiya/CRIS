@@ -13,7 +13,7 @@ Local Ltac gnorm_itr :=
   end.
 
 Section props.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG, !newschG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !schGS}.
 
   Lemma HoareCall_prologue_sred sp fsp arg :
     ⇓smod(sp) (HoareCall_prologue fsp arg) = HoareCall_prologue fsp arg.

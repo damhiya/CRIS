@@ -11,10 +11,9 @@ Section RA.
   Global Instance subG_incrG : subG incrΓ Γ → incrG.
   Proof. solve_inG. Defined.
 End RA.
-Hint Unfold subG_incrG incr_inG : GRA_index.
 
 Module ClientA. Section ClientA.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG, !memG, !newschG, !incrG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !memGS, !schGS, !incrG}.
 
   Definition N_main N : namespace := (N .@ IncrHdr.main).
 
@@ -24,8 +23,8 @@ Module ClientA. Section ClientA.
 
   Definition ccounter_syn n γ bofs : GTerm.t n :=
     (∃ v : τ{Z, n},
-      sown base_γ (mem_points_to_singleton_r bofs (DfracOwn 1) (Vint v))
-      ∗ sown γ (frac_auth_auth v))%SAT.
+      bofs ↦ Vint v ∗
+      sown γ (frac_auth_auth v))%SAT.
 
   Definition incr_inv n N γ bofs : iProp Σ := inv n (N_main N) (ccounter_syn n γ bofs).
 

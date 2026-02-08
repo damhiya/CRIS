@@ -35,7 +35,7 @@ Section NDSRA.
     split; eauto.
   Defined.
 
-  Context `{!concG, !ndsG}.
+  Context `{!concGS, !ndsG}.
   (* Join-related predicates *)
   Definition JoinFrag dq mtid postS : iProp Σ :=
     own base_γ (gmap_view_frag mtid (DfracOwn (dq)%Qp) (to_agree postS)).
@@ -81,7 +81,7 @@ End NDSRA.
 Hint Unfold inG_join inG_tid subG_ndsG : GRA_index.
 
 Module NDSA. Section NDSA.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG, !ndsG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !ndsG}.
 
   (** Initial resource *)
   Definition ir_initRA : DRA_mk initRA := Cinl 1.
@@ -611,7 +611,7 @@ Module NDSA. Section NDSA.
 End NDSA. End NDSA.
 
 Section FSPEC_NDS.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG, !ndsG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !ndsG}.
 
   Definition fspec_nds E (fsp : fspec) : fspec :=
     fspec_winv E

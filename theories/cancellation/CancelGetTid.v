@@ -10,7 +10,7 @@ Local Ltac sir :=
   end.
 Local Ltac snr := norm_r; rewrite !list_insert_insert ?bind_ret_l.
 
-Lemma cancel_gettid `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp :
+Lemma cancel_gettid `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concGS} md sp :
   CANCEL_GOAL md sp (HoareGetTidE false) (HoareGetTidE true).
 Proof.
   r; i. subst.

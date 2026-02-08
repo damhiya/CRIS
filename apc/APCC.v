@@ -5,7 +5,7 @@ Require Import APCHeader APC APCI APCA.
 Set Implicit Arguments.
 
 Module APCC. Section APCC.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
   Import APC APCI APCA.
 
   Definition Sp : specmap :=

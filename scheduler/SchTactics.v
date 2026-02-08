@@ -6,7 +6,7 @@ Require Export SchHeader SchA.
 Require Import ltac2_lib.
 
 Section wsim.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG, !newschG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !schGS}.
 
   Local Definition state : Type := gmap key (option Any.t).
   Local Definition post (R_s R_t : Type) : Type := state * R_s → state * R_t → iProp Σ.
@@ -257,7 +257,7 @@ Section MSIM.
 End MSIM.
 
 Section SREL.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG, !schG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !schG}.
   Import SchA.
 
   (* srel (progress_flag) (oneshot_flag) (i_rew) (i_org) *)
@@ -617,7 +617,7 @@ End SREL.
 
 Section ISIM.
   Import SchA.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG, !schG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !schG}.
   Variable contextual: contextuality.
   Variable fl_src fl_tgt : gmap (option string) (option (Any.t → itree crisE Any.t)).
   Variable Ist : ist_type Σ.

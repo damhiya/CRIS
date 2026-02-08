@@ -111,7 +111,7 @@ End resource.
 
 Section help.
   Context (jobID retID : Type).
-  Context `{!crisG Γ Σ α β τ _S _I, !concG, !inG (helpingR jobID retID) Γ}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !inG (helpingR jobID retID) Γ}.
 
   Local Notation state := (gmap key (option Any.t)).
   Local Notation post R_s R_t := (state * R_s → state * R_t → iProp Σ).
@@ -233,7 +233,7 @@ Section help.
   Qed.
 
   Lemma wsim_helping_help
-      `{!newschG} (ps pt : bool) k_s k_t E r g (req_id : nat) x arg (mtid stid : nat) :
+      `{!schGS} (ps pt : bool) k_s k_t E r g (req_id : nat) x arg (mtid stid : nat) :
     sp !! speckey_fn SchHdr.yield = fsp_some (SchA.yield_spec E) →
     Tid mtid stid -∗
     helping_token req_id x -∗

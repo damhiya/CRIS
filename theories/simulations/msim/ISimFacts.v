@@ -25,7 +25,7 @@ Section ISIM_FRAME.
 End ISIM_FRAME.
 
 Section ISIM_REFL.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
 
   (* Reflexivity of the isim relation *)
   Lemma isim_refl r g ctx Ist fl_src fl_tgt msk ps pt st_src st_tgt {R} (it : itree crisE R) :
@@ -441,7 +441,7 @@ Section ISIM_ADEQUACY.
 End ISIM_ADEQUACY.
 
 (* Section LAT.
-  Context `{_crisG: !crisG Γ Σ α β τ _S _I, !concG}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I, !concGS}.
 
   Lemma isim_lat_real_to_img
       peeking img fsp lbody_s lbody_t body_s body_t fl_s fl_t msk scp ps pt st arg

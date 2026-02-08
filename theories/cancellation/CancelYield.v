@@ -18,7 +18,7 @@ Proof.
   eapply Nat.succ_lt_mono in LT. hexploit IHl; eauto.
 Qed.
 
-Lemma cancel_yield `{!crisG Γ Σ α β τ _S _I, !concG} md sp ntid :
+Lemma cancel_yield `{!crisG Γ Σ α β τ _S _I, !concGS} md sp ntid :
   CANCEL_GOAL md sp (HoareYieldE false ntid) (HoareYieldE true ntid).
 Proof.
   r; i. subst. ss.

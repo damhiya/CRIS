@@ -10,7 +10,7 @@ Local Ltac gnorm_itr :=
       end
   end.
 
-Lemma cancel_pre `{!crisG Γ Σ α β τ _S _I, !concG} md sp :
+Lemma cancel_pre `{!crisG Γ Σ α β τ _S _I, !concGS} md sp :
   ∀ (rs0 : Σ) r_s r_t rs_diff srcs tgts cid st ps pt varg fspo fspo' Qo'' itrS ktrT 
     (r: ∀ x x0, (x→x0→Prop)→smj→smj→itree coreE x→itree coreE x0→Prop)
     (WFS: SMod.cancellable md)

@@ -5,7 +5,7 @@ Require Import MemHeader MemA.
 Require Import IncrementHeader.
 
 Module IncrementA. Section IncrementA.
-  Context `{!crisG Γ Σ α β τ _S _I, !memG, !concG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !memGS, !concGS}.
 
   Definition scopes : gmultiset string := ∅.
 

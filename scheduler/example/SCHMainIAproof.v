@@ -13,12 +13,12 @@ Require Import ltac2_lib.
 
 Module SCHMainIA. Section SCHMainIA.
   Import SCHMainA.
-  Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG}.
-  Context `{_schG: !SchA.newschG}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concGS}.
+  Context `{_schG: !SchA.schGS}.
   Context `{_rrsG: !RRSA.rrsG}.
   Context `{_ndsG: !NDSA.ndsG}.
-  Context `{_memG: !MemA.memG}.
-  Context `{_hymG: !MemLib.memG}.
+  Context `{_memGS: !MemA.memGS}.
+  Context `{_hymG: !MemLib.memGS}.
   Context `{_nodeG: !RRSNodeA.nodeG}.
 
   Context (sp sp_sch_user sp_rrs_user sp_nds_user: specmap).
@@ -156,12 +156,12 @@ Module SCHMainIA. Section SCHMainIA.
 End SCHMainIA. End SCHMainIA.
 
 Section ctxr.
-  Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG}.
-  Context `{_schG: !SchA.newschG}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concGS}.
+  Context `{_schG: !SchA.schGS}.
   Context `{_rrsG: !RRSA.rrsG}.
   Context `{_ndsG: !NDSA.ndsG}.
-  Context `{_memG: !MemA.memG}.
-  Context `{_hymG: !MemLib.memG}.
+  Context `{_memGS: !MemA.memGS}.
+  Context `{_hymG: !MemLib.memGS}.
   Context `{_nodeG: !RRSNodeA.nodeG}.
 
   Lemma ctxr sp sp_sch_user sp_rrs_user sp_nds_user

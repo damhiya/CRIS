@@ -6,7 +6,7 @@ Require Import StackHeader StackA StackI StackIAPush StackIAPop StackIANewStack.
 From CRIS.helping Require Import Header HelpingOn HelpingOnOffproof HelpingTactics HelpingFacts.
 
 Module StackIM. Section StackIM.
-  Context `{!crisG Γ Σ α β τ _S _I, !memG, !newschG, !concG, !stackG StackM.jobID StackM.retID}.
+  Context `{!crisG Γ Σ α β τ _S _I, !memGS, !schGS, !concGS, !stackG StackM.jobID StackM.retID}.
   Local Existing Instances stack_helpingG.
 
   (* Helping module being parameterized by mn *)
@@ -50,7 +50,7 @@ Module StackIM. Section StackIM.
 End StackIM. End StackIM.
 
 Module StackIA. Section StackIA.
-  Context `{!crisG Γ Σ α β τ _S _I, !memG, !newschG, !concG, !stackG StackM.jobID StackM.retID}.
+  Context `{!crisG Γ Σ α β τ _S _I, !memGS, !schGS, !concGS, !stackG StackM.jobID StackM.retID}.
 
   Lemma ctxr (N : namespace) (sp sp_user : specmap) :
     SchA.sp sp_user (↑N) ⊆ sp →

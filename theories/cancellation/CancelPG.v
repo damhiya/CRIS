@@ -2,7 +2,7 @@ Require Import CRIS.
 Require Import LMod LModTr GSim GSimFacts GSimTactics CancelTactics.
 Require Import MInline MInlineIntro MInlineElim ElimRel.
 
-Lemma cancel_pg `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concG} md sp R (e : pgE R) :
+Lemma cancel_pg `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concGS} md sp R (e : pgE R) :
   CANCEL_GOAL md sp (trigger e) (trigger e).
 Proof.
   r; i. destruct e.

@@ -79,7 +79,7 @@ Module Mem.
 End Mem.
 
 Module MemI. Section MemI.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
 
   Definition scopes : gmultiset string := {[+"Mem"+]}.
   Definition v_mem : key := "Mem" ↯ "mem".

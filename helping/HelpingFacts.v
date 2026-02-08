@@ -4,7 +4,7 @@ From CRIS.helping Require Import Header HelpingOn HelpingOff HelpingOnOffproof.
 From stdpp Require Import list.
 
 Section Helping.
-  Context `{!crisG Γ Σ α β τ _S _I, !concG, !newschG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !schGS}.
 
   (* Lemmas about names *)
   Local Definition maxlen (s : gset string) : nat :=
