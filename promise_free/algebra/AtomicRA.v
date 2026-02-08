@@ -21,6 +21,9 @@ Definition atomicR  : cmra := prodR histMSR (prodR exWriteR naWriteR).
 
 Class atomicG `{!crisG Γ Σ α β τ _S _I} := { atomic_inG : inG atomicR Γ; }.
 Local Existing Instance atomic_inG.
+Definition atomicΓ : HRA := #[atomicR].
+Global Instance subG_atomicG `{!crisG Γ Σ α β τ _S _I} : subG atomicΓ Γ → atomicG.
+Proof. solve_inG. Defined.
 (* TODO : add more boilerplates *)
 
 Definition toHistBaseUR : Cell.t → histBaseUR := λ c, (to_agreeM (Cell.to_gmap c)).
@@ -392,18 +395,16 @@ Section syn_atomic_preds.
   Definition syn_SeenLocal n loc ζ V : GTerm.t n :=
     ⌜ View.alloc_view V (Loc.get_tbid loc) (* is not in iRC11 *)
     ∧ ∀ t, is_Some (Cell.get t ζ) → seen_local loc t V ⌝%SAT.
-  Lemma syn_SeenLocal_red n loc ζ V :
-    ⟦syn_SeenLocal n loc ζ V⟧ ⊣⊢ SeenLocal loc ζ V.
+  Instance syn_SeenLocal_red n loc ζ V :
+    SLRed n (syn_SeenLocal n loc ζ V) (SeenLocal loc ζ V).
   Proof. solve_base_sl_red. Qed.
 
   Definition syn_SyncLocal n loc ζ V : GTerm.t n :=
     syn_SeenLocal n loc ζ V ∗
     ⌜∀ t f v b V', Cell.get t ζ = Some (f, Message.message v V' b) → seen_view loc t V' V⌝%SAT.
   Lemma syn_SyncLocal_red n loc ζ V :
-    ⟦syn_SyncLocal n loc ζ V⟧ ⊣⊢ SyncLocal loc ζ V.
-  Proof.
-    rewrite /syn_SyncLocal /SyncLocal; solve_base_sl_red; iSplit; iIntros "%"; iPureIntro; ss.
-  Qed.
+    SLRed n (syn_SyncLocal n loc ζ V) (SyncLocal loc ζ V).
+  Proof. solve_base_sl_red. iSplit; iIntros "%"; iPureIntro; ss. Qed.
 
   (* TODO : last non-atomic view might be useless to carry around in this model *)
   Definition syn_at_last_na n γ (Va : View.t) : GTerm.t n :=
@@ -440,20 +441,11 @@ Section syn_atomic_preds.
   Definition syn_AtomicPtsToX_eq : @syn_AtomicPtsToX = _ := seal_eq _.
 
   Lemma syn_AtomicPtsToX_red n l γ t ζ mode V :
-    ⟦syn_AtomicPtsToX n l γ t ζ mode V⟧ ⊣⊢ AtomicPtsToX l γ t ζ mode V.
+    SLRed n (syn_AtomicPtsToX n l γ t ζ mode V) (AtomicPtsToX l γ t ζ mode V).
   Proof.
-    rewrite syn_AtomicPtsToX_eq AtomicPtsToX_eq /AtomicPtsToX_def; solve_base_sl_red.
-    iSplit; iIntros "[% I]"; iDestruct "I" as "[% I]"; iFrame.
-    { iExists _, _. iDestruct "I" as "[$ [[$ $] I]]".
-      rewrite hist_eq /hist_def. iDestruct "I" as "[$ [$ I]]".
-      destruct mode; solve_base_sl_red.
-    }
-    { rewrite /SyncLocal hist_eq /hist_def.
-      iExists _; iExists _;
-      iDestruct "I" as "[$ [%I [$ [$ ?]]]]".
-      iSplit; first ss.
-      destruct mode; ss; solve_base_sl_red; done.
-    }
+    rewrite syn_AtomicPtsToX_eq AtomicPtsToX_eq /AtomicPtsToX_def; solve_sl_red.
+    { rewrite /SyncLocal; iSplit; iIntros "[$ %]"; iPureIntro; ss. }
+    rewrite hist_eq; refl.
   Qed.
 
   Definition syn_AtomicPtsTo_def n l γ ζ (mode : AtomicMode) V : GTerm.t n :=

@@ -65,8 +65,9 @@ Module PFMemIA. Section PFMemIA.
 
   Definition view_na Vcut m : Prop :=
     ∀ loc t f val V,
-      (Memory.get loc t m) = Some (f, Message.message val V true)
-      → Time.le t ((View.rlx Vcut) loc).
+      (Memory.get loc t m) = Some (f, Message.message val V true) →
+      Memory.accessible loc m →
+      Time.le t ((View.rlx Vcut) loc).
 
   Definition Ist : ist_type Σ :=
     λ st_s st_t,
@@ -149,8 +150,7 @@ Module PFMemIA. Section PFMemIA.
     iDestruct "PT" as "[%ζhist [%Vna [-> [SYNC [HIST [AA AF]]]]]]".
     rewrite AtomicSeen_eq /AtomicSeen_def.
     iDestruct "SEEN" as "[[_ %SEEN] [AR [%GOODHIST [%Vna' [_ NA]]]]]".
-    hexploit (CUT loc to0); eauto => LECUT.
-    iPoseProof (hist_own_hist_cut with "HA HIST") as "[%t' [<- [%H2 _]]]".
+    iPoseProof (hist_own_hist_cut with "HA HIST") as "[%t' [<- [%H2 %]]]".
     iDestruct "AA" as "[AA [AEXCLWRITE _]]".
     iPoseProof (at_writer_base_latest with "AA AR") as "%LE".
     destruct (classic (∃ ts' f' m', Cell.get ts' ζ' = Some (f', m'))) as [HEX|FAL]; cycle 1.
@@ -161,6 +161,7 @@ Module PFMemIA. Section PFMemIA.
     exfalso.
     hexploit (SEEN ts'); ss; intros TS.
     eapply (TimeFacts.le_not_lt to0 (View.rlx (TView.TView.cur (Local.tview lm)) loc)); eauto.
+    hexploit (CUT loc to0); eauto => LECUT.
     etrans; first apply LECUT.
     etrans; last apply TS.
     hexploit (LE ts'); eauto; intros ZETA.

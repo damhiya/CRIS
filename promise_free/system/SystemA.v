@@ -4,9 +4,13 @@ Require Import HistoryRA AtomicRA LatticeRA.
 From iris.algebra Require Export csum gmap_view.
 From iris.bi Require Export fractional.
 
+Definition sysRA := (gmap_viewUR Ident.t (agreeR (TViewO * natO)%type)).
 Class sysG `{!crisG Γ Σ α β τ _S _I} := {
-  sys_inG :: inG (gmap_viewUR Ident.t (agreeR (TViewO * natO)%type)) Γ
+  sys_inG :: inG sysRA Γ
 }.
+Definition sysΓ : HRA := #[sysRA].
+Global Instance subG_sysG `{!crisG Γ Σ α β τ _S _I} : subG sysΓ Γ → sysG.
+Proof. solve_inG. Defined.
 
 Section SystemRA.
   Context `{!crisG Γ Σ α β τ _S _I, !concG, !histG, !atomicG, !sysG}.
@@ -39,16 +43,28 @@ Section SystemRA.
   #[global] Instance tview_sys_gen_as_fractional tid stid V q :
     AsFractional (tview_sys_gen q tid stid V) (λ q, tview_sys_gen q tid stid V) q.
   Proof. split; ss; typeclasses eauto. Qed.
+
+  Definition ir_sysRA : DRA_mk sysRA := 
+    (gmap_view_auth (DfracOwn 1) {[1%positive := (to_agree (TView.init [], 0))]} ⋅
+    gmap_view_frag 1%positive (DfracOwn 1) (to_agree (TView.init [], 0))).
+  Lemma ir_sysRA_valid : ✓ ir_sysRA.
+  Proof.
+    rewrite /ir_sysRA. apply gmap_view_both_dfrac_valid_discrete; esplits; eauto.
+    { apply: dfrac_valid_own_1. }
+    { split; s; [apply: dfrac_valid_own_1|ss]. }
+  Qed.
+  Definition ir_sysΓ : sysΓ :=
+    *[Some (ir_sysRA)].
 End SystemRA.
 
 Module SystemA. Section SystemA.
   Context `{!crisG Γ Σ α β τ _S _I, !concG, !histG, !atomicG, !sysG}.
-  Context (sp_user : spl_type).
+  Context (sp_user : specmap).
 
   (* Specifications *)
-  Definition fspec_spawnable (fn : string) (pre : TView.t → SAny.t → SAny.t → iProp Σ) : Prop :=
-    ∃ fsp, alist_find (Some fn) sp_user = Some (Some fsp) ∧
-      fspec_imply'
+  Definition fspec_spawnable (fn : string) (pre : TView.t → SAny.t → SAny.t → iProp Σ) : iProp Σ :=
+    ∃ fsp, ⌜sp_user !! (speckey_fn fn) = Some fsp⌝ ∗
+      fspec_imply
         fsp
         (fspec_winv ⊤
           (fspec_virtual (λ '(tid, stid),
@@ -57,21 +73,22 @@ Module SystemA. Section SystemA.
             (λ (vret : SAny.t) _, ∃ V, tview_sys tid stid V)))))%I.
 
   Definition _spawn_spec : fspec := 
-    fspec_spawn
-      (λ '((stid, _) : _ * ()) varg arg,
-        ∃ (tid : Ident.t) V pre fvarg farg fn,
-          ⌜varg = (tid, fn, fvarg)↑ ∧ arg = (tid, fn, farg)↑ ∧ fspec_spawnable fn pre⌝ ∗
-          tview_sys_gen 1 tid stid V ∗
+    fspec_mk
+      (λ '(_ : ()) varg arg,
+        ∃ (stid : nat) (tid : Ident.t) V pre fvarg farg fn,
+          ⌜varg = (tid, fn, fvarg)↑ ∧ arg = (tid, fn, farg)↑⌝ ∗
+          winv (⊤, ⊤) ∗ fspec_spawnable fn pre ∗
+          tview_sys tid stid V ∗
           pre V fvarg farg)%I
       (λ _ vret _, ∃ (vr : SAny.t), ⌜vret = vr↑⌝ ∗ False)%I.
 
-  Definition spawn_spec (E : coPset) : fspec :=
-    fspec_winv E
-      (fspec_virtual (λ '(tid, stid, pre, 𝓥),
-        ((λ varg arg,
-          ∃ fvarg farg fn, ⌜varg = (fn, fvarg) ∧ arg = (fn, farg)↑ ∧ fspec_spawnable fn pre⌝ ∗
-            tview_sys tid stid 𝓥 ∗ pre 𝓥 fvarg farg),
-        (λ vret ret, tview_sys tid stid 𝓥 ∗ ⌜vret = tt ∧ ret = tt↑⌝))))%I.
+  Definition spawn_spec : fspec :=
+    (fspec_virtual (λ '(tid, stid, pre, 𝓥),
+      ((λ varg arg,
+        ∃ fvarg farg fn, ⌜varg = (fn, fvarg) ∧ arg = (fn, farg)↑⌝  ∗
+          fspec_spawnable fn pre ∗
+          tview_sys tid stid 𝓥 ∗ pre 𝓥 fvarg farg),
+      (λ vret ret, tview_sys tid stid 𝓥 ∗ ⌜vret = tt ∧ ret = tt↑⌝))))%I.
 
   Definition yield_spec (E : coPset) : fspec :=
     fspec_winv E
@@ -125,7 +142,8 @@ Module SystemA. Section SystemA.
           @{Vb} AtomicPtsToX loc γ t ζ mode ∗
           tview_sys tid stid 𝓥')))%I.
 
-  Definition read_spec : fspec := app_fspec [read_spec_0; read_spec_1].
+  Definition read_spec : fspec_rel :=
+    λ P Q, fspec_to_rel read_spec_0 P Q ∨ fspec_to_rel read_spec_1 P Q.
 
   (* non-atomic write *)
   Definition write_spec_0 : fspec :=
@@ -169,20 +187,20 @@ Module SystemA. Section SystemA.
           @{Vb ⊔ TView.cur 𝓥'} AtomicPtsToX loc γ (if mode is SingleWriter then t else tx') ζn mode ∗
           tview_sys tid stid 𝓥')))%I.
 
-  Definition write_spec : fspec := app_fspec [write_spec_0; write_spec_1].
+  Definition write_spec : fspec_rel := 
+    λ P Q, fspec_to_rel write_spec_0 P Q ∨ fspec_to_rel write_spec_1 P Q.
 
-  Definition sp (E : coPset) : spl_type :=
-    Seal.sealing CRIS
-      [(Some SystemHdr._spawn,  Some _spawn_spec);
-       (Some SystemHdr.spawn,   Some (spawn_spec E));
-       (Some SystemHdr.yield,   Some (yield_spec E));
-       (Some SystemHdr.get_tid, Some get_tid_spec);
-       (Some SystemHdr.alloc,   Some alloc_spec);
-       (Some SystemHdr.write,   Some write_spec);
-       (Some SystemHdr.read,    Some read_spec)].
+  Definition sp (E : coPset) : specmap :=
+    {[speckey_fn SystemHdr._spawn :=  fspec_to_rel _spawn_spec;
+      speckey_fn SystemHdr.spawn :=   fspec_to_rel spawn_spec;
+      speckey_fn SystemHdr.yield :=   fspec_to_rel (yield_spec E);
+      speckey_fn SystemHdr.get_tid := fspec_to_rel get_tid_spec;
+      speckey_fn SystemHdr.alloc := fspec_to_rel alloc_spec;
+      speckey_fn SystemHdr.write := write_spec;
+      speckey_fn SystemHdr.read := read_spec]}.
 
   (* Module definitions *)
-  Definition scopes := ["System"].
+  Definition scopes : gmultiset string := {[+"System"+]}.
   Definition v_tid := "System" ↯ "tid".
   Definition v_tids := "System" ↯ "tids".
 
@@ -196,7 +214,6 @@ Module SystemA. Section SystemA.
       'my_tid : Ident.t <- cgetN v_tid;;
       'tids : tidmap <- cgetN v_tids;;
       '(exist _ tid_new _) : _ <- trigger (Choose ({tid_new : Ident.t | tids !! tid_new = None}));;
-      (* 'new_mtid : Ident.t <- ccallN PFMemHdr.spawn my_tid;; *)
       stid <- trigger (Spawn SystemHdr._spawn (tid_new, fn, arg)↑);;
       let newtids : tidmap := <[tid_new := stid]> tids in
       cput v_tids newtids.
@@ -226,26 +243,32 @@ Module SystemA. Section SystemA.
       'tid : Ident.t <- get_tid ();;
       ccallN PFMemHdr.read (tid, loc, ord).
 
-  Definition fnsems : alist (option string) (fnsem_type (option fspec * fbody)) :=
-    [(Some SystemHdr._spawn,  (true, wmask_all, scopes, (Some _spawn_spec,    (cfunN _spawn))));
-     (Some SystemHdr.spawn,   (true, wmask_all, scopes, (Some (spawn_spec ⊤), (cfunN spawn))));
-     (Some SystemHdr.yield,   (true, wmask_all, scopes, (Some (yield_spec ⊤), (cfunN yield))));
-     (Some SystemHdr.get_tid, (true, wmask_all, scopes, (Some get_tid_spec,   (cfunN get_tid))));
-     (Some SystemHdr.alloc,   (true, wmask_all, scopes, (Some alloc_spec,     fbody_trivial)));
-     (Some SystemHdr.write,   (true, wmask_all, scopes, (Some write_spec,     fbody_trivial)));
-     (Some SystemHdr.read,    (true, wmask_all, scopes, (Some read_spec,      fbody_trivial)))].
+  Definition fnsems (E : coPset) : fnsemmap :=
+    {[Some SystemHdr._spawn :=
+        Some (msk_scp scopes msk_true, (fsp_some (_spawn_spec), cfunN _spawn));
+      Some SystemHdr.spawn :=
+        Some (msk_scp scopes msk_true, (fsp_some (spawn_spec), cfunN spawn));
+      Some SystemHdr.yield :=
+        Some (msk_scp scopes msk_true, (fsp_some (yield_spec E), cfunN yield));
+      Some SystemHdr.get_tid :=
+        Some (msk_scp scopes msk_true, (fsp_some get_tid_spec, cfunN get_tid));
+      Some SystemHdr.alloc :=
+        Some (msk_scp scopes msk_true, (fsp_some alloc_spec, fbody_trivial));
+      Some SystemHdr.write :=
+        Some (msk_scp scopes msk_true, (fsp_some write_spec, fbody_trivial));
+      Some SystemHdr.read :=
+        Some (msk_scp scopes msk_true, (fsp_some read_spec, fbody_trivial))]}.
 
-  Program Definition Mod : SMod.t := {|
+  Program Definition Mod E : SMod.t := {|
     SMod.scopes := scopes;
-    SMod.fnsems := fnsems;
+    SMod.fnsems := fnsems E;
     SMod.initial_st := 
-      [(v_tid, 1%positive↑); (v_tids, ({[1%positive := 0]} : tidmap)↑)];
+      {[v_tid := Some 1%positive↑; v_tids := Some ({[1%positive := 0]} : tidmap)↑]};
   |}.
-  Solve All Obligations with prove_scope.
-  Next Obligation. prove_nodup. Qed.
+  Solve All Obligations with mod_tac.
 
   Definition init_cond size : iProp Σ :=
     tview_sys_auth {[1%positive := (TView.init size, 0)]}.
 
-  Definition t sp : Mod.t := Seal.sealing CRIS (SMod.to_mod sp Mod).
+  Definition t E sp : Mod.t := SMod.to_mod sp (Mod E).
 End SystemA. End SystemA.

@@ -22,7 +22,7 @@ Section alloc.
     hist_auth (Memory.cut Vcut (Global.memory gl1))
     ==∗ hist_auth (Memory.cut (View.join Vcut (View.alloc_view_singleton loc sz)) (Global.memory gl2))
         ∗ [∗ list] i ↦ C ∈ (repeat (Cell.init Val.Vundef) (Z.to_nat sz)), hist (loc >> i) 1 C.
-  Proof.
+  Proof using H1.
     iIntros "H". rewrite hist_auth_eq /hist_auth_def.
     iMod (own_update with "H") as "[H1 H2]"; [| iSplitL "H1"; [iModIntro; done|]].
     { eapply auth_update_alloc, discrete_fun_local_update; intros l.
@@ -34,7 +34,8 @@ Section alloc.
       destruct (Memory.accessible l mem2) eqn : ACC2.
       { hexploit Memory.alloc_accessible3; eauto. { inv WF; ss. }
         intros [ALLOCED | NALLOC].
-        { des. destruct (Memory.accessible l (Global.memory gl1)); ss.
+        { des. destruct (Memory.accessible l (Global.memory gl1)) eqn : Hacc; ss.
+          { exfalso; eapply Memory.prealloced_is_not_accessible; eauto. }
           rewrite Memory.cut_get_cell.
           etrans; first eapply alloc_option_local_update; cycle 1.
           (* Newly alloced = Cell.init *)
@@ -52,10 +53,7 @@ Section alloc.
             { inv ALLOC; ss; exfalso; apply n; split; destruct l; rewrite /Loc.get_tbid; clarify; ss. }
             inv ALLOC; ss.
             hexploit (WFP l).
-            { inv WF. inv MEM_WELL_ALLOCED. destruct l; ss.
-              hexploit (PREALLOC (Local.tid lc1) bid); ss. lia.
-              rewrite /Memory.is_prealloced /= H4 //.
-            }
+            { inv WF. inv MEM_WELL_ALLOCED. destruct l; ss. }
             intros ->.
             rewrite Cell.cut_spec Cell.init_get; des_ifs.
             apply TimeFacts.le_not_lt in l0; ss; refl.
@@ -96,7 +94,10 @@ Section alloc.
         intros ACC1; hexploit Memory.alloc_accessible3; eauto. { inv WF; ss. }
         intros [ACC1' | CONT]; cycle 1.
         { des; exfalso; apply LOC; rewrite /Loc.get_tbid H3 a; ss. }
-        { exfalso; apply n0; split; des; eauto. rewrite H3 in ACC1; done. }
+        { exfalso; apply n0; split; des; eauto.
+          { ii; eapply Memory.prealloced_is_not_accessible; eauto. }
+          rewrite H3 in ACC1; done.
+        }
       }
     }
     iStopProof. clear STEP; revert n; induction n; [iIntros "_"; ss|].
@@ -125,23 +126,18 @@ Section alloc.
       { rewrite discrete_fun_lookup_singleton_ne; ss; ii; clarify. }
       ii; clarify; apply n0; split; destruct loc; rewrite /Loc.get_tbid; ss; subst; lia.
     }
-  Qed.
+  (*SLOW*)Qed.
 
   Lemma simF_alloc : ISim.sim_fun open MA MI Ist (Some PFMemHdr.alloc).
-  Proof.
-    init_simF.
-    set (fls := fmap _ _). assert (fls = sandbox_fnsemmap (Mod.fnsems MA)) by refl.
-    rewrite H4; clear dependent fls.
-    set (flt := fmap _ _). assert (flt = sandbox_fnsemmap (Mod.fnsems MI)) by refl.
-    rewrite H4; clear dependent flt.
-    unfold_cris_defs.
+  Proof using.
     iStartSim.
-    steps_l. iDestruct "ASM" as "[[-> TV] ->]". rename _q2 into 𝓥, _q3 into tid, _q4 into sz. hss.
+    steps_l. destruct _q as [[tid sz] V].
+    iDestruct "ASM" as "[-> [-> TV]]".
     iDestruct "IST" as "[%gl [%ths [%Vcut [[-> [%CUT [%CUTCL [%WF [%WF2 [%PFG %PFL]]]]]] [HA [TA FA]]]]]]".
     rewrite /PFMemI.check_ident.
-    iPoseProof (tview_both_valid with "TA TV") as "%F"; des; clarify.
-    steps_r. hss. steps_r. des_ifs.
-    steps_r. destruct _q as [[loc config'] STEP].
+    steps_r. hss_r. steps_r. hss_r. steps_r.
+    iPoseProof (tview_both_valid with "TA TV") as "%F"; des; clarify. rewrite F. steps_r.
+    destruct _q as [[loc config'] STEP].
     dup STEP; inv STEP0. inv STEP1; inv LOCAL.
     iMod (hist_auth_alloc_vs with "HA") as "[HA PTS]"; eauto.
     { inv WF; ss. }
@@ -149,10 +145,26 @@ Section alloc.
     iPoseProof (tview_auth_update with "TA TV") as "> [TA TV]"; ss.
     iMod (hist_freeable_auth_alloc with "FA") as "[F FA]"; eauto. { inv WF; ss. }
     iAssert (Ist st_src _) with "[HA TA FA]" as "IST".
-    { iExists gl2, (Configuration.threads config'), (View.join Vcut (View.alloc_view_singleton loc sz)). iSplitR.
+    { iExists gl2,
+        (Configuration.threads config'),
+        (View.join Vcut (View.alloc_view_singleton loc sz)). iSplitR.
       { iPureIntro; split; first eauto. splits.
-        { intros ??????FIND. s. etrans; last eapply TimeMap.join_l.
-          eapply CUT; erewrite <- Memory.alloc_o; eauto. inv LOCAL0; eauto.
+        { intros loc1 ???? FIND Acc.
+          inv LOCAL0; hexploit (Memory.alloc_accessible3); eauto.
+          { inv WF; inv GL_WF; eauto. }
+          intros [?|?].
+          { des; ss. eapply WF2 in H6. hexploit Memory.alloc_get_cell; eauto.
+            intros Heq; rewrite -Heq in H6; rewrite -Memory.get_memory_cell H6 in FIND.
+            rewrite Cell.init_get in FIND; case_match; ss; clarify.
+            etrans; last eapply TimeMap.join_r.
+            rewrite TimeMap.singletons_spec; case_decide as temp; [refl|exfalso].
+            destruct loc1, loc; ss; clarify.
+            apply temp; split; first ss.
+            inv ALLOC; lia.
+          }
+          { ss. etrans; last eapply TimeMap.join_l.
+            eapply CUT; des; eauto. erewrite <-Memory.alloc_o; eauto.
+          }
         }
         { apply Memory.join_closed_view.
           { inv LOCAL0. eapply Memory.alloc_closed_view; eauto. inv WF. inv GL_WF; eauto. }
@@ -164,10 +176,10 @@ Section alloc.
         { inv WF. inv GL_WF. inv LOCAL0. eapply wf_prealloc_alloc; eauto. }
         { destruct gl, gl2; inv LOCAL0; ss. }
         { ii; destruct (decide (tid0 = tid)); subst.
-          { hexploit (PFL tid); eauto. s in H2; rewrite IdentMap.gss in H2; inv H2.
+          { hexploit (PFL tid); eauto. s in H4; rewrite IdentMap.gss in H4; inv H4.
             inv LOCAL0; inv ALLOC; ss.
           }
-          { rewrite IdentMap.gso in H2; clarify; hexploit (PFL tid0); eauto. }
+          { rewrite IdentMap.gso in H4; clarify; hexploit (PFL tid0); eauto. }
         }
       }
       subst config'; iFrame.
@@ -218,6 +230,7 @@ Section alloc.
       rewrite Cell.init_get Cell.singleton_get; des_ifs.
     }
     step_l. step.
-    iFrame. done.
-  Qed.
+    subst config'; iFrame. done.
+  Unshelve. all: eauto.
+  (*SLOW*)Qed.
 End alloc.

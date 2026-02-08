@@ -14,16 +14,16 @@ Section CAS.
   Local Definition MA := (PFMemA.t sp).
   Local Definition MI := (PFMemI.t syn size).
 
-  Lemma simF_cas : ISim.sim_fun open MA MI (init_cond syn size) Ist (Some PFMemHdr.cas).
+  Lemma simF_cas : ISim.sim_fun open MA MI Ist (Some PFMemHdr.cas).
   Proof.
     (* prologue *)
-    init_simF.
+    iStartSim.
     step_l.
     destruct _q as [[[[[[[[[[[[[tid loc] old] new] ordr] ordw] 𝓥] γ] ζ'] Vb] tx] ζn] mode] Pr].
     steps_l.
-    iDestruct "ASM" as "[[[-> [%RLXR [%RLXW %COMPARABLE]]] [TV [SN [PT [AW [PR #CMP]]]]]] ->]".
+    iDestruct "ASM" as "[-> [[-> [%RLXR [%RLXW %COMPARABLE]]] [TV [SN [PT [AW [PR #CMP]]]]]]]".
     iDestruct "IST" as "[%gl [%ths [%Vcut [[-> [%CUT [%CUTCL [%WF [%WF2 [%PFG %PFL]]]]]] [HA [TA HFA]]]]]]".
-    hss. steps_r. hss. steps_r.
+    hss. steps_r. hss_r. steps_r.
 
     (* conditions *)
     iPoseProof (tview_both_valid with "TA TV") as "%IN".
@@ -52,9 +52,9 @@ Section CAS.
       inv STEP; ss. rename STEP0 into STEP.
       inv STEP. inv LOCAL. clear STATE. inv LOCAL. rename LOCAL0 into LOCAL.
       inv LOCAL. { destruct ordr; ss. } { destruct ordw; ss. }
-      inv RACE. { inv PFG. rewrite H2 /Promises.Promises.bot // in GET. }
-      rename to0 into to.
+      inv RACE. { inv PFG. rewrite H4 /Promises.Promises.bot // in GET. }
       hexploit MSG; eauto; intros ->; clear MSG.
+      rename to0 into to.
       hexploit (CUT loc to); eauto; intros TOCUT.
       iPoseProof (at_auth_reader_latest with "AA AR") as "%LE".
       exfalso.
@@ -64,7 +64,7 @@ Section CAS.
     { (* inaccessible cas *)
       inv STEP. ss. rename STEP0 into STEP; inv STEP. inv LOCAL. clear STATE EVENT t.
       inv LOCAL. inv RACE; ss.
-      { inv PFG. rewrite H4 in FREEPROMISE.
+      { inv PFG. rewrite H6 in FREEPROMISE.
         hexploit PFL; eauto; intros INV; inv INV; des; rewrite H6 in FREEPROMISE.
       }
     }
@@ -76,7 +76,7 @@ Section CAS.
         { (* read ptr is inaccessible *)
           iPoseProof (bi.and_elim_r with "EX") as "EX".
           inv RACE.
-          { inv PFG; rewrite H4 in FREEPROMISE. inv LOCAL; ss. }
+          { inv PFG; rewrite H6 in FREEPROMISE. inv LOCAL; ss. }
           { (* inaccessible read ptr *)
             inv LOCAL. ss. destruct val'; ss; cycle 1.
             { exfalso. hexploit (COMPARABLE to from Val.Vundef); last (intros ?; des; eauto).
@@ -107,7 +107,7 @@ Section CAS.
         }
         { (* expected ptr inaccessible *)
           inv RACE.
-          { inv PFG; rewrite H4 in FREEPROMISE. inv LOCAL; ss. }
+          { inv PFG; rewrite H6 in FREEPROMISE. inv LOCAL; ss. }
           { iPoseProof (bi.and_elim_l with "EX") as "EX".
             iDestruct "EX" as "[%qr [%Cr [%Vr [% [% [[? HIST'] ?]]]]]]".
             iPoseProof (hist_own_hist_cut with "HA HIST'") as "[% [? [? %ACC]]]"; done.
@@ -285,7 +285,7 @@ Section CAS.
       }
       force_l (Val.one ↑). steps_l. force_l (Val.one ↑). steps_l. force_l.
       iSplitR "HA HFA TA".
-      { iSplit; last done. iFrame "PR TV".
+      { iSplit; first done. iFrame "PR TV".
         inv LOCAL1; ss.
         unshelve (iExists Val.one, _, ζn, tsr, from, _, valr); eauto.
         { inv WF. eapply Memory.get_ts; eauto. }
@@ -318,7 +318,7 @@ Section CAS.
         { iPureIntro. split; first done.
           split.
           { inv COMPARE.
-            { eapply Z.eqb_eq in H6; subst; ss. }
+            { eapply Z.eqb_eq in H8; subst; ss. }
             { inv CMP. symmetry in EQ; revert BlOCK EQ; rewrite /Loc.get_tbid.
               destruct loc1, loc2, (TBid.eq_dec _ _); ss.
               intros _ ?%Z.eqb_eq; clarify.
@@ -403,7 +403,7 @@ Section CAS.
           }
         }
         iFrame "AW".
-        (* rewrite /view_at AtomicPtsToX_eq /AtomicPtsToX_def. *)
+        rewrite /view_at AtomicPtsToX_eq /AtomicPtsToX_def.
         iFrame "HIST AA PTA".
         iSplit; auto.
         iPureIntro; ss; split.
@@ -460,12 +460,14 @@ Section CAS.
       { inv LOCAL1; inv LOCAL2; ss; intros ?????.
         erewrite Memory.add_o; eauto. des_if.
         { ss; des; i; clarify. destruct ordw; ss. }
-        apply CUT.
+        i; eapply CUT; eauto.
+        erewrite <-Memory.add_accessible; eauto.
       }
       split.
       { inv LOCAL1; inv LOCAL2; ss. eapply Memory.add_closed_view; eauto. }
       split.
       { eapply PFConfiguration.estep_future; eauto.
+        subst.
         econs; eauto; ss.
         { econs; eauto; ss. }
         { ss. }
@@ -474,11 +476,11 @@ Section CAS.
       { inv LOCAL1; inv LOCAL2; ss. eapply wf_prealloc_write; eauto. }
       split.
       { inv LOCAL1; inv LOCAL2; ss. inv PFG. econs; ss.
-        rewrite H2 in FULFILL. apply Promises.Promises.fulfill_bot_inv in FULFILL. des; ss.
+        rewrite H4 in FULFILL. apply Promises.Promises.fulfill_bot_inv in FULFILL. des; ss.
       }
-      { intros ???. rewrite IdentMap.Facts.add_o; des_if; intros INV; inv INV; ss.
+      { intros ???. subst. rewrite IdentMap.Facts.add_o; des_if; intros INV; inv INV; ss.
         { inv LOCAL1; ss. inv LOCAL2; ss. econs; ss.
-          { hexploit PFL; eauto; intros INV; inv INV; rewrite H2 in FULFILL.
+          { hexploit PFL; eauto; intros INV; inv INV; rewrite H4 in FULFILL.
             apply Promises.Promises.fulfill_bot in FULFILL; des; ss.
           }
           { hexploit PFL; eauto; intros INV; inv INV; ss. }
@@ -551,7 +553,7 @@ Section CAS.
       iPoseProof (at_auth_fork_at_reader with "AA") as "#AR'".
 
       force_l (Val.zero ↑). steps_l. force_l (Val.zero ↑). steps_l. force_l. iSplitR "IST".
-      { iSplit; last done.
+      { iSplit; first done.
         iFrame "PR TV".
         inv LOCAL1; ss.
         remember (Cell.cut _ _) as ζn.
@@ -577,7 +579,7 @@ Section CAS.
           by apply TViewFacts.read_tview_incr.
         }
         iSplitR.
-        { iFrame "ALN"; iSplit.
+        { rewrite /view_at AtomicSeen_eq. iFrame "ALN"; iSplit.
           { rewrite /SeenLocal; iPureIntro; split.
             { rewrite /View.join /= /AllocView.join /orb; des_ifs. }
             intros ?; rewrite /seen_local /= GET; des_if; subst.
@@ -612,10 +614,10 @@ Section CAS.
           { inv COMPARE; ii; clarify.
             { inv VAL; clarify. }
             { inv VAL. inv CMP.
-              { apply Loc.eqb_eq in H4; subst.
+              { apply Loc.eqb_eq in H6; subst.
                 symmetry in EQ; apply Z.eqb_neq in EQ; clarify.
               }
-              { apply Loc.eqb_eq in H4; subst.
+              { apply Loc.eqb_eq in H6; subst.
                 destruct (TBid.eq_dec _ _); ss.
               }
             }
@@ -625,6 +627,7 @@ Section CAS.
           { by rewrite RLXR; apply View.join_r. }
         }
         (* Atomic pts-to *)
+        rewrite AtomicPtsToX_eq.
         iFrame "HIST AA PTA". iSplit; first done.
         iSplit; done.
       }
@@ -632,5 +635,5 @@ Section CAS.
       iFrame. done.
     }
     Unshelve. all: auto.
-  Qed.
+  (*SLOW*)Qed.
 End CAS.

@@ -332,20 +332,19 @@ Section free.
     intros ->; des_ifs.
   Qed.
 
-  Lemma simF_free : ISim.sim_fun open MA MI (init_cond syn size) Ist (Some PFMemHdr.free).
+  Lemma simF_free : ISim.sim_fun open MA MI Ist (Some PFMemHdr.free).
   Proof.
-    init_simF.
-    steps_l. iDestruct "ASM" as "[[-> [TV [OLV F]]] ->]".
-    rename _q2 into 𝓥, _q4 into sz, _q5 into tid, _q6 into loc. hss.
+    iStartSim.
+    steps_l. destruct _q as [[[tid loc] sz] V]. iDestruct "ASM" as "[-> [-> [TV [OLV F]]]]".
     iDestruct "IST" as "[%gl [%ths [%Vcut [[-> [%CUT [%CUTCL [%WF [%WF2 [%PFG %PFL]]]]]] [HA [TA FA]]]]]]".
+    hss_r. steps_r. hss_r. steps_r.
     rewrite /PFMemI.check_ident.
-    steps_r. hss. steps_r. des_ifs.
+    steps_r. des_ifs.
     { steps_r. destruct _q as [[e config'] [TEV STEP]].
       (* inv STEP. inv STEP0; [inv LOCAL|]. *)
       dup STEP; inv STEP0. inv STEP1; [inv LOCAL|].
       rewrite TEV in STATE. ss. inv LOCAL.
-      {
-        (* free_step *)
+      { (* free_step *)
         des_ifs. steps_r.
         force_l. steps_l. force_l. steps_l. force_l. iSplit; eauto.
         steps_l.
@@ -357,10 +356,11 @@ Section free.
         step. iSplit; eauto. clear EVENT n.
         unfold Ist. iExists gl2, (IdentMap.add tid (existT lang st2, lc2) ths), Vcut.
         iFrame.
-        iSplit; iPureIntro. { rewrite /alist_upd /_alist_upd /=. ss. }
+        iSplit; iPureIntro; ss.
         esplits.
-        { intros ??????FIND. eapply CUT; erewrite <- Memory.free_o; eauto.
-          inv LOCAL0; eauto.
+        { intros ??????FIND ?. eapply CUT.
+          { erewrite <- Memory.free_o; eauto. inv LOCAL0; eauto. }
+          inv LOCAL0; eapply Memory.free_accessible; eauto.
         }
         { inv LOCAL0. eapply Memory.free_closed_view; eauto. }
         { eapply PFConfiguration.estep_future; eauto. }
@@ -368,18 +368,18 @@ Section free.
         { destruct gl, gl2. inv LOCAL0. ss.
           inv PFG; ss.
           rewrite /Global.promise_free; ss. esplits.
-          { rewrite H2 in FULFILLS. eapply Promises.Promises.fulfills_bot_inv in FULFILLS. des. eauto. }
-          { rewrite H3 in FULFILL. eapply Promises.FreePromises.sfulfill_bot_inv in FULFILL. des. eauto. }
+          { rewrite H4 in FULFILLS. eapply Promises.Promises.fulfills_bot_inv in FULFILLS. des. eauto. }
+          { rewrite H5 in FULFILL. eapply Promises.FreePromises.sfulfill_bot_inv in FULFILL. des. eauto. }
         }
         { ii; destruct (decide (tid0 = tid)); subst.
-          { hexploit (PFL tid); eauto. s in H2; rewrite IdentMap.gss in H2; inv H2.
+          { hexploit (PFL tid); eauto. s in H5; rewrite IdentMap.gss in H5; inv H5.
             inv LOCAL0; inv FREE; ss.
             rewrite /Local.promise_free; ss.  
             i. des. esplits; eauto.
-            { rewrite H2 in FULFILLS. eapply Promises.Promises.fulfills_bot in FULFILLS. des. eauto. }
-            { rewrite H4 in FULFILL. eapply Promises.FreePromises.sfulfill_bot in FULFILL. des. eauto. } 
+            { rewrite H4 in FULFILLS. eapply Promises.Promises.fulfills_bot in FULFILLS. des. eauto. }
+            { rewrite H6 in FULFILL. eapply Promises.FreePromises.sfulfill_bot in FULFILL. des. eauto. } 
           }
-          { rewrite IdentMap.gso in H2; clarify; hexploit (PFL tid0); eauto. }
+          { rewrite IdentMap.gso in H5; clarify; hexploit (PFL tid0); eauto. }
         }
       }
       {
@@ -388,11 +388,11 @@ Section free.
         iPoseProof (hist_freeable_size_racy_free with "[FA F]") as ">(% & F & FA)"; eauto; [inv WF; ss|iFrame|].
         subst.
         inv LOCAL0. des. clear i EVENT.
-        inv RACE0. { inv PFG. rewrite H2 /Promises.Promises.bot // in GET. }
+        inv RACE0. { inv PFG. rewrite H4 /Promises.Promises.bot // in GET. }
         rename to0 into to. 
         rewrite /own_loc_vec. 
         iPoseProof (tview_both_valid with "TA TV") as "%".
-        destruct H2 as [l [lc [FOUND LCEQ]]].
+        destruct H4 as [l [lc [FOUND LCEQ]]].
         rewrite FOUND in Heq; inv Heq.
         rewrite own_loc_eq /own_loc_def /own_loc_prim.
         iDestruct "OLV" as "[_ OLV]".
@@ -411,7 +411,7 @@ Section free.
         assert (LECUT: Time.lt (View.rlx Vcut loc') to).
         { inv SEEN_LOCAL.
           { ett. eapply l. etrans; eauto. }
-          { ett. eapply l. inv H2; eauto. }
+          { ett. eapply l. inv H4; eauto. }
         }
         assert (CUT_GET: Cell.get to (Cell.singleton msg' LT) = Some (from, Message.message val released na)).
         { rewrite CELL_CUT Cell.cut_spec; des_ifs; timetac. }
@@ -423,7 +423,7 @@ Section free.
       inv LOCAL0.
       { des.
         { inv RACE0; ss.
-          { inv PFG. rewrite H3 /Promises.FreePromises.bot // in FREEPROMISE. }
+          { inv PFG. rewrite H5 /Promises.FreePromises.bot // in FREEPROMISE. }
           { exfalso. apply INACCESSIBLE. unfold Memory.accessible, Block.accessible. 
             ss. unfold Memory.is_freeable, Block.is_freeable, Memory.get_size, Block.get_size in *.
             des_ifs. rewrite -Z.leb_le in RACE. rewrite -Z.ltb_lt in RACE1.
@@ -433,11 +433,11 @@ Section free.
             (* alloc_view, duplicated. *)
             iExFalso. ss. inv TEV.
             iPoseProof (tview_both_valid with "TA TV") as "%". des.
-            rewrite Heq in H2. inv H2.
+            rewrite Heq in H4. inv H4.
             iDestruct "OLV" as "[% OLV]". ss. 
           }
         }
-        { inv PFG. rewrite H3 /Promises.FreePromises.bot // in RACE. }
+        { inv PFG. rewrite H5 /Promises.FreePromises.bot // in RACE. }
       }
       des.
       {
@@ -462,12 +462,12 @@ Section free.
         (* alloc_view, duplicated. *)
         iExFalso.
         iPoseProof (tview_both_valid with "TA TV") as "%". des.
-        rewrite Heq in H2. inv H2.
+        rewrite Heq in H4. inv H4.
         iDestruct "OLV" as "[% OLV]". ss. inv TEV. ss.
       }
     }
     {(* UB case *)
       iPoseProof (tview_both_valid with "TA TV") as "%F"; des; clarify.
     }
-  Qed.
+  (*SLOW*)Qed.
 End free.

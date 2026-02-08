@@ -196,23 +196,6 @@ End wsim.
 Ltac clear_st :=
   hrepeat do 1 match goal with [st: gmap key (option Any.t) |- _] => clear st end.
 
-(* Ltac clear_emp :=
-  hrepeat do 1 match goal with [|- context[environments.Esnoc _ ?H (emp%I)]] => iClear H end. *)
-
-(* Ltac sch_auto :=
-  hrepeat first [progress iFrame | iSplit; iFrame; et; []]. *)
-
-(* Ltac sch_intros :=
-  clear_st; iIntros (??); iIntrosFresh "IST"; iIntrosFresh "TID"; clear_emp. *)
-
-Ltac simpl_sp :=
-  (* try match goal with | |- context[?m !! _] => rewrite /m end; *)
-  try match goal with
-  | H : ?sp1 ⊆ ?sp2 |- context [?sp2 !! ?key] =>
-    unshelve erewrite (lookup_weaken sp1 sp2 key _ _ H);
-    [|rewrite /sp1; simpl_map; reflexivity|]
-  end.
-
 Ltac sch_yield_rr IST :=
   (norm_l with 
     (do 1 unshelve iApply (wsim_yield_tgt_rr); [ss|ss|ss|ss|];

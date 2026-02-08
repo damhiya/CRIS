@@ -501,6 +501,13 @@ Ltac prove_inline_cond :=
 Ltac prove_sb_cond :=
   by s; i; eauto; try rewrite !mask_app; s; eauto.
 
+Ltac simpl_sp :=
+  try match goal with
+  | H : ?sp1 ⊆ ?sp2 |- context [?sp2 !! ?key] =>
+    unshelve erewrite (lookup_weaken sp1 sp2 key _ _ H);
+    [|rewrite /sp1; simpl_map; reflexivity|]
+  end.
+
 (* Normalization tactics *)
 Ltac replace_l :=
   lazymatch goal with

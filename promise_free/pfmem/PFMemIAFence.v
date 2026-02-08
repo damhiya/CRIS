@@ -14,11 +14,11 @@ Section fence.
   Definition MA := (PFMemA.t sp).
   Definition MI := (PFMemI.t syn size).
 
-  Lemma simF_fence : ISim.sim_fun open MA MI (init_cond syn size) PFMemIA.Ist (Some PFMemHdr.fence).
+  Lemma simF_fence : ISim.sim_fun open MA MI Ist (Some PFMemHdr.fence).
   Proof.
-    init_simF.
-    steps_l. iDestruct "ASM" as "[[[-> %] TV] ->]". hss. steps_r.
-    rename _q2 into 𝓥, _q4 into ordw, _q5 into tid, _q6 into ordr.
+    iStartSim.
+    steps_l. destruct _q as [[[tid ordr] ordw] V]. rename _q0 into varg.
+    iDestruct "ASM" as "[-> [[-> %] TV]]". hss_r. steps_r.
     iDestruct "IST" as "[%gl [%ths [%Vcut [[-> [%CUT [%CUTCL [%WF [%WF2 [%PFG %PFL]]]]]] [HA [TA FA]]]]]]".
     hss. steps_r. hss_r. steps_r. rewrite /PFMemI.check_ident.
     des_ifs; last (iPoseProof (tview_both_valid with "TA TV") as "%F"; des; ss; clarify).
@@ -33,12 +33,11 @@ Section fence.
 
     set (gl2:=_: Global.t) at 5.
     assert (gl2 = gl) by (subst gl2; destruct gl; ss).
-    rewrite H3. clear H3. set (lc2:=_: Local.t).
+    rewrite H5. clear H5. set (lc2:=_: Local.t).
 
-    steps_r. rewrite /alist_upd /_alist_upd /=.
-    set (st_tgt:=[(_, _)]).
+    steps_r. set (st_tgt:={[_ := _]}).
 
-    iPoseProof (tview_both_valid with "TA TV") as "%IN". des. subst 𝓥.
+    iPoseProof (tview_both_valid with "TA TV") as "%IN". des. subst V.
 
     iMod ((tview_auth_update ths (IdentMap.add tid (existT lang st2, lc2) ths)) with "TA TV") as "[TA TV]"; eauto.
 
@@ -56,9 +55,9 @@ Section fence.
         rewrite GL in WF0. destruct gl; ss.
       }
       { i. destruct (decide (tid0 = tid)).
-        { subst. rewrite IdentMap.gss in H3; inv H3.
+        { subst. rewrite IdentMap.gss in H5; inv H5.
           hexploit PFL; eauto. }
-        { rewrite IdentMap.gso in H3; eauto. }
+        { rewrite IdentMap.gso in H5; eauto. }
       }
     }
 
@@ -73,5 +72,5 @@ Section fence.
         destruct ordw; ss; rewrite View.join_bot_r; ss. }
     }
     step. iSplit; eauto.
-  Qed.
+  (*SLOW*)Qed.
 End fence.

@@ -27,26 +27,24 @@ Module APCAC. Section APCAC.
               ∧ (∀ X, msk _ (subevent _ (Assume X)) = true)
               ∧ (∀ X, msk _ (subevent _ (Guarantee X)) = true)).
 
-  Local Definition APCC := (APCC.t sp_c).
-  Local Definition APCA := (APCA.t sp_pure sp_a).
-  Local Definition APCCMod := (APCC ★ md).
-  Local Definition APCAMod := (APCA ★ md).
-  Local Definition IstFull := (IstProd (IstSB APCC.(Mod.scopes) Ist) IstEq).
+  Local Notation APCC := (APCC.t sp_c).
+  Local Notation APCA := (APCA.t sp_pure sp_a).
+  Local Notation APCCMod := (APCC ★ md).
+  Local Notation APCAMod := (APCA ★ md).
+  Local Notation IstFull := (IstProd (IstSB APCC.(Mod.scopes) Ist) IstEq).
 
   Local Transparent _APC.
 
   Lemma simF_apc : ISim.sim_fun open APCCMod APCAMod IstFull (Some APCHdr.apc).
   Proof using _crisG PureIsPure PureInSpA APCInSpA.
     (** Due to arbitrary module, manual starting up is required **)
-    rewrite /ISim.sim_fun; simpl_map.
-    rewrite /APCCMod /APCC.fnsems /=.
-    rewrite {1}lookup_union_with lookup_fmap. simpl_map. ss.
-    destruct (Mod.fnsems md !! Some APCHdr.apc) eqn:E.
-    { ss. rewrite lookup_union_with. rewrite E. ss. }
-    ss. ii. esplits; eauto.
-    { rewrite !lookup_union_with E !lookup_fmap. simpl_map. ss. }
-    iIntros (arg st_src st_tgt) "IST". iApply wsim_isim; rewrite /SB.sandbox_body /=.
-    unfold_cris_defs.
+    destruct (Mod.fnsems md !! Some APCHdr.apc) eqn : Hmd.
+    { rewrite /ISim.sim_fun; simpl_map; s.
+      rewrite /sandbox_fnsemmap {1}lookup_fmap /Mod.fnsems /= {1}lookup_union_with Hmd.
+      simpl_map; ss.
+      rewrite lookup_union_with Hmd //.
+    }
+    iStartSim.
 
     steps_l. iDestruct "ASM" as "%"; des; subst. rename _q into o.
     steps_r. wforce_r o. wforce_r (o↑). wforce_r. iSplitR; et. hss. steps_r.
@@ -98,10 +96,11 @@ Module APCAC. Section APCAC.
     { rewrite /fnsems. eapply lookup_singleton_None. ii. inv H3. }
     
     inline_r.
-    { rewrite !lookup_union_with /= !lookup_fmap /=. rewrite H3 M. ss. }
+    { rewrite /sandbox_fnsemmap !lookup_fmap /= /Mod.fnsems /= lookup_union_with.
+      rewrite /Mod.fnsems /= !lookup_fmap H3 M. ss. }
     rewrite lookup_fmap M in H10. ss. inv H10.
     eapply (func_ext_rev arg) in H11. rewrite /SB.sandbox_body /= in H11.
-    rewrite H11 /SModTr.trans_fnsem /SModTr.HoareFun.
+    rewrite /SB.sandbox_body H11 /SModTr.trans_fnsem /SModTr.HoareFun.
 
     steps_r. rewrite H5. steps_r. force_r x'. steps_r. rewrite H5.
     steps_r. force_r (_↑). steps_r. rewrite H7. steps_r. forces_r. iSplitL "GRT"; eauto.
@@ -115,7 +114,6 @@ Module APCAC. Section APCAC.
 
     (* inlining *)
     inline_r.
-    { rewrite !lookup_union_with /= !lookup_fmap /=. rewrite E. ss. }
     ss. rewrite /SModTr.trans_fnsem. ss.
     forces_r. iSplitR; eauto. steps_r. hss_r. steps_r.
     rewrite /apc_body. unfold APC at 1. steps_r.

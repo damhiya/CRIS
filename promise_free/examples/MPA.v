@@ -38,7 +38,7 @@ Module MPA. Section MPA.
         | true =>
             ∃ (t1 f1 : τ{Time.t}) (V1 : τ{View.t}),
               ⌜Time.lt t0 t1 ∧ Cell.add ζ0 f1 t1 (Message.message (Val.Vnum 1) V1 false) ζ⌝ ∗
-              (<own> γ Pending ∨ @{V1} y ↦ Val.Vnum 42) (* data *)
+              (sown γ Pending ∨ @{V1} y ↦ Val.Vnum 42) (* data *)
         end)%SAT.
   Definition mp_inv'_aux : seal (@mp_inv'_def). Proof. by eexists. Qed.
   Definition mp_inv' := unseal (@mp_inv'_aux).
@@ -64,12 +64,16 @@ Module MPA. Section MPA.
           ∃ sarg V, ⌜ arg = sarg↑ ⌝ ∗ mp2_precondition V varg sarg ∗ tview_sys tid stid V,
         λ (_ : SAny.t) _, ∃ V, tview_sys tid stid V)))%I.
 
-  Definition sp : spl_type :=
-    [(None,           Some mp_spec);
-     (Some MPHdr.mp2, Some mp2_spec)].
+  Definition main_spec : fspec :=
+    fspec_winv ⊤
+      (fspec_simple
+        (λ (_ : unit), ((λ _, tview_sys 1%positive 0 (TView.init [])), (λ _, True))))%I.
+
+  Definition sp : specmap :=
+    {[speckey_fn MPHdr.mp2 := fspec_to_rel mp2_spec]}.
 
   (* module definition *)
-  Definition scopes : list string := [].
+  Definition scopes : gmultiset string := ∅.
   Definition mp2 : Val.t → itree crisE Val.t :=
     λ _, 𝒴;;; Ret Val.zero.
 
@@ -84,18 +88,16 @@ Module MPA. Section MPA.
         if b then Ret (inr tt) else Ret (inl tt)) ();;;
       Ret (Val.Vnum 42)↑.
 
-  Definition fnsems : alist (option string) (fnsem_type (option fspec * fbody)) :=
-    [(Some MPHdr.mp2, (true, wmask_all, scopes, (Some mp2_spec, (cfunN (sfunN mp2)))));
-     (None,           (true, wmask_all, scopes, (Some fspec_trivial,  mp)))].
+  Definition fnsems : fnsemmap :=
+    {[Some MPHdr.mp2 := Some (msk_scp scopes msk_true, (fsp_some mp2_spec, (cfunN (sfunN mp2))));
+      None := Some (msk_scp scopes msk_true, (fsp_some main_spec, mp))]}.
 
   Program Definition Mod : SMod.t := {|
     SMod.scopes := scopes;
     SMod.fnsems := fnsems;
-    SMod.initial_st := [];
+    SMod.initial_st := ∅;
   |}.
-  Solve All Obligations with prove_scope.
-  Next Obligation. prove_nodup. Qed.
+  Solve All Obligations with mod_tac.
 
-  Definition init_cond : iProp Σ := winv (⊤, ⊤) ∗ tview_sys 1%positive 0 (TView.init []).
-  Definition t sp : Mod.t := Seal.sealing CRIS (SMod.to_mod sp Mod).
+  Definition t sp : Mod.t := SMod.to_mod sp Mod.
 End MPA. End MPA.

@@ -12,7 +12,7 @@ End MPHdr.
 (* Message passing - implementation *)
 Module MPI. Section MPI.
   Context `{!crisG Γ Σ α β τ _S _I, !concG}.
-  Definition scopes : list string := [].
+  Definition scopes : gmultiset string := ∅.
 
   Definition mp : Any.t → itree crisE Any.t :=
     λ _,
@@ -44,17 +44,16 @@ Module MPI. Section MPI.
       𝒴;;; '_ : Val.t <- ccallU SystemHdr.write (loc >> flag, Val.Vnum 1, Ordering.acqrel);;
       𝒴;;; Ret Val.zero.
 
-  Definition fnsems : alist (option string) (fnsem_type (option fspec * fbody)) :=
-    [(Some MPHdr.mp2, (false, wmask_all, scopes, (None, cfunU (sfunU mp2))));
-     (None,           (false, wmask_all, scopes, (None, mp)))].
+  Definition fnsems : fnsemmap :=
+    {[Some MPHdr.mp2 := Some (msk_real (msk_scp scopes msk_true), (None, cfunU (sfunU mp2)));
+      None := Some (msk_real (msk_scp scopes msk_true), (None, mp))]}.
 
   Program Definition Mod : SMod.t := {|
     SMod.scopes := scopes;
     SMod.fnsems := fnsems;
-    SMod.initial_st := [];
+    SMod.initial_st := ∅;
   |}.
-  Solve All Obligations with prove_scope.
-  Next Obligation. prove_nodup. Qed.
+  Solve All Obligations with mod_tac.
 
-  Definition t : Mod.t := Seal.sealing CRIS (SMod.to_mod sp_none Mod).
+  Definition t : Mod.t := SMod.to_mod ∅ Mod.
 End MPI. End MPI.

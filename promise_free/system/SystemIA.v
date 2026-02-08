@@ -6,107 +6,94 @@ Require Import PFMemHeader PFMemA HistoryRA AtomicRA.
 Module SystemIA. Section SystemIA.
   Import SystemA.
   Context `{!crisG Γ Σ α β τ _S _I, !concG, !histG, !atomicG, !sysG}.
-  Context (sp_user : spl_type).
-  Context (sp : sp_type).
+  Context (sp_user sp : specmap).
   Context (size : list Z).
-  Context (Hincl : sp_incl sp_user sp).
-  Context (Hsysincl : sp_incl (SystemA.sp sp_user ⊤) sp).
+  Context (Hincl : sp_user ⊆ sp).
+  Context (Hsysincl : (SystemA.sp sp_user ⊤) ⊆ sp).
+  Context (ConcInGlobal : speckey_concE ∈ dom sp).
 
-  Local Definition SystemA_s := SystemA.t sp_user sp ★ PFMemA.t sp.
+  Local Definition SystemA_s := SystemA.t sp_user ⊤ sp ★ PFMemA.t sp.
   Local Definition SystemI_s := SystemI.t ★ PFMemA.t sp.
   Local Definition init_cond := init_cond size.
 
-  Definition Ist : alist key Any.t → alist key Any.t → iProp Σ :=
+  Definition Ist : ist_type Σ :=
     λ st_src st_tgt,
       (∃ (tid : Ident.t) (tids : gmap Ident.t (TView.t * nat)),
         let tids' : gmap Ident.t nat := snd <$> tids in
-        ⌜st_tgt = [(SystemI.v_tid, tid↑); (SystemI.v_tids, tids'↑)] ∧
-         st_src = [(SystemA.v_tid, tid↑); (SystemA.v_tids, tids'↑)]⌝ ∗
+        ⌜st_tgt = {[SystemI.v_tid := Some tid↑; SystemI.v_tids := Some tids'↑]} ∧
+         st_src = {[SystemI.v_tid := Some tid↑; SystemI.v_tids := Some tids'↑]}⌝ ∗
         tview_sys_auth tids ∗
         ([∗ map] i ↦ stid ∈ (snd <$> delete tid tids),
-          (* tview_sys_gen (1/2) i V ∗ *)
           (YIELD stid)))%I.
 
-  Local Definition IstFull := (IstProd (IstSB (Mod.scopes (SystemA.t sp_user sp)) Ist) IstEq).
+  Local Definition IstFull := (IstProd (IstSB (Mod.scopes (SystemA.t sp_user ⊤ sp)) Ist) IstEq).
 
-  Lemma simF__spawn :
-    ISim.sim_fun open SystemA_s SystemI_s init_cond IstFull (Some SystemHdr._spawn).
-  Proof.
-    init_simF.
-
-    steps_l.
-    iDestruct "ASM'" as
-      "[%tid [%𝓥 [%pre [%fvarg [%farg [%fn [[-> [-> %FS]] [TV PRE]]]]]]]]".
+  Lemma simF__spawn : ISim.sim_fun open SystemA_s SystemI_s IstFull (Some SystemHdr._spawn).
+  Proof using Hincl Hsysincl.
+    iStartSim.
+    steps_l. destruct _q as [].
+    iDestruct "ASM" as
+      "[%stid [%tid [%𝓥 [%pre [%fvarg [%farg [%fn [[-> ->] [W [[%fsp [% Spawn]] [TV PRE]]]]]]]]]]]".
     iDestruct "IST" as (????) "[[-> ->] [[% IST] ->]]".
     iDestruct "IST" as "[%tid_cur [%tids [[-> ->] [TA TVS]]]]".
     hss_l. steps_l.
+    unshelve erewrite (lookup_weaken _ _ _ _ _ Hincl); eauto.
+    iDestruct ("Spawn" with "[]") as "[% [% [%Hfsp Hspawn]]]".
+    { iPureIntro; exists (tid, stid); split; done. }
+    iPoseProof ("Hspawn" with "[W PRE TV]") as "> [Pre Post]".
+    { unfold_pre_post; iFrame; eauto. }
+    force_l (FSpec_mk _ _ Hfsp); eauto. forces_l. iFrame.
 
-    destruct FS as [[fsp|fsp] [->%Hincl Himpl]]; ss.
-    destruct (Himpl (tid, _q)) as [fmeta [Hpre Hpost]].
-    force_l fmeta. steps_l. force_l (farg↑). steps_l.
-
-    (* iDestruct "TV" as "[TV STV]". *)
-    iPoseProof (tview_sys_lookup with "TA TV") as "%Hlookup"; first iFrame.
-    revert Hpre; unfold_pre_post; intros Hpre.
-    iDestruct "ASM" as "[TID [YIELD W]]".
-    (* iPoseProof (big_sepM_delete with "TVS") as "[TV2 TVS]"; eauto. *)
-    (* iCombine "TV TV2" as "TV". *)
-    iMod (Hpre with "[TID YIELD TV W PRE]") as "PRE"; first iFrame; eauto.
-    force_l; iSplitL "PRE"; first iFrame.
-    steps_l.
-
-    hss_r. steps_r.
-    (* steps_r. rewrite /SystemI.check_internal; steps_r; hss. *)
-    
-    call "TA TVS".
-    { iExists [_; _], [_; _], st_tgtR, st_tgtR; iSplit; first ss.
-      iSplit; eauto.
-      iSplit; eauto.
-      iExists _, _; iSplit; [iPureIntro; esplits; eauto|ss; iFrame].
-    }
+    steps_l. hss_r. steps_r. call "TA TVS".
+    { iFrame. iExists _, _, _, _; repeat iSplit; eauto. }
+    iIntros (ret st_src st_tgt) "IST".
     steps_l. steps_r.
-    iMod (Hpost with "ASM") as "[W [% [_ TV]]]".
+
+    (* steps_l. steps_r. *)
+    iMod ("Post" with "ASM") as "[W [% [_ TV]]] /=".
 
     rewrite /System.terminate; unseal "System".
     iApply wsim_reset. iStopProof.
-    revert st_s'. combine_quant st_t'.
-    eapply wsim_coind; intros g' _ CIH [st_s' st_t']; ss.
+    revert st_src. combine_quant st_tgt.
+    eapply wsim_coind; intros g' _ CIH [st_src st_tgt]; ss.
     destruct_quant CIH.
 
-    iIntros "[IST [W TV]]". iPoseProof (winv_split_empty with "W") as "[W We]".
+    iIntros "[IST [W TV]]".
+    iPoseProof (winv_split_empty with "W") as "[W We]".
 
-    unfold_iterC_l. steps_l. iDestruct "TV" as "[%V TV]".
-    force_l (tid, _q, V). steps_l. force_l (tt↑). steps_l.
-    force_l; iFrame "W TV"; iSplit; eauto. steps_l.
+    unfold_iterC_l. steps_l. simpl_sp.
+    iDestruct "TV" as "[%V TV]".
+    force_l (tid, stid, V). steps_l. force_l (tt↑). steps_l.
+    iApply wsim_fold; iFrame "W".
+    force_l; iFrame "TV"; iSplit; eauto. steps_l.
     unfold_iterC_r. steps_r.
-    call "IST".
-    steps_l. iDestruct "ASM" as "[[-> TV] ->]". hss. steps_l.
+    call "IST". clear st_src st_tgt ret.
+    iIntros (ret st_src st_tgt) "IST".
+    steps_l. iDestruct "ASM" as "[-> [-> TV]]". hss_l. steps_l.
     steps_r. hss_r. steps_r.
     by_coind CIH; iFrame.
-    (*SLOW*)Qed.
+  (*SLOW*)Qed.
 
-  Lemma simF_spawn : ISim.sim_fun open SystemA_s SystemI_s init_cond IstFull (Some SystemHdr.spawn).
-  Proof.
-    init_simF.
+  Lemma simF_spawn : ISim.sim_fun open SystemA_s SystemI_s IstFull (Some SystemHdr.spawn).
+  Proof using Hincl Hsysincl ConcInGlobal.
+    iStartSim.
 
-    steps_l. iDestruct "ASM" as "[%varg [-> [%fvarg [%farg [%fn [[-> [-> %Hsp]] [TV PRE]]]]]]]".
+    steps_l. destruct _q as [[[tid stid] Post] V]. s.
+    iDestruct "ASM" as "[%varg [-> [%fvarg [%farg [%fn [[-> ->] [Hspawn [TV PRE]]]]]]]]".
     iDestruct "IST" as (????) "[[-> ->] [[% IST] ->]]".
     iDestruct "IST" as "[%tid_cur [%tids [[-> ->] [TA TVS]]]]".
-    rename _q2 into V, _q5 into tid, _q4 into pre, _q6 into stid.
 
     (* v_tid is set to a correct one *)
     iDestruct "TV" as "[TV STV]".
     iPoseProof (tview_sys_lookup with "TA TV") as "%Hlookup"; first iFrame.
     destruct (decide (tid = tid_cur)); cycle 1.
-    { 
-      (* rewrite lookup_fmap_Some in Hlookup; destruct Hlookup as [[V stid] [? Hlookup]]; ss; subst V. *)
-      iPoseProof (big_sepM_lookup_acc with "TVS") as "[TV2 TVS]".
+    { iPoseProof (big_sepM_lookup_acc with "TVS") as "[TV2 TVS]".
       { instantiate (2:=tid). rewrite lookup_fmap lookup_delete_ne // Hlookup; ss. }
       iDestruct "STV" as "[_ Y2]"; iPoseProof (YieldToken_both with "Y2 TV2") as "%"; done.
     }
     subst.
 
-    steps_r. hss. steps_l; steps_r. hss. steps_l; steps_r. hss. steps_l; steps_r.
+    steps_r. do 3 (hss_l; hss_r; steps_l; steps_r).
 
     (* Calling PFMemHdr.spawn *)
     inline_r. steps_r.
@@ -116,7 +103,7 @@ Module SystemIA. Section SystemIA.
     iDestruct "TA" as "[TA MTVS]".
     iPoseProof (big_sepM_lookup_acc with "MTVS") as "[MTV MTVS]"; eauto; ss.
     force_r; iFrame "MTV"; iSplit; eauto.
-    steps_r. iDestruct "GRT" as "[[%tid_new [-> [TV_cur TV_new]]] ->]".
+    steps_r. iDestruct "GRT" as "[-> [%tid_new [-> [TV_cur TV_new]]]]".
     iPoseProof ("MTVS" with "TV_cur") as "MTVS".
     destruct (tids !! tid_new) as [[? ?]|] eqn : Hnew.
     { iPoseProof (big_sepM_lookup_acc _ _ tid_new with "MTVS") as "[TV_new2 MTVS]"; eauto.
@@ -127,8 +114,8 @@ Module SystemIA. Section SystemIA.
 
     unshelve (force_l (exist _ tid_new _)).
     { ss; rewrite lookup_fmap Hnew //. }
-    steps_l. forces_l. steps_l.
-    spawn. iIntros (nths); steps_l. steps_r. hss.
+    steps_l. simpl_sp. case_decide; [|set_solver+ConcInGlobal]. forces_l. steps_l.
+    iApply wsim_spawn. iIntros (nths). steps_l. steps_r.
 
     iMod (own_update with "TA") as "TA".
     { eapply (gmap_view_alloc _ tid_new (DfracOwn 1) (to_agree (V, nths))); ss.
@@ -138,15 +125,14 @@ Module SystemIA. Section SystemIA.
     (* iDestruct "TVS_new" as "[TVS_new TVS_new1]". *)
 
     (* force_l. steps_l. force_l ((tid_new, fn, farg)↑). steps_l. *)
-    force_l. iFrame "TVS_new".
-    iSplitL "PRE".
-    { iExists _, _, _, _; iSplit; eauto. }
+    force_l. iSplitL "TVS_new PRE Hspawn".
+    { iIntros "? ? ?". iExists _, _, _, _, _, _, _. iFrame. iSplit; eauto. }
     steps_l.
     (* spawn. iIntros (nths); steps_l. steps_r. hss. *)
 
     forces_l. iFrame "TV STV". iSplit; eauto. steps_l. step.
     iSplit; eauto.
-    iExists [_; _], [_; _], st_tgtR, st_tgtR; iSplit; first ss.
+    iExists _, _, st_tgtR, st_tgtR; iSplit; first ss.
     iSplit; eauto.
     iSplit; eauto.
     iExists tid_cur, (<[tid_new := (V, nths)]> tids).
@@ -164,14 +150,13 @@ Module SystemIA. Section SystemIA.
   Unshelve. ss.
   (*SLOW*)Qed.
 
-  Lemma simF_yield : ISim.sim_fun open SystemA_s SystemI_s init_cond IstFull (Some SystemHdr.yield).
-  Proof.
-    init_simF.
+  Lemma simF_yield : ISim.sim_fun open SystemA_s SystemI_s IstFull (Some SystemHdr.yield).
+  Proof using Hincl Hsysincl ConcInGlobal.
+    iStartSim.
 
-    steps_l. iDestruct "ASM" as "[[-> TV] ->]".
+    steps_l. destruct _q as [[tid stid] V]. iDestruct "ASM" as "[-> [-> TV]]".
     iDestruct "IST" as (????) "[[-> ->] [[% IST] ->]]".
     iDestruct "IST" as "[%tid_cur [%tids [[-> ->] [TA YS]]]]".
-    rename _q3 into tid, _q2 into V, _q4 into stid.
 
     (* v_tid is set to a correct one *)
     iDestruct "TV" as "[TV [TID Y]]".
@@ -182,12 +167,13 @@ Module SystemIA. Section SystemIA.
       iPoseProof (YieldToken_both with "Y2 Y") as "%"; done.
     }
     subst.
-    hss_l. steps_l; steps_r. hss. steps_l; steps_r. hss. steps_r.
+    hss_l. steps_l; steps_r. hss_l; hss_r. steps_l; steps_r. hss_r. steps_r.
     
     destruct _q as [[tid_next stid_next] Hin].
     force_l (exist _ (tid_next, stid_next) Hin). steps_l.
 
-    force_l stid. steps_l. ss.
+    case_decide; [|set_solver+ConcInGlobal]. s.
+    force_l stid. steps_l.
     iAssert (YIELD stid_next ∗
         [∗ map] i ↦ e ∈ (snd <$> delete tid_next tids), YIELD e)%I
       with "[Y YS]" as "[Y YS]".
@@ -206,47 +192,35 @@ Module SystemIA. Section SystemIA.
     iApply wsim_unfold; iIntros "W".
     force_l; iFrame.
 
-    steps_l; steps_r. rewrite /SModTr.NativeYield /=.
-    yield "TA YS".
-    { iExists [_; _], [_; _], st_tgtR, st_tgtR; iSplit; first ss.
-      iSplit; eauto. iSplit; eauto. iExists _, _; iSplit; first eauto. iFrame.
-    }
+    steps_l; steps_r. case_decide; first set_solver. steps_r.
+    iApply wsim_yield; iFrame. iSplit.
+    { iExists _, _, st_tgtR, st_tgtR; iSplit; first ss. iSplit; eauto. }
 
     clear dependent tids.
+    iIntros (st_src st_tgt) "IST".
     iDestruct "IST" as (????) "[[-> ->] [[% IST] ->]]".
     iDestruct "IST" as "[%tid_cur2 [%tids [[-> ->] [TA YS]]]]".
-    steps_l. force_l (tt↑). step_l. force_l. iFrame. iDestruct "ASM" as "[$ [$ $]]". iSplit; eauto.
+    steps_l. force_l (tt↑). step_l. iDestruct "ASM" as "[? [? ?]]".
+    iApply wsim_fold; iFrame.
+    force_l. iFrame. iSplit; eauto.
 
     steps_l; steps_r. step.
-    (* hss. rewrite /check_internal. steps_l. hss.
-    steps_r. hss.
-
-    rename _q into tid.
-    iPoseProof (tview_sys_lookup with "[TA TVM] TVS") as "%Hlookup"; first iFrame.
-    rewrite lookup_fmap_Some in Hlookup; destruct Hlookup as [[??] [? Hlookup]]; ss; subst.
-
-    iEval (rewrite (big_sepM_delete _ (fst <$> tids) tid); [|rewrite lookup_fmap Hlookup //]; s)
-      in "TVSM".
-    iDestruct "TVSM" as "[TVS2 TVSM]"; iCombine "TVS TVS2" as "TVS".
-    forces_l; iFrame; iSplit; eauto. *)
-
-    (* steps_l. step. *)
     iSplit; eauto.
-    iExists [_; _], [_; _], _, _; iSplit; first ss.
+    iExists _, _, _, _; iSplit; first ss.
     iSplit; eauto.
     iSplit; eauto.
     iExists _, _; iSplit; first eauto.
     iFrame.
   (*SLOW*)Qed.
 
-  Lemma simF_get_tid : ISim.sim_fun open SystemA_s SystemI_s init_cond IstFull (Some SystemHdr.get_tid).
-  Proof.
-    init_simF.
+  Lemma simF_get_tid : ISim.sim_fun open SystemA_s SystemI_s IstFull (Some SystemHdr.get_tid).
+  Proof using Hincl Hsysincl ConcInGlobal.
+    iStartSim.
 
-    steps_l. iDestruct "ASM" as "[[-> TV] ->]".
+    steps_l. destruct _q as [[tid stid] V]. iDestruct "ASM" as "[-> [-> TV]]".
     iDestruct "IST" as (????) "[[-> ->] [[% IST] ->]]".
     iDestruct "IST" as "[%tid_cur [%tids [[-> ->] [TA YS]]]]".
-    rename _q3 into tid, _q2 into V, _q4 into stid.
+    hss_l. hss_r. steps_l; steps_r. hss_l; hss_r. steps_l. steps_r.
 
     (* v_tid is set to a correct one *)
     iDestruct "TV" as "[TV [TID Y]]".
@@ -257,27 +231,9 @@ Module SystemIA. Section SystemIA.
       iPoseProof (YieldToken_both with "Y2 Y") as "%"; done.
     }
     subst.
-    hss_l. steps_l; steps_r. hss. steps_l; steps_r. hss. steps_r.
     force_l (tid_cur↑). steps_l. force_l. iFrame. iSplit; eauto. step. iSplit; eauto.
 
-    (* steps_l. iDestruct "ASM" as "[[-> TVS] ->]".
-    iDestruct "IST" as (????) "[[-> ->] [[% IST] ->]]".
-    iDestruct "IST" as "[%tid_cur [%tids [%flag [[-> ->] [W [[TA TVM] TVSM]]]]]]".
-
-    steps_r. hss_r. steps_r. hss_r. steps_r.
-    hss_l. steps_l. hss.
-    rename _q into tid_cur, _q1 into tid_user, _q2 into V_user.
-    iPoseProof (tview_sys_lookup with "[TA TVM] TVS") as "%Hlookup"; first iFrame.
-    destruct (decide (tid_user = tid_cur)); cycle 1.
-    { iPoseProof (big_sepM_lookup_acc with "TVSM") as "[TV2 TVSM]".
-      { destruct flag; eauto. by rewrite fmap_delete lookup_delete_ne. }
-      iCombine "TVS TV2" gives %[WF _]%gmap_view.gmap_view_frag_op_valid.
-      by apply dfrac_valid_own in WF.
-    }
-    subst.
-
-    forces_l. iFrame. iSplit; eauto. step. iSplit; first done. *)
-    iExists [_; _], [_; _], _, _; iSplit; first ss.
+    iExists _, _, _, _; iSplit; first ss.
     iSplit; eauto.
     iSplit; eauto.
     iFrame. done.
@@ -288,22 +244,16 @@ Section ctx_refines.
 
   (* Scheduler for WM refines its specification when linked to WMM *)
   Lemma ctxr sp_user sp size :
-    sp_incl sp_user sp →
-    sp_incl (SystemA.sp sp_user ⊤) sp →
+    sp_user ⊆ sp →
+    (SystemA.sp sp_user ⊤) ⊆ sp →
+    speckey_concE ∈ dom sp →
     ctx_refines
-      (SystemA.t sp_user sp ★ PFMemA.t sp, init_cond size)
-      (SystemI.t            ★ PFMemA.t sp, emp%I).
+      (SystemA.t sp_user ⊤ sp ★ PFMemA.t sp, init_cond size)
+      (SystemI.t              ★ PFMemA.t sp, emp%I).
   Proof.
-    intros ??.
-    eapply main_adequacy with (Ist := (IstProd (IstSB (Mod.scopes (SystemA.t sp_user sp)) Ist) IstEq)).
+    intros ???.
+    eapply main_adequacy with (Ist := (IstProd (IstSB (Mod.scopes (SystemI.t )) Ist) IstEq)).
     init_sim.
-    { split; ss. iIntros "TA"; iSplit; ss.
-      { iPureIntro; split; prove_scope. }
-      { iExists 1%positive, {[1%positive := (TView.init size, 0)]}; iFrame.
-        iSplit; first eauto.
-        rewrite delete_singleton fmap_empty //.
-      }
-    }
     { apply simF__spawn; eauto. }
     { apply simF_spawn; eauto. }
     { apply simF_yield; eauto. }
@@ -311,5 +261,10 @@ Section ctx_refines.
     { apply simF_alloc; eauto. }
     { apply simF_write; eauto. }
     { apply simF_read; eauto. }
+    { iIntros "TA"; repeat iExists _; repeat iSplit; ss.
+      iExists 1%positive, {[1%positive := (TView.init size, 0)]}; iFrame.
+      iSplit; first eauto.
+      rewrite delete_singleton fmap_empty //.
+    }
   Qed.
 End ctx_refines. End SystemIA.

@@ -1,5 +1,5 @@
-(* Require Import CRIS Cancel.
-Require Import PFMemHeader PFMemA base HistoryRA AtomicRA PFMemA PFMemI PFMemIAproof.
+Require Import CRIS Cancel.
+Require Import PFMemHeader PFMemA base HistoryRA AtomicRA PFMemA PFMemI PFMemIA.
 Require Import SystemHeader SystemI SystemA SystemIA SystemTactics.
 Require Import MPI MPA MPIA.
 Require Import Language.
@@ -11,73 +11,97 @@ Module MPAll.
   Definition syn : Threads.syntax := IdentMap.singleton 1%positive (existT lang tt).
   Definition init : Configuration.t := Configuration.init syn [].
 
-  Local Instance Γ : HRA := ##[invΓ; concΓ; memΓ; newSystemΓ; incrΓ].
-  Local Instance Σ : GRA := ##[Γ; invΣ; newschΣ].
+  Local Instance Γ : HRA := ##[invΓ; concΓ; histΓ; atomicΓ; sysΓ; one_shotΓ].
+  Local Instance Σ : GRA := ##[Γ; invΣ].
 
-  Definition irΓ : Γ :=
-    **[ir_invΓ; ir_concΓ; ir_memΓ csl genv; SchA.ir_schΓ; *[None]].
-  Definition irΣ : Σ :=
-    **[irΓ; ir_invΣ; SchA.ir_schΣ].
+  Definition irΓ : Γ := **[ir_invΓ; ir_concΓ; PFMemA.ir_histΓ; *[None]; ir_sysΓ; *[None]].
+  Definition irΣ : Σ := **[irΓ; ir_invΣ].
 
   Lemma irΣ_valid : ✓ (irΣ ⋅ ir_own_admin).
   Proof.
     solve_ir_valid.
     - apply ir_tidRA_valid.
     - apply ir_yieldRA_valid.
-    - apply ir_memRA_valid.
-    - apply SchA.ir_newtidRA_valid.
-    - apply SchA.ir_joinRA_valid.
+    - apply PFMemA.ir_viewR_valid.
+    - apply PFMemA.ir_histR_valid.
+    - apply PFMemA.ir_hist_freeableUR_valid.
+    - apply ir_sysRA_valid.
   Qed.
 
   (* source module *)
-  Local Definition sp_user_s : spl_type := ClientA.sp ⊤.
-  Local Definition smod_src : SMod.t := (ClientA.smod ⊤) ☆ (SchA.smod sp_user_s).
-  Local Definition mod_top : Mod.t := SMod.to_mod sp_none (SMod.cancel smod_src).
-  Local Definition mod_tgt : Mod.t := ClientI.t ★ FaaI.t ★ (MemI.t csl genv) ★ (SchI.t).
+  Local Definition sp_user_s : specmap := MPA.sp.
+  Local Definition smod_src : SMod.t := (MPA.Mod) ☆ (SystemA.Mod sp_user_s ⊤) ☆ (PFMemA.smod).
+  Local Definition mod_top : Mod.t := SMod.to_mod ∅ (SMod.cancel smod_src).
+  Local Definition mod_tgt : Mod.t := MPI.t ★ (SystemI.t) ★ (PFMemI.t syn []).
 
-  Local Definition sp : specmap := sp_from smod_src.
+  Local Definition sp : specmap := SMod.conc_sp_from smod_src.
   Local Definition mod_src : Mod.t := SMod.to_mod sp smod_src.
 
-  (* Local Definition SchInSp0: sp_incl (SchAS.sp ⊤ (to_sp [])) (to_sp (SchAS.sp ⊤ (to_sp []))).
+  Local Definition SchInSp : (SystemA.sp sp_user_s ⊤) ⊆ sp.
   Proof.
-    split; [|refl]. rewrite /SchAS.sp; unseal CRIS. prove_nodup.
-  Qed. *)
-  Local Definition SchInSp : sp_incl (SchA.sp sp_user_s ⊤) sp.
-  Proof.
-    rewrite /SchA.sp; unseal CRIS.
-    split; [prove_nodup|].
-    intros ??; ss; des_ifs; des_sumbool; clarify; intros INV; inv INV;
-      rewrite /sp /smod_src /sp_from /= /to_sp /=; des_ifs; ss.
+    repeat try eapply insert_subseteq_l; last apply map_empty_subseteq;
+      rewrite lookup_insert_ne // lookup_kmap_Some; eexists (Some _); split; ss.
   Qed.
-  Local Definition UserInSp : sp_incl sp_user_s sp.
-  Proof.
-    rewrite /sp_user_s /ClientA.sp /MemA.sp; unseal CRIS.
-    split; [prove_nodup|].
-    intros ??; ss; des_ifs; des_sumbool; clarify; intros INV; inv INV;
-      rewrite /sp /smod_src /sp_from /= /to_sp /=; des_ifs; ss.
-  Qed.
-  Local Definition MainInSp : spl_sub (ClientA.sp ⊤) sp_user_s.
-  Proof.
-    rewrite /spl_sub /sp_user_s /ClientA.sp /ClientA.incr_spec /=.
-    ii; rewrite ->eq_rel_dec_correct in *; des_ifs.
-  Qed.
-  (* Local Definition MemInSp : sp_incl MemA.sp sp.
-  Proof.
-    ii; rewrite /sp /SchAS.sp /MemA.sp /ClientA.sp; unseal CRIS; split; [prove_nodup|ii].
-    ss; des_ifs; rewrite ->eq_rel_dec_correct in *; des_ifs.
-  Qed. *)
 
-  Local Definition init_cond : iProp Σ :=
-    MemA.init_cond csl genv ∗ SchA.init_cond ∗ ClientIA.ClientIA.init_cond ⊤.
-  (* Local Definition main_fsp : fspec := ClientA.main_spec ⊤ 1%Qp. *)
+  Local Definition UserInSp : sp_user_s ⊆ sp.
+  Proof.
+    repeat try eapply insert_subseteq_l; last apply map_empty_subseteq;
+      rewrite lookup_insert_ne // lookup_kmap_Some; eexists (Some _); split; ss.
+  Qed.
+
+  Local Definition MainInSp : (MPA.sp) ⊆ sp_user_s. Proof. refl. Qed.
+
+  Lemma mod_top_wf : Mod.wf mod_top.
+  Proof.
+    rewrite /mod_top ?SMod.cancel_add ?SMod.to_mod_add. eapply Mod.add_wf.
+    { econs; eauto.
+      rewrite /MPA.Mod /= /MPA.fnsems /Mod.fnsems /= !fmap_insert !fmap_empty; mod_tac ss.
+    }
+    { econs; eauto.
+      { eapply Mod.add_wf.
+        { econs; eauto.
+          { rewrite /SystemA.Mod /= /SystemA.fnsems /Mod.fnsems /=
+              !fmap_insert !fmap_empty; mod_tac ss. }
+          { rewrite /= /SystemA.scopes; multiset_solver. }
+        }
+        { econs; eauto.
+          { rewrite /PFMemA.smod /= /PFMemA.fnsems /Mod.fnsems /=
+              !fmap_insert !fmap_empty; mod_tac ss. }
+          { rewrite /= /PFMemA.scopes; multiset_solver. }
+        }
+        { set_solver. }
+        { set_solver. }
+      }
+      { rewrite /=; i; rewrite multiplicity_disj_union /SystemA.scopes /PFMemA.scopes.
+        multiset_solver.
+      }
+    }
+    { rewrite !Mod.dom_fnsems_add; set_solver. }
+    { set_solver. }
+  Qed.
+
+  Local Definition init_cond : iProp Σ := PFMemA.init_cond ∗ SystemA.init_cond [].
 
   (* Apply cancellation to linked spec module *)
   Lemma cancel_src :
-    refines (mod_top, init_cond ∗ TIDAUTH 0 ∗ YIELDAUTH 1)%I (mod_src, init_cond).
+    refines
+      (mod_top,
+        init_cond ∗ TID 0 ∗ YIELD 0 ∗ winv (⊤, ⊤) ∗
+        tview_sys_gen 1 1 0 (TView.init []) ∗ TIDAUTH 0 ∗ YIELDAUTH 1)%I
+      (mod_src, init_cond).
   Proof.
     eapply Cancel.cancellation.
-    { ii; des; subst; inv FIND; ss.
-      rewrite !eq_rel_dec_correct in H0; des_ifs.
+    { apply SMod.cancellable_add; last apply SMod.cancellable_add; r;
+        rewrite /= /MPA.fnsems /SystemA.fnsems /PFMemA.fnsems; mod_tac ss.
+    }
+    { apply mod_top_wf. }
+    { assert (Ht : SMod.conc_sp_from smod_src !! speckey_entry =
+       fsp_some (MPA.main_spec)); last (rewrite Ht; clear Ht).
+      { rewrite lookup_insert_ne // lookup_kmap_Some; exists None; split; ss. }
+       eexists _, _; splits.
+      { ss; exists tt; split; refl. }
+      { iIntros "[$ [$ [$ $]]]"; ss. }
+      { unfold_pre_post. iIntros "% % [_ [% _]] //". }
     }
   Qed.
 
@@ -85,79 +109,85 @@ Module MPAll.
   Lemma src_tgt : refines (mod_src, init_cond) (mod_tgt, emp%I).
   Proof.
     eapply ctxr_refines.
-    rewrite /mod_src /mod_tgt /smod_src !add_interp_comm.
-
-    (* abstraction of Sch *)
-    etrans; cycle 1.
-    { do 3 ctxr_drop.
-      eapply main_adequacy, SchIA.sim.
-      - apply SchInSp.
-      - apply UserInSp.
-    }
+    rewrite /mod_src /mod_tgt /smod_src !SMod.to_mod_add.
 
     (* abstraction of Mem *)
     etrans; cycle 1.
-    { do 3 ctxr_rotate. do 3 ctxr_drop.
-      eapply MemIA.ctxr.
+    { do 2 ctxr_drop.
+      eapply PFMemIA.ctxr.
     }
 
-    (* abstraction of Faa *)
-    etrans; cycle 1.
-    { do 2 ctxr_drop.
-      eapply main_adequacy, FaaIA.sim.
-    }
-    rewrite /FaaIA.FaaIA.MA.
-    
-    (* abstraction of Incr *)
+    (* abstraction of Sch *)
     etrans; cycle 1.
     { ctxr_drop.
-      eapply ClientIA.ctxr.
-      - instantiate (1:=⊤). set_solver.
-      - apply MainInSp.
+      eapply SystemIA.ctxr.
+      - apply UserInSp.
       - apply SchInSp.
+      - rewrite dom_insert elem_of_union; left; apply elem_of_singleton; ss.
     }
 
+    (* abstraction of MP *)
     etrans; cycle 1.
-    { ctxr_rotate. ctxr_refl. }
-
-    (* elimination of mem *)
-    etrans; cycle 1.
-    { do 2 ctxr_rotate. do 2 ctxr_drop. eapply CFilter.elim_module. }
-    rewrite -mod_add_empty_r.
-
-    rewrite /SchIAproof.SchIA.SchAMod.
-    rewrite /SchA.t /ClientA.t /MemA.t.
-    unseal CRIS.
-    ctxr_rotate.
+    { ctxr_norm. eapply MPIA.ctxr.
+      - apply SchInSp.
+      - apply MainInSp.
+    }
     
     eapply ctxr_cond_strengthen.
     { iIntros "[? [? ?]]". iFrame. }
   (*SLOW*)Qed.
 
   Lemma top_tgt :
-    refines (mod_top, init_cond ∗ TIDAUTH 0 ∗ YIELDAUTH 1)%I
-            (mod_tgt, emp%I).
+    refines
+      (mod_top, init_cond ∗ TID 0 ∗ YIELD 0 ∗ winv (⊤, ⊤) ∗
+        tview_sys_gen 1 1 0 (TView.init []) ∗ TIDAUTH 0 ∗ YIELDAUTH 1)%I
+      (mod_tgt, emp%I).
   Proof.
     etrans.
     { eapply cancel_src. }
     { eapply src_tgt. }
   Qed.
 
-  Lemma tgt_wf:
-    Mod.wf mod_tgt.
+  Lemma tgt_wf : Mod.wf mod_tgt.
   Proof.
-    rewrite /mod_tgt /ClientI.t /FaaI.t /MemI.t /SchI.t; unseal CRIS; prove_nodup.
+    rewrite /mod_top ?SMod.cancel_add ?SMod.to_mod_add. eapply Mod.add_wf.
+    { econs; eauto.
+      rewrite /MPA.Mod /= /MPA.fnsems /Mod.fnsems /= !fmap_insert !fmap_empty; mod_tac ss.
+    }
+    { econs; eauto.
+      { eapply Mod.add_wf.
+        { econs; eauto.
+          { rewrite /SystemA.Mod /= /SystemA.fnsems /Mod.fnsems /=
+              !fmap_insert !fmap_empty; mod_tac ss. }
+          { rewrite /= /SystemI.scopes; multiset_solver. }
+        }
+        { econs; eauto.
+          { rewrite /PFMemI.t /= /PFMemI.fnsems /Mod.fnsems /=
+              !fmap_insert !fmap_empty; mod_tac ss. }
+          { rewrite /= /PFMemI.scopes; multiset_solver. }
+        }
+        { set_solver. }
+        { set_solver. }
+      }
+      { rewrite /=; i; rewrite multiplicity_disj_union /SystemI.scopes /PFMemI.scopes.
+        multiset_solver.
+      }
+    }
+    { rewrite !Mod.dom_fnsems_add; set_solver. }
+    { set_solver. }
   Qed.
-
-  Lemma init_cond_valid:
-    ∃ rs, ✓ rs ∧ (Own rs ⊢ |==> init_cond ∗ TIDAUTH 0 ∗ YIELDAUTH 1).
+  Hint Unfold sys_inG subG_sysG : GRA_index.
+  Lemma init_cond_valid :
+    ∃ rs, ✓ rs ∧ (Own rs ⊢ |==> init_cond ∗ TID 0 ∗ YIELD 0 ∗ winv (⊤, ⊤) ∗
+        tview_sys_gen 1 1 0 (TView.init []) ∗ TIDAUTH 0 ∗ YIELDAUTH 1).
   Proof.
     exists (irΣ ⋅ ir_own_admin). split.
     - apply irΣ_valid.
     - simplify_res.
       { rewrite make_own_admin.
-        iDestruct "H24" as "[H24 Htid]". iFrame.
-        rewrite /MemA.init_cond /ir_memRA; iDestruct "H26" as "[$ _]".
+        iDestruct "H22" as "[H22 Htid]". iFrame.
+        iPoseProof (PFMemA.make_init_cond with "[$]") as "[$ ?]".
+        rewrite big_sepM_singleton; iFrame.
         iPoseProof (make_sys_init with "[$] [$]") as "[$ [$ [$ $]]]". done.
       }
     all: solve_res.
@@ -172,7 +202,7 @@ Module MPAll.
     hexploit H; eauto using tgt_wf. clear H; intros [WF H].
     assert (IV:= init_cond_valid). des.
     destruct (H rs); des; et.
-    rewrite IV0 /init_cond /ClientIA.ClientIA.init_cond /ClientA.init_cond.
-    rewrite {1}winv_split_empty. iIntros ">[[$ [$ [[$ $] $]]] $]". done.
+    rewrite IV0.
+    rewrite {1}winv_split_empty. iIntros ">[$ [$ [$ [[$ $] $]]]]". done.
   (*SLOW*)Qed.
-End MPAll. *)
+End MPAll.

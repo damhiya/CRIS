@@ -1162,14 +1162,13 @@ Module Memory.
         (ALLOC: alloc mem1 tid size mem2 loc)
         (ACCESSIBLE: accessible loc' mem2)
         (WELL_ALLOCED: well_alloced mem1) :
-    (<<LOC: Loc.get_tbid loc' = Loc.get_tbid loc /\ (0 <= Loc.ofs loc' < size)%Z /\ ~accessible loc' mem1>>) \/
+    (<<LOC: Loc.get_tbid loc' = Loc.get_tbid loc /\ (0 <= Loc.ofs loc' < size)%Z /\ is_prealloced loc' mem1>>) \/
     (<<ACCESSIBLE: accessible loc' mem1>>) /\ (<<LOC: Loc.get_tbid loc' <> Loc.get_tbid loc>>).
   Proof.
     unfold Loc.get_tbid. destruct loc, loc'. ss. inv ALLOC. revert ACCESSIBLE.
     unfold accessible, Block.accessible. ss. condtac; eauto.
     - left. des. ss. subst. split; eauto. eapply andb_prop in ACCESSIBLE. des. split; first nia.
       inv WELL_ALLOCED. hexploit (PREALLOC tid (next_bid mem1 tid)); ss.
-      rewrite /Block.is_prealloced; des_ifs.
     - right. ss. split; eauto. ii. inv H. des; congruence.
   Qed.
 

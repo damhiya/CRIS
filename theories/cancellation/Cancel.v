@@ -11,7 +11,6 @@ Context `{!crisG Γ Σ α β τ _S _I, !concG}.
 
 Lemma cancel_elim md (r_i r_s r_t: Σ) rs_diff srcs tgts cid st ps pt
   (WFS: SMod.cancellable md)
-  (* (WF: Mod.wf (SMod.to_mod sp_none (SMod.cancel md))) *)
   (REL: Forall3i (thread_rel (SMod.conc_sp_from md) cid) rs_diff srcs tgts)
   (WFR: ✓ r_s) (WFST: map_Forall (const is_Some) st)
   (RS: Own r_s ⊢ |==> ([∗ list] i ∈ rs_diff, Own i) ∗ Own r_t ∗
@@ -72,27 +71,6 @@ Proof using.
   }
 
   inversion_clear Hcidrel; subst; ss.
-  (* { destruct fspo as [fsp|]; ss.
-    { revert Ht; ired; intros Ht; eapply gsim_Take_tgt; first eapply Ht.
-      des; eexists (FSpec_mk P Q _); eauto; ghnorm_r.
-      eapply gsim_tau_tgt; [lookup_tac; ss; try lia|].
-      rewrite list_insert_insert.
-      eapply gsim_Take_tgt; [lookup_tac; ss; try lia; do 2 f_equal; hnorm_itr|]. exists varg.
-      rewrite list_insert_insert. ghnorm_r.
-      eapply gsim_tau_tgt; [lookup_tac; ss; try lia|].
-      rewrite list_insert_insert.
-      eapply gsim_Assume_tgt; [lookup_tac; ss; try lia; do 2 f_equal; hnorm_itr|].
-      exists (r_diff ⋅ r_t); splits.
-      { eapply (Own_wand_valid r_s); last done.
-        rewrite RS Own_op; iIntros "> [H [$ _]]".
-        iPoseProof (big_sepL_lookup_acc with "H") as "[$ ?]"; eauto.
-      }
-      { rewrite Own_op; iIntros "[? $]".
-        destruct cid; rewrite H0.
-      }
-      rewrite list_insert_insert. ghnorm_r.
-    }
-  } *)
 
   punfold REL; depdes REL; ii; subst; pclearbot.
   - eapply gsim_Take_src; try apply Hs; ss.

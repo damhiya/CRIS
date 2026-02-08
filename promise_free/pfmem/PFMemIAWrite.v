@@ -14,13 +14,14 @@ Section write.
   Definition MA := (PFMemA.t sp).
   Definition MI := (PFMemI.t syn size).
 
-  Lemma simF_write : ISim.sim_fun open MA MI (init_cond syn size) Ist (Some PFMemHdr.write).
+  Lemma simF_write : ISim.sim_fun open MA MI Ist (Some PFMemHdr.write).
   Proof.
-    init_simF.
-    step_l. destruct _q as [[|i] X]; steps_l; rename _q into arg'.
+    iStartSim.
+    step_l. destruct _q as [? ? [[X [-> ->]]|[X [-> ->]]]].
+    steps_l; rename _q into arg'.
     { (* non-atomic write *)
       destruct X as [[[[tid loc] val] ord] 𝓥].
-      iDestruct "ASM" as "[[-> [PT TV]] ->]". hss.
+      iDestruct "ASM" as "[-> [-> [PT TV]]]". hss.
       iDestruct "IST" as "[%gl [%ths [%Vcut [[-> [%CUT [%CUTCL [%WF [%WF2 [%PFG %PFL]]]]]] [HA [TA FA]]]]]]".
       steps_r. hss. steps_r.
       rewrite /PFMemI.check_ident.
@@ -29,7 +30,7 @@ Section write.
       destruct e; inv EVWRITE; inv STEP; clear EVENT; rename STEP0 into STEP; s in STEP; cycle 1.
       { (* RACY WRITE *)
         inv STEP; inv LOCAL. inv LOCAL0. inv RACE.
-        { inv PFG; rewrite H2 in GET; ss. }
+        { inv PFG; rewrite H4 in GET; ss. }
         iPoseProof (tview_both_valid with "TA TV") as "%IN".
         destruct IN as [l [lc [FOUND LCEQ]]].
         s; rewrite FOUND in Heq; inv Heq.
@@ -43,7 +44,7 @@ Section write.
         assert (LECUT: Time.lt (View.rlx Vcut loc) to0).
         { inv SEEN_LOCAL.
           { ett. eapply l. etrans; eauto. }
-          { ett. eapply l. inv H2; eauto. }
+          { ett. eapply l. inv H4; eauto. }
         }
         assert (CUT_GET: Cell.get to0 (Cell.singleton msg' LT) = Some (from, Message.message val0 released na)).
         { rewrite CELL_CUT Cell.cut_spec; des_ifs; timetac. }
@@ -61,12 +62,12 @@ Section write.
         exfalso; inv RACE; try done.
         hexploit (PFL tid); eauto; clear PFL; intros PFL.
         inv PFL; inv PFG.
-        des; rewrite H5 H6 in FREEPROMISE.
+        des; rewrite H7 H8 in FREEPROMISE.
         rewrite Promises.FreePromises.minus_bot in FREEPROMISE. inv FREEPROMISE.
       }
       (* VALID WRITE *)
       inv STEP; inv LOCAL. des_ifs. clear n.
-      steps_r. rewrite /alist_upd /_alist_upd /=.
+      steps_r.
       iPoseProof (tview_both_valid with "TA TV") as "%F"; des; subst.
       rewrite F in Heq; inv Heq.
       rewrite own_loc_eq /own_loc_def.
@@ -81,7 +82,7 @@ Section write.
       assert (TTO: Time.lt t to).
       { inv LOCAL0. inv SEEN_LOCAL; inv WRITABLE.
         { etrans; eauto. }
-        { rewrite H2. auto. }
+        { rewrite H4. auto. }
       }
 
       assert (AFTER: Time.lt (View.rlx Vcut loc) to).
@@ -106,16 +107,19 @@ Section write.
             instantiate (1:=t0). instantiate (1:=loc').
             des_ifs.
             { ss; des; clarify.
-              rewrite GET; intros HH; inv HH; revert H6; destruct ord; ss.
+              rewrite GET; intros HH; inv HH; revert H8; destruct ord; ss.
               i. rewrite /TimeMap.join /Time.join /TimeMap.singleton /LocFun.add; des_ifs.
               rewrite Time.le_lteq; right; auto.
             }
             intros GET'; rewrite GET' in GET.
             eapply CUT in GET.
-            destruct (decide (loc = loc')).
-            { rewrite /View.join /View.singleton /TimeMap.join /TimeMap.singleton /Time.join /LocFun.add; ss; des_ifs.
+            destruct (decide (loc = loc')); subst.
+            { hexploit GET; [eauto|clear GET; intros GET].
+              i; rewrite /View.join /View.singleton /TimeMap.join /TimeMap.singleton /Time.join /LocFun.add; ss; des_ifs.
               etrans. eauto. timetac. }
-            { rewrite /View.join /View.singleton /TimeMap.join /TimeMap.singleton /Time.join /LocFun.add; ss; des_ifs.
+            { i; hexploit GET; [eauto|clear GET; intros GET].
+              { erewrite <-Memory.add_accessible; eauto. }
+              rewrite /View.join /View.singleton /TimeMap.join /TimeMap.singleton /Time.join /LocFun.add; ss; des_ifs.
               rewrite /LocFun.find /LocFun.init in l0. timetac. }
           }
           { eapply Memory.join_closed_view; eauto; cycle 1.
@@ -133,9 +137,9 @@ Section write.
                 { exfalso. eapply Memory.prealloced_is_not_accessible; cycle 1.
                   eapply ACC.
                   exploit Memory.add_preserve; eauto. i. des.
-                  rewrite /Memory.is_prealloced /Block.is_prealloced in H2.
+                  rewrite /Memory.is_prealloced /Block.is_prealloced in H4.
                   rewrite /Memory.get_state in GET_STATE.
-                  rewrite (GET_STATE loc) in H2; ss.
+                  rewrite (GET_STATE loc) in H4; ss.
                 }
               }
             }
@@ -145,7 +149,7 @@ Section write.
             ss.
           }
           { inv WF. inv GL_WF. inv LOCAL0. eapply wf_prealloc_write; eauto. }
-          { inv PFG. inv LOCAL0; econs; ss. inv FULFILL. done. rewrite H2 in GREMOVE.
+          { inv PFG. inv LOCAL0; econs; ss. inv FULFILL. done. rewrite H4 in GREMOVE.
             hexploit (Promises.Promises.remove_le); eauto.
             intros ?; hexploit (Promises.Promises.antisym); eauto using Promises.Promises.bot_spec.
           }
@@ -154,7 +158,7 @@ Section write.
               hexploit (PFL tid); eauto using F.
               intros PFL'; inv PFL'; inv LOCAL0; econs; ss.
               inv FULFILL; ss.
-              hexploit (Promises.Promises.remove_le); first apply REMOVE. rewrite H2.
+              hexploit (Promises.Promises.remove_le); first apply REMOVE. rewrite H4.
               intros ?; hexploit (Promises.Promises.antisym); eauto using Promises.Promises.bot_spec.
             }
             { subst ths2; rewrite IdentMap.gso in LC; ss.
@@ -199,9 +203,8 @@ Section write.
       Unshelve. exact.
     }
     (* Atomic write *)
-    { destruct i; last (destruct i; inv X).
-      destruct X as [[[[[[[[[[[[tid loc] val] ord] 𝓥] γ] ζ'] Vb] tx] ζ] mode] q] tx'].
-      iDestruct "ASM" as "[[[-> %ORDRLX] [SEEN [PT [TV WRITE]]]] ->]". hss.
+    { destruct X as [[[[[[[[[[[[tid loc] val] ord] 𝓥] γ] ζ'] Vb] tx] ζ] mode] q] tx']. steps_l.
+      iDestruct "ASM" as "[-> [[-> %ORDRLX] [SEEN [PT [TV WRITE]]]]]". hss.
       iDestruct "IST" as "[%gl [%ths [%Vcut [[-> [%CUT [%CUTCL [%WF [%WF2 [%PFG %PFL]]]]]] [HA [TA FA]]]]]]".
       steps_r. hss. steps_r.
       rewrite /PFMemI.check_ident.
@@ -210,7 +213,7 @@ Section write.
       destruct e; inv EVWRITE; inv STEP; clear EVENT; rename STEP0 into STEP; s in STEP; cycle 1.
       { (* RACY WRITE *)
         inv STEP; inv LOCAL. inv LOCAL0. inv RACE.
-        { inv PFG; rewrite H2 in GET; ss. }
+        { inv PFG; rewrite H4 in GET; ss. }
         hexploit MSG; eauto; intros ->; clear MSG.
         iPoseProof (tview_both_valid with "TA TV") as "%IN".
         destruct IN as [l [lc [FOUND LCEQ]]].
@@ -220,8 +223,7 @@ Section write.
         rewrite AtomicSeen_eq /AtomicSeen_def.
         iDestruct "SEEN" as "[[_ %SEEN] [AR [%GOODHIST [%Vna' [_ NA]]]]]".
         iPoseProof (at_auth_at_last_na_agree with "AA NA") as "<-".
-        hexploit (CUT loc to0); eauto => LECUT.
-        iPoseProof (hist_own_hist_cut with "HA HIST") as "[%t [<- [%H2 _]]]".
+        iPoseProof (hist_own_hist_cut with "HA HIST") as "[%t [<- [%H4 %]]]".
         iDestruct "AA" as "[AA [AEXCLWRITE _]]".
         iPoseProof (at_writer_base_latest with "AA AR") as "%LE".
         destruct (classic (∃ ts' f' m', Cell.get ts' ζ' = Some (f', m'))) as [HEX|FAL]; cycle 1.
@@ -232,10 +234,11 @@ Section write.
         exfalso.
         hexploit (SEEN ts'); ss; intros TS.
         eapply (TimeFacts.le_not_lt to0 (View.rlx (TView.TView.cur (Local.tview lc2)) loc)); eauto.
+        hexploit (CUT loc to0); eauto => LECUT.
         etrans; first apply LECUT.
         etrans; last apply TS.
         hexploit (LE ts'); eauto; intros ZETA.
-        rewrite H2 Cell.cut_spec in ZETA; des_ifs.
+        rewrite H4 Cell.cut_spec in ZETA; des_ifs.
       }
       { (* INACCESSIBLE WRITE *)
         ss. inv STEP; inv LOCAL.
@@ -248,7 +251,7 @@ Section write.
         exfalso; inv RACE; try done.
         hexploit (PFL tid); eauto; clear PFL; intros PFL.
         inv PFL; inv PFG.
-        des; rewrite H6 H5 in FREEPROMISE.
+        des; rewrite H7 H8 in FREEPROMISE.
         rewrite Promises.FreePromises.minus_bot in FREEPROMISE. inv FREEPROMISE.
       }
       (* VALID WRITE *)
@@ -368,9 +371,10 @@ Section write.
             hexploit Memory.add_o; eauto.
             instantiate (1:=t). instantiate (1:=loc').
             des_ifs.
-            { ss; des; clarify. rewrite GET; intros HH; inv HH; revert ORDRLX H7; destruct ord; ss. }
+            { ss; des; clarify. rewrite GET; intros HH; inv HH; revert ORDRLX H9; destruct ord; ss. }
             intros GET'; rewrite GET' in GET.
-            eapply CUT; eauto.
+            i; eapply CUT; eauto.
+            erewrite <- Memory.add_accessible; eauto.
           }
           { eapply Memory.add_closed_view; eauto. inv LOCAL0; eauto. }
           { eapply PFConfiguration.estep_future; eauto. subst ths2. econs; eauto.
@@ -378,7 +382,7 @@ Section write.
             ss.
           }
           { inv WF. inv GL_WF. inv LOCAL0. eapply wf_prealloc_write; eauto. }
-          { inv PFG. inv LOCAL0; econs; ss. inv FULFILL. done. rewrite H3 in GREMOVE.
+          { inv PFG. inv LOCAL0; econs; ss. inv FULFILL. done. rewrite H5 in GREMOVE.
             hexploit (Promises.Promises.remove_le); eauto.
             intros ?; hexploit (Promises.Promises.antisym); eauto using Promises.Promises.bot_spec.
           }
@@ -387,7 +391,7 @@ Section write.
               hexploit (PFL tid); eauto using EQ.
               intros PFL'; inv PFL'; inv LOCAL0; econs; ss.
               inv FULFILL; ss.
-              hexploit (Promises.Promises.remove_le); first apply REMOVE. rewrite H3.
+              hexploit (Promises.Promises.remove_le); first apply REMOVE. rewrite H5.
               intros ?; hexploit (Promises.Promises.antisym); eauto using Promises.Promises.bot_spec.
             }
             { subst ths2; rewrite IdentMap.gso in LC; ss.
@@ -444,7 +448,7 @@ Section write.
       }
       force_l (Val.zero ↑). steps_l. force_l (Val.zero ↑). steps_l. force_l.
       iSplitR "IST".
-      { iSplit; last done.
+      { iSplit; first done.
         unshelve (iExists from, to, _, (TView.TView.write_released (Local.tview lc1) loc to View.bot ord)).
         { inv ADD; ss. }
         s. iExists ζ'', ζn. iSplit.
@@ -509,5 +513,5 @@ Section write.
       }
       steps_l. step. iFrame. done.
     }
-  Qed.
+  (*SLOW*)Qed.
 End write.

@@ -223,8 +223,7 @@ Module SchA. Section SchA.
   Definition get_tid : unit → itree crisE nat :=
     λ _, cgetN v_tid.
 
-  Definition fnsems (E : coPset) (sp_user : specmap)
-      : gmap (option string) (option (emask * (option fspec_rel * fbody))) :=
+  Definition fnsems (E : coPset) (sp_user : specmap) : fnsemmap :=
     {[Some SchHdr._spawn :=
         Some (msk_scp scopes msk_true, (fsp_some (inner_spawn_spec sp_user), cfunN inner_spawn));
       Some SchHdr.spawn :=
