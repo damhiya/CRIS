@@ -493,22 +493,22 @@ Module ProphIA. Section ProphIA.
 
   Let proph_newI :=
     (ModTr.trans_fnsem ∘ SB.sandbox_body)
-    (msk_real (msk_scp ∅ msk_true), (SModTr.trans_fnsem ∅ (None, ProphecyI.new))).
+    (msk_real (msk_scp [] msk_true), (SModTr.trans_fnsem ∅ (None, ProphecyI.new))).
   Let proph_resolveI :=
     (ModTr.trans_fnsem ∘ SB.sandbox_body)
-    (msk_real (msk_scp ∅ msk_true), (SModTr.trans_fnsem ∅ (None, ProphecyI.resolve))).
+    (msk_real (msk_scp [] msk_true), (SModTr.trans_fnsem ∅ (None, ProphecyI.resolve))).
   Let proph_closeI :=
     (ModTr.trans_fnsem ∘ SB.sandbox_body)
-    (msk_real (msk_scp ∅ msk_true), (SModTr.trans_fnsem ∅ (None, ProphecyI.close))).
+    (msk_real (msk_scp [] msk_true), (SModTr.trans_fnsem ∅ (None, ProphecyI.close))).
   Let proph_newA sp :=
     (ModTr.trans_fnsem ∘ SB.sandbox_body)
-    (msk_scp ∅ msk_true, (SModTr.trans_fnsem sp (fsp_some ProphecyA.new_spec, fbody_trivial))).
+    (msk_scp [] msk_true, (SModTr.trans_fnsem sp (fsp_some ProphecyA.new_spec, fbody_trivial))).
   Let proph_resolveA sp :=
     (ModTr.trans_fnsem ∘ SB.sandbox_body)
-    (msk_scp ∅ msk_true, (SModTr.trans_fnsem sp (fsp_some ProphecyA.resolve_spec, fbody_trivial))).
+    (msk_scp [] msk_true, (SModTr.trans_fnsem sp (fsp_some ProphecyA.resolve_spec, fbody_trivial))).
   Let proph_closeA sp :=
     (ModTr.trans_fnsem ∘ SB.sandbox_body)
-    (msk_scp ∅ msk_true, (SModTr.trans_fnsem sp (fsp_some ProphecyA.close_spec, fbody_trivial))).
+    (msk_scp [] msk_true, (SModTr.trans_fnsem sp (fsp_some ProphecyA.close_spec, fbody_trivial))).
 
   Variant _wf_sim (coself : itree lmodE Any.t -> (bool * itree lmodE Any.t) -> Prop) : itree lmodE Any.t -> (bool * itree lmodE Any.t) -> Prop :=
   | wf_ret retv
@@ -701,8 +701,7 @@ Module ProphIA. Section ProphIA.
   Proof using Hreal.
     apply Mod.add_wf_inv in WF as [? [? [? ?]]].
     eapply Mod.add_wf; eauto.
-    econs; last multiset_solver.
-    unfold_fnsem. rewrite ?fmap_insert ?fmap_empty // ?map_Forall_insert; ss.
+    econs; [mod_tac | prove_nodup].
   Qed.
 
   Local Existing Instances prophGS_prophGpreS proph_inG id_inG.
