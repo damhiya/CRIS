@@ -125,7 +125,7 @@ Section help.
   Context (jobs : jobID → itree crisE retID).
   Context (mn : string) (sp : specmap).
 
-  Local Definition IstFull := IstProd IstEq (IstSB {[+mn+]} (IstHelp mn)).
+  Local Definition IstFull := IstProd IstEq (IstSB [mn] (IstHelp mn)).
 
   Lemma wsim_helping_run (ps pt : bool) (parg : jobID) k_s k_t E1 E2 r g :
     fl_s !! Some (Helping.run mn) =

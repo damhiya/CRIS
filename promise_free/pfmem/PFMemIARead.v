@@ -30,7 +30,7 @@ Section read.
       destruct e; inv EVREAD; inv STEP; clear EVENT; rename STEP0 into STEP; s in STEP; cycle 1.
       { (* RACY READ *)
         inv STEP; inv LOCAL. inv LOCAL0. inv RACE.
-        { inv PFG; rewrite H4 in GET; ss. }
+        { inv PFG; rewrite H3 in GET; ss. }
         iPoseProof (tview_both_valid with "TA TV") as "%IN".
         destruct IN as [l [lc [FOUND LCEQ]]].
         s; rewrite FOUND in Heq; inv Heq.
@@ -44,7 +44,7 @@ Section read.
         assert (LECUT: Time.lt (View.rlx Vcut loc) to0).
         { inv SEEN_LOCAL.
           { ett. eapply l. etrans; eauto. }
-          { ett. eapply l. inv H4; eauto. }
+          { ett. eapply l. inv H3; eauto. }
         }
         assert (CUT_GET: Cell.get to0 (Cell.singleton (Message.message val V' na') LT) = Some (from, Message.message val0 released na)).
         { rewrite CELL_CUT Cell.cut_spec; des_ifs; timetac. }
@@ -62,7 +62,7 @@ Section read.
         exfalso; inv RACE; try done.
         hexploit (PFL tid); eauto; clear PFL; intros PFL.
         inv PFL; inv PFG.
-        des; rewrite H7 H8 in FREEPROMISE.
+        des; rewrite H6 H7 in FREEPROMISE.
         rewrite Promises.FreePromises.minus_bot in FREEPROMISE. inv FREEPROMISE.
       }
       (* VALID READ *)
@@ -85,7 +85,7 @@ Section read.
         assert (LECUT: Time.le (View.rlx Vcut loc) ts).
         { inv READABLE. inv SEEN_LOCAL.
           { etrans. eapply l. rewrite Time.le_lteq; left; tet; eauto. }
-          { etrans. eapply l. inv H4. eauto. }
+          { etrans. eapply l. inv H3. eauto. }
         }
 
         assert (CUT_GET: Cell.get ts (Cell.singleton (Message.message val V' na') LT) = Some (from, Message.message val'0 released na)).
@@ -99,7 +99,7 @@ Section read.
       inv LOCAL0.
       assert (EQ: val'0 = val ∧ V' = released ∧ na' = na ∧ from' = from).
       { rewrite Memory.get_memory_cell in CELL_GET'; des_ifs. }
-      destruct EQ as [H4 [H5 [H6 H7]]]; subst.
+      destruct EQ as [H3 [H5 [H6 H7]]]; subst.
       
       remember ({[_ := _]}) as st_tgt.
       iAssert (Ist st_src st_tgt)%I with "[HA FA TA]" as "IST".
@@ -114,9 +114,9 @@ Section read.
           i; des; eauto.
         }
         { i. destruct (decide (tid0 = tid)).
-          { subst. rewrite IdentMap.gss in H4; inv H4.
+          { subst. rewrite IdentMap.gss in H3; inv H3.
             hexploit PFL; eauto. }
-          { rewrite IdentMap.gso in H4; eauto. }
+          { rewrite IdentMap.gso in H3; eauto. }
         }
       }
 
@@ -236,10 +236,10 @@ Section read.
             i; des; eauto.
           }
           { i. destruct (decide (tid0 = tid)).
-            { subst. rewrite IdentMap.gss in H4; inv H4.
+            { subst. rewrite IdentMap.gss in H3; inv H3.
               hexploit PFL; eauto; intros PF. inv PF; des.
               econs; inv LOCAL0; eauto. }
-            { rewrite IdentMap.gso in H4; eauto. }
+            { rewrite IdentMap.gso in H3; eauto. }
           }
         }
 
@@ -285,14 +285,14 @@ Section read.
         iPoseProof (at_reader_extract with "R") as "#RR".
         { instantiate (1:=ζ'').
           ii. destruct (decide (to = ts)).
-          { subst. eapply Cell.add_get0 in H4. des.
+          { subst. eapply Cell.add_get0 in H3. des.
             rewrite GET1 in LHS. inv LHS.
             rewrite Cell.cut_spec.
             destruct (Time.le_lt_dec (View.rlx Vcut loc) ts); ss.
             timetac.
           }
-          { eapply Cell.add_o in H4. instantiate (1:=to) in H4.
-            rewrite LHS in H4. destruct (TimeSet.Facts.eq_dec to ts); ss.
+          { eapply Cell.add_o in H3. instantiate (1:=to) in H3.
+            rewrite LHS in H3. destruct (TimeSet.Facts.eq_dec to ts); ss.
             unfold Cell.le in LE. hexploit LE; eauto.
           }
         }
@@ -308,7 +308,7 @@ Section read.
             { subst. rewrite /seen_local.
               set (V := View.join _ _).
               enough (View.le (View.singleton loc ts) V).
-              { subst V. inv H6. ss.
+              { subst V. inv H5. ss.
                 eapply TimeMap.singleton_inv. ii.
                 specialize (RLX0 loc0). eauto.
               }
@@ -317,14 +317,14 @@ Section read.
                 eapply View.join_r.
               }
             }
-            { eapply Cell.add_o in H4. instantiate (1:=t0) in H4.
-              rewrite /is_Some in H5. des. destruct x. rewrite H5 in H4.
+            { eapply Cell.add_o in H3. instantiate (1:=t0) in H3.
+              rewrite /is_Some in H4. des. destruct x. rewrite H4 in H3.
               destruct (TimeSet.Facts.eq_dec t0 ts); ss.
               hexploit SEEN; eauto; i. unfold seen_local in *.
               etrans; eauto. etrans; eapply View.join_l.
             }
           }
-          { unfold good_absHist in *. ii. subst. inv H4.
+          { unfold good_absHist in *. ii. subst. inv H3.
             ss. assert (EX: None = Some (from, Message.message val' released na)).
             { rewrite -(Cell.bot_get ts) /Cell.bot /Cell.get /= CELL2.
               rewrite DOMap.gsspec.
@@ -336,7 +336,7 @@ Section read.
         }
 
         assert (GETTS0: Cell.get ts ζ'' = Some (from, msg)).
-        { inv H4; eauto. rewrite /Cell.get CELL2 DOMap.gsspec.
+        { inv H3; eauto. rewrite /Cell.get CELL2 DOMap.gsspec.
           destruct (DOMap.Properties.F.eq_dec ts ts); ss.
         }
 
@@ -388,9 +388,9 @@ Section read.
             i; des; eauto.
           }
           { i. destruct (decide (tid0 = tid)).
-            { subst. rewrite IdentMap.gss in H5; inv H5.
+            { subst. rewrite IdentMap.gss in H4; inv H4.
               hexploit PFL; eauto. }
-            { rewrite IdentMap.gso in H5; eauto. }
+            { rewrite IdentMap.gso in H4; eauto. }
           }
         }
 
@@ -409,9 +409,9 @@ Section read.
               rewrite /Memory.get /Block.get in GET.
               rewrite /Memory.get_cell. rewrite GET. eauto.
             }
-            { subst ts. eapply Cell.add_o with (t:= to) in H4.
+            { subst ts. eapply Cell.add_o with (t:= to) in H3.
               destruct (TimeSet.Facts.eq_dec to (Cell.max_ts ζ'')); ss.
-              rewrite H4 in GET0.
+              rewrite H3 in GET0.
               unfold Cell.le in LE. eapply LE in GET0.
               rewrite Cell.cut_spec in GET0.
               destruct (Time.le_lt_dec (View.rlx Vcut loc) to) eqn:L; ss.

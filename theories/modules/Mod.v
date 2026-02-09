@@ -1,15 +1,19 @@
 Require Import Common.
 From iris.proofmode Require Import proofmode.
+From stdpp Require Import sorting strings.
 Require Import LMod.
 Require Export FSpec ModTr Sandbox Sp.
 
 Module Mod. Section Mod.
   Context {Σ : GRA}.
+
   Record t : Type := mk {
-    scopes : gmultiset string;
+    scopes : list string;
     fnsems : gmap (option string) (option (emask * fbody));
     initial_st : gmap key (option Any.t);
 
+    (* For definitional commutativity of addition *)
+    sorted_scopes : StronglySorted String.le scopes;
     well_scoped_fns :
       map_Forall
         (λ _ '((msk, _) : emask * _),
@@ -17,72 +21,72 @@ Module Mod. Section Mod.
           (∀ (k : key), msk _ (subevent _ (SGet k)) = true → k.1 ∈ scopes))
         (omap id fnsems);
     well_scoped_init :
-      (set_map fst (dom initial_st)) ⊆ dom scopes;
+      (set_map fst (dom initial_st)) ⊆@{gset string} list_to_set scopes;
     nodup_init :
-      (∀ x, multiplicity x scopes ≤ 1) → map_Forall (const is_Some) initial_st;
+      NoDup scopes → map_Forall (const is_Some) initial_st;
   }.
 
-  Record wf (ms : t) : Prop := mk_wf {
-    wf_fns : map_Forall (const is_Some) (fnsems ms);
-    wf_scopes : ∀ x, multiplicity x (scopes ms) ≤ 1;
+  Record wf (md : t) : Prop := mk_wf {
+    wf_fns : map_Forall (const is_Some) (fnsems md);
+    wf_scopes : NoDup (scopes md);
   }.
 
   (** Linking *)
   Program Definition empty : t := {|
-    scopes := ∅;
+    scopes := [];
     fnsems := ∅;
     initial_st := ∅;
   |}.
-  Solve All Obligations with ii; ss.
+  Solve All Obligations with ii; ss; econs.
 
   Program Definition add (ms1 ms2 : t) : t := {|
-    scopes := (scopes ms1) ⊎ (scopes ms2);
+    scopes := merge_sort String.le ((scopes ms1) ++ (scopes ms2));
     fnsems := union_with (λ _ _, Some None) (fnsems ms1) (fnsems ms2);
     initial_st := union_with (λ _ _, Some None) (initial_st ms1) (initial_st ms2);
   |}.
+  Next Obligation. intros; apply StronglySorted_merge_sort; typeclasses eauto. Qed.
   Next Obligation.
     intros ms1 ms2 fn [msk p].
     rewrite lookup_omap lookup_union_with.
     destruct ((fnsems ms1) !! fn) eqn: Heq1; destruct ((fnsems ms2) !! fn) eqn: Heq2; ss; intros ->.
     { hexploit (ms1.(well_scoped_fns) fn (msk, p)); eauto.
       { rewrite lookup_omap Heq1 //. }
-      intros [? ?]; split; ii; apply gmultiset_elem_of_disj_union; left; eauto.
+      intros [? ?]; split; ii; rewrite merge_sort_Permutation elem_of_app; left; eauto.
     }
     { hexploit (ms2.(well_scoped_fns) fn (msk, p)); eauto.
       { rewrite lookup_omap Heq2 //. }  
-      intros [? ?]; split; ii; apply gmultiset_elem_of_disj_union; right; eauto.
+      intros [? ?]; split; ii; rewrite merge_sort_Permutation elem_of_app; right; eauto.
     }
   Qed.
   Next Obligation.
     intros ms1 ms2 fn [[scp ?] [-> [? Hin]%elem_of_dom]]%elem_of_map; ss.
-    apply lookup_union_with_Some in Hin; des; ss;
-      apply gmultiset_elem_of_dom, gmultiset_elem_of_disj_union; [left|right|left].
-    { hexploit (ms1.(well_scoped_init)) => /(_ scp); rewrite gmultiset_elem_of_dom; eauto.
+    rewrite merge_sort_Permutation list_to_set_app elem_of_union.
+    apply lookup_union_with_Some in Hin; des; ss; [left|right|left].
+    { hexploit (ms1.(well_scoped_init)) => /(_ scp).
       intros k; apply: k; apply elem_of_map; eexists (_, _); split; eauto; apply elem_of_dom; done.
     }
-    { hexploit (ms2.(well_scoped_init)) => /(_ scp); rewrite gmultiset_elem_of_dom; eauto.
+    { hexploit (ms2.(well_scoped_init)) => /(_ scp).
       intros k; apply: k; apply elem_of_map; eexists (_, _); split; eauto; apply elem_of_dom; done.
     }
-    { hexploit (ms1.(well_scoped_init)) => /(_ scp); rewrite gmultiset_elem_of_dom; eauto.
+    { hexploit (ms1.(well_scoped_init)) => /(_ scp).
       intros k; apply: k; apply elem_of_map; eexists (_, _); split; eauto; apply elem_of_dom; done.
     }
   Qed.
   Next Obligation.
-    intros ms1 ms2 H1; rewrite map_Forall_lookup; intros [scp key] v.
+    intros ms1 ms2; rewrite merge_sort_Permutation; intros [? [Hnd ?]]%NoDup_app.
+    rewrite map_Forall_lookup; intros [scp key] v.
     rewrite lookup_union_with_Some; intros [Hl | [Hl | [? [? [Hl1 Hl2]]]]]; des.
-    { apply (nodup_init ms1); eauto.
-      intros x; hexploit (H1 x); rewrite multiplicity_disj_union; lia.
+    { apply (nodup_init ms1); eauto. }
+    { apply (nodup_init ms2); eauto. }
+    exfalso; apply (Hnd scp).
+    { hexploit (well_scoped_init ms1) => /(_ scp); rewrite elem_of_map.
+      intros Hin1; hexploit Hin1; [exists (scp, key); split; ss; apply elem_of_dom; eauto|].
+      set_solver.
     }
-    { apply (nodup_init ms2); eauto.
-      intros x; hexploit (H1 x); rewrite multiplicity_disj_union; lia.
+    { hexploit (well_scoped_init ms2) => /(_ scp); rewrite elem_of_map.
+      intros Hin2; hexploit Hin2; [exists (scp, key); split; ss; apply elem_of_dom; eauto|].
+      set_solver.
     }
-    hexploit (well_scoped_init ms1) => /(_ scp); rewrite elem_of_map.
-    intros Hin1; hexploit Hin1; [exists (scp, key); split; ss; apply elem_of_dom; eauto|].
-    rewrite gmultiset_elem_of_dom elem_of_multiplicity.
-    hexploit (well_scoped_init ms2) => /(_ scp); rewrite elem_of_map.
-    intros Hin2; hexploit Hin2; [exists (scp, key); split; ss; apply elem_of_dom; eauto|].
-    rewrite gmultiset_elem_of_dom elem_of_multiplicity.
-    hexploit (H1 scp); rewrite multiplicity_disj_union; lia.
   Qed.
 
   Lemma t_eq (ms1 ms2 : t) :
@@ -98,7 +102,11 @@ Module Mod. Section Mod.
   Lemma add_comm (ms1 ms2 : t) : Mod.add ms1 ms2 = Mod.add ms2 ms1.
   Proof.
     apply t_eq; ss.
-    { rewrite gmultiset_disj_union_comm; eauto. }
+    { apply (StronglySorted_unique String.le).
+      { apply StronglySorted_merge_sort; try typeclasses eauto. }
+      { apply StronglySorted_merge_sort; try typeclasses eauto. }
+      rewrite !merge_sort_Permutation comm //.
+    }
     { apply fin_maps.union_with_comm; done. }
     { apply fin_maps.union_with_comm; done. }
   Qed.
@@ -106,7 +114,7 @@ Module Mod. Section Mod.
   Lemma add_wf (ms1 ms2 : t) :
     wf ms1 → wf ms2 →
     dom (fnsems ms1) ## dom (fnsems ms2) →
-    scopes ms1 ## scopes ms2 →
+    NoDup (scopes ms1 ++ scopes ms2) →
     wf (add ms1 ms2).
   Proof.
     intros Hwf1 Hwf2 Hfnsems Hscopes; econs.
@@ -116,38 +124,33 @@ Module Mod. Section Mod.
       { inv Hwf1; i; clarify; eapply wf_fns0; eauto. }
       { inv Hwf2; i; clarify; eapply wf_fns0; eauto. }
     }
-    { intros x; s; rewrite multiplicity_disj_union.
-      inv Hwf1; hexploit (wf_scopes0 x).
-      inv Hwf2; hexploit (wf_scopes1 x).
-      destruct (decide (x ∈ scopes ms1)); destruct (decide (x ∈ scopes ms2)); multiset_solver.
-    }
+    { ss; rewrite merge_sort_Permutation //. }
   Qed.
 
   Lemma add_wf_inv (ms1 ms2 : t) :
     wf (add ms1 ms2) →
-    wf ms1 ∧ wf ms2 ∧ (dom (fnsems ms1) ## dom (fnsems ms2)) ∧ (scopes ms1 ## scopes ms2).
+    wf ms1 ∧ wf ms2 ∧ (dom (fnsems ms1) ## dom (fnsems ms2)) ∧ NoDup (scopes ms1 ++ scopes ms2).
   Proof.
-    intros [Hfnsems Hscopes]; split; econs; eauto; try
-      (intros x; hexploit (Hscopes x); ss; rewrite multiplicity_disj_union; lia).
-    { rewrite map_Forall_lookup; intros i x Hix; rewrite map_Forall_lookup in Hfnsems.
-      hexploit (Hfnsems i x); eauto.
-      rewrite lookup_union_with Hix; destruct (_ ms2 !! i) eqn : Hms2; ss.
-      hexploit (Hfnsems i None); [rewrite lookup_union_with Hix Hms2 //|intros Hf; inv Hf].
+    intros [Hfnsems Hscopes]; ss; rewrite merge_sort_Permutation // in Hscopes; splits; eauto.
+    { econs.
+      { rewrite map_Forall_lookup; intros i x Hix; rewrite map_Forall_lookup in Hfnsems.
+        hexploit (Hfnsems i x); eauto.
+        rewrite lookup_union_with Hix; destruct (_ ms2 !! i) eqn : Hms2; ss.
+        hexploit (Hfnsems i None); [rewrite lookup_union_with Hix Hms2 //|intros Hf; inv Hf].
+      }
+      { apply NoDup_app in Hscopes; by des. }
     }
-    { econs; eauto; try
-       (intros x; hexploit (Hscopes x); ss; rewrite multiplicity_disj_union; lia).
-      rewrite map_Forall_lookup; intros i x Hix; rewrite map_Forall_lookup in Hfnsems.
-      hexploit (Hfnsems i x); eauto.
-      rewrite lookup_union_with Hix; destruct (_ ms1 !! i) eqn : Hms1; ss.
-      hexploit (Hfnsems i None); [rewrite lookup_union_with Hix Hms1 //|intros Hf; inv Hf].
+    { econs.
+      { rewrite map_Forall_lookup; intros i x Hix; rewrite map_Forall_lookup in Hfnsems.
+        hexploit (Hfnsems i x); eauto.
+        rewrite lookup_union_with Hix; destruct (_ ms1 !! i) eqn : Hms1; ss.
+        hexploit (Hfnsems i None); [rewrite lookup_union_with Hix Hms1 //|intros Hf; inv Hf].
+      }
+      { apply NoDup_app in Hscopes; by des. }
     }
-    split.
     { intros fn ??; rewrite map_Forall_lookup in Hfnsems; hexploit (Hfnsems fn None); [|by intros []].
       rewrite -> elem_of_dom in *; s; rewrite lookup_union_with; repeat (destruct (_ !! _)); ss;
         exfalso; eapply is_Some_None; eauto.
-    }
-    { intros x ? ?; rewrite -> elem_of_multiplicity in *; hexploit (Hscopes x); s.
-      rewrite  multiplicity_disj_union; lia.
     }
   Qed.
 
@@ -219,6 +222,8 @@ Module Mod. Section Mod.
   Qed.
 
   Definition empty_mc : modc := (empty, emp%I).
+
+  Definition addL (ms : list t) : t := foldr add empty ms.
 End Mod. End Mod.
 
 Infix "★" := Mod.add (at level 60, right associativity).
@@ -232,15 +237,30 @@ Section ModFacts.
   Proof using.
     destruct md1, md2, md3.
     apply Mod.t_eq; s; try rewrite assoc //.
+    { apply (StronglySorted_unique String.le).
+      { apply StronglySorted_merge_sort; try typeclasses eauto. }
+      { apply StronglySorted_merge_sort; try typeclasses eauto. }
+      rewrite !merge_sort_Permutation assoc //.
+    }
     { apply map_eq; intros ?; rewrite ?lookup_union_with; repeat (destruct (_ !! _)); ss. }
     { apply map_eq; intros ?; rewrite ?lookup_union_with; repeat (destruct (_ !! _)); ss. }
   Qed.
 
   Lemma mod_add_empty_l (md : Mod.t) : md = ⌽ ★ md.
-  Proof using. destruct md. apply Mod.t_eq; s; rewrite left_id //. Qed.
+  Proof using.
+    destruct md. apply Mod.t_eq; s; rewrite ?left_id //.
+    apply (StronglySorted_unique String.le); eauto.
+    { apply StronglySorted_merge_sort; try typeclasses eauto. }
+    rewrite !merge_sort_Permutation //.
+  Qed.
 
   Lemma mod_add_empty_r (md : Mod.t) : md = md ★ ⌽.
-  Proof using. destruct md. apply Mod.t_eq; s; rewrite right_id //. Qed.
+  Proof using.
+    destruct md. apply Mod.t_eq; s; rewrite ?right_id //.
+    apply (StronglySorted_unique String.le); eauto.
+    { apply StronglySorted_merge_sort; try typeclasses eauto. }
+    rewrite !merge_sort_Permutation //.
+  Qed.
 
   Lemma mod_addc_assoc (md : Mod.t) (P Q R : iProp Σ) :
     (md, (P ∗ Q) ∗ R)%I ≡ (md, P ∗ Q ∗ R)%I.
@@ -274,12 +294,17 @@ End ModFacts.
 Tactic Notation "mod_tac" tactic(tac) := i;
   let rec go :=
     match goal with
+    | |- Sorted.StronglySorted String.le ?scopes =>
+      (apply Sorted.SSorted_nil || (apply Sorted.SSorted_cons; [go|tac]))
     | |- map_Forall ?P (omap id ?X) => rewrite omap_insert /=; go
     | |- map_Forall ?P (omap id ∅) => rewrite omap_empty; go
+    | |- map_Forall ?P (fmap ?f ?X) => rewrite fmap_insert /=; go
+    | |- map_Forall ?P (fmap ?f ∅) => rewrite fmap_empty /=; go
     | |- map_Forall ?P ∅ => apply map_Forall_empty
     | |- map_Forall ?P {[_:=_]} => apply map_Forall_singleton; tac
     | |- map_Forall ?P (<[_:=_]> _) =>
         apply map_Forall_insert_2; [tac|go]
+    | |- map_Forall ?P ?X => rewrite /X /=; go
     | |- _ => set_solver
   end in go.
 Ltac scope_solver := ss; split; i; case_decide; naive_solver.
@@ -500,3 +525,12 @@ Hint Extern 100 (?A !! _ = _) =>
   match type of A with
   | specmap => rewrite /A /=; simpl_map
   end : simpl_map.
+Global Hint Extern 90 (_ ≠ _) => try by (let a := fresh in intros a; inv a) : simpl_map.
+Global Hint Extern 90 =>
+    match goal with
+    | H : Mod.wf ?M |- Mod.fnsems ?M !! _ = _ =>
+      (eapply Mod.lookup_add_l;
+      [eauto|eapply Mod.add_wf_inv in H as [? [? [? ?]]]]; progress simpl_map) ||
+      (eapply Mod.lookup_add_r;
+        [eauto|eapply Mod.add_wf_inv in H as [? [? [? ?]]]]; progress simpl_map)
+    end : simpl_map.

@@ -158,7 +158,7 @@ Module StackM. Section StackM.
   Context (mn : string) (N : namespace).
 
   (* Module definitions *)
-  Definition scopes : gmultiset string := ∅.
+  Definition scopes : list string := [].
 
   Definition jobCode : jobID → itree crisE retID :=
     λ '(_, _, (_, _, v, γs)),
@@ -205,7 +205,7 @@ Module StackA. Section StackA.
   Context (N : namespace).
 
   (* Module definitions *)
-  Definition scopes : gmultiset string := ∅.
+  Definition scopes : list string := [].
 
   Definition new_stack : list val → itree crisE val :=
     λ _, 𝒴;;; trigger (Choose val).

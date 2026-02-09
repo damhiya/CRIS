@@ -30,6 +30,7 @@ Module CFilter. Section CFilter.
       (λ (x : option _), map_fst (msk_filter mask) <$> x) <$> m.(Mod.fnsems);
     Mod.initial_st := m.(Mod.initial_st)
   |}.
+  Next Obligation. i; eapply Mod.sorted_scopes. Qed.
   Next Obligation.
     intros ? ? i [msk x]; rewrite lookup_omap ?lookup_fmap /Mod.fnsems => ?.
     destruct m; ss.
@@ -54,7 +55,9 @@ Module CFilter. Section CFilter.
   Proof using.
     econs; ss; i; eauto.
     rewrite /ISim.sim_fun ?lookup_fmap.
-    destruct (_ !! _) as [[[msk bd]|]|]; ss; intros ??; eexists; split; [refl|].
+    destruct (_ !! _) as [[[msk bd]|]|] eqn : Ht; ss; cycle 1; last clear Ht.
+    { intros [? ?]; rewrite map_Forall_lookup in wf_fns; eapply wf_fns in Ht; inv Ht. }
+    intros ?; eexists; split; [refl|].
     iIntros (arg st_src st_tgt) "->"; iApply wsim_isim. iStopProof.
     rewrite /SB.sandbox_body /=.
     generalize (bd arg) as itr.
@@ -111,7 +114,12 @@ Module CFilter. Section CFilter.
   Proof using.
     econs; ii; et.
     rewrite /ISim.sim_fun ?lookup_fmap.
-    destruct (_ !! _) as [[[msk bd]|]|]; ss; intros ??; eexists; split; [refl|].
+    destruct (_ !! _) as [[[msk bd]|]|] eqn : Ht; ss; cycle 1; last clear Ht.
+    { inv H1; rewrite map_Forall_lookup in wf_fns; specialize (wf_fns fn None).
+      rewrite lookup_fmap /= in wf_fns. rewrite Ht /= in wf_fns.
+      hexploit wf_fns; ss; intros t; inv t.
+    }
+    esplits; [refl|].
     iIntros (arg st_src st_tgt) "-> _". iStopProof.
     rewrite /SB.sandbox_body /=.
     generalize (bd arg) as itr.
@@ -194,15 +202,6 @@ Module CFilter. Section CFilter.
     refines (m, P)%I (filter mask m, P)%I.
   Proof using. eapply closed_adequacy_emp, sim_filter_elim. eauto. Qed.
 
-  (*** elimination of a module ***)
-  Theorem elim_module mc P : ctx_refines (⌽, P) (mc, P).
-  Proof using.
-    do 2 rewrite (mod_addc_empty_l _ P).
-    eapply ctxr_cond_frameR.
-    eapply main_adequacy with (Ist := λ _ _, emp%I).
-    init_sim; ii; et.
-  Qed.
-
   (*** introduction of a module ***)
   Theorem intro_module (mask : gset string) m mc P
       (WF: Mod.wf mc)
@@ -220,13 +219,15 @@ Module CFilter. Section CFilter.
     ii; ss.
     assert (Hwfadd : Mod.wf (filter mask m ★ mc)).
     { apply Mod.add_wf; eauto.
-      intros [i|] Hi1 Hi2; last set_solver.
-      apply (EXCL i).
-      { apply elem_of_set_omap; eexists; split; last done.
-        rewrite /filter /= dom_fmap // in Hi1.
+      { intros [i|] Hi1 Hi2; last set_solver.
+        apply (EXCL i).
+        { apply elem_of_set_omap; eexists; split; last done.
+          rewrite /filter /= dom_fmap // in Hi1.
+        }
+        apply EXCL2.
+        apply elem_of_set_omap; eexists; split; done.
       }
-      apply EXCL2.
-      apply elem_of_set_omap; eexists; split; done.
+      inv WF; inv WFM; eapply NoDup_app; splits; eauto.
     }
     split; first done.
 
@@ -414,7 +415,9 @@ Module CFilter. Section CFilter.
       destruct k0 as [scp0 key0]; ss; case_bool_decide; ss.
       assert ((scp0, key0) ∉ (dom stc)).
       { intros Hscp0; eapply (DISJ scp0); auto.
-        rewrite -gmultiset_elem_of_dom; apply SCPc; rewrite elem_of_map; eexists (_, _); eauto.
+        rewrite elem_of_subseteq in SCPc; specialize (SCPc scp0);
+          rewrite elem_of_list_to_set in SCPc; eapply SCPc.
+        rewrite elem_of_map; eexists (_, _); eauto.
       }
       eapply gsim_SPut_src; [apply EQ|auto|].
       rewrite insert_union_with_l; [|rewrite -not_elem_of_dom //].
@@ -437,7 +440,9 @@ Module CFilter. Section CFilter.
       destruct k0 as [scp0 key0]. ss; case_bool_decide; ss.
       assert ((scp0, key0) ∉ (dom stc)).
       { intros Hscp0; eapply (DISJ scp0); auto.
-        rewrite -gmultiset_elem_of_dom; apply SCPc; rewrite elem_of_map; eexists (_, _); eauto.
+        rewrite elem_of_subseteq in SCPc; specialize (SCPc scp0);
+          rewrite elem_of_list_to_set in SCPc; eapply SCPc.
+        rewrite elem_of_map; eexists (_, _); eauto.
       }
       eapply gsim_SGet_src; [apply EQ|auto|]; s.
       eapply gsim_SGet_tgt; [apply EQ|auto|]; s.

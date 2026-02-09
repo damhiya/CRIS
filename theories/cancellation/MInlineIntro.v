@@ -21,11 +21,12 @@ Proof using.
     IstEq closed
     (SB.sandbox_body (inline_fsem md f)) (SB.sandbox_body f)).
   { econs; ss; try refl; eauto; i.
-    { r. rewrite !lookup_fmap.
-      destruct (Mod.fnsems md !! fn) eqn:FINDT; ss.
-      destruct o; ss. destruct p; ss.
-      ii. esplits; eauto.
-    }
+    r. rewrite !lookup_fmap.
+    destruct (Mod.fnsems md !! fn) eqn:FINDT; ss.
+    destruct o; ss.
+    { destruct p; ss. ii. esplits; eauto. }
+    intros [? ?]; rewrite map_Forall_lookup in wf_fns; hexploit (wf_fns fn None); eauto.
+    intros t; inv t.
   }
 
   ii. iIntros "% I". subst. iStopProof.

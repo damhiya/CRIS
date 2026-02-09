@@ -81,7 +81,7 @@ End Mem.
 Module MemI. Section MemI.
   Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
 
-  Definition scopes : gmultiset string := {[+"Mem"+]}.
+  Definition scopes : list string := ["Mem"].
   Definition v_mem : key := "Mem" ↯ "mem".
 
   Definition alloc : list val → itree crisE val :=

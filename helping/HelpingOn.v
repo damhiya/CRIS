@@ -70,7 +70,7 @@ Module HelpingOn. Section HelpingOn.
   Context (mn : string).
   Context (jobcode : jobID → itree crisE retID).
 
-  Definition scopes : gmultiset string := {[+mn+]}.
+  Definition scopes : list string := [mn].
   Definition v_reqs : key := (mn, "reqs").
 
   Definition msk_pure : emask := λ X e,
@@ -127,7 +127,7 @@ End HelpingOn. End HelpingOn.
 Module HelpingDummy. Section HelpingDummy.
   Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
   Context (mn : string).
-  Definition scopes : gmultiset string := {[+mn+]}.
+  Definition scopes : list string := [mn].
 
   Definition fnsems : fnsemmap :=
     {[Some (Helping.run mn) := Some (msk_scp scopes msk_true, (None, λ _, triggerNB));

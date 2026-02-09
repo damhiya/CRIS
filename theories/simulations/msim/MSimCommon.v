@@ -21,9 +21,10 @@ Section Ist.
          st_tgt = union_with (λ _ _, Some None) st_tgtL st_tgtR⌝ ∗
         IstL st_srcL st_tgtL ∗ IstR st_srcR st_tgtR)%I.
 
-  Definition IstSB (scopes : gmultiset string) (Ist : ist_type Σ) :=
+  Definition IstSB (scopes : list string) (Ist : ist_type Σ) :=
     λ st_src st_tgt,
-      (⌜(set_map fst (dom st_src)) ⊆ dom scopes ∧ (set_map fst (dom st_tgt)) ⊆ dom scopes⌝ ∗
+      (⌜(set_map fst (dom st_src)) ⊆@{gset string} list_to_set scopes ∧
+        (set_map fst (dom st_tgt)) ⊆@{gset string} list_to_set scopes⌝ ∗
       Ist st_src st_tgt)%I.
 
   Definition IstEq : ist_type Σ := (λ st_src st_tgt, ⌜st_src = st_tgt⌝)%I.

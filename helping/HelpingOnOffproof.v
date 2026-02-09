@@ -1,5 +1,5 @@
 Require Import CRIS.
-Require Import LMod.
+Require Import LMod CallFilter.
 Require Import GSim GSimFacts GSimTactics GSimAux.
 Require Import SchHeader SchI SchA.
 From CRIS.helping Require Import Header HelpingOn HelpingOff HelpingAux.
@@ -21,15 +21,12 @@ Section HelpingOnOff.
   Proof using.
     (* wf proof *)
     intros WF; ss.
-    pose proof WF as WF1; eapply Mod.add_wf_inv in WF1 as [[? [? ?]]%Mod.add_wf_inv [? [Hdom ?]]].
+    pose proof WF as WF1; eapply Mod.add_wf_inv in WF1 as [[? [? ?]]%Mod.add_wf_inv [? [Hdom Hnd]]].
     apply Mod.add_wf; eauto.
     { apply Mod.add_wf; eauto.
-      { econs; ss.
-        { rewrite /Mod.fnsems /HelpingOff.fnsems /= ?fmap_insert fmap_empty. mod_tac scope_solver. }
-        { rewrite /HelpingOff.scopes; multiset_solver. }
-      }
-      { set_solver. }
-      { multiset_solver. }
+      { econs; ss; [mod_tac|prove_nodup]. }
+      { rewrite /Mod.fnsems /HelpingOff.fnsems /= ?fmap_insert fmap_empty. set_solver. }
+      { rewrite NoDup_app in Hnd; des; ss. }
     }
     { clear -Hdom.
       intros ? a ?; eapply Hdom; [|done]; move: a.
@@ -38,8 +35,8 @@ Section HelpingOnOff.
   Qed.
 
   Definition msk_ctx (msk : emask) : Prop :=
-    (∀ k, msk _ (subevent _ (SGet k)) = true → k.1 ∉ SchI.scopes ∪ HelpingOn.scopes mn) ∧
-    (∀ k v, msk _ (subevent _ (SPut k v)) = true → k.1 ∉ SchI.scopes ∪ HelpingOn.scopes mn).
+    (∀ k, msk _ (subevent _ (SGet k)) = true → k.1 ∉ SchI.scopes ++ HelpingOn.scopes mn) ∧
+    (∀ k v, msk _ (subevent _ (SPut k v)) = true → k.1 ∉ SchI.scopes ++ HelpingOn.scopes mn).
 
   Notation prog_s ctx rs := (LMod.prog
     (Mod.to_lmod
@@ -282,7 +279,7 @@ Section HelpingOnOff.
       { rewrite not_elem_of_dom_1 //; intros ?; eapply Hdisj2; set_solver. }
       assert (Mod.fnsems (HelpingOn.t mn jobs sp) !! Some fn = None).
       { rewrite not_elem_of_dom_1 //; intros ?; eapply Hdisj2; eauto. }
-      rewrite /LMod.prog ?Mod.to_lmod_fnsems ?(lookup_fnsems_None_r _ ctx) //.
+      rewrite /LMod.prog ?Mod.to_lmod_fnsems !(lookup_fnsems_None_r _ ctx) //.
       rewrite ?(lookup_fnsems_None_l) //; split; [|refl].
       set_unfold in Hfn2; des; clarify; simpl_map; eauto.
     }
@@ -293,11 +290,15 @@ Section HelpingOnOff.
       }
       rewrite /LMod.prog ?Mod.to_lmod_fnsems; try repeat erewrite lookup_fnsems_r; eauto.
       esplits; eauto.
-      eapply Mod.add_wf_inv in Hwf as [? [? [? ?]]].
+      eapply Mod.add_wf_inv in Hwf as [? [? [? [? [Hnd ?]]%NoDup_app]]].
       hexploit (Mod.well_scoped_fns ctx); rewrite map_Forall_lookup => /(_ (Some fn) (msk, bd)).
-      rewrite lookup_omap Hfn => /(_ eq_refl) [? ?]; split.
-      { i. multiset_solver. }
-      { i. multiset_solver. }
+      rewrite lookup_omap Hfn => /(_ eq_refl) [Hput Hget]; split.
+      { intros ? ?%Hget; rewrite elem_of_app; ss; ii; exfalso; eapply Hnd; eauto.
+        rewrite sorting.merge_sort_Permutation; rewrite elem_of_cons; des; [right|left]; set_solver.
+      }
+      { intros ? ? ?%Hput; rewrite elem_of_app; ss; ii; exfalso; eapply Hnd; eauto.
+        rewrite sorting.merge_sort_Permutation; rewrite elem_of_cons; des; [right|left]; set_solver.
+      }
     }
   Qed.
 
@@ -906,20 +907,26 @@ Section HelpingOnOff.
         { ides (bd ()↑).
           { by rewrite ?SBRed.ret ?interpV_ret; econs. }
           { eapply (help_rel_eq _ _ (λ x, Ret x) (λ x, Ret x)); eauto; try by grind.
-            { eapply Mod.add_wf_inv in WF as [? [? [? ?]]].
+            { eapply Mod.add_wf_inv in WF as [? [? [? [? [Hnd ?]]%NoDup_app]]].
               hexploit (Mod.well_scoped_fns ctx); rewrite map_Forall_lookup => /(_ None (msk, bd)).
-              rewrite lookup_omap FIND => /(_ eq_refl) [? ?]; split.
-              { i. multiset_solver. }
-              { i. multiset_solver. }
+              rewrite lookup_omap FIND => /(_ eq_refl) [Hput Hget]; split.
+              { intros ? ?%Hget; rewrite elem_of_app; ss; ii; exfalso; eapply Hnd; eauto.
+                rewrite sorting.merge_sort_Permutation; rewrite elem_of_cons; des; [right|left]; set_solver. }
+              { intros ? ? ?%Hput; rewrite elem_of_app; ss; ii; exfalso; eapply Hnd; eauto.
+                rewrite sorting.merge_sort_Permutation; rewrite elem_of_cons; des; [right|left]; set_solver.
+              }
             }
             { by i; rewrite ?interpV_ret; econs. }
           }
           { eapply (help_rel_eq _ _ (λ x, Ret x) (λ x, Ret x)); eauto; try by grind.
-            { eapply Mod.add_wf_inv in WF as [? [? [? ?]]].
+            { eapply Mod.add_wf_inv in WF as [? [? [? [? [Hnd ?]]%NoDup_app]]].
               hexploit (Mod.well_scoped_fns ctx); rewrite map_Forall_lookup => /(_ None (msk, bd)).
-              rewrite lookup_omap FIND => /(_ eq_refl) [? ?]; split.
-              { i. multiset_solver. }
-              { i. multiset_solver. }
+              rewrite lookup_omap FIND => /(_ eq_refl) [Hput Hget]; split.
+              { intros ? ?%Hget; rewrite elem_of_app; ss; ii; exfalso; eapply Hnd; eauto.
+                rewrite sorting.merge_sort_Permutation; rewrite elem_of_cons; des; [right|left]; set_solver. }
+              { intros ? ? ?%Hput; rewrite elem_of_app; ss; ii; exfalso; eapply Hnd; eauto.
+                rewrite sorting.merge_sort_Permutation; rewrite elem_of_cons; des; [right|left]; set_solver.
+              }
             }
             { by i; rewrite ?interpV_ret; econs. }
           }
@@ -2832,7 +2839,7 @@ Section HelpingOnOff.
           { f_equal; symmetry; etrans; first hnorm_itr; do 2 f_equal; etrans; first hnorm_itr.
             instantiate (1:=λ _, _); s; refl.
           }
-          { instantiate (1:=msk_scp ∅ msk_true); split; ii; ss. }
+          { instantiate (1:=msk_scp [] msk_true); split; ii; ss. }
           { ii; clarify. }
           i; ss.
           eapply help_rel_terminate; eauto; rewrite /Sch.terminate; unseal SCH.

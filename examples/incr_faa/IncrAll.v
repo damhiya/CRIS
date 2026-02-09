@@ -1,4 +1,4 @@
-Require Import CRIS Cancel SMod.
+Require Import CRIS Cancel SMod CallFilter.
 Require Import MemI MemA MemIAproof ImpPrelude.
 Require Import SchHeader SchI SchA SchIAproof SchTactics.
 Require Import FaaHeader ClientI ClientA ClientIA FaaI FaaA FaaIA.
@@ -91,7 +91,7 @@ Section ClientAux.
 
     (* elimination of mem *)
     etrans; cycle 1.
-    { do 2 ctxr_rotate. do 2 ctxr_drop. eapply CFilter.elim_module. }
+    { do 2 ctxr_rotate. do 2 ctxr_drop. eapply elim_module. }
     rewrite -mod_add_empty_r.
 
     rewrite /SchIAproof.SchIA.SchAMod.
@@ -113,30 +113,20 @@ Section ClientAux.
   Lemma tgt_wf : Mod.wf mod_tgt.
   Proof.
     rewrite /mod_tgt; eapply Mod.add_wf.
-    { econs; eauto.
-      unfold_fnsem; rewrite /ClientA.smod /= /ClientA.fnsems !fmap_insert !fmap_empty; mod_tac ss.
-    }
+    { econs; eauto; [mod_tac|prove_nodup]. }
     { eapply Mod.add_wf.
-      { econs; eauto.
-      unfold_fnsem; rewrite /ClientA.smod /= /ClientA.fnsems !fmap_insert !fmap_empty; mod_tac ss.
-      }
+      { econs; eauto; [mod_tac|prove_nodup]. }
       { eapply Mod.add_wf.
-        { econs; eauto.
-          { unfold_fnsem; rewrite /ClientA.smod /= /ClientA.fnsems !fmap_insert !fmap_empty; mod_tac ss. }
-          { ss; rewrite /MemI.scopes; multiset_solver. }
-        }
-        { econs; eauto.
-          { unfold_fnsem; rewrite /= !fmap_insert !fmap_empty; mod_tac ss. }
-          { ss; rewrite /SchI.scopes; multiset_solver. }
-        }
+        { econs; eauto; [mod_tac|prove_nodup]. }
+        { econs; eauto; [mod_tac|prove_nodup]. }
         { set_solver. }
-        { set_solver. }
+        { prove_nodup; set_solver. }
       }
       { rewrite Mod.dom_fnsems_add; set_solver. }
-      { set_solver. }
+      { prove_nodup; set_solver. }
     }
     { rewrite !Mod.dom_fnsems_add; set_solver. }
-    { set_solver. }
+    { prove_nodup; set_solver. }
   Qed.
 End ClientAux.
 

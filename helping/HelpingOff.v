@@ -8,7 +8,7 @@ Module HelpingOff. Section HelpingOff.
   Context {jobID retID : Type}.
   Context (jobcode : jobID → itree crisE retID).
 
-  Definition scopes : gmultiset string := {[+mn+]}.
+  Definition scopes : list string := [mn].
 
   Definition run : Any.t → itree crisE Any.t :=
     λ arg,

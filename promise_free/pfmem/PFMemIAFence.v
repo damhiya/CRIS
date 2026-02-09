@@ -33,7 +33,7 @@ Section fence.
 
     set (gl2:=_: Global.t) at 5.
     assert (gl2 = gl) by (subst gl2; destruct gl; ss).
-    rewrite H5. clear H5. set (lc2:=_: Local.t).
+    rewrite H4. clear H4. set (lc2:=_: Local.t).
 
     steps_r. set (st_tgt:={[_ := _]}).
 
@@ -55,9 +55,9 @@ Section fence.
         rewrite GL in WF0. destruct gl; ss.
       }
       { i. destruct (decide (tid0 = tid)).
-        { subst. rewrite IdentMap.gss in H5; inv H5.
+        { subst. rewrite IdentMap.gss in H4; inv H4.
           hexploit PFL; eauto. }
-        { rewrite IdentMap.gso in H5; eauto. }
+        { rewrite IdentMap.gso in H4; eauto. }
       }
     }
 

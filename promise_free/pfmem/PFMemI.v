@@ -5,7 +5,7 @@ Require Export PFMemHeader.
 Module PFMemI. Section PFMemI.
   Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
 
-  Definition scopes : gmultiset string := {[+"PFMem"+]}.
+  Definition scopes : list string := ["PFMem"].
   Definition v_config := "PFMem" ↯ "config".
   Definition v_tid := "PFMem" ↯ "tid".
   Definition v_tids := "PFMem" ↯ "tids".

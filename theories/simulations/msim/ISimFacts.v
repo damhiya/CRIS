@@ -100,7 +100,7 @@ Section ISIM_REFL.
 
   Lemma isim_reflL
       (ctx : contextuality) (fl_src fl_tgt : gmap (option string) (option fbody))
-      (msk : emask) (scopesR : gmultiset string) (EqL Ist : ist_type Σ) itr :
+      (msk : emask) (scopesR : list string) (EqL Ist : ist_type Σ) itr :
     (∀ st_src st_tgt k v, msk _ (subevent _ (SPut k v)) = true →
        (EqL st_src st_tgt ⊢ EqL (<[k := Some v]> st_src) (<[k := Some v]> st_tgt)) ∧
       k.1 ∉ scopesR) →
@@ -120,11 +120,11 @@ Section ISIM_REFL.
       iPureIntro; split; eauto.
       rewrite ?insert_union_with_l // not_elem_of_dom_1 //.
       { intros Hk; enough (k.1 ∈ scopesR); [set_solver|].
-        revert Hscopesr2 => /(_ k.1); rewrite elem_of_map gmultiset_elem_of_dom.
+        revert Hscopesr2 => /(_ k.1); rewrite elem_of_map elem_of_list_to_set.
         intros H'; apply H'; esplits; eauto.
       }
       { intros Hk; enough (k.1 ∈ scopesR); [set_solver|].
-        revert Hscopesr => /(_ k.1); rewrite elem_of_map gmultiset_elem_of_dom.
+        revert Hscopesr => /(_ k.1); rewrite elem_of_map elem_of_list_to_set.
         intros H'; apply H'; esplits; eauto.
       }
     - intros st_src0 st_tgt0 k Htrue.
@@ -133,12 +133,12 @@ Section ISIM_REFL.
       iPureIntro; rewrite ?lookup_union_with Heq.
       rewrite (not_elem_of_dom_1 st_srcR); cycle 1.
       { intros Hk; enough (k.1 ∈ scopesR); [set_solver|].
-        revert Hsrc => /(_ k.1); rewrite elem_of_map gmultiset_elem_of_dom.
+        revert Hsrc => /(_ k.1); rewrite elem_of_map elem_of_list_to_set.
         intros H'; apply H'; esplits; eauto.
       }
       rewrite (not_elem_of_dom_1 st_tgtR); cycle 1.
       { intros Hk; enough (k.1 ∈ scopesR); [set_solver|].
-        revert Htgt => /(_ k.1); rewrite elem_of_map gmultiset_elem_of_dom.
+        revert Htgt => /(_ k.1); rewrite elem_of_map elem_of_list_to_set.
         intros H'; apply H'; esplits; eauto.
       }
       ss.
@@ -146,7 +146,7 @@ Section ISIM_REFL.
 
   Lemma isim_reflR
       (fl_src fl_tgt : gmap (option string) (option fbody))
-      (ctx : contextuality) (msk : emask) (scopesL : gmultiset string)
+      (ctx : contextuality) (msk : emask) (scopesL : list string)
       (EqR Ist : ist_type Σ) itr :
     (∀ st_src st_tgt k v, msk _ (subevent _ (SPut k v)) = true →
       (EqR st_src st_tgt ⊢ EqR (<[k := Some v]> st_src) (<[k := Some v]> st_tgt)) ∧
@@ -167,11 +167,11 @@ Section ISIM_REFL.
       iPureIntro; split; eauto.
       rewrite ?insert_union_with_r // not_elem_of_dom_1 //.
       { intros Hk; enough (k.1 ∈ scopesL); [set_solver|].
-        revert Htgt => /(_ k.1); rewrite elem_of_map gmultiset_elem_of_dom.
+        revert Htgt => /(_ k.1); rewrite elem_of_map elem_of_list_to_set.
         intros H'; apply H'; esplits; eauto.
       }
       { intros Hk; enough (k.1 ∈ scopesL); [set_solver|].
-        revert Hsrc => /(_ k.1); rewrite elem_of_map gmultiset_elem_of_dom.
+        revert Hsrc => /(_ k.1); rewrite elem_of_map elem_of_list_to_set.
         intros H'; apply H'; esplits; eauto.
       }
     - intros st_src0 st_tgt0 k Htrue.
@@ -180,12 +180,12 @@ Section ISIM_REFL.
       iPureIntro; rewrite ?lookup_union_with Heq.
       rewrite (not_elem_of_dom_1 st_srcL); cycle 1.
       { intros Hk; enough (k.1 ∈ scopesL); [set_solver|].
-        revert Hsrc => /(_ k.1); rewrite elem_of_map gmultiset_elem_of_dom.
+        revert Hsrc => /(_ k.1); rewrite elem_of_map elem_of_list_to_set.
         intros H'; apply H'; esplits; eauto.
       }
       rewrite (not_elem_of_dom_1 st_tgtL); cycle 1.
       { intros Hk; enough (k.1 ∈ scopesL); [set_solver|].
-        revert Htgt => /(_ k.1); rewrite elem_of_map gmultiset_elem_of_dom.
+        revert Htgt => /(_ k.1); rewrite elem_of_map elem_of_list_to_set.
         intros H'; apply H'; esplits; eauto.
       }
       ss.
@@ -193,18 +193,18 @@ Section ISIM_REFL.
 
   Lemma ISim_reflL
       (ctx : contextuality) (A B C : Mod.t) (init_cond : iProp Σ)
-      (scopes : gmultiset string) (Ist : ist_type Σ) :
+      (scopes : list string) (Ist : ist_type Σ) :
     (∀ fn, fn ∈ dom (Mod.fnsems A) →
       ISim.sim_fun ctx (C ★ A) (C ★ B) (IstProd IstEq (IstSB scopes Ist)) fn) →
-    Mod.scopes A ⊆ scopes →
-    scopes ⊆ Mod.scopes B →
+    Mod.scopes A ⊆+ scopes →
+    scopes ⊆+ Mod.scopes B →
     dom (Mod.fnsems A) ⊆ dom (Mod.fnsems B) →
     (init_cond ⊢
       (IstProd IstEq (IstSB scopes Ist) (Mod.initial_st (C ★ A)) (Mod.initial_st (C ★ B)))) →
     ISim.t ctx (C ★ A) (C ★ B) init_cond (IstProd IstEq (IstSB scopes Ist)).
   Proof using.
     intros Hsim Hscp Hscp2 Hfns Hval; econs; intros Hwf.
-    { do 2 (etrans; first apply gmultiset_disj_union_mono; eauto). }
+    { rewrite /= !sorting.merge_sort_Permutation; apply submseteq_app; etrans; eauto. }
     { rr; rewrite ?lookup_fmap ?lookup_union_with; ss. }
     { rewrite /ISim.sim_fun.
       intros fn; rewrite lookup_fmap lookup_union_with.
@@ -224,7 +224,7 @@ Section ISIM_REFL.
         rewrite lookup_union_with Hc /=.
         destruct (_ B !! fn) eqn : Hb; ss.
       }
-      intros Hwfsrc Hwftgt.
+      intros Hwftgt.
       rewrite lookup_fmap lookup_union_with Hc; destruct (_ B !! fn) eqn : Hb; ss.
       { inv Hwftgt; rewrite map_Forall_lookup in wf_fns; hexploit (wf_fns fn).
         { rewrite lookup_union_with Hc Hb //=. }
@@ -238,9 +238,11 @@ Section ISIM_REFL.
         { clarify; rewrite lookup_omap Hc //. }
         intros Htrue; apply Htrue in Hmsk.
         enough (scopes ## Mod.scopes C); [set_solver|].
-        intros x Hin%(gmultiset_elem_of_subseteq _ (Mod.scopes B)) => HinC //.
-        hexploit (Mod.wf_scopes _ Hwf x); rewrite ?elem_of_multiplicity in Hin, HinC.
-        rewrite multiplicity_disj_union; lia.
+        intros x Hin%(elem_of_subseteq _ (Mod.scopes B)) => HinC //.
+        { hexploit (Mod.wf_scopes _ Hwf); rewrite /Mod.add /= sorting.merge_sort_Permutation.
+          rewrite NoDup_app; i; naive_solver.
+        }
+        intros a; eapply elem_of_submseteq in a; eauto.
       }
       { intros ??? Hmsk; split; [iIntros "-> //"|].
         hexploit (Mod.well_scoped_fns C); rewrite map_Forall_lookup.
@@ -248,27 +250,29 @@ Section ISIM_REFL.
         { clarify; rewrite lookup_omap Hc //. }
         intros Htrue; apply Htrue in Hmsk.
         enough (scopes ## Mod.scopes C); [set_solver|].
-        intros x Hin%(gmultiset_elem_of_subseteq _ (Mod.scopes B)) => HinC //.
-        hexploit (Mod.wf_scopes _ Hwf x); rewrite ?elem_of_multiplicity in Hin, HinC.
-        rewrite multiplicity_disj_union; lia.
+        intros x Hin%(elem_of_subseteq _ (Mod.scopes B)) => HinC //.
+        { hexploit (Mod.wf_scopes _ Hwf); rewrite /Mod.add /= sorting.merge_sort_Permutation.
+          rewrite NoDup_app; i; naive_solver.
+        }
+        intros a; eapply elem_of_submseteq in a; eauto.
       }
     }
   Qed.
 
   Lemma ISim_reflR
       (ctx : contextuality) (A B C : Mod.t) (init_cond : iProp Σ)
-      (scopes : gmultiset string) (Ist : ist_type Σ) :
+      (scopes : list string) (Ist : ist_type Σ) :
     (∀ fn, fn ∈ dom (Mod.fnsems A) →
       ISim.sim_fun ctx (A ★ C) (B ★ C) (IstProd (IstSB scopes Ist) IstEq) fn) →
-    Mod.scopes A ⊆ scopes →
-    scopes ⊆ Mod.scopes B →
+    Mod.scopes A ⊆+ scopes →
+    scopes ⊆+ Mod.scopes B →
     dom (Mod.fnsems A) ⊆ dom (Mod.fnsems B) →
     (init_cond ⊢
       (IstProd (IstSB scopes Ist) IstEq (Mod.initial_st (A ★ C)) (Mod.initial_st (B ★ C)))) →
     ISim.t ctx (A ★ C) (B ★ C) init_cond (IstProd (IstSB scopes Ist) IstEq).
   Proof using.
     intros Hsim Hscp Hscp2 Hfns Hval; econs; intros Hwf.
-    { do 2 (etrans; first apply gmultiset_disj_union_mono; eauto). }
+    { rewrite /= !sorting.merge_sort_Permutation; apply submseteq_app; etrans; eauto. }
     { rr; rewrite ?lookup_fmap ?lookup_union_with; ss. }
     { rewrite /ISim.sim_fun.
       intros fn; rewrite lookup_fmap lookup_union_with.
@@ -288,7 +292,7 @@ Section ISIM_REFL.
         rewrite lookup_union_with Hc /=.
         destruct (_ B !! fn) eqn : Hb; ss.
       }
-      intros Hwfsrc Hwftgt.
+      intros Hwftgt.
       rewrite lookup_fmap lookup_union_with Hc; destruct (_ B !! fn) eqn : Hb; ss.
       { inv Hwftgt; rewrite map_Forall_lookup in wf_fns; hexploit (wf_fns fn).
         { rewrite lookup_union_with Hc Hb //=. }
@@ -302,9 +306,11 @@ Section ISIM_REFL.
         { clarify; rewrite lookup_omap Hc //. }
         intros Htrue; apply Htrue in Hmsk.
         enough (scopes ## Mod.scopes C); [set_solver|].
-        intros x Hin%(gmultiset_elem_of_subseteq _ (Mod.scopes B)) => HinC //.
-        hexploit (Mod.wf_scopes _ Hwf x); rewrite ?elem_of_multiplicity in Hin, HinC.
-        rewrite multiplicity_disj_union; lia.
+        intros x Hin%(elem_of_subseteq _ (Mod.scopes B)) => HinC //.
+        { hexploit (Mod.wf_scopes _ Hwf); rewrite /Mod.add /= sorting.merge_sort_Permutation.
+          rewrite NoDup_app; i; naive_solver.
+        }
+        intros a; eapply elem_of_submseteq in a; eauto.
       }
       { intros ??? Hmsk; split; [iIntros "-> //"|].
         hexploit (Mod.well_scoped_fns C); rewrite map_Forall_lookup.
@@ -312,9 +318,11 @@ Section ISIM_REFL.
         { clarify; rewrite lookup_omap Hc //. }
         intros Htrue; apply Htrue in Hmsk.
         enough (scopes ## Mod.scopes C); [set_solver|].
-        intros x Hin%(gmultiset_elem_of_subseteq _ (Mod.scopes B)) => HinC //.
-        hexploit (Mod.wf_scopes _ Hwf x); rewrite ?elem_of_multiplicity in Hin, HinC.
-        rewrite multiplicity_disj_union; lia.
+        intros x Hin%(elem_of_subseteq _ (Mod.scopes B)) => HinC //.
+        { hexploit (Mod.wf_scopes _ Hwf); rewrite /Mod.add /= sorting.merge_sort_Permutation.
+          rewrite NoDup_app; i; naive_solver.
+        }
+        intros a; eapply elem_of_submseteq in a; eauto.
       }
     }
   Qed.
@@ -330,9 +338,10 @@ Section ISIM_ADEQUACY.
     { rewrite map_Forall_lookup; intros i x Hx.
       rewrite /ISim.sim_fun in Hsim; hexploit (Hsim Ht0 i); eauto.
       rewrite lookup_fmap Hx /=; destruct x; ss.
-      intros Hnone; rewrite map_Forall_lookup in wf_fns; eapply wf_fns in Hnone; ss.
     }
-    { intros x; hexploit (Hscp Ht0 x); specialize (wf_scopes x); i; lia. }
+    { eapply submseteq_Permutation in Hscp; eauto.
+      destruct Hscp as [? Hscp]; rewrite Hscp NoDup_app in wf_scopes; by des.
+    }
   Qed.
 
   Lemma ISim_match contextual ms mt cond Ist fn :

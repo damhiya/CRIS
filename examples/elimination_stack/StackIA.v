@@ -76,7 +76,7 @@ Module StackIA. Section StackIA.
     { do 2 ctxr_rotate. ctxr_swap. ctxr_refl. }
 
     rewrite -mod_add_assoc.
-    eapply main_adequacy with (Ist := IstProd (IstSB (Mod.scopes (StackA.t N sp) ∪ {[+mn+]}) IstTrue) IstEq).
+    eapply main_adequacy with (Ist := IstProd (IstSB (Mod.scopes (StackA.t N sp) ++ [mn]) IstTrue) IstEq).
     init_sim.
     { iStartSim.
       steps_l. force_r _q. destruct _q as [[? ?] ?]; iDestruct "ASM" as "[? [-> [% ->]]]".

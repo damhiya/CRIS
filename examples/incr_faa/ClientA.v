@@ -55,7 +55,7 @@ Module ClientA. Section ClientA.
     {[speckey_fn IncrHdr.incr := fspec_to_rel (incr_spec N)]}.
 
   (* Module definition *)
-  Definition scopes : gmultiset string := ∅.
+  Definition scopes : list string := [].
 
   Definition incr : list val → itree crisE unit :=
     λ _, 𝒴;;; Ret tt.

@@ -5,7 +5,7 @@ Require Import Ensembles.
 Module ProphecyA. Section ProphecyA.
   Context `{!crisG Γ Σ α β τ _S _I, !concGS, !prophGS}.
 
-  Definition scopes : gmultiset string := ∅.
+  Definition scopes : list string := [].
 
   Definition new_spec : fspec :=
     fspec_simple

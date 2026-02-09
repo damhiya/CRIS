@@ -7,7 +7,7 @@ Require Import PQueueHeader.
 Module PQueueI. Section PQueueI.
   Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
 
-  Definition scopes : gmultiset string := ∅.
+  Definition scopes : list string := [].
 
   Definition new : list val → itree crisE val := λ args,
     𝒴;;; 'n : Z <- (pargs [Tint] args)?;;

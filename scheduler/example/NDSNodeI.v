@@ -7,7 +7,7 @@ Set Implicit Arguments.
 Module NDSNodeI. Section NDSNodeI.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concGS}.
 
-  Definition scopes : gmultiset string := {[+NDSNODE+]}.
+  Definition scopes : list string := [NDSNODE].
 
   Definition f_main : SAny.t → itree crisE SAny.t :=
     λ _,

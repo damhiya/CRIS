@@ -6,7 +6,7 @@ Definition tidmap : Type := gmap Ident.t nat.
 Module SystemI. Section SystemI.
   Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
 
-  Definition scopes : gmultiset string := {[+"System"+]}.
+  Definition scopes : list string := ["System"].
   Definition v_tid := "System" ↯ "tid".
   Definition v_tids := "System" ↯ "tids".
 

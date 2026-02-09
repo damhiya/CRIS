@@ -6,7 +6,7 @@ Definition thpool : Type := list (nat * option SAny.t).
 Module SchI. Section SchI.
   Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
 
-  Definition scopes : gmultiset string := {[+"sch"+]}.
+  Definition scopes : list string := ["sch"].
   Definition v_ths : key := "sch" ↯ "ths".
   Definition v_tid : key := "sch" ↯ "tid".
 

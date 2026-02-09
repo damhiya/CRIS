@@ -210,7 +210,7 @@ Module SystemA. Section SystemA.
       speckey_fn SystemHdr.read := read_spec]}.
 
   (* Module definitions *)
-  Definition scopes : gmultiset string := {[+"System"+]}.
+  Definition scopes : list string := ["System"].
   Definition v_tid := "System" ↯ "tid".
   Definition v_tids := "System" ↯ "tids".
 

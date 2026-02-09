@@ -6,7 +6,7 @@ Require Import MemHdr MemLib.
 Module DetMem. Section DetMem.
   Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
 
-  Definition scopes : gmultiset string := {[+"MemH"+]}.
+  Definition scopes : list string := ["MemH"].
   Definition v_mem := "MemH" ↯ "mem".
 
   Definition alloc : list val → itree crisE val :=

@@ -5,7 +5,7 @@ Require Export FaaHeader.
 Module FaaA. Section FaaA.
   Context `{!crisG Γ Σ α β τ _S _I, !concGS, !memGS}.
 
-  Definition scopes : gmultiset string := ∅.
+  Definition scopes : list string := [].
 
   Definition faa2 : list val → itree crisE unit :=
     λ arg,

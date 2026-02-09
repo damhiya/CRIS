@@ -8,7 +8,7 @@ Module NDSI. Section NDSI.
 
   Variable (parent_yield : string).
 
-  Definition scp : gmultiset string := {[+ NDS +]}.
+  Definition scp : list string := [ NDS ].
   Definition v_ths := NDS ↯ "ths".
   Definition v_tid := NDS ↯ "tid".
   Definition v_sch := NDS ↯ "sch".

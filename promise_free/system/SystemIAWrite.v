@@ -24,7 +24,7 @@ Section SystemIA.
         ([∗ map] i ↦ stid ∈ (snd <$> delete tid tids),
           (YIELD stid)))%I.
 
-  Local Definition IstFull := (IstProd (IstSB (Mod.scopes SystemI.t) Ist) IstEq).
+  Local Definition IstFull := (IstProd (IstSB (Mod.scopes (SystemA.t sp_user ⊤ sp)) Ist) IstEq).
 
   Lemma simF_write : ISim.sim_fun open SystemA_s SystemI_s IstFull (Some SystemHdr.write).
   Proof using.

@@ -4,7 +4,7 @@ Require Import ProphecyHeader.
 Module ProphecyI. Section ProphecyI.
   Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
 
-  Definition scopes : gmultiset string := ∅.
+  Definition scopes : list string := [].
 
   Definition new : Any.t → itree crisE Any.t :=
     λ _, Ret tt↑.

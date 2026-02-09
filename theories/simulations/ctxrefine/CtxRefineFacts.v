@@ -130,6 +130,15 @@ Section CtxRefineFacts.
     ctx_refines (Mod.add ma mb, P) (Mod.add mb ma, P).
   Proof using. rewrite Mod.add_comm //. Qed.
 
+  (*** elimination of a module ***)
+  Theorem elim_module mc P : ctx_refines (⌽, P) (mc, P).
+  Proof using.
+    do 2 rewrite (mod_addc_empty_l _ P).
+    eapply ctxr_cond_frameR.
+    eapply main_adequacy with (Ist := λ _ _, emp%I).
+    init_sim; ss.
+  Qed.
+
   (*** frame rules ***)
   Lemma ctxr_frameR ms Ps mt Pt mc (REFA : ctx_refines (ms, Ps) (mt, Pt)) :
     ctx_refines (ms ★ mc, Ps) (mt ★ mc, Pt).

@@ -252,7 +252,7 @@ Section ctx_refines.
       (SystemI.t              ★ PFMemA.t sp, emp%I).
   Proof.
     intros ???.
-    eapply main_adequacy with (Ist := (IstProd (IstSB (Mod.scopes (SystemI.t )) Ist) IstEq)).
+    eapply main_adequacy with (Ist := (IstProd (IstSB (Mod.scopes (SystemA.t sp_user ⊤ sp)) Ist) IstEq)).
     init_sim.
     { apply simF__spawn; eauto. }
     { apply simF_spawn; eauto. }

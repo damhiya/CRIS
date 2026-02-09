@@ -7,7 +7,7 @@ Require Export ISim ISimFacts WSim WSimFacts ISimNotations WSimNotations.
 Require Export TacticsCommon.
 Require Export Tactics TacticsInit IrisTactics.
 
-Require Export CallFilter CtxRefine CtxRefineFacts ClosedAdequacy MainAdequacy.
+Require Export CtxRefine CtxRefineFacts ClosedAdequacy MainAdequacy.
 
 From iris.algebra Require Export auth excl excl_auth functions frac agree gmap big_op.
 From stdpp Require Export coPset namespaces.

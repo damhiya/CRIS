@@ -71,7 +71,7 @@ Module MainA. Section MainA.
     2) code (via itree)
     3) initial state (via Any.t)
   *)
-  Definition scopes : gmultiset string := ∅.
+  Definition scopes : list string := [].
 
   Definition main : Any.t → itree crisE Any.t :=
     λ _,

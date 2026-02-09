@@ -7,7 +7,7 @@ Require Import StackHeader.
 Module StackI. Section StackI.
   Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
 
-  Definition scopes : gmultiset string := ∅.
+  Definition scopes : list string := [].
 
   Definition new_stack : list val → itree crisE val := λ _,
     𝒴;;; 'stack : val <- ccallU MemHdr.alloc [Vint 2];;

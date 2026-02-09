@@ -152,7 +152,7 @@ Module SchA. Section SchA.
       speckey_fn SchHdr.get_tid := fspec_to_rel get_tid_spec]}.
 
   (* Module definition *)
-  Definition scopes : gmultiset string := {[+SCH+]}.
+  Definition scopes : list string := [SCH].
 
   Definition v_ths := SCH ↯ "ths".
   Definition v_tid := SCH ↯ "tid".
@@ -225,7 +225,7 @@ Module SchA. Section SchA.
     SMod.fnsems := fnsems E;
     SMod.initial_st := SchI.smod.(SMod.initial_st);
   |}.
-  Solve All Obligations with rewrite /SchI.smod /=; mod_tac.
+  Solve All Obligations with mod_tac.
 
   Definition init_cond : iProp Σ :=
     TidAuth {[0 := 0]} ∗

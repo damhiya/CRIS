@@ -11,7 +11,7 @@ Module RRSNodeI. Section RRSNodeI.
   Context `{_rrsG: !RRSA.rrsG}.
   Context `{_memGS: !MemA.memGS}.
 
-  Definition scopes : gmultiset string := {[+RRSNODE+]}.
+  Definition scopes : list string := [RRSNODE].
 
   Definition f_main : SAny.t -> itree crisE SAny.t :=
     fun _ =>

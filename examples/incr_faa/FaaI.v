@@ -5,7 +5,7 @@ Require Import FaaHeader.
 Module FaaI. Section FaaI.
   Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
 
-  Definition scopes : gmultiset string := ∅.
+  Definition scopes : list string := [].
 
   Definition faa2 : list val → itree crisE unit :=
     λ arg, 𝒴;;; MemHdr.faa arg;;; 𝒴;;; MemHdr.faa arg;;; 𝒴;;; Ret tt.
@@ -18,8 +18,7 @@ Module FaaI. Section FaaI.
     SMod.fnsems := fnsems;
     SMod.initial_st := ∅;
   |}.
-  Solve All Obligations with try done.
-  Next Obligation. rewrite ?omap_insert /= omap_empty. mod_tac scope_solver. Qed.
+  Solve All Obligations with mod_tac.
 
   Definition t : Mod.t := SMod.to_mod ∅ smod.
 End FaaI. End FaaI.

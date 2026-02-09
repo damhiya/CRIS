@@ -62,17 +62,15 @@ Ltac init_sim :=
   (* clear_trivials; *)
   (first
     [ eapply ISim_reflR;
-      [ intros fn; rewrite ?dom_fmap /= ?dom_insert_L;
-        set_unfold; intros Hfn; des; subst; last inv Hfn
-      | multiset_solver
-      | multiset_solver
+      [ intros fn Hfn; set_unfold in Hfn; des; subst
+      | (refl||eauto using submseteq_nil_l)
+      | (refl||eauto using submseteq_nil_l)
       | try set_solver
       |]
     | econs; intros Hwf;
-      [ multiset_solver
+      [ (refl||eauto using submseteq_nil_l)
       |
-      | intros fn; eapply ISim.sim_fun_strong; rewrite ?dom_fmap /= ?dom_insert_L;
-        set_unfold; intros Hfn; des; subst; last inv Hfn
+      | intros fn; eapply ISim.sim_fun_strong; intros Hfn; set_unfold in Hfn; des; subst
       ]
     ]).
 
@@ -109,7 +107,25 @@ Proof.
 Qed. *)
 
 Ltac init_simF :=
-  rewrite /ISim.sim_fun; simpl_map; intros ??; eexists; split; first refl;
+  (tryif (
+    rewrite /ISim.sim_fun; simpl_map; intros ?; eexists; split; first refl
+  ) then idtac
+  else (
+    match goal with
+    | |- ISim.sim_fun _ ?ms ?mt _ _ =>
+      let wft := fresh in
+      intros wft;
+      let wfs := fresh in
+      assert (wfs : Mod.wf ms);
+        [eapply Mod.add_wf_inv in wft as [? [? [? ?]]];
+        apply Mod.add_wf;
+          [ econs; [mod_tac | (done || prove_nodup)]
+          | ss
+          | try set_solver
+          | (ss || prove_nodup) ]
+        | ]
+    end; simpl_map; eexists; split; first refl
+  ));
   iIntros (arg st_src st_tgt) "IST"; iApply wsim_isim;
   rewrite /SB.sandbox_body; simpl fst; simpl snd.
 

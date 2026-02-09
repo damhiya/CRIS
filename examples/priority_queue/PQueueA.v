@@ -72,7 +72,7 @@ Module PQueueA. Section PQueueA.
   Context `{!stackG StackM.jobID StackM.retID, !queueG}.
   Context (N : namespace).
 
-  Definition scopes : gmultiset string := ∅.
+  Definition scopes : list string := [].
 
   Definition new_spec : fspec :=
     fspec_sch (↑N)

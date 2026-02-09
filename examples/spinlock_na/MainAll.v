@@ -105,12 +105,12 @@ Section MainAux.
 
     (* elimination of Mem *)
     etrans; cycle 1.
-    { do 3 ctxr_drop. eapply CFilter.elim_module. }
+    { do 3 ctxr_drop. eapply elim_module. }
     rewrite -mod_add_empty_r.
 
     (* elimination of SpinLock *)
     etrans; cycle 1.
-    { do 2 ctxr_drop. eapply CFilter.elim_module. }
+    { do 2 ctxr_drop. eapply elim_module. }
     rewrite -mod_add_empty_r.
 
     etrans; cycle 1.
@@ -134,30 +134,20 @@ Section MainAux.
   Lemma tgt_wf : Mod.wf mod_tgt.
   Proof.
     rewrite /mod_tgt; eapply Mod.add_wf.
-    { econs; eauto.
-      rewrite /MainA.smod /= /MainA.fnsems /Mod.fnsems /= !fmap_insert !fmap_empty; mod_tac ss.
-    }
+    { econs; eauto; [mod_tac|prove_nodup]. }
     { eapply Mod.add_wf.
-      { econs; eauto.
-      rewrite /MainA.smod /= /MainA.fnsems /Mod.fnsems /= !fmap_insert !fmap_empty; mod_tac ss.
-      }
+      { econs; eauto; [mod_tac|prove_nodup]. }
       { eapply Mod.add_wf.
-        { econs; eauto.
-          { rewrite /MainA.smod /= /MainA.fnsems /Mod.fnsems /= !fmap_insert !fmap_empty; mod_tac ss. }
-          { ss; rewrite /MemI.scopes; multiset_solver. }
-        }
-        { econs; eauto.
-          { unfold_fnsem. rewrite /= !fmap_insert !fmap_empty; mod_tac ss. }
-          { ss; rewrite /SchI.scopes; multiset_solver. }
-        }
+        { econs; eauto; [mod_tac|prove_nodup]. }
+        { econs; eauto; [mod_tac|prove_nodup]. }
         { set_solver. }
-        { set_solver. }
+        { ss; prove_nodup; set_solver. }
       }
       { rewrite Mod.dom_fnsems_add; set_solver. }
-      { set_solver. }
+      { prove_nodup; set_solver. }
     }
     { rewrite !Mod.dom_fnsems_add; set_solver. }
-    { set_solver. }
+    { prove_nodup; set_solver. }
   Qed.
 End MainAux.
 

@@ -125,7 +125,7 @@ Module MPIA. Section MPIA.
     iApply wsim_reset.
     iStopProof.
 
-    revert st_src. combine_quant st_tgt. clear Hle3 H6. combine_quant V3.
+    revert st_src. combine_quant st_tgt. clear Hle3 H5. combine_quant V3.
     eapply wsim_coind.
     (* destruct_quant. *)
     iIntros (g' _ CIH [V3 [st_t st_s]]) "[#[I SN] [FA [P [IST TV]]]]"; s.
@@ -168,10 +168,10 @@ Module MPIA. Section MPIA.
       iIntros (??) "IST TV".
 
       steps_r. des.
-      hexploit (H8 (Cell.max_ts ζ'')); first done; rewrite Cell.singleton_get.
+      hexploit (H7 (Cell.max_ts ζ'')); first done; rewrite Cell.singleton_get.
       des_if; intros INV; inv INV.
       destruct v'; ss.
-      apply Z.eqb_eq in H6; subst.
+      apply Z.eqb_eq in H5; subst.
       steps_r.
 
       iApply wsim_system_yield_ir; ss. { simpl_sp; auto. }
@@ -185,7 +185,7 @@ Module MPIA. Section MPIA.
       iApply wsim_base.
       iIntros "W".
       iApply ((CIH (V4, (st_tgt, st_src))) with "[-]"); iFrame. iFrame "I".
-      ss. iModIntro. iEval (rewrite H10) in "SN". done.
+      ss. iModIntro. iEval (rewrite H9) in "SN". done.
       Unshelve. all: try exact ⊤; try exact 1%Qp.
     }
     { (* read 1 from flag *)

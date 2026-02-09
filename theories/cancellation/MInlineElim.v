@@ -4,8 +4,6 @@ Require Import SModTr SMod Mod Tactics.
 Require Import MSimCommon ISim ISimFacts CtxRefine CtxRefineFacts ClosedAdequacy.
 Require Import MInline.
 
-Set Implicit Arguments.
-
 Section INLINE.
 Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
 
@@ -22,13 +20,21 @@ Proof using.
   { econs; ss; try refl; eauto; i.
     { r. rewrite !lookup_fmap.
       destruct (Mod.fnsems md !! fn) eqn:FINDT; ss.
-      destruct o; ss. destruct p; ss.
-      ii. esplits; eauto. eapply H; eauto.
-      hexploit (Mod.well_scoped_fns md fn (e, f)).
-      { rewrite lookup_omap FINDT //. }
-      i; ss; des. depdes e0; ss. des_ifs.
-      { case_bool_decide; eauto. }
-      { case_bool_decide; eauto. }
+      destruct o; ss.
+      { destruct p; ss. ii. esplits; eauto. eapply H; eauto; ss.
+        { inv H1; econs; eauto. revert wf_fns; rewrite map_Forall_lookup; intros wf_fns i x Hix;
+            specialize (wf_fns i); rewrite !lookup_fmap Hix //= in wf_fns.
+          destruct x; ss; apply wf_fns; eauto.
+        }
+        hexploit (Mod.well_scoped_fns md fn (e, f)).
+        { rewrite lookup_omap FINDT //. }
+        i; ss; des. depdes e0; ss. des_ifs.
+        { case_bool_decide; eauto. }
+        { case_bool_decide; eauto. }
+      }
+      intros [? ?]; rewrite map_Forall_lookup in wf_fns; hexploit (wf_fns fn None); eauto.
+      { rewrite !lookup_fmap FINDT //. }
+      intros t; inv t.
     }
   }
 

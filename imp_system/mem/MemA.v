@@ -255,7 +255,7 @@ Module MemA. Section MemA.
        λ ret, ⌜ret = v_cur↑⌝ ∗
         (b, ofs) ↦ (if bool_decide (succ = 1) then v_new else v_cur) ∗ E))%I.
 
-  Definition scopes : gmultiset string := {[+"Mem"+]}.
+  Definition scopes : list string := ["Mem"].
 
   (* Definition sp : specmap :=
     {[speckey_fn MemHdr.alloc := MemSpec.alloc;

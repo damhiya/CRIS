@@ -11,7 +11,7 @@ Require Import ImpPrelude SchHeader MemHeader.
 Module SpinLockMainI. Section SpinLockMainI.
   Context `{!crisG Γ Σ α β τ _S _I, !concGS, !memGS, !schGS, !spinlockG}.
 
-  Definition scopes : gmultiset string := ∅.
+  Definition scopes : list string := [].
 
   Definition main : Any.t → itree crisE Any.t :=
     λ _,

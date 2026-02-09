@@ -75,7 +75,7 @@ Module LockA. Section LockA.
     2) code (via itree)
     3) initial state (via Any.t)
   *)
-  Definition scopes : gmultiset string := ∅.
+  Definition scopes : list string := [].
 
   Definition newlock : list val → itree crisE val :=
     λ _, 𝒴;;; trigger (Choose val).

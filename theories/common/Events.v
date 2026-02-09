@@ -28,22 +28,12 @@ Definition sGet : stateE Any.t := SUpdate (fun x => (x, x)).
 
 Definition lmodE : Type -> Type := callE +' stateE +' coreE.
 
+Notation key := (string * string)%type.
+
 Section EVENTS_HMOD.
   Context {Σ : GRA}.
 
-  Definition key := (string * string)%type.
-
-  Global Program Instance dec_key `{Dec string} : Dec key.
-  Next Obligation.
-    intro DEC. i. destruct a0, a1.
-    destruct (DEC s0 s2).
-    - subst. destruct (DEC s s1).
-      + subst. left. refl.
-      + right. ii. apply n. inv H.
-    - right. ii. apply n. inv H.
-  Defined.
-
-  Definition sf (s : string) (f : string) := (s,f).
+  Definition sf (s : string) (f : string) : key := (s,f).
 
   Variant pgE : Type -> Type :=
   | SPut (k : key) (v : Any.t) : pgE unit
@@ -305,7 +295,7 @@ Definition emask {Σ : GRA} : Type := ∀ X, crisE X → bool.
 
 Definition msk_true `{Σ : GRA} : emask := λ X e, true.
 
-Definition msk_scp `{Σ : GRA} (scp : gmultiset string) (msk : emask) : emask :=
+Definition msk_scp `{Σ : GRA} (scp : list string) (msk : emask) : emask :=
   λ X e,
     match e with
     | inr1 (inr1 (inl1 (SPut k v))) => bool_decide (k.1 ∈ scp)

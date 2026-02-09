@@ -1,6 +1,7 @@
 Require Import Common ConcRA.
 Require Import Mod.
 Require Export FSpec SModTr Sp.
+From stdpp Require Import sorting strings.
 
 Notation fnsemmap := (gmap (option string) (option (emask * (option fspec_rel * fbody)))).
 
@@ -10,10 +11,11 @@ Module SMod. Section Smod.
   (* SMods are basic units of composition in CRIS. *)
   (* The image of the maps are lifted by option to make the module append operation total. *)
   Record t : Type := mk {
-    scopes : gmultiset string;
+    scopes : list string;
     fnsems : fnsemmap;
     initial_st : gmap key (option Any.t);
 
+    sorted_scopes : StronglySorted String.le scopes;
     well_scoped_fns :
       map_Forall
         (λ _ '((msk, _) : emask * _),
@@ -21,9 +23,9 @@ Module SMod. Section Smod.
           (∀ (k : key), msk _ (subevent _ (SGet k)) = true → k.1 ∈ scopes))
         (omap id fnsems);
     well_scoped_init :
-      (set_map fst (dom initial_st)) ⊆ dom scopes;
+      (set_map fst (dom initial_st)) ⊆@{gset string} list_to_set scopes;
     nodup_init :
-      (∀ x, multiplicity x scopes ≤ 1) → map_Forall (const is_Some) initial_st;
+      NoDup scopes → map_Forall (const is_Some) initial_st;
   }.
 
   Lemma t_eq (ms1 ms2 : t) :
@@ -38,66 +40,70 @@ Module SMod. Section Smod.
 
   (**** Linking ****)
   Program Definition empty : t := {|
-    scopes := ∅;
+    scopes := [];
     fnsems := ∅;
     initial_st := ∅;
   |}.
-  Solve All Obligations with done.
+  Solve All Obligations with try done; econs.
 
   Program Definition add ms1 ms2 : t := {|
-    scopes := (scopes ms1) ⊎ (scopes ms2);
+    scopes := merge_sort String.le ((scopes ms1) ++ (scopes ms2));
     fnsems := union_with (λ _ _, Some None) (fnsems ms1) (fnsems ms2);
     initial_st := union_with (λ _ _, Some None) (initial_st ms1) (initial_st ms2);
   |}.
+  Next Obligation. intros; apply StronglySorted_merge_sort; typeclasses eauto. Qed.
   Next Obligation.
     intros ms1 ms2 fn [msk p].
     rewrite lookup_omap lookup_union_with.
     destruct ((fnsems ms1) !! fn) eqn: Heq1; destruct ((fnsems ms2) !! fn) eqn: Heq2; ss; intros ->.
     { hexploit (ms1.(well_scoped_fns) fn (msk, p)); eauto.
       { rewrite lookup_omap Heq1 //. }
-      intros [? ?]; split; ii; apply gmultiset_elem_of_disj_union; left; eauto.
+      intros [? ?]; split; ii; rewrite merge_sort_Permutation elem_of_app; left; eauto.
     }
     { hexploit (ms2.(well_scoped_fns) fn (msk, p)); eauto.
       { rewrite lookup_omap Heq2 //. }  
-      intros [? ?]; split; ii; apply gmultiset_elem_of_disj_union; right; eauto.
+      intros [? ?]; split; ii; rewrite merge_sort_Permutation elem_of_app; right; eauto.
     }
   Qed.
   Next Obligation.
     intros ms1 ms2 fn [[scp ?] [-> [? Hin]%elem_of_dom]]%elem_of_map; ss.
-    apply lookup_union_with_Some in Hin; des; ss;
-      apply gmultiset_elem_of_dom, gmultiset_elem_of_disj_union; [left|right|left].
-    { hexploit (ms1.(well_scoped_init)) => /(_ scp); rewrite gmultiset_elem_of_dom; eauto.
+    rewrite merge_sort_Permutation list_to_set_app elem_of_union.
+    apply lookup_union_with_Some in Hin; des; ss; [left|right|left].
+    { hexploit (ms1.(well_scoped_init)) => /(_ scp).
       intros k; apply: k; apply elem_of_map; eexists (_, _); split; eauto; apply elem_of_dom; done.
     }
-    { hexploit (ms2.(well_scoped_init)) => /(_ scp); rewrite gmultiset_elem_of_dom; eauto.
+    { hexploit (ms2.(well_scoped_init)) => /(_ scp).
       intros k; apply: k; apply elem_of_map; eexists (_, _); split; eauto; apply elem_of_dom; done.
     }
-    { hexploit (ms1.(well_scoped_init)) => /(_ scp); rewrite gmultiset_elem_of_dom; eauto.
+    { hexploit (ms1.(well_scoped_init)) => /(_ scp).
       intros k; apply: k; apply elem_of_map; eexists (_, _); split; eauto; apply elem_of_dom; done.
     }
   Qed.
   Next Obligation.
-    intros ms1 ms2 H1; rewrite map_Forall_lookup; intros [scp key] v.
+    intros ms1 ms2; rewrite merge_sort_Permutation; intros [? [Hnd ?]]%NoDup_app.
+    rewrite map_Forall_lookup; intros [scp key] v.
     rewrite lookup_union_with_Some; intros [Hl | [Hl | [? [? [Hl1 Hl2]]]]]; des.
-    { apply (nodup_init ms1); eauto.
-      intros x; hexploit (H1 x); rewrite multiplicity_disj_union; lia.
+    { apply (nodup_init ms1); eauto. }
+    { apply (nodup_init ms2); eauto. }
+    exfalso; apply (Hnd scp).
+    { hexploit (well_scoped_init ms1) => /(_ scp); rewrite elem_of_map.
+      intros Hin1; hexploit Hin1; [exists (scp, key); split; ss; apply elem_of_dom; eauto|].
+      set_solver.
     }
-    { apply (nodup_init ms2); eauto.
-      intros x; hexploit (H1 x); rewrite multiplicity_disj_union; lia.
+    { hexploit (well_scoped_init ms2) => /(_ scp); rewrite elem_of_map.
+      intros Hin2; hexploit Hin2; [exists (scp, key); split; ss; apply elem_of_dom; eauto|].
+      set_solver.
     }
-    hexploit (well_scoped_init ms1) => /(_ scp); rewrite elem_of_map.
-    intros Hin1; hexploit Hin1; [exists (scp, key); split; ss; apply elem_of_dom; eauto|].
-    rewrite gmultiset_elem_of_dom elem_of_multiplicity.
-    hexploit (well_scoped_init ms2) => /(_ scp); rewrite elem_of_map.
-    intros Hin2; hexploit Hin2; [exists (scp, key); split; ss; apply elem_of_dom; eauto|].
-    rewrite gmultiset_elem_of_dom elem_of_multiplicity.
-    hexploit (H1 scp); rewrite multiplicity_disj_union; lia.
   Qed.
 
   Lemma add_comm (ms1 ms2 : t) : add ms1 ms2 = add ms2 ms1.
   Proof.
     apply t_eq; ss.
-    { rewrite gmultiset_disj_union_comm; eauto. }
+    { apply (StronglySorted_unique String.le).
+      { apply StronglySorted_merge_sort; try typeclasses eauto. }
+      { apply StronglySorted_merge_sort; try typeclasses eauto. }
+      rewrite !merge_sort_Permutation comm //.
+    }
     { apply fin_maps.union_with_comm; done. }
     { apply fin_maps.union_with_comm; done. }
   Qed.
@@ -107,6 +113,7 @@ Module SMod. Section Smod.
     Mod.fnsems := (λ (x : option _), (map_snd (SModTr.trans_fnsem sp)) <$> x) <$> ms.(fnsems);
     Mod.initial_st := ms.(initial_st);
   |}.
+  Next Obligation. ii; eapply sorted_scopes. Qed.
   Next Obligation.
     intros sp ms fno [msk p].
     rewrite lookup_omap lookup_fmap. destruct (fnsems ms !! fno) eqn: Heq; intros FIND; ss.
@@ -133,6 +140,7 @@ Module SMod. Section Smod.
     fnsems := (.≫= (λ '(msk, bd), Some (msk, (None, bd.2)))) <$> ms.(fnsems);
     initial_st := ms.(initial_st);
   |}.
+  Next Obligation. ii; eapply sorted_scopes. Qed.
   Next Obligation.
     intros ms fn [? ?] Hin; hexploit (ms.(well_scoped_fns)); eauto.
     rewrite lookup_omap_id_Some lookup_fmap in Hin;

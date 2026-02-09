@@ -73,7 +73,7 @@ Module MPA. Section MPA.
     {[speckey_fn MPHdr.mp2 := fspec_to_rel mp2_spec]}.
 
   (* module definition *)
-  Definition scopes : gmultiset string := ∅.
+  Definition scopes : list string := [].
   Definition mp2 : Val.t → itree crisE Val.t :=
     λ _, 𝒴;;; Ret Val.zero.
 

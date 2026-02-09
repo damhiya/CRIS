@@ -95,33 +95,24 @@ Section MPAux.
     { eapply src_tgt. }
   Qed.
 
+  Ltac wf_solver :=
+    let rec go :=
+      (apply Mod.add_wf; [go|go|rewrite ?Mod.dom_fnsems_add; set_solver|prove_nodup; set_solver])
+      || (econs; eauto; [mod_tac|prove_nodup]) in
+    go.
+
   Lemma tgt_wf : Mod.wf mod_tgt.
   Proof.
-    rewrite /mod_top ?SMod.cancel_add ?SMod.to_mod_add. eapply Mod.add_wf.
-    { econs; eauto.
-      rewrite /MPA.Mod /= /MPA.fnsems /Mod.fnsems /= !fmap_insert !fmap_empty; mod_tac ss.
+    eapply Mod.add_wf.
+    { econs; eauto; [mod_tac|prove_nodup]. }
+    { eapply Mod.add_wf.
+      { econs; eauto; [mod_tac|prove_nodup]. }
+      { econs; eauto; [mod_tac|prove_nodup]. }
+      { rewrite ?Mod.dom_fnsems_add; set_solver. }
+      { prove_nodup; set_solver. }
     }
-    { econs; eauto.
-      { eapply Mod.add_wf.
-        { econs; eauto.
-          { rewrite /SystemA.Mod /= /SystemA.fnsems /Mod.fnsems /=
-              !fmap_insert !fmap_empty; mod_tac ss. }
-          { rewrite /= /SystemI.scopes; multiset_solver. }
-        }
-        { econs; eauto.
-          { rewrite /PFMemI.t /= /PFMemI.fnsems /Mod.fnsems /=
-              !fmap_insert !fmap_empty; mod_tac ss. }
-          { rewrite /= /PFMemI.scopes; multiset_solver. }
-        }
-        { set_solver. }
-        { set_solver. }
-      }
-      { rewrite /=; i; rewrite multiplicity_disj_union /SystemI.scopes /PFMemI.scopes.
-        multiset_solver.
-      }
-    }
-    { rewrite !Mod.dom_fnsems_add; set_solver. }
-    { set_solver. }
+    { rewrite ?Mod.dom_fnsems_add; set_solver. }
+    { prove_nodup; set_solver. }
   Qed.
 End MPAux.
 

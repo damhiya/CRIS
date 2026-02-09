@@ -5,7 +5,7 @@ Require Import IncrementHeader.
 Module IncrementI. Section IncrementI.
   Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
 
-  Definition scopes : gmultiset string := ∅.
+  Definition scopes : list string := [].
 
   Definition increment : list val → itree crisE val :=
     λ arg,

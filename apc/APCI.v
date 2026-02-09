@@ -6,7 +6,7 @@ Set Implicit Arguments.
 Module APCI. Section APCI.
   Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
 
-  Definition scp : gmultiset string := {[+"APC"+]}.
+  Definition scp : list string := ["APC"].
 
   Definition fnsems : fnsemmap :=
     {[Some APCHdr.apc := Some (msk_real (msk_scp scp msk_true), (None, fbody_trivial))]}.

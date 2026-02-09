@@ -49,6 +49,7 @@ Module MInline.
     fnsems := fmap (option_map (inline_fsem ms)) (ms.(fnsems));
     initial_st := ms.(initial_st);
   |}.
+  Next Obligation. intros ? [? ? ?]; ss. Qed.
   Next Obligation.
     intros Σ ms fn [msk p].
     rewrite lookup_omap lookup_fmap.

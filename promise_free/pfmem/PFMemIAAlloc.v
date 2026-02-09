@@ -153,8 +153,8 @@ Section alloc.
           inv LOCAL0; hexploit (Memory.alloc_accessible3); eauto.
           { inv WF; inv GL_WF; eauto. }
           intros [?|?].
-          { des; ss. eapply WF2 in H6. hexploit Memory.alloc_get_cell; eauto.
-            intros Heq; rewrite -Heq in H6; rewrite -Memory.get_memory_cell H6 in FIND.
+          { des; ss. eapply WF2 in H5. hexploit Memory.alloc_get_cell; eauto.
+            intros Heq; rewrite -Heq in H5; rewrite -Memory.get_memory_cell H5 in FIND.
             rewrite Cell.init_get in FIND; case_match; ss; clarify.
             etrans; last eapply TimeMap.join_r.
             rewrite TimeMap.singletons_spec; case_decide as temp; [refl|exfalso].
@@ -176,10 +176,10 @@ Section alloc.
         { inv WF. inv GL_WF. inv LOCAL0. eapply wf_prealloc_alloc; eauto. }
         { destruct gl, gl2; inv LOCAL0; ss. }
         { ii; destruct (decide (tid0 = tid)); subst.
-          { hexploit (PFL tid); eauto. s in H4; rewrite IdentMap.gss in H4; inv H4.
+          { hexploit (PFL tid); eauto. s in H3; rewrite IdentMap.gss in H3; inv H3.
             inv LOCAL0; inv ALLOC; ss.
           }
-          { rewrite IdentMap.gso in H4; clarify; hexploit (PFL tid0); eauto. }
+          { rewrite IdentMap.gso in H3; clarify; hexploit (PFL tid0); eauto. }
         }
       }
       subst config'; iFrame.

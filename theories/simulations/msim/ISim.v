@@ -867,13 +867,13 @@ Global Hint Extern 80 (sandbox_fnsemmap _ !! _ = Some _) =>
   rewrite /sandbox_fnsemmap; simpl_map : simpl_map.
 
 Module ISim. Section ISim.
-  Import Mod.
   Context `{!crisG Γ Σ α β τ _S _I}.
+  Import Mod.
 
-  Variable ctx: contextuality.
+  Variable (ctx : contextuality).
   Variable (ms_src ms_tgt : Mod.t).
-  Variable init_cond : iProp Σ.
-  Variable Ist : ist_type Σ.
+  Variable (init_cond : iProp Σ).
+  Variable (Ist : ist_type Σ).
 
   Let scopes_src := ms_src.(scopes).
   Let scopes_tgt := ms_tgt.(scopes).
@@ -886,17 +886,17 @@ Module ISim. Section ISim.
   Let fl_tgt := sandbox_fnsemmap fnsems_tgt.
 
   Definition sim_fun fno : Prop :=
+    Mod.wf ms_tgt →
     match fl_src !! fno with
     | Some (Some fs) =>
-        Mod.wf ms_src → Mod.wf ms_tgt →
         ∃ ft, fl_tgt !! fno = Some (Some ft) ∧ isim_fsem fl_src fl_tgt Ist ctx fs ft
-    | Some None => fnsems_tgt !! fno = Some None
+    | Some None => False
     | _ => True
     end.
 
   Inductive t : Prop := mk {
     sim_scopes : Mod.wf ms_tgt →
-      scopes_src ⊆ scopes_tgt;
+      scopes_src ⊆+ scopes_tgt;
     sim_initial : Mod.wf ms_tgt →
       init_cond ⊢ Ist init_src init_tgt;
     sim_fnsems : Mod.wf ms_tgt →
@@ -910,7 +910,7 @@ Module ISim. Section ISim.
     (fno ∈ dom fnsems_src → sim_fun fno) → sim_fun fno.
   Proof using.
     intros Hin; r; destruct (_ !! _) eqn : Hlookup; [|ss].
-    revert Hin; rewrite /sim_fun Hlookup; intros H; hexploit H; eauto.
+    ii; revert Hin; rewrite /sim_fun Hlookup; intros t; hexploit t; eauto.
     apply elem_of_dom_2 in Hlookup.
     rewrite dom_fmap // in Hlookup.
   Qed.

@@ -8,7 +8,7 @@ Module RRSI. Section RRSI.
 
   Context (parent_yield : string).
 
-  Definition scp : gmultiset string := {[+RRS+]}.
+  Definition scp : list string := [RRS].
   Definition v_ths := RRS ↯ "ths".
   Definition v_tid := RRS ↯ "tid".
   Definition v_sch := RRS ↯ "sch".
@@ -90,14 +90,7 @@ Module RRSI. Section RRSI.
     SMod.fnsems := fnsems;
     SMod.initial_st := {[v_ths := Some ([] : thpool)↑; v_tid := Some 0↑; v_sch := Some 0↑]};
   |}.
-  Solve All Obligations with auto.
-  Next Obligation.
-    i. rewrite ?omap_insert /= omap_empty.
-    mod_tac scope_solver.
-  Qed.
-  Next Obligation.
-    i. mod_tac scope_solver.
-  Qed.
+  Solve All Obligations with mod_tac.
   
   Definition t := SMod.to_mod ∅ smod.
 End RRSI. End RRSI.
