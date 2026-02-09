@@ -5,22 +5,26 @@ From iris.algebra Require Export csum gmap_view.
 From iris.bi Require Export fractional.
 
 Definition sysRA := (gmap_viewUR Ident.t (agreeR (TViewO * natO)%type)).
-Class sysG `{!crisG Γ Σ α β τ _S _I} := {
-  sys_inG :: inG sysRA Γ
+Class sysGpreS `{!crisG Γ Σ α β τ _S _I} := {
+  #[local] sys_inG :: inG sysRA Γ
+}.
+Class sysGS `{!crisG Γ Σ α β τ _S _I} := {
+  #[local] sysGS_sysGpreS :: sysGpreS;
+  sys_name : gname
 }.
 Definition sysΓ : HRA := #[sysRA].
-Global Instance subG_sysG `{!crisG Γ Σ α β τ _S _I} : subG sysΓ Γ → sysG.
+Global Instance subG_sysGpreS `{!crisG Γ Σ α β τ _S _I} : subG sysΓ Γ → sysGpreS.
 Proof. solve_inG. Defined.
 
 Section SystemRA.
-  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !histG, !atomicG, !sysG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !histGS, !sysGS}.
 
   Definition tview_sys_auth (ths : gmap Ident.t (TView.t * nat)) : iProp Σ :=
-    (own base_γ (gmap_view_auth (DfracOwn 1) (to_agree <$> ths)) ∗
+    (own sys_name (gmap_view_auth (DfracOwn 1) (to_agree <$> ths)) ∗
     [∗ map] tid ↦ '(V, _) ∈ ths, tview tid V).
 
   Definition tview_sys_gen (q : Qp) (mtid : Ident.t) (stid : nat) (V : TView.t) : iProp Σ :=
-    own base_γ (gmap_view_frag mtid (DfracOwn q) (to_agree (V, stid))).
+    own sys_name (gmap_view_frag mtid (DfracOwn q) (to_agree (V, stid))).
   Definition tview_sys (tid : Ident.t) (stid : nat) (V : TView.t) : iProp Σ :=
     (tview_sys_gen 1 tid stid V ∗ TID stid ∗ YIELD stid)%I.
 
@@ -44,21 +48,27 @@ Section SystemRA.
     AsFractional (tview_sys_gen q tid stid V) (λ q, tview_sys_gen q tid stid V) q.
   Proof. split; ss; typeclasses eauto. Qed.
 
-  Definition ir_sysRA : DRA_mk sysRA := 
-    (gmap_view_auth (DfracOwn 1) {[1%positive := (to_agree (TView.init [], 0))]} ⋅
-    gmap_view_frag 1%positive (DfracOwn 1) (to_agree (TView.init [], 0))).
-  Lemma ir_sysRA_valid : ✓ ir_sysRA.
-  Proof.
-    rewrite /ir_sysRA. apply gmap_view_both_dfrac_valid_discrete; esplits; eauto.
-    { apply: dfrac_valid_own_1. }
-    { split; s; [apply: dfrac_valid_own_1|ss]. }
-  Qed.
-  Definition ir_sysΓ : sysΓ :=
-    *[Some (ir_sysRA)].
 End SystemRA.
 
+Lemma sys_alloc `{!crisG Γ Σ α β τ _S _I, !concGS, !histGS, !sysGpreS} :
+  tview 1 (TView.init []) o==∗
+    ∃ (_ : sysGS), tview_sys_auth {[1%positive := (TView.init [], 0)]} ∗
+      tview_sys_gen 1 1 0 (TView.init []).
+Proof.
+  iIntros "TV".
+  iMod (own_alloc
+    (gmap_view_auth (DfracOwn 1) {[1%positive := (to_agree (TView.init [], 0))]} ⋅
+    gmap_view_frag 1%positive (DfracOwn 1) (to_agree (TView.init [], 0)))) as "[%γs [? ?]]".
+  { apply gmap_view_both_dfrac_valid_discrete; esplits; eauto.
+    { apply: dfrac_valid_own_1. }
+    { split; s; [apply: dfrac_valid_own_1|ss]. }
+  }
+  iExists (Build_sysGS _ _ _ _ _ _ _ _ _ γs).
+  iFrame. rewrite big_sepM_singleton; iFrame. done.
+Qed.
+
 Module SystemA. Section SystemA.
-  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !histG, !atomicG, !sysG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !histGS, !atomicG, !sysGS}.
   Context (sp_user : specmap).
 
   (* Specifications *)

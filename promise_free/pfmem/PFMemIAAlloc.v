@@ -5,7 +5,7 @@ Require Import PFMemIAproof.
 
 Section alloc.
   Import PFMemIA.
-  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !histG, !atomicG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !histGS, !atomicG}.
 
   Context (sp : specmap).
   Context (syn : Threads.syntax).
@@ -80,7 +80,7 @@ Section alloc.
     assert (SZ : ∃ n, sz = Z.of_nat n).
     { exists (Z.to_nat sz); inv STEP; inv ALLOC. rewrite Z2Nat.id; ss. }
     destruct SZ as [n ->]. rewrite Nat2Z.id.
-    iAssert ( |==> own base_γ (◯ ((λ l : Loc.t,
+    iAssert ( |==> own hist_name (◯ ((λ l : Loc.t,
       if (decide (Loc.get_tbid l = Loc.get_tbid loc ∧ (0 <= (Loc.ofs l) < n)%Z))
       then Some (DfracOwn 1, to_agree (Cell.init Val.Vundef))
       else None) : HistoryRA.histR_aux))

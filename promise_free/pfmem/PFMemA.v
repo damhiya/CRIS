@@ -4,7 +4,7 @@ Require Import Time Cell View TView base Language.
 
 (* Specification of promise-free memory module *)
 Module PFMemA. Section PFMemA.
-  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !histG, !atomicG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !histGS, !atomicG}.
   Definition scopes : gmultiset string := {[+"PFMem"+]}.
 
   Definition alloc_spec : fspec :=
@@ -240,38 +240,34 @@ Module PFMemA. Section PFMemA.
     tview_auth (Threads.init syn []) ∗
     hist_auth (Memory.init []) ∗
     hist_freeable_auth (Memory.init []).
+End PFMemA. End PFMemA.
 
-  Definition ir_viewR : DRA_mk viewR :=
-    ● ((λ tid, (option_map (Excl ∘ Local.tview ∘ snd) (IdentMap.find tid (Threads.init syn []))))
+Lemma hist_alloc `{!crisG Γ Σ α β τ _I _S, !histGpreS} :
+  ⊢ o=> ∃ (_ : histGS), PFMemA.init_cond ∗ tview 1 (TView.init []).
+Proof.
+  Local Existing Instances histGS_histGpreS histGS_view histGS_hist histGS_free.
+  iMod (own_alloc
+    (● ((λ tid, (option_map (Excl ∘ Local.tview ∘ snd) (IdentMap.find tid (Threads.init PFMemA.syn []))))
       : Ident.t -d> optionUR (exclR TViewO)) ⋅
-    ◯ ((discrete_fun_singleton 1%positive (Some (Excl (TView.init []))))).
-  Lemma ir_viewR_valid : ✓ (ir_viewR).
-  Proof.
-    rewrite /ir_viewR.
-    apply auth_both_valid_discrete; split.
+    ◯ ((discrete_fun_singleton 1%positive (Some (Excl (TView.init []))))) : viewR)) as "[%γv V]".
+  { apply auth_both_valid_discrete; split.
     { exists ε; rewrite right_id; intros i; destruct (decide (i = 1%positive)); subst.
       { rewrite discrete_fun_lookup_singleton //=. }
-      { rewrite discrete_fun_lookup_singleton_ne //= /Threads.init /syn.
+      { rewrite discrete_fun_lookup_singleton_ne //= /Threads.init /PFMemA.syn.
         rewrite IdentMap.gmapi IdentMap.singleton_neq //.
       }
     }
     intros i; destruct (decide (i = 1%positive)); subst; ss.
-    { rewrite //= /Threads.init /syn IdentMap.gmapi IdentMap.singleton_neq //. }
-  Qed.
-
-  Definition ir_histR : DRA_mk histR :=
+    { rewrite //= /Threads.init /PFMemA.syn IdentMap.gmapi IdentMap.singleton_neq //. }
+  }
+  iMod (own_alloc
     (● ((λ l,
         if Memory.accessible l (Memory.init [])
         then
           Some (DfracOwn 1, to_agree (Memory.get_cell l (Memory.init [])))
-        else None) : Loc.t -d> optionUR (prodR dfracR (agreeR CellO)))).
-  Lemma ir_histR_valid : ✓ (ir_histR).
-  Proof.
-    rewrite /ir_histR.
-    rewrite auth_auth_valid; intros l; des_ifs.
-  Qed.
-
-  Definition ir_hist_freeableUR : DRA_mk hist_freeableUR :=
+        else None) : Loc.t -d> optionUR (prodR dfracR (agreeR CellO))) : histR)) as "[%γh H]".
+  { rewrite auth_auth_valid; intros l; des_ifs. }
+  iMod (own_alloc
     (● ((λ '(tid, bid),
           if Memory.is_freeable (Loc.mk (Some tid) bid 0) (Memory.init [])
           then
@@ -280,23 +276,10 @@ Module PFMemA. Section PFMemA.
             | None => None
             end
           else None
-        ) : Tid.t * Bid.t -d> optionUR (prodR fracR (exclR ZO)))).
-  Lemma ir_hist_freeableUR_valid : ✓ (ir_hist_freeableUR).
-  Proof.
-    rewrite /ir_hist_freeableUR.
-    rewrite auth_auth_valid; intros l; des_ifs.
-  Qed.
-
-  Definition ir_histΓ : histΓ :=
-    *[Some ir_viewR; Some ir_histR; Some ir_hist_freeableUR].
-
-  Lemma make_init_cond :
-    own base_γ ir_viewR ∗ own base_γ ir_histR ∗ own base_γ ir_hist_freeableUR -∗
-    init_cond ∗ tview 1%positive (TView.init []).
-  Proof.
-    iIntros "[[V TV] [H HF]]"; rewrite /init_cond.
-    rewrite tview_auth_eq /tview_auth_def hist_auth_eq /hist_auth_def; iFrame.
-    rewrite hist_freeable_auth_eq /hist_freeable_auth_def; iFrame.
-    rewrite tview_eq /tview_def //.
-  Qed.
-End PFMemA. End PFMemA.
+        ) : Tid.t * Bid.t -d> optionUR (prodR fracR (exclR ZO))))) as "[%γf F]".
+  { rewrite auth_auth_valid; intros l; des_ifs. }
+  iExists (Build_histGS _ _ _ _ _ _ _ _ _ γv γh γf); rewrite !own_op.
+  iDestruct "V" as "[V ?]".
+  rewrite /PFMemA.init_cond tview_auth_eq hist_auth_eq hist_freeable_auth_eq tview_eq; iFrame.
+  done.
+Qed.

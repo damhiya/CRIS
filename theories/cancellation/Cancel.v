@@ -213,7 +213,6 @@ Section Cancel.
 
   Lemma cancellation md IC Pinit :
     SMod.cancellable md →
-    Mod.wf (SMod.to_mod ∅ (SMod.cancel md)) →
     (∃ P Q, (fspec_flat (SMod.conc_sp_from md !! speckey_entry)) P Q ∧
       (TID 0 ∗ YIELD 0 ∗ winv (⊤, ⊤) ∗ Pinit ⊢ |==> (P tt↑ tt↑)) ∧
       ∀ varg arg, Q varg arg ⊢ ⌜varg = arg⌝) →
@@ -222,11 +221,19 @@ Section Cancel.
         (IC ∗ TID 0 ∗ YIELD 0 ∗ winv (⊤, ⊤) ∗ Pinit ∗ TIDAUTH 0 ∗ YIELDAUTH 1))%I
       (SMod.to_mod (SMod.conc_sp_from md) md, IC).
   Proof using.
-    intros Hcancel Hwf [P [Q [Hmain [HP HQ]]]].
+    intros Hcancel [P [Q [Hmain [HP HQ]]]].
     etrans. { eapply inline_elim. }
     etrans; cycle 1. { eapply inline_intro. }
-    intros [wf_fns wf_scopes]; split.
-    { econs; eauto. s.
+    intros Hwfm.
+    assert (Hwfc : Mod.wf (SMod.to_mod ∅ (SMod.cancel md))).
+    { inv Hwfm; econs; ss.
+      revert wf_fns; rewrite !map_Forall_lookup => Hwf i x; specialize (Hwf i).
+      rewrite !lookup_fmap in Hwf; rewrite !lookup_fmap.
+      destruct (SMod.fnsems md !! i) as [[[? ?]|]|]; s; i; clarify.
+      specialize (Hwf None); ss; hexploit Hwf; eauto.
+    }
+    split.
+    { inv Hwfm. econs; eauto. s.
       intros i ? Hl. ss. r in wf_fns. specialize (wf_fns i). ss.
       rewrite !lookup_fmap in Hl, wf_fns. destruct (SMod.fnsems md !! i); ss.
       destruct o; ss; cycle 1.

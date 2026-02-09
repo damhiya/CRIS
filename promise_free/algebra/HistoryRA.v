@@ -24,32 +24,39 @@ Definition viewR : ucmra := authR (Ident.t -d> optionUR (exclR TViewO)).
 Definition hist_freeableUR : ucmra :=
   authUR (Tid.t * Bid.t -d> optionUR (prodR fracR (exclR ZO))).
 
-Class histG `{!crisG Γ Σ α β τ _S _I} := {
-  histG_view :: inG viewR Γ;
-  histG_hist :: inG histR Γ;
-  histG_free :: inG hist_freeableUR Γ;
+Class histGpreS `{!crisG Γ Σ α β τ _S _I} := {
+  #[local] histGS_view :: inG viewR Γ;
+  #[local] histGS_hist :: inG histR Γ;
+  #[local] histGS_free :: inG hist_freeableUR Γ;
+}.
+Class histGS `{!crisG Γ Σ α β τ _S _I} := {
+  #[local] histGS_histGpreS :: histGpreS;
+  view_name : gname;
+  hist_name : gname;
+  free_name : gname;
 }.
 Definition histΓ : HRA := #[viewR; histR; hist_freeableUR].
-Global Instance subG_histG `{!crisG Γ Σ α β τ _S _I} : subG histΓ Γ → histG.
+Global Instance subG_histGS `{!crisG Γ Σ α β τ _S _I} : subG histΓ Γ → histGpreS.
 Proof. solve_inG. Defined.
-Hint Unfold subG_histG histG_view histG_hist histG_free : GRA_index.
+
+Local Existing Instances histGS_histGpreS histGS_view histGS_hist histGS_free.
 
 Implicit Types
   (l : Loc.t) (t : Time.t) (V : View.t) (C ζ : Cell.t) (M : Memory.t) (q : Qp)
   (tid : Ident.t) (𝓥 : TView.t).
 
 Section preds.
-  Context `{!crisG Γ Σ α β τ _S _I, !histG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !histGS}.
 
   (* Hist predicate *)
   Definition hist_def l q C : iProp Σ :=
-    own base_γ (◯ (discrete_fun_singleton l (Some (DfracOwn q, to_agree C)))).
+    own hist_name (◯ (discrete_fun_singleton l (Some (DfracOwn q, to_agree C)))).
   Definition hist_aux : seal (@hist_def). Proof. by eexists. Qed.
   Definition hist := unseal hist_aux.
   Definition hist_eq : @hist = @hist_def := seal_eq hist_aux.
 
   Definition hist_auth_def (m : Memory.t) : iProp Σ :=
-    own base_γ (● ((λ l,
+    own hist_name (● ((λ l,
       if Memory.accessible l m
       then
         Some (DfracOwn 1, to_agree (Memory.get_cell l m))
@@ -60,13 +67,13 @@ Section preds.
 
   (* Tview pred which threads manage *)
   Definition tview_def tid 𝓥 : iProp Σ :=
-    own base_γ (◯ (discrete_fun_singleton tid (Some (Excl 𝓥)))).
+    own view_name (◯ (discrete_fun_singleton tid (Some (Excl 𝓥)))).
   Definition tview_aux : seal (@tview_def). Proof. by eexists. Qed.
   Definition tview := unseal tview_aux.
   Definition tview_eq : @tview = @tview_def := seal_eq tview_aux.
 
   Definition tview_auth_def (ths : Threads.t) : iProp Σ :=
-    own base_γ (● ((λ tid, (option_map (Excl ∘ Local.tview ∘ snd) (IdentMap.find tid ths)))
+    own view_name (● ((λ tid, (option_map (Excl ∘ Local.tview ∘ snd) (IdentMap.find tid ths)))
       : Ident.t -d> optionUR (exclR TViewO))).
   Definition tview_auth_aux : seal (@tview_auth_def). Proof. by eexists. Qed.
   Definition tview_auth := unseal tview_auth_aux.
@@ -76,14 +83,14 @@ Section preds.
   Definition hist_freeable_def l q n : iProp Σ :=
     ∃ tid bid,
       ⌜l = Loc.mk (Some tid) bid 0⌝
-      ∗ own base_γ (◯ (discrete_fun_singleton (tid, bid) (Some (q, Excl n)))).
+      ∗ own free_name (◯ (discrete_fun_singleton (tid, bid) (Some (q, Excl n)))).
   Definition hist_freeable_aux : seal (@hist_freeable_def). Proof. by eexists. Qed.
   Definition hist_freeable := unseal hist_freeable_aux.
   Definition hist_freeable_eq : @hist_freeable = @hist_freeable_def :=
     seal_eq hist_freeable_aux.
 
   Definition hist_freeable_auth_def (m : Memory.t) : iProp Σ :=
-    own base_γ (● ((λ '(tid, bid),
+    own free_name (● ((λ '(tid, bid),
       if Memory.is_freeable (Loc.mk (Some tid) bid 0) m
       then
         match Memory.get_size (Loc.mk (Some tid) bid 0) m with
@@ -105,10 +112,10 @@ Section preds.
 End preds.
 
 Section syn_preds.
-  Context `{!crisG Γ Σ α β τ _S _I, !histG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !histGS}.
 
   Definition syn_hist n loc q C : GTerm.t n :=
-    sown base_γ (◯ (discrete_fun_singleton loc (Some (DfracOwn q, to_agree C)))).
+    sown hist_name (◯ (discrete_fun_singleton loc (Some (DfracOwn q, to_agree C)))).
   Lemma syn_hist_red n loc q C :
     ⟦syn_hist n loc q C⟧ ⊣⊢ hist loc q C.
   Proof. solve_base_sl_red; rewrite /hist seal_eq //. Qed.
@@ -138,7 +145,7 @@ Lemma shift_nat_assoc l (n1 n2: nat) : (l >> n1) >> n2 = l >> (n1 + n2).
 Proof. case l => ???; rewrite /shift -Z.add_assoc; f_equiv; lia. Qed.
 
 Section hist.
-  Context `{!crisG Γ Σ α β τ _S _I, !histG, !atomicG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !histGS}.
 
   Lemma hist_own_to_hist_lookup m loc q C :
     hist_auth m -∗ hist loc q C -∗ ⌜ Memory.get_cell loc m = C ⌝.
@@ -148,9 +155,9 @@ Section hist.
     move : WF => /auth_both_valid_discrete [WF _].
     eapply (discrete_fun_included_spec_1 _ _ loc) in WF.
     move : WF; rewrite discrete_fun_lookup_singleton /=; des_ifs.
-    2:{ intros HS; inv HS; destruct x; inv H1. }
+    2:{ intros HS; inv HS; destruct x; inv H0. }
     move => /Some_included; case.
-    { intros EQ; inv EQ; ss. apply to_agree_inj in H2; inv H2; ss. }
+    { intros EQ; inv EQ; ss. apply to_agree_inj in H1; inv H1; ss. }
     { move => /pair_included [_ Hin]; move: Hin => /to_agree_included -> //. }
   Qed.
 
@@ -173,7 +180,7 @@ Section hist.
 End hist.
 
 Section tview.
-  Context `{!crisG Γ Σ α β τ _S _I, !histG, !atomicG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !histGS}.
 
   Lemma tview_both_valid (ths : Threads.t) tid 𝓥 :
     tview_auth ths -∗ tview tid 𝓥
@@ -225,7 +232,7 @@ Section tview.
 End tview.
 
 Section hist_freeable.
-  Context `{!crisG Γ Σ α β τ _S _I, !histG, !atomicG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !histGS}.
 
   Lemma hist_freeable_auth_alloc lc1 gl1 sz lc2 gl2 loc
       (WF : Global.wf gl1)
@@ -256,7 +263,7 @@ Section hist_freeable.
     remember (Loc.mk _ _ 0) as loc.
     hexploit (Memory.alloc_get_size); eauto; i; des.
     { exfalso; apply NEQ; instantiate (1:=loc) in H1; revert H1; rewrite /Loc.get_tbid; i; clarify. }
-    rewrite H2; des_ifs.
+    rewrite H1; des_ifs.
   Qed.
 
   Lemma hist_freeable_auth_write lc1 gl1 loc from to val releasedm released ord lc2 gl2
@@ -276,7 +283,7 @@ Section hist_freeable.
 End hist_freeable.
 
 Section na_defs.
-  Context `{!crisG Γ Σ α β τ _S _I, !histG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !histGS}.
 
   Definition own_loc_prim l q C V : iProp Σ :=
     ⌜alloc_local l C V⌝ ∗ hist l q C.
@@ -304,7 +311,7 @@ Section na_defs.
 End na_defs.
 
 Section syn_preds.
-  Context `{!crisG Γ Σ α β τ _S _I, !histG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !histGS}.
 
   Definition syn_own_loc_prim n l q C V : GTerm.t n :=
     ⌜alloc_local l C V⌝ ∗ syn_hist n l q C.
@@ -387,7 +394,7 @@ Ltac tview_sync H :=
   end.
 
 Section na_props.
-  Context `{!crisG Γ Σ α β τ _S _I, !histG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !histGS}.
   #[global] Instance alloc_local_mon_pred l C : MonPred (λ V, ⌜alloc_local l C V⌝ : iProp Σ)%I.
   Proof.
     econs; intros ?? Hle; rewrite /view_at /alloc_local /seen_local.

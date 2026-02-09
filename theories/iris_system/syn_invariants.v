@@ -294,12 +294,12 @@ Module inv_instances.
     ⊢ o=> ∃ (Hinv : invGS Γ Σ α) τ (β : @GATIntp.t (iProp Σ) α) (_ : @crisG Γ Σ α β τ _ Hinv),
       winv (⊤, ⊤).
   Proof.
-  iMod (own_admin_alloc) as "$".
-  iMod (own_alloc (CoPset ⊤)) as "[%γe E]"; first done.
-  iMod (own_alloc ((λ _, allocs.allocs_auth _ (const True)) : ownIRA)) as "[%γi I]"; first done.
-  pose (Build_invGS _ γe γi) as Hinv.
-  iModIntro; iExists _, τ, β, Cris_G. iSplitL "E".
-  { rewrite /ownE //. }
-  iExists 0; rewrite /wsats /wsatl /= right_id /wsat_auth /invariant_name //.
+    iMod (own_admin_alloc) as "$".
+    iMod (own_alloc (CoPset ⊤)) as "[%γe E]"; first done.
+    iMod (own_alloc ((λ _, allocs.allocs_auth _ (const True)) : ownIRA)) as "[%γi I]"; first done.
+    pose (Build_invGS _ γe γi) as Hinv.
+    iModIntro; iExists _, τ, β, Cris_G. iSplitL "E".
+    { rewrite /ownE //. }
+    iExists 0; rewrite /wsats /wsatl /= right_id /wsat_auth /invariant_name //.
   Qed.
 End inv_instances.

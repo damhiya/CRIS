@@ -78,7 +78,7 @@ End PFMem. Section PFMemTac.
   Import SchAS HistoryRA AtomicRA.
   Context `{_sinvGpreS: !crisG Γ Σ α β τ _S _I}.
   Context `{_schG: !schG}.
-  Context `{_histG: !histG}.
+  Context `{_histGS: !histGS}.
   Context `{_atomicG: !atomicG}.
 
   Local Definition state : Type := alist key Any.t.

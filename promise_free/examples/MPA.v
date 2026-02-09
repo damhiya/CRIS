@@ -23,7 +23,7 @@ Section one_shot.
 End one_shot.
 
 Module MPA. Section MPA.
-  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !histG, !atomicG, !sysG, !one_shotG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !histGS, !atomicG, !sysGS, !one_shotG}.
   Local Existing Instances one_shot_inG.
 
   (* Invariants *)

@@ -5,39 +5,14 @@ Require Import SchHeader SchI SchA SchIAproof.
 Require Import Cancel.
 
 (* Cancellation *)
-Module MainAll.
-  Import inv_instances.
-
-  (* initialization parameters for memory module *)
-  Local Definition csl : string → bool := λ _, false.
-  Local Definition genv : GEnv.t := GEnv.unit.
-
-  (* HRA & GRA *)
-  Local Instance Γ : HRA := ##[invΓ; concΓ; memΓ; newschΓ; spinlockΓ; spinlockmainΓ].
-  Local Instance Σ : GRA := ##[Γ; invΣ; newschΣ].
-
-  (* initial resources for HRA & GRA *)
-  Definition irΓ : Γ :=
-    **[ir_invΓ; ir_concΓ; ir_memΓ csl genv; SchA.ir_schΓ; LockA.ir; MainA.ir].
-  Definition irΣ : Σ :=
-    **[irΓ; ir_invΣ; SchA.ir_schΣ].
-
-  (* validity lemma for the initial resource irΣ *)
-  Lemma irΣ_valid : ✓ (irΣ ⋅ ir_own_admin).
-  Proof.
-    solve_ir_valid.
-    - apply ir_tidRA_valid.
-    - apply ir_yieldRA_valid.
-    - apply ir_memRA_valid.
-    - apply SchA.ir_newtidRA_valid.
-    - apply SchA.ir_joinRA_valid.
-  Qed.
-
+Section MainAux.
+  Context `{!crisG Γ Σ α β τ Hinv Hsub, !concGS, !memGS, !schGS, !spinlockG, !spinlockmainG}.
+  Context (csl : string → bool) (genv : GEnv.t).
   (* sp of source module (scheduler spec excluded) *)
   Local Definition sp_user : specmap := MainA.sp ⊤.
 
   (* the source SMod *)
-  Local Definition smod_src : SMod.t := MainA.smod nroot ☆ SchA.smod ⊤ sp_user.
+  Local Definition smod_src : SMod.t := MainA.smod nroot ☆ SchA.smod sp_user ⊤.
   (* the top-level module after cancellation *)
   Local Definition mod_top : Mod.t := SMod.to_mod ∅ (SMod.cancel smod_src).
   (* the target module *)
@@ -48,20 +23,6 @@ Module MainAll.
   (* the source Mod *)
   Local Definition mod_src : Mod.t := SMod.to_mod sp smod_src.
 
-  (* Local Definition sp_t : specmap := to_sp (SchA.sp nil ⊤). *)
-  Lemma mod_top_wf : Mod.wf mod_top.
-  Proof.
-    rewrite /mod_top SMod.cancel_add SMod.to_mod_add. eapply Mod.add_wf.
-    { econs; eauto.
-      rewrite /MainA.smod /= /MainA.fnsems /Mod.fnsems /= !fmap_insert !fmap_empty; mod_tac ss.
-    }
-    { econs; eauto.
-      { rewrite /SchA.smod /= /SchA.fnsems /Mod.fnsems /= !fmap_insert !fmap_empty; mod_tac ss. }
-      { ss; rewrite /SchA.scopes; multiset_solver. }
-    }
-    { set_solver. }
-    { set_solver. }
-  Qed.
   (* initial condition for the source *)
   Local Definition init_cond : iProp Σ := (MemA.init_cond csl genv ∗ SchA.init_cond)%I.
 
@@ -71,13 +32,6 @@ Module MainAll.
     repeat try eapply insert_subseteq_l; last apply map_empty_subseteq;
       rewrite lookup_insert_ne // lookup_kmap_Some; eexists (Some _); split; ss.
   Qed.
-
-  (* Lemma SchInSp_t : (SchA.sp [] ⊤) ⊆ sp_s.
-  Proof.
-    rewrite /sp_t /SchA.sp /sp_from /to_sp. unseal CRIS.
-    split; first prove_nodup.
-    ii; s in H. by repeat (destruct (dec _ _); s in H; [depdes e; depdes H; et|]).
-  Qed. *)
 
   Lemma MainInSp : MainA.sp ⊤ ⊆ sp_user.
   Proof.
@@ -100,7 +54,6 @@ Module MainAll.
   Proof.
     eapply Cancel.cancellation.
     { apply SMod.cancellable_add; r; rewrite /= /MainA.fnsems /SchA.fnsems; mod_tac ss. }
-    { apply mod_top_wf. }
     { assert (Ht : SMod.conc_sp_from smod_src !! speckey_entry =
         fsp_some (fspec_sch (↑nroot) fspec_trivial)); last (rewrite Ht; clear Ht).
       { rewrite lookup_insert_ne // lookup_kmap_Some; exists None; split; ss. }
@@ -206,32 +159,41 @@ Module MainAll.
     { rewrite !Mod.dom_fnsems_add; set_solver. }
     { set_solver. }
   Qed.
+End MainAux.
 
-  Lemma init_cond_valid :
-    ∃ rs, ✓ rs ∧ (Own rs ⊢ |==> init_cond ∗ TID 0 ∗ YIELD 0 ∗ winv (⊤, ⊤) ∗ TidFrag 0 0 ∗ TIDAUTH 0 ∗ YIELDAUTH 1).
-  Proof.
-    exists (irΣ ⋅ ir_own_admin). split.
-    - apply irΣ_valid.
-    - simplify_res.
-      { rewrite make_own_admin; iFrame.
-        iDestruct "H28" as "[H24 Htid]". iFrame.
-        rewrite /MemA.init_cond /ir_memRA; iDestruct "H30" as "[$ _]".
-        iPoseProof (make_sys_init with "[$] [$]") as "[$ [$ [$ $]]]". done.
-      }
-    all: solve_res.
-  (*SLOW*)Qed.
+Module MainAll.
+  Import inv_instances.
+
+  (* initialization parameters for memory module *)
+  Local Definition csl : string → bool := λ _, false.
+  Local Definition genv : GEnv.t := GEnv.unit.
+
+  (* HRA & GRA *)
+  Local Instance Γ : HRA := ##[invΓ; concΓ; memΓ; newschΓ; spinlockΓ; spinlockmainΓ].
+  Local Instance Σ : GRA := ##[Γ; invΣ; newschΣ].
 
   (* tgt Mod ⊆ cancelled Mod *)
   Theorem behavioral_refinement :
-    ∃ src_res tgt_res, refines_lmod
+    ∃ β τ (Hinv : invGS Γ Σ α) (_ : crisG Γ Σ α β τ _ Hinv) (_ : concGS) (_ : schGS) (_ : memGS)
+      src_res tgt_res, refines_lmod
       (Mod.to_lmod mod_top src_res)
-      (Mod.to_lmod mod_tgt tgt_res).
+      (Mod.to_lmod (mod_tgt csl genv) tgt_res).
   Proof.
-    move: (cancel_tgt)=>H; rewrite /refines in H; des; ss.
-    hexploit H; eauto using tgt_wf. clear H; intros [WF H].
-    assert (IV:= init_cond_valid). des.
-    destruct (H rs); des; et.
-    rewrite IV0 /init_cond {1}winv_split_empty.
-    iIntros ">[[$ $] [$ [$ [[? ?] ?]]]]". iFrame. done.
+    apply own_admin_soundness.
+    iMod winv_alloc as "[% [% [% [% ?]]]]"; iExists _, _, _, _.
+    iMod conc_alloc as "[% ?]"; iExists _.
+    iMod sch_alloc as "[% ?]"; iExists _.
+    iMod (mem_alloc csl genv) as "[% ?]"; iExists _.
+    pose proof (cancel_tgt csl genv) as Href.
+    iStopProof. eapply entails_pointwise; iIntros (res Hres) "R".
+    iPoseProof (Own_valid with "R") as "%".
+    rewrite /refines in Href; hexploit Href; eauto using tgt_wf.
+    clear Href; intros [? Href].
+    iPureIntro; hexploit (Href res); eauto.
+    { rewrite Hres; iIntros "[W [[$ [$ [$ $]]] [[$ $] [$ _]]]]".
+      rewrite {1}winv_split_empty comm //.
+    }
+    intros [rt ?].
+    exists res, rt; by des.
   (*SLOW*)Qed.
 End MainAll.

@@ -8,26 +8,23 @@ Definition ProphInst : Type :=
   { P : Prophecy.t & (P.(Prophecy.Pro) * list P.(Prophecy.Obs))%type }.
 Canonical Structure ProphInstO := leibnizO ProphInst.
 
-Section RA.
-  Context `{_crisG: !crisG Γ Σ α β τ _I _S}.
-
-  Definition ProphRA : ucmra := Prophecy.ID -d> excl_authUR ProphInstO.
-  Definition IdRA : ucmra := Prophecy.ID -d> excl_authUR unitO.
-  
-  Class prophG := {
-    proph_inG :: inG ProphRA Γ;
-    id_inG :: inG IdRA Γ;
-  }.
-  Definition prophΓ : HRA := #[ProphRA; IdRA].
-  Global Instance subG_prophG : subG prophΓ Γ → prophG.
-  Proof. solve_inG. Defined.
-
-End RA.
-Hint Unfold subG_prophG proph_inG id_inG : GRA_index.
+Definition ProphRA : ucmra := Prophecy.ID -d> excl_authUR ProphInstO.
+Definition IdRA : ucmra := Prophecy.ID -d> excl_authUR unitO.
+Class prophGpreS `{!crisG Γ Σ α β τ _I _S} := {
+  #[local] proph_inG :: inG ProphRA Γ;
+  #[local] id_inG :: inG IdRA Γ;
+}.
+Class prophGS `{!crisG Γ Σ α β τ _I _S} := {
+  #[local] prophGS_prophGpreS :: prophGpreS;
+  proph_name : gname;
+  id_name : gname;
+}.
+Definition prophΓ : HRA := #[ProphRA; IdRA].
+Global Instance subG_prophG `{!crisG Γ Σ α β τ _I _S} : subG prophΓ Γ → prophGpreS.
+Proof. solve_inG. Defined.
 
 Section ProphecyRA.
-  Context `{_crisG: !crisG Γ Σ α β τ _I _S}.
-  Context `{_prophG: !prophG}.
+  Context `{!crisG Γ Σ α β τ _I _S, !prophGS}.
 
   Definition dummy_proph : Prophecy.t :=
     {| Prophecy.Pro := ();
@@ -41,39 +38,28 @@ Section ProphecyRA.
     econs. instantiate (1:=dummy_proph). simpl. exact (tt, []).
   Qed.
 
-  Section ProphRA.
-
   Definition has_proph_r (id : Prophecy.ID) (v : ProphInst) : ProphRA :=
-     discrete_fun_singleton id (◯E v).
+    discrete_fun_singleton id (◯E v).
   Definition has_proph (id : Prophecy.ID) (v : ProphInst) : iProp Σ :=
-    own base_γ (has_proph_r id v).
+    own proph_name (has_proph_r id v).
 
   Definition has_proph_auth_r (P : Prophecy.ID → Prop) (map : Prophecy.ID -> ProphInst) : ProphRA :=
-       λ id,
-         if excluded_middle_informative (P id)
-         then ●ε
-         else ●E (map id).
+    λ id,
+      if excluded_middle_informative (P id)
+      then ●ε
+      else ●E (map id).
 
   Definition has_proph_auth (P : Prophecy.ID → Prop) (map : Prophecy.ID -> ProphInst) : iProp Σ :=
-    own base_γ (has_proph_auth_r P map).
+    own proph_name (has_proph_auth_r P map).
 
   (* initial resource should have no prophecy value *)
   Definition proph_ir : DRA_mk ProphRA :=
-    has_proph_auth_r (Ensembles.Full_set _) (fun _ => dummy_prophinst).
-
-  Lemma proph_ir_valid : ✓ proph_ir.
-  Proof using Type.
-    ii. unfold proph_ir, has_proph_auth_r. ss. des_ifs; rewrite auth_auth_valid; clarify.
-  Qed.
-
-  End ProphRA.
-
-  Section IdRA.
+    has_proph_auth_r (Ensembles.Full_set _) (const dummy_prophinst).
 
   Definition free_id_r (P : Prophecy.ID → Prop) : IdRA :=
      λ i, if (excluded_middle_informative (P i)) then ◯E () else ε.
   Definition free_id (P : Prophecy.ID → Prop) : iProp Σ :=
-    own base_γ (free_id_r P).
+    own id_name (free_id_r P).
 
   Lemma free_id_r_split P Q R :
     (∀ i, P i <-> Q i ∨ R i) →
@@ -113,20 +99,33 @@ Section ProphecyRA.
   Definition free_id_auth_r (P : Prophecy.ID → Prop) : IdRA :=
     λ i, if (excluded_middle_informative (P i)) then ●E() else ●ε.
   Definition free_id_auth (P : Prophecy.ID → Prop) : iProp Σ :=
-    own base_γ (free_id_auth_r P).
+    own id_name (free_id_auth_r P).
 
-  Definition free_id_ir : DRA_mk IdRA := free_id_auth_r (Ensembles.Full_set _) ⋅ λ i, ◯E().
+  (* Definition free_id_ir : DRA_mk IdRA := free_id_auth_r (Ensembles.Full_set _) ⋅ λ i, ◯E(). *)
 
-  Lemma free_id_auth_valid : ✓ free_id_ir.
+  (* Lemma free_id_auth_valid : ✓ free_id_ir.
   Proof using Type.
     ii. unfold free_id_ir, free_id_auth_r. discrete_fun_tac.
     des_ifs.
     - rewrite auth_both_valid_discrete. clarify.
     - exfalso. apply n. econs.
-  Qed.
-
-  End IdRA.
-
-  Definition irΓ : prophΓ := *[Some proph_ir; Some free_id_ir].
+  Qed. *)
 
 End ProphecyRA.
+
+Lemma proph_alloc `{!crisG Γ Σ α β τ _I _S, !prophGpreS} :
+  ⊢ o=> ∃ (_ : prophGS),
+    has_proph_auth (Full_set _) (const dummy_prophinst) ∗
+    free_id_auth (Full_set _) ∗
+    free_id (Full_set _).
+Proof.
+  iMod (own_alloc (has_proph_auth_r (Ensembles.Full_set _) (const dummy_prophinst))) as "[%γp ?]".
+  { rewrite /has_proph_auth_r; ii; des_ifs; apply auth_auth_valid; ss. }
+  iMod (own_alloc (free_id_auth_r (Ensembles.Full_set _) ⋅ free_id_r (Ensembles.Full_set _)))
+    as "[%γi ?]".
+  { rewrite /free_id_r /free_id_auth_r; intros i; rewrite discrete_fun_lookup_op; case_match; ss.
+    { apply auth_both_valid_discrete; split; ss. }
+    { rewrite right_id auth_auth_valid //. }
+  }
+  by iExists (Build_prophGS _ γp γi); rewrite own_op; iFrame.
+Qed.

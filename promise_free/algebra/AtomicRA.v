@@ -19,12 +19,10 @@ Definition naWriteR : cmra := optionR $ agreeR $ leibnizO View.t.
 (* the real one *)
 Definition atomicR  : cmra := prodR histMSR (prodR exWriteR naWriteR).
 
-Class atomicG `{!crisG Γ Σ α β τ _S _I} := { atomic_inG : inG atomicR Γ; }.
-Local Existing Instance atomic_inG.
+Class atomicG `{!crisG Γ Σ α β τ _S _I} := { #[local] atomic_inG :: inG atomicR Γ; }.
 Definition atomicΓ : HRA := #[atomicR].
 Global Instance subG_atomicG `{!crisG Γ Σ α β τ _S _I} : subG atomicΓ Γ → atomicG.
 Proof. solve_inG. Defined.
-(* TODO : add more boilerplates *)
 
 Definition toHistBaseUR : Cell.t → histBaseUR := λ c, (to_agreeM (Cell.to_gmap c)).
 
@@ -42,7 +40,7 @@ Implicit Types
   (tid : Ident.t) (𝓥 : TView.t).
 
 Section ghost_defs.
-  Context `{!crisG Γ Σ α β τ _S _I, !histG, !atomicG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !histGS, !atomicG}.
   (* TODO : last non-atomic view might be useless to carry around in this model *)
   Definition at_last_na γ (Va : View.t) : iProp Σ :=
     own γ ((ε, (ε, Some $ to_agree Va)) : atomicR).
@@ -65,7 +63,7 @@ End ghost_defs.
 (* TODO : add properties, and move to a separate file *)
 
 Section ghost_defs.
-  Context `{!crisG Γ Σ α β τ _S _I, !histG, !atomicG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !histGS, !atomicG}.
     
   (* at_exclusive_write *)
   #[global] Instance at_exclusive_write_fractional γ t :
@@ -290,7 +288,7 @@ Section ghost_defs.
 End ghost_defs.
 
 Section atomic_preds.
-  Context `{!crisG Γ Σ α β τ _S _I, !histG, !atomicG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !histGS, !atomicG}.
 
   Definition SeenLocal loc ζ V : iProp Σ :=
     ⌜ View.alloc_view V (Loc.get_tbid loc) (* is not in iRC11 *)
@@ -390,7 +388,7 @@ Global Instance: Params (@AtomicCASerX) 4 := {}.
 Global Instance: Params (@AtomicCASerX) 4 := {}.
 
 Section syn_atomic_preds.
-  Context `{!crisG Γ Σ α β τ _S _I, !histG, !atomicG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !histGS, !atomicG}.
 
   Definition syn_SeenLocal n loc ζ V : GTerm.t n :=
     ⌜ View.alloc_view V (Loc.get_tbid loc) (* is not in iRC11 *)
@@ -496,7 +494,7 @@ Notation "l 'casX⊒{' γ ',' t ',' q '}' ζ" := (AtomicCASerX l γ t ζ q)
   (at level 20, format "l  casX⊒{ γ , t , q }  ζ")  : bi_scope.
 
 Section atomic_preds.
-  Context `{!crisG Γ Σ α β τ _S _I, !histG, !atomicG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !histGS, !atomicG}.
   (* Instances *)
   #[global] Instance SeenLocal_mon_pred l ζ : MonPred (SeenLocal l ζ).
   Proof.

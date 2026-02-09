@@ -7,11 +7,11 @@ Definition joinRA `{α : GAT.t} :=
 Definition newtidRA := gmap_viewUR nat (agreeR nat).
 
 Class schGpreS `{!crisG Γ Σ α β τ _S _I} := {
-  inG_join : inG joinRA Σ;
-  inG_tid : inG newtidRA Γ;
+  #[local] inG_join :: inG joinRA Σ;
+  #[local] inG_tid :: inG newtidRA Γ;
 }.
 Class schGS `{!crisG Γ Σ α β τ _S _I} := {
-  schGS_schGpreS :: schGpreS;
+  #[local] schGS_schGpreS :: schGpreS;
   join_name : gname;
   tid_name : gname
 }.

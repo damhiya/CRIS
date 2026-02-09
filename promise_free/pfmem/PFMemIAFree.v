@@ -5,7 +5,7 @@ Require Import PFMemIAproof.
 
 Section free.
   Import PFMemIA.
-  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !histG, !atomicG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !histGS, !atomicG}.
 
   Context (sp : specmap).
   Context (syn : Threads.syntax).
@@ -241,7 +241,7 @@ Section free.
     iDestruct "OL" as (????) "[_ OL]".
 
     iAssert (
-      |==> own base_γ
+      |==> own hist_name
         ((● ((λ l: Loc.t,
           if Loc.id_eq_dec (Loc.tid l, Loc.bid l) (Some tid, bid)
           then 

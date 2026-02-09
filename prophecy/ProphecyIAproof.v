@@ -5,7 +5,7 @@ Require Import ExtendedBehavior SimGEx.
 Require Import exco_stream.
 
 Module ProphIA. Section ProphIA.
-  Context `{_crisG : !crisG Γ Σ α β τ _I _S, _concG : !concGS, _prophG : !prophG}.
+  Context `{_crisG : !crisG Γ Σ α β τ _I _S, _concG : !concGS, _prophG : !prophGS}.
 
   Definition real_mod (md : Mod.t) : Prop :=
     map_Forall
@@ -705,12 +705,13 @@ Module ProphIA. Section ProphIA.
     unfold_fnsem. rewrite ?fmap_insert ?fmap_empty // ?map_Forall_insert; ss.
   Qed.
 
+  Local Existing Instances prophGS_prophGpreS proph_inG id_inG.
   Lemma adequacy_aux sp rs_src rs_tgt rs_proph rs_prog_tgt rs_prog_src proph_map free_ids extr thidx thl_src thl_tgt pstore
     (WFMODT : Mod.wf (md ★ ProphecyI.t))
     (VALID : ✓ rs_src)
     (REQ : rs_src ~~> rs_tgt ⋅ rs_proph)
-    (RS : rs_proph ≡ (own.iRes_singleton base_γ (has_proph_auth_r free_ids proph_map) ⋅
-      own.iRes_singleton base_γ (free_id_auth_r free_ids)))
+    (RS : rs_proph ≡ (own.iRes_singleton proph_name (has_proph_auth_r free_ids proph_map) ⋅
+      own.iRes_singleton id_name (free_id_auth_r free_ids)))
     (WF : Forall2 wf_sim thl_src thl_tgt)
     (INV :
       forall id (NOTFREE : ~(free_ids id)),
@@ -963,8 +964,8 @@ Module ProphIA. Section ProphIA.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind.
       grind. unfold LModTr.pure_state at 1. grind. apply wsimg_choose_src.
-      exists (rs_tgt ⋅ (own.iRes_singleton base_γ (has_proph_auth_r (Ensembles.Subtract _ free_ids i1) proph_map')
-                ⋅ own.iRes_singleton base_γ (free_id_auth_r (Ensembles.Subtract _ free_ids i1)))).
+      exists (rs_tgt ⋅ (own.iRes_singleton proph_name (has_proph_auth_r (Ensembles.Subtract _ free_ids i1) proph_map')
+                ⋅ own.iRes_singleton id_name (free_id_auth_r (Ensembles.Subtract _ free_ids i1)))).
       grind. steps_l. rewrite !list_insert_insert.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et.
@@ -975,20 +976,20 @@ Module ProphIA. Section ProphIA.
              has_proph i1 (existT t (p4, []))) ∗ ⌜
               tt ↑ = tt ↑⌝) ∗
            Own
-           (rs_tgt ⋅ (own.iRes_singleton base_γ
+           (rs_tgt ⋅ (own.iRes_singleton proph_name
               (has_proph_auth_r
                  (Ensembles.Subtract Prophecy.ID free_ids i1) proph_map')
-              ⋅ own.iRes_singleton base_γ
+              ⋅ own.iRes_singleton id_name
               (free_id_auth_r
                  (Ensembles.Subtract Prophecy.ID free_ids i1))))).
       { iIntros "A". iPoseProof (p2 with "A") as ">[[[_ B] _] [D E]]".
         rewrite RS. iDestruct "E" as "[E F]".
-        iAssert (own base_γ (has_proph_auth_r free_ids proph_map)) with "[E]" as "E".
+        iAssert (own proph_name (has_proph_auth_r free_ids proph_map)) with "[E]" as "E".
         { rewrite own.Own_eq own.own_eq /own.own_def /own.Own_def //=. }
-        iAssert (own base_γ (free_id_auth_r free_ids)) with "[F]" as "F".
+        iAssert (own id_name (free_id_auth_r free_ids)) with "[F]" as "F".
         { rewrite own.Own_eq own.own_eq /own.own_def /own.Own_def //=. }
-        iAssert ( |==> (own base_γ (has_proph_auth_r (Ensembles.Subtract _ free_ids i1) proph_map') ∗ has_proph i1 (existT t (p3, []))))%I with "[E]" as ">[E G]"; cycle 1.
-        iAssert ( |==> (own base_γ (free_id_auth_r (Ensembles.Subtract _ free_ids i1))))%I with "[B F]" as ">B"; cycle 1.
+        iAssert ( |==> (own proph_name (has_proph_auth_r (Ensembles.Subtract _ free_ids i1) proph_map') ∗ has_proph i1 (existT t (p3, []))))%I with "[E]" as ">[E G]"; cycle 1.
+        iAssert ( |==> (own id_name (free_id_auth_r (Ensembles.Subtract _ free_ids i1))))%I with "[B F]" as ">B"; cycle 1.
         { iFrame. iModIntro. iSplit; et.
           rewrite own.own_eq /own.own_def own.Own_eq /own.Own_def.
           iCombine "D E B" as "E". iFrame. }
@@ -1011,7 +1012,7 @@ Module ProphIA. Section ProphIA.
         - unfold has_proph.
           iAssert
             ( |==>
-               own base_γ
+               own proph_name
                ((has_proph_auth_r (Ensembles.Subtract Prophecy.ID free_ids i1)
                   proph_map') ⋅
                (has_proph_r i1 (existT t (p3, [])))))%I with "[E]" as ">[E G]"; cycle 1.
@@ -1034,18 +1035,18 @@ Module ProphIA. Section ProphIA.
           apply (@auth_update_alloc _ (optionUR (exclR ProphInstO))).
           apply alloc_option_local_update. done. }
       assert
-        (✓ (rs_tgt ⋅ (own.iRes_singleton base_γ
+        (✓ (rs_tgt ⋅ (own.iRes_singleton proph_name
               (has_proph_auth_r
                  (Ensembles.Subtract Prophecy.ID free_ids i1) proph_map')
-              ⋅ own.iRes_singleton base_γ
+              ⋅ own.iRes_singleton id_name
               (free_id_auth_r
                  (Ensembles.Subtract Prophecy.ID free_ids i1))))).
       { assert
           (p0 ~~>
-             (rs_tgt ⋅ (own.iRes_singleton base_γ
+             (rs_tgt ⋅ (own.iRes_singleton proph_name
                 (has_proph_auth_r
                    (Ensembles.Subtract Prophecy.ID free_ids i1) proph_map')
-                ⋅ own.iRes_singleton base_γ
+                ⋅ own.iRes_singleton id_name
                 (free_id_auth_r
                    (Ensembles.Subtract Prophecy.ID free_ids i1))))).
         { apply Own_bupd_update. iIntros "A".
@@ -1110,28 +1111,16 @@ Module ProphIA. Section ProphIA.
       unfold cfunU, SB.sandbox_body, SB.sandbox, ModTr.trans_fnsem, ModTr.trans, SModTr.trans.
       simpl.
 
-      (* unfold precond, postcond. destruct p. ss. destruct s, p, p. ss.
-      unfold cfunU, SB.sandbox_body, SB.sandbox, ModTr.trans_ktree, ModTr.trans, SModTr.trans.
-      simpl. rewrite !SRed.ret. grind. *)
       rewrite !interpV_bind !interpV_trigger. simpl.
       rewrite bind_ret_r. grind. rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et.
       grind. unfold LModTr.pure_state at 1. grind. steps_l. grind.
-      (* destruct p. ss. destruct s, p, p. ss. *)
       unfold cfunU, SB.sandbox_body, SB.sandbox, ModTr.trans_fnsem, ModTr.trans, SModTr.trans.
       steps_l. grind. rewrite list_insert_insert.
       rewrite interpV_ret; ired.
-      (* simpl. rewrite !SRed.ret. grind. *)
       rewrite !interpV_bind !interpV_trigger. simpl.
       rewrite bind_ret_r interpV_trigger. simpl.
       rewrite bind_ret_r. grind. rewrite unfold_iterV. simpl.
-      (* rewrite list_lookup_insert; et. *)
-      (* 2:{ rewrite length_insert //. } *)
-      (* grind. unfold LModTr.pure_state at 1. grind. steps_l. grind.
-      steps_l. rewrite !list_insert_insert.
-      simpl. rewrite !interpV_bind !interpV_trigger. simpl.
-      rewrite bind_ret_r interpV_trigger. simpl. grind.
-      rewrite unfold_iterV. simpl. *)
       rewrite !list_lookup_insert; et. grind. steps_l. grind.
       rewrite !list_insert_insert. rewrite Any.pair_split. grind.
       rewrite Any.upcast_downcast. grind.
@@ -1214,9 +1203,9 @@ Module ProphIA. Section ProphIA.
           else proph_map i.
       exists
         (rs_tgt
-           ⋅ (own.iRes_singleton base_γ
+           ⋅ (own.iRes_singleton proph_name
                 (has_proph_auth_r free_ids proph_map')
-                ⋅ own.iRes_singleton base_γ (free_id_auth_r free_ids))).
+                ⋅ own.iRes_singleton id_name (free_id_auth_r free_ids))).
       grind. step_l. rewrite list_insert_insert.
       hexploit INV; et. i. des.
       punfold H. inversion H.
@@ -1267,22 +1256,22 @@ Module ProphIA. Section ProphIA.
                  () ↑ () ↑ ∗
            Own
            (rs_tgt ⋅
-              (own.iRes_singleton base_γ (has_proph_auth_r free_ids proph_map')
-              ⋅ own.iRes_singleton base_γ (free_id_auth_r free_ids)))).
+              (own.iRes_singleton proph_name (has_proph_auth_r free_ids proph_map')
+              ⋅ own.iRes_singleton id_name (free_id_auth_r free_ids)))).
       { iIntros "A". iPoseProof (p3 with "A") as ">[[[A B] C] [D E]]".
         iDestruct "E" as "[E F]".
-        iAssert (own base_γ (has_proph_auth_r free_ids proph_map)) with "[E]" as "E".
+        iAssert (own proph_name (has_proph_auth_r free_ids proph_map)) with "[E]" as "E".
         { rewrite own.Own_eq own.own_eq /own.own_def /own.Own_def //=. }
-        iAssert (own base_γ (free_id_auth_r free_ids)) with "[F]" as "F".
+        iAssert (own id_name (free_id_auth_r free_ids)) with "[F]" as "F".
         { rewrite own.Own_eq own.own_eq /own.own_def /own.Own_def //=. }
-        iAssert ( |==> (own base_γ (has_proph_auth_r free_ids proph_map') ∗ has_proph i1 (existT (projT1 (proph_map i1)) (p, o :: l))))%I with "[E B]" as ">[E G]"; cycle 1.
+        iAssert ( |==> (own proph_name (has_proph_auth_r free_ids proph_map') ∗ has_proph i1 (existT (projT1 (proph_map i1)) (p, o :: l))))%I with "[E B]" as ">[E G]"; cycle 1.
         { iFrame. iModIntro. iSplit; et.
           rewrite own.own_eq /own.own_def own.Own_eq /own.Own_def.
           iCombine "D E F" as "E". iFrame. }
         unfold has_proph.
         iAssert
           ( |==>
-              own base_γ
+              own proph_name
               ((has_proph_auth_r free_ids proph_map') ⋅
                  (has_proph_r i1 (existT (projT1 (proph_map i1)) (p, o::l)))))%I with "[B E]" as ">[B E]"; cycle 1.
         { iModIntro. iFrame. }
@@ -1302,17 +1291,17 @@ Module ProphIA. Section ProphIA.
         { typeclasses eauto. } done. }
       assert
         (✓ (rs_tgt ⋅
-              (own.iRes_singleton base_γ
+              (own.iRes_singleton proph_name
                  (has_proph_auth_r free_ids proph_map')
                  ⋅
-                 own.iRes_singleton base_γ
+                 own.iRes_singleton id_name
                    (free_id_auth_r free_ids)))).
       { assert
           (p1 ~~>
              (rs_tgt ⋅
-                (own.iRes_singleton base_γ
+                (own.iRes_singleton proph_name
                    (has_proph_auth_r free_ids proph_map')
-                ⋅ own.iRes_singleton base_γ
+                ⋅ own.iRes_singleton id_name
                    (free_id_auth_r free_ids)))).
         { apply Own_bupd_update. iIntros "A".
           iPoseProof (H with "A") as ">[A B]". iModIntro. iFrame. }
@@ -1464,8 +1453,8 @@ Module ProphIA. Section ProphIA.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind.
       unfold LModTr.pure_state at 1. grind. steps_l.
-      exists (rs_tgt ⋅ (own.iRes_singleton base_γ (has_proph_auth_r (Ensembles.Add _ free_ids i1) proph_map)
-                ⋅ own.iRes_singleton base_γ (free_id_auth_r (Ensembles.Add _ free_ids i1)))).
+      exists (rs_tgt ⋅ (own.iRes_singleton proph_name (has_proph_auth_r (Ensembles.Add _ free_ids i1) proph_map)
+                ⋅ own.iRes_singleton id_name (free_id_auth_r (Ensembles.Add _ free_ids i1)))).
       grind. steps_l. rewrite !list_insert_insert.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind.
@@ -1474,21 +1463,21 @@ Module ProphIA. Section ProphIA.
         (Own p0 ⊢ |==>
            postcond ProphecyA.close_spec (i1, existT x (p', l)) () ↑ () ↑ ∗
            Own
-           (rs_tgt ⋅ (own.iRes_singleton base_γ
+           (rs_tgt ⋅ (own.iRes_singleton proph_name
               (has_proph_auth_r
                  (Ensembles.Add Prophecy.ID free_ids i1) proph_map)
-              ⋅ own.iRes_singleton base_γ
+              ⋅ own.iRes_singleton id_name
               (free_id_auth_r
                  (Ensembles.Add Prophecy.ID free_ids i1))))).
       { iIntros "A". iPoseProof (p3 with "A") as ">[[[A B] C] [D E]]".
         rewrite RS. iDestruct "E" as "[E F]".
         unfold has_proph.
-        iAssert (own base_γ (has_proph_auth_r free_ids proph_map)) with "[E]" as "E".
+        iAssert (own proph_name (has_proph_auth_r free_ids proph_map)) with "[E]" as "E".
         { rewrite own.Own_eq own.own_eq /own.own_def /own.Own_def //=. }
-        iAssert (own base_γ (free_id_auth_r free_ids)) with "[F]" as "F".
+        iAssert (own id_name (free_id_auth_r free_ids)) with "[F]" as "F".
         { rewrite own.Own_eq own.own_eq /own.own_def /own.Own_def //=. }
-        iAssert ( |==> (own base_γ (has_proph_auth_r (Ensembles.Add _ free_ids i1) proph_map)))%I with "[E B]" as ">E"; cycle 1.
-        iAssert ( |==> own base_γ
+        iAssert ( |==> (own proph_name (has_proph_auth_r (Ensembles.Add _ free_ids i1) proph_map)))%I with "[E B]" as ">E"; cycle 1.
+        iAssert ( |==> own id_name
                           ((free_id_auth_r (Ensembles.Add _ free_ids i1))
                           ⋅(free_id_r (λ y, y = i1))))%I with "[F]" as ">[B F]"; cycle 1.
         { iFrame. iModIntro. iSplit; et.
@@ -1529,18 +1518,18 @@ Module ProphIA. Section ProphIA.
           { typeclasses eauto. }
           rewrite right_id. et. }
       assert
-        (✓ (rs_tgt ⋅ (own.iRes_singleton base_γ
+        (✓ (rs_tgt ⋅ (own.iRes_singleton proph_name
               (has_proph_auth_r
                  (Ensembles.Add Prophecy.ID free_ids i1) proph_map)
-              ⋅ own.iRes_singleton base_γ
+              ⋅ own.iRes_singleton id_name
               (free_id_auth_r
                  (Ensembles.Add Prophecy.ID free_ids i1))))).
       { assert
           (p0 ~~>
-             (rs_tgt ⋅ (own.iRes_singleton base_γ
+             (rs_tgt ⋅ (own.iRes_singleton proph_name
                 (has_proph_auth_r
                    (Ensembles.Add Prophecy.ID free_ids i1) proph_map)
-                ⋅ own.iRes_singleton base_γ
+                ⋅ own.iRes_singleton id_name
                 (free_id_auth_r
                    (Ensembles.Add Prophecy.ID free_ids i1))))).
         { apply Own_bupd_update. iIntros "A".
@@ -1692,7 +1681,8 @@ Module ProphIA. Section ProphIA.
       (WFMODT : Mod.wf (md ★ ProphecyI.t))
       (WFR : ✓ r_src)
       (REQ : r_src ~~> r_tgt ⋅ r_proph)
-      (RS : r_proph ≡ (own.iRes_singleton base_γ (has_proph_auth_r (Ensembles.Full_set _) (fun _ => dummy_prophinst)) ⋅ own.iRes_singleton base_γ (free_id_auth_r (Ensembles.Full_set _)))) :
+      (RS : r_proph ≡ (own.iRes_singleton proph_name (has_proph_auth_r (Ensembles.Full_set _) (fun _ => dummy_prophinst)) ⋅
+        own.iRes_singleton id_name (free_id_auth_r (Ensembles.Full_set _)))) :
     refines_lmod (Mod.to_lmod (md ★ (ProphecyA.t sp)) r_src)
       (Mod.to_lmod (md ★ ProphecyI.t) r_tgt).
   Proof using Hreal.
@@ -1721,7 +1711,7 @@ Module ProphIA. Section ProphIA.
     destruct (Mod.fnsems _ !! None); ss.
   Qed.
 
-  Lemma adequacy_refines sp (P : iProp Σ):
+  Lemma adequacy_refines sp (P : iProp Σ) :
     refines (md ★ (ProphecyA.t sp), (P ∗ ProphecyA.initial_cond)%I) (md ★ ProphecyI.t, P).
   Proof using Hreal.
     ii. ss. split; [apply src_mod_wf; et|].
@@ -1731,7 +1721,7 @@ Module ProphIA. Section ProphIA.
     specialize (WFR 0). apply SRC in WFR. apply cmra_discrete_valid in WFR.
     ss.
     unfold ProphecyA.initial_cond, has_proph_auth, free_id_auth in SRC1.
-    assert (Own a2 ⊢ Own (own.iRes_singleton base_γ (has_proph_auth_r (Ensembles.Full_set Prophecy.ID) (λ _ : Prophecy.ID, dummy_prophinst)) ⋅ own.iRes_singleton base_γ (free_id_auth_r (Ensembles.Full_set Prophecy.ID)))).
+    assert (Own a2 ⊢ Own (own.iRes_singleton proph_name (has_proph_auth_r (Ensembles.Full_set Prophecy.ID) (λ _ : Prophecy.ID, dummy_prophinst)) ⋅ own.iRes_singleton id_name (free_id_auth_r (Ensembles.Full_set Prophecy.ID)))).
     { iIntros "A". iPoseProof (SRC1 with "A") as "[A B]".
       rewrite own.own_eq /own.own_def. iCombine "A B" as "B".
       rewrite own.Own_eq /own.Own_def. et. }

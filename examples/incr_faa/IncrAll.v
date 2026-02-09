@@ -32,20 +32,6 @@ Section ClientAux.
   Local Definition init_cond : iProp Σ :=
     MemA.init_cond csl genv ∗ SchA.init_cond.
 
-  Lemma mod_top_wf : Mod.wf mod_top.
-  Proof.
-    rewrite /mod_top SMod.cancel_add SMod.to_mod_add. eapply Mod.add_wf.
-    { econs; eauto.
-      rewrite /ClientA.smod /= /ClientA.fnsems /Mod.fnsems /= !fmap_insert !fmap_empty; mod_tac ss.
-    }
-    { econs; eauto.
-      { rewrite /SchA.smod /= /SchA.fnsems /Mod.fnsems /= !fmap_insert !fmap_empty; mod_tac ss. }
-      { ss; rewrite /SchA.scopes; multiset_solver. }
-    }
-    { set_solver. }
-    { set_solver. }
-  Qed.
-
   (* Apply cancellation to linked spec module *)
   Lemma cancel_src :
     refines
@@ -54,7 +40,6 @@ Section ClientAux.
   Proof.
     eapply Cancel.cancellation.
     { apply SMod.cancellable_add; r; rewrite /= /ClientA.fnsems /SchA.fnsems; mod_tac ss. }
-    { apply mod_top_wf. }
     { assert (Ht : SMod.conc_sp_from smod_src !! speckey_entry =
         fsp_some (fspec_sch (↑nroot) fspec_trivial)); last (rewrite Ht; clear Ht).
       { rewrite lookup_insert_ne // lookup_kmap_Some; exists None; split; ss. }
