@@ -3,6 +3,7 @@ Require Import ProphecyHeader.
 
 Module ProphecyI. Section ProphecyI.
   Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
+  Context (mn : string).
 
   Definition scopes : list string := [].
 
@@ -14,9 +15,9 @@ Module ProphecyI. Section ProphecyI.
     λ _, Ret tt↑.
 
   Definition fnsems : fnsemmap :=
-    {[Some ProphecyName.new := Some (msk_real (msk_scp scopes msk_true), (None, new));
-      Some ProphecyName.resolve := Some (msk_real (msk_scp scopes msk_true), (None, new));
-      Some ProphecyName.close := Some (msk_real (msk_scp scopes msk_true), (None, close))]}.
+    {[Some (ProphecyName.new mn) := Some (msk_real (msk_scp scopes msk_true), (None, new));
+      Some (ProphecyName.resolve mn) := Some (msk_real (msk_scp scopes msk_true), (None, new));
+      Some (ProphecyName.close mn) := Some (msk_real (msk_scp scopes msk_true), (None, close))]}.
 
   Program Definition Mod : SMod.t := {|
     SMod.scopes := scopes;

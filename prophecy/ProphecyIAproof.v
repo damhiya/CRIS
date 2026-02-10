@@ -1,27 +1,11 @@
 From stdpp Require Import base strings.
 Require Import CRIS Mod LMod.
-Require Import ProphecyHeader ProphecyI ProphecyA.
+Require Export ProphecyHeader ProphecyI ProphecyA.
 Require Import ExtendedBehavior SimGEx.
 Require Import exco_stream.
 
 Module ProphIA. Section ProphIA.
   Context `{_crisG : !crisG Γ Σ α β τ _I _S, _concG : !concGS, _prophG : !prophGS}.
-
-  Definition real_mod (md : Mod.t) : Prop :=
-    map_Forall
-      (λ _ (v : option (emask * fbody)),
-        match v with
-        | Some (msk, _) =>
-            (∀ P, msk _ (subevent _ (Assume P)) = false) ∧
-            ∀ X, msk _ (subevent _ (Take X)) = true → ∃ (P : Prop), X = P
-        | _ => False
-        end) (Mod.fnsems md).
-
-  (* Variable smds : list SMod.t. *)
-
-  (* Hypothesis PHYS : Forall (λ smd, physical_smod smd) smds. *)
-
-  (* Let md : Mod.t := Mod.addL (List.map (SMod.to_mod sp_none) smds). *)
 
   Variant _take_is_prop (coself : itree lmodE Any.t -> Prop) : itree lmodE Any.t -> Prop :=
   | take_is_prop_ret retv
@@ -120,10 +104,10 @@ Module ProphIA. Section ProphIA.
           pclearbot. et.
   Qed.
 
-  Context (md : Mod.t) (Hreal : real_mod md).
+  Context (md : Mod.t) (Hreal : real_mod md) (mn : string).
 
   Lemma mod_take_is_prop r fn i arg :
-    (Mod.to_lmod (md ★ ProphecyI.t) r).(LMod.fnsems) !! fn = Some i →
+    (Mod.to_lmod (md ★ ProphecyI.t mn) r).(LMod.fnsems) !! fn = Some i →
     take_is_prop (i arg).
   Proof using Hreal.
     dup Hreal.
@@ -133,7 +117,7 @@ Module ProphIA. Section ProphIA.
       ∀ X, msk _ (subevent _ (Take X)) = true → ∃ (P : Prop), X = P).
     { rewrite lookup_union_with ?lookup_fmap in Hfn.
       destruct (_ !! fn) as [[[? ?]|]|] eqn : ?; ss; simplify_eq.
-      { destruct (ProphecyI.fnsems !! fn); ss.
+      { destruct (ProphecyI.fnsems mn !! fn); ss.
         rewrite /real_mod map_Forall_lookup in Hreal0; eapply Hreal0 in Heqo; ss.
         rewrite /SModTr.trans_fnsem in Hfn; clarify.
       }
@@ -210,11 +194,11 @@ Module ProphIA. Section ProphIA.
   Proof using Type. induction l. hss. hss. destruct a. hss. rewrite IHl. ss. Qed. *)
 
   Lemma mod_proph_comp_sim
-      (WF : Mod.wf (md ★ ProphecyI.t)) :
+      (WF : Mod.wf (md ★ ProphecyI.t mn)) :
     forall arg r,
       comp_sim
-        (LMod.compile (Mod.to_lmod (md ★ ProphecyI.t) r) arg)
-        (proph_compile (Mod.to_lmod (md ★ ProphecyI.t) r) arg).
+        (LMod.compile (Mod.to_lmod (md ★ ProphecyI.t mn) r) arg)
+        (proph_compile (Mod.to_lmod (md ★ ProphecyI.t mn) r) mn arg).
   Proof using Hreal.
     ii.
     unfold LMod.compile, proph_compile. ss.
@@ -407,7 +391,10 @@ Module ProphIA. Section ProphIA.
             eapply lookup_fmap_Some in EE as [? [<- EE]].
             eapply lookup_omap_id_Some in EE.
             apply lookup_union_with_Some in EE as [[? EE] | [[? EE] | ]].
-            { des; subst; rewrite /ProphecyI.fnsems in EE; ss. }
+            { des; subst; rewrite /ProphecyI.fnsems in EE;
+              rewrite !lookup_fmap in EE;
+              repeat (rewrite lookup_insert in EE || rewrite lookup_insert_ne // in EE); ss.
+            }
             { rewrite /Mod.fnsems /= /ProphecyI.fnsems in EE; des; subst;
               ss; simpl_map; ss; clarify;
               rewrite /ModTr.trans_fnsem /ModTr.trans /SB.sandbox_body /SModTr.trans_fnsem /=;
@@ -445,7 +432,9 @@ Module ProphIA. Section ProphIA.
             eapply lookup_fmap_Some in EE as [? [<- EE]].
             eapply lookup_omap_id_Some in EE.
             apply lookup_union_with_Some in EE as [[? EE] | [[? EE] | ]].
-            { des; subst; rewrite /ProphecyI.fnsems in EE; ss. }
+            { des; subst; rewrite /ProphecyI.fnsems in EE; ss;
+              rewrite !lookup_fmap in EE;
+              repeat (rewrite lookup_insert in EE || rewrite lookup_insert_ne // in EE); ss. }
             { rewrite /Mod.fnsems /= /ProphecyI.fnsems /= in EE; des; subst; ss; simpl_map; ss; clarify;
               rewrite /ModTr.trans_fnsem /ModTr.trans /SB.sandbox_body /SModTr.trans_fnsem /=;
                 esplits; rewrite /ProphecyI.new /ProphecyI.resolve /ProphecyI.close
@@ -483,13 +472,11 @@ Module ProphIA. Section ProphIA.
   (*SLOW*)Qed.
 
   Lemma prophecy_tgt_exbeh_exists
-      (WF : Mod.wf (md ★ ProphecyI.t)) :
+      (WF : Mod.wf (md ★ ProphecyI.t mn)) :
     forall arg r tr
-      (BEH: Beh.of_itree (LMod.compile (Mod.to_lmod (md ★ ProphecyI.t) r) arg) tr),
-      exists extr, tr_extr_relation tr extr /\ ExBeh.of_itree (proph_compile (Mod.to_lmod (md ★ ProphecyI.t) r) arg) extr.
-  Proof using Hreal.
-    i. eapply comp_sim_tgt_extr_exists; et. apply mod_proph_comp_sim. et.
-  Qed.
+      (BEH: Beh.of_itree (LMod.compile (Mod.to_lmod (md ★ ProphecyI.t mn) r) arg) tr),
+      exists extr, tr_extr_relation tr extr /\ ExBeh.of_itree (proph_compile (Mod.to_lmod (md ★ ProphecyI.t mn) r) mn arg) extr.
+  Proof using Hreal. i. eapply comp_sim_tgt_extr_exists; et. apply mod_proph_comp_sim. et. Qed.
 
   Let proph_newI :=
     (ModTr.trans_fnsem ∘ SB.sandbox_body)
@@ -529,19 +516,19 @@ Module ProphIA. Section ProphIA.
   | wf_prophecy_new sp arg ktr_src ktr_tgt
     (NEXT: coself (ktr_src tt↑) (false, ktr_tgt tt↑))
     : _wf_sim coself (x <- proph_newA sp arg;; ktr_src x)
-        (true, trigger (IO (O:=()) (ProphecyName.new) arg);;;
+        (true, trigger (IO (O:=()) (ProphecyName.new mn) arg);;;
          x <- proph_newI arg;; ktr_tgt x)
 
   | wf_prophecy_resolve sp arg ktr_src ktr_tgt
     (NEXT: coself (ktr_src tt↑) (false, ktr_tgt tt↑))
     : _wf_sim coself (x <- proph_resolveA sp arg;; ktr_src x)
-        (true, trigger (IO (O:=()) (ProphecyName.resolve) arg);;;
+        (true, trigger (IO (O:=()) (ProphecyName.resolve mn) arg);;;
          x <- proph_resolveI arg;; ktr_tgt x)
 
   | wf_prophecy_close sp arg ktr_src ktr_tgt
     (NEXT: coself (ktr_src tt↑) (false, ktr_tgt tt↑))
     : _wf_sim coself (x <- proph_closeA sp arg;; ktr_src x)
-        (true, trigger (IO (O:=()) (ProphecyName.close) arg);;;
+        (true, trigger (IO (O:=()) (ProphecyName.close mn) arg);;;
          x <- proph_closeI arg;; ktr_tgt x)
 
   | wf_sget key ktr_src ktr_tgt
@@ -563,10 +550,7 @@ Module ProphIA. Section ProphIA.
   Definition wf_sim := paco2 _wf_sim bot2.
 
   Lemma wf_sim_mon : monotone2 _wf_sim.
-  Proof using.
-    ii. destruct IN; des; eauto using _wf_sim.
-  Qed.
-
+  Proof using. ii. destruct IN; des; eauto using _wf_sim. Qed.
   Hint Constructors _wf_sim : core.
   Hint Resolve wf_sim_mon: paco.
 
@@ -574,15 +558,13 @@ Module ProphIA. Section ProphIA.
       thl_src thl_tgt
       (WF : Forall2 wf_sim thl_src thl_tgt) :
     forall n itr_src, thl_src !! n = Some itr_src -> exists itr_tgt, <<TGTITR : thl_tgt !! n = Some itr_tgt>> /\ <<WFITR : wf_sim itr_src itr_tgt>>.
-  Proof using Type.
-    induction WF; i; ss. destruct n; ss; clarify; et.
-  Qed.
+  Proof using. induction WF; i; ss. destruct n; ss; clarify; et. Qed.
 
   Lemma wf_sim_bind itrs itrt ktrs ktrt
       (L1 : wf_sim itrs (false, itrt))
       (L2 : forall x, wf_sim (ktrs x) (false, ktrt x)) :
     wf_sim (itrs >>= ktrs) (false, itrt >>= ktrt).
-  Proof using Type.
+  Proof using.
     Local Opaque itreeV_itree.
     depgen itrs. depgen itrt. pcofix CIH. i. punfold L1. inv L1.
     - ired. apply pacobot2. apply L2.
@@ -696,17 +678,17 @@ Module ProphIA. Section ProphIA.
   Hint Constructors _extrace_obs_stream_relation : core.
   Hint Resolve extrace_obs_stream_relation_mon : paco.
 
-  Lemma src_mod_wf sp (WF : Mod.wf (md ★ ProphecyI.t)) :
-    Mod.wf (md ★ (ProphecyA.t sp)).
+  Lemma src_mod_wf sp (WF : Mod.wf (md ★ ProphecyI.t mn)) : Mod.wf (md ★ (ProphecyA.t mn sp)).
   Proof using Hreal.
     apply Mod.add_wf_inv in WF as [? [? [? ?]]].
     eapply Mod.add_wf; eauto.
-    econs; [mod_tac | prove_nodup].
+    { econs; [mod_tac | prove_nodup]. }
+    set_solver.
   Qed.
 
   Local Existing Instances prophGS_prophGpreS proph_inG id_inG.
   Lemma adequacy_aux sp rs_src rs_tgt rs_proph rs_prog_tgt rs_prog_src proph_map free_ids extr thidx thl_src thl_tgt pstore
-    (WFMODT : Mod.wf (md ★ ProphecyI.t))
+    (WFMODT : Mod.wf (md ★ ProphecyI.t mn))
     (VALID : ✓ rs_src)
     (REQ : rs_src ~~> rs_tgt ⋅ rs_proph)
     (RS : rs_proph ≡ (own.iRes_singleton proph_name (has_proph_auth_r free_ids proph_map) ⋅
@@ -716,7 +698,7 @@ Module ProphIA. Section ProphIA.
       forall id (NOTFREE : ~(free_ids id)),
         exists obs_str,
         let p := proph_map id in
-        extrace_obs_stream_relation id (projT1 p) extr obs_str
+        extrace_obs_stream_relation mn id (projT1 p) extr obs_str
         /\ forall i', consistent_sany (projT1 p)
                        (Prophecy.firstn (λ i, nth (stream_app (reverse (List.map SAny.upcast (snd (projT2 p)))) (stream_map SAny.upcast obs_str)) i) i')
                        (fst (projT2 p)))
@@ -725,9 +707,9 @@ Module ProphIA. Section ProphIA.
         (x_ <-
            interp_state (case_ LModTr.handle_stateE LModTr.pure_state)
              (iterV
-                (proph_handle_callE
+                (proph_handle_callE mn
                    (LMod.prog
-                      (Mod.to_lmod (md ★ ProphecyI.t) rs_prog_tgt)))
+                      (Mod.to_lmod (md ★ ProphecyI.t mn) rs_prog_tgt)))
                 (thidx, thl_tgt)) (Any.pair pstore (rs_tgt : Σ) ↑);; Ret x_.2) extr) :
 
     simg_ex false false extr
@@ -735,13 +717,13 @@ Module ProphIA. Section ProphIA.
          LModTr.interp_stateE Any.t
            (iterV
               (LModTr.handle_callE
-                 (LMod.prog (Mod.to_lmod (md ★ (ProphecyA.t sp)) rs_prog_src)))
+                 (LMod.prog (Mod.to_lmod (md ★ (ProphecyA.t mn sp)) rs_prog_src)))
               (thidx, thl_src)) (Any.pair pstore rs_src ↑);; Ret x.2)
       (x <-
          LModTr.interp_stateE Any.t
            (iterV
-              (proph_handle_callE
-                 (LMod.prog (Mod.to_lmod (md ★ ProphecyI.t) rs_prog_tgt)))
+              (proph_handle_callE mn
+                 (LMod.prog (Mod.to_lmod (md ★ ProphecyI.t mn) rs_prog_tgt)))
               (thidx, thl_tgt)) (Any.pair pstore (rs_tgt : Σ) ↑);; Ret x.2).
   Proof using Hreal.
     Local Opaque wsimg.
@@ -796,7 +778,9 @@ Module ProphIA. Section ProphIA.
           }
           des_ifs; cycle 1.
           { exfalso; rewrite /LMod.prog /= ?lookup_fmap lookup_omap lookup_union_with in Heq.
-            rewrite Hfn in Heq; des; subst; ss.
+            rewrite Hfn in Heq; des; subst;
+              rewrite !lookup_fmap in Heq;
+              repeat (rewrite lookup_insert in Heq || rewrite lookup_insert_ne // in Heq); ss.
           }
           grind. endsim; cycle 1.
           { i. hexploit INV; et. i. clear o. des. esplits; et.
@@ -829,7 +813,8 @@ Module ProphIA. Section ProphIA.
           }
           des_ifs; cycle 1.
           { exfalso; rewrite /LMod.prog /= ?lookup_fmap lookup_omap lookup_union_with in Heq.
-            rewrite Hfn in Heq; des; subst; ss.
+            rewrite Hfn !lookup_fmap in Heq; des; subst;
+              repeat (rewrite lookup_insert in Heq || rewrite lookup_insert_ne // in Heq); ss.
           }
           grind. endsim; cycle 1.
           { i. hexploit INV; et. i. clear o. des. esplits; et.
@@ -953,7 +938,7 @@ Module ProphIA. Section ProphIA.
       rewrite !list_lookup_insert; et. grind. steps_l.
       rewrite Any.pair_split. grind. rewrite !list_insert_insert.
       rewrite Any.upcast_downcast. grind.
-      destruct (extrace_has_obs_stream extr i1 t).
+      destruct (extrace_has_obs_stream mn extr i1 t).
       pose proof (t.(Prophecy.coverage) (nth x)). des.
       set proph_map' :=
         λ i,
@@ -1063,7 +1048,7 @@ Module ProphIA. Section ProphIA.
       rewrite !list_lookup_insert; et. grind. steps_l.
       rewrite !list_insert_insert. rewrite !interpV_ret. grind.
       (* rewrite !interpV_tau !interpV_ret. grind. *)
-      rewrite (unfold_iterV (proph_handle_callE _)). simpl.
+      rewrite (unfold_iterV (proph_handle_callE mn _)). simpl.
       rewrite !list_lookup_insert; [| erewrite <- Forall2_length; et].
       ss. grind. steps_r.
       rewrite !list_insert_insert.
@@ -1321,7 +1306,7 @@ Module ProphIA. Section ProphIA.
       rewrite !list_lookup_insert; et. grind. steps_l.
       rewrite !list_insert_insert.
       rewrite !interpV_ret. grind.
-      rewrite (unfold_iterV (proph_handle_callE _)). simpl.
+      rewrite (unfold_iterV (proph_handle_callE mn _)). simpl.
       (* rewrite (unfold_iterV (proph_handle_callE _)). simpl. *)
       rewrite !list_lookup_insert; [| erewrite <- Forall2_length; et].
       ss. grind. steps_r.
@@ -1544,7 +1529,7 @@ Module ProphIA. Section ProphIA.
       rewrite unfold_iterV. simpl.
       rewrite !list_lookup_insert; et. grind. steps_l.
       rewrite !list_insert_insert. rewrite !interpV_ret. grind.
-      rewrite (@unfold_iterV _ _ _ (proph_handle_callE _)). simpl.
+      rewrite (@unfold_iterV _ _ _ (proph_handle_callE mn _)). simpl.
       rewrite !list_lookup_insert; [| erewrite <- Forall2_length; et].
       ss. grind. steps_r.
       rewrite !list_insert_insert.
@@ -1677,16 +1662,17 @@ Module ProphIA. Section ProphIA.
   (* If prophecy value is given in initial state, context module cannot be parameterized and should have expected behavior *)
   Lemma adequacy_refines_mod sp
       (r_src r_tgt r_proph : Σ)
-      (WFMODT : Mod.wf (md ★ ProphecyI.t))
+      (WFMODT : Mod.wf (md ★ ProphecyI.t mn))
       (WFR : ✓ r_src)
       (REQ : r_src ~~> r_tgt ⋅ r_proph)
-      (RS : r_proph ≡ (own.iRes_singleton proph_name (has_proph_auth_r (Ensembles.Full_set _) (fun _ => dummy_prophinst)) ⋅
-        own.iRes_singleton id_name (free_id_auth_r (Ensembles.Full_set _)))) :
-    refines_lmod (Mod.to_lmod (md ★ (ProphecyA.t sp)) r_src)
-      (Mod.to_lmod (md ★ ProphecyI.t) r_tgt).
+      (RS : r_proph ≡
+        (own.iRes_singleton proph_name (has_proph_auth_r (Ensembles.Full_set _) (λ _, dummy_prophinst)) ⋅
+         own.iRes_singleton id_name (free_id_auth_r (Ensembles.Full_set _)))) :
+    refines_lmod (Mod.to_lmod (md ★ (ProphecyA.t mn sp)) r_src)
+      (Mod.to_lmod (md ★ ProphecyI.t mn) r_tgt).
   Proof using Hreal.
     ii. apply prophecy_tgt_exbeh_exists in PR; et. des.
-    pose proof (extrace_has_obs_stream extr).
+    pose proof (extrace_has_obs_stream mn extr).
     revert PR0. unfold LMod.compile. unfold proph_compile.
     remember (_ !! None). set (_ !! None).
     assert (o = o0).
@@ -1698,7 +1684,7 @@ Module ProphIA. Section ProphIA.
     { i. unfold triggerUB. rewrite bind_bind. pfold. econs. econs. i. clarify. }
     rewrite !bind_ret_l. unfold ITree.map. i.
     eapply simg_ex_adequacy; et.
-    replace (Mod.initial_st ProphecyI.t) with (Mod.initial_st (ProphecyA.t sp)) in PR0; cycle 1.
+    replace (Mod.initial_st (ProphecyI.t mn)) with (Mod.initial_st (ProphecyA.t mn sp)) in PR0; cycle 1.
     { do 2 (unfold_mod; ss). }
     eapply adequacy_aux; et; cycle 1.
     { i. exfalso. apply NOTFREE. ss. }
@@ -1711,7 +1697,7 @@ Module ProphIA. Section ProphIA.
   Qed.
 
   Lemma adequacy_refines sp (P : iProp Σ) :
-    refines (md ★ (ProphecyA.t sp), (P ∗ ProphecyA.initial_cond)%I) (md ★ ProphecyI.t, P).
+    refines (md ★ (ProphecyA.t mn sp), (P ∗ ProphecyA.initial_cond)%I) (md ★ ProphecyI.t mn, P).
   Proof using Hreal.
     ii. ss. split; [apply src_mod_wf; et|].
     i. rewrite assoc in SRC. apply Own_bupd_split in SRC; et. des.

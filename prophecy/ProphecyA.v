@@ -4,6 +4,7 @@ Require Import Ensembles.
 
 Module ProphecyA. Section ProphecyA.
   Context `{!crisG Γ Σ α β τ _S _I, !concGS, !prophGS}.
+  Context (mn : string).
 
   Definition scopes : list string := [].
 
@@ -32,11 +33,11 @@ Module ProphecyA. Section ProphecyA.
       )%I.
 
   Definition fnsems : fnsemmap :=
-    {[Some ProphecyName.new :=
+    {[Some (ProphecyName.new mn) :=
         Some (msk_scp scopes msk_true, (fsp_some new_spec, fbody_trivial));
-      Some ProphecyName.resolve :=
+      Some (ProphecyName.resolve mn) :=
         Some (msk_scp scopes msk_true, (fsp_some resolve_spec, fbody_trivial));
-      Some ProphecyName.close :=
+      Some (ProphecyName.close mn) :=
         Some (msk_scp scopes msk_true, (fsp_some close_spec, fbody_trivial))]}.
 
   Program Definition Mod : SMod.t := {|
