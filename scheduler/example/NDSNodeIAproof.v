@@ -8,7 +8,7 @@ Require Import ltac2_lib.
 Module NDSNodeIA. Section NDSNodeIA.
   Import NDSNodeA.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concGS}.
-  Context `{_ndsG: !NDSA.ndsG}.
+  Context `{_ndsG: !NDSA.ndsGS}.
   Context `{_memGS: !MemLib.memGS}.
 
   Context (sp sp_user: specmap).
@@ -47,7 +47,7 @@ Module NDSNodeIA. Section NDSNodeIA.
               (λ varg arg, ⌜varg = (tt↑↑) ∧ arg = ((Vptr (blk, 0%Z))↑↑)⌝ ∗ inv_x_points_to (blk, 0%Z))%I,
               (λ vret ret, existT 0 (⌜vret = tt↑↑ ∧ ret = tt↑↑⌝%SAT))).
     steps_l.
-    iMod ((inv_alloc (∃ (v: τ{ ⇣nat }), sown base_γ (mem_points_to_singleton_r (blk, 0%Z) 1 (Vint v)))%SAT) with "[PT]") as "#I"; eauto.
+    iMod ((inv_alloc (∃ (v: τ{ ⇣nat }), sown mem_name (mem_points_to_singleton_r (blk, 0%Z) 1 (Vint v)))%SAT) with "[PT]") as "#I"; eauto.
     { solve_base_sl_red. iExists 0. iFrame. }
     forces_l. iSplitL "tidF".
     { iExists _. iSplit; eauto. do 3 iExists _. iSplit; eauto. iSplitR "tidF"; eauto.
@@ -147,7 +147,7 @@ End NDSNodeIA. End NDSNodeIA.
 Section ctxr.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concGS}.
   Context `{_schG: !SchA.schGS}.
-  Context `{_ndsG: !NDSA.ndsG}.
+  Context `{_ndsG: !NDSA.ndsGS}.
   Context `{_memGS: !MemLib.memGS}.
 
   Lemma ctxr sp sp_user

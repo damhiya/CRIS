@@ -5,7 +5,7 @@ From iris Require Import gmap_view.
 Module NDSIA. Section sim.
   Import NDSA.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concGS}.
-  Context `{_ndsG: !ndsG}.
+  Context `{_ndsG: !ndsGS}.
 
   Context (sp (* sp_sch_user *) sp_nds_user : specmap).
   Context (parent_yield: string).
@@ -30,7 +30,7 @@ Module NDSIA. Section sim.
     (list (nat * option (SAny.t * SAny.t) * (SAny.t -d> SAny.t -d> leibnizO {n : level & GTerm.t n}))).
 
   Definition Ist_init (mtid stid ssch: nat) (ths: ths_type) : iProp Σ :=
-    (⌜ths = [] ∧ mtid = 0 ∧ ssch = 0⌝ ∗ Pending ∗ own base_γ (gmap_view_auth (DfracOwn 1) ∅ : pubRA))%I.
+    (⌜ths = [] ∧ mtid = 0 ∧ ssch = 0⌝ ∗ Pending ∗ pub_priv)%I.
   Definition Ist_private (mtid stid ssch : nat) (ths: ths_type) : iProp Σ :=
     ⌜∃ ro_cur post_cur, ths !! mtid = Some (stid, ro_cur, post_cur)⌝ ∗
     ([∗ list] i ↦ e ∈ ths.*1.*1, if decide (i = mtid) then emp else YIELD e) ∗
@@ -43,14 +43,12 @@ Module NDSIA. Section sim.
     ∗ PublicAuth ((λ '(n, rv, _), (n, fst <$> rv : option SAny.t)) <$> ths) (Some mtid).
   Definition Ist_global_in (mtid stid ssch : nat) (ths: ths_type) : iProp Σ :=
     ⌜∃ ro_cur post_cur, ths !! mtid = Some (stid, ro_cur, post_cur)⌝ ∗
-    ([∗ list] _ ↦ e ∈ ths.*1.*1, YIELD e) ∗ Shot ssch ∗
-    own base_γ (gmap_view_frag mtid (DfracOwn (1/2)%Qp) (to_agree (Some stid)))
+    ([∗ list] _ ↦ e ∈ ths.*1.*1, YIELD e) ∗ Shot ssch ∗ tid_global mtid stid
     ∗ PublicAuth ((λ '(n, rv, _), (n, fst <$> rv : option SAny.t)) <$> ths) None.
   Definition Ist_global_out (mtid stid ssch : nat) (ths: ths_type) : iProp Σ :=
     ⌜∃ ro_cur post_cur, ths !! mtid = Some (stid, ro_cur, post_cur)⌝ ∗
     ([∗ list] i ↦ e ∈ ths.*1.*1, if decide (i = mtid) then emp else YIELD e) ∗
-    YIELD ssch ∗ Shot ssch ∗
-    own base_γ (gmap_view_frag mtid (DfracOwn (1/2)%Qp) (to_agree (Some stid)))
+    YIELD ssch ∗ Shot ssch ∗ tid_global mtid stid
     ∗ PublicAuth ((λ '(n, rv, _), (n, fst <$> rv : option SAny.t)) <$> ths) None.
 
   Definition Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ :=
@@ -68,14 +66,14 @@ Module NDSIA. Section sim.
                        <$> ths : list (nat * option SAny.t))↑;
              NDSI.v_tid := Some tid_cur↑;
              NDSI.v_sch := Some ssch↑]}⌝ ∗
-        JoinAuth (list_to_map (imap (λ i RR, (i, to_agree (Some RR))) ths.*2)) ∗
-        TidAuth (list_to_map (imap (λ x y, (x, Some y)) ths.*1.*1)) ∗
+        JoinAuth (list_to_map (imap (λ i RR, (i, to_agree RR)) ths.*2)) ∗
+        TidAuth (list_to_map (imap pair ths.*1.*1)) ∗
         ([∗ list] i ↦ e ∈ ths,
           match e.1.2 with
           | None => True
           | Some (vrv, rv) =>
-              JoinFrag (3/4) i (Some e.2) ∗ interp_cond (e.2 vrv rv) ∨
-              JoinFrag 1 i (Some e.2)
+              JoinFrag (3/4) i e.2 ∗ interp_cond (e.2 vrv rv) ∨
+              JoinFrag 1 i e.2
           end) ∗
         (Ist_init tid_cur stid_cur ssch ths
          ∨ Ist_private tid_cur stid_cur ssch ths
@@ -122,24 +120,24 @@ Module NDSIA. Section sim.
     set (mtid_new := 0).
 
     iMod (own_update with "JoinA") as "[JoinA JoinF]".
-    { eapply (gmap_view_alloc _ mtid_new (DfracOwn 1) (to_agree (Some post))); ss. }
+    { eapply (gmap_view_alloc _ mtid_new (DfracOwn 1) (to_agree post)); ss. }
     
     iMod (own_update with "TidA") as "[TidA TidF]".
-    { eapply (gmap_view_alloc _ mtid_new (DfracOwn 1) (to_agree (Some stid_new))); ss. }
+    { eapply (gmap_view_alloc _ mtid_new (DfracOwn 1) (to_agree stid_new)); ss. }
 
     iMod (Pending_Shot (get_stid x) with "[P P']") as "S"; iFrame.
     iPoseProof (Shot_dup with "S") as "[S S']".
 
-    rewrite -{3}Qp.three_quarter_quarter -dfrac_op_own -{2}(agree_idemp (to_agree _)).
+    rewrite -{2}Qp.three_quarter_quarter -dfrac_op_own -{2}(agree_idemp (to_agree _)).
     iDestruct "JoinF" as "[JoinF1 JoinF2]".
 
-    rewrite -{5}Qp.half_half -dfrac_op_own -{2}(agree_idemp (to_agree (Some stid_new))).
+    rewrite -{4}Qp.half_half -dfrac_op_own -{2}(agree_idemp (to_agree stid_new)).
     iDestruct "TidF" as "[TidF1 TidF2]".
 
     iMod (own_update with "Pub") as "[PubA PubF]".
-    { eapply (gmap_view_alloc _ None (DfracOwn 1) (to_agree (Some false))); ss. }
+    { eapply (gmap_view_alloc _ None (DfracOwn 1) (to_agree (false))); ss. }
     iMod (own_update with "PubA") as "[PubA PubF']".
-    { eapply (gmap_view_alloc _ (Some 0) (DfracOwn 1) (to_agree (Some false))); ss. }
+    { eapply (gmap_view_alloc _ (Some 0) (DfracOwn 1) (to_agree (false))); ss. }
     
     force_l. iSplitL "JoinF1 TidF1 C PRE PubF' Spawn".
     { iIntros "Y T W". iFrame. iExists _. iSplit; eauto. rewrite /Public. unseal NDS. iFrame; eauto. }
@@ -152,7 +150,7 @@ Module NDSIA. Section sim.
     iApply wsim_yield. iSplitL "Y JoinA JoinF2 TidA TidF2 S' PubA".
     { iExists [(stid_new, None, post)], 0, stid_new, (get_stid x). iSplit; eauto. ss. iFrame.
       iSplit; eauto. do 4 iRight. iFrame; ss.
-      rewrite /PublicAuth. unseal NDS. iSplit; eauto. }
+      rewrite /PublicAuth. unseal NDS. rewrite /tid_global. iSplit; eauto. }
     iIntros (st_s' st_t') "IST".
 
     steps_l. steps_r. iDestruct "ASM" as "(T & Y & WI)".
@@ -160,7 +158,7 @@ Module NDSIA. Section sim.
     steps_l. iApply wsim_bind. iSplitL; cycle 1.
     { instantiate (1:= λ _ _, False%I). iIntros (????) "X"; ss. }
 
-    clear H3. iClear "Rs". iApply wsim_reset. iStopProof.
+    clear H2. iClear "Rs". iApply wsim_reset. iStopProof.
     revert st_t'. combine_quant st_s'. combine_quant x.
     eapply wsim_coind. i. destruct_quant CIH.
     destruct a as [x [st_s' st_t']]. s.
@@ -208,12 +206,12 @@ Module NDSIA. Section sim.
     iPoseProof (Shot_match with "S S'") as "%"; subst.
 
     steps_l. steps_r. hss. steps_l. steps_r. hss_l; hss_r. steps_l. steps_r.
-    rewrite !list_lookup_fmap !H1 /=. steps_l. steps_r.
+    rewrite !list_lookup_fmap !H0 /=. steps_l. steps_r.
     do 2 (case_decide as H'; ss; clear H').    
     steps_r. forces_l.
 
     iPoseProof (big_sepL_delete _ ths.*1.*1 tid_cur with "Ys") as "[Y' Ys]"; eauto.
-    { rewrite ?list_lookup_fmap H1 //. }
+    { rewrite ?list_lookup_fmap H0 //. }
 
     iSplitL "Y' T WI"; iFrame.
 
@@ -246,7 +244,7 @@ Module NDSIA. Section sim.
         destruct (decide (tid_cur = mtid)); subst; cycle 1.
         { iPoseProof (big_sepL_lookup_acc _ _ mtid with "Ys") as "[YIELD2 _]"; eauto.
           case_decide; clarify; by iPoseProof (YieldToken_both with "YIELD YIELD2") as "%". }
-        rewrite !list_lookup_fmap H1 in Hmtid0. inv Hmtid0.
+        rewrite !list_lookup_fmap H0 in Hmtid0. inv Hmtid0.
         iPoseProof (Public_Auth_Token with "PubA PubF") as "%". ss. }
       { iDestruct "IST_global_in" as "(% & Ys & S' & tidF)"; des; subst.
         iPoseProof (Tid_Auth_Tid with "[TidA TidF]") as "%Hmtid"; first iFrame.
@@ -269,7 +267,7 @@ Module NDSIA. Section sim.
         eapply gmap_view_frag_valid in wf; des; ss. }
       { iDestruct "IST_init" as "(% & P & PubA)"; des; subst; ss.
         iPoseProof (Tid_Auth_Tid with "[TidA TidF]") as "%"; iFrame.
-        rewrite lookup_empty // in H1. }
+        rewrite lookup_empty // in H0. }
 
       iDestruct "IST_private" as "(% & Ys & Ysch & S' & C' & PubA)"; des; subst.
       iPoseProof (Tid_Auth_Tid with "[TidA TidF]") as "%Hmtid"; first iFrame.
@@ -278,7 +276,7 @@ Module NDSIA. Section sim.
       destruct (decide (tid_cur = mtid)); subst; cycle 1.
       { iPoseProof (big_sepL_lookup_acc _ _ mtid with "Ys") as "[YIELD2 _]"; eauto.
         case_decide; clarify; by iPoseProof (YieldToken_both with "YIELD YIELD2") as "%". }
-      rewrite !list_lookup_fmap H1 in Hmtid0. inv Hmtid0.
+      rewrite !list_lookup_fmap H0 in Hmtid0. inv Hmtid0.
 
       iDestruct "Spawn" as "(%fsp & %Hspawn & Spawn)".
       erewrite lookup_weaken; cycle 1.
@@ -287,7 +285,7 @@ Module NDSIA. Section sim.
       { iPureIntro; exists (mtid, stid, ssch); split; done. }
 
       iPoseProof (Public_update_public with "PubA PubF") as ">[PubA PubF]"; eauto.
-      { rewrite !list_lookup_fmap H1 /=. eauto. }
+      { rewrite !list_lookup_fmap H0 /=. eauto. }
 
       iPoseProof (Shot_dup with "S'") as "[S S']".
 
@@ -326,10 +324,10 @@ Module NDSIA. Section sim.
       destruct (decide (tid_cur = mtid)); subst; cycle 1.
       { iPoseProof (big_sepL_lookup_acc _ _ mtid with "Ys") as "[YIELD2 _]"; eauto.
         case_decide; clarify; by iPoseProof (YieldToken_both with "YIELD YIELD2") as "%". }
-      rewrite !list_lookup_fmap H2 in Hmtid0. inv Hmtid0.
+      rewrite !list_lookup_fmap H1 in Hmtid0. inv Hmtid0.
 
       steps_l. steps_r. hss_l; hss_r. steps_l. steps_r. hss_l; hss_r. steps_l. steps_r.
-      rewrite ?list_lookup_fmap H2 /=.
+      rewrite ?list_lookup_fmap H1 /=.
       steps_l. steps_r.
 
       iCombine "TidA TidF"
@@ -344,7 +342,7 @@ Module NDSIA. Section sim.
       eapply elem_of_list_to_map_2, elem_of_lookup_imap in Hav'.
       destruct Hav' as [mtid3 [postS' [EQ Hmtid3]]]; symmetry in EQ; inv EQ.
       apply to_agree_included in Hincl; symmetry in Hincl.
-      rewrite list_lookup_fmap H2 in Hmtid3; ss. clarify.
+      rewrite list_lookup_fmap H1 in Hmtid3; ss. clarify.
 
       (* IST construction *)
       set (st_s2 := {[_:=_;_:=_;_:=_]}).
@@ -354,7 +352,7 @@ Module NDSIA. Section sim.
         iExists (<[mtid := (stid, Some (vr, sret), _)]> ths0), mtid, stid, ssch0.
         iSplit.
         { rewrite !list_fmap_insert. ss. }
-        eapply elem_of_list_split_length in H2 as [ths1 [ths2 [-> Hlen]]].
+        eapply elem_of_list_split_length in H1 as [ths1 [ths2 [-> Hlen]]].
         iSplitL "JoinA".
         { rewrite Hlen. rewrite insert_app_r_alt; last done.
           rewrite Nat.sub_diag /= ?fmap_app ?imap_app //=.
@@ -368,8 +366,8 @@ Module NDSIA. Section sim.
           iPoseProof (big_sepL_insert_acc _ _ mtid with "Rs") as "[_ RET]"; ss.
           { rewrite Hlen lookup_app_Some; right; split; ss; rewrite Nat.sub_diag //=. }
           iPoseProof ("RET" $! (stid, Some (vr, sret), postS') with "[Q JoinF]") as "RET".
-          { ss. inv Hincl. specialize (H4 vr sret) as Hincl'. rewrite Hincl'.
-            rewrite /JoinFrag /=; iLeft; iFrame. rewrite H4. iFrame. }
+          { ss. specialize (Hincl vr sret) as Hincl'. rewrite Hincl'.
+            rewrite /JoinFrag /=; iLeft; iFrame. rewrite Hlen -Hincl. iFrame. }
           rewrite Nat.sub_diag insert_app_r_alt !Hlen // Nat.sub_diag //=.
         }
         do 2 iRight. iLeft. rewrite /Ist_public.
@@ -417,7 +415,7 @@ Module NDSIA. Section sim.
         [IST_init | [IST_private | [IST_public | [IST_global_in | IST_global_out]]]]]]]]]]]]".
       { iDestruct "IST_init" as "(% & P & PubA)"; des; subst; ss.
         iPoseProof (Tid_Auth_Tid with "[TidA TidF]") as "%"; iFrame.
-        rewrite lookup_empty // in H1. }
+        rewrite lookup_empty // in H0. }
       { iDestruct "IST_private" as "(% & Ys & Ysch & S' & C' & PubA)"; des; subst.
         iExFalso. iPoseProof (Control_nodup with "[C C']") as "%"; iFrame; ss. }
       { iDestruct "IST_public" as "(% & Ys & Ysch & S' & PubA)"; des; subst.
@@ -427,7 +425,7 @@ Module NDSIA. Section sim.
         destruct (decide (tid_cur = 0)); subst; cycle 1.
         { iPoseProof (big_sepL_lookup_acc _ _ 0 with "Ys") as "[YIELD2 _]"; eauto.
           case_decide; clarify; by iPoseProof (YieldToken_both with "YIELD YIELD2") as "%". }
-        rewrite !list_lookup_fmap H1 in Hmtid0. inv Hmtid0.
+        rewrite !list_lookup_fmap H0 in Hmtid0. inv Hmtid0.
         iPoseProof (Public_Auth_Token with "PubA PubF") as "%". ss. }
       { iDestruct "IST_global_in" as "(% & Ys & S' & tidF)"; des; subst.
         iPoseProof (Tid_Auth_Tid with "[TidA TidF]") as "%Hmtid"; first iFrame.
@@ -447,7 +445,7 @@ Module NDSIA. Section sim.
       destruct (decide (tid_cur = 0)); subst; cycle 1.
       { iPoseProof (big_sepL_lookup_acc _ _ 0 with "Ys") as "[YIELD2 _]"; eauto.
         case_decide; clarify; by iPoseProof (YieldToken_both with "YIELD YIELD2") as "%". }
-      rewrite !list_lookup_fmap H1 in Hmtid0. inv Hmtid0.
+      rewrite !list_lookup_fmap H0 in Hmtid0. inv Hmtid0.
       iCombine "tidF TidF" as "TidF". rewrite agree_idemp.
 
       iDestruct "Spawn" as "(%fsp & %Hspawn & Spawn)".
@@ -457,7 +455,7 @@ Module NDSIA. Section sim.
       { iPureIntro; exists (0, stid, ssch); split; done. }
 
       iPoseProof (Public_update_public with "PubA PubF") as ">[PubA PubF]"; eauto.
-      { rewrite !list_lookup_fmap H1 /=. eauto. }
+      { rewrite !list_lookup_fmap H0 /=. eauto. }
 
       iPoseProof (Shot_dup with "S'") as "[S S']".
 
@@ -496,10 +494,10 @@ Module NDSIA. Section sim.
       destruct (decide (tid_cur = 0)); subst; cycle 1.
       { iPoseProof (big_sepL_lookup_acc _ _ 0 with "Ys") as "[YIELD2 _]"; eauto.
         case_decide; clarify; by iPoseProof (YieldToken_both with "YIELD YIELD2") as "%". }
-      rewrite !list_lookup_fmap H2 in Hmtid0. inv Hmtid0.
+      rewrite !list_lookup_fmap H1 in Hmtid0. inv Hmtid0.
 
       steps_l. steps_r. hss_l; hss_r. steps_l. steps_r. hss_l; hss_r. steps_l. steps_r.
-      rewrite ?list_lookup_fmap H2 /=.
+      rewrite ?list_lookup_fmap H1 /=.
       steps_l. steps_r.
 
       iCombine "TidA TidF"
@@ -514,7 +512,7 @@ Module NDSIA. Section sim.
       eapply elem_of_list_to_map_2, elem_of_lookup_imap in Hav'.
       destruct Hav' as [mtid3 [postS' [EQ Hmtid3]]]; symmetry in EQ; inv EQ.
       apply to_agree_included in Hincl; symmetry in Hincl.
-      rewrite list_lookup_fmap H2 in Hmtid3; ss. clarify.
+      rewrite list_lookup_fmap H1 in Hmtid3; ss. clarify.
 
       (* IST construction *)
       set (st_s2 := {[_:=_;_:=_;_:=_]}).
@@ -524,7 +522,7 @@ Module NDSIA. Section sim.
         iExists (<[0 := (stid, Some (vr, sret), _)]> ths0), 0, stid, ssch0.
         iSplit.
         { rewrite ?list_fmap_insert //. }
-        eapply elem_of_list_split_length in H2 as [ths1 [ths2 [-> Hlen]]].
+        eapply elem_of_list_split_length in H1 as [ths1 [ths2 [-> Hlen]]].
         iSplitL "JoinA".
         { rewrite Hlen; rewrite insert_app_r_alt; last done.
           rewrite Nat.sub_diag /= ?fmap_app ?imap_app //=.
@@ -538,8 +536,8 @@ Module NDSIA. Section sim.
           iPoseProof (big_sepL_insert_acc _ _ 0 with "Rs") as "[_ RET]"; ss.
           { rewrite Hlen lookup_app_Some; right; split; ss; rewrite Nat.sub_diag //=. }
           iPoseProof ("RET" $! (stid, Some (vr, sret), postS') with "[Q JoinF]") as "RET".
-          { ss. inv Hincl. specialize (H4 vr sret) as Hincl'. rewrite Hincl'.
-            rewrite /JoinFrag Hlen /=; iLeft; iFrame. rewrite H4. iFrame. }
+          { ss. specialize (Hincl vr sret) as Hincl'. rewrite Hincl'.
+            rewrite /JoinFrag Hlen /=; iLeft; iFrame. rewrite Hincl. iFrame. }
           rewrite Nat.sub_diag insert_app_r_alt !Hlen // Nat.sub_diag //=.
           rewrite -Hlen. ss.
         }
@@ -605,7 +603,7 @@ Module NDSIA. Section sim.
     destruct (decide (tid_cur = mtid)); subst; cycle 1.
     { iPoseProof (big_sepL_lookup_acc _ _ mtid with "Ys") as "[YIELD2 _]"; eauto.
       case_decide; clarify; by iPoseProof (YieldToken_both with "Y YIELD2") as "%". }
-    rewrite !list_lookup_fmap H1 in Hmtid0. inv Hmtid0.
+    rewrite !list_lookup_fmap H0 in Hmtid0. inv Hmtid0.
 
     steps_l. steps_r. hss_l; hss_r. steps_l. steps_r.
 
@@ -619,7 +617,7 @@ Module NDSIA. Section sim.
     steps_r. rewrite ?length_fmap /=. set (mtid_new := length ths).
 
     iMod (own_update with "JoinA") as "[JoinA JoinF]".
-    { etrans; first eapply (gmap_view_alloc _ mtid_new (DfracOwn 1) (to_agree (Some user_post))); ss.
+    { etrans; first eapply (gmap_view_alloc _ mtid_new (DfracOwn 1) (to_agree (user_post))); ss.
       { rewrite -not_elem_of_list_to_map fmap_imap; intros Hcont%elem_of_lookup_imap.
         subst mtid_new; destruct Hcont as [? [? [? Hcont]]]; ss; subst.
         eapply lookup_lt_Some in Hcont; rewrite length_fmap in Hcont; lia.
@@ -627,7 +625,7 @@ Module NDSIA. Section sim.
       refl.
     }
     iMod (own_update with "TidA") as "[TidA TidF']".
-    { etrans; first eapply (gmap_view_alloc _ mtid_new (DfracOwn 1) (to_agree (Some tid_new))); ss.
+    { etrans; first eapply (gmap_view_alloc _ mtid_new (DfracOwn 1) (to_agree (tid_new))); ss.
       { apply not_elem_of_dom. rewrite dom_fmap. apply not_elem_of_dom.
         rewrite -not_elem_of_list_to_map ?imap_fmap fmap_imap; intros Hcont%elem_of_lookup_imap.
         subst mtid_new; destruct Hcont as [? [? [? Hcont]]]; ss; subst.
@@ -635,10 +633,10 @@ Module NDSIA. Section sim.
       }
       refl.
     }
-    rewrite -{4}Qp.three_quarter_quarter -dfrac_op_own -{2}(agree_idemp (to_agree (Some _))).
+    rewrite -{4}Qp.three_quarter_quarter -dfrac_op_own -{2}(agree_idemp (to_agree (_))).
 
     iMod (Public_alloc with "PubA") as "[PubA PubF']"; eauto.
-    { right. esplits; eauto. rewrite list_lookup_fmap H1 //. }
+    { right. esplits; eauto. rewrite list_lookup_fmap H0 //. }
 
     iDestruct "JoinF" as "[JoinF1 JoinF2]".
     force_l. iSplitL "ASM JoinF1 TidF' PubF' Spawn".
@@ -669,7 +667,7 @@ Module NDSIA. Section sim.
     iSplitL "Rs".
     { rewrite big_sepL_app /=; iFrame; done. }
     do 2 iRight. iLeft. iFrame. iSplit; eauto.
-    { iPureIntro. esplits; eauto. rewrite lookup_app H1 //. }
+    { iPureIntro. esplits; eauto. rewrite lookup_app H0 //. }
     iSplitL "Ys ASM'".
     { by rewrite ?fmap_app big_sepL_app /=; des_ifs; iFrame. }
     rewrite /PublicAuth. unseal NDS. rewrite !fmap_app !imap_app !map_app /=. iFrame.
@@ -703,7 +701,7 @@ Module NDSIA. Section sim.
     destruct (decide (tid_cur = mtid)); subst; cycle 1.
     { iPoseProof (big_sepL_lookup_acc _ _ mtid with "Ys") as "[YIELD2 _]"; eauto.
       case_decide; clarify; by iPoseProof (YieldToken_both with "YIELD YIELD2") as "%". }
-    rewrite !list_lookup_fmap H1 in Hmtid0. inv Hmtid0.
+    rewrite !list_lookup_fmap H0 in Hmtid0. inv Hmtid0.
 
     steps_l. steps_r. hss_l; hss_r. steps_l. steps_r.
 
@@ -716,7 +714,7 @@ Module NDSIA. Section sim.
     eapply elem_of_list_to_map_2 in Hmtid; rewrite elem_of_lookup_imap in Hmtid.
     destruct Hmtid as [? [? [EQ Hmtid]]]; symmetry in EQ; inv EQ.
 
-    rewrite ?list_lookup_fmap H1 /=; case_decide; subst; clarify.
+    rewrite ?list_lookup_fmap H0 /=; case_decide; subst; clarify.
 
     (* Choose the next tid *)
     steps_r. steps_l.
@@ -741,7 +739,7 @@ Module NDSIA. Section sim.
     forces_l. iFrame "WI TID YIELD".
 
     iMod (Public_update_private with "PubA PubF") as "[PubA PubF]"; eauto.
-    { rewrite list_lookup_fmap H1 //. eauto. }
+    { rewrite list_lookup_fmap H0 //. eauto. }
 
     iPoseProof (Shot_dup with "S") as "[S S'']".
 
@@ -765,7 +763,7 @@ Module NDSIA. Section sim.
       destruct (decide (tid_cur = mtid)); subst; cycle 1.
       { iPoseProof (big_sepL_lookup_acc _ _ mtid with "Ys") as "[YIELD2 _]"; eauto.
         case_decide; clarify; by iPoseProof (YieldToken_both with "YIELD YIELD2") as "%". }
-      rewrite !list_lookup_fmap H3 in Hmtid1. inv Hmtid1.
+      rewrite !list_lookup_fmap H2 in Hmtid1. inv Hmtid1.
       iPoseProof (Public_Auth_Token with "PubA PubF") as "%". ss. }
     { iDestruct "IST_global_in" as "(% & Ys & S'' & tidF & PubA)"; des; subst.
       iPoseProof (Tid_Auth_Tid with "[TidA TidF]") as "%Hmtid0"; first iFrame.
@@ -788,7 +786,7 @@ Module NDSIA. Section sim.
       eapply gmap_view_frag_valid in wf; des; ss. }
     { iDestruct "IST_init" as "(% & P & PubA)"; des; subst; ss.
       iPoseProof (Tid_Auth_Tid with "[TidA TidF]") as "%"; iFrame.
-      rewrite lookup_empty // in H3. }
+      rewrite lookup_empty // in H2. }
 
     iDestruct "IST_private" as "(% & Ys & Ysch & S'' & C' & PubA)"; des; subst.
     iPoseProof (Shot_match with "S' S''") as "%"; subst.
@@ -798,10 +796,10 @@ Module NDSIA. Section sim.
     destruct (decide (tid_cur = mtid)); subst; cycle 1.
     { iPoseProof (big_sepL_lookup_acc _ _ mtid with "Ys") as "[YIELD2 _]"; eauto.
       case_decide; clarify; by iPoseProof (YieldToken_both with "YIELD YIELD2") as "%". }
-    rewrite !list_lookup_fmap H3 in Hmtid1. inv Hmtid1.
+    rewrite !list_lookup_fmap H2 in Hmtid1. inv Hmtid1.
 
     iMod (Public_update_public with "PubA PubF") as "[PubA PubF]"; eauto.
-    { rewrite list_lookup_fmap H3. eauto. }
+    { rewrite list_lookup_fmap H2. eauto. }
 
     forces_l. iFrame. iSplit; eauto.
     step. iSplit; eauto. iExists ths0, mtid, stid, ssch.
@@ -837,7 +835,7 @@ Module NDSIA. Section sim.
     destruct (decide (tid_cur = mtid)); subst; cycle 1.
     { iPoseProof (big_sepL_lookup_acc _ _ mtid with "Ys") as "[YIELD2 _]"; eauto.
       case_decide; clarify; by iPoseProof (YieldToken_both with "YIELD YIELD2") as "%". }
-    rewrite !list_lookup_fmap H1 in Hmtid0. inv Hmtid0.
+    rewrite !list_lookup_fmap H0 in Hmtid0. inv Hmtid0.
 
     steps_l. steps_r. hss_l; hss_r. steps_l. steps_r.
 
@@ -847,18 +845,18 @@ Module NDSIA. Section sim.
     forces_l. iFrame "WI TID Ysch".
 
     iMod (Public_update_private with "PubA PubF") as "[PubA PubF]"; eauto.
-    { rewrite list_lookup_fmap H1 //. eauto. }
+    { rewrite list_lookup_fmap H0 //. eauto. }
 
     iPoseProof (Shot_dup with "S") as "[S S'']".
 
-    rewrite -{2}Qp.half_half -dfrac_op_own -(agree_idemp (to_agree (Some stid))).
+    rewrite -{2}Qp.half_half -dfrac_op_own -(agree_idemp (to_agree (stid))).
     iDestruct "TidF" as "[TidF TidF']".
 
     steps_l. steps_r. iApply wsim_yield. iSplitL "JoinA TidA Rs Ys S'' PubA YIELD TidF".
     { iExists ths, mtid, stid, ssch0.
       iFrame. iSplit; eauto. do 3 iRight. iLeft. iFrame. eauto. iSplit; eauto.
       iApply big_sepL_delete; eauto.
-      { rewrite !list_lookup_fmap. erewrite H1. eauto. }
+      { rewrite !list_lookup_fmap. erewrite H0. eauto. }
       iFrame.
     }
     iIntros (??) "IST".
@@ -878,7 +876,7 @@ Module NDSIA. Section sim.
       destruct (decide (tid_cur = mtid)); subst; cycle 1.
       { iPoseProof (big_sepL_lookup_acc _ _ mtid with "Ys") as "[YIELD2 _]"; eauto.
         case_decide; clarify; by iPoseProof (YieldToken_both with "YIELD YIELD2") as "%". }
-      rewrite !list_lookup_fmap H2 in Hmtid1. inv Hmtid1.
+      rewrite !list_lookup_fmap H1 in Hmtid1. inv Hmtid1.
       iPoseProof (Public_Auth_Token with "PubA PubF") as "%". ss. }
     { iDestruct "IST_global_in" as "(% & Ys & S'' & tidF & PubA)"; des; subst.
       iExFalso. iPoseProof (Tid_Auth_Tid with "[TidA TidF']") as "%Hmtid0"; first iFrame.
@@ -898,10 +896,10 @@ Module NDSIA. Section sim.
     destruct (decide (tid_cur = mtid)); subst; cycle 1.
     { iPoseProof (big_sepL_lookup_acc _ _ mtid with "Ys") as "[YIELD2 _]"; eauto.
       case_decide; clarify; by iPoseProof (YieldToken_both with "YIELD YIELD2") as "%". }
-    rewrite !list_lookup_fmap H2 in Hmtid1. inv Hmtid1.
+    rewrite !list_lookup_fmap H1 in Hmtid1. inv Hmtid1.
 
     iMod (Public_update_public with "PubA PubF") as "[PubA PubF]"; eauto.
-    { rewrite list_lookup_fmap H2. eauto. }
+    { rewrite list_lookup_fmap H1. eauto. }
 
     iCombine "TidF' tidF" as "TidF". rewrite agree_idemp.
 
@@ -949,7 +947,7 @@ Module NDSIA. Section sim.
     destruct (decide (tid_cur = mtid)); subst; cycle 1.
     { iPoseProof (big_sepL_lookup_acc _ _ mtid with "Ys") as "[YIELD2 _]"; eauto.
       case_decide; clarify; by iPoseProof (YieldToken_both with "Y YIELD2") as "%". }
-    rewrite !list_lookup_fmap H1 in Hmtid0. inv Hmtid0.
+    rewrite !list_lookup_fmap H0 in Hmtid0. inv Hmtid0.
     
     steps_l. steps_r. hss_l; hss_r. steps_l. steps_r.
 
@@ -966,7 +964,7 @@ Module NDSIA. Section sim.
       (* Search (to_agree _ ⋅ (to_agree _)) *)
       iEval (rewrite WF agree_idemp) in "JoinF".
       iPoseProof ("RET" with "[JoinF]") as "RET"; first (iRight; iFrame).
-      forces_l. inv WF. iEval (rewrite -H4) in "Post". iFrame "Tid Post T Y S C PubF".
+      forces_l. iEval (rewrite -WF) in "Post". iFrame "Tid Post T Y S C PubF".
       iSplitR; eauto.
       step. iSplit; eauto.
       iFrame. do 3 iExists _. iSplit; eauto. do 2 iRight. iLeft. iFrame. eauto.
@@ -1015,7 +1013,7 @@ Module NDSIA. Section sim.
     destruct (decide (tid_cur = mtid)); subst; cycle 1.
     { iPoseProof (big_sepL_lookup_acc _ _ mtid with "Ys") as "[YIELD2 _]"; eauto.
       case_decide; clarify; by iPoseProof (YieldToken_both with "Y YIELD2") as "%". }
-    rewrite !list_lookup_fmap H1 in Hmtid0. inv Hmtid0.
+    rewrite !list_lookup_fmap H0 in Hmtid0. inv Hmtid0.
 
     iPoseProof (Tid_Auth_Tid with "[TidA Tid]") as "%Hin"; iFrame.
     apply elem_of_list_to_map_2 in Hin; rewrite elem_of_lookup_imap in Hin.
@@ -1034,7 +1032,7 @@ Module NDSIA. Section sim.
     - rewrite /init_cond.
       iIntros "[TiA [JoinA [P PubA]]]". iExists [], 0, 0, 0.
       iFrame. ss. iSplit; eauto. iSplit; eauto. iLeft; rewrite /Ist_init.
-      iSplit; eauto. rewrite /Pending. unseal NDS. iFrame.
+      iSplit; eauto. rewrite /Pending /pub_priv. unseal NDS. iFrame.
     - eapply simF_init.
     - eapply simF_inner_spawn.
     - eapply simF_spawn.
@@ -1046,7 +1044,7 @@ Module NDSIA. Section sim.
 End sim.
 
 Section ctxr.
-  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !ndsG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !ndsGS}.
 
   Context (parent_yield: string).
   Context (parent_yield_fsp: fspec).

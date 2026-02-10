@@ -3,15 +3,18 @@ From CRIS Require Import CRIS ImpPrelude.
 Require Import MemHdr MemLib HybridMem DetMem.
 From iris.algebra Require Import auth excl agree csum functions dfrac_agree.
 
+Local Notation _memRA := (mblock -d> Z -d> optionUR (dfrac_agreeR (optionO (leibnizO val))))%type.
+Local Notation memRA := (authUR _memRA)%type.
+
 Section RA.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concGS}.
   Context `{_memGS: !memGS}.
-
+  
   Definition mem_wf (m0: Mem.t): Prop :=
     forall b ofs v, m0.(Mem.cnts) b ofs = Some v -> b < m0.(Mem.nb)
   .
 
-  Definition mem_ra_upd (mem: _memRA) b ofs r : _memRA :=
+  Definition mem_ra_upd mem b ofs r : _memRA :=
     fun b0 ofs0 =>
       if dec b b0 && dec ofs ofs0 then r else mem b0 ofs0.
 
@@ -33,17 +36,17 @@ Section RA.
   Definition sim_mem : Prop :=
     _sim_mem ∧ (∀ b ofs (OUT: b >= Mem.nb mem_t), not_allocated b ofs).
 
-  Lemma mem_ra_alloc_next γ sz
+  Lemma mem_ra_alloc_next sz
     (WF: mem_wf mem_t)
     (MEM: _sim_mem)
     :
-    own γ ((● mem_r, tt): memRA)
+    mem_own mem_name (● mem_r)
     ⊢ |==>
-    own γ (((● (mem_r ⋅ _points_to_r (Mem.nb mem_t, 0%Z) 1 (repeat Vundef sz))), tt): memRA)
-    ∗ own γ (((◯ _points_to_r (Mem.nb mem_t, 0%Z) 1 (repeat Vundef sz)), tt): memRA).
+    mem_own mem_name ((● (mem_r ⋅ _points_to_r (Mem.nb mem_t, 0%Z) 1 (repeat Vundef sz))))
+    ∗ mem_own mem_name (((◯ _points_to_r (Mem.nb mem_t, 0%Z) 1 (repeat Vundef sz)))).
   Proof using _memGS. 
-    iIntros "P". rewrite -own_op -pair_op.
-    iApply (own_update with "P"). apply prod_update; ss. apply auth_update_alloc.
+    iIntros "P". rewrite -own_op.
+    iApply (own_update with "P"). apply auth_update_alloc.
     apply local_update_discrete. i. rewrite H0.
     split; cycle 1.
     - destruct mz; simpl opM in *.
@@ -62,7 +65,7 @@ Section RA.
     (MEM: mem_t' = Mem.mk (update (Mem.cnts mem_t) (Mem.nb mem_t) (λ ofs : Z, if (0 <=? ofs)%Z && (ofs <? sz)%Z then Some Vundef else None)) (S (Mem.nb mem_t)))
     (OFS: (0 <=? ofs)%Z && (ofs <? sz)%Z = true)
     :
-    own base_γ ((● (mem_r ⋅ _points_to_r (Mem.nb mem_t, 0%Z) 1 (repeat Vundef (Z.to_nat sz))), tt)) ∗ (b, ofs) ⤇{q} v
+    mem_own mem_name ((● (mem_r ⋅ _points_to_r (Mem.nb mem_t, 0%Z) 1 (repeat Vundef (Z.to_nat sz))))) ∗ (b, ofs) ⤇{q} v
     ⊢
     ⌜∃ v, (mem_r ⋅ _points_to_r (Mem.nb mem_t, 0%Z) 1 (repeat Vundef (Z.to_nat sz))) b ofs ≡ Some (to_frac_agree 1 (Some v)) ∧
      Mem.cnts mem_t' b ofs = Some v⌝.
@@ -87,11 +90,10 @@ Section RA.
     (* b ≠ nb *)
     unfold update. fold nb. destruct (dec nb b); try nia.
 
-    rewrite -own_op -pair_op.
+    rewrite -own_op.
      
     iPoseProof (own_valid with "P") as "%WF".
-    dup WF. inv WF; ss. rewrite auth_both_valid_discrete in H.
-    rename H into WF. ss. des.
+    dup WF. rewrite auth_both_valid_discrete in WF. ss; des.
     unfold included in *. des. specialize (WF b ofs). 
     rewrite !discrete_fun_lookup_op in WF.
     rewrite SZ in WF.
@@ -118,23 +120,23 @@ Section RA.
   Lemma mem_ra_lookup_point b ofs q v
     (SIM: _sim_mem)
     :
-    own base_γ ((● mem_r), tt) ∗ (b, ofs) ⤇{q} v
+    mem_own mem_name ((● mem_r)) ∗ (b, ofs) ⤇{q} v
     ⊢
     ⌜mem_r b ofs ≡ Some (to_frac_agree 1 (Some v)) ∧ (Mem.cnts mem_t) b ofs = Some v⌝.
   Proof using.
-    iIntros "P". rewrite -own_op -pair_op.
+    iIntros "P". rewrite -own_op.
     iPoseProof (own_valid with "P") as "%WF".
-    dup WF. inv WF; ss. rename H into WF. rewrite auth_both_valid_discrete in WF. ss. des.
+    dup WF. rewrite auth_both_valid_discrete in WF. ss. des.
     unfold included in *. des. specialize (WF b ofs). iris_tac.
     rewrite ->!discrete_fun_lookup_singleton in *.
-    destruct (SIM b ofs); unfold not_allocated, alloc_by_spec, alloc_by_impl in *; des; rewrite H2 in WF; swap 2 3.
+    destruct (SIM b ofs); unfold not_allocated, alloc_by_spec, alloc_by_impl in *; des; rewrite H in WF; swap 2 3.
     { destruct (z b ofs); ss; rewrite -?Some_op ?right_id in WF; inv WF. }
     { destruct (z b ofs); ss; rewrite -?Some_op ?right_id in WF; inv WF. }
 
     rewrite -WF. destruct (z b ofs); rr in WF; depdes WF.
-    - assert (EXT: to_frac_agree q (Some v) ≼ to_frac_agree 1 (Some v0)) by (rewrite H5; et).
+    - assert (EXT: to_frac_agree q (Some v) ≼ to_frac_agree 1 (Some v0)) by (rewrite H2; et).
       eapply dfrac_agree_included in EXT. des; subst. inv EXT0. et.
-    - eapply to_frac_agree_inv in H5. ss. des. depdes H6. et.
+    - eapply to_frac_agree_inv in H2. ss. des. depdes H3. et.
   Qed.
 
   Lemma mem_ra_lookup_list nb mem_r' mem_t' sz
@@ -142,7 +144,7 @@ Section RA.
     (MEM: mem_t' = Mem.mk (update (Mem.cnts mem_t) (Mem.nb mem_t) (λ ofs : Z, if (0 <=? ofs)%Z && (ofs <? sz)%Z then Some Vundef else None)) (S (Mem.nb mem_t)))
     (MEMR: mem_r' = (mem_r ⋅ _points_to_r (Mem.nb mem_t, 0%Z) 1 (repeat Vundef (Z.to_nat sz))))
     :
-    (own base_γ ((● mem_r'), tt) ∗ [∗ list] i↦v ∈ repeat Vundef (Z.to_nat sz), (nb, (0 + i)%Z) ⤇ v)%I
+    (mem_own mem_name ((● mem_r')) ∗ [∗ list] i↦v ∈ repeat Vundef (Z.to_nat sz), (nb, (0 + i)%Z) ⤇ v)%I
     ⊢
     ⌜∀ ofs (OFS: (0 <=? ofs)%Z && (ofs <? sz)%Z = true), ∃ v, mem_r' nb ofs ≡ Some (to_frac_agree 1 (Some v)) ∧ (Mem.cnts mem_t') nb ofs = Some v⌝.
   Proof using.
@@ -157,13 +159,12 @@ Section RA.
 
   Lemma mem_ra_free b ofs v
     :
-    own base_γ ((● mem_r), tt) ∗ (b, ofs) ⤇{1} v
+    mem_own mem_name ((● mem_r)) ∗ (b, ofs) ⤇{1} v
     ⊢ |==>
-    own base_γ ((● mem_ra_upd mem_r b ofs None), tt).
+    mem_own mem_name ((● mem_ra_upd mem_r b ofs None)).
   Proof using _memGS.
     Local Opaque discrete_fun_singleton.
-    iIntros "P". rewrite -own_op -pair_op. iApply (own_update with "P").
-    eapply prod_update; ss.
+    iIntros "P". rewrite -own_op. iApply (own_update with "P").
     eapply auth_update_dealloc, local_update_discrete.
     i. split.
     { ii. rewrite /mem_ra_upd. des_ifs. apply H. }
@@ -188,16 +189,15 @@ Section RA.
   Lemma mem_ra_store v_new v b ofs
     (SIM: _sim_mem)
     :
-    own base_γ ((● mem_r), tt) ∗ (b, ofs) ⤇{1} v
+    mem_own mem_name ((● mem_r)) ∗ (b, ofs) ⤇{1} v
     ⊢ |==>
-    own base_γ ((● mem_ra_upd mem_r b ofs (Some (to_frac_agree 1 (Some v_new)))), tt) ∗ (b, ofs) ⤇{1} v_new.
+    mem_own mem_name ((● mem_ra_upd mem_r b ofs (Some (to_frac_agree 1 (Some v_new))))) ∗ (b, ofs) ⤇{1} v_new.
   Proof using.
     iIntros "P".
     iPoseProof ((mem_ra_lookup_point _ _ _ _ SIM) with "P") as "%H"; iFrame.
     des. clear H0.
-    rewrite -!own_op -!pair_op. iApply (own_update with "P"). 
+    rewrite -!own_op. iApply (own_update with "P"). 
     Local Opaque discrete_fun_singleton. (* Why is it unfolded? *)
-    eapply prod_update; ss.
     apply auth_update, local_update_discrete. s. i.
     rewrite /mem_ra_upd. split; ii.
     { des_ifs. eapply H0. }
@@ -222,7 +222,7 @@ Section RA.
     (SIM: _sim_mem)
     (CMP: HybMem.compare_val p0 p1 = Vint succ)
     :
-    (own base_γ ((● mem_r), tt) ∗ HybMem.val_r p0 q0 v0 ∗ HybMem.val_r p1 q1 v1)
+    (mem_own mem_name (● mem_r) ∗ HybMem.val_r p0 q0 v0 ∗ HybMem.val_r p1 q1 v1)
     ⊢
     ⌜Mem.vcmp mem_t p0 p1 = Some (dec succ 1 : bool)⌝.
   Proof using.
@@ -253,8 +253,6 @@ Section RA.
 
 End RA.
 
-
-
 Module MemDH. Section MemDH.
   Context `{!crisG Γ Σ α β τ _S _I, _concG: !concGS, !memGS}.
 
@@ -264,7 +262,7 @@ Module MemDH. Section MemDH.
       ⌜st_src = {[HybMem.v_mem := Some  mem_src↑]} ∧ st_tgt = {[DetMem.v_mem := Some mem_tgt↑]}⌝ ∗ 
       ⌜mem_wf mem_src ∧ mem_wf mem_tgt ∧ (Mem.nb mem_src <= Mem.nb mem_tgt)⌝ ∗
       ⌜sim_mem mem_res mem_src mem_tgt⌝ ∗
-      ( |==> own base_γ ((● mem_res), tt))))%I.
+      ( |==> mem_own mem_name ((● mem_res)))))%I.
 
   Local Definition HybMem := HybMem.t.
   Local Definition DetMem := DetMem.t.
@@ -316,8 +314,8 @@ Module MemDH. Section MemDH.
       iSplitR.
       {
         iPureIntro. splits; ss.
-        - ii. ss. unfold update in *. des_ifs. apply H5 in H2. nia.
-        - ii. ss. unfold update in *.  des_ifs. apply H7 in H2. nia.
+        - ii. ss. unfold update in *. des_ifs. apply H4 in H1. nia.
+        - ii. ss. unfold update in *.  des_ifs. apply H6 in H1. nia.
       }
       iFrame. iSplitL; eauto.
       iSplitL; cycle 1.
@@ -335,7 +333,7 @@ Module MemDH. Section MemDH.
           unfold not_allocated in *. des.
           esplits; ss; unfold update; des_ifs.
         }
-        destruct H2.
+        destruct H1.
         {
           iRight. iLeft. iPureIntro.
           unfold alloc_by_spec in *. des.
@@ -382,7 +380,7 @@ Module MemDH. Section MemDH.
     iSplitR. 
     {
       iPureIntro. splits; ss; try nia.
-      ii. ss. unfold update in *.  des_ifs. apply H7 in H2. nia. 
+      ii. ss. unfold update in *.  des_ifs. apply H6 in H1. nia. 
     }
     iFrame. iSplitL; eauto.
     iSplitL; cycle 1.
@@ -404,7 +402,7 @@ Module MemDH. Section MemDH.
         destruct (dec b nb); try nia. ss. rewrite right_id.
         esplits; ss; unfold update; des_ifs.
       }
-      destruct H2.
+      destruct H1.
       {
         iRight. iLeft. iPureIntro.
         unfold alloc_by_spec in *. des.
@@ -427,14 +425,14 @@ Module MemDH. Section MemDH.
     {
       iLeft. iPureIntro. unfold not_allocated. s. unfold update.
       do 2 rewrite discrete_fun_lookup_op.
-      rewrite repeat_length H2.
+      rewrite repeat_length H1.
       des_ifs; try rewrite right_id; ss.
     }
     iRight. iLeft. iPureIntro.
     unfold alloc_by_spec. ss.
     do 2 rewrite discrete_fun_lookup_op.
     unfold update. destruct (dec nb nb); ss.
-    rewrite repeat_length H2 nth_error_repeat; [|nia].
+    rewrite repeat_length H1 nth_error_repeat; [|nia].
     des_ifs. rewrite NEXT. esplits; eauto.
 
   (* SLOW *)Qed.
@@ -469,9 +467,9 @@ Module MemDH. Section MemDH.
       {
         iPureIntro. splits; ss; try nia.
         - ii. ss. unfold update in *.
-          des_ifs; eapply H5; eauto.
+          des_ifs; eapply H4; eauto.
         - ii. ss. unfold update in *.
-          des_ifs; eapply H7; eauto.
+          des_ifs; eapply H6; eauto.
       }
       iFrame. iSplit; eauto.
       iSplitL; cycle 1.
@@ -502,7 +500,7 @@ Module MemDH. Section MemDH.
     iSplitR.
     {
       iPureIntro. splits; ss; try nia.
-      ii. ss. unfold update in *. des_ifs; eapply H7; eauto.
+      ii. ss. unfold update in *. des_ifs; eapply H6; eauto.
     }
     iFrame; iSplit; eauto.
     iPureIntro. split; cycle 1.
@@ -609,11 +607,11 @@ Module MemDH. Section MemDH.
       iSplitR. 
       { iPureIntro. splits; ss; try nia. 
         - ii. ss. unfold update in *.
-          des_ifs; eapply H5; eauto. 
+          des_ifs; eapply H4; eauto. 
           destruct (dec b b0); destruct (dec ofs ofs0); ss; subst.
           eapply Heq1.
         - ii. ss. unfold update in *.
-          des_ifs; eapply H7; eauto.
+          des_ifs; eapply H6; eauto.
           destruct (dec b b0); destruct (dec ofs ofs0); ss; subst.
           eapply Heq2.
       }
@@ -650,7 +648,7 @@ Module MemDH. Section MemDH.
     iSplitR. 
     { iPureIntro. splits; ss; try nia. 
       ii. ss. unfold update in *.
-      des_ifs; eapply H7; eauto.
+      des_ifs; eapply H6; eauto.
       destruct (dec b b0); destruct (dec ofs ofs0); ss; subst.
       eapply Heq1.
     }
@@ -854,7 +852,7 @@ Module MemDH. Section MemDH.
     iSplitR. 
     { iPureIntro. splits; ss; try nia. 
       ii. ss. unfold update in *.
-      des_ifs; eapply H7; eauto.
+      des_ifs; eapply H6; eauto.
       destruct (dec b b0); destruct (dec ofs ofs0); ss; subst.
       eapply PT0.
     }

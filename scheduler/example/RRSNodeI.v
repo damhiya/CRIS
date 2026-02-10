@@ -1,15 +1,12 @@
 Require Import CRIS.
-Require Import SchHeader RRSHeader SchA RRSA.
-Require Import MemHeader MemA.
+Require Import SchHeader RRSHeader.
+Require Import MemHeader.
 Require Import RRSNodeHeader.
 
 Set Implicit Arguments.
 
 Module RRSNodeI. Section RRSNodeI.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concGS}.
-  Context `{_schG: !SchA.schGS}.
-  Context `{_rrsG: !RRSA.rrsG}.
-  Context `{_memGS: !MemA.memGS}.
 
   Definition scopes : list string := [RRSNODE].
 

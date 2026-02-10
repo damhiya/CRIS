@@ -7,37 +7,35 @@ Require Import CallFilter.
 
 Set Implicit Arguments.
 
-Section RRSNodeRA.
-  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
-
-  Definition nodeRA := prodR fracR (agreeR valO).
-
-  Class nodeG `{!crisG Γ Σ α β τ _S _I} := {
-      node_inG_node :: inG nodeRA Γ;
-  }.
-  Definition nodeΓ : HRA := #[nodeRA].
-  Global Instance subG_nodeG : subG nodeΓ Γ -> nodeG.
-  Proof using. solve_inG. Defined.
-End RRSNodeRA.
-Hint Unfold node_inG_node subG_nodeG : GRA_index.
+Local Definition nodeRA := prodR fracR (agreeR valO).
+Class nodeGpreS `{!crisG Γ Σ α β τ _S _I} := {
+    #[local] node_inG_node :: inG nodeRA Γ;
+}.
+Class nodeGS `{!crisG Γ Σ α β τ _S _I} := {
+    #[local] nodeGS_nodeGpreS :: nodeGpreS;
+    node_name : gname;
+}.
+Definition nodeΓ : HRA := #[nodeRA].
+Global Instance subGS_nodeGpreS `{!crisG Γ Σ α β τ _S _I} : subG nodeΓ Γ -> nodeGpreS.
+Proof using. solve_inG. Defined.
 
 Local Open Scope Qp.
 
 Module RRSNodeAS. Section RRSNodeAS.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concGS}.
   Context `{_schG: !SchA.schGS}.
-  Context `{_rrsG: !RRSA.rrsG}.
+  Context `{_rrsG: !RRSA.rrsGS}.
   Context `{_memGS: !MemA.memGS}.
-  Context `{_nodeG: !RRSNodeA.nodeG}.
+  Context `{_nodeG: !RRSNodeA.nodeGS}.
 
   (** Define user resources and iProp **)
   Definition full_val_r v: nodeRA := (1, to_agree v).
   Definition half_val_r v: nodeRA := (1/2, to_agree v).
 
   Definition full_val v : iProp Σ :=
-    Seal.sealing "Node" (own base_γ (full_val_r v)).
+    Seal.sealing "Node" (own node_name (full_val_r v)).
   Definition half_val v : iProp Σ :=
-    Seal.sealing "Node" (own base_γ (half_val_r v)).
+    Seal.sealing "Node" (own node_name (half_val_r v)).
 
   Definition ir_nodeRA : DRA_mk nodeRA := (full_val_r (Vint 0)).
   Definition ir_nodeRA_valid : ✓ ir_nodeRA.
@@ -45,8 +43,6 @@ Module RRSNodeAS. Section RRSNodeAS.
     rewrite /ir_nodeRA.
     rewrite /full_val_r. econs; ss.
   Qed.
-
-  Definition ir_nodeΓ : nodeΓ := *[Some ir_nodeRA].
 
   Definition init_node : iProp Σ := Seal.sealing "Node" (full_val (Vint 0)).
   
@@ -121,14 +117,13 @@ Module RRSNodeAS. Section RRSNodeAS.
     Definition N_node : namespace := (nroot .@ "Node.x").
 
     Definition x_points_to (loc: mblock * Z) (v: val) : GTerm.t 0 :=
-      (sown base_γ ((mem_points_to_singleton_r loc (DfracOwn 1) v): memRA))
-        ∗ (sown base_γ ((half_val_r v): nodeRA)).
+      loc ↦ v ∗ (sown node_name ((half_val_r v): nodeRA)).
 
     Definition ex_x_points_to loc : GTerm.t 0 :=
       (∃ (v: τ{ ⇣val }), x_points_to loc v)%SAT.
 
     Definition x_value_tid (tid: nat) : GTerm.t 0 :=
-      (sown base_γ ((half_val_r (Vint tid)): nodeRA)).
+      (sown node_name ((half_val_r (Vint tid)): nodeRA)).
         
     Definition inv_x_points_to (loc: mblock * Z) : iProp Σ :=
       inv 0 N_node (ex_x_points_to loc).
@@ -159,9 +154,9 @@ End RRSNodeAS. End RRSNodeAS.
 Module RRSNodeA. Section RRSNodeA.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concGS}.
   Context `{_schG: !SchA.schGS}.
-  Context `{_rrsG: !RRSA.rrsG}.
+  Context `{_rrsG: !RRSA.rrsGS}.
   Context `{_memGS: !MemA.memGS}.
-  Context `{_nodeG: !RRSNodeA.nodeG}.
+  Context `{_nodeG: !RRSNodeA.nodeGS}.
   Import RRSNodeI.
 
   Definition f_main : SAny.t -> itree crisE SAny.t :=
@@ -194,3 +189,11 @@ Module RRSNodeA. Section RRSNodeA.
   Definition t sp := SMod.to_mod sp (smod ⊤).
 End RRSNodeA. End RRSNodeA.
 
+Lemma rrsnode_alloc `{!crisG Γ Σ α β τ Hsub Hinv, !nodeGpreS} :
+  ⊢ o=> ∃ (_ : nodeGS), RRSNodeAS.full_val (Vint 0).
+Proof.
+  iMod (own_alloc (RRSNodeAS.full_val_r (Vint 0))) as "[%γ F]".
+  { eapply RRSNodeAS.ir_nodeRA_valid. }
+  pose (@Build_nodeGS _ _ _ _ _ _ _ _ _ γ) as Hsch.
+  iExists Hsch. rewrite /RRSNodeAS.full_val. unseal "Node". iFrame. done.
+Qed.

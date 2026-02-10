@@ -8,7 +8,7 @@ Module RRSIA. Section RRSIA.
   Import RRSAS.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
   Context `{_concG: !concGS}.
-  Context `{_rrsG: !RRSA.rrsG}.
+  Context `{!RRSA.rrsGS}.
 
   Context (sp (* sp_sch_user *) sp_rrs_user: specmap).
   Context (parent_yield: string).
@@ -31,7 +31,7 @@ Module RRSIA. Section RRSIA.
 
   (**************************)
 
-  Definition Ist_init (rrinvO: gmap nat InvO) : iProp Σ := ⌜rrinvO = ∅⌝ ∗ rrinv ∅ ∗ own base_γ (gmap_view_auth (DfracOwn 1) ∅ : pubRA).
+  Definition Ist_init (rrinvO: gmap nat InvO) : iProp Σ := ⌜rrinvO = ∅⌝ ∗ rrinv ∅ ∗ pub_init.
   Definition Ist_private (ths: RRSI.thpool) (tid stid ssch: nat) (rrinvO: gmap nat InvO) (Inv: InvO) : iProp Σ :=
     ⌜<<STID: ths !! tid = Some stid>> ∧ <<LKUP: rrinvO !! (pred_rr tid (size rrinvO)) = Some Inv>>⌝ ∗
     ([∗ list] i ↦ e ∈ ths, if decide (i = tid) then emp else YIELD e) ∗
@@ -45,12 +45,12 @@ Module RRSIA. Section RRSIA.
   Definition Ist_global_in (ths: RRSI.thpool) (tid stid ssch: nat) (rrinvO: gmap nat InvO) : iProp Σ :=
     ⌜<<STID: ths !! tid = Some stid>>⌝ ∗
     ([∗ list] i ↦ e ∈ ths, YIELD e) ∗ 
-    rrinv rrinvO ∗ own base_γ (gmap_view_frag tid (DfracOwn (1/2)%Qp) (Some (to_agree stid))) ∗
+    rrinv rrinvO ∗ tid_global tid stid ∗
     Shot ssch ∗ PublicAuth ths None.
   Definition Ist_global_out (ths: RRSI.thpool) (tid stid ssch: nat) (rrinvO: gmap nat InvO) : iProp Σ :=
     ⌜<<STID: ths !! tid = Some stid>>⌝ ∗
     ([∗ list] i ↦ e ∈ ths, if decide (i = tid) then emp else YIELD e) ∗
-    rrinv rrinvO ∗ own base_γ (gmap_view_frag tid (DfracOwn (1/2)%Qp) (Some (to_agree stid))) ∗
+    rrinv rrinvO ∗ tid_global tid stid ∗
     YIELD ssch ∗ Shot ssch ∗ PublicAuth ths None.
 
   Definition Ist: gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ :=
@@ -107,13 +107,13 @@ Module RRSIA. Section RRSIA.
     iPoseProof (rrinv_prev_gen with "RRI") as "[RRI RRIP]".
 
     iMod (own_update with "PubA") as "[PubA PubF]".
-    { eapply (gmap_view_alloc _ None (DfracOwn 1) (Some (to_agree false))); ss. }
+    { eapply (gmap_view_alloc _ None (DfracOwn 1) ((to_agree false))); ss. }
     iMod (own_update with "PubA") as "[PubA PubF']".
-    { eapply (gmap_view_alloc _ (Some 0) (DfracOwn 1) (Some (to_agree false))); ss. }
+    { eapply (gmap_view_alloc _ (Some 0) (DfracOwn 1) ((to_agree false))); ss. }
     
     iMod (own_update with "TidA") as "[TidA TidF]".
-    { etrans; first eapply (gmap_view_alloc _ 0 (DfracOwn 1) (Some (to_agree stid_0))); ss. refl. }
-    rewrite -{5}Qp.half_half -dfrac_op_own -{2}(agree_idemp (to_agree stid_0)) Some_op gmap_view_frag_op.
+    { etrans; first eapply (gmap_view_alloc _ 0 (DfracOwn 1) ((to_agree stid_0))); ss. refl. }
+    rewrite -{5}Qp.half_half -dfrac_op_own -{2}(agree_idemp (to_agree stid_0)) gmap_view_frag_op.
     iDestruct "TidF" as "[TidF TidF0]".
 
     iMod (Pending_Shot (get_stid x) with "P") as "S".
@@ -442,7 +442,7 @@ Module RRSIA. Section RRSIA.
     hexploit gmap_wf_lookup_size_none; eauto. intros LKN.
 
     iMod (own_update with "TidA") as "[TidA TidF']".
-    { etrans; first eapply (gmap_view_alloc _ mtid_new (DfracOwn 1) (Some (to_agree stid_new))); ss.
+    { etrans; first eapply (gmap_view_alloc _ mtid_new (DfracOwn 1) ((to_agree stid_new))); ss.
       { apply not_elem_of_dom. rewrite dom_fmap. apply not_elem_of_dom.
         rewrite -not_elem_of_list_to_map ?imap_fmap fmap_imap; intros Hcont%elem_of_lookup_imap.
         subst mtid_new. destruct Hcont as [? [? [? Hcont]]]; ss; subst.
@@ -648,7 +648,7 @@ Module RRSIA. Section RRSIA.
     iPoseProof (rrinv_prev_gen with "RRIA") as "[RRIA RRIP]".
     assert (NEMP: rrinvO ≠ ∅).
     { destruct ths; ss. assert (size rrinvO > 0) by nia. set_solver. }
-    rewrite -Qp.half_half -dfrac_op_own -(agree_idemp (to_agree stid)) Some_op gmap_view_frag_op.
+    rewrite -Qp.half_half -dfrac_op_own -(agree_idemp (to_agree stid)) gmap_view_frag_op.
     iDestruct "TidF" as "[TidF TidF0]".
 
     iMod (Public_update_private with "PubA PubF") as "[PubA PubF]"; eauto.
@@ -767,17 +767,15 @@ End RRSIA.
 
 Section ctxr.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concGS}.
-  Context `{_rrsG: !rrsG}.
+  Context `{_rrsG: !rrsGS}.
 
   Context (parent_yield: string).
   Context (parent_yield_fsp: fspec).
   Context (T: Type) (get_stid : T → nat) (PYIP: T → iProp Σ).
 
-  Lemma ctxr sp (* sp_sch_user *) sp_rrs_user
+  Lemma ctxr sp sp_rrs_user
     (SchInSp : sp !! speckey_fn parent_yield = fsp_some parent_yield_fsp)
     (RRSInSp : RRSAS.sp sp_rrs_user ⊤ get_stid PYIP ⊆ sp)
-    (* (FunInSchSp : sp_sch_user ⊆ sp) *)
-    (* (FunInRrsSp : sp_rrs_user ⊆ sp_sch_user) *)
     (FunInRrsSp : sp_rrs_user ⊆ sp)
     (YieldSpec :
                ⊢ fspec_imply parent_yield_fsp
