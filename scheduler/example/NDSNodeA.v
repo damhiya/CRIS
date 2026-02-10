@@ -10,7 +10,7 @@ Set Implicit Arguments.
 Module NDSNodeA. Section NDSNodeA.
   Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concGS}.
   Context `{_schG: !SchA.schGS}.
-  Context `{_ndsG: !NDSA.ndsG}.
+  Context `{_ndsG: !NDSA.ndsGS}.
   Context `{_memGS: !MemLib.memGS}.
   Import NDSNodeI.
 
@@ -20,7 +20,7 @@ Module NDSNodeA. Section NDSNodeA.
     Definition N_nds_node : namespace := (nroot .@ "NDSNode.x").
 
     Definition inv_x_points_to (loc: mblock * Z) : iProp Σ :=
-      inv 0 N_nds_node (∃ (v: τ{ ⇣nat }), sown base_γ (mem_points_to_singleton_r loc 1 (Vint v)))%SAT.
+      inv 0 N_nds_node (∃ (v: τ{ ⇣nat }), loc ⤇ (Vint v))%SAT.
 
     Definition f_main_spec : fspec :=
       fspec_nds E

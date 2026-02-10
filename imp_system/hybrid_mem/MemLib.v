@@ -71,52 +71,47 @@ Module Mem.
 
 End Mem.
 
-Section MemRA.
-  Context `{!crisG Γ Σ α β τ _S _I}.
-
-  Canonical Structure valO := leibnizO val.
-  Definition frac_valO := (dfrac_agreeR (optionO valO)).
-  Definition _memRA := (mblock -d> Z -d> optionUR frac_valO).
-  Definition memRA := prodR (authUR _memRA) (unitO).
-  Class memGS `{!crisG Γ Σ α β τ _S _I} := {
-    mem_inG :: inG memRA Γ;
+Local Canonical Structure valO := leibnizO val.
+Local Definition frac_valO := (dfrac_agreeR (optionO valO)).
+Local Definition _memRA := (mblock -d> Z -d> optionUR frac_valO).
+Local Definition memRA := authUR _memRA.
+Class memGpreS `{!crisG Γ Σ α β τ _S _I} := {
+    #[local] mem_inG :: inG memRA Γ;
   }.
-  Definition memΓ : HRA := #[memRA].
-  Global Instance subG_memGS : subG memΓ Γ → memGS.
-  Proof. solve_inG. Defined.
-End MemRA.
-Hint Unfold subG_memGS mem_inG : GRA_index.
-
+Class memGS `{!crisG Γ Σ α β τ _S _I} := {
+    #[local] memGS_memGSpreS :: memGpreS;
+    mem_name : gname;
+  }.
+Definition memΓ : HRA := #[memRA].
+Global Instance subG_memGS `{!crisG Γ Σ α β τ _S _I} : subG memΓ Γ → memGpreS.
+Proof. solve_inG. Defined.
 
 Section MEM.
   Context `{!crisG Γ Σ α β τ _S _I, !memGS}.
 
   Definition mem_init_auth_r : memRA :=
-    (● ((λ blk ofs, ε): _memRA), tt).
+    (● ((λ blk ofs, ε): _memRA)).
 
   Definition mem_init_frag_r : memRA :=
-    (◯ ((λ blk ofs, ε) : _memRA), tt).
+    (◯ ((λ blk ofs, ε) : _memRA)).
 
   Definition mem_init_auth : iProp Σ :=
-    own base_γ (mem_init_auth_r).
+    own mem_name (mem_init_auth_r).
 
   Definition mem_init_frag : iProp Σ :=
-    own base_γ (mem_init_frag_r).
+    own mem_name (mem_init_frag_r).
 
   Definition mem_init : iProp Σ :=
-    own base_γ (mem_init_auth_r ⋅ mem_init_frag_r).
+    own mem_name (mem_init_auth_r ⋅ mem_init_frag_r).
 
   Lemma mem_init_valid :
     ✓ (mem_init_auth_r ⋅ mem_init_frag_r).
-  Proof. rewrite /mem_init_auth_r /mem_init_frag_r -pair_op pair_valid auth_both_valid_discrete; split; ii; des_ifs. Qed.
+  Proof. rewrite /mem_init_auth_r /mem_init_frag_r auth_both_valid_discrete; split; ii; des_ifs. Qed.
 
   Definition ir_memRA : DRA_mk memRA :=
     mem_init_auth_r ⋅ mem_init_frag_r.
   Lemma ir_memRA_valid : ✓ (ir_memRA).
   Proof. pose proof (mem_init_valid). rewrite /ir_memRA //. Qed.
-
-  Definition ir_memΓ : memΓ :=
-    *[Some (ir_memRA)].
 
 End MEM.
 
@@ -138,17 +133,25 @@ Section MemRA.
       else ε.
 
   Definition mem_points_to_singleton_r (loc : mblock * Z) (q: Qp) (v : val) : memRA :=
-    (◯ (discrete_fun_singleton loc.1 (discrete_fun_singleton loc.2 (Some (to_frac_agree q (Some v))))), tt).
+    (◯ (discrete_fun_singleton loc.1 (discrete_fun_singleton loc.2 (Some (to_frac_agree q (Some v)))))).
   Definition mem_points_to_singleton (loc : mblock * Z) (q: Qp) (v : val) : iProp Σ :=
-    own base_γ ((mem_points_to_singleton_r loc q v): memRA).
+    own mem_name ((mem_points_to_singleton_r loc q v): memRA).
   Definition mem_points_to : (mblock * Z) → Qp → list val → iProp Σ :=
     λ '(blk, ofs) q vs, ([∗ list] i ↦ v ∈ vs, mem_points_to_singleton (blk, ofs + i)%Z q v)%I.
 
 End MemRA.
 
+Section syn_mem.
+  Context `{!crisG Γ Σ α β τ _S _I, !memGS}.
+
+  Definition syn_mem_points_to_singleton {n} loc q v : GTerm.t n :=
+    sown mem_name ((mem_points_to_singleton_r loc q v): memRA).
+
+End syn_mem.
+
 Notation "loc '⤇{' q '}' v" := (mem_points_to_singleton loc q v) (at level 20).
 Notation "loc ⤇ v" := (mem_points_to_singleton loc 1 v) (at level 20).
-Notation "loc ⤇ v" := (sown base_γ (mem_points_to_singleton_r loc 1 v))%SAT (at level 20) : SAT_scope.
+Notation "loc ⤇ v" := (syn_mem_points_to_singleton loc 1 v)%SAT (at level 20) : SAT_scope.
 Notation "loc |=> vs" := (mem_points_to loc 1 vs) (at level 20).
 
 Global Opaque mem_points_to_singleton_r.
@@ -326,7 +329,7 @@ Section RA.
   Local Transparent mem_points_to_singleton_r.
 
   Lemma points_to_transform blk ofs q l :
-    own base_γ (((◯ _points_to_r (blk, ofs) q l), tt): memRA)
+    own mem_name (((◯ _points_to_r (blk, ofs) q l)): memRA)
     ⊢ [∗ list] i↦v ∈ l, (blk, (ofs + i)%Z) ⤇{q} v.
   Proof using _memGS.
     gen ofs. induction l.
@@ -375,4 +378,17 @@ Section RA.
     rr in VALID. des. ss. exfalso. eapply dfrac_full_exclusive; et.
   Qed.
 
+  (*** Auxiliary constructor for MemDHProof ***)
+  Definition mem_own (g : gname) (r: memRA) := own g r.
+
 End RA.
+
+Lemma mem_alloc `{!crisG Γ Σ α β τ Hsub Hinv, !memGpreS} :
+  ⊢ o=> ∃ (_ : memGS), mem_init.
+Proof.
+  iMod (own_alloc (mem_init_auth_r ⋅ mem_init_frag_r)) as "[%γm M]".
+  { apply ir_memRA_valid. }
+  pose (@Build_memGS _ _ _ _ _ _ _ _ _ γm) as Hmem.
+  rewrite /mem_init.
+  by iExists Hmem; iFrame.
+Qed.

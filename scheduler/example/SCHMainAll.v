@@ -9,42 +9,11 @@ Require Import RRSNodeI RRSNodeA RRSNodeIAproof.
 Require Import NDSNodeI NDSNodeA NDSNodeIAproof.
 Require Import SCHMainI SCHMainA SCHMainIAproof.
 
-Module SCHMainAll.
-  Import inv_instances.
+Section SCHMainAux.
+  Context `{!crisG Γ Σ α β τ Hsub Hinv, !concGS, !SchA.schGS, !RRSA.rrsGS, !NDSA.ndsGS, !MemA.memGS, !MemLib.memGS, !RRSNodeA.nodeGS}.
+  Context (csl : string → bool) (genv : GEnv.t).
 
-  (* mem *)
-  Local Definition csl : string → bool := λ _, false.
-  (* global environment - not used in this example *)
-  Local Definition genv : GEnv.t := [].
-  
-  Local Instance Γ : HRA := ##[invΓ; concΓ; newschΓ; rrsΓ; ndsΓ; MemLib.memΓ; memΓ; nodeΓ].
-  Local Instance Σ : GRA := ##[Γ; invΣ; newschΣ; rrsΣ; ndsΣ].
-  Local Definition irΓ : Γ :=
-    **[ir_invΓ; ir_concΓ; SchA.ir_schΓ; RRSAS.ir_schΓ; NDSA.ir_ndsΓ; (MemLib.ir_memΓ); (ir_memΓ csl genv); RRSNodeAS.ir_nodeΓ].
-  Local Definition irΣ : Σ := **[irΓ; ir_invΣ; SchA.ir_schΣ; RRSAS.ir_schΣ; NDSA.ir_ndsΣ].
-
-  Local Lemma irΣ_valid : ✓ (irΣ ⋅ ir_own_admin).
-  Proof.
-    solve_ir_valid.
-    - apply ir_tidRA_valid.
-    - apply ir_yieldRA_valid.
-    - apply SchA.ir_newtidRA_valid.
-    - apply RRSAS.ir_initRA_valid.
-    - apply RRSAS.ir_ctlRA_valid.
-    - apply RRSAS.ir_pubRA_valid.
-    - apply RRSAS.ir_newtidRA_valid.
-    - apply NDSA.ir_initRA_valid.
-    - apply NDSA.ir_ctlRA_valid.
-    - apply NDSA.ir_pubRA_valid.
-    - apply NDSA.ir_tidRA_valid.
-    - apply MemLib.ir_memRA_valid.
-    - apply ir_memRA_valid.
-    - apply RRSNodeAS.ir_nodeRA_valid.
-    - apply SchA.ir_joinRA_valid.
-    - apply RRSAS.ir_invRA_valid.
-    - apply NDSA.ir_joinRA_valid.
-  Qed.
-
+  (* source module *)
   Local Definition sp_rrs : specmap := RRSNodeAS.sp ⊤.
   Local Definition sp_nds : specmap := NDSNodeA.sp ⊤.
   Local Definition sp_sch : specmap :=
@@ -56,12 +25,11 @@ Module SCHMainAll.
 
   Local Definition smod_src : SMod.t :=
     (SCHMainA.smod ⊤)
-      ☆ (SchA.smod ⊤ sp_sch)
+      ☆ (SchA.smod sp_sch ⊤)
       ☆ (RRSA.smod SchHeader.SchHdr.yield sp_rrs ⊤ snd SchA.PYIP)
       ☆ (NDSA.smod SchHeader.SchHdr.yield ⊤ sp_nds _ snd SchA.PYIP)
       ☆ (RRSNodeA.smod ⊤)
       ☆ (NDSNodeA.smod ⊤).
-
   Local Definition mod_top : Mod.t := (SMod.to_mod ∅ (SMod.cancel smod_src)).
   Local Definition mod_tgt : Mod.t :=
     SCHMainI.t
@@ -79,72 +47,6 @@ Module SCHMainAll.
   Local Definition init_cond : iProp Σ :=
     SchA.init_cond ∗ RRSA.init_cond ∗ NDSA.init_cond ∗ HybMem.init_cond ∗ MemA.init_cond csl genv.
 
-  Lemma init_cond_valid:
-    ∃ rs, ✓ rs ∧ (Own rs ⊢ |==> init_cond ∗ TID 0 ∗ YIELD 0 ∗ winv (⊤, ⊤) ∗ SCHMainA.init_cond ∗ TIDAUTH 0 ∗ YIELDAUTH 1).
-  Proof.
-    exists (irΣ ⋅ ir_own_admin). split.
-    - apply irΣ_valid.
-    - simplify_res.
-      { rewrite make_own_admin.
-
-        rewrite /ir_tidRA /ir_yieldRA.
-        iMod (own_update with "H62") as "H62".
-        { instantiate (1 := ((λ x : nat, if decide (x = 0) then Excl' () else None): nat -d> optionUR (exclR unitO)) ⋅ ((λ x : nat, if decide (x < 1) then None else Excl' ())): nat -d> optionUR (exclR unitO)).
-          eapply discrete_fun_update. i. rewrite discrete_fun_lookup_op.
-          destruct a; case_decide; clarify.
-        }
-
-        iDestruct "H62" as "[H620 H621]".
-        iDestruct "H60" as "[H600 H601]".
-        iAssert (TID 0 ∗ YIELD 0 ∗ winv (⊤, ⊤) ∗ TIDAUTH 0 ∗ YIELDAUTH 1)%I with "[H600 H601 H620 H621 U W H1]" as "($ & $ & $ & $ & $)".
-        { rewrite /TidTokenAuth /YieldTokenAuth /TidToken /YieldToken. unseal "Conc". iFrame; eauto. }
-
-        rewrite /init_cond /SCHMainA.init_cond.
-        iDestruct "H58" as "[H580 H581]".
-        iAssert (SchA.init_cond)%I with "[H580 H16]" as "$".
-        { iFrame; eauto. }
-
-        iDestruct "H14" as "[H140 H141]".
-        rewrite {1}/RRSAS.rrinv_admin_r.
-        rewrite -{1}Qp.half_half -dfrac_op_own. rewrite fmap_empty.
-        rewrite gmap_view.gmap_view_auth_dfrac_op.
-        iDestruct "H140" as "[H1400 H1401]".
-
-        rewrite /NDSA.ir_initRA. rewrite -{3}Qp.half_half -frac_op csum.Cinl_op.
-        iDestruct "H42" as "[H420 H421]".
-
-        iSplitR "H36 H1400 H50 H52 H420 H44 H581 H141"; cycle 1.
-        { rewrite /RRSAS.InitRRS.
-          rewrite /RRSAS.rrinv /RRSAS.Pending /RRSAS.Control. unseal RRSHeader.RRS.
-          rewrite own_op.
-          iFrame "H1400 H50". rewrite /RRSAS.rrinv_r.
-          rewrite dom_empty elements_empty /=.
-          rewrite /RRSNodeAS.full_val. unseal "Node". iFrame.
-          rewrite /NDSA.InitNDS /NDSA.Pending /NDSA.Control. unseal NDSHeader.NDS. iFrame.
-          rewrite /TidToken /YieldToken. unseal "Conc". iFrame; eauto.
-        }
-
-        iSplitL "H1401 H56 H54".
-        { rewrite /RRSA.init_cond. rewrite /RRSAS.init_inv /RRSAS.init_tid /RRSAS.init_pub.
-          unseal RRSHeader.RRS. iFrame. rewrite /RRSAS.rrinv. unseal RRSHeader.RRS.
-          rewrite own_op. iFrame. eauto. }
-
-        iSplitL "H48 H46 H12 H421".
-        { iFrame; eauto. }
-
-        
-        iSplitR "H38"; cycle 1.
-        { rewrite /HybMem.init_cond. rewrite /MemLib.mem_init_auth /MemLib.mem_init_frag.
-          rewrite /MemLib.ir_memRA. iDestruct "H38" as "[H380 H381]".
-          iFrame. eauto. }
-        { rewrite /MemA.init_cond. rewrite /mem_init_auth /mem_init_frag.
-          rewrite /ir_memRA. iDestruct "H40" as "[H400 H401]".
-          iFrame. eauto. }        
-      }
-      13:{ Import MemLib. solve_res. }
-      Import Mem. all: solve_res.
-  (*SLOW*)Qed.
-
   Ltac ctac :=
     rewrite /=;
     match goal with
@@ -155,48 +57,11 @@ Module SCHMainAll.
     | [ |- map_Forall _ (?X _ _ _ _ _) ] => rewrite /X; mod_tac ss
     end.
 
-  Lemma cancellable_src : SMod.cancellable smod_src.
-  Proof. do 5 (eapply SMod.cancellable_add; r; [ctac|]). ctac. Qed.
-
-  Ltac _wtac_1 :=
-    lazymatch goal with
-    | [ |- map_Forall _ (Mod.fnsems (SMod.to_mod _ (SMod.cancel (?X _)))) ] => rewrite /X /=
-    | [ |- map_Forall _ (Mod.fnsems (SMod.to_mod _ (SMod.cancel (?X _ _)))) ] => rewrite /X /=
-    | [ |- map_Forall _ (Mod.fnsems (SMod.to_mod _ (SMod.cancel (?X _ _ _)))) ] => rewrite /X /=
-    | [ |- map_Forall _ (Mod.fnsems (SMod.to_mod _ (SMod.cancel (?X _ _ _ _)))) ] => rewrite /X /=
-    | [ |- map_Forall _ (Mod.fnsems (SMod.to_mod _ (SMod.cancel (?X _ _ _ _ _)))) ] => rewrite /X /=
-    end;
-    rewrite /Mod.fnsems /=;
-    lazymatch goal with
-    | [ |- map_Forall _ (_ <$> (mbind _ <$> (?X _))) ] => rewrite /X !fmap_insert !fmap_empty; mod_tac ss
-    | [ |- map_Forall _ (_ <$> (mbind _ <$> (?X _ _))) ] => rewrite /X !fmap_insert !fmap_empty; mod_tac ss
-    | [ |- map_Forall _ (_ <$> (mbind _ <$> (?X _ _ _))) ] => rewrite /X !fmap_insert !fmap_empty; mod_tac ss
-    | [ |- map_Forall _ (_ <$> (mbind _ <$> (?X _ _ _ _))) ] => rewrite /X !fmap_insert !fmap_empty; mod_tac ss
-    | [ |- map_Forall _ (_ <$> (mbind _ <$> (?X _ _ _ _ _))) ] => rewrite /X !fmap_insert !fmap_empty; mod_tac ss
-    end.
-  Ltac _wtac_2 :=
-    ss;
-    lazymatch goal with
-    | [ |- ∀ _, _ _ ?X <= _ ] => rewrite /X
-    | _ => idtac
-    end; multiset_solver.
-  Ltac wtac := econs; [_wtac_1|_wtac_2].
-  Ltac solv := rewrite ?dom_union_with ?dom_fmap; set_solver.
-    
   Local Transparent SCH.
   Local Transparent NDSHeader.NDS.
   Local Transparent RRSHeader.RRS.
-
-  Lemma wf_top : Mod.wf mod_top.
-  Proof.
-    rewrite /mod_top !SMod.cancel_add !SMod.to_mod_add.
-    eapply Mod.add_wf; [wtac| |solv|solv].
-    eapply Mod.add_wf; [wtac| |solv|solv].
-    eapply Mod.add_wf; [wtac| |solv|solv].
-    eapply Mod.add_wf; [wtac| |solv|solv].
-    eapply Mod.add_wf; [wtac| |solv|solv].
-    wtac.
-  Qed.
+  Local Transparent RRSNodeHeader.RRSNODE.
+  Local Transparent NDSNodeHeader.NDSNODE.
 
   (* Apply cancellation to linked spec module *)
   Lemma cancel_src :
@@ -204,8 +69,7 @@ Module SCHMainAll.
             (mod_src, init_cond).
   Proof.
     eapply Cancel.cancellation.
-    { eapply cancellable_src. }
-    { eapply wf_top. }
+    { do 5 (eapply SMod.cancellable_add; r; [ctac|]). ctac. }
     { assert (Ht : SMod.conc_sp_from smod_src !! speckey_entry =
         fsp_some (SCHMainA.main_spec ⊤)); last (rewrite Ht; clear Ht).
       { rewrite lookup_insert_ne // lookup_kmap_Some; exists None; split; ss. }
@@ -353,10 +217,10 @@ Module SCHMainAll.
     }
 
     etrans; cycle 1.
-    { do 4 ctxr_drop. ctxr_rotate. do 3 ctxr_drop. eapply CFilter.elim_module. }
+    { do 4 ctxr_drop. ctxr_rotate. do 3 ctxr_drop. eapply elim_module. }
 
     etrans; cycle 1.
-    { do 6 ctxr_drop. ctxr_rotate. ctxr_drop. eapply CFilter.elim_module. }
+    { do 6 ctxr_drop. ctxr_rotate. ctxr_drop. eapply elim_module. }
 
     rewrite -!mod_add_empty_r.
 
@@ -380,51 +244,62 @@ Module SCHMainAll.
     { eapply src_tgt. }
   Qed.
 
-  Ltac _ttac_1 :=
-    lazymatch goal with
-    | [ |- map_Forall _ (Mod.fnsems (?X)) ] => rewrite /X /=
-    | [ |- map_Forall _ (Mod.fnsems (?X _)) ] => rewrite /X /=
-    | [ |- map_Forall _ (Mod.fnsems (?X _ _)) ] => rewrite /X /=
-    end;
-    rewrite /Mod.fnsems /=;
-    lazymatch goal with
-    | [ |- map_Forall _ (_ <$> (?X)) ] => rewrite /X !fmap_insert !fmap_empty; mod_tac ss
-    | [ |- map_Forall _ (_ <$> (?X _)) ] => rewrite /X !fmap_insert !fmap_empty; mod_tac ss
-    | [ |- map_Forall _ (_ <$> (?X _ _)) ] => rewrite /X !fmap_insert !fmap_empty; mod_tac ss
-    end.
-  Ltac _ttac_2 :=
-    ss;
-    lazymatch goal with
-    | [ |- ∀ _, _ _ ?X <= _ ] => rewrite /X
-    | _ => idtac
-    end; multiset_solver.
-  Ltac ttac := econs; [_ttac_1|_ttac_2].
-  Ltac tolv := rewrite ?dom_union_with ?dom_fmap; set_solver.
+  Ltac ttac := econs; eauto; [mod_tac|prove_nodup].
+  Ltac tolv := rewrite !Mod.dom_fnsems_add; set_solver.
+  Ltac solv := prove_nodup; des_ifs; set_solver.
 
   Lemma tgt_wf: Mod.wf mod_tgt.
   Proof.
     rewrite /mod_tgt.
-    eapply Mod.add_wf; [ttac| |tolv|tolv].
-    eapply Mod.add_wf; [ttac| |tolv|tolv].
-    eapply Mod.add_wf; [ttac| |tolv|tolv].
-    eapply Mod.add_wf; [ttac| |tolv|tolv].
-    eapply Mod.add_wf; [ttac| |tolv|tolv].
-    eapply Mod.add_wf; [ttac| |tolv|tolv].
-    eapply Mod.add_wf; [ttac| |tolv|tolv].
-    ttac.
+    eapply Mod.add_wf; [ttac| |tolv|solv].
+    eapply Mod.add_wf; [ttac| |tolv|solv].
+    eapply Mod.add_wf; [ttac| |tolv|solv].
+    eapply Mod.add_wf; [ttac| |tolv|solv].
+    eapply Mod.add_wf; [ttac| |tolv|solv].
+    eapply Mod.add_wf; [ttac| |tolv|solv].
+    eapply Mod.add_wf; [ttac|ttac| |solv].
+    set_solver.
   Qed.
+End SCHMainAux.
+
+Module SCHMainAll.
+  Import inv_instances.
+  (* mem *)
+  Local Definition csl : string → bool := λ _, false.
+  (* global environment - not used in this example *)
+  Local Definition genv : GEnv.t := [].
+
+  Local Instance Γ : HRA := ##[invΓ; concΓ; newschΓ; rrsΓ; ndsΓ; MemLib.memΓ; memΓ; nodeΓ].
+  Local Instance Σ : GRA := ##[Γ; invΣ; newschΣ; rrsΣ; ndsΣ].
 
   Theorem behavioral_refinement :
-    ∃ src_res tgt_res, refines_lmod
+    ∃ β τ (Hinv : invGS Γ Σ α) (_ : crisG Γ Σ α β τ _ Hinv) (_ : concGS)
+      (_ : SchA.schGS) (_ : RRSA.rrsGS) (_ : NDSA.ndsGS)
+      (_ : MemLib.memGS) (_ : MemA.memGS) (_ : RRSNodeA.nodeGS)
+      src_res tgt_res,
+    refines_lmod
       (Mod.to_lmod mod_top src_res)
-      (Mod.to_lmod mod_tgt tgt_res).
+      (Mod.to_lmod (mod_tgt csl genv) tgt_res).
   Proof.
-    move: (top_tgt)=>H; rewrite /refines in H; des; ss.
-    hexploit H; eauto using tgt_wf. clear H; intros [WF H].
-    pose proof init_cond_valid as IV. des.
-    destruct (H rs); des; et.
-    rewrite IV0 /init_cond /SCHMainA.init_cond {1}winv_split_empty.
-    iIntros ">((? & ? & ? & ? & ?) & ? & ? & (? & ?) & (? & ? & ? & ?) & ? & ?)". iFrame. eauto.
-  Qed.
-(*SLOW*)End SCHMainAll.
+    apply own_admin_soundness.
+    iMod winv_alloc as "[% [% [% [% ?]]]]"; iExists _, _, _, _.
+    iMod conc_alloc as "[% ?]". iExists _.
+    iMod sch_alloc as "[% ?]". iExists _.
+    iMod rrs_alloc as "[% [? ?]]"; iExists _.
+    iMod nds_alloc as "[% [? ?]]"; iExists _.
+    iMod MemLib.mem_alloc as "[% ?]"; iExists _.
+    iMod (mem_alloc csl genv) as "[% ?]"; iExists _.
+    iMod rrsnode_alloc as "[% ?]"; iExists _.
+    pose proof (top_tgt csl genv) as Href.
+    iStopProof. eapply entails_pointwise; iIntros (res Hres) "R".
+    iPoseProof (Own_valid with "R") as "%".
+    rewrite /refines in Href; hexploit Href; eauto using tgt_wf.
+    clear Href; intros [? Href].
+    iPureIntro; hexploit (Href res); eauto.
+    { rewrite Hres /=. iIntros "(W & ($ & $ & $ & $) & ($ & $) & $ & $ & $ & $ & [$ _] & [$ _] & $)".
+      rewrite {1}winv_split_empty comm //. }
+    intros [rt ?].
+    exists res, rt; by des.
+  (*SLOW*)Qed.
+End SCHMainAll.
 (* Print Assumptions SCHMainAll.behavioral_refinement. *)
