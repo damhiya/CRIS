@@ -29,7 +29,7 @@ Module APCIA. Section APCIA.
     Unshelve. all: ss.
   Qed.
 
-  Theorem sim : ISim.t open APCAMod APCIMod emp%I Ist.
+  Lemma sim : ISim.t open APCAMod APCIMod emp%I Ist.
   Proof using.
     init_sim; eauto.
     - eapply simF_apc.
@@ -39,7 +39,7 @@ End APCIA.
 Section ctxr.
   Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
 
-  Theorem ctxr (SpA SpPure : specmap) :
+  Lemma ctxr (SpA SpPure : specmap) :
     ctx_refines
       (APCA.t SpPure SpA, emp%I)
       (APCI.t, emp%I).

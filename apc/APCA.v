@@ -16,7 +16,7 @@ Module APCA. Section APCA.
       (λ (o: Ord.t) varg arg, ⌜varg = o↑ ∧ arg = varg⌝)%I
       (λ _ _ _, True)%I.
 
-  Definition Sp : specmap :=
+  Definition sp : specmap :=
     {[speckey_fn APCHdr.apc := fspec_to_rel apc_spec]}.
 
   Definition fnsems (SpPure: specmap) : fnsemmap :=
@@ -27,9 +27,9 @@ Module APCA. Section APCA.
     SMod.fnsems := fnsems SpPure;
     SMod.initial_st := ∅;
   |}.
-  Solve All Obligations with rewrite /APCI.smod /=; mod_tac.
+  Solve All Obligations with mod_tac.
 
   Definition init_cond : iProp Σ := emp%I.
 
-  Definition t SpPure Sp := SMod.to_mod Sp (smod SpPure).
+  Definition t SpPure sp := SMod.to_mod sp (smod SpPure).
 End APCA. End APCA.

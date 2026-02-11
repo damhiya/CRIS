@@ -193,9 +193,6 @@ Section wsim.
   Qed.
 End wsim.
 
-Ltac clear_st :=
-  hrepeat do 1 match goal with [st: gmap key (option Any.t) |- _] => clear st end.
-
 Ltac sch_yield_rr IST :=
   (norm_l with 
     (do 1 unshelve iApply (wsim_yield_tgt_rr); [ss|ss|ss|ss|];

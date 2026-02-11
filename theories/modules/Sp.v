@@ -37,12 +37,11 @@ Section sp.
   | fn_has_spec_intro (WEAK : ⊢ fspec_imply (fspec_flat (sp !! (speckey_fn fn))) fsp).
   Hint Constructors fn_has_spec : core. *)
 
-  (* Variant fn_has_spec_in (spl : spl_type) (fn : string) (fsp : fspec) : Prop :=
-  | fn_has_spec_in_intro
-      fsp_real
-      (SPEC: alist_find (speckey_fn fn) spl = Some fsp_real)
-      (WEAK : fspec_imply (fspec_flat fsp_real) fsp).
-  Hint Constructors fn_has_spec_in : core. *)
+  Variant fn_has_spec_in (sp : specmap) (fn : string) (fsp : fspec) : Prop :=
+  | fn_has_spec_in_intro fsp2
+      (SPEC: sp !! (speckey_fn fn) = fsp_some fsp2)
+      (WEAK : ⊢ fspec_imply fsp2 fsp).
+  Hint Constructors fn_has_spec_in : core.
 
   (* Lemma fn_has_weaker_spec (sp : specmap) (fn : string) (fsp0 fsp1 : fspec)
       (SPEC : fn_has_spec sp fn fsp0)

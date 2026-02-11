@@ -509,11 +509,14 @@ Ltac prove_inline_cond :=
 Ltac prove_sb_cond :=
   by s; i; eauto; try rewrite !mask_app; s; eauto.
 
+Ltac clear_st :=
+  hrepeat do 1 match goal with [st: gmap key (option Any.t) |- _] => clear st end.
+
 Ltac simpl_sp :=
   try match goal with
   | H : ?sp1 ⊆ ?sp2 |- context [?sp2 !! ?key] =>
     unshelve erewrite (lookup_weaken sp1 sp2 key _ _ H);
-    [|rewrite /sp1; simpl_map; reflexivity|]
+    [|simpl_map; reflexivity|]
   end.
 
 (* Normalization tactics *)

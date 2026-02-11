@@ -15,7 +15,7 @@ Module APCAC. Section APCAC.
   (* context *)
   Context (md : Mod.t).
   Context (sp_c sp_a sp_pure : specmap).
-  Context (APCInSpA : APCA.Sp ⊆ sp_a).
+  Context (APCInSpA : APCA.sp ⊆ sp_a).
   Context (PureInSpA : sp_pure ⊆ sp_a).
   Context (PureIsPure :
             ∀ fn fsp,
@@ -41,7 +41,7 @@ Module APCAC. Section APCAC.
     iStartSim.
 
     steps_l. iDestruct "ASM" as "%"; des; subst. rename _q into o.
-    steps_r. wforce_r o. wforce_r (o↑). wforce_r. iSplitR; et. hss. steps_r.
+    steps_r. force_r o. force_r (o↑). force_r. iSplitR; et. steps_r.
 
     (* normalize itree - remove all interpretations and sandboxes except APC *)
     unfold APC at 1. steps_r. rename _q into o'.
@@ -52,7 +52,8 @@ Module APCAC. Section APCAC.
     iApply wsim_bind. iSplitL; cycle 1.
     { iIntros (? ? ? ?) "R".
       instantiate (1:=(λ '(st_src, _) '(st_tgt, _), IstFull st_src st_tgt)%I).
-      wsteps_r. force_l. steps_l. forces_l. iSplitR; et. step. iSplit; et. }
+      steps_r. force_l. steps_l. forces_l. iSplitR; et. step. iSplit; et.
+    }
 
     (* well founded induction on depth ordinal *)
     iApply wsim_reset. iStopProof. 
@@ -70,10 +71,7 @@ Module APCAC. Section APCAC.
     steps_r. rename _q into o, _q2 into o', _q1 into fn, _q0 into LT.
 
     rewrite /guarantee. steps_r. rewrite /is_Some in _q. des.
-    dup PureInSpA. rename PureInSpA0 into PIS.
-    assert (SP: sp_a !! (speckey_fn fn) = Some x1).
-    { eapply lookup_weaken; eauto. }
-    rewrite SP. steps_r.
+    dup PureInSpA. rename PureInSpA0 into PIS. simpl_sp. steps_r.
 
     (* inlining *)
     hexploit PureIsPure; eauto. i. des. rewrite /find_body in H3.
@@ -93,11 +91,10 @@ Module APCAC. Section APCAC.
     steps_r. force_r (_↑). steps_r. rewrite H7. steps_r. forces_r. iSplitL "GRT"; eauto.
     steps_r. rewrite /pure_body /cfunN. hss. steps_r.
     erewrite lookup_weaken; try eapply APCInSpA; cycle 1.
-    { rewrite /Sp. simpl_map. refl. }
+    { simpl_map. refl. }
     steps_r. rewrite H6. steps_r. rewrite H6. steps_r. rewrite H8. steps_r.
     iDestruct "GRT" as "%" ; des; subst; hss.
     rewrite H4. steps_r.
-    
 
     (* inlining *)
     inline_r.
@@ -121,7 +118,7 @@ Module APCAC. Section APCAC.
     Unshelve. all: ss.
   (*SLOW*)Qed.
 
-  Theorem sim : ISim.t open APCCMod APCAMod APCC.init_cond IstFull.
+  Lemma sim : ISim.t open APCCMod APCAMod APCC.init_cond IstFull.
   Proof using _crisG PureIsPure PureInSpA APCInSpA.
     init_sim.
     - eapply simF_apc.
@@ -132,8 +129,8 @@ End APCAC.
 Section ctxr.
   Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
 
-  Definition ctxr (md : Mod.t) (sp_c sp_a sp_pure : specmap)
-    (APCInSpA : APCA.Sp ⊆ sp_a)
+  Lemma ctxr (md : Mod.t) (sp_c sp_a sp_pure : specmap)
+    (APCInSpA : APCA.sp ⊆ sp_a)
     (PureInSpA : sp_pure ⊆ sp_a)
     (PureIsPure :
             ∀ fn fsp,

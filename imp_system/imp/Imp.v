@@ -43,8 +43,7 @@ Module CEnv.
   Record t : Type := mk {
     blk2id : mblock -> option string;
     id2blk : string -> option mblock;
-  }
-  .
+  }.
   
   Definition wf (genve : t) : Prop :=
     forall id blk, genve.(id2blk) id = Some blk <-> genve.(blk2id) blk = Some id.
@@ -177,12 +176,11 @@ Section FB_HAS_SPEC.
       (SPEC : fn_has_spec stb fn fsp)
   . *)
 
-  (* Variant fb_has_spec_in (stb : alist (option string) (option fspec)) (fb : mblock) (fsp : fspec) : Prop :=
+  Variant fb_has_spec_in (stb : specmap) (fb : mblock) (fsp : fspec) : Prop :=
   | fb_has_spec_in_intro
       fn
       (FBLOCK : genvenv.(CEnv.blk2id) fb = Some fn)
-      (SPEC : fn_has_spec_in stb fn fsp)
-  . *)
+      (SPEC : fn_has_spec_in stb fn fsp).
 
   (* Lemma fb_has_weaker_spec (stb : string -> option fspec) (fb : mblock) (fsp0 fsp1 : fspec)
         (SPEC : fb_has_spec stb fb fsp1)
