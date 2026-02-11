@@ -230,6 +230,25 @@ End Mod. End Mod.
 Infix "★" := Mod.add (at level 60, right associativity).
 Notation "⌽" := Mod.empty (at level 9).
 
+Definition real_mod `{Σ : GRA} (md : Mod.t) : Prop :=
+  map_Forall
+    (λ _ (v : option (emask * fbody)),
+      match v with
+      | Some (msk, _) =>
+          (∀ P, msk _ (subevent _ (Assume P)) = false) ∧
+          ∀ X, msk _ (subevent _ (Take X)) = true → ∃ (P : Prop), X = P
+      | _ => True
+      end) (Mod.fnsems md).
+
+Lemma real_mod_add `{Σ : GRA} (md1 md2 : Mod.t) :
+  real_mod md1 → real_mod md2 → real_mod (md1 ★ md2).
+Proof.
+  rewrite /real_mod !map_Forall_lookup => H1 H2 i x; rewrite /Mod.fnsems /= lookup_union_with;
+  specialize (H1 i); specialize (H2 i); i; repeat destruct lookup as [[[? ?]|]|]; ss; clarify.
+  { hexploit (H1 (Some (e, f))); ss. }
+  { hexploit (H2 (Some (e, f))); ss. }
+Qed.
+
 Section ModFacts.
   Context `{Σ : GRA}.
 

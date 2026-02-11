@@ -53,17 +53,6 @@ Module ProphecyName.
   Definition new (mn : string) : string := "φ.new" ++ mn.
   Definition resolve (mn : string) : string := "φ.resolve" ++ mn.
   Definition close (mn : string) : string := "φ.close" ++ mn.
-End ProphecyName.
-
-Definition real_mod `{Σ : GRA} (md : Mod.t) : Prop :=
-  map_Forall
-    (λ _ (v : option (emask * fbody)),
-      match v with
-      | Some (msk, _) =>
-          (∀ P, msk _ (subevent _ (Assume P)) = false) ∧
-          ∀ X, msk _ (subevent _ (Take X)) = true → ∃ (P : Prop), X = P
-      | _ => False
-      end) (Mod.fnsems md).
-
-Definition exports mn : gset string :=
+  Definition exports mn : gset string :=
     {[ ProphecyName.new mn; ProphecyName.resolve mn; ProphecyName.close mn ]}.
+End ProphecyName.

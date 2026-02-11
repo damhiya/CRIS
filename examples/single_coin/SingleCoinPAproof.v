@@ -23,7 +23,7 @@ Module SingleCoinPA. Section SingleCoinPA.
   Context (mn : string) (sp : specmap).
 
   Local Notation MA := (SingleCoinA.t sp).
-  Local Notation MI := (SingleCoinP.t mn ★ ProphecyA.t mn sp).
+  Local Notation MI := (SingleCoinP.t mn ★ ProphecyA.t mn ∅).
 
   Local Definition Ist : ist_type Σ :=
     (λ st_s st_t,
