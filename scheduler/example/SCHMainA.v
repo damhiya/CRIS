@@ -38,7 +38,7 @@ Module SCHMainA. Section SCHMainA.
     |}.
   Solve All Obligations with mod_tac.
 
-  Definition init_cond : iProp Σ := RRSAS.InitRRS ∗ RRSNodeAS.full_val (Vint 0) ∗ NDSA.InitNDS.
+  Definition init_cond : iProp Σ := RRSAS.InitRRS ∗ RRSNodeAS.full_val (Vint 0) ∗ NDSA.InitNDS ∗ SchA.TidFrag 0 0.
 
   Definition t sp := SMod.to_mod sp (smod ⊤).
 End SCHMainA. End SCHMainA.
