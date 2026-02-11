@@ -81,17 +81,17 @@ Module StackIA. Section StackIA.
     { iStartSim.
       steps_l. force_r _q. destruct _q as [[? ?] ?]; iDestruct "ASM" as "[? [-> [% ->]]]".
       forces_r. iFrame; iSplit; eauto.
-      steps_r. hss_l; hss_r. steps_l; steps_r.
+      steps_l; steps_r.
       sch_yield_ii "IST". sch_yield_l.
       steps_r; forces_l. iFrame; step. iFrame. done.
     }
     { iStartSim.
       rewrite /StackA.push /StackM.push /atomic_body.
       steps_l. steps_r. forces_r. iFrame "ASM". repeat case_match; clarify.
-      steps_r. steps_l.
+      steps_r.
       sch_yield_ii "IST".
-      steps_r. rewrite /SchA.sp; simpl_map.
-      inline_r. rewrite /HelpingOff.HelpingOff.run. steps_r. hss_r. steps_r.
+      rewrite /SchA.sp; simpl_map.
+      inline_r. rewrite /HelpingOff.HelpingOff.run. steps_r.
       sch_yield_ii "IST". sch_yield_l.
       steps_l. forces_r; iFrame. steps_r. forces_l. iFrame.
       steps_l. sch_yield_ii "IST". steps_r. 
@@ -116,7 +116,7 @@ Module StackIA. Section StackIA.
       }
       clear_st. iIntros (st_src [] st_tgt ?) "IST /=".
       steps_l. forces_r; iFrame. steps_r. forces_l. iFrame.
-      steps_l. sch_yield_ii "IST". steps_r. 
+      steps_l. sch_yield_ii "IST".
       sch_yield_l; force_l; iFrame.
       step. iFrame. done.
     }

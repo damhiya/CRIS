@@ -30,21 +30,20 @@ Section StackIM.
   Proof using.
     iStartSim.
     steps_l. destruct _q as [[stid mtid] n]. iDestruct "ASM" as "[TID [-> [%val ->]]]".
-    hss_l. hss_r. steps_l. steps_r.
-    sch_yield_ir "IST" "TID". { case_bool_decide; set_solver. } steps_r.
+    steps_l. steps_r.
+    sch_yield_ir "IST" "TID". { case_bool_decide; set_solver. }
 
     (* allocate new stack - can't use memtactics here..., generalize the lemma *)
-    steps_r.
     iApply wsim_mem_alloc; [try by simpl_map|ss|ss|].
-    iIntros (blk) "[↦stack [↦val _]]". steps_r. hss_r. steps_r.
+    iIntros (blk) "[↦stack [↦val _]]". steps_r.
     sch_yield_ir "IST" "TID". { case_bool_decide; set_solver. }
-    steps_r. sch_yield_ir "IST" "TID". { case_bool_decide; set_solver. }
+    sch_yield_ir "IST" "TID". { case_bool_decide; set_solver. }
 
     (* initialize stack *)
-    steps_r. store_r "↦stack". steps_r. hss_r. steps_r.
+    store_r "↦stack".
     sch_yield_ir "IST" "TID". { case_bool_decide; set_solver. }
 
-    steps_r. store_r "↦val". steps_r. hss_r. steps_r.
+    store_r "↦val".
     sch_yield_ir "IST" "TID". { case_bool_decide; set_solver. }
 
     (* Guarantee the postcondition *)

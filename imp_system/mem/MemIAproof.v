@@ -253,10 +253,8 @@ Module MemIA. Section MemIA.
     rename _q into sz, _q0 into varg.
     iDestruct "ASM" as "[-> [-> %]]".
 
-    steps_r. hss_r. steps_r.
-
     iDestruct "IST" as (? ? ? ?) "([-> ->] & [% [% [% [[-> %] >B]]]] & ->)"; des.
-    steps_r. hss_r. steps_r. case_bool_decide; [|lia]. steps_r.
+    steps_r. case_bool_decide; [|lia]. steps_r.
 
     rename _q into pad.
     set (blk := Mem.nb mem_tgt + pad).
@@ -295,9 +293,7 @@ Module MemIA. Section MemIA.
     iDestruct "ASM" as "[-> [-> ↦]]".
     iDestruct "IST" as (? ? ? ?) "([-> ->] & [% [% [% [[-> %] >B]]]] & ->)"; des.
 
-    steps_l.
-    steps_r. hss_r. steps_r. hss_r.
-    steps_r.
+    steps_l. steps_r.
 
     iPoseProof (mem_ra_lookup with "[B ↦]") as "[%HIT ->]"; et; iFrame. steps_r.
 
@@ -320,8 +316,6 @@ Module MemIA. Section MemIA.
     iDestruct "ASM" as "[-> [-> ↦]]".
     iDestruct "IST" as (? ? ? ?) "([-> ->] & [% [% [% [[-> %] >B]]]] & ->)"; des.
 
-    steps_l.
-    steps_r. hss_r. steps_r. hss_r.
     steps_r.
 
     iPoseProof (mem_ra_lookup with "[B ↦]") as "[%HIT ->]"; et; iFrame. steps_r.
@@ -338,9 +332,7 @@ Module MemIA. Section MemIA.
     iDestruct "ASM" as "[-> [-> ↦]]".
     iDestruct "IST" as (? ? ? ?) "([-> ->] & [% [% [% [[-> %] >B]]]] & ->)"; des.
 
-    steps_l.
-    steps_r. hss_r. steps_r. hss_r.
-    steps_r.
+    steps_l. steps_r.
 
     iPoseProof (mem_ra_lookup with "[B ↦]") as "[%HIT %HIT2]"; et; iFrame; rewrite HIT2. steps_r.
     iMod (mem_ra_update with "[B ↦]") as "[B ↦]"; et; iFrame.
@@ -362,7 +354,7 @@ Module MemIA. Section MemIA.
     iDestruct "ASM" as "[-> [[-> %Hcmp] [Cmp Cmp2]]]".
     iDestruct "IST" as (? ? ? ?) "([-> ->] & [% [% [% [[-> %] >B]]]] & ->)"; des.
 
-    steps_r. hss_r. steps_r. hss_r. steps_r.
+    steps_r.
 
     iMod ("Cmp2" with "Cmp") as (????) "[C1 [C2 C3]]".
     iPoseProof (mem_ra_cmp with "[B C1 C2]") as "->"; eauto; iFrame.
@@ -384,7 +376,7 @@ Module MemIA. Section MemIA.
     iDestruct "ASM" as "[-> [[-> %Hcmp] [↦ [Cmp Cmp2]]]]".
     iDestruct "IST" as (? ? ? ?) "([-> ->] & [% [% [% [[-> %] >B]]]] & ->)"; des.
 
-    steps_r. hss_r. steps_r.
+    steps_r.
 
     iPoseProof (mem_ra_lookup with "[B ↦]") as "[% %Hlookup]"; eauto; [iFrame|].
     iMod ("Cmp2" with "Cmp") as (????) "[C1 [C2 C3]]".
@@ -392,17 +384,14 @@ Module MemIA. Section MemIA.
     iMod ("C3" with "[$]").
 
     (* Load *)
-    inline_r. hrepeat (do 1 hss_r; steps_r). rewrite Hlookup.
-    steps_r. hss_r. steps_r.
+    inline_r. hrepeat (do 1 hss_r; steps_r). rewrite Hlookup. steps_r.
 
     (* Store *)
-    inline_r. hrepeat (do 1 hss_r; steps_r). rewrite Hcmp2.
-    steps_r. hss_r. steps_r.
+    inline_r. hrepeat (do 1 hss_r; steps_r). rewrite Hcmp2. steps_r.
 
     repeat case_bool_decide; simplify_eq.
     { (* Store *)
-      steps_r. inline_r. hrepeat (do 1 hss_r; steps_r). rewrite Hlookup.
-      steps_r. hss_r. steps_r.
+      steps_r. inline_r. steps_r. rewrite Hlookup. steps_r.
       iMod ((mem_ra_update v_upd) with "[B ↦]") as "[B ↦]"; et; [iFrame|].
 
       forces_l. iFrame. iSplit; eauto. step. iFrame.

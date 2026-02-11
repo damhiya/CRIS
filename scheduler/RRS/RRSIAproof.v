@@ -73,8 +73,8 @@ Module RRSIA. Section RRSIA.
     iStartSim.
 
     step_l. destruct _q as [[x pre] Inv].
-    steps_l. iDestruct "ASM" as "(% & % & % & % & (% & % & Spawn) & Tsch & Ysch & [RRI [P C]] & PRE & PYIP)"; des; subst. hss_l; hss_r.
-    steps_r. steps_l. hss_l; hss_r. steps_l. steps_r.
+    steps_l. iDestruct "ASM" as "(% & % & % & % & (% & % & Spawn) & Tsch & Ysch & [RRI [P C]] & PRE & PYIP)"; des; subst.
+    steps_r. steps_l.
 
     (* Get Tid from parent scheduler *)
     do 2 (case_decide as H'; ss; clear H').
@@ -93,9 +93,7 @@ Module RRSIA. Section RRSIA.
     iDestruct "IST_init" as "(% & RRIA & PubA)"; subst.
     rewrite map_size_empty in INVWF. destruct ths; ss.
 
-    steps_r. steps_l. hss_l; hss_r. steps_r. steps_l.
-    erewrite lookup_weaken; try eapply RRSInSp; cycle 1.
-    { rewrite /RRSAS.sp. simpl_map. refl. }
+    steps_r. steps_l. simpl_sp.
     case_decide as H'; ss; clear H'.
     force_l (false, 0, pre). steps_l. forces_l. steps_l.
     iApply wsim_spawn. iIntros (stid_0).
@@ -186,10 +184,7 @@ Module RRSIA. Section RRSIA.
 
     iDestruct "IST_global_in" as "(% & Ys & RRIA & TidF & S' & PubA)". 
     
-    steps_r. steps_l. hss_l; hss_r.
-    steps_r. steps_l. hss_l; hss_r.
-    steps_r. steps_l. rewrite H1.
-    steps_r. steps_l.
+    steps_r. steps_l. rewrite H1. steps_r. steps_l.
     do 2 (case_decide as H'; ss; clear H').
 
     iPoseProof (Shot_match with "S S'") as "%". subst. 
@@ -486,7 +481,6 @@ Module RRSIA. Section RRSIA.
     step_l. destruct _q as [[[mtid stid] ssch] Inv].
 
     steps_l. iDestruct "ASM" as "(% & % & (TidF & Y & T & S & C & PubF) & RRI & % & % & Inv)"; des; subst.
-    hss_l; hss_r. steps_l. steps_r.
     iDestruct "IST" as (??????) "(% & TidA & [IST_init | [IST_private | [IST_public | [IST_global_in | IST_global_out]]]])"; des; subst; cycle 3.
     { iExFalso. iDestruct "IST_global_in" as "(% & Ys & RRIA & TidF' & S')". hss.
       iPoseProof (Tid_Auth_Tid with "[TidA TidF]") as "%Hmtid"; first iFrame.
@@ -611,7 +605,7 @@ Module RRSIA. Section RRSIA.
 
     step_l. destruct _q as [[mtid stid] ssch].
 
-    steps_l. iDestruct "ASM" as "(% & % & (TidF & Y & T & S & C & PubF))"; des; subst. hss_l; hss_r.
+    steps_l. iDestruct "ASM" as "(% & % & (TidF & Y & T & S & C & PubF))"; des; subst.
     steps_l. steps_r.
     iDestruct "IST" as (??????) "(% & TidA & [IST_init | [IST_private | [IST_public | [IST_global_in | IST_global_out]]]])"; des; subst; cycle 3.
     { iExFalso. iDestruct "IST_global_in" as "(% & Ys & RRIA & TidF' & S')". hss.

@@ -292,14 +292,14 @@ Module MemDH. Section MemDH.
     { steps_l. des_ifs. }
     steps_l. steps_r. rewrite {1}/unwrapU. des_ifs; cycle 1.
     { steps_l. des_ifs. }
-    steps_l. steps_r. hss_r. steps_r.
+    steps_l. steps_r.
     destruct _q; cycle 1.
     { (* using physical memory *)
       destruct (Z_le_gt_dec 0 v); des; cycle 1.
       { ss. rewrite /triggerUB. steps_l; ss. }
       destruct (Z_lt_ge_dec (8 * v) modulus_64); des; cycle 1.
       { ss. rewrite /triggerUB. steps_l; ss. }
-      steps_l. hss_l. steps_l.
+      steps_l.
       force_l (Mem.nb mem_tgt - Mem.nb mem_src). steps_l.
       set (nb := Mem.nb mem_tgt).
       replace (Mem.nb mem_src + (nb - Mem.nb mem_src)) with nb by nia.
@@ -447,7 +447,7 @@ Module MemDH. Section MemDH.
     { steps_l. des_ifs. }
     steps_l. steps_r. rewrite {1}/unwrapU. des_ifs; cycle 1.
     { steps_l. des_ifs. }
-    steps_l. steps_r. hss_r. steps_r.
+    steps_l. steps_r.
     destruct _q; cycle 1.
     { (* physical memory *)
       steps_l. hss. steps_l.
@@ -528,7 +528,7 @@ Module MemDH. Section MemDH.
     { steps_l. des_ifs. }
     steps_l. steps_r. rewrite {1}/unwrapU. des_ifs; cycle 1.
     { steps_l. des_ifs. }
-    steps_l. steps_r. hss_r. steps_r.
+    steps_l. steps_r.
     destruct _q; cycle 1.
     { (* physical memory *)
       steps_l. hss. steps_l.
@@ -590,11 +590,11 @@ Module MemDH. Section MemDH.
     { steps_l. des_ifs. }
     steps_l. steps_r. rewrite {1}/unwrapU. des_ifs; cycle 1.
     { steps_l. des_ifs. }
-    steps_l. steps_r. destruct v as [[b ofs] v]. steps_r. hss_r. steps_r.
+    steps_l. steps_r. destruct v as [[b ofs] v]. steps_r.
     steps_l.
     destruct _q; cycle 1.
     { (* physical memory *)
-      steps_l. hss_l. steps_l.
+      steps_l.
       hexploit (SIM b ofs). intro SIM0.
       unfold not_allocated, alloc_by_spec, alloc_by_impl in SIM0.
       des; des_ifs; steps_l; ss. steps_r. 
@@ -675,7 +675,7 @@ Module MemDH. Section MemDH.
     { steps_l. des_ifs. }
     steps_l. steps_r. rewrite {1}/unwrapU. des_ifs; cycle 1.
     { steps_l. des_ifs. }
-    steps_l. steps_r. destruct v as [arg0 arg1]. steps_r. hss_r. steps_r.
+    steps_l. steps_r. destruct v as [arg0 arg1]. steps_r.
     steps_l.
     destruct _q.
     { (* logical memory *)
@@ -700,7 +700,7 @@ Module MemDH. Section MemDH.
       iFrame. iSplit; eauto. 
     }
 
-    steps_l. hss_l. steps_l.
+    steps_l.
     destruct (Mem.vcmp mem_src arg0 arg1) eqn:S; cycle 1.
     { steps_l; des_ifs. }
     rename b into f.
@@ -805,12 +805,12 @@ Module MemDH. Section MemDH.
     destruct _q as [[[v_cur succ] [v0 q0]] [v1 q1]]. steps_l.
     iDestruct "ASM" as "(%CMP & CUR & CMP0 & CMP1)". steps_r.
 
-    inline_r. hss_r. steps_r. hss_r. steps_r.
+    inline_r. steps_r.
     iPoseProof (mem_ra_lookup_point with "[B CUR]") as "%PT"; [eauto|iFrame|]. des.
-    rewrite PT0. steps_r. hss_r. steps_r.
-    inline_r. hss_r. steps_r. hss_r. steps_r.
+    rewrite PT0. steps_r.
+    inline_r. steps_r.
     iPoseProof (mem_ra_cmp with "[B CUR CMP0 CMP1]") as "%CP"; eauto; [iFrame|].
-    rewrite CP. steps_r. hss_r. steps_r.
+    rewrite CP. steps_r.
     
     iPoseProof (mem_ra_store with "[B CUR]") as ">[B P]"; [eauto|iFrame|].
 
@@ -841,8 +841,7 @@ Module MemDH. Section MemDH.
       rewrite SIM in PT. inv PT.
     }
 
-    steps_r. inline_r. steps_r. hss_r. steps_r. hss_r. steps_r.
-    rewrite PT0. steps_r. hss_r. steps_r.
+    steps_r. inline_r. steps_r. rewrite PT0. steps_r.
     step; iFrame.
     iSplit; eauto.
     iExists {[HybMem.v_mem := Some _↑]}, _, st_tgtR, st_tgtR.

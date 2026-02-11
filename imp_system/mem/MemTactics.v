@@ -146,5 +146,5 @@ Section mem.
   Qed.
 End mem.
 
-Ltac load_r H := iApply (wsim_mem_load with H); [try by simpl_map|ss|]; last iIntros H.
-Ltac store_r H := iApply (wsim_mem_store with H); [try by simpl_map|ss|]; last iIntros H.
+Ltac load_r H := iApply (wsim_mem_load with H); [try by simpl_map|ss|]; last (iIntros H; steps_r).
+Ltac store_r H := iApply (wsim_mem_store with H); [try by simpl_map|ss|]; last (iIntros H; steps_r).

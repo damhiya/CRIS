@@ -150,9 +150,9 @@ Section help.
   Proof using.
     iIntros (Hfind) "IST K".
         (* TODO : factor out this proof into a lemma *)
-    inline_l. steps_l. rewrite /HelpingOn.run. steps_l. hss_l.
+    inline_l. steps_l. rewrite /HelpingOn.run. steps_l.
     iDestruct "IST" as "[% [% [% [% [[-> ->] [-> [% [% [[-> ->] ●Help]]]]]]]]]".
-    steps_l. hss_l. steps_l.
+    steps_l.
     iMod (own_update with "●Help") as "[●Help Help◯]".
     { eapply (gmap_view_alloc _ (fresh (dom reqmap_s)) (DfracOwn 1)); eauto.
       { apply not_elem_of_dom. rewrite dom_fmap. apply is_fresh. }
@@ -194,7 +194,7 @@ Section help.
     iIntros "Pend IST K".
     rewrite /HelpingOn.try_run; steps_l.
     iDestruct "IST" as "[% [% [% [% [[-> ->] [IST [% [% [[-> ->] Auth]]]]]]]]]".
-    steps_l. hss_l. steps_l.
+    steps_l.
     iPoseProof (helping_auth_token with "Auth Pend") as "%Hlookup"; rewrite Hlookup /=; steps_l.
     replace k_t with (x <- Ret ();; (λ _, k_t) x) at 1 by grind.
     iApply wsim_bind.
@@ -225,7 +225,7 @@ Section help.
     iIntros "#Done IST K".
     rewrite /HelpingOn.try_run /=. steps_l.
     iDestruct "IST" as "[% [% [% [% [[-> ->] [IST [% [% [[-> ->] ●Help]]]]]]]]]".
-    steps_l. hss_l. step_l.
+    steps_l.
     iPoseProof (helping_auth_done with "●Help Done") as "[% %Heq]"; rewrite Heq; clear Heq.
     steps_l.
     iApply ("K" with "[IST ●Help]").

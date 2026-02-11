@@ -90,7 +90,7 @@ Module NDSIA. Section sim.
 
     step_l. destruct _q as [[x pre] post].
     steps_l. iDestruct "ASM" as "(% & % & % & % & (% & % & Spawn) & T & Y & (P & C) & PRE & YI)"; des; subst; hss.
-    steps_l. steps_r. hss_l. hss_r. steps_l. steps_r.
+    steps_l. steps_r.
     do 2 (case_decide as H'; ss; clear H').
 
     forces_l. iSplitL "T"; eauto. steps_l. steps_r. step. steps_l. steps_r.
@@ -108,10 +108,7 @@ Module NDSIA. Section sim.
       iExFalso. iApply (PendingShot_false with "[P S]"); iFrame. }
 
     iDestruct "IST_init" as "(% & P' & Pub)"; des; subst; hss.
-    steps_l. steps_r. hss_l; hss_r.
-    steps_l. steps_r.
-    unshelve erewrite (lookup_weaken); try eapply NDSInSp; cycle 2.
-    { rewrite /NDSA.sp. simpl_map. refl. }
+    steps_l. steps_r. simpl_sp.
     case_decide as H'; ss; clear H'.
     
     force_l (false, pre, post). steps_l. force_l ((fn, tt↑↑)↑).
@@ -205,7 +202,7 @@ Module NDSIA. Section sim.
     iDestruct "IST_global_in" as "(% & Ys & S' & tidF & PubA)"; des; subst.
     iPoseProof (Shot_match with "S S'") as "%"; subst.
 
-    steps_l. steps_r. hss. steps_l. steps_r. hss_l; hss_r. steps_l. steps_r.
+    steps_l. steps_r.
     rewrite !list_lookup_fmap !H0 /=. steps_l. steps_r.
     do 2 (case_decide as H'; ss; clear H').    
     steps_r. forces_l.
@@ -232,7 +229,7 @@ Module NDSIA. Section sim.
     steps_l. destruct _q as [[b pre] postS].
     destruct b.
     { (* CASE 1 : normal case *)
-      iDestruct "ASM" as "[%stid [%fvarg [%farg [%fn [%mtid [[-> ->] [Spawn [PRE [JoinF [TidF [PubF [WI [TID YIELD]]]]]]]]]]]]]". hss_l; hss_r.
+      iDestruct "ASM" as "[%stid [%fvarg [%farg [%fn [%mtid [[-> ->] [Spawn [PRE [JoinF [TidF [PubF [WI [TID YIELD]]]]]]]]]]]]]".
       steps_l.
 
       iDestruct "IST" as "[% [% [% [% [[-> -> ] [JoinA [TidA [Rs
@@ -303,7 +300,7 @@ Module NDSIA. Section sim.
       steps_l. rename _q into vret.
       iMod ("Hpost" $! vret ret with "ASM") as "POST".
       iDestruct "POST" as "[W (% & % & (TidF & TID & YIELD & S & C & PubF) & % & % & Q)]"; des; subst.
-      steps_l. steps_r. hss_l; hss_r. steps_l. steps_r.
+      steps_l. steps_r.
 
       iDestruct "IST" as "[% [% [% [% [[-> -> ] [JoinA [TidA [Rs
         [IST_init | [IST_private | [IST_public | [IST_global_in | IST_global_out]]]]]]]]]]]]"; cycle 3.
@@ -326,7 +323,7 @@ Module NDSIA. Section sim.
         case_decide; clarify; by iPoseProof (YieldToken_both with "YIELD YIELD2") as "%". }
       rewrite !list_lookup_fmap H1 in Hmtid0. inv Hmtid0.
 
-      steps_l. steps_r. hss_l; hss_r. steps_l. steps_r. hss_l; hss_r. steps_l. steps_r.
+      steps_l. steps_r.
       rewrite ?list_lookup_fmap H1 /=.
       steps_l. steps_r.
 
@@ -408,7 +405,7 @@ Module NDSIA. Section sim.
       by_coind CIH; eauto. iFrame.
     }
     { (* CASE 2 : init case *)
-      iDestruct "ASM" as "[%stid [%fvarg [%farg [%fn [%mtid [[-> [-> ->]] [Spawn [PRE [JoinF [TidF [C [PubF [W [TID YIELD]]]]]]]]]]]]]]". hss_l; hss_r.
+      iDestruct "ASM" as "[%stid [%fvarg [%farg [%fn [%mtid [[-> [-> ->]] [Spawn [PRE [JoinF [TidF [C [PubF [W [TID YIELD]]]]]]]]]]]]]]".
       steps_l.
 
       iDestruct "IST" as "[% [% [% [% [[-> -> ] [JoinA [TidA [Rs
@@ -473,7 +470,7 @@ Module NDSIA. Section sim.
       steps_l. rename _q into vret.
       iMod ("Hpost" $! vret ret with "ASM") as "POST".
       iDestruct "POST" as "[W (% & % & (TidF & TID & YIELD & S & C & PubF) & % & % & Q)]"; des; subst.
-      steps_l. steps_r. hss_l; hss_r. steps_l. steps_r.
+      steps_l. steps_r.
 
       iDestruct "IST" as "[% [% [% [% [[-> -> ] [JoinA [TidA [Rs
         [IST_init | [IST_private | [IST_public | [IST_global_in | IST_global_out]]]]]]]]]]]]"; cycle 3.
@@ -496,7 +493,7 @@ Module NDSIA. Section sim.
         case_decide; clarify; by iPoseProof (YieldToken_both with "YIELD YIELD2") as "%". }
       rewrite !list_lookup_fmap H1 in Hmtid0. inv Hmtid0.
 
-      steps_l. steps_r. hss_l; hss_r. steps_l. steps_r. hss_l; hss_r. steps_l. steps_r.
+      steps_l. steps_r.
       rewrite ?list_lookup_fmap H1 /=.
       steps_l. steps_r.
 
@@ -581,7 +578,6 @@ Module NDSIA. Section sim.
     (* preprocess source precondition *)
     steps_l. destruct _q as [[[[mtid stid] ssch] user_pre] user_post].
     iDestruct "ASM" as "(% & % & % & % & % & % & (% & % & Spawn) & (TidF & T & Y & S & C & PubF) & ASM)"; des; subst.
-    hss_l; hss_r.
     steps_l. steps_r.
 
     iDestruct "IST" as "[% [% [% [% [[-> -> ] [JoinA [TidA [Rs
@@ -605,7 +601,7 @@ Module NDSIA. Section sim.
       case_decide; clarify; by iPoseProof (YieldToken_both with "Y YIELD2") as "%". }
     rewrite !list_lookup_fmap H0 in Hmtid0. inv Hmtid0.
 
-    steps_l. steps_r. hss_l; hss_r. steps_l. steps_r.
+    steps_l. steps_r.
 
     (* System spawn precondition *)
     erewrite lookup_weaken; try eapply NDSInSp; cycle 1.
@@ -679,7 +675,7 @@ Module NDSIA. Section sim.
     iStartSim.
 
     steps_l. destruct _q as [[mtid stid] ssch].
-    iDestruct "ASM" as "(% & % & (TidF & TID & YIELD & S & C & PubF))"; des; subst. hss_l; hss_r.
+    iDestruct "ASM" as "(% & % & (TidF & TID & YIELD & S & C & PubF))"; des; subst.
     steps_l. steps_r.
 
     iDestruct "IST" as "[% [% [% [% [[-> -> ] [JoinA [TidA [Rs
@@ -703,13 +699,13 @@ Module NDSIA. Section sim.
       case_decide; clarify; by iPoseProof (YieldToken_both with "YIELD YIELD2") as "%". }
     rewrite !list_lookup_fmap H0 in Hmtid0. inv Hmtid0.
 
-    steps_l. steps_r. hss_l; hss_r. steps_l. steps_r.
+    steps_l. steps_r.
 
     (* GetTid reasoning *)
     do 2 (case_decide as H'; ss; clear H').
     forces_l; iFrame "TID". steps_l.
     steps_r. step.
-    steps_l. iDestruct "ASM" as "[-> TID]". hss_l. steps_l. steps_r. hss_r. steps_r.
+    steps_l. iDestruct "ASM" as "[-> TID]". steps_l. steps_r.
     iPoseProof (Tid_Auth_Tid with "[TidA TidF]") as "%Hmtid"; first iFrame.
     eapply elem_of_list_to_map_2 in Hmtid; rewrite elem_of_lookup_imap in Hmtid.
     destruct Hmtid as [? [? [EQ Hmtid]]]; symmetry in EQ; inv EQ.
@@ -813,7 +809,7 @@ Module NDSIA. Section sim.
 
     step_l. destruct _q as [[mtid stid] ssch].
     steps_l.
-    iDestruct "ASM" as "(% & % & (TidF & TID & YIELD & S & C & PubF))"; des; subst. hss_l; hss_r.
+    iDestruct "ASM" as "(% & % & (TidF & TID & YIELD & S & C & PubF))"; des; subst. 
     steps_l. steps_r.
 
     iDestruct "IST" as "[% [% [% [% [[-> -> ] [JoinA [TidA [Rs
@@ -837,7 +833,7 @@ Module NDSIA. Section sim.
       case_decide; clarify; by iPoseProof (YieldToken_both with "YIELD YIELD2") as "%". }
     rewrite !list_lookup_fmap H0 in Hmtid0. inv Hmtid0.
 
-    steps_l. steps_r. hss_l; hss_r. steps_l. steps_r.
+    steps_l. steps_r.
 
     (* HoareYield *)
     do 2 (case_decide as H'; ss; clear H').
@@ -915,7 +911,6 @@ Module NDSIA. Section sim.
 
     step_l. destruct _q as [[[[mtid stid] ssch] tid] postS].
     steps_l. iDestruct "ASM" as "(% & % & % & (TidF & T & Y & S & C & PubF) & JoinF)"; des; subst.
-    hss_l; hss_r.
 
     steps_l. steps_r.
     iApply wsim_reset. iStopProof.
@@ -949,7 +944,7 @@ Module NDSIA. Section sim.
       case_decide; clarify; by iPoseProof (YieldToken_both with "Y YIELD2") as "%". }
     rewrite !list_lookup_fmap H0 in Hmtid0. inv Hmtid0.
     
-    steps_l. steps_r. hss_l; hss_r. steps_l. steps_r.
+    steps_l. steps_r.
 
     rewrite ?list_lookup_fmap.
     destruct (ths !! tid) as [[[stid_join [[rv vrv]|]] post2]|] eqn : Htid.
@@ -976,8 +971,8 @@ Module NDSIA. Section sim.
       steps_l. call "JoinA TidA Rs Ys Ysch S' PubA".
       { do 4 iExists _. iFrame. iSplit; eauto. do 2 iRight. iLeft. iFrame; eauto. }
       iIntros (???) "IST".
-      steps_l. iDestruct "ASM" as "(% & % & (TidF & TID & YIELD & S & C & PubF))"; des; subst. hss_l. steps_l.
-      steps_r. hss_r. steps_r.
+      steps_l. iDestruct "ASM" as "(% & % & (TidF & TID & YIELD & S & C & PubF))"; des; subst.
+      steps_l. steps_r.
       by_coind CIH. iFrame.
     }
     { iExFalso; iCombine "JoinA" "JoinF" gives %WF%gmap_view_both_dfrac_valid_discrete_total.
@@ -991,7 +986,7 @@ Module NDSIA. Section sim.
     iStartSim.
 
     step_l. destruct _q as [[mtid stid] ssch].
-    steps_l. iDestruct "ASM" as "(% & % & (Tid & T & Y & S & C & PubF))"; des; subst. hss_l; hss_r.
+    steps_l. iDestruct "ASM" as "(% & % & (Tid & T & Y & S & C & PubF))"; des; subst.
     steps_l. steps_r.
 
     iDestruct "IST" as "[% [% [% [% [[-> -> ] [JoinA [TidA [Rs
@@ -1019,8 +1014,8 @@ Module NDSIA. Section sim.
     apply elem_of_list_to_map_2 in Hin; rewrite elem_of_lookup_imap in Hin.
     destruct Hin as [? [? [EQ Hin]]]; symmetry in EQ; inv EQ.
 
-    steps_l. hss_l. steps_l. forces_l. iFrame. iSplit; eauto.
-    steps_r. hss_r. step.
+    steps_l. forces_l. iFrame. iSplit; eauto.
+    steps_r. step.
 
     iSplit; eauto.
     do 4 iExists _. iFrame. iSplit; eauto. do 2 iRight. iLeft. iFrame; eauto.

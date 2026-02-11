@@ -43,7 +43,7 @@ Section SystemIA.
     }
     subst.
 
-    steps_r. hss_r. steps_r. rewrite /SystemI.get_tid. steps_r. hss_r. steps_r.
+    steps_r. rewrite /SystemI.get_tid. steps_r.
     inline_r. force_r (_, _, _). forces_r.
     iDestruct "TA" as "[TA TVS]".
     rewrite big_sepM_delete //. iDestruct "TVS" as "[$ TVS]"; eauto.
@@ -53,7 +53,7 @@ Section SystemIA.
     iMod (own_update with "TA") as "TA".
     { rewrite (gmap_view_replace _ tid_cur _ (to_agree _)) //. }
     iDestruct "TA" as "[TA Tid]". 
-    hss_r. steps_r.
+    steps_r.
     forces_l. iFrame. iSplit; eauto.
     step.
 

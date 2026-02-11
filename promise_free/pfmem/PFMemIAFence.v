@@ -20,7 +20,7 @@ Section fence.
     steps_l. destruct _q as [[[tid ordr] ordw] V]. rename _q0 into varg.
     iDestruct "ASM" as "[-> [[-> %] TV]]". hss_r. steps_r.
     iDestruct "IST" as "[%gl [%ths [%Vcut [[-> [%CUT [%CUTCL [%WF [%WF2 [%PFG %PFL]]]]]] [HA [TA FA]]]]]]".
-    hss. steps_r. hss_r. steps_r. rewrite /PFMemI.check_ident.
+    steps_r. rewrite /PFMemI.check_ident.
     des_ifs; last (iPoseProof (tview_both_valid with "TA TV") as "%F"; des; ss; clarify).
     steps_r. destruct _q as [config' STEP].
     inv STEP. s in STEP0. inv STEP0; [inv LOCAL|].

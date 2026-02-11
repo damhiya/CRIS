@@ -73,7 +73,7 @@ Module RRSNodeIA. Section RRSNodeIA.
     forces_r. iSplit; eauto; ss.
     { instantiate (1:=1). instantiate (1:=[Vint 1]↑). iPureIntro; esplits; eauto; ss. }
     ss. steps_r. iDestruct "GRT" as "[% [% (-> & PT & _)]]".
-    replace (0 + 0%nat)%Z with 0%Z by nia. rewrite <-H0. hss_r.
+    replace (0 + 0%nat)%Z with 0%Z by nia. rewrite <-H0.
     steps_r. steps_l.
 
     assert (rrs_in_sp : (RRSAS.sp sp_user ⊤ get_stid PYIP) ⊆ sp).
@@ -85,7 +85,7 @@ Module RRSNodeIA. Section RRSNodeIA.
     steps_r. inline_r. steps_r. forces_r. iSplitL "PT"; eauto; ss.
     { instantiate (2 := (b, 0%Z, Vundef, Vint 0)); ss. iFrame; eauto. }
     ss. steps_r. iDestruct "GRT" as "[% [PT ->]]".
-    rewrite <-H1; hss_r. steps_r.
+    rewrite <-H1. steps_r.
 
     rrs_yield_ir "IST" "tidF". rrs_yield_l. steps_l.
     erewrite lookup_weaken; try eapply Hrrs; eauto; cycle 1.
@@ -110,7 +110,7 @@ Module RRSNodeIA. Section RRSNodeIA.
     steps_l; steps_r. call "IST". iIntros (???) "IST".
     steps_l. rewrite map_size_insert map_size_empty lookup_empty.
     iDestruct "ASM" as (?) "[% [tidF [RRI [% %]]]]"; des; subst; hss.
-    steps_r; hss. steps_r.
+    steps_r.
 
     rrs_yield_ir "IST" "tidF". rrs_yield_l. steps_l.
     erewrite lookup_weaken; try eapply Hrrs; eauto; cycle 1.
@@ -186,8 +186,7 @@ Module RRSNodeIA. Section RRSNodeIA.
     
     inline_r. steps_r. forces_r. instantiate (1 := (blk, ofs, 1%Qp, _)); ss.
     iSplitL "PT"; iFrame; eauto.
-    steps_r. iDestruct "GRT" as "[% [PT ->]]".
-    steps_r; hss. steps_r.
+    steps_r. iDestruct "GRT" as "[% [PT ->]]". subst. steps_r.
 
     (** Close invariant **)
     iMod ("CLOSE" with "[PT HALF0]") as "_".
@@ -196,21 +195,20 @@ Module RRSNodeIA. Section RRSNodeIA.
     rrs_yield_ir "IST" "tidF". steps_r.
 
     inline_r. steps_r. force_r (S mtid, stid, ssch).
-    forces_r. iSplitL "tidF"; iFrame; eauto.
-    steps_r; hss_r. steps_r.
+    forces_r. iSplitL "tidF"; iFrame; eauto. steps_r.
     iApply wsim_sget_tgt. steps_r. rewrite /mjoin /option_join.
     destruct (st_tgt1 !! RRSI.RRSI.v_tid) eqn:F; cycle 1.
-    { rewrite F. steps_r. destruct (@Any.downcast nat tt↑) eqn:A; steps_r; ss.
+    { rewrite F. s. destruct (@Any.downcast nat tt↑) eqn:A; steps_r; ss.
       iDestruct "GRT" as "[<- [-> tid]]"; hss.
       exfalso. eapply unit_nat_neq; eauto. }
       
     rewrite F. steps_r. destruct o; ss; cycle 1.
-    { steps_r. destruct (@Any.downcast nat tt↑) eqn:A; steps_r; ss.
+    { destruct (@Any.downcast nat tt↑) eqn:A; steps_r; ss.
       iDestruct "GRT" as "[<- [-> tid]]"; hss.
       exfalso. eapply unit_nat_neq; eauto. }
 
     destruct (@Any.downcast nat t) eqn:A; steps_r; ss.
-    iDestruct "GRT" as "[% [% tidF]]"; hss. steps_r.
+    iDestruct "GRT" as "[% [% tidF]]"; subst. steps_r.
 
     do 3 (rrs_yield_ir "IST" "tidF"; steps_r).
 

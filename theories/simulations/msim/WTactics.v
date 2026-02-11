@@ -324,19 +324,8 @@ Ltac wby_coind CIH :=
   iApply wsim_progress; iApply wsim_base; iIntrosFresh "I";
   iApply CIH.
 
-(* Ltac winit_simF :=
-  initialize_simF;
-  iApply wsim_isim;
-  try (
-      iDestruct "IST" as "[% [W [TID IST]]]"; des_safe; subst;
-      iApply wsim_init_winv; iSplitL "W"; [et; fail|]; hss_copset;
-      hrepeat do 1 (unfold_mod; s)). *)
-
-(** Special Tactics for RealUpdate **)
-
-(* Tactic Notation "wru_l_advanced" uconstr(P) := *)
-(*   norm_l; iApply wsim_ru_src_advanced; *)
-(*   iExists P; iSplit; [try prove_precise|]. *)
-
-(* Ltac wru_r := *)
-(*   norm_r; iApply wsim_ru_tgt. *)
+Tactic Notation "iIst" constr(IST) "with" constr(H) :=
+match goal with
+    | |- environments.envs_entails _ (wsim ?fls ?flt ?Ist ?EE ?r ?g ?R_s ?R_t ?RR ?ps ?pt (?sts, _) (?stt, _)) =>
+      iAssert (Ist sts stt)%I with H as IST
+    end.

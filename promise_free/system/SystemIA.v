@@ -36,7 +36,7 @@ Module SystemIA. Section SystemIA.
       "[%stid [%tid [%𝓥 [%pre [%fvarg [%farg [%fn [[-> ->] [W [[%fsp [% Spawn]] [TV PRE]]]]]]]]]]]".
     iDestruct "IST" as (????) "[[-> ->] [[% IST] ->]]".
     iDestruct "IST" as "[%tid_cur [%tids [[-> ->] [TA TVS]]]]".
-    hss_l. steps_l.
+    steps_l.
     unshelve erewrite (lookup_weaken _ _ _ _ _ Hincl); eauto.
     iDestruct ("Spawn" with "[]") as "[% [% [%Hfsp Hspawn]]]".
     { iPureIntro; exists (tid, stid); split; done. }
@@ -44,7 +44,7 @@ Module SystemIA. Section SystemIA.
     { unfold_pre_post; iFrame; eauto. }
     force_l (FSpec_mk _ _ Hfsp); eauto. forces_l. iFrame.
 
-    steps_l. hss_r. steps_r. call "TA TVS".
+    steps_l. steps_r. call "TA TVS".
     { iFrame. iExists _, _, _, _; repeat iSplit; eauto. }
     iIntros (ret st_src st_tgt) "IST".
     steps_l. steps_r.
@@ -69,8 +69,8 @@ Module SystemIA. Section SystemIA.
     unfold_iterC_r. steps_r.
     call "IST". clear st_src st_tgt ret.
     iIntros (ret st_src st_tgt) "IST".
-    steps_l. iDestruct "ASM" as "[-> [-> TV]]". hss_l. steps_l.
-    steps_r. hss_r. steps_r.
+    steps_l. iDestruct "ASM" as "[-> [-> TV]]". steps_l.
+    steps_r.
     by_coind CIH; iFrame.
   (*SLOW*)Qed.
 
@@ -93,7 +93,7 @@ Module SystemIA. Section SystemIA.
     }
     subst.
 
-    steps_r. do 3 (hss_l; hss_r; steps_l; steps_r).
+    steps_r. steps_l.
 
     (* Calling PFMemHdr.spawn *)
     inline_r. steps_r.
@@ -110,7 +110,7 @@ Module SystemIA. Section SystemIA.
       s; rewrite tview_eq /tview_def. iCombine "TV_new TV_new2" gives %WF%auth_frag_op_valid_1.
       rewrite discrete_fun_singleton_op discrete_fun_singleton_valid in WF; done.
     }
-    hss_r. steps_r.
+    steps_r.
 
     unshelve (force_l (exist _ tid_new _)).
     { ss; rewrite lookup_fmap Hnew //. }
@@ -122,13 +122,10 @@ Module SystemIA. Section SystemIA.
       { rewrite ?lookup_fmap Hnew //. }
     }
     iDestruct "TA" as "[TA TVS_new]".
-    (* iDestruct "TVS_new" as "[TVS_new TVS_new1]". *)
 
-    (* force_l. steps_l. force_l ((tid_new, fn, farg)↑). steps_l. *)
     force_l. iSplitL "TVS_new PRE Hspawn".
     { iIntros "? ? ?". iExists _, _, _, _, _, _, _. iFrame. iSplit; eauto. }
     steps_l.
-    (* spawn. iIntros (nths); steps_l. steps_r. hss. *)
 
     forces_l. iFrame "TV STV". iSplit; eauto. steps_l. step.
     iSplit; eauto.
@@ -166,8 +163,7 @@ Module SystemIA. Section SystemIA.
       { rewrite lookup_fmap lookup_delete_ne // Hlookup //. }
       iPoseProof (YieldToken_both with "Y2 Y") as "%"; done.
     }
-    subst.
-    hss_l. steps_l; steps_r. hss_l; hss_r. steps_l; steps_r. hss_r. steps_r.
+    subst. steps_l; steps_r.
     
     destruct _q as [[tid_next stid_next] Hin].
     force_l (exist _ (tid_next, stid_next) Hin). steps_l.
@@ -220,7 +216,7 @@ Module SystemIA. Section SystemIA.
     steps_l. destruct _q as [[tid stid] V]. iDestruct "ASM" as "[-> [-> TV]]".
     iDestruct "IST" as (????) "[[-> ->] [[% IST] ->]]".
     iDestruct "IST" as "[%tid_cur [%tids [[-> ->] [TA YS]]]]".
-    hss_l. hss_r. steps_l; steps_r. hss_l; hss_r. steps_l. steps_r.
+    steps_l; steps_r.
 
     (* v_tid is set to a correct one *)
     iDestruct "TV" as "[TV [TID Y]]".

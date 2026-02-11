@@ -199,17 +199,17 @@ Ltac clear_st :=
 Ltac sch_yield_rr IST :=
   (norm_l with 
     (do 1 unshelve iApply (wsim_yield_tgt_rr); [ss|ss|ss|ss|];
-      iFrame IST)); clear_st; iIntros (??) IST.
+      iFrame IST)); clear_st; iIntros (??) IST; steps_r.
 
 Ltac sch_yield_ir H1 H2 :=
   let H2' := eval compute in (H1 ++ " " ++ H2)%string in
   (norm_l with do 1 (iApply (wsim_yield_tgt_ir); [simpl_map; simpl_sp; ss|simpl_map; simpl_sp; ss|ss|ss|iFrame H2']));
-  last (clear_st; iIntros (??) H2').
+  last (clear_st; iIntros (??) H2'; steps_r).
 
 Ltac sch_yield_ii IST :=
   (norm_l with 
     (do 1 iApply (wsim_yield_tgt_ii); [simpl_sp; simpl_map; ss|simpl_sp; simpl_map; ss|ss|ss|(solve_ndisj || set_solver)|(solve_ndisj || set_solver)| ];
-      iFrame IST)); clear_st; iIntros (??) IST.
+      iFrame IST)); clear_st; iIntros (??) IST; steps_r.
 
 Ltac sch_yield_l :=
   norm_l with do 1 iApply wsim_yield_src; [ss|].

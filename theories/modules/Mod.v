@@ -6,6 +6,7 @@ Require Export FSpec ModTr Sandbox Sp.
 
 Module Mod. Section Mod.
   Context {Σ : GRA}.
+  Context (a b : gmap string nat).
 
   Record t : Type := mk {
     scopes : list string;

@@ -45,7 +45,7 @@ Section SystemIA.
       }
       subst.
 
-      steps_r. hss_r. steps_r. rewrite /SystemI.get_tid. steps_r. hss_r. steps_r.
+      steps_r. rewrite /SystemI.get_tid. steps_r.
       inline_r. rewrite /PFMemA.write_spec.
       unshelve force_r (FSpec_mk _ _ (or_introl _)).
       3:{ eexists (_, loc, val, ord, V); split; ss. }
@@ -58,7 +58,7 @@ Section SystemIA.
       iMod (own_update with "TA") as "TA".
       { rewrite (gmap_view_replace _ tid_cur _ (to_agree _)) //. }
       iDestruct "TA" as "[TA TidS]".
-      hss_r. steps_r.
+    
       forces_l. iFrame. iSplit; eauto.
       step.
 
@@ -88,7 +88,7 @@ Section SystemIA.
       }
       subst.
 
-      steps_r. hss_r. steps_r. rewrite /SystemI.get_tid. steps_r. hss_r. steps_r.
+      steps_r. rewrite /SystemI.get_tid. steps_r.
       inline_r. unshelve force_r (FSpec_mk _ _ (or_intror _)).
       3:{ exists (tid_cur, loc, val, ord, V, γ, ζ', Vb, tx, ζ, mode, q, tx'). split; ss. }
       iDestruct "TA" as "[TA TVS]".
@@ -100,7 +100,7 @@ Section SystemIA.
       iMod (own_update with "TA") as "TA".
       { rewrite (gmap_view_replace _ tid_cur _ (to_agree _)) //. }
       iDestruct "TA" as "[TA Tid]". 
-      hss_r. steps_r.
+    
       forces_l. iFrame. iSplit; eauto.
       step.
 

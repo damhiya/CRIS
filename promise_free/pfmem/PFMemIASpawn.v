@@ -17,9 +17,9 @@ Section spawn.
   Lemma simF_spawn : ISim.sim_fun open MA MI Ist (Some PFMemHdr.spawn).
   Proof.
     iStartSim. steps_l. destruct _q as [tid V]. rename _q0 into varg.
-    iDestruct "ASM" as "[-> [-> TV]]". hss_r. steps_r.
+    iDestruct "ASM" as "[-> [-> TV]]".
     iDestruct "IST" as "[% [% [% [[-> [% [% [%WF [% [%PFG %PFL]]]]]] [HA [TA HFA]]]]]]".
-    steps_r. hss_r. steps_r. destruct _q as [tid_new Hnin].
+    steps_r. destruct _q as [tid_new Hnin].
     iPoseProof (tview_both_valid with "TA TV") as "[% [% [%FIND %]]]"; rewrite FIND. steps_r.
     subst V.
     iMod (tview_auth_alloc _ tid_new with "TA") as "[TA TVnew]"; eauto.

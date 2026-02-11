@@ -39,7 +39,7 @@ Module MPIA. Section MPIA.
     steps_r. inline_r. force_r (1%positive, 0, 2, _). forces_r. iFrame. iSplit; eauto.
     steps_r. iDestruct "GRT" as "[-> [%loc [%V' [[-> %LE] [TV [FA ↦]]]]]]".
     rewrite own_loc_na_vec_cons own_loc_na_vec_singleton.
-    hss_r. steps_r.
+    steps_r.
 
     (* yield *)
     iApply wsim_system_yield_ir; ss.
@@ -82,7 +82,7 @@ Module MPIA. Section MPIA.
     iFrame "TV".
     iSplit; eauto.
     steps_r. iDestruct "GRT" as "[-> [%V3 [[-> %Hle3] [↦data TV]]]]".
-    tview_sync Hle3. hss_r. steps_r.
+    tview_sync Hle3. steps_r.
 
     (* yield *)
     iApply wsim_system_yield_ir; ss.
@@ -121,7 +121,7 @@ Module MPIA. Section MPIA.
 
     clear dependent st_src st_tgt. iIntros (ret st_src st_tgt) "IST".
     steps_l. iDestruct "ASM" as "[% [-> [TV [-> ->]]]]".
-    steps_r. hss_r. steps_r. hss_l; steps_l.
+    steps_r. steps_l.
     iApply wsim_reset.
     iStopProof.
 
@@ -155,7 +155,7 @@ Module MPIA. Section MPIA.
       iFrame "TV SN ↦flag". iSplit; auto.
       steps_r.
       iDestruct "GRT" as "[-> [% [% [% [% [% [% [%V4 [[-> %] [#SN2 [↦flag TV]]]]]]]]]]]".
-      hss_r. steps_r.
+      steps_r.
       iMod ("ACC" with "[↦flag]") as "_".
       { rewrite {2}MPA.mp_inv'_eq; solve_base_sl_red; iExists _, false. repeat iExists _.
         rewrite syn_AtomicPtsTo_red AtomicPtsTo_eq /AtomicPtsTo_def; iFrame.
@@ -208,7 +208,7 @@ Module MPIA. Section MPIA.
         subst. intros INV; inv INV.
         (* iClear "CIH". *)
         destruct v'; ss. apply Z.eqb_eq in Hval; subst.
-        hss_r; steps_r.
+        steps_r.
         iMod ("ACC" with "[↦flag P]") as "_".
         { rewrite MPA.mp_inv'_eq; solve_base_sl_red.
           iExists _, true; repeat iExists _.
@@ -245,7 +245,7 @@ Module MPIA. Section MPIA.
         rewrite Hvle2 Hawk Hvle.
         iFrame "TV INV". iSplit; eauto.
 
-        steps_r. iDestruct "GRT" as "[-> [% [% [[-> %Hval'] [↦data TV]]]]]". hss_r.
+        steps_r. iDestruct "GRT" as "[-> [% [% [[-> %Hval'] [↦data TV]]]]]".
 
         steps_r.
         iApply wsim_system_yield_ir; ss. { simpl_sp; auto. }
@@ -265,7 +265,7 @@ Module MPIA. Section MPIA.
       { (* read 0 *)
         rewrite Cell.singleton_get; des_if; intros INV; inv INV.
         destruct v'; ss. eapply Z.eqb_eq in Hval; subst.
-        hss_r; steps_r.
+        steps_r.
 
         (* close invariant *)
         iMod ("ACC" with "[↦flag INV]") as "_".
@@ -307,10 +307,10 @@ Module MPIA. Section MPIA.
     steps_l. destruct _q as [tid stid].
     iDestruct "ASM" as "[%va [-> [%sa [%V [-> [PRE TV]]]]]]". hss_l.
     iDestruct "PRE" as "[%loc [%γ [%γx [%V0 [%fd [%td [% [% [[-> ->] [#I [↦data ⊒]]]]]]]]]]]".
-    steps_l. hss_l. steps_l.
+    steps_l.
 
     rewrite /MPA.mp2. steps_l.
-    steps_r. hss_r. steps_r. hss_r. steps_r.
+    steps_r.
     rewrite /MPI.mp2. norm_r.
 
     (* yield *)
@@ -334,7 +334,7 @@ Module MPIA. Section MPIA.
     iPoseProof (own_loc_na_own_loc with "↦data") as "↦data".
     iFrame "TV ↦data". iSplit; eauto.
     steps_r. iDestruct "GRT" as "[-> [%V2 [[-> %Hle] [↦data TV]]]]".
-    hss_r. steps_r.
+    steps_r.
 
     (* yield *)
     iApply wsim_system_yield_ir; ss. { simpl_sp; ss. }
@@ -370,7 +370,7 @@ Module MPIA. Section MPIA.
     iDestruct "GRT" as "[-> [% [% [% [% [% [% [[-> [%Htime %Hres]] [sn [at [sy [swX tv]]]]]]]]]]]]".
     destruct (Ordering.le _ _) eqn : Heqb in Hres; ss; subst; clear Heqb.
     rewrite Cell.max_ts_singleton in Htime.
-    des; subst. hss_r. steps_r.
+    des; subst. steps_r.
     iMod ("ACC" with "[↦data swX]") as "_".
     { rewrite MPA.mp_inv'_eq.
       iEval solve_base_sl_red; iExists _, true; repeat iExists _.

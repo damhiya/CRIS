@@ -38,12 +38,6 @@ Module APCAC. Section APCAC.
   Lemma simF_apc : ISim.sim_fun open APCCMod APCAMod IstFull (Some APCHdr.apc).
   Proof using _crisG PureIsPure PureInSpA APCInSpA.
     (** Due to arbitrary module, manual starting up is required **)
-    destruct (Mod.fnsems md !! Some APCHdr.apc) eqn : Hmd.
-    { rewrite /ISim.sim_fun; simpl_map; s.
-      rewrite /sandbox_fnsemmap {1}lookup_fmap /Mod.fnsems /= {1}lookup_union_with Hmd.
-      simpl_map; ss.
-      rewrite lookup_union_with Hmd //.
-    }
     iStartSim.
 
     steps_l. iDestruct "ASM" as "%"; des; subst. rename _q into o.
@@ -89,18 +83,11 @@ Module APCAC. Section APCAC.
     destruct o0; ss; cycle 1.
     { rewrite lookup_fmap M in H3. ss. }
     destruct p; ss. inv H3.
-    rewrite /pure_specbody in H10.
-    destruct (String.eq_dec APCHdr.apc fn).
-    { subst. clarify. }
-    assert (fnsems sp_pure !! Some fn = None).
-    { rewrite /fnsems. eapply lookup_singleton_None. ii. inv H3. }
     
     inline_r.
-    { rewrite /sandbox_fnsemmap !lookup_fmap /= /Mod.fnsems /= lookup_union_with.
-      rewrite /Mod.fnsems /= !lookup_fmap H3 M. ss. }
-    rewrite lookup_fmap M in H10. ss. inv H10.
-    eapply (func_ext_rev arg) in H11. rewrite /SB.sandbox_body /= in H11.
-    rewrite /SB.sandbox_body H11 /SModTr.trans_fnsem /SModTr.HoareFun.
+    rewrite /pure_specbody lookup_fmap M in H10. ss. inv H10.
+    eapply (func_ext_rev arg) in H9. rewrite /SB.sandbox_body /= in H9.
+    rewrite /SB.sandbox_body H9 /SModTr.trans_fnsem /SModTr.HoareFun.
 
     steps_r. rewrite H5. steps_r. force_r x'. steps_r. rewrite H5.
     steps_r. force_r (_↑). steps_r. rewrite H7. steps_r. forces_r. iSplitL "GRT"; eauto.
@@ -115,7 +102,7 @@ Module APCAC. Section APCAC.
     (* inlining *)
     inline_r.
     ss. rewrite /SModTr.trans_fnsem. ss.
-    forces_r. iSplitR; eauto. steps_r. hss_r. steps_r.
+    forces_r. iSplitR; eauto. steps_r.
     rewrite /apc_body. unfold APC at 1. steps_r.
 
     (* add meaningless return in src *)
@@ -143,7 +130,7 @@ Module APCAC. Section APCAC.
 End APCAC.
 
 Section ctxr.
-  Context `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
 
   Definition ctxr (md : Mod.t) (sp_c sp_a sp_pure : specmap)
     (APCInSpA : APCA.Sp ⊆ sp_a)

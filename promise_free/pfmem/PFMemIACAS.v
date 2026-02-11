@@ -23,7 +23,7 @@ Section CAS.
     steps_l.
     iDestruct "ASM" as "[-> [[-> [%RLXR [%RLXW %COMPARABLE]]] [TV [SN [PT [AW [PR #CMP]]]]]]]".
     iDestruct "IST" as "[%gl [%ths [%Vcut [[-> [%CUT [%CUTCL [%WF [%WF2 [%PFG %PFL]]]]]] [HA [TA HFA]]]]]]".
-    hss. steps_r. hss_r. steps_r.
+    hss. steps_r.
 
     (* conditions *)
     iPoseProof (tview_both_valid with "TA TV") as "%IN".
@@ -131,7 +131,7 @@ Section CAS.
     clear n. iClear "CMP".
     inv STEP; ss. clear EVENT. inv STEP0; inv LOCAL; ss.
     { (* success case*)
-      steps_r. hss.
+      steps_r.
       assert (TRW : Time.lt tsr tsw).
       { inv LOCAL1. inv READABLE.
         inv LOCAL2. inv WRITE; ss. inv ADD; ss. inv ADD0; ss.
@@ -406,6 +406,7 @@ Section CAS.
         rewrite /view_at AtomicPtsToX_eq /AtomicPtsToX_def.
         iFrame "HIST AA PTA".
         iSplit; auto.
+        des.
         iPureIntro; ss; split.
         { split.
           { rewrite /AllocView.join /orb; des_ifs; ss. }
@@ -489,7 +490,7 @@ Section CAS.
       }
     }
     { (* fail case *)
-      steps_r. hss.
+      steps_r.
       iAssert (∃ ζ_read,
         ⌜Cell.le ζ' ζ_read
         ∧ ∀ ts, Cell.get ts ζ_read =
@@ -629,7 +630,7 @@ Section CAS.
         (* Atomic pts-to *)
         rewrite AtomicPtsToX_eq.
         iFrame "HIST AA PTA". iSplit; first done.
-        iSplit; done.
+        des. iSplit; done.
       }
       step_l. step.
       iFrame. done.

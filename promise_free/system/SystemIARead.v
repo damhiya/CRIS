@@ -43,7 +43,7 @@ Section SystemIA.
       }
       subst.
 
-      steps_r. hss_r. steps_r. rewrite /SystemI.get_tid. steps_r. hss_r. steps_r.
+      steps_r. rewrite /SystemI.get_tid. steps_r.
       inline_r. 
       unshelve force_r (FSpec_mk _ _ (or_introl _)).
       3:{ eexists (tid_cur, loc, ord, val, q, V); split; ss. }
@@ -55,7 +55,7 @@ Section SystemIA.
       iMod (own_update with "TA") as "TA".
       { rewrite (gmap_view_replace _ tid_cur _ (to_agree _)) //. }
       iDestruct "TA" as "[TA TidS]". 
-      hss_r. steps_r.
+      steps_r.
       forces_l. iFrame. iSplit; eauto.
       step.
       iSplit; eauto.
@@ -74,7 +74,7 @@ Section SystemIA.
       ss; unfold_pre_post.
       iDestruct "ASM" as "[-> [[-> %] [SN [PTS [Tid STid]]]]]".
       iDestruct "IST" as (????) "[[-> ->] [[% IST] ->]]".
-      iDestruct "IST" as "[%tid_cur [%tids [[-> ->] [TA YS]]]]". hss_r. steps_r.
+      iDestruct "IST" as "[%tid_cur [%tids [[-> ->] [TA YS]]]]". steps_r.
       iPoseProof (tview_sys_lookup with "TA Tid") as "%Hlookup"; first iFrame.
       destruct (decide (tid = tid_cur)); cycle 1.
       { iPoseProof (big_sepM_lookup_acc with "YS") as "[TV2 YS]".
@@ -82,7 +82,7 @@ Section SystemIA.
         iDestruct "STid" as "[_ Y2]"; iPoseProof (YieldToken_both with "Y2 TV2") as "%"; done.
       }
       subst.
-      rewrite /SystemI.get_tid. steps_r. hss_r. steps_r.
+      rewrite /SystemI.get_tid. steps_r. steps_r.
       inline_r.
       unshelve force_r (FSpec_mk _ _ (or_intror _)).
       3:{ eexists (tid_cur, loc, ord, _, _, _, _, _, _, _, _); split; ss. }
@@ -95,7 +95,7 @@ Section SystemIA.
       iMod (own_update with "TA") as "TA".
       { rewrite (gmap_view_replace _ tid_cur _ (to_agree _)) //. }
       iDestruct "TA" as "[TA Tid]". 
-      hss_r. steps_r.
+      steps_r.
       forces_l. iFrame. iSplit; eauto. iSplit; eauto.
       iPureIntro; des; esplits; eauto.
       step.

@@ -337,7 +337,7 @@ Section free.
     iStartSim.
     steps_l. destruct _q as [[[tid loc] sz] V]. iDestruct "ASM" as "[-> [-> [TV [OLV F]]]]".
     iDestruct "IST" as "[%gl [%ths [%Vcut [[-> [%CUT [%CUTCL [%WF [%WF2 [%PFG %PFL]]]]]] [HA [TA FA]]]]]]".
-    hss_r. steps_r. hss_r. steps_r.
+    hss_r. steps_r.
     rewrite /PFMemI.check_ident.
     steps_r. des_ifs.
     { steps_r. destruct _q as [[e config'] [TEV STEP]].

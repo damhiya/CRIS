@@ -33,16 +33,12 @@ Module NDSNodeIA. Section NDSNodeIA.
     inline_r. hss. steps_r. force_r true. steps_r. forces_r. iSplitR; eauto.
     steps_r. iDestruct "GRT" as "[PT _]".
     rename _q into blk. replace (0 + 0%nat)%Z with 0%Z by nia.
-    hss_r. steps_r.
 
-    nds_yield_global_ir "IST" "tidF". steps_r. inline_r. hss_r. steps_r. force_r true.
+    nds_yield_global_ir "IST" "tidF". steps_r. inline_r. steps_r. force_r true.
     steps_r. forces_r. iSplitL "PT"; [eauto|].
-    steps_r. hss_r. iDestruct "GRT" as "PT".
-    steps_r. nds_yield_global_ir "IST" "tidF". nds_yield_global_l.
+    steps_r. iDestruct "GRT" as "PT". nds_yield_global_ir "IST" "tidF". nds_yield_global_l.
 
-    steps_l. steps_r.
-    erewrite lookup_weaken; try eapply Hnds; eauto; cycle 1.
-    { rewrite /NDSA.sp. simpl_map. refl. }
+    steps_l. steps_r. simpl_sp.
     force_l (mtid, stid, ssch,
               (λ varg arg, ⌜varg = (tt↑↑) ∧ arg = ((Vptr (blk, 0%Z))↑↑)⌝ ∗ inv_x_points_to (blk, 0%Z))%I,
               (λ vret ret, existT 0 (⌜vret = tt↑↑ ∧ ret = tt↑↑⌝%SAT))).
@@ -73,30 +69,29 @@ Module NDSNodeIA. Section NDSNodeIA.
     steps_l. steps_l.
     call "IST". iIntros (???) "IST".
     steps_l. iDestruct "ASM" as "(% & % & % & % & TID & JoinF)"; des; subst; hss.
-    steps_r. hss_r. steps_r. nds_yield_global_ir "IST" "TID".
+    steps_r. nds_yield_global_ir "IST" "TID".
     steps_r. nds_yield_global_l. steps_l.
     nds_yield_ir "IST" "TID". nds_yield_l. steps_r.
 
-    inline_r. hss_r. steps_r. force_r true. steps_r.
+    inline_r. steps_r. force_r true. steps_r.
     iInv "I" as "PT" "CLOSE". solve_base_sl_red. iDestruct "PT" as (?) "PT".
     force_r (Vint z, 1%Qp). steps_r. forces_r. iSplitL "PT"; iFrame.
-    steps_r. hss_r. steps_r.
+    steps_r.
     iMod ("CLOSE" with "[GRT]") as "_".
     { iExists _. solve_base_sl_red. }
 
-    force_l z. steps_l.
-    steps_l. nds_yield_global_ir "IST" "TID".
+    force_l z. nds_yield_global_ir "IST" "TID".
     steps_r. nds_yield_global_ir "IST" "TID".
 
-    steps_r. inline_r. hss_r. steps_r. force_r true. steps_r.
+    steps_r. inline_r. steps_r. force_r true. steps_r.
     iInv "I" as "PT" "CLOSE". solve_base_sl_red. iDestruct "PT" as (?) "PT".
     force_r. iSplitL "PT"; iFrame.
-    steps_r. hss_r. steps_r.
+    steps_r.
     iMod ("CLOSE" with "[GRT]") as "_".
     { iExists (z + 1). solve_base_sl_red.
       replace (Z.of_nat (z + 1)%nat) with (Z.of_nat z + 1)%Z by nia. iFrame. }
     nds_yield_global_ir "IST" "TID".
-    nds_yield_global_l. steps_l. steps_r. step. steps_r. steps_l.
+    nds_yield_global_l. step. steps_r. steps_l.
     nds_yield_global_ir "IST" "TID". nds_yield_global_l. steps_l. steps_r.
     nds_yield_ir "IST" "TID". nds_yield_l. steps_l. steps_r. forces_l. iSplitL "TID"; iFrame; eauto.
     step. iFrame; eauto.
@@ -109,21 +104,21 @@ Module NDSNodeIA. Section NDSNodeIA.
     steps_l. destruct _q as [[[mtid stid] ssch] [blk ofs]].
     iDestruct "ASM" as "[TID (% & % & % & #I)]"; des; subst; hss.
 
-    steps_l. steps_r. hss_r. steps_r. nds_yield_global_ir "IST" "TID".
+    steps_l. steps_r. nds_yield_global_ir "IST" "TID".
 
-    steps_r. inline_r. hss_r. steps_r. force_r true. steps_r.
+    steps_r. inline_r. steps_r. force_r true. steps_r.
 
     iInv "I" as "PT" "CLOSE". solve_base_sl_red. iDestruct "PT" as (?) "PT".
     force_r (Vint z, 1%Qp). steps_r. force_r. iSplitL "PT"; iFrame; eauto.
-    steps_r. hss_r. steps_r.
+    steps_r.
     iMod ("CLOSE" with "[GRT]") as "_".
     { iExists z. solve_base_sl_red. }
     nds_yield_global_ir "IST" "TID". steps_r. nds_yield_global_ir "IST" "TID". steps_r.
 
-    inline_r. hss_r. steps_r. force_r true. steps_r.
+    inline_r. steps_r. force_r true. steps_r.
     iInv "I" as "PT" "CLOSE". solve_base_sl_red. iDestruct "PT" as (?) "PT".
     force_r. iSplitL "PT"; eauto.
-    steps_r. hss_r. steps_r.
+    steps_r.
     iMod ("CLOSE" with "[GRT]") as "_".
     { iExists (z + 1). solve_base_sl_red. replace (Z.of_nat (z + 1)%nat) with (Z.of_nat z + 1)%Z by nia. iFrame. }
     nds_yield_global_ir "IST" "TID". nds_yield_global_l.

@@ -345,6 +345,14 @@ Ltac _hnorm_itr :=
   | [ |- triggerNB = _ ] =>
       unfold triggerNB;
       _hnorm_itr
+  | [ |- unwrapU (Any.downcast (Any.upcast ?a)) = _ ] =>
+      rewrite Any.upcast_downcast /=; _hnorm_itr
+  | [ |- unwrapN (Any.downcast (Any.upcast ?a)) = _ ] =>
+      rewrite Any.upcast_downcast /=; _hnorm_itr
+  | [ |- unwrapU (SAny.downcast (SAny.upcast ?a)) = _ ] =>
+      rewrite SAny.upcast_downcast /=; _hnorm_itr
+  | [ |- unwrapN (SAny.downcast (SAny.upcast ?a)) = _ ] =>
+      rewrite SAny.upcast_downcast /=; _hnorm_itr
   | [ |- ?itr = _ ] =>
       reflexivity
   end.

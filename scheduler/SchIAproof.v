@@ -46,7 +46,6 @@ Module SchIA. Section sim.
     steps_l.
     iDestruct "ASM" as "[%stid [%pre [%postS [%fvarg [%varg [%fn [%mtid [[-> ->] ASM]]]]]]]]".
     iDestruct "ASM" as "[Spawn [W [TidFrag [Pre JoinFrag]]]]".
-    hss_l; hss_r.
 
     steps_l. steps_r.
     iDestruct "Spawn" as "[%fsp [%Hfind Spawn]]".
@@ -63,12 +62,11 @@ Module SchIA. Section sim.
     (* after call - prepare for termination *)
     steps_l. rename _q into vret.
     iMod ("Post" $! vret with "[ASM]") as "[W [[TidF [TID YIELD]] [% [% [[-> ->] Q]]]]]"; iFrame.
-    hss_l; steps_l.
+    steps_l.
 
-    steps_r. hss_r. steps_r.
+    steps_r.
     iDestruct "IST" as "[% [%tid_cur [%stid_cur [[-> [-> %Hmtid]] [JoinA [TidA [RET Ys]]]]]]]".
-    steps_r. hss_r. steps_r. hss_r. steps_r.
-    steps_l. hss_l. steps_l. hss_l. steps_l.
+    steps_r. steps_l.
 
     destruct Hmtid as [? [? Hmtid]].
 
@@ -97,11 +95,8 @@ Module SchIA. Section sim.
     rewrite list_lookup_fmap Hmtid2 in Hmtid3; ss. clarify.
 
     (* IST construction *)
-    set (st_s2 := <[_:=_]>_).
-    set (st_t2 := <[_:=_]>_).
-    iAssert (Ist st_s2 st_t2) with "[JoinFrag JoinA TidA RET Ys Q]" as "IST".
-    { subst st_s2 st_t2.
-      iExists (<[mtid := (stid, Some (svret, sret), _)]> ths), mtid, stid.
+    iIst "IST" with "[JoinFrag JoinA TidA RET Ys Q]".
+    { iExists (<[mtid := (stid, Some (svret, sret), _)]> ths), mtid, stid.
       iSplit.
       { rewrite ?list_fmap_insert /= list_lookup_insert //.
         { iPureIntro; esplits; eauto. }
@@ -132,10 +127,10 @@ Module SchIA. Section sim.
 
     (* Coinduction on yield loop *)
     rewrite !/Sch.terminate /ccallU. unseal SCH.
-    clearbody st_s2 st_t2.
+    set (st_src := {[_ := _; _ := _]}); set (st_tgt := {[_ := _; _ := _]}). clearbody st_src st_tgt.
     iApply wsim_reset.
-    iStopProof. revert st_s2.
-    combine_quant st_t2.
+    iStopProof. revert st_src.
+    combine_quant st_tgt.
     eapply wsim_coind.
     iIntros (? _ CIH [st_s st_t]) "[W [TidF [TID [YIELD IST]]]] /=".
     destruct_quant CIH.
@@ -163,14 +158,10 @@ Module SchIA. Section sim.
     (* preprocess source precondition *)
     step_l. destruct _q as [user_pre user_post]. steps_l.
     iDestruct "ASM" as "[% [% [% [[-> ->] [Spawn ASM]]]]]".
-    hss_l; hss_r.
     steps_l. steps_r.
 
     iDestruct "IST" as "[% [% [% [[-> [-> %Hmtid]] [JoinA [TidA [RET Y]]]]]]]".
-    steps_l. steps_r. hss_l; hss_r.
-    steps_l. steps_r.
-    unshelve erewrite (lookup_weaken _ _ _ _ _ SchInSp); cycle 1.
-    { rewrite /SchA.sp; simpl_map; refl. }
+    steps_l. steps_r. simpl_sp.
     case_decide as H'; ss; clear H'.
 
     (* System spawn precondition *)
@@ -234,16 +225,14 @@ Module SchIA. Section sim.
 
     step_l. destruct _q as [[stid mtid] ?]. steps_l.
     iDestruct "ASM" as "[[Tid [TID YIELD]] [-> ->]]".
-    hss_l; hss_r.
     iDestruct "IST" as "[% [%tid_cur [%stid_cur [[-> [-> %Htid_cur]] [JoinA [TidA [RET Ys]]]]]]]".
     destruct Htid_cur as [ro_cur [post_cur Htid_cur]].
-    steps_r. steps_l. hss_l; hss_r. steps_r. steps_l.
+    steps_r. steps_l.
     do 2 (case_decide as H'; ss; clear H').
 
     (* GetTid reasoning *)
     force_l stid; force_l; iFrame "TID". steps_l. steps_r.
-    step. steps_l. iDestruct "ASM" as "[-> TID]". hss_l; steps_l.
-    steps_r. hss_r; steps_r.
+    step. steps_l. steps_r. iDestruct "ASM" as "[-> TID]".
     iPoseProof (Tid_Auth_Tid with "[TidA Tid]") as "%Hmtid"; first iFrame.
     eapply elem_of_list_to_map_2 in Hmtid; rewrite elem_of_lookup_imap in Hmtid.
     destruct Hmtid as [? [? [EQ Hmtid]]]; symmetry in EQ; inv EQ.
@@ -294,7 +283,7 @@ Module SchIA. Section sim.
     iStartSim.
 
     step_l. destruct _q as [[stid mtid] post]. steps_l.
-    iDestruct "ASM" as "[TID [%tid [[-> ->] JoinF]]]". hss_l; hss_r.
+    iDestruct "ASM" as "[TID [%tid [[-> ->] JoinF]]]".
 
     steps_r. steps_l.
     iApply wsim_reset. iStopProof.
@@ -308,8 +297,7 @@ Module SchIA. Section sim.
     unfold_iterC_l; unfold_iterC_r.
 
     iDestruct "IST" as "[% [%tid_cur [%stid_cur [[-> [-> %Hmtid]] [JoinA [TidA [RET Ys]]]]]]]".
-    steps_l. steps_r. hss_l; hss_r.
-    steps_r. steps_l.
+    steps_l. steps_r.
 
     rewrite ?list_lookup_fmap.
     destruct (ths !! tid) as [[[stid_join [[rv vrv]|]] post2]|] eqn : Htid.
@@ -335,7 +323,7 @@ Module SchIA. Section sim.
       steps_l. call "JoinA TidA RET Ys".
       { iFrame. des; iExists _; iPureIntro; esplits; eauto. }
       iIntros (ret st_src st_tgt) "IST". steps_l. steps_r.
-      iDestruct "ASM" as "[Tid [-> ->]]". hss_l; hss_r.
+      iDestruct "ASM" as "[Tid [-> ->]]".
       steps_r. steps_l.
       by_coind CIH. iFrame.
     }
@@ -350,8 +338,7 @@ Module SchIA. Section sim.
     iStartSim.
 
     step_l. destruct _q as [mtid stid].
-    steps_l. iDestruct "ASM" as "[[-> ->] Tid]". hss_l; hss_r.
-    steps_r. steps_l.
+    steps_l. iDestruct "ASM" as "[[-> ->] Tid]".
     iDestruct "IST" as "[% [%tid_cur [%stid_cur [[-> [-> %Hmtid]] [JoinA [TidA [RET Ys]]]]]]]".
     iDestruct "Tid" as "[TidF [TID YIELD]]".
     iPoseProof (Tid_Auth_Tid with "[TidA TidF]") as "%Hin"; iFrame.
@@ -363,9 +350,7 @@ Module SchIA. Section sim.
       case_decide; clarify; by iPoseProof (YieldToken_both with "YIELD YIELD2") as "%".
     }
 
-    steps_l. steps_r. rewrite !Any.upcast_downcast /=.
-    steps_l. forces_l. iFrame. iSplit; eauto.
-    steps_r. step.
+    steps_l. steps_r. forces_l. iFrame. iSplit; eauto. step.
 
     iSplit; eauto.
     iFrame. des; iExists _; iPureIntro; esplits; eauto.
@@ -373,20 +358,16 @@ Module SchIA. Section sim.
 
   Lemma sim : ISim.t open SchAMod SchIMod SchA.init_cond Ist.
   Proof using FunInSp SchInSp ConcInSp.
-    econs; intros Hwf.
-    { multiset_solver. }
+    init_sim.
     { rewrite /init_cond.
       iIntros "[TidA JoinA]". iExists [(0, None, λ _ _, existT 0 emp%SAT)], 0, 0.
       iFrame. ss. iSplit; eauto. iSplit; eauto.
     }
-    { intros fn; eapply ISim.sim_fun_strong; rewrite !dom_fmap /= /SchA.fnsems ?dom_insert_L;
-      set_unfold; intros Hfn; des; subst; last inv Hfn.
-      { eapply simF_inner_spawn. }
-      { eapply simF_spawn. }
-      { eapply simF_yield. }
-      { eapply simF_join. }
-      { eapply simF_get_tid. }
-    }
+    { eapply simF_inner_spawn. }
+    { eapply simF_spawn. }
+    { eapply simF_yield. }
+    { eapply simF_join. }
+    { eapply simF_get_tid. }
   Qed.
 End sim.
 

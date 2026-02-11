@@ -135,7 +135,7 @@ Section alloc.
     iDestruct "ASM" as "[-> [-> TV]]".
     iDestruct "IST" as "[%gl [%ths [%Vcut [[-> [%CUT [%CUTCL [%WF [%WF2 [%PFG %PFL]]]]]] [HA [TA FA]]]]]]".
     rewrite /PFMemI.check_ident.
-    steps_r. hss_r. steps_r. hss_r. steps_r.
+    steps_r.
     iPoseProof (tview_both_valid with "TA TV") as "%F"; des; clarify. rewrite F. steps_r.
     destruct _q as [[loc config'] STEP].
     dup STEP; inv STEP0. inv STEP1; inv LOCAL.
