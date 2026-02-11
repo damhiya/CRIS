@@ -1,8 +1,8 @@
 Require Import CRIS.
 Require Import MemHeader MemA.
 Require Import SchHeader SchA.
-From CRIS.helping Require Import Header HelpingTactics.
-Require Import StackHeader.
+Require Import HelpingHeader HelpingTactics.
+Require Export StackHeader.
 
 Class stackG (jobID retID : Type) `{!crisG Γ Σ α β τ _S _I} := StackG {
   stack_tokG :: inG (exclR unitO) Γ;

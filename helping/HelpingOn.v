@@ -1,5 +1,5 @@
 Require Import CRIS SchHeader SchI.
-From CRIS.helping Require Import Header.
+Require Export HelpingHeader.
 
 Section HoareCall.
   Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
@@ -72,14 +72,6 @@ Module HelpingOn. Section HelpingOn.
 
   Definition scopes : list string := [mn].
   Definition v_reqs : key := (mn, "reqs").
-
-  Definition msk_pure : emask := λ X e,
-    match e with
-    | inl1 _ => true
-    | inr1 (inl1 _) => false
-    | inr1 (inr1 (inl1 _)) => false
-    | inr1 (inr1 (inr1 _)) => true
-    end.
 
   Definition try_run (tid : nat) : itree crisE retID :=
     'reqs : gmap nat (option retID * jobID) <- cgetU v_reqs;;

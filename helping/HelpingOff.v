@@ -1,5 +1,5 @@
 Require Import CRIS SchHeader.
-From CRIS.helping Require Import Header HelpingOn.
+Require Export HelpingHeader.
 
 Module HelpingOff. Section HelpingOff.
   Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
@@ -13,7 +13,7 @@ Module HelpingOff. Section HelpingOff.
   Definition run : Any.t → itree crisE Any.t :=
     λ arg,
       'jid : jobID <- arg↓?;;
-      𝒴;;; ret <- SB.sandbox (HelpingOn.msk_pure) (jobcode jid);;
+      𝒴;;; ret <- SB.sandbox msk_pure (jobcode jid);;
       𝒴;;; Ret ret↑.
 
   Definition help : Any.t → itree crisE Any.t :=

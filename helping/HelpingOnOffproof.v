@@ -2,7 +2,7 @@ Require Import CRIS.
 Require Import LMod CallFilter.
 Require Import GSim GSimFacts GSimTactics GSimAux.
 Require Import SchHeader SchI SchA.
-From CRIS.helping Require Import Header HelpingOn HelpingOff HelpingAux.
+Require Export HelpingOn HelpingOff HelpingAux.
 
 Ltac unfold_trans :=
   rewrite /ModTr.trans_fnsem /SB.sandbox_body
@@ -560,7 +560,7 @@ Section HelpingOnOff.
       : itree lmodE Any.t :=
     ⇓cris (tau;; r <- ⇓sb(msk_scp (HelpingOff.scopes mn) msk_true) (
       HoareCall_epilogue (sp !! speckey_fn SchHdr.yield) x_fsp (()↑);;;
-      ret <- ⇓smod(sp) (𝒴;;; r <- SB.sandbox (HelpingOn.msk_pure) (jobs j);; 𝒴;;; Ret r↑);;
+      ret <- ⇓smod(sp) (𝒴;;; r <- SB.sandbox (msk_pure) (jobs j);; 𝒴;;; Ret r↑);;
       (* vret <- trigger (Choose Any.t);;
       trigger (Guarantee (postcond fspec_trivial () ret vret));;; *)
       Ret ret

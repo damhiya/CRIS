@@ -1,8 +1,6 @@
 Require Import CRIS.
-Require Import MemHeader.
-Require Import SchHeader.
-From CRIS.helping Require Import Header.
-Require Import StackHeader.
+Require Import MemHeader SchHeader HelpingHeader.
+Require Export StackHeader.
 
 Module StackI. Section StackI.
   Context `{!crisG Γ Σ α β τ _S _I, !concGS}.

@@ -3,7 +3,7 @@ Require Import ImpPrelude.
 Require Import MemTactics MemA.
 Require Import SchHeader SchI SchA SchTactics.
 Require Import StackHeader StackA StackI StackIAPush StackIAPop StackIANewStack.
-From CRIS.helping Require Import Header HelpingOn HelpingOnOffproof HelpingTactics HelpingFacts.
+Require Export HelpingFacts.
 
 Module StackIM. Section StackIM.
   Context `{!crisG Γ Σ α β τ _S _I, !memGS, !schGS, !concGS, !stackG StackM.jobID StackM.retID}.

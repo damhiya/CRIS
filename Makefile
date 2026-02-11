@@ -79,7 +79,7 @@ Makefile.coq: Makefile $(COQTHEORIES)
 	 echo "-R theories $(COQMODULE)"; \
 	 echo "-R scheduler $(COQMODULE)"; \
 	 echo "-R apc $(COQMODULE)"; \
-	 echo "-R helping $(COQMODULE).helping"; \
+	 echo "-R helping $(COQMODULE)"; \
 	 echo "-R imp_system $(COQMODULE)"; \
 	 echo "-R extract $(COQMODULE)"; \
 	 echo "-R prophecy $(COQMODULE)"; \

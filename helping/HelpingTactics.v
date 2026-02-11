@@ -1,5 +1,5 @@
 Require Import CRIS.
-From CRIS.helping Require Import Header HelpingOn HelpingAux.
+Require Export HelpingOn HelpingOff.
 Require Import SchHeader SchTactics SchI SchA.
 From iris.algebra Require Import gmap_view.
 
@@ -182,7 +182,7 @@ Section help.
             (st_src, k_s r_s) (st_tgt, k_t)))
       true pt
         (st_src, SB.sandbox (msk_scp (HelpingOn.scopes mn) msk_true)
-          (SModTr.trans sp (SB.sandbox HelpingOn.msk_pure (jobs x))))
+          (SModTr.trans sp (SB.sandbox msk_pure (jobs x))))
         (st_tgt, Ret ())) -∗
     wsim fl_s fl_t IstFull (E1, E2) r g R_s R_t RR ps pt
       (st_src,
@@ -248,7 +248,7 @@ Section help.
             (st_src, k_s ()↑) (st_tgt, k_t)))
       true pt
         (st_src, SB.sandbox (msk_scp (HelpingOn.scopes mn) msk_true)
-          (SModTr.trans sp (SB.sandbox HelpingOn.msk_pure (jobs x))))
+          (SModTr.trans sp (SB.sandbox msk_pure (jobs x))))
         (st_tgt, Ret ())) -∗
     wsim fl_s fl_t IstFull (E, E) r g R_s R_t RR ps pt
       (st_src,

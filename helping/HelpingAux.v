@@ -2,7 +2,7 @@ Require Import CRIS.
 Require Import LMod.
 Require Import GSim GSimFacts GSimTactics GSimAux.
 Require Import SchHeader SchI SchA.
-From CRIS.helping Require Import Header HelpingOn HelpingOff.
+Require Export HelpingOn HelpingOff.
 
 Local Ltac gnorm_itr :=
   match goal with
@@ -247,11 +247,11 @@ Section props.
     gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR smj_bot smj_bot
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s,
         <[tid_s :=
-          ⇓cris (x <- ⇓sb(msk_scp (HelpingOn.scopes mn) msk_true) (⇓smod(sp) (⇓sb(HelpingOn.msk_pure) job));; k_s x)]>
+          ⇓cris (x <- ⇓sb(msk_scp (HelpingOn.scopes mn) msk_true) (⇓smod(sp) (⇓sb(msk_pure) job));; k_s x)]>
         tp_s)) (Any.pair st_s (res↑)))
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t,
         <[tid_t :=
-          ⇓cris (x <- ⇓sb(msk_scp (HelpingOff.scopes mn) msk_true) (⇓smod(sp) (⇓sb(HelpingOn.msk_pure) job));; k_t x)]>
+          ⇓cris (x <- ⇓sb(msk_scp (HelpingOff.scopes mn) msk_true) (⇓smod(sp) (⇓sb(msk_pure) job));; k_t x)]>
         tp_t)) (Any.pair st_t (res↑))).
   Proof using.
     intros Hlen_s Hlen_t Hres Hk.

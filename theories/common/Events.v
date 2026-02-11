@@ -311,6 +311,14 @@ Definition msk_real `{Σ : GRA} (msk : emask) : emask :=
     | _ => msk X e
     end.
 
+Definition msk_pure `{Σ : GRA} : emask := λ X e,
+  match e with
+  | inl1 _ => true
+  | inr1 (inl1 _) => false
+  | inr1 (inr1 (inl1 _)) => false
+  | inr1 (inr1 (inr1 _)) => true
+  end.
+
 Definition img_msk `{Σ : GRA} (msk : emask) : Prop :=
   (∀ T, msk _ (subevent _ (Take T)) = true)
   ∧ (∀ T, msk _ (subevent _ (Choose T)) = true)

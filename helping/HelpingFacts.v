@@ -1,6 +1,6 @@
 Require Import CRIS.
 Require Import SchHeader SchI SchA.
-From CRIS.helping Require Import Header HelpingOn HelpingOff HelpingOnOffproof.
+Require Export HelpingOnOffproof.
 From stdpp Require Import list.
 Require Export CallFilter.
 
