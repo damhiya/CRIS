@@ -93,147 +93,54 @@ Section HelpingOnOff.
   Proof. set_solver. Qed.
 
   Lemma prog_s_run ctx rs : Mod.wf (mod_src ★ ctx) → prog_s ctx rs (Helping.run mn) = Some run_s.
-  Proof.
-    intros ?.
-    rewrite /LMod.prog Mod.to_lmod_fnsems.
-    rewrite Mod.lookup_fnsems_l_2 //; cycle 1. { rewrite Mod.dom_fnsems_add; set_solver. }
-    eapply Mod.add_wf_inv in H1; des.
-    rewrite Mod.lookup_fnsems_l_2 //; cycle 1.
-    { set_solver. }
-    rewrite /= /HelpingOff.fnsems; simpl_map; s; eauto.
-  Qed.
+  Proof. intros ?. rewrite /LMod.prog Mod.to_lmod_fnsems. simpl_map; ss. Qed.
 
   Lemma prog_t_run ctx rs : Mod.wf (mod_tgt ★ ctx) → prog_t ctx rs (Helping.run mn) = Some run_t.
-  Proof.
-    intros ?.
-    rewrite /LMod.prog Mod.to_lmod_fnsems.
-    rewrite Mod.lookup_fnsems_l_2 //; cycle 1.
-    { rewrite Mod.dom_fnsems_add; set_solver. }
-    eapply Mod.add_wf_inv in H1; des.
-    rewrite Mod.lookup_fnsems_l_2 //; cycle 1.
-    { set_solver. }
-    rewrite /= /HelpingOn.fnsems; simpl_map; s; eauto.
-  Qed.
+  Proof. intros ?. rewrite /LMod.prog Mod.to_lmod_fnsems. simpl_map; ss. Qed.
 
   Lemma prog_s_help ctx rs : Mod.wf (mod_src ★ ctx) → prog_s ctx rs (Helping.help mn) = Some help_s.
-  Proof.
-    intros ?.
-    rewrite /LMod.prog Mod.to_lmod_fnsems.
-    rewrite Mod.lookup_fnsems_l_2 //; cycle 1. { rewrite Mod.dom_fnsems_add; set_solver. }
-    eapply Mod.add_wf_inv in H1; des.
-    rewrite Mod.lookup_fnsems_l_2 //; cycle 1.
-    { set_solver. }
-    rewrite /= /HelpingOff.fnsems; simpl_map; s; eauto.
-  Qed.
+  Proof. intros ?. rewrite /LMod.prog Mod.to_lmod_fnsems. simpl_map; ss. Qed.
 
   Lemma prog_t_help ctx rs : Mod.wf (mod_tgt ★ ctx) → prog_t ctx rs (Helping.help mn) = Some help_t.
-  Proof.
-    intros ?.
-    rewrite /LMod.prog Mod.to_lmod_fnsems.
-    rewrite Mod.lookup_fnsems_l_2 //; cycle 1. { rewrite Mod.dom_fnsems_add; set_solver. }
-    eapply Mod.add_wf_inv in H1; des.
-    rewrite Mod.lookup_fnsems_l_2 //; cycle 1.
-    { set_solver. }
-    rewrite /= /HelpingOn.fnsems; simpl_map; s; eauto.
-  Qed.
+  Proof. intros ?. rewrite /LMod.prog Mod.to_lmod_fnsems. simpl_map; ss. Qed.
 
   Lemma prog_s_yield ctx rs : Mod.wf (mod_src ★ ctx) → prog_s ctx rs SchHdr.yield = Some yield.
-  Proof.
-    intros ?.
-    rewrite /LMod.prog Mod.to_lmod_fnsems.
-    rewrite Mod.lookup_fnsems_l_2 //; cycle 1. { rewrite Mod.dom_fnsems_add; set_solver. }
-    eapply Mod.add_wf_inv in H1; des.
-    rewrite Mod.lookup_fnsems_r_2 //.
-  Qed.
+  Proof. intros ?. rewrite /LMod.prog Mod.to_lmod_fnsems. simpl_map; ss. Qed.
 
   Lemma prog_t_yield ctx rs : Mod.wf (mod_tgt ★ ctx) → prog_t ctx rs SchHdr.yield = Some yield.
-  Proof.
-    intros ?.
-    rewrite /LMod.prog Mod.to_lmod_fnsems.
-    rewrite Mod.lookup_fnsems_l_2 //; cycle 1. { rewrite Mod.dom_fnsems_add; set_solver. }
-    eapply Mod.add_wf_inv in H1; des.
-    rewrite Mod.lookup_fnsems_r_2 //.
-  Qed.
+  Proof. intros ?. rewrite /LMod.prog Mod.to_lmod_fnsems. simpl_map; ss. Qed.
 
   Lemma prog_s_inner_spawn ctx rs :
     Mod.wf (mod_src ★ ctx) → prog_s ctx rs SchHdr._spawn = Some inner_spawn.
-  Proof.
-    intros ?.
-    rewrite /LMod.prog Mod.to_lmod_fnsems.
-    rewrite Mod.lookup_fnsems_l_2 //; cycle 1. { rewrite Mod.dom_fnsems_add; set_solver. }
-    eapply Mod.add_wf_inv in H1; des.
-    rewrite Mod.lookup_fnsems_r_2 //.
-  Qed.
+  Proof. intros ?. rewrite /LMod.prog Mod.to_lmod_fnsems. simpl_map; ss. Qed.
 
   Lemma prog_t_inner_spawn ctx rs :
     Mod.wf (mod_tgt ★ ctx) → prog_t ctx rs SchHdr._spawn = Some inner_spawn.
-  Proof.
-    intros ?.
-    rewrite /LMod.prog Mod.to_lmod_fnsems.
-    rewrite Mod.lookup_fnsems_l_2 //; cycle 1. { rewrite Mod.dom_fnsems_add; set_solver. }
-    eapply Mod.add_wf_inv in H1; des.
-    rewrite Mod.lookup_fnsems_r_2 //.
-  Qed.
+  Proof. intros ?. rewrite /LMod.prog Mod.to_lmod_fnsems. simpl_map; ss. Qed.
 
   Lemma prog_s_spawn ctx rs :
     Mod.wf (mod_src ★ ctx) → prog_s ctx rs SchHdr.spawn = Some spawn.
-  Proof.
-    intros ?.
-    rewrite /LMod.prog Mod.to_lmod_fnsems.
-    rewrite Mod.lookup_fnsems_l_2 //; cycle 1. { rewrite Mod.dom_fnsems_add; set_solver. }
-    eapply Mod.add_wf_inv in H1; des.
-    rewrite Mod.lookup_fnsems_r_2 //.
-  Qed.
+  Proof. intros ?. rewrite /LMod.prog Mod.to_lmod_fnsems. simpl_map; ss. Qed.
 
   Lemma prog_t_spawn ctx rs :
     Mod.wf (mod_tgt ★ ctx) → prog_t ctx rs SchHdr.spawn = Some spawn.
-  Proof.
-    intros ?.
-    rewrite /LMod.prog Mod.to_lmod_fnsems.
-    rewrite Mod.lookup_fnsems_l_2 //; cycle 1. { rewrite Mod.dom_fnsems_add; set_solver. }
-    eapply Mod.add_wf_inv in H1; des.
-    rewrite Mod.lookup_fnsems_r_2 //.
-  Qed.
+  Proof. intros ?. rewrite /LMod.prog Mod.to_lmod_fnsems. simpl_map; ss. Qed.
 
   Lemma prog_s_join ctx rs :
     Mod.wf (mod_src ★ ctx) → prog_s ctx rs SchHdr.join = Some join.
-  Proof.
-    intros ?.
-    rewrite /LMod.prog Mod.to_lmod_fnsems.
-    rewrite Mod.lookup_fnsems_l_2 //; cycle 1. { rewrite Mod.dom_fnsems_add; set_solver. }
-    eapply Mod.add_wf_inv in H1; des.
-    rewrite Mod.lookup_fnsems_r_2 //.
-  Qed.
+  Proof. intros ?. rewrite /LMod.prog Mod.to_lmod_fnsems. simpl_map; ss. Qed.
 
   Lemma prog_t_join ctx rs :
     Mod.wf (mod_tgt ★ ctx) → prog_t ctx rs SchHdr.join = Some join.
-  Proof.
-    intros ?.
-    rewrite /LMod.prog Mod.to_lmod_fnsems.
-    rewrite Mod.lookup_fnsems_l_2 //; cycle 1. { rewrite Mod.dom_fnsems_add; set_solver. }
-    eapply Mod.add_wf_inv in H1; des.
-    rewrite Mod.lookup_fnsems_r_2 //.
-  Qed.
+  Proof. intros ?. rewrite /LMod.prog Mod.to_lmod_fnsems. simpl_map; ss. Qed.
 
   Lemma prog_s_get_tid ctx rs :
     Mod.wf (mod_src ★ ctx) → prog_s ctx rs SchHdr.get_tid = Some get_tid.
-  Proof.
-    intros ?.
-    rewrite /LMod.prog Mod.to_lmod_fnsems.
-    rewrite Mod.lookup_fnsems_l_2 //; cycle 1. { rewrite Mod.dom_fnsems_add; set_solver. }
-    eapply Mod.add_wf_inv in H1; des.
-    rewrite Mod.lookup_fnsems_r_2 //.
-  Qed.
+  Proof. intros ?. rewrite /LMod.prog Mod.to_lmod_fnsems. simpl_map; ss. Qed.
 
   Lemma prog_t_get_tid ctx rs :
     Mod.wf (mod_tgt ★ ctx) → prog_t ctx rs SchHdr.get_tid = Some get_tid.
-  Proof.
-    intros ?.
-    rewrite /LMod.prog Mod.to_lmod_fnsems.
-    rewrite Mod.lookup_fnsems_l_2 //; cycle 1. { rewrite Mod.dom_fnsems_add; set_solver. }
-    eapply Mod.add_wf_inv in H1; des.
-    rewrite Mod.lookup_fnsems_r_2 //.
-  Qed.
+  Proof. intros ?. rewrite /LMod.prog Mod.to_lmod_fnsems. simpl_map; ss. Qed.
 
   Lemma prog_s_prog_t fn ctx rs :
     Mod.wf ((HelpingOn.t mn jobs sp ★ CFilter.filter (Helping.exports mn) SchI.t) ★ ctx) →
@@ -561,8 +468,6 @@ Section HelpingOnOff.
     ⇓cris (tau;; r <- ⇓sb(msk_scp (HelpingOff.scopes mn) msk_true) (
       HoareCall_epilogue (sp !! speckey_fn SchHdr.yield) x_fsp (()↑);;;
       ret <- ⇓smod(sp) (𝒴;;; r <- SB.sandbox (msk_pure) (jobs j);; 𝒴;;; Ret r↑);;
-      (* vret <- trigger (Choose Any.t);;
-      trigger (Guarantee (postcond fspec_trivial () ret vret));;; *)
       Ret ret
     );; k r).
 
@@ -573,8 +478,6 @@ Section HelpingOnOff.
     ⇓cris (tau;; x_ <- ⇓sb(msk_scp (HelpingOff.scopes mn) msk_true) (
       HoareCall_epilogue fspo x_fsp ()↑;;;
       x <- ⇓smod(sp) (𝒴;;; r <- HelpingOn.try_run mn jobs tid_stid_cur;; 𝒴;;; Ret r↑);;
-      (* vret <- trigger (Choose Any.t);;
-      trigger (Guarantee (postcond fspec_trivial () x vret));;; *)
       Ret x
     );; k x_).
 
@@ -593,8 +496,6 @@ Section HelpingOnOff.
           x_ <- ⇓sb(msk_scp (HelpingOff.scopes mn) msk_true)
             (HoareCall_epilogue (sp !! speckey_fn SchHdr.yield) x (()↑);;;
             ⇓smod(sp) (𝒴);;;
-            (* vret <- trigger (Choose Any.t);;
-            trigger (Guarantee (postcond fspec_trivial () ret vret));;; *)
             Ret ret);;
           ktr_t x_)) →
       itr_s = (
@@ -602,8 +503,6 @@ Section HelpingOnOff.
           x_ <- ⇓sb(msk_scp (HelpingOn.scopes mn) msk_true)
             (HoareCall_epilogue (sp !! speckey_fn SchHdr.yield) x (()↑);;;
             ⇓smod(sp) (𝒴);;;
-            (* vret <- trigger (Choose Any.t);;
-            trigger (Guarantee (postcond fspec_trivial () ret vret));;; *)
             Ret ret);;
           ktr_s x_)) →
       (∀ ret, help_rel (⇓cris (ktr_s ret)) (⇓cris (ktr_t ret)) None) →
@@ -615,8 +514,6 @@ Section HelpingOnOff.
           x_ <- ⇓sb(msk_scp (HelpingOn.scopes mn) msk_true)
             (HoareCall_epilogue (sp !! speckey_fn SchHdr.yield) x (()↑);;;
             ⇓smod(sp) (𝒴);;;
-            (* vret <- trigger (Choose Any.t);;
-            trigger (Guarantee (postcond fspec_trivial () ret↑ vret));;; *)
             Ret ret↑);;
           ktr_s x_)) →
       (∀ ret, help_rel (⇓cris (ktr_s ret)) (⇓cris (ktr_t ret)) None) →
@@ -629,8 +526,6 @@ Section HelpingOnOff.
   | help_rel_call itr_s itr_t ktr_t ktr_s ctx rs fn arg :
       Some fn ∈ dom (Mod.fnsems (HelpingOn.t mn jobs sp)) ∪ dom (Mod.fnsems SchI.t) →
       Mod.wf ((HelpingOn.t mn jobs sp ★ CFilter.filter (Helping.exports mn) SchI.t) ★ ctx) →
-      (* prog_s ctx rs fn = Some (ModTr.trans_fnsem ktr_s) →
-      prog_t ctx rs fn = Some (ModTr.trans_fnsem ktr_t) → *)
       itr_s = bd <- (prog_s ctx rs fn)?;; x <- bd arg;; ⇓cris (ktr_s x) →
       itr_t = bd <- (prog_t ctx rs fn)?;; x <- bd arg;; ⇓cris (ktr_t x) →
       (∀ ret, help_rel (⇓cris (ktr_s ret)) (⇓cris (ktr_t ret)) None) →
@@ -848,8 +743,7 @@ Section HelpingOnOff.
     { repeat f_equal; ss. extensionality a. hnorm_itr. }
   (*SLOW*)Qed.
 
-  Lemma helping_onoff_correct :
-    ctx_refines (mod_src, emp%I) (mod_tgt, emp%I).
+  Lemma helping_onoff_correct : ctx_refines (mod_src, emp%I) (mod_tgt, emp%I).
   Proof using.
     rewrite /mod_src /mod_tgt.
     intros [ctx ctxP] WF; ss; split; first by apply wf_src.

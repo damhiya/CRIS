@@ -56,18 +56,6 @@ prophecy: Makefile.coq $(prophecy_files)
 prophecy-quick: Makefile.coq $(prophecy_files)
 	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(prophecy_files))
 
-promise_free_files  := $(shell find promise_free -iname '*.v')
-promise_free: Makefile.coq $(promise_free_files)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(promise_free_files))
-promise_free-quick: Makefile.coq $(promise_free_files)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(promise_free_files))
-
-examples_files  := $(shell find examples -iname '*.v')
-examples: Makefile.coq $(examples_files)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vo,$(examples_files))
-examples-quick: Makefile.coq $(examples_files)
-	$(MAKE) -f Makefile.coq $(patsubst %.v,%.vos,$(examples_files))
-
 Makefile.coq: Makefile $(COQTHEORIES)
 	(echo "-arg -w -arg -deprecated-hint-without-locality"; \
 	 echo "-arg -w -arg -deprecated-instance-without-locality"; \
@@ -83,8 +71,6 @@ Makefile.coq: Makefile $(COQTHEORIES)
 	 echo "-R imp_system $(COQMODULE)"; \
 	 echo "-R extract $(COQMODULE)"; \
 	 echo "-R prophecy $(COQMODULE)"; \
-	 echo "-R examples $(COQMODULE)"; \
-	 echo "-R promise_free $(COQMODULE)"; \
 	 echo $(COQTHEORIES)) > _CoqProject
 	coq_makefile -f _CoqProject -o Makefile.coq
 
