@@ -55,7 +55,7 @@ Module CannonA. Section CannonA.
       Ret r.
 
   Definition fnsems : fnsemmap :=
-    {[Some CannonHdr.fire := Some (msk_scp scopes msk_true, (fsp_some fire_spec, cfunU fire))]}.
+    {[Some CannonHdr.fire # (msk_scp scopes msk_true, (fsp_some fire_spec, cfunU fire))]}.
 
   Program Definition smod : SMod.t := {|
     SMod.scopes := scopes;

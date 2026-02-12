@@ -174,8 +174,8 @@ Module RRSNodeA. Section RRSNodeA.
       Ret (tt↑↑).
   
   Definition fnsems (E : coPset) : fnsemmap :=
-    {[Some RRSNodeHdr.f_main := Some (msk_scp scopes msk_true, (fsp_some (RRSNodeAS.f_main_spec E), cfunN f_main));
-      Some RRSNodeHdr.f      := Some (msk_scp scopes msk_true, (fsp_some (RRSNodeAS.f_spec E), cfunN f))]}.
+    {[Some RRSNodeHdr.f_main # (msk_scp scopes msk_true, (fsp_some (RRSNodeAS.f_main_spec E), cfunN f_main));
+      Some RRSNodeHdr.f      # (msk_scp scopes msk_true, (fsp_some (RRSNodeAS.f_spec E), cfunN f))]}.
 
   Program Definition smod E : SMod.t := {|
     SMod.scopes := scopes;

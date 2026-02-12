@@ -103,13 +103,13 @@ Module HelpingOn. Section HelpingOn.
       Ret ()↑.
 
   Definition fnsems (sp : specmap) : fnsemmap :=
-    {[Some (Helping.run mn) := Some (msk_scp scopes msk_true, (None, run));
-      Some (Helping.help mn) := Some (msk_scp scopes msk_true, (None, help sp))]}.
+    {[Some (Helping.run mn) # (msk_scp scopes msk_true, (None, run));
+      Some (Helping.help mn) # (msk_scp scopes msk_true, (None, help sp))]}.
 
   Program Definition Mod (sp : specmap) : SMod.t := {|
     SMod.scopes := scopes;
     SMod.fnsems := fnsems sp;
-    SMod.initial_st := {[v_reqs := Some (∅ : gmap nat (option retID * jobID))↑]};
+    SMod.initial_st := {[v_reqs # (∅ : gmap nat (option retID * jobID))↑]};
   |}.
   Solve All Obligations with mod_tac.
 
@@ -122,8 +122,8 @@ Module HelpingDummy. Section HelpingDummy.
   Definition scopes : list string := [mn].
 
   Definition fnsems : fnsemmap :=
-    {[Some (Helping.run mn) := Some (msk_scp scopes msk_true, (None, λ _, triggerNB));
-      Some (Helping.help mn) := Some (msk_scp scopes msk_true, (None, λ _, triggerNB))]}.
+    {[Some (Helping.run mn) # (msk_scp scopes msk_true, (None, λ _, triggerNB));
+      Some (Helping.help mn) # (msk_scp scopes msk_true, (None, λ _, triggerNB))]}.
 
   Program Definition Mod : SMod.t := {|
     SMod.scopes := scopes;

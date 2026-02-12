@@ -55,8 +55,8 @@ Module NDSNodeA. Section NDSNodeA.
       Ret (tt↑↑).
 
   Definition fnsems (E : coPset) : fnsemmap :=
-    {[Some NDSNodeHdr.f_main := Some (msk_scp scopes msk_true, (fsp_some (f_main_spec E), cfunN f_main));
-      Some NDSNodeHdr.f      := Some (msk_scp scopes msk_true, (fsp_some (f_spec E), cfunN f))]}.
+    {[Some NDSNodeHdr.f_main # (msk_scp scopes msk_true, (fsp_some (f_main_spec E), cfunN f_main));
+      Some NDSNodeHdr.f      # (msk_scp scopes msk_true, (fsp_some (f_spec E), cfunN f))]}.
 
   Program Definition smod E : SMod.t := {|
     SMod.scopes := scopes;

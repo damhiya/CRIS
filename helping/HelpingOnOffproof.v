@@ -665,13 +665,13 @@ Section HelpingOnOff.
     Mod.wf (mod_tgt ★ ctx) →
     let st_src (ths : list (nat * option SAny.t)) (mtid_s : nat) :=
       (union_with uwnd
-        {[SchI.v_ths := Some ths↑; SchI.v_tid := Some mtid_s↑]}
+        {[SchI.v_ths # ths↑; SchI.v_tid # mtid_s↑]}
           st_ctx) in
     let st_tgt (reqmap : gmap nat (option retID * jobID)) (ths : list (nat * option SAny.t)) (mtid_t : nat) :=
       (union_with uwnd
         (union_with uwnd
-          {[HelpingOn.v_reqs mn := Some reqmap↑]}
-          {[SchI.v_ths := Some ths↑; SchI.v_tid := Some mtid_t↑]})
+          {[HelpingOn.v_reqs mn # reqmap↑]}
+          {[SchI.v_ths # ths↑; SchI.v_tid # mtid_t↑]})
         st_ctx) in
     map_Forall (const is_Some) (st_src ths mtid_s) →
     map_Forall (const is_Some) (st_tgt reqmap ths mtid_t) →
@@ -882,12 +882,12 @@ Section HelpingOnOff.
         (mtid stid : nat) (ths : list (nat * option SAny.t)) st_ctx
         (reqmap : gmap nat (option retID * jobID)),
           st_src = union_with uwnd
-            {[SchI.v_ths := Some ths↑; SchI.SchI.v_tid := Some mtid↑]}
+            {[SchI.v_ths # ths↑; SchI.SchI.v_tid # mtid↑]}
             st_ctx ∧
           st_tgt = union_with uwnd
             (union_with uwnd
-              {[HelpingOn.v_reqs mn := Some reqmap↑]}
-              {[SchI.v_ths := Some ths↑; SchI.SchI.v_tid := Some mtid↑]})
+              {[HelpingOn.v_reqs mn # reqmap↑]}
+              {[SchI.v_ths # ths↑; SchI.SchI.v_tid # mtid↑]})
             st_ctx ∧
           tp_src = (stid, (fst ∘ fst <$> tl)) ∧ tp_tgt = (stid, (snd ∘ fst <$> tl)) ∧
           reqmap_rel tl reqmap ∧

@@ -254,26 +254,26 @@ Module SystemA. Section SystemA.
       ccallN PFMemHdr.read (tid, loc, ord).
 
   Definition fnsems (E : coPset) : fnsemmap :=
-    {[Some SystemHdr._spawn :=
-        Some (msk_scp scopes msk_true, (fsp_some (_spawn_spec), cfunN _spawn));
-      Some SystemHdr.spawn :=
-        Some (msk_scp scopes msk_true, (fsp_some (spawn_spec), cfunN spawn));
-      Some SystemHdr.yield :=
-        Some (msk_scp scopes msk_true, (fsp_some (yield_spec E), cfunN yield));
-      Some SystemHdr.get_tid :=
-        Some (msk_scp scopes msk_true, (fsp_some get_tid_spec, cfunN get_tid));
-      Some SystemHdr.alloc :=
-        Some (msk_scp scopes msk_true, (fsp_some alloc_spec, fbody_trivial));
-      Some SystemHdr.write :=
-        Some (msk_scp scopes msk_true, (fsp_some write_spec, fbody_trivial));
-      Some SystemHdr.read :=
-        Some (msk_scp scopes msk_true, (fsp_some read_spec, fbody_trivial))]}.
+    {[Some SystemHdr._spawn #
+        (msk_scp scopes msk_true, (fsp_some (_spawn_spec), cfunN _spawn));
+      Some SystemHdr.spawn #
+        (msk_scp scopes msk_true, (fsp_some (spawn_spec), cfunN spawn));
+      Some SystemHdr.yield #
+        (msk_scp scopes msk_true, (fsp_some (yield_spec E), cfunN yield));
+      Some SystemHdr.get_tid #
+        (msk_scp scopes msk_true, (fsp_some get_tid_spec, cfunN get_tid));
+      Some SystemHdr.alloc #
+        (msk_scp scopes msk_true, (fsp_some alloc_spec, fbody_trivial));
+      Some SystemHdr.write #
+        (msk_scp scopes msk_true, (fsp_some write_spec, fbody_trivial));
+      Some SystemHdr.read #
+        (msk_scp scopes msk_true, (fsp_some read_spec, fbody_trivial))]}.
 
   Program Definition Mod E : SMod.t := {|
     SMod.scopes := scopes;
     SMod.fnsems := fnsems E;
     SMod.initial_st := 
-      {[v_tid := Some 1%positive↑; v_tids := Some ({[1%positive := 0]} : tidmap)↑]};
+      {[v_tid # 1%positive↑; v_tids # ({[1%positive := 0]} : tidmap)↑]};
   |}.
   Solve All Obligations with mod_tac.
 

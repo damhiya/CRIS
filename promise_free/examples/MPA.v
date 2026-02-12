@@ -89,8 +89,8 @@ Module MPA. Section MPA.
       Ret (Val.Vnum 42)↑.
 
   Definition fnsems : fnsemmap :=
-    {[Some MPHdr.mp2 := Some (msk_scp scopes msk_true, (fsp_some mp2_spec, (cfunN (sfunN mp2))));
-      None := Some (msk_scp scopes msk_true, (fsp_some main_spec, mp))]}.
+    {[Some MPHdr.mp2 # (msk_scp scopes msk_true, (fsp_some mp2_spec, (cfunN (sfunN mp2))));
+      None # (msk_scp scopes msk_true, (fsp_some main_spec, mp))]}.
 
   Program Definition Mod : SMod.t := {|
     SMod.scopes := scopes;

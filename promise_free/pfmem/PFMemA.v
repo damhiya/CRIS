@@ -214,13 +214,13 @@ Module PFMemA. Section PFMemA.
     ]}.
 
   Definition fnsems : fnsemmap :=
-    {[Some PFMemHdr.alloc := Some (msk_scp scopes msk_true, (fsp_some alloc_spec, fbody_trivial));
-      Some PFMemHdr.free := Some (msk_scp scopes msk_true, (fsp_some free_spec, fbody_trivial));
-      Some PFMemHdr.read := Some (msk_scp scopes msk_true, (fsp_some read_spec, fbody_trivial));
-      Some PFMemHdr.write := Some (msk_scp scopes msk_true, (fsp_some write_spec, fbody_trivial));
-      Some PFMemHdr.cas := Some (msk_scp scopes msk_true, (fsp_some cas_spec, fbody_trivial));
-      Some PFMemHdr.fence := Some (msk_scp scopes msk_true, (fsp_some fence_spec, fbody_trivial));
-      Some PFMemHdr.spawn := Some (msk_scp scopes msk_true, (fsp_some spawn_spec, fbody_trivial))]}.
+    {[Some PFMemHdr.alloc # (msk_scp scopes msk_true, (fsp_some alloc_spec, fbody_trivial));
+      Some PFMemHdr.free # (msk_scp scopes msk_true, (fsp_some free_spec, fbody_trivial));
+      Some PFMemHdr.read # (msk_scp scopes msk_true, (fsp_some read_spec, fbody_trivial));
+      Some PFMemHdr.write # (msk_scp scopes msk_true, (fsp_some write_spec, fbody_trivial));
+      Some PFMemHdr.cas # (msk_scp scopes msk_true, (fsp_some cas_spec, fbody_trivial));
+      Some PFMemHdr.fence # (msk_scp scopes msk_true, (fsp_some fence_spec, fbody_trivial));
+      Some PFMemHdr.spawn # (msk_scp scopes msk_true, (fsp_some spawn_spec, fbody_trivial))]}.
 
   (* Module definition *)
   Program Definition smod : SMod.t := {|

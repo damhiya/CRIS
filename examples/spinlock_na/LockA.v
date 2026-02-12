@@ -85,9 +85,9 @@ Module LockA. Section LockA.
     λ _, 𝒴;;; Ret Vundef.
 
   Definition fnsems (E : coPset) : fnsemmap :=
-    {[Some SpinLockHdr.newlock := Some (msk_scp scopes msk_true, (fsp_some (newlock_spec E), cfunU newlock));
-      Some SpinLockHdr.acquire := Some (msk_scp scopes msk_true, (fsp_some (acquire_spec E), cfunU acquire));
-      Some SpinLockHdr.release := Some (msk_scp scopes msk_true, (fsp_some (release_spec E), cfunU release))]}.
+    {[Some SpinLockHdr.newlock # (msk_scp scopes msk_true, (fsp_some (newlock_spec E), cfunU newlock));
+      Some SpinLockHdr.acquire # (msk_scp scopes msk_true, (fsp_some (acquire_spec E), cfunU acquire));
+      Some SpinLockHdr.release # (msk_scp scopes msk_true, (fsp_some (release_spec E), cfunU release))]}.
 
   Program Definition smod E : SMod.t := {|
     SMod.scopes := scopes;

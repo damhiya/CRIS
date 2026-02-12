@@ -55,17 +55,17 @@ Module NDSIA. Section sim.
     λ st_src st_tgt,
       (∃ ths tid_cur stid_cur ssch,
         ⌜st_src =
-          {[NDSI.v_ths :=
-              Some ((λ '(n, rv, _), (n, fst <$> rv : option SAny.t))
+          {[NDSI.v_ths #
+              ((λ '(n, rv, _), (n, fst <$> rv : option SAny.t))
                       <$> ths : list (nat * option SAny.t))↑;
-            NDSI.v_tid := Some tid_cur↑; 
-            NDSI.v_sch:= Some ssch↑]} ∧
+            NDSI.v_tid # tid_cur↑; 
+            NDSI.v_sch# ssch↑]} ∧
          st_tgt =
-           {[NDSI.v_ths :=
-               Some ((λ '(n, rv, _), (n, snd <$> rv : option SAny.t))
+           {[NDSI.v_ths #
+               ((λ '(n, rv, _), (n, snd <$> rv : option SAny.t))
                        <$> ths : list (nat * option SAny.t))↑;
-             NDSI.v_tid := Some tid_cur↑;
-             NDSI.v_sch := Some ssch↑]}⌝ ∗
+             NDSI.v_tid # tid_cur↑;
+             NDSI.v_sch # ssch↑]}⌝ ∗
         JoinAuth (list_to_map (imap (λ i RR, (i, to_agree RR)) ths.*2)) ∗
         TidAuth (list_to_map (imap pair ths.*1.*1)) ∗
         ([∗ list] i ↦ e ∈ ths,

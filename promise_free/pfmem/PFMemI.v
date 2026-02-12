@@ -150,20 +150,20 @@ Module PFMemI. Section PFMemI.
       Ret tid_new.
 
   Definition fnsems : fnsemmap :=
-    {[Some PFMemHdr.alloc := Some (msk_real (msk_scp scopes msk_true), (None, cfunU alloc));
-      Some PFMemHdr.free  := Some (msk_real (msk_scp scopes msk_true), (None, cfunU free));
-      Some PFMemHdr.read  := Some (msk_real (msk_scp scopes msk_true), (None, cfunU read));
-      Some PFMemHdr.write := Some (msk_real (msk_scp scopes msk_true), (None, cfunU write));
-      Some PFMemHdr.cmp   := Some (msk_real (msk_scp scopes msk_true), (None, cfunU cmp));
-      Some PFMemHdr.cas   := Some (msk_real (msk_scp scopes msk_true), (None, cfunU cas));
-      Some PFMemHdr.faa   := Some (msk_real (msk_scp scopes msk_true), (None, cfunU faa));
-      Some PFMemHdr.fence := Some (msk_real (msk_scp scopes msk_true), (None, cfunU fence));
-      Some PFMemHdr.spawn := Some (msk_real (msk_scp scopes msk_true), (None, cfunU spawn))]}.
+    {[Some PFMemHdr.alloc # (msk_real (msk_scp scopes msk_true), (None, cfunU alloc));
+      Some PFMemHdr.free  # (msk_real (msk_scp scopes msk_true), (None, cfunU free));
+      Some PFMemHdr.read  # (msk_real (msk_scp scopes msk_true), (None, cfunU read));
+      Some PFMemHdr.write # (msk_real (msk_scp scopes msk_true), (None, cfunU write));
+      Some PFMemHdr.cmp   # (msk_real (msk_scp scopes msk_true), (None, cfunU cmp));
+      Some PFMemHdr.cas   # (msk_real (msk_scp scopes msk_true), (None, cfunU cas));
+      Some PFMemHdr.faa   # (msk_real (msk_scp scopes msk_true), (None, cfunU faa));
+      Some PFMemHdr.fence # (msk_real (msk_scp scopes msk_true), (None, cfunU fence));
+      Some PFMemHdr.spawn # (msk_real (msk_scp scopes msk_true), (None, cfunU spawn))]}.
 
   Program Definition Mod s size : SMod.t := {|
     SMod.scopes := scopes;
     SMod.fnsems := fnsems;
-    SMod.initial_st := {[v_config := Some (Configuration.init s size)↑]};
+    SMod.initial_st := {[v_config # (Configuration.init s size)↑]};
   |}.
   Solve All Obligations with mod_tac.
 

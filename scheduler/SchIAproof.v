@@ -15,15 +15,15 @@ Module SchIA. Section sim.
     λ st_src st_tgt,
       (∃ ths tid_cur stid_cur,
         ⌜st_src =
-          {[SchA.v_ths :=
-              Some ((λ '(n, rv, _), (n, fst <$> rv : option SAny.t))
+          {[SchA.v_ths #
+              ((λ '(n, rv, _), (n, fst <$> rv : option SAny.t))
                 <$> ths : list (nat * option SAny.t))↑;
-            SchA.v_tid := Some tid_cur↑]} ∧
+            SchA.v_tid # tid_cur↑]} ∧
          st_tgt =
-           {[SchI.v_ths :=
-              Some ((λ '(n, rv, _), (n, snd <$> rv : option SAny.t))
+           {[SchI.v_ths #
+              ((λ '(n, rv, _), (n, snd <$> rv : option SAny.t))
                 <$> ths : list (nat * option SAny.t))↑;
-              SchI.v_tid := Some tid_cur↑]} ∧
+              SchI.v_tid # tid_cur↑]} ∧
          ∃ ro_cur post_cur, ths !! tid_cur = Some (stid_cur, ro_cur, post_cur)⌝ ∗
         JoinAuth (list_to_map (imap (λ i RR, (i, to_agree RR)) ths.*2)) ∗
         TidAuth (list_to_map (imap pair ths.*1.*1)) ∗

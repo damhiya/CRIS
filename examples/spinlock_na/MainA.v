@@ -87,8 +87,8 @@ Module MainA. Section MainA.
     λ _, 𝒴;;; Ret Vundef.
 
   Definition fnsems (N : namespace) : fnsemmap :=
-    {[None := Some (msk_scp scopes msk_true, (fsp_some (main_spec N), main));
-      Some SpinLockMainHdr.incr := Some (msk_scp scopes msk_true, (fsp_some (incr_spec (↑N)), cfunN (sfunN incr)))]}.
+    {[None # (msk_scp scopes msk_true, (fsp_some (main_spec N), main));
+      Some SpinLockMainHdr.incr # (msk_scp scopes msk_true, (fsp_some (incr_spec (↑N)), cfunN (sfunN incr)))]}.
 
   Program Definition smod N : SMod.t := {|
     SMod.scopes := scopes;

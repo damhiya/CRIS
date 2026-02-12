@@ -220,7 +220,7 @@ Module MemIA. Section MemIA.
   Definition Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ :=
     λ st_src st_tgt,
       ((∃ (mem_tgt : Mem.t) (mem_src : MemA._memRA),
-      ⌜st_tgt = {[MemI.v_mem := Some mem_tgt↑]} ∧ sim_mem mem_src mem_tgt ∧ mem_wf mem_tgt⌝ ∗
+      ⌜st_tgt = {[MemI.v_mem # mem_tgt↑]} ∧ sim_mem mem_src mem_tgt ∧ mem_wf mem_tgt⌝ ∗
       ( |==> own mem_name (● mem_src))))%I.
 
   Local Definition MemA := (MemA.t sp).

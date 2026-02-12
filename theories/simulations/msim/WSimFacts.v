@@ -1,7 +1,7 @@
 Require Import Common ConcRA.
 From iris.proofmode Require Import proofmode.
 Require Import LMod Mod SMod Sp.
-Require Import LSim LSimTactics MSim MSimFacts ISim TacticsCommon ITactics ISimNotations ISimFacts WSim.
+Require Import LSim LSimTactics MSim MSimFacts ISim TacticsCommon ITactics SimNotations ISimFacts WSim.
 
 Set Implicit Arguments.
 

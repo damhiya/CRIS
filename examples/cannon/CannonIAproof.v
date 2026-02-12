@@ -9,7 +9,7 @@ Module CannonIA. Section CannonIA.
   Context (sp : specmap).
 
   Definition Ist : ist_type Σ :=
-    (λ st_s st_t, (⌜st_t = {[CannonI.v_lv := Some 1%Z↑]}⌝ ∗ Ready) ∨ Fired)%I.
+    (λ st_s st_t, (⌜st_t = {[CannonI.v_lv # 1%Z↑]}⌝ ∗ Ready) ∨ Fired)%I.
   
   Local Definition CannonAMod := (CannonA.t sp).
   Local Definition CannonIMod := (CannonI.t).

@@ -28,7 +28,7 @@ Module SingleCoinPA. Section SingleCoinPA.
   Local Definition Ist : ist_type Σ :=
     (λ st_s st_t,
       ∃ (l_s : list bool) (l_t : list (option bool)),
-        ⌜st_t = {[v_coins := Some l_t↑]} ∧ length l_s = length l_t⌝
+        ⌜st_t = {[v_coins # l_t↑]} ∧ length l_s = length l_t⌝
         ∗ ProphecyRA.free_id (λ i, i.1 = "SingleCoin" ∧ ∃ n, i.2↓↓ = Some n ∧ n >= length l_t)%type
         ∗ coin_auth l_s
         ∗ [∗ list] i ↦ ob ∈ l_t,

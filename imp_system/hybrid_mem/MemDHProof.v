@@ -259,7 +259,7 @@ Module MemDH. Section MemDH.
   Definition Ist: gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ :=
     λ st_src st_tgt,
       ((∃ (mem_src mem_tgt: Mem.t) (mem_res: _memRA),
-      ⌜st_src = {[HybMem.v_mem := Some  mem_src↑]} ∧ st_tgt = {[DetMem.v_mem := Some mem_tgt↑]}⌝ ∗ 
+      ⌜st_src = {[HybMem.v_mem #  mem_src↑]} ∧ st_tgt = {[DetMem.v_mem # mem_tgt↑]}⌝ ∗ 
       ⌜mem_wf mem_src ∧ mem_wf mem_tgt ∧ (Mem.nb mem_src <= Mem.nb mem_tgt)⌝ ∗
       ⌜sim_mem mem_res mem_src mem_tgt⌝ ∗
       ( |==> mem_own mem_name ((● mem_res)))))%I.
@@ -307,8 +307,8 @@ Module MemDH. Section MemDH.
       { i. destruct (NEXT nb ofs (ltac:(nia))). ss. }
 
       steps_r. step. iSplitR; [eauto|].
-      iExists {[HybMem.v_mem := Some  _↑]}, _, st_tgtR, st_tgtR.
-      instantiate (1 := {[DetMem.v_mem := Some _↑]}). repeat (iSplit; eauto).
+      iExists {[HybMem.v_mem #  _↑]}, _, st_tgtR, st_tgtR.
+      instantiate (1 := {[DetMem.v_mem # _↑]}). repeat (iSplit; eauto).
       iExists _, _, _. fold nb.  
       iSplitR. { iPureIntro. esplits; try refl. }
       iSplitR.
@@ -373,8 +373,8 @@ Module MemDH. Section MemDH.
     set (nb := Mem.nb mem_tgt). steps_l.
 
     step. iSplitR; eauto.
-    iExists {[HybMem.v_mem := Some _↑]}, _, st_tgtR, st_tgtR.
-    instantiate (1 := {[DetMem.v_mem := Some _↑]}). repeat (iSplit; eauto).
+    iExists {[HybMem.v_mem # _↑]}, _, st_tgtR, st_tgtR.
+    instantiate (1 := {[DetMem.v_mem # _↑]}). repeat (iSplit; eauto).
     iExists _, _, _.  
     iSplitR. { iPureIntro. esplits; try refl. }
     iSplitR. 
@@ -459,8 +459,8 @@ Module MemDH. Section MemDH.
       steps_r. 
       step. iSplit; eauto.
 
-      iExists {[HybMem.v_mem := Some _↑]}, _, st_tgtR, st_tgtR.
-      instantiate (1 := {[DetMem.v_mem := Some _↑]}). repeat (iSplit; eauto).
+      iExists {[HybMem.v_mem # _↑]}, _, st_tgtR, st_tgtR.
+      instantiate (1 := {[DetMem.v_mem # _↑]}). repeat (iSplit; eauto).
       iExists _, _, _.  
       iSplit. { iPureIntro. esplits; try refl. }
       iSplitR. 
@@ -494,8 +494,8 @@ Module MemDH. Section MemDH.
     iPoseProof (mem_ra_free with "[B POINTS]") as ">P"; iFrame.
     
     step. iSplit; eauto.
-    iExists {[HybMem.v_mem := Some _↑]}, _, st_tgtR, st_tgtR.
-    instantiate (1 := {[DetMem.v_mem := Some _↑]}). repeat (iSplit; eauto).
+    iExists {[HybMem.v_mem # _↑]}, _, st_tgtR, st_tgtR.
+    instantiate (1 := {[DetMem.v_mem # _↑]}). repeat (iSplit; eauto).
     iExists _, _, _.  iSplit. { iPureIntro. esplits; try refl. }
     iSplitR.
     {
@@ -540,8 +540,8 @@ Module MemDH. Section MemDH.
       rewrite SIM1 SIM2. steps_l; steps_r.
       step. iSplit; eauto.
 
-      iExists {[HybMem.v_mem := Some _↑]}, _, st_tgtR, st_tgtR.
-      instantiate (1 := {[DetMem.v_mem := Some _↑]}). repeat (iSplit; eauto).
+      iExists {[HybMem.v_mem # _↑]}, _, st_tgtR, st_tgtR.
+      instantiate (1 := {[DetMem.v_mem # _↑]}). repeat (iSplit; eauto).
       iExists _, _, _.  
       iSplit. { iPureIntro. esplits; try refl. }
       iSplitR. 
@@ -571,8 +571,8 @@ Module MemDH. Section MemDH.
     des. inv P0.
     forces_l. iSplitL "ASM"; eauto. steps_l.
     step. iSplit; [eauto|].
-    iExists {[HybMem.v_mem := Some _↑]}, _, st_tgtR, st_tgtR.
-    instantiate (1 := {[DetMem.v_mem := Some _↑]}). repeat (iSplit; eauto).
+    iExists {[HybMem.v_mem # _↑]}, _, st_tgtR, st_tgtR.
+    instantiate (1 := {[DetMem.v_mem # _↑]}). repeat (iSplit; eauto).
     iExists _, _, _.  
     iSplit. { iPureIntro. esplits; try refl. }
     iSplitR. 
@@ -600,8 +600,8 @@ Module MemDH. Section MemDH.
       des; des_ifs; steps_l; ss. steps_r. 
       step. iSplit; [eauto|].
 
-      iExists {[HybMem.v_mem := Some _↑]}, _, st_tgtR, st_tgtR.
-      instantiate (1 := {[DetMem.v_mem := Some _↑]}). repeat (iSplit; eauto).
+      iExists {[HybMem.v_mem # _↑]}, _, st_tgtR, st_tgtR.
+      instantiate (1 := {[DetMem.v_mem # _↑]}). repeat (iSplit; eauto).
       iExists _, _, _.  
       iSplit. { iPureIntro. esplits; try refl. }
       iSplitR. 
@@ -641,8 +641,8 @@ Module MemDH. Section MemDH.
 
     steps_r. step. iSplit; [eauto|].
 
-    iExists {[HybMem.v_mem := Some _↑]}, _, st_tgtR, st_tgtR.
-    instantiate (1 := {[DetMem.v_mem := Some _↑]}). repeat (iSplit; eauto).
+    iExists {[HybMem.v_mem # _↑]}, _, st_tgtR, st_tgtR.
+    instantiate (1 := {[DetMem.v_mem # _↑]}). repeat (iSplit; eauto).
     iExists _, _, _.  
     iSplit. { iPureIntro. esplits; try refl. }
     iSplitR. 
@@ -691,8 +691,8 @@ Module MemDH. Section MemDH.
         unfold HybMem.compare_val in COMP. 
         destruct arg0; ss; des_ifs.
       }
-      iExists {[HybMem.v_mem := Some _↑]}, _, st_tgtR, st_tgtR.
-      instantiate (1 := {[DetMem.v_mem := Some _↑]}). repeat (iSplit; eauto).
+      iExists {[HybMem.v_mem # _↑]}, _, st_tgtR, st_tgtR.
+      instantiate (1 := {[DetMem.v_mem # _↑]}). repeat (iSplit; eauto).
       iExists _, _, _.  
       iSplit. { iPureIntro. esplits; try refl. }
       iSplitR. 
@@ -724,8 +724,8 @@ Module MemDH. Section MemDH.
     destruct arg0 eqn: ARG0; destruct arg1 eqn: ARG1; ss.
     - rewrite S in E. inv E.
       step. iSplit; eauto. 
-      iExists {[HybMem.v_mem := Some _↑]}, _, st_tgtR, st_tgtR.
-      instantiate (1 := {[DetMem.v_mem := Some _↑]}). repeat (iSplit; eauto).
+      iExists {[HybMem.v_mem # _↑]}, _, st_tgtR, st_tgtR.
+      instantiate (1 := {[DetMem.v_mem # _↑]}). repeat (iSplit; eauto).
       iExists _, _, _.  
       iSplit. { iPureIntro. esplits; try refl. }
       iSplitR. 
@@ -735,8 +735,8 @@ Module MemDH. Section MemDH.
       unfold not_allocated, alloc_by_spec, alloc_by_impl in SIM0; des;     
       rewrite SIM1 in S; rewrite SIM2 in E; des_ifs.
       step. iSplit; eauto. 
-      iExists {[HybMem.v_mem := Some _↑]}, _, st_tgtR, st_tgtR.
-      instantiate (1 := {[DetMem.v_mem := Some _↑]}). repeat (iSplit; eauto).
+      iExists {[HybMem.v_mem # _↑]}, _, st_tgtR, st_tgtR.
+      instantiate (1 := {[DetMem.v_mem # _↑]}). repeat (iSplit; eauto).
       iExists _, _, _.  
       iSplit. { iPureIntro. esplits; try refl. }
       iSplitR. 
@@ -746,8 +746,8 @@ Module MemDH. Section MemDH.
       unfold not_allocated, alloc_by_spec, alloc_by_impl in SIM0; des;     
       rewrite SIM1 in S; rewrite SIM2 in E; des_ifs.
       step. iSplit; eauto. 
-      iExists {[HybMem.v_mem := Some _↑]}, _, st_tgtR, st_tgtR.
-      instantiate (1 := {[DetMem.v_mem := Some _↑]}). repeat (iSplit; eauto).
+      iExists {[HybMem.v_mem # _↑]}, _, st_tgtR, st_tgtR.
+      instantiate (1 := {[DetMem.v_mem # _↑]}). repeat (iSplit; eauto).
       iExists _, _, _.  
       iSplit. { iPureIntro. esplits; try refl. }
       iSplitR. 
@@ -759,8 +759,8 @@ Module MemDH. Section MemDH.
       rewrite SIM4 SIM2 in S; rewrite SIM5 SIM3 in E; ss.
       rewrite S in E. inv E.
       step. iSplit; eauto. 
-      iExists {[HybMem.v_mem := Some _↑]}, _, st_tgtR, st_tgtR.
-      instantiate (1 := {[DetMem.v_mem := Some _↑]}). repeat (iSplit; eauto).
+      iExists {[HybMem.v_mem # _↑]}, _, st_tgtR, st_tgtR.
+      instantiate (1 := {[DetMem.v_mem # _↑]}). repeat (iSplit; eauto).
       iExists _, _, _.  
       iSplit. { iPureIntro. esplits; try refl. }
       iSplitR. 
@@ -820,8 +820,8 @@ Module MemDH. Section MemDH.
     { 
       steps_r. step; iFrame.
       iSplit; eauto.
-      iExists {[HybMem.v_mem := Some _↑]}, _, st_tgtR, st_tgtR.
-      instantiate (1 := {[DetMem.v_mem := Some _↑]}). repeat (iSplit; eauto).
+      iExists {[HybMem.v_mem # _↑]}, _, st_tgtR, st_tgtR.
+      instantiate (1 := {[DetMem.v_mem # _↑]}). repeat (iSplit; eauto).
       iExists _, _.  
       iSplit. { iPureIntro. esplits; try refl. }
       iSplitR. 
@@ -844,8 +844,8 @@ Module MemDH. Section MemDH.
     steps_r. inline_r. steps_r. rewrite PT0. steps_r.
     step; iFrame.
     iSplit; eauto.
-    iExists {[HybMem.v_mem := Some _↑]}, _, st_tgtR, st_tgtR.
-    instantiate (1 := {[DetMem.v_mem := Some _↑]}). repeat (iSplit; eauto).
+    iExists {[HybMem.v_mem # _↑]}, _, st_tgtR, st_tgtR.
+    instantiate (1 := {[DetMem.v_mem # _↑]}). repeat (iSplit; eauto).
     iExists _, _.  
     iSplit. { iPureIntro. esplits; try refl. }
     iSplitR. 
@@ -875,7 +875,7 @@ Module MemDH. Section MemDH.
     init_sim.
     - rewrite /IstFull /HybMem /DetMem. unfold_mod. s. 
       iIntros "P". 
-      iExists {[HybMem.v_mem:=Some _]}, {[DetMem.v_mem:=Some _]}, ∅, ∅; ss.
+      iExists {[HybMem.v_mem # _]}, {[DetMem.v_mem # _]}, ∅, ∅; ss.
       repeat iSplit; et.
       iExists _, _, _. iSplit; eauto.
       iSplit.

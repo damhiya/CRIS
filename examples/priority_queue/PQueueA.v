@@ -134,9 +134,9 @@ Module PQueueA. Section PQueueA.
         Ret ret↑).
 
   Definition fnsems : fnsemmap :=
-    {[Some PQueueHdr.new := Some (msk_scp scopes msk_true, (fsp_some new_spec, new));
-      Some PQueueHdr.add := Some (msk_scp scopes msk_true, (None, add));
-      Some PQueueHdr.remove_min := Some (msk_scp scopes msk_true, (None, remove_min))]}.
+    {[Some PQueueHdr.new # (msk_scp scopes msk_true, (fsp_some new_spec, new));
+      Some PQueueHdr.add # (msk_scp scopes msk_true, (None, add));
+      Some PQueueHdr.remove_min # (msk_scp scopes msk_true, (None, remove_min))]}.
 
   Program Definition Mod : SMod.t := {|
     SMod.scopes := scopes;

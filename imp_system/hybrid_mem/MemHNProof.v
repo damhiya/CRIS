@@ -9,7 +9,7 @@ Module MemHN. Section MemHN.
   Definition Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ :=
     λ st_src st_tgt,
       (∃ (mem: Mem.t),
-      ⌜st_src = {[NonDetMem.v_mem := Some mem↑]} ∧ st_tgt = {[HybMem.v_mem := Some mem↑]}⌝)%I.
+      ⌜st_src = {[NonDetMem.v_mem # mem↑]} ∧ st_tgt = {[HybMem.v_mem # mem↑]}⌝)%I.
 
   Local Definition NonDetMem := NonDetMem.t.
   Local Definition HybMem := HybMem.t.

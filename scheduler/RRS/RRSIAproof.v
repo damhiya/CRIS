@@ -56,7 +56,7 @@ Module RRSIA. Section RRSIA.
   Definition Ist: gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ :=
     λ st_src st_tgt,
       (∃ (ths: RRSI.thpool) (tid stid ssch: nat) (rrinvO: gmap nat InvO) (Inv: InvO),
-          ⌜st_tgt = {[RRSI.v_ths := Some ths↑; RRSI.v_tid := Some tid↑; RRSI.v_sch := Some ssch↑]}
+          ⌜st_tgt = {[RRSI.v_ths # ths↑; RRSI.v_tid # tid↑; RRSI.v_sch # ssch↑]}
           ∧ st_src = st_tgt ∧ <<INVWF: size rrinvO = length ths>>⌝ ∗
           TidAuth (list_to_map (imap pair ths)) ∗
           (Ist_init rrinvO

@@ -12,7 +12,7 @@ Module SingleCoinIP. Section SingleCoinIP.
 
   Local Definition Ist : ist_type Σ :=
     (λ st_s st_t,
-      ∃ (l : list (option bool)), ⌜st_s = {[v_coins := Some l↑]} ∧ st_t = st_s⌝)%I.
+      ∃ (l : list (option bool)), ⌜st_s = {[v_coins # l↑]} ∧ st_t = st_s⌝)%I.
 
   Local Definition IstFull := IstProd (IstSB (Mod.scopes (SingleCoinP.t mn)) Ist) IstEq.
 

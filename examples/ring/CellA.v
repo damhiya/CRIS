@@ -103,8 +103,8 @@ Module CellA. Section CellA.
   Definition scopes : list string := [CellHdr.mn idx].
 
   Definition fnsems : fnsemmap :=
-    {[Some (CellHdr.get idx) := Some (msk_scp scopes msk_true, (fsp_some get_spec, fbody_trivial));
-      Some (CellHdr.set idx) := Some (msk_scp scopes msk_true, (fsp_some set_spec, fbody_trivial))]}.
+    {[Some (CellHdr.get idx) # (msk_scp scopes msk_true, (fsp_some get_spec, fbody_trivial));
+      Some (CellHdr.set idx) # (msk_scp scopes msk_true, (fsp_some set_spec, fbody_trivial))]}.
 
   Program Definition smod : SMod.t := {|
     SMod.scopes := scopes;

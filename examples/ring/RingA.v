@@ -43,15 +43,15 @@ Module RingA. Section RingA.
       end.
 
   Definition fnsems : fnsemmap :=
-    {[Some RingHdr.init := Some (msk_real (msk_scp scopes msk_true), (None, cfunU init));
-      Some RingHdr.get_size := Some (msk_real (msk_scp scopes msk_true), (None, cfunU get_size));
-      Some RingHdr.enqueue := Some (msk_real (msk_scp scopes msk_true), (None, cfunU enqueue));
-      Some RingHdr.dequeue := Some (msk_real (msk_scp scopes msk_true), (None, cfunU dequeue))]}.
+    {[Some RingHdr.init # (msk_real (msk_scp scopes msk_true), (None, cfunU init));
+      Some RingHdr.get_size # (msk_real (msk_scp scopes msk_true), (None, cfunU get_size));
+      Some RingHdr.enqueue # (msk_real (msk_scp scopes msk_true), (None, cfunU enqueue));
+      Some RingHdr.dequeue # (msk_real (msk_scp scopes msk_true), (None, cfunU dequeue))]}.
 
   Program Definition smod : SMod.t := {|
     SMod.scopes := scopes;
     SMod.fnsems := fnsems;
-    SMod.initial_st := {[v_que := Some ([]:list Z)↑]};
+    SMod.initial_st := {[v_que # ([]:list Z)↑]};
   |}
   .
   Solve All Obligations with mod_tac.

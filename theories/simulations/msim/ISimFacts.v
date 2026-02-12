@@ -1,7 +1,7 @@
 From iris.proofmode Require Import proofmode.
 Require Import Common ConcRA.
 Require Import LMod Mod SMod Sp.
-Require Import LSim LSimTactics MSim MSimFacts MSimCommon ISim TacticsCommon ITactics ISimNotations.
+Require Import LSim LSimTactics MSim MSimFacts MSimCommon ISim TacticsCommon ITactics SimNotations.
 
 Section ISIM_FRAME.
   Context `{!crisG Γ Σ α β τ _S _I}.

@@ -185,10 +185,10 @@ Module StackM. Section StackM.
         Ret (vret↑)).
 
   Definition fnsems : fnsemmap :=
-    {[Some StackHdr.new_stack :=
-        Some (msk_scp scopes msk_true, (fsp_some (new_stack_spec N), cfunU new_stack));
-      Some StackHdr.push := Some (msk_scp scopes msk_true, (None, push));
-      Some StackHdr.pop := Some (msk_scp scopes msk_true, (None, pop))]}.
+    {[Some StackHdr.new_stack #
+        (msk_scp scopes msk_true, (fsp_some (new_stack_spec N), cfunU new_stack));
+      Some StackHdr.push # (msk_scp scopes msk_true, (None, push));
+      Some StackHdr.pop # (msk_scp scopes msk_true, (None, pop))]}.
 
   Program Definition Mod : SMod.t := {|
     SMod.scopes := scopes;
@@ -228,10 +228,10 @@ Module StackA. Section StackA.
         Ret (vret↑)).
 
   Definition fnsems : fnsemmap :=
-    {[Some StackHdr.new_stack :=
-        Some (msk_scp scopes msk_true, (fsp_some (new_stack_spec N), cfunU new_stack));
-      Some StackHdr.push := Some (msk_scp scopes msk_true, (None, push));
-      Some StackHdr.pop := Some (msk_scp scopes msk_true, (None, pop))]}.
+    {[Some StackHdr.new_stack #
+        (msk_scp scopes msk_true, (fsp_some (new_stack_spec N), cfunU new_stack));
+      Some StackHdr.push # (msk_scp scopes msk_true, (None, push));
+      Some StackHdr.pop # (msk_scp scopes msk_true, (None, pop))]}.
 
   Program Definition Mod : SMod.t := {|
     SMod.scopes := scopes;
