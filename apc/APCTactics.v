@@ -85,7 +85,7 @@ Section LEMMAS.
 
   Lemma wsim_apc_src_call_tgt
     (E : coPset) (r g : rel) (k_src : () → itree crisE R_s) (k_tgt: Any.t -> itree crisE R_t)
-    (msk_s : emask) (sp_s sp_t sp_pure : specmap) (ow od : Ord.t)
+    (msk_s : emask) (sp_s sp_pure : specmap)
     (fn: string) args fsp X (spec_arg: X) o P Q
     (ow_src ow_fn od_src od_fn : Ord.t)
     (WIDTH: (ow_fn < ow_src)%ord)
@@ -113,6 +113,12 @@ End LEMMAS.
 
 Ltac apc_call_weaker hyps :=
   iApply wsim_apc_src_call_tgt_weaker; [ | | |simpl_sp| | |]; ss.
+
+Ltac apc_l :=
+  iApply wsim_apc_src; ss.
+
+Ltac apc_call hyps :=
+  iApply wsim_apc_src_call_tgt; [ | | |simpl_sp| |iSplitL hyps]; ss.
 (*** TODO : create appropriate tactics for handling APC ***)
 
 (* Ltac _prep_macro := *)
@@ -148,10 +154,6 @@ Ltac apc_call_weaker hyps :=
 (*   only_itree_l; try _prep_macro; ired; show_itree; *)
 (*   only_itree_r; try _prep_macro; ired; show_itree; *)
 (*   show_until marker. *)
-
-(* Ltac apc_l := *)
-(*   prep_macro_l; *)
-(*   iApply wsim_apc_src; des_pairs; s. *)
 
 (* (** TODO: updating apc tactics is required *) *)
 
