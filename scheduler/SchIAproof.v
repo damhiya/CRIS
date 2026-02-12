@@ -48,8 +48,7 @@ Module SchIA. Section sim.
     iDestruct "ASM" as "[Spawn [W [TidFrag [Pre JoinFrag]]]]".
 
     steps_l. steps_r.
-    iDestruct "Spawn" as "[%fsp [%Hfind Spawn]]".
-    erewrite lookup_weaken; eauto using Hfind.
+    iDestruct "Spawn" as "[%fsp [%Hfind Spawn]]". simpl_sp.
     iDestruct ("Spawn" with "[]") as "[% [% [%Hfsp Hspawn]]]".
     { iPureIntro; exists (stid, mtid, tt); split; done. }
     iPoseProof ("Hspawn" with "[-IST JoinFrag]") as "> [Pre Post]".
@@ -136,9 +135,7 @@ Module SchIA. Section sim.
     destruct_quant CIH.
     unfold_iterC_l. unfold_iterC_r.
 
-    steps_l.
-    unshelve erewrite (lookup_weaken _ _ _ _ _ SchInSp); cycle 1.
-    { rewrite /SchA.sp; simpl_map; refl. }
+    steps_l. simpl_sp.
     force_l (stid, mtid, tt). force_l (tt↑). steps_l.
     iApply wsim_guarantee_src; iFrame "W TidF TID YIELD"; iSplit; eauto.
 
@@ -316,9 +313,7 @@ Module SchIA. Section sim.
       step. iSplit; eauto.
       iFrame. des; iExists _; iPureIntro; esplits; eauto.
     }
-    { steps_r.
-      steps_l. unshelve erewrite (lookup_weaken _ _ _ _ _ SchInSp); cycle 1.
-      { rewrite /SchA.sp; simpl_map; refl. }
+    { steps_r. steps_l. simpl_sp.
       force_l (stid, mtid, tt). steps_l. force_l. force_l. iFrame "Tid". iSplit; eauto.
       steps_l. call "JoinA TidA RET Ys".
       { iFrame. des; iExists _; iPureIntro; esplits; eauto. }

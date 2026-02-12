@@ -1,5 +1,5 @@
 Require Import CRIS.
-Require Import LMod LModTr GSim GSimFacts GSimTactics GSimAux CancelTactics.
+Require Import LMod LModTr GSim GSimFacts GSimTactics GSimAux.
 Require Import MInline MInlineIntro MInlineElim ElimRel.
 
 Local Ltac gnorm_itr :=

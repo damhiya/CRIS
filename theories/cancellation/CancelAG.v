@@ -1,5 +1,5 @@
 Require Import CRIS.
-Require Import LMod LModTr GSim GSimFacts GSimTactics GSimAux CancelTactics.
+Require Import LMod LModTr GSim GSimFacts GSimTactics GSimAux.
 Require Import MInline MInlineIntro MInlineElim ElimRel.
 
 Lemma cancel_ag `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concGS} md sp  R (e : agE R) :
