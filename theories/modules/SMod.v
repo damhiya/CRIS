@@ -48,8 +48,8 @@ Module SMod. Section Smod.
 
   Program Definition add ms1 ms2 : t := {|
     scopes := merge_sort String.le ((scopes ms1) ++ (scopes ms2));
-    fnsems := union_with (λ _ _, Some None) (fnsems ms1) (fnsems ms2);
-    initial_st := union_with (λ _ _, Some None) (initial_st ms1) (initial_st ms2);
+    fnsems := union_with uwnd (fnsems ms1) (fnsems ms2);
+    initial_st := union_with uwnd (initial_st ms1) (initial_st ms2);
   |}.
   Next Obligation. intros; apply StronglySorted_merge_sort; typeclasses eauto. Qed.
   Next Obligation.

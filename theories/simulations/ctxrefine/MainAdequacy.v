@@ -40,8 +40,8 @@ Local Lemma Own_Ist `{Σ : GRA} FR fmr scp scp_ctx Ist st_src st_tgt :
   ✓ fmr →
   (Own fmr ⊢ |==> IstProd (IstSB scp Ist) (IstSB scp_ctx IstEq) st_src st_tgt ∗ FR) →
   ∃ st_srcL st_tgtL st_ctx,
-    st_src = union_with (const (const (Some None))) st_srcL st_ctx ∧
-    st_tgt = union_with (const (const (Some None))) st_tgtL st_ctx ∧
+    st_src = union_with uwnd st_srcL st_ctx ∧
+    st_tgt = union_with uwnd st_tgtL st_ctx ∧
     (set_map fst (dom st_srcL)) ⊆@{gset string} list_to_set scp ∧
     (set_map fst (dom st_tgtL)) ⊆@{gset string} list_to_set scp ∧
     (set_map fst (dom st_ctx)) ⊆@{gset string} list_to_set scp_ctx ∧
@@ -84,8 +84,8 @@ Lemma msim_ctx
     ((λ v : option _, SB.sandbox_body <$> v) <$> (Mod.fnsems (mt ★ ctx)))
     (IstProd (IstSB (Mod.scopes mt) Ist) (IstSB (Mod.scopes ctx) IstEq)) Any.t Any.t
     (ist_with_eq (IstProd (IstSB (Mod.scopes mt) RR) (IstSB (Mod.scopes ctx) IstEq))) ps pt
-    (union_with (const (const (Some None))) st_src st_ctx, itr_src) 
-    (union_with (const (const (Some None))) st_tgt st_ctx, itr_tgt) fmr.
+    (union_with uwnd st_src st_ctx, itr_src) 
+    (union_with uwnd st_tgt st_ctx, itr_tgt) fmr.
 Proof.
   ginit.
   intros ?????? Hwfs Hwft.
@@ -228,8 +228,8 @@ Lemma isim_ctx `{Σ : GRA} contextual RR fs ft ms mt ctx Ist arg st_src st_tgt s
     ibot ibot Any.t Any.t
     (ist_with_eq (IstProd (IstSB (Mod.scopes mt) RR) (IstSB (Mod.scopes ctx) IstEq)))
     false false
-    (union_with (const (const (Some None))) st_src st_ctx, SB.sandbox_body fs arg)
-    (union_with (const (const (Some None))) st_tgt st_ctx, SB.sandbox_body ft arg).
+    (union_with uwnd st_src st_ctx, SB.sandbox_body fs arg)
+    (union_with uwnd st_tgt st_ctx, SB.sandbox_body ft arg).
 Proof.
   intros Hscp Hsrc Htgt Hctx Hwfs Hwft Hin.
   apply entails_pointwise => r Hsim.

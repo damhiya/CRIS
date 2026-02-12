@@ -4,6 +4,9 @@ From stdpp Require Import sorting strings.
 Require Import LMod.
 Require Export FSpec ModTr Sandbox Sp.
 
+Definition uwnd {A} : option A → option A → option (option A) :=
+  λ _ _, Some None.
+
 Module Mod. Section Mod.
   Context {Σ : GRA}.
   Context (a b : gmap string nat).
@@ -42,8 +45,8 @@ Module Mod. Section Mod.
 
   Program Definition add (ms1 ms2 : t) : t := {|
     scopes := merge_sort String.le ((scopes ms1) ++ (scopes ms2));
-    fnsems := union_with (λ _ _, Some None) (fnsems ms1) (fnsems ms2);
-    initial_st := union_with (λ _ _, Some None) (initial_st ms1) (initial_st ms2);
+    fnsems := union_with uwnd (fnsems ms1) (fnsems ms2);
+    initial_st := union_with uwnd (initial_st ms1) (initial_st ms2);
   |}.
   Next Obligation. intros; apply StronglySorted_merge_sort; typeclasses eauto. Qed.
   Next Obligation.
@@ -243,7 +246,7 @@ Definition real_mod `{Σ : GRA} (md : Mod.t) : Prop :=
 Lemma real_mod_add `{Σ : GRA} (md1 md2 : Mod.t) :
   real_mod md1 → real_mod md2 → real_mod (md1 ★ md2).
 Proof.
-  rewrite /real_mod !map_Forall_lookup => H1 H2 i x; rewrite /Mod.fnsems /= lookup_union_with;
+  rewrite /real_mod !map_Forall_lookup => H1 H2 i x; rewrite /Mod.fnsems /= lookup_union_with /uwnd.
   specialize (H1 i); specialize (H2 i); i; repeat destruct lookup as [[[? ?]|]|]; ss; clarify.
   { hexploit (H1 (Some (e, f))); ss. }
   { hexploit (H2 (Some (e, f))); ss. }
@@ -332,7 +335,7 @@ Tactic Notation "mod_tac" := mod_tac scope_solver.
 
 (* Lemmas related to module states and function maps *)
 Lemma dom_union_with `{Countable K} {V} (m1 m2 : gmap K (option V)) :
-  dom (union_with (λ _ _, Some None) m1 m2) =
+  dom (union_with uwnd m1 m2) =
   dom m1 ∪ dom m2.
 Proof.
   apply set_eq; intros x; split;
@@ -341,7 +344,7 @@ Proof.
 Qed.
 
 Lemma map_Forall_union_with_inv_gen `{Countable K} {V} (m1 m2 : gmap K (option V)) :
-  map_Forall (const is_Some) (union_with (λ _ _, Some None) m1 m2) →
+  map_Forall (const is_Some) (union_with uwnd m1 m2) →
   dom m1 ## dom m2.
 Proof.
   rewrite ?map_Forall_lookup => Hwf; intros i [? H1]%elem_of_dom [? H2]%elem_of_dom;
@@ -350,7 +353,7 @@ Proof.
 Qed.
 
 Lemma map_Forall_union_with_inv `{Countable K} {V} (m1 m2 : gmap K (option V)) :
-  map_Forall (const is_Some) (union_with (λ _ _, Some None) m1 m2) →
+  map_Forall (const is_Some) (union_with uwnd m1 m2) →
   map_Forall (const is_Some) m1 ∧ map_Forall (const is_Some) m2.
 Proof.
   rewrite ?map_Forall_lookup => Hwf; split; intros i v Hi; move: (Hwf i v);
@@ -360,7 +363,7 @@ Qed.
 Lemma map_Forall_union_with `{Countable K} {V} (m1 m2 : gmap K (option V)) :
   dom m1 ## dom m2 →
   map_Forall (const is_Some) m1 ∧ map_Forall (const is_Some) m2 →
-  map_Forall (const is_Some) (union_with (λ _ _, Some None) m1 m2).
+  map_Forall (const is_Some) (union_with uwnd m1 m2).
 Proof.
   intros Hdom; rewrite ?map_Forall_lookup => [[H1 H2] i] x;
     specialize (H1 i); specialize (H2 i); rewrite lookup_union_with;
@@ -370,9 +373,9 @@ Proof.
 Qed.
 
 Lemma lookup_union_with_l `{Countable K} {V} (m1 m2 : gmap K (option V)) (k : K) v :
-  map_Forall (const is_Some) (union_with (λ _ _, Some None) m1 m2) →
+  map_Forall (const is_Some) (union_with uwnd m1 m2) →
   m1 !! k = Some v →
-  union_with (λ _ _, Some None) m1 m2 !! k = Some v.
+  union_with uwnd m1 m2 !! k = Some v.
 Proof.
   intros Hwf Hm1; rewrite lookup_union_with Hm1; destruct (m2 !! k) as [[|]|] eqn : Hm2; ss;
     apply map_Forall_lookup in Hwf; move: (Hwf k None); rewrite lookup_union_with Hm1 Hm2;
@@ -380,9 +383,9 @@ Proof.
 Qed.
 
 Lemma lookup_union_with_r `{Countable K} {V} (m1 m2 : gmap K (option V)) (k : K) v :
-  map_Forall (const is_Some) (union_with (λ _ _, Some None) m1 m2) →
+  map_Forall (const is_Some) (union_with uwnd m1 m2) →
   m2 !! k = Some v →
-  union_with (λ _ _, Some None) m1 m2 !! k = Some v.
+  union_with uwnd m1 m2 !! k = Some v.
 Proof.
   intros Hwf Hm2; rewrite lookup_union_with Hm2; destruct (m1 !! k) as [[|]|] eqn : Hm1; ss;
     apply map_Forall_lookup in Hwf; move: (Hwf k None); rewrite lookup_union_with Hm1 Hm2;
@@ -390,10 +393,10 @@ Proof.
 Qed.
 
 Lemma insert_union_with_l' `{Countable K} {V} (m1 m2 : gmap K (option V)) (k : K) v :
-  map_Forall (const is_Some) (union_with (λ _ _, Some None) m1 m2) →
+  map_Forall (const is_Some) (union_with uwnd m1 m2) →
   is_Some (m1 !! k) →
-  <[k := v]> (union_with (λ _ _, Some None) m1 m2) =
-  union_with (λ _ _, Some None) (<[k := v]> m1) m2.
+  <[k := v]> (union_with uwnd m1 m2) =
+  union_with uwnd (<[k := v]> m1) m2.
 Proof.
   intros Hwf [? Hm1]; apply insert_union_with_l.
   destruct (m2 !! k) as [[|]|] eqn : Hm2; ss;
@@ -402,10 +405,10 @@ Proof.
 Qed.
 
 Lemma insert_union_with_r' `{Countable K} {V} (m1 m2 : gmap K (option V)) (k : K) v :
-  map_Forall (const is_Some) (union_with (λ _ _, Some None) m1 m2) →
+  map_Forall (const is_Some) (union_with uwnd m1 m2) →
   is_Some (m2 !! k) →
-  <[k := v]> (union_with (λ _ _, Some None) m1 m2) =
-  union_with (λ _ _, Some None) m1 (<[k := v]> m2).
+  <[k := v]> (union_with uwnd m1 m2) =
+  union_with uwnd m1 (<[k := v]> m2).
 Proof.
   intros Hwf [? Hm2]; apply insert_union_with_r.
   destruct (m1 !! k) as [[|]|] eqn : Hm1; ss;
@@ -414,8 +417,8 @@ Proof.
 Qed.
 
 Lemma map_Forall_insert_union_with `{Countable K} {V} (m1 m2 : gmap K (option V)) k v :
-  map_Forall (const is_Some) (union_with (λ _ _, Some None) m1 m2) →
-  map_Forall (const is_Some) (<[k := Some v]> (union_with (λ _ _, Some None) m1 m2)).
+  map_Forall (const is_Some) (union_with uwnd m1 m2) →
+  map_Forall (const is_Some) (<[k := Some v]> (union_with uwnd m1 m2)).
 Proof.
   intros Hwf; destruct (decide (k ∈ dom m1)) as [Hm1|Hm1].
   { apply elem_of_dom in Hm1; rewrite insert_union_with_l' //.

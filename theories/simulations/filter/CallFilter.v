@@ -276,7 +276,7 @@ Module CFilter. Section CFilter.
     revert Hsts.
     assert (SCPc := mc.(Mod.well_scoped_init)). revert SCPc.
     set (st := Mod.initial_st m).
-    assert (Hsts : map_Forall (const is_Some) (union_with (λ _ _, Some None) st (Mod.initial_st mc))).
+    assert (Hsts : map_Forall (const is_Some) (union_with uwnd st (Mod.initial_st mc))).
     { subst st. hexploit (Mod.nodup_init (filter mask m ★ mc)); ss. inv Hwfadd; auto. }
     revert Hsts.
     generalize st.

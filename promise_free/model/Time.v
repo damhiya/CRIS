@@ -5,7 +5,7 @@ Require Export DenseOrder.
 Require Import Basic.
 Require Import Loc.
 
-Require Import sflib.
+Require Import sflib Coqlib.
 
 Set Implicit Arguments.
 
@@ -220,4 +220,5 @@ Module Interval <: UsualOrderedType.
       eapply TimeFacts.le_lt_lt; eauto.
   Qed.
 End Interval.
+
 

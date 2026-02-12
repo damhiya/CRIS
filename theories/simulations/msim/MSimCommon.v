@@ -17,8 +17,8 @@ Section Ist.
   Definition IstProd (IstL IstR : ist_type Σ) :=
     λ (st_src st_tgt : gmap key (option Any.t)),
       (∃ st_srcL st_tgtL st_srcR st_tgtR,
-        ⌜st_src = union_with (λ _ _, Some None) st_srcL st_srcR ∧
-         st_tgt = union_with (λ _ _, Some None) st_tgtL st_tgtR⌝ ∗
+        ⌜st_src = union_with uwnd st_srcL st_srcR ∧
+         st_tgt = union_with uwnd st_tgtL st_tgtR⌝ ∗
         IstL st_srcL st_tgtL ∗ IstR st_srcR st_tgtR)%I.
 
   Definition IstSB (scopes : list string) (Ist : ist_type Σ) :=

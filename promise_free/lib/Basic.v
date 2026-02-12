@@ -8,10 +8,6 @@ Require Import DataStructure.
 
 Set Implicit Arguments.
 
-
-Ltac refl := reflexivity.
-Ltac etrans := etransitivity.
-
 Module Ident <: OrderedTypeWithLeibniz.
   Include BinPos.Pos.
 

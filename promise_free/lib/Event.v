@@ -3,7 +3,7 @@ Require Import Orders.
 Require Import MSetList.
 Require Import ZArith.
 
-Require Import sflib.
+Require Import sflib Coqlib.
 
 Require Import Basic DataStructure Language.
 Require Import Loc Val Ordering.

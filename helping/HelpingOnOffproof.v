@@ -664,12 +664,12 @@ Section HelpingOnOff.
     Mod.wf (mod_src ★ ctx) →
     Mod.wf (mod_tgt ★ ctx) →
     let st_src (ths : list (nat * option SAny.t)) (mtid_s : nat) :=
-      (union_with (λ _ _, Some None)
+      (union_with uwnd
         {[SchI.v_ths := Some ths↑; SchI.v_tid := Some mtid_s↑]}
           st_ctx) in
     let st_tgt (reqmap : gmap nat (option retID * jobID)) (ths : list (nat * option SAny.t)) (mtid_t : nat) :=
-      (union_with (λ _ _, Some None)
-        (union_with (λ _ _, Some None)
+      (union_with uwnd
+        (union_with uwnd
           {[HelpingOn.v_reqs mn := Some reqmap↑]}
           {[SchI.v_ths := Some ths↑; SchI.v_tid := Some mtid_t↑]})
         st_ctx) in
@@ -881,11 +881,11 @@ Section HelpingOnOff.
       (∃ (tl : list (itree lmodE Any.t * itree lmodE Any.t * option (nat * (option retID * jobID))))
         (mtid stid : nat) (ths : list (nat * option SAny.t)) st_ctx
         (reqmap : gmap nat (option retID * jobID)),
-          st_src = union_with (λ _ _, Some None)
+          st_src = union_with uwnd
             {[SchI.v_ths := Some ths↑; SchI.SchI.v_tid := Some mtid↑]}
             st_ctx ∧
-          st_tgt = union_with (λ _ _, Some None)
-            (union_with (λ _ _, Some None)
+          st_tgt = union_with uwnd
+            (union_with uwnd
               {[HelpingOn.v_reqs mn := Some reqmap↑]}
               {[SchI.v_ths := Some ths↑; SchI.SchI.v_tid := Some mtid↑]})
             st_ctx ∧
