@@ -33,12 +33,12 @@ Module ProphecyA. Section ProphecyA.
       )%I.
 
   Definition fnsems : fnsemmap :=
-    {[Some (ProphecyName.new mn) :=
-        Some (msk_scp scopes msk_true, (fsp_some new_spec, fbody_trivial));
-      Some (ProphecyName.resolve mn) :=
-        Some (msk_scp scopes msk_true, (fsp_some resolve_spec, fbody_trivial));
-      Some (ProphecyName.close mn) :=
-        Some (msk_scp scopes msk_true, (fsp_some close_spec, fbody_trivial))]}.
+    {[Some (ProphecyName.new mn) #
+        (msk_scp scopes msk_true, (fsp_some new_spec, fbody_trivial));
+      Some (ProphecyName.resolve mn) #
+        (msk_scp scopes msk_true, (fsp_some resolve_spec, fbody_trivial));
+      Some (ProphecyName.close mn) #
+        (msk_scp scopes msk_true, (fsp_some close_spec, fbody_trivial))]}.
 
   Program Definition Mod : SMod.t := {|
     SMod.scopes := scopes;

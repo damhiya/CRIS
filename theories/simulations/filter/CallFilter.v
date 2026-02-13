@@ -1,4 +1,4 @@
-Require Import Common ISim WSim Tactics TacticsCommon WSimNotations TacticsInit Tactics.
+Require Import Common ISim WSim Tactics TacticsCommon SimNotations TacticsInit Tactics.
 Require Import GSim GSimFacts GSimTactics GSimAux.
 Require Export ConcRA LMod Mod SMod.
 Require Export CtxRefine CtxRefineFacts ClosedAdequacy MainAdequacy.

@@ -105,7 +105,7 @@ Section resource.
   Definition IstHelp (mn : string) : ist_type Σ :=
     λ st_src st_tgt,
       (∃ (reqmap_s : gmap nat (option retID * jobID)),
-        ⌜st_src = {[HelpingOn.v_reqs mn := Some reqmap_s↑]} ∧ st_tgt = ∅⌝ ∗
+        ⌜st_src = {[HelpingOn.v_reqs mn # reqmap_s↑]} ∧ st_tgt = ∅⌝ ∗
         helping_auth 1 reqmap_s)%I.
 End resource.
 

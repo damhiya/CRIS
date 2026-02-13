@@ -209,16 +209,16 @@ Module SchA. Section SchA.
     λ _, cgetN v_tid.
 
   Definition fnsems (E : coPset) : fnsemmap :=
-    {[Some SchHdr._spawn :=
-        Some (msk_scp scopes msk_true, (fsp_some (inner_spawn_spec), cfunN inner_spawn));
-      Some SchHdr.spawn :=
-        Some (msk_scp scopes msk_true, (fsp_some (spawn_spec), cfunN spawn));
-      Some SchHdr.yield :=
-        Some (msk_scp scopes msk_true, (fsp_some (yield_spec E), cfunN yield));
-      Some SchHdr.join :=
-        Some (msk_scp scopes msk_true, (fsp_some (join_spec E), cfunN join));
-      Some SchHdr.get_tid :=
-        Some (msk_scp scopes msk_true, (fsp_some get_tid_spec, cfunN get_tid))]}.
+    {[Some SchHdr._spawn #
+        (msk_scp scopes msk_true, (fsp_some (inner_spawn_spec), cfunN inner_spawn));
+      Some SchHdr.spawn #
+        (msk_scp scopes msk_true, (fsp_some (spawn_spec), cfunN spawn));
+      Some SchHdr.yield #
+        (msk_scp scopes msk_true, (fsp_some (yield_spec E), cfunN yield));
+      Some SchHdr.join #
+        (msk_scp scopes msk_true, (fsp_some (join_spec E), cfunN join));
+      Some SchHdr.get_tid #
+        (msk_scp scopes msk_true, (fsp_some get_tid_spec, cfunN get_tid))]}.
 
   Program Definition smod (E : coPset) : SMod.t := {|
     SMod.scopes := scopes;
