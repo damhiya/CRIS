@@ -2,7 +2,7 @@ Require Import CRIS SchHeader.
 Require Export HelpingHeader.
 
 Module HelpingOff. Section HelpingOff.
-  Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS}.
 
   Context (mn : string).
   Context {jobID retID : Type}.

@@ -38,7 +38,7 @@ Section CancelLib.
 End CancelLib.
 
 Section ELIM_REL.
-  Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS}.
 
   Definition HoareSpawnE (fspo : option fspec_rel) (sspo: bool) fn varg : itree crisE nat :=
     match fspo, sspo with
@@ -207,7 +207,7 @@ Section ELIM_REL.
   Proof using.
     intros ??????PR; destruct PR; eauto using @elim_rel_def.
     - eapply elim_rel_precond; eauto; des_safe.
-      i. specialize (H1 _ _ VS). des_safe; esplits; eauto.
+      i. specialize (H0 _ _ VS). des_safe; esplits; eauto.
     - eapply elim_rel_postcond; eauto; des_safe. esplits; eauto.
   Qed.
 
@@ -230,8 +230,8 @@ Section ELIM_REL.
   Proof using.
     eapply wrespect4_uclo; eauto with paco.
     econs; [apply elim_rel_bindC_mon|].
-    i. inv PR. apply GF in H0.
-    inv H0; grind; eauto 6 using rclo4, elim_rel_def, elim_rel_bindC with paco.
+    i. inv PR. apply GF in H.
+    inv H; grind; eauto 6 using rclo4, elim_rel_def, elim_rel_bindC with paco.
     - ired. eapply elim_rel_yield with (ktrS := λ z, (x <- ktrS0 z;; ktrS x)) (ktrT := λ z, (x <- ktrT0 z;; ktrT x)); eauto.
       { ired; ss. } { ired; ss. }
       eauto 7 using rclo4, elim_rel_def, elim_rel_bindC with paco.
@@ -239,7 +239,7 @@ Section ELIM_REL.
       { ired; ss. }
       eauto 7 using rclo4, elim_rel_def, elim_rel_bindC with paco.
     - eapply elim_rel_precond; i; et.
-      specialize (H2 _ _ VS). des_safe. esplits; et.
+      specialize (H1 _ _ VS). des_safe. esplits; et.
       eapply rclo4_clo'; cycle 1.
       + econs; [eapply H3|]; et.
       + eauto using rclo4.
@@ -251,7 +251,7 @@ Section ELIM_REL.
     - eapply elim_rel_gettid; rewrite /HoareGetTidE; grind. i; et.
       des_safe. esplits; et.
       eapply rclo4_clo'; cycle 1.
-      + econs; [eapply H4|]; et.
+      + econs; [eapply H3|]; et.
       + eauto using rclo4.
   Qed.
 
@@ -326,13 +326,13 @@ Section ELIM_REL.
     rewrite /SModTr.HoareYield /HoareYieldE. destruct sspo; cycle 1.
     { rewrite -{1}(bind_ret_r (trigger (Yield _))) MIRed.yield.
       f_equal. extensionalities. do 2 f_equal. rewrite MIRed.ret.
-      by destruct H0. }
+      by destruct H. }
     rewrite MIRed.core. f_equal. extensionalities. do 2 f_equal.
     rewrite MIRed.ag. f_equal. extensionalities. do 2 f_equal.
     rewrite MIRed.yield. f_equal. extensionalities. do 2 f_equal.
     rewrite -{1}(bind_ret_r (trigger _)).
     rewrite MIRed.ag. f_equal. extensionalities. do 2 f_equal.
-    destruct H3. by rewrite MIRed.ret.
+    destruct H2. by rewrite MIRed.ret.
   Qed.
 
   Lemma SBRed_HoareGetTid (msk : emask) sspo
@@ -659,7 +659,7 @@ Hint Resolve cpn4_wcompat: paco.
 Hint Resolve elim_rel_def_mon: paco.
 
 Section CancelDef.
-  Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS}.
 
   Variant thread_rel sp cid : nat → Σ → itree lmodE Any.t → itree lmodE Any.t → Prop :=
   | thread_rel_body itrS itrT src tgt r_diff tid Qo

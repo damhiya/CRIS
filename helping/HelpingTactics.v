@@ -111,7 +111,7 @@ End resource.
 
 Section help.
   Context (jobID retID : Type).
-  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !inG (helpingR jobID retID) Γ}.
+  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS, !inG (helpingR jobID retID) Γ}.
 
   Local Notation state := (gmap key (option Any.t)).
   Local Notation post R_s R_t := (state * R_s → state * R_t → iProp Σ).

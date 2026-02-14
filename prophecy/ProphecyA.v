@@ -3,7 +3,7 @@ Require Export ProphecyHeader ProphecyRA.
 Require Import Ensembles.
 
 Module ProphecyA. Section ProphecyA.
-  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !prophGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS, _PROPH: !prophGS}.
   Context (mn : string).
 
   Definition scopes : list string := [].

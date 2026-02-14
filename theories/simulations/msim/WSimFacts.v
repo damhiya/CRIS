@@ -6,7 +6,7 @@ Require Import LSim LSimTactics MSim MSimFacts ISim TacticsCommon ITactics SimNo
 Set Implicit Arguments.
 
 Section LAT.
-  Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS}.
 
   (* Lemma wsim_lat_real_to_img peeking img fsp lbody_s lbody_t body_s body_t fl_s fl_t msk scp ps pt st arg
     (EQITL: eqit eq false true 

@@ -28,7 +28,7 @@ Ltac ghnorm_l := greplace_l; [gnorm_itr; refl|].
 Ltac ghnorm_r := greplace_r; [gnorm_itr; refl|].
 
 Section props.
-  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !schGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS}.
 
   Lemma gsim_flag r g RR p_s p_t p_s1 p_t1 i_s i_t :
     smj_le p_s1 p_s →

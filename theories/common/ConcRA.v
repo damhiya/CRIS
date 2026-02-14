@@ -20,7 +20,7 @@ Proof using. solve_inG. Defined.
 Local Existing Instances concGS_concGpreS inG_tid inG_yield.
 
 Section preds.
-  Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS}.
 
   (* Token for current tid *)
   Definition TidToken (tid : nat) : iProp Σ := own tid_name (◯E tid).

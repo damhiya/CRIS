@@ -3,7 +3,7 @@ Require Import SchHeader SchI SchA.
 From iris.algebra Require Import gmap_view frac_auth.
 
 Module SchIA. Section sim.
-  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !schGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS, _SCH: !schGS}.
   Import SchA.
 
   Context (sp sp_user : specmap).
@@ -367,7 +367,7 @@ Module SchIA. Section sim.
 End sim.
 
 Section ctxr.
-  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !schGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS, _SCH: !schGS}.
 
   Lemma ctxr sp sp_user
         (SchInGlobal : SchA.sp sp_user ⊤ ⊆ sp)

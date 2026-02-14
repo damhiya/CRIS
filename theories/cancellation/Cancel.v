@@ -4,7 +4,7 @@ Require Import MInline MInlineIntro MInlineElim ElimRel.
 Require Import CancelCore CancelPG CancelAG CancelSpawn CancelPre CancelPost CancelYield CancelGetTid.
 
 Module Cancel. Section Cancel.
-  Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS}.
 
   Lemma cancel_elim md (r_i r_s r_t: Σ) rs_diff srcs tgts cid st ps pt
     (WFS: SMod.cancellable md)
@@ -59,11 +59,11 @@ Module Cancel. Section Cancel.
       split.
       { rewrite !length_insert //. }
       i. destruct (decide (cid = i)); cycle 1.
-      { rewrite list_lookup_insert_ne in H5; et.
+      { rewrite list_lookup_insert_ne in H4; et.
+        rewrite list_lookup_insert_ne in H5; et.
         rewrite list_lookup_insert_ne in H6; et.
-        rewrite list_lookup_insert_ne in H7; et.
       }
-      subst. rewrite !list_lookup_insert in H5, H6, H7; et; try lia.
+      subst. rewrite !list_lookup_insert in H4, H5, H6; et; try lia.
       clarify.
     }
 
@@ -204,7 +204,7 @@ Module Cancel. Section Cancel.
   End Cancel.
 
   Section Cancel.
-    Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
+    Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS}.
 
     Lemma cancellation md IC Pinit :
       SMod.cancellable md →

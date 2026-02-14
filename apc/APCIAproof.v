@@ -5,7 +5,7 @@ Set Implicit Arguments.
 
 Module APCIA. Section APCIA.
   Import APCA.
-  Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS}.
   
   Context (SpA SpPure: specmap).
 
@@ -37,7 +37,7 @@ Module APCIA. Section APCIA.
 End APCIA.
 
 Section ctxr.
-  Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS}.
 
   Lemma ctxr (SpA SpPure : specmap) :
     ctx_refines

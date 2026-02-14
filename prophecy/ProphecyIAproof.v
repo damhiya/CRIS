@@ -5,7 +5,7 @@ Require Import ExtendedBehavior SimGEx.
 Require Import exco_stream.
 
 Module ProphIA. Section ProphIA.
-  Context `{_crisG : !crisG Γ Σ α β τ _I _S, _concG : !concGS, _prophG : !prophGS}.
+  Context `{_crisG : !crisG Γ Σ α β τ _I _S, _CONC : !concGS, _PROPH : !prophGS}.
 
   Variant _take_is_prop (coself : itree lmodE Any.t -> Prop) : itree lmodE Any.t -> Prop :=
   | take_is_prop_ret retv

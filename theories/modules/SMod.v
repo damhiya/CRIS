@@ -6,7 +6,7 @@ From stdpp Require Import sorting strings.
 Notation fnsemmap := (gmap (option string) (option (emask * (option fspec_rel * fbody)))).
 
 Module SMod. Section Smod.
-  Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS}.
 
   (* SMods are basic units of composition in CRIS. *)
   (* The image of the maps are lifted by option to make the module append operation total. *)
@@ -118,13 +118,13 @@ Module SMod. Section Smod.
     intros sp ms fno [msk p].
     rewrite lookup_omap lookup_fmap. destruct (fnsems ms !! fno) eqn: Heq; intros FIND; ss.
     destruct o as [[msk0 [fspo p0]]|]; ss. inv FIND.
-    hexploit (well_scoped_fns ms). i. unfold map_Forall in H0. specialize (H0 fno (msk, (fspo, p0))).
-    eapply H0. rewrite lookup_omap Heq; refl.
+    hexploit (well_scoped_fns ms). i. unfold map_Forall in H. specialize (H fno (msk, (fspo, p0))).
+    eapply H. rewrite lookup_omap Heq; refl.
   Qed.
   Next Obligation. ii. destruct ms. ss. eauto. Qed.
   Next Obligation.
     ii. destruct ms. ss.
-    hexploit nodup_init0; eauto. i. specialize (H2 i). eapply H2; eauto.
+    hexploit nodup_init0; eauto. i. specialize (H1 i). eapply H1; eauto.
   Qed.
 
   Lemma to_mod_add sp (ms1 ms2 : t) :
@@ -152,7 +152,7 @@ Module SMod. Section Smod.
   Next Obligation. intros ms; ii; destruct ms; ss; eauto. Qed.
   Next Obligation.
     ii. destruct ms. ss.
-    hexploit nodup_init0; eauto. i. specialize (H2 i). eapply H2; eauto.
+    hexploit nodup_init0; eauto. i. specialize (H1 i). eapply H1; eauto.
   Qed.
 
   Lemma cancel_add (ms1 ms2 : t) : cancel (add ms1 ms2) = add (cancel ms1) (cancel ms2).
@@ -190,10 +190,10 @@ End Smod. End SMod.
 Infix "☆" := SMod.add (at level 60, right associativity).
 
 Section Aux.
-  Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS}.
 
   #[global] Instance smod_lift_fn_inj : Inj (=) (=) SMod.lift_fn.
-  Proof. ii. rewrite /SMod.lift_fn in H0. des_ifs. Qed.
+  Proof. ii. rewrite /SMod.lift_fn in H. des_ifs. Qed.
 
   Lemma lookup_sp_from md fn kboo
     (FIND: md.(SMod.fnsems) !! Some fn = kboo) :
@@ -210,7 +210,7 @@ Section Aux.
               end) eqn: E; cycle 1.
     { set (l:=omap _ _).
       eapply (lookup_kmap_None SMod.lift_fn l (speckey_fn fn)).
-      i. rewrite /SMod.lift_fn in H0. destruct i; ss. inv H0. subst l.
+      i. rewrite /SMod.lift_fn in H. destruct i; ss. inv H. subst l.
       rewrite lookup_omap lookup_fmap lookup_omap. des_ifs. }
     { set (l:=omap _ _).
       eapply (lookup_kmap_Some SMod.lift_fn l (speckey_fn fn)).

@@ -71,7 +71,7 @@ Section apc.
 End apc.
 
 Section aux.
-  Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS}.
 
   Lemma map_fst_map_map_snd_refl {A B C} (f: B → C) (l: list (A * B)):
     map fst (map (map_snd f) l) = map fst l.

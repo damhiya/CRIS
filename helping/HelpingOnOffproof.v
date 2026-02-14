@@ -9,7 +9,7 @@ Ltac unfold_trans :=
     /ModTr.trans /SModTr.trans_fnsem /SModTr.trans /=.
 
 Section HelpingOnOff.
-  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !schGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS, _SCH: !schGS}.
   (* sp, module name for the helping module *)
   Context (sp : specmap) (mn : string).
   Context {jobID retID : Type} (jobs : jobID → itree crisE retID).
@@ -412,7 +412,7 @@ Section HelpingOnOff.
     { ii; clarify. exists stid; rewrite list_fmap_insert list_lookup_insert // length_fmap //. }
     intros ? [??]%Hrel2; exists x; rewrite list_fmap_insert list_lookup_insert_ne //.
     ii; clarify.
-    rewrite list_lookup_fmap Hin /= in H1; clarify.
+    rewrite list_lookup_fmap Hin /= in H; clarify.
   Qed.
 
   Lemma reqmap_rel_append tl reqmap es :
@@ -961,7 +961,7 @@ Section HelpingOnOff.
           { rewrite /helpee_pend_t; repeat f_equal; grind.
             repeat (etrans; first hnorm_itr; symmetry; etrans; first hnorm_itr; grind).
           }
-          { apply list_lookup_fmap_Some in H1 as [[? ?] [? ->]]; eauto. }
+          { apply list_lookup_fmap_Some in H as [[? ?] [? ->]]; eauto. }
         }
       }
     }
@@ -1110,7 +1110,7 @@ Section HelpingOnOff.
               repeat (etrans; first hnorm_itr; symmetry; etrans; first hnorm_itr; grind).
             }
           }
-          { apply list_lookup_fmap_Some in H1 as [[? ?] [? ->]]; eauto. }
+          { apply list_lookup_fmap_Some in H as [[? ?] [? ->]]; eauto. }
         }
       }
     }

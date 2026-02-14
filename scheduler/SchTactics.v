@@ -6,7 +6,7 @@ Require Export SchHeader SchA.
 Require Import ltac2_lib.
 
 Section wsim.
-  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !schGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS, _SCH: !schGS}.
 
   Local Definition state : Type := gmap key (option Any.t).
   Local Definition post (R_s R_t : Type) : Type := state * R_s → state * R_t → iProp Σ.
@@ -222,7 +222,7 @@ Ltac sch_yield_l :=
   norm_r; iApply wsim_yield_tgt;
   [right; right; esplits; [refl|..]; et; try set_solver|et|et|sch_auto; [..|try sch_intros]]. *)
 Section MSIM.
-  Context `{!crisG Γ Σ α β τ _S _I, !schG}.
+  Context `{!crisG Γ Σ α β τ _S _I, _SCH: !schG}.
   Import SchA.
 
   Variable contextual: contextuality.
@@ -236,7 +236,7 @@ Section MSIM.
   Proof using.
     pattern ps, pt, sti_src, sti_tgt, fmr.
     eapply _msim_tarski, SIM. i. econs; ii. subst. ss.
-    specialize (IN NODFS NODFT NODS NODT H0). des.
+    specialize (IN NODFS NODFT NODS NODT H). des.
     econs; esplits; eauto.
     depdes IN; try (by econs; eauto).
   Qed.
@@ -247,14 +247,14 @@ Section MSIM.
   Proof using.
     pattern ps, pt, sti_src, sti_tgt, fmr.
     eapply _msim_tarski, SIM. i. econs; ii. subst. ss.
-    specialize (IN NODFS NODFT NODS NODT H0). des.
+    specialize (IN NODFS NODFT NODS NODT H). des.
     econs; esplits; eauto.
     depdes IN; try (by econs; eauto).
   Qed.
 End MSIM.
 
 Section SREL.
-  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !schG}.
+  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS, _SCH: !schG}.
   Import SchA.
 
   (* srel (progress_flag) (oneshot_flag) (i_rew) (i_org) *)
@@ -521,11 +521,11 @@ Section SREL.
     move SIM before r. revert_until SIM.
     pattern ps, pt, sti_src, sti_tgt, fmr.
     eapply _msim_tarski, SIM. i. econs. ii. subst.
-    specialize (IN NODFS NODFT NODS NODT H1); des.
+    specialize (IN NODFS NODFT NODS NODT H); des.
     depdes IN; try (by esplits; eauto; econs; esplits; eauto); try (by esplits; eauto; econs; eauto; econs; eauto);
-      punfold SREL; move SREL after H1;
+      punfold SREL; move SREL after H;
       remember (_: itree crisE Rs) as itr_rew in SREL; remember false as p in SREL; clear Heqp;
-      move SREL before H1; revert_until SREL;
+      move SREL before H; revert_until SREL;
       pattern p, itr_rew, itr_org;
       eapply _srel_tarski, SREL; i; depdes IN; subst; try rewrite -> !bind_trigger in Heqitr_rew; ss;
       try (by depdes Heqitr_rew; esplits; eauto; econs; eauto);
@@ -614,7 +614,7 @@ End SREL.
 
 Section ISIM.
   Import SchA.
-  Context `{!crisG Γ Σ α β τ _S _I, !concGS, !schG}.
+  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS, _SCH: !schG}.
   Variable contextual: contextuality.
   Variable fl_src fl_tgt : gmap (option string) (option (Any.t → itree crisE Any.t)).
   Variable Ist : ist_type Σ.

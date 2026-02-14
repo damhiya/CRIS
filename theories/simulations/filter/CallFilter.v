@@ -14,7 +14,7 @@ Local Ltac gnorm_itr :=
   end.
 
 Module CFilter. Section CFilter.
-  Context `{!crisG Γ Σ α β τ _S _I, !concGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS}.
 
   Definition msk_filter (s : gset string) (msk : emask) : emask := λ X e,
     match e with
@@ -115,7 +115,7 @@ Module CFilter. Section CFilter.
     econs; ii; et.
     rewrite /ISim.sim_fun ?lookup_fmap.
     destruct (_ !! _) as [[[msk bd]|]|] eqn : Ht; ss; cycle 1; last clear Ht.
-    { inv H1; rewrite map_Forall_lookup in wf_fns; specialize (wf_fns fn None).
+    { inv H0; rewrite map_Forall_lookup in wf_fns; specialize (wf_fns fn None).
       rewrite lookup_fmap /= in wf_fns. rewrite Ht /= in wf_fns.
       hexploit wf_fns; ss; intros t; inv t.
     }
