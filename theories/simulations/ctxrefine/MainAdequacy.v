@@ -271,16 +271,17 @@ Section ADEQUACY.
     hexploit ISim_wf; eauto; intros Hwfs.
     assert (Hwfsctx : Mod.wf (ms ★ ctx)).
     { apply Mod.add_wf; eauto.
-      { intros i His Htctx; eapply ISim_match in His; eauto. }
+      { intros i His Htctx; eapply ISim_dom in His; eauto. }
       { inv Hsim; hexploit sim_scopes; eauto; intros [? temp]%submseteq_Permutation.
         rewrite temp comm assoc NoDup_app in Hnd; des; rewrite comm //.
       }
     }
-    pose Hsim as Hsim'; destruct Hsim' as [Hscp Hic Hsimfun].
+    pose Hsim as Hsim'; destruct Hsim' as [Hscp Hnodup Hic Hsimfun].
     econs; intros _.
     { hexploit Hscp; eauto.
       rewrite /= !sorting.merge_sort_Permutation; i; eapply submseteq_app; eauto.
     }
+    { eapply Hwfsctx. }
     { rewrite Hic //; iIntros "$"; iExists _, _; iSplit; eauto.
       iSplit; eauto.
       { iPureIntro; split; [|destruct mt; ss].
@@ -290,10 +291,10 @@ Section ADEQUACY.
       }
       iSplit; [iPureIntro; split; destruct ctx; ss|ss].
     }
-    intros fno; move: Hsimfun => /(_ Hwft fno).
+    intros fno WFS WFT; move: Hsimfun => /(_ Hwft fno).
     rewrite /ISim.sim_fun ?lookup_fmap /= ?lookup_union_with.
     destruct (_ ms !! fno) as [[[fmsk fbd]|]|] eqn: Hfnoms; ss.
-    { move => /= /(_ Hwft) [? [? Hsimfun]].
+    { move => /= /(_ Hwfs Hwft) [? [? Hsimfun]].
       destruct (_ mt !! fno) as [[[fmskt fbdt]|]|] eqn : Hfnomt; ss; clarify.
       destruct (_ ctx !! fno) as [|] eqn : Hctx.
       { exfalso; apply elem_of_dom_2 in Hctx, Hfnomt; set_solver. }
@@ -302,37 +303,35 @@ Section ADEQUACY.
       iApply isim_ctx; eauto.
       iApply (Hsimfun arg _ _ with "IST W").
     }
+    { exfalso. eapply Hwfs in Hfnoms. rr in Hfnoms. des; ss. }
+
     destruct (_ ctx !! fno) as [[[fmsk fbd]|]|] eqn : Hfnoctx; ss.
-    { intros _ ?.
-      destruct (_ mt !! fno) eqn : Hmt; ss.
-      { exfalso; move: (Mod.wf_fns _ Hwftctx); rewrite map_Forall_lookup => /(_ fno None) /=.
-        rewrite lookup_union_with Hmt Hfnoctx //= => /(_ eq_refl) => [[??]] //.
-      }
-      eexists; split; [done|].
-      apply isim_reflR; eauto.
-      { intros ???? Hkey; hexploit (Mod.well_scoped_fns ctx fno (fmsk, fbd)).
-        { rewrite lookup_omap Hfnoctx //. }
-        intros [Hmsk _]; move: Hmsk => /(_ k v Hkey) ?; split.
-        { iIntros "[% ->]"; iSplit; [rewrite ?dom_insert_L|eauto]; iPureIntro.
-          split; set_solver.
-        }
-        enough (Mod.scopes mt ## Mod.scopes ctx); [set_solver|].
-        intros x Hin%(elem_of_subseteq _ (Mod.scopes mt)) => HinC //.
-        hexploit (Mod.wf_scopes _ Hwftctx).
-        rewrite /= sorting.merge_sort_Permutation NoDup_app; i; des; naive_solver.
-      }
-      { intros ??? Hkey; hexploit (Mod.well_scoped_fns ctx fno (fmsk, fbd)).
-        { rewrite lookup_omap Hfnoctx //. }
-        intros [_ Hmsk]; move: Hmsk => /(_ k Hkey) ?; split.
-        { iIntros "[% ->] //". }
-        enough (Mod.scopes mt ## Mod.scopes ctx); [set_solver|].
-        intros x Hin%(elem_of_subseteq _ (Mod.scopes mt)) => HinC //.
-        hexploit (Mod.wf_scopes _ Hwftctx).
-        rewrite /= sorting.merge_sort_Permutation NoDup_app; i; des; naive_solver.
-      }
+    intros _.
+    destruct (_ mt !! fno) eqn : Hmt; ss.
+    { exfalso; move: (Mod.wf_fns _ Hwftctx); rewrite map_Forall_lookup => /(_ fno None) /=.
+      rewrite lookup_union_with Hmt Hfnoctx //= => /(_ eq_refl) => [[??]] //.
     }
-    { exfalso; move: (Mod.wf_fns ctx Hwfctx).
-      rewrite map_Forall_lookup => /(_ fno None Hfnoctx) [??] //.
+    eexists; split; [done|].
+    apply isim_reflR; eauto.
+    { intros ???? Hkey; hexploit (Mod.well_scoped_fns ctx fno (fmsk, fbd)).
+      { rewrite lookup_omap Hfnoctx //. }
+      intros [Hmsk _]; move: Hmsk => /(_ k v Hkey) ?; split.
+      { iIntros "[% ->]"; iSplit; [rewrite ?dom_insert_L|eauto]; iPureIntro.
+        split; set_solver.
+      }
+      enough (Mod.scopes mt ## Mod.scopes ctx); [set_solver|].
+      intros x Hin%(elem_of_subseteq _ (Mod.scopes mt)) => HinC //.
+      hexploit (Mod.wf_scopes _ Hwftctx).
+      rewrite /= sorting.merge_sort_Permutation NoDup_app; i; des; naive_solver.
+    }
+    { intros ??? Hkey; hexploit (Mod.well_scoped_fns ctx fno (fmsk, fbd)).
+      { rewrite lookup_omap Hfnoctx //. }
+      intros [_ Hmsk]; move: Hmsk => /(_ k Hkey) ?; split.
+      { iIntros "[% ->] //". }
+      enough (Mod.scopes mt ## Mod.scopes ctx); [set_solver|].
+      intros x Hin%(elem_of_subseteq _ (Mod.scopes mt)) => HinC //.
+      hexploit (Mod.wf_scopes _ Hwftctx).
+      rewrite /= sorting.merge_sort_Permutation NoDup_app; i; des; naive_solver.
     }
   Qed.
 

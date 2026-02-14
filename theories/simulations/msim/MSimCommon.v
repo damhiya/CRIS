@@ -36,3 +36,16 @@ Section Ist.
   Definition ist_with_eq (Ist : ist_type Σ) {R} :=
     λ '(st_src, v_src) '(st_tgt, v_tgt), (⌜v_src = (v_tgt: R)⌝ ∗ Ist st_src st_tgt)%I.
 End Ist.
+
+Lemma submseteq_NoDup {A} (lt ls: list A):
+  ls ⊆+ lt → NoDup lt → NoDup ls.
+Proof.
+  intros SUB. induction SUB; i; et.
+  - depdes H. econs; et.
+    ii. apply H. eauto using elem_of_submseteq.
+  - depdes H. rewrite not_elem_of_cons in H. destruct H as [a_nin_y a_nin_l].
+    depdes H0. econs.
+    + rewrite not_elem_of_cons. et.
+    + econs; et.
+  - depdes H. et.
+Qed.

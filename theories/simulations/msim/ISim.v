@@ -886,17 +886,19 @@ Module ISim. Section ISim.
   Let fl_tgt := sandbox_fnsemmap fnsems_tgt.
 
   Definition sim_fun fno : Prop :=
+    Mod.wf ms_src →
     Mod.wf ms_tgt →
     match fl_src !! fno with
     | Some (Some fs) =>
         ∃ ft, fl_tgt !! fno = Some (Some ft) ∧ isim_fsem fl_src fl_tgt Ist ctx fs ft
-    | Some None => False
     | _ => True
     end.
 
   Inductive t : Prop := mk {
     sim_scopes : Mod.wf ms_tgt →
       scopes_src ⊆+ scopes_tgt;
+    sim_nodup : Mod.wf ms_tgt →
+      map_Forall (const is_Some) fnsems_src;
     sim_initial : Mod.wf ms_tgt →
       init_cond ⊢ Ist init_src init_tgt;
     sim_fnsems : Mod.wf ms_tgt →
@@ -914,4 +916,5 @@ Module ISim. Section ISim.
     apply elem_of_dom_2 in Hlookup.
     rewrite dom_fmap // in Hlookup.
   Qed.
+
 End ISim. End ISim.

@@ -678,7 +678,27 @@ Section ALIST.
     induction l; ss. destruct a; ss. rewrite eq_rel_dec_correct in NONE.
     rewrite eq_rel_dec_correct. des_ifs. f_equal. et.
   Qed.
-  
+
+  Lemma alist_find_incl
+      K `{Dec K} V (k : K) (l l' : alist K V) (v : V)
+      (INCL: incl l l')
+      (ND: NoDup (map fst l'))
+      (FIND: alist_find k l = Some v) :
+    alist_find k l' = Some v.
+  Proof.
+    revert l l' FIND ND INCL. induction l; ss.
+    i. des_ifs.
+    - unfold rel_dec in Heq. ss. destruct dec; ss. subst.
+      assert (In (k0, v) l'). { apply INCL. ss. et. }
+      revert H0 ND. clear. induction l'; ss. i. inv ND.
+      des_ifs; des; clarify; et.
+      + unfold rel_dec in Heq. ss. destruct dec; ss. subst.
+        exfalso. apply H3. rewrite in_map_iff. exists (k, v). ss.
+      + unfold rel_dec in Heq. ss. destruct dec; ss.
+    - unfold rel_dec in Heq. ss. destruct dec; ss.
+    eapply IHl; et. ii. apply INCL. ss. et.
+  Qed.
+
 End ALIST.
 
 Lemma existsb_incl A f l1 l2

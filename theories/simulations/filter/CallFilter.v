@@ -53,10 +53,14 @@ Module CFilter. Section CFilter.
     ISim.t open (filter mask m) m emp%I IstEq.
   Proof using.
     econs; ss; i; eauto.
+    { ii. rr. destruct x; et.
+      exfalso. rewrite lookup_fmap in H0. destruct (_ !! _) eqn: mi; ss.
+      eapply H in mi. rr in mi. des; subst. ss.
+    }
+
     rewrite /ISim.sim_fun ?lookup_fmap.
     destruct (_ !! _) as [[[msk bd]|]|] eqn : Ht; ss; cycle 1; last clear Ht.
-    { intros [? ?]; rewrite map_Forall_lookup in wf_fns; eapply wf_fns in Ht; inv Ht. }
-    intros ?; eexists; split; [refl|].
+    intros; eexists; split; [refl|].
     iIntros (arg st_src st_tgt) "->"; iApply wsim_isim. iStopProof.
     rewrite /SB.sandbox_body /=.
     generalize (bd arg) as itr.
@@ -113,12 +117,12 @@ Module CFilter. Section CFilter.
     ISim.t closed m (filter mask m) emp%I IstEq.
   Proof using.
     econs; ii; et.
+    { rr. destruct x; et. exfalso. destruct H.
+      exploit (wf_fns i None); [|intros []; ss].
+      rewrite lookup_fmap H0. et.
+    }
     rewrite /ISim.sim_fun ?lookup_fmap.
     destruct (_ !! _) as [[[msk bd]|]|] eqn : Ht; ss; cycle 1; last clear Ht.
-    { inv H0; rewrite map_Forall_lookup in wf_fns; specialize (wf_fns fn None).
-      rewrite lookup_fmap /= in wf_fns. rewrite Ht /= in wf_fns.
-      hexploit wf_fns; ss; intros t; inv t.
-    }
     esplits; [refl|].
     iIntros (arg st_src st_tgt) "-> _". iStopProof.
     rewrite /SB.sandbox_body /=.
