@@ -13,6 +13,8 @@ Global Arguments Esnoc {_} _%_proof_scope _%_string _%_I.
 
 Notation "m1 +# m2" := (union_with uwnd m1 m2) (at level 1) : stdpp_scope.
 
+(*** Some on RHS ***)
+
 Notation "{[ k1 # a1 ]}" := (singletonM k1 (Some a1))
   (at level 1, format
   "{[ k1  #  a1 ]}") : stdpp_scope.
@@ -118,6 +120,114 @@ Notation "{[ k1 # a1 ; k2 # a2 ; k3 # a3 ; k4 # a4 ; k5 # a5 ; k6 # a6 ; k7 # a7
     <[ k9 := Some a9 ]> $ <[ k10 := Some a10 ]> $ <[ k11 := Some a11 ]> $ <[ k12 := Some a12 ]> $ <[ k13 := Some a13 ]> $ <[ k14 := Some a14 ]> $ <[ k15 := Some a15 ]> $ <[ k16 := Some a16 ]> $ <[ k17 := Some a17 ]> $ <[ k18 := Some a18 ]> $ <[ k19 := Some a19 ]> {[ k20 := Some a20 ]})
   (at level 1, format
                  "{[ '[hv' '[' k1  #  a1 ;  ']' '/' '[' k2  #  a2 ;  ']' '/' '[' k3  #  a3 ;  ']' '/' '[' k4  #  a4 ;  ']' '/' '[' k5  #  a5 ;  ']' '/' '[' k6  #  a6 ;  ']' '/' '[' k7  #  a7 ;  ']' '/' '[' k8  #  a8 ;  ']' '/' '[' k9  #  a9 ;  ']' '/' '[' k10  #  a10 ;  ']' '/' '[' k11  #  a11 ;  ']' '/' '[' k12  #  a12 ;  ']' '/' '[' k13  #  a13 ;  ']' '/' '[' k14  #  a14 ;  ']' '/' '[' k15  #  a15 ;  ']' '/' '[' k16  #  a16 ;  ']' '/' '[' k17  #  a17 ;  ']' '/' '[' k18  #  a18 ;  ']' '/' '[' k19  #  a19 ;  ']' '/' '[' k20  #  a20 ']' ']' ]}") : stdpp_scope.
+
+(*** Some on LHS, fspec_to_rel on RHS ***)
+
+Notation "{[ k1 @ a1 ]}" := (singletonM (Some k1) (fspec_to_rel a1))
+  (at level 1, format
+  "{[ k1  @  a1 ]}") : stdpp_scope.
+Notation "{[ k1 @ a1 ; k2 @ a2 ]}" :=
+  (<[ Some k1 := fspec_to_rel a1 ]> {[ Some k2 := fspec_to_rel a2 ]})
+  (at level 1, format
+  "{[ '[hv' '[' k1  @  a1 ;  ']' '/' '[' k2  @  a2 ']' ']' ]}") : stdpp_scope.
+Notation "{[ k1 @ a1 ; k2 @ a2 ; k3 @ a3 ]}" :=
+  (<[ Some k1 := fspec_to_rel a1 ]> $ <[ Some k2 := fspec_to_rel a2 ]> {[ Some k3 := fspec_to_rel a3 ]})
+  (at level 1, format
+  "{[ '[hv' '[' k1  @  a1 ;  ']' '/' '[' k2  @  a2 ;  ']' '/' '[' k3  @  a3 ']' ']' ]}") : stdpp_scope.
+Notation "{[ k1 @ a1 ; k2 @ a2 ; k3 @ a3 ; k4 @ a4 ]}" :=
+  (<[ Some k1 := fspec_to_rel a1 ]> $ <[ Some k2 := fspec_to_rel a2 ]> $ <[ Some k3 := fspec_to_rel a3 ]> {[ Some k4 := fspec_to_rel a4 ]})
+  (at level 1, format
+  "{[ '[hv' '[' k1  @  a1 ;  ']' '/' '[' k2  @  a2 ;  ']' '/' '[' k3  @  a3 ;  ']' '/' '[' k4  @  a4 ']' ']' ]}") : stdpp_scope.
+Notation "{[ k1 @ a1 ; k2 @ a2 ; k3 @ a3 ; k4 @ a4 ; k5 @ a5 ]}" :=
+  (<[ Some k1 := fspec_to_rel a1 ]> $ <[ Some k2 := fspec_to_rel a2 ]> $ <[ Some k3 := fspec_to_rel a3 ]> $ <[ Some k4 := fspec_to_rel a4 ]> {[ Some k5 := fspec_to_rel a5 ]})
+  (at level 1, format
+  "{[ '[hv' '[' k1  @  a1 ;  ']' '/' '[' k2  @  a2 ;  ']' '/' '[' k3  @  a3 ;  ']' '/' '[' k4  @  a4 ;  ']' '/' '[' k5  @  a5 ']' ']' ]}") : stdpp_scope.
+Notation "{[ k1 @ a1 ; k2 @ a2 ; k3 @ a3 ; k4 @ a4 ; k5 @ a5 ; k6 @ a6 ]}" :=
+  (<[ Some k1 := fspec_to_rel a1 ]> $ <[ Some k2 := fspec_to_rel a2 ]> $ <[ Some k3 := fspec_to_rel a3 ]> $ <[ Some k4 := fspec_to_rel a4 ]> $
+    <[ Some k5 := fspec_to_rel a5 ]> {[ Some k6 := fspec_to_rel a6 ]})
+  (at level 1, format
+  "{[ '[hv' '[' k1  @  a1 ;  ']' '/' '[' k2  @  a2 ;  ']' '/' '[' k3  @  a3 ;  ']' '/' '[' k4  @  a4 ;  ']' '/' '[' k5  @  a5 ;  ']' '/' '[' k6  @  a6 ']' ']' ]}") : stdpp_scope.
+Notation "{[ k1 @ a1 ; k2 @ a2 ; k3 @ a3 ; k4 @ a4 ; k5 @ a5 ; k6 @ a6 ; k7 @ a7 ]}" :=
+  (<[ Some k1 := fspec_to_rel a1 ]> $ <[ Some k2 := fspec_to_rel a2 ]> $ <[ Some k3 := fspec_to_rel a3 ]> $ <[ Some k4 := fspec_to_rel a4 ]> $
+    <[ Some k5 := fspec_to_rel a5 ]> $ <[ Some k6 := fspec_to_rel a6 ]> {[ Some k7 := fspec_to_rel a7 ]})
+  (at level 1, format
+  "{[ '[hv' '[' k1  @  a1 ;  ']' '/' '[' k2  @  a2 ;  ']' '/' '[' k3  @  a3 ;  ']' '/' '[' k4  @  a4 ;  ']' '/' '[' k5  @  a5 ;  ']' '/' '[' k6  @  a6 ;  ']' '/' '[' k7  @  a7 ']' ']' ]}") : stdpp_scope.
+Notation "{[ k1 @ a1 ; k2 @ a2 ; k3 @ a3 ; k4 @ a4 ; k5 @ a5 ; k6 @ a6 ; k7 @ a7 ; k8 @ a8 ]}" :=
+  (<[ Some k1 := fspec_to_rel a1 ]> $ <[ Some k2 := fspec_to_rel a2 ]> $ <[ Some k3 := fspec_to_rel a3 ]> $ <[ Some k4 := fspec_to_rel a4 ]> $
+    <[ Some k5 := fspec_to_rel a5 ]> $ <[ Some k6 := fspec_to_rel a6 ]> $ <[ Some k7 := fspec_to_rel a7 ]> {[ Some k8 := fspec_to_rel a8 ]})
+  (at level 1, format
+  "{[ '[hv' '[' k1  @  a1 ;  ']' '/' '[' k2  @  a2 ;  ']' '/' '[' k3  @  a3 ;  ']' '/' '[' k4  @  a4 ;  ']' '/' '[' k5  @  a5 ;  ']' '/' '[' k6  @  a6 ;  ']' '/' '[' k7  @  a7 ;  ']' '/' '[' k8  @  a8 ']' ']' ]}") : stdpp_scope.
+Notation "{[ k1 @ a1 ; k2 @ a2 ; k3 @ a3 ; k4 @ a4 ; k5 @ a5 ; k6 @ a6 ; k7 @ a7 ; k8 @ a8 ; k9 @ a9 ]}" :=
+  (<[ Some k1 := fspec_to_rel a1 ]> $ <[ Some k2 := fspec_to_rel a2 ]> $ <[ Some k3 := fspec_to_rel a3 ]> $ <[ Some k4 := fspec_to_rel a4 ]> $
+    <[ Some k5 := fspec_to_rel a5 ]> $ <[ Some k6 := fspec_to_rel a6 ]> $ <[ Some k7 := fspec_to_rel a7 ]> $ <[ Some k8 := fspec_to_rel a8 ]> {[ Some k9 := fspec_to_rel a9 ]})
+  (at level 1, format
+  "{[ '[hv' '[' k1  @  a1 ;  ']' '/' '[' k2  @  a2 ;  ']' '/' '[' k3  @  a3 ;  ']' '/' '[' k4  @  a4 ;  ']' '/' '[' k5  @  a5 ;  ']' '/' '[' k6  @  a6 ;  ']' '/' '[' k7  @  a7 ;  ']' '/' '[' k8  @  a8 ;  ']' '/' '[' k9  @  a9 ']' ']' ]}") : stdpp_scope.
+Notation "{[ k1 @ a1 ; k2 @ a2 ; k3 @ a3 ; k4 @ a4 ; k5 @ a5 ; k6 @ a6 ; k7 @ a7 ; k8 @ a8 ; k9 @ a9 ; k10 @ a10 ]}" :=
+  (<[ Some k1 := fspec_to_rel a1 ]> $ <[ Some k2 := fspec_to_rel a2 ]> $ <[ Some k3 := fspec_to_rel a3 ]> $ <[ Some k4 := fspec_to_rel a4 ]> $
+    <[ Some k5 := fspec_to_rel a5 ]> $ <[ Some k6 := fspec_to_rel a6 ]> $ <[ Some k7 := fspec_to_rel a7 ]> $ <[ Some k8 := fspec_to_rel a8 ]> $
+    <[ Some k9 := fspec_to_rel a9 ]> {[ Some k10 := fspec_to_rel a10 ]})
+  (at level 1, format
+  "{[ '[hv' '[' k1  @  a1 ;  ']' '/' '[' k2  @  a2 ;  ']' '/' '[' k3  @  a3 ;  ']' '/' '[' k4  @  a4 ;  ']' '/' '[' k5  @  a5 ;  ']' '/' '[' k6  @  a6 ;  ']' '/' '[' k7  @  a7 ;  ']' '/' '[' k8  @  a8 ;  ']' '/' '[' k9  @  a9 ;  ']' '/' '[' k10  @  a10 ']' ']' ]}") : stdpp_scope.
+Notation "{[ k1 @ a1 ; k2 @ a2 ; k3 @ a3 ; k4 @ a4 ; k5 @ a5 ; k6 @ a6 ; k7 @ a7 ; k8 @ a8 ; k9 @ a9 ; k10 @ a10 ; k11 @ a11 ]}" :=
+  (<[ Some k1 := fspec_to_rel a1 ]> $ <[ Some k2 := fspec_to_rel a2 ]> $ <[ Some k3 := fspec_to_rel a3 ]> $ <[ Some k4 := fspec_to_rel a4 ]> $
+    <[ Some k5 := fspec_to_rel a5 ]> $ <[ Some k6 := fspec_to_rel a6 ]> $ <[ Some k7 := fspec_to_rel a7 ]> $ <[ Some k8 := fspec_to_rel a8 ]> $
+    <[ Some k9 := fspec_to_rel a9 ]> $ <[ Some k10 := fspec_to_rel a10 ]> {[ Some k11 := fspec_to_rel a11 ]})
+  (at level 1, format
+  "{[ '[hv' '[' k1  @  a1 ;  ']' '/' '[' k2  @  a2 ;  ']' '/' '[' k3  @  a3 ;  ']' '/' '[' k4  @  a4 ;  ']' '/' '[' k5  @  a5 ;  ']' '/' '[' k6  @  a6 ;  ']' '/' '[' k7  @  a7 ;  ']' '/' '[' k8  @  a8 ;  ']' '/' '[' k9  @  a9 ;  ']' '/' '[' k10  @  a10 ;  ']' '/' '[' k11  @  a11 ']' ']' ]}") : stdpp_scope.
+Notation "{[ k1 @ a1 ; k2 @ a2 ; k3 @ a3 ; k4 @ a4 ; k5 @ a5 ; k6 @ a6 ; k7 @ a7 ; k8 @ a8 ; k9 @ a9 ; k10 @ a10 ; k11 @ a11 ; k12 @ a12 ]}" :=
+  (<[ Some k1 := fspec_to_rel a1 ]> $ <[ Some k2 := fspec_to_rel a2 ]> $ <[ Some k3 := fspec_to_rel a3 ]> $ <[ Some k4 := fspec_to_rel a4 ]> $
+    <[ Some k5 := fspec_to_rel a5 ]> $ <[ Some k6 := fspec_to_rel a6 ]> $ <[ Some k7 := fspec_to_rel a7 ]> $ <[ Some k8 := fspec_to_rel a8 ]> $
+    <[ Some k9 := fspec_to_rel a9 ]> $ <[ Some k10 := fspec_to_rel a10 ]> $ <[ Some k11 := fspec_to_rel a11 ]> {[ Some k12 := fspec_to_rel a12 ]})
+  (at level 1, format
+  "{[ '[hv' '[' k1  @  a1 ;  ']' '/' '[' k2  @  a2 ;  ']' '/' '[' k3  @  a3 ;  ']' '/' '[' k4  @  a4 ;  ']' '/' '[' k5  @  a5 ;  ']' '/' '[' k6  @  a6 ;  ']' '/' '[' k7  @  a7 ;  ']' '/' '[' k8  @  a8 ;  ']' '/' '[' k9  @  a9 ;  ']' '/' '[' k10  @  a10 ;  ']' '/' '[' k11  @  a11 ;  ']' '/' '[' k12  @  a12 ']' ']' ]}") : stdpp_scope.
+Notation "{[ k1 @ a1 ; k2 @ a2 ; k3 @ a3 ; k4 @ a4 ; k5 @ a5 ; k6 @ a6 ; k7 @ a7 ; k8 @ a8 ; k9 @ a9 ; k10 @ a10 ; k11 @ a11 ; k12 @ a12 ; k13 @ a13 ]}" :=
+  (<[ Some k1 := fspec_to_rel a1 ]> $ <[ Some k2 := fspec_to_rel a2 ]> $ <[ Some k3 := fspec_to_rel a3 ]> $ <[ Some k4 := fspec_to_rel a4 ]> $
+    <[ Some k5 := fspec_to_rel a5 ]> $ <[ Some k6 := fspec_to_rel a6 ]> $ <[ Some k7 := fspec_to_rel a7 ]> $ <[ Some k8 := fspec_to_rel a8 ]> $
+    <[ Some k9 := fspec_to_rel a9 ]> $ <[ Some k10 := fspec_to_rel a10 ]> $ <[ Some k11 := fspec_to_rel a11 ]> $ <[ Some k12 := fspec_to_rel a12 ]> {[ Some k13 := fspec_to_rel a13 ]})
+  (at level 1, format
+                 "{[ '[hv' '[' k1  @  a1 ;  ']' '/' '[' k2  @  a2 ;  ']' '/' '[' k3  @  a3 ;  ']' '/' '[' k4  @  a4 ;  ']' '/' '[' k5  @  a5 ;  ']' '/' '[' k6  @  a6 ;  ']' '/' '[' k7  @  a7 ;  ']' '/' '[' k8  @  a8 ;  ']' '/' '[' k9  @  a9 ;  ']' '/' '[' k10  @  a10 ;  ']' '/' '[' k11  @  a11 ;  ']' '/' '[' k12  @  a12 ;  ']' '/' '[' k13  @  a13 ']' ']' ]}") : stdpp_scope.
+Notation "{[ k1 @ a1 ; k2 @ a2 ; k3 @ a3 ; k4 @ a4 ; k5 @ a5 ; k6 @ a6 ; k7 @ a7 ; k8 @ a8 ; k9 @ a9 ; k10 @ a10 ; k11 @ a11 ; k12 @ a12 ; k13 @ a13 ; k14 @ a14 ]}" :=
+  (<[ Some k1 := fspec_to_rel a1 ]> $ <[ Some k2 := fspec_to_rel a2 ]> $ <[ Some k3 := fspec_to_rel a3 ]> $ <[ Some k4 := fspec_to_rel a4 ]> $
+    <[ Some k5 := fspec_to_rel a5 ]> $ <[ Some k6 := fspec_to_rel a6 ]> $ <[ Some k7 := fspec_to_rel a7 ]> $ <[ Some k8 := fspec_to_rel a8 ]> $
+    <[ Some k9 := fspec_to_rel a9 ]> $ <[ Some k10 := fspec_to_rel a10 ]> $ <[ Some k11 := fspec_to_rel a11 ]> $ <[ Some k12 := fspec_to_rel a12 ]> $ <[ Some k13 := fspec_to_rel a13 ]> {[ Some k14 := fspec_to_rel a14 ]})
+  (at level 1, format
+                 "{[ '[hv' '[' k1  @  a1 ;  ']' '/' '[' k2  @  a2 ;  ']' '/' '[' k3  @  a3 ;  ']' '/' '[' k4  @  a4 ;  ']' '/' '[' k5  @  a5 ;  ']' '/' '[' k6  @  a6 ;  ']' '/' '[' k7  @  a7 ;  ']' '/' '[' k8  @  a8 ;  ']' '/' '[' k9  @  a9 ;  ']' '/' '[' k10  @  a10 ;  ']' '/' '[' k11  @  a11 ;  ']' '/' '[' k12  @  a12 ;  ']' '/' '[' k13  @  a13 ;  ']' '/' '[' k14  @  a14 ']' ']' ]}") : stdpp_scope.
+Notation "{[ k1 @ a1 ; k2 @ a2 ; k3 @ a3 ; k4 @ a4 ; k5 @ a5 ; k6 @ a6 ; k7 @ a7 ; k8 @ a8 ; k9 @ a9 ; k10 @ a10 ; k11 @ a11 ; k12 @ a12 ; k13 @ a13 ; k14 @ a14 ; k15 @ a15 ]}" :=
+  (<[ Some k1 := fspec_to_rel a1 ]> $ <[ Some k2 := fspec_to_rel a2 ]> $ <[ Some k3 := fspec_to_rel a3 ]> $ <[ Some k4 := fspec_to_rel a4 ]> $
+    <[ Some k5 := fspec_to_rel a5 ]> $ <[ Some k6 := fspec_to_rel a6 ]> $ <[ Some k7 := fspec_to_rel a7 ]> $ <[ Some k8 := fspec_to_rel a8 ]> $
+    <[ Some k9 := fspec_to_rel a9 ]> $ <[ Some k10 := fspec_to_rel a10 ]> $ <[ Some k11 := fspec_to_rel a11 ]> $ <[ Some k12 := fspec_to_rel a12 ]> $ <[ Some k13 := fspec_to_rel a13 ]> $ <[ Some k14 := fspec_to_rel a14 ]> {[ Some k15 := fspec_to_rel a15 ]})
+  (at level 1, format
+                 "{[ '[hv' '[' k1  @  a1 ;  ']' '/' '[' k2  @  a2 ;  ']' '/' '[' k3  @  a3 ;  ']' '/' '[' k4  @  a4 ;  ']' '/' '[' k5  @  a5 ;  ']' '/' '[' k6  @  a6 ;  ']' '/' '[' k7  @  a7 ;  ']' '/' '[' k8  @  a8 ;  ']' '/' '[' k9  @  a9 ;  ']' '/' '[' k10  @  a10 ;  ']' '/' '[' k11  @  a11 ;  ']' '/' '[' k12  @  a12 ;  ']' '/' '[' k13  @  a13 ;  ']' '/' '[' k14  @  a14 ;  ']' '/' '[' k15  @  a15 ']' ']' ]}") : stdpp_scope.
+Notation "{[ k1 @ a1 ; k2 @ a2 ; k3 @ a3 ; k4 @ a4 ; k5 @ a5 ; k6 @ a6 ; k7 @ a7 ; k8 @ a8 ; k9 @ a9 ; k10 @ a10 ; k11 @ a11 ; k12 @ a12 ; k13 @ a13 ; k14 @ a14 ; k15 @ a15 ; k16 @ a16 ]}" :=
+  (<[ Some k1 := fspec_to_rel a1 ]> $ <[ Some k2 := fspec_to_rel a2 ]> $ <[ Some k3 := fspec_to_rel a3 ]> $ <[ Some k4 := fspec_to_rel a4 ]> $
+    <[ Some k5 := fspec_to_rel a5 ]> $ <[ Some k6 := fspec_to_rel a6 ]> $ <[ Some k7 := fspec_to_rel a7 ]> $ <[ Some k8 := fspec_to_rel a8 ]> $
+    <[ Some k9 := fspec_to_rel a9 ]> $ <[ Some k10 := fspec_to_rel a10 ]> $ <[ Some k11 := fspec_to_rel a11 ]> $ <[ Some k12 := fspec_to_rel a12 ]> $ <[ Some k13 := fspec_to_rel a13 ]> $ <[ Some k14 := fspec_to_rel a14 ]> $ <[ Some k15 := fspec_to_rel a15 ]> {[ Some k16 := fspec_to_rel a16 ]})
+  (at level 1, format
+                 "{[ '[hv' '[' k1  @  a1 ;  ']' '/' '[' k2  @  a2 ;  ']' '/' '[' k3  @  a3 ;  ']' '/' '[' k4  @  a4 ;  ']' '/' '[' k5  @  a5 ;  ']' '/' '[' k6  @  a6 ;  ']' '/' '[' k7  @  a7 ;  ']' '/' '[' k8  @  a8 ;  ']' '/' '[' k9  @  a9 ;  ']' '/' '[' k10  @  a10 ;  ']' '/' '[' k11  @  a11 ;  ']' '/' '[' k12  @  a12 ;  ']' '/' '[' k13  @  a13 ;  ']' '/' '[' k14  @  a14 ;  ']' '/' '[' k15  @  a15 ;  ']' '/' '[' k16  @  a16 ']' ']' ]}") : stdpp_scope.
+Notation "{[ k1 @ a1 ; k2 @ a2 ; k3 @ a3 ; k4 @ a4 ; k5 @ a5 ; k6 @ a6 ; k7 @ a7 ; k8 @ a8 ; k9 @ a9 ; k10 @ a10 ; k11 @ a11 ; k12 @ a12 ; k13 @ a13 ; k14 @ a14 ; k15 @ a15 ; k16 @ a16 ; k17 @ a17 ]}" :=
+  (<[ Some k1 := fspec_to_rel a1 ]> $ <[ Some k2 := fspec_to_rel a2 ]> $ <[ Some k3 := fspec_to_rel a3 ]> $ <[ Some k4 := fspec_to_rel a4 ]> $
+    <[ Some k5 := fspec_to_rel a5 ]> $ <[ Some k6 := fspec_to_rel a6 ]> $ <[ Some k7 := fspec_to_rel a7 ]> $ <[ Some k8 := fspec_to_rel a8 ]> $
+    <[ Some k9 := fspec_to_rel a9 ]> $ <[ Some k10 := fspec_to_rel a10 ]> $ <[ Some k11 := fspec_to_rel a11 ]> $ <[ Some k12 := fspec_to_rel a12 ]> $ <[ Some k13 := fspec_to_rel a13 ]> $ <[ Some k14 := fspec_to_rel a14 ]> $ <[ Some k15 := fspec_to_rel a15 ]> $ <[ Some k16 := fspec_to_rel a16 ]> {[ Some k17 := fspec_to_rel a17 ]})
+  (at level 1, format
+                 "{[ '[hv' '[' k1  @  a1 ;  ']' '/' '[' k2  @  a2 ;  ']' '/' '[' k3  @  a3 ;  ']' '/' '[' k4  @  a4 ;  ']' '/' '[' k5  @  a5 ;  ']' '/' '[' k6  @  a6 ;  ']' '/' '[' k7  @  a7 ;  ']' '/' '[' k8  @  a8 ;  ']' '/' '[' k9  @  a9 ;  ']' '/' '[' k10  @  a10 ;  ']' '/' '[' k11  @  a11 ;  ']' '/' '[' k12  @  a12 ;  ']' '/' '[' k13  @  a13 ;  ']' '/' '[' k14  @  a14 ;  ']' '/' '[' k15  @  a15 ;  ']' '/' '[' k16  @  a16 ;  ']' '/' '[' k17  @  a17 ']' ']' ]}") : stdpp_scope.
+Notation "{[ k1 @ a1 ; k2 @ a2 ; k3 @ a3 ; k4 @ a4 ; k5 @ a5 ; k6 @ a6 ; k7 @ a7 ; k8 @ a8 ; k9 @ a9 ; k10 @ a10 ; k11 @ a11 ; k12 @ a12 ; k13 @ a13 ; k14 @ a14 ; k15 @ a15 ; k16 @ a16 ; k17 @ a17 ; k18 @ a18 ]}" :=
+  (<[ Some k1 := fspec_to_rel a1 ]> $ <[ Some k2 := fspec_to_rel a2 ]> $ <[ Some k3 := fspec_to_rel a3 ]> $ <[ Some k4 := fspec_to_rel a4 ]> $
+    <[ Some k5 := fspec_to_rel a5 ]> $ <[ Some k6 := fspec_to_rel a6 ]> $ <[ Some k7 := fspec_to_rel a7 ]> $ <[ Some k8 := fspec_to_rel a8 ]> $
+    <[ Some k9 := fspec_to_rel a9 ]> $ <[ Some k10 := fspec_to_rel a10 ]> $ <[ Some k11 := fspec_to_rel a11 ]> $ <[ Some k12 := fspec_to_rel a12 ]> $ <[ Some k13 := fspec_to_rel a13 ]> $ <[ Some k14 := fspec_to_rel a14 ]> $ <[ Some k15 := fspec_to_rel a15 ]> $ <[ Some k16 := fspec_to_rel a16 ]> $ <[ Some k17 := fspec_to_rel a17 ]> {[ Some k18 := fspec_to_rel a18 ]})
+  (at level 1, format
+                 "{[ '[hv' '[' k1  @  a1 ;  ']' '/' '[' k2  @  a2 ;  ']' '/' '[' k3  @  a3 ;  ']' '/' '[' k4  @  a4 ;  ']' '/' '[' k5  @  a5 ;  ']' '/' '[' k6  @  a6 ;  ']' '/' '[' k7  @  a7 ;  ']' '/' '[' k8  @  a8 ;  ']' '/' '[' k9  @  a9 ;  ']' '/' '[' k10  @  a10 ;  ']' '/' '[' k11  @  a11 ;  ']' '/' '[' k12  @  a12 ;  ']' '/' '[' k13  @  a13 ;  ']' '/' '[' k14  @  a14 ;  ']' '/' '[' k15  @  a15 ;  ']' '/' '[' k16  @  a16 ;  ']' '/' '[' k17  @  a17 ;  ']' '/' '[' k18  @  a18 ']' ']' ]}") : stdpp_scope.
+Notation "{[ k1 @ a1 ; k2 @ a2 ; k3 @ a3 ; k4 @ a4 ; k5 @ a5 ; k6 @ a6 ; k7 @ a7 ; k8 @ a8 ; k9 @ a9 ; k10 @ a10 ; k11 @ a11 ; k12 @ a12 ; k13 @ a13 ; k14 @ a14 ; k15 @ a15 ; k16 @ a16 ; k17 @ a17 ; k18 @ a18 ; k19 @ a19 ]}" :=
+  (<[ Some k1 := fspec_to_rel a1 ]> $ <[ Some k2 := fspec_to_rel a2 ]> $ <[ Some k3 := fspec_to_rel a3 ]> $ <[ Some k4 := fspec_to_rel a4 ]> $
+    <[ Some k5 := fspec_to_rel a5 ]> $ <[ Some k6 := fspec_to_rel a6 ]> $ <[ Some k7 := fspec_to_rel a7 ]> $ <[ Some k8 := fspec_to_rel a8 ]> $
+    <[ Some k9 := fspec_to_rel a9 ]> $ <[ Some k10 := fspec_to_rel a10 ]> $ <[ Some k11 := fspec_to_rel a11 ]> $ <[ Some k12 := fspec_to_rel a12 ]> $ <[ Some k13 := fspec_to_rel a13 ]> $ <[ Some k14 := fspec_to_rel a14 ]> $ <[ Some k15 := fspec_to_rel a15 ]> $ <[ Some k16 := fspec_to_rel a16 ]> $ <[ Some k17 := fspec_to_rel a17 ]> $ <[ Some k18 := fspec_to_rel a18 ]> {[ Some k19 := fspec_to_rel a19 ]})
+  (at level 1, format
+                 "{[ '[hv' '[' k1  @  a1 ;  ']' '/' '[' k2  @  a2 ;  ']' '/' '[' k3  @  a3 ;  ']' '/' '[' k4  @  a4 ;  ']' '/' '[' k5  @  a5 ;  ']' '/' '[' k6  @  a6 ;  ']' '/' '[' k7  @  a7 ;  ']' '/' '[' k8  @  a8 ;  ']' '/' '[' k9  @  a9 ;  ']' '/' '[' k10  @  a10 ;  ']' '/' '[' k11  @  a11 ;  ']' '/' '[' k12  @  a12 ;  ']' '/' '[' k13  @  a13 ;  ']' '/' '[' k14  @  a14 ;  ']' '/' '[' k15  @  a15 ;  ']' '/' '[' k16  @  a16 ;  ']' '/' '[' k17  @  a17 ;  ']' '/' '[' k18  @  a18 ;  ']' '/' '[' k19  @  a19 ']' ']' ]}") : stdpp_scope.
+Notation "{[ k1 @ a1 ; k2 @ a2 ; k3 @ a3 ; k4 @ a4 ; k5 @ a5 ; k6 @ a6 ; k7 @ a7 ; k8 @ a8 ; k9 @ a9 ; k10 @ a10 ; k11 @ a11 ; k12 @ a12 ; k13 @ a13 ; k14 @ a14 ; k15 @ a15 ; k16 @ a16 ; k17 @ a17 ; k18 @ a18 ; k19 @ a19 ; k20 @ a20 ]}" :=
+  (<[ Some k1 := fspec_to_rel a1 ]> $ <[ Some k2 := fspec_to_rel a2 ]> $ <[ Some k3 := fspec_to_rel a3 ]> $ <[ Some k4 := fspec_to_rel a4 ]> $
+    <[ Some k5 := fspec_to_rel a5 ]> $ <[ Some k6 := fspec_to_rel a6 ]> $ <[ Some k7 := fspec_to_rel a7 ]> $ <[ Some k8 := fspec_to_rel a8 ]> $
+    <[ Some k9 := fspec_to_rel a9 ]> $ <[ Some k10 := fspec_to_rel a10 ]> $ <[ Some k11 := fspec_to_rel a11 ]> $ <[ Some k12 := fspec_to_rel a12 ]> $ <[ Some k13 := fspec_to_rel a13 ]> $ <[ Some k14 := fspec_to_rel a14 ]> $ <[ Some k15 := fspec_to_rel a15 ]> $ <[ Some k16 := fspec_to_rel a16 ]> $ <[ Some k17 := fspec_to_rel a17 ]> $ <[ Some k18 := fspec_to_rel a18 ]> $ <[ Some k19 := fspec_to_rel a19 ]> {[ Some k20 := fspec_to_rel a20 ]})
+  (at level 1, format
+                 "{[ '[hv' '[' k1  @  a1 ;  ']' '/' '[' k2  @  a2 ;  ']' '/' '[' k3  @  a3 ;  ']' '/' '[' k4  @  a4 ;  ']' '/' '[' k5  @  a5 ;  ']' '/' '[' k6  @  a6 ;  ']' '/' '[' k7  @  a7 ;  ']' '/' '[' k8  @  a8 ;  ']' '/' '[' k9  @  a9 ;  ']' '/' '[' k10  @  a10 ;  ']' '/' '[' k11  @  a11 ;  ']' '/' '[' k12  @  a12 ;  ']' '/' '[' k13  @  a13 ;  ']' '/' '[' k14  @  a14 ;  ']' '/' '[' k15  @  a15 ;  ']' '/' '[' k16  @  a16 ;  ']' '/' '[' k17  @  a17 ;  ']' '/' '[' k18  @  a18 ;  ']' '/' '[' k19  @  a19 ;  ']' '/' '[' k20  @  a20 ']' ']' ]}") : stdpp_scope.
 
 (***************
  ISim Notations

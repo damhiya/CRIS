@@ -9,7 +9,7 @@ Module APCC. Section APCC.
   Import APC APCI APCA.
 
   Definition Sp : specmap :=
-    {[Some (fid APCHdr.apc) := fspec_to_rel APCA.apc_spec]}.
+    {[fid APCHdr.apc @APCA.apc_spec]}.
 
   Definition fnsems : fnsemmap :=
     {[fid APCHdr.apc # (msk_scp scp msk_true, (fsp_some APCA.apc_spec, fbody_trivial))]}.

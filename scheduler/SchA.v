@@ -145,11 +145,11 @@ Module SchA. Section SchA.
       (λ '(mtid, stid) vret ret, ⌜vret = mtid↑ ∧ ret = vret⌝ ∗ Tid mtid stid)%I.
 
   Definition sp (E : coPset) : specmap :=
-    {[Some (fid SchHdr._spawn) :=  fspec_to_rel inner_spawn_spec;
-      Some (fid SchHdr.spawn) :=   fspec_to_rel spawn_spec;
-      Some (fid SchHdr.yield) :=   fspec_to_rel (yield_spec E);
-      Some (fid SchHdr.join) :=    fspec_to_rel (join_spec E);
-      Some (fid SchHdr.get_tid) := fspec_to_rel get_tid_spec]}.
+    {[fid SchHdr._spawn  @ inner_spawn_spec;
+      fid SchHdr.spawn   @ spawn_spec;
+      fid SchHdr.yield   @ yield_spec E;
+      fid SchHdr.join    @ join_spec E;
+      fid SchHdr.get_tid @ get_tid_spec]}.
 
   (* Module definition *)
   Definition scopes : list string := [SCH].
