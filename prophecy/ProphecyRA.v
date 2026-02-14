@@ -24,7 +24,7 @@ Global Instance subG_prophG `{!crisG Γ Σ α β τ _I _S} : subG prophΓ Γ →
 Proof. solve_inG. Defined.
 
 Section ProphecyRA.
-  Context `{!crisG Γ Σ α β τ _I _S, !prophGS}.
+  Context `{!crisG Γ Σ α β τ _I _S, _PROPH: !prophGS}.
 
   Definition dummy_proph : Prophecy.t :=
     {| Prophecy.Pro := ();
