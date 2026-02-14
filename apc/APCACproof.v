@@ -74,27 +74,27 @@ Module APCAC. Section APCAC.
     dup PureInSpA. rename PureInSpA0 into PIS. simpl_sp. steps_r.
 
     (* inlining *)
-    hexploit PureIsPure; eauto. i. des. rewrite /find_body in H3.
+    hexploit PureIsPure; eauto. i. des. rewrite /find_body in H1.
     rename _q1 into x', _q2 into arg.
     destruct (Mod.fnsems md !! Some fn) eqn:M; cycle 1.
-    { rewrite lookup_fmap M in H3. ss. }
+    { rewrite lookup_fmap M in H1. ss. }
     destruct o0; ss; cycle 1.
-    { rewrite lookup_fmap M in H3. ss. }
-    destruct p; ss. inv H3.
+    { rewrite lookup_fmap M in H1. ss. }
+    destruct p; ss. inv H1.
     
     inline_r.
-    rewrite /pure_specbody lookup_fmap M in H10. ss. inv H10.
-    eapply (func_ext_rev arg) in H9. rewrite /SB.sandbox_body /= in H9.
-    rewrite /SB.sandbox_body H9 /SModTr.trans_fnsem /SModTr.HoareFun.
+    rewrite /pure_specbody lookup_fmap M in H8. ss. inv H8.
+    eapply (func_ext_rev arg) in H7. rewrite /SB.sandbox_body /= in H7.
+    rewrite /SB.sandbox_body H7 /SModTr.trans_fnsem /SModTr.HoareFun.
 
-    steps_r. rewrite H5. steps_r. force_r x'. steps_r. rewrite H5.
-    steps_r. force_r (_↑). steps_r. rewrite H7. steps_r. forces_r. iSplitL "GRT"; eauto.
+    steps_r. rewrite H3. steps_r. force_r x'. steps_r. rewrite H3.
+    steps_r. force_r (_↑). steps_r. rewrite H5. steps_r. forces_r. iSplitL "GRT"; eauto.
     steps_r. rewrite /pure_body /cfunN. hss. steps_r.
     erewrite lookup_weaken; try eapply APCInSpA; cycle 1.
     { simpl_map. refl. }
-    steps_r. rewrite H6. steps_r. rewrite H6. steps_r. rewrite H8. steps_r.
+    steps_r. rewrite H4. steps_r. rewrite H4. steps_r. rewrite H6. steps_r.
     iDestruct "GRT" as "%" ; des; subst; hss.
-    rewrite H4. steps_r.
+    rewrite H2. steps_r.
 
     (* inlining *)
     inline_r.
@@ -108,12 +108,12 @@ Module APCAC. Section APCAC.
     iApply wsim_bind. iSplitL; cycle 1.
     { iIntros (? ? ? ?) "R".
       instantiate (1:=(λ '(st_src, _) '(st_tgt, _), IstFull st_src st_tgt)%I).
-      steps_r. rewrite H5. steps_r. forces_r. steps_r. rewrite H7. steps_r.
+      steps_r. rewrite H3. steps_r. forces_r. steps_r. rewrite H5. steps_r.
       forces_r. iSplitL "GRT"; eauto.
-      steps_r. rewrite H6. steps_r. rewrite H8. steps_r.
+      steps_r. rewrite H4. steps_r. rewrite H6. steps_r.
       force_r (tt↑). steps_r. force_r. iSplitL "GRT"; eauto. steps_r.
-      iApply wsim_reset. iStopProof. eapply H2; et. }
-    iApply wsim_reset. iStopProof. eapply H1; et.
+      iApply wsim_reset. iStopProof. eapply H0; et. }
+    iApply wsim_reset. iStopProof. eapply H; et.
 
     Unshelve. all: ss.
   (*SLOW*)Qed.

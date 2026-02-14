@@ -319,15 +319,15 @@ Tactic Notation "mod_tac" tactic(tac) := i;
     match goal with
     | |- Sorted.StronglySorted String.le ?scopes =>
       (apply Sorted.SSorted_nil || (apply Sorted.SSorted_cons; [go|tac]))
-    | |- map_Forall ?P (omap id ?X) => rewrite omap_insert /=; go
+    | |- map_Forall ?P (omap id ?X) => rewrite omap_insert; cbn; go
     | |- map_Forall ?P (omap id ∅) => rewrite omap_empty; go
-    | |- map_Forall ?P (fmap ?f ?X) => rewrite fmap_insert /=; go
-    | |- map_Forall ?P (fmap ?f ∅) => rewrite fmap_empty /=; go
+    | |- map_Forall ?P (fmap ?f ?X) => rewrite fmap_insert; cbn; go
+    | |- map_Forall ?P (fmap ?f ∅) => rewrite fmap_empty; cbn; go
     | |- map_Forall ?P ∅ => apply map_Forall_empty
     | |- map_Forall ?P {[_:=_]} => apply map_Forall_singleton; tac
     | |- map_Forall ?P (<[_:=_]> _) =>
         apply map_Forall_insert_2; [tac|go]
-    | |- map_Forall ?P ?X => rewrite /X /=; go
+    | |- map_Forall ?P ?X => rewrite /X; cbn; go
     | |- _ => set_solver
   end in go.
 Ltac scope_solver := ss; split; i; case_decide; naive_solver.

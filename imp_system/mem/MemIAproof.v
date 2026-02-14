@@ -269,19 +269,19 @@ Module MemIA. Section MemIA.
     repeat (iSplit; eauto).
     iExists _; iSplit; eauto.
     iPureIntro; esplits; eauto; cycle 1.
-    { ii; ss. unfold update in *. rewrite /mem_wf in H6. des_ifs. exploit H5; eauto. nia. }
+    { ii; ss. unfold update in *. rewrite /mem_wf in H5. des_ifs. exploit H4; eauto. nia. }
 
     intros blk' ofs'; rewrite ?discrete_fun_lookup_op /= Z.add_0_l Z.sub_0_r length_replicate.
     destruct (mem_tgt.(Mem.cnts) blk ofs') eqn:E.
-    { exfalso. exploit H5; et. nia. }
-    ss. hexploit (H4 blk ofs'); et.
+    { exfalso. exploit H4; et. nia. }
+    ss. hexploit (H3 blk ofs'); et.
     rewrite E. intro U. des; ss.
 
     case_bool_decide as Hblkofs; [destruct Hblkofs as [Hblk Hofs]|].
     { rewrite lookup_replicate_2; [subst|lia]; rewrite U left_id; right; esplits; eauto.
       rewrite /update; destruct (dec _ _); ss; case_bool_decide; ss.
     }
-    rewrite right_id /update; destruct (_ blk' ofs') eqn : ?; hexploit (H4 blk' ofs');
+    rewrite right_id /update; destruct (_ blk' ofs') eqn : ?; hexploit (H3 blk' ofs');
         i; des; destruct (dec _ _); ss; try case_bool_decide; naive_solver.
   (*SLOW*)Qed.
 

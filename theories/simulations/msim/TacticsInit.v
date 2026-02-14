@@ -19,15 +19,16 @@ Ltac init_sim :=
     ]).
 
 Ltac init_simF :=
+  let wft := fresh "WFT" in
   (tryif (
-    rewrite /ISim.sim_fun; simpl_map; intros ?; eexists; split; first refl
-  ) then idtac
+    rewrite /ISim.sim_fun; simpl_map; intros wft; eexists; split; first refl
+  )
+  then idtac
   else (
     match goal with
     | |- ISim.sim_fun _ ?ms ?mt _ _ =>
-      let wft := fresh in
       intros wft;
-      let wfs := fresh in
+      let wfs := fresh "WFS" in
       assert (wfs : Mod.wf ms);
         [eapply Mod.add_wf_inv in wft as [? [? [? ?]]];
         apply Mod.add_wf;

@@ -129,6 +129,13 @@ Section fspec.
     iIntros (??) "P". iModIntro. iFrame.
     iIntros (??) "Q". iModIntro. iFrame.
   Qed.
+
+  Definition add_fspec (sp1 sp2: fspec) : fspec :=
+    {|meta := (meta sp1) + (meta sp2);
+      precond := λ m, match m with inl m => precond sp1 m | inr m => precond sp2 m end;
+      postcond := λ m, match m with inl m => postcond sp1 m | inr m => postcond sp2 m end
+    |}.
+
 End fspec.
 
 Definition fspec_winv `{!crisG Γ Σ α β τ _S _I} (E : coPset) (fsp : fspec) : fspec :=
@@ -138,3 +145,35 @@ Definition fspec_winv `{!crisG Γ Σ α β τ _S _I} (E : coPset) (fsp : fspec) 
 
 Global Arguments precond : simpl never.
 Global Arguments postcond : simpl never.
+
+(****************************
+  Notations for spec addtion
+ ****************************)
+
+Declare Scope cris_scope.
+Delimit Scope cris_scope with cris.
+
+Notation "[ ]" := fspec_top (format "[ ]") : cris_scope.
+Notation "[ x ]" := (add_fspec x fspec_top) : cris_scope.
+Notation "[ x ; y ; .. ; z ]" := (add_fspec x (add_fspec y .. (add_fspec z fspec_top) ..)) : cris_scope.
+
+Notation "'meta0' x" := (inl x) (at level 1) : cris_scope.
+Notation "'meta1' x" := (inr (inl x)) (at level 1) : cris_scope.
+Notation "'meta2' x" := (inr (inr (inl x))) (at level 1) : cris_scope.
+Notation "'meta3' x" := (inr (inr (inr (inl x)))) (at level 1) : cris_scope.
+Notation "'meta4' x" := (inr (inr (inr (inr (inl x))))) (at level 1) : cris_scope.
+Notation "'meta5' x" := (inr (inr (inr (inr (inr (inl x)))))) (at level 1) : cris_scope.
+Notation "'meta6' x" := (inr (inr (inr (inr (inr (inr (inl x))))))) (at level 1) : cris_scope.
+Notation "'meta7' x" := (inr (inr (inr (inr (inr (inr (inr (inl x)))))))) (at level 1) : cris_scope.
+Notation "'meta8' x" := (inr (inr (inr (inr (inr (inr (inr (inr (inl x))))))))) (at level 1) : cris_scope.
+Notation "'meta9' x" := (inr (inr (inr (inr (inr (inr (inr (inr (inr (inl x)))))))))) (at level 1) : cris_scope.
+Notation "'meta10' x" := (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inl x))))))))))) (at level 1) : cris_scope.
+Notation "'meta11' x" := (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inl x)))))))))))) (at level 1) : cris_scope.
+Notation "'meta12' x" := (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inl x))))))))))))) (at level 1) : cris_scope.
+Notation "'meta13' x" := (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inl x)))))))))))))) (at level 1) : cris_scope.
+Notation "'meta14' x" := (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inl x))))))))))))))) (at level 1) : cris_scope.
+Notation "'meta15' x" := (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inl x)))))))))))))))) (at level 1) : cris_scope.
+Notation "'meta16' x" := (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inl x))))))))))))))))) (at level 1) : cris_scope.
+Notation "'meta17' x" := (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inl x)))))))))))))))))) (at level 1) : cris_scope.
+Notation "'meta18' x" := (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inl x))))))))))))))))))) (at level 1) : cris_scope.
+Notation "'meta19' x" := (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inr (inl x)))))))))))))))))))) (at level 1) : cris_scope.
