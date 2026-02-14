@@ -1,5 +1,5 @@
 From iris.proofmode Require Import proofmode.
-Require Import Common Mod ltac2_lib.
+Require Import Common ConcRA Mod ltac2_lib.
 Require Import WSim TacticsCommon.
 
 Ltac is_key_in k m :=

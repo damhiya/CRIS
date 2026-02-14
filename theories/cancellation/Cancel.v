@@ -4,7 +4,7 @@ Require Import MInline MInlineIntro MInlineElim ElimRel.
 Require Import CancelCore CancelPG CancelAG CancelSpawn CancelPre CancelPost CancelYield CancelGetTid.
 
 Module Cancel. Section Cancel.
-  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS}.
+  Context `{!crisG Γ Σ α β τ _S _I}.
 
   Lemma cancel_elim md (r_i r_s r_t: Σ) rs_diff srcs tgts cid st ps pt
     (WFS: SMod.cancellable md)
@@ -204,7 +204,7 @@ Module Cancel. Section Cancel.
   End Cancel.
 
   Section Cancel.
-    Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS}.
+    Context `{!crisG Γ Σ α β τ _S _I}.
 
     Lemma cancellation md IC Pinit :
       SMod.cancellable md →

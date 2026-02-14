@@ -1,5 +1,5 @@
 (* Msim is an intermediate simulation relation that stands for 'module simulation' *)
-Require Import Common.
+Require Import Common ConcRA.
 From iris.proofmode Require Import proofmode.
 Require Import Sandbox Mod LSim MSimCommon.
 

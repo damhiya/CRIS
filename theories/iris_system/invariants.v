@@ -138,7 +138,7 @@ Section predicates.
 End predicates.
 
 Section wsat.
-  Context `{Σ : GRA, Γ : HRA}.
+  Context `{Γ : HRA, Σ : GRA}.
   Context `{@GATIntp.t (iPropI Σ) α, !invGS Γ Σ α, !subG Γ Σ}.
   Local Existing Instances invG invGpreS_I invGpreS_E.
 
@@ -323,7 +323,7 @@ Section wsat.
 End wsat.
 
 Section wsats.
-  Context `{Σ : GRA, Γ : HRA}.
+  Context `{Γ : HRA, Σ : GRA}.
   Context `{@GATIntp.t (iPropI Σ) α, !invGS Γ Σ α, !subG Γ Σ}.
   Local Existing Instances invG invGpreS_I invGpreS_E.
 
@@ -533,7 +533,7 @@ Notation "'=|' n ',' E '|={' E1 '}=>' P" := (=|n, E|={E1, E1}=> P)%I (at level 9
 Notation "P '=|' n ',' E '|={' E1 '}=∗' Q" := (P -∗ =|n, E|={E1}=> Q)%I (at level 90) : bi_scope.
 
 Section fancy_updates.
-  Context `{Σ : GRA, Γ : HRA}.
+  Context `{Γ : HRA, Σ : GRA}.
   Context `{@GATIntp.t (iProp Σ) α, !invGS Γ Σ α, !subG Γ Σ}.
   Implicit Types n m : level.
   Implicit Types N : namespace.
@@ -561,7 +561,7 @@ Section fancy_updates.
 End fancy_updates.
 
 Section inv.
-  Context `{Σ : GRA, Γ : HRA}.
+  Context `{Γ : HRA, Σ : GRA}.
   Context `{@GATIntp.t (iProp Σ) α, !invGS Γ Σ α, !subG Γ Σ}.
   Implicit Types (n : level) (N : namespace) (E : coPset).
 
@@ -632,7 +632,7 @@ Section inv.
 End inv.
 
 Section winv.
-  Context `{Σ : GRA, Γ : HRA}.
+  Context `{Γ : HRA, Σ : GRA}.
   Context `{@GATIntp.t (iProp Σ) α, !invGS Γ Σ α, !subG Γ Σ}.
 
   Definition winv (Ep : coPset * coPset) : iProp Σ :=

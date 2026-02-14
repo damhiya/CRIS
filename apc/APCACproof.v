@@ -7,7 +7,7 @@ Set Implicit Arguments.
 
 Module APCAC. Section APCAC.
   Import APCA.
-  Context `{_crisG: !crisG Γ Σ α β τ _S _I, _CONC: !concGS}.
+  Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
 
   Definition Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ :=
     (λ _ _, True)%I.
@@ -127,7 +127,7 @@ Module APCAC. Section APCAC.
 End APCAC.
 
 Section ctxr.
-  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS}.
+  Context `{!crisG Γ Σ α β τ _S _I}.
 
   Lemma ctxr (md : Mod.t) (sp_c sp_a sp_pure : specmap)
     (APCInSpA : APCA.sp ⊆ sp_a)

@@ -140,14 +140,14 @@ Module Cris.
 
 End Cris.
 
-Class crisG (Γ : HRA) (Σ : GRA) (α : GAT.t) (β : GATIntp.t) (τ : TypG.t) (_S : subG Γ Σ) (_I : invGS Γ Σ α) :=
+Class cris_coreG (Γ : HRA) (Σ : GRA) (α : GAT.t) (β : GATIntp.t) (τ : TypG.t) (_S : subG Γ Σ) (_I : invGS Γ Σ α) :=
   { #[global] cris_synG :: Cris.synG Γ τ α
   ; #[global] cris_semG :: Cris.semG Γ τ α Σ β _S _I
   }.
 
 Section reduction.
 
-  Context `{!crisG Γ Σ α β τ _S _I}.
+  Context `{!cris_coreG Γ Σ α β τ _S _I}.
   Import SInv.
 
   Local Instance ownE_red {n} E :
@@ -269,7 +269,7 @@ Module inv_instances.
         β.
   Proof. econs. ss. Qed.
 
-  (* crisG *)
+  (* cris_coreG *)
   Local Instance Cris_synG {Γ} : Cris.synG Γ τ α.
   Proof.
     econs.
@@ -285,13 +285,13 @@ Module inv_instances.
     - econs; typeclasses eauto.
   Defined.
 
-  Local Instance Cris_G {Γ : HRA} {Σ : GRA} `{!subG Γ Σ, !invGS Γ Σ α} : crisG Γ Σ α β τ _ _.
+  Local Instance Cris_G {Γ : HRA} {Σ : GRA} `{!subG Γ Σ, !invGS Γ Σ α} : cris_coreG Γ Σ α β τ _ _.
   Proof.
     econs. typeclasses eauto.
   Defined.
 
   Lemma winv_alloc `{!invGpreS Γ Σ α, !subG Γ Σ} :
-    ⊢ o=> ∃ (Hinv : invGS Γ Σ α) τ (β : @GATIntp.t (iProp Σ) α) (_ : @crisG Γ Σ α β τ _ Hinv),
+    ⊢ o=> ∃ (Hinv : invGS Γ Σ α) τ (β : @GATIntp.t (iProp Σ) α) (_ : @cris_coreG Γ Σ α β τ _ Hinv),
       winv (⊤, ⊤).
   Proof.
     iMod (own_admin_alloc) as "$".

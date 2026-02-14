@@ -79,7 +79,7 @@ Module Mem.
 End Mem.
 
 Module MemI. Section MemI.
-  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS}.
+  Context `{!crisG Γ Σ α β τ _S _I}.
 
   Definition scopes : list string := ["Mem"].
   Definition v_mem : key := "Mem" ↯ "mem".

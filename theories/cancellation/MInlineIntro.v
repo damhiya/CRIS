@@ -1,4 +1,4 @@
-Require Import Common.
+Require Import Common ConcRA.
 From iris.proofmode Require Import proofmode.
 Require Import SModTr SMod Mod Tactics.
 Require Import MSimCommon ISim ISimFacts CtxRefine CtxRefineFacts ClosedAdequacy.

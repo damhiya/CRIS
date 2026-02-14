@@ -201,7 +201,7 @@ Arguments mem_points_to_singleton_r : simpl never.
 
 (* Memory specification *)
 Module MemA. Section MemA.
-  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS, _MEM: !memGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, _MEM: !memGS}.
 
   Definition alloc : fspec :=
     fspec_simple (λ sz,
@@ -288,7 +288,7 @@ Module MemA. Section MemA.
 End MemA. End MemA.
 
 (* Module MemP. Section MemP. *)
-(*   Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS, _MEM: !memGS}. *)
+(*   Context `{!crisG Γ Σ α β τ _S _I, _MEM: !memGS}. *)
 
 (*   Definition scopes := ["Mem"]. *)
 

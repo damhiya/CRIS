@@ -5,7 +5,7 @@ Require Import Mod FSpec Sp.
 Definition fnsem `{Σ : GRA} : Type := emask * (option fspec_rel * fbody).
 
 Module SModTr. Section HOARE.
-  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS}.
+  Context `{!crisG Γ Σ α β τ _S _I}.
   Implicit Types (fn : string) (varg arg : Any.t) (fspo : option fspec_rel) (sp : specmap).
 
   Definition HoareCall fspo fn varg : itree crisE Any.t :=
@@ -120,7 +120,7 @@ Global Arguments SModTr.trans_fnsem: simpl never.
 Notation "↧ it" := (SModTr.trans _ it) (at level 59, only printing).
 
 Module SRed. Section RED.
-  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS}.
+  Context `{!crisG Γ Σ α β τ _S _I}.
   Import SModTr.
 
   (* reduction lemmas for vis form - used for reduction tactics *)

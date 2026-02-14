@@ -25,7 +25,7 @@ Proof using. solve_inG. Defined.
 Local Existing Instances schGS_schGpreS inG_join inG_tid.
 
 Section SchRA.
-  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS, _SCH: !schGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, _SCH: !schGS}.
 
   (* Join-related predicates *)
   Definition JoinFrag dq mtid postS : iProp Σ :=
@@ -58,7 +58,7 @@ Section SchRA.
   Qed.
 End SchRA.
 
-Definition fspec_sch `{!crisG Γ Σ α β τ _S _I, !concGS, !schGS}
+Definition fspec_sch `{!crisG Γ Σ α β τ _S _I, _SCH: !schGS}
     (E : coPset) (fsp : fspec) : fspec :=
   fspec_winv E
     (fspec_mk
@@ -66,7 +66,7 @@ Definition fspec_sch `{!crisG Γ Σ α β τ _S _I, !concGS, !schGS}
       (λ '(stid, mtid, x) vret ret, Tid mtid stid ∗ postcond fsp x vret ret))%I.
 
 Module SchA. Section SchA.
-  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS, _SCH: !schGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, _SCH: !schGS}.
   Context (sp_user : specmap).
 
   Definition fspec_spawnable fsp

@@ -10,7 +10,7 @@ Local Ltac gnorm_itr :=
       end
   end.
 
-Lemma cancel_pre `{!crisG Γ Σ α β τ _S _I, !concGS} md sp :
+Lemma cancel_pre `{!crisG Γ Σ α β τ _S _I} md sp :
   ∀ (rs0 : Σ) r_s r_t rs_diff srcs tgts cid st ps pt varg fspo fspo' Qo'' itrS ktrT 
     (r: ∀ x x0, (x→x0→Prop)→smj→smj→itree coreE x→itree coreE x0→Prop)
     (WFS: SMod.cancellable md)
@@ -143,7 +143,7 @@ Proof.
     eapply gsim_Assume_tgt; [lookup_tac; do 2 f_equal|]; try lia.
     exists r_t; splits; auto.
     { apply (Own_wand_valid r_s); auto; iIntros "S"; iMod (RS with "S") as "[? [$ ?]]"; auto. }
-    { iIntros "$"; iApply H0; eauto. }
+    { iIntros "$"; iApply H; eauto. }
     rewrite !list_insert_insert. ghnorm_r.
     eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia.
     rewrite !list_insert_insert. ghnorm_r.

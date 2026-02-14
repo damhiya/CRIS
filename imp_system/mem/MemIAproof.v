@@ -210,7 +210,7 @@ Section RA.
 End RA.
 
 Module MemIA. Section MemIA.
-  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS, _MEM: !memGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, _MEM: !memGS}.
   Local Existing Instances memGS_memGSpreS mem_inG.
 
   Context (csl : string → bool).
@@ -439,7 +439,7 @@ Module MemIA. Section MemIA.
 End MemIA. End MemIA.
 
 (* Module MemIA. Section MemIA.
-  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS, _MEM: !memGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, _MEM: !memGS}.
 
   Theorem sim_real_to_hoare : ISim.t open MemA.t MemP.t emp%I IstEq.
   Proof using.

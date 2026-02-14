@@ -18,7 +18,7 @@ Proof.
   eapply Nat.succ_lt_mono in LT. hexploit IHl; eauto.
 Qed.
 
-Lemma cancel_yield `{!crisG Γ Σ α β τ _S _I, !concGS} md sp ntid :
+Lemma cancel_yield `{!crisG Γ Σ α β τ _S _I} md sp ntid :
   CANCEL_GOAL md sp (HoareYieldE false ntid) (HoareYieldE true ntid).
 Proof.
   r; i. subst. ss.
@@ -118,7 +118,7 @@ Proof.
         rewrite !list_insert_insert. ghnorm_r.
         eapply gsim_Assume_tgt; [lookup_tac; do 2 f_equal|]; try lia.
         exists r_t2; splits; auto.
-        { rewrite Hr_t3 H3.
+        { rewrite Hr_t3 H2.
           iIntros "[[? [? ?]] [A $]] //". iApply ("A" with "[$] [$] [$]").
         }
         rewrite !list_insert_insert. ghnorm_r.
@@ -132,24 +132,24 @@ Proof.
         eapply CIH with (rs_diff:=<[ntid:=ε]>rs_diff); eauto.
         { r. esplits; try rewrite !length_insert //.
           ii. destruct (decide (ntid = i)); subst.
-          { rewrite list_lookup_insert ?length_insert // in H4.
+          { rewrite list_lookup_insert ?length_insert // in H3.
+            rewrite list_lookup_insert ?length_insert // in H6.
             rewrite list_lookup_insert ?length_insert // in H7.
-            rewrite list_lookup_insert ?length_insert // in H8.
             clarify.
             eapply thread_rel_body; cycle 1; eauto.
             { instantiate (1:=Some Q); f_equal; grind. }
             i; subst; lia.
           }
           { destruct (decide (cid = i)); subst.
-            { rewrite list_lookup_insert_ne // ?length_insert // in H4.
-              rewrite list_lookup_insert_ne // list_lookup_insert ?length_insert // in H7.
-              rewrite list_lookup_insert_ne // list_lookup_insert ?length_insert // -?EQLEN // in H8.
+            { rewrite list_lookup_insert_ne // ?length_insert // in H3.
+              rewrite list_lookup_insert_ne // list_lookup_insert ?length_insert // in H6.
+              rewrite list_lookup_insert_ne // list_lookup_insert ?length_insert // -?EQLEN // in H7.
               clarify. ired. eapply thread_rel_yield; eauto. eapply KTR.
             }
-            rewrite !list_lookup_insert_ne // ?length_insert // in H4.
+            rewrite !list_lookup_insert_ne // ?length_insert // in H3.
+            rewrite !list_lookup_insert_ne // ?length_insert // in H6.
             rewrite !list_lookup_insert_ne // ?length_insert // in H7.
-            rewrite !list_lookup_insert_ne // ?length_insert // in H8.
-            hexploit REL; eauto; i. inv H9.
+            hexploit REL; eauto; i. inv H8.
             { eapply thread_rel_spawn; cycle 4; eauto. }
             { eapply thread_rel_yield; eauto. }
           }
@@ -171,22 +171,22 @@ Proof.
         eapply CIH with (rs_diff:=<[ntid:=ε]>rs_diff); eauto.
         { r. esplits; try rewrite !length_insert //.
           ii. destruct (decide (ntid = i)); subst.
-          { rewrite list_lookup_insert ?length_insert // in H3.
+          { rewrite list_lookup_insert ?length_insert // in H2.
+            rewrite list_lookup_insert ?length_insert // in H3.
             rewrite list_lookup_insert ?length_insert // in H4.
-            rewrite list_lookup_insert ?length_insert // in H5.
             clarify.
             eapply thread_rel_body; cycle 1; eauto; try instantiate (1:=None); ss.
           }
           { destruct (decide (cid = i)); subst.
-            { rewrite list_lookup_insert_ne // ?length_insert // in H3.
-              rewrite list_lookup_insert_ne // list_lookup_insert ?length_insert // in H4.
-              rewrite list_lookup_insert_ne // list_lookup_insert ?length_insert // -?EQLEN // in H5.
+            { rewrite list_lookup_insert_ne // ?length_insert // in H2.
+              rewrite list_lookup_insert_ne // list_lookup_insert ?length_insert // in H3.
+              rewrite list_lookup_insert_ne // list_lookup_insert ?length_insert // -?EQLEN // in H4.
               clarify. ired. eapply thread_rel_yield; eauto. eapply KTR.
             }
+            rewrite !list_lookup_insert_ne // ?length_insert // in H2.
             rewrite !list_lookup_insert_ne // ?length_insert // in H3.
             rewrite !list_lookup_insert_ne // ?length_insert // in H4.
-            rewrite !list_lookup_insert_ne // ?length_insert // in H5.
-            hexploit REL; eauto; i. inv H7.
+            hexploit REL; eauto; i. inv H6.
             { eapply thread_rel_spawn; cycle 4; eauto. }
             { eapply thread_rel_yield; eauto. }
           }
@@ -213,23 +213,23 @@ Proof.
     gbase. eapply CIH with (rs_diff:=<[ntid:=ε]>rs_diff); eauto.
     { r; esplits; try rewrite !length_insert //.
       ii. destruct (decide (ntid = i)); subst.
-      { rewrite list_lookup_insert ?length_insert // in H3.
-        rewrite list_lookup_insert ?length_insert // in H4.
-        rewrite list_lookup_insert ?length_insert // in H6.
+      { rewrite list_lookup_insert ?length_insert // in H2.
+        rewrite list_lookup_insert ?length_insert // in H3.
+        rewrite list_lookup_insert ?length_insert // in H5.
         clarify. eapply thread_rel_body; cycle 1; eauto.
       }
       {
         destruct (decide (cid = i)); subst.
         {
-          rewrite list_lookup_insert_ne // ?length_insert // in H3.
-          rewrite list_lookup_insert_ne // list_lookup_insert ?length_insert // in H4.
-          rewrite list_lookup_insert_ne // list_lookup_insert ?length_insert // -?EQLEN // in H6.
+          rewrite list_lookup_insert_ne // ?length_insert // in H2.
+          rewrite list_lookup_insert_ne // list_lookup_insert ?length_insert // in H3.
+          rewrite list_lookup_insert_ne // list_lookup_insert ?length_insert // -?EQLEN // in H5.
           clarify. ired. eapply thread_rel_yield; eauto. eapply KTR.
         }
+        rewrite !list_lookup_insert_ne // ?length_insert // in H2.
         rewrite !list_lookup_insert_ne // ?length_insert // in H3.
-        rewrite !list_lookup_insert_ne // ?length_insert // in H4.
-        rewrite !list_lookup_insert_ne // ?length_insert // in H6.
-        hexploit REL; eauto; i. inv H7.
+        rewrite !list_lookup_insert_ne // ?length_insert // in H5.
+        hexploit REL; eauto; i. inv H6.
         { eapply thread_rel_spawn; cycle 4; eauto. }
         { eapply thread_rel_yield; eauto. }
       }

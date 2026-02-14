@@ -14,7 +14,7 @@ Local Ltac gnorm_itr :=
   end.
 
 Module CFilter. Section CFilter.
-  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS}.
+  Context `{!crisG Γ Σ α β τ _S _I}.
 
   Definition msk_filter (s : gset string) (msk : emask) : emask := λ X e,
     match e with

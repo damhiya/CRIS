@@ -10,7 +10,7 @@ Local Ltac gnorm_itr :=
       end
   end.
 
-Lemma cancel_post `{!crisG Γ Σ α β τ _S _I, !concGS} md sp :
+Lemma cancel_post `{!crisG Γ Σ α β τ _S _I} md sp :
   ∀ (rs0 : Σ) r_s r_t srcs tgts cid st ps pt vret Qo Qo' Qo'' itrS ktrT rs_diff
     (r : ∀ x x0, (x→x0→Prop)→smj→smj→itree coreE x→itree coreE x0→Prop)
     (WFS: SMod.cancellable md)
@@ -88,7 +88,7 @@ Proof.
     eapply gsim_Assume_tgt; [lookup_tac; do 2 f_equal|]; try lia.
     exists r_t; splits; auto.
     { apply (Own_wand_valid r_s); auto; iIntros "S"; iMod (RS with "S") as "[? [$ ?]]"; auto. }
-    { rewrite Hrt2 (proj1 H0); iIntros "> [>$ $] //". }
+    { rewrite Hrt2 (proj1 H); iIntros "> [>$ $] //". }
     rewrite !list_insert_insert. ghnorm_r.
     eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia.
     rewrite !list_insert_insert. ghnorm_r.
@@ -110,7 +110,7 @@ Proof.
     eapply gsim_Assume_tgt; [lookup_tac; do 2 f_equal|]; try lia.
     exists r_t; splits; auto.
     { apply (Own_wand_valid r_s); auto; iIntros "S"; iMod (RS with "S") as "[? [$ ?]]"; auto. }
-    { des; clarify. iIntros "$"; iApply H1; auto. }
+    { des; clarify. iIntros "$"; iApply H0; auto. }
     rewrite !list_insert_insert. ghnorm_r.
     eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia.
     rewrite !list_insert_insert. ghnorm_r.
@@ -135,7 +135,7 @@ Proof.
     assert (vret = ret).
     { eapply (Own_pure_soundness r_t).
       { apply (Own_wand_valid r_s); auto; iIntros "S"; iMod (RS with "S") as "[? [$ ?]]"; auto. }
-      des; clarify. rewrite Hrt2 H1; iIntros "> [>-> ?] //".
+      des; clarify. rewrite Hrt2 H0; iIntros "> [>-> ?] //".
     }
     des; pclearbot. eapply KEY; et.
     { rewrite list_insert_id // RS Hrt2. iIntros "> [$ [> [? $] $]] //". }

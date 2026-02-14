@@ -1,5 +1,5 @@
 From iris.proofmode Require Import proofmode.
-Require Import Common.
+Require Import Common ConcRA.
 Require Import LAuto.
 
 Require Import Sp LMod SMod Mod.

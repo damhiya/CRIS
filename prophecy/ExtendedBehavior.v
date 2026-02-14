@@ -1,5 +1,5 @@
 From stdpp Require Import base strings.
-Require Import CRIS Common Mod LMod.
+Require Import CRIS Common LMod.
 Require Import ProphecyHeader.
 Require Import exco exco_stream.
 Require Import IndefiniteDescription.

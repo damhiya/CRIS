@@ -1,5 +1,5 @@
 From stdpp Require Import base strings.
-Require Import Common LMod.
+Require Import CRIS LModTr.
 Require Import ExtendedBehavior.
 
 Ltac clexteq :=

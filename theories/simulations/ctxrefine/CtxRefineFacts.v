@@ -1,5 +1,5 @@
 From iris.proofmode Require Import proofmode.
-Require Import Common.
+Require Import Common ConcRA.
 Require Import Mod.
 Require Import MSimCommon ISim ISimFacts.
 Require Import CtxRefine MainAdequacy.

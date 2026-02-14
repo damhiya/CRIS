@@ -2,7 +2,7 @@ Require Import CRIS SchHeader SchI.
 Require Export HelpingHeader.
 
 Section HoareCall.
-  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS}.
+  Context `{!crisG Γ Σ α β τ _S _I}.
   (* HoareCall Lemmas *)
   Definition fspec_option_meta (fspo : option fspec_rel) : Type :=
     match fspo with
@@ -65,7 +65,7 @@ End HoareCall.
 
 (* Helping module *)
 Module HelpingOn. Section HelpingOn.
-  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS} {jobID retID : Type}.
+  Context `{!crisG Γ Σ α β τ _S _I} {jobID retID : Type}.
 
   Context (mn : string).
   Context (jobcode : jobID → itree crisE retID).
@@ -117,7 +117,7 @@ Module HelpingOn. Section HelpingOn.
 End HelpingOn. End HelpingOn.
 
 Module HelpingDummy. Section HelpingDummy.
-  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS}.
+  Context `{!crisG Γ Σ α β τ _S _I}.
   Context (mn : string).
   Definition scopes : list string := [mn].
 

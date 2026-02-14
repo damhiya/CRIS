@@ -1,4 +1,4 @@
-Require Import Common.
+Require Import Common ConcRA.
 From iris.proofmode Require Import proofmode.
 Require Import LMod Mod SMod Sp.
 Require Import LSim LSimFacts MSim MSimFacts MSimCommon.

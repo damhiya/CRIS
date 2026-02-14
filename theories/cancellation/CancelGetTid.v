@@ -9,7 +9,7 @@ Local Ltac gnorm_itr :=
       end
   end.
 
-Lemma cancel_gettid `{_crisG: !crisG Γ Σ α β τ _S _I, _concG: !concGS} md sp :
+Lemma cancel_gettid `{_crisG: !crisG Γ Σ α β τ _S _I} md sp :
   CANCEL_GOAL md sp (HoareGetTidE false) (HoareGetTidE true).
 Proof.
   r; i. subst.

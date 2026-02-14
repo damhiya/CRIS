@@ -2,7 +2,7 @@ Require Import CRIS.
 Require Import ProphecyHeader.
 
 Module ProphecyI. Section ProphecyI.
-  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS}.
+  Context `{!crisG Γ Σ α β τ _S _I}.
   Context (mn : string).
 
   Definition scopes : list string := [].

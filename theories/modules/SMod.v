@@ -6,7 +6,7 @@ From stdpp Require Import sorting strings.
 Notation fnsemmap := (gmap (option string) (option (emask * (option fspec_rel * fbody)))).
 
 Module SMod. Section Smod.
-  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS}.
+  Context `{!crisG Γ Σ α β τ _S _I}.
 
   (* SMods are basic units of composition in CRIS. *)
   (* The image of the maps are lifted by option to make the module append operation total. *)
@@ -190,7 +190,7 @@ End Smod. End SMod.
 Infix "☆" := SMod.add (at level 60, right associativity).
 
 Section Aux.
-  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS}.
+  Context `{!crisG Γ Σ α β τ _S _I}.
 
   #[global] Instance smod_lift_fn_inj : Inj (=) (=) SMod.lift_fn.
   Proof. ii. rewrite /SMod.lift_fn in H. des_ifs. Qed.

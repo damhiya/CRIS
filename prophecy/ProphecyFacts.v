@@ -10,7 +10,7 @@ Proof.
 Qed.
 
 Section prophecy.
-  Context `{!crisG Γ Σ α β τ Hinv Hsub, _CONC: !concGS, _PROPH: !prophGS}.
+  Context `{!crisG Γ Σ α β τ Hinv Hsub, _PROPH: !prophGS}.
 
   (* Lemmas about names *)
   Local Definition maxlen (s : list string) : nat :=

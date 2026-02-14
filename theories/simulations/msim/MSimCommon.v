@@ -1,4 +1,4 @@
-Require Import Common Mod.
+Require Import Common ConcRA Mod.
 
 Variant contextuality : Type := 
 | open 

@@ -4,7 +4,7 @@ Require Import APCHeader.
 Set Implicit Arguments.
 
 Module APCI. Section APCI.
-  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS}.
+  Context `{!crisG Γ Σ α β τ _S _I}.
 
   Definition scp : list string := ["APC"].
 

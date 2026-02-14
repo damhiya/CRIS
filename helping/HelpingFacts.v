@@ -5,7 +5,7 @@ From stdpp Require Import list.
 Require Export CallFilter.
 
 Section Helping.
-  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS, _SCH: !schGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, _SCH: !schGS}.
 
   (* Lemmas about names *)
   Local Definition maxlen (s : list string) : nat :=

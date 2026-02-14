@@ -9,7 +9,7 @@ Ltac unfold_trans :=
     /ModTr.trans /SModTr.trans_fnsem /SModTr.trans /=.
 
 Section HelpingOnOff.
-  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS, _SCH: !schGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, _SCH: !schGS}.
   (* sp, module name for the helping module *)
   Context (sp : specmap) (mn : string).
   Context {jobID retID : Type} (jobs : jobID → itree crisE retID).

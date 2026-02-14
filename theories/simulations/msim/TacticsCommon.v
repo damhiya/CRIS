@@ -1,5 +1,5 @@
 From iris.proofmode Require Import proofmode.
-Require Import Common.
+Require Import Common ConcRA.
 Require Export LAuto.
 
 Require Import Sp Mod SMod LMod.
@@ -225,7 +225,7 @@ Tactic Notation "red_SB" tactic(tac) :=
 
 Tactic Notation "red_S" tactic(tac) :=
   lazymatch goal with
-  | [ |- @SModTr.trans ?Γ ?Σ ?α ?β ?τ ?_S ?_I ?_crisG ?concG ?sp ?R ?itr = _ ] =>
+  | [ |- @SModTr.trans ?Γ ?Σ ?α ?β ?τ ?_S ?_I ?_crisG ?sp ?R ?itr = _ ] =>
       lazymatch itr with
       | Ret _ =>
           eapply SRed.ret
@@ -304,9 +304,9 @@ Ltac _hnorm_itr :=
   | [ |- @SB.sandbox ?Σ ?msk ?R ?itr = _ ] =>
       etransitivity;
       [ cong (@SB.sandbox Σ msk R); _hnorm_itr | red_SB (do 1 _hnorm_itr) ]
-  | [ |- @SModTr.trans ?Γ ?Σ ?α ?β ?τ ?_S ?_I ?_crisG ?concG ?sp ?R ?itr = _ ] =>
+  | [ |- @SModTr.trans ?Γ ?Σ ?α ?β ?τ ?_S ?_I ?_crisG ?sp ?R ?itr = _ ] =>
       etransitivity;
-      [ cong (@SModTr.trans Γ Σ α β τ _S _I _crisG concG sp R); _hnorm_itr
+      [ cong (@SModTr.trans Γ Σ α β τ _S _I _crisG sp R); _hnorm_itr
       | red_S (do 1 _hnorm_itr) ]
   | [ |- trigger _ = _ ] =>
       eapply trigger_vis

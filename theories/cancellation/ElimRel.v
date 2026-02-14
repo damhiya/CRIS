@@ -1,4 +1,4 @@
-Require Import Common Sp ConcRA.
+Require Import Common ConcRA Sp.
 Require Import SMod Mod LMod SModTr ModTr LModTr.
 Require Import MInline Tactics GSim.
 From iris.proofmode Require Export proofmode.
@@ -38,7 +38,7 @@ Section CancelLib.
 End CancelLib.
 
 Section ELIM_REL.
-  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS}.
+  Context `{!crisG Γ Σ α β τ _S _I}.
 
   Definition HoareSpawnE (fspo : option fspec_rel) (sspo: bool) fn varg : itree crisE nat :=
     match fspo, sspo with
@@ -659,7 +659,7 @@ Hint Resolve cpn4_wcompat: paco.
 Hint Resolve elim_rel_def_mon: paco.
 
 Section CancelDef.
-  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS}.
+  Context `{!crisG Γ Σ α β τ _S _I}.
 
   Variant thread_rel sp cid : nat → Σ → itree lmodE Any.t → itree lmodE Any.t → Prop :=
   | thread_rel_body itrS itrT src tgt r_diff tid Qo

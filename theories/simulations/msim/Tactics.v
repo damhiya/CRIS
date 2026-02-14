@@ -1,5 +1,5 @@
 From iris.proofmode Require Import proofmode.
-Require Import Common.
+Require Import Common ConcRA.
 Require Import FSpec ISim WSim.
 Require Export TacticsCommon ITactics WTactics.
 

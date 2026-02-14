@@ -3,24 +3,33 @@ Require Import Common.
 From iris.algebra Require Import excl_auth.
 From iris.proofmode Require Export proofmode.
 
-Class concGpreS `{!crisG Γ Σ α β τ _S _I} := {
+Class concGpreS `{!cris_coreG Γ Σ α β τ _S _I} := {
   inG_tid :: inG (excl_authUR natO) Γ; (* TID *)
   inG_yield :: inG (nat -d> optionUR (exclR unitO)) Γ (* YIELD *)
 }.
-Class concGS `{!crisG Γ Σ α β τ _S _I} := {
+Class concGS `{!cris_coreG Γ Σ α β τ _S _I} := {
   concGS_concGpreS : concGpreS;
   tid_name : gname;
   yield_name : gname;
 }.
 Definition concΓ : HRA := #[excl_authUR natO; nat -d> optionUR (exclR unitO)].
 Definition concΣ : GRA := #[excl_authUR natO; nat -d> optionUR (exclR unitO)].
-Global Instance subG_concG `{!crisG Γ Σ α β τ _S _I} : subG concΓ Γ → concGpreS.
+Global Instance subG_concG `{!cris_coreG Γ Σ α β τ _S _I} : subG concΓ Γ → concGpreS.
 Proof using. solve_inG. Defined.
+
+Class crisG (Γ : HRA) (Σ : GRA) (α : GAT.t) (β : GATIntp.t) (τ : TypG.t) (_S : subG Γ Σ) (_I : invGS Γ Σ α) := {
+  cris_core : cris_coreG Γ Σ α β τ _S _I;
+  cris_conc : concGS;
+}.
+Global Instance crisG_core `{!crisG Γ Σ α β τ _S _I} : cris_coreG Γ Σ α β τ _S _I.
+Proof using. apply crisG0. Defined.
+Global Instance crisG_conc `{!crisG Γ Σ α β τ _S _I} : concGS.
+Proof using. apply crisG0. Defined.
 
 Local Existing Instances concGS_concGpreS inG_tid inG_yield.
 
 Section preds.
-  Context `{!crisG Γ Σ α β τ _S _I, _CONC: !concGS}.
+  Context `{!crisG Γ Σ α β τ _S _I}.
 
   (* Token for current tid *)
   Definition TidToken (tid : nat) : iProp Σ := own tid_name (◯E tid).
@@ -82,16 +91,25 @@ Notation "'YIELD' tid" := (YieldToken tid) (at level 20, tid at level 1, format 
 Notation "'TIDAUTH' tid" := (TidTokenAuth tid) (at level 20, tid at level 1, format "TIDAUTH  tid").
 Notation "'YIELDAUTH' tid" := (YieldTokenAuth tid) (at level 20, tid at level 1, format "YIELDAUTH  tid").
 
-Lemma conc_alloc `{!crisG Γ Σ α β τ Hinv Hsub, !concGpreS} :
-  ⊢ o=> ∃ (_ : concGS), 
-    TidToken 0 ∗ YieldToken 0 ∗ TidTokenAuth 0 ∗ YieldTokenAuth 1.
+Lemma cris_alloc `{!invGpreS Γ Σ inv_instances.α, Hsub: !subG Γ Σ, Hconc: !subG concΓ Γ} :
+  ⊢ o=> ∃ (Hinv : invGS Γ Σ inv_instances.α) (β : @GATIntp.t (iProp Σ) inv_instances.α) τ
+          (Hcris : @crisG Γ Σ inv_instances.α β τ Hsub Hinv),
+    @winv _ _ inv_instances.α _ _ _ (⊤, ⊤) ∗
+    @TidToken _ _ inv_instances.α _ _ _ _ _ 0 ∗
+    @YieldToken _ _ inv_instances.α _ _ _ _ _ 0 ∗
+    @TidTokenAuth _ _ inv_instances.α _ _ _ _ _ 0 ∗
+    @YieldTokenAuth _ _ inv_instances.α _ _ _ _ _ 1.
 Proof.
+  iMod inv_instances.winv_alloc as "[% [% [% [% ?]]]]".
   iMod (own_alloc (●E 0 ⋅ ◯E 0)) as "[% E]"; eauto using excl_auth_valid.
   iMod (own_alloc 
     (((λ x, if (decide (x = 0)) then Some (Excl ()) else None) : nat -d> optionUR (excl unitR)) ⋅
       λ x, if (decide (x < 1)) then None else Some (Excl ()))) as "[%γy Y]".
   { ii; rewrite discrete_fun_lookup_op; des_ifs. }
-  iExists (Build_concGS _ _ _ _ _ _ _ _ _ γ γy).
+  iExists _, _, _, (Build_crisG _ _ inv_instances.α _ _ _ _ _ (Build_concGS _ _ inv_instances.α _ _ _ _ _ _ γ γy)).
+  instantiate (1:= @in_subG _ _ _ (@inG_yield _ _ inv_instances.α _ _ _ _ _ _) _).
+  instantiate (1:= @in_subG _ _ _ (@inG_tid _ _ inv_instances.α _ _ _ _ _ _) _).
+
   rewrite !own_op; iDestruct "E" as "[$ $]".
   iDestruct "Y" as "[$ $]". done.
 Qed.
