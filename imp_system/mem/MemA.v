@@ -266,13 +266,13 @@ Module MemA. Section MemA.
       speckey_fn MemHdr.cmp := MemSpec.cmp;
       speckey_fn MemHdr.cas := MemSpec.cas]}. *)
 
-  Definition fnsems : gmap (option string) (option (emask * (option fspec_rel * fbody))) :=
-    {[Some MemHdr.alloc # (msk_scp scopes msk_true, (fsp_some alloc, fbody_trivial));
-      Some MemHdr.free # (msk_scp scopes msk_true, (fsp_some free, fbody_trivial));
-      Some MemHdr.load # (msk_scp scopes msk_true, (fsp_some load, fbody_trivial));
-      Some MemHdr.store # (msk_scp scopes msk_true, (fsp_some store, fbody_trivial));
-      Some MemHdr.cmp # (msk_scp scopes msk_true, (fsp_some cmp, fbody_trivial));
-      Some MemHdr.cas # (msk_scp scopes msk_true, (fsp_some cas, fbody_trivial))]}.
+  Definition fnsems : fnsemmap :=
+    {[fid MemHdr.alloc # (msk_scp scopes msk_true, (fsp_some alloc, fbody_trivial));
+      fid MemHdr.free # (msk_scp scopes msk_true, (fsp_some free, fbody_trivial));
+      fid MemHdr.load # (msk_scp scopes msk_true, (fsp_some load, fbody_trivial));
+      fid MemHdr.store # (msk_scp scopes msk_true, (fsp_some store, fbody_trivial));
+      fid MemHdr.cmp # (msk_scp scopes msk_true, (fsp_some cmp, fbody_trivial));
+      fid MemHdr.cas # (msk_scp scopes msk_true, (fsp_some cas, fbody_trivial))]}.
 
   (* Module definition *)
   Program Definition smod : SMod.t := {|

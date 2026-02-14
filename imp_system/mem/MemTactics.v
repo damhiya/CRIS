@@ -9,7 +9,7 @@ Section mem.
   Local Definition rel : Type := ∀ R_s R_t : Type,
     post R_s R_t → bool → bool → state * itree crisE R_s → state * itree crisE R_t → iProp Σ.
 
-  Context (fl_s fl_t : gmap (option string) (option (Any.t → itree crisE Any.t))).
+  Context (fl_s fl_t : gmap fname (option (Any.t → itree crisE Any.t))).
   Context (Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ).
   Context (R_s R_t : Type).
   Context (RR : post R_s R_t).
@@ -19,7 +19,7 @@ Section mem.
   Context (sp : specmap).
 
   Lemma wsim_mem_alloc (sz : Z) (msk : emask) k_s k_t E1 E2 r g :
-    fl_t !! (Some MemHdr.alloc) =
+    fl_t !! (fid MemHdr.alloc) =
       Some (Some (SB.sandbox_body
         (msk, SModTr.trans_fnsem sp (fsp_some MemA.alloc, fbody_trivial)))) →
     img_msk msk →
@@ -46,7 +46,7 @@ Section mem.
   Qed.
 
   Lemma wsim_mem_store b ofs v v' (msk : emask) k_s k_t E1 E2 r g :
-    fl_t !! Some MemHdr.store =
+    fl_t !! fid MemHdr.store =
       Some (Some (SB.sandbox_body
         (msk, SModTr.trans_fnsem sp (fsp_some MemA.store, fbody_trivial)))) →
     img_msk msk →
@@ -68,7 +68,7 @@ Section mem.
   Qed.
 
   Lemma wsim_mem_load b ofs q v (msk : emask) k_s k_t E1 E2 r g :
-     fl_t !! Some MemHdr.load =
+     fl_t !! fid MemHdr.load =
       Some (Some (SB.sandbox_body
         (msk, SModTr.trans_fnsem sp (fsp_some MemA.load, fbody_trivial)))) →
     img_msk msk →
@@ -90,7 +90,7 @@ Section mem.
   Qed.
 
   Lemma wsim_mem_cas b ofs v v_old v_new succ E (msk : emask) k_s k_t E1 E2 r g  :
-    fl_t !! Some MemHdr.cas =
+    fl_t !! fid MemHdr.cas =
       Some (Some (SB.sandbox_body
         (msk, SModTr.trans_fnsem sp (fsp_some MemA.cas, fbody_trivial)))) →
     img_msk msk →
@@ -118,7 +118,7 @@ Section mem.
   Qed.
 
   Lemma wsim_mem_cmp v1 v2 succ E (msk : emask) k_s k_t E1 E2 r g :
-    fl_t !! (Some MemHdr.cmp) =
+    fl_t !! (fid MemHdr.cmp) =
       Some (Some (SB.sandbox_body
         (msk, SModTr.trans_fnsem sp (fsp_some (MemA.cmp), fbody_trivial)))) →
     img_msk msk →

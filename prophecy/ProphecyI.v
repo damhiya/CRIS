@@ -15,9 +15,9 @@ Module ProphecyI. Section ProphecyI.
     λ _, Ret tt↑.
 
   Definition fnsems : fnsemmap :=
-    {[Some (ProphecyName.new mn) # (msk_real (msk_scp scopes msk_true), (None, new));
-      Some (ProphecyName.resolve mn) # (msk_real (msk_scp scopes msk_true), (None, new));
-      Some (ProphecyName.close mn) # (msk_real (msk_scp scopes msk_true), (None, close))]}.
+    {[fid (ProphecyName.new mn) # (msk_real (msk_scp scopes msk_true), (None, new));
+      fid (ProphecyName.resolve mn) # (msk_real (msk_scp scopes msk_true), (None, new));
+      fid (ProphecyName.close mn) # (msk_real (msk_scp scopes msk_true), (None, close))]}.
 
   Program Definition Mod : SMod.t := {|
     SMod.scopes := scopes;

@@ -6,14 +6,14 @@ Require Export SchHeader SchA.
 Require Import ltac2_lib.
 
 Section wsim.
-  Context `{!crisG Γ Σ α β τ _S _I, _SCH: !schGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, !schGS}.
 
   Local Definition state : Type := gmap key (option Any.t).
   Local Definition post (R_s R_t : Type) : Type := state * R_s → state * R_t → iProp Σ.
   Local Definition rel : Type := ∀ R_s R_t : Type,
     post R_s R_t → bool → bool → state * itree crisE R_s → state * itree crisE R_t → iProp Σ.
 
-  Context (fl_s fl_t : gmap (option string) (option (Any.t → itree crisE Any.t))).
+  Context (fl_s fl_t : gmap fname (option (Any.t → itree crisE Any.t))).
   Context (Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ).
   Context (R_s R_t : Type).
   Context (RR : post R_s R_t).
@@ -27,8 +27,8 @@ Section wsim.
       (msk_s msk_t : emask) (sp_s sp_t : specmap) :
     (∀ X, msk_t _ (subevent _ (Choose X))) →
     (msk_t _ (subevent _ (Call SchHdr.yield ()↑))) →
-    sp_s !! speckey_fn SchHdr.yield = None →
-    sp_t !! speckey_fn SchHdr.yield = None →
+    sp_s !! (Some (fid SchHdr.yield)) = None →
+    sp_t !! (Some (fid SchHdr.yield)) = None →
     Ist st_src st_tgt ∗
     (∀ st_src st_tgt,
       Ist st_src st_tgt -∗
@@ -74,8 +74,8 @@ Section wsim.
       (msk_s msk_t : emask)
       (sp_s sp_t : specmap)
       (mtid stid : nat) :
-    sp_s !! speckey_fn SchHdr.yield = fsp_some (SchA.yield_spec Es) →
-    sp_t !! speckey_fn SchHdr.yield = None →
+    sp_s !! Some (fid SchHdr.yield) = fsp_some (SchA.yield_spec Es) →
+    sp_t !! Some (fid SchHdr.yield) = None →
     (∀ X, msk_t _ (subevent _ (Choose X))) →
     (msk_t _ (subevent _ (Call SchHdr.yield ()↑))) →
     Ist st_src st_tgt ∗ Tid mtid stid ∗
@@ -126,8 +126,8 @@ Section wsim.
       (k_t : () → itree crisE R_t)
       (msk_s msk_t : emask)
       (sp_s sp_t : specmap) :
-    sp_s !! speckey_fn SchHdr.yield = fsp_some (SchA.yield_spec Es) →
-    sp_t !! speckey_fn SchHdr.yield = fsp_some (SchA.yield_spec Et) →
+    sp_s !! Some (fid SchHdr.yield) = fsp_some (SchA.yield_spec Es) →
+    sp_t !! Some (fid SchHdr.yield) = fsp_some (SchA.yield_spec Et) →
     img_msk msk_t →
     (∀ fn arg, msk_t _ (subevent _ (Call fn arg)) = true) →
     Et ⊆ Es →
@@ -222,12 +222,11 @@ Ltac sch_yield_l :=
   norm_r; iApply wsim_yield_tgt;
   [right; right; esplits; [refl|..]; et; try set_solver|et|et|sch_auto; [..|try sch_intros]]. *)
 Section MSIM.
-  Context `{!crisG Γ Σ α β τ _S _I, _SCH: !schG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !schG}.
   Import SchA.
 
   Variable contextual: contextuality.
-  Variable fl_src : gmap (option string) (option (Any.t → itree crisE Any.t)).
-  Variable fl_tgt : gmap (option string) (option (Any.t → itree crisE Any.t)).
+  Variable fl_src fl_tgt : gmap fname (option (Any.t → itree crisE Any.t)).
   Variable Ist : ist_type Σ.
 
   Lemma msim_flag_src_down r {Rs Rt} RR (ps pt: bool) sti_src sti_tgt fmr
@@ -235,8 +234,8 @@ Section MSIM.
     _msim contextual fl_src fl_tgt Ist r Rs Rt RR true pt sti_src sti_tgt fmr.
   Proof using.
     pattern ps, pt, sti_src, sti_tgt, fmr.
-    eapply _msim_tarski, SIM. i. econs; ii. subst. ss.
-    specialize (IN NODFS NODFT NODS NODT H). des.
+    eapply _msim_tarski, SIM. i. econs; intros ???? temp. subst. ss.
+    specialize (IN NODFS NODFT NODS NODT temp). des.
     econs; esplits; eauto.
     depdes IN; try (by econs; eauto).
   Qed.
@@ -246,15 +245,15 @@ Section MSIM.
     _msim contextual fl_src fl_tgt Ist r Rs Rt RR ps true sti_src sti_tgt fmr.
   Proof using.
     pattern ps, pt, sti_src, sti_tgt, fmr.
-    eapply _msim_tarski, SIM. i. econs; ii. subst. ss.
-    specialize (IN NODFS NODFT NODS NODT H). des.
+    eapply _msim_tarski, SIM. i. econs; intros ???? temp. subst. ss.
+    specialize (IN NODFS NODFT NODS NODT temp). des.
     econs; esplits; eauto.
     depdes IN; try (by econs; eauto).
   Qed.
 End MSIM.
 
 Section SREL.
-  Context `{!crisG Γ Σ α β τ _S _I, _SCH: !schG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !schG}.
   Import SchA.
 
   (* srel (progress_flag) (oneshot_flag) (i_rew) (i_org) *)
@@ -495,8 +494,8 @@ Section SREL.
   (* msim closure *)
   
   Variable contextual: contextuality.
-  Variable fl_src : gmap (option string) (option (Any.t → itree crisE Any.t)).
-  Variable fl_tgt : gmap (option string) (option (Any.t → itree crisE Any.t)).
+  Variable fl_src : gmap fname (option (Any.t → itree crisE Any.t)).
+  Variable fl_tgt : gmap fname (option (Any.t → itree crisE Any.t)).
   Variable Ist : ist_type Σ.
 
   Variant msim_srelC (r: forall Rs Rt (RR: retr_type Σ Rs Rt), msim_type Σ Rs Rt) :
@@ -520,12 +519,12 @@ Section SREL.
     remember (st_tgt, itr_tgt) as sti_tgt.
     move SIM before r. revert_until SIM.
     pattern ps, pt, sti_src, sti_tgt, fmr.
-    eapply _msim_tarski, SIM. i. econs. ii. subst.
-    specialize (IN NODFS NODFT NODS NODT H); des.
+    eapply _msim_tarski, SIM. i. econs. intros ???? temp. subst.
+    specialize (IN NODFS NODFT NODS NODT temp); des.
     depdes IN; try (by esplits; eauto; econs; esplits; eauto); try (by esplits; eauto; econs; eauto; econs; eauto);
-      punfold SREL; move SREL after H;
+      punfold SREL; move SREL after temp;
       remember (_: itree crisE Rs) as itr_rew in SREL; remember false as p in SREL; clear Heqp;
-      move SREL before H; revert_until SREL;
+      move SREL before temp; revert_until SREL;
       pattern p, itr_rew, itr_org;
       eapply _srel_tarski, SREL; i; depdes IN; subst; try rewrite -> !bind_trigger in Heqitr_rew; ss;
       try (by depdes Heqitr_rew; esplits; eauto; econs; eauto);
@@ -535,10 +534,8 @@ Section SREL.
       try (by esplits; eauto; econs; eauto; i; specialize (SELF tt); pclearbot; eapply K; eauto; f_equal; eapply func_ext_rev; eauto);
       try (by specialize (SELF x0); des; esplits; eauto; econs; eauto; pclearbot; eapply K; eauto; f_equal; eapply func_ext_rev; eauto);
       try (by pclearbot; esplits; eauto; econs; eauto; i; eapply K; eauto; f_equal; eapply func_ext_rev; eauto).
-    (* { esplits; eauto; econs; eauto; i; specialize (SELF vret). pclearbot. eapply (K _ st_src0 st_tgt0); eauto. f_equal. eapply func_ext_rev; eauto. } *)
     { esplits; eauto. econs; eauto. eapply K; eauto. ginit. guclo srel_bindC_spec. econs; eauto.
       guclo srel_eqC_spec. econs. i. specialize (SELF vret). pclearbot. eapply (func_ext_rev vret) in x. rewrite x in SELF. gfinal; eauto. }
-    (* { specialize (SELF tt). pclearbot. esplits; eauto; econs; eauto. i. eapply (K st_src0 st_tgt0); eauto. f_equal; eapply func_ext_rev; eauto. } *)
   Qed.
 
   Lemma msim_srelC_spec: msim_srelC <9= gupaco8 (_msim contextual fl_src fl_tgt Ist) (cpn8 (_msim contextual fl_src fl_tgt Ist)).
@@ -614,9 +611,9 @@ End SREL.
 
 Section ISIM.
   Import SchA.
-  Context `{!crisG Γ Σ α β τ _S _I, _SCH: !schG}.
+  Context `{!crisG Γ Σ α β τ _S _I, !schG}.
   Variable contextual: contextuality.
-  Variable fl_src fl_tgt : gmap (option string) (option (Any.t → itree crisE Any.t)).
+  Variable fl_src fl_tgt : gmap fname (option (Any.t → itree crisE Any.t)).
   Variable Ist : ist_type Σ.
 
   Lemma isim_yy_y r g ps pt {Rs Rt} RR st_src k_src sti_tgt msk_s sp_s :

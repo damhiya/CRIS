@@ -1,10 +1,10 @@
 Require Export Common ConcRA.
-From iris.proofmode Require Export proofmode.
-
 Require Export FSpec Sp.
 Require Export SMod Mod LMod.
 Require Export TacticsCommon.
 Require Import GSim GSimFacts GSimTactics.
+From iris.proofmode Require Export proofmode.
+From stdpp Require Export base list.
 
 (* This file contains auxilliary lemmas for proving HelpOn ≼ HelpOff. *)
 Notation "'⇓cris'" := (interpV (ModTr.handle_crisE)).
@@ -197,7 +197,7 @@ Section props.
       (LModTr.interp_stateE Any.t
         (bd <- (prog_s fn)?;;
         iterV (LModTr.handle_callE prog_s)
-          (tid_s, <[tid_s := ⇓cris (k (length tp_s))]> tp_s ++ [bd args])) st_s)
+          (tid_s, <[tid_s := ⇓cris (k (List.length tp_s))]> tp_s ++ [bd args])) st_s)
       itr_t) →
     gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
@@ -216,7 +216,7 @@ Section props.
       (LModTr.interp_stateE Any.t
         (bd <- (prog_t fn)?;;
         iterV (LModTr.handle_callE prog_t)
-          (tid_t, <[tid_t := ⇓cris (k (length tp_t))]> tp_t ++ [bd args])) st_t)) →
+          (tid_t, <[tid_t := ⇓cris (k (List.length tp_t))]> tp_t ++ [bd args])) st_t)) →
     gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
       (itr_s)
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t).

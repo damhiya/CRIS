@@ -137,13 +137,13 @@ Module MemI. Section MemI.
        else Ret Vundef);;;
       Ret v_cur.
 
-  Definition fnsems : gmap (option string) (option (emask * (option fspec_rel * fbody))) :=
-    {[Some MemHdr.alloc # (msk_real (msk_scp scopes msk_true), (None, (cfunU alloc)));
-      Some MemHdr.free # (msk_real (msk_scp scopes msk_true), (None, (cfunU free)));
-      Some MemHdr.load # (msk_real (msk_scp scopes msk_true), (None, (cfunU load)));
-      Some MemHdr.store # (msk_real (msk_scp scopes msk_true), (None, (cfunU store)));
-      Some MemHdr.cmp # (msk_real (msk_scp scopes msk_true), (None, (cfunU cmp)));
-      Some MemHdr.cas # (msk_real (msk_scp scopes msk_true), (None, (cfunU cas)))]}.
+  Definition fnsems : fnsemmap :=
+    {[fid MemHdr.alloc # (msk_real (msk_scp scopes msk_true), (None, (cfunU alloc)));
+      fid MemHdr.free # (msk_real (msk_scp scopes msk_true), (None, (cfunU free)));
+      fid MemHdr.load # (msk_real (msk_scp scopes msk_true), (None, (cfunU load)));
+      fid MemHdr.store # (msk_real (msk_scp scopes msk_true), (None, (cfunU store)));
+      fid MemHdr.cmp # (msk_real (msk_scp scopes msk_true), (None, (cfunU cmp)));
+      fid MemHdr.cas # (msk_real (msk_scp scopes msk_true), (None, (cfunU cas)))]}.
 
   Program Definition smod csl genv : SMod.t := {|
     SMod.scopes := scopes;

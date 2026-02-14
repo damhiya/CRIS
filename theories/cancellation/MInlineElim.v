@@ -1,11 +1,11 @@
 Require Import Common ConcRA.
-From iris.proofmode Require Import proofmode.
 Require Import SModTr SMod Mod Tactics.
 Require Import MSimCommon ISim ISimFacts CtxRefine CtxRefineFacts ClosedAdequacy.
 Require Import MInline.
+From stdpp Require Import base list.
 
 Section INLINE.
-Context `{_crisG: !crisG Γ Σ α β τ _S _I}.
+Context `{!crisG Γ Σ α β τ _S _I}.
 
 Lemma inline_elim md P : refines (md, P) (MInline.inline md, P).
 Proof using.
@@ -83,7 +83,7 @@ Proof using.
       rewrite SBRed.bind SBRed.vis !vis_trigger. des_ifs; cycle 1.
       { ired. rewrite MIRed.core SBRed.bind SBRed.vis !vis_trigger. des_ifs. istep_l; ss. }
       ired. rewrite MIRed.call. istep_r. rewrite {2}/sandboxed_prog.
-      destruct ((Mod.fnsems md) !! Some fn) eqn:FIND; cycle 1.
+      destruct ((Mod.fnsems md) !! fid fn) eqn:FIND; cycle 1.
       { iApply isim_call_none; eauto. rewrite lookup_fmap FIND //. }
       destruct o; cycle 1.
       { iApply isim_call_none; eauto. rewrite lookup_fmap FIND //. }
@@ -95,7 +95,7 @@ Proof using.
       iPoseProof (winv_split_empty with "[I]") as "[I I']"; et.
       iApply isim_bind. iSplitL "I".
       - by_coind CIH; et.
-        hexploit (Mod.well_scoped_fns md (Some fn) (msk0, bd0)).
+        hexploit (Mod.well_scoped_fns md (fid fn) (msk0, bd0)).
         { rewrite lookup_omap FIND //. }
         i; ss; des. depdes e; ss. des_ifs.
         { case_bool_decide; eauto. }

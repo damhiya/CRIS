@@ -1,7 +1,8 @@
-From iris.proofmode Require Import proofmode.
 Require Import Common ConcRA.
 Require Import LMod Mod SMod Sp.
 Require Import LSim LSimTactics MSim MSimFacts MSimCommon ISim TacticsCommon ITactics SimNotations.
+From iris.proofmode Require Import proofmode.
+From stdpp Require Import base list.
 
 Section ISIM_FRAME.
   Context `{!crisG Γ Σ α β τ _S _I}.
@@ -99,7 +100,7 @@ Section ISIM_REFL.
   Qed.
 
   Lemma isim_reflL
-      (ctx : contextuality) (fl_src fl_tgt : gmap (option string) (option fbody))
+      (ctx : contextuality) (fl_src fl_tgt : gmap fname (option fbody))
       (msk : emask) (scopesR : list string) (EqL Ist : ist_type Σ) itr :
     (∀ st_src st_tgt k v, msk _ (subevent _ (SPut k v)) = true →
        (EqL st_src st_tgt ⊢ EqL (<[k := Some v]> st_src) (<[k := Some v]> st_tgt)) ∧
@@ -145,7 +146,7 @@ Section ISIM_REFL.
   Qed.
 
   Lemma isim_reflR
-      (fl_src fl_tgt : gmap (option string) (option fbody))
+      (fl_src fl_tgt : gmap fname (option fbody))
       (ctx : contextuality) (msk : emask) (scopesL : list string)
       (EqR Ist : ist_type Σ) itr :
     (∀ st_src st_tgt k v, msk _ (subevent _ (SPut k v)) = true →
@@ -377,10 +378,10 @@ Section ISIM_ADEQUACY.
       iIntros "H". iMod (MRS with "H") as "H". iModIntro.
       unfold ctx_sem. rewrite big_opL_app. s. rewrite ?right_id; eauto.
     - intros it_src Hsrc; rewrite ?lookup_fmap lookup_omap in Hsrc.
-      hexploit (sim_fnsems WFT None); rewrite /ISim.sim_fun.
-      rewrite ?lookup_fmap lookup_omap; destruct (_ ms !! None) as [[p|]|] eqn : Hsrc2; ss; clarify.
+      hexploit (sim_fnsems WFT entry); rewrite /ISim.sim_fun.
+      rewrite ?lookup_fmap lookup_omap; destruct (_ ms !! entry) as [[p|]|] eqn : Hsrc2; ss; clarify.
       intros Hsim; hexploit Hsim; eauto; clear Hsim; intros [ft [Htgt Hsim]].
-      destruct (_ mt !! None) as [[pt|]|] eqn : Htgt2; ss; clarify.
+      destruct (_ mt !! entry) as [[pt|]|] eqn : Htgt2; ss; clarify.
       eexists; split; first refl.
 
       intros arg; exists ε, ε.
@@ -418,7 +419,7 @@ Section ISIM_ADEQUACY.
       + rewrite x0 x1 x3 !Own_op -Own_unit. iIntros ">[? [? ?]]"; iFrame. et.
     - intros fn fs; rewrite ?lookup_fmap lookup_omap.
       destruct (_ ms !! _) as [[[msks its]|]|] eqn : Hms; ss; i; clarify.
-      hexploit (sim_fnsems WFT (Some fn)); eauto.
+      hexploit (sim_fnsems WFT (fid fn)); eauto.
       rewrite /ISim.sim_fun ?lookup_fmap Hms /= ?lookup_fmap lookup_omap.
       intros H; hexploit H; clear H; eauto.
       destruct (_ mt !! _) as [[[mskt itt]|]|] eqn : Hmt; try by (i; des; clarify).

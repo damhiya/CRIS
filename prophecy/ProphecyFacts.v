@@ -1,4 +1,5 @@
 Require Export CRIS CallFilter ProphecyIAproof.
+From stdpp Require Import base list.
 
 Lemma CFilter_real_mod `{Σ : GRA} (md : Mod.t) (msk : gset string) :
   real_mod md → real_mod (CFilter.filter msk md).
@@ -10,7 +11,7 @@ Proof.
 Qed.
 
 Section prophecy.
-  Context `{!crisG Γ Σ α β τ Hinv Hsub, _PROPH: !prophGS}.
+  Context `{!crisG Γ Σ α β τ Hinv Hsub, !prophGS}.
 
   (* Lemmas about names *)
   Local Definition maxlen (s : list string) : nat :=
@@ -47,9 +48,8 @@ Section prophecy.
   Proof.
     intros Hproph Hreal ? ?.
     set (mn := maxlen
-      (elements (set_omap id (dom (Mod.fnsems (mdt ★ ctx))) : gset string) ++
-       (* elements (set_omap id (dom (Mod.fnsems ctx)) : gset string) ++ *)
-       elements (set_omap id (dom (Mod.fnsems (ctx ★ mds))) : gset string) ++
+      (elements (set_omap (λ a, match a with | fid fn => Some fn | _ => None end) (dom (Mod.fnsems (mdt ★ ctx))) : gset string) ++
+       elements (set_omap (λ a, match a with | fid fn => Some fn | _ => None end) (dom (Mod.fnsems (ctx ★ mds))) : gset string) ++
       Mod.scopes mdt ++ Mod.scopes ctx ++ Mod.scopes mds)).
     etrans; cycle 1.
     { eapply ctxr_refines,

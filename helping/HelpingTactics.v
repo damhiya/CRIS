@@ -116,7 +116,7 @@ Section help.
   Local Notation state := (gmap key (option Any.t)).
   Local Notation post R_s R_t := (state * R_s → state * R_t → iProp Σ).
   
-  Context (fl_s fl_t : gmap (option string) (option (Any.t → itree crisE Any.t))).
+  Context (fl_s fl_t : gmap fname (option (Any.t → itree crisE Any.t))).
   Context (R_s R_t : Type).
   Context (RR : post R_s R_t).
   Context (st_src st_tgt : state).
@@ -128,7 +128,7 @@ Section help.
   Local Definition IstFull := IstProd IstEq (IstSB [mn] (IstHelp mn)).
 
   Lemma wsim_helping_run (ps pt : bool) (parg : jobID) k_s k_t E1 E2 r g :
-    fl_s !! Some (Helping.run mn) =
+    fl_s !! fid (Helping.run mn) =
       Some (Some (SB.sandbox_body
         (msk_scp (HelpingOn.scopes mn) msk_true, (SModTr.trans_fnsem sp (None, HelpingOn.run mn jobs))))) →
     IstFull st_src st_tgt -∗
@@ -234,7 +234,7 @@ Section help.
 
   Lemma wsim_helping_help
       `{!schGS} (ps pt : bool) k_s k_t E r g (req_id : nat) x arg (mtid stid : nat) :
-    sp !! speckey_fn SchHdr.yield = fsp_some (SchA.yield_spec E) →
+    sp !! Some (fid SchHdr.yield) = fsp_some (SchA.yield_spec E) →
     Tid mtid stid -∗
     helping_token req_id x -∗
     IstFull st_src st_tgt -∗

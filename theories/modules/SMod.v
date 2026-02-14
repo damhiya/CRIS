@@ -3,7 +3,7 @@ Require Import Mod.
 Require Export FSpec SModTr Sp.
 From stdpp Require Import sorting strings.
 
-Notation fnsemmap := (gmap (option string) (option (emask * (option fspec_rel * fbody)))).
+Notation fnsemmap := (gmap fname (option (emask * (option fspec_rel * fbody)))).
 
 Module SMod. Section Smod.
   Context `{!crisG Γ Σ α β τ _S _I}.
@@ -161,17 +161,11 @@ Module SMod. Section Smod.
       repeat destruct (_ !! i); ss.
   Qed.
 
-  Definition lift_fn (fno : option string) : speckey :=
-    match fno with
-    | Some fn => speckey_fn fn
-    | None => speckey_entry
-    end.
-
   Definition sp_from (md : t) : specmap :=
-    kmap lift_fn (omap id (fst ∘ snd <$> omap id md.(fnsems))).
+    kmap Some (omap id (fst ∘ snd <$> omap id md.(fnsems))).
 
   Definition conc_sp_from (md : t) : specmap :=
-    <[speckey_concE := fspec_to_rel fspec_trivial]> (sp_from md).
+    <[None := fspec_to_rel fspec_trivial]> (sp_from md).
 
   Definition cancellable (ms : t) : Prop :=
     map_Forall
@@ -192,12 +186,9 @@ Infix "☆" := SMod.add (at level 60, right associativity).
 Section Aux.
   Context `{!crisG Γ Σ α β τ _S _I}.
 
-  #[global] Instance smod_lift_fn_inj : Inj (=) (=) SMod.lift_fn.
-  Proof. ii. rewrite /SMod.lift_fn in H. des_ifs. Qed.
-
   Lemma lookup_sp_from md fn kboo
-    (FIND: md.(SMod.fnsems) !! Some fn = kboo) :
-    (SMod.sp_from md) !! (speckey_fn fn) =
+    (FIND: md.(SMod.fnsems) !! fid fn = kboo) :
+    (SMod.sp_from md) !! (Some (fid fn)) =
       match kboo with
       | Some (Some (_, (Some fsp, _))) => Some fsp
       | _ => None
@@ -209,12 +200,12 @@ Section Aux.
               | _ => None
               end) eqn: E; cycle 1.
     { set (l:=omap _ _).
-      eapply (lookup_kmap_None SMod.lift_fn l (speckey_fn fn)).
-      i. rewrite /SMod.lift_fn in H. destruct i; ss. inv H. subst l.
+      eapply (lookup_kmap_None Some l (Some (fid fn))).
+      i. destruct i; ss. inv H. subst l.
       rewrite lookup_omap lookup_fmap lookup_omap. des_ifs. }
     { set (l:=omap _ _).
-      eapply (lookup_kmap_Some SMod.lift_fn l (speckey_fn fn)).
-      exists (Some fn). split; ss. subst l.
+      eapply (lookup_kmap_Some Some l (Some (fid fn))).
+      exists (fid fn). split; ss. subst l.
       rewrite lookup_omap lookup_fmap lookup_omap. des_ifs. }
   Qed.
 End Aux.

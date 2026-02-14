@@ -2,9 +2,8 @@ Require Import Common ISim WSim Tactics TacticsCommon SimNotations TacticsInit T
 Require Import GSim GSimFacts GSimTactics GSimAux.
 Require Export ConcRA LMod Mod SMod.
 Require Export CtxRefine CtxRefineFacts ClosedAdequacy MainAdequacy.
-(* From iris.proofmode Require Export proofmode.
-Require Import LMod LSim GSim GSimFacts GSimTactics Mod ISim ISimFacts.
-Require Import TacticsInit Tactics. *)
+From stdpp Require Import base list.
+
 Local Ltac gnorm_itr :=
   match goal with
   | |- context [?A] =>
@@ -109,7 +108,8 @@ Module CFilter. Section CFilter.
   Qed.
 
   Lemma sim_filter_elim (mask : gset string) (m : Mod.t)
-      (SUB : (set_omap id (dom (m.(Mod.fnsems)))) ## mask) :
+      (SUB : (set_omap (λ a, match a with fid fn => Some fn | _ => None end)
+        (dom (m.(Mod.fnsems)))) ## mask) :
     ISim.t closed m (filter mask m) emp%I IstEq.
   Proof using.
     econs; ii; et.
@@ -154,7 +154,9 @@ Module CFilter. Section CFilter.
         { iApply isim_call_none; ss.
           rewrite ?lookup_fmap; destruct (_ !! _) eqn : Heq; ss.
           eapply elem_of_dom_2 in Heq.
-          exfalso; eapply (SUB fn0); set_solver.
+          exfalso; eapply (SUB fn0).
+          { rewrite elem_of_set_omap; esplits; eauto. }
+          set_solver.
         }
       }
       { steps_r; case_bool_decide; des; ss.
@@ -164,7 +166,9 @@ Module CFilter. Section CFilter.
         { iApply isim_spawn_none; ss.
           rewrite ?lookup_fmap; destruct (_ !! _) eqn : Heq; ss.
           eapply elem_of_dom_2 in Heq.
-          exfalso; eapply (SUB fn0); set_solver.
+          exfalso; eapply (SUB fn0).
+          { rewrite elem_of_set_omap; esplits; eauto. }
+          set_solver.
         }
       }
       { steps_r; case_match; des; ss. steps_r.
@@ -198,7 +202,8 @@ Module CFilter. Section CFilter.
 
   (*** elimination of a module ***)
   Lemma elim_filter (mask : gset string) (m : Mod.t) P
-      (SUB : (set_omap id (dom (m.(Mod.fnsems)))) ## mask) :
+      (SUB : (set_omap (λ a, match a with fid fn => Some fn | _ => None end)
+        (dom (m.(Mod.fnsems)))) ## mask) :
     refines (m, P)%I (filter mask m, P)%I.
   Proof using. eapply closed_adequacy_emp, sim_filter_elim. eauto. Qed.
 
@@ -206,9 +211,11 @@ Module CFilter. Section CFilter.
   Theorem intro_module (mask : gset string) m mc P
       (WF: Mod.wf mc)
       (DISJ: (m.(Mod.scopes) ## mc.(Mod.scopes)))
-      (EXCL: set_omap id (dom (Mod.fnsems m)) ## mask)
-      (EXCL2: set_omap id (dom (Mod.fnsems mc)) ⊆ mask)
-      (EXCL3: None ∉ dom (Mod.fnsems mc))
+      (EXCL: (set_omap (λ a, match a with fid fn => Some fn | _ => None end)
+        (dom (m.(Mod.fnsems)))) ## mask)
+      (EXCL2: (set_omap (λ a, match a with fid fn => Some fn | _ => None end)
+        (dom (mc.(Mod.fnsems)))) ⊆ mask)
+      (EXCL3: entry ∉ dom (Mod.fnsems mc))
       (* (SUB: ∀ fn, In (Some fn) (m.(Mod.fnsems).*1) → mask fn)
       (FRESH: ∀ fn, In (Some fn) (mc.(Mod.fnsems).*1) → (~ mask fn))
       (FRESHI: ~ In None (mc.(Mod.fnsems)).*1)
@@ -221,7 +228,7 @@ Module CFilter. Section CFilter.
     { apply Mod.add_wf; eauto.
       { intros [i|] Hi1 Hi2; last set_solver.
         apply (EXCL i).
-        { apply elem_of_set_omap; eexists; split; last done.
+        { apply elem_of_set_omap; exists (fid i); split; ss.
           rewrite /filter /= dom_fmap // in Hi1.
         }
         apply EXCL2.
@@ -240,8 +247,8 @@ Module CFilter. Section CFilter.
 
     i. ginit. rewrite /LMod.compile. s.
     rewrite ?lookup_fmap ?lookup_omap ?lookup_union_with ?lookup_fmap.
-    destruct (_ mc !! None) eqn : Hmc; [eapply elem_of_dom_2 in Hmc; set_solver|ss; clear Hmc].
-    destruct (_ m !! None) as [[[msk bd]|]|] eqn : Hm; ss; [|gstep_l; ss|gstep_l; ss].
+    destruct (_ mc !! entry) eqn : Hmc; [eapply elem_of_dom_2 in Hmc; set_solver|ss; clear Hmc].
+    destruct (_ m !! entry) as [[[msk bd]|]|] eqn : Hm; ss; [|gstep_l; ss|gstep_l; ss].
 
     rewrite /LModTr.trans /LModTr.interp_callE /ModTr.trans_fnsem /SB.sandbox_body /ITree.map. ired.
     guclo bindC_spec. econs; cycle 1.
@@ -250,10 +257,10 @@ Module CFilter. Section CFilter.
     { intros X e ?; destruct e as [e|[e|[e|e]]]; ss; destruct e; ss; repeat case_bool_decide; ss.
       { exfalso; naive_solver. }
       { exfalso; naive_solver. }
-      { hexploit (Mod.well_scoped_fns m); rewrite map_Forall_lookup => /(_ None (msk, bd)).
+      { hexploit (Mod.well_scoped_fns m); rewrite map_Forall_lookup => /(_ entry (msk, bd)).
         rewrite lookup_omap Hm /= =>/(_ eq_refl); intros [Hput ?]; naive_solver.
       }
-      { hexploit (Mod.well_scoped_fns m); rewrite map_Forall_lookup => /(_ None (msk, bd)).
+      { hexploit (Mod.well_scoped_fns m); rewrite map_Forall_lookup => /(_ entry (msk, bd)).
         rewrite lookup_omap Hm /= =>/(_ eq_refl); intros [? Hget]; naive_solver.
       }
     }
@@ -339,15 +346,15 @@ Module CFilter. Section CFilter.
       eapply gsim_Call_tgt; [apply EQ|].
       rewrite {2 4}/LMod.prog !Mod.to_lmod_fnsems lookup_fnsems_None_r //; cycle 1.
       { rewrite -not_elem_of_dom; intros ?; apply Hfn, EXCL2.
-        rewrite elem_of_set_omap; eexists; split; ss; auto.
+        rewrite elem_of_set_omap; exists (fid fn); split; ss; auto.
       }
-      rewrite /unwrapU; destruct (_ !! Some fn) as [[[cmsk cbd]|]|] eqn : Hfn'; cycle 1.
+      rewrite /unwrapU; destruct (_ !! fid fn) as [[[cmsk cbd]|]|] eqn : Hfn'; cycle 1.
       { ired. giter_l. rewrite /= list_lookup_insert //=. gstep_l; ss. }
       { ired. giter_l. rewrite /= list_lookup_insert //=. gstep_l; ss. }
       ired.
       rewrite /ModTr.trans_fnsem /ModTr.trans /SB.sandbox_body -!interpV_bind /=.
       simpl; rewrite !lookup_fmap in Hfn'.
-      destruct (_ !! Some fn) as [[[cmsk2 bd2]|]|] eqn : Hfn2; ss; clarify.
+      destruct (_ !! fid fn) as [[[cmsk2 bd2]|]|] eqn : Hfn2; ss; clarify.
 
       zprogress. gbase. eapply CIH; et.
       i. eapply list_lookup_insert_Some in IN. des; subst; et.
@@ -357,10 +364,10 @@ Module CFilter. Section CFilter.
       { intros X e ?; destruct e as [e|[e|[e|e]]]; ss; destruct e; ss; repeat case_bool_decide; ss.
         { exfalso; naive_solver. }
         { exfalso; naive_solver. }
-        { hexploit (Mod.well_scoped_fns m); rewrite map_Forall_lookup => /(_ (Some fn) (cmsk2, cbd)).
+        { hexploit (Mod.well_scoped_fns m); rewrite map_Forall_lookup => /(_ (fid fn) (cmsk2, cbd)).
           rewrite lookup_omap Hfn2 /= =>/(_ eq_refl); intros [Hput ?]; naive_solver.
         }
-        { hexploit (Mod.well_scoped_fns m); rewrite map_Forall_lookup => /(_ (Some fn) (cmsk2, cbd)).
+        { hexploit (Mod.well_scoped_fns m); rewrite map_Forall_lookup => /(_ (fid fn) (cmsk2, cbd)).
           rewrite lookup_omap Hfn2 /= =>/(_ eq_refl); intros [? Hget]; naive_solver.
         }
       }
@@ -371,15 +378,15 @@ Module CFilter. Section CFilter.
       eapply gsim_Spawn_tgt; [apply EQ|].
       rewrite {1 3}/LMod.prog !Mod.to_lmod_fnsems lookup_fnsems_None_r //; cycle 1.
       { rewrite -not_elem_of_dom; intros ?; apply Hfn, EXCL2.
-        rewrite elem_of_set_omap; eexists; split; ss; auto.
+        rewrite elem_of_set_omap; eexists (fid _); split; ss; auto.
       }
-      rewrite /unwrapU; destruct (_ !! Some fn) as [[[cmsk cbd]|]|] eqn : Hfn'; cycle 1.
+      rewrite /unwrapU; destruct (_ !! fid fn) as [[[cmsk cbd]|]|] eqn : Hfn'; cycle 1.
       { ired. gstep_l; ss. }
       { ired. gstep_l; ss. }
       ired.
       rewrite /ModTr.trans_fnsem /ModTr.trans /SB.sandbox_body /=.
       simpl; rewrite !lookup_fmap in Hfn'.
-      destruct (_ !! Some fn) as [[[cmsk2 bd2]|]|] eqn : Hfn2; ss; clarify.
+      destruct (_ !! fid fn) as [[[cmsk2 bd2]|]|] eqn : Hfn2; ss; clarify.
 
       zprogress. gbase. eapply CIH; et.
       i. eapply lookup_snoc_Some in IN. des.
@@ -389,10 +396,10 @@ Module CFilter. Section CFilter.
       { intros X e ?; destruct e as [e|[e|[e|e]]]; ss; destruct e; ss; repeat case_bool_decide; ss.
         { exfalso; naive_solver. }
         { exfalso; naive_solver. }
-        { hexploit (Mod.well_scoped_fns m); rewrite map_Forall_lookup => /(_ (Some fn) (cmsk2, cbd)).
+        { hexploit (Mod.well_scoped_fns m); rewrite map_Forall_lookup => /(_ (fid fn) (cmsk2, cbd)).
           rewrite lookup_omap Hfn2 /= =>/(_ eq_refl); intros [Hput ?]; naive_solver.
         }
-        { hexploit (Mod.well_scoped_fns m); rewrite map_Forall_lookup => /(_ (Some fn) (cmsk2, cbd)).
+        { hexploit (Mod.well_scoped_fns m); rewrite map_Forall_lookup => /(_ (fid fn) (cmsk2, cbd)).
           rewrite lookup_omap Hfn2 /= =>/(_ eq_refl); intros [? Hget]; naive_solver.
         }
       }

@@ -74,7 +74,7 @@ Section proph_compile.
   Variable (ms : LMod.t) (mn : string).
 
   Definition proph_compile (arg : Any.t) : itree coreE Any.t :=
-    bd <- ((LMod.fnsems ms) !! None)? ;;
+    bd <- ((LMod.fnsems ms) !! entry)? ;;
     snd <$> proph_trans mn (LMod.prog ms) (bd arg) (LMod.initial_st ms).
 
 End proph_compile.

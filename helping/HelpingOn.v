@@ -33,10 +33,10 @@ Section HoareCall.
     end) x.
 
   Lemma HoareCall_unfold (sp : specmap) (fn : string) :
-    SModTr.HoareCall (sp !! speckey_fn fn) fn ()↑ =
-    xarg <- HoareCall_prologue (sp !! speckey_fn fn) (()↑);;
+    SModTr.HoareCall (sp !! (Some (fid fn))) fn ()↑ =
+    xarg <- HoareCall_prologue (sp !! (Some (fid fn))) (()↑);;
     ret <- trigger (Call fn xarg.2);;
-    HoareCall_epilogue (sp !! speckey_fn fn) xarg.1 ret.
+    HoareCall_epilogue (sp !! (Some (fid fn))) xarg.1 ret.
   Proof using.
     rewrite /SModTr.HoareCall /HoareCall_prologue /HoareCall_epilogue; case_match; grind.
   Qed.
@@ -95,16 +95,16 @@ Module HelpingOn. Section HelpingOn.
   Definition help (sp : specmap) : Any.t → itree crisE Any.t :=
     λ _,
       tid <- trigger (Choose nat);;
-      xarg <- HoareCall_prologue (sp !! speckey_fn SchHdr.yield) (() ↑);;
-      x <- HoareFun_prologue (sp !! speckey_fn SchHdr.yield) (() ↑);;
+      xarg <- HoareCall_prologue (sp !! Some (fid SchHdr.yield)) (() ↑);;
+      x <- HoareFun_prologue (sp !! Some (fid SchHdr.yield)) (() ↑);;
       try_run tid;;;
-      HoareFun_epilogue (sp !! speckey_fn SchHdr.yield) x.1 (() ↑);;;
-      HoareCall_epilogue (sp !! speckey_fn SchHdr.yield) xarg.1 (() ↑);;;
+      HoareFun_epilogue (sp !! Some (fid SchHdr.yield)) x.1 (() ↑);;;
+      HoareCall_epilogue (sp !! Some (fid SchHdr.yield)) xarg.1 (() ↑);;;
       Ret ()↑.
 
   Definition fnsems (sp : specmap) : fnsemmap :=
-    {[Some (Helping.run mn) # (msk_scp scopes msk_true, (None, run));
-      Some (Helping.help mn) # (msk_scp scopes msk_true, (None, help sp))]}.
+    {[fid (Helping.run mn) # (msk_scp scopes msk_true, (None, run));
+      fid (Helping.help mn) # (msk_scp scopes msk_true, (None, help sp))]}.
 
   Program Definition Mod (sp : specmap) : SMod.t := {|
     SMod.scopes := scopes;
@@ -122,8 +122,8 @@ Module HelpingDummy. Section HelpingDummy.
   Definition scopes : list string := [mn].
 
   Definition fnsems : fnsemmap :=
-    {[Some (Helping.run mn) # (msk_scp scopes msk_true, (None, λ _, triggerNB));
-      Some (Helping.help mn) # (msk_scp scopes msk_true, (None, λ _, triggerNB))]}.
+    {[fid (Helping.run mn) # (msk_scp scopes msk_true, (None, λ _, triggerNB));
+      fid (Helping.help mn) # (msk_scp scopes msk_true, (None, λ _, triggerNB))]}.
 
   Program Definition Mod : SMod.t := {|
     SMod.scopes := scopes;

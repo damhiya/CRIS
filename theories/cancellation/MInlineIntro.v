@@ -1,8 +1,9 @@
 Require Import Common ConcRA.
-From iris.proofmode Require Import proofmode.
 Require Import SModTr SMod Mod Tactics.
 Require Import MSimCommon ISim ISimFacts CtxRefine CtxRefineFacts ClosedAdequacy.
 Require Import MInline.
+From iris.proofmode Require Import proofmode.
+From stdpp Require Import base list.
 
 Set Implicit Arguments.
 
@@ -74,7 +75,7 @@ Proof using.
       rewrite SBRed.bind SBRed.vis !vis_trigger. des_ifs; cycle 1.
       { ired. rewrite MIRed.core SBRed.bind SBRed.vis !vis_trigger. des_ifs. istep_l; ss. }
       ired. rewrite MIRed.call. istep_l. rewrite {2}/sandboxed_prog.
-      destruct ((Mod.fnsems md) !! Some fn) eqn:FIND; cycle 1.
+      destruct ((Mod.fnsems md) !! fid fn) eqn:FIND; cycle 1.
       { rewrite lookup_omap FIND /=. ired. rewrite MIRed.core SBRed.bind SBRed.vis !vis_trigger. des_ifs. istep_l; ss. }
       destruct o; cycle 1.
       { rewrite lookup_omap FIND /=. ired. rewrite MIRed.core SBRed.bind SBRed.vis !vis_trigger. des_ifs. istep_l; ss. }

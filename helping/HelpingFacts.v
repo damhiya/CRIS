@@ -1,11 +1,11 @@
 Require Import CRIS.
 Require Import SchHeader SchI SchA.
 Require Export HelpingOnOffproof.
-From stdpp Require Import list.
 Require Export CallFilter.
+From stdpp Require Import base list.
 
 Section Helping.
-  Context `{!crisG Γ Σ α β τ _S _I, _SCH: !schGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, !schGS}.
 
   (* Lemmas about names *)
   Local Definition maxlen (s : list string) : nat :=
@@ -38,7 +38,7 @@ Section Helping.
   (* imp : list of function names mI calls *)
   (* TODO : modify sp according to the proof of helpingonoff *)
   Lemma helping_main (mM : string → Mod.t) (mA mI m_aux : Mod.t) (P1 P2 : iProp Σ)
-      {jobID retID} (jobs : jobID -> _) (sp : specmap) :
+      {jobID retID : Type} (jobs : jobID -> _) (sp : specmap) :
     (∀ mn,
       ctx_refines
         (mM mn ★ CFilter.filter (Helping.exports mn) (m_aux ★ SchI.t) ★ (HelpingOn.t (retID:=retID) mn jobs sp), P1)
@@ -57,8 +57,8 @@ Section Helping.
       pose (md_src := src);
       pose (md_tgt := tgt);
       pose (all_names :=
-        (elements (set_omap id (dom (Mod.fnsems md_src)) : gset string)) ++
-        (elements (set_omap id (dom (Mod.fnsems md_tgt)) : gset string)) ++
+        (elements (set_omap (λ a, match a with | fid fn => Some fn | _ => None end) (dom (Mod.fnsems md_src)) : gset string)) ++
+        (elements (set_omap (λ a, match a with | fid fn => Some fn | _ => None end) (dom (Mod.fnsems md_tgt)) : gset string)) ++
         (Mod.scopes md_src) ++ (Mod.scopes md_tgt) : list string)
     end.
 

@@ -114,7 +114,7 @@ Module Cancel. Section Cancel.
     (WFS: SMod.cancellable md)
     (WF: Mod.wf (SMod.to_mod ∅ (SMod.cancel md)))
     (VALID: ✓ rs)
-    (MAIN : ∃ P Q, (fspec_flat (SMod.conc_sp_from md !! speckey_entry)) P Q ∧
+    (MAIN : ∃ P Q, (fspec_flat (SMod.conc_sp_from md !! Some entry)) P Q ∧
       (Own rs ⊢ |==> (P tt↑ tt↑ ∗ Own rt) ∗ TIDAUTH 0 ∗ YIELDAUTH 1) ∧
       ∀ varg arg, Q varg arg ⊢ ⌜varg = arg⌝)
     :
@@ -127,22 +127,22 @@ Module Cancel. Section Cancel.
     unfold LMod.compile. s. rewrite /ITree.map /LModTr.trans /LModTr.interp_callE.
 
     rewrite !lookup_fmap !lookup_omap !lookup_fmap.
-    destruct ((SMod.fnsems md) !! None) eqn: FIND; rewrite ?FIND; cycle 1.
+    destruct ((SMod.fnsems md) !! entry) eqn: FIND; rewrite ?FIND; cycle 1.
     { s. ired. ginit. gstep_l. ss. }
     s. ired. destruct o; ss; cycle 1.
     { s. ired. ginit. gstep_l. ss. }
     destruct p as [msk [fspo bd]]. s. ired.
     rewrite /ModTr.trans_fnsem /SModTr.trans_fnsem.
     dup WFS; rewrite /SMod.cancellable map_Forall_lookup in WFS.
-    hexploit (WFS None (Some (msk, (fspo, bd)))); eauto; intros [? ?].
-    hexploit (SMod.well_scoped_fns md None (msk, (fspo, bd))); last (intros [? ?]).
+    hexploit (WFS entry (Some (msk, (fspo, bd)))); eauto; intros [? ?].
+    hexploit (SMod.well_scoped_fns md entry (msk, (fspo, bd))); last (intros [? ?]).
     { rewrite lookup_omap FIND //. }
     erewrite !sandbox_inline_commute; et.
     ginit. guclo bindC_spec. econs; cycle 1.
     { instantiate (1:=λ vrs vrt, cancel_eq vrs vrt). i. gstep. econs. econs. destruct SIM. des. et. }
 
     dup FIND.
-    assert (FIND1 : SMod.fnsems (SMod.cancel md) !! None = Some (Some (msk, (None, bd)))).
+    assert (FIND1 : SMod.fnsems (SMod.cancel md) !! entry = Some (Some (msk, (None, bd)))).
     { ss; rewrite lookup_fmap FIND //. }
     eapply MIRed_HoareFun with (sp:=SMod.conc_sp_from md) (arg:=()↑) in FIND; try by des.
     rewrite FIND.
@@ -153,8 +153,8 @@ Module Cancel. Section Cancel.
     eapply gsim_tau_src; ss; [do 2 f_equal; hnorm_itr|]. ghnorm_l. rewrite bind_ret_r.
 
     destruct fspo as [fsp|]; ss.
-    { assert (Hf : SMod.sp_from md !! speckey_entry = Some fsp).
-      { rewrite /SMod.sp_from lookup_kmap_Some; exists None; split; ss.
+    { assert (Hf : SMod.sp_from md !! Some entry = Some fsp).
+      { rewrite /SMod.sp_from lookup_kmap_Some; exists entry; split; ss.
         rewrite !lookup_omap lookup_fmap lookup_omap FIND0 //.
       }
       rewrite /SMod.conc_sp_from lookup_insert_ne // Hf /= in MAIN.
@@ -208,7 +208,7 @@ Module Cancel. Section Cancel.
 
     Lemma cancellation md IC Pinit :
       SMod.cancellable md →
-      (∃ P Q, (fspec_flat (SMod.conc_sp_from md !! speckey_entry)) P Q ∧
+      (∃ P Q, (fspec_flat (SMod.conc_sp_from md !! Some entry)) P Q ∧
         (TID 0 ∗ YIELD 0 ∗ winv (⊤, ⊤) ∗ Pinit ⊢ |==> (P tt↑ tt↑)) ∧
         ∀ varg arg, Q varg arg ⊢ ⌜varg = arg⌝) →
       refines

@@ -1,9 +1,8 @@
-Require Import Common.
-Require Export LModTr.
+Require Export Common Fn LModTr.
 
 Module LMod.
   Record t : Type := mk {
-    fnsems : gmap (option string) (Any.t → itree lmodE Any.t);
+    fnsems : gmap fname (Any.t → itree lmodE Any.t);
     initial_st : Any.t;
   }.
 
@@ -12,9 +11,9 @@ Module LMod.
   }. *)
 
   Definition prog (ms : t) : string → option (Any.t → itree lmodE Any.t) :=
-    λ fn, (fnsems ms) !! (Some fn).
+    λ fn, (fnsems ms) !! (fid fn).
 
   Definition compile (ms : t) : Any.t → itree coreE Any.t := λ arg,
-    bd <- ((fnsems ms) !! None)? ;;
+    bd <- ((fnsems ms) !! entry)? ;;
     snd <$> LModTr.trans (prog ms) (bd arg) (initial_st ms).
 End LMod.

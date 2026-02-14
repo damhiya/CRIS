@@ -1,7 +1,7 @@
 Require Export Common ConcRA.
 From iris.proofmode Require Export proofmode.
 
-Require Export FSpec Sp.
+Require Export FSpec Sp Fn.
 Require Export SMod Mod.
 Require Export ISim ISimFacts WSim WSimFacts SimNotations.
 Require Export TacticsCommon.

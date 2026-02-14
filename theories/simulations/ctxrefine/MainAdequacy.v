@@ -134,7 +134,7 @@ Proof.
         i; clarify; eapply sandbox_sandbox; eauto.
         intros ? e; depdes e; ss. depdes s; ss. depdes s; ss.
         depdes p; ss; hexploit (Mod.well_scoped_fns ms); rewrite map_Forall_lookup =>
-          /(_ (Some fn) (fnmsk, f0)); rewrite lookup_omap Hfn => /(_ eq_refl);
+          /(_ (fid fn) (fnmsk, f0)); rewrite lookup_omap Hfn => /(_ eq_refl);
           [intros [Hkey ?]|intros [? Hkey]] => /Hkey; case_decide as Hin2; ss;
           intros Hin; eapply elem_of_submseteq in Hscopest; eauto.
       }
@@ -152,7 +152,7 @@ Proof.
         i; clarify; eapply sandbox_sandbox; eauto.
         intros ? e; depdes e; ss. depdes s; ss. depdes s; ss.
         depdes p; ss; hexploit (Mod.well_scoped_fns mt); rewrite map_Forall_lookup =>
-          /(_ (Some fn) (fnmsk, f0)); rewrite lookup_omap Hfn => /(_ eq_refl);
+          /(_ (fid fn) (fnmsk, f0)); rewrite lookup_omap Hfn => /(_ eq_refl);
           [intros [Hkey ?]|intros [? Hkey]] => /Hkey; case_decide; ss;
           intros Hin; eapply elem_of_submseteq in Hin; eauto.
       }

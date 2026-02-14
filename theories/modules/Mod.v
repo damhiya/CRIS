@@ -1,19 +1,17 @@
-Require Import Common.
+Require Import Common LMod.
 From iris.proofmode Require Import proofmode.
-From stdpp Require Import sorting strings.
-Require Import LMod.
-Require Export FSpec ModTr Sandbox Sp.
+Require Export FSpec ModTr Sandbox Sp Fn.
+From stdpp Require Import sorting strings base list.
 
 Definition uwnd {A} : option A → option A → option (option A) :=
   λ _ _, Some None.
 
 Module Mod. Section Mod.
   Context {Σ : GRA}.
-  Context (a b : gmap string nat).
 
   Record t : Type := mk {
     scopes : list string;
-    fnsems : gmap (option string) (option (emask * fbody));
+    fnsems : gmap fname (option (emask * fbody));
     initial_st : gmap key (option Any.t);
 
     (* For definitional commutativity of addition *)
@@ -165,7 +163,7 @@ Module Mod. Section Mod.
     destruct (_ ms1 !! x); destruct (_ ms2 !! x); ss; naive_solver.
   Qed.
 
-  Lemma lookup_add_l (ms1 ms2 : t) (fno : option string) (mb : emask * fbody) :
+  Lemma lookup_add_l (ms1 ms2 : t) (fno : fname) (mb : emask * fbody) :
     wf (add ms1 ms2) →
     (fnsems ms1) !! fno = Some (Some mb) →
     (fnsems (add ms1 ms2)) !! fno = Some (Some mb).
@@ -176,7 +174,7 @@ Module Mod. Section Mod.
     by move => /(_ None (reflexivity _)) [? ?].
   Qed.
 
-  Lemma lookup_add_r (ms1 ms2 : t) (fno : option string) (mb : emask * fbody) :
+  Lemma lookup_add_r (ms1 ms2 : t) (fno : fname) (mb : emask * fbody) :
     wf (add ms1 ms2) →
     (fnsems ms2) !! fno = Some (Some mb) →
     (fnsems (add ms1 ms2)) !! fno = Some (Some mb).
@@ -192,7 +190,7 @@ Module Mod. Section Mod.
     LMod.initial_st := Any.pair (ModTr.state_encode (initial_st ms)) r↑;
   |}.
 
-  Lemma to_lmod_fnsems (m : t) (r : Σ) (fn : option string) :
+  Lemma to_lmod_fnsems (m : t) (r : Σ) (fn : fname) :
     LMod.fnsems (Mod.to_lmod m r) !! fn =
     ModTr.trans_fnsem <$> (SB.sandbox_body <$> ((fnsems m) !! fn ≫= id)).
   Proof. ss; rewrite ?lookup_fmap lookup_omap //. Qed.
@@ -444,7 +442,7 @@ Proof.
   { destruct lookup eqn: temp; ss; eapply elem_of_dom_2 in temp; set_solver. }
 Qed.
 
-Lemma lookup_fnsems_inv `{Σ : GRA} (m1 m2 : Mod.t) (k : option string) v :
+Lemma lookup_fnsems_inv `{Σ : GRA} (m1 m2 : Mod.t) (k : fname) v :
   Mod.wf (m1 ★ m2) →
   (Mod.fnsems (m1 ★ m2)) !! k = Some v →
   (Mod.fnsems m1 !! k = Some v ∧ Mod.fnsems m2 !! k = None) ∨
@@ -455,7 +453,7 @@ Proof.
   intros []; ss.
 Qed.
 
-Lemma lookup_fnsems_l `{Σ : GRA} (m1 m2 : Mod.t) (k : option string) v :
+Lemma lookup_fnsems_l `{Σ : GRA} (m1 m2 : Mod.t) (k : fname) v :
   Mod.wf (m1 ★ m2) →
   (Mod.fnsems m1) !! k = Some v →
   (Mod.fnsems (m1 ★ m2)) !! k = Some v.
@@ -464,7 +462,7 @@ Proof.
   etransitivity; [eapply lookup_union_with_l|]; eauto.
 Qed.
 
-Lemma lookup_fnsems_l_2 `{Σ : GRA} (m1 m2 : Mod.t) (k : option string) :
+Lemma lookup_fnsems_l_2 `{Σ : GRA} (m1 m2 : Mod.t) (k : fname) :
   Mod.wf (m1 ★ m2) →
   k ∈ dom (Mod.fnsems m1) →
   (Mod.fnsems (m1 ★ m2)) !! k = Mod.fnsems m1 !! k.
@@ -474,7 +472,7 @@ Proof.
   repeat destruct lookup; ss.
 Qed.
 
-Lemma lookup_fnsems_r `{Σ : GRA} (m1 m2 : Mod.t) (k : option string) v :
+Lemma lookup_fnsems_r `{Σ : GRA} (m1 m2 : Mod.t) (k : fname) v :
   Mod.wf (m1 ★ m2) →
   (Mod.fnsems m2) !! k = Some v →
   (Mod.fnsems (m1 ★ m2)) !! k = Some v.
@@ -483,7 +481,7 @@ Proof.
   etransitivity; [eapply lookup_union_with_r|]; eauto.
 Qed.
 
-Lemma lookup_fnsems_r_2 `{Σ : GRA} (m1 m2 : Mod.t) (k : option string) :
+Lemma lookup_fnsems_r_2 `{Σ : GRA} (m1 m2 : Mod.t) (k : fname) :
   Mod.wf (m1 ★ m2) →
   k ∈ dom (Mod.fnsems m2) →
   (Mod.fnsems (m1 ★ m2)) !! k = Mod.fnsems m2 !! k.
@@ -493,7 +491,7 @@ Proof.
   repeat destruct lookup; ss.
 Qed.
 
-Lemma lookup_fnsems_None_l `{Σ : GRA} (m1 m2 : Mod.t) (k : option string) :
+Lemma lookup_fnsems_None_l `{Σ : GRA} (m1 m2 : Mod.t) (k : fname) :
   Mod.wf (m1 ★ m2) →
   (Mod.fnsems m1) !! k = None →
   (Mod.fnsems (m1 ★ m2)) !! k = (Mod.fnsems m2) !! k.
@@ -502,7 +500,7 @@ Proof.
   rewrite lookup_union_with H; destruct (_ m2 !! _); ss.
 Qed.
 
-Lemma lookup_fnsems_None_r `{Σ : GRA} (m1 m2 : Mod.t) (k : option string) :
+Lemma lookup_fnsems_None_r `{Σ : GRA} (m1 m2 : Mod.t) (k : fname) :
   Mod.wf (m1 ★ m2) →
   (Mod.fnsems m2) !! k = None →
   (Mod.fnsems (m1 ★ m2)) !! k = (Mod.fnsems m1) !! k.
@@ -511,39 +509,27 @@ Proof.
   rewrite lookup_union_with H; destruct (_ m1 !! _); ss.
 Qed.
 
-Lemma lookup_fnsems_l2 `{Σ : GRA} (m1 m2 : Mod.t) (k : option string) v :
+Lemma lookup_fnsems_l2 `{Σ : GRA} (m1 m2 : Mod.t) (k : fname) v :
   (Mod.fnsems m1) !! k = None →
   (Mod.fnsems m2) !! k = Some v →
   (Mod.fnsems (m1 ★ m2)) !! k = Some v.
 Proof. rewrite lookup_union_with => -> -> //. Qed.
 
-Lemma lookup_fnsems_r2 `{Σ : GRA} (m1 m2 : Mod.t) (k : option string) v :
+Lemma lookup_fnsems_r2 `{Σ : GRA} (m1 m2 : Mod.t) (k : fname) v :
   (Mod.fnsems m1) !! k = Some v →
   (Mod.fnsems m2) !! k = None →
   (Mod.fnsems (m1 ★ m2)) !! k = Some v.
 Proof. rewrite lookup_union_with => -> -> //. Qed.
 
-Lemma lookup_fnsems_None `{Σ : GRA} (m1 m2 : Mod.t) (k : option string) :
+Lemma lookup_fnsems_None `{Σ : GRA} (m1 m2 : Mod.t) (k : fname) :
   (Mod.fnsems m1) !! k = None →
   (Mod.fnsems m2) !! k = None →
   (Mod.fnsems (m1 ★ m2)) !! k = None.
 Proof. rewrite lookup_union_with => -> -> //. Qed.
 
-Ltac unfold_fnsem :=
-  rewrite /Mod.fnsems /=;
-  match goal with | [|-context[?x]] => 
-    match type of x with (gmap (option string) (option (emask * (option fspec_rel * fbody)))) =>
-      rewrite {1}/x /=
-    end
-  end.
-
-Arguments Mod.add : simpl never.
-Arguments Mod.fnsems : simpl never.
 Hint Extern 80 (Mod.fnsems (_ ★ _) !! _ = Some _) => eapply lookup_fnsems_l2 : simpl_map.
 Hint Extern 80 (Mod.fnsems (_ ★ _) !! _ = Some _) => eapply lookup_fnsems_r2 : simpl_map.
 Hint Extern 80 (Mod.fnsems (_ ★ _) !! _ = None) => eapply lookup_fnsems_None : simpl_map.
-Hint Extern 81 (Mod.fnsems _ !! _ = Some _) => unfold_fnsem; simpl_map : simpl_map.
-Hint Extern 81 (Mod.fnsems _ !! _ = None) => unfold_fnsem; simpl_map : simpl_map.
 Hint Extern 100 (?A !! _ = _) =>
   match type of A with
   | specmap => rewrite /A /=; simpl_map
@@ -557,3 +543,15 @@ Global Hint Extern 90 =>
       (eapply Mod.lookup_add_r;
         [eauto|eapply Mod.add_wf_inv in H as [? [? [? ?]]]]; progress simpl_map)
     end : simpl_map.
+
+Ltac unfold_fnsem :=
+  rewrite /Mod.fnsems /=;
+  match goal with | [|-context[?x]] =>
+    match type of x with gmap fname (option (emask * (option fspec_rel * fbody))) =>
+       rewrite {1}/x /=
+    end
+  end.
+Hint Extern 81 (Mod.fnsems _ !! _ = Some _) => unfold_fnsem; simpl_map; eauto : simpl_map.
+Hint Extern 81 (Mod.fnsems _ !! _ = None) => unfold_fnsem; simpl_map; eauto : simpl_map.
+Arguments Mod.add : simpl never.
+Arguments Mod.fnsems : simpl never.

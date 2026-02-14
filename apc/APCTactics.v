@@ -10,7 +10,7 @@ Section LEMMAS.
   Local Definition rel : Type := ∀ R_s R_t : Type,
     post R_s R_t → bool → bool → state * itree crisE R_s → state * itree crisE R_t → iProp Σ.
 
-  Context (fl_s fl_t : gmap (option string) (option (Any.t → itree crisE Any.t))).
+  Context (fl_s fl_t : gmap fname (option (Any.t → itree crisE Any.t))).
   Context (Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ).
   Context (R_s R_t : Type).
   Context (RR : post R_s R_t).
@@ -37,7 +37,7 @@ Section LEMMAS.
     (WIDTH: (ow_fn < ow_src)%ord)
     (DEPTH: (od_fn < od_src)%ord)
     (SpPureInSp: sp_pure ⊆ sp_s)
-    (fnInSpPure: sp_pure !! speckey_fn fn = Some fsp')
+    (fnInSpPure: sp_pure !! Some (fid fn) = Some fsp')
     (WEAK: ⊢ fspec_imply fsp' fsp)
     (fspIsfspecapc: fsp = (@fspec_apc Σ X o (λ x, (P x, Q x))))
     :
@@ -60,7 +60,7 @@ Section LEMMAS.
     steps_l. case_match; last by steps_l. force_l WIDTH.
     steps_l. case_match; last by steps_l. force_l fn.
     steps_l. case_match; last by steps_l. force_l od_fn. steps_l.
-    assert (PO: (is_Some (sp_pure !! speckey_fn fn) ∧ (od_fn < od_src)%ord)); et.
+    assert (PO: (is_Some (sp_pure !! Some (fid fn)) ∧ (od_fn < od_src)%ord)); et.
     unfold guarantee. steps_l. case_match; last by steps_l. force_l PO. steps_l.
     erewrite lookup_weaken; eauto.
     steps_l. case_match; last by steps_l.
@@ -91,7 +91,7 @@ Section LEMMAS.
     (WIDTH: (ow_fn < ow_src)%ord)
     (DEPTH: (od_fn < od_src)%ord)
     (SpPureInSp: sp_pure ⊆ sp_s)
-    (fnInSpPure: sp_pure !! speckey_fn fn = Some fsp)
+    (fnInSpPure: sp_pure !! Some (fid fn) = Some fsp)
     (fspIsfspecapc: fsp = (@fspec_apc Σ X o (λ x, (P x, Q x))))
     :
     (((P spec_arg args ∗ ⌜∃ vo : Ord.t, od_fn ↑ = vo ↑ ∧ (o spec_arg <= vo)%ord⌝) ∗ (Ist st_src st_tgt)) ∗

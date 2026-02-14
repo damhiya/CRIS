@@ -247,7 +247,7 @@ Module MemIA. Section MemIA.
   Local Definition rel : Type := ∀ R_s R_t : Type,
     post R_s R_t → bool → bool → state * itree crisE R_s → state * itree crisE R_t → iProp Σ.
 
-  Lemma simF_alloc : ISim.sim_fun open MemA MemI IstFull (Some MemHdr.alloc).
+  Lemma simF_alloc : ISim.sim_fun open MemA MemI IstFull (fid MemHdr.alloc).
   Proof using.
     iStartSim. steps_l.
     rename _q into sz, _q0 into varg.
@@ -285,7 +285,7 @@ Module MemIA. Section MemIA.
         i; des; destruct (dec _ _); ss; try case_bool_decide; naive_solver.
   (*SLOW*)Qed.
 
-  Lemma simF_free : ISim.sim_fun open MemA MemI IstFull (Some MemHdr.free).
+  Lemma simF_free : ISim.sim_fun open MemA MemI IstFull (fid MemHdr.free).
   Proof using.
     iStartSim.
     step_l. destruct _q as [[blk ofs] v].
@@ -308,7 +308,7 @@ Module MemIA. Section MemIA.
     - rewrite /update. ii. ss. repeat destruct dec; ss; subst; et.
   (*SLOW*)Qed.
 
-  Lemma simF_load : ISim.sim_fun open MemA MemI IstFull (Some MemHdr.load).
+  Lemma simF_load : ISim.sim_fun open MemA MemI IstFull (fid MemHdr.load).
   Proof using.
     iStartSim.
     step_l. destruct _q as [[[blk ofs] q] v]. steps_l.
@@ -324,7 +324,7 @@ Module MemIA. Section MemIA.
     iExists _, _, _, _; repeat (iSplit; et).
   (*SLOW*)Qed.
 
-  Lemma simF_store : ISim.sim_fun open MemA MemI IstFull (Some MemHdr.store).
+  Lemma simF_store : ISim.sim_fun open MemA MemI IstFull (fid MemHdr.store).
   Proof using.
     iStartSim.
     step_l. destruct _q as [[[blk ofs] q] v]. steps_l.
@@ -347,7 +347,7 @@ Module MemIA. Section MemIA.
     - ii; ss; repeat destruct dec; ss; subst; eauto.
   (*SLOW*)Qed.
 
-  Lemma simF_cmp : ISim.sim_fun open MemA MemI IstFull (Some MemHdr.cmp).
+  Lemma simF_cmp : ISim.sim_fun open MemA MemI IstFull (fid MemHdr.cmp).
   Proof using.
     iStartSim.
     step_l. destruct _q as [[[v_old v_new] v_cmp] Cmp]. steps_l.
@@ -367,7 +367,7 @@ Module MemIA. Section MemIA.
     iExists _, _, _, _; iSplit; eauto.
   (*SLOW*)Qed.
 
-  Lemma simF_cas : ISim.sim_fun open MemA MemI IstFull (Some MemHdr.cas).
+  Lemma simF_cas : ISim.sim_fun open MemA MemI IstFull (fid MemHdr.cas).
   Proof using.
     iStartSim.
     step_l. destruct _q as [[[[[[blk ofs ] v_old] v_new] v_upd] v_cmp] Cmp]. steps_l.

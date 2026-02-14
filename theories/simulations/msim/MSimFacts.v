@@ -1,6 +1,6 @@
-Require Import Common.
-From iris.proofmode Require Import proofmode.
 Require Import Mod MSimCommon MSim LSim LSimTactics ModTr.
+From iris.proofmode Require Import proofmode.
+From stdpp Require Import base.
 
 (* MSIM_FRAME *)
 Lemma msim_ist_frame `{Σ : GRA} contextual fl_src fl_tgt Rs Rt RR Ist P ps pt
@@ -184,10 +184,10 @@ Variant interp_inv `{Σ : GRA} (Ist : ist_type Σ) : list Σ → Any.t * Any.t �
 (* Adequacy requires 'contextual = closed'*)
 Lemma msim_adequacy
     `{Σ : GRA}
-    (fl_src fl_tgt : gmap (option string) (option (Any.t → itree crisE Any.t)))
+    (fl_src fl_tgt : gmap fname (option (Any.t → itree crisE Any.t)))
     (Ist : ist_type Σ)
     (my_tid : nat)
-    (fl_src0 fl_tgt0 : gmap (option string) (Any.t → itree lmodE Any.t))
+    (fl_src0 fl_tgt0 : gmap fname (Any.t → itree lmodE Any.t))
     (FLS : fl_src0 = ModTr.trans_fnsem <$> (omap id fl_src))
     (FLT : fl_tgt0 = ModTr.trans_fnsem <$> (omap id fl_tgt))
     ps pt st_src st_tgt itr_src itr_tgt

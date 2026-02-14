@@ -19,7 +19,7 @@ Module APCAC. Section APCAC.
   Context (PureInSpA : sp_pure ⊆ sp_a).
   Context (PureIsPure :
             ∀ fn fsp,
-            sp_pure !! (speckey_fn fn) = Some fsp
+            sp_pure !! (Some (fid fn)) = Some fsp
             → ∃ msk, (find_body md fn = Some (Some (pure_specbody sp_a msk (Some fsp))))
               ∧ (∀ arg, msk _ (subevent _ (Call APCHdr.apc arg)) = true)
               ∧ (∀ X, msk _ (subevent _ (Take X)) = true)
@@ -35,7 +35,7 @@ Module APCAC. Section APCAC.
 
   Local Transparent _APC.
 
-  Lemma simF_apc : ISim.sim_fun open APCCMod APCAMod IstFull (Some APCHdr.apc).
+  Lemma simF_apc : ISim.sim_fun open APCCMod APCAMod IstFull (fid APCHdr.apc).
   Proof using _crisG PureIsPure PureInSpA APCInSpA.
     (** Due to arbitrary module, manual starting up is required **)
     iStartSim.
@@ -76,7 +76,7 @@ Module APCAC. Section APCAC.
     (* inlining *)
     hexploit PureIsPure; eauto. i. des. rewrite /find_body in H1.
     rename _q1 into x', _q2 into arg.
-    destruct (Mod.fnsems md !! Some fn) eqn:M; cycle 1.
+    destruct (Mod.fnsems md !! fid fn) eqn:M; cycle 1.
     { rewrite lookup_fmap M in H1. ss. }
     destruct o0; ss; cycle 1.
     { rewrite lookup_fmap M in H1. ss. }
@@ -134,7 +134,7 @@ Section ctxr.
     (PureInSpA : sp_pure ⊆ sp_a)
     (PureIsPure :
             ∀ fn fsp,
-            sp_pure !! (speckey_fn fn) = Some fsp
+            sp_pure !! (Some (fid fn)) = Some fsp
             → ∃ msk, (find_body md fn = Some (Some (pure_specbody sp_a msk (Some fsp))))
               ∧ (∀ arg, msk _ (subevent _ (Call APCHdr.apc arg)) = true)
               ∧ (∀ X, msk _ (subevent _ (Take X)) = true)

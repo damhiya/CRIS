@@ -1,14 +1,11 @@
-Require Import Common.
 Require Export LMod.
-
-Local Open Scope nat_scope.
 
 (** lsim is a local simulation relation between modules, with primitive rules for
   events like call, yield, etc. lsim is further abstracted to msim, and so on. You
   would not like to delve into the definitions unless for changing the metatheory *)
 (* wsim → isim → msim → lsim → gsim *)
 Section LSIM.
-  Context (fl_src fl_tgt : gmap (option string) (Any.t → itree lmodE Any.t)).
+  Context (fl_src fl_tgt : gmap fname (Any.t → itree lmodE Any.t)).
   Context {world : Type} (winit : world) (wf : list world → Any.t * Any.t → Prop).
   Context (wle : relation world) (le_refl : Reflexive wle) (le_trans : Transitive wle).
   Context (my_tid : nat).
@@ -56,7 +53,7 @@ Section LSIM.
   | lsim_inline_src
       ps pt w st_src st_tgt
       f fn varg k_src i_tgt
-      (FUN : fl_src !! (Some fn) = Some f)
+      (FUN : fl_src !! (fid fn) = Some f)
       (K : self true pt w (st_src, x <- f varg;; tau;; k_src x) (st_tgt, i_tgt)) :
     lsim_def lsim RR self ps pt w
       (st_src, trigger (Call fn varg) >>= k_src)
@@ -65,7 +62,7 @@ Section LSIM.
   | lsim_inline_tgt
       ps pt w st_src st_tgt
       f fn varg i_src k_tgt
-      (FUN : fl_tgt !! (Some fn) = Some f)
+      (FUN : fl_tgt !! (fid fn) = Some f)
       (K : self ps true w (st_src, i_src) (st_tgt, x <- f varg;; tau;; k_tgt x)) :
     lsim_def lsim RR self ps pt w
       (st_src, i_src)
@@ -155,7 +152,7 @@ Section LSIM.
   | lsim_call_none
       ps pt w st_src st_tgt
       fn varg k_src i_tgt
-      (FUN: fl_src !! (Some fn) = None) :
+      (FUN: fl_src !! (fid fn) = None) :
     lsim_def lsim RR self ps pt w
       (st_src, trigger (Call fn varg) >>= k_src)
       (st_tgt, i_tgt)
@@ -163,7 +160,7 @@ Section LSIM.
   | lsim_spawn_none
       ps pt w st_src st_tgt
       fn varg k_src i_tgt
-      (FUN: fl_src !! (Some fn) = None) :
+      (FUN: fl_src !! (fid fn) = None) :
     lsim_def lsim RR self ps pt w
       (st_src, trigger (Spawn fn varg) >>= k_src)
       (st_tgt, i_tgt)
@@ -514,14 +511,14 @@ Section LSim.
     wle_trans : Transitive wle;
     wf_winit : ∀ w st_src st_tgt (WF : wf w (st_src,st_tgt)), wf (w ++ [winit]) (st_src, st_tgt);
     sim_initial :
-      ∀ it_src, fl_src !! None = Some it_src →
-        (∃ it_tgt, fl_tgt !! None = Some it_tgt ∧
+      ∀ it_src, fl_src !! entry = Some it_src →
+        (∃ it_tgt, fl_tgt !! entry = Some it_tgt ∧
         ∀ arg, ∃ w0 w,
           lsim fl_src fl_tgt winit wf wle 0 top2 [w0] false false [w]
             (st_src, it_src arg) (st_tgt, it_tgt arg));
     sim_fnsems:
-      ∀ fn fs, fl_src !! Some fn = Some fs →
-        ∃ ft, fl_tgt !! (Some fn) = Some ft ∧
+      ∀ fn fs, fl_src !! fid fn = Some fs →
+        ∃ ft, fl_tgt !! fid fn = Some ft ∧
           ∀ my_tid, sim_fsem fl_src fl_tgt winit wf wle my_tid fs ft;
   }.
 

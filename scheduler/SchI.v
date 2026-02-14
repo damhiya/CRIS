@@ -61,12 +61,12 @@ Module SchI. Section SchI.
   Definition get_tid : unit → itree crisE nat :=
     λ _, cgetU v_tid.
 
-  Definition fnsems : gmap (option string) (option (emask * (option fspec_rel * fbody))) :=
-    {[Some SchHdr._spawn # (msk_real (msk_scp scopes msk_true), (None, cfunU inner_spawn));
-      Some SchHdr.spawn # (msk_real (msk_scp scopes msk_true), (None, cfunU spawn));
-      Some SchHdr.yield # (msk_real (msk_scp scopes msk_true), (None, cfunU yield));
-      Some SchHdr.join # (msk_real (msk_scp scopes msk_true), (None, cfunU join));
-      Some SchHdr.get_tid # (msk_real (msk_scp scopes msk_true), (None, cfunU get_tid))]}.
+  Definition fnsems : fnsemmap :=
+    {[fid SchHdr._spawn # (msk_real (msk_scp scopes msk_true), (None, cfunU inner_spawn));
+      fid SchHdr.spawn # (msk_real (msk_scp scopes msk_true), (None, cfunU spawn));
+      fid SchHdr.yield # (msk_real (msk_scp scopes msk_true), (None, cfunU yield));
+      fid SchHdr.join # (msk_real (msk_scp scopes msk_true), (None, cfunU join));
+      fid SchHdr.get_tid # (msk_real (msk_scp scopes msk_true), (None, cfunU get_tid))]}.
 
   Program Definition smod : SMod.t := {|
     SMod.scopes := scopes;

@@ -1,8 +1,8 @@
-From stdpp Require Import base strings.
 Require Import CRIS Mod LMod.
 Require Export ProphecyHeader ProphecyI ProphecyA.
 Require Import ExtendedBehavior SimGEx.
 Require Import exco_stream.
+From stdpp Require Import base strings.
 
 Module ProphIA. Section ProphIA.
   Context `{_crisG : !crisG Γ Σ α β τ _I _S, _PROPH : !prophGS}.
@@ -379,7 +379,7 @@ Module ProphIA. Section ProphIA.
           pclearbot. ired. eapply NEXT.
         * (* Call *)
           econs.
-          rewrite {1 3}/LMod.prog; destruct (_ !! (Some fn)) eqn: EE; ss; cycle 1.
+          rewrite {1 3}/LMod.prog; destruct (_ !! (fid fn)) eqn: EE; ss; cycle 1.
           { hss. unfold triggerUB.
             rewrite interp_state_bind.
             grind. unfold LModTr.pure_state. grind.
@@ -419,7 +419,7 @@ Module ProphIA. Section ProphIA.
               i. pfold. econs. left. grind. }
         * (* Spawn *)
           econs.
-          rewrite {1 3}/LMod.prog; destruct (_ !! (Some fn)) eqn: EE; ss; cycle 1.
+          rewrite {1 3}/LMod.prog; destruct (_ !! (fid fn)) eqn: EE; ss; cycle 1.
           { hss. unfold triggerUB.
             rewrite interp_state_bind.
             grind. unfold LModTr.pure_state. grind.
@@ -772,7 +772,7 @@ Module ProphIA. Section ProphIA.
     - grind. destruct e; ss; grind.
       + steps_l. steps_r. unfold unwrapU.
         destruct LMod.prog eqn:E; [|clearub]. grind. destruct decide.
-        { assert (Hfn : Mod.fnsems md !! Some fn = None).
+        { assert (Hfn : Mod.fnsems md !! fid fn = None).
           { inv WFMODT; eapply map_Forall_union_with_inv_gen in wf_fns.
             eapply not_elem_of_dom_1; i; des; subst; set_solver.
           }
@@ -797,17 +797,17 @@ Module ProphIA. Section ProphIA.
           rewrite ?lookup_fmap /ProphecyA.fnsems /ProphecyI.fnsems; rewrite ?lookup_insert_ne;
             try by (ii; clarify; exfalso; apply n; esplits; eauto).
           rewrite lookup_empty /=; ss.
-          destruct (_ !! Some fn) as [[?|]|] eqn : Hfn; ss; i; clarify.
+          destruct (_ !! fid fn) as [[?|]|] eqn : Hfn; ss; i; clarify.
           grind. endsim.
           { apply Forall2_insert; et. apply wf_sim_bind.
-            { eapply (pmod_fun_wf_sim (Some fn)); rewrite ?lookup_fmap lookup_omap Hfn //=. }
+            { eapply (pmod_fun_wf_sim (fid fn)); rewrite ?lookup_fmap lookup_omap Hfn //=. }
             i. pfold. econs. left. grind.
           }
           i. hexploit INV; et. i. des. esplits; et.
           punfold H0. inversion H0. fclarify. pclearbot. et.
       + steps_l. steps_r. unfold unwrapU.
         destruct LMod.prog eqn:E; [|clearub]. grind. destruct decide.
-        { assert (Hfn : Mod.fnsems md !! Some fn = None).
+        { assert (Hfn : Mod.fnsems md !! fid fn = None).
           { inv WFMODT; eapply map_Forall_union_with_inv_gen in wf_fns.
             eapply not_elem_of_dom_1; i; des; subst; set_solver.
           }
@@ -836,11 +836,11 @@ Module ProphIA. Section ProphIA.
           rewrite ?lookup_fmap /ProphecyA.fnsems /ProphecyI.fnsems; rewrite ?lookup_insert_ne;
             try by (ii; clarify; exfalso; apply n; esplits; eauto).
           rewrite lookup_empty /=; ss.
-          destruct (_ !! Some fn) as [[?|]|] eqn : Hfn; ss; i; clarify.
+          destruct (_ !! fid fn) as [[?|]|] eqn : Hfn; ss; i; clarify.
           grind. endsim.
           { apply Forall2_app; cycle 1.
             { econs; last econs.
-              eapply (pmod_fun_wf_sim (Some fn)); rewrite ?lookup_fmap lookup_omap Hfn //=.
+              eapply (pmod_fun_wf_sim (fid fn)); rewrite ?lookup_fmap lookup_omap Hfn //=.
             }
             apply Forall2_insert; et. erewrite Forall2_length; et.
             apply NEXT.
@@ -1674,7 +1674,7 @@ Module ProphIA. Section ProphIA.
     ii. apply prophecy_tgt_exbeh_exists in PR; et. des.
     pose proof (extrace_has_obs_stream mn extr).
     revert PR0. unfold LMod.compile. unfold proph_compile.
-    remember (_ !! None). set (_ !! None).
+    remember (_ !! entry). set (_ !! entry).
     assert (o = o0).
     { rewrite Heqo. unfold o0, Mod.to_lmod, LMod.prog. ss.
       rewrite ?lookup_fmap ?lookup_omap ?lookup_union_with.
@@ -1690,10 +1690,10 @@ Module ProphIA. Section ProphIA.
     { i. exfalso. apply NOTFREE. ss. }
     econs; last econs. eapply pmod_fun_wf_sim.
     rewrite Heqo. unfold LMod.prog. ss.
-    instantiate (1:= None).
+    instantiate (1:= entry).
     rewrite ?lookup_fmap ?lookup_omap ?lookup_union_with ?lookup_fmap.
     rewrite /ProphecyI.fnsems ?fmap_insert ?lookup_insert_ne //= lookup_empty //=.
-    destruct (Mod.fnsems _ !! None); ss.
+    destruct (Mod.fnsems _ !! entry); ss.
   Qed.
 
   Lemma adequacy_refines sp (P : iProp Σ) :

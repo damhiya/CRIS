@@ -17,10 +17,10 @@ Module APCA. Section APCA.
       (λ _ _ _, True)%I.
 
   Definition sp : specmap :=
-    {[speckey_fn APCHdr.apc := fspec_to_rel apc_spec]}.
+    {[Some (fid APCHdr.apc) := fspec_to_rel apc_spec]}.
 
   Definition fnsems (SpPure: specmap) : fnsemmap :=
-    {[Some APCHdr.apc # (msk_scp scp msk_true, (fsp_some apc_spec, (cfunN (apc_body SpPure))))]}.
+    {[fid APCHdr.apc # (msk_scp scp msk_true, (fsp_some apc_spec, (cfunN (apc_body SpPure))))]}.
 
   Program Definition smod SpPure : SMod.t := {|
     SMod.scopes := scp;

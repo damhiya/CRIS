@@ -84,7 +84,7 @@ Module SchA. Section SchA.
   Definition fn_spawnable fn
       (pre : SAny.t -d> SAny.t -d> iProp Σ)
       (postS : SAny.t -d> SAny.t -d> leibnizO {n & GTerm.t n}) : iProp Σ :=
-    ∃ fsp, ⌜sp_user !! (speckey_fn fn) = Some fsp⌝ ∗ fspec_spawnable fsp pre postS.
+    ∃ fsp, ⌜sp_user !! Some (fid fn) = Some fsp⌝ ∗ fspec_spawnable fsp pre postS.
 
   Lemma fspec_sch_spawnable E1 E2 (fsp1 fsp2 : fspec) :
     E1 ⊆ E2 →
@@ -145,11 +145,11 @@ Module SchA. Section SchA.
       (λ '(mtid, stid) vret ret, ⌜vret = mtid↑ ∧ ret = vret⌝ ∗ Tid mtid stid)%I.
 
   Definition sp (E : coPset) : specmap :=
-    {[speckey_fn SchHdr._spawn :=  fspec_to_rel inner_spawn_spec;
-      speckey_fn SchHdr.spawn :=   fspec_to_rel spawn_spec;
-      speckey_fn SchHdr.yield :=   fspec_to_rel (yield_spec E);
-      speckey_fn SchHdr.join :=    fspec_to_rel (join_spec E);
-      speckey_fn SchHdr.get_tid := fspec_to_rel get_tid_spec]}.
+    {[Some (fid SchHdr._spawn) :=  fspec_to_rel inner_spawn_spec;
+      Some (fid SchHdr.spawn) :=   fspec_to_rel spawn_spec;
+      Some (fid SchHdr.yield) :=   fspec_to_rel (yield_spec E);
+      Some (fid SchHdr.join) :=    fspec_to_rel (join_spec E);
+      Some (fid SchHdr.get_tid) := fspec_to_rel get_tid_spec]}.
 
   (* Module definition *)
   Definition scopes : list string := [SCH].
@@ -209,15 +209,15 @@ Module SchA. Section SchA.
     λ _, cgetN v_tid.
 
   Definition fnsems (E : coPset) : fnsemmap :=
-    {[Some SchHdr._spawn #
+    {[fid SchHdr._spawn #
         (msk_scp scopes msk_true, (fsp_some (inner_spawn_spec), cfunN inner_spawn));
-      Some SchHdr.spawn #
+      fid SchHdr.spawn #
         (msk_scp scopes msk_true, (fsp_some (spawn_spec), cfunN spawn));
-      Some SchHdr.yield #
+      fid SchHdr.yield #
         (msk_scp scopes msk_true, (fsp_some (yield_spec E), cfunN yield));
-      Some SchHdr.join #
+      fid SchHdr.join #
         (msk_scp scopes msk_true, (fsp_some (join_spec E), cfunN join));
-      Some SchHdr.get_tid #
+      fid SchHdr.get_tid #
         (msk_scp scopes msk_true, (fsp_some get_tid_spec, cfunN get_tid))]}.
 
   Program Definition smod (E : coPset) : SMod.t := {|

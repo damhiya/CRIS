@@ -3,13 +3,13 @@ Require Import SchHeader SchI SchA.
 From iris.algebra Require Import gmap_view frac_auth.
 
 Module SchIA. Section sim.
-  Context `{!crisG Γ Σ α β τ _S _I, _SCH: !schGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, !schGS}.
   Import SchA.
 
   Context (sp sp_user : specmap).
   Context (SchInSp : SchA.sp sp_user ⊤ ⊆ sp).
   Context (FunInSp : sp_user ⊆ sp).
-  Context (ConcInSp : speckey_concE ∈ dom sp).
+  Context (ConcInSp : None ∈ dom sp).
 
   Definition Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ :=
     λ st_src st_tgt,
@@ -39,7 +39,7 @@ Module SchIA. Section sim.
   Local Definition SchAMod := SchA.t sp_user sp.
   Local Definition SchIMod := SchI.t.
 
-  Lemma simF_inner_spawn : ISim.sim_fun open SchAMod SchIMod Ist (Some SchHdr._spawn).
+  Lemma simF_inner_spawn : ISim.sim_fun open SchAMod SchIMod Ist (fid SchHdr._spawn).
   Proof using FunInSp SchInSp.
     iStartSim.
     step_l. destruct _q.
@@ -148,7 +148,7 @@ Module SchIA. Section sim.
     iFrame; iDestruct "TidF" as "[$ [$ $]]".
   (*SLOW*)Qed.
 
-  Lemma simF_spawn : ISim.sim_fun open SchAMod SchIMod Ist (Some SchHdr.spawn).
+  Lemma simF_spawn : ISim.sim_fun open SchAMod SchIMod Ist (fid SchHdr.spawn).
   Proof using FunInSp SchInSp ConcInSp.
     iStartSim.
 
@@ -216,7 +216,7 @@ Module SchIA. Section sim.
     by rewrite ?fmap_app big_sepL_app /=; des_ifs; iFrame.
   (*SLOW*)Qed.
 
-  Lemma simF_yield : ISim.sim_fun open SchAMod SchIMod Ist (Some SchHdr.yield).
+  Lemma simF_yield : ISim.sim_fun open SchAMod SchIMod Ist (fid SchHdr.yield).
   Proof using FunInSp SchInSp ConcInSp.
     iStartSim.
 
@@ -275,7 +275,7 @@ Module SchIA. Section sim.
     step. iFrame. done.
   (*SLOW*)Qed.
 
-  Lemma simF_join : ISim.sim_fun open SchAMod SchIMod Ist (Some SchHdr.join).
+  Lemma simF_join : ISim.sim_fun open SchAMod SchIMod Ist (fid SchHdr.join).
   Proof using FunInSp SchInSp.
     iStartSim.
 
@@ -328,7 +328,7 @@ Module SchIA. Section sim.
     }
   (*SLOW*)Qed.
 
-  Lemma simF_get_tid : ISim.sim_fun open SchAMod SchIMod Ist (Some SchHdr.get_tid).
+  Lemma simF_get_tid : ISim.sim_fun open SchAMod SchIMod Ist (fid SchHdr.get_tid).
   Proof using FunInSp SchInSp.
     iStartSim.
 
@@ -372,7 +372,7 @@ Section ctxr.
   Lemma ctxr sp sp_user
         (SchInGlobal : SchA.sp sp_user ⊤ ⊆ sp)
         (UserInGlobal : sp_user ⊆ sp)
-        (ConcInGlobal : speckey_concE ∈ dom sp) :
+        (ConcInGlobal : None ∈ dom sp) :
     ctx_refines
       (SchA.t sp_user sp, SchA.init_cond)
       (SchI.t,            emp%I).
