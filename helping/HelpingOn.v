@@ -33,10 +33,10 @@ Section HoareCall.
     end) x.
 
   Lemma HoareCall_unfold (sp : specmap) (fn : string) :
-    SModTr.HoareCall (sp !! (Some (fid fn))) fn ()↑ =
-    xarg <- HoareCall_prologue (sp !! (Some (fid fn))) (()↑);;
+    SModTr.HoareCall (sp.1 !! (fid fn)) fn ()↑ =
+    xarg <- HoareCall_prologue (sp.1 !! (fid fn)) (()↑);;
     ret <- trigger (Call fn xarg.2);;
-    HoareCall_epilogue (sp !! (Some (fid fn))) xarg.1 ret.
+    HoareCall_epilogue (sp.1 !! (fid fn)) xarg.1 ret.
   Proof using.
     rewrite /SModTr.HoareCall /HoareCall_prologue /HoareCall_epilogue; case_match; grind.
   Qed.
@@ -95,11 +95,11 @@ Module HelpingOn. Section HelpingOn.
   Definition help (sp : specmap) : Any.t → itree crisE Any.t :=
     λ _,
       tid <- trigger (Choose nat);;
-      xarg <- HoareCall_prologue (sp !! Some (fid SchHdr.yield)) (() ↑);;
-      x <- HoareFun_prologue (sp !! Some (fid SchHdr.yield)) (() ↑);;
+      xarg <- HoareCall_prologue (sp.1 !! (fid SchHdr.yield)) (() ↑);;
+      x <- HoareFun_prologue (sp.1 !! (fid SchHdr.yield)) (() ↑);;
       try_run tid;;;
-      HoareFun_epilogue (sp !! Some (fid SchHdr.yield)) x.1 (() ↑);;;
-      HoareCall_epilogue (sp !! Some (fid SchHdr.yield)) xarg.1 (() ↑);;;
+      HoareFun_epilogue (sp.1 !! (fid SchHdr.yield)) x.1 (() ↑);;;
+      HoareCall_epilogue (sp.1 !! (fid SchHdr.yield)) xarg.1 (() ↑);;;
       Ret ()↑.
 
   Definition fnsems (sp : specmap) : fnsemmap :=

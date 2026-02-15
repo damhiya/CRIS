@@ -27,8 +27,8 @@ Section wsim.
       (msk_s msk_t : emask) (sp_s sp_t : specmap) :
     (∀ X, msk_t _ (subevent _ (Choose X))) →
     (msk_t _ (subevent _ (Call SchHdr.yield ()↑))) →
-    sp_s !! (Some (fid SchHdr.yield)) = None →
-    sp_t !! (Some (fid SchHdr.yield)) = None →
+    sp_s.1 !! (fid SchHdr.yield) = None →
+    sp_t.1 !! (fid SchHdr.yield) = None →
     Ist st_src st_tgt ∗
     (∀ st_src st_tgt,
       Ist st_src st_tgt -∗
@@ -74,8 +74,8 @@ Section wsim.
       (msk_s msk_t : emask)
       (sp_s sp_t : specmap)
       (mtid stid : nat) :
-    sp_s !! Some (fid SchHdr.yield) = fsp_some (SchA.yield_spec Es) →
-    sp_t !! Some (fid SchHdr.yield) = None →
+    sp_s.1 !! fid SchHdr.yield = fsp_some (SchA.yield_spec Es) →
+    sp_t.1 !! fid SchHdr.yield = None →
     (∀ X, msk_t _ (subevent _ (Choose X))) →
     (msk_t _ (subevent _ (Call SchHdr.yield ()↑))) →
     Ist st_src st_tgt ∗ Tid mtid stid ∗
@@ -126,8 +126,8 @@ Section wsim.
       (k_t : () → itree crisE R_t)
       (msk_s msk_t : emask)
       (sp_s sp_t : specmap) :
-    sp_s !! Some (fid SchHdr.yield) = fsp_some (SchA.yield_spec Es) →
-    sp_t !! Some (fid SchHdr.yield) = fsp_some (SchA.yield_spec Et) →
+    sp_s.1 !! fid SchHdr.yield = fsp_some (SchA.yield_spec Es) →
+    sp_t.1 !! fid SchHdr.yield = fsp_some (SchA.yield_spec Et) →
     img_msk msk_t →
     (∀ fn arg, msk_t _ (subevent _ (Call fn arg)) = true) →
     Et ⊆ Es →

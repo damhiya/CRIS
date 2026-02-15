@@ -34,7 +34,7 @@ Section apc.
       'fn:_ <- trigger (Choose _);;
       (* depth ordinal *)
       o <- trigger (Choose Ord.t);;
-      guarantee (is_Some (SpPure !! Some (fid fn)) ∧ (o < dep_ord)%ord);;;
+      guarantee (is_Some (SpPure.1 !! (fid fn)) ∧ (o < dep_ord)%ord);;;
       trigger (Call fn o↑);;;
       _APC wid_next
   .
@@ -58,7 +58,7 @@ Section apc.
       trigger (Choose (wid_next < wid_ord)%ord);;;
       'fn:_ <- trigger (Choose _);;
       o <- trigger (Choose Ord.t);;
-      guarantee (is_Some (SpPure !! Some (fid fn)) ∧ (o < dep_ord)%ord);;;
+      guarantee (is_Some (SpPure.1 !! (fid fn)) ∧ (o < dep_ord)%ord);;;
       trigger (Call fn o↑);;;
       _APC wid_next.
   Proof using.

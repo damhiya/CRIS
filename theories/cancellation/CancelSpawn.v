@@ -13,13 +13,13 @@ Local Ltac gnorm_itr :=
 Lemma cancel_spawn `{!crisG Γ Σ α β τ _S _I} md sp fn args :
   CANCEL_GOAL md sp
     (HoareSpawnE None false fn args) 
-    (HoareSpawnE (SMod.conc_sp_from md !! Some (fid fn)) true fn args).
+    (HoareSpawnE ((SMod.conc_sp_from md).1 !! (fid fn)) true fn args).
 Proof.
   r; i. ss. subst.
   revert x1; gnorm_itr; intros x1. revert x0; gnorm_itr; intros x0.
   eapply gsim_Spawn_src; try apply x0.
   rewrite {1}/LMod.prog {1}Mod.to_lmod_fnsems /= !lookup_fmap.
-  destruct (_ !! (fid fn)) as [[[msk [fspo bd]]|]|] eqn : Hfn; ss; cycle 1.
+  destruct ((SMod.fnsems md) !! (fid fn)) as [[[msk [fspo bd]]|]|] eqn : Hfn; ss; cycle 1.
   { gstep_l; ss. }
   { gstep_l; ss. }
   ired.
@@ -28,11 +28,8 @@ Proof.
   rewrite insert_app_l ?length_insert // !list_insert_insert.
 
   destruct fspo; ss; cycle 1.
-  { assert (Hfnsp : SMod.conc_sp_from md !! (Some (fid fn)) = None).
-    { rewrite /SMod.conc_sp_from lookup_insert_ne //.
-      rewrite /SMod.sp_from lookup_kmap_None; intros [|]; ss.
-      i; clarify; rewrite lookup_omap !lookup_fmap !lookup_omap Hfn //.
-    }
+  { assert (Hfnsp : (SMod.conc_sp_from md).1 !! (fid fn) = None).
+    { rewrite lookup_omap !lookup_fmap !lookup_omap Hfn //. }
     rewrite Hfnsp /= in x1.
     revert x1; gnorm_itr; intros x1.
     eapply gsim_Spawn_tgt; try apply x1.
@@ -108,11 +105,8 @@ Proof.
     rewrite length_app /= Nat.add_comm /=.
     iFrame; iIntros "!> //"; iApply Own_unit.
   }
-  assert (Hfnsp : SMod.conc_sp_from md !! (Some (fid fn)) = Some f).
-  { rewrite /SMod.conc_sp_from lookup_insert_ne //.
-    rewrite /SMod.sp_from lookup_kmap_Some; exists (fid fn); ss; split; auto.
-    rewrite lookup_omap !lookup_fmap !lookup_omap Hfn //.
-  }
+  assert (Hfnsp : (SMod.conc_sp_from md).1 !! (fid fn) = Some f).
+  { rewrite lookup_omap !lookup_fmap !lookup_omap Hfn //. }
   rewrite Hfnsp /= in x1.
   revert x1; gnorm_itr; intros x1.
   eapply gsim_Choose_tgt; [eapply x1|]. intros Fsp; s. ghnorm_r.

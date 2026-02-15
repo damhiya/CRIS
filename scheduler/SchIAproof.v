@@ -9,7 +9,7 @@ Module SchIA. Section sim.
   Context (sp sp_user : specmap).
   Context (SchInSp : SchA.sp sp_user ⊤ ⊆ sp).
   Context (FunInSp : sp_user ⊆ sp).
-  Context (ConcInSp : None ∈ dom sp).
+  Context (ConcInSp : sp.2).
 
   Definition Ist : gmap key (option Any.t) → gmap key (option Any.t) → iProp Σ :=
     λ st_src st_tgt,
@@ -159,7 +159,7 @@ Module SchIA. Section sim.
 
     iDestruct "IST" as "[% [% [% [[-> [-> %Hmtid]] [JoinA [TidA [RET Y]]]]]]]".
     steps_l. steps_r. simpl_sp.
-    case_decide as H'; ss; clear H'.
+    rewrite ConcInSp.
 
     (* System spawn precondition *)
     force_l (). steps_l. force_l ((fn, farg)↑). steps_l.
@@ -225,7 +225,7 @@ Module SchIA. Section sim.
     iDestruct "IST" as "[% [%tid_cur [%stid_cur [[-> [-> %Htid_cur]] [JoinA [TidA [RET Ys]]]]]]]".
     destruct Htid_cur as [ro_cur [post_cur Htid_cur]].
     steps_r. steps_l.
-    do 2 (case_decide as H'; ss; clear H').
+    rewrite ConcInSp.
 
     (* GetTid reasoning *)
     force_l stid; force_l; iFrame "TID". steps_l. steps_r.
@@ -248,8 +248,7 @@ Module SchIA. Section sim.
     steps_l. steps_r.
 
     (* HoareYield *)
-    do 2 (case_decide as H'; ss; clear H'). steps_r.
-    steps_l.
+    rewrite ConcInSp. steps_l.
     rewrite ?list_lookup_fmap /= in Htidn.
     iAssert (YIELD stidn ∗
         [∗ list] i ↦ e ∈ ths.*1.*1, if decide (i = tidn) then emp else YIELD e)%I
@@ -372,7 +371,7 @@ Section ctxr.
   Lemma ctxr sp sp_user
         (SchInGlobal : SchA.sp sp_user ⊤ ⊆ sp)
         (UserInGlobal : sp_user ⊆ sp)
-        (ConcInGlobal : None ∈ dom sp) :
+        (ConcInGlobal : sp.2) :
     ctx_refines
       (SchA.t sp_user sp, SchA.init_cond)
       (SchI.t,            emp%I).

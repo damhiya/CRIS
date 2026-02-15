@@ -161,11 +161,14 @@ Module SMod. Section Smod.
       repeat destruct (_ !! i); ss.
   Qed.
 
-  Definition sp_from (md : t) : specmap :=
-    kmap Some (omap id (fst ∘ snd <$> omap id md.(fnsems))).
+  Definition sp_core_from (md : t) :=
+    omap id (fst ∘ snd <$> omap id md.(fnsems)).
+
+  Definition sp_from (md: t) : specmap :=
+    (sp_core_from md, false).
 
   Definition conc_sp_from (md : t) : specmap :=
-    <[None := fspec_to_rel fspec_trivial]> (sp_from md).
+    (sp_core_from md, true).
 
   Definition cancellable (ms : t) : Prop :=
     map_Forall
@@ -181,6 +184,8 @@ Module SMod. Section Smod.
   Qed.
 End Smod. End SMod.
 
+Arguments SMod.sp_core_from : simpl never.
+
 Infix "☆" := SMod.add (at level 60, right associativity).
 
 Section Aux.
@@ -188,24 +193,12 @@ Section Aux.
 
   Lemma lookup_sp_from md fn kboo
     (FIND: md.(SMod.fnsems) !! fid fn = kboo) :
-    (SMod.sp_from md) !! (Some (fid fn)) =
+    SMod.sp_core_from md !! (fid fn) =
       match kboo with
       | Some (Some (_, (Some fsp, _))) => Some fsp
       | _ => None
       end.
   Proof using.
-    rewrite /SMod.sp_from.
-    destruct (match kboo with
-              | Some (Some (_, (Some fsp, _))) => Some fsp
-              | _ => None
-              end) eqn: E; cycle 1.
-    { set (l:=omap _ _).
-      eapply (lookup_kmap_None Some l (Some (fid fn))).
-      i. destruct i; ss. inv H. subst l.
-      rewrite lookup_omap lookup_fmap lookup_omap. des_ifs. }
-    { set (l:=omap _ _).
-      eapply (lookup_kmap_Some Some l (Some (fid fn))).
-      exists (fid fn). split; ss. subst l.
-      rewrite lookup_omap lookup_fmap lookup_omap. des_ifs. }
+    subst. s. rewrite lookup_omap lookup_fmap lookup_omap. des_ifs.
   Qed.
 End Aux.

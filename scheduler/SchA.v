@@ -84,7 +84,7 @@ Module SchA. Section SchA.
   Definition fn_spawnable fn
       (pre : SAny.t -d> SAny.t -d> iProp Σ)
       (postS : SAny.t -d> SAny.t -d> leibnizO {n & GTerm.t n}) : iProp Σ :=
-    ∃ fsp, ⌜sp_user !! Some (fid fn) = Some fsp⌝ ∗ fspec_spawnable fsp pre postS.
+    ∃ fsp, ⌜sp_user.1 !! (fid fn) = Some fsp⌝ ∗ fspec_spawnable fsp pre postS.
 
   Lemma fspec_sch_spawnable E1 E2 (fsp1 fsp2 : fspec) :
     E1 ⊆ E2 →
@@ -146,10 +146,10 @@ Module SchA. Section SchA.
 
   Definition sp (E : coPset) : specmap :=
     {[fid SchHdr._spawn  @ inner_spawn_spec;
-      fid SchHdr.spawn   @ spawn_spec;
-      fid SchHdr.yield   @ yield_spec E;
-      fid SchHdr.join    @ join_spec E;
-      fid SchHdr.get_tid @ get_tid_spec]}.
+       fid SchHdr.spawn   @ spawn_spec;
+       fid SchHdr.yield   @ yield_spec E;
+       fid SchHdr.join    @ join_spec E;
+       fid SchHdr.get_tid @ get_tid_spec]}.
 
   (* Module definition *)
   Definition scopes : list string := [SCH].

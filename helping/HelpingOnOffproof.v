@@ -466,7 +466,7 @@ Section HelpingOnOff.
       (fspo : option fspec_rel) x_fsp
       : itree lmodE Any.t :=
     ⇓cris (tau;; r <- ⇓sb(msk_scp (HelpingOff.scopes mn) msk_true) (
-      HoareCall_epilogue (sp !! Some (fid SchHdr.yield)) x_fsp (()↑);;;
+      HoareCall_epilogue (sp.1 !! (fid SchHdr.yield)) x_fsp (()↑);;;
       ret <- ⇓smod(sp) (𝒴;;; r <- SB.sandbox (msk_pure) (jobs j);; 𝒴;;; Ret r↑);;
       Ret ret
     );; k r).
@@ -494,33 +494,33 @@ Section HelpingOnOff.
       itr_t = (
         ⇓cris (tau;;
           x_ <- ⇓sb(msk_scp (HelpingOff.scopes mn) msk_true)
-            (HoareCall_epilogue (sp !! Some (fid SchHdr.yield)) x (()↑);;;
+            (HoareCall_epilogue (sp.1 !! (fid SchHdr.yield)) x (()↑);;;
             ⇓smod(sp) (𝒴);;;
             Ret ret);;
           ktr_t x_)) →
       itr_s = (
         ⇓cris (tau;;
           x_ <- ⇓sb(msk_scp (HelpingOn.scopes mn) msk_true)
-            (HoareCall_epilogue (sp !! Some (fid SchHdr.yield)) x (()↑);;;
+            (HoareCall_epilogue (sp.1 !! (fid SchHdr.yield)) x (()↑);;;
             ⇓smod(sp) (𝒴);;;
             Ret ret);;
           ktr_s x_)) →
       (∀ ret, help_rel (⇓cris (ktr_s ret)) (⇓cris (ktr_t ret)) None) →
       help_rel itr_s itr_t None
   | help_rel_helpee_done tid jid itr_s itr_t ktr_s ktr_t x ret :
-      itr_t = helpee_pend_t tid jid (sp !! Some (fid SchHdr.yield)) x ktr_t →
+      itr_t = helpee_pend_t tid jid (sp.1 !! (fid SchHdr.yield)) x ktr_t →
       itr_s = (
         ⇓cris (tau;;
           x_ <- ⇓sb(msk_scp (HelpingOn.scopes mn) msk_true)
-            (HoareCall_epilogue (sp !! Some (fid SchHdr.yield)) x (()↑);;;
+            (HoareCall_epilogue (sp.1 !! (fid SchHdr.yield)) x (()↑);;;
             ⇓smod(sp) (𝒴);;;
             Ret ret↑);;
           ktr_s x_)) →
       (∀ ret, help_rel (⇓cris (ktr_s ret)) (⇓cris (ktr_t ret)) None) →
       help_rel itr_s itr_t (Some (tid, (Some ret, jid)))
   | help_rel_helpee_pend tid jid itr_s itr_t k_s k_t x_fsp :
-      itr_s = helpee_pend_s jid k_s (sp !! Some (fid SchHdr.yield)) x_fsp →
-      itr_t = helpee_pend_t tid jid (sp !! Some (fid SchHdr.yield)) x_fsp k_t →
+      itr_s = helpee_pend_s jid k_s (sp.1 !! (fid SchHdr.yield)) x_fsp →
+      itr_t = helpee_pend_t tid jid (sp.1 !! (fid SchHdr.yield)) x_fsp k_t →
       (∀ ret, help_rel (⇓cris (k_s ret)) (⇓cris (k_t ret)) None) →
       help_rel itr_s itr_t (Some (tid, (None, jid)))
   | help_rel_call itr_s itr_t ktr_t ktr_s ctx rs fn arg :
@@ -593,14 +593,14 @@ Section HelpingOnOff.
           (iterV (LModTr.handle_callE (prog_s ctx rs))
             (stid_s1, <[tid_s:=⇓cris (tau;;
               ⇓sb(msk_scp scp msk_true)
-                (HoareCall_epilogue (sp !! Some (fid SchHdr.yield)) x ()↑;;;
+                (HoareCall_epilogue (sp.1 !! (fid SchHdr.yield)) x ()↑;;;
                  ⇓smod(sp) 𝒴);;; k_s)]> tp_s))
           (Any.pair (ModTr.state_encode (st_src ths mtid_s1)) res2↑))
         (LModTr.interp_stateE Any.t
           (iterV (LModTr.handle_callE (prog_t ctx rs))
             (stid_t1, <[tid_t:=⇓cris (tau;;
               ⇓sb(msk_scp scp msk_true)
-                (HoareCall_epilogue (sp !! Some (fid SchHdr.yield)) x ()↑;;;
+                (HoareCall_epilogue (sp.1 !! (fid SchHdr.yield)) x ()↑;;;
                  ⇓smod(sp) 𝒴);;; k_t)]> tp_t))
           (Any.pair
             (ModTr.state_encode (st_tgt reqmap ths mtid_t1)) res2↑))) →
@@ -671,8 +671,7 @@ Section HelpingOnOff.
     subst st_tgt; match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst2 end.
     ghnorm_r. hss. ghnorm_r.
     eapply gsim_tau_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-      rewrite list_insert_insert. ghnorm_r.
-    case_decide as temp; [set_solver +temp|]; s; clear temp.
+    rewrite list_insert_insert. ghnorm_r.
 
     eapply gsim_SGet_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
     rewrite list_insert_insert.
@@ -680,7 +679,6 @@ Section HelpingOnOff.
     ghnorm_l. hss. ghnorm_l.
     eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
     rewrite list_insert_insert. ghnorm_l.
-    case_decide as Htemp; [set_solver +Htemp|]; s; clear Htemp.
 
     ghnorm_l; ghnorm_r.
     eapply gsim_GetTid_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
@@ -725,7 +723,6 @@ Section HelpingOnOff.
     rewrite list_insert_insert. ghnorm_l.
     eapply gsim_tau_tgt; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
     rewrite list_insert_insert. ghnorm_r.
-    case_decide as temp; [set_solver +temp|]; s; clear temp. ghnorm_l; ghnorm_r.
 
     eapply gsim_Yield_src; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
     rewrite list_insert_insert. ghnorm_l.
@@ -1765,7 +1762,6 @@ Section HelpingOnOff.
 
         eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
         rewrite list_insert_insert.
-        case_decide as Htemp; [set_solver +Htemp|]; s; clear Htemp.
         eapply gsim_GetTid_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
         rewrite list_insert_insert.
 
@@ -1812,7 +1808,6 @@ Section HelpingOnOff.
           eapply gsim_tau_src; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
           rewrite list_insert_insert. ghnorm_l.
 
-          case_decide as Htemp; [set_solver +Htemp|]; s; clear Htemp.
           eapply gsim_Yield_src; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
           rewrite list_insert_insert. ghnorm_l.
           eapply gsim_tau_src; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
@@ -1869,7 +1864,6 @@ Section HelpingOnOff.
 
           eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
           rewrite list_insert_insert.
-          case_decide as Htemp; [set_solver +Htemp|]; s; clear Htemp.
           eapply gsim_GetTid_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
           rewrite list_insert_insert.
 
@@ -1895,7 +1889,6 @@ Section HelpingOnOff.
           eapply gsim_tau_src; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
           rewrite list_insert_insert.
 
-          case_decide as Htemp; [set_solver +Htemp|]; s; clear Htemp.
           eapply gsim_Yield_src; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
           rewrite list_insert_insert.
           eapply gsim_tau_src; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
@@ -1955,7 +1948,6 @@ Section HelpingOnOff.
         eapply gsim_tau_src; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
         rewrite list_insert_insert. ghnorm_l.
 
-        case_decide as Htemp; [set_solver +Htemp|]; s; clear Htemp.
         eapply gsim_Yield_src; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
         rewrite list_insert_insert. ghnorm_l.
 
@@ -2034,7 +2026,6 @@ Section HelpingOnOff.
 
         eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
         rewrite list_insert_insert.
-        case_decide as Htemp; [set_solver +Htemp|]; s; clear Htemp.
         eapply gsim_GetTid_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
         rewrite list_insert_insert.
 
@@ -2060,7 +2051,6 @@ Section HelpingOnOff.
         eapply gsim_tau_src; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
         rewrite list_insert_insert.
 
-        case_decide as Htemp; [set_solver +Htemp|]; s; clear Htemp.
         eapply gsim_Yield_src; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
         rewrite list_insert_insert. ghnorm_l. rewrite list_insert_commute //.
 
@@ -2238,7 +2228,6 @@ Section HelpingOnOff.
         ghnorm_r. hss. ghnorm_r.
 
         rewrite lookup_empty.
-        case_decide as Htemp; [set_solver +Htemp|]; s; clear Htemp.
 
         eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
         eapply gsim_tau_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
@@ -2328,7 +2317,6 @@ Section HelpingOnOff.
         match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst2 end.
         ghnorm_r. hss. ghnorm_r.
 
-        case_decide as Htemp; [set_solver +Htemp|]; s; clear Htemp.
         eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
         eapply gsim_tau_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
         rewrite !list_insert_insert.
@@ -2386,7 +2374,6 @@ Section HelpingOnOff.
         eapply gsim_tau_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
         rewrite !list_insert_insert.
 
-        case_decide as Htemp; [set_solver +Htemp|]; s; clear Htemp.
         eapply gsim_Yield_src; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
         rewrite list_insert_insert. ghnorm_l.
         eapply GSimAux.gsim_Yield_tgt; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.

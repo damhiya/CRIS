@@ -97,13 +97,13 @@ Module SModTr. Section HOARE.
     { exact (inr (existT _ (subevent _ e, λ v, Ret v))). }
     destruct e as [[fn args|fn args|tid|]|e].
     (* Call *)
-    { exact (inl (HoareCall (sp !! Some (fid fn)) fn args)). }
+    { exact (inl (HoareCall (sp.1 !! (fid fn)) fn args)). }
     (* Spawn *)
-    { exact (inl (HoareSpawn (sp !! Some (fid fn)) (decide (None ∈ dom sp)) fn args)). }
+    { exact (inl (HoareSpawn (sp.1 !! (fid fn)) sp.2 fn args)). }
     (* Yield *)
-    { exact (inl (HoareYield (decide (None ∈ dom sp)) tid)). }
+    { exact (inl (HoareYield sp.2 tid)). }
     (* GetTid *)
-    { exact (inl (HoareGetTid (decide (None ∈ dom sp)))). }
+    { exact (inl (HoareGetTid sp.2)). }
     (* pgE +' coreE *)
     destruct e as [e|e]; exact (inr (existT _ (subevent _ e, λ v, Ret v))).
   Defined.
@@ -159,24 +159,24 @@ Module SRed. Section RED.
 
   Lemma vis_call sp {R} fn args (ktr : Any.t → itree crisE R) :
     trans sp (vis (Call fn args) ktr) =
-      tau;; r <- HoareCall (sp !! Some (fid fn)) fn args;;
+      tau;; r <- HoareCall (sp.1 !! (fid fn)) fn args;;
       trans sp (ktr r).
   Proof using. rewrite /SModTr.trans /SModTr.handle /= interpV_vis. apply observe_eta; ss. Qed.
 
   Lemma vis_spawn sp {R} fn args (ktr : nat → itree crisE R) :
     trans sp (vis (Spawn fn args) ktr) =
-      tau;; r <- HoareSpawn (sp !! Some (fid fn)) (decide (None ∈ dom sp)) fn args;;
+      tau;; r <- HoareSpawn (sp.1 !! (fid fn)) sp.2 fn args;;
       trans sp (ktr r).
   Proof using. rewrite /SModTr.trans /SModTr.handle /= interpV_vis. apply observe_eta; ss. Qed.
 
   Lemma vis_yield sp {R} tid (ktr : () → itree crisE R) :
     trans sp (vis (Yield tid) ktr) =
-      tau;; x <- HoareYield (decide (None ∈ dom sp)) tid;; trans sp (ktr x).
+      tau;; x <- HoareYield sp.2 tid;; trans sp (ktr x).
   Proof using. rewrite /SModTr.trans /SModTr.handle /= interpV_vis. apply observe_eta; ss. Qed.
 
   Lemma vis_gettid sp {R} (ktr : nat → itree crisE R) :
     trans sp (vis GetTid ktr) =
-      tau;; x <- HoareGetTid (decide (None ∈ dom sp));; trans sp (ktr x).
+      tau;; x <- HoareGetTid sp.2;; trans sp (ktr x).
   Proof using. rewrite /SModTr.trans /SModTr.handle /= interpV_vis. apply observe_eta; ss. Qed.
 
   Lemma assumeK sp {R} P (itr : itree crisE R) :
@@ -197,21 +197,21 @@ Module SRed. Section RED.
 
   (* reduction lemmas for trigger form *)
   Lemma yield sp tid :
-    trans sp (trigger (Yield tid)) = tau;; HoareYield (decide (None ∈ dom sp)) tid.
+    trans sp (trigger (Yield tid)) = tau;; HoareYield sp.2 tid.
   Proof using. rewrite vis_yield; grind; erewrite <- bind_ret_r; grind; rewrite ret //. Qed.
 
   Lemma spawn sp fn args :
     trans sp (trigger (Spawn fn args)) =
-      tau;; HoareSpawn (sp !! Some (fid fn)) (decide (None ∈ dom sp)) fn args.
+      tau;; HoareSpawn (sp.1 !! (fid fn)) sp.2 fn args.
   Proof using. rewrite vis_spawn; grind; erewrite <- bind_ret_r; grind; rewrite ret //. Qed.
 
   Lemma gettid sp :
-    trans sp (trigger GetTid) = tau;; HoareGetTid (decide (None ∈ dom sp)).
+    trans sp (trigger GetTid) = tau;; HoareGetTid sp.2.
   Proof using. rewrite vis_gettid; grind; erewrite <- bind_ret_r; grind; rewrite ret //. Qed.
 
   Lemma call sp fn args :
     trans sp (trigger (Call fn args)) =
-    tau;; HoareCall (sp !! Some (fid fn)) fn args.
+    tau;; HoareCall (sp.1 !! (fid fn)) fn args.
   Proof using. rewrite vis_call; grind; erewrite <- bind_ret_r; grind; rewrite ret //. Qed.
 
   Lemma pg sp (R : Type) (e : pgE R) : trans sp (trigger e) = trigger e.

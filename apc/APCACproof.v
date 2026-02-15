@@ -19,7 +19,7 @@ Module APCAC. Section APCAC.
   Context (PureInSpA : sp_pure ⊆ sp_a).
   Context (PureIsPure :
             ∀ fn fsp,
-            sp_pure !! (Some (fid fn)) = Some fsp
+            sp_pure.1 !! (fid fn) = Some fsp
             → ∃ msk, (find_body md fn = Some (Some (pure_specbody sp_a msk (Some fsp))))
               ∧ (∀ arg, msk _ (subevent _ (Call APCHdr.apc arg)) = true)
               ∧ (∀ X, msk _ (subevent _ (Take X)) = true)
@@ -134,7 +134,7 @@ Section ctxr.
     (PureInSpA : sp_pure ⊆ sp_a)
     (PureIsPure :
             ∀ fn fsp,
-            sp_pure !! (Some (fid fn)) = Some fsp
+            sp_pure.1 !! (fid fn) = Some fsp
             → ∃ msk, (find_body md fn = Some (Some (pure_specbody sp_a msk (Some fsp))))
               ∧ (∀ arg, msk _ (subevent _ (Call APCHdr.apc arg)) = true)
               ∧ (∀ X, msk _ (subevent _ (Take X)) = true)

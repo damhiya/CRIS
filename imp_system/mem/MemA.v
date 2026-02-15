@@ -259,12 +259,12 @@ Module MemA. Section MemA.
   Definition scopes : list string := ["Mem"].
 
   (* Definition sp : specmap :=
-    {[speckey_fn MemHdr.alloc := MemSpec.alloc;
-      speckey_fn MemHdr.free := MemSpec.free;
-      speckey_fn MemHdr.load := MemSpec.load;
-      speckey_fn MemHdr.store := MemSpec.store;
-      speckey_fn MemHdr.cmp := MemSpec.cmp;
-      speckey_fn MemHdr.cas := MemSpec.cas]}. *)
+    {[fid MemHdr.alloc @ MemSpec.alloc;
+      fid MemHdr.free  @ MemSpec.free;
+      fid MemHdr.load  @ MemSpec.load;
+      fid MemHdr.store @ MemSpec.store;
+      fid MemHdr.cmp   @ MemSpec.cmp;
+      fid MemHdr.cas   @ MemSpec.cas]}. *)
 
   Definition fnsems : fnsemmap :=
     {[fid MemHdr.alloc # (msk_scp scopes msk_true, (fsp_some alloc, fbody_trivial));

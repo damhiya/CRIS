@@ -177,7 +177,7 @@ Section ELIM_REL.
       elim_rel_def sp self ε itrS itrT
   | elim_rel_spawn fn args ktrS ktrT itrS itrT :
     itrS = HoareSpawnE None false fn args >>= ktrS →
-    itrT = HoareSpawnE (sp !! Some (fid fn)) true fn args >>= ktrT →
+    itrT = HoareSpawnE (sp.1 !! (fid fn)) true fn args >>= ktrT →
     (∀ x, self _ ε (ktrS x) (ktrT x)) →
     elim_rel_def sp self ε itrS itrT
   | elim_rel_precond fspo fspo' varg itrS itrT ktrT :
@@ -418,7 +418,7 @@ Section ELIM_REL.
     (WF: SMod.cancellable md)
     (IN: ∀ x, msk0 _ (subevent _ (Call fn x)) = true)
     (IMG: img_msk msk0)
-    (SP: sp !! Some (fid fn) = fspo0)
+    (SP: sp.1 !! (fid fn) = fspo0)
     (FIND: (SMod.fnsems md) !! (fid fn) = Some (Some (msk1, (fspo1, bd1))))
     :
     inline_body (sandboxed_prog (SMod.to_mod sp md)) (SB.sandbox msk0 (SModTr.HoareCall fspo0 fn varg))
@@ -546,7 +546,7 @@ Proof using.
       { rewrite SBRed.vis E vis_trigger // MIRed.core. ired. estep 1. }
       destruct ((SMod.fnsems md) !! (fid fn)) eqn: E0; cycle 1.
       { rewrite SBRed.vis E vis_trigger -(bind_ret_r (trigger _)).
-        rewrite {4}/SMod.conc_sp_from. rewrite lookup_insert_ne //. rewrite (lookup_sp_from _ _ None) //.
+        rewrite (lookup_sp_from _ _ None) //.
         ired. rewrite SBRed.vis E vis_trigger !MIRed.bind. ired.
         rewrite -(bind_ret_r (trigger _)) !MIRed.call. ired.
         estep 1. rewrite !MIRed.bind. rewrite !lookup_omap /= !lookup_fmap E0 /=. ired.
@@ -554,7 +554,7 @@ Proof using.
         estep 1. }
       destruct o; cycle 1.
       { rewrite SBRed.vis E vis_trigger -(bind_ret_r (trigger _)).
-        rewrite {4}/SMod.conc_sp_from. rewrite lookup_insert_ne //. rewrite (lookup_sp_from _ _ (Some None)) //.
+        rewrite (lookup_sp_from _ _ (Some None)) //.
         ired. rewrite SBRed.vis E vis_trigger !MIRed.bind. ired.
         rewrite -(bind_ret_r (trigger _)) !MIRed.call. ired.
         estep 1. rewrite !MIRed.bind. rewrite !lookup_omap /= !lookup_fmap E0 /=. ired.
@@ -564,13 +564,12 @@ Proof using.
       destruct p as [img0 [fsp0 bd0]]; s.
       rewrite SBRed.vis E vis_trigger.
       rewrite MIRed.call MIRed.bind; ired.
-      rewrite !MIRed.bind. rewrite !lookup_omap /= !lookup_fmap E0 /=. ired.
+      rewrite !MIRed.bind.
       erewrite (MIRed_HoareCall (md:=md)); eauto; cycle 1.
       { intros x; specialize (CALL fn x args) as [-> ?]; auto. }
+      rewrite !lookup_omap !lookup_fmap lookup_omap E0 /=.
       rewrite /SB.sandbox_body /SModTr.trans_fnsem /= MIRed.ret; ired.
       rewrite SBRed.tau MIRed.tau; ired.
-      rewrite {4}/SMod.conc_sp_from lookup_insert_ne //.
-      rewrite (lookup_sp_from _ _ (Some (Some (img0, (fsp0, bd0))))) //.
 
       gstep. eapply elim_rel_precond; last destruct fsp0; ss.
       intros P Q ?; exists P, Q; split; first done.
@@ -588,11 +587,6 @@ Proof using.
     {
       rewrite !SRed.bind !SBRed.bind !SRed.spawn !SBRed.tau !MIRed.bind !MIRed.tau.
       ired. estep 2. rewrite lookup_empty.
-      rewrite dom_empty_L. destruct (decide (None ∈ ∅)); [ss|].
-      destruct (decide (None ∈ dom (SMod.conc_sp_from md))); cycle 1.
-      { exfalso. eapply n0. rewrite /SMod.conc_sp_from.
-        rewrite dom_insert. set_solver. }
-
       destruct (msk _ (subevent _ (Spawn fn args))) eqn: M; cycle 1.
       { rewrite SBRed.vis M vis_trigger MIRed.core. ired. estep 1. }
       rewrite !SBRed_HoareSpawn //; cycle 1.
@@ -606,9 +600,6 @@ Proof using.
     (* yield case *)
     {
       rewrite !SRed.bind !SRed.yield !SBRed.bind !SBRed.tau !bind_tau !MIRed.tau. estep 2.
-      destruct (decide (None ∈ dom ∅)); [ss|].
-      destruct (decide (None ∈ dom (SMod.conc_sp_from md))); cycle 1.
-      { exfalso. eapply n0. rewrite /SMod.conc_sp_from. rewrite dom_insert. set_solver. }
       destruct (msk _ (subevent _ (Yield tid))) eqn:Y; cycle 1.
       { ss. rewrite SBRed.vis Y vis_trigger bind_bind MIRed.core. estep 1. }
       rewrite !MIRed.bind !SBRed_HoareYield // !MIRed_HoareYield.
@@ -619,9 +610,6 @@ Proof using.
     (* get tid case *)
     {
       rewrite !SRed.bind !SRed.gettid !SBRed.bind !SBRed.tau !bind_tau !MIRed.tau. estep 2.
-      case_decide as temp; first (exfalso; set_solver+temp).
-      destruct (decide (None ∈ dom (SMod.conc_sp_from md))); cycle 1.
-      { exfalso. eapply n. rewrite /SMod.conc_sp_from. rewrite dom_insert. set_solver+n. }
       destruct (msk _ (subevent _ GetTid)) eqn:Y; cycle 1.
       { ss. rewrite SBRed.vis Y vis_trigger bind_bind MIRed.core. estep 1. }
       rewrite !MIRed.bind !SBRed_HoareGetTid // !MIRed_HoareGetTid.
@@ -709,8 +697,6 @@ Section CancelDef.
       (r : ∀ x x0, (x → x0 → Prop) → smj → smj → itree coreE x → itree coreE x0 → Prop)
       (WFS: SMod.cancellable md)
       (VP: sp = SMod.conc_sp_from md)
-      (* (MAIN: is_Some (sp !! speckey_entry)) *)
-      (* (WF: Mod.wf (SMod.to_mod sp_none (SMod.cancel md))) *)
       (CIH :
         ∀ (r_s r_t : Σ) (rs_diff : list Σ) (srcs tgts : list (itree lmodE Any.t))
           (cid : nat) (st : gmap key (option Any.t)) (ps pt : smj)

@@ -234,7 +234,7 @@ Section help.
 
   Lemma wsim_helping_help
       `{!schGS} (ps pt : bool) k_s k_t E r g (req_id : nat) x arg (mtid stid : nat) :
-    sp !! Some (fid SchHdr.yield) = fsp_some (SchA.yield_spec E) →
+    sp.1 !! (fid SchHdr.yield) = fsp_some (SchA.yield_spec E) →
     Tid mtid stid -∗
     helping_token req_id x -∗
     IstFull st_src st_tgt -∗
