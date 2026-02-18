@@ -84,12 +84,9 @@ Section CtxRefineFacts.
   Proof using.
     i. specialize (REF Mod.empty_mc).
     destruct mcs, mct. ss.
-    rewrite -!mod_add_empty_r in REF.
+    rewrite !right_id in REF.
     ii; split; ii; des; ss; red in REF; hexploit REF; eauto; i; des; ss.
     hexploit (H0 rs); ss.
-    { rewrite SRC. iIntros ">[? ?]"; iFrame; et. }
-    i; des; esplits; eauto.
-    rewrite H2. iIntros ">[? [? ?]]". iFrame. et.
   Qed.
 
   (*** weakening for initial condition ***)
@@ -128,12 +125,12 @@ Section CtxRefineFacts.
   (*** commutativity ***)
   Theorem ctxr_comm (ma mb : Mod.t) P:
     ctx_refines (Mod.add ma mb, P) (Mod.add mb ma, P).
-  Proof using. rewrite Mod.add_comm //. Qed.
+  Proof using. rewrite comm //. Qed.
 
   (*** elimination of a module ***)
   Theorem elim_module mc P : ctx_refines (⌽, P) (mc, P).
   Proof using.
-    do 2 rewrite (mod_addc_empty_l _ P).
+    do 2 rewrite -(mod_addc_empty_l _ P).
     eapply ctxr_cond_frameR.
     eapply main_adequacy with (Ist := λ _ _, emp%I).
     init_sim; ss.
@@ -144,7 +141,7 @@ Section CtxRefineFacts.
     ctx_refines (ms ★ mc, Ps) (mt ★ mc, Pt).
   Proof using.
     intro. specialize (REFA (Mod.add mc ctx.1, ctx.2)). ss.
-    move: REFA; rewrite !mod_add_assoc; eauto.
+    move: REFA; rewrite !assoc; eauto.
   Qed.
 
   Lemma ctxr_frameL ms Ps mt Pt mc (REFA : ctx_refines (ms, Ps) (mt, Pt)) :
@@ -179,9 +176,9 @@ Section CtxRefineFacts.
     etrans.
     { eapply ctxr_frameL, ctxr_comm. }
     etrans.
-    { rewrite <-mod_add_assoc.
+    { rewrite assoc.
       eapply ctxr_frameR, ctxr_cond_frameR. apply REFA. }
-    rewrite mod_add_assoc.
+    rewrite -assoc.
     apply ctxr_frameL, ctxr_comm.
   Qed.
 
@@ -193,7 +190,7 @@ Section CtxRefineFacts.
     ctx_refines (msa ★ msb, Pa)%I
                 (mta ★ mtb, P)%I.
   Proof using.
-    rewrite (mod_addc_empty_r _ P) (mod_addc_empty_r _ Pa).
+    rewrite -(mod_addc_empty_r _ P) -(mod_addc_empty_r _ Pa).
     eapply ctxr_compose_hor; et.
   Qed.
 
@@ -202,21 +199,21 @@ Section CtxRefineFacts.
     :
     ctx_refines (ms, P ∗ Q)%I (mt, Q)%I.
   Proof using.
-    rewrite (mod_addc_empty_l _ Q).
+    rewrite -(mod_addc_empty_l _ Q).
     eapply ctxr_cond_frameR. et.
   Qed.
 End CtxRefineFacts.
 
 (** tactics for composing ctx_refines *)
 Ltac ctxr_norm :=
-  try rewrite <-!mod_add_assoc;
   try rewrite ->!mod_add_assoc;
-  (hrepeat do 1 first [rewrite -!mod_addc_empty_l|rewrite -!mod_addc_empty_r]);
+  try rewrite <-!mod_add_assoc;
+  (hrepeat do 1 first [rewrite !mod_addc_empty_l|rewrite !mod_addc_empty_r]);
   try(try (match goal with [|-_ (_,emp%I)] => fail 2 end);
       eapply ctxr_cond_frameR_simpl).
 
 Ltac _ctxr_swap :=
-  try (rewrite -mod_add_assoc; eapply ctxr_compose_hor_simplR; [|refl]);
+  try (rewrite mod_add_assoc; eapply ctxr_compose_hor_simplR; [|refl]);
   eapply ctxr_comm.
 
 Ltac ctxr_swap :=

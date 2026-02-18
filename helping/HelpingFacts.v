@@ -107,8 +107,8 @@ Section Helping.
       ctxr_drop.
       rewrite /mod_src.
       do 3 ctxr_rotate. ctxr_swap. ctxr_rotate; ctxr_swap.
-      do 3 ctxr_rotate. rewrite -?mod_add_assoc. rewrite (mod_add_assoc (mM _)).
-      erewrite <-CFilter.filter_app. rewrite mod_add_assoc.
+      do 3 ctxr_rotate. rewrite ?assoc. rewrite -(assoc _ (mM _)).
+      erewrite <-CFilter.filter_app. rewrite -assoc.
       eapply Hc2; et.
     }
 

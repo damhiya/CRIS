@@ -199,7 +199,7 @@ Module CFilter. Section CFilter.
   Lemma intro_filter fns (m : Mod.t) P :
     ctx_refines (filter fns m, P)%I (m, P)%I.
   Proof using.
-    rewrite !(mod_addc_empty_r _ P).
+    rewrite -!(mod_addc_empty_r _ P).
     eapply ctxr_cond_frameL.
     eapply main_adequacy, sim_filter_intro.
   Qed.

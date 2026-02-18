@@ -254,7 +254,7 @@ Section ModFacts.
   Context `{Σ : GRA}.
 
   Lemma mod_add_assoc (md1 md2 md3 : Mod.t) :
-    (md1 ★ md2) ★ md3 = md1 ★ md2 ★ md3.
+    md1 ★ (md2 ★ md3) = (md1 ★ md2) ★ md3.
   Proof using.
     destruct md1, md2, md3.
     apply Mod.t_eq; s; try rewrite assoc //.
@@ -267,7 +267,7 @@ Section ModFacts.
     { apply map_eq; intros ?; rewrite ?lookup_union_with; repeat (destruct (_ !! _)); ss. }
   Qed.
 
-  Lemma mod_add_empty_l (md : Mod.t) : md = ⌽ ★ md.
+  Lemma mod_add_empty_l (md : Mod.t) : ⌽ ★ md = md.
   Proof using.
     destruct md. apply Mod.t_eq; s; rewrite ?left_id //.
     apply (StronglySorted_unique String.le); eauto.
@@ -275,7 +275,7 @@ Section ModFacts.
     rewrite !merge_sort_Permutation //.
   Qed.
 
-  Lemma mod_add_empty_r (md : Mod.t) : md = md ★ ⌽.
+  Lemma mod_add_empty_r (md : Mod.t) : md ★ ⌽ = md.
   Proof using.
     destruct md. apply Mod.t_eq; s; rewrite ?right_id //.
     apply (StronglySorted_unique String.le); eauto.
@@ -284,32 +284,37 @@ Section ModFacts.
   Qed.
 
   Lemma mod_addc_assoc (md : Mod.t) (P Q R : iProp Σ) :
-    (md, (P ∗ Q) ∗ R)%I ≡ (md, P ∗ Q ∗ R)%I.
+    (md, P ∗ Q ∗ R)%I ≡ (md, (P ∗ Q) ∗ R)%I.
   Proof using.
     econs; ss.
     iSplit.
-    { iIntros "[[P Q] R]"; iFrame. }
     { iIntros "[P [Q R]]"; iFrame. }
+    { iIntros "[[P Q] R]"; iFrame. }
   Qed.
 
   Lemma mod_addc_empty_l (md : Mod.t) (P : iProp Σ) :
-    (md, P) ≡ (md, emp ∗ P)%I.
+    (md, emp ∗ P)%I ≡ (md, P).
   Proof using.
     econs; ss.
     iSplit.
-    { iIntros "P"; iFrame. }
     { iIntros "[_ P]"; iFrame. }
+    { iIntros "P"; iFrame. }
   Qed.
 
   Lemma mod_addc_empty_r (md : Mod.t) (P : iProp Σ) :
-   (md, P) ≡ (md, P ∗ emp)%I.
+   (md, P ∗ emp)%I ≡ (md, P).
   Proof using.
     econs; ss.
     iSplit.
-    { iIntros "P"; iFrame. }
     { iIntros "[P _]"; iFrame. }
+    { iIntros "P"; iFrame. }
   Qed.
 End ModFacts.
+
+Global Instance _mod_add_comm `{Σ: GRA} : Comm eq Mod.add := Mod.add_comm.
+Global Instance _mod_add_assoc `{Σ: GRA} : Assoc eq Mod.add := mod_add_assoc.
+Global Instance _mod_left_id `{Σ: GRA} : LeftId eq Mod.empty Mod.add := mod_add_empty_l.
+Global Instance _mod_right_id `{Σ: GRA} : RightId eq Mod.empty Mod.add := mod_add_empty_r.
 
 (* Lemmas related to module states and function maps *)
 Lemma dom_union_with `{Countable K} {V} (m1 m2 : gmap K (option V)) :

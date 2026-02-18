@@ -72,7 +72,7 @@ Section prophecy.
       eapply (Hproph (mname_long (S mn))).
     }
     etrans; cycle 1.
-    { rewrite Mod.add_comm mod_add_assoc (Mod.add_comm (ProphecyI.t _)) -mod_add_assoc.
+    { rewrite comm -assoc (Mod.add_comm (ProphecyI.t _)) assoc.
       eapply ProphIA.adequacy_refines; eauto.
       eapply real_mod_add; eauto using CFilter_real_mod.
     }
