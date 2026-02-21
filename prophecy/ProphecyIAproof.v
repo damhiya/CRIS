@@ -182,7 +182,8 @@ Module ProphIA. Section ProphIA.
         * destruct c.
           { rewrite interpV_vis /=; grind; pfold; econs; i; grind; right; eauto. }
           { rewrite interpV_vis /=; grind; pfold; econs; eauto.
-            { destruct H as [? H]; apply H; ss. }
+            { destruct (excluded_middle_informative _); et.
+              bsimpl. eapply H. et. }
             { i; grind; right; eauto. }
           }
           { rewrite interpV_vis /=; grind; pfold; econs; i; grind; right; eauto. }

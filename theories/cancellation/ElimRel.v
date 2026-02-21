@@ -543,7 +543,7 @@ Proof using.
     (* call case *)
     { rewrite !SRed.bind !SBRed.bind !SRed.call !SBRed.tau !MIRed.bind !MIRed.tau.
       ired. estep 2. rewrite lookup_empty. destruct (msk _ (subevent _ (Call fn args))) eqn: E; cycle 1.
-      { rewrite SBRed.vis E vis_trigger // MIRed.core. ired. estep 1. }
+      { rewrite SBRed.vis E //= vis_trigger // MIRed.core. ired. estep 1. }
       destruct ((SMod.fnsems md) !! (fid fn)) eqn: E0; cycle 1.
       { rewrite SBRed.vis E vis_trigger -(bind_ret_r (trigger _)).
         rewrite (lookup_sp_from _ _ None) //.
@@ -588,7 +588,7 @@ Proof using.
       rewrite !SRed.bind !SBRed.bind !SRed.spawn !SBRed.tau !MIRed.bind !MIRed.tau.
       ired. estep 2. rewrite lookup_empty.
       destruct (msk _ (subevent _ (Spawn fn args))) eqn: M; cycle 1.
-      { rewrite SBRed.vis M vis_trigger MIRed.core. ired. estep 1. }
+      { rewrite SBRed.vis M /= vis_trigger MIRed.core. ired. estep 1. }
       rewrite !SBRed_HoareSpawn //; cycle 1.
       { i. r in CALL. hexploit (CALL fn x args). i; des; eauto. }
       { i. r in CALL. hexploit (CALL fn args x). i; des; eauto. }
@@ -601,7 +601,7 @@ Proof using.
     {
       rewrite !SRed.bind !SRed.yield !SBRed.bind !SBRed.tau !bind_tau !MIRed.tau. estep 2.
       destruct (msk _ (subevent _ (Yield tid))) eqn:Y; cycle 1.
-      { ss. rewrite SBRed.vis Y vis_trigger bind_bind MIRed.core. estep 1. }
+      { ss. rewrite SBRed.vis Y /= vis_trigger bind_bind MIRed.core. estep 1. }
       rewrite !MIRed.bind !SBRed_HoareYield // !MIRed_HoareYield.
       gstep. eapply elim_rel_yield; eauto.
       i; s. edone.
@@ -611,7 +611,7 @@ Proof using.
     {
       rewrite !SRed.bind !SRed.gettid !SBRed.bind !SBRed.tau !bind_tau !MIRed.tau. estep 2.
       destruct (msk _ (subevent _ GetTid)) eqn:Y; cycle 1.
-      { ss. rewrite SBRed.vis Y vis_trigger bind_bind MIRed.core. estep 1. }
+      { ss. rewrite SBRed.vis Y /= vis_trigger bind_bind MIRed.core. estep 1. }
       rewrite !MIRed.bind !SBRed_HoareGetTid // !MIRed_HoareGetTid.
       gstep.
       eapply elim_rel_gettid; eauto.

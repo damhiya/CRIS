@@ -5,9 +5,19 @@ Module SB. Section SB.
   Context `{Σ : GRA}.
 
   (**** Sandboxing ****)
+
+  Definition msk_default T (e: crisE T) : bool :=
+    match e with
+    | (|||Choose X)%sum => true
+    | (|||Take X)%sum => excluded_middle_informative (∃ P : Prop, X = P)
+    | (Guarantee _|)%sum => true
+    | (AssumeRes _|)%sum => true
+    | _ => false
+    end.
+
   Definition handle (msk : emask) : crisE ~> itreeV crisE :=
     λ T e,
-      if msk T (subevent _ e)
+      if msk T (subevent _ e) || msk_default T (subevent _ e)
       then inr (existT T (subevent _ e, λ x, Ret x))
       else inr (existT _ (subevent _ (Take False), λ v, Ret (False_rect _ v))).
 
@@ -37,7 +47,7 @@ Module SBRed. Section SBRed.
 
   Lemma vis msk {X R} (e : crisE X) (k : X → itree crisE R) :
     SB.sandbox msk (Vis e k) =
-    if msk X e
+    if msk X e || SB.msk_default X e
     then Vis e (λ x, SB.sandbox msk (k x))
     else vis (Take False) (λ v, Ret (False_rect _ v)).
   Proof using.
@@ -47,6 +57,49 @@ Module SBRed. Section SBRed.
     ired.
     eapply observe_eta; grind; ss; f_equal; extensionalities; ss; grind. 
   Qed.
+
+  Lemma assumeK msk {R} P (itr : itree crisE R) :
+    SB.sandbox msk (assumeK P itr) = assumeK P (SB.sandbox msk itr).
+  Proof using.
+    eapply observe_eta; ss. rewrite /SB.handle; s.
+    destruct (excluded_middle_informative _); s; cycle 1.
+    { exfalso. eapply n. et. }
+    bsimpl; s; f_equal; extensionalities; ss; ired; eauto.
+  Qed.
+
+  Lemma guaranteeK msk {R} P (itr : itree crisE R) :
+    SB.sandbox msk (guaranteeK P itr) = guaranteeK P (SB.sandbox msk itr).
+  Proof using.
+    eapply observe_eta; ss. rewrite /SB.handle; s.
+    bsimpl; s; f_equal; extensionalities; ss; ired; eauto.
+  Qed.
+
+  Lemma unwrapUK msk {X R} x (ktr : X → itree crisE R) :
+    SB.sandbox msk (unwrapUK x ktr) = unwrapUK x (λ x, SB.sandbox msk (ktr x)).
+  Proof using.
+    eapply observe_eta; ss. destruct x; et; ss. rewrite /SB.handle; s.
+    destruct (excluded_middle_informative _); s; cycle 1.
+    { exfalso. eapply n. et. }
+    bsimpl; s; f_equal; extensionalities; ss; ired; eauto.
+  Qed.
+
+  Lemma unwrapNK msk {X R} (x : option X) (ktr : X → itree crisE R) :
+    SB.sandbox msk (unwrapNK x ktr) = unwrapNK x (λ x, SB.sandbox msk (ktr x)).
+  Proof using.
+    eapply observe_eta; ss. destruct x; et; ss. rewrite /SB.handle; s.
+    bsimpl; s; f_equal; extensionalities; ss; ired; eauto.
+  Qed.
+
+  Lemma ruK msk {R} pp (ktr : _ → itree crisE R) :
+    SB.sandbox msk (RealUpdateK pp ktr) = RealUpdateK pp (λ x, SB.sandbox msk (ktr x)).
+  Proof using.
+    rewrite /RealUpdateK /RealUpdate. unseal CRIS_FancyReal. ired.
+    rewrite !SBRed.bind !SBRed.vis !trigger_vis; s; bsimpl.
+    f_equal; [repeat f_equal; extensionalities; apply ret|extensionalities].
+    rewrite !SBRed.bind !SBRed.vis !trigger_vis; s; bsimpl.
+    repeat (repeat f_equal; extensionalities); apply ret.
+  Qed.
+
 End SBRed. End SBRed.
 
 Section Properties.
@@ -70,7 +123,8 @@ Section Properties.
       gstep. rewrite !bind_vis. econs; ss.
     }
     rewrite !SBRed.vis; case_match eqn : Hmsk2; ss; cycle 1.
-    { rewrite Hmsk in Hmsk2; ss. }
+    { bsimpl. destruct Hmsk2 as [E1 E2]. rewrite E2 in Hmsk1. des; ss.
+      eapply Hmsk in Hmsk1. rewrite E1 in Hmsk1. ss. }
     rewrite !bind_vis. gstep. econs. intros x.
     rewrite !SBRed.ret; ired.
     gbase. eapply CIH. auto.

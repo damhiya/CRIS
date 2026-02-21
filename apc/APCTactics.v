@@ -60,8 +60,7 @@ Section LEMMAS.
     steps_l. case_match; last by steps_l. force_l WIDTH.
     steps_l. case_match; last by steps_l. force_l fn.
     steps_l. case_match; last by steps_l. force_l od_fn. steps_l.
-    assert (PO: (is_Some (sp_pure.1 !! (fid fn)) ∧ (od_fn < od_src)%ord)); et.
-    unfold guarantee. steps_l. case_match; last by steps_l. force_l PO. steps_l.
+    force_l. iSplit; et. steps_l.
     erewrite lookup_weaken; [..|apply SpPureInSp]; et.
     steps_l. case_match; last by steps_l.
     iPoseProof (WEAK with "") as "WEAK".

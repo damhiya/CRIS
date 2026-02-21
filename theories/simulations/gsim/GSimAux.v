@@ -11,7 +11,7 @@ Notation "'⇓cris'" := (interpV (ModTr.handle_crisE)).
 Notation "'⇓sb(' m ')'" := (SB.sandbox m).
 Notation "'⇓smod(' sp ')'" := (SModTr.trans sp).
 
-Local Ltac gnorm_itr :=
+Local Ltac ghnorm_itr :=
   match goal with
   | |- context [?A] =>
       match type of A with
@@ -24,8 +24,8 @@ Ltac lookup_tac :=
   | H : ?l !! ?i = _ |- (_ <$> ?l) !! ?i = _ => rewrite list_lookup_fmap H //
   | |- <[?i := _]> _ !! ?i = _ => rewrite list_lookup_insert; [|rewrite ?length_insert ?length_fmap //]
   end.
-Ltac ghnorm_l := greplace_l; [gnorm_itr; refl|].
-Ltac ghnorm_r := greplace_r; [gnorm_itr; refl|].
+Ltac ghnorm_l := greplace_l; [ghnorm_itr; refl|].
+Ltac ghnorm_r := greplace_r; [ghnorm_itr; refl|].
 
 Section props.
   Context `{!crisG Γ Σ α β τ _S _I}.

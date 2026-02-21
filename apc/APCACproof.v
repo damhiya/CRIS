@@ -70,12 +70,12 @@ Module APCAC. Section APCAC.
     rewrite unfold_APC. steps_r. des_ifs. { step. iFrame. }
     steps_r. rename _q into o, _q2 into o', _q1 into fn, _q0 into LT.
 
-    rewrite /guarantee. steps_r. rewrite /is_Some in _q. des.
+    rewrite /is_Some in grt. des.
     dup PureInSpA. rename PureInSpA0 into PIS. simpl_sp. steps_r.
 
     (* inlining *)
     hexploit PureIsPure; eauto. i. des. rewrite /find_body in H1.
-    rename _q1 into x', _q2 into arg.
+    rename _q into x', _q0 into arg.
     destruct (Mod.fnsems md !! fid fn) eqn:M; cycle 1.
     { rewrite lookup_fmap M in H1. ss. }
     destruct o0; ss; cycle 1.

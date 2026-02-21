@@ -201,6 +201,16 @@ Tactic Notation "red_SB" tactic(tac) :=
           eapply SBRed.tau
       | vis _ ?k =>
           etransitivity; [eapply SBRed.vis | s; tac ]
+      | assumeK _ _ =>
+          eapply SBRed.assumeK
+      | guaranteeK _ _ =>
+          eapply SBRed.guaranteeK
+      | unwrapUK _ _ =>
+          eapply SBRed.unwrapUK
+      | unwrapNK _ _ =>
+          eapply SBRed.unwrapNK
+      | RealUpdateK _ _ _ =>
+          eapply SBRed.ruK
       | @ITree.bind _ _ _ _ _ =>
           eapply SBRed.bind
       | _ =>
@@ -269,8 +279,16 @@ Tactic Notation "red_S" tactic(tac) :=
           eapply SRed.vis_coreE
       | vis (IO _ _) _ =>
           eapply SRed.vis_coreE
-      (* | RealUpdateK _ _ _ =>
-          eapply SRed.ruK *)
+      | assumeK _ _ =>
+          eapply SRed.assumeK
+      | guaranteeK _ _ =>
+          eapply SRed.guaranteeK
+      | unwrapUK _ _ =>
+          eapply SRed.unwrapUK
+      | unwrapNK _ _ =>
+          eapply SRed.unwrapNK
+      | RealUpdateK _ _ _ =>
+          eapply SRed.ruK
       | @ITree.bind _ _ _ _ _ =>
           eapply SRed.bind
       | _ =>
@@ -280,7 +298,7 @@ Tactic Notation "red_S" tactic(tac) :=
 
 Ltac _hnorm_itr :=
   lazymatch goal with
-  | |- match bool_decide ?P with | true => ?A | false => ?B end = _ =>
+  | |- match bool_decide ?P || _ with | true => ?A | false => ?B end = _ =>
       tryif is_closed_term P
       then
         let r := eval vm_compute in (bool_decide P) in
@@ -289,7 +307,7 @@ Ltac _hnorm_itr :=
       else (* solver for open proposition P - add further tactics in new scenarios *)
         (let a := fresh in case_bool_decide as a; [exfalso; set_solver+a|]
         ||let a := fresh in case_bool_decide as a; [|exfalso; set_solver+a]
-        ||idtac); reflexivity
+        ||idtac); s; reflexivity
   | [ |- Ret _ = _ ] =>
       reflexivity
   | [ |- Tau _ = _ ] =>
@@ -310,6 +328,22 @@ Ltac _hnorm_itr :=
       | red_S (do 1 _hnorm_itr) ]
   | [ |- trigger _ = _ ] =>
       eapply trigger_vis
+  | [ |- assume _ = _ ] =>
+      eapply assume_assumeK
+  | [ |- guarantee _ = _ ] =>
+      eapply guarantee_guaranteeK
+  | [ |- unwrapU (Any.downcast (Any.upcast ?a)) = _ ] =>
+      rewrite Any.upcast_downcast /=; _hnorm_itr
+  | [ |- unwrapU (SAny.downcast (SAny.upcast ?a)) = _ ] =>
+      rewrite SAny.upcast_downcast /=; _hnorm_itr
+  | [ |- unwrapU _ = _ ] =>
+      eapply unwrapU_unwrapUK
+  | [ |- unwrapN (Any.downcast (Any.upcast ?a)) = _ ] =>
+      rewrite Any.upcast_downcast /=; _hnorm_itr
+  | [ |- unwrapN (SAny.downcast (SAny.upcast ?a)) = _ ] =>
+      rewrite SAny.upcast_downcast /=; _hnorm_itr
+  | [ |- unwrapN _ = _ ] =>
+      eapply unwrapN_unwrapNK
   | [ |- RealUpdate _ _ = _ ] =>
       eapply RealUpdate_RealUpdateK
   | [ |- SModTr.HoareCall _ _ _ = _ ] =>
@@ -345,14 +379,6 @@ Ltac _hnorm_itr :=
   | [ |- triggerNB = _ ] =>
       unfold triggerNB;
       _hnorm_itr
-  | [ |- unwrapU (Any.downcast (Any.upcast ?a)) = _ ] =>
-      rewrite Any.upcast_downcast /=; _hnorm_itr
-  | [ |- unwrapN (Any.downcast (Any.upcast ?a)) = _ ] =>
-      rewrite Any.upcast_downcast /=; _hnorm_itr
-  | [ |- unwrapU (SAny.downcast (SAny.upcast ?a)) = _ ] =>
-      rewrite SAny.upcast_downcast /=; _hnorm_itr
-  | [ |- unwrapN (SAny.downcast (SAny.upcast ?a)) = _ ] =>
-      rewrite SAny.upcast_downcast /=; _hnorm_itr
   | [ |- ?itr = _ ] =>
       reflexivity
   end.

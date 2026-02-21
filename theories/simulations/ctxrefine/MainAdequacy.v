@@ -20,11 +20,11 @@ Qed.
 
 Lemma inv_sandbox_event `{Σ : GRA} {X Y} (x: X) msk (ktr : _ → itree crisE Y) (e : crisE X) :
   SB.sandbox msk (trigger e >>= ktr) = trigger e >>= ktr →
-  SB.sandbox msk (ktr x) = ktr x ∧ msk X e.
+  SB.sandbox msk (ktr x) = ktr x ∧ (msk X e ∨ SB.msk_default X e).
 Proof.
   rewrite SBRed.bind SBRed.vis; des_ifs; ss.
   { rewrite ?bind_vis; intros H; depdes H; eapply equal_f in x; eauto.
-    revert x; rewrite SBRed.ret; ired; eauto.
+    revert x; rewrite SBRed.ret; ired; bsimpl; eauto.
   }
   { rewrite bind_trigger bind_vis. intros H; depdes H; ss. }
 Qed.
@@ -163,7 +163,7 @@ Proof.
     move : FUN => /(Mod.lookup_add_l); move /(_ ctx Hwft) => /=; rewrite lookup_fmap => -> //=.
   }
   { mstep.
-    eapply inv_sandbox_event in Hsbs as [Hktr Hmsk]; ss; case_decide; ss.
+    eapply inv_sandbox_event in Hsbs as [Hktr Hmsk]; bsimpl; des; ss; case_decide; ss.
     rewrite insert_union_with_l.
     { eapply K; eauto. rewrite dom_insert_L; set_solver. }
     rewrite not_elem_of_dom_1 //.
@@ -172,7 +172,7 @@ Proof.
     rewrite /= sorting.merge_sort_Permutation NoDup_app; i; des; naive_solver.
   }
   { mstep.
-    eapply inv_sandbox_event in Hsbt as [Hktr Hmsk]; ss; case_decide; ss.
+    eapply inv_sandbox_event in Hsbt as [Hktr Hmsk]; bsimpl; des; ss; case_decide; ss.
     rewrite insert_union_with_l.
     { eapply K; eauto. rewrite dom_insert_L; set_solver. }
     rewrite not_elem_of_dom_1 //.
@@ -181,14 +181,14 @@ Proof.
     rewrite /= sorting.merge_sort_Permutation NoDup_app; i; des; naive_solver.
   }
   { mstep. eapply K; eauto using inv_sandbox_ktr.
-    eapply inv_sandbox_event in Hsbs as [Hktr Hmsk]; ss; case_decide; ss.
+    eapply inv_sandbox_event in Hsbs as [Hktr Hmsk]; bsimpl; des; ss; case_decide; ss.
     rewrite lookup_union_with (not_elem_of_dom_1 st_ctx); [destruct (_ !! _); ss|].
     assert (Mod.scopes ctx ## Mod.scopes mt); [|set_solver].
     intros x Hxc Hxt; hexploit (Mod.wf_scopes _ Hwft).
     rewrite /= sorting.merge_sort_Permutation NoDup_app; i; des; naive_solver.
   }
   { mstep. eapply K; eauto using inv_sandbox_ktr.
-    eapply inv_sandbox_event in Hsbt as [Hktr Hmsk]; ss; case_decide; ss.
+    eapply inv_sandbox_event in Hsbt as [Hktr Hmsk]; bsimpl; des; ss; case_decide; ss.
     rewrite lookup_union_with (not_elem_of_dom_1 st_ctx); [destruct (_ !! _); ss|].
     assert (Mod.scopes ctx ## Mod.scopes mt); [|set_solver].
     intros x Hxc Hxt; hexploit (Mod.wf_scopes _ Hwft).

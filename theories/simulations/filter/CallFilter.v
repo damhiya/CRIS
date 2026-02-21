@@ -89,17 +89,17 @@ Module CFilter. Section CFilter.
       force_l; iFrame; steps_l.
       by_coind CIH. iFrame.
     - destruct c; s; steps_l; case_match; try case_bool_decide; steps_l; ss.
-      + steps_r; case_match; des; ss.
+      + steps_r; bsimpl; des; case_match; des; ss.
         steps_r. call "".
         iIntros (ret ??) "->"; steps_l; steps_r.
         by_coind CIH. iFrame.
-      + steps_r; case_match; des; ss.
+      + steps_r; bsimpl; des; case_match; des; ss.
         steps_r. iApply (wsim_spawn).
         iIntros (tid); steps_l; steps_r; by_coind CIH; iFrame.
-      + steps_r; case_match; des; ss.
+      + steps_r; bsimpl; des; case_match; des; ss.
         steps_r. iApply (wsim_yield); iSplit; [eauto|].
         iIntros (??) "->"; steps_l; steps_r; by_coind CIH; iFrame.
-      + steps_r; case_match; des; ss.
+      + steps_r; bsimpl; des; case_match; des; ss.
         steps_r. iApply (wsim_gettid); eauto.
         iIntros (?); steps_l; steps_r; by_coind CIH; iFrame.
     - destruct s; steps_l; steps_r; case_match; steps_l; ss; steps_r.
@@ -151,7 +151,7 @@ Module CFilter. Section CFilter.
       steps_r; case_match; ss; steps_r; force_l; iFrame. norm_l; norm_r; by_coind CIH. done.
     }
     { destruct c; s; steps_l; case_match; try case_bool_decide; steps_l; ss.
-      { steps_r; case_bool_decide; des; ss.
+      { steps_r; bsimpl; des; case_bool_decide; des; ss.
         { steps_r. iApply isim_call. iSplit; first done.
           iIntros (ret ??) "->"; steps_l; steps_r. by_coind CIH; iFrame; done.
         }
@@ -163,7 +163,7 @@ Module CFilter. Section CFilter.
           set_solver.
         }
       }
-      { steps_r; case_bool_decide; des; ss.
+      { steps_r; bsimpl; des; case_bool_decide; des; ss.
         { steps_r.
           iApply isim_spawn; iIntros (tid). norm_l; norm_r. by_coind CIH. done.
         }
@@ -175,11 +175,11 @@ Module CFilter. Section CFilter.
           set_solver.
         }
       }
-      { steps_r; case_match; des; ss. steps_r.
+      { steps_r; bsimpl; des; case_match; des; ss. steps_r.
         iApply isim_yield; iSplit; [done|]; iIntros (??) "->".
         norm_l; norm_r. by_coind CIH. done.
       }
-      { steps_r; case_match; des; ss. steps_r.
+      { steps_r; bsimpl; des; case_match; des; ss. steps_r.
         iApply isim_gettid; iIntros (tid).
         norm_l; norm_r. by_coind CIH. done.
       }
@@ -321,8 +321,8 @@ Module CFilter. Section CFilter.
       i. eapply list_lookup_insert_Some in IN. des; subst; et.
     }
 
-    rewrite ?SBRed.vis in EQ; destruct (msk_filter) eqn : Hmsk; cycle 1.
-    { revert EQ; gnorm_itr; intros EQ. eapply gsim_Take_src; [eapply EQ|ss]. }
+    rewrite ?SBRed.vis in EQ. des_ifs; cycle 1.
+    { bsimpl; des. revert EQ; gnorm_itr; intros EQ. eapply gsim_Take_src; [eapply EQ|ss]. }
     destruct e; [destruct a | destruct s;
                               [destruct c|destruct s; [destruct p|destruct c]]];
     rewrite vis_trigger in EQ.
@@ -345,7 +345,7 @@ Module CFilter. Section CFilter.
       i. eapply list_lookup_insert_Some in IN. des; subst; et.
     }
     { (* Call *)
-      simpl in Hmsk; case_bool_decide as Hfn; ss.
+      bsimpl. simpl in Heq. case_bool_decide as Hfn; ss.
       eapply gsim_Call_src; [apply EQ|].
       eapply gsim_Call_tgt; [apply EQ|].
       rewrite {2 4}/LMod.prog !Mod.to_lmod_fnsems lookup_fnsems_None_r //; cycle 1.
@@ -377,7 +377,7 @@ Module CFilter. Section CFilter.
       }
     }
     { (* Spawn *)
-      simpl in Hmsk; case_bool_decide as Hfn; ss.
+      bsimpl. simpl in Heq. case_bool_decide as Hfn; ss.
       eapply gsim_Spawn_src; [apply EQ|].
       eapply gsim_Spawn_tgt; [apply EQ|].
       rewrite {1 3}/LMod.prog !Mod.to_lmod_fnsems lookup_fnsems_None_r //; cycle 1.

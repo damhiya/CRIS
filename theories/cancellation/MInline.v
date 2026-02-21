@@ -290,7 +290,7 @@ Proof using.
     }
 
     rewrite !vis_trigger !bind_bind MIRed.pg SBRed.bind SBRed.vis. des_ifs; cycle 1.
-    { exfalso. ss. case_bool_decide; ss. eapply H. des.
+    { exfalso. bsimpl. ss. case_bool_decide; ss. eapply H. des.
       eapply SCP; eauto. }
     rewrite !vis_trigger !bind_bind. gstep; r; s; econs; i; r.
     rewrite !bind_ret_l SBRed.ret bind_ret_l SBRed.tau. gstep; econs.
@@ -302,7 +302,7 @@ Proof using.
       des_ifs. gstep. r; s; econs. ss. }
 
     rewrite !vis_trigger !bind_bind MIRed.pg SBRed.bind SBRed.vis. des_ifs; cycle 1.
-    { exfalso. ss. case_bool_decide; ss. eapply H. des.
+    { exfalso. bsimpl. ss. case_bool_decide; ss. eapply H. des.
       eapply (SCP k0 tt↑). eauto. }
     rewrite !vis_trigger !bind_bind. gstep; r; s; econs; i; r.
     rewrite !bind_ret_l SBRed.ret bind_ret_l SBRed.tau. gstep; econs.

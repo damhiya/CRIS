@@ -123,25 +123,24 @@ Proof using.
       istep_l. istep_r. rewrite !SBRed.ret bind_ret_l. by_coind CIH; et.
     }
   - depdes s.
-    + rewrite !SBRed.bind !SBRed.vis !vis_trigger. des_ifs; cycle 1. 
+    + rewrite !SBRed.bind !SBRed.vis !vis_trigger. des_ifs; bsimpl; cycle 1. 
       { s. rewrite bind_bind MIRed.core SBRed.bind SBRed.vis !vis_trigger. des_ifs. istep_l; ss. }
       ired. rewrite MIRed.pg !SBRed.bind !SBRed.vis !vis_trigger. des_ifs; cycle 1.
       { hexploit SCP; eauto. i; ss. rewrite H in Heq0. ss. }
       ired. iApply isim_sput_src. iApply isim_sput_tgt.
       istep_l. istep_r. rewrite !SBRed.ret bind_ret_l. by_coind CIH; et.
-    + rewrite !SBRed.bind !SBRed.vis !vis_trigger. des_ifs; cycle 1. 
+    + rewrite !SBRed.bind !SBRed.vis !vis_trigger. des_ifs; bsimpl; cycle 1. 
       { s. rewrite bind_bind MIRed.core SBRed.bind SBRed.vis !vis_trigger. des_ifs. istep_l; ss. }
       ired. rewrite MIRed.pg !SBRed.bind !SBRed.vis !vis_trigger. des_ifs; cycle 1.
       { hexploit SCP; eauto. i; ss. rewrite H in Heq0. ss. }
       ired. iApply isim_sget_src. iApply isim_sget_tgt.
       istep_l. istep_r. rewrite !SBRed.ret bind_ret_l. by_coind CIH; et.
   - depdes e.
-    + rewrite !SBRed.bind !SBRed.vis !vis_trigger. des_ifs; cycle 1.
-      { s. rewrite bind_bind MIRed.core SBRed.bind SBRed.vis !vis_trigger. des_ifs. istep_l; ss. }
+    + rewrite !SBRed.bind !SBRed.vis !vis_trigger. des_ifs; bsimpl; ss.
       ired. rewrite MIRed.core SBRed.bind SBRed.vis vis_trigger. des_ifs.
       ired. istep_r. iforce_l _q. ired. rewrite !SBRed.ret !bind_ret_l.
       istep_l. istep_r. rewrite !SBRed.ret bind_ret_l. by_coind CIH; et.
-    + rewrite !SBRed.bind !SBRed.vis !vis_trigger. des_ifs; cycle 1.
+    + rewrite !SBRed.bind !SBRed.vis !vis_trigger. des_ifs; bsimpl; cycle 1.
       { s. rewrite bind_bind MIRed.core SBRed.bind SBRed.vis !vis_trigger. des_ifs. istep_l; ss. }
       ired. rewrite MIRed.core SBRed.bind SBRed.vis vis_trigger. des_ifs.
       ired. istep_l. iforce_r _q. ired. rewrite !SBRed.ret !bind_ret_l.

@@ -661,9 +661,7 @@ Section HelpingOnOff.
     eapply gsim_tau_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
     ghnorm_r. rewrite list_insert_insert.
     destruct Any.downcast as [[]|]; s; cycle 1.
-    { ghnorm_l. destruct excluded_middle_informative as [|temp]; [|exfalso; apply temp; eauto].
-      eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; ss.
-    }
+    { eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; ss. }
     ghnorm_l; ghnorm_r.
 
     eapply gsim_SGet_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
@@ -1143,8 +1141,9 @@ Section HelpingOnOff.
         }
       }
       (* events *)
-      rewrite SBRed.vis in Htid; destruct msk eqn : Hmsk; cycle 1.
+      rewrite SBRed.vis in Htid; des_ifs; cycle 1.
       { eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|ss]. }
+      rename Heq into Hmsk.
       destruct e as [e|[e|[e|e]]]; rewrite vis_trigger in Htid.
       { (* agE *)
         destruct e as [P|x|Q].
@@ -1365,7 +1364,7 @@ Section HelpingOnOff.
           eapply gsim_SPut_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
 
           match goal with | A : msk_ctx ?a |- _ => rename A into Hmskctx end.
-          apply Hmskctx in Hmsk; set_unfold in Hmsk.
+          bsimpl. apply Hmskctx in Hmsk; set_unfold in Hmsk.
           rewrite !insert_union_with_r; cycle 1.
           { rewrite lookup_union_with ?lookup_insert_ne //; ii; clarify; ss; eauto. }
           { rewrite ?lookup_insert_ne //; ii; clarify; ss; eauto. }
@@ -1413,7 +1412,7 @@ Section HelpingOnOff.
           eapply gsim_SGet_src; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
           ghnorm_l; ghnorm_r.
           match goal with | A : msk_ctx ?a |- _ => rename A into Hmskctx end.
-          apply Hmskctx in Hmsk; set_unfold in Hmsk.
+          bsimpl. apply Hmskctx in Hmsk; set_unfold in Hmsk.
           rewrite ?lookup_union_with ?lookup_insert_ne //; ii; clarify; ss; eauto.
           rewrite ?lookup_empty /=; ired.
           zprogress. gbase.
@@ -2337,15 +2336,9 @@ Section HelpingOnOff.
         ghnorm_r. hss. ghnorm_r.
 
         destruct (_ !! mtid) as [[? ?]|]; ghnorm_l; cycle 1.
-        { ghnorm_l.
-          destruct excluded_middle_informative as [|temp]; [|exfalso; apply temp; eauto].
-          eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; ss.
-        }
+        { eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; ss. }
         case_decide; ghnorm_l; subst; cycle 1.
-        { ghnorm_l.
-          destruct excluded_middle_informative as [|temp]; [|exfalso; apply temp; eauto].
-          eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; ss.
-        }
+        { eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; ss. }
 
         eapply gsim_Choose_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
         intros [[mtid_t1 stid_t1] Hmtid_t1]; rewrite list_insert_insert. ghnorm_l; ss.
@@ -2551,10 +2544,7 @@ Section HelpingOnOff.
       ghnorm_r. hss. ghnorm_r.
 
       des_ifs; ghnorm_l; cycle 1.
-      { ghnorm_l.
-        destruct excluded_middle_informative as [|temp]; [|exfalso; apply temp; eauto].
-        eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; ss.
-      }
+      { eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; ss. }
 
       eapply gsim_SPut_src; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
       rewrite list_insert_insert. ghnorm_l.
