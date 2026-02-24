@@ -36,7 +36,6 @@ Section Helping.
   Proof. econs; [mod_tac|prove_nodup]. Qed.
 
   (* imp : list of function names mI calls *)
-  (* TODO : modify sp according to the proof of helpingonoff *)
   Lemma helping_main (mM : string → Mod.t) (mA mI m_aux : Mod.t) (P1 P2 : iProp Σ)
       {jobID retID : Type} (jobs : jobID -> _) (sp : specmap) :
     (∀ mn,

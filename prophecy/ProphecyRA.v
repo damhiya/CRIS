@@ -66,7 +66,8 @@ Section ProphecyRA.
     (¬ ∃ i, Q i ∧ R i) →
     free_id_r P ≡ free_id_r Q ⋅ free_id_r R.
   Proof using Type.
-    intros IFF DISJ. rewrite /free_id_r. ii. discrete_fun_tac.
+    intros IFF DISJ. rewrite /free_id_r. ii.
+    rewrite discrete_fun_lookup_op.
     destruct excluded_middle_informative.
     - rewrite IFF in p. des.
       + destruct excluded_middle_informative; clarify.
@@ -100,17 +101,6 @@ Section ProphecyRA.
     λ i, if (excluded_middle_informative (P i)) then ●E() else ●ε.
   Definition free_id_auth (P : Prophecy.ID → Prop) : iProp Σ :=
     own id_name (free_id_auth_r P).
-
-  (* Definition free_id_ir : DRA_mk IdRA := free_id_auth_r (Ensembles.Full_set _) ⋅ λ i, ◯E(). *)
-
-  (* Lemma free_id_auth_valid : ✓ free_id_ir.
-  Proof using Type.
-    ii. unfold free_id_ir, free_id_auth_r. discrete_fun_tac.
-    des_ifs.
-    - rewrite auth_both_valid_discrete. clarify.
-    - exfalso. apply n. econs.
-  Qed. *)
-
 End ProphecyRA.
 
 Lemma proph_alloc `{!crisG Γ Σ α β τ _I _S, !prophGpreS} :

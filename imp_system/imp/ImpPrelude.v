@@ -32,8 +32,6 @@ Definition modulus_64_half := (modulus_64 / 2)%Z.
 Definition max_64 := (modulus_64_half - 1)%Z.
 Definition min_64 := (- modulus_64_half)%Z.
 
-(* Definition intrange_64 : Z -> Prop := fun z => (min_64 <= z <= max_64)%Z. *)
-(* Definition modrange_64 : Z -> Prop := fun z => (- 1 < z < modulus_64)%Z. *)
 Definition intrange_64 : Z -> bool := fun z => (Z_le_gt_dec min_64 z) && (Z_le_gt_dec z max_64).
 Definition modrange_64 : Z -> bool := fun z => (Z_le_gt_dec 0 z) && (Z_lt_ge_dec z modulus_64).
 
@@ -49,8 +47,6 @@ Definition wf_val (v : val) :=
   | Vptr (_, z) => modrange_64 (scale_ofs z)
   | Vundef => false
   end.
-
-(* Notation ofs0 := 0%Z. *)
 
 Definition Vnullptr := Vint 0.
 

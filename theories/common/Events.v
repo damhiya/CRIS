@@ -5,7 +5,6 @@ Require Import Any.
 
 Require Import base_logic.
 Require Import own.
-(* TODO : delete this dependency after gra mod *)
 
 Set Implicit Arguments.
 

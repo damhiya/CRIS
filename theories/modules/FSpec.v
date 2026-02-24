@@ -101,19 +101,6 @@ Section fspec.
       ∃ P0 Q0, ⌜fsp0 P0 Q0⌝ ∧
         ∀ varg arg, P1 varg arg o==∗ P0 varg arg ∗ ∀ vret ret, Q0 vret ret o==∗ Q1 vret ret.
 
-  (* Global Program Instance fspec_imply_PreOrder : PreOrder fspec_imply.
-  Next Obligation. 
-  Proof using.
-    ii. exists P1, Q1. esplits; ii; et.
-  Qed.
-  Next Obligation.
-  Proof using.
-    ii. hexploit (H0 P1 Q1); et. i. des. hexploit (H P0 Q0); et. i. des. exists P2, Q2.
-    esplits; et; ii.
-    - rewrite PRE PRE0. iIntros ">> H". et.
-    - rewrite POST0 POST. iIntros ">> H". et.
-  Qed.   *)
-
   Lemma fspec_bot_strongest fsp : ⊢ fspec_imply fspec_bot fsp.
   Proof.
     iIntros (P1 Q1) "PQ1"; iExists _, _; iSplit; first (iExists tt; ss).
@@ -130,11 +117,11 @@ Section fspec.
     iIntros (??) "Q". iModIntro. iFrame.
   Qed.
 
-  Definition add_fspec (sp1 sp2: fspec) : fspec :=
-    {|meta := (meta sp1) + (meta sp2);
-      precond := λ m, match m with inl m => precond sp1 m | inr m => precond sp2 m end;
-      postcond := λ m, match m with inl m => postcond sp1 m | inr m => postcond sp2 m end
-    |}.
+  Definition add_fspec (sp1 sp2: fspec) : fspec := {|
+    meta := (meta sp1) + (meta sp2);
+    precond := λ m, match m with inl m => precond sp1 m | inr m => precond sp2 m end;
+    postcond := λ m, match m with inl m => postcond sp1 m | inr m => postcond sp2 m end
+  |}.
 
 End fspec.
 

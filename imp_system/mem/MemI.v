@@ -1,8 +1,5 @@
 From CRIS Require Import CRIS MemHeader.
 
-(* Set Implicit Arguments. *)
-(* Set Typeclasses Depth 5. *)
-
 Module Mem.
   Record t : Type := mk {
     cnts : mblock → Z → option val;
