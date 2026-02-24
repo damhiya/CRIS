@@ -6,7 +6,7 @@ Module SB. Section SB.
 
   (**** Sandboxing ****)
 
-  Definition msk_default T (e: crisE T) : bool :=
+  Definition msk_default T (e : crisE T) : bool :=
     match e with
     | (|||Choose X)%sum => true
     | (|||Take X)%sum => excluded_middle_informative (∃ P : Prop, X = P)
