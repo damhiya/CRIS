@@ -26,6 +26,8 @@ Defined.
 Global Instance val_deq_eq : EqDecision val.
 Proof. intros x y; destruct (dec x y); [left|right]; ss. Qed.
 
+Global Instance val_inhabited : Inhabited val := populate Vundef.
+
 Definition wordsize_64 := 64.
 Definition modulus_64 := two_power_nat wordsize_64.
 Definition modulus_64_half := (modulus_64 / 2)%Z.
