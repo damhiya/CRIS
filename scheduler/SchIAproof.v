@@ -41,7 +41,7 @@ Module SchIA. Section sim.
 
   Lemma simF_inner_spawn : ISim.sim_fun open SchAMod SchIMod Ist (fid SchHdr._spawn).
   Proof using FunInSp SchInSp.
-    iStartSim.
+    iStartSim. rewrite /inner_spawn /SchI.inner_spawn.
     step_l. destruct _q.
     steps_l.
     iDestruct "ASM" as "[%stid [%pre [%postS [%fvarg [%varg [%fn [%mtid [[-> ->] ASM]]]]]]]]".
@@ -150,7 +150,7 @@ Module SchIA. Section sim.
 
   Lemma simF_spawn : ISim.sim_fun open SchAMod SchIMod Ist (fid SchHdr.spawn).
   Proof using FunInSp SchInSp ConcInSp.
-    iStartSim.
+    iStartSim. rewrite /spawn /SchI.spawn.
 
     (* preprocess source precondition *)
     step_l. destruct _q as [user_pre user_post]. steps_l.
@@ -218,7 +218,7 @@ Module SchIA. Section sim.
 
   Lemma simF_yield : ISim.sim_fun open SchAMod SchIMod Ist (fid SchHdr.yield).
   Proof using FunInSp SchInSp ConcInSp.
-    iStartSim.
+    iStartSim. rewrite /yield /SchI.yield.
 
     step_l. destruct _q as [[stid mtid] ?]. steps_l.
     iDestruct "ASM" as "[[Tid [TID YIELD]] [-> ->]]".
@@ -276,7 +276,7 @@ Module SchIA. Section sim.
 
   Lemma simF_join : ISim.sim_fun open SchAMod SchIMod Ist (fid SchHdr.join).
   Proof using FunInSp SchInSp.
-    iStartSim.
+    iStartSim. rewrite /join /SchI.join.
 
     step_l. destruct _q as [[stid mtid] post]. steps_l.
     iDestruct "ASM" as "[TID [%tid [[-> ->] JoinF]]]".
@@ -329,7 +329,7 @@ Module SchIA. Section sim.
 
   Lemma simF_get_tid : ISim.sim_fun open SchAMod SchIMod Ist (fid SchHdr.get_tid).
   Proof using FunInSp SchInSp.
-    iStartSim.
+    iStartSim. rewrite /get_tid /SchI.get_tid.
 
     step_l. destruct _q as [mtid stid].
     steps_l. iDestruct "ASM" as "[[-> ->] Tid]".

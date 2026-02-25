@@ -25,6 +25,7 @@ Ltac init_simF :=
   let wft := fresh "WFT" in
   rewrite /ISim.sim_fun; intros wfs wft; simpl_map; eexists; split; first refl;
   iIntros (arg st_src st_tgt) "IST"; iApply wsim_isim;
-  rewrite /SB.sandbox_body; simpl fst; simpl snd.
+  rewrite /SB.sandbox_body; simpl fst; simpl snd;
+  rewrite /SModTr.trans_fnsem /SModTr.HoareFun /cfunU /cfunN.
 
-Ltac iStartSim := init_simF; unfold_cris_defs.
+Ltac iStartSim := init_simF.

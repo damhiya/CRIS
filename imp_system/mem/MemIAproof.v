@@ -250,7 +250,7 @@ Module MemIA. Section MemIA.
 
   Lemma simF_alloc : ISim.sim_fun open MemA MemI IstFull (fid MemHdr.alloc).
   Proof using.
-    iStartSim. steps_l.
+    iStartSim. rewrite /MemI.alloc. steps_l.
     rename _q into sz, _q0 into varg.
     iDestruct "ASM" as "[-> [-> %]]".
 
@@ -288,7 +288,7 @@ Module MemIA. Section MemIA.
 
   Lemma simF_free : ISim.sim_fun open MemA MemI IstFull (fid MemHdr.free).
   Proof using.
-    iStartSim.
+    iStartSim. rewrite /MemI.free.
     step_l. destruct _q as [[blk ofs] v].
     step_l. rename _q into varg. step_l.
     iDestruct "ASM" as "[-> [-> ↦]]".
@@ -311,7 +311,7 @@ Module MemIA. Section MemIA.
 
   Lemma simF_load : ISim.sim_fun open MemA MemI IstFull (fid MemHdr.load).
   Proof using.
-    iStartSim.
+    iStartSim. rewrite /MemI.load.
     step_l. destruct _q as [[[blk ofs] q] v]. steps_l.
 
     iDestruct "ASM" as "[-> [-> ↦]]".
@@ -327,7 +327,7 @@ Module MemIA. Section MemIA.
 
   Lemma simF_store : ISim.sim_fun open MemA MemI IstFull (fid MemHdr.store).
   Proof using.
-    iStartSim.
+    iStartSim. rewrite /MemI.store.
     step_l. destruct _q as [[[blk ofs] q] v]. steps_l.
 
     iDestruct "ASM" as "[-> [-> ↦]]".
@@ -350,7 +350,7 @@ Module MemIA. Section MemIA.
 
   Lemma simF_cmp : ISim.sim_fun open MemA MemI IstFull (fid MemHdr.cmp).
   Proof using.
-    iStartSim.
+    iStartSim. rewrite /MemI.cmp.
     step_l. destruct _q as [[[v_old v_new] v_cmp] Cmp]. steps_l.
     iDestruct "ASM" as "[-> [[-> %Hcmp] [Cmp Cmp2]]]".
     iDestruct "IST" as (? ? ? ?) "([-> ->] & [% [% [% [[-> %] >B]]]] & ->)"; des.
@@ -370,7 +370,7 @@ Module MemIA. Section MemIA.
 
   Lemma simF_cas : ISim.sim_fun open MemA MemI IstFull (fid MemHdr.cas).
   Proof using.
-    iStartSim.
+    iStartSim. rewrite /MemI.cas.
     step_l. destruct _q as [[[[[[blk ofs ] v_old] v_new] v_upd] v_cmp] Cmp]. steps_l.
 
     (* iIntros (N tid [[[[[[blk ofs ] v_old] v_new] v_upd] v_cmp] Cmp] varg) "?? Pre"; unfold_pre_post. *)

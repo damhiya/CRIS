@@ -38,7 +38,7 @@ Module APCAC. Section APCAC.
   Lemma simF_apc : ISim.sim_fun open APCCMod APCAMod IstFull (fid APCHdr.apc).
   Proof using _crisG PureIsPure PureInSpA APCInSpA.
     (** Due to arbitrary module, manual starting up is required **)
-    iStartSim.
+    iStartSim. rewrite /apc_body.
 
     steps_l. iDestruct "ASM" as "%"; des; subst. rename _q into o.
     steps_r. force_r o. force_r (o↑). force_r. iSplitR; et. steps_r.
