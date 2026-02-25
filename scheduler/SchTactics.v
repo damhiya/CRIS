@@ -194,8 +194,8 @@ End wsim.
 
 Ltac sch_yield_rr IST :=
   (norm_l with 
-    (do 1 unshelve iApply (wsim_yield_tgt_rr); [ss|ss|ss|ss|];
-      iFrame IST)); clear_st; iIntros (??) IST; steps_r.
+    (do 1 unshelve iApply (wsim_yield_tgt_rr); [ss|ss|ss|ss|iFrame IST]
+      )); last (clear_st; iIntros (??) IST; steps_r).
 
 Ltac sch_yield_ir H1 H2 :=
   let H2' := eval compute in (H1 ++ " " ++ H2)%string in
