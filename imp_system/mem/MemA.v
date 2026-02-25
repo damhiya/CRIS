@@ -1,7 +1,7 @@
 Require Import CRIS.
 From iris.algebra Require Import auth excl agree csum functions dfrac_agree.
 From iris.bi.lib Require Import fractional.
-Require Export MemHeader.
+From CRIS Require Export MemHeader.
 
 (* Memory resource algebra *)
 Canonical Structure valO := leibnizO val.
