@@ -203,14 +203,16 @@ Module Cancel. Section Cancel.
   Section Cancel.
     Context `{!crisG Γ Σ α β τ _S _I}.
 
+    Definition init_res : iProp Σ :=
+      TID 0 ∗ YIELD 0 ∗ winv (⊤, ⊤) ∗ TIDAUTH 0 ∗ YIELDAUTH 1.
+
     Lemma cancellation md IC Pinit :
       SMod.cancellable md →
       (∃ P Q, (fspec_flat ((SMod.conc_sp_from md).1 !! entry)) P Q ∧
-        (TID 0 ∗ YIELD 0 ∗ winv (⊤, ⊤) ∗ Pinit ⊢ |==> (P tt↑ tt↑)) ∧
+        (Pinit ∗ TID 0 ∗ YIELD 0 ∗ winv (⊤, ⊤)  ⊢ |==> (P tt↑ tt↑)) ∧
         ∀ varg arg, Q varg arg ⊢ ⌜varg = arg⌝) →
       refines
-        (SMod.to_mod ∅ (SMod.cancel md),
-          (IC ∗ TID 0 ∗ YIELD 0 ∗ winv (⊤, ⊤) ∗ Pinit ∗ TIDAUTH 0 ∗ YIELDAUTH 1))%I
+        (SMod.to_mod ∅ (SMod.cancel md), IC ∗ Pinit ∗ init_res)%I
         (SMod.to_mod (SMod.conc_sp_from md) md, IC).
     Proof using.
       intros Hcancel [P [Q [Hmain [HP HQ]]]].

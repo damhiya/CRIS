@@ -38,6 +38,12 @@ Module SMod. Section Smod.
     subst scopes0 fnsems0 initial_st0; f_equal; apply proof_irrelevance.
   Qed.
 
+  (**** Real ****)
+
+  Definition is_real (m: t) : Prop :=
+    ∀ fno msk fspo fbd,
+      (fnsems m) !! fno = Some (Some (msk, (fspo, fbd))) -> fspo = None.
+
   (**** Linking ****)
   Program Definition empty : t := {|
     scopes := [];
