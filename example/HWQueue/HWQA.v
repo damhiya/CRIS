@@ -1,94 +1,11 @@
-(* Require Export CRIS ImpPrelude HWQHeader SchHeader MemHeader ProphecyHeader.
-Require Export CallFilter MemA SchA.
-Require Import HWQI SchI MemI MemIAproof SchTactics ProphecyI.
+Require Export CRIS ImpPrelude HWQHeader SchHeader MemHeader ProphecyHeader HelpingHeader.
+Require Export CallFilter MemA SchA ProphecyA.
+Require Import MemI MemIAproof MemTactics.
+Require Import ProphecyI ProphecyFacts.
+Require Import HWQI SchI SchTactics.
 From iris.algebra Require Import numbers excl auth list gset gmap agree csum.
 From iris.bi.lib Require Import fractional.
 From iris.proofmode Require Import proofmode.
-
-(* Prophecy-inserted intermediate module, HWQP *)
-Module HWQP. Section HWQP.
-  Context `{!crisG Γ Σ α β τ Hinv Hsub, !concGS}.
-  Context (mn : string).
-
-  Definition new_queue : list val → itree crisE val := λ sz,
-    𝒴;;; sz <- (pargs [Tint] sz)?;;
-    𝒴;;; 'q : val <- ccallU MemHdr.alloc [Vint (2 + sz)];;
-      trigger (Call (ProphecyName.new mn) ("hwq", q↑↑)↑);;;
-    𝒴;;; '(qblk, qofs) : _ <- (pargs [Tptr] [q])?;;
-    𝒴;;; '_ : val <- ccallU MemHdr.store [Vptr (qblk, qofs); Vint sz];;
-    𝒴;;; '_ : val <- ccallU MemHdr.store [Vptr (qblk, qofs + 1)%Z; Vint 0];;
-    𝒴;;; Ret q.
-
-  Definition fnsems : fnsemmap :=
-    {[fid HWQHdr.new_queue # (msk_real (msk_scp [] msk_true), (None, cfunU new_queue));
-      fid HWQHdr.enqueue   # (msk_real (msk_scp [] msk_true), (None, fbody_trivial));
-      fid HWQHdr.dequeue   # (msk_real (msk_scp [] msk_true), (None, fbody_trivial))]}.
-
-  Program Definition Mod : SMod.t := {|
-    SMod.scopes := [];
-    SMod.fnsems := fnsems;
-    SMod.initial_st := ∅;
-  |}.
-  Solve All Obligations with mod_tac.
-
-  Definition t := SMod.to_mod ∅ Mod.
-End HWQP. End HWQP.
-
-Ltac init_simF :=
-  let wfs := fresh "WFS" in
-  let wft := fresh "WFT" in
-  rewrite /ISim.sim_fun; intros wfs wft; simpl_map; eexists; split; first refl;
-  iIntros (arg st_src st_tgt) "IST"; iApply wsim_isim;
-  rewrite /SB.sandbox_body; simpl fst; simpl snd;
-  rewrite /SModTr.trans_fnsem /SModTr.HoareFun /cfunU /cfunN.
-
-Module HWQIP. Section HWQIP.
-  Context `{!crisG Γ Σ α β τ Hinv Hsub, !concGS}.
-  Context (mn : string).
-  Local Definition IstFull := IstProd (IstSB (Mod.scopes (HWQP.t mn)) IstEq) IstEq.
-  Lemma ctxr :
-    ctx_refines
-      (HWQP.t mn                                       ★ ProphecyI.t mn, emp)%I
-      (CFilter.filter (ProphecyName.exports mn) HWQI.t ★ ProphecyI.t mn, emp)%I.
-  Proof using.
-    apply main_adequacy with (Ist:=IstFull).
-    init_sim.
-    { init_simF.
-      steps_l. destruct Any.downcast as [sz|]; steps_l; ss. steps_r.
-      rewrite /HWQP.new_queue /HWQI.new_queue.
-      steps_l. steps_r. sch_yield_rr "IST".
-      { case_bool_decide as Hcase; first done. exfalso; apply Hcase; split; ss. set_solver. }
-      sch_yield_l. steps_l.
-      destruct sz as [|[sz| | ] [|]]; steps_l; ss. steps_r.
-      sch_yield_rr "IST".
-      { case_bool_decide as Hcase; first done. exfalso; apply Hcase; split; ss. set_solver. }
-      sch_yield_l. steps_l.
-      iApply wsim_call; iFrame; clear_st; iIntros (ret st_src st_tgt) "IST".
-      steps_l; steps_r; destruct Any.downcast as [|]; steps_l; ss. steps_r.
-      inline_l. rewrite /ProphecyI.new. steps_l.
-      sch_yield_rr "IST".
-      { case_bool_decide as Hcase; first done. exfalso; apply Hcase; split; ss. set_solver. }
-      sch_yield_l. steps_l.
-      destruct v as [ | [blk ofs] | ]; steps_l; ss; steps_r.
-      sch_yield_rr "IST".
-      { case_bool_decide as Hcase; first done. exfalso; apply Hcase; split; ss. set_solver. }
-      sch_yield_l. steps_l.
-      iApply wsim_call; iFrame; clear_st; iIntros (? st_src st_tgt) "IST".
-      steps_l; steps_r; destruct Any.downcast as [|]; steps_l; ss. steps_r.
-      sch_yield_rr "IST".
-      { case_bool_decide as Hcase; first done. exfalso; apply Hcase; split; ss. set_solver. }
-      sch_yield_l. steps_l.
-      iApply wsim_call; iFrame; clear_st; iIntros (? st_src st_tgt) "IST".
-      steps_l; steps_r; destruct Any.downcast as [|]; steps_l; ss. steps_r.
-      sch_yield_rr "IST".
-      { case_bool_decide as Hcase; first done. exfalso; apply Hcase; split; ss. set_solver. }
-      sch_yield_l. steps_l. step. iFrame. done.
-    }
-    { init_simF. steps_l. steps_r. force_l _. step. iFrame. done. }
-    { init_simF. steps_l. steps_r. force_l _. step. iFrame. done. }
-    iIntros "_"; iExists _, _, _, _. repeat iSplit; eauto.
-  Qed.
-End HWQIP. End HWQIP.
 
 (** * Definition of the cameras we need for queues **************************)
 
@@ -137,7 +54,7 @@ Proof. solve_inG. Qed.
 
 Section herlihy_wing_queue.
 
-Context `{!crisG Γ Σ α β τ Hsub Hinb, !memGS, !hwqG}.
+Context `{!crisG Γ Σ α β τ Hsub Hinb, !memGS, !hwqG, !prophGS}.
 Context (N : namespace).
 Notation iProp := (iProp Σ).
 Implicit Types γe γc γs : gname.
@@ -187,7 +104,10 @@ Qed.
 (** Operations for the CMRA used to show that back only increases. *)
 
 Definition back_value γb n := own γb (● MaxNat n).
+Definition syn_back_value {n} γb i : GTerm.t n := sown γb (● MaxNat i).
+
 Definition back_lower_bound γb n := own γb (◯ MaxNat n).
+Definition syn_back_lower_bound {n} γb i : GTerm.t n := sown γb (◯ MaxNat i).
 
 Lemma new_back : ⊢ o=> ∃ γb, back_value γb 0.
 Proof.
@@ -215,12 +135,13 @@ Lemma back_le γb n1 n2 :
 Proof.
   iIntros "H1 H2". iCombine "H1 H2" as "H".
   iDestruct (own_valid with "H") as %Hvalid. iPureIntro.
-  apply auth_both_valid_discrete in Hvalid as [H1%max_nat_included _]. done.
+  apply auth_both_valid_discrete in Hvalid as [Ha%max_nat_included _]. done.
 Qed.
 
 (* Stores a lower bound on the [i2] part of any contradiction that
    has arised or may arise in the future. *)
 Definition i2_lower_bound γi n := back_value γi n.
+Definition syn_i2_lower_bound {n} γi i := @syn_back_value n γi i.
 
 (* Witness that the [i2] part of any (future or not) contradicton is
    greater than [n]. *)
@@ -246,10 +167,14 @@ Qed.
 (** Element for "no contradiction yet". *)
 Definition no_contra γc :=
   own γc (Cinl (Excl ())).
+Definition syn_no_contra {n} γc : GTerm.t n :=
+  sown γc (Cinl (Excl ())).
 
 (** Element witnessing a contradiction [(i1, i2)]. *)
 Definition contra γc (i1 i2 : nat) :=
   own γc (Cinr (to_agree (i1, i2))).
+Definition syn_contra {n} γc (i1 i2 : nat) : GTerm.t n :=
+  sown γc (Cinr (to_agree (i1, i2))).
 
 Lemma new_no_contra : ⊢ o=> ∃ γc, no_contra γc.
 Proof. by apply own_alloc. Qed.
@@ -329,7 +254,7 @@ Definition to_done (data : slot_data) : slot_data :=
   match data with (l, _, w) => (l, Done, w) end.
 
 Definition physical_value (data : slot_data) : val :=
-  match data with (l, _, w) => if w then l else Vundef end.
+  match data with (l, _, w) => if w then l else Vint 0 end.
 
 Lemma val_of_set_written d : val_of (set_written d) = val_of d.
 Proof. by destruct d as [[l s] w]. Qed.
@@ -355,29 +280,43 @@ Proof. by destruct d as [[l []] []]. Qed.
 (* The (unique) token for slot [i]. *)
 Definition slot_token γs i :=
   own γs (◯ {[i := (Excl' (), None, None, None, None)]} : slotUR).
+Definition syn_slot_token {n} γs i : GTerm.t n :=
+  sown γs (◯ {[i := (Excl' (), None, None, None, None)]} : slotUR).
 
 (* A witness that the location enqueued in slot [i] is [l]. *)
 Definition slot_val_wit γs i l :=
   own γs (◯ {[i := (None, Some (to_agree l), None, None, None)]} : slotUR).
+Definition syn_slot_val_wit {n} γs i l : GTerm.t n :=
+  sown γs (◯ {[i := (None, Some (to_agree l), None, None, None)]} : slotUR).
 
 (* A witness that the element inserted at slot [i] has been committed. *)
 Definition slot_committed_wit γs i :=
   own γs (◯ {[i := (None, None, None, shot, None)]} : slotUR).
+Definition syn_slot_committed_wit {n} γs i : GTerm.t n :=
+  sown γs (◯ {[i := (None, None, None, shot, None)]} : slotUR).
 
 Definition slot_name_tok γs i γ :=
   own γs (◯ {[i := (None, None, Excl' γ, None, None)]} : slotUR).
+Definition syn_slot_name_tok {n} γs i γ : GTerm.t n :=
+  sown γs (◯ {[i := (None, None, Excl' γ, None, None)]} : slotUR).
 
 (* A witness that the element inserted at slot [i] has been written. *)
 Definition slot_written_wit γs i :=
   own γs (◯ {[i := (None, None, None, None, shot)]} : slotUR).
+Definition syn_slot_written_wit {n} γs i : GTerm.t n :=
+  sown γs (◯ {[i := (None, None, None, None, shot)]} : slotUR).
 
 (* A token proving that the enqueue in slot [i] has not been commited. *)
 Definition slot_pending_tok γs i :=
   own γs (◯ {[i := (None, None, None, not_shot, None)]} : slotUR).
+Definition syn_slot_pending_tok {n} γs i : GTerm.t n :=
+  sown γs (◯ {[i := (None, None, None, not_shot, None)]} : slotUR).
 
 (* A token proving that no value has been written in slot [i]. *)
 Definition slot_writing_tok γs i :=
   own γs (◯ {[i := (None, None, None, None, not_shot)]} : slotUR).
+Definition syn_slot_writing_tok {n} γs i : GTerm.t n :=
+  sown γs (◯ {[i := (None, None, None, None, not_shot)]} : slotUR).
 
 (* Initial slot data, with not allocated slots. *)
 Lemma new_slots : ⊢ o=> ∃ γs, own γs (● ∅).
@@ -439,16 +378,16 @@ Lemma use_val_wit γs slots i l :
 Proof.
   iIntros "H● Hwit". iCombine "H● Hwit" gives %Hwf.
   iPureIntro. apply auth_both_valid_discrete in Hwf as [Hwf%singleton_included_l _].
-  destruct Hwf as [ps (H1 & H2%option_included)]. rewrite lookup_fmap in H1.
-  destruct (slots !! i) as [d|]; last by inversion H1. simpl in H1.
-  inversion_clear H1.
+  destruct Hwf as [ps (Ha & H2%option_included)]. rewrite lookup_fmap in Ha.
+  destruct (slots !! i) as [d|]; last by inversion Ha. simpl in Ha.
+  inversion_clear Ha.
   (* Ltac is a steaming pile of ***, so we cannot use [rename select] here.
      It infers the type of the [≡] too early and then fails to match the term. *)
-  match goal with H: of_slot_data d ≡ ps |- _ => rename H into H1 end.
+  match goal with H: of_slot_data d ≡ ps |- _ => rename H into Ha end.
   destruct H2 as [H2|[a [b (H21 & H22 & H23)]]]; first done. simplify_eq.
   simpl. destruct b as [[[[b1 b2] b3] b4] b5].
   destruct d as [[dl ds] dw].
-  destruct H1 as [[[[_ H1] _] _] _]; simpl in H1. simpl. f_equal.
+  destruct Ha as [[[[_ Ha] _] _] _]; simpl in Ha. simpl. f_equal.
   destruct H23 as [H2|H2].
   - destruct H2 as [[[[_ H2] _] _] _]; simpl in H2.
     assert (Some (to_agree l) ≡ Some (to_agree dl)) as Hwf by by transitivity b2.
@@ -457,12 +396,12 @@ Proof.
     apply prod_included in H2 as [H2 _]; simpl in H2.
     apply prod_included in H2 as [H2 _]; simpl in H2.
     apply prod_included in H2 as [_ H2]; simpl in H2.
-    assert (Some (to_agree l) ≼ Some (to_agree dl)) as Ha by set_solver.
-    apply option_included in Ha.
-    destruct Ha as [Ha|[a [b (H11 & H12 & H13)]]]; first done.
-    simplify_eq. destruct H13 as [Ha|Ha].
-    + by apply to_agree_inj in Ha.
-    + by apply to_agree_included in Ha.
+    assert (Some (to_agree l) ≼ Some (to_agree dl)) as Hb by set_solver.
+    apply option_included in Hb.
+    destruct Hb as [Hb|[a [b (H11 & H12 & H13)]]]; first done.
+    simplify_eq. destruct H13 as [Hb|Hb].
+    + by apply to_agree_inj in Hb.
+    + by apply to_agree_included in Hb.
 Qed.
 
 Lemma use_name_tok γs slots i γ :
@@ -472,16 +411,16 @@ Lemma use_name_tok γs slots i γ :
 Proof.
   iIntros "H● Hwit". iCombine "H● Hwit" gives %Ha.
   iPureIntro. apply auth_both_valid_discrete in Ha as [Ha%singleton_included_l _].
-  destruct Ha as [ps (H1 & H2%option_included)]. rewrite lookup_fmap in H1.
-  destruct (slots !! i) as [d|]; last by inversion H1. simpl in H1.
-  inversion_clear H1.
+  destruct Ha as [ps (Hb & H2%option_included)]. rewrite lookup_fmap in Hb.
+  destruct (slots !! i) as [d|]; last by inversion Hb. simpl in Hb.
+  inversion_clear Hb.
   (* Ltac is a steaming pile of ***, so we cannot use [rename select] here.
      It infers the type of the [≡] too early and then fails to match the term. *)
-  match goal with H: of_slot_data d ≡ ps |- _ => rename H into H1 end.
+  match goal with H: of_slot_data d ≡ ps |- _ => rename H into Hb end.
   destruct H2 as [H2|[a [b (H21 & H22 & H23)]]]; first done. simplify_eq.
   simpl. destruct b as [[[[b1 b2] b3] b4] b5].
   destruct d as [[dl ds] dw].
-  destruct H1 as [[[[_ _] H1] _] _]; simpl in H1. simpl. f_equal.
+  destruct Hb as [[[[_ _] Hb] _] _]; simpl in Hb. simpl. f_equal.
   destruct H23 as [H2|H2].
   - destruct H2 as [[[[_ _] H2] _] _]; simpl in H2.
     destruct ds as [γ'|γ'|]; rewrite /name_of /=; try f_equal.
@@ -526,12 +465,12 @@ Lemma shot_not_included_not_shot : ¬ shot ≼ not_shot.
 Proof.
   intros Ha. rewrite /shot /not_shot in Ha.
   apply option_included in Ha. destruct Ha as [Ha|Ha]; first done.
-  destruct Ha as [a [b (H1 & H2 & [H3|H3])]].
+  destruct Ha as [a [b (Ha & H2 & [H3|H3])]].
   - simplify_eq. by inversion H3.
   - simplify_eq. apply csum_included in H3.
     destruct H3 as [H3|H3]; first done. destruct H3 as [H3|H3].
-    + destruct H3 as [a [b (H1 & H2 & H3)]]. by inversion H1.
-    + destruct H3 as [a [b (H1 & H2 & H3)]]. by inversion H1.
+    + destruct H3 as [a [b (Ha & H2 & H3)]]. by inversion Ha.
+    + destruct H3 as [a [b (Ha & H2 & H3)]]. by inversion H1.
 Qed.
 
 Lemma use_committed_wit γs slots i :
@@ -541,16 +480,16 @@ Lemma use_committed_wit γs slots i :
 Proof.
   iIntros "H● Hwit". iCombine "H● Hwit" gives %Hwf.
   iPureIntro. apply auth_both_valid_discrete in Hwf as [Hwf%singleton_included_l _].
-  destruct Hwf as [ps (H1 & H2%option_included)]. rewrite lookup_fmap in H1.
-  destruct (slots !! i) as [d|]; last by inversion H1. simpl in H1.
-  inversion_clear H1.
+  destruct Hwf as [ps (Ha & H2%option_included)]. rewrite lookup_fmap in Ha.
+  destruct (slots !! i) as [d|]; last by inversion Ha. simpl in Ha.
+  inversion_clear Ha.
   (* Ltac is a steaming pile of ***, so we cannot use [rename select] here.
      It infers the type of the [≡] too early and then fails to match the term. *)
-  match goal with Hwf: of_slot_data d ≡ ps |- _ => rename Hwf into H1 end.
+  match goal with Hwf: of_slot_data d ≡ ps |- _ => rename Hwf into Ha end.
   destruct H2 as [H2|[a [b (H21 & H22 & H23)]]]; first done. simplify_eq.
   simpl. destruct b as [[[[b1 b2] b3] b4] b5].
   destruct d as [[dl ds] dw].
-  destruct H1 as [[[[_ _] _] H1]]; simpl in H1. f_equal.
+  destruct Ha as [[[[_ _] _] Ha]]; simpl in Ha. f_equal.
   destruct (was_committed (dl, ds, dw)); first done. exfalso.
   destruct H23 as [H3|H3].
   - destruct H3 as [[[[_ _] _] H3] _]; simpl in H3.
@@ -567,15 +506,15 @@ Lemma use_written_wit γs slots i :
 Proof.
   iIntros "H● Hwit". iCombine "H● Hwit" gives %Hwf.
   iPureIntro. apply auth_both_valid_discrete in Hwf as [Hwf%singleton_included_l _].
-  destruct Hwf as [ps (H1 & H2%option_included)]. rewrite lookup_fmap in H1.
-  destruct (slots !! i) as [d|]; last by inversion H1. simpl in H1.
-  inversion_clear H1.
+  destruct Hwf as [ps (Ha & H2%option_included)]. rewrite lookup_fmap in Ha.
+  destruct (slots !! i) as [d|]; last by inversion Ha. simpl in Ha.
+  inversion_clear Ha.
   (* Ltac is a steaming pile of ***, so we cannot use [rename select] here.
      It infers the type of the [≡] too early and then fails to match the term. *)
-  match goal with Hwf: of_slot_data d ≡ ps |- _ => rename Hwf into H1 end.
+  match goal with Hwf: of_slot_data d ≡ ps |- _ => rename Hwf into Ha end.
   destruct H2 as [H2|[a [b (H21 & H22 & H23)]]]; first done. simplify_eq.
   simpl. destruct b as [[[[b1 b2] b3] b4] b5]. destruct d as [[dl ds] dw].
-  destruct H1 as [[[[_ _] _] _] H1]; simpl in H1. f_equal.
+  destruct Ha as [[[[_ _] _] _] Ha]; simpl in Ha. f_equal.
   destruct dw; first done. exfalso.
   destruct H23 as [H2|H2].
   - destruct H2 as [[[[_ _] _] _] H2]; simpl in H2.
@@ -593,8 +532,8 @@ Proof.
   iIntros "Hs● Htok". iCombine "Hs● Htok" as "H". rewrite -own_op.
   iDestruct (own_valid with "H") as %Hvalid.
   iApply (own_update with "H").
-  apply auth_both_valid_discrete in Hvalid as [H1 H2].
-  apply singleton_included_l in H1 as [e (H1_1 & H1_2)].
+  apply auth_both_valid_discrete in Hvalid as [Ha H2].
+  apply singleton_included_l in Ha as [e (H1_1 & H1_2)].
   rewrite lookup_fmap in H1_1.
   destruct (slots !! i) as [[[l s] w]|] eqn:Hi; last by inversion H1_1.
   apply Some_equiv_inj in H1_1.
@@ -624,8 +563,8 @@ Lemma writing_tok_not_written γs slots i :
 Proof.
   iIntros "Hs● Htok". iCombine "Hs● Htok" as "H".
   iDestruct (own_valid with "H") as %Hvalid%auth_both_valid_discrete.
-  iPureIntro. destruct Hvalid as [H1 H2].
-  apply singleton_included_l in H1 as [e (H1_1 & H1_2)].
+  iPureIntro. destruct Hvalid as [Ha H2].
+  apply singleton_included_l in Ha as [e (H1_1 & H1_2)].
   rewrite lookup_fmap in H1_1.
   destruct (slots !! i) as [[[l s] w]|]; last by inversion H1_1.
   apply Some_equiv_inj in H1_1. simpl. f_equal. destruct w; last done.
@@ -654,8 +593,8 @@ Proof.
   iIntros (Hlookup) "Hs● Htok". iCombine "Hs● Htok" as "H".
   rewrite -own_op. iDestruct (own_valid with "H") as %Hvalid.
   iApply (own_update with "H").
-  apply auth_both_valid_discrete in Hvalid as [H1 H2].
-  apply singleton_included_l in H1 as [e (H1_1 & H1_2)].
+  apply auth_both_valid_discrete in Hvalid as [Ha H2].
+  apply singleton_included_l in Ha as [e (H1_1 & H1_2)].
   rewrite lookup_fmap in H1_1.
   destruct (slots !! i) as [[[l s] w]|] eqn:Hi; last by inversion H1_1.
   simpl in Hlookup. inversion Hlookup; subst s.
@@ -724,9 +663,102 @@ Proof.
 Qed.
 
 (** * Prophecy abstractions *************************************************)
-(* TODO : adapt to ConCRIS: the list below is the order of queue insertions *)
+(* Fixpoint proph_extract sz (l : list (nat * bool)) (deq : gset nat) : list nat :=
+  match l with
+  | (i, true) :: l =>
+      if (decide (i ∉ deq ∧ i < sz))
+      then proph_extract sz l ({[i]} ∪ deq) ++ [i]
+      else proph_extract sz l deq
+  | (i, false) :: l => proph_extract sz l deq
+  | [] => []
+  end.
 
-(* Fixpoint proph_data sz (deq : gset nat) (rs : list (val * val)) : list nat :=
+Lemma elem_of_proph_extract sz l deq i :
+  i ∈ proph_extract sz l deq ↔ i < sz ∧ i ∉ deq ∧ ∃ idx, l !! idx = Some (i, true).
+Proof.
+  revert l i deq sz; induction l as [|[i' [|]] l]; intros i deq sz.
+  { rewrite elem_of_nil; split; [ss|intros [? [? [? H1]]]]; rewrite lookup_nil // in H1. }
+  { s; case_decide as H1.
+    { split.
+      { rewrite elem_of_app; intros [[? [? [idx Hidx]]]%IHl|?%elem_of_list_singleton].
+        { splits; eauto; [set_solver|exists (S idx); ss]. }
+        subst; splits; des; eauto; exists O; ss.
+      }
+      intros [? [? [idx Hidx]]]; destruct (decide (i = i')); subst.
+      { rewrite elem_of_app; right; apply elem_of_list_singleton; auto. }
+      destruct idx; ss; clarify.
+      rewrite elem_of_app; left; rewrite IHl; splits; des; eauto.
+      set_solver.
+    }
+    rewrite IHl; split; intros [? [? [idx Hidx]]]; splits; eauto; [exists (S idx); ss|].
+    destruct idx; ss; clarify; first naive_solver; eauto.
+  }
+  s; rewrite IHl; split; intros [? [? [idx Hidx]]]; splits; eauto; [exists (S idx); ss|].
+  destruct idx; ss; clarify; first naive_solver; eauto.
+Qed. *)
+
+Require Import IndefiniteDescription Sorted.
+
+Definition init (obs_seq : nat → (nat * bool)) (i : nat) :
+  { x : option nat |
+    match x with
+    | Some x => obs_seq x = (i, true) ∧ ∀ (x' : nat), obs_seq x' = (i, true) → x ≤ x'
+    | None => ∀ x, obs_seq x ≠ (i, true)
+    end
+  }.
+Proof.
+  apply constructive_indefinite_description.
+  set (P := λ (n : nat), obs_seq n = (i, true)).
+  pose proof (dec_inh_nat_subset_has_unique_least_element P) as HP.
+  destruct (classic (∃ x, P x)) as [[x Hx]|Hex].
+  { hexploit HP; [intros ?; eapply classic|eauto|].
+    intros [y [[Hy Hu] ?]]; exists (Some y); split; eauto.
+  }
+  exists None; intros ??; eauto.
+Defined.
+
+Local Instance le_fst_dec : RelDecision (λ (x1 x2 : nat * nat), x1.1 ≤ x2.1).
+Proof. ii; apply _. Defined.
+
+Definition proph_data (obs_seq : nat → nat * bool) (l : list nat) : list nat :=
+  (sorting.merge_sort (λ x1 x2, x1.1 ≤ x2.1)
+    (omap
+      (λ i, match init obs_seq i with | exist _ (Some x) _ => Some (x, i) | _ => None end) l)).*2.
+
+Lemma elem_of_proph_data obs_seq l i :
+  (∃ x, obs_seq x = (i, true)) → i ∈ l →
+  i ∈ proph_data obs_seq l.
+Proof.
+  intros [x Hx] Hi. rewrite /proph_data sorting.merge_sort_Permutation.
+  destruct (init obs_seq i) as [[m|] Hm] eqn : Hinit ; last (by exfalso; naive_solver).
+  rewrite elem_of_list_fmap; exists (m, i); split; ss.
+  rewrite elem_of_list_omap; exists i; split; ss; rewrite Hinit //.
+Qed.
+
+Lemma length_firstn {X} (obs_seq : nat → X) n : length (Prophecy.firstn obs_seq n) = n.
+Proof. induction n; ss; lia. Qed.
+
+Program Definition hwq_prophecy : Prophecy.t := {|
+  Prophecy.Pro := nat → (nat * bool);
+  Prophecy.Obs := nat * bool;
+  Prophecy.consistent := λ l p, l = Prophecy.firstn p (length l);
+  Prophecy.obs_default := inhabitant;
+|}.
+Next Obligation.
+  intros obs_seq; exists obs_seq; intros i.
+  rewrite length_firstn //.
+Qed.
+
+(* Wrapper for the Iris [proph] proposition, using our data abstraction. *)
+Definition hwq_proph (blk : nat) sz (deq : gset nat) pvs :=
+  (∃ p rs, has_proph ("hwq", (Vptr (blk, 0%Z))↑↑) (existT hwq_prophecy (p, rs)) ∗
+  ⌜pvs = proph_data p (seq 0 sz)⌝)%I.
+Definition syn_hwq_proph {n} (blk : nat) sz (deq : gset nat) pvs : GTerm.t n :=
+  (∃ (p : τ{nat -> nat * bool}) (rs : τ{list (nat * bool)}),
+    syn_has_proph ("hwq", (Vptr (blk, 0%Z))↑↑) (existT hwq_prophecy (p, rs)) ∗
+    ⌜pvs = proph_data p (seq 0 sz)⌝)%SAT.
+
+  (* Fixpoint proph_data sz (deq : gset nat) (rs : list (val * val)) : list nat :=
   match rs with
   | (PairV _ #true , LitV (LitInt i)) :: rs =>
     if decide (0 ≤ i < sz)%Z then
@@ -744,9 +776,7 @@ Qed.
   | _                               => []
   end. *)
 
-(* Wrapper for the Iris [proph] proposition, using our data abstraction. *)
-(* Definition hwq_proph p sz deq pvs :=
-  (∃ rs, proph p rs ∗ ⌜pvs = proph_data sz deq rs⌝)%I. *)
+
 
 (* Lemma proph_data_deq sz deq rs : ∀ i, i ∈ deq → i ∉ proph_data sz deq rs.
 Proof.
@@ -1004,8 +1034,8 @@ Qed.
 
 Definition array_get slots (deqs : gset nat) i :=
   match slots !! i with
-  | None   => Vundef
-  | Some d => if decide (i ∈ deqs) then Vundef
+  | None   => Vint 0
+  | Some d => if decide (i ∈ deqs) then Vint 0
               else physical_value d
   end.
 
@@ -1035,14 +1065,14 @@ Proof.
 Qed.
 
 Lemma array_content_empty sz :
-  array_content sz ∅ ∅ = replicate sz Vundef.
+  array_content sz ∅ ∅ = replicate sz (Vint 0).
 Proof.
   induction sz as [|sz IH]; first done.
   rewrite replicate_S_end /= IH. done.
 Qed.
 
 Lemma array_content_Vundef sz i d slots deqs :
-  physical_value d = Vundef → slots !! i = None → i ∉ deqs →
+  physical_value d = Vint 0 → slots !! i = None → i ∉ deqs →
   array_content sz (<[i:=d]> slots) deqs = array_content sz slots deqs.
 Proof.
   intros H1 H2 H3. induction sz as [|sz IH]; first done.
@@ -1095,14 +1125,14 @@ Qed.
 Lemma array_content_dequeue sz i slots deqs :
   i < sz →
   i ∉ deqs →
-  array_content sz slots ({[i]} ∪ deqs) = <[i:=Vundef]> (array_content sz slots deqs).
+  array_content sz slots ({[i]} ∪ deqs) = <[i:=(Vint 0)]> (array_content sz slots deqs).
 Proof using Type*.
-  revert i. induction sz as [|sz IH]; intros i H1 H2; first done.
+  revert i. induction sz as [|sz IH]; intros i ? H2; first done.
   destruct (decide (sz = i)) as [->|Hsz_not_i]; simpl.
   - assert (i = length (array_content i slots deqs) + 0) as HEq.
     { rewrite length_array_content. by lia. }
     rewrite [X in <[X:=_]> _]HEq.
-    rewrite (insert_app_r (array_content i slots deqs) _ 0 Vundef).
+    rewrite (insert_app_r (array_content i slots deqs) _ 0 (Vint 0)).
     rewrite /= /array_get. destruct (slots !! i) as [d|].
     + rewrite decide_True; last by set_solver. f_equal.
       rewrite array_content_more_deqs; [ done | by lia ].
@@ -1121,7 +1151,7 @@ Lemma array_content_set_written sz i (l : val) slots deqs :
   ¬ i ∈ deqs →
   <[i:=l]> (array_content sz slots deqs) = array_content sz (update_slot i set_written slots) deqs.
 Proof using Type*.
-  revert i. induction sz as [|sz IH]; intros i H1 H2 H3; first done.
+  revert i. induction sz as [|sz IH]; intros i ? H2 H3; first done.
   destruct (decide (sz = i)) as [->|Hsz_not_i]; simpl.
   - assert (i = length (array_content i slots deqs) + 0) as HEq.
     { rewrite length_array_content. by lia. }
@@ -1145,7 +1175,7 @@ Lemma array_content_set_written_and_done sz i (l : val) slots deqs :
   ¬ i ∈ deqs →
   <[i:=l]> (array_content sz slots deqs) = array_content sz (update_slot i set_written_and_done slots) deqs.
 Proof.
-  revert i. induction sz as [|sz IH]; intros i H1 H2 H3; first done.
+  revert i. induction sz as [|sz IH]; intros i ? H2 H3; first done.
   destruct (decide (sz = i)) as [->|Hsz_not_i]; simpl.
   - assert (i = length (array_content i slots deqs) + 0) as HEq.
     { rewrite length_array_content. by lia. }
@@ -1218,18 +1248,122 @@ When a contradiction is going on, we have [cont = WithCont i1 i2] where:
 
 Definition per_slot_own γe γs i d :=
   (slot_val_wit γs i (val_of d) ∗
-  (if was_written d then slot_written_wit γs i else True) ∗
+  (if was_written d then slot_written_wit γs i else emp) ∗
   match state_of d with
   (* | Pend γ => slot_pending_tok γs i ∗
               ∃ Q, saved_prop_own γ DfracDiscarded Q ∗ enqueue_AU γe (val_of d) Q *)
-  | Pend _ => True%I (* TODO : add helping token *)
+  | Pend _ => emp%I (* TODO : add helping token *)
   (* | Help γ => slot_committed_wit γs i ∗ ∃ Q, saved_prop_own γ DfracDiscarded Q ∗ ▷ Q *)
-  | Help γ => True%I (* TODO : add done token *)
+  | Help γ => emp%I (* TODO : add done token *)
   | Done   => slot_committed_wit γs i ∗ slot_token γs i
   end)%I.
+Definition syn_per_slot_own {n} γe γs i d : GTerm.t n :=
+  (syn_slot_val_wit γs i (val_of d) ∗
+  (if was_written d then syn_slot_written_wit γs i else emp) ∗
+  match state_of d with
+  (* | Pend γ => syn_slot_pending_tok γs i ∗
+              ∃ Q, saved_prop_own γ DfracDiscarded Q ∗ enqueue_AU γe (val_of d) Q *)
+  | Pend _ => emp (* TODO : add helping token *)
+  (* | Help γ => syn_slot_committed_wit γs i ∗ ∃ Q, saved_prop_own γ DfracDiscarded Q ∗ ▷ Q *)
+  | Help γ => emp (* TODO : add done token *)
+  | Done   => syn_slot_committed_wit γs i ∗ syn_slot_token γs i
+  end)%SAT.
+Instance per_slot_own_red {n} γe γs i d :
+  SLRed n (syn_per_slot_own γe γs i d) (per_slot_own γe γs i d).
+Proof. solve_sl_red. Qed.
 
-(* TODO : add *)
-Definition syn_inv_hwq n : GTerm.t n := ⌜True⌝.
+Definition syn_inv_hwq {n} (sz : nat) (γb γi γe γc γs : gname) blk : GTerm.t n :=
+  (∃ (back  : τ{nat})                (** Physical value of [q.back]. *)
+     (pvs   : τ{list nat})           (** Full contents of the prophecy. *)
+     (pref  : τ{list nat})           (** Commit prefix of the prophecy *)
+     (rest  : τ{list val})           (** Logical queue after commit prefix. *)
+     (cont  : τ{cont_status})        (** Contradiction or prophecy suffix. *)
+     (slots : τ{gmap nat slot_data}) (** Per-slot data for used indices. *)
+     (deqs  : τ{gset nat}),          (** Dequeued indices. *)
+  (** Physical data. *)
+  (blk, 0%Z) ↦ Vint sz ∗ (blk, 1%Z) ↦ Vint back ∗
+  ([∗ list] i ↦ v ∈ array_content sz slots deqs, (blk, i + 2)%Z ↦ v) ∗
+  (** Logical contents of the queue and prophecy contents. *)
+  syn_back_value γb back ∗
+  syn_i2_lower_bound γi (match cont with WithCont _ i2 => i2 | NoCont _ => back `min` sz end) ∗
+  sown γe (● (Excl' (map (get_value slots deqs) pref ++ rest))) ∗
+  sown γs (● (of_slot_data <$> slots : gmap nat per_slot)) ∗
+  syn_hwq_proph blk sz deqs pvs ∗
+  (** Per-slot ownership. *)
+  ([∗ map] i ↦ d ∈ slots, syn_per_slot_own γe γs i d) ∗
+  (** Contradiction status. *)
+  match cont with NoCont _ => syn_no_contra γc | WithCont i1 i2 => syn_contra γc i1 i2 end ∗
+  (** Tying the logical and physical data and some other pure stuff. *)
+  ⌜(∀ i, (i < back `min` sz) ↔ is_Some (slots !! i)) ∧
+   (∀ i, (was_committed <$> slots !! i = Some false → was_written <$> slots !! i = Some false) ∧
+         (was_written <$> slots !! i = Some false → i ∉ deqs)) ∧
+   (∀ i, i ∈ pref → was_committed <$> slots !! i = Some true ∧ i ∉ deqs ∧
+                    match cont with WithCont i1 _ => i ≠ i1 | _ => True end) ∧
+   (∀ i, i ∈ deqs → was_written <$> slots !! i = Some true ∧
+                    was_committed <$> slots !! i = Some true ∧
+                    array_get slots deqs i = Vint 0) ∧
+   (NoDup (pvs ++ elements deqs) ∧ ∀ i, i ∈ pvs → i < sz) ∧
+   match cont with
+   | NoCont bs      =>
+     (∀ b, b ∈ bs → block_valid slots b) ∧
+     (bs ≠ [] → rest = []) ∧
+     pvs = pref ++ flatten_blocks bs
+   | WithCont i1 i2 =>
+     (i1 < i2 < sz ∧ i1 < back) ∧
+     was_committed <$> slots !! i1 = Some true ∧
+     was_written <$> slots !! i1 = Some true ∧ ¬ i1 ∈ deqs ∧
+     array_get slots deqs i1 ≠ Vint 0 ∧
+     pref ++ [i2] `prefix_of` pvs
+  end⌝)%SAT.
+
+Definition inv_hwq (sz : nat) (γb γi γe γc γs : gname) blk : iProp :=
+  (∃ (back  : nat)                (** Physical value of [q.back]. *)
+     (pvs   : list nat)           (** Full contents of the prophecy. *)
+     (pref  : list nat)           (** Commit prefix of the prophecy *)
+     (rest  : list val)           (** Logical queue after commit prefix. *)
+     (cont  : cont_status)        (** Contradiction or prophecy suffix. *)
+     (slots : gmap nat slot_data) (** Per-slot data for used indices. *)
+     (deqs  : gset nat),          (** Dequeued indices. *)
+  (** Physical data. *)
+  (blk, 0%Z) ↦ Vint sz ∗ (blk, 1%Z) ↦ Vint back ∗
+  ([∗ list] i ↦ v ∈ array_content sz slots deqs, (blk, i + 2)%Z ↦ v) ∗
+  (** Logical contents of the queue and prophecy contents. *)
+  back_value γb back ∗
+  i2_lower_bound γi (match cont with WithCont _ i2 => i2 | NoCont _ => back `min` sz end) ∗
+  own γe (● (Excl' (map (get_value slots deqs) pref ++ rest))) ∗
+  own γs (● (of_slot_data <$> slots : gmap nat per_slot)) ∗
+  hwq_proph blk sz deqs pvs ∗
+  (** Per-slot ownership. *)
+  ([∗ map] i ↦ d ∈ slots, per_slot_own γe γs i d) ∗
+  (** Contradiction status. *)
+  match cont with NoCont _ => no_contra γc | WithCont i1 i2 => contra γc i1 i2 end ∗
+  (** Tying the logical and physical data and some other pure stuff. *)
+  ⌜(∀ i, (i < back `min` sz) ↔ is_Some (slots !! i)) ∧
+   (∀ i, (was_committed <$> slots !! i = Some false → was_written <$> slots !! i = Some false) ∧
+         (was_written <$> slots !! i = Some false → i ∉ deqs)) ∧
+   (∀ i, i ∈ pref → was_committed <$> slots !! i = Some true ∧ i ∉ deqs ∧
+                    match cont with WithCont i1 _ => i ≠ i1 | _ => True end) ∧
+   (∀ i, i ∈ deqs → was_written <$> slots !! i = Some true ∧
+                    was_committed <$> slots !! i = Some true ∧
+                    array_get slots deqs i = Vint 0) ∧
+   (NoDup (pvs ++ elements deqs) ∧ ∀ i, i ∈ pvs → i < sz) ∧
+   match cont with
+   | NoCont bs      =>
+     (∀ b, b ∈ bs → block_valid slots b) ∧
+     (bs ≠ [] → rest = []) ∧
+     pvs = pref ++ flatten_blocks bs
+   | WithCont i1 i2 =>
+     (i1 < i2 < sz ∧ i1 < back) ∧
+     was_committed <$> slots !! i1 = Some true ∧
+     was_written <$> slots !! i1 = Some true ∧ ¬ i1 ∈ deqs ∧
+     array_get slots deqs i1 ≠ Vint 0 ∧
+     pref ++ [i2] `prefix_of` pvs
+  end⌝)%I.
+
+Instance inv_hwq_red `{!prophGS} {n} sz γb γi γe γc γs blk :
+  SLRed n (syn_inv_hwq sz γb γi γe γc γs blk) (inv_hwq sz γb γi γe γc γs blk).
+Proof. solve_sl_red. Qed.
+
 (* Definition inv_hwq sz γb γi γe γc γs ℓ_ar ℓ_back p : iProp :=
   (∃ (back  : nat)                (** Physical value of [q.back]. *)
      (pvs   : list nat)           (** Full contents of the prophecy. *)
@@ -1274,7 +1408,8 @@ Definition syn_inv_hwq n : GTerm.t n := ⌜True⌝.
   end⌝)%I.
  *)
 
-Definition is_hwq sz γe v : iProp := True%I.
+Definition is_hwq (n : nat) sz γe v : iProp :=
+  ∃ γb γi γc γs blk, ⌜v = Vptr (blk, 0%Z)⌝ ∗ inv n N (syn_inv_hwq sz γb γi γe γc γs blk).
   (* (∃ γb γi γc γs ℓ_ar ℓ_back p,
     ⌜v = (#sz, #ℓ_ar, #ℓ_back, #p)%V⌝ ∗
     inv N (inv_hwq sz γb γi γe γc γs ℓ_ar ℓ_back p))%I. *)
@@ -1414,9 +1549,120 @@ Qed.
 
 End herlihy_wing_queue.
 
+(* Prophecy-inserted intermediate module, HWQP *)
+Module HWQP. Section HWQP.
+  Context `{!crisG Γ Σ α β τ Hinv Hsub, !concGS}.
+  Context (mn : string).
+
+  Definition new_queue : list val → itree crisE val := λ sz,
+    𝒴;;; sz <- (pargs [Tint] sz)?;;
+    𝒴;;; 'q : val <- ccallU MemHdr.alloc [Vint (2 + sz)];;
+    𝒴;;; '(qblk, qofs) : _ <- (pargs [Tptr] [q])?;;
+    𝒴;;; '_ : val <- ccallU MemHdr.store [Vptr (qblk, qofs); Vint sz];;
+    𝒴;;; '_ : val <- ccallU MemHdr.store [Vptr (qblk, qofs + 1)%Z; Vint 0];;
+    𝒴;;; ITree.iter (λ (x : nat), (* initialization *)
+      𝒴;;;
+        if Nat.ltb x (Z.to_nat sz) 
+        then 
+          '_ : val <- ccallU MemHdr.store [Vptr (qblk, qofs + 2 + x)%Z; Vint 0];; Ret (inl (S x))
+        else
+          Ret (inr ())) 0;;;
+    𝒴;;; trigger (Call (ProphecyName.new mn) ("hwq", q↑↑)↑);;; Ret q.
+
+  Definition fnsems : fnsemmap :=
+    {[fid HWQHdr.new_queue # (msk_real (msk_scp [] msk_true), (None, cfunU new_queue));
+      fid HWQHdr.enqueue   # (msk_real (msk_scp [] msk_true), (None, fbody_trivial));
+      fid HWQHdr.dequeue   # (msk_real (msk_scp [] msk_true), (None, fbody_trivial))]}.
+
+  Program Definition Mod : SMod.t := {|
+    SMod.scopes := [];
+    SMod.fnsems := fnsems;
+    SMod.initial_st := ∅;
+  |}.
+  Solve All Obligations with mod_tac.
+
+  Definition t := SMod.to_mod ∅ Mod.
+End HWQP. End HWQP.
+Arguments HWQP.new_queue : simpl never.
+Arguments HWQI.new_queue : simpl never.
+
+Module HWQIP. Section HWQIP.
+  Context `{!crisG Γ Σ α β τ Hinv Hsub, !concGS}.
+  Context (mn : string).
+
+  Local Definition IstFull := IstProd (IstSB (Mod.scopes (HWQP.t mn)) IstEq) IstEq.
+  Lemma ctxr :
+    let fns mn := ProphecyName.exports mn ∪ Helping.exports mn in
+    ctx_refines
+      (HWQP.t mn                      ★ ProphecyI.t mn, emp)%I
+      (CFilter.filter (fns mn) HWQI.t ★ ProphecyI.t mn, emp)%I.
+  Proof using.
+    apply main_adequacy with (Ist:=IstFull).
+    init_sim.
+    { iStartSim.
+      steps_l. destruct Any.downcast as [sz|]; steps_l; ss. steps_r.
+      rewrite /HWQP.new_queue /HWQI.new_queue.
+      steps_l. steps_r. sch_yield_rr "IST".
+      { case_bool_decide as Hcase; first done. exfalso; apply Hcase; split; ss. set_solver. }
+      sch_yield_l. steps_l.
+      destruct sz as [|[sz| | ] [|]]; steps_l; ss. steps_r.
+      sch_yield_rr "IST".
+      { case_bool_decide as Hcase; first done. exfalso; apply Hcase; split; ss. set_solver. }
+      sch_yield_l. steps_l.
+      iApply wsim_call; iFrame; clear_st; iIntros (ret st_src st_tgt) "IST".
+      steps_l; steps_r; destruct Any.downcast as [|]; steps_l; ss. steps_r.
+      sch_yield_rr "IST".
+      { case_bool_decide as Hcase; first done. exfalso; apply Hcase; split; ss. set_solver. }
+      sch_yield_l. steps_l.
+      destruct v as [ | [blk ofs] | ]; steps_l; ss; steps_r.
+      sch_yield_rr "IST".
+      { case_bool_decide as Hcase; first done. exfalso; apply Hcase; split; ss. set_solver. }
+      sch_yield_l. steps_l.
+      iApply wsim_call; iFrame; clear_st; iIntros (? st_src st_tgt) "IST".
+      steps_l; steps_r; destruct Any.downcast as [|]; steps_l; ss. steps_r.
+      sch_yield_rr "IST".
+      { case_bool_decide as Hcase; first done. exfalso; apply Hcase; split; ss. set_solver. }
+      sch_yield_l. steps_l.
+      iApply wsim_call; iFrame; clear_st; iIntros (? st_src st_tgt) "IST".
+      steps_l; steps_r; destruct Any.downcast as [|]; steps_l; ss. steps_r.
+      sch_yield_rr "IST".
+      { case_bool_decide as Hcase; first done. exfalso; apply Hcase; split; ss. set_solver. }
+      sch_yield_l.
+      norm_l. norm_r.
+      replace 0 with (Z.to_nat sz - Z.to_nat sz) by lia.
+      assert (Z.to_nat sz ≤ Z.to_nat sz) as Hsz by lia.
+      revert Hsz. generalize (Z.to_nat sz) at 1 5 8 as n.
+      clear_st. intros n Hn. iInduction n as [|n] "IH_loop" forall (Hn st_src st_tgt).
+      { replace (Z.to_nat sz - 0) with (Z.to_nat sz) by lia.
+        unfold_iter_l. unfold_iter_r.
+        rewrite Nat.ltb_irrefl.
+        steps_r. sch_yield_rr "IST".
+        { case_bool_decide as Hcase; first done. exfalso; apply Hcase; split; ss. set_solver. }
+        sch_yield_rr "IST".
+        { case_bool_decide as Hcase; first done. exfalso; apply Hcase; split; ss. set_solver. }
+        sch_yield_l. steps_l. sch_yield_l. steps_l. inline_l. rewrite /ProphecyI.new. steps_l.
+        step. iFrame. auto.
+      }
+      unfold_iter_l. unfold_iter_r.
+      destruct Nat.ltb eqn : Heqb; last (apply Nat.ltb_ge in Heqb; lia).
+      steps_l. steps_r.
+      sch_yield_rr "IST".
+      { case_bool_decide as Hcase; first done. exfalso; apply Hcase; split; ss. set_solver. }
+      sch_yield_l. steps_l.
+      iApply wsim_call; iFrame; clear_st; iIntros (? st_src st_tgt) "IST".
+      steps_l. steps_r. destruct Any.downcast; steps_l; ss. steps_r.
+      replace (S (Z.to_nat sz - S n)) with (Z.to_nat sz - n) by lia.
+      iApply "IH_loop"; iFrame. by iPureIntro; lia.
+    }
+    { init_simF. steps_l. steps_r. force_l _. step. iFrame. done. }
+    { init_simF. steps_l. steps_r. force_l _. step. iFrame. done. }
+    iIntros "_"; iExists _, _, _, _. repeat iSplit; eauto.
+  Qed.
+End HWQIP. End HWQIP.
+
 (* Specification of the queue operations *)
 Module HWQA. Section HWQA.
-  Context `{!crisG Γ Σ α β τ Hinv Hsub, !concGS, !schGS, !hwqG}.
+  Context `{!crisG Γ Σ α β τ Hinv Hsub, !concGS, !schGS, !memGS, !prophGS, !hwqG}.
   Context (N : namespace).
 
   Definition scopes : list string := [].
@@ -1427,8 +1673,8 @@ Module HWQA. Section HWQA.
   Definition new_queue_spec : fspec :=
     fspec_sch (↑N)
       (fspec_simple (λ '((n, sz) : nat * nat),
-        ((λ arg, ∃ (sz : nat), ⌜arg = [Vint sz]↑ ∧ sz > 0⌝),
-         (λ ret, ∃ (q : val) γq, ⌜ret = (q↑)⌝ ∗ is_hwq n γq q ∗ hwq_cont γq []))))%I.
+        ((λ arg, ⌜arg = [Vint sz]↑ ∧ 0 < 8 * (2 + sz) < Z.to_nat modulus_64⌝),
+         (λ ret, ∃ (q : val) (γq : gname), ⌜ret = (q↑)⌝ ∗ is_hwq N n sz γq q ∗ hwq_cont γq []))))%I.
 
   Definition enqueue_spec : fspec :=
     fspec_sch (↑N)
@@ -1474,22 +1720,203 @@ Module HWQA. Section HWQA.
   Definition t sp := SMod.to_mod sp Mod.
 End HWQA. End HWQA.
 
-Module HWQIA. Section HWQIA.
-  Context `{!crisG Γ Σ α β τ Hinv Hsub, !concGS, !schGS, !hwqG, !memGS}.
+Module HWQM. Section HWQM.
+  Context `{!crisG Γ Σ α β τ Hinv Hsub, !concGS, !memGS, !prophGS, !schGS, !hwqG}.
+  Context (N : namespace) (mn : string).
 
-  Lemma ctxr (md : Mod.t) (N : namespace) (sp sp_mem : specmap) csl genv :
-    real_mod md →
+  Definition scopes : list string := [].
+
+  Definition enqueue : Any.t → itree crisE Any.t :=
+    atomic_body (HWQA.enqueue_spec N)
+      (λ '(_, (_, γq, l)) _,
+        ls <- trigger (Take (list valO));;
+        trigger (Assume (hwq_cont γq ls));;;
+        trigger (Guarantee (hwq_cont γq (l :: ls)));;;
+        Ret Vundef↑).
+
+  Definition dequeue : Any.t → itree crisE Any.t :=
+    atomic_body (HWQA.dequeue_spec N)
+      (λ '(_, (_, γq)) _, 
+        ls <- trigger (Take (list valO));;
+        trigger (Assume (hwq_cont γq ls));;;
+        l <- trigger (Choose valO);;
+        trigger (Guarantee (∃ ls', ⌜ls = l :: ls'⌝ ∗ hwq_cont γq ls'));;;
+        Ret (l↑)).
+
+  Definition fnsems : fnsemmap :=
+    {[fid HWQHdr.new_queue # (msk_scp scopes msk_true, (fsp_some (HWQA.new_queue_spec N), cfunU (HWQA.new_queue)));
+      fid HWQHdr.enqueue   # (msk_scp scopes msk_true, (None, enqueue));
+      fid HWQHdr.dequeue   # (msk_scp scopes msk_true, (None, dequeue))]}.
+
+  Program Definition Mod : SMod.t := {|
+    SMod.scopes := scopes;
+    SMod.fnsems := fnsems;
+    SMod.initial_st := ∅;
+  |}.
+  Solve All Obligations with mod_tac.
+
+  Definition t sp := SMod.to_mod sp Mod.
+End HWQM. End HWQM.
+
+Module HWQPM. Section HWQPM.
+  Context `{!crisG Γ Σ α β τ Hinv Hsub, !concGS, !schGS, !hwqG, !memGS, !prophGS}.
+  Context (mn : string).
+  Context (N : namespace) (sp sp_user sp_mem : specmap) (Hsch : SchA.sp sp_user (↑N) ⊆ sp).
+
+  Definition Ist : ist_type Σ := λ st_src st_tgt,
+    (∃ (X : gset val),
+      free_id (λ x, (x.1 = "hwq" ∧ match (x.2↓↓) with | Some x => x ∉ X | None => True end)%type) ∗
+      [∗ set] x ∈ X,
+        □ ∃ blk ofs nx, ⌜x = Vptr (blk, ofs)⌝ ∗ =| nx, ↑N |={↑N, ∅}=> ∃ v, (blk, ofs) ↦ v)%I.
+  Definition Ist_full : ist_type Σ :=
+    IstProd (IstSB (Mod.scopes (HWQP.t mn) ++ Mod.scopes (HelpingDummy.t mn)) Ist) IstEq.
+
+  Lemma ctxr {jobID retID} (jobs : jobID → itree crisE retID) :
+    ctx_refines
+      (HWQM.t N sp ★ HelpingOn.t mn jobs sp ★ MemA.t sp_mem ★ ProphecyA.t mn ∅, emp)%I
+      (HWQP.t mn   ★ HelpingDummy.t mn ★      MemA.t sp_mem ★ ProphecyA.t mn ∅, emp)%I.
+  Proof.
+    eapply main_adequacy with (Ist := Ist_full).
+    rewrite (assoc _ (HWQM.t N sp)) (assoc _ (HWQP.t mn)).
+    eapply ISim_reflR.
+    { intros fn Hfn; rewrite Mod.dom_fnsems_add in Hfn; set_unfold in Hfn; des; subst.
+      { iStartSim. s.
+        steps_l. destruct _q as [[mtid stid] [n sz]]; s.
+        iDestruct "ASM" as "[TID [-> [-> %Hsz]]]".
+        steps_l. steps_r.
+        rewrite /HWQP.new_queue /HWQA.new_queue.
+        steps_r. sch_yield_ir "IST" "TID". sch_yield_ir "IST" "TID".
+        iApply wsim_mem_alloc; [try by simpl_map|ss|try lia|].
+        replace (Z.to_nat (2 + sz)) with (2 + sz) by lia.
+        iIntros (blk); rewrite replicate_add big_sepL_app; iIntros "[[sz [back _]] ar]". steps_r.
+        sch_yield_ir "IST" "TID". sch_yield_ir "IST" "TID".
+        store_r "sz". sch_yield_ir "IST" "TID".
+        store_r "back". sch_yield_ir "IST" "TID".
+        replace sz with ((sz - sz) + sz) at 1 by lia. rewrite replicate_add.
+        replace (replicate (sz - sz) Vundef) with (replicate (sz - sz) (Vint 0))
+          by rewrite Nat.sub_diag //=.
+        rewrite -[X in ITree.iter _ X](Nat.sub_diag sz).
+        assert (sz ≤ sz) as Hle by lia; revert Hle.
+        generalize sz at 1 4 5 10 as i; intros i Hle.
+        iInduction i as [|i] forall (Hle st_src st_tgt).
+        { rewrite Nat.sub_0_r /= app_nil_r.
+          unfold_iter_r. steps_r. sch_yield_ir "IST" "TID".
+          rewrite Nat2Z.id Nat.ltb_irrefl. steps_r. sch_yield_ir "IST" "TID".
+          iDestruct "IST" as "[% [% [% [% [[-> ->] [[% IST] ->]]]]]]".
+          iDestruct "IST" as "[%X [free alloc]]".
+          destruct (decide (Vptr (blk, 0%Z) ∈ X)) as [HblkX|HblkX].
+          { iPoseProof (big_sepS_elem_of_acc with "alloc") as "[#acc _]"; auto using HblkX.
+            iDestruct "acc" as "[% [% [% [% acc]]]]"; clarify.
+            iMod "acc" as "[% acc]".
+            by iPoseProof (mem_points_to_singleton_valid with "acc sz") as "%".
+          }
+          iMod (free_id_split _ ("hwq", ((Vptr (blk, 0%Z))↑↑)) with "free") as "[tok free]".
+          { split; ss. rewrite SAny.upcast_downcast //. }
+          steps_r. inline_r. force_r (_, hwq_prophecy). forces_r. iSplitL "tok".
+          { repeat iSplit; first iPureIntro; ss. }
+          steps_r. iDestruct "GRT" as "[-> [%p [-> Proph]]]".
+          (* invariant construction *)
+          iMod new_back as (γb) "Hb●".
+          iMod new_back as (γi) "Hi●". (* FIXME not about back. *)
+          iMod (new_elts []) as (γe) "[He● He◯]".
+          iMod new_no_contra as (γc) "HC".
+          iMod new_slots as (γs) "Hs●".
+          iMod (inv_alloc (syn_inv_hwq sz γb γi γe γc γs blk) (n:=n) (S n) _ _ N
+            with "[ar sz back Proph Hb● Hi● He● HC Hs●]") as "#InvN"; auto.
+          { pose (pvs := proph_data p (seq 0 sz)).
+            pose (cont := NoCont (map (λ i, (i, [])) pvs)).
+            rewrite inv_hwq_red.
+            iExists 0, pvs, [], [], cont, ∅, ∅.
+            rewrite array_content_empty fmap_empty /=.
+            iFrame. iSplitL "ar".
+            { iApply (big_sepL_impl with "ar"); iModIntro; iIntros (k?).
+              replace (k + 2)%Z with (Z.of_nat (S (S k))) by lia. iIntros "% ? //=".
+            }
+            repeat (iSplit; first done). iPureIntro.
+            repeat split_and; try done.
+            - intros i. split; intros Hi; [ by lia | by inversion Hi].
+            - intros e He. set_solver.
+            - admit.
+            - admit.
+            - intros b. apply initial_block_valid.
+            - simpl. apply flatten_blocks_initial. }
+          sch_yield_l. force_l (Vptr (blk, 0%Z)). forces_l. iFrame.
+          repeat iSplit; first auto.
+          { iExists _; iSplit; first auto. iExists _, _, _, _, _; iSplit; eauto. }
+          iIst "IST" with "[-]".
+          { iExists _, _, _, _. repeat iSplit; des; eauto.
+            iExists (X ∪ {[Vptr (blk, 0%Z)]}). 
+            iSplitL "free".
+            { iApply (free_id_iff with "free").
+              intros i; case_decide; subst; ss.
+              { rewrite SAny.upcast_downcast; split; ss.
+                rewrite elem_of_union; intros [_ a]; apply a; right; set_solver+.
+              }
+              split; intros [? ?]; split; try done.
+              { case_match; set_solver. }
+              case_match; auto. rewrite elem_of_union; intros [|?%elem_of_singleton].
+              { set_solver. }
+              subst; destruct i; ss; hss.
+            }
+            rewrite big_sepS_union; last set_solver.
+            iFrame. rewrite big_sepS_singleton; iModIntro.
+            iExists _, _, (S n); iSplit; eauto.
+            iInv "InvN" as "[% [% [% [% [% [% [% [$ ?]]]]]]]]" "close".
+            iApply fupd_mask_intro; eauto. solve_ndisj.
+          }
+          step. iFrame. auto.
+        }
+        (* inductive case *)
+        unfold_iter_r. steps_r. sch_yield_ir "IST" "TID".
+        destruct Nat.ltb eqn : Hltb; first clear Hltb; last first.
+        { apply Nat.ltb_ge in Hltb; lia. }
+        rewrite length_replicate.
+        iPoseProof (big_sepL_insert_acc _ _ (sz - (S i)) with "ar") as "[↦ ar]".
+        { rewrite lookup_app_r length_replicate // Nat.sub_diag //=. }
+        steps_r.
+        replace (0 + 2 + (sz - S i)%nat)%Z with (Z.of_nat (2 + (sz - S i))) by lia.
+        store_r "↦". iPoseProof ("ar" with "↦") as "ar".
+        replace (sz - S i) with (length (replicate (sz - S i) (Vint 0)) + 0) at 1
+          by (rewrite length_replicate; lia).
+        rewrite insert_app_r /=.
+        replace (S (sz - S i)) with (sz - i) by lia.
+        iApply ("IHi" with "[] [ar] sz back IST TID"); first (iPureIntro; lia).
+        replace (sz - i) with ((sz - S i) + 1) by lia; rewrite replicate_add /=.
+        rewrite -(assoc app) //=.
+      }
+      { admit. }
+      { admit. }
+      { iStartSim. steps_r; ss. }
+      { iStartSim. steps_r; ss. }
+    }
+    { (refl||eauto using submseteq_nil_l). }
+    { (refl||eauto using submseteq_nil_l). }
+    { rewrite !Mod.dom_fnsems_add; try set_solver. }
+    { mod_tac. }
+    { admit. }
+  Admitted.
+End HWQPM. End HWQPM.
+
+Module HWQIA. Section HWQIA.
+  Context `{!crisG Γ Σ α β τ Hinv Hsub, !concGS, !schGS, !hwqG, !memGS, !prophGS}.
+
+  Lemma ctxr (ctx : Mod.t) (N : namespace) (sp sp_mem : specmap) csl genv :
+    real_mod ctx →
     refines
-      (HWQA.t N sp ★ md ★ MemA.t sp_mem   ★ SchI.t, MemA.init_cond csl genv)
-      (HWQI.t      ★ md ★ MemI.t csl genv ★ SchI.t, emp%I).
+      (HWQA.t N sp ★ MemA.t sp_mem   ★ SchI.t ★ ctx, MemA.init_cond csl genv ∗ ProphecyA.initial_cond)%I
+      (HWQI.t      ★ MemI.t csl genv ★ SchI.t ★ ctx, emp%I).
   Proof.
     intros Hreal.
-    (* Introduction of prophecy module *)
-    etransitivity; last first.
-    { apply ctxr_refines.
-      do 2 ctxr_drop. ctxr_swap; ctxr_drop.
-      eapply MemIA.ctxr. 
+    eapply helping_prophecy_refines with (mdp := HWQP.t) (mdm := λ mn, HWQM.t N sp) (jobs := λ _ : unit, Ret tt); eauto.
+    { apply HWQIP.ctxr. }
+    { intros mn; apply HWQPM.ctxr. }
+    { intros mn; eapply main_adequacy.
+      admit. (* erasure of helping - HWQMA *) 
     }
-
-
-     *)
+    { intros mn; rewrite /real_mod.
+      let real_tac :=
+        (split; ss; intros ??; destruct excluded_middle_informative; ss) in
+      mod_tac real_tac.
+    }
+  Admitted.
+End HWQIA. End HWQIA.

@@ -10,6 +10,14 @@ Module HWQI. Section HWQI.
     𝒴;;; '(qblk, qofs) : _ <- (pargs [Tptr] [q])?;;
     𝒴;;; '_ : val <- ccallU MemHdr.store [Vptr (qblk, qofs); Vint sz];; (* size of the queue *)
     𝒴;;; '_ : val <- ccallU MemHdr.store [Vptr (qblk, qofs + 1)%Z; Vint 0];; (* first free cell *)
+    𝒴;;; ITree.iter (λ (x : nat), (* initialization *)
+      𝒴;;;
+        if Nat.ltb x (Z.to_nat sz) 
+        then 
+          '_ : val <- ccallU MemHdr.store [Vptr (qblk, qofs + 2 + x)%Z; Vint 0];; Ret (inl (S x))
+        else
+          Ret (inr ())
+    ) 0;;;
     𝒴;;; Ret q.
 
     (** enqueue(q : queue, x : item){
