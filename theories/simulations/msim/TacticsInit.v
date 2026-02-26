@@ -9,7 +9,11 @@ Ltac init_sim :=
       [ intros fn Hfn; set_unfold in Hfn; des; subst
       | (refl||eauto using submseteq_nil_l)
       | (refl||eauto using submseteq_nil_l)
-      | try set_solver
+      | ((set_unfold; naive_solver) || (try set_solver))
+        (* Note : tactic for showing domain inclusion of fnsemmaps first try to avoid using
+        set_solver. Observed some cases where set_solver uses reflexivity and goes into an
+        infinite loop in showing set inclusion, and we try to avoid this. Tactic improvment is
+        required *)
       | mod_tac
       |]
     | econs; intros Hwf;
