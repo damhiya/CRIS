@@ -11,11 +11,11 @@ Ltac unfold_trans :=
 Section HelpingOnOff.
   Context `{!crisG Γ Σ α β τ _S _I, _SCH: !schGS}.
   (* sp, module name for the helping module *)
-  Context (sp : specmap) (mn : string).
+  Context (sp : specmap) (mn : string) (msk : gset string).
   Context {jobID retID : Type} (jobs : jobID → itree crisE retID).
 
-  Definition mod_src := (HelpingOff.t mn jobs sp) ★ (CFilter.filter (Helping.exports mn) SchI.t).
-  Definition mod_tgt := (HelpingOn.t mn jobs sp) ★ (CFilter.filter (Helping.exports mn) SchI.t).
+  Definition mod_src := (HelpingOff.t mn jobs sp) ★ (CFilter.filter msk SchI.t).
+  Definition mod_tgt := (HelpingOn.t mn jobs sp) ★ (CFilter.filter msk SchI.t).
 
   Local Lemma wf_src ctx : Mod.wf (mod_tgt ★ ctx) → Mod.wf (mod_src ★ ctx).
   Proof using.
@@ -41,11 +41,11 @@ Section HelpingOnOff.
   Notation prog_s ctx rs := (LMod.prog
     (Mod.to_lmod
       ((SMod.to_mod sp (HelpingOff.Mod mn jobs)
-      ★ CFilter.filter (Helping.exports mn) (SMod.to_mod ∅ SchI.smod)) ★ ctx) rs)).
+      ★ CFilter.filter msk (SMod.to_mod ∅ SchI.smod)) ★ ctx) rs)).
   Notation prog_t ctx rs := (LMod.prog
     (Mod.to_lmod
       ((SMod.to_mod sp (HelpingOn.Mod mn jobs sp)
-      ★ CFilter.filter (Helping.exports mn) (SMod.to_mod ∅ SchI.smod)) ★ ctx) rs)).
+      ★ CFilter.filter msk (SMod.to_mod ∅ SchI.smod)) ★ ctx) rs)).
 
   Definition run_s : Any.t → itree lmodE Any.t := λ x,
     ⇓cris (⇓sb(msk_scp (HelpingOff.scopes mn) msk_true)
@@ -69,19 +69,19 @@ Section HelpingOnOff.
       (tau;; ⇓smod(sp) ((λ arg, tid <- arg ↓?;; HelpingOn.try_run mn jobs tid;;; Ret ()↑) x))).
 
   Definition yield : Any.t → itree lmodE Any.t := λ x,
-    ⇓cris (⇓sb(CFilter.msk_filter (Helping.exports mn) (msk_real (msk_scp SchI.scopes msk_true)))
+    ⇓cris (⇓sb(CFilter.msk_filter msk (msk_real (msk_scp SchI.scopes msk_true)))
       (tau;; ⇓smod(∅) (cfunU SchI.yield x))).
   Definition inner_spawn : Any.t → itree lmodE Any.t := λ x,
-    ⇓cris (⇓sb(CFilter.msk_filter (Helping.exports mn) (msk_real (msk_scp SchI.scopes msk_true)))
+    ⇓cris (⇓sb(CFilter.msk_filter msk (msk_real (msk_scp SchI.scopes msk_true)))
       (tau;; ⇓smod(∅) (cfunU SchI.inner_spawn x))).
   Definition spawn : Any.t → itree lmodE Any.t := λ x,
-    ⇓cris (⇓sb(CFilter.msk_filter (Helping.exports mn) (msk_real (msk_scp SchI.scopes msk_true)))
+    ⇓cris (⇓sb(CFilter.msk_filter msk (msk_real (msk_scp SchI.scopes msk_true)))
       (tau;; ⇓smod(∅) (cfunU SchI.spawn x))).
   Definition join : Any.t → itree lmodE Any.t := λ x,
-    ⇓cris (⇓sb(CFilter.msk_filter (Helping.exports mn) (msk_real (msk_scp SchI.scopes msk_true)))
+    ⇓cris (⇓sb(CFilter.msk_filter msk (msk_real (msk_scp SchI.scopes msk_true)))
       (tau;; ⇓smod(∅) (cfunU SchI.join x))).
   Definition get_tid : Any.t → itree lmodE Any.t := λ x,
-    ⇓cris (⇓sb(CFilter.msk_filter (Helping.exports mn) (msk_real (msk_scp SchI.scopes msk_true)))
+    ⇓cris (⇓sb(CFilter.msk_filter msk (msk_real (msk_scp SchI.scopes msk_true)))
       (tau;; ⇓smod(∅) (cfunU SchI.get_tid x))).
 
   Local Lemma dom_helping_on :
@@ -143,13 +143,13 @@ Section HelpingOnOff.
   Proof. intros ?. rewrite /LMod.prog Mod.to_lmod_fnsems. simpl_map; ss. Qed.
 
   Lemma prog_s_prog_t fn ctx rs :
-    Mod.wf ((HelpingOn.t mn jobs sp ★ CFilter.filter (Helping.exports mn) SchI.t) ★ ctx) →
+    Mod.wf ((HelpingOn.t mn jobs sp ★ CFilter.filter msk SchI.t) ★ ctx) →
     (prog_s ctx rs fn = None ∧ prog_t ctx rs fn = None) ∨
     ((fn = Helping.run mn ∧ prog_s ctx rs fn = Some run_s ∧ prog_t ctx rs fn = Some run_t) ∨
     (fn = Helping.help mn ∧ prog_s ctx rs fn = Some help_s ∧ prog_t ctx rs fn = Some help_t)) ∨
     (fid fn ∈ dom (Mod.fnsems SchI.t) ∧
       (∃ bd, prog_s ctx rs fn = Some (ModTr.trans_fnsem (SB.sandbox_body
-        (CFilter.msk_filter (Helping.exports mn) (msk_real (msk_scp SchI.scopes msk_true)), bd)))) ∧
+        (CFilter.msk_filter msk (msk_real (msk_scp SchI.scopes msk_true)), bd)))) ∧
       prog_t ctx rs fn = prog_s ctx rs fn) ∨
     (fid fn ∈ dom (Mod.fnsems ctx) ∧
       prog_t ctx rs fn = prog_s ctx rs fn ∧
@@ -176,7 +176,7 @@ Section HelpingOnOff.
     }
     { pose proof Hwfsrc as ?; apply Mod.add_wf_inv in Hwfsrc as [? [? ?]].
       right; left; split; first by (des; clarify; set_solver).
-      assert (Hfn2 : fid fn ∈ dom (Mod.fnsems (CFilter.filter (Helping.exports mn) SchI.t))).
+      assert (Hfn2 : fid fn ∈ dom (Mod.fnsems (CFilter.filter msk SchI.t))).
       { des; clarify; set_solver. }
       clear Hfn.
       assert (Mod.fnsems ctx !! fid fn = None) by
@@ -191,14 +191,14 @@ Section HelpingOnOff.
       set_unfold in Hfn2; des; clarify; simpl_map; eauto.
     }
     { right; right; split; first done.
-      apply elem_of_dom in Hfn as [[[msk bd]|] Hfn]; cycle 1.
+      apply elem_of_dom in Hfn as [[[msk' bd]|] Hfn]; cycle 1.
       { exfalso; inv Hwfctx; rewrite map_Forall_lookup in wf_fns;
           hexploit (wf_fns (fid fn) None); auto; by (intros []).
       }
       rewrite /LMod.prog ?Mod.to_lmod_fnsems; try repeat erewrite lookup_fnsems_r; eauto.
       esplits; eauto.
       eapply Mod.add_wf_inv in Hwf as [? [? [? [? [Hnd ?]]%NoDup_app]]].
-      hexploit (Mod.well_scoped_fns ctx); rewrite map_Forall_lookup => /(_ (fid fn) (msk, bd)).
+      hexploit (Mod.well_scoped_fns ctx); rewrite map_Forall_lookup => /(_ (fid fn) (msk', bd)).
       rewrite lookup_omap Hfn => /(_ eq_refl) [Hput Hget]; split.
       { intros ? ?%Hget; rewrite elem_of_app; ss; ii; exfalso; eapply Hnd; eauto.
         rewrite sorting.merge_sort_Permutation; rewrite elem_of_cons; des; [right|left]; set_solver.
@@ -431,7 +431,7 @@ Section HelpingOnOff.
   Qed.
 
   Definition inner_spawn_pend (arg : Any.t) ktr : itree lmodE Any.t :=
-    ⇓cris (x <- ⇓sb(CFilter.msk_filter (Helping.exports mn) (msk_real (msk_scp SchI.scopes msk_true)))
+    ⇓cris (x <- ⇓sb(CFilter.msk_filter msk (msk_real (msk_scp SchI.scopes msk_true)))
       (tau;; ⇓smod(∅) (
         'arg : SAny.t <- (arg↓)?;;
         'x1 : thpool <- (cgetU SchI.v_ths);;
@@ -447,7 +447,7 @@ Section HelpingOnOff.
       ktr x).
 
   Definition join_pend (arg : Any.t) jtid ktr : itree lmodE Any.t :=
-    ⇓cris (x <- ⇓sb(CFilter.msk_filter (Helping.exports mn) (msk_real (msk_scp SchI.scopes msk_true)))
+    ⇓cris (x <- ⇓sb(CFilter.msk_filter msk (msk_real (msk_scp SchI.scopes msk_true)))
       (tau;; ⇓smod(∅) (
         'arg : () <- (arg↓)?;;
         x_3 <- iterC (λ _ : (),
@@ -525,7 +525,7 @@ Section HelpingOnOff.
       help_rel itr_s itr_t (Some (tid, (None, jid)))
   | help_rel_call itr_s itr_t ktr_t ktr_s ctx rs fn arg :
       fid fn ∈ dom (Mod.fnsems (HelpingOn.t mn jobs sp)) ∪ dom (Mod.fnsems SchI.t) →
-      Mod.wf ((HelpingOn.t mn jobs sp ★ CFilter.filter (Helping.exports mn) SchI.t) ★ ctx) →
+      Mod.wf ((HelpingOn.t mn jobs sp ★ CFilter.filter msk SchI.t) ★ ctx) →
       itr_s = bd <- (prog_s ctx rs fn)?;; x <- bd arg;; ⇓cris (ktr_s x) →
       itr_t = bd <- (prog_t ctx rs fn)?;; x <- bd arg;; ⇓cris (ktr_t x) →
       (∀ ret, help_rel (⇓cris (ktr_s ret)) (⇓cris (ktr_t ret)) None) →
@@ -542,10 +542,10 @@ Section HelpingOnOff.
       help_rel itr_s itr_t None
   | help_rel_terminate itr_s itr_t ktr_s ktr_t :
       itr_s =
-        (⇓cris (x <- ⇓sb(CFilter.msk_filter (Helping.exports mn) (msk_real (msk_scp SchI.scopes msk_true)))
+        (⇓cris (x <- ⇓sb(CFilter.msk_filter msk (msk_real (msk_scp SchI.scopes msk_true)))
           (⇓smod(∅) (x_ <- Sch.terminate;; Ret x_↑));; ktr_s x)) →
       itr_t =
-        (⇓cris (x <- ⇓sb(CFilter.msk_filter (Helping.exports mn) (msk_real (msk_scp SchI.scopes msk_true)))
+        (⇓cris (x <- ⇓sb(CFilter.msk_filter msk (msk_real (msk_scp SchI.scopes msk_true)))
           (⇓smod(∅) (x_ <- Sch.terminate;; Ret x_↑));; ktr_t x)) →
       (∀ ret, help_rel (⇓cris (ktr_s ret)) (⇓cris (ktr_t ret)) None) →
       help_rel itr_s itr_t None.
@@ -738,8 +738,11 @@ Section HelpingOnOff.
     { repeat f_equal; ss. extensionality a. hnorm_itr. }
   (*SLOW*)Qed.
 
-  Lemma helping_onoff_correct : ctx_refines (mod_src, emp%I) (mod_tgt, emp%I).
+  Lemma helping_onoff_correct :
+    Helping.exports mn ⊆ msk →
+    ctx_refines (mod_src, emp%I) (mod_tgt, emp%I).
   Proof using.
+    intros Hmsk.
     rewrite /mod_src /mod_tgt.
     intros [ctx ctxP] WF; ss; split; first by apply wf_src.
 
@@ -747,7 +750,7 @@ Section HelpingOnOff.
     intros rs Hval Hrs; exists rs; split; [exact Hval|split; [done|]].
     intro arg; eapply (gsim_adequacy); repeat (instantiate (1:=smj_bot)).
     rewrite /LMod.compile /ITree.map /LModTr.trans /LModTr.interp_callE /=.
-    destruct (Mod.fnsems ctx !! entry) as [[[msk bd]|]|] eqn : FIND; cycle 1.
+    destruct (Mod.fnsems ctx !! entry) as [[[mskctx bd]|]|] eqn : FIND; cycle 1.
     { simpl_map; ss. ginit. gstep_l. ss. }
     { rewrite {1}/Mod.fnsems {1}/Mod.add !lookup_fmap lookup_omap lookup_union_with FIND
         lookup_fnsems_None //.
@@ -798,7 +801,7 @@ Section HelpingOnOff.
           { by rewrite ?SBRed.ret ?interpV_ret; econs. }
           { eapply (help_rel_eq _ _ (λ x, Ret x) (λ x, Ret x)); eauto; try by grind.
             { eapply Mod.add_wf_inv in WF as [? [? [? [? [Hnd ?]]%NoDup_app]]].
-              hexploit (Mod.well_scoped_fns ctx); rewrite map_Forall_lookup => /(_ entry (msk, bd)).
+              hexploit (Mod.well_scoped_fns ctx); rewrite map_Forall_lookup => /(_ entry (mskctx, bd)).
               rewrite lookup_omap FIND => /(_ eq_refl) [Hput Hget]; split.
               { intros ? ?%Hget; rewrite elem_of_app; ss; ii; exfalso; eapply Hnd; eauto.
                 rewrite sorting.merge_sort_Permutation; rewrite elem_of_cons; des; [right|left]; set_solver. }
@@ -810,7 +813,7 @@ Section HelpingOnOff.
           }
           { eapply (help_rel_eq _ _ (λ x, Ret x) (λ x, Ret x)); eauto; try by grind.
             { eapply Mod.add_wf_inv in WF as [? [? [? [? [Hnd ?]]%NoDup_app]]].
-              hexploit (Mod.well_scoped_fns ctx); rewrite map_Forall_lookup => /(_ entry (msk, bd)).
+              hexploit (Mod.well_scoped_fns ctx); rewrite map_Forall_lookup => /(_ entry (mskctx, bd)).
               rewrite lookup_omap FIND => /(_ eq_refl) [Hput Hget]; split.
               { intros ? ?%Hget; rewrite elem_of_app; ss; ii; exfalso; eapply Hnd; eauto.
                 rewrite sorting.merge_sort_Permutation; rewrite elem_of_cons; des; [right|left]; set_solver. }
@@ -827,7 +830,7 @@ Section HelpingOnOff.
     }
     generalize st_src, st_tgt, tp_src, tp_tgt.
     generalize smj_bot at 1 as f_s. generalize smj_bot as f_t.
-    clear st_src st_tgt tp_src tp_tgt FIND arg msk bd.
+    clear st_src st_tgt tp_src tp_tgt FIND arg mskctx bd.
     revert_until WF.
     gcofix CIH.
     intros rs Hrs f_s f_t st_s st_t tp_s tp_t.
@@ -1143,7 +1146,7 @@ Section HelpingOnOff.
       (* events *)
       rewrite SBRed.vis in Htid; des_ifs; cycle 1.
       { eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|ss]. }
-      rename Heq into Hmsk.
+      rename Heq into Hmsk2.
       destruct e as [e|[e|[e|e]]]; rewrite vis_trigger in Htid.
       { (* agE *)
         destruct e as [P|x|Q].
@@ -1364,7 +1367,7 @@ Section HelpingOnOff.
           eapply gsim_SPut_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
 
           match goal with | A : msk_ctx ?a |- _ => rename A into Hmskctx end.
-          bsimpl. apply Hmskctx in Hmsk; set_unfold in Hmsk.
+          bsimpl. apply Hmskctx in Hmsk2; set_unfold in Hmsk2.
           rewrite !insert_union_with_r; cycle 1.
           { rewrite lookup_union_with ?lookup_insert_ne //; ii; clarify; ss; eauto. }
           { rewrite ?lookup_insert_ne //; ii; clarify; ss; eauto. }
@@ -1393,7 +1396,7 @@ Section HelpingOnOff.
               }
             }
             eapply map_Forall_union_with_inv_gen in Hst1.
-            set_solver+Hmsk Hst1.
+            set_solver+Hmsk2 Hst1.
           }
           { eapply map_Forall_union_with; cycle 1.
             { split.
@@ -1404,7 +1407,7 @@ Section HelpingOnOff.
             }
             eapply map_Forall_union_with_inv_gen in Hst2; revert Hst2.
             rewrite ?dom_union_with ?dom_insert ?dom_empty; i.
-            set_solver+Hmsk Hst2.
+            set_solver+Hmsk2 Hst2.
           }
         }
         { (* sGet *)
@@ -1412,7 +1415,7 @@ Section HelpingOnOff.
           eapply gsim_SGet_src; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
           ghnorm_l; ghnorm_r.
           match goal with | A : msk_ctx ?a |- _ => rename A into Hmskctx end.
-          bsimpl. apply Hmskctx in Hmsk; set_unfold in Hmsk.
+          bsimpl. apply Hmskctx in Hmsk2; set_unfold in Hmsk2.
           rewrite ?lookup_union_with ?lookup_insert_ne //; ii; clarify; ss; eauto.
           rewrite ?lookup_empty /=; ired.
           zprogress. gbase.
@@ -2142,7 +2145,7 @@ Section HelpingOnOff.
           { intros ???; rewrite list_lookup_insert_ne //=; apply Hlookup. }
           { rewrite list_lookup_insert; ii; clarify. split; ss.
             destruct Hprog as [Hprog|Hprog].
-            { exfalso; des; subst s; apply Hs; clear; set_solver. }
+            { exfalso; des; subst s; apply Hs; set_solver+Hmsk. }
             destruct Hprog as [Hprog|Hprog].
             { eapply help_rel_call with (ctx:=ctx); eauto.
               { des; clarify; rewrite elem_of_union; right; done. }
@@ -2231,8 +2234,21 @@ Section HelpingOnOff.
         eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
         eapply gsim_tau_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
         rewrite !list_insert_insert.
-        eapply gsim_Spawn_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-        eapply gsim_Spawn_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+        destruct (decide (SchHdr._spawn ∈ msk)) as [Hspawnmsk|Hspawnmsk].
+        { ghnorm_l. case_bool_decide as a; des; first set_solver+a Hspawnmsk.
+          s. eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+          done.
+        }
+        eapply gsim_Spawn_src.
+        { lookup_tac; s; do 2 f_equal. etrans; first hnorm_itr.
+          case_bool_decide as a; des; last (exfalso; apply a; split; ss).
+          s. hnorm_itr.
+        }
+        eapply gsim_Spawn_tgt.
+        { lookup_tac; s; do 2 f_equal. etrans; first hnorm_itr.
+          case_bool_decide as a; des; last (exfalso; apply a; split; ss).
+          s. hnorm_itr.
+        }
         rewrite !list_insert_insert.
         rewrite prog_s_inner_spawn; auto using wf_src; rewrite prog_t_inner_spawn //=.
         ired.
@@ -2432,10 +2448,22 @@ Section HelpingOnOff.
           rewrite !list_insert_insert.
 
           ghnorm_l. ghnorm_r.
-          eapply gsim_Call_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-          rewrite list_insert_insert; ghnorm_l.
-          eapply gsim_Call_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-          rewrite list_insert_insert. ghnorm_r.
+          destruct (decide (SchHdr.yield ∈ msk)) as [Hspawnmsk|Hspawnmsk].
+          { ghnorm_l. case_bool_decide as a; des; first set_solver+a Hspawnmsk.
+            s. eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+            done.
+          }
+          eapply gsim_Call_src.
+          { lookup_tac; s; do 2 f_equal. etrans; first hnorm_itr.
+            case_bool_decide as a; des; last (exfalso; apply a; split; ss).
+            s. hnorm_itr.
+          }
+          eapply gsim_Call_tgt.
+          { lookup_tac; s; do 2 f_equal. etrans; first hnorm_itr.
+            case_bool_decide as a; des; last (exfalso; apply a; split; ss).
+            s. hnorm_itr.
+          }
+          rewrite !list_insert_insert. ghnorm_r.
 
           zprogress.
           gbase. eapply (CIH rs); eauto.
@@ -2457,8 +2485,6 @@ Section HelpingOnOff.
               }
               { rewrite /join_pend /ccallU. f_equal.
                 do 3 (etrans; first hnorm_itr; symmetry; etrans; first hnorm_itr; grind).
-                repeat f_equal; extensionalities a; destruct a; grind.
-                repeat f_equal; extensionalities a; grind.
               }
             }
           }
@@ -2632,10 +2658,22 @@ Section HelpingOnOff.
         rewrite !list_insert_insert.
 
         ghnorm_l; ghnorm_r.
-        eapply gsim_Call_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-        rewrite list_insert_insert. ghnorm_l.
-        eapply gsim_Call_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-        rewrite list_insert_insert. ghnorm_r.
+        destruct (decide (SchHdr.yield ∈ msk)) as [Hspawnmsk|Hspawnmsk].
+        { ghnorm_l. case_bool_decide as a; des; first set_solver+a Hspawnmsk.
+          s. eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+          done.
+        }
+        eapply gsim_Call_src.
+        { lookup_tac; s; do 2 f_equal. etrans; first hnorm_itr.
+          case_bool_decide as a; des; last (exfalso; apply a; split; ss).
+          s. hnorm_itr.
+        }
+        eapply gsim_Call_tgt.
+        { lookup_tac; s; do 2 f_equal. etrans; first hnorm_itr.
+          case_bool_decide as a; des; last (exfalso; apply a; split; ss).
+          s. hnorm_itr.
+        }
+        rewrite !list_insert_insert. ghnorm_l. ghnorm_r.
 
         zprogress. gbase. eapply (CIH rs); eauto.
         eexists (<[stid := (_, _, None)]> tl); esplits; eauto.
@@ -2686,10 +2724,22 @@ Section HelpingOnOff.
       rewrite !list_insert_insert.
 
       ghnorm_l; ghnorm_r.
-      eapply gsim_Call_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-      rewrite list_insert_insert. ghnorm_l.
-      eapply gsim_Call_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-      rewrite list_insert_insert. ghnorm_r.
+      destruct (decide (SchHdr.yield ∈ msk)) as [Hspawnmsk|Hspawnmsk].
+      { ghnorm_l. case_bool_decide as a; des; first set_solver+a Hspawnmsk.
+        s. eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
+        done.
+      }
+      eapply gsim_Call_src.
+      { lookup_tac; s; do 2 f_equal. etrans; first hnorm_itr.
+        case_bool_decide as a; des; last (exfalso; apply a; split; ss).
+        s. hnorm_itr.
+      }
+      eapply gsim_Call_tgt.
+      { lookup_tac; s; do 2 f_equal. etrans; first hnorm_itr.
+        case_bool_decide as a; des; last (exfalso; apply a; split; ss).
+        s. hnorm_itr.
+      }
+      ghnorm_l. ghnorm_r. rewrite !list_insert_insert.
 
       zprogress. gbase. eapply (CIH rs); eauto.
       eexists (<[stid := (_, _, None)]> tl); esplits; eauto.

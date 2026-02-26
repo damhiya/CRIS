@@ -48,6 +48,17 @@ Module CFilter. Section CFilter.
     do 2 destruct (_ !! i); ss.
   Qed.
 
+  Lemma filter_empty m : CFilter.filter ∅ m = m.
+  Proof.
+    apply Mod.t_eq; ss.
+    rewrite /filter /Mod.fnsems; destruct m as [? fnsems ?]; clear.
+    generalize fnsems; eapply map_ind; ss.
+    intros i [[msk ?]|] m; rewrite fmap_insert /=; intros ? ->; ss.
+    repeat f_equal.
+    extensionalities X e; destruct e as [|[|[|]]]; auto.
+    destruct c; ss; case_bool_decide as H2; destruct msk; ss; des; ss; exfalso; apply H2; split; ss.
+  Qed.
+
   (* Key theorems *)
   Lemma sim_filter_intro (mask : gset string) (m : Mod.t) :
     ISim.t open (filter mask m) m emp%I IstEq.
