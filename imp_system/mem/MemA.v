@@ -126,6 +126,20 @@ Section MemRA.
     rewrite -Some_op Some_valid dfrac_agree_op_valid_L in WF; des; clarify.
   Qed.
 
+  Lemma mem_points_to_singleton_valid (loc : mblock * ptrofs) (q1 q2 : Qp) (v1 v2 : val) :
+    mem_points_to_singleton loc (DfracOwn q1) v1 -∗
+    mem_points_to_singleton loc (DfracOwn q2) v2 -∗
+    ⌜q1 + q2 ≤ 1⌝%Qp.
+  Proof.
+    rewrite /mem_points_to_singleton; iIntros "a b"; iCombine "a b" gives %wf.
+    rewrite /mem_points_to_singleton_r -auth_frag_op discrete_fun_singleton_op in wf.
+    rewrite auth_frag_valid in wf; specialize (wf loc.1).
+    rewrite discrete_fun_lookup_singleton discrete_fun_singleton_op in wf.
+    specialize (wf loc.2); rewrite discrete_fun_lookup_singleton in wf.
+    rewrite -Some_op Some_valid dfrac_agree_op_valid_L in wf.
+    rewrite dfrac_op_own dfrac_valid in wf; by des.
+  Qed.
+
   Lemma mem_init_auth_r_valid (csl : string → bool) (genv : GEnv.t) blk ofs v :
     mem_init_val csl genv blk ofs = Some v →
     mem_points_to_singleton_r (blk, ofs) (DfracOwn 1) (Vint v) ≼ mem_init_frag_r csl genv.
