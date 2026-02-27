@@ -20,6 +20,19 @@ Module HWQI. Section HWQI.
     ) 0;;;
     𝒴;;; Ret q.
 
+  Definition enqueue : list val → itree crisE val := λ q,
+    𝒴;;; '(qblk, qofs, v) : mblock * ptrofs * _ <- (pargs [Tptr; Tptr] q)?;;
+    𝒴;;; 'sz : val <- ccallU MemHdr.load [Vptr (qblk, qofs)];;
+    𝒴;;; 'sz : Z <- (pargs [Tint] [sz])?;;
+    𝒴;;; 'back : val <- MemHdr.faa [Vptr (qblk, qofs + 1)%Z];;
+    𝒴;;; 'back : Z <- (pargs [Tint] [back])?;;
+    𝒴;;;
+      if (Z.ltb back sz)
+      then
+        𝒴;;; '_ : val <- ccallU MemHdr.store [Vptr (qblk, qofs + 2 + back)%Z; Vptr v];;
+        𝒴;;; Ret Vundef
+      else
+        𝒴;;; ITree.iter (λ _, 𝒴;;; Ret (inl ())) ().
     (** enqueue(q : queue, x : item){
       let i : int := FAA(q.back, 1) in
       if(i < q.size){
@@ -82,7 +95,7 @@ Definition dequeue : val :=
 
   Definition fnsems : fnsemmap :=
     {[fid HWQHdr.new_queue # (msk_real (msk_scp [] msk_true), (None, cfunU new_queue));
-      fid HWQHdr.enqueue   # (msk_real (msk_scp [] msk_true), (None, fbody_trivial));
+      fid HWQHdr.enqueue   # (msk_real (msk_scp [] msk_true), (None, cfunU enqueue));
       fid HWQHdr.dequeue   # (msk_real (msk_scp [] msk_true), (None, fbody_trivial))]}.
 
   Program Definition Mod : SMod.t := {|
@@ -94,79 +107,3 @@ Definition dequeue : val :=
 
   Definition t := SMod.to_mod ∅ Mod.
 End HWQI. End HWQI.
-
-
-(* Lemma big_lemma γe γs (ls : list loc) slots (p : list nat) :
-  NoDup p →
-  (∀ i, i ∈ p → was_committed <$> slots !! i = Some false) →
-  own γs (● (of_slot_data <$> slots) : slotUR) -∗
-   ([∗ map] i ↦ d ∈ slots, per_slot_own γe γs i d) -∗
-   own γe (● (Excl' ls)) ={⊤ ∖ ↑N}=∗
-    own γs (● (of_slot_data <$> map_imap (helped p) slots) : slotUR) ∗
-    ([∗ map] i ↦ d ∈ map_imap (helped p) slots, per_slot_own γe γs i d) ∗
-    own γe (● (Excl' (ls ++ get_values slots p))).
-Proof.
-  revert p. iIntros (p).
-  iInduction p as [|n ps] "IH" forall (slots ls); iIntros (HNoDup H) "Hs● Hbig He●".
-  - iModIntro. rewrite /= app_nil_r map_imap_helped_nil. iFrame.
-  - assert (∀ i : nat, i ∈ ps → was_committed <$> slots !! i = Some false) as H1.
-    { intros i Hi. apply H. apply elem_of_list_further, Hi. }
-    assert (was_committed <$> slots !! n = Some false) as H2.
-    { apply H. apply elem_of_list_here. }
-    assert (∃ ln γn wn, slots !! n = Some (ln, Pend γn, wn)) as Hn.
-    { destruct (slots !! n) as [[[ln sn] wn]|]; last by inversion H2.
-      (destruct sn as [γn|γn|]; last by inversion H2); by exists ln, γn, wn. }
-    apply NoDup_cons in HNoDup. destruct HNoDup as [Hn_not_in_ps HNoDup].
-    destruct Hn as [l [γ [w Hn]]].
-    assert (slots = <[n:=(l, Pend γ, w)]> (delete n slots)) as Hs.
-    { by rewrite insert_delete_insert insert_id. }
-    rewrite [in ([∗ map] _ ↦ _ ∈ slots, _)%I]Hs.
-    iDestruct (big_sepM_insert with "Hbig")
-      as "[Hbig_n Hbig]"; first by apply lookup_delete_eq.
-    iDestruct "Hbig_n" as "[Hval_wit_n [Hwritten_n [Hpending_tok_n H]]]".
-    iDestruct "H" as (Q) "[Hsaved AU]".
-    iMod "AU" as (elts_AU) "[He◯ [_ Hclose]]".
-    iDestruct (sync_elts with "He● He◯") as %<-.
-    iMod (update_elts _ _ _ (ls ++ [l]) with "He● He◯") as "[He● He◯]".
-    iMod ("Hclose" with "[$He◯]") as "HPost".
-    iMod (use_pending_tok with "Hs● Hpending_tok_n")
-      as "[Hs● Hcommitted_wit_n]"; first by rewrite Hn.
-    iCombine "Hsaved HPost" as "Hn".
-    iDestruct (big_sepM_insert _ (delete n slots) n (l, Help γ, w)
-      with "[Hn Hval_wit_n Hwritten_n Hcommitted_wit_n Hbig]")
-      as "Hbig"; first by apply lookup_delete_eq.
-    { iClear "IH". iFrame "Hbig". rewrite /per_slot_own /=. iFrame.
-      iExists Q. iDestruct "Hn" as "[$ HPost]". iNext. done. }
-    rewrite insert_delete_insert /update_slot Hn insert_delete_insert.
-    assert (∀ i : nat, i ∈ ps → was_committed <$> <[n:=(l, Help γ, w)]> slots !! i = Some false) as HHH.
-    { intros i Hi. rewrite lookup_insert_ne; [ by apply H1 | by set_solver ]. }
-    iMod ("IH" $! (<[n:=(l, Help γ, w)]> slots) (ls ++ [l]) HNoDup HHH
-            with "Hs● Hbig He●") as "[Hs● [Hbig He●]]"; iClear "IH".
-    assert (map_imap (helped ps) (<[n:=(l, Help γ, w)]> slots)
-            = map_imap (helped (n :: ps)) slots) as ->.
-    { apply map_eq. intros i. destruct (decide (i = n)) as [->|Hi_not_n].
-      - rewrite map_lookup_imap map_lookup_imap /= lookup_insert Hn /=.
-        rewrite /helped /=. rewrite decide_True; first done. set_solver.
-      - rewrite map_lookup_imap map_lookup_imap /= lookup_insert_ne; last done.
-        destruct (slots !! i) as [[[li si] wi]|]; last done. simpl.
-        rewrite /helped /=. destruct si; try done.
-        destruct (decide (i ∈ n :: ps)).
-        + rewrite decide_True; first done. set_solver.
-        + rewrite decide_False; first done. set_solver. }
-    iModIntro. iFrame.
-    by rewrite /= Hn -app_assoc /= get_values_not_in.
-Qed. *)
-
-(* Lemma array_contents_cases γs slots deqs i li :
-  own γs (● (of_slot_data <$> slots) : slotUR) -∗
-  slot_val_wit γs i li -∗
-    ⌜array_get slots deqs i = SOMEV #li ∨ array_get slots deqs i = NONEV⌝.
-Proof.
-  iIntros "Hs● Hval_wit_i".
-  iDestruct (use_val_wit with "Hs● Hval_wit_i") as %Hslots_i.
-  destruct (slots !! i) as [d|] eqn:HEq; last by inversion Hslots_i.
-  destruct d as [[li' si] wi]. inversion Hslots_i as [H]; subst li'.
-  rewrite /array_get HEq. simpl. iPureIntro.
-  destruct (decide (i ∈ deqs)); first by right.
-  destruct wi; by [ left | right ].
-Qed. *)
