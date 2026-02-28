@@ -20,6 +20,14 @@ Module HWQI. Section HWQI.
     ) 0;;;
     𝒴;;; Ret q.
 
+  (** enqueue(q : queue, x : item){
+      let i : int := FAA(q.back, 1) in
+      if(i < q.size){
+        q.items[i] := x
+      } else {
+        while true;
+      }
+    } *)
   Definition enqueue : list val → itree crisE val := λ q,
     𝒴;;; '(qblk, qofs, v) : mblock * ptrofs * _ <- (pargs [Tptr; Tptr] q)?;;
     𝒴;;; 'sz : val <- ccallU MemHdr.load [Vptr (qblk, qofs)];;
@@ -33,70 +41,74 @@ Module HWQI. Section HWQI.
         𝒴;;; Ret Vundef
       else
         𝒴;;; ITree.iter (λ _, 𝒴;;; Ret (inl ())) ().
-    (** enqueue(q : queue, x : item){
-      let i : int := FAA(q.back, 1) in
-      if(i < q.size){
-        q.items[i] := x
-      } else {
-        while true;
-      }
-    } *)
-(* Definition enqueue : val :=
-  λ: "q" "x",
-    let: "q_size" := Fst (Fst (Fst "q")) in
-    let: "q_ar"   := Snd (Fst (Fst "q")) in
-    let: "q_back" := Snd (Fst "q") in
-    (* Get the next free index. *)
-    let: "i" := FAA "q_back" #1 in
-    (* Check not full, and actually insert. *)
-    if: "i" < "q_size" then "q_ar"<[["i"]]> <- SOME "x" ;; Skip
-    else diverge #(). *)
 
-(** dequeue(q : queue){
-      let range = min(!q.back, q.size) in
-      let rec dequeue_aux(i) =
-        if i = 0 {
-          dequeue(q)
-        } else {
-          let j = range - i in
-          let x = ! q.ar[j] in
-          if x == null {
-            dequeue_aux(i-1)
+  (** dequeue(q : queue){
+        let range = min(!q.back, q.size) in
+        let rec dequeue_aux(i) =
+          if i = 0 {
+            dequeue(q)
           } else {
-            if resolve (CAS q.ar[j] x null) q.p (j, x) {
-              v
-            } else {
+            let j = range - i in
+            let x = ! q.ar[j] in
+            if x == null {
               dequeue_aux(i-1)
+            } else {
+              if resolve (CAS q.ar[j] x null) q.p (j, x) {
+                v
+              } else {
+                dequeue_aux(i-1)
+              }
             }
           }
-        }
-      in
-      dequeue_aux(range)
-    } *)
-(* Definition dequeue_aux : val :=
-  rec: "loop" "dequeue" "q" "range" "i" :=
-    if: "i" = #0 then "dequeue" "q" else
-      let: "q_ar" := Snd (Fst (Fst "q")) in
-      let: "q_p"  := Snd "q" in
-      let: "j"    := "range" - "i" in
-      let: "x"    := ! "q_ar"<[["j"]]> in
-      match: "x" with
-        NONE     => "loop" "dequeue" "q" "range" ("i" - #1)
-      | SOME "v" =>
-        let: "c" := Resolve (CmpXchg ("q_ar"<[["j"]]>) "x" NONE) "q_p" "j" in
-        if: Snd "c" then "v" else "loop" "dequeue" "q" "range" ("i" - #1)
-      end.
-Definition dequeue : val :=
-  rec: "dequeue" "q" :=
-    let: "q_size" := Fst (Fst (Fst "q")) in
-    let: "q_back" := Snd (Fst "q") in
-    let: "range"  := minimum !"q_back" "q_size" in
-    dequeue_aux "dequeue" "q" "range" "range". *)
+        in
+        dequeue_aux(range)
+      } *)
+  Definition dequeue_aux (q : val) (range : nat) (i : nat) : itree crisE (() + val) :=
+    𝒴;;;
+      ITree.iter (λ i : nat,
+        𝒴;;;
+        if (decide (i = 0))
+        then Ret (inr (inl ()))
+        else
+          let j := range - i in
+          𝒴;;; '(blk, ofs) : mblock * ptrofs <- (pargs [Tptr] [q])?;;
+          𝒴;;; 'x : val <- ccallU MemHdr.load [Vptr (blk, ofs + 2 + j)%Z];;
+          match x with
+          | Vint 0 => 𝒴;;; Ret (inl (i - 1))
+          | Vptr (xblk, xofs) =>
+              𝒴;;; 'c : val <- ccallU MemHdr.cas [Vptr (blk, ofs + 2 + j)%Z; x; Vint 0];;
+              𝒴;;; 'succ : val <- ccallU MemHdr.cmp [c; x];;
+              𝒴;;;
+                match succ with
+                | Vint 0 => 𝒴;;; Ret (inl (i - 1))
+                | Vint 1 => 𝒴;;; Ret (inr (inr c))
+                | _ => 𝒴;;; triggerUB
+                end
+          | _ => 𝒴;;; triggerUB
+          end
+      ) i.
+  Definition dequeue : list val → itree crisE val := λ q,
+    𝒴;;; '(qblk, qofs) : mblock * ptrofs <- (pargs [Tptr] q)?;;
+    𝒴;;;
+      ITree.iter (λ _ : unit,
+        𝒴;;; 'sz : val <- ccallU MemHdr.load [Vptr (qblk, qofs)];;
+        𝒴;;; 'sz : Z <- (pargs [Tint] [sz])?;;
+        𝒴;;; 'back : val <- ccallU MemHdr.load [Vptr (qblk, qofs + 1)%Z];;
+        𝒴;;; 'back : Z <- (pargs [Tint] [back])?;;
+        𝒴;;; let range := Z.to_nat (Z.min sz back) in
+        dequeue_aux (Vptr (qblk, qofs)) range range) ().
+  (* 
+  Definition dequeue : val :=
+    rec: "dequeue" "q" :=
+      let: "q_size" := Fst (Fst (Fst "q")) in
+      let: "q_back" := Snd (Fst "q") in
+      let: "range"  := minimum !"q_back" "q_size" in
+      dequeue_aux "dequeue" "q" "range" "range". *)
 
   Definition fnsems : fnsemmap :=
     {[fid HWQHdr.new_queue # (msk_real (msk_scp [] msk_true), (None, cfunU new_queue));
       fid HWQHdr.enqueue   # (msk_real (msk_scp [] msk_true), (None, cfunU enqueue));
-      fid HWQHdr.dequeue   # (msk_real (msk_scp [] msk_true), (None, fbody_trivial))]}.
+      fid HWQHdr.dequeue   # (msk_real (msk_scp [] msk_true), (None, cfunU dequeue))]}.
 
   Program Definition Mod : SMod.t := {|
     SMod.scopes := [];
