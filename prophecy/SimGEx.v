@@ -168,6 +168,8 @@ Section SIMG.
     eapply simg_ex_adequacy_ret_aux; try (by left; refl); eauto; i. des. clarify.
   Qed.
 
+  Local Arguments String.append /.
+
   Lemma simg_ex_adequacy_hang_aux
     pt' fn I (i : I)
     (PRE: ∀ ps pt itr_src itr_tgt

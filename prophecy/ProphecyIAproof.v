@@ -1064,7 +1064,9 @@ Module ProphIA. Section ProphIA.
         apply INV in H4. des.
         replace (proph_map' id) with (proph_map id) by now unfold proph_map'; des_ifs.
         esplits; et.
+        Local Arguments String.append /.
         punfold H4. inversion H4.
+        Local Arguments String.append : simpl never.
         { subst. apply inj_pair2 in H9. rewrite H9 in H11.
           destruct r1, ret. apply inj_pair2 in H11.
           apply (f_equal (fun y => y 0%fin)) in H11; clarify. pclearbot.
@@ -1544,7 +1546,9 @@ Module ProphIA. Section ProphIA.
       i. hexploit INV. { instantiate (1:=id). ii. apply NOTFREE. econs. et. }
       i. des. assert (NEQ: i1 <> id). { ii. apply NOTFREE. econs 2. clarify. }
       esplits; et.
+      Local Arguments String.append /.
       punfold H2. inversion H2.
+      Local Arguments String.append : simpl never.
       { subst. apply inj_pair2 in H7. rewrite H7 in H9.
         destruct r1, ret. fclarify. pclearbot.
         punfold STEP. inversion STEP. fclarify. pclearbot.

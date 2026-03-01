@@ -970,6 +970,8 @@ Section TREXTRREL.
     induction STEPS; try inv RET_FINAL; itree_clarify_all; subst; auto; econs; auto.
   Qed.
 
+  Local Arguments String.append /.
+
   Lemma steps_silent_aux2 tr itr itr_p itr' itr_p' l
     (SIM: comp_sim itr itr_p)
     (STEPS: steps_silent tr (itr', itr_p') (itr, itr_p) l)
