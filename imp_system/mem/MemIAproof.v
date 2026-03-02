@@ -2,7 +2,7 @@ From CRIS Require Import CRIS MemHeader MemA MemI ImpPrelude.
 From iris.algebra Require Import auth excl agree csum functions dfrac_agree.
 
 Section RA.
-  Context `{!crisG Γ Σ α β τ _S _I, !memGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, _MEM: !memGS}.
 
   Definition mem_wf (m : Mem.t) : Prop := ∀ b ofs v, m.(Mem.cnts) b ofs = Some v → b < m.(Mem.nb).
 
@@ -68,14 +68,14 @@ Section RA.
     :
     f.1 = q ∧ ∃ tl, f.2.(agree_car) = v :: tl.
   Proof using.
-    rr in EQ. des. ss. rr in EQ. rewrite EQ; split; et.
-    specialize (EQ0 0). rr in EQ0. des.
-    edestruct EQ0; s; eauto using elem_of_list.
-    des. ss. destruct (agree_car f.2) eqn: E.
-    - rewrite E in H0. rr in H0. inv H0.
-    - exists l. f_equal. rr in H1. depdes H1. rewrite E in EQ1.
-      edestruct (EQ1 o); eauto using elem_of_list. des.
-      rr in H1. depdes H1. rr in H0. depdes H0; ss. rr in H0. set_solver.
+    rr in EQ. des; ss. ltac2:(renames EQ into EQqf, EQvf). rewrite EQqf; split; et.
+    specialize (EQvf 0). rr in EQvf. des; ss. ltac2:(renames EQvf into EQvf, EQfv).
+    edestruct EQvf as [b [INbf EQvb]]; s; eauto using elem_of_list.
+    destruct (agree_car f.2) eqn: EQf.
+    - rewrite EQf in INbf. inv INbf.
+    - exists l. f_equal. rr in EQvb. depdes EQvb. rewrite EQf in EQfv.
+      edestruct (EQfv o) as [a [INav EQao]]; eauto using elem_of_list.
+      rr in EQao. depdes EQao. set_solver.
   Qed.
 
   Lemma to_frac_full_valid_inv A c (v: leibnizO A)
@@ -99,16 +99,16 @@ Section RA.
   Proof using.
     iIntros "P". rewrite -own_op.
     iApply (own_update with "P"). apply auth_update_alloc.
-    apply local_update_discrete. i. rewrite H1.
+    apply local_update_discrete. i. rewrite H0.
     split; cycle 1.
     - destruct mz; simpl opM in *.
       + rewrite left_id (comm _ c). et.
       + rewrite left_id. et.
-    - rewrite -H1. ii. rewrite !discrete_fun_lookup_op /_points_to_r.
+    - rewrite -H0. ii. rewrite !discrete_fun_lookup_op /_points_to_r.
       case_bool_decide; s; cycle 1.
-      { rewrite right_id. apply H0. }
-      hexploit (SIM blk x0). i; subst; des; rewrite H2; clarify.
-      + rewrite H3; case_match; ss.
+      { rewrite right_id. apply H. }
+      hexploit (SIM blk x0). i; subst; des; rewrite H1; clarify.
+      + rewrite H2; case_match; ss.
       + exploit WF; et. nia.
   Qed.
 
@@ -125,12 +125,12 @@ Section RA.
     dup WF. rewrite auth_both_valid_discrete in WF. ss. des.
     unfold included in *. des. specialize (WF b ofs). iris_tac.
     rewrite ->!discrete_fun_lookup_singleton in *.
-    destruct (SIM b ofs); des; rewrite H0 in WF.
+    destruct (SIM b ofs); des; rewrite H in WF.
     { destruct (z b ofs); ss; rewrite -?Some_op ?right_id in WF; inv WF. }
     rewrite -WF. destruct (z b ofs); rr in WF; depdes WF.
-    - assert (EXT: to_dfrac_agree (DfracOwn q) v ≼ to_dfrac_agree (DfracOwn 1) v0) by (rewrite H2; et).
+    - assert (EXT: to_dfrac_agree (DfracOwn q) v ≼ to_dfrac_agree (DfracOwn 1) v0) by (rewrite H1; et).
       eapply dfrac_agree_included in EXT. des; subst. rr in EXT0. subst. et.
-    - eapply to_frac_agree_inv in H2. ss. des. depdes H3. et.
+    - eapply to_frac_agree_inv in H1. ss. des. depdes H2. et.
   Qed.
 
   Lemma mem_ra_update v_new v (mem_s: MemA._memRA) mem_t b ofs :
@@ -192,26 +192,26 @@ Section RA.
     - des_ifs.
     - iPoseProof (mem_ra_lookup with "[B P2]") as "%"; et; iFrame.
       specialize (SIM n0 z). des; subst; ss.
-      + rewrite SIM in H0. r in H0. depdes H0.
+      + rewrite SIM in H. r in H. depdes H.
       + rewrite SIM0. iPureIntro. des_ifs.
     - destruct n; ss.
     - iPoseProof (mem_ra_lookup with "[B P1]") as "%"; et; iFrame.
       specialize (SIM n0 z). des; subst; ss.
-      + rewrite SIM in H0. rr in H0. depdes H0.
+      + rewrite SIM in H. rr in H. depdes H.
       + rewrite SIM0. iPureIntro. des_ifs.
     - iPoseProof (mem_ra_lookup with "[B P1]") as "%"; et; iFrame.
       iPoseProof (mem_ra_lookup with "[B P2]") as "%"; et; iFrame.
       dup SIM. specialize (SIM n z). des; subst; ss.
-      { rewrite SIM in H0. rr in H0. depdes H0. }
+      { rewrite SIM in H. rr in H. depdes H. }
       specialize (SIM0 n0 z0). des; subst; ss.
-      { rewrite SIM0 in H1. rr in H1. depdes H1. }
+      { rewrite SIM0 in H0. rr in H0. depdes H0. }
       rewrite SIM1 SIM2. s.
       repeat case_bool_decide; ss; des; simplify_eq.
   Qed.
 End RA.
 
 Module MemIA. Section MemIA.
-  Context `{!crisG Γ Σ α β τ _S _I, !memGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, _MEM: !memGS}.
   Local Existing Instances memGS_memGSpreS mem_inG.
 
   Context (csl : string → bool).
@@ -238,8 +238,8 @@ Module MemIA. Section MemIA.
     mem_get mem b ofs = v.
   Proof using.
     rr in HIT. depdes HIT. rewrite /mem_get -x. s. destruct x0.
-    symmetry in H0. eapply to_frac_agree_inv in H0. des. ss. subst.
-    rewrite H1. et.
+    symmetry in H. eapply to_frac_agree_inv in H. des. ss. subst.
+    rewrite H0. et.
   Qed.
 
   Local Definition state : Type := gmap key (option Any.t).
@@ -270,19 +270,19 @@ Module MemIA. Section MemIA.
     repeat (iSplit; eauto).
     iExists _; iSplit; eauto.
     iPureIntro; esplits; eauto; cycle 1.
-    { intros ????; ss. unfold update in *. rewrite /mem_wf in H6. des_ifs. exploit H3; eauto. nia. }
+    { intros ????; ss. unfold update in *. rewrite /mem_wf in H6. des_ifs. exploit H2; eauto. nia. }
 
     intros blk' ofs'; rewrite ?discrete_fun_lookup_op /= Z.add_0_l Z.sub_0_r length_replicate.
     destruct (mem_tgt.(Mem.cnts) blk ofs') eqn:E.
-    { exfalso. exploit H3; et. nia. }
-    ss. hexploit (H2 blk ofs'); et.
+    { exfalso. exploit H2; et. nia. }
+    ss. hexploit (H1 blk ofs'); et.
     rewrite E. intro U. des; ss.
 
     case_bool_decide as Hblkofs; [destruct Hblkofs as [Hblk Hofs]|].
     { rewrite lookup_replicate_2; [subst|lia]; rewrite U left_id; right; esplits; eauto.
       rewrite /update; destruct (dec _ _); ss; case_bool_decide; ss.
     }
-    rewrite right_id /update; destruct (_ blk' ofs') eqn : ?; hexploit (H2 blk' ofs');
+    rewrite right_id /update; destruct (_ blk' ofs') eqn : ?; hexploit (H1 blk' ofs');
         i; des; destruct (dec _ _); ss; try case_bool_decide; naive_solver.
   (*SLOW*)Qed.
 

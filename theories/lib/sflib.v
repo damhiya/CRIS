@@ -1477,3 +1477,32 @@ Ltac rev_all TAC :=
          end);
   try TAC
 .
+
+From Ltac2 Require Import Ltac2 String.
+
+Ltac2 has_prefix (pre: ident) (id: ident) : bool :=
+  let spre := Ident.to_string pre in
+  let sid := Ident.to_string id in
+  let npre := String.length spre in
+  if Int.le npre (String.length sid) then
+    String.equal (String.sub sid 0 npre) spre
+  else false.
+
+Ltac2 rename1 (x : ident) (y : ident) :=
+  ltac1:(x y |- rename x into y) (Ltac1.of_ident x) (Ltac1.of_ident y).
+
+Ltac2 renames_prefix (pre : ident) (names : ident list) :=
+  let hyps := Control.hyps () in
+  let matched := List.filter (fun (id, _, _) => has_prefix pre id) hyps in
+  let matched_ids := List.map (fun (id, _, _) => id) matched in
+  let rec aux ms ns :=
+    match ms, ns with
+    | m :: ms', n :: ns' =>
+      rename1 m n; aux ms' ns'
+    | _, _ => ()
+    end
+  in
+  aux (List.rev matched_ids) (List.rev names).
+
+Ltac2 Notation "renames" pre(ident) "into" names(list1(ident, ",")) :=
+  renames_prefix pre names.

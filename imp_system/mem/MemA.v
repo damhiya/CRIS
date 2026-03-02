@@ -22,7 +22,7 @@ Proof. solve_inG. Defined.
 Local Existing Instances memGS_memGSpreS mem_inG.
 
 Section MEM.
-  Context `{!crisG Γ Σ α β τ _S _I, !memGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, _MEM: !memGS}.
 
   (* Initial resources for memory *)
   Definition mem_init_val (csl : string → bool) (genv : GEnv.t) (blk : mblock) ofs : option Z :=
@@ -71,7 +71,7 @@ Qed.
 Local Arguments Z.of_nat : simpl nomatch.
 
 Section MemRA.
-  Context `{!crisG Γ Σ α β τ _S _I, !memGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, _MEM: !memGS}.
 
   Definition mem_val : Type := Qp * val.
 
@@ -156,7 +156,7 @@ Section MemRA.
 End MemRA.
 
 Section syn_mem.
-  Context `{!crisG Γ Σ α β τ _S _I, !memGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, _MEM: !memGS}.
 
   Definition syn_mem_points_to_singleton {n} loc q v : GTerm.t n :=
     sown mem_name ((mem_points_to_singleton_r loc q v): memRA).
@@ -185,7 +185,7 @@ Notation "loc |->{ q } vs" := (syn_mem_points_to loc (DfracOwn q) vs)%SAT : SAT_
 Notation "loc |-> vs" := (syn_mem_points_to loc (DfracOwn 1) vs)%SAT : SAT_scope.
 
 Section reduction.
-  Context `{!crisG Γ Σ α β τ _S _I, !memGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, _MEM: !memGS}.
 
   Global Instance mem_points_to_singleton_red n loc q v :
     SLRed n (loc ↦{q} v) (loc ↦{q} v).
@@ -201,7 +201,7 @@ Arguments mem_points_to_singleton_r : simpl never.
 
 (* Memory specification *)
 Module MemA. Section MemA.
-  Context `{!crisG Γ Σ α β τ _S _I, !memGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, _MEM: !memGS}.
 
   Definition alloc : fspec :=
     fspec_simple (λ sz,
@@ -286,31 +286,3 @@ Module MemA. Section MemA.
 
   Definition t sp : Mod.t := SMod.to_mod sp smod.
 End MemA. End MemA.
-
-(* Module MemP. Section MemP. *)
-(*   Context `{!crisG Γ Σ α β τ _S _I, !memGS}. *)
-
-(*   Definition scopes := ["Mem"]. *)
-
-(*   (* Function specifications *) *)
-(*   Definition fnsems : alist (option string) (fnsem_type (option fspec * fbody)) := *)
-(*   [(Some MemHdr.alloc, (false, wmask_all, scopes, (None, lat_real false MemSpec.alloc (Ret ()) fbody_trivial))); *)
-(*    (Some MemHdr.free,  (false, wmask_all, scopes, (None, lat_real false MemSpec.free  (Ret ()) fbody_trivial))); *)
-(*    (Some MemHdr.load,  (false, wmask_all, scopes, (None, lat_real false MemSpec.load  (Ret ()) fbody_trivial))); *)
-(*    (Some MemHdr.store, (false, wmask_all, scopes, (None, lat_real false MemSpec.store (Ret ()) fbody_trivial))); *)
-(*    (Some MemHdr.cmp,   (false, wmask_all, scopes, (None, lat_real false MemSpec.cmp   (Ret ()) fbody_trivial))); *)
-(*    (Some MemHdr.cas,   (false, wmask_all, scopes, (None, lat_real false MemSpec.cas   (Ret ()) fbody_trivial)))]. *)
-
-(*   (* Module definition *) *)
-(*   Program Definition smod : SMod.t := {| *)
-(*     SMod.scopes := scopes; *)
-(*     SMod.fnsems := fnsems; *)
-(*     SMod.initial_st := []; *)
-(*   |}. *)
-(*   Solve All Obligations with prove_scope. *)
-(*   Next Obligation. prove_nodup. Qed. *)
-
-(*   Definition init_cond csl genv : iProp Σ := mem_init_auth csl genv. *)
-
-(*   Definition t := Seal.sealing CRIS (SMod.to_mod sp_none smod). *)
-(* End MemP. End MemP. *)
