@@ -527,7 +527,7 @@ Tactic Notation "mod_tac1" tactic(tac) := i;
           | apply map_Forall_insert_2; [by tac|go]
           | apply map_Forall_singleton; by tac
           | apply map_Forall_empty; by tac
-          | rewrite /Mod.fnsems; cbn; go
+          | (progress rewrite /Mod.fnsems); cbn; go
           ]
     | |- _ => (repeat rewrite Mod.dom_fnsems_add); set_solver
     end
