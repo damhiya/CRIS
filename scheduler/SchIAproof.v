@@ -128,11 +128,7 @@ Module SchIA. Section sim.
     rewrite !/Sch.terminate /ccallU. unseal SCH.
     set (st_src := {[_ := _; _ := _]}); set (st_tgt := {[_ := _; _ := _]}). clearbody st_src st_tgt.
     iApply wsim_reset.
-    iStopProof. revert st_src.
-    combine_quant st_tgt.
-    eapply wsim_coind.
-    iIntros (? _ CIH [st_s st_t]) "[W [TidF [TID [YIELD IST]]]] /=".
-    destruct_quant CIH.
+    cCoind CIH g __ with st_src st_tgt. iIntros "[W [TidF [TID [YIELD IST]]]] /=".
     unfold_iterC_l. unfold_iterC_r.
 
     steps_l. simpl_sp.
@@ -140,7 +136,7 @@ Module SchIA. Section sim.
     iApply wsim_guarantee_src; iFrame "W TidF TID YIELD"; iSplit; eauto.
 
     steps_r. call "IST".
-    clear ret st_s st_t; iIntros (ret st_s st_t) "IST". steps_l.
+    clear ret st_src st_tgt; iIntros (ret st_src st_tgt) "IST". steps_l.
     iDestruct "ASM" as "[TidF [-> ->]]".
     steps_r.
     by_coind CIH; eauto.
@@ -278,18 +274,11 @@ Module SchIA. Section sim.
   Proof using FunInSp SchInSp.
     iStartSim. rewrite /join /SchI.join.
 
-    step_l. destruct _q as [[stid mtid] post]. steps_l.
-    iDestruct "ASM" as "[TID [%tid [[-> ->] JoinF]]]".
+    steps_l. destruct _q as [[stid mtid] post].
+    iDestruct "ASM" as "[TID [%tid [[-> ->] JoinF]]]". hss.
 
-    steps_r. steps_l.
-    iApply wsim_reset. iStopProof.
-    revert st_tgt.
-    combine_quant st_src.
-    eapply wsim_coind. intros g' _ CIH a.
-    destruct a as [st_src st_tgt]. s.
-    destruct_quant CIH.
-    iIntros "[IST [Tid JoinF]]".
-
+    steps_r. steps_l. iApply wsim_reset.
+    cCoind CIH g' __ with st_src st_tgt. iIntros "[IST [Tid JoinF]]".
     unfold_iterC_l; unfold_iterC_r.
 
     iDestruct "IST" as "[% [%tid_cur [%stid_cur [[-> [-> %Hmtid]] [JoinA [TidA [RET Ys]]]]]]]".

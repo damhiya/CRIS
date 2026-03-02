@@ -61,17 +61,11 @@ Module CFilter. Section CFilter.
     rewrite /ISim.sim_fun ?lookup_fmap.
     destruct (_ !! _) as [[[msk bd]|]|] eqn : Ht; ss; cycle 1; last clear Ht.
     intros; eexists; split; [refl|].
-    iIntros (arg st_src st_tgt) "->"; iApply wsim_isim. iStopProof.
-    rewrite /SB.sandbox_body /=.
-    generalize (bd arg) as itr.
-    combine_quant st_tgt.
-    generalize false at 1 as ps. intros ps; combine_quant ps.
-    generalize false at 1 as pt. intros pt; combine_quant pt.
-    combine_quant msk.
-    clear bd arg.
-    eapply wsim_coind; intros g0 _ CIH [msk [pt [ps [st itr]]]].
-    s; destruct_quant CIH.
-    iIntros "_".
+    iIntros (arg st_src st_tgt) "->". iApply wsim_isim.
+    generalize false at 1 as ps; i. generalize false at 1 as pt; i.
+    rewrite /SB.sandbox_body /=. generalize (bd arg) as itr; i. clear bd arg.
+    cCoind CIH g0 __ with itr ps pt st_tgt msk. iIntros "_".
+
     assert (CASE:= case_itrH itr). des; subst; s.
     - step; et.
     - steps_l. steps_r. by_coind CIH; et.
@@ -124,17 +118,11 @@ Module CFilter. Section CFilter.
     rewrite /ISim.sim_fun ?lookup_fmap.
     destruct (_ !! _) as [[[msk bd]|]|] eqn : Ht; ss; cycle 1; last clear Ht.
     esplits; [refl|].
-    iIntros (arg st_src st_tgt) "-> _". iStopProof.
-    rewrite /SB.sandbox_body /=.
-    generalize (bd arg) as itr.
-    combine_quant st_tgt.
-    generalize false at 1 as ps. intros ps; combine_quant ps.
-    generalize false at 1 as pt. intros pt; combine_quant pt.
-    combine_quant msk.
-    clear bd arg.
-    eapply isim_coind; intros g0 _ CIH [msk [pt [ps [st itr]]]].
-    s; destruct_quant CIH.
-    iIntros "_".
+    iIntros (arg st_src st_tgt) "-> _".
+    generalize false at 1 as ps. generalize false at 1 as pt. i.
+    rewrite /SB.sandbox_body /=. generalize (bd arg) as itr. i. clear bd arg.
+    cCoind CIH g0 __ with ps pt itr st_tgt msk. iIntros "_".
+
     assert (CASE:= case_itrH itr). des; subst; s.
     { step; eauto. }
     { step_l; steps_r. by_coind CIH. done. }

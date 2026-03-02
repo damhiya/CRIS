@@ -37,6 +37,149 @@ Ltac yield hyps := iwcase (do 1 iyield hyps) (do 1 wyield hyps).
 
 Ltac by_coind CIH := iwcase (do 1 iby_coind CIH) (do 1 wby_coind CIH).
 
+Ltac _clear_ibot H :=
+  let ty := type of H in
+  try match ty with context[ibot _ _ _ _ _ _ _ ⊢ _] => clear H end.
+
+Tactic Notation "cCoind" ident(CIH) ident(g) ident(LEg) :=
+  iStopProof;
+  first [eapply wsim_coind | eapply isim_coind];
+  intros g LEg CIH;
+  s; destruct_quant CIH; _clear_ibot LEg.
+
+Tactic Notation "cCoind" ident(CIH) ident(g) ident(LEg) "with" ident(id1) :=
+  iStopProof;
+  revert id1;
+  first [eapply wsim_coind | eapply isim_coind];
+  intros g LEg CIH id1;
+  s; destruct_quant CIH; _clear_ibot LEg.
+
+Tactic Notation "cCoind" ident(CIH) ident(g) ident(LEg) "with" ident(id2) ident(id1) :=
+  iStopProof;
+  revert id1; combine_quant id2;
+  first [eapply wsim_coind | eapply isim_coind];
+  intros g LEg CIH [id2 id1];
+  s; destruct_quant CIH; _clear_ibot LEg.
+
+Tactic Notation "cCoind" ident(CIH) ident(g) ident(LEg) "with" ident(id3) ident(id2) ident(id1) :=
+  iStopProof;
+  revert id1; combine_quant id2; combine_quant id3;
+  first [eapply wsim_coind | eapply isim_coind];
+  intros g LEg CIH [id3 [id2 id1]];
+  s; destruct_quant CIH; _clear_ibot LEg.
+
+Tactic Notation "cCoind" ident(CIH) ident(g) ident(LEg) "with" ident(id4) ident(id3) ident(id2) ident(id1) :=
+  iStopProof;
+  revert id1; combine_quant id2; combine_quant id3; combine_quant id4;
+  first [eapply wsim_coind | eapply isim_coind];
+  intros g LEg CIH [id4 [id3 [id2 id1]]];
+  s; destruct_quant CIH; _clear_ibot LEg.
+
+Tactic Notation "cCoind" ident(CIH) ident(g) ident(LEg) "with" ident(id5) ident(id4) ident(id3) ident(id2) ident(id1) :=
+  iStopProof;
+  revert id1; combine_quant id2; combine_quant id3; combine_quant id4; combine_quant id5;
+  first [eapply wsim_coind | eapply isim_coind];
+  intros g LEg CIH [id5 [id4 [id3 [id2 id1]]]];
+  s; destruct_quant CIH; _clear_ibot LEg.
+
+Tactic Notation "cCoind" ident(CIH) ident(g) ident(LEg) "with" ident(id6) ident(id5) ident(id4) ident(id3) ident(id2) ident(id1) :=
+  iStopProof;
+  revert id1; combine_quant id2; combine_quant id3; combine_quant id4; combine_quant id5; combine_quant id6;
+  first [eapply wsim_coind | eapply isim_coind];
+  intros g LEg CIH [id6 [id5 [id4 [id3 [id2 id1]]]]];
+  s; destruct_quant CIH; _clear_ibot LEg.
+
+Tactic Notation "cCoind" ident(CIH) ident(g) ident(LEg) "with" ident(id7) ident(id6) ident(id5) ident(id4) ident(id3) ident(id2) ident(id1) :=
+  iStopProof;
+  revert id1; combine_quant id2; combine_quant id3; combine_quant id4; combine_quant id5; combine_quant id6; combine_quant id7;
+  first [eapply wsim_coind | eapply isim_coind];
+  intros g LEg CIH [id7 [id6 [id5 [id4 [id3 [id2 id1]]]]]];
+  s; destruct_quant CIH; _clear_ibot LEg.
+
+Tactic Notation "cCoind" ident(CIH) ident(g) ident(LEg) "with" ident(id8) ident(id7) ident(id6) ident(id5) ident(id4) ident(id3) ident(id2) ident(id1) :=
+  iStopProof;
+  revert id1; combine_quant id2; combine_quant id3; combine_quant id4; combine_quant id5; combine_quant id6; combine_quant id7; combine_quant id8;
+  first [eapply wsim_coind | eapply isim_coind];
+  intros g LEg CIH [id8 [id7 [id6 [id5 [id4 [id3 [id2 id1]]]]]]];
+  s; destruct_quant CIH; _clear_ibot LEg.
+
+Tactic Notation "cCoind" ident(CIH) ident(g) ident(LEg) "with" ident(id9) ident(id8) ident(id7) ident(id6) ident(id5) ident(id4) ident(id3) ident(id2) ident(id1) :=
+  iStopProof;
+  revert id1; combine_quant id2; combine_quant id3; combine_quant id4; combine_quant id5; combine_quant id6; combine_quant id7; combine_quant id8; combine_quant id9;
+  first [eapply wsim_coind | eapply isim_coind];
+  intros g LEg CIH [id9 [id8 [id7 [id6 [id5 [id4 [id3 [id2 id1]]]]]]]];
+  s; destruct_quant CIH; _clear_ibot LEg.
+
+Tactic Notation "cCoind" ident(CIH) ident(g) ident(LEg) "with" ident(id10) ident(id9) ident(id8) ident(id7) ident(id6) ident(id5) ident(id4) ident(id3) ident(id2) ident(id1) :=
+  iStopProof;
+  revert id1; combine_quant id2; combine_quant id3; combine_quant id4; combine_quant id5; combine_quant id6; combine_quant id7; combine_quant id8; combine_quant id9; combine_quant id10;
+  first [eapply wsim_coind | eapply isim_coind];
+  intros g LEg CIH [id10 [id9 [id8 [id7 [id6 [id5 [id4 [id3 [id2 id1]]]]]]]]];
+  s; destruct_quant CIH; _clear_ibot LEg.
+
+Tactic Notation "cCoind" ident(CIH) ident(g) ident(LEg) "with" ident(id11) ident(id10) ident(id9) ident(id8) ident(id7) ident(id6) ident(id5) ident(id4) ident(id3) ident(id2) ident(id1) :=
+  iStopProof;
+  revert id1; combine_quant id2; combine_quant id3; combine_quant id4; combine_quant id5; combine_quant id6; combine_quant id7; combine_quant id8; combine_quant id9; combine_quant id10; combine_quant id11;
+  first [eapply wsim_coind | eapply isim_coind];
+  intros g LEg CIH [id11 [id10 [id9 [id8 [id7 [id6 [id5 [id4 [id3 [id2 id1]]]]]]]]]];
+  s; destruct_quant CIH; _clear_ibot LEg.
+
+Tactic Notation "cCoind" ident(CIH) ident(g) ident(LEg) "with" ident(id12) ident(id11) ident(id10) ident(id9) ident(id8) ident(id7) ident(id6) ident(id5) ident(id4) ident(id3) ident(id2) ident(id1) :=
+  iStopProof;
+  revert id1; combine_quant id2; combine_quant id3; combine_quant id4; combine_quant id5; combine_quant id6; combine_quant id7; combine_quant id8; combine_quant id9; combine_quant id10; combine_quant id11; combine_quant id12;
+  first [eapply wsim_coind | eapply isim_coind];
+  intros g LEg CIH [id12 [id11 [id10 [id9 [id8 [id7 [id6 [id5 [id4 [id3 [id2 id1]]]]]]]]]]];
+  s; destruct_quant CIH; _clear_ibot LEg.
+
+Tactic Notation "cCoind" ident(CIH) ident(g) ident(LEg) "with" ident(id13) ident(id12) ident(id11) ident(id10) ident(id9) ident(id8) ident(id7) ident(id6) ident(id5) ident(id4) ident(id3) ident(id2) ident(id1) :=
+  iStopProof;
+  revert id1; combine_quant id2; combine_quant id3; combine_quant id4; combine_quant id5; combine_quant id6; combine_quant id7; combine_quant id8; combine_quant id9; combine_quant id10; combine_quant id11; combine_quant id12; combine_quant id13;
+  first [eapply wsim_coind | eapply isim_coind];
+  intros g LEg CIH [id13 [id12 [id11 [id10 [id9 [id8 [id7 [id6 [id5 [id4 [id3 [id2 id1]]]]]]]]]]]];
+  s; destruct_quant CIH; _clear_ibot LEg.
+
+Tactic Notation "cCoind" ident(CIH) ident(g) ident(LEg) "with" ident(id14) ident(id13) ident(id12) ident(id11) ident(id10) ident(id9) ident(id8) ident(id7) ident(id6) ident(id5) ident(id4) ident(id3) ident(id2) ident(id1) :=
+  iStopProof;
+  revert id1; combine_quant id2; combine_quant id3; combine_quant id4; combine_quant id5; combine_quant id6; combine_quant id7; combine_quant id8; combine_quant id9; combine_quant id10; combine_quant id11; combine_quant id12; combine_quant id13; combine_quant id14;
+  first [eapply wsim_coind | eapply isim_coind];
+  intros g LEg CIH [id14 [id13 [id12 [id11 [id10 [id9 [id8 [id7 [id6 [id5 [id4 [id3 [id2 id1]]]]]]]]]]]]];
+  s; destruct_quant CIH; _clear_ibot LEg.
+
+Tactic Notation "cCoind" ident(CIH) ident(g) ident(LEg) "with" ident(id15) ident(id14) ident(id13) ident(id12) ident(id11) ident(id10) ident(id9) ident(id8) ident(id7) ident(id6) ident(id5) ident(id4) ident(id3) ident(id2) ident(id1) :=
+  iStopProof;
+  revert id1; combine_quant id2; combine_quant id3; combine_quant id4; combine_quant id5; combine_quant id6; combine_quant id7; combine_quant id8; combine_quant id9; combine_quant id10; combine_quant id11; combine_quant id12; combine_quant id13; combine_quant id14; combine_quant id15;
+  first [eapply wsim_coind | eapply isim_coind];
+  intros g LEg CIH [id15 [id14 [id13 [id12 [id11 [id10 [id9 [id8 [id7 [id6 [id5 [id4 [id3 [id2 id1]]]]]]]]]]]]]];
+  s; destruct_quant CIH; _clear_ibot LEg.
+
+Tactic Notation "cCoind" ident(CIH) ident(g) ident(LEg) "with" ident(id16) ident(id15) ident(id14) ident(id13) ident(id12) ident(id11) ident(id10) ident(id9) ident(id8) ident(id7) ident(id6) ident(id5) ident(id4) ident(id3) ident(id2) ident(id1) :=
+  iStopProof;
+  revert id1; combine_quant id2; combine_quant id3; combine_quant id4; combine_quant id5; combine_quant id6; combine_quant id7; combine_quant id8; combine_quant id9; combine_quant id10; combine_quant id11; combine_quant id12; combine_quant id13; combine_quant id14; combine_quant id15; combine_quant id16;
+  first [eapply wsim_coind | eapply isim_coind];
+  intros g LEg CIH [id16 [id15 [id14 [id13 [id12 [id11 [id10 [id9 [id8 [id7 [id6 [id5 [id4 [id3 [id2 id1]]]]]]]]]]]]]]];
+  s; destruct_quant CIH; _clear_ibot LEg.
+
+Tactic Notation "cCoind" ident(CIH) ident(g) ident(LEg) "with" ident(id17) ident(id16) ident(id15) ident(id14) ident(id13) ident(id12) ident(id11) ident(id10) ident(id9) ident(id8) ident(id7) ident(id6) ident(id5) ident(id4) ident(id3) ident(id2) ident(id1) :=
+  iStopProof;
+  revert id1; combine_quant id2; combine_quant id3; combine_quant id4; combine_quant id5; combine_quant id6; combine_quant id7; combine_quant id8; combine_quant id9; combine_quant id10; combine_quant id11; combine_quant id12; combine_quant id13; combine_quant id14; combine_quant id15; combine_quant id16; combine_quant id17;
+  first [eapply wsim_coind | eapply isim_coind];
+  intros g LEg CIH [id17 [id16 [id15 [id14 [id13 [id12 [id11 [id10 [id9 [id8 [id7 [id6 [id5 [id4 [id3 [id2 id1]]]]]]]]]]]]]]]];
+  s; destruct_quant CIH; _clear_ibot LEg.
+
+Tactic Notation "cCoind" ident(CIH) ident(g) ident(LEg) "with" ident(id18) ident(id17) ident(id16) ident(id15) ident(id14) ident(id13) ident(id12) ident(id11) ident(id10) ident(id9) ident(id8) ident(id7) ident(id6) ident(id5) ident(id4) ident(id3) ident(id2) ident(id1) :=
+  iStopProof;
+  revert id1; combine_quant id2; combine_quant id3; combine_quant id4; combine_quant id5; combine_quant id6; combine_quant id7; combine_quant id8; combine_quant id9; combine_quant id10; combine_quant id11; combine_quant id12; combine_quant id13; combine_quant id14; combine_quant id15; combine_quant id16; combine_quant id17; combine_quant id18;
+  first [eapply wsim_coind | eapply isim_coind];
+  intros g LEg CIH [id18 [id17 [id16 [id15 [id14 [id13 [id12 [id11 [id10 [id9 [id8 [id7 [id6 [id5 [id4 [id3 [id2 id1]]]]]]]]]]]]]]]]];
+  s; destruct_quant CIH; _clear_ibot LEg.
+
+Tactic Notation "cCoind" ident(CIH) ident(g) ident(LEg) "with" ident(id19) ident(id18) ident(id17) ident(id16) ident(id15) ident(id14) ident(id13) ident(id12) ident(id11) ident(id10) ident(id9) ident(id8) ident(id7) ident(id6) ident(id5) ident(id4) ident(id3) ident(id2) ident(id1) :=
+  iStopProof;
+  revert id1; combine_quant id2; combine_quant id3; combine_quant id4; combine_quant id5; combine_quant id6; combine_quant id7; combine_quant id8; combine_quant id9; combine_quant id10; combine_quant id11; combine_quant id12; combine_quant id13; combine_quant id14; combine_quant id15; combine_quant id16; combine_quant id17; combine_quant id18; combine_quant id19;
+  first [eapply wsim_coind | eapply isim_coind];
+  intros g LEg CIH [id19 [id18 [id17 [id16 [id15 [id14 [id13 [id12 [id11 [id10 [id9 [id8 [id7 [id6 [id5 [id4 [id3 [id2 id1]]]]]]]]]]]]]]]]]];
+  s; destruct_quant CIH; _clear_ibot LEg.
+
 (* Tactic Notation "init_simF" := winit_simF. (* for isim mode, use iinit_simF directly *) *)
 (* (* Tactic Notation "init_simF" open_constr(u_src) open_constr(u_tgt) := winit_simF u_src u_tgt. *) *)
 

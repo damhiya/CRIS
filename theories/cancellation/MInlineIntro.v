@@ -32,22 +32,11 @@ Proof using.
     destruct p; ss. ii. esplits; eauto.
   }
 
-  ii. iIntros "% I". subst. iStopProof.
-  destruct f as [msk bd].
-  do 2 (rewrite /SB.sandbox_body; s).
-
+  ii. iIntros "-> I". destruct f as [msk bd].
   generalize false at 1 as ps. generalize false at 1 as pt.
-  generalize (bd arg) as it. i.
-  ss. clear bd arg. rename st_tgt into st.
+  do 2 (rewrite /SB.sandbox_body; s). generalize (bd arg) as it. i; ss. clear bd arg.
+  cCoind CIH g __ with ps pt it st_tgt msk. iIntros "I".
 
-  revert it.
-  combine_quant st.
-  combine_quant pt.
-  combine_quant ps.
-  combine_quant msk.
-  eapply isim_coind. intros ? _ CIH [msk [ps [pt [st it]]]]; s.
-  destruct_quant CIH. iIntros "I".
-  
   assert (CASE := case_itrH it); des; subst.
   - rewrite SBRed.ret MIRed.ret. istep. eauto.
   - rewrite SBRed.tau MIRed.tau !SBRed.tau. steps_l. steps_r. by_coind CIH; eauto.

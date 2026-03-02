@@ -39,13 +39,10 @@ Section wsim.
       (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴)) >>= k_s)
       (st_tgt, (SB.sandbox msk_t (SModTr.trans sp_t 𝒴)) >>= k_t).
   Proof using.
-    intros Hchoose Hcall Hsps Hspt.
-    revert st_src. combine_quant st_tgt.
-    combine_quant ps. combine_quant pt.
-    eapply wsim_coind. intros g' Hg CIH [pt [ps [st_t st_s]]].
-    s; destruct_quant CIH.
+    intros Hchoose Hcall Hsps Hspt. iIntros "?".
+    cCoind CIH g' Hg with ps pt st_src st_tgt. iIntros "[IST SIM]".
     rewrite {2 3}yield_unfold.
-    iIntros "[IST SIM]".
+    
     steps_l. bsimpl; step_l; ss.
     steps_r. rewrite Hchoose. steps_r. destruct _q; cycle 1.
     { force_l (Some false). steps_l. steps_r.
@@ -62,7 +59,7 @@ Section wsim.
     rewrite Hsps Hspt.
     steps_l. des_if; step_l; ss.
     steps_r. rewrite Hcall; steps_r.
-    call "IST". clear st_s st_t; iIntros (? st_s st_t) "IST".
+    call "IST". clear st_src st_tgt; iIntros (? st_src st_tgt) "IST".
     steps_r. steps_l.
     by_coind CIH. iFrame.
   (*SLOW*)Qed.
@@ -88,14 +85,10 @@ Section wsim.
       (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴)) >>= k_s)
       (st_tgt, (SB.sandbox msk_t (SModTr.trans sp_t 𝒴)) >>= k_t).
   Proof using.
-    intros Hsps Hspt Hmsk Hcall.
-    revert st_src. combine_quant st_tgt.
-    combine_quant ps. combine_quant pt.
-    eapply wsim_coind. intros g' Hg CIH [pt [ps [st_t st_s]]].
-    s; destruct_quant CIH.
-
+    intros Hsps Hspt Hmsk Hcall. iIntros "?".
+    cCoind CIH g' Hg with ps pt st_src st_tgt. iIntros "[IST [TID SIM]]".
     rewrite {2 3}yield_unfold.
-    iIntros "[IST [TID SIM]]".
+
     steps_l. des_if; step_l; ss.
     steps_r. rewrite Hmsk. steps_r. destruct _q; cycle 1.
     { force_l (Some false). steps_l. steps_r.
@@ -114,7 +107,7 @@ Section wsim.
 
     steps_l. des_if; step_l; ss. force_l; iFrame; iSplit; eauto.
     steps_l. des_if; step_l; ss. steps_r. rewrite Hcall; steps_r.
-    call "IST". clear st_s st_t; iIntros (? st_s st_t) "IST".
+    call "IST". clear st_src st_tgt; iIntros (? st_src st_tgt) "IST".
     steps_r.
     steps_l. des_if; step_l; ss. steps_l. des_if; steps_l; ss.
     by_coind CIH. iFrame. iDestruct "ASM" as "[$ ?]".
@@ -142,14 +135,10 @@ Section wsim.
       (st_src, (SB.sandbox msk_s (SModTr.trans sp_s 𝒴)) >>= k_s)
       (st_tgt, (SB.sandbox msk_t (SModTr.trans sp_t 𝒴)) >>= k_t).
   Proof using.
-    intros Hsps Hspt [Ht [Hc [Ha [Har Hg]]]] Hcall HE ->.
-    revert st_src. combine_quant st_tgt.
-    combine_quant ps. combine_quant pt.
-    eapply wsim_coind. intros g' Hg' CIH [pt [ps [st_t st_s]]].
-    s; destruct_quant CIH.
-
+    intros Hsps Hspt [Ht [Hc [Ha [Har Hg]]]] Hcall HE ->. iIntros "?".
+    cCoind CIH g' Hg' with ps pt st_src st_tgt. iIntros "[IST SIM]".
     rewrite {2 3}yield_unfold.
-    iIntros "[IST SIM]".
+    
     steps_l. des_if; step_l; ss.
     steps_r. rewrite Hc. steps_r. destruct _q; cycle 1.
     { force_l (Some false). steps_l. steps_r.
@@ -171,7 +160,7 @@ Section wsim.
     steps_l. des_if; step_l; ss.
     force_l. iFrame; iSplit; eauto.
     steps_l. des_if; step_l; ss.
-    call "IST". clear st_s st_t; iIntros (? st_s st_t) "IST".
+    call "IST". clear st_src st_tgt; iIntros (? st_src st_tgt) "IST".
     steps_l. steps_r. des_if; steps_l; ss. des_if; steps_l; ss.
     rewrite Ht. force_r _q. steps_r. rewrite Ha. force_r. iFrame. steps_r.
     by_coind CIH. iFrame.
