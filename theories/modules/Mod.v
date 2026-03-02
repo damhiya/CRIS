@@ -517,23 +517,28 @@ Tactic Notation "mod_tac1" tactic(tac) := i;
   let rec go :=
     match goal with
     | |- Sorted.StronglySorted String.le ?scopes =>
-      (apply Sorted.SSorted_nil || (apply Sorted.SSorted_cons; [go|tac]))
-    | |- map_Forall ?P (omap id ?X) => rewrite omap_insert; cbn; go
-    | |- map_Forall ?P (omap id ∅) => rewrite omap_empty; go
-    | |- map_Forall ?P (fmap ?f ?X) => rewrite fmap_insert; cbn; go
-    | |- map_Forall ?P (fmap ?f ∅) => rewrite fmap_empty; cbn; go
-    | |- map_Forall ?P ∅ => apply map_Forall_empty
-    | |- map_Forall ?P {[_:=_]} => apply map_Forall_singleton; tac
-    | |- map_Forall ?P (<[_:=_]> _) =>
-        apply map_Forall_insert_2; [tac|go]
-    | |- map_Forall ?P ?X => rewrite /X; cbn; go
-    | |- _ => set_solver
-  end in go.
+        (apply Sorted.SSorted_nil || (apply Sorted.SSorted_cons; [go|by tac]))
+    | |- map_Forall _ _ =>
+        first
+          [ rewrite fmap_insert; cbn; go
+          | rewrite fmap_empty; cbn; go
+          | rewrite omap_insert; cbn; go
+          | rewrite omap_empty; go
+          | apply map_Forall_insert_2; [by tac|go]
+          | apply map_Forall_singleton; by tac
+          | apply map_Forall_empty; by tac
+          | rewrite /Mod.fnsems; cbn; go
+          ]
+    | |- _ => (repeat rewrite Mod.dom_fnsems_add); set_solver
+    end
+  in go.
 Ltac scope_solver := ss; split; i; case_decide; naive_solver.
 Tactic Notation "mod_tac1" := mod_tac1 scope_solver.
 
 Tactic Notation "mod_tac" tactic(tac) :=
-  i; repeat (eapply map_Forall_union_with; [set_solver|]); esplits; mod_tac1 tac.
+  i; repeat (eapply map_Forall_union_with;
+             [by (repeat rewrite Mod.dom_fnsems_add); set_solver|split]);
+  mod_tac1 tac.
 Tactic Notation "mod_tac" := mod_tac scope_solver.
 
 Arguments Mod.add : simpl never.

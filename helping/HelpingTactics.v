@@ -125,7 +125,7 @@ Section help.
   Context (jobs : jobID → itree crisE retID).
   Context (mn : string) (sp : specmap).
 
-  Local Definition IstFull := IstProd IstEq (IstSB [mn] (IstHelp mn)).
+  Local Definition IstFull := IstProd (IstSB [mn] (IstHelp mn)) IstEq.
 
   Lemma wsim_helping_run (ps pt : bool) (parg : jobID) k_s k_t E1 E2 r g :
     fl_s !! fid (Helping.run mn) =
@@ -151,7 +151,7 @@ Section help.
     iIntros (Hfind) "IST K".
         (* TODO : factor out this proof into a lemma *)
     inline_l. steps_l. rewrite /HelpingOn.run. steps_l.
-    iDestruct "IST" as "[% [% [% [% [[-> ->] [-> [% [% [[-> ->] ●Help]]]]]]]]]".
+    iDestruct "IST" as "[% [% [% [% [[-> ->] [[% [% [[-> ->] ●Help]]] ->]]]]]]".
     steps_l.
     iMod (own_update with "●Help") as "[●Help Help◯]".
     { eapply (gmap_view_alloc _ (fresh (dom reqmap_s)) (DfracOwn 1)); eauto.
@@ -193,7 +193,7 @@ Section help.
   Proof using.
     iIntros "Pend IST K".
     rewrite /HelpingOn.try_run; steps_l.
-    iDestruct "IST" as "[% [% [% [% [[-> ->] [IST [% [% [[-> ->] Auth]]]]]]]]]".
+    iDestruct "IST" as "[% [% [% [% [[-> ->] [[% [% [[-> ->] Auth]]] IST]]]]]]".
     steps_l.
     iPoseProof (helping_auth_token with "Auth Pend") as "%Hlookup"; rewrite Hlookup /=; steps_l.
     replace k_t with (x <- Ret ();; (λ _, k_t) x) at 1 by grind.
@@ -224,7 +224,7 @@ Section help.
   Proof using.
     iIntros "#Done IST K".
     rewrite /HelpingOn.try_run /=. steps_l.
-    iDestruct "IST" as "[% [% [% [% [[-> ->] [IST [% [% [[-> ->] ●Help]]]]]]]]]".
+    iDestruct "IST" as "[% [% [% [% [[-> ->] [[% [% [[-> ->] ●Help]]] IST]]]]]]".
     steps_l.
     iPoseProof (helping_auth_done with "●Help Done") as "[% %Heq]"; rewrite Heq; clear Heq.
     steps_l.
