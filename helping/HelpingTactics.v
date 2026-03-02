@@ -261,7 +261,7 @@ Section help.
     force_l req_id. force_l (stid, mtid, tt). forces_l. iFrame. iSplit; eauto.
     steps_l. destruct _q as [[stid1 mtid1] []]. iDestruct "ASM" as "[TID [_ ->]]".
     iApply (wsim_helping_pend_try_run with "Tkn IST").
-    add_ret_l. add_ret_r tt.
+    append_ret_l. prepend_ret_r ().
     iApply wsim_bind.
     iSplitL "SIM"; iFrame.
     s. iIntros (sts1 stt1 rets []) "[[-> ->] [? SIM]]"; iApply wsim_fold; iFrame.

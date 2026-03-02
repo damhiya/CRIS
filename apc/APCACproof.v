@@ -47,7 +47,7 @@ Module APCAC. Section APCAC.
     unfold APC at 1. steps_r. rename _q into o'.
 
     (* add meaningless return in src *)
-    add_ret_l ().
+    prepend_ret_l ().
 
     iApply wsim_bind. iSplitL; cycle 1.
     { iIntros (? ? ? ?) "R".
@@ -103,7 +103,7 @@ Module APCAC. Section APCAC.
     rewrite /apc_body. unfold APC at 1. steps_r.
 
     (* add meaningless return in src *)
-    add_ret_l ().
+    prepend_ret_l ().
 
     iApply wsim_bind. iSplitL; cycle 1.
     { iIntros (? ? ? ?) "R".

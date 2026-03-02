@@ -711,23 +711,7 @@ Ltac hss_r :=
   | |- context [SAny.downcast (SAny.upcast ?A)] => rewrite (SAny.upcast_downcast A)
   end; show_itree.
 
-Ltac red_ret_l :=
-  let marker := fresh "MARKER" in
-  set_marker marker;
-  hide_ihyps;
-  only_itree_l;
-  rewrite ?SRed.bind ?SRed.ret SBRed.bind SBRed.ret bind_ret_l;
-  show_until marker.
- 
-Ltac red_ret_r :=
-  let marker := fresh "MARKER" in
-  set_marker marker;
-  hide_ihyps;
-  only_itree_r;
-  rewrite ?SRed.bind ?SRed.ret SBRed.bind SBRed.ret bind_ret_l;
-  show_until marker.
-
-Tactic Notation "add_ret_l" uconstr(r) :=
+Tactic Notation "prepend_ret_l" uconstr(r) :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
@@ -737,7 +721,7 @@ Tactic Notation "add_ret_l" uconstr(r) :=
   end;
   show_until marker.
 
-Tactic Notation "add_ret_r" uconstr(r) :=
+Tactic Notation "prepend_ret_r" uconstr(r) :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
@@ -747,7 +731,7 @@ Tactic Notation "add_ret_r" uconstr(r) :=
   end;
   show_until marker.
 
-Tactic Notation "add_ret_l" :=
+Tactic Notation "append_ret_l" :=
   let marker := fresh "MARKER" in
     set_marker marker;
     hide_ihyps;
@@ -757,7 +741,7 @@ Tactic Notation "add_ret_l" :=
     end;
     show_until marker.
 
-Tactic Notation "add_ret_r" :=
+Tactic Notation "append_ret_r" :=
   let marker := fresh "MARKER" in
     set_marker marker;
     hide_ihyps;
