@@ -28,23 +28,17 @@ Ltac _istep_l :=
       iApply isim_tau_src
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, Ret _ >>= _) _) ] =>
       rewrite bind_ret_l
-  (* | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, (SB.sandbox _ _ _ (trigger (SPut _ _))) >>= _) _) ] =>
-      iApply isim_nodup_src; iIntros (?); iApply isim_sput_src_sandbox; [s;eauto|alist_upd_simpl]
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, (SB.sandbox _ _ _ (trigger (SGet _))) >>= _) _) ] =>
-      iApply isim_nodup_src; iIntros (?); iApply isim_sget_src_sandbox; [s;eauto|alist_find_simpl] *)
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, trigger (Take (FSpec (fspec_to_rel _))) >>= _) _) ] =>
+      let name := fresh "_q" in iApply isim_take_src_fspec; iIntros (name); simpl in name
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, trigger (Take _) >>= _) _) ] =>
       let name := fresh "_q" in
       iApply isim_take_src; iIntros (name)
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _  (_, trigger (Assume ?P) >>= _) _) ] =>
       unfold_pre_post_term P; iApply isim_assume_src; iIntrosFresh "ASM"
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, unwrapU ?ox >>= _) _) ] =>
-      let name := fresh "_q" in
-      iApply isim_unwrapU_src; iIntros (name) "%";
-      match goal with [ H: ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite -> G in * end
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, assume _ >>= _) _) ] =>
-      let name := fresh "asm" in iApply isim_asm_src; iIntros (name)
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, trigger (AssumeRes _) >>= _) _) ] =>
       iApply isim_assume_res_src; iIntrosFresh "ASM"
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, assume _ >>= _) _) ] =>
+      let name := fresh "ASM" in iApply isim_asm_src; iIntros (name)
   end.
 
 Ltac istep_l_core :=
@@ -57,8 +51,8 @@ Ltac isteps_l :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  norm_l;
-  (hrepeat (do 1 istep_l_core; norm_l));
+  (hrepeat (do 1 norm_l; istep_l_core));
+  try norm_l;
   show_until marker.
 
 Ltac _istep_r :=
@@ -69,21 +63,15 @@ Ltac _istep_r :=
       rewrite bind_ret_l
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, tau;; _)) ] =>
       iApply isim_tau_tgt
-  (* | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, (SB.sandbox _ _ _ (trigger (SPut _ _))) >>= _)) ] =>
-      iApply isim_nodup_tgt; iIntros (?); iApply isim_sput_tgt_sandbox; [s; eauto|alist_upd_simpl]
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, (SB.sandbox _ _ _ (trigger (SGet _))) >>= _)) ] =>
-      iApply isim_nodup_tgt; iIntros (?); iApply isim_sget_tgt_sandbox; [s; eauto|alist_find_simpl] *)
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose (FSpec (fspec_to_rel _))) >>= _) ) ] =>
+      let name := fresh "_q" in iApply isim_choose_tgt_fspec; iIntros (name); simpl in name
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger (Choose _) >>= _)) ] =>
       let name := fresh "_q" in
       iApply isim_choose_tgt; iIntros (name)
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, trigger (Guarantee ?P) >>= _)) ] =>
       unfold_pre_post_term P; iApply isim_guarantee_tgt; iIntrosFresh "GRT"
-  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, unwrapN ?ox >>= _)) ] =>
-      let name := fresh "_q" in
-      iApply isim_unwrapN_tgt; iIntros (name) "%";
-      match goal with [ H: ?x = Some _ |- _ ] => let G := fresh "G" in rename H into G; try rewrite -> G in * end
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ _ (_, guarantee _ >>= _)) ] =>
-      let name := fresh "grt" in iApply isim_guar_tgt; iIntros (name)
+      let name := fresh "GRT" in iApply isim_guar_tgt; iIntros (name)
   end.
 
 Ltac istep_r_core :=
@@ -96,28 +84,32 @@ Ltac isteps_r :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  norm_r;
-  (hrepeat (do 1 istep_r_core; norm_r));
+  (hrepeat (do 1 norm_r; istep_r_core));
+  try norm_r;
   show_until marker.
 
-Ltac _istep :=
+Ltac _istep tac :=
   match goal with
   (******* isim ******)
   (** both **)
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, Ret _) (_, Ret _)) ] =>
       iApply isim_ret
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, trigger (IO _ _) >>= _) (_, trigger (IO _ _) >>= _)) ] =>
-      iApply isim_io; iIntros "%"
+      iApply isim_io; tac
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, trigger GetTid >>= _) (_, trigger GetTid >>= _)) ] =>
-      iApply isim_gettid; iIntros "%"
+      iApply isim_gettid; tac
+  | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, trigger (Spawn _ _) >>= _) (_, trigger (Spawn _ _) >>= _)) ] =>
+      iApply isim_spawn; tac
   end.
 
-Ltac istep :=
-  norm with do 1 _istep; s; des_pairs; s.
+Tactic Notation "istep" ident(name) :=
+  norm with do 1 _istep ltac:(iIntros (name)).
+
+Tactic Notation "istep" :=
+  norm with do 1 _istep ltac:(iIntros "%").
 
 Ltac _iforce_l :=
   match goal with
-
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, trigger (Choose (FSpec (fspec_to_rel _))) >>= _) _) ] =>
       iApply isim_choose_src_fspec
   | [ |- environments.envs_entails _ (isim _ _ _ _ _ _ _ _ _ (_, trigger (Choose ?T) >>= _) _) ] =>
@@ -175,29 +167,20 @@ Tactic Notation "iforce_r" uconstr(p) :=
 
 Ltac iforces_r := hrepeat do 1 iforce_r.
 
-(* Ltac iinline_l :=
-  norm_l with
-    do 1 iApply isim_inline_src_sandbox; [try prove_inline_cond|unfold_cris_defs].  *)
 Ltac iinline_l :=
   norm_l with
     do 1 iApply isim_inline_src; [try prove_inline_cond|unfold_cris_defs]. 
 
 Ltac iinline_r :=
   norm_r with
-    do 1 iApply isim_inline_tgt; [try prove_inline_cond|try prove_sb_cond|unfold_cris_defs].
+    do 1 iApply isim_inline_tgt; [try prove_inline_cond|unfold_cris_defs].
 
 Ltac icall hyps :=
-  (norm with do 1 iApply isim_call); [try prove_sb_cond|
-  iSplitL hyps; [try done|iIntros "% % %"; iIntrosFresh "IST"];
-  move_aux].
-
-Ltac ispawn :=
-  (norm with do 1 iApply isim_spawn); [try prove_sb_cond|].
+  (norm with do 1 iApply isim_call); iSplitL hyps; [try done|].
 
 Ltac iyield hyps :=
   (norm with do 1 iApply isim_yield);
-  iSplitL hyps; [try done|iIntros "% %"; iIntrosFresh "IST"];
-  move_aux.
+  iSplitL hyps; [try done|].
 
 Ltac iby_coind CIH :=
   iApply isim_progress; iApply isim_base;

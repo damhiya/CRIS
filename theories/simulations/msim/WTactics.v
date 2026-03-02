@@ -134,7 +134,7 @@ Ltac _wstep_l :=
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (AssumeRes _) >>= _) _) ] =>
       iApply wsim_assume_res_src; iIntrosFresh "ASM"
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _) _) ] =>
-      let name := fresh "asm" in iApply wsim_asm_src; iIntros (name)
+      let name := fresh "ASM" in iApply wsim_asm_src; iIntros (name)
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (SPut ?k ?v) >>= _) _) ] =>
       let NODS := fresh "NODS" in
       iApply wsim_nodup_src; iIntros (NODS);
@@ -144,6 +144,7 @@ Ltac _wstep_l :=
       iApply wsim_nodup_src; iIntros (NODS);
       iApply wsim_sget_src; state_lookup_simpl st_src k NODS; clear NODS
   end.
+
 Ltac wstep_l_core :=
   _wstep_l; s.
 
@@ -154,8 +155,8 @@ Ltac wsteps_l :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  norm_l;
-  (hrepeat (do 1 wstep_l_core; norm_l));
+  (hrepeat (do 1 norm_l; wstep_l_core));
+  try norm_l;
   show_until marker.
 
 Ltac _wstep_r :=
@@ -181,7 +182,7 @@ Ltac _wstep_r :=
       | unfold_pre_post_term P; iApply wsim_guarantee_tgt; iIntrosFresh "GRT"
       ]
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, guarantee _ >>= _)) ] =>
-      let name := fresh "grt" in iApply wsim_guar_tgt; iIntros (name)
+      let name := fresh "GRT" in iApply wsim_guar_tgt; iIntros (name)
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (?st_tgt, trigger (SGet ?k) >>= _)) ] =>
       let NODT := fresh "NODT" in
       iApply wsim_nodup_tgt; iIntros (NODT);
@@ -202,22 +203,27 @@ Ltac wsteps_r :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  norm_r;
-  (hrepeat (do 1 wstep_r_core; norm_r));
+  (hrepeat (do 1 norm_r; wstep_r_core));
+  try norm_r;
   show_until marker.
 
-Ltac _wstep :=
+Ltac _wstep tac :=
   match goal with
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, Ret _) (_, Ret _))] =>
-      iApply wsim_unfold; iIntros "?"; iApply wsim_ret
+      iApply wsim_unfold; iIntrosFresh "WINV"; iApply wsim_ret
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (IO _ _) >>= _) (_, trigger (IO _ _) >>= _))] =>
-      iApply wsim_io; iIntros "%"
+      iApply wsim_io; tac
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger GetTid >>= _) (_, trigger GetTid >>= _))] =>
-      iApply wsim_gettid; iIntros "%"
+      iApply wsim_gettid; tac
+  | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (Spawn _ _) >>= _) (_, trigger (Spawn _ _) >>= _))] =>
+      iApply wsim_spawn; tac
   end.
 
-Ltac wstep :=
-  norm with do 1 _wstep.
+Tactic Notation "wstep" ident(name) :=
+  norm with do 1 _wstep ltac:(iIntros (name)).
+
+Tactic Notation "wstep" :=
+  norm with do 1 _wstep ltac:(iIntros "%").
 
 Ltac _wforce_l :=
   match goal with
@@ -308,20 +314,13 @@ Ltac winline_r :=
 
 Ltac wcall hyps :=
   (norm with do 1 iApply wsim_call); iSplitL hyps; [try done|].
-  (* (norm with do 1 iApply wsim_call); [try prove_sb_cond|
-  iSplitL hyps; [try done| iIntros "% % %"; iIntrosFresh "IST"];
-  move_aux]. *)
-
-Ltac wspawn :=
-  (norm with do 1 iApply wsim_spawn); [try prove_sb_cond|].
 
 Ltac wyield hyps :=
   (norm with do 1 iApply wsim_yield);
-  iSplitL hyps; [try done| iIntros "% %"; iIntrosFresh "IST"];
-  move_aux.
+  iSplitL hyps; [try done|].
 
 Ltac wby_coind CIH :=
-  iApply wsim_progress; iApply wsim_base; iIntrosFresh "I";
+  iApply wsim_progress; iApply wsim_base; iIntrosFresh "WINV";
   iApply CIH.
 
 Tactic Notation "iIst" constr(IST) "with" constr(H) :=

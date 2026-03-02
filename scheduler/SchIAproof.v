@@ -144,7 +144,7 @@ Module SchIA. Section sim.
     iDestruct "ASM" as "[TidF [-> ->]]".
     steps_r.
     by_coind CIH; eauto.
-    iPoseProof (winv_split_empty with "I") as "[I E]".
+    iPoseProof (winv_split_empty with "WINV") as "[I E]".
     iFrame; iDestruct "TidF" as "[$ [$ $]]".
   (*SLOW*)Qed.
 

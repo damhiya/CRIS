@@ -70,7 +70,7 @@ Module APCAC. Section APCAC.
     rewrite unfold_APC. steps_r. des_ifs. { step. iFrame. }
     steps_r. rename _q into o, _q2 into o', _q1 into fn, _q0 into LT.
 
-    rewrite /is_Some in grt. des.
+    rewrite /is_Some in GRT. des.
     dup PureInSpA. rename PureInSpA0 into PIS. simpl_sp. steps_r.
 
     (* inlining *)

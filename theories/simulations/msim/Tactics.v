@@ -15,7 +15,8 @@ Ltac steps_l := iwcase (do 1 isteps_l) (do 1 wsteps_l).
 Ltac step_r := iwcase (do 1 istep_r) (do 1 wstep_r).
 Ltac steps_r := iwcase (do 1 isteps_r) (do 1 wsteps_r).
 
-Ltac step := iwcase (do 1 istep) (do 1 wstep).
+Tactic Notation "step" ident(name) := iwcase (do 1 istep name) (do 1 wstep name).
+Tactic Notation "step" := iwcase (do 1 istep) (do 1 wstep).
 
 Tactic Notation "force_l" := iwcase (do 1 iforce_l) (do 1 wforce_l).
 Tactic Notation "force_l" uconstr(p) := iwcase (do 1 iforce_l p) (do 1 wforce_l p).
@@ -32,7 +33,7 @@ Ltac call hyps := iwcase (do 1 icall hyps) (do 1 wcall hyps).
 
 (* Ltac spawn := iwcase (do 1 ispawn) (do 1 wspawn). *)
 
-(* Ltac yield hyps := iwcase (do 1 iyield hyps) (do 1 wyield hyps). *)
+Ltac yield hyps := iwcase (do 1 iyield hyps) (do 1 wyield hyps).
 
 Ltac by_coind CIH := iwcase (do 1 iby_coind CIH) (do 1 wby_coind CIH).
 

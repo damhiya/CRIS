@@ -60,21 +60,19 @@ Section ISIM_REFL.
       { istep_l; ss. }
     - depdes c.
       { istep_l. istep_r. des_if.
-        { norm_l; norm_r. iApply isim_call. iSplitL "IST"; eauto.
-          iIntros (???) "IST"; iby_coind CIH; eauto.
-        }
+        { icall "IST"; et. iIntros (???) "IST"; iby_coind CIH; eauto. }
         { isteps_l; ss. }
       }
       { istep_l; istep_r. des_if.
-        { norm_l; norm_r. iApply isim_spawn. iIntros "%"; iby_coind CIH; done. }
+        { istep. iby_coind CIH; done. }
         { isteps_l. ss. }
       }
       { norm_l; norm_r. des_if.
-        { iyield "IST". iby_coind CIH. eauto. }
+        { iyield "IST". iIntros (??) "IST". iby_coind CIH. eauto. }
         { isteps_l. ss. }
       }
       { norm_l; norm_r. des_if.
-        { norm_l; norm_r. iApply isim_gettid; iIntros "%"; iby_coind CIH. eauto. }
+        { istep. iby_coind CIH. eauto. }
         { isteps_l. ss. }
       }
     - depdes s.
