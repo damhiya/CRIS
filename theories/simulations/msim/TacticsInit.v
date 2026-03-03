@@ -9,7 +9,7 @@ Ltac cStartModSim :=
       [ intros fn Hfn; (repeat rewrite Mod.dom_fnsems_add in Hfn); set_unfold in Hfn; des; subst
       | (refl||eauto using submseteq_nil_l)
       | (refl||eauto using submseteq_nil_l)
-      | try mod_tac
+      | ((set_unfold; naive_solver) || (try mod_tac))
       | try mod_tac
       |]
     | econs; intros Hwf;
