@@ -2,7 +2,7 @@ From CRIS Require Import CRIS MemHeader MemA MemI ImpPrelude.
 From iris.algebra Require Import auth excl agree csum functions dfrac_agree.
 
 Section RA.
-  Context `{!crisG Γ Σ α β τ _S _I, _MEM: !memGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, !memGS}.
 
   Definition mem_wf (m : Mem.t) : Prop := ∀ b ofs v, m.(Mem.cnts) b ofs = Some v → b < m.(Mem.nb).
 
@@ -99,17 +99,18 @@ Section RA.
   Proof using.
     iIntros "P". rewrite -own_op.
     iApply (own_update with "P"). apply auth_update_alloc.
-    apply local_update_discrete. i. rewrite H0.
+    apply local_update_discrete. intros mz Hwf Hwf2; rewrite Hwf2.
     split; cycle 1.
     - destruct mz; simpl opM in *.
       + rewrite left_id (comm _ c). et.
       + rewrite left_id. et.
-    - rewrite -H0. ii. rewrite !discrete_fun_lookup_op /_points_to_r.
-      case_bool_decide; s; cycle 1.
-      { rewrite right_id. apply H. }
-      hexploit (SIM blk x0). i; subst; des; rewrite H1; clarify.
-      + rewrite H2; case_match; ss.
-      + exploit WF; et. nia.
+    - rewrite -Hwf2. ii. rewrite !discrete_fun_lookup_op /_points_to_r.
+      case_bool_decide as Hcase; s; cycle 1.
+      { rewrite right_id. apply Hwf. }
+      hexploit (SIM blk x0). destruct Hcase as [-> Hcase].
+      intros [[-> Ha1]|Ha2]; clarify.
+      + case_match; ss.
+      + des; exploit WF; eauto. by nia.
   Qed.
 
   Lemma mem_ra_lookup (mem_s: MemA._memRA) mem_t b ofs q v
@@ -121,16 +122,19 @@ Section RA.
      Mem.cnts mem_t b ofs = Some v⌝.
   Proof using.
     iIntros "P". rewrite -own_op.
-    iPoseProof (own_valid with "P") as "%WF".
-    dup WF. rewrite auth_both_valid_discrete in WF. ss. des.
-    unfold included in *. des. specialize (WF b ofs). iris_tac.
-    rewrite ->!discrete_fun_lookup_singleton in *.
-    destruct (SIM b ofs); des; rewrite H in WF.
-    { destruct (z b ofs); ss; rewrite -?Some_op ?right_id in WF; inv WF. }
-    rewrite -WF. destruct (z b ofs); rr in WF; depdes WF.
-    - assert (EXT: to_dfrac_agree (DfracOwn q) v ≼ to_dfrac_agree (DfracOwn 1) v0) by (rewrite H1; et).
-      eapply dfrac_agree_included in EXT. des; subst. rr in EXT0. subst. et.
-    - eapply to_frac_agree_inv in H1. ss. des. depdes H2. et.
+    iPoseProof (own_valid with "P") as "%WF"; iPureIntro.
+    pose proof WF as WF1; rewrite auth_both_valid_discrete in WF1; ss.
+    destruct WF1 as [Hincl Hwf]; apply (discrete_fun_included_spec_1 _ _ b) in Hincl.
+    apply (discrete_fun_included_spec_1 _ _ ofs) in Hincl.
+    rewrite !discrete_fun_lookup_singleton in Hincl.
+    destruct (SIM b ofs) as [[Heq Hsim]|[v0 [Heq Hsim]]].
+    { rewrite Heq in Hincl; apply Some_included_is_Some in Hincl; inv Hincl. }
+    rewrite Heq Some_included in Hincl.
+    destruct Hincl as [Hincl|Hincl].
+    { apply to_dfrac_agree_inj in Hincl as [Hincl1 Hincl2]; inv Hincl1.
+      rewrite Heq Hsim; splits; done.
+    }
+    apply dfrac_agree_included in Hincl; inv Hincl; rewrite Heq Hsim; splits; done.
   Qed.
 
   Lemma mem_ra_update v_new v (mem_s: MemA._memRA) mem_t b ofs :
@@ -190,28 +194,28 @@ Section RA.
     iIntros "(B & P1 & P2)".
     destruct p0, p1; try destruct blkofs; try destruct blkofs0; ss.
     - des_ifs.
-    - iPoseProof (mem_ra_lookup with "[B P2]") as "%"; et; iFrame.
+    - iPoseProof (mem_ra_lookup with "[B P2]") as "%Hlu"; et; iFrame.
       specialize (SIM n0 z). des; subst; ss.
-      + rewrite SIM in H. r in H. depdes H.
+      + rewrite SIM in Hlu. r in Hlu. depdes Hlu.
       + rewrite SIM0. iPureIntro. des_ifs.
     - destruct n; ss.
-    - iPoseProof (mem_ra_lookup with "[B P1]") as "%"; et; iFrame.
+    - iPoseProof (mem_ra_lookup with "[B P1]") as "%Hlu"; et; iFrame.
       specialize (SIM n0 z). des; subst; ss.
-      + rewrite SIM in H. rr in H. depdes H.
+      + rewrite SIM in Hlu. rr in Hlu. depdes Hlu.
       + rewrite SIM0. iPureIntro. des_ifs.
-    - iPoseProof (mem_ra_lookup with "[B P1]") as "%"; et; iFrame.
-      iPoseProof (mem_ra_lookup with "[B P2]") as "%"; et; iFrame.
+    - iPoseProof (mem_ra_lookup with "[B P1]") as "%Hlu1"; et; iFrame.
+      iPoseProof (mem_ra_lookup with "[B P2]") as "%Hlu2"; et; iFrame.
       dup SIM. specialize (SIM n z). des; subst; ss.
-      { rewrite SIM in H. rr in H. depdes H. }
+      { rewrite SIM in Hlu1. rr in Hlu1. depdes Hlu1. }
       specialize (SIM0 n0 z0). des; subst; ss.
-      { rewrite SIM0 in H0. rr in H0. depdes H0. }
+      { rewrite SIM0 in Hlu2. rr in Hlu2. depdes Hlu2. }
       rewrite SIM1 SIM2. s.
       repeat case_bool_decide; ss; des; simplify_eq.
   Qed.
 End RA.
 
 Module MemIA. Section MemIA.
-  Context `{!crisG Γ Σ α β τ _S _I, _MEM: !memGS}.
+  Context `{!crisG Γ Σ α β τ _S _I, !memGS}.
   Local Existing Instances memGS_memGSpreS mem_inG.
 
   Context (csl : string → bool).
@@ -233,15 +237,6 @@ Module MemIA. Section MemIA.
     | (_,v) => or_else (nth_error v.(agree_car) 0) Vundef
     end.
 
-  Lemma mem_get_sound mem b ofs v
-      (HIT : mem b ofs ≡ Some (to_dfrac_agree (DfracOwn 1) v)) :
-    mem_get mem b ofs = v.
-  Proof using.
-    rr in HIT. depdes HIT. rewrite /mem_get -x. s. destruct x0.
-    symmetry in H. eapply to_frac_agree_inv in H. des. ss. subst.
-    rewrite H0. et.
-  Qed.
-
   Local Definition state : Type := gmap key (option Any.t).
   Local Definition post (R_s R_t : Type) : Type := state * R_s → state * R_t → iProp Σ.
 
@@ -254,7 +249,7 @@ Module MemIA. Section MemIA.
     rename _q into sz, _q0 into varg.
     iDestruct "ASM" as "[-> [-> %]]".
 
-    iDestruct "IST" as (? ? ? ?) "([-> ->] & [% [% [% [[-> %] >B]]]] & ->)"; des.
+    iDestruct "IST" as (? ? ? ?) "([-> ->] & [% [% [% [[-> [%Hsim %Hwf]] >B]]]] & ->)".
     steps_r. case_bool_decide; [|lia]. steps_r.
 
     rename _q into pad.
@@ -270,19 +265,22 @@ Module MemIA. Section MemIA.
     repeat (iSplit; eauto).
     iExists _; iSplit; eauto.
     iPureIntro; esplits; eauto; cycle 1.
-    { intros ????; ss. unfold update in *. rewrite /mem_wf in H6. des_ifs. exploit H2; eauto. nia. }
+    { intros ??? Hwf2; ss.
+      rewrite /update in Hwf2; case_match; subst; ss.
+      rewrite /mem_wf in Hwf; exploit Hwf; eauto; nia.
+    }
 
     intros blk' ofs'; rewrite ?discrete_fun_lookup_op /= Z.add_0_l Z.sub_0_r length_replicate.
     destruct (mem_tgt.(Mem.cnts) blk ofs') eqn:E.
-    { exfalso. exploit H2; et. nia. }
-    ss. hexploit (H1 blk ofs'); et.
+    { exfalso. exploit Hwf; et. nia. }
+    ss. hexploit (Hsim blk ofs'); et.
     rewrite E. intro U. des; ss.
 
     case_bool_decide as Hblkofs; [destruct Hblkofs as [Hblk Hofs]|].
     { rewrite lookup_replicate_2; [subst|lia]; rewrite U left_id; right; esplits; eauto.
       rewrite /update; destruct (dec _ _); ss; case_bool_decide; ss.
     }
-    rewrite right_id /update; destruct (_ blk' ofs') eqn : ?; hexploit (H1 blk' ofs');
+    rewrite right_id /update; destruct (_ blk' ofs') eqn : ?; hexploit (Hsim blk' ofs');
         i; des; destruct (dec _ _); ss; try case_bool_decide; naive_solver.
   (*SLOW*)Qed.
 
@@ -292,7 +290,7 @@ Module MemIA. Section MemIA.
     step_l. destruct _q as [[blk ofs] v].
     step_l. rename _q into varg. step_l.
     iDestruct "ASM" as "[-> [-> ↦]]".
-    iDestruct "IST" as (? ? ? ?) "([-> ->] & [% [% [% [[-> %] >B]]]] & ->)"; des.
+    iDestruct "IST" as (? ? ? ?) "([-> ->] & [% [% [% [[-> [%Hsim %Hwf]] >B]]]] & ->)".
 
     steps_l. steps_r.
 
@@ -315,7 +313,7 @@ Module MemIA. Section MemIA.
     step_l. destruct _q as [[[blk ofs] q] v]. steps_l.
 
     iDestruct "ASM" as "[-> [-> ↦]]".
-    iDestruct "IST" as (? ? ? ?) "([-> ->] & [% [% [% [[-> %] >B]]]] & ->)"; des.
+    iDestruct "IST" as (? ? ? ?) "([-> ->] & [% [% [% [[-> [%Hsim %Hwf]] >B]]]] & ->)".
 
     steps_r.
 
@@ -331,7 +329,7 @@ Module MemIA. Section MemIA.
     step_l. destruct _q as [[[blk ofs] q] v]. steps_l.
 
     iDestruct "ASM" as "[-> [-> ↦]]".
-    iDestruct "IST" as (? ? ? ?) "([-> ->] & [% [% [% [[-> %] >B]]]] & ->)"; des.
+    iDestruct "IST" as (? ? ? ?) "([-> ->] & [% [% [% [[-> [%Hsim %Hwf]] >B]]]] & ->)".
 
     steps_l. steps_r.
 
@@ -353,7 +351,7 @@ Module MemIA. Section MemIA.
     iStartSim. rewrite /MemI.cmp.
     step_l. destruct _q as [[[v_old v_new] v_cmp] Cmp]. steps_l.
     iDestruct "ASM" as "[-> [[-> %Hcmp] [Cmp Cmp2]]]".
-    iDestruct "IST" as (? ? ? ?) "([-> ->] & [% [% [% [[-> %] >B]]]] & ->)"; des.
+    iDestruct "IST" as (? ? ? ?) "([-> ->] & [% [% [% [[-> [%Hsim %Hwf]] >B]]]] & ->)".
 
     steps_r.
 
@@ -373,9 +371,8 @@ Module MemIA. Section MemIA.
     iStartSim. rewrite /MemI.cas.
     step_l. destruct _q as [[[[[[blk ofs ] v_old] v_new] v_upd] v_cmp] Cmp]. steps_l.
 
-    (* iIntros (N tid [[[[[[blk ofs ] v_old] v_new] v_upd] v_cmp] Cmp] varg) "?? Pre"; unfold_pre_post. *)
     iDestruct "ASM" as "[-> [[-> %Hcmp] [↦ [Cmp Cmp2]]]]".
-    iDestruct "IST" as (? ? ? ?) "([-> ->] & [% [% [% [[-> %] >B]]]] & ->)"; des.
+    iDestruct "IST" as (? ? ? ?) "([-> ->] & [% [% [% [[-> [%Hsim %Hwf]] >B]]]] & ->)".
 
     steps_r.
 
@@ -385,10 +382,10 @@ Module MemIA. Section MemIA.
     iMod ("C3" with "[$]").
 
     (* Load *)
-    inline_r. hrepeat (do 1 hss_r; steps_r). rewrite Hlookup. steps_r.
+    inline_r. steps_r. rewrite Hlookup. steps_r.
 
     (* Store *)
-    inline_r. hrepeat (do 1 hss_r; steps_r). rewrite Hcmp2. steps_r.
+    inline_r. steps_r. rewrite Hcmp2. steps_r.
 
     repeat case_bool_decide; simplify_eq.
     { (* Store *)
