@@ -623,9 +623,9 @@ Section HelpingOnOff.
     eapply gsim_tau_src; [rewrite Htids; do 2 f_equal; hnorm_itr|].
     eapply gsim_Choose_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
     intros [[|]|]; rewrite list_insert_insert; cycle 1.
-    { ghnorm_r.
+    { ghcNormT.
       eapply gsim_Choose_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-      exists (Some false). ghnorm_l. rewrite list_insert_insert.
+      exists (Some false). ghcNormS. rewrite list_insert_insert.
       zprogress. gbase.
       eapply CIH; (try by lookup_tac); auto; rewrite ?list_insert_insert //.
       intros temp; specialize (Hk2 temp) as [? Hk2]; split; first done.
@@ -633,99 +633,99 @@ Section HelpingOnOff.
       esplits; eauto.
       ii; rewrite ?list_insert_insert //; eauto.
     }
-    { ghnorm_r.
+    { ghcNormT.
       eapply gsim_Choose_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-      exists (Some false). ghnorm_l. rewrite list_insert_insert.
+      exists (Some false). ghcNormS. rewrite list_insert_insert.
       eapply gpaco7_mon; eauto.
     }
     eapply gsim_Choose_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
     exists (Some true). rewrite list_insert_insert. ired.
     rewrite !SRed.bind !SRed.vis_call !HoareCall_unfold.
     eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-    ghnorm_l. rewrite list_insert_insert.
+    ghcNormS. rewrite list_insert_insert.
     eapply gsim_tau_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-    ghnorm_r. rewrite list_insert_insert.
+    ghcNormT. rewrite list_insert_insert.
     eapply gsim_HoareCall_prologue_both; (try by lookup_tac; s; do 2 f_equal; hnorm_itr); auto.
-    intros res1 x Hres1. rewrite ?list_insert_insert. ghnorm_l; ghnorm_r.
+    intros res1 x Hres1. rewrite ?list_insert_insert. ghcNormS; ghcNormT.
 
     eapply gsim_Call_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-    rewrite list_insert_insert. ghnorm_l.
+    rewrite list_insert_insert. ghcNormS.
     eapply gsim_Call_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-    rewrite list_insert_insert. ghnorm_r.
+    rewrite list_insert_insert. ghcNormT.
 
     rewrite prog_s_yield // prog_t_yield //=.
     rewrite /yield /SchI.yield /cfunU; ired; rewrite -?interpV_bind.
-    ghnorm_l; ghnorm_r.
+    ghcNormS; ghcNormT.
     eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-    ghnorm_l. rewrite list_insert_insert.
+    ghcNormS. rewrite list_insert_insert.
     eapply gsim_tau_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-    ghnorm_r. rewrite list_insert_insert.
+    ghcNormT. rewrite list_insert_insert.
     destruct Any.downcast as [[]|]; s; cycle 1.
     { eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; ss. }
-    ghnorm_l; ghnorm_r.
+    ghcNormS; ghcNormT.
 
     eapply gsim_SGet_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
     rewrite list_insert_insert.
     subst st_tgt; match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst2 end.
-    ghnorm_r. hss. ghnorm_r.
+    ghcNormT. cSimpl. ghcNormT.
     eapply gsim_tau_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-    rewrite list_insert_insert. ghnorm_r.
+    rewrite list_insert_insert. ghcNormT.
 
     eapply gsim_SGet_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
     rewrite list_insert_insert.
     subst st_src; match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst1 end.
-    ghnorm_l. hss. ghnorm_l.
+    ghcNormS. cSimpl. ghcNormS.
     eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-    rewrite list_insert_insert. ghnorm_l.
+    rewrite list_insert_insert. ghcNormS.
 
-    ghnorm_l; ghnorm_r.
+    ghcNormS; ghcNormT.
     eapply gsim_GetTid_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
-    rewrite list_insert_insert. ghnorm_l.
+    rewrite list_insert_insert. ghcNormS.
     eapply gsim_GetTid_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
-    rewrite list_insert_insert. ghnorm_r.
+    rewrite list_insert_insert. ghcNormT.
 
     eapply gsim_SGet_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
     rewrite list_insert_insert.
     match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst2 end.
-    ghnorm_r. hss. ghnorm_r.
+    ghcNormT. cSimpl. ghcNormT.
 
     eapply gsim_SGet_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
     rewrite list_insert_insert.
     match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst1 end.
-    ghnorm_l. hss. ghnorm_l.
+    ghcNormS. cSimpl. ghcNormS.
 
-    destruct (ths !! mtid_s) as [[? ?]|] eqn : Hthss; rewrite Hthss; cycle 1.
-    { ghnorm_l. destruct excluded_middle_informative as [|temp]; [|exfalso; apply temp; eauto].
+    destruct (ths !! mtid_s) as [[? ?]|] eqn : HtcSimpl; rewrite HtcSimpl; cycle 1.
+    { ghcNormS. destruct excluded_middle_informative as [|temp]; [|exfalso; apply temp; eauto].
       eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; ss.
     }
     case_decide; subst; cycle 1.
-    { ghnorm_l. destruct excluded_middle_informative as [|temp]; [|exfalso; apply temp; eauto].
+    { ghcNormS. destruct excluded_middle_informative as [|temp]; [|exfalso; apply temp; eauto].
       eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; ss.
     }
-    hexploit Hk2; [rewrite list_lookup_fmap Hthss //|]; clear Hk2.
+    hexploit Hk2; [rewrite list_lookup_fmap HtcSimpl //|]; clear Hk2.
     intros [[[? ?] [Hthst ?]]%list_lookup_fmap_Some Hk2]; rewrite Hthst /=; clarify; s.
-    case_decide; ss. ghnorm_r. ghnorm_l.
+    case_decide; ss. ghcNormT. ghcNormS.
 
     eapply gsim_Choose_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-    intros [[mtid_t1 stid_t1] Hmtid_t1]; rewrite list_insert_insert. ghnorm_r; ss.
+    intros [[mtid_t1 stid_t1] Hmtid_t1]; rewrite list_insert_insert. ghcNormT; ss.
 
     hexploit (Hk2 mtid_t1 stid_t1); eauto. clear Hk2; intros [mtid_s1 [stid_s1 [Hmtid_s1 Hk2]]].
     eapply gsim_Choose_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-    eexists (exist _ (mtid_s1, stid_s1) Hmtid_s1); rewrite list_insert_insert. ghnorm_l.
+    eexists (exist _ (mtid_s1, stid_s1) Hmtid_s1); rewrite list_insert_insert. ghcNormS.
 
     eapply gsim_SPut_tgt; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
-    rewrite list_insert_insert. ghnorm_r.
+    rewrite list_insert_insert. ghcNormT.
     eapply gsim_SPut_src; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
-    rewrite list_insert_insert. ghnorm_l.
+    rewrite list_insert_insert. ghcNormS.
     eapply gsim_tau_src; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
-    rewrite list_insert_insert. ghnorm_l.
+    rewrite list_insert_insert. ghcNormS.
     eapply gsim_tau_tgt; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
-    rewrite list_insert_insert. ghnorm_r.
+    rewrite list_insert_insert. ghcNormT.
 
     eapply gsim_Yield_src; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
-    rewrite list_insert_insert. ghnorm_l.
+    rewrite list_insert_insert. ghcNormS.
     eapply gsim_Yield_tgt; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
-    rewrite list_insert_insert. ghnorm_r. ired.
+    rewrite list_insert_insert. ghcNormT. ired.
     repeat match goal with
     | H : map_Forall _ ?a |- context [base.insert ?k1 (Some ?v1) ?a] =>
       state_insert_simpl k1 v1 H
@@ -835,7 +835,7 @@ Section HelpingOnOff.
     destruct temp as [-> [-> [-> [-> [Hreqmap [Hlookup [Hst1 Hst2]]]]]]].
 
     destruct ((fst ∘ fst <$> tl) !! stid) as [i|] eqn : Htid; cycle 1.
-    { giter_l. s. rewrite Htid. gstep_l. gnorm_l. gstep_l. ss. }
+    { giter_l. s. rewrite Htid. gstep_l. gcNormS. gstep_l. ss. }
 
     apply list_lookup_fmap_inv in Htid as [[[itr_src itr_tgt] no] [-> Htid]]; s.
     destruct no as [[n [[retid|] j]]|].
@@ -855,23 +855,23 @@ Section HelpingOnOff.
               (try by lookup_tac; s; do 2 f_equal; hnorm_itr).
       { rewrite !list_insert_insert.
         rewrite /HelpingOn.try_run.
-        ghnorm_r.
+        ghcNormT.
 
         eapply gsim_SGet_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
         rewrite list_insert_insert.
         match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst2 end.
-        ghnorm_r. hss. ghnorm_r.
-        eapply reqmap_rel_Some in Hreqmap as Hsome; eauto. rewrite Hsome; clear Hsome. ghnorm_r.
+        ghcNormT. cSimpl. ghcNormT.
+        eapply reqmap_rel_Some in Hreqmap as Hsome; eauto. rewrite Hsome; clear Hsome. ghcNormT.
 
         eapply gsim_Yield_tgt; (eauto using wf_src);
               (try by lookup_tac; s; do 2 f_equal; hnorm_itr).
         { rewrite !list_insert_insert.
-          ghnorm_r.
+          ghcNormT.
           rewrite {1}yield_unfold.
           eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
           rewrite list_insert_insert.
           eapply gsim_Choose_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s. exists None.
-          rewrite list_insert_insert. ghnorm_l.
+          rewrite list_insert_insert. ghcNormS.
           zprogress. gbase. eapply (CIH res1); eauto.
           eexists (<[stid := (_, _, None)]> tl); ss; esplits; eauto.
           { rewrite list_fmap_insert //=. }
@@ -979,27 +979,27 @@ Section HelpingOnOff.
       { (* tired of waiting *)
         rewrite !list_insert_insert.
 
-        rewrite /HelpingOn.try_run. ghnorm_r.
+        rewrite /HelpingOn.try_run. ghcNormT.
 
         eapply gsim_SGet_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
         rewrite list_insert_insert.
         match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst2 end.
-        ghnorm_r. hss. ghnorm_r.
-        eapply reqmap_rel_Some in Hreqmap as Hsome; eauto. rewrite Hsome; clear Hsome. ghnorm_r.
+        ghcNormT. cSimpl. ghcNormT.
+        eapply reqmap_rel_Some in Hreqmap as Hsome; eauto. rewrite Hsome; clear Hsome. ghcNormT.
 
         rewrite {1}yield_unfold.
         eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
         rewrite list_insert_insert.
         eapply gsim_Choose_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s. exists None.
-        rewrite list_insert_insert. ghnorm_l.
+        rewrite list_insert_insert. ghcNormS.
 
         zprogress with smj_bot smj_bot _ _.
         eapply gsim_jobs_both; try by rewrite ?length_insert ?length_fmap.
         intros res2 ret2 Hres2.
-        ghnorm_r.
+        ghcNormT.
 
         eapply gsim_SPut_tgt; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
-        rewrite list_insert_insert. ghnorm_r.
+        rewrite list_insert_insert. ghcNormT.
         eapply map_Forall_insert_union_with with (k:=HelpingOn.v_reqs mn) in Hst2 as Hst2'; revert Hst2'.
         repeat match goal with
         | H : map_Forall _ ?a |- context [base.insert ?k1 (Some ?v1) ?a] =>
@@ -1010,12 +1010,12 @@ Section HelpingOnOff.
         eapply gsim_Yield_tgt; (eauto using wf_src);
           (try by lookup_tac; s; do 2 f_equal; hnorm_itr).
         { rewrite !list_insert_insert.
-          ghnorm_r.
+          ghcNormT.
           rewrite {1}yield_unfold.
           eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
           rewrite list_insert_insert.
           eapply gsim_Choose_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s. exists None.
-          rewrite list_insert_insert. ghnorm_l.
+          rewrite list_insert_insert. ghcNormS.
 
           zprogress.
           gbase. eapply (CIH res2); eauto.
@@ -1319,7 +1319,7 @@ Section HelpingOnOff.
         { (* yield *)
           eapply gsim_Yield_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
           eapply GSimAux.gsim_Yield_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
-          ghnorm_l; ghnorm_r.
+          ghcNormS; ghcNormT.
           zprogress.
           gbase. eapply (CIH rs); try by des.
           eexists (<[stid := (_, _, None)]> tl); ss; esplits; eauto.
@@ -1369,7 +1369,7 @@ Section HelpingOnOff.
           { rewrite lookup_union_with ?lookup_insert_ne //; ii; clarify; ss; eauto. }
           { rewrite ?lookup_insert_ne //; ii; clarify; ss; eauto. }
 
-          ghnorm_l; ghnorm_r.
+          ghcNormS; ghcNormT.
           zprogress. gbase.
           eapply (CIH rs); try by des.
           eexists (<[stid := (_, _, None)]> tl); ss; esplits; eauto.
@@ -1410,7 +1410,7 @@ Section HelpingOnOff.
         { (* sGet *)
           eapply gsim_SGet_tgt; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
           eapply gsim_SGet_src; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
-          ghnorm_l; ghnorm_r.
+          ghcNormS; ghcNormT.
           match goal with | A : msk_ctx ?a |- _ => rename A into Hmskctx end.
           bsimpl. apply Hmskctx in Hmsk; set_unfold in Hmsk.
           rewrite ?lookup_union_with ?lookup_insert_ne //; ii; clarify; ss; eauto.
@@ -1470,7 +1470,7 @@ Section HelpingOnOff.
         }
         { (* IO *)
           eapply gsim_IO; (try by lookup_tac; s; do 2 f_equal; hnorm_itr). intros ret; s.
-          ghnorm_l; ghnorm_r.
+          ghcNormS; ghcNormT.
           zprogress. gbase. eapply (CIH rs); try by des.
           eexists (<[stid := (_, _, None)]> tl); ss; esplits; eauto.
           { rewrite list_fmap_insert //=. }
@@ -1501,7 +1501,7 @@ Section HelpingOnOff.
         eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
         rewrite list_insert_insert.
         eapply gsim_Choose_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s. exists None.
-        rewrite list_insert_insert. ghnorm_l. ghnorm_r.
+        rewrite list_insert_insert. ghcNormS. ghcNormT.
 
         zprogress. gbase. eapply (CIH res1); try by des.
         eexists (<[stid := (_, _, None)]> tl); ss; esplits; eauto.
@@ -1517,7 +1517,7 @@ Section HelpingOnOff.
       intros ?; split; first done.
       intros mtidn_t stidn_t Hmtidn_t; exists mtidn_t, stidn_t; split; first done.
       intros x2 res2 Hres2.
-      rewrite !list_insert_insert. ghnorm_l; ghnorm_r.
+      rewrite !list_insert_insert. ghcNormS; ghcNormT.
 
       eapply map_Forall_insert_union_with with (k:=SchI.v_tid) in Hst1 as Hst1'; revert Hst1'.
         repeat match goal with
@@ -1562,15 +1562,15 @@ Section HelpingOnOff.
         eapply gsim_tau_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
         destruct (arg ↓) as [j|];
           [|eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; ss]; s.
-        ghnorm_l. ghnorm_r.
+        ghcNormS. ghcNormT.
 
         eapply gsim_SGet_tgt; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
         rewrite list_insert_insert.
         match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst2 end.
-        ghnorm_r. hss. ghnorm_r.
+        ghcNormT. cSimpl. ghcNormT.
 
         eapply gsim_SPut_tgt; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
-        rewrite list_insert_insert. ghnorm_r.
+        rewrite list_insert_insert. ghcNormT.
         eapply map_Forall_insert_union_with in Hst2 as Hst2'; revert Hst2'.
         repeat match goal with
         | H : map_Forall _ ?a |- context [base.insert ?k1 (Some ?v1) ?a] =>
@@ -1582,27 +1582,27 @@ Section HelpingOnOff.
           (try by lookup_tac; s; do 2 f_equal; hnorm_itr).
         { (* self-help *)
           rewrite ?list_insert_insert.
-          rewrite /HelpingOn.try_run. ghnorm_r.
+          rewrite /HelpingOn.try_run. ghcNormT.
 
           eapply gsim_SGet_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
           rewrite list_insert_insert.
           match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst2' end.
-          ghnorm_r. hss. ghnorm_r.
-          rewrite lookup_insert. ghnorm_r.
+          ghcNormT. cSimpl. ghcNormT.
+          rewrite lookup_insert. ghcNormT.
 
           rewrite {1}yield_unfold.
           eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
           rewrite list_insert_insert.
           eapply gsim_Choose_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s. exists None.
-          rewrite list_insert_insert. ghnorm_l.
+          rewrite list_insert_insert. ghcNormS.
 
           zprogress with smj_bot smj_bot _ _.
           eapply gsim_jobs_both; try by rewrite ?length_fmap.
           intros res1 ret1 Hres1.
-          ghnorm_r.
+          ghcNormT.
 
           eapply gsim_SPut_tgt; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
-          rewrite list_insert_insert. ghnorm_r.
+          rewrite list_insert_insert. ghcNormT.
           eapply map_Forall_insert_union_with in Hst2' as Hst2''; revert Hst2''.
           repeat match goal with
           | H : map_Forall _ ?a |- context [base.insert ?k1 (Some ?v1) ?a] =>
@@ -1613,13 +1613,13 @@ Section HelpingOnOff.
           eapply gsim_Yield_tgt; (eauto using wf_src);
             (try by lookup_tac; s; do 2 f_equal; hnorm_itr).
           { (* immediate return of helpee *)
-            rewrite ?list_insert_insert. ghnorm_r.
+            rewrite ?list_insert_insert. ghcNormT.
 
-            rewrite {1}yield_unfold. ghnorm_l.
+            rewrite {1}yield_unfold. ghcNormS.
             eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
             rewrite list_insert_insert.
             eapply gsim_Choose_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-            exists (None). rewrite list_insert_insert. ghnorm_l.
+            exists (None). rewrite list_insert_insert. ghcNormS.
 
             zprogress.
             gbase. eapply (CIH res1); try by des; eauto.
@@ -1730,9 +1730,9 @@ Section HelpingOnOff.
         rewrite list_insert_insert.
 
         (* Source-helper goes to yield *)
-        rewrite yield_unfold. ghnorm_l.
+        rewrite yield_unfold. ghcNormS.
         eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-        rewrite list_insert_insert. ghnorm_l.
+        rewrite list_insert_insert. ghcNormS.
         eapply gsim_Choose_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
         exists (Some true). rewrite list_insert_insert. ired.
         rewrite !SRed.bind !SRed.vis_call !HoareCall_unfold !HoareCall_prologue_sred.
@@ -1742,14 +1742,14 @@ Section HelpingOnOff.
         (* Handling yield *)
         eapply gsim_HoareCall_prologue_both;
           (try by lookup_tac; s; do 2 f_equal; hnorm_itr); try by des.
-        intros res3 x Hres3. rewrite ?list_insert_insert. ghnorm_l; ghnorm_r.
+        intros res3 x Hres3. rewrite ?list_insert_insert. ghcNormS; ghcNormT.
         eapply gsim_Call_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|rewrite list_insert_insert].
 
         rewrite prog_s_yield; auto using wf_src.
         rewrite /yield /SchI.yield /cfunU /fbody_trivial HoareFun_prologue_sred; ired.
         rewrite -interpV_bind.
         eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|rewrite list_insert_insert].
-        destruct Any.downcast as [[]|]; s; ghnorm_l; cycle 1.
+        destruct Any.downcast as [[]|]; s; ghcNormS; cycle 1.
         { destruct excluded_middle_informative as [|temp]; [|exfalso; apply temp; eauto].
           eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; ss.
         }
@@ -1757,7 +1757,7 @@ Section HelpingOnOff.
         eapply gsim_SGet_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
         rewrite list_insert_insert.
         match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst1 end.
-        ghnorm_l. hss.
+        ghcNormS. cSimpl.
 
         eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
         rewrite list_insert_insert.
@@ -1767,19 +1767,19 @@ Section HelpingOnOff.
         eapply gsim_SGet_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
         rewrite list_insert_insert.
         match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst1 end.
-        ghnorm_l. hss. ghnorm_l.
+        ghcNormS. cSimpl. ghcNormS.
 
         destruct (_ !! mtid) as [[? ?]|] eqn : Hmtid; ss; cycle 1.
-        { ghnorm_l.
+        { ghcNormS.
           destruct excluded_middle_informative as [|temp]; [|exfalso; apply temp; eauto].
           eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; ss.
         }
         case_decide; subst; cycle 1.
-        { ghnorm_l.
+        { ghcNormS.
           destruct excluded_middle_informative as [|temp]; [|exfalso; apply temp; eauto].
           eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; ss.
         }
-        ghnorm_l.
+        ghcNormS.
 
         set (caseb :=
           match reqmap !! rid with
@@ -1794,10 +1794,10 @@ Section HelpingOnOff.
           eapply gsim_Choose_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
           unshelve eexists.
           { exists (mtid, stid). rewrite list_lookup_fmap Hmtid //=. }
-          rewrite list_insert_insert. ghnorm_l.
+          rewrite list_insert_insert. ghcNormS.
 
           eapply gsim_SPut_src; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
-          rewrite list_insert_insert. ghnorm_l.
+          rewrite list_insert_insert. ghcNormS.
           eapply map_Forall_insert_union_with in Hst1 as Hst1'; revert Hst1'.
           repeat match goal with
           | H : map_Forall _ ?a |- context [base.insert ?k1 (Some ?v1) ?a] =>
@@ -1805,42 +1805,42 @@ Section HelpingOnOff.
           end.
           intros Hst1'.
           eapply gsim_tau_src; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
-          rewrite list_insert_insert. ghnorm_l.
+          rewrite list_insert_insert. ghcNormS.
 
           eapply gsim_Yield_src; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
-          rewrite list_insert_insert. ghnorm_l.
+          rewrite list_insert_insert. ghcNormS.
           eapply gsim_tau_src; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
-          rewrite list_insert_insert. ghnorm_l.
+          rewrite list_insert_insert. ghcNormS.
 
           (* No helping here *)
           rewrite /HelpingOn.try_run; ired.
           eapply gsim_HoareCall_epilogue_HoareFun_prologue;
             (try by lookup_tac; s; do 2 f_equal; hnorm_itr); try by des.
           intros res4 vret Hres4; rewrite !list_insert_insert.
-          ghnorm_l; ghnorm_r.
-          ghnorm_r.
+          ghcNormS; ghcNormT.
+          ghcNormT.
 
           eapply gsim_SGet_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
           rewrite list_insert_insert.
           match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst2 end.
-          ghnorm_r. hss. ghnorm_r.
+          ghcNormT. cSimpl. ghcNormT.
 
           destruct (reqmap !! rid) as [[[ret|]]|] eqn : Hridreqmap; cycle 1.
           { subst; clarify. }
           { eapply gsim_Choose_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|ss]. }
-          clear dependent caseb. ghnorm_r.
+          clear dependent caseb. ghcNormT.
 
           (* get out of the helping zone *)
-          rewrite yield_unfold; ghnorm_l.
+          rewrite yield_unfold; ghcNormS.
           eapply gsim_tau_src; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
-          rewrite list_insert_insert. ghnorm_l.
+          rewrite list_insert_insert. ghcNormS.
 
           eapply gsim_Choose_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
           exists (Some true).
           rewrite list_insert_insert. ired.
           rewrite !SRed.bind !SRed.vis_call !HoareCall_unfold.
           eapply gsim_tau_src; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
-          rewrite list_insert_insert. ghnorm_l.
+          rewrite list_insert_insert. ghcNormS.
 
           rewrite HoareFun_epilogue_sred.
           eapply gsim_HoareCall_prologue_HoareFun_epilogue;
@@ -1851,7 +1851,7 @@ Section HelpingOnOff.
           rewrite prog_s_yield; auto using wf_src.
           rewrite /yield /help_yield_t /SchI.yield /cfunU /fbody_trivial; ired; rewrite -interpV_bind.
           eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|rewrite list_insert_insert].
-          destruct Any.downcast as [[]|]; s; ghnorm_l; cycle 1.
+          destruct Any.downcast as [[]|]; s; ghcNormS; cycle 1.
           { destruct excluded_middle_informative as [|temp]; [|exfalso; apply temp; eauto].
             eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; ss.
           }
@@ -1859,7 +1859,7 @@ Section HelpingOnOff.
           eapply gsim_SGet_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|eauto|]; s.
           rewrite !list_insert_insert.
           match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst1' end.
-          ghnorm_l. hss.
+          ghcNormS. cSimpl.
 
           eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
           rewrite list_insert_insert.
@@ -1869,16 +1869,16 @@ Section HelpingOnOff.
           eapply gsim_SGet_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
           rewrite list_insert_insert.
           match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst1 end.
-          ghnorm_l. hss. ghnorm_l.
+          ghcNormS. cSimpl. ghcNormS.
 
-          rewrite Hmtid; des_ifs_safe; ss. clear e. ghnorm_l.
+          rewrite Hmtid; des_ifs_safe; ss. clear e. ghcNormS.
           eapply gsim_Choose_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
           unshelve eexists.
           { exists (mtid, stid). rewrite list_lookup_fmap Hmtid //=. }
-          rewrite list_insert_insert. ghnorm_l.
+          rewrite list_insert_insert. ghcNormS.
 
           eapply gsim_SPut_src; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
-          rewrite list_insert_insert. ghnorm_l.
+          rewrite list_insert_insert. ghcNormS.
           eapply map_Forall_insert_union_with in Hst1' as Hst1''; revert Hst1''.
           repeat match goal with
           | H : map_Forall _ ?a |- context [base.insert ?k1 (Some ?v1) ?a] =>
@@ -1905,7 +1905,7 @@ Section HelpingOnOff.
           eapply gsim_Choose_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
           exists (None).
           rewrite list_insert_insert.
-          ghnorm_l; ghnorm_r.
+          ghcNormS; ghcNormT.
 
           zprogress.
           gbase. eapply (CIH res6); eauto; try by des.
@@ -1930,14 +1930,14 @@ Section HelpingOnOff.
         eapply lookup_lt_Some in Hhelpee as Hhelpeelen.
         assert (Hneq : stid_helpee ≠ stid) by (ii; clarify).
 
-        ghnorm_l.
+        ghcNormS.
         eapply gsim_Choose_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
         unshelve eexists.
         { exists (mtid_helpee, stid_helpee). rewrite /= list_lookup_fmap Hthshelpee //. }
-        rewrite list_insert_insert. ghnorm_l.
+        rewrite list_insert_insert. ghcNormS.
 
         eapply gsim_SPut_src; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
-        rewrite list_insert_insert. ghnorm_l.
+        rewrite list_insert_insert. ghcNormS.
         eapply (map_Forall_insert_union_with _ _ SchI.v_tid) in Hst1 as Hst1'; revert Hst1'.
         repeat match goal with
         | H : map_Forall _ ?a |- context [base.insert ?k1 (Some ?v1) ?a] =>
@@ -1945,10 +1945,10 @@ Section HelpingOnOff.
         end.
         intros Hst1'.
         eapply gsim_tau_src; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
-        rewrite list_insert_insert. ghnorm_l.
+        rewrite list_insert_insert. ghcNormS.
 
         eapply gsim_Yield_src; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
-        rewrite list_insert_insert. ghnorm_l.
+        rewrite list_insert_insert. ghcNormS.
 
         eapply gsim_tau_src; auto.
         { rewrite list_lookup_insert_ne //=.
@@ -1970,20 +1970,20 @@ Section HelpingOnOff.
 
         (* target proceed for helping *)
         rewrite /HelpingOn.try_run /cgetU.
-        ghnorm_r.
+        ghcNormT.
 
         eapply gsim_SGet_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
         rewrite list_insert_insert.
         match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst2 end.
-        ghnorm_r. hss. ghnorm_r. rewrite Hrid; ghnorm_r; ghnorm_l.
+        ghcNormT. cSimpl. ghcNormT. rewrite Hrid; ghcNormT; ghcNormS.
 
         zprogress with smj_bot smj_bot _ _.
         eapply gsim_jobs_both; try by rewrite ?length_insert ?length_fmap.
         intros res5 ret5 Hres5.
 
-        ghnorm_r.
+        ghcNormT.
         eapply gsim_SPut_tgt; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
-        rewrite list_insert_insert. ghnorm_r.
+        rewrite list_insert_insert. ghcNormT.
         eapply map_Forall_insert_union_with in Hst2 as Hst2'; revert Hst2'.
         repeat match goal with
         | H : map_Forall _ ?a |- context [base.insert ?k1 (Some ?v1) ?a] =>
@@ -1993,13 +1993,13 @@ Section HelpingOnOff.
 
         rewrite {1}yield_unfold.
         eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-        rewrite list_insert_insert. ghnorm_l.
+        rewrite list_insert_insert. ghcNormS.
         eapply gsim_Choose_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
         exists (Some true).
         rewrite list_insert_insert. ired.
         rewrite !SRed.bind !SRed.vis_call !HoareCall_unfold.
         eapply gsim_tau_src; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
-        rewrite list_insert_insert. ghnorm_l.
+        rewrite list_insert_insert. ghcNormS.
 
         rewrite HoareFun_epilogue_sred.
         eapply gsim_HoareCall_prologue_HoareFun_epilogue;
@@ -2013,7 +2013,7 @@ Section HelpingOnOff.
         rewrite prog_s_yield; auto using wf_src.
         rewrite /yield /help_yield_t /SchI.yield /cfunU /fbody_trivial; ired; rewrite -interpV_bind.
         eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|rewrite list_insert_insert].
-        destruct Any.downcast as [[]|]; s; ghnorm_l; cycle 1.
+        destruct Any.downcast as [[]|]; s; ghcNormS; cycle 1.
         { destruct excluded_middle_informative as [|temp]; [|exfalso; apply temp; eauto].
           eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; ss.
         }
@@ -2021,7 +2021,7 @@ Section HelpingOnOff.
         eapply gsim_SGet_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|apply Hst1'|]; s.
         rewrite !list_insert_insert.
         match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst1' end.
-        ghnorm_l. hss.
+        ghcNormS. cSimpl.
 
         eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
         rewrite list_insert_insert.
@@ -2031,16 +2031,16 @@ Section HelpingOnOff.
         eapply gsim_SGet_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
         rewrite list_insert_insert.
         match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst1 end.
-        ghnorm_l. hss. ghnorm_l.
+        ghcNormS. cSimpl. ghcNormS.
 
-        rewrite Hthshelpee; des_ifs_safe; ss. clear e. ghnorm_l.
+        rewrite Hthshelpee; des_ifs_safe; ss. clear e. ghcNormS.
         eapply gsim_Choose_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
         unshelve eexists.
         { exists (mtid, stid). rewrite list_lookup_fmap Hmtid //=. }
         rewrite list_insert_insert.
 
         eapply gsim_SPut_src; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
-        rewrite list_insert_insert. ghnorm_l.
+        rewrite list_insert_insert. ghcNormS.
         eapply (map_Forall_insert_union_with _ _ SchI.v_tid) in Hst1' as Hst1''; revert Hst1''.
         repeat match goal with
         | H : map_Forall _ ?a |- context [base.insert ?k1 (Some ?v1) ?a] =>
@@ -2051,7 +2051,7 @@ Section HelpingOnOff.
         rewrite list_insert_insert.
 
         eapply gsim_Yield_src; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
-        rewrite list_insert_insert. ghnorm_l. rewrite list_insert_commute //.
+        rewrite list_insert_insert. ghcNormS. rewrite list_insert_commute //.
 
         eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
 
@@ -2067,7 +2067,7 @@ Section HelpingOnOff.
         eapply gsim_Choose_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
         exists (None).
         rewrite list_insert_insert.
-        ghnorm_l; ghnorm_r.
+        ghcNormS; ghcNormT.
 
         zprogress.
         gbase. eapply (CIH res7); eauto.
@@ -2109,7 +2109,7 @@ Section HelpingOnOff.
         zprogress.
 
         rewrite /cfunU.
-        destruct Any.downcast as [[]|]; s; ghnorm_l; cycle 1.
+        destruct Any.downcast as [[]|]; s; ghcNormS; cycle 1.
         { destruct excluded_middle_informative as [|temp]; [|exfalso; apply temp; eauto].
           eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; ss.
         }
@@ -2119,8 +2119,8 @@ Section HelpingOnOff.
           rewrite list_insert_insert.
         rewrite !lookup_empty.
 
-        ghnorm_l; ghnorm_r.
-        case_bool_decide as Hs; ghnorm_l;
+        ghcNormS; ghcNormT.
+        case_bool_decide as Hs; ghcNormS;
           [|eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; ss].
 
         eapply gsim_Call_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; ss.
@@ -2210,21 +2210,21 @@ Section HelpingOnOff.
         zprogress.
 
         rewrite /cfunU /SchI.spawn.
-        destruct Any.downcast as [[]|]; s; ghnorm_l; cycle 1.
+        destruct Any.downcast as [[]|]; s; ghcNormS; cycle 1.
         { destruct excluded_middle_informative as [|temp]; [|exfalso; apply temp; eauto].
           eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; ss.
         }
-        ghnorm_r.
+        ghcNormT.
 
         eapply gsim_SGet_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
         rewrite list_insert_insert.
         match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst1 end.
-        ghnorm_l. hss. ghnorm_l.
+        ghcNormS. cSimpl. ghcNormS.
 
         eapply gsim_SGet_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
         rewrite list_insert_insert.
         match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst2 end.
-        ghnorm_r. hss. ghnorm_r.
+        ghcNormT. cSimpl. ghcNormT.
 
         rewrite lookup_empty.
 
@@ -2236,7 +2236,7 @@ Section HelpingOnOff.
         rewrite !list_insert_insert.
         rewrite prog_s_inner_spawn; auto using wf_src; rewrite prog_t_inner_spawn //=.
         ired.
-        ghnorm_l; ghnorm_r.
+        ghcNormS; ghcNormT.
 
         eapply gsim_SPut_src; auto.
         { rewrite lookup_app list_lookup_insert // length_fmap //. }
@@ -2247,7 +2247,7 @@ Section HelpingOnOff.
           state_insert_simpl k1 v1 H
         end.
         intros Hst1'.
-        ghnorm_l.
+        ghcNormS.
 
         eapply gsim_SPut_tgt; auto.
         { rewrite lookup_app list_lookup_insert // length_fmap //. }
@@ -2258,7 +2258,7 @@ Section HelpingOnOff.
           state_insert_simpl k1 v1 H
         end.
         intros Hst2'.
-        ghnorm_r.
+        ghcNormT.
 
         zprogress. gbase.
         eapply (CIH rs); eauto.
@@ -2300,21 +2300,21 @@ Section HelpingOnOff.
         zprogress.
 
         rewrite /cfunU /SchI.yield.
-        destruct Any.downcast as [[]|]; s; ghnorm_l; cycle 1.
+        destruct Any.downcast as [[]|]; s; ghcNormS; cycle 1.
         { destruct excluded_middle_informative as [|temp]; [|exfalso; apply temp; eauto].
           eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; ss.
         }
-        ghnorm_r.
+        ghcNormT.
 
         eapply gsim_SGet_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
         rewrite list_insert_insert.
         match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst1 end.
-        ghnorm_l. hss. ghnorm_l.
+        ghcNormS. cSimpl. ghcNormS.
 
         eapply gsim_SGet_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
         rewrite list_insert_insert.
         match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst2 end.
-        ghnorm_r. hss. ghnorm_r.
+        ghcNormT. cSimpl. ghcNormT.
 
         eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
         eapply gsim_tau_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
@@ -2328,25 +2328,25 @@ Section HelpingOnOff.
         eapply gsim_SGet_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
         rewrite list_insert_insert.
         match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst1 end.
-        ghnorm_l. hss. ghnorm_l.
+        ghcNormS. cSimpl. ghcNormS.
 
         eapply gsim_SGet_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
         rewrite list_insert_insert.
         match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst2 end.
-        ghnorm_r. hss. ghnorm_r.
+        ghcNormT. cSimpl. ghcNormT.
 
-        destruct (_ !! mtid) as [[? ?]|]; ghnorm_l; cycle 1.
+        destruct (_ !! mtid) as [[? ?]|]; ghcNormS; cycle 1.
         { eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; ss. }
-        case_decide; ghnorm_l; subst; cycle 1.
+        case_decide; ghcNormS; subst; cycle 1.
         { eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; ss. }
 
         eapply gsim_Choose_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-        intros [[mtid_t1 stid_t1] Hmtid_t1]; rewrite list_insert_insert. ghnorm_l; ss.
+        intros [[mtid_t1 stid_t1] Hmtid_t1]; rewrite list_insert_insert. ghcNormS; ss.
         eapply gsim_Choose_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-        exists (exist _ (mtid_t1, stid_t1) Hmtid_t1); rewrite list_insert_insert. ghnorm_l; ss.
+        exists (exist _ (mtid_t1, stid_t1) Hmtid_t1); rewrite list_insert_insert. ghcNormS; ss.
 
         eapply gsim_SPut_src; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
-        rewrite list_insert_insert. ghnorm_l.
+        rewrite list_insert_insert. ghcNormS.
         eapply map_Forall_insert_union_with with (k:=SchI.v_tid) in Hst1 as Hst1'; revert Hst1'.
         repeat match goal with
         | H : map_Forall _ ?a |- context [base.insert ?k1 (Some ?v1) ?a] =>
@@ -2355,7 +2355,7 @@ Section HelpingOnOff.
         intros Hst1'.
 
         eapply gsim_SPut_tgt; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
-        rewrite list_insert_insert. ghnorm_r.
+        rewrite list_insert_insert. ghcNormT.
         eapply map_Forall_insert_union_with with (k:=SchI.v_tid) in Hst2 as Hst2'; revert Hst2'.
         repeat match goal with
         | H : map_Forall _ ?a |- context [base.insert ?k1 (Some ?v1) ?a] =>
@@ -2368,9 +2368,9 @@ Section HelpingOnOff.
         rewrite !list_insert_insert.
 
         eapply gsim_Yield_src; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
-        rewrite list_insert_insert. ghnorm_l.
+        rewrite list_insert_insert. ghcNormS.
         eapply GSimAux.gsim_Yield_tgt; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
-        rewrite list_insert_insert. ghnorm_r. ired.
+        rewrite list_insert_insert. ghcNormT. ired.
 
         zprogress. gbase. eapply (CIH rs); eauto.
         eexists (<[stid := (_, _, None)]> tl); esplits; eauto.
@@ -2392,11 +2392,11 @@ Section HelpingOnOff.
         zprogress.
 
         rewrite /cfunU /SchI.join.
-        destruct Any.downcast as [n|]; s; ghnorm_l; cycle 1.
+        destruct Any.downcast as [n|]; s; ghcNormS; cycle 1.
         { destruct excluded_middle_informative as [|temp]; [|exfalso; apply temp; eauto].
           eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; ss.
         }
-        ghnorm_r.
+        ghcNormT.
 
         rewrite unfold_iterC; ired.
         eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
@@ -2406,14 +2406,14 @@ Section HelpingOnOff.
         eapply gsim_SGet_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
         rewrite list_insert_insert.
         match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst1 end.
-        ghnorm_l. hss. ghnorm_l.
+        ghcNormS. cSimpl. ghcNormS.
 
         eapply gsim_SGet_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
         rewrite list_insert_insert.
         match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst2 end.
-        ghnorm_r. hss. ghnorm_r.
+        ghcNormT. cSimpl. ghcNormT.
 
-        destruct (ths !! n) as [[? [rv|]]|] eqn : Hret; rewrite Hret /=; ghnorm_l; ghnorm_r.
+        destruct (ths !! n) as [[? [rv|]]|] eqn : Hret; rewrite Hret /=; ghcNormS; ghcNormT.
         { (* Join-return *)
           zprogress; gbase. eapply (CIH rs); eauto.
           eexists (<[stid := (_, _, None)]> tl); esplits; eauto.
@@ -2431,11 +2431,11 @@ Section HelpingOnOff.
           eapply gsim_tau_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
           rewrite !list_insert_insert.
 
-          ghnorm_l. ghnorm_r.
+          ghcNormS. ghcNormT.
           eapply gsim_Call_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-          rewrite list_insert_insert; ghnorm_l.
+          rewrite list_insert_insert; ghcNormS.
           eapply gsim_Call_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-          rewrite list_insert_insert. ghnorm_r.
+          rewrite list_insert_insert. ghcNormT.
 
           zprogress.
           gbase. eapply (CIH rs); eauto.
@@ -2485,21 +2485,21 @@ Section HelpingOnOff.
         eapply gsim_tau_tgt; [rewrite list_lookup_fmap // Htid; s; do 2 f_equal; hnorm_itr|].
         zprogress.
 
-        destruct Any.downcast as [n|]; s; ghnorm_l; cycle 1.
+        destruct Any.downcast as [n|]; s; ghcNormS; cycle 1.
         { destruct excluded_middle_informative as [|temp]; [|exfalso; apply temp; eauto].
           eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; ss.
         }
-        ghnorm_r.
+        ghcNormT.
 
         eapply gsim_SGet_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
         rewrite list_insert_insert.
         match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst1 end.
-        ghnorm_l. hss. ghnorm_l.
+        ghcNormS. cSimpl. ghcNormS.
 
         eapply gsim_SGet_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
         rewrite list_insert_insert.
         match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst2 end.
-        ghnorm_r. hss. ghnorm_r.
+        ghcNormT. cSimpl. ghcNormT.
 
         zprogress. gbase. eapply (CIH rs); eauto.
         eexists (<[stid := (_, _, None)]> tl); esplits; eauto.
@@ -2517,37 +2517,37 @@ Section HelpingOnOff.
       eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
       eapply gsim_tau_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
 
-      destruct Any.downcast as [n|]; s; ghnorm_l; cycle 1.
+      destruct Any.downcast as [n|]; s; ghcNormS; cycle 1.
       { destruct excluded_middle_informative as [|temp]; [|exfalso; apply temp; eauto].
         eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; ss.
       }
-      ghnorm_r.
+      ghcNormT.
 
       eapply gsim_SGet_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
       rewrite list_insert_insert.
       match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst1 end.
-      ghnorm_l. hss. ghnorm_l.
+      ghcNormS. cSimpl. ghcNormS.
 
       eapply gsim_SGet_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
       rewrite list_insert_insert.
       match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst1 end.
-      ghnorm_l. hss. ghnorm_l.
+      ghcNormS. cSimpl. ghcNormS.
 
       eapply gsim_SGet_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
       rewrite list_insert_insert.
       match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst2 end.
-      ghnorm_r. hss. ghnorm_r.
+      ghcNormT. cSimpl. ghcNormT.
 
       eapply gsim_SGet_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
       rewrite list_insert_insert.
       match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst2 end.
-      ghnorm_r. hss. ghnorm_r.
+      ghcNormT. cSimpl. ghcNormT.
 
-      des_ifs; ghnorm_l; cycle 1.
+      des_ifs; ghcNormS; cycle 1.
       { eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; ss. }
 
       eapply gsim_SPut_src; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
-      rewrite list_insert_insert. ghnorm_l.
+      rewrite list_insert_insert. ghcNormS.
       eapply map_Forall_insert_union_with in Hst1 as Hst1'; revert Hst1'.
       repeat match goal with
       | H : map_Forall _ ?a |- context [base.insert ?k1 (Some ?v1) ?a] =>
@@ -2556,7 +2556,7 @@ Section HelpingOnOff.
       intros Hst1'.
 
       eapply gsim_SPut_tgt; auto; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; s.
-      rewrite list_insert_insert. ghnorm_l.
+      rewrite list_insert_insert. ghcNormS.
       eapply map_Forall_insert_union_with with (k:=SchI.v_ths) in Hst2 as Hst2'; revert Hst2'.
       repeat match goal with
       | H : map_Forall _ ?a |- context [base.insert ?k1 (Some ?v1) ?a] =>
@@ -2590,11 +2590,11 @@ Section HelpingOnOff.
       eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
       eapply gsim_tau_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
 
-      destruct Any.downcast as [n|]; s; ghnorm_l; cycle 1.
+      destruct Any.downcast as [n|]; s; ghcNormS; cycle 1.
       { destruct excluded_middle_informative as [|temp]; [|exfalso; apply temp; eauto].
         eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|]; ss.
       }
-      ghnorm_r.
+      ghcNormT.
 
       rewrite unfold_iterC; ired.
       eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
@@ -2604,16 +2604,16 @@ Section HelpingOnOff.
       eapply gsim_SGet_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
       rewrite list_insert_insert.
       match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst1 end.
-      ghnorm_l. hss. ghnorm_l.
+      ghcNormS. cSimpl. ghcNormS.
 
       eapply gsim_SGet_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|auto|]; s.
       rewrite list_insert_insert.
       match goal with | |- context[?st !! ?k] => state_lookup_simpl st k Hst2 end.
-      ghnorm_r. hss. ghnorm_r.
+      ghcNormT. cSimpl. ghcNormT.
 
       destruct (ths !! tid) as [[? [rv|]]|] eqn : Hret; rewrite Hret /=.
       { (* Join-return *)
-        ghnorm_l; ghnorm_r.
+        ghcNormS; ghcNormT.
         zprogress. gbase. eapply (CIH rs); eauto.
         eexists (<[stid := (_, _, None)]> tl); esplits; eauto.
         { rewrite list_fmap_insert //=. }
@@ -2625,17 +2625,17 @@ Section HelpingOnOff.
         }
       }
       { (* Join-loop *)
-        rewrite /ccallU. ghnorm_l; ghnorm_r.
+        rewrite /ccallU. ghcNormS; ghcNormT.
         rewrite !lookup_empty.
         eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
         eapply gsim_tau_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
         rewrite !list_insert_insert.
 
-        ghnorm_l; ghnorm_r.
+        ghcNormS; ghcNormT.
         eapply gsim_Call_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-        rewrite list_insert_insert. ghnorm_l.
+        rewrite list_insert_insert. ghcNormS.
         eapply gsim_Call_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-        rewrite list_insert_insert. ghnorm_r.
+        rewrite list_insert_insert. ghcNormT.
 
         zprogress. gbase. eapply (CIH rs); eauto.
         eexists (<[stid := (_, _, None)]> tl); esplits; eauto.
@@ -2663,7 +2663,7 @@ Section HelpingOnOff.
       }
 
       (* join-None *)
-      ghnorm_l; ghnorm_r.
+      ghcNormS; ghcNormT.
       zprogress. gbase. eapply (CIH rs); eauto.
       eexists (<[stid := (_, _, None)]> tl); esplits; eauto.
       { rewrite list_fmap_insert //=. }
@@ -2679,17 +2679,17 @@ Section HelpingOnOff.
       eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
       eapply gsim_tau_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
 
-      ghnorm_l; ghnorm_r.
+      ghcNormS; ghcNormT.
       rewrite !lookup_empty.
       eapply gsim_tau_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
       eapply gsim_tau_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
       rewrite !list_insert_insert.
 
-      ghnorm_l; ghnorm_r.
+      ghcNormS; ghcNormT.
       eapply gsim_Call_src; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-      rewrite list_insert_insert. ghnorm_l.
+      rewrite list_insert_insert. ghcNormS.
       eapply gsim_Call_tgt; [lookup_tac; s; do 2 f_equal; hnorm_itr|].
-      rewrite list_insert_insert. ghnorm_r.
+      rewrite list_insert_insert. ghcNormT.
 
       zprogress. gbase. eapply (CIH rs); eauto.
       eexists (<[stid := (_, _, None)]> tl); esplits; eauto.
@@ -2726,7 +2726,7 @@ Section HelpingOnOff.
 
     { (* Return case *)
       giter_l; giter_r; rewrite /= ?list_lookup_fmap Htid /=.
-      gstep_l; gstep_r; gnorm_l; gnorm_r.
+      gstep_l; gstep_r; gcNormS; gcNormT.
       des_ifs; ss.
       { rewrite /LModTr.interp_stateE ?interp_state_ret; ired.
         gstep; econs; econs; ss.

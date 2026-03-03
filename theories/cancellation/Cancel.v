@@ -27,7 +27,7 @@ Module Cancel. Section Cancel.
     revert_until r_i. gcofix CIH. i.
     destruct (decide (cid < length srcs)) as [Hcid|]; cycle 1.
     { giter_l. s. rewrite (proj2 (lookup_ge_None srcs cid)); last lia.
-      gstep_l. gnorm_l. gstep_l. i; ss.
+      gstep_l. gcNormS. gstep_l. i; ss.
     }
     inversion REL as [Hlenxy [Hlenyz Hrel]].
     exploit (@Forall3i_nth _ _ _ cid); eauto; try lia; clear REL.
@@ -75,8 +75,8 @@ Module Cancel. Section Cancel.
       eapply gsim_Take_src; [lookup_tac; s; do 2 f_equal|ss].
     - revert Ht; ired; i. eapply gsim_Choose_tgt; try apply Ht; ss.
     - destruct cid; cycle 1.
-      { giter_l; rewrite /= Hs; gnorm_l; gsteps_l; gstep_l; ss. }
-      giter_l; rewrite /= Hs; gnorm_l; gsteps_l; ss.
+      { giter_l; rewrite /= Hs; gcNormS; gsteps_l; gstep_l; ss. }
+      giter_l; rewrite /= Hs; gcNormS; gsteps_l; ss.
       destruct Qo as [Q|].
       { eapply gsim_Choose_tgt; [revert Ht; ired; intros Ht; eapply Ht|]. intros ret.
         eapply gsim_tau_tgt; first rewrite list_lookup_insert //; try lia.
@@ -86,14 +86,14 @@ Module Cancel. Section Cancel.
         eapply gsim_tau_tgt; first rewrite list_lookup_insert //; try lia.
         rewrite list_insert_insert.
         giter_r; rewrite /= list_lookup_insert; last lia; s; gsteps_r.
-        gstep. econs. econs. r; esplits; hss.
+        gstep. econs. econs. r; esplits; cSimpl.
         apply (Own_pure_soundness r_s); first done.
         { rewrite RS Hrt2; iIntros "> [_ [> [? _] _]]"; iApply RET; eauto. }
       }
       ss.
       giter_r; rewrite /= Ht /=. gsteps_r.
       gstep. econs. econs.
-      r. esplits; eauto; hss.
+      r. esplits; eauto; cSimpl.
     - giter_l; giter_r; rewrite /= Hs Ht /=.
       gsteps_l; gsteps_r.
       eapply Hkey; et.
@@ -150,7 +150,7 @@ Module Cancel. Section Cancel.
     rewrite FIND1 /=.
 
     eapply gsim_tau_src; ss; [do 2 f_equal; hnorm_itr|].
-    eapply gsim_tau_src; ss; [do 2 f_equal; hnorm_itr|]. ghnorm_l. rewrite bind_ret_r.
+    eapply gsim_tau_src; ss; [do 2 f_equal; hnorm_itr|]. ghcNormS. rewrite bind_ret_r.
 
     destruct fspo as [fsp|]; ss.
     { assert (Hf : (SMod.sp_from md).1 !! entry = Some fsp).

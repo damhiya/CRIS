@@ -437,7 +437,7 @@ Ltac des_pairs :=
     end);
    subst.
 
-Ltac unfold_pre_post_term term :=
+Ltac unfoldPrePost_term term :=
   let TM := fresh "_term" in
   set (TM := term) at 1;
   (hrepeat do 1 match goal with
@@ -453,12 +453,10 @@ Ltac unfold_pre_post_term term :=
      end);
   subst TM.
 
-Ltac unfold_pre_post :=
+Ltac unfoldPrePost :=
   hrepeat do 1 match goal with
   | |-context[precond] => rewrite /precond; s
   | |-context[postcond] => rewrite /postcond; s
-  (* | |-context[precondS] => rewrite /precondS; s
-  | |-context[postcondS] => rewrite /postcondS; s *)
   end.
 
 Ltac set_marker marker :=
@@ -558,22 +556,22 @@ Ltac replace_r :=
       refine (eq_ind_r (fun itr_tgt' => environments.envs_entails env (rel (st_src, itr_src) (st_tgt, itr_tgt'))) _ _); cycle 1
   end.
 
-Ltac norm_l := replace_l; [s; hnorm_itr|].
-Ltac norm_r := replace_r; [s; hnorm_itr|].
+Ltac cNormS := replace_l; [s; hnorm_itr|].
+Ltac cNormT := replace_r; [s; hnorm_itr|].
 
-Tactic Notation "norm_l" "with" tactic(tac) :=
+Tactic Notation "cNormS" "with" tactic(tac) :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  norm_l;
+  cNormS;
   tac;
   show_until marker.
 
-Tactic Notation "norm_r" "with" tactic(tac) :=
+Tactic Notation "cNormT" "with" tactic(tac) :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  norm_r;
+  cNormT;
   tac;
   show_until marker.
 
@@ -581,14 +579,14 @@ Tactic Notation "norm" "with" tactic(tac) :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  norm_l;
-  norm_r;
+  cNormS;
+  cNormT;
   tac;
   show_until marker.
 
 (* unfold tactics *)
 
-Ltac unfold_iter_l :=
+Ltac unfoldIterS :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
@@ -596,7 +594,7 @@ Ltac unfold_iter_l :=
   erewrite (bisim_is_eq (unfold_iter _ _));
   show_until marker.
 
-Ltac unfold_iter_r :=
+Ltac unfoldIterT :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
@@ -604,7 +602,7 @@ Ltac unfold_iter_r :=
   erewrite (bisim_is_eq (unfold_iter _ _));
   show_until marker.
 
-Ltac unfold_iterC_l :=
+Ltac unfoldIterCS :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
@@ -612,7 +610,7 @@ Ltac unfold_iterC_l :=
   rewrite unfold_iterC;
   show_until marker.
 
-Ltac unfold_iterC_r :=
+Ltac unfoldIterCT :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
@@ -620,7 +618,7 @@ Ltac unfold_iterC_r :=
   rewrite unfold_iterC;
   show_until marker.
 
-(** hss, hss_l, hss_r : simplify itrees **)
+(** cSimpl: simplify itrees **)
 
 Lemma copset_diff_union (E E': coPset)
   (SUB: E' ⊆ E)
@@ -641,7 +639,7 @@ Proof.
   rewrite difference_disjoint_L; et.
 Qed.
 
-Ltac hss_copset :=
+Ltac cSimpl_copset :=
   match goal with
   | |- context[(@union coPset coPset_union (@difference coPset coPset_difference ?E ?E') ?E')] =>
     replace ((E ∖ E') ∪ E') with E by (rewrite copset_diff_union; et; set_solver)
@@ -655,7 +653,7 @@ Ltac hss_copset :=
     replace (E ∪ ∅) with E by set_solver
   end.
 
-Ltac hss_des :=
+Ltac cSimpl_des :=
   ss; des_safe; subst;
   (hrepeat do 1 match goal with
     | [v: () |- _] => destruct v
@@ -663,12 +661,12 @@ Ltac hss_des :=
     end);
   ss.
 
-Ltac hss :=
+Ltac cSimpl :=
   (hrepeat do 1 match goal with
      | [|- context[environments.Esnoc _ ?H (True%I)]] => iClear H
      | [|- context[environments.Esnoc _ ?H (emp%I)]] => iClear H
      end);
-  hss_des;
+  cSimpl_des;
   try (rewrite -> !Any.pair_split in * );
   try (rewrite -> !Any.upcast_downcast in * );
   try (rewrite -> !SAny.pair_split in * );
@@ -692,26 +690,11 @@ Ltac hss :=
   try (rewrite -> !Any.upcast_downcast in * );
   try (rewrite -> !SAny.pair_split in * );
   try (rewrite -> !SAny.upcast_downcast in * );
-  hss_des;
-  (hrepeat do 1 hss_copset);
+  cSimpl_des;
+  (hrepeat do 1 cSimpl_copset);
   move_aux.
 
-(* Ltac hss_l := only_itree_l; hss; show_itree. *)
-(* Ltac hss_r := only_itree_r; hss; show_itree. *)
-Ltac hss_l := 
-  only_itree_l;
-  match goal with
-  | |- context [Any.downcast (Any.upcast ?A)] => rewrite (Any.upcast_downcast A)
-  | |- context [SAny.downcast (SAny.upcast ?A)] => rewrite (SAny.upcast_downcast A)
-  end; show_itree.
-Ltac hss_r :=
-  only_itree_r;
-  match goal with
-  | |- context [Any.downcast (Any.upcast ?A)] => rewrite (Any.upcast_downcast A)
-  | |- context [SAny.downcast (SAny.upcast ?A)] => rewrite (SAny.upcast_downcast A)
-  end; show_itree.
-
-Tactic Notation "prepend_ret_l" uconstr(r) :=
+Tactic Notation "prependRetS" uconstr(r) :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
@@ -721,7 +704,7 @@ Tactic Notation "prepend_ret_l" uconstr(r) :=
   end;
   show_until marker.
 
-Tactic Notation "prepend_ret_r" uconstr(r) :=
+Tactic Notation "prependRetT" uconstr(r) :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
@@ -731,7 +714,7 @@ Tactic Notation "prepend_ret_r" uconstr(r) :=
   end;
   show_until marker.
 
-Tactic Notation "append_ret_l" :=
+Tactic Notation "appendRetS" :=
   let marker := fresh "MARKER" in
     set_marker marker;
     hide_ihyps;
@@ -741,7 +724,7 @@ Tactic Notation "append_ret_l" :=
     end;
     show_until marker.
 
-Tactic Notation "append_ret_r" :=
+Tactic Notation "appendRetT" :=
   let marker := fresh "MARKER" in
     set_marker marker;
     hide_ihyps;

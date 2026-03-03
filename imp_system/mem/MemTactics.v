@@ -34,12 +34,12 @@ Section mem.
       (st_tgt, x <- (trigger (Call MemHdr.alloc [Vint sz]↑));; k_t x).
   Proof using.
     intros Hin [Ht [Hc [Ha [Har Hg]]]] Hsz.
-    iIntros "K". inline_r.
-    steps_r; rewrite Ht; force_r (Z.to_nat sz).
-    steps_r; rewrite Ht; force_r _. steps_r; rewrite Ha; force_r.
+    iIntros "K". cInlineT.
+    cStepsT; rewrite Ht; cForceT (Z.to_nat sz).
+    cStepsT; rewrite Ht; cForceT _. cStepsT; rewrite Ha; cForceT.
     iSplit; eauto.
     { rewrite Z2Nat.id //; try lia. iSplit; eauto. iSplit; eauto. iPureIntro; lia. }
-    steps_r; rewrite Hc; steps_r. rewrite Hc; steps_r. rewrite Hg; steps_r.
+    cStepsT; rewrite Hc; cStepsT. rewrite Hc; cStepsT. rewrite Hg; cStepsT.
     iDestruct "GRT" as "[-> [% [-> ↦]]]". iApply "K".
     iApply (big_sepL_impl with "↦").
     iIntros "!> % % %"; rewrite Z.add_0_l; iIntros "$".
@@ -61,9 +61,9 @@ Section mem.
   Proof using.
     intros Hin [Ht [Hc [Ha [Har Hg]]]].
     iIntros "↦ K".
-    inline_r. steps_r; rewrite Ht. force_r (b, ofs, v', v); steps_r; rewrite Ht.
-    forces_r; steps_r; rewrite Ha; forces_r. iFrame "↦"; iSplit; eauto.
-    steps_r. rewrite Hc; steps_r. rewrite Hc; steps_r. rewrite Hg; steps_r.
+    cInlineT. cStepsT; rewrite Ht. cForceT (b, ofs, v', v); cStepsT; rewrite Ht.
+    cForcesT; cStepsT; rewrite Ha; cForcesT. iFrame "↦"; iSplit; eauto.
+    cStepsT. rewrite Hc; cStepsT. rewrite Hc; cStepsT. rewrite Hg; cStepsT.
     iDestruct "GRT" as "[-> [↦ ->]]". iApply "K"; iFrame.
   Qed.
 
@@ -83,9 +83,9 @@ Section mem.
   Proof using.
     intros Hin [Ht [Hc [Ha [Har Hg]]]].
     iIntros "↦ K".
-    inline_r. steps_r; rewrite Ht. force_r (b, ofs, q, v); steps_r; rewrite Ht.
-    forces_r; steps_r; rewrite Ha; force_r; iFrame "↦"; iSplit; eauto.
-    steps_r; rewrite Hc; steps_r. rewrite Hc; steps_r. rewrite Hg; steps_r.
+    cInlineT. cStepsT; rewrite Ht. cForceT (b, ofs, q, v); cStepsT; rewrite Ht.
+    cForcesT; cStepsT; rewrite Ha; cForceT; iFrame "↦"; iSplit; eauto.
+    cStepsT; rewrite Hc; cStepsT. rewrite Hc; cStepsT. rewrite Hg; cStepsT.
     iDestruct "GRT" as "[-> [↦ ->]]". iApply "K"; iFrame.
   Qed.
 
@@ -110,11 +110,11 @@ Section mem.
   Proof using.
     intros Hin [Ht [Hc [Ha [Har Hg]]]] Hcmp.
     iIntros "↦ E HE K".
-    inline_r. steps_r. rewrite Ht; force_r (b, ofs, v, v_old, v_new, succ, E); norm_r.
-    rewrite Ht; forces_r; norm_r. rewrite Ha; forces_r.
+    cInlineT. cStepsT. rewrite Ht; cForceT (b, ofs, v, v_old, v_new, succ, E); cNormT.
+    rewrite Ht; cForcesT; cNormT. rewrite Ha; cForcesT.
     iFrame "↦ E HE"; iSplit; eauto.
-    steps_r. rewrite Hc; steps_r. rewrite Hc; steps_r.
-    rewrite Hg; steps_r. iDestruct "GRT" as "[-> [-> [↦ E]]]". iApply ("K" with "↦ E"); iFrame.
+    cStepsT. rewrite Hc; cStepsT. rewrite Hc; cStepsT.
+    rewrite Hg; cStepsT. iDestruct "GRT" as "[-> [-> [↦ E]]]". iApply ("K" with "↦ E"); iFrame.
   Qed.
 
   Lemma wsim_mem_cmp v1 v2 succ E (msk : emask) k_s k_t E1 E2 r g :
@@ -138,13 +138,13 @@ Section mem.
   Proof using.
     intros Hin [Ht [Hc [Ha [Har Hg]]]] Hcmp.
     iIntros "E HE K".
-    inline_r. steps_r. rewrite Ht. force_r (v1, v2, succ, E). steps_r.
-    rewrite Ht. forces_r. steps_r. rewrite Ha. force_r.
+    cInlineT. cStepsT. rewrite Ht. cForceT (v1, v2, succ, E). cStepsT.
+    rewrite Ht. cForcesT. cStepsT. rewrite Ha. cForceT.
     iFrame "E HE"; iSplit; eauto.
-    steps_r. rewrite Hc. steps_r. rewrite Hc. steps_r. rewrite Hg. steps_r.
+    cStepsT. rewrite Hc. cStepsT. rewrite Hc. cStepsT. rewrite Hg. cStepsT.
     iDestruct "GRT" as "[-> [-> E]]". iApply ("K" with "E"); iFrame.
   Qed.
 End mem.
 
-Ltac load_r H := iApply (wsim_mem_load with H); [try by simpl_map|ss|]; last (iIntros H; steps_r).
-Ltac store_r H := iApply (wsim_mem_store with H); [try by simpl_map|ss|]; last (iIntros H; steps_r).
+Ltac mLoadT H := iApply (wsim_mem_load with H); [try by simpl_map|ss|]; last (iIntros H; cStepsT).
+Ltac mStoreT H := iApply (wsim_mem_store with H); [try by simpl_map|ss|]; last (iIntros H; cStepsT).

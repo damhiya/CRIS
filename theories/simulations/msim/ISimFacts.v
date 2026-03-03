@@ -41,10 +41,9 @@ Section ISIM_REFL.
       (st_src, SB.sandbox msk it)
       (st_tgt, SB.sandbox msk it).
   Proof using.
-    intros Hset Hget. revert it.
-    combine_quant st_tgt. combine_quant st_src. combine_quant ps. combine_quant pt.
-    eapply isim_coind.
-    intros g0 _ CIH [pt [ps [st_src [st_tgt it]]]].
+    intros Hset Hget.
+    revert it. combine_quant st_tgt. combine_quant st_src. combine_quant ps. combine_quant pt.
+    eapply isim_coind. intros g0 _ CIH [pt [ps [st_src [st_tgt it]]]].
     destruct_quant CIH. iIntros "IST /=".
     assert (CASE := case_itrH it); des; subst.
     - istep. iFrame. done.
@@ -67,34 +66,34 @@ Section ISIM_REFL.
         { istep. iby_coind CIH; done. }
         { isteps_l. ss. }
       }
-      { norm_l; norm_r. des_if.
+      { cNormS; cNormT. des_if.
         { iyield "IST". iIntros (??) "IST". iby_coind CIH. eauto. }
         { isteps_l. ss. }
       }
-      { norm_l; norm_r. des_if.
+      { cNormS; cNormT. des_if.
         { istep. iby_coind CIH. eauto. }
         { isteps_l. ss. }
       }
     - depdes s.
       { istep_l; istep_r.
         rewrite ?resum_to_subevent ?subevent_subevent.
-        specialize (Hset st_src st_tgt k v); destruct (msk _ _); [norm_l; norm_r|istep_l; ss].
+        specialize (Hset st_src st_tgt k v); destruct (msk _ _); [cNormS; cNormT|istep_l; ss].
         iApply isim_sput_src. iApply isim_sput_tgt.
         iby_coind CIH. iApply Hset; eauto.
       }
       { istep_l; istep_r.
         rewrite ?resum_to_subevent ?subevent_subevent.
-        specialize (Hget st_src st_tgt k); destruct (msk _ _); [norm_l; norm_r|istep_l; ss].
+        specialize (Hget st_src st_tgt k); destruct (msk _ _); [cNormS; cNormT|istep_l; ss].
         iApply isim_sget_src. iApply isim_sget_tgt. iPoseProof (Hget with "IST") as "->"; eauto.
         iby_coind CIH; eauto.
       }
     - destruct e.
-      + istep_l; istep_r; des_if; [norm_l; norm_r|istep_l; ss].
-        istep_r. iforce_l. norm_l; norm_r; iby_coind CIH; eauto.
-      + istep_l; istep_r; des_if; [norm_l; norm_r|istep_l; ss].
-        istep_l. iforce_r. norm_l; norm_r; iby_coind CIH; eauto.
-      + istep_l; istep_r; des_if; [norm_l; norm_r|istep_l; ss].
-        istep. norm_l; norm_r; iby_coind CIH; eauto.
+      + istep_l; istep_r; des_if; [cNormS; cNormT|istep_l; ss].
+        istep_r. iforce_l. cNormS; cNormT; iby_coind CIH; eauto.
+      + istep_l; istep_r; des_if; [cNormS; cNormT|istep_l; ss].
+        istep_l. iforce_r. cNormS; cNormT; iby_coind CIH; eauto.
+      + istep_l; istep_r; des_if; [cNormS; cNormT|istep_l; ss].
+        istep. cNormS; cNormT; iby_coind CIH; eauto.
   Qed.
 
   Lemma isim_reflL
@@ -456,8 +455,8 @@ End ISIM_ADEQUACY.
     iApply isim_reset. clear ps pt. iStopProof. revert st.
     eapply isim_coind. intros g Hg CIH st. iIntros. destruct_quant CIH.
     rewrite /lat_img /lat_real.
-    unfold_iter_l. unfold_iter_r. rewrite {1}/lat_img_body {1}/lat_real_body.
-    norm_l. norm_r. iApply isim_bind. iSplitL "".
+    unfoldIterS. unfoldIterT. rewrite {1}/lat_img_body {1}/lat_real_body.
+    cNormS. cNormT. iApply isim_bind. iSplitL "".
     { iApply isim_eqit_tgt; et.
       iApply isim_refl; et; i; iIntros "%"; subst; et.
     }
@@ -507,7 +506,7 @@ End ISIM_ADEQUACY.
       (st, SB.sandbox true msk scp (SModTr.HoareFun (Some (to_fspec fsp)) body_s arg))
       (st, SB.sandbox true msk scp (SModTr.trans img sp_none (lat_img false fsp (Ret ()) body_t arg))).
   Proof using.
-    iIntros. isteps_l. rewrite /lat_img /lat_img_body. unfold_iter_r. isteps_r.
+    iIntros. isteps_l. rewrite /lat_img /lat_img_body. unfoldIterT. isteps_r.
     destruct fsp. destruct PHY as [P1 P2]. iPoseProof (P1 with "ASM") as "->".
     iforces_r. iFrame. isteps_r.
     iApply isim_bind. iSplitL "".
@@ -529,7 +528,7 @@ End ISIM_ADEQUACY.
       (st, SB.sandbox true msk scp (SModTr.HoareFun (Some (to_fspec fsp)) body_s arg))
       (st, SB.sandbox false msk scp (SModTr.trans img sp_none (lat_real false fsp (Ret ()) body_t arg))).
   Proof using.
-    iIntros. isteps_l. rewrite /lat_real /lat_real_body. unfold_iter_r. isteps_r.
+    iIntros. isteps_l. rewrite /lat_real /lat_real_body. unfoldIterT. isteps_r.
     destruct fsp. destruct PHY as [P1 P2]. iPoseProof (P1 with "ASM") as "->".
     iApply isim_bind. iSplitL "".
     { iApply isim_eqit_tgt; et.

@@ -150,9 +150,9 @@ Section help.
   Proof using.
     iIntros (Hfind) "IST K".
         (* TODO : factor out this proof into a lemma *)
-    inline_l. steps_l. rewrite /HelpingOn.run. steps_l.
+    cInlineS. cStepsS. rewrite /HelpingOn.run. cStepsS.
     iDestruct "IST" as "[% [% [% [% [[-> ->] [[% [% [[-> ->] ●Help]]] ->]]]]]]".
-    steps_l.
+    cStepsS.
     iMod (own_update with "●Help") as "[●Help Help◯]".
     { eapply (gmap_view_alloc _ (fresh (dom reqmap_s)) (DfracOwn 1)); eauto.
       { apply not_elem_of_dom. rewrite dom_fmap. apply is_fresh. }
@@ -192,16 +192,16 @@ Section help.
       (st_tgt, k_t).
   Proof using.
     iIntros "Pend IST K".
-    rewrite /HelpingOn.try_run; steps_l.
+    rewrite /HelpingOn.try_run; cStepsS.
     iDestruct "IST" as "[% [% [% [% [[-> ->] [[% [% [[-> ->] Auth]]] IST]]]]]]".
-    steps_l.
-    iPoseProof (helping_auth_token with "Auth Pend") as "%Hlookup"; rewrite Hlookup /=; steps_l.
+    cStepsS.
+    iPoseProof (helping_auth_token with "Auth Pend") as "%Hlookup"; rewrite Hlookup /=; cStepsS.
     replace k_t with (x <- Ret ();; (λ _, k_t) x) at 1 by grind.
     iApply wsim_bind.
     iSplitR "Pend Auth IST".
     { iApply "K". }
     iIntros (? ? ? ?) "[[-> ->] [W K]]"; iApply wsim_fold; iSplitL "W"; iFrame.
-    steps_l.
+    cStepsS.
     iMod (helping_auth_commit with "Auth Pend") as "[Auth Pend]".
     set (st_src := union_with _ _ _); set (st_tgt := union_with _ _ _).
     iAssert (IstFull st_src st_tgt)%I with "[IST Auth]" as "IST".
@@ -223,11 +223,11 @@ Section help.
       (st_tgt, k_t).
   Proof using.
     iIntros "#Done IST K".
-    rewrite /HelpingOn.try_run /=. steps_l.
+    rewrite /HelpingOn.try_run /=. cStepsS.
     iDestruct "IST" as "[% [% [% [% [[-> ->] [[% [% [[-> ->] ●Help]]] IST]]]]]]".
-    steps_l.
+    cStepsS.
     iPoseProof (helping_auth_done with "●Help Done") as "[% %Heq]"; rewrite Heq; clear Heq.
-    steps_l.
+    cStepsS.
     iApply ("K" with "[IST ●Help]").
     iFrame; iExists _, _; iSplit; eauto.
   Qed.
@@ -258,17 +258,17 @@ Section help.
   Proof using.
     iIntros (Hsp) "TID Tkn IST SIM".
     rewrite /HelpingOn.help Hsp.
-    force_l req_id. force_l (stid, mtid, tt). forces_l. iFrame. iSplit; eauto.
-    steps_l. destruct _q as [[stid1 mtid1] []]. iDestruct "ASM" as "[TID [_ ->]]".
+    cForceS req_id. cForceS (stid, mtid, tt). cForcesS. iFrame. iSplit; eauto.
+    cStepsS. destruct _q as [[stid1 mtid1] []]. iDestruct "ASM" as "[TID [_ ->]]".
     iApply (wsim_helping_pend_try_run with "Tkn IST").
-    append_ret_l. prepend_ret_r ().
+    appendRetS. prependRetT ().
     iApply wsim_bind.
     iSplitL "SIM"; iFrame.
     s. iIntros (sts1 stt1 rets []) "[[-> ->] [? SIM]]"; iApply wsim_fold; iFrame.
-    step; iFrame. iSplit; first auto.
+    cStep; iFrame. iSplit; first auto.
     clear_st. iIntros (st_src st_tgt) "Tkn IST".
-    forces_l. iFrame. iSplit; eauto.
-    steps_l. iDestruct "ASM" as "[TID [_ ->]]". iApply ("SIM" with "[$] [$]"); done.
+    cForcesS. iFrame. iSplit; eauto.
+    cStepsS. iDestruct "ASM" as "[TID [_ ->]]". iApply ("SIM" with "[$] [$]"); done.
   Qed.
      
   (* Lemma IstHelp_split (q : Qp) :
@@ -276,7 +276,7 @@ Section help.
     IstHelp Ist st_src st_tgt -∗
     (∃ reqmap, helping_auth q reqmap ∗ (helping_auth q reqmap -∗ IstHelp Ist st_src st_tgt)).
   Proof.
-    iIntros (Hq) "[% [% [% [% [% [Help● IST]]]]]]"; hss.
+    iIntros (Hq) "[% [% [% [% [% [Help● IST]]]]]]"; cSimpl.
     assert (Hr : (∃ r, 1 - q = Some r)%Qp).
     { destruct (1 - q)%Qp as [r'|] eqn : Hq'; first eauto.
       apply Qp.sub_None in Hq'. exfalso. apply (StrictOrder_Asymmetric _ q 1%Qp); eauto.
@@ -295,7 +295,7 @@ Section help.
     IstHelp Ist
       ((HelpingOn.v_reqs mn, (<[req_id := (Some ret, job_id)]> reqmap)↑) :: st_src) st_tgt.
   Proof.
-    iIntros "Help [% [% [% [% [% [Help● IST]]]]]]"; hss.
+    iIntros "Help [% [% [% [% [% [Help● IST]]]]]]"; cSimpl.
     iMod (own_update_2 with "Help● Help") as "[Help● Help]".
     { eapply gmap_view_replace. instantiate (1:=(to_agree (Some ret, job_id))); done. }
     iMod (own_update with "Help") as "$".
@@ -335,7 +335,7 @@ Section help.
     iIntros "Help IST K".
     iDestruct "IST" as "[% [% [% [% [[-> ->] [Help● IST]]]]]]".
     rewrite /HelpingOn.try_run.
-    steps_l. hss. rename _q into reqmap.
+    cStepsS. cSimpl. rename _q into reqmap.
     iCombine "Help●" "Help" gives %[v' [? [_ [WF [_ EQ]]]]]%gmap_view_both_dfrac_valid_discrete.
     apply lookup_fmap_Some in WF as [[ro parg'] [? Hlookup]]; clarify.
     rewrite Hlookup. apply Some_pair_included in EQ as [_ EQ].

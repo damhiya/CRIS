@@ -69,29 +69,29 @@ Proof.
 
   destruct KTR as [Q [[->|[-> ?]] [Q' [[-> |[-> ?]] ?]]]].
   { revert x1; rewrite /elim_postcond; gnorm_itr; intros x1.
-    eapply gsim_Choose_tgt; [eapply x1|]. intros Fsp; s. ghnorm_r.
+    eapply gsim_Choose_tgt; [eapply x1|]. intros Fsp; s. ghcNormT.
     eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia.
-    rewrite !list_insert_insert. ghnorm_r.
+    rewrite !list_insert_insert. ghcNormT.
     eapply gsim_Guarantee_tgt; [lookup_tac; do 2 f_equal|]; try lia. intros rt2 [? Hrt2]; s.
-    rewrite !list_insert_insert. ghnorm_r.
-    eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia. ghnorm_r.
+    rewrite !list_insert_insert. ghcNormT.
+    eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia. ghcNormT.
     rewrite !list_insert_insert.
-    eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia. ghnorm_r.
+    eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia. ghcNormT.
     rewrite !list_insert_insert.
-    eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia. ghnorm_r.
+    eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia. ghcNormT.
     rewrite !list_insert_insert.
     eapply gsim_Take_tgt; [lookup_tac; do 2 f_equal|]; try lia.
     exists vret.
-    rewrite !list_insert_insert. ghnorm_r.
+    rewrite !list_insert_insert. ghcNormT.
     eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia.
-    rewrite !list_insert_insert. ghnorm_r.
+    rewrite !list_insert_insert. ghcNormT.
     eapply gsim_Assume_tgt; [lookup_tac; do 2 f_equal|]; try lia.
     exists r_t; splits; auto.
     { apply (Own_wand_valid r_s); auto; iIntros "S"; iMod (RS with "S") as "[? [$ ?]]"; auto. }
     { rewrite Hrt2 (proj1 H); iIntros "> [>$ $] //". }
-    rewrite !list_insert_insert. ghnorm_r.
+    rewrite !list_insert_insert. ghcNormT.
     eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia.
-    rewrite !list_insert_insert. ghnorm_r.
+    rewrite !list_insert_insert. ghcNormT.
 
     des; pclearbot. eapply KEY; et.
     { rewrite list_insert_id //. }
@@ -99,37 +99,37 @@ Proof.
   }
   { ss; clarify.
     revert x1; rewrite /elim_postcond; gnorm_itr; intros x1.
-    eapply gsim_tau_tgt; [eapply x1|]. ghnorm_r.
+    eapply gsim_tau_tgt; [eapply x1|]. ghcNormT.
     eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia.
-    rewrite !list_insert_insert. ghnorm_r.
+    rewrite !list_insert_insert. ghcNormT.
     eapply gsim_Take_tgt; [lookup_tac; do 2 f_equal|]; try lia.
     exists vret.
-    rewrite !list_insert_insert. ghnorm_r.
+    rewrite !list_insert_insert. ghcNormT.
     eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia.
-    rewrite !list_insert_insert. ghnorm_r.
+    rewrite !list_insert_insert. ghcNormT.
     eapply gsim_Assume_tgt; [lookup_tac; do 2 f_equal|]; try lia.
     exists r_t; splits; auto.
     { apply (Own_wand_valid r_s); auto; iIntros "S"; iMod (RS with "S") as "[? [$ ?]]"; auto. }
     { des; clarify. iIntros "$"; iApply H0; auto. }
-    rewrite !list_insert_insert. ghnorm_r.
+    rewrite !list_insert_insert. ghcNormT.
     eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia.
-    rewrite !list_insert_insert. ghnorm_r.
+    rewrite !list_insert_insert. ghcNormT.
 
     des; pclearbot. eapply KEY; et.
     { rewrite list_insert_id //. }
     { eapply thread_rel_body; cycle 1; eauto; i; clarify; auto. }
   }
   { revert x1; rewrite /elim_postcond; gnorm_itr; intros x1.
-    eapply gsim_Choose_tgt; [eapply x1|]. intros ret; s. ghnorm_r.
+    eapply gsim_Choose_tgt; [eapply x1|]. intros ret; s. ghcNormT.
     eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia.
-    rewrite !list_insert_insert. ghnorm_r.
+    rewrite !list_insert_insert. ghcNormT.
     eapply gsim_Guarantee_tgt; [lookup_tac; do 2 f_equal|]; try lia. intros rt2 [? Hrt2]; s.
-    rewrite !list_insert_insert. ghnorm_r.
-    eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia. ghnorm_r.
+    rewrite !list_insert_insert. ghcNormT.
+    eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia. ghcNormT.
     rewrite !list_insert_insert.
-    eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia. ghnorm_r.
+    eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia. ghcNormT.
     rewrite !list_insert_insert.
-    eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia. ghnorm_r.
+    eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia. ghcNormT.
     rewrite !list_insert_insert.
 
     assert (vret = ret).
@@ -142,9 +142,9 @@ Proof.
     { econs; eauto; subst; ss; f_equal; rewrite bind_ret_r //. }
   }
   revert x1; rewrite /elim_postcond; gnorm_itr; intros x1.
-  eapply gsim_tau_tgt; [eapply x1|]. ghnorm_r.
+  eapply gsim_tau_tgt; [eapply x1|]. ghcNormT.
   eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia.
-  rewrite !list_insert_insert. ghnorm_r.
+  rewrite !list_insert_insert. ghcNormT.
 
   des; pclearbot. eapply KEY; et.
   { rewrite list_insert_id //. }

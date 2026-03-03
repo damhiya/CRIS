@@ -211,15 +211,15 @@ Inductive expr : Type :=
 | Mult  (_ _ : expr)
 .
 
-(** function call exists only as a statement *)
+(** function cCall exists only as a statement *)
 Inductive stmt : Type :=
 | Skip                           (* ; *)
 | Assign (x : var) (e : expr)    (* x = e *)
 | Seq    (a b : stmt)            (* a ; b *)
 | If     (i : expr) (t e : stmt) (* if (i) then { t } else { e } *)
-| CallFun (x : var) (f : string) (args : list expr) (* x = f(args), call by name *)
+| CallFun (x : var) (f : string) (args : list expr) (* x = f(args), cCall by name *)
 | CallPtr (x : var) (p : expr) (args : list expr)  (* x = f(args), by pointer*)
-| CallSys (x : var) (f : string) (args : list expr) (* x = f(args), system call *)
+| CallSys (x : var) (f : string) (args : list expr) (* x = f(args), system cCall *)
 | AddrOf (x : var) (X : string)         (* x = &X *)
 | Malloc (x : var) (s : expr)          (* x = malloc(s) *)
 | Free (p : expr)                      (* free(p) *)

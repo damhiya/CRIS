@@ -471,7 +471,7 @@ Section SIM.
     ⊢ (@isim r g Rs Rt RR ps pt (st_src, unwrapU x >>= k_src) (st_tgt, i_tgt)).
   Proof using.
     iIntros "H". unfold unwrapU. destruct x.
-    { norm_l. iApply "H". auto. }
+    { cNormS. iApply "H". auto. }
     { iApply isim_triggerUB_src. }
   Qed.
 
@@ -479,13 +479,13 @@ Section SIM.
     (∃ x', ⌜x = Some x'⌝ ∗ @isim r g Rs Rt RR ps pt (st_src, k_src x') (st_tgt, i_tgt))
     ⊢ isim r g RR ps pt (st_src, unwrapN x >>= k_src) (st_tgt, i_tgt).
   Proof using.
-    iIntros "H". iDestruct "H" as (x') "[% H]". subst. norm_l. iApply "H". Qed.
+    iIntros "H". iDestruct "H" as (x') "[% H]". subst. cNormS. iApply "H". Qed.
 
   Lemma isim_unwrapU_tgt r g {Rs Rt} RR ps pt st_src st_tgt X (x : option X) i_src k_tgt :
     (∃ x', ⌜x = Some x'⌝ ∗ @isim r g Rs Rt RR ps pt (st_src, i_src) (st_tgt, k_tgt x'))
     ⊢ isim r g RR ps pt (st_src, i_src) (st_tgt, unwrapU x >>= k_tgt).
   Proof using.
-    iIntros "H". iDestruct "H" as (x') "[% H]". subst. norm_r. iApply "H".
+    iIntros "H". iDestruct "H" as (x') "[% H]". subst. cNormT. iApply "H".
   Qed.
 
   Lemma isim_unwrapN_tgt r g {Rs Rt} RR ps pt st_src st_tgt X (x : option X) i_src k_tgt :
@@ -493,7 +493,7 @@ Section SIM.
     ⊢ isim r g RR ps pt (st_src, i_src) (st_tgt, unwrapN x >>= k_tgt).
   Proof using.
     iIntros "H". unfold unwrapN. destruct x.
-    { norm_r. iApply "H". auto. }
+    { cNormT. iApply "H". auto. }
     { iApply isim_triggerNB_tgt. }
   Qed.
 
@@ -725,8 +725,8 @@ Section FancyReal.
     iRevert "Hsplit Hsim Pre"; iStopProof.
     eapply entails_pointwise; iIntros (res Hres) "I Hsplit Hsim #[Hpre1 Hpre2]".
     rewrite /RealUpdate; unseal CRIS_FancyReal.
-    norm_l; iApply isim_choose_src; iExists (pr ⋅ res).
-    norm_l; iApply isim_guarantee_src; iSplitL "I Hsplit".
+    cNormS; iApply isim_choose_src; iExists (pr ⋅ res).
+    cNormS; iApply isim_guarantee_src; iSplitL "I Hsplit".
     { iIntros (pre post VS) "Pre".
       iPoseProof ("Hsplit" $! pre post VS) as "[%T [HT Hsplit]]".
       iPoseProof ("HT" with "[I] Pre") as "#T".
@@ -734,9 +734,9 @@ Section FancyReal.
       iMod ("Hsplit" with "T Pre") as "[P $]".
       rewrite Own_op; iFrame "I". iApply "Hpre2"; done.
     }
-    norm_l; iApply isim_assume_res_src; iIntros "[P R]"; rewrite Hres.
+    cNormS; iApply isim_assume_res_src; iIntros "[P R]"; rewrite Hres.
     iMod ("Hpre1" with "P") as "P".
-    norm_l. iPoseProof ("Hsim" with "R P") as "$".
+    cNormS. iPoseProof ("Hsim" with "R P") as "$".
   Qed.
 
   Lemma isim_ru_src_advanced {X} (pre post: X → _) r g k_s i_t:
@@ -796,9 +796,9 @@ Section FancyReal.
   Proof.
     iIntros "H".
     rewrite /RealUpdate; unseal CRIS_FancyReal.
-    norm_r; iApply isim_choose_tgt; iIntros (pr).
-    norm_r; iApply isim_guarantee_tgt; iIntros "UPD".
-    iPoseProof ("H" $! pr with "UPD") as "SIM". norm_r.
+    cNormT; iApply isim_choose_tgt; iIntros (pr).
+    cNormT; iApply isim_guarantee_tgt; iIntros "UPD".
+    iPoseProof ("H" $! pr with "UPD") as "SIM". cNormT.
     replace (x <- trigger (AssumeRes pr);; x <- Ret x;; k_t x) with
       (trigger (AssumeRes pr);;; k_t ()); et.
     f_equal. extensionalities. ired. destruct H. et.

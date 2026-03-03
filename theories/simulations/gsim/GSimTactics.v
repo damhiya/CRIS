@@ -252,9 +252,9 @@ etransitivity;
   end
 ].
 
-Ltac gnorm_l :=
+Ltac gcNormS :=
   greplace_l; [s; gnorm_itr|].
-Ltac gnorm_r :=
+Ltac gcNormT :=
   greplace_r; [s; gnorm_itr|].
 
 Ltac giter_l :=
@@ -262,13 +262,13 @@ Ltac giter_l :=
 Ltac giter_r :=
   greplace_r; [rewrite unfold_iterV /itreeV_itree //|].
 
-Ltac gstep_r := gnorm_r; guclo gsim_indC_spec; econs; instantiate (1:=smj_top).
-Ltac gstep_l := gnorm_l; guclo gsim_indC_spec; econs; instantiate (1:=smj_top).
+Ltac gstep_r := gcNormT; guclo gsim_indC_spec; econs; instantiate (1:=smj_top).
+Ltac gstep_l := gcNormS; guclo gsim_indC_spec; econs; instantiate (1:=smj_top).
 
 Ltac gsteps_r :=
-  gnorm_r; hrepeat (do 1 (guclo gsim_indC_spec; econs; instantiate (1:=smj_top); try gnorm_r)).
+  gcNormT; hrepeat (do 1 (guclo gsim_indC_spec; econs; instantiate (1:=smj_top); try gcNormT)).
 Ltac gsteps_l :=
-  gnorm_l; hrepeat (do 1 (guclo gsim_indC_spec; econs; instantiate (1:=smj_top); try gnorm_l)).
+  gcNormS; hrepeat (do 1 (guclo gsim_indC_spec; econs; instantiate (1:=smj_top); try gcNormS)).
 
 Definition ztac_id {X: Type} (x: X) : X := x.
 Global Opaque ztac_id.

@@ -38,21 +38,21 @@ Module APCAC. Section APCAC.
   Lemma simF_apc : ISim.sim_fun open APCCMod APCAMod IstFull (fid APCHdr.apc).
   Proof using _crisG PureIsPure PureInSpA APCInSpA.
     (** Due to arbitrary module, manual starting up is required **)
-    iStartSim. rewrite /apc_body.
+    cStartFunSim. rewrite /apc_body.
 
-    steps_l. iDestruct "ASM" as "%"; des; subst. rename _q into o.
-    steps_r. force_r o. force_r (o↑). force_r. iSplitR; et. steps_r.
+    cStepsS. iDestruct "ASM" as "%"; des; subst. rename _q into o.
+    cStepsT. cForceT o. cForceT (o↑). cForceT. iSplitR; et. cStepsT.
 
     (* normalize itree - remove all interpretations and sandboxes except APC *)
-    unfold APC at 1. steps_r. rename _q into o'.
+    unfold APC at 1. cStepsT. rename _q into o'.
 
     (* add meaningless return in src *)
-    prepend_ret_l ().
+    prependRetS ().
 
     iApply wsim_bind. iSplitL; cycle 1.
     { iIntros (? ? ? ?) "R".
       instantiate (1:=(λ '(st_src, _) '(st_tgt, _), IstFull st_src st_tgt)%I).
-      steps_r. force_l. steps_l. forces_l. iSplitR; et. step. iSplit; et.
+      cStepsT. cForceS. cStepsS. cForcesS. iSplitR; et. cStep. iSplit; et.
     }
 
     (* well founded induction on depth ordinal *)
@@ -67,11 +67,11 @@ Module APCAC. Section APCAC.
     revert o'. apply (well_founded_induction Ord.lt_well_founded).
     i. subst GOAL. ss. iIntros (? ?) "IST".
 
-    rewrite unfold_APC. steps_r. des_ifs. { step. iFrame. }
-    steps_r. rename _q into o, _q2 into o', _q1 into fn, _q0 into LT.
+    rewrite unfold_APC. cStepsT. des_ifs. { cStep. iFrame. }
+    cStepsT. rename _q into o, _q2 into o', _q1 into fn, _q0 into LT.
 
     rewrite /is_Some in GRT. des.
-    dup PureInSpA. rename PureInSpA0 into PIS. simpl_sp. steps_r.
+    dup PureInSpA. rename PureInSpA0 into PIS. simpl_sp. cStepsT.
 
     (* inlining *)
     hexploit PureIsPure; eauto. i. des. rewrite /find_body in H1.
@@ -82,36 +82,36 @@ Module APCAC. Section APCAC.
     { rewrite lookup_fmap M in H1. ss. }
     destruct p; ss. inv H1.
     
-    inline_r.
+    cInlineT.
     rewrite /pure_specbody lookup_fmap M in H8. ss. inv H8.
     eapply (func_ext_rev arg) in H7. rewrite /SB.sandbox_body /= in H7.
     rewrite /SB.sandbox_body H7 /SModTr.trans_fnsem /SModTr.HoareFun.
 
-    steps_r. rewrite H3. steps_r. force_r x'. steps_r. rewrite H3.
-    steps_r. force_r (_↑). steps_r. rewrite H5. steps_r. forces_r. iSplitL "GRT"; eauto.
-    steps_r. rewrite /pure_body /cfunN. hss. steps_r.
+    cStepsT. rewrite H3. cStepsT. cForceT x'. cStepsT. rewrite H3.
+    cStepsT. cForceT (_↑). cStepsT. rewrite H5. cStepsT. cForcesT. iSplitL "GRT"; eauto.
+    cStepsT. rewrite /pure_body /cfunN. cSimpl. cStepsT.
     erewrite lookup_weaken; try eapply APCInSpA; cycle 1.
     { simpl_map. refl. }
-    steps_r. rewrite H4. steps_r. rewrite H4. steps_r. rewrite H6. steps_r.
-    iDestruct "GRT" as "%" ; des; subst; hss.
-    rewrite H2. steps_r.
+    cStepsT. rewrite H4. cStepsT. rewrite H4. cStepsT. rewrite H6. cStepsT.
+    iDestruct "GRT" as "%" ; des; subst; cSimpl.
+    rewrite H2. cStepsT.
 
     (* inlining *)
-    inline_r.
+    cInlineT.
     ss. rewrite /SModTr.trans_fnsem. ss.
-    forces_r. iSplitR; eauto. steps_r.
-    rewrite /apc_body. unfold APC at 1. steps_r.
+    cForcesT. iSplitR; eauto. cStepsT.
+    rewrite /apc_body. unfold APC at 1. cStepsT.
 
     (* add meaningless return in src *)
-    prepend_ret_l ().
+    prependRetS ().
 
     iApply wsim_bind. iSplitL; cycle 1.
     { iIntros (? ? ? ?) "R".
       instantiate (1:=(λ '(st_src, _) '(st_tgt, _), IstFull st_src st_tgt)%I).
-      steps_r. rewrite H3. steps_r. forces_r. steps_r. rewrite H5. steps_r.
-      forces_r. iSplitL "GRT"; eauto.
-      steps_r. rewrite H4. steps_r. rewrite H6. steps_r.
-      force_r (tt↑). steps_r. force_r. iSplitL "GRT"; eauto. steps_r.
+      cStepsT. rewrite H3. cStepsT. cForcesT. cStepsT. rewrite H5. cStepsT.
+      cForcesT. iSplitL "GRT"; eauto.
+      cStepsT. rewrite H4. cStepsT. rewrite H6. cStepsT.
+      cForceT (tt↑). cStepsT. cForceT. iSplitL "GRT"; eauto. cStepsT.
       iApply wsim_reset. iStopProof. eapply H0; et. }
     iApply wsim_reset. iStopProof. eapply H; et.
 
@@ -120,7 +120,7 @@ Module APCAC. Section APCAC.
 
   Lemma sim : ISim.t open APCCMod APCAMod APCC.init_cond IstFull.
   Proof using _crisG PureIsPure PureInSpA APCInSpA.
-    init_sim.
+    cStartModSim.
     - eapply simF_apc.
     - iIntros "_". do 4 iExists _. esplits; eauto.
   Qed.

@@ -133,7 +133,7 @@ Section CtxRefineFacts.
     do 2 rewrite -(mod_addc_empty_l _ P).
     eapply ctxr_cond_frameR.
     eapply main_adequacy with (Ist := λ _ _, emp%I).
-    init_sim; ss.
+    cStartModSim; ss.
   Qed.
 
   (*** frame rules ***)

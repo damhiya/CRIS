@@ -24,16 +24,16 @@ Proof.
   r; i. subst. ss.
   revert x1; gnorm_itr; intros x1. revert x0; gnorm_itr; intros x0.
 
-  eapply gsim_Choose_tgt; try apply x1. intros stid; s. ghnorm_r.
+  eapply gsim_Choose_tgt; try apply x1. intros stid; s. ghcNormT.
   eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia.
-  rewrite !list_insert_insert. ghnorm_r.
+  rewrite !list_insert_insert. ghcNormT.
   eapply gsim_Guarantee_tgt; [lookup_tac; do 2 f_equal|]; try lia. intros rt2 [? Hrt2]; s.
-  rewrite !list_insert_insert. ghnorm_r.
+  rewrite !list_insert_insert. ghcNormT.
   eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia.
-  rewrite !list_insert_insert. ghnorm_r.
+  rewrite !list_insert_insert. ghcNormT.
   eapply gsim_Yield_tgt; [lookup_tac; do 2 f_equal|]; try lia.
-  rewrite !list_insert_insert. ghnorm_r.
-  eapply gsim_Yield_src; try apply x0. ghnorm_l.
+  rewrite !list_insert_insert. ghcNormT.
+  eapply gsim_Yield_src; try apply x0. ghcNormS.
 
   assert (EQ : stid = cid).
   { eapply Own_pure_soundness with (a:=r_s); eauto.
@@ -63,15 +63,15 @@ Proof.
     rewrite Hr_t1. iIntros ">[_ $]"; eauto. }
   destruct (decide (ntid = cid)); subst.
   { eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia.
-    rewrite !list_insert_insert. ghnorm_r.
+    rewrite !list_insert_insert. ghcNormT.
     eapply gsim_Assume_tgt; [lookup_tac; do 2 f_equal|]; try lia.
     exists r_t2; splits; auto.
     { rewrite Hr_t3; apply bupd_intro. }
-    rewrite !list_insert_insert. ghnorm_r.
+    rewrite !list_insert_insert. ghcNormT.
     eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia.
-    rewrite !list_insert_insert. ghnorm_r.
+    rewrite !list_insert_insert. ghcNormT.
     eapply gsim_tau_src; [lookup_tac; do 2 f_equal|].
-    rewrite !list_insert_insert. ghnorm_l.
+    rewrite !list_insert_insert. ghcNormS.
 
     eapply KEY with (r_diff:=ε); eauto.
     { rewrite length_insert list_insert_id //.
@@ -109,25 +109,25 @@ Proof.
       { ss.
         eapply gsim_Take_tgt.
         { rewrite !list_lookup_insert_ne // TGT /=; do 2 f_equal; hnorm_itr. }
-        des; eexists (FSpec_mk P Q _); eauto; ghnorm_r.
+        des; eexists (FSpec_mk P Q _); eauto; ghcNormT.
         eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia.
-        rewrite !list_insert_insert. ghnorm_r.
+        rewrite !list_insert_insert. ghcNormT.
         eapply gsim_Take_tgt; [lookup_tac; do 2 f_equal|]; try lia. exists varg.
-        rewrite !list_insert_insert. ghnorm_r.
+        rewrite !list_insert_insert. ghcNormT.
         eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia.
-        rewrite !list_insert_insert. ghnorm_r.
+        rewrite !list_insert_insert. ghcNormT.
         eapply gsim_Assume_tgt; [lookup_tac; do 2 f_equal|]; try lia.
         exists r_t2; splits; auto.
         { rewrite Hr_t3 H2.
           iIntros "[[? [? ?]] [A $]] //". iApply ("A" with "[$] [$] [$]").
         }
-        rewrite !list_insert_insert. ghnorm_r.
+        rewrite !list_insert_insert. ghcNormT.
         eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia.
         rewrite !list_insert_insert. rewrite !bind_ret_l.
         eapply gsim_tau_src.
         { rewrite !list_lookup_insert_ne // SRC /=; do 2 f_equal; hnorm_itr. }
         eapply gsim_tau_src; [lookup_tac; do 2 f_equal|]; try lia.
-        rewrite !list_insert_insert. ghnorm_l.
+        rewrite !list_insert_insert. ghcNormS.
         zprogress. gbase.
         eapply CIH with (rs_diff:=<[ntid:=ε]>rs_diff); eauto.
         { r. esplits; try rewrite !length_insert //.
@@ -159,14 +159,14 @@ Proof.
       { ss; subst.
         eapply gsim_tau_tgt.
         { rewrite !list_lookup_insert_ne // TGT /=; do 2 f_equal; hnorm_itr. }
-        ghnorm_r.
+        ghcNormT.
         eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|].
-        rewrite !list_insert_insert. ghnorm_r.
+        rewrite !list_insert_insert. ghcNormT.
         eapply gsim_tau_src.
         { rewrite !list_lookup_insert_ne // SRC /=; do 2 f_equal; hnorm_itr. }
-        ghnorm_l.
+        ghcNormS.
         eapply gsim_tau_src; [lookup_tac; do 2 f_equal|]; try lia.
-        rewrite !list_insert_insert. ghnorm_l.
+        rewrite !list_insert_insert. ghcNormS.
         zprogress. gbase.
         eapply CIH with (rs_diff:=<[ntid:=ε]>rs_diff); eauto.
         { r. esplits; try rewrite !length_insert //.
@@ -199,13 +199,13 @@ Proof.
     (* middle of execution *)
     eapply gsim_tau_tgt.
     { rewrite !list_lookup_insert_ne // TGT /=; do 2 f_equal; hnorm_itr. }
-    ghnorm_r.
+    ghcNormT.
     eapply gsim_Assume_tgt; [lookup_tac; do 2 f_equal|]; try lia.
     exists r_t2; splits; auto.
     { rewrite Hr_t3. iIntros "[[? [? ?]] [A $]]"; iFrame; auto. }
-    ghnorm_r.
+    ghcNormT.
     eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia.
-    rewrite !list_insert_insert. ghnorm_r.
+    rewrite !list_insert_insert. ghcNormT.
     eapply gsim_tau_src.
     { rewrite !list_lookup_insert_ne // SRC /=; do 2 f_equal; hnorm_itr. }
 

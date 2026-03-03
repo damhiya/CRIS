@@ -24,8 +24,8 @@ Ltac lookup_tac :=
   | H : ?l !! ?i = _ |- (_ <$> ?l) !! ?i = _ => rewrite list_lookup_fmap H //
   | |- <[?i := _]> _ !! ?i = _ => rewrite list_lookup_insert; [|rewrite ?length_insert ?length_fmap //]
   end.
-Ltac ghnorm_l := greplace_l; [ghnorm_itr; refl|].
-Ltac ghnorm_r := greplace_r; [ghnorm_itr; refl|].
+Ltac ghcNormS := greplace_l; [ghnorm_itr; refl|].
+Ltac ghcNormT := greplace_r; [ghnorm_itr; refl|].
 
 Section props.
   Context `{!crisG Γ Σ α β τ _S _I}.
@@ -49,7 +49,7 @@ Section props.
     gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_s) (tid_s, tp_s)) st_s)
       itr_t.
-  Proof using. intros Hi ?. giter_l. s. rewrite Hi; ss. gstep_l. gnorm_l. done. Qed.
+  Proof using. intros Hi ?. giter_l. s. rewrite Hi; ss. gstep_l. gcNormS. done. Qed.
 
   Lemma gsim_tau_tgt r g RR p_s p_t itr_s st_t prog_t tid_t tp_t k :
     tp_t !! tid_t = Some (⇓cris (tau;; k)) →
@@ -61,7 +61,7 @@ Section props.
     gpaco7 _gsim (cpn7 _gsim) r g (Any.t * Any.t)%type (Any.t * Any.t)%type RR p_s p_t
       itr_s
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t).
-  Proof using. intros Hi ?. giter_r; rewrite /= Hi; ss. gstep_r; gnorm_r. done. Qed.
+  Proof using. intros Hi ?. giter_r; rewrite /= Hi; ss. gstep_r; gcNormT. done. Qed.
 
   Lemma gsim_Choose_src r g RR p_s p_t st_s prog_s tid_s tp_s X k itr_t :
     tp_s !! tid_s = Some (⇓cris (x <- trigger (Choose X);; k x)) →
@@ -144,7 +144,7 @@ Section props.
       (LModTr.interp_stateE Any.t (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) st_t).
   Proof using.
     intros His Hit ?; giter_r; giter_l; s; rewrite His Hit /=.
-    gnorm_l; gnorm_r. gstep_l. intros ? ? ->.
+    gcNormS; gcNormT. gstep_l. intros ? ? ->.
     gstep_l. gstep_r. by ired.
   Unshelve. eauto.
   Qed.
@@ -290,7 +290,7 @@ Section props.
         (Any.pair (ModTr.state_encode st_t) r_t)).
   Proof using.
     intros Hin ? ?.
-    giter_r; rewrite /= Hin; ss. gsteps_r. hss. ired.
+    giter_r; rewrite /= Hin; ss. gsteps_r. cSimpl. ired.
     rewrite ModTr.state_encode_decode //.
   Qed.
 
@@ -309,7 +309,7 @@ Section props.
       itr_t.
   Proof using.
     intros Hin ? ?.
-    giter_l; rewrite /= Hin; ss. gsteps_l. hss. ired.
+    giter_l; rewrite /= Hin; ss. gsteps_l. cSimpl. ired.
     rewrite ModTr.state_encode_decode //.
   Qed.
 
@@ -328,7 +328,7 @@ Section props.
         (Any.pair (ModTr.state_encode st_t) r_t)).
   Proof using.
     intros Hin ? ?; eapply lookup_lt_Some in Hin as ?.
-    giter_r; rewrite /= Hin; ss. gsteps_r. hss.
+    giter_r; rewrite /= Hin; ss. gsteps_r. cSimpl.
     rewrite ModTr.state_encode_decode //.
     giter_r; rewrite /= list_lookup_insert //=. gsteps_r. ired.
     rewrite list_insert_insert //.
@@ -349,7 +349,7 @@ Section props.
       itr_t.
   Proof using.
     intros Hin ? ?; eapply lookup_lt_Some in Hin as ?.
-    giter_l; rewrite /= Hin; ss. gsteps_l. hss.
+    giter_l; rewrite /= Hin; ss. gsteps_l. cSimpl.
     rewrite ModTr.state_encode_decode //.
     giter_l; rewrite /= list_lookup_insert //=. gsteps_l. ired.
     rewrite list_insert_insert //.
@@ -372,13 +372,13 @@ Section props.
   Proof using.
     intros Hi Hk; pose proof Hi as Hlen; eapply lookup_lt_Some in Hlen.
     giter_l; rewrite /= Hi; ss.
-    gsteps_l. hss. ired. hss. ired.
+    gsteps_l. cSimpl. ired. cSimpl. ired.
     giter_l. rewrite /= list_lookup_insert //=. gstep_l. intros r_s2.
       gsteps_l. ired. rewrite list_insert_insert.
     giter_l. rewrite /= list_lookup_insert //=. gstep_l. intros Hr_s2.
       gsteps_l. ired. rewrite list_insert_insert.
     giter_l. rewrite /= list_lookup_insert //=. gstep_l.
-      gsteps_l. ired. hss. ired. rewrite list_insert_insert.
+      gsteps_l. ired. cSimpl. ired. rewrite list_insert_insert.
     giter_l. rewrite /= list_lookup_insert //=. gstep_l.
       gsteps_l. ired. rewrite list_insert_insert.
     eapply Hk; done.
@@ -401,13 +401,13 @@ Section props.
         (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) (Any.pair st_t (r_t↑))).
   Proof using.
     intros Hin [r_t2 [Hr_t2 Hk]]; pose proof Hin as Hlen; eapply lookup_lt_Some in Hlen.
-    giter_r; rewrite /= Hin /=. gstep_r. gsteps_r. hss. ired. hss. ired.
+    giter_r; rewrite /= Hin /=. gstep_r. gsteps_r. cSimpl. ired. cSimpl. ired.
     giter_r. rewrite /= list_lookup_insert //=. gstep_r. exists r_t2.
       gsteps_r. rewrite list_insert_insert //=. ired.
     giter_r. rewrite /= list_lookup_insert //=. gstep_r. unshelve eexists; eauto; ss.
       gsteps_r. rewrite list_insert_insert //=. ired.
     giter_r. rewrite /= list_lookup_insert //=. gsteps_r.
-      rewrite list_insert_insert //=. ired. hss. ired.
+      rewrite list_insert_insert //=. ired. cSimpl. ired.
     giter_r. rewrite /= list_lookup_insert //=. gsteps_r.
       rewrite list_insert_insert //=. ired. eauto.
   Qed.
@@ -428,13 +428,13 @@ Section props.
       itr_t.
   Proof using.
     intros Hin Hk; pose proof Hin as Hlen; eapply lookup_lt_Some in Hlen.
-    giter_l; rewrite /= Hin /=. gstep_l; ss. gnorm_l. hss. ired. hss. ired.
+    giter_l; rewrite /= Hin /=. gstep_l; ss. gcNormS. cSimpl. ired. cSimpl. ired.
     giter_l; rewrite /= list_lookup_insert //=. gstep_l; ss.
-      intros Hval. gnorm_l. gstep_l. gnorm_l. rewrite list_insert_insert.
+      intros Hval. gcNormS. gstep_l. gcNormS. rewrite list_insert_insert.
     giter_l; rewrite /= list_lookup_insert //=. gstep_l; ss.
-      gnorm_l. ired. hss. ired. rewrite list_insert_insert.
+      gcNormS. ired. cSimpl. ired. rewrite list_insert_insert.
     giter_l; rewrite /= list_lookup_insert //=. gstep_l; ss.
-      gnorm_l. ired. rewrite list_insert_insert.
+      gcNormS. ired. rewrite list_insert_insert.
     eapply Hk; done.
   Qed.
 
@@ -453,11 +453,11 @@ Section props.
         (iterV (LModTr.handle_callE prog_s) (tid_t, tp_t)) (Any.pair st_t (r_t↑))).
   Proof using.
     intros Hin [Hval Hk]; pose proof Hin as Hlen; eapply lookup_lt_Some in Hlen.
-    giter_r; rewrite /= Hin /=. gstep_r; ss. gnorm_r. hss. ired. hss. ired.
+    giter_r; rewrite /= Hin /=. gstep_r; ss. gcNormT. cSimpl. ired. cSimpl. ired.
     giter_r; rewrite /= list_lookup_insert //=.
       gstep_r; ss. exists Hval. gsteps_r. rewrite list_insert_insert. ired.
     giter_r; rewrite /= list_lookup_insert //=.
-      gsteps_r; ss. rewrite list_insert_insert. ired. hss. ired.
+      gsteps_r; ss. rewrite list_insert_insert. ired. cSimpl. ired.
     giter_r; rewrite /= list_lookup_insert //=.
       gsteps_r; ss. rewrite list_insert_insert. ired.
     eapply Hk; done.
@@ -480,13 +480,13 @@ Section props.
   Proof using.
     intros Hi [r_s2 Hk]; pose proof Hi as Hlen; eapply lookup_lt_Some in Hlen.
     giter_l; rewrite /= Hi; ss.
-    gsteps_l. hss. ired. hss. ired.
+    gsteps_l. cSimpl. ired. cSimpl. ired.
     giter_l. rewrite /= list_lookup_insert //=. gstep_l. exists r_s2.
       gsteps_l. ired. rewrite list_insert_insert.
     giter_l. rewrite /= list_lookup_insert //=. gstep_l. unshelve eexists; eauto.
       gsteps_l. ired. rewrite list_insert_insert.
     giter_l. rewrite /= list_lookup_insert //=. gstep_l.
-      gsteps_l. ired. hss. ired. rewrite list_insert_insert.
+      gsteps_l. ired. cSimpl. ired. rewrite list_insert_insert.
     giter_l. rewrite /= list_lookup_insert //=. gstep_l.
       gsteps_l. ired. rewrite list_insert_insert.
     eauto.
@@ -508,13 +508,13 @@ Section props.
         (iterV (LModTr.handle_callE prog_t) (tid_t, tp_t)) (Any.pair st_t (r_t↑))).
   Proof using.
     intros Hin ?; pose proof Hin as Hlen; eapply lookup_lt_Some in Hlen.
-    giter_r; rewrite /= Hin /=. gstep_r. gsteps_r. hss. ired. hss. ired.
+    giter_r; rewrite /= Hin /=. gstep_r. gsteps_r. cSimpl. ired. cSimpl. ired.
     giter_r. rewrite /= list_lookup_insert //=. gstep_r. intros ?.
       gsteps_r. rewrite list_insert_insert //=. ired.
     giter_r. rewrite /= list_lookup_insert //=. gstep_r. i.
       gsteps_r. rewrite list_insert_insert //=. ired.
     giter_r. rewrite /= list_lookup_insert //=. gsteps_r.
-      rewrite list_insert_insert //=. ired. hss. ired.
+      rewrite list_insert_insert //=. ired. cSimpl. ired.
     giter_r. rewrite /= list_lookup_insert //=. gsteps_r.
       rewrite list_insert_insert //=. ired.
     eauto.

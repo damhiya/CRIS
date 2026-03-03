@@ -86,14 +86,14 @@ Section props.
     }
     eapply gsim_Choose_tgt; [rewrite Hin_t; do 2 f_equal; hnorm_itr|]. intros x.
     eapply gsim_Choose_tgt; [lookup_tac; do 2 f_equal; hnorm_itr|].
-      intros varg. rewrite list_insert_insert. gnorm_r.
+      intros varg. rewrite list_insert_insert. gcNormT.
     eapply gsim_Guarantee_tgt; [lookup_tac; do 2 f_equal; hnorm_itr|].
-      intros res2 Hres2. rewrite list_insert_insert. ghnorm_r.
+      intros res2 Hres2. rewrite list_insert_insert. ghcNormT.
     eapply gsim_Choose_src; [rewrite Hin_s; do 2 f_equal; hnorm_itr|]. exists x.
     eapply gsim_Choose_src; [lookup_tac; do 2 f_equal; hnorm_itr|].
-      exists varg. rewrite list_insert_insert. ghnorm_l.
+      exists varg. rewrite list_insert_insert. ghcNormS.
     eapply gsim_Guarantee_src; [lookup_tac; do 2 f_equal; hnorm_itr|].
-      exists res2; splits; try by des. rewrite list_insert_insert. ghnorm_l.
+      exists res2; splits; try by des. rewrite list_insert_insert. ghcNormS.
     eapply gsim_flag; last eapply (Hk res2 (x, varg)).
     { destruct p_s as [[|]|]; rr; ss; eauto. }
     { destruct p_t as [[|]|]; rr; ss; eauto. }
@@ -132,9 +132,9 @@ Section props.
     eapply gsim_Take_src; [rewrite Hin_s; do 2 f_equal; hnorm_itr|]. intros varg.
     eapply gsim_Take_tgt; [rewrite Hin_t; do 2 f_equal; hnorm_itr|]. exists varg.
     eapply gsim_Assume_src; [lookup_tac; do 2 f_equal; hnorm_itr|].
-      intros res2 Hres2. rewrite list_insert_insert. gnorm_l.
+      intros res2 Hres2. rewrite list_insert_insert. gcNormS.
     eapply gsim_Assume_tgt; [lookup_tac; do 2 f_equal; hnorm_itr|].
-      exists res2; splits; try by des. rewrite list_insert_insert. ghnorm_l; ghnorm_r.
+      exists res2; splits; try by des. rewrite list_insert_insert. ghcNormS; ghcNormT.
     eapply gsim_flag; last eapply (Hk res2 (varg)).
     { destruct p_s as [[|]|]; rr; ss; eauto. }
     { destruct p_t as [[|]|]; rr; ss; eauto. }
@@ -176,9 +176,9 @@ Section props.
     eapply gsim_Take_tgt; [rewrite Hin_t; do 2 f_equal; hnorm_itr|]. exists x.
     eapply gsim_Take_tgt; [lookup_tac; do 2 f_equal; hnorm_itr|]. exists vret.
     eapply gsim_Assume_src; [lookup_tac; do 2 f_equal; hnorm_itr|].
-      intros res2 Hres2. rewrite !list_insert_insert. gnorm_l.
+      intros res2 Hres2. rewrite !list_insert_insert. gcNormS.
     eapply gsim_Assume_tgt; [lookup_tac; do 2 f_equal; hnorm_itr|].
-      exists res2; splits; try by des. rewrite list_insert_insert. ghnorm_l; ghnorm_r.
+      exists res2; splits; try by des. rewrite list_insert_insert. ghcNormS; ghcNormT.
     eapply gsim_flag; last eapply (Hk res2).
     { destruct p_s as [[|]|]; rr; ss; eauto. }
     { destruct p_t as [[|]|]; rr; ss; eauto. }
@@ -220,9 +220,9 @@ Section props.
     eapply gsim_Choose_tgt; [rewrite Hin_t; do 2 f_equal; hnorm_itr|]. intros vret.
     eapply gsim_Choose_src; [lookup_tac; do 2 f_equal; hnorm_itr|]. exists vret.
     eapply gsim_Guarantee_tgt; [lookup_tac; do 2 f_equal; hnorm_itr|].
-      intros res2 Hres2. rewrite !list_insert_insert. gnorm_r.
+      intros res2 Hres2. rewrite !list_insert_insert. gcNormT.
     eapply gsim_Guarantee_src; [lookup_tac; do 2 f_equal; hnorm_itr|].
-      exists res2; splits; try by des. rewrite list_insert_insert. ghnorm_l; ghnorm_r.
+      exists res2; splits; try by des. rewrite list_insert_insert. ghcNormS; ghcNormT.
     eapply gsim_flag; last eapply (Hk res2).
     { destruct p_s as [[|]|]; rr; ss; eauto. }
     { destruct p_t as [[|]|]; rr; ss; eauto. }
@@ -259,7 +259,7 @@ Section props.
     gcofix CIH.
     intros job res Hres Hk.
     ides job.
-    { ghnorm_l; ghnorm_r.
+    { ghcNormS; ghcNormT.
       eapply gpaco7_mon; eauto.
     }
     {
@@ -275,31 +275,31 @@ Section props.
         intros res1 Hres1; rewrite list_insert_insert.
         eapply gsim_Assume_tgt; [rewrite list_lookup_insert //; do 2 f_equal; hnorm_itr|].
         exists res1; splits; (try by des); rewrite list_insert_insert.
-        ghnorm_l; ghnorm_r.
+        ghcNormS; ghcNormT.
         zprogress with smj_bot smj_bot _ _. gbase. eapply CIH; try by des.
       }
       { eapply gsim_AssumeRes_src; [rewrite list_lookup_insert //; do 2 f_equal; hnorm_itr|].
         intros ?; rewrite list_insert_insert.
         eapply gsim_AssumeRes_tgt; [rewrite list_lookup_insert //; do 2 f_equal; hnorm_itr|].
         splits; (try by des); rewrite list_insert_insert.
-        ghnorm_l; ghnorm_r.
+        ghcNormS; ghcNormT.
         zprogress with smj_bot smj_bot _ _. gbase. eapply CIH; try by des.
       }
       { eapply gsim_Guarantee_tgt; [rewrite list_lookup_insert //; do 2 f_equal; hnorm_itr|].
         intros res1 Hres1; rewrite list_insert_insert.
         eapply gsim_Guarantee_src; [rewrite list_lookup_insert //; do 2 f_equal; hnorm_itr|].
         exists res1; splits; (try by des); rewrite list_insert_insert.
-        ghnorm_l; ghnorm_r.
+        ghcNormS; ghcNormT.
         zprogress with smj_bot smj_bot _ _. gbase. eapply CIH; try by des.
       }
     }
     destruct e as [e|e].
-    { ghnorm_l. ghnorm_l.
+    { ghcNormS. ghcNormS.
       eapply gsim_Take_src; [rewrite list_lookup_insert //; do 2 f_equal; hnorm_itr|].
       ss.
     }
     destruct e as [e|e].
-    { ghnorm_l. ghnorm_l.
+    { ghcNormS. ghcNormS.
       eapply gsim_Take_src; [rewrite list_lookup_insert //; do 2 f_equal; hnorm_itr|].
       ss.
     }
@@ -308,18 +308,18 @@ Section props.
       intros x; rewrite list_insert_insert.
       eapply gsim_Choose_src; [rewrite list_lookup_insert //; do 2 f_equal; hnorm_itr|].
       exists x; rewrite list_insert_insert.
-      ghnorm_l; ghnorm_r.
+      ghcNormS; ghcNormT.
       zprogress with smj_bot smj_bot _ _. gbase. eapply CIH; try by des.
     }
     { eapply gsim_Take_src; [rewrite list_lookup_insert //; do 2 f_equal; hnorm_itr|].
       intros x; rewrite list_insert_insert.
       eapply gsim_Take_tgt; [rewrite list_lookup_insert //; do 2 f_equal; hnorm_itr|].
       exists x; rewrite list_insert_insert.
-      ghnorm_l; ghnorm_r.
+      ghcNormS; ghcNormT.
       zprogress with smj_bot smj_bot _ _. gbase. eapply CIH; try by des.
     }
     { giter_l; giter_r.
-      rewrite /= ?list_lookup_insert //=. gnorm_l; gnorm_r.
+      rewrite /= ?list_lookup_insert //=. gcNormS; gcNormT.
       gstep_l. instantiate (1:=smj_top).
       intros ? ? <-. gsteps_l; gsteps_r. rewrite ?list_insert_insert. ired.
       zprogress with smj_bot smj_bot _ _. gbase. eapply CIH; try by des.

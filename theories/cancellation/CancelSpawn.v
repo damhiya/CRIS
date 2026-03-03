@@ -109,15 +109,15 @@ Proof.
   { rewrite lookup_omap !lookup_fmap !lookup_omap Hfn //. }
   rewrite Hfnsp /= in x1.
   revert x1; gnorm_itr; intros x1.
-  eapply gsim_Choose_tgt; [eapply x1|]. intros Fsp; s. ghnorm_r.
+  eapply gsim_Choose_tgt; [eapply x1|]. intros Fsp; s. ghcNormT.
   eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia.
-  rewrite !list_insert_insert. ghnorm_r.
+  rewrite !list_insert_insert. ghcNormT.
   eapply gsim_Choose_tgt; [lookup_tac; do 2 f_equal|]; try lia. intros varg.
-  rewrite !list_insert_insert. ghnorm_r.
+  rewrite !list_insert_insert. ghcNormT.
   eapply gsim_tau_tgt; [lookup_tac; do 2 f_equal|]; try lia.
-  rewrite !list_insert_insert. ghnorm_r.
+  rewrite !list_insert_insert. ghcNormT.
   eapply gsim_Spawn_tgt; [lookup_tac; do 2 f_equal|]; try lia.
-  rewrite !list_insert_insert. ghnorm_r.
+  rewrite !list_insert_insert. ghcNormT.
   rewrite !length_insert.
   rewrite {2}/LMod.prog {1}Mod.to_lmod_fnsems /= !lookup_fmap Hfn /=. ired.
 

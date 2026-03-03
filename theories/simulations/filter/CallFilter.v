@@ -22,7 +22,7 @@ Module CFilter. Section CFilter.
     | _ => msk X e
     end.
 
-  (* filters module m with mask, which means function call fn ∉ mask are undefined behaviors *)
+  (* filters module m with mask, which means function cCall fn ∉ mask are undefined behaviors *)
   Program Definition filter (mask : gset string) (m : Mod.t) : Mod.t := {|
     Mod.scopes := m.(Mod.scopes);
     Mod.fnsems :=
@@ -52,10 +52,10 @@ Module CFilter. Section CFilter.
   Lemma sim_filter_intro (mask : gset string) (m : Mod.t) :
     ISim.t open (filter mask m) m emp%I IstEq.
   Proof using.
-    econs; ss; i; eauto.
+    cStartModSim; et.
     { ii. rr. destruct x; et.
-      exfalso. rewrite lookup_fmap in H0. destruct (_ !! _) eqn: mi; ss.
-      eapply H in mi. rr in mi. des; subst. ss.
+      exfalso. rewrite lookup_fmap in H. destruct (_ !! _) eqn: mi; ss.
+      eapply Hwf in mi. rr in mi. des; subst. ss.
     }
 
     rewrite /ISim.sim_fun ?lookup_fmap.
@@ -67,42 +67,42 @@ Module CFilter. Section CFilter.
     cCoind CIH g0 __ with itr ps pt st_tgt msk. iIntros "_".
 
     assert (CASE:= case_itrH itr). des; subst; s.
-    - step; et.
-    - steps_l. steps_r. by_coind CIH; et.
-    - steps_l; ss.
-      case_match; steps_l; ss.
-      steps_r; case_match; ss; force_r; iFrame; steps_r.
-      by_coind CIH. iFrame.
-    - steps_l; ss.
-      case_match; steps_l; ss.
-      steps_r; case_match; ss; force_r; iFrame; steps_r.
-      by_coind CIH. iFrame.
-    - steps_l; ss.
-      case_match; steps_l; ss.
-      steps_r. case_match; steps_r; ss.
-      force_l; iFrame; steps_l.
-      by_coind CIH. iFrame.
-    - destruct c; s; steps_l; case_match; try case_bool_decide; steps_l; ss.
-      + steps_r; bsimpl; des; case_match; des; ss.
-        steps_r. call "".
-        iIntros (ret ??) "->"; steps_l; steps_r.
-        by_coind CIH. iFrame.
-      + steps_r; bsimpl; des; case_match; des; ss.
-        steps_r. iApply (wsim_spawn).
-        iIntros (tid); steps_l; steps_r; by_coind CIH; iFrame.
-      + steps_r; bsimpl; des; case_match; des; ss.
-        steps_r. iApply (wsim_yield); iSplit; [eauto|].
-        iIntros (??) "->"; steps_l; steps_r; by_coind CIH; iFrame.
-      + steps_r; bsimpl; des; case_match; des; ss.
-        steps_r. iApply (wsim_gettid); eauto.
-        iIntros (?); steps_l; steps_r; by_coind CIH; iFrame.
-    - destruct s; steps_l; steps_r; case_match; steps_l; ss; steps_r.
-      { iApply wsim_sput_src; iApply wsim_sput_tgt; norm_l; norm_r; by_coind CIH; iFrame. }
-      { iApply wsim_sget_src; iApply wsim_sget_tgt; norm_l; norm_r; by_coind CIH; iFrame. }
-    - destruct e; steps_l; steps_r; case_match; steps_l; ss; steps_r.
-      { forces_l; steps_l; by_coind CIH; iFrame. }
-      { forces_r; steps_r; by_coind CIH; iFrame. }
-      { step; steps_l; steps_r; by_coind CIH; iFrame. }
+    - cStep; et.
+    - cStepsS. cStepsT. cByCoind CIH; et.
+    - cStepsS; ss.
+      case_match; cStepsS; ss.
+      cStepsT; case_match; ss; cForceT; iFrame; cStepsT.
+      cByCoind CIH. iFrame.
+    - cStepsS; ss.
+      case_match; cStepsS; ss.
+      cStepsT; case_match; ss; cForceT; iFrame; cStepsT.
+      cByCoind CIH. iFrame.
+    - cStepsS; ss.
+      case_match; cStepsS; ss.
+      cStepsT. case_match; cStepsT; ss.
+      cForceS; iFrame; cStepsS.
+      cByCoind CIH. iFrame.
+    - destruct c; s; cStepsS; case_match; try case_bool_decide; cStepsS; ss.
+      + cStepsT; bsimpl; des; case_match; des; ss.
+        cStepsT. cCall "".
+        iIntros (ret ??) "->"; cStepsS; cStepsT.
+        cByCoind CIH. iFrame.
+      + cStepsT; bsimpl; des; case_match; des; ss.
+        cStepsT. iApply (wsim_spawn).
+        iIntros (tid); cStepsS; cStepsT; cByCoind CIH; iFrame.
+      + cStepsT; bsimpl; des; case_match; des; ss.
+        cStepsT. iApply (wsim_yield); iSplit; [eauto|].
+        iIntros (??) "->"; cStepsS; cStepsT; cByCoind CIH; iFrame.
+      + cStepsT; bsimpl; des; case_match; des; ss.
+        cStepsT. iApply (wsim_gettid); eauto.
+        iIntros (?); cStepsS; cStepsT; cByCoind CIH; iFrame.
+    - destruct s; cStepsS; cStepsT; case_match; cStepsS; ss; cStepsT.
+      { iApply wsim_sput_src; iApply wsim_sput_tgt; cNormS; cNormT; cByCoind CIH; iFrame. }
+      { iApply wsim_sget_src; iApply wsim_sget_tgt; cNormS; cNormT; cByCoind CIH; iFrame. }
+    - destruct e; cStepsS; cStepsT; case_match; cStepsS; ss; cStepsT.
+      { cForcesS; cStepsS; cByCoind CIH; iFrame. }
+      { cForcesT; cStepsT; cByCoind CIH; iFrame. }
+      { cStep; cStepsS; cStepsT; cByCoind CIH; iFrame. }
   Qed.
 
   Lemma sim_filter_elim (mask : gset string) (m : Mod.t)
@@ -124,24 +124,24 @@ Module CFilter. Section CFilter.
     cCoind CIH g0 __ with ps pt itr st_tgt msk. iIntros "_".
 
     assert (CASE:= case_itrH itr). des; subst; s.
-    { step; eauto. }
-    { step_l; steps_r. by_coind CIH. done. }
-    { step_l.
-      case_match; step_l; ss.
-      steps_r; case_match; ss; force_r; iFrame; norm_l; norm_r; by_coind CIH. done.
+    { cStep; eauto. }
+    { cStepS; cStepsT. cByCoind CIH. done. }
+    { cStepS.
+      case_match; cStepS; ss.
+      cStepsT; case_match; ss; cForceT; iFrame; cNormS; cNormT; cByCoind CIH. done.
     }
-    { step_l.
-      case_match; step_l; ss.
-      steps_r; case_match; ss; force_r; iFrame; norm_l; norm_r; by_coind CIH. done.
+    { cStepS.
+      case_match; cStepS; ss.
+      cStepsT; case_match; ss; cForceT; iFrame; cNormS; cNormT; cByCoind CIH. done.
     }
-    { step_l.
-      case_match; step_l; ss.
-      steps_r; case_match; ss; steps_r; force_l; iFrame. norm_l; norm_r; by_coind CIH. done.
+    { cStepS.
+      case_match; cStepS; ss.
+      cStepsT; case_match; ss; cStepsT; cForceS; iFrame. cNormS; cNormT; cByCoind CIH. done.
     }
-    { destruct c; s; steps_l; case_match; try case_bool_decide; steps_l; ss.
-      { steps_r; bsimpl; des; case_bool_decide; des; ss.
-        { steps_r. iApply isim_call. iSplit; first done.
-          iIntros (ret ??) "->"; steps_l; steps_r. by_coind CIH; iFrame; done.
+    { destruct c; s; cStepsS; case_match; try case_bool_decide; cStepsS; ss.
+      { cStepsT; bsimpl; des; case_bool_decide; des; ss.
+        { cStepsT. iApply isim_call. iSplit; first done.
+          iIntros (ret ??) "->"; cStepsS; cStepsT. cByCoind CIH; iFrame; done.
         }
         { iApply isim_call_none; ss.
           rewrite ?lookup_fmap; destruct (_ !! _) eqn : Heq; ss.
@@ -151,9 +151,9 @@ Module CFilter. Section CFilter.
           set_solver.
         }
       }
-      { steps_r; bsimpl; des; case_bool_decide; des; ss.
-        { steps_r.
-          iApply isim_spawn; iIntros (tid). norm_l; norm_r. by_coind CIH. done.
+      { cStepsT; bsimpl; des; case_bool_decide; des; ss.
+        { cStepsT.
+          iApply isim_spawn; iIntros (tid). cNormS; cNormT. cByCoind CIH. done.
         }
         { iApply isim_spawn_none; ss.
           rewrite ?lookup_fmap; destruct (_ !! _) eqn : Heq; ss.
@@ -163,23 +163,23 @@ Module CFilter. Section CFilter.
           set_solver.
         }
       }
-      { steps_r; bsimpl; des; case_match; des; ss. steps_r.
+      { cStepsT; bsimpl; des; case_match; des; ss. cStepsT.
         iApply isim_yield; iSplit; [done|]; iIntros (??) "->".
-        norm_l; norm_r. by_coind CIH. done.
+        cNormS; cNormT. cByCoind CIH. done.
       }
-      { steps_r; bsimpl; des; case_match; des; ss. steps_r.
+      { cStepsT; bsimpl; des; case_match; des; ss. cStepsT.
         iApply isim_gettid; iIntros (tid).
-        norm_l; norm_r. by_coind CIH. done.
+        cNormS; cNormT. cByCoind CIH. done.
       }
     }
-    { destruct s; steps_l; steps_r; case_match; steps_l; ss; steps_r.
-      { iApply isim_sput_src; iApply isim_sput_tgt; norm_l; norm_r; by_coind CIH; by iFrame. }
-      { iApply isim_sget_src; iApply isim_sget_tgt; norm_l; norm_r; by_coind CIH; by iFrame. }
+    { destruct s; cStepsS; cStepsT; case_match; cStepsS; ss; cStepsT.
+      { iApply isim_sput_src; iApply isim_sput_tgt; cNormS; cNormT; cByCoind CIH; by iFrame. }
+      { iApply isim_sget_src; iApply isim_sget_tgt; cNormS; cNormT; cByCoind CIH; by iFrame. }
     }
-    { destruct e; steps_l; steps_r; case_match; steps_l; ss; steps_r.
-      { forces_l; steps_l; by_coind CIH; by iFrame. }
-      { forces_r; steps_r; by_coind CIH; by iFrame. }
-      { step; steps_l; steps_r; by_coind CIH; by iFrame. }
+    { destruct e; cStepsS; cStepsT; case_match; cStepsS; ss; cStepsT.
+      { cForcesS; cStepsS; cByCoind CIH; by iFrame. }
+      { cForcesT; cStepsT; cByCoind CIH; by iFrame. }
+      { cStep; cStepsS; cStepsT; cByCoind CIH; by iFrame. }
     }
   Qed.
 
@@ -298,7 +298,7 @@ Module CFilter. Section CFilter.
       giter_l; giter_r; rewrite /= EQ /=.
       des_ifs; cycle 1.
       { unfold triggerUB. do 2 gstep_l. ss. }
-      gstep_l. gnorm_l. gstep_r. gnorm_r. gstep. econs; econs; eauto.
+      gstep_l. gcNormS. gstep_r. gcNormT. gstep. econs; econs; eauto.
     }
     {
       revert EQ; gnorm_itr; i.

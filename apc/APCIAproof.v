@@ -19,18 +19,18 @@ Module APCIA. Section APCIA.
 
   Lemma simF_apc : ISim.sim_fun open APCAMod APCIMod Ist (fid APCHdr.apc).
   Proof using.
-    iStartSim. rewrite /apc_body.
+    cStartFunSim. rewrite /apc_body.
     
-    steps_l. iDestruct "ASM" as "[-> ->]"; hss.
-    steps_r. steps_l. rewrite /APC. force_l. steps_l.
-    rewrite unfold_APC. force_l true. steps_l.
-    forces_l. iSplitR; first done. step. iFrame; eauto.
+    cStepsS. iDestruct "ASM" as "[-> ->]"; cSimpl.
+    cStepsT. cStepsS. rewrite /APC. cForceS. cStepsS.
+    rewrite unfold_APC. cForceS true. cStepsS.
+    cForcesS. iSplitR; first done. cStep. iFrame; eauto.
     Unshelve. all: ss.
   Qed.
 
   Lemma sim : ISim.t open APCAMod APCIMod emp%I Ist.
   Proof using.
-    init_sim; eauto.
+    cStartModSim; eauto.
     - eapply simF_apc.
   Qed.
 End APCIA.

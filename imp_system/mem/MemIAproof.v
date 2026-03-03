@@ -250,12 +250,12 @@ Module MemIA. Section MemIA.
 
   Lemma simF_alloc : ISim.sim_fun open MemA MemI IstFull (fid MemHdr.alloc).
   Proof using.
-    iStartSim. rewrite /MemI.alloc. steps_l.
+    cStartFunSim. rewrite /MemI.alloc. cStepsS.
     rename _q into sz, _q0 into varg.
     iDestruct "ASM" as "[-> [-> %]]".
 
     iDestruct "IST" as (? ? ? ?) "([-> ->] & [% [% [% [[-> %] >B]]]] & ->)"; des.
-    steps_r. case_bool_decide; [|lia]. steps_r.
+    cStepsT. case_bool_decide; [|lia]. cStepsT.
 
     rename _q into pad.
     set (blk := Mem.nb mem_tgt + pad).
@@ -263,8 +263,8 @@ Module MemIA. Section MemIA.
     iPoseProof (mem_ra_alloc with "B") as ">B"; et.
     iDestruct "B" as "[BLK WHT]". iPoseProof (points_to_transform with "WHT") as "WHT".
 
-    force_l ((Vptr (blk, 0%Z)) ↑). steps_l. forces_l. iFrame. iSplit; eauto.
-    step. iFrame.
+    cForceS ((Vptr (blk, 0%Z)) ↑). cStepsS. cForcesS. iFrame. iSplit; eauto.
+    cStep. iFrame.
     repeat (iSplit; first done).
     iExists _, _, _, _; iSplit; [iPureIntro; split; refl|iSplit; eauto].
     repeat (iSplit; eauto).
@@ -288,19 +288,19 @@ Module MemIA. Section MemIA.
 
   Lemma simF_free : ISim.sim_fun open MemA MemI IstFull (fid MemHdr.free).
   Proof using.
-    iStartSim. rewrite /MemI.free.
-    step_l. destruct _q as [[blk ofs] v].
-    step_l. rename _q into varg. step_l.
+    cStartFunSim. rewrite /MemI.free.
+    cStepS. destruct _q as [[blk ofs] v].
+    cStepS. rename _q into varg. cStepS.
     iDestruct "ASM" as "[-> [-> ↦]]".
     iDestruct "IST" as (? ? ? ?) "([-> ->] & [% [% [% [[-> %] >B]]]] & ->)"; des.
 
-    steps_l. steps_r.
+    cStepsS. cStepsT.
 
-    iPoseProof (mem_ra_lookup with "[B ↦]") as "[%HIT ->]"; et; iFrame. steps_r.
+    iPoseProof (mem_ra_lookup with "[B ↦]") as "[%HIT ->]"; et; iFrame. cStepsT.
 
-    force_l. iMod (mem_ra_free with "[B ↦]") as "H"; et; iFrame.
-    forces_l; iSplit; eauto.
-    step; iFrame. repeat (iSplit; et).
+    cForceS. iMod (mem_ra_free with "[B ↦]") as "H"; et; iFrame.
+    cForcesS; iSplit; eauto.
+    cStep; iFrame. repeat (iSplit; et).
     iExists _, _, _, _; repeat (iSplit; et).
     iExists _; iSplit; eauto.
     iPureIntro. esplits; eauto.
@@ -311,35 +311,35 @@ Module MemIA. Section MemIA.
 
   Lemma simF_load : ISim.sim_fun open MemA MemI IstFull (fid MemHdr.load).
   Proof using.
-    iStartSim. rewrite /MemI.load.
-    step_l. destruct _q as [[[blk ofs] q] v]. steps_l.
+    cStartFunSim. rewrite /MemI.load.
+    cStepS. destruct _q as [[[blk ofs] q] v]. cStepsS.
 
     iDestruct "ASM" as "[-> [-> ↦]]".
     iDestruct "IST" as (? ? ? ?) "([-> ->] & [% [% [% [[-> %] >B]]]] & ->)"; des.
 
-    steps_r.
+    cStepsT.
 
-    iPoseProof (mem_ra_lookup with "[B ↦]") as "[%HIT ->]"; et; iFrame. steps_r.
-    forces_l. iFrame. iSplit; eauto.
-    step. iFrame. repeat (iSplit; et).
+    iPoseProof (mem_ra_lookup with "[B ↦]") as "[%HIT ->]"; et; iFrame. cStepsT.
+    cForcesS. iFrame. iSplit; eauto.
+    cStep. iFrame. repeat (iSplit; et).
     iExists _, _, _, _; repeat (iSplit; et).
   (*SLOW*)Qed.
 
   Lemma simF_store : ISim.sim_fun open MemA MemI IstFull (fid MemHdr.store).
   Proof using.
-    iStartSim. rewrite /MemI.store.
-    step_l. destruct _q as [[[blk ofs] q] v]. steps_l.
+    cStartFunSim. rewrite /MemI.store.
+    cStepS. destruct _q as [[[blk ofs] q] v]. cStepsS.
 
     iDestruct "ASM" as "[-> [-> ↦]]".
     iDestruct "IST" as (? ? ? ?) "([-> ->] & [% [% [% [[-> %] >B]]]] & ->)"; des.
 
-    steps_l. steps_r.
+    cStepsS. cStepsT.
 
-    iPoseProof (mem_ra_lookup with "[B ↦]") as "[%HIT %HIT2]"; et; iFrame; rewrite HIT2. steps_r.
+    iPoseProof (mem_ra_lookup with "[B ↦]") as "[%HIT %HIT2]"; et; iFrame; rewrite HIT2. cStepsT.
     iMod (mem_ra_update with "[B ↦]") as "[B ↦]"; et; iFrame.
 
-    forces_l. iFrame. iSplit; eauto.
-    step. iFrame. repeat (iSplit; et).
+    cForcesS. iFrame. iSplit; eauto.
+    cStep. iFrame. repeat (iSplit; et).
     iExists _, _, _, _; repeat (iSplit; et).
     iExists _; iSplit; et.
     iPureIntro. split; eauto. split.
@@ -350,18 +350,18 @@ Module MemIA. Section MemIA.
 
   Lemma simF_cmp : ISim.sim_fun open MemA MemI IstFull (fid MemHdr.cmp).
   Proof using.
-    iStartSim. rewrite /MemI.cmp.
-    step_l. destruct _q as [[[v_old v_new] v_cmp] Cmp]. steps_l.
+    cStartFunSim. rewrite /MemI.cmp.
+    cStepS. destruct _q as [[[v_old v_new] v_cmp] Cmp]. cStepsS.
     iDestruct "ASM" as "[-> [[-> %Hcmp] [Cmp Cmp2]]]".
     iDestruct "IST" as (? ? ? ?) "([-> ->] & [% [% [% [[-> %] >B]]]] & ->)"; des.
 
-    steps_r.
+    cStepsT.
 
     iMod ("Cmp2" with "Cmp") as (????) "[C1 [C2 C3]]".
     iPoseProof (mem_ra_cmp with "[B C1 C2]") as "->"; eauto; iFrame.
     iMod ("C3" with "[$]").
 
-    steps_r. forces_l. iFrame. iSplit; eauto. step. iFrame.
+    cStepsT. cForcesS. iFrame. iSplit; eauto. cStep. iFrame.
 
     iSplit; [case_bool_decide; clarify; ss|].
     { iPureIntro; move : Hcmp; rewrite /MemA.compare_val; des_ifs; i; clarify. }
@@ -370,14 +370,14 @@ Module MemIA. Section MemIA.
 
   Lemma simF_cas : ISim.sim_fun open MemA MemI IstFull (fid MemHdr.cas).
   Proof using.
-    iStartSim. rewrite /MemI.cas.
-    step_l. destruct _q as [[[[[[blk ofs ] v_old] v_new] v_upd] v_cmp] Cmp]. steps_l.
+    cStartFunSim. rewrite /MemI.cas.
+    cStepS. destruct _q as [[[[[[blk ofs ] v_old] v_new] v_upd] v_cmp] Cmp]. cStepsS.
 
-    (* iIntros (N tid [[[[[[blk ofs ] v_old] v_new] v_upd] v_cmp] Cmp] varg) "?? Pre"; unfold_pre_post. *)
+    (* iIntros (N tid [[[[[[blk ofs ] v_old] v_new] v_upd] v_cmp] Cmp] varg) "?? Pre"; unfoldPrePost. *)
     iDestruct "ASM" as "[-> [[-> %Hcmp] [↦ [Cmp Cmp2]]]]".
     iDestruct "IST" as (? ? ? ?) "([-> ->] & [% [% [% [[-> %] >B]]]] & ->)"; des.
 
-    steps_r.
+    cStepsT.
 
     iPoseProof (mem_ra_lookup with "[B ↦]") as "[% %Hlookup]"; eauto; [iFrame|].
     iMod ("Cmp2" with "Cmp") as (????) "[C1 [C2 C3]]".
@@ -385,17 +385,17 @@ Module MemIA. Section MemIA.
     iMod ("C3" with "[$]").
 
     (* Load *)
-    inline_r. hrepeat (do 1 hss_r; steps_r). rewrite Hlookup. steps_r.
+    cInlineT. cStepsT. rewrite Hlookup. cStepsT.
 
     (* Store *)
-    inline_r. hrepeat (do 1 hss_r; steps_r). rewrite Hcmp2. steps_r.
+    cInlineT. cStepsT. rewrite Hcmp2. cStepsT.
 
     repeat case_bool_decide; simplify_eq.
     { (* Store *)
-      steps_r. inline_r. steps_r. rewrite Hlookup. steps_r.
+      cStepsT. cInlineT. cStepsT. rewrite Hlookup. cStepsT.
       iMod ((mem_ra_update v_upd) with "[B ↦]") as "[B ↦]"; et; [iFrame|].
 
-      forces_l. iFrame. iSplit; eauto. step. iFrame.
+      cForcesS. iFrame. iSplit; eauto. cStep. iFrame.
 
       repeat (iSplit; eauto).
       iExists _, _, _, _; repeat (iSplit; eauto).
@@ -406,14 +406,14 @@ Module MemIA. Section MemIA.
       - ii; ss; repeat destruct dec; ss; subst; eauto.
     }
 
-    steps_r. forces_l. case_bool_decide; simplify_eq. iFrame. iSplit; eauto. step. iFrame.
+    cStepsT. cForcesS. case_bool_decide; simplify_eq. iFrame. iSplit; eauto. cStep. iFrame.
     repeat (iSplit; eauto).
     iExists _, _, _, _; repeat (iSplit; eauto).
   (*SLOW*)Qed.
 
   Lemma sim : ISim.t open MemA MemI (MemA.init_cond csl genv) IstFull.
   Proof using.
-    init_sim.
+    cStartModSim.
     { iIntros "?"; iFrame.
       iExists _, _, ∅, ∅; iSplit; eauto.
       { rewrite ?right_id //. }

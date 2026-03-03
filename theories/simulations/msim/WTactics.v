@@ -127,9 +127,9 @@ Ltac _wstep_l :=
             iApply (wsim_assume_src_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); simpl);
         match goal with
         | [ |- environments.envs_entails _ (?P' -∗ _)] =>
-          unfold_pre_post_term P'; iIntrosFresh "ASM"; simpl_set
+          unfoldPrePost_term P'; iIntrosFresh "ASM"; simpl_set
         end
-      | unfold_pre_post_term P; iApply wsim_assume_src; iIntrosFresh "ASM"
+      | unfoldPrePost_term P; iApply wsim_assume_src; iIntrosFresh "ASM"
       ]
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, trigger (AssumeRes _) >>= _) _) ] =>
       iApply wsim_assume_res_src; iIntrosFresh "ASM"
@@ -149,14 +149,14 @@ Ltac wstep_l_core :=
   _wstep_l; s.
 
 Ltac wstep_l :=
-  norm_l with do 1 try wstep_l_core.
+  cNormS with do 1 try wstep_l_core.
 
 Ltac wsteps_l :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  (hrepeat (do 1 norm_l; wstep_l_core));
-  try norm_l;
+  (hrepeat (do 1 cNormS; wstep_l_core));
+  try cNormS;
   show_until marker.
 
 Ltac _wstep_r :=
@@ -177,9 +177,9 @@ Ltac _wstep_r :=
             iApply (wsim_guarantee_tgt_WP _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ (i:=c)); simpl);
         match goal with
         | [ |- environments.envs_entails _ (?P' -∗ _)] =>
-          unfold_pre_post_term P'; iIntrosFresh "GRT"; simpl_set
+          unfoldPrePost_term P'; iIntrosFresh "GRT"; simpl_set
         end
-      | unfold_pre_post_term P; iApply wsim_guarantee_tgt; iIntrosFresh "GRT"
+      | unfoldPrePost_term P; iApply wsim_guarantee_tgt; iIntrosFresh "GRT"
       ]
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, guarantee _ >>= _)) ] =>
       let name := fresh "GRT" in iApply wsim_guar_tgt; iIntros (name)
@@ -197,14 +197,14 @@ Ltac wstep_r_core :=
   _wstep_r; s.
 
 Ltac wstep_r :=
-  norm_r with do 1 try wstep_r_core.
+  cNormT with do 1 try wstep_r_core.
 
 Ltac wsteps_r :=
   let marker := fresh "MARKER" in
   set_marker marker;
   hide_ihyps;
-  (hrepeat (do 1 norm_r; wstep_r_core));
-  try norm_r;
+  (hrepeat (do 1 cNormT; wstep_r_core));
+  try cNormT;
   show_until marker.
 
 Ltac _wstep tac :=
@@ -240,9 +240,9 @@ Ltac _wforce_l :=
         );
         match goal with
         | [ |- environments.envs_entails _ (?P' ∗ _)] =>
-          unfold_pre_post_term P'; simpl_set
+          unfoldPrePost_term P'; simpl_set
         end
-      | unfold_pre_post_term P; iApply wsim_guarantee_src
+      | unfoldPrePost_term P; iApply wsim_guarantee_src
       ]
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ (_, unwrapN _ >>= _) _) ] =>
       iApply wsim_unwrapN_src
@@ -251,7 +251,7 @@ Ltac _wforce_l :=
   end.
 
 Ltac wforce_l_core :=
-  norm_l with do 1 _wforce_l.
+  cNormS with do 1 _wforce_l.
 
 Tactic Notation "wforce_l" :=
   wforce_l_core; [..|try iExists _].
@@ -277,23 +277,23 @@ Ltac _wforce_r :=
         );
         match goal with
         | [ |- environments.envs_entails _ (?P' ∗ _)] =>
-          unfold_pre_post_term P'; simpl_set
+          unfoldPrePost_term P'; simpl_set
         end
-      | unfold_pre_post_term P; iApply wsim_assume_tgt
+      | unfoldPrePost_term P; iApply wsim_assume_tgt
       ]
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, trigger (AssumeRes _) >>= _)) ] =>
       iApply wsim_assume_res_tgt
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, assume _ >>= _)) ] =>
       iApply wsim_asm_tgt
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, RealUpdate (idx_to_rel ?P ?Q) >>= _)) ] =>
-      unfold_pre_post_term P; unfold_pre_post_term Q; iApply wsim_ru_tgt_simple
+      unfoldPrePost_term P; unfoldPrePost_term Q; iApply wsim_ru_tgt_simple
   | [ |- environments.envs_entails _ (wsim _ _ _ _ _ _ _ _ _ _ _ _ (_, RealUpdate _ >>= _)) ] =>
       iApply wsim_ru_tgt_simple_general
   end
 .
 
 Ltac wforce_r_core :=
-  norm_r with do 1 _wforce_r; s.
+  cNormT with do 1 _wforce_r; s.
 
 Tactic Notation "wforce_r" :=
   wforce_r_core; try (iExists _).
@@ -305,11 +305,11 @@ Ltac wforces_r :=
   hrepeat do 1 wforce_r.
 
 Ltac winline_l :=
-  norm_l with
+  cNormS with
     do 1 iApply wsim_inline_src; [try prove_inline_cond|unfold_cris_defs].
 
 Ltac winline_r :=
-  norm_r with
+  cNormT with
     do 1 iApply wsim_inline_tgt; [try prove_inline_cond|unfold_cris_defs].
 
 Ltac wcall hyps :=

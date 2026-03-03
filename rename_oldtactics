@@ -1,0 +1,46 @@
+#!/bin/sh
+
+FILES=`find . -name "*.v"`
+
+my_subst iStartSim cStartFunSim $FILES
+my_subst init_simF cStartFunSim $FILES
+my_subst " init_sim" " cStartModSim" $FILES
+my_subst "step_l" "cStepS" $FILES
+my_subst "step_r" "cStepT" $FILES
+my_subst "steps_l" "cStepsS" $FILES
+my_subst "steps_r" "cStepsT" $FILES
+my_subst "force_l" "cForceS" $FILES
+my_subst "force_r" "cForceT" $FILES
+my_subst "forces_l" "cForcesS" $FILES
+my_subst "forces_r" "cForcesT" $FILES
+my_subst " call " " cCall " $FILES
+my_subst inline_l cInlineS $FILES
+my_subst inline_r cInlineT $FILES
+my_subst by_coind cByCoind $FILES
+my_subst " step" " cStep" $FILES
+my_subst "hss" "cSimpl" $FILES
+my_subst "norm_l" "cNormS" $FILES
+my_subst "norm_r" "cNormT" $FILES
+my_subst "prepend_ret_l" "prependRetS" $FILES
+my_subst "prepend_ret_r" "prependRetT" $FILES
+my_subst "append_ret_l" "appendRetS" $FILES
+my_subst "append_ret_r" "appendRetT" $FILES
+my_subst "unfold_iter_l" "unfoldIterS" $FILES
+my_subst "unfold_iter_r" "unfoldIterT" $FILES
+my_subst "unfold_iterC_l" "unfoldIterCS" $FILES
+my_subst "unfold_iterC_r" "unfoldIterCT" $FILES
+my_subst "unfold_pre_post" "unfoldPrePost" $FILES
+
+my_subst sch_yield_rr sYieldRR $FILES
+my_subst sch_yield_ir sYieldIR $FILES
+my_subst sch_yield_ii sYieldII $FILES
+my_subst sch_yield_l  sYieldS  $FILES
+
+my_subst apc_call_weaker apcCallWeak $FILES
+my_subst apc_call apcCall $FILES
+my_subst apc_l apcS $FILES
+
+my_subst "load_r" "mLoadT" $FILES
+my_subst "store_r" "mStoreT" $FILES
+
+rm -f `find . -name "*~"`
