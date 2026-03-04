@@ -323,6 +323,9 @@ Ltac wby_coind CIH :=
   iApply wsim_progress; iApply wsim_base; iIntrosFresh "WINV";
   iApply CIH.
 
+Tactic Notation "wbind" uconstr(RR) :=
+  iApply (wsim_bind _ _ _ _ _ _ _ _ _ _ _ _ _ RR).
+
 Tactic Notation "iIst" constr(IST) "with" constr(H) :=
 match goal with
     | |- environments.envs_entails _ (wsim ?fls ?flt ?Ist ?EE ?r ?g ?R_s ?R_t ?RR ?ps ?pt (?sts, _) (?stt, _)) =>
