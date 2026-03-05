@@ -186,6 +186,9 @@ Ltac iby_coind CIH :=
   iApply isim_progress; iApply isim_base;
   iApply CIH.
 
+Tactic Notation "ibind" uconstr(RR) :=
+  iApply (isim_bind _ _ _ _ _ _ _ _ _ RR).
+
 (** Special Tactics for RealUpdate **)
 
 (* Tactic Notation "iru_l_advanced" uconstr(P) := *)

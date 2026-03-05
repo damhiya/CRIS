@@ -35,6 +35,8 @@ Ltac cCall hyps := iwcase (do 1 icall hyps) (do 1 wcall hyps).
 
 Ltac cByCoind CIH := iwcase (do 1 iby_coind CIH) (do 1 wby_coind CIH).
 
+Tactic Notation "bind" uconstr(RR) := iwcase (do 1 ibind RR) (do 1 wbind RR).
+
 Ltac _clear_ibot H :=
   let ty := type of H in
   try match ty with context[ibot _ _ _ _ _ _ _ ⊢ _] => clear H end.
